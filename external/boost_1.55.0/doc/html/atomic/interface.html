@@ -1,0 +1,866 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Programming interfaces</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../atomic.html" title="Chapter&#160;4.&#160;Boost.Atomic">
+<link rel="prev" href="thread_coordination.html" title="Thread coordination using Boost.Atomic">
+<link rel="next" href="usage_examples.html" title="Usage examples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="thread_coordination.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../atomic.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="usage_examples.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="atomic.interface"></a><a class="link" href="interface.html" title="Programming interfaces">Programming interfaces</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="interface.html#atomic.interface.interface_memory_order">Memory order</a></span></dt>
+<dt><span class="section"><a href="interface.html#atomic.interface.interface_atomic_object">Atomic objects</a></span></dt>
+<dt><span class="section"><a href="interface.html#atomic.interface.interface_fences">Fences</a></span></dt>
+<dt><span class="section"><a href="interface.html#atomic.interface.feature_macros">Feature testing macros</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="atomic.interface.interface_memory_order"></a><a class="link" href="interface.html#atomic.interface.interface_memory_order" title="Memory order">Memory order</a>
+</h3></div></div></div>
+<p>
+        The enumeration <code class="literal">boost::memory_order</code> defines the following
+        values to represent memory ordering constraints:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Constant
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">memory_order_relaxed</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  No ordering constraint. Informally speaking, following operations
+                  may be reordered before, preceding operations may be reordered
+                  after the atomic operation. This constraint is suitable only when
+                  either a) further operations do not depend on the outcome of the
+                  atomic operation or b) ordering is enforced through stand-alone
+                  <code class="computeroutput"><span class="identifier">atomic_thread_fence</span></code>
+                  operations
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">memory_order_release</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Perform <code class="computeroutput"><span class="identifier">release</span></code>
+                  operation. Informally speaking, prevents all preceding memory operations
+                  to be reordered past this point.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">memory_order_acquire</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Perform <code class="computeroutput"><span class="identifier">acquire</span></code>
+                  operation. Informally speaking, prevents succeeding memory operations
+                  to be reordered before this point.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">memory_order_consume</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Perform <code class="computeroutput"><span class="identifier">consume</span></code>
+                  operation. More restrictive (and usually more efficient) than
+                  <code class="computeroutput"><span class="identifier">memory_order_acquire</span></code>
+                  as it only affects succeeding operations that are computationally-dependent
+                  on the value retrieved from an atomic variable.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">memory_order_acq_rel</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Perform both <code class="computeroutput"><span class="identifier">release</span></code>
+                  and <code class="computeroutput"><span class="identifier">acquire</span></code> operation
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">memory_order_seq_cst</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Enforce sequential consistency. Implies <code class="computeroutput"><span class="identifier">memory_order_acq_rel</span></code>,
+                  but additional enforces total order for all operations such qualified.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        See section <a class="link" href="thread_coordination.html" title="Thread coordination using Boost.Atomic"><span class="emphasis"><em>happens-before</em></span></a>
+        for explanation of the various ordering constraints.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="atomic.interface.interface_atomic_object"></a><a class="link" href="interface.html#atomic.interface.interface_atomic_object" title="Atomic objects">Atomic objects</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="interface.html#atomic.interface.interface_atomic_object.interface_atomic_generic"><code class="literal">boost::atomic&lt;<span class="emphasis"><em>T</em></span>&gt;</code>
+        template class</a></span></dt>
+<dt><span class="section"><a href="interface.html#atomic.interface.interface_atomic_object.interface_atomic_integral"><code class="literal">boost::atomic&lt;<span class="emphasis"><em>integral</em></span>&gt;</code>
+        template class</a></span></dt>
+<dt><span class="section"><a href="interface.html#atomic.interface.interface_atomic_object.interface_atomic_pointer"><code class="literal">boost::atomic&lt;<span class="emphasis"><em>pointer</em></span>&gt;</code>
+        template class</a></span></dt>
+</dl></div>
+<p>
+        <code class="literal">boost::atomic&lt;<span class="emphasis"><em>T</em></span>&gt;</code> provides methods
+        for atomically accessing variables of a suitable type <code class="literal"><span class="emphasis"><em>T</em></span></code>.
+        The type is suitable if it satisfies one of the following constraints:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            it is an integer, boolean, enum or pointer type
+          </li>
+<li class="listitem">
+            it is any other data-type (<code class="literal">class</code> or <code class="literal">struct</code>)
+            that has a non-throwing default constructor, that is copyable via <code class="literal">memcpy</code>
+            and comparable via <code class="literal">memcmp</code>.
+          </li>
+</ul></div>
+<p>
+        Note that all classes having a trivial default constructor, no destructor
+        and no virtual methods satisfy the second condition according to C++98. On
+        a given platform, other data-types <span class="emphasis"><em>may</em></span> also satisfy
+        this constraint, however you should exercise caution as the behaviour becomes
+        implementation-defined. Also be warned that structures with "padding"
+        between data members may compare non-equal via <code class="literal">memcmp</code>
+        even though all members are equal.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="atomic.interface.interface_atomic_object.interface_atomic_generic"></a><a class="link" href="interface.html#atomic.interface.interface_atomic_object.interface_atomic_generic" title="boost::atomic&lt;T&gt; template class"><code class="literal">boost::atomic&lt;<span class="emphasis"><em>T</em></span>&gt;</code>
+        template class</a>
+</h4></div></div></div>
+<p>
+          All atomic objects supports the following operations:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Syntax
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">atomic</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Initialize to an unspecified value
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">atomic</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">initial_value</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Initialize to <code class="literal">initial_value</code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">is_lock_free</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Checks if the atomic object is lock-free
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">load</span><span class="special">(</span><span class="identifier">memory_order</span>
+                    <span class="identifier">order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Return current value
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">store</span><span class="special">(</span><span class="identifier">T</span>
+                    <span class="identifier">value</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Write new value to atomic variable
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">exchange</span><span class="special">(</span><span class="identifier">T</span>
+                    <span class="identifier">new_value</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Exchange current value with <code class="computeroutput"><span class="identifier">new_value</span></code>,
+                    returning current value
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">compare_exchange_weak</span><span class="special">(</span><span class="identifier">T</span>
+                    <span class="special">&amp;</span> <span class="identifier">expected</span><span class="special">,</span> <span class="identifier">T</span>
+                    <span class="identifier">desired</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Compare current value with <code class="computeroutput"><span class="identifier">expected</span></code>,
+                    change it to <code class="computeroutput"><span class="identifier">desired</span></code>
+                    if matches. Returns <code class="computeroutput"><span class="keyword">true</span></code>
+                    if an exchange has been performed, and always writes the previous
+                    value back in <code class="computeroutput"><span class="identifier">expected</span></code>.
+                    May fail spuriously, so must generally be retried in a loop.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">compare_exchange_weak</span><span class="special">(</span><span class="identifier">T</span>
+                    <span class="special">&amp;</span> <span class="identifier">expected</span><span class="special">,</span> <span class="identifier">T</span>
+                    <span class="identifier">desired</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">success_order</span><span class="special">,</span> <span class="identifier">memory_order</span>
+                    <span class="identifier">failure_order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Compare current value with <code class="computeroutput"><span class="identifier">expected</span></code>,
+                    change it to <code class="computeroutput"><span class="identifier">desired</span></code>
+                    if matches. Returns <code class="computeroutput"><span class="keyword">true</span></code>
+                    if an exchange has been performed, and always writes the previous
+                    value back in <code class="computeroutput"><span class="identifier">expected</span></code>.
+                    May fail spuriously, so must generally be retried in a loop.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">compare_exchange_strong</span><span class="special">(</span><span class="identifier">T</span>
+                    <span class="special">&amp;</span> <span class="identifier">expected</span><span class="special">,</span> <span class="identifier">T</span>
+                    <span class="identifier">desired</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Compare current value with <code class="computeroutput"><span class="identifier">expected</span></code>,
+                    change it to <code class="computeroutput"><span class="identifier">desired</span></code>
+                    if matches. Returns <code class="computeroutput"><span class="keyword">true</span></code>
+                    if an exchange has been performed, and always writes the previous
+                    value back in <code class="computeroutput"><span class="identifier">expected</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">compare_exchange_strong</span><span class="special">(</span><span class="identifier">T</span>
+                    <span class="special">&amp;</span> <span class="identifier">expected</span><span class="special">,</span> <span class="identifier">T</span>
+                    <span class="identifier">desired</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">success_order</span><span class="special">,</span> <span class="identifier">memory_order</span>
+                    <span class="identifier">failure_order</span><span class="special">))</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Compare current value with <code class="computeroutput"><span class="identifier">expected</span></code>,
+                    change it to <code class="computeroutput"><span class="identifier">desired</span></code>
+                    if matches. Returns <code class="computeroutput"><span class="keyword">true</span></code>
+                    if an exchange has been performed, and always writes the previous
+                    value back in <code class="computeroutput"><span class="identifier">expected</span></code>.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          <code class="computeroutput"><span class="identifier">order</span></code> always has <code class="computeroutput"><span class="identifier">memory_order_seq_cst</span></code> as default parameter.
+        </p>
+<p>
+          The <code class="computeroutput"><span class="identifier">compare_exchange_weak</span></code>/<code class="computeroutput"><span class="identifier">compare_exchange_strong</span></code> variants taking
+          four parameters differ from the three parameter variants in that they allow
+          a different memory ordering constraint to be specified in case the operation
+          fails.
+        </p>
+<p>
+          In addition to these explicit operations, each <code class="literal">atomic&lt;<span class="emphasis"><em>T</em></span>&gt;</code>
+          object also supports implicit <code class="literal">store</code> and <code class="literal">load</code>
+          through the use of "assignment" and "conversion to <code class="literal">T</code>"
+          operators. Avoid using these operators, as they do not allow explicit specification
+          of a memory ordering constraint.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="atomic.interface.interface_atomic_object.interface_atomic_integral"></a><a class="link" href="interface.html#atomic.interface.interface_atomic_object.interface_atomic_integral" title="boost::atomic&lt;integral&gt; template class"><code class="literal">boost::atomic&lt;<span class="emphasis"><em>integral</em></span>&gt;</code>
+        template class</a>
+</h4></div></div></div>
+<p>
+          In addition to the operations listed in the previous section, <code class="literal">boost::atomic&lt;<span class="emphasis"><em>I</em></span>&gt;</code>
+          for integral types <code class="literal"><span class="emphasis"><em>I</em></span></code> supports the
+          following operations:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Syntax
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">fetch_add</span><span class="special">(</span><span class="identifier">T</span>
+                    <span class="identifier">v</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Add <code class="computeroutput"><span class="identifier">v</span></code> to variable,
+                    returning previous value
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">fetch_sub</span><span class="special">(</span><span class="identifier">T</span>
+                    <span class="identifier">v</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Subtract <code class="computeroutput"><span class="identifier">v</span></code> from
+                    variable, returning previous value
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">fetch_and</span><span class="special">(</span><span class="identifier">T</span>
+                    <span class="identifier">v</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Apply bit-wise "and" with <code class="computeroutput"><span class="identifier">v</span></code>
+                    to variable, returning previous value
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">fetch_or</span><span class="special">(</span><span class="identifier">T</span>
+                    <span class="identifier">v</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Apply bit-wise "or" with <code class="computeroutput"><span class="identifier">v</span></code>
+                    to variable, returning previous value
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">fetch_xor</span><span class="special">(</span><span class="identifier">T</span>
+                    <span class="identifier">v</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Apply bit-wise "xor" with <code class="computeroutput"><span class="identifier">v</span></code>
+                    to variable, returning previous value
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          <code class="computeroutput"><span class="identifier">order</span></code> always has <code class="computeroutput"><span class="identifier">memory_order_seq_cst</span></code> as default parameter.
+        </p>
+<p>
+          In addition to these explicit operations, each <code class="literal">boost::atomic&lt;<span class="emphasis"><em>I</em></span>&gt;</code>
+          object also supports implicit pre-/post- increment/decrement, as well as
+          the operators <code class="computeroutput"><span class="special">+=</span></code>, <code class="computeroutput"><span class="special">-=</span></code>, <code class="computeroutput"><span class="special">&amp;=</span></code>,
+          <code class="computeroutput"><span class="special">|=</span></code> and <code class="computeroutput"><span class="special">^=</span></code>.
+          Avoid using these operators, as they do not allow explicit specification
+          of a memory ordering constraint.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="atomic.interface.interface_atomic_object.interface_atomic_pointer"></a><a class="link" href="interface.html#atomic.interface.interface_atomic_object.interface_atomic_pointer" title="boost::atomic&lt;pointer&gt; template class"><code class="literal">boost::atomic&lt;<span class="emphasis"><em>pointer</em></span>&gt;</code>
+        template class</a>
+</h4></div></div></div>
+<p>
+          In addition to the operations applicable to all atomic object, <code class="literal">boost::atomic&lt;<span class="emphasis"><em>P</em></span>&gt;</code>
+          for pointer types <code class="literal"><span class="emphasis"><em>P</em></span></code> (other than
+          <code class="literal">void</code> pointers) support the following operations:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Syntax
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">fetch_add</span><span class="special">(</span><span class="identifier">ptrdiff_t</span>
+                    <span class="identifier">v</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Add <code class="computeroutput"><span class="identifier">v</span></code> to variable,
+                    returning previous value
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">fetch_sub</span><span class="special">(</span><span class="identifier">ptrdiff_t</span>
+                    <span class="identifier">v</span><span class="special">,</span>
+                    <span class="identifier">memory_order</span> <span class="identifier">order</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Subtract <code class="computeroutput"><span class="identifier">v</span></code> from
+                    variable, returning previous value
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          <code class="computeroutput"><span class="identifier">order</span></code> always has <code class="computeroutput"><span class="identifier">memory_order_seq_cst</span></code> as default parameter.
+        </p>
+<p>
+          In addition to these explicit operations, each <code class="literal">boost::atomic&lt;<span class="emphasis"><em>P</em></span>&gt;</code>
+          object also supports implicit pre-/post- increment/decrement, as well as
+          the operators <code class="computeroutput"><span class="special">+=</span></code>, <code class="computeroutput"><span class="special">-=</span></code>. Avoid using these operators, as they
+          do not allow explicit specification of a memory ordering constraint.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="atomic.interface.interface_fences"></a><a class="link" href="interface.html#atomic.interface.interface_fences" title="Fences">Fences</a>
+</h3></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Syntax
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">atomic_thread_fence</span><span class="special">(</span><span class="identifier">memory_order</span>
+                  <span class="identifier">order</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Issue fence for coordination with other threads.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">atomic_signal_fence</span><span class="special">(</span><span class="identifier">memory_order</span>
+                  <span class="identifier">order</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Issue fence for coordination with signal handler (only in same
+                  thread).
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="atomic.interface.feature_macros"></a><a class="link" href="interface.html#atomic.interface.feature_macros" title="Feature testing macros">Feature testing macros</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Atomic</strong></span> defines a number of macros
+        to allow compile-time detection whether an atomic data type is implemented
+        using "true" atomic operations, or whether an internal "lock"
+        is used to provide atomicity. The following macros will be defined to <code class="computeroutput"><span class="number">0</span></code> if operations on the data type always require
+        a lock, to <code class="computeroutput"><span class="number">1</span></code> if operations on
+        the data type may sometimes require a lock, and to <code class="computeroutput"><span class="number">2</span></code>
+        if they are always lock-free:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Macro
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_FLAG_LOCK_FREE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic_flag</span></code>
+                  is lock-free
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_BOOL_LOCK_FREE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code> is lock-free
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_CHAR_LOCK_FREE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span></code> (including signed/unsigned
+                  variants) is lock-free
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_CHAR16_T_LOCK_FREE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">char16_t</span><span class="special">&gt;</span></code> (including signed/unsigned
+                  variants) is lock-free
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_CHAR32_T_LOCK_FREE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">char32_t</span><span class="special">&gt;</span></code> (including signed/unsigned
+                  variants) is lock-free
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_WCHAR_T_LOCK_FREE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">wchar_t</span><span class="special">&gt;</span></code> (including signed/unsigned
+                  variants) is lock-free
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_SHORT_LOCK_FREE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">short</span><span class="special">&gt;</span></code> (including signed/unsigned
+                  variants) is lock-free
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_INT_LOCK_FREE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code> (including signed/unsigned
+                  variants) is lock-free
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_LONG_LOCK_FREE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">long</span><span class="special">&gt;</span></code> (including signed/unsigned
+                  variants) is lock-free
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_LLONG_LOCK_FREE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">long</span>
+                  <span class="keyword">long</span><span class="special">&gt;</span></code>
+                  (including signed/unsigned variants) is lock-free
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_INT128_LOCK_FREE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="identifier">int128_type</span><span class="special">&gt;</span></code> (including signed/unsigned
+                  variants) is lock-free. This macro is a non-standard extension.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_ADDRESS_LOCK_FREE</span></code>
+                  or <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_POINTER_LOCK_FREE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="identifier">T</span>
+                  <span class="special">*&gt;</span></code> is lock-free
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_THREAD_FENCE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic_thread_fence</span></code>
+                  function is lock-free
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ATOMIC_SIGNAL_FENCE</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Indicate whether <code class="computeroutput"><span class="identifier">atomic_signal_fence</span></code>
+                  function is lock-free
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011 Helge Bahmann<br>Copyright &#169; 2012 Tim Blechmann<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="thread_coordination.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../atomic.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="usage_examples.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

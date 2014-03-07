@@ -1,0 +1,1759 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Localization</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Boost.Regex">
+<link rel="up" href="../background_information.html" title="Background Information">
+<link rel="prev" href="headers.html" title="Headers">
+<link rel="next" href="thread_safety.html" title="Thread Safety">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="headers.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../background_information.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="thread_safety.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_background_information_locale">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_regex.background_information.locale"></a><a class="link" href="locale.html" title="Localization">Localization</a>
+</h3></div></div></div>
+<p>
+        Boost.Regex provides extensive support for run-time localization, the localization
+        model used can be split into two parts: front-end and back-end.
+      </p>
+<p>
+        Front-end localization deals with everything which the user sees - error
+        messages, and the regular expression syntax itself. For example a French
+        application could change [[:word:]] to [[:mot:]] and \w to \m. Modifying
+        the front end locale requires active support from the developer, by providing
+        the library with a message catalogue to load, containing the localized strings.
+        Front-end locale is affected by the LC_MESSAGES category only.
+      </p>
+<p>
+        Back-end localization deals with everything that occurs after the expression
+        has been parsed - in other words everything that the user does not see or
+        interact with directly. It deals with case conversion, collation, and character
+        class membership. The back-end locale does not require any intervention from
+        the developer - the library will acquire all the information it requires
+        for the current locale from the underlying operating system / run time library.
+        This means that if the program user does not interact with regular expressions
+        directly - for example if the expressions are embedded in your C++ code -
+        then no explicit localization is required, as the library will take care
+        of everything for you. For example embedding the expression [[:word:]]+ in
+        your code will always match a whole word, if the program is run on a machine
+        with, for example, a Greek locale, then it will still match a whole word,
+        but in Greek characters rather than Latin ones. The back-end locale is affected
+        by the LC_TYPE and LC_COLLATE categories.
+      </p>
+<p>
+        There are three separate localization mechanisms supported by Boost.Regex:
+      </p>
+<h5>
+<a name="boost_regex.background_information.locale.h0"></a>
+        <span class="phrase"><a name="boost_regex.background_information.locale.win32_localization_model_"></a></span><a class="link" href="locale.html#boost_regex.background_information.locale.win32_localization_model_">Win32
+        localization model.</a>
+      </h5>
+<p>
+        This is the default model when the library is compiled under Win32, and is
+        encapsulated by the traits class <code class="computeroutput"><span class="identifier">w32_regex_traits</span></code>.
+        When this model is in effect each <a class="link" href="../ref/basic_regex.html" title="basic_regex"><code class="computeroutput"><span class="identifier">basic_regex</span></code></a> object gets it's own
+        LCID, by default this is the users default setting as returned by GetUserDefaultLCID,
+        but you can call imbue on the <code class="computeroutput"><span class="identifier">basic_regex</span></code>
+        object to set it's locale to some other LCID if you wish. All the settings
+        used by Boost.Regex are acquired directly from the operating system bypassing
+        the C run time library. Front-end localization requires a resource dll, containing
+        a string table with the user-defined strings. The traits class exports the
+        function:
+      </p>
+<pre class="programlisting"><span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">set_message_catalogue</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">);</span>
+</pre>
+<p>
+        which needs to be called with a string identifying the name of the resource
+        dll, before your code compiles any regular expressions (but not necessarily
+        before you construct any <code class="computeroutput"><span class="identifier">basic_regex</span></code>
+        instances):
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">w32_regex_traits</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">set_message_catalogue</span><span class="special">(</span><span class="string">"mydll.dll"</span><span class="special">);</span>
+</pre>
+<p>
+        The library provides full Unicode support under NT, under Windows 9x the
+        library degrades gracefully - characters 0 to 255 are supported, the remainder
+        are treated as "unknown" graphic characters.
+      </p>
+<h5>
+<a name="boost_regex.background_information.locale.h1"></a>
+        <span class="phrase"><a name="boost_regex.background_information.locale.c_localization_model_"></a></span><a class="link" href="locale.html#boost_regex.background_information.locale.c_localization_model_">C
+        localization model.</a>
+      </h5>
+<p>
+        This model has been deprecated in favor of the C++ locale for all non-Windows
+        compilers that support it. This locale is encapsulated by the traits class
+        <code class="computeroutput"><span class="identifier">c_regex_traits</span></code>, Win32 users
+        can force this model to take effect by defining the pre-processor symbol
+        BOOST_REGEX_USE_C_LOCALE. When this model is in effect there is a single
+        global locale, as set by <code class="computeroutput"><span class="identifier">setlocale</span></code>.
+        All settings are acquired from your run time library, consequently Unicode
+        support is dependent upon your run time library implementation.
+      </p>
+<p>
+        Front end localization is not supported.
+      </p>
+<p>
+        Note that calling setlocale invalidates all compiled regular expressions,
+        calling <code class="computeroutput"><span class="identifier">setlocale</span><span class="special">(</span><span class="identifier">LC_ALL</span><span class="special">,</span> <span class="string">"C"</span><span class="special">)</span></code>
+        will make this library behave equivalent to most traditional regular expression
+        libraries including version 1 of this library.
+      </p>
+<h5>
+<a name="boost_regex.background_information.locale.h2"></a>
+        <span class="phrase"><a name="boost_regex.background_information.locale.c___localization_model_"></a></span><a class="link" href="locale.html#boost_regex.background_information.locale.c___localization_model_">C++
+        localization model.</a>
+      </h5>
+<p>
+        This model is the default for non-Windows compilers.
+      </p>
+<p>
+        When this model is in effect each instance of <a class="link" href="../ref/basic_regex.html" title="basic_regex"><code class="computeroutput"><span class="identifier">basic_regex</span></code></a> has its own instance
+        of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span></code>, class <a class="link" href="../ref/basic_regex.html" title="basic_regex"><code class="computeroutput"><span class="identifier">basic_regex</span></code></a> also has a member function
+        <code class="computeroutput"><span class="identifier">imbue</span></code> which allows the locale
+        for the expression to be set on a per-instance basis. Front end localization
+        requires a POSIX message catalogue, which will be loaded via the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">messages</span></code>
+        facet of the expression's locale, the traits class exports the symbol:
+      </p>
+<pre class="programlisting"><span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">set_message_catalogue</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">);</span>
+</pre>
+<p>
+        which needs to be called with a string identifying the name of the message
+        catalogue, before your code compiles any regular expressions (but not necessarily
+        before you construct any basic_regex instances):
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">cpp_regex_traits</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">set_message_catalogue</span><span class="special">(</span><span class="string">"mycatalogue"</span><span class="special">);</span>
+</pre>
+<p>
+        Note that calling <code class="computeroutput"><span class="identifier">basic_regex</span><span class="special">&lt;&gt;::</span><span class="identifier">imbue</span></code>
+        will invalidate any expression currently compiled in that instance of <a class="link" href="../ref/basic_regex.html" title="basic_regex"><code class="computeroutput"><span class="identifier">basic_regex</span></code></a>.
+      </p>
+<p>
+        Finally note that if you build the library with a non-default localization
+        model, then the appropriate pre-processor symbol (BOOST_REGEX_USE_C_LOCALE
+        or BOOST_REGEX_USE_CPP_LOCALE) must be defined both when you build the support
+        library, and when you include <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        or <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">cregex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        in your code. The best way to ensure this is to add the #define to <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">/</span><span class="identifier">user</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>.
+      </p>
+<h5>
+<a name="boost_regex.background_information.locale.h3"></a>
+        <span class="phrase"><a name="boost_regex.background_information.locale.providing_a_message_catalogue"></a></span><a class="link" href="locale.html#boost_regex.background_information.locale.providing_a_message_catalogue">Providing
+        a message catalogue</a>
+      </h5>
+<p>
+        In order to localize the front end of the library, you need to provide the
+        library with the appropriate message strings contained either in a resource
+        dll's string table (Win32 model), or a POSIX message catalogue (C++ models).
+        In the latter case the messages must appear in message set zero of the catalogue.
+        The messages and their id's are as follows:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Message
+                </p>
+              </th>
+<th>
+                <p>
+                  id
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+<th>
+                <p>
+                  Default value
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  101
+                </p>
+              </td>
+<td>
+                <p>
+                  The character used to start a sub-expression.
+                </p>
+              </td>
+<td>
+                <p>
+                  "("
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  102
+                </p>
+              </td>
+<td>
+                <p>
+                  The character used to end a sub-expression declaration.
+                </p>
+              </td>
+<td>
+                <p>
+                  ")"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  103
+                </p>
+              </td>
+<td>
+                <p>
+                  The character used to denote an end of line assertion.
+                </p>
+              </td>
+<td>
+                <p>
+                  "$"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  104
+                </p>
+              </td>
+<td>
+                <p>
+                  The character used to denote the start of line assertion.
+                </p>
+              </td>
+<td>
+                <p>
+                  "^"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  105
+                </p>
+              </td>
+<td>
+                <p>
+                  The character used to denote the "match any character expression".
+                </p>
+              </td>
+<td>
+                <p>
+                  "."
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  106
+                </p>
+              </td>
+<td>
+                <p>
+                  The match zero or more times repetition operator.
+                </p>
+              </td>
+<td>
+                <p>
+                  "*"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  107
+                </p>
+              </td>
+<td>
+                <p>
+                  The match one or more repetition operator.
+                </p>
+              </td>
+<td>
+                <p>
+                  "+"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  108
+                </p>
+              </td>
+<td>
+                <p>
+                  The match zero or one repetition operator.
+                </p>
+              </td>
+<td>
+                <p>
+                  "?"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  109
+                </p>
+              </td>
+<td>
+                <p>
+                  The character set opening character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "["
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  110
+                </p>
+              </td>
+<td>
+                <p>
+                  The character set closing character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "]"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  111
+                </p>
+              </td>
+<td>
+                <p>
+                  The alternation operator.
+                </p>
+              </td>
+<td>
+                <p>
+                  "|"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  112
+                </p>
+              </td>
+<td>
+                <p>
+                  The escape character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "\"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  113
+                </p>
+              </td>
+<td>
+                <p>
+                  The hash character (not currently used).
+                </p>
+              </td>
+<td>
+                <p>
+                  "#"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  114
+                </p>
+              </td>
+<td>
+                <p>
+                  The range operator.
+                </p>
+              </td>
+<td>
+                <p>
+                  "-"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  115
+                </p>
+              </td>
+<td>
+                <p>
+                  The repetition operator opening character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "{"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  116
+                </p>
+              </td>
+<td>
+                <p>
+                  The repetition operator closing character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "}"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  117
+                </p>
+              </td>
+<td>
+                <p>
+                  The digit characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "0123456789"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  118
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the word boundary assertion.
+                </p>
+              </td>
+<td>
+                <p>
+                  "b"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  119
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the non-word boundary assertion.
+                </p>
+              </td>
+<td>
+                <p>
+                  "B"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  120
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the word-start boundary assertion.
+                </p>
+              </td>
+<td>
+                <p>
+                  "&lt;"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  121
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the word-end boundary assertion.
+                </p>
+              </td>
+<td>
+                <p>
+                  "&gt;"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  122
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  any word character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "w"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  123
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  a non-word character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "W"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  124
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  a start of buffer assertion.
+                </p>
+              </td>
+<td>
+                <p>
+                  "`A"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  125
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  an end of buffer assertion.
+                </p>
+              </td>
+<td>
+                <p>
+                  "'z"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  126
+                </p>
+              </td>
+<td>
+                <p>
+                  The newline character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "\n"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  127
+                </p>
+              </td>
+<td>
+                <p>
+                  The comma separator.
+                </p>
+              </td>
+<td>
+                <p>
+                  ","
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  128
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the bell character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "a"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  129
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the form feed character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "f"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  130
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the newline character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "n"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  131
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the carriage return character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "r"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  132
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the tab character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "t"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  133
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the vertical tab character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "v"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  134
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the start of a hexadecimal character constant.
+                </p>
+              </td>
+<td>
+                <p>
+                  "x"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  135
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the start of an ASCII escape character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "c"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  136
+                </p>
+              </td>
+<td>
+                <p>
+                  The colon character.
+                </p>
+              </td>
+<td>
+                <p>
+                  ":"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  137
+                </p>
+              </td>
+<td>
+                <p>
+                  The equals character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "="
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  138
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the ASCII escape character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "e"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  139
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  any lower case character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "l"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  140
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  any non-lower case character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "L"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  141
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  any upper case character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "u"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  142
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  any non-upper case character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "U"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  143
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  any space character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "s"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  144
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  any non-space character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "S"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  145
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  any digit character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "d"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  146
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  any non-digit character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "D"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  147
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the end quote operator.
+                </p>
+              </td>
+<td>
+                <p>
+                  "E"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  148
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the start quote operator.
+                </p>
+              </td>
+<td>
+                <p>
+                  "Q"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  149
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  a Unicode combining character sequence.
+                </p>
+              </td>
+<td>
+                <p>
+                  "X"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  150
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  any single character.
+                </p>
+              </td>
+<td>
+                <p>
+                  "C"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  151
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  end of buffer operator.
+                </p>
+              </td>
+<td>
+                <p>
+                  "Z"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  152
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceded by an escape character represents
+                  the continuation assertion.
+                </p>
+              </td>
+<td>
+                <p>
+                  "G"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  153
+                </p>
+              </td>
+<td>
+                <p>
+                  The character which when preceeded by (? indicates a zero width
+                  negated forward lookahead assert.
+                </p>
+              </td>
+<td>
+                <p>
+                  !
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        Custom error messages are loaded as follows:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Message ID
+                </p>
+              </th>
+<th>
+                <p>
+                  Error message ID
+                </p>
+              </th>
+<th>
+                <p>
+                  Default string
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  201
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_NOMATCH
+                </p>
+              </td>
+<td>
+                <p>
+                  "No match"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  202
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_BADPAT
+                </p>
+              </td>
+<td>
+                <p>
+                  "Invalid regular expression"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  203
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_ECOLLATE
+                </p>
+              </td>
+<td>
+                <p>
+                  "Invalid collation character"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  204
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_ECTYPE
+                </p>
+              </td>
+<td>
+                <p>
+                  "Invalid character class name"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  205
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_EESCAPE
+                </p>
+              </td>
+<td>
+                <p>
+                  "Trailing backslash"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  206
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_ESUBREG
+                </p>
+              </td>
+<td>
+                <p>
+                  "Invalid back reference"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  207
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_EBRACK
+                </p>
+              </td>
+<td>
+                <p>
+                  "Unmatched [ or <code class="literal">" </code>
+                </p>
+              </td>
+<td>
+                <p>
+                  [208
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_EPAREN
+                </p>
+              </td>
+<td>
+                <p>
+                  "Unmatched ( or \("
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  209
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_EBRACE
+                </p>
+              </td>
+<td>
+                <p>
+                  "Unmatched \{"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  210
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_BADBR
+                </p>
+              </td>
+<td>
+                <p>
+                  "Invalid content of \{\}"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  211
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_ERANGE
+                </p>
+              </td>
+<td>
+                <p>
+                  "Invalid range end"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  212
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_ESPACE
+                </p>
+              </td>
+<td>
+                <p>
+                  "Memory exhausted"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  213
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_BADRPT
+                </p>
+              </td>
+<td>
+                <p>
+                  "Invalid preceding regular expression"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  214
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_EEND
+                </p>
+              </td>
+<td>
+                <p>
+                  "Premature end of regular expression"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  215
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_ESIZE
+                </p>
+              </td>
+<td>
+                <p>
+                  "Regular expression too big"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  216
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_ERPAREN
+                </p>
+              </td>
+<td>
+                <p>
+                  "Unmatched ) or \)"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  217
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_EMPTY
+                </p>
+              </td>
+<td>
+                <p>
+                  "Empty expression"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  218
+                </p>
+              </td>
+<td>
+                <p>
+                  REG_E_UNKNOWN
+                </p>
+              </td>
+<td>
+                <p>
+                  "Unknown error"
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        Custom character class names are loaded as followed:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Message ID
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+<th>
+                <p>
+                  Equivalent default class name
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  300
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for alphanumeric characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "alnum"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  301
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for alphabetic characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "alpha"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  302
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for control characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "cntrl"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  303
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for digit characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "digit"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  304
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for graphics characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "graph"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  305
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for lower case characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "lower"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  306
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for printable characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "print"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  307
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for punctuation characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "punct"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  308
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for space characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "space"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  309
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for upper case characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "upper"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  310
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for hexadecimal characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "xdigit"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  311
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for blank characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "blank"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  312
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for word characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "word"
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  313
+                </p>
+              </td>
+<td>
+                <p>
+                  The character class name for Unicode characters.
+                </p>
+              </td>
+<td>
+                <p>
+                  "unicode"
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        Finally, custom collating element names are loaded starting from message
+        id 400, and terminating when the first load thereafter fails. Each message
+        looks something like: "tagname string" where tagname is the name
+        used inside [[.tagname.]] and string is the actual text of the collating
+        element. Note that the value of collating element [[.zero.]] is used for
+        the conversion of strings to numbers - if you replace this with another value
+        then that will be used for string parsing - for example use the Unicode character
+        0x0660 for [[.zero.]] if you want to use Unicode Arabic-Indic digits in your
+        regular expressions in place of Latin digits.
+      </p>
+<p>
+        Note that the POSIX defined names for character classes and collating elements
+        are always available - even if custom names are defined, in contrast, custom
+        error messages, and custom syntax messages replace the default ones.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="headers.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../background_information.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="thread_safety.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

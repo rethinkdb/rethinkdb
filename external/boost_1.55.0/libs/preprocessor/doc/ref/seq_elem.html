@@ -1,0 +1,59 @@
+<html>
+<head>
+        <title>BOOST_PP_SEQ_ELEM</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+		<div style="margin-left: 0px;">
+			The <b>BOOST_PP_SEQ_ELEM</b> macro extracts an element from a <i>seq</i>.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_ELEM</b>(<i>i</i>, <i>seq</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>i</dt>
+			<dd>
+				The zero-based index of the element to be extracted.
+			</dd>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> from which an element is to be extracted.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			The index <i>i</i> must be in the range of <i>0</i> to <b>BOOST_PP_SEQ_SIZE</b>(<i>seq</i>) 
+			- <i>1</i>.
+		</div>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/elem.html">&lt;boost/preprocessor/seq/elem.hpp&gt;</a>
+		</div>
+		<h4>
+			Sample Code
+		</h4>
+		<div>
+			<pre>#include &lt;<a href="../headers/seq/elem.html">boost/preprocessor/seq/elem.hpp</a>&gt;<br><br><a href="seq_elem.html">BOOST_PP_SEQ_ELEM</a>(1, (a)(b)(c)) // expands to b<br><br>#define SEQ \<br>   (0)(1)(2)(3)(4)(5)(6)(7)(8)(9) \<br>   (10)(11)(12)(13)(14)(15)(16)(17)(18)(19) \<br>   (20)(21)(22)(23)(24)(25)(26)(27)(28)(29) \<br>   (30)(31)(32)(33)(34)(35)(36)(37)(38)(39) \<br>   (40)(41)(42)(43)(44)(45)(46)(47)(48)(49) \<br>   (50)(51)(52)(53)(54)(55)(56)(57)(58)(59) \<br>   (60)(61)(62)(63)(64)(65)(66)(67)(68)(69) \<br>   (70)(71)(72)(73)(74)(75)(76)(77)(78)(79) \<br>   (80)(81)(82)(83)(84)(85)(86)(87)(88)(89) \<br>   (90)(91)(92)(93)(94)(95)(96)(97)(98)(99) \<br>   /**/<br><br><a href="seq_elem.html">BOOST_PP_SEQ_ELEM</a>(88, SEQ) // expands to 88<br></pre>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		<br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:has_trivial_assign has_trivial_assign]
+   template <class T>
+   struct has_trivial_assign : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) type with a trivial assignment-operator
+then inherits from __true_type, otherwise inherits from __false_type.
+
+If a type has a trivial assignment-operator then the operator has the same effect
+as copying the bits of one object to the other: 
+calls to the operator can be safely replaced with a call to `memcpy`.
+
+__compat If the compiler does not support partial-specialization of class 
+templates, then this template can not be used with function types.
+
+Without some (as yet unspecified) help from the compiler, 
+has_trivial_assign will never report that a user-defined class or struct has a 
+trivial constructor; this is always safe, if possibly sub-optimal.  
+Currently (May 2011) compilers more recent than Visual C++ 8, GCC-4.3, Greenhills 6.0, 
+Intel-11.0, and Codegear have the necessary compiler __intrinsics to ensure that this 
+trait "just works".  You may also test to see if the necessary __intrinsics are available 
+by checking to see if the macro `BOOST_HAS_TRIVIAL_ASSIGN` is defined.
+
+
+__std_ref 12.8p11.
+
+__header ` #include <boost/type_traits/has_trivial_assign.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+[:`has_trivial_assign<int>` inherits from `__true_type`.]
+
+[:`has_trivial_assign<char*>::type` is the type `__true_type`.]
+
+[:`has_trivial_assign<int (*)(long)>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`has_trivial_assign<MyClass>::value` is an integral constant 
+expression that evaluates to /false/.]
+
+[:`has_trivial_assign<T>::value_type` is the type `bool`.]
+
+[endsect]
+

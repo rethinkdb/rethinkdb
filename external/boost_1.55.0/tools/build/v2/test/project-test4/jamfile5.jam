@@ -1,0 +1,6 @@
+
+project test : requirements <include>everything <threading>single ;
+
+make a.exe : a.obj lib//b.obj/<variant>release : yfc-link ;
+make b.exe : a.obj : yfc-link : <define>MACROS ;
+make a.obj : a.cpp : yfc-compile ;

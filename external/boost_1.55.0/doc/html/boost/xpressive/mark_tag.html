@@ -1,0 +1,108 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct mark_tag</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../xpressive/reference.html#header.boost.xpressive.regex_primitives_hpp" title="Header &lt;boost/xpressive/regex_primitives.hpp&gt;">
+<link rel="prev" href="regex_iterator.html" title="Struct template regex_iterator">
+<link rel="next" href="inf.html" title="Global inf">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_iterator.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_primitives_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="inf.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.xpressive.mark_tag"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct mark_tag</span></h2>
+<p>boost::xpressive::mark_tag &#8212; Sub-match placeholder type, used to create named captures in static regexes. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../xpressive/reference.html#header.boost.xpressive.regex_primitives_hpp" title="Header &lt;boost/xpressive/regex_primitives.hpp&gt;">boost/xpressive/regex_primitives.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="mark_tag.html" title="Struct mark_tag">mark_tag</a> <span class="special">{</span>
+  <span class="comment">// <a class="link" href="mark_tag.html#boost.xpressive.mark_tagconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="mark_tag.html#idp163819944-bb"><span class="identifier">mark_tag</span></a><span class="special">(</span><span class="keyword">int</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="mark_tag.html#idp163818584-bb">private static functions</a></span>
+  <span class="keyword">static</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="mark_tag.html#idp163818792-bb"><span class="identifier">make_tag</span></a><span class="special">(</span><span class="keyword">int</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp257118088"></a><h2>Description</h2>
+<p><code class="computeroutput"><a class="link" href="mark_tag.html" title="Struct mark_tag">mark_tag</a></code> is the type of the global sub-match placeholders <code class="computeroutput">s0</code>, <code class="computeroutput">s1</code>, etc.. You can use the <code class="computeroutput"><a class="link" href="mark_tag.html" title="Struct mark_tag">mark_tag</a></code> type to create your own sub-match placeholders with more meaningful names. This is roughly equivalent to the "named capture" feature of dynamic regular expressions.</p>
+<p>To create a named sub-match placeholder, initialize it with a unique integer. The integer must only be unique within the regex in which the placeholder is used. Then you can use it within static regexes to created sub-matches by assigning a sub-expression to it, or to refer back to already created sub-matches.</p>
+<pre class="programlisting"><span class="special">*</span>  <span class="identifier">mark_tag</span> <span class="identifier">number</span><span class="special">(</span><span class="number">1</span><span class="special">)</span><span class="special">;</span> <span class="comment">// "number" is now equivalent to "s1"</span>
+<span class="special">*</span>  <span class="comment">// Match a number, followed by a space and the same number again</span>
+<span class="special">*</span>  <span class="identifier">sregex</span> <span class="identifier">rx</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">number</span> <span class="special">=</span> <span class="special">+</span><span class="identifier">_d</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="char">' '</span> <span class="special">&gt;&gt;</span> <span class="identifier">number</span><span class="special">;</span>
+<span class="special">*</span>  
+</pre>
+<p>After a successful <code class="computeroutput">regex_match()</code> or <code class="computeroutput">regex_search()</code>, the sub-match placeholder can be used to index into the <code class="computeroutput"><a class="link" href="match_results.html" title="Struct template match_results">match_results</a>&lt;&gt;</code> object to retrieve the corresponding sub-match. </p>
+<div class="refsect2">
+<a name="idp257130984"></a><h3>
+<a name="boost.xpressive.mark_tagconstruct-copy-destruct"></a><code class="computeroutput">mark_tag</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp163819944-bb"></a><span class="identifier">mark_tag</span><span class="special">(</span><span class="keyword">int</span> mark_nbr<span class="special">)</span><span class="special">;</span></pre>Initialize a <code class="computeroutput"><a class="link" href="mark_tag.html" title="Struct mark_tag">mark_tag</a></code> placeholder. <p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">mark_nbr</code></span></p></td>
+<td><p>An integer that uniquely identifies this <code class="computeroutput"><code class="computeroutput"><a class="link" href="mark_tag.html" title="Struct mark_tag">mark_tag</a></code></code> within the static regexes in which this <code class="computeroutput"><code class="computeroutput"><a class="link" href="mark_tag.html" title="Struct mark_tag">mark_tag</a></code></code> will be used. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">mark_nbr &gt; 0</code> </p></td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp257138952"></a><h3>
+<a name="idp163818584-bb"></a><code class="computeroutput">mark_tag</code> private static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a name="idp163818792-bb"></a><span class="identifier">make_tag</span><span class="special">(</span><span class="keyword">int</span> mark_nbr<span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_iterator.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_primitives_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="inf.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

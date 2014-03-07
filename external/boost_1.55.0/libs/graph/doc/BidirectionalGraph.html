@@ -1,0 +1,175 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Bidirectional</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H2>
+<A NAME="concept:BidirectionalGraph"></A>
+BidirectionalGraph
+</H2>
+
+<P>
+The BidirectionalGraph concept refines <a
+href="./IncidenceGraph.html">IncidenceGraph</a> and adds the
+requirement for efficient access to the in-edges of each vertex. This
+concept is separated from <a
+href="./IncidenceGraph.html">IncidenceGraph</a> because for directed
+graphs efficient access to in-edges typically requires more storage
+space, and many algorithms do not require access to in-edges.  For
+undirected graphs this is not an issue, since the <TT>in_edges()</TT>
+and <TT>out_edges()</TT> functions are the same, they both return the
+edges incident to the vertex.
+
+<H3>Refinement of</H3>
+
+<a href="./IncidenceGraph.html">IncidenceGraph</a>
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>G</tt></TD>
+<TD>A type that is a model of Graph.</TD>
+</TR>
+
+<TR>
+<TD><tt>g</tt></TD>
+<TD>An object of type <tt>G</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>v</tt></TD>
+<TD>An object of type <tt>boost::graph_traits&lt;G&gt;::vertex_descriptor</tt>.</TD>
+</TR>
+
+</table>
+
+<H3>Associated Types</H3>
+
+<Table border>
+
+<tr>
+<td><tt>boost::graph_traits&lt;G&gt;::traversal_category</tt><br><br>
+ This tag type must be convertible to <tt>bidirectional_graph_tag</tt>.
+</td>
+</tr>
+
+<TR>
+<TD><pre>boost::graph_traits&lt;G&gt;::in_edge_iterator</pre>
+An in-edge iterator for a vertex <i>v</i> provides access to the
+in-edges of <i>v</i>.  As such, the value type of an in-edge iterator
+is the edge descriptor type of its graph. An in-edge iterator must
+meet the requirements of <a href="../../utility/MultiPassInputIterator.html">MultiPassInputIterator</a>.
+</TD>
+</TR>
+
+</Table>
+
+<h3>Valid Expressions</h3>
+
+<Table border>
+
+<tr>
+<td><a name="sec:in-edges"><TT>in_edges(v, g)</TT></a></TD>
+<TD>
+Returns an iterator-range providing access to the
+in-edges (for directed graphs) or incident edges (for
+undirected graphs) of vertex <TT>v</TT> in graph <TT>g</TT>.
+For both directed and undirected graphs, the target of
+an out-edge is required to be vertex <tt>v</tt> and the
+source is required to be a vertex that is adjacent to <tt>v</tt>.
+<br>
+Return type: <TT>std::pair&lt;in_edge_iterator, in_edge_iterator&gt;</TT>
+</TD>
+</TR>
+
+<tr>
+<TD><TT>in_degree(v, g)</TT></TD>
+<TD>
+Returns the number of in-edges (for directed graphs) or the
+number of incident edges (for undirected graphs) of vertex <TT>v</TT>
+in graph <TT>g</TT>.<br>
+Return type: <TT>degree_size_type</TT>
+</TD>
+</TR>
+
+<tr>
+<TD><TT>degree(v, g)</TT></TD>
+<TD>Returns the number of in-edges plus out-edges (for directed graphs) or the
+number of incident edges (for undirected graphs) of vertex <TT>v</TT>
+in graph <TT>g</TT>.<br>
+Return type: <TT>degree_size_type</TT>
+</TD>
+</TR>
+
+</Table>
+
+<H3>Models</H3>
+
+<ul>
+<li><a href="./adjacency_list.html"><tt>adjacency_list</tt></a> with <tt>Directed=bidirectionalS</tt></li>
+<li><a href="./adjacency_list.html"><tt>adjacency_list</tt></a> with <tt>Directed=undirectedS</tt></li>
+</ul>
+
+
+<H3>Complexity guarantees</H3>
+
+The <TT>in_edges()</TT> function is required to be constant time.  The
+<tt>in_degree()</tt> and <tt>degree()</tt> functions must be linear in
+the number of in-edges (for directed graphs) or incident edges (for
+undirected graphs).
+
+<H3>See Also</H3>
+
+<a href="./graph_concepts.html">Graph concepts</a>
+
+<H3>Concept Checking Class</H3>
+
+<PRE>
+  template &lt;class G&gt;
+  struct BidirectionalGraphConcept
+  {
+    typedef typename boost::graph_traits&lt;G&gt;::in_edge_iterator
+      in_edge_iterator;
+    void constraints() {
+      BOOST_CONCEPT_ASSERT(( IncidenceGraphConcept&lt;G&gt; ));
+      BOOST_CONCEPT_ASSERT(( MultiPassInputIteratorConcept&lt;in_edge_iterator&gt; ));
+
+      p = in_edges(v, g);
+      e = *p.first;
+      const_constraints(g);
+    }
+    void const_constraints(const G&amp; g) {
+      p = in_edges(v, g);
+      e = *p.first;
+    }
+    std::pair&lt;in_edge_iterator, in_edge_iterator&gt; p;
+    typename boost::graph_traits&lt;G&gt;::vertex_descriptor v;
+    typename boost::graph_traits&lt;G&gt;::edge_descriptor e;
+    G g;
+  };
+</PRE>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

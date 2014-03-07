@@ -1,0 +1,700 @@
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+		<title>Header boost/utility.hpp Documentation</title>
+	</head>
+	<body bgcolor="#FFFFFF" text="#000000">
+		<h1><img src="../../boost.png" alt="boost.png (6897 bytes)" align="center" WIDTH="277" HEIGHT="86">Header
+			<a href="../../boost/utility.hpp">boost/utility.hpp</a></h1>
+		<p>The entire contents of the header <code><a href="../../boost/utility.hpp">&lt;boost/utility.hpp&gt;</a></code>
+			are in <code>namespace boost</code>.</p>
+		<h2>Contents</h2>
+		<ul>
+			<li>
+				Class templates supporting the <a href="base_from_member.html">base-from-member 
+					idiom</a></li>
+			<li>
+				Function templates <a href="#checked_delete">checked_delete() and 
+					checked_array_delete()</a></li>
+			<li>
+				Function templates <a href="#functions_next_prior">next() and prior()</a></li>
+			<li>
+				Class <a href="#Class_noncopyable">noncopyable</a></li>
+			<li>
+				Function template <a href="#addressof">addressof()</a></li>
+                        <li>Class template <a href="#result_of">result_of</a></li>
+                        <li>
+				Macro <a href="#BOOST_BINARY">BOOST_BINARY</a></li>
+                        <li><a href="index.html">Other utilities not part of <code>utility.hpp</code></a></li>
+		</ul>
+		<h2>
+			Function templates <a name="checked_delete">checked_delete</a>() and 
+			checked_array_delete()</h2>
+		<p>See <a href="checked_delete.html">separate documentation</a>.</p>
+		<h2>
+			<a name="functions_next_prior">Function</a> templates next() and prior()</h2>
+		<p>Certain data types, such as the C++ Standard Library's forward and bidirectional 
+			iterators, do not provide addition and subtraction via operator+() or 
+			operator-().&nbsp; This means that non-modifying computation of the next or 
+			prior value requires a temporary, even though operator++() or operator--() is 
+			provided.&nbsp; It also means that writing code like <code>itr+1</code> inside 
+			a template restricts the iterator category to random access iterators.</p>
+		<p>The next() and prior() functions provide a simple way around these problems:</p>
+		<blockquote>
+			<pre>template &lt;class T&gt;
+T next(T x) { return ++x; }
+
+template &lt;class T, class Distance&gt;
+T next(T x, Distance n)
+{
+    std::advance(x, n);
+    return x;
+}
+
+template &lt;class T&gt;
+T prior(T x) { return --x; }
+
+template &lt;class T, class Distance&gt;
+T prior(T x, Distance n)
+{
+    std::advance(x, -n);
+    return x;
+}</pre>
+		</blockquote>
+		<p>Usage is simple:</p>
+		<blockquote>
+			<pre>const std::list&lt;T&gt;::iterator p = get_some_iterator();
+const std::list&lt;T&gt;::iterator prev = boost::prior(p);
+const std::list&lt;T&gt;::iterator next = boost::next(prev, 2);</pre>
+		</blockquote>
+                <p>The distance from the given iterator should be supplied as an absolute value. For
+			example, the iterator four iterators prior to the given iterator <code>p</code>
+			may be obtained by <code>prior(p, 4)</code>.</p>
+		<p>Contributed by <a href="http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a>.  Two-argument versions by Daniel Walker.</p>
+		<h2><a name="Class_noncopyable">Class noncopyable</a></h2>
+		<p>Class <strong>noncopyable</strong> is a base class.&nbsp; Derive your own class 
+			from <strong>noncopyable</strong> when you want to prohibit copy construction 
+			and copy assignment.</p>
+		<p>Some objects, particularly those which hold complex resources like files or 
+			network connections, have no sensible copy semantics.&nbsp; Sometimes there are 
+			possible copy semantics, but these would be of very limited usefulness and be 
+			very difficult to implement correctly.&nbsp; Sometimes you're implementing a 
+			class that doesn't need to be copied just yet and you don't want to take the 
+			time to write the appropriate functions.&nbsp; Deriving from <b>noncopyable</b> 
+			will prevent the otherwise implicitly-generated functions (which don't have the 
+			proper semantics) from becoming a trap for other programmers.</p>
+		<p>The traditional way to deal with these is to declare a private copy constructor 
+        and copy assignment, and then document why this is done.&nbsp; A new alternative  
+        was introduced in C++2011, declaring a copy constructor and a copy assignment  
+        operator, but marking both as <code>delete</code>d.&nbsp; Deriving
+        from <b>noncopyable</b> is simpler and clearer, and doesn't require additional 
+			documentation.</p>
+		<p>The program <a href="noncopyable_test.cpp">noncopyable_test.cpp</a> can be used 
+			to verify class <b>noncopyable</b> works as expected. It has have been run 
+			successfully under GCC 2.95, Metrowerks CodeWarrior 5.0, and Microsoft Visual 
+			C++ 6.0 sp 3.</p>
+		<p>Contributed by <a href="http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a>.</p>
+		<h3>Example</h3>
+		<blockquote>
+			<pre>// inside one of your own headers ...
+#include &lt;boost/utility.hpp&gt;
+
+class ResourceLadenFileSystem : boost::noncopyable {
+...</pre>
+		</blockquote>
+		<h3>Rationale</h3>
+		<p>Class noncopyable has protected constructor and destructor members to emphasize 
+			that it is to be used only as a base class.&nbsp; Dave Abrahams notes concern 
+			about the effect on compiler optimization of adding (even trivial inline) 
+			destructor declarations. He says &quot;Probably this concern is misplaced, 
+			because noncopyable will be used mostly for classes which own resources and 
+        thus have non-trivial destruction semantics.&quot;&nbsp; With C++2011, using an  
+        optimized and trivial constructor and similar destructor can be enforced by  
+        declaring both and marking them <code>default</code>.</p> 
+		<h2><a name="addressof">Function template addressof()</a></h2>
+		<p>Function <strong>addressof()</strong> returns the address of an object.</p>
+		<blockquote>
+			<pre>template &lt;typename T&gt; inline T*                addressof(T& v);
+template &lt;typename T&gt; inline const T*          addressof(const T& v);
+template &lt;typename T&gt; inline volatile T*       addressof(volatile T& v);
+template &lt;typename T&gt; inline const volatile T* addressof(const volatile T& v);
+</pre>
+		</blockquote>
+		<p>C++ allows programmers to replace the unary <strong>operator&()</strong> class 
+			member used to get the address of an object. Getting the real address of an 
+			object requires ugly casting tricks to avoid invoking the overloaded <strong>operator&()</strong>. 
+			Function <strong>addressof()</strong> provides a wrapper around the necessary 
+			code to make it easy to get an object's real address.
+		</p>
+		<p>The program <a href="addressof_test.cpp">addressof_test.cpp</a> can be used to 
+			verify that <b>addressof()</b> works as expected.</p>
+		<p>Contributed by Brad King based on ideas from discussion with Doug Gregor.</p>
+		<h3>Example</h3>
+		<blockquote>
+			<pre>#include &lt;boost/utility.hpp&gt;
+
+struct useless_type {};
+class nonaddressable {
+  useless_type operator&() const;
+};
+
+void f() {
+  nonaddressable x;
+  nonaddressable* xp = boost::addressof(x);
+  // nonaddressable* xpe = &amp;x; /* error */
+}</pre>
+		</blockquote>
+                <h2><a name="result_of">Class template
+                result_of</a></h2> <p>The class template
+                <code>result_of</code> helps determine the type of a
+                call expression. For example, given an lvalue <code>f</code> of
+                type <code>F</code> and lvalues <code>t1</code>,
+                <code>t2</code>, ..., <code>t<em>N</em></code> of
+                types <code>T1</code>, <code>T2</code>, ...,
+                <code>T<em>N</em></code>, respectively, the type
+                <code>result_of&lt;F(T1, T2, ...,
+                T<em>N</em>)&gt;::type</code> defines the result type
+                of the expression <code>f(t1, t2,
+                ...,t<em>N</em>)</code>. This implementation permits
+                the type <code>F</code> to be a function pointer,
+                function reference, member function pointer, or class
+                type. By default, <em>N</em> may be any value between 0 and
+                16. To change the upper limit, define the macro
+                <code>BOOST_RESULT_OF_NUM_ARGS</code> to the maximum
+                value for <em>N</em>. Class template <code>result_of</code>
+                resides in the header <code>&lt;<a
+                href="../../boost/utility/result_of.hpp">boost/utility/result_of.hpp</a>&gt;</code>.</p>
+
+                <p>If your compiler's support for <code>decltype</code> is
+                adequate, <code>result_of</code> automatically uses it to
+                deduce the type of the call expression, in which case
+                <code>result_of&lt;F(T1, T2, ...,
+                T<em>N</em>)&gt;::type</code> names the type
+                <code>decltype(boost::declval&lt;F&gt;()(boost::declval&lt;T1&gt;(),
+                boost::declval&lt;T2&gt;(), ...,
+                boost::declval&lt;T<em>N</em>&gt;()))</code>, as in the
+                following example.</p>
+
+                <blockquote>
+                <pre>struct functor {
+    template&lt;class T&gt;
+    T operator()(T x)
+    {
+        return x;
+    }
+};
+
+typedef boost::result_of&lt;
+    functor(int)
+&gt;::type type; // type is int</pre>
+                </blockquote>
+
+                <p>You can test whether <code>result_of</code> is using
+                <code>decltype</code> by checking if the macro
+                <code>BOOST_RESULT_OF_USE_DECLTYPE</code> is defined after
+                including <code>result_of.hpp</code>. You can also force
+                <code>result_of</code> to use <code>decltype</code> by
+                defining <code>BOOST_RESULT_OF_USE_DECLTYPE</code> prior
+                to including <code>result_of.hpp</code>.</p>
+
+                <p>If <code>decltype</code> is not used,
+                then automatic result type deduction of function
+                objects is not possible. Instead, <code>result_of</code>
+                uses the following protocol to allow the programmer to
+                specify a type. When <code>F</code> is a class type with a
+                member type <code>result_type</code>,
+                <code>result_of&lt;F(T1, T2, ...,
+                T<em>N</em>)&gt;::type</code> is
+                <code>F::result_type</code>. When <code>F</code> does
+                not contain <code>result_type</code>,
+                <code>result_of&lt;F(T1, T2, ...,
+                T<em>N</em>)&gt;::type</code> is <code>F::result&lt;F(T1,
+                T2, ..., T<em>N</em>)&gt;::type</code> when
+                <code><em>N</em> &gt; 0</code> or <code>void</code>
+                when <code><em>N</em> = 0</code>. Note that it is the
+                responsibility of the programmer to ensure that
+                function objects accurately advertise their result
+                type via this protocol, as in the following
+                example.</p>
+
+                <blockquote>
+                <pre>struct functor {
+    template&lt;class&gt; struct result;
+
+    template&lt;class F, class T&gt;
+    struct result&lt;F(T)&gt; {
+        typedef T type;
+    };
+
+    template&lt;class T&gt;
+    T operator()(T x)
+    {
+        return x;
+    }
+};
+
+typedef boost::result_of&lt;
+    functor(int)
+&gt;::type type; // type is int</pre>
+                </blockquote>
+
+                <p>Since <code>decltype</code> is a new language
+                feature recently standardized in C++11,
+                if you are writing a function object
+                to be used with <code>result_of</code>, for
+                maximum portability, you might consider following
+                the above protocol even if your compiler has
+                proper <code>decltype</code> support. If you wish to continue to
+                use the protocol on compilers that
+                support <code>decltype</code>, there are two options:
+                You can use <code>boost::tr1_result_of</code>, which is also
+                defined in <code>&lt;<a href="../../boost/utility/result_of.hpp">boost/utility/result_of.hpp</a>&gt;</code>.
+                Alternatively, you can define the macro
+                <code>BOOST_RESULT_OF_USE_TR1</code>, which causes
+                <code>result_of</code> to use the protocol described
+                above instead of <code>decltype</code>. If you choose to
+                follow the protocol, take care to ensure that the
+                <code>result_type</code> and
+                <code>result&lt;&gt;</code> members accurately
+                represent the return type of
+                <code>operator()</code> given a call expression.</p>
+
+                <p>Additionally, <code>boost::result_of</code>
+                provides a third mode of operation, which some users
+                may find convenient. When
+                <code>BOOST_RESULT_OF_USE_TR1_WITH_DECLTYPE_FALLBACK</code>
+                is defined, <code>boost::result_of</code> behaves as
+                follows. If the function object has a member
+                type <code>result_type</code> or member
+                template <code>result&lt;&gt;</code>, then
+                <code>boost::result_of</code> will use the TR1
+                protocol. Otherwise,
+                <code>boost::result_of</code> will
+                use <code>decltype</code>. Using TR1 with
+                a <code>declytpe</code> fallback may workaround
+                certain problems at the cost of portability. For
+                example:
+                <ul>
+                    <li>Deficient compiler: If your code
+                    requires <code>boost::result_of</code> to work
+                    with incomplete return types but your
+                    compiler's <code>decltype</code> implementation
+                    does not support incomplete return types, then you
+                    can use the TR1 protocol as a workaround. Support
+                    for incomplete return types was added late in the
+                    C++11 standardization process
+                    (see <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2011/n3276.pdf">N3276</a>)
+                    and is not implemented by some compilers.</li>
+
+                    <li>Deficient legacy code: If your existing TR1
+                    function object advertises a different type than
+                    the actual result type deduced
+                    by <code>decltype</code>, then using TR1 with a
+                    <code>decltype</code> fallback will allow you to
+                    work with both your existing TR1 function objects
+                    and new C++11 function object. This situation
+                    could occur if your legacy function objects
+                    misused the TR1 protocol. See the documentation on
+                    known <a href="#result_of_tr1_diff">differences</a>
+                    between <code>boost::result_of</code> and TR1.</li>
+                </ul>
+
+                <a name="BOOST_NO_RESULT_OF"></a>
+                <p>This implementation of <code>result_of</code>
+                requires class template partial specialization, the
+                ability to parse function types properly, and support
+                for SFINAE. If <code>result_of</code> is not supported
+                by your compiler, including the header 
+                <code>boost/utility/result_of.hpp</code> will
+                define the macro <code>BOOST_NO_RESULT_OF</code>.</p>
+
+                <p>For additional information
+                about <code>result_of</code>, see the C++ Library
+                Technical Report,
+                <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1836.pdf">N1836</a>,
+                or, for motivation and design rationale,
+                the <code>result_of</code> <a href="http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1454.html">proposal</a>.</p>
+
+                <a name="result_of_guidelines">
+                <h3>Usage guidelines for boost::result_of</h3>
+                </a>
+
+                <p>The following are general suggestions about when
+                and how to use <code>boost::result_of</code>.</p>
+
+                <ol>
+                <li> If you are targeting C++11 and are not concerned
+                about portability to non-compliant compilers or
+                previous versions of the standard, then use
+                <code>std::result_of</code>. If <code>std::result_of</code>
+                meets your needs, then there's no reason to stop using
+                it.</li>
+
+                <li> If you are targeting C++11 but may port your code
+                to legacy compilers at some time in the future, then
+                use <code>boost::result_of</code> with
+                <code>decltype</code>. When <code>decltype</code> is
+                used <code>boost::result_of</code>
+                and <code>std::result_of</code> are usually
+                interchangeable. See the documentation on
+                known <a href="#result_of_cxx11_diff">differences</a>
+                between boost::result_of and C++11 result_of.</li>
+
+                <li> If compiler portability is required,
+                use <code>boost::result_of</code> with the TR1 protocol.</li>
+                </ol>
+
+                <p>Regardless of how you
+                configure <code>boost::result_of</code>, it is
+                important to bear in mind that the return type of a
+                function may change depending on its arguments, and
+                additionally, the return type of a member function may
+                change depending on the cv-qualification of the
+                object. <code>boost::result_of</code> must be passed
+                the appropriately cv-qualified types in order to
+                deduce the corresponding return type. For example:
+
+                <blockquote>
+                <pre>struct functor {
+    int& operator()(int);
+    int const& operator()(int) const;
+
+    float& operator()(float&);
+    float const& operator()(float const&);
+};
+
+typedef boost::result_of&lt;
+    functor(int)
+&gt;::type type1; // type1 is int &
+
+typedef boost::result_of&lt;
+    const functor(int)
+&gt;::type type2; // type2 is int const &
+
+typedef boost::result_of&lt;
+    functor(float&)
+&gt;::type type3; // type3 is float &
+
+typedef boost::result_of&lt;
+    functor(float const&)
+&gt;::type type4; // type4 is float const &</pre>
+                </blockquote>
+
+                <a name="result_of_tr1_protocol_guidelines">
+                <h3>Usage guidelines for the TR1 result_of protocol</h3>
+                </a>
+
+                <p>On compliant C++11
+                compilers, <code>boost::result_of</code> can
+                use <code>decltype</code> to deduce the type of any
+                call expression, including calls to function
+                objects. However, on pre-C++11 compilers or on
+                compilers without adequate decltype support,
+                additional scaffolding is needed from function
+                objects as described above. The following are
+                suggestions about how to use the TR1 protocol.</p>
+
+                <ul>
+                    <li>When the return type does not depend on the
+                    argument types or the cv-qualification of the
+                    function object, simply
+                    define <code>result_type</code>. There is no need
+                    to use the <code>result</code> template unless the
+                    return type varies.</li>
+
+                    <li>Use the protocol specified type when defining
+                    function prototypes. This can help ensure the
+                    actual return type does not get out of sync with
+                    the protocol specification. For example:
+
+                   <blockquote>
+                   <pre>struct functor {
+    typedef int result_type;
+    result_type operator()(int);
+};</pre>
+                   </blockquote> </li>
+
+                   <li>Always specify the <code>result</code>
+                   specialization near the corresponding
+                   <code>operator()</code> overload. This can make it
+                   easier to keep the specializations in sync with the
+                   overloads. For example:
+
+                   <blockquote>
+                   <pre>struct functor {
+    template&lt;class&gt; struct result;
+
+    template&lt;class F&gt;
+    struct result&lt;F(int)&gt; {
+        typedef int& type;
+    };
+    result&lt;functor(int)&gt;::type operator()(int);
+
+    template&lt;class F&gt;
+    struct result&lt;const F(int)&gt; {
+        typedef int const& type;
+    };
+    result&lt;const functor(int)&gt;::type operator()(int) const;
+};</pre>
+                   </blockquote> </li>
+
+                   <li>Use type transformations to simplify
+                   the <code>result</code> template specialization. For
+                   example, the following uses
+                   <a href="../type_traits/doc/html/index.html">Boost.TypeTraits</a>
+                   to specialize the <code>result</code> template for
+                   a single <code>operator()</code> that can be called on
+                   both a const and non-const function object with
+                   either an lvalue or rvalue argument.
+
+                   <blockquote>
+                   <pre>struct functor {
+    template&lt;class&gt; struct result;
+
+    template&lt;class F, class T&gt;
+    struct result&lt;F(T)&gt; 
+        : boost::remove_cv&lt;
+              typename boost::remove_reference&lt;T&gt;::type
+          &gt;
+    {};
+
+    template&lt;class T&gt;
+    T operator()(T const&amp; x) const;
+};</pre>
+                   </blockquote></li>
+                </ul>
+
+                <a name="result_of_tr1_diff">
+                <h3>Known differences between boost::result_of and TR1 result_of</h3>
+                </a>
+
+                When using <code>decltype</code>, <code>boost::result_of</code>
+                ignores the TR1 protocol and instead deduces the
+                return type of function objects directly
+                via <code>decltype</code>. In most situations, users
+                will not notice a difference, so long as they use the
+                protocol correctly. The following are situations in
+                which the type deduced
+                by <code>boost::result_of</code> is known to differ depending on
+                whether <code>decltype</code> or the TR1 protocol is
+                used.
+
+                <ul>
+                <li> TR1 protocol misusage
+
+                     <p>When using the TR1
+                     protocol, <code>boost::result_of</code> cannot
+                     detect whether the actual type of a call to a
+                     function object is the same as the type specified
+                     by the protocol, which allows for the possibility
+                     of inadvertent mismatches between the specified
+                     type and the actual type. When
+                     using <code>decltype</code>, these subtle bugs
+                     may result in compilation errors. For example:</p>
+
+                     <blockquote>
+                     <pre>struct functor {
+   typedef short result_type;
+   int operator()(short);
+};
+
+#ifdef BOOST_RESULT_OF_USE_DECLTYPE
+
+BOOST_STATIC_ASSERT((
+   boost::is_same&lt;boost::result_of&lt;functor(short)&gt;::type, int&gt;::value
+)); 
+
+#else
+
+BOOST_STATIC_ASSERT((
+   boost::is_same&lt;boost::result_of&lt;functor(short)&gt;::type, short&gt;::value
+));
+
+#endif</pre>
+                   </blockquote>
+
+                  <p>Note that the user can
+                  force <code>boost::result_of</code> to use the TR1
+                  protocol even on platforms that
+                  support <code>decltype</code> by
+                  defining <code>BOOST_RESULT_OF_USE_TR1</code>.</p></li>
+
+                  <li> Nullary function objects
+
+                       <p>When using the TR1 protocol, <code>boost::result_of</code>
+                       cannot always deduce the type of calls to
+                       nullary function objects, in which case the
+                       type defaults to void. When using <code>decltype</code>,
+                       <code>boost::result_of</code> always gives the actual type of the
+                       call expression. For example:</p>
+
+                       <blockquote>
+                       <pre>struct functor {
+   template&lt;class&gt; struct result {
+       typedef int type;
+   };
+   int operator()();
+};
+
+#ifdef BOOST_RESULT_OF_USE_DECLTYPE
+
+BOOST_STATIC_ASSERT((
+   boost::is_same&lt;boost::result_of&lt;functor()&gt;::type, int&gt;::value
+));
+
+#else
+
+BOOST_STATIC_ASSERT((
+   boost::is_same&lt;boost::result_of&lt;functor()&gt;::type, void&gt;::value
+));
+
+#endif</pre>
+                       </blockquote>
+
+                       <p>Note that there are some workarounds for the
+                       nullary function problem. So long as the return
+                       type does not vary,
+                       <code>result_type</code> can always be used to
+                       specify the return type regardless of arity. If the
+                       return type does vary, then the user can
+                       specialize <code>boost::result_of</code> itself for
+                       nullary calls.</p></li>
+
+                  <li> Non-class prvalues and cv-qualification
+
+                       <p>When using the TR1
+                       protocol, <code>boost::result_of</code> will
+                       report the cv-qualified type specified
+                       by <code>result_type</code> or
+                       the <code>result</code> template regardless of
+                       the actual cv-qualification of the call
+                       expression. When using
+                       <code>decltype</code>, <code>boost::result_of</code>
+                       will report the actual type of the call expression,
+                       which is not cv-qualified when the expression is a
+                       non-class prvalue. For example:</p>
+
+                       <blockquote>
+                       <pre>struct functor {
+   template&lt;class&gt; struct result;
+   template&lt;class F, class T&gt; struct result&lt;F(const T)&gt; {
+       typedef const T type;
+   };
+
+   const short operator()(const short);
+   int const & operator()(int const &);
+};
+
+// Non-prvalue call expressions work the same with or without decltype.
+
+BOOST_STATIC_ASSERT((
+   boost::is_same&lt;
+       boost::result_of&lt;functor(int const &)&gt;::type,
+       int const &
+::value
+));
+
+// Non-class prvalue call expressions are not actually cv-qualified,
+// but only the decltype-based result_of reports this accurately.
+
+#ifdef BOOST_RESULT_OF_USE_DECLTYPE
+
+BOOST_STATIC_ASSERT((
+   boost::is_same&lt;
+       boost::result_of&lt;functor(const short)&gt;::type,
+       short
+::value
+));
+
+#else
+
+BOOST_STATIC_ASSERT((
+   boost::is_same&lt;
+       boost::result_of&lt;functor(const short)&gt;::type,
+       const short
+::value
+));
+
+#endif</pre>
+                       </blockquote></li>
+                </ul>
+
+                <a name="result_of_cxx11_diff">
+                <h3>Known differences between boost::result_of and C++11 result_of</h3>
+                </a>
+
+                <p>When using <code>decltype</code>, <code>boost::result_of</code>
+                implements most of the C++11 result_of
+                specification. One known exception is that
+                <code>boost::result_of</code> does not implement the
+                requirements regarding pointers to member data.</p>
+
+                <p>Created by Doug Gregor. Contributions from Daniel Walker, Eric Niebler, Michel Morin and others</p>
+
+		<h2>Class templates for the Base-from-Member Idiom</h2>
+		<p>See <a href="base_from_member.html">separate documentation</a>.</p>
+		<h2><a name="BOOST_BINARY">Macro BOOST_BINARY</a></h2>
+
+		<p>The macro <code>BOOST_BINARY</code> is used for the
+                representation of binary literals. It takes as an argument
+                a binary number arranged as an arbitrary amount of 1s and 0s in
+                groupings of length 1 to 8, with groups separated
+                by spaces. The type of the literal yielded is determined by
+                the same rules as those of hex and octal
+                literals (<i>2.13.1p1</i>). By implementation, this macro
+                expands directly to an octal literal during preprocessing, so
+                there is no overhead at runtime and the result is useable in
+                any place that an octal literal would be.</p>
+
+		<p>In order to directly support binary literals with suffixes,
+                additional macros of the form BOOST_BINARY_XXX are also
+                provided, where XXX is a standard integer suffix in all capital
+                letters. In addition, LL and ULL suffixes may be used for representing
+                long long and unsigned long long types in compilers which provide
+                them as an extension.</p>
+
+
+                <p>The BOOST_BINARY family of macros resides in the header
+                <a
+                href="../../boost/utility/binary.hpp">&lt;boost/utility/binary.hpp&gt;</a>
+                which is automatically included by
+                <a
+                href="../../boost/utility.hpp">&lt;boost/utility.hpp&gt;</a>.
+
+		<p>Contributed by Matt Calabrese.</p><p>
+		</p><h3>Example</h3>
+		<blockquote>
+			<pre>
+void foo( int );
+
+void foo( unsigned long );
+
+void bar()
+{
+  int value1 = BOOST_BINARY( 100 111000 01 1 110 );
+
+  unsigned long value2 = BOOST_BINARY_UL( 100 001 ); // unsigned long
+
+  long long value3 = BOOST_BINARY_LL( 11 000 ); // long long if supported
+
+  assert(    BOOST_BINARY( 10010 )
+          &  BOOST_BINARY( 11000 )
+          == BOOST_BINARY( 10000 )
+        );
+
+  foo( BOOST_BINARY( 1010 ) ); // calls the first foo
+
+  foo( BOOST_BINARY_LU( 1010 ) ); // calls the second foo
+}
+</pre></blockquote>
+		<hr>
+		<p>Revised&nbsp; <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan
+-->04 September, 2008<!--webbot bot="Timestamp" endspan i-checksum="39369"
+-->
+		</p>
+		<p>&copy; Copyright Beman Dawes 1999-2003.</p>
+<p>Distributed under the Boost Software License, Version 1.0. See
+<a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a></p>
+
+	</body>
+</html>

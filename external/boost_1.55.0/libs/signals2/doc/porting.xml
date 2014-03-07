@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<section last-revision="$Date: 2007-06-12 14:01:23 -0400 (Tue, 12 Jun 2007) $" id="signals2.api_changes">
+  <title>Signals2 API Changes</title>
+  <using-namespace name="boost::signals2"/>
+  <using-namespace name="boost"/>
+  <section id="signals2.porting">
+  <title>Porting from Boost.Signals to Boost.Signals2</title>
+    <para>The changes made to the Boost.Signals2 API compared to the original Boost.Signals
+      library are summarized below.  We also provide some notes on
+      dealing with each change while porting existing Boost.Signals code to Boost.Signals2.
+    </para>
+    <itemizedlist>
+      <listitem>
+        <para>The namespace <code>boost::signals</code> has been replaced by <code>boost::signals2</code>
+          to avoid conflict with the original Boost.Signals implementation, as well as the Qt "signals" macro.
+          All the Boost.Signals2 classes are inside the <code>boost::signals2</code> namespace,
+          unlike the original Boost.Signals which has some classes in the <code>boost</code>
+          namespace in addition to its own <code>boost::signals</code> namespace.
+        </para>
+        <para>
+          The Boost.Signals2 header files are contained in the
+          <code>boost/signals2/</code> subdirectory instead of the <code>boost/signals</code>
+          subdirectory used by the original Boost.Signals.  Furthermore, all the headers except
+          for the convenience header <code>boost/signals2.hpp</code> are inside the
+          <code>boost/signals2/</code> subdirectory, unlike the original Boost.Signals which
+          keeps a few headers in the parent <code>boost/</code> directory
+          in addition to its own <code>boost/signals/</code> subdirectory.
+        </para>
+        <para>
+          For example, the <code>signal</code> class is now
+          in the <code>boost::signals2</code> namespace instead of the
+          <code>boost</code> namespace,
+          and it's header file is now at <code>boost/signals2/signal.hpp</code> instead of
+          <code>boost/signal.hpp</code>.
+        </para>
+        <para>
+          While porting, only trivial changes to <code>#include</code> directives
+          and namespace qualifications should be required to deal with these changes.
+          Furthermore, the new namespace and header locations for Boost.Signals2
+          allow it to coexist in the same program with the original Boost.Signals library,
+          and porting can be performed piecemeal.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Automatic connection management is now achieved through the use of
+          <classname>shared_ptr</classname>/<classname>weak_ptr</classname>
+          and <methodname>signals2::slot::track</methodname>(), as described in the
+          <link linkend="signals2.tutorial.connection-management">tutorial</link>.
+          However, the old (thread-unsafe) Boost.Signals scheme of automatic connection management
+          is still supported via the <classname>boost::signals2::trackable</classname> class.
+        </para>
+        <para>
+          If you do not intend to make your program multi-threaded, the easiest porting path is to simply replace
+          your uses of <classname>boost::signals::trackable</classname> as a base class with
+          <classname>boost::signals2::trackable</classname>.  Boost.Signals2 uses the same
+          <functionname>boost::visit_each</functionname> mechanism to discover
+          <code>trackable</code> objects
+          as used by the original Boost.Signals library.
+        </para>
+      </listitem>
+      <listitem>
+        <para>Support for postconstructors (and predestructors) on objects managed by <classname>shared_ptr</classname>
+          has been added with
+          the <functionname>deconstruct</functionname> factory function.
+          This was motivated by the importance of
+          <code>shared_ptr</code> for the new connection tracking scheme, and the
+          inability to obtain a <code>shared_ptr</code> to an object in its constructor.
+          The use of <functionname>deconstruct</functionname> is described in the
+          <link linkend="signals2.tutorial.deconstruct">tutorial</link>.
+        </para>
+        <para>
+          The use of <functionname>deconstruct</functionname> is in no way required,
+          it is only provided in the hope
+          it may be useful.  You may wish to use it if you are porting code where
+          a class creates connections to its own member functions in its constructor,
+          and you also
+          wish to use the new automatic connection management scheme.  You could then
+          move the connection creation from the constructor to to the an
+          <code>adl_postconstruct</code> function, where
+          a reference to the owning <classname>shared_ptr</classname> is available for
+          passing to <methodname>signals2::slot::track</methodname>.
+          The <functionname>deconstruct</functionname> function would be used create objects
+          of the class and run their associated <code>adl_postconstruct</code> function.
+          You can enforce use of <functionname>deconstruct</functionname> by
+          making the class' constructors private and declaring
+          <classname>deconstruct_access</classname> a friend.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          The <classname>signals2::slot</classname> class takes a new <code>Signature</code> template parameter,
+          is useable as a function object, and has some additional features to support the
+          new Boost.Signals2 automatic connection management scheme.
+        </para>
+        <para>
+          The changes to the slot class should generally not cause any porting difficulties,
+          especially if you are using the <classname>boost::signals2::trackable</classname>
+          compatibility class mentioned above.  If you are converting your code over to
+          use the new automatic connection management scheme, you will need to
+          employ some of the new slot features, as described in the
+          <link linkend="signals2.tutorial.connection-management">tutorial</link>.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          The <classname>optional_last_value</classname> class has replaced <code>last_value</code>
+          as the default combiner for signals.
+        </para>
+        <para>
+          The <classname>signals2::last_value</classname> combiner is still provided, although its
+          behavior is slightly changed in that it
+          throws an exception when no slots are connected on signal invocation, instead of
+          always requiring at least one slot to be connected (except for its void specialization
+          which never required any slots to be connected).
+        </para>
+        <para>
+          If you are porting signals which have a <code>void</code> return type in their signature
+          and they use the default combiner, there are no changes required.  If you are
+          using the default combiner with a non-void return type and care about the
+          value returned from signal invocation, you will have to take into account that
+          <classname>optional_last_value</classname> returns a
+          <classname>boost::optional</classname> instead of a plain value.  One simple
+          way to deal with this is to use <code>boost::optional::operator*()</code> to access the
+          value wrapped inside the returned <classname>boost::optional</classname>.
+        </para>
+        <para>
+          Alternatively, you could do a port by specifying the <code>Combiner</code> template parameter
+          for your <code>signals2::signal</code> to be <classname>signals2::last_value</classname>.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          The <classname>signals2::signal</classname> class has an additional typedef
+          <classname>signals2::signal::extended_slot_type</classname>
+          and new <methodname>signals2::signal::connect_extended</methodname>()
+          methods.  These allow connection of slots
+          which take an additional <classname>signals2::connection</classname> argument, giving them thread-safe
+          access to their signal/slot connection when they are invoked.  There is also a
+          new <code>ExtendedSlotFunction</code> template parameter for specifying the underlying slot function
+          type for the new extended slots.
+        </para>
+        <para>
+          These additions should have no effect on porting unless you are also converting
+          your program from a single threaded program into a multi-threaded one.  In that case,
+          if you have slots which need access to their <classname>signals2::connection</classname>
+          to the signal invoking them (for example to block or disconnect their connection)
+          you may wish to connect the slots with
+          <methodname>signals2::signal::connect_extended</methodname>().
+          This also requires adding an additional connection argument to the slot.
+          More information on how and why to use extended slots is available
+          in the <link linkend="signals2.tutorial.extended-slot-type">tutorial</link>.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          The <classname>signals2::signal</classname> class has a new <code>Mutex</code> template parameter for specifying
+          the mutex type used internally by the signal and its connections.
+        </para>
+        <para>
+          The <code>Mutex</code> template parameter can be left to its default value of
+          <classname>boost::signals2::mutex</classname> and should have little effect on porting.
+          However, if you have a single-threaded program and are
+          concerned about incuring a performance overhead from unneeded mutex locking, you may
+          wish to use a different mutex for your signals such as <classname>dummy_mutex</classname>.
+          See the <link linkend="signals2.tutorial.signal-mutex-template-parameter">tutorial</link>
+          for more information on the <code>Mutex</code> parameter.
+        </para>
+      </listitem>
+      <listitem>
+        <para>The <code>signal::combiner()</code> method, which formerly returned a reference to the
+          signal's combiner has been replaced by <methodname>signals2::signal::combiner</methodname>
+          (which now returns the combiner by value) and <methodname>signals2::signal::set_combiner</methodname>.
+        </para>
+        <para>
+          During porting it should be straightforward to replace uses of the old reference-returning
+          <code>signal::combiner()</code>
+          function with the new "by-value" <methodname>signals2::signal::combiner</methodname>
+          and <methodname>signals2::signal::set_combiner</methodname> functions.
+          However, you will need to inspect each call of the <code>combiner</code> method in your code
+          to determine if your program logic has been broken by the changed
+          return type.
+        </para>
+      </listitem>
+      <listitem>
+        <para>Connections no longer have <code>block()</code> and <code>unblock()</code> methods.  Blocking
+          of connections is now accomplished by creating <classname>shared_connection_block</classname> objects,
+          which provide RAII-style blocking.
+        </para>
+        <para>
+          If you have existing Boost.Signals code that blocks, for example:
+        </para>
+        <programlisting>
+  namespace bs = boost::signals;
+
+  bs::connection my_connection;
+  //...
+
+  my_connection.block();
+  do_something();
+  my_connection.unblock();
+  </programlisting>
+            <para>
+              then the version ported to Boost.Signals2 would look like:
+            </para>
+              <programlisting>
+  namespace bs2 = boost::signals2;
+
+  bs2::connection my_connection;
+  //...
+
+  {
+    bs2::shared_connection_block blocker(my_connection);
+    do_something();
+  } // blocker goes out of scope here and releases its block on my_connection
+  </programlisting>
+      </listitem>
+    </itemizedlist>
+  </section>
+  <section id="signals2.api_history">
+    <title>Signals2 API Development</title>
+    <section id="signals2.api_history.1-45">
+      <title>Version 1.4x</title>
+      <para>
+        Version 1.45 added <methodname>slot::track_foreign</methodname>().  This method allows tracking
+        of objects owned by <code>shared_ptr</code> classes other than <classname>boost::shared_ptr</classname>,
+        for example <classname>std::shared_ptr</classname>.
+      </para>
+    </section>
+    <section id="signals2.api_history.1-40">
+      <title>Version 1.40</title>
+      <para>
+        Version 1.40 adds a few new features to the <classname>shared_connection_block</classname>
+        class to make it more flexible:
+        <itemizedlist>
+          <listitem>
+            <para>
+              <classname>shared_connection_block</classname> is now default constructible.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              A <classname>shared_connection_block</classname> may now be constructed without
+              immediately blocking its connection.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              The <methodname>shared_connection_block::connection</methodname>() query has been
+              added, to provide access to the <code>shared_connection_block</code>s associated
+              connection.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+      <para>Version 1.40 also introduces a variadic templates implementation of
+        Signals2, which is used when Boost detects compiler support for variadic templates
+        (variadic templates are a new feature of C++0x).
+        This change is mostly transparent to the user, however it does introduce a few
+        visible tweaks to the interface as described in the following.
+      </para>
+      <para>
+        The following library features are
+        deprecated, and are only available if your compiler is NOT using
+        variadic templates (i.e. BOOST_NO_CXX11_VARIADIC_TEMPLATES is defined
+        by Boost.Config).
+        <itemizedlist>
+          <listitem>
+            <para>
+              The "portable syntax" signal and slot classes, i.e. signals2::signal0, signal1, etc.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              The arg1_type, arg2_type, etc. member typedefs in the <classname>signals2::signal</classname> and
+              <classname>signals2::slot</classname> classes.  They are replaced by the
+              template member classes <classname>signals2::signal::arg</classname> and
+              <classname>signals2::slot::arg</classname>.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+    </section>
+    <section id="signals2.api_history.1-39">
+      <title>Version 1.39</title>
+      <para>Version 1.39 is the first release of Boost to include the Signals2 library.</para>
+    </section>
+  </section>
+</section>

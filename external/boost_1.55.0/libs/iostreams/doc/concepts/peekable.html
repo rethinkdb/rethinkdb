@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Peekable</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Peekable</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Description</H2>
+
+<P>
+    A Peekable <A HREF="device.html">Device</A> allows a character read from the input sequence to be putback. 
+</P>
+
+<P>
+    The name of the concept is based on the observation that a PeekableDevice allow the user to peek at the first character in the sequence it controls by calling <A HREF="../functions/get.html"><CODE>get</CODE></A> or <A HREF="../functions/read.html"><CODE>read</CODE></A> followed by <A HREF="../functions/putback.html"><CODE>putback</CODE></A>. The names Putbackable and InputRevertable were considered but rejected.
+</P>
+
+<H2>Refinement of</H2>
+
+<A HREF="source.html">Source</A>.
+
+<A NAME="types"></A>
+<H2>Associated Types</H2>
+
+Same as <A HREF="source.html">Source</A>.
+
+<H2>Notation</H2>
+
+<TABLE CELLPADDING="2">
+    <TR><TD><CODE>P</CODE></TD><TD>-</TD><TD>A type which is a model of Peekable</TD></TR>
+    <TR><TD><CODE>p</CODE></TD><TD>-</TD><TD>Object of type <CODE>P</CODE></TD></TR>
+    <TR><TD><CODE>c</CODE></TD><TD>-</TD><TD>Object of type equal to the character type of <CODE>P</CODE></TD></TR>
+    <TR><TD><CODE>io</CODE></TD><TD>-</TD><TD>Alias for namespace <CODE>boost::iostreams</CODE></TD></TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Precondition</TH><TH>Semantics</TH><TH>Postcondition</TH></TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE><A HREF="../functions/putback.html">io::putback</A>(p, c)</CODE></PRE>
+        </TD>
+        <TD><CODE>bool</CODE></TD>
+        <TD>
+           One or more characters has been read from <CODE>p</CODE> using <A HREF="../functions/get.html"><CODE>io::get</CODE></A> or <A HREF="../functions/read.html"><CODE>io::read</CODE></A>, with no intervening i/o operations having been performed
+        </TD>
+        <TD>
+            Attempts to put back <CODE>c</CODE> to <CODE>p</CODE>, returning <CODE>true</CODE> for success
+        </TD>
+        <TD>
+            If putback returns <CODE>true</CODE>, the next character read from <CODE>p</CODE> using <A HREF="../functions/get.html"><CODE>io::get</CODE></A> or <A HREF="../functions/read.html"><CODE>io::read</CODE></A> will be equal to <CODE>c</CODE></A>
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Exceptions</H2>
+
+<P>
+    Errors which occur during the execution of <A CLASS="code" HREF="../functions/putback.html"><CODE>putback</CODE></A> are be indicated by throwing exceptions.
+</P>
+
+<H2>Models</H2>
+<UL>
+    <LI>Standard input streams and stream buffers.
+</UL>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

@@ -1,0 +1,5 @@
+[article Teletype source mode include
+[source-mode teletype]
+]
+
+```This shouldn't be highlighted```

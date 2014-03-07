@@ -1,0 +1,101 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class invalid_syntax</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../program_options/reference.html#header.boost.program_options.errors_hpp" title="Header &lt;boost/program_options/errors.hpp&gt;">
+<link rel="prev" href="ambiguous_option.html" title="Class ambiguous_option">
+<link rel="next" href="invalid_config_file_syntax.html" title="Class invalid_config_file_syntax">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ambiguous_option.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../program_options/reference.html#header.boost.program_options.errors_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="invalid_config_file_syntax.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.program_options.invalid_syntax"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class invalid_syntax</span></h2>
+<p>boost::program_options::invalid_syntax</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../program_options/reference.html#header.boost.program_options.errors_hpp" title="Header &lt;boost/program_options/errors.hpp&gt;">boost/program_options/errors.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="invalid_syntax.html" title="Class invalid_syntax">invalid_syntax</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">program_options</span><span class="special">::</span><span class="identifier">error_with_option_name</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+
+  <span class="keyword">enum</span> <a name="boost.program_options.invalid_syntax.kind_t"></a>kind_t <span class="special">{</span> long_not_allowed = = 30, long_adjacent_not_allowed, 
+                short_adjacent_not_allowed, empty_adjacent_parameter, 
+                missing_parameter, extra_parameter, unrecognized_line <span class="special">}</span><span class="special">;</span>
+  <span class="comment">// <a class="link" href="invalid_syntax.html#boost.program_options.invalid_syntaxconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="invalid_syntax.html#idp94184360-bb"><span class="identifier">invalid_syntax</span></a><span class="special">(</span><span class="identifier">kind_t</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="string">""</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="string">""</span><span class="special">,</span> 
+                 <span class="keyword">int</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="invalid_syntax.html#idp94186024-bb"><span class="special">~</span><span class="identifier">invalid_syntax</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="invalid_syntax.html#idp94183096-bb">public member functions</a></span>
+  <span class="identifier">kind_t</span> <a class="link" href="invalid_syntax.html#idp94183272-bb"><span class="identifier">kind</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a class="link" href="invalid_syntax.html#idp94183688-bb"><span class="identifier">tokens</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="invalid_syntax.html#idp94186088-bb">protected member functions</a></span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a class="link" href="invalid_syntax.html#idp94186264-bb"><span class="identifier">get_template</span></a><span class="special">(</span><span class="identifier">kind_t</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp164008024"></a><h2>Description</h2>
+<p>Class thrown when there's syntax error either for command line or config file options. See derived children for concrete classes. </p>
+<div class="refsect2">
+<a name="idp164008504"></a><h3>
+<a name="boost.program_options.invalid_syntaxconstruct-copy-destruct"></a><code class="computeroutput">invalid_syntax</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><a name="idp94184360-bb"></a><span class="identifier">invalid_syntax</span><span class="special">(</span><span class="identifier">kind_t</span> kind<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> option_name <span class="special">=</span> <span class="string">""</span><span class="special">,</span> 
+               <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> original_token <span class="special">=</span> <span class="string">""</span><span class="special">,</span> <span class="keyword">int</span> option_style <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp94186024-bb"></a><span class="special">~</span><span class="identifier">invalid_syntax</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp164019880"></a><h3>
+<a name="idp94183096-bb"></a><code class="computeroutput">invalid_syntax</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="identifier">kind_t</span> <a name="idp94183272-bb"></a><span class="identifier">kind</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a name="idp94183688-bb"></a><span class="identifier">tokens</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Convenience functions for backwards compatibility </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp164026472"></a><h3>
+<a name="idp94186088-bb"></a><code class="computeroutput">invalid_syntax</code> protected member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a name="idp94186264-bb"></a><span class="identifier">get_template</span><span class="special">(</span><span class="identifier">kind_t</span> kind<span class="special">)</span><span class="special">;</span></pre>
+<p>Used to convert kind_t to a related error text </p>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2004 Vladimir Prus<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ambiguous_option.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../program_options/reference.html#header.boost.program_options.errors_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="invalid_config_file_syntax.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,115 @@
+# Copyright 2001 David Abrahams.
+# Copyright 2004, 2005 Markus Schoepflin.
+# Copyright 2011, John Maddock
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+#
+# Cray C++ Compiler
+# See http://docs.cray.com/books/S-2179-50/html-S-2179-50/S-2179-50-toc.html
+#
+
+import feature generators common ;
+import toolset : flags ;
+
+feature.extend toolset : cray ;
+
+# Inherit from Unix toolset to get library ordering magic.
+toolset.inherit  cray : unix ;
+
+generators.override cray.prebuilt : builtin.lib-generator ;
+generators.override cray.prebuilt : builtin.prebuilt ;
+generators.override cray.searched-lib-generator : searched-lib-generator ;
+
+
+rule init ( version ? : command * : options * )
+{
+    local condition = [ common.check-init-parameters cray : version $(version) ] ;
+    
+    local command = [ common.get-invocation-command cray : CC : $(command) ] ;
+    
+    if $(command)
+    {
+        local root = [ common.get-absolute-tool-path $(command[-1]) ] ;
+
+        if $(root)
+        {
+            flags cray .root $(condition) : "\"$(root)\"/" ;
+        }        
+    }      
+    # If we can't find 'CC' anyway, at least show 'CC' in the commands
+    command ?= CC ;
+        
+    common.handle-options cray : $(condition) : $(command) : $(options) ;               
+}
+
+generators.register-c-compiler cray.compile.c++ : CPP : OBJ : <toolset>cray ;
+generators.register-c-compiler cray.compile.c : C : OBJ : <toolset>cray ;
+
+
+
+# No static linking as far as I can tell.
+# flags cxx LINKFLAGS <runtime-link>static : -bstatic ;
+flags cray.compile OPTIONS <debug-symbols>on : -Gn ;
+flags cray.link OPTIONS <debug-symbols>on : -Gn ;
+
+flags cray.compile OPTIONS <optimization>off : -O0 ;
+flags cray.compile OPTIONS <optimization>speed : -O3 ;
+flags cray.compile OPTIONS <optimization>space : -O1 ;
+
+flags cray.compile OPTIONS <cflags> ;
+flags cray.compile.c++ OPTIONS <cxxflags> ;
+flags cray.compile DEFINES <define> ;
+flags cray.compile INCLUDES <include> ;
+flags cray.link OPTIONS <linkflags> ;
+
+flags cray.compile OPTIONS <link>shared : -fPIC ;
+flags cray.link OPTIONS <link>shared : -fPIC ;
+
+flags cray.link LIBPATH <library-path> ;
+flags cray.link LIBRARIES <library-file> ;
+flags cray.link FINDLIBS-ST <find-static-library> ;
+flags cray.link FINDLIBS-SA <find-shared-library> ;
+
+actions link bind LIBRARIES
+{
+    $(CONFIG_COMMAND) $(OPTIONS) -o "$(<)" -L$(LIBPATH) "$(>)" "$(LIBRARIES)" -l$(FINDLIBS-ST) -l$(FINDLIBS-SA)
+}
+
+# When creating dynamic libraries, we don't want to be warned about unresolved
+# symbols, therefore all unresolved symbols are marked as expected by
+# '-expect_unresolved *'. This also mirrors the behaviour of the GNU tool
+# chain.
+
+actions link.dll bind LIBRARIES
+{
+    $(CONFIG_COMMAND) -shared $(OPTIONS) -o "$(<[1])" -L$(LIBPATH)  "$(>)" "$(LIBRARIES)" -l$(FINDLIBS-ST) -l$(FINDLIBS-SA)
+}
+
+
+# Note: Relaxed ANSI mode (-std) is used for compilation because in strict ANSI
+# C89 mode (-std1) the compiler doesn't accept C++ comments in C files. As -std
+# is the default, no special flag is needed.
+actions compile.c
+{
+    $(.root:E=)cc -c $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -o "$(<)" "$(>)"
+}
+
+# Note: The compiler is forced to compile the files as C++ (-x cxx) because
+# otherwise it will silently ignore files with no file extension.
+#
+# Note: We deliberately don't suppress any warnings on the compiler command
+# line, the user can always do this in a customized toolset later on.
+
+actions compile.c++
+{
+    $(CONFIG_COMMAND) -c -h gnu $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -o "$(<)" "$(>)"
+}
+
+# Always create archive from scratch. See the gcc toolet for rationale.
+RM = [ common.rm-command ] ;
+actions together piecemeal archive
+{
+  $(RM) "$(<)"
+  ar rc $(<) $(>)
+}

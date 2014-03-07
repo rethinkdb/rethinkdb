@@ -1,0 +1,346 @@
+#==============================================================================
+#   Copyright (c) 2001-2011 Joel de Guzman
+#   Copyright (c) 2001-2012 Hartmut Kaiser
+#   Copyright (c)      2011 Bryce Lelbach
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+
+# bring in rules for testing
+import testing ;
+import modules ;
+import feature ;
+
+###############################################################################
+# new feature definition allowing to switch between Phoenix V2 and V3 tests
+feature.feature phoenix_v3
+    :   off on
+    :   composite propagated
+    ;
+
+feature.compose <phoenix_v3>on
+    :   <define>BOOST_SPIRIT_USE_PHOENIX_V3=1
+    ;
+
+###############################################################################
+project spirit_v2x/test
+    : requirements
+        <include>.
+        <toolset>gcc:<cxxflags>-ftemplate-depth-300
+        <toolset>darwin:<cxxflags>-ftemplate-depth-300
+    :
+    :
+    ;
+
+v2_tests = ;
+v3_tests = ;
+
+rule run ( sources + : args * : input-files * : requirements * : target-name ? :  default-build * )
+{
+    target-name ?= $(sources[1]:D=:S=) ;
+    v2_tests += [ testing.run $(sources) : $(args) : $(input-files) : $(requirements) : $(target-name)-p2 : $(default-build) ] ;
+    v3_tests += [ testing.run $(sources) : $(args) : $(input-files) : $(requirements) <phoenix_v3>on : $(target-name)-p3 : $(default-build) ] ;
+}
+
+rule compile ( sources + : requirements * : target-name ? )
+{
+    target-name ?= $(sources[1]:D=:S=) ;
+    v2_tests += [ testing.compile $(sources) : $(requirements) : $(target-name)-p2 ] ;
+    v3_tests += [ testing.compile $(sources) : $(requirements) <phoenix_v3>on : $(target-name)-p3 ] ;
+}
+
+rule compile-fail ( sources + : requirements * : target-name ? )
+{
+    target-name ?= $(sources[1]:D=:S=) ;
+    v2_tests += [ testing.compile-fail $(sources) : $(requirements) : $(target-name)-p2 ] ;
+    v3_tests += [ testing.compile-fail $(sources) : $(requirements) <phoenix_v3>on : $(target-name)-p3 ] ;
+}
+
+###############################################################################
+path-constant LEX_DIR : $(BOOST_ROOT)/libs/spirit/test/lex ;
+
+{
+    ###########################################################################
+    test-suite spirit_v2/qi :
+
+     [ run qi/actions.cpp          : : : : qi_actions ]
+     [ run qi/actions2.cpp         : : : : qi_actions2 ]
+     [ run qi/alternative.cpp      : : : : qi_alternative ]
+     [ run qi/attr.cpp             : : : : qi_attr ]
+     [ run qi/attribute1.cpp       : : : : qi_attribute1 ]
+     [ run qi/attribute2.cpp       : : : : qi_attribute2 ]
+     [ run qi/and_predicate.cpp    : : : : qi_and_predicate ]
+     [ run qi/auto.cpp             : : : : qi_auto ]
+     [ run qi/binary.cpp           : : : : qi_binary ]
+     [ run qi/bool1.cpp            : : : : qi_bool1 ]
+     [ run qi/bool2.cpp            : : : : qi_bool2 ]
+     [ run qi/char1.cpp            : : : : qi_char1 ]
+     [ run qi/char2.cpp            : : : : qi_char2 ]
+     [ run qi/char_class.cpp       : : : : qi_char_class ]
+     [ run qi/debug.cpp            : : : : qi_debug ]
+     [ run qi/difference.cpp       : : : : qi_difference ]
+     [ run qi/encoding.cpp         : : : : qi_encoding ]
+     [ run qi/end.cpp              : : : : qi_end ]
+     [ run qi/eps.cpp              : : : : qi_eps ]
+     [ run qi/expect.cpp           : : : : qi_expect ]
+     [ run qi/grammar.cpp          : : : : qi_grammar ]
+     [ run qi/int1.cpp             : : : : qi_int1 ]
+     [ run qi/int2.cpp             : : : : qi_int2 ]
+     [ run qi/int3.cpp             : : : : qi_int3 ]
+     [ run qi/kleene.cpp           : : : : qi_kleene ]
+     [ run qi/lazy.cpp             : : : : qi_lazy ]
+     [ run qi/lexeme.cpp           : : : : qi_lexeme ]
+     [ run qi/lit1.cpp             : : : : qi_lit1 ]
+     [ run qi/lit2.cpp             : : : : qi_lit2 ]
+     [ run qi/list.cpp             : : : : qi_list ]
+     [ run qi/hold.cpp             : : : : qi_hold ]
+     [ run qi/match_manip1.cpp     : : : : qi_match_manip1 ]
+     [ run qi/match_manip2.cpp     : : : : qi_match_manip2 ]
+     [ run qi/match_manip3.cpp     : : : : qi_match_manip3 ]
+     [ run qi/match_manip_attr.cpp : : : : qi_match_manip_attr ]
+     [ run qi/matches.cpp          : : : : qi_matches ]
+     [ run qi/no_case.cpp          : : : : qi_no_case ]
+     [ run qi/no_skip.cpp          : : : : qi_no_skip ]
+     [ run qi/not_predicate.cpp    : : : : qi_not_predicate ]
+     [ run qi/optional.cpp         : : : : qi_optional ]
+     [ run qi/parse_attr.cpp       : : : : qi_parse_attr ]
+     [ run qi/pass_container1.cpp  : : : : qi_pass_container1 ]
+     [ run qi/pass_container2.cpp  : : : : qi_pass_container2 ]
+     [ run qi/permutation.cpp      : : : : qi_permutation ]
+     [ run qi/plus.cpp             : : : : qi_plus ]
+     [ run qi/uint_radix.cpp       : : : : qi_uint_radix ]
+     [ run qi/range_run.cpp        : : : : qi_range_run ]
+     [ run qi/raw.cpp              : : : : qi_raw ]
+     [ run qi/real1.cpp            : : : : qi_real1 ]
+     [ run qi/real2.cpp            : : : : qi_real2 ]
+     [ run qi/real3.cpp            : : : : qi_real3 ]
+     [ run qi/real4.cpp            : : : : qi_real4 ]
+     [ run qi/real5.cpp            : : : : qi_real5 ]
+     [ run qi/repeat.cpp           : : : : qi_repeat ]
+     [ run qi/rule1.cpp            : : : : qi_rule1 ]
+     [ run qi/rule2.cpp            : : : : qi_rule2 ]
+     [ run qi/rule3.cpp            : : : : qi_rule3 ]
+     [ run qi/rule4.cpp            : : : : qi_rule4 ]
+     [ run qi/sequence.cpp         : : : : qi_sequence ]
+     [ run qi/sequential_or.cpp    : : : : qi_sequential_or ]
+     [ run qi/skip.cpp             : : : : qi_skip ]
+     [ run qi/stream.cpp           : : : : qi_stream ]
+     [ run qi/symbols1.cpp         : : : : qi_symbols1 ]
+     [ run qi/symbols2.cpp         : : : : qi_symbols2 ]
+     [ run qi/terminal_ex.cpp      : : : : qi_terminal_ex ]
+     [ run qi/tst.cpp              : : : : qi_tst ]
+     [ run qi/uint1.cpp            : : : : qi_uint1 ]
+     [ run qi/uint2.cpp            : : : : qi_uint2 ]
+     [ run qi/uint3.cpp            : : : : qi_uint3 ]
+#     [ run qi/uint_radix.cpp       : : : : qi_uint_radix ]
+     [ run qi/utree1.cpp           : : : : qi_utree1 ]
+     [ run qi/utree2.cpp           : : : : qi_utree2 ]
+     [ run qi/utree3.cpp           : : : : qi_utree3 ]
+     [ run qi/utree4.cpp           : : : : qi_utree4 ]
+
+    ;
+
+    ###########################################################################
+    test-suite spirit_v2/qi_regressions :
+
+     [ compile qi/pass_container3.cpp                             : : qi_pass_container3 ]
+     [ compile qi/regression_attr_with_action.cpp                 : : qi_regression_attr_with_action ]
+     [ compile qi/regression_container_attribute.cpp              : : qi_regression_container_attribute ]
+     [ compile qi/regression_debug_optional.cpp                   : : qi_regression_debug_optional ]
+     [ compile qi/regression_fusion_proto_spirit.cpp              : : qi_regression_fusion_proto_spirit ]
+     [ compile qi/regression_one_element_fusion_sequence.cpp      : : qi_regression_one_element_fusion_sequence ]
+     [ compile qi/regression_one_element_sequence_attribute.cpp   : : qi_regression_one_element_sequence_attribute ]
+
+     [ run qi/regression_adapt_adt.cpp                            : : : : qi_regression_adapt_adt ]
+     [ run qi/regression_clear.cpp                                : : : : qi_regression_clear ]
+     #[ run qi/regression_float_fraction.cpp                      : : : : qi_regression_float_fraction ]
+     [ run qi/regression_lazy_repeat.cpp                          : : : : qi_regression_lazy_repeat ]
+     [ run qi/regression_numeric_alternatives.cpp                 : : : : qi_regression_numeric_alternatives ]
+     [ run qi/regression_reorder.cpp                              : : : : qi_regression_reorder ]
+     [ run qi/regression_repeat.cpp                               : : : : qi_regression_repeat ]
+     [ run qi/regression_transform_assignment.cpp                 : : : : qi_regression_transform_assignment ]
+     [ run qi/regression_binary_action.cpp                        : : : : qi_regression_binary_action ]
+     [ run qi/regression_stream_eof.cpp                           : : : : qi_regression_stream_eof ]
+    ;
+
+    ###########################################################################
+    test-suite spirit_v2/karma :
+
+     [ compile-fail karma/grammar_fail.cpp         : : karma_grammar_fail ]
+     [ compile-fail karma/rule_fail.cpp            : : karma_rule_fail ]
+     [ run karma/actions.cpp                   : : : : karma_actions ]
+     [ run karma/alternative1.cpp              : : : : karma_alternative1 ]
+     [ run karma/alternative2.cpp              : : : : karma_alternative2 ]
+     [ run karma/and_predicate.cpp             : : : : karma_and_predicate ]
+     [ run karma/attribute.cpp                 : : : : karma_attribute ]
+     [ run karma/auto1.cpp                     : : : : karma_auto1 ]
+     [ run karma/auto2.cpp                     : : : : karma_auto2 ]
+     [ run karma/auto3.cpp                     : : : : karma_auto3 ]
+     [ run karma/binary1.cpp                   : : : : karma_binary1 ]
+     [ run karma/binary2.cpp                   : : : : karma_binary2 ]
+     [ run karma/binary3.cpp                   : : : : karma_binary3 ]
+     [ run karma/bool.cpp                      : : : : karma_bool ]
+     [ run karma/buffer.cpp                    : : : : karma_buffer ]
+     [ run karma/case_handling1.cpp            : : : : karma_case_handling1 ]
+     [ run karma/case_handling2.cpp            : : : : karma_case_handling2 ]
+     [ run karma/case_handling3.cpp            : : : : karma_case_handling3 ]
+     [ run karma/center_alignment.cpp          : : : : karma_center_alignment ]
+     [ run karma/char1.cpp                     : : : : karma_char1 ]
+     [ run karma/char2.cpp                     : : : : karma_char2 ]
+     [ run karma/char3.cpp                     : : : : karma_char3 ]
+     [ run karma/char_class.cpp                : : : : karma_char_class ]
+     [ run karma/columns.cpp                   : : : : karma_columns ]
+     [ run karma/debug.cpp                     : : : : karma_debug ]
+     [ run karma/delimiter.cpp                 : : : : karma_delimiter ]
+     [ run karma/duplicate.cpp                 : : : : karma_duplicate ]
+     [ run karma/encoding.cpp                  : : : : karma_encoding ]
+     [ run karma/eol.cpp                       : : : : karma_eol ]
+     [ run karma/eps.cpp                       : : : : karma_eps ]
+     [ run karma/format_manip.cpp              : : : : karma_format_manip ]
+     [ run karma/format_manip_attr.cpp         : : : : karma_format_manip_attr ]
+     [ run karma/format_pointer_container.cpp  : : : : karma_format_pointer_container ]
+     [ run karma/generate_attr.cpp             : : : : karma_generate_attr ]
+     [ run karma/grammar.cpp                   : : : : karma_grammar ]
+     [ run karma/int1.cpp                      : : : : karma_int1 ]
+     [ run karma/int2.cpp                      : : : : karma_int2 ]
+     [ run karma/int3.cpp                      : : : : karma_int3 ]
+     [ run karma/kleene.cpp                    : : : : karma_kleene ]
+     [ run karma/lazy.cpp                      : : : : karma_lazy ]
+     [ run karma/left_alignment.cpp            : : : : karma_left_alignment ]
+     [ run karma/list.cpp                      : : : : karma_list ]
+     [ run karma/lit.cpp                       : : : : karma_lit ]
+     [ run karma/maxwidth.cpp                  : : : : karma_maxwidth ]
+     [ run karma/not_predicate.cpp             : : : : karma_not_predicate ]
+     [ run karma/omit.cpp                      : : : : karma_omit ]
+     [ run karma/optional.cpp                  : : : : karma_optional ]
+     [ run karma/pattern1.cpp                  : : : : karma_pattern1 ]
+     [ run karma/pattern2.cpp                  : : : : karma_pattern2 ]
+     [ run karma/pattern3.cpp                  : : : : karma_pattern3 ]
+     [ run karma/pattern4.cpp                  : : : : karma_pattern4 ]
+     [ run karma/plus.cpp                      : : : : karma_plus ]
+     [ run karma/real1.cpp                     : : : : karma_real1 ]
+     [ run karma/real2.cpp                     : : : : karma_real2 ]
+     [ run karma/real3.cpp                     : : : : karma_real3 ]
+     [ run karma/repeat1.cpp                   : : : : karma_repeat1 ]
+     [ run karma/repeat2.cpp                   : : : : karma_repeat2 ]
+     [ run karma/right_alignment.cpp           : : : : karma_right_alignment ]
+     [ run karma/sequence1.cpp                 : : : : karma_sequence1 ]
+     [ run karma/sequence2.cpp                 : : : : karma_sequence2 ]
+     [ run karma/stream.cpp                    : : : : karma_stream ]
+     [ run karma/symbols1.cpp                  : : : : karma_symbols1 ]
+     [ run karma/symbols2.cpp                  : : : : karma_symbols2 ]
+     [ run karma/symbols3.cpp                  : : : : karma_symbols3 ]
+     [ run karma/tricky_alignment.cpp          : : : : karma_tricky_alignment ]
+     [ run karma/uint_radix.cpp                : : : : karma_uint_radix ]
+     [ run karma/utree1.cpp                    : : : : karma_utree1 ]
+     [ run karma/utree2.cpp                    : : : : karma_utree2 ]
+     [ run karma/utree3.cpp                    : : : : karma_utree3 ]
+     [ run karma/wstream.cpp                   : : : : karma_wstream ]
+
+    ;
+
+    ###########################################################################
+    test-suite spirit_v2/karma_regressions :
+
+     [ compile karma/regression_const_real_policies.cpp    : :  regression_const_real_policies ]
+
+     [ run karma/regression_adapt_adt.cpp                  : : : :  karma_regression_adapt_adt ]
+     [ run karma/regression_optional_double.cpp            : : : :  karma_regression_optional_double ]
+     [ run karma/regression_semantic_action_attribute.cpp  : : : :  karma_regression_semantic_action_attribute ]
+     [ run karma/regression_real_scientific.cpp            : : : :  karma_regression_real_scientific ]
+     [ run karma/regression_center_alignment.cpp           : : : :  karma_regression_center_alignment ]
+     [ run karma/regression_container_variant_sequence.cpp : : : :  karma_regression_container_variant_sequence ]
+     [ run karma/regression_real_0.cpp                     : : : :  karma_regression_real_0 ]
+     [ run karma/regression_unicode_char.cpp               : : : :  karma_regression_unicode_char ]
+     [ run karma/regression_iterator.cpp                   : : : :  karma_regression_iterator ]
+
+    ;
+
+    ###########################################################################
+    test-suite spirit_v2/lex :
+
+     [ run lex/auto_switch_lexerstate.cpp    : : : : lex_auto_switch_lexerstate ]
+     [ run lex/dedent_handling_phoenix.cpp   : : : : lex_dedent_handling_phoenix ]
+     [ run lex/id_type_enum.cpp              : : : : lex_id_type_enum ]
+     [ run lex/lexertl1.cpp                  : : : : lex_lexertl1 ]
+     [ run lex/lexertl2.cpp                  : : : : lex_lexertl2 ]
+     [ run lex/lexertl3.cpp                  : : : : lex_lexertl3 ]
+     [ run lex/lexertl4.cpp                  : : : : lex_lexertl4 ]
+     [ run lex/lexertl5.cpp                  : : : : lex_lexertl5 ]
+     [ run lex/lexer_state_switcher.cpp      : : : : lex_lexer_state_switcher ]
+     [ run lex/semantic_actions.cpp          : : : : lex_semantic_actions ]
+     [ run lex/set_token_value.cpp           : : : : lex_set_token_value ]
+     [ run lex/set_token_value_phoenix.cpp   : : : : lex_set_token_value_phoenix ]
+     [ run lex/state_switcher.cpp            : : : : lex_state_switcher ]
+     [ run lex/string_token_id.cpp           : : : : lex_string_token_id ]
+     [ run lex/token_iterpair.cpp            : : : : lex_token_iterpair ]
+     [ run lex/token_moretypes.cpp           : : : : lex_token_moretypes ]
+     [ run lex/token_omit.cpp                : : : : lex_token_omit ]
+     [ run lex/token_onetype.cpp             : : : : lex_token_onetype ]
+
+    ;
+
+    ###########################################################################
+    test-suite spirit_v2/lex_regressions :
+
+     [ run lex/regression_basic_lexer.cpp : : : : lex_regression_basic_lexer ]
+     [ run lex/regression_matlib_dynamic.cpp : : : : lex_regression_matlib_dynamic ]
+     [ run lex/regression_matlib_generate.cpp : $(LEX_DIR)/matlib_static.h : : : lex_regression_matlib_generate ]
+     [ run lex/regression_matlib_static.cpp : : :
+       <phoenix_v3>on:<dependency>.//lex_regression_matlib_generate-p3
+       <phoenix_v3>off:<dependency>.//lex_regression_matlib_generate-p2
+       : lex_regression_matlib_static ]
+     [ run lex/regression_matlib_generate_switch.cpp : $(LEX_DIR)/matlib_static_switch.h : : : lex_regression_matlib_generate_switch ]
+     [ run lex/regression_matlib_switch.cpp : : :
+       <phoenix_v3>on:<dependency>.//lex_regression_matlib_generate_switch-p3
+       <phoenix_v3>off:<dependency>.//lex_regression_matlib_generate_switch-p2
+         : lex_regression_matlib_switch ]
+     [ run lex/regression_word_count.cpp : : : : lex_regression_word_count ]
+     [ run lex/regression_syntax_error.cpp : : : : lex_regression_syntax_error ]
+     [ run lex/regression_wide.cpp : : : : lex_regression_wide ]
+     [ run lex/regression_file_iterator1.cpp : : : : lex_regression_file_iterator1 ]
+     [ run lex/regression_file_iterator2.cpp : : : : lex_regression_file_iterator2 ]
+     [ run lex/regression_file_iterator3.cpp : : : : lex_regression_file_iterator3 ]
+     [ run lex/regression_file_iterator4.cpp : : : : lex_regression_file_iterator4 ]
+     [ run lex/regression_static_wide_6253.cpp : : : : regression_static_wide_6253 ]
+     [ run lex/regression_less_8563.cpp : : : : regression_less_8563 ]
+
+    ;
+
+    ###########################################################################
+    test-suite spirit_v2/support :
+
+     [ run support/utree.cpp                  : : : : support_utree ]
+     [ run support/utree_debug.cpp            : : : : support_utree_debug ]
+
+    ;
+
+    ###########################################################################
+    test-suite spirit_v2/support_regressions :
+
+     [ compile support/regression_multi_pass_position_iterator.cpp : : support_regression_multi_pass_position_iterator ]
+     [ compile support/regression_multi_pass_functor.cpp           : : support_regression_multi_pass_functor ]
+     [ compile support/regression_multi_pass_parse.cpp             : : support_regression_multi_pass_parse ]
+     [ run support/regression_multi_pass_error_handler.cpp         : : : : regression_multi_pass_error_handler ]
+
+    ;
+}
+
+# use this alias to build Spirit against Phoenix V2
+alias test_using_phoenix_v2 : $(v2_tests) ;
+
+# use this alias to build Spirit against Phoenix V3
+alias test_using_phoenix_v3 : $(v3_tests) ;
+
+# We keep  both aliases non-explicit to invoke tests for Phoenix V2 and V3
+# while running the regerssion tests.
+#
+# If you want to avoid running tests for both Phoenix V2 and V3 by default
+# then simply uncomment the following 'explicit' command. If no target is
+# specified, only the V2 tests will be run.
+#
+
+explicit test_using_phoenix_v2 test_using_phoenix_v3 ;
+

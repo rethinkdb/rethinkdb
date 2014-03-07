@@ -1,0 +1,222 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Tutorial</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../typeof.html" title="Chapter&#160;35.&#160;Boost.Typeof">
+<link rel="prev" href="../typeof.html" title="Chapter&#160;35.&#160;Boost.Typeof">
+<link rel="next" href="refe.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../typeof.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../typeof.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="refe.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="typeof.tuto"></a>Tutorial</h2></div></div></div>
+<p>
+      To start using typeof include the typeof header:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">typeof</span><span class="special">/</span><span class="identifier">typeof</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      To deduce the type of an expression at compile time use the <code class="computeroutput"><span class="identifier">BOOST_TYPEOF</span></code>
+      macro:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">ex1</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">BOOST_TYPEOF</span><span class="special">(</span><span class="number">1</span> <span class="special">+</span> <span class="number">0.5</span><span class="special">)</span> <span class="identifier">type</span><span class="special">;</span>
+
+    <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">type</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+      In the dependent context use <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_TPL</span></code>
+      instead of <code class="computeroutput"><span class="identifier">BOOST_TYPEOF</span></code>:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">ex2</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span>
+    <span class="identifier">BOOST_TYPEOF_TPL</span><span class="special">(</span><span class="identifier">T</span><span class="special">()</span> <span class="special">+</span> <span class="identifier">U</span><span class="special">())</span> <span class="identifier">add</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">t</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">U</span><span class="special">&amp;</span> <span class="identifier">u</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">t</span> <span class="special">+</span> <span class="identifier">u</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">BOOST_TYPEOF</span><span class="special">(</span><span class="identifier">add</span><span class="special">(</span><span class="char">'a'</span><span class="special">,</span> <span class="number">1.5</span><span class="special">))</span> <span class="identifier">type</span><span class="special">;</span>
+
+    <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">type</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+      The above examples are possible because the Typeof Library knows about primitive
+      types, such as <code class="computeroutput"><span class="keyword">int</span></code>, <code class="computeroutput"><span class="keyword">double</span></code>, <code class="computeroutput"><span class="keyword">char</span></code>,
+      etc. The Typeof Library also knows about most types and templates defined by
+      the Standard C++ Library, but the appropriate headers need to be included to
+      take advantage of this:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">typeof</span><span class="special">/</span><span class="identifier">std</span><span class="special">/</span><span class="identifier">utility</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">ex3</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_AUTO</span><span class="special">(</span><span class="identifier">p</span><span class="special">,</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">));</span>
+
+    <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">BOOST_TYPEOF</span><span class="special">(</span><span class="identifier">p</span><span class="special">),</span> <span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+      Here <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">typeof</span><span class="special">/</span><span class="identifier">std</span><span class="special">/</span><span class="identifier">utility</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+      includes <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">utility</span><span class="special">&gt;</span></code> and contains knowledge about templates
+      defined there. This naming convention applies in general, for example to let
+      the Typeof Library handle <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code>,
+      include <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">typeof</span><span class="special">/</span><span class="identifier">std</span><span class="special">/</span><span class="identifier">vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>,
+      etc.
+    </p>
+<p>
+      To deduce the type of a variable from the expression, this variable is initialized
+      with, use the <code class="computeroutput"><span class="identifier">BOOST_AUTO</span></code> macro
+      (or <code class="computeroutput"><span class="identifier">BOOST_AUTO_TPL</span></code> in a dependent
+      context:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">typeof</span><span class="special">/</span><span class="identifier">std</span><span class="special">/</span><span class="identifier">string</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">ex4</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_AUTO</span><span class="special">(</span><span class="identifier">p</span><span class="special">,</span> <span class="keyword">new</span> <span class="keyword">int</span><span class="special">[</span><span class="number">20</span><span class="special">]);</span>
+
+    <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">BOOST_TYPEOF</span><span class="special">(</span><span class="identifier">p</span><span class="special">),</span> <span class="keyword">int</span><span class="special">*&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+      Both <code class="computeroutput"><span class="identifier">BOOST_TYPEOF</span></code> and <code class="computeroutput"><span class="identifier">BOOST_AUTO</span></code> strip top-level qualifiers. Therefore,
+      to allocate for example a reference, it has to be specified explicitly:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">ex5</span>
+<span class="special">{</span>
+    <span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">hello</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="keyword">static</span> <span class="identifier">string</span> <span class="identifier">s</span> <span class="special">=</span> <span class="string">"hello"</span><span class="special">;</span>
+        <span class="keyword">return</span> <span class="identifier">s</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">BOOST_AUTO</span><span class="special">(&amp;</span><span class="identifier">s</span><span class="special">,</span> <span class="identifier">hello</span><span class="special">());</span>
+<span class="special">}</span>
+</pre>
+<p>
+      To better understand this syntax, note that this gets expanded into:
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TYPEOF</span><span class="special">(</span><span class="identifier">hello</span><span class="special">())</span> <span class="special">&amp;</span><span class="identifier">s</span> <span class="special">=</span> <span class="identifier">hello</span><span class="special">();</span>
+</pre>
+<p>
+      If your define your own type, the Typeof Library cannot handle it unless you
+      let it know about this type. You tell the Typeof Library about a type (or template)
+      by the means of "registering" this type/template.
+    </p>
+<p>
+      Any source or header file where types/templates are registered has to contain
+      the following line before any registration is done:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="identifier">BOOST_TYPEOF_INCREMENT_REGISTRATION_GROUP</span><span class="special">()</span>
+</pre>
+<p>
+      After this a type can be registered:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">ex6</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">MyType</span>
+    <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">ex6</span><span class="special">::</span><span class="identifier">MyType</span><span class="special">)</span>
+</pre>
+<p>
+      The registration must be done from the context of global namespace; fully qualified
+      type name has to be used.
+    </p>
+<p>
+      Any number of types can be registered in one file, each on a separate line.
+    </p>
+<p>
+      Once your type is registered, the Typeof Library can handle it in any context:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">ex6</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">BOOST_TYPEOF</span><span class="special">(</span><span class="identifier">make_pair</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="identifier">MyType</span><span class="special">()))</span> <span class="identifier">type</span><span class="special">;</span>
+
+    <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">type</span><span class="special">,</span> <span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">MyType</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+      A template is registered by specifying its fully qualified name, and describing
+      its parameters. In the simplest case, when all parameters are type parameters,
+      only their number needs to be specified:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">ex7</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">MyTemplate</span>
+    <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">ex7</span><span class="special">::</span><span class="identifier">MyTemplate</span><span class="special">,</span> <span class="number">2</span><span class="special">)</span>
+
+<span class="keyword">namespace</span> <span class="identifier">ex7</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">BOOST_TYPEOF</span><span class="special">(</span><span class="identifier">make_pair</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="identifier">MyTemplate</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">ex6</span><span class="special">::</span><span class="identifier">MyType</span><span class="special">&gt;()))</span> <span class="identifier">type</span><span class="special">;</span>
+
+    <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">type</span><span class="special">,</span>
+        <span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">MyTemplate</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">ex6</span><span class="special">::</span><span class="identifier">MyType</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+      When a template has integral template parameters, all parameters need to be
+      described in the preprocessor sequence:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">ex8</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">n</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">MyTemplate</span>
+    <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">ex8</span><span class="special">::</span><span class="identifier">MyTemplate</span><span class="special">,</span> <span class="special">(</span><span class="keyword">class</span><span class="special">)(</span><span class="keyword">int</span><span class="special">))</span>
+
+<span class="keyword">namespace</span> <span class="identifier">ex8</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">BOOST_TYPEOF</span><span class="special">(</span><span class="identifier">make_pair</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="identifier">MyTemplate</span><span class="special">&lt;</span><span class="identifier">ex7</span><span class="special">::</span><span class="identifier">MyTemplate</span><span class="special">&lt;</span><span class="identifier">ex6</span><span class="special">::</span><span class="identifier">MyType</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;,</span> <span class="number">0</span><span class="special">&gt;()))</span> <span class="identifier">type</span><span class="special">;</span>
+
+    <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">type</span><span class="special">,</span>
+        <span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">MyTemplate</span><span class="special">&lt;</span><span class="identifier">ex7</span><span class="special">::</span><span class="identifier">MyTemplate</span><span class="special">&lt;</span><span class="identifier">ex6</span><span class="special">::</span><span class="identifier">MyType</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;,</span> <span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+      Please see the reference for more details.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004, 2005 Arkadiy Vertleyb, Peder Holt<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../typeof.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../typeof.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="refe.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

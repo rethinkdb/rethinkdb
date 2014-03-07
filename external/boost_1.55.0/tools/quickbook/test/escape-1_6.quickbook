@@ -1,0 +1,35 @@
+[article Escape
+[quickbook 1.6]
+]
+
+[section Escape]
+
+'''
+<emphasis>Da do do do. Da da da da. That's all I have to say to you.</emphasis>
+'''
+
+This letter '''&#x3B1;''' should have a space either side of it.
+
+These should be properly encoded: \> \< \"
+
+[/ The following tests are based on internal knowledge of
+   how quickbook's id generator works. They make sure it
+   doesn't mess up escaped docbook. ]
+
+'''This <link linkend="$0">link</link> shouldn't be changed.'''
+
+'''
+Some other problematic links:
+<link linkend="$157">one</link>,
+<link linkend="$-256">two</link>,
+<link linkend="$text">three</link>.
+'''
+
+[template escapedtemplate <emphasis>This will be escaped</emphasis>]
+
+[`escapedtemplate]
+
+\\\[ generates \[.
+\\\] generates \].
+
+[endsect]

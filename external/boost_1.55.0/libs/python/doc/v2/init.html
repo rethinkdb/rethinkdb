@@ -1,0 +1,251 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/init.hpp&gt;</title>
+  </head>
+
+  <body link="#0000ff" vlink="#800080">
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Headers &lt;boost/python/init.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+              <dt><a href=
+              "#init-expressions"><em>init-expressions</em></a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#init-spec">Class template <code>init</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#init-spec-synopsis">Class template
+              <code>init</code> synopsis</a></dt>
+
+              <dt><a href="#init-spec-ctors">Class <code>init</code>
+              constructors</a></dt>
+
+            </dl>
+          </dd>
+
+          <dt><a href="#optional-spec">Class template
+          <code>optional</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#optional-spec-synopsis">Class template
+              <code>optional</code> synopsis</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example(s)</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code>&lt;boost/python/init.hpp&gt;</code> defines the interface for
+    exposing C++ constructors to Python as extension class
+    <code>__init__</code> functions.</p>
+
+    <h2><a name="init-expressions"><em>init-expressions</em></a></h2>
+    An <em>init-expression</em> is used to describe a family of
+    <code>__init__</code> methods to be generated for an extension class, and
+    the result has the following properties: 
+
+    <blockquote>
+      <dl class="properties">
+        <dt><b>docstring:</b> An <a href="definitions.html#ntbs">ntbs</a>
+        whose value will bound to the method's <code>__doc__</code>
+        attribute</dt>
+
+        <dt><b>keywords:</b> A <a href=
+        "args.html#keyword-expression">keyword-expression</a> which will be
+        used to name (a trailing subsequence of) the arguments to the
+        generated <code>__init__</code> function(s).</dt>
+
+        <dt><b>call policies:</b> An instance of a model of <a href=
+        "CallPolicies.html">CallPolicies</a>.</dt>
+
+        <dt><b>argument types:</b> An MPL sequence of C++ argument types
+        which will be used to construct the wrapped C++ object. An init
+        expression has one or more 
+        <b>valid prefixes</b> which are given by a sequence of
+        prefixes of its argument types.</dt>
+      </dl>
+    </blockquote>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="init-spec"></a>Class template <code>init&lt;T1 =</code>
+    <i>unspecified</i><code>,&nbsp;T2 =</code>
+    <i>unspecified</i><code>,</code>...<code>Tn</code> =
+    <i>unspecified</i><code>&gt;</code></h3>
+
+    <p>A <a href="../../../mpl/doc/refmanual/forward-sequence.html">MPL sequence</a> which
+    can be used to specify a family of one or more <code>__init__</code>
+    functions. Only the last <code>T</code><i><small>i</small></i> supplied
+    may be an instantiation of <a href=
+    "#optional-spec"><code>optional</code></a><code>&lt;</code>...<code>&gt;</code>.</p>
+
+    <h4><a name="init-spec-synopsis"></a>Class template <code>init</code>
+    synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  template &lt;T1 = <i>unspecified</i>,...T<i>n</i> = <i>unspecified</i>&gt;
+  struct init
+  {
+      init(char const* doc = 0);
+      template &lt;class Keywords&gt; init(Keywords const&amp; kw, char const* doc = 0);
+      template &lt;class Keywords&gt; init(char const* doc, Keywords const&amp; kw);
+
+      template &lt;class CallPolicies&gt;
+      <em>unspecified</em> operator[](CallPolicies const&amp; policies) const
+  };
+}}
+</pre>
+
+    <h4><a name="init-spec-ctors"></a>Class template <code>init</code>
+    constructors</h4>
+<pre>
+init(char const* doc = 0);
+template &lt;class Keywords&gt; init(Keywords const&amp; kw, char const* doc = 0);
+template &lt;class Keywords&gt; init(char const* doc, Keywords const&amp; kw);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> If supplied, <code>doc</code> is an <a href=
+      "definitions.html#ntbs">ntbs</a>. If supplied, <code>kw</code> is the
+      result of a <a href="args.html#keyword-expression"></a></dt>
+
+      <dt><b>Effects:</b> The result is an <em>init-expression</em> whose
+      <em>docstring</em> is <code>doc</code> and whose <em>keywords</em> are
+      a reference to <code>kw</code>. If the first form is used, the
+      resulting expression's <em>keywords</em> are empty. The expression's
+      <em>call policies</em> are an instance of <a href=
+      "default_call_policies.html#default_call_policies-spec">default_call_policies</a>.
+      If <code>T</code><i><small>n</small></i> is <a href=
+      "#optional-spec"><code>optional</code></a><code>&lt;U1,&nbsp;U2,</code>...
+      <code>U</code><small><i>m</i></small><code>&gt;</code>, the
+      expression's <em>valid prefixes</em> are given by:</dt>
+
+      <dd>
+        <blockquote>
+          (<code>T1,&nbsp;T2,</code>...<code>T</code><i><small>n-1</small></i>),
+          (<code>T1,&nbsp;T2,</code>...<code>T</code><i><small>n-1</small></i>
+          <code>,&nbsp;U1</code>),
+          (<code>T1,&nbsp;T2,</code>...<code>T</code><i><small>n-1</small></i>
+          <code>,&nbsp;U1,&nbsp;U2</code>),
+          ...(<code>T1,&nbsp;T2,</code>...<code>T</code><i><small>n-1</small></i>
+          <code>,&nbsp;U1,&nbsp;U2,</code>...<code>U</code><i><small>m</small></i>).
+        </blockquote>
+        Otherwise, the expression has one <em>valid prefix</em> given by the
+        the template arguments the user specified.
+      </dd>
+    </dl>
+
+    <h4><a name="init-spec-observers"></a>Class template <code>init</code>
+    observer functions</h4>
+<pre>
+template &lt;class Policies&gt;
+<em>unspecified</em> operator[](Policies const&amp; policies) const
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> Policies is a model of <a href=
+      "CallPolicies.html">CallPolicies</a>.</dt>
+
+      <dt><b>Effects:</b> Returns a new <a href=
+      "#init-expressions"><em>init-expression</em></a> with all the same
+      properties as the <code>init</code> object except that its <em>call
+      policies</em> are replaced by a reference to
+      <code>policies</code>.</dt>
+    </dl>
+
+    <h3><a name="optional-spec"></a>Class template <code>optional&lt;T1
+    =</code> <i>unspecified</i><code>,&nbsp;T2 =</code>
+    <i>unspecified</i><code>,</code>...<code>Tn</code> =
+    <i>unspecified</i><code>&gt;</code></h3>
+
+    <p>A <a href="../../../mpl/doc/refmanual/forward-sequence.html">MPL sequence</a> which
+    can be used to specify the optional arguments to an <code>__init__</code>
+    function.</p>
+
+    <h4><a name="optional-spec-synopsis"></a>Class template
+    <code>optional</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  template &lt;T1 = <i>unspecified</i>,...T<i>n</i> = <i>unspecified</i>&gt;
+  struct optional {};
+}}
+</pre>
+
+    <h2><a name="examples"></a>Example(s)</h2>
+
+    <p>Given the C++ declarations:</p>
+<pre>
+class Y;
+class X
+{
+ public:
+   X(int x, Y* y) : m_y(y) {}
+   X(double);
+ private:
+   Y* m_y;
+};
+</pre>
+    A corresponding Boost.Python extension class can be created with: 
+<pre>
+using namespace boost::python;
+
+class_&lt;X&gt;("X", "This is X's docstring.",
+          init&lt;int,char const*&gt;(args("x","y"), "X.__init__'s docstring")[
+                with_custodian_and_ward&lt;1,3&gt;()]
+          )
+   .def(init&lt;double&gt;())
+   ;
+</pre>
+    <hr>
+    Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+     
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

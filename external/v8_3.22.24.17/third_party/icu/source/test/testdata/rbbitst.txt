@@ -1,0 +1,600 @@
+﻿# Copyright (c) 2001-2009 International Business Machines
+# Corporation and others. All Rights Reserved.
+#
+# RBBI Test Data
+#
+#   File:  rbbitst.txt
+#
+#     The format of this file looks vaguely like some kind of xml-ish markup,
+#     but it is NOT.  The syntax is this..
+#
+#   <word>    any following data is for word break testing
+#   <sent>    any following data is for sentence break testing
+#   <line>    any following data is for line break testing
+#   <char>    any following data is for char break testing
+#   <locale local_name>  Switch to the named locale at the next occurence of <word>, <sent>, etc.
+#   <data> ... </data>   test data.  May span multiple lines.
+#      <>        Break position, status == 0
+#      •         Break position, status == 0   (Bullet, \u2022) 
+#      <nnn>     Break position, status == nnn
+#      \         Escape.  Normal ICU unescape applied.  
+#      \ at end of line  ->  Line Continuation.  Remove both the backslash and the new line
+#   
+#
+
+
+#   Temp debugging tests 
+<line>
+<data>•\ufffc•\u30e3\u000c<100>\u1b39\u300a\u002f\u203a\u200b•\ufffc•\uaf64•\udcfb•</data>
+
+########################################################################################
+#
+#
+#       G r a p h e m e    C l u s t e r     T e s t s
+#
+#
+##########################################################################################
+<char>
+
+<data>•a•b•c• •,•\u0666•</data>                 # Quick Test
+<data>•\r•\r•\r\n•\r\n•\n•\r•</data>            # don't break CR/LF
+
+# Always break after controls.  Combining chars don't combine with them.
+<data>•\u0003•\N{COMBINING GRAVE ACCENT}•\r•\N{COMBINING GRAVE ACCENT}•</data>
+<data>•\u0085•\N{COMBINING MACRON}•A\N{COMBINING MACRON}•</data>
+
+# Surrogates
+<data>•\U00011000•\U00010020•\U00010000\N{COMBINING MACRON}•</data>
+<data>•\ud800\udc00•\udbff\udfff•a•</data>
+
+# Extend (Combining chars) combine.
+<data>•A\N{COMBINING GRAVE ACCENT}•B•</data>
+<data>•\N{GREEK SMALL LETTER MU}\N{COMBINING LOW LINE}\N{COMBINING HORN}•</data>
+<data>•a\u0301•b\u0302•c\u0303•d\u0304•e\u0305•f\u0306•g\u0307•h\u0308•i\u0309•</data>
+
+<data>•a\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304\u0301\u0302\u0303\u0304•</data>
+
+# Don't break Hangul Syllables
+#   L : \u1100
+#   V : \u1161
+#   T : \u11A8
+#  LV : \uAC00
+# LVT : \uAC01
+
+<data>•\u1100\u1161\u11a8•\u1100\u1161\u11a8•</data>  #LVT
+<data>•\u1100\u1161•\u1100\u1161•</data> 
+<data>•\u1100\u1161\u11a8•\u1161•\u1100•\u11a8•\u1161\u1161\u1161\u11a8•</data>
+<data>•\u1100\u1100\uac01•\u1100\uac01•\u1100\uac01\u0301•\uac01•</data>
+<data>•\u1100\u0301•\u1161\u11a8\u0301•\u11a8•</data>
+
+
+
+# Hindi combining chars.  (An old test)
+#   TODO:  Update these tests for Unicode 5.1 Extended Grapheme clusters 
+#<data>•भ••ा•\u0930•\u0924• •\u0938\u0941\u0902•\u0926•\u0930•
+#•\u0939•\u094c•\u0964•</data>
+#<data>•\u0916\u0947•\u0938\u0941\u0902•\u0926•\u0930•\u0939•\u094c•\u0964•</data>
+
+
+#  Bug 1587.  Tamil.  \u0baa\u0bc1 is an Extended Grpaheme Cluster
+<data>•\u0baa\u0bc1•\u0baa\u0bc1•</data>
+
+#   Regression test for bug 1889
+<data>•\u0f40\u0f7d•\u0000•\u0f7e•</data>
+
+
+#     0xffff is a legal character, and should not stop the break iterator early.
+#     (Requires special casing in implementation, which is why it gets a test.)
+<data>•\uffff•\uffff• •a•</data>
+
+#  Treat Japanese Half Width voicing marks as combining
+<data>•A\uff9e•B\uff9f\uff9e\uff9f•C•</data>
+
+########################################################################################
+#
+#
+#       E x t e n d e d    G r a p h e m e    C l u s t e r     T e s t s
+#
+#
+##########################################################################################
+#<xgc>
+
+# Plain Vanilla grapheme clusters
+#<data>•a•b•c•</data>
+#<data>•a\u0301\u0302• •b\u0303\u0304•</data>
+
+# Assorted Hindi combining marks
+#<data>•\u0904\u0903• •\u0937\u093E• •\u0904\u093F• •\u0937\u0940• •\u0937\u0949• •\u0937\u094A• •\u0937\u094B• •\u0937\u094C•</data>
+
+# Thai Clusters
+# $Prepend $Extend* $PrependBase $Extend*;
+#
+#<data>•\u0e40\u0e01•\u0e44\u0301\u0e23\u0302\u0303•\u0e40•\u0e40\u0e02•\u0e02• •</data>
+
+
+########################################################################################
+#
+#
+#       W o r d    B o u n d a r y      T e s t s
+#
+#
+##########################################################################################
+
+<word>
+#
+# Quick sanity test
+#
+<data>•hello<200> •there<200> •goodbye<200></data>
+<data>•hello<200> •12345<100> •,•</data>
+
+
+#
+# Test data originally in RBBIAPITest::TestFirstNextFollowing() and TestLastPreviousPreceding()
+#
+
+<word>
+<data>•This<200> •is<200> •a<200> •word<200> •break<200>.• • •Isn't<200> •it<200>?• •2.25<100></data>
+
+
+
+#
+# Data originally from TestDefaultRuleBasedWordIteration()
+#
+<data>•Write<200> •wordrules<200>.• •123.456<100> •alpha\u00adbeta\u00adgamma<200> •\u092f\u0939<200> •</data>
+<data>• •\u0939\u093f\u0928\u094d\u200d\u0926\u0940<200> •\u0939\u0948<200> •\u0905\u093e\u092a<200> •\u0938\u093f\u0916\u094b\u0917\u0947<200>?•</data>
+
+#Hindi Numbers
+<data>• •\u0968\u0966.\u0969\u096f<100> •\u0967\u0966\u0966.\u0966\u0966<100> •\N{RUPEE SIGN}•\u0967,\u0967\u0966\u0966.\u0966\u0966<100> • •\u0905\u092e\u091c<200>\n•</data>
+
+<data>•\u0938\u094d\u200d\u0935\u0924\u0902deadTA\u0930<200>\r•It's<200> •$•30.10<100> •12,34<100>¢•£•¤•¥•alpha\u05f3beta\u05f4gamma<200> •</data>
+
+<data>•Badges<200>?• •BADGES<200>!•?•!• •We<200> •don't<200> •need<200> •no<200> •STINKING<200> •BADGES<200>!•!•1000,233,456.000<100> •1,23.322<100>%•123.1222<100>$•123,000.20<100> •179.01<100>%•X<200> •Now<200>\r•is<200>\n•the<200>\r\n•time<200> •</data>
+
+#Hangul
+<data>•\uc5f0\ud569<200> •\uc7a5\ub85c\uad50\ud68c<200> •\u1109\u1161\u11bc\u1112\u1161\u11bc<200> •\u1112\u1161\u11ab\u110b\u1175\u11ab<200> •Hello<200>,• •how<200> •are<200> •you<200> •</data>
+
+
+# Words containing non-BMP letters
+<data>•abc\U00010300<200> •abc\N{DESERET SMALL LETTER ENG}<200> •abc\N{MATHEMATICAL BOLD SMALL Z}<200> •abc\N{MATHEMATICAL SANS-SERIF BOLD ITALIC PI SYMBOL}<200> •</data>
+
+# Unassigned code points
+<data>•abc<200>\U0001D800•def<200>\U0001D3FF• •</data>
+
+# Hiragana & Katakana stay together, but separates from each other and Latin.
+# *** what to do about theoretical combos of chars? i.e. hiragana + accent
+#<data>•abc<200>\N{HIRAGANA LETTER SMALL A}<300>\N{HIRAGANA LETTER VU}\N{COMBINING ACUTE ACCENT}<300>\N{HIRAGANA ITERATION MARK}<300>\N{KATAKANA LETTER SMALL A}\N{KATAKANA ITERATION MARK}\N{HALFWIDTH KATAKANA LETTER WO}\N{HALFWIDTH KATAKANA LETTER N}<300>def<200>#•</data>
+
+# test normalization/dictionary handling of halfwidth katakana: same dictionary phrase in fullwidth and halfwidth
+<data>•芽キャベツ<400>芽キャﾍﾞツ<400></data>
+
+# more Japanese tests
+# TODO: Currently, U+30FC and other characters (script=common) in the Hiragana
+# and the Katakana block are not treated correctly. Enable this later.
+#<data>•どー<400>せ<400>日本語<400>を<400>勉強<400>する<400>理由<400>について<400>　•て<400>こと<400>は<400>我<400>でも<400>知<400>ら<400>も<400>い<400>こと<400>なん<400>だ<400>。•</data>
+<data>•日本語<400>を<400>勉強<400>する<400>理由<400>について<400>　•て<400>こと<400>は<400>我<400>でも<400>知<400>ら<400>も<400>い<400>こと<400>なん<400>だ<400>。•</data>
+
+# Testing of word boundary for dictionary word containing both kanji and kana
+<data>•中だるみ<400>蔵王の森<400>ウ離島<400></data>
+
+# Testing of Chinese segmentation (taken from a Chinese news article)
+<data>•400<100>余<400>名<400>中央<400>委员<400>和<400>中央<400>候补<400>委员<400>都<400>领<400>到了<400>“•推荐<400>票<400>”•，•有<400>资格<400>在<400>200<100>多<400>名<400>符合<400>条件<400>的<400>63<100>岁<400>以下<400>中共<400>正<400>部<400>级<400>干部<400>中<400>，•选出<400>他们<400>属意<400>的<400>中央<400>政治局<400>委员<400>以<400>向<400>政治局<400>常委<400>会<400>举荐<400>。•</data>
+
+# Words with interior formatting characters
+<data>•def\N{COMBINING ACUTE ACCENT}\N{SYRIAC ABBREVIATION MARK}ghi<200> •</data>
+    
+# to test for bug #4097779
+<data>•aa\N{COMBINING GRAVE ACCENT}a<200> •</data>
+
+# fullwidth numeric, midletter characters etc should be treated like their halfwidth counterparts
+<data>•ＩＳＮ'Ｔ<200> •１９<100>日<400></data>
+
+#      to test for bug #4098467
+#      What follows is a string of Korean characters (I found it in the Yellow Pages
+#      ad for the Korean Presbyterian Church of San Francisco, and I hope I transcribed
+#      it correctly), first as precomposed syllables, and then as conjoining jamo.
+#      Both sequences should be semantically identical and break the same way.
+#      precomposed syllables...
+<data>•\uc0c1\ud56d<200> •\ud55c\uc778<200> •\uc5f0\ud569<200> •\uc7a5\ub85c\uad50\ud68c<200> •\u1109\u1161\u11bc\u1112\u1161\u11bc<200> •\u1112\u1161\u11ab\u110b\u1175\u11ab<200> •\u110b\u1167\u11ab\u1112\u1161\u11b8<200> •\u110c\u1161\u11bc\u1105\u1169\u1100\u116d\u1112\u116c<200> •</data>
+
+# more Korean tests (Jamo not tested here, not counted as dictionary characters)
+# Disable them now because we don't include a Korean dictionary.
+#<data>•\ud55c\uad6d<200>\ub300\ud559\uad50<200>\uc790\uc5f0<200>\uacfc\ud559<200>\ub300\ud559<200>\ubb3c\ub9ac\ud559\uacfc<200></data>
+#<data>•\ud604\uc7ac<200>\ub294<200> •\uac80\ucc30<200>\uc774<200> •\ubd84\uc2dd<200>\ud68c\uacc4<200>\ubb38\uc81c<200>\ub97c<200> •\uc870\uc0ac<200>\ud560<200> •\uac00\ub2a5\uc131<200>\uc740<200> •\uc5c6\ub2e4<200>\u002e•</data>
+
+<data>•abc<200>\u4e01<400>\u4e02<400>\u3005<400>\u4e03\u4e03<400>abc<200> •</data>
+
+<data>•\u06c9<200>\uc799<200>\ufffa•</data>
+
+
+#      
+#      Try some words from other scripts.
+#     
+
+#       Try some words from other scripts.
+#          Greek, Cyrillic, Hebrew, Arabic, Arabic, Georgian, Latin
+#      
+<data>•ΑΒΓ<200> •БВГ<200> •אבג֓<200> •ابت<200> •١٢٣<100> •\u10A0\u10A1\u10A2<200> •ABC<200> •</data>
+
+<data>•\u0301•A<200></data>
+
+
+#
+#  Hindi word break tests, imported from the old RBBI tests.
+#    An historical note:  a much earlier version of ICU break iterators had a number
+#    of special case rules for Hindi, which were tested by an earlier version of
+#    this test data.  The current RBBI rules do not special case Hindi in 
+#    any way, making this test data much less signfificant.
+#
+<data>•\u0917\u092a\u00ad\u0936\u092a<200>!•\u092f\u0939<200> •\u0939\u093f\u0928\u094d\u200d\u0926\u0940<200> •\u0939\u0948<200> •\u0905\u093e\u092a<200> •\u0938\u093f\u0916\u094b\u0917\u0947<200>?•\n•:•\u092a\u094d\u0930\u093e\u092f\u0903<200>
+•\u0935\u0930\u094d\u0937\u093e<200>\r\n•\u092a\u094d\u0930\u0915\u093e\u0936<200>,•\u0924\u0941\u092e\u093e\u0930\u094b<200> •\u092e\u093f\u0924\u094d\u0930<200> •\u0915\u093e<200> •\u092a\u0924\u094d\u0930<200> •\u092a\u095d\u094b<200> •\u0938\u094d\u0924\u094d\u0930\u093f<200>.• •\u0968\u0966.\u0969\u096f<100> •\u0967\u0966\u0966.\u0966\u0966<100>\u20a8•\u0967,\u0967\u0966\u0966.\u0966\u0966<100> •\u0905\u092e\u091c<200>\n•\u0938\u094d\u200d\u0935\u0924\u0902\u0924\u094d\u0930<200>\r•</data>
+
+#
+#  Failures from monkey tests
+#
+<data>•\u8527<400>\u02ba<200>\u0027\u0d42•\u00b7•\u09ea<100></data>
+
+#
+# Jitterbug 5276 - treat Japanese half width voicing marks as Grapheme Extend
+#
+<data>•A\uff9e\uff9fBC<200> •1\uff9e\uff9f23<100></data>
+
+########################################################################################
+#
+#
+#       S e n t e n c e     B o u n d a r y      T e s t s
+#
+#
+##########################################################################################
+
+
+#
+# Test data originally from RBBI RBBITest::TestDefaultRuleBasedSentenceIteration()
+#
+<sent>
+
+
+<sent>
+<data>•This\n<100></data>
+<data>•Hello! •how are you? •I'am fine. •Thankyou. •How are you \
+doing? •This\n<100> costs $20,00,000. •</data>
+
+
+# Sentence ending in a quote.
+<data>•"Sentence ending with a quote." •Bye.•</data>
+
+# Sentence, and test data, ending without a period or other terminator.
+<data>•Here is a random sentence, no ending period<100></data>
+
+
+<data>•  (This is it).  •Testing the sentence iterator. •\
+"This isn't it." •Hi! \
+•This is a simple sample sentence. •(This is it.) •This is a simple sample sentence. •\
+"This isn't it." •\
+Hi! •This is a simple sample sentence. •It does not have to make any sense as you can see. •Nel mezzo del cammin di nostra vita, mi ritrovai in una selva oscura. •Che la dritta via aveo smarrita. •He said, that I said, that you said!! •Don't rock the boat.\u2029•Because I am the daddy, that is why. 
+•Not on my time (el timo.)! •</data>
+
+<data>•Hello.  •So what!!\u2029•"But now," he said, \
+"I know!" •\
+Harris thumbed down several, including "Away We Go" (which became the huge success Oklahoma!). •One species, B. anthracis, is highly virulent.
+•Wolf said about Sounder:\
+"Beautifully thought-out and directed." •\
+Have you ever said, "This is where\tI shall live"? •He answered, \
+"You may not!" •Another popular saying is: "How do you do?". \n•\
+Yet another popular saying is: \
+'I'm fine thanks.' •\
+What is the proper use of the abbreviation pp.? •Yes, I am definatelly 12" tall!!\
+•Now\r<100>is\n<100>the\r\n<100>time\n<100>\r<100>for\r<100>\r<100></data>
+
+<data>•No breaks when . is surrounded by UPPER.Case letters.  •</data>
+<data>•No breaks when . is followed by Numeric .4 a.4 C.4 3.1 .•</data>
+<data>•No breaks when . is followed by a lower, with possible intervening punct .,a .$a .)a. •</data>
+
+#
+#  Sentence Breaks: no break at the boundary between CJK and other letters
+#
+<data>•\u5487\u67ff\ue591\u5017\u61b3\u60a1\u9510\u8165:"JAVA\u821c\u8165\u7fc8\u51ce\u306d,\u2494\u56d8\u4ec0\u60b1\u8560\u51ba\u611d\u57b6\u2510\u5d46".\u2029•\u5487\u67ff\ue591\u5017\u61b3\u60a1\u9510\u8165\u9de8\u97e4JAVA\u821c\u8165\u7fc8\u51ce\u306d\ue30b\u2494\u56d8\u4ec0\u60b1\u8560\u51ba\u611d\u57b6\u2510\u5d46\u97e5\u7751\u3002•\u5487\u67ff\ue591\u5017\u61b3\u60a1\u9510\u8165\u9de8\u97e4\u6470\u8790JAVA\u821c\u8165\u7fc8\u51ce\u306d\ue30b\u2494\u56d8\u4ec0\u60b1\u8560\u51ba\u611d\u57b6\u2510\u5d46\u97e5\u7751\u2048•He said, "I can go there."\u2029•Bye, now.•</data>
+
+#
+#      Treat fullwidth variants of .!? the same as their
+#      normal counterparts
+#
+<data>•I know I'm right\uff0e •Right\uff1f •Right\uff01 •</data>
+
+
+#
+#       Don't break sentences at boundary between CJK and digits
+#
+<data>•\u5487\u67ff\ue591\u5017\u61b3\u60a1\u9510\u8165\u9de8\u97e48888\u821c\u8165\u7fc8\u51ce\u306d\ue30b\u2494\u56d8\u4ec0\u60b1\u8560\u51ba\u611d\u57b6\u2510\u5d46\u97e5\u7751\u3002•Bye, now<100></data>
+
+#
+#      Breaks around '(' following a sentence TERM.  (Rule 9)
+#
+<data>•How do you do?(•Fine). •</data>
+<data>•How do you do? •(Fine). •</data>
+<data>•How do you do?(•fine). •</data>
+<data>•How do you do? •(fine). •</data>
+
+#
+<data>•Hello.123<100></data>    # Rule 6    
+<data>•Hello?•123<100></data>  
+  
+<data>•HELLO.Bye<100></data>    # Rule 7    
+<data>•HELLO?•Bye<100></data>    
+
+<data>•Hello.goodbye<100></data>  #Rule 8
+<data>•Hello. •Goodbye<100></data>
+<data>•Hello. goodbye<100></data>
+
+
+
+#
+#        test for bug #4158381: No breaks when there are no terminators around
+#
+<data>•\<P>Provides a set of &quot;lightweight&quot; (all-java\<FONT SIZE="-2">\<SUP>TM\</SUP>\</FONT> language) components that, to the maximum degree possible, work the same on all platforms.  •</data>
+<data>•Another test.\u2029•</data>
+      
+#        test for bug #4143071: Make sure sentences that end with digits
+#        work right
+#
+<data>•Today is the 27th of May, 1998.  •</data>
+<data>•Tomorrow with be 28 May 1998.  •</data>
+<data>•The day after will be the 30th.\u2029•</data>
+      
+#        test for bug #4152416: Make sure sentences ending with a capital
+#        letter are treated correctly
+#
+<data>•The type of all primitive \<code>boolean\</code> values accessed in the target VM.  •Calls to xxx will return an implementor of this interface.  \u2029•</data>
+      
+#        test for bug #4152117: Make sure sentence breaking is handling
+#        punctuation correctly [COULD NOT REPRODUCE THIS BUG, BUT TEST IS
+#        HERE TO MAKE SURE IT DOESN'T CROP UP]
+#
+<data>•Constructs a randomly generated BigInteger, uniformly distributed over the range \<tt>0\</tt> to \<tt>(2\<sup>numBits\</sup> - 1\)\</tt>, inclusive.  •The uniformity of the distribution assumes that a fair source of random bits is provided in \<tt>rnd\</tt>.  •Note that this constructor always constructs a non-negative biginteger.  \n•Ahh abc.  
+•</data>
+
+#        sentence breaks for hindi which used Devanagari script
+#        make sure there is sentence break after ?,danda(hindi phrase separator),
+#        fullstop followed by space.  (VERY old test)
+#       
+<data>•\u0928\u092e\u0938\u094d\u200d\u0924\u0947 \u0930\u092e\u0947\u0936\u0905\u093e\u092a\u0915\u0948\u0938\u0947 \u0939\u0948?•\u092e\u0948 \u0905\u091a\u094d\u200d \u091b\u093e \u0939\u0942\u0901\u0964 •\u0905\u093e\u092a\r\n<100>\
+\u0915\u0948\u0938\u0947 \u0939\u0948?•\u0935\u0939 \u0915\u094d\u200d\u092f\u093e\n\
+<100>\u0939\u0948?•\u092f\u0939 \u0905\u093e\u092e \u0939\u0948. •\u092f\u0939 means "this". •"\u092a\u095d\u093e\u0908" meaning "education" or "studies". •\u0905\u093e\u091c(\u0938\u094d\u200d\u0935\u0924\u0902\u0924\u094d\u0930 \u0926\u093f\u0935\u093e\u0938) \u0939\u0948\u0964 •Let's end here. •</data>
+
+#         Regression test for bug #1984, Sentence break in Arabic text.
+  
+<data>\
+•\u0623\u0633\u0627\u0633\u064b\u0627\u060c\u0020\u062a\u062a\u0639\u0627"\u0645\u0644\u0020\u0627\u0644\u062d\u0648\u0627\u0633\u064a\u0628\u0020"\u0641\u0642\u0637\u0020\u0645\u0639\u0020\u0627\u0644\u0623\u0631\u0642\u0627\u0645\u060c\u0648\u062a\u0642\u0648\u0645\u0020\u0628\u062a\u062e\u0632\u064a\u0646\u0020\u0627\u0644\u0623\u062d\u0631\u0641\u0020\u0648\u0627\u0644\u0645\u062d\u0627\u0631\u0641\u0020\u0627\u0644\u0623\u062e\u0631\u0649\u0020\u0628\u0639\u062f\u0020\u0623\u0646\u062a\u064f\u0639\u0637\u064a\u0020\u0631\u0642\u0645\u0627\u0020\u0645\u0639\u064a\u0646\u0627\u0020\u0644\u0643\u0644\u0020\u0648\u0627\u062d\u062f\u0020\u0645\u0646\u0647\u0627\u002e\u0020•\u0648\u0642\u0628\u0644\u0020\u0627\u062e\u062a\u0631\u0627\u0639\u0022\u064a\u0648\u0646\u0650\u0643\u0648\u062f\u0022\u060c\u0020\u0643\u0627\u0646\u0020\u0647\u0646\u0627\u0643\u0020\u0645\u0626\u0627\u062a\u0020\u0627\u0644\u0623\u0646\u0638\u0645\u0629\u0020\u0644\u0644\u062a\u0634\u0641\u064a\u0631\u0648\u062a\u062e\u0635\u064a\u0635\u0020\u0647\u0630\u0647\u0020\u0627\u0644\u0623\u0631\u0642\u0627\u0645\u0020\u0644\u0644\u0645\u062d\u0627\u0631\u0641\u060c\u0020\u0648\u0644\u0645\u0020\u064a\u0648\u062c\u062f\u0020\u0646\u0638\u0627\u0645\u062a\u0634\u0641\u064a\u0020\u0639\u0644\u0649\u0020\u062c\u0645\u064a\u0639\u0020\u0627\u0644\u0645\u062d\u0627\u0631\u0641\u0020\u0627\u0644\u0636\u0631\u0648\u0631\u064a\u0629.  •</data>
+
+#         Try a few more of the less common sentence endings.
+<data>•Hello, world\u3002 •Hello, world\u1803 •Hello, world\u2048 •Hello, world\u203c •Let's end here. •</data>
+
+
+
+
+################################################################
+#
+#
+#        L I N E     B R E A K
+#
+#
+################################################################
+
+<line>
+#
+# Test Character for each of the line break classes.
+#
+# 00A1;AI # INVERTED EXCLAMATION MARK  ¡
+# 0041;AL # LATIN CAPITAL LETTER A
+# 0009;BA # <control>
+# 00B4;BB # ACUTE ACCENT
+# 000C;BK # <control>
+# 2014;B2 # EM DASH
+# FFFC;CB # OBJECT REPLACEMENT CHARACTER
+# 0029;CL # RIGHT PARENTHESIS
+# 0301;CM # COMBINING ACUTE ACCENT
+# 0021;EX # EXCLAMATION MARK
+# 00A0;GL # NO-BREAK SPACE
+# 002D;HY # HYPHEN-MINUS
+# 4E00;ID # <CJK Ideograph, First>
+# 2024;IN # ONE DOT LEADER
+# 002C;IS # COMMA
+# 000A;LF # <control>
+# 0E5A;NS # THAI CHARACTER ANGKHANKHU
+# 0032;NU # DIGIT TWO
+# 0028;OP # LEFT PARENTHESIS
+# 0025;PO # PERCENT SIGN
+# 0024;PR # DOLLAR SIGN
+# 0022;QU # QUOTATION MARK
+# 0E01;SA # THAI CHARACTER KO KAI
+# DB7F;SG # Surrogate
+# 0020;SP # SPACE
+# 002F;SY # SOLIDUS /
+# F8FF;XX # Private Use
+# 200B;ZW # ZERO WIDTH SPACE
+
+
+# 2b  Always break at end of text
+
+<data>•  •\u00A1•</data>
+<data>•  •\u0041•</data>
+<data>•  •\u0009•</data>
+<data>•  •\u00B4•</data>
+<data>•    \u000C<100></data>    # LB3C  × BK
+<data>•  •\u2014•</data>
+<data>•  •\uFFFC•</data>
+<data>•   \u0029•</data>    # LB 8   × CL
+# <data>• • \u0301•</data>    # LB 7a   Treat SP CM* as if it were ID  #TODO:  SP CM
+<data>•   \u0021•</data>    # LB 8   × EX
+#<data>•   \u00A0•</data>    # LB 11b   × GL   TODO:  fix.
+<data>•  •\u002D•</data>
+<data>•  •\u4E00•</data>
+<data>•  •\u2024•</data>
+<data>•   \u002C•</data>    # LB 8   × IS
+<data>•   \u000A<100></data>    # LB3C   × ( BK | CR | LF | NL )
+<data>•  •\u0E5A•</data>
+<data>•  •\u0032•</data>
+<data>•  •\u0028•</data>
+<data>•  •\u0025•</data>
+<data>•  •\u0024•</data>
+<data>•  •\u0022•</data>
+<data>•  •\u0E01•</data>
+<data>•  •\uDB7F•</data>
+<data>•   \u0020•</data>     # LB4 - don't break before space.
+<data>•   \u002F•</data>     # LB 8  × SY
+<data>•  •\uF8FF•</data>
+<data>•   \u200B•</data>     # LB4 - don't break before ZA
+
+
+# 3a  Always break after hard line breaks.
+# 3c  Never break before hard line breaks.
+
+<data>•  •\u00A1\u2028<100>\u00A1•</data>
+<data>•  •\u0041\u2028<100>\u0041•</data>
+<data>•  •\u0009\u2028<100>\u0009•</data>
+<data>•  •\u00B4\u2028<100>\u00B4•</data>
+<data>•   \u000C<100>\u2028<100>\u000C<100></data>
+<data>•  •\u2014\u2028<100>\u2014•</data>
+<data>•  •\uFFFC\u2028<100>\uFFFC•</data>
+<data>•   \u0029\u2028<100>\u0029•</data>
+#<data>•   \u0301\u2028<100>\u0301•</data>    # TODO:  fix.
+<data>•   \u0021\u2028<100>\u0021•</data>
+#<data>•   \u00A0\u2028<100>\u00A0•</data>    # TODO:  fix
+<data>•  •\u002D\u2028<100>\u002D•</data>
+<data>•  •\u4E00\u2028<100>\u4E00•</data>
+<data>•  •\u2024\u2028<100>\u2024•</data>
+<data>•   \u002C\u2028<100>\u002C•</data>
+<data>•   \u000A<100>\u2028<100>\u000A<100></data>
+<data>•  •\u0E5A\u2028<100>\u0E5A•</data>
+<data>•  •\u0032\u2028<100>\u0032•</data>
+<data>•  •\u0028\u2028<100>\u0028•</data>
+<data>•  •\u0025\u2028<100>\u0025•</data>
+<data>•  •\u0024\u2028<100>\u0024•</data>
+<data>•  •\u0022\u2028<100>\u0022•</data>
+<data>•  •\u0E01\u2028<100>\u0E01•</data>
+<data>•  •\uDB7F\u2028<100>\uDB7F•</data>
+<data>•   \u0020\u2028<100>\u0020•</data>
+<data>•   \u002F\u2028<100>\u002F•</data>
+<data>•  •\uF8FF\u2028<100>\uF8FF•</data>
+<data>•   \u200B\u2028<100>\u200B•</data>
+
+
+#
+#  Old Line Break Test data.  Orginally located in RBBITest::TestDefaultRuleBasedLineIteration()
+#
+
+<line>
+
+<data>•Multi-•Level •example •of •a •semi-•idiotic •non-•sensical •(non-•important) •sentence. 
+<100>Hi  •Hello •How\n<100>are\r<100>you\u2028<100>fine.\t•good.  •Now\r<100>is\n<100>the\r\n<100>time\n<100>\r<100>for\r<100>\r<100>all•</data>
+
+<line>
+<data>•Hello! •how\r\n<100> •(are)\r<100> •you? •I'am •fine- •Thankyou. •foo\u00a0bar 
+<100>How, •are, •you? •This, •costs •$20,00,000.•</data>
+
+#     test for bug #4068133
+#
+<data>•\u96f6•\u4e00\u3002•\u4e8c\u3001•\u4e09\u3002\u3001•\u56db\u3001\u3002\u3001•\u4e94,•\u516d.•\u4e03.\u3001,\u3002•\u516b•</data>
+
+#     to test for bug #4086052
+<data>•foo\u00a0bar•</data>
+
+#     to test for bug #4097920
+<data>•dog,cat,mouse •(one)•(two)\n<100></data>
+
+#     to test for bug #4035266
+<data>•The •balance •is •$-23,456.78, •not •-•$32,456.78!\n<100></data>
+
+
+#      to test for bug #4098467
+#      What follows is a string of Korean characters (I found it in the Yellow Pages
+#      ad for the Korean Presbyterian Church of San Francisco, and I hope I transcribed
+#      it correctly), first as precomposed syllables, and then as conjoining jamo.
+#      Both sequences should be semantically identical and break the same way.
+#      precomposed syllables...  (I == Rich Gillam?)
+#
+<data>•\uc0c1•\ud56d •\ud55c•\uc778 •\uc5f0•\ud569 •\uc7a5•\ub85c•\uad50•\ud68c•</data>
+
+#      conjoining jamo...
+<data>•\u1109\u1161\u11bc•\u1112\u1161\u11bc •\u1112\u1161\u11ab•\u110b\u1175\u11ab •\u110b\u1167\u11ab•\u1112\u1161\u11b8 •\u110c\u1161\u11bc•\u1105\u1169•\u1100\u116d•\u1112\u116c•</data>
+
+#      to test for bug #4117554: Fullwidth .!? should be treated as postJwrd
+<data>•\u4e01\uff0e•\u4e02\uff01•\u4e03\uff1f•</data>
+
+#      Surrogate line break tests.
+#
+<data>•\u4e01•\ud840\udc01•\u4e02•abc •\ue000 •\udb80\udc01•</data>
+
+#      Regression for bug 836
+#        Note:  Unicode 5.1 changed this behavior
+#               Unicode 5.2 changed it again, there is no break following the '('
+<data>•AAA(AAA •</data> 
+
+#       Try some words from other scripts.
+#          Greek, Cyrillic, Hebrew, Arabic, Arabic, Georgian, Latin
+#      
+<data>•ΑΒΓ •БВГ •אבג֓ •ابت •١٢٣ •\u10A0\u10A1\u10A2 •ABC •</data>
+
+#
+#       ticket #4853:  unpaired surrogates should behave like AL
+#
+<data>•abc\ud801xyz•</data>
+
+#
+#     Regression tests for failures that originally came from the monkey test.
+#     Monkey test failure lines can, with slight reformatting, be copied into this section
+#     as test cases.  The error display from here is more informative.
+#
+<data>•\ufffc•\u30e3\u000c<100>\u1b39\u300a\u002f\u203a\u200b•\ufffc•\uaf64•\udcfb•</data>
+<data>•\u114d\u31f3•\ube44\u002d•\u0362\u24e2\u276e\u2014\u205f\ufe16•\uc877•\u0fd0\u000a<100>\u20a3•</data>
+<data>•\u080a\u215b\U0001d7d3\u002c•\u2025\U000e012e•\u02df\u118d\u0029\ua8d6\u0085<100>\u6cc4\u2024\u202f\ufffc•</data>
+ 
+
+########################################################################################
+#
+#
+#       T i t l e   B o u n d a r y      T e s t s
+#
+#
+##########################################################################################
+<title>
+<data>•Here •is •a •short •sample •sentence.  •And •another.•</data>
+<data>•HERE •IS •A •SHORT •SAMPLE •SENTENCE.  •AND •ANOTHER.•</data>
+<data>•  •Start •and •end •with •spaces   •</data>
+<data>•Include 123 456 ^&  •some 54332 •numbers 4445•abc123•abc •ending 1223 •</data>
+
+<data>•Combining\u0301 \u0301•ma\u0306rks  •bye  •</data>
+<data>•123  •Start •with •a •number.•</data>
+
+<data>•'•start •with •a •case-•ignorable •cha'r'a'cter•</data>
+
+
+##########################################################################################
+#
+#   Thai Tests
+#
+##########################################################################################
+<locale th>
+<word>
+#
+# Test data originally from the test code source file
+#      // @suwit -- Thai sample data from GVT Guideline
+#
+<data>•\u0E2B\u0E19\u0E36\u0E48\u0E07<200>\u0E04\u0E33<200>\u0E44\u0E17\u0E22<200>\
+\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16<200>\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A<200>\
+\u0E14\u0E49\u0E27\u0E22<200>\u0e2b\u0e25\u0e32\u0e22<200>\
+\u0e1e\u0e22\u0e32\u0e07\u0e04\u0e4c<200></data>
+
+#
+#  Jitterbug 3671 Test Case
+#
+<data>•สวัสดี<200>ครับ<200>สบาย<200>ดี<200>ไหม<200> •ครับ<200></data>
+
+#
+#  Trac ticket 5595 Test Case
+<data>•บท<200>ที่๑พายุ<200>ไซโคลน<200>โด<200>โรธี<200>อาศัย<200>อยู่<200>ท่ามกลาง<200>\
+ทุ่งใหญ่<200>ใน<200>แคนซัส<200>กับ<200>ลุง<200>เฮ<200>นรี<200>ชาวไร่<200>และ<200>ป้า<200>เอ็ม<200>\
+ภรรยา<200>ชาวไร่<200>บ้าน<200>ของ<200>พวก<200>เขา<200>หลัง<200>เล็ก<200>เพราะ<200>ไม้<200>\
+สร้าง<200>บ้าน<200>ต้อง<200>ขน<200>มา<200>ด้วย<200>เกวียน<200>เป็น<200>ระยะ<200>ทาง<200>หลาย<200>\
+ไมล์<200></data>
+
+

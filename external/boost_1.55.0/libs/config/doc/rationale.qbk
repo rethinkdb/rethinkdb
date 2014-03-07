@@ -1,0 +1,80 @@
+[/
+    Boost.Config
+
+    Copyright (c) 2001 Beman Dawes
+    Copyright (c) 2001 Vesa Karvonen
+    Copyright (c) 2001 John Maddock
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Rationale]
+
+The problem with many traditional "textbook" implementations of configuration
+headers (where all the configuration options are in a single "monolithic"
+header) is that they violate certain fundamental software engineering
+principles which would have the effect of making boost more fragile, more
+difficult to maintain and more difficult to use safely. You can find a
+description of the principles from the __PRINCIPLES_AND_PATTERNS_ARTICLE__.
+
+[section The problem]
+
+Consider a situation in which you are concurrently developing on multiple
+platforms. Then consider adding a new platform or changing the platform
+definitions of an existing platform. What happens? Everything, and this does
+literally mean everything, recompiles. Isn't it quite absurd that adding a
+new platform, which has absolutely nothing to do with previously existing
+platforms, means that all code on all existing platforms needs to be
+recompiled?
+
+Effectively, there is an imposed physical dependency between platforms that
+have nothing to do with each other. Essentially, the traditional solution
+employed by configuration headers does not conform to the Open-Closed
+Principle:
+
+[: [*"A module should be open for extension but closed for modification."]]
+
+Extending a traditional configuration header implies modifying existing code.
+
+Furthermore, consider the complexity and fragility of the platform detection
+code. What if a simple change breaks the detection on some minor platform?
+What if someone accidentally or on purpose (as a workaround for some other
+problem) defines some platform dependent macros that are used by the
+detection code? A traditional configuration header is one of the most
+volatile headers of the entire library, and more stable elements of
+Boost would depend on it. This violates the Stable Dependencies Principle:
+
+[: [*"Depend in the direction of stability."]]
+
+After even a minor change to a traditional configuration header on one minor
+platform, almost everything on every platform should be tested if we follow
+sound software engineering practice.
+
+Another important issue is that it is not always possible to submit changes
+to `<boost/config.hpp>`. Some boost users are currently working on platforms
+using tools and libraries that are under strict Non-Disclosure Agreements.
+In this situation it is impossible to submit changes to a traditional
+monolithic configuration header, instead some method by which the user
+can insert their own configuration code must be provided.
+
+[endsect]
+
+[section The solution]
+
+The approach taken by boost's configuration headers is to separate
+configuration into three orthogonal parts: the compiler, the standard
+library and the platform. Each compiler/standard library/platform gets
+its own mini-configuration header, so that changes to one compiler's
+configuration (for example) does not affect other compilers. In addition
+there are measures that can be taken both to omit the compiler/standard
+library/platform detection code (so that adding support to a new platform
+does not break dependencies), or to freeze the configuration completely;
+providing almost complete protection against dependency changes.
+
+[endsect]
+
+[endsect]
+
+

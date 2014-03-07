@@ -1,0 +1,166 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Source listing for Daytime.3</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../tutdaytime3.html" title="Daytime.3 - An asynchronous TCP daytime server">
+<link rel="prev" href="../tutdaytime3.html" title="Daytime.3 - An asynchronous TCP daytime server">
+<link rel="next" href="../tutdaytime4.html" title="Daytime.4 - A synchronous UDP daytime client">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../tutdaytime3.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutdaytime3.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../tutdaytime4.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.tutorial.tutdaytime3.src"></a><a class="link" href="src.html" title="Source listing for Daytime.3">Source listing
+        for Daytime.3</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="comment">//</span>
+<span class="comment">// server.cpp</span>
+<span class="comment">// ~~~~~~~~~~</span>
+<span class="comment">//</span>
+<span class="comment">// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)</span>
+<span class="comment">//</span>
+<span class="comment">// Distributed under the Boost Software License, Version 1.0. (See accompanying</span>
+<span class="comment">// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)</span>
+<span class="comment">//</span>
+
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">ctime</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bind</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">shared_ptr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">enable_shared_from_this</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">asio</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">;</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">make_daytime_string</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span> <span class="comment">// For time_t, time and ctime;</span>
+  <span class="identifier">time_t</span> <span class="identifier">now</span> <span class="special">=</span> <span class="identifier">time</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+  <span class="keyword">return</span> <span class="identifier">ctime</span><span class="special">(&amp;</span><span class="identifier">now</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="keyword">class</span> <span class="identifier">tcp_connection</span>
+  <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">enable_shared_from_this</span><span class="special">&lt;</span><span class="identifier">tcp_connection</span><span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">tcp_connection</span><span class="special">&gt;</span> <span class="identifier">pointer</span><span class="special">;</span>
+
+  <span class="keyword">static</span> <span class="identifier">pointer</span> <span class="identifier">create</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span><span class="special">&amp;</span> <span class="identifier">io_service</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">pointer</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">tcp_connection</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">));</span>
+  <span class="special">}</span>
+
+  <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span><span class="special">&amp;</span> <span class="identifier">socket</span><span class="special">()</span>
+  <span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">socket_</span><span class="special">;</span>
+  <span class="special">}</span>
+
+  <span class="keyword">void</span> <span class="identifier">start</span><span class="special">()</span>
+  <span class="special">{</span>
+    <span class="identifier">message_</span> <span class="special">=</span> <span class="identifier">make_daytime_string</span><span class="special">();</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">async_write</span><span class="special">(</span><span class="identifier">socket_</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">message_</span><span class="special">),</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">tcp_connection</span><span class="special">::</span><span class="identifier">handle_write</span><span class="special">,</span> <span class="identifier">shared_from_this</span><span class="special">(),</span>
+          <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">placeholders</span><span class="special">::</span><span class="identifier">error</span><span class="special">,</span>
+          <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">placeholders</span><span class="special">::</span><span class="identifier">bytes_transferred</span><span class="special">));</span>
+  <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="identifier">tcp_connection</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span><span class="special">&amp;</span> <span class="identifier">io_service</span><span class="special">)</span>
+    <span class="special">:</span> <span class="identifier">socket_</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">)</span>
+  <span class="special">{</span>
+  <span class="special">}</span>
+
+  <span class="keyword">void</span> <span class="identifier">handle_write</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="comment">/*error*/</span><span class="special">,</span>
+      <span class="identifier">size_t</span> <span class="comment">/*bytes_transferred*/</span><span class="special">)</span>
+  <span class="special">{</span>
+  <span class="special">}</span>
+
+  <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket_</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">message_</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">class</span> <span class="identifier">tcp_server</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="identifier">tcp_server</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span><span class="special">&amp;</span> <span class="identifier">io_service</span><span class="special">)</span>
+    <span class="special">:</span> <span class="identifier">acceptor_</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">,</span> <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">endpoint</span><span class="special">(</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">v4</span><span class="special">(),</span> <span class="number">13</span><span class="special">))</span>
+  <span class="special">{</span>
+    <span class="identifier">start_accept</span><span class="special">();</span>
+  <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="keyword">void</span> <span class="identifier">start_accept</span><span class="special">()</span>
+  <span class="special">{</span>
+    <span class="identifier">tcp_connection</span><span class="special">::</span><span class="identifier">pointer</span> <span class="identifier">new_connection</span> <span class="special">=</span>
+      <span class="identifier">tcp_connection</span><span class="special">::</span><span class="identifier">create</span><span class="special">(</span><span class="identifier">acceptor_</span><span class="special">.</span><span class="identifier">get_io_service</span><span class="special">());</span>
+
+    <span class="identifier">acceptor_</span><span class="special">.</span><span class="identifier">async_accept</span><span class="special">(</span><span class="identifier">new_connection</span><span class="special">-&gt;</span><span class="identifier">socket</span><span class="special">(),</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">tcp_server</span><span class="special">::</span><span class="identifier">handle_accept</span><span class="special">,</span> <span class="keyword">this</span><span class="special">,</span> <span class="identifier">new_connection</span><span class="special">,</span>
+          <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">placeholders</span><span class="special">::</span><span class="identifier">error</span><span class="special">));</span>
+  <span class="special">}</span>
+
+  <span class="keyword">void</span> <span class="identifier">handle_accept</span><span class="special">(</span><span class="identifier">tcp_connection</span><span class="special">::</span><span class="identifier">pointer</span> <span class="identifier">new_connection</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">error</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">error</span><span class="special">)</span>
+    <span class="special">{</span>
+      <span class="identifier">new_connection</span><span class="special">-&gt;</span><span class="identifier">start</span><span class="special">();</span>
+    <span class="special">}</span>
+
+    <span class="identifier">start_accept</span><span class="special">();</span>
+  <span class="special">}</span>
+
+  <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">acceptor</span> <span class="identifier">acceptor_</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">try</span>
+  <span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span> <span class="identifier">io_service</span><span class="special">;</span>
+    <span class="identifier">tcp_server</span> <span class="identifier">server</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">);</span>
+    <span class="identifier">io_service</span><span class="special">.</span><span class="identifier">run</span><span class="special">();</span>
+  <span class="special">}</span>
+  <span class="keyword">catch</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">exception</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cerr</span> <span class="special">&lt;&lt;</span> <span class="identifier">e</span><span class="special">.</span><span class="identifier">what</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="special">}</span>
+
+  <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          Return to <a class="link" href="../tutdaytime3.html" title="Daytime.3 - An asynchronous TCP daytime server">Daytime.3 - An
+          asynchronous TCP daytime server</a>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../tutdaytime3.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutdaytime3.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../tutdaytime4.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

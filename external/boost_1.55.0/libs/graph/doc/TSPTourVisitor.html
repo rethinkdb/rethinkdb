@@ -1,0 +1,99 @@
+<HTML>
+<!--
+  Copyright (c) Matyas Egyhazy 2008
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: TSP Tour Visitor</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b"
+        ALINK="#ff0000">
+<IMG SRC="../../../boost.png"
+     ALT="C++ Boost" width="277" height="86">
+
+<BR Clear>
+
+<H1>TSP Tour Visitor concept</H1>
+
+This concept defines the visitor interface for <a
+href="./metric_tsp_approx.html"><tt>metric_tsp_approx()</tt></a>
+and related algorithms. The user can create a class that matches this
+interface, and then pass objects of the class into
+<tt>metric_tsp_approx()</tt> to augment the actions taken during
+the search.
+
+<h3>Refinement of</h3>
+
+none
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>V</tt></TD>
+<TD>A type that is a model of Dijkstra Visitor.</TD>
+</TR>
+
+<TR>
+<TD><tt>vis</tt></TD>
+<TD>An object of type <tt>V</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>G</tt></TD>
+<TD>A type that is a model of Graph.</TD>
+</TR>
+
+<TR>
+<TD><tt>g</tt></TD>
+<TD>An object of type <tt>G</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>v</tt></TD>
+<TD>An object of type <tt>boost::graph_traits&lt;G&gt;::vertex_descriptor</tt>.</TD>
+</TR>
+
+</table>
+
+<h3>Associated Types</h3>
+
+none
+
+<p>
+
+<h3>Valid Expressions</h3>
+
+<table border>
+<tr>
+<th>Name</th><th>Expression</th><th>Return Type</th><th>Description</th>
+</tr>
+
+<tr>
+<td>Visit Vertex</td>
+<td><tt>vis.visit_vertex(v, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked on each vertex of the graph when it is visited as part of the TSP tour.
+</td>
+</tr>
+
+</table>
+
+<h3>Models</h3>
+
+<ul>
+ <li><a href="tsp_tour_visitor.html"><tt>tsp_tour_visitor</tt></a>
+ <li><a href="tsp_tour_len_visitor.html"><tt>tsp_tour_len_tsp_visitor</tt></a>
+</ul>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2008</TD><TD>
+Matyas Egyhazy</TD></TR></TABLE>
+
+</BODY>
+</HTML>

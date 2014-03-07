@@ -1,0 +1,19 @@
+/** @page glossary Glosary
+
+    <dl>
+    <dt>Token</dt><dd>A single whitespace-separated part of
+    command line. In other words, an element of <tt>argv</tt> array.</dd>
+
+    <dt>Option</dt><dd>No definition yet. Options typically correspond to
+    (name, value) pair. Then can spawn several tokens.</dd>
+
+    <dt>Argument</dt><dd>No definition yet.</dd>
+
+    <dt>Command line element</dt><dd>A complete part of command line. May
+    be either option or argument.</dd>
+
+    <dt>Parameter</dt><dd>The syntantic element which specify value of the
+    option</dd>
+
+    </dl>
+*/

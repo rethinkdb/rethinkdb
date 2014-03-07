@@ -1,0 +1,12 @@
+# Copyright (c) 2004 Michael Stevens
+# Use, modification and distribution are subject to the
+# Boost Software License, Version 1.0. (See accompanying file
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# bench4 measurs the abstraction penalty of dense matrix and vector
+#        operations with boost::numeric::interval(s).
+
+exe bench4
+    : bench4.cpp bench41.cpp bench42.cpp bench43.cpp
+    : <define>BOOST_UBLAS_USE_INTERVAL
+    ;

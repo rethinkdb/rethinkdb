@@ -1,0 +1,74 @@
+#  Boost string_algo library test suite Jamfile  ----------------------------
+#
+#  Copyright Pavol Droba 2002-2003. Use, modification and
+#  distribution is subject to the Boost Software License, Version
+#  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org for updates, documentation, and revision history.
+
+import testing ;
+
+alias unit_test_framework
+    : # sources
+        /boost//unit_test_framework
+    ;        
+
+test-suite algorithm/string
+    : [ run 
+            trim_test.cpp unit_test_framework
+          : :
+            :
+            : trim
+        ]
+      [ run 
+            conv_test.cpp unit_test_framework
+          : :
+            :
+            : conv
+        ]
+      [ run 
+            predicate_test.cpp unit_test_framework
+          : :
+            :
+            : predicate
+        ]
+      [ run 
+            find_test.cpp unit_test_framework
+          : :
+            :
+            : find
+        ]
+      [ run
+            split_test.cpp unit_test_framework
+          : :
+            :
+            : split
+        ]
+      [ run
+            join_test.cpp unit_test_framework
+          : :
+            :
+            : join
+        ]
+      [ run 
+            replace_test.cpp unit_test_framework
+          : :
+            :
+            : replace
+        ]
+      [ run 
+            regex_test.cpp unit_test_framework
+            ../../../regex/build//boost_regex
+          : :
+            :   
+            : regex
+        ]
+      [ run 
+            find_format_test.cpp unit_test_framework
+          : :
+            :   
+            : find_format
+        ]
+    ;
+

@@ -1,0 +1,197 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Usage</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_tr1.html" title="Chapter&#160;32.&#160;Boost.TR1">
+<link rel="prev" href="../boost_tr1.html" title="Chapter&#160;32.&#160;Boost.TR1">
+<link rel="next" href="config.html" title="Configuration">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost_tr1.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_tr1.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="config.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_tr1.usage"></a><a class="link" href="usage.html" title="Usage">Usage</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="usage.html#boost_tr1.usage.native">Whether to use Your Native TR1
+      Library</a></span></dt>
+<dt><span class="section"><a href="usage.html#boost_tr1.usage.include_style">Header Include Style</a></span></dt>
+<dt><span class="section"><a href="usage.html#boost_tr1.usage.writing_code">Writing Code</a></span></dt>
+</dl></div>
+<p>
+      There are two things you need to decide before using the Boost.TR1 library:
+      whether to use your standard library's native TR1 implementation (if it has
+      one), and which include style to use.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_tr1.usage.native"></a><a class="link" href="usage.html#boost_tr1.usage.native" title="Whether to use Your Native TR1 Library">Whether to use Your Native TR1
+      Library</a>
+</h3></div></div></div>
+<p>
+        If your standard library implements the TR1, and you want to make use of
+        it, rather than use the Boost equivalents, then you will need to take some
+        explicit action to enable it: this may be a pre-processor define, a special
+        compiler switch, or a different include path. You will need to consult your
+        compilers documentation to find out which of these actions you need to take.
+      </p>
+<p>
+        Provided Boost is <a class="link" href="config.html" title="Configuration">correctly configured</a>,
+        everything should now "just work", and code written to use Boost.TR1
+        will include your standard library's native headers rather than the Boost
+        ones.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_tr1.usage.include_style"></a><a class="link" href="usage.html#boost_tr1.usage.include_style" title="Header Include Style">Header Include Style</a>
+</h3></div></div></div>
+<p>
+        There are two ways you can include the Boost.TR1 headers, for example if
+        you are interested in shared_ptr then you can either use:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tr1</span><span class="special">/</span><span class="identifier">memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        or:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">memory</span><span class="special">&gt;</span>
+</pre>
+<p>
+        The first option is the preferred method for other Boost libraries to use.
+        The second option is standard-conforming, but requires that you add <code class="computeroutput"><span class="identifier">boost</span><span class="special">-</span><span class="identifier">install</span><span class="special">-</span><span class="identifier">path</span><span class="special">/</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tr1</span><span class="special">/</span><span class="identifier">tr1</span></code> to your compiler's include search path.
+        Note that you must not copy the headers in boost/tr1/tr1 into a directory
+        called "include", doing so will cause them to cease working.
+      </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        <span class="bold"><strong>Important Note #1</strong></span>
+      </p>
+<p>
+        The include path order is very important if you want this library to work
+        correctly. If you get compiler errors then suspect the include paths. The
+        correct order is:
+      </p>
+<p>
+        1) boost-root/boost/tr1/tr1<br> 2) boost-root<br> 3) Any other standard
+        library replacements (STLport for example).<br> 4) Your regular standard
+        library.<br>
+      </p>
+</div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        <span class="bold"><strong>Important Note #2: GNU C++ Users</strong></span>
+      </p>
+<p>
+        Normally this library should "just work" with the GNU C++ compiler.
+      </p>
+<p>
+        However, if Boost is installed in <code class="computeroutput"><span class="special">/</span><span class="identifier">usr</span><span class="special">/</span><span class="identifier">include</span></code>
+        then you may get an error message of the form:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">In</span> <span class="identifier">file</span> <span class="identifier">included</span> <span class="identifier">from</span> <span class="special">/</span><span class="identifier">usr</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tr1</span><span class="special">/</span><span class="identifier">tuple</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">:</span><span class="number">5</span><span class="special">,</span>
+                 <span class="identifier">from</span> <span class="identifier">boost</span><span class="special">-</span><span class="identifier">failure</span><span class="special">.</span><span class="identifier">cxx</span><span class="special">:</span><span class="number">1</span><span class="special">:</span>
+<span class="special">/</span><span class="identifier">usr</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tr1</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">config</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">:</span><span class="number">60</span><span class="special">:</span><span class="number">26</span><span class="special">:</span> <span class="identifier">error</span><span class="special">:</span> <span class="identifier">no</span> <span class="identifier">include</span> <span class="identifier">path</span> <span class="identifier">in</span> <span class="identifier">which</span> <span class="identifier">to</span> <span class="identifier">search</span> <span class="keyword">for</span> <span class="identifier">utility</span></pre>
+<p>
+      </p>
+<p>
+        In this case try defining the macro <code class="computeroutput"><span class="identifier">BOOST_TR1_DISABLE_INCLUDE_NEXT</span></code>
+        when building, and if that doesn't work, define the macro <code class="computeroutput"><span class="identifier">BOOST_TR1_GCC_INCLUDE_PATH</span></code>
+        to the name of the directory containing gcc's include files: this is likely
+        to be something like "g++-v4" but unfortunately varies from distribution
+        to distribution.
+      </p>
+</div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        <span class="bold"><strong>Important Note #3: Borland C++ Users</strong></span>
+      </p>
+<p>
+        Borland's compiler has a particularly broken form of <code class="computeroutput"><span class="preprocessor">#include</span></code>,
+        that will actually look for a file named <code class="computeroutput"><span class="identifier">array</span><span class="special">.</span><span class="identifier">h</span></code> if you
+        <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">array</span><span class="special">&gt;</span></code>.
+        In order to make this library work with Borland's compiler you will need
+        to set up the include paths as follows:
+      </p>
+<p>
+        1) boost-root/boost/tr1/tr1/bcc32<br> 2) boost-root/boost/tr1/tr1<br>
+        3) boost-root<br> 4) Any other standard library replacements (STLport for
+        example).<br> 5) Your regular standard library.<br>
+      </p>
+</div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        <span class="bold"><strong>Important Note #4: Sun C++ Users</strong></span>
+      </p>
+<p>
+        Sun's compiler has a particularly interesting form of <code class="computeroutput"><span class="preprocessor">#include</span></code>,
+        that will actually look for a file named <code class="computeroutput"><span class="identifier">array</span><span class="special">.</span><span class="identifier">SUNWCCh</span></code>
+        if you <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">array</span><span class="special">&gt;</span></code>.
+        What's more it won't include a standard header file that it thinks it's already
+        seen. In order to make this library work with Sun's compiler you can either
+        pass the undocumented compiler switch <span class="emphasis"><em>"-Qoption ccfe -nosunwcch"</em></span>
+        to the compiler, or else you will need to set up the include paths as follows:
+      </p>
+<p>
+        1) boost-root/boost/tr1/tr1/sun<br> 2) boost-root/boost/tr1/tr1<br> 3)
+        boost-root<br> 4) Any other standard library replacements (STLport for
+        example).<br> 5) Your regular standard library.<br>
+      </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_tr1.usage.writing_code"></a><a class="link" href="usage.html#boost_tr1.usage.writing_code" title="Writing Code">Writing Code</a>
+</h3></div></div></div>
+<p>
+        Regardless of how the includes are setup, user code written to work with
+        Boost.TR1 is exactly the same as code written to use a native tr1 implementation.
+        That is, references to classes and functions need to explicitly use the
+        <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">tr1</span></code> namespace or a <code class="computeroutput"><span class="keyword">using</span>
+        <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">tr1</span></code> statement.
+        For example,
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">tr1</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">t</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">tr1</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span><span class="number">10</span><span class="special">,</span> <span class="string">"hello"</span><span class="special">);</span>
+</pre>
+<p>
+        or
+      </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">tr1</span><span class="special">;</span>
+<span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">t</span> <span class="special">=</span> <span class="identifier">make_tuple</span><span class="special">(</span><span class="number">10</span><span class="special">,</span> <span class="string">"hello"</span><span class="special">);</span>
+</pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost_tr1.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_tr1.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="config.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

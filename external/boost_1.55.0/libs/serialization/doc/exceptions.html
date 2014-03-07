@@ -1,0 +1,276 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com .
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Archive Exceptions</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Archive Exceptions</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="page-index">
+  <dt><a href="#unregistered_class"><code style="white-space: normal">unregistered_class</code></a>
+  <dt><a href="#invalid_signature"><code style="white-space: normal">invalid_signature</code></a>
+  <dt><a href="#unsupported_version"><code style="white-space: normal">unsupported_version</code></a>
+  <dt><a href="#unsupported_class_version"><code style="white-space: normal">unsupported_class_version</code></a>
+  <dt><a href="#pointer_conflict"><code style="white-space: normal">pointer_conflict</code></a>
+  <dt><a href="#incompatible_native_format"><code style="white-space: normal">incompatible_native_format</code></a>
+  <dt><a href="#array_size_too_short"><code style="white-space: normal">array_size_too_short</code></a>
+  <dt><a href="#input_stream_error"><code style="white-space: normal">input_stream_error</code></a>
+  <dt><a href="#output_stream_error"><code style="white-space: normal">output_stream_error</code></a>
+  <dt><a href="#invalid_class_name"><code style="white-space: normal">invalid_class_name</code></a>
+  <dt><a href="#unregistered_class"><code style="white-space: normal">unregistered_class</code></a>
+  <dt><a href="#multiple_code_instantiation"><code style="white-space: normal">multiple_code_instantiation</code></a>
+  <dt><a href="#xml_archive_parsing_error"><code style="white-space: normal">xml_archive_parsing_error</code></a>
+  <dt><a href="#xml_archive_tag_mismatch"><code style="white-space: normal">xml_archive_tag_mismatch</code></a>
+  <dt><a href="#xml_archive_tag_name_error"><code style="white-space: normal">xml_archive_tag_name_error</code></a>
+</dl>
+
+Archive operators can throw a <code style="white-space: normal">boost::archive_exception</code>
+object which can be caught by an application program.  These exceptions are defined
+in the files <a target="archive_exception_hpp" href="../../../boost/archive/archive_exception.hpp">
+archive_exception.hpp</a>
+and <a target="basic_xml_archive_hpp" href="../../../boost/archive/basic_xml_archive.hpp">
+basic_xml_archive.hpp</a>.
+<pre><code>
+namespace boost {
+namespace archive {
+
+class archive_exception  : public std::exception
+{
+public:
+    typedef enum {
+        unregistered_class,     // attempt to serialize a pointer of an
+                                // an unregistered class
+        invalid_signature,      // first line of archive does not contain
+                                // expected string
+        unsupported_version,    // archive created with library version subsequent
+                                // to this one
+        pointer_conflict        // an attempt has been made to directly serialize
+                                // an object after having already serialized the same
+                                // object through a pointer.  Were this permitted, 
+                                // it the archive load would result in the creation
+                                // of extraneous object.
+        incompatible_native_format, // attempt to read native binary format
+                                // on incompatible platform
+        array_size_too_short,   // array being loaded doesn't fit in array allocated
+        input_stream_error      // error on stream input
+        invalid_class_name,     // class name greater than the maximum permitted.
+                                // most likely a corrupted archive or an attempt
+                                // to insert virus via buffer overrun method.
+        unregistered_cast,      // base - derived relationship not registered with 
+                                // void_cast_register
+        unsupported_class_version, // type saved with a version # greater than the 
+                            // one used by the program.  This indicates that the proggram
+                            // needs to be rebuilt.
+        multiple_code_instantiation, // code for implementing serialization for some
+                            // type has been instantiated in more than one module.
+        output_stream_error     // error on stream output
+    } exception_code;
+    exception_code code;
+    archive_exception(exception_code c) : code(c) {}
+    virtual const char *what( ) const throw();
+};
+
+class xml_archive_exception : public virtual archive_exception
+{
+public:
+    typedef enum {
+        xml_archive_parsing_error,  // archive doesn't contain expected data 
+	xml_archive_tag_mismatch,   // start/end tag in archive doesn't match program
+        xml_archive_tag_name_error  // tag name contains invalid characters
+
+    } exception_code;
+    xml_archive_exception(exception_code c){}
+    virtual const char *what( ) const throw();
+};
+
+} // archive
+} // boost
+</code></pre>
+<p>
+<h3><a name="unregistered_class"><code style="white-space: normal">unregistered_class</code></a></h3>
+An attempt has been made to serialize a polymorphic class through a pointer
+without either registering it or associating it with an export key.  This can also occur
+when using a new archive how class name has not been added to the system with the 
+<code style="white-space: normal">BOOST_ARCHIVE_CUSTOM_ARCHIVE_TYPES</code> macro.
+
+<h3><a name="invalid_signature"><code style="white-space: normal">invalid_signature</code></a></h3>
+Archives are initiated with a known string.  If this string is not found when
+the archive is opened, It is presumed that this file is not a valid archive and this
+exception is thrown.
+
+<h3><a name="unsupported_version"><code style="white-space: normal">unsupported_version</code></a></h3>
+This system records the current library version number to all archives created.  Note that this is in
+no way related to version number of classes used by application programs. This refers
+to the version of the serialization system used to create the archive. Future versions
+of this serialization system will be able to identify archives created under previous
+(i.e. this) system and alter the loading procedure accordingly.  Hence, future enhancements
+to this serialization system should not obsolete any existing archive files.  It is only
+necessary to increment this version number when the newer system creates archives
+incompatible in format with the current one. 
+<p>Should it ever occur that an older program attempts to read newer archives whose
+format has changed, this exception is thrown.
+
+<h3><a name="unsupported_class_version"><code style="white-space: normal">unsupported_class_version</code></a></h3>
+An attempt has been made to load a class whose version has been incremented since the
+program was written.  Suppose that a class has been assigned version number 3 and the program
+has been built and sent to third parties.  Now suppose that the definition of that class
+has been altered, the version number has been incremented to 4 and new archives have been
+built.  If one attempts to load these new archives with the original program, this 
+exception will be thrown.
+
+<h3><a name="pointer_conflict"><code style="white-space: normal">pointer_conflict</code></a></h3>
+To understand what this exception means consider the following scenario
+<pre><code>
+template&lt;class Archive&gt;
+void T::save(Archive &ar) const
+{
+    const A * aptr = &a;
+    ar << aptr;          // save an instance of object of class A through a pointer
+    ...
+    ar << a;             // save an instance of an object of class A
+    assert(aptr == &a);  // this must be true
+}
+
+template&lt;class Archive&gt;
+void T::load(Archive &ar)
+{
+    A * aptr;
+    ar >> aptr;          // create and initialize a new instance of class A
+    ...
+    ar >> a;             // restore state of on object of class A
+    assert(aptr == &a);  // this won't be true
+}
+</pre></code>
+An object is saved first through a pointer then directly.  Upon loading back
+in the same sequence, we first create an new object and load in its data.  Then
+we load the data into another existing object.  Where we started with one
+object during save, we have two objects after restore.  In a more realistic
+situation, it could be very difficult to find this error.  Fortunately, 
+these situations can be detected when the archive is created. When
+this occurs, this exception is thrown.
+
+<h3><a name = "incompatible_native_format"><code style="white-space: normal">incompatible_native_format</code></a></h3>
+The library currently supports char text, wide char text and native binary
+archive files. At the beginning of every archive, a signature is written indicating
+the type of archive.  This exception is thrown when an attempt is made to read
+an archive written in a different format.
+
+<h3><a name="array_size_too_short"><code style="white-space: normal">array_size_too_short</code></a></h3>
+An attempt has been made to read an array that is larger than the array size.
+This should only occur when the size of an array in code is reduced after an
+archive has already been created.
+
+<h3>
+<a name="input_stream_error"><code style="white-space: normal">input_stream_error</code></a>
+<br>
+<a name="output_stream_error"><code style="white-space: normal">output_stream_error</code></a>
+</h3>
+An error has occured during stream input or ouput.  Aside from the common 
+situations such as a corrupted or truncated input file, there are 
+several less obvious ones that sometimes occur.
+<p>
+This includes
+an attempt to read past the end of the file. Text files need a terminating
+new line character at the end of the file which is appended when the
+archive destructor is invoked.  Be sure that an output archive on a stream
+is destroyed before opening an input archive on that same stream.  That is,
+rather than using something like:
+<pre><code>
+std::stringstream ss;
+std::vector&lt;V&gt; v;
+boost::archive::text_oarchive oa(ss);
+oa &lt;&lt; v;
+boost::archive::text_iarchive ia(ss);
+ia &gt;&gt; v;
+</code></pre>
+use
+<pre><code>
+std::stringstream ss;
+std::vector&lt;V&gt; v;
+{
+    boost::archive::text_oarchive oa(ss);
+    oa &lt;&lt; v;
+}
+{
+    boost::archive::text_iarchive ia(ss);
+    ia &gt;&gt; v;
+}
+</code></pre>
+<p>
+Another one is the passing of uninitialized data.  In general, the behavior
+of the serialization library when passed uninitialized data is undefined.
+If it can be detected, it will invoke an assertion in debug builds.
+Otherwise, depending on the type of archive, it may pass through without
+incident or it may result in an archive with unexpected data in it.
+This, in turn, can result in the throwing of this exception.
+
+<h3><a name="invalid_class_name"><code style="white-space: normal">invalid_class_name</code></a></h3>
+Class name length greater than the maximum permitted. Most likely cause is a corrupted 
+archive  or an attempt to insert virus via buffer overrun method.
+
+<h3><a name="unregistered_cast"><code style="white-space: normal">unregistered_cast</code></a></h3>
+In order to support casting between pointers of base and derived classes
+at runtime, a collection of legitimate conversions is maintained by the system.
+Normally this collection is maintained without any explicit action
+on the part of the user of the library.  However, there are special cases
+where this might have to be done explicitly and could be overlooked. This
+is described in <a href="serialization.html#runtimecasting">Runtime Casting</a>.
+This exception is thrown if an attempt is made to convert between two pointers 
+whose relationship has not been registered,
+
+<h3><a name="multiple_code_instantiation"><code style="white-space: normal">multiple_code_instantiation</code></a></h3>
+This exception is thrown when it is detected that the serialization of the same type 
+has been instantiated more that once.  This might occur when
+serialization code is instantiated in both the mainline and one or more DLLS.
+
+<h3><a name="xml_archive_parsing_error"><code style="white-space: normal">xml_archive_parsing_error</code></a></h3>
+The XML generated by the serialization process is intimately coupled to the
+C++ class structure, relationships between objects and the serialization 
+specifications.  If these become out of sync in any way, the XML may not map
+to the loading serialization and this exception might be thrown.  This might
+occur for one of the following reasons:
+<ul>
+    <li>The archive has been edited outside the serialization system.  This might
+be possible if only the data is changed and not the XML attributes and nesting
+structure is left unaltered.  But any other editing is likely to render the
+archive unreadable by the serialization library.
+    <li>The serialization has been altered and an archive generated by the old
+code is being read.  That is, versioning has not been properly employed to
+properly deserialize previously created archives.
+</ul>
+
+<h3><a name="xml_archive_tag_mismatch"><code style="white-space: normal">xml_archive_tag_mismatch</code></a></h3>
+This exception will be thrown if the start or end tag of and XML element doesn't match
+the name specified for the object in the program.
+
+<h3><a name="xml_archive_tag_name_error"><code style="white-space: normal">xml_archive_tag_name_error</code></a></h3>
+This exception will be thrown if the tag name contains invalid characters.  Valid characters
+for an XML tag are: upper and lower case letters, digits, and the following punctuation: .(period),
+_(underscore), :(colon), and -(hyphen).
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

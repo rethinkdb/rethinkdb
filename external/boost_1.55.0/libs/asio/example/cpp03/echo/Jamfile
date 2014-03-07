@@ -1,0 +1,63 @@
+#
+# Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+subproject libs/asio/example/echo ;
+
+project boost : $(BOOST_ROOT) ;
+
+if $(UNIX)
+{
+  switch $(JAMUNAME)
+  {
+  case SunOS* :
+    {
+      SOCKET_LIBS = <find-library>socket <find-library>nsl ;
+    }
+  }
+}
+
+template asio_echo_example
+  : <lib>@boost/libs/thread/build/boost_thread
+    <lib>@boost/libs/system/build/boost_system
+  : <include>$(BOOST_ROOT)
+    <include>../../../..
+    <define>BOOST_ALL_NO_LIB=1
+    <threading>multi
+    <mingw><*><find-library>ws2_32
+    <mingw><*><find-library>mswsock
+    $(SOCKET_LIBS)
+  ;
+
+exe async_tcp_echo_server
+  : <template>asio_echo_example
+    async_tcp_echo_server.cpp
+  ;
+
+exe async_udp_echo_server
+  : <template>asio_echo_example
+    async_udp_echo_server.cpp
+  ;
+
+exe blocking_tcp_echo_client
+  : <template>asio_echo_example
+    blocking_tcp_echo_client.cpp
+  ;
+
+exe blocking_tcp_echo_server
+  : <template>asio_echo_example
+    blocking_tcp_echo_server.cpp
+  ;
+
+exe blocking_udp_echo_client
+  : <template>asio_echo_example
+    blocking_udp_echo_client.cpp
+  ;
+
+exe blocking_udp_echo_server
+  : <template>asio_echo_example
+    blocking_udp_echo_server.cpp
+  ;

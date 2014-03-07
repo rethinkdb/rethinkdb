@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: eval_if</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./if-c.html" class="navigation-link">Prev</a>&nbsp;<a href="./eval-if-c.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./if-c.html" class="navigation-link">Back</a>&nbsp;<a href="./eval-if-c.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./type-selection.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./type-selection.html" class="navigation-link">Type Selection</a> / <a href="./eval-if.html" class="navigation-link">eval_if</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="eval-if">
+<h1><a class="toc-backref" href="./type-selection.html#id1522">eval_if</a></h1>
+<div class="section" id="id873">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename C
+    , typename F1
+    , typename F2
+    &gt;
+struct <a href="./eval-if.html" class="identifier">eval_if</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id874">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Evaluates one of its two <a class="reference internal" href="./metafunction.html#nullary-metafunction">nullary-metafunction</a> arguments, <tt class="literal"><span class="pre">F1</span></tt> or <tt class="literal"><span class="pre">F2</span></tt>, depending
+on the value <tt class="literal"><span class="pre">C</span></tt>.</p>
+</div>
+<div class="section" id="id875">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/eval_if.hpp" class="header">boost/mpl/eval_if.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id876">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="15%" />
+<col width="36%" />
+<col width="48%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">C</span></tt></td>
+<td><a class="reference internal" href="./integral-constant.html">Integral Constant</a></td>
+<td>An evaluation condition.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">F1</span></tt>, <tt class="literal"><span class="pre">F2</span></tt></td>
+<td>Nullary <a class="reference internal" href="./metafunction.html">Metafunction</a></td>
+<td>Metafunctions to select for evaluation from.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id877">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any <a class="reference internal" href="./integral-constant.html">Integral Constant</a> <tt class="literal"><span class="pre">c</span></tt> and nullary <a class="reference internal" href="./metafunction.html">Metafunction</a>s <tt class="literal"><span class="pre">f1</span></tt>, <tt class="literal"><span class="pre">f2</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./eval-if.html" class="identifier">eval_if</a>&lt;c,f1,f2&gt;::type t;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body">Any type.</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body">If <tt class="literal"><span class="pre">c::value</span> <span class="pre">==</span> <span class="pre">true</span></tt>, <tt class="literal"><span class="pre">t</span></tt> is identical to <tt class="literal"><span class="pre">f1::type</span></tt>; otherwise <tt class="literal"><span class="pre">t</span></tt> is
+identical to <tt class="literal"><span class="pre">f2::type</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id878">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./eval-if.html" class="identifier">eval_if</a>&lt; <a href="./bool.html" class="identifier">true_</a>, <a href="./identity.html" class="identifier">identity</a>&lt;char&gt;, <a href="./identity.html" class="identifier">identity</a>&lt;long&gt; &gt;::type t1;
+typedef <a href="./eval-if.html" class="identifier">eval_if</a>&lt; <a href="./bool.html" class="identifier">false_</a>, <a href="./identity.html" class="identifier">identity</a>&lt;char&gt;, <a href="./identity.html" class="identifier">identity</a>&lt;long&gt; &gt;::type t2;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt;t1,char&gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt;t2,long&gt; ));
+</pre>
+</div>
+<div class="section" id="id879">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./integral-constant.html">Integral Constant</a>, <a class="reference internal" href="./eval-if-c.html">eval_if_c</a>, <a class="reference internal" href="./if.html">if_</a></p>
+<!-- Metafunctions/Type Selection//eval_if_c |40 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./if-c.html" class="navigation-link">Prev</a>&nbsp;<a href="./eval-if-c.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./if-c.html" class="navigation-link">Back</a>&nbsp;<a href="./eval-if-c.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./type-selection.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

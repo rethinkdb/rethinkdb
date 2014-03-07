@@ -1,0 +1,237 @@
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="../boost.css">
+<title>Boost.Python - March 2002 Progress Report</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+  <tr> 
+    <td valign="top" width="300"> 
+          <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+          "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+      <h2 align="center">March 2002 Progress Report</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<h2>Contents</h2>
+<dl class="index">
+  <dt><a href="#accomplishments">Accomplishments</a></dt>
+  <dl class="index">
+    <dt><a href="#calling_python">Calling Python from C++</a></dt>
+    <dt><a href="#virtual_functions">Virtual Functions</a></dt>
+    <dt><a href="#abstract_classes">Abstract Classes</a></dt>
+    <dt><a href="#implicit_conversions">C++ Implicit Conversions</a></dt>
+    <dt><a href="#data_members">C++ Data Members</a></dt>
+    <dt><a href="#miscellaneous">Miscellaneous</a></dt>
+  </dl>
+
+  <dt><a href="#future">The Near future</a></dt>
+
+  <dt><a href="#notes">Notes</a></dt>
+
+</dl>
+
+<h2><a name="accomplishments">Accomplishments</a></h2>
+
+March was mostly devoted to the reimplementation of features from
+Boost.Python v1, and some new features. Re-examination of the features
+from Boost.Python v1 allowed me to make significant improvements.
+
+<h3><a name="calling_python">Calling Python from C++</a></h3>
+
+The ability to call Python from C++ is crucial for virtual function
+support. Implementing this feature well for V2 proved to be more
+interesting than I expected. You can review most of the relevant
+design decisions
+<a href="callbacks.txt">here</a>.
+
+<p>
+One point which <i>isn't</i> emphasized in that document is that there
+are subtle differences in the way <code>from_python</code> conversions
+work when used for C++ function arguments and Python function return
+values. In particular, while <code>T const&amp;</code> arguments may
+invoke rvalue converters, a reference-to-const return value requires
+an lvalue converter, since a temporary conversion result would leave
+the returned reference dangling.
+
+<p>I'm not particularly pleased with the current callback interface,
+since it usually results in constructs like:
+<pre>
+<u>return returning</u>&lt;X&amp;&gt;::call(f, obj);
+</pre>
+However, I think the following may be possible and I plan to investigate:
+<pre>
+return apply&lt;X&amp;&gt;(f, obj);
+</pre>
+I'm open to suggestion for better names (and syntaxes)!
+
+<h3><a name="virtual_functions">Virtual Functions</a></h3>
+
+Once Python callbacks were implemented, it was just a short step to
+implementing virtual functions. Python extension class exposing a C++
+class whose virtual functions are overridable in Python must actually
+hold a C++ instance of a class <i>derived</i> from the one exposed to
+Python. Needing some way for users to specify that class, I added an
+optional template argument to <code>value_holder_generator</code> and
+<code>pointer_holder_generator&lt;&gt;</code> to specify the class
+actually held. This move began to put pressure on the
+<code>class_&lt;&gt;</code> interface, since the need for the user to
+produce complicated instantations of
+<code>class_&lt;&gt;</code> was increased:
+
+<pre>
+class&lt;Foo, bases&lt;&gt;, value_holder_generator&lt;Foo_callback&gt; &gt;(&quot;Foo&quot;)
+.def(&quot;hello&quot;, &amp;Foo::hello)
+...
+</pre>
+
+<h3><a name="abstract_classes">Abstract Classes</a></h3>
+
+Normally when a C++ class is exposed to Python, the library registers
+a conversion function which allows users to wrap functions returning
+values of that type. Naturally, these return values are temporaries,
+so the conversion function must make a copy in some
+dynamically-allocated storage (a &quot;holder&quot;) which is managed
+by the corresponding Python object.
+
+<p>Unfortunately, in the case of abstract classes (and other types
+without a publicly-accessible copy constructor), instantiating this
+conversion function causes a compilation error.  In order to support
+non-copyable classes, there had to be some way to prevent the library
+from trying to instantiate the conversion function. The only practical
+approach I could think of was to add an additional template parameter
+to the <code>class_&lt;&gt;</code> interface. When the number of
+template parameters with useful defaults begins to grow, it is often
+hard to choose an order which allows users to take advantage of the
+defaults.
+
+<p>
+
+This was the straw that broke the
+<code>class_&lt;&gt;</code> interface's back and caused the redesign
+whose outcome is detailed <a
+href="http://mail.python.org/pipermail/c++-sig/2002-March/000892.html">here</a>.
+The approach allows the user to supply the optional parameters in an
+arbitrary order. It was inspired by the use of <a
+href="../../../utility/iterator_adaptors.htm#named_tempalte_parameters">named
+template parameters</a> in the <a
+href="../../../utility/iterator_adaptors.htm">Boost Iterator Adaptor
+Library</a>, though in this case it is possible to deduce the meaning
+of the template parameters entirely from their type properties,
+resulting in a simpler interface. Although the move from a
+policy-based design to what resembles a configuration DSL usually
+implies a loss of flexibility, in this case I think any costs are far
+outweighed by the advantages.
+
+<p>Note: working around the limitations of the various compilers I'm
+supporting was non-trivial, and resulted in a few messy implementation
+details. It might be a good idea to switch to a more-straightforward
+approach once Metrowerks CodeWarrior Pro8 is released.
+
+<h3><a name="implicit_conversions">C++ Implicit Conversions</a></h3>
+
+Support for C++ implicit conversion involves creating
+<code>from_python</code> converters for a type <code>U</code> which in
+turn use <code>from_python</code> converters registered for a type
+<code>T</code> where there exists a implicit conversion from
+<code>T</code> to <code>U</code>. The current implementation is
+subject to two inefficiencies:
+<ol>
+
+<li>Because an rvalue <code>from_python</code> converter produces two
+pieces of data (a function and a <code>void*</code>) from its
+<code>convertible()</code> function, we end up calling the function
+for <code>T</code> twice: once when the converter is looked up in the
+registry, and again when the conversion is actually performed. 
+
+<li>A vector is used to mark the "visited" converters, preventing
+infinite recursion as <code>T</code> to
+<code>U</code> and <code>U</code> to <code>T</code> converters
+continually search through one-another.
+
+</ol>
+
+I consider the former to be a minor issue. The second may or may not
+prove to be computationally significant, but I believe that
+architecturally, it points toward a need for more sophisticated
+overload resolution. It may be that we want CLOS-style multimethod
+dispatching along with C++ style rules that prevent more than one
+implicit conversion per argument.
+
+<h3><a name="data_members">C++ Data Members</a></h3>
+
+To supply the ability to directly access data members, I was able to
+hijack the new Python <a
+href="http://www.python.org/2.2/descrintro.html#property">property</a>
+type. I had hoped that I would also be able to re-use the work of <a
+href="make_function.html">make_function</a> to create callable python
+objects from C++ functions which access a data member of a given
+class. C++ facilities for specifying data member pointer non-type
+template arguments require the user to explicitly specify the type of
+the data member and this under-utilized feature is also not
+well-implemented on all compilers, so passing the member pointer as a
+runtime value is the only practical approach. The upshot is that any
+such entity would actually have to be a function <i>object</i>, and I
+haven't implemented automatic wrapping of C++ callable function
+objects yet, so there is less re-use in the implementation than I'd
+like. I hope to implement callable object wrapping and refactor this
+code one day. I also hope to implement static data member support,
+for which Python's property will not be an appropriate descriptor.
+
+<h3><a name="miscellaneous">Miscellaneous</a></h3>
+<ul>
+<li>Moved <code>args&lt;&gt;</code> and <code>bases&lt;&gt;</code> from unnamed namespace to <code>boost::python</code> in their own header files.
+<li>Convert <code>NULL</code> pointers returned from wrapped C++ functions to <code>None</code>.
+<li>Improved some compile-time error checks.
+<li>Eliminated <code>boost/python/detail/eval.hpp</code> in favor of
+more-general <code>boost/mpl/apply.hpp</code>.
+<li>General code cleanup and refactoring.
+<li>Works with Microsoft Visual C++ 7.0
+<li>Warning suppression for many compilers
+<li>Elegant interface design for exporting <code>enum</code> types.
+</ul>
+<hr>
+
+<h2><a name="future">The Near Future</a></h2>
+
+Before April 15th I plan to 
+<ol>
+<li>Document all implemented features
+<li>Implement a <code>CallPolicy</code> interface for constructors of wrapped
+classes
+<li>Implement conversions for <code>char</code> types.
+<li>Implement automated code generation for all headers containing
+families of overloaded functions to handle arbitrary arity.
+</ol>
+
+I also hope to implement a mechanism for generating conversions
+between arbitrary Python sequences and C++ containers, if time permits
+(and others haven't already done it)!
+
+<h2><a name="notes">Notes</a></h2>
+
+The older version of KCC used by Kull is generating lots of warnings
+about a construct I use to instantiate static members of various class
+templates. I'm thinking of moving to an idiom which uses a function
+template to suppress it, but worry about bloating the size of debug
+builds. Since KCC users may be moving to GCC, I'm not sure that it's
+worth doing anything about it.
+
+<p>Revised 
+  <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+</p>
+<p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 
+  2002. </i></p>
+</body>
+</html>

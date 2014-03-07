@@ -1,0 +1,22 @@
+Copyright (c) 2002-2010, International Business Machines Corporation and others. All Rights Reserved.
+The genren.pl script is used to generate source/common/unicode/urename.h header file, which is needed for renaming the ICU exported names. 
+
+This script is intended to be used on Linux, although it should work on any platform that has Perl and nm command. Makefile may need to be updated, it's not 100% portable. 
+
+The following instructions are for Linux version.
+- urename.h file should be generated after implementation is complete for a release.
+- the version number for a release should be set according to the list in source/common/unicode/uvernum.h
+- In this [genren] directory, run 
+
+    "make install-header"
+
+- urename.h will be updated in icu/source/common/unicode/urename.h  **in your original source directory**
+- Eyeball the new file for errors - you can compare it to icu/source/common/unicode/urename.h.old
+- Another good way to check the file is a side by side diff.  After the above 'make install-header':
+
+  diff --side-by-side urename.sort urename.old.sort  | more
+
+- Other make targets here
+
+    clean      - cleans out intermediate files
+    urename.h  -just builds ./urename.h 

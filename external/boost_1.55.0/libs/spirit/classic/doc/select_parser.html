@@ -1,0 +1,96 @@
+<html>
+<head>
+<title>The Select Parser</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+<style type="text/css">
+<!--
+.style1 {font-family: "Courier New", Courier, mono}
+.style2 {font-family: "Courier New", Courier, mono; font-style: italic; }
+.style3 {font-family: "Courier New", Courier, mono; color: #FF0000; }
+-->
+</style>
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr>
+    <td width="10"> </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>The Select Parser </b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="the_lazy_parser.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="switch_parser.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>Select parsers may be used to identify a single parser from a given list
+  of parsers, which successfully recognizes the current input sequence. Example:</p>
+<pre>    rule<span class="special">&lt;&gt;</span> rule_select <span class="special">=</span>
+        select_p<span class="special">
+        (</span>
+            parser_a<span class="special">
+          ,</span> parser_b<span class="special">
+            <span class="comment">/* ... */</span>
+          ,</span> parser_n
+        <span class="special">)</span><span class="special">;</span></pre>
+<p>The parsers (parser_a, parser_b etc.) are tried sequentially from left to right  until a parser matches the current input sequence.
+  If there is a matching parser found, the <tt>select_p</tt> parser returns
+  the parser's position (zero based index). For instance, in the example above, <tt>1</tt>  is returned if parser_b
+  matches.</p>
+<p>There are two predefined parsers of the select parser family: <tt>select_p</tt>
+  and <tt>select_fail_p</tt>. These parsers differ in the way the no match
+  case is handled (when none of the  parsers match the current input sequence).
+  While the <tt>select_p</tt> parser will return <tt>-1</tt>
+  if no matching parser is found, the <tt>select_fail_p</tt> parser will not match
+  at all.</p>
+<p>The following sample shows how the select parser may be used very conveniently
+  in conjunction with a <a href="switch_parser.html">switch parser</a>:</p>
+<pre>    <span class="keyword">int</span> choice <span class="special">=</span> <span class="literal">-1</span><span class="special">;</span>
+    rule<span class="special">&lt;&gt;</span> rule_select <span class="special">=</span>
+            select_fail_p<span class="special">(</span><span class="literal">'a'</span><span class="special">,</span> <span class="literal">'b'</span><span class="special">,</span> <span class="literal">'c'</span><span class="special">,</span> <span class="literal">'d'</span><span class="special">)[</span>assign_a<span class="special">(</span>choice<span class="special">)]</span>
+        &gt;&gt;  switch_p(var<span class="special">(</span>choice)) <span class="special">
+            [</span><br>                case_p<span class="special">&lt;</span><span class="literal">0</span><span class="special">&gt;(</span>int_p<span class="special">),</span><br>                case_p<span class="special">&lt;</span><span class="literal">1</span><span class="special">&gt;(</span>ch_p<span class="special">(</span><span class="literal">','</span><span class="special">)),</span><br>                case_p<span class="special">&lt;</span><span class="literal">2</span><span class="special">&gt;(</span>str_p<span class="special">(</span><span class="string">&quot;bcd&quot;</span><span class="special">)),</span><br>                default_p<br>            <span class="special">]</span><br><span class="special">        ;</span></pre>
+<p>This example shows a rule, which matches:</p>
+<ul>
+  <li><span class="literal"> 'a' </span>followed
+      by an integer</li>
+  <li><span class="literal">'b' </span>followed by a<span class="literal">
+    ','</span></li>
+  <li><span class="literal">'c'</span> followed by <span class="string">&quot;bcd&quot;</span></li>
+  <li>a single <span class="literal">'d'</span>. </li>
+</ul>
+<p>For other input sequences the
+        give rule does not match at all.</p>
+<table width="80%" border="0" align="center">
+  <tr>
+    <td class="note_box"><p><img src="theme/alert.gif" width="16" height="16"> <tt>BOOST_SPIRIT_SELECT_LIMIT</tt><br>
+        <br>
+    The number of possible entries inside the <tt>select_p</tt> parser is limited by the Spirit compile time constant <tt>BOOST_SPIRIT_SELECT_LIMIT</tt>, which defaults to 3. This value should not be greater than the compile time constant given by <tt>PHOENIX_LIMIT</tt> (see <a href="../phoenix/index.html">phoenix</a>). Example:</p>
+    <p class="style1"><span class="comment">// Define these before including anything else <br>
+      </span><span class="style3">#define</span> PHOENIX_LIMIT 10<br>
+        <span class="preprocessor">#define</span> BOOST_SPIRIT_SELECT_LIMIT 10 </p></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="the_lazy_parser.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="switch_parser.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2004 Hartmut Kaiser <br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<p>&nbsp;</p>
+</body>
+</html>

@@ -1,0 +1,480 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Using Property Maps</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H1><A NAME="sec:property-maps"></A>
+Property Maps
+</H1>
+
+<P>
+The main link between the abstract mathematical nature of graphs and
+the concrete problems they are used to solve is the properties that
+are attached to the vertices and edges of a graph, things like
+distance, capacity, weight, color, etc. There are many ways to attach
+properties to graph in terms of data-structure implementation, but
+graph algorithms should not have to deal with the implementation
+details of the properties. The <I>property map</I> interface
+defined in Section <A
+HREF="../../property_map/doc/property_map.html">Property
+Map Concepts</A> provides a generic method for accessing
+properties from graphs. This is the interface used in the BGL
+algorithms to access properties.
+
+<P>
+
+<H2>Property Map Interface</H2>
+
+<P>
+The property map interface specifies that each property is
+accessed using a separate property map object. In the following
+example we show an implementation of the <TT>relax()</TT> function used
+inside of Dijkstra's shortest paths algorithm.  In this function, we
+need to access the weight property of an edge, and the distance
+property of a vertex. We write <TT>relax()</TT> as a template function
+so that it can be used in many difference situations. Two of the
+arguments to the function, <TT>weight</TT> and <TT>distance</TT>, are the
+property map objects. In general, BGL algorithms explicitly pass
+property map objects for every property that a function will
+need. The property map interface defines several functions, two
+of which we use here: <TT>get()</TT> and <TT>put()</TT>. The <TT>get()</TT>
+function takes a property map object, such as <TT>distance</TT> and
+a <I>key</I> object. In the case of the distance property we are using
+the vertex objects <TT>u</TT> and <TT>v</TT> as keys. The <TT>get()</TT>
+function then returns the property value for the vertex.
+
+<P>
+<PRE>
+  template &lt;class Edge, class Graph,
+            class WeightPropertyMap, 
+            class DistancePropertyMap&gt;
+  bool relax(Edge e, const Graph&amp; g, 
+             WeightPropertyMap weight, 
+             DistancePropertyMap distance)
+  {
+    typedef typename graph_traits&lt;Graph&gt;::vertex_descriptor Vertex;
+    Vertex u = source(e,g), v = target(e,g);
+    if ( get(distance, u) + get(weight, e) &lt; get(distance, v)) {
+      put(distance, v, get(distance, u) + get(weight, e));
+      return true;
+    } else
+      return false;
+  }
+</PRE>
+
+The function <TT>get()</TT> returns a copy of the property value.  There
+is a third function in the property map interface, <TT>at()</TT>,
+that returns a reference to the property value (a const reference if
+the map is not mutable).
+
+<P>
+Similar to the <TT>iterator_traits</TT> class of the STL, there is a
+<TT>property_traits</TT> class that can be used to deduce the types
+associated with a property map type: the key and value types, and
+the property map category (which is used to tell whether the
+map is readable, writeable, or both). In the <TT>relax()</TT>
+function we could have used <TT>property_traits</TT> to declare local
+variables of the distance property type.
+
+<P>
+<PRE>
+  {
+    typedef typename graph_traits&lt;Graph&gt;::vertex_descriptor Vertex;
+    Vertex u = source(e,g), v = target(e,g);
+    typename property_traits&lt;DistancePropertyMap&gt;::value_type
+      du, dv; // local variables of the distance property type
+    du = get(distance, u);
+    dv = get(distance, v);
+    if (du + get(weight, e) &lt; dv) {
+      put(distance, v, du + get(weight, e));
+      return true;
+    } else
+      return false;
+  }
+</PRE>
+
+<P>
+There are two kinds of graph properties: interior and exterior. 
+
+<P>
+<DL>
+<DT><STRONG>Interior Properties</STRONG></DT>
+<DD>are stored ``inside'' the graph object
+in some way, and the lifetime of the property value objects is the
+same as that of the graph object. 
+
+<P>
+</DD>
+<DT><STRONG>Exterior Properties</STRONG></DT>
+<DD>are stored ``outside'' of the graph
+object and the lifetime of the property value objects is independent
+of the graph. This is useful for properties that are only needed
+temporarily, perhaps for the duration of a particular algorithm such
+as the color property used in <TT>breadth_first_search()</TT>.  When
+using exterior properties with a BGL algorithm a property map
+object for the exterior property must be passed as an argument to the
+algorithm.
+</DD>
+</DL>
+
+<P>
+
+<H2><A NAME="sec:interior-properties"></A>
+Interior Properties
+</H2>
+
+<P>
+A graph type that supports interior property storage (such as
+<TT>adjacency_list</TT>) provides access to its property map
+objects through the interface defined in <a
+href="./PropertyGraph.html">PropertyGraph</a>.  There is a function
+<TT>get(Property, g)</TT> that get property map objects from a
+graph. The first argument is the property type to specify which
+property you want to access and the second argument is the graph
+object. A graph type must document which properties (and therefore
+tags) it provides access to.  The type of the property map depends on
+the type of graph and the property being mapped. A trait class is
+defined that provides a generic way to deduce the property map type:
+<TT>property_map</TT>. The following code shows how one can obtain the
+property map for the distance and weight properties of some graph
+type.
+
+<P>
+<PRE>
+  property_map&lt;Graph, vertex_distance_t&gt;::type d
+    = get(vertex_distance, g);
+
+  property_map&lt;Graph, edge_weight_t&gt;::type w
+    = get(edge_weight, g);
+</PRE>
+
+<P>
+In general, the BGL algorithms require all property maps needed
+by the algorithm to be explicitly passed to the algorithm. For
+example, the BGL Dijkstra's shortest paths algorithm requires four
+property maps: distance, weight, color, and vertex ID.
+
+<P>
+Often times some or all of the properties will be interior to the
+graph, so one would call Dijkstra's algorithm in the following way
+(given some graph <TT>g</TT> and source vertex <TT>src</TT>).
+
+<P>
+<PRE>
+  dijkstra_shortest_paths(g, src,  
+    distance_map(get(vertex_distance, g)).
+    weight_map(get(edge_weight, g)).
+    color_map(get(vertex_color, g)).
+    vertex_index_map(get(vertex_index, g)));
+</PRE>
+
+<P>
+Since it is somewhat cumbersome to specify all of the property maps,
+BGL provides defaults that assume some of the properties are interior
+and can be accessed via <TT>get(Property, g)</TT> from the graph, or
+if the property map is only used internally, then the algorithm will
+create a property map for itself out of an array and using the graph's
+vertex index map as the offset into the array. Below we show a call to
+<TT>dijkstra_shortest_paths</TT> algorithm using all defaults for the
+named parameters. This call is equivalent to the previous call to
+Dijkstra's algorithm.
+
+<P>
+<PRE>
+  dijkstra_shortest_paths(g, src);
+</PRE>
+
+<P>
+The next question is: how do interior properties become attached to a
+graph object in the first place? This depends on the graph class that
+you are using. The <TT>adjacency_list</TT> graph class of BGL uses a
+property mechanism (see Section <A
+HREF="using_adjacency_list.html#sec:adjacency-list-properties">Internal
+Properties</A>) to allow an arbitrary number of properties to be
+stored on the edges and vertices of the graph.
+
+<P>
+
+<H2><A NAME="sec:exterior-properties"></A>
+Exterior Properties
+</H2>
+
+<P>
+In this section we will describe two methods for constructing exterior
+property maps, however there is an unlimited number of ways that
+one could create exterior properties for a graph.
+
+<P>
+The first method uses the adaptor class
+<TT>random_access_iterator_property_map</TT>. This
+class wraps a random access iterator, creating a property map out
+of it. The random access iterator must point to the beginning of a
+range of property values, and the length of the range must be the
+number of vertices or edges in the graph (depending on whether it is a
+vertex or edge property map). The adaptor must also be supplied
+with an ID property map, which will be used to map the vertex or
+edge descriptor to the offset of the property value (offset from the
+random access iterator). The ID property map will typically be an
+interior property map of the graph.  The following example shows
+how the <TT>random_access_iterator_property_map</TT>
+can be used to create exterior property maps for the capacity and flow properties, which are stored in arrays. The arrays are
+indexed by edge ID. The edge ID is added to the graph using a property,
+and the values of the ID's are given when each edge is added to the
+graph. The complete source code for this example is in
+<TT>example/exterior_edge_properties.cpp</TT>. The
+<TT>print_network()</TT> function prints out the graph with
+the flow and capacity values.
+
+<P>
+<PRE>
+  typedef adjacency_list&lt;vecS, vecS, bidirectionalS, 
+    no_property, property&lt;edge_index_t, std::size_t&gt; &gt; Graph;
+
+  const int num_vertices = 9;
+  Graph G(num_vertices);
+
+  int capacity_array[] = { 10, 20, 20, 20, 40, 40, 20, 20, 20, 10 };
+  int flow_array[] = { 8, 12, 12, 12, 12, 12, 16, 16, 16, 8 };
+
+  // Add edges to the graph, and assign each edge an ID number.
+  add_edge(0, 1, 0, G);
+  // ...
+
+  typedef graph_traits&lt;Graph&gt;::edge_descriptor Edge;
+  typedef property_map&lt;Graph, edge_index_t&gt;::type EdgeID_Map;
+  EdgeID_Map edge_id = get(edge_index, G);
+
+  random_access_iterator_property_map
+    &lt;int*, int, int&amp;, EdgeID_Map&gt; 
+      capacity(capacity_array, edge_id), 
+      flow(flow_array, edge_id);
+
+  print_network(G, capacity, flow);
+</PRE>
+
+<P>
+The second method uses a pointer type (a pointer to an array of
+property values) as a property map. This requires the key type to
+be an integer so that it can be used as an offset to the pointer. The
+<TT>adjacency_list</TT> class with template parameter
+<TT>VertexList=vecS</TT> uses integers for vertex descriptors (indexed
+from zero to the number of vertices in the graph), so they are
+suitable as the key type for a pointer property map. When the
+<TT>VertexList</TT> is not <TT>vecS</TT>, then the vertex descriptor is
+not an integer, and cannot be used with a pointer property map.
+Instead the method described above of using a
+<TT>random_access_iterator_property_map</TT> with an ID
+property must be used. The <TT>edge_list</TT> class may also use an
+integer type for the vertex descriptor, depending on how the adapted
+edge iterator is defined. The example in
+<TT>example/bellman_ford.cpp</TT> shows <TT>edge_list</TT> being used
+with pointers as vertex property maps.
+
+<P>
+The reason that pointers can be used as property maps is that
+there are several overloaded functions and a specialization of
+<TT>property_traits</TT> in the header <a
+href="../../../boost/property_map/property_map.hpp"><TT>boost/property_map/property_map.hpp</TT></a>
+that implement the property map interface in terms of
+pointers. The definition of those functions is listed here.
+
+<P>
+<PRE>
+namespace boost {
+  template &lt;class T&gt;
+  struct property_traits&lt;T*&gt; {
+    typedef T value_type;
+    typedef ptrdiff_t key_type;
+    typedef lvalue_property_map_tag category;
+  };
+
+  template &lt;class T&gt;
+  void put(T* pa, std::ptrdiff_t key, const T&amp; value) { pa[key] = value;  }
+
+  template &lt;class T&gt;
+  const T&amp; get(const T* pa, std::ptrdiff_t key) { return pa[key]; }
+
+  template &lt;class T&gt;
+  const T&amp; at(const T* pa, std::ptrdiff_t key) { return pa[key]; }
+
+  template &lt;class T&gt;
+  T&amp; at(T* pa, std::ptrdiff_t key) { return pa[key]; }
+}
+</PRE>
+
+<P>
+In the following example, we use an array to store names of cities for
+each vertex in the graph, and a <TT>std::vector</TT> to store vertex
+colors which will be needed in a call to
+<TT>breadth_first_search()</TT>. Since the iterator of a
+<TT>std::vector</TT> (obtained with a call to <TT>begin()</TT>) is a
+pointer, the pointer property map method also works for
+<TT>std::vector::iterator</TT>. The complete source code for this
+example is in <a
+href="../example/city_visitor.cpp"><TT>example/city_visitor.cpp</TT></a>.
+
+<P>
+<PRE>
+// Definition of city_visitor omitted...
+
+int main(int,char*[])
+{
+  enum { SanJose, SanFran, LA, SanDiego, Fresno, LosVegas, Reno,
+         Sacramento, SaltLake, Pheonix, N };
+
+  // An array of vertex name properties
+  std::string names[] = { &quot;San Jose&quot;, &quot;San Francisco&quot;,  &quot;San Jose&quot;,
+                          &quot;San Francisco&quot;, &quot;Los Angeles&quot;, &quot;San Diego&quot;, 
+                          &quot;Fresno&quot;, &quot;Los Vegas&quot;, &quot;Reno&quot;, &quot;Sacramento&quot;,
+                          &quot;Salt Lake City&quot;, &quot;Pheonix&quot; };
+
+  // Specify all the connecting roads between cities.
+  typedef std::pair&lt;int,int&gt; E;
+  E edge_array[] = { E(Sacramento, Reno), ... };
+
+  // Specify the graph type.
+  typedef adjacency_list&lt;vecS, vecS, undirectedS&gt; Graph;
+  // Create the graph object, based on the edges in edge_array.
+  Graph G(N, edge_array, edge_array + sizeof(edge_array)/sizeof(E));
+
+  // DFS and BFS need to &quot;color&quot; the vertices.
+  // Here we use std::vector as exterior property storage.
+  std::vector&lt;default_color_type&gt; colors(N);
+
+  cout &lt;&lt; &quot;*** Depth First ***&quot; &lt;&lt; endl;
+  depth_first_search(G, city_visitor(names), colors.begin());
+  cout &lt;&lt; endl;
+
+  // Get the source vertex
+  boost::graph_traits&lt;Graph&gt;::vertex_descriptor 
+    s = vertex(SanJose, G);
+
+  cout &lt;&lt; &quot;*** Breadth First ***&quot; &lt;&lt; endl;
+  breadth_first_search(G, s, city_visitor(names), colors.begin());
+
+  return 0;
+}
+</PRE>
+
+<P>
+
+<H2><A NAME="sec:custom-exterior-property-maps"></A>
+Constructing an Exterior Property Map
+</H2>
+
+<P>
+Implementing your own exterior property maps is not very
+difficult. You simply need to overload the functions required by the
+<a href="property_map.html">property map concept</a>
+that you want your class to model. At most, this means overloading the
+<TT>put()</TT> and <TT>get()</TT> functions and implementing
+<TT>operator[]</TT>. Also, your property map class will need to have
+nested typedefs for all the types defined in <TT>property_traits</TT>,
+or you can create a specialization of <TT>property_traits</TT> for
+your new property map type.
+
+<P>
+The implementation of the
+<TT>random_access_iterator_property_map</TT> class
+serves as a good example for how to build and exterior property
+map. Here we present a simplified implementation of the
+<TT>random_access_iterator_property_map</TT> class
+which we will name <TT>iterator_pa</TT>.
+
+<P>
+We start with the definition of the <TT>iterator_map</TT> class
+itself. This adaptor class is templated on the adapted <TT>Iterator</TT>
+type and the ID property map. The job of the ID property map
+is to map the key object (which will typically be a vertex or edge
+descriptor) to an integer offset. The <TT>iterator_map</TT> class will
+need the three necessary typedefs for a property map:
+<TT>key_type</TT>, <TT>value_type</TT>, and <TT>category</TT>. We can use
+<TT>property_traits</TT> to find the key type of <TT>IDMap</TT>, and
+we can use <TT>iterator_traits</TT> to determine the value type of
+<TT>Iterator</TT>.  We choose
+<TT>boost::lvalue_property_map_tag</TT> for the category
+since we plan on implementing the <TT>at()</TT> function.
+
+<P>
+<PRE>
+  template &lt;class Iterator, class IDMap&gt;
+  class iterator_map
+  {
+  public:
+    typedef typename boost::property_traits&lt;IDMap&gt;::key_type key_type; 
+    typedef typename std::iterator_traits&lt;Iterator&gt;::value_type value_type;
+    typedef boost::lvalue_property_map_tag category;
+
+    iterator_map(Iterator i = Iterator(), 
+                const IDMap&amp; id = IDMap()) 
+      : m_iter(i), m_id(id) { }
+    Iterator m_iter;
+    IDMap m_id;
+  };
+</PRE>
+
+<P>
+Next we implement the three property map functions, <TT>get()</TT>,
+<TT>put()</TT>, and <TT>at()</TT>. In each of the functions, the
+<TT>key</TT> object is converted to an integer offset using the
+<TT>m_id</TT> property map, and then that is used as an offset
+to the random access iterator <TT>m_iter</TT>.
+
+<P>
+<PRE>
+  template &lt;class Iter, class ID&gt;
+  typename std::iterator_traits&lt;Iter&gt;::value_type
+  get(const iterator_map&lt;Iter,ID&gt;&amp; i,
+      typename boost::property_traits&lt;ID&gt;::key_type key)
+  {
+    return i.m_iter[i.m_id[key]];
+  }
+  template &lt;class Iter, class ID&gt;
+  void
+  put(const iterator_map&lt;Iter,ID&gt;&amp; i,
+      typename boost::property_traits&lt;ID&gt;::key_type key,
+      const typename std::iterator_traits&lt;Iter&gt;::value_type&amp; value)
+  {
+    i.m_iter[i.m_id[key]] = value;
+  }
+  template &lt;class Iter, class ID&gt;
+  typename std::iterator_traits&lt;Iter&gt;::reference
+  at(const iterator_map&lt;Iter,ID&gt;&amp; i,
+      typename boost::property_traits&lt;ID&gt;::key_type key)
+  {
+    return i.m_iter[i.m_id[key]];
+  }
+</PRE>
+
+<P>
+That is it. The <TT>iterator_map</TT> class is complete and could be
+used just like the
+<TT>random_access_iterator_property_map</TT> in the
+previous section.
+
+<P>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

@@ -1,0 +1,361 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Organization</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="prev" href="basics.html" title="Basics">
+<link rel="next" href="actor.html" title="Actor">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basics.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="actor.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="phoenix.organization"></a><a class="link" href="organization.html" title="Organization">Organization</a>
+</h2></div></div></div>
+<p>
+      Care and attention to detail was given, painstakingly, to the design and implementation
+      of Phoenix.
+    </p>
+<p>
+      The library is organized in four layers:
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          Actor
+        </li>
+<li class="listitem">
+          Value, Reference, Arguments
+        </li>
+<li class="listitem">
+          Function, Operator, Object, Statement, Scope
+        </li>
+<li class="listitem">
+          STL, Fusion, Bind
+        </li>
+</ol></div>
+<p>
+      The modules are orthogonal, with no cyclic dependencies. Lower layers do not
+      depend on higher layers. Modules in a layer do not depend on other modules
+      in the same layer. This means, for example, that Bind can be completely discarded
+      if it is not required; or one could perhaps take out Operator and Statement
+      and just use Function, which may be desirable in a pure FP application.
+    </p>
+<p>
+      The library has grown from the original Phoenix but still comprises only header
+      files. There are no object files to link against.
+    </p>
+<h3>
+<a name="phoenix.organization.h0"></a>
+      <span class="phrase"><a name="phoenix.organization.core"></a></span><a class="link" href="organization.html#phoenix.organization.core">Core</a>
+    </h3>
+<p>
+      The lowest two layers comprise the core.
+    </p>
+<p>
+      The <a class="link" href="actor.html" title="Actor"><code class="computeroutput"><span class="identifier">Actor</span></code></a>
+      is the main concept behind the library. Lazy functions are abstracted as actors.
+    </p>
+<p>
+      Terminals provide the basic building blocks of functionality within Phoenix.
+      Expressions are used to combine these terminals together to provide more powerful
+      functionality.
+    </p>
+<p>
+      Expressions are composed of zero or more actors. Each actor in a composite
+      can again be another expression.
+    </p>
+<div class="table">
+<a name="phoenix.organization.t0"></a><p class="title"><b>Table&#160;1.2.&#160;Modules</b></p>
+<div class="table-contents"><table class="table" summary="Modules">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Module
+              </p>
+            </th>
+<th>
+              <p>
+                Description
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                Function
+              </p>
+            </td>
+<td>
+              <p>
+                Lazy functions support (e.g. <code class="computeroutput"><span class="identifier">add</span></code>)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Operator
+              </p>
+            </td>
+<td>
+              <p>
+                Lazy operators support (e.g. <code class="computeroutput"><span class="special">+</span></code>)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Statement
+              </p>
+            </td>
+<td>
+              <p>
+                Lazy statements (e.g. <code class="computeroutput"><span class="identifier">if_</span></code>,
+                <code class="computeroutput"><span class="identifier">while_</span></code>)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Object
+              </p>
+            </td>
+<td>
+              <p>
+                Lazy casts (e.g. <code class="computeroutput"><span class="identifier">static_cast_</span></code>),
+                object creation destruction (e.g. <code class="computeroutput"><span class="identifier">new_</span></code>,
+                <code class="computeroutput"><span class="identifier">delete_</span></code>)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Scope
+              </p>
+            </td>
+<td>
+              <p>
+                Support for scopes, local variables and lambda-lambda
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Bind
+              </p>
+            </td>
+<td>
+              <p>
+                Lazy functions from free functions, member functions or member variables.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                STL Container
+              </p>
+            </td>
+<td>
+              <p>
+                Set of predefined "lazy" functions that work on STL containers
+                and sequences (e.g. <code class="computeroutput"><span class="identifier">push_back</span></code>).
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                STL Algorithm
+              </p>
+            </td>
+<td>
+              <p>
+                Set of predefined "lazy" versions of the STL algorithms
+                (e.g. <code class="computeroutput"><span class="identifier">find_if</span></code>).
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      Each module is defined in a header file with the same name. For example, the
+      core module is defined in <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>.
+    </p>
+<div class="table">
+<a name="phoenix.organization.t1"></a><p class="title"><b>Table&#160;1.3.&#160;Includes</b></p>
+<div class="table-contents"><table class="table" summary="Includes">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Module
+              </p>
+            </th>
+<th>
+              <p>
+                File
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                Core
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Function
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">function</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Operator
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Statement
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">statement</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Object
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">object</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Scope
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">scope</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Bind
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">bind</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Container
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">stl</span><span class="special">/</span><span class="identifier">container</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Algorithm
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">stl</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="sidebar">
+<div class="titlepage"></div>
+<p>
+      <span class="inlinemediaobject"><img src="../images/tip.png" alt="tip"></span> Finer grained include files are available per feature;
+      see the succeeding sections.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basics.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="actor.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

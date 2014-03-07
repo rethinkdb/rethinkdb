@@ -1,0 +1,85 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Configuration</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_tr1.html" title="Chapter&#160;32.&#160;Boost.TR1">
+<link rel="prev" href="usage.html" title="Usage">
+<link rel="next" href="subject_list.html" title="TR1 By Subject">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="usage.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_tr1.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="subject_list.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_tr1.config"></a><a class="link" href="config.html" title="Configuration">Configuration</a>
+</h2></div></div></div>
+<p>
+      Configuring Boost.TR1 is no different to configuring any other part of Boost;
+      in the majority of cases you shouldn't actually need to do anything at all.
+      However, because Boost.TR1 will inject Boost components into namespace std::tr1
+      it is more than usually sensitive to an incorrect configuration.
+    </p>
+<p>
+      The intention is that <a href="../../../libs/config/index.html" target="_top">Boost.Config</a>
+      will automatically define the configuration macros used by this library, so
+      that if your standard library is set up to support TR1 (note that few are at
+      present) then this will be detected and Boost.TR1 will use your standard library
+      versions of these components rather than the Boost ones.
+    </p>
+<p>
+      If you would prefer to use the Boost versions of the TR1 conponents rather
+      than your standard library, then either: include the Boost headers directly
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span> <span class="identifier">e</span><span class="special">(</span><span class="string">"myregex"</span><span class="special">);</span> <span class="comment">//etc</span>
+</pre>
+<p>
+      Or else don't enable TR1 in your standard library: since TR1 is not part of
+      the current standard, there should be some option to disable it in your compiler
+      or standard library.
+    </p>
+<p>
+      The configuration macros used by each TR1 component are documented in each
+      library section (and all together in the <a href="../../../libs/config/index.html" target="_top">Boost.Config</a>
+      documentation), but defining BOOST_HAS_TR1 will turn on native TR1 support
+      for everything (if your standard library has it), which can act as a convenient
+      shortcut.
+    </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+      <span class="bold"><strong>Note for gcc users</strong></span><br> <br> Boost.TR1
+      does not currently enable gcc's native TR1 implementation as this is currently
+      in an early stage of development. However, you may choose to do so by defining
+      BOOST_HAS_GCC_TR1.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="usage.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_tr1.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="subject_list.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

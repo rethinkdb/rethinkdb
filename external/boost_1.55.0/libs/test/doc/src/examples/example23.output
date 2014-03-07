@@ -1,0 +1,6 @@
+> example
+Running 1 test case...
+unknown location(0): fatal error in "test_case": memory access violation at address: 0x00000008: no mapping at fault address
+test.cpp(16): last checkpoint
+
+*** 1 failure detected in test suite "example"

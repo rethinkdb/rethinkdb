@@ -1,0 +1,86 @@
+[/ Copyright 2006-2008 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[section:hash_equality Equality Predicates and Hash Functions]
+
+While the associative containers use an ordering relation to specify how the
+elements are stored, the unordered associative containers use an equality
+predicate and a hash function. For example, [classref boost::unordered_map]
+is declared as:
+
+        template <
+            class Key, class Mapped,
+            class Hash = ``[classref boost::hash]``<Key>,
+            class Pred = std::equal_to<Key>,
+            class Alloc = std::allocator<std::pair<Key const, Mapped> > >
+        class ``[classref boost::unordered_map unordered_map]``;
+
+The hash function comes first as you might want to change the hash function
+but not the equality predicate. For example, if you wanted to use the
+[@http://www.isthe.com/chongo/tech/comp/fnv/ FNV-1 hash] you could write:
+
+[import src_code/dictionary.cpp]
+[case_sensitive_dictionary_fnv]
+
+There is an [@boost:/libs/unordered/examples/fnv1.hpp implementation
+of FNV-1] in the examples directory.
+
+If you wish to use a different equality function,
+you will also need to use a matching hash function. For
+example, to implement a case insensitive dictionary you need to define a
+case insensitive equality predicate and hash function:
+
+[case_insensitive_functions]
+
+Which you can then use in a case insensitive dictionary:
+
+[case_insensitive_dictionary]
+
+This is a simplified version of the example at
+[@boost:/libs/unordered/examples/case_insensitive.hpp /libs/unordered/examples/case_insensitive.hpp]
+which supports other locales and string types.
+
+[caution
+Be careful when using the equality (`==`) operator with custom equality
+predicates, especially if you're using a function pointer. If you compare two
+containers with different equality predicates then the result is undefined.
+For most stateless function objects this is impossible - since you can only
+compare objects with the same equality predicate you know the equality
+predicates must be equal. But if you're using function pointers or a stateful
+equality predicate (e.g. boost::function) then you can get into trouble.
+]
+
+[h2 Custom Types]
+
+Similarly, a custom hash function can be used for custom types:
+
+[import src_code/point1.cpp]
+[point_example1]
+
+Since the default hash function is [link hash Boost.Hash],
+we can [link hash.custom extend it to support the type]
+so that the hash function doesn't need to be explicitly given:
+
+[import src_code/point2.cpp]
+[point_example2]
+
+See the [link hash.custom Boost.Hash documentation] for more detail on how to
+do this.  Remember that it relies on extensions to the draft standard - so it
+won't work for other implementations of the unordered associative containers,
+you'll need to explicitly use Boost.Hash.
+
+[table:access_methods Methods for accessing the hash and equality functions.
+    [[Method] [Description]]
+
+    [
+        [`hasher hash_function() const`]
+        [Returns the container's hash function.]
+    ]
+    [
+        [`key_equal key_eq() const`]
+        [Returns the container's key equality function.]
+    ]
+]
+
+[endsect]

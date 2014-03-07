@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: value_type</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./size.html" class="navigation-link">Prev</a>&nbsp;<a href="./iterators.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./size.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./intrinsic-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./intrinsic-metafunctions.html" class="navigation-link">Intrinsic Metafunctions</a> / <a href="./value-type.html" class="navigation-link">value_type</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="value-type">
+<h1><a class="toc-backref" href="./intrinsic-metafunctions.html#id1447">value_type</a></h1>
+<div class="section" id="id371">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Sequence
+    , typename X
+    &gt;
+struct <a href="./value-type.html" class="identifier">value_type</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id372">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Returns the <a class="reference internal" href="./associative-sequence.html#value-part">value</a> that would be used for element <tt class="literal"><span class="pre">X</span></tt> in <tt class="literal"><span class="pre">Sequence</span></tt>.</p>
+</div>
+<div class="section" id="id373">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/value_type.hpp" class="header">boost/mpl/value_type.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id374">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./tag-dispatched-metafunction.html">Tag Dispatched Metafunction</a></p>
+</div>
+<div class="section" id="id375">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="17%" />
+<col width="30%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Sequence</span></tt></td>
+<td><a class="reference internal" href="./associative-sequence.html">Associative Sequence</a></td>
+<td>A sequence to query.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">X</span></tt></td>
+<td>Any type</td>
+<td>The type to get the <a class="reference internal" href="./associative-sequence.html#value-part">value</a> for.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id376">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any <a class="reference internal" href="./associative-sequence.html">Associative Sequence</a> <tt class="literal"><span class="pre">s</span></tt>, and an artibrary type <tt class="literal"><span class="pre">x</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./value-type.html" class="identifier">value_type</a>&lt;s,x&gt;::type v;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">A type.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">x</span></tt> can be put in <tt class="literal"><span class="pre">s</span></tt>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">v</span></tt> is the <a class="reference internal" href="./associative-sequence.html#value-part">value</a> that would be used for <tt class="literal"><span class="pre">x</span></tt> in <tt class="literal"><span class="pre">s</span></tt>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Postcondition:</th><td class="field-body"><p class="first">If
+.. parsed-literal:</p>
+<pre class="literal-block">
+<a href="./has-key.html" class="identifier">has_key</a>&lt; s,<a href="./key-type.html" class="identifier">key_type</a>&lt;s,x&gt;::type &gt;::type
+</pre>
+<p>then
+.. parsed-literal:</p>
+<pre class="literal-block">
+<a href="./at.html" class="identifier">at</a>&lt; s,<a href="./key-type.html" class="identifier">key_type</a>&lt;s,x&gt;::type &gt;::type
+</pre>
+<p class="last">is identical to <tt class="literal"><span class="pre"><a href="./value-type.html" class="identifier">value_type</a>&lt;s,x&gt;::type</span></tt>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id377">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Amortized constant time.</p>
+</div>
+<div class="section" id="id378">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./value-type.html" class="identifier">value_type</a>&lt; <a href="./map.html" class="identifier">map</a>&lt;&gt;,<a href="./pair.html" class="identifier">pair</a>&lt;int,unsigned&gt; &gt;::type v1;
+typedef <a href="./value-type.html" class="identifier">value_type</a>&lt; <a href="./set.html" class="identifier">set</a>&lt;&gt;,<a href="./pair.html" class="identifier">pair</a>&lt;int,unsigned&gt; &gt;::type v2;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; v1,unsigned &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; v2,<a href="./pair.html" class="identifier">pair</a>&lt;int,unsigned&gt; > ));
+</pre>
+</div>
+<div class="section" id="id379">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>, <a class="reference internal" href="./key-type.html">key_type</a>, <a class="reference internal" href="./at.html">at</a>, <a class="reference internal" href="./set.html">set</a>, <a class="reference internal" href="./map.html">map</a></p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./size.html" class="navigation-link">Prev</a>&nbsp;<a href="./iterators.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./size.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./intrinsic-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

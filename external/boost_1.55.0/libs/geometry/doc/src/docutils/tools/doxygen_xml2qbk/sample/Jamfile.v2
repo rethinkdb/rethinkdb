@@ -1,0 +1,32 @@
+# Boost.Geometry (aka GGL, Generic Geometry Library)
+#
+# Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+# Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
+# Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+
+project fruit ;
+
+import boostbook ;
+import quickbook ;
+
+
+boostbook fruit 
+	: fruit.qbk
+	: <dependency>Jamfile.v2	  
+		<dependency>generated/apple.qbk
+		<dependency>generated/rose.qbk
+		<dependency>generated/grouped.qbk
+        : <xsl:param>chunk.section.depth=4
+	<xsl:param>chunk.first.sections=1
+	<xsl:param>toc.section.depth=3
+	<xsl:param>toc.max.depth=2
+	<xsl:param>generate.section.toc.level=4
+	<xsl:param>boost.root=../../../../../../../../..
+	;
+
+

@@ -1,0 +1,234 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Release Notes</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../container.html" title="Chapter&#160;8.&#160;Boost.Container">
+<link rel="prev" href="acknowledgements_notes.html" title="Acknowledgements, notes and links">
+<link rel="next" href="../date_time.html" title="Chapter&#160;9.&#160;Boost.Date_Time">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="acknowledgements_notes.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../container.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../date_time.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="container.release_notes"></a><a class="link" href="release_notes.html" title="Release Notes">Release Notes</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="release_notes.html#container.release_notes.release_notes_boost_1_55_00">Boost
+      1.55 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#container.release_notes.release_notes_boost_1_54_00">Boost
+      1.54 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#container.release_notes.release_notes_boost_1_53_00">Boost
+      1.53 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#container.release_notes.release_notes_boost_1_52_00">Boost
+      1.52 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#container.release_notes.release_notes_boost_1_51_00">Boost
+      1.51 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#container.release_notes.release_notes_boost_1_50_00">Boost
+      1.50 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#container.release_notes.release_notes_boost_1_49_00">Boost
+      1.49 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#container.release_notes.release_notes_boost_1_48_00">Boost
+      1.48 Release</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.release_notes.release_notes_boost_1_55_00"></a><a class="link" href="release_notes.html#container.release_notes.release_notes_boost_1_55_00" title="Boost 1.55 Release">Boost
+      1.55 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Implemented <a class="link" href="main_features.html#container.main_features.scary_iterators" title="SCARY iterators">SCARY
+            iterators</a>.
+          </li>
+<li class="listitem">
+            Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/8269" target="_top">#8269</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/8473" target="_top">#8473</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/8892" target="_top">#8892</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/9009" target="_top">#9009</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/9064" target="_top">#9064</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/9092" target="_top">#9092</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/9108" target="_top">#9108</a>.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.release_notes.release_notes_boost_1_54_00"></a><a class="link" href="release_notes.html#container.release_notes.release_notes_boost_1_54_00" title="Boost 1.54 Release">Boost
+      1.54 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Added experimental <code class="computeroutput"><span class="identifier">static_vector</span></code>
+            class, based on Andrew Hundt's and Adam Wulkiewicz's high performance
+            <code class="computeroutput"><span class="identifier">varray</span></code> class.
+          </li>
+<li class="listitem">
+            Speed improvements in <code class="computeroutput"><span class="identifier">vector</span></code>
+            constructors/copy/move/swap, dispatching to memcpy when possible.
+          </li>
+<li class="listitem">
+            Support for <code class="computeroutput"><span class="identifier">BOOST_NO_EXCEPTIONS</span></code>
+            <a href="https://svn.boost.org/trac/boost/ticket/7227" target="_top">#7227</a>.
+          </li>
+<li class="listitem">
+            Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/7921" target="_top">#7921</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/7969" target="_top">#7969</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/8118" target="_top">#8118</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/8294" target="_top">#8294</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/8553" target="_top">#8553</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/8724" target="_top">#8724</a>.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.release_notes.release_notes_boost_1_53_00"></a><a class="link" href="release_notes.html#container.release_notes.release_notes_boost_1_53_00" title="Boost 1.53 Release">Boost
+      1.53 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Fixed bug <a href="https://svn.boost.org/trac/boost/ticket/7650" target="_top">#7650</a>.
+          </li>
+<li class="listitem">
+            Improved <code class="computeroutput"><span class="identifier">vector</span></code>'s insertion
+            performance.
+          </li>
+<li class="listitem">
+            Changed again experimental multiallocation interface for better performance
+            (still experimental).
+          </li>
+<li class="listitem">
+            Added no exception support for those willing to disable exceptions in
+            their compilers.
+          </li>
+<li class="listitem">
+            Fixed GCC -Wshadow warnings.
+          </li>
+<li class="listitem">
+            Replaced deprecated BOOST_NO_XXXX with newer BOOST_NO_CXX11_XXX macros.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.release_notes.release_notes_boost_1_52_00"></a><a class="link" href="release_notes.html#container.release_notes.release_notes_boost_1_52_00" title="Boost 1.52 Release">Boost
+      1.52 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Improved <code class="computeroutput"><span class="identifier">stable_vector</span></code>'s
+            template code bloat and type safety.
+          </li>
+<li class="listitem">
+            Changed typedefs and reordered functions of sequence containers to improve
+            doxygen documentation.
+          </li>
+<li class="listitem">
+            Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/6615" target="_top">#6615</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/7139" target="_top">#7139</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/7215" target="_top">#7215</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/7232" target="_top">#7232</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/7269" target="_top">#7269</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/7439" target="_top">#7439</a>.
+          </li>
+<li class="listitem">
+            Implemented LWG Issue #149 (range insertion now returns an iterator)
+            &amp; cleaned up insertion code in most containers
+          </li>
+<li class="listitem">
+            Corrected aliasing errors.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.release_notes.release_notes_boost_1_51_00"></a><a class="link" href="release_notes.html#container.release_notes.release_notes_boost_1_51_00" title="Boost 1.51 Release">Boost
+      1.51 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/6763" target="_top">#6763</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6803" target="_top">#6803</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/7114" target="_top">#7114</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/7103" target="_top">#7103</a>.
+            <a href="https://svn.boost.org/trac/boost/ticket/7123" target="_top">#7123</a>,
+          </li></ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.release_notes.release_notes_boost_1_50_00"></a><a class="link" href="release_notes.html#container.release_notes.release_notes_boost_1_50_00" title="Boost 1.50 Release">Boost
+      1.50 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Added Scoped Allocator Model support.
+          </li>
+<li class="listitem">
+            Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/6606" target="_top">#6606</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6533" target="_top">#6533</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6536" target="_top">#6536</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6566" target="_top">#6566</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6575" target="_top">#6575</a>,
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.release_notes.release_notes_boost_1_49_00"></a><a class="link" href="release_notes.html#container.release_notes.release_notes_boost_1_49_00" title="Boost 1.49 Release">Boost
+      1.49 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/6540" target="_top">#6540</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6499" target="_top">#6499</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6336" target="_top">#6336</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6335" target="_top">#6335</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6287" target="_top">#6287</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6205" target="_top">#6205</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/4383" target="_top">#4383</a>.
+          </li>
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">allocator_traits</span></code>
+            support for both C++11 and C++03 compilers through an internal <code class="computeroutput"><span class="identifier">allocator_traits</span></code> clone.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.release_notes.release_notes_boost_1_48_00"></a><a class="link" href="release_notes.html#container.release_notes.release_notes_boost_1_48_00" title="Boost 1.48 Release">Boost
+      1.48 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            First release. Container code from <span class="bold"><strong>Boost.Interprocess</strong></span>
+            was deleted and redirected to <span class="bold"><strong>Boost.Container
+            </strong></span> via using directives.
+          </li></ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="acknowledgements_notes.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../container.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../date_time.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

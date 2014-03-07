@@ -1,0 +1,73 @@
+[/ QuickBook Document version 1.5 ]
+[section:clamp clamp]
+
+[/license
+
+Copyright (c) 2010-2012 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+
+The header file clamp.hpp contains two functions for "clamping" a value between a pair of boundary values.
+
+[heading clamp]
+
+The function `clamp (v, lo, hi)` returns:
+
+* lo if v < lo
+* hi if hi < v
+* otherwise, v
+
+Note: using `clamp` with floating point numbers may give unexpected results if one of the values is `NaN`.
+
+There is also a version that allows the caller to specify a comparison predicate to use instead of `operator <`.
+
+``
+template<typename V> 
+V clamp ( V val, V lo, V hi );
+
+template<typename V, typename Pred> 
+V clamp ( V val, V lo, V hi, Pred p );
+``
+
+The following code: ``
+   int foo = 23;
+   foo = clamp ( foo, 1, 10 );
+``
+will leave `foo` with a value of 10
+
+Complexity:
+	`clamp` will make either one or two calls to the comparison predicate before returning one of the three parameters.
+
+[heading clamp_range]
+There are also four range-based versions of clamp, that apply clamping to a series of values. You could write them yourself with std::transform and bind, like this: `std::transform ( first, last, out, bind ( clamp ( _1, lo, hi )))`, but they are provided here for your convenience.
+
+``
+template<typename InputIterator, typename OutputIterator> 
+OutputIterator clamp_range ( InputIterator first, InputIterator last, OutputIterator out,
+    typename std::iterator_traits<InputIterator>::value_type lo, 
+    typename std::iterator_traits<InputIterator>::value_type hi );
+
+template<typename Range, typename OutputIterator> 
+OutputIterator clamp_range ( const Range &r, OutputIterator out,
+	typename std::iterator_traits<typename boost::range_iterator<const Range>::type>::value_type lo, 
+	typename std::iterator_traits<typename boost::range_iterator<const Range>::type>::value_type hi );
+
+template<typename InputIterator, typename OutputIterator, typename Pred> 
+OutputIterator clamp_range ( InputIterator first, InputIterator last, OutputIterator out,
+    typename std::iterator_traits<InputIterator>::value_type lo, 
+    typename std::iterator_traits<InputIterator>::value_type hi, Pred p );
+
+template<typename Range, typename OutputIterator, typename Pred> 
+OutputIterator clamp_range ( const Range &r, OutputIterator out,
+	typename std::iterator_traits<typename boost::range_iterator<const Range>::type>::value_type lo, 
+	typename std::iterator_traits<typename boost::range_iterator<const Range>::type>::value_type hi,
+	Pred p );
+``
+
+
+[endsect]

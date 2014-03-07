@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Overview</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Overview</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="index">
+  <dt><a href="#Requirements">Requirements</a></dt>
+  <dt><a href="#otherimplementations">Other Implementations</a></dt>
+</dl>
+<p>Here, we use the term <strong>"serialization"</strong> to mean
+the reversible deconstruction of an arbitrary set of C++ data structures
+to a sequence of bytes.  Such a system can be used to reconstitute
+an equivalent structure in another program context.  Depending on
+the context, this might used implement object persistence, remote
+parameter passing or other facility. In this system we use the term
+<strong>"archive"</strong> to refer to a specific rendering of this
+stream of bytes.  This could be a file of binary data, text data, 
+XML, or some other created by the user of this library.
+<h2><a name="Requirements"></a>Our goals for such a system are:</h2>
+   <ol>
+      <li>Code portability - depend only on ANSI C++ facilities.
+
+      <li>Code economy - exploit features of C++ such as RTTI,
+      templates, and multiple inheritance, etc. where appropriate to
+      make code shorter and simpler to use.
+
+      <li>Independent versioning for each class definition. That
+      is, when a class definition changed, older files can still be
+      imported to the new version of the class.
+
+      <li>Deep pointer save and restore. That is, save and restore
+      of pointers saves and restores the data pointed to.
+
+      <li>Proper restoration of pointers to shared data.
+
+      <li>Serialization of STL containers and other commonly used
+      templates.
+
+      <li>Data Portability - Streams of bytes created on one platform
+      should be readable on any other.
+
+      <li>Orthogonal specification of class serialization and archive format.
+      That is, any file format should be able to store serialization
+      of any arbitrary set of C++ data structures without having to
+      alter the serialization of any class.
+
+      <li>Non-intrusive. Permit serialization to be applied to
+      unaltered classes. That is, don't require that classes to be
+      serialized be derived from a specific base class or implement
+      specified member functions. This is necessary to easily
+      permit serialization to be applied to classes from class
+      libraries that we cannot or don't want to have to alter.
+
+      <li> The <strong>archive</strong> interface must be simple
+      enough to easily permit creation of a new type of archive.
+
+      <li> The <strong>archive</strong> interface must be rich
+      enough to permit the creation of an <strong>archive</strong>
+      that presents serialized data as XML in a useful manner.
+   </ol>
+
+<h2><a name="otherimplementations"></a>Other implementations</h2>
+    Before getting started I searched around for current
+    implementations. I found several. 
+
+    <ul>
+      <li><u>MFC</u> This is the one that I am very familiar with.
+      I have used it for several years and have found it very useful.
+      However it fails requirements 1, 2, 3, 6, 7, and 9. In spite
+      of all the requirements not fulfilled, this is the most
+      useful implementation I've found. It turns out that class
+      versioning - partially implemented in MFC - really is
+      indispensable for my applications. Inevitably, version 1.x of
+      a shipping program needs to store more information in files
+      than was originally provided for. MFC is the only one of these
+      implementations that supports this - though only for the most
+      derived class. Still it's better than nothing and does the
+      job. MFC doesn't implement serialization of STL collections.
+      Though it does so for MFC collections.
+
+      <li><u>CommonC++ libraries</u> <a href="bibliography.html#1">[1]</a>
+      As far as I can tell, this
+      closely follows the MFC implementation but does address a few
+      of the issues. It is portable and creates portable archives but
+      skips versioning. It does support proper and complete
+      restoration of pointers and STL collections. It does address
+      compression though not in the way that I would prefer. The
+      package would also benefit from having better documentation.
+      So it fails to address 2, 3, 7, 8, and 9.
+
+      <li><u>Eternity</u> <a href="bibliography.html#2">[2]</a> 
+      This is a bare bones package. It
+      seems well coded but it really needs documentation and
+      examples. It's not obvious how to use it without time
+      consuming study of the source code. Recent versions do support
+      files in XML format.  This Fails 3, 6, 7?, 8, and 9. 
+
+      <li><u>Holub's implementation</u> <a href="bibliography.html#3">[3]</a> This is the article that
+      first got me thinking about my own requirements for
+      a serialization implementation. Interesting and worth
+      the read if you can overlook the arrogant tone of the prose.
+      This implementation fails 2, 3, 4, 5, and 6.
+
+      <li><u>s11n</u> <a href="bibliography.html#13">[13]</a>
+      This library has similar goals to this one. Some aspects of the
+      implemenation are also similar.  As of this writing, it would seem that:
+      <ul>
+          <li>Portability(1) is guarenteed only for recent versions of GCC.
+          <li>Versioning(3) of class definitions is not explicitly supported by
+          the library.
+          <li>it doesn't seem to automatically account for shared pointers(5).
+          I concluded this from the documentation as well as the statement that
+          serialization of graph like structures is not supported.
+      </ul>
+      Its has lots of differences - and lots in common with this implementation. 
+    </ul>
+<hr>
+<p>Revised 1 November, 2004 
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

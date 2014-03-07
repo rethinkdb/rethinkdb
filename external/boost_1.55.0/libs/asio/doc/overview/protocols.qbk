@@ -1,0 +1,149 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:protocols TCP, UDP and ICMP]
+
+Boost.Asio provides off-the-shelf support for the internet protocols TCP, UDP and
+ICMP.
+
+[heading TCP Clients]
+
+Hostname resolution is performed using a resolver, where host and service names
+are looked up and converted into one or more endpoints:
+
+  ip::tcp::resolver resolver(my_io_service);
+  ip::tcp::resolver::query query("www.boost.org", "http");
+  ip::tcp::resolver::iterator iter = resolver.resolve(query);
+  ip::tcp::resolver::iterator end; // End marker.
+  while (iter != end)
+  {
+    ip::tcp::endpoint endpoint = *iter++;
+    std::cout << endpoint << std::endl;
+  }
+
+The list of endpoints obtained above could contain both IPv4 and IPv6 endpoints,
+so a program should try each of them until it finds one that works. This keeps the
+client program independent of a specific IP version.
+
+To simplify the development of protocol-independent programs, TCP clients may
+establish connections using the free functions [link boost_asio.reference.connect
+connect()] and [link boost_asio.reference.async_connect async_connect()]. These
+operations try each endpoint in a list until the socket is successfully
+connected. For example, a single call:
+
+  ip::tcp::socket socket(my_io_service);
+  boost::asio::connect(socket, resolver.resolve(query));
+
+will synchronously try all endpoints until one is successfully connected.
+Similarly, an asynchronous connect may be performed by writing:
+
+  boost::asio::async_connect(socket_, iter,
+      boost::bind(&client::handle_connect, this,
+        boost::asio::placeholders::error));
+
+  // ...
+
+  void handle_connect(const error_code& error)
+  {
+    if (!error)
+    {
+      // Start read or write operations.
+    }
+    else
+    {
+      // Handle error.
+    }
+  }
+
+When a specific endpoint is available, a socket can be created and connected:
+
+  ip::tcp::socket socket(my_io_service);
+  socket.connect(endpoint);
+
+Data may be read from or written to a connected TCP socket using the [link
+boost_asio.reference.basic_stream_socket.receive receive()], [link
+boost_asio.reference.basic_stream_socket.async_receive async_receive()], [link
+boost_asio.reference.basic_stream_socket.send send()] or [link
+boost_asio.reference.basic_stream_socket.async_send async_send()] member functions.
+However, as these could result in [link boost_asio.overview.core.streams short writes
+or reads], an application will typically use the following operations instead:
+[link boost_asio.reference.read read()], [link boost_asio.reference.async_read
+async_read()], [link boost_asio.reference.write write()] and [link
+boost_asio.reference.async_write async_write()].
+
+[heading TCP Servers]
+
+A program uses an acceptor to accept incoming TCP connections:
+
+  ip::tcp::acceptor acceptor(my_io_service, my_endpoint);
+  ...
+  ip::tcp::socket socket(my_io_service);
+  acceptor.accept(socket);
+
+After a socket has been successfully accepted, it may be read from or written
+to as illustrated for TCP clients above.
+
+[heading UDP]
+
+UDP hostname resolution is also performed using a resolver:
+
+  ip::udp::resolver resolver(my_io_service);
+  ip::udp::resolver::query query("localhost", "daytime");
+  ip::udp::resolver::iterator iter = resolver.resolve(query);
+  ...
+
+A UDP socket is typically bound to a local endpoint. The following code will
+create an IP version 4 UDP socket and bind it to the "any" address on port
+`12345`:
+
+  ip::udp::endpoint endpoint(ip::udp::v4(), 12345);
+  ip::udp::socket socket(my_io_service, endpoint);
+
+Data may be read from or written to an unconnected UDP socket using the [link
+boost_asio.reference.basic_datagram_socket.receive_from receive_from()], [link
+boost_asio.reference.basic_datagram_socket.async_receive_from async_receive_from()],
+[link boost_asio.reference.basic_datagram_socket.send_to send_to()] or [link
+boost_asio.reference.basic_datagram_socket.async_send_to async_send_to()] member
+functions. For a connected UDP socket, use the [link
+boost_asio.reference.basic_datagram_socket.receive receive()], [link
+boost_asio.reference.basic_datagram_socket.async_receive async_receive()], [link
+boost_asio.reference.basic_datagram_socket.send send()] or [link
+boost_asio.reference.basic_datagram_socket.async_send async_send()] member functions.
+
+[heading ICMP]
+
+As with TCP and UDP, ICMP hostname resolution is performed using a resolver:
+
+  ip::icmp::resolver resolver(my_io_service);
+  ip::icmp::resolver::query query("localhost", "");
+  ip::icmp::resolver::iterator iter = resolver.resolve(query);
+  ...
+
+An ICMP socket may be bound to a local endpoint. The following code will create
+an IP version 6 ICMP socket and bind it to the "any" address:
+
+  ip::icmp::endpoint endpoint(ip::icmp::v6(), 0);
+  ip::icmp::socket socket(my_io_service, endpoint);
+
+The port number is not used for ICMP.
+
+Data may be read from or written to an unconnected ICMP socket using the [link
+boost_asio.reference.basic_raw_socket.receive_from receive_from()], [link
+boost_asio.reference.basic_raw_socket.async_receive_from async_receive_from()],
+[link boost_asio.reference.basic_raw_socket.send_to send_to()] or [link
+boost_asio.reference.basic_raw_socket.async_send_to async_send_to()] member
+functions.
+
+[heading See Also]
+
+[link boost_asio.reference.ip__tcp ip::tcp],
+[link boost_asio.reference.ip__udp ip::udp],
+[link boost_asio.reference.ip__icmp ip::icmp],
+[link boost_asio.tutorial.tutdaytime1 daytime protocol tutorials],
+[link boost_asio.examples.cpp03_examples.icmp ICMP ping example].
+
+[endsect]

@@ -1,0 +1,66 @@
+#  (C) Copyright Gennadiy Rozental 2001-2005.
+#  (C) Copyright Juergen Hunold 2006.
+#  Use, modification, and distribution are subject to the 
+#  Boost Software License, Version 1.0. (See accompanying file 
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org/libs/test for the library home page.
+
+# bring in the rules for testing
+import testing ;
+
+# Project
+project libs/test/example 
+    : 
+    : requirements <toolset>msvc-6.5:<link>static 
+    ;
+
+# Define aliases for the needed libs to get shorter names
+alias prg_exec_monitor
+    : # sources
+        /boost//prg_exec_monitor
+    ;
+
+alias unit_test_framework
+    : # sources
+        /boost//unit_test_framework
+    ;        
+
+# make aliases explicit so the libraries will only be built when requested
+explicit unit_test_framework ;
+explicit prg_exec_monitor ;
+
+test-suite boost_test_examples
+:  
+    [ run      exec_mon_example.cpp prg_exec_monitor ]
+    [ run-fail prg_exec_example.cpp prg_exec_monitor ]
+
+    [ run-fail test_case_template_example.cpp unit_test_framework/<link>static ]
+
+    [ run-fail unit_test_example_01.cpp unit_test_framework ]
+    [ run-fail unit_test_example_02.cpp unit_test_framework/<link>static ]
+    [ run-fail unit_test_example_03.cpp unit_test_framework/<link>static ]
+    [ run-fail unit_test_example_04.cpp unit_test_framework ]
+    [ run-fail unit_test_example_05.cpp unit_test_framework ]
+    [ run-fail unit_test_example_06.cpp unit_test_framework ]
+    [ run      unit_test_example_07.cpp unit_test_framework ]
+    [ run      unit_test_example_08.cpp unit_test_framework ]
+    [ run      unit_test_example_09_1.cpp 
+               unit_test_example_09_2.cpp unit_test_framework ]
+    [ run-fail unit_test_example_10.cpp unit_test_framework/<link>static ]
+    [ run-fail unit_test_example_11.cpp unit_test_framework/<link>static ]
+    [ link     unit_test_example_12.cpp unit_test_framework/<link>static ]
+
+    [ run      est_example1.cpp unit_test_framework ]
+    [ run-fail est_example2.cpp unit_test_framework ]
+
+    [ run-fail logged_exp_example.cpp unit_test_framework ]
+
+    [ run      named_param_example.cpp ]
+
+    [ run      const_string_test.cpp ]
+
+    [ run-fail external_main_example_1.cpp unit_test_framework ]
+    [ run-fail external_main_example_2.cpp unit_test_framework ]
+    [ run-fail external_main_example_3.cpp ]
+;

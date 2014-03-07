@@ -1,0 +1,686 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Appendices</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../proto.html" title="Chapter&#160;23.&#160;Boost.Proto">
+<link rel="prev" href="../Transform.html" title="Concept Transform">
+<link rel="next" href="../boost_random.html" title="Chapter&#160;24.&#160;Boost.Random">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../Transform.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../proto.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../boost_random.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="proto.appendices"></a><a class="link" href="appendices.html" title="Appendices">Appendices</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="appendices.html#boost_proto.appendices.release_notes">Appendix A: Release
+      Notes</a></span></dt>
+<dt><span class="section"><a href="appendices.html#boost_proto.appendices.history">Appendix B: History</a></span></dt>
+<dt><span class="section"><a href="appendices.html#boost_proto.appendices.rationale">Appendix C: Rationale</a></span></dt>
+<dt><span class="section"><a href="appendices.html#boost_proto.appendices.implementation">Appendix D: Implementation
+      Notes</a></span></dt>
+<dt><span class="section"><a href="appendices.html#boost_proto.appendices.acknowledgements">Appendix E:
+      Acknowledgements</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_proto.appendices.release_notes"></a><a class="link" href="appendices.html#boost_proto.appendices.release_notes" title="Appendix A: Release Notes">Appendix A: Release
+      Notes</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_proto.appendices.release_notes.h0"></a>
+        <span class="phrase"><a name="boost_proto.appendices.release_notes.boost_1_51"></a></span><a class="link" href="appendices.html#boost_proto.appendices.release_notes.boost_1_51">Boost
+        1.51</a>
+      </h5>
+<p>
+        <span class="bold"><strong>Unpacking Expressions</strong></span>
+      </p>
+<p>
+        In Boost 1.51, Proto got simple unpacking patterns. When working with Proto
+        transforms, unpacking expressions are useful for unpacking the children of
+        an expression into a function call or an object constructor, while optionally
+        applying some transformations to each child in turn.
+      </p>
+<p>
+        See the <a class="link" href="users_guide.html#boost_proto.users_guide.back_end.expression_transformation.unpacking_expressions" title="Unpacking Expressions">Unpacking
+        Expressions</a> section for more information.
+      </p>
+<h5>
+<a name="boost_proto.appendices.release_notes.h1"></a>
+        <span class="phrase"><a name="boost_proto.appendices.release_notes.boost_1_44"></a></span><a class="link" href="appendices.html#boost_proto.appendices.release_notes.boost_1_44">Boost
+        1.44</a>
+      </h5>
+<p>
+        <span class="bold"><strong>Behavior Change: proto::and_&lt;&gt;</strong></span>
+      </p>
+<p>
+        In Boost 1.44, the behavior of <code class="computeroutput"><a class="link" href="../boost/proto/and_.html" title="Struct template and_">proto::and_&lt;&gt;</a></code>
+        as a transform changed. Previously, it only applied the transform associated
+        with the last grammar in the set. Now, it applies all the transforms but
+        only returns the result of the last. That makes it behave like C++'s comma
+        operator. For example, a grammar such as:
+      </p>
+<pre class="programlisting"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">and_</span><span class="special">&lt;</span> <span class="identifier">G0</span><span class="special">,</span> <span class="identifier">G1</span><span class="special">,</span> <span class="identifier">G2</span> <span class="special">&gt;</span>
+</pre>
+<p>
+        when evaluated with an expression <code class="computeroutput"><span class="identifier">e</span></code>
+        now behaves like this:
+      </p>
+<pre class="programlisting"><span class="special">((</span><span class="keyword">void</span><span class="special">)</span><span class="identifier">G0</span><span class="special">()(</span><span class="identifier">e</span><span class="special">),</span> <span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="identifier">G1</span><span class="special">()(</span><span class="identifier">e</span><span class="special">),</span> <span class="identifier">G2</span><span class="special">()(</span><span class="identifier">e</span><span class="special">))</span>
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Why the void casts? It's to avoid argument-dependent lookup, which might
+          find an overloaded comma operator.
+        </p></td></tr>
+</table></div>
+<p>
+        <span class="bold"><strong>Behavior Change: proto::as_expr() and proto::as_child()</strong></span>
+      </p>
+<p>
+        The functions <code class="computeroutput"><a class="link" href="../boost/proto/as_expr_idp68166056.html" title="Function as_expr">proto::as_expr()</a></code> and <code class="computeroutput"><a class="link" href="../boost/proto/as_child_idp68177480.html" title="Function as_child">proto::as_child()</a></code>
+        are used to guarantee that an object is a Proto expression by turning it
+        into one if it is not already, using an optionally specified domain. In previous
+        releases, when these functions were passed a Proto expression in a domain
+        different to the one specified, they would apply the specified domain's generator,
+        resulting in a twice-wrapped expression. This behavior was surprising to
+        some users.
+      </p>
+<p>
+        The new behavior of these two functions is to always leave Proto expressions
+        alone, regardless of the expressions' domains.
+      </p>
+<p>
+        <span class="bold"><strong>Behavior Change: proto::(pod_)generator&lt;&gt; and
+        proto::basic_expr&lt;&gt;</strong></span>
+      </p>
+<p>
+        Users familiar with Proto's extension mechanism have probably used either
+        <code class="computeroutput"><a class="link" href="../boost/proto/generator.html" title="Struct template generator">proto::generator&lt;&gt;</a></code> or <code class="computeroutput"><a class="link" href="../boost/proto/pod_generator.html" title="Struct template pod_generator">proto::pod_generator&lt;&gt;</a></code>
+        with a wrapper template when defining their domain. In the past, Proto would
+        instantiate your wrapper template with instances of <code class="computeroutput"><a class="link" href="../boost/proto/expr.html" title="Struct template expr">proto::expr&lt;&gt;</a></code>.
+        In Boost 1.44, Proto now instantiates your wrapper template with instances
+        of a new type: <code class="computeroutput"><a class="link" href="../boost/proto/basic_expr.html" title="Struct template basic_expr">proto::basic_expr&lt;&gt;</a></code>.
+      </p>
+<p>
+        For instance:
+      </p>
+<pre class="programlisting"><span class="comment">// An expression wrapper</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Expr</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">my_expr_wrapper</span><span class="special">;</span>
+
+<span class="comment">// A domain</span>
+<span class="keyword">struct</span> <span class="identifier">my_domain</span>
+  <span class="special">:</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">domain</span><span class="special">&lt;</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">generator</span><span class="special">&lt;</span> <span class="identifier">my_expr_wrapper</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Expr</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">my_expr_wrapper</span>
+  <span class="special">:</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">extends</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">my_expr_wrapper</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">&gt;,</span> <span class="identifier">my_domain</span><span class="special">&gt;</span>
+<span class="special">{</span>
+  <span class="comment">// Before 1.44, Expr was an instance of proto::expr&lt;&gt;</span>
+  <span class="comment">// In 1.44, Expr is an instance of proto::basic_expr&lt;&gt;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        The motivation for this change was to improve compile times. <code class="computeroutput"><a class="link" href="../boost/proto/expr.html" title="Struct template expr">proto::expr&lt;&gt;</a></code>
+        is an expensive type to instantiate because it defines a host of member functions.
+        When defining your own expression wrapper, the instance of <code class="computeroutput"><a class="link" href="../boost/proto/expr.html" title="Struct template expr">proto::expr&lt;&gt;</a></code>
+        sits as a hidden data member function in your wrapper and the members of
+        <code class="computeroutput"><a class="link" href="../boost/proto/expr.html" title="Struct template expr">proto::expr&lt;&gt;</a></code> go unused. Therefore,
+        the cost of those member functions is wasted. In contrast, <code class="computeroutput"><a class="link" href="../boost/proto/basic_expr.html" title="Struct template basic_expr">proto::basic_expr&lt;&gt;</a></code>
+        is a very lightweight type with no member functions at all.
+      </p>
+<p>
+        The vast majority of programs should recompile without any source changes.
+        However, if somewhere you are assuming that you will be given instances specifically
+        of <code class="computeroutput"><a class="link" href="../boost/proto/expr.html" title="Struct template expr">proto::expr&lt;&gt;</a></code>, your code will break.
+      </p>
+<p>
+        <span class="bold"><strong>New Feature: Sub-domains</strong></span>
+      </p>
+<p>
+        In Boost 1.44, Proto introduces an important new feature called "sub-domains".
+        This gives you a way to spcify that one domain is compatible with another
+        such that expressions in one domain can be freely mixed with expressions
+        in another. You can define one domain to be the sub-domain of another by
+        using the third template parameter of <code class="computeroutput"><a class="link" href="../boost/proto/domain.html" title="Struct template domain">proto::domain&lt;&gt;</a></code>.
+      </p>
+<p>
+        For instance:
+      </p>
+<pre class="programlisting"><span class="comment">// Not shown: define some expression</span>
+<span class="comment">// generators genA and genB</span>
+
+<span class="keyword">struct</span> <span class="identifier">A</span>
+  <span class="special">:</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">domain</span><span class="special">&lt;</span> <span class="identifier">genA</span><span class="special">,</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span> <span class="special">&gt;</span>
+<span class="special">{};</span>
+
+<span class="comment">// Define a domain B that is the sub-domain</span>
+<span class="comment">// of domain A.</span>
+<span class="keyword">struct</span> <span class="identifier">B</span>
+  <span class="special">:</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">domain</span><span class="special">&lt;</span> <span class="identifier">genB</span><span class="special">,</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">,</span> <span class="identifier">A</span> <span class="special">&gt;</span>
+<span class="special">{};</span>
+</pre>
+<p>
+        Expressions in domains <code class="computeroutput"><span class="identifier">A</span></code>
+        and <code class="computeroutput"><span class="identifier">B</span></code> can have different
+        wrappers (hence, different interfaces), but they can be combined into larger
+        expressions. Without a sub-domain relationship, this would have been an error.
+        The domain of the resulting expression in this case would be <code class="computeroutput"><span class="identifier">A</span></code>.
+      </p>
+<p>
+        The complete description of sub-domains can be found in the reference sections
+        for <code class="computeroutput"><a class="link" href="../boost/proto/domain.html" title="Struct template domain">proto::domain&lt;&gt;</a></code> and <code class="computeroutput"><a class="link" href="../boost/proto/deduce_domain.html" title="Struct deduce_domain">proto::deduce_domain</a></code>.
+      </p>
+<p>
+        <span class="bold"><strong>New Feature: Domain-specific as_expr() and as_child()</strong></span>
+      </p>
+<p>
+        Proto has always allowed users to customize expressions post-hoc by specifying
+        a Generator when defining their domain. But it has never allowed users to
+        control how Proto assembles sub-expressions in the first place. As of Boost
+        1.44, users now have this power.
+      </p>
+<p>
+        Users defining their own domain can now specify how <code class="computeroutput"><a class="link" href="../boost/proto/as_expr_idp68166056.html" title="Function as_expr">proto::as_expr()</a></code>
+        and <code class="computeroutput"><a class="link" href="../boost/proto/as_child_idp68177480.html" title="Function as_child">proto::as_child()</a></code> work in their domain. They
+        can do this easily by defining nested class templates named <code class="computeroutput"><span class="identifier">as_expr</span></code> and/or <code class="computeroutput"><span class="identifier">as_child</span></code>
+        within their domain class.
+      </p>
+<p>
+        For example:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">my_domain</span>
+  <span class="special">:</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">domain</span><span class="special">&lt;</span> <span class="identifier">my_generator</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+  <span class="keyword">typedef</span>
+      <span class="identifier">proto</span><span class="special">::</span><span class="identifier">domain</span><span class="special">&lt;</span> <span class="identifier">my_generator</span> <span class="special">&gt;</span>
+  <span class="identifier">base_domain</span><span class="special">;</span>
+
+  <span class="comment">// For my_domain, as_child does the same as</span>
+  <span class="comment">// what as_expr does by default.</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+  <span class="keyword">struct</span> <span class="identifier">as_child</span>
+    <span class="special">:</span> <span class="identifier">base_domain</span><span class="special">::</span><span class="identifier">as_expr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span>
+  <span class="special">{};</span>
+<span class="special">};</span>
+</pre>
+<p>
+        In the above example, <code class="computeroutput"><span class="identifier">my_domain</span><span class="special">::</span><span class="identifier">as_child</span><span class="special">&lt;&gt;</span></code> simply defers to <code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">domain</span><span class="special">::</span><span class="identifier">as_expr</span><span class="special">&lt;&gt;</span></code>. This has the nice effect of causing
+        all terminals to be captured by value instead of by reference, and to likewise
+        store child expressions by value. The result is that expressions in <code class="computeroutput"><span class="identifier">my_domain</span></code> are safe to store in <code class="computeroutput"><span class="keyword">auto</span></code> variables because they will not have
+        dangling references to intermediate temporary expressions. (Naturally, it
+        also means that expression construction has extra runtime overhead of copying
+        that the compiler may or may not be able to optimize away.)
+      </p>
+<h5>
+<a name="boost_proto.appendices.release_notes.h2"></a>
+        <span class="phrase"><a name="boost_proto.appendices.release_notes.boost_1_43"></a></span><a class="link" href="appendices.html#boost_proto.appendices.release_notes.boost_1_43">Boost
+        1.43</a>
+      </h5>
+<p>
+        In Boost 1.43, the recommended usage of <code class="computeroutput"><a class="link" href="../boost/proto/extends.html" title="Struct template extends">proto::extends&lt;&gt;</a></code>
+        changed slightly. The new usage looks like this:
+      </p>
+<pre class="programlisting"><span class="comment">// my_expr is an expression extension of the Expr parameter</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">my_expr</span>
+  <span class="special">:</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">extends</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">my_expr</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">&gt;,</span> <span class="identifier">my_domain</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">my_expr</span><span class="special">(</span><span class="identifier">Expr</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="identifier">expr</span> <span class="special">=</span> <span class="identifier">Expr</span><span class="special">())</span>
+      <span class="special">:</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">extends</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">my_expr</span><span class="special">,</span> <span class="identifier">my_domain</span><span class="special">&gt;(</span><span class="identifier">expr</span><span class="special">)</span>
+    <span class="special">{}</span>
+
+    <span class="comment">// NEW: use the following macro to bring</span>
+    <span class="comment">// proto::extends::operator= into scope.</span>
+    <span class="identifier">BOOST_PROTO_EXTENDS_USING_ASSIGN</span><span class="special">(</span><span class="identifier">my_expr</span><span class="special">)</span>
+<span class="special">};</span>
+</pre>
+<p>
+        The new thing is the use of the <code class="literal"><code class="computeroutput"><a class="link" href="../BOOST_PROTO_EXTENDS_USING_ASSIGN.html" title="Macro BOOST_PROTO_EXTENDS_USING_ASSIGN">BOOST_PROTO_EXTENDS_USING_ASSIGN</a></code>()</code>
+        macro. To allow assignment operators to build expression trees, <code class="computeroutput"><a class="link" href="../boost/proto/extends.html" title="Struct template extends">proto::extends&lt;&gt;</a></code> overloads the assignment
+        operator. However, for the <code class="computeroutput"><span class="identifier">my_expr</span></code>
+        template, the compiler generates a default copy assignment operator that
+        hides the ones in <code class="computeroutput"><a class="link" href="../boost/proto/extends.html" title="Struct template extends">proto::extends&lt;&gt;</a></code>. This is often not desired
+        (although it depends on the syntax you want to allow).
+      </p>
+<p>
+        Previously, the recommended usage was to do this:
+      </p>
+<pre class="programlisting"><span class="comment">// my_expr is an expression extension of the Expr parameter</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">my_expr</span>
+  <span class="special">:</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">extends</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">my_expr</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">&gt;,</span> <span class="identifier">my_domain</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">my_expr</span><span class="special">(</span><span class="identifier">Expr</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="identifier">expr</span> <span class="special">=</span> <span class="identifier">Expr</span><span class="special">())</span>
+      <span class="special">:</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">extends</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">my_expr</span><span class="special">,</span> <span class="identifier">my_domain</span><span class="special">&gt;(</span><span class="identifier">expr</span><span class="special">)</span>
+    <span class="special">{}</span>
+
+    <span class="comment">// OLD: don't do it like this anymore.</span>
+    <span class="keyword">using</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">extends</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">my_expr</span><span class="special">,</span> <span class="identifier">my_domain</span><span class="special">&gt;::</span><span class="keyword">operator</span><span class="special">=;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        While this works in the majority of cases, it still doesn't suppress the
+        implicit generation of the default assignment operator. As a result, expressions
+        of the form <code class="computeroutput"><span class="identifier">a</span> <span class="special">=</span>
+        <span class="identifier">b</span></code> could either build an expression
+        template or do a copy assignment depending on whether the types of <code class="computeroutput"><span class="identifier">a</span></code> and <code class="computeroutput"><span class="identifier">b</span></code>
+        happen to be the same. That can lead to subtle bugs, so the behavior was
+        changed.
+      </p>
+<p>
+        The <code class="literal"><code class="computeroutput"><a class="link" href="../BOOST_PROTO_EXTENDS_USING_ASSIGN.html" title="Macro BOOST_PROTO_EXTENDS_USING_ASSIGN">BOOST_PROTO_EXTENDS_USING_ASSIGN</a></code>()</code>
+        brings into scope the assignment operators defined in <code class="computeroutput"><a class="link" href="../boost/proto/extends.html" title="Struct template extends">proto::extends&lt;&gt;</a></code>
+        as well as suppresses the generation of the copy assignment operator.
+      </p>
+<p>
+        Also note that the <code class="computeroutput"><a class="link" href="../boost/proto/literal.html" title="Struct template literal">proto::literal&lt;&gt;</a></code> class template, which
+        uses <code class="computeroutput"><a class="link" href="../boost/proto/extends.html" title="Struct template extends">proto::extends&lt;&gt;</a></code>, has been chaged to use
+        <code class="literal"><code class="computeroutput"><a class="link" href="../BOOST_PROTO_EXTENDS_USING_ASSIGN.html" title="Macro BOOST_PROTO_EXTENDS_USING_ASSIGN">BOOST_PROTO_EXTENDS_USING_ASSIGN</a></code>()</code>.
+        The implications are highlighted in the sample code below:
+      </p>
+<pre class="programlisting"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">literal</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">a</span><span class="special">(</span><span class="number">1</span><span class="special">),</span> <span class="identifier">b</span><span class="special">(</span><span class="number">2</span><span class="special">);</span> <span class="comment">// two non-const proto literals</span>
+<span class="identifier">proto</span><span class="special">::</span><span class="identifier">literal</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">c</span><span class="special">(</span><span class="number">3</span><span class="special">);</span> <span class="comment">// a const proto literal</span>
+
+<span class="identifier">a</span> <span class="special">=</span> <span class="identifier">b</span><span class="special">;</span> <span class="comment">// No-op. Builds an expression tree and discards it.</span>
+       <span class="comment">// Same behavior in 1.42 and 1.43.</span>
+
+<span class="identifier">a</span> <span class="special">=</span> <span class="identifier">c</span><span class="special">;</span> <span class="comment">// CHANGE! In 1.42, this performed copy assignment, causing</span>
+       <span class="comment">// a's value to change to 3. In 1.43, the behavior is now</span>
+       <span class="comment">// the same as above: build and discard an expression tree.</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_proto.appendices.history"></a><a class="link" href="appendices.html#boost_proto.appendices.history" title="Appendix B: History">Appendix B: History</a>
+</h3></div></div></div>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">August 13, 2010</span></dt>
+<dd><p>
+              Boost 1.44: Proto gets sub-domains and per-domain control of <code class="computeroutput"><a class="link" href="../boost/proto/as_expr_idp68166056.html" title="Function as_expr">proto::as_expr()</a></code> and <code class="computeroutput"><a class="link" href="../boost/proto/as_child_idp68177480.html" title="Function as_child">proto::as_child()</a></code> to meet the needs
+              of Phoenix3.
+            </p></dd>
+<dt><span class="term">August 11, 2008</span></dt>
+<dd><p>
+              Proto v4 is merged to Boost trunk with more powerful transform protocol.
+            </p></dd>
+<dt><span class="term">April 7, 2008</span></dt>
+<dd><p>
+              Proto is accepted into Boost.
+            </p></dd>
+<dt><span class="term">March 1, 2008</span></dt>
+<dd><p>
+              Proto's Boost review begins.
+            </p></dd>
+<dt><span class="term">January 11, 2008</span></dt>
+<dd><p>
+              Boost.Proto v3 brings separation of grammars and transforms and a "round"
+              lambda syntax for defining transforms in-place.
+            </p></dd>
+<dt><span class="term">April 15, 2007</span></dt>
+<dd><p>
+              Boost.Xpressive is ported from Proto compilers to Proto transforms.
+              Support for old Proto compilers is dropped.
+            </p></dd>
+<dt><span class="term">April 4, 2007</span></dt>
+<dd><p>
+              Preliminary submission of Proto to Boost.
+            </p></dd>
+<dt><span class="term">December 11, 2006</span></dt>
+<dd><p>
+              The idea for transforms that decorate grammar rules is born in a private
+              email discussion with Joel de Guzman and Hartmut Kaiser. The first
+              transforms are committed to CVS 5 days later on December 16.
+            </p></dd>
+<dt><span class="term">November 1, 2006</span></dt>
+<dd><p>
+              The idea for <code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">matches</span><span class="special">&lt;&gt;</span></code> and the whole grammar facility
+              is hatched during a discussion with Hartmut Kaiser on the spirit-devel
+              list. The first version of <code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">matches</span><span class="special">&lt;&gt;</span></code> is checked into CVS 3 days
+              later. Message is <a href="http://osdir.com/ml/parsers.spirit.devel/2006-11/msg00003.html" target="_top">here</a>.
+            </p></dd>
+<dt><span class="term">October 28, 2006</span></dt>
+<dd><p>
+              Proto is reborn, this time with a uniform expression types that are
+              POD. Announcement is <a href="http://lists.boost.org/Archives/boost/2006/10/112453.php" target="_top">here</a>.
+            </p></dd>
+<dt><span class="term">April 20, 2005</span></dt>
+<dd><p>
+              Proto is born as a major refactorization of Boost.Xpressive's meta-programming.
+              Proto offers expression types, operator overloads and "compilers",
+              an early formulation of what later became transforms. Announcement
+              is <a href="http://lists.boost.org/Archives/boost/2005/04/85256.php" target="_top">here</a>.
+            </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_proto.appendices.rationale"></a><a class="link" href="appendices.html#boost_proto.appendices.rationale" title="Appendix C: Rationale">Appendix C: Rationale</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="appendices.html#boost_proto.appendices.rationale.static_initialization">Static
+        Initialization</a></span></dt>
+<dt><span class="section"><a href="appendices.html#boost_proto.appendices.rationale.preprocessor">Why
+        Not Reuse MPL, Fusion, et cetera?</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_proto.appendices.rationale.static_initialization"></a><a class="link" href="appendices.html#boost_proto.appendices.rationale.static_initialization" title="Static Initialization">Static
+        Initialization</a>
+</h4></div></div></div>
+<p>
+          Proto expression types are PODs (Plain Old Data), and do not have constructors.
+          They are brace-initialized, as follows:
+        </p>
+<pre class="programlisting"><span class="identifier">terminal</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">_i</span> <span class="special">=</span> <span class="special">{</span><span class="number">1</span><span class="special">};</span>
+</pre>
+<p>
+          The reason is so that expression objects like <code class="computeroutput"><span class="identifier">_i</span></code>
+          above can be <span class="emphasis"><em>statically initialized</em></span>. Why is static
+          initialization important? The terminals of many embedded domain-specific
+          languages are likely to be global const objects, like <code class="computeroutput"><span class="identifier">_1</span></code>
+          and <code class="computeroutput"><span class="identifier">_2</span></code> from the Boost Lambda
+          Library. Were these object to require run-time initialization, it might
+          be possible to use these objects before they are initialized. That would
+          be bad. Statically initialized objects cannot be misused that way.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_proto.appendices.rationale.preprocessor"></a><a class="link" href="appendices.html#boost_proto.appendices.rationale.preprocessor" title="Why Not Reuse MPL, Fusion, et cetera?">Why
+        Not Reuse MPL, Fusion, et cetera?</a>
+</h4></div></div></div>
+<p>
+          Anyone who has peeked at Proto's source code has probably wondered, "Why
+          all the dirty preprocessor gunk? Couldn't this have been all implemented
+          cleanly on top of libraries like MPL and Fusion?" The answer is that
+          Proto could have been implemented this way, and in fact was at one point.
+          The problem is that template metaprogramming (TMP) makes for longer compile
+          times. As a foundation upon which other TMP-heavy libraries will be built,
+          Proto itself should be as lightweight as possible. That is achieved by
+          prefering preprocessor metaprogramming to template metaprogramming. Expanding
+          a macro is far more efficient than instantiating a template. In some cases,
+          the "clean" version takes 10x longer to compile than the "dirty"
+          version.
+        </p>
+<p>
+          The "clean and slow" version of Proto can still be found at http://svn.boost.org/svn/boost/branches/proto/v3.
+          Anyone who is interested can download it and verify that it is, in fact,
+          unusably slow to compile. Note that this branch's development was abandoned,
+          and it does not conform exactly with Proto's current interface.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_proto.appendices.implementation"></a><a class="link" href="appendices.html#boost_proto.appendices.implementation" title="Appendix D: Implementation Notes">Appendix D: Implementation
+      Notes</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="appendices.html#boost_proto.appendices.implementation.sfinae">Quick-n-Dirty
+        Type Categorization</a></span></dt>
+<dt><span class="section"><a href="appendices.html#boost_proto.appendices.implementation.function_arity">Detecting
+        the Arity of Function Objects</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_proto.appendices.implementation.sfinae"></a><a class="link" href="appendices.html#boost_proto.appendices.implementation.sfinae" title="Quick-n-Dirty Type Categorization">Quick-n-Dirty
+        Type Categorization</a>
+</h4></div></div></div>
+<p>
+          Much has already been written about dispatching on type traits using SFINAE
+          (Substitution Failure Is Not An Error) techniques in C++. There is a Boost
+          library, Boost.Enable_if, to make the technique idiomatic. Proto dispatches
+          on type traits extensively, but it doesn't use <code class="computeroutput"><span class="identifier">enable_if</span><span class="special">&lt;&gt;</span></code> very often. Rather, it dispatches
+          based on the presence or absence of nested types, often typedefs for void.
+        </p>
+<p>
+          Consider the implementation of <code class="computeroutput"><span class="identifier">is_expr</span><span class="special">&lt;&gt;</span></code>. It could have been written as
+          something like this:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">is_expr</span>
+  <span class="special">:</span> <span class="identifier">is_base_and_derived</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">some_expr_base</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="special">{};</span>
+</pre>
+<p>
+          Rather, it is implemented as this:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Void</span> <span class="special">=</span> <span class="keyword">void</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">is_expr</span>
+  <span class="special">:</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span>
+<span class="special">{};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">is_expr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">proto_is_expr_</span><span class="special">&gt;</span>
+  <span class="special">:</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span>
+<span class="special">{};</span>
+</pre>
+<p>
+          This relies on the fact that the specialization will be preferred if <code class="computeroutput"><span class="identifier">T</span></code> has a nested <code class="computeroutput"><span class="identifier">proto_is_expr_</span></code>
+          that is a typedef for <code class="computeroutput"><span class="keyword">void</span></code>.
+          All Proto expression types have such a nested typedef.
+        </p>
+<p>
+          Why does Proto do it this way? The reason is because, after running extensive
+          benchmarks while trying to improve compile times, I have found that this
+          approach compiles faster. It requires exactly one template instantiation.
+          The other approach requires at least 2: <code class="computeroutput"><span class="identifier">is_expr</span><span class="special">&lt;&gt;</span></code> and <code class="computeroutput"><span class="identifier">is_base_and_derived</span><span class="special">&lt;&gt;</span></code>, plus whatever templates <code class="computeroutput"><span class="identifier">is_base_and_derived</span><span class="special">&lt;&gt;</span></code>
+          may instantiate.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_proto.appendices.implementation.function_arity"></a><a class="link" href="appendices.html#boost_proto.appendices.implementation.function_arity" title="Detecting the Arity of Function Objects">Detecting
+        the Arity of Function Objects</a>
+</h4></div></div></div>
+<p>
+          In several places, Proto needs to know whether or not a function object
+          <code class="computeroutput"><span class="identifier">Fun</span></code> can be called with
+          certain parameters and take a fallback action if not. This happens in
+          <code class="computeroutput"><a class="link" href="../boost/proto/context/callable_context.html" title="Struct template callable_context">proto::callable_context&lt;&gt;</a></code>
+          and in the <code class="computeroutput"><a class="link" href="../boost/proto/call.html" title="Struct template call">proto::call&lt;&gt;</a></code> transform. How does
+          Proto know? It involves some tricky metaprogramming. Here's how.
+        </p>
+<p>
+          Another way of framing the question is by trying to implement the following
+          <code class="computeroutput"><span class="identifier">can_be_called</span><span class="special">&lt;&gt;</span></code>
+          Boolean metafunction, which checks to see if a function object <code class="computeroutput"><span class="identifier">Fun</span></code> can be called with parameters of
+          type <code class="computeroutput"><span class="identifier">A</span></code> and <code class="computeroutput"><span class="identifier">B</span></code>:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Fun</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">B</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">can_be_called</span><span class="special">;</span>
+</pre>
+<p>
+          First, we define the following <code class="computeroutput"><span class="identifier">dont_care</span></code>
+          struct, which has an implicit conversion from anything. And not just any
+          implicit conversion; it has a ellipsis conversion, which is the worst possible
+          conversion for the purposes of overload resolution:
+        </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">dont_care</span>
+<span class="special">{</span>
+    <span class="identifier">dont_care</span><span class="special">(...);</span>
+<span class="special">};</span>
+</pre>
+<p>
+          We also need some private type known only to us with an overloaded comma
+          operator (!), and some functions that detect the presence of this type
+          and return types with different sizes, as follows:
+        </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">private_type</span>
+<span class="special">{</span>
+    <span class="identifier">private_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="keyword">operator</span><span class="special">,(</span><span class="keyword">int</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">typedef</span> <span class="keyword">char</span> <span class="identifier">yes_type</span><span class="special">;</span>      <span class="comment">// sizeof(yes_type) == 1</span>
+<span class="keyword">typedef</span> <span class="keyword">char</span> <span class="special">(&amp;</span><span class="identifier">no_type</span><span class="special">)[</span><span class="number">2</span><span class="special">];</span> <span class="comment">// sizeof(no_type)  == 2</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="identifier">no_type</span> <span class="identifier">is_private_type</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;);</span>
+
+<span class="identifier">yes_type</span> <span class="identifier">is_private_type</span><span class="special">(</span><span class="identifier">private_type</span> <span class="keyword">const</span> <span class="special">&amp;);</span>
+</pre>
+<p>
+          Next, we implement a binary function object wrapper with a very strange
+          conversion operator, whose meaning will become clear later.
+        </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Fun</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">funwrap2</span> <span class="special">:</span> <span class="identifier">Fun</span>
+<span class="special">{</span>
+    <span class="identifier">funwrap2</span><span class="special">();</span>
+    <span class="keyword">typedef</span> <span class="identifier">private_type</span> <span class="keyword">const</span> <span class="special">&amp;(*</span><span class="identifier">pointer_to_function</span><span class="special">)(</span><span class="identifier">dont_care</span><span class="special">,</span> <span class="identifier">dont_care</span><span class="special">);</span>
+    <span class="keyword">operator</span> <span class="identifier">pointer_to_function</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+          With all of these bits and pieces, we can implement <code class="computeroutput"><span class="identifier">can_be_called</span><span class="special">&lt;&gt;</span></code> as follows:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Fun</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">B</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">can_be_called</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="identifier">funwrap2</span><span class="special">&lt;</span><span class="identifier">Fun</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="identifier">fun</span><span class="special">;</span>
+    <span class="keyword">static</span> <span class="identifier">A</span> <span class="special">&amp;</span><span class="identifier">a</span><span class="special">;</span>
+    <span class="keyword">static</span> <span class="identifier">B</span> <span class="special">&amp;</span><span class="identifier">b</span><span class="special">;</span>
+
+    <span class="keyword">static</span> <span class="keyword">bool</span> <span class="keyword">const</span> <span class="identifier">value</span> <span class="special">=</span> <span class="special">(</span>
+        <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">no_type</span><span class="special">)</span> <span class="special">==</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">is_private_type</span><span class="special">(</span> <span class="special">(</span><span class="identifier">fun</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">),</span> <span class="number">0</span><span class="special">)</span> <span class="special">))</span>
+    <span class="special">);</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">bool_</span><span class="special">&lt;</span><span class="identifier">value</span><span class="special">&gt;</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+          The idea is to make it so that <code class="computeroutput"><span class="identifier">fun</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">)</span></code> will
+          always compile by adding our own binary function overload, but doing it
+          in such a way that we can detect whether our overload was selected or not.
+          And we rig it so that our overload is selected if there is really no better
+          option. What follows is a description of how <code class="computeroutput"><span class="identifier">can_be_called</span><span class="special">&lt;&gt;</span></code> works.
+        </p>
+<p>
+          We wrap <code class="computeroutput"><span class="identifier">Fun</span></code> in a type that
+          has an implicit conversion to a pointer to a binary function. An object
+          <code class="computeroutput"><span class="identifier">fun</span></code> of class type can be
+          invoked as <code class="computeroutput"><span class="identifier">fun</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span></code> if it has such a conversion operator,
+          but since it involves a user-defined conversion operator, it is less preferred
+          than an overloaded <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>, which requires no such conversion.
+        </p>
+<p>
+          The function pointer can accept any two arguments by virtue of the <code class="computeroutput"><span class="identifier">dont_care</span></code> type. The conversion sequence
+          for each argument is guaranteed to be the worst possible conversion sequence:
+          an implicit conversion through an ellipsis, and a user-defined conversion
+          to <code class="computeroutput"><span class="identifier">dont_care</span></code>. In total,
+          it means that <code class="computeroutput"><span class="identifier">funwrap2</span><span class="special">&lt;</span><span class="identifier">Fun</span><span class="special">&gt;()(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span></code>
+          will always compile, but it will select our overload only if there really
+          is no better option.
+        </p>
+<p>
+          If there is a better option --- for example if <code class="computeroutput"><span class="identifier">Fun</span></code>
+          has an overloaded function call operator such as <code class="computeroutput"><span class="keyword">void</span>
+          <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">A</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">B</span> <span class="identifier">b</span><span class="special">)</span></code> ---
+          then <code class="computeroutput"><span class="identifier">fun</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span></code> will resolve to that one instead. The
+          question now is how to detect which function got picked by overload resolution.
+        </p>
+<p>
+          Notice how <code class="computeroutput"><span class="identifier">fun</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span></code> appears in <code class="computeroutput"><span class="identifier">can_be_called</span><span class="special">&lt;&gt;</span></code>: <code class="computeroutput"><span class="special">(</span><span class="identifier">fun</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">),</span> <span class="number">0</span><span class="special">)</span></code>.
+          Why do we use the comma operator there? The reason is because we are using
+          this expression as the argument to a function. If the return type of <code class="computeroutput"><span class="identifier">fun</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span></code> is <code class="computeroutput"><span class="keyword">void</span></code>,
+          it cannot legally be used as an argument to a function. The comma operator
+          sidesteps the issue.
+        </p>
+<p>
+          This should also make plain the purpose of the overloaded comma operator
+          in <code class="computeroutput"><span class="identifier">private_type</span></code>. The return
+          type of the pointer to function is <code class="computeroutput"><span class="identifier">private_type</span></code>.
+          If overload resolution selects our overload, then the type of <code class="computeroutput"><span class="special">(</span><span class="identifier">fun</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span>
+          <span class="identifier">b</span><span class="special">),</span>
+          <span class="number">0</span><span class="special">)</span></code>
+          is <code class="computeroutput"><span class="identifier">private_type</span></code>. Otherwise,
+          it is <code class="computeroutput"><span class="keyword">int</span></code>. That fact is used
+          to dispatch to either overload of <code class="computeroutput"><span class="identifier">is_private_type</span><span class="special">()</span></code>, which encodes its answer in the size
+          of its return type.
+        </p>
+<p>
+          That's how it works with binary functions. Now repeat the above process
+          for functions up to some predefined function arity, and you're done.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_proto.appendices.acknowledgements"></a><a class="link" href="appendices.html#boost_proto.appendices.acknowledgements" title="Appendix E: Acknowledgements">Appendix E:
+      Acknowledgements</a>
+</h3></div></div></div>
+<p>
+        I'd like to thank Joel de Guzman and Hartmut Kaiser for being willing to
+        take a chance on using Proto for their work on Spirit-2 and Karma when Proto
+        was little more than a vision. Their requirements and feedback have been
+        indespensable.
+      </p>
+<p>
+        Thanks also to Thomas Heller and again to Hartmut for their feedback and
+        suggestions during the redesign of Phoenix. That effort yielded several valuable
+        advanced features such as sub-domains, external transforms, and per-domain
+        <code class="computeroutput"><span class="identifier">as_child</span></code> customization.
+      </p>
+<p>
+        Thanks to Daniel James for providing a patch to remove the dependence on
+        deprecated configuration macros for C++0x features.
+      </p>
+<p>
+        Thanks to Joel Falcou and Christophe Henry for their enthusiasm, support,
+        feedback, and humor; and for volunteering to be Proto's co-maintainers.
+      </p>
+<p>
+        Thanks to Dave Abrahams for an especially detailed review, and for making
+        a VM with msvc-7.1 available so I could track down portability issues on
+        that compiler.
+      </p>
+<p>
+        Many thanks to Daniel Wallin who first implemented the code used to find
+        the common domain among a set, accounting for super- and sub-domains. Thanks
+        also to Jeremiah Willcock, John Bytheway and Krishna Achuthan who offered
+        alternate solutions to this tricky programming problem.
+      </p>
+<p>
+        Thanks also to the developers of <a href="http://acts.nersc.gov/formertools/pete/index.html" target="_top">PETE</a>.
+        I found many good ideas there.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../Transform.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../proto.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../boost_random.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

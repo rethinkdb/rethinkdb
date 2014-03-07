@@ -1,0 +1,93 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Connectivity Extraction Usage</title>
+</head>
+
+<body>
+
+<p><font face="Courier New">#include &lt;boost/polygon/polygon.hpp&gt;<br>
+#include &lt;cassert&gt;<br>
+namespace gtl = boost::polygon;<br>
+<br>
+//This function works with both the 90 and 45 versions<br>
+//of connectivity extraction algroithm<br>
+template &lt;typename ce_type&gt;<br>
+void test_ce() {<br>
+&nbsp; //first we create an object to do the connectivity extraction<br>
+&nbsp; ce_type ce;<br>
+<br>
+&nbsp; //create some test data<br>
+&nbsp; std::vector&lt;gtl::rectangle_data&lt;int&gt; &gt; test_data;<br>
+&nbsp; test_data.push_back(gtl::rectangle_data&lt;int&gt;(10, 10, 90, 90));<br>
+&nbsp; test_data.push_back(gtl::rectangle_data&lt;int&gt;(0, 0, 20, 20));<br>
+&nbsp; test_data.push_back(gtl::rectangle_data&lt;int&gt;(80, 0, 100, 20));<br>
+&nbsp; test_data.push_back(gtl::rectangle_data&lt;int&gt;(0, 80, 20, 100));<br>
+&nbsp; test_data.push_back(gtl::rectangle_data&lt;int&gt;(80, 80, 100, 100));<br>
+&nbsp; //There is one big square and four little squares covering each<br>
+&nbsp; //of its corners.<br>
+<br>
+&nbsp; for(unsigned int i = 0; i &lt; test_data.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp; //insert returns an id starting at zero and incrementing<br>
+&nbsp;&nbsp;&nbsp; //with each call<br>
+&nbsp;&nbsp;&nbsp; assert(ce.insert(test_data[i]) == i);<br>
+&nbsp; }<br>
+&nbsp; //notice that ids returned by ce.insert happen to match<br>
+&nbsp; //index into vector of inputs in this case<br>
+<br>
+&nbsp; //make sure the vector graph has elements for our nodes<br>
+&nbsp; std::vector&lt;std::set&lt;int&gt; &gt; graph(test_data.size());<br>
+<br>
+&nbsp; //populate the graph with edge data<br>
+&nbsp; ce.extract(graph);<br>
+<br>
+&nbsp; //make a map type graph to compare results<br>
+&nbsp; std::map&lt;int, std::set&lt;int&gt; &gt; map_graph;<br>
+&nbsp; ce.extract(map_graph);<br>
+<br>
+&nbsp; assert(map_graph.size() &amp;&amp; map_graph.size() == graph.size());<br>
+&nbsp; for(unsigned int i = 0; i &lt; graph.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp; assert(graph[i] == map_graph[i]);<br>
+&nbsp;&nbsp;&nbsp; if(i == 0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; assert(graph[i].size() == 4); //four little 
+squares<br>
+&nbsp;&nbsp;&nbsp; else<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; assert(graph[i].size() == 1); //each little 
+toches the big square<br>
+&nbsp; }<br>
+}<br>
+<br>
+int main() {<br>
+&nbsp; test_ce&lt;gtl::connectivity_extraction_90&lt;int&gt; &gt;();<br>
+&nbsp; test_ce&lt;gtl::connectivity_extraction_45&lt;int&gt; &gt;();<br>
+&nbsp; return 0;<br>
+}<br>
+<br>
+//Now you know how to use the connectivity extraction algorithm<br>
+//to extract the connectivity graph for overlapping geometry<br>
+&nbsp;</font></p>
+
+
+<table class="docinfo" rules="none" frame="void" id="table1">
+	<colgroup>
+		<col class="docinfo-name"><col class="docinfo-content">
+	</colgroup>
+	<tbody vAlign="top">
+		<tr>
+			<th class="docinfo-name">Copyright:</th>
+			<td>Copyright © Intel Corporation 2008-2010.</td>
+		</tr>
+		<tr class="field">
+			<th class="docinfo-name">License:</th>
+			<td class="field-body">Distributed under the Boost Software License, 
+			Version 1.0. (See accompanying file <tt class="literal">
+			<span class="pre">LICENSE_1_0.txt</span></tt> or copy at
+			<a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+			http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+		</tr>
+</table>
+
+</body>
+
+</html>

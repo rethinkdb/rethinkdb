@@ -1,0 +1,195 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template singleton_pool</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Boost.Pool">
+<link rel="up" href="../header/boost/pool/singleton_pool_hpp.html" title="Header &lt;boost/pool/singleton_pool.hpp&gt;">
+<link rel="prev" href="../header/boost/pool/singleton_pool_hpp.html" title="Header &lt;boost/pool/singleton_pool.hpp&gt;">
+<link rel="next" href="singleton_pool/object_creator.html" title="Struct object_creator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../header/boost/pool/singleton_pool_hpp.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../header/boost/pool/singleton_pool_hpp.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="singleton_pool/object_creator.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.singleton_pool"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template singleton_pool</span></h2>
+<p>boost::singleton_pool</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../header/boost/pool/singleton_pool_hpp.html" title="Header &lt;boost/pool/singleton_pool.hpp&gt;">boost/pool/singleton_pool.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Tag<span class="special">,</span> <span class="keyword">unsigned</span> RequestedSize<span class="special">,</span> <span class="keyword">typename</span> UserAllocator<span class="special">,</span> 
+         <span class="keyword">typename</span> Mutex<span class="special">,</span> <span class="keyword">unsigned</span> NextSize<span class="special">,</span> <span class="keyword">unsigned</span> MaxSize<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="singleton_pool.html" title="Class template singleton_pool">singleton_pool</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="singleton_pool.html#boost.singleton_pooltypes">types</a></span>
+  <span class="keyword">typedef</span> <span class="identifier">Tag</span> <a class="link" href="singleton_pool.html#boost.singleton_pool.tag"><span class="identifier">tag</span></a><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">Mutex</span>                                  <a name="boost.singleton_pool.mutex"></a><span class="identifier">mutex</span><span class="special">;</span>            <span class="comment">// The type of mutex used to synchonise access to this pool (default <code class="computeroutput">details::pool::default_mutex</code>). </span>
+  <span class="keyword">typedef</span> <span class="identifier">UserAllocator</span>                          <a name="boost.singleton_pool.user_allocator"></a><span class="identifier">user_allocator</span><span class="special">;</span>   <span class="comment">// The user-allocator used by this pool, default = <code class="computeroutput"><a class="link" href="default_user_allocator_new_delete.html" title="Struct default_user_allocator_new_delete">default_user_allocator_new_delete</a></code>. </span>
+  <span class="keyword">typedef</span> <a class="link" href="pool.html" title="Class template pool">pool</a><span class="special">&lt;</span> <span class="identifier">UserAllocator</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">size_type</span>       <a name="boost.singleton_pool.size_type"></a><span class="identifier">size_type</span><span class="special">;</span>        <span class="comment">// size_type of user allocator. </span>
+  <span class="keyword">typedef</span> <a class="link" href="pool.html" title="Class template pool">pool</a><span class="special">&lt;</span> <span class="identifier">UserAllocator</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">difference_type</span> <a name="boost.singleton_pool.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span>  <span class="comment">// difference_type of user allocator. </span>
+
+  <span class="comment">// member classes/structs/unions</span>
+
+  <span class="keyword">struct</span> <a class="link" href="singleton_pool/object_creator.html" title="Struct object_creator">object_creator</a> <span class="special">{</span>
+    <span class="comment">// <a class="link" href="singleton_pool/object_creator.html#boost.singleton_pool.object_creatorconstruct-copy-destruct">construct/copy/destruct</a></span>
+    <a class="link" href="singleton_pool/object_creator.html#id492581-bb"><span class="identifier">object_creator</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="singleton_pool/object_creator.html#id492572-bb">public member functions</a></span>
+    <span class="keyword">void</span> <a class="link" href="singleton_pool/object_creator.html#id492575-bb"><span class="identifier">do_nothing</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="singleton_pool.html#boost.singleton_poolconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="singleton_pool.html#id492670-bb"><span class="identifier">singleton_pool</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="singleton_pool.html#id492671-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <span class="special">*</span> <a class="link" href="singleton_pool.html#id492673-bb"><span class="identifier">malloc</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <span class="special">*</span> <a class="link" href="singleton_pool.html#id492683-bb"><span class="identifier">ordered_malloc</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <span class="special">*</span> <a class="link" href="singleton_pool.html#id492694-bb"><span class="identifier">ordered_malloc</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="singleton_pool.html#id492708-bb"><span class="identifier">is_from</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="singleton_pool.html#id492727-bb"><span class="identifier">free</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="singleton_pool.html#id492743-bb"><span class="identifier">ordered_free</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="singleton_pool.html#id492757-bb"><span class="identifier">free</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="singleton_pool.html#id492778-bb"><span class="identifier">ordered_free</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="singleton_pool.html#id492797-bb"><span class="identifier">release_memory</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="singleton_pool.html#id492808-bb"><span class="identifier">purge_memory</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="singleton_pool.html#id492819-bb">private static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">pool_type</span> <span class="special">&amp;</span> <a class="link" href="singleton_pool.html#id492821-bb"><span class="identifier">get_pool</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="identifier">requested_size</span><span class="special">;</span>  <span class="comment">// The size of each chunk allocated by this pool. </span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="identifier">next_size</span><span class="special">;</span>  <span class="comment">// The number of chunks to allocate on the first allocation. </span>
+  <span class="keyword">static</span> <a class="link" href="pool.html" title="Class template pool">pool</a><span class="special">&lt;</span> <span class="identifier">UserAllocator</span> <span class="special">&gt;</span> <span class="identifier">p</span><span class="special">;</span>  <span class="comment">// For exposition only! </span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="id1045588"></a><h2>Description</h2>
+<p>The <a class="link" href="singleton_pool.html" title="Class template singleton_pool">singleton_pool</a> class allows other pool interfaces for types of the same size to share the same pool. Template parameters are as follows:</p>
+<p><span class="bold"><strong>Tag</strong></span> User-specified type to uniquely identify this pool: allows different unbounded sets of singleton pools to exist.</p>
+<p><span class="bold"><strong>RequestedSize</strong></span> The size of each chunk returned by member function <code class="computeroutput">malloc()</code>.</p>
+<p><span class="bold"><strong>UserAllocator</strong></span> User allocator, default = <a class="link" href="default_user_allocator_new_delete.html" title="Struct default_user_allocator_new_delete">default_user_allocator_new_delete</a>.</p>
+<p><span class="bold"><strong>Mutex</strong></span> This class is the type of mutex to use to protect simultaneous access to the underlying Pool. Can be any Boost.Thread Mutex type or <code class="computeroutput">boost::details::pool::null_mutex</code>. It is exposed so that users may declare some singleton pools normally (i.e., with synchronization), but some singleton pools without synchronization (by specifying <code class="computeroutput">boost::details::pool::null_mutex</code>) for efficiency reasons. The member typedef <code class="computeroutput">mutex</code> exposes the value of this template parameter. The default for this parameter is boost::details::pool::default_mutex which is a synonym for either <code class="computeroutput">boost::details::pool::null_mutex</code> (when threading support is turned off in the compiler (so BOOST_HAS_THREADS is not set), or threading support has ben explicitly disabled with BOOST_DISABLE_THREADS (Boost-wide disabling of threads) or BOOST_POOL_NO_MT (this library only)) or for <code class="computeroutput">boost::mutex</code> (when threading support is enabled in the compiler).</p>
+<p><span class="bold"><strong>NextSize</strong></span> The value of this parameter is passed to the underlying Pool when it is created and specifies the number of chunks to allocate in the first allocation request (defaults to 32). The member typedef <code class="computeroutput">static const value next_size</code> exposes the value of this template parameter.</p>
+<p><span class="bold"><strong>MaxSize</strong></span>The value of this parameter is passed to the underlying Pool when it is created and specifies the maximum number of chunks to allocate in any single allocation request (defaults to 0).</p>
+<p><span class="bold"><strong>Notes:</strong></span></p>
+<p>The underlying pool <span class="emphasis"><em>p</em></span> referenced by the static functions in <a class="link" href="singleton_pool.html" title="Class template singleton_pool">singleton_pool</a> is actually declared in a way that is:</p>
+<p>1 Thread-safe if there is only one thread running before main() begins and after main() ends -- all of the static functions of <a class="link" href="singleton_pool.html" title="Class template singleton_pool">singleton_pool</a> synchronize their access to p.</p>
+<p>2 Guaranteed to be constructed before it is used -- thus, the simple static object in the synopsis above would actually be an incorrect implementation. The actual implementation to guarantee this is considerably more complicated.</p>
+<p>3 Note too that a different underlying pool p exists for each different set of template parameters, including implementation-specific ones.</p>
+<p>4 The underlying pool is constructed "as if" by:</p>
+<p>pool&lt;UserAllocator&gt; p(RequestedSize, NextSize, MaxSize);</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>The underlying pool constructed by the singleton <span class="bold"><strong>is never freed</strong></span>. This means that memory allocated by a <a class="link" href="singleton_pool.html" title="Class template singleton_pool">singleton_pool</a> can be still used after main() has completed, but may mean that some memory checking programs will complain about leaks from <a class="link" href="singleton_pool.html" title="Class template singleton_pool">singleton_pool</a>. </p></td></tr>
+</table></div>
+<p>
+</p>
+<div class="refsect2">
+<a name="id1045726"></a><h3>
+<a name="boost.singleton_pooltypes"></a><code class="computeroutput">singleton_pool</code> 
+        public
+       types</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">Tag</span> <a name="boost.singleton_pool.tag"></a><span class="identifier">tag</span><span class="special">;</span></p>
+<p>The Tag template parameter uniquely identifies this pool and allows different unbounded sets of singleton pools to exist. For example, the pool allocators use two tag classes to ensure that the two different allocator types never share the same underlying singleton pool. Tag is never actually used by <a class="link" href="singleton_pool.html" title="Class template singleton_pool">singleton_pool</a>. </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="id1045770"></a><h3>
+<a name="boost.singleton_poolconstruct-copy-destruct"></a><code class="computeroutput">singleton_pool</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><a name="id492670-bb"></a><span class="identifier">singleton_pool</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="id1045806"></a><h3>
+<a name="id492671-bb"></a><code class="computeroutput">singleton_pool</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <span class="special">*</span> <a name="id492673-bb"></a><span class="identifier">malloc</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Equivalent to SingletonPool::p.malloc(); synchronized. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <span class="special">*</span> <a name="id492683-bb"></a><span class="identifier">ordered_malloc</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Equivalent to SingletonPool::p.ordered_malloc(); synchronized. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <span class="special">*</span> <a name="id492694-bb"></a><span class="identifier">ordered_malloc</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p>Equivalent to SingletonPool::p.ordered_malloc(n); synchronized. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="id492708-bb"></a><span class="identifier">is_from</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> ptr<span class="special">)</span><span class="special">;</span></pre>
+<p>Equivalent to SingletonPool::p.is_from(chunk); synchronized. 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>true if chunk is from SingletonPool::is_from(chunk) </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="id492727-bb"></a><span class="identifier">free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> ptr<span class="special">)</span><span class="special">;</span></pre>
+<p>Equivalent to SingletonPool::p.free(chunk); synchronized. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="id492743-bb"></a><span class="identifier">ordered_free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> ptr<span class="special">)</span><span class="special">;</span></pre>
+<p>Equivalent to SingletonPool::p.ordered_free(chunk); synchronized. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="id492757-bb"></a><span class="identifier">free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> ptr<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p>Equivalent to SingletonPool::p.free(chunk, n); synchronized. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="id492778-bb"></a><span class="identifier">ordered_free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> ptr<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p>Equivalent to SingletonPool::p.ordered_free(chunk, n); synchronized. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="id492797-bb"></a><span class="identifier">release_memory</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Equivalent to SingletonPool::p.release_memory(); synchronized. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="id492808-bb"></a><span class="identifier">purge_memory</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Equivalent to SingletonPool::p.purge_memory(); synchronized. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="id1046302"></a><h3>
+<a name="id492819-bb"></a><code class="computeroutput">singleton_pool</code> private static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">pool_type</span> <span class="special">&amp;</span> <a name="id492821-bb"></a><span class="identifier">get_pool</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2006 Stephen Cleary<br>Copyright &#169; 2011 Paul A. Bristow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../header/boost/pool/singleton_pool_hpp.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../header/boost/pool/singleton_pool_hpp.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="singleton_pool/object_creator.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,56 @@
+#==============================================================================
+#   Copyright (c) 2001-2011 Joel de Guzman
+#   Copyright (c) 2001-2011 Hartmut Kaiser
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+
+project spirit/doc ;
+
+import boostbook ;
+import quickbook ;
+import modules ;
+
+path-constant here : . ;
+
+if --enable-index in  [ modules.peek : ARGV ]
+{
+   ECHO "Building the Spirit docs with automatic index generation enabled." ;
+   using auto-index ;
+   project : requirements
+        <quickbook-define>__use_auto_index__
+        <auto-index>on
+        <auto-index-script>$(here)/index.idx
+        <format>pdf:<auto-index-internal>off
+        <format>html:<auto-index-internal>on
+        <xsl:param>index.on.type=1
+        ;
+}
+else
+{
+   ECHO "Building the Spirit docs with automatic index generation disabled.  Try building with --enable-index." ;
+}
+
+path-constant images_location : html ;
+
+boostbook spirit2
+    :
+        spirit2.qbk
+    :
+        <xsl:param>boost.root=../../../..
+        <xsl:param>chunk.section.depth=4
+        <xsl:param>chunk.first.sections=1
+        <xsl:param>toc.section.depth=3
+        <xsl:param>toc.max.depth=3
+        <xsl:param>generate.section.toc.level=4
+        <format>html:<xsl:param>admon.graphics.path=images/
+        
+        <include>.
+        <format>pdf:<xsl:param>img.src.path=$(images_location)/
+        <format>pdf:<xsl:param>draft.mode="no"
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/libs/spirit/doc/html
+    ;
+
+

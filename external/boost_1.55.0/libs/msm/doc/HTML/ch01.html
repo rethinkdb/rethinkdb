@@ -1,0 +1,45 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Chapter&nbsp;1.&nbsp;Founding idea</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="pt01.html" title="Part&nbsp;I.&nbsp;User' guide"><link rel="prev" href="pt01.html" title="Part&nbsp;I.&nbsp;User' guide"><link rel="next" href="ch02.html" title="Chapter&nbsp;2.&nbsp;UML Short Guide"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter&nbsp;1.&nbsp;Founding idea</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="pt01.html">Prev</a>&nbsp;</td><th width="60%" align="center">Part&nbsp;I.&nbsp;User' guide</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch02.html">Next</a></td></tr></table><hr></div><div class="chapter" title="Chapter&nbsp;1.&nbsp;Founding idea"><div class="titlepage"><div><div><h2 class="title"><a name="d0e99"></a>Chapter&nbsp;1.&nbsp;Founding idea</h2></div></div></div><p>Let's start with an example taken from the C++ Template Metaprogramming
+                book:</p><pre class="programlisting">class player : public state_machine&lt;player&gt;
+{ 
+  // The list of FSM states enum states { Empty, Open, Stopped, Playing, Paused , initial_state = Empty }; 
+
+  // transition actions 
+  void start_playback(play const&amp;) { std::cout &lt;&lt; "player::start_playback\n"; } 
+  void open_drawer(open_close const&amp;) { std::cout &lt;&lt; "player::open_drawer\n"; } 
+  // more transition actions
+  ...
+  typedef player p; // makes transition table cleaner 
+  struct transition_table : mpl::vector11&lt; 
+  //    Start     Event        Target      Action                       
+  //   +---------+------------+-----------+---------------------------+ 
+    row&lt; Stopped , play       ,  Playing  , &amp;p::start_playback        &gt;,
+    row&lt; Stopped , open_close ,  Open     , &amp;::open_drawer            &gt;,
+  //   +---------+------------+-----------+---------------------------+ 
+    row&lt; Open    , open_close ,  Empty    , &amp;p::close_drawer          &gt;,
+  //   +---------+------------+-----------+---------------------------+ 
+    row&lt; Empty   , open_close ,  Open     , &amp;p::open_drawer           &gt;,
+    row&lt; Empty   , cd_detected,  Stopped  , &amp;p::store_cd_info         &gt;,
+  //   +---------+------------+-----------+---------------------------+ 
+    row&lt; Playing , stop       ,  Stopped  , &amp;p::stop_playback         &gt;,
+    row&lt; Playing , pause      ,  Paused   , &amp;p::pause_playback        &gt;,
+    row&lt; Playing , open_close ,  Open     , &amp;p::stop_and_open         &gt;,
+  //   +---------+------------+-----------+---------------------------+ 
+    row&lt; Paused  , play       ,  Playing  , &amp;p::resume_playback       &gt;,
+    row&lt; Paused  , stop       ,  Stopped  , &amp;p::stop_playback         &gt;,
+    row&lt; Paused  , open_close ,  Open     , &amp;p::stop_and_open         &gt;
+  //   +---------+------------+-----------+---------------------------+ 
+  &gt; {};
+  // Replaces the default no-transition response. 
+  template &lt;class Event&gt; 
+  int no_transition(int state, Event const&amp; e)
+  { 
+    std::cout &lt;&lt; "no transition from state " &lt;&lt; state &lt;&lt; " on event " &lt;&lt; typeid(e).name() &lt;&lt; std::endl; 
+    return state; 
+  }
+};                        </pre><p>This example is the foundation for the idea driving MSM: a descriptive and
+                expressive language based on a transition table with as little syntactic noise as
+                possible, all this while offering as many features from the UML 2.0 standard as
+                possible. MSM also offers several expressive state machine definition syntaxes with
+                different trade-offs.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="pt01.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="pt01.html">Up</a></td><td width="40%" align="right">&nbsp;<a accesskey="n" href="ch02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Part&nbsp;I.&nbsp;User' guide&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;Chapter&nbsp;2.&nbsp;UML Short Guide</td></tr></table></div></body></html>

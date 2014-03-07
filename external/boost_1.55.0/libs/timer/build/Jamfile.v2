@@ -1,0 +1,25 @@
+# Boost Timer Library Build Jamfile
+
+# (C) Copyright Beman Dawes 2002, 2006, 2011
+
+# Distributed under the Boost Software License, Version 1.0.
+# See www.boost.org/LICENSE_1_0.txt
+
+# See library home page at http://www.boost.org/libs/timer
+
+project boost/timer
+    : source-location ../src
+    : usage-requirements  # pass these requirement to dependents (i.e. users)
+      <link>shared:<define>BOOST_TIMER_DYN_LINK=1
+      <link>static:<define>BOOST_TIMER_STATIC_LINK=1
+    ;
+
+SOURCES = auto_timers_construction cpu_timer ;
+
+lib boost_timer
+   : $(SOURCES).cpp  ../../chrono/build//boost_chrono
+   : <link>shared:<define>BOOST_TIMER_DYN_LINK=1
+     <link>static:<define>BOOST_TIMER_STATIC_LINK=1
+   ;
+
+boost-install boost_timer ;

@@ -1,0 +1,203 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Using the predefs</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Predef 1.0">
+<link rel="up" href="../index.html" title="Predef 1.0">
+<link rel="prev" href="introduction.html" title="Introduction">
+<link rel="next" href="adding_new_predefs.html" title="Adding new predefs">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../images/home.png" alt="Home"></a><a accesskey="n" href="adding_new_predefs.html"><img src="../images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="predef.using_the_predefs"></a><a class="link" href="using_the_predefs.html" title="Using the predefs">Using the predefs</a>
+</h2></div></div></div>
+<p>
+      To use the automatically defined predefs one needs to only include the single
+      top-level header:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">predef</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+</pre>
+<p>
+      This defines <span class="bold"><strong>all</strong></span> the version macros known
+      to the library. For each macro it will be defined to either a <span class="emphasis"><em>zero</em></span>
+      valued expression for when the particular item is not detected, and to a <span class="emphasis"><em>positive</em></span>
+      value if it is detected. The predef macros fall onto five categories each with
+      macros of a particular prefix:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">BOOST_ARCH_</span></code>for system/CPU
+          architecture one is compiling for.
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">BOOST_COMP_</span></code> for the compiler
+          one is using.
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">BOOST_LANG_</span></code> for language
+          standards one is compiling against.
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">BOOST_LIB_C_</span></code> and <code class="computeroutput"><span class="identifier">BOOST_LIB_STD_</span></code> for the C and C++ standard
+          library in use.
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">BOOST_OS_</span></code> for the operating
+          system we are compiling to.
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">BOOST_ENDIAN_</span></code> for endianness
+          of the os and architecture combination.
+        </li>
+</ul></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        The detected definitions are for the configuration one is targeting during
+        the compile. In particular in a cross-compile this means the target system,
+        and not the host system.
+      </p></td></tr>
+</table></div>
+<p>
+      One uses the individual definitions to compare against specific versions by
+      comparing against the <code class="computeroutput"><span class="identifier">BOOST_VERSION_NUMBER</span></code>
+      macro. For example, to make a choice based on the version of the GCC C++ compiler
+      one would:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">predef</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">if</span> <span class="special">(</span><span class="identifier">BOOST_COMP_GNUC</span> <span class="special">&gt;=</span> <span class="identifier">BOOST_VERSION_NUMBER</span><span class="special">(</span><span class="number">4</span><span class="special">,</span><span class="number">0</span><span class="special">,</span><span class="number">0</span><span class="special">))</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"GCC compiler is at least version 4.0.0"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="keyword">else</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"GCC compiler is at older than version 4.0.0, or not a GCC compiler"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      As you might notice above the <code class="computeroutput"><span class="keyword">else</span></code>
+      clause also covers the case where the particular compiler is not detected.
+      But one can make the test also test for the detection. All predef definitions
+      are defined as a zero (0) expression when not detected. Hence one could use
+      the detection with a natural single condition. For example:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">predef</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">if</span> <span class="special">(</span><span class="identifier">BOOST_COMP_GNUC</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"This is GNU GCC!"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="keyword">else</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Not GNU GCC."</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      And since the predef's are preprocessor definitions the same is possible from
+      the preprocessor:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">predef</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#if</span> <span class="identifier">BOOST_COMP_GNUC</span>
+  <span class="preprocessor">#if</span> <span class="identifier">BOOST_COMP_GNUC</span> <span class="special">&gt;=</span> <span class="identifier">BOOST_VERSION_NUMBER</span><span class="special">(</span><span class="number">4</span><span class="special">,</span><span class="number">0</span><span class="special">,</span><span class="number">0</span><span class="special">)</span>
+    <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> <span class="identifier">the_compiler</span> <span class="special">=</span> <span class="string">"GNU GCC, of at least version 4."</span>
+  <span class="preprocessor">#else</span>
+    <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> <span class="identifier">the_compiler</span> <span class="special">=</span> <span class="string">"GNU GCC, less than version 4."</span>
+  <span class="preprocessor">#endif</span>
+<span class="preprocessor">#else</span>
+  <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> <span class="identifier">the_compiler</span> <span class="special">=</span> <span class="string">"Not GNU GCC."</span>
+<span class="preprocessor">#endif</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">the_compiler</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      In addition, for each version macro defined there is a <code class="computeroutput"><span class="special">*</span><span class="identifier">_AVAILABLE</span></code> macro defined only when the particular
+      aspect is detected. I.e. a definition equivalent to:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#if</span> <span class="identifier">BOOST_PREDEF_ABC</span>
+  <span class="preprocessor">#define</span> <span class="identifier">BOOST_PREDEF_ABC_AVAILABLE</span>
+<span class="preprocessor">#endif</span>
+</pre>
+<p>
+      Also for each aspect there is a macro defined with a descriptive name of what
+      the detection is.
+    </p>
+<h4>
+<a name="predef.using_the_predefs.h0"></a>
+      <span class="phrase"><a name="predef.using_the_predefs.using_the_boost_version_number_m"></a></span><a class="link" href="using_the_predefs.html#predef.using_the_predefs.using_the_boost_version_number_m">Using the
+      <code class="computeroutput"><span class="identifier">BOOST_VERSION_NUMBER</span></code> macro</a>
+    </h4>
+<p>
+      All the predefs are defined to be a use of the <code class="computeroutput"><span class="identifier">BOOST_VERSION_NUMBER</span></code>
+      macro. The macro takes individual major, minor, and patch value expressions:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_VERSION_NUMBER</span><span class="special">(</span> <span class="identifier">major</span><span class="special">,</span> <span class="identifier">minor</span><span class="special">,</span> <span class="identifier">patch</span> <span class="special">)</span> <span class="special">...</span>
+</pre>
+<p>
+      The arguments are:
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          Major version number, as a constant value expression in the range [0,99].
+        </li>
+<li class="listitem">
+          Minor version number, as a constant value expression in the range [0,99].
+        </li>
+<li class="listitem">
+          Patch-level version number, as a constant value expression in the range
+          [0,99999].
+        </li>
+</ol></div>
+<p>
+      The ranges for each are "enforced" by the use of a modulo ("%"),
+      i.e. truncation, as opposed to a clamp. And hence this means that the limits
+      are enforced only enough to keep from having out-of-range problems. But not
+      enough to prevent other kinds of problems. Like exceeding the range and getting
+      false detections, or non-detections. It is up to the individual predefs to
+      ensure correct usage beyond the range guarantee.
+    </p>
+<p>
+      The values for the arguments can be any preprocessor valid constant value expression.
+      Only constant value arithmetic is used in the definition of the <code class="computeroutput"><span class="identifier">BOOST_VERSION_NUMBER</span></code> macro and in any of
+      the other predef macros. This means that any allowed base is possible, i.e.
+      binary, octal, decimal, and hexadecimal. For example:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">MY_APPLICATION_VERSION_NUMBER</span> <span class="identifier">BOOST_VERSION_NUMBER</span><span class="special">(</span><span class="number">2</span><span class="special">,</span><span class="number">0xA</span><span class="special">,</span><span class="number">015</span><span class="special">)</span>
+</pre>
+<p>
+      Is equivalent to:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">MY_APPLICATION_VERSION_NUMBER</span> <span class="identifier">BOOST_VERSION_NUMBER</span><span class="special">(</span><span class="number">2</span><span class="special">,</span><span class="number">10</span><span class="special">,</span><span class="number">13</span><span class="special">)</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Rene Rivera<br>Copyright &#169; 2008-2013 Redshift Software Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../images/home.png" alt="Home"></a><a accesskey="n" href="adding_new_predefs.html"><img src="../images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

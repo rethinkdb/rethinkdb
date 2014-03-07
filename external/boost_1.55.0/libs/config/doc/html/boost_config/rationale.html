@@ -1,0 +1,124 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Rationale</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Boost.Config">
+<link rel="up" href="../index.html" title="Boost.Config">
+<link rel="prev" href="guidelines_for_boost_authors.html" title="Guidelines for Boost Authors">
+<link rel="next" href="acknowledgements.html" title="Acknowledgements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="guidelines_for_boost_authors.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="acknowledgements.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_config.rationale"></a><a class="link" href="rationale.html" title="Rationale">Rationale</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="rationale.html#boost_config.rationale.the_problem">The problem</a></span></dt>
+<dt><span class="section"><a href="rationale.html#boost_config.rationale.the_solution">The solution</a></span></dt>
+</dl></div>
+<p>
+      The problem with many traditional "textbook" implementations of configuration
+      headers (where all the configuration options are in a single "monolithic"
+      header) is that they violate certain fundamental software engineering principles
+      which would have the effect of making boost more fragile, more difficult to
+      maintain and more difficult to use safely. You can find a description of the
+      principles from the <a href="http://www.objectmentor.com/resources/articles/Principles_and_Patterns.pdf" target="_top">following
+      article</a>.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_config.rationale.the_problem"></a><a class="link" href="rationale.html#boost_config.rationale.the_problem" title="The problem">The problem</a>
+</h3></div></div></div>
+<p>
+        Consider a situation in which you are concurrently developing on multiple
+        platforms. Then consider adding a new platform or changing the platform definitions
+        of an existing platform. What happens? Everything, and this does literally
+        mean everything, recompiles. Isn't it quite absurd that adding a new platform,
+        which has absolutely nothing to do with previously existing platforms, means
+        that all code on all existing platforms needs to be recompiled?
+      </p>
+<p>
+        Effectively, there is an imposed physical dependency between platforms that
+        have nothing to do with each other. Essentially, the traditional solution
+        employed by configuration headers does not conform to the Open-Closed Principle:
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="bold"><strong>"A module should be open for extension but closed
+          for modification."</strong></span>
+        </p></blockquote></div>
+<p>
+        Extending a traditional configuration header implies modifying existing code.
+      </p>
+<p>
+        Furthermore, consider the complexity and fragility of the platform detection
+        code. What if a simple change breaks the detection on some minor platform?
+        What if someone accidentally or on purpose (as a workaround for some other
+        problem) defines some platform dependent macros that are used by the detection
+        code? A traditional configuration header is one of the most volatile headers
+        of the entire library, and more stable elements of Boost would depend on
+        it. This violates the Stable Dependencies Principle:
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="bold"><strong>"Depend in the direction of stability."</strong></span>
+        </p></blockquote></div>
+<p>
+        After even a minor change to a traditional configuration header on one minor
+        platform, almost everything on every platform should be tested if we follow
+        sound software engineering practice.
+      </p>
+<p>
+        Another important issue is that it is not always possible to submit changes
+        to <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">config</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>.
+        Some boost users are currently working on platforms using tools and libraries
+        that are under strict Non-Disclosure Agreements. In this situation it is
+        impossible to submit changes to a traditional monolithic configuration header,
+        instead some method by which the user can insert their own configuration
+        code must be provided.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_config.rationale.the_solution"></a><a class="link" href="rationale.html#boost_config.rationale.the_solution" title="The solution">The solution</a>
+</h3></div></div></div>
+<p>
+        The approach taken by boost's configuration headers is to separate configuration
+        into three orthogonal parts: the compiler, the standard library and the platform.
+        Each compiler/standard library/platform gets its own mini-configuration header,
+        so that changes to one compiler's configuration (for example) does not affect
+        other compilers. In addition there are measures that can be taken both to
+        omit the compiler/standard library/platform detection code (so that adding
+        support to a new platform does not break dependencies), or to freeze the
+        configuration completely; providing almost complete protection against dependency
+        changes.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2007 Beman Dawes, Vesa Karvonen, John
+      Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="guidelines_for_boost_authors.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="acknowledgements.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

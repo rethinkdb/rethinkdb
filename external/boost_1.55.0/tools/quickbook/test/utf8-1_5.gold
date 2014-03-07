@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="utf_8_test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>UTF-8 test</title>
+  <bridgehead renderas="sect2" id="utf_8_test.h0">
+    <phrase id="utf_8_test.i__t__rn__ti__n__liz__ti__n"/><link linkend="utf_8_test.i__t__rn__ti__n__liz__ti__n">Iñtërnâtiônàlizætiøn</link>
+  </bridgehead>
+  <itemizedlist>
+    <listitem>
+      <simpara>
+        Αα Alpha
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Ββ Beta
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Γγ Gamma
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Δδ Delta
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Εε Epsilon
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Ζζ Zeta
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Ηη Eta
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Θθ Theta
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Ιι Iota
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Κκ Kappa
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Λλ Lambda
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Μμ Mu
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Νν Nu
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Ξξ Xi
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Οο Omicron
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Ππ Pi
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Ρρ Rho
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Σσς Sigma
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Ττ Tau
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Υυ Upsilon
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Φφ Phi
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Χχ Chi
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Ψψ Psi
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Ωω Omega
+      </simpara>
+    </listitem>
+  </itemizedlist>
+</article>

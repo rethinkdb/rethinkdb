@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Renaming/Cleanup</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./numeric-metafunction.html" class="navigation-link">Prev</a>&nbsp;<a href="./miscellaneous.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./numeric-metafunction.html" class="navigation-link">Back</a>&nbsp;<a href="./miscellaneous.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./changes-in-boost-1-32-0.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./changelog-history.html" class="navigation-link">Changelog & History</a> / <a href="./changes-in-boost-1-32-0.html" class="navigation-link">Changes in Boost 1.32.0 Release</a> / <a href="./renaming-cleanup.html" class="navigation-link">Renaming/Cleanup</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="renaming-cleanup">
+<h1><a class="toc-backref" href="./changes-in-boost-1-32-0.html#id68" name="renaming-cleanup">Renaming/Cleanup</a></h1>
+<ol class="arabic">
+<li><p class="first">The <tt class="literal"><span class="pre">apply_if</span></tt> metafunction has been renamed to <tt class="literal"><span class="pre">eval_if</span></tt>.</p>
+</li>
+<li><p class="first">All <tt class="literal"><span class="pre">_backward</span></tt> algorithm counterparts have been renamed to use <tt class="literal"><span class="pre">reverse_</span></tt> 
+prefix; e.g. <tt class="literal"><span class="pre">fold_backward</span></tt> became <tt class="literal"><span class="pre">reverse_fold</span></tt>.</p>
+</li>
+<li><p class="first">The <tt class="literal"><span class="pre">&lt;boost/mpl/aux_/has_xxx.hpp&gt;</span></tt> header has been made public and became
+<tt class="literal"><span class="pre">&lt;boost/mpl/has_xxx.hpp&gt;</span></tt>; correspondingly, the <tt class="literal"><span class="pre">BOOST_MPL_NO_AUX_HAS_XXX</span></tt>
+macro was renamed to <tt class="literal"><span class="pre">BOOST_MPL_CFG_NO_HAS_XXX</span></tt>.</p>
+</li>
+<li><p class="first"><tt class="literal"><span class="pre">&lt;boost/mpl/assert_is_same.hpp&gt;</span></tt> header has been replaced by a more
+general <tt class="literal"><span class="pre">&lt;mpl/assert.hpp&gt;</span></tt>; the new asserts provide a significantly
+higher-quality diagnostics. See the table below for new equivalents of
+the old macros:</p>
+<table border="1" class="table">
+<colgroup>
+<col width="45%" />
+<col width="55%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th><p class="first last">Before</p>
+</th>
+<th><p class="first last">Now</p>
+</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><p class="first last"><tt class="literal"><span class="pre">BOOST_MPL_ASSERT_IS_SAME(t1,</span> <span class="pre">t2)</span></tt></p>
+</td>
+<td><p class="first last"><tt class="literal"><span class="pre">BOOST_MPL_ASSERT((</span> <span class="pre">boost::is_same&lt;t1,t2&gt;</span> <span class="pre">))</span></tt></p>
+</td>
+</tr>
+<tr><td><p class="first last"><tt class="literal"><span class="pre">BOOST_MPL_ASSERT_IS_NOT_SAME(t1,</span> <span class="pre">t2)</span></tt></p>
+</td>
+<td><p class="first last"><tt class="literal"><span class="pre">BOOST_MPL_ASSERT_NOT((</span> <span class="pre">boost::is_same&lt;t1,t2&gt;</span> <span class="pre">))</span></tt></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>The &quot;Macros/Asserts&quot; section of the <a class="reference" href="./reference-manual.html">reference manual</a> provides a
+complete formal specification of the new macros' semantics.</p>
+</li>
+<li><p class="first">All configuration macros have been renamed to include the <tt class="literal"><span class="pre">CFG</span></tt> prefix; in 
+particular, <tt class="literal"><span class="pre">BOOST_MPL_NO_FULL_LAMBDA_SUPPORT</span></tt> has become 
+<tt class="literal"><span class="pre">BOOST_MPL_CFG_NO_FULL_LAMBDA_SUPPORT</span></tt>.</p>
+</li>
+<li><p class="first">The following public headers/components have been renamed or removed as 
+obsolete:</p>
+<pre class="literal-block">
+iterator_tag.hpp (renamed to iterator_tags.hpp)
+project1st.hpp
+project2nd.hpp
+select1st.hpp
+select2nd.hpp
+</pre>
+</li>
+</ol>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./numeric-metafunction.html" class="navigation-link">Prev</a>&nbsp;<a href="./miscellaneous.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./numeric-metafunction.html" class="navigation-link">Back</a>&nbsp;<a href="./miscellaneous.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./changes-in-boost-1-32-0.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

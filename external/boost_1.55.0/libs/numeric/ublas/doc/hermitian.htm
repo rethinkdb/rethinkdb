@@ -1,0 +1,597 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Hermitian Matrix</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Hermitian Matrix</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="hermitian_matrix"></a>Hermitian Matrix</h2>
+<h4>Description</h4>
+<p>The templated class <code>hermitian_matrix&lt;T, F1, F2,
+A&gt;</code> is the base container adaptor for hermitian matrices.
+For a <em>(n x n</em> )-dimensional hermitian matrix and <em>0
+&lt;= i &lt; n</em>, <em>0 &lt;= j &lt; n</em> holds
+<em>h</em><sub><em>i, j</em></sub> <em>= h</em><sub><em>j,
+i</em></sub><sup><em>-</em></sup>. The storage of hermitian
+matrices is packed.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/hermitian.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    hermitian_matrix&lt;std::complex&lt;double&gt;, lower&gt; ml (3, 3);
+    for (unsigned i = 0; i &lt; ml.size1 (); ++ i) {
+        for (unsigned j = 0; j &lt; i; ++ j)
+            ml (i, j) = std::complex&lt;double&gt; (3 * i + j, 3 * i + j);
+        ml (i, i) = std::complex&lt;double&gt; (4 * i, 0);
+    }
+    std::cout &lt;&lt; ml &lt;&lt; std::endl;
+    hermitian_matrix&lt;std::complex&lt;double&gt;, upper&gt; mu (3, 3);
+    for (unsigned i = 0; i &lt; mu.size1 (); ++ i) {
+        mu (i, i) = std::complex&lt;double&gt; (4 * i, 0);
+        for (unsigned j = i + 1; j &lt; mu.size2 (); ++ j)
+            mu (i, j) = std::complex&lt;double&gt; (3 * i + j, 3 * i + j);
+    }
+    std::cout &lt;&lt; mu &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header hermitian.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the matrix.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>F1</code></td>
+<td>Functor describing the type of the hermitian matrix. <a href=
+"#hermitian_matrix_1">[1]</a></td>
+<td><code>lower</code></td>
+</tr>
+<tr>
+<td><code>F2</code></td>
+<td>Functor describing the storage organization. <a href=
+"#hermitian_matrix_2">[2]</a></td>
+<td><code>row_major</code></td>
+</tr>
+<tr>
+<td><code>A</code></td>
+<td>The type of the adapted array. <a href=
+"#hermitian_matrix_3">[3]</a></td>
+<td><code>unbounded_array&lt;T&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="container_concept.htm#matrix">Matrix</a> .</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"container_concept.htm#matrix">Matrix</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_container&lt;hermitian_matrix&lt;T, F1, F2, A&gt;
+&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>hermitian_matrix ()</code></td>
+<td>Allocates an uninitialized <code>hermitian_matrix</code> that
+holds zero rows of zero elements.</td>
+</tr>
+<tr>
+<td><code>hermitian_matrix (size_type size)</code></td>
+<td>Allocates an uninitialized <code>hermitian_matrix</code> that
+holds <code>size</code> rows of <code>size</code> elements.</td>
+</tr>
+<tr>
+<td><code>hermitian_matrix (const hermitian_matrix
+&amp;m)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_matrix (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended copy constructor.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size, bool preserve =
+true)</code></td>
+<td>Reallocates a <code>hermitian_matrix</code> to hold
+<code>size</code> rows of <code>size</code> elements. The existing
+elements of the <code>hermitian_matrix</code> are preseved when
+specified.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns a <code>const</code> reference of the <code>j</code>
+-th element in the <code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i, size_type
+j)</code></td>
+<td>Returns a reference of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>hermitian_matrix &amp;operator = (const hermitian_matrix
+&amp;m)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>hermitian_matrix &amp;assign_temporary (hermitian_matrix
+&amp;m)</code></td>
+<td>Assigns a temporary. May change the hermitian matrix
+<code>m</code> .</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_matrix &amp;operator = (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_matrix &amp;assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a matrix expression to the hermitian matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_matrix &amp;operator += (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Adds the matrix expression to
+the hermitian matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_matrix &amp;plus_assign (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Adds a matrix expression to the hermitian matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_matrix &amp;operator -= (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the matrix expression
+from the hermitian matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_matrix &amp;minus_assign (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Subtracts a matrix expression from the hermitian matrix. Left
+and right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+hermitian_matrix &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the hermitian matrix
+with a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+hermitian_matrix &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the hermitian matrix
+through a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (hermitian_matrix &amp;m)</code></td>
+<td>Swaps the contents of the hermitian matrices.</td>
+</tr>
+<tr>
+<td><code>void insert (size_type i, size_type j, const_reference
+t)</code></td>
+<td>Inserts the value <code>t</code> at the <code>j</code>-th
+element of the <code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>void erase (size_type i, size_type j)</code></td>
+<td>Erases the value at the <code>j</code>-th elemenst of the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>void clear ()</code></td>
+<td>Clears the matrix.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 begin1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the beginning of
+the <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 end1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the end of the
+<code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 begin2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the beginning of
+the <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 end2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the end of the
+<code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rbegin1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the
+beginning of the reversed <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rend1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the end of
+the reversed <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rbegin2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the
+beginning of the reversed <code>hermitian_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rend2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the end of
+the reversed <code>hermitian_matrix</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notes</h4>
+<p><a name="hermitian_matrix_1" id="hermitian_matrix_1">[1]</a>
+Supported parameters for the type of the hermitian matrix are
+<code>lower</code> and <code>upper</code>.</p>
+<p><a name="hermitian_matrix_2" id="hermitian_matrix_2">[2]</a>
+Supported parameters for the storage organization are
+<code>row_major</code> and <code>column_major</code>.</p>
+<p><a name="hermitian_matrix_3" id="hermitian_matrix_3">[3]</a>
+Supported parameters for the adapted array are
+<code>unbounded_array&lt;T&gt;</code> ,
+<code>bounded_array&lt;T&gt;</code> and
+<code>std::vector&lt;T&gt;</code> .</p>
+<h2><a name="hermitian_adaptor"></a>Hermitian Adaptor</h2>
+<h4>Description</h4>
+<p>The templated class <code>hermitian_adaptor&lt;M, F&gt;</code>
+is a hermitian matrix adaptor for other matrices.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/hermitian.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;std::complex&lt;double&gt; &gt; m (3, 3);
+    hermitian_adaptor&lt;matrix&lt;std::complex&lt;double&gt; &gt;, lower&gt; hal (m);
+    for (unsigned i = 0; i &lt; hal.size1 (); ++ i) {
+        for (unsigned j = 0; j &lt; i; ++ j)
+            hal (i, j) = std::complex&lt;double&gt; (3 * i + j, 3 * i + j);
+        hal (i, i) = std::complex&lt;double&gt; (4 * i, 0);
+    }
+    std::cout &lt;&lt; hal &lt;&lt; std::endl;
+    hermitian_adaptor&lt;matrix&lt;std::complex&lt;double&gt; &gt;, upper&gt; hau (m);
+    for (unsigned i = 0; i &lt; hau.size1 (); ++ i) {
+        hau (i, i) = std::complex&lt;double&gt; (4 * i, 0);
+        for (unsigned j = i + 1; j &lt; hau.size2 (); ++ j)
+            hau (i, j) = std::complex&lt;double&gt; (3 * i + j, 3 * i + j);
+    }
+    std::cout &lt;&lt; hau &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header hermitian.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>The type of the adapted matrix.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>Functor describing the type of the hermitian adaptor. <a href=
+"#hermitian_adaptor_1">[1]</a></td>
+<td><code>lower</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_expression&lt;hermitian_adaptor&lt;M, F&gt;
+&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>hermitian_adaptor (matrix_type &amp;data)</code></td>
+<td>Constructs a <code>hermitian_adaptor</code> of a matrix.</td>
+</tr>
+<tr>
+<td><code>hermitian_adaptor (const hermitian_adaptor
+&amp;m)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_adaptor (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended copy constructor.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns a <code>const</code> reference of the <code>j</code>
+-th element in the <code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i, size_type
+j)</code></td>
+<td>Returns a reference of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>hermitian_adaptor &amp;operator = (const
+hermitian_adaptor &amp;m)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>hermitian_adaptor &amp;assign_temporary
+(hermitian_adaptor &amp;m)</code></td>
+<td>Assigns a temporary. May change the hermitian adaptor
+<code>m</code>.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_adaptor &amp;operator = (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_adaptor &amp;assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a matrix expression to the hermitian adaptor. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_adaptor &amp;operator += (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Adds the matrix expression to
+the hermitian adaptor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_adaptor &amp;plus_assign (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Adds a matrix expression to the hermitian adaptor. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_adaptor &amp;operator -= (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the matrix expression
+from the hermitian adaptor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+hermitian_adaptor &amp;minus_assign (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Subtracts a matrix expression from the hermitian adaptor. Left
+and right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+hermitian_adaptor &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the hermitian
+adaptor with a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+hermitian_adaptor &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the hermitian adaptor
+through a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (hermitian_adaptor &amp;m)</code></td>
+<td>Swaps the contents of the hermitian adaptors.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 begin1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the beginning of
+the <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 end1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the end of the
+<code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 begin2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the beginning of
+the <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 end2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the end of the
+<code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rbegin1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the
+beginning of the reversed <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rend1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the end of
+the reversed <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rbegin2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the
+beginning of the reversed <code>hermitian_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rend2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the end of
+the reversed <code>hermitian_adaptor</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notes</h4>
+<p><a name="hermitian_adaptor_1" id="hermitian_adaptor_1">[1]</a>
+Supported parameters for the type of the hermitian adaptor are
+<code>lower</code> and <code>upper</code>.</p>
+<hr />
+<p>Copyright (&copy;) 2000-2002 Joerg Walter, Mathias Koch<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

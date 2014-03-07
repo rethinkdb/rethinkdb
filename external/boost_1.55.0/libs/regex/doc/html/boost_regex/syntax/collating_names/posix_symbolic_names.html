@@ -1,0 +1,985 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>POSIX Symbolic Names</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Boost.Regex">
+<link rel="up" href="../collating_names.html" title="Collating Names">
+<link rel="prev" href="digraphs.html" title="Digraphs">
+<link rel="next" href="named_unicode.html" title="Named Unicode Characters">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="digraphs.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../collating_names.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="named_unicode.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_syntax_collating_names_posix_symbolic_names">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_regex.syntax.collating_names.posix_symbolic_names"></a><a class="link" href="posix_symbolic_names.html" title="POSIX Symbolic Names">POSIX
+        Symbolic Names</a>
+</h4></div></div></div>
+<p>
+          The following symbolic names are recognised as valid collating element
+          names, in addition to any single character, this allows you to write for
+          example:
+        </p>
+<pre class="programlisting">[[.left-square-bracket.][.right-square-bracket.]]</pre>
+<p>
+          if you wanted to match either "[" or "]".
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Character
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    NUL
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x00
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    SOH
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x01
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    STX
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x02
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    ETX
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x03
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    EOT
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x04
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    ENQ
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x05
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    ACK
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x06
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    alert
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x07
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    backspace
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x08
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    tab
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \t
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    newline
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \n
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    vertical-tab
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \v
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    form-feed
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \f
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    carriage-return
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \r
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    SO
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \xE
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    SI
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \xF
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    DLE
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x10
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    DC1
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x11
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    DC2
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x12
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    DC3
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x13
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    DC4
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x14
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    NAK
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x15
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    SYN
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x16
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    ETB
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x17
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    CAN
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x18
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    EM
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x19
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    SUB
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x1A
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    ESC
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x1B
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    IS4
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x1C
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    IS3
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x1D
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    IS2
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x1E
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    IS1
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x1F
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    space
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x20
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    exclamation-mark
+                  </p>
+                </td>
+<td>
+                  <p>
+                    !
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    quotation-mark
+                  </p>
+                </td>
+<td>
+                  <p>
+                    "
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    number-sign
+                  </p>
+                </td>
+<td>
+                  <p>
+                    #
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    dollar-sign
+                  </p>
+                </td>
+<td>
+                  <p>
+                    $
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    percent-sign
+                  </p>
+                </td>
+<td>
+                  <p>
+                    %
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    ampersand
+                  </p>
+                </td>
+<td>
+                  <p>
+                    &amp;
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    apostrophe
+                  </p>
+                </td>
+<td>
+                  <p>
+                    '
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    left-parenthesis
+                  </p>
+                </td>
+<td>
+                  <p>
+                    (
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    right-parenthesis
+                  </p>
+                </td>
+<td>
+                  <p>
+                    )
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    asterisk
+                  </p>
+                </td>
+<td>
+                  <p>
+                    *
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    plus-sign
+                  </p>
+                </td>
+<td>
+                  <p>
+                    +
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    comma
+                  </p>
+                </td>
+<td>
+                  <p>
+                    ,
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    hyphen
+                  </p>
+                </td>
+<td>
+                  <p>
+                    -
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    period
+                  </p>
+                </td>
+<td>
+                  <p>
+                    .
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    slash
+                  </p>
+                </td>
+<td>
+                  <p>
+                    /
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    zero
+                  </p>
+                </td>
+<td>
+                  <p>
+                    0
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    one
+                  </p>
+                </td>
+<td>
+                  <p>
+                    1
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    two
+                  </p>
+                </td>
+<td>
+                  <p>
+                    2
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    three
+                  </p>
+                </td>
+<td>
+                  <p>
+                    3
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    four
+                  </p>
+                </td>
+<td>
+                  <p>
+                    4
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    five
+                  </p>
+                </td>
+<td>
+                  <p>
+                    5
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    six
+                  </p>
+                </td>
+<td>
+                  <p>
+                    6
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    seven
+                  </p>
+                </td>
+<td>
+                  <p>
+                    7
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    eight
+                  </p>
+                </td>
+<td>
+                  <p>
+                    8
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    nine
+                  </p>
+                </td>
+<td>
+                  <p>
+                    9
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    colon
+                  </p>
+                </td>
+<td>
+                  <p>
+                    :
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    semicolon
+                  </p>
+                </td>
+<td>
+                  <p>
+                    ;
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    less-than-sign
+                  </p>
+                </td>
+<td>
+                  <p>
+                    &lt;
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    equals-sign
+                  </p>
+                </td>
+<td>
+                  <p>
+                    =
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    greater-than-sign
+                  </p>
+                </td>
+<td>
+                  <p>
+                    &gt;
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    question-mark
+                  </p>
+                </td>
+<td>
+                  <p>
+                    ?
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    commercial-at
+                  </p>
+                </td>
+<td>
+                  <p>
+                    @
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    left-square-bracket
+                  </p>
+                </td>
+<td>
+                  <p>
+                    [
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    backslash
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    right-square-bracket
+                  </p>
+                </td>
+<td>
+                  <p>
+                    ]
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    circumflex
+                  </p>
+                </td>
+<td>
+                  <p>
+                    ~
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    underscore
+                  </p>
+                </td>
+<td>
+                  <p>
+                    _
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    grave-accent
+                  </p>
+                </td>
+<td>
+                  <p>
+                    `
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    left-curly-bracket
+                  </p>
+                </td>
+<td>
+                  <p>
+                    {
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    vertical-line
+                  </p>
+                </td>
+<td>
+                  <p>
+                    |
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    right-curly-bracket
+                  </p>
+                </td>
+<td>
+                  <p>
+                    }
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    tilde
+                  </p>
+                </td>
+<td>
+                  <p>
+                    ~
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    DEL
+                  </p>
+                </td>
+<td>
+                  <p>
+                    \x7F
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="digraphs.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../collating_names.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="named_unicode.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

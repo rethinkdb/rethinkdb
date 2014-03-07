@@ -1,0 +1,175 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>mismatch</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost Algorithm Library">
+<link rel="up" href="../../algorithm/CXX14.html" title="C++14 Algorithms">
+<link rel="prev" href="../../algorithm/CXX14.html" title="C++14 Algorithms">
+<link rel="next" href="../../algorithm/Misc.html" title="Other Algorithms">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../algorithm/CXX14.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../algorithm/CXX14.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../algorithm/Misc.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="the_boost_algorithm_library.CXX14.mismatch"></a><a class="link" href="mismatch.html" title="mismatch">mismatch
+      </a>
+</h3></div></div></div>
+<p>
+        The header file 'mismatch.hpp' contains two variants of a the stl algorithm
+        <code class="computeroutput"><span class="identifier">mismatch</span></code>. The algorithm finds
+        the first point in two sequences where they do not match.
+      </p>
+<p>
+        Before (the proposed) C++14 the algorithm <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">mismatch</span></code>
+        took three iterators and an optional comparison predicate. The first two
+        iterators <code class="computeroutput"><span class="special">[</span><span class="identifier">first1</span><span class="special">,</span> <span class="identifier">last1</span><span class="special">)</span></code> defined a sequence, and the second one
+        <code class="computeroutput"><span class="identifier">first2</span></code> defined the start
+        of the second sequence. The second sequence was assumed to be the same length
+        as the first.
+      </p>
+<p>
+        In C++14, two new variants were introduced, taking four iterators and an
+        optional comparison predicate. The four iterators define two sequences <code class="computeroutput"><span class="special">[</span><span class="identifier">first1</span><span class="special">,</span> <span class="identifier">last1</span><span class="special">)</span></code> and <code class="computeroutput"><span class="special">[</span><span class="identifier">first2</span><span class="special">,</span> <span class="identifier">last2</span><span class="special">)</span></code>
+        explicitly, rather than defining the second one implicitly. This leads to
+        correct answers in more cases (and avoid undefined behavior in others).
+      </p>
+<p>
+        Consider the two sequences:
+</p>
+<pre class="programlisting"><span class="keyword">auto</span> <span class="identifier">seq1</span> <span class="special">=</span> <span class="special">{</span> <span class="number">0</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">2</span> <span class="special">};</span>
+<span class="keyword">auto</span> <span class="identifier">seq2</span> <span class="special">=</span> <span class="special">{</span> <span class="number">0</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="number">4</span> <span class="special">};</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">mismatch</span> <span class="special">(</span> <span class="identifier">seq1</span><span class="special">.</span><span class="identifier">begin</span> <span class="special">(),</span> <span class="identifier">seq1</span><span class="special">.</span><span class="identifier">end</span> <span class="special">(),</span> <span class="identifier">seq2</span><span class="special">.</span><span class="identifier">begin</span> <span class="special">());</span> <span class="comment">// &lt;3, 3&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">mismatch</span> <span class="special">(</span> <span class="identifier">seq2</span><span class="special">.</span><span class="identifier">begin</span> <span class="special">(),</span> <span class="identifier">seq2</span><span class="special">.</span><span class="identifier">end</span> <span class="special">(),</span> <span class="identifier">seq1</span><span class="special">.</span><span class="identifier">begin</span> <span class="special">());</span> <span class="comment">// Undefined behavior</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">mismatch</span> <span class="special">(</span> <span class="identifier">seq1</span><span class="special">.</span><span class="identifier">begin</span> <span class="special">(),</span> <span class="identifier">seq1</span><span class="special">.</span><span class="identifier">end</span> <span class="special">(),</span> <span class="identifier">seq2</span><span class="special">.</span><span class="identifier">begin</span> <span class="special">(),</span> <span class="identifier">seq2</span><span class="special">.</span><span class="identifier">end</span> <span class="special">());</span> <span class="comment">// &lt;3, 3&gt;</span>
+</pre>
+<p>
+      </p>
+<p>
+        The first N entries in <code class="computeroutput"><span class="identifier">seq2</span></code>
+        are the same as the entries in <code class="computeroutput"><span class="identifier">seq1</span></code>
+        - but that's not all that's in <code class="computeroutput"><span class="identifier">seq2</span></code>.
+        In the second case, the algorithm will read past the end of <code class="computeroutput"><span class="identifier">seq1</span></code>, resulting in undefined behavior (large
+        earthquake, incorrect results, pregnant cat, etc).
+      </p>
+<p>
+        However, if the two sequences are specified completely, it's clear that where
+        the mismatch occurs.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX14.mismatch.h0"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX14.mismatch.interface"></a></span><a class="link" href="mismatch.html#the_boost_algorithm_library.CXX14.mismatch.interface">interface</a>
+      </h5>
+<p>
+        The function <code class="computeroutput"><span class="identifier">mismatch</span></code> returns
+        a pair of iterators which denote the first mismatching elements in each sequence.
+        If the sequences match completely, <code class="computeroutput"><span class="identifier">mismatch</span></code>
+        returns their end iterators. One version uses <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">equal_to</span></code>
+        to do the comparison; the other lets the caller pass predicate to do the
+        comparisons.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">InputIterator1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">InputIterator2</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">InputIterator1</span><span class="special">,</span> <span class="identifier">InputIterator2</span><span class="special">&gt;</span>
+<span class="identifier">mismatch</span> <span class="special">(</span> <span class="identifier">InputIterator1</span> <span class="identifier">first1</span><span class="special">,</span> <span class="identifier">InputIterator1</span> <span class="identifier">last1</span><span class="special">,</span>
+           <span class="identifier">InputIterator2</span> <span class="identifier">first2</span><span class="special">,</span> <span class="identifier">InputIterator2</span> <span class="identifier">last2</span> <span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">InputIterator1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">InputIterator2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">InputIterator1</span><span class="special">,</span> <span class="identifier">InputIterator2</span><span class="special">&gt;</span>
+<span class="identifier">mismatch</span> <span class="special">(</span> <span class="identifier">InputIterator1</span> <span class="identifier">first1</span><span class="special">,</span> <span class="identifier">InputIterator1</span> <span class="identifier">last1</span><span class="special">,</span>
+           <span class="identifier">InputIterator2</span> <span class="identifier">first2</span><span class="special">,</span> <span class="identifier">InputIterator2</span> <span class="identifier">last2</span><span class="special">,</span> <span class="identifier">BinaryPredicate</span> <span class="identifier">pred</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX14.mismatch.h1"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX14.mismatch.examples"></a></span><a class="link" href="mismatch.html#the_boost_algorithm_library.CXX14.mismatch.examples">Examples</a>
+      </h5>
+<p>
+        Given the container <code class="computeroutput"><span class="identifier">c1</span></code> containing
+        <code class="computeroutput"><span class="special">{</span> <span class="number">0</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span>
+        <span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="number">14</span><span class="special">,</span> <span class="number">15</span> <span class="special">}</span></code>,
+        and <code class="computeroutput"><span class="identifier">c2</span></code> containing <code class="computeroutput"><span class="special">{</span> <span class="number">1</span><span class="special">,</span>
+        <span class="number">2</span><span class="special">,</span> <span class="number">3</span> <span class="special">}</span></code>, then
+</p>
+<pre class="programlisting"><span class="identifier">mismatch</span> <span class="special">(</span> <span class="identifier">c1</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span>     <span class="identifier">c1</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>       <span class="identifier">c2</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c2</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span> <span class="special">--&gt;</span> <span class="special">&lt;</span><span class="identifier">c1</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c2</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()&gt;</span> <span class="comment">// first elements do not match</span>
+<span class="identifier">mismatch</span> <span class="special">(</span> <span class="identifier">c1</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">+</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">c1</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">+</span> <span class="number">4</span><span class="special">,</span> <span class="identifier">c2</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c2</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span> <span class="special">--&gt;</span> <span class="special">&lt;</span><span class="identifier">c1</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">+</span> <span class="number">4</span><span class="special">,</span> <span class="identifier">c2</span><span class="special">.</span><span class="identifier">end</span> <span class="special">()&gt;</span> <span class="comment">// all elements of `c2` match</span>
+<span class="identifier">mismatch</span> <span class="special">(</span> <span class="identifier">c1</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>       <span class="identifier">c1</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>       <span class="identifier">c2</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>   <span class="identifier">c2</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span> <span class="special">--&gt;</span> <span class="special">&lt;</span><span class="identifier">c1</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">c2</span><span class="special">.</span><span class="identifier">end</span><span class="special">()&gt;</span> <span class="comment">// empty sequences don't match at the end.</span>
+</pre>
+<p>
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX14.mismatch.h2"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX14.mismatch.iterator_requirements"></a></span><a class="link" href="mismatch.html#the_boost_algorithm_library.CXX14.mismatch.iterator_requirements">Iterator
+        Requirements</a>
+      </h5>
+<p>
+        <code class="computeroutput"><span class="identifier">mismatch</span></code> works on all iterators
+        except output iterators.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX14.mismatch.h3"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX14.mismatch.complexity"></a></span><a class="link" href="mismatch.html#the_boost_algorithm_library.CXX14.mismatch.complexity">Complexity</a>
+      </h5>
+<p>
+        Both of the variants of <code class="computeroutput"><span class="identifier">mismatch</span></code>
+        run in <span class="emphasis"><em>O(N)</em></span> (linear) time; that is, they compare against
+        each element in the list once. If the sequence is found to be equal at any
+        point, the routine will terminate immediately, without examining the rest
+        of the elements.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX14.mismatch.h4"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX14.mismatch.exception_safety"></a></span><a class="link" href="mismatch.html#the_boost_algorithm_library.CXX14.mismatch.exception_safety">Exception
+        Safety</a>
+      </h5>
+<p>
+        Both of the variants of <code class="computeroutput"><span class="identifier">mismatch</span></code>
+        take their parameters by value and do not depend upon any global state. Therefore,
+        all the routines in this file provide the strong exception guarantee.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX14.mismatch.h5"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX14.mismatch.notes"></a></span><a class="link" href="mismatch.html#the_boost_algorithm_library.CXX14.mismatch.notes">Notes</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            If the sequences are equal (or both are empty), then mismatch returns
+            the end iterators of both sequences.
+          </li>
+<li class="listitem">
+            The four iterator version of the routine <code class="computeroutput"><span class="identifier">mismatch</span></code>
+            is part of the C++14 standard. When C++14 standard library implementations
+            become available, the implementation from the standard library should
+            be used.
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010-2012 Marshall Clow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../algorithm/CXX14.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../algorithm/CXX14.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../algorithm/Misc.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

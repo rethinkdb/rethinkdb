@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>require.js: Priority order! Test</title>
+    <script type="text/javascript" src="../../require.js"></script>
+    <script type="text/javascript" src="../doh/runner.js"></script>
+    <script type="text/javascript" src="../doh/_browserRunner.js"></script>
+    <script type="text/javascript">
+    var master = new doh.Deferred(),
+        count = 0;
+    doh.register(
+        "priority",
+        [
+            {
+                name: "priorityOrder",
+                timeout: 5000,
+                runTest: function () {
+                    return master;
+                }
+            }
+        ]
+    );
+    doh.run();
+
+    require(
+        {
+            baseUrl: "./",
+            paths: {
+                text: "../../text"
+            },
+            priority: ["order!leaf", "order!tree"]
+        },
+        ["leaf", "bark", "tree", "flower"],
+        function (leaf, bark, tree, bush) {
+            count += 1;
+
+            //Make sure callback is only called once.
+            doh.is(1, count);
+
+            doh.is("leaf", leaf.name);
+            doh.is("bark", bark.name);
+            doh.is("tree", tree.name);
+            doh.is("leaf", tree.leafName);
+            doh.is("bark", tree.barkName);
+            doh.is("flower", bush.name);
+
+            var regExp = /bark/,
+                i,
+                scripts = document.getElementsByTagName("script");
+            for (i = scripts.length - 1; i > -1; i--) {
+                doh.f(regExp.test(scripts[i].src));
+            }
+            master.callback(true);
+        }
+    );
+    </script>
+</head>
+<body>
+    <h1>require.js: Priority order! Test</h1>
+    <p>Check console for messages</p>
+</body>
+</html>

@@ -1,0 +1,127 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:uni_iter Unicode Iterators]
+
+[h4 Synopsis]
+
+``#include <boost/regex/pending/unicode_iterator.hpp>``
+
+   template <class BaseIterator, class U16Type = ::boost::uint16_t>
+   class u32_to_u16_iterator;
+
+   template <class BaseIterator, class U32Type = ::boost::uint32_t>
+   class u16_to_u32_iterator;
+
+   template <class BaseIterator, class U8Type = ::boost::uint8_t>
+   class u32_to_u8_iterator;
+
+   template <class BaseIterator, class U32Type = ::boost::uint32_t>
+   class u8_to_u32_iterator;
+
+   template <class BaseIterator>
+   class utf16_output_iterator;
+
+   template <class BaseIterator>
+   class utf8_output_iterator;
+
+
+[h4 Description]
+
+This header contains a selection of iterator adaptors that make a sequence of characters in one
+encoding "look like" a read-only sequence of characters in another encoding.
+
+   template <class BaseIterator, class U16Type = ::boost::uint16_t>
+   class u32_to_u16_iterator
+   {
+      u32_to_u16_iterator();
+      u32_to_u16_iterator(BaseIterator start_position);
+
+      // Other standard BidirectionalIterator members here...
+   };
+
+A Bidirectional iterator adapter that makes an underlying sequence of UTF32 characters look like 
+a (read-only) sequence of UTF16 characters.  The UTF16 characters are encoded in the platforms
+native byte order.
+
+   template <class BaseIterator, class U32Type = ::boost::uint32_t>
+   class u16_to_u32_iterator
+   {
+      u16_to_u32_iterator();
+      u16_to_u32_iterator(BaseIterator start_position);
+      u16_to_u32_iterator(BaseIterator start_position, BaseIterator start_range, BaseIterator end_range);
+
+      // Other standard BidirectionalIterator members here...
+   };
+
+A Bidirectional iterator adapter that makes an underlying sequence of UTF16 characters
+(in the platforms native byte order) look like a (read-only) sequence of UTF32 characters.
+
+The three-arg constructor of this class takes the start and end of the underlying sequence
+as well as the position to start iteration from.  This constructor validates that the
+underlying sequence has validly encoded endpoints: this prevents accidently incrementing/decrementing
+past the end of the underlying sequence as a result of invalid UTF16 code sequences at the endpoints
+of the underlying range.
+
+   template <class BaseIterator, class U8Type = ::boost::uint8_t>
+   class u32_to_u8_iterator
+   {
+      u32_to_u8_iterator();
+      u32_to_u8_iterator(BaseIterator start_position);
+
+      // Other standard BidirectionalIterator members here...
+   };
+
+A Bidirectional iterator adapter that makes an underlying sequence of UTF32 characters look like 
+a (read-only) sequence of UTF8 characters.  
+
+   template <class BaseIterator, class U32Type = ::boost::uint32_t>
+   class u8_to_u32_iterator
+   {
+      u8_to_u32_iterator();
+      u8_to_u32_iterator(BaseIterator start_position);
+      u8_to_u32_iterator(BaseIterator start_position, BaseIterator start_range, BaseIterator end_range);
+
+      // Other standard BidirectionalIterator members here...
+   };
+
+A Bidirectional iterator adapter that makes an underlying sequence of UTF8 characters
+look like a (read-only) sequence of UTF32 characters.
+
+The three-arg constructor of this class takes the start and end of the underlying sequence
+as well as the position to start iteration from.  This constructor validates that the
+underlying sequence has validly encoded endpoints: this prevents accidently incrementing/decrementing
+past the end of the underlying sequence as a result of invalid UTF8 code sequences at the endpoints
+of the underlying range.
+
+   template <class BaseIterator>
+   class utf16_output_iterator
+   {
+      utf16_output_iterator(const BaseIterator& b);
+      utf16_output_iterator(const utf16_output_iterator& that);
+      utf16_output_iterator& operator=(const utf16_output_iterator& that);
+
+      // Other standard OutputIterator members here...
+   };
+
+Simple OutputIterator adapter - accepts UTF32 values as input, and forwards them to ['BaseIterator b]
+as UTF16.  Both UTF32 and UTF16 values are in native byte order.
+
+   template <class BaseIterator>
+   class utf8_output_iterator
+   {
+      utf8_output_iterator(const BaseIterator& b);
+      utf8_output_iterator(const utf8_output_iterator& that);
+      utf8_output_iterator& operator=(const utf8_output_iterator& that);
+
+      // Other standard OutputIterator members here...
+   };
+
+Simple OutputIterator adapter - accepts UTF32 values as input, and forwards them to ['BaseIterator b]
+as UTF8.  The UTF32 input values must be in native byte order.
+
+[endsect]

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE boost_serialization>
+<boost_serialization signature="serialization::archive" version="3">
+<s class_id="0" tracking_level="0" version="2">
+	<schedule class_id="1" tracking_level="0">
+		<count>6</count>
+		<item class_id="2" tracking_level="0">
+			<first class_id="3" tracking_level="0" version="3">
+				<driver>bob</driver>
+				<hour>6</hour>
+				<minute>24</minute>
+			</first>
+			<second class_id="4" tracking_level="1" object_id="_0">
+				<stops class_id="7" tracking_level="0">
+					<count>3</count>
+					<item class_id="5" tracking_level="1" object_id="_1">
+						<bus_stop class_id="8" tracking_level="0">
+							<latitude class_id="9" tracking_level="0">
+								<degrees>34</degrees>
+								<minutes>135</minutes>
+								<seconds>52.560001</seconds>
+							</latitude>
+							<longitude>
+								<degrees>134</degrees>
+								<minutes>22</minutes>
+								<seconds>78.300003</seconds>
+							</longitude>
+						</bus_stop>
+						<street1>24th Street</street1>
+						<street2>10th Avenue</street2>
+					</item>
+					<item class_id_reference="5" object_id="_2">
+						<bus_stop>
+							<latitude>
+								<degrees>35</degrees>
+								<minutes>137</minutes>
+								<seconds>23.455999</seconds>
+							</latitude>
+							<longitude>
+								<degrees>133</degrees>
+								<minutes>35</minutes>
+								<seconds>54.119999</seconds>
+							</longitude>
+						</bus_stop>
+						<street1>State street</street1>
+						<street2>Cathedral Vista Lane</street2>
+					</item>
+					<item class_id="6" tracking_level="1" object_id="_3">
+						<bus_stop>
+							<latitude>
+								<degrees>35</degrees>
+								<minutes>136</minutes>
+								<seconds>15.456</seconds>
+							</latitude>
+							<longitude>
+								<degrees>133</degrees>
+								<minutes>32</minutes>
+								<seconds>15.3</seconds>
+							</longitude>
+						</bus_stop>
+						<name>White House</name>
+					</item>
+				</stops>
+			</second>
+		</item>
+		<item>
+			<first>
+				<driver>bob</driver>
+				<hour>9</hour>
+				<minute>57</minute>
+			</first>
+			<second class_id_reference="4" object_id_reference="_0"></second>
+		</item>
+		<item>
+			<first>
+				<driver>alice</driver>
+				<hour>11</hour>
+				<minute>2</minute>
+			</first>
+			<second class_id_reference="4" object_id_reference="_0"></second>
+		</item>
+		<item>
+			<first>
+				<driver>ted</driver>
+				<hour>7</hour>
+				<minute>17</minute>
+			</first>
+			<second class_id_reference="4" object_id="_4">
+				<stops>
+					<count>3</count>
+					<item class_id_reference="6" object_id="_5">
+						<bus_stop>
+							<latitude>
+								<degrees>35</degrees>
+								<minutes>134</minutes>
+								<seconds>48.789001</seconds>
+							</latitude>
+							<longitude>
+								<degrees>133</degrees>
+								<minutes>32</minutes>
+								<seconds>16.23</seconds>
+							</longitude>
+						</bus_stop>
+						<name>Lincoln Memorial</name>
+					</item>
+					<item class_id_reference="6" object_id_reference="_3"></item>
+					<item class_id_reference="5" object_id_reference="_2"></item>
+				</stops>
+			</second>
+		</item>
+		<item>
+			<first>
+				<driver>ted</driver>
+				<hour>9</hour>
+				<minute>38</minute>
+			</first>
+			<second class_id_reference="4" object_id_reference="_4"></second>
+		</item>
+		<item>
+			<first>
+				<driver>alice</driver>
+				<hour>11</hour>
+				<minute>47</minute>
+			</first>
+			<second class_id_reference="4" object_id_reference="_4"></second>
+		</item>
+	</schedule>
+</s>
+</boost_serialization>

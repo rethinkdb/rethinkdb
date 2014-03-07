@@ -1,0 +1,326 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+  == Copyright 2002 The Trustees of Indiana University.
+
+  == Use, modification and distribution is subject to the Boost Software 
+  == License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  == http://www.boost.org/LICENSE_1_0.txt)
+
+  ==  Boost.MultiArray Library
+  ==  Authors: Ronald Garcia
+  ==           Jeremy Siek
+  ==           Andrew Lumsdaine
+  ==  See http://www.boost.org/libs/multi_array for documentation.
+  -->
+<head>
+<title>
+Boost.MultiArray: Test Descriptions
+</title>
+</head>
+<body bgcolor="#ffffff" text="#000000">
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+<h1>Boost.MultiArray: Test Descriptions</h1>
+
+    The following is a description of the test cases that are included with 
+    Boost.Multi_Array (B.M).
+
+<h2>Terminology</h2>
+The following list is to clarify the use of terms in the following
+descriptions:
+<ul>
+<li> <b>B.M</b> - abbreviation for Boost.MultiArray.
+
+<li><b>primary components</b> - refers to <tt>boost::multi_array</tt>,
+<tt>boost::const_multi_array_ref</tt>, and
+<tt>boost::multi_array_ref</tt>.
+
+<li><b>array types</b> - refers to all the primary components, plus for each
+primary component "array", the types <tt>array::const_subarray</tt>,
+<tt>array::subarray</tt>, <tt>array::const_array_view</tt>, and
+<tt>array::array_view </tt>
+
+</ul>
+
+<h2>Acceptance Tests</h2>
+
+    The following tests exercise various features of Boost.Multi_Array to
+    ensure proper operation at run time.
+
+<table border="1" cellspacing="0" cellpadding="5"
+summary="This table describes the test cases in the multi-array test
+      suite that should compile and run.">
+<tr>
+<td>Program</td>
+<td>Description</td>
+</tr>
+
+<tr>
+<td><a href="../test/constructors.cpp">libs/multi_array/test/constructors.cpp</a></td>
+<td>
+Exercises all of the constructors for B.M primary components.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/access.cpp">libs/multi_array/test/access.cpp</a></td>
+<td>
+Tests <tt>operator[]</tt> and <tt>operator()</tt> on all B.M array types.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/compare.cpp">libs/multi_array/test/compare.cpp</a></td>
+<td>
+Tests all comparison operators for the B.M primary components.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/iterators.cpp">libs/multi_array/test/iterators.cpp</a></td>
+<td>
+Test all iterator traversal and access functionality for all B.M array types.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/slice.cpp">libs/multi_array/test/slice.cpp</a></td>
+<td>
+Test all variations of subview generation for all B.M array types.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/assign.cpp">libs/multi_array/test/assign.cpp</a></td>
+<td>
+Tests out <tt>operator=()</tt> on the various B.M array types.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/assign_to_array.cpp">libs/multi_array/test/assign_to_array.cpp</a></td>
+<td>
+Ensure that a <tt>multi_array</tt> can be constructed from any other
+array type. 
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/index_bases.cpp">libs/multi_array/test/index_bases.cpp</a></td>
+<td>
+Test re-indexing functionality for the B.M primary components.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/storage_order_convert.cpp">libs/multi_array/test/storage_order_convert.cpp</a></td>
+<td>
+Test out conversions among the storage orders data types.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/storage_order.cpp">libs/multi_array/test/storage_order.cpp</a></td>
+<td>
+Test variations on storage_order for the B.M primary components.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/reshape.cpp">libs/multi_array/test/reshape.cpp</a></td>
+<td>
+Test re-shaping functionality for the B.M primary components.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/range1.cpp">libs/multi_array/test/range1.cpp</a></td>
+<td>
+Test the various syntaxes for specifying index ranges using
+<tt>array::index_range</tt>.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/idxgen1.cpp">libs/multi_array/test/idxgen1.cpp</a></td>
+<td>
+Test the <tt>array::index_gen</tt> objects.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/stl_interaction.cpp">libs/multi_array/test/stl_interaction.cpp</a></td>
+<td>
+Test interaction between array types and STL containers.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/resize.cpp">libs/multi_array/test/resize.cpp</a></td>
+<td>
+Test the <tt>multi_array</tt> class' resizing functionality.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/concept_checks.cpp">libs/multi_array/test/concept_checks.cpp</a></td>
+<td>
+Ensure that all the array types meet the defined Concepts.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/assert.cpp">libs/multi_array/test/assert.cpp</a></td>
+<td>
+Ensure that uses of BOOST_ASSERT within the library can be customized
+by library users.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/generative_tests.hpp">libs/multi_array/test/generative_tests.hpp</a></td>
+<td>
+A test harness used to simplify testing operations upon all array
+types. Used by slice.cpp, iterators.cpp, and access.cpp.
+</td>
+</tr>
+</table>
+
+<h2>Compile-Fail Tests</h2>
+
+    The following tests check to make sure that various constructs not 
+    accepted by the library fail to compile.  Each test checks only
+    one fault in order to more easily ensure the cause of the
+    compilation failure.
+<p>
+
+<table border="1" cellspacing="0" cellpadding="5"
+summary="This table describes the tests in the multi array test suite
+      that should fail to compile">
+<tr>
+<td>Program</td>
+<td>Description</td>
+</tr>
+
+<tr>
+<td><a href="../test/fail_cbracket.cpp">libs/multi_array/test/fail_cbracket.cpp</a>
+<br><a href="../test/fail_ref_cbracket.cpp">libs/multi_array/test/fail_ref_cbracket.cpp</a></td>
+<td>
+<tt>operator[]</tt> on a const array must not modify elements.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/fail_cdata.cpp">libs/multi_array/test/fail_cdata.cpp</a>
+<br><a href="../test/fail_ref_cdata.cpp">libs/multi_array/test/fail_ref_cdata.cpp</a></td>
+<td>
+<tt>array::data() const</tt> must return a pointer to const data.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/fail_citerator.cpp">libs/multi_array/test/fail_citerator.cpp</a>
+<br><a href="../test/fail_ref_citerator.cpp">libs/multi_array/test/fail_ref_citerator.cpp</a></td>
+<td>
+<tt>const_iterator</tt> must not be convertible to <tt>iterator</tt>.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/fail_cparen.cpp">libs/multi_array/test/fail_cparen.cpp</a>
+<br><a href="../test/fail_ref_cparen.cpp">libs/multi_array/test/fail_ref_cparen.cpp</a></td>
+<td>
+<tt>operator()</tt> on a const array must not modify elements.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/fail_criterator.cpp">libs/multi_array/test/fail_criterator.cpp</a>
+<br><a href="../test/fail_ref_criterator.cpp">libs/multi_array/test/fail_ref_criterator.cpp</a></td>
+<td>
+<tt>const_reverse_iterator</tt> must not be convertible to 
+<tt>reverse_iterator</tt>.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/fail_csubarray.cpp">libs/multi_array/test/fail_csubarray.cpp</a>
+<br><a href="../test/fail_ref_csubarray.cpp">libs/multi_array/test/fail_ref_csubarray.cpp</a></td>
+<td>
+<tt>const_subarray</tt> must not be convertible to <tt>subarray</tt>.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/fail_csubarray2.cpp">libs/multi_array/test/fail_csubarray2.cpp</a>
+<br><a href="../test/fail_ref_csubarray2.cpp">libs/multi_array/test/fail_ref_csubarray2.cpp</a></td>
+<td>
+<tt>array::operator[] const</tt> must not be convertible to <tt>subarray</tt>.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/fail_csubarray3.cpp">libs/multi_array/test/fail_csubarray3.cpp</a>
+<br><a href="../test/fail_ref_csubarray3.cpp">libs/multi_array/test/fail_ref_csubarray3.cpp</a></td>
+<td>
+<tt>const_subarray</tt> into an array must not modify elements.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/fail_cview.cpp">libs/multi_array/test/fail_cview.cpp</a>
+<br><a href="../test/fail_ref_cview.cpp">libs/multi_array/test/fail_ref_cview.cpp</a></td>
+<td>
+<tt>const_array_view</tt> of an array must not modify elements.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/fail_cview2.cpp">libs/multi_array/test/fail_cview2.cpp</a>
+<br><a href="../test/fail_ref_cview2.cpp">libs/multi_array/test/fail_ref_cview2.cpp</a></td>
+<td>
+<tt>array::operator[] const</tt> must not be convertible to 
+<tt>array_view</tt>.
+</td>
+</tr>
+
+<tr>
+<td><a href="../test/fail_cview3.cpp">libs/multi_array/test/fail_cview3.cpp</a>
+<br><a href="../test/fail_ref_cview3.cpp">libs/multi_array/test/fail_ref_cview3.cpp</a></td>
+<td>
+<tt>const_array_view</tt> of an array must not modify elements.
+</td>
+</tr>
+
+</table>
+
+<br>
+<table summary="Copyright information">
+<tr valign="top">
+<td nowrap>Copyright &copy; 2001</td>
+<td><a href="http://www.boost.org/people/ronald_garcia.htm">Ronald Garcia</a>,
+Indiana University (<a href=
+"mailto:garcia@cs.indiana.edu">garcia@cs.indiana.edu</a>)<br>
+<a href="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>, Indiana
+University (<a href=
+"mailto:jsiek@cs.indiana.edu">jsiek@cs.indiana.edu</a>)<br>
+<a href="http://www.lsc.nd.edu/~lums">Andrew Lumsdaine</a>, Indiana
+University (<a href=
+"mailto:lums@cs.indiana.edu">lums@cs.indiana.edu</a>)</td>
+</tr>
+</table>
+
+<hr>
+
+<address>
+<a href="mailto:garcia@.cs.indiana.edu">Ronald Garcia</a>
+</address>
+<!-- hhmts start -->
+Last modified: Wed Oct 31 19:46:44 EST 2001
+<!-- hhmts end -->
+
+</body>
+</html>
+

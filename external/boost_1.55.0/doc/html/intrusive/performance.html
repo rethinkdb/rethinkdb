@@ -1,0 +1,2041 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Performance</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../intrusive.html" title="Chapter&#160;15.&#160;Boost.Intrusive">
+<link rel="prev" href="design_notes.html" title="Design Notes">
+<link rel="next" href="release_notes.html" title="Release Notes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="design_notes.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="release_notes.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.performance"></a><a class="link" href="performance.html" title="Performance">Performance</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="performance.html#intrusive.performance.performance_results_push_back">Back
+      insertion and destruction</a></span></dt>
+<dt><span class="section"><a href="performance.html#intrusive.performance.performance_results_reversing">Reversing</a></span></dt>
+<dt><span class="section"><a href="performance.html#intrusive.performance.performance_results_sorting">Sorting</a></span></dt>
+<dt><span class="section"><a href="performance.html#intrusive.performance.performance_results_write_access">Write
+      access</a></span></dt>
+<dt><span class="section"><a href="performance.html#intrusive.performance.performance_results_conclusions">Conclusions</a></span></dt>
+</dl></div>
+<p>
+      <span class="bold"><strong>Boost.Intrusive</strong></span> containers offer speed improvements
+      compared to non-intrusive containers primarily because:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          They minimize memory allocation/deallocation calls.
+        </li>
+<li class="listitem">
+          They obtain better memory locality.
+        </li>
+</ul></div>
+<p>
+      This section will show performance tests comparing some operations on <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">::</span><span class="identifier">list</span></code> and
+      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span></code>:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Insertions using <code class="computeroutput"><span class="identifier">push_back</span></code>
+          and container destruction will show the overhead associated with memory
+          allocation/deallocation.
+        </li>
+<li class="listitem">
+          The <code class="computeroutput"><span class="identifier">reverse</span></code> member function
+          will show the advantages of the compact memory representation that can
+          be achieved with intrusive containers.
+        </li>
+<li class="listitem">
+          The <code class="computeroutput"><span class="identifier">sort</span></code> and <code class="computeroutput"><span class="identifier">write</span> <span class="identifier">access</span></code>
+          tests will show the advantage of intrusive containers minimizing memory
+          accesses compared to containers of pointers.
+        </li>
+</ul></div>
+<p>
+      Given an object of type <code class="computeroutput"><span class="identifier">T</span></code>,
+      <code class="computeroutput"><a class="link" href="../boost/intrusive/list.html" title="Class template list">boost::intrusive::list&lt;T&gt;</a></code>
+      can replace <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code> to
+      avoid memory allocation overhead, or it can replace <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">*&gt;</span></code> when
+      the user wants containers with polymorphic values or wants to share values
+      between several containers. Because of this versatility, the performance tests
+      will be executed for 6 different list types:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          3 intrusive lists holding a class named <code class="computeroutput"><span class="identifier">itest_class</span></code>,
+          each one with a different linking policy (<code class="computeroutput"><span class="identifier">normal_link</span></code>,
+          <code class="computeroutput"><span class="identifier">safe_link</span></code>, <code class="computeroutput"><span class="identifier">auto_unlink</span></code>). The <code class="computeroutput"><span class="identifier">itest_class</span></code>
+          objects will be tightly packed in a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">itest_class</span><span class="special">&gt;</span></code> object.
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">test_class</span><span class="special">&gt;</span></code>,
+          where <code class="computeroutput"><span class="identifier">test_class</span></code> is exactly
+          the same as <code class="computeroutput"><span class="identifier">itest_class</span></code>,
+          but without the intrusive hook.
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">test_class</span><span class="special">*&gt;</span></code>.
+          The list will contain pointers to <code class="computeroutput"><span class="identifier">test_class</span></code>
+          objects tightly packed in a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">test_class</span><span class="special">&gt;</span></code> object. We'll call this configuration
+          <span class="emphasis"><em>compact pointer list</em></span>
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">test_class</span><span class="special">*&gt;</span></code>.
+          The list will contain pointers to <code class="computeroutput"><span class="identifier">test_class</span></code>
+          objects owned by a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">test_class</span><span class="special">&gt;</span></code> object. We'll call this configuration
+          <span class="emphasis"><em>disperse pointer list</em></span>.
+        </li>
+</ul></div>
+<p>
+      Both <code class="computeroutput"><span class="identifier">test_class</span></code> and <code class="computeroutput"><span class="identifier">itest_class</span></code> are templatized classes that
+      can be configured with a boolean to increase the size of the object. This way,
+      the tests can be executed with small and big objects. Here is the first part
+      of the testing code, which shows the definitions of <code class="computeroutput"><span class="identifier">test_class</span></code>
+      and <code class="computeroutput"><span class="identifier">itest_class</span></code> classes, and
+      some other utilities:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">//Iteration and element count defines</span>
+<span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">NumIter</span> <span class="special">=</span> <span class="number">100</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">NumElements</span>   <span class="special">=</span> <span class="number">50000</span><span class="special">;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">BigSize</span><span class="special">&gt;</span>  <span class="keyword">struct</span> <span class="identifier">filler</span>        <span class="special">{</span>  <span class="keyword">int</span> <span class="identifier">dummy</span><span class="special">[</span><span class="number">10</span><span class="special">];</span>   <span class="special">};</span>
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>             <span class="keyword">struct</span> <span class="identifier">filler</span><span class="special">&lt;</span><span class="keyword">false</span><span class="special">&gt;</span> <span class="special">{};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">BigSize</span><span class="special">&gt;</span> <span class="comment">//The object for non-intrusive containers</span>
+<span class="keyword">struct</span> <span class="identifier">test_class</span> <span class="special">:</span>  <span class="keyword">private</span> <span class="identifier">filler</span><span class="special">&lt;</span><span class="identifier">BigSize</span><span class="special">&gt;</span>
+<span class="special">{</span>
+   <span class="keyword">int</span> <span class="identifier">i_</span><span class="special">;</span>
+   <span class="identifier">test_class</span><span class="special">()</span>               <span class="special">{}</span>
+   <span class="identifier">test_class</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">)</span> <span class="special">:</span>  <span class="identifier">i_</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span> <span class="special">{}</span>
+   <span class="keyword">friend</span> <span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">&lt;(</span><span class="keyword">const</span> <span class="identifier">test_class</span> <span class="special">&amp;</span><span class="identifier">l</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">test_class</span> <span class="special">&amp;</span><span class="identifier">r</span><span class="special">)</span>  <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">l</span><span class="special">.</span><span class="identifier">i_</span> <span class="special">&lt;</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">i_</span><span class="special">;</span>  <span class="special">}</span>
+   <span class="keyword">friend</span> <span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">&gt;(</span><span class="keyword">const</span> <span class="identifier">test_class</span> <span class="special">&amp;</span><span class="identifier">l</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">test_class</span> <span class="special">&amp;</span><span class="identifier">r</span><span class="special">)</span>  <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">l</span><span class="special">.</span><span class="identifier">i_</span> <span class="special">&gt;</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">i_</span><span class="special">;</span>  <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">BigSize</span><span class="special">,</span> <span class="identifier">link_mode_type</span> <span class="identifier">LinkMode</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">itest_class</span>   <span class="comment">//The object for intrusive containers</span>
+   <span class="special">:</span>  <span class="keyword">public</span> <span class="identifier">list_base_hook</span><span class="special">&lt;</span><span class="identifier">link_mode</span><span class="special">&lt;</span><span class="identifier">LinkMode</span><span class="special">&gt;</span> <span class="special">&gt;,</span>  <span class="keyword">public</span> <span class="identifier">test_class</span><span class="special">&lt;</span><span class="identifier">BigSize</span><span class="special">&gt;</span>
+<span class="special">{</span>
+   <span class="identifier">itest_class</span><span class="special">()</span>                                <span class="special">{}</span>
+   <span class="identifier">itest_class</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">test_class</span><span class="special">&lt;</span><span class="identifier">BigSize</span><span class="special">&gt;(</span><span class="identifier">i</span><span class="special">)</span>  <span class="special">{}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">FuncObj</span><span class="special">&gt;</span> <span class="comment">//Adapts functors taking values to functors taking pointers</span>
+<span class="keyword">struct</span> <span class="identifier">func_ptr_adaptor</span>  <span class="special">:</span>  <span class="keyword">public</span> <span class="identifier">FuncObj</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">FuncObj</span><span class="special">::</span><span class="identifier">first_argument_type</span><span class="special">*</span>  <span class="identifier">first_argument_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">FuncObj</span><span class="special">::</span><span class="identifier">second_argument_type</span><span class="special">*</span> <span class="identifier">second_argument_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">FuncObj</span><span class="special">::</span><span class="identifier">result_type</span>           <span class="identifier">result_type</span><span class="special">;</span>
+   <span class="identifier">result_type</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">first_argument_type</span> <span class="identifier">a</span><span class="special">,</span>  <span class="identifier">second_argument_type</span> <span class="identifier">b</span><span class="special">)</span> <span class="keyword">const</span>
+      <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">FuncObj</span><span class="special">::</span><span class="keyword">operator</span><span class="special">()(*</span><span class="identifier">a</span><span class="special">,</span> <span class="special">*</span><span class="identifier">b</span><span class="special">);</span> <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+    </p>
+<p>
+      As we can see, <code class="computeroutput"><span class="identifier">test_class</span></code> is
+      a very simple class holding an <code class="computeroutput"><span class="keyword">int</span></code>.
+      <code class="computeroutput"><span class="identifier">itest_class</span></code> is just a class
+      that has a base hook (<code class="computeroutput"><a class="link" href="../boost/intrusive/list_base_hook.html" title="Class template list_base_hook">list_base_hook</a></code>)
+      and also derives from <code class="computeroutput"><span class="identifier">test_class</span></code>.
+    </p>
+<p>
+      <code class="computeroutput"><span class="identifier">func_ptr_adaptor</span></code> is just a
+      functor adaptor to convert function objects taking <code class="computeroutput"><span class="identifier">test_list</span></code>
+      objects to function objects taking pointers to them.
+    </p>
+<p>
+      You can find the full test code code in the <a href="../../../libs/intrusive/perf/perf_list.cpp" target="_top">perf_list.cpp</a>
+      source file.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.performance.performance_results_push_back"></a><a class="link" href="performance.html#intrusive.performance.performance_results_push_back" title="Back insertion and destruction">Back
+      insertion and destruction</a>
+</h3></div></div></div>
+<p>
+        The first test will measure the benefits we can obtain with intrusive containers
+        avoiding memory allocations and deallocations. All the objects to be inserted
+        in intrusive containers are allocated in a single allocation call, whereas
+        <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span></code> will need to allocate memory for each
+        object and deallocate it for every erasure (or container destruction).
+      </p>
+<p>
+        Let's compare the code to be executed for each container type for different
+        insertion tests:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">ilist</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">&gt;</span> <span class="identifier">objects</span><span class="special">(</span><span class="identifier">NumElements</span><span class="special">);</span>
+<span class="identifier">ilist</span> <span class="identifier">l</span><span class="special">;</span>
+<span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">NumElements</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+   <span class="identifier">l</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">objects</span><span class="special">[</span><span class="identifier">i</span><span class="special">]);</span>
+<span class="comment">//Elements are unlinked in ilist's destructor</span>
+<span class="comment">//Elements are destroyed in vector's destructor</span>
+</pre>
+<p>
+      </p>
+<p>
+        For intrusive containers, all the values are created in a vector and after
+        that inserted in the intrusive list.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">stdlist</span> <span class="identifier">l</span><span class="special">;</span>
+<span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">NumElements</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+   <span class="identifier">l</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">stdlist</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="identifier">i</span><span class="special">));</span>
+<span class="comment">//Elements unlinked and destroyed in stdlist's destructor</span>
+</pre>
+<p>
+      </p>
+<p>
+        For a standard list, elements are pushed back using push_back().
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">stdlist</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">&gt;</span> <span class="identifier">objects</span><span class="special">(</span><span class="identifier">NumElements</span><span class="special">);</span>
+<span class="identifier">stdptrlist</span> <span class="identifier">l</span><span class="special">;</span>
+<span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">NumElements</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+   <span class="identifier">l</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(&amp;</span><span class="identifier">objects</span><span class="special">[</span><span class="identifier">i</span><span class="special">]);</span>
+<span class="comment">//Pointers to elements unlinked and destroyed in stdptrlist's destructor</span>
+<span class="comment">//Elements destroyed in vector's destructor</span>
+</pre>
+<p>
+      </p>
+<p>
+        For a standard compact pointer list, elements are created in a vector and
+        pushed back in the pointer list using push_back().
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">stdlist</span> <span class="identifier">objects</span><span class="special">;</span>  <span class="identifier">stdptrlist</span> <span class="identifier">l</span><span class="special">;</span>
+<span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">NumElements</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+   <span class="identifier">objects</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">stdlist</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="identifier">i</span><span class="special">));</span>
+   <span class="identifier">l</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(&amp;</span><span class="identifier">objects</span><span class="special">.</span><span class="identifier">back</span><span class="special">());</span>
+<span class="special">}</span>
+<span class="comment">//Pointers to elements unlinked and destroyed in stdptrlist's destructor</span>
+<span class="comment">//Elements unlinked and destroyed in stdlist's destructor</span>
+</pre>
+<p>
+      </p>
+<p>
+        For a <span class="emphasis"><em>disperse pointer list</em></span>, elements are created in
+        a list and pushed back in the pointer list using push_back().
+      </p>
+<p>
+        These are the times in microseconds for each case, and the normalized time:
+      </p>
+<div class="table">
+<a name="intrusive.performance.performance_results_push_back.back_insertion___destruction_times_for_visual_c___7_1___windows_xp"></a><p class="title"><b>Table&#160;15.2.&#160;Back insertion + destruction times for Visual C++ 7.1 / Windows XP</b></p>
+<div class="table-contents"><table class="table" summary="Back insertion + destruction times for Visual C++ 7.1 / Windows XP">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Container
+                </p>
+              </th>
+<th>
+                <p>
+                  Time in us/iteration (small object / big object)
+                </p>
+              </th>
+<th>
+                <p>
+                  Normalized time (small object / big object)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  5000 / 22500
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">safe_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  7812 / 32187
+                </p>
+              </td>
+<td>
+                <p>
+                  1.56 / 1.43
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  10156 / 41562
+                </p>
+              </td>
+<td>
+                <p>
+                  2.03 / 1.84
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard list
+                </p>
+              </td>
+<td>
+                <p>
+                  26875 / 97500
+                </p>
+              </td>
+<td>
+                <p>
+                  5.37 / 4.33
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard compact pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  76406 / 86718
+                </p>
+              </td>
+<td>
+                <p>
+                  15.28 / 3.85
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard disperse pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  146562 / 175625
+                </p>
+              </td>
+<td>
+                <p>
+                  29.31 / 7.80
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="intrusive.performance.performance_results_push_back.back_insertion___destruction_times_for_gcc_4_1_1___mingw_over_windows_xp"></a><p class="title"><b>Table&#160;15.3.&#160;Back insertion + destruction times for GCC 4.1.1 / MinGW over Windows
+        XP</b></p>
+<div class="table-contents"><table class="table" summary="Back insertion + destruction times for GCC 4.1.1 / MinGW over Windows
+        XP">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Container
+                </p>
+              </th>
+<th>
+                <p>
+                  Time in us/iteration (small object / big object)
+                </p>
+              </th>
+<th>
+                <p>
+                  Normalized time (small object / big object)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  4375 / 22187
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">safe_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  7812 / 32812
+                </p>
+              </td>
+<td>
+                <p>
+                  1.78 / 1.47
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  10468 / 42031
+                </p>
+              </td>
+<td>
+                <p>
+                  2.39 / 1.89
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard list
+                </p>
+              </td>
+<td>
+                <p>
+                  81250 / 98125
+                </p>
+              </td>
+<td>
+                <p>
+                  18.57 / 4.42
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard compact pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  83750 / 94218
+                </p>
+              </td>
+<td>
+                <p>
+                  19.14 / 4.24
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard disperse pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  155625 / 175625
+                </p>
+              </td>
+<td>
+                <p>
+                  35.57 / 7.91
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="intrusive.performance.performance_results_push_back.back_insertion___destruction_times_for_gcc_4_1_2___linux_kernel_2_6_18__opensuse_10_2_"></a><p class="title"><b>Table&#160;15.4.&#160;Back insertion + destruction times for GCC 4.1.2 / Linux Kernel 2.6.18
+        (OpenSuse 10.2)</b></p>
+<div class="table-contents"><table class="table" summary="Back insertion + destruction times for GCC 4.1.2 / Linux Kernel 2.6.18
+        (OpenSuse 10.2)">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Container
+                </p>
+              </th>
+<th>
+                <p>
+                  Time in us/iteration (small object / big object)
+                </p>
+              </th>
+<th>
+                <p>
+                  Normalized time (small object / big object)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  4792 / 20495
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">safe_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  7709 / 30803
+                </p>
+              </td>
+<td>
+                <p>
+                  1.60 / 1.5
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  10180 / 41183
+                </p>
+              </td>
+<td>
+                <p>
+                  2.12 / 2.0
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard list
+                </p>
+              </td>
+<td>
+                <p>
+                  17031 / 32586
+                </p>
+              </td>
+<td>
+                <p>
+                  3.55 / 1.58
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard compact pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  27221 / 34823
+                </p>
+              </td>
+<td>
+                <p>
+                  5.68 / 1.69
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard disperse pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  102272 / 60056
+                </p>
+              </td>
+<td>
+                <p>
+                  21.34 / 2.93
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        The results are logical: intrusive lists just need one allocation. The destruction
+        time of the <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+        container is trivial (complexity: <code class="computeroutput"><span class="identifier">O</span><span class="special">(</span><span class="number">1</span><span class="special">)</span></code>),
+        whereas <code class="computeroutput"><span class="identifier">safe_link</span></code> and <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive containers need to
+        put the hooks of erased values in the default state (complexity: <code class="computeroutput"><span class="identifier">O</span><span class="special">(</span><span class="identifier">NumElements</span><span class="special">)</span></code>). That's why <code class="computeroutput"><span class="identifier">normal_link</span></code>
+        intrusive list shines in this test.
+      </p>
+<p>
+        Non-intrusive containers need to make many more allocations and that's why
+        they lag behind. The <code class="computeroutput"><span class="identifier">disperse</span> <span class="identifier">pointer</span> <span class="identifier">list</span></code>
+        needs to make <code class="computeroutput"><span class="identifier">NumElements</span><span class="special">*</span><span class="number">2</span></code> allocations,
+        so the result is not surprising.
+      </p>
+<p>
+        The Linux test shows that standard containers perform very well against intrusive
+        containers with big objects. Nearly the same GCC version in MinGW performs
+        worse, so maybe a good memory allocator is the reason for these excellent
+        results.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.performance.performance_results_reversing"></a><a class="link" href="performance.html#intrusive.performance.performance_results_reversing" title="Reversing">Reversing</a>
+</h3></div></div></div>
+<p>
+        The next test measures the time needed to complete calls to the member function
+        <code class="computeroutput"><span class="identifier">reverse</span><span class="special">()</span></code>.
+        Values (<code class="computeroutput"><span class="identifier">test_class</span></code> and <code class="computeroutput"><span class="identifier">itest_class</span></code>) and lists are created as explained
+        in the previous section.
+      </p>
+<p>
+        Note that for pointer lists, <code class="computeroutput"><span class="identifier">reverse</span></code>
+        <span class="bold"><strong>does not need to access <code class="computeroutput"><span class="identifier">test_class</span></code>
+        values stored in another list or vector</strong></span>, since this function just
+        needs to adjust internal pointers, so in theory all tested lists need to
+        perform the same operations.
+      </p>
+<p>
+        These are the results:
+      </p>
+<div class="table">
+<a name="intrusive.performance.performance_results_reversing.reverse_times_for_visual_c___7_1___windows_xp"></a><p class="title"><b>Table&#160;15.5.&#160;Reverse times for Visual C++ 7.1 / Windows XP</b></p>
+<div class="table-contents"><table class="table" summary="Reverse times for Visual C++ 7.1 / Windows XP">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Container
+                </p>
+              </th>
+<th>
+                <p>
+                  Time in us/iteration (small object / big object)
+                </p>
+              </th>
+<th>
+                <p>
+                  Normalized time (small object / big object)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2656 / 10625
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1.83
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">safe_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2812 / 10937
+                </p>
+              </td>
+<td>
+                <p>
+                  1.05 / 1.89
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2710 / 10781
+                </p>
+              </td>
+<td>
+                <p>
+                  1.02 / 1.86
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard list
+                </p>
+              </td>
+<td>
+                <p>
+                  5781 / 14531
+                </p>
+              </td>
+<td>
+                <p>
+                  2.17 / 2.51
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard compact pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  5781 / 5781
+                </p>
+              </td>
+<td>
+                <p>
+                  2.17 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard disperse pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  10781 / 15781
+                </p>
+              </td>
+<td>
+                <p>
+                  4.05 / 2.72
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="intrusive.performance.performance_results_reversing.reverse_times_for_gcc_4_1_1___mingw_over_windows_xp"></a><p class="title"><b>Table&#160;15.6.&#160;Reverse times for GCC 4.1.1 / MinGW over Windows XP</b></p>
+<div class="table-contents"><table class="table" summary="Reverse times for GCC 4.1.1 / MinGW over Windows XP">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Container
+                </p>
+              </th>
+<th>
+                <p>
+                  Time in us/iteration (small object / big object)
+                </p>
+              </th>
+<th>
+                <p>
+                  Normalized time (small object / big object)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2656 / 10781
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 2.22
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">safe_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2656 / 10781
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 2.22
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2812 / 10781
+                </p>
+              </td>
+<td>
+                <p>
+                  1.02 / 2.22
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard list
+                </p>
+              </td>
+<td>
+                <p>
+                  4843 / 12500
+                </p>
+              </td>
+<td>
+                <p>
+                  1.82 / 2.58
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard compact pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  4843 / 4843
+                </p>
+              </td>
+<td>
+                <p>
+                  1.82 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard disperse pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  9218 / 12968
+                </p>
+              </td>
+<td>
+                <p>
+                  3.47 / 2.67
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="intrusive.performance.performance_results_reversing.reverse_times_for_gcc_4_1_2___linux_kernel_2_6_18__opensuse_10_2_"></a><p class="title"><b>Table&#160;15.7.&#160;Reverse times for GCC 4.1.2 / Linux Kernel 2.6.18 (OpenSuse 10.2)</b></p>
+<div class="table-contents"><table class="table" summary="Reverse times for GCC 4.1.2 / Linux Kernel 2.6.18 (OpenSuse 10.2)">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Container
+                </p>
+              </th>
+<th>
+                <p>
+                  Time in us/iteration (small object / big object)
+                </p>
+              </th>
+<th>
+                <p>
+                  Normalized time (small object / big object)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2742 / 10847
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 3.41
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">safe_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2742 / 10847
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 3.41
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2742 / 11027
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 3.47
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard list
+                </p>
+              </td>
+<td>
+                <p>
+                  3184 / 10942
+                </p>
+              </td>
+<td>
+                <p>
+                  1.16 / 3.44
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard compact pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  3207 / 3176
+                </p>
+              </td>
+<td>
+                <p>
+                  1.16 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard disperse pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  5814 / 13381
+                </p>
+              </td>
+<td>
+                <p>
+                  2.12 / 4.21
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        For small objects the results show that the compact storage of values in
+        intrusive containers improve locality and reversing is faster than with standard
+        containers, whose values might be dispersed in memory because each value
+        is independently allocated. Note that the dispersed pointer list (a list
+        of pointers to values allocated in another list) suffers more because nodes
+        of the pointer list might be more dispersed, since allocations from both
+        lists are interleaved in the code:
+      </p>
+<pre class="programlisting"><span class="comment">//Object list (holding `test_class`)</span>
+<span class="identifier">stdlist</span> <span class="identifier">objects</span><span class="special">;</span>
+
+<span class="comment">//Pointer list (holding `test_class` pointers)</span>
+<span class="identifier">stdptrlist</span> <span class="identifier">l</span><span class="special">;</span>
+
+<span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">NumElements</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+   <span class="comment">//Allocation from the object list</span>
+   <span class="identifier">objects</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">stdlist</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="identifier">i</span><span class="special">));</span>
+   <span class="comment">//Allocation from the pointer list</span>
+   <span class="identifier">l</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(&amp;</span><span class="identifier">objects</span><span class="special">.</span><span class="identifier">back</span><span class="special">());</span>
+<span class="special">}</span>
+</pre>
+<p>
+        For big objects the compact pointer list wins because the reversal test doesn't
+        need access to values stored in another container. Since all the allocations
+        for nodes of this pointer list are likely to be close (since there is no
+        other allocation in the process until the pointer list is created) locality
+        is better than with intrusive containers. The dispersed pointer list, as
+        with small values, has poor locality.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.performance.performance_results_sorting"></a><a class="link" href="performance.html#intrusive.performance.performance_results_sorting" title="Sorting">Sorting</a>
+</h3></div></div></div>
+<p>
+        The next test measures the time needed to complete calls to the member function
+        <code class="computeroutput"><span class="identifier">sort</span><span class="special">(</span><span class="identifier">Pred</span> <span class="identifier">pred</span><span class="special">)</span></code>. Values (<code class="computeroutput"><span class="identifier">test_class</span></code>
+        and <code class="computeroutput"><span class="identifier">itest_class</span></code>) and lists
+        are created as explained in the first section. The values will be sorted
+        in ascending and descending order each iteration. For example, if <span class="emphasis"><em>l</em></span>
+        is a list:
+      </p>
+<pre class="programlisting"><span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">NumIter</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+   <span class="keyword">if</span><span class="special">(!(</span><span class="identifier">i</span> <span class="special">%</span> <span class="number">2</span><span class="special">))</span>
+      <span class="identifier">l</span><span class="special">.</span><span class="identifier">sort</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">greater</span><span class="special">&lt;</span><span class="identifier">stdlist</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">&gt;());</span>
+   <span class="keyword">else</span>
+      <span class="identifier">l</span><span class="special">.</span><span class="identifier">sort</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">stdlist</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">&gt;());</span>
+<span class="special">}</span>
+</pre>
+<p>
+        For a pointer list, the function object will be adapted using <code class="computeroutput"><span class="identifier">func_ptr_adaptor</span></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">NumIter</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+   <span class="keyword">if</span><span class="special">(!(</span><span class="identifier">i</span> <span class="special">%</span> <span class="number">2</span><span class="special">))</span>
+      <span class="identifier">l</span><span class="special">.</span><span class="identifier">sort</span><span class="special">(</span><span class="identifier">func_ptr_adaptor</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">greater</span><span class="special">&lt;</span><span class="identifier">stdlist</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">&gt;</span> <span class="special">&gt;());</span>
+   <span class="keyword">else</span>
+      <span class="identifier">l</span><span class="special">.</span><span class="identifier">sort</span><span class="special">(</span><span class="identifier">func_ptr_adaptor</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">stdlist</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">&gt;</span> <span class="special">&gt;());</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Note that for pointer lists, <code class="computeroutput"><span class="identifier">sort</span></code>
+        will take a function object that <span class="bold"><strong>will access <code class="computeroutput"><span class="identifier">test_class</span></code> values stored in another list
+        or vector</strong></span>, so pointer lists will suffer an extra indirection:
+        they will need to access the <code class="computeroutput"><span class="identifier">test_class</span></code>
+        values stored in another container to compare two elements.
+      </p>
+<p>
+        These are the results:
+      </p>
+<div class="table">
+<a name="intrusive.performance.performance_results_sorting.sort_times_for_visual_c___7_1___windows_xp"></a><p class="title"><b>Table&#160;15.8.&#160;Sort times for Visual C++ 7.1 / Windows XP</b></p>
+<div class="table-contents"><table class="table" summary="Sort times for Visual C++ 7.1 / Windows XP">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Container
+                </p>
+              </th>
+<th>
+                <p>
+                  Time in us/iteration (small object / big object)
+                </p>
+              </th>
+<th>
+                <p>
+                  Normalized time (small object / big object)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  16093 / 38906
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">safe_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  16093 / 39062
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  16093 / 38906
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard list
+                </p>
+              </td>
+<td>
+                <p>
+                  32343 / 56406
+                </p>
+              </td>
+<td>
+                <p>
+                  2.0 / 1.44
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard compact pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  33593 / 46093
+                </p>
+              </td>
+<td>
+                <p>
+                  2.08 / 1.18
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard disperse pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  46875 / 68593
+                </p>
+              </td>
+<td>
+                <p>
+                  2.91 / 1.76
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="intrusive.performance.performance_results_sorting.sort_times_for_gcc_4_1_1___mingw_over_windows_xp"></a><p class="title"><b>Table&#160;15.9.&#160;Sort times for GCC 4.1.1 / MinGW over Windows XP</b></p>
+<div class="table-contents"><table class="table" summary="Sort times for GCC 4.1.1 / MinGW over Windows XP">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Container
+                </p>
+              </th>
+<th>
+                <p>
+                  Time in us/iteration (small object / big object)
+                </p>
+              </th>
+<th>
+                <p>
+                  Normalized time (small object / big object)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  15000 / 39218
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">safe_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  15156 / 39531
+                </p>
+              </td>
+<td>
+                <p>
+                  1.01 / 1.01
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  15156 / 39531
+                </p>
+              </td>
+<td>
+                <p>
+                  1.01 / 1.01
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard list
+                </p>
+              </td>
+<td>
+                <p>
+                  34218 / 56875
+                </p>
+              </td>
+<td>
+                <p>
+                  2.28 / 1.45
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard compact pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  35468 / 49218
+                </p>
+              </td>
+<td>
+                <p>
+                  2.36 / 1.25
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard disperse pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  47656 / 70156
+                </p>
+              </td>
+<td>
+                <p>
+                  3.17 / 1.78
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="intrusive.performance.performance_results_sorting.sort_times_for_gcc_4_1_2___linux_kernel_2_6_18__opensuse_10_2_"></a><p class="title"><b>Table&#160;15.10.&#160;Sort times for GCC 4.1.2 / Linux Kernel 2.6.18 (OpenSuse 10.2)</b></p>
+<div class="table-contents"><table class="table" summary="Sort times for GCC 4.1.2 / Linux Kernel 2.6.18 (OpenSuse 10.2)">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Container
+                </p>
+              </th>
+<th>
+                <p>
+                  Time in us/iteration (small object / big object)
+                </p>
+              </th>
+<th>
+                <p>
+                  Normalized time (small object / big object)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  18003 / 40795
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">safe_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  18003 / 41017
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  18230 / 40941
+                </p>
+              </td>
+<td>
+                <p>
+                  1.01 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard list
+                </p>
+              </td>
+<td>
+                <p>
+                  26273 / 49643
+                </p>
+              </td>
+<td>
+                <p>
+                  1.45 / 1.21
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard compact pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  28540 / 43172
+                </p>
+              </td>
+<td>
+                <p>
+                  1.58 / 1.05
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard disperse pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  35077 / 57638
+                </p>
+              </td>
+<td>
+                <p>
+                  1.94 / 1.41
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        The results show that intrusive containers are faster than standard containers.
+        We can see that the pointer list holding pointers to values stored in a vector
+        is quite fast, so the extra indirection that is needed to access the value
+        is minimized because all the values are tightly stored, improving caching.
+        The disperse list, on the other hand, is slower because the indirection to
+        access values stored in the object list is more expensive than accessing
+        values stored in a vector.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.performance.performance_results_write_access"></a><a class="link" href="performance.html#intrusive.performance.performance_results_write_access" title="Write access">Write
+      access</a>
+</h3></div></div></div>
+<p>
+        The next test measures the time needed to iterate through all the elements
+        of a list, and increment the value of the internal <code class="computeroutput"><span class="identifier">i_</span></code>
+        member:
+      </p>
+<pre class="programlisting"><span class="identifier">stdlist</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">it</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+<span class="keyword">for</span><span class="special">(;</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">end</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+   <span class="special">++(</span><span class="identifier">it</span><span class="special">-&gt;</span><span class="identifier">i_</span><span class="special">);</span>
+</pre>
+<p>
+        Values (<code class="computeroutput"><span class="identifier">test_class</span></code> and <code class="computeroutput"><span class="identifier">itest_class</span></code>) and lists are created as explained
+        in the first section. Note that for pointer lists, the iteration will suffer
+        an extra indirection: they will need to access the <code class="computeroutput"><span class="identifier">test_class</span></code>
+        values stored in another container:
+      </p>
+<pre class="programlisting"><span class="identifier">stdptrlist</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">it</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+<span class="keyword">for</span><span class="special">(;</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">end</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+   <span class="special">++((*</span><span class="identifier">it</span><span class="special">)-&gt;</span><span class="identifier">i_</span><span class="special">);</span>
+</pre>
+<p>
+        These are the results:
+      </p>
+<div class="table">
+<a name="intrusive.performance.performance_results_write_access.write_access_times_for_visual_c___7_1___windows_xp"></a><p class="title"><b>Table&#160;15.11.&#160;Write access times for Visual C++ 7.1 / Windows XP</b></p>
+<div class="table-contents"><table class="table" summary="Write access times for Visual C++ 7.1 / Windows XP">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Container
+                </p>
+              </th>
+<th>
+                <p>
+                  Time in us/iteration (small object / big object)
+                </p>
+              </th>
+<th>
+                <p>
+                  Normalized time (small object / big object)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2031 / 8125
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">safe_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2031 / 8281
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1.01
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2031 / 8281
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1.01
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard list
+                </p>
+              </td>
+<td>
+                <p>
+                  4218 / 10000
+                </p>
+              </td>
+<td>
+                <p>
+                  2.07 / 1.23
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard compact pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  4062 / 8437
+                </p>
+              </td>
+<td>
+                <p>
+                  2.0 / 1.03
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard disperse pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  8593 / 13125
+                </p>
+              </td>
+<td>
+                <p>
+                  4.23 / 1.61
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="intrusive.performance.performance_results_write_access.write_access_times_for_gcc_4_1_1___mingw_over_windows_xp"></a><p class="title"><b>Table&#160;15.12.&#160;Write access times for GCC 4.1.1 / MinGW over Windows XP</b></p>
+<div class="table-contents"><table class="table" summary="Write access times for GCC 4.1.1 / MinGW over Windows XP">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Container
+                </p>
+              </th>
+<th>
+                <p>
+                  Time in us/iteration (small object / big object)
+                </p>
+              </th>
+<th>
+                <p>
+                  Normalized time (small object / big object)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2343 / 8281
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">safe_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2500 / 8281
+                </p>
+              </td>
+<td>
+                <p>
+                  1.06 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2500 / 8281
+                </p>
+              </td>
+<td>
+                <p>
+                  1.06 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard list
+                </p>
+              </td>
+<td>
+                <p>
+                  4218 / 10781
+                </p>
+              </td>
+<td>
+                <p>
+                  1.8 / 1.3
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard compact pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  3906 / 8281
+                </p>
+              </td>
+<td>
+                <p>
+                  1.66 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard disperse pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  8281 / 13750
+                </p>
+              </td>
+<td>
+                <p>
+                  3.53 / 1.66
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="intrusive.performance.performance_results_write_access.write_access_times_for_gcc_4_1_2___linux_kernel_2_6_18__opensuse_10_2_"></a><p class="title"><b>Table&#160;15.13.&#160;Write access times for GCC 4.1.2 / Linux Kernel 2.6.18 (OpenSuse 10.2)</b></p>
+<div class="table-contents"><table class="table" summary="Write access times for GCC 4.1.2 / Linux Kernel 2.6.18 (OpenSuse 10.2)">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Container
+                </p>
+              </th>
+<th>
+                <p>
+                  Time in us/iteration (small object / big object)
+                </p>
+              </th>
+<th>
+                <p>
+                  Normalized time (small object / big object)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">normal_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2286 / 8468
+                </p>
+              </td>
+<td>
+                <p>
+                  1 / 1.1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">safe_link</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2381 / 8412
+                </p>
+              </td>
+<td>
+                <p>
+                  1.04 / 1.09
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">auto_unlink</span></code> intrusive
+                  list
+                </p>
+              </td>
+<td>
+                <p>
+                  2301 / 8437
+                </p>
+              </td>
+<td>
+                <p>
+                  1.01 / 1.1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard list
+                </p>
+              </td>
+<td>
+                <p>
+                  3044 / 9061
+                </p>
+              </td>
+<td>
+                <p>
+                  1.33 / 1.18
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard compact pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  2755 / 7660
+                </p>
+              </td>
+<td>
+                <p>
+                  1.20 / 1
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Standard disperse pointer list
+                </p>
+              </td>
+<td>
+                <p>
+                  6118 / 12453
+                </p>
+              </td>
+<td>
+                <p>
+                  2.67 / 1.62
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        As with the read access test, the results show that intrusive containers
+        outperform all other containers if the values are tightly packed in a vector.
+        The disperse list is again the slowest.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.performance.performance_results_conclusions"></a><a class="link" href="performance.html#intrusive.performance.performance_results_conclusions" title="Conclusions">Conclusions</a>
+</h3></div></div></div>
+<p>
+        Intrusive containers can offer performance benefits that cannot be achieved
+        with equivalent non-intrusive containers. Memory locality improvements are
+        noticeable when the objects to be inserted are small. Minimizing memory allocation/deallocation
+        calls is also an important factor and intrusive containers make this simple
+        if all objects to be inserted in intrusive containers are allocated using
+        <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code> or <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">deque</span></code>.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="design_notes.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="release_notes.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

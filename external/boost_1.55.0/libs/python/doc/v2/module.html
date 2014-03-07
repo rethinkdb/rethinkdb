@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+    <meta name="generator" content="HTML Tidy, see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/module.hpp&gt;</title>
+
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+          "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/module.hpp&gt;</h2>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a>
+
+      <dt><a href="#macros">Macros</a>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href=
+          "#BOOST_PYTHON_MODULE-spec">BOOST_PYTHON_MODULE</a>
+        </dl>
+
+      <dt><a href="#examples">Example(s)</a>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p>This header provides the basic facilities needed to create a
+    Boost.Python extension module.
+
+    <h2><a name="macros"></a>Macros</h2>
+
+    <p><a name=
+    "BOOST_PYTHON_MODULE-spec"><code>BOOST_PYTHON_MODULE(name)</code></a>
+    is used to declare Python <a href=
+    "http://www.python.org/doc/2.2/ext/methodTable.html#SECTION003400000000000000000">
+    module initialization functions</a>. The <code>name</code> argument must
+    exactly match the name of the module to be initialized, and must conform to
+    Python's <a href=
+    "http://www.python.org/doc/2.2/ref/identifiers.html">identifier naming
+    rules</a>. Where you would normally write
+<pre>
+extern &quot;C&quot; void init<i>name</i>()
+{
+   ...
+}
+</pre>
+    Boost.Python modules should be initialized with 
+<pre>
+BOOST_PYTHON_MODULE(<i>name</i>)
+{
+   ...
+}
+</pre>
+
+This macro generates two functions in the scope where it is used:
+<code>extern&nbsp;&quot;C&quot;&nbsp;void&nbsp;init<i>name</i>()</code>,
+and <code>void&nbsp;init_module_<i>name</i>()</code>, whose body must
+follow the macro invocation. <code>init_<i>name</i></code> passes
+<code>init_module_<i>name</i></code> to <code><a
+href="errors.html#handle_exception-spec">handle_exception</a>()</code> so
+that any C++ exceptions generated are safely processeed. During the
+body of <code>init_<i>name</i></code>, the current <code><a
+href="scope.html#scope-spec">scope</a></code> refers to the module
+being initialized.
+
+    <h2><a name="examples"></a>Example(s)</h2>
+
+    <p>C++ module definition:
+<pre>
+#include &lt;boost/python/module.hpp&gt;
+
+BOOST_PYTHON_MODULE(xxx)
+{
+    throw &quot;something bad happened&quot;
+}
+</pre>
+
+Interactive Python: 
+<pre>
+&gt;&gt;&gt; import xxx
+Traceback (most recent call last):
+  File "<stdin>", line 1, in ?
+RuntimeError: Unidentifiable C++ Exception
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+
+
+    <p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave
+    Abrahams</a> 2002. </i> Distributed
+  under the Boost Software License, Version 1.0. (See accompanying file
+  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)</p>
+

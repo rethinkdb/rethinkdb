@@ -1,0 +1,45 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:for_each for_each]
+
+[heading Prototype]
+
+``
+template<
+    class SinglePassRange,
+    class UnaryFunction
+    >
+UnaryFunction for_each(SinglePassRange& rng, UnaryFunction fun);
+
+template<
+    class SinglePassRange,
+    class UnaryFunction
+    >
+UnaryFunction for_each(const SinglePassRange& rng, UnaryFunction fun);    
+``
+
+[heading Description]
+
+`for_each` traverses forward through `rng` and for each element `x` it invokes `fun(x)`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/for_each.hpp`
+
+[heading Requirements]
+
+* `SinglePassRange` is a model of the __single_pass_range__ Concept.
+* `UnaryFunction` is a model of the `UnaryFunctionConcept`.
+* `UnaryFunction` does not apply any non-constant operation through its argument.
+* `SinglePassRange`'s value type is convertible to `UnaryFunction`'s argument type.
+
+[heading Complexity]
+
+Linear. Exactly `distance(rng)` applications of `UnaryFunction`.
+
+[endsect]
+
+

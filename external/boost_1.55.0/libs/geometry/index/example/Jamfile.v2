@@ -1,0 +1,55 @@
+# Boost.Geometry (aka GGL, Generic Geometry Library)
+#
+# Copyright (c) 2013 Mateusz Loskot, London, UK.
+#
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Usage:
+# Build as optimised for proper benchmarking:
+#    b2 variant=release threading=multi
+#    b2 variant=release threading=multi link=static runtime-link=static
+# 
+# Set GLUT_ROOT to installation prefix of GLUT or, for Windows,
+# it may be all-in-one directory with GLUT header and binaries.
+
+import os ;
+
+project boost-geometry-index-example
+    : requirements
+        <implicit-dependency>/boost//headers
+    ;
+
+local GLUT_ROOT = [ os.environ GLUT_ROOT ] ;
+if $(GLUT_ROOT)
+{
+    local glut_name = glut ;
+    if [ os.name ] = NT
+    {
+        glut_name = glut32 ;
+    }
+
+ lib glut
+    : 
+    :
+    <name>$(glut_name)
+    <search>$(GLUT_ROOT) 
+    <search>$(GLUT_ROOT)/lib
+    :
+    :
+    <include>$(GLUT_ROOT)
+    <include>$(GLUT_ROOT)/include
+    ;
+}
+
+exe random_test : random_test.cpp ;
+link serialize.cpp /boost//serialization : ;
+link benchmark.cpp /boost//chrono : <threading>multi ;
+link benchmark2.cpp /boost//chrono : <threading>multi ;
+link benchmark3.cpp /boost//chrono : <threading>multi ;
+link benchmark_experimental.cpp  /boost//chrono : <threading>multi ;
+if $(GLUT_ROOT)
+{
+    link glut_vis.cpp glut ;
+}

@@ -1,0 +1,46 @@
+
+# This Jamfile is the same as Jamfile2, except that
+# it tries to access prebuilt targets using absolute
+# paths. It used to be broken on Windows.
+
+import os ;
+
+local dll-suffix = so ;
+local prefix = "" ;
+if [ os.name ] in CYGWIN NT
+{
+   if [ MATCH ^(gcc) : $toolset ]
+   {
+      dll-suffix = dll ;
+   }
+   else
+   {
+      dll-suffix = lib ;
+   }
+}
+else
+{
+   prefix = "lib" ;      
+}
+if [ MATCH ^(darwin) : $toolset ]
+{
+   dll-suffix = dylib ;
+}
+
+project ext ;
+
+# Assumed bjam was invoked from the project root
+local pwd = [ PWD ] ;
+
+lib a : 
+    : <file>$(pwd)/ext/debug/$(prefix)a.$(dll-suffix) <variant>debug
+    :
+    : <include>debug
+    ;
+    
+lib a :
+    : <file>$(pwd)/ext/release/$(prefix)a.$(dll-suffix) <variant>release
+    :
+    : <include>release
+    ;
+    

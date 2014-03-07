@@ -1,0 +1,60 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:remove remove]
+[heading Prototype]
+
+``
+template<
+    class ForwardRange,
+    class Value
+    >
+typename range_iterator<ForwardRange>::type
+remove(ForwardRange& rng, const Value& val);
+
+template<
+    class ForwardRange,
+    class Value
+    >
+typename range_iterator<const ForwardRange>::type
+remove(const ForwardRange& rng, const Value& val);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class Value
+    >
+typename range_return<ForwardRange,re>::type
+remove(ForwardRange& rng, const Value& val);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class Value
+    >
+typename range_return<const ForwardRange,re>::type
+remove(const ForwardRange& rng, const Value& val);
+``
+
+[heading Description]
+
+`remove` removes from `rng` all of the elements `x` for which `x == val` is `true`. The versions of `remove` that return an iterator, return an iterator `new_last` such that the range `[begin(rng), new_last)` contains no elements equal to `val`. The `range_return` versions of `remove` defines `found` as the new last element. The iterators in the range `[new_last, end(rng))` are dereferenceable, but the elements are unspecified.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/remove.hpp`
+
+[heading Requirements]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+* `Value` is a model of the `EqualityComparableConcept`.
+* Objects of type `Value` can be compared for equality with objects of `ForwardRange`'s value type.
+
+[heading Complexity]
+
+Linear. `remove` performs exactly `distance(rng)` comparisons for equality.
+
+[endsect]

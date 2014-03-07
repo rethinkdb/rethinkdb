@@ -1,0 +1,237 @@
+#
+# Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+import os ;
+import feature ;
+
+if [ os.name ] = SOLARIS
+{
+  lib socket ;
+  lib nsl ;
+}
+else if [ os.name ] = NT
+{
+  lib ws2_32 ;
+  lib mswsock ;
+}
+else if [ os.name ] = HPUX
+{
+  lib ipv6 ;
+}
+else if [ os.name ] = QNXNTO
+{
+  lib socket ;
+}
+
+local USE_SELECT =
+  <define>BOOST_ASIO_DISABLE_DEV_POLL
+  <define>BOOST_ASIO_DISABLE_EPOLL
+  <define>BOOST_ASIO_DISABLE_KQUEUE
+  <define>BOOST_ASIO_DISABLE_IOCP
+  ;
+
+project
+  : requirements
+    <library>/boost/date_time//boost_date_time
+    <library>/boost/system//boost_system
+    <library>/boost/regex//boost_regex
+    <library>/boost/test//boost_test_exec_monitor
+    <define>BOOST_ALL_NO_LIB=1
+    <threading>multi
+    <os>LINUX:<define>_XOPEN_SOURCE=600
+    <os>LINUX:<define>_GNU_SOURCE=1
+    <os>SOLARIS:<define>_XOPEN_SOURCE=500
+    <os>SOLARIS:<define>__EXTENSIONS__
+    <os>SOLARIS:<library>socket
+    <os>SOLARIS:<library>nsl
+    <os>NT:<define>_WIN32_WINNT=0x0501
+    <os>NT,<toolset>cw:<library>ws2_32
+    <os>NT,<toolset>cw:<library>mswsock
+    <os>NT,<toolset>gcc:<library>ws2_32
+    <os>NT,<toolset>gcc:<library>mswsock
+    <os>NT,<toolset>gcc-cygwin:<define>__USE_W32_SOCKETS
+    <os>HPUX,<toolset>gcc:<define>_XOPEN_SOURCE_EXTENDED
+    <os>HPUX:<library>ipv6
+    <os>QNXNTO:<library>socket
+  ;
+
+test-suite "asio" :
+  [ link basic_datagram_socket.cpp ]
+  [ link basic_datagram_socket.cpp : $(USE_SELECT) : basic_datagram_socket_select ]
+  [ link basic_deadline_timer.cpp ]
+  [ link basic_deadline_timer.cpp : $(USE_SELECT) : basic_deadline_timer_select ]
+  [ link basic_raw_socket.cpp ]
+  [ link basic_raw_socket.cpp : $(USE_SELECT) : basic_raw_socket_select ]
+  [ link basic_seq_packet_socket.cpp ]
+  [ link basic_seq_packet_socket.cpp : $(USE_SELECT) : basic_seq_packet_socket_select ]
+  [ link basic_signal_set.cpp ]
+  [ link basic_signal_set.cpp : $(USE_SELECT) : basic_signal_set_select ]
+  [ link basic_socket_acceptor.cpp ]
+  [ link basic_socket_acceptor.cpp : $(USE_SELECT) : basic_socket_acceptor_select ]
+  [ link basic_stream_socket.cpp ]
+  [ link basic_stream_socket.cpp : $(USE_SELECT) : basic_stream_socket_select ]
+  [ link basic_streambuf.cpp ]
+  [ link basic_streambuf.cpp : $(USE_SELECT) : basic_streambuf_select ]
+  [ link basic_waitable_timer.cpp ]
+  [ link basic_waitable_timer.cpp : $(USE_SELECT) : basic_waitable_timer_select ]
+  [ run buffer.cpp ]
+  [ run buffer.cpp : : : $(USE_SELECT) : buffer_select ]
+  [ run buffered_read_stream.cpp ]
+  [ run buffered_read_stream.cpp : : : $(USE_SELECT) : buffered_read_stream_select ]
+  [ run buffered_stream.cpp ]
+  [ run buffered_stream.cpp : : : $(USE_SELECT) : buffered_stream_select ]
+  [ run buffered_write_stream.cpp ]
+  [ run buffered_write_stream.cpp : : : $(USE_SELECT) : buffered_write_stream_select ]
+  [ run buffers_iterator.cpp ]
+  [ run buffers_iterator.cpp : : : $(USE_SELECT) : buffers_iterator_select ]
+  [ link completion_condition.cpp ]
+  [ link completion_condition.cpp : $(USE_SELECT) : completion_condition_select ]
+  [ link connect.cpp ]
+  [ link connect.cpp : $(USE_SELECT) : connect_select ]
+  [ link coroutine.cpp ]
+  [ link coroutine.cpp : $(USE_SELECT) : coroutine_select ]
+  [ link datagram_socket_service.cpp ]
+  [ link datagram_socket_service.cpp : $(USE_SELECT) : datagram_socket_service_select ]
+  [ link deadline_timer_service.cpp ]
+  [ link deadline_timer_service.cpp : $(USE_SELECT) : deadline_timer_service_select ]
+  [ run deadline_timer.cpp ]
+  [ run deadline_timer.cpp : : : $(USE_SELECT) : deadline_timer_select ]
+  [ run error.cpp ]
+  [ run error.cpp : : : $(USE_SELECT) : error_select ]
+  [ link generic/basic_endpoint.cpp : : generic_basic_endpoint ]
+  [ link generic/basic_endpoint.cpp : $(USE_SELECT) : generic_basic_endpoint_select ]
+  [ link generic/datagram_protocol.cpp : : generic_datagram_protocol ]
+  [ link generic/datagram_protocol.cpp : $(USE_SELECT) : generic_datagram_protocol_select ]
+  [ link generic/raw_protocol.cpp : : generic_raw_protocol ]
+  [ link generic/raw_protocol.cpp : $(USE_SELECT) : generic_raw_protocol_select ]
+  [ link generic/seq_packet_protocol.cpp : : generic_seq_packet_protocol ]
+  [ link generic/seq_packet_protocol.cpp : $(USE_SELECT) : generic_seq_packet_protocol_select ]
+  [ link generic/stream_protocol.cpp : : generic_stream_protocol ]
+  [ link generic/stream_protocol.cpp : $(USE_SELECT) : generic_stream_protocol_select ]
+  [ link high_resolution_timer.cpp ]
+  [ link high_resolution_timer.cpp : $(USE_SELECT) : high_resolution_timer_select ]
+  [ run io_service.cpp ]
+  [ run io_service.cpp : : : $(USE_SELECT) : io_service_select ]
+  [ link ip/address.cpp : : ip_address ]
+  [ link ip/address.cpp : $(USE_SELECT) : ip_address_select ]
+  [ link ip/address_v4.cpp : : ip_address_v4 ]
+  [ link ip/address_v4.cpp : $(USE_SELECT) : ip_address_v4_select ]
+  [ link ip/address_v6.cpp : : ip_address_v6 ]
+  [ link ip/address_v6.cpp : $(USE_SELECT) : ip_address_v6_select ]
+  [ link ip/basic_endpoint.cpp : : ip_basic_endpoint ]
+  [ link ip/basic_endpoint.cpp : $(USE_SELECT) : ip_basic_endpoint_select ]
+  [ link ip/basic_resolver.cpp : : ip_basic_resolver ]
+  [ link ip/basic_resolver.cpp : $(USE_SELECT) : ip_basic_resolver_select ]
+  [ link ip/basic_resolver_entry.cpp : : ip_basic_resolver_entry ]
+  [ link ip/basic_resolver_entry.cpp : $(USE_SELECT) : ip_basic_resolver_entry_select ]
+  [ link ip/basic_resolver_iterator.cpp : : ip_basic_resolver_iterator ]
+  [ link ip/basic_resolver_iterator.cpp : $(USE_SELECT) : ip_basic_resolver_iterator_select ]
+  [ link ip/basic_resolver_query.cpp  : : ip_basic_resolver_query ]
+  [ link ip/basic_resolver_query.cpp : $(USE_SELECT) : ip_basic_resolver_query_select ]
+  [ run ip/host_name.cpp : : : : ip_host_name ]
+  [ run ip/host_name.cpp : : : $(USE_SELECT) : ip_host_name_select ]
+  [ run ip/icmp.cpp : : : : ip_icmp ]
+  [ run ip/icmp.cpp : : : $(USE_SELECT) : ip_icmp_select ]
+  [ run ip/multicast.cpp : : : : ip_multicast ]
+  [ run ip/multicast.cpp : : : $(USE_SELECT) : ip_multicast_select ]
+  [ link ip/resolver_query_base.cpp : : ip_resolver_query_base ]
+  [ link ip/resolver_query_base.cpp : $(USE_SELECT) : ip_resolver_query_base_select ]
+  [ link ip/resolver_service.cpp : : ip_resolver_service ]
+  [ link ip/resolver_service.cpp : $(USE_SELECT) : ip_resolver_service_select ]
+  [ run ip/tcp.cpp : : : : ip_tcp ]
+  [ run ip/tcp.cpp : : : $(USE_SELECT) : ip_tcp_select ]
+  [ run ip/udp.cpp : : : : ip_udp ]
+  [ run ip/udp.cpp : : : $(USE_SELECT) : ip_udp_select ]
+  [ run ip/unicast.cpp : : : : ip_unicast ]
+  [ run ip/unicast.cpp : : : $(USE_SELECT) : ip_unicast_select ]
+  [ run ip/v6_only.cpp : : : : ip_v6_only ]
+  [ run ip/v6_only.cpp : : : $(USE_SELECT) : ip_v6_only_select ]
+  [ run is_read_buffered.cpp ]
+  [ run is_read_buffered.cpp : : : $(USE_SELECT) : is_read_buffered_select ]
+  [ run is_write_buffered.cpp ]
+  [ run is_write_buffered.cpp : : : $(USE_SELECT) : is_write_buffered_select ]
+  [ link local/basic_endpoint.cpp : : local_basic_endpoint ]
+  [ link local/basic_endpoint.cpp : $(USE_SELECT) : local_basic_endpoint_select ]
+  [ link local/connect_pair.cpp : : local_connect_pair ]
+  [ link local/connect_pair.cpp : $(USE_SELECT) : local_connect_pair_select ]
+  [ link local/datagram_protocol.cpp : : local_datagram_protocol ]
+  [ link local/datagram_protocol.cpp : $(USE_SELECT) : local_datagram_protocol_select ]
+  [ link local/stream_protocol.cpp : : local_stream_protocol ]
+  [ link local/stream_protocol.cpp : $(USE_SELECT) : local_stream_protocol_select ]
+  [ link placeholders.cpp ]
+  [ link placeholders.cpp : $(USE_SELECT) : placeholders_select ]
+  [ link posix/basic_descriptor.cpp : : posix_basic_descriptor ]
+  [ link posix/basic_descriptor.cpp : $(USE_SELECT) : posix_basic_descriptor_select ]
+  [ link posix/basic_stream_descriptor.cpp : : posix_basic_stream_descriptor ]
+  [ link posix/basic_stream_descriptor.cpp : $(USE_SELECT) : posix_basic_stream_descriptor_select ]
+  [ link posix/descriptor_base.cpp : : posix_descriptor_base ]
+  [ link posix/descriptor_base.cpp : $(USE_SELECT) : posix_descriptor_base_select ]
+  [ link posix/stream_descriptor.cpp : : posix_stream_descriptor ]
+  [ link posix/stream_descriptor.cpp : $(USE_SELECT) : posix_stream_descriptor_select ]
+  [ link posix/stream_descriptor_service.cpp : : posix_stream_descriptor_service ]
+  [ link posix/stream_descriptor_service.cpp : $(USE_SELECT) : posix_stream_descriptor_service_select ]
+  [ link raw_socket_service.cpp ]
+  [ link raw_socket_service.cpp : $(USE_SELECT) : raw_socket_service_select ]
+  [ run read.cpp ]
+  [ run read.cpp : : : $(USE_SELECT) : read_select ]
+  [ run read_at.cpp ]
+  [ run read_at.cpp : : : $(USE_SELECT) : read_at_select ]
+  [ run read_until.cpp ]
+  [ run read_until.cpp : : : $(USE_SELECT) : read_until_select ]
+  [ link seq_packet_socket_service.cpp ]
+  [ link seq_packet_socket_service.cpp : $(USE_SELECT) : seq_packet_socket_service_select ]
+  [ run signal_set.cpp ]
+  [ run signal_set.cpp : : : $(USE_SELECT) : signal_set_select ]
+  [ link signal_set_service.cpp ]
+  [ link signal_set_service.cpp : $(USE_SELECT) : signal_set_service_select ]
+  [ link socket_acceptor_service.cpp ]
+  [ link socket_acceptor_service.cpp : $(USE_SELECT) : socket_acceptor_service_select ]
+  [ run socket_base.cpp ]
+  [ run socket_base.cpp : : : $(USE_SELECT) : socket_base_select ]
+  [ link steady_timer.cpp ]
+  [ link steady_timer.cpp : $(USE_SELECT) : steady_timer_select ]
+  [ run strand.cpp ]
+  [ run strand.cpp : : : $(USE_SELECT) : strand_select ]
+  [ link stream_socket_service.cpp ]
+  [ link stream_socket_service.cpp : $(USE_SELECT) : stream_socket_service_select ]
+  [ run streambuf.cpp ]
+  [ run streambuf.cpp : : : $(USE_SELECT) : streambuf_select ]
+  [ link system_timer.cpp ]
+  [ link system_timer.cpp : $(USE_SELECT) : system_timer_select ]
+  [ link time_traits.cpp ]
+  [ link time_traits.cpp : $(USE_SELECT) : time_traits_select ]
+  [ link wait_traits.cpp ]
+  [ link wait_traits.cpp : $(USE_SELECT) : wait_traits_select ]
+  [ link waitable_timer_service.cpp ]
+  [ link waitable_timer_service.cpp : $(USE_SELECT) : waitable_timer_service_select ]
+  [ link windows/basic_handle.cpp : : windows_basic_handle ]
+  [ link windows/basic_handle.cpp : $(USE_SELECT) : windows_basic_handle_select ]
+  [ link windows/basic_object_handle.cpp : : windows_basic_object_handle ]
+  [ link windows/basic_object_handle.cpp : $(USE_SELECT) : windows_basic_object_handle_select ]
+  [ link windows/basic_random_access_handle.cpp : : windows_basic_random_access_handle ]
+  [ link windows/basic_random_access_handle.cpp : $(USE_SELECT) : windows_basic_random_access_handle_select ]
+  [ link windows/basic_stream_handle.cpp : : windows_basic_stream_handle ]
+  [ link windows/basic_stream_handle.cpp : $(USE_SELECT) : windows_basic_stream_handle_select ]
+  [ link windows/object_handle.cpp : : windows_object_handle ]
+  [ link windows/object_handle.cpp : $(USE_SELECT) : windows_object_handle_select ]
+  [ link windows/object_handle_service.cpp : : windows_object_handle_service ]
+  [ link windows/object_handle_service.cpp : $(USE_SELECT) : windows_object_handle_service_select ]
+  [ link windows/overlapped_ptr.cpp : : windows_overlapped_ptr ]
+  [ link windows/overlapped_ptr.cpp : $(USE_SELECT) : windows_overlapped_ptr_select ]
+  [ link windows/random_access_handle.cpp : : windows_random_access_handle ]
+  [ link windows/random_access_handle.cpp : $(USE_SELECT) : windows_random_access_handle_select ]
+  [ link windows/random_access_handle_service.cpp : : windows_random_access_handle_service ]
+  [ link windows/random_access_handle_service.cpp : $(USE_SELECT) : windows_random_access_handle_service_select ]
+  [ link windows/stream_handle.cpp : : windows_stream_handle ]
+  [ link windows/stream_handle.cpp : $(USE_SELECT) : windows_stream_handle_select ]
+  [ link windows/stream_handle_service.cpp : : windows_stream_handle_service ]
+  [ link windows/stream_handle_service.cpp : $(USE_SELECT) : windows_stream_handle_service_select ]
+  [ run write.cpp ]
+  [ run write.cpp : : : $(USE_SELECT) : write_select ]
+  [ run write_at.cpp ]
+  [ run write_at.cpp : : : $(USE_SELECT) : write_at_select ]
+  ;

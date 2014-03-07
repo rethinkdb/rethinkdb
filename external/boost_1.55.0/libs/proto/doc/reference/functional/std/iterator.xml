@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/functional/std/iterator.hpp">
+  <para>Includes Proto callables for the functions found in the standard <code>&lt;iterator&gt; header</code>.</para>
+
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="functional">
+
+        <!-- proto::functional::advance -->
+        <struct name="advance">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+            <code>std::advance()</code> function on its arguments.</purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+              <code>std::advance()</code> function on its arguments.</para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <typedef name="result_type">
+            <type>void</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>void</type>
+              <template>
+                <template-type-parameter name="InputIterator"/>
+              </template>
+              <template>
+                <template-type-parameter name="Distance"/>
+              </template>
+              <parameter name="x">
+                <paramtype>InputIterator &amp;</paramtype>
+              </parameter>
+              <parameter name="n">
+                <paramtype>Distance</paramtype>
+              </parameter>
+              <description>
+                <para>Calls <code>std::advance(x, n)</code></para>
+              </description>
+            </method>
+          </method-group>
+        </struct>
+
+        <!-- proto::functional::distance -->
+        <struct name="distance">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+            <code>std::distance()</code> function on its arguments.</purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+              <code>std::distance()</code> function on its arguments.</para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="InputIterator"/>
+            </template>
+            <specialization>
+              <template-arg>This(InputIterator, InputIterator)</template-arg>
+            </specialization>
+            <typedef name="type">
+              <type>typename std::iterator_traits&lt;
+      typename boost::remove_const&lt;
+        typename boost::remove_reference&lt;InputIterator&gt;::type
+      &gt;::type
+    &gt;::difference_type</type>
+            </typedef>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>void</type>
+              <template>
+                <template-type-parameter name="InputIterator"/>
+              </template>
+              <parameter name="first">
+                <paramtype>InputIterator</paramtype>
+              </parameter>
+              <parameter name="last">
+                <paramtype>InputIterator</paramtype>
+              </parameter>
+              <returns>
+                <para><code>std::distance(first, last)</code></para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+        
+        <!-- proto::functional::next -->
+        <struct name="next">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+            <code>std::next()</code> function on its arguments.</purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+              <code>std::next()</code> function on its arguments.</para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="ForwardIterator"/>
+            </template>
+            <specialization>
+              <template-arg>This(ForwardIterator)</template-arg>
+            </specialization>
+            <typedef name="type">
+              <type>typename boost::remove_const&lt;
+      typename boost::remove_reference&lt;ForwardIterator&gt;::type
+    &gt;::type</type>
+            </typedef>
+          </struct-specialization>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="ForwardIterator"/>
+              <template-type-parameter name="Distance"/>
+            </template>
+            <specialization>
+              <template-arg>This(ForwardIterator, Distance)</template-arg>
+            </specialization>
+            <typedef name="type">
+              <type>typename boost::remove_const&lt;
+      typename boost::remove_reference&lt;ForwardIterator&gt;::type
+    &gt;::type</type>
+            </typedef>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>void</type>
+              <template>
+                <template-type-parameter name="ForwardIterator"/>
+              </template>
+              <parameter name="x">
+                <paramtype>ForwardIterator</paramtype>
+              </parameter>
+              <returns>
+                <para><code>std::next(x)</code></para>
+              </returns>
+            </method>
+            <method name="operator()" cv="const">
+              <type>void</type>
+              <template>
+                <template-type-parameter name="ForwardIterator"/>
+              </template>
+              <parameter name="x">
+                <paramtype>ForwardIterator</paramtype>
+              </parameter>
+              <parameter name="n">
+                <paramtype>typename std::iterator_traits&lt;ForwardIterator&gt;::difference_type</paramtype>
+              </parameter>
+              <returns>
+                <para><code>std::next(x, n)</code></para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+
+        <!-- proto::functional::prior -->
+        <struct name="prior">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+            <code>std::prior()</code> function on its arguments.</purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+              <code>std::prior()</code> function on its arguments.</para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="BidirectionalIterator"/>
+            </template>
+            <specialization>
+              <template-arg>This(BidirectionalIterator)</template-arg>
+            </specialization>
+            <typedef name="type">
+              <type>typename boost::remove_const&lt;
+      typename boost::remove_reference&lt;BidirectionalIterator&gt;::type
+    &gt;::type</type>
+            </typedef>
+          </struct-specialization>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="BidirectionalIterator"/>
+              <template-type-parameter name="Distance"/>
+            </template>
+            <specialization>
+              <template-arg>This(BidirectionalIterator, Distance)</template-arg>
+            </specialization>
+            <typedef name="type">
+              <type>typename boost::remove_const&lt;
+      typename boost::remove_reference&lt;BidirectionalIterator&gt;::type
+    &gt;::type</type>
+            </typedef>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>void</type>
+              <template>
+                <template-type-parameter name="BidirectionalIterator"/>
+              </template>
+              <parameter name="x">
+                <paramtype>BidirectionalIterator</paramtype>
+              </parameter>
+              <returns>
+                <para><code>std::prior(x)</code></para>
+              </returns>
+            </method>
+            <method name="operator()" cv="const">
+              <type>void</type>
+              <template>
+                <template-type-parameter name="BidirectionalIterator"/>
+              </template>
+              <parameter name="x">
+                <paramtype>BidirectionalIterator</paramtype>
+              </parameter>
+              <parameter name="n">
+                <paramtype>typename std::iterator_traits&lt;BidirectionalIterator&gt;::difference_type</paramtype>
+              </parameter>
+              <returns>
+                <para><code>std::prior(x, n)</code></para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+
+      </namespace>
+    </namespace>
+  </namespace>
+</header>

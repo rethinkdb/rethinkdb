@@ -1,0 +1,532 @@
+<!DOCTYPE html public "-//w3c//dtd html 4.0 transitional//en">
+<HTML>
+<HEAD>
+   <LINK REL="stylesheet" TYPE="text/css" HREF="../../../boost.css">
+   <META http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <META name="GENERATOR" content="Mozilla/4.77 [en] (X11; U; Linux 2.2.19 i686) [Netscape]">
+   <META name="Author" content="Herve Bronnimann">
+   <META name="Description" content="Small library to propose minmax_element algorithm.">
+   <title>Boost Minmax library</title>
+</HEAD>
+<body text="#000000" bgcolor="#FFFFFF" link="#0000EE" vlink="#551A8B" alink="#FF0000">
+
+<h2><img src="../../../boost.png" WIDTH="276" HEIGHT="86">Header &lt;<A
+HREF="../../../boost/algorithm/minmax.hpp">boost/algorithm/minmax.hpp</A>&gt; </H2>
+
+<quote>
+<b>
+<a href="#minmax_element">Motivation</a><br>
+<a href="#synopsis">Synopsis</a><br>
+<a href="#description">Function templates description</a><br>
+<a href="#definition">Definition</a><br>
+<a href="#reqs">Requirements on types</a><br>
+<a href="#precond">Preconditions</a><br>
+<a href="#postcond">Postconditions</a><br>
+<a href="#complexity">Complexity</a><br>
+<a href="#example">Example</a><br>
+<a href="#notes">Notes</a><br>
+<a href="#rationale">Rationale</a><br>
+<a href="#perf">Note about performance</a><br>
+<a href="#acks">Acknowledgements</a>
+</b>
+</quote>
+
+
+<a name="minmax_element">
+<h3>
+Motivation</h3>
+
+<p>The minmax library is composed of two headers, <a
+href="../../../boost/algorithm/minmax.hpp">&lt;boost/algorithm/minmax.hpp></a>
+and <a
+href="../../../boost/algorithm/minmax_element.hpp">&lt;boost/algorithm/minmax_element.hpp></a>.
+(See <a href="#two_headers">rationale</a>.)
+The problem solved by this library is that simultaneous min and max
+computation requires
+only one comparison, but using <tt>std::min</tt> and <tt>std::max</tt>
+forces two comparisons. Worse, to compute the minimum and
+maximum elements of a range of <tt>n</tt> elements requires only
+<tt>3n/2+1</tt> comparisons, instead of the <tt>2n</tt> (in two passes)
+forced by <tt>std::min_element</tt> and <tt>std::max_element</tt>.
+I always thought it is a waste to have to call two functions to compute the
+extent of a range, performing two passes over the input, when one should
+be enough. The present library solves both problems.</p>
+
+<p>The first file implements the function templates
+<tt>minmax</tt>
+as straightforward extensions of the C++
+standard. As it returns a pair of <tt>const&amp;</tt>, we must use the <a
+href="../../tuple/index.html">Boost.tuple</a> library to construct such
+pairs. (Please note: the intent is not to fix the known defaults of
+<tt>std::min</tt>
+and <tt>std::max</tt>, but to add one more algorithms that combines both; see the
+<a href="#no-fix">rationale</a>.)</p>
+
+<p>The second file implements the function templates
+<tt>minmax_element</tt>. In a
+second part, it also proposes variants that can usually not be computed by
+the minmax algorithm, and which are more flexible in case some elements are equal.
+Those variants could have been also provided with policy-based design,
+but I ruled against that (see <a href="#no-policy">rationale</a>).
+</p>
+
+<p>If you are interested about
+<a href="doc/minmax_benchs.html">performance</a>,
+you will see that <tt>minmax_element</tt> is just slightly less efficient
+than a single <tt>min_element</tt> or <tt>max_element</tt>, and thus
+twice as efficient as two separate calls to <tt>min_element</tt> and
+<tt>max_element</tt>. From a
+theoretical standpoint,
+all the <tt>minmax_element</tt> functions perform at most
+<tt>3n/2+1</tt>
+comparisons and exactly n increments of the
+<tt>ForwardIterator</tt>.</p>
+</a>
+
+<a name="synopsis">
+<h3>
+Synopsis of <tt>&lt;boost/algorithm/minmax.hpp></tt></h3>
+
+<pre>#include &lt;boost/tuple/tuple.hpp>
+
+namespace boost {
+
+  template &lt;class T>
+  tuple&lt;T const&amp;, T const&amp;>
+  minmax(const T&amp; a, const T&amp; b);
+
+  template &lt;class T, class <a href="http://www.sgi.com/tech/stl/BinaryPredicate.html">BinaryPredicate</a>>
+  tuple&lt;T const&amp;, T const&amp;>
+  minmax(const T&amp; a, const T&amp; b, BinaryPredicate comp);
+
+}
+</pre>
+
+<h3>
+Synopsis of <tt>&lt;boost/algorithm/minmax_element.hpp></tt></h3>
+
+<pre>#include &lt;utility> // for std::pair
+
+namespace boost {
+
+  template &lt;class <a href="http://www.sgi.com/tech/stl/ForwardIterator.html">ForwardIterator</a>>
+  std::pair&lt;ForwardIterator,ForwardIterator>
+  minmax_element(ForwardIterator first, ForwardIterator last);
+
+  template &lt;class <a href="http://www.sgi.com/tech/stl/ForwardIterator.html">ForwardIterator</a>, class <a href="http://www.sgi.com/tech/stl/BinaryPredicate.html">BinaryPredicate</a>>
+  std::pair&lt;ForwardIterator,ForwardIterator>
+  minmax_element(ForwardIterator first, ForwardIterator last,
+                 BinaryPredicate comp);
+
+}
+</pre>
+
+In addition, there are a bunch of extensions which specify
+which element(s) you want to pick in case of equal elements. They are:
+<ul>
+<li><tt>first_min_element</tt> and <tt>last_min_element</tt></li>
+<li><tt>first_max_element</tt> and <tt>last_max_element</tt></li>
+<li><tt>first_min_first_max_element</tt>,
+<tt>first_min_last_max_element</tt>,
+<tt>last_min_first_max_element</tt>, and
+<tt>last_min_last_max_element</tt></li>
+</ul>
+I won't bore you with the complete synopsis, they have exactly the same
+declaration as their corresponding <tt>_element</tt> function. Still,
+you can find the complete synopsis <a href="doc/minmax_synopsis.html">here</a>.
+</a>
+
+<a name="description">
+<h3>
+Function templates description</h3>
+The <tt>minmax</tt> algorithm returns a pair <tt>p</tt> containing either
+<i>(a,b)</i>
+or <i>(b,a)</i>, such that <tt>p.first&lt;p.second</tt> in the first version,
+or <tt>comp(p.first,p.second)</tt> in the second version. If the elements
+are equivalent, the pair <i>(a,b) </i>is returned. <a href="#Note1">[1]</a>
+<p>The <tt>minmax_element </tt>is semantically equivalent to <tt>first_min_first_max_element</tt>.
+<p><tt>First_min_element</tt> and <tt>first_max_element</tt> find the smallest
+and largest elements in the range <tt>[first, last)</tt>. If there are
+several instance of these elements, the first one is returned. They are
+identical to
+<tt>std::min_element</tt> and <tt>std::max_element</tt>and
+are only included in this library for symmetry.
+<p><tt>Last_min_element</tt> and <tt>last_max_element</tt> find the smallest
+and largest elements in the range <tt>[first, last)</tt>. They are almost
+identical to
+<tt>std::min_element</tt> and <tt>std::max_element</tt>, except
+that they return the last instance of the largest element (and not the
+first, as <tt>first_min_element</tt> and <tt>last_max_element</tt> would).
+<p>The family of algorithms comprising <tt>first_min_first_max_element</tt>,
+<tt>first_min_last_max_element</tt>,
+<tt>last_min_first_max_element</tt>,
+and <tt>last_min_last_max_element</tt> can be described generically as
+follows (using <i><tt>which</tt></i> and
+<i><tt>what</tt></i> for <tt>first</tt>
+or <tt>last</tt>): <tt><i>which</i>_min_<i>what</i>_max_element</tt> finds
+the (first or last, according to <i><tt>which</tt></i>) smallest element
+and the (first or last, according to <i><tt>what</tt></i>) largest element
+in the range
+<tt>[first, last)</tt>. The first version is semantically
+equivalent to:
+<pre><tt>  std::make_pair(boost::<i>which</i>_min_element(first,last),
+                 boost::<i>what</i>_max_element(first,last))</tt>,</pre>
+and the second version to:
+<pre><tt>  std::make_pair(boost::<i>which</i>_min_element(first,last,comp),
+                 boost::<i>what</i>_max_element(first,last,comp))</tt>.</pre>
+
+<p><br><b><i>Note</i></b>: the <tt>first_min_last_max_element</tt> can also be described
+as finding the first and last elements in the range if it were stably sorted.
+</a>
+
+<a name="definition">
+<h3>
+Definition</h3>
+Defined in <a href="../../../boost/algorithm/minmax.hpp">minmax.hpp</a>
+and
+in <a href="../../../boost/algorithm/minmax_element.hpp">minmax_element.hpp</a>.
+</a>
+
+<a name="reqs">
+<h3>
+Requirements on types</h3>
+For minmax, <tt>T</tt> must be a model of <a href="http://www.sgi.com/tech/stl/LessThanComparable.html">LessThan
+Comparable</a>.
+<p>For all the other function templates, versions with two template parameters:
+<ul>
+<li>
+<tt>ForwardIterator</tt> is a model of <a href="http://www.sgi.com/tech/stl/ForwardIterator.html">Forward
+Iterator</a>.</li>
+
+<li>
+<tt>ForwardIterator</tt>'s value type is <a href="http://www.sgi.com/tech/stl/LessThanComparable.html">LessThan
+Comparable</a>.</li>
+</ul>
+For the versions with three template parameters:
+<ul>
+<li>
+<tt>ForwardIterator</tt> is a model of <a href="http://www.sgi.com/tech/stl/ForwardIterator.html">Forward
+Iterator</a>.</li>
+
+<li>
+<tt>BinaryPredicate</tt> is a model of <a href="http://www.sgi.com/tech/stl/BinaryPredicate.html">Binary
+Predicate</a>.</li>
+
+<li>
+<tt>ForwardIterator</tt>'s value type is convertible to <tt>BinaryPredicate</tt>'s
+first argument type and second argument type.</li>
+</ul>
+</a>
+
+<a name="precond">
+<h3>
+Preconditions</h3>
+
+<ul>
+<li>
+<tt>[first, last)</tt> is a valid range.</li>
+</ul>
+</a>
+
+<a name="postcond">
+<h3>
+Postconditions</h3>
+In addition to the semantic description above. for <tt>minmax_element</tt>
+and all the <tt><i>which</i>_min_<i>what</i>_max_element</tt>
+variants, the return value is
+<tt>last</tt> or <tt>std::make_pair(last,last)</tt>
+if and only if <tt>[first, last)</tt> is an empty range. Otherwise, the
+return value or both members of the resulting pair are iterators in the
+range
+<tt>[first, last)</tt>.
+</a>
+
+<a name="complexity">
+<h3>
+Complexity</h3>
+Minmax performs a single comparison and is otherwise of constant complexity.
+The use of <tt>boost::tuple&lt;T const&amp;></tt> prevents copy
+constructors in case the arguments are passed by reference.
+<p>The complexity of all the other algorithms is linear. They all perform
+exactly n increment operations, and zero comparisons if <tt>[first,last)</tt>
+is empty, otherwise :
+<ul>
+<li>
+all the <tt>min_element</tt> and <tt>max_element</tt> variants perform
+exactly<tt>(n-1)</tt> comparisons,</li>
+
+<li>
+<tt>minmax_element</tt> , <tt>first_min_first_max_element</tt>, and <tt>last_min_last_max_element</tt>
+perform at most <tt>3(n/2)-1</tt> comparisons if <tt>n</tt> is even and
+non-zero, and at most <tt>3(n/2)+1</tt> if <tt>n</tt> is odd,
+<a href="#Note2">[2]</a></li>
+
+<li>
+<tt>first_min_last_max_element</tt>, and <tt>last_min_first_max_element</tt>
+perform exactly <tt>3n/2-2</tt> comparisons if n is even and non-zero,
+and at most <tt>3(n/2)</tt> if <tt>n</tt> is odd,
+<a href="#Note1">[3]</a></li>
+</ul>
+where <tt>n</tt> is the number of elements in <tt>[first,last)</tt>.
+</a>
+
+<a name="example">
+<h3>
+Example</h3>
+This example is included in the distribution in the examples section of
+the library under
+<a href="example/minmax_ex.cpp">minmax_ex.cpp</a>.
+
+<pre>int main()
+{
+  using namespace std;
+  boost::tuple&lt;int const&amp;, int const&amp;> result1 = boost::minmax(1, 0);
+
+  assert( result1.get<0>() == 0 );
+  assert( result1.get<1>() == 1 );
+
+  <a href="http://www.sgi.com/tech/stl/List.html">list</a>&lt;int> L;
+  <a href="http://www.sgi.com/tech/stl/generate_n.html">generate_n</a>(<a href="http://www.sgi.com/tech/stl/front_insert_iterator.html">front_inserter</a>(L), 1000, rand);
+
+  typedef list&lt;int>::const_iterator iterator;
+  pair&lt; iterator, iterator > result2 = boost::minmax_element(L.begin(), L.end());
+  cout &lt;&lt; "The smallest element is " &lt;&lt; *(result2.first) &lt;&lt; endl;
+  cout &lt;&lt; "The largest element is  " &lt;&lt; *(result2.second) &lt;&lt; endl;
+
+  assert( result2.first  == std::min_element(L.begin(), L.end());
+  assert( result2.second == std::max_element(L.begin(), L.end());
+}</pre>
+</a>
+
+<a name="notes">
+<h3>
+Notes</h3>
+<a NAME="Note1"></a><a href="#Note1">[1]</a> We do not support
+idioms such as <tt><a href="../../tuple/doc/tuple_users_guide.html#tiers">tie</a>(a,b)=minmax(a,b)</tt>
+to order two elements <tt>a</tt>, <tt>b</tt>, although this would have
+the desired effect if we returned a reference instead of a constant
+reference. The reason is that two unnecessary assignments are
+performed if a and b are in order. It is better to stick to <tt>if (b&lt;a)
+swap(a,b)</tt> to achieve that effect.
+<p><a NAME="Note2"></a><a href="#Note2">[2]</a> These algorithms always
+perform at least <tt>3n/2-2</tt> comparisons, which is a lower bound on
+the number of comparisons in any case (Cormen, Leiserson, Rivest: "Introduction
+to Algorithms", section 9.1, Exercise 9.1-). The algorithms essentially compare
+the elements in pairs, performing 1 comparison for the first two elements,
+then 3 comparisons for each remaining pair of elements (one to order the
+elements and one for updating each the minimum and and the maximum). When
+the number of elements is odd, the last one needs to be compared to the
+current minimum and also to the current maximum. In addition, for <tt>minmax</tt>,
+in cases where equality of the two members in the pair could occur, and
+the update stores the second, we save the first to check at the end if
+the update should have stored the first (in case of equality). It's hard
+to predict if the last comparison is performed or not, hence the at most
+in both cases.
+<p><a NAME="Note3"></a><a href="#Note3">[3]</a> These algorithms always
+perform at least <tt>3n/2-2</tt> comparisons, which is a lower bound on
+the number of comparisons in any case. The method is the same as in note
+<a href="#Note2">[2]</a>
+above, and like above, when the number of elements is odd, the last one
+needs to be compared to the current minimum and also to the current maximum.
+We can avoid the latter comparison if the former is successful, hence the
+<i>at
+most</i> instead of <i>exactly</i> in the odd case.
+</a>
+
+<a name="rationale">
+<h3>
+<b>Rationale:</b></h3>
+
+<a name="two_headers">
+<h4><b>Why not a single header <tt>&lt;boost/algorithm/minmax.hpp></tt>?</b></h4>
+<p>This was the design originally proposed and approved in the formal
+review. As the need for Boost.tuple became clear (due to the limitations
+of <tt>std::pair</tt>), it became also annoying to require another
+library for <tt>minmax_element</tt> which does not need it. Hence the
+separation into two header files.</p>
+
+<a name="no-fix">
+<h4><b>Your minmax suffers from the same problems as std::min and
+std::max.</b></h4>
+<p>I am aware of the problems with std::min and
+std::max, and all the debate that has been going on (please consult
+<a href="#Alexandrescu">Alexandrescu's paper</a> and the links therein). But I don't see the purpose of this
+library as fixing something that is part of the C++ standard. I humbly
+think it's beyond the scope of this library. Rather, I am
+following the way of the standard in simply providing one more function
+of the same family. If someone else wants to fix std::min, their fix
+would probably apply to boost::minmax as well.</p>
+</a>
+
+<h4><b>Why no <tt>min/max_element_if</tt>?</b></h4>
+<p>In a first version of the library, I proposed <tt>_if</tt> versions of
+all the algorithms (well, not all, because that would be too much).
+However, there is simply no reason to do so, and all the versions I had
+were just as fast implemented using the excellent
+<tt>&lt;boost/iterator_adaptors.hpp></tt> library. Namely, a call to
+<tt>min_element_if(first, last, pred)</tt> would be just as well
+implemented by:
+<pre>
+     // equivalent to min_element_if(first, last, pred)
+     min_element(boost::make_filter_iterator(first, last, pred),
+                 boost::make_filter_iterator(last, last, pred));
+</pre>
+Arguably, the <tt>min_element_if</tt> version is somewhat shorter, but
+the overhead of iterator adaptors is not large, and they get rid of a
+lot of code (think of all the combinations between first/last and
+doubling them with _if variants!).</p>
+
+<h4><b>Discussion: about std::max_element</b></h4>
+<p>This rationale is somewhat historical, but explains why there are all
+these <tt>first/last_min/max_element</tt> functions.</p>
+<p>The C++ standard mandates that <tt>std::min_element</tt> and <tt>std::max_element</tt>
+return the first instance of the smallest and largest elements (as opposed
+to, say, the last). This arbitrary choice has some consistency: In the
+case of v of type vector&lt;int>, for instance, it is true that <tt>std::min_element(v.begin(),v.end(),std::less&lt;int>())
+== std::max_element(v.begin(),v.end(),std::greater&lt;int>())</tt>.
+<p>There is of course nothing wrong with this: it's simply a matter of
+choice. Yet another way to specify min_element and max_element is to define
+them as the first and the last elements if the range was stably sorted.
+(The <i>stable</i> sort is necessary to disambiguate between iterators
+that have the same value.) In that case, min should return the first instance
+and max should return the last. Then, both functions are related by
+<tt>reverse_iterator(std::first_min_element(v.begin(),v.end(),std::less&lt;int>()))
+==
+std::last_max_element(v.rbegin(),v.rend(),std::greater&lt;int>())</tt>.
+This definition is subtly different from the previous one.</p>
+<p>The definition problem surfaces when one tries to design a minmax_element,
+using the procedure proposed in (Cormen, Leiserson, Rivest: "Introduction
+to Algorithms", section 9.1). It <i>should</i> be possible to derive an
+algorithm using only <tt>3n/2</tt> comparisons if <tt>[first,last) </tt>has
+<tt>n</tt>
+elements, but if one tries to write a function called <tt>first_min_first_max_element()</tt>
+which returns both <tt>std::min_element</tt> and <tt>std::max_element</tt>
+in a pair, the trivial implementation does not work. The problem, rather
+subtly, is about equal elements: I had to think for a while to find a
+way to perform only three
+comparisons per pair and return the first min and first max elements.
+For a long time, it seemed any
+attempts at doing so would consume four comparisons per pair in the worst
+case. This implementation achieves three.</p>
+<p>It is not possible (or even desirable) to change the meaning of
+<tt>max_element</tt>,
+but it is still beneficial to provide a function called <tt>minmax_element</tt>,
+which returns a pair of <tt>min_element</tt> and <tt>max_element</tt>.
+Although it is easy enough to call <tt>min_element</tt> and <tt>max_element</tt>,
+this performs
+<tt>2(n-1)</tt> comparisons, and necessitates <b>two</b>
+passes over the input. In contrast,
+<tt>minmax_element</tt> will perform
+the fewer comparisons and perform a <b>single</b> pass over the input.
+The savings can be significant when the iterator type is not a raw pointer,
+or even is just a model of the InputIterator concept (although in that
+case the interface would have to be
+changed, as the return type could not be copied, so one could e.g.
+return a value).</p>
+<p>In order to benefit from all the variants of the algorithm, I propose
+to introduce both <tt>first_min_element</tt> and <tt>last_min_element</tt>,
+and their counterparts <tt>first_max_element</tt> and <tt>last_max_element</tt>.
+Then I also propose all the variants algorithms: <tt>first_min_last_max_element</tt>
+and <tt>last_min_first_max_element</tt>, which perform only at most <tt>3n/2</tt>
+comparisons, and only a single pass on the input. In fact, it can be proven
+that computing minmax requires at least <tt>3(n/2)-2</tt> comparisons in
+any instance of the problem (Cormen, Leiserson, Rivest, 2nd edition, section
+9.1). The implementation I give does not perform unnecessary comparisons
+(whose result could have been computed by transitivity from previous
+comparisons).</p>
+<p>It appears that <tt>first_min_last_max_element</tt> may be just a tad
+slower than
+<tt>first_min_element</tt> alone, still much less than <tt>first_min_element</tt>
+and
+<tt>last_max_element</tt> called separately.  <a href="#Note2">[2]</a>
+
+<h4><b>Why algorithms and not accumulators?</b></h4>
+<p>The minmax algorithms are useful in computing the extent of a range.
+In computer graphics, we need a bounding box of a set of objects.
+In that case the need for a single pass is even more stringent
+as all three directions must be done at once. Food for thoughts: there
+is matter for a nice generic programming library with stackable <tt>update_min</tt>
+and <tt>update_max</tt> function objects which store a reference to the
+<tt>min_result</tt>and
+<tt>max_result</tt> variables, in conjunction with the <tt>for_each</tt>
+algorithm).</p>
+<p>I believe many standard sequential algorithms could be reformulated
+with accumulators (and many others, such as in statistics, expectation /
+variance / etc.). It seems that there is room for another library, but I
+do not see it competing with minmax, rather extending several algorithms
+(including minmax) to the accumulator framework. However, I felt it is
+beyond the scope of this library to provide such accumulators.</p>
+
+<a NAME="no-policy">
+<h4><b>This first/last is a perfect application for a policy-based
+design.</b></h4>
+<p>True, and I could have gone that way, with the default policy for
+<tt>min_element</tt> and <tt>max_element</tt> to pick the first
+occurence of the result. This would have thinned the number of
+combinations of the minmax_element variants. But it would also have
+meant to change the interface of <tt>boost::minmax_element</tt>.
+One of the goals of the <tt>minmax_element</tt> algorithm is its
+eventual addition to the C++ standard, in connection with
+<tt>std::min_element</tt> and <tt>std::max_element</tt>
+(and I feel that it would be quite natural
+given the shortness of the implementation, and the not quite trivial
+detail which is needed to get it right). So changing the interface by
+adding policies would have meant unfortunately to depart from the
+standard and created an obstacle towards that goal. Besides, the code
+remains rather readable and simple without policies. So I am quite happy
+to keep it like this.
+</p></a>
+</a>
+
+<a name="perf">
+<a href="doc/minmax_benchs.html"><h3><b>About performance</b></h3></a>
+</a>
+
+<a name="acks">
+<h3>
+Acknowledgements</h3>
+
+<a name="Alexandrescu">
+<a href="http://www.drdobbs.com/generic-min-and-max-redivivus/184403774">Generic: Min and Max Redivivus, by Andrei Alexandrescu</a>
+Dr. Dobbs, April 2001
+
+<p>My students in CS903 (Polytechnic Univ., <a href="http://photon.poly.edu/~hbr/cs903/">http://photon.poly.edu/~hbr/cs903/</a>)
+who had <tt>minmax_element</tt> as an assignment helped clarify the issues,
+and also come up with the optimum number of comparisons for <tt>first_min_last_max_element</tt>.
+The identification of the issue surrounding <tt>max_element</tt> is solely
+my own.
+<p>One <tt>minmax_element</tt> implementation, which performs <tt>3(n/2)+O(log
+n)</tt> comparisons on the average when the elements are <tt>random_shuffle</tt>d,
+was suggested by my student Marc Glisse. The current one, which performs
+<tt>3(n/2)+1</tt>
+comparisons in the worst case, was suggested by John Iacono.<p>
+<p>Finally, Matthew Wilson and Jeremy Siek contributed pre-review
+comments, while Gennadiy Rozental, John Maddock, Craig Henderson, Gary
+Powell participated in the review of the library, managed by Thomas
+Witt. In particular, Gennadiy suggested a factorization of the code;
+while I haven't followed it all the way, his suggestions do make the
+code more readable and still work with older compilers. 
+Late after the review, as I finally scrounged to add the library for a
+release, Eric Niebler noted the bad behavior of <tt>std::pair</tt> for
+<tt>minmax</tt> and suggested to use Boost.tuple instead. 
+All my thanks for the excellent advice and reviews from all.
+<h3>
+See also</h3>
+<tt><a href="http://www.sgi.com/tech/stl/min.html">min</a></tt>, <tt><a href="http://www.sgi.com/tech/stl/max.html">max</a></tt>,
+<tt><a href="http://www.sgi.com/tech/stl/min_element.html">min_element</a></tt>,
+<tt><a href="http://www.sgi.com/tech/stl/max_element.html">max_element</a></tt>,
+<tt><a href="http://www.sgi.com/tech/stl/LessThanComparable.html">LessThan
+Comparable</a></tt>,
+<tt><a href="http://www.sgi.com/tech/stl/sort.html">sort</a></tt>,
+<tt><a href="http://www.sgi.com/tech/stl/nth_element.html">nth_element</a></tt>
+.
+<hr SIZE="6">
+<br>Last modified 2012-12-10
+<p><font face="Arial,Helvetica"><font size=-1>&copy; Copyright Herv&eacute;
+Br&ouml;nnimann, Polytechnic University, 2002--2004. 
+Use, modification, and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file <a href="../../../LICENSE_1_0.txt">License_1_0.txt</a> or copy at
+<a href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)
+</font></font>
+</body>
+</html>

@@ -1,0 +1,52 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page collation Collation 
+
+Boost.Locale provides a \ref boost::locale::collator "collator" class, derived from \c std::collate, that adds support for
+primary, secondary, tertiary, quaternary and identical comparison levels. They can be approximately defined as:
+
+-# Primary -- ignore accents and character case, comparing base letters only. For example "facade" and "Façade" are the same.
+-# Secondary -- ignore character case but consider accents. "facade" and "façade" are different but "Façade" and "façade" are the same.
+-# Tertiary -- consider both case and accents: "Façade" and "façade" are different. Ignore punctuation.
+-# Quaternary -- consider all case, accents, and punctuation. The words must be identical in terms of Unicode representation.
+-# Identical -- as quaternary, but compare code points as well.
+
+There are two ways of using the \ref boost::locale::collator "collator" facet: directly, by calling its member functions \ref boost::locale::collator::compare() "compare", \ref boost::locale::collator::transform() "transform" and \ref
+boost::locale::collator::hash() "hash", or indirectly by using the \ref boost::locale::comparator "comparator" template
+class in STL algorithms.
+
+For example:
+
+\code
+    wstring a=L"Façade", b=L"facade";
+    bool eq = 0 == use_facet<collator<wchar_t> >(loc).compare(collator_base::secondary,a,b);
+    wcout << a <<L" and "<<b<<L" are " << (eq ? L"identical" : L"different")<<endl;
+\endcode
+
+\c std::locale is designed to be useful as a comparison class in STL collections and algorithms.
+To get similar functionality with comparison levels, you must use the comparator class.
+
+\code
+    std::map<std::string,std::string,comparator<char,collator_base::secondary> > strings;
+    // Now strings uses the default system locale for string comparison
+\endcode
+
+You can also set a specific locale or level when creating and using the \ref boost::locale::comparator "comparator" class:
+
+\code
+    comparator<char> comp(some_locale,some_level);
+    std::map<std::string,std::string,comparator<char> > strings(comp);
+\endcode
+
+*/
+
+

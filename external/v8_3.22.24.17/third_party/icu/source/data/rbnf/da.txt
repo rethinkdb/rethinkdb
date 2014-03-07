@@ -1,0 +1,82 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/rbnf/da.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/rbnf/da.xml
+ */
+da{
+    RBNFRules{
+        SpelloutRules{
+            "%%lenient-parse:",
+            "&[last primary ignorable ] << ' ' << ',' << '-' << '\u00AD';",
+            "%spellout-numbering-year:",
+            "-x: minus >>;",
+            "x.x: =#,###0.#=;",
+            "0: =%spellout-numbering=;",
+            "1100/100: <<\u00ADhundred[ og >>];",
+            "10000: =%spellout-numbering=;",
+            "%spellout-numbering:",
+            "0: =%spellout-cardinal-reale=;",
+            "%spellout-cardinal-neutre:",
+            "-x: minus >>;",
+            "x.x: << komma >>;",
+            "0: nul;",
+            "1: et;",
+            "2: =%spellout-cardinal-reale=;",
+            "%spellout-cardinal-masculine:",
+            "0: =%spellout-cardinal-reale=;",
+            "%spellout-cardinal-feminine:",
+            "0: =%spellout-cardinal-reale=;",
+            "%spellout-cardinal-reale:",
+            "-x: minus >>;",
+            "x.x: << komma >>;",
+            "0: nul;",
+            "1: en;",
+            "2: to;",
+            "3: tre;",
+            "4: fire;",
+            "5: fem;",
+            "6: seks;",
+            "7: syv;",
+            "8: otte;",
+            "9: ni;",
+            "10: ti;",
+            "11: elve;",
+            "12: tolv;",
+            "13: tretten;",
+            "14: fjorten;",
+            "15: femten;",
+            "16: seksten;",
+            "17: sytten;",
+            "18: atten;",
+            "19: nitten;",
+            "20: [>>\u00ADog\u00AD]tyve;",
+            "30: [>>\u00ADog\u00AD]tredive;",
+            "40: [>>\u00ADog\u00AD]fyrre;",
+            "50: [>>\u00ADog\u00AD]halvtreds;",
+            "60: [>>\u00ADog\u00AD]tres;",
+            "70: [>>\u00ADog\u00AD]halvfjerds;",
+            "80: [>>\u00ADog\u00AD]firs;",
+            "90: [>>\u00ADog\u00AD]halvfems;",
+            "100: et\u00ADhundrede[ og >>];",
+            "200: <%spellout-cardinal-neutre<\u00ADhundred[ og >>];",
+            "1000: et tusinde[ og >>];",
+            "2000: <%spellout-cardinal-neutre< tusind[ og >>];",
+            "1000000: en million[ og >>];",
+            "2000000: << millioner[ og >>];",
+            "1000000000: en milliard[ og >>];",
+            "2000000000: << milliarder[ og >>];",
+            "1000000000000: en billion[ og >>];",
+            "2000000000000: << billioner[ og >>];",
+            "1000000000000000: en billiard[ og >>];",
+            "2000000000000000: << billiarder[ og >>];",
+            "1000000000000000000: =#,##0=;",
+        }
+    }
+    Version{"2.0.41.26"}
+}

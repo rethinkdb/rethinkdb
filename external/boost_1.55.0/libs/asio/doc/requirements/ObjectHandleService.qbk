@@ -1,0 +1,46 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:ObjectHandleService Object handle service requirements]
+
+An object handle service must meet the requirements for a [link
+boost_asio.reference.HandleService handle service], as well as the additional
+requirements listed below.
+
+In the table below, `X` denotes an object handle service class, `a` denotes a
+value of type `X`, `b` denotes a value of type `X::implementation_type`, `ec`
+denotes a value of type `error_code`, and `wh` denotes a value meeting [link
+boost_asio.reference.WaitHandler `WaitHandler`] requirements.
+
+[table ObjectHandleService requirements
+  [[expression] [return type] [assertion/note\npre/post-condition]]
+  [
+    [`a.wait(b, ec);`]
+    [`error_code`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Synchronously waits for the object represented by handle `b` to become
+      signalled.
+    ]
+  ]
+  [
+    [`a.async_wait(b, wh);`]
+    [`void`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Initiates an asynchronous operation to wait for the object represented by
+      handle `b` to become signalled. The operation is performed via the
+      `io_service` object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.
+    ]
+  ]
+]
+
+[endsect]

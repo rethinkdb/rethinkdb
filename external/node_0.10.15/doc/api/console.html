@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>console Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/console.html">
+</head>
+<body class="alt apidoc" id="api-section-console">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="console.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#console_console">console</a><ul>
+<li><a href="#console_console_log_data">console.log([data], [...])</a></li>
+<li><a href="#console_console_info_data">console.info([data], [...])</a></li>
+<li><a href="#console_console_error_data">console.error([data], [...])</a></li>
+<li><a href="#console_console_warn_data">console.warn([data], [...])</a></li>
+<li><a href="#console_console_dir_obj">console.dir(obj)</a></li>
+<li><a href="#console_console_time_label">console.time(label)</a></li>
+<li><a href="#console_console_timeend_label">console.timeEnd(label)</a></li>
+<li><a href="#console_console_trace_label">console.trace(label)</a></li>
+<li><a href="#console_console_assert_expression_message">console.assert(expression, [message])</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>console<span><a class="mark" href="#console_console" id="console_console">#</a></span></h1>
+<pre class="api_stability_4">Stability: 4 - API Frozen</pre><div class="signature"><ul>
+<li><span class="type">Object</span></li>
+</div></ul>
+<!--type=global-->
+
+<p>For printing to stdout and stderr.  Similar to the console object functions
+provided by most web browsers, here the output is sent to stdout or stderr.
+
+</p>
+<p>The console functions are synchronous when the destination is a terminal or
+a file (to avoid lost messages in case of premature exit) and asynchronous
+when it&#39;s a pipe (to avoid blocking for long periods of time).
+
+</p>
+<p>That is, in the following example, stdout is non-blocking while stderr
+is blocking:
+
+</p>
+<pre><code>$ node script.js 2&gt; error.log | tee info.log</code></pre>
+<p>In daily use, the blocking/non-blocking dichotomy is not something you
+should worry about unless you log huge amounts of data.
+
+
+</p>
+<h2>console.log([data], [...])<span><a class="mark" href="#console_console_log_data" id="console_console_log_data">#</a></span></h2>
+<p>Prints to stdout with newline. This function can take multiple arguments in a
+<code>printf()</code>-like way. Example:
+
+</p>
+<pre><code>console.log(&#39;count: %d&#39;, count);</code></pre>
+<p>If formatting elements are not found in the first string then <code>util.inspect</code>
+is used on each argument.  See <a href="util.html#util_util_format_format">util.format()</a> for more information.
+
+</p>
+<h2>console.info([data], [...])<span><a class="mark" href="#console_console_info_data" id="console_console_info_data">#</a></span></h2>
+<p>Same as <code>console.log</code>.
+
+</p>
+<h2>console.error([data], [...])<span><a class="mark" href="#console_console_error_data" id="console_console_error_data">#</a></span></h2>
+<p>Same as <code>console.log</code> but prints to stderr.
+
+</p>
+<h2>console.warn([data], [...])<span><a class="mark" href="#console_console_warn_data" id="console_console_warn_data">#</a></span></h2>
+<p>Same as <code>console.error</code>.
+
+</p>
+<h2>console.dir(obj)<span><a class="mark" href="#console_console_dir_obj" id="console_console_dir_obj">#</a></span></h2>
+<p>Uses <code>util.inspect</code> on <code>obj</code> and prints resulting string to stdout.
+
+</p>
+<h2>console.time(label)<span><a class="mark" href="#console_console_time_label" id="console_console_time_label">#</a></span></h2>
+<p>Mark a time.
+
+</p>
+<h2>console.timeEnd(label)<span><a class="mark" href="#console_console_timeend_label" id="console_console_timeend_label">#</a></span></h2>
+<p>Finish timer, record output. Example:
+
+</p>
+<pre><code>console.time(&#39;100-elements&#39;);
+for (var i = 0; i &lt; 100; i++) {
+  ;
+}
+console.timeEnd(&#39;100-elements&#39;);</code></pre>
+<h2>console.trace(label)<span><a class="mark" href="#console_console_trace_label" id="console_console_trace_label">#</a></span></h2>
+<p>Print a stack trace to stderr of the current position.
+
+</p>
+<h2>console.assert(expression, [message])<span><a class="mark" href="#console_console_assert_expression_message" id="console_console_assert_expression_message">#</a></span></h2>
+<p>Same as <a href="assert.html#assert_assert_value_message_assert_ok_value_message">assert.ok()</a> where if the <code>expression</code> evaluates as <code>false</code> throw an
+AssertionError with <code>message</code>.
+
+</p>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

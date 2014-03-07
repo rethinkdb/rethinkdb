@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Lambda and Non-Metafunction Templates</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./placeholder-expression.html" class="navigation-link">Prev</a>&nbsp;<a href="./the-importance-of-being.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./placeholder-expression.html" class="navigation-link">Back</a>&nbsp;<a href="./the-importance-of-being.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./lambda-details.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./tutorial-metafunctions.html" class="navigation-link">Tutorial: Metafunctions and Higher-Order Metaprogramming</a> / <a href="./lambda-details.html" class="navigation-link">Lambda Details</a> / <a href="./lambda-and-non.html" class="navigation-link">Lambda and Non-Metafunction Templates</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="lambda-and-non">
+<h1><a class="toc-backref" href="./lambda-details.html#id57" name="lambda-and-non">Lambda and Non-Metafunction Templates</a></h1>
+<p>There is just one detail of placeholder expressions that we haven't
+discussed yet.  MPL uses a special rule to make it easier to
+integrate ordinary templates into metaprograms:  After all of the
+placeholders have been replaced with actual
+arguments, if the resulting template specialization <em>X</em> doesn't
+have a nested <tt class="literal"><span class="pre">::type</span></tt>, the result is just
+<em>X</em> itself.</p>
+<p>For example, <tt class="literal"><span class="pre">mpl::apply&lt;std::vector&lt;_&gt;,</span> <span class="pre">T&gt;</span></tt> is always just
+<tt class="literal"><span class="pre">std::vector&lt;T&gt;</span></tt>.  If it weren't for this behavior, we would
+have to build trivial metafunctions to create ordinary template
+specializations in lambda expressions:</p>
+<pre class="literal-block">
+// trivial std::vector generator
+template&lt;class U&gt; 
+struct make_vector { typedef std::vector&lt;U&gt; type; };
+
+typedef mpl::apply&lt;<strong>make_vector&lt;_&gt;</strong>, T&gt;::type vector_of_t;
+</pre>
+<p>Instead, we can simply write:</p>
+<pre class="literal-block">
+typedef mpl::apply&lt;<strong>std::vector&lt;_&gt;</strong>, T&gt;::type vector_of_t;
+</pre>
+<!-- @ # ensure indentation works.  The ReST parser will push the 2nd line left
+while stack:
+   stack[-1].prepend('#include <vector>\ntypedef int T;')
+   compile() -->
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./placeholder-expression.html" class="navigation-link">Prev</a>&nbsp;<a href="./the-importance-of-being.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./placeholder-expression.html" class="navigation-link">Back</a>&nbsp;<a href="./the-importance-of-being.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./lambda-details.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

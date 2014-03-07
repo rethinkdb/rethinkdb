@@ -1,0 +1,16 @@
+
+Rename 'parameter' in option_description with something
+better, e.g. 'value_specification'?
+
+Approximate matching for variable_map access?
+
+Should be able to stack validators?
+
+Case with variables like this
+	'foo'	=	10
+	'foo.bar'	=	12
+	should become an error
+
+
+
+

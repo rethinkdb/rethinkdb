@@ -1,0 +1,36 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:counting_range counting_range]
+
+[heading Prototype]
+
+``
+template< class Incrementable > inline
+iterator_range< counting_iterator<Incrementable> >
+counting_range(Incrementable first, Incrementable last);
+
+template< class SinglePassRange > inline
+iterator_range< counting_iterator<typename range_iterator<SinglePassRange>::type >
+counting_range(const SinglePassRange& rng);
+
+template< class SinglePassRange > inline
+iterator_range< counting_iterator<typename range_iterator<SinglePassRange>::type >
+counting_range(SinglePassRange& rng);
+``
+
+[heading Description]
+
+`counting_range` is a function to generator that generates an `iterator_range` wrapping a `counting_iterator` (from Boost.Iterator).
+
+[heading Definition]
+
+Defined in header file `boost/range/counting_range.hpp`
+
+[heading Requirements]
+
+# `Incrementable` is a model of the `Incrementable` Concept.
+
+[endsect]

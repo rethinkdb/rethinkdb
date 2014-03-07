@@ -1,0 +1,574 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Container</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.0">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 2.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 2.0">
+<link rel="prev" href="composite.html" title="Composite">
+<link rel="next" href="algorithm.html" title="Algorithm">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="composite.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="algorithm.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="phoenix.container"></a><a class="link" href="container.html" title="Container">Container</a>
+</h2></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">container</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      The container module predefines a set of lazy functions that work on STL containers.
+      These functions provide a mechanism for the lazy evaluation of the public member
+      functions of the STL containers. The lazy functions are thin wrappers that
+      simply forward to their respective counterparts in the STL library.
+    </p>
+<p>
+      Lazy functions are provided for all of the member functions of the following
+      containers:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          deque
+        </li>
+<li class="listitem">
+          list
+        </li>
+<li class="listitem">
+          map
+        </li>
+<li class="listitem">
+          multimap
+        </li>
+<li class="listitem">
+          vector
+        </li>
+</ul></div>
+<p>
+      Indeed, should your class have member functions with the same names and signatures
+      as those listed below, then it will automatically be supported. To summarize,
+      lazy functions are provided for member functions:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          assign
+        </li>
+<li class="listitem">
+          at
+        </li>
+<li class="listitem">
+          back
+        </li>
+<li class="listitem">
+          begin
+        </li>
+<li class="listitem">
+          capacity
+        </li>
+<li class="listitem">
+          clear
+        </li>
+<li class="listitem">
+          empty
+        </li>
+<li class="listitem">
+          end
+        </li>
+<li class="listitem">
+          erase
+        </li>
+<li class="listitem">
+          front
+        </li>
+<li class="listitem">
+          get_allocator
+        </li>
+<li class="listitem">
+          insert
+        </li>
+<li class="listitem">
+          key_comp
+        </li>
+<li class="listitem">
+          max_size
+        </li>
+<li class="listitem">
+          pop_back
+        </li>
+<li class="listitem">
+          pop_front
+        </li>
+<li class="listitem">
+          push_back
+        </li>
+<li class="listitem">
+          push_front
+        </li>
+<li class="listitem">
+          rbegin
+        </li>
+<li class="listitem">
+          rend
+        </li>
+<li class="listitem">
+          reserve
+        </li>
+<li class="listitem">
+          resize
+        </li>
+<li class="listitem">
+          size
+        </li>
+<li class="listitem">
+          splice
+        </li>
+<li class="listitem">
+          value_comp
+        </li>
+</ul></div>
+<p>
+      The lazy functions' names are the same as the corresponding member function.
+      The difference is that the lazy functions are free functions and therefore
+      does not use the member "dot" syntax.
+    </p>
+<div class="table">
+<a name="id855358"></a><p class="title"><b>Table&#160;1.5.&#160;Sample usage</b></p>
+<div class="table-contents"><table class="table" summary="Sample usage">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                "Normal" version
+              </p>
+            </th>
+<th>
+              <p>
+                "Lazy" version
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">my_vector</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="number">5</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">at</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span>
+                <span class="number">5</span><span class="special">)</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">my_list</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">size</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">)</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">my_vector1</span><span class="special">.</span><span class="identifier">swap</span><span class="special">(</span><span class="identifier">my_vector2</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">swap</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span>
+                <span class="identifier">arg2</span><span class="special">)</span></code>
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      Notice that member functions with names that clash with stl algorithms are
+      absent. This will be provided in Phoenix's algorithm module.
+    </p>
+<p>
+      No support is provided here for lazy versions of <code class="computeroutput"><span class="keyword">operator</span><span class="special">+=</span></code>, <code class="computeroutput"><span class="keyword">operator</span><span class="special">[]</span></code> etc. Such operators are not specific to STL
+      containers and lazy versions can therefore be found in <a class="link" href="composite.html#phoenix.composite.operator" title="Operator">operators</a>.
+    </p>
+<p>
+      The following table describes the container functions and their semantics.
+    </p>
+<div class="sidebar">
+<p class="title"><b></b></p>
+<p>
+      <span class="inlinemediaobject"><img src="../images/tip.png" alt="tip"></span> Arguments in brackets denote optional parameters.
+    </p>
+</div>
+<div class="table">
+<a name="id855651"></a><p class="title"><b>Table&#160;1.6.&#160;Lazy STL Container Functions</b></p>
+<div class="table-contents"><table class="table" summary="Lazy STL Container Functions">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Function
+              </p>
+            </th>
+<th>
+              <p>
+                Semantics
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">assign</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="identifier">a</span><span class="special">[,</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">c</span><span class="special">])</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">assign</span><span class="special">(</span><span class="identifier">a</span><span class="special">[,</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">c</span><span class="special">])</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">at</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="identifier">i</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">back</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">back</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">begin</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">capacity</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">capacity</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">clear</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">clear</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">empty</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">end</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">erase</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="identifier">a</span><span class="special">[,</span> <span class="identifier">b</span><span class="special">])</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">erase</span><span class="special">(</span><span class="identifier">a</span><span class="special">[,</span> <span class="identifier">b</span><span class="special">])</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">front</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">front</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">get_allocator</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">get_allocator</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">insert</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="identifier">a</span><span class="special">[,</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">c</span><span class="special">])</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">a</span><span class="special">[,</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">c</span><span class="special">])</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">key_comp</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">key_comp</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">max_size</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">max_size</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">pop_back</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">pop_back</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">pop_front</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">pop_front</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="identifier">d</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">d</span><span class="special">)</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">push_front</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="identifier">d</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">push_front</span><span class="special">(</span><span class="identifier">d</span><span class="special">)</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">pop_front</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">pop_front</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">rbegin</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">rbegin</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">rend</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">rend</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">reserve</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="identifier">n</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">reserve</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">resize</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="identifier">a</span><span class="special">[,</span> <span class="identifier">b</span><span class="special">])</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">resize</span><span class="special">(</span><span class="identifier">a</span><span class="special">[,</span> <span class="identifier">b</span><span class="special">])</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">size</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">splice</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="identifier">a</span><span class="special">[,</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">d</span><span class="special">])</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">splice</span><span class="special">(</span><span class="identifier">a</span><span class="special">[,</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">d</span><span class="special">])</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">value_comp</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">c</span><span class="special">.</span><span class="identifier">value_comp</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005 Joel
+      de Guzman, Dan Marsden<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="composite.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="algorithm.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!-- 
+//
+// Boost.Pointer Container
+//
+//  Copyright Thorsten Ottosen 2003-2005. Use, modification and
+//  distribution is subject to the Boost Software License, Version
+//  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+// For more information, see http://www.boost.org/libs/ptr_container/
+//
+-->
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<boostbook xmlns:xi="http://www.w3.org/2001/XInclude"
+           last-revision="$Date: 2008-02-07 00:44:10 -0800 (Thu, 07 Feb 2008) $">
+<library name="Pointer Container" dirname="ptr_container" xmlns:xi="http://www.w3.org/2001/XInclude" 
+	id="ptr_container" last-revision="$Date: 2008-02-07 00:44:10 -0800 (Thu, 07 Feb 2008) $">
+	<libraryinfo>
+		<author>
+			<firstname>Thorsten</firstname>
+			<surname>Ottosen</surname>
+		</author>
+
+		<copyright>
+			<year>2003</year>
+			<holder>Thorsten Ottosen</holder>
+		</copyright>
+
+		<legalnotice>
+			<para>Permission to copy, use, sell and distribute this software
+				is granted provided this copyright notice appears in all copies.
+				Permission to modify the code and to distribute modified code is
+				granted provided this copyright notice appears in all copies, and
+				a notice that the code was modified is included with the copyright
+				notice. </para>
+
+			<para> This software is provided "as is" without express or
+				implied warranty, and with no claim as to its suitability for any
+				purpose. </para>
+		</legalnotice>
+
+		<librarypurpose>
+			This library provides standard-like containers that are suitable
+            for storing pointers to both polymorphic and non-polymorphic objects.
+		</librarypurpose> 
+		<librarycategory name="category:containers"/>
+	</libraryinfo>
+
+	<title>Boost Pointer Container Library</title>	
+	<xi:include href="intro.xml"/>
+</library>
+</boostbook>
+

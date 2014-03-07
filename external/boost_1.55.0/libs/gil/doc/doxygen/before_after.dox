@@ -1,0 +1,78 @@
+/*!
+\page BeforeAfterExample Histogram Example
+
+Actual commercial code that computes the luminosity histogram (variable names have been changed and unrelated parts removed):
+
+\code
+void luminosity_hist(const uint8 *r, const uint8 *g, const uint8 *b, int rows, int cols, int sRowBytes, Histogram *hist)
+{
+    for (int r=0; r<rows; r++)
+    {
+        for (int c=0; c<cols; c++)
+        {
+            int v=RGBToGray(r[c],g[c],b[c]);
+            (*hist)[v]++;
+        }
+        r+=sRowBytes;
+        g+=sRowBytes;
+        b+=sRowBytes;
+    }
+}
+\endcode
+
+- Works only for RGB (duplicate versions exist for other color spaces)
+- Works only for 8-bit images (duplicate versions exist)
+- Works only for planar images
+
+<p> Histogram using GIL:
+
+
+\code
+template <typename GrayView, typename R>
+void grayimage_histogram(GrayView& img, R& hist) {
+    for (typename GrayView::iterator it=img.begin(); it!=img.end(); ++it)
+        ++hist[*it];
+}
+
+template <typename View, typename R>
+void luminosity8bit_hist(View& img, R& hist) 
+{
+    grayimage_histogram(color_converted_view<gray8_pixel_t>(img),hist);
+}
+\endcode
+
+using \p boost::lambda the GIL version can be written even simpler:
+\code
+using boost::lambda;
+
+template <typename GrayView, typename R>
+void grayimage_histogram(GrayView& img, R& hist)
+{
+    for_each_pixel(img, ++var(hist)[_1]);
+}
+\endcode
+
+The GIL version:
+- Works with any supported channel depth, color space, channel ordering (RGB vs BGR), and row alignment policy.
+- Works for both planar and interleaved images.
+- Works with new color spaces, channel depths and image types that can be provided in future extensions of GIL
+- The second version is as efficient as the hand-coded version
+
+It is also very flexible. For example, to compute the histogram of the second channel of the top left quadrant of the image, 
+taking every other row and column, call:
+
+\code
+grayimage_histogram(
+    nth_channel_view(
+            subsampled_view(
+                subimage_view(img, 0,0, img.width()/2,img.height()/2),  // upper left quadrant
+                2, 2   // skip every other row and column
+            ),
+        1              // index of the second channel (for example, green for RGB)
+    ),
+    hist
+);
+\endcode
+
+Note that no extra memory is allocated and no images are copied - GIL operates on the source pixels of \p img directly.
+*/

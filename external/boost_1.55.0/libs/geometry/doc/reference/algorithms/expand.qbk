@@ -1,0 +1,35 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __this_function__ expand]
+[def __apply_expand__ Box is expanded to include the specified]
+
+[heading_conformance_no_ogc __this_function__]
+
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__box__ / __point__][__apply_expand__ __point__]]
+[[__box__ / __box__][__apply_expand__ __box__]]
+[[__box__ / __other__][__nyiversion__]]
+]
+
+[note To use expand with another geometry type then specified, use expand(make_envelope<box_type>(geometry)]
+
+[heading Complexity]
+Linear
+
+[heading Example]
+[expand]
+[expand_output]
+

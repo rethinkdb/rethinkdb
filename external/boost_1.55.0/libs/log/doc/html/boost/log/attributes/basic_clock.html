@@ -1,0 +1,82 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template basic_clock</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../attributes.html#header.boost.log.attributes.clock_hpp" title="Header &lt;boost/log/attributes/clock.hpp&gt;">
+<link rel="prev" href="../swap_idp25987608.html" title="Function swap">
+<link rel="next" href="basic_clock/impl.html" title="Struct impl">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../swap_idp25987608.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../attributes.html#header.boost.log.attributes.clock_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_clock/impl.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.attributes.basic_clock"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template basic_clock</span></h2>
+<p>boost::log::attributes::basic_clock &#8212; A class of an attribute that makes an attribute value of the current date and time. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../attributes.html#header.boost.log.attributes.clock_hpp" title="Header &lt;boost/log/attributes/clock.hpp&gt;">boost/log/attributes/clock.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> TimeTraitsT<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="basic_clock.html" title="Class template basic_clock">basic_clock</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">attribute</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">TimeTraitsT</span><span class="special">::</span><span class="identifier">time_type</span> <a name="boost.log.attributes.basic_clock.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>  <span class="comment">// Generated value type. </span>
+
+  <span class="comment">// member classes/structs/unions</span>
+
+  <span class="comment">// Attribute factory implementation.</span>
+
+  <span class="keyword">struct</span> <a class="link" href="basic_clock/impl.html" title="Struct impl">impl</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">attribute</span><span class="special">::</span><span class="identifier">impl</span> <span class="special">{</span>
+
+    <span class="comment">// <a class="link" href="basic_clock/impl.html#idp25994168-bb">public member functions</a></span>
+    <a class="link" href="../attribute_value.html" title="Class attribute_value">attribute_value</a> <a class="link" href="basic_clock/impl.html#idp25994376-bb"><span class="identifier">get_value</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="basic_clock.html#boost.log.attributes.basic_clockconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="basic_clock.html#idp25996136-bb"><span class="identifier">basic_clock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="basic_clock.html#idp25996424-bb"><span class="identifier">basic_clock</span></a><span class="special">(</span><a class="link" href="cast_source.html" title="Class cast_source">cast_source</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp55433672"></a><h2>Description</h2>
+<p>The attribute generates current time stamp as a value. The type of the attribute value is determined with time traits passed to the class template as a template parameter. The time traits provided by the library use <code class="computeroutput">boost::posix_time::ptime</code> as the time type.</p>
+<p>Time traits also determine the way time is acquired. There are two types of time traits provided by the library: <code class="computeroutput"><a class="link" href="utc_time_traits.html" title="Struct utc_time_traits">utc_time_traits</a></code> and <code class="computeroutput"><a class="link" href="local_time_traits.html" title="Struct local_time_traits">local_time_traits</a></code>. The first returns UTC time, the second returns local time. </p>
+<div class="refsect2">
+<a name="idp55436328"></a><h3>
+<a name="boost.log.attributes.basic_clockconstruct-copy-destruct"></a><code class="computeroutput">basic_clock</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp25996136-bb"></a><span class="identifier">basic_clock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Default constructor </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp25996424-bb"></a><span class="identifier">basic_clock</span><span class="special">(</span><a class="link" href="cast_source.html" title="Class cast_source">cast_source</a> <span class="keyword">const</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor for casting support </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../swap_idp25987608.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../attributes.html#header.boost.log.attributes.clock_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_clock/impl.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

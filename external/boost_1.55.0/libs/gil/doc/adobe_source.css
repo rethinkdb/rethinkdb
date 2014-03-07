@@ -1,0 +1,433 @@
+/* 
+   Copyright 2008 Lubomir Bourdev and Hailin Jin
+    
+   Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at
+   http://www.boost.org/LICENSE_1_0.txt)
+*/
+
+BODY,H1,H2,H3,H4,H5,H6,P,CENTER,TD,TH,UL,DL,DIV {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 12px;
+}
+
+CODE {
+	font-family: Monaco, Courier New, Fixed, monospace;
+	font-size: 12px;
+}
+
+BODY,TD {
+    font-size: 12px;
+    margin: 0;
+    padding: 0;
+	background: white;
+	color: black;
+}
+
+TABLE {
+    margin: 0;
+    padding: 0;
+    border-spacing: 0;
+}
+
+H1 {
+	text-align: center;
+    font-size: 18px;
+}
+
+H2 {
+    font-size: 16px;
+    border-top: 1px dotted #666666;
+    border-bottom: 1px dotted #666666;
+}
+
+H3 {
+    font-size: 14px;
+    border-top: 1px dotted #666666;
+    border-bottom: 1px dotted #666666;
+}
+
+CAPTION {
+    font-weight: bold
+}
+
+DIV.qindex {
+	width: 100%;
+	background-color: #e8eef2;
+	border: 1px solid #84b0c7;
+	text-align: center;
+	margin: 2px;
+	padding: 2px;
+	line-height: 140%;
+}
+
+DIV.nav {
+    display: none;
+	width: 100%;
+	text-align: center;
+	margin: 2px;
+	padding: 2px;
+	line-height: 140%;
+}
+
+DIV.navtab {
+    background-color: #e8eef2;
+    border: 1px solid #84b0c7;
+    text-align: center;
+    margin: 2px;
+    margin-right: 15px;
+    padding: 2px;
+}
+
+TD.navtab {
+       font-size: 12px;
+}
+
+A.qindex, A.qindex:visited {
+       text-decoration: none;
+       font-weight: bold;
+       color: #1A419D;
+}
+
+A.qindex:hover {
+	text-decoration: none;
+	background-color: #ddddff;
+}
+
+A.qindexHL {
+	text-decoration: none;
+	font-weight: bold;
+	background-color: #6666cc;
+	color: #ffffff;
+	border: 1px double #9295C2;
+}
+
+A.qindexHL:hover {
+	text-decoration: none;
+	background-color: #6666cc;
+	color: #ffffff;
+}
+
+A.qindexHL:visited {
+    text-decoration: none;
+    background-color: #6666cc;
+    color: #ffffff
+}
+
+A.el {
+    text-decoration: none;
+}
+
+A.elRef {
+}
+
+A.code:link, A.code:visited {
+    border-bottom: 1px dotted darkred;
+    color: darkred;
+}
+
+A.codeRef:link, A.codeRef:visited {
+    color: darkred;
+    border-bottom: 1px dotted darkred;
+}
+
+A:link, A:visited {
+    text-decoration: none;
+    color: #cc0000;
+    border-bottom: 1px solid #cc0000;
+}
+
+A:link:hover, A:visited:hover {
+    text-decoration: none;
+    color: darkred;
+    border-bottom: 1px solid darkred;
+}
+
+DL.el {
+    margin-left: -1cm
+}
+
+.fragment {
+	font-family: Monaco, Courier New, Fixed, monospace;
+    font-size: 12px;
+}
+
+PRE.fragment {
+	border: 1px solid lightgrey;
+	margin: 4px;
+	padding: 4px;
+	line-height: 150%;
+}
+
+DIV.ah {
+    background-color: black;
+    color: white;
+    margin-bottom: 3px;
+    margin-top: 3px
+}
+
+/* I'm not sure about the next few, but they appear in the doxygen docs but weren't in the doxygen CSS. */
+
+TD.md {
+	font-family: Monaco, Courier New, Fixed, monospace;
+    background: transparent;
+}
+
+TD.mdPrefix {
+	font-family: Monaco, Courier New, Fixed, monospace;
+    color: #555555;
+    font-size: 12px;
+    background: transparent;
+}
+
+TD.mdname1 {
+    color: darkred;
+    background: transparent;
+}
+
+TD.mdname {
+    color: darkred;
+    white-space: nowrap;
+    background: transparent;
+}
+
+DIV.groupHeader {
+    margin-left: 16px;
+    margin-top: 12px;
+    margin-bottom: 6px;
+    font-weight: bold;
+}
+
+DIV.groupText { margin-left: 16px; font-style: italic; font-size: 12px }
+
+TD.indexkey {
+	padding : 10px;
+	margin: 0px;
+	border-bottom: 1px solid #666666;
+}
+
+TD.indexvalue {
+	font-style: italic;
+	padding : 10px;
+	margin: 0px;
+	border-bottom: 1px solid #666666;
+}
+
+TR.memlist {
+    line-height: 150%;
+}
+
+TR.memlist td, TR.memlist a {
+	font-family: Monaco, Courier New, Fixed, monospace;
+}
+
+P.formulaDsp { text-align: center; }
+
+IMG.formulaDsp { }
+IMG.formulaInl { vertical-align: middle; }
+IMG {
+    border: none;
+}
+
+.footerdiv, .footerdiv a, .footerdiv p, .footerdiv ul , .footerdiv ul li {
+    font-size: 9px;
+    color: grey;
+    border: none;
+    margin: 0;
+    padding: 0;
+    margin-bottom: 3px;
+}
+
+.footerdiv {
+    width: 1000px;
+    margin: 0;
+    padding: 0;
+    margin-top: 30px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.footerdiv ul {
+    list-style: none;
+    display: table;
+    margin: 0;
+    padding: 0;
+}
+
+.footerdiv ul li {
+    float: left;
+}
+
+SPAN.keyword       { color: mediumblue }
+SPAN.keywordtype   { color: mediumblue }
+SPAN.keywordflow   { color: mediumblue }
+SPAN.comment       { color: darkgreen }
+SPAN.preprocessor  { color: mediumblue }
+SPAN.stringliteral { color: maroon }
+SPAN.charliteral   { color: maroon }
+
+/* Again, this is only in the doxygen documentation, but wasn't in the doxygen css. */
+.mdTable {
+	border: 1px solid #666666;
+	background-color: lavender;
+    padding: 10px;
+    width: 100%;
+}
+
+.mdRow {
+    background: lavender;
+}
+
+.mdescLeft {
+	font-style: italic;
+	border: none;
+	margin: 0px;
+}
+
+.mdescRight {
+	font-style: italic;
+	border: none;
+	margin: 0px;
+}
+
+.memItemLeft {
+	font-family: Monaco, Courier New, Fixed, monospace;
+	font-size: 11px;
+	padding: 4px;
+	border: none;
+	border-top: 1px solid lightgray;
+}
+
+.memItemRight {
+	font-family: Monaco, Courier New, Fixed, monospace;
+	font-size: 11px;
+	padding: 4px;
+	border: none;
+	border-top: 1px solid lightgray;
+}
+
+.memTemplItemLeft {
+	font-family: Monaco, Courier New, Fixed, monospace;
+	font-size: 11px;
+	padding: 4px;
+	border: none;
+}
+
+.memTemplItemRight {
+	font-family: Monaco, Courier New, Fixed, monospace;
+	font-size: 11px;
+	padding: 4px;
+	border: none;
+}
+
+.memTemplParams {
+	font-family: Monaco, Courier New, Fixed, monospace;
+	font-size: 11px;
+	padding: 4px;
+	border: none;
+	border-top: 1px solid lightgray;
+    color: #666666;
+}
+
+TD.tiny {
+    font-size: 10px;
+}
+
+.dirtab {
+    padding: 4px;
+    border-collapse: collapse;
+    border: 1px solid #84b0c7;
+}
+
+TH.dirtab {
+    background: #e8eef2;
+    font-weight: bold;
+}
+
+HR {
+    height: 1px;
+    border: none;
+    border-top: 1px solid black;
+}
+
+/* Style for detailed member documentation */
+
+.memtemplate {
+	font-family: Monaco, Courier New, Fixed, monospace;
+    color: #606060;
+    font-weight: normal;
+	font-size: 11px;
+} 
+
+.memnav { 
+    background-color: #e8eef2;
+    border: 1px solid #84b0c7;
+    text-align: center;
+    margin: 2px;
+    margin-right: 15px;
+    padding: 2px;
+	font-size: 11px;
+}
+
+.memitem {
+    padding: 0;
+    padding-bottom: 15px;
+	font-size: 11px;
+}
+
+.memname {
+	font-family: Monaco, Courier New, Fixed, monospace;
+	font-size: 11px;
+    white-space: nowrap;
+}
+
+.memname td {
+    vertical-align: bottom;
+	font-size: 11px;
+}
+
+.memdoc{
+    padding-left: 10px;
+}
+
+.memproto {
+    border: 1px solid gray;
+    background-color: lavender;
+    padding: 5px;
+    -moz-border-radius: 8px 8px 8px 8px;
+}
+
+.paramkey {
+	font-family: Monaco, Courier New, Fixed, monospace;
+	font-size: 11px;
+    text-align: right;
+}
+
+.paramtype {
+	font-family: Monaco, Courier New, Fixed, monospace;
+	font-size: 11px;
+    white-space: nowrap;
+}
+
+.paramname {
+	font-family: Monaco, Courier New, Fixed, monospace;
+	font-size: 11px;
+}
+/* End Styling for detailed member documentation */
+
+/* for the tree view */
+
+.ftvtree {
+	font-family: sans-serif;
+	margin:0.5em;
+}
+
+.directory { font-size: 10px; font-weight: bold; }
+.directory h3 { margin: 0px; margin-top: 1em; font-size: 11px; }
+.directory > h3 { margin-top: 0; }
+.directory p {
+    margin: 0px;
+    white-space: nowrap;
+}
+.directory div { display: none; margin: 0px; }
+.directory img { vertical-align: -30%; }

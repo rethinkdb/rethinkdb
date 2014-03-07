@@ -1,0 +1,129 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">
+<link rel="next" href="scope_exit/getting_started.html" title="Getting Started">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="scope_exit/getting_started.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="scope_exit"></a>Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Alexander</span> <span class="surname">Nasonov</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Lorenzo</span> <span class="surname">Caminiti <code class="email">&lt;<a class="email" href="mailto:lorcaminiti@gmail.com">lorcaminiti@gmail.com</a>&gt;</code></span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2006-2012 Alexander Nasonov, Lorenzo Caminiti</p></div>
+<div><div class="legalnotice">
+<a name="scope_exit.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="index.html#scope_exit.introduction">Introduction</a></span></dt>
+<dt><span class="section"><a href="scope_exit/getting_started.html">Getting Started</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="scope_exit/getting_started.html#scope_exit.getting_started.this_documentation">This Documentation</a></span></dt>
+<dt><span class="section"><a href="scope_exit/getting_started.html#scope_exit.getting_started.compilers_and_platforms">Compilers
+      and Platforms</a></span></dt>
+<dt><span class="section"><a href="scope_exit/getting_started.html#scope_exit.getting_started.installation">Installation</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="scope_exit/tutorial.html">Tutorial</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="scope_exit/tutorial.html#scope_exit.tutorial.capturing_variables">Capturing Variables</a></span></dt>
+<dt><span class="section"><a href="scope_exit/tutorial.html#scope_exit.tutorial.capturing_the_object__this_">Capturing
+      The Object <code class="computeroutput"><span class="keyword">this</span></code></a></span></dt>
+<dt><span class="section"><a href="scope_exit/tutorial.html#scope_exit.tutorial.capturing_no_variable">Capturing
+      No Variable</a></span></dt>
+<dt><span class="section"><a href="scope_exit/tutorial.html#scope_exit.tutorial.capturing_all_variables__c__11_only_">Capturing
+      All Variables (C++11 Only)</a></span></dt>
+<dt><span class="section"><a href="scope_exit/tutorial.html#scope_exit.tutorial.template_workaround__gcc_">Template
+      Workaround (GCC)</a></span></dt>
+<dt><span class="section"><a href="scope_exit/tutorial.html#scope_exit.tutorial.same_line_expansions">Same Line Expansions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="scope_exit/alternatives.html">Annex: Alternatives</a></span></dt>
+<dt><span class="section"><a href="scope_exit/no_variadic_macros.html">Annex: No Variadic Macros</a></span></dt>
+<dt><span class="section"><a href="reference.html">Reference</a></span></dt>
+<dd><dl><dt><span class="section"><a href="reference.html#header.boost.scope_exit_hpp">Header &lt;boost/scope_exit.hpp&gt;</a></span></dt></dl></dd>
+<dt><span class="section"><a href="scope_exit/acknowledgements.html">Acknowledgements</a></span></dt>
+</dl>
+</div>
+<p>
+    This library allows to execute arbitrary code when the enclosing scope exits.
+  </p>
+<div class="section scope_exit_introduction">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="scope_exit.introduction"></a><a class="link" href="index.html#scope_exit.introduction" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<p>
+      Nowadays, every C++ developer is familiar with the Resource Acquisition Is
+      Initialization (<a href="http://www.research.att.com/~bs/glossary.html#Gresource-acquisition-is-initialization" target="_top">RAII</a>)
+      technique. It binds resource acquisition and release to initialization and
+      destruction of a variable that holds the resource. There are times when writing
+      a special class for such a variable is not worth the effort. This is when
+      <a class="link" href="index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a> comes into play.
+    </p>
+<p>
+      Programmers can put resource acquisition directly in their code and next to
+      it, they can write code that releases the resource using this library. For
+      example (see also <a href="../../test/world.cpp" target="_top"><code class="literal">world.cpp</code></a>):
+      <sup>[<a name="scope_exit.introduction.f0" href="#ftn.scope_exit.introduction.f0" class="footnote">1</a>]</sup>
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">world</span><span class="special">::</span><span class="identifier">add_person</span><span class="special">(</span><span class="identifier">person</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a_person</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">bool</span> <span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+
+    <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">a_person</span><span class="special">);</span>           <span class="comment">// (1) direct action</span>
+    <span class="comment">// Following block is executed when the enclosing scope exits.</span>
+    <span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(&amp;</span><span class="identifier">commit</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">persons_</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">if</span><span class="special">(!</span><span class="identifier">commit</span><span class="special">)</span> <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">pop_back</span><span class="special">();</span>    <span class="comment">// (2) rollback action</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END</span>
+
+    <span class="comment">// ...                                  // (3) other operations</span>
+
+    <span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>                          <span class="comment">// (4) disable rollback actions</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+</div>
+<div class="footnotes">
+<br><hr width="100" align="left">
+<div class="footnote"><p><sup>[<a id="ftn.scope_exit.introduction.f0" href="#scope_exit.introduction.f0" class="para">1</a>] </sup>
+        Older versions of this library used a <a href="http://www.boost.org/libs/preprocessor" target="_top">Boost.Preprocessor</a>
+        sequence to specify the list of captured variables. While maintaining full
+        backward compatibility, it is now possible to specify the captured variables
+        also using a comma-separated list (which is the preferred syntax). See the
+        <a class="link" href="scope_exit/no_variadic_macros.html" title="Annex: No Variadic Macros">No Variadic Macros</a> section
+        for more information.
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: April 28, 2012 at 01:48:44 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="scope_exit/getting_started.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

@@ -1,0 +1,227 @@
+[/ 
+  Copyright 2008 Howard Hinnant
+  Copyright 2008 Beman Dawes
+  Copyright 2010 John Maddock
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[/===================================================================]
+[section:common_type common_type]
+[/===================================================================]
+
+[def __declval [@../../../utility/doc/html/declval.html declval]]
+
+
+__header ` #include <boost/type_traits/common_type.hpp>` or ` #include <boost/type_traits.hpp>`
+
+    namespace boost {
+      template <class ...T>  struct __common_type;
+    }
+
+
+__common_type is a traits class used to deduce a type common to a several types, useful as the return type of functions 
+operating on multiple input types such as in mixed-mode arithmetic..
+
+The nested typedef `::type` could be defined as follows:
+
+    template <class ...T>
+    struct common_type;
+    
+    template <class T, class U, class ...V>
+    struct common_type<T,U,...V> {
+        typedef typename __common_type<typename __common_type<T, U>::type, V...>::type type;
+    };
+
+    template <class T>
+    struct common_type<T> {
+        typedef T type;
+    };
+
+    template <class T, class U>
+    struct common_type<T, U> {
+        typedef decltype(__declval<bool>() ? __declval<T>() : __declval<U>()) type;
+    };
+
+All parameter types must be complete. This trait is permitted to be specialized by a user if at least one 
+template parameter is a user-defined type. [*Note:] Such specializations are required when only explicit conversions 
+are desired among the __common_type arguments.
+
+Note that when the compiler does not support variadic templates (and the macro BOOST_NO_VARIADIC_TEMPLATES is defined)
+then the maximum number of template arguments is 3.
+
+
+[h4 Configuration macros]
+
+When the compiler does not support static assertions then the user can select the way static assertions are reported. Define
+
+* BOOST_COMMON_TYPE_USES_STATIC_ASSERT: define it if you want to use Boost.StaticAssert
+* BOOST_COMMON_TYPE_USES_MPL_ASSERT: define it if you want to use Boost.MPL static assertions
+
+The default behavior is to use mpl assertions in this case, but setting BOOST_COMMON_TYPE_USES_STATIC_ASSERT may reduce
+compile times and header dependencies somewhat.
+
+Depending on the static assertion used you will have an hint of the failing assertion either through the symbol or through the text.
+
+When possible common_type is implemented using `decltype`. Otherwise when BOOST_COMMON_TYPE_DONT_USE_TYPEOF is not defined 
+it uses Boost.TypeOf.
+
+[h4 Tutorial]
+
+In a nutshell, __common_type is a trait that takes 1 or more types, and returns a type which 
+all of the types will convert to. The default definition demands this conversion be implicit. 
+However the trait can be specialized for user-defined types which want to limit their inter-type conversions to explicit, 
+and yet still want to interoperate with the __common_type facility.
+
+[*Example:]
+
+    template <class T, class U>
+    complex<typename __common_type<T, U>::type>
+    operator+(complex<T>, complex<U>);
+
+
+In the above example, "mixed-mode" complex arithmetic is allowed. The return type is described by __common_type. 
+For example the resulting type of adding a `complex<float>` and `complex<double>` might be a `complex<double>`. 
+
+Here is how someone might produce a variadic comparison function:
+
+    template <class ...T>
+    typename __common_type<T...>::type
+    min(T... t);
+
+This is a very useful and broadly applicable utility. 
+
+[h4 How to get the common type of types with explicit conversions?]
+
+Another choice for the author of the preceding operator could be
+
+    template <class T, class U>
+    typename __common_type<complex<T>, complex<U> >::type
+    operator+(complex<T>, complex<U>);
+
+As the default definition of __common_type demands the conversion be implicit, we need to specialize the trait for complex types as follows.
+
+    template <class T, class U>
+    struct __common_type<complex<T>, complex<U> > {
+        typedef complex< __common_type<T, U> > type;
+    };
+
+[h4 How important is the order of the common_type<> template arguments?]
+
+The order of the template parameters is important. 
+
+`common_type<A,B,C>::type` is not equivalent to `common_type<C,A,B>::type`, but to `common_type<common_type<A,B>::type, C>::type`.
+
+Consider
+
+    struct A {};
+    struct B {};
+    struct C {
+        C() {}
+        C(A const&) {}
+        C(B const&) {}
+        C& operator=(C const&) {
+            return *this;
+        }
+    };
+
+The following doesn't compile
+
+    typedef boost::common_type<A, B, C>::type ABC; // Does not compile
+
+while 
+
+    typedef boost::common_type<C, A, B>::type ABC;
+
+compiles.
+
+Thus, as `common_type<A,B>::type` is undefined,  `common_type<A,B,C>::type` is also undefined.
+
+It is intended that clients who wish for `common_type<A, B>` to be well
+defined to define it themselves:
+
+    namespace boost
+    {
+
+    template <>
+    struct common_type<A, B> {typedef C type;};
+
+    } 
+
+Now this client can ask for `common_type<A, B, C>` (and get
+the same answer).
+
+Clients wanting to ask `common_type<A, B, C>` in any order and get the same result need to add in addition:
+
+    namespace boost
+    {
+
+    template <> struct common_type<B, A>
+    : public common_type<A, B> {};
+
+    } 
+
+This is needed as the specialization of `common_type<A, B>` is not be used implicitly for `common_type<B, A>`.
+
+[h4 Can the common_type of two types be a third type?]
+
+Given the preceding example, one might expect `common_type<A,B>::type` to be `C` without any intervention from the user. 
+But the default `common_type<>` implementation doesn't grant that. It is intended that clients who wish for `common_type<A, B>` 
+to be well defined to define it themselves:
+
+    namespace boost
+    {
+
+    template <>
+    struct common_type<A, B> {typedef C type;};
+
+    template <> struct common_type<B, A>
+    : public common_type<A, B> {};
+
+    } 
+
+Now this client can ask for `common_type<A, B>`.
+
+[h4 How common_type behaves with pointers?]
+
+Consider
+
+    struct C { }:
+    struct B : C { };
+    struct A : C { };
+
+
+Shouldn't `common_type<A*,B*>::type` be `C*`? I would say yes, but the default implementation will make it ill-formed.
+
+The library could add a specialization for pointers, as
+
+    namespace boost
+    {
+
+        template <typename A, typename B>
+        struct common_type<A*, B*> {
+            typedef common_type<A, B>* type;
+        };
+    }
+    
+But in the absence of a motivating use cases, we prefer not to add more than the standard specifies. 
+
+Of course the user can always make this specialization.
+
+[h4 Can you explain the pros/cons of common_type against Boost.Typeof?]
+
+Even if they appear to be close, `__common_type` and `typeof` have
+different purposes. You use `typeof` to get the type of an expression, while
+you use __common_type to set explicitly the type returned of a template
+function. Both are complementary, and indeed __common_type is equivalent to 
+`decltype(__declval<bool>() ? __declval<T>() : __declval<U>())` 
+
+__common_type is also similar to promote_args<class ...T> in boost/math/tools/promotion.hpp, 
+though it is not exactly the same as promote_args either.  __common_type<T1, T2>::type simply represents the result of some 
+operation on T1 and T2, and defaults to the type obtained by putting T1 and T2 into a conditional statement.
+
+It is meant to be customizable (via specialization) if this default is not appropriate.
+
+[endsect]
+

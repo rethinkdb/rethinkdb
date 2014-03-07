@@ -1,0 +1,28 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/en_US_POSIX.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/en_US_POSIX.xml
+ */
+en_US_POSIX{
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤ #0.00"}
+                decimalFormat{"#0.######"}
+                percentFormat{"#0%"}
+                scientificFormat{"0.000000E+000"}
+            }
+            symbols{
+                infinity{"INF"}
+                perMille{"0/00"}
+            }
+        }
+    }
+    Version{"2.0.45.82"}
+}

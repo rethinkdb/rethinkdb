@@ -1,0 +1,57 @@
+<html>
+<head>
+	<title>BOOST_PP_CAT</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_CAT</b> macro concatenates its arguments after they have been expanded.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_CAT</b>(<i>a</i>, <i>b</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>a</dt>
+			<dd>
+				The left operand of the concatenation.
+			</dd>
+			<dt>b</dt>
+			<dd>
+				The right operand of the concatenation.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			The preprocessor token-pasting operator (<b>##</b>) prevents arguments from expanding.&nbsp;
+			This macro allows its arguments to expand before concatenation.
+		</div>
+		<div>
+			Concatenation must not result in an invocation of a macro that uses <b>BOOST_PP_CAT</b>.&nbsp;
+			If that happens, <b>BOOST_PP_CAT</b> will not expand the second time.
+		</div>
+<!-- <h4>See Also</h4> -->
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/cat.html">&lt;boost/preprocessor/cat.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/cat.html">boost/preprocessor/cat.hpp</a>&gt;
+
+<a href="cat.html">BOOST_PP_CAT</a>(x, <a href="cat.html">BOOST_PP_CAT</a>(y, z)) // expands to xyz
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

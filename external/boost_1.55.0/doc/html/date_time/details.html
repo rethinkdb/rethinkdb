@@ -1,0 +1,1525 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Details</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../date_time.html" title="Chapter&#160;9.&#160;Boost.Date_Time">
+<link rel="prev" href="serialization.html" title="Serialization">
+<link rel="next" href="examples.html" title="Examples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="serialization.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../date_time.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="examples.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="date_time.details"></a>Details</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="details.html#date_time.calculations">Calculations</a></span></dt>
+<dt><span class="section"><a href="details.html#date_time.design_goals">Design Goals</a></span></dt>
+<dt><span class="section"><a href="details.html#date_time.tradeoffs">Tradeoffs: Stability, Predictability, and Approximations</a></span></dt>
+<dt><span class="section"><a href="details.html#date_time.terminology">Terminology</a></span></dt>
+<dt><span class="section"><a href="details.html#date_time.references">References</a></span></dt>
+<dt><span class="section"><a href="details.html#date_time.buildinfo">Build-Compiler Information</a></span></dt>
+<dt><span class="section"><a href="details.html#date_time.tests">Tests</a></span></dt>
+<dt><span class="section"><a href="details.html#date_time.changes">Change History</a></span></dt>
+<dt><span class="section"><a href="details.html#date_time.acknowledgements">Acknowledgements</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.calculations"></a>Calculations</h3></div></div></div>
+<p>
+    <a class="link" href="details.html#timepoints">Timepoints</a> -- 
+    <a class="link" href="details.html#durations">Durations</a> -- 
+    <a class="link" href="details.html#intervals">Intervals (Periods)</a> -- 
+    <a class="link" href="details.html#special_value_handling">Special Value Handling</a>
+  </p>
+<a name="timepoints"></a><h4>
+<a name="idp82212888"></a>Timepoints</h4>
+<p>
+    This section describes some of basic arithmetic rules that can be performed with timepoints. In general, Timepoints support basic arithmetic in conjunction with Durations as follows:
+    </p>
+<pre class="programlisting">
+      Timepoint + Duration  --&gt; Timepoint
+      Timepoint - Duration  --&gt; Timepoint
+      Timepoint - Timepoint --&gt; Duration
+    </pre>
+<p>
+    Unlike regular numeric types, the following operations are undefined:
+    </p>
+<pre class="programlisting">
+      Duration + Timepoint  --&gt; Undefined
+      Duration - Timepoint  --&gt; Undefined
+      Timepoint + Timepoint --&gt; Undefined
+    </pre>
+<p>
+  </p>
+<a name="durations"></a><h4>
+<a name="idp82215112"></a>Durations</h4>
+<p>
+    Durations represent a length of time and can have positive and negative values. It is frequently useful to be able to perform calculations with other durations and with simple integral values. The following describes these calculations:
+    </p>
+<pre class="programlisting">
+      Duration + Duration  --&gt; Duration
+      Duration - Duration  --&gt; Duration
+      
+      Duration * Integer   --&gt; Duration
+      Integer  * Duration  --&gt; Duration
+      Duration / Integer   --&gt; Duration  (Integer Division rules)
+    </pre>
+<p>
+  </p>
+<a name="intervals"></a><h4>
+<a name="idp82216216"></a>Intervals (Periods)</h4>
+<p>
+    Interval logic is extremely useful for simplifying many 'calculations' for dates and times. The following describes the operations provided by periods which are based on half-open range. The following operations calculate new time periods based on two input time periods: 
+    </p>
+<pre class="programlisting">
+Timeperiod intersection Timeperiod --&gt; Timeperiod 
+  (null interval if no intersection)
+Timeperiod merge Timeperiod        --&gt; Timeperiod 
+  (null interval if no intersection)
+Timeperiod shift Duration          --&gt; Timeperiod 
+  (shift start and end by duration amount)
+    </pre>
+<p>
+    In addition, periods support various queries that calculate boolean results. The first set is caluculations with other time periods:
+    </p>
+<pre class="programlisting">
+  Timeperiod == Timeperiod           --&gt; bool
+  Timeperiod &lt; Timeperiod            --&gt; bool (true if lhs.last &lt;= rhs.begin)
+  Timeperiod intersects Timeperiod   --&gt; bool
+  Timeperiod contains Timeperiod     --&gt; bool
+  Timeperiod is_adjacent Timeperiod  --&gt; bool 
+    </pre>
+<p>
+    The following calculations are performed versus the Timepoint.
+    </p>
+<pre class="programlisting">
+  Timeperiod contains Timepoint      --&gt; bool
+  Timeperiod is_before Timepoint     --&gt; bool
+  Timeperiod is_after Timepoint      --&gt; bool 
+    </pre>
+<p>
+  </p>
+<a name="special_value_handling"></a><h4>
+<a name="idp82220072"></a>Special Value Handling</h4>
+<p>
+    For many temporal problems it is useful for Duration and Timepoint types to support special values such as Not A Date Time (NADT) and infinity. In general special values such as Not A Date Time (NADT) and infinity should follow rules like floating point values. Note that it should be possible to configure NADT based systems to throw an exception instead of result in NADT. 
+    </p>
+<pre class="programlisting">
+  Timepoint(NADT) + Duration --&gt; Timepoint(NADT)
+  Timepoint(&#8734;) + Duration    --&gt; Timepoint(&#8734;)
+  Timepoint + Duration(&#8734;)    --&gt; Timepoint(&#8734;)
+  Timepoint - Duration(&#8734;)    --&gt; Timepoint(-&#8734;)
+    </pre>
+<p>
+    When performing operations on both positive and negative infinities, the library will produce results consistent with the following. 
+    </p>
+<pre class="programlisting">
+  Timepoint(+&#8734;) + Duration(-&#8734;) --&gt; NADT
+  Duration(+&#8734;) + Duration(-&#8734;)  --&gt; NADT
+  Duration(&#177;&#8734;) * Zero          --&gt; NADT
+  
+  Duration(&#8734;) * Integer(Not Zero) --&gt; Duration(&#8734;)
+  Duration(+&#8734;) * -Integer         --&gt; Duration(-&#8734;)
+  Duration(&#8734;) / Integer           --&gt; Duration(&#8734;)
+    </pre>
+<p>
+  </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.design_goals"></a>Design Goals</h3></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Category</th>
+<th>Description</th>
+</tr>
+<tr><th>Functions</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top">Interfaces</td>
+<td>Provide concrete classes for manipulation of dates and times</td>
+</tr>
+<tr><td> 
+	    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">date, time, date_duration, time_duration, date_period, time_period, etc</li>
+<li class="listitem" style="list-style-type: disc">support for infinity - positive infinity, negative infinity</li>
+<li class="listitem" style="list-style-type: disc">iterators over time and date ranges</li>
+<li class="listitem" style="list-style-type: disc">allow date and time implementations to be separate as much as possible</li>
+</ul></div>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top">Calculation</td>
+<td>Provide a basis for performing efficient time calculations </td>
+</tr>
+<tr><td> 
+	    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">days between dates </li>
+<li class="listitem" style="list-style-type: disc">durations of times </li>
+<li class="listitem" style="list-style-type: disc">durations of dates and times together </li>
+</ul></div>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top">Representation Flexibility</td>
+<td>Provide the maximum possible reusability and flexibility</td>
+</tr>
+<tr><td>
+	    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">traits based customization of internal representations for size versus resolution control</li>
+<li class="listitem" style="list-style-type: disc">Allowing the use of different epochs and resolution (eg: seconds versus microseconds, dates starting at the year 2000 versus dates starting in 1700)</li>
+<li class="listitem" style="list-style-type: disc">Options for configuring unique calendar representations (Gregorian + others)</li>
+<li class="listitem" style="list-style-type: disc">the use of Julian Day number and the conversion between this and the Gregorian/Julian calendar date</li>
+<li class="listitem" style="list-style-type: disc">Allow for flexible adjustments including leap seconds</li>
+</ul></div>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top">Date Calculations</td>
+<td>Provide tools for date calculations</td>
+</tr>
+<tr><td> 
+	    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">provide basis for calculation of complex event specs like holidays</li>
+<li class="listitem" style="list-style-type: disc">calendar to calendar conversions</li>
+<li class="listitem" style="list-style-type: disc">provide for ability to extend to new calendar systems</li>
+</ul></div> 
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top">Time Calculations</td>
+<td>Provide concrete classes for manipulation of time</td>
+</tr>
+<tr><td> 
+	    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">provide the ability to handle cross time-zone issues</li>
+<li class="listitem" style="list-style-type: disc">provide adjustments for daylight savings time (summer time)</li>
+</ul></div> 
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top">Clock Interfaces</td>
+<td>Provide classes for retrieving time current time</td>
+</tr>
+<tr><td> 
+	    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">access to a network / high resolution time sources </li>
+<li class="listitem" style="list-style-type: disc">retrieving the current date time information to populate classes </li>
+</ul></div> 
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top">I/O Interfaces</td>
+<td>Provide input and output for time including</td>
+</tr>
+<tr><td> 
+	    <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">multi-lingual support </li>
+<li class="listitem" style="list-style-type: disc">provide ISO8601 compliant time facet </li>
+<li class="listitem" style="list-style-type: disc">use I/O facets for different local behavior </li>
+</ul></div> 
+	  </td></tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.tradeoffs"></a>Tradeoffs: Stability, Predictability, and Approximations</h3></div></div></div>
+<h3>
+<a name="idp82242712"></a>
+    Unavoidable Trade-offs
+  </h3>
+<p>
+    The library does its best to provide everything a user could want, but there are certain inherent constraints that limit what <span class="emphasis"><em>any</em></span> temporal library can do. Specifically, a user must choose which two of the following three capabilities are desired in any particular application:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">exact agreement with wall-clock time</li>
+<li class="listitem" style="list-style-type: disc">accurate math, e.g. duration calculations</li>
+<li class="listitem" style="list-style-type: disc">ability to handle timepoints in the future</li>
+</ul></div>
+<p>
+    Some libraries may implicitly promise to deliver all three, but if you actually put them to the test, only two can be true at once. This limitation is not a deficiency in the design or implementation of any particular library; rather it is a consequence of the way different time systems are defined by international standards. Let's look at each of the three cases:
+  </p>
+<p>
+    If you want exact agreement with wall-clock time, you must use either UTC or local time. If you compute a duration by subtracting one UTC time from another and you want an answer accurate to the second, the two times must not be too far in the future because leap seconds affect the count but are only determined about 6 months in advance. With local times a future duration calculation could be off by an entire hour, since legislatures can and do change DST rules at will. 
+  </p>
+<p>
+    If you want to handle wall-clock times in the future, you won't be able (in the general case) to calculate exact durations, for the same reasons described above. 
+  </p>
+<p>
+    If you want accurate calculations with future times, you will have to use TAI or an equivalent, but the mapping from TAI to UTC or local time depends on leap seconds, so you will not have exact agreement with wall-clock time. 
+  </p>
+<h3>
+<a name="idp82246632"></a>
+    Stability, Predictability, and Approximations
+  </h3>
+<p>
+    Here is some underlying theory that helps to explain what's going on. Remember that a temporal type, like any abstract data type (ADT), is a set of values together with operations on those values. 
+  </p>
+<h4>
+<a name="idp82247416"></a>
+    Stability
+  </h4>
+<p>
+    The representation of a type is <span class="emphasis"><em>stable</em></span> if the bit pattern associated with a given value does not change over time. A type with an unstable representation is unlikely to be of much use to anyone, so we will insist that any temporal library use only stable representations. 
+  </p>
+<p>
+    An operation on a type is stable if the result of applying the operation to a particular operand(s) does not change over time. 
+  </p>
+<h4>
+<a name="idp82248792"></a>
+    Predictability
+  </h4>
+<p>
+    Sets are most often classified into two categories: well-defined and ill-defined. Since a type is a set, we can extend these definitions to cover types. For any type T, there must be a predicate <span class="emphasis"><em>is_member( x )</em></span> which determines whether a value x is a member of type T. This predicate must return <span class="emphasis"><em>true, false,</em></span> or <span class="emphasis"><em>dont_know</em></span>. 
+  </p>
+<p>
+    If for all x, is_member( x ) returns either true or false, we say the set T is <span class="emphasis"><em>well-defined</em></span>. 
+  </p>
+<p>
+    If for any x, is_member( x ) returns dont_know, we say the set T is <span class="emphasis"><em>ill-defined</em></span>. 
+  </p>
+<p>
+    Those are the rules normally used in math. However, because of the special characteristics of temporal types, it is useful to refine this view and create a third category as follows: 
+  </p>
+<p>
+    For any temporal type T, there must be a predicate <span class="emphasis"><em>is_member( x, t )</em></span> which determines whether a value x is a member of T. The parameter t represents the time when the predicate is evaluated. For each x<sub>i</sub>, there must be a time t<sub>i</sub> and a value v such that: 
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">v = true or v = false, and</li>
+<li class="listitem" style="list-style-type: disc">for all t &lt; t<sub>i</sub>, is_member( x<sub>i</sub>, t ) returns dont_know, and</li>
+<li class="listitem" style="list-style-type: disc">for all t &gt;= t<sub>i</sub>, is_member( x<sub>i</sub>, t ) returns v.</li>
+</ul></div>
+<p>
+    t<sub>i</sub> is thus the time when we "find out" whether x<sub>i</sub> is a member of T. Now we can define three categories of temporal types:
+  </p>
+<p>
+    If for all x<sub>i</sub>, t<sub>i</sub> = negative infinity, we say the type T is <span class="emphasis"><em>predictable</em></span>. 
+  </p>
+<p>
+    If for some x<sub>i</sub>, t<sub>i</sub> = positive infinity, we say the type T is <span class="emphasis"><em>ill-formed</em></span>. 
+  </p>
+<p>
+    Otherwise we say the type T is <span class="emphasis"><em>unpredictable</em></span> (this implies that for some x<sub>i</sub>, t<sub>i</sub> is finite). 
+  </p>
+<p>
+    Ill-formed sets are not of much practical use, so we will not discuss them further. In plain english the above simply says that all the values of a predictable type are known ahead of time, but some values of an unpredictable type are not known until some particular time. 
+  </p>
+<h4>
+<a name="idp82258312"></a>
+    Stability of Operations
+  </h4>
+<p>
+    Predictable types have a couple of important properties: 
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">there is an order-preserving mapping from their elements onto a set of consecutive integers, and</li>
+<li class="listitem" style="list-style-type: disc">duration operations on their values are stable</li>
+</ul></div>
+<p> 
+  </p>
+<p>
+    The practical effect of this is that duration calculations can be implemented with simple integer subtraction. Examples of predictable types are TAI timepoints and Gregorian dates.
+  </p>
+<p>
+    Unpredictable types have exactly the opposite properties: 
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">there is no order-preserving mapping from their elements onto a set of consecutive integers, and</li>
+<li class="listitem" style="list-style-type: disc">duration operations on their values are not stable. </li>
+</ul></div>
+<p> 
+  </p>
+<p>
+    Examples of unpredictable types are UTC timepoints and Local Time timepoints.
+  </p>
+<p>
+    We can refine this a little by saying that a range within an unpredicatable type can be predictable, and operations performed entirely on values within that range will be stable. For example, the range of UTC timepoints from 1970-01-01 through the present is predictable, so calculations of durations within that range will be stable. 
+  </p>
+<h4>
+<a name="idp82262168"></a>
+    Approximations
+  </h4>
+<p>
+    These limitations are problematical, because important temporal types like UTC and Local Time are in fact unpredictable, and therefore operations on them are sometimes unstable. Yet as a practical matter we often want to perform this kind of operation, such as computing the duration between two timepoints in the future that are specified in Local Time. 
+  </p>
+<p>
+    The best the library can do is to provide an approximation, which is generally possible and for most purposes will be good enough. Of course the documentation must specify when an answer will be approximate (and thus unstable) and how big the error may be. In many respects calculating with unpredictable sets is analogous to the use of floating point numbers, for which results are expected to only be approximately correct. Calculating with predictable sets would then be analogous to the user of integers, where results are expected to be exact. 
+  </p>
+<p>
+    For situations where exact answers are required or instability cannot be tolerated, the user must be able to specify this, and then the library should throw an exception if the user requests a computation for which an exact, stable answer is not possible. 
+  </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.terminology"></a>Terminology</h3></div></div></div>
+<p>
+    The following are a number of terms relevant to the date-time domain. 
+  </p>
+<p>
+    A taxonomy of temporal types:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">Timepoint -- Specifier for a location in the time continuum. Similar to a number on a ruler.</li>
+<li class="listitem" style="list-style-type: disc">Timelength -- A duration of time unattached to any point on the time continuum.</li>
+<li class="listitem" style="list-style-type: disc">Timeinterval -- A duration of time attached to a specific point in the time continuum.</li>
+</ul></div>
+<p>
+  </p>
+<p>
+    And some other terms: 
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">Accuracy -- A measure of error, the difference between the reading of a clock and the true time.</li>
+<li class="listitem" style="list-style-type: disc">Calendar System -- A system for labeling time points with day level resolution.</li>
+<li class="listitem" style="list-style-type: disc">Clock Device -- A software component (tied to some hardware) that provides the current date or time with respect to a calendar or clock system.</li>
+<li class="listitem" style="list-style-type: disc">Precision -- A measure of repeatability of a clock.</li>
+<li class="listitem" style="list-style-type: disc">Resolution -- A specification of the smallest representable duration (eg: 1 second, 1 century) for a clock/calendar system or temporal type.</li>
+<li class="listitem" style="list-style-type: disc">Stability -- The property of a class which says that the underlying representation (implementation) associated with a particular (abstract) value will never change.</li>
+<li class="listitem" style="list-style-type: disc">Time System -- A system for labeling time points with higher resolution than day-level. </li>
+</ul></div>
+<p>
+  </p>
+<p>
+    Some standard date-time terminology: 
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">Epoch -- Starting time point of a calendar or clock system.</li>
+<li class="listitem" style="list-style-type: disc">DST -- Daylight savings time - a local time adjustment made in some regions during the summer to shift the clock time of the daylight hours</li>
+<li class="listitem" style="list-style-type: disc">Time zone -- A region of the earth that provides for a 'local time' defined by DST rules and UT offset.</li>
+<li class="listitem" style="list-style-type: disc">UTC Time -- Coordinated Universal Time - Civil time system as measured at longitude zero. Kept adjusted to earth rotation by use of leap seconds. Also known as Zulu Time. Replaced the similar system known as Greenwich Mean Time. For more see <a href="http://aa.usno.navy.mil/faq/docs/UT.html" target="_top">http://aa.usno.navy.mil/faq/docs/UT.html</a>
+</li>
+<li class="listitem" style="list-style-type: disc">TAI Time -- A high-accuracy monotonic (need better term) time system measured to .1 microsecond resolution by atomic clocks around the world. Not adjusted to earth rotation. For more see <a href="http://www.bipm.fr/enus/5_Scientific/c_time/time_server.html" target="_top">http://www.bipm.fr/enus/5_Scientific/c_time/time_server.html</a>
+</li>
+</ul></div>
+<p>
+  </p>
+<p>
+    Some more experimental ones: 
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">Local Time -- A time measured in a specific location of the universe.</li>
+<li class="listitem" style="list-style-type: disc">Time Label -- A tuple that either completely or partially specifies a specific date-time with respect to a calendar or clock system. This is the year-month-day representation.</li>
+<li class="listitem" style="list-style-type: disc">Adjusting Time Length -- A duration that represents varying physical durations depending on the moment in time. For example, a 1 month duration is typically not a fixed number of days and it depends on the date it is measured from to determine the actual length. </li>
+</ul></div>
+<p>
+  </p>
+<p>
+    These are design sorts of terms: 
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; "><li class="listitem" style="list-style-type: disc">Generation function -- A function that generates a specific set of time points, lengths, or intervals based on one or more parameters. </li></ul></div>
+<p>
+  </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.references"></a>References</h3></div></div></div>
+<p>The design of the library is currently being evolved using Wiki and email discussions. You can find more information at: <a href="http://www.crystalclearsoftware.com/cgi-bin/boost_wiki/wiki.pl?GDTL" target="_top">Boost Wiki GDTL Start Page</a>.
+  </p>
+<p>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc"><a class="link" href="details.html#date_ref">Date References</a></li>
+<li class="listitem" style="list-style-type: disc"><a class="link" href="details.html#time_ref">Time References</a></li>
+<li class="listitem" style="list-style-type: disc"><a class="link" href="details.html#other_c_libs">Other C/C++ Libraries</a></li>
+<li class="listitem" style="list-style-type: disc"><a class="link" href="details.html#java_libs">JAVA Date-Time Libraries</a></li>
+<li class="listitem" style="list-style-type: disc"><a class="link" href="details.html#script_libs">Scripting Language Libraries</a></li>
+<li class="listitem" style="list-style-type: disc"><a class="link" href="details.html#related">Related Commercial and Fanciful Pages</a></li>
+<li class="listitem" style="list-style-type: disc"><a class="link" href="details.html#resolution">Resolution, Precision, and Accuracy</a></li>
+</ul></div>
+<p>
+  </p>
+<a name="date_ref"></a><h4>
+<a name="idp82280280"></a>Date Calendar References</h4>
+<p>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">ISO 8601 date time standard -- <a href="http://www.cl.cam.ac.uk/~mgk25/iso-time.html" target="_top">Summary by Markus Kuhn</a>
+</li>
+<li class="listitem" style="list-style-type: disc">
+<a href="http://emr.cs.iit.edu/home/reingold/calendar-book/second-edition/" target="_top">Calendrical Calculations</a> book by Reingold &amp; Dershowitz</li>
+<li class="listitem" style="list-style-type: disc"><a href="http://www.tondering.dk/claus/calendar.html" target="_top">Calendar FAQ by Claus T&#248;ndering</a></li>
+<li class="listitem" style="list-style-type: disc">Calendar zone <a href="http://www.calendarzone.com" target="_top">http://www.calendarzone.com</a>
+</li>
+<li class="listitem" style="list-style-type: disc"><a href="http://www.w3.org/TR/xmlschema-2/#dateTime" target="_top">XML schema for date time</a></li>
+<li class="listitem" style="list-style-type: disc">Will Linden's <a href="http://www.ecben.net/calendar.shtml" target="_top">Calendar Links</a>
+</li>
+<li class="listitem" style="list-style-type: disc"><a href="http://www21.brinkster.com/lonwolve/melt/index.htm" target="_top">XMAS calendar melt</a></li>
+</ul></div>
+<p>
+  </p>
+<a name="time_ref"></a><h4>
+<a name="idp82285240"></a>Time</h4>
+<p>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">Martin Folwer on time patterns
+	<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; ">
+<li class="listitem"><a href="http://www.aw.com/cseng/titles/0-201-89542-0/apsupp/events2-1.html" target="_top">Recurring Events for Calendars</a></li>
+<li class="listitem">Patterns for things that <a href="http://martinfowler.com/ap2/timeNarrative.html" target="_top">Change with time</a>
+</li>
+</ul></div>
+</li>
+<li class="listitem" style="list-style-type: disc">US National Institute of Standards and Technology <a href="http://nist.time.gov/exhibits.html" target="_top">Time Exhibits</a>
+</li>
+<li class="listitem" style="list-style-type: disc">Network Time Protocol at <a href="http://www.ntp.org/" target="_top">NTP.org</a>
+</li>
+<li class="listitem" style="list-style-type: disc">US Navy <a href="http://tycho.usno.navy.mil/systime.html" target="_top">Systems of Time</a>
+</li>
+<li class="listitem" style="list-style-type: disc"><a href="http://www.bipm.fr/enus/5_Scientific/c_time/time_1.html" target="_top">International Atomic Time</a></li>
+<li class="listitem" style="list-style-type: disc">
+<a href="http://beta.zyprexia.com/docs/pgsql/user/datatype1130.htm" target="_top">Date-Time type PostgreSQL</a> User Guide </li>
+</ul></div>
+<p>
+  </p>
+<a name="other_c_libs"></a><h4>
+<a name="idp82290984"></a>Other C/C++ Libraries</h4>
+<p>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">
+<a href="http://www.cplusplus.com/ref/ctime/index.html" target="_top">ctime C</a> Standard library reference at cplusplus.com</li>
+<li class="listitem" style="list-style-type: disc">
+<a href="http://www.cl.cam.ac.uk/~mgk25/c-time/" target="_top">XTime C extension</a> proposal</li>
+<li class="listitem" style="list-style-type: disc">
+<a href="http://david.tribble.com/text/c0xcalendar.html#author-info" target="_top">Another C library extension proposal</a> by David Tribble</li>
+<li class="listitem" style="list-style-type: disc">
+<a href="http://cr.yp.to/libtai.html" target="_top">libTAI</a> is a C based time library</li>
+<li class="listitem" style="list-style-type: disc">
+<a href="http://www.twinsun.com/tz/tz-link.htm" target="_top">Time Zone Database</a> C library for managing timezones/places</li>
+<li class="listitem" style="list-style-type: disc">International Components for Unicode by IBM (open source)
+	<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; ">
+<li class="listitem"><a href="http://icu.sourceforge.net/userguide/dateCalendar.html" target="_top">Calendar Class</a></li>
+<li class="listitem"><a href="http://icu.sourceforge.net/userguide/dateTime.html" target="_top">Date Time Services</a></li>
+<li class="listitem"><a href="http://oss.software.ibm.com/userguide/dateTimezone.html" target="_top">Time Zone Class</a></li>
+<li class="listitem"><a href="http://oss.software.ibm.com/userguide/formatDateTime.html" target="_top">Date-Time Formatting</a></li>
+</ul></div>
+</li>
+<li class="listitem" style="list-style-type: disc"><a href="http://pds-rings.seti.org/toolkits/julian_133_html/aareadme.html" target="_top">Julian Library in C by Mark Showalter -- NASA</a></li>
+</ul></div>
+<p>
+  </p>
+<a name="java_libs"></a><h4>
+<a name="idp82297800"></a>JAVA Date &amp; Time Library Quick Reference</h4>
+<p>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc"><a href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/Calendar.html" target="_top">Calendar class</a></li>
+<li class="listitem" style="list-style-type: disc"><a href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/GregorianCalendar.html" target="_top">Gregorian calendar</a></li>
+<li class="listitem" style="list-style-type: disc"><a href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/Date.html" target="_top">Date class</a></li>
+<li class="listitem" style="list-style-type: disc"><a href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/Time.html" target="_top">sql.time class</a></li>
+<li class="listitem" style="list-style-type: disc"><a href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/DateFormatSymbols.html#_top_" target="_top">Date format symbols</a></li>
+<li class="listitem" style="list-style-type: disc"><a href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/DateFormat.html" target="_top">Date format</a></li>
+<li class="listitem" style="list-style-type: disc"><a href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/SimpleDateFormat.html" target="_top">Simple Date Format</a></li>
+<li class="listitem" style="list-style-type: disc"><a href="http://java.sun.com/j2se/1.5.0/docs/api/java/util/SimpleTimeZone.html" target="_top">Simple Time Zone</a></li>
+</ul></div>
+<p>
+  </p>
+<a name="script_libs"></a><h4>
+<a name="idp82302808"></a>Scripting Language Libraries</h4>
+<p>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">A python date library <a href="http://www.lemburg.com/files/python/mxDateTime.html" target="_top">MX Date Time</a>
+</li>
+<li class="listitem" style="list-style-type: disc">Perl date-time
+	<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; ">
+<li class="listitem"><a href="http://search-dev.develooper.com/search?m=module&amp;q=date&amp;s=11" target="_top">Date-Time packages at CPAN</a></li>
+<li class="listitem">
+<a href="http://search-dev.develooper.com/~stbey/Date-Calc-5.4/Calc.pod" target="_top">Date::Calc</a> at CPAN</li>
+<li class="listitem">
+<a href="http://search.cpan.org/doc/MORTY/DateConvert-0.16/Convert.pm" target="_top">Date::Convert</a> calendar conversions at CPAN</li>
+</ul></div>
+</li>
+</ul></div>
+<p>
+  </p>
+<a name="related"></a><h4>
+<a name="idp82306680"></a>Related Commercial and Fanciful Pages</h4>
+<p>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">
+<a href="http://www.craphound.com/est/" target="_top">Eastern Standard Tribe</a> -- Cory Doctorow science fiction novel with time themes.</li>
+<li class="listitem" style="list-style-type: disc">
+<a href="http://www.leapsecond.com/java/gpsclock.htm" target="_top">Leapsecond.com time</a> page</li>
+<li class="listitem" style="list-style-type: disc"><a href="http://www.worldtimeserver.com" target="_top">World Time Server / TZ database</a></li>
+<li class="listitem" style="list-style-type: disc">
+<a href="http://www.longnow.org/10kclock/clock.htm" target="_top">10000 year clock</a> at Long Now Foundation</li>
+<li class="listitem" style="list-style-type: disc"><a href="http://www.timezonesforpcs.com" target="_top">Timezones for PCs</a></li>
+</ul></div>
+<p>
+  </p>
+<a name="resolution"></a><h4>
+<a name="idp82310344"></a>Resolution, Precision, and Accuracy</h4>
+<p>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">Definitions with pictures from <a href="http://metrologyforum.tm.agilent.com/specs.shtml" target="_top">Agilent Technologies</a>
+</li>
+<li class="listitem" style="list-style-type: disc">Definitions from <a href="http://www.solent.ac.uk/hydrography/notes/errorthe/accuracy.htm" target="_top">Southampton Institute</a>
+</li>
+</ul></div>
+<p>
+  </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.buildinfo"></a>Build-Compiler Information</h3></div></div></div>
+<p>
+    <a class="link" href="details.html#overview">Overview</a> --
+    <a class="link" href="details.html#compile_options">Compilation Options</a> --
+    <a class="link" href="details.html#portability">Compiler/Portability Notes</a> --
+    <a class="link" href="details.html#dir_structure">Directory Structure</a> --
+    <a class="link" href="details.html#other_boost_libs">Required Boost Libraries</a>
+  </p>
+<a name="overview"></a><h4>
+<a name="idp82315976"></a>Overview</h4>
+<p>
+    The library has a few functions that require the creation of a library file (mostly to_string, from_string functions).  Most library users can make effective use of the library WITHOUT building the library, but simply including the required headers. If the library is needed, the Jamfile in the build directory will produce a "static" library (libboost_date_time) and a "dynamic/shared" library (boost_date_time) that contains these functions. Note that to use the library without the library (particularly on windows) may require using the BOOST_DATE_TIME_NO_LIB flag to the compilation options.
+  </p>
+<a name="compile_options"></a><h4>
+<a name="idp82316840"></a>Compilation Options</h4>
+<p>
+    By default the posix_time system uses a single 64 bit integer internally to provide a microsecond level resolution. As an alternative, a combination of a 64 bit integer and a 32 bit integer (96 bit resolution) can be used to provide nano-second level resolutions. The default implementation may provide better performance and more compact memory usage for many applications that do not require nano-second resolutions. 
+  </p>
+<p>
+    To use the alternate resolution (96 bit nanosecond) the variable <code class="computeroutput">BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG</code> must be defined in the library users project files (ie Makefile, Jamfile, etc). This macro is not used by the Gregorian system and therefore has no effect when building the library.
+  </p>
+<p>As of version 1.33, the date_time library introduced a new IO streaming system. Some compilers are not capable of utilizing this new system. For those compilers the earlier ("legacy") IO system is still available. Non-supported compilers will select the legacy system automatically but the user can force the usage of the legacy system by defining <code class="computeroutput">USE_DATE_TIME_PRE_1_33_FACET_IO</code>.</p>
+<p>As a convenience, <code class="computeroutput">date_time</code> has provided some <a class="link" href="gregorian.html#additional_duration_types">additional duration types</a>. Use of these types may have unexpected results due to the snap-to-end-of-month behavior (see <a class="link" href="gregorian.html#snap_to_details">Reversibility of Operations Pitfall</a> for complete details and examples). These types are enabled by default. To disable these types, simply undefine <code class="computeroutput">BOOST_DATE_TIME_OPTIONAL_GREGORIAN_TYPES</code> in your project file.</p>
+<p>Another convenience is the default constructors for <code class="computeroutput"><a class="link" href="gregorian.html#date_time.gregorian.date_class" title="Date">date</a></code>, and <code class="computeroutput"><a class="link" href="posix_time.html#date_time.posix_time.ptime_class" title="Ptime">ptime</a></code>. These constructors are enabled by default. To disable them, simply define <code class="computeroutput">DATE_TIME_NO_DEFAULT_CONSTRUCTOR</code> in your project file.</p>
+<a name="portability"></a><h4>
+<a name="idp82324008"></a>Compiler/Portability Notes</h4>
+<p>
+    The Boost Date-Time library has been built and tested with many compilers and platforms. However, some compilers and standard libraries have issues. While some of these issues can be worked around, others are difficult to work around. The following compilers are known to fully support all aspects of the library:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">Codewarrior 9.4 Windows</li>
+<li class="listitem" style="list-style-type: disc">GCC 3.2 - 3.4, 4.x on Linux</li>
+<li class="listitem" style="list-style-type: disc">GCC 3.3, 4.x on Darwin</li>
+<li class="listitem" style="list-style-type: disc">GCC 3.3 - 3.4, 4.x on Solaris</li>
+<li class="listitem" style="list-style-type: disc">GCC 3.3, 4.x  on HP-UX</li>
+<li class="listitem" style="list-style-type: disc">QCC 3.3.5 on QNX</li>
+<li class="listitem" style="list-style-type: disc">MSVC 7.1 Windows </li>
+<li class="listitem" style="list-style-type: disc">Intel 8.1-9.x Linux and Windows</li>
+</ul></div>
+<p>
+  </p>
+<p>
+     Unfortunately, the VC8 compiler has some issues with date-time code.  
+     The most serious issue is a memory leak which was introduced into the
+     VC8 standard library basic_stream code.  Date-time has code has been changed
+     to avoid this as much as possible, but if you are using the legacy IO option 
+     (NOT the default with VC8) then the issue can still arise.  See the
+
+     <a href="http://lists.boost.org/Archives/boost/2006/02/101122.php" target="_top">mailing list archive</a> for more details.
+  </p>
+<p>
+     In addition to the problem above, some versions of the VC8 library have limited 
+     the range of allowed 
+     values in the <code class="computeroutput">std::tm</code> structure to positive values.  This was a new 
+     restriction added in the VC8.  The effect is that dates prior to the year
+     1900 will cause exceptions.  There is, unfortunately, no easy workaround for 
+     this issue.  Note that the new 64bit version of the VC8 compiler
+     does not appear to have this limitation.  
+  </p>
+<p>
+    These compilers support all aspects of the library except <code class="computeroutput">wstring/wstream</code> 
+    output.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">MinGW 3.2, 3.4, 3.5 *</li>
+<li class="listitem" style="list-style-type: disc">GCC 3.2 (cygwin) *</li>
+</ul></div>
+<p>
+  </p>
+<p>
+    In particular, a lack of support for standard locales limits the ability of the library to support iostream based input output. For these compilers a set of more limited string based input-output is provided. Some compilers/standard libraries with this limitation include: 
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; "><li class="listitem" style="list-style-type: disc">Borland 5.6</li></ul></div>
+<p>
+  </p>
+<p>
+    Official support for some older compilers has now been dropped.  This includes:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">GCC 2.9x</li>
+<li class="listitem" style="list-style-type: disc">Borland 5.1.1</li>
+<li class="listitem" style="list-style-type: disc">MSVC 7.0 and 6 SP5 </li>
+</ul></div>
+<p>
+  </p>
+<h6>
+<a name="idp82332664"></a>Visual Studio &amp; STLPort</h6>
+<p>There is a known issue with Visual Studio (7.0 &amp; 7.1) and STLPort. The build errors typically make reference to a type issue or 'no acceptable conversion' and are attempting to instantiate a template with <code class="computeroutput">wchar_t</code>. The default build of STLPort does not support <code class="computeroutput">wchar_t</code>. There are two possible workarounds for this issue. The simplest is the user can build date_time with no wide stream/string etc. The other is to rebuild STLPort with wchar_t support.
+  </p>
+<p>To build date_time with no wide stream/string etc, execute the following command from <code class="computeroutput">$BOOST_ROOT</code>:
+    </p>
+<pre class="screen">bjam -a "-sTOOLS=vc-7_1-stlport" "-sSTLPORT_PATH=..." \
+     "-sBUILD=&lt;define&gt;BOOST_NO_STD_WSTRING"           \
+     --stagedir=... --with-date_time stage</pre>
+<p>
+    (replace the ellipsis with the correct paths for the build system and adjust the <code class="computeroutput">TOOLS</code> to the proper toolset if necessary)
+  </p>
+<p>Rebuilding STLPort with <code class="computeroutput">wchar_t</code> support involves placing <code class="computeroutput">/Zc:wchar_t</code> in the STLPort makefile. Date_time should then be built with the following command from <code class="computeroutput">$BOOST_ROOT</code>:
+    </p>
+<pre class="screen">bjam -a "-sTOOLS=vc-7_1-stlport" "-sSTLPORT_PATH=..." \
+     "-sBUILD=&amp;native-wchar_t&gt;on"                     \
+     --stagedir=... --with-date_time stage</pre>
+<p>
+    (replace the ellipsis with the correct paths for the build system and adjust the <code class="computeroutput">TOOLS</code> to the proper toolset if necessary)
+  </p>
+<a name="dir_structure"></a><h4>
+<a name="idp82335224"></a>Directory Structure</h4>
+<p>
+    The directory tree has the following structure:
+    </p>
+<pre class="programlisting">/boost/date_time                    -- common headers and template code
+/boost/date_time/gregorian          -- Gregorian date system header files
+/boost/date_time/posix_time         -- Posix time system headers
+/boost/date_time/local_time         -- Local time system headers
+/libs/date_time/build               -- build files and output directory
+/libs/date_time/test                -- test battery for generic code
+/libs/date_time/test/gregorian      -- test battery for the Gregorian system
+/libs/date_time/test/posix_time     -- test battery for the posix_time system
+/libs/date_time/test/local_time     -- test battery for the local_time system
+/libs/date_time/examples/gregorian  -- example programs for dates
+/libs/date_time/examples/posix_time -- time example programs
+/libs/date_time/examples/local_time -- nifty example programs
+/libs/date_time/src/gregorian       -- cpp files for libboost_date_time
+/libs/date_time/src/posix_time      -- empty (one file, but no source code...)</pre>
+<p>
+  </p>
+<a name="other_boost_libs"></a><h4>
+<a name="idp82340264"></a>Required Boost Libraries</h4>
+<p>
+    Various parts of date-time depend on other boost libraries.  These include:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc"><a href="../../../libs/tokenizer/index.html" target="_top">boost.tokenizer</a></li>
+<li class="listitem" style="list-style-type: disc"><a href="../../../libs/integer/doc/html/boost_integer/cstdint.html" target="_top">boost.integer(cstdint)</a></li>
+<li class="listitem" style="list-style-type: disc"><a href="../../../libs/utility/operators.htm" target="_top">boost.operators</a></li>
+<li class="listitem" style="list-style-type: disc"><a href="../../../libs/conversion/lexical_cast.htm" target="_top">boost.lexical_cast </a></li>
+<li class="listitem" style="list-style-type: disc"><a href="../../../libs/smart_ptr/smart_ptr.htm" target="_top">boost.smart_ptr (local time only)</a></li>
+<li class="listitem" style="list-style-type: disc"><a href="../../../libs/algorithm/string/index.html" target="_top">boost::string_algorithms </a></li>
+<li class="listitem" style="list-style-type: disc"><a href="../../../libs/serialization/index.html" target="_top">boost::serialize (serialization code only) </a></li>
+</ul></div>
+<p>
+    so these libraries need to be installed. 
+  </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.tests"></a>Tests</h3></div></div></div>
+<p>
+    The library provides a large number of tests in the 
+    </p>
+<pre class="programlisting">
+      libs/date_time/test
+      libs/date_time/test/gregorian
+      libs/date_time/test/posix_time
+      libs/date_time/test/local_time
+    </pre>
+<p>
+    directories. Building and executing these tests assures that the installation is correct and that the library is functioning correctly. In addition, these tests facilitate the porting to new compilers. Finally, the tests provide examples of many functions not explicitly described in the usage examples. 
+  </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.changes"></a>Change History</h3></div></div></div>
+<h4>
+<a name="idp82347160"></a>Changes from Boost 1.41 to 1.44 (date_time 1.08 to 1.09)</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Type</th>
+<th>Description</th>
+</tr></thead>
+<tbody><tr>
+<td>Bug fix</td>
+<td>
+            The "%T" and "%R" format specifiers are now processed by the library rather than underlying standard facet.
+            This fixes the cases when the placeholders are not supported by the facet
+            (<a href="https://svn.boost.org/trac/boost/ticket/3876" target="_top">#3876</a>).
+          </td>
+</tr></tbody>
+</table></div>
+<h4>
+<a name="idp82350344"></a>Changes from Boost 1.40 to 1.41 (date_time 1.07 to 1.08)</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Type</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Change</td>
+<td>
+            The default format for time durations is now "%-%O:%M:%S%F" instead of "%-%H:%M:%S%F" that was used previously. In order to retain the old behavior, the format string has to be specified explicitly during the time IO facet construction (<a href="https://svn.boost.org/trac/boost/ticket/1861" target="_top">#1861</a>).
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            Gregorian dates now use 32-bit integer type internally on 64-bit platforms (<a href="https://svn.boost.org/trac/boost/ticket/3308" target="_top">#3308</a>).
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            Adjusted UTC time zone offset boundaries in order to allow offsets up to +14 hours (<a href="https://svn.boost.org/trac/boost/ticket/2213" target="_top">#2213</a>).
+          </td>
+</tr>
+</tbody>
+</table></div>
+<h4>
+<a name="idp82355720"></a>Changes from Boost 1.38 to 1.40 (date_time 1.06 to 1.07)</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Type</th>
+<th>Description</th>
+</tr></thead>
+<tbody><tr>
+<td>Bug fix</td>
+<td>
+            Minor bug fixes (<a href="https://svn.boost.org/trac/boost/ticket/2809" target="_top">#2809</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/2824" target="_top">#2824</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3015" target="_top">#3015</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3105" target="_top">#3105</a> and others).
+          </td>
+</tr></tbody>
+</table></div>
+<h4>
+<a name="idp82359880"></a>Changes from Boost 1.34 to 1.38 (date_time 1.05 to 1.06)</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Type</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Feature</td>
+<td>
+            Added support for formatting and reading time durations longer than 24 hours.
+            A new formatter <code class="computeroutput">%O</code> is used indicate such long durations in the
+            format string. The old <code class="computeroutput">%H</code> format specifier is thus restricted
+            to represent durations that fit into two characters, in order to retain support
+            for reading durations in ISO format. In case if it is detected that the <code class="computeroutput">%H</code>
+            format specifier is used with longer durations, the results are not specified
+            (an assertion in debug builds is raised).
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            Added support for GCC 4.3. Several compilation issues were solved, as well as
+            compiler warnings were taken care of.
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            Added missing streaming operators for the <code class="computeroutput">local_time_period</code> class.
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            Added several missing includes in different places. Some includes that are
+            not needed in some configurations were made conditional.
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            Solved compilation problem that was caused by not finding streaming operators
+            for <code class="computeroutput">gregorian::date_duration</code> via ADL. The type is now made actually
+            a class rather a typedef for the <code class="computeroutput">date_time::date_duration</code> template.
+            The similar change was done for <code class="computeroutput">gregorian::weeks</code>.
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            Added a correctly spelled <code class="computeroutput">date_time::hundredth</code> time resolution enum
+            value. The old one <code class="computeroutput">date_time::hundreth</code> is considered deprecated and
+            to be removed in future releases.
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            Fixed compilation error in <code class="computeroutput">format_date_parser.hpp</code> because of incorrect
+            stream type being used.
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            On Windows platform made inclusion of <code class="computeroutput">windows.h</code> optional. The header is only used
+            when the <code class="computeroutput">BOOST_USE_WINDOWS_H</code> macro is defined. Otherwise (and by default),
+            the library uses internal definitions of symbols from this header.
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            On Windows platform function <code class="computeroutput">from_ftime</code> could return incorrect time if
+            the <code class="computeroutput">FILETIME</code> that is being passed to the function contained dates before 1970-Jan-01.
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            Fixed a possible crash in <code class="computeroutput">gregorian::special_value_from_string</code> if the string
+            did not represent a valid special value.
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            Removed the <code class="computeroutput">testfrmwk.hpp</code> file from the public include directory. This file
+            was internal for the library tests and was not documented.
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            Fixed missing include in <code class="computeroutput">filetime_functions.hpp</code>
+            (<a href="https://svn.boost.org/trac/boost/ticket/2688" target="_top">#2688</a>).
+          </td>
+</tr>
+<tr>
+<td>Bug fix</td>
+<td>
+            Fixed dereferencing end string iterators in different places of code,
+            which could cause crashes on MSVC
+            (<a href="https://svn.boost.org/trac/boost/ticket/2698" target="_top">#2698</a>).
+          </td>
+</tr>
+</tbody>
+</table></div>
+<h4>
+<a name="idp82378856"></a>Changes from Boost 1.33 to 1.34 (date_time 1.04 to 1.05)</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Type</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Feature</td>
+<td>
+             Updated the data in the date_time_zonespec.csv file to reflect new US/Canada
+             daylight savings time rules for 2007.  If you upgrade to the new file, be aware
+             that the library will only give correct answers for current/future date
+             conversions.  So if you are converting dates from earlier years the answers
+             will reflect current time zone rules not past rules.  The library doesn't support
+             historic timezone rules presently.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>
+              Two other dst calculation features have also been update to reflect the new
+              US/Canada timzone rules. This is the boost::date_time::us_dst_rules and
+              dst_calc_engine.  While the us_dst_rules is officially deprecated, a patch
+              by Graham Bennett has been applied which allows this class to work correctly
+              for both historical and future dates.  The dst_calc_engine was updated to also
+              work for historical and future times.  This allows the various local_adjustor
+              classes to work correctly.  There was an interface change for classes using the
+              dst_calc_engine with custom dst traits classes.  The traits classes signatures
+              changed to take a 'year' parameter on most of the methods such as end_month.
+              In addition,  2 new functions are needed on the traits classes:
+                   <code class="computeroutput">static date_type local_dst_start_day(year_type year)</code> and
+                   <code class="computeroutput">static date_type local_dst_end_day(year_type year)</code>.
+              Implementers should see <code class="computeroutput">date_time/local_timezone_defs.hpp</code> for
+              examples.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Fix DST traits for Austrialia (sf# 1672139) to set end of DST at 3:00 am instead of 2:00 am.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Fix a problem with potential linking error with multiple definitions due
+                 to I/O code.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Changed serialization code in both greg_serialize.hpp and time_serialize.hpp
+                 to eliminate warnings due to unused variables for version and file_version.
+                 Thanks to Caleb Epstein for the patch suggestion.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Fix regression errors that showed up under FreeBSD with GCC and the
+                 LANG environment set to russian -- changed parser to use classic
+                 locale instead of blank locale.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Changes for tracker issue 1178092 -- change in convert_to_lower to make
+                 local a const static and speed up parsing.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Patches from Ulrich Eckhardt to fix support for EVC++ 4.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Reduce the usage of basic_stringstream as much a possible to work around
+                 a bug in the VC8 standard library. See
+                 <a href="http://lists.boost.org/Archives/boost/2006/02/101122.php" target="_top">mailing list archive</a>
+                 for more information.
+          </td>
+</tr>
+</tbody>
+</table></div>
+<h4>
+<a name="idp82389000"></a>Changes from Boost 1.32 to 1.33 (date_time 1.03 to 1.04)</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Type</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Bug Fix</td>
+<td>Period lengths, when beginning and end points are the same, or are consecutive, were being incorrectly calculated. The corrected behavior, where end and beginning points are equal, or a period is created with a zero duration, now return a length of zero. A period where beginning and end points are consecutive will return a length of one.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Time_input_facet was missing functions to set iso formats. It also failed to parse time values that did not use a separator (%H%M%S). Both these bugs have been corrected.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Preliminary names of ptime_facet and ptime_input_facet changed to simply time_facet and time_input_facet. The ptime_* versions have been removed all together.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>The from_iso_string function failed to parse fractional digits. We added code that correctly parses when input has more digits, or too few digits, that the compiled library precision. Ptimes with only a decimal are also correctly parsed.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>The parsing mechanism in the new IO would consume the next character after a match was made. This bug presented itself when attempting to parse a period that had special value for it's beginning point.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>The new IO system failed to provide the ability for the user to "turn on" exceptions on the stream. The failbit was also not set when parsing failed. Both of these problems have been fixed.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Parsing of special values, by means of from_*_string functions, has been fixed. This also effects the libraries ability to serialize special values. Time_duration now serializes as either a string or individual fields (depending on is_special()).
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Previously, output streaming of <code class="computeroutput">partial_date</code> would display the day as either a single or double digit integer (ie '1', or '12'). This has been corrected to always display a double digit integer (ie '01').
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Major new features related to management of local times.
+                 This includes the introduction of a series of new classes to
+                 represent time zones and local times (see <a class="link" href="local_time.html" title="Local Time">Date Time Local Time</a> for complete details).
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Input and output facets have been re-written to support format-based
+            redefinition of formats (see <a class="link" href="date_time_io.html" title="Date Time Input/Output">Date Time IO</a> for complete details).
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Functions have been added to facilitate conversions between <code class="computeroutput">tm</code> structs for <code class="computeroutput">date</code>, <code class="computeroutput">ptime</code>, <code class="computeroutput">time_duration</code>, and <code class="computeroutput">local_date_time</code>. Functions for converting <code class="computeroutput">FILETIME</code>, and <code class="computeroutput">time_t</code> to <code class="computeroutput">ptime</code> are also provided. See the individual sections for details.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>A <code class="computeroutput">universal_time</code> function has been added to the <code class="computeroutput">microsec_time_clock</code> (full details of this function can be found <a class="link" href="posix_time.html#ptime_from_clock">here</a>).
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Functions have been added to facilitate conversions between <code class="computeroutput">tm</code> structs for <code class="computeroutput">date</code>, <code class="computeroutput">ptime</code>, <code class="computeroutput">time_duration</code>, and <code class="computeroutput">local_date_time</code>. Functions for converting <code class="computeroutput">FILETIME</code>, and <code class="computeroutput">time_t</code> to <code class="computeroutput">ptime</code> are also provided. See the individual sections for details.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>A <code class="computeroutput">universal_time</code> function has been added to the <code class="computeroutput">microsec_time_clock</code> (full details of this function can be found <a class="link" href="posix_time.html#ptime_from_clock">here</a>).
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Date-time now uses reentrant POSIX functions on those platforms that
+                 support them when BOOST_HAS_THREADS is defined.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Fixed a bug in serialization code where special values
+                (not-a-date-time, infinities, etc) for
+                ptime, time_duration would not read back correctly from an archive.
+                The output serialization code wrote subfields such
+                as time_duration.seconds() which are invalid for special values and
+                thus undefined values.  Thus when read back the values could cause
+                strange behavior including execeptions on construction.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Fixed multiple warnings generated with various platforms/compilers.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Construction of a ptime with a time_duration beyond the range of 00:00 to 23:59:59.9... now adjusts the date and time to make the time_duration fall within this range (ie <code class="computeroutput">ptime(date(2005,2,1), hours(-5))</code> -&gt; "2005-Jan-31 19:00:00" &amp; <code class="computeroutput">ptime(date(2005,2,1), hours(35))</code> -&gt; "2005-Feb-02 11:00:00").
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Time parsing now correctly handles excessive digits for fractional seconds. Leading zeros are dropped ("000100" -&gt; 100 frac_sec), and excessive digits are truncated at the proper place ("123456789876" -&gt; 123456 or 123456789 depending on what precision the library was compiled with).
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Changes to the <code class="computeroutput">boost::serialization</code> interface broke serialization compatibility for <code class="computeroutput">date_time</code>. The user must provide a function to insure <code class="computeroutput">date_time</code> objects are <code class="computeroutput">const</code> before they are serialized. The function should be similar to:
+            <pre class="screen">template&lt;class archive_type, class temporal_type&gt;
+void save_to(archive_type&amp; ar,
+             const temporal_type&amp; tt)
+{
+  ar &lt;&lt; tt;
+}</pre>
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Use of the depricated <code class="computeroutput">boost::tokenizer</code> interface has been updated to the current interface. This fixes compiler errors on some older compilers.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Templatized formatters in the legacy IO system to accept char type. Also removed calls to <code class="computeroutput">boost::lexical_cast</code>.
+          </td>
+</tr>
+</tbody>
+</table></div>
+<h4>
+<a name="idp82436552"></a>Changes from Boost 1.31 to 1.32 (date_time 1.02 to 1.03)</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Type</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Bug Fix</td>
+<td>Snap to end of month behavior corrected for year_functor. Previously, starting
+                 from 2000-Feb-28 (leap year and not end of month) and iterating through the next
+                 leap year would result in 2004-Feb-29 instead of 2004-Feb-28. This behavior has
+                 been corrected to produce the correct result of 2004-Feb-28. Thanks to Bart Garst
+                 for this change.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Free function for creating a ptime object from a FILETIME struct. This function
+                 is only available on platforms that define BOOST_HAS_FTIME.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Microsecond time clock is now available on most windows compilers as well as
+                 Unix.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Use of the boost::serialization library is now available with most of the
+                 date_time classes. Classes capable of serialization are: date_generator classes,
+                 date, days, date_period, greg_month, greg_weekday, greg_day, ptime, time_duration,
+                 and time_period. Thanks to Bart Garst for this change.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Functions added to convert date and time classes to wstring. The library now
+                 provides to_*_wstring as well as to_*_string functions for: simple, iso,
+                 iso_extended, and sql for dates and compilers that support wstrings. Thanks to
+                 Bart Garst for this change.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Period classes now handle zero length and NULL periods correctly. A NULL period
+                 is a period with a negative length. Thanks to Frank Wolf and Bart Garst for this
+                 change.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Added end_of_month function to gregorian::date to return the last day of
+                 the current month represented by the date.  Result is undefined for
+                 not_a_date_time or infinities.
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Removed incorrect usage of BOOST_NO_CWCHAR macro throughout library.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>New names added for some date classes. Original names are still valid but may
+                 some day be deprecated. Changes are:
+            <table border="0" summary="Simple list" class="simplelist">
+<tr>
+<td>date_duration</td>
+<td>is now</td>
+<td>days</td>
+</tr>
+<tr>
+<td>nth_kday_of_month</td>
+<td>is now</td>
+<td>nth_day_of_the_week_in_month</td>
+</tr>
+<tr>
+<td>first_kday_of_month</td>
+<td>is now</td>
+<td>first_day_of_the_week_in_month</td>
+</tr>
+<tr>
+<td>last_kday_of_month</td>
+<td>is now</td>
+<td>last_day_of_the_week_in_month</td>
+</tr>
+<tr>
+<td>first_kday_after</td>
+<td>is now</td>
+<td>first_day_of_the_week_after</td>
+</tr>
+<tr>
+<td>first_kday_before</td>
+<td>is now</td>
+<td>first_day_of_the_week_before</td>
+</tr>
+</table>
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Free functions for date generators added. Functions are: days_until_weekday, days_before_weekday, next_weekday, and previous_weekday.
+            <pre class="screen">days days_until_weekday(date, greg_weekday);
+days days_before_weekday(date, greg_weekday);
+date next_weekday(date, greg_weekday);
+date previous_weekday(date, greg_weekday);</pre>
+	    Thanks to Bart Garst for this change.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>New experimental duration types added for months, years, and weeks. These classes
+                 also provide mathematical operators for use with date and time classes.  Be aware
+                 that adding of months or years a time or date past the 28th of a month may show
+                 non-normal mathematical properties.  This is a result of 'end-of-month'
+                 snapping used in the calculation.  The last example below illustrates the
+                 issue.
+
+            <pre class="screen">months m(12);
+years y(1);
+m == y; // true
+days d(7);
+weeks w(1);
+d == w; // true
+ptime t(...);
+t += months(3);
+date d(2004,Jan,30);
+d += months(1); //2004-Feb-29
+d -= months(1); //2004-Jan-29</pre>
+            Input  streaming is not yet implemented for these types.
+	    Thanks to Bart Garst for this change.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Unifying base class for date_generators brought in to gregorian namespace. See <a class="link" href="examples.html#date_time.examples.print_holidays" title="Print Holidays">Print Holidays Example</a>.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Added constructors for date and ptime that allow for default construction (both)
+                 and special values construction (ptime, both now support this). Default
+                 constructors initialize the objects to not_a_date_time (NADT).
+                 <pre class="screen">ptime p_nadt(not_a_date_time);
+ptime p_posinf(pos_infin);
+ptime p; // p == NADT
+date d;  // d == NADT</pre>
+	    Thanks to Bart Garst for this change.
+          </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Output streaming now supports wide stream output on compiler / standard library combinations that support wide streams. This allows code like:
+	    <pre class="screen">std::wstringstream wss;
+date d(2003,Aug,21);
+wss &lt;&lt; d;</pre>
+	    Thanks to Bart Garst for this change.
+	  </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Input streaming for date and time types is now supported on both wide and narrow streams:
+	    <pre class="screen">date d(not_a_date_time);
+std::stringstream ss("2000-FEB-29");
+ss &gt;&gt; d; //Feb 29th, 2000
+std::wstringstream ws("2000-FEB-29");
+ws &gt;&gt; d; //Feb 29th, 2000</pre>
+	    Thanks to Bart Garst for this change.
+	  </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td> Fixed bug in duration_from_string() where a string formatted with
+                  less than full amount of fractional digits created an incorrect
+                  time_duration.  With microsecond resolution for time durations
+                  the string "1:01:01.010" created a time duration of
+                  01:01:01.000010 instead of 01:01:01.010000
+          </td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Fixed the special value constructor for gregorian::date and posix_time::ptime
+                 when constructing with min_date_time or max_date_time.  The wrong value was
+                 constructed for these.
+          </td>
+</tr>
+</tbody>
+</table></div>
+<h4>
+<a name="idp82460408"></a>Changes from Boost 1.30 to 1.31 (date_time 1.01 to 1.02)</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Type</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Bug Fix</td>
+<td>Build configuration updated so dll, statically, and dynamically linkable library files are now produced with MSVC compilers. See <a class="link" href="details.html#date_time.buildinfo" title="Build-Compiler Information">Build/Compiler Information</a> for more details.</td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Time_duration from_string is now correctly constructed from a negative value. (ie "-0:39:00.000") Code provided by Bart Garst.</td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Fixed many MSVC compiler warnings when compiled with warning level 4.</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Added prefix decrement operator (--) for date and time iterators. See <a class="link" href="posix_time.html#date_time.posix_time.time_iterators" title="Time Iterators">Time Iterators</a>  and <a class="link" href="gregorian.html#date_time.gregorian.date_iterators" title="Date Iterators">Date Iterators</a> for more details. Code provided by Bart Garst.</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Special_values functionality added for date_duration, time_duration and time classes. Code provided by Bart Garst.</td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Fixed time_duration_traits calculation bug which was causing time duration to be limited to 32bit range even when 64 bits were available. Thanks to Joe de Guzman for tracking this down.</td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Provided additional operators for duration types (eg: date_duration, time_duration). This includes dividable by integer and fixes to allow +=, -= operators. Thanks to Bart Garst for writing this code. Also, the documentation of <a class="link" href="details.html#date_time.calculations" title="Calculations">Calculations</a> has been improved.</td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Added typedefs to boost::gregorian gregorian_types.hpp various date_generator function classes.</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Added from_time_t function to convert time_t to a ptime.</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Added a span function for combining periods. See <a class="link" href="gregorian.html#date_time.gregorian.date_period" title="Date Period">date period</a> and <a class="link" href="posix_time.html#date_time.posix_time.time_period" title="Time Period">time period</a> docs.</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Added a function to time_duration to get the total number of seconds in a
+                 duration truncating any fractional seconds. In addition, other resolutions
+                 were added to allow for easy conversions. For example
+	    <pre class="screen">seconds(1).total_milliseconds() == 1000
+seconds(1).total_microseconds() == 1000000
+hours(1).total_milliseconds() == 3600*1000 //3600 sec/hour
+seconds(1).total_nanoseconds() == 1000000000</pre>
+
+           </td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Added output streaming operators for the <a class="link" href="gregorian.html#date_time.gregorian.date_algorithms" title="Date Generators/Algorithms">date generator</a> classes - partial_date, first_kday_after, first_kday_before, etc. Thanks to Bart Garst for this work.</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Added unary- operators for durations for reversing the sign of a time duration. For example:
+	    <pre class="screen">time_duration td(5,0,0); //5 hours
+td = -td; //-5 hours</pre>
+	  Thanks to Bart Garst for this work.</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Added support for parsing strings with 'month names'. Thus creating a date object from string now accepts multiple formats ("2003-10-31","2003-Oct-31", and "2003-October-31"). Thus, date d = from_simple_string("2003-Feb-27") is now allowed. A bad month name string ( from_simple_string("2003-SomeBogusMonthName-27")) will cause a bad_month exception. On most compilers the string compare is case insensitive. Thanks to Bart Garst for this work.</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>In addition to support for month names or numbers, functions have been added to create date objects from multi-ordered date strings. Ex: "January-21-2002", "2002-Jan-21", and "21-Jan-2003". See <a class="link" href="gregorian.html#date_time.gregorian.date_class" title="Date">Date Class</a> for more details.</td>
+</tr>
+<tr>
+<td>Bug-Fix</td>
+<td>Various documentation fixes. Thanks to Bart Garst for updates.</td>
+</tr>
+</tbody>
+</table></div>
+<h4>
+<a name="idp82478952"></a>Changes from Boost 1.29 to 1.30 (date_time 1.00 to 1.01)</h4>
+<p>
+    Notice: The interface to the partial_date class (see <a class="link" href="gregorian.html#date_time.gregorian.date_algorithms" title="Date Generators/Algorithms">date_algorithms</a>) was changed. The order of construction parameters was changed which will cause some code to fail execution. This change was made to facilitate more generic local time adjustment code. Thus instead of specifying partial_date pd(Dec,25) the code needs to be changed to partial_date pd(25, Dec);
+  </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Type</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Bug Fix</td>
+<td>Added new experimental feature for Daylight Savings Time calculations. This allows traits based specification of dst rules.</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Added new interfaces to calculate julian day and modified julian day to the gregorian date class. See <a class="link" href="gregorian.html#date_time.gregorian.date_class" title="Date">boost::gregorian::date</a>.</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Add new interface to calculate iso 8601 week number for a date. See <a class="link" href="gregorian.html#date_time.gregorian.date_class" title="Date">boost::gregorian::date</a>.</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td>Add an iso 8601 time date-time format (eg: YYYYMMDDTHHHMMSS) parsing function. See <a class="link" href="posix_time.html#date_time.posix_time.ptime_class" title="Ptime">Class ptime</a> for more information.</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td> Added a length function to the period template so that both date_periods and time_periods will now support this function.</td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Split Jamfiles so that libs/date_time/build/Jamfile only builds library and /libs/date_time/libs/test/Jamfile which runs tests.</td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Fixed many minor documentation issues.</td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Removed the DATE_TIME_INLINE macro which was causing link errors. This macro is no longer needed in projects using the library.</td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Added missing typedef for year_iterator to gregorian_types.hpp</td>
+</tr>
+<tr>
+<td>Bug Fix</td>
+<td>Fixed problem with gregorian ostream operators that prevented the use of wide streams.</td>
+</tr>
+<tr>
+<td>Bug-Fix</td>
+<td>Tighten error handling for dates so that date(2002, 2, 29) will throw a bad_day_of_month exception. Previously the date would be incorrectly constructed. Reported by sourceforge bug: 628054 among others.</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.acknowledgements"></a>Acknowledgements</h3></div></div></div>
+<p>
+    Many people have contributed to the development of this library. In particular Hugo Duncan and Joel de Guzman for help with porting to various compilers. For initial development of concepts and design Corwin Joy and Michael Kenniston deserve special thanks. Also extra thanks to Michael for writing up the theory and tradeoffs part of the documentation. Dave Zumbro for initial inspiration and sage thoughts. Many thanks to boost reviewers and users including: William Seymour, Kjell Elster, Beman Dawes, Gary Powell, Andrew Maclean, William Kempf, Peter Dimov, Chris Little, David Moore, Darin Adler, Gennadiy Rozental, Joachim Achtzehnter, Paul Bristow, Jan Langer, Mark Rodgers, Glen Knowles, Matthew Denman, and George Heintzelman. 
+  </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="serialization.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../date_time.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="examples.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

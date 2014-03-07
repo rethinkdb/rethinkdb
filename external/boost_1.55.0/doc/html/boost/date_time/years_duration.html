@@ -1,0 +1,107 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template years_duration</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.date_duration_types_hpp" title="Header &lt;boost/date_time/date_duration_types.hpp&gt;">
+<link rel="prev" href="weeks_duration.html" title="Class template weeks_duration">
+<link rel="next" href="months_duration.html" title="Class template months_duration">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="weeks_duration.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.date_duration_types_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="months_duration.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.years_duration"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template years_duration</span></h2>
+<p>boost::date_time::years_duration &#8212; additional duration type that represents a logical year </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.date_duration_types_hpp" title="Header &lt;boost/date_time/date_duration_types.hpp&gt;">boost/date_time/date_duration_types.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> t<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="years_duration.html" title="Class template years_duration">years_duration</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="years_duration.html#boost.date_time.years_durationconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="years_duration.html#idp21661800-bb"><span class="identifier">years_duration</span></a><span class="special">(</span><span class="identifier">int_rep</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="years_duration.html#idp36621032-bb"><span class="identifier">years_duration</span></a><span class="special">(</span><span class="identifier">special_values</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="years_duration.html#idp21962200-bb">public member functions</a></span>
+  <span class="identifier">int_rep</span> <a class="link" href="years_duration.html#idp35985528-bb"><span class="identifier">number_of_years</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">duration_type</span> <a class="link" href="years_duration.html#idp35985992-bb"><span class="identifier">get_neg_offset</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">duration_type</span> <a class="link" href="years_duration.html#idp54538760-bb"><span class="identifier">get_offset</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="years_duration.html#idp53352808-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> years_type <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="years_duration.html#idp53353816-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="keyword">const</span> years_type <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  years_type <a class="link" href="years_duration.html#idp20945640-bb"><span class="keyword">operator</span><span class="special">+</span></a><span class="special">(</span><span class="keyword">const</span> years_type <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  years_type <span class="special">&amp;</span> <a class="link" href="years_duration.html#idp21881224-bb"><span class="keyword">operator</span><span class="special">+=</span></a><span class="special">(</span><span class="keyword">const</span> years_type <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  years_type <a class="link" href="years_duration.html#idp21882392-bb"><span class="keyword">operator</span><span class="special">-</span></a><span class="special">(</span><span class="keyword">const</span> years_type <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  years_type <span class="special">&amp;</span> <a class="link" href="years_duration.html#idp21883480-bb"><span class="keyword">operator</span><span class="special">-=</span></a><span class="special">(</span><span class="keyword">const</span> years_type <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  years_type <a class="link" href="years_duration.html#idp53132216-bb"><span class="keyword">operator</span><span class="special">*</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">int_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  years_type <span class="special">&amp;</span> <a class="link" href="years_duration.html#idp53133080-bb"><span class="keyword">operator</span><span class="special">*=</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">int_type</span><span class="special">)</span><span class="special">;</span>
+  years_type <a class="link" href="years_duration.html#idp35760760-bb"><span class="keyword">operator</span><span class="special">/</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">int_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  years_type <span class="special">&amp;</span> <a class="link" href="years_duration.html#idp35761624-bb"><span class="keyword">operator</span><span class="special">/=</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">int_type</span><span class="special">)</span><span class="special">;</span>
+  months_type <a class="link" href="years_duration.html#idp52694856-bb"><span class="keyword">operator</span><span class="special">+</span></a><span class="special">(</span><span class="keyword">const</span> months_type <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  months_type <a class="link" href="years_duration.html#idp52695896-bb"><span class="keyword">operator</span><span class="special">-</span></a><span class="special">(</span><span class="keyword">const</span> months_type <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp83387576"></a><h2>Description</h2>
+<p>A logical year enables things like: "date(2002,Mar,2) + years(2) -&gt; 
+2004-Mar-2". If the date is a last day-of-the-month, the result will also be a last-day-of-the-month (ie date(2001-Feb-28) + years(3) -&gt; 2004-Feb-29). </p>
+<div class="refsect2">
+<a name="idp83387912"></a><h3>
+<a name="boost.date_time.years_durationconstruct-copy-destruct"></a><code class="computeroutput">years_duration</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><a name="idp21661800-bb"></a><span class="identifier">years_duration</span><span class="special">(</span><span class="identifier">int_rep</span> num<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp36621032-bb"></a><span class="identifier">years_duration</span><span class="special">(</span><span class="identifier">special_values</span> sv<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp83393320"></a><h3>
+<a name="idp21962200-bb"></a><code class="computeroutput">years_duration</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="identifier">int_rep</span> <a name="idp35985528-bb"></a><span class="identifier">number_of_years</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">duration_type</span> <a name="idp35985992-bb"></a><span class="identifier">get_neg_offset</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span> d<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>returns a negative duration </li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">duration_type</span> <a name="idp54538760-bb"></a><span class="identifier">get_offset</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span> d<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">bool</span> <a name="idp53352808-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="keyword">const</span> years_type <span class="special">&amp;</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">bool</span> <a name="idp53353816-bb"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><span class="keyword">const</span> years_type <span class="special">&amp;</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">years_type <a name="idp20945640-bb"></a><span class="keyword">operator</span><span class="special">+</span><span class="special">(</span><span class="keyword">const</span> years_type <span class="special">&amp;</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">years_type <span class="special">&amp;</span> <a name="idp21881224-bb"></a><span class="keyword">operator</span><span class="special">+=</span><span class="special">(</span><span class="keyword">const</span> years_type <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">years_type <a name="idp21882392-bb"></a><span class="keyword">operator</span><span class="special">-</span><span class="special">(</span><span class="keyword">const</span> years_type <span class="special">&amp;</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">years_type <span class="special">&amp;</span> <a name="idp21883480-bb"></a><span class="keyword">operator</span><span class="special">-=</span><span class="special">(</span><span class="keyword">const</span> years_type <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">years_type <a name="idp53132216-bb"></a><span class="keyword">operator</span><span class="special">*</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">int_type</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">years_type <span class="special">&amp;</span> <a name="idp53133080-bb"></a><span class="keyword">operator</span><span class="special">*=</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">int_type</span> rhs<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">years_type <a name="idp35760760-bb"></a><span class="keyword">operator</span><span class="special">/</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">int_type</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">years_type <span class="special">&amp;</span> <a name="idp35761624-bb"></a><span class="keyword">operator</span><span class="special">/=</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">int_type</span> rhs<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">months_type <a name="idp52694856-bb"></a><span class="keyword">operator</span><span class="special">+</span><span class="special">(</span><span class="keyword">const</span> months_type <span class="special">&amp;</span> m<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">months_type <a name="idp52695896-bb"></a><span class="keyword">operator</span><span class="special">-</span><span class="special">(</span><span class="keyword">const</span> months_type <span class="special">&amp;</span> m<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="weeks_duration.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.date_duration_types_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="months_duration.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

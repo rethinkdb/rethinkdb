@@ -1,0 +1,303 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/chr.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/chr.xml
+ */
+chr{
+    AuxExemplarCharacters{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+    ExemplarCharacters{
+        "[Ꭰ Ꭱ Ꭲ Ꭳ Ꭴ Ꭵ Ꭶ Ꭷ Ꭸ Ꭹ Ꭺ Ꭻ Ꭼ Ꭽ Ꭾ Ꭿ Ꮀ Ꮁ Ꮂ Ꮃ Ꮄ Ꮅ Ꮆ Ꮇ Ꮈ Ꮉ Ꮊ Ꮋ Ꮌ Ꮍ Ꮎ Ꮏ Ꮐ Ꮑ Ꮒ Ꮓ Ꮔ Ꮕ"
+        " Ꮖ Ꮗ Ꮘ Ꮙ Ꮚ Ꮛ Ꮜ Ꮝ Ꮞ Ꮟ Ꮠ Ꮡ Ꮢ Ꮣ Ꮤ Ꮥ Ꮦ Ꮧ Ꮨ Ꮩ Ꮪ Ꮫ Ꮬ Ꮭ Ꮮ Ꮯ Ꮰ Ꮱ Ꮲ Ꮳ Ꮴ Ꮵ Ꮶ Ꮷ Ꮸ Ꮹ Ꮺ Ꮻ"
+        " Ꮼ Ꮽ Ꮾ Ꮿ Ᏸ Ᏹ Ᏺ Ᏻ Ᏼ]"
+    }
+    ExemplarCharactersIndex{"[Ꭰ Ꭶ Ꭽ Ꮃ Ꮉ Ꮎ Ꮖ Ꮜ Ꮣ Ꮬ Ꮳ Ꮹ Ꮿ]"}
+    LocaleScript{
+        "Cher",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00;(¤#,##0.00)"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0%"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{"."}
+                exponential{"E"}
+                group{","}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.46.34"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "ᏌᎾᎴ",
+                "ᏒᎯᏱᎢᏗᏢ",
+            }
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, MMMM d, y",
+                "MMMM d, y",
+                "MMM d, y",
+                "M/d/yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Hm{"H:mm"}
+                Hms{"H:mm:ss"}
+                MEd{"E, M/d"}
+                MMMd{"MMM d"}
+                Md{"M/d"}
+                hm{"h:mm a"}
+                hms{"h:mm:ss a"}
+                yM{"M/y"}
+                yMEd{"EEE, M/d/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE, MMM d, y"}
+                yMMMM{"MMMM y"}
+                yQ{"Q y"}
+                yQQQ{"QQQ y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "ᏆᏍᎬ",
+                        "ᏉᏅᎯ",
+                        "ᏔᎵᏁ",
+                        "ᏦᎢᏁ",
+                        "ᏅᎩᏁ",
+                        "ᏧᎾᎩ",
+                        "ᏈᏕᎾ",
+                    }
+                    wide{
+                        "ᎤᎾᏙᏓᏆᏍᎬ",
+                        "ᎤᎾᏙᏓᏉᏅᎯ",
+                        "ᏔᎵᏁᎢᎦ",
+                        "ᏦᎢᏁᎢᎦ",
+                        "ᏅᎩᏁᎢᎦ",
+                        "ᏧᎾᎩᎶᏍᏗ",
+                        "ᎤᎾᏙᏓᏈᏕᎾ",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "Ꮖ",
+                        "Ꮙ",
+                        "Ꮤ",
+                        "Ꮶ",
+                        "Ꮕ",
+                        "Ꮷ",
+                        "Ꭴ",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "ᎤᏓᎷᎸ",
+                    "ᎤᎶᏐᏅ",
+                }
+                wide{
+                    "Ꮟ ᏥᏌ ᎾᏕᎲᏍᎬᎾ",
+                    "ᎠᎩᏃᎮᎵᏓᏍᏗᏱ ᎠᏕᏘᏱᏍᎬ ᏱᎰᏩ ᏧᏓᏂᎸᎢᏍᏗ",
+                }
+            }
+            fields{
+                day{
+                    dn{"ᏏᎦ"}
+                    relative{
+                        "-1"{"ᏒᎯ"}
+                        "0"{"ᎪᎯ ᎢᎦ"}
+                        "1"{"ᏌᎾᎴᎢ"}
+                    }
+                }
+                era{
+                    dn{"ᎡᎶᎯ ᎠᏣᎢᎵᏒᎢ"}
+                }
+                hour{
+                    dn{"ᏑᏣᎶᏓ"}
+                }
+                minute{
+                    dn{"ᎢᏯᏔᏬᏍᏔᏅ"}
+                }
+                month{
+                    dn{"ᏏᏅᏓ"}
+                }
+                second{
+                    dn{"ᎠᏎᏢ"}
+                }
+                week{
+                    dn{"ᏒᎾᏙᏓᏆᏍᏗ"}
+                }
+                weekday{
+                    dn{"ᏒᎾᏙᏓᏆᏍᏗ ᎠᏣᎢᎵᏒ"}
+                }
+                year{
+                    dn{"ᏑᏕᏘᏴᏓ"}
+                }
+                zone{
+                    dn{"ᎡᎶᎯ ᎠᏍᏓᏅᏅ"}
+                }
+            }
+            intervalFormats{
+                MEd{
+                    M{"E, M/d – E, M/d"}
+                    d{"E, M/d – E, M/d"}
+                }
+                MMMEd{
+                    M{"E, MMM d – E, MMM d"}
+                    d{"E, MMM d – E, MMM d"}
+                }
+                MMMd{
+                    M{"MMM d – MMM d"}
+                    d{"MMM d–d"}
+                }
+                Md{
+                    M{"M/d – M/d"}
+                    d{"M/d – M/d"}
+                }
+                yM{
+                    M{"M/yy – M/yy"}
+                    y{"M/yy – M/yy"}
+                }
+                yMEd{
+                    M{"E, M/d/yy – E, M/d/yy"}
+                    d{"E, M/d/yy – E, M/d/yy"}
+                    y{"E, M/d/yy – E, M/d/yy"}
+                }
+                yMMM{
+                    M{"MMM–MMM y"}
+                    y{"MMM y – MMM y"}
+                }
+                yMMMEd{
+                    M{"E, MMM d – E, MMM d, y"}
+                    d{"E, MMM d – E, MMM d, y"}
+                    y{"E, MMM d, y – E, MMM d, y"}
+                }
+                yMMMM{
+                    M{"MMMM–MMMM y"}
+                    y{"MMMM y – MMMM y"}
+                }
+                yMMMd{
+                    M{"MMM d – MMM d, y"}
+                    d{"MMM d–d, y"}
+                    y{"MMM d, y – MMM d, y"}
+                }
+                yMd{
+                    M{"M/d/yy – M/d/yy"}
+                    d{"M/d/yy – M/d/yy"}
+                    y{"M/d/yy – M/d/yy"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "ᎤᏃ",
+                        "ᎧᎦ",
+                        "ᎠᏅ",
+                        "ᎧᏬ",
+                        "ᎠᏂ",
+                        "ᏕᎭ",
+                        "ᎫᏰ",
+                        "ᎦᎶ",
+                        "ᏚᎵ",
+                        "ᏚᏂ",
+                        "ᏅᏓ",
+                        "ᎤᏍ",
+                    }
+                    wide{
+                        "ᎤᏃᎸᏔᏅ",
+                        "ᎧᎦᎵ",
+                        "ᎠᏅᏱ",
+                        "ᎧᏬᏂ",
+                        "ᎠᏂᏍᎬᏘ",
+                        "ᏕᎭᎷᏱ",
+                        "ᎫᏰᏉᏂ",
+                        "ᎦᎶᏂ",
+                        "ᏚᎵᏍᏗ",
+                        "ᏚᏂᏅᏗ",
+                        "ᏅᏓᏕᏆ",
+                        "ᎤᏍᎩᏱ",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "Ꭴ",
+                        "Ꭷ",
+                        "Ꭰ",
+                        "Ꭷ",
+                        "Ꭰ",
+                        "Ꮥ",
+                        "Ꭻ",
+                        "Ꭶ",
+                        "Ꮪ",
+                        "Ꮪ",
+                        "Ꮕ",
+                        "Ꭴ",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"’"}
+        alternateQuotationStart{"‘"}
+        quotationEnd{"”"}
+        quotationStart{"“"}
+    }
+    measurementSystemNames{
+        US{"ᎣᏂᏏ"}
+        metric{"ᎺᏘᎩ"}
+    }
+    units{
+        day{
+            one{"{0} ᏏᎦ"}
+            other{"{0} ᏧᏒᎯᏓ"}
+        }
+        hour{
+            one{"{0} ᏑᏣᎶᏓ"}
+            other{"{0} ᎢᏧᏣᎶᏓ"}
+        }
+        minute{
+            one{"{0} ᎢᏯᏔᏬᏍᏔᏅ"}
+            other{"{0} ᎢᏧᏔᏬᏍᏔᏅ"}
+        }
+        month{
+            one{"{0} ᏏᏅᏓ"}
+            other{"{0} ᎢᏯᏅᏓ"}
+        }
+        second{
+            one{"{0} ᎠᏎᏢ"}
+            other{"{0} ᏗᏎᏢ"}
+        }
+        week{
+            one{"{0} ᏒᎾᏙᏓᏆᏍᏗ"}
+            other{"{0} ᎢᏳᎾᏙᏓᏆᏍᏗ"}
+        }
+        year{
+            one{"{0} ᏑᏕᏘᏴᏓ"}
+            other{"{0} ᏧᏕᏘᏴᏓ"}
+        }
+    }
+}

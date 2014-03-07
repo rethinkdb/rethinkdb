@@ -1,0 +1,370 @@
+<!--
+
+Copyright 2005 Jonathan Turkanis
+Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+
+-->
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+
+<!-- ------------------ Links to Stylesheets and Scripts  ------------ -->
+
+    <link rel="stylesheet" type="text/css" href="../../../boost.css">
+    <link rel="stylesheet" type="text/css" href="tree/tree.css">
+    <script language="JavaScript" src="tree/tree.js"></script>
+    <style> CODE { font-size:80% } </style>
+
+<!-- ------------------ Create and Populate Tree Control ------------- -->
+
+    <script language="JavaScript">
+    <!--
+
+    var tree = new tree_control("content"); 
+    tree.add("Introduction", "home.html").parent()
+    tree.add("Tutorial", "tutorial/tutorial.html")
+        .add("Writing Devices")
+            .add("Overview", "tutorial/writing_devices.html").parent()
+            .add("<CODE>container_source</CODE>", "tutorial/container_source.html").parent()
+            .add("<CODE>container_sink</CODE>", "tutorial/container_sink.html").parent()
+            .add("<CODE>container_device</CODE>", "tutorial/container_device.html").parent().parent()
+        .add("Writing Filters")
+            .add("Overview", "tutorial/writing_filters.html", true)
+                .add("Input and Output", "tutorial/writing_filters.html#input_filters_and_output_filters").parent()
+                .add("Filter Helpers", "tutorial/writing_filters.html#filter_helpers").parent()
+                .add("Selecting A Filter", "tutorial/writing_filters.html#selecting_a_filter").parent().parent()
+            .add("Filter Usage", "tutorial/filter_usage.html", true).parent()
+            .add("Shell Comments", "tutorial/shell_comments_filters.html", true)
+                .add("<CODE>stdio_filter</CODE>", "tutorial/shell_comments_filters.html#shell_comments_stdio_filter").parent()
+                .add("<CODE>input_filter</CODE>", "tutorial/shell_comments_filters.html#shell_comments_input_filter").parent()
+                .add("<CODE>output_filter</CODE>", "tutorial/shell_comments_filters.html#shell_comments_output_filter").parent().parent()
+            .add("Line-Wrapping", "tutorial/line_wrapping_filters.html", true)
+                .add("<CODE>stdio_filter</CODE>", "tutorial/line_wrapping_filters.html#line_wrapping_stdio_filter").parent()
+                .add("<CODE>input_filter</CODE>", "tutorial/line_wrapping_filters.html#line_wrapping_input_filter").parent()
+                .add("<CODE>output_filter</CODE>", "tutorial/line_wrapping_filters.html#line_wrapping_output_filter").parent().parent()
+            .add("Tab-Expanding", "tutorial/tab_expanding_filters.html", true)
+                .add("<CODE>stdio_filter</CODE>", "tutorial/tab_expanding_filters.html#tab_expanding_stdio_filter").parent()
+                .add("<CODE>input_filter</CODE>", "tutorial/tab_expanding_filters.html#tab_expanding_input_filter").parent()
+                .add("<CODE>output_filter</CODE>", "tutorial/tab_expanding_filters.html#tab_expanding_output_filter").parent().parent()
+            .add("Dictionary", "tutorial/dictionary_filters.html", true)
+                .add("<CODE>stdio_filter</CODE>", "tutorial/dictionary_filters.html#dictionary_stdio_filter").parent()
+                .add("<CODE>input_filter</CODE>", "tutorial/dictionary_filters.html#dictionary_input_filter").parent()
+                .add("<CODE>output_filter</CODE>", "tutorial/dictionary_filters.html#dictionary_output_filter").parent().parent()
+            .add("UNIX-to-DOS", "tutorial/unix2dos_filters.html", true)
+                .add("<CODE>stdio_filter</CODE>", "tutorial/unix2dos_filters.html#unix2dos_stdio_filter").parent()
+                .add("<CODE>input_filter</CODE>", "tutorial/unix2dos_filters.html#unix2dos_input_filter").parent()
+                .add("<CODE>output_filter</CODE>", "tutorial/unix2dos_filters.html#unix2dos_output_filter").parent().parent()
+            .add("Multi-Character Filters", "tutorial/multichar_filters.html", true)
+                .add("InputFilters", "tutorial/multichar_filters.html#multichar_input_filters").parent()
+                .add("<CODE>shell_comments_mutichar_input_filter</CODE>", "tutorial/multichar_filters.html#shell_comments_multichar_input_filter").parent()
+                .add("OutputFilters", "tutorial/multichar_filters.html#multichar_output_filters").parent()
+                .add("<CODE>shell_comments_multichar_output_filter</CODE>", "tutorial/multichar_filters.html#shell_comments_multichar_ouput_filter").parent().parent()
+            .add("Dual-Use Filters", "tutorial/dual_use_filters.html").parent()
+            .add("Finite State Filters", "tutorial/finite_state_filters.html", true)
+                .add("Finite State Machines", "tutorial/finite_state_filters.html#finite_state_machine").parent()
+                .add("<CODE>dos2unix_fsm</CODE>", "tutorial/finite_state_filters.html#dos2unix_fsm").parent()
+                .add("<CODE>unix2dos_fsm</CODE>", "tutorial/finite_state_filters.html#unix2dos_fsm").parent()
+                .add("<CODE>uncommenting_fsm</CODE>", "tutorial/finite_state_filters.html#uncommenting_fsm");
+    tree.add("User's Guide", "guide/guide.html", true)
+        .add("Concepts", "guide/concepts.html").parent()
+        .add("Modes", "guide/modes.html").parent()
+        .add("Generic Streams", "guide/generic_streams.html").parent()
+        .add("Filtering Streams", "guide/filtering_streams.html").parent()
+        .add("Code Conversion", "guide/code_conversion.html").parent()
+        .add("Asynchronous I/O", "guide/asynchronous.html").parent()
+        .add("Object Lifetimes", "guide/lifetimes.html").parent()
+        .add("Pipelines", "guide/pipelines.html").parent()
+        .add("Views", "guide/views.html").parent()
+        .add("Exceptions", "guide/exceptions.html").parent()
+        .add("Buffering", "guide/buffering.html");
+    var ref = tree.add("Reference", "reference.html");
+    ref.add("Concepts", "concepts/concepts.html", true)
+            .add("Devices", "concepts/concepts.html#devices")
+                .add("BidirectionalDevice", "concepts/bidirectional_device.html").parent()
+                .add("Blocking", "concepts/blocking.html").parent()
+                .add("Device", "concepts/device.html").parent()
+                .add("Direct", "concepts/direct.html").parent()
+                .add("Peekable", "concepts/peekable.html").parent()
+                .add("SeekableDevice", "concepts/seekable_device.html").parent()
+                .add("Sink", "concepts/sink.html").parent()
+                .add("Source", "concepts/source.html").parent().parent()
+            .add("Filters", "concepts/concepts.html#filters")
+                .add("BidirectionalFilter", "concepts/bidirectional_filter.html").parent()
+                .add("DualUseFilter", "concepts/dual_use_filter.html").parent()
+                .add("Filter", "concepts/filter.html").parent()
+                .add("InputFilter", "concepts/input_filter.html").parent()
+                .add("Multi-Character", "concepts/multi_character.html").parent()
+                .add("OutputFilter", "concepts/output_filter.html").parent()
+                .add("Pipable", "concepts/pipable.html").parent()
+                .add("SeekableFilter", "concepts/seekable_filter.html").parent().parent()
+            .add("Other", "concepts/concepts.html#other")
+                .add("Closable", "concepts/closable.html").parent()
+                .add("Flushable", "concepts/flushable.html").parent()
+                .add("Localizable", "concepts/localizable.html").parent()
+                .add("OptimallyBuffered", "concepts/optimally_buffered.html").parent()
+                .add("SymmetricFilter", "concepts/symmetric_filter.html");
+    var classes = ref.add("Classes", "classes/classes.html", true);
+    classes.add("A", "classes/classes.html#a")
+                .add("<CODE>aggregate_filter</CODE>", "classes/aggregate.html").parent()
+                .add("<CODE>array</CODE>", "classes/array.html#array").parent()
+                .add("<CODE>array_sink</CODE>", "classes/array.html#array_sink").parent()
+                .add("<CODE>array_source</CODE>", "classes/array.html#array_source").parent().parent()
+            .add("B", "classes/classes.html#b")
+  				.add("<CODE>back_insert_device</CODE>", "classes/back_inserter.html").parent()
+  				.add("<CODE>basic_array</CODE>", "classes/array.html#array").parent()
+  				.add("<CODE>basic_array_sink</CODE>", "classes/array.html#array_sink").parent()
+  				.add("<CODE>basic_array_source</CODE>", "classes/array.html#array_source").parent()
+  				.add("<CODE>basic_bzip2_compressor</CODE>", "classes/bzip2.html#basic_bzip2_compressor").parent()
+  				.add("<CODE>basic_bzip2_decompressor</CODE>", "classes/bzip2.html#basic_bzip2_decompressor").parent()
+  				.add("<CODE>basic_counter</CODE>", "classes/counter.html").parent()
+  				.add("<CODE>basic_file</CODE>", "classes/file.html#file").parent()
+  				.add("<CODE>basic_file_sink</CODE>", "classes/file.html#file_sink").parent()
+  				.add("<CODE>basic_file_source</CODE>", "classes/file.html#file_source").parent()
+  				.add("<CODE>basic_grep_filter</CODE>", "classes/grep_filter.html").parent()
+  				.add("<CODE>basic_gzip_compressor</CODE>", "classes/gzip.html#basic_gzip_compressor").parent()
+  				.add("<CODE>basic_gzip_decompressor</CODE>", "classes/gzip.html#basic_gzip_decompressor").parent()
+  				.add("<CODE>basic_line_filter</CODE>", "classes/line_filter.html").parent()
+  				.add("<CODE>basic_null_device</CODE>", "classes/null.html#null_device").parent()
+  				.add("<CODE>basic_null_sink</CODE>", "classes/null.html#null_sink").parent()
+  				.add("<CODE>basic_null_source</CODE>", "classes/null.html#null_source").parent()
+  				.add("<CODE>basic_regex_filter</CODE>", "classes/regex_filter.html").parent()
+  				.add("<CODE>basic_stdio_filter</CODE>", "classes/stdio_filter.html").parent()
+  				.add("<CODE>basic_zlib_compressor</CODE>", "classes/zlib.html#basic_zlib_compressor").parent()
+  				.add("<CODE>basic_zlib_decompressor</CODE>", "classes/zlib.html#basic_zlib_decompressor").parent()
+  				.add("<CODE>bzip2_compressor</CODE>", "classes/bzip2.html#basic_bzip2_compressor").parent()
+  				.add("<CODE>bzip2_decompressor</CODE>", "classes/bzip2.html#basic_bzip2_decompressor").parent()
+  				.add("<CODE>bzip2_error</CODE>", "classes/bzip2.html#bzip2_error").parent()
+  				.add("<CODE>bzip2_params</CODE>", "classes/bzip2.html#bzip2_params").parent().parent()
+            .add("C", "classes/classes.html#c")
+  				.add("<CODE>category_of</CODE>", "classes/../guide/traits.html#category_ref").parent()
+  				.add("<CODE>chain</CODE>", "classes/chain.html").parent()
+  				.add("<CODE>char_traits</CODE>", "classes/../classes/char_traits.html").parent()
+  				.add("<CODE>char_type_of</CODE>", "classes/../guide/traits.html#char_type_of_ref").parent()
+  				.add("<CODE>code_converter</CODE>", "classes/code_converter.html").parent()
+  				.add("<CODE>combination</CODE>", "classes/../functions/combine.html#synopsis").parent()
+  				.add("<CODE>composite</CODE>", "classes/../functions/compose.html#composite").parent()
+  				.add("<CODE>counter</CODE>", "classes/counter.html#reference").parent().parent()
+            .add("D", "classes/classes.html#d")
+  				.add("<CODE>device</CODE>", "classes/device.html").parent()
+  				.add("<CODE>dual_use_filter</CODE>", "classes/filter.html#reference").parent()
+  				.add("<CODE>dual_use_wfilter</CODE>", "classes/filter.html#reference").parent().parent()
+            .add("F", "classes/classes.html#f")
+  				.add("<CODE>file</CODE>", "classes/file.html#file").parent()
+  				.add("<CODE>file_descriptor</CODE>", "classes/file_descriptor.html#file_descriptor").parent()
+  				.add("<CODE>file_descriptor_sink</CODE>", "classes/file_descriptor.html#file_descriptor_sink").parent()
+  				.add("<CODE>file_descriptor_source</CODE>", "classes/file_descriptor.html#file_descriptor_source").parent()
+  				.add("<CODE>file_sink</CODE>", "classes/file.html#file_sink").parent()
+  				.add("<CODE>file_source</CODE>", "classes/file.html#file_source").parent()
+  				.add("<CODE>filtering_stream</CODE>", "classes/filtering_stream.html").parent()
+  				.add("<CODE>filtering_streambuf</CODE>", "classes/filtering_streambuf.html").parent()
+  				.add("<CODE>filter</CODE>", "classes/filter.html").parent().parent()
+            .add("G", "classes/classes.html#g")
+  				.add("<CODE>grep_filter</CODE>", "classes/grep_filter.html").parent()
+  				.add("<CODE>gzip_compressor</CODE>", "classes/gzip.html#basic_gzip_compressor").parent()
+  				.add("<CODE>gzip_compressor</CODE>", "classes/gzip.html#basic_gzip_compressor").parent()
+  				.add("<CODE>gzip_decompressor</CODE>", "classes/gzip.html#basic_gzip_decompressor").parent()
+  				.add("<CODE>gzip_error</CODE>", "classes/gzip.html#gzip_error").parent()
+  				.add("<CODE>gzip_params</CODE>", "classes/gzip.html#gzip_params").parent().parent()
+            .add("I", "classes/classes.html#i")
+  				.add("<CODE>input_filter</CODE>", "classes/filter.html#reference").parent()
+  				.add("<CODE>input_wfilter</CODE>", "classes/filter.html#reference").parent()
+  				.add("<CODE>inverse</CODE>", "classes/../functions/invert.html#inverse");
+    classes.add("L", "classes/classes.html#l")
+  				.add("<CODE>line_filter</CODE>", "classes/line_filter.html#reference").parent().parent()
+            .add("M", "classes/classes.html#m")
+  				.add("<CODE>mapped_file</CODE>", "classes/mapped_file.html#mapped_file").parent()
+  				.add("<CODE>mapped_file_sink</CODE>", "classes/mapped_file.html#mapped_file_sink").parent()
+  				.add("<CODE>mapped_file_source</CODE>", "classes/mapped_file.html#mapped_file_source").parent()
+  				.add("<CODE>mode_of</CODE>", "classes/mode.html").parent()
+  				.add("<CODE>multichar_dual_use_filter</CODE>", "classes/filter.html#reference").parent()
+  				.add("<CODE>multichar_dual_use_wfilter</CODE>", "classes/filter.html#reference").parent()
+  				.add("<CODE>multichar_filter</CODE>", "classes/filter.html").parent()
+  				.add("<CODE>multichar_input_filter</CODE>", "classes/filter.html#reference").parent()
+  				.add("<CODE>multichar_input_wfilter</CODE>", "classes/filter.html#reference").parent()
+  				.add("<CODE>multichar_output_filter</CODE>", "classes/filter.html#reference").parent()
+  				.add("<CODE>multichar_output_wfilter</CODE>", "classes/filter.html#reference").parent()
+  				.add("<CODE>multichar_wfilter</CODE>", "classes/filter.html#reference").parent().parent()
+            .add("N", "classes/classes.html#n")
+  				.add("<CODE>newline_filter</CODE>", "classes/newline_filter.html").parent()
+  				.add("<CODE>null_sink</CODE>", "classes/null.html#null_sink").parent()
+  				.add("<CODE>null_source</CODE>", "classes/null.html#null_source").parent().parent()
+            .add("O", "classes/classes.html#o")
+  				.add("<CODE>output_filter</CODE>", "classes/filter.html#reference").parent()
+  				.add("<CODE>output_wfilter</CODE>", "classes/filter.html#reference").parent().parent()
+            .add("R", "classes/classes.html#r")
+  				.add("<CODE>regex_filter</CODE>", "classes/../classes/regex_filter.html#reference").parent()
+  				.add("<CODE>restriction</CODE>", "classes/../functions/restrict.html#restriction").parent().parent()
+            .add("S", "classes/classes.html#s")
+  				.add("<CODE>seekable_filter</CODE>", "classes/filter.html#reference").parent()
+  				.add("<CODE>seekable_wfilter</CODE>", "classes/filter.html#reference").parent()
+  				.add("<CODE>sink</CODE>", "classes/device.html#reference").parent()
+  				.add("<CODE>source</CODE>", "classes/device.html#reference").parent()
+  				.add("<CODE>stdio_filter</CODE>", "classes/stdio_filter.html#reference").parent()
+  				.add("<CODE>stream</CODE>", "classes/../guide/generic_streams.html#stream").parent()
+  				.add("<CODE>stream_buffer</CODE>", "classes/../guide/generic_streams.html#stream_buffer").parent()
+  				.add("<CODE>symmetric_filter</CODE>", "classes/symmetric_filter.html").parent().parent()
+            .add("T", "classes/classes.html#t")
+  				.add("<CODE>tee_device</CODE>", "classes/../functions/tee.html#tee_device").parent()
+  				.add("<CODE>tee_filter</CODE>", "classes/../functions/tee.html#tee_filter").parent().parent()
+            .add("W", "classes/classes.html#w")
+  				.add("<CODE>warray</CODE>", "classes/array.html#array").parent()
+  				.add("<CODE>warray_sink</CODE>", "classes/array.html#array_sink").parent()
+  				.add("<CODE>warray_source</CODE>", "classes/array.html#array_source").parent()
+  				.add("<CODE>wchain</CODE>", "classes/chain.html#wchain").parent()
+  				.add("<CODE>wcounter</CODE>", "classes/counter.html#reference").parent()
+  				.add("<CODE>wdevice</CODE>", "classes/device.html").parent()
+  				.add("<CODE>wfile</CODE>", "classes/file.html#file").parent()
+  				.add("<CODE>wfile_sink</CODE>", "classes/file.html#file_sink").parent()
+  				.add("<CODE>wfile_source</CODE>", "classes/file.html#file_source").parent()
+  				.add("<CODE>wfilter</CODE>", "classes/filter.html").parent()
+  				.add("<CODE>wgrep_filter</CODE>", "classes/grep_filter.html").parent()
+  				.add("<CODE>wline_filter</CODE>", "classes/line_filter.html#reference").parent()
+  				.add("<CODE>wnull_sink</CODE>", "classes/null.html#null_sink").parent()
+  				.add("<CODE>wnull_source</CODE>", "classes/null.html#null_source").parent()
+  				.add("<CODE>wregex_filter</CODE>", "classes/../classes/regex_filter.html#reference").parent()
+  				.add("<CODE>wsink</CODE>", "classes/device.html#reference").parent()
+  				.add("<CODE>wsource</CODE>", "classes/device.html#reference").parent()
+  				.add("<CODE>wstdio_filter</CODE>", "classes/stdio_filter.html#reference").parent().parent()
+            .add("Z", "classes/classes.html#z")
+  				.add("<CODE>zlib_compressor</CODE>", "classes/zlib.html#basic_zlib_compressor").parent()
+  				.add("<CODE>zlib_decompressor</CODE>", "classes/zlib.html#basic_zlib_decompressor").parent()
+  				.add("<CODE>zlib_error</CODE>", "classes/zlib.html#zlib_error").parent()
+  				.add("<CODE>zlib_params</CODE>", "classes/zlib.html#zlib_params");
+    ref.add("Functions", "functions/functions.html", true)
+            .add("<CODE>back_inserter</CODE>", "classes/back_inserter.html#back_inserter").parent()
+            .add("<CODE>close</CODE>", "functions/close.html").parent()
+            .add("<CODE>combine</CODE>", "functions/combine.html").parent()
+            .add("<CODE>compose</CODE>", "functions/compose.html").parent()
+            .add("<CODE>copy</CODE>", "functions/copy.html").parent()
+            .add("<CODE>flush</CODE>", "functions/flush.html").parent()
+            .add("<CODE>get</CODE>", "functions/get.html").parent()
+            .add("<CODE>imbue</CODE>", "functions/imbue.html").parent()
+            .add("<CODE>invert</CODE>", "functions/invert.html").parent()
+            .add("<CODE>offset_to_position</CODE>", "functions/positioning.html#offset_to_position").parent()
+            .add("<CODE>optimal_buffer_size</CODE>", "functions/optimal_buffer_size.html").parent()
+            .add("<CODE>position_to_offset</CODE>", "functions/positioning.html#position_to_offset").parent()
+            .add("<CODE>put</CODE>", "functions/put.html").parent()
+            .add("<CODE>putback</CODE>", "functions/putback.html").parent()
+            .add("<CODE>read</CODE>", "functions/read.html").parent()
+            .add("<CODE>restrict</CODE>", "functions/restrict.html").parent()
+            .add("<CODE>seek</CODE>", "functions/seek.html").parent()
+            .add("<CODE>slice</CODE>", "functions/slice.html").parent()
+            .add("<CODE>tee</CODE>", "functions/tee.html").parent()
+            .add("<CODE>test_filter_pair</CODE>", "functions/filter_test.html#test_pair").parent()
+            .add("<CODE>test_input_filter</CODE>", "functions/filter_test.html#test_input").parent()
+            .add("<CODE>test_output_filter</CODE>", "functions/filter_test.html#test_output").parent()
+            .add("<CODE>write</CODE>", "functions/write.html");
+    ref.add("Macros", "macros/macros.html", true)
+            .add("<CODE>IOS</CODE>", "macros/workarounds.html#ios").parent()
+            .add("<CODE>BASIC_ISTREAM</CODE>", "macros/workarounds.html#streams").parent()
+            .add("<CODE>BASIC_IOS</CODE>", "macros/workarounds.html#ios").parent()
+            .add("<CODE>BASIC_IOSTREAM</CODE>", "macros/workarounds.html#streams").parent()
+            .add("<CODE>BASIC_OSTREAM</CODE>", "macros/workarounds.html#streams").parent()
+            .add("<CODE>BASIC_STREAMBUF</CODE>", "macros/workarounds.html#streambufs").parent()
+            .add("<CODE>CHAR_TRAITS</CODE>", "macros/workarounds.html#char_traits").parent()
+            .add("<CODE>COMPONENT</CODE>", "macros/workarounds.html#component_access").parent()
+            .add("<CODE>COMPONENT_TYPE</CODE>", "macros/workarounds.html#component_access").parent()
+            .add("<CODE>DEFAULT_DEVICE_BUFFER_SIZE</CODE>", "macros/buffer_sizes.html#component_access").parent()
+            .add("<CODE>DEFAULT_FILTER_BUFFER_SIZE</CODE>", "macros/buffer_sizes.html#component_access").parent()
+            .add("<CODE>DEFAULT_PBACK_BUFFER_SIZE</CODE>", "macros/buffer_sizes.html#component_access").parent()
+            .add("<CODE>FAILURE</CODE>", "macros/workarounds.html#ios").parent()
+            .add("<CODE>PIPABLE</CODE>", "guide/pipelines.html#boost_iostreams_pipable").parent()
+            .add("<CODE>PUBSEEKOFF</CODE>", "macros/workarounds.html#streambufs").parent()
+            .add("<CODE>PUBSEEKPOS</CODE>", "macros/workarounds.html#streambufs").parent()
+            .add("<CODE>PUBSYNC</CODE>", "macros/workarounds.html#streambufs").parent().parent().parent()
+    tree.add("Quick Reference", "quick_reference.html");
+    tree.add("FAQ", "faq.html");
+    tree.add("Installation", "installation.html");
+    tree.add("Portability", "portability.html");
+    tree.add("Rationale", "rationale.html");
+    tree.add("Bibliography", "bibliography.html");
+    tree.add("Acknowledgments", "acknowledgments.html");
+    tree.add("Release Notes", "release_notes.html");
+
+    //tree.dump_html = true; 
+    tree.indent = 9;
+    tree.draw();
+
+    // -->
+    </script>
+
+</head>
+<body>
+
+<!-- ------------------ Boost Logo and Library Name ------------------ -->
+
+    <table cellpadding=0 cellspacing=0 clear="both" style="margin:0;padding:0" width=170>
+    <tr>
+    <td>
+    <P CLASS="clipped"><a href="../../../index.htm" target="_top">
+    <img border=0 style="position:relative;left:10" SRC="theme/boost_small.png"></a></P>
+    </td>
+    </tr>
+    </table>
+
+    <table clear="both" style="margin-top:0;margin-left:1em;margin-bottom:.5em;padding:0" width=170>
+    <tr>
+    <td align=left width=170>
+        <a style="text-decoration:none" href="index.html" target="_top">
+            <h1 class="lib-name" style="margin:0">Boost.Iostreams</h1>
+        </a>
+    </td>
+    </tr>
+    </table>
+
+    <hr align="center" width="90%">
+
+    <table style="margin:0;padding:0" width=170>
+    <tr><td>
+
+<!-- ------------------ Markup for Browsers with Scripting Disabled -- -->
+
+    <noscript>
+        <table><tr><td align='left'><table width=150><tr><td><h1 class=tree-caption>Contents</h1></td></tr></table></td></tr><tr><td><div id='list' style='white-space:nowrap;display:'>
+<div class='tree-item'><div style='margin-left:0;text-indent:-0'><span class='tree-label'>1</span>  <a class='tree-text' onfocus='blur_tree()' href='home.html' target='content'><span class='tree-text'>Introduction</span></a></div></div>
+<div class='tree-item'><div style='margin-left:0;text-indent:-0'><span class='tree-label'>2</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/tutorial.html' target='content'><span class='tree-text'>Tutorial</span></a></div><div id='list.2' style='white-space:nowrap;display:'>
+<div class='tree-item'><div style='margin-left:18;text-indent:-9'><span class='tree-label'>2.1</span>  <span class='tree-text'>Writing Devices</span></div><div id='list.2.1' style='white-space:nowrap;display:'>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.1.1</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/writing_devices.html' target='content'><span class='tree-text'>Overview</span></a></div></div>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.1.2</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/container_source.html' target='content'><span class='tree-text'><CODE>container_source</CODE></span></a></div></div>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.1.3</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/container_sink.html' target='content'><span class='tree-text'><CODE>container_sink</CODE></span></a></div></div>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.1.4</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/container_device.html' target='content'><span class='tree-text'><CODE>container_device</CODE></span></a></div></div></div></div>
+<div class='tree-item'><div style='margin-left:18;text-indent:-9'><span class='tree-label'>2.2</span>  <span class='tree-text'>Writing Filters</span></div><div id='list.2.2' style='white-space:nowrap;display:'>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.2.1</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/writing_filters.html' target='content'><span class='tree-text'>Overview</span></a></div></div>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.2.2</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/filter_usage.html' target='content'><span class='tree-text'>Filter Usage</span></a></div></div>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.2.3</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/shell_comments_filters.html' target='content'><span class='tree-text'>Shell Comments</span></a></div></div>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.2.4</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/line_wrapping_filters.html' target='content'><span class='tree-text'>Line-Wrapping</span></a></div></div>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.2.5</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/tab_expanding_filters.html' target='content'><span class='tree-text'>Tab-Expanding</span></a></div></div>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.2.6</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/dictionary_filters.html' target='content'><span class='tree-text'>Dictionary</span></a></div></div>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.2.7</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/unix2dos_filters.html' target='content'><span class='tree-text'>UNIX-to-DOS</span></a></div></div>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.2.8</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/multichar_filters.html' target='content'><span class='tree-text'>Multi-Character Filters</span></a></div></div>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.2.9</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/dual_use_filters.html' target='content'><span class='tree-text'>Dual-Use Filters</span></a></div></div>
+<div class='tree-item'><div style='margin-left:36;text-indent:-18'><span class='tree-label'>2.2.10</span>  <a class='tree-text' onfocus='blur_tree()' href='tutorial/finite_state_filters.html' target='content'><span class='tree-text'>Finite State Filters</span></a></div></div></div></div></div></div>
+<div class='tree-item'><div style='margin-left:0;text-indent:-0'><span class='tree-label'>3</span>  <a class='tree-text' onfocus='blur_tree()' href='guide/guide.html' target='content'><span class='tree-text'>User's Guide</span></a></div></div>
+<div class='tree-item'><div style='margin-left:0;text-indent:-0'><span class='tree-label'>4</span>  <a class='tree-text' onfocus='blur_tree()' href='reference.html' target='content'><span class='tree-text'>Reference</span></a></div><div id='list.4' style='white-space:nowrap;display:'>
+<div class='tree-item'><div style='margin-left:18;text-indent:-9'><span class='tree-label'>4.1</span>  <a class='tree-text' onfocus='blur_tree()' href='concepts/concepts.html' target='content'><span class='tree-text'>Concepts</span></a></div></div>
+<div class='tree-item'><div style='margin-left:18;text-indent:-9'><span class='tree-label'>4.2</span>  <a class='tree-text' onfocus='blur_tree()' href='classes/classes.html' target='content'><span class='tree-text'>Classes</span></a></div></div>
+<div class='tree-item'><div style='margin-left:18;text-indent:-9'><span class='tree-label'>4.3</span>  <a class='tree-text' onfocus='blur_tree()' href='functions/functions.html' target='content'><span class='tree-text'>Functions</span></a></div></div>
+<div class='tree-item'><div style='margin-left:18;text-indent:-9'><span class='tree-label'>4.4</span>  <a class='tree-text' onfocus='blur_tree()' href='macros/macros.html' target='content'><span class='tree-text'>Macros</span></a></div></div></div></div>
+<div class='tree-item'><div style='margin-left:0;text-indent:-0'><span class='tree-label'>5</span>  <a class='tree-text' onfocus='blur_tree()' href='quick_reference.html' target='content'><span class='tree-text'>Quick Reference</span></a></div></div>
+<div class='tree-item'><div style='margin-left:0;text-indent:-0'><span class='tree-label'>6</span>  <a class='tree-text' onfocus='blur_tree()' href='faq.html' target='content'><span class='tree-text'>FAQ</span></a></div></div>
+<div class='tree-item'><div style='margin-left:0;text-indent:-0'><span class='tree-label'>7</span>  <a class='tree-text' onfocus='blur_tree()' href='installation.html' target='content'><span class='tree-text'>Installation</span></a></div></div>
+<div class='tree-item'><div style='margin-left:0;text-indent:-0'><span class='tree-label'>8</span>  <a class='tree-text' onfocus='blur_tree()' href='portability.html' target='content'><span class='tree-text'>Portability</span></a></div></div>
+<div class='tree-item'><div style='margin-left:0;text-indent:-0'><span class='tree-label'>9</span>  <a class='tree-text' onfocus='blur_tree()' href='rationale.html' target='content'><span class='tree-text'>Rationale</span></a></div></div>
+<div class='tree-item'><div style='margin-left:0;text-indent:-0'><span class='tree-label'>10</span>  <a class='tree-text' onfocus='blur_tree()' href='bibliography.html' target='content'><span class='tree-text'>Bibliography</span></a></div></div>
+<div class='tree-item'><div style='margin-left:0;text-indent:-0'><span class='tree-label'>11</span>  <a class='tree-text' onfocus='blur_tree()' href='acknowledgments.html' target='content'><span class='tree-text'>Acknowledgments</span></a></div></div>
+<div class='tree-item'><div style='margin-left:0;text-indent:-0'><span class='tree-label'>12</span>  <a class='tree-text' onfocus='blur_tree()' href='release_notes.html' target='content'><span class='tree-text'>Release Notes</span></a></div></div></div></td></tr></table>
+
+
+    </noscript>
+
+<!-- ------------------ Tree Control --------------------------------- -->
+
+    <span id="tree_control"></span>
+
+    </td></tr>
+    </table>
+
+</body>
+</html>
+

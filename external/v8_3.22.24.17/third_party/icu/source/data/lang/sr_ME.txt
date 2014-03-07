@@ -1,0 +1,12 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/sr_ME.xml
+// *
+// ***************************************************************************
+sr_ME{
+    "%%ALIAS"{"sr_Latn_ME"}
+    Version{"2.0.41.65"}
+}

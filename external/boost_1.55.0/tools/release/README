@@ -1,0 +1,11 @@
+Boost SourceForge release folder README
+---------------------------------------
+
+The only differences between the distribution files are the line endings
+and archive format. The .bz2 and .7z formats are preferred as more compact.  
+
+Distribution files with extensions .gz and .bz2 use Unix line endings.
+
+Distribution files with extensions .zip and .7z use Windows line endings.
+
+See http://www.boost.org/users/history for information about each Boost release. 

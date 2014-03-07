@@ -1,0 +1,505 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Numeric Parsers</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../qi_parsers.html" title="Qi Parsers">
+<link rel="prev" href="char.html" title="Character Parsers">
+<link rel="next" href="string.html" title="String Parsers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="char.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../qi_parsers.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="string.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.quick_reference.qi_parsers.numeric"></a><a class="link" href="numeric.html" title="Numeric Parsers">Numeric
+          Parsers</a>
+</h5></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/real.html" title="Real Number Parsers (float_, double_, etc.)"><code class="computeroutput"><span class="identifier">float_</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">float</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a floating point number into a <code class="computeroutput"><span class="keyword">float</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/real.html" title="Real Number Parsers (float_, double_, etc.)"><code class="computeroutput"><span class="identifier">float_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">float</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a floating point number into a <code class="computeroutput"><span class="keyword">float</span></code>,
+                      a number is matched only if it's <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/real.html" title="Real Number Parsers (float_, double_, etc.)"><code class="computeroutput"><span class="identifier">double_</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">double</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a floating point number into a <code class="computeroutput"><span class="keyword">double</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/real.html" title="Real Number Parsers (float_, double_, etc.)"><code class="computeroutput"><span class="identifier">double_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">double</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a floating point number into a <code class="computeroutput"><span class="keyword">double</span></code>,
+                      a number is matched only if it's <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/real.html" title="Real Number Parsers (float_, double_, etc.)"><code class="computeroutput"><span class="identifier">long_double</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a floating point number into a <code class="computeroutput"><span class="keyword">long</span>
+                      <span class="keyword">double</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/real.html" title="Real Number Parsers (float_, double_, etc.)"><code class="computeroutput"><span class="identifier">long_double</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a floating point number into a <code class="computeroutput"><span class="keyword">long</span>
+                      <span class="keyword">double</span></code>, a number is
+                      matched only if it's <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/uint.html" title="Unsigned Integer Parsers (uint_, etc.)"><code class="computeroutput"><span class="identifier">bin</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a binary integer into an <code class="computeroutput"><span class="keyword">unsigned</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/uint.html" title="Unsigned Integer Parsers (uint_, etc.)"><code class="computeroutput"><span class="identifier">oct</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an octal integer into an <code class="computeroutput"><span class="keyword">unsigned</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/uint.html" title="Unsigned Integer Parsers (uint_, etc.)"><code class="computeroutput"><span class="identifier">hex</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a hexadecimal integer into an <code class="computeroutput"><span class="keyword">unsigned</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/uint.html" title="Unsigned Integer Parsers (uint_, etc.)"><code class="computeroutput"><span class="identifier">ushort_</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">short</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an unsigned short integer
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/uint.html" title="Unsigned Integer Parsers (uint_, etc.)"><code class="computeroutput"><span class="identifier">ushort_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">short</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an unsigned short integer, a number is matched only if
+                      it's <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/uint.html" title="Unsigned Integer Parsers (uint_, etc.)"><code class="computeroutput"><span class="identifier">ulong_</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an unsigned long integer
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/uint.html" title="Unsigned Integer Parsers (uint_, etc.)"><code class="computeroutput"><span class="identifier">ulong_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an unsigned long integer, a number is matched only if
+                      it's <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/uint.html" title="Unsigned Integer Parsers (uint_, etc.)"><code class="computeroutput"><span class="identifier">uint_</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an unsigned int
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/uint.html" title="Unsigned Integer Parsers (uint_, etc.)"><code class="computeroutput"><span class="identifier">uint_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an unsigned int, a number is matched only if it's <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/uint.html" title="Unsigned Integer Parsers (uint_, etc.)"><code class="computeroutput"><span class="identifier">ulong_long</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span>
+                      <span class="keyword">long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an unsigned long long
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/uint.html" title="Unsigned Integer Parsers (uint_, etc.)"><code class="computeroutput"><span class="identifier">ulong_long</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span>
+                      <span class="keyword">long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an unsigned long long, a number is matched only if it's
+                      <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/int.html" title="Signed Integer Parsers (int_, etc.)"><code class="computeroutput"><span class="identifier">short_</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">short</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a short integer
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/int.html" title="Signed Integer Parsers (int_, etc.)"><code class="computeroutput"><span class="identifier">short_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">short</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a short integer, a number is matched only if it's <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/int.html" title="Signed Integer Parsers (int_, etc.)"><code class="computeroutput"><span class="identifier">long_</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a long integer
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/int.html" title="Signed Integer Parsers (int_, etc.)"><code class="computeroutput"><span class="identifier">long_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a long integer, a number is matched only if it's <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/int.html" title="Signed Integer Parsers (int_, etc.)"><code class="computeroutput"><span class="identifier">int_</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">int</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an int
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/int.html" title="Signed Integer Parsers (int_, etc.)"><code class="computeroutput"><span class="identifier">int_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">int</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an int, a number is matched only if it's <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/int.html" title="Signed Integer Parsers (int_, etc.)"><code class="computeroutput"><span class="identifier">long_long</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a long long
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/numeric/int.html" title="Signed Integer Parsers (int_, etc.)"><code class="computeroutput"><span class="identifier">long_long</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a long long, a number is matched only if it's <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="char.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../qi_parsers.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="string.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Introduction</title>
+<link rel="stylesheet" href="../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Boost Test Library">
+<link rel="up" href="../utf.html" title="Part IV. Boost Test Library: The Unit Test Framework">
+<link rel="prev" href="../utf.html" title="Part IV. Boost Test Library: The Unit Test Framework">
+<link rel="next" href="tutorials.html" title="The unit test framework tutorials">
+<script language="JavaScript1.2" src="../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../utf.html">The Unit Test Framework</a> &gt; <b>Introduction</b>
+</td>
+<td><div class="spirit-nav">
+<a href="../utf.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="tutorials.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="chapter" lang="en">
+<div class="titlepage"><div><div><h2 class="title">
+<a name="utf.intro"></a>Introduction</h2></div></div></div>
+<div class="epigraph">
+<p>
+    The acceptance test makes the customer satisfied that the software provides the business value that makes them
+    willing to pay for it. The unit test makes the programmer satisfied that the software does what the programmer 
+    thinks it does
+   </p>
+<div class="attribution"><span>--<span class="attribution">XP maxim</span></span></div>
+</div>
+<p class="first-line-indented">
+   What is the first thing you need to do when you start working on new library/class/program? That's right -
+   you need to start with the unit test module (I hope you all gave this answer!). Occasional, simple test may be
+   implemented using asserts. But any professional developer soon finds this approach lacking. It becomes clear that
+   it's too time-consuming and tedious for simple, but repetitive unit testing tasks and it's too inflexible for
+   most nontrivial ones.
+  </p>
+<p class="first-line-indented">
+   <em class="firstterm"><a name="utf.def"></a>The Boost Test Library Unit Test Framework</em> (further in the documentation
+   referred by the acronym <acronym class="acronym"><a name="utf.def.ref"></a>UTF</acronym>) provides both an easy to use and flexible solution
+   to this problem domain: C++ unit test implementation and organization.
+  </p>
+<p class="first-line-indented">
+   Unit testing tasks arise during many different stages of software development: from initial project implementation
+   to its maintenance and later revisions. These tasks differ in their complexity and purpose and accordingly are
+   approached differently by different developers. The wide spectrum of tasks in a problem domain cause many
+   requirements (sometimes conflicting) to be placed on a unit testing framework. These include:
+  </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="square">
+<li style="list-style-type: square">
+     Writing a unit test module should be simple and obvious for new users.
+    </li>
+<li style="list-style-type: square">
+     The framework should allow advanced users to perform nontrivial tests.
+    </li>
+<li style="list-style-type: square">
+     Test module should be able to have many small test cases and developer should be able to group them into test
+     suites.
+    </li>
+<li style="list-style-type: square">
+     At the beginning of the development users want to see verbose and descriptive error message, whereas during the
+     regression testing they just want to know if any tests failed.
+    </li>
+<li style="list-style-type: square">
+     For a small test modules run time should prevail over compilation time: user don't want to wait a minute to
+     compile a test that takes a second to run.
+    </li>
+<li style="list-style-type: square">
+     For long and complex tests users want to be able to see the test progress.
+    </li>
+<li style="list-style-type: square">
+     Simplest tests shouldn't require an external library.
+    </li>
+<li style="list-style-type: square">
+     For long term usage users of a unit test framework should be able to build it as a standalone library.
+    </li>
+</ul></div>
+<p class="first-line-indented">
+   The <acronym class="acronym">UTF</acronym> design is based on above rationale and provides versatile facilities to:
+  </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="square">
+<li style="list-style-type: square">
+     Simplify writing test cases by using various <a class="link" href="testing-tools/reference.html" title="The UTF testing tools reference">testing tools</a>.
+    </li>
+<li style="list-style-type: square">
+<a class="link" href="user-guide/test-organization.html" title="Test organization or the house that Jack built">Organize test cases</a> into a test tree.</li>
+<li style="list-style-type: square">
+     Relieve you from messy error detection, reporting duties and framework runtime parameters processing.
+    </li>
+</ul></div>
+<p class="first-line-indented">
+   The <acronym class="acronym">UTF</acronym> keeps track of all passed/failed testing tools <a class="link" href="user-guide.html#test-assertion.def">assertions</a>,
+   provides an ability to check the <a class="link" href="user-guide/test-output/test-progress.html" title="Test progress display">test progress</a>
+   and generates a <a class="link" href="user-guide/test-output/results-report.html" title="Test report output">result report</a> in several different
+   formats. The <acronym class="acronym">UTF</acronym> supplies command line test runners that initialize the framework and run the requested tests.
+   Depending on the selected <a class="link" href="compilation.html#utf.compilation.flags" title="Table 3. The UTF compilation flags">compilation flags</a> the function main()
+   default implementation, that invoke the supplied test runner, can be generated automatically as well.
+  </p>
+<p class="first-line-indented">
+   The <acronym class="acronym">UTF</acronym> is intended to be used both for a simple and non trivial testing. It is not intended to be used with
+   production code. In this case the <a href="../under_construction.html" target="_top">Program Execution Monitor</a> is more 
+   suitable.
+  </p>
+<p class="first-line-indented">
+   Given the largely differing requirements of new and advanced users, it is clear that the <acronym class="acronym">UTF</acronym> must provide both
+   simple, easy-to-use interfaces with limited customization options and advanced interfaces, which allow unit testing
+   to be fully customized. Accordingly the material provided in this documentation is split into two sections:
+  </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="upper-roman">
+<li style="list-style-type: upper-roman">
+     <a class="link" href="user-guide.html" title="Unit Test Framework: User's guide">The User's Guide</a>: covers all functionality that doesn't require
+     knowledge of the <acronym class="acronym">UTF</acronym> internals
+    </li>
+<li style="list-style-type: upper-roman">
+     <a href="../under_construction.html" target="_top">The Advanced User's Guide</a>: covers all implementation details 
+     required for a user to understand the advanced customization options available in the <acronym class="acronym">UTF</acronym>, and for a user
+     interested in extending the testing framework.
+    </li>
+</ul></div>
+<p class="first-line-indented">
+   For those interested in getting started quickly please visit <a href="../example-toc.html" target="_top">collection of 
+   examples</a> presented in this documentation.
+  </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../utf.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../utf.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="tutorials.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

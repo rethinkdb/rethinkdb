@@ -1,0 +1,27 @@
+[article Horizontal Rule
+[quickbook 1.5]
+]
+
+---- [/
+This should be a comment.
+] This should be displayed.
+
+---- [/ ] This shouldn't be displayed.
+
+---- [/
+This should be a comment.
+] * This shouldn't be a list
+
+---- [/
+This should be a comment.
+]
+* This should be a list
+
+---- [/ This should be a comment]
+* This should be a list
+
+---- [* This shouldn't be displayed.]
+
+---- This doesn't have an open bracket.]
+
+---- [ This doesn't have a close bracket.

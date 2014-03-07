@@ -1,0 +1,434 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>History</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../jam.html" title="Chapter&#160;42.&#160;Boost.Jam : 3.1.19">
+<link rel="prev" href="miscellaneous.html" title="Miscellaneous">
+<link rel="next" href="../bbv2.html" title="Chapter&#160;43.&#160;Boost.Build V2 User Manual">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="miscellaneous.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../jam.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../bbv2.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="jam.history"></a><a class="link" href="history.html" title="History">History</a>
+</h2></div></div></div>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">3.1.18</span></dt>
+<dd>
+<p>
+            After years of bjam developments.. This is going to be the last unbundled
+            release of the 3.1.x series. From this point forward bjam will only be
+            bundled as part of the larger Boost Build system. And hence will likely
+            change name at some point. As a side effect of this move people will
+            get more frequent release of bjam (or whatever it ends up being called).
+          </p>
+<p>
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">New built-ins, MD5, SPLIT_BY_CHARACTERS, PRECIOUS, PAD, FILE_OPEN, and
+            UPDATE_NOW. -- <span class="emphasis"><em>Vladimir P.</em></span>
+</li>
+<li class="listitem">Ensure all file descriptors
+            are closed when executing actions complete on *nix. -- <span class="emphasis"><em>Noel
+            B.</em></span>
+</li>
+<li class="listitem">Fix warnings, patch from Mateusz Loskot. -- <span class="emphasis"><em>Vladimir
+            P.</em></span>
+</li>
+<li class="listitem">Add KEEP_GOING var to programatically override the '-q'
+            option. -- <span class="emphasis"><em>Vladimir P.</em></span>
+</li>
+<li class="listitem">Add more parameters, up to
+            19 from 9, to rule invocations. Patch from Jonathan Biggar. -- <span class="emphasis"><em>Vladimir
+            P.</em></span>
+</li>
+<li class="listitem">Print failed command output even if the normally quite
+            '-d0' option. -- <span class="emphasis"><em>Vladimir P.</em></span>
+</li>
+<li class="listitem">Build of bjam with
+            vc10, aka Visual Studio 2010. -- <span class="emphasis"><em>Vladimir P.</em></span>
+</li>
+<li class="listitem">More
+            macros for detection of OSPLAT, patch from John W. Bito. -- <span class="emphasis"><em>Vladimir
+            P.</em></span>
+</li>
+<li class="listitem">Add PARALLELISM var to programatically override the '-j'
+            option. -- <span class="emphasis"><em>Vladimir P.</em></span>
+</li>
+<li class="listitem">Tweak doc building to allow
+            for PDF generation of docs. -- <span class="emphasis"><em>John M.</em></span>
+</li>
+</ul></div>
+<p>
+          </p>
+</dd>
+<dt><span class="term">3.1.17</span></dt>
+<dd>
+<p>
+            A year in the making this release has many stability improvements and
+            various performance improvements. And because of the efforts of Jurko
+            the code is considerably more readable!
+          </p>
+<p>
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">Reflect the results of calling bjam from Python. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">For building on Windows: Rework how arguments are parsed and tested to
+            fix handling of quoted arguments, options arguments, and arguments with
+            "=". -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Try to work around at
+            least one compiler bug with GCC and variable aliasing that causes crashes
+            with hashing file cache entries. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Add
+            -Wc,-fno-strict-aliasing for QCC/QNX to avoid the same aliasing crashes
+            as in the general GCC 4.x series (thanks to Niklas Angare for the fix).
+            -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">On Windows let the child bjam commands
+            inherit stdin, as some commands assume it's available. -- <span class="emphasis"><em>Rene
+            R.</em></span>
+</li>
+<li class="listitem">On Windows don't limit bjam output to ASCII as some tools
+            output characters in extended character sets. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Isolate running of bjam tests to individual bjam instances to prevent
+            possible spillover errors from one test affecting another test. Separate
+            the bjam used to run the tests vs. the bjam being tested. And add automatic
+            re-building of the bjam being tested. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Fix some possible overrun issues revealed by Fortify build. Thanks to
+            Steven Robbins for pointing out the issues. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Handle \n and \r escape sequences. -- <span class="emphasis"><em>Vladimir P.</em></span>
+</li>
+<li class="listitem">Minor edits to remove -Wall warnings. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Dynamically adjust pwd buffer query size to allow for when PATH_MAX is
+            default defined instead of being provided by the system C library. --
+            <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Minor perf improvement for bjam by replacing
+            hash function with faster version. Only 1% diff for Boost tree. -- <span class="emphasis"><em>Rene
+            R.</em></span>
+</li>
+<li class="listitem">Updated Boost Jam's error location reporting when parsing
+            Jamfiles. Now it reports the correct error location information when
+            encountering an unexpected EOF. It now also reports where an invalid
+            lexical token being read started instead of finished which makes it much
+            easier to find errors like unclosed quotes or curly braces. -- <span class="emphasis"><em>Jurko
+            G.</em></span>
+</li>
+<li class="listitem">Removed the -xarch=generic architecture from build.jam
+            as this option is unknown so the Sun compilers on Linux. -- <span class="emphasis"><em>Noel
+            B.</em></span>
+</li>
+<li class="listitem">Fixed a bug with T_FATE_ISTMP getting reported as T_FATE_ISTMP
+            &amp; T_FATE_NEEDTMP at the same time due to a missing break in a switch
+            statement. -- <span class="emphasis"><em>Jurko G.</em></span>
+</li>
+<li class="listitem">Fixed a Boost Jam bug causing
+            it to sometimes trigger actions depending on targets that have not been
+            built yet. -- <span class="emphasis"><em>Jurko G.</em></span>
+</li>
+<li class="listitem">Added missing documentation
+            for Boost Jam's :T variable expansion modifier which converts all back-slashes
+            ('\') to forward slashed ('/'). -- <span class="emphasis"><em>Jurko G.</em></span>
+</li>
+<li class="listitem">Added
+            Boost Jam support for executing command lines longer than 2047 characters
+            (up to 8191) characters when running on Windows XP or later OS version.
+            -- <span class="emphasis"><em>Jurko G.</em></span>
+</li>
+<li class="listitem">Fixed a Boost Jam bug on Windows causing
+            its SHELL command not to work correctly with some commands containing
+            quotes. -- <span class="emphasis"><em>Jurko G.</em></span>
+</li>
+<li class="listitem">Corrected a potential memory
+            leak in Boost Jam's builtin_shell() function that would appear should
+            Boost Jam ever start to release its allocated string objects. -- <span class="emphasis"><em>Jurko
+            G.</em></span>
+</li>
+<li class="listitem">Made all Boost Jam's ECHO commands automatically flush
+            the standard output to make that output more promptly displayed to the
+            user. -- <span class="emphasis"><em>Jurko G.</em></span>
+</li>
+<li class="listitem">Made Boost Jam tests quote their
+            bjam executable name when calling it allowing those executables to contain
+            spaces in their name and/or path. -- <span class="emphasis"><em>Jurko G.</em></span>
+</li>
+<li class="listitem">Change
+            execunix.c to always use fork() instead of vfork() on the Mac. This works
+            around known issues with bjam on PPC under Tiger and a problem reported
+            by Rene with bjam on x86 under Leopard. -- <span class="emphasis"><em>Noel B.</em></span>
+</li>
+<li class="listitem">Corrected a bug in Boost Jam's base Jambase script causing it to trim
+            the error message displayed when its boost-build rule gets called multiple
+            times. -- <span class="emphasis"><em>Jurko G.</em></span>
+</li>
+<li class="listitem">When importing from Python into
+            an module with empty string as name, import into root module. -- <span class="emphasis"><em>Vladimir
+            P.</em></span>
+</li>
+<li class="listitem">Patch for the NORMALIZE_PATH builtin Boost Jam rule as
+            well as an appropriate update for the path.jam Boost Build module where
+            that rule was being used to implement path join and related operations.
+            -- <span class="emphasis"><em>Jurko G.</em></span>
+</li>
+<li class="listitem">Fixed a bug causing Boost Jam not to
+            handle target file names specified as both short and long file names
+            correctly. -- <span class="emphasis"><em>Jurko G.</em></span>
+</li>
+<li class="listitem">Relaxed test, ignoring case
+            of drive letter. -- <span class="emphasis"><em>Roland S.</em></span>
+</li>
+<li class="listitem">Implemented a patch
+            contributed by Igor Nazarenko reimplementing the list_sort() function
+            to use a C qsort() function instead of a hand-crafted merge-sort algorithm.
+            Makes some list sortings (e.g. 1,2,1,2,1,2,1,2, ...) extremely faster,
+            in turn significantly speeding up some project builds. -- <span class="emphasis"><em>Jurko
+            G.</em></span>
+</li>
+<li class="listitem">Fixed a bug with bjam not handling the '' root Windows
+            path correctly without its drive letter being specified. -- <span class="emphasis"><em>Jurko
+            G.</em></span>
+</li>
+<li class="listitem">Solved the problem with child process returning the value
+            259 (Windows constant STILL_ACTIVE) causing bjam never to detect that
+            it exited and therefore keep running in an endless loop. -- <span class="emphasis"><em>Jurko
+            G.</em></span>
+</li>
+<li class="listitem">Solved the problem with bjam going into an active wait
+            state, hogging up processor resources, when waiting for one of its child
+            processes to terminate while not all of its available child process slots
+            are being used. -- <span class="emphasis"><em>Jurko G.</em></span>
+</li>
+<li class="listitem">Solved a race condition
+            between bjam's output reading/child process termination detection and
+            the child process's output generation/termination which could have caused
+            bjam not to collect the terminated process's final output. -- <span class="emphasis"><em>Jurko
+            G.</em></span>
+</li>
+<li class="listitem">Change from vfork to fork for executing actions on Darwin
+            to improve stability. -- <span class="emphasis"><em>Noel B.</em></span>
+</li>
+<li class="listitem">Code reformatting
+            and cleanups. -- <span class="emphasis"><em>Jurko G.</em></span>
+</li>
+<li class="listitem">Implement ISFILE built-in.
+            -- <span class="emphasis"><em>Vladimir P.</em></span>
+</li>
+</ul></div>
+<p>
+          </p>
+</dd>
+<dt><span class="term">3.1.16</span></dt>
+<dd>
+<p>
+            This is mostly a bug fix release.
+          </p>
+<p>
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">Work around some Windows CMD.EXE programs that will fail executing a
+            totally empty batch file. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Add support
+            for detection and building with <code class="literal">vc9</code>. -- <span class="emphasis"><em>John
+            P.</em></span>
+</li>
+<li class="listitem">Plug memory leak when closing out actions. Thanks to Martin
+            Kortmann for finding this. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Various improvements
+            to <code class="literal">__TIMING_RULE__</code> and <code class="literal">__ACTION_RULE__</code>
+            target variable hooks. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Change <code class="literal">JAMDATE</code>
+            to use common ISO date format. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Add test
+            for result status values of simple actions, i.e. empty actions. -- <span class="emphasis"><em>Rene
+            R.</em></span>
+</li>
+<li class="listitem">Fix buffer overrun bug in expanding <code class="literal">@()</code>
+            subexpressions. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Check empty string invariants,
+            instead of assuming all strings are allocated. And reset strings when
+            they are freed. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Add <code class="literal">OSPLAT=PARISC</code>
+            for HP-UX PA-RISC. -- <span class="emphasis"><em>Boris G.</em></span>
+</li>
+<li class="listitem">Make quietly actions
+            really quiet by not printing the command output. The output for the quietly
+            actions is still available through <code class="literal">__ACTION_RULE__</code>.
+            -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Switch intel-win32 to use static multi
+            thread runtime since the single thread static runtime is no longer available.
+            -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">When setting <code class="literal">OSPLAT</code>,
+            check <code class="literal">__ia64</code> macro. -- <span class="emphasis"><em>Boris G.</em></span>
+</li>
+<li class="listitem">Get the unix timing working correctly. -- <span class="emphasis"><em>Noel B.</em></span>
+</li>
+<li class="listitem">Add <code class="literal">-fno-strict-aliasing</code> to compilation with gcc.
+            Which works around GCC-4.2 crash problems. -- <span class="emphasis"><em>Boris G.</em></span>
+</li>
+<li class="listitem">Increased support for Python integration. -- <span class="emphasis"><em>Vladimir P.</em></span>,
+            <span class="emphasis"><em>Daniel W.</em></span>
+</li>
+<li class="listitem">Allow specifying options with quotes,
+            i.e. <code class="literal">--with-python=xyz</code>, to work around the CMD shell
+            using <code class="literal">=</code> as an argument separator. -- <span class="emphasis"><em>Rene
+            R.</em></span>
+</li>
+<li class="listitem">Add values of variables specified with -s to .EVNRION module,
+            so that we can override environment on command line. -- <span class="emphasis"><em>Vladimir
+            P.</em></span>
+</li>
+<li class="listitem">Make NORMALIZE_PATH convert \ to /. -- <span class="emphasis"><em>Vladimir
+            P.</em></span>
+</li>
+</ul></div>
+<p>
+          </p>
+</dd>
+<dt><span class="term">3.1.15</span></dt>
+<dd>
+<p>
+            This release sees a variety of fixes for long standing Perforce/Jam problems.
+            Most of them relating to running actions in parallel with the -jN option.
+            The end result of the changes is that running parallel actions is now
+            reliably possible in Unix and Windows environments. Many thanks to Noel
+            for joining the effort, to implement and fix the Unix side of stuff.
+          </p>
+<p>
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">Add support for building bjam with pgi and pathscale toolsets. -- <span class="emphasis"><em>Noel
+            B.</em></span>
+</li>
+<li class="listitem">Implement running action commands through pipes (-p option)
+            to fix jumbled output when using parallel execution with -j option. This
+            is implemented for Unix variants, and Windows (Win32/NT). -- <span class="emphasis"><em>Rene
+            R.</em></span>, <span class="emphasis"><em>Noel B.</em></span>
+</li>
+<li class="listitem">Add "sun" as alias
+            to Sun Workshop compiler tools. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Set MAXLINE
+            in jam.h to 23k bytes for AIX. The piecemeal archive action was broken
+            with the default MAXLINE of 102400. Because the AIX shell uses some of
+            the 24k default buffer size for its own use, I reduced it to 23k. --
+            <span class="emphasis"><em>Noel B.</em></span>
+</li>
+<li class="listitem">Make use of output dir options of msvc to
+            not polute src dir with compiled files. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">A small fix, so -d+2 will always show the "real" commands being
+            executed instead of casually the name of a temporary batch file. --
+            <span class="emphasis"><em>Roland S.</em></span>
+</li>
+<li class="listitem">Add test to check 'bjam -n'. -- <span class="emphasis"><em>Rene
+            R.</em></span>
+</li>
+<li class="listitem">Add test to check 'bjam -d2'. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Bring back missing output of -n option. The -o option continues to be
+            broken as it has been for a long time now because of the @ file feature.
+            -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Update GC support to work with Boehm
+            GC 7.0. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Revert the BOOST_BUILD_PATH change,
+            since the directory passed to boost-build should be first in searched
+            paths, else project local build system will not be picked correctly.
+            The order had been changed to allow searching of alternate user-config.jam
+            files from boost build. This better should be done with --user-config=
+            switch or similar. -- <span class="emphasis"><em>Roland S.</em></span>
+</li>
+<li class="listitem">Initial support
+            for defining action body from Python. -- <span class="emphasis"><em>Vladimir P.</em></span>
+</li>
+<li class="listitem">Implement @() expansion during parse phase. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Define OSPLAT var unconditionally, and more generically, when possible.
+            -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Fix undeclared INT_MAX on some platforms,
+            i.e. Linux. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Modified execunix.c to add
+            support for terminating processes that consume too much cpu or that hang
+            and fail to consume cpu at all. This in support of the bjam -lx option.
+            -- <span class="emphasis"><em>Noel B.</em></span>
+</li>
+<li class="listitem">Add internal dependencies for multi-file
+            generating actions to indicate that the targets all only appear when
+            the first target appears. This fixes the long standing problem Perforce/Jam
+            has with multi-file actions and parallel execution (-jN). -- <span class="emphasis"><em>Rene
+            R.</em></span>
+</li>
+<li class="listitem">Add test of -l limit option now that it's implemented on
+            windows and unix. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Add test for no-op
+            @() expansion. -- <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Handle invalid formats
+            of @() as doing a straight substitution instead of erroring out. --
+            <span class="emphasis"><em>Rene R.</em></span>
+</li>
+<li class="listitem">Various fixes to compile on SGI/Irix. --
+            <span class="emphasis"><em>Noel B.</em></span>
+</li>
+<li class="listitem">Add output for when actions timeout with
+            -lN option. -- <span class="emphasis"><em>Rene R.</em></span>, <span class="emphasis"><em>Noel B.</em></span>
+</li>
+<li class="listitem">Add needed include (according to XOPEN) for definition of WIFEXITED and
+            WEXITSTATUS. -- <span class="emphasis"><em>Markus S.</em></span>
+</li>
+</ul></div>
+<p>
+          </p>
+</dd>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2007 Rene Rivera, David Abrahams, Vladimir Prus<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="miscellaneous.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../jam.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../bbv2.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

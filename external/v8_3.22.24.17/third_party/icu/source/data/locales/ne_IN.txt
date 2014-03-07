@@ -1,0 +1,132 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ne_IN.xml
+// *
+// ***************************************************************************
+ne_IN{
+    Version{"2.0.47.63"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "पूर्वाह्न",
+                "अपराह्न",
+            }
+            DateTimeElements:intvector{
+                1,
+                4,
+            }
+            dayNames{
+                format{
+                    wide{
+                        "आइतवार",
+                        "सोमवार",
+                        "मङ्गलवार",
+                        "बुधवार",
+                        "बिहीवार",
+                        "शुक्रवार",
+                        "शनिवार",
+                    }
+                }
+            }
+            fields{
+                day{
+                    dn{"वार"}
+                    relative{
+                        "2"{"पर्सि"}
+                    }
+                }
+                dayperiod{
+                    dn{"पूर्वाह्न / अपराह्न"}
+                }
+                era{
+                    dn{"युग"}
+                }
+                second{
+                    dn{"सेकेन्ड"}
+                }
+                week{
+                    dn{"साता"}
+                }
+                weekday{
+                    dn{"हप्ताको वार"}
+                }
+                year{
+                    dn{"वर्ष"}
+                }
+                zone{
+                    dn{"अञ्‍चल"}
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "जनवरी",
+                        "फरवरी",
+                        "मार्च",
+                        "अप्रेल",
+                        "मई",
+                        "जुन",
+                        "जुलाई",
+                        "अगस्त",
+                        "सेप्टेम्बर",
+                        "अक्टोबर",
+                        "नोभेम्बर",
+                        "दिसम्बर",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    wide{
+                        "पहिलो पाउ",
+                        "दोस्रो पाउ",
+                        "तेस्रो पाउ",
+                        "चौथो पाउ",
+                    }
+                }
+            }
+            weekend:intvector{
+                1,
+                0,
+                1,
+                86400000,
+            }
+        }
+        indian{
+            monthNames{
+                format{
+                    wide{
+                        "वैशाख",
+                        "जेठ",
+                        "असार",
+                        "साउन",
+                        "भदौ",
+                        "असोज",
+                        "कात्तिक",
+                        "मङसिर",
+                        "पुस",
+                        "माघ",
+                        "फागुन",
+                        "चैत",
+                    }
+                }
+            }
+        }
+    }
+    measurementSystemNames{
+        US{"अमेरिकेली"}
+        metric{"मेट्रिक"}
+    }
+    units{
+        week{
+            one{"{0} साता"}
+        }
+        year{
+            one{"{0} वर्ष"}
+            other{"{0} वर्ष"}
+        }
+    }
+}

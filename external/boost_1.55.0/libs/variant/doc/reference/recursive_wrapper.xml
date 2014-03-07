@@ -1,0 +1,264 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/variant/recursive_wrapper.hpp">
+  <namespace name="boost">
+
+    <class name="recursive_wrapper">
+      <purpose>Solves circular dependencies, enabling recursive types.</purpose>
+
+      <template>
+        <template-type-parameter name="T"/>
+      </template>
+
+      <description>
+        <simpara>The <code>recursive_wrapper</code> class template has an
+          interface similar to a simple value container, but its content is
+          allocated dynamically. This allows <code>recursive_wrapper</code> to
+          hold types <code>T</code> whose member data leads to a circular
+          dependency (e.g., a data member of <code>T</code> has a data member
+          of type <code>T</code>).</simpara>
+
+        <simpara>The application of <code>recursive_wrapper</code> is easiest
+          understood in context. See
+          <xref linkend="variant.tutorial.recursive.recursive-wrapper"/> for a
+          demonstration of a common use of the class template.</simpara>
+
+        <simpara><emphasis role="bold">Notes</emphasis>:</simpara>
+        <itemizedlist>
+          <listitem>Any type specified as the template argument to
+            <code>recursive_wrapper</code> must be capable of construction via
+            <code>operator new</code>. Thus, for instance, references are not
+            supported.</listitem>
+        </itemizedlist>
+      </description>
+
+      <typedef name="type">
+        <type>T</type>
+      </typedef>
+
+      <destructor>
+        <purpose>Destructor.</purpose>
+        <description>
+          <simpara>Deletes the content of <code>*this</code>.</simpara>
+        </description>
+
+        <throws>Will not throw.</throws>
+      </destructor>
+
+      <constructor>
+        <purpose>Default constructor.</purpose>
+        <description>
+          <simpara>Initializes <code>*this</code> by default construction of
+            <code>T</code>.</simpara>
+        </description>
+
+        <requires>
+          <simpara><code>T</code> must fulfill the requirements of the
+            <emphasis>DefaultConstructible</emphasis> [20.1.4]
+            concept.</simpara>
+        </requires>
+
+        <throws>
+          <simpara>May fail with any exceptions arising from the default
+            constructor of <code>T</code> or, in the event of
+            insufficient memory, with <code>std::bad_alloc</code>.</simpara>
+        </throws>
+      </constructor>
+
+      <constructor>
+        <parameter name="other">
+          <paramtype>const recursive_wrapper &amp;</paramtype>
+        </parameter>
+
+        <purpose>Copy constructor.</purpose>
+        <description>
+          <simpara>Copies the content of <code>other</code> into
+            <code>*this</code>.</simpara>
+        </description>
+
+        <throws>
+          <simpara>May fail with any exceptions arising from the
+            copy constructor of <code>T</code> or, in the event of
+            insufficient memory, with <code>std::bad_alloc</code>.</simpara>
+        </throws>
+      </constructor>
+
+      <constructor>
+        <parameter name="operand">
+          <paramtype>const T &amp;</paramtype>
+        </parameter>
+
+        <purpose>Value constructor.</purpose>
+        <description>
+          <simpara>Copies <code>operand</code> into
+            <code>*this</code>.</simpara>
+        </description>
+
+        <throws>
+          <simpara>May fail with any exceptions arising from the
+            copy constructor of <code>T</code> or, in the event of
+            insufficient memory, with <code>std::bad_alloc</code>.</simpara>
+        </throws>
+      </constructor>
+
+      <method-group name="modifiers">
+
+        <method name="swap">
+          <type>void</type>
+
+          <parameter name="other">
+            <paramtype>recursive_wrapper &amp;</paramtype>
+          </parameter>
+
+          <description>
+            <simpara>Exchanges contents of <code>*this</code> and
+              <code>other</code>.</simpara>
+          </description>
+
+          <throws>Will not throw.</throws>
+        </method>
+
+        <method name="operator=">
+          <type>recursive_wrapper &amp;</type>
+
+          <parameter name="rhs">
+            <paramtype>const recursive_wrapper &amp;</paramtype>
+          </parameter>
+
+          <purpose>Copy assignment operator.</purpose>
+          <description>
+            <simpara>Assigns the content of <code>rhs</code> to the content of
+              <code>*this</code>.</simpara>
+          </description>
+
+          <requires>
+            <simpara><code>T</code> must fulfill the requirements of
+            the <conceptname>Assignable</conceptname>
+            concept.</simpara>
+          </requires>
+
+          <throws>
+            <simpara>May fail with any exceptions arising from the assignment
+              operator of <code>T</code>.</simpara>
+          </throws>
+        </method>
+
+        <method name="operator=">
+          <type>recursive_wrapper &amp;</type>
+
+          <parameter name="rhs">
+            <paramtype>const T &amp;</paramtype>
+          </parameter>
+
+          <purpose>Value assignment operator.</purpose>
+          <description>
+            <simpara>Assigns <code>rhs</code> into the content of
+              <code>*this</code>.</simpara>
+          </description>
+
+          <requires>
+            <simpara><code>T</code> must fulfill the requirements of the
+              <conceptname>Assignable</conceptname>
+              concept.</simpara>
+          </requires>
+
+          <throws>
+            <simpara>May fail with any exceptions arising from the assignment
+              operator of <code>T</code>.</simpara>
+          </throws>
+        </method>
+
+      </method-group>
+
+      <method-group name="queries">
+
+        <overloaded-method name="get">
+          <signature>
+            <type>T &amp;</type>
+          </signature>
+          <signature cv="const">
+            <type>const T &amp;</type>
+          </signature>
+
+          <description>
+            <simpara>Returns a reference to the content of
+              <code>*this</code>.</simpara>
+          </description>
+
+          <throws>Will not throw.</throws>
+        </overloaded-method>
+
+        <overloaded-method name="get_pointer">
+          <signature>
+            <type>T *</type>
+          </signature>
+          <signature cv="const">
+            <type>const T *</type>
+          </signature>
+
+          <description>
+            <simpara>Returns a pointer to the content of
+              <code>*this</code>.</simpara>
+          </description>
+
+          <throws>Will not throw.</throws>
+        </overloaded-method>
+
+      </method-group>
+
+    </class>
+    
+    <class name="is_recursive_wrapper">
+      <purpose>
+        <simpara>Determines whether the specified type is a specialization of
+          <code>recursive_wrapper</code>.</simpara>
+      </purpose>
+
+      <template>
+        <template-type-parameter name="T"/>
+      </template>
+
+      <description>
+        <simpara>Value is true iff <code>T</code> is a specialization of
+          <code><classname>recursive_wrapper</classname></code>.</simpara>
+        <simpara><emphasis role="bold">Note</emphasis>:
+          <code>is_recursive_wrapper</code> is a model of
+          <libraryname>MPL</libraryname>'s
+          <emphasis>IntegralConstant</emphasis> concept.</simpara>
+      </description>
+
+      <typedef name="type">
+        <type><emphasis>unspecified</emphasis></type>
+      </typedef>
+
+      <static-constant name="value">
+        <type>bool</type>
+        <default><emphasis>unspecified</emphasis></default>
+      </static-constant>
+    </class>
+
+    <class name="unwrap_recursive_wrapper">
+      <purpose>
+        <simpara>Unwraps the specified argument if given a specialization of
+          <code><classname>recursive_wrapper</classname></code>.</simpara>
+      </purpose>
+
+      <template>
+        <template-type-parameter name="T"/>
+      </template>
+
+      <description>
+        <simpara><code>type</code> is equivalent to <code>T::type</code> if
+          <code>T</code> is a specialization of
+          <code><classname>recursive_wrapper</classname></code>. Otherwise,
+          <code>type</code> is equivalent to <code>T</code>.</simpara>
+      </description>
+
+      <typedef name="type">
+        <type><emphasis>unspecified</emphasis></type>
+      </typedef>
+    </class>
+
+  </namespace>
+</header>

@@ -1,0 +1,89 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Core components</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="log/reference.html" title="Reference">
+<link rel="prev" href="BOOST_LOG_TRIVIAL.html" title="Macro BOOST_LOG_TRIVIAL">
+<link rel="next" href="boost/log/core.html" title="Class core">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_LOG_TRIVIAL.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="log/reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost/log/core.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="core_components"></a>Core components</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="core_components.html#header.boost.log.core.core_hpp">Header &lt;boost/log/core/core.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="core_components.html#header.boost.log.core.record_hpp">Header &lt;boost/log/core/record.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="core_components.html#header.boost.log.core.record_view_hpp">Header &lt;boost/log/core/record_view.hpp&gt;</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.core.core_hpp"></a>Header &lt;<a href="../../../../boost/log/core/core.hpp" target="_top">boost/log/core/core.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>19.04.2007</p>
+<p>
+This header contains logging core class definition. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">class</span> <a class="link" href="boost/log/core.html" title="Class core">core</a><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">shared_ptr</span><span class="special">&lt;</span> <a class="link" href="boost/log/core.html" title="Class core">core</a> <span class="special">&gt;</span> <a name="boost.log.core_ptr"></a><span class="identifier">core_ptr</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.core.record_hpp"></a>Header &lt;<a href="../../../../boost/log/core/record.hpp" target="_top">boost/log/core/record.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>09.03.2009</p>
+<p>
+This header contains a logging record class definition. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">class</span> <a class="link" href="boost/log/record.html" title="Class record">record</a><span class="special">;</span>
+    <span class="keyword">void</span> <a class="link" href="boost/log/swap_idp25235608.html" title="Function swap"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="boost/log/record.html" title="Class record">record</a> <span class="special">&amp;</span><span class="special">,</span> <a class="link" href="boost/log/record.html" title="Class record">record</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.core.record_view_hpp"></a>Header &lt;<a href="../../../../boost/log/core/record_view.hpp" target="_top">boost/log/core/record_view.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>09.03.2009</p>
+<p>
+This header contains a logging record view class definition. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">class</span> <a class="link" href="boost/log/record_view.html" title="Class record_view">record_view</a><span class="special">;</span>
+    <span class="keyword">void</span> <a class="link" href="boost/log/swap_idp25260408.html" title="Function swap"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="boost/log/record_view.html" title="Class record_view">record_view</a> <span class="special">&amp;</span><span class="special">,</span> <a class="link" href="boost/log/record_view.html" title="Class record_view">record_view</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_LOG_TRIVIAL.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="log/reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost/log/core.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

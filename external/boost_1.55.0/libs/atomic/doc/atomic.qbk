@@ -1,0 +1,739 @@
+[/
+ / Copyright (c) 2009 Helge Bahmann
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[library Boost.Atomic
+    [quickbook 1.4]
+    [authors [Bahmann, Helge]]
+    [copyright 2011 Helge Bahmann]
+    [copyright 2012 Tim Blechmann]
+    [id atomic]
+    [dirname atomic]
+    [purpose Atomic operations]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[section:introduction Introduction]
+
+[section:introduction_presenting Presenting Boost.Atomic]
+
+[*Boost.Atomic] is a library that provides [^atomic]
+data types and operations on these data types, as well as memory
+ordering constraints required for coordinating multiple threads through
+atomic variables. It implements the interface as defined by the C++11
+standard, but makes this feature available for platforms lacking
+system/compiler support for this particular C++11 feature.
+
+Users of this library should already be familiar with concurrency
+in general, as well as elementary concepts such as "mutual exclusion".
+
+The implementation makes use of processor-specific instructions where
+possible (via inline assembler, platform libraries or compiler
+intrinsics), and falls back to "emulating" atomic operations through
+locking.
+
+[endsect]
+
+[section:introduction_purpose Purpose]
+
+Operations on "ordinary" variables are not guaranteed to be atomic.
+This means that with [^int n=0] initially, two threads concurrently
+executing
+
+[c++]
+
+  void function()
+  {
+    n ++;
+  }
+
+might result in [^n==1] instead of 2: Each thread will read the
+old value into a processor register, increment it and write the result
+back. Both threads may therefore write [^1], unaware that the other thread
+is doing likewise.
+
+Declaring [^atomic<int> n=0] instead, the same operation on
+this variable will always result in [^n==2] as each operation on this
+variable is ['atomic]: This means that each operation behaves as if it
+were strictly sequentialized with respect to the other.
+
+Atomic variables are useful for two purposes:
+
+* as a means for coordinating multiple threads via custom
+  coordination protocols
+* as faster alternatives to "locked" access to simple variables
+
+Take a look at the [link atomic.usage_examples examples] section
+for common patterns.
+
+[endsect]
+
+[endsect]
+
+[section:thread_coordination Thread coordination using Boost.Atomic]
+
+The most common use of [*Boost.Atomic] is to realize custom
+thread synchronization protocols: The goal is to coordinate
+accesses of threads to shared variables in order to avoid
+"conflicts". The
+programmer must be aware of the fact that
+compilers, CPUs and the cache
+hierarchies may generally reorder memory references at will.
+As a consequence a program such as:
+
+[c++]
+  int x = 0, int y = 0;
+
+  thread1:
+    x = 1;
+    y = 1;
+
+  thread2
+    if (y == 1) {
+      assert(x == 1);
+    }
+
+might indeed fail as there is no guarantee that the read of `x`
+by thread2 "sees" the write by thread1.
+
+[*Boost.Atomic] uses a synchronisation concept based on the
+['happens-before] relation to describe the guarantees under
+which situations such as the above one cannot occur.
+
+The remainder of this section will discuss ['happens-before] in
+a "hands-on" way instead of giving a fully formalized definition.
+The reader is encouraged to additionally have a
+look at the discussion of the correctness of a few of the
+[link atomic.usage_examples examples] afterwards.
+
+[section:mutex Enforcing ['happens-before] through mutual exclusion]
+
+As an introductory example to understand how arguing using
+['happens-before] works, consider two threads synchronizing
+using a common mutex:
+
+[c++]
+
+  mutex m;
+
+  thread1:
+    m.lock();
+    ... /* A */
+    m.unlock();
+
+  thread2:
+    m.lock();
+    ... /* B */
+    m.unlock();
+
+The "lockset-based intuition" would be to argue that A and B
+cannot be executed concurrently as the code paths require a
+common lock to be held.
+
+One can however also arrive at the same conclusion using
+['happens-before]: Either thread1 or thread2 will succeed first
+at [^m.lock()]. If this is be thread1, then as a consequence,
+thread2 cannot succeed at [^m.lock()] before thread1 has executed
+[^m.unlock()], consequently A ['happens-before] B in this case.
+By symmetry, if thread2 succeeds at [^m.unlock()] first, we can
+conclude B ['happens-before] A.
+
+Since this already exhausts all options, we can conclude that
+either A ['happens-before] B or B ['happens-before] A must
+always hold. Obviously cannot state ['which] of the two relationships
+holds, but either one is sufficient to conclude that A and B
+cannot conflict.
+
+Compare the [link boost_atomic.usage_examples.example_spinlock spinlock]
+implementation to see how the mutual exclusion concept can be
+mapped to [*Boost.Atomic].
+
+[endsect]
+
+[section:release_acquire ['happens-before] through [^release] and [^acquire]]
+
+The most basic pattern for coordinating threads via [*Boost.Atomic]
+uses [^release] and [^acquire] on an atomic variable for coordination: If ...
+
+* ... thread1 performs an operation A,
+* ... thread1 subsequently writes (or atomically
+  modifies) an atomic variable with [^release] semantic,
+* ... thread2 reads (or atomically reads-and-modifies)
+  the value this value from the same atomic variable with
+  [^acquire] semantic and
+* ... thread2 subsequently performs an operation B,
+
+... then A ['happens-before] B.
+
+Consider the following example
+
+[c++]
+
+  atomic<int> a(0);
+
+  thread1:
+    ... /* A */
+    a.fetch_add(1, memory_order_release);
+
+  thread2:
+    int tmp = a.load(memory_order_acquire);
+    if (tmp == 1) {
+      ... /* B */
+    } else {
+      ... /* C */
+    }
+
+In this example, two avenues for execution are possible:
+
+* The [^store] operation by thread1 precedes the [^load] by thread2:
+  In this case thread2 will execute B and "A ['happens-before] B"
+  holds as all of the criteria above are satisfied.
+* The [^load] operation by thread2 precedes the [^store] by thread1:
+  In this case, thread2 will execute C, but "A ['happens-before] C"
+  does ['not] hold: thread2 does not read the value written by
+  thread1 through [^a].
+
+Therefore, A and B cannot conflict, but A and C ['can] conflict.
+
+[endsect]
+
+[section:fences Fences]
+
+Ordering constraints are generally specified together with an access to
+an atomic variable. It is however also possible to issue "fence"
+operations in isolation, in this case the fence operates in
+conjunction with preceding (for `acquire`, `consume` or `seq_cst`
+operations) or succeeding (for `release` or `seq_cst`) atomic
+operations.
+
+The example from the previous section could also be written in
+the following way:
+
+[c++]
+
+  atomic<int> a(0);
+
+  thread1:
+    ... /* A */
+    atomic_thread_fence(memory_order_release);
+    a.fetch_add(1, memory_order_relaxed);
+
+  thread2:
+    int tmp = a.load(memory_order_relaxed);
+    if (tmp == 1) {
+      atomic_thread_fence(memory_order_acquire);
+      ... /* B */
+    } else {
+      ... /* C */
+    }
+
+This provides the same ordering guarantees as previously, but
+elides a (possibly expensive) memory ordering operation in
+the case C is executed.
+
+[endsect]
+
+[section:release_consume ['happens-before] through [^release] and [^consume]]
+
+The second pattern for coordinating threads via [*Boost.Atomic]
+uses [^release] and [^consume] on an atomic variable for coordination: If ...
+
+* ... thread1 performs an operation A,
+* ... thread1 subsequently writes (or atomically modifies) an
+  atomic variable with [^release] semantic,
+* ... thread2 reads (or atomically reads-and-modifies)
+  the value this value from the same atomic variable with [^consume] semantic and
+* ... thread2 subsequently performs an operation B that is ['computationally
+  dependent on the value of the atomic variable],
+
+... then A ['happens-before] B.
+
+Consider the following example
+
+[c++]
+
+  atomic<int> a(0);
+  complex_data_structure data[2];
+
+  thread1:
+    data[1] = ...; /* A */
+    a.store(1, memory_order_release);
+
+  thread2:
+    int index = a.load(memory_order_consume);
+    complex_data_structure tmp = data[index]; /* B */
+
+In this example, two avenues for execution are possible:
+
+* The [^store] operation by thread1 precedes the [^load] by thread2:
+  In this case thread2 will read [^data\[1\]] and "A ['happens-before] B"
+  holds as all of the criteria above are satisfied.
+* The [^load] operation by thread2 precedes the [^store] by thread1:
+  In this case thread2 will read [^data\[0\]] and "A ['happens-before] B"
+  does ['not] hold: thread2 does not read the value written by
+  thread1 through [^a].
+
+Here, the ['happens-before] relationship helps ensure that any
+accesses (presumable writes) to [^data\[1\]] by thread1 happen before
+before the accesses (presumably reads) to [^data\[1\]] by thread2:
+Lacking this relationship, thread2 might see stale/inconsistent
+data.
+
+Note that in this example, the fact that operation B is computationally
+dependent on the atomic variable, therefore the following program would
+be erroneous:
+
+[c++]
+
+  atomic<int> a(0);
+  complex_data_structure data[2];
+
+  thread1:
+    data[1] = ...; /* A */
+    a.store(1, memory_order_release);
+
+  thread2:
+    int index = a.load(memory_order_consume);
+    complex_data_structure tmp;
+    if (index == 0)
+      tmp = data[0];
+    else
+      tmp = data[1];
+
+[^consume] is most commonly (and most safely! see
+[link atomic.limitations limitations]) used with
+pointers, compare for example the
+[link boost_atomic.usage_examples.singleton singleton with double-checked locking].
+
+[endsect]
+
+[section:seq_cst Sequential consistency]
+
+The third pattern for coordinating threads via [*Boost.Atomic]
+uses [^seq_cst] for coordination: If ...
+
+* ... thread1 performs an operation A,
+* ... thread1 subsequently performs any operation with [^seq_cst],
+* ... thread1 subsequently performs an operation B,
+* ... thread2 performs an operation C,
+* ... thread2 subsequently performs any operation with [^seq_cst],
+* ... thread2 subsequently performs an operation D,
+
+then either "A ['happens-before] D" or "C ['happens-before] B" holds.
+
+In this case it does not matter whether thread1 and thread2 operate
+on the same or different atomic variables, or use a "stand-alone"
+[^atomic_thread_fence] operation.
+
+[endsect]
+
+[endsect]
+
+[section:interface Programming interfaces]
+
+[section:interface_memory_order Memory order]
+
+The enumeration [^boost::memory_order] defines the following
+values to represent memory ordering constraints:
+
+[table
+    [[Constant] [Description]]
+    [[`memory_order_relaxed`] [No ordering constraint.
+      Informally speaking, following operations may be reordered before,
+      preceding operations may be reordered after the atomic
+      operation. This constraint is suitable only when
+      either a) further operations do not depend on the outcome
+      of the atomic operation or b) ordering is enforced through
+      stand-alone `atomic_thread_fence` operations
+    ]]
+    [[`memory_order_release`] [
+      Perform `release` operation. Informally speaking,
+      prevents all preceding memory operations to be reordered
+      past this point.
+    ]]
+    [[`memory_order_acquire`] [
+      Perform `acquire` operation. Informally speaking,
+      prevents succeeding memory operations to be reordered
+      before this point.
+    ]]
+    [[`memory_order_consume`] [
+      Perform `consume` operation. More restrictive (and
+      usually more efficient) than `memory_order_acquire`
+      as it only affects succeeding operations that are
+      computationally-dependent on the value retrieved from
+      an atomic variable.
+    ]]
+    [[`memory_order_acq_rel`] [Perform both `release` and `acquire` operation]]
+    [[`memory_order_seq_cst`] [
+      Enforce sequential consistency. Implies `memory_order_acq_rel`, but
+      additional enforces total order for all operations such qualified.
+    ]]
+]
+
+See section [link atomic.thread_coordination ['happens-before]] for explanation
+of the various ordering constraints.
+
+[endsect]
+
+[section:interface_atomic_object Atomic objects]
+
+[^boost::atomic<['T]>] provides methods for atomically accessing
+variables of a suitable type [^['T]]. The type is suitable if
+it satisfies one of the following constraints:
+
+* it is an integer, boolean, enum or pointer type
+* it is any other data-type ([^class] or [^struct]) that has
+  a non-throwing default constructor, that is copyable via
+  [^memcpy] and comparable via [^memcmp].
+
+Note that all classes having a trivial default constructor,
+no destructor and no virtual methods satisfy the second condition
+according to C++98. On a given platform, other data-types ['may]
+also satisfy this constraint, however you should exercise
+caution as the behaviour becomes implementation-defined. Also be warned
+that structures with "padding" between data members may compare
+non-equal via [^memcmp] even though all members are equal.
+
+[section:interface_atomic_generic [^boost::atomic<['T]>] template class]
+
+All atomic objects supports the following operations:
+
+[table
+    [[Syntax] [Description]]
+    [
+      [`atomic()`]
+      [Initialize to an unspecified value]
+    ]
+    [
+      [`atomic(T initial_value)`]
+      [Initialize to [^initial_value]]
+    ]
+    [
+      [`bool is_lock_free()`]
+      [Checks if the atomic object is lock-free]
+    ]
+    [
+      [`T load(memory_order order)`]
+      [Return current value]
+    ]
+    [
+      [`void store(T value, memory_order order)`]
+      [Write new value to atomic variable]
+    ]
+    [
+      [`T exchange(T new_value, memory_order order)`]
+      [Exchange current value with `new_value`, returning current value]
+    ]
+    [
+      [`bool compare_exchange_weak(T & expected, T desired, memory_order order)`]
+      [Compare current value with `expected`, change it to `desired` if matches.
+      Returns `true` if an exchange has been performed, and always writes the
+      previous value back in `expected`. May fail spuriously, so must generally be
+      retried in a loop.]
+    ]
+    [
+      [`bool compare_exchange_weak(T & expected, T desired, memory_order success_order, memory_order failure_order)`]
+      [Compare current value with `expected`, change it to `desired` if matches.
+      Returns `true` if an exchange has been performed, and always writes the
+      previous value back in `expected`. May fail spuriously, so must generally be
+      retried in a loop.]
+    ]
+    [
+      [`bool compare_exchange_strong(T & expected, T desired, memory_order order)`]
+      [Compare current value with `expected`, change it to `desired` if matches.
+      Returns `true` if an exchange has been performed, and always writes the
+      previous value back in `expected`.]
+    ]
+    [
+      [`bool compare_exchange_strong(T & expected, T desired, memory_order success_order, memory_order failure_order))`]
+      [Compare current value with `expected`, change it to `desired` if matches.
+      Returns `true` if an exchange has been performed, and always writes the
+      previous value back in `expected`.]
+    ]
+]
+
+`order` always has `memory_order_seq_cst` as default parameter.
+
+The `compare_exchange_weak`/`compare_exchange_strong` variants
+taking four parameters differ from the three parameter variants
+in that they allow a different memory ordering constraint to
+be specified in case the operation fails.
+
+In addition to these explicit operations, each
+[^atomic<['T]>] object also supports
+implicit [^store] and [^load] through the use of "assignment"
+and "conversion to [^T]" operators. Avoid using these operators,
+as they do not allow explicit specification of a memory ordering
+constraint.
+
+[endsect]
+
+[section:interface_atomic_integral [^boost::atomic<['integral]>] template class]
+
+In addition to the operations listed in the previous section,
+[^boost::atomic<['I]>] for integral
+types [^['I]] supports the following operations:
+
+[table
+    [[Syntax] [Description]]
+    [
+      [`T fetch_add(T v, memory_order order)`]
+      [Add `v` to variable, returning previous value]
+    ]
+    [
+      [`T fetch_sub(T v, memory_order order)`]
+      [Subtract `v` from variable, returning previous value]
+    ]
+    [
+      [`T fetch_and(T v, memory_order order)`]
+      [Apply bit-wise "and" with `v` to variable, returning previous value]
+    ]
+    [
+      [`T fetch_or(T v, memory_order order)`]
+      [Apply bit-wise "or" with `v` to variable, returning previous value]
+    ]
+    [
+      [`T fetch_xor(T v, memory_order order)`]
+      [Apply bit-wise "xor" with `v` to variable, returning previous value]
+    ]
+]
+
+`order` always has `memory_order_seq_cst` as default parameter.
+
+In addition to these explicit operations, each
+[^boost::atomic<['I]>] object also
+supports implicit pre-/post- increment/decrement, as well
+as the operators `+=`, `-=`, `&=`, `|=` and `^=`.
+Avoid using these operators,
+as they do not allow explicit specification of a memory ordering
+constraint.
+
+[endsect]
+
+[section:interface_atomic_pointer [^boost::atomic<['pointer]>] template class]
+
+In addition to the operations applicable to all atomic object,
+[^boost::atomic<['P]>] for pointer
+types [^['P]] (other than [^void] pointers) support the following operations:
+
+[table
+    [[Syntax] [Description]]
+    [
+      [`T fetch_add(ptrdiff_t v, memory_order order)`]
+      [Add `v` to variable, returning previous value]
+    ]
+    [
+      [`T fetch_sub(ptrdiff_t v, memory_order order)`]
+      [Subtract `v` from variable, returning previous value]
+    ]
+]
+
+`order` always has `memory_order_seq_cst` as default parameter.
+
+In addition to these explicit operations, each
+[^boost::atomic<['P]>] object also
+supports implicit pre-/post- increment/decrement, as well
+as the operators `+=`, `-=`. Avoid using these operators,
+as they do not allow explicit specification of a memory ordering
+constraint.
+
+[endsect]
+
+[endsect]
+
+[section:interface_fences Fences]
+
+[table
+    [[Syntax] [Description]]
+    [
+      [`void atomic_thread_fence(memory_order order)`]
+      [Issue fence for coordination with other threads.]
+    ]
+    [
+      [`void atomic_signal_fence(memory_order order)`]
+      [Issue fence for coordination with signal handler (only in same thread).]
+    ]
+]
+
+[endsect]
+
+[section:feature_macros Feature testing macros]
+
+[*Boost.Atomic] defines a number of macros to allow compile-time
+detection whether an atomic data type is implemented using
+"true" atomic operations, or whether an internal "lock" is
+used to provide atomicity. The following macros will be
+defined to `0` if operations on the data type always
+require a lock, to `1` if operations on the data type may
+sometimes require a lock, and to `2` if they are always lock-free:
+
+[table
+    [[Macro] [Description]]
+    [
+      [`BOOST_ATOMIC_FLAG_LOCK_FREE`]
+      [Indicate whether `atomic_flag` is lock-free]
+    ]
+    [
+      [`BOOST_ATOMIC_BOOL_LOCK_FREE`]
+      [Indicate whether `atomic<bool>` is lock-free]
+    ]
+    [
+      [`BOOST_ATOMIC_CHAR_LOCK_FREE`]
+      [Indicate whether `atomic<char>` (including signed/unsigned variants) is lock-free]
+    ]
+    [
+      [`BOOST_ATOMIC_CHAR16_T_LOCK_FREE`]
+      [Indicate whether `atomic<char16_t>` (including signed/unsigned variants) is lock-free]
+    ]
+    [
+      [`BOOST_ATOMIC_CHAR32_T_LOCK_FREE`]
+      [Indicate whether `atomic<char32_t>` (including signed/unsigned variants) is lock-free]
+    ]
+    [
+      [`BOOST_ATOMIC_WCHAR_T_LOCK_FREE`]
+      [Indicate whether `atomic<wchar_t>` (including signed/unsigned variants) is lock-free]
+    ]
+    [
+      [`BOOST_ATOMIC_SHORT_LOCK_FREE`]
+      [Indicate whether `atomic<short>` (including signed/unsigned variants) is lock-free]
+    ]
+    [
+      [`BOOST_ATOMIC_INT_LOCK_FREE`]
+      [Indicate whether `atomic<int>` (including signed/unsigned variants) is lock-free]
+    ]
+    [
+      [`BOOST_ATOMIC_LONG_LOCK_FREE`]
+      [Indicate whether `atomic<long>` (including signed/unsigned variants) is lock-free]
+    ]
+    [
+      [`BOOST_ATOMIC_LLONG_LOCK_FREE`]
+      [Indicate whether `atomic<long long>` (including signed/unsigned variants) is lock-free]
+    ]
+    [
+      [`BOOST_ATOMIC_INT128_LOCK_FREE`]
+      [Indicate whether `atomic<int128_type>` (including signed/unsigned variants) is lock-free. This macro is a non-standard extension.]
+    ]
+    [
+      [`BOOST_ATOMIC_ADDRESS_LOCK_FREE` or `BOOST_ATOMIC_POINTER_LOCK_FREE`]
+      [Indicate whether `atomic<T *>` is lock-free]
+    ]
+    [
+      [`BOOST_ATOMIC_THREAD_FENCE`]
+      [Indicate whether `atomic_thread_fence` function is lock-free]
+    ]
+    [
+      [`BOOST_ATOMIC_SIGNAL_FENCE`]
+      [Indicate whether `atomic_signal_fence` function is lock-free]
+    ]
+]
+
+[endsect]
+
+[endsect]
+
+[section:usage_examples Usage examples]
+
+[include examples.qbk]
+
+[endsect]
+
+[/
+[section:platform_support Implementing support for additional platforms]
+
+[include platform.qbk]
+
+[endsect]
+]
+
+[/ [xinclude autodoc.xml] ]
+
+[section:limitations Limitations]
+
+While [*Boost.Atomic] strives to implement the atomic operations
+from C++11 as faithfully as possible, there are a few
+limitations that cannot be lifted without compiler support:
+
+* [*Using non-POD-classes as template parameter to `atomic<T>` results
+  in undefined behavior]: This means that any class containing a
+  constructor, destructor, virtual methods or access control
+  specifications is not a valid argument in C++98. C++11 relaxes
+  this slightly by allowing "trivial" classes containing only
+  empty constructors. [*Advise]: Use only POD types.
+* [*C++98 compilers may transform computation- to control-dependency]:
+  Crucially, `memory_order_consume` only affects computationally-dependent
+  operations, but in general there is nothing preventing a compiler
+  from transforming a computation dependency into a control dependency.
+  A C++11 compiler would be forbidden from such a transformation.
+  [*Advise]: Use `memory_order_consume` only in conjunction with
+  pointer values, as the compiler cannot speculate and transform
+  these into control dependencies.
+* [*Fence operations enforce "too strong" compiler ordering]:
+  Semantically, `memory_order_acquire`/`memory_order_consume`
+  and `memory_order_release` need to restrain reordering of
+  memory operations only in one direction. Since there is no
+  way to express this constraint to the compiler, these act
+  as "full compiler barriers" in this implementation. In corner
+  cases this may result in a less efficient code than a C++11 compiler
+  could generate.
+* [*No interprocess fallback]: using `atomic<T>` in shared memory only works
+  correctly, if `atomic<T>::is_lock_free() == true`
+
+[endsect]
+
+[section:porting Porting]
+
+[section:unit_tests Unit tests]
+
+[*Boost.Atomic] provides a unit test suite to verify that the
+implementation behaves as expected:
+
+* [*fallback_api.cpp] verifies that the fallback-to-locking aspect
+  of [*Boost.Atomic] compiles and has correct value semantics.
+* [*native_api.cpp] verifies that all atomic operations have correct
+  value semantics (e.g. "fetch_add" really adds the desired value,
+  returning the previous). It is a rough "smoke-test" to help weed
+  out the most obvious mistakes (for example width overflow,
+  signed/unsigned extension, ...).
+* [*lockfree.cpp] verifies that the [*BOOST_ATOMIC_*_LOCKFREE] macros
+  are set properly according to the expectations for a given
+  platform, and that they match up with the [*is_lock_free] member
+  functions of the [*atomic] object instances.
+* [*atomicity.cpp] lets two threads race against each other modifying
+  a shared variable, verifying that the operations behave atomic
+  as appropriate. By nature, this test is necessarily stochastic, and
+  the test self-calibrates to yield 99% confidence that a
+  positive result indicates absence of an error. This test is
+  very useful on uni-processor systems with preemption already.
+* [*ordering.cpp] lets two threads race against each other accessing
+  multiple shared variables, verifying that the operations
+  exhibit the expected ordering behavior. By nature, this test is
+  necessarily stochastic, and the test attempts to self-calibrate to
+  yield 99% confidence that a positive result indicates absence
+  of an error. This only works on true multi-processor (or multi-core)
+  systems. It does not yield any result on uni-processor systems
+  or emulators (due to there being no observable reordering even
+  the order=relaxed case) and will report that fact.
+
+[endsect]
+
+[section:tested_compilers Tested compilers]
+
+[*Boost.Atomic] has been tested on and is known to work on
+the following compilers/platforms:
+
+* gcc 4.x: i386, x86_64, ppc32, ppc64, armv5, armv6, alpha
+* Visual Studio Express 2008/Windows XP, i386
+
+If you have an unsupported platform, contact me and I will
+work to add support for it.
+
+[endsect]
+
+[endsect]

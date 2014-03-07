@@ -1,0 +1,61 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:accumulate accumulate]
+
+[heading Prototype]
+
+``
+template<
+    class SinglePassRange,
+    class Value
+    >
+Value accumulate(const SinglePassRange& source_rng,
+                 Value init);
+
+template<
+    class SinglePassRange,
+    class Value,
+    class BinaryOperation
+    >
+Value accumulate(const SinglePassRange& source_rng,
+                 Value init,
+                 BinaryOperation op);
+``
+
+[heading Description]
+
+`accumulate` is a generalisation of summation. It computes a binary operation (`operator+`
+in the non-predicate version) of `init` and all of the elements in `rng`.
+
+The return value is the resultant value of the above algorithm.
+
+[heading Definition]
+
+Defined in the header file `boost/range/numeric.hpp`
+
+[heading Requirements]
+
+[heading For the first version]
+
+# `SinglePassRange` is a model of the __single_pass_range__ Concept.
+# `Value` is a model of the `AssignableConcept`.
+# An `operator+` is defined for a left-hand operand of type `Value` and a right-hand operand of the `SinglePassRange` value type.
+# The return type of the above operator is convertible to `Value`.
+
+[heading For the second version]
+
+# `SinglePassRange` is a model of the __single_pass_range__ Concept.
+# `Value` is a model of the `AssignableConcept`.
+# `BinaryOperation` is a model of the `BinaryFunctionConcept`.
+# `Value` is convertible to `BinaryOperation`'s first argument type.
+# `SinglePassRange`'s value type is convertible to `BinaryOperation`'s second argument type.
+# The return type of `BinaryOperation` is convertible to `Value`.
+
+[heading Complexity]
+
+Linear. Exactly `distance(source_rng)`.
+
+[endsect]

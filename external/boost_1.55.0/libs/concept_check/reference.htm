@@ -1,0 +1,418 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!-- Copyright (c) Jeremy Siek and Andrew Lumsdaine 2000 -->
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Linux/x86 (vers 1 September 2005), see www.w3.org" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <link rel="stylesheet" href="../../rst.css" type="text/css" />
+
+  <title>Boost Concept Checking Reference</title>
+</head>
+
+<body bgcolor="#FFFFFF" link="#0000EE" text="#000000" vlink="#551A8B" alink=
+"#FF0000">
+  <img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86" /><br clear="none" />
+
+  <h2><a name="reference" id="reference">Reference</a></h2>
+
+  <ol>
+    <li><a href="#macros">Macros</a></li>
+
+    <li><a href="#basic-concepts">Basic Concept Checking Classes</a></li>
+
+    <li><a href="#iterator-concepts">Iterator Concept Checking
+    Classes</a></li>
+
+    <li><a href="#function-object-concepts">Function Object Concept Checking
+    Classes</a></li>
+
+    <li><a href="#container-concepts">Container Concept Checking
+    Classes</a></li>
+
+    <li><a href="#basic-archetype">Basic Archetype Classes</a></li>
+
+    <li><a href="#iterator-archetype">Iterator Archetype Classes</a></li>
+
+    <li><a href="#function-object-archetype">Function Object Archetype
+    Classes</a></li>
+
+    <li><a href="#container-archetype">Container Archetype Classes</a></li>
+
+    <li><a href="#deprecated-functions">Deprecated Functions</a></li>
+
+    <li><a href="#deprecated-macros">Deprecated Macros</a></li>
+
+    <li><a href="#deprecated-concept-checking-classes">Deprecated Concept
+    Checking Classes</a></li>
+  </ol>
+
+  <h3><a name="macros" id="macros">Macros</a></h3>
+  <pre>
+#include "boost/concept/assert.hpp"
+
+BOOST_CONCEPT_ASSERT((<em>concept checking class template specialization</em>));
+</pre>
+
+  <p><strong>Effects:</strong> causes a compilation failure if the concept is
+  not satisfied.<br />
+  <strong>Note:</strong> this macro can be used at global, class, or function
+  scope.</p>
+
+  <pre>
+#include "boost/concept/requires.hpp"
+
+<font color="gray">template &lt;…<em>template parameters</em>…&gt;</font>
+BOOST_CONCEPT_REQUIRES(
+  ((<em>concept checking class template specialization<sub>1</sub></em>)) 
+  ((<em>concept checking class template specialization<sub>2</sub></em>))… 
+  ((<em>concept checking class template specialization<sub>n</sub></em>))<strong>,</strong>
+  (<em>function return type</em>)
+) <font color="gray"><em>function_template_name</em>(…<em>function parameters</em>…)</font>
+</pre>
+
+  <p><strong>Effects:</strong> causes a compilation failure if the
+  given concepts are not satisfied.<br />
+  <strong>Note:</strong> this macro is intended to be used in place of
+  a function template's return type.</p>
+
+  <h3><a name="basic-concepts" id="basic-concepts">Basic Concept Checking
+  Classes</a></h3>
+  <pre>
+#include "boost/concept_check.hpp"
+
+template &lt;class T&gt;
+struct Integer; // Is T a built-in integer type?
+
+template &lt;class T&gt;
+struct SignedInteger; // Is T a built-in signed integer type?
+
+template &lt;class T&gt;
+struct UnsignedInteger; // Is T a built-in unsigned integer type?
+
+template &lt;class X, class Y&gt;
+struct Convertible; // Is X convertible to Y?
+
+template &lt;class T&gt;
+struct <a href=
+"../utility/Assignable.html">Assignable</a>; // Standard ref 23.1
+
+template &lt;class T&gt;
+struct SGI<a href=
+"http://www.sgi.com/tech/stl/Assignable.html">Assignable</a>;
+
+template &lt;class T&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/DefaultConstructible.html">DefaultConstructible</a>;
+
+template &lt;class T&gt; 
+struct <a href=
+"../utility/CopyConstructible.html">CopyConstructible</a>; // Standard ref 20.1.3
+
+template &lt;class T&gt; 
+struct <a href=
+"http://www.sgi.com/tech/stl/EqualityComparable.html">EqualityComparable</a>; // Standard ref 20.1.1
+
+template &lt;class T&gt;
+struct <a href=
+"../utility/LessThanComparable.html">LessThanComparable</a>; // Standard ref 20.1.2
+
+template &lt;class T&gt;
+struct Comparable; // The SGI STL <a href=
+"http://www.sgi.com/tech/stl/LessThanComparable.html">LessThanComparable</a> concept
+</pre>
+
+  <h3><a name="iterator-concepts" id="iterator-concepts">Iterator Concept
+  Checking Classes</a></h3>
+  <pre>
+template &lt;class Iter&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a>; // Standard ref 24.1.1 Table 72
+
+template &lt;class Iter, class T&gt; 
+struct <a href=
+"http://www.sgi.com/tech/stl/OutputIterator.html">OutputIterator</a>; // Standard ref 24.1.2 Table 73
+
+template &lt;class Iter&gt; 
+struct <a href=
+"http://www.sgi.com/tech/stl/ForwardIterator.html">ForwardIterator</a>; // Standard ref 24.1.3 Table 74
+
+template &lt;class Iter&gt; 
+struct Mutable_ForwardIterator;
+
+template &lt;class Iter&gt; 
+struct <a href=
+"http://www.sgi.com/tech/stl/BidirectionalIterator.html">BidirectionalIterator</a>; // Standard ref 24.1.4 Table 75
+
+template &lt;class Iter&gt; 
+struct Mutable_BidirectionalIterator;
+
+template &lt;class Iter&gt; 
+struct <a href=
+"http://www.sgi.com/tech/stl/RandomAccessIterator.html">RandomAccessIterator</a>; // Standard ref 24.1.5 Table 76
+
+template &lt;class Iter&gt; 
+struct Mutable_RandomAccessIterator;
+</pre>
+
+  <h3><a name="function-object-concepts" id=
+  "function-object-concepts">Function Object Concept Checking
+  Classes</a></h3>
+  <pre>
+#include "boost/concept_check.hpp"
+
+template &lt;class Func, class Return&gt;
+struct <a href="http://www.sgi.com/tech/stl/Generator.html">Generator</a>;
+
+template &lt;class Func, class Return, class Arg&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/UnaryFunction.html">UnaryFunction</a>;
+
+template &lt;class Func, class Return, class First, class Second&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/BinaryFunction.html">BinaryFunction</a>;
+
+template &lt;class Func, class Arg&gt;
+struct Unary<a href=
+"http://www.sgi.com/tech/stl/Predicate.html">Predicate</a>;
+
+template &lt;class Func, class First, class Second&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/BinaryPredicate.html">BinaryPredicate</a>;
+
+template &lt;class Func, class First, class Second&gt;
+struct Const_BinaryPredicate;
+
+template &lt;class Func, class Return&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/AdaptableGenerator.html">AdaptableGenerator</a>;
+
+template &lt;class Func, class Return, class Arg&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/AdaptableUnaryFunction.html">AdaptableUnaryFunction</a>;
+
+template &lt;class Func, class First, class Second&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/AdaptableBinaryFunction.html">AdaptableBinaryFunction</a>;
+
+template &lt;class Func, class Arg&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/AdaptablePredicate.html">AdaptablePredicate</a>;
+
+template &lt;class Func, class First, class Second&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/AdaptableBinaryPredicate.html">AdaptableBinaryPredicate</a>;
+</pre>
+
+  <h3><a name="container-concepts" id="container-concepts">Container Concept
+  Checking Classes</a></h3>
+  <pre>
+#include "boost/concept_check.hpp"
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/Container.html">Container</a>; // Standard ref 23.1 Table 65
+
+template &lt;class C&gt;
+struct Mutable_Container;
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/ForwardContainer.html">ForwardContainer</a>;
+
+template &lt;class C&gt;
+struct Mutable_ForwardContainer;
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/ReversibleContainer.html">ReversibleContainer</a>; // Standard ref 23.1 Table 66
+
+template &lt;class C&gt;
+struct Mutable_ReversibleContainer;
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/RandomAccessContainer.html">RandomAccessContainer</a>;
+
+template &lt;class C&gt;
+struct Mutable_RandomAccessContainer;
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/Sequence.html">Sequence</a>; // Standard ref 23.1.1
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/FrontInsertionSequence.html">FrontInsertionSequence</a>;
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/BackInsertionSequence.html">BackInsertionSequence</a>;
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/AssociativeContainer.html">AssociativeContainer</a>; // Standard ref 23.1.2 Table 69
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/UniqueAssociativeContainer.html">UniqueAssociativeContainer</a>;
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/MultipleAssociativeContainer.html">MultipleAssociativeContainer</a>;
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/SimpleAssociativeContainer.html">SimpleAssociativeContainer</a>;
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/PairAssociativeContainer.html">PairAssociativeContainer</a>;
+
+template &lt;class C&gt;
+struct <a href=
+"http://www.sgi.com/tech/stl/SortedAssociativeContainer.html">SortedAssociativeContainer</a>;
+
+template &lt;class C&gt;
+struct <a href=
+"../utility/Collection.html">Collection</a>;
+</pre>
+
+  <h3><a name="basic-archetype" id="basic-archetype">Basic Archetype
+  Classes</a></h3>
+  <pre>
+#include "boost/concept_archetype.hpp"
+
+template &lt;class T = int&gt;
+class null_archetype; // A type that models no concepts.
+
+template &lt;class Base = null_archetype&gt;
+class default_constructible_archetype;
+
+template &lt;class Base = null_archetype&gt;
+class assignable_archetype;
+
+template &lt;class Base = null_archetype&gt;
+class copy_constructible_archetype;
+
+template &lt;class Base = null_archetype&gt;
+class equality_comparable_archetype;
+
+template &lt;class T, class Base = null_archetype&gt;
+class convertible_to_archetype;
+</pre>
+
+  <h3><a name="iterator-archetype" id="iterator-archetype">Iterator Archetype
+  Classes</a></h3>
+  <pre>
+#include "boost/concept_archetype.hpp"
+
+template &lt;class ValueType&gt;
+class trivial_iterator_archetype;
+
+template &lt;class ValueType&gt;
+class mutable_trivial_iterator_archetype;
+
+template &lt;class ValueType&gt;
+class input_iterator_archetype;
+
+template &lt;class ValueType&gt;
+class forward_iterator_archetype;
+
+template &lt;class ValueType&gt;
+class bidirectional_iterator_archetype;
+
+template &lt;class ValueType&gt;
+class random_access_iterator_archetype;
+</pre>
+
+  <h3><a name="function-object-archetype" id=
+  "function-object-archetype">Function Object Archetype Classes</a></h3>
+  <pre>
+#include "boost/concept_archetype.hpp"
+
+template &lt;class Arg, class Return&gt;
+class unary_function_archetype;
+
+template &lt;class Arg1, class Arg2, class Return&gt;
+class binary_function_archetype;
+
+template &lt;class Arg&gt;
+class predicate_archetype;
+
+template &lt;class Arg1, class Arg2&gt;
+class binary_predicate_archetype;
+</pre>
+
+  <h3><a name="container-archetype" id="container-archetype">Container
+  Archetype Classes</a></h3>
+  <pre>
+UNDER CONSTRUCTION
+</pre>
+
+  <h3><a name="deprecated-functions" id="deprecated-functions">Deprecated
+  Functions</a></h3>
+  <pre>
+#include "boost/concept_check.hpp"
+
+template &lt;class Concept&gt;
+void function_requires();
+</pre>
+
+  <p><code>function_requires()</code> has been deprecated in favor of <code>BOOST_CONCEPT_ASSERT</code>.
+   This means that <del><code>function_requires< Concept<Type> >();</code></del>
+   becomes <code>BOOST_CONCEPT_ASSERT((Concept<Type>));</code>
+   (don't forget to <code>#include &quot;boost/concept/assert.hpp&quot;</code>).
+
+
+  <h3><a name="deprecated-macros" id="deprecated-macros">Deprecated
+  Macros</a></h3>
+  <pre>
+#include "boost/concept_check.hpp"
+
+// Apply concept checks in class definitions.
+BOOST_CLASS_REQUIRE(<i>type</i>, <i>namespace-of-concept</i>, <i>concept</i>);
+BOOST_CLASS_REQUIRE2(<i>type1</i>, <i>type2</i>, <i>namespace-of-concept</i>, <i>concept</i>);
+BOOST_CLASS_REQUIRE3(<i>type1</i>, <i>type2</i>, <i>type3</i>, <i>namespace-of-concept</i>, <i>concept</i>);
+BOOST_CLASS_REQUIRE4(<i>type1</i>, <i>type2</i>, <i>type3</i>, <i>type4</i>, <i>namespace-of-concept</i>, <i>concept</i>);
+
+// Apply concept checks in class definitions.
+BOOST_CLASS_REQUIRES(<i>type</i>, <i>concept</i>);
+BOOST_CLASS_REQUIRES2(<i>type1</i>, <i>type2</i>, <i>concept</i>);
+BOOST_CLASS_REQUIRES3(<i>type1</i>, <i>type2</i>, <i>type3</i>, <i>concept</i>);
+BOOST_CLASS_REQUIRES4(<i>type1</i>, <i>type2</i>, <i>type3</i>, <i>type4</i>, <i>concept</i>);
+</pre>
+
+  <h3><a name="deprecated-concept-checking-classes" id=
+  "deprecated-concept-checking-classes">Deprecated Concept Checking
+  Classes</a></h3>
+
+  <p>For each of the concepts documented here, the library includes an
+  identical concept checking class whose name ends in
+  “<code>Concept</code>” For example, in
+  addition to <code>RandomAccessIterator</code>, the library defines a
+  <code>RandomAccessIteratorConcept</code> class template.</p>
+
+  <p><a href="./concept_check.htm">Back to Introduction</a><br />
+  <a href="./implementation.htm">Prev: Implementation</a><br /></p>
+  <hr />
+
+  <table>
+    <tr valign="top">
+      <td nowrap="nowrap">Copyright &copy; 2000</td>
+
+      <td><a href="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>(<a href=
+      "mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</a>) Andrew
+      Lumsdaine(<a href="mailto:lums@osl.iu.edu">lums@osl.iu.edu</a>), 2007
+      <a href="mailto:dave@boost-consulting.com">David Abrahams</a>.</td>
+    </tr>
+  </table>
+</body>
+</html>

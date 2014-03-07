@@ -1,0 +1,64 @@
+<html>
+<head>
+	<title>BOOST_PP_LOCAL_MACRO</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_LOCAL_MACRO</b> macro is a user-defined <i>named external argument</i> used by <b>BOOST_PP_LOCAL_ITERATE</b>.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			#define <b>BOOST_PP_LOCAL_MACRO</b>(<i>n</i>) ...
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>n</dt>
+			<dd>
+				The current iteration value received from the <i>local-iteration</i> mechanism.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro is automatically undefined for reuse by a call to <b>BOOST_PP_LOCAL_ITERATE</b>.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="local_iterate.html">BOOST_PP_LOCAL_ITERATE</a></li>
+		</ul>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/iteration/local.html">boost/preprocessor/iteration/local.hpp</a>&gt;
+
+template&lt;int&gt; struct sample;
+
+#define <a href="local_macro.html">BOOST_PP_LOCAL_MACRO</a>(n) \
+   template&lt;&gt; struct sample&lt;n&gt; { \
+      enum { value = n }; \
+   }; \
+   /**/
+
+#define <a href="local_limits.html">BOOST_PP_LOCAL_LIMITS</a> (1, 5)
+
+#include <a href="local_iterate.html">BOOST_PP_LOCAL_ITERATE</a>()
+/* expands to...
+template&lt;&gt; struct sample&lt;1&gt; { enum { value = 1 }; };
+template&lt;&gt; struct sample&lt;2&gt; { enum { value = 2 }; };
+template&lt;&gt; struct sample&lt;3&gt; { enum { value = 3 }; };
+template&lt;&gt; struct sample&lt;4&gt; { enum { value = 4 }; };
+template&lt;&gt; struct sample&lt;5&gt; { enum { value = 5 }; };
+*/
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

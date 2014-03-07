@@ -1,0 +1,446 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Differences with standard maps</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../the_tutorial.html" title="The tutorial">
+<link rel="prev" href="the_collection_of_relations_type.html" title="The collection of relations type">
+<link rel="next" href="useful_functions.html" title="Useful functions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="the_collection_of_relations_type.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../the_tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="useful_functions.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_the_tutorial_differences_with_standard_maps">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.the_tutorial.differences_with_standard_maps"></a><a class="link" href="differences_with_standard_maps.html" title="Differences with standard maps">Differences
+      with standard maps</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="differences_with_standard_maps.html#boost_bimap.the_tutorial.differences_with_standard_maps.insertion">Insertion</a></span></dt>
+<dt><span class="section"><a href="differences_with_standard_maps.html#boost_bimap.the_tutorial.differences_with_standard_maps.iterator__value_type">iterator::value_type</a></span></dt>
+<dt><span class="section"><a href="differences_with_standard_maps.html#boost_bimap.the_tutorial.differences_with_standard_maps.operator_____and_at__">operator[]
+        and at()</a></span></dt>
+<dt><span class="section"><a href="differences_with_standard_maps.html#boost_bimap.the_tutorial.differences_with_standard_maps.complexity_of_operations">Complexity
+        of operations</a></span></dt>
+</dl></div>
+<div class="section boost_bimap_the_tutorial_differences_with_standard_maps_insertion">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.the_tutorial.differences_with_standard_maps.insertion"></a><a class="link" href="differences_with_standard_maps.html#boost_bimap.the_tutorial.differences_with_standard_maps.insertion" title="Insertion">Insertion</a>
+</h4></div></div></div>
+<p>
+          Remember that a map can be interpreted as a relation between two collections.
+          In bimaps we have the freedom to change both collection types, imposing
+          constrains in each of them. Some insertions that we give for granted to
+          success in standard maps fails with bimaps. For example:
+        </p>
+<pre class="programlisting"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">bm</span><span class="special">;</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="string">"orange"</span><span class="special">);</span>
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="number">2</span><span class="special">,</span><span class="string">"orange"</span><span class="special">);</span> <span class="comment">// No effect! returns make_pair(iter,false)</span>
+</pre>
+<p>
+          The insertion will only succeed if it is allowed by all views of the <code class="computeroutput"><span class="identifier">bimap</span></code>. In the next snippet we define
+          the right collection as a multiset, when we try to insert the same two
+          elements the second insertion is allowed by the left map view because both
+          values are different and it is allowed by the right map view because it
+          is a non-unique collection type.
+        </p>
+<pre class="programlisting"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">multiset_of</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">bm</span><span class="special">;</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="string">"orange"</span><span class="special">);</span>
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="number">2</span><span class="special">,</span><span class="string">"orange"</span><span class="special">);</span> <span class="comment">// Insertion succeed!</span>
+</pre>
+<p>
+          If we use a custom collection of relation type, the insertion has to be
+          allowed by it too.
+        </p>
+</div>
+<div class="section boost_bimap_the_tutorial_differences_with_standard_maps_iterator__value_type">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.the_tutorial.differences_with_standard_maps.iterator__value_type"></a><a class="link" href="differences_with_standard_maps.html#boost_bimap.the_tutorial.differences_with_standard_maps.iterator__value_type" title="iterator::value_type">iterator::value_type</a>
+</h4></div></div></div>
+<p>
+          The relations stored in the Bimap will not be in most cases modifiable
+          directly by iterators because both sides are used as keys of <span class="emphasis"><em>key-based</em></span>
+          sets. When a <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">&gt;</span></code> left view iterator is dereferenced
+          the return type is <span class="emphasis"><em>signature-compatible</em></span> with a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="identifier">A</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">B</span> <span class="special">&gt;</span></code>.
+          However there are some collection types that are not <span class="emphasis"><em>key_based</em></span>,
+          for example list_of. If a Bimap uses one of these collection types there
+          is no problem with modifying the data of that side. The following code
+          is valid:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">bimap</span><span class="special">&lt;</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">list_of</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">bm_type</span><span class="special">;</span>
+<span class="identifier">bm_type</span> <span class="identifier">bm</span><span class="special">;</span>
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">relation</span><span class="special">(</span> <span class="number">1</span><span class="special">,</span> <span class="string">"one"</span> <span class="special">)</span> <span class="special">);</span>
+<span class="special">...</span>
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="number">1</span><span class="special">)-&gt;</span><span class="identifier">second</span> <span class="special">=</span> <span class="string">"1"</span><span class="special">;</span> <span class="comment">// Valid</span>
+</pre>
+<p>
+          In this case, when the iterator is dereferenced the return type is <span class="emphasis"><em>signature-compatible</em></span>
+          with a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span></code>.
+        </p>
+<p>
+          The following table shows the constness of the dereferenced data of each
+          collection type of:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Side collection type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Dereferenced data
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">set_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="emphasis"><em>constant</em></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">multiset_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="emphasis"><em>constant</em></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unordered_set_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="emphasis"><em>constant</em></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unordered_multiset_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="emphasis"><em>constant</em></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">list_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="emphasis"><em>mutable</em></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">vector_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="emphasis"><em>mutable</em></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unconstrained_set_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="emphasis"><em>mutable</em></span>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          Here are some examples. When dereferenced the iterators returns a type
+          that is <span class="emphasis"><em>signature-compatible</em></span> with these types.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Bimap type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Signature-compatible types
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">iterator</span> </code> <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">relation</span><span class="special">&lt;</span><span class="keyword">const</span>
+                    <span class="identifier">A</span><span class="special">,</span><span class="keyword">const</span> <span class="identifier">B</span><span class="special">&gt;</span></code>
+                  </p>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">left_iterator</span> </code>
+                    <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span>
+                    <span class="identifier">A</span><span class="special">,</span><span class="keyword">const</span> <span class="identifier">B</span><span class="special">&gt;</span></code>
+                  </p>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">right_iterator</span></code>
+                    <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span>
+                    <span class="identifier">B</span><span class="special">,</span><span class="keyword">const</span> <span class="identifier">A</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="identifier">multiset_of</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;,</span><span class="identifier">unordered_set_of</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">&gt;</span>
+                    <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">iterator</span> </code> <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">relation</span><span class="special">&lt;</span><span class="keyword">const</span>
+                    <span class="identifier">A</span><span class="special">,</span><span class="keyword">const</span> <span class="identifier">B</span><span class="special">&gt;</span></code>
+                  </p>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">left_iterator</span> </code>
+                    <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span>
+                    <span class="identifier">A</span><span class="special">,</span><span class="keyword">const</span> <span class="identifier">B</span><span class="special">&gt;</span></code>
+                  </p>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">right_iterator</span></code>
+                    <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span>
+                    <span class="identifier">B</span><span class="special">,</span><span class="keyword">const</span> <span class="identifier">A</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="identifier">set_of</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;,</span><span class="identifier">list_of</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">&gt;</span>
+                    <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">iterator</span> </code> <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">relation</span><span class="special">&lt;</span><span class="keyword">const</span>
+                    <span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">&gt;</span></code>
+                  </p>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">left_iterator</span> </code>
+                    <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span>
+                    <span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">&gt;</span></code>
+                  </p>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">right_iterator</span></code>
+                    <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">,</span><span class="keyword">const</span>
+                    <span class="identifier">A</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="identifier">vector_of</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;,</span><span class="identifier">set_of</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">&gt;</span>
+                    <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">iterator</span> </code> <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">relation</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="keyword">const</span>
+                    <span class="identifier">B</span><span class="special">&gt;</span></code>
+                  </p>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">left_iterator</span> </code>
+                    <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="keyword">const</span>
+                    <span class="identifier">B</span><span class="special">&gt;</span></code>
+                  </p>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">right_iterator</span></code>
+                    <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span>
+                    <span class="identifier">B</span><span class="special">,</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="identifier">list_of</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;,</span><span class="identifier">unconstrained_set_of</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">&gt;</span>
+                    <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">iterator</span> </code> <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">relation</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">&gt;</span></code>
+                  </p>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">left_iterator</span> </code>
+                    <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">&gt;</span></code>
+                  </p>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">right_iterator</span></code>
+                    <span class="bold"><strong>-&gt;</strong></span> <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">,</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="section boost_bimap_the_tutorial_differences_with_standard_maps_operator_____and_at__">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.the_tutorial.differences_with_standard_maps.operator_____and_at__"></a><a class="link" href="differences_with_standard_maps.html#boost_bimap.the_tutorial.differences_with_standard_maps.operator_____and_at__" title="operator[] and at()">operator[]
+        and at()</a>
+</h4></div></div></div>
+<p>
+          <code class="computeroutput"><span class="identifier">set_of</span></code> and <code class="computeroutput"><span class="identifier">unordered_set_of</span></code> map views overload
+          <code class="computeroutput"><span class="keyword">operator</span><span class="special">[]</span></code>
+          to retrieve the associated data of a given key only when the other collection
+          type is a mutable one. In these cases it works in the same way as the standard.
+        </p>
+<pre class="programlisting"><span class="identifier">bimap</span><span class="special">&lt;</span> <span class="identifier">unorderd_set_of</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;,</span> <span class="identifier">list_of</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">bm</span><span class="special">;</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">[</span><span class="string">"one"</span><span class="special">]</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span> <span class="comment">// Ok</span>
+</pre>
+<p>
+          The standard defines an access function for <code class="computeroutput"><span class="identifier">map</span></code>
+          and <code class="computeroutput"><span class="identifier">unordered_map</span></code>:
+        </p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="identifier">data_type</span> <span class="special">&amp;</span> <span class="identifier">at</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+      <span class="identifier">data_type</span> <span class="special">&amp;</span> <span class="identifier">at</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">);</span>
+</pre>
+<p>
+          These functions look for a key and returns the associated data value, but
+          throws a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">out_of_range</span></code> exception if the key is
+          not found.
+        </p>
+<p>
+          In bimaps the constant version of these functions is given for <code class="computeroutput"><span class="identifier">set_of</span></code> and <code class="computeroutput"><span class="identifier">unorderd_set_of</span></code>
+          map views independently of the other collection type. The mutable version
+          is only provided when the other collection type is mutable.
+        </p>
+<p>
+          The following examples shows the behaviour of <code class="computeroutput"><span class="identifier">at</span><span class="special">(</span><span class="identifier">key</span><span class="special">)</span></code>
+        </p>
+<p>
+          <a href="../../../../example/at_function_examples.cpp" target="_top">Go to source code</a>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">bimap</span><span class="special">&lt;</span> <span class="identifier">set_of</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;,</span> <span class="identifier">list_of</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">bm_type</span><span class="special">;</span>
+<span class="identifier">bm_type</span> <span class="identifier">bm</span><span class="special">;</span>
+
+<span class="keyword">try</span>
+<span class="special">{</span>
+    <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="string">"one"</span><span class="special">)</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span> <span class="comment">// throws std::out_of_range</span>
+<span class="special">}</span>
+<span class="keyword">catch</span><span class="special">(</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">out_of_range</span> <span class="special">&amp;</span> <span class="identifier">e</span> <span class="special">)</span> <span class="special">{}</span>
+
+<span class="identifier">assert</span><span class="special">(</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span> <span class="special">);</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">[</span><span class="string">"one"</span><span class="special">]</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span> <span class="comment">// Ok</span>
+
+<span class="identifier">assert</span><span class="special">(</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="string">"one"</span><span class="special">)</span> <span class="special">==</span> <span class="number">1</span> <span class="special">);</span> <span class="comment">// Ok</span>
+</pre>
+<p>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">bimap</span><span class="special">&lt;</span> <span class="identifier">multiset_of</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;,</span> <span class="identifier">unordered_set_of</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">bm_type</span><span class="special">;</span>
+<span class="identifier">bm_type</span> <span class="identifier">bm</span><span class="special">;</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="string">"one"</span><span class="special">;</span> <span class="comment">// compilation error</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">right_value_type</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="string">"one"</span><span class="special">)</span> <span class="special">);</span>
+
+<span class="identifier">assert</span><span class="special">(</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">==</span> <span class="string">"one"</span> <span class="special">);</span> <span class="comment">// Ok</span>
+
+<span class="keyword">try</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="number">2</span><span class="special">);</span> <span class="comment">// throws std::out_of_range</span>
+<span class="special">}</span>
+<span class="keyword">catch</span><span class="special">(</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">out_of_range</span> <span class="special">&amp;</span> <span class="identifier">e</span> <span class="special">)</span> <span class="special">{}</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">=</span> <span class="string">"1"</span><span class="special">;</span> <span class="comment">// compilation error</span>
+</pre>
+<p>
+        </p>
+</div>
+<div class="section boost_bimap_the_tutorial_differences_with_standard_maps_complexity_of_operations">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.the_tutorial.differences_with_standard_maps.complexity_of_operations"></a><a class="link" href="differences_with_standard_maps.html#boost_bimap.the_tutorial.differences_with_standard_maps.complexity_of_operations" title="Complexity of operations">Complexity
+        of operations</a>
+</h4></div></div></div>
+<p>
+          The complexity of some operations is different in bimaps. Read <a class="link" href="../reference/bimap_reference.html#complexity_signature_explanation">the
+          reference</a> to find the complexity of each function.
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="the_collection_of_relations_type.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../the_tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="useful_functions.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,12 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/mo.xml
+// *
+// ***************************************************************************
+mo{
+    "%%ALIAS"{"ro_MD"}
+    Version{"2.0.41.23"}
+}

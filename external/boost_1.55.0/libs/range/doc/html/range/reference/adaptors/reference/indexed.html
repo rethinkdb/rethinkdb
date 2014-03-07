@@ -1,0 +1,173 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>indexed</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="filtered.html" title="filtered">
+<link rel="next" href="indirected.html" title="indirected">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="filtered.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="indirected.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_adaptors_reference_indexed">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="range.reference.adaptors.reference.indexed"></a><a class="link" href="indexed.html" title="indexed">indexed</a>
+</h5></div></div></div>
+<div class="toc"><dl><dt><span class="section"><a href="indexed.html#range.reference.adaptors.reference.indexed.indexed_example">indexed
+            example</a></span></dt></dl></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Syntax
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Code
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Pipe
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">rng</span> <span class="special">|</span>
+                      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">indexed</span><span class="special">(</span><span class="identifier">start_index</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Function
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">index</span><span class="special">(</span><span class="identifier">rng</span><span class="special">,</span>
+                      <span class="identifier">start_index</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <span class="bold"><strong>Returns:</strong></span> A range adapted to return
+                both the element and the associated index. The returned range consists
+                of iterators that have in addition to the usual iterator member functions
+                an <code class="computeroutput"><span class="identifier">index</span><span class="special">()</span></code>
+                member function that returns the appropriate index for the element
+                in the sequence corresponding with the iterator.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Range Category:</strong></span> <a class="link" href="../../../concepts/single_pass_range.html" title="Single Pass Range">Single
+                Pass Range</a>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Range Return Type:</strong></span> <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">indexed_range</span><span class="special">&lt;</span><span class="identifier">typeof</span><span class="special">(</span><span class="identifier">rng</span><span class="special">)&gt;</span></code>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returned Range Category:</strong></span> The range
+                category of <code class="computeroutput"><span class="identifier">rng</span></code>
+              </li>
+</ul></div>
+<div class="section range_reference_adaptors_reference_indexed_indexed_example">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="range.reference.adaptors.reference.indexed.indexed_example"></a><a class="link" href="indexed.html#range.reference.adaptors.reference.indexed.indexed_example" title="indexed example">indexed
+            example</a>
+</h6></div></div></div>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">adaptor</span><span class="special">/</span><span class="identifier">indexed</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">copy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">assign</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">display_element_and_index</span><span class="special">(</span><span class="identifier">Iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">for</span> <span class="special">(</span><span class="identifier">Iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">first</span><span class="special">;</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Element = "</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">it</span> <span class="special">&lt;&lt;</span> <span class="string">" Index = "</span> <span class="special">&lt;&lt;</span> <span class="identifier">it</span><span class="special">.</span><span class="identifier">index</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">SinglePassRange</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">display_element_and_index</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">SinglePassRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">display_element_and_index</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">),</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">rng</span><span class="special">));</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">assign</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">input</span><span class="special">;</span>
+    <span class="identifier">input</span> <span class="special">+=</span> <span class="number">10</span><span class="special">,</span><span class="number">20</span><span class="special">,</span><span class="number">30</span><span class="special">,</span><span class="number">40</span><span class="special">,</span><span class="number">50</span><span class="special">,</span><span class="number">60</span><span class="special">,</span><span class="number">70</span><span class="special">,</span><span class="number">80</span><span class="special">,</span><span class="number">90</span><span class="special">;</span>
+
+    <span class="identifier">display_element_and_index</span><span class="special">(</span> <span class="identifier">input</span> <span class="special">|</span> <span class="identifier">indexed</span><span class="special">(</span><span class="number">0</span><span class="special">)</span> <span class="special">);</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+            </p>
+</div>
+<p>
+            This would produce the output:
+</p>
+<pre class="programlisting"><span class="identifier">Element</span> <span class="special">=</span> <span class="number">10</span> <span class="identifier">Index</span> <span class="special">=</span> <span class="number">0</span>
+<span class="identifier">Element</span> <span class="special">=</span> <span class="number">20</span> <span class="identifier">Index</span> <span class="special">=</span> <span class="number">1</span>
+<span class="identifier">Element</span> <span class="special">=</span> <span class="number">30</span> <span class="identifier">Index</span> <span class="special">=</span> <span class="number">2</span>
+<span class="identifier">Element</span> <span class="special">=</span> <span class="number">40</span> <span class="identifier">Index</span> <span class="special">=</span> <span class="number">3</span>
+<span class="identifier">Element</span> <span class="special">=</span> <span class="number">50</span> <span class="identifier">Index</span> <span class="special">=</span> <span class="number">4</span>
+<span class="identifier">Element</span> <span class="special">=</span> <span class="number">60</span> <span class="identifier">Index</span> <span class="special">=</span> <span class="number">5</span>
+<span class="identifier">Element</span> <span class="special">=</span> <span class="number">70</span> <span class="identifier">Index</span> <span class="special">=</span> <span class="number">6</span>
+<span class="identifier">Element</span> <span class="special">=</span> <span class="number">80</span> <span class="identifier">Index</span> <span class="special">=</span> <span class="number">7</span>
+<span class="identifier">Element</span> <span class="special">=</span> <span class="number">90</span> <span class="identifier">Index</span> <span class="special">=</span> <span class="number">8</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="filtered.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="indirected.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

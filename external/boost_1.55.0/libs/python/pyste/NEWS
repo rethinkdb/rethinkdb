@@ -1,0 +1,212 @@
+.. Copyright Bruno da Silva de Oliveira 2006. Distributed under the Boost
+.. Software License, Version 1.0. (See accompanying
+.. file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+25 April 2005
+- Fixed bug where the code for wrappers of member functions were defined outside 
+the pyste namespace. Reported by Dan Haffey.
+
+9 October 2004
+- Applied a patch by Christian Hudon that fixed an issue with files
+that had a tail and relative includes.
+
+18 July 2004
+- Applied a patch by Paul Bridger that solves some problems for wrapper 
+methods.
+- Applied a patch by Baptiste Lepilleur that allows the user to inject
+code inside the class definition.
+- Applied another patch by Baptiste Lepilleur that inserts two new command-line
+options that helps with writing makefiles.
+
+27 May 2004
+Applied patch by Paul Bridger that solves a problem on windows regarding 
+spaces on paths. Thanks Paul!
+
+Applied another patch that fixes the module name if pyste is run from
+another directory of where the .pyste file is located. Patch contributted 
+by Paul Bridger.
+
+17 May 2004
+Applied a patch by Roman Yakovenko that makes the export of unnamed enums
+better. Thanks Roman!
+
+23 October 2003
+Fixed bug where a class would appear more than one in the generated code.
+
+6 October 2003
+Fixed bug reported by Niall Douglas (using his patch) about UniqueInt not
+appearing correctly with --multiple.
+
+Added precompiled header support on windows systems (using #pragma hdrstop).
+Suggested by Niall Douglas.
+
+Fixed a bug with -I directive and AllFromHeader. Reported by Scott Snyder.
+
+4 October 2003
+Added return_self, thanks for Niall Douglas for pointing out that it was
+missing.
+
+Added --file-list, where you can pass a file where the pyste files are listed
+one per line. Also suggested by Niall Douglas.
+
+Documentation has been finally updated, after a long wait. Please let me know
+if you spot any mistake!
+
+2 October 2003
+Scott Snyder found a typo in ClassExporter that prevented -= and *= operators
+from being exported. Thanks Scott!
+
+20 September 2003
+Added return_by_value in the list of policies supported. Thanks to Niall
+Douglas for the remainder.
+
+19 September 2003
+Better support for unnamed enums, plus they are by default exported to the
+parent's namespace. Normal enums can have the same behaviour using the function
+export_values on the Enum object. Feature requested by Niall Douglas.
+
+10 September 2003
+A new variable is accessible in the Pyste files: INTERFACE_FILE contains the 
+full path of the pyste file.
+
+4 September 2003
+Now it is possible to override protected and private pure virtual functions
+in Python, as requested by Roman Yakovenko.
+
+23 August 2003
+Fixed bug where some Imports where not writing their include files.  
+Now whenever the declarations change, the cache files are rebuilt
+automatically.
+
+19 August 2003
+Fixed a bug related to the generation of the bases<> template.
+
+17 August 2003
+Added support for insertion of user code in the generated code.
+
+16 August 2003
+Applied a patch by Gottfried Ganssauge that adds exception specifiers to 
+wrapper functions and pointer declarations. Thanks a lot Gottfried!!
+
+Applied a patch by Prabhu Ramachandran that fixes ae problem with the 
+pure virtual method generation. Thanks again Prabhu!
+
+10 August 2003
+Support for incremental generation of the code has been added. This changes
+how --multiple works; documentation of this new feature will follow. Thanks
+to Prabhu Ramachandran, that saw the need for this feature and discussed a
+solution. 
+
+Automatically convert \ to / in Windows systems before passing the paths to
+gccxml.
+
+Fixed a bug reported by Prabhu Ramachandran, where in some classes the virtual
+methods were being definied incorrectly. Thanks a lot Prabhu!
+
+7 July 2003
+Applied 2 patches by Prabhu Ramachandran: a fix in the new --multiple method,
+and two new functions "hold_with_shared_ptr" and its counterpart for auto_ptr.
+Thanks a lot Prabhu!
+
+Fixed a bug where the macro BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID was being
+called multiple times for the same type.
+Thanks to Gottfried Ganﬂauge for reporting this!
+
+Fixed bug where using AllFromHeader didn't use bases<> when exporting 
+hierarchies.
+
+Fixed the staticmethod bug.
+
+5 July 2003
+Changed how --multiple works: now it generates one cpp file for each pyste
+file, makeing easier to integrate Pyste with build systems.
+
+4 July 2003
+Applied patch that solved a bug in ClassExporter and added a distutils install
+script (install/setup.py), both contributed by Prabhu Ramachandran.
+Thanks Prabhu!
+
+2 July 2003
+Jim Wilson found a bug where types like "char**" were being interpreted as 
+"char*". Thanks Jim!
+
+16 June 2003
+Thanks to discussions with David Abrahams and Roman Sulzhyk, some behaviours
+have changed:
+
+- If you export a derived class without exporting its base classes, the derived
+  class will explicitly export the bases's methods and attributes. Before, if
+  you were interested in the bases's methods, you had to export the base
+  classes too.
+
+- Added a new function, no_override. When a member function is specified as
+  "no_override", no virtual wrappers are generated for it, improving
+  performance and letting the code more clean.
+
+- There was a bug in which the policy of virtual member functions was being
+  ignored (patch by Roman Sulzhyk). 
+  
+Thanks again to Roman Sulzhyk for the patches and discussion in the c++-sig.
+
+4 June 2003
+Major improvements in memory usage.
+
+3 June 2003
+Appliced a patch from Giulio Eulisse that allows unnamed enumerations to be
+exported with an AllFromHeader construct. Thanks a lot Giulio!
+
+2 June 2003
+Added a new construct, add_method. See documentation.
+
+23 May 2003
+Support for global variables added.
+Various bug fixes.
+
+08 May 2003
+Fixed bug where in a certain cases the GCCXMLParser would end up with multiple
+declarations of the same class
+
+22 Apr 2003
+- Now shows a warning when the user tries to export a forward-declared class.
+  Forward-declared classes are ignored by the AllFromHeader construct.
+- Fixed a bug where classes, functions and enums where being exported, even if
+  excluded from a AllFromHeader construct.
+
+16 Apr 2003
+Added a more generic (but ugly) code to declare the smart pointer converters.
+
+07 Apr 2003
+- Removed the warnings about forward declarations: it was not accurate enough.
+  Another strategy must be thought of.
+- Fixed bug in the --multiple mode, where the order of the class instantiations
+  could end up wrong.
+- Lots of fixes in the documentation, pointed out by Dirk Gerrits. Thanks Dirk!
+- Fixed support for the return_opaque_pointer policy (the support macro was not
+  being declared).
+
+
+06 Apr 2003
+Support for the improved static data members support of Boost.Python.
+
+05 Apr 2003
+New option for generating the bindings: --multiple.
+
+02 Apr 2003
+Forward declarations are now detected and a warning is generated.
+
+24 Mar 2003
+Default policy for functions/methods that return const T& is now
+return_value_policy<copy_const_reference>().
+
+22 Mar 2003
+Exporting virtual methods of the base classes in the derived classes too.
+
+21 Mar 2003
+Added manual support for boost::shared_ptr and std::auto_ptr (see doc).
+
+19 Mar 2003 
+Added support for int, double, float and long operators acting as expected in
+python.
+
+14 Mar 2003 
+Fixed bug: Wrappers for protected and virtual methods were not being generated.

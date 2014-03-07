@@ -1,0 +1,55 @@
+# (C) Copyright 2010 : Karsten Ahnert, Mario Mulansky
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# bring in rules for testing
+
+
+import testing ;
+
+use-project boost : $(BOOST_ROOT) ;
+
+project
+    : requirements
+      <library>/boost/test//boost_unit_test_framework
+      <define>BOOST_ALL_NO_LIB=1
+      <include>../../../..
+      <link>static
+      <toolset>clang:<cxxflags>-Wno-unused-variable
+
+# <cxxflags>-D_SCL_SECURE_NO_WARNINGS
+    ;
+
+test-suite "odeint"
+    :
+    [ run euler_stepper.cpp ]
+    [ run runge_kutta_concepts.cpp ]
+    [ run runge_kutta_error_concepts.cpp ]
+    [ run runge_kutta_controlled_concepts.cpp ]
+    [ run resizing.cpp ]
+    [ run default_operations.cpp ]
+    [ run range_algebra.cpp ]
+    [ run implicit_euler.cpp ]
+    [ run fusion_algebra.cpp ]
+    [ run stepper_with_units.cpp ]
+    [ run stepper_copying.cpp ]
+    [ run stepper_with_ranges.cpp ]
+    [ run rosenbrock4.cpp ]
+    [ run is_pair.cpp ]
+    [ run adams_bashforth.cpp ]
+    [ run adams_moulton.cpp ]
+    [ run adams_bashforth_moulton.cpp ]
+    [ run generic_stepper.cpp ]
+    [ run generic_error_stepper.cpp ]
+    [ run bulirsch_stoer.cpp ]
+    [ run integrate_times.cpp ]
+    [ run integrate.cpp ]
+    [ run integrate_implicit.cpp ]
+    [ run generation.cpp ]
+    [ run trivial_state.cpp ]
+    [ run is_resizeable.cpp ]
+    [ run resize.cpp ]
+    [ run same_size.cpp ]
+    [ run symplectic_steppers.cpp ]
+    : <testing.launcher>valgrind
+    ;

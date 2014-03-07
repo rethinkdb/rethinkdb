@@ -1,0 +1,134 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>BoostBook element class</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../reference.html" title="Reference">
+<link rel="prev" href="access.html" title="BoostBook element access">
+<link rel="next" href="librarycategorydef.html" title="BoostBook element librarycategorydef">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="access.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="librarycategorydef.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boostbook.dtd.class"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">
+          BoostBook element <code class="sgmltag-element">class</code></span></h2>
+<p>class &#8212; Declares a class or class template</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv">class ::= 
+  (<a class="link" href="template.html" title="BoostBook element template">template</a>?, <a class="link" href="inherit.html" title="BoostBook element inherit">inherit</a>*, <a class="link" href="purpose.html" title="BoostBook element purpose">purpose</a>?, <a class="link" href="description.html" title="BoostBook element description">description</a>?, (<a class="link" href="access.html" title="BoostBook element access">access</a>| <a class="link" href="static-constant.html" title="BoostBook element static-constant">static-constant</a>| <a class="link" href="typedef.html" title="BoostBook element typedef">typedef</a>| <a class="link" href="enum.html" title="BoostBook element enum">enum</a>| <a class="link" href="copy-assignment.html" title="BoostBook element copy-assignment">copy-assignment</a>| <a class="link" href="constructor.html" title="BoostBook element constructor">constructor</a>| <a class="link" href="destructor.html" title="BoostBook element destructor">destructor</a>| <a class="link" href="method-group.html" title="BoostBook element method-group">method-group</a>| <a class="link" href="free-function-group.html" title="BoostBook element free-function-group">free-function-group</a>| <a class="link" href="function.html" title="BoostBook element function">function</a>| <a class="link" href="method.html" title="BoostBook element method">method</a>| <a class="link" href="overloaded-function.html" title="BoostBook element overloaded-function">overloaded-function</a>| <a class="link" href="overloaded-method.html" title="BoostBook element overloaded-method">overloaded-method</a>| <a class="link" href="data-member.html" title="BoostBook element data-member">data-member</a>| <a class="link" href="class.html" title="BoostBook element class">class</a>| <a class="link" href="class-specialization.html" title="BoostBook element class-specialization">class-specialization</a>| <a class="link" href="struct.html" title="BoostBook element struct">struct</a>| <a class="link" href="struct-specialization.html" title="BoostBook element struct-specialization">struct-specialization</a>| <a class="link" href="union.html" title="BoostBook element union">union</a>| <a class="link" href="union-specialization.html" title="BoostBook element union-specialization">union-specialization</a>)*)
+</div>
+<div class="refsection">
+<a name="idp259813368"></a><h2>Description</h2>
+<p>C++ classes and class templates are described via the
+  &lt;class&gt; element. Each class has a name (e.g., "any") given by
+  the <code class="computeroutput">name</code> attribute, a purpose given by the
+  &lt;purpose&gt; element, documentation, and a set of types,
+  functions, base classes, and data members. Here is a minimal
+  definition of the <code class="computeroutput"><a class="link" href="../../boost/any.html" title="Class any">boost::any</a></code> class:</p>
+<pre class="programlisting">&lt;namespace name="boost"&gt;
+  &lt;class name="any"&gt;
+    &lt;purpose&gt;
+      A class whose instances can hold instances of any type that satisfies
+      ValueType requirements.
+    &lt;/purpose&gt;
+  &lt;/class&gt;
+&lt;/namespace&gt;</pre>
+<p>Additional class documentation can be contained in a
+  <code class="sgmltag-element">description</code> element following the &lt;purpose&gt;
+  element. This documentation will be typeset prior to documentation
+  for specific elements in the class (e.g., constructors or
+  methods).</p>
+<p>Class inheritance is described via the &lt;inherit&gt;
+  element. The &lt;inherit&gt; element requires an <code class="computeroutput">access</code>
+  attribute which must be one of <span class="emphasis"><em>public</em></span>,
+  <span class="emphasis"><em>protected</em></span>, or <span class="emphasis"><em>private</em></span>. The
+  content of the &lt;inherited&gt; element in C++ code that names the
+  class inherited, and may contain markup to link to the class. The
+  following description of the class
+  <code class="computeroutput"><a class="link" href="../../boost/bad_any_cast.html" title="Class bad_any_cast">boost::bad_any_cast</a></code> describes public
+  inheritance from the class <code class="computeroutput">std::bad_cast</code>. It
+  also defines the &lt;purpose&gt; element, which contains a short
+  description of the use of the class.</p>
+<pre class="programlisting">&lt;class name="bad_any_cast"&gt;
+  &lt;inherit access="public"&gt;&lt;classname&gt;std::bad_cast&lt;/classname&gt;&lt;/inherit&gt;
+  &lt;purpose&gt;&lt;para&gt;The exception thrown in the event of a failed
+  &lt;functionname&gt;any_cast&lt;/functionname&gt; of an
+  &lt;classname&gt;any&lt;/classname&gt; value.&lt;/para&gt;&lt;/purpose&gt;
+&lt;/class&gt;</pre>
+<p>Class templates are defined by &lt;class&gt; elements with a
+  &lt;template&gt; child element at the beginning.</p>
+</div>
+<div class="refsection">
+<a name="idp259821528"></a><h2>Attributes</h2>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Name</th>
+<th>Type</th>
+<th>Value</th>
+<th>Purpose</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>last-revision</td>
+<td>#IMPLIED</td>
+<td>CDATA</td>
+<td>Set to $Date: 2009-10-10 15:53:46 +0100 (Sat, 10 Oct 2009) $ to keep "last revised" information in sync with CVS changes</td>
+</tr>
+<tr>
+<td>name</td>
+<td>#REQUIRED</td>
+<td>CDATA</td>
+<td>The name of the element being declared to referenced</td>
+</tr>
+<tr>
+<td>id</td>
+<td>#IMPLIED</td>
+<td>CDATA</td>
+<td>A global identifier for this element</td>
+</tr>
+<tr>
+<td>xml:base</td>
+<td>#IMPLIED</td>
+<td>CDATA</td>
+<td>Implementation detail used by XIncludes</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2005 Douglas Gregor<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file LICENSE_1_0.txt or copy at
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="access.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="librarycategorydef.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

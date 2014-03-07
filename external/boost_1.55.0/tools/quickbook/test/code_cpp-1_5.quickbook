@@ -1,0 +1,34 @@
+[article C++ Code Blocks
+[quickbook 1.5]
+]
+
+    #include <some_header>
+        #include "another_header.hpp"
+    #   define A_MACRO value
+    #define stringize(hello) #hello
+    // No escape
+    /* No escape */
+    /* No escape
+     * with newlines
+     */
+    // In Header: <``[@boost:/boost/optional/optional.hpp boost/optional/optional.hpp]``>
+    /* In Header: <``[@boost:/boost/optional/optional.hpp boost/optional/optional.hpp]``> */
+    /* Multiple escapes: ``/italic/``
+     * ``_underline_````*bold*``
+     */
+    /* Token pasting: */ a##b
+
+A badly formed comment:
+
+    /* Oh dear
+
+A badly formed comment with an escape:
+
+    /* Oh dear ``*bold*``
+
+Just some code:
+
+    int main() {
+        constexpr char32_t x = 'a';
+        const auto y = x - ' ';
+    }

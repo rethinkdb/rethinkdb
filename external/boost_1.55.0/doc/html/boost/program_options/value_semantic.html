@@ -1,0 +1,114 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class value_semantic</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../program_options/reference.html#header.boost.program_options.value_semantic_hpp" title="Header &lt;boost/program_options/value_semantic.hpp&gt;">
+<link rel="prev" href="positional_op_idp102255608.html" title="Class positional_options_description">
+<link rel="next" href="value_semanti_idp101606184.html" title="Class template value_semantic_codecvt_helper">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="positional_op_idp102255608.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../program_options/reference.html#header.boost.program_options.value_semantic_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="value_semanti_idp101606184.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.program_options.value_semantic"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class value_semantic</span></h2>
+<p>boost::program_options::value_semantic</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../program_options/reference.html#header.boost.program_options.value_semantic_hpp" title="Header &lt;boost/program_options/value_semantic.hpp&gt;">boost/program_options/value_semantic.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="value_semantic.html" title="Class value_semantic">value_semantic</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="value_semantic.html#boost.program_options.value_semanticconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="value_semantic.html#idp101606120-bb"><span class="special">~</span><span class="identifier">value_semantic</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="value_semantic.html#idp94019016-bb">public member functions</a></span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a class="link" href="value_semantic.html#idp94019192-bb"><span class="identifier">name</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">unsigned</span> <a class="link" href="value_semantic.html#idp102298664-bb"><span class="identifier">min_tokens</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">unsigned</span> <a class="link" href="value_semantic.html#idp102299368-bb"><span class="identifier">max_tokens</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="value_semantic.html#idp102300072-bb"><span class="identifier">is_composing</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="value_semantic.html#idp101333784-bb"><span class="identifier">is_required</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="value_semantic.html#idp101334408-bb"><span class="identifier">parse</span></a><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">any</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="value_semantic.html#idp102446328-bb"><span class="identifier">apply_default</span></a><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">any</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="value_semantic.html#idp101605192-bb"><span class="identifier">notify</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">any</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp165054248"></a><h2>Description</h2>
+<p>Class which specifies how the option's value is to be parsed and converted into C++ types. </p>
+<div class="refsect2">
+<a name="idp165054680"></a><h3>
+<a name="boost.program_options.value_semanticconstruct-copy-destruct"></a><code class="computeroutput">value_semantic</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><a name="idp101606120-bb"></a><span class="special">~</span><span class="identifier">value_semantic</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp165057832"></a><h3>
+<a name="idp94019016-bb"></a><code class="computeroutput">value_semantic</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a name="idp94019192-bb"></a><span class="identifier">name</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the name of the option. The name is only meaningful for automatic help message. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">unsigned</span> <a name="idp102298664-bb"></a><span class="identifier">min_tokens</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The minimum number of tokens for this option that should be present on the command line. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">unsigned</span> <a name="idp102299368-bb"></a><span class="identifier">max_tokens</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The maximum number of tokens for this option that should be present on the command line. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp102300072-bb"></a><span class="identifier">is_composing</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns true if values from different sources should be composed. Otherwise, value from the first source is used and values from other sources are discarded. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp101333784-bb"></a><span class="identifier">is_required</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns true if value must be given. Non-optional value </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp101334408-bb"></a><span class="identifier">parse</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">any</span> <span class="special">&amp;</span> value_store<span class="special">,</span> 
+           <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;</span> <span class="special">&amp;</span> new_tokens<span class="special">,</span> <span class="keyword">bool</span> utf8<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Parses a group of tokens that specify a value of option. Stores the result in 'value_store', using whatever representation is desired. May be be called several times if value of the same option is specified more than once. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp102446328-bb"></a><span class="identifier">apply_default</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">any</span> <span class="special">&amp;</span> value_store<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Called to assign default value to 'value_store'. Returns true if default value is assigned, and false if no default value exists. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp101605192-bb"></a><span class="identifier">notify</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">any</span> <span class="special">&amp;</span> value_store<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Called when final value of an option is determined. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2004 Vladimir Prus<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="positional_op_idp102255608.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../program_options/reference.html#header.boost.program_options.value_semantic_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="value_semanti_idp101606184.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

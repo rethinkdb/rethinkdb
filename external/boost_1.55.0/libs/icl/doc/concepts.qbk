@@ -1,0 +1,465 @@
+[/
+    Copyright (c) 2008-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Concepts]
+
+[section Naming]
+
+The *icl* is about sets and maps and a useful
+implementation of sets and maps using intervals.
+In the documentation of the *icl* the different
+set and map types are grouped in various ways.
+In order to distinguish those groups we use
+a naming convention.
+
+Names of concepts start with a capital letter.
+So `Set` and `Map` stand for the /concept/ of
+a set and a map as defined in the *icl*.
+When we talk about `Sets` and `Maps` though, 
+most of the time we do not not talk about the
+concepts themselves but the set of types
+that implement those concepts in the *icl*.
+The main groups, ['*icl containers*] can be
+divided in, are summarized in the next table:
+
+[table
+[]
+[[]                  [`Set`]                                        [`Map`]      ]
+[[element container] [__std_set__]                                  [__icl_map__]]
+[[interval container][__itv_set__, __sep_itv_set__, __spl_itv_set__][__itv_map__, __spl_itv_map__]]
+]
+
+* Containers std:set, __itv_set__, __sep_itv_set__, __spl_itv_set__
+  are models of concept `Set`. 
+* Containers __icl_map__, __itv_map__, __spl_itv_map__
+  are models of concept `Map`. 
+* Containers that are ['*implemented*] using elements or element value pairs
+  are called ['*element containers*].
+* Containers that are ['*implemented*] using intervals or interval value pairs
+  (also called segments) are called ['*interval containers*].
+* When we talk about `Sets` or `Maps` we abstract from the way they are implemented.
+* When we talk about /element containers/ or /interval containers/ 
+  we refer to the way they are implemented.
+* __std_set__ is a model of the icl's `Set` concept.
+* __std_map__ is ['*not*] a model of the icl's `Map` concept. 
+* The *icl's* element map
+  is always denoted qualified as __icl_map__ 
+  to avoid confusion with`std::map`. 
+
+[endsect][/ Naming]
+
+[section Aspects]
+
+There are two major ['*aspects*] or ['*views*] of icl containers. The first and predominant
+aspect is called __bi_conceptual__. The second and minor aspect is called __bi_iterative__.
+
+[/ table
+[[Aspect]    [Abstraction level][]                      []                    [Practical]]
+[[__Conceptual__][more abstract][concept related]       [iterator independent][interval_sets(maps) can be used as sets(maps) 
+                                                                           except for element iteration.]]
+[[__Iterative__] [less abstract][implementation related][iterator dependent]  [interval_sets(maps) iterate over intervals]]
+]
+
+[table
+[[][__Conceptual__][__Iterative__]]
+[[Abstraction level][more abstract][less abstract]]
+[[][sequence of elements is irrelevant][sequence of elements is relevant]]
+[[][iterator independent][iterator dependent]]
+[[Informs about][membership of elements][sequence of intervals (segmentation)]]
+[[Equality][equality of elements][equality of segments]]
+[[Practical][interval_sets(maps) can be used as sets(maps) 
+             of elements(element value pairs)             ]
+                                                           [Segmentation information is available. 
+                                                            See e.g. [link boost_icl.examples.time_grids Time grids for months and weeks]]]
+]
+
+On the __conceptual__ aspect
+
+* an `interval` implements a set of elements partially.
+* an __itv_set__ implements a set of elements.
+* an __itv_map__ implements a map of element value pairs.
+
+On the __iterative__ aspect
+
+* an __itv_set__ implements a set of intervals.
+* an __itv_map__ implements a map of interval value pairs.
+
+[endsect][/ Aspects]
+
+
+[section Sets and Maps]
+
+[h5 A Set Concept]
+
+On the __conceptual__ aspect all __itv_bsets__ are models 
+of a concept `Set`.
+The `Set` concept of the Interval Template Library refers to the
+mathematical notion of a set.
+
+[table
+[[Function]        [Variant][implemented as]                                 ]  
+[[empty set   ]    []       [`Set::Set()`]                                   ]
+[[subset relation] []       [`bool Set::within(const Set& s1, const Set& s2)const`]   ]
+[[equality       ] []       [`bool is_element_equal(const Set& s1, const Set& s2)`]]
+[[set union]       [inplace][`Set& operator += (Set& s1, const Set& s2)`]    ]
+[[]                []       [`Set  operator +  (const Set& s1, const Set& s2)`]]
+[[set difference]  [inplace][`Set& operator -= (Set& s1, const Set& s2)`]        ]
+[[]                []       [`Set  operator -  (const Set& s1, const Set& s2)`]]
+[[set intersection][inplace][`Set& operator &= (Set& s1, const Set& s2)`]        ]
+[[]                []       [`Set  operator &  (const Set& s1, const Set& s2)`]]
+]
+
+Equality on `Sets` is not implemented as `operator ==`, because `operator ==`
+is used for the stronger lexicographical equality on segments, that takes the 
+segmentation of elements into account.
+
+Being models of concept `Set`, __icl_set__ and all __itv_bsets__ 
+implement these 
+operations and obey the associated laws on `Sets`. See e.g. 
+[@http://en.wikipedia.org/wiki/Algebra_of_sets an algebra of sets here].
+
+[h5 Making intervals complete]
+
+An __itv__ is considered to be a set of elements as well. 
+With respect to the `Set` concept
+presented above __itv__ implements the concept only partially. The reason for
+that is that addition and subtraction can not
+be defined on __itvs__. Two intervals `[1,2]` and `[4,5]` are not addable to
+a ['*single*] new __itv__. In other words __itvs__ are incomplete w.r.t. union and
+difference. __Itv_sets__ can be defined as the ['*completion*] of intervals
+for the union and difference operations.
+
+When we claim that addition or subtraction can not be defined
+on intervals, we are not considering things like e.g. 
+interval arithmetics, where these operations can be defined, 
+but with a different semantics.
+
+
+[h5 A Map Concept]
+
+On the __conceptual__ aspect __icl_map__ and all __itv_bmaps__ are models of a 
+concept `Map`.
+Since a `map` is a `set of pairs`, we try to design the `Map` concept in accordance
+to the `Set` concept above. 
+
+[table
+[[Function]        [Variant][implemented as]                                 ]  
+[[empty map   ]    []       [`Map::Map()`]                                   ]
+[[subset relation] []       [`bool within(const Map& s2, const Map& s2)const`]   ]
+[[equality       ] []       [`bool is_element_equal(const Map& s1, const Map& s2)`]]
+[[map union]       [inplace][`Map& operator += (Map& s1, const Map& s2)`]        ]
+[[]                []       [`Map  operator +  (const Map& s1, const Map& s2)`]]
+[[map difference]  [inplace][`Map& operator -= (Map& s1, const Map& s2)`]        ]
+[[]                []       [`Map  operator -  (const Map& s1, const Map& s2)`]]
+[[map intersection][inplace][`Map& operator &= (Map& s1, const Map& s2)`]        ]
+[[]                []       [`Map  operator &  (const Map& s1, const Map& s2)`]]
+]
+
+As one can see, on the abstract kernel the signatures of the icl's `Set` and `Map`
+concepts are identical, except for the typename. 
+While signatures are identical
+The sets of valid laws are different, which will be described in more detail 
+in the sections on the
+[link boost_icl.semantics.sets semantics of icl Sets] and 
+[link boost_icl.semantics.maps Maps].
+These semantic differences are mainly based on the implementation
+of the pivotal member functions `add` and `subtract` for elements 
+and intervals that again serve for implementing 
+`operator +=` and `operator -=`.
+[endsect][/ Abstract Sets and Maps]
+
+[section:aggrovering Addability, Subtractability and Aggregate on Overlap]
+
+While ['*addition*] and ['*subtraction*] on `Sets` 
+are implemented as ['*set union*] and ['*set difference*], 
+for `Maps` we want to implement ['*aggregation*] on
+the associated values for the case of collision (of key elements)
+or overlap (of key intervals), which has been refered to as 
+['*aggregate on overlap*] above.
+This kind of `Addability` and `Subtractability` allows to compute
+a lot of useful aggregation results on an __itv_map_s__ associated
+values, just by adding and subtracting value pairs. 
+Various examples of ['*aggregate on overlap*] are given in 
+[link boost_icl.examples section examples].
+In addition, this concept of `Addability` and `Subtractability`
+contains the classical `Insertability` and `Erasability` of
+key value pairs as a special case so it provides a broader
+new semantics without loss of the /classical/ one.
+
+Aggregation is implemented for functions `add` and `subtract`
+by propagating a `Combiner` functor to combine associated values
+of type `CodomainT`. The standard `Combiner` is set as
+default template parameter 
+`template<class>class Combine = inplace_plus`, which
+is again generically implemented by `operator +=` for all
+Addable types. 
+
+For `Combine` functors, the Icl provides an __inverse__ functor.
+
+[table
+[[`Combine<T>`]        [`inverse<Combine<T> >::type`]]
+[[__ip_plus__`<T>`]    [__ip_minus__`<T>`]  ]
+[[__ip_et__`<T>`]      [__ip_caret__`<T>`]    ]
+[[__ip_star__`<T>`]    [__ip_slash__`<T>`]    ]
+[[__ip_max__`<T>`]     [__ip_min__`<T>`]    ]
+[[__ip_identity__`<T>`][__ip_erasure__`<T>`]]
+[[`Functor`]           [__ip_erasure__`<T>`]]
+]
+
+The meta function __inverse__ is mutually implemented for
+all but the default functor `Functor`
+such that e.g.
+`inverse<inplace_minus<T> >::type` yields `inplace_plus<T>`.
+Not in every case, e.g. `max/min`, does the __inverse__ functor
+invert the effect of it's antetype. But for the default
+it does:
+
+[table
+[[]         [`_add<Combine<CodomainT> >((k,x))`] [`_subtract<inverse<Combine<CodomainT> >::type>((k,x))`]]
+[[Instance] [`_add<inplace_plus<int> >((k,x))`]  [`_subtract<inplace_minus<int> >((k,x))`]]
+[[Inversion][adds `x` on overlap. This inverts a preceding `subtract` of `x` on `k`][subtracts `x` on overlap. This inverts a preceding `add` of `x` on `k`]]
+]
+
+
+As already mentioned aggregating `Addability` and `Subtractability` 
+on `Maps` contains the /classical/ `Insertability` and `Erasability` of
+key value pairs as a special case:
+
+[table
+[[aggregating function][equivalent /classical/ function]]
+[[`_add<inplace_identity<CodomainT> >(const value_type&)`]    [`insert(const value_type&)`]]
+[[`_subtract<inplace_erasure<CodomainT> >(const value_type&)`][`erase(const value_type&)`]]
+]
+
+The aggregating member function templates `_add` and `_subtract`
+are not in the public interface of __itv_bmaps__, because
+the `Combine` functor is intended to be an invariant 
+of __itv_bmap_s__
+template instance to avoid, that clients
+spoil the aggregation by accidentally calling 
+varying aggregation functors.
+But you could instantiate an __itv_map__ to have 
+`insert/erase` semantics this way:
+``
+interval_map<int,int,partial_absorber,
+             std::less,
+             inplace_identity //Combine parameter specified
+            > m; 
+interval<int>::type itv = interval<int>::rightopen(2,7);
+m.add(make_pair(itv,42));      //same as insert
+m.subtract(make_pair(itv,42)); //same as erase 
+``  
+
+This is, of course, only a clarifying example. Member functions
+`insert` and `erase` are available in __itv_bmap_s__ interface 
+so they can be called directly.
+
+[endsect][/ Addability, Subtractability and Aggregation on Overlap]
+
+
+[section Map Traits]
+
+Icl maps differ in their behavior dependent on how they handle
+[@http://en.wikipedia.org/wiki/Identity_element ['*identity elements*]]
+of the associated type `CodomainT`.
+
+[h4 Remarks on Identity Elements]
+
+In the pseudo code snippets below `0` will be used to denote
+[@http://en.wikipedia.org/wiki/Identity_element `identity elements`],
+which can be 
+different objects like `const double 0.0`, empty sets, empty strings, 
+null-vectors etc. dependent of the instance type for parameter `CodomainT`.
+The existence of an ['*identity element*] wrt. an `operator+=` is a requirement
+for template type `CodomainT`. 
+
+
+[table
+[[type]     [operation]     [identity element]]
+[[`int`]    [addition]      [`0`]    ]
+[[`string`] [concatenation] [`""`]   ]
+[[`set<T>`] [union]         [`{}`]   ]
+]
+
+In these cases the `identity element` value is delivered by the default constructor
+of the maps `CodomainT` type. But there are well known exceptions 
+like e.g. numeric multiplication:
+
+[table
+[[type]   [operation]        [identity element]]
+[[`int`]  [multiplication]   [`1`]    ]
+]
+
+Therefore icl functors,
+that serve as `Combiner` parameters of icl Maps
+implement a static function `identity_element()` to make
+sure that the correct `identity_element()` is used
+in the implementation
+of ['aggregate on overlap].
+``
+inplace_times<int>::identity_element() == 1
+// or more general
+inplace_times<T>::identity_element() == unit_element<T>::value()
+``
+
+[h4 Definedness and Storage of Identity Elements]
+
+There are two /properties/ or /traits/ of icl maps that can be
+chosen by a template parameter `Traits`.
+The ['*first trait*] relates to the ['*definedness*] of the map. Icl
+maps can be *partial* or *total* on the set of values given by
+domain type `DomainT`.
+
+* A ['*partial*] map is only defined on those key elements that have been
+inserted into the Map. This is usually expected and so ['*partial definedness*]
+is the default.
+
+* Alternatively an icl Map can be ['*total*]. It is then considered to
+contain a ['*neutral value*] for all key values that are not
+stored in the map. 
+
+The ['*second trait*] is related to the representation of `identity elements` in 
+the map. An icl map can be a ['*identity absorber*] or a ['*identity enricher*].
+
+* A ['*identity absorber*] never stores value pairs `(k,0)` that carry identity elements.
+* A ['*identity enricher*] stores value pairs `(k,0)`.
+
+For the template parameter `Traits` of icl Maps we have the following
+four values.
+
+[table
+[[]       [identity absorber]            [identity enricher]]
+[[partial][partial_absorber /(default)/][partial_enricher]]
+[[total]  [total_absorber]              [total_enricher]]
+]
+
+[h4 Map Traits motivated]
+
+Map traits are a late extension to the *icl*. Interval maps have
+been used for a couple of years  
+in a variety of applications at Cortex Software GmbH
+with an implementation that resembled the default trait.
+Only the deeper analysis of the icl's ['*aggregating Map's
+concept*] in the course of preparation of the library for boost 
+led to the introduction of map Traits.
+
+[h5 Add-Subtract Antinomy in Aggregating Maps]
+
+Constitutional for the absorber/enricher propery is a little
+antinomy.
+
+We can insert value pairs to the map by ['*adding*] them to the map
+via operations `add, +=` or `+`:
+``{} + {(k,1)} == {(k,1)} // addition``
+
+Further addition on common keys triggers aggregation:
+``{(k,1)} + {(k,1)} == {(k,2)} // aggregation for common key k``
+
+A subtraction of existing pairs
+``{(k,2)} - {(k,2)} == {(k,0)} // aggregation for common key k``
+yields value pairs that are associated with 0-values or `identity elements`.
+
+So once a value pair is created for a key `k` it can not be 
+removed from the map via subtraction (`subtract, -=` or `-`).
+
+The very basic fact on sets, that we can remove what we have
+previously added
+``x - x = {}``
+does not apply.
+
+This is the motivation for the ['*identity absorber*] Trait.
+A identity absorber map handles value pairs that carry
+identity elements as ['*non-existent*], which saves the law:
+``x - x = {}``
+
+Yet this introduces a new problem: With such a /identity absorber/
+we are /by definition/ unable to store a value `(k,0)` in
+the map. This may be unfavorable because it is not inline with the 
+behavior of stl::maps and this is not necessarily expected by clients
+of the library.
+
+[/ CL On the other hand, the notion of a identity absorbing map
+is more than just an akademic rescue effort for a formal law.
+It turns out that absorber maps have desirable properties
+for aggregation computations (see section semantics) 
+that proved to be useful in practice and are in many cases
+just what is needed.]
+
+The solution to the problem is the introduction of the
+identity enricher Trait, so the user can choose a map variant
+according to her needs.
+
+[h5 Partial and Total Maps]
+
+The idea of a identity absorbing map is,
+that an ['*associated identity element*] value of a pair `(k,0)` 
+['*codes non-existence*] for it's key `k`.
+So the pair `(k,0)` immediately tunnels from
+a map where it may emerge into the realm
+of non existence.
+``{(k,0)} == {}``
+
+If identity elements do not code ['*non-existence*] but 
+['*existence with null quantification*], 
+we can also think of a map
+that has an associated identity element
+['*for every*] key `k` that has no associated value
+different from 0.
+So in contrast to modelling *all* neutral
+value pairs `(k,0)` as being ['*non-existent*]
+we can model *all* neutral value pairs `(k,0)` as being
+['*implicitly existent*].
+
+
+A map that is modelled in this way, is one large vector with
+a value `v` for every key `k` of it's domain type `DomainT`.
+But only non-identity values are actually stored.
+This is the motivation for the definedness-Trait on `icl Maps`.
+
+A ['*partial*] map models the intuitive view that only value
+pairs are existent, that are stored in the map.
+A ['*total*] map exploits the possibility that all 
+value pairs that are not stored can be considered 
+as being existent and ['*quantified*] with the identity element.
+
+[/                         
+partial existential view
+total   quantifying view
+] 
+
+
+[h4 Pragmatical Aspects of Map Traits]
+
+From a pragmatic perspective value pairs that carry `identity elements` as 
+mapped values can often be ignored.
+If we count, for instance,
+the number of overlaps of inserted intervals in an __itv_map__
+(see example [link boost_icl.examples.overlap_counter overlap counter]), 
+most of the time, we are not
+interested in whether an overlap has been counted `0` times or
+has not been counted at all. A identity enricher map
+is only needed, if we want to distinct between non-existence
+and 0-quantification.
+
+The following distinction can *not* be made for a __pabsorber__ map
+but it can be made for an __penricher__ map:
+[pre
+(k,v) does not exist in the map: Pair (k,v) has NOT been dealt with
+(k,0) key k carries 0          : Pair (k,v) has     been dealt with resulting in v=0
+]
+
+Sometimes this subtle distinction is needed. Then a __penricher__
+is the right choice. Also, If we want to give two `icl::Maps`
+a common set of keys in order to, say, iterate synchronously
+over both maps, we need /enrichers/. 
+
+
+[endsect] [/ Map Traits]
+
+[endsect][/ Concepts]
+

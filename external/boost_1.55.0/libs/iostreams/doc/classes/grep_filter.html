@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Class Template basic_grep_filter</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Class Template <CODE>basic_grep_filter</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#installation">Installation</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    The class template <CODE>basic_grep_filter</CODE> filters a character sequence line by line using a regular expression provided at construction, in a manner similar to the command-line utility <i>grep</i> (<A CLASS="bib_ref" HREF="../bibliography.html#grep">[IEEE]</A>). The filter uses regular expressions from the <A HREF="http://www.boost.org/libs/regex" TARGET="_top">Boost Regular Expression Library</A> (<A CLASS="bib_ref" HREF="../bibliography.html#maddock">[Maddock]</A>).
+</P>
+<P>
+    By default, the filtered character sequence consists of those lines of the unfiltered sequence that contain a subsequence matching the regular expression. By specifying appropriate options at construction, <CODE>basic_grep_filter</CODE> can be made to pass through only those lines which exactly match the regular expression (as if the option <i>-x</i> had been  passed to the command-line utility) or only those lines that <i>do not</i> contain a match (as if the option <i>-v</i> had been  passed to the command-line utility).
+</P>
+<P>
+    A running count of the lines in the filtered character sequence is available via the member function <code><a href="#count">count</a></code>.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/filter/grep.hpp"><CODE>&lt;boost/iostreams/filter/grep.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="installation"></A>
+<H2>Installation</H2>
+
+<P>
+    The template <CODE>basic_grep_filter</CODE> uses the <A HREF="http://www.boost.org/libs/regex" TARGET="_top">Boost Regular Expression Library</A>, which must be built separately. See <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/install.html" TARGET="_top">here</A> for details.
+</P>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/function.hpp" TARGET="_top"><SPAN CLASS="literal">&lt;boost/function.hpp&gt;</SPAN></A>
+<SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/regex.hpp" TARGET="_top"><SPAN CLASS="literal">&lt;boost/regex.hpp&gt;</SPAN></A>
+
+<SPAN CLASS="keyword">namespace</SPAN> grep {
+
+<SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">int</SPAN> invert;
+<SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">int</SPAN> whole_line;
+
+}
+
+<SPAN CLASS="keyword">template</SPAN>&lt; <SPAN CLASS="keyword">typename</SPAN> <A HREF="#template_params" CLASS="documented">Ch</A>,
+          <SPAN CLASS="keyword">typename</SPAN> <A HREF="#template_params" CLASS="documented">Tr</A> = regex_traits&lt;Ch&gt;,
+          <SPAN CLASS="keyword">typename</SPAN> <A HREF="#template_params" CLASS="documented">Alloc</A> = std::allocator&lt;Ch&gt; &gt;
+<SPAN CLASS="keyword">class</SPAN> <A HREF="#template_params" CLASS="documented">basic_grep_filter</A> {   
+<SPAN CLASS="keyword">public:</SPAN>
+    <A CLASS="documented" HREF="#constructor">basic_grep_filter</A>( <SPAN CLASS="keyword">const</SPAN> basic_regex&lt;Ch, Tr, Alloc&gt;&amp; pattern,
+                       regex_constants::match_flag_type flags = 
+                           regex_constants::match_default,
+                       <SPAN CLASS="keyword">int</SPAN> options = <SPAN CLASS="numeric_literal">0</SPAN> );
+    <SPAN CLASS="keyword">int</SPAN> <A CLASS="documented" HREF="#count">count</A>() <SPAN CLASS="keyword">const</SPAN>;
+};
+
+<SPAN CLASS="keyword">typedef</SPAN> basic_grep_filter&lt;<SPAN CLASS="keyword">char</SPAN>&gt;     <SPAN CLASS="defined">grep_filter</SPAN>;
+<SPAN CLASS="keyword">typedef</SPAN> basic_grep_filter&lt;<SPAN CLASS="keyword">wchar_t</SPAN>&gt;  <SPAN CLASS="defined">wgrep_filter</SPAN>;
+
+} } // End namespace boost::io</PRE>
+
+<A NAME="template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>Ch</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The character type</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Tr</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/ref/regex_traits.html" TARGET="_top">regular expression traits</A> type</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Alloc</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A standard library allocator type (<A CLASS="bib_ref" HREF="../bibliography.html#iso">[ISO]</A>, 20.1.5), used to allocate character buffers</TD>
+    </TR>
+</TABLE>
+
+<A NAME="constructor"></A>
+<H4><CODE>basic_grep_filter::basic_grep_filter</CODE></H4>
+
+<PRE CLASS="broken_ie">    <B>basic_grep_filter</B>( <SPAN CLASS="keyword">const</SPAN> basic_regex&lt;Ch, Tr, Alloc&gt;&amp; pattern,
+                       regex_constants::match_flag_type flags = 
+                           regex_constants::match_default,
+                       <SPAN CLASS="keyword">int</SPAN> options = <SPAN CLASS="numeric_literal">0</SPAN> );</PRE>
+    
+<P>Constructs a <CODE>basic_grep_filter</CODE> from the given regular expression, match flags, and grep options. The parameters have the following interpretations:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>pattern</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The regular expression to be matched against the stream of unfiltered data</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>flags</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The flags passed to <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/ref/regex_search.html" TARGET="_top">regex_search</A> or <A HREF="http://www.boost.org/libs/regex/doc/html/boost_regex/ref/regex_match.html" TARGET="_top">regex_match</A> to specify regular expression matching behavior</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>options</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A bitwise OR of zero or more constants from the namespace <CODE>boost::iostreams::grep</CODE>. Currently two constants are recongnized: <CODE>grep::whole_line</CODE> causes the filter to pass through only those lines which exactly match the regular expression, and <CODE>grep::invert</CODE> causes the filter to pass through only those lines that <i>do not</i> contain a match.</TD>
+    </TR>
+</TABLE>
+
+</P>
+
+<A NAME="count"></A>
+<H4><CODE>basic_grep_filter::count</CODE></H4>
+
+<A NAME="second_constructor"></A>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">int</SPAN> count() <SPAN CLASS="keyword">const</SPAN>;</PRE>
+    
+<P>Returns a running count of the lines passed through from the unfiltered character sequence to the filtered character sequence. The count is reset to zero automatically when the filter begins processing a new character sequence.</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

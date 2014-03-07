@@ -1,0 +1,146 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:posix POSIX-Specific Functionality]
+
+[link boost_asio.overview.posix.local UNIX Domain Sockets]
+
+[link boost_asio.overview.posix.stream_descriptor Stream-Oriented File Descriptors]
+
+[link boost_asio.overview.posix.fork Fork]
+
+[section:local UNIX Domain Sockets]
+
+Boost.Asio provides basic support UNIX domain sockets (also known as local sockets).
+The simplest use involves creating a pair of connected sockets. The following
+code:
+
+  local::stream_protocol::socket socket1(my_io_service);
+  local::stream_protocol::socket socket2(my_io_service);
+  local::connect_pair(socket1, socket2);
+
+will create a pair of stream-oriented sockets. To do the same for
+datagram-oriented sockets, use:
+
+  local::datagram_protocol::socket socket1(my_io_service);
+  local::datagram_protocol::socket socket2(my_io_service);
+  local::connect_pair(socket1, socket2);
+
+A UNIX domain socket server may be created by binding an acceptor to an
+endpoint, in much the same way as one does for a TCP server:
+
+  ::unlink("/tmp/foobar"); // Remove previous binding.
+  local::stream_protocol::endpoint ep("/tmp/foobar");
+  local::stream_protocol::acceptor acceptor(my_io_service, ep);
+  local::stream_protocol::socket socket(my_io_service);
+  acceptor.accept(socket);
+
+A client that connects to this server might look like:
+
+  local::stream_protocol::endpoint ep("/tmp/foobar");
+  local::stream_protocol::socket socket(my_io_service);
+  socket.connect(ep);
+
+Transmission of file descriptors or credentials across UNIX domain sockets is
+not directly supported within Boost.Asio, but may be achieved by accessing the
+socket's underlying descriptor using the [link
+boost_asio.reference.basic_socket.native_handle native_handle()] member function.
+
+[heading See Also]
+
+[link boost_asio.reference.local__connect_pair local::connect_pair],
+[link boost_asio.reference.local__datagram_protocol local::datagram_protocol],
+[link boost_asio.reference.local__datagram_protocol.endpoint local::datagram_protocol::endpoint],
+[link boost_asio.reference.local__datagram_protocol.socket local::datagram_protocol::socket],
+[link boost_asio.reference.local__stream_protocol local::stream_protocol],
+[link boost_asio.reference.local__stream_protocol.acceptor local::stream_protocol::acceptor],
+[link boost_asio.reference.local__stream_protocol.endpoint local::stream_protocol::endpoint],
+[link boost_asio.reference.local__stream_protocol.iostream local::stream_protocol::iostream],
+[link boost_asio.reference.local__stream_protocol.socket local::stream_protocol::socket],
+[link boost_asio.examples.cpp03_examples.unix_domain_sockets UNIX domain sockets examples].
+
+[heading Notes]
+
+UNIX domain sockets are only available at compile time if supported by the
+target operating system. A program may test for the macro
+`BOOST_ASIO_HAS_LOCAL_SOCKETS` to determine whether they are supported.
+
+[endsect]
+
+[section:stream_descriptor Stream-Oriented File Descriptors]
+
+Boost.Asio includes classes added to permit synchronous and asynchronous read and
+write operations to be performed on POSIX file descriptors, such as pipes,
+standard input and output, and various devices (but /not/ regular files).
+
+For example, to perform read and write operations on standard input
+and output, the following objects may be created:
+
+  posix::stream_descriptor in(my_io_service, ::dup(STDIN_FILENO));
+  posix::stream_descriptor out(my_io_service, ::dup(STDOUT_FILENO));
+
+These are then used as synchronous or asynchronous read and write streams. This
+means the objects can be used with any of the [link boost_asio.reference.read
+read()], [link boost_asio.reference.async_read async_read()], [link
+boost_asio.reference.write write()], [link boost_asio.reference.async_write async_write()],
+[link boost_asio.reference.read_until read_until()] or [link
+boost_asio.reference.async_read_until async_read_until()] free functions.
+
+[heading See Also]
+
+[link boost_asio.reference.posix__stream_descriptor posix::stream_descriptor],
+[link boost_asio.reference.posix__basic_stream_descriptor posix::basic_stream_descriptor],
+[link boost_asio.reference.posix__stream_descriptor_service posix::stream_descriptor_service],
+[link boost_asio.examples.cpp03_examples.chat Chat example (C++03)],
+[link boost_asio.examples.cpp11_examples.chat Chat example (C++11)].
+
+[heading Notes]
+
+POSIX stream descriptors are only available at compile time if supported by the
+target operating system. A program may test for the macro
+`BOOST_ASIO_HAS_POSIX_STREAM_DESCRIPTOR` to determine whether they are supported.
+
+[endsect]
+
+[section:fork Fork]
+
+Boost.Asio supports programs that utilise the `fork()` system call. Provided the
+program calls `io_service.notify_fork()` at the appropriate times, Boost.Asio will
+recreate any internal file descriptors (such as the "self-pipe trick"
+descriptor used for waking up a reactor). The notification is usually performed
+as follows:
+
+  io_service_.notify_fork(boost::asio::io_service::fork_prepare);
+  if (fork() == 0)
+  {
+    io_service_.notify_fork(boost::asio::io_service::fork_child);
+    ...
+  }
+  else
+  {
+    io_service_.notify_fork(boost::asio::io_service::fork_parent);
+    ...
+  }
+
+User-defined services can also be made fork-aware by overriding the
+`io_service::service::fork_service()` virtual function.
+
+Note that any file descriptors accessible via Boost.Asio's public API (e.g. the
+descriptors underlying `basic_socket<>`, `posix::stream_descriptor`, etc.) are
+not altered during a fork. It is the program's responsibility to manage these
+as required.
+
+[heading See Also]
+
+[link boost_asio.reference.io_service.notify_fork io_service::notify_fork()],
+[link boost_asio.reference.io_service.fork_event io_service::fork_event],
+[link boost_asio.reference.io_service__service.fork_service io_service::service::fork_service()],
+[link boost_asio.examples.cpp03_examples.fork Fork examples].
+
+[endsect]
+
+[endsect]

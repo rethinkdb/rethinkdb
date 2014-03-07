@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="svg_test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>SVG test</title>
+  <para>
+    <inlinemediaobject><imageobject><imagedata contentdepth="513.25690" contentwidth="745.60706"
+    fileref="images/open_clipart_library_logo.svg" format="SVG"></imagedata></imageobject>
+    <textobject>
+      <phrase>open_clipart_library_logo</phrase>
+    </textobject>
+    </inlinemediaobject> <inlinemediaobject><imageobject><imagedata fileref="images/missing_image.svg"
+    format="SVG"></imagedata></imageobject>
+    <textobject>
+      <phrase>missing_image</phrase>
+    </textobject>
+    </inlinemediaobject>
+  </para>
+</article>

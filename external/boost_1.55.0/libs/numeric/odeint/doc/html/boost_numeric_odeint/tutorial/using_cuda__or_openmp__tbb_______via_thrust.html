@@ -1,0 +1,701 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Using CUDA (or OpenMP, TBB, ...) via Thrust</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="self_expanding_lattices.html" title="Self expanding lattices">
+<link rel="next" href="using_opencl_via_vexcl.html" title="Using OpenCL via VexCL">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="self_expanding_lattices.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="using_opencl_via_vexcl.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.tutorial.using_cuda__or_openmp__tbb_______via_thrust"></a><a class="link" href="using_cuda__or_openmp__tbb_______via_thrust.html" title="Using CUDA (or OpenMP, TBB, ...) via Thrust">Using
+      CUDA (or OpenMP, TBB, ...) via Thrust</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="using_cuda__or_openmp__tbb_______via_thrust.html#boost_numeric_odeint.tutorial.using_cuda__or_openmp__tbb_______via_thrust.phase_oscillator_ensemble">Phase
+        oscillator ensemble</a></span></dt>
+<dt><span class="section"><a href="using_cuda__or_openmp__tbb_______via_thrust.html#boost_numeric_odeint.tutorial.using_cuda__or_openmp__tbb_______via_thrust.large_oscillator_chains">Large
+        oscillator chains</a></span></dt>
+<dt><span class="section"><a href="using_cuda__or_openmp__tbb_______via_thrust.html#boost_numeric_odeint.tutorial.using_cuda__or_openmp__tbb_______via_thrust.parameter_studies">Parameter
+        studies</a></span></dt>
+</dl></div>
+<p>
+        Modern graphic cards (graphic processing units - GPUs) can be used to speed
+        up the performance of time consuming algorithms by means of massive parallelization.
+        They are designed to execute many operations in parallel. odeint can utilize
+        the power of GPUs by means of CUDA and <a href="http://code.google.com/p/thrust/" target="_top">Thrust</a>,
+        which is a STL-like interface for the native CUDA API.
+      </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Thrust also supports parallelization using OpenMP and Intel Threading Building
+          Blocks (TBB). You can switch between CUDA, OpenMP and TBB parallelizations
+          by a simple compiler switch. Hence, this also provides an easy way to get
+          basic OpenMP parallelization into odeint. The examples discussed below
+          are focused on GPU parallelization, though.
+        </p></td></tr>
+</table></div>
+<p>
+        To use odeint with CUDA a few points have to be taken into account. First
+        of all, the problem has to be well chosen. It makes absolutely no sense to
+        try to parallelize the code for a three dimensional system, it is simply
+        too small and not worth the effort. One single function call (kernel execution)
+        on the GPU is slow but you can do the operation on a huge set of data with
+        only one call. We have experienced that the vector size over which is parallelized
+        should be of the order of <span class="emphasis"><em>10<sup>6</sup></em></span> to make full use of the
+        GPU. Secondly, you have to use <a href="http://code.google.com/p/thrust/" target="_top">Thrust</a>'s
+        algorithms and functors when implementing the rhs the ODE. This might be
+        tricky since it involves some kind of functional programming knowledge.
+      </p>
+<p>
+        Typical applications for CUDA and odeint are large systems, like lattices
+        or discretizations of PDE, and parameter studies. We introduce now three
+        examples which show how the power of GPUs can be used in combination with
+        odeint.
+      </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          The full power of CUDA is only available for really large systems where
+          the number of coupled ordinary differential equations is of order <span class="emphasis"><em>N=10<sup>6</sup></em></span>
+          or larger. For smaller systems the CPU is usually much faster. You can
+          also integrate an ensemble of different uncoupled ODEs in parallel as shown
+          in the last example.
+        </p></td></tr>
+</table></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.tutorial.using_cuda__or_openmp__tbb_______via_thrust.phase_oscillator_ensemble"></a><a class="link" href="using_cuda__or_openmp__tbb_______via_thrust.html#boost_numeric_odeint.tutorial.using_cuda__or_openmp__tbb_______via_thrust.phase_oscillator_ensemble" title="Phase oscillator ensemble">Phase
+        oscillator ensemble</a>
+</h4></div></div></div>
+<p>
+          The first example is the phase oscillator ensemble from the previous section:
+        </p>
+<p>
+          <span class="emphasis"><em>d&#966;<sub>&#8203;k</sub> / dt = &#969;<sub>&#8203;k</sub> + &#949; / N &#931;<sub>&#8203;j</sub> sin( &#966;<sub>&#8203;j</sub> - &#966;<sub>&#8203;k</sub> ).</em></span>
+        </p>
+<p>
+          It has a phase transition at <span class="emphasis"><em>&#949; = 2</em></span> in the limit of infinite
+          numbers of oscillators <span class="emphasis"><em>N</em></span>. In the case of finite <span class="emphasis"><em>N</em></span>
+          this transition is smeared out but still clearly visible.
+        </p>
+<p>
+          <a href="http://code.google.com/p/thrust/" target="_top">Thrust</a> and CUDA are
+          perfectly suited for such kinds of problems where one needs a large number
+          of particles (oscillators). We start by defining the state type which is
+          a <code class="computeroutput"><span class="identifier">thrust</span><span class="special">::</span><span class="identifier">device_vector</span></code>. The content of this vector
+          lives on the GPU. If you are not familiar with this we recommend reading
+          the <span class="emphasis"><em>Getting started</em></span> section on the <a href="http://code.google.com/p/thrust/" target="_top">Thrust</a>
+          website.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">//change this to float if your device does not support double computation</span>
+<span class="keyword">typedef</span> <span class="keyword">double</span> <span class="identifier">value_type</span><span class="special">;</span>
+
+<span class="comment">//change this to host_vector&lt; ... &gt; of you want to run on CPU</span>
+<span class="keyword">typedef</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">device_vector</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span> <span class="identifier">state_type</span><span class="special">;</span>
+<span class="comment">// typedef thrust::host_vector&lt; value_type &gt; state_type;</span>
+</pre>
+<p>
+        </p>
+<p>
+          Thrust follows a functional programming approach. If you want to perform
+          a calculation on the GPU you usually have to call a global function like
+          <code class="computeroutput"><span class="identifier">thrust</span><span class="special">::</span><span class="identifier">for_each</span></code>, <code class="computeroutput"><span class="identifier">thrust</span><span class="special">::</span><span class="identifier">reduce</span></code>,
+          ... with an appropriate local functor which performs the basic operation.
+          An example is
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">add_two</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">T</span> <span class="special">&gt;</span>
+    <span class="identifier">__host__</span> <span class="identifier">__device__</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="identifier">T</span> <span class="special">&amp;</span><span class="identifier">t</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">t</span> <span class="special">+=</span> <span class="identifier">T</span><span class="special">(</span> <span class="number">2</span> <span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">// ...</span>
+
+<span class="identifier">thrust</span><span class="special">::</span><span class="identifier">for_each</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">add_two</span><span class="special">()</span> <span class="special">);</span>
+</pre>
+<p>
+          This code generically adds two to every element in the container <code class="computeroutput"><span class="identifier">x</span></code>.
+        </p>
+<p>
+          For the purpose of integrating the phase oscillator ensemble we need
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              to calculate the system function, hence the r.h.s. of the ODE.
+            </li>
+<li class="listitem">
+              this involves computing the mean field of the oscillator example, i.e.
+              the values of <span class="emphasis"><em>R</em></span> and <span class="emphasis"><em>&#952;</em></span>
+            </li>
+</ul></div>
+<p>
+          The mean field is calculated in a class <code class="computeroutput"><span class="identifier">mean_field_calculator</span></code>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">mean_field_calculator</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">sin_functor</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">unary_function</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="identifier">__host__</span> <span class="identifier">__device__</span>
+        <span class="identifier">value_type</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="identifier">value_type</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">sin</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="keyword">struct</span> <span class="identifier">cos_functor</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">unary_function</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="identifier">__host__</span> <span class="identifier">__device__</span>
+        <span class="identifier">value_type</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="identifier">value_type</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">cos</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">&gt;</span> <span class="identifier">get_mean</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">value_type</span> <span class="identifier">sin_sum</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">reduce</span><span class="special">(</span>
+                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_transform_iterator</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">sin_functor</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span>
+                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_transform_iterator</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">sin_functor</span><span class="special">()</span> <span class="special">)</span> <span class="special">);</span>
+        <span class="identifier">value_type</span> <span class="identifier">cos_sum</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">reduce</span><span class="special">(</span>
+                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_transform_iterator</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">cos_functor</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span>
+                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_transform_iterator</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">cos_functor</span><span class="special">()</span> <span class="special">)</span> <span class="special">);</span>
+
+        <span class="identifier">cos_sum</span> <span class="special">/=</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">);</span>
+        <span class="identifier">sin_sum</span> <span class="special">/=</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">);</span>
+
+        <span class="identifier">value_type</span> <span class="identifier">K</span> <span class="special">=</span> <span class="identifier">sqrt</span><span class="special">(</span> <span class="identifier">cos_sum</span> <span class="special">*</span> <span class="identifier">cos_sum</span> <span class="special">+</span> <span class="identifier">sin_sum</span> <span class="special">*</span> <span class="identifier">sin_sum</span> <span class="special">);</span>
+        <span class="identifier">value_type</span> <span class="identifier">Theta</span> <span class="special">=</span> <span class="identifier">atan2</span><span class="special">(</span> <span class="identifier">sin_sum</span> <span class="special">,</span> <span class="identifier">cos_sum</span> <span class="special">);</span>
+
+        <span class="keyword">return</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">make_pair</span><span class="special">(</span> <span class="identifier">K</span> <span class="special">,</span> <span class="identifier">Theta</span> <span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          Inside this class two member structures <code class="computeroutput"><span class="identifier">sin_functor</span></code>
+          and <code class="computeroutput"><span class="identifier">cos_functor</span></code> are defined.
+          They compute the sine and the cosine of a value and they are used within
+          a transform iterator to calculate the sum of <span class="emphasis"><em>sin(&#966;<sub>&#8203;k</sub>)</em></span>
+          and <span class="emphasis"><em>cos(&#966;<sub>&#8203;k</sub>)</em></span>. The classifiers <code class="computeroutput"><span class="identifier">__host__</span></code>
+          and <code class="computeroutput"><span class="identifier">__device__</span></code> are CUDA
+          specific and define a function or operator which can be executed on the
+          GPU as well as on the CPU. The line
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">value_type</span> <span class="identifier">sin_sum</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">reduce</span><span class="special">(</span>
+        <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_transform_iterator</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">sin_functor</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span>
+        <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_transform_iterator</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">sin_functor</span><span class="special">()</span> <span class="special">)</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          performs the calculation of this sine-sum on the GPU (or on the CPU, depending
+          on your thrust configuration).
+        </p>
+<p>
+          The system function is defined via
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">phase_oscillator_ensemble</span>
+<span class="special">{</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+
+    <span class="keyword">struct</span> <span class="identifier">sys_functor</span>
+    <span class="special">{</span>
+        <span class="identifier">value_type</span> <span class="identifier">m_K</span> <span class="special">,</span> <span class="identifier">m_Theta</span> <span class="special">,</span> <span class="identifier">m_epsilon</span><span class="special">;</span>
+
+        <span class="identifier">sys_functor</span><span class="special">(</span> <span class="identifier">value_type</span> <span class="identifier">K</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="identifier">Theta</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="identifier">epsilon</span> <span class="special">)</span>
+        <span class="special">:</span> <span class="identifier">m_K</span><span class="special">(</span> <span class="identifier">K</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_Theta</span><span class="special">(</span> <span class="identifier">Theta</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_epsilon</span><span class="special">(</span> <span class="identifier">epsilon</span> <span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+        <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Tuple</span> <span class="special">&gt;</span>
+        <span class="identifier">__host__</span> <span class="identifier">__device__</span>
+        <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="identifier">Tuple</span> <span class="identifier">t</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">m_epsilon</span> <span class="special">*</span> <span class="identifier">m_K</span> <span class="special">*</span> <span class="identifier">sin</span><span class="special">(</span> <span class="identifier">m_Theta</span> <span class="special">-</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">)</span> <span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="comment">// ...</span>
+
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">dt</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">&gt;</span> <span class="identifier">mean_field</span> <span class="special">=</span> <span class="identifier">mean_field_calculator</span><span class="special">::</span><span class="identifier">get_mean</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">);</span>
+
+        <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">for_each</span><span class="special">(</span>
+                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_zip_iterator</span><span class="special">(</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">m_omega</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">dxdt</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">)</span> <span class="special">),</span>
+                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_zip_iterator</span><span class="special">(</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">m_omega</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">dxdt</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span> <span class="special">)</span> <span class="special">,</span>
+                <span class="identifier">sys_functor</span><span class="special">(</span> <span class="identifier">mean_field</span><span class="special">.</span><span class="identifier">first</span> <span class="special">,</span> <span class="identifier">mean_field</span><span class="special">.</span><span class="identifier">second</span> <span class="special">,</span> <span class="identifier">m_epsilon</span> <span class="special">)</span>
+                <span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          This class is used within the <code class="computeroutput"><span class="identifier">do_step</span></code>
+          and <code class="computeroutput"><span class="identifier">integrate</span></code> method. It
+          defines a member structure <code class="computeroutput"><span class="identifier">sys_functor</span></code>
+          for the r.h.s. of each individual oscillator and the <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code> for the use in the steppers and integrators
+          of odeint. The functor computes first the mean field of <span class="emphasis"><em>&#966;<sub>&#8203;k</sub></em></span>
+          and secondly calculates the whole r.h.s. of the ODE using this mean field.
+          Note, how nicely <code class="computeroutput"><span class="identifier">thrust</span><span class="special">::</span><span class="identifier">tuple</span></code>
+          and <code class="computeroutput"><span class="identifier">thrust</span><span class="special">::</span><span class="identifier">zip_iterator</span></code> play together.
+        </p>
+<p>
+          Now, we are ready to put everything together. All we have to do for making
+          odeint ready for using the GPU is to parametrize the stepper with the appropriate
+          thrust algebra/operations:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">runge_kutta4</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">thrust_algebra</span> <span class="special">,</span> <span class="identifier">thrust_operations</span> <span class="special">&gt;</span> <span class="identifier">stepper_type</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          You can also use a controlled or dense output stepper, e.g.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">runge_kutta_dopri5</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">thrust_algebra</span> <span class="special">,</span> <span class="identifier">thrust_operations</span> <span class="special">&gt;</span> <span class="identifier">stepper_type</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          Then, it is straightforward to integrate the phase ensemble by creating
+          an instance of the rhs class and using an integration function:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">phase_oscillator_ensemble</span> <span class="identifier">ensemble</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">,</span> <span class="number">1.0</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">size_t</span> <span class="identifier">steps1</span> <span class="special">=</span> <span class="identifier">integrate_const</span><span class="special">(</span> <span class="identifier">make_controlled</span><span class="special">(</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="identifier">stepper_type</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span> <span class="identifier">ensemble</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="identifier">t_transients</span> <span class="special">,</span> <span class="identifier">dt</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          We have to use <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span></code> here in order to pass the rhs class
+          as reference and not by value. This ensures that the natural frequencies
+          of each oscillator are not copied when calling <code class="computeroutput"><span class="identifier">integrate_const</span></code>.
+          In the full example the performance and results of the Runge-Kutta-4 and
+          the Dopri5 solver are compared.
+        </p>
+<p>
+          The full example can be found at <a href="../../../../../../../libs/numeric/odeint/examples/thrust/phase_oscillator_ensemble.cu" target="_top">phase_oscillator_example.cu</a>.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.tutorial.using_cuda__or_openmp__tbb_______via_thrust.large_oscillator_chains"></a><a class="link" href="using_cuda__or_openmp__tbb_______via_thrust.html#boost_numeric_odeint.tutorial.using_cuda__or_openmp__tbb_______via_thrust.large_oscillator_chains" title="Large oscillator chains">Large
+        oscillator chains</a>
+</h4></div></div></div>
+<p>
+          The next example is a large, one-dimensional chain of nearest-neighbor
+          coupled phase oscillators with the following equations of motion:
+        </p>
+<p>
+          <span class="emphasis"><em>d &#966;<sub>&#8203;k</sub> / dt = &#969;<sub>&#8203;k</sub> + sin( &#966;<sub>&#8203;k+1</sub> - &#966;<sub>&#8203;k</sub> ) + sin( &#966;<sub>&#8203;k</sub> - &#966;<sub>&#8203;k-1</sub>)</em></span>
+        </p>
+<p>
+          In principle we can use all the techniques from the previous phase oscillator
+          ensemble example, but we have to take special care about the coupling of
+          the oscillators. To efficiently implement the coupling you can use a very
+          elegant way employing Thrust's permutation iterator. A permutation iterator
+          behaves like a normal iterator on a vector but it does not iterate along
+          the usual order of the elements. It rather iterates along some permutation
+          of the elements defined by some index map. To realize the nearest neighbor
+          coupling we create one permutation iterator which travels one step behind
+          a usual iterator and another permutation iterator which travels one step
+          in front. The full system class is:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">//change this to host_vector&lt; ... &gt; if you want to run on CPU</span>
+<span class="keyword">typedef</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">device_vector</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span> <span class="identifier">state_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">device_vector</span><span class="special">&lt;</span> <span class="identifier">size_t</span> <span class="special">&gt;</span> <span class="identifier">index_vector_type</span><span class="special">;</span>
+<span class="comment">//typedef thrust::host_vector&lt; value_type &gt; state_type;</span>
+<span class="comment">//typedef thrust::host_vector&lt; size_t &gt; index_vector_type;</span>
+
+<span class="keyword">class</span> <span class="identifier">phase_oscillators</span>
+<span class="special">{</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+
+    <span class="keyword">struct</span> <span class="identifier">sys_functor</span>
+    <span class="special">{</span>
+        <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Tuple</span> <span class="special">&gt;</span>
+        <span class="identifier">__host__</span> <span class="identifier">__device__</span>
+        <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="identifier">Tuple</span> <span class="identifier">t</span> <span class="special">)</span>  <span class="comment">// this functor works on tuples of values</span>
+        <span class="special">{</span>
+            <span class="comment">// first, unpack the tuple into value, neighbors and omega</span>
+            <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">phi</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">);</span>
+            <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">phi_left</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">);</span>  <span class="comment">// left neighbor</span>
+            <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">phi_right</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">);</span> <span class="comment">// right neighbor</span>
+            <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">omega</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">3</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">);</span>
+            <span class="comment">// the dynamical equation</span>
+            <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">4</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">omega</span> <span class="special">+</span> <span class="identifier">sin</span><span class="special">(</span> <span class="identifier">phi_right</span> <span class="special">-</span> <span class="identifier">phi</span> <span class="special">)</span> <span class="special">+</span> <span class="identifier">sin</span><span class="special">(</span> <span class="identifier">phi</span> <span class="special">-</span> <span class="identifier">phi_left</span> <span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="identifier">phase_oscillators</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">omega</span> <span class="special">)</span>
+        <span class="special">:</span> <span class="identifier">m_omega</span><span class="special">(</span> <span class="identifier">omega</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_N</span><span class="special">(</span> <span class="identifier">omega</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_prev</span><span class="special">(</span> <span class="identifier">omega</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_next</span><span class="special">(</span> <span class="identifier">omega</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="comment">// build indices pointing to left and right neighbours</span>
+        <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">counting_iterator</span><span class="special">&lt;</span><span class="identifier">size_t</span><span class="special">&gt;</span> <span class="identifier">c</span><span class="special">(</span> <span class="number">0</span> <span class="special">);</span>
+        <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span> <span class="identifier">c</span> <span class="special">,</span> <span class="identifier">c</span><span class="special">+</span><span class="identifier">m_N</span><span class="special">-</span><span class="number">1</span> <span class="special">,</span> <span class="identifier">m_prev</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()+</span><span class="number">1</span> <span class="special">);</span>
+        <span class="identifier">m_prev</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="comment">// m_prev = { 0 , 0 , 1 , 2 , 3 , ... , N-1 }</span>
+
+        <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span> <span class="identifier">c</span><span class="special">+</span><span class="number">1</span> <span class="special">,</span> <span class="identifier">c</span><span class="special">+</span><span class="identifier">m_N</span> <span class="special">,</span> <span class="identifier">m_next</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">);</span>
+        <span class="identifier">m_next</span><span class="special">[</span><span class="identifier">m_N</span><span class="special">-</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">m_N</span><span class="special">-</span><span class="number">1</span><span class="special">;</span> <span class="comment">// m_next = { 1 , 2 , 3 , ... , N-1 , N-1 }</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">dt</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">for_each</span><span class="special">(</span>
+                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_zip_iterator</span><span class="special">(</span>
+                        <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span>
+                                <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span>
+                                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_permutation_iterator</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">m_prev</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span>
+                                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_permutation_iterator</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">m_next</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span>
+                                <span class="identifier">m_omega</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span>
+                                <span class="identifier">dxdt</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span>
+                                <span class="special">)</span> <span class="special">),</span>
+                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_zip_iterator</span><span class="special">(</span>
+                        <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span>
+                                <span class="identifier">x</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">,</span>
+                                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_permutation_iterator</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">m_prev</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span>
+                                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_permutation_iterator</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">m_next</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span>
+                                <span class="identifier">m_omega</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">,</span>
+                                <span class="identifier">dxdt</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span> <span class="special">)</span> <span class="special">,</span>
+                <span class="identifier">sys_functor</span><span class="special">()</span>
+                <span class="special">);</span>
+    <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+
+    <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">m_omega</span><span class="special">;</span>
+    <span class="keyword">const</span> <span class="identifier">size_t</span> <span class="identifier">m_N</span><span class="special">;</span>
+    <span class="identifier">index_vector_type</span> <span class="identifier">m_prev</span><span class="special">;</span>
+    <span class="identifier">index_vector_type</span> <span class="identifier">m_next</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          Note, how easy you can obtain the value for the left and right neighboring
+          oscillator in the system functor using the permutation iterators. But,
+          the call of the <code class="computeroutput"><span class="identifier">thrust</span><span class="special">::</span><span class="identifier">for_each</span></code>
+          function looks relatively complicated. Every term of the r.h.s. of the
+          ODE is resembled by one iterator packed in exactly the same way as it is
+          unpacked in the functor above.
+        </p>
+<p>
+          Now we put everything together. We create random initial conditions and
+          decreasing frequencies such that we should get synchronization. We copy
+          the frequencies and the initial conditions onto the device and finally
+          initialize and perform the integration. As result we simply write out the
+          current state, hence the phase of each oscillator.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// create initial conditions and omegas on host:</span>
+<span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span> <span class="identifier">x_host</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">);</span>
+<span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span> <span class="identifier">omega_host</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">);</span>
+<span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">N</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">x_host</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">=</span> <span class="number">2.0</span> <span class="special">*</span> <span class="identifier">pi</span> <span class="special">*</span> <span class="identifier">drand48</span><span class="special">();</span>
+    <span class="identifier">omega_host</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">=</span> <span class="special">(</span> <span class="identifier">N</span> <span class="special">-</span> <span class="identifier">i</span> <span class="special">)</span> <span class="special">*</span> <span class="identifier">epsilon</span><span class="special">;</span> <span class="comment">// decreasing frequencies</span>
+<span class="special">}</span>
+
+<span class="comment">// copy to device</span>
+<span class="identifier">state_type</span> <span class="identifier">x</span> <span class="special">=</span> <span class="identifier">x_host</span><span class="special">;</span>
+<span class="identifier">state_type</span> <span class="identifier">omega</span> <span class="special">=</span> <span class="identifier">omega_host</span><span class="special">;</span>
+
+<span class="comment">// create stepper</span>
+<span class="identifier">runge_kutta4</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">thrust_algebra</span> <span class="special">,</span> <span class="identifier">thrust_operations</span> <span class="special">&gt;</span> <span class="identifier">stepper</span><span class="special">;</span>
+
+<span class="comment">// create phase oscillator system function</span>
+<span class="identifier">phase_oscillators</span> <span class="identifier">sys</span><span class="special">(</span> <span class="identifier">omega</span> <span class="special">);</span>
+
+<span class="comment">// integrate</span>
+<span class="identifier">integrate_const</span><span class="special">(</span> <span class="identifier">stepper</span> <span class="special">,</span> <span class="identifier">sys</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="identifier">dt</span> <span class="special">);</span>
+
+<span class="identifier">thrust</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream_iterator</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;(</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">,</span> <span class="string">"\n"</span> <span class="special">)</span> <span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          The full example can be found at <a href="../../../../../../../libs/numeric/odeint/examples/thrust/phase_oscillator_chain.cu" target="_top">phase_oscillator_chain.cu</a>.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.tutorial.using_cuda__or_openmp__tbb_______via_thrust.parameter_studies"></a><a class="link" href="using_cuda__or_openmp__tbb_______via_thrust.html#boost_numeric_odeint.tutorial.using_cuda__or_openmp__tbb_______via_thrust.parameter_studies" title="Parameter studies">Parameter
+        studies</a>
+</h4></div></div></div>
+<p>
+          Another important use case for <a href="http://code.google.com/p/thrust/" target="_top">Thrust</a>
+          and CUDA are parameter studies of relatively small systems. Consider for
+          example the three-dimensional Lorenz system from the chaotic systems example
+          in the previous section which has three parameters. If you want to study
+          the behavior of this system for different parameters you usually have to
+          integrate the system for many parameter values. Using thrust and odeint
+          you can do this integration in parallel, hence you integrate a whole ensemble
+          of Lorenz systems where each individual realization has a different parameter
+          value.
+        </p>
+<p>
+          In the following we will show how you can use <a href="http://code.google.com/p/thrust/" target="_top">Thrust</a>
+          to integrate the above mentioned ensemble of Lorenz systems. We will vary
+          only the parameter <span class="emphasis"><em>&#946;</em></span> but it is straightforward to vary
+          other parameters or even two or all three parameters. Furthermore, we will
+          use the largest Lyapunov exponent to quantify the behavior of the system
+          (chaoticity).
+        </p>
+<p>
+          We start by defining the range of the parameters we want to study. The
+          state_type is again a <code class="computeroutput"><span class="identifier">thrust</span><span class="special">::</span><span class="identifier">device_vector</span><span class="special">&lt;</span> <span class="identifier">value_type</span>
+          <span class="special">&gt;</span></code>.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span> <span class="identifier">beta_host</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">);</span>
+<span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">beta_min</span> <span class="special">=</span> <span class="number">0.0</span> <span class="special">,</span> <span class="identifier">beta_max</span> <span class="special">=</span> <span class="number">56.0</span><span class="special">;</span>
+<span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">N</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+    <span class="identifier">beta_host</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">beta_min</span> <span class="special">+</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">)</span> <span class="special">*</span> <span class="special">(</span> <span class="identifier">beta_max</span> <span class="special">-</span> <span class="identifier">beta_min</span> <span class="special">)</span> <span class="special">/</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">-</span> <span class="number">1</span> <span class="special">);</span>
+
+<span class="identifier">state_type</span> <span class="identifier">beta</span> <span class="special">=</span> <span class="identifier">beta_host</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          The next thing we have to implement is the Lorenz system without perturbations.
+          Later, a system with perturbations is also implemented in order to calculate
+          the Lyapunov exponent. We will use an ansatz where each device function
+          calculates one particular realization of the Lorenz ensemble
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">lorenz_system</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">lorenz_functor</span>
+    <span class="special">{</span>
+        <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">T</span> <span class="special">&gt;</span>
+        <span class="identifier">__host__</span> <span class="identifier">__device__</span>
+        <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="identifier">T</span> <span class="identifier">t</span> <span class="special">)</span> <span class="keyword">const</span>
+        <span class="special">{</span>
+            <span class="comment">// unpack the parameter we want to vary and the Lorenz variables</span>
+            <span class="identifier">value_type</span> <span class="identifier">R</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span> <span class="number">3</span> <span class="special">&gt;(</span> <span class="identifier">t</span> <span class="special">);</span>
+            <span class="identifier">value_type</span> <span class="identifier">x</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span> <span class="number">0</span> <span class="special">&gt;(</span> <span class="identifier">t</span> <span class="special">);</span>
+            <span class="identifier">value_type</span> <span class="identifier">y</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span> <span class="number">1</span> <span class="special">&gt;(</span> <span class="identifier">t</span> <span class="special">);</span>
+            <span class="identifier">value_type</span> <span class="identifier">z</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span> <span class="number">2</span> <span class="special">&gt;(</span> <span class="identifier">t</span> <span class="special">);</span>
+            <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span> <span class="number">4</span> <span class="special">&gt;(</span> <span class="identifier">t</span> <span class="special">)</span> <span class="special">=</span> <span class="identifier">sigma</span> <span class="special">*</span> <span class="special">(</span> <span class="identifier">y</span> <span class="special">-</span> <span class="identifier">x</span> <span class="special">);</span>
+            <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span> <span class="number">5</span> <span class="special">&gt;(</span> <span class="identifier">t</span> <span class="special">)</span> <span class="special">=</span> <span class="identifier">R</span> <span class="special">*</span> <span class="identifier">x</span> <span class="special">-</span> <span class="identifier">y</span> <span class="special">-</span> <span class="identifier">x</span> <span class="special">*</span> <span class="identifier">z</span><span class="special">;</span>
+            <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span> <span class="number">6</span> <span class="special">&gt;(</span> <span class="identifier">t</span> <span class="special">)</span> <span class="special">=</span> <span class="special">-</span><span class="identifier">b</span> <span class="special">*</span> <span class="identifier">z</span> <span class="special">+</span> <span class="identifier">x</span> <span class="special">*</span> <span class="identifier">y</span> <span class="special">;</span>
+
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="identifier">lorenz_system</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">N</span> <span class="special">,</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">beta</span> <span class="special">)</span>
+    <span class="special">:</span> <span class="identifier">m_N</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_beta</span><span class="special">(</span> <span class="identifier">beta</span> <span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">State</span> <span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Deriv</span> <span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span>  <span class="keyword">const</span> <span class="identifier">State</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">Deriv</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="identifier">t</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">for_each</span><span class="special">(</span>
+                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_zip_iterator</span><span class="special">(</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span>
+                        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">,</span>
+                        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">+</span> <span class="identifier">m_N</span> <span class="special">,</span>
+                        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">+</span> <span class="number">2</span> <span class="special">*</span> <span class="identifier">m_N</span> <span class="special">,</span>
+                        <span class="identifier">m_beta</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span>
+                        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">dxdt</span> <span class="special">)</span> <span class="special">,</span>
+                        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">dxdt</span> <span class="special">)</span> <span class="special">+</span> <span class="identifier">m_N</span> <span class="special">,</span>
+                        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">dxdt</span> <span class="special">)</span> <span class="special">+</span> <span class="number">2</span> <span class="special">*</span> <span class="identifier">m_N</span>  <span class="special">)</span> <span class="special">)</span> <span class="special">,</span>
+                <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_zip_iterator</span><span class="special">(</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span>
+                        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">+</span> <span class="identifier">m_N</span> <span class="special">,</span>
+                        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">+</span> <span class="number">2</span> <span class="special">*</span> <span class="identifier">m_N</span> <span class="special">,</span>
+                        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">+</span> <span class="number">3</span> <span class="special">*</span> <span class="identifier">m_N</span> <span class="special">,</span>
+                        <span class="identifier">m_beta</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span>
+                        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">dxdt</span> <span class="special">)</span> <span class="special">+</span> <span class="identifier">m_N</span> <span class="special">,</span>
+                        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">dxdt</span> <span class="special">)</span> <span class="special">+</span> <span class="number">2</span> <span class="special">*</span> <span class="identifier">m_N</span> <span class="special">,</span>
+                        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">dxdt</span> <span class="special">)</span> <span class="special">+</span> <span class="number">3</span> <span class="special">*</span> <span class="identifier">m_N</span>  <span class="special">)</span> <span class="special">)</span> <span class="special">,</span>
+                <span class="identifier">lorenz_functor</span><span class="special">()</span> <span class="special">);</span>
+    <span class="special">}</span>
+    <span class="identifier">size_t</span> <span class="identifier">m_N</span><span class="special">;</span>
+    <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">m_beta</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          As <code class="computeroutput"><span class="identifier">state_type</span></code> a <code class="computeroutput"><span class="identifier">thrust</span><span class="special">::</span><span class="identifier">device_vector</span></code> or a <a href="http://www.boost.org/doc/libs/release/libs/range/index.html" target="_top">Boost.Range</a>
+          of a <code class="computeroutput"><span class="identifier">device_vector</span></code> is used.
+          The length of the state is <span class="emphasis"><em>3N</em></span> where <span class="emphasis"><em>N</em></span>
+          is the number of systems. The system is encoded into this vector such that
+          all <span class="emphasis"><em>x</em></span> components come first, then every <span class="emphasis"><em>y</em></span>
+          components and finally every <span class="emphasis"><em>z</em></span> components. Implementing
+          the device function is then a simple task, you only have to decompose the
+          tuple originating from the zip iterators.
+        </p>
+<p>
+          Besides the system without perturbations we furthermore need to calculate
+          the system including linearized equations governing the time evolution
+          of small perturbations. Using the method from above this is straightforward,
+          with a small difficulty that Thrust's tuples have a maximal arity of 10.
+          But this is only a small problem since we can create a zip iterator packed
+          with zip iterators. So the top level zip iterator contains one zip iterator
+          for the state, one normal iterator for the parameter, and one zip iterator
+          for the derivative. Accessing the elements of this tuple in the system
+          function is then straightforward, you unpack the tuple with <code class="computeroutput"><span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;&gt;()</span></code>.
+          We will not show the code here, it is to large. It can be found <a href="../../../../../../../libs/numeric/odeint/examples/thrust/lorenz_parameters.cu" target="_top">here</a> and
+          is easy to understand.
+        </p>
+<p>
+          Furthermore, we need an observer which determines the norm of the perturbations,
+          normalizes them and averages the logarithm of the norm. The device functor
+          which is used within this observer is defined
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">lyap_functor</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">T</span> <span class="special">&gt;</span>
+    <span class="identifier">__host__</span> <span class="identifier">__device__</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="identifier">T</span> <span class="identifier">t</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">value_type</span> <span class="special">&amp;</span><span class="identifier">dx</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span> <span class="number">0</span> <span class="special">&gt;(</span> <span class="identifier">t</span> <span class="special">);</span>
+        <span class="identifier">value_type</span> <span class="special">&amp;</span><span class="identifier">dy</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span> <span class="number">1</span> <span class="special">&gt;(</span> <span class="identifier">t</span> <span class="special">);</span>
+        <span class="identifier">value_type</span> <span class="special">&amp;</span><span class="identifier">dz</span> <span class="special">=</span> <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span> <span class="number">2</span> <span class="special">&gt;(</span> <span class="identifier">t</span> <span class="special">);</span>
+        <span class="identifier">value_type</span> <span class="identifier">norm</span> <span class="special">=</span> <span class="identifier">sqrt</span><span class="special">(</span> <span class="identifier">dx</span> <span class="special">*</span> <span class="identifier">dx</span> <span class="special">+</span> <span class="identifier">dy</span> <span class="special">*</span> <span class="identifier">dy</span> <span class="special">+</span> <span class="identifier">dz</span> <span class="special">*</span> <span class="identifier">dz</span> <span class="special">);</span>
+        <span class="identifier">dx</span> <span class="special">/=</span> <span class="identifier">norm</span><span class="special">;</span>
+        <span class="identifier">dy</span> <span class="special">/=</span> <span class="identifier">norm</span><span class="special">;</span>
+        <span class="identifier">dz</span> <span class="special">/=</span> <span class="identifier">norm</span><span class="special">;</span>
+        <span class="identifier">thrust</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span> <span class="number">3</span> <span class="special">&gt;(</span> <span class="identifier">t</span> <span class="special">)</span> <span class="special">+=</span> <span class="identifier">log</span><span class="special">(</span> <span class="identifier">norm</span> <span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          Note, that this functor manipulates the state, i.e. the perturbations.
+        </p>
+<p>
+          Now we complete the whole code to calculate the Lyapunov exponents. First,
+          we have to define a state vector. This vector contains <span class="emphasis"><em>6N</em></span>
+          entries, the state <span class="emphasis"><em>x,y,z</em></span> and its perturbations <span class="emphasis"><em>dx,dy,dz</em></span>.
+          We initialize them such that <span class="emphasis"><em>x=y=z=10</em></span>, <span class="emphasis"><em>dx=1</em></span>,
+          and <span class="emphasis"><em>dy=dz=0</em></span>. We define a stepper type, a controlled
+          Runge-Kutta Dormand-Prince 5 stepper. We start with some integration to
+          overcome the transient behavior. For this, we do not involve the perturbation
+          and run the algorithm only on the state <span class="emphasis"><em>x,y,z</em></span> without
+          any observer. Note, how <a href="http://www.boost.org/doc/libs/release/libs/range/index.html" target="_top">Boost.Range</a>
+          is used for partial integration of the state vector without perturbations
+          (the first half of the whole state). After the transient, the full system
+          with perturbations is integrated and the Lyapunov exponents are calculated
+          and written to <code class="computeroutput"><span class="identifier">stdout</span></code>.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">state_type</span> <span class="identifier">x</span><span class="special">(</span> <span class="number">6</span> <span class="special">*</span> <span class="identifier">N</span> <span class="special">);</span>
+
+<span class="comment">// initialize x,y,z</span>
+<span class="identifier">thrust</span><span class="special">::</span><span class="identifier">fill</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">+</span> <span class="number">3</span> <span class="special">*</span> <span class="identifier">N</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">);</span>
+
+<span class="comment">// initial dx</span>
+<span class="identifier">thrust</span><span class="special">::</span><span class="identifier">fill</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">+</span> <span class="number">3</span> <span class="special">*</span> <span class="identifier">N</span> <span class="special">,</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">+</span> <span class="number">4</span> <span class="special">*</span> <span class="identifier">N</span> <span class="special">,</span> <span class="number">1.0</span> <span class="special">);</span>
+
+<span class="comment">// initialize dy,dz</span>
+<span class="identifier">thrust</span><span class="special">::</span><span class="identifier">fill</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">+</span> <span class="number">4</span> <span class="special">*</span> <span class="identifier">N</span> <span class="special">,</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">);</span>
+
+
+<span class="comment">// create error stepper, can be used with make_controlled or make_dense_output</span>
+<span class="keyword">typedef</span> <span class="identifier">runge_kutta_dopri5</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">thrust_algebra</span> <span class="special">,</span> <span class="identifier">thrust_operations</span> <span class="special">&gt;</span> <span class="identifier">stepper_type</span><span class="special">;</span>
+
+
+<span class="identifier">lorenz_system</span> <span class="identifier">lorenz</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">,</span> <span class="identifier">beta</span> <span class="special">);</span>
+<span class="identifier">lorenz_perturbation_system</span> <span class="identifier">lorenz_perturbation</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">,</span> <span class="identifier">beta</span> <span class="special">);</span>
+<span class="identifier">lyap_observer</span> <span class="identifier">obs</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">,</span> <span class="number">1</span> <span class="special">);</span>
+
+<span class="comment">// calculate transients</span>
+<span class="identifier">integrate_adaptive</span><span class="special">(</span> <span class="identifier">make_controlled</span><span class="special">(</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="identifier">stepper_type</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">lorenz</span> <span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">make_pair</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">+</span> <span class="number">3</span> <span class="special">*</span> <span class="identifier">N</span> <span class="special">)</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="identifier">dt</span> <span class="special">);</span>
+
+<span class="comment">// calculate the Lyapunov exponents -- the main loop</span>
+<span class="keyword">double</span> <span class="identifier">t</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span>
+<span class="keyword">while</span><span class="special">(</span> <span class="identifier">t</span> <span class="special">&lt;</span> <span class="number">10000.0</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">integrate_adaptive</span><span class="special">(</span> <span class="identifier">make_controlled</span><span class="special">(</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="identifier">stepper_type</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">lorenz_perturbation</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="identifier">t</span> <span class="special">,</span> <span class="identifier">t</span> <span class="special">+</span> <span class="number">1.0</span> <span class="special">,</span> <span class="number">0.1</span> <span class="special">);</span>
+    <span class="identifier">t</span> <span class="special">+=</span> <span class="number">1.0</span><span class="special">;</span>
+    <span class="identifier">obs</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">,</span> <span class="identifier">t</span> <span class="special">);</span>
+<span class="special">}</span>
+
+<span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span> <span class="identifier">lyap</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">);</span>
+<span class="identifier">obs</span><span class="special">.</span><span class="identifier">fill_lyap</span><span class="special">(</span> <span class="identifier">lyap</span> <span class="special">);</span>
+
+<span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">N</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">beta_host</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">"\t"</span> <span class="special">&lt;&lt;</span> <span class="identifier">lyap</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          The full example can be found at <a href="../../../../../../../libs/numeric/odeint/examples/thrust/lorenz_parameters.cu" target="_top">lorenz_parameters.cu</a>.
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="self_expanding_lattices.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="using_opencl_via_vexcl.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

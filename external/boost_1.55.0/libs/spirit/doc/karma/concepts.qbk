@@ -1,0 +1,434 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Generator Concepts]
+
+__karma__ generators fall into a couple of generalized __concepts__. The
+/Generator/ is the most fundamental concept. All __karma__ generators are
+models of the /Generator/ concept. /PrimitiveGenerator/, /UnaryGenerator/,
+/BinaryGenerator/, /NaryGenerator/, and /Nonterminal/ are all refinements of 
+the /Generator/ concept.
+
+The following sections provide details on these concepts.
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section Generator]
+
+[heading Description]
+
+The /Generator/ is the most fundamental concept. A Generator has a member
+function, `generate`, that accepts an `OutputIterator` and
+returns bool as its result. The iterator receives the data being generated.
+The Generator's `generate` member function returns `true` if the generator
+succeeds. Each Generator can represent a specific pattern or algorithm, or it 
+can be a more complex generator formed as a composition of other Generators.
+
+[variablelist Notation
+    [[`g`]              [A `Generator`.]]
+    [[`G`]              [A `Generator` type.]]
+    [[`OutIter`]        [An `OutputIterator` type.]]
+    [[`sink`]           [An `OutputIterator` instance.]]
+    [[`Context`]        [The generator's __karma_context__ type.]]
+    [[`context`]        [The generator's __karma_context__, or __unused__.]]
+    [[`delimit`]        [A delimiter Generator, or __unused__.]]
+    [[`attrib`]         [A __karma_compatible_attribute__, or __unused__.]]
+]
+
+[heading Valid Expressions]
+
+In the expressions below, the behavior of the generator, `g`, as well as how 
+`delimit` and `attrib` are handled by `g`, are left unspecified in the base 
+`Generator` concept. These are specified in subsequent, more refined concepts 
+and by the actual models thereof.
+
+For any Generator the following expressions must be valid:
+
+[table
+    [[Expression]           [Semantics]                         [Return type]]
+    [[
+``g.generate(sink, context, delimit, attrib)``]
+                            [Generate the output sequence by inserting the
+                             generated characters/tokens into `sink`. Use the
+                             `delimit` generator for delimiting. Return
+                            `true` if successful, otherwise
+                            return `false`.]                       [`bool`]]
+    [[`g.what(context)`]    [Get information about a Generator.]   [__info__]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]                                   [Description]]
+    [[`G::template attribute<Context>::type`]       [The Generator's attribute.]]
+    [[`traits::is_generator<G>::type`]              [Metafunction that evaluates to `mpl::true_` if 
+                                                     a certain type, `G` is a Generator, `mpl::false_`  
+                                                     otherwise (See __mpl_boolean_constant__).]]
+    [[`G::properties`]                              [An `mpl::int_` (See __mpl_int_constant__) holding 
+                                                     a value from the `karma::generator_properties` 
+                                                     enumeration. The default value is 
+                                                     `generator_properties::no_properties`]]
+]
+
+[heading Postcondition]
+
+Upon return from `g.generate` the following post conditions should hold:
+
+* On successful generation, `sink` receives the generated characters/tokens
+  sequence.
+* No pre-delimits: `delimit` characters/tokens will not be emitted in front of 
+  any other output.
+* The attribute `attrib` has not been modified.
+
+[heading Models]
+
+All generators in __karma__ are models of the /Generator/ concept.
+
+[endsect] [/ Generator Concept]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section PrimitiveGenerator]
+
+[heading Description]
+
+/PrimitiveGenerator/ is the most basic building block that the client uses
+to build more complex generators. 
+
+[heading Refinement of]
+
+[:__generator_concept__]
+
+[heading Post-delimit]
+
+Before exiting the `generate` member function, a PrimitiveGenerator is required
+to do a post-delimit. This will generate a single delimiting character/token 
+sequence. Only PrimitiveGenerator's are required to perform this post-delimit.
+This is typically carried out through a call to `karma::delimit_out`:
+
+    karma::delimit_out(sink, delimit);
+
+[heading Type Expressions]
+
+[table
+    [[Expression]                                   [Description]]
+    [[`traits::is_primitive_generator<G>::type`]    [Metafunction that evaluates to `mpl::true_` if 
+                                                    a certain type, `G`, is a PrimitiveGenerator, `mpl::false_`  
+                                                    otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Models] 
+
+The following generators conform to this model: 
+
+* __karma_eol__,
+* __karma_eps__,
+* [link spirit.karma.reference.numeric Numeric generators],
+* [karma_char Character generators].
+
+__fixme__ Add more links to /PrimitiveGenerator/ models here.
+
+[endsect] [/ PrimitiveGenerator Concept]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section UnaryGenerator]
+
+[heading Description]
+
+/UnaryGenerator/ is a composite generator that has a single subject. The
+UnaryGenerator may change the behavior of its subject following the
+__delegate_pattern__. 
+
+[heading Refinement of]
+
+[:__generator_concept__]
+
+[variablelist Notation
+    [[`g`]              [A UnaryGenerator.]]
+    [[`G`]              [A UnaryGenerator type.]]
+]
+
+[heading Valid Expressions]
+
+In addition to the requirements defined in __generator_concept__, for any
+UnaryGenerator the following must be met:
+
+[table
+    [[Expression]       [Semantics]             [Return type]]
+    [[`g.subject`]      [Subject generator.]    [__generator_concept__]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]           [Description]]
+    [[`G::subject_type`]    [The subject generator type.]]
+    [[`traits::is_unary_generator<G>::type`]    [Metafunction that evaluates to `mpl::true_` if 
+                                                a certain type, `G` is a UnaryGenerator, `mpl::false_`  
+                                                otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Invariants]
+
+For any UnaryGenerator, `G`, the following invariant always holds:
+
+* `traits::is_generator<G::subject_type>::type` evaluates to `mpl::true_`
+
+[heading Models]
+
+The following generators conform to this model: 
+
+* [karma_kleene Kleene Star (unary `*`)] operator, 
+* __karma_plus__ operator,
+* __karma_optional__ operator,
+* __karma_and_predicate__ and __karma_not_predicate__ operators,
+* [karma_align `left_align`], [karma_align `center`], and [karma_align `right_align`] directives,
+* [karma_repeat `repeat`] directive,
+* __karma_verbatim__ directive,
+* [karma_delimit `delimit`] directive,
+* [karma_upperlower `lower`] and [karma_upperlower `upper`] directives,
+* [karma_maxwidth `maxwidth`] directive,
+* __karma_buffer__ directive,
+* __karma_omit__ directive.
+
+
+__fixme__ Add more links to models of UnaryGenerator concept
+
+[endsect] [/ UnaryGenerator Concept]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section BinaryGenerator]
+
+[heading Description]
+
+/BinaryGenerator/ is a composite generator that has a two subjects, `left` and
+`right`. The BinaryGenerator allows its subjects to be treated in the same
+way as a single instance of a __generator_concept__ following the
+__composite_pattern__. 
+
+[heading Refinement of]
+
+[:__generator_concept__]
+
+[variablelist Notation
+    [[`g`]              [A BinaryGenerator.]]
+    [[`G`]              [A BinaryGenerator type.]]
+]
+
+[heading Valid Expressions]
+
+In addition to the requirements defined in __generator_concept__, for any
+BinaryGenerator the following must be met:
+
+[table
+    [[Expression]       [Semantics]             [Return type]]
+    [[`g.left`]         [Left generator.]       [__generator_concept__]]
+    [[`g.right`]        [Right generator.]      [__generator_concept__]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]           [Description]]
+    [[`G::left_type`]       [The left generator type.]]
+    [[`G::right_type`]      [The right generator type.]]
+    [[`traits::is_binary_generator<G>::type`]   [Metafunction that evaluates to `mpl::true_` if 
+                                                a certain type, `G` is a BinaryGenerator, `mpl::false_`  
+                                                otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Invariants]
+
+For any BinaryGenerator, `G`, the following invariants always hold:
+
+* `traits::is_generator<G::left_type>::type` evaluates to `mpl::true_`
+* `traits::is_generator<G::right_type>::type` evaluates to `mpl::true_`
+
+[heading Models]
+
+The following generators conform to this model: 
+
+* __karma_list__.
+
+__fixme__ Add more links to models of BinaryGenerator concept
+
+[endsect] [/ BinaryGenerator Concept]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section NaryGenerator]
+
+[heading Description]
+
+/NaryGenerator/ is a composite generator that has one or more subjects. The
+NaryGenerator allows its subjects to be treated in the same way as a single
+instance of a __generator_concept__ following the __composite_pattern__. 
+
+[heading Refinement of] 
+
+[:__generator_concept__]
+
+[variablelist Notation
+    [[`g`]              [A NaryGenerator.]]
+    [[`G`]              [A NaryGenerator type.]]
+]
+
+[heading Valid Expressions]
+
+In addition to the requirements defined in __generator_concept__, for any
+NaryGenerator the following must be met:
+
+[table
+    [[Expression]       [Semantics]                 [Return type]]
+    [[`g.elements`]     [The tuple of elements.]    [A __fusion__ Sequence of __generator_concept__ types.]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]           [Description]]
+    [[`g.elements_type`]    [Elements tuple type.]]
+    [[`traits::is_nary_generator<G>::type`]         [Metafunction that evaluates to `mpl::true_` if 
+                                                    a certain type, `G` is a NaryGenerator, `mpl::false_`  
+                                                    otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Invariants]
+
+For each element, `E`, in any NaryGenerator, `G`, the following
+invariant always holds: 
+  
+* `traits::is_generator<E>::type` evaluates to `mpl::true_`
+
+[heading Models]
+
+The following generators conform to this model: 
+
+* __karma_sequence__, 
+* __karma_alternative__.
+
+__fixme__ Add more links to models of NaryGenerator concept
+
+[endsect] [/ NaryGenerator Concept]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section Nonterminal]
+
+[heading Description]
+
+A Nonterminal is a symbol in a __peg__ production that represents a
+grammar fragment. Nonterminals may self reference to specify recursion.
+This is one of the most important concepts and the reason behind the
+word "recursive" in recursive descent generation.
+
+[heading Refinement of]
+
+[:__generator_concept__]
+
+[heading Signature]
+
+Rules can have both consumed and inherited attributes. The rule's
+/Signature/ specifies both the consumed and inherited attributes. The
+specification uses the function declarator syntax: 
+
+    RT(A0, A1, A2, ..., AN)
+
+where `RT` is the rule's consumed attribute and `A0` ... `AN` are the
+rule's inherited attributes.
+
+[heading Attributes]
+
+The rule models a C++ function. The rule's consumed attribute is
+analogous to the function return value as it is the type -exposed- by the rule. 
+Its inherited attributes are analogous to function arguments. The inherited 
+attributes (arguments) can be passed in just like any __karma_lazy_argument__, 
+e.g.:
+
+    r(expr) // Evaluate expr at parse time and pass the result to the Nonterminal r
+
+[heading `_val`]
+
+The `boost::spirit::karma::_val` placeholder can be used in __phoenix__
+semantic actions anywhere in the Nonterminal's definition. This
+__phoenix__ placeholder refers to the Nonterminal's (consumed)
+attribute. The `_val` placeholder acts like an immutable reference to the
+Nonterminal's attribute.
+
+[note Starting with __spirit__ V2.5 (distributed with Boost V1.47) the 
+      placeholder `_val` can be used in semantic actions attached to top level
+      generator components as well. See __generator_api__ for more information.]
+
+[heading `_r1`...`r10`]
+
+The `boost::spirit::_r1`...`boost::spirit::r10` placeholders can be used
+in __phoenix__ semantic actions anywhere in the Nonterminal's
+definition. These __phoenix__ placeholders refer to the Nonterminal's
+inherited attributes.
+
+[heading Locals]
+
+Nonterminals can have local variables that will be created on the stack
+at runtime. A locals descriptor added to the Nonterminal declaration
+will give the Nonterminal local variables: 
+
+    template <typename T0, typename T1, typename T2, ..., typename TN>
+    struct locals;
+
+where `T0` ... `TN` are the types of local variables accessible in your
+__phoenix__ semantic actions using the placeholders: 
+
+* `boost::spirit::_a`
+* `boost::spirit::_b` 
+* `boost::spirit::_c`
+* `boost::spirit::_d` 
+* `boost::spirit::_e` 
+* `boost::spirit::_f` 
+* `boost::spirit::_g`
+* `boost::spirit::_h` 
+* `boost::spirit::_i` 
+* `boost::spirit::_j` 
+    
+which correspond to the Nonterminal's local variables `T0` ... `T9`.
+
+[variablelist Notation
+    [[`x`]                          [A Nonterminal]]
+    [[`X`]                          [A Nonterminal type]]
+    [[`arg1`, `arg2`, ..., `argN`]  [__karma_lazy_arguments__ that evaluate to each of 
+                                    the Nonterminal's inherited attributes.]]
+]
+
+[heading Valid Expressions]
+
+In addition to the requirements defined in __generator_concept__, for any
+Nonterminal the following must be met:
+
+[table
+    [[Expression]               [Semantics]                                         [Return type]]
+    [[`x`]                      [In a generator expression, invoke Nonterminal `x`] [`X`]]
+    [[`x(arg1, arg2, ..., argN)`][In a generator expression, invoke Nonterminal `x` 
+                                passing in inherited attributes
+                                `arg1`...`argN`]                                    [`X`]]
+    [[`x.name(name)`]           [Set the name of a Nonterminal]                     [`void`]]
+    [[`x.name()`]               [Get the name of a Nonterminal]                     [`std::string`]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]       [Description]]
+    [[`X::sig_type`]    [The Signature of `X`: An __mpl_fwd_sequence__.
+                        The first element is the Nonterminal's consumed attribute
+                        type and the rest are the inherited attribute types.]]
+    [[`X::locals_type`] [The local variables of `X`: An __mpl_fwd_sequence__.]]
+]
+
+[heading Models]
+
+* __karma_rule__
+* __karma_grammar__
+
+[endsect]
+
+[endsect]

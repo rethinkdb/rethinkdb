@@ -1,0 +1,8 @@
+[article Template 1.6 fail 1
+    [quickbook 1.6]
+]
+
+[/ I've removed support for escaping punctuation templates in 1.6. ]
+
+[template ~ body]
+[`~]

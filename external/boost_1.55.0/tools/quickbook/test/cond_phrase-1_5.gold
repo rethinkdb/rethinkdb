@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="coniditional_phrase_test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Coniditional Phrase Test</title>
+  <para>
+    This should show
+  </para>
+  <para>
+    The should be no space inserted.
+  </para>
+  <para>
+    <emphasis role="bold">Bold text</emphasis>
+  </para>
+</article>

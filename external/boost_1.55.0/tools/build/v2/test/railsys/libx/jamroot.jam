@@ -1,0 +1,13 @@
+#  Copyright (c) 2002 Institute of Transport, 
+#             Railway Construction and Operation, 
+#             University of Hanover, Germany
+#  Copyright (c) 2006 Jürgen Hunold
+#
+#  Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+
+# Tell that Qt3 should be used. QTDIR will give installation prefix.
+using qt3 ;
+
+

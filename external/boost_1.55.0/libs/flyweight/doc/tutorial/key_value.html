@@ -1,0 +1,231 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Tutorial - Key-value flyweights</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="basics.html">
+<link rel="up" href="index.html">
+<link rel="next" href="configuration.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight Tutorial: Key-value flyweights</h1>
+
+<div class="prev_link"><a href="basics.html"><img src="../prev.gif" alt="basics" border="0"><br>
+Basics
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="next_link"><a href="configuration.html"><img src="../next.gif" alt="configuring Boost.Flyweight" border="0"><br>
+Configuring Boost.Flyweight
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#key_value">Key-value flyweights</a>
+    <ul>
+      <li><a href="#key_extractor">Key extractors</a></li>
+      <li><a href="#requirements">Type requirements</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h2><a name="key_value">Key-value flyweights</a></h2>
+
+<p>
+Continuing with our online game example, suppose we have a huge class for
+handling rendering textures:
+</p>
+
+<blockquote><pre>
+<span class=keyword>class</span> <span class=identifier>texture</span>
+<span class=special>{</span>
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=identifier>texture</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>filename</span><span class=special>){/*</span> <span class=identifier>loads</span> <span class=identifier>texture</span> <span class=identifier>file</span> <span class=special>*/}</span>
+
+  <span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>get_filename</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=comment>// rest of the interface</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+and we decide to use <code>flyweight&lt;texture&gt;</code> to ease the
+manipulation of these objects. Now consider this seemingly innocent
+expression:
+</p>
+
+<blockquote><pre>
+<span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>texture</span><span class=special>&gt;</span> <span class=identifier>fw</span><span class=special>(</span><span class=string>&quot;grass.texture&quot;</span><span class=special>);</span>
+</pre></blockquote>
+
+<p>
+Note that in order to construct <code>fw</code> we are implicitly
+constructing a full grass texture object. The expression is mostly
+equivalent to
+</p>
+
+<blockquote><pre>
+<span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>texture</span><span class=special>&gt;</span> <span class=identifier>fw</span><span class=special>(</span><span class=identifier>texture</span><span class=special>(</span><span class=string>&quot;grass.texture&quot;</span><span class=special>));</span>
+</pre></blockquote>
+
+<p>
+This is unnaceptably costly: we are constructing a massive temporary
+object just to throw it away in most cases, since Boost.Flyweight most
+likely already has an internal equivalent object to which <code>fw</code>
+will be bound --value sharing is the key feature behind the flyweight
+pattern after all. In this particular example, texture filenames act
+as a <i>key</i> to the actual texture objects: two texture objects
+constructed from the same filename are equivalent. So, we would like
+for filenames to be used for texture lookup and somehow be sure that
+the costly texture construction is only performed when no equivalent
+value has been found.
+</p>
+
+<p>
+<code>flyweight&lt;T&gt;</code> makes this distinction between key and value
+blurry because it uses <code>T</code> both as the key type and
+its associated value type. When this is inefficient, as in our texture
+example, we can explicity specify both types using the
+<a href="../reference/key_value.html#key_value_construct"><code>key_value</code></a>
+construct:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>key_value</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=special>...</span>
+<span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>key_value</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span><span class=identifier>texture</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>fw</span><span class=special>(</span><span class=string>&quot;grass.texture&quot;</span><span class=special>);</span>
+</pre></blockquote>
+
+<p>
+So called <i>key-value flyweights</i> have then the form
+<code>flyweight&lt;key_value&lt;K,T&gt; &gt;</code>: the key type <code>K</code> is
+used to do the internal lookup for the associated values of type <code>T</code>. Key-value
+flyweights guarantee that <code>T</code> values are not constructed except when
+no other equivalent value exists; such construction is done from the associated
+<code>K</code> value.
+</p>
+
+<h3><a name="key_extractor">Key extractors</a></h3>
+
+<p>
+Besides the key-based semantics on construction time, key-value flyweights
+behave much the same as regular flyweights, although some differences persist.
+Consider the following code, which poses no problems with regular
+flyweights:
+</p>
+
+<blockquote><pre>
+<span class=keyword>const</span> <span class=identifier>texture</span><span class=special>&amp;</span> <span class=identifier>get_texture</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>object</span><span class=special>&amp;);</span>
+<span class=special>...</span>
+<span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>key_value</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span><span class=identifier>texture</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>fw</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=identifier>fw</span><span class=special>=</span><span class=identifier>get_texture</span><span class=special>(</span><span class=identifier>obj</span><span class=special>);</span>
+</pre></blockquote>
+
+<p>
+The assignment cannot possibly work, because a key of type <code>std::string</code>
+is needed to do the internal lookup whereas we are passing a full texture object.
+Indeed, the code produces a compilation error similar to this:
+</p>
+
+<blockquote><pre>
+error: 'boost::mpl::assertion_failed' : cannot convert parameter 1 from
+'boost::mpl::failed ************(__thiscall boost::flyweights::detail::
+regular_key_value&lt;Key,Value&gt;::rep_type::no_key_from_value_failure::
+<b>NO_KEY_FROM_VALUE_CONVERSION_PROVIDED</b>::* ***********)(std::string,texture)'
+to 'boost::mpl::assert&lt;false&gt;::type'...
+</pre></blockquote>
+
+<p>
+It turns out that we can make the assignment work if only we provide a means
+to retrieve the key from the value. This is not always possible, but in
+our particular example the texture class does store the filename used for
+construction, as indicated by the <code>texture::get_filename</code>
+member function. We take advantage of this by specifying a
+suitable <a href="../reference/key_value.html#key_extractor"><i>key 
+extractor</i></a> as part of the flyweight type definition:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>texture_filename_extractor</span>
+<span class=special>{</span>
+  <span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>const</span> <span class=identifier>texture</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>)</span><span class=keyword>const</span>
+  <span class=special>{</span>
+    <span class=keyword>return</span> <span class=identifier>x</span><span class=special>.</span><span class=identifier>get_filename</span><span class=special>();</span>
+  <span class=special>}</span>
+<span class=special>};</span>
+
+<span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>key_value</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span><span class=identifier>texture</span><span class=special>,</span><span class=identifier>texture_filename_extractor</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>fw</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=identifier>fw</span><span class=special>=</span><span class=identifier>get_texture</span><span class=special>(</span><span class=identifier>obj</span><span class=special>);</span> <span class=comment>// OK now</span>
+</pre></blockquote>
+
+<p>
+The specification of a key extractor in the
+definition of a key-value flyweight results in internal space optimizations,
+as the keys need not be stored along the values but are retrieved from
+them instead. So, it is always a good idea to provide a key extractor when
+possible even if your program does not contain assignment statements like
+the one above.
+</p>
+
+<p>
+Examples <a href="../examples.html#example2">2</a> and
+<a href="../examples.html#example5">5</a>
+of the examples section make use of key-value flyweights.
+</p>
+
+<h3><a name="requirements">Type requirements</a></h3>
+
+<p>
+Many of the requirements imposed on <code>T</code> for 
+<a href="basics.html#requirements">regular flyweights</a> move to the key
+type in the case of a key-value <code>flyweight&lt;key_value&lt;K,T&gt; &gt;</code>.
+Now it is <code>K</code> that must be
+<a href="http://www.sgi.com/tech/stl/Assignable.html"><code>Assignable</code></a>,
+<a href="http://www.sgi.com/tech/stl/EqualityComparable.html"><code>Equality
+Comparable</code></a> and interoperate with
+<a href="../../../functional/hash/index.html">Boost.Hash</a>, where equality and
+hash compatibility are requirements imposed by the default internal factory of
+Boost.Flyweight and can change if this factory is further configured or replaced
+by the user. The only requisite retained on <code>T</code> is that it must be
+constructible from <code>K</code>; only in the case that a flyweight is directly
+assigned a <code>T</code> object is also <code>T</code> required to be
+<a href="http://www.sgi.com/tech/stl/Assignable.html"><code>Assignable</code></a>.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="basics.html"><img src="../prev.gif" alt="basics" border="0"><br>
+Basics
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="next_link"><a href="configuration.html"><img src="../next.gif" alt="configuring Boost.Flyweight" border="0"><br>
+Configuring Boost.Flyweight
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised February 21st 2009</p>
+
+<p>&copy; Copyright 2006-2009 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

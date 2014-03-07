@@ -1,0 +1,26 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:max_corner max_corner]
+
+Indicates the maximal corner (upper right) of a box to be get, set or processed
+
+[heading Synopsis]
+`` int const max_corner = 1; ``
+
+[include reference/core/min_max_corner.qbk]
+
+[heading See also]
+* [link geometry.reference.constants.min_corner min_corner]
+* [link geometry.reference.access.get.get_1_with_index get with index]
+* [link geometry.reference.access.set.set_2_with_index set with index]
+
+[endsect]
+

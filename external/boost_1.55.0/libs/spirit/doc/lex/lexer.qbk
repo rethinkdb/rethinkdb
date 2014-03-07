@@ -1,0 +1,104 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lexer Supported Regular Expressions]
+
+[table Regular expressions support
+    [[Expression]   [Meaning]]
+    [[`x`]          [Match any character `x`]]
+    [[`.`]          [Match any except newline (or optionally *any* character)]]
+    [[`"..."`]      [All characters taken as literals between double quotes, except escape sequences]]
+    [[`[xyz]`]      [A character class; in this case matches `x`, `y` or `z`]]
+    [[`[abj-oZ]`]   [A character class with a range in it; matches `a`, `b` any
+                     letter from `j` through `o` or a `Z`]]
+    [[`[^A-Z]`]     [A negated character class i.e. any character but those in 
+                     the class. In this case, any character except an uppercase 
+                     letter]]
+    [[`r*`]         [Zero or more r's (greedy), where r is any regular expression]]
+    [[`r*?`]        [Zero or more r's (abstemious), where r is any regular expression]]
+    [[`r+`]         [One or more r's (greedy)]]
+    [[`r+?`]        [One or more r's (abstemious)]]
+    [[`r?`]         [Zero or one r's (greedy), i.e. optional]]
+    [[`r??`]        [Zero or one r's (abstemious), i.e. optional]]
+    [[`r{2,5}`]     [Anywhere between two and five r's (greedy)]]
+    [[`r{2,5}?`]    [Anywhere between two and five r's (abstemious)]]
+    [[`r{2,}`]      [Two or more r's (greedy)]]
+    [[`r{2,}?`]     [Two or more r's (abstemious)]]
+    [[`r{4}`]       [Exactly four r's]]
+    [[`{NAME}`]     [The macro `NAME` (see below)]]
+    [[`"[xyz]\"foo"`]  [The literal string `[xyz]\"foo`]]
+    [[`\X`]         [If X is `a`, `b`, `e`, `n`, `r`, `f`, `t`, `v` then the 
+                     ANSI-C interpretation of `\x`. Otherwise a literal `X` 
+                     (used to escape operators such as `*`)]]
+    [[`\0`]         [A NUL character (ASCII code 0)]]
+    [[`\123`]       [The character with octal value 123]]
+    [[`\x2a`]       [The character with hexadecimal value 2a]]
+    [[`\cX`]        [A named control character `X`.]]
+    [[`\a`]         [A shortcut for Alert (bell).]]
+    [[`\b`]         [A shortcut for Backspace]]
+    [[`\e`]         [A shortcut for ESC (escape character `0x1b`)]]
+    [[`\n`]         [A shortcut for newline]]
+    [[`\r`]         [A shortcut for carriage return]]
+    [[`\f`]         [A shortcut for form feed `0x0c`]]
+    [[`\t`]         [A shortcut for horizontal tab `0x09`]]
+    [[`\v`]         [A shortcut for vertical tab `0x0b`]]
+    [[`\d`]         [A shortcut for `[0-9]`]]
+    [[`\D`]         [A shortcut for `[^0-9]`]]
+    [[`\s`]         [A shortcut for `[\x20\t\n\r\f\v]`]]
+    [[`\S`]         [A shortcut for `[^\x20\t\n\r\f\v]`]]
+    [[`\w`]         [A shortcut for `[a-zA-Z0-9_]`]]
+    [[`\W`]         [A shortcut for `[^a-zA-Z0-9_]`]]
+    [[`(r)`]        [Match an `r`; parenthesis are used to override precedence 
+                     (see below)]]
+    [[`(?r-s:pattern)`] [apply option 'r' and omit option 's' while interpreting pattern.
+Options may be zero or more of the characters 'i' or 's'.
+'i' means case-insensitive. '-i' means case-sensitive.
+'s' alters the meaning of the '.' syntax to match any single character whatsoever.
+'-s' alters the meaning of '.' to match any character except '`\n`'.]]
+    [[`rs`]         [The regular expression `r` followed by the regular 
+                     expression `s` (a sequence)]]
+    [[`r|s`]        [Either an `r` or and `s`]]
+    [[`^r`]         [An `r` but only at the beginning of a line (i.e. when just 
+                     starting to scan, or right after a newline has been 
+                     scanned)]]
+    [[`r`$]         [An `r` but only at the end of a line (i.e. just before a 
+                     newline)]]
+]
+
+[note POSIX character classes are not currently supported, due to performance issues
+when creating them in wide character mode.]
+
+[tip  If you want to build tokens for syntaxes that recognize items like quotes 
+      (`"'"`, `'"'`) and backslash (`\`), here is example syntax to get you started. 
+      The lesson here really is to remember that both c++, as well as regular 
+      expressions require escaping with `\` for some constructs, which can 
+      cascade.
+      ``
+          quote1         = "'";            // match single "'"
+          quote2         = "\\\"";         // match single '"'
+          literal_quote1 = "\\'";          // match backslash followed by single "'"
+          literal_quote2 = "\\\\\\\"";     // match backslash followed by single '"'
+          literal_backslash = "\\\\\\\\";  // match two backslashes
+      ``
+]
+
+[heading Regular Expression Precedence]
+
+* `rs` has highest precedence
+* `r*` has next highest (`+`, `?`, `{n,m}` have the same precedence as `*`)
+* `r|s` has the lowest precedence
+
+[heading Macros]
+
+Regular expressions can be given a name and referred to in rules using the
+syntax `{NAME}` where `NAME` is the name you have given to the macro.  A macro
+name can be at most 30 characters long and must start with a `_` or a letter.
+Subsequent characters can be `_`, `-`, a letter or a decimal digit.
+
+[endsect]
+

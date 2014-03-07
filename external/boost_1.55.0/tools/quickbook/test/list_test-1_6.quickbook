@@ -1,0 +1,120 @@
+[article List Test
+[quickbook 1.6]
+]
+
+Simple list:
+
+* A
+* B
+
+Simple list:
+
+#A
+#B
+
+Two level list:
+
+* A
+  * A
+  * B
+* B
+  * A
+  * B
+
+Two level list:
+
+# A
+  * A
+  * B
+# B
+  * A
+  * B
+
+Three level list:
+
+# A
+  * A
+  * B
+      * C
+      * D
+  * E
+  * F
+      * G
+      * H
+
+Three level list:
+
+# A
+  * A
+  * B
+      # C
+      # D
+# G
+# H
+
+Inconsistent Indentation:
+
+* A1
+  * B1
+  * B2
+    * C1
+    * C2
+   * B3
+   * B4
+  * B5
+   * C3
+  * B6
+ * A2
+* A3
+
+Markup in list:
+
+*   *Bold*
+*   [*Bold]
+*   ["Quoted]
+*   [footnote Footnote]
+*   [table [[Heading]][[Cell]]]
+    Some text.
+*   [section Doesn't expand]
+    Blah, blah.
+    [endsect]
+
+* Paragraph cheat 1.
+  [block]
+  Paragraph cheat 2.
+* Paragraph cheat 3.
+  [block]
+  Paragraph cheat 4.
+
+Don't end list with comment 1:
+
+* A1
+* A2
+
+[/ End list?]
+* A3
+* A4
+
+Don't end list with comment 2:
+
+* A1
+  * B1
+
+[/ End list?]
+  * B2
+  * B3
+
+[section List immediately following markup]
+* One
+* Two
+* Three
+
+[endsect]
+
+[section List immediately following markup 2]
+* One
+[section Nested section]
+* Two
+[endsect]
+
+[endsect]

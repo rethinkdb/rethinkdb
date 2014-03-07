@@ -1,0 +1,325 @@
+locate-root "..\..\..\bin.v2"
+C:\Users\Misha\Stuff\boost\HEAD\boost\tools\regression\test>C:\Users\Misha\Stuff\boost\HEAD\bin\..\boost\tools\jam\src\bin.ntx86\bjam.exe --dump-tests --v2 msvc-7.1 "-sBOOST_BUILD_PATH=C:\Users\Misha\Stuff\boost\HEAD\bin\.." "-sBOOST_ROOT="C:\Users\Misha\Stuff\boost\HEAD\bin\..\boost"  
+warning: Python location is not configured
+warning: the Boost.Python library won't be built
+Building Boost.Regex with the optional Unicode/ICU support disabled.
+Please refer to the Boost.Regex documentation for more information
+(and if you don't know what ICU is then you probably don't need it).
+boost-test(RUN) "testlib/run~warn" : "tools/regression/test/run~warn.cpp"
+boost-test(RUN) "testlib/run~warn-note" : "tools/regression/test/run~warn-note.cpp"
+boost-test(RUN) "testlib/run~pass" : "tools/regression/test/run~pass.cpp"
+boost-test(RUN) "testlib/run~note" : "tools/regression/test/run~note.cpp"
+boost-test(RUN) "testlib/run~fail" : "tools/regression/test/run~fail.cpp"
+boost-test(RUN_FAIL) "testlib/run-fail~pass" : "tools/regression/test/run-fail~pass.cpp"
+boost-test(RUN_FAIL) "testlib/run-fail~fail" : "tools/regression/test/run-fail~fail.cpp"
+boost-test(RUN_FAIL) "testlib/run-fail~fail-warn" : "tools/regression/test/run-fail~fail-warn.cpp"
+boost-test(RUN_FAIL) "testlib/run-fail~compile-fail" : "tools/regression/test/run-fail~compile-fail.cpp"
+boost-test(LINK_FAIL) "testlib/link-fail~pass" : "tools/regression/test/link-fail~pass.cpp"
+boost-test(LINK_FAIL) "testlib/link-fail~fail" : "tools/regression/test/link-fail~fail.cpp"
+boost-test(LINK) "testlib/link~pass" : "tools/regression/test/link~pass.cpp"
+boost-test(LINK) "testlib/link~fail" : "tools/regression/test/link~fail.cpp"
+boost-test(COMPILE) "testlib/compile~warn" : "tools/regression/test/compile~warn.cpp"
+boost-test(COMPILE) "testlib/compile~pass" : "tools/regression/test/compile~pass.cpp"
+boost-test(COMPILE) "testlib/compile~fail" : "tools/regression/test/compile~fail.cpp"
+boost-test(COMPILE_FAIL) "testlib/compile-fail~pass" : "tools/regression/test/compile-fail~pass.cpp"
+boost-test(COMPILE_FAIL) "testlib/compile-fail~fail" : "tools/regression/test/compile-fail~fail.cpp"
+...found 210 targets...
+...updating 157 targets...
+MkDir1 ..\..\..\bin.v2\tools\regression\test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile-fail~fail.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile-fail~fail.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile-fail~fail.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile-fail~fail.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile-fail~fail.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\compile-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\compile-fail~fail.obj
+compile-fail~fail.cpp
+
+    call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  >nul
+cl /Zm800 -nologo @"..\..\..\bin.v2\tools\regression\test\compile-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\compile-fail~fail.obj.rsp"
+
+...failed compile-c-c++ ..\..\..\bin.v2\tools\regression\test\compile-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\compile-fail~fail.obj...
+...removing ..\..\..\bin.v2\tools\regression\test\compile-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\compile-fail~fail.obj
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile-fail~pass.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile-fail~pass.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile-fail~pass.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile-fail~pass.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile-fail~pass.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\compile-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\compile-fail~pass.obj
+compile-fail~pass.cpp
+compile-fail~pass.cpp(9) : fatal error C1189: #error :  example of a compile failure
+(failed-as-expected) ..\..\..\bin.v2\tools\regression\test\compile-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\compile-fail~pass.obj
+**passed** ..\..\..\bin.v2\tools\regression\test\compile-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\compile-fail~pass.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~fail.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~fail.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~fail.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~fail.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~fail.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\compile~fail.test\msvc-7.1\debug\link-static\threading-multi\compile~fail.obj
+compile~fail.cpp
+compile~fail.cpp(9) : fatal error C1189: #error :  example of a compile failure
+
+    call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  >nul
+cl /Zm800 -nologo @"..\..\..\bin.v2\tools\regression\test\compile~fail.test\msvc-7.1\debug\link-static\threading-multi\compile~fail.obj.rsp"
+
+...failed compile-c-c++ ..\..\..\bin.v2\tools\regression\test\compile~fail.test\msvc-7.1\debug\link-static\threading-multi\compile~fail.obj...
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~pass.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~pass.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~pass.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~pass.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~pass.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\compile~pass.test\msvc-7.1\debug\link-static\threading-multi\compile~pass.obj
+compile~pass.cpp
+**passed** ..\..\..\bin.v2\tools\regression\test\compile~pass.test\msvc-7.1\debug\link-static\threading-multi\compile~pass.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~warn.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~warn.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~warn.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~warn.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\compile~warn.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\compile~warn.test\msvc-7.1\debug\link-static\threading-multi\compile~warn.obj
+compile~warn.cpp
+compile~warn.cpp(15) : warning C4244: '=' : conversion from 'unsigned long' to 'short', possible loss of data
+c:\users\misha\stuff\boost\head\boost\tools\regression\test\compile~warn.cpp(15) : warning C4700: local variable 'ul' used without having been initialized
+**passed** ..\..\..\bin.v2\tools\regression\test\compile~warn.test\msvc-7.1\debug\link-static\threading-multi\compile~warn.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link~fail.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.obj
+link~fail.cpp
+msvc.link ..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe
+link~fail.obj : error LNK2019: unresolved external symbol "int __cdecl f(void)" (?f@@YAHXZ) referenced in function _main
+..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe : fatal error LNK1120: 1 unresolved externals
+
+        call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  >nul
+link /NOLOGO /INCREMENTAL:NO /DEBUG /subsystem:console /out:"..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe"   @"..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe.rsp"
+        if errorlevel 1 exit %errorlevel%
+        if exist "..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe.manifest" (
+            mt -nologo -manifest "..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe.manifest" "-outputresource:..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe;1"
+        )
+    
+...failed msvc.link ..\..\..\bin.v2\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe...
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link~pass.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link~pass.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link~pass.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link~pass.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link~pass.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\link~pass.test\msvc-7.1\debug\link-static\threading-multi\link~pass.obj
+link~pass.cpp
+msvc.link ..\..\..\bin.v2\tools\regression\test\link~pass.test\msvc-7.1\debug\link-static\threading-multi\link~pass.exe
+**passed** ..\..\..\bin.v2\tools\regression\test\link~pass.test\msvc-7.1\debug\link-static\threading-multi\link~pass.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link-fail~fail.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.obj
+link-fail~fail.cpp
+msvc.link ..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe
+
+        call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  >nul
+link /NOLOGO /INCREMENTAL:NO /DEBUG /subsystem:console /out:"..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe"   @"..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe.rsp"
+        if errorlevel 1 exit %errorlevel%
+        if exist "..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe.manifest" (
+            mt -nologo -manifest "..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe.manifest" "-outputresource:..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe;1"
+        )
+    
+...failed msvc.link ..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe...
+...removing ..\..\..\bin.v2\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link-fail~pass.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link-fail~pass.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link-fail~pass.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link-fail~pass.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\link-fail~pass.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\link-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\link-fail~pass.obj
+link-fail~pass.cpp
+msvc.link ..\..\..\bin.v2\tools\regression\test\link-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\link-fail~pass.exe
+link-fail~pass.obj : error LNK2019: unresolved external symbol "int __cdecl f(void)" (?f@@YAHXZ) referenced in function _main
+..\..\..\bin.v2\tools\regression\test\link-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\link-fail~pass.exe : fatal error LNK1120: 1 unresolved externals
+(failed-as-expected) ..\..\..\bin.v2\tools\regression\test\link-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\link-fail~pass.exe
+**passed** ..\..\..\bin.v2\tools\regression\test\link-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\link-fail~pass.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~compile-fail.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~compile-fail.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~compile-fail.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~compile-fail.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~compile-fail.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run-fail~compile-fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~compile-fail.obj
+run-fail~compile-fail.cpp
+run-fail~compile-fail.cpp(9) : fatal error C1189: #error :  example of a compile failure
+
+    call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  >nul
+cl /Zm800 -nologo @"..\..\..\bin.v2\tools\regression\test\run-fail~compile-fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~compile-fail.obj.rsp"
+
+...failed compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run-fail~compile-fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~compile-fail.obj...
+...skipped <p..\..\..\bin.v2\tools\regression\test\run-fail~compile-fail.test\msvc-7.1\debug\link-static\threading-multi>run-fail~compile-fail.exe for lack of <p..\..\..\bin.v2\tools\regression\test\run-fail~compile-fail.test\msvc-7.1\debug\link-static\threading-multi>run-fail~compile-fail.obj...
+...skipped <p..\..\..\bin.v2\tools\regression\test\run-fail~compile-fail.test\msvc-7.1\debug\link-static\threading-multi>run-fail~compile-fail.run for lack of <p..\..\..\bin.v2\tools\regression\test\run-fail~compile-fail.test\msvc-7.1\debug\link-static\threading-multi>run-fail~compile-fail.exe...
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail-warn.obj
+run-fail~fail-warn.cpp
+run-fail~fail-warn.cpp(13) : warning C4244: '=' : conversion from 'unsigned long' to 'short', possible loss of data
+c:\users\misha\stuff\boost\head\boost\tools\regression\test\run-fail~fail-warn.cpp(13) : warning C4700: local variable 'ul' used without having been initialized
+msvc.link ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail-warn.exe
+testing.capture-output ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail-warn.run
+        1 file(s) copied.
+
+    
+     ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail-warn.exe   > ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail-warn.output 2>&1      
+    set status=%ERRORLEVEL%
+    echo. >> ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail-warn.output
+    echo EXIT STATUS: %status% >> ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail-warn.output
+    if %status% EQU 0 (
+        copy ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail-warn.output ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail-warn.run
+    )
+    set verbose=0
+    if %status% NEQ 0 (
+        set verbose=1
+    )
+    if %verbose% EQU 1 (
+        echo ====== BEGIN OUTPUT ======
+        type ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail-warn.output
+        echo ====== END OUTPUT ======
+    )    
+    exit %status%      
+
+...failed testing.capture-output ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail-warn.run...
+...removing ..\..\..\bin.v2\tools\regression\test\run-fail~fail-warn.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail-warn.run
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail.obj
+run-fail~fail.cpp
+msvc.link ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail.exe
+testing.capture-output ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail.run
+        1 file(s) copied.
+
+    
+     ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail.exe   > ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail.output 2>&1      
+    set status=%ERRORLEVEL%
+    echo. >> ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail.output
+    echo EXIT STATUS: %status% >> ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail.output
+    if %status% EQU 0 (
+        copy ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail.output ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail.run
+    )
+    set verbose=0
+    if %status% NEQ 0 (
+        set verbose=1
+    )
+    if %verbose% EQU 1 (
+        echo ====== BEGIN OUTPUT ======
+        type ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail.output
+        echo ====== END OUTPUT ======
+    )    
+    exit %status%      
+
+...failed testing.capture-output ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail.run...
+...removing ..\..\..\bin.v2\tools\regression\test\run-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~fail.run
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~pass.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~pass.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~pass.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~pass.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run-fail~pass.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\run-fail~pass.obj
+run-fail~pass.cpp
+msvc.link ..\..\..\bin.v2\tools\regression\test\run-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\run-fail~pass.exe
+testing.capture-output ..\..\..\bin.v2\tools\regression\test\run-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\run-fail~pass.run
+====== BEGIN OUTPUT ======
+example of output from a run-time failure
+ 
+EXIT STATUS: 1 
+====== END OUTPUT ======
+
+    del /f /q "..\..\..\bin.v2\tools\regression\test\run-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\run-fail~pass.exe"
+
+...failed RmTemps ..\..\..\bin.v2\tools\regression\test\run-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\run-fail~pass.run...
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~fail.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug
+...on 100th target...
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static\threading-multi\run~fail.obj
+run~fail.cpp
+msvc.link ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static\threading-multi\run~fail.exe
+testing.capture-output ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static\threading-multi\run~fail.run
+====== BEGIN OUTPUT ======
+ 
+EXIT STATUS: 1 
+====== END OUTPUT ======
+
+    
+     ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static\threading-multi\run~fail.exe   > ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static\threading-multi\run~fail.output 2>&1      
+    set status=%ERRORLEVEL%
+    echo. >> ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static\threading-multi\run~fail.output
+    echo EXIT STATUS: %status% >> ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static\threading-multi\run~fail.output
+    if %status% EQU 0 (
+        copy ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static\threading-multi\run~fail.output ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static\threading-multi\run~fail.run
+    )
+    set verbose=0
+    if %status% NEQ 0 (
+        set verbose=1
+    )
+    if %verbose% EQU 1 (
+        echo ====== BEGIN OUTPUT ======
+        type ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static\threading-multi\run~fail.output
+        echo ====== END OUTPUT ======
+    )    
+    exit %status%      
+
+...failed testing.capture-output ..\..\..\bin.v2\tools\regression\test\run~fail.test\msvc-7.1\debug\link-static\threading-multi\run~fail.run...
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~note.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~note.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~note.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~note.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~note.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run~note.test\msvc-7.1\debug\link-static\threading-multi\run~note.obj
+run~note.cpp
+msvc.link ..\..\..\bin.v2\tools\regression\test\run~note.test\msvc-7.1\debug\link-static\threading-multi\run~note.exe
+testing.capture-output ..\..\..\bin.v2\tools\regression\test\run~note.test\msvc-7.1\debug\link-static\threading-multi\run~note.run
+        1 file(s) copied.
+**passed** ..\..\..\bin.v2\tools\regression\test\run~note.test\msvc-7.1\debug\link-static\threading-multi\run~note.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi\run~pass.obj
+run~pass.cpp
+msvc.link ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi\run~pass.exe
+testing.capture-output ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi\run~pass.run
+        1 file(s) copied.
+**passed** ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi\run~pass.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~warn-note.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~warn-note.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~warn-note.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~warn-note.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~warn-note.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run~warn-note.test\msvc-7.1\debug\link-static\threading-multi\run~warn-note.obj
+run~warn-note.cpp
+run~warn-note.cpp(21) : warning C4244: '=' : conversion from 'unsigned long' to 'short', possible loss of data
+c:\users\misha\stuff\boost\head\boost\tools\regression\test\run~warn-note.cpp(21) : warning C4700: local variable 'ul' used without having been initialized
+msvc.link ..\..\..\bin.v2\tools\regression\test\run~warn-note.test\msvc-7.1\debug\link-static\threading-multi\run~warn-note.exe
+testing.capture-output ..\..\..\bin.v2\tools\regression\test\run~warn-note.test\msvc-7.1\debug\link-static\threading-multi\run~warn-note.run
+        1 file(s) copied.
+**passed** ..\..\..\bin.v2\tools\regression\test\run~warn-note.test\msvc-7.1\debug\link-static\threading-multi\run~warn-note.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~warn.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~warn.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~warn.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~warn.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~warn.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run~warn.test\msvc-7.1\debug\link-static\threading-multi\run~warn.obj
+run~warn.cpp
+run~warn.cpp(15) : warning C4244: '=' : conversion from 'unsigned long' to 'short', possible loss of data
+c:\users\misha\stuff\boost\head\boost\tools\regression\test\run~warn.cpp(15) : warning C4700: local variable 'ul' used without having been initialized
+msvc.link ..\..\..\bin.v2\tools\regression\test\run~warn.test\msvc-7.1\debug\link-static\threading-multi\run~warn.exe
+testing.capture-output ..\..\..\bin.v2\tools\regression\test\run~warn.test\msvc-7.1\debug\link-static\threading-multi\run~warn.run
+        1 file(s) copied.
+**passed** ..\..\..\bin.v2\tools\regression\test\run~warn.test\msvc-7.1\debug\link-static\threading-multi\run~warn.test
+...failed updating 9 targets...
+...skipped 17 targets...
+...updated 131 targets...

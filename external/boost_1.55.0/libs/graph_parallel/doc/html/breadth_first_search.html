@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Breadth-First Search</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-breadth-first-search">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Breadth-First Search</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+// named parameter version
+template &lt;class Graph, class P, class T, class R&gt;
+void breadth_first_search(Graph&amp; G,
+  typename graph_traits&lt;Graph&gt;::vertex_descriptor s,
+  const bgl_named_params&lt;P, T, R&gt;&amp; params);
+
+// non-named parameter version
+template &lt;class Graph, class Buffer, class BFSVisitor,
+          class ColorMap&gt;
+void breadth_first_search(const Graph&amp; g,
+   typename graph_traits&lt;Graph&gt;::vertex_descriptor s,
+   Buffer&amp; Q, BFSVisitor vis, ColorMap color);
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">breadth_first_search()</span></tt> function performs a distributed breadth-first
+traversal of a directed or undirected graph. The distributed BFS is
+syntactically equivalent to its <a class="reference external" href="http://www.boost.org/libs/graph/doc/breadth_first_search.html">sequential counterpart</a>, which
+provides additional background and discussion. Differences in
+semantics are highlighted here, and we refer the reader to the
+documentation of the <a class="reference external" href="http://www.boost.org/libs/graph/doc/breadth_first_search.html">sequential breadth-first search</a> for the
+remainder of the details.</p>
+<p>This distributed breadth-first search algorithm implements a
+<em>level-synchronized</em> breadth-first search, meaning that all vertices
+in a given level of the BFS tree will be processed (potentially in
+parallel) before any vertices from a successive level in the tree are
+processed. Distributed breadth-first search visitors should account
+for this behavior, a topic discussed further in <a class="reference internal" href="#visitor-event-points">Visitor Event
+Points</a>.</p>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id1">Where Defined</a></li>
+<li><a class="reference internal" href="#parameter-defaults" id="id2">Parameter Defaults</a></li>
+<li><a class="reference internal" href="#complexity" id="id3">Complexity</a></li>
+<li><a class="reference internal" href="#visitor-event-points" id="id4">Visitor Event Points</a><ul>
+<li><a class="reference internal" href="#making-visitors-safe-for-distributed-bfs" id="id5">Making Visitors Safe for Distributed BFS</a></li>
+<li><a class="reference internal" href="#distributed-bfs-visitor-example" id="id6">Distributed BFS Visitor Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#performance" id="id7">Performance</a></li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id1">Where Defined</a></h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/breadth_first_search.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="parameter-defaults">
+<h1><a class="toc-backref" href="#id2">Parameter Defaults</a></h1>
+<p>All parameters of the <a class="reference external" href="http://www.boost.org/libs/graph/doc/breadth_first_search.html">sequential breadth-first search</a> are supported
+and have essentially the same meaning. Only differences are documented
+here.</p>
+<dl class="docutils">
+<dt>IN: <tt class="docutils literal"><span class="pre">Graph&amp;</span> <span class="pre">g</span></tt></dt>
+<dd>The graph type must be a model of <a class="reference external" href="DistributedGraph.html">Distributed Graph</a>.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">vertex_descriptor</span> <span class="pre">s</span></tt></dt>
+<dd>The start vertex must be the same in every process.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">visitor(BFSVisitor</span> <span class="pre">vis)</span></tt></dt>
+<dd>The visitor must be a distributed BFS visitor. The suble differences
+between sequential and distributed BFS visitors are discussed in the
+section <a class="reference internal" href="#visitor-event-points">Visitor Event Points</a>.</dd>
+<dt>UTIL/OUT: <tt class="docutils literal"><span class="pre">color_map(ColorMap</span> <span class="pre">color)</span></tt></dt>
+<dd>The color map must be a <a class="reference external" href="distributed_property_map.html">Distributed Property Map</a> with the same
+process group as the graph <tt class="docutils literal"><span class="pre">g</span></tt> whose colors must monotonically
+darken (white -&gt; gray -&gt; black). The default value is a distributed
+<tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> created from a <tt class="docutils literal"><span class="pre">std::vector</span></tt> of
+<tt class="docutils literal"><span class="pre">default_color_type</span></tt>.</dd>
+<dt>UTIL: <tt class="docutils literal"><span class="pre">buffer(Buffer&amp;</span> <span class="pre">Q)</span></tt></dt>
+<dd><p class="first">The queue must be a distributed queue that passes vertices to their
+owning process. If already-visited vertices should not be visited
+again (as is typical for BFS), the queue must filter duplicates
+itself. The queue controls synchronization within the algorithm: its
+<tt class="docutils literal"><span class="pre">empty()</span></tt> method must not return <tt class="docutils literal"><span class="pre">true</span></tt> until all local queues
+are empty.</p>
+<dl class="last docutils">
+<dt><strong>Default:</strong> A <tt class="docutils literal"><span class="pre">distributed_queue</span></tt> of a <tt class="docutils literal"><span class="pre">filtered_queue</span></tt> over a</dt>
+<dd>standard <tt class="docutils literal"><span class="pre">boost::queue</span></tt>. This queue filters out duplicate
+vertices and distributes vertices appropriately.</dd>
+</dl>
+</dd>
+</dl>
+</div>
+<div class="section" id="complexity">
+<h1><a class="toc-backref" href="#id3">Complexity</a></h1>
+<p>This algorithm performs <em>O(V + E)</em> work in <em>d + 1</em> BSP supersteps,
+where <em>d</em> is the diameter of the connected component being
+searched. Over all supersteps, <em>O(E)</em> messages of constant size will
+be transmitted.</p>
+</div>
+<div class="section" id="visitor-event-points">
+<h1><a class="toc-backref" href="#id4">Visitor Event Points</a></h1>
+<p>The <a class="reference external" href="http://www.boost.org/libs/graph/doc/BFSVisitor.html">BFS Visitor</a> concept defines 9 event points that will be
+triggered by the <a class="reference external" href="http://www.boost.org/libs/graph/doc/breadth_first_search.html">sequential breadth-first search</a>. The distributed
+BFS retains these nine event points, but the sequence of events
+triggered and the process in which each event occurs will change
+depending on the distribution of the graph.</p>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">initialize_vertex(s,</span> <span class="pre">g)</span></tt></dt>
+<dd>This will be invoked by every process for each local vertex.</dd>
+<dt><tt class="docutils literal"><span class="pre">discover_vertex(u,</span> <span class="pre">g)</span></tt></dt>
+<dd>This will be invoked each time a process discovers a new vertex
+<tt class="docutils literal"><span class="pre">u</span></tt>. Due to incomplete information in distributed property maps,
+this event may be triggered many times for the same vertex <tt class="docutils literal"><span class="pre">u</span></tt>.</dd>
+<dt><tt class="docutils literal"><span class="pre">examine_vertex(u,</span> <span class="pre">g)</span></tt></dt>
+<dd>This will be invoked by the process owning the vertex <tt class="docutils literal"><span class="pre">u</span></tt>. If the
+distributed queue prevents duplicates, it will be invoked only
+once for a particular vertex <tt class="docutils literal"><span class="pre">u</span></tt>.</dd>
+<dt><tt class="docutils literal"><span class="pre">examine_edge(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>This will be invoked by the process owning the source vertex of
+<tt class="docutils literal"><span class="pre">e</span></tt>. If the distributed queue prevents duplicates, it will be
+invoked only once for a particular edge <tt class="docutils literal"><span class="pre">e</span></tt>.</dd>
+<dt><tt class="docutils literal"><span class="pre">tree_edge(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>Similar to <tt class="docutils literal"><span class="pre">examine_edge</span></tt>, this will be invoked by the process
+owning the source vertex and may be invoked only once. Unlike the
+sequential BFS, this event may be triggered even when the target has
+already been discovered (but by a different process). Thus, some
+<tt class="docutils literal"><span class="pre">non_tree_edge</span></tt> events in a sequential BFS may become
+<tt class="docutils literal"><span class="pre">tree_edge</span></tt> in a distributed BFS.</dd>
+<dt><tt class="docutils literal"><span class="pre">non_tree_edge(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>Some <tt class="docutils literal"><span class="pre">non_tree_edge</span></tt> events in a sequential BFS may become
+<tt class="docutils literal"><span class="pre">tree_edge</span></tt> events in a distributed BFS. See the description of
+<tt class="docutils literal"><span class="pre">tree_edge</span></tt> for additional details.</dd>
+<dt><tt class="docutils literal"><span class="pre">gray_target(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>As with <tt class="docutils literal"><span class="pre">tree_edge</span></tt> not knowing when another process has already
+discovered a vertex, <tt class="docutils literal"><span class="pre">gray_target</span></tt> events may occur in a
+distributed BFS when <tt class="docutils literal"><span class="pre">black_target</span></tt> events may occur in a
+sequential BFS, due to a lack of information on a given
+processor. The source of edge <tt class="docutils literal"><span class="pre">e</span></tt> will be local to the process
+executing this event.</dd>
+<dt><tt class="docutils literal"><span class="pre">black_target(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>See documentation for <tt class="docutils literal"><span class="pre">gray_target</span></tt></dd>
+<dt><tt class="docutils literal"><span class="pre">finish_vertex(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>See documentation for <tt class="docutils literal"><span class="pre">examine_vertex</span></tt>.</dd>
+</dl>
+<div class="section" id="making-visitors-safe-for-distributed-bfs">
+<h2><a class="toc-backref" href="#id5">Making Visitors Safe for Distributed BFS</a></h2>
+<p>The three most important things to remember when updating an existing
+BFS visitor for distributed BFS or writing a new distributed BFS
+visitor are:</p>
+<ol class="arabic simple">
+<li>Be sure that all state is either entirely local or in a
+distributed data structure (most likely a property map!) using
+the same process group as the graph.</li>
+<li>Be sure that the visitor doesn't require precise event sequences
+that cannot be guaranteed by distributed BFS, e.g., requiring
+<tt class="docutils literal"><span class="pre">tree_edge</span></tt> and <tt class="docutils literal"><span class="pre">non_tree_edge</span></tt> events to be completely
+distinct.</li>
+<li>Be sure that the visitor can operate on incomplete
+information. This often includes using an appropriate reduction
+operation in a <a class="reference external" href="distributed_property_map.html">distributed property map</a> and verifying that
+results written are &quot;better&quot; that what was previously written.</li>
+</ol>
+</div>
+<div class="section" id="distributed-bfs-visitor-example">
+<h2><a class="toc-backref" href="#id6">Distributed BFS Visitor Example</a></h2>
+<p>To illustrate the differences between sequential and distributed BFS
+visitors, we consider a BFS visitor that places the distance from the
+source vertex to every other vertex in a property map. The sequential
+visitor is very simple:</p>
+<pre class="literal-block">
+template&lt;typename DistanceMap&gt;
+struct bfs_discovery_visitor : bfs_visitor&lt;&gt;
+{
+  bfs_discovery_visitor(DistanceMap distance) : distance(distance) {}
+
+  template&lt;typename Edge, typename Graph&gt;
+  void tree_edge(Edge e, const Graph&amp; g)
+  {
+    std::size_t new_distance = get(distance, source(e, g)) + 1;
+    put(distance, target(e, g), new_distance);
+  }
+
+ private:
+  DistanceMap distance;
+};
+</pre>
+<p>To revisit this code for distributed BFS, we consider the three points
+in the section <a class="reference internal" href="#making-visitors-safe-for-distributed-bfs">Making Visitors Safe for Distributed BFS</a>:</p>
+<ol class="arabic">
+<li><p class="first">The distance map will need to become distributed, because the
+distance to each vertex should be stored in the process owning the
+vertex. This is actually a requirement on the user to provide such
+a distributed property map, although in many cases the property map
+will automatically be distributed and no syntactic changes will be
+required.</p>
+</li>
+<li><p class="first">This visitor <em>does</em> require a precise sequence of events that may
+change with a distributed BFS. The extraneous <tt class="docutils literal"><span class="pre">tree_edge</span></tt> events
+that may occur could result in attempts to put distances into the
+distance map multiple times for a single vertex. We therefore need
+to consider bullet #3.</p>
+</li>
+<li><p class="first">Since multiple distance values may be written for each vertex, we
+must always choose the best value we can find to update the
+distance map. The distributed property map <tt class="docutils literal"><span class="pre">distance</span></tt> needs to
+resolve distances to the smallest distance it has seen. For
+instance, process 0 may find vertex <tt class="docutils literal"><span class="pre">u</span></tt> at level 3 but process 1
+finds it at level 5: the distance must remain at 3. To do this, we
+state that the property map's <em>role</em> is as a distance map, which
+introduces an appropriate reduction operation:</p>
+<pre class="literal-block">
+set_property_map_role(vertex_distance, distance);
+</pre>
+</li>
+</ol>
+<p>The resulting distributed BFS visitor (which also applies, with no
+changes, in the sequential BFS) is very similar to our original
+sequential BFS visitor. Note the single-line difference in the
+constructor:</p>
+<pre class="literal-block">
+template&lt;typename DistanceMap&gt;
+struct bfs_discovery_visitor : bfs_visitor&lt;&gt;
+{
+  bfs_discovery_visitor(DistanceMap distance) : distance(distance)
+  {
+    set_property_map_role(vertex_distance, distance);
+  }
+
+  template&lt;typename Edge, typename Graph&gt;
+  void tree_edge(Edge e, const Graph&amp; g)
+  {
+    std::size_t new_distance = get(distance, source(e, g)) + 1;
+    put(distance, target(e, g), new_distance);
+  }
+
+ private:
+  DistanceMap distance;
+};
+</pre>
+</div>
+</div>
+<div class="section" id="performance">
+<h1><a class="toc-backref" href="#id7">Performance</a></h1>
+<p>The performance of Breadth-First Search is illustrated by the
+following charts. Scaling and performance is reasonable for all of the
+graphs we have tried.</p>
+<img align="left" alt="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_4.png" class="align-left" src="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_4.png" />
+<img alt="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_4_speedup_1.png" src="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_4_speedup_1.png" />
+<img align="left" alt="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_4.png" class="align-left" src="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_4.png" />
+<img alt="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_4_speedup_1.png" src="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_4_speedup_1.png" />
+<hr class="docutils" />
+<p>Copyright (C) 2004 The Trustees of Indiana University.</p>
+<p>Authors: Douglas Gregor and Andrew Lumsdaine</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

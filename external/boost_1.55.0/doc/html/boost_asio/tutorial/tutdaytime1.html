@@ -1,0 +1,158 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Daytime.1 - A synchronous TCP daytime client</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="tuttimer5/src.html" title="Source listing for Timer.5">
+<link rel="next" href="tutdaytime1/src.html" title="Source listing for Daytime.1">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tuttimer5/src.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutdaytime1/src.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.tutorial.tutdaytime1"></a><a class="link" href="tutdaytime1.html" title="Daytime.1 - A synchronous TCP daytime client">Daytime.1 - A synchronous
+      TCP daytime client</a>
+</h3></div></div></div>
+<p>
+        This tutorial program shows how to use asio to implement a client application
+        with TCP.
+      </p>
+<p>
+        We start by including the necessary header files.
+      </p>
+<pre class="programlisting"><span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">array</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">asio</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        The purpose of this application is to access a daytime service, so we need
+        the user to specify the server.
+      </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+  <span class="keyword">try</span>
+  <span class="special">{</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">argc</span> <span class="special">!=</span> <span class="number">2</span><span class="special">)</span>
+    <span class="special">{</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cerr</span> <span class="special">&lt;&lt;</span> <span class="string">"Usage: client &lt;host&gt;"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+      <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+    <span class="special">}</span>
+</pre>
+<p>
+        All programs that use asio need to have at least one <a class="link" href="../reference/io_service.html" title="io_service">io_service</a>
+        object.
+      </p>
+<pre class="programlisting">    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span> <span class="identifier">io_service</span><span class="special">;</span>
+</pre>
+<p>
+        We need to turn the server name that was specified as a parameter to the
+        application, into a TCP endpoint. To do this we use an <a class="link" href="../reference/ip__tcp/resolver.html" title="ip::tcp::resolver">ip::tcp::resolver</a>
+        object.
+      </p>
+<pre class="programlisting">    <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">resolver</span> <span class="identifier">resolver</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">);</span>
+</pre>
+<p>
+        A resolver takes a query object and turns it into a list of endpoints. We
+        construct a query using the name of the server, specified in <code class="computeroutput"><span class="identifier">argv</span><span class="special">[</span><span class="number">1</span><span class="special">]</span></code>, and the name of the service, in this case
+        <code class="computeroutput"><span class="string">"daytime"</span></code>.
+      </p>
+<pre class="programlisting">    <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">query</span> <span class="identifier">query</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="number">1</span><span class="special">],</span> <span class="string">"daytime"</span><span class="special">);</span>
+</pre>
+<p>
+        The list of endpoints is returned using an iterator of type <a class="link" href="../reference/ip__basic_resolver/iterator.html" title="ip::basic_resolver::iterator">ip::tcp::resolver::iterator</a>.
+        (Note that a default constructed <a class="link" href="../reference/ip__basic_resolver/iterator.html" title="ip::basic_resolver::iterator">ip::tcp::resolver::iterator</a>
+        object can be used as an end iterator.)
+      </p>
+<pre class="programlisting">    <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">endpoint_iterator</span> <span class="special">=</span> <span class="identifier">resolver</span><span class="special">.</span><span class="identifier">resolve</span><span class="special">(</span><span class="identifier">query</span><span class="special">);</span>
+</pre>
+<p>
+        Now we create and connect the socket. The list of endpoints obtained above
+        may contain both IPv4 and IPv6 endpoints, so we need to try each of them
+        until we find one that works. This keeps the client program independent of
+        a specific IP version. The boost::asio::connect() function does this for
+        us automatically.
+      </p>
+<pre class="programlisting">    <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">);</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">connect</span><span class="special">(</span><span class="identifier">socket</span><span class="special">,</span> <span class="identifier">endpoint_iterator</span><span class="special">);</span>
+</pre>
+<p>
+        The connection is open. All we need to do now is read the response from the
+        daytime service.
+      </p>
+<p>
+        We use a <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code> to hold the received data. The boost::asio::buffer()
+        function automatically determines the size of the array to help prevent buffer
+        overruns. Instead of a <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code>,
+        we could have used a <code class="computeroutput"><span class="keyword">char</span> <span class="special">[]</span></code>
+        or <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code>.
+      </p>
+<pre class="programlisting">    <span class="keyword">for</span> <span class="special">(;;)</span>
+    <span class="special">{</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="number">128</span><span class="special">&gt;</span> <span class="identifier">buf</span><span class="special">;</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">error</span><span class="special">;</span>
+
+      <span class="identifier">size_t</span> <span class="identifier">len</span> <span class="special">=</span> <span class="identifier">socket</span><span class="special">.</span><span class="identifier">read_some</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">buf</span><span class="special">),</span> <span class="identifier">error</span><span class="special">);</span>
+</pre>
+<p>
+        When the server closes the connection, the <a class="link" href="../reference/basic_stream_socket/read_some.html" title="basic_stream_socket::read_some">ip::tcp::socket::read_some()</a>
+        function will exit with the boost::asio::error::eof error, which is how we
+        know to exit the loop.
+      </p>
+<pre class="programlisting">      <span class="keyword">if</span> <span class="special">(</span><span class="identifier">error</span> <span class="special">==</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">error</span><span class="special">::</span><span class="identifier">eof</span><span class="special">)</span>
+        <span class="keyword">break</span><span class="special">;</span> <span class="comment">// Connection closed cleanly by peer.</span>
+      <span class="keyword">else</span> <span class="keyword">if</span> <span class="special">(</span><span class="identifier">error</span><span class="special">)</span>
+        <span class="keyword">throw</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">system_error</span><span class="special">(</span><span class="identifier">error</span><span class="special">);</span> <span class="comment">// Some other error.</span>
+
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">.</span><span class="identifier">write</span><span class="special">(</span><span class="identifier">buf</span><span class="special">.</span><span class="identifier">data</span><span class="special">(),</span> <span class="identifier">len</span><span class="special">);</span>
+    <span class="special">}</span>
+</pre>
+<p>
+        Finally, handle any exceptions that may have been thrown.
+      </p>
+<pre class="programlisting">  <span class="special">}</span>
+  <span class="keyword">catch</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">exception</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cerr</span> <span class="special">&lt;&lt;</span> <span class="identifier">e</span><span class="special">.</span><span class="identifier">what</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="special">}</span>
+</pre>
+<p>
+        See the <a class="link" href="tutdaytime1/src.html" title="Source listing for Daytime.1">full source listing</a>
+      </p>
+<p>
+        Return to the <a class="link" href="../tutorial.html" title="Tutorial">tutorial index</a>
+      </p>
+<p>
+        Next: <a class="link" href="tutdaytime2.html" title="Daytime.2 - A synchronous TCP daytime server">Daytime.2 - A synchronous
+        TCP daytime server</a>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tuttimer5/src.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutdaytime1/src.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

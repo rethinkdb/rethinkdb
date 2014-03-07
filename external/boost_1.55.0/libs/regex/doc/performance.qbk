@@ -1,0 +1,23 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:performance Performance]
+
+The performance of Boost.Regex in both recursive and non-recursive modes 
+should be broadly comparable to other regular expression libraries: 
+recursive mode is slightly faster (especially where memory allocation requires 
+thread synchronisation), but not by much.  The following pages compare 
+Boost.Regex with various other regular expression libraries for the 
+following compilers:
+
+* [@../vc71-performance.html Visual Studio.Net 2003 (recursive Boost.Regex implementation)].
+* [@../gcc-performance.html Gcc 3.2 (cygwin) (non-recursive Boost.Regex implementation)].
+
+[endsect]
+
+
+

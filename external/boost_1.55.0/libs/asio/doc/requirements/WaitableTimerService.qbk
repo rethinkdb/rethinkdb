@@ -1,0 +1,104 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:WaitableTimerService Waitable timer service requirements]
+
+A waitable timer service must meet the requirements for an [link
+boost_asio.reference.IoObjectService I/O object service], as well as the
+additional requirements listed below.
+
+In the table below, `X` denotes a waitable timer service class for clock type
+`Clock`, where `Clock` meets the C++11 clock type requirements, `a` denotes a
+value of type `X`, `b` denotes a value of type `X::implementation_type`, `t`
+denotes a value of type `Clock::time_point`, `d` denotes a value of type
+`Clock::duration`, `e` denotes a value of type `error_code`, and `h` denotes a
+value meeting [link boost_asio.reference.WaitHandler `WaitHandler`] requirements.
+
+[table WaitableTimerService requirements
+  [[expression] [return type] [assertion/note\npre/post-condition]]
+  [
+    [`a.destroy(b);`]
+    []
+    [
+      From [link boost_asio.reference.IoObjectService IoObjectService]
+      requirements. Implicitly cancels asynchronous wait operations, as if by
+      calling `a.cancel(b, e)`.
+    ]
+  ]
+  [
+    [``
+      a.cancel(b, e);
+    ``]
+    [`size_t`]
+    [
+      Causes any outstanding asynchronous wait operations to complete as soon
+      as possible. Handlers for cancelled operations shall be passed the error
+      code `error::operation_aborted`. Sets `e` to indicate success or failure.
+      Returns the number of operations that were cancelled.
+    ]
+  ]
+  [
+    [`a.expires_at(b);`]
+    [`Clock::time_point`]
+    []
+  ]
+  [
+    [``
+      a.expires_at(b, t, e);
+    ``]
+    [`size_t`]
+    [
+      Implicitly cancels asynchronous wait operations, as if by calling
+      `a.cancel(b, e)`. Returns the number of operations that were cancelled.\n
+      post: `a.expires_at(b) == t`.
+    ]
+  ]
+  [
+    [`a.expires_from_now(b);`]
+    [`Clock::duration`]
+    [
+      Returns a value equivalent to `a.expires_at(b) - Clock::now()`.
+    ]
+  ]
+  [
+    [``
+      a.expires_from_now(b, d, e);
+    ``]
+    [`size_t`]
+    [
+      Equivalent to `a.expires_at(b, Clock::now() + d, e)`.
+    ]
+  ]
+  [
+    [``
+      a.wait(b, e);
+    ``]
+    [`error_code`]
+    [
+      Sets `e` to indicate success or failure. Returns `e`.\n
+      post: `!!e || !(Clock::now() < a.expires_at(b))`.
+    ]
+  ]
+  [
+    [``
+      a.async_wait(b, h);
+    ``]
+    []
+    [
+      Initiates an asynchronous wait operation that is performed via the
+      `io_service` object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      The handler shall be posted for execution only if the condition
+      `!!ec || !(Clock::now() < a.expires_at(b))`
+      holds, where `ec` is the error code to be passed to the handler.
+    ]
+  ]
+]
+
+[endsect]

@@ -1,0 +1,11 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: es_FONIPA_es_419_FONIPA.txt
+# Generated from CLDR 
+#
+ʎ → ʝ;
+[sθ]+ → s;

@@ -1,0 +1,3137 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Comparisons to Other Open Source Libraries</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Math Toolkit">
+<link rel="up" href="../perf.html" title="Chapter&#160;14.&#160;Performance">
+<link rel="prev" href="tuning.html" title="Performance Tuning Macros">
+<link rel="next" href="perf_test_app.html" title="The Performance Test Application">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tuning.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../perf.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="perf_test_app.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="math_toolkit.comparisons"></a><a class="link" href="comparisons.html" title="Comparisons to Other Open Source Libraries">Comparisons to Other Open Source
+    Libraries</a>
+</h2></div></div></div>
+<p>
+      We've run our performance tests both for our own code, and against other open
+      source implementations of the same functions. The results are presented below
+      to give you a rough idea of how they all compare.
+    </p>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../../../doc/src/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        You should exercise extreme caution when interpreting these results, relative
+        performance may vary by platform, the tests use data that gives good code
+        coverage of <span class="emphasis"><em>our</em></span> code, but which may skew the results
+        towards the corner cases. Finally, remember that different libraries make
+        different choices with regard to performance verses numerical stability.
+      </p></td></tr>
+</table></div>
+<h4>
+<a name="math_toolkit.comparisons.h0"></a>
+      <span class="phrase"><a name="math_toolkit.comparisons.comparison_to_gsl_1_13_and_cephe"></a></span><a class="link" href="comparisons.html#math_toolkit.comparisons.comparison_to_gsl_1_13_and_cephe">Comparison
+      to GSL-1.13 and Cephes</a>
+    </h4>
+<p>
+      All the results were measured on a 2.0GHz Intel T5800 Core 2 Duo, 4Gb RAM,
+      Windows Vista machine, with the test program compiled with Microsoft Visual
+      C++ 2009 using the /Ox option.
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Function
+              </p>
+            </th>
+<th>
+              <p>
+                Boost
+              </p>
+            </th>
+<th>
+              <p>
+                GSL-1.9
+              </p>
+            </th>
+<th>
+              <p>
+                Cephes
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <a class="link" href="powers/cbrt.html" title="cbrt">cbrt</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.873e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                N/A
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(6.699e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="powers/log1p.html" title="log1p">log1p</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.664e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.677e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.189e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="powers/expm1.html" title="expm1">expm1</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(8.760e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.248e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(8.169e-008s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_gamma/tgamma.html" title="Gamma">tgamma</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.80</p>
+<p> </p>
+<p>(2.997e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.54</p>
+<p> </p>
+<p>(2.569e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.666e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_gamma/lgamma.html" title="Log Gamma">lgamma</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.20</p>
+<p> </p>
+<p>(3.045e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>4.14</p>
+<p> </p>
+<p>(5.713e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.381e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_erf/error_function.html" title="Error Functions">erf</a> and
+                <a class="link" href="sf_erf/error_function.html" title="Error Functions">erfc</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.483e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(7.052e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.722e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_gamma/igamma.html" title="Incomplete Gamma Functions">gamma_p</a> and
+                <a class="link" href="sf_gamma/igamma.html" title="Incomplete Gamma Functions">gamma_q</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(6.182e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.57</p>
+<p> </p>
+<p>(2.209e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>4.29</p>
+<p> </p>
+<p>(2.651e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_p_inv</a>
+                and <a class="link" href="sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_q_inv</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.943e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                N/A
+              </p>
+            </td>
+<td>
+              <p>
+                +INF <a href="#ftn.math_toolkit.comparisons.f0" class="footnote" name="math_toolkit.comparisons.f0"><sup class="footnote">[1]</sup></a>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_beta/ibeta_function.html" title="Incomplete Beta Functions">ibeta</a>
+                and <a class="link" href="sf_beta/ibeta_function.html" title="Incomplete Beta Functions">ibetac</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.670e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.16</p>
+<p> </p>
+<p>(1.935e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.16</p>
+<p> </p>
+<p>(1.935e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibeta_inv</a>
+                and <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibetac_inv</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(6.075e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                N/A
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.45</p>
+<p> </p>
+<p>(1.489e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="bessel/bessel_first.html" title="Bessel Functions of the First and Second Kinds">cyl_bessel_j</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>17.89<a href="#ftn.math_toolkit.comparisons.f1" class="footnote" name="math_toolkit.comparisons.f1"><sup class="footnote">[2]</sup></a></p>
+<p> </p>
+<p>(4.248e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(5.214e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.374e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="bessel/mbessel.html" title="Modified Bessel Functions of the First and Second Kinds">cyl_bessel_i</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(5.924e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.487e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.823e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="bessel/mbessel.html" title="Modified Bessel Functions of the First and Second Kinds">cyl_bessel_k</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.783e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(3.927e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                N/A
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="bessel/bessel_first.html" title="Bessel Functions of the First and Second Kinds">cyl_neumann</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.465e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.230e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.977e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+</tbody>
+<tbody class="footnotes"><tr><td colspan="4">
+<div id="ftn.math_toolkit.comparisons.f0" class="footnote"><p><a href="#math_toolkit.comparisons.f0" class="para"><sup class="para">[1] </sup></a>
+                  Cephes gets stuck in an infinite loop while trying to execute our
+                  test cases.
+                </p></div>
+<div id="ftn.math_toolkit.comparisons.f1" class="footnote"><p><a href="#math_toolkit.comparisons.f1" class="para"><sup class="para">[2] </sup></a>
+                  The performance here is dominated by a few cases where the parameters
+                  grow very large: faster asymptotic expansions are available, but
+                  are of limited (or even frankly terrible) precision. The same issue
+                  effects all of our Bessel function implementations, but doesn't
+                  necessarily show in the current performance data. More investigation
+                  is needed here.
+                </p></div>
+</td></tr></tbody>
+</table></div>
+<h4>
+<a name="math_toolkit.comparisons.h1"></a>
+      <span class="phrase"><a name="math_toolkit.comparisons.comparison_to_the_r_and_dcdflib_"></a></span><a class="link" href="comparisons.html#math_toolkit.comparisons.comparison_to_the_r_and_dcdflib_">Comparison
+      to the R and DCDFLIB Statistical Libraries on Windows</a>
+    </h4>
+<p>
+      All the results were measured on a 2.0GHz Intel T5800 Core 2 Duo, 4Gb RAM,
+      Windows Vista machine, with the test program compiled with Microsoft Visual
+      C++ 2009, and R-2.9.2 compiled in "standalone mode" with MinGW-4.3
+      (R-2.9.2 appears not to be buildable with Visual C++).
+    </p>
+<div class="table">
+<a name="math_toolkit.comparisons.a_comparison_to_the_r_statistica"></a><p class="title"><b>Table&#160;14.5.&#160;A Comparison to the R Statistical Library on Windows XP</b></p>
+<div class="table-contents"><table class="table" summary="A Comparison to the R Statistical Library on Windows XP">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Statistical Function
+              </p>
+            </th>
+<th>
+              <p>
+                Boost
+              </p>
+            </th>
+<th>
+              <p>
+                R
+              </p>
+            </th>
+<th>
+              <p>
+                DCDFLIB
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/beta_dist.html" title="Beta Distribution">Beta Distribution</a>
+                CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.08</p>
+<p> </p>
+<p>(1.385e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.278e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.06</p>
+<p> </p>
+<p>(1.349e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/beta_dist.html" title="Beta Distribution">Beta Distribution</a>
+                Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.975e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>67.66<a href="#ftn.math_toolkit.comparisons.f2" class="footnote" name="math_toolkit.comparisons.f2"><sup class="footnote">[1]</sup></a></p>
+<p> </p>
+<p>(3.366e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>4.23</p>
+<p> </p>
+<p>(2.103e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/binomial_dist.html" title="Binomial Distribution">Binomial
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.06</p>
+<p> </p>
+<p>(4.503e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.81</p>
+<p> </p>
+<p>(7.680e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.239e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/binomial_dist.html" title="Binomial Distribution">Binomial
+                Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(3.254e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.15</p>
+<p> </p>
+<p>(3.746e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>7.25</p>
+<p> </p>
+<p>(2.358e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/cauchy_dist.html" title="Cauchy-Lorentz Distribution">Cauchy Distribution</a>
+                CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.134e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.08</p>
+<p> </p>
+<p>(1.227e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/cauchy_dist.html" title="Cauchy-Lorentz Distribution">Cauchy Distribution</a>
+                Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.203e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.203e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/chi_squared_dist.html" title="Chi Squared Distribution">Chi
+                Squared Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.21</p>
+<p> </p>
+<p>(5.021e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.83</p>
+<p> </p>
+<p>(1.176e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.155e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/chi_squared_dist.html" title="Chi Squared Distribution">Chi
+                Squared Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.930e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.72</p>
+<p> </p>
+<p>(5.243e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>5.73</p>
+<p> </p>
+<p>(1.106e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/exp_dist.html" title="Exponential Distribution">Exponential
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(3.798e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>5.89</p>
+<p> </p>
+<p>(2.236e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/exp_dist.html" title="Exponential Distribution">Exponential
+                Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.41</p>
+<p> </p>
+<p>(9.006e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(6.380e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/f_dist.html" title="F Distribution">Fisher F Distribution</a>
+                CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(9.556e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.34</p>
+<p> </p>
+<p>(1.283e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.24</p>
+<p> </p>
+<p>(1.183e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/f_dist.html" title="F Distribution">Fisher F Distribution</a>
+                Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(6.987e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.33</p>
+<p> </p>
+<p>(9.325e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.16</p>
+<p> </p>
+<p>(2.205e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/gamma_dist.html" title="Gamma (and Erlang) Distribution">Gamma Distribution</a>
+                CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.52</p>
+<p> </p>
+<p>(6.240e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.11</p>
+<p> </p>
+<p>(1.279e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.111e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/gamma_dist.html" title="Gamma (and Erlang) Distribution">Gamma Distribution</a>
+                Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.24</p>
+<p> </p>
+<p>(2.179e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>6.25</p>
+<p> </p>
+<p>(1.102e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.764e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/hypergeometric_dist.html" title="Hypergeometric Distribution">hypergeometric
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.60<a href="#ftn.math_toolkit.comparisons.f3" class="footnote" name="math_toolkit.comparisons.f3"><sup class="footnote">[2]</sup></a></p>
+<p> </p>
+<p>(5.987e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.665e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/hypergeometric_dist.html" title="Hypergeometric Distribution">hypergeometric
+                Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(5.684e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.53</p>
+<p> </p>
+<p>(2.004e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/logistic_dist.html" title="Logistic Distribution">Logistic
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.714e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>5.24</p>
+<p> </p>
+<p>(8.984e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/logistic_dist.html" title="Logistic Distribution">Logistic
+                Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.02</p>
+<p> </p>
+<p>(2.084e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.043e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/lognormal_dist.html" title="Log Normal Distribution">Log-normal
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(3.579e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.49</p>
+<p> </p>
+<p>(5.332e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/lognormal_dist.html" title="Log Normal Distribution">Log-normal
+                Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(9.622e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.57</p>
+<p> </p>
+<p>(1.507e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/negative_binomial_dist.html" title="Negative Binomial Distribution">Negative
+                Binomial Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(6.227e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.25</p>
+<p> </p>
+<p>(1.403e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.21</p>
+<p> </p>
+<p>(1.378e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/negative_binomial_dist.html" title="Negative Binomial Distribution">Negative
+                Binomial Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(8.594e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>43.43<a href="#ftn.math_toolkit.comparisons.f4" class="footnote" name="math_toolkit.comparisons.f4"><sup class="footnote">[3]</sup></a></p>
+<p> </p>
+<p>(3.732e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.48</p>
+<p> </p>
+<p>(2.994e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/nc_chi_squared_dist.html" title="Noncentral Chi-Squared Distribution">Noncentral
+                Chi Squared Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.16</p>
+<p> </p>
+<p>(3.926e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>79.93</p>
+<p> </p>
+<p>(1.450e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.814e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/nc_chi_squared_dist.html" title="Noncentral Chi-Squared Distribution">Noncentral
+                Chi Squared Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>5.00</p>
+<p> </p>
+<p>(3.393e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>393.90<a href="#ftn.math_toolkit.comparisons.f5" class="footnote" name="math_toolkit.comparisons.f5"><sup class="footnote">[4]</sup></a></p>
+<p> </p>
+<p>(2.673e-002s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(6.786e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/nc_f_dist.html" title="Noncentral F Distribution">Noncentral
+                F Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.59</p>
+<p> </p>
+<p>(1.128e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(7.087e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.274e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/nc_f_dist.html" title="Noncentral F Distribution">Noncentral
+                F Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.750e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.62</p>
+<p> </p>
+<p>(7.681e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.274e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/nc_t_dist.html" title="Noncentral T Distribution">noncentral
+                T distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.41</p>
+<p> </p>
+<p>(1.852e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(5.436e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/nc_t_dist.html" title="Noncentral T Distribution">noncentral
+                T distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.31</p>
+<p> </p>
+<p>(5.768e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span><a href="#ftn.math_toolkit.comparisons.f6" class="footnote" name="math_toolkit.comparisons.f6"><sup class="footnote">[5]</sup></a></p>
+<p> </p>
+<p>(4.411e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/normal_dist.html" title="Normal (Gaussian) Distribution">Normal Distribution</a>
+                CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(8.373e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.68</p>
+<p> </p>
+<p>(1.409e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>6.01</p>
+<p> </p>
+<p>(5.029e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/normal_dist.html" title="Normal (Gaussian) Distribution">Normal Distribution</a>
+                Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.29</p>
+<p> </p>
+<p>(1.521e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.182e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>10.85</p>
+<p> </p>
+<p>(1.283e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/poisson_dist.html" title="Poisson Distribution">Poisson
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.18</p>
+<p> </p>
+<p>(5.193e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.98</p>
+<p> </p>
+<p>(1.314e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.410e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/poisson_dist.html" title="Poisson Distribution">Poisson
+                Distribution</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.203e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.20</p>
+<p> </p>
+<p>(2.642e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>7.86</p>
+<p> </p>
+<p>(9.457e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/students_t_dist.html" title="Students t Distribution">Students
+                t Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(8.655e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.06</p>
+<p> </p>
+<p>(9.166e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.04</p>
+<p> </p>
+<p>(8.999e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/students_t_dist.html" title="Students t Distribution">Students
+                t Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.294e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.36</p>
+<p> </p>
+<p>(3.131e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>4.82</p>
+<p> </p>
+<p>(1.106e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/weibull_dist.html" title="Weibull Distribution">Weibull
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.865e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.33</p>
+<p> </p>
+<p>(4.341e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/weibull_dist.html" title="Weibull Distribution">Weibull
+                Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(3.608e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.22</p>
+<p> </p>
+<p>(4.410e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+</tbody>
+<tbody class="footnotes"><tr><td colspan="4">
+<div id="ftn.math_toolkit.comparisons.f2" class="footnote"><p><a href="#math_toolkit.comparisons.f2" class="para"><sup class="para">[1] </sup></a>
+                  There are a small number of our test cases where the R library
+                  fails to converge on a result: these tend to dominate the performance
+                  result.
+                </p></div>
+<div id="ftn.math_toolkit.comparisons.f3" class="footnote"><p><a href="#math_toolkit.comparisons.f3" class="para"><sup class="para">[2] </sup></a>
+                  This result is somewhat misleading: for small values of the parameters
+                  there is virtually no difference between the two libraries, but
+                  for large values the Boost implementation is <span class="emphasis"><em>much</em></span>
+                  slower, albeit with much improved precision.
+                </p></div>
+<div id="ftn.math_toolkit.comparisons.f4" class="footnote"><p><a href="#math_toolkit.comparisons.f4" class="para"><sup class="para">[3] </sup></a>
+                  The R library appears to use a linear-search strategy, that can
+                  perform very badly in a small number of pathological cases, but
+                  may or may not be more efficient in "typical" cases
+                </p></div>
+<div id="ftn.math_toolkit.comparisons.f5" class="footnote"><p><a href="#math_toolkit.comparisons.f5" class="para"><sup class="para">[4] </sup></a>
+                  There are a small number of our test cases where the R library
+                  fails to converge on a result: these tend to dominate the performance
+                  result.
+                </p></div>
+<div id="ftn.math_toolkit.comparisons.f6" class="footnote"><p><a href="#math_toolkit.comparisons.f6" class="para"><sup class="para">[5] </sup></a>
+                  There are a small number of our test cases where the R library
+                  fails to converge on a result: these tend to dominate the performance
+                  result.
+                </p></div>
+</td></tr></tbody>
+</table></div>
+</div>
+<br class="table-break"><h4>
+<a name="math_toolkit.comparisons.h2"></a>
+      <span class="phrase"><a name="math_toolkit.comparisons.comparison_to_the_r_statistical_"></a></span><a class="link" href="comparisons.html#math_toolkit.comparisons.comparison_to_the_r_statistical_">Comparison
+      to the R Statistical Library on Linux</a>
+    </h4>
+<p>
+      All the results were measured on a 2.0GHz Intel T5800 Core 2 Duo, 4Gb RAM,
+      Ubuntu Linux 9 machine, with the test program and R-2.9.2 compiled with GNU
+      G++ 4.3.3 using -O3 -DNDEBUG=1.
+    </p>
+<div class="table">
+<a name="math_toolkit.comparisons.a_comparison_to_the_r_statistic0"></a><p class="title"><b>Table&#160;14.6.&#160;A Comparison to the R Statistical Library on Linux</b></p>
+<div class="table-contents"><table class="table" summary="A Comparison to the R Statistical Library on Linux">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Statistical Function
+              </p>
+            </th>
+<th>
+              <p>
+                Boost
+              </p>
+            </th>
+<th>
+              <p>
+                R
+              </p>
+            </th>
+<th>
+              <p>
+                DCDFLIB
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/beta_dist.html" title="Beta Distribution">Beta Distribution</a>
+                CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.09</p>
+<p> </p>
+<p>(3.189e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.526e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.19</p>
+<p> </p>
+<p>(1.822e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/beta_dist.html" title="Beta Distribution">Beta Distribution</a>
+                Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.185e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>30.51<a href="#ftn.math_toolkit.comparisons.f7" class="footnote" name="math_toolkit.comparisons.f7"><sup class="footnote">[1]</sup></a></p>
+<p> </p>
+<p>(3.616e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.52</p>
+<p> </p>
+<p>(2.989e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/binomial_dist.html" title="Binomial Distribution">Binomial
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>4.41</p>
+<p> </p>
+<p>(9.175e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.59</p>
+<p> </p>
+<p>(7.476e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.081e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/binomial_dist.html" title="Binomial Distribution">Binomial
+                Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.57</p>
+<p> </p>
+<p>(6.925e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.407e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>7.43</p>
+<p> </p>
+<p>(3.274e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/cauchy_dist.html" title="Cauchy-Lorentz Distribution">Cauchy Distribution</a>
+                CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.594e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.04</p>
+<p> </p>
+<p>(1.654e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/cauchy_dist.html" title="Cauchy-Lorentz Distribution">Cauchy Distribution</a>
+                Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.21</p>
+<p> </p>
+<p>(1.752e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.448e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/chi_squared_dist.html" title="Chi Squared Distribution">Chi
+                Squared Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.61</p>
+<p> </p>
+<p>(1.376e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.36</p>
+<p> </p>
+<p>(1.243e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(5.270e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/chi_squared_dist.html" title="Chi Squared Distribution">Chi
+                Squared Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.252e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.34</p>
+<p> </p>
+<p>(5.700e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.47</p>
+<p> </p>
+<p>(1.477e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/exp_dist.html" title="Exponential Distribution">Exponential
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.342e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.25</p>
+<p> </p>
+<p>(1.677e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/exp_dist.html" title="Exponential Distribution">Exponential
+                Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(8.827e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.07</p>
+<p> </p>
+<p>(9.470e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/f_dist.html" title="F Distribution">Fisher F Distribution</a>
+                CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.62</p>
+<p> </p>
+<p>(2.324e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.19</p>
+<p> </p>
+<p>(1.711e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.437e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/f_dist.html" title="F Distribution">Fisher F Distribution</a>
+                Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.53</p>
+<p> </p>
+<p>(1.577e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.033e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.63</p>
+<p> </p>
+<p>(2.719e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/gamma_dist.html" title="Gamma (and Erlang) Distribution">Gamma Distribution</a>
+                CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.18</p>
+<p> </p>
+<p>(1.582e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.63</p>
+<p> </p>
+<p>(1.309e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.980e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/gamma_dist.html" title="Gamma (and Erlang) Distribution">Gamma Distribution</a>
+                Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.19</p>
+<p> </p>
+<p>(4.770e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>6.94</p>
+<p> </p>
+<p>(1.513e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.179e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/hypergeometric_dist.html" title="Hypergeometric Distribution">hypergeometric
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.20<a href="#ftn.math_toolkit.comparisons.f8" class="footnote" name="math_toolkit.comparisons.f8"><sup class="footnote">[2]</sup></a></p>
+<p> </p>
+<p>(3.522e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.601e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/hypergeometric_dist.html" title="Hypergeometric Distribution">hypergeometric
+                Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(8.279e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.57</p>
+<p> </p>
+<p>(2.125e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/logistic_dist.html" title="Logistic Distribution">Logistic
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(9.398e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.75</p>
+<p> </p>
+<p>(2.588e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/logistic_dist.html" title="Logistic Distribution">Logistic
+                Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(9.893e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.30</p>
+<p> </p>
+<p>(1.285e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/lognormal_dist.html" title="Log Normal Distribution">Log-normal
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.831e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.39</p>
+<p> </p>
+<p>(2.539e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/lognormal_dist.html" title="Log Normal Distribution">Log-normal
+                Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.10</p>
+<p> </p>
+<p>(5.551e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(5.037e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/negative_binomial_dist.html" title="Negative Binomial Distribution">Negative
+                Binomial Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.08</p>
+<p> </p>
+<p>(1.563e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.444e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.444e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/negative_binomial_dist.html" title="Negative Binomial Distribution">Negative
+                Binomial Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.700e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>25.92<a href="#ftn.math_toolkit.comparisons.f9" class="footnote" name="math_toolkit.comparisons.f9"><sup class="footnote">[3]</sup></a></p>
+<p> </p>
+<p>(4.407e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.93</p>
+<p> </p>
+<p>(3.274e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/nc_chi_squared_dist.html" title="Noncentral Chi-Squared Distribution">Noncentral
+                Chi Squared Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>5.06</p>
+<p> </p>
+<p>(2.841e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>25.01</p>
+<p> </p>
+<p>(1.405e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(5.617e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/nc_chi_squared_dist.html" title="Noncentral Chi-Squared Distribution">Noncentral
+                Chi Squared Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>8.47</p>
+<p> </p>
+<p>(1.879e-003s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>144.91<a href="#ftn.math_toolkit.comparisons.f10" class="footnote" name="math_toolkit.comparisons.f10"><sup class="footnote">[4]</sup></a></p>
+<p> </p>
+<p>(3.214e-002s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.218e-004s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/nc_f_dist.html" title="Noncentral F Distribution">Noncentral
+                F Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>10.33</p>
+<p> </p>
+<p>(5.868e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.42</p>
+<p> </p>
+<p>(8.058e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(5.682e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/nc_f_dist.html" title="Noncentral F Distribution">Noncentral
+                F Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>5.64</p>
+<p> </p>
+<p>(7.869e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>6.63</p>
+<p> </p>
+<p>(9.256e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.396e-004s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/nc_t_dist.html" title="Noncentral T Distribution">noncentral
+                T distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>4.91</p>
+<p> </p>
+<p>(3.357e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(6.844e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/nc_t_dist.html" title="Noncentral T Distribution">noncentral
+                T distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.57</p>
+<p> </p>
+<p>(9.265e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span><a href="#ftn.math_toolkit.comparisons.f11" class="footnote" name="math_toolkit.comparisons.f11"><sup class="footnote">[5]</sup></a></p>
+<p> </p>
+<p>(5.916e-004s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/normal_dist.html" title="Normal (Gaussian) Distribution">Normal Distribution</a>
+                CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.074e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.16</p>
+<p> </p>
+<p>(1.245e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>5.36</p>
+<p> </p>
+<p>(5.762e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/normal_dist.html" title="Normal (Gaussian) Distribution">Normal Distribution</a>
+                Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.28</p>
+<p> </p>
+<p>(1.902e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.490e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>10.35</p>
+<p> </p>
+<p>(1.542e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/poisson_dist.html" title="Poisson Distribution">Poisson
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.43</p>
+<p> </p>
+<p>(1.198e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.25</p>
+<p> </p>
+<p>(1.110e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.937e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/poisson_dist.html" title="Poisson Distribution">Poisson
+                Distribution</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.11</p>
+<p> </p>
+<p>(3.032e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.724e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>4.07</p>
+<p> </p>
+<p>(1.110e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/students_t_dist.html" title="Students t Distribution">Students
+                t Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.17</p>
+<p> </p>
+<p>(2.020e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(9.321e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.10</p>
+<p> </p>
+<p>(1.021e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/students_t_dist.html" title="Students t Distribution">Students
+                t Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.18</p>
+<p> </p>
+<p>(3.972e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(3.364e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.89</p>
+<p> </p>
+<p>(1.308e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/weibull_dist.html" title="Weibull Distribution">Weibull
+                Distribution</a> CDF
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(3.662e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.04</p>
+<p> </p>
+<p>(3.808e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="dist_ref/dists/weibull_dist.html" title="Weibull Distribution">Weibull
+                Distribution</a> Quantile
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.112e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.05</p>
+<p> </p>
+<p>(4.317e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                NA
+              </p>
+            </td>
+</tr>
+</tbody>
+<tbody class="footnotes"><tr><td colspan="4">
+<div id="ftn.math_toolkit.comparisons.f7" class="footnote"><p><a href="#math_toolkit.comparisons.f7" class="para"><sup class="para">[1] </sup></a>
+                  There are a small number of our test cases where the R library
+                  fails to converge on a result: these tend to dominate the performance
+                  result.
+                </p></div>
+<div id="ftn.math_toolkit.comparisons.f8" class="footnote"><p><a href="#math_toolkit.comparisons.f8" class="para"><sup class="para">[2] </sup></a>
+                  This result is somewhat misleading: for small values of the parameters
+                  there is virtually no difference between the two libraries, but
+                  for large values the Boost implementation is <span class="emphasis"><em>much</em></span>
+                  slower, albeit with much improved precision.
+                </p></div>
+<div id="ftn.math_toolkit.comparisons.f9" class="footnote"><p><a href="#math_toolkit.comparisons.f9" class="para"><sup class="para">[3] </sup></a>
+                  The R library appears to use a linear-search strategy, that can
+                  perform very badly in a small number of pathological cases, but
+                  may or may not be more efficient in "typical" cases
+                </p></div>
+<div id="ftn.math_toolkit.comparisons.f10" class="footnote"><p><a href="#math_toolkit.comparisons.f10" class="para"><sup class="para">[4] </sup></a>
+                  There are a small number of our test cases where the R library
+                  fails to converge on a result: these tend to dominate the performance
+                  result.
+                </p></div>
+<div id="ftn.math_toolkit.comparisons.f11" class="footnote"><p><a href="#math_toolkit.comparisons.f11" class="para"><sup class="para">[5] </sup></a>
+                  There are a small number of our test cases where the R library
+                  fails to converge on a result: these tend to dominate the performance
+                  result.
+                </p></div>
+</td></tr></tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tuning.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../perf.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="perf_test_app.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

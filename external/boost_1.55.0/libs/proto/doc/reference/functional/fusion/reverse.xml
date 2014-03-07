@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/functional/fusion/reverse.hpp">
+  <para>Includes Proto callable <computeroutput><classname>boost::proto::functional::reverse</classname></computeroutput>.</para>
+
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="functional">
+
+        <!-- proto::functional::reverse -->
+        <struct name="reverse">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+            <computeroutput>fusion::reverse()</computeroutput> algorithm on its argument.
+          </purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+              <computeroutput>fusion::reverse()</computeroutput> algorithm on its argument. This is
+              useful for defining a <conceptname>CallableTransform</conceptname> like
+              <computeroutput>reverse(_)</computeroutput>, which reverses the order of the children
+              of a Proto expression node.
+            </para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Seq"/>
+            </template>
+            <specialization>
+              <template-arg>This(Seq)</template-arg>
+            </specialization>
+            <inherit>
+              <type>result&lt; This(Seq const &amp;) &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Seq"/>
+            </template>
+            <specialization>
+              <template-arg>This(Seq &amp;)</template-arg>
+            </specialization>
+            <inherit>
+              <type>fusion::result_of::reverse&lt; Seq &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename fusion::result_of::reverse&lt; Seq &gt;::type</type>
+              <template>
+                <template-type-parameter name="Seq"/>
+              </template>
+              <parameter name="seq">
+                <paramtype>Seq &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para><computeroutput>fusion::reverse(seq)</computeroutput></para>
+              </returns>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename fusion::result_of::reverse&lt; Seq const &gt;::type</type>
+              <template>
+                <template-type-parameter name="Seq"/>
+              </template>
+              <parameter name="seq">
+                <paramtype>Seq const &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para><computeroutput>fusion::reverse(seq)</computeroutput></para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+
+      </namespace>
+    </namespace>
+  </namespace>
+</header>

@@ -1,0 +1,391 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class coroutine&lt;&gt;::push_type</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Coroutine">
+<link rel="up" href="../unidirect.html" title="Unidirectional coroutine">
+<link rel="prev" href="pull_coro.html" title="Class coroutine&lt;&gt;::pull_type">
+<link rel="next" href="../../attributes.html" title="Attributes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="pull_coro.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../unidirect.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../attributes.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="coroutine.coroutine.unidirect.push_coro"></a><a class="link" href="push_coro.html" title="Class coroutine&lt;&gt;::push_type">Class <code class="computeroutput"><span class="identifier">coroutine</span><span class="special">&lt;&gt;::</span><span class="identifier">push_type</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">coroutine</span><span class="special">/</span><span class="identifier">coroutine</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Arg</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">coroutine</span><span class="special">&lt;&gt;::</span><span class="identifier">push_type</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">push_type</span><span class="special">();</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span>
+        <span class="keyword">typename</span> <span class="identifier">Fn</span><span class="special">,</span>
+        <span class="keyword">typename</span> <span class="identifier">StackAllocator</span> <span class="special">=</span> <span class="identifier">stack_allocator</span><span class="special">,</span>
+        <span class="keyword">typename</span> <span class="identifier">Allocator</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="identifier">coroutine</span> <span class="special">&gt;</span>
+    <span class="special">&gt;</span>
+    <span class="identifier">push_type</span><span class="special">(</span> <span class="identifier">Fn</span> <span class="identifier">fn</span><span class="special">,</span> <span class="identifier">attributes</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">attr</span> <span class="special">=</span> <span class="identifier">attributes</span><span class="special">(),</span>
+               <span class="identifier">StackAllocator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">stack_alloc</span> <span class="special">=</span> <span class="identifier">StackAllocator</span><span class="special">(),</span>
+               <span class="identifier">Allocator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">alloc</span> <span class="special">=</span> <span class="identifier">Allocator</span><span class="special">()</span> <span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span>
+        <span class="keyword">typename</span> <span class="identifier">Fn</span><span class="special">,</span>
+        <span class="keyword">typename</span> <span class="identifier">StackAllocator</span> <span class="special">=</span> <span class="identifier">stack_allocator</span><span class="special">,</span>
+        <span class="keyword">typename</span> <span class="identifier">Allocator</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="identifier">coroutine</span> <span class="special">&gt;</span>
+    <span class="special">&gt;</span>
+    <span class="identifier">push_type</span><span class="special">(</span> <span class="identifier">Fn</span> <span class="special">&amp;&amp;</span> <span class="identifier">fn</span><span class="special">,</span> <span class="identifier">attributes</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">attr</span> <span class="special">=</span> <span class="identifier">attributes</span><span class="special">(),</span>
+               <span class="identifier">StackAllocator</span> <span class="identifier">stack_alloc</span> <span class="special">=</span> <span class="identifier">StackAllocator</span><span class="special">(),</span>
+               <span class="identifier">Allocator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">alloc</span> <span class="special">=</span> <span class="identifier">Allocator</span><span class="special">()</span> <span class="special">);</span>
+
+    <span class="identifier">push_type</span><span class="special">(</span> <span class="identifier">push_type</span> <span class="special">&amp;&amp;</span> <span class="identifier">other</span><span class="special">);</span>
+
+    <span class="identifier">push_type</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span> <span class="identifier">push_type</span> <span class="special">&amp;&amp;</span> <span class="identifier">other</span><span class="special">);</span>
+
+    <span class="keyword">operator</span> <span class="identifier">unspecified</span><span class="special">-</span><span class="keyword">bool</span><span class="special">-</span><span class="identifier">type</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span> <span class="identifier">push_type</span> <span class="special">&amp;</span> <span class="identifier">other</span><span class="special">);</span>
+
+    <span class="keyword">bool</span> <span class="identifier">empty</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="identifier">push_type</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="identifier">Arg</span><span class="special">&amp;&amp;</span> <span class="identifier">arg</span><span class="special">);</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Arg</span> <span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span> <span class="identifier">push_type</span><span class="special">&lt;</span> <span class="identifier">Arg</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">l</span><span class="special">,</span> <span class="identifier">push_type</span><span class="special">&lt;</span> <span class="identifier">Arg</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">r</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Arg</span> <span class="special">&gt;</span>
+<span class="identifier">range_iterator</span><span class="special">&lt;</span> <span class="identifier">push_type</span><span class="special">&lt;</span> <span class="identifier">Arg</span> <span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">begin</span><span class="special">(</span> <span class="identifier">push_type</span><span class="special">&lt;</span> <span class="identifier">Arg</span> <span class="special">&gt;</span> <span class="special">&amp;);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Arg</span> <span class="special">&gt;</span>
+<span class="identifier">range_iterator</span><span class="special">&lt;</span> <span class="identifier">push_type</span><span class="special">&lt;</span> <span class="identifier">Arg</span> <span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">end</span><span class="special">(</span> <span class="identifier">push_type</span><span class="special">&lt;</span> <span class="identifier">Arg</span> <span class="special">&gt;</span> <span class="special">&amp;);</span>
+</pre>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h0"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro._code__phrase_role__identifier__push_type__phrase__phrase_role__special______phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro._code__phrase_role__identifier__push_type__phrase__phrase_role__special______phrase___code_"><code class="computeroutput"><span class="identifier">push_type</span><span class="special">()</span></code></a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Creates a coroutine representing <span class="emphasis"><em>not-a-coroutine</em></span>.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h1"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro._code__phrase_role__keyword__template__phrase__phrase_role__special___lt___phrase___phrase_role__keyword__typename__phrase___phrase_role__identifier__fn__phrase__phrase_role__special_____phrase___phrase_role__keyword__typename__phrase___phrase_role__identifier__stackallocator__phrase__phrase_role__special_____phrase___phrase_role__keyword__typename__phrase___phrase_role__identifier__allocator__phrase___phrase_role__special___gt___phrase_____________phrase_role__identifier__push_type__phrase__phrase_role__special_____phrase___phrase_role__identifier__fn__phrase___phrase_role__identifier__fn__phrase__phrase_role__special_____phrase___phrase_role__identifier__attributes__phrase___phrase_role__keyword__const__phrase__phrase_role__special___amp___phrase___phrase_role__identifier__attr__phrase__phrase_role__special_____phrase___phrase_role__identifier__stackallocator__phrase___phrase_role__keyword__const__phrase__phrase_role__special___amp___phrase___phrase_role__identifier__stack_alloc__phrase__phrase_role__special_____phrase___phrase_role__identifier__allocator__phrase___phrase_role__keyword__const__phrase__phrase_role__special___amp___phrase___phrase_role__identifier__alloc__phrase__phrase_role__special_____phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro._code__phrase_role__keyword__template__phrase__phrase_role__special___lt___phrase___phrase_role__keyword__typename__phrase___phrase_role__identifier__fn__phrase__phrase_role__special_____phrase___phrase_role__keyword__typename__phrase___phrase_role__identifier__stackallocator__phrase__phrase_role__special_____phrase___phrase_role__keyword__typename__phrase___phrase_role__identifier__allocator__phrase___phrase_role__special___gt___phrase_____________phrase_role__identifier__push_type__phrase__phrase_role__special_____phrase___phrase_role__identifier__fn__phrase___phrase_role__identifier__fn__phrase__phrase_role__special_____phrase___phrase_role__identifier__attributes__phrase___phrase_role__keyword__const__phrase__phrase_role__special___amp___phrase___phrase_role__identifier__attr__phrase__phrase_role__special_____phrase___phrase_role__identifier__stackallocator__phrase___phrase_role__keyword__const__phrase__phrase_role__special___amp___phrase___phrase_role__identifier__stack_alloc__phrase__phrase_role__special_____phrase___phrase_role__identifier__allocator__phrase___phrase_role__keyword__const__phrase__phrase_role__special___amp___phrase___phrase_role__identifier__alloc__phrase__phrase_role__special_____phrase___code_"><code class="computeroutput"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Fn</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">StackAllocator</span><span class="special">,</span>
+          <span class="keyword">typename</span> <span class="identifier">Allocator</span>
+          <span class="special">&gt;</span> <span class="identifier">push_type</span><span class="special">(</span> <span class="identifier">Fn</span> <span class="identifier">fn</span><span class="special">,</span> <span class="identifier">attributes</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">attr</span><span class="special">,</span> <span class="identifier">StackAllocator</span>
+          <span class="keyword">const</span><span class="special">&amp;</span>
+          <span class="identifier">stack_alloc</span><span class="special">,</span>
+          <span class="identifier">Allocator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">alloc</span><span class="special">)</span></code></a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Preconditions:</span></dt>
+<dd><p>
+                <code class="computeroutput"><span class="identifier">size</span></code> &gt; minimum_stacksize(),
+                <code class="computeroutput"><span class="identifier">size</span></code> &lt; maximum_stacksize()
+                when ! is_stack_unbound().
+              </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Creates a coroutine which will execute <code class="computeroutput"><span class="identifier">fn</span></code>.
+                Argument <code class="computeroutput"><span class="identifier">attr</span></code> determines
+                stack clean-up and preserving floating-point registers. For allocating/deallocating
+                the stack <code class="computeroutput"><span class="identifier">stack_alloc</span></code>
+                is used and internal data are allocated by Allocator.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h2"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro._code__phrase_role__keyword__template__phrase__phrase_role__special___lt___phrase___phrase_role__keyword__typename__phrase___phrase_role__identifier__fn__phrase__phrase_role__special_____phrase___phrase_role__keyword__typename__phrase___phrase_role__identifier__stackallocator__phrase__phrase_role__special_____phrase___phrase_role__keyword__typename__phrase___phrase_role__identifier__allocator__phrase___phrase_role__special___gt___phrase_____________phrase_role__identifier__push_type__phrase__phrase_role__special_____phrase___phrase_role__identifier__fn__phrase___phrase_role__special___amp__amp___phrase___phrase_role__identifier__fn__phrase__phrase_role__special_____phrase___phrase_role__identifier__attributes__phrase___phrase_role__keyword__const__phrase__phrase_role__special___amp___phrase___phrase_role__identifier__attr__phrase__phrase_role__special_____phrase___phrase_role__identifier__stackallocator__phrase___phrase_role__keyword__const__phrase__phrase_role__special___amp___phrase___phrase_role__identifier__stack_alloc__phrase__phrase_role__special_____phrase___phrase_role__identifier__allocator__phrase___phrase_role__keyword__const__phrase__phrase_role__special___amp___phrase___phrase_role__identifier__alloc__phrase__phrase_role__special_____phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro._code__phrase_role__keyword__template__phrase__phrase_role__special___lt___phrase___phrase_role__keyword__typename__phrase___phrase_role__identifier__fn__phrase__phrase_role__special_____phrase___phrase_role__keyword__typename__phrase___phrase_role__identifier__stackallocator__phrase__phrase_role__special_____phrase___phrase_role__keyword__typename__phrase___phrase_role__identifier__allocator__phrase___phrase_role__special___gt___phrase_____________phrase_role__identifier__push_type__phrase__phrase_role__special_____phrase___phrase_role__identifier__fn__phrase___phrase_role__special___amp__amp___phrase___phrase_role__identifier__fn__phrase__phrase_role__special_____phrase___phrase_role__identifier__attributes__phrase___phrase_role__keyword__const__phrase__phrase_role__special___amp___phrase___phrase_role__identifier__attr__phrase__phrase_role__special_____phrase___phrase_role__identifier__stackallocator__phrase___phrase_role__keyword__const__phrase__phrase_role__special___amp___phrase___phrase_role__identifier__stack_alloc__phrase__phrase_role__special_____phrase___phrase_role__identifier__allocator__phrase___phrase_role__keyword__const__phrase__phrase_role__special___amp___phrase___phrase_role__identifier__alloc__phrase__phrase_role__special_____phrase___code_"><code class="computeroutput"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Fn</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">StackAllocator</span><span class="special">,</span>
+          <span class="keyword">typename</span> <span class="identifier">Allocator</span>
+          <span class="special">&gt;</span> <span class="identifier">push_type</span><span class="special">(</span> <span class="identifier">Fn</span> <span class="special">&amp;&amp;</span> <span class="identifier">fn</span><span class="special">,</span> <span class="identifier">attributes</span>
+          <span class="keyword">const</span><span class="special">&amp;</span>
+          <span class="identifier">attr</span><span class="special">,</span>
+          <span class="identifier">StackAllocator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">stack_alloc</span><span class="special">,</span> <span class="identifier">Allocator</span>
+          <span class="keyword">const</span><span class="special">&amp;</span>
+          <span class="identifier">alloc</span><span class="special">)</span></code></a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Preconditions:</span></dt>
+<dd><p>
+                <code class="computeroutput"><span class="identifier">size</span></code> &gt; minimum_stacksize(),
+                <code class="computeroutput"><span class="identifier">size</span></code> &lt; maximum_stacksize()
+                when ! is_stack_unbound().
+              </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Creates a coroutine which will execute <code class="computeroutput"><span class="identifier">fn</span></code>.
+                Argument <code class="computeroutput"><span class="identifier">attr</span></code> determines
+                stack clean-up and preserving floating-point registers. For allocating/deallocating
+                the stack <code class="computeroutput"><span class="identifier">stack_alloc</span></code>
+                is used and internal data are allocated by Allocator.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h3"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro._code__phrase_role__identifier__push_type__phrase__phrase_role__special_____phrase___phrase_role__identifier__push_type__phrase___phrase_role__special___amp__amp___phrase___phrase_role__identifier__other__phrase__phrase_role__special_____phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro._code__phrase_role__identifier__push_type__phrase__phrase_role__special_____phrase___phrase_role__identifier__push_type__phrase___phrase_role__special___amp__amp___phrase___phrase_role__identifier__other__phrase__phrase_role__special_____phrase___code_"><code class="computeroutput"><span class="identifier">push_type</span><span class="special">(</span>
+          <span class="identifier">push_type</span> <span class="special">&amp;&amp;</span>
+          <span class="identifier">other</span><span class="special">)</span></code></a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Moves the internal data of <code class="computeroutput"><span class="identifier">other</span></code>
+                to <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>.
+                <code class="computeroutput"><span class="identifier">other</span></code> becomes <span class="emphasis"><em>not-a-coroutine</em></span>.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h4"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro._code__phrase_role__identifier__push_type__phrase___phrase_role__special___amp___phrase___phrase_role__keyword__operator__phrase__phrase_role__special______phrase___phrase_role__identifier__push_type__phrase___phrase_role__special___amp__amp___phrase___phrase_role__identifier__other__phrase__phrase_role__special_____phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro._code__phrase_role__identifier__push_type__phrase___phrase_role__special___amp___phrase___phrase_role__keyword__operator__phrase__phrase_role__special______phrase___phrase_role__identifier__push_type__phrase___phrase_role__special___amp__amp___phrase___phrase_role__identifier__other__phrase__phrase_role__special_____phrase___code_"><code class="computeroutput"><span class="identifier">push_type</span> <span class="special">&amp;</span>
+          <span class="keyword">operator</span><span class="special">=(</span>
+          <span class="identifier">push_type</span> <span class="special">&amp;&amp;</span>
+          <span class="identifier">other</span><span class="special">)</span></code></a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Destroys the internal data of <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code> and moves the internal data of
+                <code class="computeroutput"><span class="identifier">other</span></code> to <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>.
+                <code class="computeroutput"><span class="identifier">other</span></code> becomes <span class="emphasis"><em>not-a-coroutine</em></span>.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h5"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro._code__phrase_role__keyword__operator__phrase___phrase_role__identifier__unspecified__phrase__phrase_role__special_____phrase__phrase_role__keyword__bool__phrase__phrase_role__special_____phrase__phrase_role__identifier__type__phrase__phrase_role__special______phrase___phrase_role__keyword__const__phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro._code__phrase_role__keyword__operator__phrase___phrase_role__identifier__unspecified__phrase__phrase_role__special_____phrase__phrase_role__keyword__bool__phrase__phrase_role__special_____phrase__phrase_role__identifier__type__phrase__phrase_role__special______phrase___phrase_role__keyword__const__phrase___code_"><code class="computeroutput"><span class="keyword">operator</span> <span class="identifier">unspecified</span><span class="special">-</span><span class="keyword">bool</span><span class="special">-</span><span class="identifier">type</span><span class="special">()</span> <span class="keyword">const</span></code></a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Returns:</span></dt>
+<dd><p>
+                If <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+                refers to <span class="emphasis"><em>not-a-coroutine</em></span> or the coroutine-function
+                has returned (completed), the function returns false. Otherwise true.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h6"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro._code__phrase_role__keyword__bool__phrase___phrase_role__keyword__operator__phrase__phrase_role__special_______phrase___phrase_role__keyword__const__phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro._code__phrase_role__keyword__bool__phrase___phrase_role__keyword__operator__phrase__phrase_role__special_______phrase___phrase_role__keyword__const__phrase___code_"><code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!()</span> <span class="keyword">const</span></code></a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Returns:</span></dt>
+<dd><p>
+                If <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+                refers to <span class="emphasis"><em>not-a-coroutine</em></span> or the coroutine-function
+                has returned (completed), the function returns true. Otherwise false.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h7"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro._code__phrase_role__keyword__bool__phrase___phrase_role__identifier__empty__phrase__phrase_role__special______phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro._code__phrase_role__keyword__bool__phrase___phrase_role__identifier__empty__phrase__phrase_role__special______phrase___code_"><code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">empty</span><span class="special">()</span></code></a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Returns:</span></dt>
+<dd><p>
+                If <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+                refers to <span class="emphasis"><em>not-a-coroutine</em></span>, the function returns
+                true. Otherwise false.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h8"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro._code__phrase_role__identifier__push_type__phrase__phrase_role__special___lt__gt___phrase___phrase_role__special___amp___phrase___phrase_role__keyword__operator__phrase__phrase_role__special_______phrase__phrase_role__identifier__arg__phrase__phrase_role__special___amp__amp___phrase___phrase_role__identifier__arg__phrase__phrase_role__special_____phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro._code__phrase_role__identifier__push_type__phrase__phrase_role__special___lt__gt___phrase___phrase_role__special___amp___phrase___phrase_role__keyword__operator__phrase__phrase_role__special_______phrase__phrase_role__identifier__arg__phrase__phrase_role__special___amp__amp___phrase___phrase_role__identifier__arg__phrase__phrase_role__special_____phrase___code_"><code class="computeroutput"><span class="identifier">push_type</span><span class="special">&lt;&gt;</span>
+          <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Arg</span><span class="special">&amp;&amp;</span> <span class="identifier">arg</span><span class="special">)</span></code></a>
+        </h6>
+<pre class="programlisting"><span class="identifier">push_type</span><span class="special">&amp;</span> <span class="identifier">coroutine</span><span class="special">&lt;</span><span class="identifier">Arg</span><span class="special">&gt;::</span><span class="identifier">push_type</span><span class="special">::</span><span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="identifier">Arg</span><span class="special">&amp;);</span>
+<span class="identifier">push_type</span><span class="special">&amp;</span> <span class="identifier">coroutine</span><span class="special">&lt;</span><span class="identifier">Arg</span><span class="special">&gt;::</span><span class="identifier">push_type</span><span class="special">::</span><span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Arg</span><span class="special">&amp;&amp;);</span>
+<span class="identifier">push_type</span><span class="special">&amp;</span> <span class="identifier">coroutine</span><span class="special">&lt;</span><span class="identifier">Arg</span><span class="special">&amp;&gt;::</span><span class="identifier">push_type</span><span class="special">::</span><span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Arg</span><span class="special">&amp;);</span>
+<span class="identifier">push_type</span><span class="special">&amp;</span> <span class="identifier">coroutine</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;::</span><span class="identifier">push_type</span><span class="special">::</span><span class="keyword">operator</span><span class="special">()();</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Preconditions:</span></dt>
+<dd><p>
+                operator unspecified-bool-type() returns true for <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>.
+              </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Execution control is transferred to <span class="emphasis"><em>coroutine-function</em></span>
+                and the argument <code class="computeroutput"><span class="identifier">arg</span></code>
+                is passed to the coroutine-function.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Exceptions thrown inside <span class="emphasis"><em>coroutine-function</em></span>.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h9"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro._code__phrase_role__keyword__void__phrase___phrase_role__identifier__swap__phrase__phrase_role__special_____phrase___phrase_role__identifier__push_type__phrase___phrase_role__special___amp___phrase___phrase_role__identifier__other__phrase__phrase_role__special_____phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro._code__phrase_role__keyword__void__phrase___phrase_role__identifier__swap__phrase__phrase_role__special_____phrase___phrase_role__identifier__push_type__phrase___phrase_role__special___amp___phrase___phrase_role__identifier__other__phrase__phrase_role__special_____phrase___code_"><code class="computeroutput"><span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span> <span class="identifier">push_type</span>
+          <span class="special">&amp;</span> <span class="identifier">other</span><span class="special">)</span></code></a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Swaps the internal data from <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code> with the values of <code class="computeroutput"><span class="identifier">other</span></code>.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h10"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro._code__phrase_role__identifier__t__phrase___phrase_role__identifier__caller_type__phrase__phrase_role__special______phrase__phrase_role__keyword__operator__phrase__phrase_role__special_______phrase___phrase_role__identifier__r__phrase__phrase_role__special_____phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro._code__phrase_role__identifier__t__phrase___phrase_role__identifier__caller_type__phrase__phrase_role__special______phrase__phrase_role__keyword__operator__phrase__phrase_role__special_______phrase___phrase_role__identifier__r__phrase__phrase_role__special_____phrase___code_"><code class="computeroutput"><span class="identifier">T</span> <span class="identifier">caller_type</span><span class="special">::</span><span class="keyword">operator</span><span class="special">()(</span> <span class="identifier">R</span><span class="special">)</span></code></a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Gives execution control back to calling context by returning a value
+                of type R. The return type of this function is a <span class="emphasis"><em>boost::tuple&lt;&gt;</em></span>
+                containing the arguments passed to <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::operator()</em></span>.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h11"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro.non_member_function__code__phrase_role__identifier__swap__phrase__phrase_role__special______phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro.non_member_function__code__phrase_role__identifier__swap__phrase__phrase_role__special______phrase___code_">Non-member
+          function <code class="computeroutput"><span class="identifier">swap</span><span class="special">()</span></code></a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Arg</span> <span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span> <span class="identifier">push_type</span><span class="special">&lt;</span> <span class="identifier">Arg</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">l</span><span class="special">,</span> <span class="identifier">push_type</span><span class="special">&lt;</span> <span class="identifier">Arg</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">r</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                As if 'l.swap( r)'.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h12"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro.non_member_function__code__phrase_role__identifier__begin__phrase__phrase_role__special_____phrase___phrase_role__identifier__push_type__phrase__phrase_role__special___lt___phrase___phrase_role__identifier__arg__phrase___phrase_role__special___gt___phrase___phrase_role__special___amp____phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro.non_member_function__code__phrase_role__identifier__begin__phrase__phrase_role__special_____phrase___phrase_role__identifier__push_type__phrase__phrase_role__special___lt___phrase___phrase_role__identifier__arg__phrase___phrase_role__special___gt___phrase___phrase_role__special___amp____phrase___code_">Non-member
+          function <code class="computeroutput"><span class="identifier">begin</span><span class="special">(</span>
+          <span class="identifier">push_type</span><span class="special">&lt;</span>
+          <span class="identifier">Arg</span> <span class="special">&gt;</span>
+          <span class="special">&amp;)</span></code></a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Arg</span> <span class="special">&gt;</span>
+<span class="identifier">range_iterator</span><span class="special">&lt;</span> <span class="identifier">push_type</span><span class="special">&lt;</span> <span class="identifier">Arg</span> <span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">begin</span><span class="special">(</span> <span class="identifier">push_type</span><span class="special">&lt;</span> <span class="identifier">Arg</span> <span class="special">&gt;</span> <span class="special">&amp;);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Returns:</span></dt>
+<dd><p>
+                Returns a range-iterator (output-iterator).
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="coroutine.coroutine.unidirect.push_coro.h13"></a>
+          <span class="phrase"><a name="coroutine.coroutine.unidirect.push_coro.non_member_function__code__phrase_role__identifier__end__phrase__phrase_role__special_____phrase___phrase_role__identifier__push_type__phrase__phrase_role__special___lt___phrase___phrase_role__identifier__arg__phrase___phrase_role__special___gt___phrase___phrase_role__special___amp____phrase___code_"></a></span><a class="link" href="push_coro.html#coroutine.coroutine.unidirect.push_coro.non_member_function__code__phrase_role__identifier__end__phrase__phrase_role__special_____phrase___phrase_role__identifier__push_type__phrase__phrase_role__special___lt___phrase___phrase_role__identifier__arg__phrase___phrase_role__special___gt___phrase___phrase_role__special___amp____phrase___code_">Non-member
+          function <code class="computeroutput"><span class="identifier">end</span><span class="special">(</span>
+          <span class="identifier">push_type</span><span class="special">&lt;</span>
+          <span class="identifier">Arg</span> <span class="special">&gt;</span>
+          <span class="special">&amp;)</span></code></a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Arg</span> <span class="special">&gt;</span>
+<span class="identifier">range_iterator</span><span class="special">&lt;</span> <span class="identifier">push_type</span><span class="special">&lt;</span> <span class="identifier">Arg</span> <span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">end</span><span class="special">(</span> <span class="identifier">push_type</span><span class="special">&lt;</span> <span class="identifier">Arg</span> <span class="special">&gt;</span> <span class="special">&amp;);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Returns:</span></dt>
+<dd><p>
+                Returns a end range-iterator (output-iterator).
+              </p></dd>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009 Oliver Kowalke<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="pull_coro.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../unidirect.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../attributes.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

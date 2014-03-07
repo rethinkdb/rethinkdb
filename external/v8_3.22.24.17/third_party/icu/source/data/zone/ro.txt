@@ -1,0 +1,304 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ro.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ro.xml
+ */
+ro{
+    Version{"2.0.50.94"}
+    zoneStrings{
+        "Africa:Addis_Ababa"{
+            ec{"Addis Abeba"}
+        }
+        "Africa:Algiers"{
+            ec{"Alger"}
+        }
+        "America:Guadeloupe"{
+            ec{"Guadalupe"}
+        }
+        "America:Martinique"{
+            ec{"Martinica"}
+        }
+        "America:North_Dakota:Center"{
+            ec{"Centru, Dakota de Nord"}
+        }
+        "America:North_Dakota:New_Salem"{
+            ec{"New Salem, Dakota de Nord"}
+        }
+        "America:St_Kitts"{
+            ec{"St. Kitts"}
+        }
+        "America:St_Lucia"{
+            ec{"St. Lucia"}
+        }
+        "America:St_Thomas"{
+            ec{"St. Thomas"}
+        }
+        "America:St_Vincent"{
+            ec{"Saint Vincent și Grenadines"}
+        }
+        "Antarctica:DumontDUrville"{
+            ec{"Dumont D'Urville"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"Polul Sud"}
+        }
+        "Asia:Baghdad"{
+            ec{"Bagdad"}
+        }
+        "Asia:Damascus"{
+            ec{"Damasc"}
+        }
+        "Asia:Irkutsk"{
+            ec{"Irkuțk"}
+        }
+        "Asia:Jerusalem"{
+            ec{"Ierusalim"}
+        }
+        "Asia:Kamchatka"{
+            ec{"Kamciatka"}
+        }
+        "Asia:Krasnoyarsk"{
+            ec{"Krasnoiarsk"}
+        }
+        "Asia:Kuwait"{
+            ec{"Kuweit"}
+        }
+        "Asia:Qyzylorda"{
+            ec{"Kyzylorda"}
+        }
+        "Asia:Riyadh"{
+            ec{"Riyad"}
+        }
+        "Asia:Sakhalin"{
+            ec{"Sahalin"}
+        }
+        "Asia:Seoul"{
+            ec{"Seul"}
+        }
+        "Asia:Tehran"{
+            ec{"Teheran"}
+        }
+        "Asia:Ulaanbaatar"{
+            ec{"Ulan Bator"}
+        }
+        "Asia:Yakutsk"{
+            ec{"Yakuțk"}
+        }
+        "Asia:Yekaterinburg"{
+            ec{"Ekaterinburg"}
+        }
+        "Asia:Yerevan"{
+            ec{"Erevan"}
+        }
+        "Atlantic:Azores"{
+            ec{"Azore"}
+        }
+        "Atlantic:Canary"{
+            ec{"Insulele Canare"}
+        }
+        "Atlantic:Cape_Verde"{
+            ec{"Capul Verde"}
+        }
+        "Atlantic:South_Georgia"{
+            ec{"Georgia de Sud"}
+        }
+        "Atlantic:St_Helena"{
+            ec{"Sf. Elena"}
+        }
+        "Etc:Unknown"{
+            ec{"Necunoscut"}
+        }
+        "Europe:Athens"{
+            ec{"Atena"}
+        }
+        "Europe:Brussels"{
+            ec{"Bruxelles"}
+        }
+        "Europe:Bucharest"{
+            ec{"București"}
+        }
+        "Europe:Budapest"{
+            ec{"Budapesta"}
+        }
+        "Europe:Chisinau"{
+            ec{"Chișinău"}
+        }
+        "Europe:Copenhagen"{
+            ec{"Copenhaga"}
+        }
+        "Europe:Lisbon"{
+            ec{"Lisabona"}
+        }
+        "Europe:London"{
+            ec{"Londra"}
+        }
+        "Europe:Luxembourg"{
+            ec{"Luxemburg"}
+        }
+        "Europe:Moscow"{
+            ec{"Moscova"}
+        }
+        "Europe:Rome"{
+            ec{"Roma"}
+        }
+        "Europe:Tirane"{
+            ec{"Tirana"}
+        }
+        "Europe:Vienna"{
+            ec{"Viena"}
+        }
+        "Europe:Warsaw"{
+            ec{"Varșovia"}
+        }
+        "Europe:Zaporozhye"{
+            ec{"Zaporoje"}
+        }
+        "Indian:Maldives"{
+            ec{"Maldive"}
+        }
+        "Pacific:Easter"{
+            ec{"Insula Paștelui"}
+        }
+        "Pacific:Marquesas"{
+            ec{"Marchize"}
+        }
+        "meta:Acre"{
+            ld{"Ora de vară Acre"}
+            ls{"Ora Acre"}
+        }
+        "meta:Africa_Central"{
+            ls{"Ora Africii Centrale"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"Ora Africii Orientale"}
+        }
+        "meta:Africa_Southern"{
+            lg{"Ora Africii Meridionale"}
+            ls{"Ora Standard a Africii Meridionale"}
+        }
+        "meta:Africa_Western"{
+            ld{"Ora de vară a Africii Occidentale"}
+            ls{"Ora Africii Occidentale"}
+        }
+        "meta:Alaska"{
+            ld{"Ora de vară în zona Alaska"}
+            lg{"Ora zonei Alaska"}
+            ls{"Ora standard în zona Alaska"}
+        }
+        "meta:Alaska_Hawaii"{
+            ld{"Ora de vară în zona Alaska-Hawaii"}
+            lg{"Ora zonei Alaska-Hawaii"}
+            ls{"Ora standard în zona Alaska-Hawaii"}
+        }
+        "meta:Amazon"{
+            ld{"Ora de vară Amazon"}
+            ls{"Ora Amazon"}
+        }
+        "meta:America_Central"{
+            ld{"Ora de vară centrală"}
+            lg{"Ora Centrală"}
+            ls{"Ora standard centrală"}
+        }
+        "meta:America_Eastern"{
+            ld{"Ora de vară orientală"}
+            lg{"Ora orientală"}
+            ls{"Ora standard orientală"}
+        }
+        "meta:America_Mountain"{
+            ld{"Ora de vară în zona montană"}
+            lg{"Ora zonei montane"}
+            ls{"Ora standard în zona montană"}
+        }
+        "meta:America_Pacific"{
+            ld{"Ora de vară în zona Pacific"}
+            lg{"Ora zonei Pacific"}
+            ls{"Ora standard în zona Pacific"}
+        }
+        "meta:Argentina"{
+            ld{"Ora de vară a Argentinei"}
+            ls{"Ora Argentinei"}
+        }
+        "meta:Argentina_Western"{
+            ls{"Ora Argentinei Occidentale"}
+        }
+        "meta:Atlantic"{
+            ld{"Ora de vară în zona Atlantic"}
+            lg{"Ora zonei Atlantic"}
+            ls{"Ora standard în zona Atlantic"}
+        }
+        "meta:Australia_Central"{
+            ld{"Ora de vară a Australiei Centrale"}
+            lg{"Ora Australiei Centrale"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"Ora de vară a Australiei Central Occidentale"}
+            lg{"Ora Australiei Central Occidentale"}
+            ls{"Ora standard a Australiei Central Occidentale"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"Ora de vară a Australiei Orientale"}
+            lg{"Ora Australiei Orientale"}
+            ls{"Ora standard a Australiei Orientale"}
+        }
+        "meta:Australia_Western"{
+            ld{"Ora de vară a Australiei Occidentale"}
+            lg{"Ora Australiei Occidentale"}
+        }
+        "meta:Bering"{
+            ld{"Ora de vară Bering"}
+            lg{"Ora Bering"}
+            ls{"Ora standard Bering"}
+        }
+        "meta:Bolivia"{
+            ls{"Ora Boliviei"}
+        }
+        "meta:Davis"{
+            ls{"Ora Davis"}
+        }
+        "meta:DumontDUrville"{
+            ls{"Ora Dumont-d'Urville"}
+        }
+        "meta:Europe_Central"{
+            ld{"Ora de vară a Europei Centrale"}
+            ls{"Ora Europei Centrale"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"Ora de vară a Europei de Est"}
+            ls{"Ora Europei de Est"}
+        }
+        "meta:Europe_Western"{
+            ld{"Ora de vară a Europei Occidentale"}
+            ls{"Ora Europei Occidentale"}
+        }
+        "meta:GMT"{
+            cu:int{1}
+        }
+        "meta:Lord_Howe"{
+            ld{"Ora de vară Lord Howe"}
+            lg{"Ora Lord Howe"}
+            ls{"Ora standard Lord Howe"}
+        }
+        "meta:Mawson"{
+            ls{"Ora Mawson"}
+        }
+        "meta:Rothera"{
+            ls{"Ora Rothera"}
+        }
+        "meta:Syowa"{
+            ls{"Ora Syowa"}
+        }
+        "meta:Vostok"{
+            ls{"Ora Vostok"}
+        }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;−HH:mm"}
+        regionFormat{"{0}"}
+    }
+}

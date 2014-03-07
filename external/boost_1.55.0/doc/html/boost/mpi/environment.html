@@ -1,0 +1,399 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class environment</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../mpi/reference.html#header.boost.mpi.environment_hpp" title="Header &lt;boost/mpi/environment.hpp&gt;">
+<link rel="prev" href="threading/operator_idp95008408.html" title="Function operator&gt;&gt;">
+<link rel="next" href="exception.html" title="Class exception">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="threading/operator_idp95008408.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.environment_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="exception.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.mpi.environment"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class environment</span></h2>
+<p>boost::mpi::environment &#8212; Initialize, finalize, and query the MPI environment. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../mpi/reference.html#header.boost.mpi.environment_hpp" title="Header &lt;boost/mpi/environment.hpp&gt;">boost/mpi/environment.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="environment.html" title="Class environment">environment</a> <span class="special">:</span> <span class="keyword">private</span> <span class="identifier">noncopyable</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="environment.html#boost.mpi.environmentconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="environment.html#idp95046968-bb"><span class="identifier">environment</span></a><span class="special">(</span><span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="environment.html#idp95050088-bb"><span class="identifier">environment</span></a><span class="special">(</span><span class="identifier">threading</span><span class="special">::</span><span class="identifier">level</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="environment.html#idp95036600-bb"><span class="identifier">environment</span></a><span class="special">(</span><span class="keyword">int</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">*</span><span class="special">&amp;</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="environment.html#idp95028104-bb"><span class="identifier">environment</span></a><span class="special">(</span><span class="keyword">int</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">*</span><span class="special">&amp;</span><span class="special">,</span> <span class="identifier">threading</span><span class="special">::</span><span class="identifier">level</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="environment.html#idp95032232-bb"><span class="special">~</span><span class="identifier">environment</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="environment.html#idp95025912-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="environment.html#idp95026120-bb"><span class="identifier">abort</span></a><span class="special">(</span><span class="keyword">int</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="environment.html#idp95019816-bb"><span class="identifier">initialized</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="environment.html#idp95021464-bb"><span class="identifier">finalized</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">int</span> <a class="link" href="environment.html#idp95023112-bb"><span class="identifier">max_tag</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">int</span> <a class="link" href="environment.html#idp95010680-bb"><span class="identifier">collectives_tag</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">optional</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;</span> <a class="link" href="environment.html#idp95012136-bb"><span class="identifier">host_rank</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">optional</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;</span> <a class="link" href="environment.html#idp95014296-bb"><span class="identifier">io_rank</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a class="link" href="environment.html#idp95017016-bb"><span class="identifier">processor_name</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">threading</span><span class="special">::</span><span class="identifier">level</span> <a class="link" href="environment.html#idp95001816-bb"><span class="identifier">thread_level</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="environment.html#idp95002536-bb"><span class="identifier">is_main_thread</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp161469848"></a><h2>Description</h2>
+<p>The <code class="computeroutput">environment</code> class is used to initialize, finalize, and query the MPI environment. It will typically be used in the <code class="computeroutput">main()</code> function of a program, which will create a single instance of <code class="computeroutput">environment</code> initialized with the arguments passed to the program:</p>
+<pre class="programlisting"><span class="special">*</span>  <span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[</span><span class="special">]</span><span class="special">)</span>
+<span class="special">*</span>  <span class="special">{</span>
+<span class="special">*</span>    <span class="identifier">mpi</span><span class="special">::</span><span class="identifier">environment</span> <span class="identifier">env</span><span class="special">(</span><span class="identifier">argc</span><span class="special">,</span> <span class="identifier">argv</span><span class="special">)</span><span class="special">;</span>
+<span class="special">*</span>  <span class="special">}</span>
+<span class="special">*</span>  
+</pre>
+<p>The instance of <code class="computeroutput">environment</code> will initialize MPI (by calling <code class="computeroutput">MPI_Init</code>) in its constructor and finalize MPI (by calling <code class="computeroutput">MPI_Finalize</code> for normal termination or <code class="computeroutput">MPI_Abort</code> for an uncaught exception) in its destructor.</p>
+<p>The use of <code class="computeroutput">environment</code> is not mandatory. Users may choose to invoke <code class="computeroutput">MPI_Init</code> and <code class="computeroutput">MPI_Finalize</code> manually. In this case, no <code class="computeroutput">environment</code> object is needed. If one is created, however, it will do nothing on either construction or destruction. </p>
+<div class="refsect2">
+<a name="idp161483592"></a><h3>
+<a name="boost.mpi.environmentconstruct-copy-destruct"></a><code class="computeroutput">environment</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp95046968-bb"></a><span class="identifier">environment</span><span class="special">(</span><span class="keyword">bool</span> abort_on_exception <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Initialize the MPI environment.</p>
+<p>If the MPI environment has not already been initialized, initializes MPI with a call to <code class="computeroutput">MPI_Init</code>. Since this constructor does not take command-line arguments (<code class="computeroutput">argc</code> and <code class="computeroutput">argv</code>), it is only available when the underlying MPI implementation supports calling <code class="computeroutput">MPI_Init</code> with <code class="computeroutput">NULL</code> arguments, indicated by the macro <code class="computeroutput">BOOST_MPI_HAS_NOARG_INITIALIZATION</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">abort_on_exception</code></span></p></td>
+<td><p>When true, this object will abort the program if it is destructed due to an uncaught exception. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp95050088-bb"></a><span class="identifier">environment</span><span class="special">(</span><span class="identifier">threading</span><span class="special">::</span><span class="identifier">level</span> mt_level<span class="special">,</span> 
+                     <span class="keyword">bool</span> abort_on_exception <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Initialize the MPI environment.</p>
+<p>If the MPI environment has not already been initialized, initializes MPI with a call to <code class="computeroutput">MPI_Init_thread</code>. Since this constructor does not take command-line arguments (<code class="computeroutput">argc</code> and <code class="computeroutput">argv</code>), it is only available when the underlying MPI implementation supports calling <code class="computeroutput">MPI_Init</code> with <code class="computeroutput">NULL</code> arguments, indicated by the macro <code class="computeroutput">BOOST_MPI_HAS_NOARG_INITIALIZATION</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">abort_on_exception</code></span></p></td>
+<td><p>When true, this object will abort the program if it is destructed due to an uncaught exception. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">mt_level</code></span></p></td>
+<td><p>the required level of threading support.</p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp95036600-bb"></a><span class="identifier">environment</span><span class="special">(</span><span class="keyword">int</span> <span class="special">&amp;</span> argc<span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">*</span><span class="special">&amp;</span> argv<span class="special">,</span> <span class="keyword">bool</span> abort_on_exception <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Initialize the MPI environment.</p>
+<p>If the MPI environment has not already been initialized, initializes MPI with a call to <code class="computeroutput">MPI_Init</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">abort_on_exception</code></span></p></td>
+<td><p>When true, this object will abort the program if it is destructed due to an uncaught exception. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">argc</code></span></p></td>
+<td><p>The number of arguments provided in <code class="computeroutput">argv</code>, as passed into the program's <code class="computeroutput">main</code> function.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">argv</code></span></p></td>
+<td><p>The array of argument strings passed to the program via <code class="computeroutput">main</code>.</p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp95028104-bb"></a><span class="identifier">environment</span><span class="special">(</span><span class="keyword">int</span> <span class="special">&amp;</span> argc<span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">*</span><span class="special">&amp;</span> argv<span class="special">,</span> <span class="identifier">threading</span><span class="special">::</span><span class="identifier">level</span> mt_level<span class="special">,</span> 
+            <span class="keyword">bool</span> abort_on_exception <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Initialize the MPI environment.</p>
+<p>If the MPI environment has not already been initialized, initializes MPI with a call to <code class="computeroutput">MPI_Init_thread</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">abort_on_exception</code></span></p></td>
+<td><p>When true, this object will abort the program if it is destructed due to an uncaught exception. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">argc</code></span></p></td>
+<td><p>The number of arguments provided in <code class="computeroutput">argv</code>, as passed into the program's <code class="computeroutput">main</code> function.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">argv</code></span></p></td>
+<td><p>The array of argument strings passed to the program via <code class="computeroutput">main</code>.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">mt_level</code></span></p></td>
+<td><p>the required level of threading support</p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp95032232-bb"></a><span class="special">~</span><span class="identifier">environment</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Shuts down the MPI environment.</p>
+<p>If this <code class="computeroutput">environment</code> object was used to initialize the MPI environment, and the MPI environment has not already been shut down (finalized), this destructor will shut down the MPI environment. Under normal circumstances, this only involves invoking <code class="computeroutput">MPI_Finalize</code>. However, if destruction is the result of an uncaught exception and the <code class="computeroutput">abort_on_exception</code> parameter of the constructor had the value <code class="computeroutput">true</code>, this destructor will invoke <code class="computeroutput">MPI_Abort</code> with <code class="computeroutput">MPI_COMM_WORLD</code> to abort the entire MPI program with a result code of -1. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp161528088"></a><h3>
+<a name="idp95025912-bb"></a><code class="computeroutput">environment</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp95026120-bb"></a><span class="identifier">abort</span><span class="special">(</span><span class="keyword">int</span> errcode<span class="special">)</span><span class="special">;</span></pre>
+<p>Abort all MPI processes.</p>
+<p>Aborts all MPI processes and returns to the environment. The precise behavior will be defined by the underlying MPI implementation. This is equivalent to a call to <code class="computeroutput">MPI_Abort</code> with <code class="computeroutput">MPI_COMM_WORLD</code>.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">errcode</code></span></p></td>
+<td><p>The error code to return to the environment. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Will not return. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp95019816-bb"></a><span class="identifier">initialized</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Determine if the MPI environment has already been initialized.</p>
+<p>This routine is equivalent to a call to <code class="computeroutput">MPI_Initialized</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if the MPI environment has been initialized. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp95021464-bb"></a><span class="identifier">finalized</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Determine if the MPI environment has already been finalized.</p>
+<p>The routine is equivalent to a call to <code class="computeroutput">MPI_Finalized</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if the MPI environment has been finalized. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">int</span> <a name="idp95023112-bb"></a><span class="identifier">max_tag</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Retrieves the maximum tag value.</p>
+<p>Returns the maximum value that may be used for the <code class="computeroutput">tag</code> parameter of send/receive operations. This value will be somewhat smaller than the value of <code class="computeroutput">MPI_TAG_UB</code>, because the Boost.MPI implementation reserves some tags for collective operations.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>the maximum tag value. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">int</span> <a name="idp95010680-bb"></a><span class="identifier">collectives_tag</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The tag value used for collective operations.</p>
+<p>Returns the reserved tag value used by the Boost.MPI implementation for collective operations. Although users are not permitted to use this tag to send or receive messages, it may be useful when monitoring communication patterns.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>the tag value used for collective operations. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">optional</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;</span> <a name="idp95012136-bb"></a><span class="identifier">host_rank</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Retrieves the rank of the host process, if one exists.</p>
+<p>If there is a host process, this routine returns the rank of that process. Otherwise, it returns an empty <code class="computeroutput">optional&lt;int&gt;</code>. MPI does not define the meaning of a "host" process: consult the documentation for the MPI implementation. This routine examines the <code class="computeroutput">MPI_HOST</code> attribute of <code class="computeroutput">MPI_COMM_WORLD</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The rank of the host process, if one exists. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">optional</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;</span> <a name="idp95014296-bb"></a><span class="identifier">io_rank</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Retrieves the rank of a process that can perform input/output.</p>
+<p>This routine returns the rank of a process that can perform input/output via the standard C and C++ I/O facilities. If every process can perform I/O using the standard facilities, this routine will return <code class="computeroutput">any_source</code>; if no process can perform I/O, this routine will return no value (an empty <code class="computeroutput">optional</code>). This routine examines the <code class="computeroutput">MPI_IO</code> attribute of <code class="computeroutput">MPI_COMM_WORLD</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>the rank of the process that can perform I/O, <code class="computeroutput">any_source</code> if every process can perform I/O, or no value if no process can perform I/O. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a name="idp95017016-bb"></a><span class="identifier">processor_name</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Retrieve the name of this processor.</p>
+<p>This routine returns the name of this processor. The actual form of the name is unspecified, but may be documented by the underlying MPI implementation. This routine is implemented as a call to <code class="computeroutput">MPI_Get_processor_name</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>the name of this processor. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">threading</span><span class="special">::</span><span class="identifier">level</span> <a name="idp95001816-bb"></a><span class="identifier">thread_level</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Query the current level of thread support. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp95002536-bb"></a><span class="identifier">is_main_thread</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Are we in the main thread? </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="threading/operator_idp95008408.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.environment_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="exception.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

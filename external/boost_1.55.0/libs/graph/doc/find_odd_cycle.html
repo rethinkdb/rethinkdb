@@ -1,0 +1,152 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<!--
+     Authors: Matthias Walter
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<head>
+<title>Boost Graph Library: find_odd_cycle</title>
+</head>
+<body>
+
+<IMG SRC="../../../boost.png" 
+ALT="C++ Boost" width="277" height="86"> 
+<h1>
+<tt>find_odd_cycle</tt>
+</h1>
+
+<pre>
+<i>// Version with a colormap to retrieve the bipartition</i>
+template &lt;typename Graph, typename IndexMap, typename PartitionMap, typename OutputIterator&gt;
+OutputIterator find_odd_cycle (const Graph&amp; graph, const IndexMap index_map, PartitionMap partition_map, OutputIterator result)
+
+template &lt;typename Graph, typename IndexMap, typename OutputIterator&gt;
+OutputIterator find_odd_cycle (const Graph&amp; graph, const IndexMap index_map, OutputIterator result)
+
+<i>// Version which uses the internal index map</i>
+template &lt;typename Graph, typename OutputIterator&gt;
+OutputIterator find_odd_cycle (const Graph&amp; graph, OutputIterator result)
+</pre>
+
+<p>
+The <tt>find_odd_cycle</tt> function tests a given graph for bipartiteness
+using a DFS-based coloring approach.
+</p>
+
+<p>
+An undirected graph is bipartite if one can partition its set of vertices
+into two sets "left" and "right", such that each edge goes from either side
+to the other. Obviously, a two-coloring of the graph is exactly the same as
+a two-partition. <tt>is_bipartite()</tt> tests whether such a two-coloring
+is possible and can return it in a given property map.
+</p>
+
+<p>
+Another equivalent characterization is the non-existance of odd-length cycles,
+meaning that a graph is bipartite if and only if it does not contain a
+cycle with an odd number of vertices as a subgraph.
+<tt>find_odd_cycle()</tt> does nearly the same as
+<a href="./is_bipartite.html"><tt>is_bipartite()</tt></a>,
+but additionally constructs an odd-length cycle if the graph is found to be
+not bipartite.
+</p>
+
+<p>
+The bipartition is recorded in the color map <tt>partition_map</tt>,
+which will contain a two-coloring of the graph, i.e. an assignment of
+<i>black</i> and <i>white</i> to the vertices such that no edge is monochromatic.
+The odd-length cycle is written into the Output Iterator <tt>result</tt> if
+one exists. The final final iterator is returned by the function.
+</p>
+
+<h3>Where Defined</h3>
+
+<p>
+<a href="../../../boost/graph/bipartite.hpp"><tt>boost/graph/bipartite.hpp</tt></a>
+</p>
+
+<h3>Parameters</h3>
+
+<p>
+IN: <tt>const Graph&amp; graph</tt>
+</p>
+<blockquote><p>
+An undirected graph. The graph type must be a model of <a
+href="VertexListGraph.html">Vertex List Graph</a> and <a
+href="IncidenceGraph.html">Incidence Graph</a>.<br/>
+</p></blockquote>
+
+<p>
+IN: <tt>const IndexMap index_map</tt>
+</p>
+<blockquote><p>
+This maps each vertex to an integer in the range <tt>[0,
+num_vertices(graph))</tt>. The type <tt>VertexIndexMap</tt>
+must be a model of <a
+href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+Map</a>. The value type of the map must be an integer type. The
+vertex descriptor type of the graph needs to be usable as the key
+type of the map.<br/>
+</p></blockquote>
+
+
+<p>
+OUT: <tt>PartitionMap partition_map</tt>
+</p>
+<blockquote><p>
+The algorithm tests whether the graph is bipartite and assigns each
+vertex either a white or a black color, according to the partition.
+The <tt>PartitionMap</tt> type must be a model of
+<a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+Map</a> and
+<a href="../../property_map/doc/WritablePropertyMap.html">Writable Property
+Map</a>. The value type must model <a href="./ColorValue.html">ColorValue</a>.
+</p></blockquote>
+
+<p>
+OUT: <tt>OutputIterator result</tt>
+</p>
+<blockquote><p>
+The <tt>find_odd_cycle</tt> function finds an odd-length cycle if the graph is
+not bipartite. The sequence of vertices producing such a cycle is written
+into this iterator. The <tt>OutputIterator</tt> type must be a model of
+<a class="external" href="http://www.sgi.com/tech/stl/OutputIterator.html">
+OutputIterator</a>. The graph's vertex descriptor type must be in the set
+of value types of the iterator. The final value is returned by the
+function. If the graph is bipartite (i.e. no odd-length cycle exists), nothing
+is written, thus the given iterator matches the return value.
+</p></blockquote>
+
+
+<h3>Complexity</h3>
+
+<p>
+The time complexity for the algorithm is <i>O(V + E)</i>.
+</p>
+
+<h3>See Also</h3>
+
+<p>
+<a href="./is_bipartite.html"><tt>is_bipartite()</tt></a>
+</p>
+
+<h3>Example</h3>
+
+<p>
+The file <a href="../example/bipartite_example.cpp"><tt>example/bipartite_example.cpp</tt></a>
+contains an example of testing an undirected graph for bipartiteness.
+<br/>
+</p>
+
+<hr/>
+
+<p>
+Copyright &copy; 2010 Matthias Walter
+(<a class="external" href="mailto:xammy@xammy.homelinux.net">xammy@xammy.homelinux.net</a>)
+</p>
+
+</body>
+</html> 

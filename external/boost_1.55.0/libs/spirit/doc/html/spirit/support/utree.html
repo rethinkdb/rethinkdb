@@ -1,0 +1,568 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>The utree data structure</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../support.html" title="Supporting Libraries">
+<link rel="prev" href="line_pos_iterator.html" title="The line position iterator">
+<link rel="next" href="../faq.html" title="Spirit FAQ">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="line_pos_iterator.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../support.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../faq.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.support.utree"></a><a class="link" href="utree.html" title="The utree data structure">The utree data structure</a>
+</h3></div></div></div>
+<p>
+        <code class="computeroutput"><span class="identifier">utree</span></code> is a dynamically-typed
+        hierarchical data structure that can represent abstract syntax trees. It's
+        well integrated with <span class="emphasis"><em>Spirit.Qi</em></span> and <span class="emphasis"><em>Spirit.Karma</em></span>.
+        <code class="computeroutput"><span class="identifier">utree</span></code> can be passed as an
+        attribute to almost any grammar. <code class="computeroutput"><span class="identifier">utree</span></code>'s
+        type system is implemented through the use of a discriminated union and type
+        punning.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">utree</span></code> has a minimal memory
+        footprint. The data structure size is 16 bytes on a 32-bit platform, and
+        32 bytes on 64-bit a platform (<code class="computeroutput"><span class="number">4</span><span class="special">*</span><span class="keyword">sizeof</span><span class="special">(</span><span class="keyword">void</span><span class="special">*)</span></code>). Being
+        a container of itself, it can represent tree structures.
+      </p>
+<p>
+        Each instance of an <code class="computeroutput"><span class="identifier">utree</span></code>
+        data structure can store exactly one of the following data types at a time:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">utree_type</span>
+<span class="special">{</span>
+    <span class="keyword">enum</span> <span class="identifier">info</span>
+    <span class="special">{</span>
+        <span class="identifier">invalid_type</span><span class="special">,</span>       <span class="comment">// the utree has not been initialized (it's </span>
+                            <span class="comment">// default constructed)</span>
+        <span class="identifier">nil_type</span><span class="special">,</span>           <span class="comment">// nil is the sentinel (empty) utree type.</span>
+        <span class="identifier">list_type</span><span class="special">,</span>          <span class="comment">// A doubly linked list of utrees.</span>
+        <span class="identifier">range_type</span><span class="special">,</span>         <span class="comment">// A range of list::iterators. </span>
+        <span class="identifier">reference_type</span><span class="special">,</span>     <span class="comment">// A reference to another utree.</span>
+        <span class="identifier">any_type</span><span class="special">,</span>           <span class="comment">// A pointer or reference to any C++ type. </span>
+        <span class="identifier">function_type</span><span class="special">,</span>      <span class="comment">// A utree holding a stored_function&lt;F&gt; object,</span>
+                            <span class="comment">// where F is an unary function object taking a </span>
+                            <span class="comment">// utree as it's parameter and returning a</span>
+                            <span class="comment">// utree.</span>
+
+        <span class="comment">// numeric atoms</span>
+        <span class="identifier">bool_type</span><span class="special">,</span>          <span class="comment">// An utree holding a boolean value</span>
+        <span class="identifier">int_type</span><span class="special">,</span>           <span class="comment">// An utree holding a integer (int) value</span>
+        <span class="identifier">double_type</span><span class="special">,</span>        <span class="comment">// An utree holding a floating point (double) value</span>
+
+        <span class="comment">// text atoms (utf8)</span>
+        <span class="identifier">string_type</span><span class="special">,</span>        <span class="comment">// An UTF-8 string </span>
+        <span class="identifier">string_range_type</span><span class="special">,</span>  <span class="comment">// A pair of iterators into an UTF-8 string</span>
+        <span class="identifier">symbol_type</span><span class="special">,</span>        <span class="comment">// An UTF-8 symbol name</span>
+
+        <span class="identifier">binary_type</span>         <span class="comment">// Arbitrary binary data</span>
+    <span class="special">};</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uint_t</span><span class="special">&lt;</span><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">info</span><span class="special">)*</span><span class="number">8</span><span class="special">&gt;::</span><span class="identifier">exact</span> <span class="identifier">exact_integral_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uint_t</span><span class="special">&lt;</span><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">info</span><span class="special">)*</span><span class="number">8</span><span class="special">&gt;::</span><span class="identifier">fast</span> <span class="identifier">fast_integral_type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        The UTF-8 string, UTF-8 symbol, and binary data types are internally stored
+        either directly as the node data (small string optimization applied), or
+        they are allocated from the heap, storing the pointer to the allocated data
+        in the <code class="computeroutput"><span class="identifier">utree</span></code>. The maximum
+        possible length of the data to be stored in the node data depends on the
+        platform the <code class="computeroutput"><span class="identifier">utree</span></code> is compiled
+        for. It is 14 bytes for a 32-bit platform and 30 bytes for a 64-bit platform.
+      </p>
+<h5>
+<a name="spirit.support.utree.h0"></a>
+        <span class="phrase"><a name="spirit.support.utree.class_reference"></a></span><a class="link" href="utree.html#spirit.support.utree.class_reference">Class
+        Reference</a>
+      </h5>
+<p>
+        The <code class="computeroutput"><span class="identifier">utree</span></code> data structure
+        is very versatile and can be used as an attribute for all possible <span class="emphasis"><em>Spirit.Qi</em></span>
+        parsers and <span class="emphasis"><em>Spirit.Karma</em></span> generators. For this reason,
+        it exposes a set of typedef's making it compatible with STL containers:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">utree</span> <span class="identifier">value_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">utree</span><span class="special">&amp;</span> <span class="identifier">reference</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">utree</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">const_reference</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span> <span class="identifier">difference_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size_type</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">detail</span><span class="special">::</span><span class="identifier">list</span><span class="special">::</span><span class="identifier">node_iterator</span><span class="special">&lt;</span><span class="identifier">utree</span><span class="special">&gt;</span> <span class="identifier">iterator</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">detail</span><span class="special">::</span><span class="identifier">list</span><span class="special">::</span><span class="identifier">node_iterator</span><span class="special">&lt;</span><span class="identifier">utree</span> <span class="keyword">const</span><span class="special">&gt;</span> <span class="identifier">const_iterator</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        The <code class="computeroutput"><span class="identifier">utree</span></code> data type exposes
+        the functional interface of a bidirectional STL container. The iterators
+        returned from <code class="computeroutput"><span class="identifier">begin</span><span class="special">()</span></code>
+        et.al. conform to the Standard requirements of a bidirectional iterator.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// STL Container interface</span>
+
+<span class="comment">// insertion </span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">push_back</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">push_front</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="identifier">iterator</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">,</span> <span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Iterator</span><span class="special">);</span>
+
+<span class="comment">// erasure</span>
+<span class="keyword">void</span> <span class="identifier">pop_front</span><span class="special">();</span>
+<span class="keyword">void</span> <span class="identifier">pop_back</span><span class="special">();</span>
+<span class="identifier">iterator</span> <span class="identifier">erase</span><span class="special">(</span><span class="identifier">iterator</span><span class="special">);</span>
+<span class="identifier">iterator</span> <span class="identifier">erase</span><span class="special">(</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">iterator</span><span class="special">);</span>
+
+<span class="comment">// front access</span>
+<span class="identifier">reference</span> <span class="identifier">front</span><span class="special">();</span>
+<span class="identifier">const_reference</span> <span class="identifier">front</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="identifier">iterator</span> <span class="identifier">begin</span><span class="special">();</span>
+<span class="identifier">const_iterator</span> <span class="identifier">begin</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="identifier">ref_iterator</span> <span class="identifier">ref_begin</span><span class="special">();</span>
+
+<span class="comment">// back access</span>
+<span class="identifier">reference</span> <span class="identifier">back</span><span class="special">();</span>
+<span class="identifier">const_reference</span> <span class="identifier">back</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="identifier">iterator</span> <span class="identifier">end</span><span class="special">();</span>
+<span class="identifier">const_iterator</span> <span class="identifier">end</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="identifier">ref_iterator</span> <span class="identifier">ref_end</span><span class="special">();</span>
+</pre>
+<p>
+      </p>
+<p>
+        The exposed container interface makes the <code class="computeroutput"><span class="identifier">utree</span></code>
+        usable with all <span class="emphasis"><em>Spirit.Qi</em></span> parser and <span class="emphasis"><em>Spirit.Karma</em></span>
+        generator components, which are compatible with an STL container attribute
+        type.
+      </p>
+<p>
+        A <code class="computeroutput"><span class="identifier">utree</span></code> can be constructed
+        or initialized from a wide range of data types, allowing to create <code class="computeroutput"><span class="identifier">utree</span></code> instances for every possible node
+        type (see the description of <code class="computeroutput"><span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">info</span></code>
+        above). For this reason it exposes a constructor and an assignment operator
+        for each of the allowed node types as shown below. All constructors are non-explicit
+        on purpose, allowing to use an utree instance as the attribute to almost
+        any Qi parser.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// This constructs an `invalid_type` node. When used in places</span>
+<span class="comment">// where a boost::optional is expected (i.e. as an attribute for the </span>
+<span class="comment">// optional component), this represents the 'empty' state.</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="identifier">invalid_type</span> <span class="special">=</span> <span class="identifier">invalid_type</span><span class="special">());</span>
+
+<span class="comment">// This initializes a `nil_type` node, which represents a valid,</span>
+<span class="comment">// 'initialized empty' utree (different from invalid_type!).</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="identifier">nil_type</span><span class="special">);</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">nil_type</span><span class="special">);</span>
+
+<span class="comment">// This initializes a `boolean_type` node, which can hold 'true' or</span>
+<span class="comment">// 'false' only.</span>
+<span class="keyword">explicit</span> <span class="identifier">utree</span><span class="special">(</span><span class="keyword">bool</span><span class="special">);</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">bool</span><span class="special">);</span>
+
+<span class="comment">// This initializes an `integer_type` node, which can hold arbitrary </span>
+<span class="comment">// integers. For convenience these functions are overloaded for signed</span>
+<span class="comment">// and unsigned integer types.</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">);</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="keyword">int</span><span class="special">);</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">);</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">int</span><span class="special">);</span>
+
+<span class="comment">// This initializes a `double_type` node, which can hold arbitrary </span>
+<span class="comment">// floating point (double) values.</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="keyword">double</span><span class="special">);</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">double</span><span class="special">);</span>
+
+<span class="comment">// This initializes a `string_type` node, which can hold a narrow </span>
+<span class="comment">// character sequence (usually an UTF-8 string).</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="keyword">char</span><span class="special">);</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*);</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">);</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">char</span><span class="special">);</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*);</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+
+<span class="comment">// This constructs a `string_range_type` node, which does not copy the </span>
+<span class="comment">// data but stores the iterator range to the character sequence the </span>
+<span class="comment">// range has been initialized from.</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="identifier">utf8_string_range_type</span> <span class="keyword">const</span><span class="special">&amp;,</span> <span class="identifier">shallow_tag</span><span class="special">);</span>
+
+<span class="comment">// This initializes a `reference_type` node, which holds a reference to </span>
+<span class="comment">// another utree node. All operations on such a node are automatically</span>
+<span class="comment">// forwarded to the referenced utree instance.</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">reference_wrapper</span><span class="special">&lt;</span><span class="identifier">utree</span><span class="special">&gt;);</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">reference_wrapper</span><span class="special">&lt;</span><span class="identifier">utree</span><span class="special">&gt;);</span>
+
+<span class="comment">// This initializes an `any_type` node, which can hold a pointer to an</span>
+<span class="comment">// instance of any type together with the typeid of that type. When </span>
+<span class="comment">// accessing that pointer the typeid will be checked, causing a </span>
+<span class="comment">// std::bad_cast to be thrown if the typeids do not match.</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="identifier">any_ptr</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">any_ptr</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+
+<span class="comment">// This initializes a `range_type` node, which holds an utree list node</span>
+<span class="comment">// the elements of which are copy constructed (assigned) from the </span>
+<span class="comment">// elements referenced by the given range of iterators.</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_range</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_range</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;);</span>
+
+<span class="comment">// This initializes a `function_type` node from a polymorphic function</span>
+<span class="comment">// object pointer (takes ownership) or reference. </span>
+<span class="identifier">utree</span><span class="special">(</span><span class="identifier">function_base</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">function_base</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="identifier">function_base</span><span class="special">*);</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">function_base</span><span class="special">*);</span>
+
+<span class="comment">// This initializes either a `string_type`, a `symbol_type`, or a </span>
+<span class="comment">// `binary_type` node (depending on the template parameter `type_`), </span>
+<span class="comment">// which will hold the corresponding narrow character sequence (usually </span>
+<span class="comment">// an UTF-8 string).</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Base</span><span class="special">,</span> <span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">info</span> <span class="identifier">type_</span><span class="special">&gt;</span>
+<span class="identifier">utree</span><span class="special">(</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">Base</span><span class="special">,</span> <span class="identifier">type_</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Base</span><span class="special">,</span> <span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">info</span> <span class="identifier">type_</span><span class="special">&gt;</span>
+<span class="identifier">reference</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">Base</span><span class="special">,</span> <span class="identifier">type_</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+</pre>
+<p>
+      </p>
+<p>
+        The <code class="computeroutput"><span class="identifier">utree</span></code> data type exposes
+        the functional interface compatible to <a href="http://www.boost.org/doc/html/variant.html" target="_top">Boost.Variant</a>
+        as well. Its very nature is to hold different data types, one at each point
+        in time, making it functionally very similar to <a href="http://www.boost.org/doc/html/variant.html" target="_top">Boost.Variant</a>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// return the data type (`utree_type::info`) of the currently stored </span>
+<span class="comment">// data item</span>
+<span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">info</span> <span class="identifier">which</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+<span class="comment">// access the currently stored data in a type safe manner, this will </span>
+<span class="comment">// throw a `std::bad_cast()` if the currently stored data item is not </span>
+<span class="comment">// default convertible to `T`.</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="identifier">T</span> <span class="identifier">get</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        The exposed variant-like interface makes the <code class="computeroutput"><span class="identifier">utree</span></code>
+        usable with all <span class="emphasis"><em>Spirit.Qi</em></span> parser and <span class="emphasis"><em>Spirit.Karma</em></span>
+        generator components, which are compatible with an <a href="http://www.boost.org/doc/html/variant.html" target="_top">Boost.Variant</a>
+        attribute type.
+      </p>
+<h5>
+<a name="spirit.support.utree.h1"></a>
+        <span class="phrase"><a name="spirit.support.utree.string_types"></a></span><a class="link" href="utree.html#spirit.support.utree.string_types">String
+        Types</a>
+      </h5>
+<p>
+        The <code class="computeroutput"><span class="identifier">utree</span></code> string types described
+        below are used by the <code class="computeroutput"><span class="identifier">utree</span></code>
+        API only. These are not used to store information in the <code class="computeroutput"><span class="identifier">utree</span></code>
+        itself. Their purpose is to refer to different internal <code class="computeroutput"><span class="identifier">utree</span></code>
+        node types only. For instance, creating a <code class="computeroutput"><span class="identifier">utree</span></code>
+        from a binary data type will create a <code class="computeroutput"><span class="identifier">binary_type</span></code>
+        utree node (see above).
+      </p>
+<p>
+        The binary data type can be represented either verbatim as a sequence of
+        bytes or as a pair of iterators into some other stored binary data sequence.
+        Use this string type to access/create a <code class="computeroutput"><span class="identifier">binary_type</span></code>
+        <code class="computeroutput"><span class="identifier">utree</span></code>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">basic_string</span><span class="special">&lt;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_range</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*&gt;,</span> <span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">binary_type</span>
+<span class="special">&gt;</span> <span class="identifier">binary_range_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">basic_string</span><span class="special">&lt;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">binary_type</span>
+<span class="special">&gt;</span> <span class="identifier">binary_string_type</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        The UTF-8 string can be represented either verbatim as a sequence of characters
+        or as a pair of iterators into some other stored binary data sequence. Use
+        this string type to access/create a <code class="computeroutput"><span class="identifier">string_type</span></code>
+        <code class="computeroutput"><span class="identifier">utree</span></code>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">basic_string</span><span class="special">&lt;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_range</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*&gt;,</span> <span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">string_type</span>
+<span class="special">&gt;</span> <span class="identifier">utf8_string_range_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">basic_string</span><span class="special">&lt;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">string_type</span>
+<span class="special">&gt;</span> <span class="identifier">utf8_string_type</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        The UTF-8 symbol can be represented either verbatim as a sequence of characters
+        or as a pair of iterators into some other stored binary data sequence. Use
+        this string type to access/create a <code class="computeroutput"><span class="identifier">symbol_type</span></code>
+        <code class="computeroutput"><span class="identifier">utree</span></code>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">basic_string</span><span class="special">&lt;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_range</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*&gt;,</span> <span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">symbol_type</span>
+<span class="special">&gt;</span> <span class="identifier">utf8_symbol_range_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">basic_string</span><span class="special">&lt;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">symbol_type</span>
+<span class="special">&gt;</span> <span class="identifier">utf8_symbol_type</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<h5>
+<a name="spirit.support.utree.h2"></a>
+        <span class="phrase"><a name="spirit.support.utree.function_object_interface"></a></span><a class="link" href="utree.html#spirit.support.utree.function_object_interface">Function
+        Object Interface</a>
+      </h5>
+<p>
+        The stored_function template class can to store a unary function objects
+        with a signature of utree(scope const&amp;) as a utree node.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">function_base</span>
+<span class="special">{</span>
+    <span class="keyword">virtual</span> <span class="special">~</span><span class="identifier">function_base</span><span class="special">()</span> <span class="special">{}</span>
+    <span class="keyword">virtual</span> <span class="identifier">utree</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">utree</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">env</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+    <span class="keyword">virtual</span> <span class="identifier">utree</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">utree</span><span class="special">&amp;</span> <span class="identifier">env</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+
+    <span class="comment">// Calling f.clone() must return a newly allocated function_base </span>
+    <span class="comment">// instance that is equal to f.</span>
+    <span class="keyword">virtual</span> <span class="identifier">function_base</span><span class="special">*</span> <span class="identifier">clone</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">stored_function</span> <span class="special">:</span> <span class="identifier">function_base</span>
+<span class="special">{</span>
+    <span class="identifier">F</span> <span class="identifier">f</span><span class="special">;</span>
+    <span class="identifier">stored_function</span><span class="special">(</span><span class="identifier">F</span> <span class="identifier">f</span> <span class="special">=</span> <span class="identifier">F</span><span class="special">());</span>
+    <span class="keyword">virtual</span> <span class="special">~</span><span class="identifier">stored_function</span><span class="special">();</span>
+    <span class="keyword">virtual</span> <span class="identifier">utree</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">utree</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">env</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">virtual</span> <span class="identifier">utree</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">utree</span><span class="special">&amp;</span> <span class="identifier">env</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">virtual</span> <span class="identifier">function_base</span><span class="special">*</span> <span class="identifier">clone</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">referenced_function</span> <span class="special">:</span> <span class="identifier">function_base</span>
+<span class="special">{</span>
+    <span class="identifier">F</span><span class="special">&amp;</span> <span class="identifier">f</span><span class="special">;</span>
+    <span class="identifier">referenced_function</span><span class="special">(</span><span class="identifier">F</span><span class="special">&amp;</span> <span class="identifier">f</span><span class="special">);</span>
+    <span class="keyword">virtual</span> <span class="special">~</span><span class="identifier">referenced_function</span><span class="special">();</span>
+    <span class="keyword">virtual</span> <span class="identifier">utree</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">utree</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">env</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">virtual</span> <span class="identifier">utree</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">utree</span><span class="special">&amp;</span> <span class="identifier">env</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">virtual</span> <span class="identifier">function_base</span><span class="special">*</span> <span class="identifier">clone</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<h5>
+<a name="spirit.support.utree.h3"></a>
+        <span class="phrase"><a name="spirit.support.utree.exceptions"></a></span><a class="link" href="utree.html#spirit.support.utree.exceptions">Exceptions</a>
+      </h5>
+<p>
+        All exceptions thrown by utree are derived from utree_exception.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">utree_exception</span> <span class="special">:</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">exception</span> <span class="special">{};</span>
+</pre>
+<p>
+      </p>
+<p>
+        The <code class="computeroutput"><span class="identifier">bad_type_exception</span></code> is
+        thrown whenever somebody calls a member function, which applies to certain
+        stored utree_type's only, but this precondition is violated as the <code class="computeroutput"><span class="identifier">utree</span></code> instance holds some other type.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">bad_type_exception</span> <span class="comment">/*: utree_exception*/</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        The <code class="computeroutput"><span class="identifier">empty_exception</span></code> is thrown
+        whenever a precondition of a list or range utree method is violated due to
+        the list or range being empty.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">empty_exception</span> <span class="comment">/*: utree_exception*/</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<h5>
+<a name="spirit.support.utree.h4"></a>
+        <span class="phrase"><a name="spirit.support.utree.example__sexpr_parser"></a></span><a class="link" href="utree.html#spirit.support.utree.example__sexpr_parser">Example:
+        Sexpr Parser</a>
+      </h5>
+<p>
+        Our first example demonstrates how to use <code class="computeroutput"><span class="identifier">utree</span></code>
+        to write a parser for <a href="http://http://en.wikipedia.org/wiki/S-expression" target="_top">symbolic
+        expressions</a>. While <code class="computeroutput"><span class="identifier">utree</span></code>
+        is capable of representing just about any AST, <code class="computeroutput"><span class="identifier">utree</span></code>'s
+        design is based on the simple yet powerful nature of symbolic expressions.
+        This example introduces a number of basic and intermediate <code class="computeroutput"><span class="identifier">utree</span></code> development techniques: using <span class="emphasis"><em>Spirit.Qi</em></span>
+        and <span class="emphasis"><em>Spirit.Karma</em></span> integration, tracking source code locations
+        and taking advantage of UTF8 support.
+      </p>
+<p>
+        The source for this example can be found here: <a href="../../../../example/support/utree" target="_top">../../example/support/utree</a>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">sexpr</span>
+<span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">ErrorHandler</span> <span class="special">=</span> <span class="identifier">error_handler</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">parser</span> <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">utree</span><span class="special">(),</span> <span class="identifier">whitespace</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">utree</span><span class="special">(),</span> <span class="identifier">whitespace</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+        <span class="identifier">start</span><span class="special">,</span> <span class="identifier">element</span><span class="special">,</span> <span class="identifier">list</span><span class="special">;</span>
+
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">utree</span><span class="special">()&gt;</span>
+        <span class="identifier">atom</span><span class="special">;</span>
+
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">int</span><span class="special">()&gt;</span>
+        <span class="identifier">integer</span><span class="special">;</span>
+
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">utf8_symbol_type</span><span class="special">()&gt;</span>
+        <span class="identifier">symbol</span><span class="special">;</span>
+
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">utree</span><span class="special">::</span><span class="identifier">nil_type</span><span class="special">()&gt;</span>
+        <span class="identifier">nil_</span><span class="special">;</span>
+
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">binary_string_type</span><span class="special">()&gt;</span>
+        <span class="identifier">binary</span><span class="special">;</span>
+
+    <span class="identifier">utf8</span><span class="special">::</span><span class="identifier">parser</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;</span>
+        <span class="identifier">string</span><span class="special">;</span>
+
+    <span class="identifier">px</span><span class="special">::</span><span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">ErrorHandler</span><span class="special">&gt;</span> <span class="keyword">const</span>
+        <span class="identifier">error</span><span class="special">;</span>
+
+    <span class="identifier">tagger</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">save_line_pos</span><span class="special">&gt;</span>
+        <span class="identifier">pos</span><span class="special">;</span>
+
+    <span class="identifier">parser</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">source_file</span> <span class="special">=</span> <span class="string">"&lt;string&gt;"</span><span class="special">):</span>
+        <span class="identifier">parser</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">start</span><span class="special">),</span> <span class="identifier">error</span><span class="special">(</span><span class="identifier">ErrorHandler</span><span class="special">(</span><span class="identifier">source_file</span><span class="special">))</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">standard</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">unused_type</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">lexeme</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">hex</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">oct</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">no_case</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">real_parser</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">strict_real_policies</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">uint_parser</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">bool_parser</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">on_error</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">fail</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">int_</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">_val</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">_1</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">_2</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">_3</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">_4</span><span class="special">;</span>
+
+        <span class="identifier">real_parser</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="identifier">strict_real_policies</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">strict_double</span><span class="special">;</span>
+        <span class="identifier">uint_parser</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">,</span> <span class="number">16</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="number">2</span><span class="special">&gt;</span> <span class="identifier">hex2</span><span class="special">;</span>
+        <span class="identifier">bool_parser</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">,</span> <span class="identifier">sexpr</span><span class="special">::</span><span class="identifier">bool_input_policies</span><span class="special">&gt;</span> <span class="identifier">boolean</span><span class="special">;</span>
+
+        <span class="identifier">start</span> <span class="special">=</span> <span class="identifier">element</span><span class="special">.</span><span class="identifier">alias</span><span class="special">();</span>
+
+        <span class="identifier">element</span> <span class="special">=</span> <span class="identifier">atom</span> <span class="special">|</span> <span class="identifier">list</span><span class="special">;</span>
+
+        <span class="identifier">list</span> <span class="special">=</span> <span class="identifier">pos</span><span class="special">(</span><span class="identifier">_val</span><span class="special">,</span> <span class="char">'('</span><span class="special">)</span> <span class="special">&gt;</span> <span class="special">*</span><span class="identifier">element</span> <span class="special">&gt;</span> <span class="char">')'</span><span class="special">;</span>
+
+        <span class="identifier">atom</span> <span class="special">=</span> <span class="identifier">nil_</span>
+             <span class="special">|</span> <span class="identifier">strict_double</span>
+             <span class="special">|</span> <span class="identifier">integer</span>
+             <span class="special">|</span> <span class="identifier">boolean</span>
+             <span class="special">|</span> <span class="identifier">string</span>
+             <span class="special">|</span> <span class="identifier">symbol</span>
+             <span class="special">|</span> <span class="identifier">binary</span><span class="special">;</span>
+
+        <span class="identifier">nil_</span> <span class="special">=</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">attr_cast</span><span class="special">(</span><span class="identifier">lit</span><span class="special">(</span><span class="string">"nil"</span><span class="special">));</span>
+
+        <span class="identifier">integer</span> <span class="special">=</span> <span class="identifier">lexeme</span><span class="special">[</span> <span class="identifier">no_case</span><span class="special">[</span><span class="string">"#x"</span><span class="special">]</span> <span class="special">&gt;</span>  <span class="identifier">hex</span><span class="special">]</span>
+                <span class="special">|</span> <span class="identifier">lexeme</span><span class="special">[</span> <span class="identifier">no_case</span><span class="special">[</span><span class="string">"#o"</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="identifier">oct</span><span class="special">]</span>
+                <span class="special">|</span> <span class="identifier">lexeme</span><span class="special">[-</span><span class="identifier">no_case</span><span class="special">[</span><span class="string">"#d"</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="identifier">int_</span><span class="special">];</span>
+
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">exclude</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">" ();\"\x01-\x1f\x7f"</span><span class="special">)</span> <span class="special">+</span> <span class="char">'\0'</span><span class="special">;</span>
+        <span class="identifier">symbol</span> <span class="special">=</span> <span class="identifier">lexeme</span><span class="special">[+(~</span><span class="identifier">char_</span><span class="special">(</span><span class="identifier">exclude</span><span class="special">))];</span>
+
+        <span class="identifier">binary</span> <span class="special">=</span> <span class="identifier">lexeme</span><span class="special">[</span><span class="char">'#'</span> <span class="special">&gt;</span> <span class="special">*</span><span class="identifier">hex2</span> <span class="special">&gt;</span> <span class="char">'#'</span><span class="special">];</span>
+
+        <span class="identifier">start</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"sexpr"</span><span class="special">);</span>
+        <span class="identifier">element</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"element"</span><span class="special">);</span>
+        <span class="identifier">list</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"list"</span><span class="special">);</span>
+        <span class="identifier">atom</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"atom"</span><span class="special">);</span>
+        <span class="identifier">nil_</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"nil"</span><span class="special">);</span>
+        <span class="identifier">integer</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"integer"</span><span class="special">);</span>
+        <span class="identifier">symbol</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"symbol"</span><span class="special">);</span>
+        <span class="identifier">binary</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"binary"</span><span class="special">);</span>
+
+        <span class="identifier">on_error</span><span class="special">&lt;</span><span class="identifier">fail</span><span class="special">&gt;(</span><span class="identifier">start</span><span class="special">,</span> <span class="identifier">error</span><span class="special">(</span><span class="identifier">_1</span><span class="special">,</span> <span class="identifier">_2</span><span class="special">,</span> <span class="identifier">_3</span><span class="special">,</span> <span class="identifier">_4</span><span class="special">));</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="special">}</span> <span class="comment">// sexpr</span>
+</pre>
+<p>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="line_pos_iterator.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../support.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../faq.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

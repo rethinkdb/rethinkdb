@@ -1,0 +1,419 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Available Indexing Options</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../../index.html" title="Boost.AutoIndex">
+<link rel="up" href="../configure.html" title="Step 2: Configure Boost.Build jamfile to use AutoIndex">
+<link rel="prev" href="../configure.html" title="Step 2: Configure Boost.Build jamfile to use AutoIndex">
+<link rel="next" href="optional.html" title="Making AutoIndex optional">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../configure.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../configure.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="optional.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_autoindex.tut.configure.options"></a><a class="link" href="options.html" title="Available Indexing Options">Available Indexing
+        Options</a>
+</h4></div></div></div>
+<p>
+          The available options are:
+        </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term">&lt;auto-index&gt;off/on</span></dt>
+<dd><p>
+                Turns indexing of the document on, defaults to "off", so
+                be sure to set this if you want AutoIndex invoked!
+              </p></dd>
+<dt><span class="term">&lt;auto-index-internal&gt;off/on</span></dt>
+<dd><p>
+                Chooses whether AutoIndex creates the index itself (feature on),
+                or whether it simply inserts the necessary DocBook markup so that
+                the DocBook XSL stylesheets can create the index. Defaults to "off".
+              </p></dd>
+<dt><span class="term">&lt;auto-index-script&gt;filename</span></dt>
+<dd><p>
+                Specifies the name of the script to load.
+              </p></dd>
+<dt><span class="term">&lt;auto-index-no-duplicates&gt;off/on</span></dt>
+<dd><p>
+                When <span class="emphasis"><em>on</em></span> AutoIndex will only index a term once
+                in any given section, otherwise (the default) multiple index entries
+                per term may be created if the term occurs more than once in the
+                section.
+              </p></dd>
+<dt><span class="term">&lt;auto-index-section-names&gt;off/on</span></dt>
+<dd><p>
+                When <span class="emphasis"><em>on</em></span> AutoIndex will use create two index
+                entries for each term found - one uses the term itself as the primary
+                index key, the other uses the enclosing section name. When off the
+                index entry that uses the section title is not created. Defaults
+                to "on"
+              </p></dd>
+<dt><span class="term">&lt;auto-index-verbose&gt;off/on</span></dt>
+<dd><p>
+                Defaults to "off". When turned on AutoIndex prints progress
+                information - useful for debugging purposes during setup.
+              </p></dd>
+<dt><span class="term">&lt;auto-index-prefix&gt;filename</span></dt>
+<dd>
+<p>
+                Optionally specifies a directory to apply as a prefix to all relative
+                file paths in the script file.
+              </p>
+<p>
+                You may wish to do this to reduce typing of pathnames, and/or where
+                the paths can't be located relative to the script file location,
+                typically if the headers are in the Boost trunk, but the script file
+                is in Boost sandbox.
+              </p>
+<p>
+                For Boost standard library layout, <code class="literal">&lt;auto-index-prefix&gt;../../..</code>
+                will get you back up to the 'root' of the Boost tree, so <code class="literal">!scan-path
+                boost/mylibrary/</code> is where your headers will be, and <code class="literal">libs/mylibrary</code>
+                for other files. Without a prefix all relative paths are relative
+                to the location of the script file.
+              </p>
+</dd>
+<dt><span class="term">&lt;auto-index-type&gt;element-name</span></dt>
+<dd><p>
+                Specifies the name of the XML element in which to enclose an internally
+                generated indexes: defaults to <span class="emphasis"><em>section</em></span>, but
+                could equally be <span class="emphasis"><em>appendix</em></span> or <span class="emphasis"><em>chapter</em></span>
+                or some other block level element that has a formal title. The actual
+                list of available options depends upon the Quickbook document type,
+                the following table gives the available options, assuming that the
+                index is placed at the top level, and not in some sub-section or
+                other container:
+              </p></dd>
+</dl>
+</div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Document Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Permitted Index Types
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    book
+                  </p>
+                </td>
+<td>
+                  <p>
+                    appendix index article chapter reference part
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    article
+                  </p>
+                </td>
+<td>
+                  <p>
+                    section appendix index sect1
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    chapter
+                  </p>
+                </td>
+<td>
+                  <p>
+                    section index sect1
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    library
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The same as Chapter (section index sect1)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    part
+                  </p>
+                </td>
+<td>
+                  <p>
+                    appendix index article chapter reference
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    appendix
+                  </p>
+                </td>
+<td>
+                  <p>
+                    section index sect1
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    preface
+                  </p>
+                </td>
+<td>
+                  <p>
+                    section index sect1
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    qandadiv
+                  </p>
+                </td>
+<td>
+                  <p>
+                    N/A: an index would have to be placed within a subsection of
+                    the document.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    qandaset
+                  </p>
+                </td>
+<td>
+                  <p>
+                    N/A: an index would have to be placed within a subsection of
+                    the document.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    reference
+                  </p>
+                </td>
+<td>
+                  <p>
+                    N/A: an index would have to be placed within a subsection of
+                    the document.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    set
+                  </p>
+                </td>
+<td>
+                  <p>
+                    N/A: an index would have to be placed within a subsection of
+                    the document.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          In large part then the choice of <code class="computeroutput"><span class="special">&lt;</span><span class="keyword">auto</span><span class="special">-</span><span class="identifier">index</span><span class="special">-</span><span class="identifier">type</span><span class="special">&gt;</span><span class="identifier">element</span><span class="special">-</span><span class="identifier">name</span></code>
+          depends on the formatting you want to be applied to the index:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    XML Container Used for the Index
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Formatting Applied by the XSL Stylesheets
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    appendix
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Starts a new page.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    article
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Starts a new page.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    chapter
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Starts a new page.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    index
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Starts a new page only if it's contained within an article or
+                    book.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    part
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Starts a new page.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    reference
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Starts a new page.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    sect1
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Starts a new page as long as it's not the first section (but
+                    is controlled by the XSL parameters chunk.section.depth and/or
+                    chunk.first.sections).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    section
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Starts a new page as long as it's not the first section or nested
+                    within another section (but is controlled by the XSL parameters
+                    chunk.section.depth and/or chunk.first.sections).
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          In almost all cases the default (section) is the correct choice - the exception
+          is when the index is to be placed directly inside a <span class="emphasis"><em>book</em></span>
+          or <span class="emphasis"><em>part</em></span>, in which case you should probably use the
+          same XML container for the index as you use for whatever subdivisions are
+          in the <span class="emphasis"><em>book</em></span> or <span class="emphasis"><em>part</em></span>. In any event
+          placing a <span class="emphasis"><em>section</em></span> within a <span class="emphasis"><em>book</em></span>
+          or <span class="emphasis"><em>part</em></span> will result in invalid XML.
+        </p>
+<p>
+          Finally, if you are using Quickbook to generate the documentation, then
+          you may wish to add:
+        </p>
+<pre class="programlisting">&lt;include&gt;$boost-root/tools/auto_index/include</pre>
+<p>
+          to your projects requirements (replacing $boost-root with the path to the
+          root of the Boost tree), so that the file auto_index_helpers.qbk can be
+          included in your quickbook source with simply a:
+        </p>
+<pre class="programlisting">[include auto_index_helpers.qbk]</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008, 2011 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../configure.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../configure.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="optional.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

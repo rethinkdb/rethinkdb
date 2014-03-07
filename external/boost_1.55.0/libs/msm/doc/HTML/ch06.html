@@ -1,0 +1,61 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Chapter&nbsp;6.&nbsp;Internals</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="pt01.html" title="Part&nbsp;I.&nbsp;User' guide"><link rel="prev" href="ch05.html" title="Chapter&nbsp;5.&nbsp;Questions &amp; Answers, tips"><link rel="next" href="ch06s02.html" title="Frontend / Backend interface"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter&nbsp;6.&nbsp;Internals</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05.html">Prev</a>&nbsp;</td><th width="60%" align="center">Part&nbsp;I.&nbsp;User' guide</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch06s02.html">Next</a></td></tr></table><hr></div><div class="chapter" title="Chapter&nbsp;6.&nbsp;Internals"><div class="titlepage"><div><div><h2 class="title"><a name="d0e3005"></a>Chapter&nbsp;6.&nbsp;Internals</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="ch06.html#d0e3010">Backend: Run To Completion</a></span></dt><dt><span class="sect1"><a href="ch06s02.html">Frontend / Backend
+                    interface</a></span></dt><dt><span class="sect1"><a href="ch06s03.html"> Generated state ids </a></span></dt><dt><span class="sect1"><a href="ch06s04.html">Metaprogramming tools</a></span></dt></dl></div><p>This chapter describes the internal machinery of the back-end, which can be useful
+                for UML experts but can be safely ignored for most users. For implementers, the
+                interface between front- and back- end is also described in detail.</p><div class="sect1" title="Backend: Run To Completion"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d0e3010"></a><span class="command"><strong><a name="run-to-completion"></a></strong></span>Backend: Run To Completion</h2></div></div></div><p>The back-end implements the following run-to completion algorithm:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Check if one region of the concrete state machine is in a
+                                terminate or interrupt state. If yes, event processing is disabled
+                                while the condition lasts (forever for a terminate pseudo-state,
+                                while active for an interrupt pseudo-state).</p></li><li class="listitem"><p>If the message queue feature is enabled and if the state machine
+                                is already processing an event, push the currently processed event
+                                into the queue and end processing. Otherwise, remember that the
+                                state machine is now processing an event and continue.</p></li><li class="listitem"><p>If the state machine detected that no deferred event is used, skip
+                                this step. Otherwise, mark the first deferred event from the
+                                deferred queue as active.</p></li><li class="listitem"><p>Now start the core of event dispatching. If exception handling is
+                                activated, this will happen inside a try/catch block and the
+                                front-end <code class="code">exception_caught</code> is called if an exception
+                                occurs. </p></li><li class="listitem"><p>The event is now dispatched in turn to every region, in the order
+                                defined by the initial state front-end definition. This will, for
+                                every region, call the corresponding front-end transition definition
+                                (the "row" or "Row" of the transition table).</p></li><li class="listitem"><p>Without transition conflict, if for a given region a transition is
+                                possible, the guard condition is checked. If it returns
+                                    <code class="code">true</code>, the transition processing continues and the
+                                current state's exit action is called, followed by the transition
+                                action behavior and the new active state's entry behavior.</p></li><li class="listitem"><p>With transition conflicts (several possible transitions,
+                                disambiguated by mutually exclusive guard conditions), the guard
+                                conditions are tried in reverse order of their transition definition
+                                in the transition table. The first one returning <code class="code">true</code>
+                                selects its transition. Note that this is not defined by the UML
+                                standard, which simply specifies that if the guard conditions are
+                                not mutually exclusive, the state machine is ill-formed and the
+                                behaviour undefined. Relying on this implementation-specific
+                                behaviour will make it harder for the developer to support another
+                                state machine framework.</p></li><li class="listitem"><p>If at least one region processes the event, this event is seen as
+                                having been accepted. If not, the library calls
+                                    <code class="code">no_transition</code> on the state machine for every
+                                contained region.</p></li><li class="listitem"><p>If the currently active state is a submachine, the behaviour is
+                                slightly different. The UML standard specifies that internal
+                                transitions have to be tried first, so the event is first dispatched
+                                to the submachine. Only if the submachine does not accept the event
+                                are other (non internal) transitions tried.</p></li><li class="listitem"><p>This back-end supports simple states' and submachines' internal
+                                transitions. These are provided in the state's
+                                    <code class="code">internal_transition_table</code> type. Transitions defined
+                                in this table are added at the end of the main state machine's
+                                transition table, but with a lesser priority than the submachine's
+                                transitions (defined in <code class="code">transition_table</code>). This means,
+                                for simple states, that these transitions have higher priority than
+                                non-internal transitions, conform to the UML standard which gives
+                                higher priority to deeper-level transitions. For submachines, this
+                                is a non-standard addition which can help make event processing
+                                faster by giving a chance to bypass subregion processing. With
+                                standard UML, one would need to add a subregion only to process
+                                these internal transitions, which would be slower.</p></li><li class="listitem"><p>After the dispatching itself, the deferred event marked in step 3
+                                (if any) now gets a chance of processing.</p></li><li class="listitem"><p>Then, events queued in the message queue also get a dispatching
+                                chance</p></li><li class="listitem"><p>Finally, completion / anonymous transitions, if to be found in the
+                                transition table, also get their dispatching chance.</p></li></ul></div><p>This algorithm illustrates how the back-end configures itself at compile-time
+                    as much as possible. Every feature not found in a given state machine definition
+                    is deactivated and has therefore no runtime cost. Completion events, deferred
+                    events, terminate states, dispatching to several regions, internal transitions
+                    are all deactivated if not used. User configuration is only for exception
+                    handling and message queue necessary.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="pt01.html">Up</a></td><td width="40%" align="right">&nbsp;<a accesskey="n" href="ch06s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter&nbsp;5.&nbsp;Questions &amp; Answers, tips&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;Frontend / Backend
+                    interface</td></tr></table></div></body></html>

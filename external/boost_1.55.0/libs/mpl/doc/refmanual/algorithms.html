@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: Algorithms</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./iterator-category.html" class="navigation-link">Prev</a>&nbsp;<a href="./algorithms-concepts.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterators.html" class="navigation-link">Back</a>&nbsp;<a href="./metafunctions.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="../refmanual.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./algorithms.html" class="navigation-link">Algorithms</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="algorithms">
+<h1><a class="toc-backref" href="../refmanual.html#id1460">Algorithms</a></h1>
+<p id="label-algorithms">The MPL provides a broad range of fundamental algorithms aimed to
+satisfy the majority of sequential compile-time data processing
+needs. The algorithms include compile-time counterparts
+of many of the STL algorithms, iteration algorithms borrowed from
+functional programming languages, and more.</p>
+<p>Unlike the algorithms in the C++ Standard Library, which operate on
+implict <em>iterator ranges</em>, the majority of MPL counterparts take
+and return <em>sequences</em>. This derivation is not dictated by the
+functional nature of C++ compile-time computations per se, but
+rather by a desire to improve general usability of the library,
+making programming with compile-time data structures as enjoyable
+as possible.</p>
+<!-- This can be seen as a further generalization and extension of
+the STL's conceptual framework. -->
+<p>In the spirit of the STL, MPL algorithms are <em>generic</em>, meaning
+that they are not tied to particular sequence class
+implementations, and can operate on a wide range of arguments as
+long as they satisfy the documented requirements. The requirements
+are formulated in terms of concepts. Under the hood,
+algorithms are decoupled from concrete sequence
+implementations by operating on <a class="reference internal" href="./iterators.html">Iterators</a>.</p>
+<p>All MPL algorithms can be sorted into three
+major categories: iteration algorithms, querying algorithms, and
+transformation algorithms. The transformation algorithms introduce
+an associated <a class="reference internal" href="./inserter.html">Inserter</a> concept, a rough equivalent for the notion of
+<a class="reference external" href="http://www.sgi.com/tech/stl/OutputIterator.html" target="_top">Output Iterator</a> in the Standard Library. Moreover, every
+transformation algorithm provides a <tt class="literal"><span class="pre">reverse_</span></tt> counterpart,
+allowing for a wider range of efficient transformations — a
+common functionality documented by the <a class="reference internal" href="./reversible-algorithm.html">Reversible Algorithm</a>
+concept.</p>
+<ul class="toc simple" id="outline">
+<li><a class="reference internal" href="./algorithms-concepts.html" id="id1461">Concepts</a></li>
+<li><a class="reference internal" href="./inserters.html" id="id1464">Inserters</a></li>
+<li><a class="reference internal" href="./iteration-algorithms.html" id="id1468">Iteration Algorithms</a></li>
+<li><a class="reference internal" href="./querying-algorithms.html" id="id1474">Querying Algorithms</a></li>
+<li><a class="reference internal" href="./transformation-algorithms.html" id="id1485">Transformation Algorithms</a></li>
+<li><a class="reference internal" href="./runtime-algorithms.html" id="id1508">Runtime Algorithms</a></li>
+</ul>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./iterator-category.html" class="navigation-link">Prev</a>&nbsp;<a href="./algorithms-concepts.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterators.html" class="navigation-link">Back</a>&nbsp;<a href="./metafunctions.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="../refmanual.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

@@ -1,0 +1,149 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class tribool</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../tribool/reference.html#header.boost.logic.tribool_hpp" title="Header &lt;boost/logic/tribool.hpp&gt;">
+<link rel="prev" href="../../tribool/reference.html" title="Reference">
+<link rel="next" href="tribool/value_t.html" title="Type value_t">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../tribool/reference.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../tribool/reference.html#header.boost.logic.tribool_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tribool/value_t.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.logic.tribool"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class tribool</span></h2>
+<p>boost::logic::tribool &#8212; A 3-state boolean type. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../tribool/reference.html#header.boost.logic.tribool_hpp" title="Header &lt;boost/logic/tribool.hpp&gt;">boost/logic/tribool.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="tribool.html" title="Class tribool">tribool</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="keyword">enum</span> <a class="link" href="tribool/value_t.html" title="Type value_t">value_t</a><span class="special">;</span>
+  <span class="comment">// <a class="link" href="tribool.html#boost.logic.triboolconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="tribool.html#idp140234568-bb"><span class="identifier">tribool</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="tribool.html#idp140235208-bb"><span class="identifier">tribool</span></a><span class="special">(</span><span class="keyword">bool</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="tribool.html#idp140236520-bb"><span class="identifier">tribool</span></a><span class="special">(</span><span class="identifier">indeterminate_keyword_t</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="tribool.html#idp140233208-bb">public member functions</a></span>
+  <a class="link" href="tribool.html#idp140233336-bb"><span class="keyword">operator</span> <span class="identifier">safe_bool</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">enum</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">logic</span><span class="special">::</span><span class="identifier">tribool</span><span class="special">::</span><span class="identifier">value_t</span> <span class="identifier">value</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp225299944"></a><h2>Description</h2>
+<p>3-state boolean values are either true, false, or indeterminate. </p>
+<div class="refsect2">
+<a name="idp225300360"></a><h3>
+<a name="boost.logic.triboolconstruct-copy-destruct"></a><code class="computeroutput">tribool</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp140234568-bb"></a><span class="identifier">tribool</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Construct a new 3-state boolean value with the value 'false'.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp140235208-bb"></a><span class="identifier">tribool</span><span class="special">(</span><span class="keyword">bool</span> initial_value<span class="special">)</span><span class="special">;</span></pre>
+<p>Construct a new 3-state boolean value with the given boolean value, which may be <code class="computeroutput">true</code> or <code class="computeroutput">false</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp140236520-bb"></a><span class="identifier">tribool</span><span class="special">(</span><span class="identifier">indeterminate_keyword_t</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Construct a new 3-state boolean value with an indeterminate value.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp225311352"></a><h3>
+<a name="idp140233208-bb"></a><code class="computeroutput">tribool</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp140233336-bb"></a><span class="keyword">operator</span> <span class="identifier">safe_bool</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Use a 3-state boolean in a boolean context. Will evaluate true in a boolean context only when the 3-state boolean is definitely true.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>true if the 3-state boolean is true, false otherwise </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2004 Douglas Gregor<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../tribool/reference.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../tribool/reference.html#header.boost.logic.tribool_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tribool/value_t.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

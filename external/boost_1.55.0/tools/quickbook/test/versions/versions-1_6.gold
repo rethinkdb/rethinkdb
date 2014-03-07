@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="mixed_version_tests" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Mixed version tests</title>
+  <para>
+    correct
+  </para>
+  <section id="mixed_version_tests.section_ids">
+    <title><link linkend="mixed_version_tests.section_ids">Section ids in templates</link></title>
+    <section id="mixed_version_tests.section_ids.in_a_1_1_template">
+      <title><link linkend="mixed_version_tests.section_ids.in_a_1_1_template">In
+      a 1.1 template</link></title>
+      <para>
+        Some text
+      </para>
+    </section>
+    <section id="mixed_version_tests.section_ids.in_a_1_4_template">
+      <title><link linkend="mixed_version_tests.section_ids.in_a_1_4_template">In
+      a 1.4 template</link></title>
+      <para>
+        Some text
+      </para>
+    </section>
+    <section id="mixed_version_tests.section_ids.in_a_1_5_template">
+      <title><link linkend="mixed_version_tests.section_ids.in_a_1_5_template">In
+      a 1.5 template</link></title>
+      <para>
+        Some text
+      </para>
+    </section>
+  </section>
+  <article id="1_1_templates" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>1.1 Templates</title>
+    <section id="1_1_templates.1_1_document">
+      <title>1.1 Document</title>
+      <section id="1_1_templates.in_a_1_1_template">
+        <title>In a 1.1 template</title>
+        <para>
+          Some text
+        </para>
+      </section>
+      <section id="1_1_templates.in_a_1_4_template">
+        <title>In a 1.4 template</title>
+        <para>
+          Some text
+        </para>
+      </section>
+      <section id="1_1_templates.in_a_1_5_template">
+        <title>In a 1.5 template</title>
+        <para>
+          Some text
+        </para>
+      </section>
+    </section>
+  </article>
+  <article id="1_4_templates" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>1.4 Templates</title>
+    <section id="1_4_templates.1_4_document">
+      <title><link linkend="1_4_templates.1_4_document">1.4 Document</link></title>
+      <section id="1_4_templates.1_4_document.in_a_1_1_template">
+        <title><link linkend="1_4_templates.1_4_document.in_a_1_1_template">In a
+        1.1 template</link></title>
+        <para>
+          Some text
+        </para>
+      </section>
+      <section id="1_4_templates.1_4_document.in_a_1_4_template">
+        <title><link linkend="1_4_templates.1_4_document.in_a_1_4_template">In a
+        1.4 template</link></title>
+        <para>
+          Some text
+        </para>
+      </section>
+      <section id="1_4_templates.1_4_document.in_a_1_5_template">
+        <title><link linkend="1_4_templates.1_4_document.in_a_1_5_template">In a
+        1.5 template</link></title>
+        <para>
+          Some text
+        </para>
+      </section>
+    </section>
+  </article>
+  <article id="1_5_templates" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>1.5 Templates</title>
+    <section id="1_5_templates.1_5_document">
+      <title><link linkend="1_5_templates.1_5_document">1.5 Document</link></title>
+      <section id="1_5_templates.1_5_document.in_a_1_1_template">
+        <title><link linkend="1_5_templates.1_5_document.in_a_1_1_template">In a
+        1.1 template</link></title>
+        <para>
+          Some text
+        </para>
+      </section>
+      <section id="1_5_templates.1_5_document.in_a_1_4_template">
+        <title><link linkend="1_5_templates.1_5_document.in_a_1_4_template">In a
+        1.4 template</link></title>
+        <para>
+          Some text
+        </para>
+      </section>
+      <section id="1_5_templates.1_5_document.in_a_1_5_template">
+        <title><link linkend="1_5_templates.1_5_document.in_a_1_5_template">In a
+        1.5 template</link></title>
+        <para>
+          Some text
+        </para>
+      </section>
+    </section>
+  </article>
+</article>

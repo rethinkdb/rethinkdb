@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL s-t Connectivity</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-s-t-connectivity">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> s-t Connectivity</h1>
+
+<!-- Copyright (C) 2004-2009 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+namespace graph { namespace distributed {
+  template&lt;typename DistributedGraph, typename ColorMap&gt;
+  inline bool
+  st_connected(const DistributedGraph&amp; g,
+               typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+               typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor t,
+               ColorMap color)
+
+  template&lt;typename DistributedGraph&gt;
+  inline bool
+  st_connected(const DistributedGraph&amp; g,
+               typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+               typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor t)
+
+  template&lt;typename DistributedGraph, typename ColorMap, typename OwnerMap&gt;
+  bool
+  st_connected(const DistributedGraph&amp; g,
+               typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+               typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor t,
+               ColorMap color, OwnerMap owner)
+} }
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">st_connected()</span></tt> function determines whether there exists a path
+from <tt class="docutils literal"><span class="pre">s</span></tt> to <tt class="docutils literal"><span class="pre">t</span></tt> in a graph <tt class="docutils literal"><span class="pre">g</span></tt>.  If a path exists the function
+returns <tt class="docutils literal"><span class="pre">true</span></tt>, otherwise it returns <tt class="docutils literal"><span class="pre">false</span></tt>.</p>
+<p>This algorithm is currently <em>level-synchronized</em>, meaning that all
+vertices in a given level of the search tree will be processed
+(potentially in parallel) before any vertices from a successive level
+in the tree are processed.  This is not necessary for the correctness
+of the algorithm but rather is an implementation detail.  This
+algorithm could be rewritten fully-asynchronously using triggers which
+would remove the level-synchronized behavior.</p>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id1">Where Defined</a></li>
+<li><a class="reference internal" href="#parameters" id="id2">Parameters</a></li>
+<li><a class="reference internal" href="#complexity" id="id3">Complexity</a></li>
+<li><a class="reference internal" href="#algorithm-description" id="id4">Algorithm Description</a></li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id1">Where Defined</a></h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/distributed/st_connected.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="parameters">
+<h1><a class="toc-backref" href="#id2">Parameters</a></h1>
+<dl class="docutils">
+<dt>IN:  <tt class="docutils literal"><span class="pre">const</span> <span class="pre">DistributedGraph&amp;</span> <span class="pre">g</span></tt></dt>
+<dd>The graph type must be a model of <a class="reference external" href="DistributedGraph.html">Distributed Graph</a>.  The graph
+type must also model the <a class="reference external" href="http://www.boost.org/libs/graph/doc/IncidenceGraph.html">Incidence Graph</a>.</dd>
+</dl>
+<p>IN:  <tt class="docutils literal"><span class="pre">vertex_descriptor</span> <span class="pre">s</span></tt></p>
+<p>IN:  <tt class="docutils literal"><span class="pre">vertex_descriptor</span> <span class="pre">t</span></tt></p>
+<dl class="docutils">
+<dt>UTIL/OUT: <tt class="docutils literal"><span class="pre">color_map(ColorMap</span> <span class="pre">color)</span></tt></dt>
+<dd>The color map must be a <a class="reference external" href="distributed_property_map.html">Distributed Property Map</a> with the same
+process group as the graph <tt class="docutils literal"><span class="pre">g</span></tt> whose colors must monotonically
+darken (white -&gt; gray/green -&gt; black). The default value is a
+distributed <tt class="docutils literal"><span class="pre">two_bit_color_map</span></tt>.</dd>
+<dt>IN:  <tt class="docutils literal"><span class="pre">OwnerMap</span> <span class="pre">owner</span></tt></dt>
+<dd>The owner map must map from vertices to the process that owns them
+as described in the <a class="reference external" href="GlobalDescriptor.html">GlobalDescriptor</a> concept.</dd>
+<dt>OUT:  <tt class="docutils literal"><span class="pre">bool</span></tt></dt>
+<dd>The algorithm returns <tt class="docutils literal"><span class="pre">true</span></tt> if a path from <tt class="docutils literal"><span class="pre">s</span></tt> to <tt class="docutils literal"><span class="pre">t</span></tt> is
+found, and false otherwise.</dd>
+</dl>
+</div>
+<div class="section" id="complexity">
+<h1><a class="toc-backref" href="#id3">Complexity</a></h1>
+<p>This algorithm performs <em>O(V + E)</em> work in <em>d/2 + 1</em> BSP supersteps,
+where <em>d</em> is the shortest distance from <tt class="docutils literal"><span class="pre">s</span></tt> to <tt class="docutils literal"><span class="pre">t</span></tt>. Over all
+supersteps, <em>O(E)</em> messages of constant size will be transmitted.</p>
+</div>
+<div class="section" id="algorithm-description">
+<h1><a class="toc-backref" href="#id4">Algorithm Description</a></h1>
+<p>The algorithm consists of two simultaneous breadth-first traversals
+from <tt class="docutils literal"><span class="pre">s</span></tt> and <tt class="docutils literal"><span class="pre">t</span></tt> respectively.  The algorithm utilizes a single
+queue for both traversals with the traversal from <tt class="docutils literal"><span class="pre">s</span></tt> being denoted
+by a <tt class="docutils literal"><span class="pre">gray</span></tt> entry in the color map and the traversal from <tt class="docutils literal"><span class="pre">t</span></tt>
+being denoted by a <tt class="docutils literal"><span class="pre">green</span></tt> entry.  The traversal method is similar
+to breadth-first search except that no visitor event points are
+called.  When any process detects a collision in the two traversals
+(by attempting to set a <tt class="docutils literal"><span class="pre">gray</span></tt> vertex to <tt class="docutils literal"><span class="pre">green</span></tt> or vice-versa),
+it signals all processes to terminate on the next superstep and all
+processes return <tt class="docutils literal"><span class="pre">true</span></tt>.  If the queues on all processes are empty
+and no collision is detected then all processes terminate and return
+<tt class="docutils literal"><span class="pre">false</span></tt>.</p>
+<hr class="docutils" />
+<p>Copyright (C) 2009 The Trustees of Indiana University.</p>
+<p>Authors: Nick Edmonds and Andrew Lumsdaine</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

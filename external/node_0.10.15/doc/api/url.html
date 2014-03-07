@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>URL Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/url.html">
+</head>
+<body class="alt apidoc" id="api-section-url">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="url.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#url_url">URL</a><ul>
+<li><a href="#url_url_parse_urlstr_parsequerystring_slashesdenotehost">url.parse(urlStr, [parseQueryString], [slashesDenoteHost])</a></li>
+<li><a href="#url_url_format_urlobj">url.format(urlObj)</a></li>
+<li><a href="#url_url_resolve_from_to">url.resolve(from, to)</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>URL<span><a class="mark" href="#url_url" id="url_url">#</a></span></h1>
+<pre class="api_stability_3">Stability: 3 - Stable</pre><p>This module has utilities for URL resolution and parsing.
+Call <code>require(&#39;url&#39;)</code> to use it.
+
+</p>
+<p>Parsed URL objects have some or all of the following fields, depending on
+whether or not they exist in the URL string. Any parts that are not in the URL
+string will not be in the parsed object. Examples are shown for the URL
+
+</p>
+<p><code>&#39;http://user:pass@host.com:8080/p/a/t/h?query=string#hash&#39;</code>
+
+</p>
+<ul>
+<li><p><code>href</code>: The full URL that was originally parsed. Both the protocol and host are lowercased.</p>
+<p>  Example: <code>&#39;http://user:pass@host.com:8080/p/a/t/h?query=string#hash&#39;</code></p>
+</li>
+<li><p><code>protocol</code>: The request protocol, lowercased.</p>
+<p>  Example: <code>&#39;http:&#39;</code></p>
+</li>
+<li><p><code>host</code>: The full lowercased host portion of the URL, including port
+information.</p>
+<p>  Example: <code>&#39;host.com:8080&#39;</code></p>
+</li>
+<li><p><code>auth</code>: The authentication information portion of a URL.</p>
+<p>  Example: <code>&#39;user:pass&#39;</code></p>
+</li>
+<li><p><code>hostname</code>: Just the lowercased hostname portion of the host.</p>
+<p>  Example: <code>&#39;host.com&#39;</code></p>
+</li>
+<li><p><code>port</code>: The port number portion of the host.</p>
+<p>  Example: <code>&#39;8080&#39;</code></p>
+</li>
+<li><p><code>pathname</code>: The path section of the URL, that comes after the host and
+before the query, including the initial slash if present.</p>
+<p>  Example: <code>&#39;/p/a/t/h&#39;</code></p>
+</li>
+<li><p><code>search</code>: The &#39;query string&#39; portion of the URL, including the leading
+question mark.</p>
+<p>  Example: <code>&#39;?query=string&#39;</code></p>
+</li>
+<li><p><code>path</code>: Concatenation of <code>pathname</code> and <code>search</code>.</p>
+<p>  Example: <code>&#39;/p/a/t/h?query=string&#39;</code></p>
+</li>
+<li><p><code>query</code>: Either the &#39;params&#39; portion of the query string, or a
+querystring-parsed object.</p>
+<p>  Example: <code>&#39;query=string&#39;</code> or <code>{&#39;query&#39;:&#39;string&#39;}</code></p>
+</li>
+<li><p><code>hash</code>: The &#39;fragment&#39; portion of the URL including the pound-sign.</p>
+<p>  Example: <code>&#39;#hash&#39;</code></p>
+</li>
+</ul>
+<p>The following methods are provided by the URL module:
+
+</p>
+<h2>url.parse(urlStr, [parseQueryString], [slashesDenoteHost])<span><a class="mark" href="#url_url_parse_urlstr_parsequerystring_slashesdenotehost" id="url_url_parse_urlstr_parsequerystring_slashesdenotehost">#</a></span></h2>
+<p>Take a URL string, and return an object.
+
+</p>
+<p>Pass <code>true</code> as the second argument to also parse
+the query string using the <code>querystring</code> module.
+Defaults to <code>false</code>.
+
+</p>
+<p>Pass <code>true</code> as the third argument to treat <code>//foo/bar</code> as
+<code>{ host: &#39;foo&#39;, pathname: &#39;/bar&#39; }</code> rather than
+<code>{ pathname: &#39;//foo/bar&#39; }</code>. Defaults to <code>false</code>.
+
+</p>
+<h2>url.format(urlObj)<span><a class="mark" href="#url_url_format_urlobj" id="url_url_format_urlobj">#</a></span></h2>
+<p>Take a parsed URL object, and return a formatted URL string.
+
+</p>
+<ul>
+<li><code>href</code> will be ignored.</li>
+<li><code>protocol</code>is treated the same with or without the trailing <code>:</code> (colon).<ul>
+<li>The protocols <code>http</code>, <code>https</code>, <code>ftp</code>, <code>gopher</code>, <code>file</code> will be
+postfixed with <code>://</code> (colon-slash-slash).</li>
+<li>All other protocols <code>mailto</code>, <code>xmpp</code>, <code>aim</code>, <code>sftp</code>, <code>foo</code>, etc will
+be postfixed with <code>:</code> (colon)</li>
+</ul>
+</li>
+<li><code>auth</code> will be used if present.</li>
+<li><code>hostname</code> will only be used if <code>host</code> is absent.</li>
+<li><code>port</code> will only be used if <code>host</code> is absent.</li>
+<li><code>host</code> will be used in place of <code>hostname</code> and <code>port</code></li>
+<li><code>pathname</code> is treated the same with or without the leading <code>/</code> (slash)</li>
+<li><code>search</code> will be used in place of <code>query</code></li>
+<li><code>query</code> (object; see <code>querystring</code>) will only be used if <code>search</code> is absent.</li>
+<li><code>search</code> is treated the same with or without the leading <code>?</code> (question mark)</li>
+<li><code>hash</code> is treated the same with or without the leading <code>#</code> (pound sign, anchor)</li>
+</ul>
+<h2>url.resolve(from, to)<span><a class="mark" href="#url_url_resolve_from_to" id="url_url_resolve_from_to">#</a></span></h2>
+<p>Take a base URL, and a href URL, and resolve them as a browser would for
+an anchor tag.  Examples:
+
+</p>
+<pre><code>url.resolve(&#39;/one/two/three&#39;, &#39;four&#39;)         // &#39;/one/two/four&#39;
+url.resolve(&#39;http://example.com/&#39;, &#39;/one&#39;)    // &#39;http://example.com/one&#39;
+url.resolve(&#39;http://example.com/one&#39;, &#39;/two&#39;) // &#39;http://example.com/two&#39;</code></pre>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

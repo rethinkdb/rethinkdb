@@ -1,0 +1,13 @@
+[heading Supported geometries]
+[table
+[[Geometry][Status]]
+[[Point][ [$img/ok.png] ]]
+[[Segment][ [$img/nyi.png] ]]
+[[Box][ [$img/nyi.png] ]]
+[[Linestring][ [$img/ok.png] ]]
+[[Ring][ [$img/ok.png] ]]
+[[Polygon][ [$img/ok.png] ]]
+[[MultiPoint][ [$img/ok.png] ]]
+[[MultiLinestring][ [$img/ok.png] ]]
+[[MultiPolygon][ [$img/ok.png] ]]
+]

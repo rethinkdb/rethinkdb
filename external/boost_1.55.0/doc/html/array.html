@@ -1,0 +1,123 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;3.&#160;Boost.Array</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="any/s04.html" title="Acknowledgements">
+<link rel="next" href="array/reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="any/s04.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="array/reference.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="array"></a>Chapter&#160;3.&#160;Boost.Array</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Nicolai</span> <span class="surname">Josuttis</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2001-2004 Nicolai M. Josuttis</p></div>
+<div><div class="legalnotice">
+<a name="idp61894888"></a><p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="array.html#array.intro">Introduction</a></span></dt>
+<dt><span class="section"><a href="array/reference.html">Reference</a></span></dt>
+<dd><dl><dt><span class="section"><a href="array/reference.html#header.boost.array_hpp">Header &lt;boost/array.hpp&gt;</a></span></dt></dl></dd>
+<dt><span class="section"><a href="array/rationale.html">Design Rationale</a></span></dt>
+<dt><span class="section"><a href="array/more/info.html">For more information...</a></span></dt>
+<dt><span class="section"><a href="array/ack.html">Acknowledgements</a></span></dt>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="array.intro"></a>Introduction</h2></div></div></div>
+<p>The C++ Standard Template Library STL as part of the C++
+    Standard Library provides a framework for processing algorithms on
+    different kind of containers. However, ordinary arrays don't
+    provide the interface of STL containers (although, they provide
+    the iterator interface of STL containers).</p>
+<p>As replacement for ordinary arrays, the STL provides class
+    <code class="computeroutput">std::vector</code>.  However,
+    <code class="computeroutput">std::vector&lt;&gt;</code> provides
+    the semantics of dynamic arrays. Thus, it manages data to be able
+    to change the number of elements. This results in some overhead in
+    case only arrays with static size are needed.</p>
+<p>In his book, <span class="emphasis"><em>Generic Programming and the
+    STL</em></span>, Matthew H. Austern introduces a useful wrapper
+    class for ordinary arrays with static size, called
+    <code class="computeroutput">block</code>.  It is safer and has no worse performance than
+    ordinary arrays. In <span class="emphasis"><em>The C++ Programming
+    Language</em></span>, 3rd edition, Bjarne Stroustrup introduces a
+    similar class, called <code class="computeroutput">c_array</code>, which I (<a href="http://www.josuttis.com" target="_top">Nicolai Josuttis</a>) present
+    slightly modified in my book <span class="emphasis"><em>The C++ Standard Library -
+    A Tutorial and Reference</em></span>, called
+    <code class="computeroutput">carray</code>. This is the essence of these approaches
+    spiced with many feedback from <a href="http://www.boost.org" target="_top">boost</a>.</p>
+<p>After considering different names, we decided to name this
+    class simply <code class="computeroutput"><a class="link" href="boost/array.html" title="Class template array">array</a></code>.</p>
+<p>Note that this class is suggested to be part of the next
+    Technical Report, which will extend the C++ Standard (see
+    <a href="http://std.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1548.htm" target="_top">http://std.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1548.htm</a>).</p>
+<p>Update: <code class="computeroutput">std::array</code> is (as of C++11) part of the C++ standard.
+    The differences between <code class="computeroutput">boost::array</code> and <code class="computeroutput">std::array</code> are minimal.
+    If you are using C++11, you should consider using <code class="computeroutput">std::array</code> instead of <code class="computeroutput">boost::array</code>.
+    </p>
+<p>Class <code class="computeroutput"><a class="link" href="boost/array.html" title="Class template array">array</a></code> fulfills most
+    but not all of the requirements of "reversible containers" (see
+    Section 23.1, [lib.container.requirements] of the C++
+    Standard). The reasons array is not an reversible STL container is
+    because:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: disc; ">
+<li class="listitem">No constructors are provided.</li>
+<li class="listitem">Elements may have an undetermined initial value (see <a class="xref" href="array/rationale.html" title="Design Rationale">the section called &#8220;Design Rationale&#8221;</a>).</li>
+<li class="listitem">
+<code class="computeroutput"><a class="link" href="boost/swap_idp25244936.html" title="Function swap">swap</a></code>() has no constant complexity.</li>
+<li class="listitem">
+<code class="computeroutput"><a class="link" href="boost/array.html#idp25076888-bb">size</a></code>() is always constant, based on the second template argument of the type.</li>
+<li class="listitem">The container provides no allocator support.</li>
+</ul></div>
+<p>
+    </p>
+<p>It doesn't fulfill the requirements of a "sequence" (see Section 23.1.1, [lib.sequence.reqmts] of the C++ Standard), except that:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: disc; ">
+<li class="listitem">
+<code class="computeroutput"><a class="link" href="boost/array.html#idp25086424-bb">front</a></code>() and <code class="computeroutput"><a class="link" href="boost/array.html#idp25088440-bb">back</a></code>() are provided.</li>
+<li class="listitem">
+<code class="computeroutput"><a class="link" href="boost/array.html#idp25080152-bb">operator[]</a></code> and <code class="computeroutput"><a class="link" href="boost/array.html#idp25083288-bb">at</a></code>() are provided.</li>
+</ul></div>
+<p>
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: June 14, 2012 at 17:01:03 +0100</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="any/s04.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="array/reference.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

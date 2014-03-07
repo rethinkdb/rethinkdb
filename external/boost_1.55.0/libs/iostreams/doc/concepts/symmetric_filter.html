@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>SymmetricFilter</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">SymmetricFilter</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Description</H2>
+
+<P>
+    A SymmetricFilter processes a character sequence fed to it incrementally in a user-supplied buffer and outputs a filtered sequence incrementally to a second user-supplied buffer. It is useful for defining filters based on C language APIs.
+</P>
+
+<P>
+    SymmetricFilter does not refine <A HREF="filter.html">Filter</A>. Instead, the template <A HREF="../classes/symmetric_filter.html"><CODE>symmetric_filter</CODE></A> can used to generate a Filter from a SymmetricFilter. The Filters generated in this manner are <A HREF="dual_use_filter.html">DualUseFilters</A> and are <A HREF="../../../../doc/html/CopyConstructible.html" TARGET="_top">CopyConstructible</A> regardless of whether the SymmetricFilters on which they are based are  <A HREF="../../../../doc/html/CopyConstructible.html">CopyConstructible</A>.
+</P>
+
+<P>
+    The concept SymmetricFilter is notable in that its definition does not involve the concept of a <A HREF="source.html">Source</A> or <A HREF="sink.html">Sink</A>.
+</P>
+
+<H2>Associated Types</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TD>Character type</TD><TD>The type of the characters in the filtered sequences</TD></TR>
+</TABLE>
+
+<H2>Notation</H2>
+
+<TABLE CELLPADDING="2">
+    <TR><TD><CODE>F</CODE></TD><TD>- A type which is a model of SymmetricFilter</TD></TR>
+    <TR><TD><CODE>Ch</CODE></TD><TD>- The character type of <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>f</CODE></TD><TD>- Object of type <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>i1, i2</CODE></TD><TD>- Objects of type <CODE>const Ch*</CODE></TD></TR>
+    <TR><TD><CODE>o1, o2</CODE></TD><TD>- Objects of type <CODE>Ch*</CODE></TD></TR>
+    <TR><TD><CODE>flush</CODE></TD><TD>- Object of type <CODE>bool</CODE></TD></TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics &#8212; Typenames</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH></TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE>typename <A HREF="../guide/traits.html#char_type_of_ref">char_type_of</A>&lt;F&gt;::type</CODE></PRE>
+        </TD>
+        <TD><CODE>typename</CODE> of the character type</TD>
+    </TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics &#8212; Member Functions</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Semantics</TH><TH>Postcondition</TH></TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.filter(i1, i2, o1, o2, flush)</CODE></PRE></TD>
+        <TD><CODE>bool</CODE></TD>
+        <TD>
+            Attempts to filter the sequence <CODE>[i1, i2)</CODE>, storing the result in the sequence <CODE>[o1, o2)</CODE>. If <CODE>flush</CODE> is true, writes as much output to <CODE>[o1, o2)</CODE> as possible. If <CODE>flush</CODE> is <CODE>false</CODE>, returns <CODE>false</CODE> to indicate that a &#8220;natural&#8221; end of stream has been detected. Otherwise, returns <CODE>true</CODE> to indicate that additional characters, not yet stored in <CODE>[o1, o2)</CODE>, are available for output.
+        </TD>
+        <TD>
+                <P><CODE>i1</CODE> points to the first unconsumed character in the orginal sequence <CODE>[i1, i2)</CODE>.
+                <P><CODE>o1</CODE> points to the first unconsumed character in the orginal sequence <CODE>[o1, o2)</CODE>.
+                <P>Either <CODE>i1 == i2</CODE> or <CODE>o1 == o2</CODE>.
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.close()</CODE></PRE></TD>
+        <TD><CODE>void</CODE></TD>
+        <TD ALIGN="center">-</TD>
+        <TD>
+            <CODE></CODE><CODE>f</CODE> is ready to begin filtering a new sequence
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Exceptions</H2>
+
+<P>
+    Errors which occur during the execution of <CODE>filter</CODE> or <CODE>close</CODE> are indicated by throwing exceptions.
+</P>
+
+<H2>Models</H2>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

@@ -1,0 +1,69 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template PriorityQueue</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../heap/reference.html#header.boost.heap.heap_concepts_hpp" title="Header &lt;boost/heap/heap_concepts.hpp&gt;">
+<link rel="prev" href="fibonacci_heap.html" title="Class template fibonacci_heap">
+<link rel="next" href="MergablePriorityQueue.html" title="Struct template MergablePriorityQueue">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fibonacci_heap.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../heap/reference.html#header.boost.heap.heap_concepts_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="MergablePriorityQueue.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.heap.PriorityQueue"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template PriorityQueue</span></h2>
+<p>boost::heap::PriorityQueue</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../heap/reference.html#header.boost.heap.heap_concepts_hpp" title="Header &lt;boost/heap/heap_concepts.hpp&gt;">boost/heap/heap_concepts.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> C<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="PriorityQueue.html" title="Struct template PriorityQueue">PriorityQueue</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ForwardContainer</span><span class="special">&lt;</span> <span class="identifier">C</span> <span class="special">&gt;</span> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">C</span><span class="special">::</span><span class="identifier">iterator</span>        <a name="boost.heap.PriorityQueue.iterator"></a><span class="identifier">iterator</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">C</span><span class="special">::</span><span class="identifier">const_iterator</span>  <a name="boost.heap.PriorityQueue.const_iterator"></a><span class="identifier">const_iterator</span><span class="special">;</span> 
+  <span class="keyword">typedef</span> <span class="identifier">C</span><span class="special">::</span><span class="identifier">allocator_type</span>  <a name="boost.heap.PriorityQueue.allocator_type"></a><span class="identifier">allocator_type</span><span class="special">;</span> 
+  <span class="keyword">typedef</span> <span class="identifier">C</span><span class="special">::</span><span class="identifier">value_compare</span>   <a name="boost.heap.PriorityQueue.value_compare"></a><span class="identifier">value_compare</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">C</span><span class="special">::</span><span class="identifier">value_type</span>      <a name="boost.heap.PriorityQueue.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">C</span><span class="special">::</span><span class="identifier">const_reference</span> <a name="boost.heap.PriorityQueue.const_reference"></a><span class="identifier">const_reference</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="PriorityQueue.html#idp52063976-bb">public member functions</a></span>
+   <a class="link" href="PriorityQueue.html#idp52064184-bb"><span class="identifier">BOOST_CONCEPT_USAGE</span></a><span class="special">(</span><span class="identifier">PriorityQueue</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp100747736"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp100747944"></a><h3>
+<a name="idp52063976-bb"></a><code class="computeroutput">PriorityQueue</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"> <a name="idp52064184-bb"></a><span class="identifier">BOOST_CONCEPT_USAGE</span><span class="special">(</span><span class="identifier">PriorityQueue</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010, 2011 Tim Blechmann<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fibonacci_heap.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../heap/reference.html#header.boost.heap.heap_concepts_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="MergablePriorityQueue.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

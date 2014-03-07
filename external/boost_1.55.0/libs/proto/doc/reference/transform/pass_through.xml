@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/transform/pass_through.hpp">
+  <para>Definition of the
+    <computeroutput><classname alt="boost::proto::pass_through">proto::pass_through&lt;&gt;</classname></computeroutput>
+    transform, which is the default transform of all of the expression generator metafunctions such as
+    <computeroutput><classname alt="boost::proto::unary_plus">proto::unary_plus&lt;&gt;</classname></computeroutput>,
+    <computeroutput><classname alt="boost::proto::plus">proto::plus&lt;&gt;</classname></computeroutput> and
+    <computeroutput><classname alt="boost::proto::nary_expr">proto::nary_expr&lt;&gt;</classname></computeroutput>.</para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <struct name="pass_through">
+        <template>
+          <template-type-parameter name="Grammar"/>
+          <template-type-parameter name="Domain">
+            <default><classname>proto::deduce_domain</classname></default>
+          </template-type-parameter>
+        </template>
+        <inherit><type><classname>proto::transform</classname>&lt; pass_through&lt;Grammar, Domain&gt; &gt;</type></inherit>
+        <purpose>A <conceptname>PrimitiveTransform</conceptname> that transforms the child expressions of an expression
+          node according to the corresponding children of a Grammar. The resulting expression is in the specified domain.</purpose>
+        <description>
+          <para>
+            Given a Grammar such as <computeroutput><classname>proto::plus</classname>&lt;T0, T1&gt;</computeroutput>,
+            an expression type that matches the grammar such as
+            <computeroutput><classname>proto::plus</classname>&lt;E0, E1&gt;::type</computeroutput>, a state
+            <computeroutput>S</computeroutput> and a data <computeroutput>D</computeroutput>, the result of applying
+            the <computeroutput>proto::pass_through&lt;<classname>proto::plus</classname>&lt;T0, T1&gt; &gt;</computeroutput>
+            transform is: <programlisting><classname>proto::plus</classname>&lt;
+  boost::result_of&lt;T0(E0, S, D)&gt;::type,
+  boost::result_of&lt;T1(E1, S, D)&gt;::type
+&gt;::type</programlisting>
+          </para>
+          <para>
+            The above demonstrates how child transforms and child expressions are applied pairwise, and how the
+            results are reassembled into a new expression node with the same tag type as the original.
+          </para>
+          <para>
+            The <code>Domain</code> template parameter determines which domain the resulting expression should
+            be in. If it is <code><classname>proto::deduce_domain</classname></code>, which is the default,
+            the resulting expression is in the same domain as the expression passed in. Otherwise, the resulting
+            expression is in the specified domain. Practically, that means the specified domain's generator is
+            used to post-process the resulting expression.
+          </para>
+          <para>
+            The explicit use of <computeroutput>proto::pass_through&lt;&gt;</computeroutput> is not usually
+            needed, since the expression generator metafunctions such as
+            <computeroutput><classname>proto::plus</classname>&lt;&gt;</computeroutput> have
+            <computeroutput>proto::pass_through&lt;&gt;</computeroutput> as their default transform. So,
+            for instance, these are equivalent:
+            <itemizedlist>
+              <listitem>
+                <computeroutput>
+                  <classname>proto::when</classname>&lt; <classname>proto::plus</classname>&lt;X, Y&gt;, proto::pass_through&lt; <classname>proto::plus</classname>&lt;X, Y&gt; &gt; &gt;
+                </computeroutput>
+              </listitem>
+              <listitem>
+                <computeroutput>
+                  <classname>proto::when</classname>&lt; <classname>proto::plus</classname>&lt;X, Y&gt;, <classname>proto::plus</classname>&lt;X, Y&gt; &gt;
+                </computeroutput>
+              </listitem>
+              <listitem>
+                <computeroutput>
+                  <classname>proto::when</classname>&lt; <classname>proto::plus</classname>&lt;X, Y&gt; &gt; // because of proto::when&lt;class X, class Y=X&gt;
+                </computeroutput>
+              </listitem>
+              <listitem>
+                <computeroutput>
+                  <classname>proto::plus</classname>&lt;X, Y&gt;  // because plus&lt;&gt; is both a grammar and a transform
+                </computeroutput>
+              </listitem>
+            </itemizedlist>
+          </para>
+          <para>
+            For example, consider the following transform that promotes all
+            <computeroutput>float</computeroutput> terminals in an expression to
+            <computeroutput>double</computeroutput>.
+            <programlisting>// This transform finds all float terminals in an expression and promotes
+// them to doubles.
+struct Promote :
+  <classname>proto::or_</classname>&lt;
+    <classname>proto::when</classname>&lt;<classname>proto::terminal</classname>&lt;float&gt;, <classname>proto::terminal</classname>&lt;double&gt;::type(<classname>proto::_value</classname>) &gt;,
+    // terminal&lt;&gt;'s default transform is a no-op:
+    <classname>proto::terminal</classname>&lt;<classname>proto::_</classname>&gt;,
+    // nary_expr&lt;&gt; has a pass_through&lt;&gt; transform:
+    <classname>proto::nary_expr</classname>&lt;<classname>proto::_</classname>, <classname>proto::vararg</classname>&lt;Promote&gt; &gt;
+  &gt;
+{};</programlisting>
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><type><classname>proto::transform_impl</classname>&lt;Expr, State, Data&gt;</type></inherit>
+          <typedef name="GN">
+            <purpose>For each N in [0,Expr arity), for exposition only</purpose>
+            <type>typename proto::result_of::child_c&lt;Grammar, N&gt;::type</type>
+          </typedef>
+          <typedef name="EN">
+            <purpose>For each N in [0,Expr arity), for exposition only</purpose>
+            <type>typename proto::result_of::child_c&lt;Expr, N&gt;::type</type>
+          </typedef>
+          <typedef name="RN">
+            <purpose>For each N in [0,Expr arity), for exposition only</purpose>
+            <type>typename boost::result_of&lt;GN(EN,State,Data)&gt;::type</type>
+          </typedef>
+          <typedef name="T">
+            <purpose>For exposition only</purpose>
+            <type>typename Expr::proto_tag</type>
+          </typedef>
+          <typedef name="Deduce">
+            <purpose>For exposition only</purpose>
+            <type>boost::is_same&lt;Domain, <classname>deduce_domain</classname>&gt;</type>
+          </typedef>
+          <typedef name="DD">
+            <purpose>For exposition only</purpose>
+            <type>typename Expr::proto_domain</type>
+          </typedef>
+          <typedef name="D">
+            <purpose>For exposition only</purpose>
+            <type>typename mpl::if_&lt;Deduce, DD, Domain&gt;::type</type>
+          </typedef>
+          <typedef name="G">
+            <purpose>For exposition only</purpose>
+            <type>typename D::proto_generator</type>
+          </typedef>
+          <typedef name="A">
+            <purpose>For exposition only</purpose>
+            <type><classname>proto::listN</classname>&lt;R0,...RN&gt;</type>
+          </typedef>
+          <typedef name="E">
+            <purpose>For exposition only</purpose>
+            <type><classname>proto::expr</classname>&lt;T, A&gt;</type>
+          </typedef>
+          <typedef name="BE">
+            <purpose>For exposition only</purpose>
+            <type><classname>proto::basic_expr</classname>&lt;T, A&gt;</type>
+          </typedef>
+          <typedef name="expr_type">
+            <purpose>For exposition only</purpose>
+            <type>typename mpl::if_&lt;<classname>proto::wants_basic_expr</classname>&lt;G&gt;, BE, E&gt;::type</type>
+          </typedef>
+          <typedef name="result_type">
+            <type>typename boost::result_of&lt;D(expr_type)&gt;::type</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>result_type</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+              </parameter>
+              <parameter name="state">
+                <paramtype>typename impl::state_param</paramtype>
+              </parameter>
+              <parameter name="data">
+                <paramtype>typename impl::data_param</paramtype>
+              </parameter>
+              <requires>
+                <para>
+                  <computeroutput>
+                    <classname>proto::matches</classname>&lt;Expr, Grammar&gt;::value
+                  </computeroutput> is <computeroutput>true</computeroutput>.
+                </para>
+              </requires>
+              <returns>
+                <para>
+                  <programlisting>D()(expr_type::make(
+  G0()(<functionname>proto::child_c</functionname>&lt;0&gt;(expr), state, data),
+  ...
+  GN()(<functionname>proto::child_c</functionname>&lt;N&gt;(expr), state, data)
+))</programlisting>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+      </struct>
+    </namespace>
+  </namespace>
+</header>

@@ -1,0 +1,242 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>make (3 coordinate values)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../make.html" title="make">
+<link rel="prev" href="make_2_2_coordinate_values.html" title="make (2 coordinate values)">
+<link rel="next" href="make_inverse.html" title="make_inverse">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_2_2_coordinate_values.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../make.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_inverse.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.algorithms.make.make_3_3_coordinate_values"></a><a class="link" href="make_3_3_coordinate_values.html" title="make (3 coordinate values)">make
+          (3 coordinate values)</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp55930888"></a>
+Construct a geometry.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.make.make_3_3_coordinate_values.h0"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.make.make_3_3_coordinate_values.synopsis"></a></span><a class="link" href="make_3_3_coordinate_values.html#geometry.reference.algorithms.make.make_3_3_coordinate_values.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Type</span><span class="special">&gt;</span>
+<span class="identifier">Geometry</span> <span class="identifier">make</span><span class="special">(</span><span class="identifier">Type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">c1</span><span class="special">,</span> <span class="identifier">Type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">c2</span><span class="special">,</span> <span class="identifier">Type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">c3</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.make.make_3_3_coordinate_values.h1"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.make.make_3_3_coordinate_values.parameters"></a></span><a class="link" href="make_3_3_coordinate_values.html#geometry.reference.algorithms.make.make_3_3_coordinate_values.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Concept
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Geometry
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Geometry Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      -
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Must be specified
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Type const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      numerical type (int, double, ttmath, ...) to specify the coordinates
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      c1
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      First coordinate (usually x-coordinate)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Type const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      numerical type (int, double, ttmath, ...) to specify the coordinates
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      c2
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Second coordinate (usually y-coordinate)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Type const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      numerical type (int, double, ttmath, ...) to specify the coordinates
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      c3
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Third coordinate (usually z-coordinate)
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.make.make_3_3_coordinate_values.h2"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.make.make_3_3_coordinate_values.returns"></a></span><a class="link" href="make_3_3_coordinate_values.html#geometry.reference.algorithms.make.make_3_3_coordinate_values.returns">Returns</a>
+          </h6>
+<p>
+            The constructed geometry, here: a 3D point
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.make.make_3_3_coordinate_values.h3"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.make.make_3_3_coordinate_values.header"></a></span><a class="link" href="make_3_3_coordinate_values.html#geometry.reference.algorithms.make.make_3_3_coordinate_values.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">make</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.make.make_3_3_coordinate_values.h4"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.make.make_3_3_coordinate_values.example"></a></span><a class="link" href="make_3_3_coordinate_values.html#geometry.reference.algorithms.make.make_3_3_coordinate_values.example">Example</a>
+          </h6>
+<p>
+            Using make to construct a three dimensional point
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">point</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">&gt;</span> <span class="identifier">point_type</span><span class="special">;</span>
+    <span class="identifier">point_type</span> <span class="identifier">p</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">make</span><span class="special">&lt;</span><span class="identifier">point_type</span><span class="special">&gt;(</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">dsv</span><span class="special">(</span><span class="identifier">p</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            Output:
+          </p>
+<pre class="programlisting">(1, 2, 3)
+</pre>
+<h6>
+<a name="geometry.reference.algorithms.make.make_3_3_coordinate_values.h5"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.make.make_3_3_coordinate_values.see_also"></a></span><a class="link" href="make_3_3_coordinate_values.html#geometry.reference.algorithms.make.make_3_3_coordinate_values.see_also">See
+            also</a>
+          </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <a class="link" href="../assign/assign_values_4_3_coordinate_values.html" title="assign_values (3 coordinate values)">assign</a>
+              </li></ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_2_2_coordinate_values.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../make.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_inverse.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Malayalam_Kannada.txt
+# Generated from CLDR 
+#
+::[ം-ഃഅ-ഌഎ-ഐഒ-നപ-ഹാ-\u0D43െ-ൈൊ-\u0D4Dൗൠ-ൡ൦-൯];
+::NFD;
+::Malayalam-InterIndic;
+::InterIndic-Kannada;
+::NFC;

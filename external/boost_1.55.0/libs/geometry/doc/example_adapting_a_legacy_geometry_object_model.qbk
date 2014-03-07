@@ -1,0 +1,587 @@
+[section Example: Adapting a legacy geometry object model]
+
+One of the primary benefits of __boost_geometry__, and the reason for its fairly complex template-based implementation, is that it allows for integration with legacy classes/objects. 
+
+By defining the relationship between the __boost_geometry__ concepts and an existing, legacy object model, the legacy objects can be used in place of __boost_geometry__'s own geometry classes.
+
+__boost_geometry__ will then happliy read and write directly from and to the legacy object, treating it as a native __boost_geometry__ object.
+
+This means that one can adapt algorithms and methods from __boost_geometry__ to any existing legacy geometry object model at a very small runtime cost, which is simply not possible with most geometry libraries, where one has to make an intermediate object specific to the geometry library one is using.
+
+The following example will demonstrate the adaption process of a legacy geometry object model for use with __boost_geometry__.
+
+[h2 Adapting a shared geometry legacy object model]
+
+[h3 Example code: object hierarcy]
+    
+    class QPoint 
+    {
+        public:
+            double x;
+            double y;
+            QPoint(double x, double y) : x(x), y(y) {}
+    };
+    
+    class QLineString
+    {
+        public:
+            bool cw;
+            std::vector<QPoint*> points;
+    };
+    
+    class QRing
+    {
+        public:
+            std::vector<QLineString*> lines;
+    };
+    
+    class QPolygon
+    {
+        public:
+            QRing* exterior;
+            std::vector<QRing*> interiors;
+    };
+
+The legacy object hierarcy is based on topology (e.g. two QRings might share one QLineString) instead of points directly (i.e. each object does not point directly to it's QPoints), and it also uses pointers for access.
+
+This is the other common way to approach geometries, to enable e.g. shared boundaries between surfaces. __boost_geometry__'s approach use simple features, and does not have shared geometries.
+
+The mismatch in representation is fixed by creating a custom iterator, that exposes a __boost_range__ of Points for every object. This way, __boost_geometry__'s functions will operate on the QRing as if it was a collection of Points, which is a requirement.
+
+[h2 Adapting QPoint]
+
+The [link adaption_of_qpoint_source_code adaption of the QPoint] is fairly straightforward, one just needs to implement the requirements. 
+
+Even though the geometries in our legacy object model use pointers of QPoints, __boost_geometry__ automatically handles the conversion from pointers-to-Points to references-to-Points internally, so we do not have to convert them manually.
+
+Alternatively, we can use the [link geometry.reference.adapted.register.boost_geometry_register_point_2d BOOST_GEOMETRY_REGISTER_POINT_2D(QPoint, double, cs::cartesian, x, y)] helper macro, which does exactly the same as our manual adaption.
+
+The sample code adapts QPoint to the [link geometry.reference.concepts.concept_point Point Concept] using specialization of the traits class.
+
+[h2 Adapting QLineString]
+
+The [link adaption_of_qlinestring_source_code adaption of the QLineString] is very simple on the surface, as it is just "a specialization of traits::tag defining linestring_tag as type". Alternatively, we can use the [link geometry.reference.adapted.register.boost_geometry_register_linestring BOOST_GEOMETRY_REGISTER_LINESTRING(QLineString)] helper macro, which does exactly the same as our manual adaption.
+
+However, the [link geometry.reference.concepts.concept_linestring LineString concept] also requires that the collection of Points "must behave like a __boost_range__ Random Access Range" and "the type defined by the metafunction range_value<...>::type must fulfill the Point Concept".
+
+This means that we have to do two things:
+
+* Make QLineString behave like a __boost_range__, with Random Access requirements
+* Make sure that the __boost_range__ iterates over QPoints, which we already have adapted
+
+This might look like a lot of work, but we are in luck: a std::vector is nearly a __boost_range__, and already iterate over pointers-to-QPoints, that are handled by __boost_geometry__. The [link adaption_of_qlinestring_range_source_code code for making QLineString a __boost_range__] is therefore fairly straightforward.
+
+[h2 Adapting QRing]
+
+The [link adaption_of_qring_source_code adaption of the QRing] is mostly equal to the QLineString in that there is a tag and a collection to iterate through. Alternatively, we can use the [link geometry.reference.adapted.register.boost_geometry_register_ring BOOST_GEOMETRY_REGISTER_RING(QRing)] helper macro, which does exactly the same as our manual adaption.
+
+However, the QRing expose pointers-to-QLineStrings, and not QPoints directly, which is [link geometry.reference.concepts.concept_ring required in the Ring concept], so it is not enough to trivially make the std::vector into a __boost_range__. We need to create a Boost.Iterator that expose QPoints, and because we are dealing with a legacy object model, we are not allowed to change the class definition.
+
+The [link adaption_of_qring_iterator_source_code custom iterator that does this] uses Boost.Iterator Facade, and is not very different from the [@http://www.boost.org/doc/libs/1_53_0/libs/iterator/doc/iterator_facade.html example provided in Boost.Iterator's own documentation](link), except that our __boost_range__ need to be random access.
+
+Now, with the custom iterator made, we can [link adaption_of_qring_range_source_code define the __boost_range__] that traverses through QPoints.
+
+[h2 Adapting QPolygon]
+
+[link adaption_of_qpolygon_source_code Adapting the QPolygon] to the [link geometry.reference.concepts.concept_polygon Polygon Concept] is a little more involved than the other geometry types.
+
+The only requirement that is not straightforward to adapt is the interior_rings' get method.
+
+A __boost_geometry__ Polygon operates on Ring objects, and unfortunately, __boost_geometry__ does not automatically handle the conversion from pointers to references for Rings internally (only Points, as mentioned). 
+
+Therefore, we need to expose QRings instead of pointers-to-QRings for the interior Rings, which means a little more work than the pointers-to-QPoints for QLineString and QRing.
+
+First, we [link adaption_of_qpolygon_iterator_source_code create a Boost.Iterator Facade] that returns QRing instead of pointer-to-QRing:
+
+Now we have an iterator that can "convert" our pointer-to-QRing into QRing. However, the get method of the interior Rings must return a __boost_range__ compatible object, which a plain PolygonRingIterator is not. 
+
+We need to [link adaption_of_qpolygon_range_source_code define another __boost_range__], that can be constructed with PolygonRingIterators as arguments, and returned from the get method.
+
+[h2 Conclusion]
+
+That's it! The methods of __boost_geometry__ can now be used directly on instances of our legacy object model.
+
+[endsect]
+
+[section Example source code: Adapting a legacy geometry object model]
+
+[h2 Adaption of QPoint]
+[#adaption_of_qpoint_source_code]
+
+    #include <boost/geometry.hpp>
+    
+    namespace boost 
+    {
+        namespace geometry 
+        {
+            namespace traits 
+            {
+                // Adapt QPoint to Boost.Geometry
+    
+                template<> struct tag<QPoint>
+                { typedef point_tag type; };
+    
+                template<> struct coordinate_type<QPoint>
+                { typedef QPoint::double type; };
+    
+                template<> struct coordinate_system<QPoint>
+                { typedef cs::cartesian type; };
+    
+                template<> struct dimension<QPoint> : boost::mpl::int_<2> {};
+    
+                template<>
+                struct access<QPoint, 0>
+                {
+                    static QPoint::double get(QPoint const& p)
+                    {
+                        return p.x;
+                    }
+    
+                    static void set(QPoint& p, QPoint::double const& value)
+                    {
+                        p.x = value;
+                    }
+                };
+    
+                template<>
+                struct access<QPoint, 1>
+                {
+                    static QPoint::double get(QPoint const& p)
+                    {
+                        return p.y;
+                    }
+    
+                    static void set(QPoint& p, QPoint::double const& value)
+                    {
+                        p.y = value;
+                    }
+                };
+            }
+        }
+    } // namespace boost::geometry::traits
+    
+    
+    
+
+[h2 Adaption of QLineString]
+[#adaption_of_qlinestring_source_code]
+
+    namespace boost
+    {
+        namespace geometry 
+        {
+            namespace traits 
+            {
+                template<>
+                struct tag<QLineString>
+                {
+                    typedef linestring_tag type;
+                };
+            }
+        }
+    } // namespace boost::geometry::traits
+
+[h3 Boost.Range for QLineString]
+[#adaption_of_qlinestring_range_source_code]
+
+    #include <boost/range.hpp>
+    
+    namespace boost
+    {
+        template <> 
+        struct range_iterator<QLineString> 
+        { typedef std::vector<QPoint*>::iterator type; };
+        
+        template<> 
+        struct range_const_iterator<QLineString> 
+        { typedef std::vector<QPoint*>::const_iterator type; };
+    }
+    
+    inline std::vector<QPoint*>::iterator 
+    range_begin(QLineString& qls) {return qls.points.begin();}
+    
+    inline std::vector<QPoint*>::iterator 
+    range_end(QLineString& qls) {return qls.points.end();}
+    
+    inline std::vector<QPoint*>::const_iterator 
+    range_begin(const QLineString& qls) {return qls.points.begin();}
+    
+    inline std::vector<QPoint*>::const_iterator 
+    range_end(const QLineString& qls) {return qls.points.end();}
+
+[h2 Adaption of QRing]
+[#adaption_of_qring_source_code]
+
+    namespace boost 
+    {
+        namespace geometry 
+        {
+            namespace traits 
+            {
+                template<>
+                struct tag<QRing>
+                {
+                    typedef ring_tag type;
+                };
+            }
+        }
+    } // namespace boost::geometry::traits
+
+[h3 Boost.Iterator for QRing]
+[#adaption_of_qring_iterator_source_code]
+
+    #include <boost/iterator/iterator_facade.hpp>
+    
+    /* Custom iterator type that flattens a 2D array into a 1D array */
+    template <class I, // Line iterator type
+              class R  // Point reference type
+             >
+    class RingIteratorImpl : public boost::iterator_facade<
+            RingIteratorImpl<I,R>, R, std::random_access_iterator_tag, R> //new traversal tag boost::random_access_traversal_tag
+    {
+    public:
+        RingIteratorImpl() : pointIndex_(0)
+        {
+        }
+    
+        explicit RingIteratorImpl(I lineStringIterCurrent)
+        :   lineStringIterCurrent_(lineStringIterCurrent), pointIndex_(0)
+        {
+        }
+    
+        template<class OtherI, class OtherR>
+        RingIteratorImpl(RingIteratorImpl<OtherI, OtherR> const& other) :
+            lineStringIterCurrent_(other.getLineStrIt()), pointIndex_(other.getPointIdx())
+        {
+        }
+    
+        I getLineStrIt() const {return lineStringIterCurrent_;}
+    
+        bool isEmpty() const {return isEmpty;}
+        size_t getPointIdx() const {return pointIndex_;}
+    
+        typedef typename boost::iterator_facade<RingIteratorImpl<I,R>, R, std::random_access_iterator_tag, R>::difference_type difference_type;
+    
+    private:
+        friend class boost::iterator_core_access;
+    
+        void increment()
+        {
+            ++pointIndex_;
+            if (pointIndex_ >= (*lineStringIterCurrent_)->points.size())
+            {
+                ++lineStringIterCurrent_;
+                pointIndex_ = 0;
+            }
+        }
+    
+        void decrement()
+        {
+            if(pointIndex_>0)
+            {
+                --pointIndex_;
+            }
+            else
+            {
+                --lineStringIterCurrent_;
+                pointIndex_ = (*lineStringIterCurrent_)->points.size();
+            }
+        }
+    
+        void advance(difference_type n)
+        {
+            difference_type counter = n;
+    
+            difference_type maxPointIndex, remainderPointIndex;
+    
+            while(counter>0)
+            {
+                maxPointIndex = (*lineStringIterCurrent_)->points.size(),
+                remainderPointIndex = maxPointIndex - pointIndex_;
+    
+                if(counter>remainderPointIndex)
+                {
+                    counter -= remainderPointIndex;
+                    ++lineStringIterCurrent_;
+                }
+                else // (counter<=remainderPointIndex)
+                {
+                    counter = 0;
+                    pointIndex_ = remainderPointIndex;
+                }
+            }
+    
+        }
+    
+        difference_type distance_to(const RingIteratorImpl& other) const
+        {
+            I currentLineStringIter = getLineStrIt();
+            I otherLineStringIter = other.getLineStrIt();
+    
+            difference_type count = 0;
+            difference_type distance_to_other = std::distance(currentLineStringIter, otherLineStringIter);
+    
+            if(distance_to_other < 0)
+            {
+                count += pointIndex_;
+    
+                while(distance_to_other < 0)
+                {
+                QLineString const* ls = *otherLineStringIter;
+                count -= ls->points.size();
+    
+                ++otherLineStringIter;
+                ++distance_to_other;
+                }
+    
+                assert(otherLineStringIter==currentLineStringIter);
+            }
+            else if(distance_to_other > 0)
+            {
+                count -= pointIndex_;
+    
+                while(distance_to_other < 0)
+                {
+                QLineString const* ls = *currentLineStringIter;
+                count += ls->points.size();
+    
+                ++currentLineStringIter;
+                --distance_to_other;
+                }
+    
+                assert(otherLineStringIter==currentLineStringIter);
+            }
+            else
+            {
+                count = pointIndex_ - other.getPointIdx();
+            }
+    
+            return count;
+        }
+    
+        bool equal(const RingIteratorImpl& other) const
+        {
+            return (lineStringIterCurrent_ == other.getLineStrIt()) &&
+                   (pointIndex_ == other.getPointIdx());
+        }
+    
+        R dereference() const {return *(*lineStringIterCurrent_)->points[pointIndex_];}
+    
+    
+        I lineStringIterCurrent_;
+    
+        bool empty;
+        size_t pointIndex_;
+    };
+
+
+[h3 Boost.Range for QRing]
+[#adaption_of_qring_range_source_code]
+
+    typedef RingIteratorImpl<std::vector<QLineString*>::iterator, QPoint> RingIterator;
+    typedef RingIteratorImpl<std::vector<QLineString*>::const_iterator, const QPoint> ConstRingIterator;
+    
+    namespace boost
+    {
+        // Specialize metafunctions. We must include the range.hpp header.
+        // We must open the 'boost' namespace.
+    
+        template <>
+        struct range_iterator<QRing> 
+        { typedef RingIterator type; };
+    
+        template<>
+        struct range_const_iterator<QRing> 
+        { typedef ConstRingIterator type; };
+        
+    } // namespace 'boost'
+    
+    
+    // The required Range functions. These should be defined in the same namespace
+    // as Ring.
+    
+    inline RingIterator range_begin(QRing& r)
+    {return RingIterator(r.lines.begin());}
+    
+    inline ConstRingIterator range_begin(const QRing& r)
+    {return ConstRingIterator(r.lines.begin());}
+    
+    inline RingIterator range_end(QRing& r)
+    {return RingIterator(r.lines.end());}
+    
+    inline ConstRingIterator range_end(const QRing& r)
+    {return ConstRingIterator(r.lines.end());}
+
+[h2 Adaption of QPolygon]
+[#adaption_of_qpolygon_source_code]
+
+    namespace boost {
+        namespace geometry {
+            namespace traits {
+                template<> struct tag<QPolygon> { typedef polygon_tag type; };
+                template<> struct ring_const_type<QPolygon> { typedef const QRing& type; };
+                template<> struct ring_mutable_type<QPolygon> { typedef QRing& type; };
+                template<> struct interior_const_type<QPolygon> { typedef const CustomPolygonRingRange type; };
+                template<> struct interior_mutable_type<QPolygon> { typedef CustomPolygonRingRange type; };
+    
+                template<> struct exterior_ring<QPolygon>
+                {
+                    static QRing& get(QPolygon& p)
+                    {
+                        return (*p.exterior);
+                    }
+                    static QRing const& get(QPolygon const& p)
+                    {
+                        return (*p.exterior);
+                    }
+                };
+    
+                template<> struct interior_rings<QPolygon>
+                {
+                    static CustomPolygonRingRange get(QPolygon& p)
+                    {
+                        return CustomPolygonRingRange(PolygonRingIterator(p.interiors.begin()), PolygonRingIterator(p.interiors.end()));
+                    }
+                    static const CustomPolygonRingRange get(QPolygon const& p)
+                    {
+                        return CustomPolygonRingRange(ConstPolygonRingIterator(p.interiors.begin()), ConstPolygonRingIterator(p.interiors.end()));
+                    }
+                };
+            }
+        }
+    } // namespace boost::geometry::traits
+    
+
+[h3 Boost.Iterator for QRings in QPolygon]
+[#adaption_of_qpolygon_iterator_source_code]
+  
+    template <class I, // Line iterator type
+              class R  // Point reference type
+             >
+    class PolyRingIterator : public boost::iterator_facade<
+            PolyRingIterator<I,R>, R, std::random_access_iterator_tag, R> //new traversal tag
+    {
+    public:
+        PolyRingIterator() {}
+    
+        explicit PolyRingIterator(I ringIter) : _ringIter(ringIter) {}
+    
+        template<class OtherI, class OtherR>
+        PolyRingIterator(PolyRingIterator<OtherI, OtherR> const& other) :
+            _ringIter(other.getRingIter()) {}
+    
+        I getRingIter() const {return _ringIter;}
+    
+        typedef typename boost::iterator_facade<PolyRingIterator<I,R>, R, std::random_access_iterator_tag, R>::difference_type difference_type;
+    
+    private:
+        friend class boost::iterator_core_access;
+    
+        void increment()
+        {
+            ++_ringIter;
+        }
+    
+        void decrement()
+        {
+            --_ringIter;
+        }
+    
+        void advance(difference_type n)
+        {
+            std::advance(_ringIter,n);
+        }
+    
+        difference_type distance_to(const PolyRingIterator& other) const
+        {
+            return std::distance(_ringIter, other.getRingIter());
+        }
+    
+        bool equal(const PolyRingIterator& other) const
+        {
+            return _ringIter == other.getRingIter();
+        }
+    
+        R dereference() const {return *(*_ringIter);}
+    
+        I _ringIter;
+    };
+
+[h3 Boost.Range for PolygonRingIterator]
+[#adaption_of_qpolygon_range_source_code]
+
+    typedef PolyRingIterator<std::vector<QRing*>::iterator, QRing> PolygonRingIterator;
+    typedef PolyRingIterator<std::vector<QRing*>::const_iterator, const QRing> ConstPolygonRingIterator;
+    
+    class CustomPolygonRingRange
+    {
+        PolygonRingIterator _begin;
+        PolygonRingIterator _end;
+    
+        bool isIterSet;
+    
+        ConstPolygonRingIterator _cbegin;
+        ConstPolygonRingIterator _cend;
+    
+        bool isCIterSet;
+    
+    public:
+    
+        CustomPolygonRingRange(PolygonRingIterator begin, PolygonRingIterator end) : _begin(begin), _end(end), isIterSet(true) {}
+        CustomPolygonRingRange(ConstPolygonRingIterator begin, ConstPolygonRingIterator end) : _cbegin(begin), _cend(end), isCIterSet(true) {}
+    
+        PolygonRingIterator begin()
+        {
+            assert(isIterSet);
+            return _begin;
+        }
+    
+        ConstPolygonRingIterator cbegin() const
+        {
+            assert(isCIterSet);
+            return _cbegin;
+        }
+    
+        PolygonRingIterator end()
+        {
+            assert(isIterSet);
+            return _end;
+        }
+    
+        ConstPolygonRingIterator cend() const
+        {
+            assert(isCIterSet);
+            return _cend;
+        }
+    };
+    
+    namespace boost
+    {
+        // Specialize metafunctions. We must include the range.hpp header.
+        // We must open the 'boost' namespace.
+    
+        template <>
+        struct range_iterator<CustomPolygonRingRange> { typedef PolygonRingIterator type; };
+    
+        template<>
+        struct range_const_iterator<CustomPolygonRingRange> { typedef ConstPolygonRingIterator type; };
+    
+    } // namespace 'boost'
+    
+    
+    // The required Range functions. These should be defined in the same namespace
+    // as Ring.
+    
+    inline PolygonRingIterator range_begin(CustomPolygonRingRange& r)
+        {return r.begin();}
+    
+    inline ConstPolygonRingIterator range_begin(const CustomPolygonRingRange& r)
+        {return r.cbegin();}
+    
+    inline PolygonRingIterator range_end(CustomPolygonRingRange& r)
+        {return r.end();}
+    
+    inline ConstPolygonRingIterator range_end(const CustomPolygonRingRange& r)
+        {return r.cend();}
+
+[endsect]

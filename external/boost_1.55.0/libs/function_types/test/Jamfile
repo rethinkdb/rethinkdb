@@ -1,0 +1,85 @@
+
+# (C) Copyright Tobias Schwinger 
+#
+# Use, modification and distribution are subject to the Boost Software License,
+# Version 1.0. (See http://www.boost.org/LICENSE_1_0.txt).
+
+#-------------------------------------------------------------------------------
+
+import testing ;
+
+{
+  test-suite function_types : 
+
+    # Classification
+
+    [ compile classification/is_function.cpp ]
+    [ compile classification/is_function_pointer.cpp ]
+    [ compile classification/is_function_reference.cpp ]
+    [ compile classification/is_member_function_pointer.cpp ]
+    [ compile classification/is_member_object_pointer.cpp ]
+    [ compile classification/is_callable_builtin.cpp ]
+    [ compile classification/is_nonmember_callable_builtin.cpp ]
+    [ compile classification/is_member_pointer.cpp ]
+
+    [ compile classification/is_cv_mem_func_ptr.cpp ]
+    [ compile classification/is_variadic.cpp ]
+    [ compile classification/is_cv_pointer.cpp ]
+    # [ compile classification/is_cv_function.cpp ]
+
+    # Decomposition
+    
+    [ compile decomposition/components.cpp ]
+    [ compile decomposition/result_type.cpp ]
+    [ compile decomposition/function_arity.cpp ]
+    [ compile decomposition/parameter_types.cpp ]
+
+    [ compile decomposition/components_seq.cpp ]
+    [ compile decomposition/class_type_transform.cpp ]
+
+    [ compile-fail decomposition/result_type_fail.cpp ]
+    [ compile-fail decomposition/parameter_types_fail.cpp ]
+    [ compile-fail decomposition/function_arity_fail.cpp ]
+
+    # Synthesis
+
+    [ compile synthesis/function_type.cpp ]
+    [ compile synthesis/function_pointer.cpp ]
+    [ compile synthesis/function_reference.cpp ]
+    [ compile synthesis/member_function_pointer.cpp ]
+    [ compile synthesis/member_object_pointer.cpp ]
+
+    [ compile synthesis/transformation.cpp ]
+    [ compile synthesis/mem_func_ptr_cv1.cpp ]
+    [ compile synthesis/mem_func_ptr_cv2.cpp ]
+    [ compile synthesis/mem_func_ptr_cv_ptr_to_this.cpp ]
+    [ compile synthesis/variadic_function_synthesis.cpp ]
+    # [ compile synthesis/cv_function_synthesis.cpp ]
+
+    # Reconfiguration
+
+    [ compile reconfiguration/preprocessing_mode.cpp ]
+    [ compile reconfiguration/partial_arity_preprocessing.cpp ]
+    [ compile reconfiguration/cc_preprocessing.cpp ]
+
+    # Custom calling conventions
+
+    [ compile custom_ccs/nonmember_ccs.cpp ]
+    [ compile custom_ccs/nonmember_ccs_exact.cpp ]
+    [ compile custom_ccs/member_ccs.cpp ]
+    [ compile custom_ccs/member_ccs_exact.cpp ]
+
+    # Code from the examples
+
+    [ compile ../example/interpreter_example.cpp ]
+    [ compile ../example/result_of_example.cpp ]
+    [ compile ../example/interface_example.cpp ]
+    [ compile ../example/fast_mem_fn_example.cpp 
+      # needed for Boost.PP file iteration with some compilers
+      : <include>../example
+    ]
+    [ compile ../example/macro_type_args_example.cpp ]
+    ;
+}
+
+

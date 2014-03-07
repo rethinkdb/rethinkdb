@@ -1,0 +1,8 @@
+/* testing the shunting yard operator precedence algorithm */
+
+int main()
+{
+    return 1 + 2 + 3 + 5 * 4 * 6 + 5; /* answer is 131 */
+}
+
+

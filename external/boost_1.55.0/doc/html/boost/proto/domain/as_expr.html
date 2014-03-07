@@ -1,0 +1,142 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template as_expr</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../domain.html#idp176424744" title="Description">
+<link rel="prev" href="../domain.html" title="Struct template domain">
+<link rel="next" href="as_child.html" title="Struct template as_child">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../domain.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../domain.html#idp176424744"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="as_child.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.domain.as_expr"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template as_expr</span></h2>
+<p>boost::proto::domain::as_expr &#8212; 
+            A callable unary MonomorphicFunctionObject that specifies how objects are turned into
+            Proto expressions in this domain. The resulting expression object is suitable for storage
+            in a local variable.
+          </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../proto/reference.html#header.boost.proto.domain_hpp" title="Header &lt;boost/proto/domain.hpp&gt;">boost/proto/domain.hpp</a>&gt;
+
+</span>
+
+<span class="comment">// A callable unary MonomorphicFunctionObject that specifies how objects are
+// turned into Proto expressions in this domain. The resulting expression
+// object is suitable for storage in a local variable.</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="as_expr.html" title="Struct template as_expr">as_expr</a> <span class="special">:</span> <span class="keyword"></span> <a class="link" href="../callable.html" title="Struct callable">proto::callable</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <em class="replaceable"><code><span class="identifier">see</span><span class="special">-</span><span class="identifier">below</span></code></em> <a name="boost.proto.domain.as_expr.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="as_expr.html#idp66253256-bb">public member functions</a></span>
+  <span class="identifier">result_type</span> <a class="link" href="as_expr.html#idp66253544-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp176465384"></a><h2>Description</h2>
+<p>
+              A unary MonomorphicFunctionObject that specifies how objects are turned into Proto
+              expressions in this domain. The resulting expression object is suitable for storage
+              in a local variable. In that scenario, it is usually preferable to return
+              expressions by value; and, in the case of objects that are not yet Proto expressions,
+              to wrap them by value (if possible) in a new Proto terminal expression. (Contrast
+              this description with the description for
+              <code class="computeroutput"><a class="link" href="as_child.html" title="Struct template as_child">proto::domain::as_child</a></code>.)
+            </p>
+<p>
+              The <code class="computeroutput">as_expr</code> function object turns objects into
+              Proto expressions, if  they are not already, by making them Proto terminals held by
+              value if possible. Objects that are already Proto expressions are simply returned
+              by value. If
+              <code class="computeroutput">wants_basic_expr&lt;Generator&gt;::value</code> is true,
+              then let <span class="emphasis"><em>E</em></span> be
+              <code class="computeroutput"><a class="link" href="../basic_expr.html" title="Struct template basic_expr">proto::basic_expr</a></code>;
+              otherwise, let <span class="emphasis"><em>E</em></span> be
+              <code class="computeroutput"><a class="link" href="../expr.html" title="Struct template expr">proto::expr</a></code>.
+              Given an lvalue <code class="computeroutput">t</code> of type
+              <code class="computeroutput">T</code>:
+              </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                  If <code class="computeroutput">T</code> is not a Proto expression type, the resulting
+                  terminal is calculated as follows:
+                  <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                      If <code class="computeroutput">T</code> is a function type, an abstract type, or
+                      a type derived from <code class="computeroutput">std::ios_base</code>, let 
+                      <em class="replaceable"><code>A</code></em> be <code class="computeroutput">T &amp;</code>.
+                    </li>
+<li class="listitem">
+                      Otherwise, let <em class="replaceable"><code>A</code></em> be the type
+                      <code class="computeroutput">T</code> stripped of cv-qualifiers.
+                    </li>
+</ul></div>
+                  Then, the result of <code class="computeroutput">as_expr&lt;T&gt;()(t)</code> is
+                  <code class="computeroutput">Generator()(<em class="replaceable"><code>E</code></em>&lt;tag::terminal, 
+                  term&lt; <em class="replaceable"><code>A</code></em> &gt; &gt;::make(t))</code>.
+                </li>
+<li class="listitem">
+                  Otherwise, the result is <code class="computeroutput">t</code> converted to an
+                  (un-const) rvalue.
+                </li>
+</ul></div>
+<p>
+            </p>
+<div class="refsect2">
+<a name="idp176475688"></a><h3>
+<a name="idp66253256-bb"></a><code class="computeroutput">as_expr</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp66253544-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span> t<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The object to wrap.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../domain.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../domain.html#idp176424744"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="as_child.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,25 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/hi_IN.xml
+// *
+// ***************************************************************************
+hi_IN{
+    Version{"2.0.41.23"}
+    calendar{
+        gregorian{
+            DateTimeElements:intvector{
+                1,
+                4,
+            }
+            weekend:intvector{
+                1,
+                0,
+                1,
+                86400000,
+            }
+        }
+    }
+}

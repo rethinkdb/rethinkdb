@@ -1,0 +1,110 @@
+[/
+ / Copyright (c) 2007 David Jenkins
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Symbol Tables and Attributes]
+
+[h2 Overview]
+
+Symbol tables can be built into xpressive regular expressions with just a
+`std::map<>`. The map keys are the strings to be matched and the map values are
+the data to be returned to your semantic action. Xpressive attributes, named
+`a1`, `a2`, through `a9`, hold the value corresponding to a matching key so
+that it can be used in a semantic action. A default value can be specified
+for an attribute if a symbol is not found.
+
+[h2 Symbol Tables]
+
+An xpressive symbol table is just a `std::map<>`, where the key is a string type
+and the value can be anything. For example, the following regular expression
+matches a key from map1 and assigns the corresponding value to the attribute
+`a1`. Then, in the semantic action, it assigns the value stored in attribute
+`a1` to an integer result.
+
+    int result;
+    std::map<std::string, int> map1;
+    // ... (fill the map)
+    sregex rx = ( a1 = map1 ) [ ref(result) = a1 ];
+
+Consider the following example code,
+which translates number names into integers. It is
+described below.
+
+    #include <string>
+    #include <iostream>
+    #include <boost/xpressive/xpressive.hpp>
+    #include <boost/xpressive/regex_actions.hpp>
+    using namespace boost::xpressive;
+
+    int main()
+    {
+        std::map<std::string, int> number_map;
+        number_map["one"] = 1;
+        number_map["two"] = 2;
+        number_map["three"] = 3;
+        // Match a string from number_map
+        // and store the integer value in 'result'
+        // if not found, store -1 in 'result'
+        int result = 0;
+        cregex rx = ((a1 = number_map ) | *_)
+            [ ref(result) = (a1 | -1)];
+
+        regex_match("three", rx);
+        std::cout << result << '\n';
+        regex_match("two", rx);
+        std::cout << result << '\n';
+        regex_match("stuff", rx);
+        std::cout << result << '\n';
+        return 0;
+    }
+
+This program prints the following:
+
+[pre
+3
+2
+-1
+]
+
+First the program builds a number map, with number names as string keys and the
+corresponding integers as values. Then it constructs a static regular
+expression using an attribute `a1` to represent the result of the symbol table
+lookup. In the semantic action, the attribute is assigned to an integer
+variable `result`. If the symbol was not found, a default value of `-1` is
+assigned to `result`. A wildcard, `*_`, makes sure the regex matches even if
+the symbol is not found.
+
+A more complete version of this example can be found in
+[^libs/xpressive/example/numbers.cpp][footnote Many thanks to David Jenkins,
+who contributed this example.]. It translates number names up to "nine hundred
+ninety nine million nine hundred ninety nine thousand nine hundred ninety nine"
+along with some special number names like "dozen".
+
+Symbol table matches are case sensitive by default, but they can be made
+case-insensitive by enclosing the expression in `icase()`.
+
+[h2 Attributes]
+
+[def __default_value__ '''<replaceable>default-value</replaceable>''']
+
+Up to nine attributes can be used in a regular expression. They are named
+`a1`, `a2`, ..., `a9` in the `boost::xpressive` namespace. The attribute type
+is the same as the second component of the map that is assigned to it. A
+default value for an attribute can be specified in a semantic action with the
+syntax `(a1 | __default_value__)`.
+
+Attributes are properly scoped, so you can do crazy things like:
+`( (a1=sym1) >> (a1=sym2)[ref(x)=a1] )[ref(y)=a1]`. The inner semantic action
+sees the inner `a1`, and the outer semantic action sees the outer one. They can
+even have different types.
+
+[note Xpressive builds a hidden ternary search trie from the map so it can
+search quickly. If BOOST_DISABLE_THREADS is defined,
+the hidden ternary search trie "self adjusts", so after each
+search it restructures itself to improve the efficiency of future searches
+based on the frequency of previous searches.]
+
+[endsect]

@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>Filter Iterator</title>
+<meta name="author" content="David Abrahams, Jeremy Siek, Thomas Witt" />
+<meta name="organization" content="Boost Consulting, Indiana University Open Systems Lab, University of Hanover Institute for Transport Railway Operation and Construction" />
+<meta name="date" content="2006-09-11" />
+<meta name="copyright" content="Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2003." />
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="filter-iterator">
+<h1 class="title">Filter Iterator</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>David Abrahams, Jeremy Siek, Thomas Witt</td></tr>
+<tr><th class="docinfo-name">Contact:</th>
+<td><a class="first reference external" href="mailto:dave&#64;boost-consulting.com">dave&#64;boost-consulting.com</a>, <a class="reference external" href="mailto:jsiek&#64;osl.iu.edu">jsiek&#64;osl.iu.edu</a>, <a class="last reference external" href="mailto:witt&#64;ive.uni-hannover.de">witt&#64;ive.uni-hannover.de</a></td></tr>
+<tr><th class="docinfo-name">Organization:</th>
+<td><a class="first reference external" href="http://www.boost-consulting.com">Boost Consulting</a>, Indiana University <a class="reference external" href="http://www.osl.iu.edu">Open Systems
+Lab</a>, University of Hanover <a class="last reference external" href="http://www.ive.uni-hannover.de">Institute for Transport
+Railway Operation and Construction</a></td></tr>
+<tr><th class="docinfo-name">Date:</th>
+<td>2006-09-11</td></tr>
+<tr><th class="docinfo-name">Copyright:</th>
+<td>Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2003.</td></tr>
+</tbody>
+</table>
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">abstract:</th><td class="field-body"><!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+The filter iterator adaptor creates a view of an iterator range in
+which some elements of the range are skipped. A predicate function
+object controls which elements are skipped. When the predicate is
+applied to an element, if it returns <tt class="docutils literal"><span class="pre">true</span></tt> then the element is
+retained and if it returns <tt class="docutils literal"><span class="pre">false</span></tt> then the element is skipped
+over. When skipping over elements, it is necessary for the filter
+adaptor to know when to stop so as to avoid going past the end of the
+underlying range. A filter iterator is therefore constructed with pair
+of iterators indicating the range of elements in the unfiltered
+sequence to be traversed.</td>
+</tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#filter-iterator-synopsis" id="id2"><tt class="docutils literal"><span class="pre">filter_iterator</span></tt> synopsis</a></li>
+<li><a class="reference internal" href="#filter-iterator-requirements" id="id3"><tt class="docutils literal"><span class="pre">filter_iterator</span></tt> requirements</a></li>
+<li><a class="reference internal" href="#filter-iterator-models" id="id4"><tt class="docutils literal"><span class="pre">filter_iterator</span></tt> models</a></li>
+<li><a class="reference internal" href="#filter-iterator-operations" id="id5"><tt class="docutils literal"><span class="pre">filter_iterator</span></tt> operations</a></li>
+<li><a class="reference internal" href="#example" id="id6">Example</a></li>
+</ul>
+</div>
+<div class="section" id="filter-iterator-synopsis">
+<h1><a class="toc-backref" href="#id2"><tt class="docutils literal"><span class="pre">filter_iterator</span></tt> synopsis</a></h1>
+<!-- Copyright David Abrahams, Jeremy Siek, and Thomas Witt -->
+<!-- 2004. Use, modification and distribution is subject to the Boost -->
+<!-- Software License, Version 1.0. (See accompanying  file -->
+<!-- LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template &lt;class Predicate, class Iterator&gt;
+class filter_iterator
+{
+ public:
+    typedef iterator_traits&lt;Iterator&gt;::value_type value_type;
+    typedef iterator_traits&lt;Iterator&gt;::reference reference;
+    typedef iterator_traits&lt;Iterator&gt;::pointer pointer;
+    typedef iterator_traits&lt;Iterator&gt;::difference_type difference_type;
+    typedef /* see below */ iterator_category;
+
+    filter_iterator();
+    filter_iterator(Predicate f, Iterator x, Iterator end = Iterator());
+    filter_iterator(Iterator x, Iterator end = Iterator());
+    template&lt;class OtherIterator&gt;
+    filter_iterator(
+        filter_iterator&lt;Predicate, OtherIterator&gt; const&amp; t
+        , typename enable_if_convertible&lt;OtherIterator, Iterator&gt;::type* = 0 // exposition
+        );
+    Predicate predicate() const;
+    Iterator end() const;
+    Iterator const&amp; base() const;
+    reference operator*() const;
+    filter_iterator&amp; operator++();
+private:
+    Predicate m_pred; // exposition only
+    Iterator m_iter;  // exposition only
+    Iterator m_end;   // exposition only
+};
+</pre>
+<p>If <tt class="docutils literal"><span class="pre">Iterator</span></tt> models Readable Lvalue Iterator and Bidirectional Traversal
+Iterator then <tt class="docutils literal"><span class="pre">iterator_category</span></tt> is convertible to
+<tt class="docutils literal"><span class="pre">std::bidirectional_iterator_tag</span></tt>.
+Otherwise, if <tt class="docutils literal"><span class="pre">Iterator</span></tt> models Readable Lvalue Iterator and Forward Traversal
+Iterator then <tt class="docutils literal"><span class="pre">iterator_category</span></tt> is convertible to
+<tt class="docutils literal"><span class="pre">std::forward_iterator_tag</span></tt>.
+Otherwise <tt class="docutils literal"><span class="pre">iterator_category</span></tt> is
+convertible to <tt class="docutils literal"><span class="pre">std::input_iterator_tag</span></tt>.</p>
+</div>
+<div class="section" id="filter-iterator-requirements">
+<h1><a class="toc-backref" href="#id3"><tt class="docutils literal"><span class="pre">filter_iterator</span></tt> requirements</a></h1>
+<p>The <tt class="docutils literal"><span class="pre">Iterator</span></tt> argument shall meet the requirements of Readable
+Iterator and Single Pass Iterator or it shall meet the requirements of
+Input Iterator.</p>
+<p>The <tt class="docutils literal"><span class="pre">Predicate</span></tt> argument must be Assignable, Copy Constructible, and
+the expression <tt class="docutils literal"><span class="pre">p(x)</span></tt> must be valid where <tt class="docutils literal"><span class="pre">p</span></tt> is an object of type
+<tt class="docutils literal"><span class="pre">Predicate</span></tt>, <tt class="docutils literal"><span class="pre">x</span></tt> is an object of type
+<tt class="docutils literal"><span class="pre">iterator_traits&lt;Iterator&gt;::value_type</span></tt>, and where the type of
+<tt class="docutils literal"><span class="pre">p(x)</span></tt> must be convertible to <tt class="docutils literal"><span class="pre">bool</span></tt>.</p>
+</div>
+<div class="section" id="filter-iterator-models">
+<h1><a class="toc-backref" href="#id4"><tt class="docutils literal"><span class="pre">filter_iterator</span></tt> models</a></h1>
+<p>The concepts that <tt class="docutils literal"><span class="pre">filter_iterator</span></tt> models are dependent on which
+concepts the <tt class="docutils literal"><span class="pre">Iterator</span></tt> argument models, as specified in the
+following tables.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="44%" />
+<col width="56%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">If <tt class="docutils literal"><span class="pre">Iterator</span></tt> models</th>
+<th class="head">then <tt class="docutils literal"><span class="pre">filter_iterator</span></tt> models</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Single Pass Iterator</td>
+<td>Single Pass Iterator</td>
+</tr>
+<tr><td>Forward Traversal Iterator</td>
+<td>Forward Traversal Iterator</td>
+</tr>
+<tr><td>Bidirectional Traversal Iterator</td>
+<td>Bidirectional Traversal Iterator</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="41%" />
+<col width="59%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">If <tt class="docutils literal"><span class="pre">Iterator</span></tt> models</th>
+<th class="head">then <tt class="docutils literal"><span class="pre">filter_iterator</span></tt> models</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Readable Iterator</td>
+<td>Readable Iterator</td>
+</tr>
+<tr><td>Writable Iterator</td>
+<td>Writable Iterator</td>
+</tr>
+<tr><td>Lvalue Iterator</td>
+<td>Lvalue Iterator</td>
+</tr>
+</tbody>
+</table>
+<table border="1" class="docutils">
+<colgroup>
+<col width="63%" />
+<col width="38%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">If <tt class="docutils literal"><span class="pre">Iterator</span></tt> models</th>
+<th class="head">then <tt class="docutils literal"><span class="pre">filter_iterator</span></tt> models</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Readable Iterator, Single Pass Iterator</td>
+<td>Input Iterator</td>
+</tr>
+<tr><td>Readable Lvalue Iterator, Forward Traversal Iterator</td>
+<td>Forward Iterator</td>
+</tr>
+<tr><td>Writable Lvalue Iterator, Forward Traversal Iterator</td>
+<td>Mutable Forward Iterator</td>
+</tr>
+<tr><td>Writable Lvalue Iterator, Bidirectional Iterator</td>
+<td>Mutable Bidirectional Iterator</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">filter_iterator&lt;P1,</span> <span class="pre">X&gt;</span></tt> is interoperable with <tt class="docutils literal"><span class="pre">filter_iterator&lt;P2,</span> <span class="pre">Y&gt;</span></tt>
+if and only if <tt class="docutils literal"><span class="pre">X</span></tt> is interoperable with <tt class="docutils literal"><span class="pre">Y</span></tt>.</p>
+</div>
+<div class="section" id="filter-iterator-operations">
+<h1><a class="toc-backref" href="#id5"><tt class="docutils literal"><span class="pre">filter_iterator</span></tt> operations</a></h1>
+<p>In addition to those operations required by the concepts that
+<tt class="docutils literal"><span class="pre">filter_iterator</span></tt> models, <tt class="docutils literal"><span class="pre">filter_iterator</span></tt> provides the following
+operations.</p>
+<p><tt class="docutils literal"><span class="pre">filter_iterator();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Requires:</th><td class="field-body"><tt class="docutils literal"><span class="pre">Predicate</span></tt> and <tt class="docutils literal"><span class="pre">Iterator</span></tt> must be Default Constructible.</td>
+</tr>
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Constructs a <tt class="docutils literal"><span class="pre">filter_iterator</span></tt> whose``m_pred``,  <tt class="docutils literal"><span class="pre">m_iter</span></tt>, and <tt class="docutils literal"><span class="pre">m_end</span></tt>
+members are a default constructed.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">filter_iterator(Predicate</span> <span class="pre">f,</span> <span class="pre">Iterator</span> <span class="pre">x,</span> <span class="pre">Iterator</span> <span class="pre">end</span> <span class="pre">=</span> <span class="pre">Iterator());</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Constructs a <tt class="docutils literal"><span class="pre">filter_iterator</span></tt> where <tt class="docutils literal"><span class="pre">m_iter</span></tt> is either
+the first position in the range <tt class="docutils literal"><span class="pre">[x,end)</span></tt> such that <tt class="docutils literal"><span class="pre">f(*m_iter)</span> <span class="pre">==</span> <span class="pre">true</span></tt>
+or else``m_iter == end``. The member <tt class="docutils literal"><span class="pre">m_pred</span></tt> is constructed from
+<tt class="docutils literal"><span class="pre">f</span></tt> and <tt class="docutils literal"><span class="pre">m_end</span></tt> from <tt class="docutils literal"><span class="pre">end</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">filter_iterator(Iterator</span> <span class="pre">x,</span> <span class="pre">Iterator</span> <span class="pre">end</span> <span class="pre">=</span> <span class="pre">Iterator());</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Requires:</th><td class="field-body"><tt class="docutils literal"><span class="pre">Predicate</span></tt> must be Default Constructible and
+<tt class="docutils literal"><span class="pre">Predicate</span></tt> is a class type (not a function pointer).</td>
+</tr>
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Constructs a <tt class="docutils literal"><span class="pre">filter_iterator</span></tt> where <tt class="docutils literal"><span class="pre">m_iter</span></tt> is either
+the first position in the range <tt class="docutils literal"><span class="pre">[x,end)</span></tt> such that <tt class="docutils literal"><span class="pre">m_pred(*m_iter)</span> <span class="pre">==</span> <span class="pre">true</span></tt>
+or else``m_iter == end``. The member <tt class="docutils literal"><span class="pre">m_pred</span></tt> is default constructed.</td>
+</tr>
+</tbody>
+</table>
+<pre class="literal-block">
+template &lt;class OtherIterator&gt;
+filter_iterator(
+    filter_iterator&lt;Predicate, OtherIterator&gt; const&amp; t
+    , typename enable_if_convertible&lt;OtherIterator, Iterator&gt;::type* = 0 // exposition
+    );``
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Requires:</th><td class="field-body"><tt class="docutils literal"><span class="pre">OtherIterator</span></tt> is implicitly convertible to <tt class="docutils literal"><span class="pre">Iterator</span></tt>.</td>
+</tr>
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Constructs a filter iterator whose members are copied from <tt class="docutils literal"><span class="pre">t</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">Predicate</span> <span class="pre">predicate()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">m_pred</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">Iterator</span> <span class="pre">end()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">m_end</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">Iterator</span> <span class="pre">const&amp;</span> <span class="pre">base()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">m_iterator</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">reference</span> <span class="pre">operator*()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">*m_iter</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">filter_iterator&amp;</span> <span class="pre">operator++();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Increments <tt class="docutils literal"><span class="pre">m_iter</span></tt> and then continues to
+increment <tt class="docutils literal"><span class="pre">m_iter</span></tt> until either <tt class="docutils literal"><span class="pre">m_iter</span> <span class="pre">==</span> <span class="pre">m_end</span></tt>
+or <tt class="docutils literal"><span class="pre">m_pred(*m_iter)</span> <span class="pre">==</span> <span class="pre">true</span></tt>.</td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">*this</span></tt></td>
+</tr>
+</tbody>
+</table>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template &lt;class Predicate, class Iterator&gt;
+filter_iterator&lt;Predicate,Iterator&gt;
+make_filter_iterator(Predicate f, Iterator x, Iterator end = Iterator());
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">filter_iterator&lt;Predicate,Iterator&gt;(f, x, end)</td>
+</tr>
+</tbody>
+</table>
+<pre class="literal-block">
+template &lt;class Predicate, class Iterator&gt;
+filter_iterator&lt;Predicate,Iterator&gt;
+make_filter_iterator(Iterator x, Iterator end = Iterator());
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">filter_iterator&lt;Predicate,Iterator&gt;(x, end)</td>
+</tr>
+</tbody>
+</table>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+</div>
+<div class="section" id="example">
+<h1><a class="toc-backref" href="#id6">Example</a></h1>
+<p>This example uses <tt class="docutils literal"><span class="pre">filter_iterator</span></tt> and then
+<tt class="docutils literal"><span class="pre">make_filter_iterator</span></tt> to output only the positive integers from an
+array of integers. Then <tt class="docutils literal"><span class="pre">make_filter_iterator</span></tt> is is used to output
+the integers greater than <tt class="docutils literal"><span class="pre">-2</span></tt>.</p>
+<pre class="literal-block">
+struct is_positive_number {
+  bool operator()(int x) { return 0 &lt; x; }
+};
+
+int main()
+{
+  int numbers_[] = { 0, -1, 4, -3, 5, 8, -2 };
+  const int N = sizeof(numbers_)/sizeof(int);
+
+  typedef int* base_iterator;
+  base_iterator numbers(numbers_);
+
+  // Example using filter_iterator
+  typedef boost::filter_iterator&lt;is_positive_number, base_iterator&gt;
+    FilterIter;
+
+  is_positive_number predicate;
+  FilterIter filter_iter_first(predicate, numbers, numbers + N);
+  FilterIter filter_iter_last(predicate, numbers + N, numbers + N);
+
+  std::copy(filter_iter_first, filter_iter_last, std::ostream_iterator&lt;int&gt;(std::cout, &quot; &quot;));
+  std::cout &lt;&lt; std::endl;
+
+  // Example using make_filter_iterator()
+  std::copy(boost::make_filter_iterator&lt;is_positive_number&gt;(numbers, numbers + N),
+            boost::make_filter_iterator&lt;is_positive_number&gt;(numbers + N, numbers + N),
+            std::ostream_iterator&lt;int&gt;(std::cout, &quot; &quot;));
+  std::cout &lt;&lt; std::endl;
+
+  // Another example using make_filter_iterator()
+  std::copy(
+      boost::make_filter_iterator(
+          std::bind2nd(std::greater&lt;int&gt;(), -2)
+        , numbers, numbers + N)
+
+    , boost::make_filter_iterator(
+          std::bind2nd(std::greater&lt;int&gt;(), -2)
+        , numbers + N, numbers + N)
+
+    , std::ostream_iterator&lt;int&gt;(std::cout, &quot; &quot;)
+  );
+
+  std::cout &lt;&lt; std::endl;
+
+  return boost::exit_success;
+}
+</pre>
+<p>The output is:</p>
+<pre class="literal-block">
+4 5 8
+4 5 8
+0 -1 4 5 8
+</pre>
+<p>The source code for this example can be found <a class="reference external" href="../example/filter_iterator_example.cpp">here</a>.</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="filter_iterator.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

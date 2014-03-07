@@ -1,0 +1,278 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>strategy::distance::haversine</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../strategies.html" title="Strategies">
+<link rel="prev" href="strategy_distance_pythagoras.html" title="strategy::distance::pythagoras">
+<link rel="next" href="strategy_distance_projected_point.html" title="strategy::distance::projected_point">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="strategy_distance_pythagoras.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../strategies.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="strategy_distance_projected_point.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.strategies.strategy_distance_haversine"></a><a class="link" href="strategy_distance_haversine.html" title="strategy::distance::haversine">strategy::distance::haversine</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp62965064"></a><a class="indexterm" name="idp62965400"></a><a class="indexterm" name="idp62965736"></a>
+Distance calculation for spherical coordinates on a perfect sphere using
+          haversine.
+        </p>
+<h6>
+<a name="geometry.reference.strategies.strategy_distance_haversine.h0"></a>
+          <span class="phrase"><a name="geometry.reference.strategies.strategy_distance_haversine.synopsis"></a></span><a class="link" href="strategy_distance_haversine.html#geometry.reference.strategies.strategy_distance_haversine.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">RadiusType</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">CalculationType</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">strategy</span><span class="special">::</span><span class="identifier">distance</span><span class="special">::</span><span class="identifier">haversine</span>
+<span class="special">{</span>
+  <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.strategies.strategy_distance_haversine.h1"></a>
+          <span class="phrase"><a name="geometry.reference.strategies.strategy_distance_haversine.template_parameter_s_"></a></span><a class="link" href="strategy_distance_haversine.html#geometry.reference.strategies.strategy_distance_haversine.template_parameter_s_">Template
+          parameter(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    typename RadiusType
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    numeric type for radius (of sphere, earth)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    typename CalculationType
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    numeric type for calculation (e.g. high precision); if <span class="bold"><strong>void</strong></span> then it is extracted automatically
+                    from the coordinate type and (if necessary) promoted to floating
+                    point
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.strategies.strategy_distance_haversine.h2"></a>
+          <span class="phrase"><a name="geometry.reference.strategies.strategy_distance_haversine.constructor_s_"></a></span><a class="link" href="strategy_distance_haversine.html#geometry.reference.strategies.strategy_distance_haversine.constructor_s_">Constructor(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Parameters
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">haversine</span><span class="special">(</span><span class="identifier">RadiusType</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">radius</span> <span class="special">=</span> <span class="number">1.0</span><span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Constructor.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>RadiusType const &amp;</strong></span>: <span class="emphasis"><em>radius</em></span>:
+                    radius of the sphere, defaults to 1.0 for the unit sphere
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.strategies.strategy_distance_haversine.h3"></a>
+          <span class="phrase"><a name="geometry.reference.strategies.strategy_distance_haversine.member_function_s_"></a></span><a class="link" href="strategy_distance_haversine.html#geometry.reference.strategies.strategy_distance_haversine.member_function_s_">Member
+          Function(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Parameters
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Returns
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Point1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Point2</span><span class="special">&gt;</span>
+<span class="identifier">calculation_type</span><span class="special">&lt;</span> <span class="identifier">Point1</span><span class="special">,</span> <span class="identifier">Point2</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">apply</span><span class="special">(</span><span class="identifier">Point1</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">p1</span><span class="special">,</span> <span class="identifier">Point2</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">p2</span><span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    applies the distance calculation
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>Point1 const &amp;</strong></span>: <span class="emphasis"><em>p1</em></span>:
+                    first point
+                  </p>
+                  <p>
+                    <span class="bold"><strong>Point2 const &amp;</strong></span>: <span class="emphasis"><em>p2</em></span>:
+                    second point
+                  </p>
+                </td>
+<td>
+                  <p>
+                    the calculated distance (including multiplying with radius)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">RadiusType</span> <span class="identifier">radius</span><span class="special">()</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    access to radius value
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    the radius
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.strategies.strategy_distance_haversine.h4"></a>
+          <span class="phrase"><a name="geometry.reference.strategies.strategy_distance_haversine.header"></a></span><a class="link" href="strategy_distance_haversine.html#geometry.reference.strategies.strategy_distance_haversine.header">Header</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">strategies</span><span class="special">/</span><span class="identifier">spherical</span><span class="special">/</span><span class="identifier">distance_haversine</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<h6>
+<a name="geometry.reference.strategies.strategy_distance_haversine.h5"></a>
+          <span class="phrase"><a name="geometry.reference.strategies.strategy_distance_haversine.see_also"></a></span><a class="link" href="strategy_distance_haversine.html#geometry.reference.strategies.strategy_distance_haversine.see_also">See
+          also</a>
+        </h6>
+<p>
+          <a class="link" href="../algorithms/distance/distance_3_with_strategy.html" title="distance (with strategy)">distance
+          (with strategy)</a>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="strategy_distance_pythagoras.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../strategies.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="strategy_distance_projected_point.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

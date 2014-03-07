@@ -1,0 +1,33 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:replaced replaced]
+
+[table
+    [[Syntax] [Code]]
+    [[Pipe] [`rng | boost::adaptors::replaced(new_value, old_value)`]]
+    [[Function] [`boost::adaptors::replace(rng, new_value, old_value)`]]
+]
+
+* [*Precondition:]
+    * `new_value` is convertible to the `value_type` of the range.
+    * `old_value` is convertible to the `value_type` of the range.
+* [*Postcondition:] For all elements `x` in the returned range, the value `x` is equal to the value of `(y == old_value) ? new_value : y` where `y` is the corresponding element in the original range.
+* [*Range Category:] __forward_range__
+* [*Range Return Type:] `boost::replaced_range<typeof(rng)>`
+* [*Returned Range Category:] The range category of `rng`.
+
+[section:replaced_example replaced example]
+[import ../../../test/adaptor_test/replaced_example.cpp]
+[replaced_example]
+[endsect]
+
+This would produce the output:
+``
+1,10,3,10,5,10,7,10,9,
+``
+[endsect]
+
+

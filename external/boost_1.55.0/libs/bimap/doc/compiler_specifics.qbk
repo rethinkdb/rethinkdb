@@ -1,0 +1,61 @@
+[/license
+
+Boost.Bimap
+
+Copyright (c) 2006-2007 Matias Capeletto
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+[/ QuickBook Document version 1.4 ]
+
+[section Compiler specifics]
+
+[table
+[[Compiler  ][OS Tested ][State                               ]]
+[[GCC 3.3   ][Linux     ][Supported                           ]]
+[[GCC 3.4   ][Linux     ][Supported                           ]]
+[[GCC 4.0   ][Linux, Mac][Supported                           ]]
+[[GCC 4.1   ][Linux     ][Supported                           ]]
+[[GCC 4.2   ][Linux     ][Supported                           ]]
+[[ICC 8.0   ][Linux     ][Supported                           ]]
+[[ICC 9.0   ][Linux     ][Supported                           ]]
+[[ICC 9.1   ][Linux     ][Supported                           ]]
+[[GCC 4.2   ][Linux     ][Supported                           ]]
+[[GCC 4.2   ][Linux     ][Supported                           ]]
+[[VS 7.1    ][Windows   ][Supported                           ]]
+[[VS 8.0    ][Windows   ][Supported                           ]]
+[[ICC 7.1   ][Windows   ][Not Supported                       ]]
+[[ICC 8.0   ][Windows   ][Supported                           ]]
+[[ICC 9.1   ][Windows   ][Supported                           ]]
+[[CW 8.3    ][Windows   ][Not Supported                       ]]
+]
+
+[/
+[[Comeau C++][          ][Not yet tested (Will be supported)  ]]
+[[CW 8.3    ][Windows   ][On going effort to support it       ]]
+]
+
+[h2 VS 7.1]
+
+If a .cpp file uses more than four differents bimaps the compiler will run
+out of symbols and issue an internal compiler error. The official solution
+in msdn is to split the .cpp in several files or upgrade your compiler.
+
+[h2 VS 8.0]
+
+VC++ 8.0 warns on usage of certain Standard Library and API functions that
+can be cause buffer overruns or other possible security issues if misused.
+See http://msdn.microsoft.com/msdnmag/issues/05/05/SafeCandC/default.aspx
+But the wording of the warning is misleading and unsettling, there are no
+portable alternative functions, and VC++ 8.0's own libraries use the
+functions in question. In order to turn off the warnings add the followings
+defines at the begging of your .cpp files:
+
+    #define _CRT_SECURE_NO_DEPRECATE
+    #define _SCL_SECURE_NO_DEPRECATE
+
+[endsect]

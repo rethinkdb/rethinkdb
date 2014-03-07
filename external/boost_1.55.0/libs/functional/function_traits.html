@@ -1,0 +1,233 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+
+  <title>Boost Function Object Adapter Library</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+  <table border="1" bgcolor="#007F7F" cellpadding="2" summary="">
+    <tr>
+      <td bgcolor="#FFFFFF"><img src="../../boost.png" alt=
+      "boost.png (6897 bytes)" width="277" height="86"></td>
+
+      <td><a href="../../index.htm"><font face="Arial" color=
+      "#FFFFFF"><big>Home</big></font></a></td>
+
+      <td><a href="../libraries.htm"><font face="Arial" color=
+      "#FFFFFF"><big>Libraries</big></font></a></td>
+
+      <td><a href="http://www.boost.org/people/people.htm"><font face="Arial" color=
+      "#FFFFFF"><big>People</big></font></a></td>
+
+      <td><a href="http://www.boost.org/more/faq.htm"><font face="Arial" color=
+      "#FFFFFF"><big>FAQ</big></font></a></td>
+
+      <td><a href="../../more/index.htm"><font face="Arial" color=
+      "#FFFFFF"><big>More</big></font></a></td>
+    </tr>
+  </table>
+
+  <h1>Function Object Traits</h1>
+
+  <p>The header <a href="../../boost/functional.hpp">functional.hpp</a>
+  provides two traits class templates for functions and function objects:</p>
+
+  <table border="1" summary="">
+    <tr>
+      <th>Type</th>
+
+      <th>Contents</th>
+
+      <th>Description</th>
+    </tr>
+
+    <tr>
+      <td valign="top" rowspan="4">
+      <tt>template&nbsp;&lt;typename&nbsp;T&gt;<br>
+      struct&nbsp;unary_traits</tt></td>
+
+      <td valign="top"><tt>function_type</tt></td>
+
+      <td valign="top">The type of the function or function object itself
+      (i.e., <tt>T</tt>).</td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>param_type</tt></td>
+
+      <td valign="top">The type that should be used to pass the function or
+      function object as a parameter.</td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>result_type</tt></td>
+
+      <td valign="top">The type returned by the function or function
+      object.</td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>argument_type</tt></td>
+
+      <td valign="top">The type of the argument to the function or function
+      object.</td>
+    </tr>
+
+    <tr>
+      <td valign="top" rowspan="5">
+      <tt>template&nbsp;&lt;typename&nbsp;T&gt;<br>
+      struct&nbsp;binary_traits</tt></td>
+
+      <td valign="top"><tt>function_type</tt></td>
+
+      <td valign="top">The type of the function or function object itself
+      (i.e., <tt>T</tt>).</td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>param_type</tt></td>
+
+      <td valign="top">The type that should be used to pass the function or
+      function object as a parameter.</td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>result_type</tt></td>
+
+      <td valign="top">The type returned by the function or function
+      object.</td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>first_argument_type</tt></td>
+
+      <td valign="top">The type of the first argument to the function or
+      function object.</td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>second_argument_type</tt></td>
+
+      <td valign="top">The type of the second argument to the function or
+      function object.</td>
+    </tr>
+  </table>
+
+  <h3>Usage</h3>
+
+  <p><tt>unary_traits</tt> should be instantiated with either a function
+  taking a single parameter, or an adaptable unary function object (i.e., a
+  class derived from <tt>std::unary_function</tt> or one which provides the
+  same typedefs). (See &sect;20.3.1 in the C++ Standard.)</p>
+
+  <p><tt>binary_traits</tt> should be instantiated with either a function
+  taking two parameters, or an adaptable binary function object (i.e., a
+  class derived from <tt>std::binary_function</tt> or one which provides the
+  same typedefs). (See &sect;20.3.1 in the C++ Standard.)</p>
+
+  <p>The most common usage of these templates is in function object adapters,
+  thus allowing them to adapt plain functions as well as function objects.
+  You can do this by wherever you would normally write, for example,</p>
+
+  <blockquote>
+    <pre>
+typename Operation::argument_type
+</pre>
+  </blockquote>
+
+  <p>simply writing</p>
+
+  <blockquote>
+    <pre>
+typename boost::unary_traits&lt;Operation&gt;::argument_type
+</pre>
+  </blockquote>
+
+  <p>instead.</p>
+
+  <h3>Additional Types Defined</h3>
+
+  <p>In addition to the standard result and argument typedefs, these traits
+  templates define two additional types.</p>
+
+  <h4><tt>function_type</tt></h4>
+
+  <p>This is the type of the function or function object, and can be used in
+  declarations such as</p>
+
+  <blockquote>
+    <pre>
+template &lt;class Predicate&gt;
+class unary_negate : // ...
+{
+  // ...
+  private:
+    <strong>typename unary_traits&lt;Predicate&gt;::function_type</strong> pred;
+};
+</pre>
+  </blockquote>
+
+  <p>If this typedef were not provided, it would not be possible to declare
+  <tt>pred</tt> in a way that would allow <tt>unary_negate</tt> to be
+  instantiated with a function type (see the C++ Standard &sect;14.3.1
+  &para;3).</p>
+
+  <h4><tt>param_type</tt></h4>
+
+  <p>This is a type suitable for passing the function or function object as a
+  parameter to another function. For example,</p>
+
+  <blockquote>
+    <pre>
+template &lt;class Predicate&gt;
+class unary_negate : // ...
+{
+  public:
+    explicit unary_negate(<strong>typename unary_traits&lt;Predicate&gt;::param_type</strong> x)
+        :
+        pred(x)
+    {}
+    // ...
+};
+</pre>
+  </blockquote>
+
+  <p>Function objects are passed by reference to const; function pointers are
+  passed by value.</p>
+
+  <h3>Limitations</h3>
+
+  <p>This library uses these traits within all function object adapters,
+  theoretically rendering <tt>ptr_fun</tt> obsolete. However, third party
+  adapters probably won't take advantage of this mechanism, and so
+  <tt>ptr_fun</tt> may still be required. Accordingly, this library also
+  provides <a href="ptr_fun.html">improved versions of the standard function
+  pointer adapters</a>.</p>
+
+  <p>These traits templates will also not work with compilers that fail to
+  support partial specialisation of templates. With these compilers, the
+  traits templates can only be instantiated with adaptable function objects,
+  thus requiring <tt>ptr_fun</tt> to be used, even with the function object
+  adapters in this library.</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->02
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38510" --></p>
+
+  <p><i>Copyright &copy; 2000 Cadenza New Zealand Ltd.</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

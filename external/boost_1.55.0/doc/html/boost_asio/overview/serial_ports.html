@@ -1,0 +1,91 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Serial Ports</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../overview.html" title="Overview">
+<link rel="prev" href="timers.html" title="Timers">
+<link rel="next" href="signals.html" title="Signal Handling">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="timers.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../overview.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="signals.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.overview.serial_ports"></a><a class="link" href="serial_ports.html" title="Serial Ports">Serial Ports</a>
+</h3></div></div></div>
+<p>
+        Boost.Asio includes classes for creating and manipulating serial ports in
+        a portable manner. For example, a serial port may be opened using:
+      </p>
+<pre class="programlisting"><span class="identifier">serial_port</span> <span class="identifier">port</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">,</span> <span class="identifier">name</span><span class="special">);</span>
+</pre>
+<p>
+        where name is something like <code class="computeroutput"><span class="string">"COM1"</span></code>
+        on Windows, and <code class="computeroutput"><span class="string">"/dev/ttyS0"</span></code>
+        on POSIX platforms.
+      </p>
+<p>
+        Once opened, the serial port may be used as a <a class="link" href="core/streams.html" title="Streams, Short Reads and Short Writes">stream</a>.
+        This means the objects can be used with any of the <a class="link" href="../reference/read.html" title="read">read()</a>,
+        <a class="link" href="../reference/async_read.html" title="async_read">async_read()</a>, <a class="link" href="../reference/write.html" title="write">write()</a>, <a class="link" href="../reference/async_write.html" title="async_write">async_write()</a>,
+        <a class="link" href="../reference/read_until.html" title="read_until">read_until()</a> or <a class="link" href="../reference/async_read_until.html" title="async_read_until">async_read_until()</a>
+        free functions.
+      </p>
+<p>
+        The serial port implementation also includes option classes for configuring
+        the port's baud rate, flow control type, parity, stop bits and character
+        size.
+      </p>
+<h5>
+<a name="boost_asio.overview.serial_ports.h0"></a>
+        <span class="phrase"><a name="boost_asio.overview.serial_ports.see_also"></a></span><a class="link" href="serial_ports.html#boost_asio.overview.serial_ports.see_also">See
+        Also</a>
+      </h5>
+<p>
+        <a class="link" href="../reference/serial_port.html" title="serial_port">serial_port</a>, <a class="link" href="../reference/serial_port_base.html" title="serial_port_base">serial_port_base</a>,
+        <a class="link" href="../reference/basic_serial_port.html" title="basic_serial_port">basic_serial_port</a>,
+        <a class="link" href="../reference/serial_port_service.html" title="serial_port_service">serial_port_service</a>,
+        <a class="link" href="../reference/serial_port_base__baud_rate.html" title="serial_port_base::baud_rate">serial_port_base::baud_rate</a>,
+        <a class="link" href="../reference/serial_port_base__flow_control.html" title="serial_port_base::flow_control">serial_port_base::flow_control</a>,
+        <a class="link" href="../reference/serial_port_base__parity.html" title="serial_port_base::parity">serial_port_base::parity</a>,
+        <a class="link" href="../reference/serial_port_base__stop_bits.html" title="serial_port_base::stop_bits">serial_port_base::stop_bits</a>,
+        <a class="link" href="../reference/serial_port_base__character_size.html" title="serial_port_base::character_size">serial_port_base::character_size</a>.
+      </p>
+<h5>
+<a name="boost_asio.overview.serial_ports.h1"></a>
+        <span class="phrase"><a name="boost_asio.overview.serial_ports.notes"></a></span><a class="link" href="serial_ports.html#boost_asio.overview.serial_ports.notes">Notes</a>
+      </h5>
+<p>
+        Serial ports are available on all POSIX platforms. For Windows, serial ports
+        are only available at compile time when the I/O completion port backend is
+        used (which is the default). A program may test for the macro <code class="computeroutput"><span class="identifier">BOOST_ASIO_HAS_SERIAL_PORT</span></code> to determine
+        whether they are supported.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="timers.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../overview.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="signals.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

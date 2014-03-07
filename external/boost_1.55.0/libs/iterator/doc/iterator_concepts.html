@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>Iterator Concepts</title>
+<meta name="author" content="David Abrahams, Jeremy Siek, Thomas Witt" />
+<meta name="organization" content="Boost Consulting, Indiana University Open Systems Lab, Zephyr Associates, Inc." />
+<meta name="date" content="2006-09-11" />
+<meta name="copyright" content="Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2004." />
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="iterator-concepts">
+<h1 class="title">Iterator Concepts</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>David Abrahams, Jeremy Siek, Thomas Witt</td></tr>
+<tr><th class="docinfo-name">Contact:</th>
+<td><a class="first reference external" href="mailto:dave&#64;boost-consulting.com">dave&#64;boost-consulting.com</a>, <a class="reference external" href="mailto:jsiek&#64;osl.iu.edu">jsiek&#64;osl.iu.edu</a>, <a class="last reference external" href="mailto:witt&#64;styleadvisor.com">witt&#64;styleadvisor.com</a></td></tr>
+<tr><th class="docinfo-name">Organization:</th>
+<td><a class="first reference external" href="http://www.boost-consulting.com">Boost Consulting</a>, Indiana University <a class="reference external" href="http://www.osl.iu.edu">Open Systems
+Lab</a>, <a class="last reference external" href="http://www.styleadvisor.com">Zephyr Associates, Inc.</a></td></tr>
+<tr><th class="docinfo-name">Date:</th>
+<td>2006-09-11</td></tr>
+<tr><th class="docinfo-name">Copyright:</th>
+<td>Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2004.</td></tr>
+</tbody>
+</table>
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">abstract:</th><td class="field-body">The iterator concept checking classes provide a mechanism for
+a template to report better error messages when a user instantiates
+the template with a type that does not meet the requirements of
+the template.</td>
+</tr>
+</tbody>
+</table>
+<p>For an introduction to using concept checking classes, see
+the documentation for the <a class="reference external" href="../../concept_check/index.html"><tt class="docutils literal"><span class="pre">boost::concept_check</span></tt></a> library.</p>
+<div class="section" id="reference">
+<h1>Reference</h1>
+<div class="section" id="iterator-access-concepts">
+<h2>Iterator Access Concepts</h2>
+<ul class="simple">
+<li><a class="reference external" href="ReadableIterator.html"><em>Readable Iterator</em></a></li>
+<li><a class="reference external" href="WritableIterator.html"><em>Writable Iterator</em></a></li>
+<li><a class="reference external" href="SwappableIterator.html"><em>Swappable Iterator</em></a></li>
+<li><a class="reference external" href="LvalueIterator.html"><em>Lvalue Iterator</em></a></li>
+</ul>
+</div>
+<div class="section" id="iterator-traversal-concepts">
+<h2>Iterator Traversal Concepts</h2>
+<ul class="simple">
+<li><a class="reference external" href="IncrementableIterator.html"><em>Incrementable Iterator</em></a></li>
+<li><a class="reference external" href="SinglePassIterator.html"><em>Single Pass Iterator</em></a></li>
+<li><a class="reference external" href="ForwardTraversal.html"><em>Forward Traversal</em></a></li>
+<li><a class="reference external" href="BidirectionalTraversal.html"><em>Bidirectional Traversal</em></a></li>
+<li><a class="reference external" href="RandomAccessTraversal.html"><em>Random Access Traversal</em></a></li>
+</ul>
+</div>
+<div class="section" id="iterator-concepts-hpp-synopsis">
+<h2><tt class="docutils literal"><span class="pre">iterator_concepts.hpp</span></tt> Synopsis</h2>
+<pre class="literal-block">
+namespace boost_concepts {
+
+    // Iterator Access Concepts
+
+    template &lt;typename Iterator&gt;
+    class ReadableIteratorConcept;
+
+    template &lt;
+        typename Iterator
+      , typename ValueType = std::iterator_traits&lt;Iterator&gt;::value_type
+    &gt;
+    class WritableIteratorConcept;
+
+    template &lt;typename Iterator&gt;
+    class SwappableIteratorConcept;
+
+    template &lt;typename Iterator&gt;
+    class LvalueIteratorConcept;
+
+    // Iterator Traversal Concepts
+
+    template &lt;typename Iterator&gt;
+    class IncrementableIteratorConcept;
+
+    template &lt;typename Iterator&gt;
+    class SinglePassIteratorConcept;
+
+    template &lt;typename Iterator&gt;
+    class ForwardTraversalConcept;
+
+    template &lt;typename Iterator&gt;
+    class BidirectionalTraversalConcept;
+
+    template &lt;typename Iterator&gt;
+    class RandomAccessTraversalConcept;
+
+    // Interoperability
+
+    template &lt;typename Iterator, typename ConstIterator&gt;
+    class InteroperableIteratorConcept;
+
+}
+</pre>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="iterator_concepts.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

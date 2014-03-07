@@ -1,0 +1,30 @@
+[article Variable List Tests
+[quickbook 1.5]
+]
+
+[variablelist Empty
+]
+
+[variablelist One entry
+    [[a][b]]
+]
+
+[variablelist One entry, multiple items
+    [[a][b][c]]
+]
+
+[variablelist Several entries
+    [[a][b]]
+    [[a][b][c]]
+    [[a][b][c][d]]
+    [[a][b][c][d][e]]
+    [[a][b]]
+]
+
+[#id1]
+[variablelist Variable List with anchors
+    [
+    [[#id2]a[#id3]]
+    [[#id4]b[#id5]]
+    ]
+]

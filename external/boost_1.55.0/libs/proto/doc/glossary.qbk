@@ -1,0 +1,95 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[/===============]
+[section Glossary]
+[/===============]
+
+[def _T_ [~T]]
+
+[template anchor[x] '''<anchor id="boost_proto.users_guide.glossary.'''[x]'''" />''']
+
+[variablelist
+  [ [ [anchor callable_transform] callable transform]
+      [A transform of the form `R(A0,A1,...)` (i.e., a function type) where 
+       `proto::is_callable<R>::value` is `true`. `R` is treated as a polymorphic 
+       function object and the arguments are treated as transforms that yield the 
+       arguments to the function object.] ]
+  [ [ [anchor context] context]
+      [In Proto, the term /context/ refers to an object that can be passed, along 
+       with an expression to evaluate, to the `proto::eval()` function. The context 
+       determines how the expression is evaluated. All context structs define a 
+       nested `eval<>` template that, when instantiated with a node tag type (e.g., 
+       `proto::tag::plus`), is a binary polymorphic function object that accepts an 
+       expression of that type and the context object. In this way, contexts
+       associate behaviors with expression nodes.] ]
+  [ [ [anchor domain] domain]
+      [In Proto, the term /domain/ refers to a type that associates expressions 
+       within that domain with a /generator/ for that domain and optionally a 
+       /grammar/ for the domain. Domains are used primarily to imbue expressions 
+       within that domain with additional members and to restrict Proto's operator 
+       overloads such that expressions not conforming to the domain's grammar are 
+       never created. Domains are empty structs that inherit from
+       `proto::domain<>`.]]
+  [ [ [anchor dsl] domain-specific language]
+      [A programming language that targets a particular problem space by providing 
+       programming idioms, abstractions and constructs that match the constructs 
+       within that problem space.]]
+  [ [ [anchor edsl] embedded domain-specific language]
+      [A domain-specific language implemented as a library. The language in which 
+       the library is written is called the "host" language, and the language 
+       implemented by the library is called the "embedded" language.]]
+  [ [ [anchor expression] expression]
+      [In Proto, an /expression/ is a heterogeneous tree where each node is either 
+       an instantiation of `boost::proto::expr<>`, `boost::proto::basic_expr<>` or
+	   some type that is an extension  (via `boost::proto::extends<>` or 
+	   `BOOST_PROTO_EXTENDS()`) of such an instantiation.]]
+  [ [ [anchor expression_template] expression template]
+      [A C++ technique using templates and operator overloading to cause 
+       expressions to build trees that represent the expression for lazy evaluation 
+       later, rather than evaluating the expression eagerly. Some C++ libraries use 
+       expression templates to build embedded domain-specific languages.]]
+  [ [ [anchor generator] generator]
+      [In Proto, a /generator/ is a unary polymorphic function object that you 
+       specify when defining a /domain/. After constructing a new expression, Proto 
+       passes the expression to your domain's generator for further processing. 
+       Often, the generator wraps the expression in an extension wrapper that adds 
+       additional members to it.]]
+  [ [ [anchor grammar] grammar]
+      [In Proto, a /grammar/ is a type that describes a subset of Proto expression 
+       types. Expressions in a domain must conform to that domain's grammar. The 
+       `proto::matches<>` metafunction evaluates whether an expression type matches 
+       a grammar. Grammars are either primitives such as `proto::_`, composites 
+       such as `proto::plus<>`, control structures such as `proto::or_<>`, or some 
+       type derived from a grammar.]]
+  [ [ [anchor object_transform] object transform]
+      [A transform of the form `R(A0,A1,...)` (i.e., a function type) where 
+       `proto::is_callable<R>::value` is `false`. `R` is treated as the type of an 
+       object to construct and the arguments are treated as transforms that yield 
+       the parameters to the constructor.]]
+  [ [ [anchor polymorphic_function_object] polymorphic function object]
+      [An instance of a class type with an overloaded function call operator and a 
+       nested `result_type` typedef or `result<>` template for calculating the 
+       return type of the function call operator.]]
+  [ [ [anchor primitive_transform] primitive transform]
+      [A type that defines a kind of polymorphic function object that takes three 
+       arguments: expression, state, and data. Primitive transforms can be used to 
+       compose callable transforms and object transforms.]]
+  [ [ [anchor subdomain] sub-domain]
+      [A sub-domain is a domain that declares another domain as its super-domain.
+      Expressions in sub-domains can be combined with expressions in the
+      super-domain, and the resulting expression is in the super-domain.]]
+  [ [ [anchor transform] transform]
+      [Transforms are used to manipulate expression trees. They come in three 
+       flavors: primitive transforms, callable transforms, or object transforms. A 
+       transform `_T_` can be made into a ternary polymorphic function object with 
+       `proto::when<>`, as in `proto::when<proto::_, _T_>`. Such a function object 
+       accepts /expression/, /state/, and /data/ parameters, and computes a result 
+       from them.]]
+]
+
+[endsect]

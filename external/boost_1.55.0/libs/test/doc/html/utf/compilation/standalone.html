@@ -1,0 +1,97 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Standalone library compilation</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../compilation.html" title="The UTF compilation variants and procedures">
+<link rel="prev" href="../compilation.html" title="The UTF compilation variants and procedures">
+<link rel="next" href="auto-linking.html" title="Support of the auto-linking feature">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../compilation.html">Compilation</a><a href="../user-guide.html">
+      &gt;
+      </a><b>Standalone library compilation</b>
+</td>
+<td><div class="spirit-nav">
+<a href="../compilation.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="auto-linking.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.compilation.standalone"></a>Standalone library compilation</h4></div></div></div>
+<p class="first-line-indented">
+    If you opted to link your program with the standalone library, you need to build it first. To build a standalone 
+    library the all C++ files (.cpp), that constitute <acronym class="acronym">UTF</acronym> <a class="link" href="../../prg-exec-monitor/impl.html" title="The Program Execution Monitor implementation">implementation</a> need to be 
+    listed as source files in your makefile<sup>[<a name="id646111" href="#ftn.id646111" class="footnote">3</a>]</sup>.
+   </p>
+<p class="first-line-indented">
+    The Jamfile for use with Boost.Build system is supplied in <code class="filename">libs/test/build</code>
+    directory. The <acronym class="acronym">UTF</acronym> can be built as either <a name="prg-exec-monitor.compilation.standalone.static"></a>static 
+    or <a name="prg-exec-monitor.compilation.standalone.dynamic"></a>dynamic library.
+   </p>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.compilation.standalone.static"></a>Static library compilation</h5></div></div></div>
+<p class="first-line-indented">
+     No special build options or macro definitions are required to build the static library. Using the Boost.Build
+     system you can build the static library with the following command from
+     <code class="filename">libs/test/build</code> directory:
+    </p>
+<div class="cmdsynopsis"><p><code class="command">bjam</code>  [-sTOOLS=&lt;your-tool-name&gt;] {-sBUILD=boost_unit_test_framework}</p></div>
+<p class="first-line-indented">
+     Also on Windows you can use the Microsoft Visual Studio .NET project file provided.
+    </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.compilation.standalone.dynamic"></a>Dynamic library compilation</h5></div></div></div>
+<p class="first-line-indented">
+     To build the dynamic library<sup>[<a name="id646262" href="#ftn.id646262" class="footnote">4</a>]</sup> you 
+     need to add <a class="xref" href="../compilation.html#utf.flag.dyn-link">BOOST_TEST_DYN_LINK</a> to the list of macro definitions in the 
+     makefile. Using the Boost.Build system you can build the dynamic library with the following command from
+     <code class="filename">libs/test/build</code> directory:
+    </p>
+<div class="cmdsynopsis"><p><code class="command">bjam</code>  [-sTOOLS=&lt;your-tool-name&gt;] {-sBUILD=boost_unit_test_framework}</p></div>
+<p class="first-line-indented">
+     Also on Windows you can use the Microsoft Visual Studio .NET project file provided.
+    </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../doc/html/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+      For test module to successfully link with the dynamic library the flag
+      <a class="xref" href="../compilation.html#utf.flag.dyn-link">BOOST_TEST_DYN_LINK</a> needs to be defined both during dynamic library build
+      and during test module compilation.
+     </p></td></tr>
+</table></div>
+</div>
+<div class="footnotes">
+<br><hr width="100" align="left">
+<div class="footnote"><p><sup>[<a name="ftn.id646111" href="#id646111" class="simpara">3</a>] </sup>There are varieties of make systems that can be used. To name 
+    a few: <acronym class="acronym">GNU</acronym> make (and other make clones) and build systems integrated into <acronym class="acronym">IDE</acronym>s
+    (for  example Microsoft  Visual Studio). The Boost preferred solution is Boost.Build system that is based on top of 
+    bjam  tool. Make  systems require some kind of configuration file that lists all files that constitute the library 
+    and all build  options. For example the makefile that is used by make, or the Microsoft Visual Studio project file, 
+    Jamfile is  used by Boost.Build. For the sake of simplicity let's call this file the makefile.</p></div>
+<div class="footnote"><p><sup>[<a name="ftn.id646262" href="#id646262" class="simpara">4</a>] </sup>What is meant by the term dynamic library is a <em class="firstterm">dynamically 
+     loaded library</em>, alternatively called a <em class="firstterm">shared library</em>.</p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../compilation.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../compilation.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="auto-linking.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

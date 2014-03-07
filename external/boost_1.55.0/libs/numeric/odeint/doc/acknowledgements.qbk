@@ -1,0 +1,34 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+[section Acknowledgments]
+
+
+* Steven Watanabe for managing the Boost review process.
+* All people who participated in the odeint review process on the Boost mailing list.
+* Paul Bristow for helping with the documentation.
+* The Google Summer Of Code (GSOC) program for funding and Andrew Sutton for supervising us during the GSOC and for lots of useful discussions and feedback about many implementation details..
+* Joachim Faulhaber for motivating us to participate in the Boost review process and many detailed comments about the library.
+* All users of odeint. They are the main motivation for our efforts.
+
+
+[h3 Contributers]
+
+* Andreas Angelopoulos implemented the sparse matrix implicit Euler stepper using the MTL4 library.
+* Rajeev Singh implemented the stiff Van der Pol oscillator example.
+* Sylwester Arabas improved the documentation.
+* Denis Demidov provided the adaption to the VexCL and Viennacl libraries.
+* Christoph Koke provided improved binders.
+* Lee Hodgkinson provided the black hole example.
+* Michael Morin fixed several typos in the documentation and the the source code comments.
+
+[endsect]

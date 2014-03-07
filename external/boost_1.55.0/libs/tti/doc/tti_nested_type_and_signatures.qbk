@@ -1,0 +1,97 @@
+[/ 
+  (C) Copyright Edward Diener 2011,2012
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:tti_func_sig Nested Types and Function Signatures]
+
+The strength of `BOOST_TTI_MEMBER_TYPE` to represent a type which may or may not exist, and which 
+then can be subsequently used in other macro metafunctions whenever a type is needed as a template 
+parameter without producing a compiler error, should not be underestimated. It is one of the  
+reasons why we have two different ways of using our generated metafunction when introspecting 
+for member data, a member function, or a static member function of an enclosing type.
+
+In the cases where we specify a composite syntax when using `BOOST_TTI_HAS_MEMBER_DATA`,
+`BOOST_TTI_HAS_MEMBER_FUNCTION`, or `BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION`, the signature 
+for the member data, member function, or static member function is a single type. For 
+`BOOST_TTI_HAS_MEMBER_DATA` the signature is a pointer to member data, for  
+`BOOST_TTI_HAS_MEMBER_FUNCTION` the signature is a pointer to a member function, and for
+`BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION` the signature  is divided between an enclosing type
+and a function in composite format. This makes for a syntactical notation which is natural 
+to specify, but because of the notation we can not use the nested type functionality in 
+`BOOST_TTI_MEMBER_TYPE` for potential parts of these composite types. If any part of this 
+signature, which specifies a composite of various types, is invalid, a compiler time error 
+will occur.
+
+But in the more specific cases, when we use `BOOST_TTI_HAS_MEMBER_DATA`, 
+`BOOST_TTI_HAS_MEMBER_FUNCTION`, and `BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION`, our composite 
+type in our signatures is broken down into their individual types so that using 
+`BOOST_TTI_MEMBER_TYPE` for any one of the individual types will not lead to a compile time 
+error if the type specified does not actually exist.
+
+A few examples will suffice. 
+
+Given known types T and U, and the supposed type Ntype as a 
+nested type of U, we want to find out if type T has a member function whose signature is 
+`void aMemberFunction(U::Ntype)`.
+
+First using `BOOST_TTI_HAS_MEMBER_FUNCTION` using our composite form we would code:
+
+ #include <boost/tti/has_member_function.hpp>
+ 
+ BOOST_TTI_HAS_MEMBER_FUNCTION(aMemberFunction)
+  
+ has_member_function_aMemberFunction<void (T::*)(U::Ntype)>::value;
+ 
+If the nested type U::Ntype does not exist, this leads to a compiler error. 
+We really want to avoid this situation, so let's try our alternative.
+
+Second using `BOOST_TTI_HAS_MEMBER_FUNCTION` using our specific form we would code:
+  
+ #include <boost/tti/member_type.hpp>
+ #include <boost/tti/has_member_function.hpp>
+ 
+ BOOST_TTI_HAS_MEMBER_TYPE(Ntype)
+ BOOST_TTI_HAS_MEMBER_FUNCTION(aMemberFunction)
+  
+ typedef typename has_member_type_Ntype<U>::type OurType;
+ has_member_function_aMemberFunction<T,void,boost::mpl::vector<OurType> >::value;
+ 
+If the nested type U::Ntype does exist and T does have a member function 
+whose signature is `void aMemberFunction(U::Ntype)` our 'value' is true, 
+otherwise it is false. We will never get a compiler error in this case.
+
+As a second example we will once again use the suppositions of our first
+example; given known types T and U, and the supposed type Ntype as a 
+nested type of U. But this time let us look for a static member function
+whose signature is `void aStaticMemberFunction(U::Ntype)`.
+
+First using `BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION` using our composite form we would code:
+
+ #include <boost/tti/has_static_member_function.hpp>
+ 
+ BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION(aStaticMemberFunction)
+  
+ has_static_member_function_aStaticMemberFunction<T,void (U::Ntype)>::value;
+ 
+Once again if the nested type U::Ntype does not exist, this leads to a compiler error, 
+so let's try our alternative.
+
+Second using `BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION` using our specific form we would code:
+  
+ #include <boost/tti/member_type.hpp>
+ #include <boost/tti/has_static_member_function.hpp>
+ 
+ BOOST_TTI_HAS_MEMBER_TYPE(Ntype)
+ BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION(aStaticMemberFunction)
+  
+ typedef typename has_member_type_Ntype<U>::type OurType;
+ has_static_member_function_aStaticMemberFunction<T,void,boost::mpl::vector<OurType> >::value;
+ 
+If the nested type U::Ntype does exist and T does have a member function 
+whose signature is `void aMemberFunction(U::Ntype)` our 'value' is true, 
+otherwise it is false. We will never get a compiler error in this case.
+
+[endsect]

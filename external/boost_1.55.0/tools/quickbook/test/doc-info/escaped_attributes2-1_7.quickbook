@@ -1,0 +1,10 @@
+[article Multiple escaped attributes
+[quickbook 1.7]
+'''<author>
+    <firstname>John</firstname>
+    <surname>Doe</surname>
+    <email>john.doe@example.com</email>
+</author>'''
+'''<orgname>Acme Corporation</orgname>'''
+]
+

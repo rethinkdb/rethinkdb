@@ -1,0 +1,210 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/am.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/am.xml
+ */
+am{
+    ExemplarCharacters{"[\u135F ሀ-ሆ ለ-ቆ ቈ ቊ-ቍ በ-ኆ ኈ ኊ-ኍ ነ-ኮ ኰ ኲ-ኵ ኸ-ኾ ወ-ዎ ዐ-ዖ ዘ-ዷ ጀ-ጎ ጐ ጒ-ጕ ጠ-ፚ]"}
+    LocaleScript{
+        "Ethi",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00;(¤#,##0.00)"}
+            }
+        }
+    }
+    Version{"2.0.50.94"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "ጡዋት",
+                "ከሳዓት",
+            }
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "dd/MM/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                h{"h a"}
+                H{"H"}
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"E, M/d"}
+                MMM{"LLL"}
+                MMMEd{"E, MMM d"}
+                MMMMEd{"E, MMMM d"}
+                MMMMd{"MMMM d"}
+                MMMd{"MMM d"}
+                Md{"M/d"}
+                d{"d"}
+                hm{"h:mm a"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M/y"}
+                yMEd{"EEE, M/d/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE, MMM d, y"}
+                yMMMM{"MMMM y"}
+                yQ{"Q y"}
+                yQQQ{"QQQ y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "እሑድ",
+                        "ሰኞ",
+                        "ማክሰ",
+                        "ረቡዕ",
+                        "ሐሙስ",
+                        "ዓርብ",
+                        "ቅዳሜ",
+                    }
+                    wide{
+                        "እሑድ",
+                        "ሰኞ",
+                        "ማክሰኞ",
+                        "ረቡዕ",
+                        "ሐሙስ",
+                        "ዓርብ",
+                        "ቅዳሜ",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "እ",
+                        "ሰ",
+                        "ማ",
+                        "ረ",
+                        "ሐ",
+                        "ዓ",
+                        "ቅ",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "ዓ/ዓ",
+                    "ዓ/ም",
+                }
+                wide{
+                    "ዓመተ ዓለም",
+                    "ዓመተ ምሕረት",
+                }
+            }
+            fields{
+                day{
+                    dn{"ቀን"}
+                    relative{
+                        "-1"{"ትናንት"}
+                        "0"{"ዛሬ"}
+                        "1"{"ነገ"}
+                    }
+                }
+                dayperiod{
+                    dn{"ጡዎት/ከሰአት"}
+                }
+                era{
+                    dn{"ዘመን"}
+                }
+                hour{
+                    dn{"ሰዓት"}
+                }
+                minute{
+                    dn{"ደቂቃ"}
+                }
+                month{
+                    dn{"ወር"}
+                }
+                second{
+                    dn{"ሰከንድ"}
+                }
+                week{
+                    dn{"ሳምንት"}
+                }
+                weekday{
+                    dn{"አዘቦት"}
+                }
+                year{
+                    dn{"ዓመት"}
+                }
+                zone{
+                    dn{"የሰዓት ሰቅ"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "ጃንዩ",
+                        "ፌብሩ",
+                        "ማርች",
+                        "ኤፕረ",
+                        "ሜይ",
+                        "ጁን",
+                        "ጁላይ",
+                        "ኦገስ",
+                        "ሴፕቴ",
+                        "ኦክተ",
+                        "ኖቬም",
+                        "ዲሴም",
+                    }
+                    wide{
+                        "ጃንዩወሪ",
+                        "ፌብሩወሪ",
+                        "ማርች",
+                        "ኤፕረል",
+                        "ሜይ",
+                        "ጁን",
+                        "ጁላይ",
+                        "ኦገስት",
+                        "ሴፕቴምበር",
+                        "ኦክተውበር",
+                        "ኖቬምበር",
+                        "ዲሴምበር",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ጃ",
+                        "ፌ",
+                        "ማ",
+                        "ኤ",
+                        "ሜ",
+                        "ጁ",
+                        "ጁ",
+                        "ኦ",
+                        "ሴ",
+                        "ኦ",
+                        "ኖ",
+                        "ዲ",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"›"}
+        alternateQuotationStart{"‹"}
+        quotationEnd{"»"}
+        quotationStart{"«"}
+    }
+}

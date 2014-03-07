@@ -1,0 +1,25 @@
+# Copyright David Abrahams, Jeremy Siek, Vladimir Prus
+# 2006. Distributed under the Boost Software License, Version
+# 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+import testing ;
+
+test-suite concept_check
+  : [ run stl_concept_covering.cpp ]
+    [ run stl_concept_check.cpp ]
+    [ run concept_check_test.cpp  ]
+    [ run class_concept_check_test.cpp ]
+    [ compile-fail concept_check_fail_expected.cpp ]
+    [ compile-fail class_concept_fail_expected.cpp ]
+      
+    [ run where.cpp ]
+    [ compile-fail where_fail.cpp ]
+    [ compile-fail usage_fail.cpp ]
+      
+      # Backward compatibility tests
+    [ run old_concept_pass.cpp ]
+    [ compile-fail function_requires_fail.cpp ]
+    [ compile-fail old_concept_function_fail.cpp ]
+    [ compile-fail old_concept_class_fail.cpp ]
+  ;
+

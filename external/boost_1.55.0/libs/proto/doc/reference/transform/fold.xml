@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/transform/fold.hpp">
+  <para>Contains definition of the
+    <computeroutput>
+      <classname alt="boost::proto::fold">proto::fold&lt;&gt;</classname>
+    </computeroutput> and
+    <computeroutput>
+      <classname alt="boost::proto::reverse_fold">proto::reverse_fold&lt;&gt;</classname>
+    </computeroutput>
+    transforms.</para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <struct name="fold">
+        <template>
+          <template-type-parameter name="Sequence"/>
+          <template-type-parameter name="State0"/>
+          <template-type-parameter name="Fun"/>
+        </template>
+        <inherit>
+          <classname>proto::transform</classname>&lt; fold&lt;Sequence, State0, Fun&gt; &gt;</inherit>
+        <purpose>A <conceptname>PrimitiveTransform</conceptname> that invokes the
+          <computeroutput>fusion::fold&lt;&gt;</computeroutput> algorithm to accumulate a value.</purpose>
+        <description>
+          <para>
+            For the complete description of the behavior of the <computeroutput>proto::fold&lt;&gt;</computeroutput>
+            transform, see the documentation for the nested <computeroutput>
+              <classname>proto::fold::impl&lt;&gt;</classname>
+            </computeroutput> class template.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><classname>proto::transform_impl</classname>&lt; Expr, State, Data &gt;</inherit>
+          <typedef name="X">
+            <purpose>For exposition only</purpose>
+            <type><classname>when</classname>&lt;<classname>_</classname>, Sequence&gt;</type>
+          </typedef>
+          <typedef name="Y">
+            <purpose>For exposition only</purpose>
+            <type><classname>when</classname>&lt;<classname>_</classname>, State0&gt;</type>
+          </typedef>
+          <typedef name="seq">
+            <purpose>A Fusion sequence, for exposition only</purpose>
+            <type>typename boost::result_of&lt;X(Expr, State, Data)&gt;::type</type>
+          </typedef>
+          <typedef name="state0">
+            <purpose>An initial state for the fold, for exposition only</purpose>
+            <type>typename boost::result_of&lt;Y(Expr, State, Data)&gt;::type</type>
+          </typedef>
+          <typedef name="fun">
+            <purpose><computeroutput>fun(d)(s,e) == when&lt;_,Fun&gt;()(e,s,d)</computeroutput></purpose>
+            <type><emphasis>unspecified</emphasis></type>
+          </typedef>
+          <typedef name="result_type">
+            <type>typename fusion::result_of::fold&lt;seq, state0, fun&gt;::type</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>result_type</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+                <description>
+                  <para>The current expression </para>
+                </description>
+              </parameter>
+              <parameter name="state">
+                <paramtype>typename impl::state_param</paramtype>
+                <description>
+                  <para>The current state </para>
+                </description>
+              </parameter>
+              <parameter name="data">
+                <paramtype>typename impl::data_param</paramtype>
+                <description>
+                  <para>An arbitrary data </para>
+                </description>
+              </parameter>
+              <description>
+                <para>
+                  Let <computeroutput>seq</computeroutput> be
+                  <computeroutput><classname>when</classname>&lt;<classname>_</classname>, Sequence&gt;()(expr, state, data)</computeroutput>,
+                  let <computeroutput>state0</computeroutput> be
+                  <computeroutput><classname>when</classname>&lt;<classname>_</classname>, State0&gt;()(expr, state, data)</computeroutput>,
+                  and let <computeroutput>fun(data)</computeroutput> be an object such that
+                  <computeroutput>fun(data)(state, expr)</computeroutput> is equivalent to
+                  <computeroutput><classname>when</classname>&lt;<classname>_</classname>, Fun&gt;()(expr, state, data)</computeroutput>. Then,
+                  this function returns <computeroutput>fusion::fold(seq, state0, fun(data))</computeroutput>.
+                </para>
+              </description>
+            </method>
+          </method-group>
+        </struct>
+      </struct>
+
+      <struct name="reverse_fold">
+        <template>
+          <template-type-parameter name="Sequence"/>
+          <template-type-parameter name="State0"/>
+          <template-type-parameter name="Fun"/>
+        </template>
+        <inherit><classname>proto::fold</classname>&lt; <classname>proto::_reverse</classname>(Sequence), State0, Fun &gt;</inherit>
+        <purpose>
+          A <conceptname>PrimitiveTransform</conceptname> that is the same as the <computeroutput><classname>proto::fold&lt;&gt;</classname></computeroutput>
+          transform, except that it folds back-to-front instead of front-to-back. It uses the
+          <computeroutput>
+            <classname>proto::_reverse</classname>
+          </computeroutput> callable <conceptname>PolymorphicFunctionObject</conceptname> to create a
+          <computeroutput>fusion::reverse_view&lt;&gt;</computeroutput> of the sequence before invoking
+          <computeroutput>fusion::fold&lt;&gt;</computeroutput>.
+        </purpose>
+      </struct>
+    </namespace>
+  </namespace>
+</header>

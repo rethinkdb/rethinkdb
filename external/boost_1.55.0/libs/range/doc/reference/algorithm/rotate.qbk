@@ -1,0 +1,44 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:rotate rotate]
+
+[heading Prototype]
+
+``
+template<class ForwardRange>
+ForwardRange& rotate(ForwardRange& rng,
+                     typename range_iterator<ForwardRange>::type middle);
+
+template<class ForwardRange>
+const ForwardRange& rotate(const ForwardRange& rng,
+                           typename range_iterator<const ForwardRange>::type middle);
+``
+
+[heading Description]
+
+`rotate` rotates the elements in a range. It exchanges the two ranges `[begin(rng), middle)` and `[middle, end(rng))`. Returns a reference to `rng`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/rotate.hpp`
+
+[heading Requirements]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+
+[heading Precondition:]
+
+* `[begin(rng), middle)` is a valid range.
+* `[middle, end(rng))` is a valid range.
+
+[heading Complexity]
+
+Linear. At most `distance(rng)` swaps are performed.
+
+[endsect]
+
+

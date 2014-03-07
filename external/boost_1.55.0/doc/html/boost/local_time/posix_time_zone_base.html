@@ -1,0 +1,175 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template posix_time_zone_base</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.local_time.posix_time_zone_hpp" title="Header &lt;boost/date_time/local_time/posix_time_zone.hpp&gt;">
+<link rel="prev" href="bad_adjustment.html" title="Struct bad_adjustment">
+<link rel="next" href="tz_database.html" title="Type definition tz_database">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bad_adjustment.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.local_time.posix_time_zone_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tz_database.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.local_time.posix_time_zone_base"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template posix_time_zone_base</span></h2>
+<p>boost::local_time::posix_time_zone_base &#8212; A time zone class constructed from a POSIX time zone string. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.local_time.posix_time_zone_hpp" title="Header &lt;boost/date_time/local_time/posix_time_zone.hpp&gt;">boost/date_time/local_time/posix_time_zone.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="posix_time_zone_base.html" title="Class template posix_time_zone_base">posix_time_zone_base</a> <span class="special">:</span>
+  <span class="keyword">public</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">time_zone_base</span><span class="special">&lt;</span> <span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span><span class="special">,</span> <span class="identifier">CharT</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">time_duration</span>                                                           <a name="boost.local_time.posix_time_zone_base.time_duration_type"></a><span class="identifier">time_duration_type</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">time_zone_names_base</span><span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;</span>                                                   <a name="boost.local_time.posix_time_zone_base.time_zone_names"></a><span class="identifier">time_zone_names</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">time_zone_base</span><span class="special">&lt;</span> <span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span><span class="special">,</span> <span class="identifier">CharT</span> <span class="special">&gt;</span>                                      <a name="boost.local_time.posix_time_zone_base.base_type"></a><span class="identifier">base_type</span><span class="special">;</span>              
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">string_type</span>                                                                     <a name="boost.local_time.posix_time_zone_base.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>            
+  <span class="keyword">typedef</span> <span class="identifier">CharT</span>                                                                                      <a name="boost.local_time.posix_time_zone_base.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>              
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">stringstream_type</span>                                                               <a name="boost.local_time.posix_time_zone_base.stringstream_type"></a><span class="identifier">stringstream_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">char_separator</span><span class="special">&lt;</span> <span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">char_traits</span><span class="special">&lt;</span> <span class="identifier">char_type</span> <span class="special">&gt;</span> <span class="special">&gt;</span>                          <a name="boost.local_time.posix_time_zone_base.char_separator_type"></a><span class="identifier">char_separator_type</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">tokenizer</span><span class="special">&lt;</span> <span class="identifier">char_separator_type</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">string_type</span><span class="special">::</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">string_type</span> <span class="special">&gt;</span> <a name="boost.local_time.posix_time_zone_base.tokenizer_type"></a><span class="identifier">tokenizer_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">tokenizer_type</span><span class="special">::</span><span class="identifier">iterator</span>                                                                   <a name="boost.local_time.posix_time_zone_base.tokenizer_iterator_type"></a><span class="identifier">tokenizer_iterator_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="posix_time_zone_base.html#boost.local_time.posix_time_zone_baseconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="posix_time_zone_base.html#idp53408200-bb"><span class="identifier">posix_time_zone_base</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="posix_time_zone_base.html#idp21992616-bb"><span class="special">~</span><span class="identifier">posix_time_zone_base</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="posix_time_zone_base.html#idp34979432-bb">public member functions</a></span>
+  <span class="identifier">string_type</span> <a class="link" href="posix_time_zone_base.html#idp34979640-bb"><span class="identifier">std_zone_abbrev</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">string_type</span> <a class="link" href="posix_time_zone_base.html#idp34980280-bb"><span class="identifier">dst_zone_abbrev</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">string_type</span> <a class="link" href="posix_time_zone_base.html#idp21194968-bb"><span class="identifier">std_zone_name</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">string_type</span> <a class="link" href="posix_time_zone_base.html#idp51520456-bb"><span class="identifier">dst_zone_name</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="posix_time_zone_base.html#idp21872824-bb"><span class="identifier">has_dst</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <a class="link" href="posix_time_zone_base.html#idp19132248-bb"><span class="identifier">dst_local_start_time</span></a><span class="special">(</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">greg_year</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <a class="link" href="posix_time_zone_base.html#idp19133384-bb"><span class="identifier">dst_local_end_time</span></a><span class="special">(</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">greg_year</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">time_duration_type</span> <a class="link" href="posix_time_zone_base.html#idp22504376-bb"><span class="identifier">base_utc_offset</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">time_duration_type</span> <a class="link" href="posix_time_zone_base.html#idp19107640-bb"><span class="identifier">dst_offset</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">string_type</span> <a class="link" href="posix_time_zone_base.html#idp53407560-bb"><span class="identifier">to_posix_string</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="posix_time_zone_base.html#idp21992680-bb">private member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="posix_time_zone_base.html#idp21992888-bb"><span class="identifier">calc_zone</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="posix_time_zone_base.html#idp21994104-bb"><span class="identifier">calc_rules</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="posix_time_zone_base.html#idp54468808-bb"><span class="identifier">M_func</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="posix_time_zone_base.html#idp36343240-bb"><span class="identifier">julian_no_leap</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="posix_time_zone_base.html#idp21777304-bb"><span class="identifier">julian_day</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="posix_time_zone_base.html#idp20015688-bb">private static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a class="link" href="posix_time_zone_base.html#idp20015896-bb"><span class="identifier">td_as_string</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp95253416"></a><h2>Description</h2>
+<p>A POSIX time zone string takes the form of:<br>
+ "std offset dst [offset],start[/time],end[/time]" (w/no spaces) 'std' specifies the abbrev of the time zone.<br>
+ 'offset' is the offset from UTC.<br>
+ 'dst' specifies the abbrev of the time zone during daylight savings time.<br>
+ The second offset is how many hours changed during DST. Default=1<br>
+ 'start' and'end' are the dates when DST goes into (and out of) effect.<br>
+ 'offset' takes the form of: [+|-]hh[:mm[:ss]] {h=0-23, m/s=0-59}<br>
+ 'time' and 'offset' take the same form. Time defaults=02:00:00<br>
+ 'start' and 'end' can be one of three forms:<br>
+ Mm.w.d {month=1-12, week=1-5 (5 is always last), day=0-6}<br>
+ Jn {n=1-365 Feb29 is never counted}<br>
+ n {n=0-365 Feb29 is counted in leap years}<br>
+ Example "PST-5PDT01:00:00,M4.1.0/02:00:00,M10.1.0/02:00:00" <br>
+ Exceptions will be thrown under these conditions:<br>
+ An invalid date spec (see date class)<br>
+ A <a class="link" href="bad_offset.html" title="Struct bad_offset">boost::local_time::bad_offset</a> exception will be thrown for:<br>
+ A DST start or end offset that is negative or more than 24 hours<br>
+ A UTC zone that is greater than +14 or less than -12 hours<br>
+ A <a class="link" href="bad_adjustment.html" title="Struct bad_adjustment">boost::local_time::bad_adjustment</a> exception will be thrown for:<br>
+ A DST adjustment that is 24 hours or more (positive or negative)<br>
+</p>
+<p>Note that UTC zone offsets can be greater than +12: <a href="http://www.worldtimezone.com/utc/utc+1200.html" target="_top">http://www.worldtimezone.com/utc/utc+1200.html</a> </p>
+<div class="refsect2">
+<a name="idp95259128"></a><h3>
+<a name="boost.local_time.posix_time_zone_baseconstruct-copy-destruct"></a><code class="computeroutput">posix_time_zone_base</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp53408200-bb"></a><span class="identifier">posix_time_zone_base</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> s<span class="special">)</span><span class="special">;</span></pre>Construct from a POSIX time zone string. </li>
+<li class="listitem"><pre class="literallayout"><a name="idp21992616-bb"></a><span class="special">~</span><span class="identifier">posix_time_zone_base</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp95265240"></a><h3>
+<a name="idp34979432-bb"></a><code class="computeroutput">posix_time_zone_base</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">string_type</span> <a name="idp34979640-bb"></a><span class="identifier">std_zone_abbrev</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>String for the zone when not in daylight savings (eg: EST) </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">string_type</span> <a name="idp34980280-bb"></a><span class="identifier">dst_zone_abbrev</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>String for the timezone when in daylight savings (eg: EDT) <p>For those time zones that have no DST, an empty string is used </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">string_type</span> <a name="idp21194968-bb"></a><span class="identifier">std_zone_name</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>String for the zone when not in daylight savings (eg: Eastern Standard Time) <p>The full STD name is not extracted from the posix time zone string. Therefore, the STD abbreviation is used in it's place </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">string_type</span> <a name="idp51520456-bb"></a><span class="identifier">dst_zone_name</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>String for the timezone when in daylight savings (eg: Eastern Daylight Time) <p>The full DST name is not extracted from the posix time zone string. Therefore, the STD abbreviation is used in it's place. For time zones that have no DST, an empty string is used </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp21872824-bb"></a><span class="identifier">has_dst</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>True if zone uses daylight savings adjustments otherwise false. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <a name="idp19132248-bb"></a><span class="identifier">dst_local_start_time</span><span class="special">(</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">greg_year</span> y<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Local time that DST starts <span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span> NADT if has_dst is false. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <a name="idp19133384-bb"></a><span class="identifier">dst_local_end_time</span><span class="special">(</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">greg_year</span> y<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Local time that DST ends <span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span> NADT if has_dst is false. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">time_duration_type</span> <a name="idp22504376-bb"></a><span class="identifier">base_utc_offset</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Base offset from UTC for zone (eg: -07:30:00) </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">time_duration_type</span> <a name="idp19107640-bb"></a><span class="identifier">dst_offset</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Adjustment forward or back made while DST is in effect. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">string_type</span> <a name="idp53407560-bb"></a><span class="identifier">to_posix_string</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns a POSIX time_zone string for this object. </li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp95295848"></a><h3>
+<a name="idp21992680-bb"></a><code class="computeroutput">posix_time_zone_base</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp21992888-bb"></a><span class="identifier">calc_zone</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> obj<span class="special">)</span><span class="special">;</span></pre>
+<p>Extract time zone abbreviations for STD &amp; DST as well as the offsets for the time shift that occurs and how much of a shift. At this time full time zone names are NOT extracted so the abbreviations are used in their place </p>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp21994104-bb"></a><span class="identifier">calc_rules</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> start<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> end<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp54468808-bb"></a><span class="identifier">M_func</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> s<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> e<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp36343240-bb"></a><span class="identifier">julian_no_leap</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> s<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> e<span class="special">)</span><span class="special">;</span></pre>Julian day. Feb29 is never counted, even in leap years. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp21777304-bb"></a><span class="identifier">julian_day</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> s<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> e<span class="special">)</span><span class="special">;</span></pre>Julian day. Feb29 is always counted, but exception thrown in non-leap years. </li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp95318264"></a><h3>
+<a name="idp20015688-bb"></a><code class="computeroutput">posix_time_zone_base</code> private static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a name="idp20015896-bb"></a><span class="identifier">td_as_string</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span> td<span class="special">)</span><span class="special">;</span></pre>helper function used when throwing exceptions </li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bad_adjustment.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.local_time.posix_time_zone_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tz_database.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+
+<!-- Copyright (c) 2002-2006 Pavol Droba.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="string_algo.intro" last-revision="$Date: 2008-02-27 12:00:24 -0800 (Wed, 27 Feb 2008) $">
+    <title>Introduction</title>
+
+    <para>
+        The String Algorithm Library provides a generic implementation of
+        string-related algorithms which are missing in STL. It is an extension
+        to the algorithms library of STL and it includes trimming, case conversion, 
+        predicates and find/replace functions. All of them come in different variants 
+        so it is easier to choose the best fit for a particular need.
+    </para>
+    <para>
+        The implementation is not restricted to work with a particular container 
+        (like <code>std::basic_string</code>), rather it is as generic as
+        possible. This generalization is not compromising the performance since
+        algorithms are using container specific features when it means a performance
+        gain.
+    </para>
+    <para>
+        <emphasis role="bold">
+            Important note: In this documentation we use term <emphasis>string</emphasis> to 
+            designate a sequence of <emphasis>characters</emphasis> stored in an arbitrary container.
+            A <emphasis>string</emphasis> is not restricted to <code>std::basic_string</code> and 
+            <emphasis>character</emphasis> does not have to be <code>char</code> or <code>wchar_t</code>,
+            although these are most common candidates.
+        </emphasis>
+        Consult the <link linkend="string_algo.design">design chapter</link> to see precise specification of
+        supported string types.
+    </para>
+    <para>      
+        The library interface functions and classes are defined in namespace <code>boost::algorithm</code>, and
+        they are lifted into namespace <code>boost</code> via using declaration.
+    </para>
+    <para>
+        The documentation is divided into several sections. For a quick start read the 
+        <link linkend="string_algo.usage">Usage</link> section followed by 
+        <link linkend="string_algo.quickref">Quick Reference</link>. 
+        <link linkend="string_algo.design">The Design Topics</link>,
+        <link linkend="string_algo.concept">Concepts</link> and <link linkend="string_algo.rationale">Rationale</link>
+        provide some explanation about the library design and structure an explain how it should be used.
+        See the <link linkend="string_algo.reference">Reference</link> for the complete list of provided utilities
+        and algorithms. Functions and classes in the reference are organized by the headers in which they are defined.
+        The reference contains links to the detailed description for every entity in the library.
+    </para>
+</section>

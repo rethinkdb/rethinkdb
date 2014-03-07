@@ -1,0 +1,213 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+     "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd"
+[
+    <!ENTITY % entities SYSTEM "program_options.ent" >
+    %entities;
+]>
+<section id="program_options.design">
+  <title>Design Discussion</title>
+
+  <para>This section focuses on some of the design questions.
+  </para>
+
+  <section id="program_options.design.unicode">
+
+    <title>Unicode Support</title>
+
+    <para>Unicode support was one of the features specifically requested
+      during the formal review. Throughout this document "Unicode support" is
+      a synonym for "wchar_t" support, assuming that "wchar_t" always uses
+      Unicode encoding.  Also, when talking about "ascii" (in lowercase) we'll
+      not mean strict 7-bit ASCII encoding, but rather "char" strings in local
+      8-bit encoding.
+    </para>
+          
+    <para>
+      Generally, &quot;Unicode support&quot; can mean
+      many things, but for the program_options library it means that:
+
+      <itemizedlist>
+        <listitem>
+          <para>Each parser should accept either <code>char*</code>
+          or <code>wchar_t*</code>, correctly split the input into option
+          names and option values and return the data.
+          </para>
+        </listitem>
+        <listitem>
+          <para>For each option, it should be possible to specify whether the conversion
+            from string to value uses ascii or Unicode.
+          </para>
+        </listitem>
+        <listitem>
+          <para>The library guarantees that:
+            <itemizedlist>
+              <listitem>
+                <para>ascii input is passed to an ascii value without change
+                </para>
+              </listitem>
+              <listitem>
+                <para>Unicode input is passed to a Unicode value without change</para>
+              </listitem>
+              <listitem>
+                <para>ascii input passed to a Unicode value, and Unicode input
+                  passed to an ascii value will be converted using a codecvt
+                  facet (which may be specified by the user).
+                </para>
+              </listitem>                 
+            </itemizedlist>
+          </para>
+        </listitem>
+      </itemizedlist>
+    </para>
+
+    <para>The important point is that it's possible to have some "ascii
+      options" together with "Unicode options". There are two reasons for
+      this. First, for a given type you might not have the code to extract the
+      value from Unicode string and it's not good to require that such code be written.
+      Second, imagine a reusable library which has some options and exposes
+      options description in its interface. If <emphasis>all</emphasis>
+      options are either ascii or Unicode, and the library does not use any
+      Unicode strings, then the author will likely to use ascii options, which
+      would make the library unusable inside Unicode
+      applications. Essentially, it would be necessary to provide two versions
+      of the library -- ascii and Unicode.
+    </para>
+
+    <para>Another important point is that ascii strings are passed though
+      without modification. In other words, it's not possible to just convert
+      ascii to Unicode and process the Unicode further. The problem is that the
+      default conversion mechanism -- the <code>codecvt</code> facet -- might
+      not work with 8-bit input without additional setup.
+    </para>
+
+    <para>The Unicode support outlined above is not complete. For example, we
+      don't support Unicode option names. Unicode support is hard and
+      requires a Boost-wide solution. Even comparing two arbitrary Unicode
+      strings is non-trivial. Finally, using Unicode in option names is
+      related to internationalization, which has it's own
+      complexities. E.g. if option names depend on current locale, then all
+      program parts and other parts which use the name must be
+      internationalized too.
+    </para>
+
+    <para>The primary question in implementing the Unicode support is whether
+      to use templates and <code>std::basic_string</code> or to use some
+      internal encoding and convert between internal and external encodings on
+      the interface boundaries.            
+    </para>
+
+    <para>The choice, mostly, is between code size and execution
+      speed. A templated solution would either link library code into every
+      application that uses the library (thereby making shared library
+      impossible), or provide explicit instantiations in the shared library
+      (increasing its size). The solution based on internal encoding would
+      necessarily make conversions in a number of places and will be somewhat slower.
+      Since speed is generally not an issue for this library, the second
+      solution looks more attractive, but we'll take a closer look at
+      individual components.
+    </para>
+
+    <para>For the parsers component, we have three choices:
+      <itemizedlist>
+        <listitem>
+          <para>Use a fully templated implementation: given a string of a
+            certain type, a parser will return a &parsed_options; instance
+            with strings of the same type (i.e. the &parsed_options; class
+            will be templated).</para>
+        </listitem>
+        <listitem>
+          <para>Use internal encoding: same as above, but strings will be converted to and
+            from the internal encoding.</para>
+        </listitem>
+        <listitem>
+          <para>Use and partly expose the internal encoding: same as above,
+            but the strings in the &parsed_options; instance will be in the
+            internal encoding. This might avoid a conversion if
+            &parsed_options; instance is passed directly to other components,
+            but can be also dangerous or confusing for a user.
+          </para>
+        </listitem>
+      </itemizedlist>
+    </para>
+
+    <para>The second solution appears to be the best -- it does not increase
+    the code size much and is cleaner than the third. To avoid extra
+    conversions, the Unicode version of &parsed_options; can also store
+    strings in internal encoding.
+    </para>
+
+    <para>For the options descriptions component, we don't have much
+      choice. Since it's not desirable to have either all options use ascii or all
+      of them use Unicode, but rather have some ascii and some Unicode options, the
+      interface of the &value_semantic; must work with both. The only way is
+      to pass an additional flag telling if strings use ascii or internal encoding.
+      The instance of &value_semantic; can then convert into some
+      other encoding if needed.
+    </para>
+
+    <para>For the storage component, the only affected function is &store;.
+      For Unicode input, the &store; function should convert the value to the
+      internal encoding.  It should also inform the &value_semantic; class
+      about the used encoding.
+    </para>
+
+    <para>Finally, what internal encoding should we use? The
+    alternatives are:
+    <code>std::wstring</code> (using UCS-4 encoding) and
+    <code>std::string</code> (using UTF-8 encoding). The difference between
+    alternatives is:
+      <itemizedlist>
+        <listitem>
+          <para>Speed: UTF-8 is a bit slower</para>
+        </listitem>
+        <listitem>
+          <para>Space: UTF-8 takes less space when input is ascii</para>
+        </listitem>
+        <listitem>
+          <para>Code size: UTF-8 requires additional conversion code. However,
+            it allows one to use existing parsers without converting them to
+            <code>std::wstring</code> and such conversion is likely to create a
+            number of new instantiations.
+          </para>
+        </listitem>
+          
+      </itemizedlist>
+      There's no clear leader, but the last point seems important, so UTF-8
+      will be used.      
+    </para>
+
+    <para>Choosing the UTF-8 encoding allows the use of existing parsers, 
+      because 7-bit ascii characters retain their values in UTF-8, 
+      so searching for 7-bit strings is simple. However, there are
+      two subtle issues:
+      <itemizedlist>
+        <listitem>
+          <para>We need to assume the character literals use ascii encoding
+          and that inputs use Unicode encoding.</para>
+        </listitem>
+        <listitem>
+          <para>A Unicode character (say '=') can be followed by 'composing
+          character' and the combination is not the same as just '=', so a
+          simple search for '=' might find the wrong character.
+          </para>
+        </listitem>
+      </itemizedlist>
+      Neither of these issues appear to be critical in practice, since ascii is
+      almost universal encoding and since composing characters following '=' (and
+      other characters with special meaning to the library) are not likely to appear.
+    </para>
+                   
+  </section>
+
+  
+</section>
+
+<!--
+     Local Variables:
+     mode: xml
+     sgml-indent-data: t     
+     sgml-parent-document: ("program_options.xml" "section")
+     sgml-set-face: t
+     End:
+-->

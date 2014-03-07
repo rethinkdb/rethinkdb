@@ -1,0 +1,143 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template pass_through</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.transform.pass_through_hpp" title="Header &lt;boost/proto/transform/pass_through.hpp&gt;">
+<link rel="prev" href="make/impl.html" title="Struct template impl">
+<link rel="next" href="pass_through/impl.html" title="Struct template impl">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make/impl.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.transform.pass_through_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pass_through/impl.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.pass_through"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template pass_through</span></h2>
+<p>boost::proto::pass_through &#8212; A <a class="link" href="../../PrimitiveTransform.html" title="Concept PrimitiveTransform">PrimitiveTransform</a> that transforms the child expressions of an expression
+          node according to the corresponding children of a Grammar. The resulting expression is in the specified domain.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.transform.pass_through_hpp" title="Header &lt;boost/proto/transform/pass_through.hpp&gt;">boost/proto/transform/pass_through.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Grammar<span class="special">,</span> <span class="keyword">typename</span> <a class="link" href="../../Domain.html" title="Concept Domain">Domain</a> <span class="special">=</span> <a class="link" href="deduce_domain.html" title="Struct deduce_domain">proto::deduce_domain</a><span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="pass_through.html" title="Struct template pass_through">pass_through</a> <span class="special">:</span> <span class="keyword"></span> <a class="link" href="transform.html" title="Struct template transform">proto::transform</a>&lt; pass_through&lt;Grammar, Domain&gt; &gt; <span class="special">{</span>
+  <span class="comment">// member classes/structs/unions</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../Expr.html" title="Concept Expr">Expr</a><span class="special">,</span> <span class="keyword">typename</span> State<span class="special">,</span> <span class="keyword">typename</span> Data<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="pass_through/impl.html" title="Struct template impl">impl</a> <span class="special">:</span> <span class="keyword"></span> <a class="link" href="transform_impl.html" title="Struct template transform_impl">proto::transform_impl</a>&lt;Expr, State, Data&gt; <span class="special">{</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">child_c</span><span class="special">&lt;</span><span class="identifier">Grammar</span><span class="special">,</span> <span class="identifier">N</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>       <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.GN"><span class="identifier">GN</span></a><span class="special">;</span>           <span class="comment">// For each N in [0,Expr arity), for exposition only</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">child_c</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">N</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>          <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.EN"><span class="identifier">EN</span></a><span class="special">;</span>           <span class="comment">// For each N in [0,Expr arity), for exposition only</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">&lt;</span><span class="identifier">GN</span><span class="special">(</span><span class="identifier">EN</span><span class="special">,</span><span class="identifier">State</span><span class="special">,</span><span class="identifier">Data</span><span class="special">)</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>         <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.RN"><span class="identifier">RN</span></a><span class="special">;</span>           <span class="comment">// For each N in [0,Expr arity), for exposition only</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">::</span><span class="identifier">proto_tag</span>                                   <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.T"><span class="identifier">T</span></a><span class="special">;</span>            <span class="comment">// For exposition only</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">Domain</span><span class="special">,</span> <a class="link" href="deduce_domain.html" title="Struct deduce_domain">deduce_domain</a><span class="special">&gt;</span>                      <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.Deduce"><span class="identifier">Deduce</span></a><span class="special">;</span>       <span class="comment">// For exposition only</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">::</span><span class="identifier">proto_domain</span>                                <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.DD"><span class="identifier">DD</span></a><span class="special">;</span>           <span class="comment">// For exposition only</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_</span><span class="special">&lt;</span><span class="identifier">Deduce</span><span class="special">,</span> <span class="identifier">DD</span><span class="special">,</span> <span class="identifier">Domain</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>                <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.D"><span class="identifier">D</span></a><span class="special">;</span>            <span class="comment">// For exposition only</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">D</span><span class="special">::</span><span class="identifier">proto_generator</span>                                <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.G"><span class="identifier">G</span></a><span class="special">;</span>            <span class="comment">// For exposition only</span>
+    <span class="keyword">typedef</span> <a class="link" href="listN.html" title="Struct template listN">proto::listN</a><span class="special">&lt;</span><span class="identifier">R0</span><span class="special">,</span><span class="special">...</span><span class="identifier">RN</span><span class="special">&gt;</span>                                     <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.A"><span class="identifier">A</span></a><span class="special">;</span>            <span class="comment">// For exposition only</span>
+    <span class="keyword">typedef</span> <a class="link" href="expr.html" title="Struct template expr">proto::expr</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;</span>                                          <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.E"><span class="identifier">E</span></a><span class="special">;</span>            <span class="comment">// For exposition only</span>
+    <span class="keyword">typedef</span> <a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;</span>                                    <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.BE"><span class="identifier">BE</span></a><span class="special">;</span>           <span class="comment">// For exposition only</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_</span><span class="special">&lt;</span><a class="link" href="wants_basic_expr.html" title="Struct template wants_basic_expr">proto::wants_basic_expr</a><span class="special">&lt;</span><span class="identifier">G</span><span class="special">&gt;</span><span class="special">,</span> <span class="identifier">BE</span><span class="special">,</span> <span class="identifier">E</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.expr_type"><span class="identifier">expr_type</span></a><span class="special">;</span>    <span class="comment">// For exposition only</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">(</span><span class="identifier">expr_type</span><span class="special">)</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>              <a class="link" href="pass_through/impl.html#boost.proto.pass_through.impl.result_type"><span class="identifier">result_type</span></a><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="pass_through/impl.html#idp68946472-bb">public member functions</a></span>
+    <span class="identifier">result_type</span> <a class="link" href="pass_through/impl.html#idp68943592-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">expr_param</span><span class="special">,</span> 
+                           <span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">state_param</span><span class="special">,</span> 
+                           <span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">data_param</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp187766888"></a><h2>Description</h2>
+<p>
+            Given a Grammar such as <code class="computeroutput"><a class="link" href="plus.html" title="Struct template plus">proto::plus</a>&lt;T0, T1&gt;</code>,
+            an expression type that matches the grammar such as
+            <code class="computeroutput"><a class="link" href="plus.html" title="Struct template plus">proto::plus</a>&lt;E0, E1&gt;::type</code>, a state
+            <code class="computeroutput">S</code> and a data <code class="computeroutput">D</code>, the result of applying
+            the <code class="computeroutput">proto::pass_through&lt;<a class="link" href="plus.html" title="Struct template plus">proto::plus</a>&lt;T0, T1&gt; &gt;</code>
+            transform is: </p>
+<pre class="programlisting"><a class="link" href="plus.html" title="Struct template plus">proto::plus</a><span class="special">&lt;</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">&lt;</span><span class="identifier">T0</span><span class="special">(</span><span class="identifier">E0</span><span class="special">,</span> <span class="identifier">S</span><span class="special">,</span> <span class="identifier">D</span><span class="special">)</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">,</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">(</span><span class="identifier">E1</span><span class="special">,</span> <span class="identifier">S</span><span class="special">,</span> <span class="identifier">D</span><span class="special">)</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>
+<span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span></pre>
+<p>
+          </p>
+<p>
+            The above demonstrates how child transforms and child expressions are applied pairwise, and how the
+            results are reassembled into a new expression node with the same tag type as the original.
+          </p>
+<p>
+            The <code class="computeroutput">Domain</code> template parameter determines which domain the resulting expression should
+            be in. If it is <code class="computeroutput"><a class="link" href="deduce_domain.html" title="Struct deduce_domain">proto::deduce_domain</a></code>, which is the default,
+            the resulting expression is in the same domain as the expression passed in. Otherwise, the resulting
+            expression is in the specified domain. Practically, that means the specified domain's generator is
+            used to post-process the resulting expression.
+          </p>
+<p>
+            The explicit use of <code class="computeroutput">proto::pass_through&lt;&gt;</code> is not usually
+            needed, since the expression generator metafunctions such as
+            <code class="computeroutput"><a class="link" href="plus.html" title="Struct template plus">proto::plus</a>&lt;&gt;</code> have
+            <code class="computeroutput">proto::pass_through&lt;&gt;</code> as their default transform. So,
+            for instance, these are equivalent:
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><code class="computeroutput">
+                  <a class="link" href="when.html" title="Struct template when">proto::when</a>&lt; <a class="link" href="plus.html" title="Struct template plus">proto::plus</a>&lt;X, Y&gt;, proto::pass_through&lt; <a class="link" href="plus.html" title="Struct template plus">proto::plus</a>&lt;X, Y&gt; &gt; &gt;
+                </code></li>
+<li class="listitem"><code class="computeroutput">
+                  <a class="link" href="when.html" title="Struct template when">proto::when</a>&lt; <a class="link" href="plus.html" title="Struct template plus">proto::plus</a>&lt;X, Y&gt;, <a class="link" href="plus.html" title="Struct template plus">proto::plus</a>&lt;X, Y&gt; &gt;
+                </code></li>
+<li class="listitem"><code class="computeroutput">
+                  <a class="link" href="when.html" title="Struct template when">proto::when</a>&lt; <a class="link" href="plus.html" title="Struct template plus">proto::plus</a>&lt;X, Y&gt; &gt; // because of proto::when&lt;class X, class Y=X&gt;
+                </code></li>
+<li class="listitem"><code class="computeroutput">
+                  <a class="link" href="plus.html" title="Struct template plus">proto::plus</a>&lt;X, Y&gt;  // because plus&lt;&gt; is both a grammar and a transform
+                </code></li>
+</ul></div>
+<p>
+          </p>
+<p>
+            For example, consider the following transform that promotes all
+            <code class="computeroutput">float</code> terminals in an expression to
+            <code class="computeroutput">double</code>.
+            </p>
+<pre class="programlisting"><span class="comment">// This transform finds all float terminals in an expression and promotes</span>
+<span class="comment">// them to doubles.</span>
+<span class="keyword">struct</span> <span class="identifier">Promote</span> <span class="special">:</span>
+  <a class="link" href="or_.html" title="Struct template or_">proto::or_</a><span class="special">&lt;</span>
+    <a class="link" href="when.html" title="Struct template when">proto::when</a><span class="special">&lt;</span><a class="link" href="terminal.html" title="Struct template terminal">proto::terminal</a><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;</span><span class="special">,</span> <a class="link" href="terminal.html" title="Struct template terminal">proto::terminal</a><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">(</span><a class="link" href="_value.html" title="Struct _value">proto::_value</a><span class="special">)</span> <span class="special">&gt;</span><span class="special">,</span>
+    <span class="comment">// terminal&lt;&gt;'s default transform is a no-op:</span>
+    <a class="link" href="terminal.html" title="Struct template terminal">proto::terminal</a><span class="special">&lt;</span><a class="link" href="_.html" title="Struct _">proto::_</a><span class="special">&gt;</span><span class="special">,</span>
+    <span class="comment">// nary_expr&lt;&gt; has a pass_through&lt;&gt; transform:</span>
+    <a class="link" href="nary_expr.html" title="Struct template nary_expr">proto::nary_expr</a><span class="special">&lt;</span><a class="link" href="_.html" title="Struct _">proto::_</a><span class="special">,</span> <a class="link" href="vararg.html" title="Struct template vararg">proto::vararg</a><span class="special">&lt;</span><span class="identifier">Promote</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+  <span class="special">&gt;</span>
+<span class="special">{</span><span class="special">}</span><span class="special">;</span></pre>
+<p>
+          </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make/impl.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.transform.pass_through_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pass_through/impl.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

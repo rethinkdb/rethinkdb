@@ -1,0 +1,41 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:sed_format Sed Format String Syntax]
+
+Sed-style format strings treat all characters as literals except:
+
+[table
+[[character][description]]
+[[&][The ampersand character is replaced in the output stream by 
+   the the whole of what matched the regular expression.  Use
+   \\& to output a literal '&' character.]]
+[[\\][Specifies an escape sequence.]]
+]
+
+An escape character followed by any character x, outputs that character unless x 
+is one of the escape sequences shown below.
+
+[table
+[[Escape][Meaning]]
+[[\\a][Outputs the bell character: '\\a'.]]
+[[\\e][Outputs the ANSI escape character (code point 27).]]
+[[\\f][Outputs a form feed character: '\\f']]
+[[\\n][Outputs a newline character: '\\n'.]]
+[[\\r][Outputs a carriage return character: '\\r'.]]
+[[\\t][Outputs a tab character: '\\t'.]]
+[[\\v][Outputs a vertical tab character: '\\v'.]]
+[[\\xDD][Outputs the character whose hexadecimal code point is 0xDD]]
+[[\\x{DDDD}][Outputs the character whose hexadecimal code point is 0xDDDDD]]
+[[\\cX][Outputs the ANSI escape sequence "escape-X".]]
+[[\\D][If D is a decimal digit in the range 1-9, then outputs the text that matched sub-expression D.]]
+]
+
+[endsect]
+
+

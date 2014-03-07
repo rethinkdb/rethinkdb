@@ -1,0 +1,518 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/repeat.hpp">
+  <para>
+    Contains macros to ease the generation of repetitious code constructs.
+  </para>
+
+  <macro name="BOOST_PROTO_REPEAT" kind="functionlike">
+    <macro-parameter name="MACRO"/>
+    <purpose>Repeatedly invoke the specified macro.</purpose>
+    <description>
+      <para>
+        <computeroutput>BOOST_PROTO_REPEAT()</computeroutput> is used to generate the kind of repetitive
+        code that is typical of EDSLs built with Proto.
+        <computeroutput>BOOST_PROTO_REPEAT(<replaceable>MACRO</replaceable>)</computeroutput>
+        is equivalent to:
+      </para>
+      <para>
+        <programlisting><replaceable>MACRO</replaceable>(1, <macroname>BOOST_PROTO_typename_A</macroname>, <macroname>BOOST_PROTO_A_const_ref</macroname>, <macroname>BOOST_PROTO_A_const_ref_a</macroname>, <macroname>BOOST_PROTO_ref_a</macroname>)
+<replaceable>MACRO</replaceable>(2, <macroname>BOOST_PROTO_typename_A</macroname>, <macroname>BOOST_PROTO_A_const_ref</macroname>, <macroname>BOOST_PROTO_A_const_ref_a</macroname>, <macroname>BOOST_PROTO_ref_a</macroname>)
+...
+<replaceable>MACRO</replaceable>(<macroname>BOOST_PROTO_MAX_ARITY</macroname>, <macroname>BOOST_PROTO_typename_A</macroname>, <macroname>BOOST_PROTO_A_const_ref</macroname>, <macroname>BOOST_PROTO_A_const_ref_a</macroname>, <macroname>BOOST_PROTO_ref_a</macroname>)</programlisting>
+      </para>
+      <para>
+        <emphasis role="bold">Example:</emphasis>
+      </para>
+      <para>
+        See <computeroutput><macroname>BOOST_PROTO_REPEAT_FROM_TO</macroname>()</computeroutput>.
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_REPEAT_FROM_TO" kind="functionlike">
+    <macro-parameter name="FROM"/>
+    <macro-parameter name="TO"/>
+    <macro-parameter name="MACRO"/>
+    <purpose>Repeatedly invoke the specified macro.</purpose>
+    <description>
+      <para>
+        <computeroutput>BOOST_PROTO_REPEAT_FROM_TO()</computeroutput> is used to generate the kind of repetitive
+        code that is typical of EDSLs built with Proto.
+        <computeroutput>BOOST_PROTO_REPEAT_FROM_TO(<replaceable>FROM</replaceable>, <replaceable>TO</replaceable>, <replaceable>MACRO</replaceable>)</computeroutput>
+        is equivalent to:
+      </para>
+      <para>
+        <programlisting><replaceable>MACRO</replaceable>(<replaceable>FROM</replaceable>, <macroname>BOOST_PROTO_typename_A</macroname>, <macroname>BOOST_PROTO_A_const_ref</macroname>, <macroname>BOOST_PROTO_A_const_ref_a</macroname>, <macroname>BOOST_PROTO_ref_a</macroname>)
+<replaceable>MACRO</replaceable>(<replaceable>FROM+1</replaceable>, <macroname>BOOST_PROTO_typename_A</macroname>, <macroname>BOOST_PROTO_A_const_ref</macroname>, <macroname>BOOST_PROTO_A_const_ref_a</macroname>, <macroname>BOOST_PROTO_ref_a</macroname>)
+...
+<replaceable>MACRO</replaceable>(<replaceable>TO-1</replaceable>, <macroname>BOOST_PROTO_typename_A</macroname>, <macroname>BOOST_PROTO_A_const_ref</macroname>, <macroname>BOOST_PROTO_A_const_ref_a</macroname>, <macroname>BOOST_PROTO_ref_a</macroname>)</programlisting>
+      </para>
+      <para>
+        <emphasis role="bold">Example:</emphasis>
+      </para>
+      <para>
+        <programlisting>// Generate BOOST_PROTO_MAX_ARITY-1 overloads of the
+// following construct() function template.
+#define M0(N, typename_A, A_const_ref, A_const_ref_a, ref_a)      \
+template&lt;typename T, typename_A(N)&gt;                               \
+typename <classname alt="boost::proto::result_of::make_expr">proto::result_of::make_expr</classname>&lt;                             \
+    <classname alt="boost::proto::tag::function">proto::tag::function</classname>                                          \
+  , construct_helper&lt;T&gt;                                           \
+  , A_const_ref(N)                                                \
+>::type const                                                     \
+construct(A_const_ref_a(N))                                       \
+{                                                                 \
+    return <functionname alt="boost::proto::make_expr">proto::make_expr</functionname>&lt;                                      \
+        <classname alt="boost::proto::tag::function">proto::tag::function</classname>                                      \
+    &gt;(                                                            \
+        construct_helper&lt;T&gt;()                                     \
+      , ref_a(N)                                                  \
+    );                                                            \
+}
+BOOST_PROTO_REPEAT_FROM_TO(1, BOOST_PROTO_MAX_ARITY, M0)
+#undef M0</programlisting>
+      </para>
+      <para>
+        The above invocation of <computeroutput>BOOST_PROTO_REPEAT_FROM_TO()</computeroutput>
+        will generate the following code:
+      </para>
+      <para>
+        <programlisting>template&lt;typename T, typename A0&gt;
+typename <classname alt="boost::proto::result_of::make_expr">proto::result_of::make_expr</classname>&lt;
+    <classname alt="boost::proto::tag::function">proto::tag::function</classname>
+  , construct_helper&lt;T&gt;
+  , A0 const &amp;
+&gt;::type const
+construct(A0 const &amp; a0)
+{
+    return <functionname alt="boost::proto::make_expr">proto::make_expr</functionname>&lt;
+        <classname alt="boost::proto::tag::function">proto::tag::function</classname>
+    &gt;(
+        construct_helper&lt;T&gt;()
+      , boost::ref(a0)
+    );
+}
+
+template&lt;typename T, typename A0, typename A1&gt;
+typename <classname alt="boost::proto::result_of::make_expr">proto::result_of::make_expr</classname>&lt;
+    <classname alt="boost::proto::tag::function">proto::tag::function</classname>
+  , construct_helper&lt;T&gt;
+  , A0 const &amp;
+  , A1 const &amp;
+&gt;::type const
+construct(A0 const &amp; a0, A1 const &amp; a1)
+{
+    return <functionname alt="boost::proto::make_expr">proto::make_expr</functionname>&lt;
+        <classname alt="boost::proto::tag::function">proto::tag::function</classname>
+    &gt;(
+        construct_helper&lt;T&gt;()
+      , boost::ref(a0)
+      , boost::ref(a1)
+    );
+}
+
+// ... and so on, up to BOOST_PROTO_MAX_ARITY-1 arguments ...</programlisting>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_REPEAT_EX" kind="functionlike">
+    <macro-parameter name="MACRO"/>
+    <macro-parameter name="typename_A"/>
+    <macro-parameter name="A"/>
+    <macro-parameter name="A_a"/>
+    <macro-parameter name="a"/>
+    <purpose>Repeatedly invoke the specified macro.</purpose>
+    <description>
+      <para>
+        <computeroutput>BOOST_PROTO_REPEAT_EX()</computeroutput> is used to generate the kind of repetitive
+        code that is typical of EDSLs built with Proto.
+        <computeroutput>BOOST_PROTO_REPEAT_EX(<replaceable>MACRO</replaceable>, <replaceable>typename_A</replaceable>, <replaceable>A</replaceable>, <replaceable>A_a</replaceable>, <replaceable>a</replaceable>)</computeroutput>
+        is equivalent to:
+      </para>
+      <para>
+        <programlisting><replaceable>MACRO</replaceable>(1, typename_A, A, A_a, a)
+<replaceable>MACRO</replaceable>(2, typename_A, A, A_a, a)
+...
+<replaceable>MACRO</replaceable>(<macroname>BOOST_PROTO_MAX_ARITY</macroname>, typename_A, A, A_a, a)</programlisting>
+      </para>
+      <para>
+        <emphasis role="bold">Example:</emphasis>
+      </para>
+      <para>
+        See <computeroutput><macroname>BOOST_PROTO_REPEAT_FROM_TO</macroname>()</computeroutput>.
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_REPEAT_FROM_TO_EX" kind="functionlike">
+    <macro-parameter name="FROM"/>
+    <macro-parameter name="TO"/>
+    <macro-parameter name="MACRO"/>
+    <macro-parameter name="typename_A"/>
+    <macro-parameter name="A"/>
+    <macro-parameter name="A_a"/>
+    <macro-parameter name="a"/>
+    <purpose>Repeatedly invoke the specified macro.</purpose>
+    <description>
+      <para>
+        <computeroutput>BOOST_PROTO_REPEAT_FROM_TO_EX()</computeroutput> is used to generate the kind of repetitive
+        code that is typical of EDSLs built with Proto.
+        <computeroutput>BOOST_PROTO_REPEAT_FROM_TO_EX(<replaceable>FROM</replaceable>, <replaceable>TO</replaceable>, <replaceable>MACRO</replaceable>, <replaceable>typename_A</replaceable>, <replaceable>A</replaceable>, <replaceable>A_a</replaceable>, <replaceable>a</replaceable>)</computeroutput>
+        is equivalent to:
+      </para>
+      <para>
+        <programlisting><replaceable>MACRO</replaceable>(<replaceable>FROM</replaceable>, typename_A, A, A_a, a)
+<replaceable>MACRO</replaceable>(<replaceable>FROM+1</replaceable>, typename_A, A, A_a, a)
+...
+<replaceable>MACRO</replaceable>(<replaceable>TO-1</replaceable>, typename_A, A, A_a, a)</programlisting>
+      </para>
+      <para>
+        <emphasis role="bold">Example:</emphasis>
+      </para>
+      <para>
+        See <computeroutput><macroname>BOOST_PROTO_REPEAT_FROM_TO</macroname>()</computeroutput>.
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_LOCAL_ITERATE" kind="functionlike">
+    <purpose>Vertical repetition of a user-supplied macro.</purpose>
+    <description>
+      <para>
+        <computeroutput>BOOST_PROTO_LOCAL_ITERATE()</computeroutput> is used generate the kind of repetitive code that is typical
+        of EDSLs built with Proto. This macro causes the user-defined macro <computeroutput>BOOST_PROTO_LOCAL_MACRO()</computeroutput> to
+        be expanded with values in the range specified by <computeroutput>BOOST_PROTO_LOCAL_LIMITS</computeroutput>.
+      </para>
+      <para>
+        <emphasis role="bold">Usage:</emphasis>
+      </para>
+      <para>
+        <programlisting>#include BOOST_PROTO_LOCAL_ITERATE()</programlisting>
+      </para>
+      <para>
+        <emphasis role="bold">Example:</emphasis>
+      </para>
+      <para>
+        <programlisting>// Generate BOOST_PROTO_MAX_ARITY-1 overloads of the
+// following construct() function template.
+#define BOOST_PROTO_LOCAL_MACRO(N, typename_A, A_const_ref, A_const_ref_a, ref_a)\
+template&lt;typename T, typename_A(N)&gt;                               \
+typename <classname alt="boost::proto::result_of::make_expr">proto::result_of::make_expr</classname>&lt;                             \
+    <classname alt="boost::proto::tag::function">proto::tag::function</classname>                                          \
+  , construct_helper&lt;T&gt;                                           \
+  , A_const_ref(N)                                                \
+>::type const                                                     \
+construct(A_const_ref_a(N))                                       \
+{                                                                 \
+    return <functionname alt="boost::proto::make_expr">proto::make_expr</functionname>&lt;                                      \
+        <classname alt="boost::proto::tag::function">proto::tag::function</classname>                                      \
+    &gt;(                                                            \
+        construct_helper&lt;T&gt;()                                     \
+      , ref_a(N)                                                  \
+    );                                                            \
+}
+#define BOOST_PROTO_LOCAL_LIMITS (1, BOOST_PP_DEC(BOOST_PROTO_MAX_ARITY))
+#include BOOST_PROTO_LOCAL_ITERATE()</programlisting>
+      </para>
+      <para>
+        The above inclusion of <computeroutput>BOOST_PROTO_LOCAL_ITERATE()</computeroutput>
+        will generate the following code:
+      </para>
+      <para>
+        <programlisting>template&lt;typename T, typename A0&gt;
+typename <classname alt="boost::proto::result_of::make_expr">proto::result_of::make_expr</classname>&lt;
+    <classname alt="boost::proto::tag::function">proto::tag::function</classname>
+  , construct_helper&lt;T&gt;
+  , A0 const &amp;
+&gt;::type const
+construct(A0 const &amp; a0)
+{
+    return <functionname alt="boost::proto::make_expr">proto::make_expr</functionname>&lt;
+        <classname alt="boost::proto::tag::function">proto::tag::function</classname>
+    &gt;(
+        construct_helper&lt;T&gt;()
+      , boost::ref(a0)
+    );
+}
+
+template&lt;typename T, typename A0, typename A1&gt;
+typename <classname alt="boost::proto::result_of::make_expr">proto::result_of::make_expr</classname>&lt;
+    <classname alt="boost::proto::tag::function">proto::tag::function</classname>
+  , construct_helper&lt;T&gt;
+  , A0 const &amp;
+  , A1 const &amp;
+&gt;::type const
+construct(A0 const &amp; a0, A1 const &amp; a1)
+{
+    return <functionname alt="boost::proto::make_expr">proto::make_expr</functionname>&lt;
+        <classname alt="boost::proto::tag::function">proto::tag::function</classname>
+    &gt;(
+        construct_helper&lt;T&gt;()
+      , boost::ref(a0)
+      , boost::ref(a1)
+    );
+}
+
+// ... and so on, up to BOOST_PROTO_MAX_ARITY-1 arguments ...</programlisting>
+      </para>
+      <para>
+        If <computeroutput>BOOST_PROTO_LOCAL_LIMITS</computeroutput> is not defined by the user, it defaults
+        to <computeroutput>(1, BOOST_PROTO_MAX_ARITY)</computeroutput>.
+      </para>
+      <para>
+        At each iteration, <computeroutput>BOOST_PROTO_LOCAL_MACRO()</computeroutput> is invoked with the current
+        iteration number and the following 4 macro parameters:
+        <itemizedlist>
+          <listitem><computeroutput>BOOST_PROTO_LOCAL_typename_A</computeroutput></listitem>
+          <listitem><computeroutput>BOOST_PROTO_LOCAL_A</computeroutput></listitem>
+          <listitem><computeroutput>BOOST_PROTO_LOCAL_A_a</computeroutput></listitem>
+          <listitem><computeroutput>BOOST_PROTO_LOCAL_a</computeroutput></listitem>
+        </itemizedlist>
+        If these macros are not defined by the user, they default respectively to:
+        <itemizedlist>
+          <listitem><computeroutput><macroname>BOOST_PROTO_typename_A</macroname></computeroutput></listitem>
+          <listitem><computeroutput><macroname>BOOST_PROTO_A_const_ref</macroname></computeroutput></listitem>
+          <listitem><computeroutput><macroname>BOOST_PROTO_A_const_ref_a</macroname></computeroutput></listitem>
+          <listitem><computeroutput><macroname>BOOST_PROTO_ref_a</macroname></computeroutput></listitem>
+        </itemizedlist>
+      </para>
+      <para>
+        After including <computeroutput>BOOST_PROTO_LOCAL_ITERATE()</computeroutput>, the
+        following macros are automatically undefined:
+        <itemizedlist>
+          <listitem><computeroutput>BOOST_PROTO_LOCAL_MACRO</computeroutput></listitem>
+          <listitem><computeroutput>BOOST_PROTO_LOCAL_LIMITS</computeroutput></listitem>
+          <listitem><computeroutput>BOOST_PROTO_LOCAL_typename_A</computeroutput></listitem>
+          <listitem><computeroutput>BOOST_PROTO_LOCAL_A</computeroutput></listitem>
+          <listitem><computeroutput>BOOST_PROTO_LOCAL_A_a</computeroutput></listitem>
+          <listitem><computeroutput>BOOST_PROTO_LOCAL_a</computeroutput></listitem>
+        </itemizedlist>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_typename_A" kind="functionlike">
+    <macro-parameter name="N"/>
+    <purpose>
+      Generates sequences like
+      <computeroutput>
+        typename A<subscript>0</subscript>,
+        typename A<subscript>1</subscript>, …
+        typename A<subscript>N-1</subscript>
+      </computeroutput>.
+    </purpose>
+    <description>
+      <para>
+        Intended for use with the <computeroutput><macroname>BOOST_PROTO_REPEAT</macroname>()</computeroutput>
+        and <computeroutput><macroname>BOOST_PROTO_LOCAL_ITERATE</macroname>()</computeroutput> macros.
+      </para>
+      <para>
+        <computeroutput>BOOST_PROTO_typename_A(<replaceable>N</replaceable>)</computeroutput> generates sequences like:
+      </para>
+      <para>
+        <programlisting>typename A<subscript>0</subscript>, typename A<subscript>1</subscript>, … typename A<subscript>N-1</subscript></programlisting>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_A_const_ref" kind="functionlike">
+    <macro-parameter name="N"/>
+    <purpose>
+      Generates sequences like
+      <computeroutput>
+        A<subscript>0</subscript> const &amp;,
+        A<subscript>1</subscript> const &amp;, …
+        A<subscript>N-1</subscript> const &amp;
+      </computeroutput>.
+    </purpose>
+    <description>
+      <para>
+        Intended for use with the <computeroutput><macroname>BOOST_PROTO_REPEAT</macroname>()</computeroutput>
+        and <computeroutput><macroname>BOOST_PROTO_LOCAL_ITERATE</macroname>()</computeroutput> macros.
+      </para>
+      <para>
+        <computeroutput>BOOST_PROTO_A_const_ref(<replaceable>N</replaceable>)</computeroutput> generates sequences like:
+      </para>
+      <para>
+        <programlisting>A<subscript>0</subscript> const &amp;, A<subscript>1</subscript> const &amp;, … A<subscript>N-1</subscript> const &amp;</programlisting>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_A_ref" kind="functionlike">
+    <macro-parameter name="N"/>
+    <purpose>
+      Generates sequences like
+      <computeroutput>
+        A<subscript>0</subscript> &amp;,
+        A<subscript>1</subscript> &amp;, …
+        A<subscript>N-1</subscript> &amp;
+      </computeroutput>.
+    </purpose>
+    <description>
+      <para>
+        Intended for use with the <computeroutput><macroname>BOOST_PROTO_REPEAT</macroname>()</computeroutput>
+        and <computeroutput><macroname>BOOST_PROTO_LOCAL_ITERATE</macroname>()</computeroutput> macros.
+      </para>
+      <para>
+        <computeroutput>BOOST_PROTO_A_ref(<replaceable>N</replaceable>)</computeroutput> generates sequences like:
+      </para>
+      <para>
+        <programlisting>A<subscript>0</subscript> &amp;, A<subscript>1</subscript> &amp;, … A<subscript>N-1</subscript> &amp;</programlisting>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_A" kind="functionlike">
+    <macro-parameter name="N"/>
+    <purpose>
+      Generates sequences like 
+      <computeroutput>
+        A<subscript>0</subscript>,
+        A<subscript>1</subscript>, …
+        A<subscript>N-1</subscript>
+      </computeroutput>.
+    </purpose>
+    <description>
+      <para>
+        Intended for use with the <computeroutput><macroname>BOOST_PROTO_REPEAT</macroname>()</computeroutput>
+        and <computeroutput><macroname>BOOST_PROTO_LOCAL_ITERATE</macroname>()</computeroutput> macros.
+      </para>
+      <para>
+        <computeroutput>BOOST_PROTO_A(<replaceable>N</replaceable>)</computeroutput> generates sequences like:
+      </para>
+      <para>
+        <programlisting>A<subscript>0</subscript>, A<subscript>1</subscript>, … A<subscript>N-1</subscript></programlisting>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_A_const" kind="functionlike">
+    <macro-parameter name="N"/>
+    <purpose>
+      Generates sequences like
+      <computeroutput>
+        A<subscript>0</subscript> const,
+        A<subscript>1</subscript> const, …
+        A<subscript>N-1</subscript> const
+      </computeroutput>.
+    </purpose>
+    <description>
+      <para>
+        Intended for use with the <computeroutput><macroname>BOOST_PROTO_REPEAT</macroname>()</computeroutput>
+        and <computeroutput><macroname>BOOST_PROTO_LOCAL_ITERATE</macroname>()</computeroutput> macros.
+      </para>
+      <para>
+        <computeroutput>BOOST_PROTO_A_const(<replaceable>N</replaceable>)</computeroutput> generates sequences like:
+      </para>
+      <para>
+        <programlisting>A<subscript>0</subscript> const, A<subscript>1</subscript> const, … A<subscript>N-1</subscript> const</programlisting>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_A_const_ref_a" kind="functionlike">
+    <macro-parameter name="N"/>
+    <purpose>
+      Generates sequences like 
+      <computeroutput>
+        A<subscript>0</subscript> const &amp; a<subscript>0</subscript>,
+        A<subscript>1</subscript> const &amp; a<subscript>1</subscript>, …
+        A<subscript>N-1</subscript> const &amp; a<subscript>N-1</subscript>
+      </computeroutput>.
+    </purpose>
+    <description>
+      <para>
+        Intended for use with the <computeroutput><macroname>BOOST_PROTO_REPEAT</macroname>()</computeroutput>
+        and <computeroutput><macroname>BOOST_PROTO_LOCAL_ITERATE</macroname>()</computeroutput> macros.
+      </para>
+      <para>
+        <computeroutput>BOOST_PROTO_A_const_ref_a(<replaceable>N</replaceable>)</computeroutput> generates sequences like:
+      </para>
+      <para>
+        <programlisting>A<subscript>0</subscript> const &amp; a<subscript>0</subscript>, A<subscript>1</subscript> const &amp; a<subscript>1</subscript>, … A<subscript>N-1</subscript> const &amp; a<subscript>N-1</subscript></programlisting>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_A_ref_a" kind="functionlike">
+    <macro-parameter name="N"/>
+    <purpose>
+      Generates sequences like
+      <computeroutput>
+        A<subscript>0</subscript> &amp; a<subscript>0</subscript>,
+        A<subscript>1</subscript> &amp; a<subscript>1</subscript>, …
+        A<subscript>N-1</subscript> &amp; a<subscript>N-1</subscript>
+      </computeroutput>.
+    </purpose>
+    <description>
+      <para>
+        Intended for use with the <computeroutput><macroname>BOOST_PROTO_REPEAT</macroname>()</computeroutput>
+        and <computeroutput><macroname>BOOST_PROTO_LOCAL_ITERATE</macroname>()</computeroutput> macros.
+      </para>
+      <para>
+        <computeroutput>BOOST_PROTO_A_ref_a(<replaceable>N</replaceable>)</computeroutput> generates sequences like:
+      </para>
+      <para>
+        <programlisting>A<subscript>0</subscript> &amp; a<subscript>0</subscript>, A<subscript>1</subscript> &amp; a<subscript>1</subscript>, … A<subscript>N-1</subscript> &amp; a<subscript>N-1</subscript></programlisting>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_ref_a" kind="functionlike">
+    <macro-parameter name="N"/>
+    <purpose>
+      Generates sequences like 
+      <computeroutput>
+        boost::ref(a<subscript>0</subscript>),
+        boost::ref(a<subscript>1</subscript>), …
+        boost::ref(a<subscript>N-1</subscript>)
+      </computeroutput>.
+    </purpose>
+    <description>
+      <para>
+        Intended for use with the <computeroutput><macroname>BOOST_PROTO_REPEAT</macroname>()</computeroutput>
+        and <computeroutput><macroname>BOOST_PROTO_LOCAL_ITERATE</macroname>()</computeroutput> macros.
+      </para>
+      <para>
+        <computeroutput>BOOST_PROTO_ref_a(<replaceable>N</replaceable>)</computeroutput> generates sequences like:
+      </para>
+      <para>
+        <programlisting>boost::ref(a<subscript>0</subscript>), boost::ref(a<subscript>1</subscript>), … boost::ref(a<subscript>N-1</subscript>)</programlisting>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_a" kind="functionlike">
+    <macro-parameter name="N"/>
+    <purpose>
+      Generates sequences like 
+      <computeroutput>
+        a<subscript>0</subscript>,
+        a<subscript>1</subscript>, …
+        a<subscript>N-1</subscript>
+      </computeroutput>.
+    </purpose>
+    <description>
+      <para>
+        Intended for use with the <computeroutput><macroname>BOOST_PROTO_REPEAT</macroname>()</computeroutput>
+        and <computeroutput><macroname>BOOST_PROTO_LOCAL_ITERATE</macroname>()</computeroutput> macros.
+      </para>
+      <para>
+        <computeroutput>BOOST_PROTO_a(<replaceable>N</replaceable>)</computeroutput> generates sequences like:
+      </para>
+      <para>
+        <programlisting>a<subscript>0</subscript>, a<subscript>1</subscript>, … a<subscript>N-1</subscript></programlisting>
+      </para>
+    </description>
+  </macro>
+
+</header>

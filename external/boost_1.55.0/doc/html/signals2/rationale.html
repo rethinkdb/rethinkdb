@@ -1,0 +1,399 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Design Rationale</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../signals2.html" title="Chapter&#160;28.&#160;Boost.Signals2">
+<link rel="prev" href="faq.html" title="Frequently Asked Questions">
+<link rel="next" href="api_changes.html" title="Signals2 API Changes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="faq.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="api_changes.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="signals2.rationale"></a>Design Rationale</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="rationale.html#idp206496904">User-level Connection Management</a></span></dt>
+<dt><span class="section"><a href="rationale.html#idp206507256">Automatic Connection Management</a></span></dt>
+<dt><span class="section"><a href="rationale.html#idp206516824"><code class="computeroutput">optional_last_value</code> as the Default Combiner</a></span></dt>
+<dt><span class="section"><a href="rationale.html#idp206520440">Combiner Interface</a></span></dt>
+<dt><span class="section"><a href="rationale.html#idp206525288">Connection Interfaces: +=  operator</a></span></dt>
+<dt><span class="section"><a href="rationale.html#idp206535576">Signals2 Mutex Classes</a></span></dt>
+<dt><span class="section"><a href="rationale.html#idp206541224">Comparison with other Signal/Slot implementations</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206496904"></a>User-level Connection Management</h3></div></div></div>
+<p> Users need to have fine control over the connection of
+    signals to slots and their eventual disconnection. The primary approach
+    taken by Boost.Signals2 is to return a
+    <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">signals2::connection</a></code> object that enables
+    connected/disconnected query, manual disconnection, and an
+    automatic disconnection on destruction mode (<code class="computeroutput"><a class="link" href="../boost/signals2/scoped_connection.html" title="Class scoped_connection">signals2::scoped_connection</a></code>).
+    In addition, two other interfaces are supported by the
+    <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp101978072-bb">signal::disconnect</a></code> overloaded method:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><span class="bold"><strong>Pass slot to
+        disconnect</strong></span>: in this interface model, the
+        disconnection of a slot connected with
+        <code class="computeroutput">sig.<a class="link" href="../boost/signals2/signal.html#idp101703096-bb">connect</a>(typeof(sig)::slot_type(slot_func))</code> is
+        performed via
+        <code class="computeroutput">sig.<a class="link" href="../boost/signals2/signal.html#idp101978072-bb">disconnect</a>(slot_func)</code>. Internally,
+        a linear search using slot comparison is performed and the
+        slot, if found, is removed from the list. Unfortunately,
+        querying connectedness ends up as a
+        linear-time operation.</p></li>
+<li class="listitem">
+<p><span class="bold"><strong>Pass a token to
+        disconnect</strong></span>: this approach identifies slots with a
+        token that is easily comparable (e.g., a string), enabling
+        slots to be arbitrary function objects. While this approach is
+        essentially equivalent to the connection approach taken by Boost.Signals2,
+        it is possibly more error-prone for several reasons:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem"><p>Connections and disconnections must be paired, so
+            the problem becomes similar to the problems incurred when
+            pairing <code class="computeroutput">new</code> and <code class="computeroutput">delete</code> for
+            dynamic memory allocation. While errors of this sort would
+            not be catastrophic for a signals and slots
+            implementation, their detection is generally
+            nontrivial.</p></li>
+<li class="listitem"><p>If tokens are not unique, two slots may have
+            the same name and be indistinguishable. In
+            environments where many connections will be made
+            dynamically, name generation becomes an additional task
+            for the user.</p></li>
+</ul></div>
+<p> This type of interface is supported in Boost.Signals2
+        via the slot grouping mechanism, and the overload of
+        <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp101978072-bb">signal::disconnect</a></code>
+        which takes an argument of the signal's <code class="computeroutput">Group</code> type.</p>
+</li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206507256"></a>Automatic Connection Management</h3></div></div></div>
+<p>Automatic connection management in Signals2
+      depends on the use of <code class="computeroutput">boost::shared_ptr</code> to
+      manage the lifetimes of tracked objects.  This is differs from
+      the original Boost.Signals library, which instead relied on derivation
+      from the <code class="computeroutput"><a class="link" href="../boost/signals/trackable.html" title="Class trackable">boost::signals::trackable</a></code> class.
+      The library would be
+      notified of an object's destruction by the
+      <code class="computeroutput"><a class="link" href="../boost/signals/trackable.html" title="Class trackable">boost::signals::trackable</a></code> destructor.
+    </p>
+<p>Unfortunately, the <code class="computeroutput"><a class="link" href="../boost/signals/trackable.html" title="Class trackable">boost::signals::trackable</a></code>
+      scheme cannot be made thread safe due
+      to destructor ordering.  The destructor of an class derived from
+      <code class="computeroutput"><a class="link" href="../boost/signals/trackable.html" title="Class trackable">boost::signals::trackable</a></code> will always be
+      called before the destructor of the base <code class="computeroutput"><a class="link" href="../boost/signals/trackable.html" title="Class trackable">boost::signals::trackable</a></code>
+      class.  However, for thread-safety the connection between the signal and object
+      needs to be disconnected before the object runs its destructors.
+      Otherwise, if an object being destroyed
+      in one thread is connected to a signal concurrently
+      invoking in another thread, the signal may call into
+      a partially destroyed object.
+    </p>
+<p>We solve this problem by requiring that tracked objects be
+      managed by <code class="computeroutput">shared_ptr</code>.  Slots keep a
+      <code class="computeroutput">weak_ptr</code> to every object the slot depends
+      on.  Connections to a slot are disconnected when any of its tracked
+      <code class="computeroutput">weak_ptr</code>s expire.  Additionally, signals
+      create their own temporary <code class="computeroutput">shared_ptr</code>s to
+      all of a slot's tracked objects prior to invoking the slot.  This
+      insures none of the tracked objects destruct in mid-invocation.
+    </p>
+<p>The new connection management scheme has the advantage of being
+      non-intrusive.  Objects of any type may be tracked using the
+      <code class="computeroutput">shared_ptr</code>/<code class="computeroutput">weak_ptr</code> scheme.  The old
+      <code class="computeroutput"><a class="link" href="../boost/signals/trackable.html" title="Class trackable">boost::signals::trackable</a></code>
+      scheme requires the tracked objects to be derived from the <code class="computeroutput">trackable</code>
+      base class, which is not always practical when interacting
+      with classes from 3rd party libraries.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206516824"></a><code class="computeroutput">optional_last_value</code> as the Default Combiner</h3></div></div></div>
+<p>
+      The default combiner for Boost.Signals2 has changed from the <code class="computeroutput">last_value</code>
+      combiner used by default in the original Boost.Signals library.
+      This is because <code class="computeroutput">last_value</code> requires that at least 1 slot be
+      connected to the signal when it is invoked (except for the <code class="computeroutput">last_value&lt;void&gt;</code> specialization).
+      In a multi-threaded environment where signal invocations and slot connections
+      and disconnections may be happening concurrently, it is difficult
+      to fulfill this requirement.  When using <code class="computeroutput"><a class="link" href="../boost/signals2/optional_last_value.html" title="Class template optional_last_value">optional_last_value</a></code>,
+      there is no requirement for slots to be connected when a signal
+      is invoked, since in that case the combiner may simply return an empty
+      <code class="computeroutput">boost::optional</code>.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206520440"></a>Combiner Interface</h3></div></div></div>
+<p> The Combiner interface was chosen to mimic a call to an
+    algorithm in the C++ standard library. It is felt that by viewing
+    slot call results as merely a sequence of values accessed by input
+    iterators, the combiner interface would be most natural to a
+    proficient C++ programmer. Competing interface design generally
+    required the combiners to be constructed to conform to an
+    interface that would be customized for (and limited to) the
+    Signals2 library. While these interfaces are generally enable more
+    straighforward implementation of the signals &amp; slots
+    libraries, the combiners are unfortunately not reusable (either in
+    other signals &amp; slots libraries or within other generic
+    algorithms), and the learning curve is steepened slightly to learn
+    the specific combiner interface.</p>
+<p> The Signals2 formulation of combiners is based on the
+    combiner using the "pull" mode of communication, instead of the
+    more complex "push" mechanism. With a "pull" mechanism, the
+    combiner's state can be kept on the stack and in the program
+    counter, because whenever new data is required (i.e., calling the
+    next slot to retrieve its return value), there is a simple
+    interface to retrieve that data immediately and without returning
+    from the combiner's code. Contrast this with the "push" mechanism,
+    where the combiner must keep all state in class members because
+    the combiner's routines will be invoked for each signal
+    called. Compare, for example, a combiner that returns the maximum
+    element from calling the slots. If the maximum element ever
+    exceeds 100, no more slots are to be called.</p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th align="left"><p>Pull</p></th>
+<th align="left"><p>Push</p></th>
+</tr></thead>
+<tbody><tr>
+<td align="left">
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">
+struct pull_max {
+  typedef int result_type;
+
+  template&lt;typename InputIterator&gt;
+  result_type operator()(InputIterator first,
+                         InputIterator last)
+  {
+    if (first == last)
+      throw std::runtime_error("Empty!");
+
+    int max_value = *first++;
+    while(first != last &amp;&amp; *first &lt;= 100) {
+      if (*first &gt; max_value)
+        max_value = *first;
+      ++first;
+    }
+
+    return max_value;
+  }
+};
+</pre>
+</td>
+<td align="left">
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">
+struct push_max {
+  typedef int result_type;
+
+  push_max() : max_value(), got_first(false) {}
+
+  // returns false when we want to stop
+  bool operator()(int result) {
+    if (result &gt; 100)
+      return false;
+
+    if (!got_first) {
+      got_first = true;
+      max_value = result;
+      return true;
+    }
+
+    if (result &gt; max_value)
+      max_value = result;
+
+    return true;
+  }
+
+  int get_value() const
+  {
+    if (!got_first)
+      throw std::runtime_error("Empty!");
+    return max_value;
+  }
+
+private:
+  int  max_value;
+  bool got_first;
+};
+</pre>
+</td>
+</tr></tbody>
+</table></div>
+<p>There are several points to note in these examples. The
+    "pull" version is a reusable function object that is based on an
+    input iterator sequence with an integer <code class="computeroutput">value_type</code>,
+    and is very straightforward in design. The "push" model, on the
+    other hand, relies on an interface specific to the caller and is
+    not generally reusable. It also requires extra state values to
+    determine, for instance, if any elements have been
+    received. Though code quality and ease-of-use is generally
+    subjective, the "pull" model is clearly shorter and more reusable
+    and will often be construed as easier to write and understand,
+    even outside the context of a signals &amp; slots library.</p>
+<p> The cost of the "pull" combiner interface is paid in the
+    implementation of the Signals2 library itself. To correctly handle
+    slot disconnections during calls (e.g., when the dereference
+    operator is invoked), one must construct the iterator to skip over
+    disconnected slots. Additionally, the iterator must carry with it
+    the set of arguments to pass to each slot (although a reference to
+    a structure containing those arguments suffices), and must cache
+    the result of calling the slot so that multiple dereferences don't
+    result in multiple calls. This apparently requires a large degree
+    of overhead, though if one considers the entire process of
+    invoking slots one sees that the overhead is nearly equivalent to
+    that in the "push" model, but we have inverted the control
+    structures to make iteration and dereference complex (instead of
+    making combiner state-finding complex).</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206525288"></a>Connection Interfaces: +=  operator</h3></div></div></div>
+<p> Boost.Signals2 supports a connection syntax with the form
+    <code class="computeroutput">sig.<a class="link" href="../boost/signals2/signal.html#idp101703096-bb">connect</a>(slot)</code>, but a
+    more terse syntax <code class="computeroutput">sig += slot</code> has been suggested (and
+    has been used by other signals &amp; slots implementations). There
+    are several reasons as to why this syntax has been
+    rejected:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><span class="bold"><strong>It's unnecessary</strong></span>: the
+        connection syntax supplied by Boost.Signals2 is no less
+        powerful that that supplied by the <code class="computeroutput">+=</code>
+        operator. The savings in typing (<code class="computeroutput">connect()</code>
+        vs. <code class="computeroutput">+=</code>) is essentially negligible. Furthermore,
+        one could argue that calling <code class="computeroutput">connect()</code> is more
+        readable than an overload of <code class="computeroutput">+=</code>.</p></li>
+<li class="listitem"><p><span class="bold"><strong>Ambiguous return type</strong></span>:
+        there is an ambiguity concerning the return value of the
+        <code class="computeroutput">+=</code> operation: should it be a reference to the
+        signal itself, to enable <code class="computeroutput">sig += slot1 += slot2</code>,
+        or should it return a
+        <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">signals2::connection</a></code> for the
+        newly-created signal/slot connection?</p></li>
+<li class="listitem">
+<p><span class="bold"><strong>Gateway to operators -=,
+        +</strong></span>: when one has added a connection operator
+        <code class="computeroutput">+=</code>, it seems natural to have a disconnection
+        operator <code class="computeroutput">-=</code>. However, this presents problems when
+        the library allows arbitrary function objects to implicitly
+        become slots, because slots are no longer comparable.  </p>
+<p> The second obvious addition when one has
+        <code class="computeroutput">operator+=</code> would be to add a <code class="computeroutput">+</code>
+        operator that supports addition of multiple slots, followed by
+        assignment to a signal. However, this would require
+        implementing <code class="computeroutput">+</code> such that it can accept any two
+        function objects, which is technically infeasible.</p>
+</li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206535576"></a>Signals2 Mutex Classes</h3></div></div></div>
+<p>
+      The Boost.Signals2 library provides 2 mutex classes: <code class="computeroutput"><a class="link" href="../boost/signals2/mutex.html" title="Class mutex">boost::signals2::mutex</a></code>,
+      and <code class="computeroutput"><a class="link" href="../boost/signals2/dummy_mutex.html" title="Class dummy_mutex">boost::signals2::dummy_mutex</a></code>.  The motivation for providing
+      <code class="computeroutput"><a class="link" href="../boost/signals2/mutex.html" title="Class mutex">boost::signals2::mutex</a></code> is simply that the <code class="computeroutput">boost::mutex</code>
+      class provided by the Boost.Thread library currently requires linking to libboost_thread.
+      The <code class="computeroutput"><a class="link" href="../boost/signals2/mutex.html" title="Class mutex">boost::signals2::mutex</a></code> class allows Signals2 to remain
+      a header-only library.  You may still choose to use <code class="computeroutput">boost::mutex</code>
+      if you wish, by specifying it as the <code class="computeroutput">Mutex</code> template type for your signals.
+    </p>
+<p>
+      The <code class="computeroutput"><a class="link" href="../boost/signals2/dummy_mutex.html" title="Class dummy_mutex">boost::signals2::dummy_mutex</a></code> class is provided to allow
+      performance sensitive single-threaded applications to minimize overhead by avoiding unneeded
+      mutex locking.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206541224"></a>Comparison with other Signal/Slot implementations</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="rationale.html#idp206541608">libsigc++</a></span></dt>
+<dt><span class="section"><a href="rationale.html#idp206545496">.NET delegates</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp206541608"></a>libsigc++</h4></div></div></div>
+<p> <a href="http://libsigc.sourceforge.net" target="_top">libsigc++</a> is a C++
+      signals &amp; slots library that originally started as part of
+      an initiative to wrap the C interfaces to <a href="http://www.gtk.org" target="_top">GTK</a> libraries in C++, and has
+      grown to be a separate library maintained by Karl Nelson. There
+      are many similarities between libsigc++ and Boost.Signals2, and
+      indeed the original Boost.Signals was strongly influenced by
+      Karl Nelson and libsigc++. A cursory inspection of each library will find a
+      similar syntax for the construction of signals and in the use of
+      connections. There
+      are some major differences in design that separate these
+      libraries:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><span class="bold"><strong>Slot definitions</strong></span>:
+          slots in libsigc++ are created using a set of primitives
+          defined by the library. These primitives allow binding of
+          objects (as part of the library), explicit adaptation from
+          the argument and return types of the signal to the argument
+          and return types of the slot (libsigc++ is, by default, more
+          strict about types than Boost.Signals2).</p></li>
+<li class="listitem"><p><span class="bold"><strong>Combiner/Marshaller
+          interface</strong></span>: the equivalent to Boost.Signals2
+          combiners in libsigc++ are the marshallers. Marshallers are
+          similar to the "push" interface described in Combiner
+          Interface, and a proper treatment of the topic is given
+          there.</p></li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp206545496"></a>.NET delegates</h4></div></div></div>
+<p> <a href="http://www.microsoft.com" target="_top">Microsoft</a>
+      has introduced the .NET Framework and an associated set of
+      languages and language extensions, one of which is the
+      delegate. Delegates are similar to signals and slots, but they
+      are more limited than most C++ signals and slots implementations
+      in that they:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>Require exact type matches between a delegate and what
+          it is calling.</p></li>
+<li class="listitem"><p>Only return the result of the last target called, with no option for customization.</p></li>
+<li class="listitem"><p>Must call a method with <code class="computeroutput">this</code> already
+          bound.</p></li>
+</ul></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: June 12, 2007 at 14:01:23 -0400</small></p></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="faq.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="api_changes.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

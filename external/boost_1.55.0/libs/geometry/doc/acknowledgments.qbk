@@ -1,0 +1,43 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section Acknowledgments]
+
+We like to thank all the people who helped to develop this library.
+
+First of all we are grateful to Hartmut Kaiser for managing the formal review 
+of this library. Hartmut is an excellent review manager, who intervented when 
+necessary and produced the review report quickly.
+
+We thank the 14 reviewers of our library, reviewed from November 5, 2009 to 
+November 22, 2009. Reviews have been written by: Brandon Kohn, Christophe 
+Henry, Fabio Fracassi, Gordon Woodhull, Joachim Faulhaber, Jonathan Franklin, 
+Jose, Lucanus Simonson, Michael Caisse, Michael Fawcett, Paul Bristow, Phil 
+Endecott, Thomas Klimpel, Tom Brinkman.
+
+We also thank all people who discussed on the mailing lists (either at boost, 
+or at osgeo) about __boost_geometry__, in preview stage, or in review stage, 
+or after that.
+
+Furthermore we are thankful to people supplying patches: Arnold Metselaar, 
+Aleksey Tulinov, Christophe Henry
+
+Finally I (Barend) would like to thank my former employer, Geodan. They 
+allowed me to start a geographic library in 1995, which after a number of 
+incarnations, redesigns, refactorings, previews, a review and even more 
+refactorings have led to the now released __boost_geometry__. And with them I 
+want to thank the team initially involved in developing the library, Valik 
+Solorzano Barboza, Maarten Hilferink, Anne Blankert, and later Sjoerd 
+Schreuder, Steven Fruijtier, Paul den Dulk, and Joris Sierman.
+
+[endsect]
+

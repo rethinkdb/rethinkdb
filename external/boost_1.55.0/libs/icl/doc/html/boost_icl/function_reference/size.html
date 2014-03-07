@@ -1,0 +1,406 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Size</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../function_reference.html" title="Function Reference">
+<link rel="prev" href="equivalences_and_orderings.html" title="Equivalences and Orderings">
+<link rel="next" href="range.html" title="Range">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="equivalences_and_orderings.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function_reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="range.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_function_reference_size" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.function_reference.size"></a><a class="link" href="size.html" title="Size">Size</a>
+</h3></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                <span class="emphasis"><em><span class="bold"><strong>Size</strong></span></em></span>
+              </p>
+              </th>
+<th>
+              <p>
+                intervals
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> sets
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> maps
+              </p>
+              </th>
+<th>
+              <p>
+                element<br> sets
+              </p>
+              </th>
+<th>
+              <p>
+                element<br> maps
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">size</span><span class="special">()</span><span class="keyword">const</span></code><br>
+                <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">cardinality</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">difference_type</span> <span class="identifier">length</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">iterative_size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">interval_count</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        For <span class="bold"><strong>icl</strong></span> containers the single <code class="computeroutput"><span class="identifier">size</span></code> function known from std containers
+        branches into tree to five different members functions. The table above shows
+        the types, <code class="computeroutput"><span class="identifier">size</span></code> functions
+        are implemented for, together with their <span class="bold"><strong>complexities</strong></span>.
+        Linear complexities <span class="emphasis"><em>O(n)</em></span> refer to the container's <code class="computeroutput"><span class="identifier">iterative_size</span></code>: 
+</p>
+<pre class="programlisting"><span class="identifier">n</span> <span class="special">=</span> <span class="identifier">y</span><span class="special">.</span><span class="identifier">iterative_size</span><span class="special">()</span>
+</pre>
+<p>
+      </p>
+<p>
+        The next table gives a short definition for the different size functions.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                <span class="emphasis"><em><span class="bold"><strong>Size</strong></span></em></span>
+              </p>
+              </th>
+<th>
+              <p>
+                Types
+              </p>
+              </th>
+<th>
+              <p>
+                Description
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">interval_count</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                The number of intervals of an interval container.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">iterative_size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                The number of objects in an icl container that can be iterated over.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">difference_type</span> <span class="identifier">length</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                The length of an interval or the sum of lengths of an interval container's
+                intervals, that's <code class="computeroutput"><span class="identifier">domain_type</span></code>
+                has a <code class="computeroutput"><span class="identifier">difference_type</span></code>.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">cardinality</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                The number of elements of an interval or a container. For continuous
+                data types cardinality can be <span class="emphasis"><em>infinite</em></span>.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">size</span><span class="special">()</span><span class="keyword">const</span></code><br>
+                <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                The number of elements of an interval or a container, which is also
+                it's <code class="computeroutput"><span class="identifier">cardinality</span></code>.
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>Back to section . . .</strong></span></em></span>
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr><td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#function_synopsis_table"><span class="emphasis"><em><span class="bold"><strong>Function
+                Synopsis</strong></span></em></span></a>
+              </p>
+              </td></tr>
+<tr><td>
+              <p>
+                <a class="link" href="../interface.html" title="Interface"><span class="emphasis"><em><span class="bold"><strong>Interface</strong></span></em></span></a>
+              </p>
+              </td></tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="equivalences_and_orderings.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function_reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="range.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

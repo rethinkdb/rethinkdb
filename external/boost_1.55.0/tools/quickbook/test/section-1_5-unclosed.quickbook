@@ -1,0 +1,5 @@
+[article Unclosed section
+[quickbook 1.5]
+]
+
+[section:unclosed Unclosed Section should be closed with a warning]

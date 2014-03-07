@@ -1,0 +1,107 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Test case template with automated registration</title>
+<link rel="stylesheet" href="../../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../../index.html" title="Boost Test Library">
+<link rel="up" href="test-case-template.html" title="Test case template">
+<link rel="prev" href="manual-test-case-template.html" title="Manually registered test case template">
+<link rel="next" href="test-suite.html" title="Test suite">
+<script language="JavaScript1.2" src="../../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../../utf.html">The Unit Test Framework</a> &gt; <a href="../../user-guide.html">User's guide</a><a href="../../testing-tools.html">
+      &gt;
+      </a><a href="../test-organization.html">Test organization</a><a href="../fixture.html">
+      &gt;
+      </a><a href="test-case-template.html">Test case template</a><a href="test-suite.html">
+      &gt;
+      </a><b>Automated registration</b>
+</td>
+<td><div class="spirit-nav">
+<a href="manual-test-case-template.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="test-suite.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-organization.auto-test-case-template"></a>Test case template with automated registration</h6></div></div></div>
+<p class="first-line-indented">
+    To create a test case template registered in place of implementation, employ the macro
+    BOOST_AUTO_TEST_CASE_TEMPLATE. This facility is also called <em class="firstterm">auto test case template</em>.
+   </p>
+<pre class="inline-synopsis">
+<a name="BOOST_AUTO_TEST_CASE_TEMPLATE"></a>BOOST_AUTO_TEST_CASE_TEMPLATE(<span class="emphasis"><em>test_case_name</em></span>, <span class="emphasis"><em>formal_type_parameter_name</em></span>, <span class="emphasis"><em>collection_of_types</em></span>)</pre>
+<p class="first-line-indented">
+    The macro BOOST_AUTO_TEST_CASE_TEMPLATE requires three arguments:
+   </p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody>
+<tr>
+<td><p><span class="term">The test case template name</span></p></td>
+<td>
+         unique test cases template identifier
+      </td>
+</tr>
+<tr>
+<td><p><span class="term">The name of a formal template parameter</span></p></td>
+<td>
+         name of the type the test case template is instantiated with
+      </td>
+</tr>
+<tr>
+<td><p><span class="term">The collection of types to instantiate test case template with</span></p></td>
+<td>
+         arbitrary MPL sequence
+      </td>
+</tr>
+</tbody>
+</table></div>
+<div class="example">
+<a name="utf.user-guide.test-organization.auto-test-case-template.example10"></a><p class="title"><b>Example 14. Test case template with automated registration</b></p>
+<div class="example-contents">
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+#include &lt;boost/test/test_case_template.hpp&gt;
+#include &lt;boost/mpl/list.hpp&gt;
+
+//____________________________________________________________________________//
+
+typedef boost::mpl::list&lt;int,long,unsigned char&gt; test_types;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( my_test, T, test_types )
+{
+    BOOST_CHECK_EQUAL( sizeof(T), (unsigned)4 )
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example10.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id650768" onclick="toggle_element( 'example10-output', 'id650768', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example10-output">&gt; example
+Running 3 test cases...
+test.cpp(12): error in "my_test&lt;unsigned char&gt;": check sizeof(T) == 4 failed [1 != 4]
+
+*** 1 failure detected in test suite "example"
+</pre>
+</div>
+</div>
+<br class="example-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="manual-test-case-template.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="test-case-template.html"><img src="../../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="test-suite.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

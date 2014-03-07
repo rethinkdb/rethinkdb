@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<header name="boost/signals2/shared_connection_block.hpp" last-revision="$Date: 2007-03-06 16:51:55 -0500 (Tue, 06 Mar 2007) $">
+  <using-namespace name="boost::signals2"/>
+  <using-namespace name="boost"/>
+  <using-class name="boost::signals2::connection"/>
+  <namespace name="boost">
+    <namespace name="signals2">
+      <class name="shared_connection_block">
+        <purpose>Blocks a connection between a signal and a slot.</purpose>
+
+        <description>
+          <para>A <code>shared_connection_block</code> object blocks a
+          connection, preventing the associated slot from executing when the
+          associated signal is invoked. The connection will remain
+          blocked until every <code>shared_connection_block</code> that references
+          the connection
+          releases its block.  A <code>shared_connection_block</code> releases
+          its block when it is destroyed or its
+          <methodname>unblock</methodname> method is called.</para>
+          <para>A <code>shared_connection_block</code> is safe to use even
+          after the <classname>signals2::connection</classname> object it was constructed
+          from has been destroyed, or the connection it references has been
+          disconnected.</para>
+          <para>
+            Note, blocking a connection does not guarantee the associated slot
+            has finished execution if it is already in the process of being run
+            when the connection block goes into effect.  This is similar
+            to the behaviour of disconnect, in that blocking a connection
+            will not wait for the connection's associated slot to complete execution.
+            This situation may arise in a multi-threaded environment if the
+            connection block goes into effect concurrently with signal invocation,
+            or in a single-threaded environment if a slot blocks its own
+            connection.
+          </para>
+        </description>
+
+        <constructor>
+          <parameter name="conn">
+            <paramtype>const <classname>boost::signals2::connection</classname> &amp;</paramtype>
+            <default>connection()</default>
+          </parameter>
+          <parameter name="initially_blocking">
+            <paramtype>bool</paramtype>
+            <default>true</default>
+          </parameter>
+
+          <effects>
+            <para>Creates a <code>shared_connection_block</code> which can block
+            the connection referenced by <code>conn</code>.  The <code>shared_connection_block</code>
+            will initially block the connection if and only if the
+            <code>initially_blocking</code>
+            parameter is <code>true</code>.  The block on the connection may be released
+            by calling the <methodname>unblock</methodname> method,
+            or destroying the <code>shared_connection_block</code> object.</para>
+            <para>Default construction of a <code>shared_connection_block</code> results in a
+              <code>shared_connection_block</code> which references the NULL connection.
+              Such a <code>shared_connection_block</code> is safe to use, though not
+              particularly useful until it is assigned another
+              <code>shared_connection_block</code> which references a real connection.
+            </para>
+          </effects>
+          <postconditions><para><code>this->blocking() == initially_blocking</code></para></postconditions>
+        </constructor>
+        <constructor>
+          <parameter name="other">
+            <paramtype>const boost::signals2::shared_connection_block &amp;</paramtype>
+          </parameter>
+
+          <effects>
+            <para>
+              Copy constructs a <code>shared_connection_block</code> which references
+              the same connection as <code>other</code>.
+            </para>
+          </effects>
+          <postconditions>
+            <para><code>this->connection() == other.connection()</code></para>
+            <para><code>this->blocking() == other.blocking()</code></para>
+          </postconditions>
+        </constructor>
+        <destructor>
+          <effects><para>If <methodname>blocking</methodname>() is true, releases the connection block.</para></effects>
+        </destructor>
+        <copy-assignment>
+          <parameter name="rhs">
+            <paramtype>const boost::signals2::shared_connection_block &amp;</paramtype>
+          </parameter>
+
+          <effects>
+            <para>
+              Makes <code>this</code> reference the same connection as <code>rhs</code>.
+            </para>
+          </effects>
+          <postconditions>
+            <para><code>this->connection() == rhs.connection()</code></para>
+            <para><code>this->blocking() == rhs.blocking()</code></para>
+          </postconditions>
+          <throws><para>Will not throw.</para></throws>
+        </copy-assignment>
+        <method-group name="connection blocking">
+          <method name="unblock">
+            <type>void</type>
+            <effects><para>If <methodname>blocking</methodname>() is true, releases the connection block.
+              Note, the connection may remain blocked due to
+              other <code>shared_connection_block</code> objects.</para></effects>
+            <postconditions><para><code>this->blocking() == false</code>.</para></postconditions>
+          </method>
+          <method name="block">
+            <type>void</type>
+            <effects><para>If <methodname>blocking</methodname>() is false, reasserts a block on
+              the connection.</para></effects>
+            <postconditions><para><code>this->blocking() == true</code>.</para></postconditions>
+          </method>
+          <method name="blocking" cv="const">
+            <type>bool</type>
+            <returns><para><code>true</code> if <code>this</code> is asserting a block on the connection.</para></returns>
+            <notes><para><code>this->blocking() == true</code> implies <code><methodname>connection::blocked</methodname>() == true</code>
+            for the connection.  However, <code>this->blocking() == false</code> does not necessarily imply
+            <code>connection::blocked() == false</code>, since the connection may be
+            blocked by another <code>shared_connection_block</code> object.</para></notes>
+          </method>
+        </method-group>
+        <method-group name="miscellaneous methods">
+          <method name="connection" cv="const">
+            <type><classname>boost::signals2::connection</classname></type>
+            <returns>
+              <para>A connection object for the connection referenced by <code>this</code>.</para>
+            </returns>
+          </method>
+        </method-group>
+      </class>
+    </namespace>
+   </namespace>
+</header>

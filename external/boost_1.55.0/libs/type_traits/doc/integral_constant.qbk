@@ -1,0 +1,26 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:integral_constant integral_constant]
+   template <class T, T val>
+   struct integral_constant
+   {
+      typedef integral_constant<T, val>  type;
+      typedef T                          value_type;
+      static const T value = val;
+   };
+   
+   typedef integral_constant<bool, true>  true_type;
+   typedef integral_constant<bool, false> false_type;
+
+Class template `integral_constant` is the common base class for all the value-based
+type traits.  The two typedef's `true_type` and `false_type` are provided for 
+convenience: most of the value traits are Boolean properties and so will inherit from
+one of these.
+
+[endsect]
+

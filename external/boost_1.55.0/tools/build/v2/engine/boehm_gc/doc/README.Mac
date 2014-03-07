@@ -1,0 +1,390 @@
+The contents of this file are old and pertain to pre-MacOSX versions.
+You probably really wanted README.darwin.
+
+---------------------------------------------
+
+Patrick Beard's Notes for building GC v4.12 with CodeWarrior Pro 2:
+----------------------------------------------------------------------------
+The current build environment for the collector is CodeWarrior Pro 2.
+Projects for CodeWarrior Pro 2 (and for quite a few older versions)
+are distributed in the file Mac_projects.sit.hqx. The project file
+:Mac_projects:gc.prj builds static library versions of the collector.
+:Mac_projects:gctest.prj builds the GC test suite.
+
+Configuring the collector is still done by editing the files
+:Mac_files:MacOS_config.h and :Mac_files:MacOS_Test_config.h.
+
+Lars Farm's suggestions on building the collector:
+----------------------------------------------------------------------------
+Garbage Collection on MacOS - a manual 'MakeFile'
+-------------------------------------------------
+
+Project files and IDE's are great on the Macintosh, but they do have
+problems when used as distribution media. This note tries to provide
+porting instructions in pure TEXT form to avoid those problems. A manual
+'makefile' if you like.
+
+    GC version:     4.12a2
+    Codewarrior:    CWPro1
+    date:           18 July 1997
+
+The notes may or may not apply to earlier or later versions of the
+GC/CWPro. Actually, they do apply to earlier versions of both except that
+until recently a project could only build one target so each target was a
+separate project. The notes will most likely apply to future versions too.
+Possibly with minor tweaks.
+
+This is just to record my experiences. These notes do not mean I now
+provide a supported port of the GC to MacOS. It works for me. If it works
+for you, great. If it doesn't, sorry, try again...;-) Still, if you find
+errors, please let me know.
+
+    mailto:         lars.farm@ite.mh.se
+
+    address:        Lars Farm
+                    Krönvägen 33b
+                    856 44 Sundsvall
+                    Sweden
+
+Porting to MacOS is a bit more complex than it first seems. Which MacOS?
+68K/PowerPC? Which compiler? Each supports both 68K and PowerPC and offer a
+large number of (unique to each environment) compiler settings. Each
+combination of compiler/68K/PPC/settings require a unique combination of
+standard libraries. And the IDE's does not select them for you. They don't
+even check that the library is built with compatible setting and this is
+the major source of problems when porting the GC (and otherwise too).
+
+You will have to make choices when you configure the GC. I've made some
+choices here, but there are other combinations of settings and #defines
+that work too.
+
+As for target settings the major obstacles may be:
+- 68K Processor: check "4-byte Ints".
+- PPC Processor: uncheck "Store Static Data in TOC".
+
+What you need to do:
+===================
+
+1) Build the GC as a library
+2) Test that the library works with 'test.c'.
+3) Test that the C++ interface 'gc_cpp.cc/h' works with 'test_cpp.cc'.
+
+1) The Libraries:
+=================
+I made one project with four targets (68K/PPC tempmem or appheap). One target
+will suffice if you're able to decide which one you want. I wasn't...
+
+Codewarrior allows a large number of compiler/linker settings. I used these:
+
+Settings shared by all targets:
+------------------------------
+o Access Paths:
+  - User Paths:   the GC folder
+  - System Paths: {Compiler}:Metrowerks Standard Library:
+                  {Compiler}:MacOS Support:Headers:
+                  {Compiler}:MacOS Support:MacHeaders:
+o C/C++ language:
+  - inlining: normal
+  - direct to SOM: off
+  - enable/check: exceptions, RTTI, bool (and if you like pool strings)
+
+PowerPC target settings
+-----------------------
+o Target Settings:
+  - name of target
+  - MacOS PPC Linker
+o PPC Target
+  - name of library
+o C/C++ language
+  - prefix file as described below
+o PPC Processor
+  - Struct Alignment: PowerPC
+  - uncheck "Store Static Data in TOC" -- important!
+    I don't think the others matter, I use full optimization and its ok
+o PPC Linker
+  - Factory Settings (SYM file with full paths, faster linking, dead-strip
+    static init, Main: __start)
+
+
+68K target settings
+-------------------
+o Target Settings:
+  - name of target
+  - MacOS 68K Linker
+o 68K Target
+  - name of library
+  - A5 relative data
+o C/C++ language
+  - prefix file as described below
+o 68K Processor
+  - Code model: smart
+  - Struct alignment: 68K
+  - FP: SANE
+  - enable 4-Byte Ints -- important!
+    I don't think the others matter. I selected...
+  - enable: 68020
+  - enable: global register allocation
+o IR Optimizer
+  - enable: Optimize Space, Optimize Speed
+    I suppose the others would work too, but haven't tried...
+o 68K Linker
+  - Factory Settings (New Style MacsBug,SYM file with full paths,
+    A6 Frames, fast link, Merge compiler glue into segment 1,
+    dead-strip static init)
+
+Prefix Files to configure the GC sources
+----------------------------------------
+The Codewarrior equivalent of commandline compilers -DNAME=X is to use
+prefix-files. A TEXT file that is automatically #included before the first byte
+of every source file. I used these:
+
+---- ( cut here ) ----  gc_prefix_tempmem.h     -- 68K and PPC -----
+    #include "gc_prefix_common.h"
+    #undef USE_TEMPORARY_MEMORY
+    #define USE_TEMPORARY_MEMORY
+---- ( cut here ) ----  gc_prefix_appmem.h      -- 68K and PPC -----
+    #include "gc_prefix_common.h"
+    #undef USE_TEMPORARY_MEMORY
+//  #define USE_TEMPORARY_MEMORY
+
+---- ( cut here ) ----  gc_prefix_common.h      --------------------
+// gc_prefix_common.h
+// ------------------
+// Codewarrior prefix file to configure the GC libraries
+//
+//   prefix files are the Codewarrior equivalent of the
+//   command line option -Dname=x frequently seen in makefiles
+
+#if !__MWERKS__
+  #error only tried this with Codewarrior
+#endif
+
+#if macintosh
+  #define MSL_USE_PRECOMPILED_HEADERS 0
+  #include <ansi_prefix.mac.h>
+  #ifndef __STDC__
+    #define __STDC__ 0
+  #endif
+
+  //  See list of #defines to configure the library in: 'MakeFile'
+  //  see also README
+
+  #define SILENT                // no collection messages. In case
+                                // of trouble you might want this off
+  #define ALL_INTERIOR_POINTERS // follows interior pointers.
+//#define DONT_ADD_BYTE_AT_END  // disables the padding if defined.
+//#define SMALL_CONFIG          // whether to use a smaller heap.
+  #define NO_SIGNALS            // signals aren't real on the Macintosh.
+  #define ATOMIC_UNCOLLECTABLE  // GC_malloc_atomic_uncollectable()
+
+  // define either or none as per personal preference
+  //   used in malloc.c
+  #define REDIRECT_MALLOC GC_malloc
+//#define REDIRECT_MALLOC GC_malloc_uncollectable
+  // if REDIRECT_MALLOC is #defined make sure that the GC library
+  // is listed before the ANSI/ISO libs in the Codewarrior
+  // 'Link order' panel
+//#define IGNORE_FREE
+
+  // mac specific configs
+//#define USE_TEMPORARY_MEMORY    // use Macintosh temporary memory.
+//#define SHARED_LIBRARY_BUILD    // build for use in a shared library.
+
+#else
+  // could build Win32 here too, or in the future
+  // Rhapsody PPC-mach, Rhapsody PPC-MacOS,
+  // Rhapsody Intel-mach, Rhapsody Intel-Win32,...
+  // ... ugh this will get messy ...
+#endif
+
+// make sure ints are at least 32-bit
+// ( could be set to 16-bit by compiler settings (68K) )
+
+struct gc_private_assert_intsize_{ char x[ sizeof(int)>=4 ? 1 : 0 ]; };
+
+#if __powerc
+  #if __option(toc_data)
+    #error turn off "store static data in TOC" when using GC
+    //     ... or find a way to add TOC to the root set...(?)
+  #endif
+#endif
+---- ( cut here ) ----  end of gc_prefix_common.h  -----------------
+
+Files to  build the GC libraries:
+--------------------------------
+    allchblk.c
+    alloc.c
+    blacklst.c
+    checksums.c
+    dbg_mlc.c
+    finalize.c
+    headers.c
+    mach_dep.c
+    MacOS.c    -- contains MacOS code
+    malloc.c
+    mallocx.c
+    mark.c
+    mark_rts.c
+    misc.c
+    new_hblk.c
+    obj_map.c
+    os_dep.c   -- contains MacOS code
+    ptr_chck.c
+    reclaim.c
+    stubborn.c
+    typd_mlc.c
+    gc++.cc    -- this is 'gc_cpp.cc' with less 'inline' and
+               -- throw std::bad_alloc when out of memory
+               -- gc_cpp.cc works just fine too
+
+2) Test that the library works with 'test.c'.
+=============================================
+
+The test app is just an ordinary ANSI-C console app. Make sure settings
+match the library you're testing.
+
+Files
+-----
+    test.c
+    the GC library to test        -- link order before ANSI libs
+    suitable Mac+ANSI libraries
+
+prefix:
+------
+---- ( cut here ) ----  gc_prefix_testlib.h     -- all libs -----
+#define MSL_USE_PRECOMPILED_HEADERS 0
+#include <ansi_prefix.mac.h>
+#undef NDEBUG
+
+#define ALL_INTERIOR_POINTERS	/* for GC_priv.h */
+---- ( cut here ) ----
+
+3) Test that the C++ interface 'gc_cpp.cc/h' works with 'test_cpp.cc'.
+
+The test app is just an ordinary ANSI-C console app. Make sure settings match
+the library you're testing.
+
+Files
+-----
+    test_cpp.cc
+    the GC library to test        -- link order before ANSI libs
+    suitable Mac+ANSI libraries
+
+prefix:
+------
+same as for test.c
+
+For convenience I used one test-project with several targets so that all
+test apps are build at once. Two for each library to test: test.c and
+gc_app.cc. When I was satisfied that the libraries were ok. I put the
+libraries + gc.h + the c++ interface-file in a folder that I then put into
+the MSL hierarchy so that I don't have to alter access-paths in projects
+that use the GC.
+
+After that, just add the proper GC library to your project and the GC is in
+action! malloc will call GC_malloc and free GC_free, new/delete too. You
+don't have to call free or delete. You may have to be a bit cautious about
+delete if you're freeing other resources than RAM. See gc_cpp.h. You can
+also keep coding as always with delete/free. That works too. If you want,
+"include <gc.h> and tweak it's use a bit.
+
+Symantec SPM
+============
+It has been a while since I tried the GC in SPM, but I think that the above
+instructions should be sufficient to guide you through in SPM too. SPM
+needs to know where the global data is. Use the files 'datastart.c' and
+'dataend.c'. Put 'datastart.c' at the top of your project and 'dataend.c'
+at the bottom  of your project so that all data is surrounded. This is not
+needed in Codewarrior because it provides intrinsic variables
+__datastart__, __data_end__ that wraps all globals.
+
+Source Changes (GC 4.12a2)
+==========================
+Very few. Just one tiny in the GC, not strictly needed.
+- MacOS.c line 131 in routine GC_MacFreeTemporaryMemory()
+  change #       if !defined(SHARED_LIBRARY_BUILD)
+  to     #       if !defined(SILENT) && !defined(SHARED_LIBRARY_BUILD)
+  To turn off a message when the application quits (actually, I faked
+  this change by #defining SHARED_LIBRARY_BUILD in a statically linked
+  library for more than a year without ill effects but perhaps this is
+  better).
+
+- test_cpp.cc
+  made the first lines of main() look like this:
+  ------------
+  int main( int argc, char* argv[] ) {
+  #endif
+  #if macintosh                             // MacOS
+    char* argv_[] = {"test_cpp","10"};      //   doesn't
+    argv=argv_;                             //     have a
+    argc = sizeof(argv_)/sizeof(argv_[0]);  //       commandline
+  #endif                                    //
+
+  int i, iters, n;
+  # ifndef __GNUC__
+   alloc dummy_to_fool_the_compiler_into_doing_things_it_currently_cant_handle;
+  ------------
+
+- config.h [now gcconfig.h]
+  __MWERKS__ does not have to mean MACOS. You can use Codewarrior to
+  build a Win32 or BeOS library and soon a Rhapsody library. You may
+  have to change that #if...
+
+
+
+   It worked for me, hope it works for you.
+
+   Lars Farm
+   18 July 1997
+----------------------------------------------------------------------------
+
+
+Patrick Beard's instructions (may be dated):
+
+v4.3 of the collector now runs under Symantec C++/THINK C v7.0.4, and
+Metrowerks C/C++ v4.5 both 68K and PowerPC. Project files are provided
+to build and test the collector under both development systems.
+
+Configuration
+-------------
+
+To configure the collector, under both development systems, a prefix file
+is used to set preprocessor directives. This file is called "MacOS_config.h".
+Also to test the collector, "MacOS_Test_config.h" is provided.
+
+Testing
+-------
+
+To test the collector (always a good idea), build one of the gctest projects,
+gctest.¹ (Symantec C++/THINK C), mw/gctest.68K.¹, or mw/gctest.PPC.¹. The
+test will ask you how many times to run; 1 should be sufficient.
+
+Building 
+--------
+
+For your convenience project files for the major Macintosh development
+systems are provided.
+
+For Symantec C++/THINK C, you must build the two projects gclib-1.¹ and
+gclib-2.¹. It has to be split up because the collector has more than 32k
+of static data and no library can have more than this in the Symantec
+environment. (Future versions will probably fix this.)
+
+For Metrowerks C/C++ 4.5 you build gc.68K.¹/gc.PPC.¹ and the result will
+be a library called gc.68K.lib/gc.PPC.lib.
+
+Using
+-----
+
+Under Symantec C++/THINK C, you can just add the gclib-1.¹ and gclib-2.¹
+projects to your own project. Under Metrowerks, you add gc.68K.lib or
+gc.PPC.lib and two additional files. You add the files called datastart.c
+and dataend.c to your project, bracketing all files that use the collector.
+See mw/gctest.¹ for an example.
+
+Include the projects/libraries you built above into your own project,
+#include "gc.h", and call GC_malloc. You don't have to call GC_free.
+
+
+Patrick C. Beard
+January 4, 1995

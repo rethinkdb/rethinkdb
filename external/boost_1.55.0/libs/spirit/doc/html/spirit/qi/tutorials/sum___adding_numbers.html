@@ -1,0 +1,233 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Sum - adding numbers</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="complex___our_first_complex_parser.html" title="Complex - Our first complex parser">
+<link rel="next" href="number_list___stuffing_numbers_into_a_std__vector.html" title="Number List - stuffing numbers into a std::vector">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="complex___our_first_complex_parser.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="number_list___stuffing_numbers_into_a_std__vector.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.tutorials.sum___adding_numbers"></a><a class="link" href="sum___adding_numbers.html" title="Sum - adding numbers">Sum - adding
+        numbers</a>
+</h4></div></div></div>
+<p>
+          Here's a parser that sums a comma-separated list of numbers.
+        </p>
+<p>
+          Ok we've glossed over some details in our previous examples. First, our
+          includes:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+</pre>
+<p>
+        </p>
+<p>
+          Then some using directives:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">qi</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">;</span>
+<span class="keyword">namespace</span> <span class="identifier">ascii</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">;</span>
+<span class="keyword">namespace</span> <span class="identifier">phoenix</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">;</span>
+
+<span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">_1</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">ref</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Namespace
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    boost::phoenix
+                  </p>
+                </td>
+<td>
+                  <p>
+                    All of phoenix
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    boost::spirit
+                  </p>
+                </td>
+<td>
+                  <p>
+                    All of spirit
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    boost::spirit::qi
+                  </p>
+                </td>
+<td>
+                  <p>
+                    All of spirit.qi
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    boost::spirit::ascii
+                  </p>
+                </td>
+<td>
+                  <p>
+                    ASCII version of <code class="computeroutput"><span class="identifier">char_</span></code>
+                    and all char related parsers. Other encodings are also provided
+                    (e.g. also an ISO8859.1)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    boost::spirit::arg_names
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Special phoenix placeholders for spirit
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            If you feel uneasy with using whole namespaces, feel free to qualify
+            your code, use namespace aliases, etc. For the purpose of this tutorial,
+            we will be presenting unqualified names for both Spirit and <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>.
+            No worries, we will always present the full working code, so you won't
+            get lost. In fact, all examples in this tutorial have a corresponding
+            cpp file that QuickBook (the documentation tool we are using) imports
+            in here as code snippets.
+          </p></td></tr>
+</table></div>
+<p>
+          Now the actual parser:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">adder</span><span class="special">(</span><span class="identifier">Iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&amp;</span> <span class="identifier">n</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span>
+
+        <span class="comment">//  Begin grammar</span>
+        <span class="special">(</span>
+            <span class="identifier">double_</span><span class="special">[</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">double_</span><span class="special">[</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">_1</span><span class="special">])</span>
+        <span class="special">)</span>
+        <span class="special">,</span>
+        <span class="comment">//  End grammar</span>
+
+        <span class="identifier">space</span><span class="special">);</span>
+
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">first</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">)</span> <span class="comment">// fail if we did not get a full match</span>
+        <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          The full cpp file for this example can be found here: <a href="../../../../../example/qi/sum.cpp" target="_top">../../example/qi/sum.cpp</a>
+        </p>
+<p>
+          This is almost like our original numbers list example. We're incrementally
+          building on top of our examples. This time though, like in the complex
+          number example, we'll be adding the smarts. There's an accumulator (<code class="computeroutput"><span class="keyword">double</span><span class="special">&amp;</span> <span class="identifier">n</span></code>) that adds the numbers parsed. On a
+          successful parse, this number is the sum of all the parsed numbers.
+        </p>
+<p>
+          The first <code class="computeroutput"><span class="identifier">double_</span></code> parser
+          attaches this action:
+        </p>
+<pre class="programlisting"><span class="identifier">ref</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">_1</span>
+</pre>
+<p>
+          This assigns the parsed result (actually, the attribute of <code class="computeroutput"><span class="identifier">double_</span></code>) to <code class="computeroutput"><span class="identifier">n</span></code>.
+          <code class="computeroutput"><span class="identifier">ref</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code> tells
+          <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a> that <code class="computeroutput"><span class="identifier">n</span></code> is a mutable reference. <code class="computeroutput"><span class="identifier">_1</span></code> is a <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>
+          placeholder for the parsed result attribute.
+        </p>
+<p>
+          The second <code class="computeroutput"><span class="identifier">double_</span></code> parser
+          attaches this action:
+        </p>
+<pre class="programlisting"><span class="identifier">ref</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">_1</span>
+</pre>
+<p>
+          So, subsequent numbers add into <code class="computeroutput"><span class="identifier">n</span></code>.
+        </p>
+<p>
+          That wasn't too bad, was it :-) ?
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="complex___our_first_complex_parser.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="number_list___stuffing_numbers_into_a_std__vector.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

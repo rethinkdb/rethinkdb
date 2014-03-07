@@ -1,0 +1,42 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:concept_box Box Concept]
+
+[heading Description]
+[concept Box..box]
+
+A box is a geometry with (usually) two or three dimensions, having its axis aligned to the coordinate system. 
+
+The box is not one of the basic types in Boost.Geometry (point, linestring, polygon) but it is a ['helper type]. 
+The main reasons for the box existance are its usefulness for indexing (a spatial index, or splitting a geometry 
+into monotonic sections) and it is the output of the [link geometry.reference.algorithms.envelope envelope] algorithm.
+
+Therefore, a box is axis aligned (the envelope is also called aabb, axis aligned bounding box).
+
+[heading Concept Definition]
+
+The Box Concept is defined as following:
+
+* there must be a specialization of `traits::tag`, defining `box_tag` as type
+* there must be a specialization of `traits::point_type` to define the underlying point type 
+	(even if it does not consist of points, it should define this type, to indicate the points it can work with)
+* there must be a specialization of `traits::indexed_access`, per index (`min_corner`, `max_corner`) and per dimension, with two functions:
+	* `get` to get a coordinate value
+	* `set` to set a coordinate value (this one is not checked for ConstBox)
+
+
+[heading Available Models]	
+* [link geometry.reference.models.model_box model::box]
+
+[endsect]
+

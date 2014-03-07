@@ -1,0 +1,192 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Getting Started</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.LocalFunction 1.0.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.LocalFunction 1.0.0">
+<link rel="prev" href="../index.html" title="Chapter&#160;1.&#160;Boost.LocalFunction 1.0.0">
+<link rel="next" href="tutorial.html" title="Tutorial">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutorial.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_localfunction_getting_started">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_localfunction.getting_started"></a><a class="link" href="getting_started.html" title="Getting Started">Getting Started</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="getting_started.html#boost_localfunction.getting_started.this_documentation">This
+      Documentation</a></span></dt>
+<dt><span class="section"><a href="getting_started.html#boost_localfunction.getting_started.compilers_and_platforms">Compilers
+      and Platforms</a></span></dt>
+<dt><span class="section"><a href="getting_started.html#boost_localfunction.getting_started.installation">Installation</a></span></dt>
+</dl></div>
+<p>
+      This section explains how to setup a system to use this library.
+    </p>
+<div class="section boost_localfunction_getting_started_this_documentation">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_localfunction.getting_started.this_documentation"></a><a class="link" href="getting_started.html#boost_localfunction.getting_started.this_documentation" title="This Documentation">This
+      Documentation</a>
+</h3></div></div></div>
+<p>
+        Programmers should have enough knowledge to use this library after reading
+        the <a class="link" href="../index.html#boost_localfunction.introduction" title="Introduction">Introduction</a>,
+        <a class="link" href="getting_started.html" title="Getting Started">Getting Started</a>,
+        and <a class="link" href="tutorial.html" title="Tutorial">Tutorial</a> sections.
+        The <a class="link" href="advanced_topics.html" title="Advanced Topics">Advanced Topics</a>
+        and <a href="../reference.html" target="_top">Reference</a> sections can be consulted
+        at a later point to gain a more advanced knowledge of the library. All the
+        other sections of this documentation can be considered optional.
+      </p>
+<p>
+        Some footnotes are marked by the word "<span class="bold"><strong>Rationale</strong></span>".
+        They explain reasons behind decisions made during the design and implementation
+        of this library.
+      </p>
+<p>
+        In most of the examples presented in this documentation, the Boost.Detail/LightweightTest
+        (<code class="literal">boost/detail/lightweight_test.hpp</code>) macro <code class="computeroutput"><span class="identifier">BOOST_TEST</span></code> is used to check correctness
+        conditions. The <code class="computeroutput"><span class="identifier">BOOST_TEST</span></code>
+        macro is conceptually similar to <code class="computeroutput"><span class="identifier">assert</span></code>
+        but a failure of the checked condition does not abort the program, instead
+        it makes <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">report_errors</span></code> return a non-zero program
+        exit code. <sup>[<a name="boost_localfunction.getting_started.this_documentation.f0" href="#ftn.boost_localfunction.getting_started.this_documentation.f0" class="footnote">3</a>]</sup>
+      </p>
+</div>
+<div class="section boost_localfunction_getting_started_compilers_and_platforms">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_localfunction.getting_started.compilers_and_platforms"></a><a class="link" href="getting_started.html#boost_localfunction.getting_started.compilers_and_platforms" title="Compilers and Platforms">Compilers
+      and Platforms</a>
+</h3></div></div></div>
+<p>
+        The implementation of this library uses preprocessor and template meta-programming
+        (as supported by <a href="http://www.boost.org/libs/preprocessor" target="_top">Boost.Preprocessor</a>
+        and <a href="http://www.boost.org/libs/mpl" target="_top">Boost.MPL</a>), templates
+        with partial specializations and function pointers (similarly to <a href="http://www.boost.org/libs/function" target="_top">Boost.Function</a>),
+        and automatic type deduction (as supported by <a href="http://www.boost.org/libs/typeof" target="_top">Boost.Typeof</a>).
+        The authors originally developed and tested the library on:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            GNU Compiler Collection (GCC) C++ 4.5.1 on Ubuntu Linux 10.
+          </li>
+<li class="listitem">
+            GCC 4.3.4 and 4.5.3 (with and without <a href="http://www.open-std.org/JTC1/SC22/WG21/" target="_top">C++11</a>
+            features enabled <code class="computeroutput"><span class="special">-</span><span class="identifier">std</span><span class="special">=</span><span class="identifier">c</span><span class="special">++</span><span class="number">0</span><span class="identifier">x</span></code>)
+            on Cygwin.
+          </li>
+<li class="listitem">
+            Miscrosoft Visual C++ (MSVC) 8.0 on Windows XP and Windows 7.
+          </li>
+</ol></div>
+<p>
+        See the library <a href="http://www.boost.org/development/tests/release/developer/local_function.html" target="_top">regressions
+        test results</a> for detailed information on supported compilers and
+        platforms.
+      </p>
+</div>
+<div class="section boost_localfunction_getting_started_installation">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_localfunction.getting_started.installation"></a><a class="link" href="getting_started.html#boost_localfunction.getting_started.installation" title="Installation">Installation</a>
+</h3></div></div></div>
+<p>
+        This library is composed of header files only. Therefore there is no pre-compiled
+        object file which needs to be installed or linked. Programmers can simply
+        instruct the C++ compiler where to find the library header files (<code class="computeroutput"><span class="special">-</span><span class="identifier">I</span></code> option
+        for GCC, <code class="computeroutput"><span class="special">/</span><span class="identifier">I</span></code>
+        option for MSVC, etc) and they can start compiling code using this library.
+      </p>
+<p>
+        The library implementation uses <a href="http://www.boost.org/libs/typeof" target="_top">Boost.Typeof</a>
+        to automatically deduce the types of bound variables (see the <a class="link" href="tutorial.html" title="Tutorial">Tutorial</a>
+        section). In order to compile code in type-of emulation mode, all types should
+        be properly registered using <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span></code>
+        and <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span></code>,
+        or appropriate <a href="http://www.boost.org/libs/typeof" target="_top">Boost.Typeof</a>
+        headers should be included (see the source code of most examples presented
+        in this documentation).
+      </p>
+<p>
+        The followings are part of the library private API, they are not documented,
+        and they should not be directly used by programmers: <sup>[<a name="boost_localfunction.getting_started.installation.f0" href="#ftn.boost_localfunction.getting_started.installation.f0" class="footnote">4</a>]</sup>
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            Any symbol defined by files within the <code class="literal">boost/local_function/aux_/</code>
+            or <code class="literal">boost/local_function/detail/</code> directory (these header
+            files should not be directly included by programmers).
+          </li>
+<li class="listitem">
+            Any symbol within the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">local_function</span><span class="special">::</span><span class="identifier">aux</span></code>
+            or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">local_function</span><span class="special">::</span><span class="identifier">detail</span></code> namespace.
+          </li>
+<li class="listitem">
+            Any symbol prefixed by <code class="computeroutput"><span class="identifier">boost_local_function_aux_</span><span class="special">...</span></code> or <code class="computeroutput"><span class="identifier">boost_local_function_detail_</span><span class="special">...</span></code> (regardless of its namespace).
+          </li>
+<li class="listitem">
+            Any symbol prefixed by <code class="computeroutput"><span class="identifier">BOOST_LOCAL_FUNCTION_AUX_</span><span class="special">...</span></code> or <code class="computeroutput"><span class="identifier">BOOST_LOCAL_FUNCTION_DETAIL_</span><span class="special">...</span></code> (regardless of its namespace).
+          </li>
+</ul></div>
+<p>
+        Some of the library behaviour can be changed at compile-time by defining
+        special <span class="emphasis"><em>configuration macros</em></span>. If a configuration macro
+        is left undefined, the library will use an appropriate default value for
+        it. All configuration macros are defined in the header file <code class="computeroutput"><a class="link" href="../reference.html#header.boost.local_function.config_hpp" title="Header &lt;boost/local_function/config.hpp&gt;">boost/local_function/config.hpp</a></code>.
+        It is strongly recommended not to change the library configuration macro
+        definitions unless strictly necessary.
+      </p>
+</div>
+<div class="footnotes">
+<br><hr width="100" align="left">
+<div class="footnote"><p><sup>[<a id="ftn.boost_localfunction.getting_started.this_documentation.f0" href="#boost_localfunction.getting_started.this_documentation.f0" class="para">3</a>] </sup>
+          <span class="bold"><strong>Rationale.</strong></span> Using Boost.Detail/LightweightTest
+          allows to add the examples to the library regression tests so to make sure
+          that they always compile and run correctly.
+        </p></div>
+<div class="footnote"><p><sup>[<a id="ftn.boost_localfunction.getting_started.installation.f0" href="#boost_localfunction.getting_started.installation.f0" class="para">4</a>] </sup>
+          <span class="bold"><strong>Rationale.</strong></span> This library concatenates symbols
+          specified by the programmers (e.g., the local function name) with other
+          symbols (e.g., special prefixes or file line numbers) to make internal
+          symbols with unique names to avoid name clashes. These symbols are separated
+          by the letter "<code class="computeroutput"><span class="identifier">X</span></code>"
+          when they are concatenated so they read more easily during debugging (the
+          underscore character "<code class="computeroutput"><span class="identifier">_</span></code>"
+          could not be used instead of the letter "<code class="computeroutput"><span class="identifier">X</span></code>"
+          because if the original symbols already contained a leading or trailing
+          underscore, the concatenation could result in a symbol with double underscores
+          "<code class="computeroutput"><span class="identifier">__</span></code>" which is
+          reserved by the C++ standard). The "aux" symbols are private
+          to this library while the "detail" symbols may be used within
+          Boost by other libraries but they are still not part of this library public
+          API.
+        </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Lorenzo
+      Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutorial.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

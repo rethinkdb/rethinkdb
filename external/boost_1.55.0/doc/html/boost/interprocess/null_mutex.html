@@ -1,0 +1,181 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class null_mutex</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.null_mutex_hpp" title="Header &lt;boost/interprocess/sync/null_mutex.hpp&gt;">
+<link rel="prev" href="named_upgradable_mutex.html" title="Class named_upgradable_mutex">
+<link rel="next" href="windows_shared_memory.html" title="Class windows_shared_memory">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="named_upgradable_mutex.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.null_mutex_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="windows_shared_memory.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.null_mutex"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class null_mutex</span></h2>
+<p>boost::interprocess::null_mutex</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.null_mutex_hpp" title="Header &lt;boost/interprocess/sync/null_mutex.hpp&gt;">boost/interprocess/sync/null_mutex.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="null_mutex.html" title="Class null_mutex">null_mutex</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="null_mutex.html#boost.interprocess.null_mutexconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="null_mutex.html#idp28757256-bb"><span class="identifier">null_mutex</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="null_mutex.html#idp28757544-bb"><span class="special">~</span><span class="identifier">null_mutex</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="null_mutex.html#idp28740728-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="null_mutex.html#idp28740936-bb"><span class="identifier">lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="null_mutex.html#idp28741592-bb"><span class="identifier">try_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="null_mutex.html#idp28742328-bb"><span class="identifier">timed_lock</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="null_mutex.html#idp28743432-bb"><span class="identifier">unlock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="null_mutex.html#idp28744152-bb"><span class="identifier">lock_sharable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="null_mutex.html#idp28744872-bb"><span class="identifier">try_lock_sharable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="null_mutex.html#idp28745624-bb"><span class="identifier">timed_lock_sharable</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="null_mutex.html#idp28746760-bb"><span class="identifier">unlock_sharable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="null_mutex.html#idp28747480-bb"><span class="identifier">lock_upgradable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="null_mutex.html#idp28748200-bb"><span class="identifier">try_lock_upgradable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="null_mutex.html#idp28748968-bb"><span class="identifier">timed_lock_upgradable</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="null_mutex.html#idp28750104-bb"><span class="identifier">unlock_upgradable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="null_mutex.html#idp28750856-bb"><span class="identifier">unlock_and_lock_upgradable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="null_mutex.html#idp28751592-bb"><span class="identifier">unlock_and_lock_sharable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="null_mutex.html#idp28752328-bb"><span class="identifier">unlock_upgradable_and_lock_sharable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="null_mutex.html#idp28753096-bb"><span class="identifier">unlock_upgradable_and_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="null_mutex.html#idp28753832-bb"><span class="identifier">try_unlock_upgradable_and_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="null_mutex.html#idp28754584-bb"><span class="identifier">timed_unlock_upgradable_and_lock</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="null_mutex.html#idp28755720-bb"><span class="identifier">try_unlock_sharable_and_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="null_mutex.html#idp28756472-bb"><span class="identifier">try_unlock_sharable_and_lock_upgradable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp119427032"></a><h2>Description</h2>
+<p>Implements a mutex that simulates a mutex without doing any operation and simulates a successful operation. </p>
+<div class="refsect2">
+<a name="idp119427480"></a><h3>
+<a name="boost.interprocess.null_mutexconstruct-copy-destruct"></a><code class="computeroutput">null_mutex</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp28757256-bb"></a><span class="identifier">null_mutex</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor. Empty. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28757544-bb"></a><span class="special">~</span><span class="identifier">null_mutex</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destructor. Empty. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp119432712"></a><h3>
+<a name="idp28740728-bb"></a><code class="computeroutput">null_mutex</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28740936-bb"></a><span class="identifier">lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Simulates a mutex lock() operation. Empty function. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28741592-bb"></a><span class="identifier">try_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates a mutex try_lock() operation. Equivalent to "return true;" </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28742328-bb"></a><span class="identifier">timed_lock</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates a mutex timed_lock() operation. Equivalent to "return true;" </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28743432-bb"></a><span class="identifier">unlock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates a mutex unlock() operation. Empty function. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28744152-bb"></a><span class="identifier">lock_sharable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates a mutex lock_sharable() operation. Empty function. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28744872-bb"></a><span class="identifier">try_lock_sharable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates a mutex try_lock_sharable() operation. Equivalent to "return true;" </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28745624-bb"></a><span class="identifier">timed_lock_sharable</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates a mutex timed_lock_sharable() operation. Equivalent to "return true;" </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28746760-bb"></a><span class="identifier">unlock_sharable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates a mutex unlock_sharable() operation. Empty function. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28747480-bb"></a><span class="identifier">lock_upgradable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates a mutex lock_upgradable() operation. Empty function. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28748200-bb"></a><span class="identifier">try_lock_upgradable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates a mutex try_lock_upgradable() operation. Equivalent to "return true;" </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28748968-bb"></a><span class="identifier">timed_lock_upgradable</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates a mutex timed_lock_upgradable() operation. Equivalent to "return true;" </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28750104-bb"></a><span class="identifier">unlock_upgradable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates a mutex unlock_upgradable() operation. Empty function. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28750856-bb"></a><span class="identifier">unlock_and_lock_upgradable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates unlock_and_lock_upgradable(). Empty function. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28751592-bb"></a><span class="identifier">unlock_and_lock_sharable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates unlock_and_lock_sharable(). Empty function. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28752328-bb"></a><span class="identifier">unlock_upgradable_and_lock_sharable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates unlock_upgradable_and_lock_sharable(). Empty function. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28753096-bb"></a><span class="identifier">unlock_upgradable_and_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates unlock_upgradable_and_lock(). Empty function. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28753832-bb"></a><span class="identifier">try_unlock_upgradable_and_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates try_unlock_upgradable_and_lock(). Equivalent to "return true;" </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28754584-bb"></a><span class="identifier">timed_unlock_upgradable_and_lock</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates timed_unlock_upgradable_and_lock(). Equivalent to "return true;" </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28755720-bb"></a><span class="identifier">try_unlock_sharable_and_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates try_unlock_sharable_and_lock(). Equivalent to "return true;" </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28756472-bb"></a><span class="identifier">try_unlock_sharable_and_lock_upgradable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Simulates try_unlock_sharable_and_lock_upgradable(). Equivalent to "return true;" </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="named_upgradable_mutex.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.null_mutex_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="windows_shared_memory.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

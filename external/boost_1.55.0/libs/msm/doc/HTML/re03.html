@@ -1,0 +1,779 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Front-end</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="pt02.html" title="Part&nbsp;II.&nbsp;Reference"><link rel="prev" href="re02.html" title="Back-end"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Front-end</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="re02.html">Prev</a>&nbsp;</td><th width="60%" align="center">Part&nbsp;II.&nbsp;Reference</th><td width="20%" align="right">&nbsp;</td></tr></table><hr></div><div class="refentry" title="Front-end"><a name="d0e5604"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>Front-end &#8212; The front-end headers</p></div><div class="refsect1" title="msm/front/common_states.hpp"><a name="d0e5610"></a><h2>msm/front/common_states.hpp</h2><p>This header contains the predefined types to serve as base for states or state machines:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>default_base_state: non-polymorphic empty type.</p></li><li class="listitem"><p>polymorphic_state: type with a virtual destructor, which makes all
+                                states polymorphic.</p></li></ul></div></div><div class="refsect1" title="msm/front/completion_event.hpp"><a name="d0e5622"></a><h2>msm/front/completion_event.hpp</h2><p>This header contains one type, <code class="code">none</code>. This type has several
+                    meanings inside a transition table:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>as action or guard: that there is no action or guard</p></li><li class="listitem"><p>as target state: that the transition is an internal
+                                transition</p></li><li class="listitem"><p>as event: the transition is an anonymous (completion)
+                                transition</p></li></ul></div></div><div class="refsect1" title="msm/front/functor_row.hpp"><a name="d0e5640"></a><h2>msm/front/functor_row.hpp</h2><p>This header implements the functor front-end's transitions and helpers.</p><div class="refsect2" title="Row"><a name="d0e5645"></a><h3>Row</h3><div class="refsect3" title="definition"><a name="d0e5648"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template &lt;class Source,class Event,class Target,class
+                                    Action,class Guard&gt; Row</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="tags"><a name="d0e5655"></a><h4>tags</h4><p>row_type_tag is defined differently for every specialization:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>all 5 template parameters means a normal transition with
+                                        action and guard: <code class="code">typedef row_tag
+                                        row_type_tag;</code></p></li><li class="listitem"><p>Row&lt;Source,Event,Target,none,none&gt; a normal transition
+                                        without action or guard: <code class="code">typedef _row_tag
+                                            row_type_tag;</code></p></li><li class="listitem"><p>Row&lt;Source,Event,Target,Action,none&gt; a normal
+                                        transition without guard: <code class="code">typedef a_row_tag
+                                            row_type_tag;</code></p></li><li class="listitem"><p>Row&lt;Source,Event,Target,none,Guard&gt; a normal transition
+                                        without action: <code class="code">typedef g_row_tag
+                                        row_type_tag;</code></p></li><li class="listitem"><p>Row&lt;Source,Event,none,Action,none&gt; an internal
+                                        transition without guard: <code class="code">typedef a_irow_tag
+                                            row_type_tag;</code></p></li><li class="listitem"><p>Row&lt;Source,Event,none,none,Guard&gt; an internal
+                                        transition without action: <code class="code">typedef g_irow_tag
+                                            row_type_tag;</code></p></li><li class="listitem"><p>Row&lt;Source,Event,none,none,Guard&gt; an internal
+                                        transition with action and guard: <code class="code">typedef irow_tag
+                                            row_type_tag;</code></p></li><li class="listitem"><p>Row&lt;Source,Event,none,none,none&gt; an internal transition
+                                        without action or guard: <code class="code">typedef _irow_tag
+                                            row_type_tag;</code></p></li></ul></div></div><div class="refsect3" title="methods"><a name="d0e5701"></a><h4>methods</h4><p>Like any other front-end, Row implements the two necessary static
+                            functions for action and guard call. Each function receives as parameter
+                            the (deepest-level) state machine processsing the event, the event
+                            itself, the source and target states and all the states contained in a
+                            state machine.</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Fsm,class SourceState,class TargetState,
+                                    class AllStates&gt; static void action_call(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                    <code>(</code>Fsm&amp; fsm,Event const&amp;
+                                        evt,SourceState&amp;,TargetState,AllStates&amp;<code>)</code>
+                                </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Fsm,class SourceState,class TargetState,
+                                    class AllStates&gt; static bool guard_call(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                    <code>(</code>Fsm&amp; fsm,Event const&amp;
+                                        evt,SourceState&amp;,TargetState,AllStates&amp;<code>)</code>
+                                </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div></div></div><div class="refsect2" title="Internal"><a name="d0e5724"></a><h3>Internal</h3><div class="refsect3" title="definition"><a name="d0e5727"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template &lt;class Event,class Action,class Guard&gt;
+                                    Internal</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="tags"><a name="d0e5734"></a><h4>tags</h4><p>row_type_tag is defined differently for every specialization:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>all 3 template parameters means an internal transition
+                                        with action and guard: <code class="code">typedef sm_i_row_tag
+                                            row_type_tag;</code></p></li><li class="listitem"><p>Internal&lt;Event,none,none&gt; an internal transition
+                                        without action or guard: <code class="code">typedef sm__i_row_tag
+                                            row_type_tag;</code></p></li><li class="listitem"><p>Internal&lt;Event,Action,none&gt; an internal transition
+                                        without guard: <code class="code">typedef sm_a_i_row_tag
+                                            row_type_tag;</code></p></li><li class="listitem"><p>Internal&lt;Event,none,Guard&gt; an internal transition
+                                        without action: <code class="code">typedef sm_g_i_row_tag
+                                            row_type_tag;</code></p></li></ul></div></div><div class="refsect3" title="methods"><a name="d0e5760"></a><h4>methods</h4><p>Like any other front-end, Internal implements the two necessary static
+                            functions for action and guard call. Each function receives as parameter
+                            the (deepest-level) state machine processsing the event, the event
+                            itself, the source and target states and all the states contained in a
+                            state machine.</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Fsm,class SourceState,class TargetState,
+                                    class AllStates&gt; static void action_call(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                    <code>(</code>Fsm&amp; fsm,Event const&amp;
+                                        evt,SourceState&amp;,TargetState,AllStates&amp;<code>)</code>
+                                </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Fsm,class SourceState,class TargetState,
+                                    class AllStates&gt; static bool guard_call(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                    <code>(</code>Fsm&amp; fsm,Event const&amp;
+                                        evt,SourceState&amp;,TargetState,AllStates&amp;<code>)</code>
+                                </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div></div></div><div class="refsect2" title="ActionSequence_"><a name="d0e5783"></a><h3>ActionSequence_</h3><p>This functor calls every element of the template Sequence (which are also
+                        callable functors) in turn. It is also the underlying implementation of the
+                        eUML sequence grammar (action1,action2,...).</p><div class="refsect3" title="definition"><a name="d0e5788"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template &lt;class Sequence&gt; ActionSequence_</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="methods"><a name="d0e5795"></a><h4>methods</h4><p>This helper functor is made for use in a transition table and in a
+                            state behavior and therefore implements an operator() with 3 and with 4
+                            arguments:</p><p>
+                            </p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Evt,class Fsm,class
+                                        SourceState,class TargetState&gt; operator()(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Evt const&amp; ,Fsm&amp; ,SourceState&amp;
+                                        ,TargetState&amp; </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>
+                        </p><p>
+                            </p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Evt,class Fsm,class State&gt;
+                                        operator()(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Evt const&amp;, Fsm&amp;, State&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>
+                        </p></div></div><div class="refsect2" title="Defer"><a name="d0e5818"></a><h3>Defer</h3><div class="refsect3" title="definition"><a name="d0e5821"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">Defer</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="methods"><a name="d0e5828"></a><h4>methods</h4><p>This helper functor is made for use in a transition table and
+                            therefore implements an operator() with 4 arguments:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Evt,class Fsm,class SourceState,class
+                                    TargetState&gt; operator()(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Evt const&amp;, Fsm&amp; , SourceState&amp;,
+                                    TargetState&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div></div></div></div><div class="refsect1" title="msm/front/internal_row.hpp"><a name="d0e5839"></a><h2>msm/front/internal_row.hpp</h2><p>This header implements the internal transition rows for use inside an
+                    internal_transition_table. All these row types have no source or target state,
+                    as the backend will recognize internal transitions from this
+                    internal_transition_table.</p><div class="refsect2" title="methods"><a name="d0e5844"></a><h3>methods</h3><p>Like any other front-end, the following transition row types implements
+                        the two necessary static functions for action and guard call. Each function
+                        receives as parameter the (deepest-level) state machine processsing the
+                        event, the event itself, the source and target states and all the states
+                        contained in a state machine.</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Fsm,class SourceState,class TargetState,
+                                class AllStates&gt; static void action_call(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                <code>(</code>Fsm&amp; fsm,Event const&amp;
+                                    evt,SourceState&amp;,TargetState,AllStates&amp;<code>)</code>
+                            </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Fsm,class SourceState,class TargetState,
+                                class AllStates&gt; static bool guard_call(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                <code>(</code>Fsm&amp; fsm,Event const&amp;
+                                    evt,SourceState&amp;,TargetState,AllStates&amp;<code>)</code>
+                            </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div></div><div class="refsect2" title="a_internal"><a name="d0e5867"></a><h3>a_internal</h3><div class="refsect3" title="definition"><a name="d0e5870"></a><h4>definition</h4><p>This is an internal transition with an action called during the
+                            transition.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt; class Event, class CalledForAction, void
+                                    (CalledForAction::*action)(Event const&amp;)&gt;
+                                    a_internal</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="template parameters"><a name="d0e5879"></a><h4>template parameters</h4><p>
+                            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the internal
+                                        transition.</p></li><li class="listitem"><p>CalledForAction: the type on which the action method will
+                                        be called. It can be either a state of the containing state
+                                        machine or the state machine itself.</p></li><li class="listitem"><p>action: a pointer to the method which CalledForAction
+                                        provides.</p></li></ul></div><p>
+                        </p></div></div><div class="refsect2" title="g_internal"><a name="d0e5895"></a><h3>g_internal</h3><p>This is an internal transition with a guard called before the transition
+                        and allowing the transition if returning true.</p><div class="refsect3" title="definition"><a name="d0e5900"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt; class Event, class CalledForGuard, bool
+                                    (CalledForGuard::*guard)(Event const&amp;)&gt;
+                                    g_internal</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="template parameters"><a name="d0e5907"></a><h4>template parameters</h4><p>
+                            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the internal
+                                        transition.</p></li><li class="listitem"><p>CalledForGuard: the type on which the guard method will be
+                                        called. It can be either a state of the containing state
+                                        machine or the state machine itself.</p></li><li class="listitem"><p>guard: a pointer to the method which CalledForGuard
+                                        provides.</p></li></ul></div><p>
+                        </p></div></div><div class="refsect2" title="internal"><a name="d0e5923"></a><h3>internal</h3><p>This is an internal transition with a guard called before the transition
+                        and allowing the transition if returning true. It also calls an action
+                        called during the transition.</p><div class="refsect3" title="definition"><a name="d0e5928"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt; class Event, class CalledForAction, void
+                                    (CalledForAction::*action)(Event const&amp;), class
+                                    CalledForGuard, bool (CalledForGuard::*guard)(Event const&amp;)&gt;
+                                    internal</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="template parameters"><a name="d0e5935"></a><h4>template parameters</h4><p>
+                            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the internal transition</p></li><li class="listitem"><p>CalledForAction: the type on which the action method will
+                                        be called. It can be either a state of the containing state
+                                        machine or the state machine itself.</p></li><li class="listitem"><p>action: a pointer to the method which CalledForAction
+                                        provides.</p></li><li class="listitem"><p>CalledForGuard: the type on which the guard method will be
+                                        called. It can be either a state of the containing state
+                                        machine or the state machine itself.</p></li><li class="listitem"><p>guard: a pointer to the method which CalledForGuard
+                                        provides.</p></li></ul></div><p>
+                        </p></div></div><div class="refsect2" title="_internal"><a name="d0e5957"></a><h3>_internal</h3><p>This is an internal transition without action or guard. This is equivalent
+                        to an explicit "ignore event".</p><div class="refsect3" title="definition"><a name="d0e5962"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt; class Event &gt; _internal</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="template parameters"><a name="d0e5969"></a><h4>template parameters</h4><p>
+                            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the internal
+                                        transition.</p></li></ul></div><p>
+                        </p></div></div></div><div class="refsect1" title="msm/front/row2.hpp"><a name="d0e5979"></a><h2>msm/front/row2.hpp</h2><p>This header contains the variants of row2, which are an extension of the
+                    standard row transitions for use in the transition table. They offer the
+                    possibility to define action and guard not only in the state machine, but in any
+                    state of the state machine. They can also be used in internal transition tables
+                    through their irow2 variants.</p><div class="refsect2" title="methods"><a name="d0e5984"></a><h3>methods</h3><p>Like any other front-end, the following transition row types implements
+                        the two necessary static functions for action and guard call. Each function
+                        receives as parameter the (deepest-level) state machine processsing the
+                        event, the event itself, the source and target states and all the states
+                        contained in a state machine.</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Fsm,class SourceState,class TargetState,
+                                class AllStates&gt; static void action_call(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                <code>(</code>Fsm&amp; fsm,Event const&amp;
+                                    evt,SourceState&amp;,TargetState,AllStates&amp;<code>)</code>
+                            </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Fsm,class SourceState,class TargetState,
+                                class AllStates&gt; static bool guard_call(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                <code>(</code>Fsm&amp; fsm,Event const&amp;
+                                    evt,SourceState&amp;,TargetState,AllStates&amp;<code>)</code>
+                            </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div></div><div class="refsect2" title="_row2"><a name="d0e6007"></a><h3>_row2</h3><p>This is a transition without action or guard. The state machine only
+                        changes active state.</p><div class="refsect3" title="definition"><a name="d0e6012"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt; class Source, class Event, class Target &gt;
+                                    _row2</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="template parameters"><a name="d0e6019"></a><h4>template parameters</h4><p>
+                            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>Target: the target state of the transition.</p></li></ul></div><p>
+                        </p></div></div><div class="refsect2" title="a_row2"><a name="d0e6035"></a><h3>a_row2</h3><p>This is a transition with action and without guard.</p><div class="refsect3" title="definition"><a name="d0e6040"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt; class Source, class Event, class Target,
+                                </span></span>&nbsp;{<br>}</pre><pre class="classsynopsis"> <span class="ooclass"><span class="classname">class CalledForAction, void
+                                    (CalledForAction::*action)(Event const&amp;) &gt; _row2</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="template parameters"><a name="d0e6051"></a><h4>template parameters</h4><p>
+                            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>Target: the target state of the transition.</p></li><li class="listitem"><p>CalledForAction: the type on which the action method will
+                                        be called. It can be either a state of the containing state
+                                        machine or the state machine itself.</p></li><li class="listitem"><p>action: a pointer to the method which CalledForAction
+                                        provides.</p></li></ul></div><p>
+                        </p></div></div><div class="refsect2" title="g_row2"><a name="d0e6073"></a><h3>g_row2</h3><p>This is a transition with guard and without action.</p><div class="refsect3" title="definition"><a name="d0e6078"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt; class Source, class Event, class Target,
+                                </span></span>&nbsp;{<br>}</pre><pre class="classsynopsis"> <span class="ooclass"><span class="classname">class CalledForGuard, bool (CalledForGuard::*guard)(Event
+                                    const&amp;) &gt; _row2</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="template parameters"><a name="d0e6089"></a><h4>template parameters</h4><p>
+                            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>Target: the target state of the transition.</p></li><li class="listitem"><p>CalledForGuard: the type on which the guard method will be
+                                        called. It can be either a state of the containing state
+                                        machine or the state machine itself.</p></li><li class="listitem"><p>guard: a pointer to the method which CalledForGuard
+                                        provides.</p></li></ul></div><p>
+                        </p></div></div><div class="refsect2" title="row2"><a name="d0e6111"></a><h3>row2</h3><p>This is a transition with guard and action.</p><div class="refsect3" title="definition"><a name="d0e6116"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt; class Source, class Event, class Target,
+                                </span></span>&nbsp;{<br>}</pre><pre class="classsynopsis"> <span class="ooclass"><span class="classname">class CalledForAction, void
+                                    (CalledForAction::*action)(Event const&amp;), </span></span>&nbsp;{<br>}</pre><pre class="classsynopsis"> <span class="ooclass"><span class="classname">class CalledForGuard, bool (CalledForGuard::*guard)(Event
+                                    const&amp;) &gt; _row2</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="template parameters"><a name="d0e6131"></a><h4>template parameters</h4><p>
+                            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>Target: the target state of the transition.</p></li><li class="listitem"><p>CalledForAction: the type on which the action method will
+                                        be called. It can be either a state of the containing state
+                                        machine or the state machine itself.</p></li><li class="listitem"><p>action: a pointer to the method which CalledForAction
+                                        provides.</p></li><li class="listitem"><p>CalledForGuard: the type on which the guard method will be
+                                        called. It can be either a state of the containing state
+                                        machine or the state machine itself.</p></li><li class="listitem"><p>guard: a pointer to the method which CalledForGuard
+                                        provides.</p></li></ul></div><p>
+                        </p></div></div><div class="refsect2" title="a_irow2"><a name="d0e6159"></a><h3>a_irow2</h3><p>This is an internal transition for use inside a transition table, with
+                        action and without guard.</p><div class="refsect3" title="definition"><a name="d0e6164"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt; class Source, class Event, </span></span>&nbsp;{<br>}</pre><pre class="classsynopsis"> <span class="ooclass"><span class="classname">class CalledForAction, void
+                                    (CalledForAction::*action)(Event const&amp;) &gt; _row2</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="template parameters"><a name="d0e6175"></a><h4>template parameters</h4><p>
+                            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>CalledForAction: the type on which the action method will
+                                        be called. It can be either a state of the containing state
+                                        machine or the state machine itself.</p></li><li class="listitem"><p>action: a pointer to the method which CalledForAction
+                                        provides.</p></li></ul></div><p>
+                        </p></div></div><div class="refsect2" title="g_irow2"><a name="d0e6194"></a><h3>g_irow2</h3><p>This is an internal transition for use inside a transition table, with
+                        guard and without action.</p><div class="refsect3" title="definition"><a name="d0e6199"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt; class Source, class Event, </span></span>&nbsp;{<br>}</pre><pre class="classsynopsis"> <span class="ooclass"><span class="classname">class CalledForGuard, bool (CalledForGuard::*guard)(Event
+                                    const&amp;) &gt; _row2</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="template parameters"><a name="d0e6210"></a><h4>template parameters</h4><p>
+                            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>CalledForGuard: the type on which the guard method will be
+                                        called. It can be either a state of the containing state
+                                        machine or the state machine itself.</p></li><li class="listitem"><p>guard: a pointer to the method which CalledForGuard
+                                        provides.</p></li></ul></div><p>
+                        </p></div></div><div class="refsect2" title="irow2"><a name="d0e6229"></a><h3>irow2</h3><p>This is an internal transition for use inside a transition table, with
+                        guard and action.</p><div class="refsect3" title="definition"><a name="d0e6234"></a><h4>definition</h4><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt; class Source, class Event, </span></span>&nbsp;{<br>}</pre><pre class="classsynopsis"> <span class="ooclass"><span class="classname">class CalledForAction, void
+                                    (CalledForAction::*action)(Event const&amp;), </span></span>&nbsp;{<br>}</pre><pre class="classsynopsis"> <span class="ooclass"><span class="classname">class CalledForGuard, bool (CalledForGuard::*guard)(Event
+                                    const&amp;) &gt; _row2</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="template parameters"><a name="d0e6249"></a><h4>template parameters</h4><p>
+                            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>CalledForAction: the type on which the action method will
+                                        be called. It can be either a state of the containing state
+                                        machine or the state machine itself.</p></li><li class="listitem"><p>action: a pointer to the method which CalledForAction
+                                        provides.</p></li><li class="listitem"><p>CalledForGuard: the type on which the guard method will be
+                                        called. It can be either a state of the containing state
+                                        machine or the state machine itself.</p></li><li class="listitem"><p>guard: a pointer to the method which CalledForGuard
+                                        provides.</p></li></ul></div><p>
+                        </p></div></div></div><div class="refsect1" title="msm/front/state_machine_def.hpp"><a name="d0e6274"></a><h2>msm/front/state_machine_def.hpp</h2><p>This header provides the implementation of the <span class="command"><strong><a class="command" href="ch03s02.html#basic-front-end">basic front-end</a></strong></span>. It contains one
+                    type, <code class="code">state_machine_def</code></p><div class="refsect2" title="state_machine_def definition"><a name="d0e6284"></a><h3>state_machine_def definition</h3><p>This type is the basic class for a basic (or possibly any other)
+                        front-end. It provides the standard row types (which includes internal
+                        transitions) and a default implementation of the required methods and
+                        typedefs.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template &lt;class Derived,class BaseState =
+                                default_base_state&gt; state_machine_def</span></span>&nbsp;{<br>}</pre><div class="refsect3" title="typedefs"><a name="d0e6293"></a><h4>typedefs</h4><p>
+                            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>flag_list: by default, no flag is set in the state
+                                        machine</p></li><li class="listitem"><p>deferred_events: by default, no event is deferred.</p></li><li class="listitem"><p>configuration: by default, no configuration customization
+                                        is done.</p></li></ul></div><p>
+                        </p></div><div class="refsect3" title="row methods"><a name="d0e6309"></a><h4>row methods</h4><p>Like any other front-end, the following transition row types
+                            implements the two necessary static functions for action and guard call.
+                            Each function receives as parameter the (deepest-level) state machine
+                            processsing the event, the event itself, the source and target states
+                            and all the states contained in a state machine (ignored).</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Fsm,class SourceState,class TargetState,
+                                    class AllStates&gt; static void action_call(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                    <code>(</code>Fsm&amp; fsm,Event const&amp;
+                                        evt,SourceState&amp;,TargetState,AllStates&amp;<code>)</code>
+                                </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Fsm,class SourceState,class TargetState,
+                                    class AllStates&gt; static bool guard_call(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                    <code>(</code>Fsm&amp; fsm,Event const&amp;
+                                        evt,SourceState&amp;,TargetState,AllStates&amp;<code>)</code>
+                                </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div></div><div class="refsect3" title="a_row"><a name="d0e6332"></a><h4>a_row</h4><p>This is a transition with action and without guard.</p><p><code class="classname">template&lt; class Source, class Event, class Target,
+                                    void (Derived::*action)(Event const&amp;) &gt; a_row</code></p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>Target: the target state of the transition.</p></li><li class="listitem"><p>action: a pointer to the method provided by the concrete
+                                        front-end (represented by <code class="code">Derived</code>).</p></li></ul></div></div><div class="refsect3" title="g_row"><a name="d0e6357"></a><h4>g_row</h4><p>This is a transition with guard and without action.</p><p><code class="classname">template&lt; class Source, class Event, class Target,
+                                    bool (Derived::*guard)(Event const&amp;) &gt; g_row</code></p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>Target: the target state of the transition.</p></li><li class="listitem"><p>guard: a pointer to the method provided by the concrete
+                                        front-end (represented by <code class="code">Derived</code>).</p></li></ul></div></div><div class="refsect3" title="row"><a name="d0e6382"></a><h4>row</h4><p>This is a transition with guard and action.</p><p><code class="classname">template&lt; class Source, class Event, class Target,
+                                    void (Derived::*action)(Event const&amp;), bool
+                                    (Derived::*guard)(Event const&amp;) &gt; row</code></p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>Target: the target state of the transition.</p></li><li class="listitem"><p>action: a pointer to the method provided by the concrete
+                                        front-end (represented by <code class="code">Derived</code>).</p></li><li class="listitem"><p>guard: a pointer to the method provided by the concrete
+                                        front-end (represented by <code class="code">Derived</code>).</p></li></ul></div></div><div class="refsect3" title="_row"><a name="d0e6413"></a><h4>_row</h4><p>This is a transition without action or guard. The state machine only
+                            changes active state.</p><p><code class="classname">template&lt; class Source, class Event, class Target &gt;
+                                    _row</code></p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>Target: the target state of the transition.</p></li></ul></div></div><div class="refsect3" title="a_irow"><a name="d0e6432"></a><h4>a_irow</h4><p>This is an internal transition for use inside a transition table, with
+                            action and without guard.</p><p><code class="classname">template&lt; class Source, class Event, void
+                                    (Derived::*action)(Event const&amp;) &gt; a_irow</code></p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>action: a pointer to the method provided by the concrete
+                                        front-end (represented by <code class="code">Derived</code>).</p></li></ul></div></div><div class="refsect3" title="g_irow"><a name="d0e6454"></a><h4>g_irow</h4><p>This is an internal transition for use inside a transition table, with
+                            guard and without action.</p><p><code class="classname">template&lt; class Source, class Event, bool
+                                    (Derived::*guard)(Event const&amp;) &gt; g_irow</code></p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>guard: a pointer to the method provided by the concrete
+                                        front-end (represented by <code class="code">Derived</code>).</p></li></ul></div></div><div class="refsect3" title="irow"><a name="d0e6476"></a><h4>irow</h4><p>This is an internal transition for use inside a transition table, with
+                            guard and action.</p><p><code class="classname">template&lt; class Source, class Event, void
+                                    (Derived::*action)(Event const&amp;), bool
+                                    (Derived::*guard)(Event const&amp;) &gt; irow</code></p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li><li class="listitem"><p>action: a pointer to the method provided by the concrete
+                                        front-end (represented by <code class="code">Derived</code>).</p></li><li class="listitem"><p>guard: a pointer to the method provided by the concrete
+                                        front-end (represented by <code class="code">Derived</code>).</p></li></ul></div></div><div class="refsect3" title="_irow"><a name="d0e6504"></a><h4>_irow</h4><p>This is an internal transition without action or guard. As it does
+                            nothing, it means "ignore event".</p><p><code class="classname">template&lt; class Source, class Event &gt;
+                                    _irow</code></p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Event: the event triggering the transition.</p></li><li class="listitem"><p>Source: the source state of the transition.</p></li></ul></div></div><div class="refsect3" title="methods"><a name="d0e6520"></a><h4>methods</h4><p><code class="code">state_machine_def</code> provides a default implementation in
+                            case of an event which cannot be processed by a state machine (no
+                            transition found). The implementation is using a
+                                <code class="code">BOOST_ASSERT</code> so that the error will only be noticed in
+                            debug mode. Overwrite this method in your implementation to change the
+                            behavior.</p><p>
+                            </p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Fsm,class Event&gt; static void
+                                        no_transition(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                        <code>(</code>Event const&amp; ,Fsm&amp;, int
+                                            state<code>)</code>
+                                    </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>
+                        </p><p><code class="code">state_machine_def</code> provides a default implementation in
+                            case an exception is thrown by a state (entry/exit) or transition
+                            (action/guard) behavior. The implementation is using a
+                                <code class="code">BOOST_ASSERT</code> so that the error will only be noticed in
+                            debug mode. Overwrite this method in your implementation to change the
+                            behavior. This method will be called only if exception handling is not
+                            deactivated (default) by defining
+                            <code class="code">has_no_message_queue</code>.</p><p>
+                            </p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Fsm,class Event&gt; static void
+                                        exception_caught(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                        <code>(</code>Event const&amp; ,Fsm&amp;,
+                                            std::exception&amp;<code>)</code>
+                                    </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>
+                        </p></div></div></div><div class="refsect1" title="msm/front/states.hpp"><a name="d0e6564"></a><h2>msm/front/states.hpp </h2><p>This header provides the different states (except state machines) for the
+                    basic front-end (or mixed with other front-ends).</p><div class="refsect2" title="types"><a name="d0e6569"></a><h3>types</h3><p>This header provides the following types:</p><div class="refsect3" title="no_sm_ptr"><a name="d0e6574"></a><h4>no_sm_ptr</h4><p>deprecated: default policy for states. It means that states do not
+                            need to save a pointer to their containing state machine.</p></div><div class="refsect3" title="sm_ptr"><a name="d0e6579"></a><h4>sm_ptr</h4><p>deprecated: state policy. It means that states need to save a pointer
+                            to their containing state machine. When seeing this flag, the back-end
+                            will call set_sm_ptr(fsm*) and give itself as argument.</p></div><div class="refsect3" title="state"><a name="d0e6584"></a><h4>state</h4><p>Basic type for simple states. Inherit from this type to define a
+                            simple state. The first argument is needed if you want your state (and
+                            all others used in a concrete state machine) to inherit a basic type for
+                            logging or providing a common behavior.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt;class Base = default_base_state,class
+                                    SMPtrPolicy = no_sm_ptr&gt; state</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="terminate_state"><a name="d0e6593"></a><h4>terminate_state</h4><p>Basic type for terminate states. Inherit from this type to define a
+                            terminate state. The first argument is needed if you want your state
+                            (and all others used in a concrete state machine) to inherit a basic
+                            type for logging or providing a common behavior.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt;class Base = default_base_state,class
+                                    SMPtrPolicy = no_sm_ptr&gt; terminate_state</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="interrupt_state"><a name="d0e6602"></a><h4>interrupt_state</h4><p>Basic type for interrupt states. Interrupt states prevent any further
+                            event handling until EndInterruptEvent is sent. Inherit from this type
+                            to define a terminate state. The first argument is the name of the event
+                            ending the interrupt. The second argument is needed if you want your
+                            state (and all others used in a concrete state machine) to inherit a
+                            basic type for logging or providing a common behavior.</p><p>The EndInterruptEvent can also be a sequence of events:
+                            mpl::vector&lt;EndInterruptEvent,EndInterruptEvent2&gt;.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt;class EndInterruptEvent,class Base =
+                                    default_base_state,</span></span>&nbsp;{<br>}</pre><pre class="classsynopsis"> <span class="ooclass"><span class="classname">class SMPtrPolicy = no_sm_ptr&gt;
+                                    interrupt_state</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="explicit_entry"><a name="d0e6617"></a><h4>explicit_entry</h4><p>Inherit from this type <span class="underline">in
+                                addition</span> to the desired state type to enable this state
+                            for direct entering. The template parameter gives the region id of the
+                            state (regions are numbered in the order of the
+                                <code class="code">initial_state</code> typedef).</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template &lt;int ZoneIndex=-1&gt; explicit_entry</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="entry_pseudo_state"><a name="d0e6632"></a><h4>entry_pseudo_state</h4><p>Basic type for entry pseudo states. Entry pseudo states are an
+                            predefined entry into a submachine and connect two transitions. The
+                            first argument is the id of the region entered by this state (regions
+                            are numbered in the order of the <code class="code">initial_state</code> typedef).
+                            The second argument is needed if you want your state (and all others
+                            used in a concrete state machine) to inherit a basic type for logging or
+                            providing a common behavior.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt;int RegionIndex=-1,class Base =
+                                    default_base_state,</span></span>&nbsp;{<br>}</pre><pre class="classsynopsis"> <span class="ooclass"><span class="classname">class SMPtrPolicy = no_sm_ptr&gt;
+                                    entry_pseudo_state</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="exit_pseudo_state"><a name="d0e6648"></a><h4>exit_pseudo_state</h4><p>Basic type for exit pseudo states. Exit pseudo states are an
+                            predefined exit from a submachine and connect two transitions. The first
+                            argument is the name of the event which will be "thrown" out of the exit
+                            point. This event does not need to be the same as the one sent by the
+                            inner region but must be convertible from it. The second argument is
+                            needed if you want your state (and all others used in a concrete state
+                            machine) to inherit a basic type for logging or providing a common
+                            behavior.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template&lt;class Event,class Base =
+                                    default_base_state,</span></span>&nbsp;{<br>}</pre><pre class="classsynopsis"> <span class="ooclass"><span class="classname">class SMPtrPolicy = no_sm_ptr&gt;
+                                    exit_pseudo_state</span></span>&nbsp;{<br>}</pre></div></div></div><div class="refsect1" title="msm/front/euml/euml.hpp"><a name="d0e6661"></a><h2>msm/front/euml/euml.hpp</h2><p>This header includes all of eUML except the STL functors.</p></div><div class="refsect1" title="msm/front/euml/stl.hpp"><a name="d0e6666"></a><h2>msm/front/euml/stl.hpp</h2><p>This header includes all the functors for STL support in eUML. These <span class="command"><strong><a class="command" href="ch11.html#eUML-STL-all">tables</a></strong></span> show a full description.</p></div><div class="refsect1" title="msm/front/euml/algorithm.hpp"><a name="d0e6674"></a><h2>msm/front/euml/algorithm.hpp</h2><p>This header includes all the functors for STL algorithms support in eUML.
+                    These <span class="command"><strong><a class="command" href="ch11.html#eUML-STL-all">tables</a></strong></span> show a full
+                    description.</p></div><div class="refsect1" title="msm/front/euml/iteration.hpp"><a name="d0e6682"></a><h2>msm/front/euml/iteration.hpp</h2><p>This header includes iteration functors for STL support in eUML. This <span class="command"><strong><a class="command" href="ch11.html#eUML-STL-iteration">tables</a></strong></span> shows a full
+                    description.</p></div><div class="refsect1" title="msm/front/euml/querying.hpp"><a name="d0e6690"></a><h2>msm/front/euml/querying.hpp</h2><p>This header includes querying functors for STL support in eUML. This <span class="command"><strong><a class="command" href="ch11.html#eUML-STL-querying">tables</a></strong></span> shows a full
+                    description.</p></div><div class="refsect1" title="msm/front/euml/transformation.hpp"><a name="d0e6698"></a><h2>msm/front/euml/transformation.hpp</h2><p>This header includes transformation functors for STL support in eUML. This
+                        <span class="command"><strong><a class="command" href="ch11.html#eUML-STL-transformation">tables</a></strong></span> shows a full
+                    description.</p></div><div class="refsect1" title="msm/front/euml/container.hpp"><a name="d0e6706"></a><h2>msm/front/euml/container.hpp</h2><p>This header includes container functors for STL support in eUML (functors
+                    calling container methods). This <span class="command"><strong><a class="command" href="ch11.html#eUML-STL-container">tables</a></strong></span> shows a full description. It also provides npos for
+                    strings.</p><div class="refsect2" title="Npos_<container type&gt;"><a name="d0e6714"></a><h3>Npos_&lt;container type&gt;</h3><p>Functor returning npos for transition or state behaviors. Like all
+                        constants, only the functor form exists, so parenthesis are necessary.
+                        Example:</p><p><code class="code">string_find_(event_(m_song),Char_&lt;'S'&gt;(),Size_t_&lt;0&gt;()) !=
+                            Npos_&lt;string&gt;() // compare result of string::find with
+                        npos</code></p></div></div><div class="refsect1" title="msm/front/euml/stt_grammar.hpp"><a name="d0e6722"></a><h2>msm/front/euml/stt_grammar.hpp</h2><p>This header provides the transition table grammars. This includes internal
+                    transition tables.</p><div class="refsect2" title="functions"><a name="d0e6727"></a><h3>functions</h3><div class="refsect3" title="build_stt"><a name="d0e6730"></a><h4>build_stt</h4><p>The function build_stt evaluates the grammar-conform expression as
+                            parameter. It returns a transition table, which is a mpl::vector of
+                            transitions (rows) or, if the expression is ill-formed (does not match
+                            the grammar), the type <code class="code">invalid_type</code>, which will lead to a
+                            compile-time static assertion when this transition table is passed to a
+                            state machine. </p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template&lt;class Expr&gt; [mpl::vector&lt;...&gt; /
+                                    msm::front::euml::invalid_type] build_stt(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Expr const&amp; expr</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div></div><div class="refsect3" title="build_internal_stt"><a name="d0e6744"></a><h4>build_internal_stt</h4><p>The function build_internal_stt evaluates the grammar-conform
+                            expression as parameter. It returns a transition table, which is a
+                            mpl::vector of transitions (rows) or, if the expression is ill-formed
+                            (does not match the grammar), the type <code class="code">invalid_type</code>, which
+                            will lead to a compile-time static assertion when this transition table
+                            is passed to a state machine. </p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template&lt;class Expr&gt; [mpl::vector&lt;...&gt; /
+                                    msm::front::euml::invalid_type] build_internal_stt(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Expr const&amp; expr</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div></div></div><div class="refsect2" title="grammars"><a name="d0e6758"></a><h3>grammars</h3><div class="refsect3" title="transition table"><a name="d0e6761"></a><h4><span class="command"><strong><a name="reference-stt-grammar"></a>transition
+                            table</strong></span></h4><p>The transition table accepts the following grammar:</p><pre class="programlisting">Stt := Row | (Stt ',' Stt)
+Row := (Target '==' (SourcePlusEvent)) /* first syntax*/
+       | ( (SourcePlusEvent) '==' Target ) /* second syntax*/
+       | (SourcePlusEvent) /* internal transitions */
+SourcePlusEvent := (BuildSource '+' BuildEvent)/* standard transition*/ 
+                   | (BuildSource) /* anonymous transition */
+BuildSource := state_tag | (state_tag '/' Action) | (state_tag '[' Guard ']') 
+            | (state_tag '[' Guard ']' '/' Action)
+BuildEvent := event_tag | (event_tag '/' Action) | (event_tag '[' Guard ']') 
+            | (event_tag '[' Guard ']' '/' Action)</pre><p>The grammars Action and Guard are defined in state_grammar.hpp and
+                            guard_grammar.hpp respectively. state_tag and event_tag are inherited
+                            from euml_state (or other state variants) and euml_event respectively.
+                            For example, following declarations are possible:</p><pre class="programlisting">target == source + event [guard] / action,
+source + event [guard] / action == target,
+source + event [guard] / (action1,action2) == target,
+target == source + event [guard] / (action1,action2),
+target == source + event,
+source + event == target,
+target == source + event [guard],
+source + event [guard] == target,
+target == source + event / action,
+source + event /action == target,
+source / action == target, /*anonymous transition*/
+target == source / action, /*anonymous transition*/
+source + event /action, /* internal transition*/</pre></div><div class="refsect3" title="internal transition table"><a name="d0e6773"></a><h4>internal transition table</h4><p>The internal transition table accepts the following grammar:</p><pre class="programlisting">IStt := BuildEvent | (IStt ',' IStt)</pre><p>BuildEvent being defined for both internal and standard transition
+                            tables.</p></div></div></div><div class="refsect1" title="msm/front/euml/guard_grammar.hpp"><a name="d0e6782"></a><h2>msm/front/euml/guard_grammar.hpp</h2><p>This header contains the <code class="code">Guard</code> grammar used in the previous
+                    section. This grammar is long but pretty simple:</p><pre class="programlisting">Guard := action_tag | (Guard '&amp;&amp;' Guard) 
+        | (Guard '||' Guard) | ... /* operators*/
+        | (if_then_else_(Guard,Guard,Guard)) | (function (Action,...Action))</pre><p>Most C++ operators are supported (address-of is not). With
+                        <code class="code">function</code> is meant any eUML predefined function or any self-made
+                    (using <code class="code">MSM_EUML_METHOD</code> or <code class="code">MSM_EUML_FUNCTION</code>). Action
+                    is a grammar defined in state_grammar.hpp.</p></div><div class="refsect1" title="msm/front/euml/state_grammar.hpp"><a name="d0e6803"></a><h2>msm/front/euml/state_grammar.hpp</h2><p>This header provides the grammar for actions and the different grammars and
+                    functions to build states using eUML.</p><div class="refsect2" title="action grammar"><a name="d0e6808"></a><h3>action grammar</h3><p>Like the guard grammar, this grammar supports relevant C++ operators and
+                        eUML functions:</p><pre class="programlisting">Action := action_tag | (Action '+' Action) 
+          | ('--' Action) | ... /* operators*/
+          | if_then_else_(Guard,Action,Action) | if_then_(Action) 
+          | while_(Guard,Action) 
+          | do_while_(Guard,Action) | for_(Action,Guard,Action,Action) 
+          | (function(Action,...Action))
+ActionSequence := Action | (Action ',' Action)</pre><p>Relevant operators are: ++ (post/pre), -- (post/pre), dereferencing, +
+                        (unary/binary), - (unary/binary), *, /, %, &amp;(bitwise), | (bitwise),
+                        ^(bitwise), +=, -=, *=, /=, %=, &lt;&lt;=, &gt;&gt;=, &lt;&lt;, &gt;&gt;, =, [].</p></div><div class="refsect2" title="attributes"><a name="d0e6817"></a><h3>attributes</h3><p>This grammar is used to add attributes to states (or state machines) or
+                        events: It evaluates to a fusion::map. You can use two forms:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p><code class="code">attributes_ &lt;&lt; no_attributes_</code></p></li><li class="listitem"><p><code class="code">attributes_ &lt;&lt; attribute_1 &lt;&lt; ... &lt;&lt;
+                                        attribute_n</code></p></li></ul></div><p>Attributes can be of any default-constructible type (fusion
+                        requirement).</p></div><div class="refsect2" title="configure"><a name="d0e6833"></a><h3>configure</h3><p>This grammar also has two forms:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p><code class="code">configure_ &lt;&lt; no_configure_</code></p></li><li class="listitem"><p><code class="code">configure_ &lt;&lt; type_1 &lt;&lt; ... &lt;&lt;
+                                        type_n</code></p></li></ul></div><p>This grammar is used to create inside one syntax:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>flags: <code class="code">configure_ &lt;&lt; some_flag</code> where
+                                    some_flag inherits from <code class="code">euml_flag&lt;some_flag&gt;</code> or
+                                    is defined using BOOST_MSM_EUML_FLAG.</p></li><li class="listitem"><p>deferred events: <code class="code">configure_ &lt;&lt; some_event</code>
+                                    where some_event inherits from
+                                        <code class="code">euml_event&lt;some_event&gt;</code> or is defined using
+                                    BOOST_MSM_EUML_EVENT or
+                                    BOOST_MSM_EUML_EVENT_WITH_ATTRIBUTES.</p></li><li class="listitem"><p>configuration (message queue, manual deferring, exception
+                                    handling): <code class="code">configure_ &lt;&lt; some_config</code> where
+                                    some_config inherits from
+                                        <code class="code">euml_config&lt;some_config&gt;</code>. At the moment,
+                                    three predefined objects exist (in msm//front/euml/common.hpp):</p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>no_exception: disable catching exceptions</p></li><li class="listitem"><p>no_msg_queue: disable message queue</p></li><li class="listitem"><p>deferred_events: manually enable handling of
+                                                deferred events</p></li></ul></div></li></ul></div></div><div class="refsect2" title="initial states"><a name="d0e6887"></a><h3>initial states</h3><p>The grammar to define initial states for a state machine is: <code class="code">init_
+                            &lt;&lt; state_1 &lt;&lt; ... &lt;&lt; state_n</code> where
+                        state_1...state_n inherit from euml_state or is defined using
+                        BOOST_MSM_EUML_STATE, BOOST_MSM_EUML_INTERRUPT_STATE,
+                        BOOST_MSM_EUML_TERMINATE_STATE, BOOST_MSM_EUML_EXPLICIT_ENTRY_STATE,
+                        BOOST_MSM_EUML_ENTRY_STATE or BOOST_MSM_EUML_EXIT_STATE.</p></div><div class="refsect2" title="functions"><a name="d0e6895"></a><h3>functions</h3><div class="refsect3" title="build_sm"><a name="d0e6898"></a><h4>build_sm</h4><p>This function has several overloads. The return type is not relevant
+                            to you as only decltype (return type) is what one needs.</p><p>Defines a state machine without entry or exit:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Stt,class Init&gt;
+                                    func_state_machine&lt;...&gt; build_sm(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Stt ,Init</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines a state machine with entry behavior:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Stt,class Init,class
+                                    Expr1&gt; func_state_machine&lt;...&gt; build_sm(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Stt ,Init,Expr1 const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines a state machine with entry and exit behaviors:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Stt,class Init,class
+                                    Expr1, class Expr2&gt; func_state_machine&lt;...&gt;
+                                    build_sm(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Stt ,Init,Expr1 const&amp;,Expr2 const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines a state machine with entry, exit behaviors and
+                            attributes:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Stt,class Init,class
+                                    Expr1, class Expr2, class Attributes&gt; func_state_machine&lt;...&gt;
+                                    build_sm(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Stt ,Init,Expr1 const&amp;, Expr2 const&amp;, Attributes
+                                    const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines a state machine with entry, exit behaviors, attributes and
+                            configuration (deferred events, flags):</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Stt,class Init,class
+                                    Expr1, class Expr2, class Attributes, class Configure&gt;
+                                    func_state_machine&lt;...&gt; build_sm(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Stt ,Init,Expr1 const&amp;, Expr2 const&amp;, Attributes
+                                    const&amp;, Configure const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines a state machine with entry, exit behaviors, attributes,
+                            configuration (deferred events, flags) and a base state:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Stt,class Init,class
+                                    Expr1, class Expr2, class Attributes, class Configure, class
+                                    Base&gt; func_state_machine&lt;...&gt; build_sm(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Stt ,Init,Expr1 const&amp;, Expr2 const&amp;, Attributes
+                                    const&amp;, Configure const&amp;, Base</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Notice that this function requires the extra parameter class
+                            StateNameTag to disambiguate state machines having the same parameters
+                            but still being different.</p></div><div class="refsect3" title="build_state"><a name="d0e6953"></a><h4>build_state</h4><p>This function has several overloads. The return type is not relevant
+                            to you as only decltype (return type) is what one needs.</p><p>Defines a simple state without entry or exit:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">func_state&lt;class StateNameTag,...&gt; build_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code></code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines a simple state with entry behavior:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Expr1&gt;
+                                    func_state&lt;...&gt; build_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Expr1 const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines a simple state with entry and exit behaviors:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Expr1, class Expr2&gt;
+                                    func_state&lt;...&gt; build_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Expr1 const&amp;,Expr2 const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines a simple state with entry, exit behaviors and
+                            attributes:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Expr1, class Expr2,
+                                    class Attributes&gt; func_state&lt;...&gt; build_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Expr1 const&amp;, Expr2 const&amp;, Attributes
+                                    const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines a simple state with entry, exit behaviors, attributes and
+                            configuration (deferred events, flags):</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Expr1, class Expr2,
+                                    class Attributes, class Configure&gt; func_state&lt;...&gt;
+                                    build_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Expr1 const&amp;, Expr2 const&amp;, Attributes const&amp;,
+                                    Configure const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines a simple state with entry, exit behaviors, attributes,
+                            configuration (deferred events, flags) and a base state:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Expr1, class Expr2,
+                                    class Attributes, class Configure, class Base&gt;
+                                    func_state&lt;...&gt; build_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Expr1 const&amp;, Expr2 const&amp;, Attributes const&amp;,
+                                    Configure const&amp;, Base</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Notice that this function requires the extra parameter class
+                            StateNameTag to disambiguate states having the same parameters but still
+                            being different.</p></div><div class="refsect3" title="build_terminate_state"><a name="d0e7007"></a><h4>build_terminate_state</h4><p>This function has the same overloads as build_state.</p></div><div class="refsect3" title="build_interrupt_state"><a name="d0e7012"></a><h4>build_interrupt_state</h4><p>This function has several overloads. The return type is not relevant
+                            to you as only decltype (return type) is what one needs.</p><p>Defines an interrupt state without entry or exit:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class EndInterruptEvent&gt;
+                                    func_state&lt;...&gt; build_interrupt_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>EndInterruptEvent const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an interrupt state with entry behavior:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class
+                                    EndInterruptEvent,class Expr1&gt; func_state&lt;...&gt;
+                                    build_interrupt_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>EndInterruptEvent const&amp;,Expr1 const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an interrupt state with entry and exit behaviors:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class
+                                    EndInterruptEvent,class Expr1, class Expr2&gt; func_state&lt;...&gt;
+                                    build_interrupt_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>EndInterruptEvent const&amp;,Expr1 const&amp;,Expr2
+                                    const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an interrupt state with entry, exit behaviors and
+                            attributes:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class
+                                    EndInterruptEvent,class Expr1, class Expr2, class Attributes&gt;
+                                    func_state&lt;...&gt; build_interrupt_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>EndInterruptEvent const&amp;,Expr1 const&amp;, Expr2
+                                    const&amp;, Attributes const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an interrupt state with entry, exit behaviors, attributes and
+                            configuration (deferred events, flags):</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class
+                                    EndInterruptEvent,class Expr1, class Expr2, class Attributes,
+                                    class Configure&gt; func_state&lt;...&gt;
+                                    build_interrupt_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>EndInterruptEvent const&amp;,Expr1 const&amp;, Expr2
+                                    const&amp;, Attributes const&amp;, Configure
+                                    const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an interrupt state with entry, exit behaviors, attributes,
+                            configuration (deferred events, flags) and a base state:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class
+                                    EndInterruptEvent,class Expr1, class Expr2, class Attributes,
+                                    class Configure, class Base&gt; func_state&lt;...&gt;
+                                    build_interrupt_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>EndInterruptEvent const&amp;,Expr1 const&amp;, Expr2
+                                    const&amp;, Attributes const&amp;, Configure const&amp;,
+                                    Base</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Notice that this function requires the extra parameter class
+                            StateNameTag to disambiguate states having the same parameters but still
+                            being different.</p></div><div class="refsect3" title="build_entry_state"><a name="d0e7067"></a><h4>build_entry_state</h4><p>This function has several overloads. The return type is not relevant
+                            to you as only decltype (return type) is what one needs.</p><p>Defines an entry pseudo state without entry or exit:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,int RegionIndex&gt;
+                                    entry_func_state&lt;...&gt; build_entry_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code></code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an entry pseudo state with entry behavior:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,int RegionIndex,class
+                                    Expr1&gt; entry_func_state&lt;...&gt; build_entry_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Expr1 const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an entry pseudo state with entry and exit behaviors:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,int RegionIndex,class
+                                    Expr1, class Expr2&gt; entry_func_state&lt;...&gt;
+                                    build_entry_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Expr1 const&amp;,Expr2 const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an entry pseudo state with entry, exit behaviors and
+                            attributes:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,int RegionIndex,class
+                                    Expr1, class Expr2, class Attributes&gt; entry_func_state&lt;...&gt;
+                                    build_entry_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Expr1 const&amp;, Expr2 const&amp;, Attributes
+                                    const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an entry pseudo state with entry, exit behaviors, attributes
+                            and configuration (deferred events, flags):</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,int RegionIndex,class
+                                    Expr1, class Expr2, class Attributes, class Configure&gt;
+                                    entry_func_state&lt;...&gt; build_entry_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Expr1 const&amp;, Expr2 const&amp;, Attributes const&amp;,
+                                    Configure const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an entry pseudo state with entry, exit behaviors, attributes,
+                            configuration (deferred events, flags) and a base state:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,int RegionIndex,class
+                                    Expr1, class Expr2, class Attributes, class Configure, class
+                                    Base&gt; entry_func_state&lt;...&gt; build_entry_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Expr1 const&amp;, Expr2 const&amp;, Attributes const&amp;,
+                                    Configure const&amp;, Base</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Notice that this function requires the extra parameter class
+                            StateNameTag to disambiguate states having the same parameters but still
+                            being different.</p></div><div class="refsect3" title="build_exit_state"><a name="d0e7121"></a><h4>build_exit_state</h4><p>This function has several overloads. The return type is not relevant
+                            to you as only decltype (return type) is what one needs.</p><p>Defines an exit pseudo state without entry or exit:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Event&gt;
+                                    exit_func_state&lt;...&gt; build_exit_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Event const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an exit pseudo state with entry behavior:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Event,class Expr1&gt;
+                                    exit_func_state&lt;...&gt; build_exit_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Event const&amp;,Expr1 const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an exit pseudo state with entry and exit behaviors:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Event,class Expr1,
+                                    class Expr2&gt; exit_func_state&lt;...&gt; build_exit_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Event const&amp;,Expr1 const&amp;,Expr2
+                                    const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an exit pseudo state with entry, exit behaviors and
+                            attributes:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Event,class Expr1,
+                                    class Expr2, class Attributes&gt; exit_func_state&lt;...&gt;
+                                    build_exit_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Event const&amp;,Expr1 const&amp;, Expr2 const&amp;,
+                                    Attributes const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an exit pseudo state with entry, exit behaviors, attributes
+                            and configuration (deferred events, flags):</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Event,class Expr1,
+                                    class Expr2, class Attributes, class Configure&gt;
+                                    exit_func_state&lt;...&gt; build_exit_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Event const&amp;,Expr1 const&amp;, Expr2 const&amp;,
+                                    Attributes const&amp;, Configure const&amp;</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Defines an exit pseudo state with entry, exit behaviors, attributes,
+                            configuration (deferred events, flags) and a base state:</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class StateNameTag,class Event,class Expr1,
+                                    class Expr2, class Attributes, class Configure, class Base&gt;
+                                    exit_func_state&lt;...&gt; build_exit_state(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>Event const&amp;,Expr1 const&amp;, Expr2 const&amp;,
+                                    Attributes const&amp;, Configure const&amp;, Base</code>;</div><div class="funcprototype-spacer">&nbsp;</div></div><p>Notice that this function requires the extra parameter class
+                            StateNameTag to disambiguate states having the same parameters but still
+                            being different.</p></div><div class="refsect3" title="build_explicit_entry_state"><a name="d0e7176"></a><h4>build_explicit_entry_state</h4><p>This function has the same overloads as build_entry_state and
+                            explicit_entry_func_state as return type.</p></div></div></div><div class="refsect1" title="msm/front/euml/common.hpp"><a name="d0e7181"></a><h2>msm/front/euml/common.hpp</h2><div class="refsect2" title="types"><a name="d0e7184"></a><h3>types</h3><div class="refsect3" title="euml_event"><a name="d0e7187"></a><h4>euml_event</h4><p>The basic type for events with eUML.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template &lt;class EventName&gt; euml_event;</span></span>&nbsp;{<br>}</pre><pre class="programlisting">struct play : euml_event&lt;play&gt;{};</pre></div><div class="refsect3" title="euml_state"><a name="d0e7198"></a><h4>euml_state</h4><p>The basic type for states with eUML. You will usually not use this
+                            type directly as it is easier to use BOOST_MSM_EUML_STATE,
+                            BOOST_MSM_EUML_INTERRUPT_STATE, BOOST_MSM_EUML_TERMINATE_STATE,
+                            BOOST_MSM_EUML_EXPLICIT_ENTRY_STATE, BOOST_MSM_EUML_ENTRY_STATE or
+                            BOOST_MSM_EUML_EXIT_STATE.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template &lt;class StateName&gt; euml_state;</span></span>&nbsp;{<br>}</pre><p>You can however use this type directly if you want to provide your
+                            state with extra functions or provide entry or exit behaviors without
+                            functors, for example:</p><pre class="programlisting">struct Empty : public msm::front::state&lt;&gt; , public euml_state&lt;Empty&gt; 
+{
+    void foo() {...}
+    template &lt;class Event,class Fsm&gt;
+    void on_entry(Event const&amp; evt,Fsm&amp; fsm){...}
+};</pre></div><div class="refsect3" title="euml_flag"><a name="d0e7211"></a><h4>euml_flag</h4><p>The basic type for flags with eUML.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template &lt;class FlagName&gt; euml_flag;</span></span>&nbsp;{<br>}</pre><pre class="programlisting">struct PlayingPaused: euml_flag&lt;PlayingPaused&gt;{};</pre></div><div class="refsect3" title="euml_action"><a name="d0e7222"></a><h4>euml_action</h4><p>The basic type for state or transition behaviors and guards with
+                            eUML.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template &lt;class AcionName&gt; euml_action;</span></span>&nbsp;{<br>}</pre><pre class="programlisting">struct close_drawer : euml_action&lt;close_drawer&gt;
+{
+    template &lt;class Fsm,class Evt,class SourceState,class TargetState&gt;
+    void operator()(Evt const&amp; , Fsm&amp;, SourceState&amp; ,TargetState&amp; ) {...}
+};</pre><p>Or, as state entry or exit behavior:</p><pre class="programlisting">struct Playing_Entry : euml_action&lt;Playing_Entry&gt;
+{
+    template &lt;class Event,class Fsm,class State&gt;
+    void operator()(Event const&amp;,Fsm&amp; fsm,State&amp; ){...}
+};</pre></div><div class="refsect3" title="euml_config"><a name="d0e7237"></a><h4>euml_config</h4><p>The basic type for configuration possibilities with eUML.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template &lt;class ConfigName&gt; euml_config;</span></span>&nbsp;{<br>}</pre><p>You normally do not use this type directly but instead the instances
+                            of predefined configuration:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>no_exception: disable catching exceptions</p></li><li class="listitem"><p>no_msg_queue: disable message queue. The message queue
+                                        allows you to send an event for procesing while in an event
+                                        processing.</p></li><li class="listitem"><p>deferred_events: manually enable handling of deferred
+                                        events</p></li></ul></div></div><div class="refsect3" title="invalid_type"><a name="d0e7258"></a><h4>invalid_type</h4><p>Type returned by grammar parsers if the grammar is invalid. Seeing
+                            this type will result in a static assertion.</p></div><div class="refsect3" title="no_action"><a name="d0e7263"></a><h4>no_action</h4><p>Placeholder type for use in entry/exit or transition behaviors, which
+                            does absolutely nothing.</p></div><div class="refsect3" title="source_"><a name="d0e7268"></a><h4>source_</h4><p>Generic object or function for the source state of a given transition:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>as object: returns by reference the source state of a
+                                        transition, usually to be used by another function (usually
+                                        one created by MSM_EUML_METHOD or MSM_EUML_FUNCTION).</p><p>Example:
+                                        </p><pre class="programlisting">some_user_function_(source_)</pre></li><li class="listitem"><p>as function: returns by reference the attribute passed as
+                                        parameter.</p><p>Example:
+                                        </p><pre class="programlisting">source_(m_counter)++</pre></li></ul></div></div><div class="refsect3" title="target_"><a name="d0e7288"></a><h4>target_</h4><p>Generic object or function for the target state of a given transition:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>as object: returns by reference the target state of a
+                                        transition, usually to be used by another function (usually
+                                        one created by MSM_EUML_METHOD or MSM_EUML_FUNCTION).</p><p>Example:
+                                        </p><pre class="programlisting">some_user_function_(target_)</pre></li><li class="listitem"><p>as function: returns by reference the attribute passed as
+                                        parameter.</p><p>Example:
+                                        </p><pre class="programlisting">target_(m_counter)++</pre></li></ul></div></div><div class="refsect3" title="state_"><a name="d0e7308"></a><h4>state_</h4><p>Generic object or function for the state of a given entry / exit
+                            behavior. state_ means source_ while in the context of an exit behavior
+                            and target_ in the context of an entry behavior:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>as object: returns by reference the current state, usually
+                                        to be used by another function (usually one created by
+                                        MSM_EUML_METHOD or MSM_EUML_FUNCTION).</p><p>Example:
+                                        </p><pre class="programlisting">some_user_function_(state_) // calls some_user_function on the current state</pre></li><li class="listitem"><p>as function: returns by reference the attribute passed as
+                                        parameter.</p><p>Example:
+                                        </p><pre class="programlisting">state_(m_counter)++</pre></li></ul></div></div><div class="refsect3" title="event_"><a name="d0e7328"></a><h4>event_</h4><p>Generic object or function for the event triggering a given transition
+                            (valid in a transition behavior, as well as in state entry/exit behaviors):</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>as object: returns by reference the event of a transition,
+                                        usually to be used by another function (usually one created
+                                        by MSM_EUML_METHOD or MSM_EUML_FUNCTION).</p><p>Example:
+                                        </p><pre class="programlisting">some_user_function_(event_)</pre></li><li class="listitem"><p>as function: returns by reference the attribute passed as
+                                        parameter.</p><p>Example:
+                                        </p><pre class="programlisting">event_(m_counter)++</pre></li></ul></div></div><div class="refsect3" title="fsm_"><a name="d0e7348"></a><h4>fsm_</h4><p>Generic object or function for the state machine containing a given transition:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>as object: returns by reference the event of a transition,
+                                        usually to be used by another function (usually one created
+                                        by MSM_EUML_METHOD or MSM_EUML_FUNCTION).</p><p>Example:
+                                        </p><pre class="programlisting">some_user_function_(fsm_)</pre></li><li class="listitem"><p>as function: returns by reference the attribute passed as
+                                        parameter.</p><p>Example:
+                                        </p><pre class="programlisting">fsm_(m_counter)++</pre></li></ul></div></div><div class="refsect3" title="substate_"><a name="d0e7368"></a><h4>substate_</h4><p>Generic object or function returning a state of a given state machine:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>with 1 parameter: returns by reference the state passed as
+                                        parameter, usually to be used by another function (usually
+                                        one created by MSM_EUML_METHOD or MSM_EUML_FUNCTION).</p><p>Example:
+                                        </p><pre class="programlisting">some_user_function_(substate_(my_state))</pre></li><li class="listitem"><p>with 2 parameters: returns by reference the state passed
+                                        as first parameter from the state machine passed as second
+                                        parameter, usually to be used by another function (usually
+                                        one created by MSM_EUML_METHOD or MSM_EUML_FUNCTION). This
+                                        makes sense when used in combination with attribute_.</p><p>Example (equivalent to the previous example):
+                                        </p><pre class="programlisting">some_user_function_(substate_(my_state,fsm_))</pre></li></ul></div></div><div class="refsect3" title="attribute_"><a name="d0e7388"></a><h4>attribute_</h4><p>Generic object or function returning the attribute passed (by name) as
+                            second parameter of the thing passed as first (a state, event or state
+                            machine). Example: </p><p>
+                            </p><pre class="programlisting">attribute_(substate_(my_state),cd_name_attribute)++</pre><p>
+                        </p></div><div class="refsect3" title="True_"><a name="d0e7398"></a><h4>True_</h4><p>Functor returning true for transition or state behaviors. Like all
+                            constants, only the functor form exists, so parenthesis are necessary.
+                            Example:</p><p>
+                            </p><pre class="programlisting">if_then_(True_(),/* some action always called*/)</pre><p>
+                        </p></div><div class="refsect3" title="False_"><a name="d0e7408"></a><h4>False_</h4><p>Functor returning false for transition or state behaviors. Like all
+                            constants, only the functor form exists, so parenthesis are necessary.
+                            Example:</p><p>
+                            </p><pre class="programlisting">if_then_(False_(),/* some action never called */)</pre><p>
+                        </p></div><div class="refsect3" title="Int_<int value&gt;"><a name="d0e7418"></a><h4>Int_&lt;int value&gt;</h4><p>Functor returning an integer value for transition or state behaviors.
+                            Like all constants, only the functor form exists, so parenthesis are
+                            necessary. Example:</p><p>
+                            </p><pre class="programlisting">target_(m_ringing_cpt) = Int_&lt;RINGING_TIME&gt;() // RINGING_TIME is a constant</pre><p>
+                        </p></div><div class="refsect3" title="Char_<char value&gt;"><a name="d0e7428"></a><h4>Char_&lt;char value&gt;</h4><p>Functor returning a char value for transition or state behaviors. Like
+                            all constants, only the functor form exists, so parenthesis are
+                            necessary. Example:</p><p>
+                            </p><pre class="programlisting">// look for 'S' in event.m_song
+[string_find_(event_(m_song),Char_&lt;'S'&gt;(),Size_t_&lt;0&gt;()) != Npos_&lt;string&gt;()]</pre><p>
+                        </p></div><div class="refsect3" title="Size_t_<size_t value&gt;"><a name="d0e7438"></a><h4>Size_t_&lt;size_t value&gt;</h4><p>Functor returning a size_t value for transition or state behaviors.
+                            Like all constants, only the functor form exists, so parenthesis are
+                            necessary. Example:</p><p>
+                            </p><pre class="programlisting">substr_(event_(m_song),Size_t_&lt;1&gt;()) // returns a substring of event.m_song</pre><p>
+                        </p></div><div class="refsect3" title="String_ < mpl::string &gt;"><a name="d0e7448"></a><h4>String_ &lt; mpl::string &gt;</h4><p>Functor returning a string for transition or state behaviors. Like all
+                            constants, only the functor form exists, so parenthesis are necessary.
+                            Requires boost &gt;= 1.40 for mpl::string.</p><p>Example:</p><p>
+                            </p><pre class="programlisting">// adds "Let it be" to fsm.m_src_container
+push_back_(fsm_(m_src_container), String_&lt;mpl::string&lt;'Let','it ','be'&gt; &gt;())</pre><p>
+                        </p></div><div class="refsect3" title="Predicate_ < some_stl_compatible_functor &gt;"><a name="d0e7460"></a><h4>Predicate_ &lt; some_stl_compatible_functor &gt;</h4><p>This functor eUML-enables a STL functor (for use in an algorithm).
+                            This is necessary because all what is in the transition table must be a
+                            eUML terminal.</p><p>Example:</p><pre class="programlisting">//equivalent to: 
+//std::accumulate(fsm.m_vec.begin(),fsm.m_vec.end(),1,std::plus&lt;int&gt;())== 1
+accumulate_(begin_(fsm_(m_vec)),end_(fsm_(m_vec)),Int_&lt;1&gt;(),
+            Predicate_&lt;std::plus&lt;int&gt; &gt;()) == Int_&lt;1&gt;())</pre></div><div class="refsect3" title="process_"><a name="d0e7469"></a><h4>process_</h4><p>This function sends an event to up to 4 state machines by calling
+                                <code class="code">process_event</code> on them:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p><code class="code">process_(some_event)</code> : processes an event in
+                                        the current (containing) state machine.</p></li><li class="listitem"><p><code class="code">process_(some_event [,fsm1...fsm4] )</code> :
+                                        processes the same event in the 1-4 state machines passed as
+                                        argument.</p></li></ul></div></div><div class="refsect3" title="process2_"><a name="d0e7488"></a><h4>process2_</h4><p>This function sends an event to up to 3 state machines by calling
+                                <code class="code">process_event</code> on them and copy-constructing the event
+                            from the data passed as second parameter:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p><code class="code">process2_(some_event, some_data)</code> : processes
+                                        an event in the current (containing) state machine.</p></li><li class="listitem"><p><code class="code">process2_(some_event, some_data [,fsm1...fsm3]
+                                            )</code> : processes the same event in the 1-3 state
+                                        machines passed as argument.</p></li></ul></div><p>Example: </p><p>
+                            </p><pre class="programlisting">// processes NotFound on current state machine, 
+// copy-constructed with event.m_song
+process2_(NotFound,event_(m_song))</pre><p>
+                        </p><p>With the following definitions:</p><pre class="programlisting">BOOST_MSM_EUML_DECLARE_ATTRIBUTE(std::string,m_song)//declaration of m_song
+NotFound (const string&amp; data) // copy-constructor of NotFound</pre></div><div class="refsect3" title="is_flag_"><a name="d0e7518"></a><h4>is_flag_</h4><p>This function tells if a flag is active by calling
+                                <code class="code">is_flag_active</code> on the current state machine or one
+                            passed as parameter:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p><code class="code">is_flag_(some_flag)</code> : calls
+                                            <code class="code">is_flag_active</code> on the current (containing)
+                                        state machine.</p></li><li class="listitem"><p><code class="code">is_flag_(some_flag, some_fsm)</code> :calls
+                                            <code class="code">is_flag_active</code> on the state machine.passed
+                                        as argument.</p></li></ul></div></div><div class="refsect3" title="defer_"><a name="d0e7543"></a><h4>defer_</h4><p>This object defers the current event by calling
+                                <code class="code">defer_event</code> on the current state machine.
+                            Example:</p><pre class="programlisting">Empty() + play() / defer_</pre></div><div class="refsect3" title="explicit_(submachine-name,state-name)"><a name="d0e7553"></a><h4>explicit_(submachine-name,state-name)</h4><p>Used as transition's target, causes an explicit entry into the given
+                            state from the given submachine. Several explicit_ as targets, separated
+                            by commas, means a fork. The state must have been declared as such using
+                            BOOST_MSM_EUML_EXPLICIT_ENTRY_STATE.</p></div><div class="refsect3" title="entry_pt_(submachine-name,state-name)"><a name="d0e7558"></a><h4>entry_pt_(submachine-name,state-name)</h4><p>Used as transition's target from a containing state machine, causes
+                            submachine-name to be entered using the given entry pseudo-state. This
+                            state must have been declared as pseudo entry using
+                            BOOST_MSM_EUML_ENTRY_STATE.</p></div><div class="refsect3" title="exit_pt_(submachine-name,state-name)"><a name="d0e7563"></a><h4>exit_pt_(submachine-name,state-name)</h4><p>Used as transition's source from a containing state machine, causes
+                            submachine-name to be left using the given exit pseudo-state. This state
+                            must have been declared as pseudo exit using
+                            BOOST_MSM_EUML_EXIT_STATE.</p></div><div class="refsect3" title="MSM_EUML_FUNCTION"><a name="d0e7568"></a><h4>MSM_EUML_FUNCTION</h4><p>This macro creates a eUML function and a functor for use with the
+                            functor front-end, based on a free function:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>first parameter: the name of the functor</p></li><li class="listitem"><p>second parameter: the underlying function</p></li><li class="listitem"><p>third parameter: the eUML function name</p></li><li class="listitem"><p>fourth parameter: the return type if used in a transition
+                                        behavior</p></li><li class="listitem"><p>fifth parameter: the return type if used in a state
+                                        behavior (entry/exit)</p></li></ul></div><p> Note that the function itself can take up to 5
+                            arguments.</p><p>Example:</p><p>
+                            </p><pre class="programlisting">MSM_EUML_FUNCTION(BinarySearch_,std::binary_search,binary_search_,bool,bool)</pre><p>
+                        </p><p>Can be used like:</p><p>
+                            </p><pre class="programlisting">binary_search_(begin_(fsm_(m_var)),end_(fsm_(m_var)),Int_&lt;9&gt;())</pre><p>
+                        </p></div><div class="refsect3" title="MSM_EUML_METHOD"><a name="d0e7604"></a><h4>MSM_EUML_METHOD</h4><p>This macro creates a eUML function and a functor for use with the
+                            functor front-end, based on a method:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>first parameter: the name of the functor</p></li><li class="listitem"><p>second parameter: the underlying function</p></li><li class="listitem"><p>third parameter: the eUML function name</p></li><li class="listitem"><p>fourth parameter: the return type if used in a transition
+                                        behavior</p></li><li class="listitem"><p>fifth parameter: the return type if used in a state
+                                        behavior (entry/exit)</p></li></ul></div><p> Note that the method itself can take up to 4 arguments
+                            (5 like for a free function - 1 for the object on which the method is
+                            called).</p><p>Example:</p><pre class="programlisting">struct Empty : public msm::front::state&lt;&gt; , public euml_state&lt;Empty&gt; 
+{
+     void activate_empty() {std::cout &lt;&lt; "switching to Empty " &lt;&lt; std::endl;}
+... 
+};
+MSM_EUML_METHOD(ActivateEmpty_,activate_empty,activate_empty_,void,void)</pre><p>Can be used like:</p><p>
+                            </p><pre class="programlisting">Empty == Open + open_close / (close_drawer , activate_empty_(target_))</pre><p>
+                        </p></div><div class="refsect3" title="BOOST_MSM_EUML_ACTION(action-instance-name)"><a name="d0e7637"></a><h4>BOOST_MSM_EUML_ACTION(action-instance-name)</h4><p>This macro declares a behavior type and a const instance for use in
+                            state or transition behaviors. The action implementation itself follows
+                            the macro declaration, for example:</p><pre class="programlisting">BOOST_MSM_EUML_ACTION(good_disk_format)
+{
+     template &lt;class Fsm,class Evt,class SourceState,class TargetState&gt;
+     void/bool operator()(Evt const&amp; evt,Fsm&amp;,SourceState&amp; ,TargetState&amp; ){...}
+};</pre></div><div class="refsect3" title="BOOST_MSM_EUML_FLAG(flag-instance-name)"><a name="d0e7644"></a><h4>BOOST_MSM_EUML_FLAG(flag-instance-name)</h4><p>This macro declares a flag type and a const instance for use in
+                            behaviors.</p></div><div class="refsect3" title="BOOST_MSM_EUML_FLAG_NAME(flag-instance-name)"><a name="d0e7649"></a><h4>BOOST_MSM_EUML_FLAG_NAME(flag-instance-name)</h4><p>This macro returns the name of the flag type generated by
+                            BOOST_MSM_EUML_FLAG. You need this where the type is required (usually
+                            with the back-end method is_flag_active). For example:</p><pre class="programlisting">fsm.is_flag_active&lt;BOOST_MSM_EUML_FLAG_NAME(CDLoaded)&gt;()</pre></div><div class="refsect3" title="BOOST_MSM_EUML_DECLARE_ATTRIBUTE(event-type,event-name)"><a name="d0e7656"></a><h4>BOOST_MSM_EUML_DECLARE_ATTRIBUTE(event-type,event-name)</h4><p>This macro declares an attribute called event-name of type event-type.
+                            This attribute can then be made part of an attribute list using
+                            BOOST_MSM_EUML_ATTRIBUTES.</p></div><div class="refsect3" title="BOOST_MSM_EUML_ATTRIBUTES(attributes-expression,attributes-name)"><a name="d0e7661"></a><h4>BOOST_MSM_EUML_ATTRIBUTES(attributes-expression,attributes-name)</h4><p>This macro declares an attribute list called attributes-name based on
+                            the expression as first argument. These attributes can then be made part
+                            of an event using BOOST_MSM_EUML_EVENT_WITH_ATTRIBUTES, of a state as
+                            3rd parameter of BOOST_MSM_EUML_STATE or of a state machine as 5th
+                            parameter of BOOST_MSM_EUML_DECLARE_STATE_MACHINE.</p><p>Attributes are added using left-shift, for example:</p><pre class="programlisting">// m_song is of type std::string
+BOOST_MSM_EUML_DECLARE_ATTRIBUTE(std::string,m_song)
+// contains one attribute, m_song
+BOOST_MSM_EUML_ATTRIBUTES((attributes_ &lt;&lt; m_song ), FoundDef)</pre></div><div class="refsect3" title="BOOST_MSM_EUML_EVENT(event-instance name)"><a name="d0e7670"></a><h4>BOOST_MSM_EUML_EVENT(event-instance name)</h4><p>This macro defines an event type (event-instance-name_helper) and
+                            declares a const instance of this event type called event-instance-name
+                            for use in a transition table or state behaviors.</p></div><div class="refsect3" title="BOOST_MSM_EUML_EVENT_WITH_ATTRIBUTES(event-instance-name,attributes)"><a name="d0e7675"></a><h4>BOOST_MSM_EUML_EVENT_WITH_ATTRIBUTES(event-instance-name,attributes)</h4><p>This macro defines an event type (event-instance-name_helper) and
+                            declares a const instance of this event type called event-instance-name
+                            for use in a transition table or state behaviors. The event will have as
+                            attributes the ones passed by the second argument:</p><p><code class="code">BOOST_MSM_EUML_EVENT_WITH_ATTRIBUTES(Found,FoundDef)</code>
+                        </p><p>The created event instance supports operator()(attributes) so that
+                            </p><pre class="programlisting">my_back_end.process_event(Found(some_string))</pre><p>
+                            is possible.</p></div><div class="refsect3" title="BOOST_MSM_EUML_EVENT_NAME(event-instance-name)"><a name="d0e7689"></a><h4>BOOST_MSM_EUML_EVENT_NAME(event-instance-name)</h4><p>This macro returns the name of the event type generated by
+                            BOOST_MSM_EUML_EVENT or BOOST_MSM_EUML_EVENT_WITH_ATTRIBUTES. You need
+                            this where the type is required (usually inside a back-end definition).
+                            For example:</p><p>
+                            </p><pre class="programlisting">typedef msm::back::state_machine&lt;Playing_,
+msm::back::ShallowHistory&lt;mpl::vector&lt;BOOST_MSM_EUML_EVENT_NAME(end_pause)
+&gt; &gt; &gt; Playing_type;</pre><p>
+                        </p></div><div class="refsect3" title="BOOST_MSM_EUML_STATE(build-expression,state-instance-name)"><a name="d0e7699"></a><h4>BOOST_MSM_EUML_STATE(build-expression,state-instance-name)</h4><p>This macro defines a state type (state-instance-name_helper) and
+                            declares a const instance of this state type called state-instance-name
+                            for use in a transition table or state behaviors.</p><p>There are several possibilitites for the expression syntax:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>(): state without entry or exit action.</p></li><li class="listitem"><p>(Expr1): state with entry but no exit action.</p></li><li class="listitem"><p>(Expr1,Expr2): state with entry and exit action.</p></li><li class="listitem"><p>(Expr1,Expr2,Attributes): state with entry and exit
+                                        action, defining some attributes.</p></li><li class="listitem"><p>(Expr1,Expr2,Attributes,Configure): state with entry and
+                                        exit action, defining some attributes and flags (standard
+                                        MSM flags) or deferred events (standard MSM deferred
+                                        events).</p></li><li class="listitem"><p>(Expr1,Expr2,Attributes,Configure,Base): state with entry
+                                        and exit action, defining some attributes, flags and
+                                        deferred events (plain msm deferred events) and a
+                                        non-default base state (as defined in standard MSM).</p></li></ul></div></div><div class="refsect3" title="BOOST_MSM_EUML_INTERRUPT_STATE(build-expression,state-instance-name)"><a name="d0e7725"></a><h4>BOOST_MSM_EUML_INTERRUPT_STATE(build-expression,state-instance-name)</h4><p>This macro defines an interrupt state type
+                            (state-instance-name_helper) and declares a const instance of this state
+                            type called state-instance-name for use in a transition table or state
+                            behaviors.</p><p>There are several possibilitites for the expression syntax. In all of
+                            them, the first argument is the name of the event (generated by one of
+                            the previous macros) ending the interrupt:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>(end_interrupt_event): interrupt state without entry or
+                                        exit action.</p></li><li class="listitem"><p>(end_interrupt_event,Expr1): interrupt state with entry
+                                        but no exit action.</p></li><li class="listitem"><p>(end_interrupt_event,Expr1,Expr2): interrupt state with
+                                        entry and exit action.</p></li><li class="listitem"><p>(end_interrupt_event,Expr1,Expr2,Attributes): interrupt
+                                        state with entry and exit action, defining some
+                                        attributes.</p></li><li class="listitem"><p>(end_interrupt_event,Expr1,Expr2,Attributes,Configure):
+                                        interrupt state with entry and exit action, defining some
+                                        attributes and flags (standard MSM flags) or deferred events
+                                        (standard MSM deferred events).</p></li><li class="listitem"><p>(end_interrupt_event,Expr1,Expr2,Attributes,Configure,Base):
+                                        interrupt state with entry and exit action, defining some
+                                        attributes, flags and deferred events (plain msm deferred
+                                        events) and a non-default base state (as defined in standard
+                                        MSM).</p></li></ul></div></div><div class="refsect3" title="BOOST_MSM_EUML_TERMINATE_STATE(build-expression,state-instance-name)"><a name="d0e7751"></a><h4>BOOST_MSM_EUML_TERMINATE_STATE(build-expression,state-instance-name)</h4><p>This macro defines a terminate pseudo-state type
+                            (state-instance-name_helper) and declares a const instance of this state
+                            type called state-instance-name for use in a transition table or state
+                            behaviors.</p><p>There are several possibilitites for the expression syntax:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>(): terminate pseudo-state without entry or exit
+                                        action.</p></li><li class="listitem"><p>(Expr1): terminate pseudo-state with entry but no exit
+                                        action.</p></li><li class="listitem"><p>(Expr1,Expr2): terminate pseudo-state with entry and exit
+                                        action.</p></li><li class="listitem"><p>(Expr1,Expr2,Attributes): terminate pseudo-state with
+                                        entry and exit action, defining some attributes.</p></li><li class="listitem"><p>(Expr1,Expr2,Attributes,Configure): terminate pseudo-state
+                                        with entry and exit action, defining some attributes and
+                                        flags (standard MSM flags) or deferred events (standard MSM
+                                        deferred events).</p></li><li class="listitem"><p>(Expr1,Expr2,Attributes,Configure,Base): terminate
+                                        pseudo-state with entry and exit action, defining some
+                                        attributes, flags and deferred events (plain msm deferred
+                                        events) and a non-default base state (as defined in standard
+                                        MSM).</p></li></ul></div></div><div class="refsect3" title="BOOST_MSM_EUML_EXIT_STATE(build-expression,state-instance-name)"><a name="d0e7777"></a><h4>BOOST_MSM_EUML_EXIT_STATE(build-expression,state-instance-name)</h4><p>This macro defines an exit pseudo-state type
+                            (state-instance-name_helper) and declares a const instance of this state
+                            type called state-instance-name for use in a transition table or state
+                            behaviors.</p><p>There are several possibilitites for the expression syntax:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>(forwarded_event):exit pseudo-state without entry or exit
+                                        action.</p></li><li class="listitem"><p>(forwarded_event,Expr1): exit pseudo-state with entry but
+                                        no exit action.</p></li><li class="listitem"><p>(forwarded_event,Expr1,Expr2): exit pseudo-state with
+                                        entry and exit action.</p></li><li class="listitem"><p>(forwarded_event,Expr1,Expr2,Attributes): exit
+                                        pseudo-state with entry and exit action, defining some
+                                        attributes.</p></li><li class="listitem"><p>(forwarded_event,Expr1,Expr2,Attributes,Configure): exit
+                                        pseudo-state with entry and exit action, defining some
+                                        attributes and flags (standard MSM flags) or deferred events
+                                        (standard MSM deferred events).</p></li><li class="listitem"><p>(forwarded_event,Expr1,Expr2,Attributes,Configure,Base):
+                                        exit pseudo-state with entry and exit action, defining some
+                                        attributes, flags and deferred events (plain msm deferred
+                                        events) and a non-default base state (as defined in standard
+                                        MSM).</p></li></ul></div><p>Note that the forwarded_event must be constructible from the event
+                            sent by the submachine containing the exit point.</p></div><div class="refsect3" title="BOOST_MSM_EUML_ENTRY_STATE(int region-index,build-expression,state-instance-name)"><a name="d0e7805"></a><h4>BOOST_MSM_EUML_ENTRY_STATE(int
+                            region-index,build-expression,state-instance-name)</h4><p>This macro defines an entry pseudo-state type
+                            (state-instance-name_helper) and declares a const instance of this state
+                            type called state-instance-name for use in a transition table or state
+                            behaviors.</p><p>There are several possibilitites for the expression syntax:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>(): entry pseudo-state without entry or exit
+                                        action.</p></li><li class="listitem"><p>(Expr1): entry pseudo-state with entry but no exit
+                                        action.</p></li><li class="listitem"><p>(Expr1,Expr2): entry pseudo-state with entry and exit
+                                        action.</p></li><li class="listitem"><p>(Expr1,Expr2,Attributes): entry pseudo-state with entry
+                                        and exit action, defining some attributes.</p></li><li class="listitem"><p>(Expr1,Expr2,Attributes,Configure): entry pseudo-state
+                                        with entry and exit action, defining some attributes and
+                                        flags (standard MSM flags) or deferred events (standard MSM
+                                        deferred events).</p></li><li class="listitem"><p>(Expr1,Expr2,Attributes,Configure,Base): entry
+                                        pseudo-state with entry and exit action, defining some
+                                        attributes, flags and deferred events (plain msm deferred
+                                        events) and a non-default base state (as defined in standard
+                                        MSM).</p></li></ul></div></div><div class="refsect3" title="BOOST_MSM_EUML_EXPLICIT_ENTRY_STATE(int region-index,build-expression,state-instance-name)"><a name="d0e7831"></a><h4>BOOST_MSM_EUML_EXPLICIT_ENTRY_STATE(int
+                            region-index,build-expression,state-instance-name)</h4><p>This macro defines a submachine's substate type
+                            (state-instance-name_helper), which can be explicitly entered and also
+                            declares a const instance of this state type called state-instance-name
+                            for use in a transition table or state behaviors.</p><p>There are several possibilitites for the expression syntax:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>(): state without entry or exit action.</p></li><li class="listitem"><p>(Expr1): state with entry but no exit action.</p></li><li class="listitem"><p>(Expr1,Expr2): state with entry and exit action.</p></li><li class="listitem"><p>(Expr1,Expr2,Attributes): state with entry and exit
+                                        action, defining some attributes.</p></li><li class="listitem"><p>(Expr1,Expr2,Attributes,Configure): state with entry and
+                                        exit action, defining some attributes and flags (standard
+                                        MSM flags) or deferred events (standard MSM deferred
+                                        events).</p></li><li class="listitem"><p>(Expr1,Expr2,Attributes,Configure,Base): state with entry
+                                        and exit action, defining some attributes, flags and
+                                        deferred events (plain msm deferred events) and a
+                                        non-default base state (as defined in standard MSM).</p></li></ul></div></div><div class="refsect3" title="BOOST_MSM_EUML_STATE_NAME(state-instance-name)"><a name="d0e7857"></a><h4>BOOST_MSM_EUML_STATE_NAME(state-instance-name)</h4><p>This macro returns the name of the state type generated by
+                            BOOST_MSM_EUML_STATE or other state macros. You need this where the type
+                            is required (usually using a backend function). For example:</p><p>
+                            </p><pre class="programlisting">fsm.get_state&lt;BOOST_MSM_EUML_STATE_NAME(StringFind)&amp;&gt;().some_state_function();</pre><p>
+                        </p></div><div class="refsect3" title="BOOST_MSM_EUML_DECLARE_STATE(build-expression,state-instance-name)"><a name="d0e7867"></a><h4>BOOST_MSM_EUML_DECLARE_STATE(build-expression,state-instance-name)</h4><p>Like BOOST_MSM_EUML_STATE but does not provide an instance, simply a
+                            type declaration.</p></div><div class="refsect3" title="BOOST_MSM_EUML_DECLARE_INTERRUPT_STATE(build-expression,state-instance-name)"><a name="d0e7872"></a><h4>BOOST_MSM_EUML_DECLARE_INTERRUPT_STATE(build-expression,state-instance-name)</h4><p>Like BOOST_MSM_EUML_INTERRUPT_STATE but does not provide an instance,
+                            simply a type declaration.</p></div><div class="refsect3" title="BOOST_MSM_EUML_DECLARE_TERMINATE_STATE(build-expression,state-instance-name)"><a name="d0e7877"></a><h4>BOOST_MSM_EUML_DECLARE_TERMINATE_STATE(build-expression,state-instance-name)</h4><p>Like BOOST_MSM_EUML_TERMINATE_STATE but does not provide an instance,
+                            simply a type declaration.</p></div><div class="refsect3" title="BOOST_MSM_EUML_DECLARE_EXIT_STATE(build-expression,state-instance-name)"><a name="d0e7882"></a><h4>BOOST_MSM_EUML_DECLARE_EXIT_STATE(build-expression,state-instance-name)</h4><p>Like BOOST_MSM_EUML_EXIT_STATE but does not provide an instance,
+                            simply a type declaration.</p></div><div class="refsect3" title="BOOST_MSM_EUML_DECLARE_ENTRY_STATE(int region-index,build-expression,state-instance-name)"><a name="d0e7887"></a><h4>BOOST_MSM_EUML_DECLARE_ENTRY_STATE(int
+                            region-index,build-expression,state-instance-name)</h4><p>Like BOOST_MSM_EUML_ENTRY_STATE but does not provide an instance,
+                            simply a type declaration.</p></div><div class="refsect3" title="BOOST_MSM_EUML_DECLARE_EXPLICIT_ENTRY_STATE(int region-index,build-expression,state-instance-name)"><a name="d0e7892"></a><h4>BOOST_MSM_EUML_DECLARE_EXPLICIT_ENTRY_STATE(int
+                            region-index,build-expression,state-instance-name)</h4><p>Like BOOST_MSM_EUML_EXPLICIT_ENTRY_STATE but does not provide an
+                            instance, simply a type declaration.</p></div><div class="refsect3" title="BOOST_MSM_EUML_TRANSITION_TABLE(expression, table-instance-name)"><a name="d0e7897"></a><h4>BOOST_MSM_EUML_TRANSITION_TABLE(expression,
+                            table-instance-name)</h4><p>This macro declares a transition table type and also declares a const
+                            instance of the table which can then be used in a state machine
+                            declaration (see BOOST_MSM_EUML_DECLARE_STATE_MACHINE).The expression
+                            must follow the <span class="command"><strong><a class="command" href="re03.html#reference-stt-grammar">transition
+                                table grammar</a></strong></span>.</p></div><div class="refsect3" title="BOOST_MSM_EUML_DECLARE_TRANSITION_TABLE(iexpression,table-instance-name)"><a name="d0e7905"></a><h4>BOOST_MSM_EUML_DECLARE_TRANSITION_TABLE(iexpression,table-instance-name)</h4><p>Like BOOST_MSM_EUML_TRANSITION_TABLE but does not provide an instance,
+                            simply a type declaration.</p></div><div class="refsect3" title="BOOST_MSM_EUML_INTERNAL_TRANSITION_TABLE(expression, table-instance-name)"><a name="d0e7910"></a><h4>BOOST_MSM_EUML_INTERNAL_TRANSITION_TABLE(expression,
+                            table-instance-name)</h4><p>This macro declares a transition table type and also declares a const
+                            instance of the table.The expression must follow the <span class="command"><strong><a class="command" href="re03.html#reference-stt-grammar">transition table
+                                grammar</a></strong></span>. For the moment, this macro is not used.</p></div><div class="refsect3" title="BOOST_MSM_EUML_DECLARE_INTERNAL_TRANSITION_TABLE(iexpression,table-instance-name)"><a name="d0e7918"></a><h4>BOOST_MSM_EUML_DECLARE_INTERNAL_TRANSITION_TABLE(iexpression,table-instance-name)</h4><p>Like BOOST_MSM_EUML_TRANSITION_TABLE but does not provide an instance,
+                            simply a type declaration. This is currently the only way to declare an
+                            internal transition table with eUML. For example:</p><pre class="programlisting">BOOST_MSM_EUML_DECLARE_STATE((Open_Entry,Open_Exit),Open_def)
+struct Open_impl : public Open_def
+{
+    BOOST_MSM_EUML_DECLARE_INTERNAL_TRANSITION_TABLE((
+          open_close [internal_guard1] / internal_action1 ,
+          open_close [internal_guard2] / internal_action2
+    ))
+};                    </pre></div></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="re02.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="pt02.html">Up</a></td><td width="40%" align="right">&nbsp;</td></tr><tr><td width="40%" align="left" valign="top">Back-end&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;</td></tr></table></div></body></html>

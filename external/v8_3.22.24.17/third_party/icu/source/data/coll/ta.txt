@@ -1,0 +1,48 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/collation/ta.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/collation/ta.xml
+ */
+ta{
+    Version{"2.0.50.60"}
+    collations{
+        standard{
+            Sequence{
+                " [normalization on ]"
+                "&ஔ<ஂ<ஃ"
+                "&ஹ<க்ஷ"
+                "&[before 1]க<க்"
+                "&[before 1]ங<ங்"
+                "&[before 1]ச<ச்"
+                "&[before 1]ஞ<ஞ்"
+                "&[before 1]ட<ட்"
+                "&[before 1]ண<ண்"
+                "&[before 1]த<த்"
+                "&[before 1]ந<ந்"
+                "&[before 1]ப<ப்"
+                "&[before 1]ம<ம்"
+                "&[before 1]ய<ய்"
+                "&[before 1]ர<ர்"
+                "&[before 1]ல<ல்"
+                "&[before 1]வ<வ்"
+                "&[before 1]ழ<ழ்"
+                "&[before 1]ள<ள்"
+                "&[before 1]ற<ற்"
+                "&[before 1]ன<ன்"
+                "&[before 1]ஜ<ஜ்"
+                "&[before 1]ஶ<ஶ்"
+                "&[before 1]ஷ<ஷ்"
+                "&[before 1]ஸ<ஸ்"
+                "&[before 1]ஹ<ஹ்"
+                "&[before 1]க்ஷ<க்ஷ்"
+            }
+            Version{"1.9"}
+        }
+    }
+}

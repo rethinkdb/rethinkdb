@@ -1,0 +1,200 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:semantics Semantics]
+
+[heading notation]
+
+[table
+  [[Type   ] [Object] [Describes                                ]]
+  [[`X`    ] [`x`   ] [any type                                 ]]
+  [[`T`    ] [`t`   ] [denotes behavior of the primary templates]]
+  [[`P`    ] [`p`   ] [denotes `std::pair<iterator,iterator>`   ]]
+  [[`A[sz]`] [`a`   ] [denotes an array of type `A` of size `sz`]]
+  [[`Char*`] [`s`   ] [denotes either `char*` or `wchar_t*`     ]]
+]
+
+[section Metafunctions]
+
+[table
+    [[Expression] [Return type] [Complexity]]
+    [
+        [`range_iterator<X>::type`]
+        [``
+            T::iterator
+            P::first_type
+            A*
+        ``]
+        [compile time]
+    ]
+    [
+        [`range_iterator<const X>::type`]
+        [``
+            T::const_iterator
+            P::first_type
+            const A*
+        ``]
+        [compile time]
+    ]
+    [
+        [`range_value<X>::type`]
+        [`boost::iterator_value<range_iterator<X>::type>::type`]
+        [compile time]
+    ]
+    [
+        [`range_reference<X>::type`]
+        [`boost::iterator_reference<range_iterator<X>::type>::type`]
+        [compile time]
+    ]
+    [
+        [`range_pointer<X>::type`]
+        [`boost::iterator_pointer<range_iterator<X>::type>::type`]
+        [compile time]
+    ]
+    [
+        [`range_category<X>::type`]
+        [`boost::iterator_category<range_iterator<X>::type>::type`]
+        [compile time]
+    ]
+    [
+        [`range_difference<X>::type`]
+        [`boost::iterator_category<range_iterator<X>::type>::type`]
+        [compile time]
+    ]
+    [
+        [`range_reverse_iterator<X>::type`]
+        [`boost::reverse_iterator<range_iterator<X>::type>`]
+        [compile time]
+    ]
+    [
+        [`range_reverse_iterator<const X>::type`]
+        [`boost::reverse_iterator<range_iterator<const X>::type`]
+        [compile time]
+    ]
+    [
+        [`has_range_iterator<X>::type`]
+        [`mpl::true_` if `range_mutable_iterator<X>::type` is a valid expression, `mpl::false_` otherwise]
+        [compile time]
+    ]
+    [
+        [`has_range_const_iterator<X>::type`]
+        [`mpl::true_` if `range_const_iterator<X>::type` is a valid expression, `mpl::false_` otherwise]
+        [compile time]
+    ]
+]
+
+[endsect]
+
+[section Functions]
+
+[table
+    [[Expression] [Return type] [Returns] [Complexity]]
+
+    [
+        [`begin(x)`]
+        [`range_iterator<X>::type`]
+        [
+            `p.first` if `p` is of type `std::pair<T>`
+            `a` if `a` is an array
+            `range_begin(x)` if that expression would invoke a function found by ADL
+            `t.begin()` otherwise
+        ]
+        [constant time]
+    ]
+    [
+        [`end(x)`]
+        [`range_iterator<X>::type`]
+        [
+            `p.second` if `p` is of type `std::pair<T>`
+            `a + sz` if `a` is an array of size `sz`
+            `range_end(x)` if that expression would invoke a function found by ADL
+            `t.end()` otherwise
+        ]
+        [constant time]
+    ]
+    [
+        [`empty(x)`]
+        [`bool`]
+        [`boost::begin(x) == boost::end(x)`]
+        [constant time]
+    ]
+    [
+        [`distance(x)`]
+        [`range_difference<X>::type`]
+        [`std::distance(boost::begin(x),boost::end(x))`]
+        [-]
+    ]
+    [
+        [`size(x)`]
+        [`range_size<X>::type`]
+        [`range_calculate_size(x)` which by default is `boost::end(x) - boost::begin(x)`. Users may supply alternative implementations by implementing `range_calculate_size(x)` so that it will be found via ADL]
+        [constant time]
+    ]
+    [
+        [`rbegin(x)`]
+        [`range_reverse_iterator<X>::type`]
+        [`range_reverse_iterator<X>::type(boost::end(x))`]
+        [constant time]
+    ]
+    [
+        [`rend(x)`]
+        [`range_reverse_iterator<X>::type`]
+        [`range_reverse_iterator<X>::type(boost::begin(x))`]
+        [constant time]
+    ]
+    [
+        [`const_begin(x)`]
+        [`range_iterator<const X>::type`]
+        [`range_iterator<const X>::type(boost::begin(x))`]
+        [constant time]
+    ]
+    [
+        [`const_end(x)`]
+        [`range_iterator<const X>::type`]
+        [`range_iterator<const X>::type(boost::end(x))`]
+        [constant time]
+    ]
+    [
+        [`const_rbegin(x)`]
+        [`range_reverse_iterator<const X>::type`]
+        [`range_reverse_iterator<const X>::type(boost::rbegin(x))`]
+        [constant time]
+    ]
+    [
+        [`const_rend(x)`]
+        [`range_reverse_iterator<const X>::type`]
+        [`range_reverse_iterator<const X>::type(boost::rend(x))`]
+        [constant time]
+    ]
+    [
+        [`as_literal(x)`]
+        [`iterator_range<U>` where `U` is `Char*` if `x` is a pointer to a string and `U` is `range_iterator<X>::type` otherwise]
+        [
+            `[s,s + std::char_traits<X>::length(s))` if `s` is a `Char*` or an array of `Char` `[boost::begin(x),boost::end(x))` otherwise
+        ]
+        [
+            linear time for pointers to a string or arrays of `Char`, constant time otherwise
+        ]
+    ]
+    [
+        [`as_array(x)`]
+        [`iterator_range<X>`]
+        [`[boost::begin(x),boost::end(x))`]
+    ]
+]
+
+The special `const_`-named functions are useful when you want to document clearly that your code is read-only.
+
+`as_literal()` can be used ['*internally*] in string algorithm libraries such that arrays of characters are handled correctly.
+
+`as_array()` can be used with string algorithm libraries to make it clear that arrays of characters are handled like an array and not like a string.
+
+Notice that the above functions should always be called with qualification (`boost::`) to prevent ['*unintended*] Argument Dependent Lookup (ADL).
+
+[endsect]
+
+[endsect]
+
+

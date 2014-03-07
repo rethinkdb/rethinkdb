@@ -1,0 +1,39 @@
+#==============================================================================
+#   Copyright (c) 2001-2009 Hartmut Kaiser
+#   Copyright (c) 2001-2009 Joel de Guzman
+#
+#   Distributed under the Boost Software License, Version 1.0. (See accompanying
+#   file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+project spirit-karma-example 
+    : requirements 
+        <toolset>gcc:<c++-template-depth>300
+        <toolset>darwin:<cxxflags>-ftemplate-depth-300
+    :
+    :
+    ;
+
+exe actions_example : actions.cpp ;
+exe auto_facilities : auto_facilities.cpp ;
+exe basic_facilities : basic_facilities.cpp /boost//date_time ;
+exe karma_calc2_ast_dump : calc2_ast_dump.cpp ;
+exe karma_calc2_ast_rpn : calc2_ast_rpn.cpp ;
+exe karma_calc2_ast_vm : calc2_ast_vm.cpp ;
+exe classify_char : classify_char.cpp ;
+exe karma_complex_number : complex_number.cpp ;
+exe karma_complex_number_easier : complex_number_easier.cpp ;
+exe karma_complex_number_adapt : complex_number_adapt.cpp ;
+exe karma_num_list1 : num_list1.cpp ;
+exe karma_num_list2 : num_list2.cpp ;
+exe karma_num_list3 : num_list3.cpp ;
+exe karma_num_matrix : num_matrix.cpp ;
+exe key_value_sequence : key_value_sequence.cpp ;
+exe mini_xml_karma : mini_xml_karma.cpp ;
+exe printf_style_double_format : printf_style_double_format.cpp ;
+exe quick_start1 : quick_start1.cpp ;
+exe karma_reference : reference.cpp ;
+exe karma_reorder_struct : reorder_struct.cpp ;
+exe karma_escaped_string : escaped_string.cpp ;
+exe simple_columns_directive : simple_columns_directive.cpp ;
+exe quoted_strings : quoted_strings.cpp ;
+

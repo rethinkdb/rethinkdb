@@ -1,0 +1,39 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __this_function__ append]
+
+[heading_conformance_no_ogc __this_function__]
+
+[include generated/append_status.qbk]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__point__, __box__, __segment__][Compiles, but no action]]
+[[__linestring__][Appends point or range to the end of the linestring]]
+[[__ring__][Appends point or range to the end of the ring (without explicitly closing it)]]
+[[__polygon__][Appends point or range to the end of the polygon (without explicitly closing it), 
+	either the exterior ring (the default) or specify a zero-based index for one of the interior rings. 
+	In the last case, the interior rings are not resized automatically, 
+	so ensure that the zero-based index is smaller than the number of interior rings]]
+]
+
+[heading Complexity]
+Linear
+
+[heading Example]
+[append]
+[append_output]
+
+[heading See also]
+* [link geometry.reference.algorithms.assign.assign_points assign]

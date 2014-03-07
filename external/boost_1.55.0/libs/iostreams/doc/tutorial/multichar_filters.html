@@ -1,0 +1,274 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Tutorial</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Tutorial</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='unix2dos_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='dual_use_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+
+<A NAME="multichar"></A>
+<H2>2.2.8. Multi-Character Filters</H2>
+
+<P>
+    All the Filters you've seen so far &#8212; except for those that derive from <CODE>stdio_filter</CODE> &#8212; process characters one at a time. If you instead process several characters at once, you can often reduce the number of function calls it takes to filter a character sequence, resulting in more efficient code. This is what <A HREF="../concepts/multi_character.html">Multi-Character Filters</A> allow you to do.
+</P>
+
+<A NAME="multichar_input_filters"></A>
+<H4>Multi-Character InputFilters</H4>
+
+<P>A typical narrow-character <A HREF="../concepts/multi_character.html">Multi-Character</A> <A HREF="../concepts/input_filter.html">InputFilter</A> looks like this:<P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS="literal">&lt;iosfwd&gt;</SPAN>                          <SPAN CLASS='comment'>// streamsize</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/categories.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/categories.hpp&gt;</SPAN></A>  <SPAN CLASS='comment'>// tags
+</SPAN>
+<SPAN CLASS='keyword'>class</SPAN> my_input_filter {
+<SPAN CLASS='keyword'>public</SPAN>:
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>char</SPAN> char_type;
+    <SPAN CLASS='keyword'>struct</SPAN> category 
+        : input_filter_tag,
+          multichar_tag
+        { };
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    std::streamsize read(Source&amp; src, <SPAN CLASS='keyword'>char</SPAN>* s, std::streamsize n)
+    {
+        <SPAN CLASS='comment'>// Read up to n filtered characters into the buffer s,</SPAN>
+        <SPAN CLASS='comment'>// returning the number of characters read or -1 for EOF.</SPAN>
+        <SPAN CLASS='comment'>// Use src to access the unfiltered character sequence</SPAN>
+    }
+
+    <SPAN CLASS='comment'>/* Other members */</SPAN>
+};</PRE>
+
+<P>
+    Notice that the member type category is a <CODE>struct</CODE> convertible to <CODE>input_filter_tag</CODE> and to <CODE>multichar_tag</CODE>. This tells the Iostream library that <CODE>my_input_filter</CODE> is a <A HREF="../concepts/multi_character.html">Multi-Character Filter</A> and an <A HREF="../concepts/input_filter.html">InputFilter</A>. You could have achieved the same effect several ways. <I>E.g.</I>,
+</P>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>struct</SPAN> category 
+        : input,
+          filter_tag,
+          multichar_tag
+        { };
+
+        <SPAN CLASS='comment'>/* or */</SPAN>
+
+    <SPAN CLASS='keyword'>typedef</SPAN> multichar_input_filter_tag category;</PRE>
+
+<P>(For details, <I>see</I> <A HREF="../guide/modes.html#mode_tags">Mode Tags</A> and <A HREF="../guide/traits.html#category_tags">Category Tags</A>.)
+
+<P> You could also write the above example as follows:</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS="literal">&lt;iosfwd&gt;</SPAN>                       <SPAN CLASS='comment'>// streamsize</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A> <SPAN CLASS='comment'>// multichar_input_filter</SPAN>
+
+<SPAN CLASS='keyword'>class</SPAN> my_input_filter : <SPAN CLASS='keyword'>public</SPAN> multichar_input_filter {
+<SPAN CLASS='keyword'>public</SPAN>:
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    std::streamsize read(<SPAN CLASS='keyword'>char</SPAN>* s, std::streamsize n);
+
+    <SPAN CLASS='comment'>/* Other members */</SPAN>
+};</PRE>
+
+<P>Here <A HREF="../classes/filter.html#synopsis"><CODE>multichar_input_filter</CODE></A> is a convenience base class which provides the member types <CODE>char_type</CODE> and <CODE>category</CODE>, as well as no-op implementations of member functions <CODE>close</CODE> and <CODE>imbue</CODE>.
+
+<A NAME="shell_comments_multichar_input_filter"></A>
+<H4><CODE>shell_comments_multichar_input_filter</CODE></H4>
+
+<P>You can express a <A HREF="shell_comments_filters.html">shell comments Filter</A> as an <A HREF="../concepts/multi_character.html">Multi-Character</A> <A HREF="../concepts/input_filter.html">InputFilter</A> as follows:</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/char_traits.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/char_traits.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// EOF, WOULD_BLOCK</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>    <SPAN CLASS="comment">// multichar_input_filter</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A>  <SPAN CLASS="comment">// get</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> shell_comments_multichar_input_filter : <SPAN CLASS="keyword">public</SPAN> multichar_input_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">explicit</SPAN> shell_comments_multichar_input_filter(<SPAN CLASS="keyword">char</SPAN> comment_char = '#')
+        : comment_char_(comment_char), skip_(<SPAN CLASS="keyword">false</SPAN>)
+        { }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    std::streamsize read(Source&amp; src, <SPAN CLASS="keyword">char</SPAN>* s, std::streamsize n)
+    {
+        <SPAN CLASS="keyword">for</SPAN> (std::streamsize z = <SPAN CLASS='numeric_literal'>0</SPAN>; z &lt; n; ++z) {
+            <SPAN CLASS="keyword">int</SPAN> c;
+            <SPAN CLASS="keyword">while</SPAN> (true) {
+                <SPAN CLASS="keyword">if</SPAN> ((c = boost::iostreams::get(src)) == <SPAN CLASS='numeric_literal'>EOF</SPAN>)
+                    <SPAN CLASS="keyword">return</SPAN> z != <SPAN CLASS='numeric_literal'>0</SPAN> ? z : <SPAN CLASS='numeric_literal'>-1</SPAN>;
+                <SPAN CLASS="keyword">else</SPAN> <SPAN CLASS="keyword">if</SPAN> (c == WOULD_BLOCK)
+                    <SPAN CLASS="keyword">return</SPAN> z;
+                skip_ = c == comment_char_ ?
+                    <SPAN CLASS="keyword">true</SPAN> :
+                    c == '\n' ?
+                        <SPAN CLASS="keyword">false</SPAN> :
+                        skip_;
+                <SPAN CLASS="keyword">if</SPAN> (!skip_)
+                    <SPAN CLASS="keyword">break</SPAN>;
+            }
+            s[z] = c;
+        }
+        <SPAN CLASS="keyword">return</SPAN> n;
+    }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Source&amp;) { skip_ = false; }
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword">char</SPAN> comment_char_;
+    <SPAN CLASS="keyword">bool</SPAN> skip_;
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>
+    Note that the implementation of <CODE>read</CODE> is very similar to what you would get if you put the implementation of <A HREF="shell_comments_filters.html#shell_comments_input_filter"><CODE>shell_comments_input_filter::get</CODE></A> inside a <CODE>for</CODE> loop iterating from <CODE>0</CODE> to <CODE>n</CODE>. InputFilters which call themselves recursively, such as <A HREF="tab_expanding_filters.html#tab_expanding_input_filter"><CODE>tab_expanding_input_filter</CODE></A>,  are much harder to transform into Multi-Character filters.
+</P>
+
+<A NAME="multichar_output_filters"></A>
+<H4>Multi-Character OutputFilters</H4>
+
+<P>A typical narrow-character <A HREF="../concepts/multi_character.html">Multi-Character</A> <A HREF="../concepts/output_filter.html">OutputFilter</A> looks like this:<P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS="literal">&lt;iosfwd&gt;</SPAN>                          <SPAN CLASS='comment'>// streamsize</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/categories.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/categories.hpp&gt;</SPAN></A>  <SPAN CLASS='comment'>// tags
+</SPAN>
+<SPAN CLASS='keyword'>class</SPAN> my_output_filter {
+<SPAN CLASS='keyword'>public</SPAN>:
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>char</SPAN> char_type;
+    <SPAN CLASS='keyword'>struct</SPAN> category 
+        : output_filter_tag,
+          multichar_tag
+        { };
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    std::streamsize write(Sink&amp; dest, <SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>char</SPAN>* s, std::streamsize n)
+    {
+        <SPAN CLASS='comment'>// Consume up to n filtered characters from the buffer s,</SPAN>
+        <SPAN CLASS='comment'>// writing filtered characters to dest. Return the number</SPAN>
+        <SPAN CLASS='comment'>// of characters consumed.</SPAN>
+    }
+
+    <SPAN CLASS='comment'>/* Other members */</SPAN>
+};</PRE>
+
+<P>
+    Notice that the member type category is a <CODE>struct</CODE> convertible to <CODE>keyword</CODE> and to <CODE>multichar_tag</CODE>. This tells the Iostream library that <CODE>my_output_filter</CODE> is a <A HREF="../concepts/multi_character.html">Multi-Character Filter</A> and an <A HREF="../concepts/output_filter.html">OutputFilter</A>. As with <A HREF="../concepts/multi_character.html">Multi-Character</A> <A HREF="../concepts/input_filter.html">InputFilters</A>, you could have achieved the same effect several different ways. <I>E.g.</I>,
+</P>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>struct</SPAN> category 
+        : output,
+          filter_tag,
+          multichar_tag
+        { };
+
+        <SPAN CLASS='comment'>/* or */</SPAN>
+
+    <SPAN CLASS='keyword'>typedef</SPAN> multichar_output_filter_tag category;</PRE>
+
+<P>(For details, <I>see</I> <A HREF="../guide/modes.html#mode_tags">Mode Tags</A> and <A HREF="../guide/traits.html#category_tags">Category Tags</A>.)
+
+<P> You could also write the above example as follows:</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS="literal">&lt;iosfwd&gt;</SPAN>                       <SPAN CLASS='comment'>// streamsize</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A> <SPAN CLASS='comment'>// multichar_output_filter</SPAN>
+
+<SPAN CLASS='keyword'>class</SPAN> my_output_filter : <SPAN CLASS='keyword'>public</SPAN> multichar_output_filter {
+<SPAN CLASS='keyword'>public</SPAN>:
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    std::streamsize write(Sink&amp; dest, <SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>char</SPAN>* s, std::streamsize n);
+
+    <SPAN CLASS='comment'>/* Other members */</SPAN>
+};</PRE>
+
+<P>Here <A HREF="../classes/filter.html#synopsis"><CODE>multichar_output_filter</CODE></A> is a convenience base class which provides the member types <CODE>char_type</CODE> and <CODE>category</CODE>, as well as no-op implementations of member functions <CODE>close</CODE> and <CODE>imbue</CODE>.
+
+<A NAME="shell_comments_multichar_ouput_filter"></A>
+<H4><CODE>shell_comments_multichar_output_filter</CODE></H4>
+
+<P>You can express a <A HREF="shell_comments_filters.html">shell comments Filter</A> as an <A HREF="../concepts/multi_character.html">Multi-Character</A> <A HREF="../concepts/output_filter.html">OutputFilter</A> as follows:</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/char_traits.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/char_traits.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// EOF, WOULD_BLOCK</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>    <SPAN CLASS="comment">// multichar_output_filter</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A>  <SPAN CLASS="comment">// get</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> shell_comments_multichar_output_filter : <SPAN CLASS="keyword">public</SPAN> multichar_output_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">explicit</SPAN> shell_comments_multichar_output_filter(<SPAN CLASS="keyword">char</SPAN> comment_char = '#')
+        : comment_char_(comment_char), skip_(<SPAN CLASS="keyword">false</SPAN>)
+        { }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    std::streamsize write(Sink&amp; dest, <SPAN CLASS="keyword">const</SPAN> char* s, std::streamsize n)
+    {
+        std::streamsize z;
+        <SPAN CLASS="keyword">for</SPAN> (z = <SPAN CLASS='numeric_literal'>0</SPAN>; z &lt; n; ++z) {
+            <SPAN CLASS="keyword">int</SPAN> c = s[z];
+            skip_ = c == comment_char_ ?
+                <SPAN CLASS="keyword">true</SPAN> :
+                c == <SPAN CLASS='literal'>'\n'</SPAN> ?
+                    <SPAN CLASS="keyword">false</SPAN> :
+                    skip_;
+            <SPAN CLASS="keyword">if</SPAN> (skip_)
+                <SPAN CLASS="keyword">continue</SPAN>;
+            <SPAN CLASS="keyword">if</SPAN> (!iostreams::put(dest, c))
+                <SPAN CLASS="keyword">break</SPAN>;
+        }
+        <SPAN CLASS="keyword">return</SPAN> z;
+    }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Source&amp;) { skip_ = <SPAN CLASS="keyword">false</SPAN>; }
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword">char</SPAN> comment_char_;
+    <SPAN CLASS="keyword">bool</SPAN> skip_;
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>
+    Note that the implementation of <CODE>write</CODE> is very similar to what you would get if you put the implementation of <A HREF="shell_comments_filters.html#shell_comments_output_filter"><CODE>shell_comments_output_filter::put</CODE></A> inside a <CODE>for</CODE> loop iterating from <CODE>0</CODE> to <CODE>n</CODE>. OutputFilters which call themselves recursively, such as <A HREF="unix2dos_filters.html#unix2dos_output_filter"><CODE>unix2dos_output_filter</CODE></A>,  are much harder to transform into Multi-Character filters.
+</P>
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='unix2dos_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='dual_use_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Use, modification, and distribution are subject to the Boost Software License, Version 2.0. (See accompanying file <A HREF="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+
+</BODY>

@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>Function Output Iterator</title>
+<meta name="author" content="David Abrahams, Jeremy Siek, Thomas Witt" />
+<meta name="organization" content="Boost Consulting, Indiana University Open Systems Lab, University of Hanover Institute for Transport Railway Operation and Construction" />
+<meta name="date" content="2006-09-11" />
+<meta name="copyright" content="Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2003." />
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="function-output-iterator">
+<h1 class="title">Function Output Iterator</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>David Abrahams, Jeremy Siek, Thomas Witt</td></tr>
+<tr><th class="docinfo-name">Contact:</th>
+<td><a class="first reference external" href="mailto:dave&#64;boost-consulting.com">dave&#64;boost-consulting.com</a>, <a class="reference external" href="mailto:jsiek&#64;osl.iu.edu">jsiek&#64;osl.iu.edu</a>, <a class="last reference external" href="mailto:witt&#64;ive.uni-hannover.de">witt&#64;ive.uni-hannover.de</a></td></tr>
+<tr><th class="docinfo-name">Organization:</th>
+<td><a class="first reference external" href="http://www.boost-consulting.com">Boost Consulting</a>, Indiana University <a class="reference external" href="http://www.osl.iu.edu">Open Systems
+Lab</a>, University of Hanover <a class="last reference external" href="http://www.ive.uni-hannover.de">Institute for Transport
+Railway Operation and Construction</a></td></tr>
+<tr><th class="docinfo-name">Date:</th>
+<td>2006-09-11</td></tr>
+<tr><th class="docinfo-name">Copyright:</th>
+<td>Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2003.</td></tr>
+</tbody>
+</table>
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">abstract:</th><td class="field-body"><!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+The function output iterator adaptor makes it easier to create custom
+output iterators. The adaptor takes a unary function and creates a
+model of Output Iterator. Each item assigned to the output iterator is
+passed as an argument to the unary function.  The motivation for this
+iterator is that creating a conforming output iterator is non-trivial,
+particularly because the proper implementation usually requires a
+proxy object.</td>
+</tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#header" id="id1">Header</a></li>
+<li><a class="reference internal" href="#function-output-iterator-requirements" id="id2"><tt class="docutils literal"><span class="pre">function_output_iterator</span></tt> requirements</a></li>
+<li><a class="reference internal" href="#function-output-iterator-models" id="id3"><tt class="docutils literal"><span class="pre">function_output_iterator</span></tt> models</a></li>
+<li><a class="reference internal" href="#function-output-iterator-operations" id="id4"><tt class="docutils literal"><span class="pre">function_output_iterator</span></tt> operations</a></li>
+<li><a class="reference internal" href="#example" id="id5">Example</a></li>
+</ul>
+</div>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="section" id="header">
+<h1><a class="toc-backref" href="#id1">Header</a></h1>
+<pre class="literal-block">
+#include &lt;boost/function_output_iterator.hpp&gt;
+</pre>
+<pre class="literal-block">
+template &lt;class UnaryFunction&gt;
+class function_output_iterator {
+public:
+  typedef std::output_iterator_tag iterator_category;
+  typedef void                     value_type;
+  typedef void                     difference_type;
+  typedef void                     pointer;
+  typedef void                     reference;
+
+  explicit function_output_iterator();
+
+  explicit function_output_iterator(const UnaryFunction&amp; f);
+
+  /* see below */ operator*();
+  function_output_iterator&amp; operator++();
+  function_output_iterator&amp; operator++(int);
+private:
+  UnaryFunction m_f;     // exposition only
+};
+</pre>
+</div>
+<div class="section" id="function-output-iterator-requirements">
+<h1><a class="toc-backref" href="#id2"><tt class="docutils literal"><span class="pre">function_output_iterator</span></tt> requirements</a></h1>
+<p><tt class="docutils literal"><span class="pre">UnaryFunction</span></tt> must be Assignable and Copy Constructible.</p>
+</div>
+<div class="section" id="function-output-iterator-models">
+<h1><a class="toc-backref" href="#id3"><tt class="docutils literal"><span class="pre">function_output_iterator</span></tt> models</a></h1>
+<p><tt class="docutils literal"><span class="pre">function_output_iterator</span></tt> is a model of the Writable and
+Incrementable Iterator concepts.</p>
+</div>
+<div class="section" id="function-output-iterator-operations">
+<h1><a class="toc-backref" href="#id4"><tt class="docutils literal"><span class="pre">function_output_iterator</span></tt> operations</a></h1>
+<p><tt class="docutils literal"><span class="pre">explicit</span> <span class="pre">function_output_iterator(const</span> <span class="pre">UnaryFunction&amp;</span> <span class="pre">f</span> <span class="pre">=</span> <span class="pre">UnaryFunction());</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Constructs an instance of <tt class="docutils literal"><span class="pre">function_output_iterator</span></tt>
+with <tt class="docutils literal"><span class="pre">m_f</span></tt> constructed from <tt class="docutils literal"><span class="pre">f</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">operator*();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">An object <tt class="docutils literal"><span class="pre">r</span></tt> of unspecified type such that <tt class="docutils literal"><span class="pre">r</span> <span class="pre">=</span> <span class="pre">t</span></tt>
+is equivalent to <tt class="docutils literal"><span class="pre">m_f(t)</span></tt> for all <tt class="docutils literal"><span class="pre">t</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">function_output_iterator&amp;</span> <span class="pre">operator++();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">*this</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">function_output_iterator&amp;</span> <span class="pre">operator++(int);</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">*this</span></tt></td>
+</tr>
+</tbody>
+</table>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+</div>
+<div class="section" id="example">
+<h1><a class="toc-backref" href="#id5">Example</a></h1>
+<pre class="literal-block">
+struct string_appender
+{
+    string_appender(std::string&amp; s)
+        : m_str(&amp;s)
+    {}
+
+    void operator()(const std::string&amp; x) const
+    {
+        *m_str += x;
+    }
+
+    std::string* m_str;
+};
+
+int main(int, char*[])
+{
+  std::vector&lt;std::string&gt; x;
+  x.push_back(&quot;hello&quot;);
+  x.push_back(&quot; &quot;);
+  x.push_back(&quot;world&quot;);
+  x.push_back(&quot;!&quot;);
+
+  std::string s = &quot;&quot;;
+  std::copy(x.begin(), x.end(),
+            boost::make_function_output_iterator(string_appender(s)));
+
+  std::cout &lt;&lt; s &lt;&lt; std::endl;
+
+  return 0;
+}
+</pre>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="function_output_iterator.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

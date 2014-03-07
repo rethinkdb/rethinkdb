@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="indented_code_blocks" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Indented code blocks</title>
+  <para>
+    In a paragraph. Still in a paragraph.
+  </para>
+<programlisting>In a code block.
+</programlisting>
+  <para>
+    Back in a paragraph.
+  </para>
+<programlisting>   Code block line 1.
+Code block line 2.
+       Code block line 3.
+</programlisting>
+  <para>
+    Paragraph.
+  </para>
+<programlisting>Code block with no trailing blank lines.
+</programlisting>
+  <para>
+    Paragraph.
+  </para>
+  <bridgehead renderas="sect2" id="indented_code_blocks.h0">
+    <phrase id="indented_code_blocks.code_blocks_separated_by_comment"/><link linkend="indented_code_blocks.code_blocks_separated_by_comment">Code
+    blocks separated by comment</link>
+  </bridgehead>
+<programlisting>First code block.
+</programlisting>
+<programlisting>Second code block.
+[/ Comment in second code block]
+Still second code block.
+[/ Comment trailing second code block]
+</programlisting>
+</article>

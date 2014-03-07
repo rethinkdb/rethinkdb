@@ -1,0 +1,203 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  Ts/call  Ts/call  name    
+100.00      0.01     0.01                             __gnu_cxx::__atomic_add(int volatile*, int)
+  0.00      0.01     0.00       51     0.00     0.00  boost::archive::iterators::transform_width<char*, 6, 8, char>::fill()
+  0.00      0.01     0.00       36     0.00     0.00  boost::archive::iterators::transform_width<__gnu_cxx::__normal_iterator<char*, std::vector<char, std::allocator<char> > >, 8, 6, char>::fill()
+  0.00      0.01     0.00       30     0.00     0.00  std::vector<char, std::allocator<char> >::_M_insert_aux(__gnu_cxx::__normal_iterator<char*, std::vector<char, std::allocator<char> > >, char const&)
+  0.00      0.01     0.00       11     0.00     0.00  boost::archive::iterators::xml_escape<char const*>::fill(char const*&, char const*&)
+  0.00      0.01     0.00        9     0.00     0.00  void test_transform_width<6, 8>(unsigned int)
+  0.00      0.01     0.00        9     0.00     0.00  boost::archive::iterators::xml_unescape<char const*>::drain()
+  0.00      0.01     0.00        5     0.00     0.00  boost::archive::iterators::xml_unescape<char const*>::drain_residue(char const*)
+  0.00      0.01     0.00        2     0.00     0.00  __static_initialization_and_destruction_0(int, int)
+  0.00      0.01     0.00        1     0.00     0.00  void test_xml_escape<char const>(char const*, char const*, unsigned int)
+  0.00      0.01     0.00        1     0.00     0.00  void test_xml_unescape<char const>(char const*, char const*, unsigned int)
+  0.00      0.01     0.00        1     0.00     0.00  void test_stream_iterators<char>(char const*, unsigned int)
+  0.00      0.01     0.00        1     0.00     0.00  test_main(int, char**)
+  0.00      0.01     0.00        1     0.00     0.00  char* std::string::_S_construct<char*>(char*, char*, std::allocator<char> const&, std::forward_iterator_tag)
+  0.00      0.01     0.00        1     0.00     0.00  std::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<char*>(char*, char*, std::allocator<char> const&)
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+ 
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this 
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 4 byte(s) for 100.00% of 0.01 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]    100.0    0.01    0.00                 __gnu_cxx::__atomic_add(int volatile*, int) [1]
+-----------------------------------------------
+                0.00    0.00      51/51          void test_transform_width<6, 8>(unsigned int) [9]
+[5]      0.0    0.00    0.00      51         boost::archive::iterators::transform_width<char*, 6, 8, char>::fill() [5]
+-----------------------------------------------
+                0.00    0.00      36/36          void test_transform_width<6, 8>(unsigned int) [9]
+[6]      0.0    0.00    0.00      36         boost::archive::iterators::transform_width<__gnu_cxx::__normal_iterator<char*, std::vector<char, std::allocator<char> > >, 8, 6, char>::fill() [6]
+-----------------------------------------------
+                0.00    0.00      30/30          void test_transform_width<6, 8>(unsigned int) [9]
+[7]      0.0    0.00    0.00      30         std::vector<char, std::allocator<char> >::_M_insert_aux(__gnu_cxx::__normal_iterator<char*, std::vector<char, std::allocator<char> > >, char const&) [7]
+-----------------------------------------------
+                0.00    0.00      11/11          void test_xml_escape<char const>(char const*, char const*, unsigned int) [13]
+[8]      0.0    0.00    0.00      11         boost::archive::iterators::xml_escape<char const*>::fill(char const*&, char const*&) [8]
+-----------------------------------------------
+                0.00    0.00       9/9           test_main(int, char**) [16]
+[9]      0.0    0.00    0.00       9         void test_transform_width<6, 8>(unsigned int) [9]
+                0.00    0.00      51/51          boost::archive::iterators::transform_width<char*, 6, 8, char>::fill() [5]
+                0.00    0.00      36/36          boost::archive::iterators::transform_width<__gnu_cxx::__normal_iterator<char*, std::vector<char, std::allocator<char> > >, 8, 6, char>::fill() [6]
+                0.00    0.00      30/30          std::vector<char, std::allocator<char> >::_M_insert_aux(__gnu_cxx::__normal_iterator<char*, std::vector<char, std::allocator<char> > >, char const&) [7]
+-----------------------------------------------
+                0.00    0.00       9/9           void test_xml_unescape<char const>(char const*, char const*, unsigned int) [14]
+[10]     0.0    0.00    0.00       9         boost::archive::iterators::xml_unescape<char const*>::drain() [10]
+                0.00    0.00       5/5           boost::archive::iterators::xml_unescape<char const*>::drain_residue(char const*) [11]
+-----------------------------------------------
+                0.00    0.00       5/5           boost::archive::iterators::xml_unescape<char const*>::drain() [10]
+[11]     0.0    0.00    0.00       5         boost::archive::iterators::xml_unescape<char const*>::drain_residue(char const*) [11]
+-----------------------------------------------
+                0.00    0.00       1/2           global constructors keyed to main [38]
+                0.00    0.00       1/2           global destructors keyed to main [35]
+[12]     0.0    0.00    0.00       2         __static_initialization_and_destruction_0(int, int) [12]
+-----------------------------------------------
+                0.00    0.00       1/1           test_main(int, char**) [16]
+[13]     0.0    0.00    0.00       1         void test_xml_escape<char const>(char const*, char const*, unsigned int) [13]
+                0.00    0.00      11/11          boost::archive::iterators::xml_escape<char const*>::fill(char const*&, char const*&) [8]
+-----------------------------------------------
+                0.00    0.00       1/1           test_main(int, char**) [16]
+[14]     0.0    0.00    0.00       1         void test_xml_unescape<char const>(char const*, char const*, unsigned int) [14]
+                0.00    0.00       9/9           boost::archive::iterators::xml_unescape<char const*>::drain() [10]
+-----------------------------------------------
+                0.00    0.00       1/1           test_main(int, char**) [16]
+[15]     0.0    0.00    0.00       1         void test_stream_iterators<char>(char const*, unsigned int) [15]
+                0.00    0.00       1/1           std::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<char*>(char*, char*, std::allocator<char> const&) [18]
+-----------------------------------------------
+                0.00    0.00       1/1           main [1211]
+[16]     0.0    0.00    0.00       1         test_main(int, char**) [16]
+                0.00    0.00       9/9           void test_transform_width<6, 8>(unsigned int) [9]
+                0.00    0.00       1/1           void test_xml_escape<char const>(char const*, char const*, unsigned int) [13]
+                0.00    0.00       1/1           void test_xml_unescape<char const>(char const*, char const*, unsigned int) [14]
+                0.00    0.00       1/1           void test_stream_iterators<char>(char const*, unsigned int) [15]
+-----------------------------------------------
+                0.00    0.00       1/1           std::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<char*>(char*, char*, std::allocator<char> const&) [18]
+[17]     0.0    0.00    0.00       1         char* std::string::_S_construct<char*>(char*, char*, std::allocator<char> const&, std::forward_iterator_tag) [17]
+-----------------------------------------------
+                0.00    0.00       1/1           void test_stream_iterators<char>(char const*, unsigned int) [15]
+[18]     0.0    0.00    0.00       1         std::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<char*>(char*, char*, std::allocator<char> const&) [18]
+                0.00    0.00       1/1           char* std::string::_S_construct<char*>(char*, char*, std::allocator<char> const&, std::forward_iterator_tag) [17]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+
+Index by function name
+
+  [13] void test_xml_escape<char const>(char const*, char const*, unsigned int) [16] test_main(int, char**) [5] boost::archive::iterators::transform_width<char*, 6, 8, char>::fill()
+  [14] void test_xml_unescape<char const>(char const*, char const*, unsigned int) [8] boost::archive::iterators::xml_escape<char const*>::fill(char const*&, char const*&) [1] __gnu_cxx::__atomic_add(int volatile*, int)
+   [9] void test_transform_width<6, 8>(unsigned int) [11] boost::archive::iterators::xml_unescape<char const*>::drain_residue(char const*) [17] char* std::string::_S_construct<char*>(char*, char*, std::allocator<char> const&, std::forward_iterator_tag)
+  [15] void test_stream_iterators<char>(char const*, unsigned int) [10] boost::archive::iterators::xml_unescape<char const*>::drain() [18] std::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<char*>(char*, char*, std::allocator<char> const&)
+  [12] __static_initialization_and_destruction_0(int, int) (performance_iterators.cpp) [6] boost::archive::iterators::transform_width<__gnu_cxx::__normal_iterator<char*, std::vector<char, std::allocator<char> > >, 8, 6, char>::fill() [7] std::vector<char, std::allocator<char> >::_M_insert_aux(__gnu_cxx::__normal_iterator<char*, std::vector<char, std::allocator<char> > >, char const&)

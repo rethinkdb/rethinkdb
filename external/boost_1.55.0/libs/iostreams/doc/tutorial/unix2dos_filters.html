@@ -1,0 +1,230 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Tutorial</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Tutorial</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='dictionary_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='multichar_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<A NAME="unix2dos"></A>
+<H2>2.2.7. UNIX-to-DOS Filters</H2>
+
+<P>Suppose you want to write a Filter to convert <CODE>UNIX</CODE> line endings to <CODE>DOS</CODE> line-endings. The basic idea is simple: you process the characters in a sequence one at a time, and whenever you encounter the character 
+<CODE>'\n'</CODE> you replace it with the two-character sequence <CODE>'\r'</CODE>, <CODE>'\n'</CODE>. In the following sections I'll implement this algorithm as a <CODE>stdio_filter</CODE>, an InputFilter and an OutputFilter. The source code can be found in the header <A HREF="../../example/unix2dos_filter.hpp">&lt;<CODE>libs/iostreams/example/unix2dos_filter.hpp</CODE>&gt;</A></P>
+
+<A NAME="unix2dos_stdio_filter"></A>
+<H4><CODE>unix2dos_stdio_filter</CODE></H4>
+
+<P>You can express a <CODE>UNIX</CODE>-to-<CODE>DOS</CODE> Filter as a <CODE>stdio_filter</CODE> by deriving from <CODE>stdio_filter</CODE> and overriding the <CODE>private</CODE> <CODE>virtual</CODE> function do_filter as follows:</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;cstdio&gt;</SPAN>    <SPAN CLASS='comment'>// EOF</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;iostream&gt;</SPAN>  <SPAN CLASS='comment'>// cin, cout</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/filter/stdio.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/filter/stdio.hpp&gt;</SPAN></A>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> unix2dos_stdio_filter : <SPAN CLASS="keyword">public</SPAN> stdio_filter {
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword">void</SPAN> do_filter()
+    {
+        <SPAN CLASS="keyword">int</SPAN> c;
+        <SPAN CLASS="keyword">while</SPAN> ((c = std::cin.get()) != <SPAN CLASS='numeric_literal'>EOF</SPAN>) {
+            <SPAN CLASS="keyword">if</SPAN> (c == <SPAN CLASS='literal'>'\n'</SPAN>)
+                std::cout.put(<SPAN CLASS='literal'>'\r'</SPAN>);
+            std::cout.put(c);
+        }
+    }
+};
+
+} } } <SPAN CLASS='comment'>// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>The function <CODE>do_filter</CODE> consists of a straightforward implementation of the algorithm I described above: it reads characters from standard input and writes them to standard output unchanged, except that when it encounters <CODE>'\n'</CODE> it writes <CODE>'\r'</CODE>, <CODE>'\n'</CODE>.
+
+<A NAME="unix2dos_input_filter"></A>
+<H4><CODE>unix2dos_input_filter</CODE></H4>
+
+<P>Now, let's express a <CODE>UNIX</CODE>-to-<CODE>DOS</CODE> Filter as an <A HREF="../concepts/input_filter.html">InputFilter</A>.
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/categories.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/categories.hpp&gt;</SPAN></A> <SPAN CLASS='comment'>// input_filter_tag</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/operations.hpp&gt;</SPAN></A> <SPAN CLASS='comment'>// get</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> unix2dos_input_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>char</SPAN>              char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> input_filter_tag  category;
+
+    unix2dos_input_filter() : has_linefeed_(<SPAN CLASS='keyword'>false</SPAN>) { }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword">int</SPAN> get(Source&amp; src)
+    {
+        <SPAN CLASS='comment'>// Handle unfinished business</SPAN>
+        <SPAN CLASS="keyword">if</SPAN> (has_linefeed_) {
+            has_linefeed_ = <SPAN CLASS="keyword">false</SPAN>;
+            <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS="literal">'\n'</SPAN>;
+        }
+
+        <SPAN CLASS='comment'>// Forward all characters except '\n'</SPAN>
+        <SPAN CLASS="keyword">int</SPAN> c;
+        if ((c = iostreams::get(src)) == <SPAN CLASS='literal'>'\n'</SPAN>) {
+            has_linefeed_ = true;
+            <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS='literal'>'\r'</SPAN>;
+        }
+
+        <SPAN CLASS="keyword">return</SPAN> c;
+    }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Source&amp;);
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword">bool</SPAN> has_linefeed_;
+};
+
+} } } <SPAN CLASS='comment'>// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>The implementation of <CODE>get</CODE> can be described as follows. Most of the time, you simply read a character from <CODE>src</CODE> and return it. The special values <CODE>EOF</CODE> and <CODE>WOULD_BLOCK</CODE> are treated the same way: they are simply forwarded <I>as-is</I>. The exception is when <CODE>iostreams::get</CODE> returns <CODE>'\n'</CODE>. In this case, you return <CODE>'\r'</CODE> instead and make a note to return <CODE>'\n'</CODE> the next time <CODE>get</CODE> is called.</P>
+
+<P>As usual, the member function <CODE>close</CODE> reset's the Filter's state:</P>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Source&amp;) { skip_ = <SPAN CLASS="keyword">false</SPAN>; }</PRE>
+
+<A NAME="unix2dos_output_filter"></A>
+<H4><CODE>unix2dos_output_filter</CODE></H4>
+
+<P>You can express a <CODE>UNIX</CODE>-to-<CODE>DOS</CODE> Filter as an <A HREF="../concepts/output_filter.html">OutputFilter</A> as follows:</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>   <SPAN CLASS='comment'>// output_filter</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/operations.hpp&gt;</SPAN></A> <SPAN CLASS='comment'>// put</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> unix2dos_output_filter : <SPAN CLASS="keyword">public</SPAN> output_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    unix2dos_output_filter() : has_linefeed_(<SPAN CLASS="keyword">false</SPAN>) { }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword">bool</SPAN> put(Sink&amp; dest, <SPAN CLASS="keyword">int</SPAN> c);
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Sink&amp;) { has_linefeed_ = <SPAN CLASS="keyword">false</SPAN>; }
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword">bool</SPAN> put_char(Sink&amp; dest, <SPAN CLASS="keyword">int</SPAN> c);
+
+    <SPAN CLASS="keyword">bool</SPAN> has_linefeed_;
+};
+
+} } } <SPAN CLASS='comment'>// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>
+    Here I've derived from the helper class <A HREF="../classes/filter.html#synopsis"><CODE>output_filter</CODE></A>, which provides a member type <CODE>char_type</CODE> equal to <CODE>char</CODE> and a category tag convertible to <A HREF="../guide/traits.html#category_tags"><CODE>output_filter_tag</CODE></A> and to <A HREF="../guide/traits.html#category_tags"><CODE>closable_tag</CODE></A>.
+</P>
+
+<P>Let's look first at the helper function <CODE>put_char</CODE>:</P>
+
+<PRE CLASS='broken_ie'>    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword">bool</SPAN> put_char(Sink&amp; dest, <SPAN CLASS="keyword">int</SPAN> c)
+    {
+        <SPAN CLASS="keyword">bool</SPAN> result;
+        <SPAN CLASS="keyword">if</SPAN> ((result = iostreams::put(dest, c)) == <SPAN CLASS="keyword">true</SPAN>) {
+            has_linefeed_ =
+                c == <SPAN CLASS="literal">'\r'</SPAN> ?
+                    <SPAN CLASS="keyword">true</SPAN> : 
+                    c == <SPAN CLASS="literal">'\n'</SPAN> ? 
+                        <SPAN CLASS="keyword">false</SPAN> :
+                        has_linefeed_;
+        }
+        <SPAN CLASS="keyword">return</SPAN> result;
+    }</PRE>
+
+<P>
+    This function attempts to write a single character to the Sink dest, returning <CODE>true</CODE> for success. If successful, it updates the flag <CODE>has_linefeed_</CODE>, which indicates that an attempt to write a <CODE>DOS</CODE> line ending sequence failed after the first character was written.  
+</P>
+
+<P>Using <CODE>put_char</CODE> you can implement <CODE>put</CODE> as follows:</P>
+
+<PRE CLASS='broken_ie'>    <SPAN CLASS="keyword">bool</SPAN> put(Sink&amp; dest, <SPAN CLASS="keyword">int</SPAN> c)
+    {
+        <SPAN CLASS="keyword">if</SPAN> (c == <SPAN CLASS="literal">'\n'</SPAN>) 
+            <SPAN CLASS="keyword">return</SPAN> has_linefeed_ ?
+                put_char(dest, <SPAN CLASS="literal">'\n'</SPAN>) :
+                put_char(dest, <SPAN CLASS="literal">'\r'</SPAN>) ?
+                    this-&gt;put(dest, <SPAN CLASS="literal">'\n'</SPAN>) :
+                    <SPAN CLASS="keyword">false</SPAN>;
+        <SPAN CLASS="keyword">return</SPAN> iostreams::put(dest, c);
+    }</PRE>
+
+<P>The implementation works like so:</P>
+
+<OL>
+<LI>
+    If you're at the beginning of a <CODE>DOS</CODE> line-ending sequence &#8212; that is, if <CODE>c</CODE> is <CODE>'n'</CODE> and <CODE>has_line_feed_</CODE> is <CODE>false</CODE> &#8212; you attempt to write <CODE>'\r'</CODE> and then <CODE>'\n'</CODE> to <CODE>dest</CODE>.
+</LI>
+<LI>
+    If you're in the middle of a <CODE>DOS</CODE> line-ending sequence &#8212; that is, if <CODE>c</CODE> is <CODE>'n'</CODE> and <CODE>has_line_feed_</CODE> is <CODE>true</CODE> &#8212; you attempt to complete it by writing <CODE>'\n'</CODE>.
+</LI>
+<LI>
+    Otherwise, you attempt to write <CODE>c</CODE> to <CODE>dest</CODE>.
+</LI>
+</OL>
+
+<P>
+    There are two subtle points. First, why does <CODE>c == 'n'</CODE> and <CODE>has_line_feed_ == true</CODE> mean that you're in the middle of a <CODE>DOS</CODE> line-ending sequence? Because when you attempt to write <CODE>'\r'</CODE>, <CODE>'\n'</CODE> but only the first character succeeds, you set <CODE>has_line_feed_</CODE> and return <CODE>false</CODE>. This causes the user of the Filter to <I>resend</I> the character <CODE>'\n'</CODE> which triggered the line-ending sequence. Second, note that to write the second character of a line-ending sequence you call <CODE>put</CODE> recursively instead of calling <CODE>put_char</CODE>.
+</P>
+
+<P>
+    Comparing the implementations of <CODE>unix2dos_input_filter</CODE> and <CODE>unix2dos_output_filter</CODE>, you can see that this a case where a filtering algorithm is much easier to express as an Input than as an OutputFilter. If you wanted to avoid the complexity of the above definition, you could use the class template <A HREF="../functions/invert.html#invert"><CODE>inverse</CODE></A> to construct an OutputFilter from <CODE>unix2dos_input_filter</CODE>:
+</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='literal'>#include</SPAN></SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/invert.hpp&gt;</SPAN></A>   <SPAN CLASS='comment'>// inverse</SPAN>   
+
+<SPAN CLASS='keyword'>namespace</SPAN> io = boost::iostreams;
+<SPAN CLASS='keyword'>namespace</SPAN> ex = boost::iostreams::example;
+
+<SPAN CLASS="keyword">typedef</SPAN> io::inverse&lt;ex::unix2dos_input_filter&gt; unix2dos_output_filter;</PRE>
+
+<P>Even this is more work than necessary, however, since line-ending conversions can be handled easily with the built-in component <A HREF="../classes/newline_filter.html#newline_filter"><CODE>newline_filter</CODE></A>.</P>
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='dictionary_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='multichar_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Use, modification, and distribution are subject to the Boost Software License, Version 2.0. (See accompanying file <A HREF="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+
+</BODY>

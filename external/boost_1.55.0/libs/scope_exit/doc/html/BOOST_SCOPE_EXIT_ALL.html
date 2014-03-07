@@ -1,0 +1,95 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Macro BOOST_SCOPE_EXIT_ALL</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">
+<link rel="up" href="reference.html#header.boost.scope_exit_hpp" title="Header &lt;boost/scope_exit.hpp&gt;">
+<link rel="prev" href="BOOST_SCOPE_EXIT_ID_TPL.html" title="Macro BOOST_SCOPE_EXIT_ID_TPL">
+<link rel="next" href="BOOST_SCOPE_EXIT_ALL_ID.html" title="Macro BOOST_SCOPE_EXIT_ALL_ID">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_SCOPE_EXIT_ID_TPL.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="reference.html#header.boost.scope_exit_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_SCOPE_EXIT_ALL_ID.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="BOOST_SCOPE_EXIT_ALL"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Macro BOOST_SCOPE_EXIT_ALL</span></h2>
+<p>BOOST_SCOPE_EXIT_ALL &#8212; This macro declares a scope exit that captures all variables in scope (C++11 only). </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="reference.html#header.boost.scope_exit_hpp" title="Header &lt;boost/scope_exit.hpp&gt;">boost/scope_exit.hpp</a>&gt;
+
+</span>BOOST_SCOPE_EXIT_ALL(capture_list)</pre></div>
+<div class="refsect1">
+<a name="id836855"></a><h2>Description</h2>
+<p>This macro accepts a capture list starting with either <code class="computeroutput">&amp;</code> or <code class="computeroutput">=</code> to capture all variables in scope by reference or value respectively (following the same syntax of C++11 lambdas). A part from that, this macro works like  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> (see  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> for more information):</p>
+<pre class="programlisting">    <span class="special">{</span> <span class="comment">// Some local scope.</span>
+        <span class="special">...</span>
+        <span class="identifier">BOOST_SCOPE_EXIT_ALL</span><span class="special">(</span><span class="identifier">capture_list</span><span class="special">)</span> <span class="special">{</span> <span class="comment">// C++11 only.</span>
+            <span class="special">...</span> <span class="comment">// Body code.</span>
+        <span class="special">}</span><span class="special">;</span> <span class="comment">// Use `;` instead of `BOOST_SCOPE_EXIT_END` (C++11 only).</span>
+        <span class="special">...</span>
+    <span class="special">}</span>
+</pre>
+<p>Note how the end of the scope exit body declared by this macro must be marked by a semi-column <code class="computeroutput">;</code> (and not by  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_END.html" title="Macro BOOST_SCOPE_EXIT_END">BOOST_SCOPE_EXIT_END</a></code>).</p>
+<p><span class="bold"><strong>Warning:</strong></span> This macro is only available on C++11 compilers (specifically, on C++11 compilers that do not define the Boost.Config <code class="computeroutput">BOOST_NO_LAMBDAS</code> macro). It is not defined on non-C++11 compilers so its use on non-C++11 compilers will generate a compiler error.</p>
+<p><span class="bold"><strong>Parameters:</strong></span> </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody><tr>
+<td><span class="bold"><strong><code class="computeroutput">capture_list</code></strong></span></td>
+<td>On compilers that support variadic macros (see also Boost.Config <code class="computeroutput">BOOST_NO_VARIADIC_MACROS</code>), the capture list syntax is defined by the following grammar: <pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">capture_list</span><span class="special">:</span>
+        <span class="identifier">capture_tuple</span> <span class="special">|</span> <span class="identifier">capture_sequence</span>
+<span class="identifier">capture_tuple</span><span class="special">:</span>
+        <span class="special">{</span><span class="special">&amp;</span> <span class="special">|</span> <span class="special">=</span><span class="special">}</span> <span class="special">[</span><span class="special">,</span> <span class="identifier">capture</span><span class="special">,</span> <span class="identifier">capture</span><span class="special">,</span> <span class="special">...</span><span class="special">]</span>
+<span class="identifier">capture_sequence</span><span class="special">:</span>
+        <span class="special">{</span><span class="special">(</span><span class="special">&amp;</span><span class="special">)</span> <span class="special">|</span> <span class="special">(</span><span class="special">=</span><span class="special">)</span><span class="special">}</span> <span class="special">[</span><span class="special">(</span><span class="identifier">capture</span><span class="special">)</span> <span class="special">(</span><span class="identifier">capture</span><span class="special">)</span> <span class="special">...</span><span class="special">]</span>
+<span class="identifier">capture</span><span class="special">:</span>
+        <span class="special">[</span><span class="special">&amp;</span><span class="special">]</span><span class="identifier">variable</span> <span class="special">|</span> <span class="identifier">this_</span>
+</pre> On compilers that do not support variadic macros, <code class="computeroutput">capture_tuple</code> cannot be used: <pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">    <span class="identifier">capture_list</span><span class="special">:</span>
+            <span class="keyword">void</span> <span class="special">|</span> <span class="identifier">capture_sequence</span>
+</pre> Furthermore, on C++11 compilers that support the use of <code class="computeroutput">typename</code> outside templates, also <code class="computeroutput">this</code> can be used to capture the object at member function scope: <pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">    <span class="identifier">capture</span><span class="special">:</span>
+            <span class="special">[</span><span class="special">&amp;</span><span class="special">]</span><span class="identifier">variable</span> <span class="special">|</span> <span class="identifier">this_</span> <span class="special">|</span> <span class="keyword">this</span>
+</pre>(Lexical conventions: <code class="computeroutput">token1 | token2</code> means either <code class="computeroutput">token1</code> or <code class="computeroutput">token2</code>; <code class="computeroutput">[token]</code> means either <code class="computeroutput">token</code> or nothing; <code class="computeroutput">{expression}</code> means the token resulting from the expression.)  </td>
+</tr></tbody>
+</table></div>
+<p>
+</p>
+<p>Note that on compilers with variadic macro support (which should be all C++11 compilers), the capture list can be specified as a comma-separated list. On all compilers, the same macro  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code> also allows to specify the capture list as a Boost.Preprocessor sequence.</p>
+<p>The capture list must always contain at least the leading <code class="computeroutput">&amp;</code> or <code class="computeroutput">=</code> so it can never be <code class="computeroutput">void</code> (<code class="computeroutput">BOOST_SCOPE_EXIT(void)</code> should be used to program scope exits with an empty capture list).</p>
+<p>In general, the special macro  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_ALL_ID.html" title="Macro BOOST_SCOPE_EXIT_ALL_ID">BOOST_SCOPE_EXIT_ALL_ID</a></code> must be used instead of  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code> when it is necessary to expand multiple scope exit declarations on the same line.</p>
+<p><span class="bold"><strong>Warning:</strong></span> This macro capture list follows the exact same syntax of C++11 lambda captures which is unfortunately different from the syntax of  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> captures (unless programmers define the  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_CONFIG_USE_LAMBDAS.html" title="Macro BOOST_SCOPE_EXIT_CONFIG_USE_LAMBDAS">BOOST_SCOPE_EXIT_CONFIG_USE_LAMBDAS</a></code> macro). For example, like C++11 lambda functions,  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code> requires to capture data members by capturing the object <code class="computeroutput">this</code> while  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> allows to capture data members directly and without capturing the object.</p>
+<p><span class="bold"><strong>Warning:</strong></span> The implementation executes the scope exit body within a destructor thus the scope exit body must never throw in order to comply with STL exception safety requirements.</p>
+<p><span class="bold"><strong>Note:</strong></span> This macro can always be used also within templates (so there is no need for a <code class="computeroutput">BOOST_SCOPE_EXIT_ALL_TPL</code> macro).</p>
+<p><span class="bold"><strong>See:</strong></span>  <a class="link" href="scope_exit/tutorial.html" title="Tutorial"> Tutorial</a> section,  <a class="link" href="scope_exit/no_variadic_macros.html" title="Annex: No Variadic Macros"> No Variadic Macros</a> section,  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>,  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_ALL_ID.html" title="Macro BOOST_SCOPE_EXIT_ALL_ID">BOOST_SCOPE_EXIT_ALL_ID</a></code>. </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Alexander Nasonov, Lorenzo Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_SCOPE_EXIT_ID_TPL.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="reference.html#header.boost.scope_exit_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_SCOPE_EXIT_ALL_ID.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

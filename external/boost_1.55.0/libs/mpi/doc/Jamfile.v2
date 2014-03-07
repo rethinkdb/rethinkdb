@@ -1,0 +1,51 @@
+# Copyright (C) 2005-2006 Douglas Gregor <doug.gregor@gmail.com>
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.)
+project boost/mpi/doc ;
+
+using quickbook ;
+using doxygen ;
+
+doxygen mpi_autodoc 
+  : [ glob
+    ../../../boost/mpi.hpp
+    ../../../boost/mpi/allocator.hpp
+    ../../../boost/mpi/collectives.hpp
+    ../../../boost/mpi/collectives_fwd.hpp
+    ../../../boost/mpi/communicator.hpp
+    ../../../boost/mpi/config.hpp
+    ../../../boost/mpi/datatype.hpp
+    ../../../boost/mpi/datatype_fwd.hpp
+    ../../../boost/mpi/environment.hpp
+    ../../../boost/mpi/exception.hpp
+    ../../../boost/mpi/graph_communicator.hpp
+    ../../../boost/mpi/group.hpp
+    ../../../boost/mpi/intercommunicator.hpp
+    ../../../boost/mpi/nonblocking.hpp
+    ../../../boost/mpi/operations.hpp
+    ../../../boost/mpi/packed_iarchive.hpp
+    ../../../boost/mpi/packed_oarchive.hpp
+    ../../../boost/mpi/skeleton_and_content.hpp
+    ../../../boost/mpi/skeleton_and_content_fwd.hpp
+    ../../../boost/mpi/status.hpp
+    ../../../boost/mpi/request.hpp
+    ../../../boost/mpi/timer.hpp
+    ../../../boost/mpi/inplace.hpp
+    ../../../boost/mpi/python.hpp
+    ]
+  : <doxygen:param>MACRO_EXPANSION=YES
+    <doxygen:param>EXPAND_ONLY_PREDEF=YES
+    <doxygen:param>"PREDEFINED=BOOST_MPI_HAS_MEMORY_ALLOCATION= BOOST_MPI_HAS_NOARG_INITIALIZATION= MPI_VERSION=2 BOOST_MPI_DOXYGEN="
+  ;
+
+xml mpi : mpi.qbk ;
+
+boostbook standalone : mpi mpi_autodoc 
+              :
+              <xsl:param>boost.root=../../../..
+              <format>pdf:<xsl:param>max-columns=66
+              <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/doc/html
+              ;
+
+

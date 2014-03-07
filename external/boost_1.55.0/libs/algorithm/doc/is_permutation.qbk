@@ -1,0 +1,87 @@
+[/ File is_permutation.qbk]
+
+[section:is_permutation is_permutation ]
+
+[/license
+Copyright (c) 2010-2012 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+The header file 'is_permutation.hpp' contains six variants of a single algorithm, `is_permutation`. The algorithm tests to see if one sequence is a permutation of a second one; in other words, it contains all the same members, possibly in a different order.
+
+The routine `is_permutation` takes two sequences and an (optional) predicate. It returns true if the two sequences contain the same members. If it is passed a predicate, it uses the predicate to compare the elements of the sequence to see if they are the same.
+
+`is_permutation` come in three forms. The first one takes two iterators to define the first range, and the starting iterator of the second range. The second form takes a two iterators to define the first range and two more to define the second range. The third form takes a single range parameter, and uses Boost.Range to traverse it.
+
+
+[heading Interface]
+
+The function `is_permutation` returns true if the two input sequences contain the same elements.  There are six versions; two take three iterators, two take four iterators, and the other two take two ranges.
+
+In general, you should prefer the four iterator versions over the three iterator ones. The three iterator version has to "create" the fourth iterator internally by calling `std::advance(first2, std::distance(first1,last1))`, and if the second sequence is shorter than the first, that's undefined behavior.
+
+``
+template< class ForwardIterator1, class ForwardIterator2 >
+bool is_permutation ( ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2 );
+
+template< class ForwardIterator1, class ForwardIterator2, class BinaryPredicate >
+bool is_permutation ( ForwardIterator1 first1, ForwardIterator1 last1,
+                      ForwardIterator2 first2, BinaryPredicate p );
+
+
+template< class ForwardIterator1, class ForwardIterator2 >
+bool is_permutation ( ForwardIterator1 first1, ForwardIterator1 last1, ForwardIterator2 first2, ForwardIterator2 last2 );
+
+template< class ForwardIterator1, class ForwardIterator2, class BinaryPredicate >
+bool is_permutation ( ForwardIterator1 first1, ForwardIterator1 last1,
+                      ForwardIterator2 first2, ForwardIterator2 last2,
+                      BinaryPredicate p );
+
+template <typename Range, typename ForwardIterator>
+bool is_permutation ( const Range &r, ForwardIterator first2 );
+
+template <typename Range, typename ForwardIterator, typename BinaryPredicate>
+bool is_permutation ( const Range &r, ForwardIterator first2, BinaryPredicate pred );
+
+``
+
+[heading Examples]
+
+Given the container `c1` containing `{ 0, 1, 2, 3, 14, 15 }`, and `c2` containing `{ 15, 14, 3, 1, 2 }`, then
+``
+is_permutation ( c1.begin(),     c1.end (), c2.begin(), c2.end ()) --> false
+is_permutation ( c1.begin() + 1, c1.end (), c2.begin(), c2.end ()) --> true
+
+is_permutation ( c1.end (), c1.end (), c2.end(), c2.end ()) --> true  // all empty ranges are permutations of each other
+``
+
+[heading Iterator Requirements]
+
+`is_permutation` works on forward iterators or better. 
+
+[heading Complexity]
+
+All of the variants of `is_permutation` run in ['O(N^2)] (quadratic) time; that is, they compare against each element in the list (potentially) N times.  If passed random-access iterators, `is_permutation` can return quickly if the sequences are different sizes.
+
+[heading Exception Safety]
+
+All of the variants of `is_permutation` take their parameters by value, and do not depend upon any global state. Therefore, all the routines in this file provide the strong exception guarantee.
+
+[heading Notes]
+
+* The three iterator versions of the routine `is_permutation` are part of the C++11 standard. When compiled using a C++11 implementation, the implementation from the standard library will be used.
+
+* The four iterator versions of the routine `is_permutation` are part of the proposed C++14 standard. When C++14 standard libraries become available, the implementation should be changed to use the implementation from the standard library (if available).
+
+* `is_permutation` returns true when passed a pair of empty ranges, no matter what predicate is passed to test with. 
+
+[endsect]
+
+[/ File is_permutation.qbk
+Copyright 2011 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

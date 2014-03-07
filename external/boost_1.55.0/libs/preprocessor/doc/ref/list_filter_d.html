@@ -1,0 +1,86 @@
+<html>
+<head>
+	<title>BOOST_PP_LIST_FILTER_D</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_LIST_FILTER_D</b> macro filters a <i>list</i> according to a supplied criterion.&nbsp;
+		It reenters <b>BOOST_PP_WHILE</b> with maximum efficiency.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_LIST_FILTER_D</b>(<i>d</i>, <i>pred</i>, <i>data</i>, <i>list</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>d</dt>
+			<dd>
+				The next available <b>BOOST_PP_WHILE</b> iteration.
+			</dd>
+			<dt>pred</dt>
+			<dd>
+				A ternary predicate of the form <i>pred</i>(<i>d</i>, <i>data</i>, <i>elem</i>).&nbsp;
+				This predicate is expanded by <b>BOOST_PP_LIST_FILTER</b> for each element in <i>list</i> with the next available <b>BOOST_PP_WHILE</b> iteration,
+				the auxiliary <i>data</i>, and the current element in <i>list</i>.&nbsp;
+				This macro must return a integral value in the range of <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.&nbsp;
+				If this predicate expands to non-zero for a certain element, that element is included in the resulting <i>list</i>.
+			</dd>
+			<dt>data</dt>
+			<dd>
+				Auxiliary data passed to <i>pred</i>.
+			</dd>
+			<dt>list</dt>
+			<dd>
+				The <i>list</i> to be filtered.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro expands <i>pred</i> for each element in <i>list</i>.&nbsp;
+			It builds a new <i>list</i> out of each element for which <i>pred</i> returns non-zero.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+			<li><a href="list_filter.html">BOOST_PP_LIST_FILTER</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/list/filter.html">&lt;boost/preprocessor/list/filter.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/comparison/less_equal.html">boost/preprocessor/comparison/less_equal.hpp</a>&gt;
+#include &lt;<a href="../headers/list/filter.html">boost/preprocessor/list/filter.hpp</a>&gt;
+#include &lt;<a href="../headers/list/fold_right.html">boost/preprocessor/list/fold_right.hpp</a>&gt;
+
+#define A (1, (2, (3, (4, <a href="nil.html">BOOST_PP_NIL</a>))))
+#define B (A, (A, (A, (A, <a href="nil.html">BOOST_PP_NIL</a>))))
+
+#define PRED(d, data, x) <a href="less_equal.html">BOOST_PP_LESS_EQUAL</a>(x, data)
+#define OP(d, state, x) (<a href="list_filter_d.html">BOOST_PP_LIST_FILTER_D</a>(d, PRED, 2, x), state)
+
+<a href="list_fold_right.html">BOOST_PP_LIST_FOLD_RIGHT</a>(OP, <a href="nil.html">BOOST_PP_NIL</a>, B)
+/*
+   expands to:
+   ((1, (2, <a href="nil.html">BOOST_PP_NIL</a>)), 
+   ((1, (2, <a href="nil.html">BOOST_PP_NIL</a>)), 
+   ((1, (2, <a href="nil.html">BOOST_PP_NIL</a>)), 
+   ((1, (2, <a href="nil.html">BOOST_PP_NIL</a>)), 
+      <a href="nil.html">BOOST_PP_NIL</a>))))
+*/
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

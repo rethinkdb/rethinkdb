@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+  <chapter id="bbv2.howto">
+    <title>How to use this document</title>
+
+    <para>
+      If you've just found out about Boost.Build V2 and want to know
+      if it will work for you, start with <xref linkend=
+      "bbv2.tutorial" />. You can continue with <xref
+      linkend="bbv2.overview" />. When you're ready to try Boost.Build
+      in practice, go to <xref linkend="bbv2.installation"/>.
+    </para>
+
+    <para>
+      If you are about to use Boost.Build on your project, or already
+      using it and have a problem, look at <xref linkend=
+      "bbv2.overview"/>.
+    </para>
+
+    <para>
+      If you're trying to build a project which uses Boost.Build,
+      see <xref linkend="bbv2.installation"/> and then read about
+      <xref linkend="bbv2.overview.invocation"/>.
+    </para>
+
+    <para>
+      If you have questions, please post them to our mailing list (<ulink
+      url="http://boost.org/more/mailing_lists.htm#jamboost"/>). The mailing list is
+      also mirrored to the newsgroup <ulink url="news://news.gmane.org/gmane.comp.lib.boost.build"/>.
+    </para>
+
+  </chapter>

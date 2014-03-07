@@ -1,0 +1,292 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Prim Minimum Spanning Tree</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+
+<H1><A NAME="sec:prim"></A>
+<img src="figs/python.gif" alt="(Python)"/>
+<TT>prim_minimum_spanning_tree</TT>
+</H1>
+
+<P>
+<PRE>
+<i>// named parameter version</i>
+template &lt;class Graph, class PredMap, class P, class T, class R&gt;
+void prim_minimum_spanning_tree(const Graph&amp; g, PredMap p_map,
+  const bgl_named_params&lt;P, T, R&gt;&amp; params)
+
+<i>// non-named parameter version</i>
+template &lt;class Graph, class DijkstraVisitor, 
+	  class PredecessorMap, class DistanceMap,
+	  class WeightMap, class IndexMap&gt;
+void prim_minimum_spanning_tree(const Graph&amp; g,
+   typename graph_traits&lt;Graph&gt;::vertex_descriptor s, 
+   PredecessorMap predecessor, DistanceMap distance, WeightMap weight, 
+   IndexMap index_map, DijkstraVisitor vis)
+</PRE>
+
+<P>
+This is Prim's algorithm&nbsp;[<A
+HREF="bibliography.html#prim57:_short">25</A>,<A
+HREF="bibliography.html#clr90">8</A>,<A
+HREF="bibliography.html#tarjan83:_data_struct_network_algo">27</A>,<A
+HREF="bibliography.html#graham85">15</A>] for solving the minimum
+spanning tree problem for an undirected graph with weighted edges. A
+MST is a set of edges that connects all the vertices in the graph
+where the total weight of the edges in the tree is minimized.  See
+Section <A
+HREF="graph_theory_review.html#sec:minimum-spanning-tree">Minimum
+Spanning Tree Problem</A> for more details. The implementation is
+simply a call to <a
+href="./dijkstra_shortest_paths.html"><TT>dijkstra_shortest_paths()</TT></a>
+with the appropriate choice of comparison and combine functors.
+The pseudo-code for Prim's algorithm is listed below.
+The algorithm as implemented in Boost.Graph does not produce correct results on
+graphs with parallel edges.
+</p>
+
+<table>
+<tr>
+<td valign="top">
+<pre>
+PRIM-MST(<i>G</i>, <i>s</i>, <i>w</i>)
+  <b>for</b> each vertex <i>u</i> <i>in</i> <i>V[G]</i>  
+    <i>color[u] :=</i> WHITE
+    <i>d[u] :=</i> <i>infinity</i>  
+  <b>end for</b>
+  <i>color[s] :=</i> GRAY
+  <i>d[s] := 0</i> 
+  ENQUEUE(<i>PQ</i>, <i>s</i>)  
+  <i>p[s] := s</i> 
+  <b>while</b> (<i>PQ != &Oslash;</i>) 
+    <i>u :=</i> DEQUEUE(<i>PQ</i>)
+    <b>for</b> each <i>v in Adj[u]</i>  
+      <b>if</b> (<i>w(u,v) < d[v]</i>)
+        <i>d[v] := w(u,v)</i>
+        <i>p[v] := u</i> 
+        <b>if</b> (<i>color[v] = </i> WHITE) 
+          ENQUEUE(<i>PQ</i>, <i>v</i>) 
+          <i>color[v] :=</i> GRAY 
+        <b>else if</b> (<i>color[v] = </i> GRAY) 
+          UPDATE(<i>PQ</i>, <i>v</i>) 
+      <b>else</b> 
+        do nothing
+    <b>end for</b>
+    <i>color[u] :=</i> BLACK
+  <b>end while</b>
+  <b>return</b> (<i>p</i>, <i>d</i>)
+</pre>
+</td>
+<td valign="top">
+<pre>
+
+initialize vertex <i>u</i>
+
+
+
+start vertex <i>s</i>
+discover vertex <i>s</i> 
+
+
+examine vertex <i>u</i>
+examining edge <i>(u,v)</i> 
+
+edge <i>(u,v)</i> relaxed
+
+
+discover vertex <i>v</i>
+
+
+
+
+edge <i>(u,v)</i> not relaxed 
+
+finish <i>u</i>
+</pre>
+</tr>
+</table>
+
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/prim_minimum_spanning_tree.hpp"><TT>boost/graph/prim_minimum_spanning_tree.hpp</TT></a>
+
+<P>
+
+<h3>Parameters</h3>
+
+IN: <tt>const Graph&amp; g</tt> 
+<blockquote>
+  An undirected graph. The type <tt>Graph</tt> must be a
+  model of <a href="./VertexListGraph.html">Vertex List Graph</a>
+  and <a href="./IncidenceGraph.html">Incidence Graph</a>.  It should not
+  contain parallel edges.<br>
+
+  <b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+
+OUT: <tt>PredecessorMap p_map</tt>
+<blockquote>
+  The predecessor map records the edges in the minimum spanning
+  tree. Upon completion of the algorithm, the edges 
+  <i>(p[u],u)</i> for all <i>u in V</i> are in the minimum spanning
+  tree. If <i>p[u] = u</i> then <i>u</i> is either the root of the
+  tree or is a vertex that is not reachable from the root.
+  The <tt>PredecessorMap</tt> type must be a <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>
+  with key and vertex types the same as the vertex descriptor type
+  of the graph.<br>
+
+  <b>Python</b>: Must be a <tt>vertex_vertex_map</tt> for the graph.<br>
+</blockquote>
+
+<h3>Named Parameters</h3>
+
+IN: <tt>root_vertex(vertex_descriptor r)</tt>
+<blockquote>
+  The vertex that will be the root of the minimum spanning tree.
+  The choice of the root vertex is arbitrary.<br>
+  <b>Default:</b> <tt>*vertices(g).first</tt>
+</blockquote>
+
+IN: <tt>weight_map(WeightMap w_map)</tt>   
+<blockquote>
+  The weight or ``length'' of each edge in the graph.
+  The type <tt>WeightMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The edge descriptor type of
+  the graph needs to be usable as the key type for the weight
+  map. The value type for the map must be
+  the same as the value type of the distance map, and that type must be <a
+    href="http://www.sgi.com/tech/stl/LessThanComparable.html">Less Than
+      Comparable</a>.<br>
+  <b>Default:</b>  <tt>get(edge_weight, g)</tt><br>
+  <b>Python</b>: Must be an <tt>edge_double_map</tt> for the graph.<br>
+  <b>Python default</b>: <tt>graph.get_edge_double_map("weight")</tt>
+</blockquote>
+
+IN: <tt>vertex_index_map(VertexIndexMap i_map)</tt> 
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+    num_vertices(g))</tt>. This is necessary for efficient updates of the
+  heap data structure when an edge is relaxed.  The type
+  <tt>VertexIndexMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The value type of the map must be an
+  integer type. The vertex descriptor type of the graph needs to be
+  usable as the key type of the map.<br>
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacency_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+   <br>
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+UTIL/OUT: <tt>distance_map(DistanceMap d_map)</tt> 
+<blockquote>
+  The weight of the spanning tree edge into each
+  vertex in the graph <tt>g</tt> is recorded in this property map, with edges
+  directed away from the spanning tree root. 
+  The type <tt>DistanceMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>. The vertex descriptor type of the
+  graph needs to be usable as the key type of the distance map, and the value
+  type needs to be the same as the value type of the <tt>weight_map</tt>
+  argument.<br> 
+  <b>Default:</b> <a href="../../property_map/doc/iterator_property_map.html">
+  <tt>iterator_property_map</tt></a> created from a
+  <tt>std::vector</tt> of the <tt>WeightMap</tt>'s value type of size
+  <tt>num_vertices(g)</tt> and using the <tt>i_map</tt> for the index
+  map.<br>
+
+  <b>Python</b>: Must be a <tt>vertex_double_map</tt> for the graph.<br>
+</blockquote>
+
+UTIL/OUT: <tt>color_map(ColorMap c_map)</tt> 
+<blockquote>
+  This is used during the execution of the algorithm to mark the
+  vertices. The vertices start out white and become gray when they are
+  inserted in the queue. They then turn black when they are removed
+  from the queue. At the end of the algorithm, vertices reachable from
+  the source vertex will have been colored black. All other vertices
+  will still be white. The type <tt>ColorMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>. A vertex descriptor must be usable as the key type
+  of the map, and the value type of the map must be a model of
+  <a href="./ColorValue.html">Color Value</a>.<br>
+  <b>Default:</b> an <a
+  href="../../property_map/doc/iterator_property_map.html">
+  <tt>iterator_property_map</tt></a> created from a <tt>std::vector</tt>
+  of <tt>default_color_type</tt> of size <tt>num_vertices(g)</tt> and
+  using the <tt>i_map</tt> for the index map.<br>
+
+  <b>Python</b>: The color map must be a <tt>vertex_color_map</tt> for
+  the graph.
+</blockquote>
+  
+OUT: <tt>visitor(DijkstraVisitor v)</tt>  
+<blockquote>
+  Use this to specify actions that you would like to happen
+  during certain event points within the algorithm.
+  The type <tt>DijkstraVisitor</tt> must be a model of the
+  <a href="./DijkstraVisitor.html">Dijkstra Visitor</a> concept. 
+  The visitor object is passed by value <a
+  href="#1">[1]</a>.<br>
+  <b>Default:</b> <tt>dijkstra_visitor&lt;null_visitor&gt;</tt><br>
+
+  <b>Python</b>: The parameter should be an object that derives from
+  the <a
+  href="DijkstraVisitor.html#python"><tt>DijkstraVisitor</tt></a> type
+  of the graph.
+</blockquote>
+
+<H3>Complexity</H3>
+
+<P>
+The time complexity is <i>O(E log V)</i>.
+
+<P>
+
+<H3>Example</H3>
+
+<P>
+The file <a
+href="../example/prim-example.cpp"><TT>examples/prim-example.cpp</TT></a>
+contains an example of using Prim's algorithm.
+
+
+<h3>Notes</h3>
+
+<p><a name="1">[1]</a> 
+  Since the visitor parameter is passed by value, if your visitor
+  contains state then any changes to the state during the algorithm
+  will be made to a copy of the visitor object, not the visitor object
+  passed in. Therefore you may want the visitor to hold this state by
+  pointer or reference.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

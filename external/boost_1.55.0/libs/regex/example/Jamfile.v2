@@ -1,0 +1,81 @@
+# copyright John Maddock 2003
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt.
+
+project
+    : requirements 
+      <threading>multi 
+      <link>shared:<define>BOOST_REGEX_DYN_LINK=1
+      # There are unidentified linker problems on these platforms:
+      <toolset>mipspro-7.4:<link>static
+      <toolset>sun-5.9:<link>static
+      <toolset>msvc:<warnings>all
+      <toolset>gcc:<warnings>all
+      <toolset>gcc:<cxxflags>-Wextra
+      <define>U_USING_ICU_NAMESPACE=0
+      #<toolset>gcc-mw:<link>static
+	  #<toolset>gcc-mingw:<link>static
+	  <toolset>gcc-cygwin:<link>static
+    ;
+
+rule regex-test-run ( sources + : input * : name * )
+{
+        return [ 
+           run
+             # sources
+             $(sources)
+             # dependencies
+             ../build//boost_regex
+         :  # additional args
+            $(input)
+         :  # test-files
+         :  # requirements
+            <toolset>msvc-7.1:<define>TEST_MFC=1 <toolset>msvc-7.0:<define>TEST_MFC=1
+         :  # test name
+            $(name)
+        ] ;
+}
+
+test-suite regex-examples :
+
+[ regex-test-run timer/regex_timer.cpp : $(BOOST_ROOT)/libs/regex/example/timer/input_script.txt ]
+[ regex-test-run grep/grep.cpp ../../program_options/build//boost_program_options/<link>static : -n -b $(BOOST_ROOT)/boost/regex.hpp $(BOOST_ROOT)/boost/type_traits.hpp : test_grep ]
+[ regex-test-run snippets/credit_card_example.cpp ]
+[ regex-test-run snippets/mfc_example.cpp ]
+[ regex-test-run snippets/icu_example.cpp ]
+[ regex-test-run snippets/partial_regex_grep.cpp : $(BOOST_ROOT)/libs/regex/index.htm ]
+[ regex-test-run snippets/partial_regex_iterate.cpp : $(BOOST_ROOT)/libs/regex/index.htm ]
+[ regex-test-run snippets/partial_regex_match.cpp : 1234-5678-8765-4 ]
+[ regex-test-run snippets/regex_grep_example_1.cpp : $(BOOST_ROOT)/boost/rational.hpp ]
+[ regex-test-run snippets/regex_grep_example_2.cpp : $(BOOST_ROOT)/boost/rational.hpp ]
+[ regex-test-run snippets/regex_grep_example_3.cpp : $(BOOST_ROOT)/boost/rational.hpp ]
+[ regex-test-run snippets/regex_grep_example_4.cpp : $(BOOST_ROOT)/boost/rational.hpp ]
+[ regex-test-run snippets/regex_match_example.cpp : -auto ]
+[ regex-test-run snippets/regex_merge_example.cpp : $(BOOST_ROOT)/boost/rational.hpp ]
+[ regex-test-run snippets/regex_replace_example.cpp : $(BOOST_ROOT)/boost/rational.hpp ]
+[ regex-test-run snippets/regex_search_example.cpp : $(BOOST_ROOT)/boost/rational.hpp ]
+[ regex-test-run snippets/regex_split_example_1.cpp : -auto ]
+[ regex-test-run snippets/regex_split_example_2.cpp : $(BOOST_ROOT)/libs/regex/doc/html/index.html ]
+[ regex-test-run snippets/regex_token_iterator_eg_1.cpp : -auto ]
+[ regex-test-run snippets/regex_token_iterator_eg_2.cpp : $(BOOST_ROOT)/libs/regex/doc/html/index.html ]
+[ regex-test-run snippets/regex_iterator_example.cpp : $(BOOST_ROOT)/boost/rational.hpp ]
+[ run snippets/captures_example.cpp
+  ../test/captures//boost_regex_extra
+  : : :  <threading>multi <define>BOOST_REGEX_MATCH_EXTRA=1 ]
+
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+

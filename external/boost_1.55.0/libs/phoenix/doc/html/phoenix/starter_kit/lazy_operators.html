@@ -1,0 +1,149 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Lazy Operators</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../starter_kit.html" title="Starter Kit">
+<link rel="prev" href="arguments.html" title="Arguments">
+<link rel="next" href="lazy_statements.html" title="Lazy Statements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="arguments.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../starter_kit.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lazy_statements.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.starter_kit.lazy_operators"></a><a class="link" href="lazy_operators.html" title="Lazy Operators">Lazy Operators</a>
+</h3></div></div></div>
+<p>
+        You can use the usual set of operators to form expressions. Examples:
+      </p>
+<pre class="programlisting"><span class="identifier">arg1</span> <span class="special">*</span> <span class="identifier">arg1</span>
+<span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">arg1</span> <span class="special">+</span> <span class="identifier">ref</span><span class="special">(</span><span class="identifier">z</span><span class="special">)</span>
+<span class="identifier">arg1</span> <span class="special">=</span> <span class="identifier">arg2</span> <span class="special">+</span> <span class="special">(</span><span class="number">3</span> <span class="special">*</span> <span class="identifier">arg3</span><span class="special">)</span>
+<span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">arg1</span><span class="special">[</span><span class="identifier">arg2</span><span class="special">]</span> <span class="comment">// assuming arg1 is indexable and arg2 is a valid index</span>
+</pre>
+<p>
+        Note the expression: <code class="computeroutput"><span class="number">3</span> <span class="special">*</span>
+        <span class="identifier">arg3</span></code>. This expression is actually
+        a short-hand equivalent to: <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span>
+        <span class="special">*</span> <span class="identifier">arg3</span></code>.
+        In most cases, like above, you can get away with it. But in some cases, you
+        will have to explicitly wrap your values in <code class="computeroutput"><span class="identifier">val</span></code>.
+        Rules of thumb:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            In a binary expression (e.g. <code class="computeroutput"><span class="number">3</span>
+            <span class="special">*</span> <span class="identifier">arg3</span></code>),
+            at least one of the operands must be a phoenix primitive or expression.
+          </li>
+<li class="listitem">
+            In a unary expression (e.g. <code class="computeroutput"><span class="identifier">arg1</span><span class="special">++</span></code>), the single operand must be a phoenix
+            primitive or expression.
+          </li>
+</ul></div>
+<p>
+        If these basic rules are not followed, the result is either an error, or
+        is immediately evaluated. Some examples:
+      </p>
+<pre class="programlisting"><span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">=</span> <span class="number">123</span>    <span class="comment">// lazy</span>
+<span class="identifier">x</span> <span class="special">=</span> <span class="number">123</span>         <span class="comment">// immediate</span>
+
+<span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)[</span><span class="number">0</span><span class="special">]</span>       <span class="comment">// lazy</span>
+<span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span>            <span class="comment">// immediate</span>
+
+<span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)[</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">i</span><span class="special">)]</span>  <span class="comment">// lazy</span>
+<span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)[</span><span class="identifier">i</span><span class="special">]</span>       <span class="comment">// lazy (equivalent to ref(x)[val(i)])</span>
+<span class="identifier">x</span><span class="special">[</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">i</span><span class="special">)]</span>       <span class="comment">// illegal (x is not a phoenix primitive or expression)</span>
+<span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">[</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">i</span><span class="special">)])</span>  <span class="comment">// illegal (x is not a phoenix primitive or expression)</span>
+</pre>
+<p>
+        Why are the last two expression illegal? Although <code class="computeroutput"><span class="keyword">operator</span><span class="special">[]</span></code> looks as much like a binary operator as
+        <code class="computeroutput"><span class="keyword">operator</span><span class="special">=</span></code>
+        above it; the difference is that the former must be a member (i.e. <code class="computeroutput"><span class="identifier">x</span></code> must have an <code class="computeroutput"><span class="keyword">operator</span><span class="special">[]</span></code> that takes a phoenix primitive or expression
+        as its argument). This will most likely not be the case.
+      </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        <span class="inlinemediaobject"><img src="../../images/tip.png" alt="tip"></span> Learn more about operators <a class="link" href="../modules/operator.html" title="Operator">here.</a>
+      </p>
+</div>
+<h5>
+<a name="phoenix.starter_kit.lazy_operators.h0"></a>
+        <span class="phrase"><a name="phoenix.starter_kit.lazy_operators.first_practical_example"></a></span><a class="link" href="lazy_operators.html#phoenix.starter_kit.lazy_operators.first_practical_example">First
+        Practical Example</a>
+      </h5>
+<p>
+        We've covered enough ground to present a real world example. We want to find
+        the first odd number in an STL container. Normally we use a functor (function
+        object) or a function pointer and pass that in to STL's <code class="computeroutput"><span class="identifier">find_if</span></code>
+        generic function:
+      </p>
+<p>
+        Write a function:
+      </p>
+<pre class="programlisting"><span class="keyword">bool</span>
+<span class="identifier">is_odd</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">arg1</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">arg1</span> <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Pass a pointer to the function to STL's <code class="computeroutput"><span class="identifier">find_if</span></code>
+        algorithm:
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">find_if</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="special">&amp;</span><span class="identifier">is_odd</span><span class="special">)</span>
+</pre>
+<p>
+        Using Phoenix, the same can be achieved directly with a one-liner:
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">find_if</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">arg1</span> <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span>
+</pre>
+<p>
+        The expression <code class="computeroutput"><span class="identifier">arg1</span> <span class="special">%</span>
+        <span class="number">2</span> <span class="special">==</span> <span class="number">1</span></code> automagically creates a functor with the
+        expected behavior. In FP, this unnamed function is called a lambda function.
+        Unlike the function pointer version, which is monomorphic (expects and works
+        only with a fixed type int argument), the Phoenix version is fully polymorphic
+        and works with any container (of ints, of longs, of bignum, etc.) as long
+        as its elements can handle the <code class="computeroutput"><span class="identifier">arg1</span>
+        <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span></code> expression.
+      </p>
+<p>
+        (See <a href="../../../../example/find_if.cpp" target="_top">find_if.cpp</a>)
+      </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        <span class="inlinemediaobject"><img src="../../images/tip.png" alt="tip"></span> ...<span class="bold"><strong>That's it, we're done</strong></span>.
+        Well if you wish to know a little bit more, read on...
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="arguments.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../starter_kit.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lazy_statements.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

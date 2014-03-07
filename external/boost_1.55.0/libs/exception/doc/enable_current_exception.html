@@ -1,0 +1,68 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'
+'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+	<title>enable_current_exception</title>
+	<link href='reno.css' type='text/css' rel='stylesheet'/>
+</head>
+<body>
+<div class="body-0">
+<div class="body-1">
+<div class="body-2">
+<div>
+<div id="boost_logo">
+<a href="http://www.boost.org"><img style="border:0" src="../../../boost.png" alt="Boost" width="277" height="86"/></a>
+</div>
+<h1>Boost Exception</h1>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="RenoIncludeDIV"><div class="RenoAutoDIV"><h3>enable_current_exception</h3>
+</div>
+<div class="RenoIncludeDIV"><p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_enable_current_exception_hpp.html">boost/exception/enable_current_exception.hpp</a></span>&gt;</p>
+<pre>namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    template &lt;class T&gt;
+    ---unspecified--- <span class="RenoLink">enable_current_exception</span>( T const &amp; e );</span>
+    }</pre>
+</div><h4>Requirements:</h4>
+<div><ul><li> T must be a class with an accessible no-throw copy constructor.</li>
+<li> If T has any virtual base types, those types must have an accessible default constructor.</li>
+</ul></div>
+<h4>Returns:</h4>
+<p>An object of <i>unspecified</i> type which derives publicly from T. That is, the returned object can be intercepted by a catch(T &amp;).</p>
+<h4>Description:</h4>
+<p>This function is designed to be used directly in a throw-expression to enable the <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> support in Boost Exception. For example:</p>
+<pre>class
+my_exception:
+    public std::exception
+    {
+    };
+
+....
+throw boost::<span class="RenoLink">enable_current_exception</span>(my_exception());</pre>
+<p>Unless <span class="RenoLink">enable_current_exception</span> is called at the time an exception object is used in a throw-expression, an attempt to copy it using <span class="RenoLink"><a href="current_exception.html">current_exception</a></span> may return an <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> which refers to an instance of <span class="RenoLink"><a href="unknown_exception.html">unknown_exception</a></span>. See <span class="RenoLink"><a href="current_exception.html">current_exception</a></span> for details.</p>
+<h4>Note:</h4>
+<p>Instead of using the throw keyword directly, it is preferable to call boost::<span class="RenoLink"><a href="throw_exception.html">throw_exception</a></span>. This is guaranteed to throw an exception that derives from boost::<span class="RenoLink"><a href="exception.html">exception</a></span> and supports the <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> functionality.</p>
+</div><div class="RenoAutoDIV"><div class="RenoHR"><hr/></div>
+See also: <span class="RenoPageList"><a href="boost-exception.html">Boost Exception</a>&nbsp;| <a href="boost_exception_enable_current_exception_hpp.html">boost/exception/enable_current_exception.hpp</a>&nbsp;| <a href="configuration_macros.html">Configuration Macros</a>&nbsp;| <a href="copy_exception.html">copy_exception</a>&nbsp;| <a href="current_exception.html">current_exception</a>&nbsp;| <a href="tutorial_exception_ptr.html">Transporting of Exceptions Between Threads</a></span>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div id="footer">
+<p>
+<a class="logo" href="http://jigsaw.w3.org/css-validator/check/referer"><img class="logo_pic" src="valid-css.png" alt="Valid CSS" height="31" width="88"/></a>
+<a class="logo" href="http://validator.w3.org/check?uri=referer"><img class="logo_pic" src="valid-xhtml.png" alt="Valid XHTML 1.0" height="31" width="88"/></a>
+<small>Copyright (c) 2006-2009 by Emil Dotchevski and Reverge Studios, Inc.<br/>
+Distributed under the <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License, Version 1.0</a>.</small>
+</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

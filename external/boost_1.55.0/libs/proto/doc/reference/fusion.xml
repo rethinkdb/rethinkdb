@@ -1,0 +1,146 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/fusion.hpp">
+  <para>Make any Proto expression a valid Fusion sequence </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="functional">
+
+        <!-- proto::functional::flatten -->
+        <struct name="flatten">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type that returns a "flattened"
+            view of a Proto expression tree. </purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that returns a "flattened" view
+              of a Proto expression tree. For a tree with a top-most node tag of type
+              <computeroutput>T</computeroutput>, the elements of the flattened sequence are determined by
+              recursing into each child node with the same tag type and returning those nodes of different
+              type. So for instance, the Proto expression tree corresponding to the expression
+              <computeroutput>a | b | c</computeroutput> has a flattened view with elements [a, b, c], even
+              though the tree is grouped as <computeroutput>((a | b) | c)</computeroutput>.
+            </para>
+            <para>
+              The resulting view is a Fusion Forward Sequence.
+            </para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <specialization>
+              <template-arg>This(Expr)</template-arg>
+            </specialization>
+            <inherit>
+              <type>result&lt; This(Expr const &amp;) &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <specialization>
+              <template-arg>This(Expr &amp;)</template-arg>
+            </specialization>
+            <inherit>
+              <type><classname>proto::result_of::flatten</classname>&lt; Expr &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::flatten</classname>&lt; Expr &gt;::type const</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr &amp;</paramtype>
+              </parameter>
+              <description>
+                <para>
+                  Returns a Fusion Forward Sequence representing a flattened view of <computeroutput>expr</computeroutput>.
+                </para>
+              </description>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::flatten</classname>&lt; Expr const &gt;::type const</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr const &amp;</paramtype>
+              </parameter>
+              <description>
+                <para>
+                  Returns a Fusion Forward Sequence representing a flattened view of <computeroutput>expr</computeroutput>.
+                </para>
+              </description>
+            </method>
+          </method-group>
+        </struct>
+
+      </namespace>
+      
+      <namespace name="result_of">
+        <!-- proto::result_of::flatten -->
+        <struct name="flatten">
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <purpose>Metafunction that computes the return type of <computeroutput>
+            <functionname alt="proto::flatten">proto::flatten()</functionname></computeroutput></purpose>
+          <typedef name="type">
+            <type><emphasis>unspecified</emphasis></type>
+            <purpose>A Fusion Forward Sequence</purpose>
+          </typedef>
+        </struct>
+      </namespace>
+
+      <!-- proto::flatten() -->
+      <overloaded-function name="flatten">
+        <signature>
+          <type>typename <classname>proto::result_of::flatten</classname>&lt; Expr &gt;::type const</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::flatten</classname>&lt; Expr const &gt;::type const</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>A function that returns a "flattened" view of a Proto expression tree. </purpose>
+        <description>
+          <para>
+            For a tree with a top-most node tag of type <computeroutput>T</computeroutput>, the elements
+            of the flattened sequence are determined by recursing into each child node with the same tag
+            type and returning those nodes of different type. So for instance, the Proto expression tree
+            corresponding to the expression <computeroutput>a | b | c</computeroutput> has a flattened
+            view with elements [a, b, c], even though the tree is grouped as
+            <computeroutput>((a | b) | c)</computeroutput>.
+          </para>
+          <para>
+            The returned view is a Fusion Forward Sequence.
+          </para>
+        </description>
+      </overloaded-function>
+    </namespace>
+  </namespace>
+</header>

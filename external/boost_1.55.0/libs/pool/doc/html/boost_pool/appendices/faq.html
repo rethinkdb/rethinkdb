@@ -1,0 +1,70 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Appendix B: FAQ</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Boost.Pool">
+<link rel="up" href="../appendices.html" title="Appendices">
+<link rel="prev" href="history.html" title="Appendix A: History">
+<link rel="next" href="acknowledgements.html" title="Appendix C: Acknowledgements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="history.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../appendices.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="acknowledgements.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_pool.appendices.faq"></a><a class="link" href="faq.html" title="Appendix B: FAQ">Appendix B: FAQ</a>
+</h3></div></div></div>
+<a name="boost_pool.appendices.faq.why_should_i_use_pool_"></a><h6>
+<a name="boost_pool.appendices.faq.why_should_i_use_pool_-heading"></a>
+        <a class="link" href="faq.html#boost_pool.appendices.faq.why_should_i_use_pool_">Why should
+        I use Pool?</a>
+      </h6>
+<p>
+        Using Pools gives you more control over how memory is used in your program.
+        For example, you could have a situation where you want to allocate a bunch
+        of small objects at one point, and then reach a point in your program where
+        none of them are needed any more. Using pool interfaces, you can choose to
+        run their destructors or just drop them off into oblivion; the pool interface
+        will guarantee that there are no system memory leaks.
+      </p>
+<a name="boost_pool.appendices.faq.when_should_i_use_pool_"></a><h6>
+<a name="boost_pool.appendices.faq.when_should_i_use_pool_-heading"></a>
+        <a class="link" href="faq.html#boost_pool.appendices.faq.when_should_i_use_pool_">When should
+        I use Pool?</a>
+      </h6>
+<p>
+        Pools are generally used when there is a lot of allocation and deallocation
+        of small objects. Another common usage is the situation above, where many
+        objects may be dropped out of memory.
+      </p>
+<p>
+        In general, use Pools when you need a more efficient way to do unusual memory
+        control.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2006 Stephen Cleary<br>Copyright &#169; 2011 Paul A. Bristow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="history.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../appendices.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="acknowledgements.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

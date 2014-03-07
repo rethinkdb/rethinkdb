@@ -1,0 +1,175 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Chapter 1. Boost.Optional</title>
+<link rel="stylesheet" href="boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="index.html" title="Chapter 1. Boost.Optional">
+<link rel="next" href="boost_optional/development.html" title="Development">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_optional/development.html"><img src="../../../../doc/html/images/next.png" alt="Next"></a></div>
+<div class="chapter" title="Chapter 1. Boost.Optional">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="optional"></a>Chapter 1. Boost.Optional</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Fernando Luis</span> <span class="surname">Cacciola Carballal</span>
+</h3></div></div>
+<div><p class="copyright">Copyright © 2003 -2007 Fernando Luis Cacciola Carballal</p></div>
+<div><div class="legalnotice" title="Legal Notice">
+<a name="id553943"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="index.html#optional.motivation">Motivation</a></span></dt>
+<dt><span class="section"><a href="boost_optional/development.html">Development</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_optional/development.html#boost_optional.development.the_models">The models</a></span></dt>
+<dt><span class="section"><a href="boost_optional/development.html#boost_optional.development.the_semantics">The semantics</a></span></dt>
+<dt><span class="section"><a href="boost_optional/development.html#boost_optional.development.the_interface">The Interface</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_optional/synopsis.html">Synopsis</a></span></dt>
+<dt><span class="section"><a href="boost_optional/detailed_semantics.html">Detailed Semantics</a></span></dt>
+<dt><span class="section"><a href="boost_optional/examples.html">Examples</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_optional/examples.html#boost_optional.examples.optional_return_values">Optional
+      return values</a></span></dt>
+<dt><span class="section"><a href="boost_optional/examples.html#boost_optional.examples.optional_local_variables">Optional
+      local variables</a></span></dt>
+<dt><span class="section"><a href="boost_optional/examples.html#boost_optional.examples.optional_data_members">Optional
+      data members</a></span></dt>
+<dt><span class="section"><a href="boost_optional/examples.html#boost_optional.examples.bypassing_expensive_unnecessary_default_construction">Bypassing
+      expensive unnecessary default construction</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_optional/optional_references.html">Optional references</a></span></dt>
+<dt><span class="section"><a href="boost_optional/rebinding_semantics_for_assignment_of_optional_references.html">Rebinding
+    semantics for assignment of optional references</a></span></dt>
+<dt><span class="section"><a href="boost_optional/in_place_factories.html">In-Place Factories</a></span></dt>
+<dt><span class="section"><a href="boost_optional/a_note_about_optional_bool_.html">A note about
+    optional&lt;bool&gt;</a></span></dt>
+<dt><span class="section"><a href="boost_optional/exception_safety_guarantees.html">Exception Safety
+    Guarantees</a></span></dt>
+<dt><span class="section"><a href="boost_optional/type_requirements.html">Type requirements</a></span></dt>
+<dt><span class="section"><a href="boost_optional/implementation_notes.html">Implementation Notes</a></span></dt>
+<dt><span class="section"><a href="boost_optional/dependencies_and_portability.html">Dependencies
+    and Portability</a></span></dt>
+<dt><span class="section"><a href="boost_optional/acknowledgments.html">Acknowledgments</a></span></dt>
+</dl>
+</div>
+<div class="section" title="Motivation">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="optional.motivation"></a><a class="link" href="index.html#optional.motivation" title="Motivation">Motivation</a>
+</h2></div></div></div>
+<p>
+      Consider these functions which should return a value but which might not have
+      a value to return:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+        (A) <code class="computeroutput"><span class="keyword">double</span> <span class="identifier">sqrt</span><span class="special">(</span><span class="keyword">double</span> <span class="identifier">n</span>
+        <span class="special">);</span></code>
+</li>
+<li class="listitem">
+        (B) <code class="computeroutput"><span class="keyword">char</span> <span class="identifier">get_async_input</span><span class="special">();</span></code>
+</li>
+<li class="listitem">
+        (C) <code class="computeroutput"><span class="identifier">point</span> <span class="identifier">polygon</span><span class="special">::</span><span class="identifier">get_any_point_effectively_inside</span><span class="special">();</span></code>
+</li>
+</ul></div>
+<p>
+      There are different approaches to the issue of not having a value to return.
+    </p>
+<p>
+      A typical approach is to consider the existence of a valid return value as
+      a postcondition, so that if the function cannot compute the value to return,
+      it has either undefined behavior (and can use assert in a debug build) or uses
+      a runtime check and throws an exception if the postcondition is violated. This
+      is a reasonable choice for example, for function (A), because the lack of a
+      proper return value is directly related to an invalid parameter (out of domain
+      argument), so it is appropriate to require the callee to supply only parameters
+      in a valid domain for execution to continue normally.
+    </p>
+<p>
+      However, function (B), because of its asynchronous nature, does not fail just
+      because it can't find a value to return; so it is incorrect to consider such
+      a situation an error and assert or throw an exception. This function must return,
+      and somehow, must tell the callee that it is not returning a meaningful value.
+    </p>
+<p>
+      A similar situation occurs with function (C): it is conceptually an error to
+      ask a <span class="emphasis"><em>null-area</em></span> polygon to return a point inside itself,
+      but in many applications, it is just impractical for performance reasons to
+      treat this as an error (because detecting that the polygon has no area might
+      be too expensive to be required to be tested previously), and either an arbitrary
+      point (typically at infinity) is returned, or some efficient way to tell the
+      callee that there is no such point is used.
+    </p>
+<p>
+      There are various mechanisms to let functions communicate that the returned
+      value is not valid. One such mechanism, which is quite common since it has
+      zero or negligible overhead, is to use a special value which is reserved to
+      communicate this. Classical examples of such special values are <code class="computeroutput"><span class="identifier">EOF</span></code>, <code class="computeroutput"><span class="identifier">string</span><span class="special">::</span><span class="identifier">npos</span></code>, points
+      at infinity, etc...
+    </p>
+<p>
+      When those values exist, i.e. the return type can hold all meaningful values
+      <span class="emphasis"><em>plus</em></span> the <span class="emphasis"><em>signal</em></span> value, this mechanism
+      is quite appropriate and well known. Unfortunately, there are cases when such
+      values do not exist. In these cases, the usual alternative is either to use
+      a wider type, such as <code class="computeroutput"><span class="keyword">int</span></code> in place
+      of <code class="computeroutput"><span class="keyword">char</span></code>; or a compound type, such
+      as <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">,</span><span class="keyword">bool</span><span class="special">&gt;</span></code>.
+    </p>
+<p>
+      Returning a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="keyword">bool</span><span class="special">&gt;</span></code>, thus attaching a boolean flag to the result
+      which indicates if the result is meaningful, has the advantage that can be
+      turned into a consistent idiom since the first element of the pair can be whatever
+      the function would conceptually return. For example, the last two functions
+      could have the following interface:
+    </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span><span class="keyword">bool</span><span class="special">&gt;</span> <span class="identifier">get_async_input</span><span class="special">();</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">,</span><span class="keyword">bool</span><span class="special">&gt;</span> <span class="identifier">polygon</span><span class="special">::</span><span class="identifier">get_any_point_effectively_inside</span><span class="special">();</span>
+</pre>
+<p>
+      These functions use a consistent interface for dealing with possibly inexistent
+      results:
+    </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">,</span><span class="keyword">bool</span><span class="special">&gt;</span> <span class="identifier">p</span> <span class="special">=</span> <span class="identifier">poly</span><span class="special">.</span><span class="identifier">get_any_point_effectively_inside</span><span class="special">();</span>
+<span class="keyword">if</span> <span class="special">(</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">second</span> <span class="special">)</span>
+    <span class="identifier">flood_fill</span><span class="special">(</span><span class="identifier">p</span><span class="special">.</span><span class="identifier">first</span><span class="special">);</span>
+</pre>
+<p>
+      However, not only is this quite a burden syntactically, it is also error prone
+      since the user can easily use the function result (first element of the pair)
+      without ever checking if it has a valid value.
+    </p>
+<p>
+      Clearly, we need a better idiom.
+    </p>
+</div>
+<p>
+  </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: November 20, 2009 at 10:24:28 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_optional/development.html"><img src="../../../../doc/html/images/next.png" alt="Next"></a></div>
+</body>
+</html>

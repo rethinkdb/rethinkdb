@@ -1,0 +1,46 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:InternetProtocol Internet protocol requirements]
+
+An internet protocol must meet the requirements for a [link
+boost_asio.reference.Protocol protocol] as well as the additional
+requirements listed below.
+
+In the table below, `X` denotes an internet protocol class, `a` denotes a value
+of type `X`, and `b` denotes a value of type `X`.
+
+[table InternetProtocol requirements
+  [[expression] [return type] [assertion/note\npre/post-conditions]]
+  [
+    [`X::resolver`]
+    [`ip::basic_resolver<X>`]
+    [The type of a resolver for the protocol.]
+  ]
+  [
+    [`X::v4()`]
+    [`X`]
+    [Returns an object representing the IP version 4 protocol.]
+  ]
+  [
+    [`X::v6()`]
+    [`X`]
+    [Returns an object representing the IP version 6 protocol.]
+  ]
+  [
+    [`a == b`]
+    [convertible to `bool`]
+    [Returns whether two protocol objects are equal.]
+  ]
+  [
+    [`a != b`]
+    [convertible to `bool`]
+    [Returns `!(a == b)`.]
+  ]
+]
+
+[endsect]

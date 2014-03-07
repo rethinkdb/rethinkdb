@@ -1,0 +1,373 @@
+--- source/data/brkitr/word.txt	2010-09-17 18:22:35.000000000 -0700
++++ source/data/brkitr/word.txt	2011-01-25 18:14:09.445378000 -0800
+@@ -29,29 +29,49 @@
+ $Newline      = [\p{Word_Break = Newline}];
+ $Extend       = [\p{Word_Break = Extend}];
+ $Format       = [\p{Word_Break = Format}];
++$Hiragana     = [:Hiragana:];
+ $Katakana     = [\p{Word_Break = Katakana}];
++$Han          = [:Han:];
+ $ALetter      = [\p{Word_Break = ALetter}];
+-$MidNumLet    = [\p{Word_Break = MidNumLet}];
++# Remove two full stop characters from $MidNumLet and add them to $MidNum
++# to break a hostname into its components at the cost of breaking
++# 'e.g.' and 'i.e.' as well.
++# $MidNumLet is used in rules 6/7 (rules of our interest) and rules 11/12.
++# Because it's OR'd with $MidNum in rules 11/12, rules 11/12 are not affected
++# while rules 6/7 are reverted to the old behavior we want.
++$MidNumLet    = [[\p{Word_Break = MidNumLet}] - [\u002E \uFF0E]];
+ $MidLetter    = [\p{Word_Break = MidLetter}];
+-$MidNum       = [\p{Word_Break = MidNum}];
+-$Numeric      = [\p{Word_Break = Numeric}];
++$MidNum       = [\p{Word_Break = MidNum}[\u002E \uFF0E]];
++$Numeric      = [\p{Word_Break = Numeric}[\uff10-\uff19]]; #includes fullwidth digits
+ $ExtendNumLet = [\p{Word_Break = ExtendNumLet}];
+ 
++# Extra sets not to break 'HebrewLetter U+0022 HebrewLetter'.
++$HebrewLet    = [\p{Word_Break = ALetter} & \p{Script = Hebrew} - [\u05F3]];
++# U+05F3 is ALetter and U+05F4 is MidLetter so that they're covered by
++# the current rule 6/7.
++$HebrewMidLet = [\u0022];
+ 
+ #   Dictionary character set, for triggering language-based break engines. Currently
+-#   limited to LineBreak=Complex_Context. Note that this set only works in Unicode
+-#   5.0 or later as the definition of Complex_Context was corrected to include all
++#   limited to LineBreak=Complex_Context and CJK. Note that this set only works
++#   in Unicode 5.0 or later as the definition of Complex_Context was corrected to include all
+ #   characters requiring dictionary break.
+ 
+-$dictionary   = [:LineBreak = Complex_Context:];
+ $Control        = [\p{Grapheme_Cluster_Break = Control}]; 
+-$ALetterPlus  = [$ALetter [$dictionary-$Extend-$Control]];   # Note:  default ALetter does not
+-                                                             #  include the dictionary characters.
++$HangulSyllable = [\uac00-\ud7a3];
++$ComplexContext = [:LineBreak = Complex_Context:];
++$KanaKanji      = [$Han $Hiragana $Katakana];
++$dictionaryCJK  = [$KanaKanji $HangulSyllable];
++$dictionary     = [$ComplexContext $dictionaryCJK];
++
++# leave CJK scripts out of ALetterPlus
++$ALetterPlus  = [$ALetter-$dictionaryCJK [$ComplexContext-$Extend-$Control]];
++
+ 
+ #
+ #  Rules 4    Ignore Format and Extend characters, 
+ #             except when they appear at the beginning of a region of text.
+ #
++# TODO: check if handling of katakana in dictionary makes rules incorrect/void.
+ $KatakanaEx     = $Katakana     ($Extend |  $Format)*;
+ $ALetterEx      = $ALetterPlus  ($Extend |  $Format)*;
+ $MidNumLetEx    = $MidNumLet    ($Extend |  $Format)*;
+@@ -59,8 +79,8 @@
+ $MidNumEx       = $MidNum       ($Extend |  $Format)*;
+ $NumericEx      = $Numeric      ($Extend |  $Format)*;
+ $ExtendNumLetEx = $ExtendNumLet ($Extend |  $Format)*;
++$HebrewLetEx    = $HebrewLet    ($Extend |  $Format)*;
+ 
+-$Hiragana       = [\p{script=Hiragana}];
+ $Ideographic    = [\p{Ideographic}];
+ $HiraganaEx     = $Hiragana     ($Extend |  $Format)*;
+ $IdeographicEx  = $Ideographic  ($Extend |  $Format)*;
+@@ -79,12 +99,14 @@
+ #          begins with a group of Format chars, or with a "word" consisting of a single
+ #          char that is not in any of the listed word break categories followed by
+ #          format char(s).
+-[^$CR $LF $Newline]? ($Extend |  $Format)+;
++ #          format char(s), or is not a CJK dictionary character.
++[^$CR $LF $Newline $dictionaryCJK]? ($Extend |  $Format)+;
+ 
+ $NumericEx {100};
+ $ALetterEx {200};
+-$KatakanaEx {300};       # note:  these status values override those from rule 5
+-$HiraganaEx {300};       #        by virtual of being numerically larger.
++$HangulSyllable {200};
++$KatakanaEx {400}; #originally 300
++$HiraganaEx {400}; #originally 300
+ $IdeographicEx {400};    #
+ 
+ #
+@@ -96,6 +118,9 @@
+ # rule 6 and 7
+ $ALetterEx ($MidLetterEx | $MidNumLetEx) $ALetterEx {200};
+ 
++# Chrome addition
++$HebrewLetEx $HebrewMidLet $HebrewLetEx {200};
++
+ # rule 8
+ 
+ $NumericEx $NumericEx {100};
+@@ -114,19 +139,25 @@
+ 
+ # rule 13
+ 
+-$KatakanaEx  $KatakanaEx {300};
++# To be consistent with '$KanaKanji $KanaKanji', changed 
++# from 300 to 400.
++# See also TestRuleStatus in intltest/rbbiapts.cpp
++$KatakanaEx  $KatakanaEx {400};
+ 
+ # rule 13a/b
+ 
+ $ALetterEx      $ExtendNumLetEx {200};    #  (13a)
+ $NumericEx      $ExtendNumLetEx {100};    #  (13a)
+-$KatakanaEx     $ExtendNumLetEx {300};    #  (13a)
++$KatakanaEx     $ExtendNumLetEx {400};    #  (13a)
+ $ExtendNumLetEx $ExtendNumLetEx {200};    #  (13a)
+ 
+ $ExtendNumLetEx $ALetterEx  {200};    #  (13b)
+ $ExtendNumLetEx $NumericEx  {100};    #  (13b)
+-$ExtendNumLetEx $KatakanaEx {300};    #  (13b)
+- 
++$ExtendNumLetEx $KatakanaEx {400};    #  (13b)
++
++# special handling for CJK characters: chain for later dictionary segmentation
++$HangulSyllable $HangulSyllable {200};
++$KanaKanji $KanaKanji {400}; #different rule status if both kanji and kana found
+ 
+ 
+ ## -------------------------------------------------
+@@ -139,13 +170,16 @@
+ $BackMidNumEx      = ($Format | $Extend)* $MidNum;
+ $BackMidLetterEx   = ($Format | $Extend)* $MidLetter;
+ $BackKatakanaEx    = ($Format | $Extend)* $Katakana;
++$BackHiraganaEx    = ($Extend | $Format)* $Hiragana;
+ $BackExtendNumLetEx= ($Format | $Extend)* $ExtendNumLet;
++$BackHebrewLetEx   = ($Format | $Extend)* $HebrewLet;
++
+ 
+ # rule 3
+ $LF $CR;
+ 
+ # rule 4
+-($Format | $Extend)*  [^$CR $LF $Newline]?;
++($Format | $Extend)*  [^$CR $LF $Newline $dictionaryCJK]?;
+ 
+ # rule 5
+ 
+@@ -155,6 +189,8 @@
+ 
+ $BackALetterEx ($BackMidLetterEx | $BackMidNumLetEx) $BackALetterEx;
+ 
++# Chrome addition
++$BackHebrewLetEx $HebrewMidLet $BackHebrewLetEx;
+ 
+ # rule 8
+ 
+@@ -181,6 +217,10 @@
+ $BackExtendNumLetEx ($BackALetterEx | $BackNumericEx | $BackKatakanaEx | $BackExtendNumLetEx);
+ ($BackALetterEx | $BackNumericEx | $BackKatakanaEx) $BackExtendNumLetEx; 
+ 
++# special handling for CJK characters: chain for later dictionary segmentation
++$HangulSyllable $HangulSyllable;
++$KanaKanji $KanaKanji; #different rule status if both kanji and kana found
++
+ ## -------------------------------------------------
+ 
+ !!safe_reverse;
+--- source/data/brkitr/line.txt	2010-09-17 18:22:35.000000000 -0700
++++ source/data/brkitr/line.txt	2011-07-22 13:46:19.923562000 -0700
+@@ -11,6 +11,9 @@
+ #         TODO:  Rule LB 8 remains as it was in Unicode 5.2
+ #         This is only because of a limitation of ICU break engine implementation,
+ #         not because the older behavior is desirable.
++#
++#         CHROME: Hebrew tailoring was incorporatd as well as some 
++#         other minor changes (CL, OP, ID).
+ 
+ #
+ #  Character Classes defined by TR 14.
+@@ -55,15 +58,22 @@
+ #
+ #           See rule LB 19 for an example.
+ #
++$SmallHira = [\u3041 \u3043 \u3045 \u3047 \u3049 \u3063 \u3083 \u3085 \u3087 \u308E \u3095 \u3096];
++$SmallKata = [\u30A1 \u30A3 \u30A5 \u30A7 \u30A9 \u30C3 \u30E3 \u30E5 \u30E7 \u30EE \u30F5 \u30F6];
++$SmallKataExt = [\u31F0 \u31F1 \u31F2 \u31F3 \u31F4 \u31F5 \u31F6 \u31F7 \u31F8 \u31F9 \u31FA \u31FB \u31FC \u31FD \u31FE \u31FF];
++$SmallKanaAndProlongedMark = [[$SmallHira] [$SmallKata] [$SmallKataExt] [\u30FC]];
++
+ 
+ $AI = [:LineBreak =  Ambiguous:];
+-$AL = [:LineBreak =  Alphabetic:];
+-$BA = [:LineBreak =  Break_After:];
++$AL = [[:LineBreak =  Alphabetic:] - [[:Hebrew:] & [:Letter:]] - [\u23B4\u23B5]];
++$HL = [[:Hebrew:] & [:Letter:]];
++$BA = [[:LineBreak =  Break_After:] - [\u2010]];
++$HH = [\u2010];
+ $BB = [:LineBreak =  Break_Before:];
+ $BK = [:LineBreak =  Mandatory_Break:];
+ $B2 = [:LineBreak =  Break_Both:];
+ $CB = [:LineBreak =  Contingent_Break:];
+-$CL = [:LineBreak =  Close_Punctuation:];
++$CL = [[:LineBreak =  Close_Punctuation:] [\uFE51\uFE10\u23B5]];
+ $CM = [:LineBreak =  Combining_Mark:];
+ $CP = [:LineBreak =  Close_Parenthesis:];
+ $CR = [:LineBreak =  Carriage_Return:];
+@@ -72,17 +82,17 @@
+ $HY = [:LineBreak =  Hyphen:];
+ $H2 = [:LineBreak =  H2:];
+ $H3 = [:LineBreak =  H3:];
+-$ID = [:LineBreak =  Ideographic:];
++$ID = [[[:LineBreak =  Ideographic:] - [\uFE51]] [$SmallKanaAndProlongedMark]];
+ $IN = [:LineBreak =  Inseperable:];
+-$IS = [:LineBreak =  Infix_Numeric:];
++$IS = [[:LineBreak =  Infix_Numeric:] - [\uFE10]];
+ $JL = [:LineBreak =  JL:];
+ $JV = [:LineBreak =  JV:];
+ $JT = [:LineBreak =  JT:];
+ $LF = [:LineBreak =  Line_Feed:];
+ $NL = [:LineBreak =  Next_Line:];
+-$NS = [:LineBreak =  Nonstarter:];
++$NS = [[:LineBreak =  Nonstarter:] - [$SmallKanaAndProlongedMark]];
+ $NU = [:LineBreak =  Numeric:];
+-$OP = [:LineBreak =  Open_Punctuation:];
++$OP = [[:LineBreak =  Open_Punctuation:] \u23B4];
+ $PO = [:LineBreak =  Postfix_Numeric:];
+ $PR = [:LineBreak =  Prefix_Numeric:];
+ $QU = [:LineBreak =  Quotation:];
+@@ -108,13 +118,15 @@
+ #                               XX  (Unknown, unassigned)
+ #                         as $AL  (Alphabetic)
+ #
+-$ALPlus = [$AL $AI $SA $SG $XX];
++$ALPlus = [$AL $HL $AI $SA $SG $XX];
+ 
+ #
+ #  Combining Marks.   X $CM*  behaves as if it were X.  Rule LB6.
+ #
+ $ALcm = $ALPlus $CM*;
++$HLcm = $HL $CM*;
+ $BAcm = $BA $CM*;
++$HHcm = $HH $CM*;
+ $BBcm = $BB $CM*;
+ $B2cm = $B2 $CM*;
+ $CLcm = $CL $CM*;
+@@ -148,6 +160,7 @@
+ #
+ $ALPlus $CM+;
+ $BA $CM+;
++$HH $CM+;
+ $BB $CM+;
+ $B2 $CM+;
+ $CL $CM+;
+@@ -190,7 +203,7 @@
+ #            so for this one case we need to manually list out longer sequences.
+ #
+ $AL_FOLLOW_NOCM = [$BK $CR $LF $NL $ZW $SP];
+-$AL_FOLLOW_CM   = [$CL $CP $EX $IS $SY $WJ $GL $OP $QU $BA $HY $NS $IN $NU $ALPlus];
++$AL_FOLLOW_CM   = [$CL $CP $EX $IS $SY $WJ $GL $OP $QU $BA $HH $HY $NS $IN $NU $ALPlus];
+ $AL_FOLLOW      = [$AL_FOLLOW_NOCM $AL_FOLLOW_CM];
+ 
+ 
+@@ -252,7 +265,7 @@
+ # LB 12a  Do not break before NBSP and related characters ...
+ #            [^SP BA HY] x GL
+ #
+-[[$LB8NonBreaks] - [$SP $BA $HY]] $CM* $GLcm;
++[[$LB8NonBreaks] - [$SP $BA $HH $HY]] $CM* $GLcm;
+ $CM+ GLcm;
+ 
+ 
+@@ -325,7 +338,7 @@
+ # LB 21        x   (BA | HY | NS)
+ #           BB x
+ #
+-$LB20NonBreaks $CM* ($BAcm | $HYcm | $NScm); 
++$LB20NonBreaks $CM* ($BAcm | $HHcm | $HYcm | $NScm); 
+ 
+ $BBcm [^$CB];                                  #  $BB  x
+ $BBcm $LB20NonBreaks $CM*;
+@@ -381,6 +394,8 @@
+ $CM+ $OPcm;         # The $CM+ is from rule 10, an unattached CM is treated as AL.          
+ $CPcm ($ALcm | $NUcm);
+ 
++# (LB 31) Add new rule to prevent the break we do not want, this is the behavior change
++$HLcm ($HY | $HH) $ALcm;
+ 
+ #
+ #  Reverse Rules.
+@@ -391,6 +406,7 @@
+ 
+ $CM+ $ALPlus;
+ $CM+ $BA;
++$CM+ $HH;
+ $CM+ $BB;
+ $CM+ $B2;
+ $CM+ $CL;
+@@ -479,7 +495,7 @@
+ # LB 12a
+ #      [^SP BA HY] x GL
+ #
+-$CM* $GL $CM* [$LB8NonBreaks-[$CM $SP $BA $HY]];
++$CM* $GL $CM* [$LB8NonBreaks-[$CM $SP $BA $HH $HY]];
+ 
+ # LB 12
+ #     GL  x
+@@ -549,7 +565,7 @@
+ #
+ 
+ # LB 21
+-$CM* ($BA | $HY | $NS) $CM* [$LB20NonBreaks-$CM];     #  . x (BA | HY | NS)
++$CM* ($BA | $HH | $HY | $NS) $CM* [$LB20NonBreaks-$CM];     #  . x (BA | HY | NS)
+ 
+ $CM* [$LB20NonBreaks-$CM] $CM* $BB;                   #  BB x .
+ [^$CB] $CM* $BB;                                      # 
+@@ -597,6 +613,8 @@
+ $CM* $OP $CM* ($ALPlus | $NU);
+ $CM* ($ALPlus | $NU) $CM* $CP;
+ 
++# (LB 31) Add new rule to prevent the break we do not want, this is the behavior change
++$CM* $ALPlus ($HY | $HH) $CM* $HL;
+ 
+ ## -------------------------------------------------
+ 
+--- source/data/brkitr/brklocal.mk	1969-12-31 16:00:00.000000000 -0800
++++ source/data/brkitr/brklocal.mk	2011-01-25 17:54:01.149770000 -0800
+@@ -0,0 +1,48 @@
++# *   Copyright (C) 1998-2010, International Business Machines
++# *   Corporation and others.  All Rights Reserved.
++BRK_RES_CLDR_VERSION = 1.9
++# A list of txt's to build
++# Note:
++#
++#   If you are thinking of modifying this file, READ THIS.
++#
++# Instead of changing this file [unless you want to check it back in],
++# you should consider creating a 'brklocal.mk' file in this same directory.
++# Then, you can have your local changes remain even if you upgrade or
++# reconfigure ICU.
++#
++# Example 'brklocal.mk' files:
++#
++#  * To add an additional locale to the list:
++#    _____________________________________________________
++#    |  BRK_RES_SOURCE_LOCAL =   myLocale.txt ...
++#
++#  * To REPLACE the default list and only build with a few
++#    locales:
++#    _____________________________________________________
++#    |  BRK_RES_SOURCE = ar.txt ar_AE.txt en.txt de.txt zh.txt
++#
++#
++# Generated by LDML2ICUConverter, from LDML source files.
++
++# Aliases without a corresponding xx.xml file (see icu-config.xml & build.xml)
++BRK_RES_SYNTHETIC_ALIAS =
++
++
++# All aliases (to not be included under 'installed'), but not including root.
++BRK_RES_ALIAS_SOURCE = $(BRK_RES_SYNTHETIC_ALIAS)
++
++
++# List of compact trie dictionary files (ctd).
++BRK_CTD_SOURCE = thaidict.txt cjdict.txt
++
++
++# List of break iterator files (brk).
++# Chrome change: remove word_ja.txt and line_he.txt
++BRK_SOURCE =  sent_el.txt word_POSIX.txt line_fi.txt char.txt word.txt line.txt sent.txt title.txt char_th.txt
++
++
++# Ordinary resources
++# Chrome change: remove ja.txt and he.txt
++BRK_RES_SOURCE = el.txt en.txt en_US.txt en_US_POSIX.txt\
++ fi.txt   th.txt

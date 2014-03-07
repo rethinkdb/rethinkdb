@@ -1,0 +1,356 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>BCP</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="index.html" title="BCP">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"></div>
+<div class="article">
+<div class="titlepage">
+<div>
+<div><h2 class="title">
+<a name="bcp"></a>BCP</h2></div>
+<div><div class="authorgroup"><div class="author"><h3 class="author">
+<span class="firstname">John</span> <span class="surname">Maddock</span>
+</h3></div></div></div>
+<div><p class="copyright">Copyright &#169; 2009 John Maddock</p></div>
+<div><div class="legalnotice">
+<a name="bcp.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div>
+<hr>
+</div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="index.html#bcp.overview">Overview</a></span></dt>
+<dt><span class="section"><a href="index.html#bcp.examples">Examples</a></span></dt>
+<dt><span class="section"><a href="index.html#bcp.syntax">Syntax</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="index.html#bcp.syntax.main">Behaviour Selection</a></span></dt>
+<dt><span class="section"><a href="index.html#bcp.syntax.options">Options</a></span></dt>
+<dt><span class="section"><a href="index.html#bcp.syntax.module">module-list</a></span></dt>
+<dt><span class="section"><a href="index.html#bcp.syntax.output">output-path</a></span></dt>
+<dt><span class="section"><a href="index.html#bcp.syntax.dependencies">Dependencies</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section bcp_overview">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="bcp.overview"></a><a class="link" href="index.html#bcp.overview" title="Overview">Overview</a>
+</h2></div></div></div>
+<p>
+      The bcp utility is a tool for extracting subsets of Boost, it's useful for
+      Boost authors who want to distribute their library separately from Boost, and
+      for Boost users who want to distribute a subset of Boost with their application.
+    </p>
+<p>
+      bcp can also report on which parts of Boost your code is dependent on, and
+      what licences are used by those dependencies.
+    </p>
+</div>
+<div class="section bcp_examples">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="bcp.examples"></a><a class="link" href="index.html#bcp.examples" title="Examples">Examples</a>
+</h2></div></div></div>
+<pre class="programlisting">bcp scoped_ptr /foo
+</pre>
+<p>
+      Copies boost/scoped_ptr.hpp and dependencies to /foo.
+    </p>
+<pre class="programlisting">bcp boost/regex.hpp /foo
+</pre>
+<p>
+      Copies boost/regex.hpp and all dependencies including the regex source code
+      (in libs/regex/src) and build files (in libs/regex/build) to /foo. Does not
+      copy the regex documentation, test, or example code. Also does not copy the
+      Boost.Build system.
+    </p>
+<pre class="programlisting">bcp regex /foo
+</pre>
+<p>
+      Copies the full regex lib (in libs/regex) including dependencies (such as the
+      boost.test source required by the regex test programs) to /foo. Does not copy
+      the Boost.Build system.
+    </p>
+<pre class="programlisting">bcp --namespace=myboost --namespace-alias regex config build /foo
+</pre>
+<p>
+      Copies the full regex lib (in libs/regex) plus the config lib (libs/config)
+      and the build system (tools/build) to /foo including all the dependencies.
+      Also renames the boost namespace to <span class="emphasis"><em>myboost</em></span> and changes
+      the filenames of binary libraries to begin with the prefix "myboost"
+      rather than "boost". The --namespace-alias option makes <code class="computeroutput"><span class="keyword">namespace</span> <span class="identifier">boost</span></code>
+      an alias of the new name.
+    </p>
+<pre class="programlisting">bcp --scan --boost=/boost foo.cpp bar.cpp boost
+</pre>
+<p>
+      Scans the [non-boost] files foo.cpp and bar.cpp for boost dependencies and
+      copies those dependencies to the sub-directory boost.
+    </p>
+<pre class="programlisting">bcp --report regex.hpp boost-regex-report.html
+</pre>
+<p>
+      Creates a HTML report called boost-regex-report.html for the boost module regex.hpp.
+      The report contains license information, author details, and file dependencies.
+    </p>
+</div>
+<div class="section bcp_syntax">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="bcp.syntax"></a><a class="link" href="index.html#bcp.syntax" title="Syntax">Syntax</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="index.html#bcp.syntax.main">Behaviour Selection</a></span></dt>
+<dt><span class="section"><a href="index.html#bcp.syntax.options">Options</a></span></dt>
+<dt><span class="section"><a href="index.html#bcp.syntax.module">module-list</a></span></dt>
+<dt><span class="section"><a href="index.html#bcp.syntax.output">output-path</a></span></dt>
+<dt><span class="section"><a href="index.html#bcp.syntax.dependencies">Dependencies</a></span></dt>
+</dl></div>
+<div class="section bcp_syntax_main">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bcp.syntax.main"></a><a class="link" href="index.html#bcp.syntax.main" title="Behaviour Selection">Behaviour Selection</a>
+</h3></div></div></div>
+<pre class="programlisting">bcp --list [options] module-list
+</pre>
+<p>
+        Outputs a list of all the files in module-list including dependencies.
+      </p>
+<pre class="programlisting">bcp [options] module-list output-path
+</pre>
+<p>
+        Copies all the files found in module-list to output-path
+      </p>
+<pre class="programlisting">bcp --report [options] module-list html-file
+</pre>
+<p>
+        Outputs a html report file containing:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            All the licenses in effect, plus the files using each license, and the
+            copyright holders using each license.
+          </li>
+<li class="listitem">
+            Any files with no recognizable license (please report these to the boost
+            mailing lists).
+          </li>
+<li class="listitem">
+            Any files with no recognizable copyright holders (please report these
+            to the boost mailing lists).
+          </li>
+<li class="listitem">
+            All the copyright holders and the files on which they hold copyright.
+          </li>
+<li class="listitem">
+            File dependency information - indicates the reason for the inclusion
+            of any particular file in the dependencies found.
+          </li>
+</ul></div>
+</div>
+<div class="section bcp_syntax_options">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bcp.syntax.options"></a><a class="link" href="index.html#bcp.syntax.options" title="Options">Options</a>
+</h3></div></div></div>
+<pre class="programlisting">--boost=path
+</pre>
+<p>
+        Sets the location of the boost tree to path. If this option is not provided
+        then the current path is assumed to be the root directory of the Boost tree.
+      </p>
+<pre class="programlisting">--namespace=newname </pre>
+<p>
+        When copying files, all occurances of the boost namespace will get renamed
+        to "newname". Also renames Boost binaries to use "newname"
+        rather than "boost" as a prefix.
+      </p>
+<p>
+        Often used in conjunction with the --namespace-alias option, this allows
+        two different Boost versions to be used in the same program, but not in the
+        same translation unit.
+      </p>
+<pre class="programlisting">--namespace-alias</pre>
+<p>
+        When used in conjunction with the --namespace option, then <code class="computeroutput"><span class="keyword">namespace</span> <span class="identifier">boost</span></code>
+        will be declared as an alias of the new namespace name. This allows existing
+        code that relies on Boost code being in <code class="computeroutput"><span class="keyword">namespace</span>
+        <span class="identifier">boost</span></code> to compile unchanged, while
+        retaining the "strong versioning" that can be achieved with a namespace
+        change.
+      </p>
+<pre class="programlisting">--scan
+</pre>
+<p>
+        Treats the module list as a list of (probably non-boost) files to scan for
+        boost dependencies, the files listed in the module list are not copied (or
+        listed), only the boost files upon which they depend.
+      </p>
+<pre class="programlisting">--svn
+</pre>
+<p>
+        Only copy files under svn version control.
+      </p>
+<pre class="programlisting">--unix-lines
+</pre>
+<p>
+        Make sure that all copied files use Unix style line endings.
+      </p>
+</div>
+<div class="section bcp_syntax_module">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bcp.syntax.module"></a><a class="link" href="index.html#bcp.syntax.module" title="module-list">module-list</a>
+</h3></div></div></div>
+<p>
+        When the --scan option is not used then a list of boost files or library
+        names to copy, this can be:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            The name of a tool: for example "build" will find "tools/build".
+          </li>
+<li class="listitem">
+            The name of a library: for example "regex".
+          </li>
+<li class="listitem">
+            The title of a header: for example "scoped_ptr" will find "boost/scoped_ptr.hpp".
+          </li>
+<li class="listitem">
+            The name of a header: for example "scoped_ptr.hpp" will find
+            "boost/scoped_ptr.hpp".
+          </li>
+<li class="listitem">
+            The name of a file: for example "boost/regex.hpp".
+          </li>
+</ol></div>
+<p>
+        When the --scan option is used, then a list of (probably non-boost) files
+        to scan for boost dependencies, the files in the module list are not therefore
+        copied/listed.
+      </p>
+</div>
+<div class="section bcp_syntax_output">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bcp.syntax.output"></a><a class="link" href="index.html#bcp.syntax.output" title="output-path">output-path</a>
+</h3></div></div></div>
+<p>
+        The path to which files will be copied (this path must exist).
+      </p>
+</div>
+<div class="section bcp_syntax_dependencies">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bcp.syntax.dependencies"></a><a class="link" href="index.html#bcp.syntax.dependencies" title="Dependencies">Dependencies</a>
+</h3></div></div></div>
+<p>
+        File dependencies are found as follows:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            C++ source files are scanned for #includes, all #includes present in
+            the boost source tree will then be scanned for their dependencies and
+            so on.
+          </li>
+<li class="listitem">
+            C++ source files are associated with the name of a library, if that library
+            has source code (and possibly build data), then include that source in
+            the dependencies.
+          </li>
+<li class="listitem">
+            C++ source files are checked for dependencies on Boost.test (for example
+            to see if they use cpp_main as an entry point).
+          </li>
+<li class="listitem">
+            HTML files are scanned for immediate dependencies (images and style sheets,
+            but not links).
+          </li>
+</ul></div>
+<p>
+        It should be noted that in practice bcp can produce a rather "fat"
+        list of dependencies, reasons for this include:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            It searches for library names first, so using "regex" as a
+            name will give you everything in the libs/regex directory and everything
+            that depends on. This can be a long list as all the regex test and example
+            programs will get scanned for their dependencies. If you want a more
+            minimal list, then try using the names of the headers you are actually
+            including, or use the --scan option to scan your source code.
+          </li>
+<li class="listitem">
+            If you include the header of a library with separate source, then you
+            get that libraries source and all it's dependencies. This is deliberate
+            and in general those extra dependencies are needed.
+          </li>
+<li class="listitem">
+            When you include a header, bcp doesn't know what compiler you're using,
+            so it follows all possible preprocessor paths. If you're distributing
+            a subset of Boost with you're application then that is what you want
+            to have happen in general.
+          </li>
+</ul></div>
+<p>
+        The last point above can result in a substantial increase in the number of
+        headers found compared to most peoples expectations. For example bcp finds
+        274 header dependencies for boost/shared_ptr.hpp: by running bcp in report
+        mode we can see why all these headers have been found as dependencies:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            All of the Config library headers get included (52 headers, would be
+            about 6 for one compiler only).
+          </li>
+<li class="listitem">
+            A lot of MPL and type traits code that includes workarounds for broken
+            compilers that you may or may not need. Tracing back through the code
+            shows that most of these aren't needed unless the user has defined BOOST_SP_USE_QUICK_ALLOCATOR,
+            however bcp isn't aware of whether that preprocessor path will be taken
+            or not, so the headers get included just in case. This adds about 48
+            headers (type traits), plus another 49 from MPL.
+          </li>
+<li class="listitem">
+            The Preprocessor library gets used heavily by MPL: this adds another
+            96 headers.
+          </li>
+<li class="listitem">
+            The Shared Pointer library contains a lot of platform specific code,
+            split up into around 22 headers: normally your compiler would need only
+            a couple of these files.
+          </li>
+</ul></div>
+<p>
+        As you can see the number of dependencies found are much larger than those
+        used by any single compiler, however if you want to distribute a subset of
+        Boost that's usable in any configuration, by any compiler, on any platform
+        then that's exactly what you need. If you want to figure out which Boost
+        headers are being used by your specific compiler then the best way to find
+        out is to prepocess the code and scan the output for boost header includes.
+        You should be aware that the result will be very platform and compiler specific,
+        and may not contain all the headers needed if you so much as change a compiler
+        switch (for example turn on threading support).
+      </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: April 18, 2013 at 12:30:13 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"></div>
+</body>
+</html>

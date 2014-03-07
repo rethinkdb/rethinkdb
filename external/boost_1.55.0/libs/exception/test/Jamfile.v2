@@ -1,0 +1,69 @@
+# Boost Exception Library test Jamfile
+#
+# Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc.
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+project
+    : requirements
+        <link>static
+        <exception-handling>on
+    ;
+
+#to_string
+
+run is_output_streamable_test.cpp ;
+run has_to_string_test.cpp ;
+run to_string_test.cpp ;
+run to_string_stub_test.cpp ;
+compile-fail to_string_fail.cpp ;
+
+#exception
+
+run 1-throw_exception_test.cpp ;
+run 2-throw_exception_no_exceptions_test.cpp ;
+run 3-throw_exception_no_integration_test.cpp ;
+run 4-throw_exception_no_both_test.cpp ;
+run cloning_test.cpp ;
+run copy_exception_test.cpp ../../thread/src/tss_null.cpp /boost//thread : : : <threading>multi ;
+run unknown_exception_test.cpp ;
+run exception_test.cpp ;
+run enable_error_info_test.cpp helper1.cpp ;
+run throw_exception_test.cpp helper2.cpp ;
+run errno_test.cpp ;
+run error_info_test.cpp ;
+run diagnostic_information_test.cpp ;
+run refcount_ptr_test.cpp ;
+run current_exception_cast_test.cpp ;
+run no_exceptions_test.cpp : : : <exception-handling>off ;
+run errinfos_test.cpp ;
+run exception_ptr_test.cpp/<define>BOOST_ENABLE_NON_INTRUSIVE_EXCEPTION_PTR ../../thread/src/tss_null.cpp /boost/exception /boost//thread : : : <threading>multi : non_intrusive_exception_ptr_test ;
+run exception_ptr_test.cpp ../../thread/src/tss_null.cpp /boost//thread : : : <threading>multi ;
+
+compile-fail exception_fail.cpp ;
+compile-fail throw_exception_fail.cpp ;
+compile-fail error_info_const_fail.cpp ;
+
+#headers
+
+compile exception_ptr_hpp_test.cpp ;
+compile diagnostic_information_hpp_test.cpp ;
+compile error_info_hpp_test.cpp ;
+compile get_error_info_hpp_test.cpp ;
+compile info_hpp_test.cpp ;
+compile info_tuple_hpp_test.cpp ;
+compile to_string_hpp_test.cpp ;
+compile to_string_stub_hpp_test.cpp ;
+compile all_hpp_test.cpp ;
+compile current_exception_cast_hpp_test.cpp ;
+compile errinfo_api_function_hpp_test.cpp ;
+compile errinfo_at_line_hpp_test.cpp ;
+compile errinfo_errno_hpp_test.cpp ;
+compile errinfo_file_handle_hpp_test.cpp ;
+compile errinfo_file_name_hpp_test.cpp ;
+compile errinfo_file_open_mode_hpp_test.cpp ;
+compile errinfo_nested_exception_hpp_test.cpp ;
+compile errinfo_type_info_name_hpp_test.cpp ;

@@ -1,0 +1,42 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Quick Start]
+
+[heading Why would you want to use Spirit.Qi?]
+
+Spirit.Qi is designed to be a practical parsing tool. The ability to generate a
+fully-working parser from a formal EBNF specification inlined in C++
+significantly reduces development time. Programmers typically approach parsing
+using ad hoc hacks with primitive tools such as scanf. Even regular-expression
+libraries (such as boost regex) or scanners (such as Boost tokenizer) do not
+scale well when we need to write more elaborate parsers. Attempting to write
+even a moderately-complex parser using these tools leads to code that is hard to
+understand and maintain.
+
+One prime objective is to make the tool easy to use. When one thinks of a
+parser generator, the usual reaction is "it must be big and complex with a
+steep learning curve." Not so. Spirit is designed to be fully scalable. The
+library is structured in layers. This permits learning on an as-needed basis,
+after only learning the minimal core and basic concepts.
+
+For development simplicity and ease in deployment, the entire library
+consists of only header files, with no libraries to link against or build.
+Just put the Spirit distribution in your include path, compile and run. Code
+size? -very tight -essentially comparable to hand written recursive descent
+code.
+
+Our tutorials will walk you through the simplest Spirit examples, incrementally
+building on top of the earlier examples as we expose more and more features and
+techniques. We will try to be as gentle as possible with the learning curve.
+We will present the tutorials in a cookbook style approach. This style of
+presentation is based on our BoostCon '07 and BoostCon '08 slides.
+
+Have fun!
+
+[endsect] [/ Quickstart]

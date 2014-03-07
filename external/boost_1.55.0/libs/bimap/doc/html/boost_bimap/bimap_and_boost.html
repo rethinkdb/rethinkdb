@@ -1,0 +1,149 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Bimap and Boost</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="prev" href="the_tutorial/complete_instantiation_scheme.html" title="Complete instantiation scheme">
+<link rel="next" href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html" title="Boost Libraries that work well with Boost.Bimap">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="the_tutorial/complete_instantiation_scheme.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_bimap_and_boost">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_bimap.bimap_and_boost"></a><a class="link" href="bimap_and_boost.html" title="Bimap and Boost">Bimap and Boost</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="bimap_and_boost.html#boost_bimap.bimap_and_boost.bimap_and_multiindex">Bimap
+      and MultiIndex</a></span></dt>
+<dt><span class="section"><a href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html">Boost
+      Libraries that work well with Boost.Bimap</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html#boost_bimap.bimap_and_boost.boost_libraries_that_work_well_with_boost_bimap.introduction">Introduction</a></span></dt>
+<dt><span class="section"><a href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html#boost_bimap.bimap_and_boost.boost_libraries_that_work_well_with_boost_bimap.boost_serialization">Boost.Serialization</a></span></dt>
+<dt><span class="section"><a href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html#boost_bimap.bimap_and_boost.boost_libraries_that_work_well_with_boost_bimap.boost_assign">Boost.Assign</a></span></dt>
+<dt><span class="section"><a href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html#boost_bimap.bimap_and_boost.boost_libraries_that_work_well_with_boost_bimap.boost_hash">Boost.Hash</a></span></dt>
+<dt><span class="section"><a href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html#boost_bimap.bimap_and_boost.boost_libraries_that_work_well_with_boost_bimap.boost_lambda">Boost.Lambda</a></span></dt>
+<dt><span class="section"><a href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html#boost_bimap.bimap_and_boost.boost_libraries_that_work_well_with_boost_bimap.boost_range">Boost.Range</a></span></dt>
+<dt><span class="section"><a href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html#boost_bimap.bimap_and_boost.boost_libraries_that_work_well_with_boost_bimap.boost_foreach">Boost.Foreach</a></span></dt>
+<dt><span class="section"><a href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html#boost_bimap.bimap_and_boost.boost_libraries_that_work_well_with_boost_bimap.boost_typeof">Boost.Typeof</a></span></dt>
+<dt><span class="section"><a href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html#boost_bimap.bimap_and_boost.boost_libraries_that_work_well_with_boost_bimap.boost_xpressive">Boost.Xpressive</a></span></dt>
+<dt><span class="section"><a href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html#boost_bimap.bimap_and_boost.boost_libraries_that_work_well_with_boost_bimap.boost_property_map">Boost.Property_map</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="bimap_and_boost/dependencies.html">Dependencies</a></span></dt>
+</dl></div>
+<div class="section boost_bimap_bimap_and_boost_bimap_and_multiindex">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.bimap_and_boost.bimap_and_multiindex"></a><a class="link" href="bimap_and_boost.html#boost_bimap.bimap_and_boost.bimap_and_multiindex" title="Bimap and MultiIndex">Bimap
+      and MultiIndex</a>
+</h3></div></div></div>
+<p>
+        <span class="emphasis"><em>MISC</em></span> - <span class="bold"><strong>M</strong></span>ulti-<span class="bold"><strong>I</strong></span>ndex <span class="bold"><strong>S</strong></span>pecialized
+        <span class="bold"><strong>C</strong></span>ontainers
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> Let's be generic, construct frameworks, describe the world in
+          an unified way... </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em> No!, it is better to be specialized, design easy-to-use components,
+          offer plug-and-play objects... </em></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="bold"><strong> Why not take advantage of the best of both worlds?
+          </strong></span>
+        </p></blockquote></div>
+<p>
+        <span class="inlinemediaobject"><img src="../images/bimap/miBimapFramework.png" alt="miBimapFramework"></span>
+      </p>
+<p>
+        With Boost.Bimap, you can build associative containers in which both types
+        can be used as key. There is a library in Boost that already allows the creation
+        of this kind of container: Boost.MultiIndex. It offers great flexibility
+        and lets you construct almost any container that you could dream of. The
+        framework is very clean. You migh want to read this library's tutorial to
+        learn about the power that has been achieved.
+      </p>
+<p>
+        But generality comes at a price: the interface that results might not be
+        the best for every specialization. People may end up wrapping a B.MI container
+        in its own class every time they want to use it as a bidirectional map. Boost.Bimap
+        takes advantage of the narrower scope to produce a better interface for bidirectional
+        maps <a href="#ftn.boost_bimap.bimap_and_boost.bimap_and_multiindex.f0" class="footnote"><sup class="footnote"><a name="boost_bimap.bimap_and_boost.bimap_and_multiindex.f0"></a>[2]</sup></a>. There is no learning curve if you know how to use standard containers.
+        Great effort was put into mapping the naming scheme of the STL to Boost.Bimap.
+        The library is designed to match the common STL containers.
+      </p>
+<p>
+        Boost.MultiIndex is, in fact, the core of the bimap container.
+      </p>
+<p>
+        However, Boost.Bimap do not aim to tackle every problem with two indexed
+        types. There exist some problems that are better modelled with Boost.MultiIndex.
+      </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        <span class="bold"><strong>Problem I - An employee register</strong></span>
+      </p>
+<p>
+        <span class="emphasis"><em>Store an ID and a name for an employee, with fast search on each
+        member.</em></span>
+      </p>
+<p>
+        This type of problem is better modelled as a database table, and <span class="bold"><strong>Boost.MultiIndex</strong></span> is the preferred choice. It is possible
+        that other data will need to be indexed later.
+      </p>
+</div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        <span class="bold"><strong>Problem II - A partners container</strong></span>
+      </p>
+<p>
+        <span class="emphasis"><em>Store the names of couples and be able to get the name of a person's
+        partner.</em></span>
+      </p>
+<p>
+        This problem is better modelled as a collection of relations, and <span class="bold"><strong>Boost.Bimap</strong></span> fits nicely here.
+      </p>
+</div>
+<p>
+        You can also read <a class="link" href="the_tutorial/additional_information.html" title="Additional information">Additional
+        Information</a> for more information about the relation of this two libraries.
+      </p>
+</div>
+<div class="footnotes">
+<br><hr style="width:100; align:left;">
+<div id="ftn.boost_bimap.bimap_and_boost.bimap_and_multiindex.f0" class="footnote"><p><a href="#boost_bimap.bimap_and_boost.bimap_and_multiindex.f0" class="para"><sup class="para">[2] </sup></a>
+          In the same fashion, Boost.MRU will allow the creation of <span class="emphasis"><em>most
+          recent updated</em></span> aware containers, hiding the complexity of Boost.MultiIndex.
+        </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="the_tutorial/complete_instantiation_scheme.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

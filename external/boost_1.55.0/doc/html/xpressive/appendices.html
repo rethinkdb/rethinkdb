@@ -1,0 +1,1214 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Appendices</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../xpressive.html" title="Chapter&#160;39.&#160;Boost.Xpressive">
+<link rel="prev" href="../boost_xpressive/acknowledgments.html" title="Acknowledgments">
+<link rel="next" href="../tools.html" title="Part&#160;II.&#160;Boost Tools">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost_xpressive/acknowledgments.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../xpressive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../tools.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="xpressive.appendices"></a><a class="link" href="appendices.html" title="Appendices">Appendices</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="appendices.html#boost_xpressive.appendices.appendix_1__history">Appendix
+      1: History</a></span></dt>
+<dt><span class="section"><a href="appendices.html#boost_xpressive.appendices.appendix_2__not_yet_implemented">Appendix
+      2: Not Yet Implemented</a></span></dt>
+<dt><span class="section"><a href="appendices.html#boost_xpressive.appendices.appendix_3__differences_from_boost_regex">Appendix
+      3: Differences from Boost.Regex</a></span></dt>
+<dt><span class="section"><a href="appendices.html#boost_xpressive.appendices.perf">Appendix 4: Performance
+      Comparison</a></span></dt>
+<dt><span class="section"><a href="appendices.html#xpressive.appendices.appendix_5__implementation_notes">Appendix
+      5: Implementation Notes</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_xpressive.appendices.appendix_1__history"></a><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_1__history" title="Appendix 1: History">Appendix
+      1: History</a>
+</h3></div></div></div>
+<h3>
+<a name="boost_xpressive.appendices.appendix_1__history.h0"></a>
+        <span class="phrase"><a name="boost_xpressive.appendices.appendix_1__history.version_2_1_0_6_12_2008"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_1__history.version_2_1_0_6_12_2008">Version
+        2.1.0 6/12/2008</a>
+      </h3>
+<p>
+        New Features:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">skip</span><span class="special">()</span></code>
+            primitive for static regexes, which allows you to specify parts of the
+            input string to ignore during regex matching.
+          </li>
+<li class="listitem">
+            Range-based <code class="computeroutput"><span class="identifier">regex_replace</span><span class="special">()</span></code> algorithm interface.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">regex_replace</span><span class="special">()</span></code>
+            accepts formatter objects and formatter lambda expressions in addition
+            to format strings.
+          </li>
+</ul></div>
+<p>
+        Bugs Fixed:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Semantic actions in look-aheads, look-behinds and independent sub-expressions
+            execute eagerly instead of causing a crash.
+          </li></ul></div>
+<h3>
+<a name="boost_xpressive.appendices.appendix_1__history.h1"></a>
+        <span class="phrase"><a name="boost_xpressive.appendices.appendix_1__history.version_2_0_1_10_23_2007"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_1__history.version_2_0_1_10_23_2007">Version
+        2.0.1 10/23/2007</a>
+      </h3>
+<p>
+        Bugs Fixed:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            <code class="computeroutput"><span class="identifier">sub_match</span><span class="special">&lt;&gt;</span></code>
+            constructor copies singular iterator causing debug assert.
+          </li></ul></div>
+<h3>
+<a name="boost_xpressive.appendices.appendix_1__history.h2"></a>
+        <span class="phrase"><a name="boost_xpressive.appendices.appendix_1__history.version_2_0_0__10_12_2007"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_1__history.version_2_0_0__10_12_2007">Version
+        2.0.0, 10/12/2007</a>
+      </h3>
+<p>
+        New Features:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Semantic actions
+          </li>
+<li class="listitem">
+            Custom assertions
+          </li>
+<li class="listitem">
+            Named captures
+          </li>
+<li class="listitem">
+            Dynamic regex grammars
+          </li>
+<li class="listitem">
+            Recursive dynamic regexes with <code class="literal">(?R)</code> construct
+          </li>
+<li class="listitem">
+            Support for searching non-character data
+          </li>
+<li class="listitem">
+            Better errors for invalid static regexes
+          </li>
+<li class="listitem">
+            Range-based regex algorithm interface
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">match_flag_type</span><span class="special">::</span><span class="identifier">format_perl</span></code>, <code class="computeroutput"><span class="identifier">match_flag_type</span><span class="special">::</span><span class="identifier">format_sed</span></code>,
+            and <code class="computeroutput"><span class="identifier">match_flag_type</span><span class="special">::</span><span class="identifier">format_all</span></code>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="keyword">operator</span><span class="special">+(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">sub_match</span><span class="special">&lt;&gt;)</span></code>
+            and variants
+          </li>
+<li class="listitem">
+            Version 2 regex traits get <code class="computeroutput"><span class="identifier">tolower</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">toupper</span><span class="special">()</span></code>
+          </li>
+</ul></div>
+<p>
+        Bugs Fixed:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Complementing single-character sets like <code class="computeroutput"><span class="special">~(</span><span class="identifier">set</span><span class="special">=</span><span class="char">'a'</span><span class="special">)</span></code> works.
+          </li></ul></div>
+<h3>
+<a name="boost_xpressive.appendices.appendix_1__history.h3"></a>
+        <span class="phrase"><a name="boost_xpressive.appendices.appendix_1__history.version_1_0_2__april_27__2007"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_1__history.version_1_0_2__april_27__2007">Version
+        1.0.2, April 27, 2007</a>
+      </h3>
+<p>
+        Bugs Fixed:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Back-references greater than nine work as advertized.
+          </li></ul></div>
+<p>
+        This is the version that shipped as part of Boost 1.34.
+      </p>
+<h3>
+<a name="boost_xpressive.appendices.appendix_1__history.h4"></a>
+        <span class="phrase"><a name="boost_xpressive.appendices.appendix_1__history.version_1_0_1__october_2__2006"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_1__history.version_1_0_1__october_2__2006">Version
+        1.0.1, October 2, 2006</a>
+      </h3>
+<p>
+        Bugs Fixed:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            <code class="computeroutput"><span class="identifier">match_results</span><span class="special">::</span><span class="identifier">position</span><span class="special">()</span></code>
+            works for nested results.
+          </li></ul></div>
+<h3>
+<a name="boost_xpressive.appendices.appendix_1__history.h5"></a>
+        <span class="phrase"><a name="boost_xpressive.appendices.appendix_1__history.version_1_0_0__march_16__2006"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_1__history.version_1_0_0__march_16__2006">Version
+        1.0.0, March 16, 2006</a>
+      </h3>
+<p>
+        Version 1.0!
+      </p>
+<h3>
+<a name="boost_xpressive.appendices.appendix_1__history.h6"></a>
+        <span class="phrase"><a name="boost_xpressive.appendices.appendix_1__history.version_0_9_6__august_19__2005"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_1__history.version_0_9_6__august_19__2005">Version
+        0.9.6, August 19, 2005</a>
+      </h3>
+<p>
+        The version reviewed for acceptance into Boost. The review began September
+        8, 2005. Xpressive was accepted into Boost on September 28, 2005.
+      </p>
+<h3>
+<a name="boost_xpressive.appendices.appendix_1__history.h7"></a>
+        <span class="phrase"><a name="boost_xpressive.appendices.appendix_1__history.version_0_9_3__june_30__2005"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_1__history.version_0_9_3__june_30__2005">Version
+        0.9.3, June 30, 2005</a>
+      </h3>
+<p>
+        New Features:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            TR1-style regex_traits interface
+          </li>
+<li class="listitem">
+            Speed enhancements
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">syntax_option_type</span><span class="special">::</span><span class="identifier">ignore_white_space</span></code>
+          </li>
+</ul></div>
+<h3>
+<a name="boost_xpressive.appendices.appendix_1__history.h8"></a>
+        <span class="phrase"><a name="boost_xpressive.appendices.appendix_1__history.version_0_9_0__september_2__2004"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_1__history.version_0_9_0__september_2__2004">Version
+        0.9.0, September 2, 2004</a>
+      </h3>
+<p>
+        New Features:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            It sort of works.
+          </li></ul></div>
+<h3>
+<a name="boost_xpressive.appendices.appendix_1__history.h9"></a>
+        <span class="phrase"><a name="boost_xpressive.appendices.appendix_1__history.version_0_0_1__november_16__2003"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_1__history.version_0_0_1__november_16__2003">Version
+        0.0.1, November 16, 2003</a>
+      </h3>
+<p>
+        Announcement of xpressive: <a href="http://lists.boost.org/Archives/boost/2003/11/56312.php" target="_top">http://lists.boost.org/Archives/boost/2003/11/56312.php</a>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_xpressive.appendices.appendix_2__not_yet_implemented"></a><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_2__not_yet_implemented" title="Appendix 2: Not Yet Implemented">Appendix
+      2: Not Yet Implemented</a>
+</h3></div></div></div>
+<p>
+        The following features are planned for xpressive 2.X:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">syntax_option_type</span><span class="special">::</span><span class="identifier">collate</span></code>
+          </li>
+<li class="listitem">
+            Collation sequences such as <code class="literal">[.a.]</code>
+          </li>
+<li class="listitem">
+            Equivalence classes like <code class="literal">[=a=]</code>
+          </li>
+<li class="listitem">
+            Control of nested results generation with <code class="computeroutput"><span class="identifier">syntax_option_type</span><span class="special">::</span><span class="identifier">nosubs</span></code>,
+            and a <code class="computeroutput"><span class="identifier">nosubs</span><span class="special">()</span></code>
+            modifier for static xpressive.
+          </li>
+</ul></div>
+<p>
+        Here are some wish-list features. You or your company should consider hiring
+        me to implement them!
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Optimized DFA back-end for simple, fast regexing.
+          </li>
+<li class="listitem">
+            Different regex compiler front ends for basic, extended, awk, grep and
+            egrep regex syntax.
+          </li>
+<li class="listitem">
+            Fine-grained control over the dynamic regex syntax
+          </li>
+<li class="listitem">
+            Optional integration with ICU for full Unicode support.
+          </li>
+<li class="listitem">
+            Improved localization support, possibly as a custom facet for <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span></code>.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_xpressive.appendices.appendix_3__differences_from_boost_regex"></a><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_3__differences_from_boost_regex" title="Appendix 3: Differences from Boost.Regex">Appendix
+      3: Differences from Boost.Regex</a>
+</h3></div></div></div>
+<p>
+        Since many of xpressive's users are likely to be familiar with the <a href="../../../libs/regex" target="_top">Boost.Regex</a> library, I would be remiss if
+        I failed to point out some important differences between xpressive and <a href="../../../libs/regex" target="_top">Boost.Regex</a>. In particular:<br>
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">xpressive</span><span class="special">::</span><span class="identifier">basic_regex</span><span class="special">&lt;&gt;</span></code>
+            is a template on the iterator type, not the character type.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">xpressive</span><span class="special">::</span><span class="identifier">basic_regex</span><span class="special">&lt;&gt;</span></code>
+            cannot be constructed directly from a string; rather, you must use <code class="computeroutput"><span class="identifier">basic_regex</span><span class="special">::</span><span class="identifier">compile</span><span class="special">()</span></code>
+            or <code class="computeroutput"><span class="identifier">regex_compiler</span><span class="special">&lt;&gt;</span></code>
+            to build a regex object from a string.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">xpressive</span><span class="special">::</span><span class="identifier">basic_regex</span><span class="special">&lt;&gt;</span></code>
+            does not have an <code class="computeroutput"><span class="identifier">imbue</span><span class="special">()</span></code> member function; rather, the <code class="computeroutput"><span class="identifier">imbue</span><span class="special">()</span></code>
+            member function is in the <code class="computeroutput"><span class="identifier">xpressive</span><span class="special">::</span><span class="identifier">regex_compiler</span><span class="special">&lt;&gt;</span></code> factory.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">basic_regex</span><span class="special">&lt;&gt;</span></code>
+            has a subset of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;&gt;</span></code>'s
+            members. <code class="computeroutput"><span class="identifier">xpressive</span><span class="special">::</span><span class="identifier">basic_regex</span><span class="special">&lt;&gt;</span></code>
+            does not. The members lacking are: <code class="computeroutput"><span class="identifier">assign</span><span class="special">()</span></code>, <code class="computeroutput"><span class="keyword">operator</span><span class="special">[]()</span></code>, <code class="computeroutput"><span class="identifier">max_size</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">begin</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">end</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">compare</span><span class="special">()</span></code>, and <code class="computeroutput"><span class="keyword">operator</span><span class="special">=(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;&gt;)</span></code>.
+          </li>
+<li class="listitem">
+            Other member functions that exist in <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">basic_regex</span><span class="special">&lt;&gt;</span></code> but do not exist in <code class="computeroutput"><span class="identifier">xpressive</span><span class="special">::</span><span class="identifier">basic_regex</span><span class="special">&lt;&gt;</span></code>
+            are: <code class="computeroutput"><span class="identifier">set_expression</span><span class="special">()</span></code>,
+            <code class="computeroutput"><span class="identifier">get_allocator</span><span class="special">()</span></code>,
+            <code class="computeroutput"><span class="identifier">imbue</span><span class="special">()</span></code>,
+            <code class="computeroutput"><span class="identifier">getloc</span><span class="special">()</span></code>,
+            <code class="computeroutput"><span class="identifier">getflags</span><span class="special">()</span></code>,
+            and <code class="computeroutput"><span class="identifier">str</span><span class="special">()</span></code>.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">xpressive</span><span class="special">::</span><span class="identifier">basic_regex</span><span class="special">&lt;&gt;</span></code>
+            does not have a RegexTraits template parameter. Customization of regex
+            syntax and localization behavior will be controlled by <code class="computeroutput"><span class="identifier">regex_compiler</span><span class="special">&lt;&gt;</span></code>
+            and a custom regex facet for <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span></code>.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">xpressive</span><span class="special">::</span><span class="identifier">basic_regex</span><span class="special">&lt;&gt;</span></code>
+            and <code class="computeroutput"><span class="identifier">xpressive</span><span class="special">::</span><span class="identifier">match_results</span><span class="special">&lt;&gt;</span></code>
+            do not have an Allocator template parameter. This is by design.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">match_not_dot_null</span></code> and
+            <code class="computeroutput"><span class="identifier">match_not_dot_newline</span></code>
+            have moved from the <code class="computeroutput"><span class="identifier">match_flag_type</span></code>
+            enum to the <code class="computeroutput"><span class="identifier">syntax_option_type</span></code>
+            enum, and they have changed names to <code class="computeroutput"><span class="identifier">not_dot_null</span></code>
+            and <code class="computeroutput"><span class="identifier">not_dot_newline</span></code>.
+          </li>
+<li class="listitem">
+            The following <code class="computeroutput"><span class="identifier">syntax_option_type</span></code>
+            enumeration values are not supported: <code class="computeroutput"><span class="identifier">escape_in_lists</span></code>,
+            <code class="computeroutput"><span class="identifier">char_classes</span></code>, <code class="computeroutput"><span class="identifier">intervals</span></code>, <code class="computeroutput"><span class="identifier">limited_ops</span></code>,
+            <code class="computeroutput"><span class="identifier">newline_alt</span></code>, <code class="computeroutput"><span class="identifier">bk_plus_qm</span></code>, <code class="computeroutput"><span class="identifier">bk_braces</span></code>,
+            <code class="computeroutput"><span class="identifier">bk_parens</span></code>, <code class="computeroutput"><span class="identifier">bk_refs</span></code>, <code class="computeroutput"><span class="identifier">bk_vbar</span></code>,
+            <code class="computeroutput"><span class="identifier">use_except</span></code>, <code class="computeroutput"><span class="identifier">failbit</span></code>, <code class="computeroutput"><span class="identifier">literal</span></code>,
+            <code class="computeroutput"><span class="identifier">perlex</span></code>, <code class="computeroutput"><span class="identifier">basic</span></code>, <code class="computeroutput"><span class="identifier">extended</span></code>,
+            <code class="computeroutput"><span class="identifier">emacs</span></code>, <code class="computeroutput"><span class="identifier">awk</span></code>, <code class="computeroutput"><span class="identifier">grep</span></code>
+            ,<code class="computeroutput"><span class="identifier">egrep</span></code>, <code class="computeroutput"><span class="identifier">sed</span></code>, <code class="computeroutput"><span class="identifier">JavaScript</span></code>,
+            <code class="computeroutput"><span class="identifier">JScript</span></code>.
+          </li>
+<li class="listitem">
+            The following <code class="computeroutput"><span class="identifier">match_flag_type</span></code>
+            enumeration values are not supported: <code class="computeroutput"><span class="identifier">match_not_bob</span></code>,
+            <code class="computeroutput"><span class="identifier">match_not_eob</span></code>, <code class="computeroutput"><span class="identifier">match_perl</span></code>, <code class="computeroutput"><span class="identifier">match_posix</span></code>,
+            and <code class="computeroutput"><span class="identifier">match_extra</span></code>.
+          </li>
+</ul></div>
+<p>
+        Also, in the current implementation, the regex algorithms in xpressive will
+        not detect pathological behavior and abort by throwing an exception. It is
+        up to you to write efficient patterns that do not behave pathologically.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_xpressive.appendices.perf"></a><a class="link" href="appendices.html#boost_xpressive.appendices.perf" title="Appendix 4: Performance Comparison">Appendix 4: Performance
+      Comparison</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="appendices.html#boost_xpressive.appendices.perf.perf_gcc">xpressive
+        vs. Boost.Regex with GCC (Cygwin)</a></span></dt>
+<dt><span class="section"><a href="appendices.html#boost_xpressive.appendices.perf.perf_msvc">xpressive
+        vs. Boost.Regex with Visual C++</a></span></dt>
+</dl></div>
+<p>
+        The performance of xpressive is competitive with <a href="../../../libs/regex" target="_top">Boost.Regex</a>.
+        I have run performance benchmarks comparing static xpressive, dynamic xpressive
+        and <a href="../../../libs/regex" target="_top">Boost.Regex</a> on two platforms: gcc
+        (Cygwin) and Visual C++. The tests include short matches and long searches.
+        For both platforms, xpressive comes off well on short matches and roughly
+        on par with <a href="../../../libs/regex" target="_top">Boost.Regex</a> on long searches.
+      </p>
+<p>
+        &lt;disclaimer&gt; As with all benchmarks, the true test is how xpressive
+        performs with <span class="emphasis"><em>your</em></span> patterns, <span class="emphasis"><em>your</em></span>
+        input, and <span class="emphasis"><em>your</em></span> platform, so if performance matters
+        in your application, it's best to run your own tests. &lt;/disclaimer&gt;
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_xpressive.appendices.perf.perf_gcc"></a><a class="link" href="appendices.html#boost_xpressive.appendices.perf.perf_gcc" title="xpressive vs. Boost.Regex with GCC (Cygwin)">xpressive
+        vs. Boost.Regex with GCC (Cygwin)</a>
+</h4></div></div></div>
+<p>
+          Below are the results of a performance comparison between:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              static xpressive
+            </li>
+<li class="listitem">
+              dynamic xpressive
+            </li>
+<li class="listitem">
+              <a href="../../../libs/regex" target="_top">Boost.Regex</a>
+            </li>
+</ul></div>
+<div class="variablelist">
+<p class="title"><b>Test Specifications</b></p>
+<dl class="variablelist">
+<dt><span class="term">Hardware:</span></dt>
+<dd><p>
+                hyper-threaded 3GHz Xeon with 1Gb RAM
+              </p></dd>
+<dt><span class="term">Operating System:</span></dt>
+<dd><p>
+                Windows XP Pro + Cygwin
+              </p></dd>
+<dt><span class="term">Compiler:</span></dt>
+<dd><p>
+                GNU C++ version 3.4.4 (Cygwin special)
+              </p></dd>
+<dt><span class="term">C++ Standard Library:</span></dt>
+<dd><p>
+                GNU libstdc++ version 3.4.4
+              </p></dd>
+<dt><span class="term"><a href="../../../libs/regex" target="_top">Boost.Regex</a> Version:</span></dt>
+<dd><p>
+                1.33+, BOOST_REGEX_USE_CPP_LOCALE, BOOST_REGEX_RECURSIVE
+              </p></dd>
+<dt><span class="term">xpressive Version:</span></dt>
+<dd><p>
+                0.9.6a
+              </p></dd>
+</dl>
+</div>
+<h3>
+<a name="boost_xpressive.appendices.perf.perf_gcc.h0"></a>
+          <span class="phrase"><a name="boost_xpressive.appendices.perf.perf_gcc.comparison_1__short_matches"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.perf.perf_gcc.comparison_1__short_matches">Comparison
+          1: Short Matches</a>
+        </h3>
+<p>
+          The following tests evaluate the time taken to match the expression to
+          the input string. For each result, the top number has been normalized relative
+          to the fastest time, so 1.0 is as good as it gets. The bottom number (in
+          parentheses) is the actual time in seconds. The best time has been marked
+          in green.
+        </p>
+<div class="informaltable">
+<h5>
+<a name="idp258890984"></a><span class="table-title">Short Matches</span>
+</h5>
+<table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>static xpressive</th>
+<th>dynamic xpressive</th>
+<th>Boost</th>
+<th>Text</th>
+<th>Expression</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="highlight">1<p></p>(8.79e&#8209;07s)</span></td>
+<td><span class="highlight">1.08<p></p>(9.54e&#8209;07s)</span></td>
+<td>2.51<p></p>(2.2e&#8209;06s)</td>
+<td>100- this is a line of ftp response which contains a message string</td>
+<td><code class="literal">^([0-9]+)(\-| |$)(.*)$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1.06<p></p>(1.07e&#8209;06s)</span></td>
+<td><span class="highlight">1<p></p>(1.01e&#8209;06s)</span></td>
+<td>4.01<p></p>(4.06e&#8209;06s)</td>
+<td>1234-5678-1234-456</td>
+<td><code class="literal">([[:digit:]]{4}[- ]){3}[[:digit:]]{3,4}</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(1.4e&#8209;06s)</span></td>
+<td>1.13<p></p>(1.58e&#8209;06s)</td>
+<td>2.89<p></p>(4.05e&#8209;06s)</td>
+<td>john_maddock@compuserve.com</td>
+<td><code class="literal">^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(1.28e&#8209;06s)</span></td>
+<td>1.16<p></p>(1.49e&#8209;06s)</td>
+<td>3.07<p></p>(3.94e&#8209;06s)</td>
+<td>foo12@foo.edu</td>
+<td><code class="literal">^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(1.22e&#8209;06s)</span></td>
+<td>1.2<p></p>(1.46e&#8209;06s)</td>
+<td>3.22<p></p>(3.93e&#8209;06s)</td>
+<td>bob.smith@foo.tv</td>
+<td><code class="literal">^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1.04<p></p>(8.64e&#8209;07s)</span></td>
+<td><span class="highlight">1<p></p>(8.34e&#8209;07s)</span></td>
+<td>2.5<p></p>(2.09e&#8209;06s)</td>
+<td>EH10 2QQ</td>
+<td><code class="literal">^[a-zA-Z]{1,2}[0-9][0-9A-Za-z]{0,1} {0,1}[0-9][A-Za-z]{2}$</code></td>
+</tr>
+<tr>
+<td>1.11<p></p>(9.09e&#8209;07s)</td>
+<td><span class="highlight">1<p></p>(8.19e&#8209;07s)</span></td>
+<td>2.47<p></p>(2.03e&#8209;06s)</td>
+<td>G1 1AA</td>
+<td><code class="literal">^[a-zA-Z]{1,2}[0-9][0-9A-Za-z]{0,1} {0,1}[0-9][A-Za-z]{2}$</code></td>
+</tr>
+<tr>
+<td>1.12<p></p>(9.38e&#8209;07s)</td>
+<td><span class="highlight">1<p></p>(8.34e&#8209;07s)</span></td>
+<td>2.5<p></p>(2.08e&#8209;06s)</td>
+<td>SW1 1ZZ</td>
+<td><code class="literal">^[a-zA-Z]{1,2}[0-9][0-9A-Za-z]{0,1} {0,1}[0-9][A-Za-z]{2}$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(7.9e&#8209;07s)</span></td>
+<td><span class="highlight">1.06<p></p>(8.34e&#8209;07s)</span></td>
+<td>2.49<p></p>(1.96e&#8209;06s)</td>
+<td>4/1/2001</td>
+<td><code class="literal">^[[:digit:]]{1,2}/[[:digit:]]{1,2}/[[:digit:]]{4}$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(8.19e&#8209;07s)</span></td>
+<td><span class="highlight">1.04<p></p>(8.49e&#8209;07s)</span></td>
+<td>2.4<p></p>(1.97e&#8209;06s)</td>
+<td>12/12/2001</td>
+<td><code class="literal">^[[:digit:]]{1,2}/[[:digit:]]{1,2}/[[:digit:]]{4}$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1.09<p></p>(8.95e&#8209;07s)</span></td>
+<td><span class="highlight">1<p></p>(8.19e&#8209;07s)</span></td>
+<td>2.4<p></p>(1.96e&#8209;06s)</td>
+<td>123</td>
+<td><code class="literal">^[-+]?[[:digit:]]*\.?[[:digit:]]*$</code></td>
+</tr>
+<tr>
+<td>1.11<p></p>(8.79e&#8209;07s)</td>
+<td><span class="highlight">1<p></p>(7.9e&#8209;07s)</span></td>
+<td>2.57<p></p>(2.03e&#8209;06s)</td>
+<td>+3.14159</td>
+<td><code class="literal">^[-+]?[[:digit:]]*\.?[[:digit:]]*$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1.09<p></p>(8.94e&#8209;07s)</span></td>
+<td><span class="highlight">1<p></p>(8.19e&#8209;07s)</span></td>
+<td>2.47<p></p>(2.03e&#8209;06s)</td>
+<td>-3.14159</td>
+<td><code class="literal">^[-+]?[[:digit:]]*\.?[[:digit:]]*$</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3>
+<a name="boost_xpressive.appendices.perf.perf_gcc.h1"></a>
+          <span class="phrase"><a name="boost_xpressive.appendices.perf.perf_gcc.comparison_2__long_searches"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.perf.perf_gcc.comparison_2__long_searches">Comparison
+          2: Long Searches</a>
+        </h3>
+<p>
+          The next test measures the time to find <span class="emphasis"><em>all</em></span> matches
+          in a long English text. The text is the <a href="http://www.gutenberg.org/dirs/3/2/0/3200/3200.zip" target="_top">complete
+          works of Mark Twain</a>, from <a href="http://promo.net/pg/" target="_top">Project
+          Gutenberg</a>. The text is 19Mb long. As above, the top number is the
+          normalized time and the bottom number is the actual time. The best time
+          is in green.
+        </p>
+<div class="informaltable">
+<h5>
+<a name="idp258922616"></a><span class="table-title">Long Searches</span>
+</h5>
+<table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>static xpressive</th>
+<th>dynamic xpressive</th>
+<th>Boost</th>
+<th>Expression</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="highlight">1<p></p>(0.0263s)</span></td>
+<td><span class="highlight">1<p></p>(0.0263s)</span></td>
+<td>1.78<p></p>(0.0469s)</td>
+<td><code class="literal">Twain</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(0.0234s)</span></td>
+<td><span class="highlight">1<p></p>(0.0234s)</span></td>
+<td>1.79<p></p>(0.042s)</td>
+<td><code class="literal">Huck[[:alpha:]]+</code></td>
+</tr>
+<tr>
+<td>1.84<p></p>(1.26s)</td>
+<td>2.21<p></p>(1.51s)</td>
+<td><span class="highlight">1<p></p>(0.687s)</span></td>
+<td><code class="literal">[[:alpha:]]+ing</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1.09<p></p>(0.192s)</span></td>
+<td>2<p></p>(0.351s)</td>
+<td><span class="highlight">1<p></p>(0.176s)</span></td>
+<td><code class="literal">^[^
+]*?Twain</code></td>
+</tr>
+<tr>
+<td>1.41<p></p>(0.08s)</td>
+<td>1.21<p></p>(0.0684s)</td>
+<td><span class="highlight">1<p></p>(0.0566s)</span></td>
+<td><code class="literal">Tom|Sawyer|Huckleberry|Finn</code></td>
+</tr>
+<tr>
+<td>1.56<p></p>(0.195s)</td>
+<td>1.12<p></p>(0.141s)</td>
+<td><span class="highlight">1<p></p>(0.125s)</span></td>
+<td><code class="literal">(Tom|Sawyer|Huckleberry|Finn).{0,30}river|river.{0,30}(Tom|Sawyer|Huckleberry|Finn)</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_xpressive.appendices.perf.perf_msvc"></a><a class="link" href="appendices.html#boost_xpressive.appendices.perf.perf_msvc" title="xpressive vs. Boost.Regex with Visual C++">xpressive
+        vs. Boost.Regex with Visual C++</a>
+</h4></div></div></div>
+<p>
+          Below are the results of a performance comparison between:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              static xpressive
+            </li>
+<li class="listitem">
+              dynamic xpressive
+            </li>
+<li class="listitem">
+              <a href="../../../libs/regex" target="_top">Boost.Regex</a>
+            </li>
+</ul></div>
+<div class="variablelist">
+<p class="title"><b>Test Specifications</b></p>
+<dl class="variablelist">
+<dt><span class="term">Hardware:</span></dt>
+<dd><p>
+                hyper-threaded 3GHz Xeon with 1Gb RAM
+              </p></dd>
+<dt><span class="term">Operating System:</span></dt>
+<dd><p>
+                Windows XP Pro
+              </p></dd>
+<dt><span class="term">Compiler:</span></dt>
+<dd><p>
+                Visual C++ .NET 2003 (7.1)
+              </p></dd>
+<dt><span class="term">C++ Standard Library:</span></dt>
+<dd><p>
+                Dinkumware, version 313
+              </p></dd>
+<dt><span class="term"><a href="../../../libs/regex" target="_top">Boost.Regex</a> Version:</span></dt>
+<dd><p>
+                1.33+, BOOST_REGEX_USE_CPP_LOCALE, BOOST_REGEX_RECURSIVE
+              </p></dd>
+<dt><span class="term">xpressive Version:</span></dt>
+<dd><p>
+                0.9.6a
+              </p></dd>
+</dl>
+</div>
+<h3>
+<a name="boost_xpressive.appendices.perf.perf_msvc.h0"></a>
+          <span class="phrase"><a name="boost_xpressive.appendices.perf.perf_msvc.comparison_1__short_matches"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.perf.perf_msvc.comparison_1__short_matches">Comparison
+          1: Short Matches</a>
+        </h3>
+<p>
+          The following tests evaluate the time taken to match the expression to
+          the input string. For each result, the top number has been normalized relative
+          to the fastest time, so 1.0 is as good as it gets. The bottom number (in
+          parentheses) is the actual time in seconds. The best time has been marked
+          in green.
+        </p>
+<div class="informaltable">
+<h5>
+<a name="idp258946904"></a><span class="table-title">Short Matches</span>
+</h5>
+<table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>static xpressive</th>
+<th>dynamic xpressive</th>
+<th>Boost</th>
+<th>Text</th>
+<th>Expression</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="highlight">1<p></p>(3.2e&#8209;007s)</span></td>
+<td>1.37<p></p>(4.4e&#8209;007s)</td>
+<td>2.38<p></p>(7.6e&#8209;007s)</td>
+<td>100- this is a line of ftp response which contains a message string</td>
+<td><code class="literal">^([0-9]+)(\-| |$)(.*)$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(6.4e&#8209;007s)</span></td>
+<td>1.12<p></p>(7.15e&#8209;007s)</td>
+<td>1.72<p></p>(1.1e&#8209;006s)</td>
+<td>1234-5678-1234-456</td>
+<td><code class="literal">([[:digit:]]{4}[- ]){3}[[:digit:]]{3,4}</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(9.82e&#8209;007s)</span></td>
+<td>1.3<p></p>(1.28e&#8209;006s)</td>
+<td>1.61<p></p>(1.58e&#8209;006s)</td>
+<td>john_maddock@compuserve.com</td>
+<td><code class="literal">^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(8.94e&#8209;007s)</span></td>
+<td>1.3<p></p>(1.16e&#8209;006s)</td>
+<td>1.7<p></p>(1.52e&#8209;006s)</td>
+<td>foo12@foo.edu</td>
+<td><code class="literal">^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(9.09e&#8209;007s)</span></td>
+<td>1.28<p></p>(1.16e&#8209;006s)</td>
+<td>1.67<p></p>(1.52e&#8209;006s)</td>
+<td>bob.smith@foo.tv</td>
+<td><code class="literal">^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(3.06e&#8209;007s)</span></td>
+<td><span class="highlight">1.07<p></p>(3.28e&#8209;007s)</span></td>
+<td>1.95<p></p>(5.96e&#8209;007s)</td>
+<td>EH10 2QQ</td>
+<td><code class="literal">^[a-zA-Z]{1,2}[0-9][0-9A-Za-z]{0,1} {0,1}[0-9][A-Za-z]{2}$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(3.13e&#8209;007s)</span></td>
+<td><span class="highlight">1.09<p></p>(3.42e&#8209;007s)</span></td>
+<td>1.86<p></p>(5.81e&#8209;007s)</td>
+<td>G1 1AA</td>
+<td><code class="literal">^[a-zA-Z]{1,2}[0-9][0-9A-Za-z]{0,1} {0,1}[0-9][A-Za-z]{2}$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(3.2e&#8209;007s)</span></td>
+<td><span class="highlight">1.09<p></p>(3.5e&#8209;007s)</span></td>
+<td>1.86<p></p>(5.96e&#8209;007s)</td>
+<td>SW1 1ZZ</td>
+<td><code class="literal">^[a-zA-Z]{1,2}[0-9][0-9A-Za-z]{0,1} {0,1}[0-9][A-Za-z]{2}$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(2.68e&#8209;007s)</span></td>
+<td>1.22<p></p>(3.28e&#8209;007s)</td>
+<td>2<p></p>(5.36e&#8209;007s)</td>
+<td>4/1/2001</td>
+<td><code class="literal">^[[:digit:]]{1,2}/[[:digit:]]{1,2}/[[:digit:]]{4}$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(2.76e&#8209;007s)</span></td>
+<td>1.16<p></p>(3.2e&#8209;007s)</td>
+<td>1.94<p></p>(5.36e&#8209;007s)</td>
+<td>12/12/2001</td>
+<td><code class="literal">^[[:digit:]]{1,2}/[[:digit:]]{1,2}/[[:digit:]]{4}$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(2.98e&#8209;007s)</span></td>
+<td><span class="highlight">1.03<p></p>(3.06e&#8209;007s)</span></td>
+<td>1.85<p></p>(5.51e&#8209;007s)</td>
+<td>123</td>
+<td><code class="literal">^[-+]?[[:digit:]]*\.?[[:digit:]]*$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(3.2e&#8209;007s)</span></td>
+<td>1.12<p></p>(3.58e&#8209;007s)</td>
+<td>1.81<p></p>(5.81e&#8209;007s)</td>
+<td>+3.14159</td>
+<td><code class="literal">^[-+]?[[:digit:]]*\.?[[:digit:]]*$</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(3.28e&#8209;007s)</span></td>
+<td>1.11<p></p>(3.65e&#8209;007s)</td>
+<td>1.77<p></p>(5.81e&#8209;007s)</td>
+<td>-3.14159</td>
+<td><code class="literal">^[-+]?[[:digit:]]*\.?[[:digit:]]*$</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3>
+<a name="boost_xpressive.appendices.perf.perf_msvc.h1"></a>
+          <span class="phrase"><a name="boost_xpressive.appendices.perf.perf_msvc.comparison_2__long_searches"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.perf.perf_msvc.comparison_2__long_searches">Comparison
+          2: Long Searches</a>
+        </h3>
+<p>
+          The next test measures the time to find <span class="emphasis"><em>all</em></span> matches
+          in a long English text. The text is the <a href="http://www.gutenberg.org/dirs/3/2/0/3200/3200.zip" target="_top">complete
+          works of Mark Twain</a>, from <a href="http://promo.net/pg/" target="_top">Project
+          Gutenberg</a>. The text is 19Mb long. As above, the top number is the
+          normalized time and the bottom number is the actual time. The best time
+          is in green.
+        </p>
+<div class="informaltable">
+<h5>
+<a name="idp258977976"></a><span class="table-title">Long Searches</span>
+</h5>
+<table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>static xpressive</th>
+<th>dynamic xpressive</th>
+<th>Boost</th>
+<th>Expression</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="highlight">1<p></p>(0.019s)</span></td>
+<td><span class="highlight">1<p></p>(0.019s)</span></td>
+<td>2.98<p></p>(0.0566s)</td>
+<td><code class="literal">Twain</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(0.0176s)</span></td>
+<td><span class="highlight">1<p></p>(0.0176s)</span></td>
+<td>3.17<p></p>(0.0556s)</td>
+<td><code class="literal">Huck[[:alpha:]]+</code></td>
+</tr>
+<tr>
+<td>3.62<p></p>(1.78s)</td>
+<td>3.97<p></p>(1.95s)</td>
+<td><span class="highlight">1<p></p>(0.492s)</span></td>
+<td><code class="literal">[[:alpha:]]+ing</code></td>
+</tr>
+<tr>
+<td>2.32<p></p>(0.344s)</td>
+<td>3.06<p></p>(0.453s)</td>
+<td><span class="highlight">1<p></p>(0.148s)</span></td>
+<td><code class="literal">^[^
+]*?Twain</code></td>
+</tr>
+<tr>
+<td><span class="highlight">1<p></p>(0.0576s)</span></td>
+<td><span class="highlight">1.05<p></p>(0.0606s)</span></td>
+<td>1.15<p></p>(0.0664s)</td>
+<td><code class="literal">Tom|Sawyer|Huckleberry|Finn</code></td>
+</tr>
+<tr>
+<td>1.24<p></p>(0.164s)</td>
+<td>1.44<p></p>(0.191s)</td>
+<td><span class="highlight">1<p></p>(0.133s)</span></td>
+<td><code class="literal">(Tom|Sawyer|Huckleberry|Finn).{0,30}river|river.{0,30}(Tom|Sawyer|Huckleberry|Finn)</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="xpressive.appendices.appendix_5__implementation_notes"></a><a class="link" href="appendices.html#xpressive.appendices.appendix_5__implementation_notes" title="Appendix 5: Implementation Notes">Appendix
+      5: Implementation Notes</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="appendices.html#boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___">Cycle
+        collection with <code class="literal">tracking_ptr&lt;&gt;</code></a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___"></a><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___" title="Cycle collection with tracking_ptr&lt;&gt;">Cycle
+        collection with <code class="literal">tracking_ptr&lt;&gt;</code></a>
+</h4></div></div></div>
+<p>
+          In xpressive, regex objects can refer to each other and themselves by value
+          or by reference. In addition, they ref-count their referenced regexes to
+          keep them alive. This creates the possibility for cyclic reference counts,
+          and raises the possibility of memory leaks. xpressive avoids leaks by using
+          a type called <code class="computeroutput"><span class="identifier">tracking_ptr</span><span class="special">&lt;&gt;</span></code>. This doc describes at a high level
+          how <code class="computeroutput"><span class="identifier">tracking_ptr</span><span class="special">&lt;&gt;</span></code>
+          works.
+        </p>
+<h3>
+<a name="boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.h0"></a>
+          <span class="phrase"><a name="boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.constraints"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.constraints">Constraints</a>
+        </h3>
+<p>
+          Our solution must meet the following design constraints:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              No dangling references: All objects referred to directly or indirectly
+              must be kept alive as long as the references are needed.
+            </li>
+<li class="listitem">
+              No leaks: all objects must be freed eventually.
+            </li>
+<li class="listitem">
+              No user intervention: The solution must not require users to explicitly
+              invoke some cycle collection routine.
+            </li>
+<li class="listitem">
+              Clean-up is no-throw: The collection phase will likely be called from
+              a destructor, so it must never throw an exception under any circumstance.
+            </li>
+</ul></div>
+<h3>
+<a name="boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.h1"></a>
+          <span class="phrase"><a name="boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.handle_body_idiom"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.handle_body_idiom">Handle-Body
+          Idiom</a>
+        </h3>
+<p>
+          To use <code class="computeroutput"><span class="identifier">tracking_ptr</span><span class="special">&lt;&gt;</span></code>,
+          you must separate your type into a handle and a body. In the case of xpressive,
+          the handle type is called <code class="computeroutput"><span class="identifier">basic_regex</span><span class="special">&lt;&gt;</span></code> and the body is called <code class="computeroutput"><span class="identifier">regex_impl</span><span class="special">&lt;&gt;</span></code>.
+          The handle will store a <code class="computeroutput"><span class="identifier">tracking_ptr</span><span class="special">&lt;&gt;</span></code> to the body.
+        </p>
+<p>
+          The body type must inherit from <code class="computeroutput"><span class="identifier">enable_reference_tracking</span><span class="special">&lt;&gt;</span></code>. This gives the body the bookkeeping
+          data structures that <code class="computeroutput"><span class="identifier">tracking_ptr</span><span class="special">&lt;&gt;</span></code> will use. In particular, it gives
+          the body:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span><span class="special">&lt;</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">body</span><span class="special">&gt;</span>
+              <span class="special">&gt;</span> <span class="identifier">refs_</span></code>
+              : collection of bodies to which this body refers, and
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span><span class="special">&lt;</span><span class="identifier">weak_ptr</span><span class="special">&lt;</span><span class="identifier">body</span><span class="special">&gt;</span>
+              <span class="special">&gt;</span> <span class="identifier">deps_</span></code>
+              : collection of bodies which refer to this body.
+            </li>
+</ol></div>
+<h3>
+<a name="boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.h2"></a>
+          <span class="phrase"><a name="boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.references_and_dependencies"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.references_and_dependencies">References
+          and Dependencies</a>
+        </h3>
+<p>
+          We refer to (1) above as the "references" and (2) as the "dependencies".
+          It is crucial to the understanding of <code class="computeroutput"><span class="identifier">tracking_ptr</span><span class="special">&lt;&gt;</span></code> to recognize that the set of references
+          includes both those objects that are referred to directly as well as those
+          that are referred to indirectly (that is, through another reference). The
+          same is true for the set of dependencies. In other words, each body holds
+          a ref-count directly to every other body that it needs.
+        </p>
+<p>
+          Why is this important? Because it means that when a body no longer has
+          a handle referring to it, all its references can be released immediately
+          without fear of creating dangling references.
+        </p>
+<p>
+          References and dependencies cross-pollinate. Here's how it works:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              When one object acquires another as a reference, the second object
+              acquires the first as a dependency.
+            </li>
+<li class="listitem">
+              In addition, the first object acquires all of the second object's references,
+              and the second object acquires all of the first object's dependencies.
+            </li>
+<li class="listitem">
+              When an object picks up a new reference, the reference is also added
+              to all dependent objects.
+            </li>
+<li class="listitem">
+              When an object picks up a new dependency, the dependency is also added
+              to all referenced objects.
+            </li>
+<li class="listitem">
+              An object is never allowed to have itself as a dependency. Objects
+              may have themselves as references, and often do.
+            </li>
+</ol></div>
+<p>
+          Consider the following code:
+        </p>
+<pre class="programlisting"><span class="identifier">sregex</span> <span class="identifier">expr</span><span class="special">;</span>
+<span class="special">{</span>
+    <span class="identifier">sregex</span> <span class="identifier">group</span>  <span class="special">=</span> <span class="char">'('</span> <span class="special">&gt;&gt;</span> <span class="identifier">by_ref</span><span class="special">(</span><span class="identifier">expr</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="char">')'</span><span class="special">;</span>                 <span class="comment">// (1)</span>
+    <span class="identifier">sregex</span> <span class="identifier">fact</span>   <span class="special">=</span> <span class="special">+</span><span class="identifier">_d</span> <span class="special">|</span> <span class="identifier">group</span><span class="special">;</span>                                <span class="comment">// (2)</span>
+    <span class="identifier">sregex</span> <span class="identifier">term</span>   <span class="special">=</span> <span class="identifier">fact</span> <span class="special">&gt;&gt;</span> <span class="special">*((</span><span class="char">'*'</span> <span class="special">&gt;&gt;</span> <span class="identifier">fact</span><span class="special">)</span> <span class="special">|</span> <span class="special">(</span><span class="char">'/'</span> <span class="special">&gt;&gt;</span> <span class="identifier">fact</span><span class="special">));</span>   <span class="comment">// (3)</span>
+    <span class="identifier">expr</span>          <span class="special">=</span> <span class="identifier">term</span> <span class="special">&gt;&gt;</span> <span class="special">*((</span><span class="char">'+'</span> <span class="special">&gt;&gt;</span> <span class="identifier">term</span><span class="special">)</span> <span class="special">|</span> <span class="special">(</span><span class="char">'-'</span> <span class="special">&gt;&gt;</span> <span class="identifier">term</span><span class="special">));</span>   <span class="comment">// (4)</span>
+<span class="special">}</span>                                                               <span class="comment">// (5)</span>
+</pre>
+<p>
+          Here is how the references and dependencies propagate, line by line:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Effects
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    1) <code class="computeroutput"><span class="identifier">sregex</span> <span class="identifier">group</span>
+                    <span class="special">=</span> <span class="char">'('</span>
+                    <span class="special">&gt;&gt;</span> <span class="identifier">by_ref</span><span class="special">(</span><span class="identifier">expr</span><span class="special">)</span> <span class="special">&gt;&gt;</span>
+                    <span class="char">')'</span><span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="literal">group: cnt=1 refs={expr} deps={}<br> expr: cnt=2 refs={}
+                    deps={group}</code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    2) <code class="computeroutput"><span class="identifier">sregex</span> <span class="identifier">fact</span>
+                    <span class="special">=</span> <span class="special">+</span><span class="identifier">_d</span> <span class="special">|</span>
+                    <span class="identifier">group</span><span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="literal">group: cnt=2 refs={expr} deps={fact}<br> expr: cnt=3
+                    refs={} deps={group,fact}<br> fact: cnt=1 refs={expr,group}
+                    deps={}</code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    3) <code class="computeroutput"><span class="identifier">sregex</span> <span class="identifier">term</span>
+                    <span class="special">=</span> <span class="identifier">fact</span>
+                    <span class="special">&gt;&gt;</span> <span class="special">*((</span><span class="char">'*'</span> <span class="special">&gt;&gt;</span>
+                    <span class="identifier">fact</span><span class="special">)</span>
+                    <span class="special">|</span> <span class="special">(</span><span class="char">'/'</span> <span class="special">&gt;&gt;</span>
+                    <span class="identifier">fact</span><span class="special">));</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="literal">group: cnt=3 refs={expr} deps={fact,term}<br> expr:
+                    cnt=4 refs={} deps={group,fact,term}<br> fact: cnt=2 refs={expr,group}
+                    deps={term}<br> term: cnt=1 refs={expr,group,fact} deps={}</code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    4) <code class="computeroutput"><span class="identifier">expr</span> <span class="special">=</span>
+                    <span class="identifier">term</span> <span class="special">&gt;&gt;</span>
+                    <span class="special">*((</span><span class="char">'+'</span>
+                    <span class="special">&gt;&gt;</span> <span class="identifier">term</span><span class="special">)</span> <span class="special">|</span>
+                    <span class="special">(</span><span class="char">'-'</span>
+                    <span class="special">&gt;&gt;</span> <span class="identifier">term</span><span class="special">));</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="literal">group: cnt=5 refs={expr,group,fact,term} deps={expr,fact,term}<br>
+                    expr: cnt=5 refs={expr,group,fact,term} deps={group,fact,term}<br>
+                    fact: cnt=5 refs={expr,group,fact,term} deps={expr,group,term}<br>
+                    term: cnt=5 refs={expr,group,fact,term} deps={expr,group,fact}</code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    5) <code class="computeroutput"><span class="special">}</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="literal">expr: cnt=2 refs={expr,group,fact,term} deps={group,fact,term}</code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          This shows how references and dependencies propagate when creating cycles
+          of objects. After line (4), which closes the cycle, every object has a
+          ref-count on every other object, even to itself. So how does this not leak?
+          Read on.
+        </p>
+<h3>
+<a name="boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.h3"></a>
+          <span class="phrase"><a name="boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.cycle_breaking"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.cycle_breaking">Cycle
+          Breaking</a>
+        </h3>
+<p>
+          Now that the bodies have their sets of references and dependencies, the
+          hard part is done. All that remains is to decide when and where to break
+          the cycle. That is the job of <code class="computeroutput"><span class="identifier">tracking_ptr</span><span class="special">&lt;&gt;</span></code>, which is part of the handle. The
+          <code class="computeroutput"><span class="identifier">tracking_ptr</span><span class="special">&lt;&gt;</span></code>
+          holds 2 <code class="computeroutput"><span class="identifier">shared_ptr</span></code>s. The
+          first, obviously, is the <code class="computeroutput"><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">body</span><span class="special">&gt;</span></code> -- the reference to the body to which
+          this handle refers. The other <code class="computeroutput"><span class="identifier">shared_ptr</span></code>
+          is used to break the cycle. It ensures that when all the handles to a body
+          go out of scope, the body's set of references is cleared.
+        </p>
+<p>
+          This suggests that more than one handle can refer to a body. In fact,
+          <code class="computeroutput"><span class="identifier">tracking_ptr</span><span class="special">&lt;&gt;</span></code>
+          gives you copy-on-write semantics -- when you copy a handle, the body is
+          shared. That makes copies very efficient. Eventually, all the handles to
+          a particular body go out of scope. When that happens, the ref count to
+          the body might still be greater than 0 because some other body (or this
+          body itself!) might be holding a reference to it. However, we are certain
+          that the cycle-breaker's ref-count goes to 0 because the cycle-breaker
+          only lives in handles. No more handles, no more cycle-breakers.
+        </p>
+<p>
+          What does the cycle-breaker do? Recall that the body has a set of references
+          of type <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span><span class="special">&lt;</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">body</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>. Let's call this type "references_type".
+          The cycle-breaker is a <code class="computeroutput"><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">references_type</span><span class="special">&gt;</span></code>. It uses a custom deleter, which is
+          defined as follows:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">DerivedT</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">reference_deleter</span>
+<span class="special">{</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span> <span class="special">()(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span><span class="special">&lt;</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">DerivedT</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">*</span><span class="identifier">refs</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">refs</span><span class="special">-&gt;</span><span class="identifier">clear</span><span class="special">();</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+          The job of to the cycle breaker is to ensure that when the last handle
+          to a body goes away, the body's set of references is cleared. That's it.
+        </p>
+<p>
+          We can clearly see how this guarantees that all bodies are cleaned up eventually.
+          Once every handle has gone out of scope, all the bodies' sets of references
+          will be cleared, leaving none with a non-zero ref-count. No leaks, guaranteed.
+        </p>
+<p>
+          It's a bit harder to see how this guarantees no dangling references. Imagine
+          that there are 3 bodies: A, B and C. A refers to B which refers to C. Now
+          all the handles to B go out of scope, so B's set of references is cleared.
+          Doesn't this mean that C gets deleted, even though it is being used (indirectly)
+          by A? It doesn't. This situation can never occur because we propagated
+          the references and dependencies above such that A will be holding a reference
+          directly to C in addition to B. When B's set of references is cleared,
+          no bodies get deleted, because they are all still in use by A.
+        </p>
+<h3>
+<a name="boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.h4"></a>
+          <span class="phrase"><a name="boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.future_work"></a></span><a class="link" href="appendices.html#boost_xpressive.appendices.appendix_5__implementation_notes.cycle_collection_with___tracking_ptr___.future_work">Future
+          Work</a>
+        </h3>
+<p>
+          All these <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code>s and <code class="computeroutput"><span class="identifier">shared_ptr</span></code>s
+          and <code class="computeroutput"><span class="identifier">weak_ptr</span></code>s! Very inefficient.
+          I used them because they were handy. I could probably do better.
+        </p>
+<p>
+          Also, some objects stick around longer than they need to. Consider:
+        </p>
+<pre class="programlisting"><span class="identifier">sregex</span> <span class="identifier">b</span><span class="special">;</span>
+<span class="special">{</span>
+    <span class="identifier">sregex</span> <span class="identifier">a</span> <span class="special">=</span> <span class="identifier">_</span><span class="special">;</span>
+    <span class="identifier">b</span> <span class="special">=</span> <span class="identifier">by_ref</span><span class="special">(</span><span class="identifier">a</span><span class="special">);</span>
+    <span class="identifier">b</span> <span class="special">=</span> <span class="identifier">_</span><span class="special">;</span>
+<span class="special">}</span>
+<span class="comment">// a is still alive here!</span>
+</pre>
+<p>
+          Due to the way references and dependencies are propagated, the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code> of references can only grow. It never
+          shrinks, even when some references are no longer needed. For xpressive
+          this isn't an issue. The graphs of referential objects generally stay small
+          and isolated. If someone were to try to use <code class="computeroutput"><span class="identifier">tracking_ptr</span><span class="special">&lt;&gt;</span></code> as a general ref-count-cycle-collection
+          mechanism, this problem would have to be addressed.
+        </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost_xpressive/acknowledgments.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../xpressive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../tools.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

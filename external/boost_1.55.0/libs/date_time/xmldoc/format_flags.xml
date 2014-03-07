@@ -1,0 +1,519 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.format_flags">
+  <title>Format Flags</title>
+
+  <para>Many of the format flags this new system uses for output are those used by <code>strftime(...)</code>, but not all. Some new flags have been added, and others overridden. The input system supports only specific flags, therefore, not all flags that work for output will work with input (we are currently working to correct this situation).</para>
+
+  <para>The following tables list the all the flags available for both date_time IO as well as strftime. Format flags marked with a single asterisk (*) have a behavior unique to date_time. Those flags marked with an exclamation point (!) are not usable for input (at this time). The flags marked with a hash sign (#) are implemented by system locale and are known to be missing on some platforms. The first table is for dates, and the second table is for times.
+  </para>
+
+  <para>
+    <anchor id="date_time_io.date_format_flags" />
+    Date Facet Format Flags
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Format Specifier</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>%a</screen></entry>
+            <entry>Abbreviated weekday name</entry>
+          </row>
+          <row>
+            <entry><screen>"Mon" => Monday</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%A</screen></entry>
+            <entry>Long weekday name</entry>
+          </row>
+          <row>
+            <entry><screen>"Monday"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%b</screen></entry>
+            <entry>Abbreviated month name</entry>
+          </row>
+          <row>
+            <entry><screen>"Feb" => February</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%B</screen></entry>
+            <entry>Full month name</entry>
+          </row>
+          <row>
+            <entry><screen>"February"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%c !</screen></entry>
+            <entry>The  preferred  date  and  time  representation  for the current locale.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%C !#</screen></entry>
+            <entry>The century number (year/100) as a 2-digit integer.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%d</screen></entry>
+            <entry>Day of the month as decimal 01 to 31</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%D !#</screen></entry>
+            <entry>Equivalent to %m/%d/%y</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%e #</screen></entry>
+            <entry>Like %d, the day of the month as a decimal number, but a leading zero is replaced by a space</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%G !</screen></entry>
+            <entry>This has the same format and value as %y, except that if the ISO week number belongs to the previous or next year, that year is used instead.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%g !</screen></entry>
+            <entry>Like %G, but without century.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%h !#</screen></entry>
+            <entry> Equivalent to %b</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%j</screen></entry>
+            <entry>Day of year as decimal from 001 to 366 for leap years, 001 - 365 for non-leap years.</entry>
+          </row>
+          <row>
+            <entry><screen>"060" => Feb-29</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%m</screen></entry>
+            <entry>Month name as a decimal 01 to 12</entry>
+          </row>
+          <row>
+            <entry><screen>"01" => January</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%u !</screen></entry>
+            <entry>The  day of the week as a decimal, range 1 to 7, Monday being 1.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%U</screen></entry>
+            <entry>The week number of the current year as a decimal number, range 00 to 53, starting with the first Sunday as the first day of week 01. In 2005, Jan 1st falls on a Saturday, so therefore it falls within week 00 of 2005 (week 00 spans 2004-Dec-26 to 2005-Jan-01. This also happens to be week 53 of 2004).</entry> 
+          </row>
+          <row>
+            <entry><screen>date d(2005, Jan, 1); // Saturday
+// with format %U
+ss &lt;&lt; d; // "00"
+d += day(1); // Sunday
+ss &lt;&lt; d; // "01" beginning of week 1</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%V !#</screen></entry>
+            <entry>The ISO 8601:1988 week number of the current year as  a  decimal number,  range 01 to 53, where week 1 is the first week that has at least 4 days in the current year,  and  with  Monday  as  the first day of the week.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%w</screen></entry>
+            <entry>Weekday as decimal number 0 to 6</entry>
+          </row>
+          <row>
+            <entry><screen>"0" => Sunday</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%W</screen></entry>
+            <entry>Week number 00 to 53 where Monday is first day of week 1</entry>
+          </row>
+          <row>
+            <entry><screen>date d(2005, Jan, 2); // Sunday
+// with format %W
+ss &lt;&lt; d; // "00"
+d += day(1); // Monday
+ss &lt;&lt; d; // "01" beginning of week 1</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%x</screen></entry>
+            <entry>Implementation defined date format from the locale.</entry>
+          </row>
+          <row>
+            <entry><screen>date d(2005,Oct,31);
+date_facet* f = new date_facet("%x");
+
+locale loc = locale(locale("en_US"), f);
+cout.imbue(loc);
+cout &lt;&lt; d; // "10/31/2005"
+
+loc = locale(locale("de_DE"), f);
+cout.imbue(loc);
+cout &lt;&lt; d; // "31.10.2005"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%y</screen></entry>
+            <entry>Two digit year</entry>
+          </row>
+          <row>
+            <entry><screen>"05" => 2005</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%Y</screen></entry>
+            <entry>Four digit year</entry>
+          </row>
+          <row>
+            <entry><screen>"2005"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%Y-%b-%d</screen></entry>
+            <entry>Default date format</entry>
+          </row>
+          <row>
+            <entry><screen>"2005-Apr-01"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%Y%m%d</screen></entry>
+            <entry>ISO format</entry>
+          </row>
+          <row>
+            <entry><screen>"20050401"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%Y-%m-%d</screen></entry>
+            <entry>ISO extended format</entry>
+          </row>
+          <row>
+            <entry><screen>"2005-04-01"</screen></entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+
+
+    <anchor id="date_time_io.time_format_flags" />
+    Time Facet Format Flags
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Format Specifier</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>%- *!</screen></entry>
+            <entry>Placeholder for the sign of a duration. Only displays when the duration is negative.</entry>
+          </row>
+          <row>
+            <entry><screen>"-13:15:16"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%+ *!</screen></entry>
+            <entry>Placeholder for the sign of a duration. Always displays for both positive and negative.</entry>
+          </row>
+          <row>
+            <entry><screen>"+13:15:16"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%f</screen></entry>
+            <entry>Fractional seconds are always used, even when their value is zero</entry>
+          </row>
+          <row>
+            <entry><screen>"13:15:16.000000"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%F *</screen></entry>
+            <entry>Fractional seconds are used only when their value is not zero.</entry>
+          </row>
+          <row>
+            <entry><screen>"13:15:16"
+"05:04:03.001234"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%H</screen></entry>
+            <entry>The hour as a decimal number using a 24-hour clock (range 00 to 23).</entry>
+          </row>
+          <row>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%I !</screen></entry>
+            <entry>The hour as a decimal number using a 12-hour clock (range 01 to 12).</entry>
+          </row>
+          <row>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%k !</screen></entry>
+            <entry>The hour (24-hour clock) as a decimal number (range 0 to 23); single digits are preceded by a blank.</entry>
+          </row>
+          <row>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%l !</screen></entry>
+            <entry>The hour (12-hour clock) as a decimal number (range  1  to  12); single digits are preceded by a blank.</entry>
+          </row>
+          <row>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%M</screen></entry>
+            <entry>The minute as a decimal number (range 00 to 59).</entry>
+          </row>
+          <row>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%O</screen></entry>
+            <entry>The number of hours in a time duration as a decimal number (range 0 to max. representable duration); single digits are preceded by a zero.</entry>
+          </row>
+          <row>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%p !</screen></entry>
+            <entry>Either `AM' or `PM' according to the given time value, or the corresponding strings for the current locale.</entry>
+          </row>
+          <row>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%P !#</screen></entry>
+            <entry>Like %p but in lowercase: `am' or `pm' or a corresponding string for the current locale.</entry>
+          </row>
+          <row>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%r !#</screen></entry>
+            <entry>The time in a.m. or p.m. notation. In the POSIX locale this is equivalent to `%I:%M:%S %p'</entry>
+          </row>
+          <row>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%R !</screen></entry>
+            <entry>The time in 24-hour notation (%H:%M)</entry>
+          </row>
+          <row>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%s *</screen></entry>
+            <entry>Seconds with fractional seconds.</entry>
+          </row>
+          <row>
+            <entry><screen>"59.000000"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%S</screen></entry>
+            <entry>Seconds only</entry>
+          </row>
+          <row>
+            <entry><screen>"59"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%T !</screen></entry>
+            <entry>The time in 24-hour notation (%H:%M:%S)</entry>
+          </row>
+          <row>
+            <entry></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%q</screen></entry>
+            <entry>ISO time zone (output only). This flag is ignored when using the time_facet with a ptime.</entry>
+          </row>
+          <row>
+            <entry><screen>"-0700" // Mountain Standard Time</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%Q</screen></entry>
+            <entry>ISO extended time zone (output only). This flag is ignored when using the time_facet with a ptime.</entry>
+          </row>
+          <row>
+            <entry><screen>"-05:00" // Eastern Standard Time</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%z *!</screen></entry>
+            <entry>Abbreviated time zone (output only). This flag is ignored when using the time_facet with a ptime.</entry>
+          </row>
+          <row>
+            <entry><screen>"MST" // Mountain Standard Time</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%Z *!</screen></entry>
+            <entry>Full time zone name (output only). This flag is ignored when using the time_facet with a ptime.</entry>
+          </row>
+          <row>
+            <entry><screen>"EDT" // Eastern Daylight Time</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%ZP *</screen></entry>
+            <entry>Posix time zone string (available to both input and output). This flag is ignored when using the time_facet with a ptime. For complete details on posix time zone strings, see <link linkend="date_time.local_time.posix_time_zone">posix_time_zone class</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>"EST-05EDT+01,M4.1.0/02:00,M10.5.0/02:00"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%x %X</screen></entry>
+            <entry>Implementation defined date/time format from the locale.</entry>
+          </row>
+          <row>
+            <entry><screen>date d(2005,Oct,31);
+ptime pt(d, hours(20));
+time_facet* f = new time_facet("%x %X");
+
+locale loc = locale(locale("en_US"), f);
+cout.imbue(loc);
+cout &lt;&lt; pt; // "10/31/2005 08:00:00 PM"
+
+loc = locale(locale("de_DE"), f);
+cout.imbue(loc);
+cout &lt;&lt; pt; // "31.10.2005 20:00:00"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%Y%m%dT%H%M%S%F%q</screen></entry>
+            <entry>ISO format</entry>
+          </row>
+          <row>
+            <entry><screen>"20051015T131211-0700" // Oct 15, 2005 13:12:11 MST</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%Y-%m-%d %H:%M:%S%F%Q</screen></entry>
+            <entry>Extended ISO format</entry>
+          </row>
+          <row>
+            <entry><screen>"2005-10-15 13:12:11-07:00"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%Y-%b-%d %H:%M:%S%F %z</screen></entry>
+            <entry>Default format used when outputting ptime and local_date_time.</entry>
+          </row>
+          <row>
+            <entry><screen>"2005-Oct-15 13:12:11 MST"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%Y-%b-%d %H:%M:%S%F %ZP</screen></entry>
+            <entry>Default format used when inputting ptime and local_date_time.</entry>
+          </row>
+          <row>
+            <entry><screen>"2005-Oct-15 13:12:11 MST-07"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%-%H:%M:%S%F !</screen></entry>
+            <entry>Default time_duration format for output. Sign will only be displayed for negative durations.</entry>
+          </row>
+          <row>
+            <entry><screen>"-13:14:15.003400"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>%H:%M:%S%F</screen></entry>
+            <entry>Default time_duration format for input.</entry>
+          </row>
+          <row>
+            <entry><screen>"13:14:15.003400"</screen></entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+  <para>* Signifies flags that have a behavior unique to <code>date_time</code>.</para>
+  <para># Signifies flags that have a platform-dependent behavior. These may not be supported everywhere.</para>
+  <para>! Signifies flags that currently do not work for input.</para>
+</section>

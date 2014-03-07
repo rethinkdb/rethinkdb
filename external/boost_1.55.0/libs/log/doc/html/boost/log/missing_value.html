@@ -1,0 +1,72 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class missing_value</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../log/reference.html#header.boost.log.exceptions_hpp" title="Header &lt;boost/log/exceptions.hpp&gt;">
+<link rel="prev" href="runtime_error.html" title="Class runtime_error">
+<link rel="next" href="invalid_type.html" title="Class invalid_type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="runtime_error.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../log/reference.html#header.boost.log.exceptions_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="invalid_type.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.missing_value"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class missing_value</span></h2>
+<p>boost::log::missing_value &#8212; Exception class that is used to indicate errors of missing values. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../log/reference.html#header.boost.log.exceptions_hpp" title="Header &lt;boost/log/exceptions.hpp&gt;">boost/log/exceptions.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="missing_value.html" title="Class missing_value">missing_value</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">runtime_error</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="missing_value.html#boost.log.missing_valueconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="missing_value.html#idp25076680-bb"><span class="identifier">missing_value</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="missing_value.html#idp25077016-bb"><span class="identifier">missing_value</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="missing_value.html#idp25077784-bb"><span class="special">~</span><span class="identifier">missing_value</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp53382376"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp53382584"></a><h3>
+<a name="boost.log.missing_valueconstruct-copy-destruct"></a><code class="computeroutput">missing_value</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp25076680-bb"></a><span class="identifier">missing_value</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Default constructor. Creates an exception with the default error message. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp25077016-bb"></a><span class="identifier">missing_value</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="special">&amp;</span> descr<span class="special">)</span><span class="special">;</span></pre>
+<p>Initializing constructor. Creates an exception with the specified error message. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp25077784-bb"></a><span class="special">~</span><span class="identifier">missing_value</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destructor </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="runtime_error.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../log/reference.html#header.boost.log.exceptions_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="invalid_type.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,326 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Directed Acyclic Graph Shortest Paths</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:dag_shortest_paths"></A>
+<img src="figs/python.gif" alt="(Python)"/>
+<TT>dag_shortest_paths</TT>
+</H1>
+
+
+<P>
+<PRE>
+<i>// named paramter version</i>
+template &lt;class VertexListGraph, class Param, class Tag, class Rest&gt;
+void dag_shortest_paths(const VertexListGraph&amp; g,
+   typename graph_traits&lt;VertexListGraph&gt;::vertex_descriptor s,
+   const bgl_named_params&lt;Param,Tag,Rest&gt;&amp; params)
+
+<i>// non-named parameter version</i>
+template &lt;class VertexListGraph, class DijkstraVisitor, 
+	  class DistanceMap, class WeightMap, class ColorMap, 
+	  class PredecessorMap,
+	  class Compare, class Combine, 
+	  class DistInf, class DistZero&gt;
+void dag_shortest_paths(const VertexListGraph&amp; g,
+   typename graph_traits&lt;VertexListGraph&gt;::vertex_descriptor s, 
+   DistanceMap distance, WeightMap weight, ColorMap color,
+   PredecessorMap pred, DijkstraVisitor vis, 
+   Compare compare, Combine combine, DistInf inf, DistZero zero)
+</PRE>
+
+<P>
+This algorithm&nbsp;[<A HREF="bibliography.html#clr90">8</A>] solves
+the single-source shortest-paths problem on a weighted, directed 
+acyclic graph (DAG). This algorithm is more efficient for DAG's
+than either the Dijkstra or Bellman-Ford algorithm.
+Use breadth-first search instead of this algorithm
+when all edge weights are equal to one.  For the definition of the
+shortest-path problem see Section <A
+HREF="graph_theory_review.html#sec:shortest-paths-algorithms">Shortest-Paths
+Algorithms</A> for some background to the shortest-path problem.
+</P>
+
+<P>
+There are two main options for obtaining output from the
+<tt>dag_shortest_paths()</tt> function. If you provide a
+distance property map through the <tt>distance_map()</tt> parameter
+then the shortest distance from the source vertex to every other
+vertex in the graph will be recorded in the distance map. Also you can
+record the shortest paths tree in a predecessor map: for each vertex
+<i>u in V</i>, <i>p[u]</i> will be the predecessor of <i>u</i> in
+the shortest paths tree (unless <i>p[u] = u</i>, in which case <i>u</i> is
+either the source or a vertex unreachable from the source).  In
+addition to these two options, the user can provide there own
+custom-made visitor that can takes actions during any of the
+algorithm's event points.</P>
+
+<h3>Where Defined</h3>
+
+<a href="../../../boost/graph/dag_shortest_paths.hpp"><tt>boost/graph/dag_shortest_paths.hpp</tt></a>
+
+<h3>Parameters</h3>
+
+IN: <tt>const VertexListGraph&amp; g</tt> 
+<blockquote>
+  The graph object on which the algorithm will be applied.
+  The type <tt>VertexListGraph</tt> must be a model of \concept{VertexListGraph}.<br>
+
+  <b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+
+IN: <tt>vertex_descriptor s</tt> 
+<blockquote>
+  The source vertex. All distance will be calculated from this vertex,
+  and the shortest paths tree will be rooted at this vertex.<br>
+
+  <b>Python</b>: The parameter is named <tt>root_vertex</tt>.
+</blockquote>
+
+<h3>Named Parameters</h3>
+
+IN: <tt>weight_map(WeightMap w_map)</tt>   
+<blockquote>
+  The weight or ``length'' of each edge in the graph.
+  The type <tt>WeightMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The edge descriptor type of
+  the graph needs to be usable as the key type for the weight
+  map. The value type for the map must be
+  <i>Addable</i> with the value type of the distance map.<br>
+  <b>Default:</b>  <tt>get(edge_weight, g)</tt><br>
+  <b>Python</b>: Must be an <tt>edge_double_map</tt> for the graph.<br>
+  <b>Python default</b>: <tt>graph.get_edge_double_map("weight")</tt>
+
+</blockquote>
+
+IN: <tt>vertex_index_map(VertexIndexMap i_map)</tt> 
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+    num_vertices(g))</tt>. This is necessary for efficient updates of the
+  heap data structure when an edge is relaxed.  The type
+  <tt>VertexIndexMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The value type of the map must be an
+  integer type. The vertex descriptor type of the graph needs to be
+  usable as the key type of the map.<br>
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>.
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+OUT: <tt>predecessor_map(PredecessorMap p_map)</tt> 
+<blockquote>
+  The predecessor map records the edges in the minimum spanning
+  tree. Upon completion of the algorithm, the edges <i>(p[u],u)</i>
+  for all <i>u in V</i> are in the minimum spanning tree. If <i>p[u] =
+  u</i> then <i>u</i> is either the source vertex or a vertex that is
+  not reachable from the source.  The <tt>PredecessorMap</tt> type
+  must be a <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a> which key and vertex types the same as the vertex
+  descriptor type of the graph.<br>
+  <b>Default:</b> <tt>dummy_property_map</tt><br>
+  <b>Python</b>: Must be a <tt>vertex_vertex_map</tt> for the graph.<br>
+</blockquote>
+
+UTIL/OUT: <tt>distance_map(DistanceMap d_map)</tt> 
+<blockquote>
+  The shortest path weight from the source vertex <tt>s</tt> to each
+  vertex in the graph <tt>g</tt> is recorded in this property map. The
+  shortest path weight is the sum of the edge weights along the
+  shortest path.  The type <tt>DistanceMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>. The vertex descriptor type of the graph needs to
+  be usable as the key type of the distance map. 
+
+  The value type of the distance map is the element type of a <a
+  href="./Monoid.html">Monoid</tt> formed with the <tt>combine</tt>
+  function object and the <tt>zero</tt> object for the identity
+  element. Also the distance value type must have a <a
+  href="http://www.sgi.com/tech/stl/StrictWeakOrdering.html">
+  StrictWeakOrdering</a> provided by the <tt>compare</tt> function
+  object.<br>
+  <b>Default:</b> <a
+  href="../../property_map/doc/iterator_property_map.html">
+  <tt>iterator_property_map</tt></a> created from a
+  <tt>std::vector</tt> of the <tt>WeightMap</tt>'s value type of size
+  <tt>num_vertices(g)</tt> and using the <tt>i_map</tt> for the index
+  map.<br>
+
+  <b>Python</b>: Must be a <tt>vertex_double_map</tt> for the graph.
+</blockquote>
+
+IN: <tt>distance_compare(CompareFunction cmp)</tt> 
+<blockquote>
+  This function is use to compare distances to determine which vertex
+  is closer to the source vertex.  The <tt>CompareFunction</tt> type
+  must be a model of <a
+  href="http://www.sgi.com/tech/stl/BinaryPredicate.html">Binary
+  Predicate</a> and have argument types that match the value type of
+  the <tt>DistanceMap</tt> property map.<br>
+
+  <b>Default:</b>
+  <tt>std::less&lt;D&gt;</tt> with <tt>D=typename
+  property_traits&lt;DistanceMap&gt;::value_type</tt><br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+IN: <tt>distance_combine(CombineFunction cmb)</tt> 
+<blockquote>
+  This function is used to combine distances to compute the distance
+  of a path. The <tt>CombineFunction</tt> type must be a model of <a
+  href="http://www.sgi.com/tech/stl/BinaryFunction.html">Binary
+  Function</a>. The first argument type of the binary function must
+  match the value type of the <tt>DistanceMap</tt> property map and
+  the second argument type must match the value type of the
+  <tt>WeightMap</tt> property map.  The result type must be the same
+  type as the distance value type.<br>
+
+  <b>Default:</b> <tt>std::plus&lt;D&gt;</tt> with
+   <tt>D=typename property_traits&lt;DistanceMap&gt;::value_type</tt><br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+IN: <tt>distance_inf(D inf)</tt> 
+<blockquote>
+  The <tt>inf</tt> object must be the greatest value of any <tt>D</tt> object.
+  That is, <tt>compare(d, inf) == true</tt> for any <tt>d != inf</tt>.
+  The type <tt>D</tt> is the value type of the <tt>DistanceMap</tt>.<br>
+  <b>Default:</b> <tt>std::numeric_limits&lt;D&gt;::max()</tt><br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+IN: <tt>distance_zero(D zero)</tt> 
+<blockquote>
+  The <tt>zero</tt> value must be the identity element for the
+  <a href="./Monoid.html">Monoid</a> formed by the distance values
+  and the <tt>combine</tt> function object.
+  The type \code{D} is the value type of the \code{DistanceMap}
+  <b>Default:</b> <tt>D()</tt><br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+UTIL/OUT: <tt>color_map(ColorMap c_map)</tt> 
+<blockquote>
+  This is used during the execution of the algorithm to mark the
+  vertices. The vertices start out white and become gray when they are
+  inserted in the queue. They then turn black when they are removed
+  from the queue. At the end of the algorithm, vertices reachable from
+  the source vertex will have been colored black. All other vertices
+  will still be white. The type <tt>ColorMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>. A vertex descriptor must be usable as the key type
+  of the map, and the value type of the map must be a model of
+  <a href="./ColorValue.html">Color Value</a>.<br>
+  <b>Default:</b> an <a
+  href="../../property_map/doc/iterator_property_map.html">
+  <tt>iterator_property_map</tt></a> created from a <tt>std::vector</tt>
+  of <tt>default_color_type</tt> of size <tt>num_vertices(g)</tt> and
+  using the <tt>i_map</tt> for the index map.<br>
+
+  <b>Python</b>: The color map must be a <tt>vertex_color_map</tt> for
+  the graph.
+
+</blockquote>
+  
+OUT: <tt>visitor(DijkstraVisitor v)</tt>  
+<blockquote>
+  Use this to specify actions that you would like to happen
+  during certain event points within the algorithm.
+  The type <tt>DijkstraVisitor</tt> must be a model of the
+  <a href="./DijkstraVisitor.html">Dijkstra Visitor</a> concept. 
+ The visitor object is passed by value <a
+  href="#1">[1]</a>.<br>
+  <b>Default:</b> <tt>dijkstra_visitor&lt;null_visitor&gt;</tt><br>
+
+  <b>Python</b>: The parameter should be an object that derives from
+  the <a
+  href="DijkstraVisitor.html#python"><tt>DijkstraVisitor</tt></a> type
+  of the graph.
+</blockquote>
+
+
+<H3>Complexity</H3>
+
+<P>
+The time complexity is <i>O(V + E)</i>.
+
+<h3>Visitor Event Points</h3>
+
+<ul>
+<li><b><tt>vis.initialize_vertex(u, g)</tt></b>
+  is invoked on each vertex in the graph before the start of the
+  algorithm.
+<li><b><tt>vis.examine_vertex(u, g)</tt></b>
+  is invoked on a vertex as it is added to set <i>S</i>. 
+  At this point we know that <i>(p[u],u)</i>
+  is a shortest-paths tree edge so 
+  <i>d[u] = delta(s,u) = d[p[u]] + w(p[u],u)</i>. Also, the distances 
+  of the examined vertices is monotonically increasing
+  <i>d[u<sub>1</sub>] <= d[u<sub>2</sub>] <= d[u<sub>n</sub>]</i>. 
+<li><b><tt>vis.examine_edge(e, g)</tt></b>
+  is invoked on each out-edge of a vertex immediately after it has
+  been added to set <i>S</i>. 
+<li><b><tt>vis.edge_relaxed(e, g)</tt></b>
+  is invoked on edge <i>(u,v)</i> if <i>d[u] + w(u,v) < d[v]</i>.
+  The edge <i>(u,v)</i> that participated in the last
+  relaxation for vertex <i>v</i> is an edge in the shortest paths tree. 
+<li><b><tt>vis.discover_vertex(v, g)</tt></b>
+  is invoked on vertex <i>v</i> when the edge 
+  <i>(u,v)</i> is examined and <i>v</i> is WHITE. Since
+  a vertex is colored GRAY when it is discovered,
+  each reacable vertex is discovered exactly once.
+<li><b><tt>vis.edge_not_relaxed(e, g)</tt></b>
+  is invoked if the edge is not relaxed (see above).
+<li><b><tt>vis.finish_vertex(u, g)</tt></b>
+   is invoked on a vertex after all of its out edges have
+  been examined.
+</ul>
+
+<H3>Example</H3>
+
+<P>
+See <a href="../example/dag_shortest_paths.cpp">
+<TT>example/dag_shortest_paths.cpp</TT></a> for an example of using this
+algorithm.
+
+<H3>Notes</H3>
+
+<p><a name="1">[1]</a> 
+  Since the visitor parameter is passed by value, if your visitor
+  contains state then any changes to the state during the algorithm
+  will be made to a copy of the visitor object, not the visitor object
+  passed in. Therefore you may want the visitor to hold this state by
+  pointer or reference.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 
+

@@ -1,0 +1,233 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>return_envelope</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../envelope.html" title="envelope">
+<link rel="prev" href="envelope.html" title="envelope">
+<link rel="next" href="../equals.html" title="equals">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="envelope.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../envelope.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../equals.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.algorithms.envelope.return_envelope"></a><a class="link" href="return_envelope.html" title="return_envelope">return_envelope</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp54725560"></a>
+Calculates the envelope of a geometry.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.envelope.return_envelope.h0"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.envelope.return_envelope.description"></a></span><a class="link" href="return_envelope.html#geometry.reference.algorithms.envelope.return_envelope.description">Description</a>
+          </h6>
+<p>
+            The free function return_envelope calculates the envelope (also known
+            as axis aligned bounding box, aabb, or minimum bounding rectangle, mbr)
+            of a geometry. This version with the return_ prefix returns the envelope,
+            and a template parameter must therefore be specified in the call.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.envelope.return_envelope.h1"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.envelope.return_envelope.synopsis"></a></span><a class="link" href="return_envelope.html#geometry.reference.algorithms.envelope.return_envelope.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Box</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">&gt;</span>
+<span class="identifier">Box</span> <span class="identifier">return_envelope</span><span class="special">(</span><span class="identifier">Geometry</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.envelope.return_envelope.h2"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.envelope.return_envelope.parameters"></a></span><a class="link" href="return_envelope.html#geometry.reference.algorithms.envelope.return_envelope.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Concept
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Box
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Box Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      -
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Must be specified
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Geometry const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Geometry Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.envelope.return_envelope.h3"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.envelope.return_envelope.returns"></a></span><a class="link" href="return_envelope.html#geometry.reference.algorithms.envelope.return_envelope.returns">Returns</a>
+          </h6>
+<p>
+            The calculated envelope
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.envelope.return_envelope.h4"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.envelope.return_envelope.header"></a></span><a class="link" href="return_envelope.html#geometry.reference.algorithms.envelope.return_envelope.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">envelope</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.envelope.return_envelope.h5"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.envelope.return_envelope.conformance"></a></span><a class="link" href="return_envelope.html#geometry.reference.algorithms.envelope.return_envelope.conformance">Conformance</a>
+          </h6>
+<p>
+            The function envelope implements function Envelope from the <a href="http://www.opengeospatial.org/standards/sfa" target="_top">OGC
+            Simple Feature Specification</a>.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.envelope.return_envelope.h6"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.envelope.return_envelope.example"></a></span><a class="link" href="return_envelope.html#geometry.reference.algorithms.envelope.return_envelope.example">Example</a>
+          </h6>
+<p>
+            Shows how to return the envelope of a ring
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">box</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point_xy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">ring</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">assign</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">assign</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">d2</span><span class="special">::</span><span class="identifier">point_xy</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">point</span><span class="special">;</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">ring</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">&gt;</span> <span class="identifier">ring</span><span class="special">;</span>
+    <span class="identifier">ring</span> <span class="special">+=</span>
+        <span class="identifier">point</span><span class="special">(</span><span class="number">4.0</span><span class="special">,</span> <span class="special">-</span><span class="number">0.5</span><span class="special">),</span> <span class="identifier">point</span><span class="special">(</span><span class="number">3.5</span><span class="special">,</span> <span class="number">1.0</span><span class="special">),</span>
+        <span class="identifier">point</span><span class="special">(</span><span class="number">2.0</span><span class="special">,</span> <span class="number">1.5</span><span class="special">),</span> <span class="identifier">point</span><span class="special">(</span><span class="number">3.5</span><span class="special">,</span> <span class="number">2.0</span><span class="special">),</span>
+        <span class="identifier">point</span><span class="special">(</span><span class="number">4.0</span><span class="special">,</span> <span class="number">3.5</span><span class="special">),</span> <span class="identifier">point</span><span class="special">(</span><span class="number">4.5</span><span class="special">,</span> <span class="number">2.0</span><span class="special">),</span>
+        <span class="identifier">point</span><span class="special">(</span><span class="number">6.0</span><span class="special">,</span> <span class="number">1.5</span><span class="special">),</span> <span class="identifier">point</span><span class="special">(</span><span class="number">4.5</span><span class="special">,</span> <span class="number">1.0</span><span class="special">),</span>
+        <span class="identifier">point</span><span class="special">(</span><span class="number">4.0</span><span class="special">,</span> <span class="special">-</span><span class="number">0.5</span><span class="special">);</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">box</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">&gt;</span> <span class="identifier">box</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+        <span class="special">&lt;&lt;</span> <span class="string">"return_envelope:"</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">dsv</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">return_envelope</span><span class="special">&lt;</span><span class="identifier">box</span><span class="special">&gt;(</span><span class="identifier">ring</span><span class="special">))</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            Output:
+          </p>
+<pre class="programlisting">return_envelope:((2, -0.5), (6, 3.5))
+
+<img src="../../../../img/algorithms/return_envelope.png" alt="return_envelope">
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="envelope.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../envelope.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../equals.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

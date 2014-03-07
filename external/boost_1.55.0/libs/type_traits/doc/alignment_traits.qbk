@@ -1,0 +1,24 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:alignment Synthesizing Types with Specific Alignments]
+
+Some low level memory management routines need to synthesize a POD type with
+specific alignment properties.  The template `__type_with_alignment` finds the smallest
+type with a specified alignment, while template `__aligned_storage` creates a type 
+with a specific size and alignment.
+
+[*Synopsis]
+
+   template <std::size_t Align>
+   struct __type_with_alignment;
+   
+   template <std::size_t Size, std::size_t Align>
+   struct __aligned_storage;
+
+[endsect]
+

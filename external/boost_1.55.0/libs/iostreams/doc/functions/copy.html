@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Function Template copy</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Function Template <CODE>copy</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#synopsis">Synopsis</A></DT>
+</DL>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>The function template <CODE>copy</CODE> reads data from a given model of <A HREF="../concepts/source.html">Source</A> and writes it to a given model of <A HREF="../concepts/sink.html">Sink</A> until the end of stream is reached. It then closes both components, using the function template <A HREF="close.html"><CODE>close</CODE></A>, and returns the number of characters written.</P>
+
+<P>The size of the temporary buffer used may be supplied as an optional parameter.</P>
+
+<P>There are four overloads of <CODE>copy</CODE> to accommodate all combinations of <A HREF="../concepts/source.html">Sources</A> and <A HREF="../concepts/sink.html">Sinks</A>, which are passed by <CODE>const</CODE> reference, and streams and stream buffers, which are passed by non-<CODE>const</CODE> reference.</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/copy.hpp"><CODE>&lt;boost/iostreams/copy.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="synopsis"></A>
+<H2>Synopsis</H2>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+              
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source, <SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+std::streamsize
+copy( [<SPAN CLASS="keyword">const</SPAN>] Source&amp; src, [<SPAN CLASS="keyword">const</SPAN>] Sink&amp; sink,
+      std::streamsize buffer_size = <SPAN CLASS="omitted">default value</SPAN> );
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

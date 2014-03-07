@@ -1,0 +1,7 @@
+graph foo {
+  edge [weight="10"];
+  0 -- 1 [weight="3.14159"];
+  1 -- foo [weight="2.71828"];
+  foo -- bar;
+  bar -- 1;
+}

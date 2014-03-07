@@ -1,0 +1,87 @@
+[/ File one_of.qbk]
+
+[section:one_of one_of]
+
+[/license
+Copyright (c) 2010-2012 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+The header file 'boost/algorithm/cxx11/one_of.hpp' contains four variants of a single algorithm, `one_of`. The algorithm tests the elements of a sequence and returns true if exactly one of the elements in the sequence has a particular property.
+
+The routine `one_of` takes a sequence and a predicate. It will return true if the predicate returns true for one element in the sequence. 
+
+The routine `one_of_equal` takes a sequence and a value. It will return true if one element in the sequence compares equal to the passed in value.
+
+Both routines come in two forms; the first one takes two iterators to define the range. The second form takes a single range parameter, and uses Boost.Range to traverse it.
+
+
+[heading interface]
+
+The function `one_of` returns true if the predicate returns true for one item in the sequence.  There are two versions; one takes two iterators, and the other takes a range.
+
+``
+namespace boost { namespace algorithm {
+template<typename InputIterator, typename Predicate>
+	bool one_of ( InputIterator first, InputIterator last, Predicate p );
+template<typename Range, typename Predicate> 
+	bool one_of ( const Range &r, Predicate p );
+}}
+``
+
+The function `one_of_equal` is similar to `one_of`, but instead of taking a predicate to test the elements of the sequence, it takes a value to compare against.
+
+``
+namespace boost { namespace algorithm {
+template<typename InputIterator, typename V>
+	bool one_of_equal ( InputIterator first, InputIterator last, V const &val );
+template<typename Range, typename V> 
+	bool one_of_equal ( const Range &r, V const &val );
+}}
+``
+
+[heading Examples]
+
+Given the container `c` containing `{ 0, 1, 2, 3, 14, 15 }`, then
+``
+bool isOdd ( int i ) { return i % 2 == 1; }
+bool lessThan10 ( int i ) { return i < 10; }
+
+using boost::algorithm;
+one_of ( c, isOdd ) --> false
+one_of ( c.begin (), c.end (), lessThan10 ) --> false
+one_of ( c.begin () + 3, c.end (), lessThan10 ) --> true
+one_of ( c.end (), c.end (), isOdd ) --> false  // empty range
+one_of_equal ( c, 3 ) --> true
+one_of_equal ( c.begin (), c.begin () + 3, 3 ) --> false
+one_of_equal ( c.begin (), c.begin (), 99 ) --> false  // empty range
+``
+
+[heading Iterator Requirements]
+
+`one_of` and `one_of_equal` work on all iterators except output iterators.
+
+[heading Complexity]
+
+All of the variants of `one_of` and `one_of_equal` run in ['O(N)] (linear) time; that is, they compare against each element in the list once. If more than one of the elements in the sequence satisfy the condition, then algorithm will return false immediately, without examining the remaining members of the sequence.
+
+[heading Exception Safety]
+
+All of the variants of `one_of` and `one_of_equal` take their parameters by value or const reference, and do not depend upon any global state. Therefore, all the routines in this file provide the strong exception guarantee.
+
+[heading Notes]
+
+* `one_of` and `one_of_equal` both return false for empty ranges, no matter what is passed to test against. 
+
+* The second parameter to `one_of_equal` is a template parameter, rather than deduced from the first parameter (`std::iterator_traits<InputIterator>::value_type`) because that allows more flexibility for callers, and takes advantage of built-in comparisons for the type that is pointed to by the iterator.  The function is defined to return true if, for one element in the sequence, the expression `*iter == val` evaluates to true (where `iter` is an iterator to each element in the sequence)
+
+[endsect]
+
+[/ File one_of.qbk
+Copyright 2011 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

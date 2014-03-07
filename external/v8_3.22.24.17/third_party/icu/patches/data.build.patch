@@ -1,0 +1,81 @@
+--- source/data/Makefile.in	2010-10-29 13:21:33.000000000 -0700
++++ source/data/Makefile.in	2011-01-25 17:20:34.534195000 -0800
+@@ -227,7 +227,14 @@
+ #  2005-may-05 Removed Unicode properties files (unorm.icu, uprops.icu, ucase.icu, ubidi.icu)
+ #  from data build. See Jitterbug 4497. (makedata.mak revision 1.117)
+ #
+-DAT_FILES_SHORT=pnames.icu unames.icu cnvalias.icu coll/ucadata.icu coll/invuca.icu nfc.nrm nfkc.nrm nfkc_cf.nrm uts46.nrm
++# CHROME: unames.icu is excluded from the data file.
++# coll/invuca.icu is also excluded. When building a ICU data file to check in,
++# we need to copy data/in/coll/invuca.icu to the build location (expected
++# by genrb : out/build/icudt46l/coll) by hand because genrb requires its
++# presence when compiling coll/root.txt. We have to put it back if Webkit
++# begins to use it.
++# See https://bugs.webkit.org/show_bug.cgi?id=30437#c32 about invuca.icu.
++DAT_FILES_SHORT=pnames.icu cnvalias.icu coll/ucadata.icu nfc.nrm nfkc.nrm nfkc_cf.nrm uts46.nrm
+ DAT_FILES=$(DAT_FILES_SHORT:%=$(BUILDDIR)/%)
+ 
+ ## BRK files
+@@ -258,7 +265,8 @@
+ -include $(UCMSRCDIR)/ucmfiles.mk
+ -include $(UCMSRCDIR)/ucmebcdic.mk
+ -include $(UCMSRCDIR)/ucmlocal.mk
+-ALL_UCM_SOURCE=ibm-37_P100-1995.ucm ibm-1047_P100-1995.ucm $(UCM_SOURCE_CORE) $(UCM_SOURCE_FILES) $(UCM_SOURCE_EBCDIC) $(UCM_SOURCE_LOCAL)
++# CHROME: we don't need any EBCDIC converters.
++ALL_UCM_SOURCE=$(UCM_SOURCE_CORE) $(UCM_SOURCE_FILES) $(UCM_SOURCE_EBCDIC) $(UCM_SOURCE_LOCAL)
+ UCM_FILES = $(ALL_UCM_SOURCE:%=$(SRCDATADIR)/%)
+ CNV_FILES = $(ALL_UCM_SOURCE:%.ucm=$(BUILDDIR)/%.cnv)
+ CNV_FILES_SHORT = $(ALL_UCM_SOURCE:%.ucm=%.cnv)
+@@ -325,7 +333,8 @@
+ TRANSLIT_SRC_FILES = $(TRANSLIT_SRC:%=$(TRANSLITSRCDIR)/%)
+ INSTALLED_TRANSLIT_FILES = $(TRANSLIT_SOURCE:%.txt=%)  $(TRANSLIT_SOURCE_LOCAL:%.txt=%)
+ endif
+-GENRBOPTS=-k
++# CHROME : To save space, use '-R' option.
++GENRBOPTS=-k -R
+ 
+ ## MISC files
+ -include $(MISCSRCDIR)/miscfiles.mk
+@@ -494,7 +503,8 @@
+ ####################################################    SPP
+ # SPP FILES
+ 
+-$(BUILDDIR)/%.spp: $(SPREPSRCDIR)/%.txt $(TOOLBINDIR)/gensprep$(TOOLEXEEXT) $(BUILDDIR)/unames.icu $(BUILDDIR)/pnames.icu
++# CHROME: We don't build unames.icu.
++$(BUILDDIR)/%.spp: $(SPREPSRCDIR)/%.txt $(TOOLBINDIR)/gensprep$(TOOLEXEEXT) $(BUILDDIR)/pnames.icu
+ 	$(INVOKE) $(TOOLBINDIR)/gensprep -d $(BUILDDIR) -i $(BUILDDIR) -s $(SPREPSRCDIR) -b $(@F:%.spp=%) -m $(UNICODEDATADIR) -u 3.2.0 $(<F)
+ 
+ ####################################################    BRK
+--- source/tools/toolutil/pkg_genc.c	2010-07-12 11:03:29.000000000 -0700
++++ source/tools/toolutil/pkg_genc.c	2011-01-27 17:16:33.624596000 -0800
+@@ -121,6 +121,10 @@
+         "\t.section .note.GNU-stack,\"\",%%progbits\n"
+         "\t.section .rodata\n"
+         "\t.align 8\n" /* Either align 8 bytes or 2^8 (256) bytes. 8 bytes is needed. */
++        /* The 3 lines below are added for Chrome. */
++        "#ifdef U_HIDE_DATA_SYMBOL\n"
++        "\t.hidden %s\n"
++        "#endif\n"
+         "\t.type %s,%%object\n"
+         "%s:\n\n",
+ 
+@@ -130,6 +134,10 @@
+         /*"\t.section __TEXT,__text,regular,pure_instructions\n"
+         "\t.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32\n"*/
+         ".globl _%s\n"
++        /* The 3 lines below are added for Chrome. */
++        "#ifdef U_HIDE_DATA_SYMBOL\n"
++        "\t.private_extern _%s\n"
++        "#endif\n"
+         "\t.data\n"
+         "\t.const\n"
+         "\t.align 4\n"  /* 1<<4 = 16 */
+@@ -249,7 +257,7 @@
+         exit(U_FILE_ACCESS_ERROR);
+     }
+ 
+-    getOutFilename(filename, destdir, bufferStr, entry, ".s", optFilename);
++    getOutFilename(filename, destdir, bufferStr, entry, ".S", optFilename);
+     out=T_FileStream_open(bufferStr, "w");
+     if(out==NULL) {
+         fprintf(stderr, "genccode: unable to open output file %s\n", bufferStr);

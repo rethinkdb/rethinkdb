@@ -1,0 +1,350 @@
+<html>
+<head>
+	<title>techniques.html</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+	<style>
+		u { font-weight:  normal; text-decoration:  none; }
+	</style>
+</head>
+<body>
+<h4>Techniques</h4>
+<div>
+	The preprocessor metaprogramming techniques are presented in example format.
+</div>
+
+<h4>Example<u> - Use a local macro to avoid small scale repetition.</u></h4>
+<div class="code"><pre>
+#define BOOST_PP_DEF(op) /* ..................................... */ \
+   template&lt;class T, int n&gt;                                          \
+   vec&lt;T, n&gt; operator op ## =(vec&lt;T, n&gt; lhs, const vec&lt;T, n&gt;& rhs) { \
+      for (int i = 0; i &lt; n; ++i) {                                  \
+         lhs(i) op ## = rhs(i);                                      \
+      }                                                              \
+   }                                                                 \
+   /**/
+
+BOOST_PP_DEF(+)
+BOOST_PP_DEF(-)
+BOOST_PP_DEF(*)
+BOOST_PP_DEF(/)
+
+#undef BOOST_PP_DEF
+</pre></div>
+<div>
+	<b>Tip:</b>&nbsp; It is usually okay to use a standard macro name like <code>BOOST_PP_DEF</code> for this kind of code
+	because the macro is both defined and undefined in the immediate site of its use.
+</div>
+<div>
+	<b>Tip:</b>&nbsp; It is easier to verify proper use of the line continuation operator when they are aligned.
+</div>
+<div>
+	<b>Notes:</b>&nbsp; You can extend this example by defining more and different kinds of operators.&nbsp;
+	Before doing so, consider using the <i>algebraic categories</i> technique introduced in <a href="../bibliography.html#barton">[Barton]</a>
+	or a <i>layered architecture</i> (see for instance <a href="../bibliography.html#czarnecki">[Czarnecki]</a>).&nbsp;
+	However, at some point you must type the operator tokens <code>*</code>, <code>/</code>, <code>+</code>, <code>-</code>, etc.,
+	because it is impossible to generate them using templates.&nbsp;
+	The resulting <i>categorical repetition</i> of tokens can be eliminated by using preprocessor metaprogramming.
+</div>
+
+<h4>Example<u> - Use BOOST_PP_EMPTY as an unused parameter in local macro instantiations.</u></h4>
+<div class="code"><pre>
+#define BOOST_PP_DEF(cv) /* ... */ \
+   template&lt;class base&gt;            \
+   cv() typename implement_subscript_using_begin_subscript&lt;base&gt;::value_type& \
+   implement_subscript_using_begin_subscript&lt;base&gt;::operator[](index_type i) cv() { \
+      return base::begin()[i];     \
+   }                               \
+   /**/
+
+   BOOST_PP_DEF(BOOST_PP_EMPTY)
+   BOOST_PP_DEF(BOOST_PP_IDENTITY(const))
+</pre></div>
+<div>
+	<b>How:</b>&nbsp; BOOST_PP_EMPTY() expands to nothing and can be used as an unused parameter.
+</div>
+<div>
+	<b>Note:</b>&nbsp; BOOST_PP_EMPTY with the () never gets expanded.&nbsp;
+	The () is necessary to invoke a function-like macro.
+</div>
+<div>
+	<b>Caveat:</b>&nbsp; You cannot safely use concatenation while using BOOST_PP_EMPTY().
+</div>
+<div>
+	<b>Tip:</b>&nbsp; Occasionally, one or two lines are considerably longer than the rest.&nbsp;
+	It can often save some work to <i>not</i> align all the line continuation operators without making the code too unreadable.
+</div>
+<div>
+	<b>Tip:</b>&nbsp; Use syntax highlighting on preprocessor metaprogramming macro identifiers such as:
+	<ul>
+		<li>BOOST_PP_DEF</li>
+		<li>BOOST_PP_EMPTY</li>
+		<li>BOOST_PP_REPEAT</li>
+		<li>...</li>
+	</ul>
+	It can greatly improve readability.
+</div>
+
+<h4>Example<u> - Use BOOST_PP_CAT instead of ## when necessary.</u></h4>
+<div class="code"><pre>
+#define STATIC_ASSERT(expr) \
+   enum { BOOST_PP_CAT(static_check_, __LINE__) = (expr) ? 1 : -1 }; \
+   typedef char \
+      BOOST_PP_CAT(static_assert_, __LINE__)[BOOST_PP_CAT(static_check_, __LINE__)] \
+   /**/
+
+// ...
+
+STATIC_ASSERT(sizeof(int) &lt;= sizeof(long));
+</pre></div>
+<div>
+	<b>Why:</b>&nbsp; Macro expansion proceeds recursively in "layers."&nbsp;
+	Token pasting prevents the preprocessor from performing macro expansion,
+	therefore it is often necessary to delay token concatenation.
+</div>
+
+<h4>Example<u> - Use BOOST_PP_STRINGIZE instead of # whenever necessary.</u></h4>
+<div class="code"><pre>
+#define NOTE(str) \
+   message(__FILE__ "(" BOOST_PP_STRINGIZE(__LINE__) ") : " str) \
+   /**/
+
+// ...
+
+#pragma NOTE("TBD!")
+</pre></div>
+<div>
+	<b>Why:</b>&nbsp; Macro expansion proceeds recursively in "layers."&nbsp;
+	Stringization prevents the preprocessor from performing macro expansion, therefore it is often necessary to delay stringization.
+</div>
+
+<h4>Example<u> - Use BOOST_PP_ENUM_PARAMS (and its variants) or BOOST_PP_REPEAT and BOOST_PP_COMMA_IF to avoid <i>O</i>(<i>n</i>) repetition on lists in general.</u></h4>
+<div class="code"><pre>
+struct make_type_list_end;
+
+template&lt;
+   BOOST_PP_ENUM_PARAMS_WITH_A_DEFAULT(
+      MAKE_TYPE_LIST_MAX_LENGTH, 
+      class T, 
+      make_type_list_end
+   )
+&gt;
+struct make_type_list {
+   private:
+      enum { end = is_same&lt;T0, make_type_list_end&gt;::value };
+   public:
+      typedef typename type_if&lt;
+         end, type_cons_empty,
+         type_cons&lt;
+            T0,
+            typename type_inner_if&lt;
+               end, type_identity&lt;end&gt;,
+               make_type_list&lt;
+                  BOOST_PP_ENUM_SHIFTED_PARAMS(
+                     MAKE_TYPE_LIST_MAX_LENGTH,
+                     T
+                  )
+               &gt;
+            &gt;::type
+         &gt;
+      &gt;::type type;
+};
+</pre></div>
+<div>
+	<b>How:</b>&nbsp; BOOST_PP_REPEAT uses simulated recursion (pseudo code):
+</div>
+<div><pre>
+#define BOOST_PP_REPEAT(n, m, p) BOOST_PP_REPEAT ## n(m, p)
+
+#define BOOST_PP_REPEAT0(m, p)
+#define BOOST_PP_REPEAT1(m, p) m(0, p)
+#define BOOST_PP_REPEAT2(m, p) m(0, p) m(1, p)
+#define BOOST_PP_REPEAT3(m, p) BOOST_PP_REPEAT2(m, p) m(2, p)
+#define BOOST_PP_REPEAT4(m, p) BOOST_PP_REPEAT3(m, p) m(3, p)
+// ...
+</pre></div>
+<div>
+	<i>Note:&nbsp; This is no longer how BOOST_PP_REPEAT is implemented, so the code above is illustrative only!&nbsp;</i>
+</div>
+<div>
+	BOOST_PP_ENUM_PARAMS and its variations use BOOST_PP_REPEAT.&nbsp;
+	BOOST_PP_COMMA_IF(I) expands to a comma if I != 0.&nbsp;
+	BOOST_PP_INC(I) essentially expands to "I+1," and BOOST_PP_DEC(I) essentially expands to "I-1.".
+</div>
+
+<h4>Example<u> - Use a <i>conditional macro definition</i> to enable user configuration of code repetition based on need rather than some "reasonable" upper limit.</u></h4>
+<div class="code"><pre>
+#ifndef MAKE_TYPE_LIST_MAX_LENGTH
+#define MAKE_TYPE_LIST_MAX_LENGTH 8
+#endif
+</pre></div>
+<div>
+	Now the user can configure the <code>make_type_list</code> primitive without modifying library code.
+</div>
+
+<h4>Example<u> - Use BOOST_PP_REPEAT and a <i>token look-up function</i> to eliminate categorical repetition.</u></h4>
+<div class="code"><pre>
+// CAVEAT:  My compiler is not standard on arithmetic types.
+#define ARITHMETIC_TYPE(I) ARITHMETIC_TYPE ## I
+
+#define ARITHMETIC_TYPE0    bool
+#define ARITHMETIC_TYPE1    char
+#define ARITHMETIC_TYPE2    signed char
+#define ARITHMETIC_TYPE3    unsigned char
+#define ARITHMETIC_TYPE4    short
+#define ARITHMETIC_TYPE5    unsigned short
+#define ARITHMETIC_TYPE6    int
+#define ARITHMETIC_TYPE7    unsigned int
+#define ARITHMETIC_TYPE8    long
+#define ARITHMETIC_TYPE9    unsigned long
+#define ARITHMETIC_TYPE10   float
+#define ARITHMETIC_TYPE11   double
+#define ARITHMETIC_TYPE12   long double
+
+#define ARITHMETIC_TYPE_CNT 13
+
+// ...
+
+#define BOOST_PP_DEF(z, I, _) /* ... */ \
+   catch (ARITHMETIC_TYPE(I) t) {       \
+      report_typeid(t);                 \
+      report_value(t);                  \
+   }                                    \
+   /**/
+
+BOOST_PP_REPEAT(ARITHMETIC_TYPE_CNT, BOOST_PP_DEF, _)
+
+#undef BOOST_PP_DEF
+</pre></div>
+<div>
+	<b>Note:</b>&nbsp; The repetition of the above example can be eliminated using template metaprogramming <a href="../bibliography.html#czarnecki">[Czarnecki]</a> as well.&nbsp;
+	However categorical repetition of operator tokens cannot be completely eliminated by using template metaprogramming.
+</div>
+
+<h4>Example<u> - Use BOOST_PP_REPEAT to avoid <i>O</i>(<i>n</i>*<i>n</i>) repetition.</u></h4>
+<div class="code"><pre>
+#ifndef MAX_VEC_ARG_CNT
+#define MAX_VEC_ARG_CNT 8
+#endif
+
+// ...
+
+#define ARG_FUN(z, i, _) BOOST_PP_COMMA_IF(i) T a ## i
+#define ASSIGN_FUN(z, i, ) (*this)[i] = a ## i;
+
+#define DEF_VEC_CTOR_FUN(z, i, _) /* ... */ \
+   vec(BOOST_PP_REPEAT(i, ARG_FUN, _)) { \
+      BOOST_PP_REPEAT(i, ASSIGN_FUN, _)  \
+   }                                     \
+   /**/
+
+BOOST_PP_REPEAT(BOOST_PP_INC(MAX_VEC_ARG_CNT), DEF_VEC_CTOR_FUN, _)
+
+#undef ARG_FUN
+#undef ASSIGN_FUN
+#undef DEF_VEC_CTOR_FUN
+
+// ...
+</pre></div>
+<div>
+	<b>How:</b>&nbsp; BOOST_PP_REPEAT is implemented is a special way to enable <i>automatic recursion</i>.
+</div>
+
+<h4>Example<u> - Use BOOST_PP_IF to implement special case for the first element.</u></h4>
+<div class="code"><pre>
+#define COMMA_IF(c) \
+   BOOST_PP_IF(c, BOOST_PP_COMMA, BOOST_PP_EMPTY)() \
+   /**/
+
+BOOST_PP_IF(0, true, false) == false;
+BOOST_PP_IF(1, true, false) == true;
+</pre></div>
+<div>
+	BOOST_PP_IF enables convenient generation of lists using BOOST_PP_REPEAT.
+</div>
+<div>
+	<b>Note:</b>&nbsp; <i>THEN</i> and <i>ELSE</i> don't have to be macros.&nbsp;
+	However, if at least one of them is a function-like macro, and you want it be expanded conditionally,
+	you have to make the other parameter a function-like macro too.&nbsp;
+	This can often be done using BOOST_PP_IDENTITY.&nbsp;
+	Consider the following example (by Aleksey Gurtovoy):
+</div>
+<div><pre>
+#define NUMBERED_EXPRESSION(i, x) /* ... */ \
+   BOOST_PP_IF(                             \
+      i,                                    \
+      BOOST_PP_IDENTITY(x ## i)             \
+      BOOST_PP_EMPTY                        \
+   )()                                      \
+   /**/
+</pre></div>
+<div>
+	<b>Note:</b>&nbsp; Like in the above implementation of COMMA_IF, the result of BOOST_PP_IF is often invoked and not the <i>THEN</i> and <i>ELSE</i> parameters.&nbsp;
+	If the parameters were invoked, the code would not expand correctly, because the BOOST_PP_EMPTY parameter would get expanded
+	to nothing before the <b>BOOST_PP_IF</b> would be properly expanded.
+</div>
+<div>
+	<b>How:</b>&nbsp; BOOST_PP_IF is defined for the entire repeat range (psuedo code):
+</div>
+<div><pre>
+#define BOOST_PP_IF(c, THEN, ELSE) BOOST_PP_IF ## c(THEN, ELSE)
+
+#define BOOST_PP_IF0(THEN, ELSE) ELSE
+#define BOOST_PP_IF1(THEN, ELSE) THEN
+#define BOOST_PP_IF1(THEN, ELSE) THEN
+// ...
+</pre></div>
+
+<h4>Example:<u>&nbsp; Use arithmetic, logical, and comparison operations when necessary.</u></h4>
+<div class="code"><pre>
+#define SPECIAL_NUMBERED_LIST(n, i, elem, special) \
+   BOOST_PP_ASSERT_MSG(                     \
+      BOOST_PP_LESS(i, n),                  \
+      bad params for SPECIAL_NUMBERED_LIST! \
+   )                                        \
+   BOOST_PP_ENUM_PARAMS(i, elem)            \
+   BOOST_PP_COMMA_IF(i) special             \
+   BOOST_PP_REPEAT(                         \
+      BOOST_PP_SUB(BOOST_PP_DEC(n), i),     \
+      SPECIAL_NUMBERED_LIST_HELPER,         \
+      (elem, i)                             \
+   )                                        \
+   /**/
+
+#define SPECIAL_NUMBERED_LIST_HELPER(z, i, elem_base) \
+   ,                                          \
+   BOOST_PP_CAT(                              \
+      BOOST_PP_TUPLE_ELEM(2, 0, elem_base),   \
+      BOOST_PP_ADD(                           \
+         i,                                   \
+         BOOST_PP_TUPLE_ELEM(2, 1, elem_base) \
+      )                                       \
+   )                                          \
+   /**/
+
+SPECIAL_NUMBERED_LIST(3, 0, E, S)
+SPECIAL_NUMBERED_LIST(3, 1, E, S)
+SPECIAL_NUMBERED_LIST(3, 2, E, S)
+SPECIAL_NUMBERED_LIST(3, 3, E, S)
+</pre></div>
+
+<hr size="1">
+<div style="margin-left: 0px;">
+	<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+</div>
+<div style="margin-left: 0px;">
+Permission to copy, use, modify, sell and distribute this document is granted provided this copyright notice appears in all copies.&nbsp;
+This document is provided "as is" without express or implied warranty and with no claim as to its suitability for any purpose.
+</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

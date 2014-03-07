@@ -1,0 +1,230 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Acknowledgments]
+
+This version of Spirit is a complete rewrite of the /classic/ Spirit many
+people have been contributing to (see below). But there are a couple of people
+who already managed to help significantly during this rewrite. We would like to
+express our special acknowledgement to (in no particular order):
+
+[*Eric Niebler] for writing Boost.Proto, without which this rewrite wouldn't
+have been possible, and helping with examples, advice, and suggestions on
+how to use Boost.Proto in the best possible way.
+
+[*Ben Hanson] for providing us with an early version of his __lexertl__ library,
+which is proposed to be included into Boost (as Boost.Lexer). At the time
+of this writing the Boost review for this library is still pending.
+
+[*Francois Barel] for his silent but steady work on making and keeping Spirit
+compatible with all versions of gcc, older and newest ones. He not only
+contributed subrules to Spirit V2.1, but always keeps an eye on the small
+details which are so important to make a difference.
+
+[*Andreas Haberstroh] for proof reading the documentation and fixing those
+non-native-speaker-quirks we managed to introduce into the first versions of
+the documentation.
+
+[*Chris Hoeppler] for taking up the editorial tasks for the initial
+version of this documentation together with Andreas Haberstroh. Chris
+did a lot especially at the last minute when we are about to release.
+
+[*Michael Caisse] (a.k.a mjcaisse) for being Spirit's benevolent
+evangelist on freenode's #boost IRC . No Spirit question asked there
+stays without an answer because of his active involvement. Also, we would
+like to thank him for last minute editing work on the 2.1 release
+documentation.
+
+[*Tobias Schwinger] for proposing expectation points and GCC port of an
+early version.
+
+[*Dave Abrahams] as always, for countless advice and help on C++,
+library development, interfaces, usability and ease of use, for
+reviewing the code and providing valuable feedback and for always
+keeping us on our toes.
+
+[*OvermindDL] for his creative ideas on the mailing list helping to resolve
+even more difficult user problems.
+
+[*Carl Barron] for his early adoption and valuable feedback on the Lexer
+library forcing us to design a proper API covering all of his use cases.
+He also contributed an early version of the variadic attribute API for
+Qi.
+
+[*Daniel James] for improving and maintaining Quickbook, the tool we use
+for this documentation. Also, for bits and pieces here and there such
+documentation suggestions and editorial patches.
+
+[*Stephan Menzel] for his early adoption of Qi and Karma and his willingness
+to invest time to spot bugs which were hard to isolate. Also, for his feedback
+on the documentation.
+
+[*Ray Burkholder] and [*Dainis Polis] for last minute feedback on the
+documentation.
+
+[*Steve Brandt] for his his effort trying to put Qi and Karma to some use while
+writing a source to source language transformation tool. He made many incredible
+suggestions helping to improve the usability of both libraries.
+
+[*Bryce Leylbach] (a.k.a. wash) for contributing the components `qi::`__qi_as__
+and `karma::`__karma_as__, for working on __utree__ and its integration with
+Qi and Karma, for adding numeric parser literals, for contributing the related
+documentation, and for being a big help in the everyday maintenance of the
+library's (and our) sanity.
+
+[*Mathias Gaunard] for his bug reports, suggestions and regression test
+contributions to the Lexer helping to find subtle bugs and to improve its
+overall usability.
+
+[*Thomas Bernard] (a.k.a. teajay) for working on the keyword parser and for
+adding explicit names to the `qi::`__qi_symbols__ component.
+
+[*Robert Stewart] for his active participation on the mailing list, his 
+helpful comments, examples and suggestions.
+
+[*Thomas Taylor], [*Richard Crossley], [*Semen], and [*Adalberto Castelo] for 
+their help in isolating problems while testing the new attribute handling code
+released with V2.5.
+
+Special thanks to spirit-devel and spirit-general mailing lists for
+participating in the discussions, being early adopters of pre-release
+versions of Spirit2 from the very start and helping out in various tasks
+such as helping with support, bug tracking, benchmarking and testing,
+etc. The list include: [*Larry Evans], [*Richard Webb], [*Martin Wille],
+[*Dan Marsden], [*Cedric Venet], [*Allan Odgaard], [*Matthias
+Vallentin], [*Justinas V.D.], [*Darid Tromer], [*Brian O'Kennedy], 
+[*Aaron Graham], [*Joerg Becker].
+
+[*Joao Abecasis] for his early support and involvement in Spirit2
+development and for disturbing my peace every once in a while for a
+couple of jokes.
+
+The list goes on and on... if you've been mentioned thank Joel and
+Hartmut, if not, kick Joao :-)
+
+[heading Acknowledgements from the Spirit V1 /classic/ Documentation]
+
+Special thanks for working on Spirit /classic/ to:
+
+[*Dan Nuffer] for his work on lexers, parse trees, ASTs, XML parsers, the
+multi-pass iterator as well as administering Spirit's site, editing,
+maintaining the CVS and doing the releases plus a zillion of other chores that
+were almost taken for granted.
+
+[*Hartmut Kaiser] for his work on the C parser, the work on the C/C++
+preprocessor, utility parsers, the original port to Intel 5.0, various work on
+Phoenix, porting to v1.5, the meta-parsers, the grouping-parsers, extensive
+testing and painstaking attention to details.
+
+[*Martin Wille] who improved grammar multi thread safety, contributed the eol_p
+parser, the dynamic parsers, documentation and for taking an active role in
+almost every aspect from brainstorming and design to coding. And, as always,
+helps keep the regression tests for g++ on Linux as green as ever :-).
+
+[*Martijn W. Van Der Lee] our Web site administrator and for contributing the
+RFC821 parser.
+
+[*Giovanni Bajo] for last minute tweaks of Spirit 1.8.0 for CodeWarrior 8.3.
+Actually, I'm ashamed Giovanni was not in this list already. He's done a lot
+since Spirit 1.5, the first Boost.Spirit release. He's instrumental in the
+porting of the Spirit iterators stuff to the new Boost Iterators Library
+(version 2). He also did various bug fixes and wrote some tests here and there.
+
+[*Juan Carlos Arevalo-Baeza (JCAB)*] for his work on the C++ parser, the position
+iterator, ports to v1.5 and keeping the mailing list discussions alive and
+kicking.
+
+[*Vaclav Vesely], lots of stuff, the no\_actions directive, various patches
+fixes, the distinct parsers, the lazy parser, some phoenix tweaks and add-ons
+(e.g. new\_). Also, *Stefan Slapeta] and wife for editing Vaclav's distinct
+parser doc.
+
+[*Raghavendra Satish] for doing the original v1.3 port to VC++ and his work on
+Phoenix.
+
+[*Noah Stein] for following up and helping Ragav on the VC++ ports.
+
+[*Hakki Dogusan], for his original v1.0 Pascal parser.
+
+[*John (EBo) David] for his work on the VM and watching over my shoulder as I
+code giving the impression of distance eXtreme programming.
+
+[*Chris Uzdavinis] for feeding in comments and valuable suggestions as well as
+editing the documentation.
+
+[*Carsten Stoll], for his work on dynamic parsers.
+
+[*Andy Elvey] and his conifer parser.
+
+[*Bruce Florman], who did the original v1.0 port to VC++.
+
+[*Jeff Westfahl] for porting the loop parsers to v1.5 and contributing the file
+iterator.
+
+[*Peter Simons] for the RFC date parser example and tutorial plus helping out
+with some nitty gritty details.
+
+[*Markus Sch'''&ouml;'''pflin] for suggesting the end_p parser and lots of other
+nifty things and his active presence in the mailing list.
+
+[*Doug Gregor] for mentoring and his ability to see things that others don't.
+
+[*David Abrahams] for giving Joel a job that allows him to still work on Spirit,
+plus countless advice and help on C++ and specifically template
+metaprogramming.
+
+[*Aleksey Gurtovoy] for his MPL library from which we stole many metaprogramming
+tricks especially for less conforming compilers such as Borland and VC6/7.
+
+[*Gustavo Guerra] for his last minute review of Spirit and constant feedback,
+plus patches here and there (e.g. proposing the new dot behavior of the real
+numerics parsers).
+
+[*Nicola Musatti], [*Paul Snively], [*Alisdair Meredith] and [*Hugo Duncan] for
+testing and sending in various patches.
+
+[*Steve Rowe] for his splendid work on the TSTs that will soon be taken into
+Spirit.
+
+[*Jonathan de Halleux] for his work on actors.
+
+[*Angus Leeming] for last minute editing work on the 1.8.0 release
+documentation, his work on Phoenix and his active presence in the Spirit
+mailing list.
+
+[*Joao Abecasis] for his active presence in the Spirit mailing list, providing
+user support, participating in the discussions and so on.
+
+[*Guillaume Melquiond] for a last minute patch to multi_pass for 1.8.1.
+
+[*Peder Holt] for his porting work on Phoenix, Fusion and Spirit to VC6.
+
+To Joel's wife Mariel who did the graphics in this document.
+
+My, there's a lot in this list! And it's a continuing list. We add people to
+this list every time. We hope we did not forget anyone. If we missed
+someone you know who has helped in any way, please inform us.
+
+Special thanks also to people who gave feedback and valuable comments,
+particularly members of Boost and Spirit mailing lists. This includes all those
+who participated in the review:
+
+[*John Maddock], our review manager, [*Aleksey Gurtovoy], [*Andre Hentz],
+[*Beman Dawes], [*Carl Daniel], [*Christopher Currie], [*Dan Gohman],
+[*Dan Nuffer], [*Daryle Walker], [*David Abrahams], [*David B. Held],
+[*Dirk Gerrits], [*Douglas Gregor], [*Hartmut Kaiser], [*Iain K.Hanson],
+[*Juan Carlos Arevalo-Baeza], [*Larry Evans], [*Martin Wille],
+[*Mattias Flodin], [*Noah Stein], [*Nuno Lucas], [*Peter Dimov],
+[*Peter Simons], [*Petr Kocmid], [*Ross Smith], [*Scott Kirkwood],
+[*Steve Cleary], [*Thorsten Ottosen], [*Tom Wenisch], [*Vladimir Prus]
+
+Finally thanks to SourceForge for hosting the Spirit project and Boost: a C++
+community comprised of extremely talented library authors who participate in
+the discussion and peer review of well crafted C++ libraries.
+
+[endsect]

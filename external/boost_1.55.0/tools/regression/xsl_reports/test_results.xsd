@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+    <!-- 
+    The following online services can be used to validate collected test results:
+
+        - http://apps.gotdotnet.com/xmltools/xsdvalidator/
+        - http://tools.decisionsoft.com/schemaValidate.html
+    -->
+
+    <xs:simpleType name="test_result">
+        <xs:restriction base="xs:NMTOKEN">
+            <xs:enumeration value="fail"/>
+            <xs:enumeration value="succeed"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="run_test_result">
+        <xs:restriction base="xs:NMTOKEN">
+            <xs:enumeration value="fail"/>
+            <xs:enumeration value="succeed"/>
+            <xs:enumeration value="note"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="test_type">
+        <xs:restriction base="xs:NMTOKEN">
+            <xs:enumeration value="compile"/>
+            <xs:enumeration value="compile_fail"/>
+            <xs:enumeration value="lib"/>
+            <xs:enumeration value="pyd"/>
+            <xs:enumeration value="run"/>
+            <xs:enumeration value="run_fail"/>
+            <xs:enumeration value="run_pyd"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:element name="compile">
+        <xs:complexType>
+            <xs:simpleContent>
+                <xs:extension base="xs:string">
+                    <xs:attribute name="result" type="test_result" use="required"/>
+                    <xs:attribute name="timestamp" type="xs:string" use="required"/>
+                </xs:extension>
+            </xs:simpleContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="link">
+        <xs:complexType>
+            <xs:simpleContent>
+                <xs:extension base="xs:string">
+                    <xs:attribute name="result" type="test_result" use="required"/>
+                    <xs:attribute name="timestamp" type="xs:string" use="required"/>
+                </xs:extension>
+            </xs:simpleContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="lib">
+        <xs:complexType>
+            <xs:simpleContent>
+                <xs:extension base="xs:string">
+                    <xs:attribute name="result" type="test_result" use="required"/>
+                    <xs:attribute name="timestamp" type="xs:string" use="required"/>
+                </xs:extension>
+            </xs:simpleContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="run">
+        <xs:complexType>
+            <xs:simpleContent>
+                <xs:extension base="xs:string">
+                    <xs:attribute name="result" type="run_test_result" use="required"/>
+                    <xs:attribute name="timestamp" type="xs:string" use="required"/>
+                </xs:extension>
+            </xs:simpleContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="test-log">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="compile" minOccurs="0"/>
+                <xs:element ref="link" minOccurs="0"/>
+                <xs:element ref="run" minOccurs="0"/>
+                <xs:element ref="lib" minOccurs="0"/>
+            </xs:sequence>
+            <xs:attribute name="library" type="xs:string" use="required"/>
+            <xs:attribute name="test-name" type="xs:string" use="required"/>
+            <xs:attribute name="test-type" type="test_type" use="required"/>
+            <xs:attribute name="test-program" type="xs:string" use="required"/>
+            <xs:attribute name="target-directory" type="xs:string" use="required"/>
+            <xs:attribute name="toolset" type="xs:string" use="required"/>
+            <xs:attribute name="show-run-output" type="xs:boolean" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="tests">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="test-log" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>

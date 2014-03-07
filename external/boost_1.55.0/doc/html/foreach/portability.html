@@ -1,0 +1,396 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Portability</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../foreach.html" title="Chapter&#160;10.&#160;Boost.Foreach">
+<link rel="prev" href="extensibility.html" title="Extensibility">
+<link rel="next" href="pitfalls.html" title="Pitfalls">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extensibility.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../foreach.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pitfalls.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="foreach.portability"></a><a class="link" href="portability.html" title="Portability">Portability</a>
+</h2></div></div></div>
+<p>
+      <code class="literal">BOOST_FOREACH</code> uses some fairly sophisticated techniques
+      that not all compilers support. Depending on how compliant your compiler is,
+      you may not be able to use <code class="literal">BOOST_FOREACH</code> in some scenarios.
+      Since <code class="literal">BOOST_FOREACH</code> uses <a href="../../../libs/range/index.html" target="_top">Boost.Range</a>,
+      it inherits <a href="../../../libs/range/index.html" target="_top">Boost.Range</a>'s
+      portability issues. You can read about those issues in the <a href="../../../libs/range/doc/html/range/portability.html" target="_top">Boost.Range
+      Portability</a> section.
+    </p>
+<p>
+      In addition to the demands placed on the compiler by <a href="../../../libs/range/index.html" target="_top">Boost.Range</a>,
+      <code class="literal">BOOST_FOREACH</code> places additional demands in order to handle
+      rvalue sequences properly. (Recall that an rvalue is an unnamed object, so
+      an example of an rvalue sequence would be a function that returns a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;&gt;</span></code> by value.) Compilers vary in their
+      handling of rvalues and lvalues. To cope with the situation <code class="literal">BOOST_FOREACH</code>
+      defines three levels of compliance, described below:
+    </p>
+<div class="table">
+<a name="foreach.portability.t0"></a><p class="title"><b>Table&#160;10.1.&#160;BOOST_FOREACH Compliance Levels</b></p>
+<div class="table-contents"><table class="table" summary="BOOST_FOREACH Compliance Levels">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Level
+              </p>
+            </th>
+<th>
+              <p>
+                Meaning
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>Level 0</strong></span>
+              </p>
+            </td>
+<td>
+              <p>
+                <span class="emphasis"><em><span class="underline">Highest level of compliance</span></em></span><br>
+                <code class="literal">BOOST_FOREACH</code> works with lvalues, rvalues and
+                const-qualified rvalues.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>Level 1</strong></span>
+              </p>
+            </td>
+<td>
+              <p>
+                <span class="emphasis"><em><span class="underline">Moderate level of compliance</span></em></span><br>
+                <code class="literal">BOOST_FOREACH</code> works with lvalues and plain rvalues,
+                but not const-qualified rvalues.<br> <code class="computeroutput"><span class="identifier">BOOST_FOREACH_NO_CONST_RVALUE_DETECTION</span></code>
+                is defined in this case.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>Level 2</strong></span>
+              </p>
+            </td>
+<td>
+              <p>
+                <span class="emphasis"><em><span class="underline">Lowest level of compliance</span></em></span><br>
+                <code class="literal">BOOST_FOREACH</code> works with lvalues only, not rvalues.<br>
+                <code class="computeroutput"><span class="identifier">BOOST_FOREACH_NO_RVALUE_DETECTION</span></code>
+                is defined in this case.
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      Below are the compilers with which <code class="literal">BOOST_FOREACH</code> has been
+      tested, and the compliance level <code class="literal">BOOST_FOREACH</code> provides
+      for them.
+    </p>
+<div class="table">
+<a name="foreach.portability.t1"></a><p class="title"><b>Table&#160;10.2.&#160;Compiler Compliance Level</b></p>
+<div class="table-contents"><table class="table" summary="Compiler Compliance Level">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Compiler
+              </p>
+            </th>
+<th>
+              <p>
+                Compliance Level
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                Visual C++ 8.0
+              </p>
+            </td>
+<td>
+              <p>
+                Level 0
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Visual C++ 7.1
+              </p>
+            </td>
+<td>
+              <p>
+                Level 0
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Visual C++ 7.0
+              </p>
+            </td>
+<td>
+              <p>
+                Level 2
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Visual C++ 6.0
+              </p>
+            </td>
+<td>
+              <p>
+                Level 2
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                gcc 4.0
+              </p>
+            </td>
+<td>
+              <p>
+                Level 0
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                gcc 3.4
+              </p>
+            </td>
+<td>
+              <p>
+                Level 0
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                gcc 3.3
+              </p>
+            </td>
+<td>
+              <p>
+                Level 0
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                mingw 3.4
+              </p>
+            </td>
+<td>
+              <p>
+                Level 0
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Intel for Linux 9.0
+              </p>
+            </td>
+<td>
+              <p>
+                Level 0
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Intel for Windows 9.0
+              </p>
+            </td>
+<td>
+              <p>
+                Level 0
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Intel for Windows 8.0
+              </p>
+            </td>
+<td>
+              <p>
+                Level 1
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Intel for Windows 7.0
+              </p>
+            </td>
+<td>
+              <p>
+                Level 2
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Comeau 4.3.3
+              </p>
+            </td>
+<td>
+              <p>
+                Level 0
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Borland 5.6.4
+              </p>
+            </td>
+<td>
+              <p>
+                Level 2
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Metrowerks 9.5
+              </p>
+            </td>
+<td>
+              <p>
+                Level 1
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Metrowerks 9.4
+              </p>
+            </td>
+<td>
+              <p>
+                Level 1
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                SunPro 5.8
+              </p>
+            </td>
+<td>
+              <p>
+                Level 2
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                qcc 3.3
+              </p>
+            </td>
+<td>
+              <p>
+                Level 0
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                tru64cxx 65
+              </p>
+            </td>
+<td>
+              <p>
+                Level 2
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                tru64cxx 71
+              </p>
+            </td>
+<td>
+              <p>
+                Level 2
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extensibility.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../foreach.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pitfalls.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

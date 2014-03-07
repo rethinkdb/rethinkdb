@@ -1,0 +1,24 @@
+# Boost.TypeErasure library
+#
+# Copyright 2011 Steven Watanabe
+#
+# Distributed under the Boost Software License version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+compile basic.cpp ;
+compile multi.cpp ;
+compile convert.cpp ;
+compile references.cpp ;
+compile custom.cpp ;
+compile construction.cpp ;
+compile concept_map.cpp ;
+compile compose.cpp ;
+compile overload.cpp ;
+compile associated.cpp ;
+
+run print_sequence.cpp ;
+run printf.cpp ;
+run multifunction.cpp ;

@@ -1,0 +1,125 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Daytime.2 - A synchronous TCP daytime server</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="tutdaytime1/src.html" title="Source listing for Daytime.1">
+<link rel="next" href="tutdaytime2/src.html" title="Source listing for Daytime.2">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tutdaytime1/src.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutdaytime2/src.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.tutorial.tutdaytime2"></a><a class="link" href="tutdaytime2.html" title="Daytime.2 - A synchronous TCP daytime server">Daytime.2 - A synchronous
+      TCP daytime server</a>
+</h3></div></div></div>
+<p>
+        This tutorial program shows how to use asio to implement a server application
+        with TCP.
+      </p>
+<pre class="programlisting"><span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">ctime</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">asio</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">;</span>
+</pre>
+<p>
+        We define the function <code class="computeroutput"><span class="identifier">make_daytime_string</span><span class="special">()</span></code> to create the string to be sent back to
+        the client. This function will be reused in all of our daytime server applications.
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">make_daytime_string</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span> <span class="comment">// For time_t, time and ctime;</span>
+  <span class="identifier">time_t</span> <span class="identifier">now</span> <span class="special">=</span> <span class="identifier">time</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+  <span class="keyword">return</span> <span class="identifier">ctime</span><span class="special">(&amp;</span><span class="identifier">now</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">try</span>
+  <span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span> <span class="identifier">io_service</span><span class="special">;</span>
+</pre>
+<p>
+        A <a class="link" href="../reference/ip__tcp/acceptor.html" title="ip::tcp::acceptor">ip::tcp::acceptor</a>
+        object needs to be created to listen for new connections. It is initialised
+        to listen on TCP port 13, for IP version 4.
+      </p>
+<pre class="programlisting">    <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">acceptor</span> <span class="identifier">acceptor</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">,</span> <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">endpoint</span><span class="special">(</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">v4</span><span class="special">(),</span> <span class="number">13</span><span class="special">));</span>
+</pre>
+<p>
+        This is an iterative server, which means that it will handle one connection
+        at a time. Create a socket that will represent the connection to the client,
+        and then wait for a connection.
+      </p>
+<pre class="programlisting">    <span class="keyword">for</span> <span class="special">(;;)</span>
+    <span class="special">{</span>
+      <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">);</span>
+      <span class="identifier">acceptor</span><span class="special">.</span><span class="identifier">accept</span><span class="special">(</span><span class="identifier">socket</span><span class="special">);</span>
+</pre>
+<p>
+        A client is accessing our service. Determine the current time and transfer
+        this information to the client.
+      </p>
+<pre class="programlisting">      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">message</span> <span class="special">=</span> <span class="identifier">make_daytime_string</span><span class="special">();</span>
+
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">ignored_error</span><span class="special">;</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">write</span><span class="special">(</span><span class="identifier">socket</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">message</span><span class="special">),</span> <span class="identifier">ignored_error</span><span class="special">);</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+</pre>
+<p>
+        Finally, handle any exceptions.
+      </p>
+<pre class="programlisting">  <span class="keyword">catch</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">exception</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cerr</span> <span class="special">&lt;&lt;</span> <span class="identifier">e</span><span class="special">.</span><span class="identifier">what</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="special">}</span>
+
+  <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        See the <a class="link" href="tutdaytime2/src.html" title="Source listing for Daytime.2">full source listing</a>
+      </p>
+<p>
+        Return to the <a class="link" href="../tutorial.html" title="Tutorial">tutorial index</a>
+      </p>
+<p>
+        Previous: <a class="link" href="tutdaytime1.html" title="Daytime.1 - A synchronous TCP daytime client">Daytime.1 - A synchronous
+        TCP daytime client</a>
+      </p>
+<p>
+        Next: <a class="link" href="tutdaytime3.html" title="Daytime.3 - An asynchronous TCP daytime server">Daytime.3 - An asynchronous
+        TCP daytime server</a>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tutdaytime1/src.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutdaytime2/src.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

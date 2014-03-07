@@ -1,0 +1,208 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template string_path</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../property_tree/reference.html#header.boost.property_tree.ptree_fwd_hpp" title="Header &lt;boost/property_tree/ptree_fwd.hpp&gt;">
+<link rel="prev" href="basic_ptree.html" title="Class template basic_ptree">
+<link rel="next" href="path_of.html" title="Struct template path_of">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_ptree.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../property_tree/reference.html#header.boost.property_tree.ptree_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="path_of.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.property_tree.string_path"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template string_path</span></h2>
+<p>boost::property_tree::string_path &#8212; Default path class. A path is a sequence of values. Groups of values are separated by the separator value, which defaults to '.' cast to the sequence's value type. The group of values is then passed to the translator to get a key. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../property_tree/reference.html#header.boost.property_tree.ptree_fwd_hpp" title="Header &lt;boost/property_tree/ptree_fwd.hpp&gt;">boost/property_tree/ptree_fwd.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> String<span class="special">,</span> <span class="keyword">typename</span> Translator<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="string_path.html" title="Class template string_path">string_path</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="string_path.html#boost.property_tree.string_pathconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="string_path.html#idp97779720-bb"><span class="identifier">string_path</span></a><span class="special">(</span><span class="identifier">char_type</span> <span class="special">=</span> <span class="identifier">char_type</span><span class="special">(</span><span class="char">'.'</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="string_path.html#idp97780552-bb"><span class="identifier">string_path</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">String</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">char_type</span> <span class="special">=</span> <span class="identifier">char_type</span><span class="special">(</span><span class="char">'.'</span><span class="special">)</span><span class="special">,</span> 
+              <span class="identifier">Translator</span> <span class="special">=</span> <span class="identifier">Translator</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="string_path.html#idp97783112-bb"><span class="identifier">string_path</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">char_type</span> <span class="special">=</span> <span class="identifier">char_type</span><span class="special">(</span><span class="char">'.'</span><span class="special">)</span><span class="special">,</span> 
+              <span class="identifier">Translator</span> <span class="special">=</span> <span class="identifier">Translator</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="string_path.html#idp94306216-bb"><span class="identifier">string_path</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="string_path.html" title="Class template string_path">string_path</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  string_path&amp; <a class="link" href="string_path.html#idp94306840-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="string_path.html" title="Class template string_path">string_path</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="string_path.html#idp96487560-bb">private member functions</a></span>
+   <a class="link" href="string_path.html#idp96487768-bb"><span class="identifier">BOOST_STATIC_ASSERT</span></a><span class="special">(</span><span class="special">(</span><span class="identifier">is_same</span><span class="special">&lt;</span> <span class="identifier">String</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Translator</span><span class="special">::</span><span class="identifier">internal_type</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">value</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">s_c_iter</span> <a class="link" href="string_path.html#idp96488552-bb"><span class="identifier">cstart</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="string_path.html#idp96489016-bb">public member functions</a></span>
+  <span class="identifier">key_type</span> <a class="link" href="string_path.html#idp96489224-bb"><span class="identifier">reduce</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="string_path.html#idp96489880-bb"><span class="identifier">empty</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="string_path.html#idp96490504-bb"><span class="identifier">single</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">char_type</span> <a class="link" href="string_path.html#idp96491176-bb"><span class="identifier">separator</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a class="link" href="string_path.html#idp96491816-bb"><span class="identifier">dump</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="string_path.html" title="Class template string_path">string_path</a> <span class="special">&amp;</span> <a class="link" href="string_path.html#idp96492280-bb"><span class="keyword">operator</span><span class="special">/=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="string_path.html" title="Class template string_path">string_path</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp167375800"></a><h2>Description</h2>
+<p>If instantiated with std::string and <a class="link" href="id_translator.html" title="Struct template id_translator">id_translator</a>&lt;std::string&gt;, it accepts paths of the form "one.two.three.four".</p>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp167377000"></a><h3>Template Parameters</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> String</pre>
+<p>Any Sequence. If the sequence does not support random- access iteration, concatenation of paths assumes that insertions at the end preserve iterator validity. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Translator</pre>
+<p>A translator with internal_type == String. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp167379640"></a><h3>
+<a name="boost.property_tree.string_pathconstruct-copy-destruct"></a><code class="computeroutput">string_path</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp97779720-bb"></a><span class="identifier">string_path</span><span class="special">(</span><span class="identifier">char_type</span> separator <span class="special">=</span> <span class="identifier">char_type</span><span class="special">(</span><span class="char">'.'</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>Create an empty path. </li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp97780552-bb"></a><span class="identifier">string_path</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">String</span> <span class="special">&amp;</span> value<span class="special">,</span> <span class="identifier">char_type</span> separator <span class="special">=</span> <span class="identifier">char_type</span><span class="special">(</span><span class="char">'.'</span><span class="special">)</span><span class="special">,</span> 
+            <span class="identifier">Translator</span> tr <span class="special">=</span> <span class="identifier">Translator</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>Create a path by parsing the given string. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">separator</code></span></p></td>
+<td><p>The separator used in parsing. Defaults to '.'. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">tr</code></span></p></td>
+<td><p>The translator used by this path to convert the individual parts to keys. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">value</code></span></p></td>
+<td><p>A sequence, possibly with separators, that describes the path, e.g. "one.two.three". </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp97783112-bb"></a><span class="identifier">string_path</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> value<span class="special">,</span> <span class="identifier">char_type</span> separator <span class="special">=</span> <span class="identifier">char_type</span><span class="special">(</span><span class="char">'.'</span><span class="special">)</span><span class="special">,</span> 
+            <span class="identifier">Translator</span> tr <span class="special">=</span> <span class="identifier">Translator</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>Create a path by parsing the given string. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">separator</code></span></p></td>
+<td><p>The separator used in parsing. Defaults to '.'. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">tr</code></span></p></td>
+<td><p>The translator used by this path to convert the individual parts to keys. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">value</code></span></p></td>
+<td><p>A zero-terminated array of values. Only use if zero- termination makes sense for your type, and your sequence supports construction from it. Intended for string literals. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem"><pre class="literallayout"><a name="idp94306216-bb"></a><span class="identifier">string_path</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="string_path.html" title="Class template string_path">string_path</a> <span class="special">&amp;</span> o<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">string_path&amp; <a name="idp94306840-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="string_path.html" title="Class template string_path">string_path</a> <span class="special">&amp;</span> o<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp167410312"></a><h3>
+<a name="idp96487560-bb"></a><code class="computeroutput">string_path</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"> <a name="idp96487768-bb"></a><span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">(</span><span class="special">(</span><span class="identifier">is_same</span><span class="special">&lt;</span> <span class="identifier">String</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Translator</span><span class="special">::</span><span class="identifier">internal_type</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">value</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">s_c_iter</span> <a name="idp96488552-bb"></a><span class="identifier">cstart</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp167419320"></a><h3>
+<a name="idp96489016-bb"></a><code class="computeroutput">string_path</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">key_type</span> <a name="idp96489224-bb"></a><span class="identifier">reduce</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Take a single element off the path at the front and return it. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp96489880-bb"></a><span class="identifier">empty</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Test if the path is empty. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp96490504-bb"></a><span class="identifier">single</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Test if the path contains a single element, i.e. no separators. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">char_type</span> <a name="idp96491176-bb"></a><span class="identifier">separator</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Get the separator used by this path. </li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a name="idp96491816-bb"></a><span class="identifier">dump</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="string_path.html" title="Class template string_path">string_path</a> <span class="special">&amp;</span> <a name="idp96492280-bb"></a><span class="keyword">operator</span><span class="special">/=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="string_path.html" title="Class template string_path">string_path</a> <span class="special">&amp;</span> o<span class="special">)</span><span class="special">;</span></pre>Append a second path to this one. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>o's separator is the same as this one's, or o has no separators </p></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Marcin Kalicinski<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_ptree.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../property_tree/reference.html#header.boost.property_tree.ptree_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="path_of.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,314 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section String Substitutions]
+
+Regular expressions are not only good for searching text; they're good at ['manipulating] it. And one of the
+most common text manipulation tasks is search-and-replace. xpressive provides the _regex_replace_ algorithm for
+searching and replacing.
+
+[h2 regex_replace()]
+
+Performing search-and-replace using _regex_replace_ is simple. All you need is an input sequence, a regex object,
+and a format string or a formatter object. There are several versions of the _regex_replace_ algorithm. Some accept
+the input sequence as a bidirectional container such as `std::string` and returns the result in a new container
+of the same type. Others accept the input as a null terminated string and return a `std::string`. Still others
+accept the input sequence as a pair of iterators and writes the result into an output iterator. The substitution
+may be specified as a string with format sequences or as a formatter object. Below are some simple examples of
+using string-based substitutions.
+
+    std::string input("This is his face");
+    sregex re = as_xpr("his");                // find all occurrences of "his" ...
+    std::string format("her");                // ... and replace them with "her"
+
+    // use the version of regex_replace() that operates on strings
+    std::string output = regex_replace( input, re, format );
+    std::cout << output << '\n';
+
+    // use the version of regex_replace() that operates on iterators
+    std::ostream_iterator< char > out_iter( std::cout );
+    regex_replace( out_iter, input.begin(), input.end(), re, format );
+
+The above program prints out the following:
+
+[pre
+Ther is her face
+Ther is her face
+]
+
+Notice that ['all] the occurrences of `"his"` have been replaced with `"her"`.
+
+Click [link boost_xpressive.user_s_guide.examples.replace_all_sub_strings_that_match_a_regex here] to see
+a complete example program that shows how to use _regex_replace_. And check the _regex_replace_ reference
+to see a complete list of the available overloads.
+
+[h2 Replace Options]
+
+The _regex_replace_ algorithm takes an optional bitmask parameter to control the formatting. The
+possible values of the bitmask are:
+
+[table Format Flags
+    [[Flag]                     [Meaning]]
+    [[`format_default`]         [Recognize the ECMA-262 format sequences (see below).]]
+    [[`format_first_only`]      [Only replace the first match, not all of them.]]
+    [[`format_no_copy`]         [Don't copy the parts of the input sequence that didn't match the regex
+                                 to the output sequence.]]
+    [[`format_literal`]         [Treat the format string as a literal; that is, don't recognize any
+                                 escape sequences.]]
+    [[`format_perl`]            [Recognize the Perl format sequences (see below).]]
+    [[`format_sed`]             [Recognize the sed format sequences (see below).]]
+    [[`format_all`]             [In addition to the Perl format sequences, recognize some
+                                 Boost-specific format sequences.]]
+]
+
+These flags live in the `xpressive::regex_constants` namespace. If the substitution parameter is
+a function object instead of a string, the flags `format_literal`, `format_perl`, `format_sed`, and
+`format_all` are ignored.
+
+[h2 The ECMA-262 Format Sequences]
+
+When you haven't specified a substitution string dialect with one of the format flags above,
+you get the dialect defined by ECMA-262, the standard for ECMAScript. The table below shows
+the escape sequences recognized in ECMA-262 mode.
+
+[table Format Escape Sequences
+    [[Escape Sequence]      [Meaning]]
+    [[[^$1], [^$2], etc.]   [the corresponding sub-match]]
+    [[[^$&]]                [the full match]]
+    [[[^$\`]]               [the match prefix]]
+    [[[^$']]                [the match suffix]]
+    [[[^$$]]                [a literal `'$'` character]]
+]
+
+Any other sequence beginning with `'$'` simply represents itself. For example, if the format string were
+`"$a"` then `"$a"` would be inserted into the output sequence.
+
+[h2 The Sed Format Sequences]
+
+When specifying the `format_sed` flag to _regex_replace_, the following escape sequences
+are recognized:
+
+[table Sed Format Escape Sequences
+    [[Escape Sequence]      [Meaning]]
+    [[[^\\1], [^\\2], etc.] [The corresponding sub-match]]
+    [[[^&]]                 [the full match]]
+    [[[^\\a]]               [A literal `'\a'`]]
+    [[[^\\e]]               [A literal `char_type(27)`]]
+    [[[^\\f]]               [A literal `'\f'`]]
+    [[[^\\n]]               [A literal `'\n'`]]
+    [[[^\\r]]               [A literal `'\r'`]]
+    [[[^\\t]]               [A literal `'\t'`]]
+    [[[^\\v]]               [A literal `'\v'`]]
+    [[[^\\xFF]]             [A literal `char_type(0xFF)`, where [^['F]] is any hex digit]]
+    [[[^\\x{FFFF}]]         [A literal `char_type(0xFFFF)`, where [^['F]] is any hex digit]]
+    [[[^\\cX]]              [The control character [^['X]]]]
+]
+
+[h2 The Perl Format Sequences]
+
+When specifying the `format_perl` flag to _regex_replace_, the following escape sequences
+are recognized:
+
+[table Perl Format Escape Sequences
+    [[Escape Sequence]      [Meaning]]
+    [[[^$1], [^$2], etc.]   [the corresponding sub-match]]
+    [[[^$&]]                [the full match]]
+    [[[^$\`]]               [the match prefix]]
+    [[[^$']]                [the match suffix]]
+    [[[^$$]]                [a literal `'$'` character]]
+    [[[^\\a]]               [A literal `'\a'`]]
+    [[[^\\e]]               [A literal `char_type(27)`]]
+    [[[^\\f]]               [A literal `'\f'`]]
+    [[[^\\n]]               [A literal `'\n'`]]
+    [[[^\\r]]               [A literal `'\r'`]]
+    [[[^\\t]]               [A literal `'\t'`]]
+    [[[^\\v]]               [A literal `'\v'`]]
+    [[[^\\xFF]]             [A literal `char_type(0xFF)`, where [^['F]] is any hex digit]]
+    [[[^\\x{FFFF}]]         [A literal `char_type(0xFFFF)`, where [^['F]] is any hex digit]]
+    [[[^\\cX]]              [The control character [^['X]]]]
+    [[[^\\l]]               [Make the next character lowercase]]
+    [[[^\\L]]               [Make the rest of the substitution lowercase until the next [^\\E]]]
+    [[[^\\u]]               [Make the next character uppercase]]
+    [[[^\\U]]               [Make the rest of the substitution uppercase until the next [^\\E]]]
+    [[[^\\E]]               [Terminate [^\\L] or [^\\U]]]
+    [[[^\\1], [^\\2], etc.] [The corresponding sub-match]]
+    [[[^\\g<name>]]         [The named backref /name/]]
+]
+
+[h2 The Boost-Specific Format Sequences]
+
+When specifying the `format_all` flag to _regex_replace_, the escape sequences
+recognized are the same as those above for `format_perl`. In addition, conditional
+expressions of the following form are recognized:
+
+[pre
+?Ntrue-expression:false-expression
+]
+
+where /N/ is a decimal digit representing a sub-match. If the corresponding sub-match
+participated in the full match, then the substitution is /true-expression/. Otherwise,
+it is /false-expression/. In this mode, you can use parens [^()] for grouping. If you
+want a literal paren, you must escape it as [^\\(].
+
+[h2 Formatter Objects]
+
+Format strings are not always expressive enough for all your text substitution
+needs. Consider the simple example of wanting to map input strings to output
+strings, as you may want to do with environment variables. Rather than a format
+/string/, for this you would use a formatter /object/. Consider the following
+code, which finds embedded environment variables of the form `"$(XYZ)"` and
+computes the substitution string by looking up the environment variable in a
+map.
+
+    #include <map>
+    #include <string>
+    #include <iostream>
+    #include <boost/xpressive/xpressive.hpp>
+    using namespace boost;
+    using namespace xpressive;
+
+    std::map<std::string, std::string> env;
+
+    std::string const &format_fun(smatch const &what)
+    {
+        return env[what[1].str()];
+    }
+
+    int main()
+    {
+        env["X"] = "this";
+        env["Y"] = "that";
+
+        std::string input("\"$(X)\" has the value \"$(Y)\"");
+
+        // replace strings like "$(XYZ)" with the result of env["XYZ"]
+        sregex envar = "$(" >> (s1 = +_w) >> ')';
+        std::string output = regex_replace(input, envar, format_fun);
+        std::cout << output << std::endl;
+    }
+
+In this case, we use a function, `format_fun()` to compute the substitution string
+on the fly. It accepts a _match_results_ object which contains the results of the
+current match. `format_fun()` uses the first submatch as a key into the global `env`
+map. The above code displays:
+
+[pre
+"this" has the value "that"
+]
+
+The formatter need not be an ordinary function. It may be an object of class type.
+And rather than return a string, it may accept an output iterator into which it
+writes the substitution. Consider the following, which is functionally equivalent
+to the above.
+
+    #include <map>
+    #include <string>
+    #include <iostream>
+    #include <boost/xpressive/xpressive.hpp>
+    using namespace boost;
+    using namespace xpressive;
+
+    struct formatter
+    {
+        typedef std::map<std::string, std::string> env_map;
+        env_map env;
+
+        template<typename Out>
+        Out operator()(smatch const &what, Out out) const
+        {
+            env_map::const_iterator where = env.find(what[1]);
+            if(where != env.end())
+            {
+                std::string const &sub = where->second;
+                out = std::copy(sub.begin(), sub.end(), out);
+            }
+            return out;
+        }
+
+    };
+
+    int main()
+    {
+        formatter fmt;
+        fmt.env["X"] = "this";
+        fmt.env["Y"] = "that";
+
+        std::string input("\"$(X)\" has the value \"$(Y)\"");
+
+        sregex envar = "$(" >> (s1 = +_w) >> ')';
+        std::string output = regex_replace(input, envar, fmt);
+        std::cout << output << std::endl;
+    }
+
+The formatter must be a callable object -- a function or a function object --
+that has one of three possible signatures, detailed in the table below. For
+the table, `fmt` is a function pointer or function object, `what` is a
+_match_results_ object, `out` is an OutputIterator, and `flags` is a value
+of `regex_constants::match_flag_type`:
+
+[table Formatter Signatures
+[
+    [Formatter Invocation]
+    [Return Type]
+    [Semantics]
+]
+[
+    [`fmt(what)`]
+    [Range of characters (e.g. `std::string`) or null-terminated string]
+    [The string matched by the regex is replaced with the string returned by
+     the formatter.]
+]
+[
+    [`fmt(what, out)`]
+    [OutputIterator]
+    [The formatter writes the replacement string into `out` and returns `out`.]
+]
+[
+    [`fmt(what, out, flags)`]
+    [OutputIterator]
+    [The formatter writes the replacement string into `out` and returns `out`.
+     The `flags` parameter is the value of the match flags passed to the
+     _regex_replace_ algorithm.]
+]
+]
+
+[h2 Formatter Expressions]
+
+In addition to format /strings/ and formatter /objects/, _regex_replace_ also
+accepts formatter /expressions/. A formatter expression is a lambda expression
+that generates a string. It uses the same syntax as that for
+[link boost_xpressive.user_s_guide.semantic_actions_and_user_defined_assertions
+Semantic Actions], which are covered later. The above example, which uses
+_regex_replace_ to substitute strings for environment variables, is repeated
+here using a formatter expression.
+
+    #include <map>
+    #include <string>
+    #include <iostream>
+    #include <boost/xpressive/xpressive.hpp>
+    #include <boost/xpressive/regex_actions.hpp>
+    using namespace boost::xpressive;
+
+    int main()
+    {
+        std::map<std::string, std::string> env;
+        env["X"] = "this";
+        env["Y"] = "that";
+
+        std::string input("\"$(X)\" has the value \"$(Y)\"");
+
+        sregex envar = "$(" >> (s1 = +_w) >> ')';
+        std::string output = regex_replace(input, envar, ref(env)[s1]);
+        std::cout << output << std::endl;
+    }
+
+In the above, the formatter expression is `ref(env)[s1]`. This means to use the
+value of the first submatch, `s1`, as a key into the `env` map. The purpose of
+`xpressive::ref()` here is to make the reference to the `env` local variable /lazy/
+so that the index operation is deferred until we know what to replace `s1` with.
+
+[endsect]

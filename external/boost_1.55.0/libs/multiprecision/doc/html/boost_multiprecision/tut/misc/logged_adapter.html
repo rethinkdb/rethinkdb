@@ -1,0 +1,223 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>logged_adaptor</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../misc.html" title="Miscellaneous Number Types.">
+<link rel="prev" href="../misc.html" title="Miscellaneous Number Types.">
+<link rel="next" href="../conversions.html" title="Constructing and Interconverting Between Number Types">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../misc.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../misc.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../conversions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_multiprecision_tut_misc_logged_adaptor">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_multiprecision.tut.misc.logged_adaptor"></a><a class="link" href="logged_adaptor.html" title="logged_adaptor">logged_adaptor</a>
+</h4></div></div></div>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">logged_adaptor</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">multiprecision</span><span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Backend</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">log_postfix_event</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Backend</span><span class="special">&amp;</span> <span class="identifier">result</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">event_description</span><span class="special">);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Backend</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">log_postfix_event</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Backend</span><span class="special">&amp;</span> <span class="identifier">result1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">result2</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">event_description</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Backend</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">log_prefix_event</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Backend</span><span class="special">&amp;</span> <span class="identifier">arg1</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">event_description</span><span class="special">);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Backend</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">log_prefix_event</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Backend</span><span class="special">&amp;</span> <span class="identifier">arg1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">arg2</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">event_description</span><span class="special">);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Backend</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">log_prefix_event</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Backend</span><span class="special">&amp;</span> <span class="identifier">arg1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">arg2</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">U</span><span class="special">&amp;</span> <span class="identifier">arg3</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">event_description</span><span class="special">);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Backend</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">U</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">V</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">log_prefix_event</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Backend</span><span class="special">&amp;</span> <span class="identifier">arg1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">arg2</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">U</span><span class="special">&amp;</span> <span class="identifier">arg3</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">V</span><span class="special">&amp;</span> <span class="identifier">arg4</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">event_description</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="identifier">Backend</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">logged_adaptor</span><span class="special">;</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">logged_adaptor</span></code> type
+          is used in conjunction with <code class="computeroutput"><span class="identifier">number</span></code>
+          and some other backend type: it acts as a thin wrapper around some other
+          backend to class <code class="computeroutput"><span class="identifier">number</span></code>
+          and logs all the events that take place on that object. Before any number
+          operation takes place, it calls <code class="computeroutput"><span class="identifier">log_prefix_event</span></code>
+          with the arguments to the operation (up to 4), plus a string describing
+          the operation. Then after the operation it calls <code class="computeroutput"><span class="identifier">log_postfix_event</span></code>
+          with the result of the operation, plus a string describing the operation.
+          Optionally, <code class="computeroutput"><span class="identifier">log_postfix_event</span></code>
+          takes a second result argument: this occurs when the result of the operation
+          is not a <code class="computeroutput"><span class="identifier">number</span></code>, for example
+          when <code class="computeroutput"><span class="identifier">fpclassify</span></code> is called,
+          <code class="computeroutput"><span class="identifier">log_postfix_event</span></code> will
+          be called with <code class="computeroutput"><span class="identifier">result1</span></code>
+          being the argument to the function, and <code class="computeroutput"><span class="identifier">result2</span></code>
+          being the integer result of <code class="computeroutput"><span class="identifier">fpclassify</span></code>.
+        </p>
+<p>
+          The default versions of <code class="computeroutput"><span class="identifier">log_prefix_event</span></code>
+          and <code class="computeroutput"><span class="identifier">log_postfix_event</span></code> do
+          nothing, it is therefore up to the user to overload these for the particular
+          backend being observed.
+        </p>
+<p>
+          This type provides <code class="computeroutput"><span class="identifier">numeric_limits</span></code>
+          support whenever the template argument Backend does so.
+        </p>
+<p>
+          This type is particularly useful when combined with an interval number
+          type - in this case we can use <code class="computeroutput"><span class="identifier">log_postfix_event</span></code>
+          to monitor the error accumulated after each operation. We could either
+          set some kind of trap whenever the accumulated error exceeds some threshold,
+          or simply print out diagnostic information. Using this technique we can
+          quickly locate the cause of numerical instability in a particular routine.
+          The following example demonstrates this technique in a trivial algorithm
+          that deliberately introduces cancellation error:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">mpfi</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">logged_adaptor</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iomanip</span><span class="special">&gt;</span>
+<span class="comment">//</span>
+<span class="comment">// Begin by overloading log_postfix_event so we can capture each arithmetic event as it happens:</span>
+<span class="comment">//</span>
+<span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">multiprecision</span><span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="identifier">D</span><span class="special">&gt;</span>
+<span class="keyword">inline</span> <span class="keyword">void</span> <span class="identifier">log_postfix_event</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">mpfi_float_backend</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;&amp;</span> <span class="identifier">val</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">event_description</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="comment">// Print out the (relative) diameter of the interval:</span>
+   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">;</span>
+   <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">diam</span><span class="special">;</span>
+   <span class="identifier">mpfi_diam</span><span class="special">(</span><span class="identifier">diam</span><span class="special">.</span><span class="identifier">backend</span><span class="special">().</span><span class="identifier">data</span><span class="special">(),</span> <span class="identifier">val</span><span class="special">.</span><span class="identifier">data</span><span class="special">());</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Diameter was "</span> <span class="special">&lt;&lt;</span> <span class="identifier">diam</span> <span class="special">&lt;&lt;</span> <span class="string">" after operation: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">event_description</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="identifier">D</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">inline</span> <span class="keyword">void</span> <span class="identifier">log_postfix_event</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">mpfi_float_backend</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;&amp;,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">event_description</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="comment">// This version is never called in this example.</span>
+<span class="special">}</span>
+
+<span class="special">}}</span>
+
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">logged_adaptor</span><span class="special">&lt;</span><span class="identifier">mpfi_float_backend</span><span class="special">&lt;</span><span class="number">17</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">logged_type</span><span class="special">;</span>
+   <span class="comment">//</span>
+   <span class="comment">// Test case deliberately introduces cancellation error, relative size of interval</span>
+   <span class="comment">// gradually gets larger after each operation:</span>
+   <span class="comment">//</span>
+   <span class="identifier">logged_type</span> <span class="identifier">a</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+   <span class="identifier">a</span> <span class="special">/=</span> <span class="number">10</span><span class="special">;</span>
+
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">unsigned</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">13</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+   <span class="special">{</span>
+      <span class="identifier">logged_type</span> <span class="identifier">b</span> <span class="special">=</span> <span class="identifier">a</span> <span class="special">*</span> <span class="number">9</span><span class="special">;</span>
+      <span class="identifier">b</span> <span class="special">/=</span> <span class="number">10</span><span class="special">;</span>
+      <span class="identifier">a</span> <span class="special">-=</span> <span class="identifier">b</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Final value was: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">a</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          When we examine program output we can clearly see that the diameter of
+          the interval increases after each subtraction:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">0</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Assignment</span> <span class="identifier">from</span> <span class="identifier">arithmetic</span> <span class="identifier">type</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">4.33681e-18</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">7.70988e-18</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">9.63735e-18</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">1.30104e-16</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">1.30104e-16</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">1.38537e-16</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">2.54788e-15</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">2.54788e-15</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">2.54863e-15</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">4.84164e-14</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">4.84164e-14</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">4.84221e-14</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">9.19962e-13</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">9.19962e-13</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">9.19966e-13</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">1.74793e-11</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">1.74793e-11</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">1.74793e-11</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">3.32107e-10</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">3.32107e-10</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">3.32107e-10</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">6.31003e-09</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">6.31003e-09</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">6.31003e-09</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">1.19891e-07</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">1.19891e-07</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">1.19891e-07</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">2.27792e-06</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">2.27792e-06</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">2.27792e-06</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">4.32805e-05</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">4.32805e-05</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">4.32805e-05</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">0.00082233</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">0.00082233</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">0.00082233</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">0.0156243</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="identifier">nan</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="identifier">Default</span> <span class="identifier">construct</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">0.0156243</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">*</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">0.0156243</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">/=</span>
+<span class="identifier">Diameter</span> <span class="identifier">was</span> <span class="number">0.296861</span> <span class="identifier">after</span> <span class="identifier">operation</span><span class="special">:</span> <span class="special">-=</span>
+<span class="identifier">Final</span> <span class="identifier">value</span> <span class="identifier">was</span><span class="special">:</span> <span class="special">{</span><span class="number">8.51569e-15</span><span class="special">,</span><span class="number">1.14843e-14</span><span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../misc.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../misc.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../conversions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

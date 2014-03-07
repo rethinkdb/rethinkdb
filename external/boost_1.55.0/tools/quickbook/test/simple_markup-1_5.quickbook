@@ -1,0 +1,42 @@
+[article Simple Markup Test
+[quickbook 1.5]
+]
+
+[def _macro_ replaced]
+
+[section Simple Markup]
+
+/italic/ *bold* _underline_ =teletype=
+
+//not italic// **not bold** __not underline__ ==not teletype==
+
+_odd__ edge case_
+
+not__underlined__hopefully
+
+(*bold*) _und/er/lined_
+
+/all/italic/ * not bold*
+
+/not italic [@http://www.boost.org/ *bold*]
+
+not_underlined_
+
+_Should not underline '''escaped''' markup_.
+_or this '''escaped_ markup''' form.
+
+=Matti  Meik\u00E4l\u00E4inen=
+
+=_macro_=
+
+__macro__
+
+=_mac\ ro_=
+
+/italic\/
+
+These shouldn't be interepted as markup: == // **
+
+=<= =\<= =\\<=
+
+[endsect]

@@ -1,0 +1,695 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st February 2003), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+    <title>
+      Indexing Support
+    </title>
+  </head>
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%"
+           summary="header">
+      <tr>
+        <td valign="top" width="300">
+          <h3>
+            <a href="../../../../index.htm"><img height="86" width="277"
+                 alt="C++ Boost" src="../../../../boost.png" border=
+                 "0"></a>
+          </h3>
+        </td>
+        <td valign="top">
+          <h1 align="center">
+            <a href="../index.html">Boost.Python</a>
+          </h1>
+          
+      <h2> Headers &lt;boost/python/indexing/indexing_suite.hpp&gt;<br>
+        &lt;boost/python/indexing/vector_indexing_suite.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+    <h2>
+      Contents
+    </h2>
+    <dl class="page-index">
+      <dt>
+        <a href="#introduction">Introduction</a>
+      </dt>
+      <dt>
+        <a href="#interface">Interface</a>
+      </dt>
+      <dd>
+        <dl class="page-index">
+          <dt>
+            <a href="#indexing_suite">indexing_suite</a>
+          </dt>
+          <dt>
+            <a href="#indexing_suite_subclasses">indexing_suite
+            sub-classes</a>
+          </dt>
+          <dd>
+            <dl class="page-index">
+              <dt>
+                <a href="#vector_indexing_suite">vector_indexing_suite</a>
+              </dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+    </dl>
+    <dl>
+      <dt>
+        <a href="#indexing_suite_class">indexing_suite class</a>
+      </dt>
+      <dt>
+        <a href="#vector_indexing_suite_class">vector_indexing_suite
+        class<br>
+        </a><a href="#map_indexing_suite_class">map_indexing_suite class</a> </dt>
+    </dl>
+    <hr>
+    <h2>
+      <a name="introduction" id="introduction"></a>Introduction
+    </h2>
+    <p>
+      Indexing is a Boost Python facility for easy exportation of indexable
+      C++ containers to Python. Indexable containers are containers that
+      allow random access through the operator[] (e.g. std::vector).
+    </p>
+    <p>
+      While Boost Python has all the facilities needed to expose indexable
+      C++ containers such as the ubiquitous std::vector to Python, the
+      procedure is not as straightforward as we'd like it to be. Python
+      containers do not map easily to C++ containers. Emulating Python
+      containers in C++ (see Python Reference Manual, <a href=
+      "http://www.python.org/doc/current/ref/sequence-types.html">Emulating
+      container types</a>) using Boost Python is non trivial. There are a lot
+      of issues to consider before we can map a C++ container to Python.
+      These involve implementing wrapper functions for the methods
+      <strong>__len__</strong>, <strong>__getitem__</strong>,
+      <strong>__setitem__</strong>, <strong>__delitem__,</strong>
+      <strong>__iter__</strong> and <strong>__contains</strong>.
+    </p>
+    <p>
+      The goals:
+    </p>
+    <ul>
+      <li>
+        <div>
+          Make indexable C++ containers behave exactly as one would expect a
+          Python container to behave.
+        </div>
+      </li>
+      <li>
+        Provide default reference semantics for container element indexing
+        (<tt>__getitem__</tt>) such that <tt>c[i]</tt> can be mutable.
+        Require: 
+        <div>
+          <pre>
+    val = c[i]
+    c[i].m()
+    val == c[i]
+          </pre>
+        </div>where <tt>m</tt> is a non-const (mutating) member function
+        (method).
+      </li>
+      <li>
+        Return safe references from <tt>__getitem__</tt> such that subsequent
+        adds and deletes to and from the container will not result in
+        dangling references (will not crash Python).
+      </li>
+      <li>
+        Support slice indexes.
+      </li>
+      <li>
+        Accept Python container arguments (e.g. lists, tuples) wherever
+        appropriate.
+      </li>
+      <li>
+        Allow for extensibility through re-definable policy classes.
+      </li>
+      <li>
+        Provide predefined support for the most common STL and STL like
+        indexable containers.
+      </li>
+    </ul>
+    <hr>
+    
+<h2> <a name="interface"></a>The Boost.Python Indexing Interface</h2>
+<h3> <a name="indexing_suite"></a>indexing_suite [ Header &lt;boost/python/indexing/indexing_suite.hpp&gt; 
+  ]</h3>
+    <p>
+      The <tt>indexing_suite</tt> class is the base  class for the
+      management of C++ containers intended to be integrated to Python. The
+      objective is make a C++ container look and feel and behave exactly as
+      we'd expect a Python container. The class automatically wraps these
+      special Python methods (taken from the Python reference: <a href=
+      "http://www.python.org/doc/current/ref/sequence-types.html">Emulating
+      container types</a>):
+    </p>
+    <dl>
+      <dd>
+        <dl>
+          <dt>
+            <b><a name="l2h-126"><tt class=
+            "method">__len__</tt></a></b>(<var>self</var>)
+          </dt>
+          <dd>
+            Called to implement the built-in function <tt class=
+            "function">len()</tt><a name="l2h-134">&nbsp;</a> Should return
+            the length of the object, an integer <code>&gt;=</code> 0. Also,
+            an object that doesn't define a <tt class=
+            "method">__nonzero__()</tt> method and whose <tt class=
+            "method">__len__()</tt> method returns zero is considered to be
+            false in a Boolean context. <a name="l2h-128">&nbsp;</a>
+          </dd>
+        </dl>
+        <dl>
+          <dt>
+            <b><a name="l2h-129"><tt class=
+            "method">__getitem__</tt></a></b>(<var>self, key</var>)
+          </dt>
+          <dd>
+            Called to implement evaluation of
+            <code><var>self</var>[<var>key</var>]</code>. For sequence types,
+            the accepted keys should be integers and slice
+                objects.<a name="l2h-135">&nbsp;</a> Note that the special
+                interpretation of negative indexes (if the class wishes to
+                emulate a sequence type) is up to the <tt class=
+                "method">__getitem__()</tt> method. If <var>key</var> is of
+                an inappropriate type, <tt class="exception">TypeError</tt>
+                may be raised; if of a value outside the set of indexes for
+                the sequence (after any special interpretation of negative
+                values), <tt class="exception">IndexError</tt> should be
+                raised. <span class="note"><b class="label">Note:</b>
+                <tt class="keyword">for</tt> loops expect that an <tt class=
+                "exception">IndexError</tt> will be raised for illegal
+                indexes to allow proper detection of the end of the
+                sequence.</span>
+          </dd>
+        </dl>
+        <dl>
+          <dt>
+            <b><a name="l2h-130"><tt class=
+            "method">__setitem__</tt></a></b>(<var>self, key, value</var>)
+          </dt>
+          <dd>
+            Called to implement assignment to
+            <code><var>self</var>[<var>key</var>]</code>. Same note as for
+            <tt class="method">__getitem__()</tt>. This should only be
+            implemented for mappings if the objects support changes to the
+            values for keys, or if new keys can be added, or for sequences if
+            elements can be replaced. The same exceptions should be raised
+            for improper <var>key</var> values as for the <tt class=
+            "method">__getitem__()</tt> method.
+          </dd>
+        </dl>
+        <dl>
+          <dt>
+            <b><a name="l2h-131"><tt class=
+            "method">__delitem__</tt></a></b>(<var>self, key</var>)
+          </dt>
+          <dd>
+            Called to implement deletion of
+            <code><var>self</var>[<var>key</var>]</code>. Same note as for
+            <tt class="method">__getitem__()</tt>. This should only be
+            implemented for mappings if the objects support removal of keys,
+            or for sequences if elements can be removed from the sequence.
+            The same exceptions should be raised for improper <var>key</var>
+            values as for the <tt class="method">__getitem__()</tt> method.
+          </dd>
+        </dl>
+        <dl>
+          <dt>
+            <b><a name="l2h-132"><tt class=
+            "method">__iter__</tt></a></b>(<var>self</var>)
+          </dt>
+          <dd>
+            This method is called when an iterator is required for a
+            container. This method should return a new iterator object that
+            can iterate over all the objects in the container. For mappings,
+            it should iterate over the keys of the container, and should also
+            be made available as the method <tt class=
+            "method">iterkeys()</tt>. 
+            <p>
+              Iterator objects also need to implement this method; they are
+              required to return themselves. For more information on iterator
+              objects, see ``<a class="ulink" href=
+              "http://www.python.org/doc/current/lib/typeiter.html">Iterator
+              Types</a>'' in the <em class="citetitle"><a href=
+              "http://www.python.org/doc/current/lib/lib.html" title=
+              "Python Library Reference">Python Library Reference</a></em>.
+            </p>
+          </dd>
+        </dl>
+        <dl>
+          <dt>
+            <b><a name="l2h-133"><tt class=
+            "method">__contains__</tt></a></b>(<var>self, item</var>)
+          </dt>
+          <dd>
+            Called to implement membership test operators. Should return true
+            if <var>item</var> is in <var>self</var>, false otherwise. For
+            mapping objects, this should consider the keys of the mapping
+            rather than the values or the key-item pairs.
+          </dd>
+        </dl>
+      </dd>
+    </dl>
+    
+<h3> <a name="indexing_suite_subclasses"></a>indexing_suite sub-classes</h3>
+    <p>
+      The <tt>indexing_suite</tt> is not meant to be used as is. A couple of
+      policy functions must be supplied by subclasses of
+      <tt>indexing_suite</tt>. However, a set of <tt>indexing_suite</tt>
+      subclasses for the standard indexable STL containers will be provided,
+      In most cases, we can simply use the available predefined suites. In
+      some cases, we can refine the predefined suites to suit our needs.
+    </p>
+    
+<h3> <a name="vector_indexing_suite"></a>vector_indexing_suite [ Header &lt;boost/python/indexing/vector_indexing_suite.hpp&gt; 
+  ] </h3>
+<p>
+      The <tt>vector_indexing_suite</tt> class is a predefined
+      <tt>indexing_suite</tt> derived class designed to wrap
+      <tt>std::vector</tt> (and <tt>std::vector</tt> like [i.e. a class with
+      std::vector interface]) classes. It provides all the policies required by the
+      <tt>indexing_suite</tt>.
+  </p>
+    <p>
+      Example usage:
+    </p>
+    <pre>
+    class X {...};
+    ...
+
+    class_&lt;std::vector&lt;X&gt; &gt;("XVec")
+        .def(vector_indexing_suite&lt;std::vector&lt;X&gt; &gt;())
+    ;
+</pre>
+    <p>
+      <tt>XVec</tt> is now a full-fledged Python container (see the
+         <a href="../../test/vector_indexing_suite.cpp">example in full</a>,
+         along with its <a href="../../test/vector_indexing_suite.py">python
+         test</a>).
+</p>
+    <h3><a name="map_indexing_suite" id="map_indexing_suite"></a>map_indexing_suite [ Header &lt;boost/python/indexing/map_indexing_suite.hpp&gt; ] </h3>
+    <p> The <tt>map_indexing_suite</tt> class is a predefined <tt>indexing_suite</tt> derived class designed to wrap <tt>std::map</tt> (and <tt>std::map</tt> like [i.e. a class with std::map interface]) classes. It provides all the policies required by the <tt>indexing_suite</tt>. </p>
+    <p> Example usage: </p>
+    <pre>
+    class X {...};
+    ...
+
+    class_&lt;std::map&lt;X&gt; &gt;("XMap")
+        .def(map_indexing_suite&lt;std::map&lt;X&gt; &gt;())
+    ;
+</pre>
+    <p> By default indexed elements are returned by proxy. This can be disabled by supplying <tt>true</tt> in the NoProxy template parameter. <tt>XMap</tt> is now a full-fledged Python container (see the <a href="../../test/map_indexing_suite.cpp">example in full</a>, along with its <a href="../../test/map_indexing_suite.py">python test</a>).</p>
+    <hr>
+    <h2>
+      <a name="indexing_suite_class"></a>indexing_suite class    </h2>
+    <h2>  <tt>indexing_suite&lt;<br>
+    </tt><tt>class Container<br>
+       , class DerivedPolicies<font color="#007F00"><br>
+       </font></tt> <tt>,
+          bool NoProxy<br>
+       ,
+  bool NoSlice<br>
+       </tt><tt>, class Data<br>
+      , class Index<br>
+    </tt><tt>, class Key</tt></h2>
+    <table width="100%" border="1">
+      <tr>
+        <td>
+          <strong>Template Parameter</strong><br>
+        </td>
+        <td>
+          <strong>Requirements</strong>
+        </td>
+        <td>
+          <strong>Semantics</strong>
+        </td>
+        <td>
+          <strong>Default</strong>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <font color="#007F00"><tt>Container</tt></font>
+        </td>
+        <td>
+          A class type
+        </td>
+        <td>
+          The container type to be wrapped to Python.
+        </td>
+        <td>&nbsp;
+          
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <font color="#007F00"><tt>DerivedPolicies</tt></font>
+        </td>
+        <td>
+          A subclass of indexing_suite
+        </td>
+        <td>
+          Derived classes provide the policy hooks. See <a href=
+          "#DerivedPolicies">DerivedPolicies</a> below.
+        </td>
+        <td>&nbsp;
+          
+        </td>
+      </tr>
+      <tr>
+        <td> <font color="#007F00"><tt>NoProxy</tt></font> </td>
+        <td> A boolean </td>
+        <td> By default indexed elements have Python reference semantics and are returned by proxy. This can be disabled by supplying <strong>true</strong> in the <tt>NoProxy</tt> template parameter. </td>
+        <td> false </td>
+      </tr>
+      <tr>
+        <td>
+          <font color="#007F00"><tt>NoSlice</tt></font>
+        </td>
+        <td>
+          A boolean
+        </td>
+        <td>
+          Do not allow slicing. </td>
+        <td>
+          false
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <font color="#007F00"><tt>Data</tt></font>
+        </td>
+        <td>&nbsp;
+          
+        </td>
+        <td>
+          The container's data type.
+        </td>
+        <td>
+          <tt>Container::value_type</tt>
+        </td>
+      </tr>
+      <tr>
+        <td> <font color="#007F00"><tt>Index</tt></font> </td>
+        <td>&nbsp; </td>
+        <td> The container's index type. </td>
+        <td> <tt>Container::size_type</tt> </td>
+      </tr>
+      <tr>
+        <td>
+          <font color="#007F00"><tt>Key</tt></font>
+        </td>
+        <td>&nbsp;
+          
+        </td>
+        <td>
+          The container's key type.
+        </td>
+        <td>
+          <tt>Container::value_type</tt>
+        </td>
+      </tr>
+  </table>
+    <pre>
+    template &lt;<br>          class Container
+        , class DerivedPolicies
+        , bool NoProxy = false<br>        , bool NoSlice = false
+        , class Data = typename Container::value_type
+        , class Index = typename Container::size_type
+        , class Key = typename Container::value_type
+    &gt;<br>    class indexing_suite
+        : unspecified
+    {
+    public:
+
+        indexing_suite(); // default constructor
+    }
+    </pre>
+    <h2>
+      <tt><a name="DerivedPolicies"></a>DerivedPolicies</tt>
+    </h2>
+    <dl>
+      <dd>
+        Derived classes provide the hooks needed by
+        the <tt>indexing_suite:</tt>
+      </dd>
+    </dl>
+    <pre>        data_type&amp;
+        get_item(Container&amp; container, index_type i);
+
+        static object
+        get_slice(Container&amp; container, index_type from, index_type to);
+
+        static void
+        set_item(Container&amp; container, index_type i, data_type const&amp; v);
+
+        static void
+        set_slice(
+            Container&amp; container, index_type from,
+            index_type to, data_type const&amp; v
+        );
+
+        template &lt;class Iter&gt;
+        static void<br>        set_slice(Container&amp; container, index_type from,
+            index_type to, Iter first, Iter last
+        );
+
+        static void
+        delete_item(Container&amp; container, index_type i);
+
+        static void
+        delete_slice(Container&amp; container, index_type from, index_type to);
+
+        static size_t
+        size(Container&amp; container);
+
+        template &lt;class T&gt;
+        static bool
+        contains(Container&amp; container, T const&amp; val);
+
+        static index_type
+        convert_index(Container&amp; container, PyObject* i);
+
+        static index_type
+        adjust_index(index_type current, index_type from,
+            index_type to, size_type len
+        );
+</pre>
+    <blockquote>
+      <p>
+        Most of these policies are self explanatory. <tt>However,
+        <strong>convert_index</strong></tt> and
+        <tt><strong>adjust_index</strong></tt> deserve some explanation.
+      </p>
+      <p>
+        <strong><tt>convert_index</tt></strong> converts a Python index into
+        a C++ index that the container can handle. For instance, negative
+        indexes in Python, by convention, start counting from the right(e.g.
+        <tt>C[-1]</tt> indexes the rightmost element in <tt>C</tt>).
+        <strong><tt>convert_index</tt></strong> should handle the necessary
+        conversion for the C++ container (e.g. convert <tt>-1</tt> to
+        <tt>C.size()-1</tt>). <tt><strong>convert_index</strong></tt> should
+        also be able to convert the type of the index (A dynamic Python type)
+        to the actual type that the C++ container expects.
+      </p>
+      <p>
+        When a container expands or contracts, held indexes to its elements
+        must be adjusted to follow the movement of data. For instance, if we
+        erase 3 elements, starting from index 0 from a 5 element vector, what
+        used to be at index 4 will now be at index 1:
+      </p>
+      <pre>
+    [a][b][c][d][e] ---&gt; [d][e]
+                 ^           ^
+                 4           1
+</pre>
+      <p>
+        <strong><tt>adjust_index</tt></strong> takes care of the adjustment.
+        Given a current index, the function should return the adjusted index
+        when data in the container at index <tt>from</tt>..<tt>to</tt> is
+        replaced by <tt>len</tt> elements.
+      </p>
+    </blockquote>
+    <div>
+      <hr>
+      <h2>
+        <a name="vector_indexing_suite_class"></a>vector_indexing_suite class
+      </h2>
+      <h3>
+        Class template <tt><br>
+         vector_indexing_suite&lt;<br>
+         class <font color="#007F00">Container</font><br>
+         , bool <font color="#007F00">NoProxy</font><br>
+         , class <font color="#007F00">DerivedPolicies</font>&gt;</tt>
+      </h3>
+      <table width="100%" border="1">
+        <tr>
+          <td>
+            <strong>Template Parameter</strong><br>
+          </td>
+          <td>
+            <strong>Requirements</strong>
+          </td>
+          <td>
+            <strong>Semantics</strong>
+          </td>
+          <td>
+            <strong>Default</strong>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <font color="#007F00"><tt>Container</tt></font>
+          </td>
+          <td>
+            A class type
+          </td>
+          <td>
+            The container type to be wrapped to Python.
+          </td>
+          <td>&nbsp;
+            
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <font color="#007F00"><tt>NoProxy</tt></font>
+          </td>
+          <td>
+            A boolean
+          </td>
+          <td>
+            By default indexed elements have Python reference semantics and
+            are returned by proxy. This can be disabled by supplying
+            <strong>true</strong> in the <tt>NoProxy</tt> template parameter.
+          </td>
+          <td>
+            false
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <font color="#007F00"><tt>DerivedPolicies</tt></font>
+          </td>
+          <td>
+            A subclass of indexing_suite
+          </td>
+          <td>
+            The <tt>vector_indexing_suite</tt> may still be derived to
+            further tweak any of the predefined policies. Static polymorphism
+            through CRTP (James Coplien. "Curiously Recurring Template
+            Pattern". C++ Report, Feb. 1995) enables the base
+            <tt>indexing_suite</tt> class to call policy function of the most
+            derived class
+          </td>
+          <td>&nbsp;
+            
+          </td>
+        </tr>
+      </table>
+      <pre>
+    template &lt;<br>        class Container,<br>        bool NoProxy = false,<br>        class DerivedPolicies = unspecified_default<br>    class vector_indexing_suite : unspecified_base<br>    {<br>    public:<br><br>        typedef typename Container::value_type data_type;<br>        typedef typename Container::value_type key_type;<br>        typedef typename Container::size_type index_type;<br>        typedef typename Container::size_type size_type;<br>        typedef typename Container::difference_type difference_type;<br>    <br>        data_type&amp;<br>        get_item(Container&amp; container, index_type i);
+
+        static object
+        get_slice(Container&amp; container, index_type from, index_type to);
+
+        static void<br>        set_item(Container&amp; container, index_type i, data_type const&amp; v);
+
+        static void
+        set_slice(Container&amp; container, index_type from, 
+            index_type to, data_type const&amp; v);
+
+        template &lt;class Iter&gt;<br>        static void<br>        set_slice(Container&amp; container, index_type from,<br>            index_type to, Iter first, Iter last);
+
+        static void 
+        delete_item(Container&amp; container, index_type i);
+
+        static void 
+        delete_slice(Container&amp; container, index_type from, index_type to);<br>     
+        static size_t
+        size(Container&amp; container);
+     
+        static bool
+        contains(Container&amp; container, key_type const&amp; key);
+     
+        static index_type
+        convert_index(Container&amp; container, PyObject* i);
+     
+        static index_type
+        adjust_index(index_type current, index_type from, 
+            index_type to, size_type len);
+    };
+
+</pre>
+      <h2><a name="vector_indexing_suite_class"></a>map_indexing_suite class </h2>
+      <h3> Class template <tt><br>
+  map_indexing_suite&lt;<br>
+  class <font color="#007F00">Container</font><br>
+  , bool <font color="#007F00">NoProxy</font><br>
+  , class <font color="#007F00">DerivedPolicies</font>&gt;</tt> </h3>
+      <table width="100%" border="1">
+        <tr>
+          <td> <strong>Template Parameter</strong><br>
+          </td>
+          <td> <strong>Requirements</strong> </td>
+          <td> <strong>Semantics</strong> </td>
+          <td> <strong>Default</strong> </td>
+        </tr>
+        <tr>
+          <td> <font color="#007F00"><tt>Container</tt></font> </td>
+          <td> A class type </td>
+          <td> The container type to be wrapped to Python. </td>
+          <td>&nbsp; </td>
+        </tr>
+        <tr>
+          <td> <font color="#007F00"><tt>NoProxy</tt></font> </td>
+          <td> A boolean </td>
+          <td> By default indexed elements have Python reference semantics and are returned by proxy. This can be disabled by supplying <strong>true</strong> in the <tt>NoProxy</tt> template parameter. </td>
+          <td> false </td>
+        </tr>
+        <tr>
+          <td> <font color="#007F00"><tt>DerivedPolicies</tt></font> </td>
+          <td> A subclass of indexing_suite </td>
+          <td> The <tt>vector_indexing_suite</tt> may still be derived to further tweak any of the predefined policies. Static polymorphism through CRTP (James Coplien. "Curiously Recurring Template Pattern". C++ Report, Feb. 1995) enables the base <tt>indexing_suite</tt> class to call policy function of the most derived class </td>
+          <td>&nbsp; </td>
+        </tr>
+      </table>
+      <pre>
+    template &lt;<br>        class Container,<br>        bool NoProxy = false,<br>        class DerivedPolicies = unspecified_default<br>    class map_indexing_suite : unspecified_base<br>    {<br>    public:<br><br>        typedef typename Container::value_type value_type;<br>        typedef typename Container::value_type::second_type data_type;<br>        typedef typename Container::key_type key_type;<br>        typedef typename Container::key_type index_type;<br>        typedef typename Container::size_type size_type;<br>        typedef typename Container::difference_type difference_type;<br><br>        static data_type&amp;<br>        get_item(Container&amp; container, index_type i);
+
+        static void<br>        set_item(Container&amp; container, index_type i, data_type const&amp; v);
+
+        static void 
+        delete_item(Container&amp; container, index_type i);<br>     
+        static size_t
+        size(Container&amp; container);
+     
+        static bool
+        contains(Container&amp; container, key_type const&amp; key);
+     
+        static bool<br>        compare_index(Container&amp; container, index_type a, index_type b);
+<br>        static index_type
+        convert_index(Container&amp; container, PyObject* i);
+    };
+
+</pre>
+      <hr>
+      &copy; Copyright Joel de Guzman 2003. Permission to copy, use, modify,
+      sell and distribute this document is granted provided this copyright
+      notice appears in all copies. This document is provided "as is" without
+      express or implied warranty, and with no claim as to its suitability
+      for any purpose.
+    </div>
+  </body>
+</html>

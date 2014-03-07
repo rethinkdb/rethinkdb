@@ -1,0 +1,56 @@
+#!/usr/bin/make -f
+# Sample debian/rules that uses debhelper.
+# This file is public domain software, originally written by Joey Hess. 
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+build:
+clean:
+binary-arch: 
+
+binary-indep: 
+	dh_testdir
+	dh_testroot
+
+	dh_clean -k
+	dh_installdirs usr/share/boost-build etc
+
+	# Add here commands to install the package into debian/<packagename>
+	(tar --exclude-from debian/excludes -cpf - * ) | (cd `pwd`/debian/tmp/usr/share/boost-build && tar xpf - )
+	chmod a-x -R `pwd`/debian/tmp/usr/share/boost-build
+
+	dh_installchangelogs
+	dh_installdocs -XCVS
+	mv `pwd`/debian/tmp/usr/share/doc/boost-build/index_v2.html `pwd`/debian/tmp/usr/share/doc/boost-build/index.html 
+
+	(tar --exclude make --exclude CVS -cpf - example/* ) | ( cd `pwd`/debian/tmp/usr/share/doc/boost-build && tar xpf - )
+
+	sed 's/#  using gcc ;/using gcc ;/' user-config.jam > `pwd`/debian/tmp/etc/site-config.jam
+
+#	dh_install
+#	dh_installmenu
+#	dh_installdebconf	
+#	dh_installlogrotate
+#	dh_installemacsen
+#	dh_installcatalogs
+#	dh_installpam
+#	dh_installmime
+#	dh_installinit
+#	dh_installcron
+#	dh_installinfo
+#	dh_undocumented
+	dh_installman
+	dh_link
+	dh_compress
+	dh_fixperms
+#	dh_perl
+#	dh_python
+#	dh_makeshlibs
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install

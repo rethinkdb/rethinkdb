@@ -1,0 +1,222 @@
+<html>
+<head>
+<title>Operators</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> 
+      <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Operators</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="primitives.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="numerics.html"><img src="theme/r_arr.gif" border="0"></a></td>
+   </tr>
+</table>
+<p>Operators are used as a means for object composition and embedding. Simple 
+  parsers may be composed to form composites through operator overloading, crafted 
+  to approximate the syntax of an Extended Backus-Normal Form (EBNF) variant. 
+  An expression such as:</p>
+<pre><code><font color="#000000">    <span class=identifier>a </span><span class=special>| </span><span class=identifier>b</span></font></code></pre>
+<p>actually yields a new parser type which is a composite of its operands, a and 
+  b. Taking this example further, if a and b were of type <tt>chlit</tt>&lt;&gt;, 
+  the result would have the composite type:</p>
+<pre><code><font color="#000000">    <span class=identifier>alternative</span><span class=special>&lt;</span><span class=identifier>chlit</span><span class=special>&lt;&gt;, </span><span class=identifier>chlit</span><span class=special>&lt;&gt; </span><span class=special>&gt;</span></font></code></pre>
+<p> In general, for any binary operator, it will take its two arguments, parser1 
+  and parser2, and create a new composed parser of the form</p>
+<pre><code><font color="#000000">    <span class=identifier>op</span><span class=special>&lt;</span><span class=identifier>parser1</span><span class=special>, </span><span class=identifier>parser2</span><span class=special>&gt;</span></font></code></pre>
+<p>where parser1 and parser2 can be arbitrarily complex parsers themselves, with 
+  the only limitations being what your compiler imposes. </p>
+<h3>Set Operators</h3>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td class="table_title" colspan="3">Set operators</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="20%"><code><span class=identifier>a </span><span class=special>| 
+      </span><span class=identifier>b</span></code></td>
+    <td class="table_cells" width="24%">Union</td>
+    <td class="table_cells" width="56%">Match a or b. Also referred to as alternative</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="20%"><code><span class=identifier>a </span><span class=special>& 
+      </span><span class=identifier>b</span></code></td>
+    <td class="table_cells" width="24%">Intersection</td>
+    <td class="table_cells" width="56%">Match a and b</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="20%"><code><span class=identifier>a </span><span class=special>- 
+      </span><span class=identifier>b</span></code></td>
+    <td class="table_cells" width="24%">Difference</td>
+    <td class="table_cells" width="56%">Match a but not b. If both match and b's 
+      matched text is shorter than a's matched text, a successful match is made</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="20%"><code><span class=identifier>a </span><span class=special>^ 
+      </span><span class=identifier>b</span></code></td>
+    <td class="table_cells" width="24%">XOR</td>
+    <td class="table_cells" width="56%">Match a or b, but not both</td>
+  </tr>
+</table>
+<p><b>Short-circuiting</b></p>
+<p>Alternative operands are tried one by one on a first come first served basis 
+  starting from the leftmost operand. After a successfully matched alternative 
+  is found, the parser concludes its search, essentially short-circuiting the 
+  search for other potentially viable candidates. This short-circuiting implicitly 
+  gives the highest priority to the leftmost alternative.</p>
+<p>Short-circuiting is done in the same manner as C or C++'s logical expressions; 
+  e.g. <tt>if</tt> <tt><span class="operators">(</span>x <span class="operators">&lt;</span> 
+  3 <span class="operators">||</span> y <span class="operators">&lt;</span> 2<span class="operators">)</span></tt> 
+  where, if <tt>x</tt> evaluates to be less than 3, the <tt>y <span class="operators">&lt;</span> 
+  2</tt> test is not done at all. In addition to providing an implicit priority 
+  rule for alternatives which is necessary, given the non-deterministic nature 
+  of the Spirit parser compiler, short-circuiting improves the execution time. 
+  If the order of your alternatives is logically irrelevant, strive to put the 
+  (expected) most common choice first for maximum efficiency.</p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/lens.gif" width="15" height="16"> <b>Intersections</b><br>
+      <br>
+      Some researchers assert that the intersections (e.g. <tt>a &amp; b</tt>) 
+      let us define context sensitive languages (<a href="references.html#intersections">&quot;XBNF&quot;</a> 
+      [citing Leu-Weiner, 1973]). &quot;The theory of defining a language as the 
+      intersection of a finite number of context free languages was developed 
+      by Leu and Weiner in 1973&quot;.<br>
+      <br>
+      <b><img src="theme/lens.gif" width="15" height="16"> <b></b>~ Operator</b><br>
+      <br>
+      The complement operator <tt>~</tt> was originally put into consideration. 
+      Further understanding of its value and meaning leads us to uncertainty. 
+      The basic problem stems from the fact that <tt>~a</tt> will yield <tt>U-a</tt>, 
+      where <tt>U</tt> is the universal set of all strings. However, where it 
+      makes sense, some parsers can be complemented (see the <a href="primitives.html#negation">primitive 
+      character parsers</a> for examples).</td>
+  </tr>
+</table>
+<h3>Sequencing Operators</h3>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td class="table_title" colspan="3">Sequencing operators</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="21%"><code><span class=identifier>a </span><span class=special>&gt;&gt; 
+      </span><span class=identifier>b</span></code></td>
+    <td class="table_cells" width="23%">Sequence</td>
+    <td class="table_cells" width="56%">Match a and b in sequence</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="21%"><code><span class=identifier>a </span><span class=special>&& 
+      </span><span class=identifier>b</span></code></td>
+    <td class="table_cells" width="23%">Sequential-and</td>
+    <td class="table_cells" width="56%">Sequential-and. Same as above, match a 
+      and b in sequence</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="21%"><code><span class=identifier>a </span><span class=special>|| 
+      </span><span class=identifier>b</span></code></td>
+    <td class="table_cells" width="23%">Sequential-or</td>
+    <td class="table_cells" width="56%">Match a or b in sequence</td>
+  </tr>
+</table>
+<p>The sequencing operator <tt class="operators">&gt;&gt;</tt> can alternatively 
+  be thought of as the sequential-and operator. The expression <tt>a <span class="operators">&amp;&amp;</span> 
+  b</tt> reads as match a and b in sequence. Continuing this logic, we can also 
+  have a sequential-or operator where the expression <tt>a <span class="operators">||</span> 
+  b</tt> reads as match a or b and in sequence. That is, if both a and b match, 
+  it must be in sequence; this is equivalent to <tt>a &gt;&gt; !b | b</tt>. </p>
+<h3>Optional and Loops</h3>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td class="table_title" colspan="3">Optional and Loops</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="21%"><code><span class=special>*</span><span class=identifier>a</span></code></td>
+    <td class="table_cells" width="23%">Kleene star</td>
+    <td class="table_cells" width="56%">Match a zero (0) or more times</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="21%"><code><span class=special>+</span><span class=identifier>a</span></code></td>
+    <td class="table_cells" width="23%">Positive</td>
+    <td class="table_cells" width="56%">Match a one (1) or more times</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="21%"><code><span class=special>!</span><span class=identifier>a</span></code></td>
+    <td class="table_cells" width="23%">Optional</td>
+    <td class="table_cells" width="56%">Match a zero (0) or one (1) time</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="21%"><code><span class=identifier>a </span><span class=special>% 
+      </span><span class=identifier>b</span></code></td>
+    <td class="table_cells" width="23%">List</td>
+    <td class="table_cells" width="56%">Match a list of one or more repetitions 
+      of a separated by occurrences of b. This is the same as <tt>a &gt;&gt; *(b 
+      &gt;&gt; a)</tt>. Note that <tt>a</tt> must not also match <tt>b</tt></td>
+  </tr>
+</table>
+<p><img src="theme/note.gif" width="16" height="16"> If we look more closely, 
+  take note that we generalized the optional expression of the form <tt>!a</tt> 
+  in the same category as loops. This is logical, considering that the optional 
+  matches the expression following it zero (0) or one (1) time. </p>
+<p><b>Primitive type operands</b></p>
+<p> For binary operators, one of the operands but not both may be a <tt>char</tt>, 
+  <tt> wchar_t</tt>, <tt>char const<span class="operators">*</span></tt> or <tt>wchar_t 
+  const<span class="operators">*</span></tt>. Where P is a parser object, here 
+  are some examples:</p>
+<pre><code><span class=identifier>    </span><span class=identifier>P </span><span class=special>| </span><span class=literal>'x'
+    </span><span class=identifier>P </span><span class=special>- </span><span class=identifier>L</span><span class=string>"Hello World"
+    </span><span class=literal>'x' </span><span class=special>&gt;&gt; </span><span class=identifier>P
+    </span><span class=string>"bebop" </span><span class=special>&gt;&gt; </span><span class=identifier>P</span></code></pre>
+<p>It is important to emphasize that C++ mandates that operators may only be overloaded 
+  if at least one argument is a user-defined type. Typically, in an expression 
+  involving multiple operators, explicitly typing the leftmost operand as a parser 
+  is enough to cause propagation to all the rest of the operands to its right 
+  to be regarded as parsers. Examples:</p>
+<pre><code><font color="#000000"><span class=identifier>    </span><span class=identifier>r </span><span class=special>= </span><span class=literal>'a' </span><span class=special>| </span><span class=literal>'b' </span><span class=special>| </span><span class=literal>'c' </span><span class=special>| </span><span class=literal>'d'</span><span class=special>;          </span><span class=comment>// ill formed
+    </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'a'</span><span class=special>)  </span><span class=special>| </span><span class=literal>'b' </span><span class=special>| </span><span class=literal>'c' </span><span class=special>| </span><span class=literal>'d'</span><span class=special>;   </span><span class=comment>// OK</span></font></code></pre>
+<p>The second case is parsed as follows:</p>
+<pre><code><font color="#000000">    r <font color="#0000ff"><img src="theme/arrow.gif"> <span class=special>(((</span><span class=identifier>chlit</span><span class=special>&lt;</span><span class=keyword>char</span><span class=special>&gt; </span><span class=special>| </span><span class=keyword>char</span><span class=special>) </span><span class=special>| </span><span class=keyword>char</span><span class=special>) </span><span class=special>| </span><span class=keyword>char</span><span class=special>)</span></font>
+
+    a <font color="#0000ff"><img src="theme/arrow.gif"> <span class=special>(</span><span class=identifier>chlit</span><span class=special>&lt;</span><span class=keyword>char</span><span class=special>&gt; </span><span class=special>| </span><span class=keyword>char</span><span class=special>)</span></font>
+    r <font color="#0000ff"><img src="theme/arrow.gif"> <span class=special>(((</span><span class=identifier>a</span><span class=special>) </span><span class=special>| </span><span class=keyword>char</span><span class=special>) </span><span class=special>| </span><span class=keyword>char</span><span class=special>)</span></font>
+
+    b <font color="#0000ff"><img src="theme/arrow.gif"> <span class=special>(</span><span class=identifier>a </span><span class=special>| </span><span class=keyword>char</span><span class=special>)</span></font>
+    r <font color="#0000ff"><img src="theme/arrow.gif"> <span class=special>(((</span><span class=identifier>b</span><span class=special>)) </span><span class=special>| </span><span class=keyword>char</span><span class=special>)</span></font>
+
+    c <font color="#0000ff"><img src="theme/arrow.gif"> <span class=special>(</span><span class=identifier>b </span><span class=special>| </span><span class=keyword>char</span><span class=special>)</span></font>
+    r <font color="#0000ff"><img src="theme/arrow.gif"> <span class=special>(((</span><span class=identifier>c</span><span class=special>)))</span></font></font></code></pre>
+<p><b>Operator precedence and grouping</b></p>
+<p>Since we are defining our meta-language in C++, we follow C/C++'s operator 
+  precedence rules. Grouping expressions inside the parentheses override this 
+  (e.g., <tt><span class="operators">*(</span>a <span class="operators">|</span> 
+  b<span class="operators">)</span></tt> reads: match a or b zero (0) or more 
+  times). </p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="primitives.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="numerics.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<p>&nbsp;</p>
+</body>
+</html>

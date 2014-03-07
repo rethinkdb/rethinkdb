@@ -1,0 +1,389 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section:parse_api Parser API]
+
+[//////////////////////////////////////////////////////////////////////////////]
+[section:iterator_api Iterator Based Parser API]
+
+[heading Description]
+
+The library provides a couple of free functions to make parsing a snap.
+These parser functions have two forms. The first form `parse` works on
+the character level. The second `phrase_parse` works on the phrase level
+and requires skip parser. Both versions can take in attributes by
+reference that will hold the parsed values on a successful parse.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/parse.hpp>
+    #include <boost/spirit/include/qi_parse.hpp>
+
+For variadic attributes:
+
+    // forwards to <boost/spirit/home/qi/parse_attr.hpp>
+    #include <boost/spirit/include/qi_parse_attr.hpp>
+
+The variadic attributes version of the API allows one or more
+attributes to be passed into the parse functions. The functions taking two 
+or more are usable when the parser expression is a __qi_sequence__ only.
+In this case each of the attributes passed have to match the corresponding 
+part of the sequence.
+
+For the API functions deducing the correct (matching) parser type from the 
+supplied attribute type:
+
+    // forwards to <boost/spirit/home/qi/detail/parse_auto.hpp>
+    #include <boost/spirit/include/qi_parse_auto.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::qi::parse` ]]
+    [[`boost::spirit::qi::phrase_parse` ]]
+    [[`boost::spirit::qi::skip_flag::postskip` ]]
+    [[`boost::spirit::qi::skip_flag::dont_postskip` ]]
+]
+
+[heading Synopsis]
+
+    namespace boost { namespace spirit { namespace qi
+    {
+        template <typename Iterator, typename Expr>
+        inline bool
+        parse(
+            Iterator& first
+          , Iterator last
+          , Expr const& expr);
+
+        template <typename Iterator, typename Expr
+          , typename Attr1, typename Attr2, ..., typename AttrN>
+        inline bool
+        parse(
+            Iterator& first
+          , Iterator last
+          , Expr const& expr
+          , Attr1& attr1, Attr2& attr2, ..., AttrN& attrN);
+
+        template <typename Iterator, typename Expr, typename Skipper>
+        inline bool
+        phrase_parse(
+            Iterator& first
+          , Iterator last
+          , Expr const& expr
+          , Skipper const& skipper
+          , BOOST_SCOPED_ENUM(skip_flag) post_skip = skip_flag::postskip);
+
+        template <typename Iterator, typename Expr, typename Skipper
+          , typename Attr1, typename Attr2, ..., typename AttrN>
+        inline bool
+        phrase_parse(
+            Iterator& first
+          , Iterator last
+          , Expr const& expr
+          , Skipper const& skipper
+          , Attr1& attr1, Attr2& attr2, ..., AttrN& attrN);
+
+        template <typename Iterator, typename Expr, typename Skipper
+          , typename Attr1, typename Attr2, ..., typename AttrN>
+        inline bool
+        phrase_parse(
+            Iterator& first
+          , Iterator last
+          , Expr const& expr
+          , Skipper const& skipper
+          , BOOST_SCOPED_ENUM(skip_flag) post_skip
+          , Attr1& attr1, Attr2& attr2, ..., AttrN& attrN);
+    }}}
+
+[note Starting with __spirit__ V2.5 (distributed with Boost V1.47) the 
+      placeholder `_val` can be used in semantic actions attached to top level
+      parser components. In this case `_val` refers to the supplied attribute
+      as a whole. For API functions taking more than one attribute argument
+      `_val` will refer to a Fusion vector or references to the attributes.]
+
+__qi__ parser API functions based on the automatic creation of the matching 
+parser type:
+
+    namespace boost { namespace spirit { namespace qi
+    {
+        template <typename Iterator, typename Attr>
+        inline bool
+        parse(
+            Iterator& first
+          , Iterator last
+          , Attr& attr);
+
+
+        template <typename Iterator, typename Attr, typename Skipper>
+        inline bool
+        phrase_parse(
+            Iterator& first
+          , Iterator last
+          , Attr& attr
+          , Skipper const& skipper
+          , BOOST_SCOPED_ENUM(skip_flag) post_skip = skip_flag::postskip);
+    }}}
+
+All functions above return `true` if none of the involved parser components
+failed, and `false` otherwise. 
+
+The maximum number of supported arguments is limited by the preprocessor 
+constant `SPIRIT_ARGUMENTS_LIMIT`. This constant defaults to the value defined
+by the preprocessor constant `PHOENIX_LIMIT` (which in turn defaults to `10`). 
+
+[note The variadic functions with two or more attributes internally combine 
+      references to all passed attributes into a `fusion::vector` and forward 
+      this as a combined attribute to the corresponding one attribute function.]
+
+The `phrase_parse` functions not taking an explicit `skip_flag` as one of their 
+arguments invoke the passed skipper after a successful match of the parser 
+expression. This can be inhibited by using the other versions of that function 
+while passing `skip_flag::dont_postskip` to the corresponding argument.
+
+[table
+    [[Parameter]                    [Description]]
+    [[`Iterator`]                   [__fwditer__ pointing to the source to parse.]]
+    [[`Expr`]                       [An expression that can be converted to a Qi parser.]]
+    [[`Skipper`]                    [Parser used to skip white spaces.]]
+    [[`Attr`]                       [An attribute type utilized to create the corresponding 
+                                     parser type from.]]
+    [[`Attr1`, `Attr2`, ..., `AttrN`][One or more attributes.]]
+]
+
+[endsect] [/ Iterator Based Parser API]
+
+[//////////////////////////////////////////////////////////////////////////////]
+[section:stream_api Stream Based Parser API]
+
+[heading Description]
+
+The library provides a couple of Standard IO __iomanip__ allowing to integrate
+__qi__ input parsing facilities with Standard input streams.
+These parser manipulators have two forms. The first form, `match`, works on
+the character level. The second `phrase_match` works on the phrase level
+and requires a skip parser. Both versions can take in attributes by reference 
+that will hold the parsed values on a successful parse.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/stream/match_manip.hpp>
+    #include <boost/spirit/include/qi_match.hpp>
+
+For variadic attributes:
+
+    // forwards to <boost/spirit/home/qi/stream/match_manip_attr.hpp>
+    #include <boost/spirit/include/qi_match_attr.hpp>
+
+The variadic attributes version of the API allows one or more
+attributes to be passed into the parse manipulators. The manipulators taking 
+two or more attributes are usable when the parser expression is a 
+__qi_sequence__ only. In this case each of the attributes passed have to 
+match the corresponding part of the sequence.
+
+For the API functions deducing the correct (matching) parser type from the 
+supplied attribute type:
+
+    // forwards to <boost/spirit/home/qi/match_auto.hpp>
+    #include <boost/spirit/include/qi_match_auto.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::qi::match` ]]
+    [[`boost::spirit::qi::phrase_match` ]]
+    [[`boost::spirit::qi::skip_flag::postskip` ]]
+    [[`boost::spirit::qi::skip_flag::dont_postskip` ]]
+]
+
+[heading Synopsis]
+
+    namespace boost { namespace spirit { namespace qi
+    {
+        template <typename Expr>
+        inline <unspecified> 
+        match(
+            Expr const& xpr);
+
+        template <typename Expr
+          , typename Attr1, typename Attr2, ..., typename AttrN>
+        inline <unspecified> 
+        match(
+            Expr const& xpr
+          , Attr1& attr1, Attr2& attr2, ..., AttrN& attrN);
+
+        template <typename Expr, typename Skipper>
+        inline <unspecified> 
+        phrase_match(
+            Expr const& expr
+          , Skipper const& s
+          , BOOST_SCOPED_ENUM(skip_flag) post_skip = skip_flag::postskip);
+
+        template <typename Expr, typename Skipper
+          , typename Attr1, typename Attr2, ..., typename AttrN>
+        inline <unspecified> 
+        phrase_match(
+            Expr const& expr
+          , Skipper const& s
+          , Attr1& attr1, Attr2& attr2, ..., AttrN& attrN);
+
+        template <typename Expr, typename Skipper
+          , typename Attr1, typename Attr2, ..., typename AttrN>
+        inline <unspecified> 
+        phrase_match(
+            Expr const& expr
+          , Skipper const& s
+          , BOOST_SCOPED_ENUM(skip_flag) post_skip
+          , Attr1& attr1, Attr2& attr2, ..., AttrN& attrN);
+    }}}
+
+__qi__ parser API functions based on the automatic creation of the matching 
+parser type:
+
+    namespace boost { namespace spirit { namespace qi
+    {
+        template <typename Attr>
+        inline <unspecified> 
+        match(
+            Attr& attr);
+
+        template <typename Attr, typename Skipper>
+        inline <unspecified> 
+        phrase_match(
+            Attr& attr
+          , Skipper const& s
+          , BOOST_SCOPED_ENUM(skip_flag) post_skip = skip_flag::postskip);
+    }}}
+
+All functions above return a standard IO stream manipulator instance (see 
+__iomanip__), which when streamed from an input stream will result in parsing
+the input using the embedded __qi__ parser expression. Any error (or failed 
+parse) occurring during the invocation of the __qi__ parsers will be reflected
+in the streams status flag (`std::ios_base::failbit` will be set).
+
+The maximum number of supported arguments is limited by the preprocessor 
+constant `SPIRIT_ARGUMENTS_LIMIT`. This constant defaults to the value defined
+by the preprocessor constant `PHOENIX_LIMIT` (which in turn defaults to `10`). 
+
+[note The variadic manipulators with two or more attributes internally combine 
+      references to all passed attributes into a `fusion::vector` 
+      and forward this as a combined attribute to the corresponding manipulator
+      taking one attribute.]
+
+The `phrase_match` manipulators not taking an explicit `skip_flag` as one of their 
+arguments invoke the passed skipper after a successful match of the parser 
+expression. This can be inhibited by using the other versions of that manipulator 
+while passing `skip_flag::dont_postskip` to the corresponding argument.
+
+[heading Template parameters]
+
+[table
+    [[Parameter]                    [Description]]
+    [[`Expr`]                       [An expression that can be converted to a Qi parser.]]
+    [[`Skipper`]                    [Parser used to skip white spaces.]]
+    [[`Attr`]                       [An attribute type utilized to create the corresponding 
+                                     parser type from.]]
+    [[`Attr1`, `Attr2`, ..., `AttrN`][One or more attributes.]]
+]
+
+[endsect] [/ Stream Based Parser API]
+
+[//////////////////////////////////////////////////////////////////////////////]
+[section:create_parser API for Automatic Parser Creation]
+
+[heading Description]
+
+The library implements a special API returning a parser instance for a 
+supplied attribute type. This function finds the best matching parser type 
+for the attribute based on a set of simple matching rules (as outlined in the 
+table below) applied recursively to the attribute type. The returned parser
+can be utilized to match input for the provided attribute.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/auto.hpp>
+    #include <boost/spirit/include/qi_auto.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::qi::create_parser`]]
+    [[`boost::spirit::traits::create_parser_exists`]]
+]
+
+[heading Synopsis]
+
+    namespace boost { namespace spirit { namespace qi
+    {
+        template <typename Attr>
+        inline <unspecified> 
+        create_parser();
+    }}}
+
+The returned instance can be directly passed as the parser (or the skipping
+parser) to any of the __qi__ API functions. Additionally it
+can be assigned to a rule as the rules right hand side expression. This 
+function will return a valid parser type only if the meta function 
+`traits::create_parser_exists` returns `mpl::true_`. Otherwise it will fail
+compiling.
+
+    namespace boost { namespace spirit { namespace traits
+    {
+        template <typename Attr>
+        struct create_parser_exists;
+    }}}
+
+The meta function evaluates to `mpl::true_` if `create_parser` would return 
+a valid parser for the given type `Attr`.
+
+The following table outlines the mapping rules from the attribute type to the
+parser type. These rules are applied recursively to create the parser 
+type which can be used to match input for the given attribute type.
+
+[table 
+    [[Attribute type]   [Generator type]]
+    [[`char`, `wchar_t`]      [`standard::char_`, `standard_wide::char_`]]
+    [[`short`, `int`, `long`] [`short_`, `int_`, `long_`]]
+    [[`unsigned short`, `unsigned int`, `unsigned long`] 
+                              [`ushort_`, `uint_`, `ulong_`]]
+    [[`float`, `double`, `long double`] [`float_`, `double_`, `long_double`]]
+    [[`short`, `int`, `long`] [`short_`, `int_`, `long_`]]
+    [[`long long`, `unsigned long long`]
+                              [`long_long`, `ulong_long`]]
+    [[`bool`]                 [`bool_`]]
+    [[Any (STL) container]    [Kleene Star (unary `'*'`)]]
+    [[Any Fusion sequence]    [Sequence operator (`'<<'`)]]
+    [[`boost::optional<>`]    [Optional operator (unary `'-'`)]]
+    [[`boost::variant<>`]     [Alternative operator (`'|'`)]]
+]
+
+[important The mapping for the parsers `long_long` and `ulong_long` are only 
+        available on platforms where the preprocessor constant 
+        `BOOST_HAS_LONG_LONG` is defined (i.e. on platforms having native 
+        support for `long long` and `unsigned long long` (64 bit) signed and 
+        unsigned integer types).]
+
+[heading Template parameters]
+
+[table
+    [[Parameter]                    [Description]]
+    [[`Attr`]                       [An attribute type utilized to create the corresponding 
+                                     parser type from.]]
+]
+
+[endsect] [/ API for Automatic Parser Creation]
+
+[endsect]

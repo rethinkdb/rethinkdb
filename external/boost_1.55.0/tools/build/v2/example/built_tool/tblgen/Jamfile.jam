@@ -1,0 +1,4 @@
+
+project : requirements -<tblgen>tblgen//tblgen ;
+
+exe tblgen : tblgen.cpp ;

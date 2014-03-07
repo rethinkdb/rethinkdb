@@ -1,0 +1,6 @@
+> example
+Running 5 test cases...
+test.cpp(9): error in "free_test_function": check i < 4 failed
+test.cpp(9): error in "free_test_function": check i < 4 failed
+
+*** 2 failures detected in test suite "Master Test Suite"

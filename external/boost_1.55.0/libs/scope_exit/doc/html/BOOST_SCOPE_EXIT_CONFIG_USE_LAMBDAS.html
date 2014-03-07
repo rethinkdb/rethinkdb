@@ -1,0 +1,57 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Macro BOOST_SCOPE_EXIT_CONFIG_USE_LAMBDAS</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">
+<link rel="up" href="reference.html#header.boost.scope_exit_hpp" title="Header &lt;boost/scope_exit.hpp&gt;">
+<link rel="prev" href="BOOST_SCOPE_EXIT_END_ID.html" title="Macro BOOST_SCOPE_EXIT_END_ID">
+<link rel="next" href="scope_exit/acknowledgements.html" title="Acknowledgements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_SCOPE_EXIT_END_ID.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="reference.html#header.boost.scope_exit_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="scope_exit/acknowledgements.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="BOOST_SCOPE_EXIT_CONFIG_USE_LAMBDAS"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Macro BOOST_SCOPE_EXIT_CONFIG_USE_LAMBDAS</span></h2>
+<p>BOOST_SCOPE_EXIT_CONFIG_USE_LAMBDAS &#8212; Force to use C++11 lambda functions to implement scope exits. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="reference.html#header.boost.scope_exit_hpp" title="Header &lt;boost/scope_exit.hpp&gt;">boost/scope_exit.hpp</a>&gt;
+
+</span>BOOST_SCOPE_EXIT_CONFIG_USE_LAMBDAS</pre></div>
+<div class="refsect1">
+<a name="id839635"></a><h2>Description</h2>
+<p>If programmers define this configuration macro on a C++11 compiler for which the Boost.Config macro <code class="computeroutput">BOOST_NO_LAMBDAS</code> is not defined, the  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> and  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code> macros will use C++11 lambda functions to declare scope exits. By default this macro is not defined.</p>
+<p><span class="bold"><strong>Warning:</strong></span> When scope exits are implemented using lambda functions, the syntax of the capture list follows the exact same syntax of C++11 lambda captures which is in general different from the legacy capture syntax of this library. For example, C++11 lambdas require to capture data members by capturing the object <code class="computeroutput">this</code> while this library always allowed to capture data members directly. Therefore, when this configuration macro is defined,  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> and  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code> are no longer backward compatible (and this is why this macro is not defined by default).</p>
+<p>A semicolon <code class="computeroutput">;</code> can be used instead of  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_END.html" title="Macro BOOST_SCOPE_EXIT_END">BOOST_SCOPE_EXIT_END</a></code> when this configuration macro is defined (but it is recommended to always use  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_END.html" title="Macro BOOST_SCOPE_EXIT_END">BOOST_SCOPE_EXIT_END</a></code> so to maximize portability).</p>
+<p><span class="bold"><strong>Note:</strong></span> This configuration macro does not control the definition of  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code> which is always and automatically defined on compilers that support C++11 lambda functions.</p>
+<p><span class="bold"><strong>See:</strong></span>  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>,  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code>,  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_END.html" title="Macro BOOST_SCOPE_EXIT_END">BOOST_SCOPE_EXIT_END</a></code>. </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Alexander Nasonov, Lorenzo Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_SCOPE_EXIT_END_ID.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="reference.html#header.boost.scope_exit_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="scope_exit/acknowledgements.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

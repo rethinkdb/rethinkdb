@@ -1,0 +1,675 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2012 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section What's New]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:spirit_2_5_2 Spirit V2.5.2]
+
+[heading What's changed from V2.5.1 (Boost V1.48.0) to V2.5.2 (Boost V1.49.0)]
+
+* Integrated Vitaly Budovski's patch to add binary floating point parsers and
+  generators.
+* Fixed #6253: `lex::lexertl::generate_static_dfa` compiler errors if lexer has
+  wchar_t as underlying stream type.
+* Added the possibility to match a token range when parsing with a lexer by
+  using `qi::token(min, max)`, or `qi::tokenid(min, max)`. Both parsers match
+  any token with a token id in the range [min, max].
+* Fixed a problem in [karma_align `center`]`(num)[a]` and
+  [karma_align `center`]`(num, g)[a]` if used inside a compound generator (such
+  as sequences, Kleene, list, or plus.
+* Fixed `karma::subrule` from the [@../../repository/doc/html/index.html repository]
+  (thanks to Lee Clagett for submitting a patch).
+* Fixed __karma__ examples (thanks to Lee Clagett for submitting a patch).
+* Fixed #6368: [multi_pass] clear_queue isn't forwarded to the storage policy.
+* Fixed a problem in __karma__ when a variant holding a container was used as
+  a generator inside a sequence.
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:spirit_2_5_1 Spirit V2.5.1]
+
+[heading What's changed from V2.5 (Boost V1.47.0) to V2.5.1 (Boost V1.48.0)]
+
+* The `spirit::istream_iterator` (see __multi_pass__) now checks at
+  construction time whether the underlying stream has reached eof (end of file).
+* __qi__ now properly collapses attributes generated from optionals embedded
+  inside another optional parser (i.e. `-('(' > -int_ >> ')'). That means that
+  attributes like `boost::optional<boost::optional<int> >` will be collapsed
+  to `boost::optional<int>`. Thanks to Peter Schueller for reporting that
+  problem.
+* Actions attached to binary parsers now properly propagate the parser's
+  attribute. Thanks to Mathias Born for reporting this issue.
+
+[heading Bug Fixes in Lex]
+
+* Fixed Boost ticket #5701: lexertl token_value_type returns const unused for
+  nonconst ref.
+* Fixed a problem in the lexer (position_token) causing problems with enabled
+  parser debugging (MSVC2010).
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:spirit_2_5 Spirit V2.5]
+
+[heading What's changed in __qi__ and __karma__ from V2.4.2 (Boost V1.46.0) to V2.5 (Boost V1.47.0)]
+
+This version of __spirit__ now supports the new version of __boost_phoenix__ (V3),
+which has been released as part of Boost V1.47. Please note that this support
+is purely preliminary and should not be considered production quality. The
+reason why we are releasing this now is to enable people who want to use the
+new version of __boost_phoenix__ in their code to do so without any conflicts with
+existing code using __spirit__. Generally, no __spirit__ code needs to be
+changed. To activate the use of __boost_phoenix__ V3 for __spirit__ you need to
+define the following preprocessor constant for your builds (before including
+any of Spirit's include files):
+
+    #define BOOST_SPIRIT_USE_PHOENIX_V3 1
+
+[heading New Features in Qi or Karma]
+
+* Added __utree__, a generic, hierarchical, and dynamic data structure that can
+  represent abstract syntax trees. It's well integrated with __qi__ and
+  __karma__. It can be passed as an attribute while parsing to almost any
+  grammar. At the same time, it can be used as an attribute to generate output
+  from.
+* Added a new macro `BOOST_SPIRIT_TERMINAL_NAME` which takes in two parameters
+  (the terminal name and its type). Before, there was only one parameter
+  (the terminal name) and the type assumed the terminal name with `_type`
+  appended. This produced invalid C++ identifiers with terminals such as
+  `int_`, which resulted in generated a type `int__type` with a bogus double
+  underscore that is reserved for system use in C++.
+* The numeric parsers now allow arbitrary radix from 2..10 and 16
+* The placeholder `_val` now can be used in top level semantic actions outside
+  of any right hand side of a rule. Here is an example:
+``
+    int i = 0
+    BOOST_TEST(test_attr("456", int_[_val = _1], i) && i == 456);
+``
+  In this case _val refers to the attribute value, which is passed in to the
+  `parse()` or `phrase_parse()` functions.
+  Similar constructs are now possible in __karma__ as well:
+``
+    int i = 123;
+    BOOST_TEST(test("123", int_[_1 = _val], i));
+``
+  This change unifies the handling of the `_val` placeholder allowing to use it
+  everywhere, not only in semantic actions attached to the right hand sides of
+  a rule.
+* Added support for __karma__ [unsigned_int unsigned numeric generators] with
+  arbitrary radix values in the (inclusive) range from `2` .. `36`.
+
+[heading Bug Fixes in Qi or Karma]
+
+* __qi__ integer literals (like `int_(10)`) do not consume input on failure
+  anymore.
+* Fixed Boost ticket #5246: mmap_file_iterator Fails to initialize correctly.
+* Fixed Boost ticket #5246: mmap_file_iterator Fails to initialize correctly.
+* Fixed a const correctness problem in `karma::real_policies<>` preventing the
+  use of const floating point types with the generator. Thanks to Jeroen
+  Habraken (a.k.a. VeXocide) for reporting it and for submitting a patch and
+  a test.
+* Fixed the  __qi__ __qi_attr__ parser, the __qi__ __qi_symbols__ parser, and
+  the __karma__ [karma_symbols `symbols<>`] generator to properly handle
+  container attributes. These were broken in Boost V1.46.1 (thanks to
+  Aaron Graham and Joerg Becker for reporting the problems).
+* Fixed the __qi_stream__ parser to properly adjust the iterator of the
+  underlying input stream in the case when the stream parser component was
+  successful. Thanks to Brian O'Kennedy who reported the problem on
+  Stackoverflow.
+* Fixed failing Karma numerics generators when used with adapted ADTs (thanks
+  to Colin Rundel for reporting that problem).
+
+[heading Breaking Changes]
+
+* The __qi__ directive __qi_repeat__ erroneously implemented commit/rollback
+  semantics for its attribute, leaving it untouched if the directive failed.
+  This behaviour has been removed as it is inconsistent with similar components.
+  Existing code relying on this functionality will break. Please refer to the
+  __qi__ directive __qi_hold__ to see how to fix your code.
+* Added a preprocessor define `BOOST_SPIRIT_NO_PREDEFINED_TERMINALS` to prevent
+  instantiations of predefined terminal objects which slows down compile time
+  a lot. When `BOOST_SPIRIT_NO_PREDEFINED_TERMINALS` is defined, the user
+  instantiates the terminals that he needs. So, instead of writing `using qi::uint_`
+  one writes instead: `qi::uint_type uint_`.
+
+[heading New Features in Lex]
+
+* Added the possibility to specify a token id while creating a token definition
+  using `lex::char_` and `lex::string`. Both primitives now accept a second
+  parameter which will be interpreted as the requested token id for any token
+  generated from this definition.
+* Added a new token type `lex::lexertl::position_token<>`, which is essentially
+  plup-in compatible with the existing `lex::lexertl::token<>` class. However
+  it additionally stores the pair of iterators pointing to the underlying
+  matched input sequence as an iterator_range.
+
+[heading Bug Fixes in Lex]
+
+* Fixed a problem with associating token definitions with all states (using
+  `"*"` as the state name) when actions were attached to them.
+
+[heading Making Stuff Work]
+
+* Added the __karma__ customization point __customize_extract_from_container__,
+  which will be invoked instead of the older customization point
+  __customize_extract_from__ if the attribute is a container (__customize_is_container__
+  returns `true` for the attribute).
+* The type `hold_any` now takes a template argument: `basic_hold_any<Char>`,
+  where `Char` is the character type used for the streaming operators
+  (`operator>>()` and `operator<<()`). The `hold_any` is still available as a
+  `typedef basic_hold_any<char> hold_any`;
+* Semantic actions now support attribute compatibility. This is a breaking
+  change but #define BOOST_SPIRIT_ACTIONS_ALLOW_ATTR_COMPAT must be defined
+  in order for the new behavior to kick in. By default, the old behavior
+  is still in place.
+* Alternatives now support attribute compatibility.
+* The attribute handling for container attributes of sequences and container
+  components (list, Kleene, Plus, and repeat) has been completely rewritten.
+  It now supports many more use cases and behaves much more predictable than
+  the older version. Thanks to Thomas Taylor, Richard Crossley, Semen,
+  Adalberto Castelo, and many others for reporting bugs and helping in making
+  the new code behave as expected.
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:spirit_2_4_2 Spirit V2.4.2]
+
+[heading What's changed in __qi__ and __karma__ from V2.4.1 (Boost V1.45.0) to V2.4.2 (Boost V1.46.0)]
+
+[heading New Features in Qi or Karma]
+
+* Added keyword indexes for __qi__ and __karma__ to the docs.
+* Introduced a new customization point __customize_assign_to_container_from_value__
+  which is invoked for container attributes whenever an attribute value needs to
+  be added to that container.
+* Replaced `proto::lit` (which was used to implement `spirit::lit`) with a
+  separate version allowing to distinguish 'lit(foo)' from 'foo'. This should
+  not change any semantics nor should it break exiting code.
+* Added the __qi__ directive __qi_as__ (and its string specializations
+  __qi_as_string__ and __qi_as_wstring__) enabling asignment of container
+  attribute types as a whole.
+* Added the __karma__ directive __karma_as__ (and its string specializations
+  __karma_as_string__ and __karma_as_wstring__) enabling handling of container
+  attribute types during output generation as a whole.
+* In __qi__, `lit()` can now be used for numeric literals as well.
+* The __qi_symbols__ parser component now has an explicit name used for
+  error handling and debugging, which can be set using the new member functions
+  `sym.name(...)`. Thanks to teajay for contributing a patch.
+* The [karma_symbols `symbols<Attrib, T>`] generator component now has an
+  explicit name used for error handling and debugging, which can be set using
+  the new member functions `sym.name(...)`.
+
+[heading Bug Fixes in Qi or Karma]
+
+* Fixed a problem in handling container attributes for __qi__ sequences, which
+  caused the properly parsed attributes of the first elements being overwritten
+  by later elements of the sequence.
+* Fixed the __karma__ generator [karma_string `string(s)`]. It succeeded even
+  if `s` matched only a prefix of its attribute.
+
+[heading What's changed in __lex__ from V2.4.1 (Boost V1.45.0) to V2.4.2 (Boost V1.46.0)]
+
+[heading New Features in Lex]
+
+* Added `qi::tokenid()` primitive parser allowing to match arbitrary lexer
+  tokens based on a given token id. The difference to `qi::token()` is, that it
+  exposes as its attribute the token id of the matched token (instead of the
+  iterator_range of the matched input, as `qi::token()` does).
+* Added an additional template parameter to the default `lexertl::token<>`
+  definition: the type of the token id. This type defaults to `std::size_t`.
+  Any type used as the id type needs to be (explicitly) convertible from
+  `std::size_t`.
+* It's now possible to attach lexer semantic actions to token definitions
+  based on `lex::char()` and `lex::string()`.
+* It's now possible to specify a lexer state the lexer should automatically be
+  switched to after matching certain tokens. For this reason the token
+  definition syntax has been extended:
+``
+    template <typename Lexer>
+    struct lexer : lex::lexer<Lexer>
+    {
+        lexer()
+        {
+            int_ = "[1-9][0-9]*";
+            this->self("INITIAL", "TARGETSTATE") = int_;
+        }
+        lex::token_def<int> int_;
+    };
+``
+  This example lexer will match a `int_` token and will switch the lexer to
+  the state `"TARGETSTATE"` afterwards. If the second argument is not
+  specified the lexer remains in the previous state (as before).
+* The parser primitives `qi::token` and `qi::tokenid` can now be used without
+  any argument. In this case they will match any token.
+* `lex::lit()` has been removed.
+
+[heading Bug Fixes in Lex]
+
+* Fixed an issue in the Lexer giving problems while assigning tokens to all
+  lexer states at once. This is now possible by simply using "*" as the state
+  name. For instance this will add the token int_ to all lexer states:
+``
+    template <typename Lexer>
+    struct lexer : lex::lexer<Lexer>
+    {
+        lexer()
+        {
+            int_ = "[1-9][0-9]*";
+            this->self("*") = int_;
+        }
+        lex::token_def<int> int_;
+    };
+``
+   Note: the `self("*") = ...` must be executed after all lexer states have
+   been introduced to the lexer object.
+
+* Fixed lexer lookahead. The lookahead operation is now evaluated using the
+  lexer state the `token_def` instance used as its argument is associated
+  with.
+* Fixed a problem in the `multi_pass` iterator causing wrong tokens to be
+  returned to the user. This could happen in conjunction with a lexer which
+  performed lexer state changes and was using `pass_fail` in semantic actions
+  to make a token match fail.
+
+[heading Known Problems]
+
+* __qi__ integer literals (like `int_(10)`) consume input on failure, which can
+  lead to problems with the alternative operator.
+
+[endsect]
+
+[/ spirit_2_4_2]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:spirit_2_4_1 Spirit V2.4.1]
+
+[heading What's changed in __qi__ and __karma__ from V2.4 (Boost V1.44.0) to V2.4.1 (Boost V1.45.0)]
+
+[heading Bug Fixes]
+
+* Fixed broken __qi__ debugging facilities for optional attributes.
+* The __qi__ auto parsers and __karma__ auto generators will now properly work
+  with `signed char` and `unsigned char` as well.
+* Fixed a problem in the multi_pass fixed_queue policy.
+* Enabled proper modifier handling for the __qi_skip__ directive.
+* Fixed a floating point formating problem in Karma (Trac ticket #4742).
+* Fixed a problem in [qi_repeat `repeat`]`[]`, which caused the `first`
+  iterator not to be reset on certain parsing failures (see
+  [@http://stackoverflow.com/questions/4009752/boost-spirit-bug-when-mixing-alternates-with-optionals Stack Overflow]).
+
+[endsect] [/ spirit_2_4_1]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:spirit_2_4 Spirit V2.4]
+
+[heading What's changed in __qi__ and __karma__ from V2.3 (Boost V1.43.0) to V2.4 (Boost V1.44.0)]
+
+[heading New Features]
+
+* The customization point __customize_transform_attribute__ now takes an additional template
+  parameter `Domain` allowing to better specialize the customization point
+  for either `qi::domain` or `karma::domain`.
+
+[important This is a interface breaking change requiring to modify existing
+           code. If you have a specialization of this customization point in
+           your code you need to add the specialization for the new template
+           parameter, i.e. either `qi::domain` or `karma::domain`.]
+* Semantic actions in __qi__ now implicitly invoke the function `pre` of the
+  customization point __customize_transform_attribute__ to convert the supplied
+  attribute to the exposed attribute type, as needed. The functions
+  `post` and `fail` of this customization point are not invoked by this
+  component (as this would not make any sense).
+* Semantic actions in __karma__ now implicitly invoke the function `pre` of the
+  customization point __customize_transform_attribute__ to convert the supplied
+  attribute to the consumed attribute type, as needed.
+* Added the __karma__ __karma_skip__ directive which is semantically equivalent
+  to the __karma__ __karma_omit__ directive except that it will not execute the
+  embedded generator.
+* Added debug support to __karma__ rules.
+* Added strict mode to __karma__, leaving the current behavior (unchanged) as
+  relaxed mode. Added __karma__ compile time directives `strict[]` and
+  `relaxed[]` allowing to switch between the two.
+* Added __karma__ __karma_duplicate__ directive which duplicates the supplied
+  attribute to all elements of an embedded generator sequence.
+
+[heading Bug Fixes]
+
+* Components in __qi__ and __karma__ now accept one element Fusion sequences as
+  their attributes as long as the element in the Fusion sequence is compatible
+  with the component's attribute type.
+* The character range parser and generator components can now additionally be
+  written as `char_("a", "z")` instead of `char_('a', 'z')` making it
+  consistent with the syntax of the `char_('a')` component (which can be
+  written as `char_("a")` as well). Please note that the mixed syntax forms,
+  i.e. `char_('a', "z")` and `char_("a", 'z')`, are not supported.
+* Fixed attribute handling in __karma__ sequences when all elements of that
+  sequence consume either the same attribute type or containers of that
+  attribute type and the passed in attribute is a container of that attribute
+  type as well. In this case using a repetitive container was supported only
+  when it was the last element of the sequence. Now it is possible to
+  have a [karma_repeat `repeat`]`(num)[a]` generator at any position (well,
+  actually you can have any repetitive container at any position now, but this
+  doesn't always make sense as it normally would eat up all supplied attribute
+  values).
+* Fixed debug output for variants where a variant element is an STL sequence.
+* Fixed a problem in multi_pass, avoiding to loose a character at end of input
+  when switching iterators.
+
+[heading What's changed in __lex__ from V2.3 (Boost V1.43.0) to V2.4 (Boost V1.44.0)]
+
+[heading New Lexer Features]
+
+* The lexer is now well integrated with the debug output generated by Qi's
+  simple_trace utility. Tokens are printed as: '<' matched sequence '>'.
+
+[heading Lexer Bug Fixes]
+
+* Fixed a problem with using lex::_val as a rvalue in lexer semantic
+  expressions.
+* Token values are now available for introspection (as an iterator_range)
+  inside lexer semantic expressions as well.
+
+[endsect] [/ spirit_2_4]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:spirit_2_3 Spirit V2.3]
+
+[heading What's changed in __qi__ and __karma__ from V2.2 (Boost V1.42.0) to V2.3 (Boost V1.43.0)]
+
+[heading New Features]
+
+* The customization point `transform_attribute` now has to implement a third
+  function: `void fail(Exposed&)`, which normally will do nothing. This function
+  will be called whenever the right hand side of the `rule` (or the embedded
+  parser of `attr_cast`) fail parsing. This change affects /Qi/ only. See
+  the description of the __customize_transform_attribute__ for more details.
+* Added support for attribute sequences created with `BOOST_FUSION_ADAPT_CLASS`
+  and `BOOST_FUSION_ADAPT_CLASS_NAMED`. This support requires to include the
+  new header file: `#include <boost/spirit/inlcude/support_adapt_class_attributes.hpp>`.
+* Added `karma::ostream_iterator` as a counterpart to `qi::istream_iterator`
+  (see new header file: `#include <boost/spirit/home/support/iterators/ostream_iterator.hpp>`).
+* Added `qi::hold` allowing to make sure the embedded parser does not touch
+  the passed attribute in case it fails parsing.
+* Added [qi_no_skip `qi::no_skip`] directive, which is equivalent to
+  `qi::`__qi_lexeme__, except that it does not pre-skip.
+* Added [karma_no_delimit `karma::no_delimit`] directive, which is equivalent to
+  `karma::`__karma_verbatim__, except that it does not perform a post-delimiting
+  step.
+* Added a new input_iterator policy for the `multi_pass` iterator framework
+  (named `buffering_input_iterator`) allowing to wrap underlying input
+  iterators which do not store the last character read from the input (such as
+  `std::istream_iterator`). This is now used as the default input policy.
+
+[heading Bug Fixes]
+
+* Sequences (in /Qi/ and /Karma/) may now have a component having no attribute
+  even as their last element.
+* Sequences (in /Qi/ and /Karma/) can now take one element attribute sequences
+  as their attribute.
+* Constructs like `karma::buffer[karma::buffer[...]]` don't result in
+  performing double buffering anymore. The same is true if an alternative is
+  wrapped into a `karma::buffer[]` directive (as for instance: `buffer[a] | b`).
+* The __karma__ output iterator (which is used internally, but also is exposed
+  when using the stream based API) is now properly copyable (thanks to Jonas
+  Persson for reporting this issue).
+* The default `multi_pass` iterator is now usable with underlying input
+  iterators which do not store the last character read from the input (such as
+  `std::istream_iterator`). Thanks to Larry Evans and Peter Schueller for
+  independently reporting this problem.
+* The directive `karma::omit[]` now does not accept an arbitrary attribute
+  type anymore.
+* The __karma__ predicates (the and-predicate and the not-predicate) and the
+  directive `karma::omit[]` now disable output altogether instead of
+  intercepting the output into a buffer which got discarded as before.
+* Fixed `karma::rule` to properly handles optional attributes.
+
+[heading What's changed in __lex__ from V2.2 (Boost V1.42.0) to V2.3 (Boost V1.43.0)]
+
+[heading New Lexer Features]
+
+* The library does not minimize the generated lexer tables for dynamic lexers by
+  default anymore. The generated tables will now be minimized for static lexers
+  only.
+* The function `lexer<>::init_dfa()` now takes a single boolean parameter
+  (which defaults to `false`) allowing to force minimization of the generated
+  lexer tables.
+
+[endsect] [/ spirit_2_3]
+
+[//////////////////////////////////////////////////////////////////////////////]
+[section:spirit_2_2 Spirit V2.2]
+
+[heading What's changed in __qi__ and __karma__ from V2.1 (Boost V1.41.0) to V2.2 (Boost V1.42.0)]
+
+[heading New Features]
+
+* Added `auto_` component in __qi__ and __karma__, added API functions
+  `qi::`__create_parser__ and `karma::`__create_generator__.
+* Added `auto_` based overloads for all API functions taking no attributes (see
+  [link spirit.qi.reference.parse_api /Qi/ API] and
+  [link spirit.karma.reference.generate_api /Karma/ API]).
+* Added [karma_columns `karma::columns`] directive.
+* Added [karma_symbols `karma::symbols<Attr, T>`] generator.
+* The __qi__ customization point __customize_push_back_container__ now returns
+  a `bool` to report whether the item has been added to the container.
+* Added an overload for [karma_maxwidth `karma::maxwidth`] directive allowing
+  to specify an additional parameter (any compatible output iterator) receiving
+  the 'overspilled' output (output not fitting into the maxwidth limit).
+* It is now possible to use Phoenix expressions as __karma__ attributes.
+* Added [link spirit.support.multi_pass.reading_from_standard_input_streams `basic_istream_iterator<Char, Traits>`]
+  usable as an equivalent for `std::istream_iterator` except its a __fwditer__
+  allowing to parse directly from any `std::basic_istream`.
+* Added `qi::`__qi_matches__ directive.
+
+[heading Bug Fixes]
+
+* Fixed karma::alternatives to work with embedded containers of hold_any (i.e.
+  constructs like `*stream | "empty"` (which fixes the Karma example
+  basic_facilities.cpp).
+* Fixed numeric __karma__ generators for character types.
+* Fixed `qi::repeat[]` for unused attributes.
+* Fixed rare compilation problem in `karma::repeat[]`.
+* Fixed sequences in __qi__ and __karma__ to compile properly if the attribute
+  is a (STL) container of (STL) containers.
+* Fixed a problem in `lex::token_def::what`.
+* Fixed __qi__ symbols not to match substrings anymore. Added
+  `qi::symbols::prefix_find` to allow matching of (prefix-) substrings.
+* Inherited parameters for rule's usually have to be wrapped in function
+  objects (i.e. `phoenix::val`), for integral values this was not necessary.
+  Now all string types can be passed without being wrapped as well (i.e.
+  `std::string`, `char const*`, etc.).
+* Added concept checks to all relevant __qi__ API functions enforcing the
+  iterator to be at least of the type `std::forward_iterator_tag`.
+* Fixed the `qi::match` and `qi::phrase_match` set of API functions not to
+  internally utilize a `std::stream_iterator` anymore as this iterator is of
+  the type `std::input_iterator_tag` only, which is not sufficient for __qi__.
+
+[endsect] [/ spirit_2_2]
+
+[//////////////////////////////////////////////////////////////////////////////]
+[section:spirit_2_1 Spirit V2.1]
+
+[heading What's changed in __qi__ and __karma__ from V2.0 (Boost V1.37.0) to V2.1 (Boost V1.41.0)]
+
+* __spirit__ is now based on the newest version of __boost_proto__
+* `qi::phrase_parse`, `qi::phrase_format` now post-skip by default.
+* `karma::generate_delimited` and `karma::format_delimited` now don't do pre-
+  delimiting by default.
+* Changed parameter sequence of `qi::phrase_parse`, `qi::phrase_match`,
+  `karma::generate_delimited`, and `match_delimited`. The attribute is now
+  always the last parameter.
+* Added new overloads of those functions allowing to explicitly specify the
+  post-skipping and pre-delimiting behavior.
+* Added multi attribute API functions
+* Removed `grammar_def<>`
+* Removed functions `make_parser()` and `make_generator()`
+* Removed `qi::none` and `karma::none`
+* Sequences and lists now accept a standard container as their attribute
+* The string placeholder terminal now can take other strings as its parameter
+  (i.e. std::string)
+* All terminals taking literals now accept a (lazy) function object as well
+* All placeholders for terminals and directives (such as `int_`, `double_`,
+  `verbatim`, etc.) were previously defined in the namespace `boost::spirit`
+  only. Now these are additionally imported into the namespaces
+  `spirit::qi`, `spirit::karma`, and `spirit::lex` (if they are supported by
+  the corresponding sub-library).
+* The terminal placeholders `char_` and `string` are not defined in the
+  namespace `boost::spirit` anymore as they have been moved to the
+  character set namespaces, allowing to do proper character set
+  handling based on the used namespace (as `spirit::ascii`, etc.)
+* The `uint`, `ushort`, `ulong`, and `byte` terminal placeholders have been
+  renamed to `uint_`, `ushort_`, `ulong_`, and `byte_`.
+* `qi::skip[]` now re-enables outer skipper if used inside `lexeme[]`
+* Added `karma::maxwidth[]` directive (see [karma_maxwidth `maxwidth`])
+* Added `karma::omit[]` allowing to consume the attribute of subject generator
+  without emitting any output (see __karma_omit__).
+* Added `karma::buffer[]` allowing to avoid unwanted output to be generated in
+  case of a generator failing in the middle of a sequence (see __karma_buffer__).
+* `karma::delimit[]` now re-enables outer delimiter if used inside `verbatim[]`
+* Karma: added and-predicate (`operator&()`) and not-predicate (`operator!()`)
+  Both now always consume an attribute.
+* Karma: changed semantics of `char_()`, `string()`, `int_()` et.al., and
+  `double_()` et.al.: all of these generators now always expose an attribute.
+  If they do not have an associated attribute, they generate their immediate
+  literal. If they have an associated attribute, the generators first test if
+  the attribute value is equal to the immediate literal. They fail and do not
+  generate anything if those are not equal. Otherwise they generate their
+  immediate literal. For more information see for instance [signed_int `int_`].
+* `karma::lit()` can now be used to generate integer and floating point numbers
+* `qi::rule` and `karma::rule` now can be directly initialized using their copy
+  constructor. I.e. this works now: `qi::rule<...> r = ...some parser...;`.
+* Added `qi::attr()` exposing its immediate parameter as its attribute.
+* Added boolean parsers and generators (`bool_`, `true_`, `false_`).
+* Added `attr_cast<>` enabling in place attribute type conversion in Qi and Karma
+  grammars.
+* Almost all Karma generators now accept `optional<>` attributes and will fail
+  generating if this is not initialized.
+* Qi and Karma rules now automatically detect whether to apply auto-rule
+  semantics or not (no need for using `operator%=()` anymore, even if it's still
+  existing). Auto-rule semantics are applied if the right hand side has no
+  semantic actions attached to any of the elements. This works for rule
+  initialization and assignment.
+* Qi and Karma rules now do intrinsic attribute transformation based on the
+  attribute customization point __customize_transform_attribute__.
+* All char_ parsers now always expose an attribute. Earlier `char_(...)` didn't
+  expose an attribute while `char_` did. If you need a literal parser not exposing
+  any attribute use `lit(...)` instead.
+* The qi::int_spec, qi::real_spec, karma::int_spec, and karma real_spec types
+  do not exist anymore. These have been replaced with qi::int_parser,
+  qi::real_parser, karma::int_generator, and karma::real_generator.
+
+[heading What's changed in __lex__ from V2.0 (Boost V1.37.0) to V2.1 (Boost V1.41.0)]
+
+Here is a list of changes in __lex__ since version 2.0. __lex__ 2.1 is a
+complete rewrite of the __lex__ distributed with Boost V1.37. As with all
+code portions of the __spirit__ library, __lex__ is usable as stand alone piece.
+__lex__ now uses the infrastructure provided by __spirit__ version 2.1.
+
+* The lex::lexer_def class has been renamed to lex::lexer, while the original
+  class lex::lexer does not exist anymore. This simplifies the creation of
+  lexers.
+* The lex::lexer class does not have the function `def(Self& self)` anymore,
+  token definitions can be added to the lexer at any time, usually in the
+  constructor of the user defined lexer class:
+``
+      template <typename Lexer>
+      struct example_tokens : lex::lexer<Lexer>
+      {
+            example_tokens()
+            {
+                // your token definitions here
+                this->self = ...
+            }
+      };
+``
+* The new lexer class can now be used directly. The function `make_lexer()` has
+  been removed.
+* The `lex::tokenize_and_parse()` and `lex::tokenize_and_phrase_parse()` functions
+  have been changed to match the parameter sequence as implemented by the
+  `qi::parse()` and `qi::phrase_parse()` functions.
+  Both take an arbitrary number of attribute arguments as the last
+  parameters. This argument list is limited by the macro
+  `SPIRIT_ARGUMENTS_LIMIT`.
+* The `lex::lexertl_lexer`, and `lex::lexertl_token`
+  classes have been moved to the `lex::lexertl` namespace and the names have been
+  changed to `lex::lexertl::lexer`, `lex::lexertl::token`. This also applies to
+  the `lex::lexert_actor_lexer`, and the `static_lexertl_*` family of types.
+* The class `lex::lexertl_token_set` has been removed. This functionality is now
+  available from the lexer class.
+* The __lex__ library has been updated to use the newest version of Ben
+  Hansons __lexertl__ lexer construction library (Boost review pending).
+* The `lex::lexer<Lexer>` template constructor now takes an optional parameter
+  specifying the `match_flags` to be used for table generation. Currently, there
+  are the following flags available:
+``
+        match_flags::match_default,          // no flags
+        match_flags::match_not_dot_newline,  // the regex '.' doesn't match newlines
+        match_flags::match_icase             // all matching operations are case insensitive
+``
+  If no parameter is passed to the constructor, `match_flags::match_default` is
+  used, i.e. the `.` matches newlines and matching is case sensitive.
+
+* The `char_()` and `string()` placeholders can now be used for token
+  definitions and are synonymous with `token_def`.
+* Lexer semantic actions now have to conform to a changed interface (see
+  __sec_lex_semactions__ for details).
+* Added placeholder symbols usable from the inside of lexer semantic actions
+  while using Phoenix: `lex::_start`, `lex::_end`, `lex::_eoi`, `lex::_state`,
+  `lex::_val`, and `lex::_pass` (see __sec_lex_semactions__ for more details).
+* Added (lazy) support functions usable from the inside of lexer semantic
+   actions while using Phoenix: `lex::more()`, `lex::less()`, and
+   `lex::lookahead()` (see  __sec_lex_semactions__ for more details).
+* Removed `lex::omitted` in favor of `lex::omit` to unify the overall
+  interface.
+
+[endsect] [/ spirit_2_1]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:spirit_1_x Spirit Classic]
+
+The Spirit V1.8.x code base has been integrated with Spirit V2. It is
+now called __classic__. Since the directory structure has changed (the
+Spirit Classic headers are now moved to the
+'''$BOOST_ROOT/boost/spirit/home/classic''' directory), we created
+forwarding headers allowing existing applications to compile without
+any change. However, these forwarding headers are deprecated, which
+will result in corresponding warnings generated for each of the
+headers starting with Boost V1.38. The forwarding headers are expected
+to be removed in the future.
+
+The recommended way of using Spirit Classic now is to include header
+files from the directory '''$BOOST_ROOT/boost/spirit/include'''. All
+Spirit Classic headers in this directory have 'classic_' prefixed to
+their name. For example the include
+
+    #include <boost/spirit/core/core.hpp>
+
+now should be written as:
+
+    #include <boost/spirit/include/classic_core.hpp>
+
+To avoid namespace conflicts with the new Spirit V2 library we moved
+Spirit Classic into the namespace `boost::spirit::classic`. All
+references to the former namespace `boost::spirit` need to be adjusted
+as soon as the header names are corrected as described above. As an
+alternative you can define the preprocessor constant
+`BOOST_SPIRIT_USE_OLD_NAMESPACE`, which will force the Spirit Classic
+code to be in the namespace `boost::spirit` as before. This is not
+recommended, though, as it may result in naming clashes.
+
+The change of the namespace will be automatically deactivated whenever
+the deprecated include files are being used. This ensures full
+backwards compatibility for existing applications.
+
+[endsect] [/ spirit_1_x]
+
+[endsect]

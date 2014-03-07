@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: void_</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./empty-base.html" class="navigation-link">Prev</a>&nbsp;<a href="./macros.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./empty-base.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./data-types-miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./data-types.html" class="navigation-link">Data Types</a> / <a href="./data-types-miscellaneous.html" class="navigation-link">Miscellaneous</a> / <a href="./void.html" class="navigation-link">void_</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="void">
+<h1><a class="toc-backref" href="./data-types-miscellaneous.html#id1585">void_</a></h1>
+<div class="section" id="id1280">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+struct <a href="./void.html" class="identifier">void_</a>
+{
+    typedef <a href="./void.html" class="identifier">void_</a> type;
+};
+
+template&lt; typename T &gt; struct is_void;
+</pre>
+</div>
+<div class="section" id="id1281">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./void.html" class="identifier">void_</a></span></tt> is a generic type placeholder representing &quot;nothing&quot;.</p>
+<!-- In many cases, returning ``void_`` from a metafunction to signal
+an absence of the requested data leads to a simpler user code than
+having a separate metafunction specifically for the purpose of
+performing the corresponding check. -->
+</div>
+<div class="section" id="id1282">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/void.hpp" class="header">boost/mpl/void.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1283">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./data-types.html">Data Types</a>, <a class="reference internal" href="./pair.html">pair</a>, <a class="reference internal" href="./empty-base.html">empty_base</a>, <a class="reference internal" href="./bool.html">bool_</a>, <a class="reference internal" href="./int.html">int_</a>, <a class="reference internal" href="./integral-c.html">integral_c</a></p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./empty-base.html" class="navigation-link">Prev</a>&nbsp;<a href="./macros.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./empty-base.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./data-types-miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

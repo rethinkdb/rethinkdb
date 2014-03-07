@@ -1,0 +1,79 @@
+<html>
+	<head>
+		<title>BOOST_PP_SEQ_FILTER_S</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<div style="margin-left:  0px;">
+			The <b>BOOST_PP_SEQ_FILTER_S</b> macro filters a <i>seq</i> according to a 
+			supplied criterion.&nbsp; It reenters <b>BOOST_PP_SEQ_FOLD_LEFT</b> with 
+			maximum efficiency.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_FILTER_S</b>(<i>s</i>, <i>pred</i>, <i>data</i>, <i>seq</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>s</dt>
+			<dd>
+				The next available <b>BOOST_PP_SEQ_FOLD_LEFT</b> fold step.
+			</dd>
+			<dt>pred</dt>
+			<dd>
+				A ternary predicate of the form <i>pred</i>(<i>s</i>, <i>data</i>, <i>elem</i>).&nbsp; 
+				This predicate is expanded by <b>BOOST_PP_SEQ_FILTER</b> for each element in <i>seq</i>
+				with the next available <b>BOOST_PP_SEQ_FOLD_LEFT</b> fold step, the auxiliary <i>data</i>, 
+				and the current element in <i>seq</i>.&nbsp; This macro must return a integral 
+				value in the range of <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.&nbsp; If this 
+				predicate expands to non-zero for a certain element, that element is included 
+				in the resulting <i>seq</i>.
+			</dd>
+			<dt>data</dt>
+			<dd>
+				Auxiliary data passed to <i>pred</i>.
+			</dd>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> to be filtered.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			This macro expands <i>pred</i> for each element in <i>seq</i>.&nbsp; It builds 
+			a new <i>seq</i> out of each element for which <i>pred</i> returns non-zero.
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+			<li>
+				<a href="seq_filter.html">BOOST_PP_SEQ_FILTER</a></li>
+		</ul>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/filter.html">&lt;boost/preprocessor/seq/filter.hpp&gt;</a>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

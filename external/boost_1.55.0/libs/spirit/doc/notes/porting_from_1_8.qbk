@@ -1,0 +1,215 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Porting from Spirit 1.8.x]
+
+[import ../example/qi/porting_guide_classic.cpp]
+[import ../example/qi/porting_guide_qi.cpp]
+
+The current version of __spirit__ is a complete rewrite of earlier versions (we
+refer to earlier versions as __classic__). The parser generators are now only 
+one part of the whole library. The parser submodule of __spirit__ is now called 
+__qi__. It is conceptually different and exposes a completely different 
+interface. Generally, there is no easy (or automated) way of converting parsers 
+written for __classic__ to __qi__. Therefore this section can give only 
+guidelines on how to approach porting your older parsers to the current version 
+of __spirit__.
+
+[heading Include Files]
+
+The overall directory structure of the __spirit__ directories is described 
+in the section __include_structure__ and the FAQ entry 
+__include_structure_faq__. This should give you a good overview on how to find 
+the needed header files for your new parsers. Moreover, each section in the 
+__sec_qi_reference__ lists the required include files needed for any particular 
+component.
+
+It is possible to tell from the name of a header file, what version it belongs 
+to. While all main include files for __classic__ have the string 'classic_' in 
+their name, for instance:
+
+    #include <boost/spirit/include/classic_core.hpp>
+
+we named all main include files for __qi__ to have the string 'qi_' as part of 
+their name, for instance:
+
+    #include <boost/spirit/include/qi_core.hpp>
+
+The following table gives a rough list of corresponding header file between 
+__classic__ and __qi__, but this can be used as a starting point only, as 
+several components have either been moved to different submodules or might not
+exist in the never version anymore. We list only include files for the topmost 
+submodules. For header files required for more lower level components please
+refer to the corresponding reference documentation of this component.
+
+[table
+    [[Include file in /Spirit.Classic/] [Include file in /Spirit.Qi/]]
+    [[`classic.hpp`]                    [`qi.hpp`]]
+    [[`classic_actor.hpp`]              [none, use __boost_phoenix__ for writing semantic actions]]
+    [[`classic_attribute.hpp`]          [none, use local variables for rules instead of closures, 
+                                         the primitives parsers now directly support lazy
+                                         parameterization]]
+    [[`classic_core.hpp`]               [`qi_core.hpp`]]
+    [[`classic_debug.hpp`]              [`qi_debug.hpp`]]
+    [[`classic_dynamic.hpp`]            [none, use __qi__ predicates instead of if_p, while_p, for_p
+                                         (included by `qi_core.hpp`), the equivalent for lazy_p 
+                                         is now included by `qi_auxiliary.hpp`]]
+    [[`classic_error_handling.hpp`]     [none, included in `qi_core.hpp`]]
+    [[`classic_meta.hpp`]               [none]]
+    [[`classic_symbols.hpp`]            [none, included in `qi_core.hpp`]]
+    [[`classic_utility.hpp`]            [none, not part of __qi__ anymore, these components
+                                         will be added over time to the __repo__]]
+]
+
+[heading The Free Parse Functions]
+
+The free parse functions (i.e. the main parser API) has been changed. This 
+includes the names of the free functions as well as their interface. In 
+__classic__ all free functions were named `parse`. In __qi__ they are are named 
+either `qi::parse` or `qi::phrase_parse` depending on whether the parsing should 
+be done using a skipper (`qi::phrase_parse`) or not (`qi::parse`). All free 
+functions now return a simple `bool`. A returned `true` means success (i.e. the
+parser has matched) or `false` (i.e. the parser didn't match). This is
+equivalent to the former old `parse_info` member `hit`. __qi__ doesn't support
+tracking of the matched input length anymore. The old `parse_info` member 
+`full` can be emulated by comparing the iterators after `qi::parse` returned.
+
+All code examples in this section assume the following include statements and 
+using directives to be inserted. For __classic__:
+
+[porting_guide_classic_includes]
+[porting_guide_classic_namespace]
+
+and for __qi__:
+
+[porting_guide_qi_includes]
+[porting_guide_qi_namespace]
+
+The following similar examples should clarify the differences. First the 
+base example in __classic__:
+
+[porting_guide_classic_parse]
+
+And here is the equivalent piece of code using __qi__:
+
+[porting_guide_qi_parse]
+
+The changes required for phrase parsing (i.e. parsing using a skipper) are 
+similar. Here is how phrase parsing works in __classic__:
+
+[porting_guide_classic_phrase_parse]
+
+And here the equivalent example in __qi__:
+
+[porting_guide_qi_phrase_parse]
+
+Note, how character parsers are in a separate namespace (here 
+`boost::spirit::ascii::space`) as __qi__ now supports working with different 
+character sets. See the section __char_encoding_namespace__ for more information.
+
+[heading Naming Conventions]
+
+In __classic__ all parser primitives have suffixes appended to their names, 
+encoding their type: `"_p"` for parsers, `"_a"` for lazy actions, `"_d"` for 
+directives, etc. In __qi__ we don't have anything similar. The only suffixes
+are single underscore letters `"_"` applied where the name would otherwise 
+conflict with a keyword or predefined name (such as `int_` for the
+integer parser). Overall, most, if not all primitive parsers and directives
+have been renamed. Please see the __qi_quickref__ for an overview on the 
+names for the different available parser primitives, directives and operators.
+
+[heading Parser Attributes]
+
+In __classic__ most of the parser primitives don't expose a specific attribute 
+type. Most parsers expose the pair of iterators pointing to the matched input
+sequence. As in __qi__ all parsers expose a parser specific attribute type it
+introduces a special directive __qi_raw__`[]` allowing to achieve a similar 
+effect as in __classic__. The __qi_raw__`[]` directive exposes the pair of 
+iterators pointing to the matching sequence of its embedded parser. Even if we 
+very much encourage you to rewrite your parsers to take advantage of the 
+generated parser specific attributes, sometimes it is helpful to get access to 
+the underlying matched input sequence.
+
+[heading Grammars and Rules]
+
+The `grammar<>` and `rule<>` types are of equal importance to __qi__ as they 
+are for __classic__. Their main purpose is still the same: they allow to 
+define non-terminals and they are the main building blocks for more complex 
+parsers. Nevertheless, both types have been redesigned and their interfaces 
+have changed. Let's have a look at two examples first, we'll explain the 
+differences afterwards. Here is a simple grammar and its usage in __classic__:
+
+[porting_guide_classic_grammar]
+[porting_guide_classic_use_grammar]
+
+And here is a similar grammar and its usage in __qi__:
+
+[porting_guide_qi_grammar]
+[porting_guide_qi_use_grammar]
+
+Both versions look similar enough, but we see several differences (we will 
+cover each of those differences in more detail below):
+
+* Neither the grammars nor the rules depend on a scanner type anymore, both 
+  depend only on the underlying iterator type. That means the dreaded scanner 
+  business is no issue anymore!
+* Grammars have no embedded class `definition` anymore
+* Grammars and rules may have an explicit attribute type specified in their 
+  definition
+* Grammars do not have any explicit start rules anymore. Instead one of the 
+  contained rules is used as a start rule by default.
+
+The first two points are tightly interrelated. The scanner business (see the 
+FAQ number one of __classic__ here: __scanner_business__) has been 
+a problem for a long time. The grammar and rule types have been specifically 
+redesigned to avoid this problem in the future. This also means that we don't 
+need any delayed instantiation of the inner definition class in a grammar 
+anymore. So the redesign not only helped fixing a long standing design problem, 
+it helped to simplify things considerably.
+
+All __qi__ parser components have well defined attribute types. Grammars and 
+rules are no exception. But since both need to be generic enough to be usable 
+for any parser their attribute type has to be explicitly specified. In the
+example above the `roman` grammar and the rule `first` both have an `unsigned` 
+attribute:
+
+    // grammar definition
+    template <typename Iterator>
+    struct roman : qi::grammar<Iterator, unsigned()> {...};
+
+    // rule definition
+    qi::rule<Iterator, unsigned()> first;
+
+The used notation resembles the definition of a function type. This is very
+natural as you can think of the synthesized attribute of the grammar and the 
+rule as of its 'return value'. In fact the rule and the grammar both 'return'
+an unsigned value - the value they matched. 
+
+[note    The function type notation allows to specify parameters as well. These
+         are interpreted as the types of inherited attributes the rule or 
+         grammar expect to be passed during parsing. For more information 
+         please see the section about inherited and synthesized attributes for
+         rules and grammars (__sec_attributes__).]
+
+If no attribute is desired none needs to be specified. The default attribute 
+type for both, grammars and rules, is __unused_type__, which is a special 
+placeholder type. Generally, using __unused_type__ as the attribute of a parser
+is interpreted as 'this parser has no attribute'. This is mostly used for 
+parsers applied to parts of the input not carrying any significant information, 
+rather being delimiters or structural elements needed for correct interpretation 
+of the input.
+
+The last difference might seem to be rather cosmetic and insignificant. But it 
+turns out that not having to specify which rule in a grammar is the start rule
+(by returning it from the function `start()`) also means that any rule in a
+grammar can be directly used as the start rule. Nevertheless, the grammar base 
+class gets initialized with the rule it has to use as the start rule in case 
+the grammar instance is directly used as a parser.
+
+[endsect]
+

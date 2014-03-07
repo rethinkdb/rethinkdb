@@ -1,0 +1,97 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function template check</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp" title="Header &lt;boost/xpressive/regex_actions.hpp&gt;">
+<link rel="prev" href="cref_idp163616008.html" title="Function template cref">
+<link rel="next" href="let.html" title="Function template let">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cref_idp163616008.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="let.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.xpressive.check"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function template check</span></h2>
+<p>boost::xpressive::check &#8212; For adding user-defined assertions to your regular expressions. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp" title="Header &lt;boost/xpressive/regex_actions.hpp&gt;">boost/xpressive/regex_actions.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="identifier">check</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> t<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp255903624"></a><h2>Description</h2>
+<p>
+A <a class="link" href="../../xpressive/user_s_guide.html#boost_xpressive.user_s_guide.semantic_actions_and_user_defined_assertions.user_defined_assertions">user-defined assertion</a> is a kind of semantic action that evaluates a Boolean lambda and, if it evaluates to false, causes the match to fail at that location in the string. This will cause backtracking, so the match may ultimately succeed.</p>
+<p>To use <code class="computeroutput">check()</code> to specify a user-defined assertion in a regex, use the following syntax:</p>
+<pre class="programlisting">sregex s = (_d &gt;&gt; _d)[check( XXX )]; // XXX is a custom assertion
+</pre>
+<p> The assertion is evaluated with a <code class="computeroutput"><code class="computeroutput"><a class="link" href="sub_match.html" title="Struct template sub_match">sub_match</a></code>&lt;&gt;</code> object that delineates what part of the string matched the sub-expression to which the assertion was attached.</p>
+<p><code class="computeroutput">check()</code> can be used with an ordinary predicate that takes a <code class="computeroutput"><code class="computeroutput"><a class="link" href="sub_match.html" title="Struct template sub_match">sub_match</a></code>&lt;&gt;</code> object as follows:</p>
+<pre class="programlisting">// A predicate that is true IFF a sub-match is
+// either 3 or 6 characters long.
+struct three_or_six
+{
+    bool operator()(ssub_match const &amp;sub) const
+    {
+        return sub.length() == 3 || sub.length() == 6;
+    }
+};
+
+// match words of 3 characters or 6 characters.
+sregex rx = (bow &gt;&gt; +_w &gt;&gt; eow)[ check(three_or_six()) ] ;
+</pre>
+<p> Alternately, <code class="computeroutput">check()</code> can be used to define inline custom assertions with the same syntax as is used to define semantic actions. The following code is equivalent to above:</p>
+<pre class="programlisting">// match words of 3 characters or 6 characters.
+sregex rx = (bow &gt;&gt; +_w &gt;&gt; eow)[ check(length(_)==3 || length(_)==6) ] ;
+</pre>
+<p> Within a custom assertion, <code class="computeroutput">_</code> is a placeholder for the <code class="computeroutput"><code class="computeroutput"><a class="link" href="sub_match.html" title="Struct template sub_match">sub_match</a></code>&lt;&gt;</code> That delineates the part of the string matched by the sub-expression to which the custom assertion was attached. </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The UnaryPredicate object or Boolean semantic action.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cref_idp163616008.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="let.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

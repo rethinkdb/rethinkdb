@@ -1,0 +1,649 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Distributed Property Map</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-distributed-property-map">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Distributed Property Map</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<p>A distributed property map adaptor is a property map whose stored
+values are distributed across multiple non-overlapping memory spaces
+on different processes. Values local to the current process are stored
+within a local property map and may be immediately accessed via
+<tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">put</span></tt>. Values stored on remote processes may also be
+accessed via <tt class="docutils literal"><span class="pre">get</span></tt> and <tt class="docutils literal"><span class="pre">put</span></tt>, but the behavior differs slightly:</p>
+<blockquote>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">put</span></tt> operations update a local ghost cell and send a &quot;put&quot;
+message to the process that owns the value. The owner is free to
+update its own &quot;official&quot; value or may ignore the put request.</li>
+<li><tt class="docutils literal"><span class="pre">get</span></tt> operations returns the contents of the local ghost
+cell. If no ghost cell is available, one is created using a
+(customizable) default value.</li>
+</ul>
+</blockquote>
+<p>Using distributed property maps requires a bit more care than using
+local, sequential property maps. While the syntax and semantics are
+similar, distributed property maps may contain out-of-date
+information that can only be guaranteed to be synchronized by
+calling the <tt class="docutils literal"><span class="pre">synchronize</span></tt> function in all processes.</p>
+<p>To address the issue of out-of-date values, distributed property
+maps support multiple <a class="reference internal" href="#consistency-models">consistency models</a> and may be supplied with a
+<a class="reference internal" href="#reduction-operation">reduction operation</a>.</p>
+<p>Distributed property maps meet the requirements of the <a class="reference external" href="http://www.boost.org/libs/property_map/ReadablePropertyMap.html">Readable
+Property Map</a> and, potentially, the <a class="reference external" href="http://www.boost.org/libs/property_map/WritablePropertyMap.html">Writable Property Map</a> and
+<a class="reference external" href="http://www.boost.org/libs/property_map/ReadWritePropertyMap.html">Read/Write Property Map</a> concepts. Distributed property maps do
+<em>not</em>, however, meet the requirements of the <a class="reference external" href="http://www.boost.org/libs/property_map/LvaluePropertyMap.html">Lvalue Property Map</a>
+concept, because elements residing in another process are not
+directly addressible. There are several forms of distributed property
+maps:</p>
+<blockquote>
+<ul class="simple">
+<li><a class="reference internal" href="#distributed-property-map-adaptor">Distributed property map adaptor</a></li>
+<li><a class="reference internal" href="#distributed-iterator-property-map">Distributed iterator property map</a></li>
+<li><a class="reference internal" href="#distributed-safe-iterator-property-map">Distributed safe iterator property map</a></li>
+<li><a class="reference internal" href="#local-property-map">Local property map</a></li>
+</ul>
+</blockquote>
+<div class="section" id="consistency-models">
+<h1>Consistency models</h1>
+<p>Distributed property maps offer many consistency models, which affect
+how the values read from and written to remote keys relate to the
+&quot;official&quot; value for that key stored in the owning process. The
+consistency model of a distributed property map can be set with the
+member function <tt class="docutils literal"><span class="pre">set_consistency_model</span></tt> to a bitwise-OR of the
+flags in the <tt class="docutils literal"><span class="pre">boost::parallel::consistency_model</span></tt> enumeration. The
+individual flags are:</p>
+<blockquote>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">cm_forward</span></tt>: The default consistency model, which propagates
+values forward from <tt class="docutils literal"><span class="pre">put</span></tt> operations on remote processors to
+the owner of the value being changed.</li>
+<li><tt class="docutils literal"><span class="pre">cm_backward</span></tt>: After all values have been forwarded or flushed
+to the owning processes, each process receives updates values for
+each of its ghost cells. After synchronization, the values in
+ghost cells are guaranteed to match the values stored on the
+owning processor.</li>
+<li><tt class="docutils literal"><span class="pre">cm_bidirectional</span></tt>: A combination of both <tt class="docutils literal"><span class="pre">cm_forward</span></tt> and
+<tt class="docutils literal"><span class="pre">cm_backward</span></tt>.</li>
+<li><tt class="docutils literal"><span class="pre">cm_flush</span></tt>: At the beginning of synchronization, all of the
+values stored locally in ghost cells are sent to their owning
+processors.</li>
+<li><tt class="docutils literal"><span class="pre">cm_reset</span></tt>: Executes a <tt class="docutils literal"><span class="pre">reset()</span></tt> operation after
+synchronization, setting the values in each ghost cell to their
+default value.</li>
+<li><tt class="docutils literal"><span class="pre">cm_clear</span></tt>: Executes a <tt class="docutils literal"><span class="pre">clear()</span></tt> operation after
+synchronizing, eliminating all ghost cells.</li>
+</ul>
+</blockquote>
+<p>There are several common combinations of flags that result in
+interesting consistency models. Some of these combinations are:</p>
+<blockquote>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">cm_forward</span></tt>: By itself, the forward consistency model enables
+algorithms such as <a class="reference external" href="dijkstra_shortest_paths.html">Dijkstra's shortest paths</a> and
+<a class="reference external" href="breadth_first_search.html">Breadth-First Search</a> to operate correctly.</li>
+<li><tt class="docutils literal"><span class="pre">cm_flush</span> <span class="pre">&amp;</span> <span class="pre">cm_reset</span></tt>: All updates values are queued locally,
+then flushed during the synchronization step. Once the flush has
+occurred, the ghost cells are restored to their default
+values. This consistency model is used by the <a class="reference external" href="page_rank.html">PageRank</a>
+implementation to locally accumulate rank for each node.</li>
+</ul>
+</blockquote>
+</div>
+<div class="section" id="reduction-operation">
+<h1>Reduction operation</h1>
+<p>The reduction operation maintains consistency by determining how
+multiple writes to a property map are resolved and what the property
+map should do if unknown values are requested. More specifically, a
+reduction operation is used in two cases:</p>
+<blockquote>
+<ol class="arabic simple">
+<li>When a value is needed for a remote key but no value is
+immediately available, the reduction operation provides a
+suitable default. For instance, a distributed property map
+storing distances may have a reduction operation that returns
+an infinite value as the default, whereas a distributed
+property map for vertex colors may return white as the
+default.</li>
+<li>When a value is received from a remote process, the process
+owning the key associated with that value must determine which
+value---the locally stored value, the value received from a
+remote process, or some combination of the two---will be
+stored as the &quot;official&quot; value in the property map. The
+reduction operation transforms the local and remote values
+into the &quot;official&quot; value to be stored.</li>
+</ol>
+</blockquote>
+<p>The reduction operation of a distributed property map can be set with
+the <tt class="docutils literal"><span class="pre">set_reduce</span></tt> method of <tt class="docutils literal"><span class="pre">distributed_property_map</span></tt>. The reduce
+operation is a function object with two signatures. The first
+signature takes a (remote) key and returns a default value for it,
+whereas the second signatures takes a key and two values (local first,
+then remote) and will return the combined value that will be stored in
+the local property map.  Reduction operations must also contain a
+static constant <tt class="docutils literal"><span class="pre">non_default_resolver&quot;,</span> <span class="pre">which</span> <span class="pre">states</span> <span class="pre">whether</span> <span class="pre">the</span>
+<span class="pre">reduction</span> <span class="pre">operation's</span> <span class="pre">default</span> <span class="pre">value</span> <span class="pre">actually</span> <span class="pre">acts</span> <span class="pre">like</span> <span class="pre">a</span> <span class="pre">default</span>
+<span class="pre">value.</span> <span class="pre">It</span> <span class="pre">should</span> <span class="pre">be</span> <span class="pre">``true</span></tt> when the default is meaningful (e.g.,
+infinity for a distance) and <tt class="docutils literal"><span class="pre">false</span></tt> when the default should not be
+used.</p>
+<p>The following reduction operation is used by the distributed PageRank
+algorithm. The default rank for a remote node is 0. Rank is
+accumulated locally, and then the reduction operation combines local
+and remote values by adding them. Combined with a consistency model
+that flushes all values to the owner and then resets the values
+locally in each step, the resulting property map will compute partial
+sums on each processor and then accumulate the results on the owning
+processor. The PageRank reduction operation is defined as follows.</p>
+<pre class="literal-block">
+template&lt;typename T&gt;
+struct rank_accumulate_reducer {
+  static const bool non_default_resolver = true;
+
+  // The default rank of an unknown node
+  template&lt;typename K&gt;
+  T operator()(const K&amp;) const { return T(0); }
+
+  template&lt;typename K&gt;
+  T operator()(const K&amp;, const T&amp; x, const T&amp; y) const { return x + y; }
+};
+</pre>
+</div>
+<div class="section" id="distributed-property-map-adaptor">
+<h1>Distributed property map adaptor</h1>
+<p>The distributed property map adaptor creates a distributed property
+map from a local property map, a <a class="reference external" href="process_group.html">process group</a> over which
+distribution should occur, and a <a class="reference external" href="GlobalDescriptor.html">global descriptor</a> type that
+indexes the distributed property map.</p>
+<div class="section" id="synopsis">
+<h2>Synopsis</h2>
+<pre class="literal-block">
+template&lt;typename ProcessGroup, typename LocalPropertyMap, typename Key,
+         typename GhostCellS = gc_mapS&gt;
+class distributed_property_map
+{
+public:
+  typedef ... ghost_regions_type;
+
+  distributed_property_map();
+
+  distributed_property_map(const ProcessGroup&amp; pg,
+                           const LocalPropertyMap&amp; pm);
+
+  template&lt;typename Reduce&gt;
+  distributed_property_map(const ProcessGroup&amp; pg,
+                           const LocalPropertyMap&amp; pm,
+                           const Reduce&amp; reduce);
+
+  template&lt;typename Reduce&gt; void set_reduce(const Reduce&amp; reduce);
+  void set_consistency_model(int model);
+
+  void flush();
+  void reset();
+  void clear();
+};
+
+reference get(distributed_property_map pm, const key_type&amp; key);
+
+void
+put(distributed_property_map pm, const key_type&amp; key, const value_type&amp; value);
+local_put(distributed_property_map pm, const key_type&amp; key, const value_type&amp; value);
+
+void request(distributed_property_map pm, const key_type&amp; key);
+
+void synchronize(distributed_property_map&amp; pm);
+
+template&lt;typename Key, typename ProcessGroup, typename LocalPropertyMap&gt;
+distributed_property_map&lt;ProcessGroup, LocalPropertyMap, Key&gt;
+make_distributed_property_map(const ProcessGroup&amp; pg, LocalPropertyMap pmap);
+
+template&lt;typename Key, typename ProcessGroup, typename LocalPropertyMap,
+         typename Reduce&gt;
+distributed_property_map&lt;ProcessGroup, LocalPropertyMap, Key&gt;
+make_distributed_property_map(const ProcessGroup&amp; pg, LocalPropertyMap pmap,
+                              Reduce reduce);
+</pre>
+</div>
+<div class="section" id="template-parameters">
+<h2>Template parameters</h2>
+<dl class="docutils">
+<dt><strong>ProcessGroup</strong>:</dt>
+<dd>The type of the process group over which the
+property map is distributed and is also the medium for
+communication.</dd>
+<dt><strong>LocalPropertyMap</strong>:</dt>
+<dd>The type of the property map that will store values
+for keys local to this processor. The <tt class="docutils literal"><span class="pre">value_type</span></tt> of this
+property map will become the <tt class="docutils literal"><span class="pre">value_type</span></tt> of the distributed
+property map. The distributed property map models the same property
+map concepts as the <tt class="docutils literal"><span class="pre">LocalPropertyMap</span></tt>, with one exception: a
+distributed property map cannot be an <a class="reference external" href="http://www.boost.org/libs/property_map/LvaluePropertyMap.html">Lvalue Property Map</a>
+(because remote values are not addressable), and is therefore
+limited to <a class="reference external" href="http://www.boost.org/libs/property_map/ReadWritePropertyMap.html">Read/Write Property Map</a>.</dd>
+<dt><strong>Key</strong>:</dt>
+<dd>The <tt class="docutils literal"><span class="pre">key_type</span></tt> of the distributed property map, which
+must model the <a class="reference external" href="GlobalDescriptor.html">Global Descriptor</a> concept. The process ID type of
+the <tt class="docutils literal"><span class="pre">Key</span></tt> parameter must match the process ID type of the
+<tt class="docutils literal"><span class="pre">ProcessGroup</span></tt>, and the local descriptor type of the <tt class="docutils literal"><span class="pre">Key</span></tt> must
+be convertible to the <tt class="docutils literal"><span class="pre">key_type</span></tt> of the <tt class="docutils literal"><span class="pre">LocalPropertyMap</span></tt>.</dd>
+<dt><strong>GhostCellS</strong>:</dt>
+<dd><p class="first">A selector type that indicates how ghost cells should be stored in
+the distributed property map. There are either two or three
+options, depending on your compiler:</p>
+<blockquote class="last">
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">boost::parallel::gc_mapS</span></tt> (default): Uses an STL <tt class="docutils literal"><span class="pre">map</span></tt> to
+store the ghost cells for each process.</li>
+<li><tt class="docutils literal"><span class="pre">boost::parallel::gc_vector_mapS</span></tt>: Uses a sorted STL
+<tt class="docutils literal"><span class="pre">vector</span></tt> to store the ghost cells for each process. This
+option works well when there are likely to be few insertions
+into the ghost cells; for instance, if the only ghost cells used
+are for neighboring vertices, the property map can be
+initialized with cells for each neighboring vertex, providing
+faster lookups than a <tt class="docutils literal"><span class="pre">map</span></tt> and using less space.</li>
+<li><tt class="docutils literal"><span class="pre">boost::parallel::gc_hash_mapS</span></tt>: Uses the GCC <tt class="docutils literal"><span class="pre">hash_map</span></tt> to
+store ghost cells. This option may improve performance over
+<tt class="docutils literal"><span class="pre">map</span></tt> for large problems sizes, where the set of ghost cells
+cannot be predetermined.</li>
+</ul>
+</blockquote>
+</dd>
+</dl>
+</div>
+<div class="section" id="member-functions">
+<h2>Member functions</h2>
+<pre class="literal-block">
+distributed_property_map();
+</pre>
+<p>Default-construct a distributed property map. The property map is in
+an invalid state, and may only be used if it is reassigned to a valid
+property map.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+distributed_property_map(const ProcessGroup&amp; pg,
+                         const LocalPropertyMap&amp; pm);
+
+template&lt;typename Reduce&gt;
+distributed_property_map(const ProcessGroup&amp; pg,
+                         const LocalPropertyMap&amp; pm,
+                         const Reduce&amp; reduce);
+</pre>
+<p>Construct a property map from a process group and a local property
+map. If a <tt class="docutils literal"><span class="pre">reduce</span></tt> operation is not supplied, a default of
+<tt class="docutils literal"><span class="pre">basic_reduce&lt;value_type&gt;</span></tt> will be used.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template&lt;typename Reduce&gt; void set_reduce(const Reduce&amp; reduce);
+</pre>
+<p>Replace the current reduction operation with the new operation
+<tt class="docutils literal"><span class="pre">reduce</span></tt>.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void set_consistency_model(int model);
+</pre>
+<p>Sets the consistency model of the distributed property map, which will
+take effect on the next synchronization step. See the section
+<a class="reference internal" href="#consistency-models">Consistency models</a> for a description of the effect of various
+consistency model flags.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void flush();
+</pre>
+<p>Emits a message sending the contents of all local ghost cells to the
+owners of those cells.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void reset();
+</pre>
+<p>Replaces the values stored in each of the ghost cells with the default
+value generated by the reduction operation.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void clear();
+</pre>
+<p>Removes all ghost cells from the property map.</p>
+</div>
+<div class="section" id="free-functions">
+<h2>Free functions</h2>
+<pre class="literal-block">
+reference get(distributed_property_map pm, const key_type&amp; key);
+</pre>
+<p>Retrieves the element in <tt class="docutils literal"><span class="pre">pm</span></tt> associated with the given <tt class="docutils literal"><span class="pre">key</span></tt>. If
+the key refers to data stored locally, returns the actual value
+associated with the key. If the key refers to nonlocal data, returns
+the value of the ghost cell. If no ghost cell exists, the behavior
+depends on the current reduction operation: if a reduction operation
+has been set and has <tt class="docutils literal"><span class="pre">non_default_resolver</span></tt> set <tt class="docutils literal"><span class="pre">true</span></tt>, then a
+ghost cell will be created according to the default value provided by
+the reduction operation. Otherwise, the call to <tt class="docutils literal"><span class="pre">get</span></tt> will abort
+because no value exists for this remote cell. To avoid this problem,
+either set a reduction operation that generates default values,
+<tt class="docutils literal"><span class="pre">request()</span></tt> the value and then perform a synchronization step, or
+<tt class="docutils literal"><span class="pre">put</span></tt> a value into the cell before reading it.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void
+put(distributed_property_map pm, const key_type&amp; key, const value_type&amp; value);
+</pre>
+<p>Places the given <tt class="docutils literal"><span class="pre">value</span></tt> associated with <tt class="docutils literal"><span class="pre">key</span></tt> into property map
+<tt class="docutils literal"><span class="pre">pm</span></tt>. If the key refers to data stored locally, the value is
+immediately updates. If the key refers to data stored in a remote
+process, updates (or creates) a local ghost cell containing this
+value for the key and sends the new value to the owning process. Note
+that the owning process may reject this value based on the reduction
+operation, but this will not be detected until the next
+synchronization step.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void
+local_put(distributed_property_map pm, const key_type&amp; key, const value_type&amp; value);
+</pre>
+<p>Equivalent to <tt class="docutils literal"><span class="pre">put(pm,</span> <span class="pre">key,</span> <span class="pre">value)</span></tt>, except that no message is sent
+to the owning process when the value is changed for a nonlocal key.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void synchronize(distributed_property_map&amp; pm);
+</pre>
+<p>Synchronize the values stored in the distributed property maps. Each
+process much execute <tt class="docutils literal"><span class="pre">synchronize</span></tt> at the same time, after which
+the ghost cells in every process will reflect the actual value stored
+in the owning process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void request(distributed_property_map pm, const key_type&amp; key);
+</pre>
+<p>Request that the element &quot;key&quot; be available after the next
+synchronization step. For a non-local key, this means establishing a
+ghost cell and requesting.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template&lt;typename Key, typename ProcessGroup, typename LocalPropertyMap&gt;
+distributed_property_map&lt;ProcessGroup, LocalPropertyMap, Key&gt;
+make_distributed_property_map(const ProcessGroup&amp; pg, LocalPropertyMap pmap);
+
+template&lt;typename Key, typename ProcessGroup, typename LocalPropertyMap,
+         typename Reduce&gt;
+distributed_property_map&lt;ProcessGroup, LocalPropertyMap, Key&gt;
+make_distributed_property_map(const ProcessGroup&amp; pg, LocalPropertyMap pmap,
+                              Reduce reduce);
+</pre>
+<p>Create a distributed property map over process group <tt class="docutils literal"><span class="pre">pg</span></tt> and local
+property map <tt class="docutils literal"><span class="pre">pmap</span></tt>. A default reduction operation will be generated
+if it is not provided.</p>
+</div>
+</div>
+<div class="section" id="distributed-iterator-property-map">
+<h1>Distributed iterator property map</h1>
+<p>The distributed iterator property map adaptor permits the creation of
+distributed property maps from random access iterators using the same
+syntax as non-distributed iterator property maps. The specialization
+is based on a <a class="reference internal" href="#local-property-map">local property map</a>, which contains the
+indices for local descriptors and is typically returned to describe
+the vertex indices of a distributed graph.</p>
+<div class="section" id="id1">
+<h2>Synopsis</h2>
+<pre class="literal-block">
+template&lt;typename RandomAccessIterator, typename ProcessGroup,
+         typename GlobalKey, typename LocalMap, typename ValueType,
+         typename Reference&gt;
+class iterator_property_map&lt;RandomAccessIterator,
+                            local_property_map&lt;ProcessGroup, GlobalKey, LocalMap&gt;,
+                            ValueType, Reference&gt;
+{
+public:
+  typedef local_property_map&lt;ProcessGroup, GlobalKey, LocalMap&gt; index_map_type;
+
+  iterator_property_map();
+  iterator_property_map(RandomAccessIterator iter, const index_map_type&amp; id);
+};
+
+reference get(iterator_property_map pm, const key_type&amp; key);
+void put(iterator_property_map pm, const key_type&amp; key, const value_type&amp; value);
+
+template&lt;typename RandomAccessIterator, typename ProcessGroup,
+         typename GlobalKey, typename LocalMap&gt;
+iterator_property_map&lt;RandomAccessIterator,
+                      local_property_map&lt;ProcessGroup, GlobalKey, LocalMap&gt; &gt;
+make_iterator_property_map(RandomAccessIterator iter,
+                           local_property_map&lt;ProcessGroup, GlobalKey, LocalMap&gt; id);
+</pre>
+</div>
+<div class="section" id="id2">
+<h2>Member functions</h2>
+<pre class="literal-block">
+iterator_property_map();
+</pre>
+<p>Default-constructs a distributed iterator property map. The property
+map is in an invalid state, and must be reassigned before it may be
+used.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+iterator_property_map(RandomAccessIterator iter, const index_map_type&amp; id);
+</pre>
+<p>Constructs a distributed iterator property map using the property map
+<tt class="docutils literal"><span class="pre">id</span></tt> to map global descriptors to local indices. The random access
+iterator sequence <tt class="docutils literal"><span class="pre">[iter,</span> <span class="pre">iter</span> <span class="pre">+</span> <span class="pre">n)</span></tt> must be a valid range, where
+<tt class="docutils literal"><span class="pre">[0,</span> <span class="pre">n)</span></tt> is the range of local indices.</p>
+</div>
+<div class="section" id="id3">
+<h2>Free functions</h2>
+<pre class="literal-block">
+reference get(iterator_property_map pm, const key_type&amp; key);
+</pre>
+<p>Returns the value associated with the given <tt class="docutils literal"><span class="pre">key</span></tt> from the
+distributed property map.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void put(iterator_property_map pm, const key_type&amp; key, const value_type&amp; value);
+</pre>
+<p>Associates the value with the given key in the distributed property map.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template&lt;typename RandomAccessIterator, typename ProcessGroup,
+         typename GlobalKey, typename LocalMap, typename ValueType,
+         typename Reference&gt;
+iterator_property_map&lt;RandomAccessIterator,
+                      local_property_map&lt;ProcessGroup, GlobalKey, LocalMap&gt;,
+                                         ValueType, Reference&gt;
+make_iterator_property_map(RandomAccessIterator iter,
+                           local_property_map&lt;ProcessGroup, GlobalKey, LocalMap&gt;,
+                                              ValueType, Reference&gt; id);
+</pre>
+<p>Creates a distributed iterator property map using the given iterator
+<tt class="docutils literal"><span class="pre">iter</span></tt> and local index property map <tt class="docutils literal"><span class="pre">id</span></tt>.</p>
+</div>
+</div>
+<div class="section" id="distributed-safe-iterator-property-map">
+<h1>Distributed safe iterator property map</h1>
+<p>The distributed safe iterator property map adaptor permits the
+creation of distributed property maps from random access iterators
+using the same syntax as non-distributed safe iterator property
+maps. The specialization is based on a <a class="reference internal" href="#local-property-map">local property map</a>, which
+contains the indices for local descriptors and is typically returned
+to describe the vertex indices of a distributed graph. Safe iterator
+property maps check the indices of accesses to ensure that they are
+not out-of-bounds before attempting to access an value.</p>
+<div class="section" id="id4">
+<h2>Synopsis</h2>
+<pre class="literal-block">
+template&lt;typename RandomAccessIterator, typename ProcessGroup,
+         typename GlobalKey, typename LocalMap, typename ValueType,
+         typename Reference&gt;
+class safe_iterator_property_map&lt;RandomAccessIterator,
+                                 local_property_map&lt;ProcessGroup, GlobalKey, LocalMap&gt;,
+                                 ValueType, Reference&gt;
+{
+public:
+  typedef local_property_map&lt;ProcessGroup, GlobalKey, LocalMap&gt; index_map_type;
+
+  safe_iterator_property_map();
+  safe_iterator_property_map(RandomAccessIterator iter, std::size_t n,
+                             const index_map_type&amp; id);
+};
+
+reference get(safe_iterator_property_map pm, const key_type&amp; key);
+void put(safe_iterator_property_map pm, const key_type&amp; key, const value_type&amp; value);
+
+template&lt;typename RandomAccessIterator, typename ProcessGroup,
+         typename GlobalKey, typename LocalMap, typename ValueType,
+         typename Reference&gt;
+safe_iterator_property_map&lt;RandomAccessIterator,
+                           local_property_map&lt;ProcessGroup, GlobalKey, LocalMap&gt;,
+                                              ValueType, Reference&gt;
+make_safe_iterator_property_map(RandomAccessIterator iter,
+                                std::size_t n,
+                                local_property_map&lt;ProcessGroup, GlobalKey, LocalMap&gt;,
+                                                   ValueType, Reference&gt; id);
+</pre>
+</div>
+<div class="section" id="id5">
+<h2>Member functions</h2>
+<pre class="literal-block">
+safe_iterator_property_map();
+</pre>
+<p>Default-constructs a distributed safe iterator property map. The property
+map is in an invalid state, and must be reassigned before it may be
+used.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+safe_iterator_property_map(RandomAccessIterator iter, std::size_t n,
+                           const index_map_type&amp; id);
+</pre>
+<p>Constructs a distributed safe iterator property map using the property map
+<tt class="docutils literal"><span class="pre">id</span></tt> to map global descriptors to local indices. The random access
+iterator sequence <tt class="docutils literal"><span class="pre">[iter,</span> <span class="pre">iter</span> <span class="pre">+</span> <span class="pre">n)</span></tt>.</p>
+</div>
+<div class="section" id="id6">
+<h2>Free functions</h2>
+<pre class="literal-block">
+reference get(safe_iterator_property_map pm, const key_type&amp; key);
+</pre>
+<p>Returns the value associated with the given <tt class="docutils literal"><span class="pre">key</span></tt> from the
+distributed property map.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void put(safe_iterator_property_map pm, const key_type&amp; key, const value_type&amp; value);
+</pre>
+<p>Associates the value with the given key in the distributed property map.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template&lt;typename RandomAccessIterator, typename ProcessGroup,
+         typename GlobalKey, typename LocalMap, typename ValueType,
+         typename Reference&gt;
+safe_iterator_property_map&lt;RandomAccessIterator,
+                           local_property_map&lt;ProcessGroup, GlobalKey, LocalMap&gt;,
+                                              ValueType, Reference&gt;
+make_safe_iterator_property_map(RandomAccessIterator iter,
+                                std::size_t n,
+                                local_property_map&lt;ProcessGroup, GlobalKey, LocalMap&gt;,
+                                                   ValueType, Reference&gt; id);
+</pre>
+<p>Creates a distributed safe iterator property map using the given iterator
+<tt class="docutils literal"><span class="pre">iter</span></tt> and local index property map <tt class="docutils literal"><span class="pre">id</span></tt>. The indices in <tt class="docutils literal"><span class="pre">id</span></tt> must</p>
+</div>
+</div>
+<div class="section" id="local-property-map">
+<h1>Local property map</h1>
+<p>A property map adaptor that accesses an underlying property map whose
+key type is the local part of the <tt class="docutils literal"><span class="pre">Key</span></tt> type for the local subset
+of keys. Local property maps are typically used by distributed graph
+types for vertex index properties.</p>
+<div class="section" id="id7">
+<h2>Synopsis</h2>
+<pre class="literal-block">
+template&lt;typename ProcessGroup, typename GlobalKey, typename LocalMap&gt;
+  class local_property_map
+  {
+  public:
+  typedef typename property_traits&lt;LocalMap&gt;::value_type value_type;
+  typedef GlobalKey                                      key_type;
+  typedef typename property_traits&lt;LocalMap&gt;::reference  reference;
+  typedef typename property_traits&lt;LocalMap&gt;::category   category;
+
+  explicit
+  local_property_map(const ProcessGroup&amp; process_group = ProcessGroup(),
+                     const LocalMap&amp; local_map = LocalMap());
+
+  reference operator[](const key_type&amp; key);
+};
+
+reference get(const local_property_map&amp; pm, key_type key);
+void put(local_property_map pm, const key_type&amp; key, const value_type&amp; value);
+</pre>
+</div>
+<div class="section" id="id8">
+<h2>Template parameters</h2>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">ProcessGroup:</th><td class="field-body">the type of the process group over which the global
+keys are distributed.</td>
+</tr>
+<tr class="field"><th class="field-name">GlobalKey:</th><td class="field-body">The <tt class="docutils literal"><span class="pre">key_type</span></tt> of the local property map, which
+must model the <a class="reference external" href="GlobalDescriptor.html">Global Descriptor</a> concept. The process ID type of
+the <tt class="docutils literal"><span class="pre">GlobalKey</span></tt> parameter must match the process ID type of the
+<tt class="docutils literal"><span class="pre">ProcessGroup</span></tt>, and the local descriptor type of the <tt class="docutils literal"><span class="pre">GlobalKey</span></tt>
+must be convertible to the <tt class="docutils literal"><span class="pre">key_type</span></tt> of the <tt class="docutils literal"><span class="pre">LocalMap</span></tt>.</td>
+</tr>
+<tr class="field"><th class="field-name">LocalMap:</th><td class="field-body">the type of the property map that will store values
+for keys local to this processor. The <tt class="docutils literal"><span class="pre">value_type</span></tt> of this
+property map will become the <tt class="docutils literal"><span class="pre">value_type</span></tt> of the local
+property map. The local property map models the same property
+map concepts as the <tt class="docutils literal"><span class="pre">LocalMap</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id9">
+<h2>Member functions</h2>
+<pre class="literal-block">
+explicit
+local_property_map(const ProcessGroup&amp; process_group = ProcessGroup(),
+                   const LocalMap&amp; local_map = LocalMap());
+</pre>
+<p>Constructs a local property map whose keys are distributed across the
+given process group and which accesses the given local map.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+reference operator[](const key_type&amp; key);
+</pre>
+<p>Access the value associated with the given key, which must be local
+to this process.</p>
+</div>
+<div class="section" id="id10">
+<h2>Free functions</h2>
+<pre class="literal-block">
+reference get(const local_property_map&amp; pm, key_type key);
+</pre>
+<p>Return the value associated with the given key, which must be local
+to this process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void put(local_property_map pm, const key_type&amp; key, const value_type&amp; value);
+</pre>
+<p>Set the value associated with the given key, which must be local to
+this process.</p>
+<hr class="docutils" />
+<p>Copyright (C) 2004, 2005 The Trustees of Indiana University.</p>
+<p>Authors: Douglas Gregor and Andrew Lumsdaine</p>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:22 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

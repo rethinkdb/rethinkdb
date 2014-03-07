@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Minimum Spanning Tree</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-minimum-spanning-tree">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Minimum Spanning Tree</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<p>The Parallel BGL contains four <a class="reference external" href="http://www.boost.org/libs/graph/doc/graph_theory_review.html#sec:minimum-spanning-tree">minimum spanning tree</a> (MST)
+algorithms <a class="citation-reference" href="#dg98" id="id1">[DG98]</a> for use on undirected, weighted, distributed
+graphs. The graphs need not be connected: each algorithm will compute
+a minimum spanning forest (MSF) when provided with a disconnected
+graph.</p>
+<p>The interface to each of the four algorithms is similar to the
+implementation of 'Kruskal's algorithm'_ in the sequential BGL. Each
+accepts, at a minimum, a graph, a weight map, and an output
+iterator. The edges of the MST (or MSF) will be output via the output
+iterator on process 0: other processes may receive edges on their
+output iterators, but the set may not be complete, depending on the
+algorithm. The algorithm parameters are documented together, because
+they do not vary greatly. See the section <a class="reference internal" href="#selecting-an-mst-algorithm">Selecting an MST
+algorithm</a> for advice on algorithm selection.</p>
+<p>The graph itself must model the <a class="reference external" href="http://www.boost.org/libs/graph/doc/VertexListGraph.html">Vertex List Graph</a> concept and the
+Distributed Edge List Graph concept. Since the most common
+distributed graph structure, the <a class="reference external" href="distributed_adjacency_list.html">distributed adjacency list</a>, only
+models the Distributed Vertex List Graph concept, it may only be used
+with these algorithms when wrapped in a suitable adaptor, such as the
+<a class="reference external" href="vertex_list_adaptor.html">vertex_list_adaptor</a>.</p>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id12">Where Defined</a></li>
+<li><a class="reference internal" href="#parameters" id="id13">Parameters</a></li>
+<li><a class="reference internal" href="#dense-boruvka-minimum-spanning-tree" id="id14"><tt class="docutils literal"><span class="pre">dense_boruvka_minimum_spanning_tree</span></tt></a><ul>
+<li><a class="reference internal" href="#description" id="id15">Description</a></li>
+<li><a class="reference internal" href="#complexity" id="id16">Complexity</a></li>
+<li><a class="reference internal" href="#performance" id="id17">Performance</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#merge-local-minimum-spanning-trees" id="id18"><tt class="docutils literal"><span class="pre">merge_local_minimum_spanning_trees</span></tt></a><ul>
+<li><a class="reference internal" href="#id2" id="id19">Description</a></li>
+<li><a class="reference internal" href="#id3" id="id20">Complexity</a></li>
+<li><a class="reference internal" href="#id4" id="id21">Performance</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#boruvka-then-merge" id="id22"><tt class="docutils literal"><span class="pre">boruvka_then_merge</span></tt></a><ul>
+<li><a class="reference internal" href="#id5" id="id23">Description</a></li>
+<li><a class="reference internal" href="#id6" id="id24">Complexity</a></li>
+<li><a class="reference internal" href="#id7" id="id25">Performance</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#boruvka-mixed-merge" id="id26"><tt class="docutils literal"><span class="pre">boruvka_mixed_merge</span></tt></a><ul>
+<li><a class="reference internal" href="#id8" id="id27">Description</a></li>
+<li><a class="reference internal" href="#id9" id="id28">Complexity</a></li>
+<li><a class="reference internal" href="#id10" id="id29">Performance</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#selecting-an-mst-algorithm" id="id30">Selecting an MST algorithm</a><ul>
+<li><a class="reference internal" href="#performance-on-sparse-graphs" id="id31">Performance on Sparse Graphs</a></li>
+<li><a class="reference internal" href="#performance-on-dense-graphs" id="id32">Performance on Dense Graphs</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id12">Where Defined</a></h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/distributed/dehne_gotz_min_spanning_tree.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="parameters">
+<h1><a class="toc-backref" href="#id13">Parameters</a></h1>
+<dl class="docutils">
+<dt>IN: <tt class="docutils literal"><span class="pre">Graph&amp;</span> <span class="pre">g</span></tt></dt>
+<dd>The graph type must be a model of <a class="reference external" href="http://www.boost.org/libs/graph/doc/VertexListGraph.html">Vertex List Graph</a> and
+<a class="reference external" href="DistributedEdgeListGraph.html">Distributed Edge List Graph</a>.</dd>
+<dt>IN/OUT: <tt class="docutils literal"><span class="pre">WeightMap</span> <span class="pre">weight</span></tt></dt>
+<dd>The weight map must be a <a class="reference external" href="distributed_property_map.html">Distributed Property Map</a> and a <a class="reference external" href="http://www.boost.org/libs/property_map/ReadablePropertyMap.html">Readable
+Property Map</a> whose key type is the edge descriptor of the graph
+and whose value type is numerical.</dd>
+<dt>IN/OUT: <tt class="docutils literal"><span class="pre">OutputIterator</span> <span class="pre">out</span></tt></dt>
+<dd>The output iterator through which the edges of the MSF will be
+written. Must be capable of accepting edge descriptors for output.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">VertexIndexMap</span> <span class="pre">index</span></tt></dt>
+<dd><p class="first">A mapping from vertex descriptors to indices in the range <em>[0,
+num_vertices(g))</em>. This must be a <a class="reference external" href="http://www.boost.org/libs/property_map/ReadablePropertyMap.html">Readable Property Map</a> whose
+key type is a vertex descriptor and whose value type is an integral
+type, typically the <tt class="docutils literal"><span class="pre">vertices_size_type</span></tt> of the graph.</p>
+<p class="last"><strong>Default:</strong> <tt class="docutils literal"><span class="pre">get(vertex_index,</span> <span class="pre">g)</span></tt></p>
+</dd>
+<dt>IN/UTIL: <tt class="docutils literal"><span class="pre">RankMap</span> <span class="pre">rank_map</span></tt></dt>
+<dd><p class="first">Stores the rank of each vertex, which is used for maintaining
+union-find data structures. This must be a <a class="reference external" href="http://www.boost.org/libs/property_map/ReadWritePropertyMap.html">Read/Write Property Map</a>
+whose key type is a vertex descriptor and whose value type is an
+integral type.</p>
+<p class="last"><strong>Default:</strong> An <tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> built from an STL vector
+of the <tt class="docutils literal"><span class="pre">vertices_size_type</span></tt> of the graph and the vertex index map.</p>
+</dd>
+<dt>IN/UTIL: <tt class="docutils literal"><span class="pre">ParentMap</span> <span class="pre">parent_map</span></tt></dt>
+<dd><p class="first">Stores the parent (representative) of each vertex, which is used for
+maintaining union-find data structures. This must be a <a class="reference external" href="http://www.boost.org/libs/property_map/ReadWritePropertyMap.html">Read/Write
+Property Map</a> whose key type is a vertex descriptor and whose value
+type is also a vertex descriptor.</p>
+<p class="last"><strong>Default:</strong> An <tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> built from an STL vector
+of the <tt class="docutils literal"><span class="pre">vertex_descriptor</span></tt> of the graph and the vertex index map.</p>
+</dd>
+<dt>IN/UTIL: <tt class="docutils literal"><span class="pre">SupervertexMap</span> <span class="pre">supervertex_map</span></tt></dt>
+<dd><p class="first">Stores the supervertex index of each vertex, which is used for
+maintaining the supervertex list data structures. This must be a
+<a class="reference external" href="http://www.boost.org/libs/property_map/ReadWritePropertyMap.html">Read/Write Property Map</a> whose key type is a vertex descriptor and
+whose value type is an integral type.</p>
+<p class="last"><strong>Default:</strong> An <tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> built from an STL vector
+of the <tt class="docutils literal"><span class="pre">vertices_size_type</span></tt> of the graph and the vertex index map.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="dense-boruvka-minimum-spanning-tree">
+<h1><a class="toc-backref" href="#id14"><tt class="docutils literal"><span class="pre">dense_boruvka_minimum_spanning_tree</span></tt></a></h1>
+<pre class="literal-block">
+namespace graph {
+  template&lt;typename Graph, typename WeightMap, typename OutputIterator,
+           typename VertexIndexMap, typename RankMap, typename ParentMap,
+           typename SupervertexMap&gt;
+  OutputIterator
+  dense_boruvka_minimum_spanning_tree(const Graph&amp; g, WeightMap weight_map,
+                                    OutputIterator out,
+                                    VertexIndexMap index,
+                                    RankMap rank_map, ParentMap parent_map,
+                                    SupervertexMap supervertex_map);
+
+  template&lt;typename Graph, typename WeightMap, typename OutputIterator,
+           typename VertexIndex&gt;
+  OutputIterator
+  dense_boruvka_minimum_spanning_tree(const Graph&amp; g, WeightMap weight_map,
+                                    OutputIterator out, VertexIndex index);
+
+  template&lt;typename Graph, typename WeightMap, typename OutputIterator&gt;
+  OutputIterator
+  dense_boruvka_minimum_spanning_tree(const Graph&amp; g, WeightMap weight_map,
+                                    OutputIterator out);
+}
+</pre>
+<div class="section" id="description">
+<h2><a class="toc-backref" href="#id15">Description</a></h2>
+<p>The dense Boruvka distributed minimum spanning tree algorithm is a
+direct parallelization of the sequential MST algorithm by
+Boruvka. The algorithm first creates a <em>supervertex</em> out of each
+vertex. Then, in each iteration, it finds the smallest-weight edge
+incident to each vertex, collapses supervertices along these edges,
+and removals all self loops. The only difference between the
+sequential and parallel algorithms is that the parallel algorithm
+performs an all-reduce operation so that all processes have the
+global minimum set of edges.</p>
+<p>Unlike the other three algorithms, this algorithm emits the complete
+list of edges in the minimum spanning forest via the output iterator
+on all processes. It may therefore be more useful than the others
+when parallelizing sequential BGL programs.</p>
+</div>
+<div class="section" id="complexity">
+<h2><a class="toc-backref" href="#id16">Complexity</a></h2>
+<p>The distributed algorithm requires <em>O(log n)</em> BSP supersteps, each of
+which requires <em>O(m/p + n)</em> time and <em>O(n)</em> communication per
+process.</p>
+</div>
+<div class="section" id="performance">
+<h2><a class="toc-backref" href="#id17">Performance</a></h2>
+<p>The following charts illustrate the performance of this algorithm on
+various random graphs. We see that the algorithm scales well up to 64
+or 128 processors, depending on the type of graph, for dense
+graphs. However, for sparse graphs performance tapers off as the
+number of processors surpases <em>m/n</em>, i.e., the average degree (which
+is 30 for this graph). This behavior is expected from the algorithm.</p>
+<img align="left" alt="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_5.png" class="align-left" src="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_5.png" />
+<img alt="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_5_speedup_1.png" src="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_5_speedup_1.png" />
+<img align="left" alt="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_5.png" class="align-left" src="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_5.png" />
+<img alt="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_5_speedup_1.png" src="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_5_speedup_1.png" />
+</div>
+</div>
+<div class="section" id="merge-local-minimum-spanning-trees">
+<h1><a class="toc-backref" href="#id18"><tt class="docutils literal"><span class="pre">merge_local_minimum_spanning_trees</span></tt></a></h1>
+<pre class="literal-block">
+namespace graph {
+  template&lt;typename Graph, typename WeightMap, typename OutputIterator,
+           typename VertexIndexMap&gt;
+  OutputIterator
+  merge_local_minimum_spanning_trees(const Graph&amp; g, WeightMap weight,
+                                     OutputIterator out,
+                                     VertexIndexMap index);
+
+  template&lt;typename Graph, typename WeightMap, typename OutputIterator&gt;
+  inline OutputIterator
+  merge_local_minimum_spanning_trees(const Graph&amp; g, WeightMap weight,
+                                     OutputIterator out);
+}
+</pre>
+<div class="section" id="id2">
+<h2><a class="toc-backref" href="#id19">Description</a></h2>
+<p>The merging local MSTs algorithm operates by computing minimum
+spanning forests from the edges stored on each process. Then the
+processes merge their edge lists along a tree. The child nodes cease
+participating in the computation, but the parent nodes recompute MSFs
+from the newly acquired edges. In the final round, the root of the
+tree computes the global MSFs, having received candidate edges from
+every other process via the tree.</p>
+</div>
+<div class="section" id="id3">
+<h2><a class="toc-backref" href="#id20">Complexity</a></h2>
+<p>This algorithm requires <em>O(log_D p)</em> BSP supersteps (where <em>D</em> is the
+number of children in the tree, and is currently fixed at 3). Each
+superstep requires <em>O((m/p) log (m/p) + n)</em> time and <em>O(m/p)</em>
+communication per process.</p>
+</div>
+<div class="section" id="id4">
+<h2><a class="toc-backref" href="#id21">Performance</a></h2>
+<p>The following charts illustrate the performance of this algorithm on
+various random graphs. The algorithm only scales well for very dense
+graphs, where most of the work is performed in the initial stage and
+there is very little work in the later stages.</p>
+<img align="left" alt="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_6.png" class="align-left" src="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_6.png" />
+<img alt="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_6_speedup_1.png" src="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_6_speedup_1.png" />
+<img align="left" alt="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_6.png" class="align-left" src="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_6.png" />
+<img alt="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_6_speedup_1.png" src="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_6_speedup_1.png" />
+</div>
+</div>
+<div class="section" id="boruvka-then-merge">
+<h1><a class="toc-backref" href="#id22"><tt class="docutils literal"><span class="pre">boruvka_then_merge</span></tt></a></h1>
+<pre class="literal-block">
+namespace graph {
+  template&lt;typename Graph, typename WeightMap, typename OutputIterator,
+           typename VertexIndexMap, typename RankMap, typename ParentMap,
+           typename SupervertexMap&gt;
+  OutputIterator
+  boruvka_then_merge(const Graph&amp; g, WeightMap weight, OutputIterator out,
+                     VertexIndexMap index, RankMap rank_map,
+                     ParentMap parent_map, SupervertexMap
+                     supervertex_map);
+
+  template&lt;typename Graph, typename WeightMap, typename OutputIterator,
+           typename VertexIndexMap&gt;
+  inline OutputIterator
+  boruvka_then_merge(const Graph&amp; g, WeightMap weight, OutputIterator out,
+                      VertexIndexMap index);
+
+  template&lt;typename Graph, typename WeightMap, typename OutputIterator&gt;
+  inline OutputIterator
+  boruvka_then_merge(const Graph&amp; g, WeightMap weight, OutputIterator out);
+}
+</pre>
+<div class="section" id="id5">
+<h2><a class="toc-backref" href="#id23">Description</a></h2>
+<p>This algorithm applies both Boruvka steps and local MSF merging steps
+together to achieve better asymptotic performance than either
+algorithm alone. It first executes Boruvka steps until only <em>n/(log_d
+p)^2</em> supervertices remain, then completes the MSF computation by
+performing local MSF merging on the remaining edges and
+supervertices.</p>
+</div>
+<div class="section" id="id6">
+<h2><a class="toc-backref" href="#id24">Complexity</a></h2>
+<p>This algorithm requires <em>log_D p</em> + <em>log log_D p</em> BSP supersteps. The
+time required by each superstep depends on the type of superstep
+being performed; see the distributed Boruvka or merging local MSFS
+algorithms for details.</p>
+</div>
+<div class="section" id="id7">
+<h2><a class="toc-backref" href="#id25">Performance</a></h2>
+<p>The following charts illustrate the performance of this algorithm on
+various random graphs. We see that the algorithm scales well up to 64
+or 128 processors, depending on the type of graph, for dense
+graphs. However, for sparse graphs performance tapers off as the
+number of processors surpases <em>m/n</em>, i.e., the average degree (which
+is 30 for this graph). This behavior is expected from the algorithm.</p>
+<img align="left" alt="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_7.png" class="align-left" src="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_7.png" />
+<img alt="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_7_speedup_1.png" src="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_7_speedup_1.png" />
+<img align="left" alt="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_7.png" class="align-left" src="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_7.png" />
+<img alt="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_7_speedup_1.png" src="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_7_speedup_1.png" />
+</div>
+</div>
+<div class="section" id="boruvka-mixed-merge">
+<h1><a class="toc-backref" href="#id26"><tt class="docutils literal"><span class="pre">boruvka_mixed_merge</span></tt></a></h1>
+<pre class="literal-block">
+namespace {
+  template&lt;typename Graph, typename WeightMap, typename OutputIterator,
+           typename VertexIndexMap, typename RankMap, typename ParentMap,
+           typename SupervertexMap&gt;
+  OutputIterator
+  boruvka_mixed_merge(const Graph&amp; g, WeightMap weight, OutputIterator out,
+                      VertexIndexMap index, RankMap rank_map,
+                      ParentMap parent_map, SupervertexMap
+                      supervertex_map);
+
+  template&lt;typename Graph, typename WeightMap, typename OutputIterator,
+           typename VertexIndexMap&gt;
+  inline OutputIterator
+  boruvka_mixed_merge(const Graph&amp; g, WeightMap weight, OutputIterator out,
+                      VertexIndexMap index);
+
+  template&lt;typename Graph, typename WeightMap, typename OutputIterator&gt;
+  inline OutputIterator
+  boruvka_mixed_merge(const Graph&amp; g, WeightMap weight, OutputIterator out);
+}
+</pre>
+<div class="section" id="id8">
+<h2><a class="toc-backref" href="#id27">Description</a></h2>
+<p>This algorithm applies both Boruvka steps and local MSF merging steps
+together to achieve better asymptotic performance than either method
+alone. In each iteration, the algorithm first performs a Boruvka step
+and then merges the local MSFs computed based on the supervertex
+graph.</p>
+</div>
+<div class="section" id="id9">
+<h2><a class="toc-backref" href="#id28">Complexity</a></h2>
+<p>This algorithm requires <em>log_D p</em> BSP supersteps. The
+time required by each superstep depends on the type of superstep
+being performed; see the distributed Boruvka or merging local MSFS
+algorithms for details. However, the algorithm is
+communication-optional (requiring <em>O(n)</em> communication overall) when
+the graph is sufficiently dense, i.e., <em>m/n &gt;= p</em>.</p>
+</div>
+<div class="section" id="id10">
+<h2><a class="toc-backref" href="#id29">Performance</a></h2>
+<p>The following charts illustrate the performance of this algorithm on
+various random graphs. We see that the algorithm scales well up to 64
+or 128 processors, depending on the type of graph, for dense
+graphs. However, for sparse graphs performance tapers off as the
+number of processors surpases <em>m/n</em>, i.e., the average degree (which
+is 30 for this graph). This behavior is expected from the algorithm.</p>
+<img align="left" alt="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_8.png" class="align-left" src="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_8.png" />
+<img alt="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_8_speedup_1.png" src="chart_php_generator_ER_SF_SW_dataset_TimeSparse_columns_8_speedup_1.png" />
+<img align="left" alt="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_8.png" class="align-left" src="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_8.png" />
+<img alt="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_8_speedup_1.png" src="chart_php_generator_ER_SF_SW_dataset_TimeDense_columns_8_speedup_1.png" />
+</div>
+</div>
+<div class="section" id="selecting-an-mst-algorithm">
+<h1><a class="toc-backref" href="#id30">Selecting an MST algorithm</a></h1>
+<p>Dehne and Gotz reported <a class="citation-reference" href="#dg98" id="id11">[DG98]</a> mixed results when evaluating these
+four algorithms. No particular algorithm was clearly better than the
+others in all cases. However, the asymptotically best algorithm
+(<tt class="docutils literal"><span class="pre">boruvka_mixed_merge</span></tt>) seemed to perform more poorly in their tests
+than the other merging-based algorithms. The following performance
+charts illustrate the performance of these four minimum spanning tree
+implementations.</p>
+<p>Overall, <tt class="docutils literal"><span class="pre">dense_boruvka_minimum_spanning_tree</span></tt> gives the most
+consistent performance and scalability for the graphs we
+tested. Additionally, it may be more suitable for sequential programs
+that are being parallelized, because it emits complete MSF edge lists
+via the output iterators in every process.</p>
+<div class="section" id="performance-on-sparse-graphs">
+<h2><a class="toc-backref" href="#id31">Performance on Sparse Graphs</a></h2>
+<img align="left" alt="chart_php_generator_ER_dataset_TimeSparse_columns_5_6_7_8.png" class="align-left" src="chart_php_generator_ER_dataset_TimeSparse_columns_5_6_7_8.png" />
+<img alt="chart_php_generator_ER_dataset_TimeSparse_columns_5_6_7_8_speedup_1.png" src="chart_php_generator_ER_dataset_TimeSparse_columns_5_6_7_8_speedup_1.png" />
+<img align="left" alt="chart_php_generator_SF_dataset_TimeSparse_columns_5_6_7_8.png" class="align-left" src="chart_php_generator_SF_dataset_TimeSparse_columns_5_6_7_8.png" />
+<img alt="chart_php_generator_SF_dataset_TimeSparse_columns_5_6_7_8_speedup_1.png" src="chart_php_generator_SF_dataset_TimeSparse_columns_5_6_7_8_speedup_1.png" />
+<img align="left" alt="chart_php_generator_SW_dataset_TimeSparse_columns_5_6_7_8.png" class="align-left" src="chart_php_generator_SW_dataset_TimeSparse_columns_5_6_7_8.png" />
+<img alt="chart_php_generator_SW_dataset_TimeSparse_columns_5_6_7_8_speedup_1.png" src="chart_php_generator_SW_dataset_TimeSparse_columns_5_6_7_8_speedup_1.png" />
+</div>
+<div class="section" id="performance-on-dense-graphs">
+<h2><a class="toc-backref" href="#id32">Performance on Dense Graphs</a></h2>
+<img align="left" alt="chart_php_generator_ER_dataset_TimeDense_columns_5_6_7_8.png" class="align-left" src="chart_php_generator_ER_dataset_TimeDense_columns_5_6_7_8.png" />
+<img alt="chart_php_generator_ER_dataset_TimeDense_columns_5_6_7_8_speedup_1.png" src="chart_php_generator_ER_dataset_TimeDense_columns_5_6_7_8_speedup_1.png" />
+<img align="left" alt="chart_php_generator_SF_dataset_TimeDense_columns_5_6_7_8.png" class="align-left" src="chart_php_generator_SF_dataset_TimeDense_columns_5_6_7_8.png" />
+<img alt="chart_php_generator_SF_dataset_TimeDense_columns_5_6_7_8_speedup_1.png" src="chart_php_generator_SF_dataset_TimeDense_columns_5_6_7_8_speedup_1.png" />
+<img align="left" alt="chart_php_generator_SW_dataset_TimeDense_columns_5_6_7_8.png" class="align-left" src="chart_php_generator_SW_dataset_TimeDense_columns_5_6_7_8.png" />
+<img alt="chart_php_generator_SW_dataset_TimeDense_columns_5_6_7_8_speedup_1.png" src="chart_php_generator_SW_dataset_TimeDense_columns_5_6_7_8_speedup_1.png" />
+<hr class="docutils" />
+<p>Copyright (C) 2004 The Trustees of Indiana University.</p>
+<p>Authors: Douglas Gregor and Andrew Lumsdaine</p>
+<table class="docutils citation" frame="void" id="dg98" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[DG98]</td><td><em>(<a class="fn-backref" href="#id1">1</a>, <a class="fn-backref" href="#id11">2</a>)</em> Frank Dehne and Silvia Gotz. <em>Practical Parallel Algorithms
+for Minimum Spanning Trees</em>. In Symposium on Reliable Distributed Systems,
+pages 366--371, 1998.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

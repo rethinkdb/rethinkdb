@@ -1,0 +1,123 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Timer.2 - Using a timer asynchronously</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="tuttimer1/src.html" title="Source listing for Timer.1">
+<link rel="next" href="tuttimer2/src.html" title="Source listing for Timer.2">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tuttimer1/src.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tuttimer2/src.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.tutorial.tuttimer2"></a><a class="link" href="tuttimer2.html" title="Timer.2 - Using a timer asynchronously">Timer.2 - Using a timer
+      asynchronously</a>
+</h3></div></div></div>
+<p>
+        This tutorial program demonstrates how to use asio's asynchronous callback
+        functionality by modifying the program from tutorial Timer.1 to perform an
+        asynchronous wait on the timer.
+      </p>
+<pre class="programlisting"><span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">asio</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="special">#</span><span class="identifier">include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">date_time</span><span class="special">/</span><span class="identifier">posix_time</span><span class="special">/</span><span class="identifier">posix_time</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Using asio's asynchronous functionality means having a callback function
+        that will be called when an asynchronous operation completes. In this program
+        we define a function called <code class="computeroutput"><span class="identifier">print</span></code>
+        to be called when the asynchronous wait finishes.
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">print</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="comment">/*e*/</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Hello, world!\n"</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span> <span class="identifier">io</span><span class="special">;</span>
+
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">deadline_timer</span> <span class="identifier">t</span><span class="special">(</span><span class="identifier">io</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">seconds</span><span class="special">(</span><span class="number">5</span><span class="special">));</span>
+</pre>
+<p>
+        Next, instead of doing a blocking wait as in tutorial Timer.1, we call the
+        <a class="link" href="../reference/basic_deadline_timer/async_wait.html" title="basic_deadline_timer::async_wait">deadline_timer::async_wait()</a>
+        function to perform an asynchronous wait. When calling this function we pass
+        the <code class="computeroutput"><span class="identifier">print</span></code> callback handler
+        that was defined above.
+      </p>
+<pre class="programlisting">  <span class="identifier">t</span><span class="special">.</span><span class="identifier">async_wait</span><span class="special">(&amp;</span><span class="identifier">print</span><span class="special">);</span>
+</pre>
+<p>
+        Finally, we must call the <a class="link" href="../reference/io_service/run.html" title="io_service::run">io_service::run()</a>
+        member function on the io_service object.
+      </p>
+<p>
+        The asio library provides a guarantee that callback handlers will only be
+        called from threads that are currently calling <a class="link" href="../reference/io_service/run.html" title="io_service::run">io_service::run()</a>.
+        Therefore unless the <a class="link" href="../reference/io_service/run.html" title="io_service::run">io_service::run()</a>
+        function is called the callback for the asynchronous wait completion will
+        never be invoked.
+      </p>
+<p>
+        The <a class="link" href="../reference/io_service/run.html" title="io_service::run">io_service::run()</a>
+        function will also continue to run while there is still "work"
+        to do. In this example, the work is the asynchronous wait on the timer, so
+        the call will not return until the timer has expired and the callback has
+        completed.
+      </p>
+<p>
+        It is important to remember to give the io_service some work to do before
+        calling <a class="link" href="../reference/io_service/run.html" title="io_service::run">io_service::run()</a>.
+        For example, if we had omitted the above call to <a class="link" href="../reference/basic_deadline_timer/async_wait.html" title="basic_deadline_timer::async_wait">deadline_timer::async_wait()</a>,
+        the io_service would not have had any work to do, and consequently <a class="link" href="../reference/io_service/run.html" title="io_service::run">io_service::run()</a> would
+        have returned immediately.
+      </p>
+<pre class="programlisting">  <span class="identifier">io</span><span class="special">.</span><span class="identifier">run</span><span class="special">();</span>
+
+  <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        See the <a class="link" href="tuttimer2/src.html" title="Source listing for Timer.2">full source listing</a>
+      </p>
+<p>
+        Return to the <a class="link" href="../tutorial.html" title="Tutorial">tutorial index</a>
+      </p>
+<p>
+        Previous: <a class="link" href="tuttimer1.html" title="Timer.1 - Using a timer synchronously">Timer.1 - Using a
+        timer synchronously</a>
+      </p>
+<p>
+        Next: <a class="link" href="tuttimer3.html" title="Timer.3 - Binding arguments to a handler">Timer.3 - Binding arguments
+        to a handler</a>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tuttimer1/src.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tuttimer2/src.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

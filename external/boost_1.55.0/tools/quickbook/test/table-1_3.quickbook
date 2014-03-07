@@ -1,0 +1,113 @@
+[article Table 1.3
+    [quickbook 1.3]
+    [id table_tests]
+]
+
+[table Table 2
+    [[Heading]]
+    [[cell]]
+]
+
+[table
+    [[Heading]]
+    [[cell]]
+]
+
+[table [/ Comment?] Title
+    [[Heading]]
+    [[cell]]
+]
+
+[table [/ Multi line
+comment] Title
+    [[Heading]]
+    [[cell]]
+]
+
+[table Title [/  ] containing a comment
+    [[Heading]]
+    [[cell]]
+]
+
+[/ These two might be considered to be a bug. ]
+
+[table [/ Multi line
+comment]
+    Title
+    [[Heading]]
+    [[cell]]
+]
+
+[table [/ Multi line
+comment]
+    [[Title]]
+    [[Heading]]
+    [[cell]]
+]
+
+[section:section1 Section 1]
+
+[table A & B
+    [[A][B]]
+    [[a][b]]
+]
+
+[table Empty Table
+]
+
+[table Table with an empty cell
+[[x]]]
+
+[table Indentation
+  [
+    [
+      Header 1. Paragraph 1
+
+      Header 1. Paragraph 2
+    ]
+    [
+      Header 2
+    ]
+  ]
+  [
+    [
+      Row 1. Cell 1.
+    ]
+    [
+      Row 1. Cell 2.
+
+      Row 1. Cell 2. Paragraph 2.
+    ]
+  ]
+]
+
+[table Nested Tables
+  [
+    [
+      Header 1
+    ]
+    [
+      Header 2
+    ]
+  ]
+  [
+    [
+      [table Inner Table
+        [[1.1][1.2]]
+        [[2.1][2.2]]
+      ]
+    ]
+  ]
+  [
+    [
+      Something.
+    ]
+  ]
+]
+
+[#id1]
+[table Table with anchors
+[[[#id2]a[#id3]]][[b]]
+]
+
+[endsect]

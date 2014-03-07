@@ -1,0 +1,46 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_empty is_empty]
+   template <class T>
+   struct is_empty : public __tof {};
+  
+__inherit If T is an empty class type (and not a union type) then inherits from __true_type, 
+otherwise inherits from __false_type.
+
+__std_ref 10p5.
+
+__header ` #include <boost/type_traits/is_empty.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__compat In order to correctly detect empty classes this trait relies on either:
+
+* the compiler implementing zero sized empty base classes, or
+* the compiler providing __intrinsics to detect empty classes - this latter case can be tested for
+by checking to see if the macro BOOST_IS_EMPTY is defined.
+
+Can not be used with incomplete types.
+
+Can not be used with union types, until is_union can be made to work.
+
+If the compiler does not support partial-specialization of class templates, 
+then this template can not be used with abstract types.
+
+__examples
+
+[:Given: `struct empty_class {};` ]
+
+[:`is_empty<empty_class>` inherits from `__true_type`.]
+
+[:`is_empty<empty_class const>::type` is the type `__true_type`.]
+
+[:`is_empty<empty_class>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_empty<T>::value_type` is the type `bool`.]
+
+[endsect]
+

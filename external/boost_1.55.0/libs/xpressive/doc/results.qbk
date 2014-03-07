@@ -1,0 +1,77 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Accessing Results]
+
+[h2 Overview]
+
+Sometimes, it is not enough to know simply whether a _regex_match_ or _regex_search_ was successful or not. If
+you pass an object of type _match_results_ to _regex_match_ or _regex_search_, then after the algorithm has completed
+successfully the _match_results_ will contain extra information about which parts of the regex matched which parts
+of the sequence. In Perl, these sub-sequences are called ['back-references], and they are stored in the variables
+[^$1], [^$2], etc. In xpressive, they are objects of type _sub_match_, and they are stored in the _match_results_
+structure, which acts as a vector of _sub_match_ objects.
+
+[h2 match_results]
+
+So, you've passed a _match_results_ object to a regex algorithm, and the algorithm has succeeded. Now you want
+to examine the results. Most of what you'll be doing with the _match_results_ object is indexing into it to access
+its internally stored _sub_match_ objects, but there are a few other things you can do with a _match_results_
+object besides.
+
+The table below shows how to access the information stored in a _match_results_ object named `what`.
+
+[table match_results<> Accessors
+    [[Accessor]             [Effects]]
+    [[`what.size()`]        [Returns the number of sub-matches, which is always greater than zero after a successful match because the full match is stored in the zero-th sub-match.]]
+    [[`what[n]`]            [Returns the ['n]-th sub-match.]]
+    [[`what.length(n)`]     [Returns the length of the ['n]-th sub-match. Same as `what[n].length()`.]]
+    [[`what.position(n)`]   [Returns the offset into the input sequence at which the ['n]-th sub-match begins.]]
+    [[`what.str(n)`]        [Returns a `std::basic_string<>` constructed from the ['n]-th sub-match. Same as `what[n].str()`.]]
+    [[`what.prefix()`]      [Returns a _sub_match_ object which represents the sub-sequence from the beginning of the input sequence to the start of the full match.]]
+    [[`what.suffix()`]      [Returns a _sub_match_ object which represents the sub-sequence from the end of the full match to the end of the input sequence.]]
+    [[`what.regex_id()`]    [Returns the `regex_id` of the _basic_regex_ object that was last used with this _match_results_ object.]]
+]
+
+There is more you can do with the _match_results_ object, but that will be covered when we talk about
+[link boost_xpressive.user_s_guide.grammars_and_nested_matches Grammars and Nested Matches].
+
+[h2 sub_match]
+
+When you index into a _match_results_ object, you get back a _sub_match_ object. A _sub_match_ is basically a pair
+of iterators. It is defined like this:
+
+    template< class BidirectionalIterator >
+    struct sub_match
+        : std::pair< BidirectionalIterator, BidirectionalIterator >
+    {
+        bool matched;
+        // ...
+    };
+
+Since it inherits publicaly from `std::pair<>`, _sub_match_ has `first` and `second` data members of type
+`BidirectionalIterator`. These are the beginning and end of the sub-sequence this _sub_match_ represents.
+_sub_match_ also has a Boolean `matched` data member, which is true if this _sub_match_ participated in the full
+match.
+
+The following table shows how you might access the information stored in a _sub_match_ object called `sub`.
+
+[table sub_match<> Accessors
+    [[Accessor]             [Effects]]
+    [[`sub.length()`]       [Returns the length of the sub-match. Same as `std::distance(sub.first,sub.second)`.]]
+    [[`sub.str()`]          [Returns a `std::basic_string<>` constructed from the sub-match. Same as `std::basic_string<char_type>(sub.first,sub.second)`.]]
+    [[`sub.compare(str)`]   [Performs a string comparison between the sub-match and `str`, where `str` can be a `std::basic_string<>`, C-style null-terminated string, or another sub-match. Same as `sub.str().compare(str)`.]]
+]
+
+[h2 __alert__ Results Invalidation __alert__]
+
+Results are stored as iterators into the input sequence. Anything which invalidates
+the input sequence will invalidate the match results. For instance, if you match a `std::string` object,
+the results are only valid until your next call to a non-const member function of that `std::string` object.
+After that, the results held by the _match_results_ object are invalid. Don't use them!
+
+[endsect]

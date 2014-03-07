@@ -1,0 +1,920 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ar.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ar.xml
+ */
+ar{
+    AuxExemplarCharacters{"[\u200C \u200D \u200E \u200F ـ]"}
+    ExemplarCharacters{
+        "[\u064B \u064C \u064D \u064E \u064F \u0650 \u0651 \u0652 ء آ أ ؤ إ ئ ا ب ةت "
+        "ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ى ي]"
+    }
+    ExemplarCharactersCurrency{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+    ExemplarCharactersIndex{"[ا ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي]"}
+    LocaleScript{
+        "Arab",
+    }
+    NumberElements{
+        arab{
+            symbols{
+                decimal{"٫"}
+                exponential{"اس"}
+                group{"٬"}
+                list{"؛"}
+                nan{"ليس رقم"}
+                perMille{"؉"}
+                percentSign{"٪"}
+            }
+        }
+        default{"arab"}
+        latn{
+            patterns{
+                currencyFormat{"¤ #,##0.00;¤ #,##0.00-"}
+                decimalFormat{"#,##0.###;#,##0.###-"}
+            }
+            symbols{
+                decimal{","}
+                exponential{"E"}
+                group{"."}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.50.96"}
+    calendar{
+        buddhist{
+            DateTimePatterns{
+                "zzzz h:mm:ss a",
+                "z h:mm:ss a",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE، d MMMM، y G",
+                "d MMMM، y G",
+                "dd‏/MM‏/y G",
+                "d‏/M‏/y G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E، d"}
+                Hm{"HH:mm"}
+                M{"L"}
+                MMM{"LLL"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"E d MMMM"}
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                MMdd{"dd‏/MM"}
+                Md{"d/‏M"}
+                d{"d"}
+                ms{"mm:ss"}
+                y{"y G"}
+                yM{"M‏/y G"}
+                yMEd{"EEE، d/‏M/‏y G"}
+                yMMM{"MMM y G"}
+                yMMMEd{"EEE، d MMMM y G"}
+                yMMMM{"MMMM y G"}
+                yMMMd{"d MMMM y G"}
+                yMd{"d/‏M/‏y G"}
+                yyyyMM{"MM‏/y G"}
+                yyyyMMMM{"MMMM، y G"}
+            }
+            eras{
+                abbreviated{
+                    "التقويم البوذي",
+                }
+            }
+        }
+        coptic{
+            monthNames{
+                format{
+                    wide{
+                        "توت",
+                        "بابه",
+                        "هاتور",
+                        "كيهك",
+                        "طوبة",
+                        "أمشير",
+                        "برمهات",
+                        "برمودة",
+                        "بشنس",
+                        "بؤونة",
+                        "أبيب",
+                        "مسرى",
+                        "نسيئ",
+                    }
+                }
+            }
+        }
+        ethiopic{
+            monthNames{
+                format{
+                    wide{
+                        "مسكريم",
+                        "تكمت",
+                        "هدار",
+                        "تهساس",
+                        "تر",
+                        "يكتت",
+                        "مجابيت",
+                        "ميازيا",
+                        "جنبت",
+                        "سين",
+                        "هامل",
+                        "نهاس",
+                        "باجمن",
+                    }
+                }
+            }
+        }
+        gregorian{
+            AmPmMarkers{
+                "ص",
+                "م",
+            }
+            DateTimePatterns{
+                "zzzz h:mm:ss a",
+                "z h:mm:ss a",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE، d MMMM، y",
+                "d MMMM، y",
+                "dd‏/MM‏/yyyy",
+                "d‏/M‏/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E، d"}
+                Hm{"HH:mm"}
+                M{"L"}
+                MMM{"LLL"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"E d MMMM"}
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                MMdd{"dd‏/MM"}
+                Md{"d/‏M"}
+                d{"d"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M‏/yyyy"}
+                yMEd{"EEE، d/‏M/‏yyyy"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE، d MMMM y"}
+                yMMMM{"MMMM y"}
+                yQ{"yyyy Q"}
+                yQQQ{"y QQQ"}
+                yyQ{"Q yy"}
+                yyyyMM{"MM‏/yyyy"}
+                yyyyMMMM{"MMMM، y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "أحد",
+                        "إثنين",
+                        "ثلاثاء",
+                        "أربعاء",
+                        "خميس",
+                        "جمعة",
+                        "سبت",
+                    }
+                    wide{
+                        "الأحد",
+                        "الإثنين",
+                        "الثلاثاء",
+                        "الأربعاء",
+                        "الخميس",
+                        "الجمعة",
+                        "السبت",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ح",
+                        "ن",
+                        "ث",
+                        "ر",
+                        "خ",
+                        "ج",
+                        "س",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "ق.م",
+                    "م",
+                }
+                wide{
+                    "قبل الميلاد",
+                    "ميلادي",
+                }
+            }
+            fields{
+                day{
+                    dn{"يوم"}
+                    relative{
+                        "-1"{"أمس"}
+                        "0"{"اليوم"}
+                        "1"{"غدًا"}
+                        "2"{"بعد الغد"}
+                    }
+                }
+                dayperiod{
+                    dn{"ص/م"}
+                }
+                era{
+                    dn{"العصر"}
+                }
+                hour{
+                    dn{"الساعات"}
+                }
+                minute{
+                    dn{"الدقائق"}
+                }
+                month{
+                    dn{"الشهر"}
+                }
+                second{
+                    dn{"الثواني"}
+                }
+                week{
+                    dn{"الأسبوع"}
+                }
+                weekday{
+                    dn{"اليوم"}
+                }
+                year{
+                    dn{"السنة"}
+                }
+                zone{
+                    dn{"التوقيت"}
+                }
+            }
+            intervalFormats{
+                MEd{
+                    M{"E، d/‏M – E، d/‏M"}
+                    d{"E، d/‏M –‏ E، d/‏M"}
+                }
+                MMMEd{
+                    M{"E، d MMM – E، d MMM"}
+                    d{"E، d – E، d MMM"}
+                }
+                MMMM{
+                    M{"LLLL–LLLL"}
+                }
+                d{
+                    d{"d–d"}
+                }
+                y{
+                    y{"y–y"}
+                }
+                yMEd{
+                    M{"E، d‏/M‏/yyyy – E، d‏/M‏/yyyy"}
+                    d{"E، dd‏/MM‏/yyyy – E، dd‏/MM‏/yyyy"}
+                    y{"E، d‏/M‏/yyyy – E، d‏/M‏/yyyy"}
+                }
+                yMMM{
+                    M{"MMM – MMM، y"}
+                    y{"MMM، y – MMM، y"}
+                }
+                yMMMEd{
+                    M{"E، d MMM – E، d MMM، y"}
+                    d{"E، d – ِE، d MMM، yyyy"}
+                    y{"E، d MMM، y – E، d MMM، y"}
+                }
+                yMMMM{
+                    M{"MMMM – MMMM، y"}
+                    y{"MMMM، y – MMMM، y"}
+                }
+                yMMMd{
+                    M{"d MMM – d MMM، yyyy"}
+                    d{"d–d MMM، y"}
+                    y{"d MMM، y – d MMM، y"}
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "يناير",
+                        "فبراير",
+                        "مارس",
+                        "أبريل",
+                        "مايو",
+                        "يونيو",
+                        "يوليو",
+                        "أغسطس",
+                        "سبتمبر",
+                        "أكتوبر",
+                        "نوفمبر",
+                        "ديسمبر",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ي",
+                        "ف",
+                        "م",
+                        "أ",
+                        "و",
+                        "ن",
+                        "ل",
+                        "غ",
+                        "س",
+                        "ك",
+                        "ب",
+                        "د",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    wide{
+                        "الربع الأول",
+                        "الربع الثاني",
+                        "الربع الثالث",
+                        "الربع الرابع",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "١",
+                        "٢",
+                        "٣",
+                        "٤",
+                    }
+                }
+            }
+        }
+        hebrew{
+            monthNames{
+                format{
+                    wide{
+                        "تشري",
+                        "مرحشوان",
+                        "كيسلو",
+                        "طيفت",
+                        "شباط",
+                        "آذار الأول",
+                        "آذار",
+                        "نيسان",
+                        "أيار",
+                        "سيفان",
+                        "تموز",
+                        "آب",
+                        "أيلول",
+                        "آذار الثاني",
+                    }
+                }
+            }
+        }
+        islamic{
+            eras{
+                abbreviated{
+                    "هـ",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "محرم",
+                        "صفر",
+                        "ربيع الأول",
+                        "ربيع الآخر",
+                        "جمادى الأولى",
+                        "جمادى الآخرة",
+                        "رجب",
+                        "شعبان",
+                        "رمضان",
+                        "شوال",
+                        "ذو القعدة",
+                        "ذو الحجة",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "م",
+                        "ص",
+                        "ر",
+                        "ر",
+                        "ج",
+                        "ج",
+                        "ر",
+                        "ش",
+                        "ر",
+                        "ش",
+                        "ذ",
+                        "ذ",
+                    }
+                }
+            }
+        }
+        japanese{
+            DateTimePatterns{
+                "zzzz h:mm:ss a",
+                "z h:mm:ss a",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE، d MMMM، y G",
+                "d MMMM، y G",
+                "dd‏/MM‏/y G",
+                "d‏/M‏/y G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E، d"}
+                Hm{"HH:mm"}
+                M{"L"}
+                MMM{"LLL"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"E d MMMM"}
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                MMdd{"dd‏/MM"}
+                Md{"d/‏M"}
+                d{"d"}
+                ms{"mm:ss"}
+                yyyy{"y G"}
+                yyyyM{"M‏/y G"}
+                yyyyMEd{"EEE، d/‏M/‏y G"}
+                yyyyMM{"MM‏/y G"}
+                yyyyMMM{"MMM y G"}
+                yyyyMMMEd{"EEE، d MMMM y G"}
+                yyyyMMMM{"MMMM y G"}
+            }
+            eras{
+                abbreviated{
+                    "تيكا",
+                    "هاكتشي",
+                    "هاكهو",
+                    "شتشو",
+                    "تيهو",
+                    "كيين",
+                    "وادو",
+                    "رييكي",
+                    "يورو",
+                    "جينكي",
+                    "تمبيو",
+                    "تمبيو-كامبو",
+                    "تمبيو-شوهو",
+                    "تمبيو-هوجي",
+                    "تمفو-جينجو",
+                    "جينجو-كيين",
+                    "هوكي",
+                    "تن-أو",
+                    "إنرياكو",
+                    "ديدو",
+                    "كونين",
+                    "تنتشو",
+                    "شووا",
+                    "كاجو",
+                    "نينجو",
+                    "سيكو",
+                    "تنان",
+                    "جوجان",
+                    "جينكيي",
+                    "نينا",
+                    "كامبيو",
+                    "شوتاي",
+                    "انجي",
+                    "انتشو",
+                    "شوهيي",
+                    "تنجيو",
+                    "تنرياكو",
+                    "تنتوكو",
+                    "أووا",
+                    "كوهو",
+                    "آنا",
+                    "تينروكو",
+                    "تن-ان",
+                    "جوجن",
+                    "تنجن",
+                    "إيكان",
+                    "كانا",
+                    "اي-ان",
+                    "ايسو",
+                    "شورياكو",
+                    "تشوتوكو",
+                    "تشوهو",
+                    "كانكو",
+                    "تشووا",
+                    "كانين",
+                    "جاين",
+                    "مانجو",
+                    "تشوجين",
+                    "تشورياكو",
+                    "تشوكيو",
+                    "كانتوكو",
+                    "ايشو",
+                    "تينجي",
+                    "كوهيي",
+                    "جيرياكو",
+                    "انكيو",
+                    "شوهو",
+                    "شورياكو",
+                    "ايهو",
+                    "أوتوكو",
+                    "كانجي",
+                    "كاهو",
+                    "ايتشو",
+                    "شوتوكو",
+                    "كووا",
+                    "تشوجي",
+                    "كاشو",
+                    "تنين",
+                    "تن-اي",
+                    "ايكيو",
+                    "جن-اي",
+                    "هوان",
+                    "تنجي",
+                    "ديجي",
+                    "تنشو",
+                    "تشوشو",
+                    "هوين",
+                    "ايجي",
+                    "كوجي",
+                    "تنيو",
+                    "كيوان",
+                    "نينبيي",
+                    "كيوجو",
+                    "هجين",
+                    "هيجي",
+                    "ايرياكو",
+                    "أوهو",
+                    "تشوكان",
+                    "ايمان",
+                    "نين-ان",
+                    "كاو",
+                    "شون",
+                    "أنجين",
+                    "جيشو",
+                    "يووا",
+                    "جيي",
+                    "جنريوكو",
+                    "بنجي",
+                    "كنكيو",
+                    "شوجي",
+                    "كنين",
+                    "جنكيو",
+                    "كن-اي",
+                    "شوجن",
+                    "كنرياكو",
+                    "كنبو",
+                    "شوكيو",
+                    "جو",
+                    "جيننين",
+                    "كروكو",
+                    "أنتيي",
+                    "كنكي",
+                    "جويي",
+                    "تمبكو",
+                    "بنرياكو",
+                    "كاتيي",
+                    "رياكنين",
+                    "ان-أو",
+                    "نينجي",
+                    "كنجين",
+                    "هوجي",
+                    "كنتشو",
+                    "كوجن",
+                    "شوكا",
+                    "شوجن",
+                    "بن-أو",
+                    "كوتشو",
+                    "بن-اي",
+                    "كنجي",
+                    "كوان",
+                    "شوو",
+                    "اينين",
+                    "شوان",
+                    "كنجن",
+                    "كجن",
+                    "توكجي",
+                    "انكي",
+                    "أوتشو",
+                    "شووا",
+                    "بنبو",
+                    "جنو",
+                    "جنكيو",
+                    "شوتشو",
+                    "كريكي",
+                    "جنتكو",
+                    "جنكو",
+                    "كمو",
+                    "إنجن",
+                    "كوككو",
+                    "شوهي",
+                    "كنتكو",
+                    "بنتشو",
+                    "تنجو",
+                    "كورياكو",
+                    "كووا",
+                    "جنتشو",
+                    "مييتكو",
+                    "كاكي",
+                    "كو",
+                    "مييتكو",
+                    "أويي",
+                    "شوتشو",
+                    "ايكيو",
+                    "ككيتسو",
+                    "بن-أن",
+                    "هوتكو",
+                    "كيوتكو",
+                    "كوشو",
+                    "تشوركو",
+                    "كنشو",
+                    "بنشو",
+                    "أونين",
+                    "بنمي",
+                    "تشوكيو",
+                    "انتكو",
+                    "ميو",
+                    "بنكي",
+                    "ايشو",
+                    "تييي",
+                    "كيوركو",
+                    "تنمن",
+                    "كوجي",
+                    "ايركو",
+                    "جنكي",
+                    "تنشو",
+                    "بنركو",
+                    "كيتشو",
+                    "جنوا",
+                    "كان-اي",
+                    "شوهو",
+                    "كيان",
+                    "شوو",
+                    "ميرياكو",
+                    "منجي",
+                    "كنبن",
+                    "انبو",
+                    "تنوا",
+                    "جوكيو",
+                    "جنركو",
+                    "هويي",
+                    "شوتكو",
+                    "كيوهو",
+                    "جنبن",
+                    "كنبو",
+                    "انكيو",
+                    "كان-ان",
+                    "هورياكو",
+                    "مييوا",
+                    "ان-اي",
+                    "تنمي",
+                    "كنسي",
+                    "كيووا",
+                    "بنكا",
+                    "بنسي",
+                    "تنبو",
+                    "كوكا",
+                    "كاي",
+                    "أنسي",
+                    "من-ان",
+                    "بنكيو",
+                    "جنجي",
+                    "كيو",
+                    "ميجي",
+                    "تيشو",
+                    "شووا",
+                    "هيسي",
+                }
+            }
+        }
+        persian{
+            eras{
+                abbreviated{
+                    "ه‍.ش",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "فرفردن",
+                        "أذربيهشت",
+                        "خرداد",
+                        "تار",
+                        "مرداد",
+                        "شهرفار",
+                        "مهر",
+                        "آيان",
+                        "آذر",
+                        "دي",
+                        "بهمن",
+                        "اسفندار",
+                    }
+                }
+            }
+        }
+        roc{
+            DateTimePatterns{
+                "zzzz h:mm:ss a",
+                "z h:mm:ss a",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE، d MMMM، y G",
+                "d MMMM، y G",
+                "dd‏/MM‏/y G",
+                "d‏/M‏/y G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E، d"}
+                Hm{"HH:mm"}
+                M{"L"}
+                MMM{"LLL"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"E d MMMM"}
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                MMdd{"dd‏/MM"}
+                Md{"d/‏M"}
+                d{"d"}
+                ms{"mm:ss"}
+                yyyy{"y G"}
+                yyyyM{"M‏/y G"}
+                yyyyMEd{"EEE، d/‏M/‏y G"}
+                yyyyMM{"MM‏/y G"}
+                yyyyMMM{"MMM y G"}
+                yyyyMMMEd{"EEE، d MMMM y G"}
+                yyyyMMMM{"MMMM y G"}
+                yyyyMMMd{"d MMMM y G"}
+                yyyyMd{"d/‏M/‏y G"}
+            }
+            eras{
+                abbreviated{
+                    "Before R.O.C.",
+                    "جمهورية الصي",
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"’"}
+        alternateQuotationStart{"‘"}
+        quotationEnd{"”"}
+        quotationStart{"“"}
+    }
+    layout{
+        characters{"right-to-left"}
+        lines{"top-to-bottom"}
+    }
+    listPattern{
+        standard{
+            2{"{0} و {1}"}
+            end{"{0}، و {1}"}
+            middle{"{0}، {1}"}
+            start{"{0}، {1}"}
+        }
+    }
+    measurementSystemNames{
+        US{"النظام الأمريكي"}
+        metric{"النظام المتري"}
+    }
+    units{
+        day{
+            few{"{0} أيام"}
+            many{"{0} يوماً"}
+            one{"يوم"}
+            other{"{0} يوم"}
+            two{"يومان"}
+            zero{"لا أيام"}
+        }
+        hour{
+            few{"{0} ساعات"}
+            many{"{0} ساعةً"}
+            one{"ساعة"}
+            other{"{0} ساعة"}
+            two{"ساعتان"}
+            zero{"لا ساعات"}
+        }
+        minute{
+            few{"{0} دقائق"}
+            many{"{0} دقيقةً"}
+            one{"دقيقة"}
+            other{"{0} دقيقة"}
+            two{"دقيقتان"}
+            zero{"لا دقائق"}
+        }
+        month{
+            few{"{0} أشهر"}
+            many{"{0} شهراً"}
+            one{"شهر"}
+            other{"{0} شهر"}
+            two{"شهران"}
+            zero{"لا أشهر"}
+        }
+        second{
+            few{"{0} ثوان"}
+            many{"{0} ثانيةً"}
+            one{"ثانية"}
+            other{"{0} ثانية"}
+            two{"ثانيتان"}
+            zero{"لا ثوان"}
+        }
+        week{
+            few{"{0} أسابيع"}
+            many{"{0} أسبوعاً"}
+            one{"أسبوع"}
+            other{"{0} أسبوع"}
+            two{"أسبوعان"}
+            zero{"لا أسابيع"}
+        }
+        year{
+            few{"{0} سنوات"}
+            many{"{0} سنةً"}
+            one{"سنة"}
+            other{"{0} سنة"}
+            two{"سنتان"}
+            zero{"لا سنوات"}
+        }
+    }
+    unitsShort{
+        day{
+            few{"{0} أيام"}
+            many{"{0} يوماً"}
+            one{"يوم"}
+            other{"{0} يوم"}
+            two{"يومان"}
+            zero{"لا أيام"}
+        }
+        hour{
+            few{"{0} س"}
+            many{"{0} س"}
+            one{"ساعة"}
+            other{"{0} س"}
+            two{"ساعتان"}
+            zero{"لا ساعات"}
+        }
+        minute{
+            few{"{0} د"}
+            many{"{0} د"}
+            one{"دقيقة"}
+            other{"{0} د"}
+            two{"دقيقتان"}
+            zero{"لا دقائق"}
+        }
+        month{
+            few{"{0} أشهر"}
+            many{"{0} شهراً"}
+            one{"شهر"}
+            other{"{0} شهر"}
+            two{"شهران"}
+            zero{"لا أشهر"}
+        }
+        second{
+            few{"{0} ث"}
+            many{"{0} ث"}
+            one{"ثانية"}
+            other{"{0} ث"}
+            two{"ثانيتان"}
+            zero{"لا ثوان"}
+        }
+        week{
+            few{"{0} أسابيع"}
+            many{"{0} أسبوعاً"}
+            one{"أسبوع"}
+            other{"{0} أسبوع"}
+            two{"أسبوعان"}
+            zero{"لا أسابيع"}
+        }
+        year{
+            few{"{0} سنوات"}
+            many{"{0} سنةً"}
+            one{"سنة"}
+            other{"{0} سنة"}
+            two{"سنتان"}
+            zero{"لا سنوات"}
+        }
+    }
+}

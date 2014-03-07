@@ -1,0 +1,277 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Fusion 2.1</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="next" href="fusion/preface.html" title="Preface">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="fusion/preface.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="fusion"></a>Chapter&#160;1.&#160;Fusion 2.1</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Joel</span> <span class="surname">de Guzman</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Dan</span> <span class="surname">Marsden</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Tobias</span> <span class="surname">Schwinger</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger</p></div>
+<div><div class="legalnotice">
+<a name="fusion.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="fusion/preface.html">Preface</a></span></dt>
+<dt><span class="section"><a href="fusion/introduction.html">Introduction</a></span></dt>
+<dt><span class="section"><a href="fusion/quick_start.html">Quick Start</a></span></dt>
+<dt><span class="section"><a href="fusion/organization.html">Organization</a></span></dt>
+<dt><span class="section"><a href="fusion/support.html">Support</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/support/is_sequence.html">is_sequence</a></span></dt>
+<dt><span class="section"><a href="fusion/support/is_view.html">is_view</a></span></dt>
+<dt><span class="section"><a href="fusion/support/tag_of.html">tag_of</a></span></dt>
+<dt><span class="section"><a href="fusion/support/category_of.html">category_of</a></span></dt>
+<dt><span class="section"><a href="fusion/support/deduce.html">deduce</a></span></dt>
+<dt><span class="section"><a href="fusion/support/deduce_sequence.html">deduce_sequence</a></span></dt>
+<dt><span class="section"><a href="fusion/support/pair.html">pair</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/iterator.html">Iterator</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/iterator/concepts.html">Concepts</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/iterator/concepts/forward_iterator.html">Forward
+        Iterator</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/concepts/bidirectional_iterator.html">Bidirectional
+        Iterator</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/concepts/random_access_iterator.html">Random
+        Access Iterator</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/concepts/associative_iterator.html">Associative
+        Iterator</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/iterator/functions.html">Functions</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/iterator/functions/deref.html">deref</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/functions/next.html">next</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/functions/prior.html">prior</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/functions/distance.html">distance</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/functions/advance.html">advance</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/functions/advance_c.html">advance_c</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/functions/deref_data.html">deref_data</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/iterator/operator.html">Operator</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/iterator/operator/operator_unary_star.html">Operator
+        *</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/operator/operator_equality.html">Operator
+        ==</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/operator/operator_inequality.html">Operator
+        !=</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/iterator/metafunctions.html">Metafunctions</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/iterator/metafunctions/value_of.html">value_of</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/metafunctions/deref.html">deref</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/metafunctions/next.html">next</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/metafunctions/prior.html">prior</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/metafunctions/equal_to.html">equal_to</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/metafunctions/distance.html">distance</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/metafunctions/advance.html">advance</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/metafunctions/advance_c.html">advance_c</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/metafunctions/key_of.html">key_of</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/metafunctions/value_of_data.html">value_of_data</a></span></dt>
+<dt><span class="section"><a href="fusion/iterator/metafunctions/deref_data.html">deref_data</a></span></dt>
+</dl></dd>
+</dl></dd>
+<dt><span class="section"><a href="fusion/sequence.html">Sequence</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/sequence/concepts.html">Concepts</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/sequence/concepts/forward_sequence.html">Forward
+        Sequence</a></span></dt>
+<dt><span class="section"><a href="fusion/sequence/concepts/bidirectional_sequence.html">Bidirectional
+        Sequence</a></span></dt>
+<dt><span class="section"><a href="fusion/sequence/concepts/random_access_sequence.html">Random
+        Access Sequence</a></span></dt>
+<dt><span class="section"><a href="fusion/sequence/concepts/associative_sequence.html">Associative
+        Sequence</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/sequence/intrinsic.html">Intrinsic</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/sequence/intrinsic/functions.html">Functions</a></span></dt>
+<dt><span class="section"><a href="fusion/sequence/intrinsic/metafunctions.html">Metafunctions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/sequence/operator.html">Operator</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/sequence/operator/i_o.html">I/O</a></span></dt>
+<dt><span class="section"><a href="fusion/sequence/operator/comparison.html">Comparison</a></span></dt>
+</dl></dd>
+</dl></dd>
+<dt><span class="section"><a href="fusion/container.html">Container</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/container/vector.html">vector</a></span></dt>
+<dt><span class="section"><a href="fusion/container/cons.html">cons</a></span></dt>
+<dt><span class="section"><a href="fusion/container/list.html">list</a></span></dt>
+<dt><span class="section"><a href="fusion/container/deque.html">deque</a></span></dt>
+<dt><span class="section"><a href="fusion/container/front_extended_deque.html">front_extended_deque</a></span></dt>
+<dt><span class="section"><a href="fusion/container/back_extended_deque.html">back_extended_deque</a></span></dt>
+<dt><span class="section"><a href="fusion/container/set.html">set</a></span></dt>
+<dt><span class="section"><a href="fusion/container/map.html">map</a></span></dt>
+<dt><span class="section"><a href="fusion/container/generation.html">Generation</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/container/generation/functions.html">Functions</a></span></dt>
+<dt><span class="section"><a href="fusion/container/generation/metafunctions.html">MetaFunctions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/container/conversion.html">Conversion</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/container/conversion/functions.html">Functions</a></span></dt>
+<dt><span class="section"><a href="fusion/container/conversion/metafunctions.html">Metafunctions</a></span></dt>
+</dl></dd>
+</dl></dd>
+<dt><span class="section"><a href="fusion/view.html">View</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/view/single_view.html">single_view</a></span></dt>
+<dt><span class="section"><a href="fusion/view/filter_view.html">filter_view</a></span></dt>
+<dt><span class="section"><a href="fusion/view/iterator_range.html">iterator_range</a></span></dt>
+<dt><span class="section"><a href="fusion/view/joint_view.html">joint_view</a></span></dt>
+<dt><span class="section"><a href="fusion/view/zip_view.html">zip_view</a></span></dt>
+<dt><span class="section"><a href="fusion/view/transform_view.html">transform_view</a></span></dt>
+<dt><span class="section"><a href="fusion/view/reverse_view.html">reverse_view</a></span></dt>
+<dt><span class="section"><a href="fusion/view/nview.html">nview</a></span></dt>
+<dt><span class="section"><a href="fusion/view/repetitive_view.html">repetitive_view</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/adapted.html">Adapted</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/adapted/array.html">Array</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/std__pair.html">std::pair</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/mpl_sequence.html">mpl sequence</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/boost__array.html">boost::array</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/boost__tuple.html">boost::tuple</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/adapt_struct.html">BOOST_FUSION_ADAPT_STRUCT</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/adapt_tpl_struct.html">BOOST_FUSION_ADAPT_TPL_STRUCT</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/adapt_struct_named.html">BOOST_FUSION_ADAPT_STRUCT_NAMED</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/adapt_assoc.html">BOOST_FUSION_ADAPT_ASSOC_STRUCT</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/adapt_assoc_tpl_struct.html">BOOST_FUSION_ADAPT_ASSOC_TPL_STRUCT</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/adapt_assoc_struct_named.html">BOOST_FUSION_ADAPT_ASSOC_STRUCT_NAMED</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/adapt_adt.html">BOOST_FUSION_ADAPT_ADT</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/adapt_tpl_adt.html">BOOST_FUSION_ADAPT_TPL_ADT</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/adapt_assoc_adt.html">BOOST_FUSION_ADAPT_ASSOC_ADT</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/adapt_assoc_tpl_adt.html">BOOST_FUSION_ADAPT_ASSOC_TPL_ADT</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/define_struct.html">BOOST_FUSION_DEFINE_STRUCT</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/define_tpl_struct.html">BOOST_FUSION_DEFINE_TPL_STRUCT</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/define_struct_inline.html">BOOST_FUSION_DEFINE_STRUCT_INLINE</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/define_tpl_struct_inline.html">BOOST_FUSION_DEFINE_TPL_STRUCT_INLINE</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/define_assoc_struct.html">BOOST_FUSION_DEFINE_ASSOC_STRUCT</a></span></dt>
+<dt><span class="section"><a href="fusion/adapted/define_assoc_tpl_struct.html">BOOST_FUSION_DEFINE_ASSOC_TPL_STRUCT</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/algorithm.html">Algorithm</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/algorithm/auxiliary.html">Auxiliary</a></span></dt>
+<dd><dl><dt><span class="section"><a href="fusion/algorithm/auxiliary/functions.html">Functions</a></span></dt></dl></dd>
+<dt><span class="section"><a href="fusion/algorithm/iteration.html">Iteration</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/algorithm/iteration/functions.html">Functions</a></span></dt>
+<dt><span class="section"><a href="fusion/algorithm/iteration/metafunctions.html">Metafunctions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/algorithm/query.html">Query</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/algorithm/query/functions.html">Functions</a></span></dt>
+<dt><span class="section"><a href="fusion/algorithm/query/metafunctions.html">Metafunctions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/algorithm/transformation.html">Transformation</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/algorithm/transformation/functions.html">Functions</a></span></dt>
+<dt><span class="section"><a href="fusion/algorithm/transformation/metafunctions.html">Metafunctions</a></span></dt>
+</dl></dd>
+</dl></dd>
+<dt><span class="section"><a href="fusion/tuple.html">Tuple</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/tuple/class_template_tuple.html">Class template tuple</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/tuple/class_template_tuple/construction.html">Construction</a></span></dt>
+<dt><span class="section"><a href="fusion/tuple/class_template_tuple/tuple_creation_functions.html">Tuple
+        creation functions</a></span></dt>
+<dt><span class="section"><a href="fusion/tuple/class_template_tuple/tuple_helper_classes.html">Tuple
+        helper classes</a></span></dt>
+<dt><span class="section"><a href="fusion/tuple/class_template_tuple/element_access.html">Element
+        access</a></span></dt>
+<dt><span class="section"><a href="fusion/tuple/class_template_tuple/relational_operators.html">Relational
+        operators</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/tuple/pairs.html">Pairs</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/extension.html">Extension</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/extension/ext_full.html">The Full Extension Mechanism</a></span></dt>
+<dt><span class="section"><a href="fusion/extension/sequence_facade.html">Sequence Facade</a></span></dt>
+<dt><span class="section"><a href="fusion/extension/iterator_facade.html">Iterator Facade</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/functional.html">Functional</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/functional/concepts.html">Concepts</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/functional/concepts/callable.html">Callable Object</a></span></dt>
+<dt><span class="section"><a href="fusion/functional/concepts/reg_callable.html">Regular Callable
+        Object</a></span></dt>
+<dt><span class="section"><a href="fusion/functional/concepts/def_callable.html">Deferred Callable
+        Object</a></span></dt>
+<dt><span class="section"><a href="fusion/functional/concepts/poly.html">Polymorphic Function
+        Object</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/functional/invocation.html">Invocation</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/functional/invocation/functions.html">Functions</a></span></dt>
+<dt><span class="section"><a href="fusion/functional/invocation/metafunctions.html">Metafunctions</a></span></dt>
+<dt><span class="section"><a href="fusion/functional/invocation/limits.html">Limits</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/functional/adapters.html">Adapters</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/functional/adapters/fused.html">fused</a></span></dt>
+<dt><span class="section"><a href="fusion/functional/adapters/fused_procedure.html">fused_procedure</a></span></dt>
+<dt><span class="section"><a href="fusion/functional/adapters/fused_function_object.html">fused_function_object</a></span></dt>
+<dt><span class="section"><a href="fusion/functional/adapters/unfused.html">unfused</a></span></dt>
+<dt><span class="section"><a href="fusion/functional/adapters/unfused_typed.html">unfused_typed</a></span></dt>
+<dt><span class="section"><a href="fusion/functional/adapters/limits.html">Limits</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="fusion/functional/generation.html">Generation</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="fusion/functional/generation/functions.html">Functions</a></span></dt>
+<dt><span class="section"><a href="fusion/functional/generation/metafunctions.html">Metafunctions</a></span></dt>
+</dl></dd>
+</dl></dd>
+<dt><span class="section"><a href="fusion/notes.html">Notes</a></span></dt>
+<dt><span class="section"><a href="fusion/change_log.html">Change log</a></span></dt>
+<dt><span class="section"><a href="fusion/acknowledgements.html">Acknowledgements</a></span></dt>
+<dt><span class="section"><a href="fusion/references.html">References</a></span></dt>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:37:41 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="fusion/preface.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

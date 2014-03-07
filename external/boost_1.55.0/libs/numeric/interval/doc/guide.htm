@@ -1,0 +1,122 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../../../../boost.css">
+
+  <title>Choosing Your Own Interval Type</title>
+</head>
+
+<body lang="en">
+  <h1>Choosing Your Own Interval Type</h1>
+
+  <p>First of all, you need to select your base type. In order to obtain an
+  useful interval type, the numbers should respect some requirements. Please
+  refer to <a href="numbers.htm">this page</a> in order to see them. When
+  your base type is robust enough, you can go to the next step: the choice of
+  the policies.</p>
+
+  <p>As you should already know if you did not come to this page by accident,
+  the <code>interval</code> class expect a policies argument describing the
+  <a href="rounding.htm">rounding</a> and <a href="checking.htm">checking</a>
+  policies. The first thing to do is to verify if the default policies are or
+  are not adapted to your case. If your base type is not <code>float</code>,
+  <code>double</code>, or <code>long double</code>, the default rounding
+  policy is probably not adapted. However, by specializing
+  <code>interval_lib::rounded_math</code> to your base type, the default
+  rounding policy will be suitable.</p>
+
+  <p>The default policies define an interval type that performs precise
+  computations (for <code>float</code>, <code>double</code>, <code>long
+  double</code>), detects invalid numbers and throws exception each times an
+  empty interval is created. This is a brief description and you should refer
+  to the corresponding sections for a more precise description of the default
+  policies. Unless you need some special behavior, this default type is
+  usable in a lot of situations.</p>
+
+  <p>After having completely defined the interval type (and its policies),
+  the only thing left to do is to verify that the constants are defined and
+  <code>std::numeric_limits</code> is correct (if needed). Now you can use
+  your brand new interval type.</p>
+
+  <h2>Some Examples</h2>
+
+  <h3>Solving systems</h3>
+
+  <p>If you use the interval library in order to solve equation and
+  inequation systems by bisection, something like
+  <code>boost::interval&lt;double&gt;</code> is probably what you need. The
+  computations are precise, and they may be fast if enclosed in a protected
+  rounding mode block (see the <a href="rounding.htm#perf">performance</a>
+  section). The comparison are "certain"; it is probably the most used type
+  of comparison, and the other comparisons are still accessible by the
+  explicit comparison functions. The checking forbid empty interval; they are
+  not needed since there would be an empty interval at end of the computation
+  if an empty interval is created during the computation, and no root would
+  be inside. The checking also forbid invalid numbers (NaN for floating-point
+  numbers). It can be a minor performance hit if you only use exact
+  floating-point constants (which are clearly not NaNs); however, if
+  performance really does matter, you will probably use a good compiler which
+  knows how to inline functions and all these annoying little tests will
+  magically disappear (if not, it is time to upgrade your compiler).</p>
+
+  <h3>Manipulating wide intervals</h3>
+
+  <p>You may want to use the library on intervals with imprecise bounds or on
+  inexact numbers. In particular, it may be an existing algorithm that you
+  want to rewrite and simplify by using the library. In that case, you are
+  not really interested by the inclusion property; you are only interested by
+  the computation algorithms the library provides. So you do not need to use
+  any rounding; the checking also may not be useful. Use an "exact
+  computation" rounding (you are allowed to think the name strangely applies
+  to the situation) and a checking that never tests for any invalid numbers
+  or empty intervals. By doing that, you will obtain library functions
+  reduced to their minimum (an addition of two intervals will only be two
+  additions of numbers).</p>
+
+  <h3>Computing ranges</h3>
+
+  <p>The inputs of your program may be empty intervals or invalid values (for
+  example, a database can allow undefined values in some field) and the core
+  of your program could also do some non-arithmetic computations that do not
+  always propagate empty intervals. For example, in the library, the
+  <code>hull</code> function can happily receive an empty interval but not
+  generate an empty interval if the other input is valid. The
+  <code>intersect</code> function is also able to produce empty intervals if
+  the intervals do not overlap. In that case, it is not really interesting if
+  an exception is thrown each time an empty interval is produced or an
+  invalid value is used; it would be better to generate and propagate empty
+  intervals. So you need to change the checking policy to something like
+  <code>interval_lib::checking_base&lt;T&gt;</code>.</p>
+
+  <h3>Switching interval types</h3>
+
+  <p>This example does not deal with a full case, but with a situation that
+  can occur often. Sometimes, it can be useful to change the policies of an
+  interval by converting it to another type. For example, this happens when
+  you use an unprotected version of the interval type in order to speed up
+  the computations; it is a change of the rounding policy. It also happens
+  when you want to temporarily allow empty intervals to be created; it is a
+  change of the checking policy. These changes should not be prohibited: they
+  can greatly enhance a program (lisibility, interest, performance).</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%Y-%m-%d" startspan -->2006-12-24<!--webbot bot="Timestamp" endspan i-checksum="12172" --></p>
+
+  <p><i>Copyright &copy; 2002 Guillaume Melquiond, Sylvain Pion, Herv&eacute;
+  Br&ouml;nnimann, Polytechnic University</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+  or copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

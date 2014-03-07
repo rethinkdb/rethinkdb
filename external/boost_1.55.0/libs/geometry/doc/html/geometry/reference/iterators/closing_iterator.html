@@ -1,0 +1,243 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>closing_iterator</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../iterators.html" title="Iterators">
+<link rel="prev" href="../iterators.html" title="Iterators">
+<link rel="next" href="ever_circling_iterator.html" title="ever_circling_iterator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../iterators.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../iterators.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ever_circling_iterator.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.iterators.closing_iterator"></a><a class="link" href="closing_iterator.html" title="closing_iterator">closing_iterator</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp59564936"></a>
+Iterator which iterates through a range, but adds first element at end
+          of the range.
+        </p>
+<h6>
+<a name="geometry.reference.iterators.closing_iterator.h0"></a>
+          <span class="phrase"><a name="geometry.reference.iterators.closing_iterator.synopsis"></a></span><a class="link" href="closing_iterator.html#geometry.reference.iterators.closing_iterator.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Range</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">closing_iterator</span>
+      <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_facade</span><span class="special">&lt;</span> <span class="identifier">closing_iterator</span><span class="special">&lt;</span> <span class="identifier">Range</span> <span class="special">&gt;,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_value</span><span class="special">&lt;</span> <span class="identifier">Range</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">random_access_traversal_tag</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+  <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.iterators.closing_iterator.h1"></a>
+          <span class="phrase"><a name="geometry.reference.iterators.closing_iterator.template_parameter_s_"></a></span><a class="link" href="closing_iterator.html#geometry.reference.iterators.closing_iterator.template_parameter_s_">Template
+          parameter(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    typename Range
+                  </p>
+                </td>
+<td>
+                  <p>
+                    range on which this class is based on
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.iterators.closing_iterator.h2"></a>
+          <span class="phrase"><a name="geometry.reference.iterators.closing_iterator.constructor_s_"></a></span><a class="link" href="closing_iterator.html#geometry.reference.iterators.closing_iterator.constructor_s_">Constructor(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Parameters
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">closing_iterator</span><span class="special">(</span><span class="identifier">Range</span> <span class="special">&amp;</span> <span class="identifier">range</span><span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Constructor including the range it is based on.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>Range &amp;</strong></span>: <span class="emphasis"><em>range</em></span>:
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">closing_iterator</span><span class="special">(</span><span class="identifier">Range</span> <span class="special">&amp;</span> <span class="identifier">range</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Constructor to indicate the end of a range.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>Range &amp;</strong></span>: <span class="emphasis"><em>range</em></span>:
+                  </p>
+                  <p>
+                    <span class="bold"><strong>bool</strong></span>: <span class="emphasis"><em></em></span>:
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">closing_iterator</span><span class="special">()</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Default constructor.
+                  </p>
+                </td>
+<td>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.iterators.closing_iterator.h3"></a>
+          <span class="phrase"><a name="geometry.reference.iterators.closing_iterator.member_function_s_"></a></span><a class="link" href="closing_iterator.html#geometry.reference.iterators.closing_iterator.member_function_s_">Member
+          Function(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Parameters
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Returns
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">closing_iterator</span><span class="special">&lt;</span> <span class="identifier">Range</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">closing_iterator</span><span class="special">&lt;</span> <span class="identifier">Range</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>closing_iterator&lt; Range &gt; const &amp;</strong></span>:
+                    <span class="emphasis"><em>source</em></span>:
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.iterators.closing_iterator.h4"></a>
+          <span class="phrase"><a name="geometry.reference.iterators.closing_iterator.header"></a></span><a class="link" href="closing_iterator.html#geometry.reference.iterators.closing_iterator.header">Header</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">iterators</span><span class="special">/</span><span class="identifier">closing_iterator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../iterators.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../iterators.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ever_circling_iterator.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

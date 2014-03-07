@@ -1,0 +1,755 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<meta name="Template"
+content="C:\PROGRAM FILES\MICROSOFT OFFICE\OFFICE\html.dot">
+<meta name="GENERATOR" content="Microsoft FrontPage Express 2.0">
+<title>Call Traits</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000" link="#0000FF"
+vlink="#800080">
+
+<h1><img src="../../boost.png" width="276" height="86">Header
+&lt;<a href="../../boost/detail/call_traits.hpp">boost/call_traits.hpp</a>&gt;</h1>
+
+<p>All of the contents of &lt;boost/call_traits.hpp&gt; are
+defined inside namespace boost.</p>
+
+<p>The template class call_traits&lt;T&gt; encapsulates the
+&quot;best&quot; method to pass a parameter of some type T to or
+from a function, and consists of a collection of typedefs defined
+as in the table below. The purpose of call_traits is to ensure
+that problems like &quot;<a href="#refs">references to references</a>&quot;
+never occur, and that parameters are passed in the most efficient
+manner possible (see <a href="#examples">examples</a>). In each
+case if your existing practice is to use the type defined on the
+left, then replace it with the call_traits defined type on the
+right. </p>
+
+<p>Note that for compilers that do not support either partial
+specialization or member templates, no benefit will occur from
+using call_traits: the call_traits defined types will always be
+the same as the existing practice in this case. In addition if
+only member templates and not partial template specialisation is
+support by the compiler (for example Visual C++ 6) then
+call_traits can not be used with array types (although it can be
+used to solve the reference to reference problem).</p>
+
+<table border="0" cellpadding="7" cellspacing="1" width="797">
+    <tr>
+        <td valign="top" width="17%" bgcolor="#008080"><p
+        align="center">Existing practice</p>
+        </td>
+        <td valign="top" width="35%" bgcolor="#008080"><p
+        align="center">call_traits equivalent</p>
+        </td>
+        <td valign="top" width="32%" bgcolor="#008080"><p
+        align="center">Description</p>
+        </td>
+        <td valign="top" width="16%" bgcolor="#008080"><p
+        align="center">Notes</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%"><p align="center">T<br>
+        (return by value)</p>
+        </td>
+        <td valign="top" width="35%"><p align="center"><code>call_traits&lt;T&gt;::value_type</code></p>
+        </td>
+        <td valign="top" width="32%">Defines a type that
+        represents the &quot;value&quot; of type T. Use this for
+        functions that return by value, or possibly for stored
+        values of type T.</td>
+        <td valign="top" width="16%"><p align="center">2</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%"><p align="center">T&amp;<br>
+        (return value)</p>
+        </td>
+        <td valign="top" width="35%"><p align="center"><code>call_traits&lt;T&gt;::reference</code></p>
+        </td>
+        <td valign="top" width="32%">Defines a type that
+        represents a reference to type T. Use for functions that
+        would normally return a T&amp;.</td>
+        <td valign="top" width="16%"><p align="center">1</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%"><p align="center">const
+        T&amp;<br>
+        (return value)</p>
+        </td>
+        <td valign="top" width="35%"><p align="center"><code>call_traits&lt;T&gt;::const_reference</code></p>
+        </td>
+        <td valign="top" width="32%">Defines a type that
+        represents a constant reference to type T. Use for
+        functions that would normally return a const T&amp;.</td>
+        <td valign="top" width="16%"><p align="center">1</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%"><p align="center">const
+        T&amp;<br>
+        (function parameter)</p>
+        </td>
+        <td valign="top" width="35%"><p align="center"><code>call_traits&lt;T&gt;::param_type</code></p>
+        </td>
+        <td valign="top" width="32%">Defines a type that
+        represents the &quot;best&quot; way to pass a parameter
+        of type T to a function.</td>
+        <td valign="top" width="16%"><p align="center">1,3</p>
+        </td>
+    </tr>
+</table>
+
+<p>Notes:</p>
+
+<ol>
+    <li>If T is already reference type, then call_traits is
+        defined such that <a href="#refs">references to
+        references</a> do not occur (requires partial
+        specialization).</li>
+    <li>If T is an array type, then call_traits defines <code>value_type</code>
+        as a &quot;constant pointer to type&quot; rather than an
+        &quot;array of type&quot; (requires partial
+        specialization). Note that if you are using value_type as
+        a stored value then this will result in storing a &quot;constant
+        pointer to an array&quot; rather than the array itself.
+        This may or may not be a good thing depending upon what
+        you actually need (in other words take care!).</li>
+    <li>If T is a small built in type or a pointer, then <code>param_type</code>
+        is defined as <code>T const</code>, instead of <code>T
+        const&amp;</code>. This can improve the ability of the
+        compiler to optimize loops in the body of the function if
+        they depend upon the passed parameter, the semantics of
+        the passed parameter is otherwise unchanged (requires
+        partial specialization).</li>
+</ol>
+
+<p>&nbsp;</p>
+
+<h3>Copy constructibility</h3>
+
+<p>The following table defines which call_traits types can always
+be copy-constructed from which other types, those entries marked
+with a '?' are true only if and only if T is copy constructible:</p>
+
+<table border="0" cellpadding="7" cellspacing="1" width="766">
+    <tr>
+        <td valign="top" width="17%">&nbsp;</td>
+        <td valign="top" colspan="5" width="85%"
+        bgcolor="#008080"><p align="center">To:</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#008080">From:</td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">T</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">value_type</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">reference</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">const_reference</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">param_type</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0">T</td>
+        <td valign="top" width="17%"><p align="center">?</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">?</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0">value_type</td>
+        <td valign="top" width="17%"><p align="center">?</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">?</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">N</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">N</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0">reference</td>
+        <td valign="top" width="17%"><p align="center">?</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">?</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0">const_reference</td>
+        <td valign="top" width="17%"><p align="center">?</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">N</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">N</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0">param_type</td>
+        <td valign="top" width="17%"><p align="center">?</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">?</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">N</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">N</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+    </tr>
+</table>
+
+<p>&nbsp;</p>
+
+<p>If T is an assignable type the following assignments are
+possible:</p>
+
+<table border="0" cellpadding="7" cellspacing="1" width="766">
+    <tr>
+        <td valign="top" width="17%">&nbsp;</td>
+        <td valign="top" colspan="5" width="85%"
+        bgcolor="#008080"><p align="center">To:</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#008080">From:</td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">T</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">value_type</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">reference</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">const_reference</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">param_type</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0">T</td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0">value_type</td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0">reference</td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0">const_reference</td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0">param_type</td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">Y</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">-</p>
+        </td>
+    </tr>
+</table>
+
+<p>&nbsp;</p>
+
+<h3><a name="examples"></a>Examples</h3>
+
+<p>The following table shows the effect that call_traits has on
+various types, the table assumes that the compiler supports
+partial specialization: if it doesn't then all types behave in
+the same way as the entry for &quot;myclass&quot;, and
+call_traits can not be used with reference or array types.</p>
+
+<table border="0" cellpadding="7" cellspacing="1" width="766">
+    <tr>
+        <td valign="top" width="17%">&nbsp;</td>
+        <td valign="top" colspan="5" width="85%"
+        bgcolor="#008080"><p align="center">Call_traits type:</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#008080"><p
+        align="center">Original type T</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">value_type</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">reference</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">const_reference</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">param_type</p>
+        </td>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">Applies to:</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">myclass</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">myclass</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">myclass&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const
+        myclass&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">myclass
+        const&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">All user
+        defined types.</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">int</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">int</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">int&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const
+        int&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">int const</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">All small
+        built-in types.</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">int*</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">int*</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">int*&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">int*const&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">int* const</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">All
+        pointer types.</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">int&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">int&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">int&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const
+        int&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">int&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">All
+        reference types.</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">const int&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const
+        int&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const
+        int&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const
+        int&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const
+        int&amp;</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">All
+        constant-references.</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">int[3]</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const int*</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">int(&amp;)[3]</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const int(&amp;)[3]</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const int*
+        const</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">All array
+        types.</p>
+        </td>
+    </tr>
+    <tr>
+        <td valign="top" width="17%" bgcolor="#C0C0C0"><p
+        align="center">const int[3]</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const int*</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const int(&amp;)[3]</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const int(&amp;)[3]</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">const int*
+        const</p>
+        </td>
+        <td valign="top" width="17%"><p align="center">All
+        constant-array types.</p>
+        </td>
+    </tr>
+</table>
+
+<p>&nbsp;</p>
+
+<h4>Example 1:</h4>
+
+<p>The following class is a trivial class that stores some type T
+by value (see the <a href="call_traits_test.cpp">call_traits_test.cpp</a>
+file), the aim is to illustrate how each of the available
+call_traits typedefs may be used:</p>
+
+<pre>template &lt;class T&gt;
+struct contained
+{
+   // define our typedefs first, arrays are stored by value
+   // so value_type is not the same as result_type:
+   typedef typename boost::call_traits&lt;T&gt;::param_type       param_type;
+   typedef typename boost::call_traits&lt;T&gt;::reference        reference;
+   typedef typename boost::call_traits&lt;T&gt;::const_reference  const_reference;
+   typedef T                                                value_type;
+   typedef typename boost::call_traits&lt;T&gt;::value_type       result_type;
+
+   // stored value:
+   value_type v_;
+   
+   // constructors:
+   contained() {}
+   contained(param_type p) : v_(p){}
+   // return byval:
+   result_type value() { return v_; }
+   // return by_ref:
+   reference get() { return v_; }
+   const_reference const_get()const { return v_; }
+   // pass value:
+   void call(param_type p){}
+
+};</pre>
+
+<h4><a name="refs"></a>Example 2 (the reference to reference
+problem):</h4>
+
+<p>Consider the definition of std::binder1st:</p>
+
+<pre>template &lt;class Operation&gt; 
+class binder1st : 
+   public unary_function&lt;typename Operation::second_argument_type, typename Operation::result_type&gt; 
+{ 
+protected: 
+   Operation op; 
+   typename Operation::first_argument_type value; 
+public: 
+   binder1st(const Operation&amp; x, const typename Operation::first_argument_type&amp; y); 
+   typename Operation::result_type operator()(const typename Operation::second_argument_type&amp; x) const; 
+}; </pre>
+
+<p>Now consider what happens in the relatively common case that
+the functor takes its second argument as a reference, that
+implies that <code>Operation::second_argument_type</code> is a
+reference type, <code>operator()</code> will now end up taking a
+reference to a reference as an argument, and that is not
+currently legal. The solution here is to modify <code>operator()</code>
+to use call_traits:</p>
+
+<pre>typename Operation::result_type operator()(typename call_traits&lt;typename Operation::second_argument_type&gt;::param_type x) const;</pre>
+
+<p>Now in the case that <code>Operation::second_argument_type</code>
+is a reference type, the argument is passed as a reference, and
+the no &quot;reference to reference&quot; occurs.</p>
+
+<h4><a name="ex3"></a>Example 3 (the make_pair problem):</h4>
+
+<p>If we pass the name of an array as one (or both) arguments to <code>std::make_pair</code>,
+then template argument deduction deduces the passed parameter as
+&quot;const reference to array of T&quot;, this also applies to
+string literals (which are really array literals). Consequently
+instead of returning a pair of pointers, it tries to return a
+pair of arrays, and since an array type is not copy-constructible
+the code fails to compile. One solution is to explicitly cast the
+arguments to make_pair to pointers, but call_traits provides a
+better (i.e. automatic) solution (and one that works safely even
+in generic code where the cast might do the wrong thing):</p>
+
+<pre>template &lt;class T1, class T2&gt;
+std::pair&lt;
+   typename boost::call_traits&lt;T1&gt;::value_type, 
+   typename boost::call_traits&lt;T2&gt;::value_type&gt; 
+      make_pair(const T1&amp; t1, const T2&amp; t2)
+{
+   return std::pair&lt;
+      typename boost::call_traits&lt;T1&gt;::value_type, 
+      typename boost::call_traits&lt;T2&gt;::value_type&gt;(t1, t2);
+}</pre>
+
+<p>Here, the deduced argument types will be automatically
+degraded to pointers if the deduced types are arrays, similar
+situations occur in the standard binders and adapters: in
+principle in any function that &quot;wraps&quot; a temporary
+whose type is deduced. Note that the function arguments to
+make_pair are not expressed in terms of call_traits: doing so
+would prevent template argument deduction from functioning.</p>
+
+<h4><a name="ex4"></a>Example 4 (optimising fill):</h4>
+
+<p>The call_traits template will &quot;optimize&quot; the passing
+of a small built-in type as a function parameter, this mainly has
+an effect when the parameter is used within a loop body. In the
+following example (see <a
+href="../type_traits/examples/fill_example.cpp">fill_example.cpp</a>),
+a version of std::fill is optimized in two ways: if the type
+passed is a single byte built-in type then std::memset is used to
+effect the fill, otherwise a conventional C++ implemention is
+used, but with the passed parameter &quot;optimized&quot; using
+call_traits:</p>
+
+<pre>namespace detail{
+
+template &lt;bool opt&gt;
+struct filler
+{
+   template &lt;typename I, typename T&gt;
+   static void do_fill(I first, I last, typename boost::call_traits&lt;T&gt;::param_type val)
+   {
+      while(first != last)
+      {
+         *first = val;
+         ++first;
+      }
+   }
+};
+
+template &lt;&gt;
+struct filler&lt;true&gt;
+{
+   template &lt;typename I, typename T&gt;
+   static void do_fill(I first, I last, T val)
+   {
+      memset(first, val, last-first);
+   }
+};
+
+}
+
+template &lt;class I, class T&gt;
+inline void fill(I first, I last, const T&amp; val)
+{
+   enum{ can_opt = boost::is_pointer&lt;I&gt;::value
+                   &amp;&amp; boost::is_arithmetic&lt;T&gt;::value
+                   &amp;&amp; (sizeof(T) == 1) };
+   typedef detail::filler&lt;can_opt&gt; filler_t;
+   filler_t::template do_fill&lt;I,T&gt;(first, last, val);
+}</pre>
+
+<p>Footnote: the reason that this is &quot;optimal&quot; for
+small built-in types is that with the value passed as &quot;T
+const&quot; instead of &quot;const T&amp;&quot; the compiler is
+able to tell both that the value is constant and that it is free
+of aliases. With this information the compiler is able to cache
+the passed value in a register, unroll the loop, or use
+explicitly parallel instructions: if any of these are supported.
+Exactly how much mileage you will get from this depends upon your
+compiler - we could really use some accurate benchmarking
+software as part of boost for cases like this.</p>
+
+<p>Note that the function arguments to fill are not expressed in
+terms of call_traits: doing so would prevent template argument
+deduction from functioning. Instead fill acts as a &quot;thin
+wrapper&quot; that is there to perform template argument
+deduction, the compiler will optimise away the call to fill all
+together, replacing it with the call to filler&lt;&gt;::do_fill,
+which does use call_traits.</p>
+
+<h3>Rationale</h3>
+
+<p>The following notes are intended to briefly describe the
+rational behind choices made in call_traits.</p>
+
+<p>All user-defined types follow &quot;existing practice&quot;
+and need no comment.</p>
+
+<p>Small built-in types (what the standard calls fundamental
+types [3.9.1]) differ from existing practice only in the <i>param_type</i>
+typedef. In this case passing &quot;T const&quot; is compatible
+with existing practice, but may improve performance in some cases
+(see <a href="#ex4">Example 4</a>), in any case this should never
+be any worse than existing practice.</p>
+
+<p>Pointers follow the same rational as small built-in types.</p>
+
+<p>For reference types the rational follows <a href="#refs">Example
+2</a> - references to references are not allowed, so the
+call_traits members must be defined such that these problems do
+not occur. There is a proposal to modify the language such that
+&quot;a reference to a reference is a reference&quot; (issue #106,
+submitted by Bjarne Stroustrup), call_traits&lt;T&gt;::value_type
+and call_traits&lt;T&gt;::param_type both provide the same effect
+as that proposal, without the need for a language change (in
+other words it's a workaround).</p>
+
+<p>For array types, a function that takes an array as an argument
+will degrade the array type to a pointer type: this means that
+the type of the actual parameter is different from its declared
+type, something that can cause endless problems in template code
+that relies on the declared type of a parameter. For example:</p>
+
+<pre>template &lt;class T&gt;
+struct A
+{
+   void foo(T t);
+};</pre>
+
+<p><font face="Times New Roman">In this case if we instantiate
+A&lt;int[2]&gt; then the declared type of the parameter passed to
+member function foo is int[2], but it's actual type is const int*,
+if we try to use the type T within the function body, then there
+is a strong likelyhood that our code will not compile:</font></p>
+
+<pre>template &lt;class T&gt;
+void A&lt;T&gt;::foo(T t)
+{
+   T dup(t); // doesn't compile for case that T is an array.
+}</pre>
+
+<p>By using call_traits the degradation from array to pointer is
+explicit, and the type of the parameter is the same as it's
+declared type:</p>
+
+<pre>template &lt;class T&gt;
+struct A
+{
+   void foo(typename call_traits&lt;T&gt;::value_type t);
+};
+
+template &lt;class T&gt;
+void A&lt;T&gt;::foo(typename call_traits&lt;T&gt;::value_type t)
+{
+   typename call_traits&lt;T&gt;::value_type dup(t); // OK even if T is an array type.
+}</pre>
+
+<p>For value_type (return by value), again only a pointer may be
+returned, not a copy of the whole array, and again call_traits
+makes the degradation explicit. The value_type member is useful
+whenever an array must be explicitly degraded to a pointer - <a
+href="#ex3">Example 3</a> provides the test case (Footnote: the
+array specialisation for call_traits is the least well understood
+of all the call_traits specialisations, if the given semantics
+cause specific problems for you, or don't solve a particular
+array-related problem, then I would be interested to hear about
+it. Most people though will probably never need to use this
+specialisation).</p>
+
+<hr>
+
+<p>Revised 01 September 2000</p>
+
+   <p>
+      Copyright 2000 Steve Cleary, Beman Dawes, Howard
+      Hinnant and John Maddock. <br/>
+      Use, modification and distribution are subject to the
+      Boost Software License, Version 1.0.
+      (See accompanying file LICENSE_1_0.txt
+      or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+         http://www.boost.org/LICENSE_1_0.txt
+      </a>).
+   </p>
+</body>
+</html>
+

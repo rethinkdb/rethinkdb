@@ -1,0 +1,306 @@
+<HTML>
+<HEAD>
+<TITLE>Debugging Garbage Collector Related Problems</title>
+</head>
+<BODY>
+<H1>Debugging Garbage Collector Related Problems</h1>
+This page contains some hints on
+debugging issues specific to
+the Boehm-Demers-Weiser conservative garbage collector.
+It applies both to debugging issues in client code that manifest themselves
+as collector misbehavior, and to debugging the collector itself.
+<P>
+If you suspect a bug in the collector itself, it is strongly recommended
+that you try the latest collector release, even if it is labelled as "alpha",
+before proceeding.
+<H2>Bus Errors and Segmentation Violations</h2>
+<P>
+If the fault occurred in GC_find_limit, or with incremental collection enabled,
+this is probably normal.  The collector installs handlers to take care of
+these.  You will not see these unless you are using a debugger.
+Your debugger <I>should</i> allow you to continue.
+It's often preferable to tell the debugger to ignore SIGBUS and SIGSEGV
+("<TT>handle SIGSEGV SIGBUS nostop noprint</tt>" in gdb,
+"<TT>ignore SIGSEGV SIGBUS</tt>" in most versions of dbx)
+and set a breakpoint in <TT>abort</tt>.
+The collector will call abort if the signal had another cause,
+and there was not other handler previously installed.
+<P>
+We recommend debugging without incremental collection if possible.
+(This applies directly to UNIX systems.
+Debugging with incremental collection under win32 is worse.  See README.win32.)
+<P>
+If the application generates an unhandled SIGSEGV or equivalent, it may
+often be easiest to set the environment variable GC_LOOP_ON_ABORT.  On many
+platforms, this will cause the collector to loop in a handler when the
+SIGSEGV is encountered (or when the collector aborts for some other reason),
+and a debugger can then be attached to the looping
+process.  This sidesteps common operating system problems related
+to incomplete core files for multithreaded applications, etc.
+<H2>Other Signals</h2>
+On most platforms, the multithreaded version of the collector needs one or
+two other signals for internal use by the collector in stopping threads.
+It is normally wise to tell the debugger to ignore these.  On Linux,
+the collector currently uses SIGPWR and SIGXCPU by default.
+<H2>Warning Messages About Needing to Allocate Blacklisted Blocks</h2>
+The garbage collector generates warning messages of the form
+<PRE>
+Needed to allocate blacklisted block at 0x...
+</pre>
+or
+<PRE>
+Repeated allocation of very large block ...
+</pre>
+when it needs to allocate a block at a location that it knows to be
+referenced by a false pointer.  These false pointers can be either permanent
+(<I>e.g.</i> a static integer variable that never changes) or temporary.
+In the latter case, the warning is largely spurious, and the block will
+eventually be reclaimed normally.
+In the former case, the program will still run correctly, but the block
+will never be reclaimed.  Unless the block is intended to be
+permanent, the warning indicates a memory leak.
+<OL>
+<LI>Ignore these warnings while you are using GC_DEBUG.  Some of the routines
+mentioned below don't have debugging equivalents.  (Alternatively, write
+the missing routines and send them to me.)
+<LI>Replace allocator calls that request large blocks with calls to
+<TT>GC_malloc_ignore_off_page</tt> or
+<TT>GC_malloc_atomic_ignore_off_page</tt>.  You may want to set a
+breakpoint in <TT>GC_default_warn_proc</tt> to help you identify such calls.
+Make sure that a pointer to somewhere near the beginning of the resulting block
+is maintained in a (preferably volatile) variable as long as
+the block is needed.
+<LI>
+If the large blocks are allocated with realloc, we suggest instead allocating
+them with something like the following.  Note that the realloc size increment
+should be fairly large (e.g. a factor of 3/2) for this to exhibit reasonable
+performance.  But we all know we should do that anyway.
+<PRE>
+void * big_realloc(void *p, size_t new_size)
+{
+    size_t old_size = GC_size(p);
+    void * result;
+ 
+    if (new_size <= 10000) return(GC_realloc(p, new_size));
+    if (new_size <= old_size) return(p);
+    result = GC_malloc_ignore_off_page(new_size);
+    if (result == 0) return(0);
+    memcpy(result,p,old_size);
+    GC_free(p);
+    return(result);
+}
+</pre>
+
+<LI> In the unlikely case that even relatively small object
+(&lt;20KB) allocations are triggering these warnings, then your address
+space contains lots of "bogus pointers", i.e. values that appear to
+be pointers but aren't.  Usually this can be solved by using GC_malloc_atomic
+or the routines in gc_typed.h to allocate large pointer-free regions of bitmaps, etc.  Sometimes the problem can be solved with trivial changes of encoding
+in certain values.  It is possible, to identify the source of the bogus
+pointers by building the collector with <TT>-DPRINT_BLACK_LIST</tt>,
+which will cause it to print the "bogus pointers", along with their location.
+
+<LI> If you get only a fixed number of these warnings, you are probably only
+introducing a bounded leak by ignoring them.  If the data structures being
+allocated are intended to be permanent, then it is also safe to ignore them.
+The warnings can be turned off by calling GC_set_warn_proc with a procedure
+that ignores these warnings (e.g. by doing absolutely nothing).
+</ol>
+
+<H2>The Collector References a Bad Address in <TT>GC_malloc</tt></h2>
+
+This typically happens while the collector is trying to remove an entry from
+its free list, and the free list pointer is bad because the free list link
+in the last allocated object was bad.
+<P>
+With &gt; 99% probability, you wrote past the end of an allocated object.
+Try setting <TT>GC_DEBUG</tt> before including <TT>gc.h</tt> and
+allocating with <TT>GC_MALLOC</tt>.  This will try to detect such
+overwrite errors.
+
+<H2>Unexpectedly Large Heap</h2>
+
+Unexpected heap growth can be due to one of the following:
+<OL>
+<LI> Data structures that are being unintentionally retained.  This
+is commonly caused by data structures that are no longer being used,
+but were not cleared, or by caches growing without bounds.
+<LI> Pointer misidentification.  The garbage collector is interpreting
+integers or other data as pointers and retaining the "referenced"
+objects.  A common symptom is that GC_dump() shows much of the heap
+as black-listed.
+<LI> Heap fragmentation.  This should never result in unbounded growth,
+but it may account for larger heaps.  This is most commonly caused
+by allocation of large objects.  On some platforms it can be reduced
+by building with -DUSE_MUNMAP, which will cause the collector to unmap
+memory corresponding to pages that have not been recently used.
+<LI> Per object overhead.  This is usually a relatively minor effect, but
+it may be worth considering.  If the collector recognizes interior
+pointers, object sizes are increased, so that one-past-the-end pointers
+are correctly recognized.  The collector can be configured not to do this
+(<TT>-DDONT_ADD_BYTE_AT_END</tt>).
+<P>
+The collector rounds up object sizes so the result fits well into the
+chunk size (<TT>HBLKSIZE</tt>, normally 4K on 32 bit machines, 8K
+on 64 bit machines) used by the collector.   Thus it may be worth avoiding
+objects of size 2K + 1 (or 2K if a byte is being added at the end.)
+</ol>
+The last two cases can often be identified by looking at the output
+of a call to <TT>GC_dump()</tt>.  Among other things, it will print the
+list of free heap blocks, and a very brief description of all chunks in
+the heap, the object sizes they correspond to, and how many live objects
+were found in the chunk at the last collection.
+<P>
+Growing data structures can usually be identified by
+<OL>
+<LI> Building the collector with <TT>-DKEEP_BACK_PTRS</tt>,
+<LI> Preferably using debugging allocation (defining <TT>GC_DEBUG</tt>
+before including <TT>gc.h</tt> and allocating with <TT>GC_MALLOC</tt>),
+so that objects will be identified by their allocation site,
+<LI> Running the application long enough so
+that most of the heap is composed of "leaked" memory, and
+<LI> Then calling <TT>GC_generate_random_backtrace()</tt> from backptr.h
+a few times to determine why some randomly sampled objects in the heap are
+being retained.
+</ol>
+<P>
+The same technique can often be used to identify problems with false
+pointers, by noting whether the reference chains printed by
+<TT>GC_generate_random_backtrace()</tt> involve any misidentified pointers.
+An alternate technique is to build the collector with
+<TT>-DPRINT_BLACK_LIST</tt> which will cause it to report values that
+are almost, but not quite, look like heap pointers.  It is very likely that
+actual false pointers will come from similar sources.
+<P>
+In the unlikely case that false pointers are an issue, it can usually
+be resolved using one or more of the following techniques:
+<OL>
+<LI> Use <TT>GC_malloc_atomic</tt> for objects containing no pointers.
+This is especially important for large arrays containing compressed data,
+pseudo-random numbers, and the like.  It is also likely to improve GC
+performance, perhaps drastically so if the application is paging.
+<LI> If you allocate large objects containing only
+one or two pointers at the beginning, either try the typed allocation
+primitives is <TT>gc_typed.h</tt>, or separate out the pointerfree component.
+<LI> Consider using <TT>GC_malloc_ignore_off_page()</tt>
+to allocate large objects.  (See <TT>gc.h</tt> and above for details.
+Large means &gt; 100K in most environments.)
+<LI> If your heap size is larger than 100MB or so, build the collector with
+-DLARGE_CONFIG.  This allows the collector to keep more precise black-list
+information.
+<LI> If you are using heaps close to, or larger than, a gigabyte on a 32-bit
+machine, you may want to consider moving to a platform with 64-bit pointers.
+This is very likely to resolve any false pointer issues.
+</ol>
+<H2>Prematurely Reclaimed Objects</h2>
+The usual symptom of this is a segmentation fault, or an obviously overwritten
+value in a heap object.  This should, of course, be impossible.  In practice,
+it may happen for reasons like the following:
+<OL>
+<LI> The collector did not intercept the creation of threads correctly in
+a multithreaded application, <I>e.g.</i> because the client called
+<TT>pthread_create</tt> without including <TT>gc.h</tt>, which redefines it.
+<LI> The last pointer to an object in the garbage collected heap was stored
+somewhere were the collector couldn't see it, <I>e.g.</i> in an
+object allocated with system <TT>malloc</tt>, in certain types of
+<TT>mmap</tt>ed files,
+or in some data structure visible only to the OS.  (On some platforms,
+thread-local storage is one of these.)
+<LI> The last pointer to an object was somehow disguised, <I>e.g.</i> by
+XORing it with another pointer.
+<LI> Incorrect use of <TT>GC_malloc_atomic</tt> or typed allocation.
+<LI> An incorrect <TT>GC_free</tt> call.
+<LI> The client program overwrote an internal garbage collector data structure.
+<LI> A garbage collector bug.
+<LI> (Empirically less likely than any of the above.) A compiler optimization
+that disguised the last pointer.
+</ol>
+The following relatively simple techniques should be tried first to narrow
+down the problem:
+<OL>
+<LI> If you are using the incremental collector try turning it off for
+debugging.
+<LI> If you are using shared libraries, try linking statically.  If that works,
+ensure that DYNAMIC_LOADING is defined on your platform.
+<LI> Try to reproduce the problem with fully debuggable unoptimized code.
+This will eliminate the last possibility, as well as making debugging easier.
+<LI> Try replacing any suspect typed allocation and <TT>GC_malloc_atomic</tt>
+calls with calls to <TT>GC_malloc</tt>.
+<LI> Try removing any GC_free calls (<I>e.g.</i> with a suitable
+<TT>#define</tt>).
+<LI> Rebuild the collector with <TT>-DGC_ASSERTIONS</tt>.
+<LI> If the following works on your platform (i.e. if gctest still works
+if you do this), try building the collector with
+<TT>-DREDIRECT_MALLOC=GC_malloc_uncollectable</tt>.  This will cause
+the collector to scan memory allocated with malloc.
+</ol>
+If all else fails, you will have to attack this with a debugger.
+Suggested steps:
+<OL>
+<LI> Call <TT>GC_dump()</tt> from the debugger around the time of the failure.  Verify
+that the collectors idea of the root set (i.e. static data regions which
+it should scan for pointers) looks plausible.  If not, i.e. if it doesn't
+include some static variables, report this as
+a collector bug.  Be sure to describe your platform precisely, since this sort
+of problem is nearly always very platform dependent.
+<LI> Especially if the failure is not deterministic, try to isolate it to
+a relatively small test case.
+<LI> Set a break point in <TT>GC_finish_collection</tt>.  This is a good
+point to examine what has been marked, i.e. found reachable, by the
+collector.
+<LI> If the failure is deterministic, run the process
+up to the last collection before the failure.
+Note that the variable <TT>GC_gc_no</tt> counts collections and can be used
+to set a conditional breakpoint in the right one.  It is incremented just
+before the call to GC_finish_collection.
+If object <TT>p</tt> was prematurely recycled, it may be helpful to
+look at <TT>*GC_find_header(p)</tt> at the failure point.
+The <TT>hb_last_reclaimed</tt> field will identify the collection number
+during which its block was last swept.
+<LI> Verify that the offending object still has its correct contents at
+this point.
+Then call <TT>GC_is_marked(p)</tt> from the debugger to verify that the
+object has not been marked, and is about to be reclaimed.  Note that
+<TT>GC_is_marked(p)</tt> expects the real address of an object (the
+address of the debug header if there is one), and thus it may
+be more appropriate to call <TT>GC_is_marked(GC_base(p))</tt>
+instead.
+<LI> Determine a path from a root, i.e. static variable, stack, or
+register variable,
+to the reclaimed object.  Call <TT>GC_is_marked(q)</tt> for each object
+<TT>q</tt> along the path, trying to locate the first unmarked object, say
+<TT>r</tt>.
+<LI> If <TT>r</tt> is pointed to by a static root,
+verify that the location
+pointing to it is part of the root set printed by <TT>GC_dump()</tt>.  If it
+is on the stack in the main (or only) thread, verify that
+<TT>GC_stackbottom</tt> is set correctly to the base of the stack.  If it is
+in another thread stack, check the collector's thread data structure
+(<TT>GC_thread[]</tt> on several platforms) to make sure that stack bounds
+are set correctly.
+<LI> If <TT>r</tt> is pointed to by heap object <TT>s</tt>, check that the
+collector's layout description for <TT>s</tt> is such that the pointer field
+will be scanned.  Call <TT>*GC_find_header(s)</tt> to look at the descriptor
+for the heap chunk.  The <TT>hb_descr</tt> field specifies the layout
+of objects in that chunk.  See gc_mark.h for the meaning of the descriptor.
+(If it's low order 2 bits are zero, then it is just the length of the
+object prefix to be scanned.  This form is always used for objects allocated
+with <TT>GC_malloc</tt> or <TT>GC_malloc_atomic</tt>.)
+<LI> If the failure is not deterministic, you may still be able to apply some
+of the above technique at the point of failure.  But remember that objects
+allocated since the last collection will not have been marked, even if the
+collector is functioning properly.  On some platforms, the collector
+can be configured to save call chains in objects for debugging.
+Enabling this feature will also cause it to save the call stack at the
+point of the last GC in GC_arrays._last_stack.
+<LI> When looking at GC internal data structures remember that a number
+of <TT>GC_</tt><I>xxx</i> variables are really macro defined to
+<TT>GC_arrays._</tt><I>xxx</i>, so that
+the collector can avoid scanning them.
+</ol>
+</body>
+</html>
+
+
+
+

@@ -1,0 +1,95 @@
+#  Boost.Interprocess library documentation Jamfile  ---------------------------------
+#
+#  Copyright Ion Gaztanaga 2005-2009. Use, modification and
+#  distribution is subject to the Boost Software License, Version
+#  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org for updates, documentation, and revision history.
+
+using auto-index ;
+
+import doxygen ;
+import quickbook ;
+path-constant here : . ;
+
+doxygen autodoc
+   :
+      [ glob ../../../boost/interprocess/*.hpp ]
+      [ glob ../../../boost/interprocess/allocators/*.hpp ]
+      [ glob ../../../boost/interprocess/containers/*.hpp ]
+      [ glob ../../../boost/interprocess/indexes/*.hpp ]
+      [ glob ../../../boost/interprocess/ipc/*.hpp ]
+      [ glob ../../../boost/interprocess/mem_algo/*.hpp ]
+      [ glob ../../../boost/interprocess/smart_ptr/*.hpp ]
+      [ glob ../../../boost/interprocess/streams/*.hpp ]
+      [ glob ../../../boost/interprocess/sync/*.hpp ]
+   :
+        <doxygen:param>EXTRACT_ALL=NO
+        <doxygen:param>HIDE_UNDOC_MEMBERS=YES
+        <doxygen:param>EXTRACT_PRIVATE=NO
+        <doxygen:param>ENABLE_PREPROCESSING=YES
+        <doxygen:param>EXPAND_ONLY_PREDEF=YES
+        <doxygen:param>MACRO_EXPANSION=YES
+        <doxygen:param>"PREDEFINED=\"BOOST_INTERPROCESS_DOXYGEN_INVOKED\" \\
+                                   \"BOOST_CONTAINER_NOEXCEPT_IF(a)=\" \\
+                                   \"BOOST_CONTAINER_NOEXCEPT=\" \\
+                                   \"BOOST_INTERPROCESS_ENABLE_MOVE_EMULATION(a)= \" \\
+                                   \"BOOST_RV_REF(a)=a &&\" \\
+                                   \"BOOST_RV_REF_BEG=\" \\
+                                   \"BOOST_RV_REF_END=&&\" \\
+                                   \"BOOST_FWD_REF(a)=a &&\""
+
+        <xsl:param>"boost.doxygen.reftitle=Boost.Interprocess Reference"
+   ;
+
+xml interprocess : interprocess.qbk
+              :
+                 <include>../../../tools/auto_index/include
+              ;
+
+boostbook standalone
+   :
+      interprocess
+   :
+        <format>html:<xsl:param>boost.root=../../../..
+        <format>html:<xsl:param>boost.libraries=../../../../libs/libraries.htm
+        <xsl:param>generate.section.toc.level=3
+        <xsl:param>chunk.first.sections=1
+        <dependency>autodoc
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/doc/html
+        # Build requirements go here:
+
+        # <auto-index>on (or off) one turns on (or off) indexing:
+        <auto-index>on
+
+        # Turns on (or off) auto-index-verbose for diagnostic info.
+        # This is highly recommended until you have got all the many details correct!
+        <auto-index-verbose>on
+
+        # Choose the indexing method (separately for html and PDF) - see manual.
+        # Choose indexing method for PDFs:
+        <format>pdf:<auto-index-internal>off
+
+        # Choose indexing method for html:
+        <format>html:<auto-index-internal>on
+        <format>docbook:<auto-index-internal>on
+
+        # Set the name of the script file to use (index.idx is popular):
+        <auto-index-script>$(here)/index.idx
+        # Commands in the script file should all use RELATIVE PATHS
+        # otherwise the script will not be portable to other machines.
+        # Relative paths are normally taken as relative to the location
+        # of the script file, but we can add a prefix to all
+        # those relative paths using the <auto-index-prefix> feature.
+        # The path specified by <auto-index-prefix> may be either relative or
+        # absolute, for example the following will get us up to the boost root
+        # directory for most Boost libraries:
+        <auto-index-prefix>"$(here)/../../.."
+
+   ;
+
+install pdfinstall : standalone/<format>pdf : <location>. <name>interprocess.pdf <install-type>PDF <format>pdf ;
+explicit pdfinstall ;
+
+

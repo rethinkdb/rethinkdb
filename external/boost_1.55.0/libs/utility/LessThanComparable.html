@@ -1,0 +1,210 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<!--
+  == Copyright (c) 1996-1999
+  == Silicon Graphics Computer Systems, Inc.
+  ==
+  == Permission to use, copy, modify, distribute and sell this software
+  == and its documentation for any purpose is hereby granted without fee,
+  == provided that the above copyright notice appears in all copies and
+  == that both that copyright notice and this permission notice appear
+  == in supporting documentation.  Silicon Graphics makes no
+  == representations about the suitability of this software for any
+  == purpose.  It is provided "as is" without express or implied warranty.
+  ==
+  == Copyright (c) 1994
+  == Hewlett-Packard Company
+  ==
+  == Permission to use, copy, modify, distribute and sell this software
+  == and its documentation for any purpose is hereby granted without fee,
+  == provided that the above copyright notice appears in all copies and
+  == that both that copyright notice and this permission notice appear
+  == in supporting documentation.  Hewlett-Packard Company makes no
+  == representations about the suitability of this software for any
+  == purpose.  It is provided "as is" without express or implied warranty.
+  ==
+  -->
+
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+
+  <title>LessThanComparable</title>
+</head>
+
+<body bgcolor="#FFFFFF" link="#0000EE" text="#000000" vlink="#551A8B" alink=
+"#FF0000">
+  <img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86"><br clear="none">
+
+  <h1>LessThanComparable</h1>
+
+  <h3>Description</h3>
+
+  <p>A type is LessThanComparable if it is ordered: it must be possible to
+  compare two objects of that type using <tt>operator&lt;</tt>, and
+  <tt>operator&lt;</tt> must be a strict weak ordering relation.</p>
+
+  <h3>Refinement of</h3>
+
+  <h3>Associated types</h3>
+
+  <h3>Notation</h3>
+
+  <table summary="">
+    <tr>
+      <td valign="top"><tt>X</tt></td>
+
+      <td valign="top">A type that is a model of LessThanComparable</td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>x</tt>, <tt>y</tt>, <tt>z</tt></td>
+
+      <td valign="top">Object of type <tt>X</tt></td>
+    </tr>
+  </table>
+
+  <h3>Definitions</h3>
+
+  <p>Consider the relation <tt>!(x &lt; y) &amp;&amp; !(y &lt; x)</tt>. If
+  this relation is transitive (that is, if <tt>!(x &lt; y) &amp;&amp; !(y
+  &lt; x) &amp;&amp; !(y &lt; z) &amp;&amp; !(z &lt; y)</tt> implies <tt>!(x
+  &lt; z) &amp;&amp; !(z &lt; x)</tt>), then it satisfies the mathematical
+  definition of an equivalence relation. In this case, <tt>operator&lt;</tt>
+  is a <i>strict weak ordering</i>.</p>
+
+  <p>If <tt>operator&lt;</tt> is a strict weak ordering, and if each
+  equivalence class has only a single element, then <tt>operator&lt;</tt> is
+  a <i>total ordering</i>.</p>
+
+  <h3>Valid expressions</h3>
+
+  <table border summary="">
+    <tr>
+      <th>Name</th>
+
+      <th>Expression</th>
+
+      <th>Type requirements</th>
+
+      <th>Return type</th>
+    </tr>
+
+    <tr>
+      <td valign="top">Less</td>
+
+      <td valign="top"><tt>x &lt; y</tt></td>
+
+      <td valign="top">&nbsp;</td>
+
+      <td valign="top">Convertible to <tt>bool</tt></td>
+    </tr>
+  </table>
+
+  <h3>Expression semantics</h3>
+
+  <table border summary="">
+    <tr>
+      <th>Name</th>
+
+      <th>Expression</th>
+
+      <th>Precondition</th>
+
+      <th>Semantics</th>
+
+      <th>Postcondition</th>
+    </tr>
+
+    <tr>
+      <td valign="top">Less</td>
+
+      <td valign="top"><tt>x &lt; y</tt></td>
+
+      <td valign="top"><tt>x</tt> and <tt>y</tt> are in the domain of
+      <tt>&lt;</tt></td>
+
+      <td valign="top">&nbsp;</td>
+    </tr>
+  </table>
+
+  <h3>Complexity guarantees</h3>
+
+  <h3>Invariants</h3>
+
+  <table border summary="">
+    <tr>
+      <td valign="top">Irreflexivity</td>
+
+      <td valign="top"><tt>x &lt; x</tt> must be false.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Antisymmetry</td>
+
+      <td valign="top"><tt>x &lt; y</tt> implies !(y &lt; x) <a href=
+      "#n2">[2]</a></td>
+    </tr>
+
+    <tr>
+      <td valign="top">Transitivity</td>
+
+      <td valign="top"><tt>x &lt; y</tt> and <tt>y &lt; z</tt> implies <tt>x
+      &lt; z</tt> <a href="#n3">[3]</a></td>
+    </tr>
+  </table>
+
+  <h3>Models</h3>
+
+  <ul>
+    <li>int</li>
+  </ul>
+
+  <h3>Notes</h3>
+
+  <p><a name="n1" id="n1">[1]</a> Only <tt>operator&lt;</tt> is fundamental;
+  the other inequality operators are essentially syntactic sugar.</p>
+
+  <p><a name="n2" id="n2">[2]</a> Antisymmetry is a theorem, not an axiom: it
+  follows from irreflexivity and transitivity.</p>
+
+  <p><a name="n3" id="n3">[3]</a> Because of irreflexivity and transitivity,
+  <tt>operator&lt;</tt> always satisfies the definition of a <i>partial
+  ordering</i>. The definition of a <i>strict weak ordering</i> is stricter,
+  and the definition of a <i>total ordering</i> is stricter still.</p>
+
+  <h3>See also</h3>
+
+  <p><a href=
+  "http://www.sgi.com/tech/stl/EqualityComparable.html">EqualityComparable</a>,
+  <a href=
+  "http://www.sgi.com/tech/stl/StrictWeakOrdering.html">StrictWeakOrdering</a><br>
+  </p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->05
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38516" --></p>
+
+  <table summary="">
+    <tr valign="top">
+      <td nowrap><i>Copyright &copy; 2000</i></td>
+
+      <td><i><a href="http://www.lsc.nd.edu/~jsiek">Jeremy Siek</a>, Univ.of
+      Notre Dame (<a href=
+      "mailto:jsiek@lsc.nd.edu">jsiek@lsc.nd.edu</a>)</i></td>
+    </tr>
+  </table>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

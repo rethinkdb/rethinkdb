@@ -1,0 +1,817 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Unsigned Integer Number Generators (uint_, etc.)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../numeric.html" title="Numeric Generators">
+<link rel="prev" href="../numeric.html" title="Numeric Generators">
+<link rel="next" href="signed_int.html" title="Signed Integer Number Generators (int_, etc.)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../numeric.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../numeric.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="signed_int.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.reference.numeric.unsigned_int"></a><a class="link" href="unsigned_int.html" title="Unsigned Integer Number Generators (uint_, etc.)">Unsigned
+          Integer Number Generators (<code class="computeroutput"><span class="identifier">uint_</span></code>,
+          etc.)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.karma.reference.numeric.unsigned_int.h0"></a>
+            <span class="phrase"><a name="spirit.karma.reference.numeric.unsigned_int.description"></a></span><a class="link" href="unsigned_int.html#spirit.karma.reference.numeric.unsigned_int.description">Description</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">uint_generator</span></code> class
+            is the simplest among the members of the numerics package. The <code class="computeroutput"><span class="identifier">uint_generator</span></code> can generate unsigned
+            integers of arbitrary length and size. The <code class="computeroutput"><span class="identifier">uint_generator</span></code>
+            generator can be used to generate ordinary primitive C/C++ integers or
+            even user defined scalars such as bigints (unlimited precision integers)
+            if the type follows certain expression requirements (for more information
+            about the requirements, see <a class="link" href="unsigned_int.html#spirit.karma.reference.numeric.unsigned_int.additional_requirements">below</a>)).
+            The <code class="computeroutput"><span class="identifier">uint_generator</span></code> is
+            a template class. Template parameters fine tune its behavior.
+          </p>
+<h6>
+<a name="spirit.karma.reference.numeric.unsigned_int.h1"></a>
+            <span class="phrase"><a name="spirit.karma.reference.numeric.unsigned_int.header"></a></span><a class="link" href="unsigned_int.html#spirit.karma.reference.numeric.unsigned_int.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/karma/numeric/uint.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_uint</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.karma.reference.numeric.unsigned_int.h2"></a>
+            <span class="phrase"><a name="spirit.karma.reference.numeric.unsigned_int.namespace"></a></span><a class="link" href="unsigned_int.html#spirit.karma.reference.numeric.unsigned_int.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lit</span> <span class="comment">// alias:
+                      boost::spirit::karma::lit</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">bin</span> <span class="comment">// alias:
+                      boost::spirit::karma::bin</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">oct</span> <span class="comment">// alias:
+                      boost::spirit::karma::oct</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">hex</span> <span class="comment">// alias:
+                      boost::spirit::karma::hex</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ushort_</span> <span class="comment">//
+                      alias: boost::spirit::karma::ushort_</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ulong_</span> <span class="comment">//
+                      alias: boost::spirit::karma::ulong_</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">uint_</span> <span class="comment">//
+                      alias: boost::spirit::karma::uint_</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ulong_long</span> <span class="comment">//
+                      alias: boost::spirit::karma::ulong_long</span></code>
+                    </p>
+                  </td></tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The generators <code class="computeroutput"><span class="identifier">ulong_long</span></code>
+              and <code class="computeroutput"><span class="identifier">ulong_long</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code>
+              are only available on platforms where the preprocessor constant <code class="computeroutput"><span class="identifier">BOOST_HAS_LONG_LONG</span></code> is defined (i.e.
+              on platforms having native support for <code class="computeroutput"><span class="keyword">unsigned</span>
+              <span class="keyword">long</span> <span class="keyword">long</span></code>
+              (64 bit) unsigned integer types).
+            </p></td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              <code class="computeroutput"><span class="identifier">lit</span></code> is reused by the
+              <a class="link" href="../string.html" title="String Generators">String Generators</a>,
+              the <a class="link" href="../char.html" title="Char Generators">Character Generators</a>,
+              and the Numeric Generators. In general, a char generator is created
+              when you pass in a character, a string generator is created when you
+              pass in a string, and a numeric generator is created when you use a
+              numeric literal.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.numeric.unsigned_int.h3"></a>
+            <span class="phrase"><a name="spirit.karma.reference.numeric.unsigned_int.synopsis"></a></span><a class="link" href="unsigned_int.html#spirit.karma.reference.numeric.unsigned_int.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">Num</span>
+  <span class="special">,</span> <span class="keyword">unsigned</span> <span class="identifier">Radix</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">uint_generator</span><span class="special">;</span>
+</pre>
+<h6>
+<a name="spirit.karma.reference.numeric.unsigned_int.h4"></a>
+            <span class="phrase"><a name="spirit.karma.reference.numeric.unsigned_int.template_parameters"></a></span><a class="link" href="unsigned_int.html#spirit.karma.reference.numeric.unsigned_int.template_parameters">Template
+            parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Default
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Num</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The numeric base type of the numeric generator.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Radix</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The radix base. This can be any value in the (inclusive) range
+                      from <code class="computeroutput"><span class="number">2</span></code> .. <code class="computeroutput"><span class="number">36</span></code>.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="number">10</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.numeric.unsigned_int.h5"></a>
+            <span class="phrase"><a name="spirit.karma.reference.numeric.unsigned_int.model_of"></a></span><a class="link" href="unsigned_int.html#spirit.karma.reference.numeric.unsigned_int.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../generator_concepts/primitivegenerator.html" title="PrimitiveGenerator"><code class="computeroutput"><span class="identifier">PrimitiveGenerator</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">num</span></code></span></dt>
+<dd><p>
+                  Numeric literal, any unsigned integer value, or a <a class="link" href="../basics.html#spirit.karma.reference.basics.lazy_argument">Lazy
+                  Argument</a> that evaluates to an unsigned integer value of
+                  type <code class="computeroutput"><span class="identifier">Num</span></code>
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Num</span></code></span></dt>
+<dd><p>
+                  Type of <code class="computeroutput"><span class="identifier">num</span></code>: any
+                  unsigned integer type, or in case of a <a class="link" href="../basics.html#spirit.karma.reference.basics.lazy_argument">Lazy
+                  Argument</a>, its return value
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Radix</span></code></span></dt>
+<dd><p>
+                  An integer literal specifying the required radix for the output
+                  conversion. Valid values are from the (inclusive) range <code class="computeroutput"><span class="number">2</span></code> .. <code class="computeroutput"><span class="number">36</span></code>.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.karma.reference.numeric.unsigned_int.h6"></a>
+            <span class="phrase"><a name="spirit.karma.reference.numeric.unsigned_int.expression_semantics"></a></span><a class="link" href="unsigned_int.html#spirit.karma.reference.numeric.unsigned_int.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../generator_concepts/primitivegenerator.html" title="PrimitiveGenerator"><code class="computeroutput"><span class="identifier">PrimitiveGenerator</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate the unsigned integer literal <code class="computeroutput"><span class="identifier">num</span></code>
+                      using the default formatting (radix is <code class="computeroutput"><span class="number">10</span></code>).
+                      This generator never fails (unless the underlying output stream
+                      reports an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">ushort_</span>
+<span class="identifier">uint_</span>
+<span class="identifier">ulong_</span>
+<span class="identifier">ulong_long</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate the unsigned integer provided by a mandatory attribute
+                      using the default formatting (radix is <code class="computeroutput"><span class="number">10</span></code>).
+                      This generator never fails (unless the underlying output stream
+                      reports an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">ushort_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">uint_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">ulong_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">ulong_long</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate the unsigned integer provided by the immediate literal
+                      value the generator is initialized from using the default formatting
+                      (radix is <code class="computeroutput"><span class="number">10</span></code>).
+                      If this generator has an associated attribute it succeeds only
+                      if the attribute is equal to the immediate literal (unless
+                      the underlying output stream reports an error). Otherwise this
+                      generator fails and does not generate any output.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">bin</span>
+<span class="identifier">oct</span>
+<span class="identifier">hex</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate the unsigned integer provided by a mandatory attribute
+                      using the default formatting and the corresponding radix (<code class="computeroutput"><span class="identifier">bin</span></code>: radix is <code class="computeroutput"><span class="number">2</span></code>, <code class="computeroutput"><span class="identifier">oct</span></code>:
+                      radix is <code class="computeroutput"><span class="number">8</span></code>, <code class="computeroutput"><span class="identifier">hex</span></code>: radix is <code class="computeroutput"><span class="number">16</span></code>). This generator never fails
+                      (unless the underlying output stream reports an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">bin</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">oct</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">hex</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate the unsigned integer provided by the immediate literal
+                      value the generator is initialized from using the default formatting
+                      and the corresponding radix (<code class="computeroutput"><span class="identifier">bin</span></code>:
+                      radix is <code class="computeroutput"><span class="number">2</span></code>, <code class="computeroutput"><span class="identifier">oct</span></code>: radix is <code class="computeroutput"><span class="number">8</span></code>, <code class="computeroutput"><span class="identifier">hex</span></code>:
+                      radix is <code class="computeroutput"><span class="number">16</span></code>). If
+                      this generator has an associated attribute it succeeds only
+                      if the attribute is equal to the immediate literal (unless
+                      the underlying output stream reports an error). Otherwise this
+                      generator fails and does not generate any output.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+            All generators listed in the table above (except <code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code>) are predefined specializations of the
+            <code class="computeroutput"><span class="identifier">uint_generator</span><span class="special">&lt;</span><span class="identifier">Num</span><span class="special">,</span> <span class="identifier">Radix</span><span class="special">&gt;</span></code>
+            basic unsigned integer number generator type described below. It is possible
+            to directly use this type to create unsigned integer generators using
+            a wide range of formatting options.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">uint_generator</span><span class="special">&lt;</span>
+    <span class="identifier">Num</span><span class="special">,</span> <span class="identifier">Radix</span>
+<span class="special">&gt;()</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate the unsigned integer of type <code class="computeroutput"><span class="identifier">Num</span></code>
+                      provided by a mandatory attribute using the specified <code class="computeroutput"><span class="identifier">Radix</span></code> (allowed values are
+                      from the (inclusive) range from <code class="computeroutput"><span class="number">2</span></code>
+                      .. <code class="computeroutput"><span class="number">36</span></code>, the default
+                      value is <code class="computeroutput"><span class="number">10</span></code>).This
+                      generator never fails (unless the underlying output stream
+                      reports an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">uint_generator</span><span class="special">&lt;</span>
+    <span class="identifier">Num</span><span class="special">,</span> <span class="identifier">Radix</span>
+<span class="special">&gt;()(</span><span class="identifier">num</span><span class="special">)</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate the unsigned integer of type <code class="computeroutput"><span class="identifier">Num</span></code>
+                      provided by the immediate literal value the generator is initialized
+                      from, using the specified <code class="computeroutput"><span class="identifier">Radix</span></code>
+                      (allowed values are from the (inclusive) range from <code class="computeroutput"><span class="number">2</span></code> .. <code class="computeroutput"><span class="number">36</span></code>,
+                      the default value is <code class="computeroutput"><span class="number">10</span></code>).
+                      If this generator has an associated attribute it succeeds only
+                      if the attribute is equal to the immediate literal (unless
+                      the underlying output stream reports an error). Otherwise this
+                      generator fails and does not generate any output.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.numeric.unsigned_int.h7"></a>
+            <span class="phrase"><a name="spirit.karma.reference.numeric.unsigned_int.additional_requirements"></a></span><a class="link" href="unsigned_int.html#spirit.karma.reference.numeric.unsigned_int.additional_requirements">Additional
+            Requirements</a>
+          </h6>
+<p>
+            The following lists enumerate the requirements which must be met in order
+            to use a certain type <code class="computeroutput"><span class="identifier">Num</span></code>
+            to instantiate and use a <code class="computeroutput"><span class="identifier">uint_generator</span><span class="special">&lt;</span><span class="identifier">Num</span><span class="special">,</span> <span class="identifier">Radix</span><span class="special">&gt;</span></code>.
+          </p>
+<p>
+            If <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_integral</span><span class="special">&lt;</span><span class="identifier">Num</span><span class="special">&gt;::</span><span class="identifier">value</span></code> is <code class="computeroutput"><span class="keyword">true</span></code>
+            the type <code class="computeroutput"><span class="identifier">Num</span></code> must have
+            defined:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                comparison operators for: <code class="computeroutput"><span class="special">&lt;</span></code>,
+                <code class="computeroutput"><span class="special">&lt;=</span></code>, <code class="computeroutput"><span class="special">==</span></code>, <code class="computeroutput"><span class="special">!=</span></code>,
+                <code class="computeroutput"><span class="special">&gt;</span></code>, and <code class="computeroutput"><span class="special">&gt;=</span></code>
+              </li>
+<li class="listitem">
+                numeric operators for: <code class="computeroutput"><span class="special">+</span></code>,
+                <code class="computeroutput"><span class="special">-</span></code>, <code class="computeroutput"><span class="special">/</span></code>,
+                <code class="computeroutput"><span class="special">*</span></code>, and <code class="computeroutput"><span class="special">%</span></code>
+              </li>
+</ul></div>
+<p>
+            If <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_integral</span><span class="special">&lt;</span><span class="identifier">Num</span><span class="special">&gt;::</span><span class="identifier">value</span></code> is <code class="computeroutput"><span class="keyword">false</span></code>
+            the type <code class="computeroutput"><span class="identifier">Num</span></code> must have
+            defined:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                comparison operators for: <code class="computeroutput"><span class="special">&lt;</span></code>,
+                <code class="computeroutput"><span class="special">&lt;=</span></code>, <code class="computeroutput"><span class="special">==</span></code>, <code class="computeroutput"><span class="special">!=</span></code>,
+                <code class="computeroutput"><span class="special">&gt;</span></code>, and <code class="computeroutput"><span class="special">&gt;=</span></code>
+              </li>
+<li class="listitem">
+                numeric operators for: <code class="computeroutput"><span class="special">+</span></code>,
+                <code class="computeroutput"><span class="special">-</span></code>, <code class="computeroutput"><span class="special">/</span></code>,
+                <code class="computeroutput"><span class="special">*</span></code>, and <code class="computeroutput"><span class="special">%</span></code>
+              </li>
+<li class="listitem">
+                helper functions implementing the interface and the semantics of:
+                <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">fmod</span></code>, <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pow</span></code>,
+                <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">lround</span></code>, <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">ltrunc</span></code>,
+                <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">floor</span></code>, and <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">ceil</span></code>.
+                These need to be defined in a way so that they will be found using
+                argument dependent lookup (ADL).
+              </li>
+</ul></div>
+<h6>
+<a name="spirit.karma.reference.numeric.unsigned_int.h8"></a>
+            <span class="phrase"><a name="spirit.karma.reference.numeric.unsigned_int.attributes"></a></span><a class="link" href="unsigned_int.html#spirit.karma.reference.numeric.unsigned_int.attributes">Attributes</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">unused</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ushort_</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">short</span></code>,
+                      attribute is mandatory (otherwise compilation will fail)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ushort_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">short</span></code>,
+                      attribute is optional, if it is supplied, the generator compares
+                      the attribute with <code class="computeroutput"><span class="identifier">num</span></code>
+                      and succeeds only if both are equal, failing otherwise.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">uint_</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span></code>,
+                      attribute is mandatory (otherwise compilation will fail)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">uint_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span></code>,
+                      attribute is optional, if it is supplied, the generator compares
+                      the attribute with <code class="computeroutput"><span class="identifier">num</span></code>
+                      and succeeds only if both are equal, failing otherwise.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ulong_</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span></code>,
+                      attribute is mandatory (otherwise compilation will fail)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ulong_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span></code>,
+                      attribute is optional, if it is supplied, the generator compares
+                      the attribute with <code class="computeroutput"><span class="identifier">num</span></code>
+                      and succeeds only if both are equal, failing otherwise.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ulong_long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span>
+                      <span class="keyword">long</span></code>, attribute is mandatory
+                      (otherwise compilation will fail)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ulong_long</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span>
+                      <span class="keyword">long</span></code>, attribute is optional,
+                      if it is supplied, the generator compares the attribute with
+                      <code class="computeroutput"><span class="identifier">num</span></code> and succeeds
+                      only if both are equal, failing otherwise.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">bin</span>
+<span class="identifier">oct</span>
+<span class="identifier">hex</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span></code>,
+                      attribute is mandatory (otherwise compilation will fail)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">bin</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">oct</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">hex</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span></code>,
+                      attribute is optional, if it is supplied, the generator compares
+                      the attribute with <code class="computeroutput"><span class="identifier">num</span></code>
+                      and succeeds only if both are equal, failing otherwise.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">uint_generator</span><span class="special">&lt;</span>
+    <span class="identifier">Num</span><span class="special">,</span> <span class="identifier">Radix</span>
+<span class="special">&gt;()</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Num</span></code>, attribute
+                      is mandatory (otherwise compilation will fail)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">uint_generator</span><span class="special">&lt;</span>
+    <span class="identifier">Num</span><span class="special">,</span> <span class="identifier">Radix</span>
+<span class="special">&gt;()(</span><span class="identifier">num</span><span class="special">)</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Num</span></code>, attribute
+                      is optional, if it is supplied, the generator compares the
+                      attribute with <code class="computeroutput"><span class="identifier">num</span></code>
+                      and succeeds only if both are equal, failing otherwise.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              In addition to their usual attribute of type <code class="computeroutput"><span class="identifier">Num</span></code>
+              all listed generators accept an instance of a <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">Num</span><span class="special">&gt;</span></code> as well. If the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">optional</span><span class="special">&lt;&gt;</span></code> is initialized (holds a value)
+              the generators behave as if their attribute was an instance of <code class="computeroutput"><span class="identifier">Num</span></code> and emit the value stored in
+              the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">optional</span><span class="special">&lt;&gt;</span></code>.
+              Otherwise the generators will fail.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.numeric.unsigned_int.h9"></a>
+            <span class="phrase"><a name="spirit.karma.reference.numeric.unsigned_int.complexity"></a></span><a class="link" href="unsigned_int.html#spirit.karma.reference.numeric.unsigned_int.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              O(N), where <code class="computeroutput"><span class="identifier">N</span></code> is the
+              number of digits needed to represent the generated integer number
+            </p></blockquote></div>
+<h6>
+<a name="spirit.karma.reference.numeric.unsigned_int.h10"></a>
+            <span class="phrase"><a name="spirit.karma.reference.numeric.unsigned_int.example"></a></span><a class="link" href="unsigned_int.html#spirit.karma.reference.numeric.unsigned_int.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.karma.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some includes:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">support_utree</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">std_pair</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">uint_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Basic usage of an <code class="computeroutput"><span class="identifier">uint</span></code>
+            generator:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">test_generator</span><span class="special">(</span><span class="string">"2"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="number">2U</span><span class="special">));</span>
+<span class="identifier">test_generator</span><span class="special">(</span><span class="string">"2"</span><span class="special">,</span> <span class="identifier">uint_</span><span class="special">(</span><span class="number">2</span><span class="special">));</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"2"</span><span class="special">,</span> <span class="identifier">uint_</span><span class="special">(</span><span class="number">2</span><span class="special">),</span> <span class="number">2</span><span class="special">);</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">""</span><span class="special">,</span> <span class="identifier">uint_</span><span class="special">(</span><span class="number">2</span><span class="special">),</span> <span class="number">3</span><span class="special">);</span>    <span class="comment">// fails (as 2 != 3)!</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"2"</span><span class="special">,</span> <span class="identifier">uint_</span><span class="special">,</span> <span class="number">2</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../numeric.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../numeric.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="signed_int.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

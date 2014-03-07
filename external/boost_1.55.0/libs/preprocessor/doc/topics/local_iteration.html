@@ -1,0 +1,156 @@
+<html>
+<head>
+	<title>local_iteration.html</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+<h4>Local Iteration</h4>
+<div>
+	Local iteration is a simple vertical repetition construct.&nbsp;
+	It expands a macro with each number in a user-specified range.&nbsp;
+	Each expansion is on a separate line.
+</div>
+<h4>Tutorial</h4>
+<div>
+	This mechanism requires two pieces of information to operate:&nbsp;
+	a range to iterate over and a macro to expand on each iteration.&nbsp;
+	This information is obtained by the mechanism through two <i>named external arguments</i>.&nbsp;
+	These arguments are specified as user-defined macros named <b>BOOST_PP_LOCAL_LIMITS</b> and <b>BOOST_PP_LOCAL_MACRO</b>.
+</div>
+<div>
+	<b>BOOST_PP_LOCAL_LIMITS</b> specifies a range of values to iterate over.&nbsp;
+	It <i>must</i> expand to a <i>tuple</i> containing two elements--a lower and upper bound.&nbsp;
+	Both the upper and lower bounds must be numeric values in the range of <i>0</i> to <b>BOOST_PP_LIMIT_ITERATION</b>.&nbsp;
+	For example, if the user wishes a macro to be expanded with numbers ranging from <i>0</i> to <i>10</i>,
+	<b>BOOST_PP_LOCAL_LIMITS</b> would be defined like this:
+</div>
+<div class="code"><pre>
+#define BOOST_PP_LOCAL_LIMITS (0, 10)
+</pre></div>
+<div>
+	Note that there is whitespace after the name of the macro.&nbsp;
+	The macro <i>does not</i> take <i>two</i> arguments.&nbsp;
+	In the case above, if there was no whitespace, a preprocessing error would occur because <i>0</i> and <i>10</i> are invalid identifiers.
+</div>
+<div>
+	Both the upper and lower bounds specified in the <b>BOOST_PP_LOCAL_LIMITS</b> macro are <i>evaluated parameters</i>.&nbsp;
+	This implies that they can include simple arithmetic or logical expressions.&nbsp;
+	For instance, the above definition could easily have been written like this:
+</div>
+<div class="code"><pre>
+#define N() 5
+#define BOOST_PP_LOCAL_LIMITS (0, N() + 5)
+</pre></div>
+<div>
+	Because of this, if the whitespace after the macro name is elided, it is possible for the definition to be syntactically valid:
+</div>
+<div class="code"><pre>
+#define A 0
+#define B 10
+#define BOOST_PP_LOCAL_LIMITS(A, B)
+   // note:  no whitespace   ^
+</pre></div>
+<div>
+	If this happens, an error will occur inside the mechanism when it attempts to use this macro.&nbsp;
+	The error messages that result may be obscure, so always remember to include the whitespace.&nbsp;
+	A <i>correct</i> version of the above looks like this:
+</div>
+<div class="code"><pre>
+#define A 0
+#define B 10
+#define BOOST_PP_LOCAL_LIMITS (A, B)
+   // note:  has whitespace  ^
+</pre></div>
+<div>
+	<b>BOOST_PP_LOCAL_MACRO</b> is the macro that is expanded by the mechanism.&nbsp;
+	This macro is expanded on each iteration with the current number of the iteration.&nbsp;
+	It must defined as a unary macro <i>or</i> result in a macro that can be called with one argument:
+</div>
+<div class="code"><pre>
+#define BOOST_PP_LOCAL_MACRO(n) \
+   template&lt;&gt; struct sample&lt;n&gt; { }; \
+   /**/
+</pre></div>
+<div>
+	...or...
+</div>
+<div class="code"><pre>
+#define SAMPLE(n) \
+   template&lt;&gt; struct sample&lt;n&gt; { }; \
+   /**/
+
+#define BOOST_PP_LOCAL_MACRO SAMPLE
+</pre></div>
+<div>
+	Once these two macros are defined, the local iteration is initiated by <i>including</i> <b>BOOST_PP_LOCAL_ITERATE</b>().
+</div>
+<div class="code"><pre>
+??=include BOOST_PP_LOCAL_ITERATE()
+</pre></div>
+<div>
+	(The <code>??=</code> token is a trigraph for <code>#</code>.&nbsp;
+	I use the trigraph to make it clear that I am <i>including</i> a file rather than defining or expanding a macro, but it is not necessary.&nbsp;
+	Even the digraph version, <code>%:</code>, could be used.&nbsp;
+	Some compilers do not readily accept trigraphs and digraphs, so keep that in mind.&nbsp;
+	Other than that, use whichever one you prefer.)
+</div>
+<div>
+	In order to repeat the <code>sample</code> specialization, the pieces must be put together....
+</div>
+<div class="code"><pre>
+#define BOOST_PP_LOCAL_MACRO(n) \
+   template&lt;&gt; struct sample&lt;n&gt; { }; \
+   /**/
+
+#define BOOST_PP_LOCAL_LIMITS (0, 10)
+??=include BOOST_PP_LOCAL_ITERATE()
+</pre></div>
+<div>
+	This will result in a specialization of <code>sample</code> for each number in the range of <i>0</i> to <i>10</i>.&nbsp;
+	The output will look something like this:
+</div>
+<div class="code"><pre>
+template&lt;&gt; struct sample&lt;0&gt; { };
+template&lt;&gt; struct sample&lt;1&gt; { };
+template&lt;&gt; struct sample&lt;2&gt; { };
+
+// ...
+
+template&lt;&gt; struct sample&lt;10&gt; { };
+</pre></div>
+<div>
+	After the local-iteration is complete, both <b>BOOST_PP_LOCAL_LIMITS</b> and <b>BOOST_PP_LOCAL_MACRO</b> are automatically undefined.&nbsp;
+	If the values need to be retained for a future local-iteration, they must be defined indirectly:
+</div>
+<div class="code"><pre>
+#define LIMITS (0, 10)
+
+#define SAMPLE(n) \
+   template&lt;&gt; struct sample&lt;n&gt; { }; \
+   /**/
+
+#define BOOST_PP_LOCAL_LIMITS LIMITS
+#define BOOST_PP_LOCAL_MACRO(n) SAMPLE(n)
+
+??=include BOOST_PP_LOCAL_ITERATE()
+</pre></div>
+<h4>See Also</h4>
+<ul>
+	<li><a href="../ref/local_iterate.html">BOOST_PP_LOCAL_ITERATE</a></li>
+	<li><a href="../ref/local_limits.html">BOOST_PP_LOCAL_LIMITS</a></li>
+	<li><a href="../ref/local_macro.html">BOOST_PP_LOCAL_MACRO</a></li>
+</ul>
+<div class="sig">- Paul Mensonides</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

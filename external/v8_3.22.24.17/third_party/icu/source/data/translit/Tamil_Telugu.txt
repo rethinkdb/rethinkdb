@@ -1,0 +1,14 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Tamil_Telugu.txt
+# Generated from CLDR 
+#
+::[\u0BE6\u0B82-ஃஅ-ஊஎ-ஐஒ-கங-சஜஞ-டண-தந-பம-வஷ-ஹா-ூெ-ைொ-\u0BCDௗ௧-௲ஶ];
+::NFD;
+::Tamil-InterIndic;
+::InterIndic-Telugu;
+::NFC;

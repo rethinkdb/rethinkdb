@@ -1,0 +1,113 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function template integrate_times</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../../../header/boost/numeric/odeint/integrate/integrate_times_hpp.html" title="Header &lt;boost/numeric/odeint/integrate/integrate_times.hpp&gt;">
+<link rel="prev" href="../../../header/boost/numeric/odeint/integrate/integrate_times_hpp.html" title="Header &lt;boost/numeric/odeint/integrate/integrate_times.hpp&gt;">
+<link rel="next" href="../../../header/boost/numeric/odeint/integrate/null_observer_hpp.html" title="Header &lt;boost/numeric/odeint/integrate/null_observer.hpp&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../header/boost/numeric/odeint/integrate/integrate_times_hpp.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/integrate/integrate_times_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../header/boost/numeric/odeint/integrate/null_observer_hpp.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.numeric.odeint.integrate_time_idp26051400"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function template integrate_times</span></h2>
+<p>boost::numeric::odeint::integrate_times &#8212; Integrates the ODE with observer calls at given time points. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../header/boost/numeric/odeint/integrate/integrate_times_hpp.html" title="Header &lt;boost/numeric/odeint/integrate/integrate_times.hpp&gt;">boost/numeric/odeint/integrate/integrate_times.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Stepper<span class="special">,</span> <span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> State<span class="special">,</span> 
+         <span class="keyword">typename</span> TimeIterator<span class="special">,</span> <span class="keyword">typename</span> Time<span class="special">,</span> <span class="keyword">typename</span> Observer<span class="special">&gt;</span> 
+  <span class="identifier">size_t</span> <span class="identifier">integrate_times</span><span class="special">(</span><span class="identifier">Stepper</span> stepper<span class="special">,</span> <span class="identifier">System</span> system<span class="special">,</span> <span class="identifier">State</span> <span class="special">&amp;</span> start_state<span class="special">,</span> 
+                         <span class="identifier">TimeIterator</span> times_start<span class="special">,</span> <span class="identifier">TimeIterator</span> times_end<span class="special">,</span> 
+                         <span class="identifier">Time</span> dt<span class="special">,</span> <span class="identifier">Observer</span> observer<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp53024552"></a><h2>Description</h2>
+<p>Integrates the ODE given by system using the given stepper. This function does observer calls at the subsequent time points given by the range times_start, times_end. If the stepper has not step size control, the step size might be reduced occasionally to ensure observer calls exactly at the time points from the given sequence. If the stepper is a ControlledStepper, the step size is adjusted to meet the error bounds, but also might be reduced occasionally to ensure correct observer calls. If a DenseOutputStepper is provided, the dense output functionality is used to call the observer at the given times. The end time of the integration is always *(end_time-1).</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The time step between observer calls, <span class="emphasis"><em>not</em></span> necessarily the time step of the integration. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">observer</code></span></p></td>
+<td><p>Function/Functor called at equidistant time intervals. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">start_state</code></span></p></td>
+<td><p>The initial condition x0. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">stepper</code></span></p></td>
+<td><p>The stepper to be used for numerical integration. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>Function/Functor defining the rhs of the ODE. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">times_end</code></span></p></td>
+<td><p>Iterator to the end time </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">times_start</code></span></p></td>
+<td><p>Iterator to the start time </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The number of steps performed. </p></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../header/boost/numeric/odeint/integrate/integrate_times_hpp.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/integrate/integrate_times_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../header/boost/numeric/odeint/integrate/null_observer_hpp.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

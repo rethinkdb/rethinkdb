@@ -1,0 +1,290 @@
+<html>
+<head>
+<title>In-depth The Scanner</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>In-depth: 
+      The Scanner</b></font> </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="indepth_the_parser.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="indepth_the_parser_context.html"><img src="theme/r_arr.gif" border="0"></a></td>
+   </tr>
+</table>
+<h2>Basic Scanner API </h2>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td class="table_title" colspan="10"> class scanner </td>
+  </tr>
+  <tr> 
+  <tr> 
+    <td class="table_cells"><code><span class=identifier>value_t</span></code></td>
+    <td class="table_cells">typedef: The value type of the scanner's iterator</td>
+  </tr>
+  <td class="table_cells"><code><span class=identifier>ref_t</span></code></td>
+  <td class="table_cells">typedef: The reference type of the scanner's iterator</td>
+  </tr>
+  <td class="table_cells"><code><span class=keyword>bool </span><span class=identifier>at_end</span><span class=special>() 
+    </span><span class=keyword>const</span></code></td>
+  <td class="table_cells">Returns true if the input is exhausted</td>
+  </tr>
+  <td class="table_cells"><code><span class=identifier>value_t </span><span class=keyword>operator</span><span class=special>*() 
+    </span><span class=keyword>const</span></code></td>
+    <td class="table_cells">Dereference/get a <code><span class=identifier>value_t</span></code> 
+      from the input</td>
+  </tr>
+  <td class="table_cells"><code><span class=keyword> </span><span class=identifier>scanner 
+    </span><span class=keyword>const</span><span class=special>&amp; </span><span class=keyword>operator</span><span class=special>++()</span></code></td>
+  <td class="table_cells">move the scanner forward</td>
+  </tr>
+  <tr>
+    <td class="table_cells"><code><span class=identifier>IteratorT&amp; first</span><span class=special></span></code></td>
+    <td class="table_cells">The iterator pointing to the current input position. 
+      Held by reference</td>
+  </tr>
+  <tr>
+    <td class="table_cells"><code><span class=identifier>IteratorT </span><span class=keyword>const</span> 
+      <span class=identifier>last</span><span class=special></span></code></td>
+    <td class="table_cells">The iterator pointing to the end of the input. Held 
+      by value</td>
+  </tr>
+</table>
+<p> The basic behavior of the scanner is handled by policies. The actual execution 
+  of the scanner's public member functions listed in the table above is implemented 
+  by the scanner policies.</p>
+<p> Three sets of policies govern the behavior of the scanner. These policies 
+  make it possible to extend Spirit non-intrusively. The scanner policies allow 
+  the core-functionality to be extended without requiring any potentially destabilizing 
+  changes to the code. A library writer might provide her own policies that override 
+  the ones that are already in place to fine tune the parsing process 
+  to fit her own needs. Layers above the core might also want to take advantage 
+  of this policy based machanism. Abstract syntax tree generation, debuggers and 
+  lexers come to mind.</p>
+<p> There are three sets of policies that govern:</p>
+<ul>
+  <li>Iteration and filtering</li>
+  <li>Recognition and matching</li>
+  <li>Handling semantic actions</li>
+</ul>
+<a name="iteration_policy"></a>
+<h2>iteration_policy</h2>
+<p> Here are the default policies that govern iteration and filtering:</p>
+<pre>
+    <code><span class=keyword>struct </span><span class=identifier>iteration_policy
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>void
+        </span><span class=identifier>advance</span><span class=special>(</span><span class=identifier>ScannerT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>) </span><span class=keyword>const
+        </span><span class=special>{ </span><span class=special>++</span><span class=identifier>scan</span><span class=special>.</span><span class=identifier>first</span><span class=special>; </span><span class=special>}
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>bool </span><span class=identifier>at_end</span><span class=special>(</span><span class=identifier>ScannerT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>) </span><span class=keyword>const
+        </span><span class=special>{ </span><span class=keyword>return </span><span class=identifier>scan</span><span class=special>.</span><span class=identifier>first </span><span class=special>== </span><span class=identifier>scan</span><span class=special>.</span><span class=identifier>last</span><span class=special>; </span><span class=special>}
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>T</span><span class=special>&gt;
+        </span><span class=identifier>T </span><span class=identifier>filter</span><span class=special>(</span><span class=identifier>T </span><span class=identifier>ch</span><span class=special>) </span><span class=keyword>const
+        </span><span class=special>{ </span><span class=keyword>return </span><span class=identifier>ch</span><span class=special>; </span><span class=special>}
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>::</span><span class=identifier>ref_t
+        </span><span class=identifier>get</span><span class=special>(</span><span class=identifier>ScannerT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>) </span><span class=keyword>const
+        </span><span class=special>{ </span><span class=keyword>return </span><span class=special>*</span><span class=identifier>scan</span><span class=special>.</span><span class=identifier>first</span><span class=special>; </span><span class=special>}
+    </span><span class=special>};</span></code></pre>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td class="table_title" colspan="8"> Iteration and filtering policies </td>
+  </tr>
+  <tr> 
+  <tr> 
+    <td class="table_cells"><b>advance</b></td>
+    <td class="table_cells">Move the iterator forward</td>
+  </tr>
+  <td class="table_cells"><b>at_end</b></td>
+    <td class="table_cells">Return true if the input is exhausted</td>
+  </tr>
+  <td class="table_cells"><b>filter</b></td>
+    <td class="table_cells">Filter a character read from the input</td>
+  </tr>
+  <td class="table_cells"><b>get</b></td>
+    <td class="table_cells">Read a character from the input</td>
+  </tr>
+</table>
+<p> The following code snippet demonstrates a simple policy that converts all 
+  characters to lower case:</p>
+<pre>
+    <code><span class=keyword>struct </span><span class=identifier>inhibit_case_iteration_policy </span><span class=special>: </span><span class=keyword>public </span><span class=identifier>iteration_policy
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>CharT</span><span class=special>&gt;
+        </span><span class=identifier>CharT filter</span><span class=special>(</span><span class=identifier>CharT ch</span><span class=special>) </span><span class=keyword>const
+        </span><span class=special>{ 
+            </span><span class=keyword>return </span>std::<span class=identifier>tolower</span><span class=special>(</span><span class=identifier>ch</span><span class=special>); 
+        }
+    };</span></code></pre>
+<a name="match_policy"></a>
+<h2>match_policy</h2>
+<p> Here are the default policies that govern recognition and matching:</p>
+<pre>
+    <code><span class=keyword>struct </span><span class=identifier>match_policy
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>T</span><span class=special>&gt;
+        </span><span class=keyword>struct </span><span class=identifier>result </span><span class=special>
+        { 
+            </span><span class=keyword>typedef </span><span class=identifier>match</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>&gt; </span><span class=identifier>type</span><span class=special>; </span><span class=special>
+        };
+
+        </span><span class=keyword>const </span><span class=identifier>match</span><span class=special>&lt;</span><span class=identifier>nil_t</span><span class=special>&gt;
+        </span><span class=identifier>no_match</span><span class=special>() </span><span class=keyword>const
+        </span><span class=special>{ </span><span class=keyword>
+            return </span><span class=identifier>match</span><span class=special>&lt;</span><span class=identifier>nil_t</span><span class=special>&gt;(); </span><span class=special>
+        }
+
+        </span><span class=keyword>const </span><span class=identifier>match</span><span class=special>&lt;</span><span class=identifier>nil_t</span><span class=special>&gt;
+        </span><span class=identifier>empty_match</span><span class=special>() </span><span class=keyword>const
+        </span><span class=special>{ </span><span class=keyword>
+            return </span><span class=identifier>match</span><span class=special>&lt;</span><span class=identifier>nil_t</span><span class=special>&gt;(</span><span class=number>0</span><span class=special>, </span><span class=identifier>nil_t</span><span class=special>()); 
+        </span><span class=special>}
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>AttrT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>IteratorT</span><span class=special>&gt;
+        </span><span class=identifier>match</span><span class=special>&lt;</span><span class=identifier>AttrT</span><span class=special>&gt;
+        </span><span class=identifier>create_match</span><span class=special>(
+            </span><span class=keyword>std::size_t         </span><span class=identifier>length</span><span class=special>,
+            </span><span class=identifier>AttrT </span><span class=keyword>const</span><span class=special>&amp;        </span><span class=identifier>val</span><span class=special>,
+            </span><span class=identifier>IteratorT </span><span class=keyword>const</span><span class=special>&amp;    </span><span class=comment>/*first*/</span><span class=special>,
+            </span><span class=identifier>IteratorT </span><span class=keyword>const</span><span class=special>&amp;    </span><span class=comment>/*last*/</span><span class=special>) </span><span class=keyword>const
+        </span><span class=special>{ </span><span class=keyword>
+            return </span><span class=identifier>match</span><span class=special>&lt;</span><span class=identifier>AttrT</span><span class=special>&gt;(</span><span class=identifier>length</span><span class=special>, </span><span class=identifier>val</span><span class=special>); </span><span class=special>
+        }
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>MatchT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>IteratorT</span><span class=special>&gt;
+        </span><span class=keyword>void
+        </span><span class=identifier>group_match</span><span class=special>(
+            </span><span class=identifier>MatchT</span><span class=special>&amp;             </span><span class=comment>/*m*/</span><span class=special>,
+            </span><span class=identifier>parser_id </span><span class=keyword>const</span><span class=special>&amp;    </span><span class=comment>/*id*/</span><span class=special>,
+            </span><span class=identifier>IteratorT </span><span class=keyword>const</span><span class=special>&amp;    </span><span class=comment>/*first*/</span><span class=special>,
+            </span><span class=identifier>IteratorT </span><span class=keyword>const</span><span class=special>&amp;    </span><span class=comment>/*last*/</span><span class=special>) </span><span class=keyword>const </span><span class=special>{}
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>Match1T</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>Match2T</span><span class=special>&gt;
+        </span><span class=keyword>void
+        </span><span class=identifier>concat_match</span><span class=special>(</span><span class=identifier>Match1T</span><span class=special>&amp; </span><span class=identifier>l</span><span class=special>, </span><span class=identifier>Match2T </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>r</span><span class=special>) </span><span class=keyword>const
+        </span><span class=special>{ </span><span class=identifier>
+            l</span><span class=special>.</span><span class=identifier>concat</span><span class=special>(</span><span class=identifier>r</span><span class=special>); 
+        </span><span class=special>}
+    </span><span class=special>};</span></code></pre>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td class="table_title" colspan="12"> Recognition and matching </td>
+  </tr>
+  <tr> 
+  <tr> 
+    <td class="table_cells"><b>result</b></td>
+    <td class="table_cells">A metafunction that returns a match type given an 
+      attribute type (see In-depth: The Parser)</td>
+  </tr>
+  <td class="table_cells"><b>no_match</b></td>
+  <td class="table_cells">Create a failed match</td>
+  </tr>
+  <td class="table_cells"><b>empty_match</b></td>
+  <td class="table_cells">Create an empty match. An empty match is a successful 
+    epsilon match (matching length == 0)</td>
+  </tr>
+  <td class="table_cells"><b>create_match</b></td>
+  <td class="table_cells">Create a match given the matching length, an attribute 
+    and the iterator pair pointing to the matching portion of the input</td>
+  </tr>
+  <td class="table_cells"><b>group_match</b></td>
+  <td class="table_cells">For non terminals such as rules, this is called after 
+    a successful match has been made to allow post processing</td>
+  </tr>
+  <td class="table_cells"><b>concat_match</b></td>
+  <td class="table_cells">Concatenate two match objects</td>
+  </tr>
+</table>
+<a name="action_policy"></a>
+<h2>action_policy</h2>
+<p> The action policy has only one function for handling semantic actions:</p>
+<pre>
+    <code><span class=keyword>struct </span><span class=identifier>action_policy
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ActorT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>AttrT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>IteratorT</span><span class=special>&gt;
+        </span><span class=keyword>void
+        </span><span class=identifier>do_action</span><span class=special>(
+            </span><span class=identifier>ActorT </span><span class=keyword>const</span><span class=special>&amp;       </span><span class=identifier>actor</span><span class=special>,
+            </span><span class=identifier>AttrT </span><span class=keyword>const</span><span class=special>&amp;        </span><span class=identifier>val</span><span class=special>,
+            </span><span class=identifier>IteratorT </span><span class=keyword>const</span><span class=special>&amp;    </span><span class=identifier>first</span><span class=special>,
+            </span><span class=identifier>IteratorT </span><span class=keyword>const</span><span class=special>&amp;    </span><span class=identifier>last</span><span class=special>) </span><span class=keyword>const</span><span class=special>;
+    </span><span class=special>};</span></code></pre>
+<p> The default action policy forwards to:</p>
+<pre>
+    <code><span class=identifier>actor</span><span class=special>(</span><span class=identifier>first</span><span class=special>, </span><span class=identifier>last</span><span class=special>);</span></code></pre>
+<p> If the attribute <tt>val</tt> is of type nil_t. Otherwise:</p>
+<pre>
+    <code><span class=identifier>actor</span><span class=special>(</span><span class=identifier>val</span><span class=special>);</span></code></pre>
+<a name="scanner_policies_mixer"></a>
+<h3>scanner_policies mixer</h3>
+<p> The class <tt>scanner_policies</tt> combines the three scanner policy classes 
+  above into one:</p>
+<pre>
+    <code><span class=keyword>template </span><span class=special>&lt;
+        </span><span class=keyword>typename </span><span class=identifier>IterationPolicyT   </span><span class=special>= </span><span class=identifier>iteration_policy</span><span class=special>,
+        </span><span class=keyword>typename </span><span class=identifier>MatchPolicyT       </span><span class=special>= </span><span class=identifier>match_policy</span><span class=special>,
+        </span><span class=keyword>typename </span><span class=identifier>ActionPolicyT      </span><span class=special>= </span><span class=identifier>action_policy</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>scanner_policies</span><span class=special>;
+</span></code></pre>
+<p> This <i>mixer</i> class inherits from all the three policies. This scanner_policies 
+  class is then used to parameterize the scanner:</p>
+<pre>
+    <code><span class=keyword>template </span><span class=special>&lt;
+        </span><span class=keyword>typename </span><span class=identifier>IteratorT </span><span class=special>= </span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*,
+        </span><span class=keyword>typename </span><span class=identifier>PoliciesT </span><span class=special>= </span><span class=identifier>scanner_policies</span><span class=special>&lt;&gt; </span><span class=special>&gt;
+    </span><span class=keyword>class </span><span class=identifier>scanner</span><span class=special>;
+</span></code></pre>
+<p> The scanner in turn inherits from the PoliciesT.</p>
+<a name="rebinding_policies"></a>
+<h3>Rebinding Policies</h3>
+<p> The scanner can be made to rebind to a different set of policies anytime. 
+  It has a member function <tt>change_policies(new_policies)</tt>. Given a new 
+  set of policies, this member function creates a new scanner with the new set 
+  of policies. The result type of the <i>rebound</i> scanner can be can be obtained 
+  by calling the metafunction:</p>
+<pre>
+    <code><span class=identifier>rebind_scanner_policies</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>, </span><span class=identifier>PoliciesT</span><span class=special>&gt;::</span><span class=identifier>type</span></code></pre>
+<a name="rebinding_iterators"></a>
+<h3>Rebinding Iterators</h3>
+<p> The scanner can also be made to rebind to a different iterator type anytime. 
+  It has a member function <tt>change_iterator(first, last)</tt>. Given a new 
+  pair of iterator of type different from the ones held by the scanner, this member 
+  function creates a new scanner with the new pair of iterators. The result type 
+  of the <i>rebound</i> scanner can be can be obtained by calling the metafunction:</p>
+<pre>
+    <code><span class=identifier>rebind_scanner_iterator</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>, </span><span class=identifier>IteratorT</span><span class=special>&gt;::</span><span class=identifier>type</span></code></pre>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="indepth_the_parser.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="indepth_the_parser_context.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

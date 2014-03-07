@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'
+'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+	<title>transporting of arbitrary data to the catch site</title>
+	<link href='reno.css' type='text/css' rel='stylesheet'/>
+</head>
+<body>
+<div class="body-0">
+<div class="body-1">
+<div class="body-2">
+<div>
+<div id="boost_logo">
+<a href="http://www.boost.org"><img style="border:0" src="../../../boost.png" alt="Boost" width="277" height="86"/></a>
+</div>
+<h1>Boost Exception</h1>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="RenoIncludeDIV"><div class="RenoAutoDIV"><h2>Transporting of Arbitrary Data to the Catch Site</h2>
+</div>
+<p>All exception types that derive from boost::<span class="RenoLink"><a href="exception.html">exception</a></span> can be used as type-safe containers of arbitrary data objects, while complying with the no-throw requirements (15.5.1) of the ANSI C++ standard for exception types.</p>
+<p>When exceptions derive from boost::<span class="RenoLink"><a href="exception.html">exception</a></span>, arbitrary data can be added to exception objects:</p>
+<div><ul><li>At the point of the throw;</li>
+<li>At a later time as exceptions bubble up the call stack.</li>
+</ul></div>
+<div class="RenoIncludeDIV"><div class="RenoAutoDIV"><h3>Adding of Arbitrary Data at the Point of the Throw</h3>
+</div>
+<p>The following example demonstrates how errno can be stored in exception objects using Boost Exception:</p>
+<pre>#include &lt;<span class="RenoLink"><a href="boost_exception_all_hpp.html">boost/exception/all.hpp</a></span>&gt;
+#include &lt;iostream&gt;
+
+typedef boost::<span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct tag_my_info,int&gt; my_info; //(1)
+
+struct my_error: virtual boost::<span class="RenoLink"><a href="exception.html">exception</a></span>, virtual std::exception { }; //(2)
+
+void
+f()
+    {
+    throw my_error() &lt;&lt; my_info(42); //(3)
+    }</pre>
+<p>First, we instantiate the <span class="RenoLink"><a href="error_info.html">error_info</a></span> template using a unique identifier -- tag_my_info, and the type of the info it identifies -- int. This provides compile-time type safety for the various values stored in exception objects.</p>
+<p>Second, we define class my_error, which derives from boost::<span class="RenoLink"><a href="exception.html">exception</a></span>.</p>
+<p>Finally, (3) illustrates how the typedef from (1) can be used with <span class="RenoLink"><a href="exception_operator_shl.html">operator&lt;&lt;</a></span> to store values in exception objects at the point of the throw.</p>
+<p>The stored my_info value can be recovered at a later time like this:</p>
+<pre>// ...continued
+
+void
+g()
+    {
+    try
+        {
+        f();
+        }
+    catch(
+    my_error &amp; x )
+        {
+        if( int const * mi=boost::<span class="RenoLink"><a href="get_error_info.html">get_error_info</a></span>&lt;my_info&gt;(x) )
+            std::cerr &lt;&lt; "My info: " &lt;&lt; *mi;
+        }
+    }</pre>
+<p>The <span class="RenoLink"><a href="get_error_info.html">get_error_info</a></span> function template is instantiated with the typedef from (1), and is passed an exception object of a polymorphic type. If the exception object contains the requested value, err will point to it; otherwise a null pointer is returned.</p>
+</div><div class="RenoIncludeDIV"><div class="RenoAutoDIV"><h3>Adding of Arbitrary Data to Active Exception Objects</h3>
+</div>
+<p>Sometimes the throw site does not have all the information that is needed at the catch site to make sense of what went wrong. Let's say we have an exception type file_read_error, which takes a file name in its constructor. Consider the following function:</p>
+<pre>void
+file_read( FILE * f, void * buffer, size_t size )
+    {
+    if( size!=fread(buffer,1,size,f) )
+        throw file_read_error(????);
+    }</pre>
+<p>How can the file_read function pass a file name to the exception type constructor? All it has is a FILE handle.</p>
+<p>Using boost::<span class="RenoLink"><a href="exception.html">exception</a></span> allows us to free the file_read function from the burden of storing the file name in exceptions it throws:</p>
+<pre>#include &lt;<span class="RenoLink"><a href="boost_exception_all_hpp.html">boost/exception/all.hpp</a></span>&gt;
+#include &lt;boost/shared_ptr.hpp&gt;
+#include &lt;stdio.h&gt;
+#include &lt;errno.h&gt;
+
+struct file_read_error: virtual boost::<span class="RenoLink"><a href="exception.html">exception</a></span> { };
+
+void
+file_read( FILE * f, void * buffer, size_t size )
+    {
+    if( size!=fread(buffer,1,size,f) )
+        throw file_read_error() &lt;&lt; boost::<span class="RenoLink"><a href="errinfo_errno.html">errinfo_errno</a></span>(errno);
+    }</pre>
+<p>If file_read detects a failure, it throws an exception which contains the information that is available at the time, namely the errno. Other relevant information, such as the file name, can be added in a context higher up the call stack, where it is known naturally:</p>
+<pre>#include &lt;<span class="RenoLink"><a href="boost_exception_all_hpp.html">boost/exception/all.hpp</a></span>&gt;
+#include &lt;boost/shared_ptr.hpp&gt;
+#include &lt;stdio.h&gt;
+#include &lt;string&gt;
+
+boost::shared_ptr&lt;FILE&gt; file_open( char const * file_name, char const * mode );
+void file_read( FILE * f, void * buffer, size_t size );
+
+void
+parse_file( char const * file_name )
+    {
+    boost::shared_ptr&lt;FILE&gt; f = file_open(file_name,"rb");
+    assert(f);
+    try
+        {
+        char buf[1024];
+        file_read( f.get(), buf, sizeof(buf) );
+        }
+    catch(
+    boost::<span class="RenoLink"><a href="exception.html">exception</a></span> &amp; e )
+        {
+        e &lt;&lt; boost::<span class="RenoLink"><a href="errinfo_file_name.html">errinfo_file_name</a></span>(file_name);
+        throw;
+        }
+    }</pre>
+<p>The above function is (almost) exception-neutral -- if an exception is emitted by any function call within the try block, parse_file does not need to do any real work, but it intercepts any boost::<span class="RenoLink"><a href="exception.html">exception</a></span> object, stores the file name, and re-throws using a throw-expression with no operand (15.1.6). The rationale for catching any boost::<span class="RenoLink"><a href="exception.html">exception</a></span> object is that the file name is relevant to any failure that occurs in parse_file, <i>even if the failure is unrelated to file I/O</i>.</p>
+</div><div class="RenoIncludeDIV"><div class="RenoAutoDIV"><h3>Adding Grouped Data to Exceptions</h3>
+</div>
+<p>The code snippet below demonstrates how boost::<span class="RenoLink"><a href="http://www.boost.org/libs/tuple/doc/tuple_users_guide.html">tuple</a></span> can be used to bundle the name of the function that failed, together with the reported errno so that they can be added to exception objects more conveniently together:</p>
+<pre>#include &lt;<span class="RenoLink"><a href="boost_exception_info_tuple_hpp.html">boost/exception/info_tuple.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_file_name_hpp.html">boost/exception/errinfo_file_name.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_api_function_hpp.html">boost/exception/errinfo_api_function.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_errno_hpp.html">boost/exception/errinfo_errno.hpp</a></span>&gt;
+#include &lt;boost/shared_ptr.hpp&gt;
+#include &lt;stdio.h&gt;
+#include &lt;string&gt;
+#include &lt;errno.h&gt;
+
+typedef boost::<span class="RenoLink"><a href="http://www.boost.org/libs/tuple/doc/tuple_users_guide.html">tuple</a></span>&lt;boost::<span class="RenoLink"><a href="errinfo_api_function.html">errinfo_api_function</a></span>,boost::<span class="RenoLink"><a href="errinfo_errno.html">errinfo_errno</a></span>&gt; clib_failure;
+
+struct file_open_error: virtual boost::<span class="RenoLink"><a href="exception.html">exception</a></span> { };
+
+boost::shared_ptr&lt;FILE&gt;
+file_open( char const * name, char const * mode )
+    {
+    if( FILE * f=fopen(name,mode) )
+        return boost::shared_ptr&lt;FILE&gt;(f,fclose);
+    else
+        throw file_open_error() &lt;&lt;
+            boost::<span class="RenoLink"><a href="errinfo_file_name.html">errinfo_file_name</a></span>(name) &lt;&lt;
+            clib_failure("fopen",errno);
+    }</pre>
+<p>Note that the members of a boost::<span class="RenoLink"><a href="http://www.boost.org/libs/tuple/doc/tuple_users_guide.html">tuple</a></span> are stored separately in exception objects; they can only be retrieved individually, using <span class="RenoLink"><a href="get_error_info.html">get_error_info</a></span>.</p>
+</div></div><div class="RenoAutoDIV"><div class="RenoHR"><hr/></div>
+See also: <span class="RenoPageList"><a href="boost-exception.html">Boost Exception</a>&nbsp;| <a href="tutorial_enable_error_info.html">Integrating Boost Exception in Existing Exception Class Hierarchies</a></span>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div id="footer">
+<p>
+<a class="logo" href="http://jigsaw.w3.org/css-validator/check/referer"><img class="logo_pic" src="valid-css.png" alt="Valid CSS" height="31" width="88"/></a>
+<a class="logo" href="http://validator.w3.org/check?uri=referer"><img class="logo_pic" src="valid-xhtml.png" alt="Valid XHTML 1.0" height="31" width="88"/></a>
+<small>Copyright (c) 2006-2009 by Emil Dotchevski and Reverge Studios, Inc.<br/>
+Distributed under the <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License, Version 1.0</a>.</small>
+</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

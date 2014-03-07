@@ -1,0 +1,52 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lex Lex - Writing Lexical Analyzers]
+
+[include    lex/introduction.qbk]
+
+[section:tutorials __lex__ Tutorials]
+[include        lex/lexer_tutorials.qbk]
+[include        lex/lexer_quickstart1.qbk]
+[include        lex/lexer_quickstart2.qbk]
+[include        lex/lexer_quickstart3.qbk]
+[endsect]
+
+[section:abstracts Abstracts]
+[section        Lexer Primitives]
+[/ include            lex/lexer_primitives.qbk]
+[include            lex/tokens_values.qbk]
+[/ include            lex/token_definition.qbk]
+[endsect]
+[include        lex/tokenizing.qbk]
+[include        lex/lexer_semantic_actions.qbk]
+[include        lex/lexer_static_model.qbk]
+[/ include        lex/parsing_using_a_lexer.qbk]
+[/ include        lex/lexer_attributes.qbk]
+[/ include        lex/lexer_states.qbk]
+[endsect]
+
+[section:quick_reference Quick Reference]
+[include        lex/quick_reference.qbk]
+[include        lex/lexer.qbk]
+[endsect]
+
+[section:reference Reference]
+[import ../example/lex/reference.cpp]
+[include            lex/concepts.qbk]
+[include            lex/basics.qbk]
+[include            lex/lexer_api.qbk]
+[include            lex/token_primitives.qbk]
+[/ include            lex/token.qbk]
+[/ include            lex/tokendef.qbk]
+[/ include        lex/lexer_class.qbk]
+[/ include        lex/token_class.qbk]
+[/ include        lex/tokendef_class.qbk]
+[endsect]
+
+[endsect]

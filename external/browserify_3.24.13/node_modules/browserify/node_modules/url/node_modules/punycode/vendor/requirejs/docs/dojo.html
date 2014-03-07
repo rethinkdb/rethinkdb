@@ -1,0 +1,28 @@
+<div id="directory" class="section">
+<h1>How to use RequireJS with Dojo</h1>
+<ul class="index mono">
+    <li class="hbox">
+        <a href="#1">Get the template</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1</span>
+    </li>
+</ul>
+<p>As of Dojo 1.6, Dojo Core and Dijit have preliminary support for loading its modules with a loader like RequireJS that understands the AMD API proposal. Only a few of the Dojox modules have been converted to allow AMD loading.</p>
+
+<p>AMD loading is still considered experimental in Dojo 1.6, and it only works by using a source distribution, not one of the built distributions.</p>
+</div>
+
+<div class="section">
+<h2>
+<a name="1">Get the template</a>
+<span class="sectionMark">&sect; 1</span>
+</h2>
+
+<p>Ben Hockey has set up <a href="https://github.com/neonstalwart/dojo-requirejs-template">a nice template project</a> for getting started with Dojo+RequireJS. The directions are fairly straightforward. Some notes:</p>
+<ul>
+    <li>The RequireJS i18n plugin does not support the equivalent of the djConfig.localeList. A future version of the RequireJS i18n plugin should support it.</li>
+    <li>Dojox does not have it's own package config set up because not all of its modules have been converted to understand AMD syntax. Ben suggests one of two options if you want to use some modules in dojox (you need to inspect the modules yourself to see if they support AMD loading):
+    <ul>
+        <li>Add a file similar to dijit/lib/main.js which returns the dojox object rather than the dijit object.</li>
+        <li>Instead of using it like a package, just add a [baseUrl]/dojox.js with contents similar to dijit/lib/main.js</li>
+    </ul></li>
+</ul>
+</div>

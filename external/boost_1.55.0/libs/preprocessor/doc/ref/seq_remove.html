@@ -1,0 +1,66 @@
+<html>
+	<head>
+		<title>BOOST_PP_SEQ_REMOVE</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<div style="margin-left:  0px;">
+			The <b>BOOST_PP_SEQ_REMOVE</b> macro removes an element from a <i>seq</i>.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_REMOVE</b>(<i>seq</i>, <i>i</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> from which an element is to be removed.
+			</dd>
+			<dt>i</dt>
+			<dd>
+				The zero-based position in <i>seq</i> of the element to be removed.&nbsp; Valid 
+				values range from <i>0</i> to <b>BOOST_PP_SEQ_SIZE</b>(<i>seq</i>) - <i>1</i>.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			This macro returns <i>seq</i> after removing the element at index <i>i</i>.
+		</div>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/remove.html">&lt;boost/preprocessor/seq/remove.hpp&gt;</a>
+		</div>
+		<h4>
+			Sample Code
+		</h4>
+		<div>
+			<pre>
+#include &lt;<a href="../headers/seq/remove.html">boost/preprocessor/seq/remove.hpp</a>&gt;
+
+#define SEQ (a)(b)(x)(c)
+
+<a href="seq_remove.html">BOOST_PP_SEQ_REMOVE</a>(SEQ, 2) // expands to (a)(b)(c)
+</pre>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

@@ -1,0 +1,202 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Design Discussion</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../program_options.html" title="Chapter&#160;21.&#160;Boost.Program_options">
+<link rel="prev" href="howto.html" title="How To">
+<link rel="next" href="s06.html" title="Acknowledgements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="howto.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../program_options.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="s06.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="program_options.design"></a>Design Discussion</h2></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="design.html#program_options.design.unicode">Unicode Support</a></span></dt></dl></div>
+<p>This section focuses on some of the design questions.
+  </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="program_options.design.unicode"></a>Unicode Support</h3></div></div></div>
+<p>Unicode support was one of the features specifically requested
+      during the formal review. Throughout this document "Unicode support" is
+      a synonym for "wchar_t" support, assuming that "wchar_t" always uses
+      Unicode encoding.  Also, when talking about "ascii" (in lowercase) we'll
+      not mean strict 7-bit ASCII encoding, but rather "char" strings in local
+      8-bit encoding.
+    </p>
+<p>
+      Generally, "Unicode support" can mean
+      many things, but for the program_options library it means that:
+
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>Each parser should accept either <code class="computeroutput">char*</code>
+          or <code class="computeroutput">wchar_t*</code>, correctly split the input into option
+          names and option values and return the data.
+          </p></li>
+<li class="listitem"><p>For each option, it should be possible to specify whether the conversion
+            from string to value uses ascii or Unicode.
+          </p></li>
+<li class="listitem">
+<p>The library guarantees that:
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem"><p>ascii input is passed to an ascii value without change
+                </p></li>
+<li class="listitem"><p>Unicode input is passed to a Unicode value without change</p></li>
+<li class="listitem"><p>ascii input passed to a Unicode value, and Unicode input
+                  passed to an ascii value will be converted using a codecvt
+                  facet (which may be specified by the user).
+                </p></li>
+</ul></div>
+<p>
+          </p>
+</li>
+</ul></div>
+<p>
+    </p>
+<p>The important point is that it's possible to have some "ascii
+      options" together with "Unicode options". There are two reasons for
+      this. First, for a given type you might not have the code to extract the
+      value from Unicode string and it's not good to require that such code be written.
+      Second, imagine a reusable library which has some options and exposes
+      options description in its interface. If <span class="emphasis"><em>all</em></span>
+      options are either ascii or Unicode, and the library does not use any
+      Unicode strings, then the author will likely to use ascii options, which
+      would make the library unusable inside Unicode
+      applications. Essentially, it would be necessary to provide two versions
+      of the library -- ascii and Unicode.
+    </p>
+<p>Another important point is that ascii strings are passed though
+      without modification. In other words, it's not possible to just convert
+      ascii to Unicode and process the Unicode further. The problem is that the
+      default conversion mechanism -- the <code class="computeroutput">codecvt</code> facet -- might
+      not work with 8-bit input without additional setup.
+    </p>
+<p>The Unicode support outlined above is not complete. For example, we
+      don't support Unicode option names. Unicode support is hard and
+      requires a Boost-wide solution. Even comparing two arbitrary Unicode
+      strings is non-trivial. Finally, using Unicode in option names is
+      related to internationalization, which has it's own
+      complexities. E.g. if option names depend on current locale, then all
+      program parts and other parts which use the name must be
+      internationalized too.
+    </p>
+<p>The primary question in implementing the Unicode support is whether
+      to use templates and <code class="computeroutput">std::basic_string</code> or to use some
+      internal encoding and convert between internal and external encodings on
+      the interface boundaries.            
+    </p>
+<p>The choice, mostly, is between code size and execution
+      speed. A templated solution would either link library code into every
+      application that uses the library (thereby making shared library
+      impossible), or provide explicit instantiations in the shared library
+      (increasing its size). The solution based on internal encoding would
+      necessarily make conversions in a number of places and will be somewhat slower.
+      Since speed is generally not an issue for this library, the second
+      solution looks more attractive, but we'll take a closer look at
+      individual components.
+    </p>
+<p>For the parsers component, we have three choices:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>Use a fully templated implementation: given a string of a
+            certain type, a parser will return a <code class="computeroutput"><a class="link" href="reference.html#boost.program_options.parsed_options">parsed_options</a></code> instance
+            with strings of the same type (i.e. the <code class="computeroutput"><a class="link" href="reference.html#boost.program_options.parsed_options">parsed_options</a></code> class
+            will be templated).</p></li>
+<li class="listitem"><p>Use internal encoding: same as above, but strings will be converted to and
+            from the internal encoding.</p></li>
+<li class="listitem"><p>Use and partly expose the internal encoding: same as above,
+            but the strings in the <code class="computeroutput"><a class="link" href="reference.html#boost.program_options.parsed_options">parsed_options</a></code> instance will be in the
+            internal encoding. This might avoid a conversion if
+            <code class="computeroutput"><a class="link" href="reference.html#boost.program_options.parsed_options">parsed_options</a></code> instance is passed directly to other components,
+            but can be also dangerous or confusing for a user.
+          </p></li>
+</ul></div>
+<p>
+    </p>
+<p>The second solution appears to be the best -- it does not increase
+    the code size much and is cleaner than the third. To avoid extra
+    conversions, the Unicode version of <code class="computeroutput"><a class="link" href="reference.html#boost.program_options.parsed_options">parsed_options</a></code> can also store
+    strings in internal encoding.
+    </p>
+<p>For the options descriptions component, we don't have much
+      choice. Since it's not desirable to have either all options use ascii or all
+      of them use Unicode, but rather have some ascii and some Unicode options, the
+      interface of the <code class="computeroutput"><a class="link" href="../boost/program_options/value_semantic.html" title="Class value_semantic">value_semantic</a></code> must work with both. The only way is
+      to pass an additional flag telling if strings use ascii or internal encoding.
+      The instance of <code class="computeroutput"><a class="link" href="../boost/program_options/value_semantic.html" title="Class value_semantic">value_semantic</a></code> can then convert into some
+      other encoding if needed.
+    </p>
+<p>For the storage component, the only affected function is <code class="computeroutput"><a class="link" href="../boost/program_options/store_idp102773400.html" title="Function store">store</a></code>.
+      For Unicode input, the <code class="computeroutput"><a class="link" href="../boost/program_options/store_idp102773400.html" title="Function store">store</a></code> function should convert the value to the
+      internal encoding.  It should also inform the <code class="computeroutput"><a class="link" href="../boost/program_options/value_semantic.html" title="Class value_semantic">value_semantic</a></code> class
+      about the used encoding.
+    </p>
+<p>Finally, what internal encoding should we use? The
+    alternatives are:
+    <code class="computeroutput">std::wstring</code> (using UCS-4 encoding) and
+    <code class="computeroutput">std::string</code> (using UTF-8 encoding). The difference between
+    alternatives is:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>Speed: UTF-8 is a bit slower</p></li>
+<li class="listitem"><p>Space: UTF-8 takes less space when input is ascii</p></li>
+<li class="listitem"><p>Code size: UTF-8 requires additional conversion code. However,
+            it allows one to use existing parsers without converting them to
+            <code class="computeroutput">std::wstring</code> and such conversion is likely to create a
+            number of new instantiations.
+          </p></li>
+</ul></div>
+<p>
+      There's no clear leader, but the last point seems important, so UTF-8
+      will be used.      
+    </p>
+<p>Choosing the UTF-8 encoding allows the use of existing parsers, 
+      because 7-bit ascii characters retain their values in UTF-8, 
+      so searching for 7-bit strings is simple. However, there are
+      two subtle issues:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>We need to assume the character literals use ascii encoding
+          and that inputs use Unicode encoding.</p></li>
+<li class="listitem"><p>A Unicode character (say '=') can be followed by 'composing
+          character' and the combination is not the same as just '=', so a
+          simple search for '=' might find the wrong character.
+          </p></li>
+</ul></div>
+<p>
+      Neither of these issues appear to be critical in practice, since ascii is
+      almost universal encoding and since composing characters following '=' (and
+      other characters with special meaning to the library) are not likely to appear.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2004 Vladimir Prus<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="howto.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../program_options.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="s06.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

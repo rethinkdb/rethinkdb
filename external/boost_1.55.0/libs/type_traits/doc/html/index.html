@@ -1,0 +1,226 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Boost.TypeTraits</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="next" href="boost_typetraits/intro.html" title="Introduction">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_typetraits/intro.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="boost_typetraits"></a>Chapter&#160;1.&#160;Boost.TypeTraits</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">various</span> <span class="surname">authors</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2000, 2011 Adobe Systems Inc, David Abrahams,
+      Frederic Bron, Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant,
+      Jesse Jones, Mat Marcus, Itay Maman, John Maddock, Alexander Nasonov, Thorsten
+      Ottosen, Roman Perepelitsa, Robert Ramey, Jeremy Siek, Robert Stewart and Steven
+      Watanabe</p></div>
+<div><div class="legalnotice">
+<a name="boost_typetraits.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="boost_typetraits/intro.html">Introduction</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/background.html">Background and Tutorial</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/category.html">Type Traits by Category</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_typetraits/category/value_traits.html">Type Traits that
+      Describe the Properties of a Type</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_typetraits/category/value_traits/primary.html">Categorizing
+        a Type</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/category/value_traits/properties.html">General
+        Type Properties</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/category/value_traits/relate.html">Relationships
+        Between Two Types</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/category/value_traits/operators.html">Operator
+        Type Traits</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_typetraits/category/transform.html">Type Traits that
+      Transform One Type to Another</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/category/alignment.html">Synthesizing Types
+      with Specific Alignments</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/category/function.html">Decomposing Function
+      Types</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_typetraits/user_defined.html">User Defined Specializations</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/intrinsics.html">Support for Compiler Intrinsics</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/mpl.html">MPL Interoperability</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/examples.html">Examples</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_typetraits/examples/copy.html">An Optimized Version
+      of std::copy</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/examples/fill.html">An Optimised Version
+      of std::fill</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/examples/destruct.html">An Example that Omits
+      Destructor Calls For Types with Trivial Destructors</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/examples/iter.html">An improved Version of
+      std::iter_swap</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/examples/to_double.html">Convert Numeric
+      Types and Enums to double</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/examples/improved_min.html">Improving std::min
+      with common_type</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_typetraits/reference.html">Alphabetical Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_typetraits/reference/add_const.html">add_const</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/add_cv.html">add_cv</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/add_lvalue_reference.html">add_lvalue_reference</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/add_pointer.html">add_pointer</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/add_reference.html">add_reference</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/add_rvalue_reference.html">add_rvalue_reference</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/add_volatile.html">add_volatile</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/aligned_storage.html">aligned_storage</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/alignment_of.html">alignment_of</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/conditional.html">conditional</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/common_type.html">common_type</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/decay.html">decay</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/extent.html">extent</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/floating_point_promotion.html">floating_point_promotion</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/function_traits.html">function_traits</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_bit_and.html">has_bit_and</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_bit_and_assign.html">has_bit_and_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_bit_or.html">has_bit_or</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_bit_or_assign.html">has_bit_or_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_bit_xor.html">has_bit_xor</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_bit_xor_assign.html">has_bit_xor_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_complement.html">has_complement</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_dereference.html">has_dereference</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_divides.html">has_divides</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_divides_assign.html">has_divides_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_equal_to.html">has_equal_to</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_greater.html">has_greater</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_greater_equal.html">has_greater_equal</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_left_shift.html">has_left_shift</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_left_shift_assign.html">has_left_shift_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_less.html">has_less</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_less_equal.html">has_less_equal</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_logical_and.html">has_logical_and</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_logical_not.html">has_logical_not</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_logical_or.html">has_logical_or</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_minus.html">has_minus</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_minus_assign.html">has_minus_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_modulus.html">has_modulus</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_modulus_assign.html">has_modulus_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_multiplies.html">has_multiplies</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_multiplies_assign.html">has_multiplies_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_negate.html">has_negate</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_new_operator.html">has_new_operator</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_not_equal_to.html">has_not_equal_to</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_nothrow_assign.html">has_nothrow_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_nothrow_constructor.html">has_nothrow_constructor</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_nothrow_copy.html">has_nothrow_copy</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_nothrow_cp_cons.html">has_nothrow_copy_constructor</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_no_throw_def_cons.html">has_nothrow_default_constructor</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_plus.html">has_plus</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_plus_assign.html">has_plus_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_post_decrement.html">has_post_decrement</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_post_increment.html">has_post_increment</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_pre_decrement.html">has_pre_decrement</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_pre_increment.html">has_pre_increment</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_right_shift.html">has_right_shift</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_right_shift_assign.html">has_right_shift_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_trivial_assign.html">has_trivial_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_trivial_constructor.html">has_trivial_constructor</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_trivial_copy.html">has_trivial_copy</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_trivial_cp_cons.html">has_trivial_copy_constructor</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_trivial_def_cons.html">has_trivial_default_constructor</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_trivial_destructor.html">has_trivial_destructor</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_trivial_move_assign.html">has_trivial_move_assign</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_trivial_move_constructor.html">has_trivial_move_constructor</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_unary_minus.html">has_unary_minus</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_unary_plus.html">has_unary_plus</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/has_virtual_destructor.html">has_virtual_destructor</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/integral_constant.html">integral_constant</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/integral_promotion.html">integral_promotion</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_abstract.html">is_abstract</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_arithmetic.html">is_arithmetic</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_array.html">is_array</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_base_of.html">is_base_of</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_class.html">is_class</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_complex.html">is_complex</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_compound.html">is_compound</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_const.html">is_const</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_convertible.html">is_convertible</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_copy_constructible.html">is_copy_constructible</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_empty.html">is_empty</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_enum.html">is_enum</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_floating_point.html">is_floating_point</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_function.html">is_function</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_fundamental.html">is_fundamental</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_integral.html">is_integral</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_lvalue_reference.html">is_lvalue_reference</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_member_function_pointer.html">is_member_function_pointer</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_member_object_pointer.html">is_member_object_pointer</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_member_pointer.html">is_member_pointer</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_nothrow_move_assignable.html">is_nothrow_move_assignable</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_nothrow_move_constructible.html">is_nothrow_move_constructible</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_object.html">is_object</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_pod.html">is_pod</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_pointer.html">is_pointer</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_polymorphic.html">is_polymorphic</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_reference.html">is_reference</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_rvalue_reference.html">is_rvalue_reference</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_same.html">is_same</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_scalar.html">is_scalar</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_signed.html">is_signed</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_stateless.html">is_stateless</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_union.html">is_union</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_unsigned.html">is_unsigned</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_virtual_base_of.html">is_virtual_base_of</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_void.html">is_void</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/is_volatile.html">is_volatile</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/make_signed.html">make_signed</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/make_unsigned.html">make_unsigned</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/promote.html">promote</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/rank.html">rank</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/remove_all_extents.html">remove_all_extents</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/remove_const.html">remove_const</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/remove_cv.html">remove_cv</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/remove_extent.html">remove_extent</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/remove_pointer.html">remove_pointer</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/remove_reference.html">remove_reference</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/remove_volatile.html">remove_volatile</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/reference/type_with_alignment.html">type_with_alignment</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_typetraits/history.html">History</a></span></dt>
+<dt><span class="section"><a href="boost_typetraits/credits.html">Credits</a></span></dt>
+<dt><span class="section"><a href="index/s11.html">Class Index</a></span></dt>
+<dt><span class="section"><a href="index/s12.html">Typedef Index</a></span></dt>
+<dt><span class="section"><a href="index/s13.html">Macro Index</a></span></dt>
+<dt><span class="section"><a href="index/s14.html">Index</a></span></dt>
+</dl>
+</div>
+<p>
+    A printer-friendly <a href="http://sourceforge.net/projects/boost/files/boost-docs/" target="_top">PDF
+    version of this manual is also available</a>.
+  </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: July 11, 2013 at 14:27:49 +0400</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_typetraits/intro.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

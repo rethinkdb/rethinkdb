@@ -1,0 +1,82 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Floating-Point Representation Distance (ULP), and Finding Adjacent Floating-Point Values</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Math Toolkit">
+<link rel="up" href="../utils.html" title="Chapter&#160;4.&#160;Floating Point Utilities">
+<link rel="prev" href="fp_facets/rationale.html" title="Design Rationale">
+<link rel="next" href="next_float/nextafter.html" title="Finding the Next Representable Value in a Specific Direction (nextafter)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fp_facets/rationale.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../utils.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="next_float/nextafter.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="math_toolkit.next_float"></a><a class="link" href="next_float.html" title="Floating-Point Representation Distance (ULP), and Finding Adjacent Floating-Point Values">Floating-Point Representation
+    Distance (ULP), and Finding Adjacent Floating-Point Values</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="next_float/nextafter.html">Finding the Next Representable
+      Value in a Specific Direction (nextafter)</a></span></dt>
+<dt><span class="section"><a href="next_float/float_next.html">Finding the Next
+      Greater Representable Value (float_next)</a></span></dt>
+<dt><span class="section"><a href="next_float/float_prior.html">Finding the Next
+      Smaller Representable Value (float_prior)</a></span></dt>
+<dt><span class="section"><a href="next_float/float_distance.html">Calculating the
+      Representation Distance Between Two Floating Point Values (ULP) float_distance</a></span></dt>
+<dt><span class="section"><a href="next_float/float_advance.html">Advancing a Floating
+      Point Value by a Specific Representation Distance (ULP) float_advance</a></span></dt>
+</dl></div>
+<p>
+      <a href="http://en.wikipedia.org/wiki/Unit_in_the_last_place" target="_top">Unit of Least
+      Precision or Unit in the Last Place</a> is the gap between two different,
+      but as close as possible, floating-point numbers.
+    </p>
+<p>
+      Most decimal values, for example 0.1, cannot be exactly represented as floating-point
+      values, but will be stored as the <a href="http://en.wikipedia.org/wiki/Floating_point#Representable_numbers.2C_conversion_and_rounding" target="_top">closest
+      representable floating-point</a>.
+    </p>
+<p>
+      Functions are provided for finding adjacent greater and lesser floating-point
+      values, and estimating the number of gaps between any two floating-point values.
+    </p>
+<p>
+      The floating-point type FPT must have has a fixed number of bits in the representation.
+      The number of bits may set at runtime, but must be the same for all numbers.
+      For example, <a href="http://shoup.net/ntl/doc/quad_float.txt" target="_top">NTL::quad_float</a>
+      type (fixed 128-bit representation) or <a href="http://shoup.net/ntl/doc/RR.txt" target="_top">NTL::RR</a>
+      type (arbitrary but fixed decimal digits, default 150) but <span class="bold"><strong>not</strong></span>
+      a type that extends the representation to provide an exact representation for
+      any number, for example <a href="http://keithbriggs.info/xrc.html" target="_top">XRC eXact
+      Real in C</a>.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fp_facets/rationale.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../utils.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="next_float/nextafter.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,82 @@
+The collector uses a large amount of conditional compilation in order to
+deal with platform dependencies.  This violates a number of known coding
+standards.  On the other hand, it seems to be the only practical way to
+support this many platforms without excessive code duplication. 
+
+A few guidelines have mostly been followed in order to keep this manageable:
+
+1) #if and #ifdef directives are properly indented whenever easily possible.
+All known C compilers allow whitespace between the "#" and the "if" to make
+this possible.  ANSI C also allows white space before the "#", though we
+avoid that.  It has the known disadvantages that it differs from the normal
+GNU conventions, and that it makes patches larger than otherwise necessary.
+In my opinion, it's still well worth it, for the same reason that we indent
+ordinary "if" statements.
+
+2) Whenever possible, tests are performed on the macros defined in gcconfig.h
+instead of directly testing patform-specific predefined macros.  This makes it
+relatively easy to adapt to new compilers with a different set of predefined
+macros.  Currently these macros generally identify platforms instead of
+features.  In many cases, this is a mistake.
+
+Many of the tested configuration macros are at least somewhat defined in
+either include/private/gcconfig.h or in Makefile.direct.  Here is an attempt
+at defining some of the remainder:  (Thanks to Walter Bright for suggesting
+this.  This is a work in progress)
+
+MACRO		EXPLANATION
+-----		-----------
+
+__DMC__	Always #define'd by the Digital Mars compiler. Expands
+		to the compiler version number in hex, i.e. 0x810 is
+		version 8.1b0
+
+_ENABLE_ARRAYNEW
+		#define'd by the Digital Mars C++ compiler when
+		operator new[] and delete[] are separately
+		overloadable. Used in gc_cpp.h.
+
+_MSC_VER	Expands to the Visual C++ compiler version.  Assumed to
+		not be defined for other compilers (at least if they behave
+		appreciably differently).
+
+_DLL		Defined by Visual C++ if dynamic libraries are being built
+		or used.  Used to test whether __declspec(dllimport) or
+		__declspec(dllexport) needs to be added to declarations
+		to support the case in which the collector is in a dll.
+
+GC_DLL		User-settable macro that forces the effect of _DLL.  Set
+		by gc.h if _DLL is defined and GC_NOT_DLL is undefined.
+		This is the macro that is tested internally to determine
+		whether the GC is in its own dynamic library.  May need
+		to be set by clients before including gc.h.  Note that
+		inside the GC implementation it indicates that the
+		collector is in its own dynamic library, should export
+		its symbols, etc.  But in clients it indicates that the
+		GC resides in a different DLL, its entry points should
+		be referenced accordingly, and precautions may need to
+		be taken to properly deal with statically allocated 
+		variables in the main program.  Used only for MS Windows.
+
+GC_NOT_DLL	User-settable macro that overrides _DLL, e.g. if dynamic
+		libraries are used, but the collector is in a static library.
+
+__STDC__	Assumed to be defined only by compilers that understand
+		prototypes and other C89 features.  Its value is generally
+		not used, since we are fine with most nonconforming extensions.
+
+SUNOS5SIGS	Solaris-like signal handling.  This is probably misnamed,
+		since it really doesn't guarantee much more than Posix.
+		Currently set only for Solaris2.X, HPUX, and DRSNX.  Should
+		probably be set for some other platforms.
+
+PCR		Set if the collector is being built as part of the Xerox
+		Portable Common Runtime.
+
+USE_COMPILER_TLS  Assume the existence of __thread-style thread-local
+		storage.  Set automatically for thread-local allocation with
+		the HP/UX vendor compiler.  Usable with gcc on sufficiently
+		up-to-date ELF platforms.
+
+
+

@@ -1,0 +1,571 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Boost.Functional/Forward 1.0</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.Functional/Forward 1.0">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="boost_functional_forward"></a>Chapter&#160;1.&#160;Boost.Functional/Forward 1.0</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Tobias</span> <span class="surname">Schwinger</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2007, 2008 Tobias Schwinger</p></div>
+<div><div class="legalnotice">
+<a name="boost_functional_forward.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="index.html#boost_functional_forward.brief_description">Brief Description</a></span></dt>
+<dt><span class="section"><a href="index.html#boost_functional_forward.background">Background</a></span></dt>
+<dt><span class="section"><a href="index.html#boost_functional_forward.reference">Reference</a></span></dt>
+<dt><span class="section"><a href="index.html#boost_functional_forward.acknowledgements">Acknowledgements</a></span></dt>
+<dt><span class="section"><a href="index.html#boost_functional_forward.references">References</a></span></dt>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_functional_forward.brief_description"></a><a class="link" href="index.html#boost_functional_forward.brief_description" title="Brief Description">Brief Description</a>
+</h2></div></div></div>
+<p>
+      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">forward_adapter</span></code> provides a reusable adapter
+      template for function objects. It forwards RValues as references to const,
+      while leaving LValues as-is.
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">g</span> <span class="comment">// function object that only accept LValues</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T2</span> <span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">T0</span> <span class="special">&amp;</span> <span class="identifier">t0</span><span class="special">,</span> <span class="identifier">T1</span> <span class="special">&amp;</span> <span class="identifier">t1</span><span class="special">,</span> <span class="identifier">T2</span> <span class="special">&amp;</span> <span class="identifier">t2</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="keyword">void</span> <span class="identifier">result_type</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">// Adapted version also accepts RValues and forwards</span>
+<span class="comment">// them as references to const, LValues as-is</span>
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">forward_adapter</span><span class="special">&lt;</span><span class="identifier">g</span><span class="special">&gt;</span> <span class="identifier">f</span><span class="special">;</span>
+</pre>
+<p>
+      Another adapter, <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lighweight_forward_adapter</span></code> allows forwarding
+      with some help from the user accepting and unwrapping reference wrappers (see
+      <a href="http://www.boost.org/doc/html/ref.html" target="_top">Boost.Ref</a>) for
+      reference arguments, const qualifying all other arguments.
+    </p>
+<p>
+      The target functions must be compatible with <a href="http://www.boost.org/libs/utility/utility.htm#result_of" target="_top">Boost.ResultOf</a>,
+      and so are the adapters.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_functional_forward.background"></a><a class="link" href="index.html#boost_functional_forward.background" title="Background">Background</a>
+</h2></div></div></div>
+<p>
+      Let's suppose we have some function <code class="computeroutput"><span class="identifier">f</span></code>
+      that we can call like this:
+    </p>
+<pre class="programlisting"><span class="identifier">f</span><span class="special">(</span><span class="number">123</span><span class="special">,</span><span class="identifier">a_variable</span><span class="special">);</span>
+</pre>
+<p>
+      Now we want to write another, generic function <code class="computeroutput"><span class="identifier">g</span></code>
+      that can be called the same way and returns some object that calls <code class="computeroutput"><span class="identifier">f</span></code> with the same arguments.
+    </p>
+<pre class="programlisting"><span class="identifier">f</span><span class="special">(</span><span class="number">123</span><span class="special">,</span><span class="identifier">a_variable</span><span class="special">)</span> <span class="special">==</span> <span class="identifier">g</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span><span class="number">123</span><span class="special">,</span><span class="identifier">a_variable</span><span class="special">).</span><span class="identifier">call_f</span><span class="special">()</span>
+</pre>
+<h4>
+<a name="boost_functional_forward.background.h0"></a>
+      <span class="phrase"><a name="boost_functional_forward.background.why_would_we_want_to_do_it__anyway_"></a></span><a class="link" href="index.html#boost_functional_forward.background.why_would_we_want_to_do_it__anyway_">Why
+      would we want to do it, anyway?</a>
+    </h4>
+<p>
+      Maybe we want to run <code class="computeroutput"><span class="identifier">f</span></code> several
+      times. Or maybe we want to run it within another thread. Maybe we just want
+      to encapsulate the call expression for now, and then use it with other code
+      that allows to compose more complex expressions in order to decompose it with
+      C++ templates and have the compiler generate some machinery that eventually
+      calls <code class="computeroutput"><span class="identifier">f</span></code> at runtime (in other
+      words; apply a technique that is commonly referred to as Expression Templates).
+    </p>
+<h4>
+<a name="boost_functional_forward.background.h1"></a>
+      <span class="phrase"><a name="boost_functional_forward.background.now__how_do_we_do_it_"></a></span><a class="link" href="index.html#boost_functional_forward.background.now__how_do_we_do_it_">Now, how
+      do we do it?</a>
+    </h4>
+<p>
+      The bad news is: It's impossible.
+    </p>
+<p>
+      That is so because there is a slight difference between a variable and an expression
+      that evaluates to its value: Given
+    </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">y</span><span class="special">;</span>
+<span class="keyword">int</span> <span class="keyword">const</span> <span class="identifier">z</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+</pre>
+<p>
+      and
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="keyword">void</span> <span class="identifier">func1</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<p>
+      we can call
+    </p>
+<pre class="programlisting"><span class="identifier">func1</span><span class="special">(</span><span class="identifier">y</span><span class="special">);</span> <span class="comment">// x is a reference to a non-const object</span>
+<span class="identifier">func1</span><span class="special">(</span><span class="identifier">z</span><span class="special">);</span> <span class="comment">// x is a reference to a const object</span>
+</pre>
+<p>
+      where
+    </p>
+<pre class="programlisting"><span class="identifier">func1</span><span class="special">(</span><span class="number">1</span><span class="special">);</span> <span class="comment">// fails to compile.</span>
+</pre>
+<p>
+      This way we can safely have <code class="computeroutput"><span class="identifier">func1</span></code>
+      store its reference argument and the compiler keeps us from storing a reference
+      to an object with temporary lifetime.
+    </p>
+<p>
+      It is important to realize that non-constness and whether an object binds to
+      a non-const reference parameter are two different properties. The latter is
+      the distinction between LValues and RValues. The names stem from the left hand
+      side and the right hand side of assignment expressions, thus LValues are typically
+      the ones you can assign to, and RValues the temporary results from the right
+      hand side expression.
+    </p>
+<pre class="programlisting"><span class="identifier">y</span> <span class="special">=</span> <span class="number">1</span><span class="special">+</span><span class="number">2</span><span class="special">;</span>        <span class="comment">// a is LValue, 1+2 is the expression producing the RValue,</span>
+<span class="comment">// 1+2 = a;     // usually makes no sense. </span>
+
+<span class="identifier">func1</span><span class="special">(</span><span class="identifier">y</span><span class="special">);</span>       <span class="comment">// works, because y is an LValue</span>
+<span class="comment">// func1(1+2);  // fails to compile, because we only got an RValue.</span>
+</pre>
+<p>
+      If we add const qualification on the parameter, our function also accepts RValues:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="keyword">void</span> <span class="identifier">func2</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+<span class="comment">// [...] function scope:</span>
+<span class="identifier">func2</span><span class="special">(</span><span class="number">1</span><span class="special">);</span> <span class="comment">// x is a reference to a const temporary, object,</span>
+<span class="identifier">func2</span><span class="special">(</span><span class="identifier">y</span><span class="special">);</span> <span class="comment">// x is a reference to a const object, while y is not const, and</span>
+<span class="identifier">func2</span><span class="special">(</span><span class="identifier">z</span><span class="special">);</span> <span class="comment">// x is a reference to a const object, just like z.</span>
+</pre>
+<p>
+      In all cases, the argument <code class="computeroutput"><span class="identifier">x</span></code>
+      in <code class="computeroutput"><span class="identifier">func2</span></code> is a const-qualified
+      LValue. We can use function overloading to identify non-const LValues:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="keyword">void</span> <span class="identifier">func3</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span> <span class="comment">// #1</span>
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="keyword">void</span> <span class="identifier">func3</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>       <span class="comment">// #2</span>
+
+<span class="comment">// [...] function scope:</span>
+<span class="identifier">func3</span><span class="special">(</span><span class="number">1</span><span class="special">);</span> <span class="comment">// x is a reference to a const, temporary object in #1,</span>
+<span class="identifier">func3</span><span class="special">(</span><span class="identifier">y</span><span class="special">);</span> <span class="comment">// x is a reference to a non-const object in #2, and</span>
+<span class="identifier">func3</span><span class="special">(</span><span class="identifier">z</span><span class="special">);</span> <span class="comment">// x is a reference to a const object in #1.</span>
+</pre>
+<p>
+      Note that all arguments <code class="computeroutput"><span class="identifier">x</span></code> in
+      the overloaded function <code class="computeroutput"><span class="identifier">func3</span></code>
+      are LValues. In fact, there is no way to transport RValues into a function
+      as-is in C++98. Also note that we can't distinguish between what used to be
+      a const qualified LValue and an RValue.
+    </p>
+<p>
+      That's as close as we can get to a generic forwarding function <code class="computeroutput"><span class="identifier">g</span></code> as described above by the means of C++
+      98. See <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1385.htm" target="_top">The
+      Forwarding Problem</a> for a very detailed discussion including solutions
+      that require language changes.
+    </p>
+<p>
+      Now, for actually implementing it, we need 2^N overloads for N parameters (each
+      with and without const qualifier) for each number of arguments (that is 2^(Nmax+1)
+      - 2^Nmin). Right, that means the compile-time complexity is O(2^N), however
+      the factor is low so it works quite well for a reasonable number (&lt; 10)
+      of arguments.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_functional_forward.reference"></a><a class="link" href="index.html#boost_functional_forward.reference" title="Reference">Reference</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="index.html#boost_functional_forward.reference.forward_adapter">forward_adapter</a></span></dt>
+<dt><span class="section"><a href="index.html#boost_functional_forward.reference.lightweight_forward_adapter">lightweight_forward_adapter</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_functional_forward.reference.forward_adapter"></a><a class="link" href="index.html#boost_functional_forward.reference.forward_adapter" title="forward_adapter">forward_adapter</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_functional_forward.reference.forward_adapter.h0"></a>
+        <span class="phrase"><a name="boost_functional_forward.reference.forward_adapter.description"></a></span><a class="link" href="index.html#boost_functional_forward.reference.forward_adapter.description">Description</a>
+      </h5>
+<p>
+        Function object adapter template whose instances are callable with LValue
+        and RValue arguments. RValue arguments are forwarded as reference-to-const
+        typed LValues.
+      </p>
+<p>
+        An arity can be given as second, numeric non-type template argument to restrict
+        forwarding to a specific arity. If a third, numeric non-type template argument
+        is present, the second and third template argument are treated as minimum
+        and maximum arity, respectively. Specifying an arity can be helpful to improve
+        the readability of diagnostic messages and compile time performance.
+      </p>
+<p>
+        <a href="http://www.boost.org/libs/utility/utility.htm#result_of" target="_top">Boost.ResultOf</a>
+        can be used to determine the result types of specific call expressions.
+      </p>
+<h5>
+<a name="boost_functional_forward.reference.forward_adapter.h1"></a>
+        <span class="phrase"><a name="boost_functional_forward.reference.forward_adapter.header"></a></span><a class="link" href="index.html#boost_functional_forward.reference.forward_adapter.header">Header</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">functional</span><span class="special">/</span><span class="identifier">forward_adapter</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h5>
+<a name="boost_functional_forward.reference.forward_adapter.h2"></a>
+        <span class="phrase"><a name="boost_functional_forward.reference.forward_adapter.synopsis"></a></span><a class="link" href="index.html#boost_functional_forward.reference.forward_adapter.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Function</span><span class="special">,</span>
+        <span class="keyword">int</span> <span class="identifier">Arity_Or_MinArity</span> <span class="special">=</span> <span class="emphasis"><em>unspecified</em></span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">MaxArity</span> <span class="special">=</span> <span class="emphasis"><em>unspecified</em></span> <span class="special">&gt;</span>
+    <span class="keyword">class</span> <span class="identifier">forward_adapter</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">F</span></code></span></dt>
+<dd><p>
+              a possibly const qualified function object type or reference type thereof
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">f</span></code></span></dt>
+<dd><p>
+              an object convertible to <code class="computeroutput"><span class="identifier">F</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">FA</span></code></span></dt>
+<dd><p>
+              the type <code class="computeroutput"><span class="identifier">forward_adapter</span><span class="special">&lt;</span><span class="identifier">F</span><span class="special">&gt;</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">fa</span></code></span></dt>
+<dd><p>
+              an instance object of <code class="computeroutput"><span class="identifier">FA</span></code>,
+              initialized with <code class="computeroutput"><span class="identifier">f</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a0</span></code>...<code class="computeroutput"><span class="identifier">aN</span></code></span></dt>
+<dd><p>
+              arguments to <code class="computeroutput"><span class="identifier">fa</span></code>
+            </p></dd>
+</dl>
+</div>
+<p>
+        The result type of a target function invocation must be
+      </p>
+<pre class="programlisting"><a href="http://www.boost.org/libs/utility/utility.htm#result_of" target="_top"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">result_of</span></code></a><span class="special">&lt;</span><span class="identifier">F</span><span class="special">*(</span><span class="identifier">TA0</span> <span class="special">[</span><span class="keyword">const</span><span class="special">]&amp;...</span><span class="identifier">TAN</span> <span class="special">[</span><span class="keyword">const</span><span class="special">]&amp;])&gt;::</span><span class="identifier">type</span>
+</pre>
+<p>
+        where <code class="computeroutput"><span class="identifier">TA0</span></code>...<code class="computeroutput"><span class="identifier">TAN</span></code> denote the argument types of <code class="computeroutput"><span class="identifier">a0</span></code>...<code class="computeroutput"><span class="identifier">aN</span></code>.
+      </p>
+<h5>
+<a name="boost_functional_forward.reference.forward_adapter.h3"></a>
+        <span class="phrase"><a name="boost_functional_forward.reference.forward_adapter.expression_semantics"></a></span><a class="link" href="index.html#boost_functional_forward.reference.forward_adapter.expression_semantics">Expression
+        Semantics</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">FA</span><span class="special">(</span><span class="identifier">f</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  creates an adapter, initializes the target function with <code class="computeroutput"><span class="identifier">f</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">FA</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  creates an adapter, attempts to use <code class="computeroutput"><span class="identifier">F</span></code>'s
+                  default constructor.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">fa</span><span class="special">(</span><span class="identifier">a0</span></code>...<code class="computeroutput"><span class="identifier">aN</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  calls <code class="computeroutput"><span class="identifier">f</span></code> with with
+                  arguments <code class="computeroutput"><span class="identifier">a0</span></code>...<code class="computeroutput"><span class="identifier">aN</span></code>.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_functional_forward.reference.forward_adapter.h4"></a>
+        <span class="phrase"><a name="boost_functional_forward.reference.forward_adapter.limits"></a></span><a class="link" href="index.html#boost_functional_forward.reference.forward_adapter.limits">Limits</a>
+      </h5>
+<p>
+        The macro BOOST_FUNCTIONAL_FORWARD_ADAPTER_MAX_ARITY can be defined to set
+        the maximum call arity. It defaults to 6.
+      </p>
+<h5>
+<a name="boost_functional_forward.reference.forward_adapter.h5"></a>
+        <span class="phrase"><a name="boost_functional_forward.reference.forward_adapter.complexity"></a></span><a class="link" href="index.html#boost_functional_forward.reference.forward_adapter.complexity">Complexity</a>
+      </h5>
+<p>
+        Preprocessing time: O(2^N), where N is the arity limit. Compile time: O(2^N),
+        where N depends on the arity range. Run time: O(0) if the compiler inlines,
+        O(1) otherwise.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_functional_forward.reference.lightweight_forward_adapter"></a><a class="link" href="index.html#boost_functional_forward.reference.lightweight_forward_adapter" title="lightweight_forward_adapter">lightweight_forward_adapter</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_functional_forward.reference.lightweight_forward_adapter.h0"></a>
+        <span class="phrase"><a name="boost_functional_forward.reference.lightweight_forward_adapter.description"></a></span><a class="link" href="index.html#boost_functional_forward.reference.lightweight_forward_adapter.description">Description</a>
+      </h5>
+<p>
+        Function object adapter template whose instances are callable with LValue
+        and RValue arguments. All arguments are forwarded as reference-to-const typed
+        LValues, except for reference wrappers which are unwrapped and may yield
+        non-const LValues.
+      </p>
+<p>
+        An arity can be given as second, numeric non-type template argument to restrict
+        forwarding to a specific arity. If a third, numeric non-type template argument
+        is present, the second and third template argument are treated as minimum
+        and maximum arity, respectively. Specifying an arity can be helpful to improve
+        the readability of diagnostic messages and compile time performance.
+      </p>
+<p>
+        <a href="http://www.boost.org/libs/utility/utility.htm#result_of" target="_top">Boost.ResultOf</a>
+        can be used to determine the result types of specific call expressions.
+      </p>
+<h5>
+<a name="boost_functional_forward.reference.lightweight_forward_adapter.h1"></a>
+        <span class="phrase"><a name="boost_functional_forward.reference.lightweight_forward_adapter.header"></a></span><a class="link" href="index.html#boost_functional_forward.reference.lightweight_forward_adapter.header">Header</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">functional</span><span class="special">/</span><span class="identifier">lightweight_forward_adapter</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h5>
+<a name="boost_functional_forward.reference.lightweight_forward_adapter.h2"></a>
+        <span class="phrase"><a name="boost_functional_forward.reference.lightweight_forward_adapter.synopsis"></a></span><a class="link" href="index.html#boost_functional_forward.reference.lightweight_forward_adapter.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Function</span><span class="special">,</span>
+        <span class="keyword">int</span> <span class="identifier">Arity_Or_MinArity</span> <span class="special">=</span> <span class="emphasis"><em>unspecified</em></span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">MaxArity</span> <span class="special">=</span> <span class="emphasis"><em>unspecified</em></span> <span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">lightweight_forward_adapter</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">F</span></code></span></dt>
+<dd><p>
+              a possibly const qualified function object type or reference type thereof
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">f</span></code></span></dt>
+<dd><p>
+              an object convertible to <code class="computeroutput"><span class="identifier">F</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">FA</span></code></span></dt>
+<dd><p>
+              the type <code class="computeroutput"><span class="identifier">lightweight_forward_adapter</span><span class="special">&lt;</span><span class="identifier">F</span><span class="special">&gt;</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">fa</span></code></span></dt>
+<dd><p>
+              an instance of <code class="computeroutput"><span class="identifier">FA</span></code>,
+              initialized with <code class="computeroutput"><span class="identifier">f</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a0</span></code>...<code class="computeroutput"><span class="identifier">aN</span></code></span></dt>
+<dd><p>
+              arguments to <code class="computeroutput"><span class="identifier">fa</span></code>
+            </p></dd>
+</dl>
+</div>
+<p>
+        The result type of a target function invocation must be
+      </p>
+<pre class="programlisting"><a href="http://www.boost.org/libs/utility/utility.htm#result_of" target="_top"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">result_of</span></code></a><span class="special">&lt;</span><span class="identifier">F</span><span class="special">*(</span><span class="identifier">TA0</span> <span class="special">[</span><span class="keyword">const</span><span class="special">]&amp;...</span><span class="identifier">TAN</span> <span class="special">[</span><span class="keyword">const</span><span class="special">]&amp;])&gt;::</span><span class="identifier">type</span>
+</pre>
+<p>
+        where <code class="computeroutput"><span class="identifier">TA0</span></code>...<code class="computeroutput"><span class="identifier">TAN</span></code> denote the argument types of <code class="computeroutput"><span class="identifier">a0</span></code>...<code class="computeroutput"><span class="identifier">aN</span></code>.
+      </p>
+<h5>
+<a name="boost_functional_forward.reference.lightweight_forward_adapter.h3"></a>
+        <span class="phrase"><a name="boost_functional_forward.reference.lightweight_forward_adapter.expression_semantics"></a></span><a class="link" href="index.html#boost_functional_forward.reference.lightweight_forward_adapter.expression_semantics">Expression
+        Semantics</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">FA</span><span class="special">(</span><span class="identifier">f</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  creates an adapter, initializes the target function with <code class="computeroutput"><span class="identifier">f</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">FA</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  creates an adapter, attempts to use <code class="computeroutput"><span class="identifier">F</span></code>'s
+                  default constructor.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">fa</span><span class="special">(</span><span class="identifier">a0</span></code>...<code class="computeroutput"><span class="identifier">aN</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  calls <code class="computeroutput"><span class="identifier">f</span></code> with with
+                  const arguments <code class="computeroutput"><span class="identifier">a0</span></code>...<code class="computeroutput"><span class="identifier">aN</span></code>. If <code class="computeroutput"><span class="identifier">aI</span></code>
+                  is a reference wrapper it is unwrapped.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_functional_forward.reference.lightweight_forward_adapter.h4"></a>
+        <span class="phrase"><a name="boost_functional_forward.reference.lightweight_forward_adapter.limits"></a></span><a class="link" href="index.html#boost_functional_forward.reference.lightweight_forward_adapter.limits">Limits</a>
+      </h5>
+<p>
+        The macro BOOST_FUNCTIONAL_LIGHTWEIGHT_FORWARD_ADAPTER_MAX_ARITY can be defined
+        to set the maximum call arity. It defaults to 10.
+      </p>
+<h5>
+<a name="boost_functional_forward.reference.lightweight_forward_adapter.h5"></a>
+        <span class="phrase"><a name="boost_functional_forward.reference.lightweight_forward_adapter.complexity"></a></span><a class="link" href="index.html#boost_functional_forward.reference.lightweight_forward_adapter.complexity">Complexity</a>
+      </h5>
+<p>
+        Preprocessing time: O(N), where N is the arity limit. Compile time: O(N),
+        where N is the effective arity of a call. Run time: O(0) if the compiler
+        inlines, O(1) otherwise.
+      </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_functional_forward.acknowledgements"></a><a class="link" href="index.html#boost_functional_forward.acknowledgements" title="Acknowledgements">Acknowledgements</a>
+</h2></div></div></div>
+<p>
+      As these utilities are factored out of the <a href="http://www.boost.org/libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+      functional module, I want to thank Dan Marsden and Joel de Guzman for letting
+      me participate in the development of that great library in the first place.
+    </p>
+<p>
+      Further, I want to credit the authors of the references below, for their in-depth
+      investigation of the problem and the solution implemented here.
+    </p>
+<p>
+      Last but not least I want to thank Vesa Karnoven and Paul Mensonides for the
+      Boost Preprocessor library. Without it, I would have ended up with an external
+      code generator for this one.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_functional_forward.references"></a><a class="link" href="index.html#boost_functional_forward.references" title="References">References</a>
+</h2></div></div></div>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1385.htm" target="_top">The
+          Forwarding Problem</a>, Peter Dimov, Howard E. Hinnant, David Abrahams,
+          2002
+        </li>
+<li class="listitem">
+          <a href="http://www.boost.org/libs/utility/utility.htm#result_of" target="_top">Boost.ResultOf</a>,
+          Douglas Gregor, 2004
+        </li>
+<li class="listitem">
+          <a href="http://www.boost.org/doc/html/ref.html" target="_top">Boost.Ref</a>,
+          Jaakko Jarvi, Peter Dimov, Douglas Gregor, David Abrahams, 1999-2002
+        </li>
+</ol></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: November 01, 2008 at 19:58:50 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"></div>
+</body>
+</html>

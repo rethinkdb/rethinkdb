@@ -1,0 +1,2144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+
+    <title>Header &lt;boost/operators.hpp&gt; Documentation</title>
+  </head>
+
+  <body text="black" bgcolor="white" link="blue" vlink="purple" alink="red">
+    <h1><img src="../../boost.png" alt="boost.png (6897 bytes)" align=
+    "middle" width="277" height="86">Header <cite>&lt;<a href=
+    "../../boost/operators.hpp">boost/operators.hpp</a>&gt;</cite></h1>
+
+    <p>The header <cite>&lt;<a href=
+    "../../boost/operators.hpp">boost/operators.hpp</a>&gt;</cite> supplies
+    several sets of class templates (in namespace <code>boost</code>). These
+    templates define operators at namespace scope in terms of a minimal
+    number of fundamental operators provided by the class.</p>
+
+    <h2><a name="contents">Contents</a></h2>
+
+    <ul>
+      <li><a href="#contents">Contents</a></li>
+
+      <li>
+        <a href="#rationale">Rationale</a> 
+
+        <ul>
+          <li><a href="#semantics">Summary of Template Semantics</a></li>
+
+          <li><a href="#concepts_note">Use of <i>concepts</i></a></li>
+        </ul>
+      </li>
+
+      <li>
+        <a href="#usage">Usage</a> 
+
+        <ul>
+          <li>
+            <a href="#two_arg">Two-Argument Template Forms</a> 
+
+            <ul>
+              <li><a href="#two_arg_gen">General Considerations</a></li>
+
+              <li><a href="#mixed_arithmetics">Mixed arithmetics</a></li>
+            </ul>
+          </li>
+
+          <li><a href="#chaining">Base Class Chaining and Object
+          Size</a></li>
+
+          <li><a href="#explicit_instantiation">Separate, Explicit
+          Instantiation</a></li>
+
+          <li><a href="#portability">Requirement Portability</a></li>
+        </ul>
+      </li>
+
+      <li><a href="#example">Example</a></li>
+
+      <li>
+        <a href="#arithmetic">Arithmetic operators</a> 
+
+        <ul>
+          <li>
+            <a href="#smpl_oprs">Simple Arithmetic Operators</a> 
+
+            <ul>
+              <li><a href="#ordering">Ordering Note</a></li>
+
+              <li><a href="#symmetry">Symmetry Note</a></li>
+            </ul>
+          </li>
+
+          <li><a href="#grpd_oprs">Grouped Arithmetic Operators</a></li>
+
+          <li><a href="#ex_oprs">Example Templates</a></li>
+
+          <li><a href="#a_demo">Arithmetic Operators Demonstration and Test
+          Program</a></li>
+        </ul>
+      </li>
+
+      <li>
+        <a href="#deref">Dereference Operators and Iterator Helpers</a> 
+
+        <ul>
+          <li><a href="#dereference">Dereference operators</a></li>
+
+          <li><a href="#grpd_iter_oprs">Grouped Iterator Operators</a></li>
+
+          <li>
+            <a href="#iterator">Iterator Helpers</a> 
+
+            <ul>
+              <li><a href="#iterator_helpers_notes">Iterator Helper
+              Notes</a></li>
+            </ul>
+          </li>
+
+          <li><a href="#i_demo">Iterator Demonstration and Test
+          Program</a></li>
+        </ul>
+      </li>
+
+      <li><a href="#contributors">Contributors</a></li>
+
+      <li><a href="#old_lib_note">Note for Users of Older Versions</a></li>
+    </ul>
+
+    <h2><a name="rationale">Rationale</a></h2>
+
+    <p>Overloaded operators for class types typically occur in groups. If you
+    can write <code>x&nbsp;+&nbsp;y</code>, you probably also want to be able
+    to write <code>x += y</code>. If you can write <code>x &lt; y,</code> you
+    also want <code>x &gt; y, x &gt;= y,</code> and <code>x &lt;= y</code>.
+    Moreover, unless your class has really surprising behavior, some of these
+    related operators can be defined in terms of others (e.g. <code>x &gt;= y
+    &lt;=&gt; !(x &lt; y)</code>). Replicating this boilerplate for multiple
+    classes is both tedious and error-prone. The <cite><a href=
+    "../../boost/operators.hpp">boost/operators.hpp</a></cite> templates help
+    by generating operators for you at namespace scope based on other
+    operators you've defined in your class.</p>
+
+    <p>If, for example, you declare a class like this:</p>
+
+    <blockquote>
+<pre>
+class MyInt
+    : boost::operators&lt;MyInt&gt;
+{
+    bool operator&lt;(const MyInt&amp; x) const;
+    bool operator==(const MyInt&amp; x) const;
+    MyInt&amp; operator+=(const MyInt&amp; x);
+    MyInt&amp; operator-=(const MyInt&amp; x);
+    MyInt&amp; operator*=(const MyInt&amp; x);
+    MyInt&amp; operator/=(const MyInt&amp; x);
+    MyInt&amp; operator%=(const MyInt&amp; x);
+    MyInt&amp; operator|=(const MyInt&amp; x);
+    MyInt&amp; operator&amp;=(const MyInt&amp; x);
+    MyInt&amp; operator^=(const MyInt&amp; x);
+    MyInt&amp; operator++();
+    MyInt&amp; operator--();
+};
+</pre>
+    </blockquote>
+
+    <p>then the <code><a href="#operators1">operators&lt;&gt;</a></code>
+    template adds more than a dozen additional operators, such as
+    <code>operator&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>, and
+    (binary) <code>+</code>. <a href="#two_arg">Two-argument forms</a> of the
+    templates are also provided to allow interaction with other types.</p>
+
+    <h3>Summary of Template <a name="semantics">Semantics</a></h3>
+
+    <ol>
+      <li>Each operator template completes the concept(s) it describes by
+      defining overloaded operators for its target class.</li>
+
+      <li>The name of an operator class template indicates the <a href=
+      "#concepts_note">concept</a> that its target class will model.</li>
+
+      <li>Usually, the target class uses an instantation of the operator
+      class template as a base class. Some operator templates support an <a
+      href="#explicit_instantiation">alternate method</a>.</li>
+
+      <li>The concept can be compound, <i>i.e.</i> it may represent a common
+      combination of other, simpler concepts.</li>
+
+      <li>Most operator templates require their target class to support
+      operations related to the operators supplied by the template. In
+      accordance with widely accepted <a href=
+      "http://www.gotw.ca/gotw/004.htm">coding style recommendations</a>, the
+      target class is often required to supply the assignment counterpart
+      operator of the concept's "main operator." For example, the
+      <code>addable</code> template requires <code>operator+=(T
+      const&amp;)</code> and in turn supplies <code>operator+(T const&amp;, T
+      const&amp;)</code>.</li>
+    </ol>
+
+    <h3>Use of <i><a name="concepts_note">concepts</a></i></h3>
+
+    <p>The discussed concepts are not necessarily the standard library's
+    concepts (CopyConstructible, <i>etc.</i>), although some of them could
+    be; they are what we call <i>concepts with a small 'c'</i>. In
+    particular, they are different from the former ones in that they <em>do
+    not</em> describe precise semantics of the operators they require to be
+    defined, except the requirements that (a) the semantics of the operators
+    grouped in one concept should be consistent (<i>e.g.</i> effects of
+    evaluating of <code>a += b</code> and
+    <code>a&nbsp;=&nbsp;a&nbsp;+&nbsp;b</code> expressions should be the
+    same), and (b) that the return types of the operators should follow
+    semantics of return types of corresponding operators for built-in types
+    (<i>e.g.</i> <code>operator&lt;</code> should return a type convertible
+    to <code>bool</code>, and <code>T::operator-=</code> should return type
+    convertible to <code>T</code>). Such "loose" requirements make operators
+    library applicable to broader set of target classes from different
+    domains, <i>i.e.</i> eventually more useful.</p>
+
+    <h2><a name="usage">Usage</a></h2>
+
+    <h3><a name="two_arg">Two-Argument</a> Template Forms</h3>
+
+    <h4><a name="two_arg_gen">General Considerations</a></h4>
+
+    <p>The arguments to a binary operator commonly have identical types, but
+    it is not unusual to want to define operators which combine different
+    types. For <a href="#example">example</a>, one might want to multiply a
+    mathematical vector by a scalar. The two-argument template forms of the
+    arithmetic operator templates are supplied for this purpose. When
+    applying the two-argument form of a template, the desired return type of
+    the operators typically determines which of the two types in question
+    should be derived from the operator template. For example, if the result
+    of <code>T&nbsp;+&nbsp;U</code> is of type <code>T</code>, then
+    <code>T</code> (not <code>U</code>) should be derived from <code><a href=
+    "#addable2">addable&lt;T, U&gt;</a></code>. The comparison templates
+    (<code><a href="#less_than_comparable2">less_than_comparable&lt;T,
+    U&gt;</a></code>, <code><a href=
+    "#equality_comparable2">equality_comparable&lt;T, U&gt;</a></code>,
+    <code><a href="#equivalent2">equivalent&lt;T, U&gt;</a></code>, and
+    <code><a href="#partially_ordered2">partially_ordered&lt;T,
+    U&gt;</a></code>) are exceptions to this guideline, since the return type
+    of the operators they define is <code>bool</code>.</p>
+
+    <p>On compilers which do not support partial specialization, the
+    two-argument forms must be specified by using the names shown below with
+    the trailing <code>'2'</code>. The single-argument forms with the
+    trailing <code>'1'</code> are provided for symmetry and to enable certain
+    applications of the <a href="#chaining">base class chaining</a>
+    technique.</p>
+
+    <h4><a name="mixed_arithmetics">Mixed Arithmetics</a></h4>
+
+    <p>Another application of the two-argument template forms is for mixed
+    arithmetics between a type <code>T</code> and a type <code>U</code> that
+    is convertible to <code>T</code>. In this case there are two ways where
+    the two-argument template forms are helpful: one is to provide the
+    respective signatures for operator overloading, the second is
+    performance.</p>
+
+    <p>With respect to the operator overloading assume <i>e.g.</i> that
+    <code>U</code> is <code>int</code>, that <code>T</code> is an
+    user-defined unlimited integer type, and that <code>double
+    operator-(double, const T&amp;)</code> exists. If one wants to compute
+    <code>int - T</code> and does not provide <code>T operator-(int, const
+    T&amp;)</code>, the compiler will consider <code>double operator-(double,
+    const T&amp;)</code> to be a better match than <code>T operator-(const
+    T&amp;, const T&amp;)</code>, which will probably be different from the
+    user's intention. To define a complete set of operator signatures,
+    additional 'left' forms of the two-argument template forms are provided
+    (<code><a href="#subtractable2_left">subtractable2_left&lt;T,
+    U&gt;</a></code>, <code><a href="#dividable2_left">dividable2_left&lt;T,
+    U&gt;</a></code>, <code><a href="#modable2_left">modable2_left&lt;T,
+    U&gt;</a></code>) that define the signatures for non-commutative
+    operators where <code>U</code> appears on the left hand side
+    (<code>operator-(const U&amp;, const T&amp;)</code>,
+    <code>operator/(const U&amp;, const T&amp;)</code>, <code>operator%(const
+    U&amp;, const T&amp;)</code>).</p>
+
+    <p>With respect to the performance observe that when one uses the single
+    type binary operator for mixed type arithmetics, the type <code>U</code>
+    argument has to be converted to type <code>T</code>. In practice,
+    however, there are often more efficient implementations of, say
+    <code>T::operator-=(const U&amp;)</code> that avoid unnecessary
+    conversions from <code>U</code> to <code>T</code>. The two-argument
+    template forms of the arithmetic operator create additional operator
+    interfaces that use these more efficient implementations. There is,
+    however, no performance gain in the 'left' forms: they still need a
+    conversion from <code>U</code> to <code>T</code> and have an
+    implementation equivalent to the code that would be automatically created
+    by the compiler if it considered the single type binary operator to be
+    the best match.</p>
+
+    <h3>Base Class <a name="chaining">Chaining</a> and Object Size</h3>
+
+    <p>Every operator class template, except the <a href=
+    "#ex_oprs">arithmetic examples</a> and the <a href="#iterator">iterator
+    helpers</a>, has an additional, but optional, template type parameter
+    <code>B</code>. This parameter will be a publicly-derived base class of
+    the instantiated template. This means it must be a class type. It can be
+    used to avoid the bloating of object sizes that is commonly associated
+    with multiple-inheritance from several empty base classes (see the <a
+    href="#old_lib_note">note for users of older versions</a> for more
+    details). To provide support for a group of operators, use the
+    <code>B</code> parameter to chain operator templates into a single-base
+    class hierarchy, demostrated in the <a href="#example">usage example</a>.
+    The technique is also used by the composite operator templates to group
+    operator definitions. If a chain becomes too long for the compiler to
+    support, try replacing some of the operator templates with a single
+    grouped operator template that chains the old templates together; the
+    length limit only applies to the number of templates directly in the
+    chain, not those hidden in group templates.</p>
+
+    <p><strong>Caveat:</strong> to chain to a base class which is
+    <em>not</em> a Boost operator template when using the <a href=
+    "#two_arg">single-argument form</a> of a Boost operator template, you
+    must specify the operator template with the trailing <code>'1'</code> in
+    its name. Otherwise the library will assume you mean to define a binary
+    operation combining the class you intend to use as a base class and the
+    class you're deriving.</p>
+
+    <h3>Separate, <a name="explicit_instantiation">Explicit
+    Instantiation</a></h3>
+
+    <p>On some compilers (<i>e.g.</i> Borland, GCC) even single-inheritance
+    seems to cause an increase in object size in some cases. If you are not
+    defining a class template, you may get better object-size performance by
+    avoiding derivation altogether, and instead explicitly instantiating the
+    operator template as follows:</p>
+
+    <blockquote>
+<pre>
+    class myclass // lose the inheritance...
+    {
+        //...
+    };
+
+    // explicitly instantiate the operators I need.
+    template struct less_than_comparable&lt;myclass&gt;;
+    template struct equality_comparable&lt;myclass&gt;;
+    template struct incrementable&lt;myclass&gt;;
+    template struct decrementable&lt;myclass&gt;;
+    template struct addable&lt;myclass,long&gt;;
+    template struct subtractable&lt;myclass,long&gt;;
+</pre>
+    </blockquote>
+
+    <p>Note that some operator templates cannot use this workaround and must
+    be a base class of their primary operand type. Those templates define
+    operators which must be member functions, and the workaround needs the
+    operators to be independent friend functions. The relevant templates
+    are:</p>
+
+    <ul>
+      <li><code><a href=
+      "#dereferenceable">dereferenceable&lt;&gt;</a></code></li>
+
+      <li><code><a href="#indexable">indexable&lt;&gt;</a></code></li>
+
+      <li>Any composite operator template that includes at least one of the
+      above</li>
+    </ul>
+
+    <p>As Daniel Kr&uuml;gler pointed out, this technique violates 14.6.5/2
+    and is thus non-portable. The reasoning is, that the operators injected
+    by the instantiation of e.g.
+    <code>less_than_comparable&lt;myclass&gt;</code> can not be found
+    by ADL according to the rules given by 3.4.2/2, since myclass is
+    not an associated class of
+    <code>less_than_comparable&lt;myclass&gt;</code>.
+    Thus only use this technique if all else fails.</p>
+
+    <h3>Requirement <a name="portability">Portability</a></h3>
+
+    <p>Many compilers (<i>e.g.</i> MSVC 6.3, GCC 2.95.2) will not enforce the
+    requirements in the operator template tables unless the operations which
+    depend on them are actually used. This is not standard-conforming
+    behavior. In particular, although it would be convenient to derive all
+    your classes which need binary operators from the <code><a href=
+    "#operators1">operators&lt;&gt;</a></code> and <code><a href=
+    "#operators2">operators2&lt;&gt;</a></code> templates, regardless of
+    whether they implement all the requirements of those templates, this
+    shortcut is not portable. Even if this currently works with your
+    compiler, it may not work later.</p>
+
+    <h2><a name="example">Example</a></h2>
+
+    <p>This example shows how some of the <a href="#arithmetic">arithmetic
+    operator templates</a> can be used with a geometric point class
+    (template).</p>
+<pre>
+template &lt;class T&gt;
+class point    // note: private inheritance is OK here!
+    : boost::addable&lt; point&lt;T&gt;          // point + point
+    , boost::subtractable&lt; point&lt;T&gt;     // point - point
+    , boost::dividable2&lt; point&lt;T&gt;, T    // point / T
+    , boost::multipliable2&lt; point&lt;T&gt;, T // point * T, T * point
+      &gt; &gt; &gt; &gt;
+{
+public:
+    point(T, T);
+    T x() const;
+    T y() const;
+
+    point operator+=(const point&amp;);
+    // point operator+(point, const point&amp;) automatically
+    // generated by addable.
+
+    point operator-=(const point&amp;);
+    // point operator-(point, const point&amp;) automatically
+    // generated by subtractable.
+
+    point operator*=(T);
+    // point operator*(point, const T&amp;) and
+    // point operator*(const T&amp;, point) auto-generated
+    // by multipliable.
+
+    point operator/=(T);
+    // point operator/(point, const T&amp;) auto-generated
+    // by dividable.
+private:
+    T x_;
+    T y_;
+};
+
+// now use the point&lt;&gt; class:
+
+template &lt;class T&gt;
+T length(const point&lt;T&gt; p)
+{
+    return sqrt(p.x()*p.x() + p.y()*p.y());
+}
+
+const point&lt;float&gt; right(0, 1);
+const point&lt;float&gt; up(1, 0);
+const point&lt;float&gt; pi_over_4 = up + right;
+const point&lt;float&gt; pi_over_4_normalized = pi_over_4 / length(pi_over_4);
+</pre>
+
+    <h2><a name="arithmetic">Arithmetic</a> Operators</h2>
+
+    <p>The arithmetic operator templates ease the task of creating a custom
+    numeric type. Given a core set of operators, the templates add related
+    operators to the numeric class. These operations are like the ones the
+    standard arithmetic types have, and may include comparisons, adding,
+    incrementing, logical and bitwise manipulations, <i>etc</i>. Further,
+    since most numeric types need more than one of these operators, some
+    templates are provided to combine several of the basic operator templates
+    in one declaration.</p>
+
+    <p>The requirements for the types used to instantiate the simple operator
+    templates are specified in terms of expressions which must be valid and
+    the expression's return type. The composite operator templates only list
+    what other templates they use. The supplied operations and requirements
+    of the composite operator templates can be inferred from the operations
+    and requirements of the listed components.</p>
+
+    <h3><a name="smpl_oprs">Simple Arithmetic Operators</a></h3>
+
+    <p>These templates are "simple" since they provide operators based on a
+    single operation the base type has to provide. They have an additional
+    optional template parameter <code>B</code>, which is not shown, for the
+    <a href="#chaining">base class chaining</a> technique.</p>
+
+    <p>The primary operand type <code>T</code> needs to be of class type,
+    built-in types are not supported.</p>
+
+    <table cellpadding="5" border="1" align="center">
+      <caption>
+        Simple Arithmetic Operator Template Classes
+      </caption>
+
+      <tr>
+        <td colspan="3">
+          <table align="center" border="1">
+            <caption>
+              <em>Key</em>
+            </caption>
+
+            <tr>
+              <td><code>T</code>: primary operand type</td>
+
+              <td><code>U</code>: alternate operand type</td>
+            </tr>
+
+            <tr>
+              <td><code>t</code>, <code>t1</code>: values of type
+              <code>T</code></td>
+
+              <td><code>u</code>: value of type <code>U</code></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr>
+        <th>Template</th>
+
+        <th>Supplied Operations</th>
+
+        <th>Requirements</th>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "less_than_comparable1">less_than_comparable&lt;T&gt;</a></code><br>
+         <code>less_than_comparable1&lt;T&gt;</code></td>
+
+        <td><code>bool operator&gt;(const T&amp;, const T&amp;)</code><br>
+         <code>bool operator&lt;=(const T&amp;, const T&amp;)</code><br>
+         <code>bool operator&gt;=(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>t &lt; t1</code>.<br>
+         Return convertible to <code>bool</code>. See the <a href=
+        "#ordering">Ordering Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="less_than_comparable2">less_than_comparable&lt;T,
+        U&gt;</a></code><br>
+         <code>less_than_comparable2&lt;T, U&gt;</code></td>
+
+        <td><code>bool operator&lt;=(const T&amp;, const U&amp;)</code><br>
+         <code>bool operator&gt;=(const T&amp;, const U&amp;)</code><br>
+         <code>bool operator&gt;(const U&amp;, const T&amp;)</code><br>
+         <code>bool operator&lt;(const U&amp;, const T&amp;)</code><br>
+         <code>bool operator&lt;=(const U&amp;, const T&amp;)</code><br>
+         <code>bool operator&gt;=(const U&amp;, const T&amp;)</code></td>
+
+        <td><code>t &lt; u</code>. <code>t &gt; u</code>.<br>
+         Returns convertible to <code>bool</code>. See the <a href=
+        "#ordering">Ordering Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "equality_comparable1">equality_comparable&lt;T&gt;</a></code><br>
+         <code>equality_comparable1&lt;T&gt;</code></td>
+
+        <td><code>bool operator!=(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>t == t1</code>.<br>
+         Return convertible to <code>bool</code>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="equality_comparable2">equality_comparable&lt;T,
+        U&gt;</a></code><br>
+         <code>equality_comparable2&lt;T, U&gt;</code></td>
+
+        <td><code>bool operator==(const U&amp;, const T&amp;)</code><br>
+         <code>bool operator!=(const U&amp;, const T&amp;)</code><br>
+         <code>bool operator!=(const T&amp;, const U&amp;)</code></td>
+
+        <td><code>t == u</code>.<br>
+         Return convertible to <code>bool</code>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="addable1">addable&lt;T&gt;</a></code><br>
+         <code>addable1&lt;T&gt;</code></td>
+
+        <td><code>T operator+(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp += t1</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="addable2">addable&lt;T, U&gt;</a></code><br>
+         <code>addable2&lt;T, U&gt;</code></td>
+
+        <td><code>T operator+(const T&amp;, const U&amp;)</code><br>
+         <code>T operator+(const U&amp;, const T&amp; )</code></td>
+
+        <td><code>T temp(t); temp += u</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "subtractable1">subtractable&lt;T&gt;</a></code><br>
+         <code>subtractable1&lt;T&gt;</code></td>
+
+        <td><code>T operator-(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp -= t1</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="subtractable2">subtractable&lt;T,
+        U&gt;</a></code><br>
+         <code>subtractable2&lt;T, U&gt;</code></td>
+
+        <td><code>T operator-(const T&amp;, const U&amp;)</code></td>
+
+        <td><code>T temp(t); temp -= u</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="subtractable2_left">subtractable2_left&lt;T,
+        U&gt;</a></code></td>
+
+        <td><code>T operator-(const U&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(u); temp -= t</code>.<br>
+         Return convertible to <code>T</code>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "multipliable1">multipliable&lt;T&gt;</a></code><br>
+         <code>multipliable1&lt;T&gt;</code></td>
+
+        <td><code>T operator*(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp *= t1</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="multipliable2">multipliable&lt;T,
+        U&gt;</a></code><br>
+         <code>multipliable2&lt;T, U&gt;</code></td>
+
+        <td><code>T operator*(const T&amp;, const U&amp;)</code><br>
+         <code>T operator*(const U&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp *= u</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="dividable1">dividable&lt;T&gt;</a></code><br>
+         <code>dividable1&lt;T&gt;</code></td>
+
+        <td><code>T operator/(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp /= t1</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="dividable2">dividable&lt;T, U&gt;</a></code><br>
+         <code>dividable2&lt;T, U&gt;</code></td>
+
+        <td><code>T operator/(const T&amp;, const U&amp;)</code></td>
+
+        <td><code>T temp(t); temp /= u</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="dividable2_left">dividable2_left&lt;T,
+        U&gt;</a></code></td>
+
+        <td><code>T operator/(const U&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(u); temp /= t</code>.<br>
+         Return convertible to <code>T</code>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="modable1">modable&lt;T&gt;</a></code><br>
+         <code>modable1&lt;T&gt;</code></td>
+
+        <td><code>T operator%(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp %= t1</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="modable2">modable&lt;T, U&gt;</a></code><br>
+         <code>modable2&lt;T, U&gt;</code></td>
+
+        <td><code>T operator%(const T&amp;, const U&amp;)</code></td>
+
+        <td><code>T temp(t); temp %= u</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="modable2_left">modable2_left&lt;T,
+        U&gt;</a></code></td>
+
+        <td><code>T operator%(const U&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(u); temp %= t</code>.<br>
+         Return convertible to <code>T</code>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="orable1">orable&lt;T&gt;</a></code><br>
+         <code>orable1&lt;T&gt;</code></td>
+
+        <td><code>T operator|(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp |= t1</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="orable2">orable&lt;T, U&gt;</a></code><br>
+         <code>orable2&lt;T, U&gt;</code></td>
+
+        <td><code>T operator|(const T&amp;, const U&amp;)</code><br>
+         <code>T operator|(const U&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp |= u</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="andable1">andable&lt;T&gt;</a></code><br>
+         <code>andable1&lt;T&gt;</code></td>
+
+        <td><code>T operator&amp;(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp &amp;= t1</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="andable2">andable&lt;T, U&gt;</a></code><br>
+         <code>andable2&lt;T, U&gt;</code></td>
+
+        <td><code>T operator&amp;(const T&amp;, const U&amp;)</code><br>
+         <code>T operator&amp;(const U&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp &amp;= u</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="xorable1">xorable&lt;T&gt;</a></code><br>
+         <code>xorable1&lt;T&gt;</code></td>
+
+        <td><code>T operator^(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp ^= t1</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="xorable2">xorable&lt;T, U&gt;</a></code><br>
+         <code>xorable2&lt;T, U&gt;</code></td>
+
+        <td><code>T operator^(const T&amp;, const U&amp;)</code><br>
+         <code>T operator^(const U&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp ^= u</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "incrementable">incrementable&lt;T&gt;</a></code></td>
+
+        <td><code>T operator++(T&amp;, int)</code></td>
+
+        <td><code>T temp(t); ++t</code><br>
+         Return convertible to <code>T</code>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "decrementable">decrementable&lt;T&gt;</a></code></td>
+
+        <td><code>T operator--(T&amp;, int)</code></td>
+
+        <td><code>T temp(t); --t;</code><br>
+         Return convertible to <code>T</code>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "left_shiftable1">left_shiftable&lt;T&gt;</a></code><br>
+         <code>left_shiftable1&lt;T&gt;</code></td>
+
+        <td><code>T operator&lt;&lt;(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp &lt;&lt;= t1</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="left_shiftable2">left_shiftable&lt;T,
+        U&gt;</a></code><br>
+         <code>left_shiftable2&lt;T, U&gt;</code></td>
+
+        <td><code>T operator&lt;&lt;(const T&amp;, const U&amp;)</code></td>
+
+        <td><code>T temp(t); temp &lt;&lt;= u</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "right_shiftable1">right_shiftable&lt;T&gt;</a></code><br>
+         <code>right_shiftable1&lt;T&gt;</code></td>
+
+        <td><code>T operator&gt;&gt;(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>T temp(t); temp &gt;&gt;= t1</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="right_shiftable2">right_shiftable&lt;T,
+        U&gt;</a></code><br>
+         <code>right_shiftable2&lt;T, U&gt;</code></td>
+
+        <td><code>T operator&gt;&gt;(const T&amp;, const U&amp;)</code></td>
+
+        <td><code>T temp(t); temp &gt;&gt;= u</code>.<br>
+         Return convertible to <code>T</code>. See the <a href=
+        "#symmetry">Symmetry Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="equivalent1">equivalent&lt;T&gt;</a></code><br>
+         <code>equivalent1&lt;T&gt;</code></td>
+
+        <td><code>bool operator==(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>t &lt; t1</code>.<br>
+         Return convertible to <code>bool</code>. See the <a href=
+        "#ordering">Ordering Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="equivalent2">equivalent&lt;T, U&gt;</a></code><br>
+         <code>equivalent2&lt;T, U&gt;</code></td>
+
+        <td><code>bool operator==(const T&amp;, const U&amp;)</code></td>
+
+        <td><code>t &lt; u</code>. <code>t &gt; u</code>.<br>
+         Returns convertible to <code>bool</code>. See the <a href=
+        "#ordering">Ordering Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "partially_ordered1">partially_ordered&lt;T&gt;</a></code><br>
+         <code>partially_ordered1&lt;T&gt;</code></td>
+
+        <td><code>bool operator&gt;(const T&amp;, const T&amp;)</code><br>
+         <code>bool operator&lt;=(const T&amp;, const T&amp;)</code><br>
+         <code>bool operator&gt;=(const T&amp;, const T&amp;)</code></td>
+
+        <td><code>t &lt; t1</code>. <code>t == t1</code>.<br>
+         Returns convertible to <code>bool</code>. See the <a href=
+        "#ordering">Ordering Note</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="partially_ordered2">partially_ordered&lt;T,
+        U&gt;</a></code><br>
+         <code>partially_ordered2&lt;T, U&gt;</code></td>
+
+        <td><code>bool operator&lt;=(const T&amp;, const U&amp;)</code><br>
+         <code>bool operator&gt;=(const T&amp;, const U&amp;)</code><br>
+         <code>bool operator&gt;(const U&amp;, const T&amp;)</code><br>
+         <code>bool operator&lt;(const U&amp;, const T&amp;)</code><br>
+         <code>bool operator&lt;=(const U&amp;, const T&amp;)</code><br>
+         <code>bool operator&gt;=(const U&amp;, const T&amp;)</code></td>
+
+        <td><code>t &lt; u</code>. <code>t &gt; u</code>. <code>t ==
+        u</code>.<br>
+         Returns convertible to <code>bool</code>. See the <a href=
+        "#ordering">Ordering Note</a>.</td>
+      </tr>
+    </table>
+
+    <h4><a name="ordering">Ordering</a> Note</h4>
+
+    <p>The <code><a href=
+    "#less_than_comparable1">less_than_comparable&lt;T&gt;</a></code> and
+    <code><a href="#partially_ordered1">partially_ordered&lt;T&gt;</a></code>
+    templates provide the same set of operations. However, the workings of
+    <code><a href=
+    "#less_than_comparable1">less_than_comparable&lt;T&gt;</a></code> assume
+    that all values of type <code>T</code> can be placed in a total order. If
+    that is not true (<i>e.g.</i> Not-a-Number values in IEEE floating point
+    arithmetic), then <code><a href=
+    "#partially_ordered1">partially_ordered&lt;T&gt;</a></code> should be
+    used. The <code><a href=
+    "#partially_ordered1">partially_ordered&lt;T&gt;</a></code> template can
+    be used for a totally-ordered type, but it is not as efficient as
+    <code><a href=
+    "#less_than_comparable1">less_than_comparable&lt;T&gt;</a></code>. This
+    rule also applies for <code><a href=
+    "#less_than_comparable2">less_than_comparable&lt;T, U&gt;</a></code> and
+    <code><a href="#partially_ordered2">partially_ordered&lt;T,
+    U&gt;</a></code> with respect to the ordering of all <code>T</code> and
+    <code>U</code> values, and for both versions of <code><a href=
+    "#equivalent1">equivalent&lt;&gt;</a></code>. The solution for <code><a
+    href="#equivalent1">equivalent&lt;&gt;</a></code> is to write a custom
+    <code>operator==</code> for the target class.</p>
+
+    <h4><a name="symmetry">Symmetry</a> Note</h4>
+
+    <p>Before talking about symmetry, we need to talk about optimizations to
+    understand the reasons for the different implementation styles of
+    operators. Let's have a look at <code>operator+</code> for a class
+    <code>T</code> as an example:</p>
+<pre>
+T operator+( const T&amp; lhs, const T&amp; rhs )
+{
+   return T( lhs ) += rhs;
+}
+</pre>
+    This would be a normal implementation of <code>operator+</code>, but it
+    is not an efficient one. An unnamed local copy of <code>lhs</code> is
+    created, <code>operator+=</code> is called on it and it is copied to the
+    function return value (which is another unnamed object of type
+    <code>T</code>). The standard doesn't generally allow the intermediate
+    object to be optimized away:
+
+    <blockquote>
+      3.7.2/2: Automatic storage duration<br>
+      <br>
+       If a named automatic object has initialization or a destructor with
+      side effects, it shall not be destroyed before the end of its block,
+      nor shall it be eliminated as an optimization even if it appears to be
+      unused, except that a class object or its copy may be eliminated as
+      specified in 12.8.
+    </blockquote>
+    The reference to 12.8 is important for us:
+
+    <blockquote>
+      12.8/15: Copying class objects<br>
+       ...<br>
+       For a function with a class return type, if the expression in the
+      return statement is the name of a local object, and the cv-unqualified
+      type of the local object is the same as the function return type, an
+      implementation is permitted to omit creating the temporary object to
+      hold the function return value, even if the class copy constructor or
+      destructor has side effects.
+    </blockquote>
+    This optimization is known as the named return value optimization (NRVO),
+    which leads us to the following implementation for
+    <code>operator+</code>:
+<pre>
+T operator+( const T&amp; lhs, const T&amp; rhs )
+{
+   T nrv( lhs );
+   nrv += rhs;
+   return nrv;
+}
+</pre>
+    Given this implementation, the compiler is allowed to remove the
+    intermediate object. Sadly, not all compiler implement the NRVO, some
+    even implement it in an incorrect way which makes it useless here.
+    Without the NRVO, the NRVO-friendly code is no worse than the original
+    code showed above, but there is another possible implementation, which
+    has some very special properties:
+<pre>
+T operator+( T lhs, const T&amp; rhs )
+{
+   return lhs += rhs;
+}
+</pre>
+    The difference to the first implementation is that <code>lhs</code> is
+    not taken as a constant reference used to create a copy; instead,
+    <code>lhs</code> is a by-value parameter, thus it is already the copy
+    needed. This allows another optimization (12.2/2) for some cases.
+    Consider <code>a&nbsp;+&nbsp;b&nbsp;+&nbsp;c</code> where the result of
+    <code>a&nbsp;+&nbsp;b</code> is not copied when used as <code>lhs</code>
+    when adding <code>c</code>. This is more efficient than the original
+    code, but not as efficient as a compiler using the NRVO. For most people,
+    it is still preferable for compilers that don't implement the NRVO, but
+    the <code>operator+</code> now has a different function signature. Also,
+    the number of objects created differs for
+    <code>(a&nbsp;+&nbsp;b&nbsp;)&nbsp;+&nbsp;c</code> and
+    <code>a&nbsp;+&nbsp;(&nbsp;b&nbsp;+&nbsp;c&nbsp;)</code>. Most probably,
+    this won't be a problem for you, but if your code relies on the function
+    signature or a strict symmetric behaviour, you should set
+    <code>BOOST_FORCE_SYMMETRIC_OPERATORS</code> in your user-config. This
+    will force the NRVO-friendly implementation to be used even for compilers
+    that don't implement the NRVO. <br>
+     <br>
+
+    <h3><a name="grpd_oprs">Grouped Arithmetic Operators</a></h3>
+
+    <p>The following templates provide common groups of related operations.
+    For example, since a type which is addable is usually also subractable,
+    the <code><a href="#additive1">additive</a></code> template provides the
+    combined operators of both. The grouped operator templates have an
+    additional optional template parameter <code>B</code>, which is not
+    shown, for the <a href="#chaining">base class chaining</a> technique.</p>
+
+    <table cellpadding="5" border="1" align="center">
+      <caption>
+        Grouped Arithmetic Operator Template Classes
+      </caption>
+
+      <tr>
+        <td colspan="2">
+          <table align="center" border="1">
+            <caption>
+              <em>Key</em>
+            </caption>
+
+            <tr>
+              <td><code>T</code>: primary operand type</td>
+
+              <td><code>U</code>: alternate operand type</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr>
+        <th>Template</th>
+
+        <th>Component Operator Templates</th>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "totally_ordered1">totally_ordered&lt;T&gt;</a></code><br>
+         <code>totally_ordered1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#less_than_comparable1">less_than_comparable&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#equality_comparable1">equality_comparable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="totally_ordered2">totally_ordered&lt;T,
+        U&gt;</a></code><br>
+         <code>totally_ordered2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#less_than_comparable2">less_than_comparable&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href=
+            "#equality_comparable2">equality_comparable&lt;T,
+            U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="additive1">additive&lt;T&gt;</a></code><br>
+         <code>additive1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#addable1">addable&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#subtractable1">subtractable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="additive2">additive&lt;T, U&gt;</a></code><br>
+         <code>additive2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#addable2">addable&lt;T, U&gt;</a></code></li>
+
+            <li><code><a href="#subtractable2">subtractable&lt;T,
+            U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "multiplicative1">multiplicative&lt;T&gt;</a></code><br>
+         <code>multiplicative1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#multipliable1">multipliable&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#dividable1">dividable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="multiplicative2">multiplicative&lt;T,
+        U&gt;</a></code><br>
+         <code>multiplicative2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#multipliable2">multipliable&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#dividable2">dividable&lt;T,
+            U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "integer_multiplicative1">integer_multiplicative&lt;T&gt;</a></code><br>
+
+         <code>integer_multiplicative1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#multiplicative1">multiplicative&lt;T&gt;</a></code></li>
+
+            <li><code><a href="#modable1">modable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "integer_multiplicative2">integer_multiplicative&lt;T,
+        U&gt;</a></code><br>
+         <code>integer_multiplicative2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#multiplicative2">multiplicative&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#modable2">modable&lt;T, U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="arithmetic1">arithmetic&lt;T&gt;</a></code><br>
+         <code>arithmetic1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#additive1">additive&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#multiplicative1">multiplicative&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="arithmetic2">arithmetic&lt;T, U&gt;</a></code><br>
+         <code>arithmetic2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#additive2">additive&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#multiplicative2">multiplicative&lt;T,
+            U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "integer_arithmetic1">integer_arithmetic&lt;T&gt;</a></code><br>
+         <code>integer_arithmetic1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#additive1">additive&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#integer_multiplicative1">integer_multiplicative&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="integer_arithmetic2">integer_arithmetic&lt;T,
+        U&gt;</a></code><br>
+         <code>integer_arithmetic2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#additive2">additive&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href=
+            "#integer_multiplicative2">integer_multiplicative&lt;T,
+            U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="bitwise1">bitwise&lt;T&gt;</a></code><br>
+         <code>bitwise1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#xorable1">xorable&lt;T&gt;</a></code></li>
+
+            <li><code><a href="#andable1">andable&lt;T&gt;</a></code></li>
+
+            <li><code><a href="#orable1">orable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="bitwise2">bitwise&lt;T, U&gt;</a></code><br>
+         <code>bitwise2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#xorable2">xorable&lt;T, U&gt;</a></code></li>
+
+            <li><code><a href="#andable2">andable&lt;T, U&gt;</a></code></li>
+
+            <li><code><a href="#orable2">orable&lt;T, U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "unit_steppable">unit_steppable&lt;T&gt;</a></code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#incrementable">incrementable&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#decrementable">decrementable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="shiftable1">shiftable&lt;T&gt;</a></code><br>
+         <code>shiftable1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#left_shiftable1">left_shiftable&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#right_shiftable1">right_shiftable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="shiftable2">shiftable&lt;T, U&gt;</a></code><br>
+         <code>shiftable2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#left_shiftable2">left_shiftable&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#right_shiftable2">right_shiftable&lt;T,
+            U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "ring_operators1">ring_operators&lt;T&gt;</a></code><br>
+         <code>ring_operators1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#additive1">additive&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#multipliable1">multipliable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="ring_operators2">ring_operators&lt;T,
+        U&gt;</a></code><br>
+         <code>ring_operators2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#additive2">additive&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#subtractable2_left">subtractable2_left&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#multipliable2">multipliable&lt;T,
+            U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "ordered_ring_operators1">ordered_ring_operators&lt;T&gt;</a></code><br>
+
+         <code>ordered_ring_operators1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#ring_operators1">ring_operators&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#totally_ordered1">totally_ordered&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "ordered_ring_operators2">ordered_ring_operators&lt;T,
+        U&gt;</a></code><br>
+         <code>ordered_ring_operators2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#ring_operators2">ring_operators&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#totally_ordered2">totally_ordered&lt;T,
+            U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "field_operators1">field_operators&lt;T&gt;</a></code><br>
+         <code>field_operators1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#ring_operators1">ring_operators&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#dividable1">dividable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="field_operators2">field_operators&lt;T,
+        U&gt;</a></code><br>
+         <code>field_operators2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#ring_operators2">ring_operators&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#dividable2">dividable&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#dividable2_left">dividable2_left&lt;T,
+            U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "ordered_field_operators1">ordered_field_operators&lt;T&gt;</a></code><br>
+
+         <code>ordered_field_operators1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#field_operators1">field_operators&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#totally_ordered1">totally_ordered&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "ordered_field_operators2">ordered_field_operators&lt;T,
+        U&gt;</a></code><br>
+         <code>ordered_field_operators2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#field_operators2">field_operators&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#totally_ordered2">totally_ordered&lt;T,
+            U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "euclidean_ring_operators1">euclidean_ring_operators&lt;T&gt;</a></code><br>
+
+         <code>euclidean_ring_operators1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#ring_operators1">ring_operators&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#dividable1">dividable&lt;T&gt;</a></code></li>
+
+            <li><code><a href="#modable1">modable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "euclidean_ring_operators2">euclidean_ring_operators&lt;T,
+        U&gt;</a></code><br>
+         <code>euclidean_ring_operators2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#ring_operators2">ring_operators&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#dividable2">dividable&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#dividable2_left">dividable2_left&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#modable2">modable&lt;T, U&gt;</a></code></li>
+
+            <li><code><a href="#modable2_left">modable2_left&lt;T,
+            U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "ordered_euclidean_ring_operators1">ordered_euclidean_ring_operators&lt;T&gt;</a></code><br>
+
+         <code>ordered_euclidean_ring_operators1&lt;T&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#euclidean_ring_operators1">euclidean_ring_operators&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#totally_ordered1">totally_ordered&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "ordered_euclidean_ring_operators2">ordered_euclidean_ring_operators&lt;T,
+        U&gt;</a></code><br>
+         <code>ordered_euclidean_ring_operators2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#euclidean_ring_operators2">euclidean_ring_operators&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#totally_ordered2">totally_ordered&lt;T,
+            U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+    </table>
+
+    <h4>Spelling: euclidean vs. euclidian</h4>
+
+    <p>Older versions of the Boost.Operators library used
+    &quot;<code>euclidian</code>&quot;, but it was pointed out that
+    &quot;<code>euclidean</code>&quot; is the more common spelling.
+    To be compatible with older version, the library now supports
+    both spellings.
+    </p>
+
+    <h3><a name="ex_oprs">Example</a> Templates</h3>
+
+    <p>The arithmetic operator class templates <code><a href=
+    "#operators1">operators&lt;&gt;</a></code> and <code><a href=
+    "#operators2">operators2&lt;&gt;</a></code> are examples of
+    non-extensible operator grouping classes. These legacy class templates,
+    from previous versions of the header, cannot be used for <a href=
+    "#chaining">base class chaining</a>.</p>
+
+    <table cellpadding="5" border="1" align="center">
+      <caption>
+        Final Arithmetic Operator Template Classes
+      </caption>
+
+      <tr>
+        <td colspan="2">
+          <table align="center" border="1">
+            <caption>
+              <em>Key</em>
+            </caption>
+
+            <tr>
+              <td><code>T</code>: primary operand type</td>
+
+              <td><code>U</code>: alternate operand type</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr>
+        <th>Template</th>
+
+        <th>Component Operator Templates</th>
+      </tr>
+
+      <tr>
+        <td><code><a name="operators1">operators&lt;T&gt;</a></code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#totally_ordered1">totally_ordered&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#integer_arithmetic1">integer_arithmetic&lt;T&gt;</a></code></li>
+
+            <li><code><a href="#bitwise1">bitwise&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#unit_steppable">unit_steppable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="operators2">operators&lt;T, U&gt;</a></code><br>
+         <code>operators2&lt;T, U&gt;</code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#totally_ordered2">totally_ordered&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#integer_arithmetic2">integer_arithmetic&lt;T,
+            U&gt;</a></code></li>
+
+            <li><code><a href="#bitwise2">bitwise&lt;T, U&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+    </table>
+
+    <h3><a name="a_demo">Arithmetic Operators Demonstration</a> and Test
+    Program</h3>
+
+    <p>The <cite><a href="operators_test.cpp">operators_test.cpp</a></cite>
+    program demonstrates the use of the arithmetic operator templates, and
+    can also be used to verify correct operation. Check the compiler status
+    report for the test results with selected platforms.</p>
+
+    <h2><a name="deref">Dereference</a> Operators and Iterator Helpers</h2>
+
+    <p>The <a href="#iterator">iterator helper</a> templates ease the task of
+    creating a custom iterator. Similar to arithmetic types, a complete
+    iterator has many operators that are "redundant" and can be implemented
+    in terms of the core set of operators.</p>
+
+    <p>The <a href="#dereference">dereference operators</a> were motivated by
+    the <a href="#iterator">iterator helpers</a>, but are often useful in
+    non-iterator contexts as well. Many of the redundant iterator operators
+    are also arithmetic operators, so the iterator helper classes borrow many
+    of the operators defined above. In fact, only two new operators need to
+    be defined (the pointer-to-member <code>operator-&gt;</code> and the
+    subscript <code>operator[]</code>)!</p>
+
+    <p>The requirements for the types used to instantiate the dereference
+    operators are specified in terms of expressions which must be valid and
+    their return type. The composite operator templates list their component
+    templates, which the instantiating type must support, and possibly other
+    requirements.</p>
+
+    <h3><a name="dereference">Dereference</a> Operators</h3>
+
+    <p>All the dereference operator templates in this table accept an
+    optional template parameter (not shown) to be used for <a href=
+    "#chaining">base class chaining</a>.</p>
+
+    <table cellpadding="5" border="1" align="center">
+      <caption>
+        Dereference Operator Template Classes
+      </caption>
+
+      <tr>
+        <td colspan="3">
+          <table align="center" border="1">
+            <caption>
+              <em>Key</em>
+            </caption>
+
+            <tr>
+              <td><code>T</code>: operand type</td>
+
+              <td><code>P</code>: <code>pointer</code> type</td>
+            </tr>
+
+            <tr>
+              <td><code>D</code>: <code>difference_type</code></td>
+
+              <td><code>R</code>: <code>reference</code> type</td>
+            </tr>
+
+            <tr>
+              <td><code>i</code>: object of type <code>T</code> (an
+              iterator)</td>
+
+              <td><code>n</code>: object of type <code>D</code> (an
+              index)</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr>
+        <th>Template</th>
+
+        <th>Supplied Operations</th>
+
+        <th>Requirements</th>
+      </tr>
+
+      <tr>
+        <td><code><a name="dereferenceable">dereferenceable&lt;T,
+        P&gt;</a></code></td>
+
+        <td><code>P operator-&gt;() const</code></td>
+
+        <td><code>(&amp;*i)</code>. Return convertible to
+        <code>P</code>.</td>
+      </tr>
+
+      <tr>
+        <td><code><a name="indexable">indexable&lt;T, D,
+        R&gt;</a></code></td>
+
+        <td><code>R operator[](D n) const</code></td>
+
+        <td><code>*(i&nbsp;+&nbsp;n)</code>. Return of type
+        <code>R</code>.</td>
+      </tr>
+    </table>
+
+    <h3><a name="grpd_iter_oprs">Grouped Iterator Operators</a></h3>
+
+    <p>There are five iterator operator class templates, each for a different
+    category of iterator. The following table shows the operator groups for
+    any category that a custom iterator could define. These class templates
+    have an additional optional template parameter <code>B</code>, which is
+    not shown, to support <a href="#chaining">base class chaining</a>.</p>
+
+    <table cellpadding="5" border="1" align="center">
+      <caption>
+        Iterator Operator Class Templates
+      </caption>
+
+      <tr>
+        <td colspan="2">
+          <table align="center" border="1">
+            <caption>
+              <em>Key</em>
+            </caption>
+
+            <tr>
+              <td><code>T</code>: operand type</td>
+
+              <td><code>P</code>: <code>pointer</code> type</td>
+            </tr>
+
+            <tr>
+              <td><code>D</code>: <code>difference_type</code></td>
+
+              <td><code>R</code>: <code>reference</code> type</td>
+            </tr>
+
+            <tr>
+              <td><code>V</code>: <code>value_type</code></td>
+
+              <td>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr>
+        <th>Template</th>
+
+        <th>Component Operator Templates</th>
+      </tr>
+
+      <tr>
+        <td><code><a name="input_iteratable">input_iteratable&lt;T,
+        P&gt;</a></code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#equality_comparable1">equality_comparable&lt;T&gt;</a></code></li>
+
+            <li><code><a href=
+            "#incrementable">incrementable&lt;T&gt;</a></code></li>
+
+            <li><code><a href="#dereferenceable">dereferenceable&lt;T,
+            P&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "output_iteratable">output_iteratable&lt;T&gt;</a></code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#incrementable">incrementable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name="forward_iteratable">forward_iteratable&lt;T,
+        P&gt;</a></code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#input_iteratable">input_iteratable&lt;T,
+            P&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "bidirectional_iteratable">bidirectional_iteratable&lt;T,
+        P&gt;</a></code></td>
+
+        <td>
+          <ul>
+            <li><code><a href="#forward_iteratable">forward_iteratable&lt;T,
+            P&gt;</a></code></li>
+
+            <li><code><a href=
+            "#decrementable">decrementable&lt;T&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr>
+        <td><code><a name=
+        "random_access_iteratable">random_access_iteratable&lt;T, P, D,
+        R&gt;</a></code></td>
+
+        <td>
+          <ul>
+            <li><code><a href=
+            "#bidirectional_iteratable">bidirectional_iteratable&lt;T,
+            P&gt;</a></code></li>
+
+            <li><code><a href=
+            "#totally_ordered1">totally_ordered&lt;T&gt;</a></code></li>
+
+            <li><code><a href="#additive2">additive&lt;T,
+            D&gt;</a></code></li>
+
+            <li><code><a href="#indexable">indexable&lt;T, D,
+            R&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+    </table>
+
+    <h3><a name="iterator">Iterator</a> Helpers</h3>
+
+    <p>There are also five iterator helper class templates, each
+    corresponding to a different iterator category. These classes cannot be
+    used for <a href="#chaining">base class chaining</a>. The following
+    summaries show that these class templates supply both the iterator
+    operators from the <a href="#grpd_iter_oprs">iterator operator class
+    templates</a> and the iterator typedef's required by the C++ standard
+    (<code>iterator_category</code>, <code>value_type</code>,
+    <i>etc.</i>).</p>
+
+    <table cellpadding="5" border="1" align="center">
+      <caption>
+        Iterator Helper Class Templates
+      </caption>
+
+      <tr>
+        <td colspan="2">
+          <table align="center" border="1">
+            <caption>
+              <em>Key</em>
+            </caption>
+
+            <tr>
+              <td><code>T</code>: operand type</td>
+
+              <td><code>P</code>: <code>pointer</code> type</td>
+            </tr>
+
+            <tr>
+              <td><code>D</code>: <code>difference_type</code></td>
+
+              <td><code>R</code>: <code>reference</code> type</td>
+            </tr>
+
+            <tr>
+              <td><code>V</code>: <code>value_type</code></td>
+
+              <td><code>x1, x2</code>: objects of type <code>T</code></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr>
+        <th>Template</th>
+
+        <th>Operations &amp; Requirements</th>
+      </tr>
+
+      <tr valign="baseline">
+        <td><code><a name="input_iterator_helper">input_iterator_helper&lt;T,
+        V, D, P, R&gt;</a></code></td>
+
+        <td>
+          Supports the operations and has the requirements of
+
+          <ul>
+            <li><code><a href="#input_iteratable">input_iteratable&lt;T,
+            P&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr valign="baseline">
+        <td><code><a name=
+        "output_iterator_helper">output_iterator_helper&lt;T&gt;</a></code></td>
+
+        <td>
+          Supports the operations and has the requirements of
+
+          <ul>
+            <li><code><a href=
+            "#output_iteratable">output_iteratable&lt;T&gt;</a></code></li>
+          </ul>
+          See also [<a href="#1">1</a>], [<a href="#2">2</a>].
+        </td>
+      </tr>
+
+      <tr valign="baseline">
+        <td><code><a name=
+        "forward_iterator_helper">forward_iterator_helper&lt;T, V, D, P,
+        R&gt;</a></code></td>
+
+        <td>
+          Supports the operations and has the requirements of
+
+          <ul>
+            <li><code><a href="#forward_iteratable">forward_iteratable&lt;T,
+            P&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr valign="baseline">
+        <td><code><a name=
+        "bidirectional_iterator_helper">bidirectional_iterator_helper&lt;T,
+        V, D, P, R&gt;</a></code></td>
+
+        <td>
+          Supports the operations and has the requirements of
+
+          <ul>
+            <li><code><a href=
+            "#bidirectional_iteratable">bidirectional_iteratable&lt;T,
+            P&gt;</a></code></li>
+          </ul>
+        </td>
+      </tr>
+
+      <tr valign="baseline">
+        <td><code><a name=
+        "random_access_iterator_helper">random_access_iterator_helper&lt;T,
+        V, D, P, R&gt;</a></code></td>
+
+        <td>
+          Supports the operations and has the requirements of
+
+          <ul>
+            <li><code><a href=
+            "#random_access_iteratable">random_access_iteratable&lt;T, P, D,
+            R&gt;</a></code></li>
+          </ul>
+          To satisfy <cite><a href=
+          "http://www.sgi.com/tech/stl/RandomAccessIterator.html">RandomAccessIterator</a></cite>,
+          <code>x1 - x2</code> with return convertible to <code>D</code> is
+          also required.
+        </td>
+      </tr>
+    </table>
+
+    <h4><a name="iterator_helpers_notes">Iterator Helper Notes</a></h4>
+
+    <p><a name="1">[1]</a> Unlike other iterator helpers templates,
+    <code>output_iterator_helper</code> takes only one template parameter -
+    the type of its target class. Although to some it might seem like an
+    unnecessary restriction, the standard requires
+    <code>difference_type</code> and <code>value_type</code> of any output
+    iterator to be <code>void</code> (24.3.1 [lib.iterator.traits]), and
+    <code>output_iterator_helper</code> template respects this requirement.
+    Also, output iterators in the standard have void <code>pointer</code> and
+    <code>reference</code> types, so the <code>output_iterator_helper</code>
+    does the same.</p>
+
+    <p><a name="2">[2]</a> As self-proxying is the easiest and most common
+    way to implement output iterators (see, for example, insert [24.4.2] and
+    stream iterators [24.5] in the standard library),
+    <code>output_iterator_helper</code> supports the idiom by defining
+    <code>operator*</code> and <code>operator++</code> member functions which
+    just return a non-const reference to the iterator itself. Support for
+    self-proxying allows us, in many cases, to reduce the task of writing an
+    output iterator to writing just two member functions - an appropriate
+    constructor and a copy-assignment operator. For example, here is a
+    possible implementation of <code><a href=
+    "../iterator/doc/function_output_iterator.html">boost::function_output_iterator</a></code>
+    adaptor:</p>
+<pre>
+template&lt;class UnaryFunction&gt;
+struct function_output_iterator
+    : boost::output_iterator_helper&lt; function_output_iterator&lt;UnaryFunction&gt; &gt;
+{
+    explicit function_output_iterator(UnaryFunction const&amp; f = UnaryFunction())
+        : func(f) {}
+
+    template&lt;typename T&gt;
+    function_output_iterator&amp; operator=(T const&amp; value)
+    {
+        this-&gt;func(value);
+        return *this;
+    }
+
+ private:
+    UnaryFunction func;
+};
+</pre>
+
+    <p>Note that support for self-proxying does not prevent you from using
+    <code>output_iterator_helper</code> to ease any other, different kind of
+    output iterator's implementation. If
+    <code>output_iterator_helper</code>'s target type provides its own
+    definition of <code>operator*</code> or/and <code>operator++</code>, then
+    these operators will get used and the ones supplied by
+    <code>output_iterator_helper</code> will never be instantiated.</p>
+
+    <h3><a name="i_demo">Iterator Demonstration</a> and Test Program</h3>
+
+    <p>The <cite><a href="iterators_test.cpp">iterators_test.cpp</a></cite>
+    program demonstrates the use of the iterator templates, and can also be
+    used to verify correct operation. The following is the custom iterator
+    defined in the test program. It demonstrates a correct (though trivial)
+    implementation of the core operations that must be defined in order for
+    the iterator helpers to "fill in" the rest of the iterator
+    operations.</p>
+
+    <blockquote>
+<pre>
+template &lt;class T, class R, class P&gt;
+struct test_iter
+  : public boost::random_access_iterator_helper&lt;
+     test_iter&lt;T,R,P&gt;, T, std::ptrdiff_t, P, R&gt;
+{
+  typedef test_iter self;
+  typedef R Reference;
+  typedef std::ptrdiff_t Distance;
+
+public:
+  explicit test_iter(T* i =0);
+  test_iter(const self&amp; x);
+  self&amp; operator=(const self&amp; x);
+  Reference operator*() const;
+  self&amp; operator++();
+  self&amp; operator--();
+  self&amp; operator+=(Distance n);
+  self&amp; operator-=(Distance n);
+  bool operator==(const self&amp; x) const;
+  bool operator&lt;(const self&amp; x) const;
+  friend Distance operator-(const self&amp; x, const self&amp; y);
+};
+</pre>
+    </blockquote>
+
+    <p>Check the <a href="http://www.boost.org/development/testing.html">compiler status
+    report</a> for the test results with selected platforms.</p>
+    <hr>
+
+    <h2><a name="contributors">Contributors</a></h2>
+
+    <dl>
+      <dt><a href="http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a></dt>
+
+      <dd>Started the library and contributed the arithmetic operators in
+      <cite><a href=
+      "../../boost/operators.hpp">boost/operators.hpp</a></cite>.</dd>
+
+      <dt><a href="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a></dt>
+
+      <dd>Contributed the <a href="#deref">dereference operators and iterator
+      helpers</a> in <cite><a href=
+      "../../boost/operators.hpp">boost/operators.hpp</a></cite>. Also
+      contributed <cite><a href=
+      "iterators_test.cpp">iterators_test.cpp</a></cite>.</dd>
+
+      <dt><a href="http://www.boost.org/people/aleksey_gurtovoy.htm">Aleksey
+      Gurtovoy</a></dt>
+
+      <dd>Contributed the code to support <a href="#chaining">base class
+      chaining</a> while remaining backward-compatible with old versions of
+      the library.</dd>
+
+      <dt><a href="http://www.boost.org/people/beman_dawes.html">Beman Dawes</a></dt>
+
+      <dd>Contributed <cite><a href=
+      "operators_test.cpp">operators_test.cpp</a></cite>.</dd>
+
+      <dt><a href="http://www.boost.org/people/daryle_walker.html">Daryle Walker</a></dt>
+
+      <dd>Contributed classes for the shift operators, equivalence, partial
+      ordering, and arithmetic conversions. Added the grouped operator
+      classes. Added helper classes for input and output iterators.</dd>
+
+      <dt>Helmut Zeisel</dt>
+
+      <dd>Contributed the 'left' operators and added some grouped operator
+      classes.</dd>
+
+      <dt>Daniel Frey</dt>
+
+      <dd>Contributed the NRVO-friendly and symmetric implementation of
+      arithmetic operators.</dd>
+
+    </dl>
+
+    <h2>Note for Users of <a name="old_lib_note">Older Versions</a></h2>
+
+    <p>The <a href="#chaining">changes in the library interface and
+    recommended usage</a> were motivated by some practical issues described
+    below. The new version of the library is still backward-compatible with
+    the former one (so you're not <em>forced</em> change any existing code),
+    but the old usage is deprecated. Though it was arguably simpler and more
+    intuitive than using <a href="#chaining">base class chaining</a>, it has
+    been discovered that the old practice of deriving from multiple operator
+    templates can cause the resulting classes to be much larger than they
+    should be. Most modern C++ compilers significantly bloat the size of
+    classes derived from multiple empty base classes, even though the base
+    classes themselves have no state. For instance, the size of
+    <code>point&lt;int&gt;</code> from the <a href="#example">example</a>
+    above was 12-24 bytes on various compilers for the Win32 platform,
+    instead of the expected 8 bytes.</p>
+
+    <p>Strictly speaking, it was not the library's fault--the language rules
+    allow the compiler to apply the empty base class optimization in that
+    situation. In principle an arbitrary number of empty base classes can be
+    allocated at the same offset, provided that none of them have a common
+    ancestor (see section 10.5 [class.derived] paragraph 5 of the standard).
+    But the language definition also doesn't <em>require</em> implementations
+    to do the optimization, and few if any of today's compilers implement it
+    when multiple inheritance is involved. What's worse, it is very unlikely
+    that implementors will adopt it as a future enhancement to existing
+    compilers, because it would break binary compatibility between code
+    generated by two different versions of the same compiler. As Matt Austern
+    said, "One of the few times when you have the freedom to do this sort of
+    thing is when you're targeting a new architecture...". On the other hand,
+    many common compilers will use the empty base optimization for single
+    inheritance hierarchies.</p>
+
+    <p>Given the importance of the issue for the users of the library (which
+    aims to be useful for writing light-weight classes like
+    <code>MyInt</code> or <code>point&lt;&gt;</code>), and the forces
+    described above, we decided to change the library interface so that the
+    object size bloat could be eliminated even on compilers that support only
+    the simplest form of the empty base class optimization. The current
+    library interface is the result of those changes. Though the new usage is
+    a bit more complicated than the old one, we think it's worth it to make
+    the library more useful in real world. Alexy Gurtovoy contributed the
+    code which supports the new usage idiom while allowing the library remain
+    backward-compatible.</p>
+    <hr>
+
+    <p>Revised: 7 Aug 2008</p>
+
+    <p>Copyright &copy; Beman Dawes, David Abrahams, 1999-2001.</p>
+    <p>Copyright &copy; Daniel Frey, 2002-2009.</p>
+    <p>Use, modification, and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file
+    <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or copy at
+    <a href="http://www.boost.org/LICENSE_1_0.txt">
+    www.boost.org/LICENSE_1_0.txt</a>)</p>
+  </body>
+</html>
+

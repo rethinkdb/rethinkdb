@@ -1,0 +1,61 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+
+[section Stiff systems]
+
+[import ../examples/stiff_system.cpp]
+
+An important class of ordinary differential equations are so called stiff
+system which are characterized by two or more time scales of different
+order. Examples of such systems are found in chemical systems where reaction
+rates of individual sub-reaction might differ over large ranges, for example:
+
+['d S[subl 1] / dt = - 101 S[subl 2] - 100 S[subl 1]]
+
+['d S[subl 2] / dt = S[subl 1]]
+
+
+In order to efficiently solve stiff systems numerically the Jacobian
+
+['J = d f[subl i] / d x[subl j]]
+
+is needed. Here is the definition of the above example
+
+[stiff_system_definition]
+
+The state type has to be a `ublas::vector` and the matrix type must by a
+`ublas::matrix` since the stiff integrator only accepts these types. 
+However, you might want use non-stiff integrators on this system, too - we will
+do so later for demonstration. Therefore we want to use the same function also
+with other state_types, realized by templatizing the `operator()`:
+
+[stiff_system_alternative_definition]
+
+Now you can use `stiff_system` in combination with `std::vector` or
+`boost::array`. In the example the explicit time derivative of ['f(x,t)] is
+introduced separately in the Jacobian. If ['df / dt = 0] simply fill `dfdt` with zeros.
+
+A well know solver for stiff systems is the Rosenbrock method. It has a step size control and dense output facilities and can be used like all the other steppers:
+
+[integrate_stiff_system]
+
+During the integration 71 steps have been done. Comparing to a classical Runge-Kutta solver this is a very good result. For example the Dormand-Prince 5 method with step size control and dense output yields 1531 steps.
+
+[integrate_stiff_system_alternative]
+
+Note, that we have used __boost_phoenix, a great functional programming library, to create and compose the observer.
+
+The full example can be found here: [github_link libs/numeric/odeint/examples/stiff_system.cpp stiff_system.cpp]
+
+
+[endsect]

@@ -1,0 +1,84 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Values</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../core.html" title="Core">
+<link rel="prev" href="../core.html" title="Core">
+<link rel="next" href="references.html" title="References">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../core.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="references.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.modules.core.values"></a><a class="link" href="values.html" title="Values">Values</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">value</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Whenever we see a constant in a partially applied function, an
+        </p>
+<pre class="programlisting"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span>
+</pre>
+<p>
+          (where T is the type of the constant) is automatically created for us.
+          For instance:
+        </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="number">6</span><span class="special">)</span>
+</pre>
+<p>
+          Passing a second argument, <code class="computeroutput"><span class="number">6</span></code>,
+          an <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span></code> is implicitly created behind the
+          scenes. This is also equivalent to <code class="computeroutput"><span class="identifier">add</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">val</span><span class="special">(</span><span class="number">6</span><span class="special">))</span></code>.
+        </p>
+<pre class="programlisting"><span class="identifier">val</span><span class="special">(</span><span class="identifier">v</span><span class="special">)</span>
+</pre>
+<p>
+          generates an <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+          where <code class="computeroutput"><span class="identifier">T</span></code> is the type of
+          <code class="computeroutput"><span class="identifier">x</span></code>. In most cases, there's
+          no need to explicitly use <code class="computeroutput"><span class="identifier">val</span></code>,
+          but, as we'll see later on, there are situations where this is unavoidable.
+        </p>
+<h3>
+<a name="phoenix.modules.core.values.h0"></a>
+          <span class="phrase"><a name="phoenix.modules.core.values.evaluating_a_value"></a></span><a class="link" href="values.html#phoenix.modules.core.values.evaluating_a_value">Evaluating
+          a Value</a>
+        </h3>
+<p>
+          Like arguments, values are also actors. As such, values can be evaluated.
+          Invoking a value gives the value's identity. Example:
+        </p>
+<pre class="programlisting"><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)()</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"Hello World"</span><span class="special">)();</span>
+</pre>
+<p>
+          prints out "3 Hello World".
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../core.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="references.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

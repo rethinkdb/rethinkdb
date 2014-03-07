@@ -1,0 +1,130 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:transform Type Traits that Transform One Type to Another]
+
+The following templates transform one type to another, 
+based upon some well-defined rule. 
+Each template has a single member called `type` that is the 
+result of applying the transformation to the template argument `T`.
+
+[*Synopsis:]
+
+   template <class T>
+   struct __add_const;
+
+   template <class T>
+   struct __add_cv;
+
+   template <class T>
+   struct __add_lvalue_reference;
+   
+   template <class T>
+   struct __add_pointer;
+
+   template <class T>
+   struct __add_reference;
+
+   template <class T>
+   struct __add_rvalue_reference;
+   
+   template <class T>
+   struct __add_volatile;
+
+   template <bool B, class T, class U>
+   struct __conditional;
+
+   template <class... T>
+   struct __common_type;
+
+   template <class T>
+   struct __decay;
+
+   template <class T>
+   struct __floating_point_promotion;
+
+   template <class T>
+   struct __integral_promotion;
+
+   template <class T>
+   struct __make_signed;
+
+   template <class T>
+   struct __make_unsigned;
+
+   template <class T>
+   struct __promote;
+
+   template <class T>
+   struct __remove_all_extents;
+
+   template <class T>
+   struct __remove_const;
+
+   template <class T>
+   struct __remove_cv;
+
+   template <class T>
+   struct __remove_extent;
+
+   template <class T>
+   struct __remove_pointer;
+
+   template <class T>
+   struct __remove_reference;
+
+   template <class T>
+   struct __remove_volatile;
+
+[h4 Broken Compiler Workarounds:]
+
+For all of these templates support for partial specialization of class templates is 
+required to correctly implement the transformation. 
+On the other hand, practice shows that many of the templates from this 
+category are very useful, and often essential for implementing some 
+generic libraries. Lack of these templates is often one of the major 
+limiting factors in porting those libraries to compilers that do not yet 
+support this language feature. As some of these compilers are going to be 
+around for a while, and at least one of them is very wide-spread, 
+it was decided that the library should provide workarounds where possible. 
+
+The basic idea behind the workaround is to manually define full 
+specializations of all type transformation templates for all fundamental types, 
+and all their 1st and 2nd rank cv-[un]qualified derivative pointer types, and to 
+provide a user-level macro that will define all the explicit specializations needed 
+for any user-defined type T. 
+
+The first part guarantees the successful compilation of something like this:
+
+   BOOST_STATIC_ASSERT((is_same<char, remove_reference<char&>::type>::value));
+   BOOST_STATIC_ASSERT((is_same<char const, remove_reference<char const&>::type>::value));
+   BOOST_STATIC_ASSERT((is_same<char volatile, remove_reference<char volatile&>::type>::value));
+   BOOST_STATIC_ASSERT((is_same<char const volatile, remove_reference<char const volatile&>::type>::value));
+   BOOST_STATIC_ASSERT((is_same<char*, remove_reference<char*&>::type>::value));
+   BOOST_STATIC_ASSERT((is_same<char const*, remove_reference<char const*&>::type>::value));
+   ...
+   BOOST_STATIC_ASSERT((is_same<char const volatile* const volatile* const volatile, remove_reference<char const volatile* const volatile* const volatile&>::type>::value));
+   
+and the second part provides the library's users with a mechanism to make the 
+above code work not only for `char`, `int` or other built-in type, 
+but for their own types as well:
+
+   namespace myspace{
+      struct MyClass {};
+   }
+   // declare this at global scope:
+   BOOST_BROKEN_COMPILER_TYPE_TRAITS_SPECIALIZATION(myspace::MyClass)
+   // transformations on myspace::MyClass now work:
+   BOOST_STATIC_ASSERT((is_same<myspace::MyClass, remove_reference<myspace::MyClass&>::type>::value));
+   BOOST_STATIC_ASSERT((is_same<myspace::MyClass, remove_const<myspace::MyClass const>::type>::value));
+   // etc.
+   
+Note that the macro BOOST_BROKEN_COMPILER_TYPE_TRAITS_SPECIALIZATION evaluates 
+to nothing on those compilers that *do* support partial specialization.
+
+[endsect]
+

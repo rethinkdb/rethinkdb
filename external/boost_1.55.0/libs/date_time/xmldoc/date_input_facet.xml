@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.date_input_facet">
+  <title>Date Input Facet</title>
+
+  <link linkend="date_input_facet_intro">Introduction</link> -
+  <link linkend="date_input_facet_constr">Construction</link> -
+  <link linkend="date_input_facet_accessors">Accessors</link>
+
+  <anchor id="date_input_facet_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>The <code>boost::date_time::date_input_facet</code> enables users to have significant control how dates (and other gregorian objects) are streamed in. The date_input_facet is typedef'd in the <code>gregorian</code> namespace as <code>date_input_facet</code> and <code>wdate_input_facet</code>. 
+  </para>
+
+  <anchor id="date_input_facet_constr" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry>Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>date_input_facet()</screen></entry>
+            <entry>Default constructor</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>date_input_facet(string_type format)</screen></entry>
+            <entry>Format given will be used for date input. All other formats will use their defaults.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>date_input_facet(...)
+  Parameters:
+    string_type format
+    format_date_parser_type
+    special_values_parser_type
+    period_parser_type
+    date_gen_parser_type</screen></entry>
+            <entry>Format given will be used for date input. The remaining parameters are parser objects. Further details on these objects can be found <link linkend="date_time.io_objects">here</link>.</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="date_input_facet_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>void format(char_type*)</screen></entry>
+            <entry>Set the format for dates.</entry>
+          </row>
+          <row>
+            <entry><screen>date_input_facet* f = 
+    new date_input_facet();
+f->format("%m %d %Y");</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void set_iso_format()</screen></entry>
+            <entry>Sets the date format to ISO</entry>
+          </row>
+          <row>
+            <entry><screen>f->set_iso_format();
+// "%Y%m%d"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void set_iso_extended_format()</screen></entry>
+            <entry>Sets the date format to ISO Extended</entry>
+          </row>
+          <row>
+            <entry><screen>f->set_iso_extended_format();
+// "%Y-%m-%d"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void month_format(char_type*)</screen></entry>
+            <entry>Set the format when 'get'ing months individually.</entry>
+          </row>
+          <row>
+            <entry><screen>f->month_format("%B");
+ss.str("March");
+ss >> m; // March</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void weekday_format(char_type*)</screen></entry>
+            <entry>Set the format when 'get'ing weekdays individually.</entry>
+          </row>
+          <row>
+            <entry><screen>f->weekday_format("%a");
+ss.str("Sun");
+ss >> wd; // Sunday</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void year_format(char_type*)</screen></entry>
+            <entry>Set the format when 'get'ing years individually.</entry>
+          </row>
+          <row>
+            <entry><screen>f->weekday_format("%y");
+ss.str("04");
+ss >> year; // 2004</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void period_parser(...)
+  Parameter:
+    period_parser_type</screen></entry>
+            <entry>Replaces the period parser object with a user created one.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void special_values_parser(...)
+  Parameter:
+    special_values_parser_type</screen></entry>
+            <entry>Replaces the special_values parser object with a user created one.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void date_gen_phrase_strings(...)
+  Parameters:
+    input_collection_type</screen></entry>
+            <entry>Sets new date generator phrase strings in date_gen_parser. The input collection is a vector of strings (for details on these strings see <link linkend="io_objects.date_generators">date generator formatter/parser documentation</link>).</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void short_weekday_names(...)
+  Parameter:
+    input_collection_type</screen></entry>
+            <entry>Replace strings used when 'getting' short weekdays.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void long_weekday_names(...)
+  Parameter:
+    input_collection_type</screen></entry>
+            <entry>Replace strings used when 'getting' long weekdays.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void short_month_names(...)
+  Parameter:
+    input_collection_type</screen></entry>
+            <entry>Replace strings used when 'getting' short months.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void long_month_names(...)
+  Parameter:
+    input_collection_type</screen></entry>
+            <entry>Replace strings used when 'getting' long months.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(...)
+  Common parameters for all 
+  'get' functions:
+    InItrT from
+    InItrT to
+    ios_base
+  Unique parameter for 'get' funcs:
+    gregorian object</screen></entry>
+            <entry>There are 13 get functions in the date_input_facet. The common parameters are: an iterator pointing to the begining of the stream, an iterator pointing to the end of the stream, and an ios_base object. Each unique gregorian object has it's own get function. Each unique get function is described below.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., date)</screen></entry>
+            <entry>Gets a date object from the stream using the format set by <code>format(...)</code> or the default.</entry>
+          </row>
+          <row>
+            <entry><screen>ss.str("2005-Jan-01");
+ss >> d; // default format</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., month)</screen></entry>
+            <entry>Gets a month object from the stream using the format set by <code>month_format(...)</code> or the default.</entry>
+          </row>
+          <row>
+            <entry><screen>ss.str("Feb");
+ss >> m; // default format</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., day_of_week)</screen></entry>
+            <entry>Gets a day of week object from the stream using the format set by <code>weekday_format(...)</code> or the default.</entry>
+          </row>
+          <row>
+            <entry><screen>ss.str("Sun");
+ss >> dow; // default format</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., day)</screen></entry>
+            <entry>Gets a day of month object from the stream as a two digit number.</entry>
+          </row>
+          <row>
+            <entry><screen>"01" // January 1st</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., year)</screen></entry>
+            <entry>Gets a year object from the stream as a number. The number of expected digits depends on the year format.</entry>
+          </row>
+          <row>
+            <entry><screen>ss/str("2005");
+ss >> y; // default format</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., days)</screen></entry>
+            <entry>Gets a days object from the stream as a number.</entry>
+          </row>
+          <row>
+            <entry><screen>ss.str("356");
+ss >> dys; // a full year</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., date_period)</screen></entry>
+            <entry>Gets a date_period from the stream. The format of the dates will use the format set by <code>format(..)</code> or the default date format. The type of period (open or closed range) and the delimiters used are those used by the period_parser.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., partial_date)</screen></entry>
+            <entry>Gets a partial_date date_generator object from the stream. The month format used is set by <code>month_format(..)</code> or the default. The day of month is represented as a two digit number.</entry>
+          </row>
+          <row>
+            <entry><screen>"01 Jan" // default formats
+"01 January" // long month format</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., date_generator)
+  Date Generator Type:
+    nth_day_of_the_week_in_month</screen></entry>
+            <entry>Gets a nth_day_of_the_week_in_month object from the stream. The month format is set by <code>month_format(...)</code> or the default. The weekday format is set by <code>weekday_format(...)</code> or the default. The remaining phrase elements are set in the <link linkend ="io_objects.date_generators">date_generator_parser</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>"third Fri in May" // defaults</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., date_generator)
+  Date Generator Type:
+    first_day_of_the_week_in_month</screen></entry>
+            <entry>Gets a first_day_of_the_week_in_month object from the stream. The month format is set by <code>month_format(...)</code> or the default. The weekday format is set by <code>weekday_format(...)</code> or the default. The remaining phrase elements are set in the <link linkend ="io_objects.date_generators">date_generator_parser</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>"first Wed of Jun" // defaults</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., date_generator)
+  Date Generator Type:
+    last_day_of_the_week_in_month</screen></entry>
+            <entry>Gets a last_day_of_the_week_in_month object from the stream. The month format is set by <code>month_format(...)</code> or the default. The weekday format is set by <code>weekday_format(...)</code> or the default. The remaining phrase elements are set in the <link linkend ="io_objects.date_generators">date_generator_parser</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>"last Tue of Mar" // defaults</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., date_generator)
+  Date Generator Type:
+    first_day_of_the_week_after</screen></entry>
+            <entry>Gets a first_day_of_the_week_after object from the stream. The weekday format is set by <code>weekday_format(...)</code> or the default. The remaining phrase elements are set in the <link linkend ="io_objects.date_generators">date_generator_parser</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>"first Sat after" // defaults</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>InItrT get(..., date_generator)
+  Date Generator Type:
+    first_day_of_the_week_before</screen></entry>
+            <entry>Gets a first_day_of_the_week_before object from the stream. The weekday format is set by <code>weekday_format(...)</code> or the default. The remaining phrase elements are set in the <link linkend ="io_objects.date_generators">date_generator_parser</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>"first Mon before" // defaults</screen></entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+</section>

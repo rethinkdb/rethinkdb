@@ -1,0 +1,7 @@
+foo = Function('opaque::new_C', 'opaque.h')
+set_policy(foo, return_value_policy(return_opaque_pointer))
+foo = Function('opaque::new_C_zero', 'opaque.h')
+set_policy(foo, return_value_policy(return_opaque_pointer)) 
+Function('opaque::get', 'opaque.h' )
+A = Class('opaque::A', 'opaque.h')
+set_policy(A.new_handle, return_value_policy(return_opaque_pointer)) 

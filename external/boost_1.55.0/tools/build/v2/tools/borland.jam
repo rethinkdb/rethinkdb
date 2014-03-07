@@ -1,0 +1,220 @@
+# Copyright 2005 Dave Abrahams 
+# Copyright 2003 Rene Rivera 
+# Copyright 2003, 2004, 2005 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+#  Support for the Borland's command line compiler
+
+import property ;
+import generators ;
+import os ;
+import toolset : flags ;
+import feature : get-values ;
+import type ;
+import common ;
+
+feature.extend toolset : borland ;
+
+rule init ( version ? : command * : options * )
+{
+    local condition = [ common.check-init-parameters borland :
+        version $(version) ] ;
+    
+    local command = [ common.get-invocation-command borland : bcc32.exe 
+        : $(command) ] ;
+     
+    common.handle-options borland : $(condition) : $(command) : $(options) ;    
+    
+    if $(command)
+    {
+        command = [ common.get-absolute-tool-path $(command[-1]) ] ;
+    }   
+    root = $(command:D) ;    
+    
+    flags borland.compile STDHDRS $(condition) : $(root)/include/ ;
+    flags borland.link STDLIBPATH $(condition) : $(root)/lib ;
+    flags borland.link RUN_PATH $(condition) : $(root)/bin ;
+    flags borland .root $(condition) : $(root)/bin/ ;    
+}
+
+
+# A borland-specific target type
+type.register BORLAND.TDS : tds ;
+
+# Declare generators
+
+generators.register-linker borland.link : OBJ SEARCHED_LIB STATIC_LIB IMPORT_LIB : EXE : <toolset>borland ;
+generators.register-linker borland.link.dll : OBJ SEARCHED_LIB STATIC_LIB IMPORT_LIB : SHARED_LIB IMPORT_LIB : <toolset>borland ;
+
+generators.register-archiver borland.archive : OBJ : STATIC_LIB : <toolset>borland ;
+generators.register-c-compiler borland.compile.c++ : CPP : OBJ : <toolset>borland ;
+generators.register-c-compiler borland.compile.c : C : OBJ : <toolset>borland ;
+generators.register-standard borland.asm : ASM : OBJ : <toolset>borland ;
+
+# Declare flags 
+
+flags borland.compile OPTIONS <debug-symbols>on : -v ;
+flags borland.link OPTIONS <debug-symbols>on : -v ;
+
+flags borland.compile OPTIONS <optimization>off : -Od ;
+flags borland.compile OPTIONS <optimization>speed : -O2 ;
+flags borland.compile OPTIONS <optimization>space : -O1 ;
+
+if $(.BORLAND_HAS_FIXED_INLINING_BUGS)
+{
+    flags borland CFLAGS <inlining>off : -vi- ;
+    flags borland CFLAGS <inlining>on : -vi -w-inl ;
+    flags borland CFLAGS <inlining>full : -vi -w-inl ;
+}
+else
+{
+    flags borland CFLAGS : -vi- ;
+}
+
+flags borland.compile OPTIONS <warnings>off : -w- ;
+flags borland.compile OPTIONS <warnings>all : -w ;
+flags borland.compile OPTIONS <warnings-as-errors>on : -w! ;
+
+
+# Deal with various runtime configs...
+
+# This should be not for DLL
+flags borland OPTIONS <user-interface>console : -tWC ;
+
+# -tWR sets -tW as well, so we turn it off here and then turn it 
+# on again later if we need it:
+flags borland OPTIONS <runtime-link>shared : -tWR -tWC ;
+flags borland OPTIONS <user-interface>gui : -tW ;
+
+flags borland OPTIONS <main-target-type>LIB/<link>shared : -tWD ;
+# Hmm.. not sure what's going on here.
+flags borland OPTIONS : -WM- ;
+flags borland OPTIONS <threading>multi : -tWM ;
+
+
+
+flags borland.compile OPTIONS <cxxflags> ;
+flags borland.compile DEFINES <define> ;
+flags borland.compile INCLUDES <include> ;
+
+flags borland NEED_IMPLIB <main-target-type>LIB/<link>shared : "" ;
+
+#
+# for C++ compiles the following options are turned on by default:
+#
+# -j5    stops after 5 errors
+# -g255  allow an unlimited number of warnings
+# -q     no banner
+# -c     compile to object
+# -P     C++ code regardless of file extention
+# -a8    8 byte alignment, this option is on in the IDE by default 
+#        and effects binary compatibility.
+#
+
+# -U$(UNDEFS) -D$(DEFINES) $(CFLAGS) $(C++FLAGS) -I"$(HDRS)"  -I"$(STDHDRS)" -o"$(<)" "$(>)"
+
+
+actions compile.c++
+{
+    "$(CONFIG_COMMAND)" -j5 -g255 -q -c -P -a8 -Vx- -Ve- -b- $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -I"$(STDHDRS)" -o"$(<)" "$(>)"
+}
+
+# For C, we don't pass -P flag
+actions compile.c
+{
+    "$(CONFIG_COMMAND)" -j5 -g255 -q -c -a8 -Vx- -Ve- -b- $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -I"$(STDHDRS)" -o"$(<)" "$(>)"
+}
+
+
+# Declare flags and action for linking
+toolset.flags borland.link OPTIONS <debug-symbols>on : -v ;
+toolset.flags borland.link LIBRARY_PATH <library-path> ;
+toolset.flags borland.link FINDLIBS_ST <find-static-library> ;
+toolset.flags borland.link FINDLIBS_SA <find-shared-library> ;
+toolset.flags borland.link LIBRARIES <library-file> ;
+
+flags borland.link OPTIONS <linkflags> ;
+flags borland.link OPTIONS <link>shared : -tWD ;
+
+flags borland.link LIBRARY_PATH_OPTION <toolset>borland : -L : unchecked ;
+flags borland.link LIBRARY_OPTION <toolset>borland : "" : unchecked ;
+
+
+
+# bcc32 needs to have ilink32 in the path in order to invoke it, so explicitly
+# specifying $(BCC_TOOL_PATH)bcc32 doesn't help. You need to add
+# $(BCC_TOOL_PATH) to the path
+# The NEED_IMPLIB variable controls whether we need to invoke implib.
+
+flags borland.archive AROPTIONS <archiveflags> ;
+
+# Declare action for archives. We don't use response file
+# since it's hard to get "+-" there.
+# The /P256 increases 'page' size -- with too low
+# values tlib fails when building large applications.
+# CONSIDER: don't know what 'together' is for...
+actions updated together piecemeal archive
+{ 
+    $(.set-path)$(.root:W)$(.old-path)
+    tlib $(AROPTIONS) /P256 /u /a /C "$(<:W)" +-"$(>:W)"
+}
+
+
+if [ os.name ] = CYGWIN
+{
+    .set-path = "cmd /S /C set \"PATH=" ;
+    .old-path = ";%PATH%\" \"&&\"" ;
+    
+
+    # Couldn't get TLIB to stop being confused about pathnames
+    # containing dashes (it seemed to treat them as option separators
+    # when passed through from bash), so we explicitly write the
+    # command into a .bat file and execute that.  TLIB is also finicky
+    # about pathname style! Forward slashes, too, are treated as
+    # options.
+    actions updated together piecemeal archive
+    { 
+       chdir $(<:D)
+       echo +-$(>:BS) > $(<:BS).rsp
+       $(.set-path)$(.root)$(.old-path) "tlib.exe" $(AROPTIONS) /P256 /C $(<:BS) @$(<:BS).rsp && $(RM) $(<:BS).rsp
+    }    
+}
+else if [ os.name ] = NT
+{
+    .set-path = "set \"PATH=" ;
+    .old-path = ";%PATH%\"
+      " ;
+}
+else
+{
+    .set-path = "PATH=\"" ;
+    .old-path = "\":$PATH
+      export PATH
+      " ;
+}
+
+RM = [ common.rm-command ] ;
+
+nl = "
+" ;
+
+actions link
+{
+    $(.set-path)$(.root:W)$(.old-path) "$(CONFIG_COMMAND)" -v -q $(OPTIONS) -L"$(LIBRARY_PATH:W)" -L"$(STDLIBPATH:W)" -e"$(<[1]:W)" @"@($(<[1]:W).rsp:E=$(nl)"$(>)" $(nl)$(LIBRARIES) $(nl)"$(LIBRARY_OPTION)$(FINDLIBS_ST:S=.lib)" $(nl)"$(LIBRARY_OPTION)$(FINDLIBS_SA:S=.lib)")"
+}
+
+
+actions link.dll bind LIBRARIES RSP
+{
+    $(.set-path)$(.root:W)$(.old-path) "$(CONFIG_COMMAND)" -v -q $(OPTIONS) -L"$(LIBRARY_PATH:W)" -L"$(STDLIBPATH:W)" -e"$(<[1]:W)" @"@($(<[1]:W).rsp:E=$(nl)"$(>)" $(nl)$(LIBRARIES) $(nl)"$(LIBRARY_OPTION)$(FINDLIBS_ST:S=.lib)" $(nl)"$(LIBRARY_OPTION)$(FINDLIBS_SA:S=.lib)")"  && "$(.root)implib" "$(<[2]:W)" "$(<[1]:W)"
+}
+
+# It seems impossible to specify output file with directory when compiling
+# asm files using bcc32, so use tasm32 directly.
+# /ml makes all symbol names case-sensitive
+actions asm
+{
+    $(.set-path)$(.root:W)$(.old-path) tasm32.exe /ml "$(>)" "$(<)"
+}
+

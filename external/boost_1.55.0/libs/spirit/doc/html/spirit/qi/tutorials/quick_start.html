@@ -1,0 +1,82 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Quick Start</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="../tutorials.html" title="Tutorials">
+<link rel="next" href="warming_up.html" title="Warming up">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../tutorials.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="warming_up.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.tutorials.quick_start"></a><a class="link" href="quick_start.html" title="Quick Start">Quick Start</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit.qi.tutorials.quick_start.h0"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.quick_start.why_would_you_want_to_use_spirit_qi_"></a></span><a class="link" href="quick_start.html#spirit.qi.tutorials.quick_start.why_would_you_want_to_use_spirit_qi_">Why
+          would you want to use Spirit.Qi?</a>
+        </h6>
+<p>
+          Spirit.Qi is designed to be a practical parsing tool. The ability to generate
+          a fully-working parser from a formal EBNF specification inlined in C++
+          significantly reduces development time. Programmers typically approach
+          parsing using ad hoc hacks with primitive tools such as scanf. Even regular-expression
+          libraries (such as boost regex) or scanners (such as Boost tokenizer) do
+          not scale well when we need to write more elaborate parsers. Attempting
+          to write even a moderately-complex parser using these tools leads to code
+          that is hard to understand and maintain.
+        </p>
+<p>
+          One prime objective is to make the tool easy to use. When one thinks of
+          a parser generator, the usual reaction is "it must be big and complex
+          with a steep learning curve." Not so. Spirit is designed to be fully
+          scalable. The library is structured in layers. This permits learning on
+          an as-needed basis, after only learning the minimal core and basic concepts.
+        </p>
+<p>
+          For development simplicity and ease in deployment, the entire library consists
+          of only header files, with no libraries to link against or build. Just
+          put the Spirit distribution in your include path, compile and run. Code
+          size? -very tight -essentially comparable to hand written recursive descent
+          code.
+        </p>
+<p>
+          Our tutorials will walk you through the simplest Spirit examples, incrementally
+          building on top of the earlier examples as we expose more and more features
+          and techniques. We will try to be as gentle as possible with the learning
+          curve. We will present the tutorials in a cookbook style approach. This
+          style of presentation is based on our BoostCon '07 and BoostCon '08 slides.
+        </p>
+<p>
+          Have fun!
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../tutorials.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="warming_up.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

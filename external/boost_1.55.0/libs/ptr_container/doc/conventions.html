@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.10: http://docutils.sourceforge.net/" />
+<title>Boost Pointer Container Library</title>
+<style type="text/css">
+
+/*
+:Author: David Goodger
+:Contact: goodger@users.sourceforge.net
+:Date: $Date: 2007-11-25 10:38:02 -0800 (Sun, 25 Nov 2007) $
+:Revision: $Revision: 41370 $
+:Copyright: This stylesheet has been placed in the public domain.
+
+Default cascading style sheet for the HTML output of Docutils.
+
+See http://docutils.sf.net/docs/howto/html-stylesheets.html for how to
+customize this style sheet.
+*/
+
+/* "! important" is used here to override other ``margin-top`` and
+   ``margin-bottom`` styles that are later in the stylesheet or 
+   more specific.  See http://www.w3.org/TR/CSS1#the-cascade */
+.first {
+  margin-top: 0 ! important }
+
+.last, .with-subtitle {
+  margin-bottom: 0 ! important }
+
+.hidden {
+  display: none }
+
+a.toc-backref {
+  text-decoration: none ;
+  color: black }
+
+blockquote.epigraph {
+  margin: 2em 5em ; }
+
+dl.docutils dd {
+  margin-bottom: 0.5em }
+
+/* Uncomment (and remove this text!) to get bold-faced definition list terms
+dl.docutils dt {
+  font-weight: bold }
+*/
+
+div.abstract {
+  margin: 2em 5em }
+
+div.abstract p.topic-title {
+  font-weight: bold ;
+  text-align: center }
+
+div.admonition, div.attention, div.caution, div.danger, div.error,
+div.hint, div.important, div.note, div.tip, div.warning {
+  margin: 2em ;
+  border: medium outset ;
+  padding: 1em }
+
+div.admonition p.admonition-title, div.hint p.admonition-title,
+div.important p.admonition-title, div.note p.admonition-title,
+div.tip p.admonition-title {
+  font-weight: bold ;
+  font-family: sans-serif }
+
+div.attention p.admonition-title, div.caution p.admonition-title,
+div.danger p.admonition-title, div.error p.admonition-title,
+div.warning p.admonition-title {
+  color: red ;
+  font-weight: bold ;
+  font-family: sans-serif }
+
+/* Uncomment (and remove this text!) to get reduced vertical space in
+   compound paragraphs.
+div.compound .compound-first, div.compound .compound-middle {
+  margin-bottom: 0.5em }
+
+div.compound .compound-last, div.compound .compound-middle {
+  margin-top: 0.5em }
+*/
+
+div.dedication {
+  margin: 2em 5em ;
+  text-align: center ;
+  font-style: italic }
+
+div.dedication p.topic-title {
+  font-weight: bold ;
+  font-style: normal }
+
+div.figure {
+  margin-left: 2em }
+
+div.footer, div.header {
+  clear: both;
+  font-size: smaller }
+
+div.line-block {
+  display: block ;
+  margin-top: 1em ;
+  margin-bottom: 1em }
+
+div.line-block div.line-block {
+  margin-top: 0 ;
+  margin-bottom: 0 ;
+  margin-left: 1.5em }
+
+div.sidebar {
+  margin-left: 1em ;
+  border: medium outset ;
+  padding: 1em ;
+  background-color: #ffffee ;
+  width: 40% ;
+  float: right ;
+  clear: right }
+
+div.sidebar p.rubric {
+  font-family: sans-serif ;
+  font-size: medium }
+
+div.system-messages {
+  margin: 5em }
+
+div.system-messages h1 {
+  color: red }
+
+div.system-message {
+  border: medium outset ;
+  padding: 1em }
+
+div.system-message p.system-message-title {
+  color: red ;
+  font-weight: bold }
+
+div.topic {
+  margin: 2em }
+
+h1.section-subtitle, h2.section-subtitle, h3.section-subtitle,
+h4.section-subtitle, h5.section-subtitle, h6.section-subtitle {
+  margin-top: 0.4em }
+
+h1.title {
+  text-align: center }
+
+h2.subtitle {
+  text-align: center }
+
+hr.docutils {
+  width: 75% }
+
+img.align-left {
+  clear: left }
+
+img.align-right {
+  clear: right }
+
+img.borderless {
+  border: 0 }
+
+ol.simple, ul.simple {
+  margin-bottom: 1em }
+
+ol.arabic {
+  list-style: decimal }
+
+ol.loweralpha {
+  list-style: lower-alpha }
+
+ol.upperalpha {
+  list-style: upper-alpha }
+
+ol.lowerroman {
+  list-style: lower-roman }
+
+ol.upperroman {
+  list-style: upper-roman }
+
+p.attribution {
+  text-align: right ;
+  margin-left: 50% }
+
+p.caption {
+  font-style: italic }
+
+p.credits {
+  font-style: italic ;
+  font-size: smaller }
+
+p.label {
+  white-space: nowrap }
+
+p.rubric {
+  font-weight: bold ;
+  font-size: larger ;
+  color: maroon ;
+  text-align: center }
+
+p.sidebar-title {
+  font-family: sans-serif ;
+  font-weight: bold ;
+  font-size: larger }
+
+p.sidebar-subtitle {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+p.topic-title {
+  font-weight: bold }
+
+pre.address {
+  margin-bottom: 0 ;
+  margin-top: 0 ;
+  font-family: serif ;
+  font-size: 100% }
+
+pre.line-block {
+  font-family: serif ;
+  font-size: 100% }
+
+pre.literal-block, pre.doctest-block {
+  margin-left: 2em ;
+  margin-right: 2em ;
+  background-color: #eeeeee }
+
+span.classifier {
+  font-family: sans-serif ;
+  font-style: oblique }
+
+span.classifier-delimiter {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+span.interpreted {
+  font-family: sans-serif }
+
+span.option {
+  white-space: nowrap }
+
+span.pre {
+  white-space: pre }
+
+span.problematic {
+  color: red }
+
+span.section-subtitle {
+  /* font-size relative to parent (h1..h6 element) */
+  font-size: 80% }
+
+table.citation {
+  border-left: solid thin gray }
+
+table.docinfo {
+  margin: 2em 4em }
+
+table.docutils {
+  margin-top: 0.5em ;
+  margin-bottom: 0.5em }
+
+table.footnote {
+  border-left: solid thin black }
+
+table.docutils td, table.docutils th,
+table.docinfo td, table.docinfo th {
+  padding-left: 0.5em ;
+  padding-right: 0.5em ;
+  vertical-align: top }
+
+table.docutils th.field-name, table.docinfo th.docinfo-name {
+  font-weight: bold ;
+  text-align: left ;
+  white-space: nowrap ;
+  padding-left: 0 }
+
+h1 tt.docutils, h2 tt.docutils, h3 tt.docutils,
+h4 tt.docutils, h5 tt.docutils, h6 tt.docutils {
+  font-size: 100% }
+
+tt.docutils {
+  background-color: #eeeeee }
+
+ul.auto-toc {
+  list-style-type: none }
+
+</style>
+</head>
+<body>
+<div class="document" id="boost-pointer-container-library">
+<h1 class="title"><img alt="Boost" src="boost.png" /> Pointer Container Library</h1>
+<h2 class="subtitle" id="conventions">Conventions</h2>
+<p>There are a few design decisions that will affect how the classes are 
+used.  Besides these the classes are much like normal standard containers 
+and provides almost the same interface.  The new conventions are:</p>
+<div class="contents local topic">
+<ul class="simple">
+<li><a class="reference" href="#null-pointers-are-not-allowed-by-default" id="id3" name="id3">Null pointers are not allowed by default</a></li>
+<li><a class="reference" href="#all-default-iterators-apply-an-extra-layer-of-indirection" id="id4" name="id4">All default iterators apply an extra layer of indirection</a></li>
+<li><a class="reference" href="#all-comparison-operations-are-done-on-the-pointed-to-objects-and-not-at-the-pointer-level" id="id5" name="id5">All comparison operations are done on the pointed to objects and not at the pointer level</a></li>
+<li><a class="reference" href="#stored-elements-are-required-to-be-cloneable-for-a-subset-of-the-operations" id="id6" name="id6">Stored elements are required to be Cloneable for a subset of the operations</a></li>
+<li><a class="reference" href="#whenever-objects-are-inserted-into-a-container-they-are-cloned-before-insertion" id="id7" name="id7">Whenever objects are inserted into a container, they are cloned before insertion</a></li>
+<li><a class="reference" href="#whenever-pointers-are-inserted-into-a-container-ownership-is-transferred-to-the-container" id="id8" name="id8">Whenever pointers are inserted into a container, ownership is transferred to the container</a></li>
+<li><a class="reference" href="#ownership-can-be-transferred-from-a-container-on-a-per-pointer-basis" id="id9" name="id9">Ownership can be transferred from a container on a per pointer basis</a></li>
+<li><a class="reference" href="#ownership-can-be-transferred-from-a-container-to-another-container-on-a-per-iterator-range-basis" id="id10" name="id10">Ownership can be transferred from a container to another container on a per iterator range basis</a></li>
+<li><a class="reference" href="#a-container-can-be-cheaply-returned-from-functions-either-by-making-a-clone-or-by-giving-up-ownership-of-the-container" id="id11" name="id11">A container can be cheaply returned from functions either by making a clone or by giving up ownership of the container</a></li>
+<li><a class="reference" href="#iterators-are-invalidated-as-in-the-corresponding-standard-container" id="id12" name="id12">Iterators are invalidated as in the corresponding standard container</a></li>
+</ul>
+</div>
+<div class="section">
+<h1><a class="toc-backref" href="#id3" id="null-pointers-are-not-allowed-by-default" name="null-pointers-are-not-allowed-by-default">Null pointers are not allowed by default</a></h1>
+<p>If the user tries to insert the null pointer, the operation will throw a 
+<tt class="docutils literal"><span class="pre">bad_pointer</span></tt> exception (see <a class="reference" href="examples.html">Example 1</a>).</p>
+<p>Use <a class="reference" href="reference.html#class-nullable">nullable</a> to allow null pointers.</p>
+<p>Please notice that all preconditions of the form</p>
+<pre class="literal-block">
+x != 0;
+</pre>
+<p>are not active when the you have instantiated a container
+with <tt class="docutils literal"><span class="pre">nullable&lt;T&gt;</span></tt> as in</p>
+<pre class="literal-block">
+boost::ptr_vector&lt; boost::nullable&lt;animal&gt; &gt; vec;
+vec.push_back( 0 ); // ok
+</pre>
+</div>
+<div class="section">
+<h1><a class="toc-backref" href="#id4" id="all-default-iterators-apply-an-extra-layer-of-indirection" name="all-default-iterators-apply-an-extra-layer-of-indirection">All default iterators apply an extra layer of indirection</a></h1>
+<p>This is done to 
+make the containers easier and safer to use.  It promotes a kind of 
+pointer-less programming and the user of a class needs not worry about 
+pointers except when allocating them (see <a class="reference" href="examples.html">Example 2</a>).  Iterators that 
+provide access to the naked pointers are also provided since they might be 
+useful in rare cases. For example, whenever <tt class="docutils literal"><span class="pre">begin()</span></tt> returns an iterator, 
+<tt class="docutils literal"><span class="pre">ptr_begin()</span></tt> will return an iterator that allows one to iterate over the 
+stored pointers.</p>
+</div>
+<div class="section">
+<h1><a class="toc-backref" href="#id5" id="all-comparison-operations-are-done-on-the-pointed-to-objects-and-not-at-the-pointer-level" name="all-comparison-operations-are-done-on-the-pointed-to-objects-and-not-at-the-pointer-level">All comparison operations are done on the pointed to objects and not at the pointer level</a></h1>
+<p>For example, in <tt class="docutils literal"><span class="pre">ptr_set&lt;T&gt;</span></tt> the ordering is by default done by 
+<tt class="docutils literal"><span class="pre">boost::ptr_less&lt;T&gt;</span></tt> which compares the indirected pointers. 
+Similarly, <tt class="docutils literal"><span class="pre">operator==()</span></tt> for <tt class="docutils literal"><span class="pre">container&lt;Foo&gt;</span></tt> compares all objects
+with <tt class="docutils literal"><span class="pre">operator==(const</span> <span class="pre">Foo&amp;,</span> <span class="pre">const</span> <span class="pre">Foo&amp;)</span></tt>.</p>
+</div>
+<div class="section">
+<h1><a id="stored-elements-are-required-to-be-cloneable-for-a-subset-of-the-operations" name="stored-elements-are-required-to-be-cloneable-for-a-subset-of-the-operations">Stored elements are required to be <a class="reference" href="reference.html#the-Cloneable-concept">Cloneable</a> for a subset of the operations</a></h1>
+<p>This is because most polymorphic objects cannot be copied directly, but 
+they can often be so by a use of a member function (see <a class="reference" href="examples.html">Example 4</a>).  Often 
+it does not even make sense to clone an object in which case a large 
+subset of the operations are still workable.</p>
+</div>
+<div class="section">
+<h1><a class="toc-backref" href="#id7" id="whenever-objects-are-inserted-into-a-container-they-are-cloned-before-insertion" name="whenever-objects-are-inserted-into-a-container-they-are-cloned-before-insertion">Whenever objects are inserted into a container, they are cloned before insertion</a></h1>
+<p>This is necessary because all pointer containers take ownerships of stored objects
+(see <a class="reference" href="examples.html">Example 5</a>).</p>
+</div>
+<div class="section">
+<h1><a class="toc-backref" href="#id8" id="whenever-pointers-are-inserted-into-a-container-ownership-is-transferred-to-the-container" name="whenever-pointers-are-inserted-into-a-container-ownership-is-transferred-to-the-container">Whenever pointers are inserted into a container, ownership is transferred to the container</a></h1>
+<p>All containers take ownership of the stored pointers and therefore a 
+container needs to have its own copies (see <a class="reference" href="examples.html">Example 5</a>).</p>
+</div>
+<div class="section">
+<h1><a class="toc-backref" href="#id9" id="ownership-can-be-transferred-from-a-container-on-a-per-pointer-basis" name="ownership-can-be-transferred-from-a-container-on-a-per-pointer-basis">Ownership can be transferred from a container on a per pointer basis</a></h1>
+<p>This can of course also be convenient.  Whenever it happens, an 
+<tt class="docutils literal"><span class="pre">SmartContainer::auto_type</span></tt> object is used to provide an exception-safe transfer 
+(see <a class="reference" href="examples.html">Example 6</a>).</p>
+</div>
+<div class="section">
+<h1><a class="toc-backref" href="#id10" id="ownership-can-be-transferred-from-a-container-to-another-container-on-a-per-iterator-range-basis" name="ownership-can-be-transferred-from-a-container-to-another-container-on-a-per-iterator-range-basis">Ownership can be transferred from a container to another container on a per iterator range basis</a></h1>
+<p>This makes it possible to exchange data safely between different pointer 
+containers without cloning the objects again (see <a class="reference" href="examples.html">Example 7</a>).</p>
+</div>
+<div class="section">
+<h1><a class="toc-backref" href="#id11" id="a-container-can-be-cheaply-returned-from-functions-either-by-making-a-clone-or-by-giving-up-ownership-of-the-container" name="a-container-can-be-cheaply-returned-from-functions-either-by-making-a-clone-or-by-giving-up-ownership-of-the-container">A container can be cheaply returned from functions either by making a clone or by giving up ownership of the container</a></h1>
+<p>Two special member functions, <tt class="docutils literal"><span class="pre">clone()</span></tt> and <tt class="docutils literal"><span class="pre">release()</span></tt>, both return an 
+<tt class="docutils literal"><span class="pre">auto_ptr&lt;SmartContainer&gt;</span></tt> which can be assigned to another pointer container.  This 
+effectively reduces the cost of returning a container to one 
+heap-allocation plus a call to <tt class="docutils literal"><span class="pre">swap()</span></tt> (see <a class="reference" href="examples.html">Example 3</a>).</p>
+</div>
+<div class="section">
+<h1><a class="toc-backref" href="#id12" id="iterators-are-invalidated-as-in-the-corresponding-standard-container" name="iterators-are-invalidated-as-in-the-corresponding-standard-container">Iterators are invalidated as in the corresponding standard container</a></h1>
+<p>Because the containers in this library wrap standard containers, the
+rules for invalidation of iterators are the same as the rules
+of the corresponding standard container.</p>
+<p>For example, for both <tt class="docutils literal"><span class="pre">boost::ptr_vector&lt;T&gt;</span></tt> and <tt class="docutils literal"><span class="pre">std::vector&lt;U&gt;</span></tt>
+insertion and deletion only invalidates the deleted
+element and elements following it; all elements before the inserted/deleted
+element remain valid.</p>
+<hr><p><strong>Navigate:</strong></p>
+<ul class="simple">
+<li><a class="reference" href="ptr_container.html">home</a></li>
+<li><a class="reference" href="reference.html">reference</a></li>
+</ul>
+<hr><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Copyright:</th><td class="field-body">Thorsten Ottosen 2004-2006. Use, modification and distribution is subject to the Boost Software License, Version 1.0 (see <a class="reference" href="http://www.boost.org/LICENSE_1_0.txt">LICENSE_1_0.txt</a>).</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</body>
+</html>

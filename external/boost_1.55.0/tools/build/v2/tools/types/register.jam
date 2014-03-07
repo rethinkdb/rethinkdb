@@ -1,0 +1,39 @@
+# Copyright David Abrahams 2004. Distributed under the Boost
+# Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# This module's job is to automatically import all the type
+# registration modules in its directory.
+import type os path modules ;
+
+# Register the given type on the specified OSes, or on remaining OSes
+# if os is not specified.  This rule is injected into each of the type
+# modules for the sake of convenience.
+local rule type ( type : suffixes * : base-type ? : os * )
+{
+    if ! [ type.registered $(type) ]
+    {
+        if ( ! $(os) ) || [ os.name ] in $(os)
+        {
+            type.register $(type) : $(suffixes) : $(base-type) ;
+        }
+    }
+}
+
+.this-module's-file = [ modules.binding $(__name__) ] ;
+.this-module's-dir = [ path.parent $(.this-module's-file) ] ;
+.sibling-jamfiles =  [ path.glob $(.this-module's-dir) : *.jam ] ;
+.sibling-modules = [ MATCH ^(.*)\.jam$ : $(.sibling-jamfiles) ] ;
+
+# A loop over all modules in this directory
+for m in $(.sibling-modules)
+{
+    m = [ path.basename $(m) ] ;
+    m = types/$(m) ;
+    
+    # Inject the type rule into the new module
+    IMPORT $(__name__) : type : $(m) : type ;
+    import $(m) ;
+}
+
+

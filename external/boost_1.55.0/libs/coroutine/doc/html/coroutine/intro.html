@@ -1,0 +1,186 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introduction</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Coroutine">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Coroutine">
+<link rel="prev" href="overview.html" title="Overview">
+<link rel="next" href="motivation.html" title="Motivation">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overview.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="motivation.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="coroutine.intro"></a><a class="link" href="intro.html" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<h4>
+<a name="coroutine.intro.h0"></a>
+      <span class="phrase"><a name="coroutine.intro.definition"></a></span><a class="link" href="intro.html#coroutine.intro.definition">Definition</a>
+    </h4>
+<p>
+      In computer science routines are defined as a sequence of operations. The execution
+      of routines forms a parent-child relationship and the child terminates always
+      before the parent. Coroutines (the term was introduced by Melvin Conway <a href="#ftn.coroutine.intro.f0" class="footnote" name="coroutine.intro.f0"><sup class="footnote">[1]</sup></a>), are a generalization of routines (Donald Knuth <a href="#ftn.coroutine.intro.f1" class="footnote" name="coroutine.intro.f1"><sup class="footnote">[2]</sup></a>. The principal difference between coroutines and routines is that
+      a coroutine enables explicit suspend and resume of its progress via additional
+      operations by preserving execution state and thus provides an <span class="bold"><strong>enhanced
+      control flow</strong></span> (maintaining the execution context).
+    </p>
+<h4>
+<a name="coroutine.intro.h1"></a>
+      <span class="phrase"><a name="coroutine.intro.how_it_works"></a></span><a class="link" href="intro.html#coroutine.intro.how_it_works">How
+      it works</a>
+    </h4>
+<p>
+      Functions foo() and bar() are supposed to alternate their execution (leave
+      and enter function body).
+    </p>
+<p>
+      <span class="inlinemediaobject"><img src="../../../../../libs/coroutine/doc/images/foo_bar.png" align="middle" alt="foo_bar"></span>
+    </p>
+<p>
+      If coroutines would be called such as routines, the stack would grow with every
+      call and will never be degraded. A jump into the middle of a coroutine would
+      not be possible, because the return address would have been on top of stack
+      entries.
+    </p>
+<p>
+      The solution is that each coroutine has its own stack and control-block (<span class="emphasis"><em>boost::contexts::fcontext_t</em></span>
+      from <span class="bold"><strong>Boost.Context</strong></span>). Before the coroutine
+      gets suspended, the non-volatile registers (including stack and instruction/program
+      pointer) of the currently active coroutine are stored in coroutine's control-block.
+      The registers of the newly activated coroutine must be restored from its associated
+      control-block before it can continue with their work.
+    </p>
+<p>
+      The context switch requires no system privileges and provides cooperative multitasking
+      on the level of language. Coroutines provide quasi parallelism. When a program
+      is supposed to do several things at the same time, coroutines help to do this
+      much simpler and more elegant than with only a single flow of control. Advantages
+      can be seen particularly clearly with the use of a recursive function, such
+      as traversal of binary trees (see example 'same fringe').
+    </p>
+<h4>
+<a name="coroutine.intro.h2"></a>
+      <span class="phrase"><a name="coroutine.intro.characteristics"></a></span><a class="link" href="intro.html#coroutine.intro.characteristics">characteristics</a>
+    </h4>
+<p>
+      Characteristics <a href="#ftn.coroutine.intro.f2" class="footnote" name="coroutine.intro.f2"><sup class="footnote">[3]</sup></a> of a coroutine are:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          values of local data persist between successive calls (context switches)
+        </li>
+<li class="listitem">
+          execution is suspended as control leaves coroutine and resumed at certain
+          time later
+        </li>
+<li class="listitem">
+          symmetric or asymmetric control-transfer mechanism
+        </li>
+<li class="listitem">
+          first-class object (can be passed as argument, returned by procedures,
+          stored in a data structure to be used later or freely manipulated by the
+          developer)
+        </li>
+<li class="listitem">
+          stackful or stackless
+        </li>
+</ul></div>
+<p>
+      Coroutines are useful in simulation, artificial intelligence, concurrent programming,
+      text processing and data manipulation, supporting the implementation of components
+      such as cooperative tasks (fibers), iterators, generators, infinite lists,
+      pipes etc.
+    </p>
+<h4>
+<a name="coroutine.intro.h3"></a>
+      <span class="phrase"><a name="coroutine.intro.execution_transfer_mechanism"></a></span><a class="link" href="intro.html#coroutine.intro.execution_transfer_mechanism">execution-transfer
+      mechanism</a>
+    </h4>
+<p>
+      Two categories of coroutines exist: symmetric and asymmetric coroutines. A
+      symmetric coroutine transfers the execution control only via one operation.
+      The target coroutine must be explicitly specified in the transfer operation.
+      Asymmetric coroutines provide two transfer operations: the <span class="emphasis"><em>suspend</em></span>-operation
+      returns to the invoker by preserving the execution context and the <span class="emphasis"><em>resume</em></span>-operation
+      restores the execution context, e.g. re-enters the coroutine at the same point
+      as it was suspended before.
+    </p>
+<p>
+      <span class="inlinemediaobject"><img src="../../../../../libs/coroutine/doc/images/foo_bar_seq.png" align="middle" alt="foo_bar_seq"></span>
+    </p>
+<p>
+      Both concepts are equivalent and a coroutine library can provide either symmetric
+      or asymmetric coroutines.
+    </p>
+<h4>
+<a name="coroutine.intro.h4"></a>
+      <span class="phrase"><a name="coroutine.intro.stackfulness"></a></span><a class="link" href="intro.html#coroutine.intro.stackfulness">stackfulness</a>
+    </h4>
+<p>
+      In contrast to a stackless coroutine a stackful coroutine allows to suspend
+      from nested stackframes. The execution resumes at exact the same point in the
+      code as it was suspended before. With a stackless coroutine, only the top-level
+      routine may be suspended. Any routine called by that top-level routine may
+      not itself suspend. This prohibits providing suspend/resume operations in routines
+      within a general-purpose library.
+    </p>
+<h4>
+<a name="coroutine.intro.h5"></a>
+      <span class="phrase"><a name="coroutine.intro.first_class_continuation"></a></span><a class="link" href="intro.html#coroutine.intro.first_class_continuation">first-class
+      continuation</a>
+    </h4>
+<p>
+      A first-class continuation can be passed as an argument, returned by a function
+      and stored in a data structure to be used later. In some implementations (for
+      instance C# <span class="emphasis"><em>yield</em></span>) the continuation can not be directly
+      accessed or directly manipulated.
+    </p>
+<p>
+      Without stackfulness and first-class semantics some useful execution control
+      flows cannot be supported (for instance cooperative multitasking or checkpointing).
+    </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.coroutine.intro.f0" class="footnote"><p><a href="#coroutine.intro.f0" class="para"><sup class="para">[1] </sup></a>
+        Conway, Melvin E.. "Design of a Separable Transition-Diagram Compiler".
+        Commun. ACM, Volume 6 Issue 7, July 1963, Articale No. 7
+      </p></div>
+<div id="ftn.coroutine.intro.f1" class="footnote"><p><a href="#coroutine.intro.f1" class="para"><sup class="para">[2] </sup></a>
+        Knuth, Donald Ervin (1997). "Fundamental Algorithms. The Art of Computer
+        Programming 1", (3rd ed.)
+      </p></div>
+<div id="ftn.coroutine.intro.f2" class="footnote"><p><a href="#coroutine.intro.f2" class="para"><sup class="para">[3] </sup></a>
+        Moura, Ana Lucia De and Ierusalimschy, Roberto. "Revisiting coroutines".
+        ACM Trans. Program. Lang. Syst., Volume 31 Issue 2, February 2009, Article
+        No. 6
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009 Oliver Kowalke<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overview.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="motivation.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

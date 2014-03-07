@@ -1,0 +1,93 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template gregorian_calendar_base</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.gregorian_calendar_hpp" title="Header &lt;boost/date_time/gregorian_calendar.hpp&gt;">
+<link rel="prev" href="var_string_to_int.html" title="Function template var_string_to_int">
+<link rel="next" href="int_adapter.html" title="Class template int_adapter">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="var_string_to_int.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.gregorian_calendar_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="int_adapter.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.gregorian_calendar_base"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template gregorian_calendar_base</span></h2>
+<p>boost::date_time::gregorian_calendar_base &#8212; An implementation of the Gregorian calendar. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.gregorian_calendar_hpp" title="Header &lt;boost/date_time/gregorian_calendar.hpp&gt;">boost/date_time/gregorian_calendar.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ymd_type_<span class="special">,</span> <span class="keyword">typename</span> date_int_type_<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="gregorian_calendar_base.html" title="Class template gregorian_calendar_base">gregorian_calendar_base</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">ymd_type_</span>            <a name="boost.date_time.gregorian_calendar_base.ymd_type"></a><span class="identifier">ymd_type</span><span class="special">;</span>       <span class="comment">// define a type a date split into components </span>
+  <span class="keyword">typedef</span> <span class="identifier">ymd_type</span><span class="special">::</span><span class="identifier">month_type</span> <a name="boost.date_time.gregorian_calendar_base.month_type"></a><span class="identifier">month_type</span><span class="special">;</span>     <span class="comment">// define a type for representing months </span>
+  <span class="keyword">typedef</span> <span class="identifier">ymd_type</span><span class="special">::</span><span class="identifier">day_type</span>   <a name="boost.date_time.gregorian_calendar_base.day_type"></a><span class="identifier">day_type</span><span class="special">;</span>       <span class="comment">// define a type for representing days </span>
+  <span class="keyword">typedef</span> <span class="identifier">ymd_type</span><span class="special">::</span><span class="identifier">year_type</span>  <a name="boost.date_time.gregorian_calendar_base.year_type"></a><span class="identifier">year_type</span><span class="special">;</span>      <span class="comment">// Type to hold a stand alone year value (eg: 2002) </span>
+  <span class="keyword">typedef</span> <span class="identifier">date_int_type_</span>       <a name="boost.date_time.gregorian_calendar_base.date_int_type"></a><span class="identifier">date_int_type</span><span class="special">;</span>  <span class="comment">// Define the integer type to use for internal calculations. </span>
+
+  <span class="comment">// <a class="link" href="gregorian_calendar_base.html#idp51630216-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">short</span> <a class="link" href="gregorian_calendar_base.html#idp51630424-bb"><span class="identifier">day_of_week</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ymd_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">int</span> <a class="link" href="gregorian_calendar_base.html#idp34827480-bb"><span class="identifier">week_number</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ymd_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">date_int_type</span> <a class="link" href="gregorian_calendar_base.html#idp52713832-bb"><span class="identifier">day_number</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ymd_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">date_int_type</span> <a class="link" href="gregorian_calendar_base.html#idp36284968-bb"><span class="identifier">julian_day_number</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ymd_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">date_int_type</span> <a class="link" href="gregorian_calendar_base.html#idp52464600-bb"><span class="identifier">modjulian_day_number</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ymd_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">ymd_type</span> <a class="link" href="gregorian_calendar_base.html#idp52465448-bb"><span class="identifier">from_day_number</span></a><span class="special">(</span><span class="identifier">date_int_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">ymd_type</span> <a class="link" href="gregorian_calendar_base.html#idp19998440-bb"><span class="identifier">from_julian_day_number</span></a><span class="special">(</span><span class="identifier">date_int_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">ymd_type</span> <a class="link" href="gregorian_calendar_base.html#idp19211384-bb"><span class="identifier">from_modjulian_day_number</span></a><span class="special">(</span><span class="identifier">date_int_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="gregorian_calendar_base.html#idp35449336-bb"><span class="identifier">is_leap_year</span></a><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">short</span> <a class="link" href="gregorian_calendar_base.html#idp51948696-bb"><span class="identifier">end_of_month_day</span></a><span class="special">(</span><span class="identifier">year_type</span><span class="special">,</span> <span class="identifier">month_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">ymd_type</span> <a class="link" href="gregorian_calendar_base.html#idp51949848-bb"><span class="identifier">epoch</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">short</span> <a class="link" href="gregorian_calendar_base.html#idp51950312-bb"><span class="identifier">days_in_week</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp87228248"></a><h2>Description</h2>
+<p>This is a parameterized implementation of a proleptic Gregorian Calendar that can be used in the creation of date systems or just to perform calculations. All the methods of this class are static functions, so the intent is to never create instances of this class. 
+</p>
+<div class="refsect2">
+<a name="idp87228856"></a><h3>
+<a name="idp51630216-bb"></a><code class="computeroutput">gregorian_calendar_base</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">short</span> <a name="idp51630424-bb"></a><span class="identifier">day_of_week</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ymd_type</span> <span class="special">&amp;</span> ymd<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">int</span> <a name="idp34827480-bb"></a><span class="identifier">week_number</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ymd_type</span> <span class="special">&amp;</span> ymd<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">date_int_type</span> <a name="idp52713832-bb"></a><span class="identifier">day_number</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ymd_type</span> <span class="special">&amp;</span> ymd<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">date_int_type</span> <a name="idp36284968-bb"></a><span class="identifier">julian_day_number</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ymd_type</span> <span class="special">&amp;</span> ymd<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">date_int_type</span> <a name="idp52464600-bb"></a><span class="identifier">modjulian_day_number</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ymd_type</span> <span class="special">&amp;</span> ymd<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">ymd_type</span> <a name="idp52465448-bb"></a><span class="identifier">from_day_number</span><span class="special">(</span><span class="identifier">date_int_type</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">ymd_type</span> <a name="idp19998440-bb"></a><span class="identifier">from_julian_day_number</span><span class="special">(</span><span class="identifier">date_int_type</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">ymd_type</span> <a name="idp19211384-bb"></a><span class="identifier">from_modjulian_day_number</span><span class="special">(</span><span class="identifier">date_int_type</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp35449336-bb"></a><span class="identifier">is_leap_year</span><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">short</span> <a name="idp51948696-bb"></a><span class="identifier">end_of_month_day</span><span class="special">(</span><span class="identifier">year_type</span> y<span class="special">,</span> <span class="identifier">month_type</span> m<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">ymd_type</span> <a name="idp51949848-bb"></a><span class="identifier">epoch</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">short</span> <a name="idp51950312-bb"></a><span class="identifier">days_in_week</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="var_string_to_int.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.gregorian_calendar_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="int_adapter.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Copyright Thomas Witt 2005. Use, modification, and distribution are
+# subject to the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+using quickbook ;
+
+xml iterator 
+  : 
+    quickbook/iterator.qbk 
+  ;
+
+boostbook standalone 
+  : 
+    iterator 
+  :
+    <xsl:param>boost.root=../../../..
+    <xsl:param>toc.max.depth=3
+    <xsl:param>toc.section.depth=3
+    <xsl:param>chunk.section.depth=4
+    <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/libs/iterator/doc
+  ;
+
+

@@ -1,0 +1,428 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>One minute tutorial</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="prev" href="introduction.html" title="Introduction">
+<link rel="next" href="the_tutorial.html" title="The tutorial">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="the_tutorial.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_one_minute_tutorial">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_bimap.one_minute_tutorial"></a><a class="link" href="one_minute_tutorial.html" title="One minute tutorial">One minute tutorial</a>
+</h2></div></div></div>
+<h4>
+<a name="boost_bimap.one_minute_tutorial.h0"></a>
+      <span class="phrase"><a name="boost_bimap.one_minute_tutorial.what_is_a_bimap_"></a></span><a class="link" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.what_is_a_bimap_">What
+      is a bimap?</a>
+    </h4>
+<p>
+      A Bimap is a data structure that represents bidirectional relations between
+      elements of two collections. The container is designed to work as two opposed
+      STL maps. A bimap between a collection <code class="computeroutput"><span class="identifier">X</span></code>
+      and a collection <code class="computeroutput"><span class="identifier">Y</span></code> can be viewed
+      as a map from <code class="computeroutput"><span class="identifier">X</span></code> to <code class="computeroutput"><span class="identifier">Y</span></code> (this view will be called the <span class="emphasis"><em>left
+      map view</em></span>) or as a map from <code class="computeroutput"><span class="identifier">Y</span></code>
+      to <code class="computeroutput"><span class="identifier">X</span></code> (known as the <span class="emphasis"><em>right
+      map view</em></span>). Additionally, the bimap can also be viewed as a set of
+      relations between <code class="computeroutput"><span class="identifier">X</span></code> and <code class="computeroutput"><span class="identifier">Y</span></code> (named the <span class="emphasis"><em>collection of relations
+      view</em></span>).
+    </p>
+<p>
+      The following code creates an empty bimap container:
+    </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">bimap</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span> <span class="identifier">bm_type</span><span class="special">;</span>
+<span class="identifier">bm_type</span> <span class="identifier">bm</span><span class="special">;</span>
+</pre>
+<p>
+      Given this code, the following is the complete description of the resulting
+      bimap. <a href="#ftn.boost_bimap.one_minute_tutorial.f0" class="footnote"><sup class="footnote"><a name="boost_bimap.one_minute_tutorial.f0"></a>[1]</sup></a>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span></code> is signature-compatible with <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span></code>
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span></code> is signature-compatible with <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="identifier">Y</span><span class="special">,</span><span class="identifier">X</span><span class="special">&gt;</span></code>
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">bm</span></code> is signature-compatible
+          with <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span><span class="special">&lt;</span> <span class="identifier">relation</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>
+        </li>
+</ul></div>
+<p>
+      <span class="inlinemediaobject"><img src="../images/bimap/simple.bimap.png" alt="simple.bimap"></span>
+    </p>
+<p>
+      You can see how a bimap container offers three views over the same collection
+      of bidirectional relations.
+    </p>
+<p>
+      If we have any generic function that work with maps
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">MapType</span> <span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">print_map</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MapType</span> <span class="special">&amp;</span> <span class="identifier">m</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">MapType</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">const_iterator</span><span class="special">;</span>
+    <span class="keyword">for</span><span class="special">(</span> <span class="identifier">const_iterator</span> <span class="identifier">iter</span> <span class="special">=</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">iend</span> <span class="special">=</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span> <span class="identifier">iter</span> <span class="special">!=</span> <span class="identifier">iend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">iter</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">iter</span><span class="special">-&gt;</span><span class="identifier">first</span> <span class="special">&lt;&lt;</span> <span class="string">"--&gt;"</span> <span class="special">&lt;&lt;</span> <span class="identifier">iter</span><span class="special">-&gt;</span><span class="identifier">second</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+      We can use the <span class="emphasis"><em>left map view</em></span> and the <span class="emphasis"><em>right map
+      view</em></span> with it
+    </p>
+<pre class="programlisting"><span class="identifier">bimap</span><span class="special">&lt;</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;</span> <span class="identifier">bm</span><span class="special">;</span>
+<span class="special">...</span>
+<span class="identifier">print_map</span><span class="special">(</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span>  <span class="special">);</span>
+<span class="identifier">print_map</span><span class="special">(</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span> <span class="special">);</span>
+</pre>
+<p>
+      And the output will be
+    </p>
+<pre class="programlisting"><code class="literal">1 --&gt; one</code>
+<code class="literal">2 --&gt; two</code>
+...
+<code class="literal">one --&gt; 1</code>
+<code class="literal">two --&gt; 2</code>
+...
+</pre>
+<h4>
+<a name="boost_bimap.one_minute_tutorial.h1"></a>
+      <span class="phrase"><a name="boost_bimap.one_minute_tutorial.layout_of_the_relation_and_the_pairs_of_a_bimap"></a></span><a class="link" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.layout_of_the_relation_and_the_pairs_of_a_bimap">Layout
+      of the relation and the pairs of a bimap</a>
+    </h4>
+<p>
+      The <code class="computeroutput"><span class="identifier">relation</span></code> class represents
+      two related elements. The two values are named left and right to express the
+      symmetry of this type. The bimap pair classes are signature-compatible with
+      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pairs</span></code>.
+    </p>
+<p>
+      <span class="inlinemediaobject"><img src="../images/bimap/relation.and.pair.png" alt="relation.and.pair"></span>
+    </p>
+<h4>
+<a name="boost_bimap.one_minute_tutorial.h2"></a>
+      <span class="phrase"><a name="boost_bimap.one_minute_tutorial.step_by_step"></a></span><a class="link" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.step_by_step">Step
+      by step</a>
+    </h4>
+<p>
+      A convinience header is avaiable in the boost directory:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      Lets define a bidirectional map between integers and strings:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bimap</span><span class="special">&lt;</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;</span> <span class="identifier">bm_type</span><span class="special">;</span>
+<span class="identifier">bm_type</span> <span class="identifier">bm</span><span class="special">;</span>
+</pre>
+<p>
+    </p>
+<h4>
+<a name="boost_bimap.one_minute_tutorial.h3"></a>
+      <span class="phrase"><a name="boost_bimap.one_minute_tutorial.the_collection_of_relations_view"></a></span><a class="link" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.the_collection_of_relations_view">The
+      collection of relations view</a>
+    </h4>
+<p>
+      Remember that <code class="computeroutput"><span class="identifier">bm</span></code> alone can
+      be used as a set of relations. We can insert elements or iterate over them
+      using this view.
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="string">"one"</span> <span class="special">)</span> <span class="special">);</span>
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="number">2</span><span class="special">,</span> <span class="string">"two"</span> <span class="special">)</span> <span class="special">);</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"There are "</span> <span class="special">&lt;&lt;</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">"relations"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+<span class="keyword">for</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">iter</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">iend</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+    <span class="identifier">iter</span> <span class="special">!=</span> <span class="identifier">iend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">iter</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// iter-&gt;left  : data : int</span>
+    <span class="comment">// iter-&gt;right : data : std::string</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">iter</span><span class="special">-&gt;</span><span class="identifier">left</span> <span class="special">&lt;&lt;</span> <span class="string">" &lt;--&gt; "</span> <span class="special">&lt;&lt;</span> <span class="identifier">iter</span><span class="special">-&gt;</span><span class="identifier">right</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<h4>
+<a name="boost_bimap.one_minute_tutorial.h4"></a>
+      <span class="phrase"><a name="boost_bimap.one_minute_tutorial.the_left_map_view"></a></span><a class="link" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.the_left_map_view">The
+      left map view</a>
+    </h4>
+<p>
+      <code class="computeroutput"><span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span></code> works like a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span>
+      <span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span>
+      <span class="special">&gt;</span></code>. We use it in the same way we will
+      use a standard map.
+    </p>
+<p>
+</p>
+<pre class="programlisting"><a class="co" name="boost_bimap.one_minute_tutorial.c0" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.c1"><img src="../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a><span class="keyword">typedef</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_map</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">left_const_iterator</span><span class="special">;</span>
+
+<span class="keyword">for</span><span class="special">(</span> <span class="identifier">left_const_iterator</span> <span class="identifier">left_iter</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">iend</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+     <span class="identifier">left_iter</span> <span class="special">!=</span> <span class="identifier">iend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">left_iter</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// left_iter-&gt;first  : key  : int</span>
+    <span class="comment">// left_iter-&gt;second : data : std::string</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">left_iter</span><span class="special">-&gt;</span><span class="identifier">first</span> <span class="special">&lt;&lt;</span> <span class="string">" --&gt; "</span> <span class="special">&lt;&lt;</span> <span class="identifier">left_iter</span><span class="special">-&gt;</span><span class="identifier">second</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+
+<a class="co" name="boost_bimap.one_minute_tutorial.c2" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.c3"><img src="../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a><span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_const_iterator</span> <span class="identifier">left_iter</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+<span class="identifier">assert</span><span class="special">(</span> <span class="identifier">left_iter</span><span class="special">-&gt;</span><span class="identifier">second</span> <span class="special">==</span>  <span class="string">"two"</span> <span class="special">);</span>
+
+<a class="co" name="boost_bimap.one_minute_tutorial.c4" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.c5"><img src="../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a><span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_value_type</span><span class="special">(</span> <span class="number">3</span><span class="special">,</span> <span class="string">"three"</span> <span class="special">)</span> <span class="special">);</span>
+</pre>
+<p>
+    </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.one_minute_tutorial.c1"></a><a href="#boost_bimap.one_minute_tutorial.c0"><img src="../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+          The type of <code class="computeroutput"><span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span></code> is <code class="computeroutput"><span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_map</span></code>
+          and the type of <code class="computeroutput"><span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span></code> is <code class="computeroutput"><span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">right_map</span></code>
+        </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.one_minute_tutorial.c3"></a><a href="#boost_bimap.one_minute_tutorial.c2"><img src="../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+          <code class="computeroutput"><span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_</span></code>-type- can be used as a shortcut
+          for the more verbose <code class="computeroutput"><span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_map</span><span class="special">::</span></code>-type-
+        </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.one_minute_tutorial.c5"></a><a href="#boost_bimap.one_minute_tutorial.c4"><img src="../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+          This line produces the same effect of <code class="computeroutput"><span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="number">3</span><span class="special">,</span><span class="string">"three"</span><span class="special">)</span>
+          <span class="special">);</span></code>
+        </p></td>
+</tr>
+</table></div>
+<h4>
+<a name="boost_bimap.one_minute_tutorial.h5"></a>
+      <span class="phrase"><a name="boost_bimap.one_minute_tutorial.the_right_map_view"></a></span><a class="link" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.the_right_map_view">The
+      right map view</a>
+    </h4>
+<p>
+      <code class="computeroutput"><span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span></code> works like a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">&gt;</span></code>. It
+      is important to note that the key is the first type and the data is the second
+      one, exactly as with standard maps.
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">right_const_iterator</span> <span class="identifier">right_iter</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="string">"two"</span><span class="special">);</span>
+
+<span class="comment">// right_iter-&gt;first  : key  : std::string</span>
+<span class="comment">// right_iter-&gt;second : data : int</span>
+
+<span class="identifier">assert</span><span class="special">(</span> <span class="identifier">right_iter</span><span class="special">-&gt;</span><span class="identifier">second</span> <span class="special">==</span>  <span class="number">2</span> <span class="special">);</span>
+
+<span class="identifier">assert</span><span class="special">(</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="string">"one"</span><span class="special">)</span> <span class="special">==</span> <span class="number">1</span> <span class="special">);</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">erase</span><span class="special">(</span><span class="string">"two"</span><span class="special">);</span>
+
+<a class="co" name="boost_bimap.one_minute_tutorial.c6" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.c7"><img src="../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a><span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">right_value_type</span><span class="special">(</span> <span class="string">"four"</span><span class="special">,</span> <span class="number">4</span> <span class="special">)</span> <span class="special">);</span>
+</pre>
+<p>
+    </p>
+<div class="calloutlist"><table border="0" summary="Callout list"><tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.one_minute_tutorial.c7"></a><a href="#boost_bimap.one_minute_tutorial.c6"><img src="../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+          This line produces the same effect of <code class="computeroutput"><span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="number">4</span><span class="special">,</span><span class="string">"four"</span><span class="special">)</span>
+          <span class="special">);</span></code>
+        </p></td>
+</tr></table></div>
+<h4>
+<a name="boost_bimap.one_minute_tutorial.h6"></a>
+      <span class="phrase"><a name="boost_bimap.one_minute_tutorial.differences_with_std__map"></a></span><a class="link" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.differences_with_std__map">Differences
+      with std::map</a>
+    </h4>
+<p>
+      The main difference between bimap views and their standard containers counterparts
+      is that, because of the bidirectional nature of a bimap, the values stored
+      in it can not be modified directly using iterators. For example, when a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span></code> iterator
+      is dereferenced the return type is <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">X</span><span class="special">,</span>
+      <span class="identifier">Y</span><span class="special">&gt;</span></code>,
+      so the following code is valid: <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()-&gt;</span><span class="identifier">second</span> <span class="special">=</span> <span class="identifier">new_value</span><span class="special">;</span></code>.
+      However dereferencing a <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;::</span><span class="identifier">left_iterator</span></code>
+      returns a type that is <span class="emphasis"><em>signature-compatible</em></span> with a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">X</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Y</span><span class="special">&gt;</span></code>
+    </p>
+<pre class="programlisting"><span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="number">1</span><span class="special">)-&gt;</span><span class="identifier">second</span> <span class="special">=</span> <span class="string">"1"</span><span class="special">;</span> <span class="comment">// Compilation error</span>
+</pre>
+<p>
+      If you insert <code class="computeroutput"><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="string">"one"</span><span class="special">)</span></code> and <code class="computeroutput"><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="string">"1"</span><span class="special">)</span></code> in a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span></code> the second insertion will have no effect.
+      In a <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span></code> both keys have to remain unique. The insertion
+      may fail in other situtions too. Lets see an example
+    </p>
+<pre class="programlisting"><span class="identifier">bm</span><span class="special">.</span><span class="identifier">clear</span><span class="special">();</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span> <span class="number">1</span><span class="special">,</span> <span class="string">"one"</span> <span class="special">)</span> <span class="special">);</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span> <span class="number">1</span><span class="special">,</span> <span class="string">"1"</span>   <span class="special">)</span> <span class="special">);</span> <span class="comment">// No effect!</span>
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span> <span class="number">2</span><span class="special">,</span> <span class="string">"one"</span> <span class="special">)</span> <span class="special">);</span> <span class="comment">// No effect!</span>
+
+<span class="identifier">assert</span><span class="special">(</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span> <span class="special">);</span>
+</pre>
+<h4>
+<a name="boost_bimap.one_minute_tutorial.h7"></a>
+      <span class="phrase"><a name="boost_bimap.one_minute_tutorial.a_simple_example"></a></span><a class="link" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.a_simple_example">A
+      simple example</a>
+    </h4>
+<p>
+      Look how you can reuse code that is intend to be used with std::maps, like
+      the print_map function in this example.
+    </p>
+<p>
+      <a href="../../../example/simple_bimap.cpp" target="_top">Go to source code</a>
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">MapType</span> <span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">print_map</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MapType</span> <span class="special">&amp;</span> <span class="identifier">map</span><span class="special">,</span>
+               <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> <span class="identifier">separator</span><span class="special">,</span>
+               <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span> <span class="identifier">os</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">MapType</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">const_iterator</span><span class="special">;</span>
+
+    <span class="keyword">for</span><span class="special">(</span> <span class="identifier">const_iterator</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">map</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">iend</span> <span class="special">=</span> <span class="identifier">map</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span> <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">iend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">first</span> <span class="special">&lt;&lt;</span> <span class="identifier">separator</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">second</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Soccer World cup</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bimap</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">&gt;</span> <span class="identifier">results_bimap</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">results_bimap</span><span class="special">::</span><span class="identifier">value_type</span> <span class="identifier">position</span><span class="special">;</span>
+
+    <span class="identifier">results_bimap</span> <span class="identifier">results</span><span class="special">;</span>
+    <span class="identifier">results</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">position</span><span class="special">(</span><span class="string">"Argentina"</span>    <span class="special">,</span><span class="number">1</span><span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">results</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">position</span><span class="special">(</span><span class="string">"Spain"</span>        <span class="special">,</span><span class="number">2</span><span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">results</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">position</span><span class="special">(</span><span class="string">"Germany"</span>      <span class="special">,</span><span class="number">3</span><span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">results</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">position</span><span class="special">(</span><span class="string">"France"</span>       <span class="special">,</span><span class="number">4</span><span class="special">)</span> <span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"The number of countries is "</span> <span class="special">&lt;&lt;</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span>
+              <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"The winner is "</span> <span class="special">&lt;&lt;</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="number">1</span><span class="special">)</span>
+              <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+              <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Countries names ordered by their final position:"</span>
+              <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="comment">// results.right works like a std::map&lt; int, std::string &gt;</span>
+
+    <span class="identifier">print_map</span><span class="special">(</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">right</span><span class="special">,</span> <span class="string">") "</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+              <span class="special">&lt;&lt;</span> <span class="string">"Countries names ordered alphabetically along with"</span>
+                    <span class="string">"their final position:"</span>
+              <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="comment">// results.left works like a std::map&lt; std::string, int &gt;</span>
+
+    <span class="identifier">print_map</span><span class="special">(</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">left</span><span class="special">,</span> <span class="string">" ends in position "</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">);</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      The output of this program will be the following:
+    </p>
+<pre class="programlisting"><code class="literal">The number of countries is 4</code>
+
+<code class="literal">The winner is Argentina</code>
+
+<code class="literal">Countries names ordered by their final position:</code>
+<code class="literal">1) Argentina</code>
+<code class="literal">2) Spain</code>
+<code class="literal">3) Germany</code>
+<code class="literal">4) France</code>
+
+<code class="literal">Countries names ordered alphabetically along with their final position:</code>
+<code class="literal">Argentina ends in position 1</code>
+<code class="literal">France ends in position 4</code>
+<code class="literal">Germany ends in position 3</code>
+<code class="literal">Spain ends in position 2</code>
+</pre>
+<h4>
+<a name="boost_bimap.one_minute_tutorial.h8"></a>
+      <span class="phrase"><a name="boost_bimap.one_minute_tutorial.continuing_the_journey"></a></span><a class="link" href="one_minute_tutorial.html#boost_bimap.one_minute_tutorial.continuing_the_journey">Continuing
+      the journey</a>
+    </h4>
+<p>
+      For information on function signatures, see any standard library documentation
+      or read the <a class="link" href="reference.html" title="Reference">reference</a> section
+      of this documentation.
+    </p>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../../../doc/src/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Be aware that a bidirectional map is only signature-compatible with standard
+        containers. Some functions may give different results, such as in the case
+        of inserting a pair into the left map where the second value conflicts with
+        a stored relation in the container. The functions may be slower in a bimap
+        because of the duplicated constraints. It is strongly recommended that you
+        read <a class="link" href="the_tutorial.html" title="The tutorial">The full tutorial</a> if
+        you intend to use a bimap in a serious project.
+      </p></td></tr>
+</table></div>
+<div class="footnotes">
+<br><hr style="width:100; align:left;">
+<div id="ftn.boost_bimap.one_minute_tutorial.f0" class="footnote"><p><a href="#boost_bimap.one_minute_tutorial.f0" class="para"><sup class="para">[1] </sup></a>
+        A type is <span class="emphasis"><em>signature-compatible</em></span> with other type if it
+        has the same signature for functions and metadata. Preconditions, postconditions
+        and the order of operations need not be the same.
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="the_tutorial.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

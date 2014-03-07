@@ -1,0 +1,276 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Generator</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../generator_concepts.html" title="Generator Concepts">
+<link rel="prev" href="../generator_concepts.html" title="Generator Concepts">
+<link rel="next" href="primitivegenerator.html" title="PrimitiveGenerator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../generator_concepts.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../generator_concepts.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="primitivegenerator.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.reference.generator_concepts.generator"></a><a class="link" href="generator.html" title="Generator">Generator</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.karma.reference.generator_concepts.generator.h0"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generator_concepts.generator.description"></a></span><a class="link" href="generator.html#spirit.karma.reference.generator_concepts.generator.description">Description</a>
+          </h6>
+<p>
+            The <span class="emphasis"><em>Generator</em></span> is the most fundamental concept. A
+            Generator has a member function, <code class="computeroutput"><span class="identifier">generate</span></code>,
+            that accepts an <code class="computeroutput"><span class="identifier">OutputIterator</span></code>
+            and returns bool as its result. The iterator receives the data being
+            generated. The Generator's <code class="computeroutput"><span class="identifier">generate</span></code>
+            member function returns <code class="computeroutput"><span class="keyword">true</span></code>
+            if the generator succeeds. Each Generator can represent a specific pattern
+            or algorithm, or it can be a more complex generator formed as a composition
+            of other Generators.
+          </p>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">g</span></code></span></dt>
+<dd><p>
+                  A <code class="computeroutput"><span class="identifier">Generator</span></code>.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">G</span></code></span></dt>
+<dd><p>
+                  A <code class="computeroutput"><span class="identifier">Generator</span></code> type.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">OutIter</span></code></span></dt>
+<dd><p>
+                  An <code class="computeroutput"><span class="identifier">OutputIterator</span></code>
+                  type.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">sink</span></code></span></dt>
+<dd><p>
+                  An <code class="computeroutput"><span class="identifier">OutputIterator</span></code>
+                  instance.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Context</span></code></span></dt>
+<dd><p>
+                  The generator's Context type.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">context</span></code></span></dt>
+<dd><p>
+                  The generator's Context, or <code class="computeroutput"><span class="identifier">unused</span></code>.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">delimit</span></code></span></dt>
+<dd><p>
+                  A delimiter Generator, or <code class="computeroutput"><span class="identifier">unused</span></code>.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">attrib</span></code></span></dt>
+<dd><p>
+                  A Compatible Attributes, or <code class="computeroutput"><span class="identifier">unused</span></code>.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.karma.reference.generator_concepts.generator.h1"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generator_concepts.generator.valid_expressions"></a></span><a class="link" href="generator.html#spirit.karma.reference.generator_concepts.generator.valid_expressions">Valid
+            Expressions</a>
+          </h6>
+<p>
+            In the expressions below, the behavior of the generator, <code class="computeroutput"><span class="identifier">g</span></code>, as well as how <code class="computeroutput"><span class="identifier">delimit</span></code>
+            and <code class="computeroutput"><span class="identifier">attrib</span></code> are handled
+            by <code class="computeroutput"><span class="identifier">g</span></code>, are left unspecified
+            in the base <code class="computeroutput"><span class="identifier">Generator</span></code>
+            concept. These are specified in subsequent, more refined concepts and
+            by the actual models thereof.
+          </p>
+<p>
+            For any Generator the following expressions must be valid:
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Return type
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">g</span><span class="special">.</span><span class="identifier">generate</span><span class="special">(</span><span class="identifier">sink</span><span class="special">,</span> <span class="identifier">context</span><span class="special">,</span> <span class="identifier">delimit</span><span class="special">,</span> <span class="identifier">attrib</span><span class="special">)</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate the output sequence by inserting the generated characters/tokens
+                      into <code class="computeroutput"><span class="identifier">sink</span></code>.
+                      Use the <code class="computeroutput"><span class="identifier">delimit</span></code>
+                      generator for delimiting. Return <code class="computeroutput"><span class="keyword">true</span></code>
+                      if successful, otherwise return <code class="computeroutput"><span class="keyword">false</span></code>.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">bool</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">g</span><span class="special">.</span><span class="identifier">what</span><span class="special">(</span><span class="identifier">context</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Get information about a Generator.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">info</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.generator_concepts.generator.h2"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generator_concepts.generator.type_expressions"></a></span><a class="link" href="generator.html#spirit.karma.reference.generator_concepts.generator.type_expressions">Type
+            Expressions</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">G</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">attribute</span><span class="special">&lt;</span><span class="identifier">Context</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The Generator's attribute.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_generator</span><span class="special">&lt;</span><span class="identifier">G</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Metafunction that evaluates to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+                      if a certain type, <code class="computeroutput"><span class="identifier">G</span></code>
+                      is a Generator, <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>
+                      otherwise (See <a href="../../../../../../../../libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+                      Boolean Constant</a>).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">G</span><span class="special">::</span><span class="identifier">properties</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      An <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">int_</span></code> (See <a href="../../../../../../../../libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+                      Integral Constant</a>) holding a value from the <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">generator_properties</span></code> enumeration.
+                      The default value is <code class="computeroutput"><span class="identifier">generator_properties</span><span class="special">::</span><span class="identifier">no_properties</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.generator_concepts.generator.h3"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generator_concepts.generator.postcondition"></a></span><a class="link" href="generator.html#spirit.karma.reference.generator_concepts.generator.postcondition">Postcondition</a>
+          </h6>
+<p>
+            Upon return from <code class="computeroutput"><span class="identifier">g</span><span class="special">.</span><span class="identifier">generate</span></code> the following post conditions
+            should hold:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                On successful generation, <code class="computeroutput"><span class="identifier">sink</span></code>
+                receives the generated characters/tokens sequence.
+              </li>
+<li class="listitem">
+                No pre-delimits: <code class="computeroutput"><span class="identifier">delimit</span></code>
+                characters/tokens will not be emitted in front of any other output.
+              </li>
+<li class="listitem">
+                The attribute <code class="computeroutput"><span class="identifier">attrib</span></code>
+                has not been modified.
+              </li>
+</ul></div>
+<h6>
+<a name="spirit.karma.reference.generator_concepts.generator.h4"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generator_concepts.generator.models"></a></span><a class="link" href="generator.html#spirit.karma.reference.generator_concepts.generator.models">Models</a>
+          </h6>
+<p>
+            All generators in <span class="emphasis"><em>Spirit.Karma</em></span> are models of the
+            <span class="emphasis"><em>Generator</em></span> concept.
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../generator_concepts.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../generator_concepts.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="primitivegenerator.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

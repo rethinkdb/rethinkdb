@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL METIS Input Routines</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-metis-input-routines">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> METIS Input Routines</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+namespace boost {
+  namespace graph {
+    class metis_reader;
+    class metis_exception;
+    class metis_input_exception;
+    class metis_distribution;
+  }
+}
+</pre>
+<p><a class="reference external" href="http://www-users.cs.umn.edu/~karypis/metis/metis/">METIS</a> is a set of programs for partitioning graphs (among other
+things). The Parallel BGL can read the METIS graph format and
+partition format, allowing one to easily load METIS-partitioned
+graphs into the Parallel BGL's data structures.</p>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id3">Where Defined</a><ul>
+<li><a class="reference internal" href="#graph-reader" id="id4">Graph Reader</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#usage" id="id5">Usage</a></li>
+<li><a class="reference internal" href="#associated-types" id="id6">Associated Types</a></li>
+<li><a class="reference internal" href="#member-functions" id="id7">Member Functions</a><ul>
+<li><a class="reference internal" href="#partition-reader" id="id8">Partition Reader</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id1" id="id9">Usage</a></li>
+<li><a class="reference internal" href="#id2" id="id10">Member Functions</a></li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id3">Where Defined</a></h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/metis.hpp</span></tt>&gt;</p>
+<div class="section" id="graph-reader">
+<h2><a class="toc-backref" href="#id4">Graph Reader</a></h2>
+<pre class="literal-block">
+class metis_reader
+{
+ public:
+  typedef std::size_t vertices_size_type;
+  typedef std::size_t edges_size_type;
+  typedef double vertex_weight_type;
+  typedef double edge_weight_type;
+
+  class edge_iterator;
+  class edge_weight_iterator;
+
+  metis_reader(std::istream&amp; in);
+
+  edge_iterator begin();
+  edge_iterator end();
+  edge_weight_iterator weight_begin();
+
+  vertices_size_type num_vertices() const;
+  edges_size_type num_edges() const;
+
+  std::size_t num_vertex_weights() const;
+
+  vertex_weight_type vertex_weight(vertices_size_type v, std::size_t n);
+
+  bool has_edge_weights() const;
+};
+</pre>
+</div>
+</div>
+<div class="section" id="usage">
+<h1><a class="toc-backref" href="#id5">Usage</a></h1>
+<p>The METIS reader provides an iterator interface to the METIS graph
+file. The iterator interface is most useful when constructing Parallel
+BGL graphs on-the-fly. For instance, the following code builds a graph
+<tt class="docutils literal"><span class="pre">g</span></tt> from a METIS graph stored in <tt class="docutils literal"><span class="pre">argv[1]</span></tt>.</p>
+<pre class="literal-block">
+std::ifstream in_graph(argv[1]);
+metis_reader reader(in_graph);
+Graph g(reader.begin(), reader.end(),
+        reader.weight_begin(),
+        reader.num_vertices());
+</pre>
+<p>The calls to <tt class="docutils literal"><span class="pre">begin()</span></tt> and <tt class="docutils literal"><span class="pre">end()</span></tt> return an iterator range for
+the edges in the graph; the call to <tt class="docutils literal"><span class="pre">weight_begin()</span></tt> returns an
+iterator that will enumerate the weights of the edges in the
+graph. For a distributed graph, the distribution will be determined
+automatically by the graph; to use a METIS partitioning, see the
+section <a class="reference internal" href="#partition-reader">Partition Reader</a>.</p>
+</div>
+<div class="section" id="associated-types">
+<h1><a class="toc-backref" href="#id6">Associated Types</a></h1>
+<pre class="literal-block">
+metis_reader::edge_iterator
+</pre>
+<p>An <a class="reference external" href="http://www.sgi.com/tech/stl/InputIterator.html">Input Iterator</a> that enumerates the edges in the METIS graph, and
+is suitable for use as the <tt class="docutils literal"><span class="pre">EdgeIterator</span></tt> of an <a class="reference external" href="http://www.boost.org/libs/graph/doc/adjacency_list.html">adjacency_list</a>.
+The <tt class="docutils literal"><span class="pre">value_type</span></tt> of this iterator is a pair of vertex numbers.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+metis_reader::edge_weight_iterator
+</pre>
+<p>An <a class="reference external" href="http://www.sgi.com/tech/stl/InputIterator.html">Input Iterator</a> that enumerates the edge weights in the METIS
+graph. The <tt class="docutils literal"><span class="pre">value_type</span></tt> of this iterator is <tt class="docutils literal"><span class="pre">edge_weight_type</span></tt>. If
+the edges in the METIS graph are unweighted, the result of
+dereferencing this iterator will always be zero.</p>
+</div>
+<div class="section" id="member-functions">
+<h1><a class="toc-backref" href="#id7">Member Functions</a></h1>
+<pre class="literal-block">
+metis_reader(std::istream&amp; in);
+</pre>
+<p>Constructs a new METIS reader that will retrieve edges from the input
+stream <tt class="docutils literal"><span class="pre">in</span></tt>. If any errors are encountered while initially parsing
+<tt class="docutils literal"><span class="pre">in</span></tt>, <tt class="docutils literal"><span class="pre">metis_input_exception</span></tt> will be thrown.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+edge_iterator begin();
+</pre>
+<p>Returns an iterator to the first edge in the METIS file.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+edge_iterator end();
+</pre>
+<p>Returns an iterator one past the last edge in the METIS file.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+edge_weight_iterator weight_begin();
+</pre>
+<p>Returns an iterator to the first edge weight in the METIS file. The
+weight iterator should be moved in concert with the edge iterator;
+when the edge iterator moves, the edge weight changes. If the edges
+in the graph are unweighted, the weight returned will always be zero.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+vertices_size_type num_vertices() const;
+</pre>
+<p>Returns the number of vertices in the graph.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+edges_size_type num_edges() const;
+</pre>
+<p>Returns the number of edges in the graph.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+std::size_t num_vertex_weights() const;
+</pre>
+<p>Returns the number of weights attached to each vertex.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+vertex_weight_type vertex_weight(vertices_size_type v, std::size_t n);
+</pre>
+<hr class="docutils" />
+<pre class="literal-block">
+bool has_edge_weights() const;
+</pre>
+<p>Returns <tt class="docutils literal"><span class="pre">true</span></tt> when the edges of the graph have weights, <tt class="docutils literal"><span class="pre">false</span></tt>
+otherwise. When <tt class="docutils literal"><span class="pre">false</span></tt>, the edge weight iterator is still valid
+but returns zero for the weight of each edge.</p>
+<div class="section" id="partition-reader">
+<h2><a class="toc-backref" href="#id8">Partition Reader</a></h2>
+<pre class="literal-block">
+class metis_distribution
+{
+ public:
+  typedef int process_id_type;
+  typedef std::size_t size_type;
+
+  metis_distribution(std::istream&amp; in, process_id_type my_id);
+
+  size_type block_size(process_id_type id, size_type) const;
+  process_id_type operator()(size_type n);
+  size_type local(size_type n) const;
+  size_type global(size_type n) const;
+  size_type global(process_id_type id, size_type n) const;
+
+ private:
+  std::istream&amp; in;
+  process_id_type my_id;
+  std::vector&lt;process_id_type&gt; vertices;
+};
+</pre>
+</div>
+</div>
+<div class="section" id="id1">
+<h1><a class="toc-backref" href="#id9">Usage</a></h1>
+<p>The class <tt class="docutils literal"><span class="pre">metis_distribution</span></tt> loads a METIS partition file and
+makes it available as a Distribution suitable for use with the
+<a class="reference external" href="distributed_adjacency_list.html">distributed adjacency list</a> graph type. To load a METIS graph using
+a METIS partitioning, use a <tt class="docutils literal"><span class="pre">metis_reader</span></tt> object for the graph and
+a <tt class="docutils literal"><span class="pre">metis_distribution</span></tt> object for the distribution, as in the
+following example.</p>
+<pre class="literal-block">
+std::ifstream in_graph(argv[1]);
+metis_reader reader(in_graph);
+
+std::ifstream in_partitions(argv[2]);
+metis_distribution dist(in_partitions, process_id(pg));
+Graph g(reader.begin(), reader.end(),
+        reader.weight_begin(),
+        reader.num_vertices(),
+        pg,
+        dist);
+</pre>
+<p>In this example, <tt class="docutils literal"><span class="pre">argv[1]</span></tt> is the graph and <tt class="docutils literal"><span class="pre">argv[2]</span></tt> is the
+partition file generated by <tt class="docutils literal"><span class="pre">pmetis</span></tt>. The <tt class="docutils literal"><span class="pre">dist</span></tt> object loads the
+partitioning information from the input stream it is given and uses
+that to distributed the adjacency list. Note that the input stream
+must be in the METIS partition file format and must have been
+partitioned for the same number of processes are there are in the
+process group <tt class="docutils literal"><span class="pre">pg</span></tt>.</p>
+</div>
+<div class="section" id="id2">
+<h1><a class="toc-backref" href="#id10">Member Functions</a></h1>
+<pre class="literal-block">
+metis_distribution(std::istream&amp; in, process_id_type my_id);
+</pre>
+<p>Creates a new METIS distribution from the input stream
+<tt class="docutils literal"><span class="pre">in</span></tt>. <tt class="docutils literal"><span class="pre">my_id</span></tt> is the process ID of the current process in the
+process group over which the graph will be distributed.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+size_type block_size(process_id_type id, size_type) const;
+</pre>
+<p>Returns the number of vertices to be stored in the process
+<tt class="docutils literal"><span class="pre">id</span></tt>. The second parameter, <tt class="docutils literal"><span class="pre">size_type</span></tt>, is unused and may be any
+value.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+process_id_type operator()(size_type n);
+</pre>
+<p>Returns the ID for the process that will store vertex number <tt class="docutils literal"><span class="pre">n</span></tt>.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+size_type local(size_type n) const;
+</pre>
+<p>Returns the local index of vertex number <tt class="docutils literal"><span class="pre">n</span></tt> within its owning
+process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+size_type global(size_type n) const;
+</pre>
+<p>Returns the global index of the current processor's local vertex <tt class="docutils literal"><span class="pre">n</span></tt>.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+size_type global(process_id_type id, size_type n) const;
+</pre>
+<p>Returns the global index of the process <tt class="docutils literal"><span class="pre">id</span></tt>'s local vertex <tt class="docutils literal"><span class="pre">n</span></tt>.</p>
+<hr class="docutils" />
+<p>Copyright (C) 2005 The Trustees of Indiana University.</p>
+<p>Authors: Douglas Gregor and Andrew Lumsdaine</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

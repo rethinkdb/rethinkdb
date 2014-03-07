@@ -1,0 +1,790 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Cygwin (vers 1st September 2004), see www.w3.org">
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-latin-1-dos">
+  <link rel="stylesheet" type="text/css" href="../boost.css">
+
+  <title>Boost.Python - &lt;boost/python/class.hpp&gt;,
+  &lt;boost/python/class_fwd.hpp&gt;</title>
+</head>
+
+<body link="#0000FF" vlink="#800080">
+  <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+  "header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+        "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+        <h2 align="center">Headers &lt;boost/python/class.hpp&gt;,
+        &lt;boost/python/class_fwd.hpp&gt;</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <h2>Contents</h2>
+
+  <dl class="page-index">
+    <dt><a href="#introduction">Introduction</a></dt>
+
+    <dt><a href="#classes">Classes</a></dt>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#class_-spec">Class template
+        <code>class_</code></a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#class_-spec-synopsis">Class <code>class_</code>
+            synopsis</a></dt>
+
+            <dt><a href="#class_-spec-ctors">Class <code>class_</code>
+            constructors</a></dt>
+
+            <dt><a href="#class_-spec-modifiers">Class <code>class_</code>
+            modifier functions</a></dt>
+          </dl>
+        </dd>
+
+        <dt><a href="#bases-spec">Class template <code>bases</code></a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#bases-spec-synopsis">Class template
+            <code>bases</code> synopsis</a></dt>
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+
+    <dt><a href="#examples">Example(s)</a></dt>
+  </dl>
+  <hr>
+
+  <h2><a name="introduction" id="introduction"></a>Introduction</h2>
+
+  <p><code>&lt;boost/python/class.hpp&gt;</code> defines the interface
+  through which users expose their C++ classes to Python. It declares the
+  <code>class_</code> class template, which is parameterized on the class
+  type being exposed. It also exposes the <code>init</code>,
+  <code>optional</code> and <code>bases</code> utility class templates, which
+  are used in conjunction with <code>class_</code>.</p>
+
+  <p><code>&lt;boost/python/class_fwd.hpp&gt;</code> contains a forward
+  declaration of the <code>class_</code> class template.</p>
+
+  <h2><a name="classes" id="classes"></a>Classes</h2>
+
+  <h3><a name="class_-spec" id="class_-spec"></a>Class template
+  <code>class_&lt;T,&nbsp;<font color="#007F00">Bases,&nbsp;HeldType,
+  NonCopyable</font>&gt;</code></h3>
+
+  <p>Creates a Python class associated with the C++ type passed as its first
+  parameter. Although it has four template parameters, only the first one is
+  required. The three optional arguments can actually be supplied
+  <font color="#007F00"><b>in any order</b></font>; Boost.Python determines
+  the role of the argument from its type.<br>
+  <br></p>
+
+  <table border="1" summary="class_ template parameters">
+    <tr>
+      <th>Template Parameter</th>
+
+      <th>Requirements</th>
+
+      <th>Semantics</th>
+
+      <th>Default</th>
+    </tr>
+
+    <tr>
+      <td><code>T</code></td>
+
+      <td>A class type.</td>
+
+      <td>The class being wrapped</td>
+    </tr>
+
+    <tr>
+      <td><code><font color="#007F00">Bases</font></code></td>
+
+      <td>A specialization of <a href=
+      "#bases-spec"><code>bases&lt;</code>...<code>&gt;</code></a> which
+      specifies previously-exposed C++ base classes of <code>T</code><a href=
+      "#footnote_1">[1]</a>.</td>
+
+      <td>Registers <code>from_python</code> conversions from wrapped
+      <code>T</code> instances to each of its exposed direct and indirect
+      bases. For each polymorphic base <code>B</code>, registers conversions
+      from indirectly-held wrapped <code>B</code> instances to
+      <code>T</code>.</td>
+
+      <td><code><a href="#bases-spec">bases&lt;&gt;</a></code></td>
+    </tr>
+
+    <tr>
+      <td><code><font color="#007F00">HeldType</font></code></td>
+
+      <td>Must be <code>T</code>, a class derived from <code>T</code>, or a
+      <a href="Dereferenceable.html">Dereferenceable</a> type for which
+      <code><a href=
+      "pointee.html#pointee-spec">pointee</a>&lt;HeldType&gt;::type</code> is
+      <code>T</code> or a class derived from <code>T</code>.</td>
+
+      <td>Specifies the type that is actually embedded in a Python object
+      wrapping a <code>T</code> instance when <code>T</code>'s constructor is
+      called or when a <code>T</code> or <code>T*</code> is converted to
+      Python without the use of <a href=
+      "http://www.boost.org/libs/python/doc/v2/callbacks.html#argument_handling">
+      <code>ptr</code></a>, <a href=
+      "http://www.boost.org/libs/python/doc/v2/callbacks.html#argument_handling">
+      <code>ref</code></a>, or <a href="CallPolicies.html">Call Policies</a>
+      such as <code><a href=
+      "return_internal_reference.html">return_internal_reference</a></code>.
+      More details <a href="#HeldType">below</a>.</td>
+
+      <td><code>T</code></td>
+    </tr>
+
+    <tr>
+      <td><code><font color="#007F00">NonCopyable</font></code></td>
+
+      <td>If supplied, must be <a href=
+      "../../../utility/utility.htm#Class_noncopyable">boost::noncopyable</a>.</td>
+
+      <td>Suppresses automatic registration of <code>to_python</code>
+      conversions which copy <code>T</code> instances. Required when
+      <code>T</code> has no publicly-accessible copy constructor.</td>
+
+      <td>An unspecified type other than
+      <code>boost::noncopyable</code>.</td>
+    </tr>
+  </table>
+
+  <h4><a name="HeldType" id="HeldType">HeldType Semantics</a></h4>
+
+  <ol>
+    <li>If <code>HeldType</code> is derived from T, its exposed
+    constructor(s) must accept an initial <code>PyObject*</code> argument
+    which refers back to the Python object that contains the
+    <code>HeldType</code> instance, as shown in <a href=
+    "call_method.html#examples">this example</a>. This argument is not
+    included in the <em><a href=
+    "init.html#init-expressions">init-expression</a></em> passed to <a href=
+    "#class_-spec-modifiers"><code>def(init_expr)</code></a>, below, nor is
+    it passed explicitly by users when Python instances of <code>T</code> are
+    created. This idiom allows C++ virtual functions which will be overridden
+    in Python to access the Python object so the Python method can be
+    invoked. Boost.Python automatically registers additional converters which
+    allow wrapped instances of <code>T</code> to be passed to wrapped C++
+    functions expecting <code>HeldType</code> arguments.</li>
+
+    <li>Because Boost.Python will always allow wrapped instances of
+    <code>T</code> to be passed in place of <code>HeldType</code> arguments,
+    specifying a smart pointer for <code>HeldType</code> allows users to pass
+    Python <code>T</code> instances where a smart pointer-to-<code>T</code>
+    is expected. Smart pointers such as <code>std::auto_ptr&lt;&gt;</code> or
+    <code><a href=
+    "../../../smart_ptr/shared_ptr.htm">boost::shared_ptr&lt;&gt;</a></code>
+    which contain a nested type <code>element_type</code> designating the
+    referent type are automatically supported; additional smart pointer types
+    can be supported by specializing <a href=
+    "pointee.html#pointee-spec">pointee&lt;HeldType&gt;</a>.</li>
+
+    <li>As in case 1 above, when <code>HeldType</code> is a smart pointer to
+    a class derived from <code>T</code>, the initial <code>PyObject*</code>
+    argument must be supplied by all of <code>HeldType</code>'s exposed
+    constructors.</li>
+
+    <li>Except in cases 1 and 3, users may optionally specify that T itself
+    gets initialized with a similar initial <code>PyObject*</code> argument
+    by specializing <a href=
+    "has_back_reference.html#has_back_reference-spec">has_back_reference&lt;T&gt;</a>.</li>
+  </ol>
+
+  <h4><a name="class_-spec-synopsis" id="class_-spec-synopsis"></a>Class
+  template <code>class_</code> synopsis</h4>
+  <pre>
+namespace boost { namespace python
+{
+  template &lt;class T
+   <font color="#007F00">   , class Bases = bases&lt;&gt;
+            , class HeldType = T
+            , class NonCopyable = <i>unspecified</i>
+           &gt;
+</font>  class class_ : public <a href="object.html#object-spec">object</a>
+  {
+    // Constructors with default __init__
+    class_(char const* name);
+    class_(char const* name, char const* docstring);
+
+    // Constructors, specifying non-default __init__
+    template &lt;class Init&gt;
+    class_(char const* name, Init);
+    template &lt;class Init&gt;
+    class_(char const* name, char const* docstring, Init);
+
+    // Exposing additional __init__ functions
+    template &lt;class Init&gt;
+    class_&amp; def(Init);
+
+    // defining methods
+    template &lt;class F&gt;
+    class_&amp; def(char const* name, F f);
+    template &lt;class Fn, class A1&gt;
+    class_&amp; def(char const* name, Fn fn, A1 const&amp;);
+    template &lt;class Fn, class A1, class A2&gt;
+    class_&amp; def(char const* name, Fn fn, A1 const&amp;, A2 const&amp;);
+    template &lt;class Fn, class A1, class A2, class A3&gt;
+    class_&amp; def(char const* name, Fn fn, A1 const&amp;, A2 const&amp;, A3 const&amp;);
+
+    // declaring method as static
+    class_&amp; staticmethod(char const* name);
+    
+    // exposing operators
+    template &lt;<i>unspecified</i>&gt;
+    class_&amp; def(<a href=
+"operators.html#operator_-spec">detail::operator_</a>&lt;unspecified&gt;);
+
+    // Raw attribute modification
+    template &lt;class U&gt;
+    class_&amp; setattr(char const* name, U const&amp;);
+
+    // exposing data members
+    template &lt;class D&gt;
+    class_&amp; def_readonly(char const* name, D T::*pm);
+
+    template &lt;class D&gt;
+    class_&amp; def_readwrite(char const* name, D T::*pm);
+
+    // exposing static data members
+    template &lt;class D&gt;
+    class_&amp; def_readonly(char const* name, D const&amp; d);
+    template &lt;class D&gt;
+    class_&amp; def_readwrite(char const* name, D&amp; d);
+
+    // property creation
+    template &lt;class Get&gt;
+    void add_property(char const* name, Get const&amp; fget, char const* doc=0);
+    template &lt;class Get, class Set&gt;
+    void add_property(
+        char const* name, Get const&amp; fget, Set const&amp; fset, char const* doc=0);
+
+    template &lt;class Get&gt;
+    void add_static_property(char const* name, Get const&amp; fget);
+    template &lt;class Get, class Set&gt;
+    void add_static_property(char const* name, Get const&amp; fget, Set const&amp; fset);
+
+    // pickle support
+    template &lt;typename PickleSuite&gt;
+    self&amp; def_pickle(PickleSuite const&amp;);
+    self&amp; enable_pickling();
+  };
+}}
+</pre>
+
+  <h4><a name="class_-spec-ctors" id="class_-spec-ctors"></a>Class template
+  <code>class_</code> constructors</h4>
+  <pre>
+class_(char const* name);
+class_(char const* name, char const* docstring);
+template &lt;class Init&gt;
+class_(char const* name, Init init_spec);
+template &lt;class Init&gt;
+class_(char const* name, char const* docstring, Init init_spec);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Requires:</b> <code>name</code> is an <a href=
+    "definitions.html#ntbs">ntbs</a> which conforms to Python's <a href=
+    "http://www.python.org/doc/current/ref/identifiers.html">identifier
+    naming rules</a>. If <code>docstring</code> is supplied, it must be an
+    <a href="definitions.html#ntbs">ntbs</a>. If <code>init_spec</code> is
+    supplied, it must be either the special enumeration constant
+    <code>no_init</code> or an <a href=
+    "init.html#init-expressions">init-expression</a> compatible with
+    <code>T</code>.</dt>
+
+    <dt><b>Effects:</b> Constructs a <code>class_</code> object holding a
+    Boost.Python extension class named <code>name</code>. The
+    <code>name</code>d attribute of the <a href=
+    "scope.html#introduction">current scope</a> is bound to the new extension
+    class.</dt>
+
+    <dd>
+      <ul>
+        <li>If supplied, the value of <code>docstring</code> is bound to the
+        <code>__doc__</code> attribute of the extension class.</li>
+
+        <li>If <code>init_spec</code> is <code>no_init</code>, a special
+        <code>__init__</code> function is generated which always raises a
+        Python exception. Otherwise, <code>this-&gt;def(init_spec)</code> is
+        called.</li>
+
+        <li>If <code>init_spec</code> is not supplied,
+        <code>this-&gt;def(init&lt;&gt;())</code> is called.</li>
+      </ul>
+    </dd>
+
+    <dt><b>Rationale:</b>Allowing the user to specify constructor arguments
+    in the <code>class_&lt;&gt;</code> constructor helps her to avoid the
+    common run-time errors which result from invoking wrapped member
+    functions without having exposed an <code>__init__</code> function which
+    creates the requisite <code>T</code> instance. Types which are not
+    default-constructible will cause a compile-time error unless
+    <code>Init</code> is supplied. The user must always supply
+    <code>name</code> as there is currently no portable method to derive the
+    text of the class name from its type.</dt>
+  </dl>
+
+  <h4><a name="class_-spec-modifiers" id="class_-spec-modifiers"></a>Class
+  template <code>class_</code> modifier functions</h4>
+  <pre>
+template &lt;class Init&gt;
+class_&amp; def(Init init_expr);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Requires:</b> <code>init_expr</code> is the result of an <a href=
+    "init.html#init-expressions">init-expression</a> compatible with
+    <code>T</code>.</dt>
+
+    <dt><b>Effects:</b> For each <a href="init.html#init-expressions">valid
+    prefix</a> <em>P</em> of <code>Init</code>, adds an
+    <code>__init__(</code>...<code>)</code> function overload to the
+    extension class accepting <em>P</em> as arguments. Each overload
+    generated constructs an object of <code>HeldType</code> according to the
+    semantics described <a href="#HeldType">above</a>, using a copy of
+    <code>init_expr</code>'s <a href="CallPolicies.html">call policies</a>.
+    If the longest <a href="init.html#init-expressions">valid prefix</a> of
+    <code>Init</code> contains <em>N</em> types and <code>init_expr</code>
+    holds <em>M</em> keywords, an initial sequence of the keywords are used
+    for all but the first <em>N</em> - <em>M</em> arguments of each
+    overload.</dt>
+
+    <dt><b>Returns:</b> <code>*this</code></dt>
+
+    <dt><b>Rationale:</b> Allows users to easily expose a class' constructor
+    to Python.</dt>
+  </dl><br>
+  <pre>
+template &lt;class F&gt;
+class_&amp; def(char const* name, Fn fn);
+template &lt;class Fn, class A1&gt;
+class_&amp; def(char const* name, Fn fn, A1 const&amp; a1);
+template &lt;class Fn, class A1, class A2&gt;
+class_&amp; def(char const* name, Fn fn, A1 const&amp; a1, A2 const&amp; a2);
+template &lt;class Fn, class A1, class A2, class A3&gt;
+class_&amp; def(char const* name, Fn fn, A1 const&amp; a1, A2 const&amp; a2, A3 const&amp; a3);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Requires:</b> <code>name</code> is an <a href=
+    "definitions.html#ntbs">ntbs</a> which conforms to Python's <a href=
+    "http://www.python.org/doc/current/ref/identifiers.html">identifier
+    naming rules</a>.</dt>
+
+    <dd>
+      <ul>
+        <li>If <code>a1</code> is the result of an <a href=
+        "overloads.html#overload-dispatch-expression"><em>overload-dispatch-expression</em></a>,
+        only the second form is allowed and fn must be a pointer to function
+        or pointer to member function whose <a href="definitions.html#arity">
+          arity</a> is the same as A1's <a href=
+          "overloads.html#overload-dispatch-expression"><em>maximum
+          arity</em></a>.
+
+          <dl>
+            <dt><b>Effects:</b> For each prefix <em>P</em> of
+            <code>Fn</code>'s sequence of argument types, beginning with the
+            one whose length is <code>A1</code>'s <a href=
+            "overloads.html#overload-dispatch-expression"><em>minimum
+            arity</em></a>, adds a
+            <code><em>name</em>(</code>...<code>)</code> method overload to
+            the extension class. Each overload generated invokes
+            <code>a1</code>'s call-expression with <em>P</em>, using a copy
+            of <code>a1</code>'s <a href="CallPolicies.html">call
+            policies</a>. If the longest valid prefix of <code>A1</code>
+            contains <em>N</em> types and <code>a1</code> holds <em>M</em>
+            keywords, an initial sequence of the keywords are used for all
+            but the first <em>N</em> - <em>M</em> arguments of each
+            overload.<br></dt>
+          </dl>
+        </li>
+
+        <li>Otherwise, a single method overload is built around fn, which
+        must not be null:
+
+          <ul>
+            <li>If fn is a function pointer, its first argument must be of
+            the form <code>U</code>, <code>U <em>cv</em>&amp;</code>, <code>U
+            <em>cv</em>*</code>, or <code>U <em>cv</em>* const&amp;</code>,
+            where <code>T*</code> is convertible to <code>U*</code>, and
+            <code>a1</code>-<code>a3</code>, if supplied, may be selected in
+            any order from the table below.</li>
+
+            <li>Otherwise, if fn is a member function pointer, its target
+            must be <code>T</code> or one of its public base classes, and
+            <code>a1</code>-<code>a3</code>, if supplied, may be selected in
+            any order from the table below.</li>
+
+            <li>Otherwise, <code>Fn</code> must be [derived from]
+            <code><a href="object.html#object-spec">object</a></code>, and
+            <code>a1-a2</code>, if supplied, may be selcted in any order from
+            the first two rows of the table below. To be useful,
+            <code>fn</code> should be <a href=
+            "http://www.python.org/doc/current/lib/built-in-funcs.html#l2h-6">
+            callable</a>.</li>
+          </ul>
+
+          <table border="1" summary="def() optional arguments">
+            <tr>
+              <th>Memnonic Name</th>
+
+              <th>Requirements/Type properties</th>
+
+              <th>Effects</th>
+            </tr>
+
+            <tr>
+              <td>docstring</td>
+
+              <td>Any <a href="definitions.html#ntbs">ntbs</a>.</td>
+
+              <td>Value will be bound to the <code>__doc__</code> attribute
+              of the resulting method overload. If an earlier overload
+              supplied a docstring, two newline characters and the new
+              docstring are appended to it.</td>
+            </tr>
+
+            <tr>
+              <td>policies</td>
+
+              <td>A model of <a href=
+              "CallPolicies.html">CallPolicies</a></td>
+
+              <td>A copy will be used as the call policies of the resulting
+              method overload.</td>
+            </tr>
+
+            <tr>
+              <td>keywords</td>
+
+              <td>The result of a <a href=
+              "args.html#keyword-expression"><em>keyword-expression</em></a>
+              specifying no more arguments than the <a href=
+              "definitions.html#arity">arity</a> of <code>fn</code>.</td>
+
+              <td>A copy will be used as the call policies of the resulting
+              method overload.</td>
+            </tr>
+          </table>
+        </li>
+      </ul>
+    </dd>
+
+    <dt><b>Returns:</b> <code>*this</code></dt>
+  </dl>
+  <pre>
+class_&amp; staticmethod(char const* name);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Requires:</b> <code>name</code> is an <a href=
+    "definitions.html#ntbs">ntbs</a> which conforms to Python's <a href=
+    "http://www.python.org/doc/current/ref/identifiers.html">identifier
+    naming rules</a>, and corresponds to a method whose overloads have all
+    been defined.</dt>
+
+    <dt><b>Effects:</b> Replaces the existing named attribute <i>x</i> with
+    the result of invoking <code>staticmethod(</code><i>x</i><code>)</code>
+    in Python. Specifies that the corresponding method is static and
+    therefore no object instance will be passed to it. This is equivalent to
+    the Python statement:</dt>
+
+    <dd>
+      <pre>
+setattr(self, name, staticmethod(getattr(self, name)))
+</pre>
+    </dd>
+
+    <dt><b>Note:</b> Attempting to invoke <code>def(name,...)</code> after
+    invoking <code>staticmethod(name)</code> will <a href=
+    "definitions.html#raise">raise</a> a RuntimeError.</dt>
+
+    <dt><b>Returns:</b> <code>*this</code></dt>
+  </dl><br>
+  <pre>
+template &lt;<i>unspecified</i>&gt;
+class_&amp; def(<a href=
+"operators.html#operator_-spec">detail::operator_</a>&lt;unspecified&gt;);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Effects:</b> Adds a Python <a href=
+    "http://www.python.org/doc/ref/specialnames.html">special method</a> as
+    described <a href="operators.html">here</a>.</dt>
+
+    <dt><b>Returns:</b> <code>*this</code></dt>
+  </dl>
+  <pre>
+template &lt;class U&gt;
+class_&amp; setattr(char const* name, U const&amp; u);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Requires:</b> <code>name</code> is an <a href=
+    "definitions.html#ntbs">ntbs</a> which conforms to Python's <a href=
+    "http://www.python.org/doc/current/ref/identifiers.html">identifier
+    naming rules</a>.</dt>
+
+    <dt><b>Effects:</b> Converts u to Python and adds it to the attribute
+    dictionary of the extension class:</dt>
+
+    <dd>
+      <blockquote>
+        <code><a href=
+        "http://www.python.org/doc/current/api/object.html#l2h-166">PyObject_SetAttrString</a>(this-&gt;ptr(),
+        name, <a href=
+        "object.html#object-spec-ctors">object</a>(u).ptr());</code>
+      </blockquote>
+    </dd>
+
+    <dt><b>Returns:</b> <code>*this</code></dt>
+  </dl><br>
+  <pre>
+template &lt;class Get&gt;
+void add_property(char const* name, Get const&amp; fget, char const* doc=0);
+template &lt;class Get, class Set&gt;
+void add_property(
+        char const* name, Get const&amp; fget, Set const&amp; fset, char const* doc=0);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Requires:</b> <code>name</code> is an <a href=
+    "definitions.html#ntbs">ntbs</a> which conform to Python's <a href=
+    "http://www.python.org/doc/current/ref/identifiers.html">identifier
+    naming rules</a>.</dt>
+
+    <dt><b>Effects:</b> Creates a new Python <a href=
+    "http://www.python.org/2.2.2/descrintro.html#property"><code>property</code></a>
+    class instance, passing <code><a href=
+    "object.html#object-spec-ctors">object</a>(fget)</code> (and
+    <code><a href="object.html#object-spec-ctors">object</a>(fset)</code> in
+    the second form) with an (optional) docstring <code>doc</code> to its
+    constructor, then adds that property to the Python class object under
+    construction with the given attribute <code>name</code>.</dt>
+
+    <dt><b>Returns:</b> <code>*this</code></dt>
+
+    <dt><b>Rationale:</b> Allows users to easily expose functions that can be
+    invoked from Python with attribute access syntax.</dt>
+  </dl><br>
+  <pre>
+template &lt;class Get&gt;
+void add_static_property(char const* name, Get const&amp; fget);
+template &lt;class Get, class Set&gt;
+void add_static_property(char const* name, Get const&amp; fget, Set const&amp; fset);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Requires:</b> <code>name</code> is an <a href=
+    "definitions.html#ntbs">ntbs</a> which conforms to Python's <a href=
+    "http://www.python.org/doc/current/ref/identifiers.html">identifier
+    naming rules</a>.</dt>
+
+    <dt><b>Effects:</b> Creates a Boost.Python.StaticProperty object, passing
+    <code><a href="object.html#object-spec-ctors">object</a>(fget)</code>
+    (and <code><a href=
+    "object.html#object-spec-ctors">object</a>(fset)</code> in the second
+    form) to its constructor, then adds that property to the Python class
+    under construction with the given attribute <code>name</code>.
+    StaticProperty is a special subclass of Python's <a href=
+    "http://www.python.org/2.2.2/descrintro.html#property"><code>property</code></a>
+    class which can be called without an initial <code>self</code>
+    argument.</dt>
+
+    <dt><b>Returns:</b> <code>*this</code></dt>
+
+    <dt><b>Rationale:</b> Allows users to easily expose functions that can be
+    invoked from Python with static attribute access syntax.</dt>
+  </dl><br>
+  <pre>
+template &lt;class D&gt;
+class_&amp; def_readonly(char const* name, D T::*pm, char const* doc=0);
+template &lt;class D&gt;
+class_&amp; def_readonly(char const* name, D const&amp; d);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Requires:</b> <code>name</code> is an <a href=
+    "definitions.html#ntbs">ntbs</a> which conforms to Python's <a href=
+    "http://www.python.org/doc/current/ref/identifiers.html">identifier
+    naming rules</a>. <code>doc</code> is also an ntbs.</dt>
+
+    <dt><b>Effects:</b></dt>
+
+    <dd>
+      <pre>
+this-&gt;add_property(name, <a href=
+"data_members.html#make_getter-spec">make_getter</a>(pm), doc);
+</pre>and
+      <pre>
+this-&gt;add_static_property(name, <a href=
+"data_members.html#make_getter-spec">make_getter</a>(d));
+</pre>respectively.<br>
+      <br>
+    </dd>
+
+    <dt><b>Returns:</b> <code>*this</code></dt>
+
+    <dt><b>Rationale:</b> Allows users to easily expose a class' data member
+    or free variable such that it can be inspected from Python with a natural
+    syntax.</dt>
+  </dl>
+  <pre>
+template &lt;class D&gt;
+class_&amp; def_readwrite(char const* name, D T::*pm, char const* doc=0);
+template &lt;class D&gt;
+class_&amp; def_readwrite(char const* name, D&amp; d);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Effects:</b></dt>
+
+    <dd>
+      <pre>
+this-&gt;add_property(name, <a href=
+"data_members.html#make_getter-spec">make_getter</a>(pm), <a href=
+"data_members.html#make_setter-spec">make_setter</a>(pm), doc);
+</pre>and
+      <pre>
+this-&gt;add_static_property(name, <a href=
+"data_members.html#make_getter-spec">make_getter</a>(d), <a href=
+"data_members.html#make_setter-spec">make_setter</a>(d));
+</pre>respectively.<br>
+      <br>
+    </dd>
+
+    <dt><b>Returns:</b> <code>*this</code></dt>
+
+    <dt><b>Rationale:</b> Allows users to easily expose a class' data or free
+    variable member such that it can be inspected and set from Python with a
+    natural syntax.</dt>
+  </dl>
+  <pre>
+template &lt;typename PickleSuite&gt;
+class_&amp; def_pickle(PickleSuite const&amp;);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Requires:</b> PickleSuite must be publically derived from <a href=
+    "pickle.html"><code>pickle_suite</code></a>.</dt>
+
+    <dt><b>Effects:</b> Defines a legal combination of the special attributes
+    and methods: <code>__getinitargs__</code>, <code>__getstate__</code>,
+    <code>__setstate__</code>, <code>__getstate_manages_dict__</code>,
+    <code>__safe_for_unpickling__</code>, <code>__reduce__</code></dt>
+
+    <dt><b>Returns:</b> <code>*this</code></dt>
+
+    <dt><b>Rationale:</b> Provides an <a href="pickle.html">easy to use
+    high-level interface</a> for establishing complete pickle support for the
+    wrapped class. The user is protected by compile-time consistency
+    checks.</dt>
+  </dl><br>
+  <pre>
+class_&amp; enable_pickling();
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Effects:</b> Defines the <code>__reduce__</code> method and the
+    <code>__safe_for_unpickling__</code> attribute.</dt>
+
+    <dt><b>Returns:</b> <code>*this</code></dt>
+
+    <dt><b>Rationale:</b> Light-weight alternative to
+    <code>def_pickle()</code>. Enables implementation of <a href=
+    "pickle.html">pickle support</a> from Python.</dt>
+  </dl><br>
+
+  <h3><a name="bases-spec" id="bases-spec"></a>Class template
+  <code>bases&lt;T1, T2,</code>...<code>TN&gt;</code></h3>
+
+  <p>An <a href="../../../mpl/doc/refmanual/forward-sequence.html">MPL
+  sequence</a> which can be used in
+  <code>class_&lt;</code>...<code>&gt;</code> instantiations indicate a list
+  of base classes.</p>
+
+  <h4><a name="bases-spec-synopsis" id="bases-spec-synopsis"></a>Class
+  template <code>bases</code> synopsis</h4>
+  <pre>
+namespace boost { namespace python
+{
+  template &lt;T1 = <i>unspecified</i>,...T<i>n</i> = <i>unspecified</i>&gt;
+  struct bases
+  {};
+}}
+</pre>
+
+  <h2><a name="examples" id="examples"></a>Example(s)</h2>
+
+  <p>Given a C++ class declaration:</p>
+  <pre>
+class Foo : public Bar, public Baz
+{
+ public:
+   Foo(int x, char const* y);
+   Foo(double);
+
+   std::string const&amp; name() { return m_name; }
+   void name(char const*);
+
+   double value; // public data
+ private:
+   ...
+};
+</pre>A corresponding Boost.Python extension class can be created with:
+  <pre>
+using namespace boost::python;
+
+class_&lt;Foo,bases&lt;Bar,Baz&gt; &gt;("Foo",
+          "This is Foo's docstring."
+          "It describes our Foo extension class",
+
+          init&lt;int,char const*&gt;(args("x","y"), "__init__ docstring")
+          )
+   .def(init&lt;double&gt;())
+   .def("get_name", &amp;Foo::get_name, return_internal_reference&lt;&gt;())
+   .def("set_name", &amp;Foo::set_name)
+   .def_readwrite("value", &amp;Foo::value)
+   ;
+</pre>
+  <hr>
+  <a name="footnote_1" id="footnote_1">[1]</a> By "previously-exposed" we
+  mean that the for each <code>B</code> in <code>bases</code>, an instance of
+  <code>class_&lt;B<font color="#007F00">, ...</font>&gt;</code> must have
+  already been constructed.
+  <pre>
+class_&lt;Base&gt;("Base");
+class_&lt;Derived, bases&lt;Base&gt; &gt;("Derived");
+</pre>Revised 
+<!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+   1 November, 2005 <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+
+  <p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave
+  Abrahams</a> 2002.</i></p>
+</body>
+</html>

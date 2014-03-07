@@ -1,0 +1,520 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Data Structures</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../heap.html" title="Chapter&#160;13.&#160;Boost.Heap">
+<link rel="prev" href="concepts.html" title="Concepts &amp; Interface">
+<link rel="next" href="reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="concepts.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../heap.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="heap.data_structures"></a><a class="link" href="data_structures.html" title="Data Structures">Data Structures</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="data_structures.html#heap.data_structures.data_structure_configuration">Data
+      Structure Configuration</a></span></dt></dl></div>
+<p>
+      <code class="literal">boost.heap</code> provides the following data structures:
+    </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/priority_queue.html" title="Class template priority_queue">boost::heap::priority_queue</a></code></span></dt>
+<dd><p>
+            The <code class="computeroutput"><a class="link" href="../boost/heap/priority_queue.html" title="Class template priority_queue">priority_queue</a></code>
+            class is a wrapper to the stl heap functions. It implements a heap as
+            container adaptor ontop of a <code class="literal">std::vector</code> and is immutable.
+          </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/d_ary_heap.html" title="Class template d_ary_heap">boost::heap::d_ary_heap</a></code></span></dt>
+<dd>
+<p>
+            <a href="http://en.wikipedia.org/wiki/D-ary_heap" target="_top">D-ary heaps</a>
+            are a generalization of binary heap with each non-leaf node having N
+            children. For a low arity, the height of the heap is larger, but the
+            number of comparisons to find the largest child node is bigger. D-ary
+            heaps are implemented as container adaptors based on a <code class="literal">std::vector</code>.
+          </p>
+<p>
+            The data structure can be configured as mutable. This is achieved by
+            storing the values inside a std::list.
+          </p>
+</dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/binomial_heap.html" title="Class template binomial_heap">boost::heap::binomial_heap</a></code></span></dt>
+<dd><p>
+            <a href="http://en.wikipedia.org/wiki/Binomial_heap" target="_top">Binomial heaps</a>
+            are node-base heaps, that are implemented as a set of binomial trees
+            of piecewise different order. The most important heap operations have
+            a worst-case complexity of O(log n). In contrast to d-ary heaps, binomial
+            heaps can also be merged in O(log n).
+          </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/fibonacci_heap.html" title="Class template fibonacci_heap">boost::heap::fibonacci_heap</a></code></span></dt>
+<dd><p>
+            <a href="http://en.wikipedia.org/wiki/Fibonacci_heap" target="_top">Fibonacci heaps</a>
+            are node-base heaps, that are implemented as a forest of heap-ordered
+            trees. They provide better amortized performance than binomial heaps.
+            Except <code class="literal">pop()</code> and <code class="literal">erase()</code>, the most
+            important heap operations have constant amortized complexity.
+          </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/pairing_heap.html" title="Class template pairing_heap">boost::heap::pairing_heap</a></code></span></dt>
+<dd>
+<p>
+            <a href="http://en.wikipedia.org/wiki/Pairing_heap" target="_top">Pairing heaps</a>
+            are self-adjusting node-based heaps. Although design and implementation
+            are rather simple, the complexity analysis is yet unsolved. For details,
+            consult:
+          </p>
+<p>
+            Pettie, Seth (2005), "Towards a final analysis of pairing heaps",
+            Proc. 46th Annual IEEE Symposium on Foundations of Computer Science,
+            pp. 174&#8211;183
+          </p>
+</dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/skew_heap.html" title="Class template skew_heap">boost::heap::skew_heap</a></code></span></dt>
+<dd><p>
+            <a href="http://en.wikipedia.org/wiki/Skew_heap" target="_top">Skew heaps</a>
+            are self-adjusting node-based heaps. Although there are no constraints
+            for the tree structure, all heap operations can be performed in O(log
+            n).
+          </p></dd>
+</dl>
+</div>
+<div class="table">
+<a name="heap.data_structures.t0"></a><p class="title"><b>Table&#160;13.1.&#160;Comparison of amortized complexity</b></p>
+<div class="table-contents"><table class="table" summary="Comparison of amortized complexity">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+            </th>
+<th>
+              <p>
+                <code class="literal">top()</code>
+              </p>
+            </th>
+<th>
+              <p>
+                <code class="literal">push()</code>
+              </p>
+            </th>
+<th>
+              <p>
+                <code class="literal">pop()</code>
+              </p>
+            </th>
+<th>
+              <p>
+                <code class="literal">update()</code>
+              </p>
+            </th>
+<th>
+              <p>
+                <code class="literal">increase()</code>
+              </p>
+            </th>
+<th>
+              <p>
+                <code class="literal">decrease()</code>
+              </p>
+            </th>
+<th>
+              <p>
+                <code class="literal">erase()</code>
+              </p>
+            </th>
+<th>
+              <p>
+                <code class="literal">merge_and_clear()</code>
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/heap/priority_queue.html" title="Class template priority_queue">boost::heap::priority_queue</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal">O(1)</code>
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                n/a
+              </p>
+            </td>
+<td>
+              <p>
+                n/a
+              </p>
+            </td>
+<td>
+              <p>
+                n/a
+              </p>
+            </td>
+<td>
+              <p>
+                n/a
+              </p>
+            </td>
+<td>
+              <p>
+                O((N+M)*log(N+M))
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/heap/d_ary_heap.html" title="Class template d_ary_heap">boost::heap::d_ary_heap</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal">O(1)</code>
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O((N+M)*log(N+M))
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/heap/binomial_heap.html" title="Class template binomial_heap">boost::heap::binomial_heap</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal">O(1)</code>
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N+M))
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/heap/fibonacci_heap.html" title="Class template fibonacci_heap">boost::heap::fibonacci_heap</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal">O(1)</code>
+              </p>
+            </td>
+<td>
+              <p>
+                O(1)
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N)) <a href="#ftn.heap.data_structures.f0" class="footnote" name="heap.data_structures.f0"><sup class="footnote">[a]</sup></a>
+              </p>
+            </td>
+<td>
+              <p>
+                O(1)
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(1)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/heap/pairing_heap.html" title="Class template pairing_heap">boost::heap::pairing_heap</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal">O(1)</code>
+              </p>
+            </td>
+<td>
+              <p>
+                O(2**2*log(log(N)))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(2**2*log(log(N)))
+              </p>
+            </td>
+<td>
+              <p>
+                O(2**2*log(log(N)))
+              </p>
+            </td>
+<td>
+              <p>
+                O(2**2*log(log(N)))
+              </p>
+            </td>
+<td>
+              <p>
+                O(2**2*log(log(N)))
+              </p>
+            </td>
+<td>
+              <p>
+                O(2**2*log(log(N)))
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/heap/skew_heap.html" title="Class template skew_heap">boost::heap::skew_heap</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal">O(1)</code>
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N))
+              </p>
+            </td>
+<td>
+              <p>
+                O(log(N+M))
+              </p>
+            </td>
+</tr>
+</tbody>
+<tbody class="footnotes"><tr><td colspan="9"><div id="ftn.heap.data_structures.f0" class="footnote"><p><a href="#heap.data_structures.f0" class="para"><sup class="para">[a] </sup></a>
+                  The fibonacci a <code class="literal">update_lazy()</code> method, which
+                  has O(log(N)) amortized complexity as well, but does not try to
+                  consolidate the internal forest
+                </p></div></td></tr></tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="heap.data_structures.data_structure_configuration"></a><a class="link" href="data_structures.html#heap.data_structures.data_structure_configuration" title="Data Structure Configuration">Data
+      Structure Configuration</a>
+</h3></div></div></div>
+<p>
+        The data structures can be configured with <a href="../../../libs/parameter/doc/html/index.html" target="_top">Boost.Parameter</a>-style
+        templates.
+      </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/compare.html" title="Struct template compare">boost::heap::compare</a></code></span></dt>
+<dd><p>
+              Predicate for defining the heap order, optional (defaults to <code class="literal">boost::heap::compare&lt;std::less&lt;T&gt;
+              &gt;</code>)
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/allocator.html" title="Struct template allocator">boost::heap::allocator</a></code></span></dt>
+<dd><p>
+              Allocator for internal memory management, optional (defaults to <code class="literal">boost::heap::allocator&lt;std::allocator&lt;T&gt;
+              &gt;</code>)
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/stable.html" title="Struct template stable">boost::heap::stable</a></code></span></dt>
+<dd><p>
+              Configures the heap to use a <a class="link" href="concepts.html#heap.concepts.stability" title="Stability">stable
+              heap order</a>, optional (defaults to <code class="literal">boost::heap::stable&lt;false&gt;</code>).
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/mutable_.html" title="Struct template mutable_">boost::heap::mutable_</a></code></span></dt>
+<dd><p>
+              Configures the heap to be mutable. <code class="computeroutput"><a class="link" href="../boost/heap/d_ary_heap.html" title="Class template d_ary_heap">boost::heap::d_ary_heap</a></code>
+              and <code class="computeroutput"><a class="link" href="../boost/heap/skew_heap.html" title="Class template skew_heap">boost::heap::skew_heap</a></code>
+              have to be configured with this policy to enable the <a class="link" href="concepts.html#heap.concepts.mutability" title="Mutability">mutability
+              interface</a>.
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/stability_counter_type.html" title="Struct template stability_counter_type">boost::heap::stability_counter_type</a></code></span></dt>
+<dd><p>
+              Configures the integer type used for the stability counter, optional
+              (defaults to <code class="literal">boost::heap::stability_counter_type&lt;boost::uintmax_t&gt;</code>).
+              For more details, consult the <a class="link" href="concepts.html#heap.concepts.stability" title="Stability">Stability</a>
+              section.
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/constant_time_size.html" title="Struct template constant_time_size">boost::heap::constant_time_size</a></code></span></dt>
+<dd><p>
+              Specifies, whether <code class="literal">size()</code> should have linear or
+              constant complexity. This argument is only available for node-based
+              heap data structures and if available, it is optional (defaults to
+              <code class="literal">boost::heap::constant_time_size&lt;true&gt;</code>)
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/arity.html" title="Struct template arity">boost::heap::arity</a></code></span></dt>
+<dd><p>
+              Specifies the arity of a d-ary heap. For details, please consult the
+              class reference of <code class="computeroutput"><a class="link" href="../boost/heap/d_ary_heap.html" title="Class template d_ary_heap">boost::heap::d_ary_heap</a></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="../boost/heap/store_parent_pointer.html" title="Struct template store_parent_pointer">boost::heap::store_parent_pointer</a></code></span></dt>
+<dd><p>
+              Store the parent pointer in the heap nodes. This policy is only available
+              in the <code class="computeroutput"><a class="link" href="../boost/heap/skew_heap.html" title="Class template skew_heap">boost::heap::skew_heap</a></code>.
+            </p></dd>
+</dl>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010, 2011 Tim Blechmann<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="concepts.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../heap.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

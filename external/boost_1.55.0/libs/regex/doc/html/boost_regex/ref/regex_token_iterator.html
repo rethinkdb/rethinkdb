@@ -1,0 +1,484 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>regex_token_iterator</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Boost.Regex">
+<link rel="up" href="../ref.html" title="Reference">
+<link rel="prev" href="regex_iterator.html" title="regex_iterator">
+<link rel="next" href="bad_expression.html" title="bad_expression">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_iterator.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bad_expression.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_regex_token_iterator">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_regex.ref.regex_token_iterator"></a><a class="link" href="regex_token_iterator.html" title="regex_token_iterator">regex_token_iterator</a>
+</h3></div></div></div>
+<p>
+        The template class <a class="link" href="regex_token_iterator.html" title="regex_token_iterator"><code class="computeroutput"><span class="identifier">regex_token_iterator</span></code></a> is an iterator
+        adapter; that is to say it represents a new view of an existing iterator
+        sequence, by enumerating all the occurrences of a regular expression within
+        that sequence, and presenting one or more character sequence for each match
+        found. Each position enumerated by the iterator is a <a class="link" href="sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a> object that represents
+        what matched a particular sub-expression within the regular expression. When
+        class <a class="link" href="regex_token_iterator.html" title="regex_token_iterator"><code class="computeroutput"><span class="identifier">regex_token_iterator</span></code></a> is used to
+        enumerate a single sub-expression with index -1, then the iterator performs
+        field splitting: that is to say it enumerates one character sequence for
+        each section of the character container sequence that does not match the
+        regular expression specified.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span>
+         <span class="keyword">class</span> <span class="identifier">charT</span> <span class="special">=</span> <span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;::</span><span class="identifier">value_type</span><span class="special">,</span>
+         <span class="keyword">class</span> <span class="identifier">traits</span> <span class="special">=</span> <span class="identifier">regex_traits</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">regex_token_iterator</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+   <span class="keyword">typedef</span>          <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>                              <span class="identifier">regex_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span>          <span class="identifier">sub_match</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;</span>                        <span class="identifier">value_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;::</span><span class="identifier">difference_type</span> <span class="identifier">difference_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span>          <span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">*</span>                                       <span class="identifier">pointer</span><span class="special">;</span>
+   <span class="keyword">typedef</span>          <span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">&amp;</span>                                       <span class="identifier">reference</span><span class="special">;</span>
+   <span class="keyword">typedef</span>          <span class="identifier">std</span><span class="special">::</span><span class="identifier">forward_iterator_tag</span>                               <span class="identifier">iterator_category</span><span class="special">;</span>
+
+   <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.construct1">regex_token_iterator</a><span class="special">();</span>
+   <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.construct2">regex_token_iterator</a><span class="special">(</span><span class="identifier">BidirectionalIterator</span> <span class="identifier">a</span><span class="special">,</span>
+                        <span class="identifier">BidirectionalIterator</span> <span class="identifier">b</span><span class="special">,</span>
+                        <span class="keyword">const</span> <span class="identifier">regex_type</span><span class="special">&amp;</span> <span class="identifier">re</span><span class="special">,</span>
+                        <span class="keyword">int</span> <span class="identifier">submatch</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span>
+                        <span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.construct3">regex_token_iterator</a><span class="special">(</span><span class="identifier">BidirectionalIterator</span> <span class="identifier">a</span><span class="special">,</span>
+                        <span class="identifier">BidirectionalIterator</span> <span class="identifier">b</span><span class="special">,</span>
+                        <span class="keyword">const</span> <span class="identifier">regex_type</span><span class="special">&amp;</span> <span class="identifier">re</span><span class="special">,</span>
+                        <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;&amp;</span> <span class="identifier">submatches</span><span class="special">,</span>
+                        <span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+   <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.construct4">regex_token_iterator</a><span class="special">(</span><span class="identifier">BidirectionalIterator</span> <span class="identifier">a</span><span class="special">,</span>
+                        <span class="identifier">BidirectionalIterator</span> <span class="identifier">b</span><span class="special">,</span>
+                        <span class="keyword">const</span> <span class="identifier">regex_type</span><span class="special">&amp;</span> <span class="identifier">re</span><span class="special">,</span>
+                        <span class="keyword">const</span> <span class="keyword">int</span> <span class="special">(&amp;</span><span class="identifier">submatches</span><span class="special">)[</span><span class="identifier">N</span><span class="special">],</span>
+                        <span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.construct5">regex_token_iterator</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">regex_token_iterator</span><span class="special">&amp;);</span>
+   <span class="identifier">regex_token_iterator</span><span class="special">&amp;</span> <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.assign">operator=</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">regex_token_iterator</span><span class="special">&amp;);</span>
+   <span class="keyword">bool</span> <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.op_eq">operator==</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">regex_token_iterator</span><span class="special">&amp;)</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">bool</span> <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.op_ne">operator!=</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">regex_token_iterator</span><span class="special">&amp;)</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">&amp;</span> <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.op_deref">operator*</a><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">*</span> <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.op_arrow">operator-&gt;</a><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">regex_token_iterator</span><span class="special">&amp;</span> <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.op_inc1">operator++</a><span class="special">();</span>
+   <span class="identifier">regex_token_iterator</span> <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.op_inc2">operator++</a><span class="special">(</span><span class="keyword">int</span><span class="special">);</span>
+<span class="special">};</span>
+
+<span class="keyword">typedef</span> <span class="identifier">regex_token_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*&gt;</span>                   <span class="identifier">cregex_token_iterator</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">regex_token_iterator</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">const_iterator</span><span class="special">&gt;</span>   <span class="identifier">sregex_token_iterator</span><span class="special">;</span>
+<span class="preprocessor">#ifndef</span> <span class="identifier">BOOST_NO_WREGEX</span>
+<span class="keyword">typedef</span> <span class="identifier">regex_token_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">wchar_t</span><span class="special">*&gt;</span>                <span class="identifier">wcregex_token_iterator</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">regex_token_iterator</span><span class="special">&lt;&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">wstring</span><span class="special">::</span><span class="identifier">const_iterator</span><span class="special">&gt;</span> <span class="identifier">wsregex_token_iterator</span><span class="special">;</span>
+<span class="preprocessor">#endif</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+   <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.make">make_regex_token_iterator</a><span class="special">(</span>
+         <span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+         <span class="keyword">int</span> <span class="identifier">submatch</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span>
+         <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ST</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">SA</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+   <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.make">make_regex_token_iterator</a><span class="special">(</span>
+         <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;&amp;</span> <span class="identifier">p</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+         <span class="keyword">int</span> <span class="identifier">submatch</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span>
+         <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.make">make_regex_token_iterator</a><span class="special">(</span>
+         <span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="keyword">int</span> <span class="special">(&amp;</span><span class="identifier">submatch</span><span class="special">)[</span><span class="identifier">N</span><span class="special">],</span>
+         <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ST</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">SA</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+   <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.make">make_regex_token_iterator</a><span class="special">(</span>
+         <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;&amp;</span> <span class="identifier">p</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="keyword">int</span> <span class="special">(&amp;</span><span class="identifier">submatch</span><span class="special">)[</span><span class="identifier">N</span><span class="special">],</span>
+         <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+   <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.make">make_regex_token_iterator</a><span class="special">(</span>
+         <span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;&amp;</span> <span class="identifier">submatch</span><span class="special">,</span>
+         <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ST</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">SA</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">&lt;</span>
+      <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+   <a class="link" href="regex_token_iterator.html#boost_regex.regex_token_iterator.make">make_regex_token_iterator</a><span class="special">(</span>
+         <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;&amp;</span> <span class="identifier">p</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;&amp;</span> <span class="identifier">submatch</span><span class="special">,</span>
+         <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<h5>
+<a name="boost_regex.ref.regex_token_iterator.h0"></a>
+        <span class="phrase"><a name="boost_regex.ref.regex_token_iterator.description"></a></span><a class="link" href="regex_token_iterator.html#boost_regex.ref.regex_token_iterator.description">Description</a>
+      </h5>
+<a name="boost_regex.regex_token_iterator.construct1"></a><pre class="programlisting"><span class="identifier">regex_token_iterator</span><span class="special">();</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: constructs an end of sequence iterator.
+      </p>
+<a name="boost_regex.regex_token_iterator.construct2"></a><pre class="programlisting"><span class="identifier">regex_token_iterator</span><span class="special">(</span><span class="identifier">BidirectionalIterator</span> <span class="identifier">a</span><span class="special">,</span>
+                     <span class="identifier">BidirectionalIterator</span> <span class="identifier">b</span><span class="special">,</span>
+                     <span class="keyword">const</span> <span class="identifier">regex_type</span><span class="special">&amp;</span> <span class="identifier">re</span><span class="special">,</span>
+                     <span class="keyword">int</span> <span class="identifier">submatch</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span>
+                     <span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Preconditions</strong></span>: <code class="computeroutput"><span class="special">!</span><span class="identifier">re</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span></code>. Object <span class="emphasis"><em>re</em></span> shall exist
+        for the lifetime of the iterator constructed from it.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: constructs a <a class="link" href="regex_token_iterator.html" title="regex_token_iterator"><code class="computeroutput"><span class="identifier">regex_token_iterator</span></code></a> that will enumerate
+        one string for each regular expression match of the expression <span class="emphasis"><em>re</em></span>
+        found within the sequence [a,b), using match flags <span class="emphasis"><em>m</em></span>
+        (see <a class="link" href="match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a>).
+        The string enumerated is the sub-expression <span class="emphasis"><em>submatch</em></span>
+        for each match found; if <span class="emphasis"><em>submatch</em></span> is -1, then enumerates
+        all the text sequences that did not match the expression <span class="emphasis"><em>re</em></span>
+        (that is to performs field splitting).
+      </p>
+<p>
+        <span class="bold"><strong>Throws</strong></span>: <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+        if the complexity of matching the expression against an N character string
+        begins to exceed O(N<sup>2</sup>), or if the program runs out of stack space while matching
+        the expression (if Boost.Regex is configured in recursive mode), or if the
+        matcher exhausts its permitted memory allocation (if Boost.Regex is configured
+        in non-recursive mode).
+      </p>
+<a name="boost_regex.regex_token_iterator.construct3"></a><pre class="programlisting"><span class="identifier">regex_token_iterator</span><span class="special">(</span><span class="identifier">BidirectionalIterator</span> <span class="identifier">a</span><span class="special">,</span>
+                     <span class="identifier">BidirectionalIterator</span> <span class="identifier">b</span><span class="special">,</span>
+                     <span class="keyword">const</span> <span class="identifier">regex_type</span><span class="special">&amp;</span> <span class="identifier">re</span><span class="special">,</span>
+                     <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;&amp;</span> <span class="identifier">submatches</span><span class="special">,</span>
+                     <span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Preconditions</strong></span>: <code class="computeroutput"><span class="identifier">submatches</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span>
+        <span class="special">&amp;&amp;</span> <span class="special">!</span><span class="identifier">re</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span></code>. Object <span class="emphasis"><em>re</em></span> shall exist
+        for the lifetime of the iterator constructed from it.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: constructs a <a class="link" href="regex_token_iterator.html" title="regex_token_iterator"><code class="computeroutput"><span class="identifier">regex_token_iterator</span></code></a> that will enumerate
+        <code class="computeroutput"><span class="identifier">submatches</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>
+        strings for each regular expression match of the expression <span class="emphasis"><em>re</em></span>
+        found within the sequence [a,b), using match flags <span class="emphasis"><em>m</em></span>
+        (see <a class="link" href="match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a>).
+        For each match found one string will be enumerated for each sub-expression
+        index contained within submatches vector; if <code class="computeroutput"><span class="identifier">submatches</span><span class="special">[</span><span class="number">0</span><span class="special">]</span></code>
+        is -1, then the first string enumerated for each match will be all of the
+        text from end of the last match to the start of the current match, in addition
+        there will be one extra string enumerated when no more matches can be found:
+        from the end of the last match found, to the end of the underlying sequence.
+      </p>
+<p>
+        <span class="bold"><strong>Throws</strong></span>: <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+        if the complexity of matching the expression against an N character string
+        begins to exceed O(N<sup>2</sup>), or if the program runs out of stack space while matching
+        the expression (if Boost.Regex is configured in recursive mode), or if the
+        matcher exhausts its permitted memory allocation (if Boost.Regex is configured
+        in non-recursive mode).
+      </p>
+<a name="boost_regex.regex_token_iterator.construct4"></a><pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">(</span><span class="identifier">BidirectionalIterator</span> <span class="identifier">a</span><span class="special">,</span>
+                     <span class="identifier">BidirectionalIterator</span> <span class="identifier">b</span><span class="special">,</span>
+                     <span class="keyword">const</span> <span class="identifier">regex_type</span><span class="special">&amp;</span> <span class="identifier">re</span><span class="special">,</span>
+                     <span class="keyword">const</span> <span class="keyword">int</span> <span class="special">(&amp;</span><span class="identifier">submatches</span><span class="special">)[</span><span class="identifier">R</span><span class="special">],</span>
+                     <span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Preconditions</strong></span>: <code class="computeroutput"><span class="special">!</span><span class="identifier">re</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span></code>. Object <span class="emphasis"><em>re</em></span> shall exist
+        for the lifetime of the iterator constructed from it.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: constructs a <a class="link" href="regex_token_iterator.html" title="regex_token_iterator"><code class="computeroutput"><span class="identifier">regex_token_iterator</span></code></a> that will enumerate
+        <span class="emphasis"><em>R</em></span> strings for each regular expression match of the expression
+        <span class="emphasis"><em>re</em></span> found within the sequence [a,b), using match flags
+        <span class="emphasis"><em>m</em></span> (see <a class="link" href="match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a>). For each match
+        found one string will be enumerated for each sub-expression index contained
+        within the <span class="emphasis"><em>submatches</em></span> array; if <code class="computeroutput"><span class="identifier">submatches</span><span class="special">[</span><span class="number">0</span><span class="special">]</span></code>
+        is -1, then the first string enumerated for each match will be all of the
+        text from end of the last match to the start of the current match, in addition
+        there will be one extra string enumerated when no more matches can be found:
+        from the end of the last match found, to the end of the underlying sequence.
+      </p>
+<p>
+        <span class="bold"><strong>Throws</strong></span>: <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+        if the complexity of matching the expression against an N character string
+        begins to exceed O(N<sup>2</sup>), or if the program runs out of stack space while matching
+        the expression (if Boost.Regex is configured in recursive mode), or if the
+        matcher exhausts its permitted memory allocation (if Boost.Regex is configured
+        in non-recursive mode).
+      </p>
+<a name="boost_regex.regex_token_iterator.construct5"></a><pre class="programlisting"><span class="identifier">regex_token_iterator</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">regex_token_iterator</span><span class="special">&amp;</span> <span class="identifier">that</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: constructs a copy of <code class="computeroutput"><span class="identifier">that</span></code>.
+      </p>
+<p>
+        <span class="bold"><strong>Postconditions</strong></span>: <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span> <span class="special">==</span> <span class="identifier">that</span></code>.
+      </p>
+<a name="boost_regex.regex_token_iterator.assign"></a><pre class="programlisting"><span class="identifier">regex_token_iterator</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">regex_token_iterator</span><span class="special">&amp;</span> <span class="identifier">that</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: sets <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code> to be equal to <code class="computeroutput"><span class="identifier">that</span></code>.
+      </p>
+<p>
+        <span class="bold"><strong>Postconditions</strong></span>: <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span> <span class="special">==</span> <span class="identifier">that</span></code>.
+      </p>
+<a name="boost_regex.regex_token_iterator.op_eq"></a><pre class="programlisting"><span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="keyword">const</span> <span class="identifier">regex_token_iterator</span><span class="special">&amp;)</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: returns true if <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code> is the same position as <code class="computeroutput"><span class="identifier">that</span></code>.
+      </p>
+<a name="boost_regex.regex_token_iterator.op_ne"></a><pre class="programlisting"><span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!=(</span><span class="keyword">const</span> <span class="identifier">regex_token_iterator</span><span class="special">&amp;)</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: returns <code class="computeroutput"><span class="special">!(*</span><span class="keyword">this</span> <span class="special">==</span> <span class="identifier">that</span><span class="special">)</span></code>.
+      </p>
+<a name="boost_regex.regex_token_iterator.op_deref"></a><pre class="programlisting"><span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">*()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: returns the current character sequence
+        being enumerated.
+      </p>
+<a name="boost_regex.regex_token_iterator.op_arrow"></a><pre class="programlisting"><span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">*</span> <span class="keyword">operator</span><span class="special">-&gt;()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: returns <code class="computeroutput"><span class="special">&amp;(*</span><span class="keyword">this</span><span class="special">)</span></code>.
+      </p>
+<a name="boost_regex.regex_token_iterator.op_inc1"></a><pre class="programlisting"><span class="identifier">regex_token_iterator</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">++();</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Moves on to the next character
+        sequence to be enumerated.
+      </p>
+<p>
+        <span class="bold"><strong>Throws</strong></span>: <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+        if the complexity of matching the expression against an N character string
+        begins to exceed O(N<sup>2</sup>), or if the program runs out of stack space while matching
+        the expression (if Boost.Regex is configured in recursive mode), or if the
+        matcher exhausts its permitted memory allocation (if Boost.Regex is configured
+        in non-recursive mode).
+      </p>
+<p>
+        <span class="bold"><strong>Returns</strong></span>: <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>.
+      </p>
+<a name="boost_regex.regex_token_iterator.op_inc2"></a><pre class="programlisting"><span class="identifier">regex_token_iterator</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">++(</span><span class="keyword">int</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: constructs a copy result of <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>, then
+        calls <code class="computeroutput"><span class="special">++(*</span><span class="keyword">this</span><span class="special">)</span></code>.
+      </p>
+<p>
+        <span class="bold"><strong>Returns</strong></span>: result.
+      </p>
+<a name="boost_regex.regex_token_iterator.make"></a><pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+   <span class="identifier">make_regex_token_iterator</span><span class="special">(</span>
+         <span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+         <span class="keyword">int</span> <span class="identifier">submatch</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span>
+         <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ST</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">SA</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+   <span class="identifier">make_regex_token_iterator</span><span class="special">(</span>
+         <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;&amp;</span> <span class="identifier">p</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+         <span class="keyword">int</span> <span class="identifier">submatch</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span>
+         <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="identifier">make_regex_token_iterator</span><span class="special">(</span>
+         <span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="keyword">int</span> <span class="special">(&amp;</span><span class="identifier">submatch</span><span class="special">)[</span><span class="identifier">N</span><span class="special">],</span>
+         <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ST</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">SA</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">&lt;</span>
+      <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+   <span class="identifier">make_regex_token_iterator</span><span class="special">(</span>
+         <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;&amp;</span> <span class="identifier">p</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="keyword">int</span> <span class="special">(&amp;</span><span class="identifier">submatch</span><span class="special">)[</span><span class="identifier">N</span><span class="special">],</span>
+         <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+   <span class="identifier">make_regex_token_iterator</span><span class="special">(</span>
+         <span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;&amp;</span> <span class="identifier">submatch</span><span class="special">,</span>
+         <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ST</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">SA</span><span class="special">&gt;</span>
+<span class="identifier">regex_token_iterator</span><span class="special">&lt;</span>
+      <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+   <span class="identifier">make_regex_token_iterator</span><span class="special">(</span>
+         <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;&amp;</span> <span class="identifier">p</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;&amp;</span> <span class="identifier">submatch</span><span class="special">,</span>
+         <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: returns a <a class="link" href="regex_token_iterator.html" title="regex_token_iterator"><code class="computeroutput"><span class="identifier">regex_token_iterator</span></code></a> that enumerates
+        one <a class="link" href="sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a>
+        for each value in <span class="emphasis"><em>submatch</em></span> for each occurrence of regular
+        expression <span class="emphasis"><em>e</em></span> in string <span class="emphasis"><em>p</em></span>, matched
+        using <a class="link" href="match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a>
+        <span class="emphasis"><em>m</em></span>.
+      </p>
+<h5>
+<a name="boost_regex.ref.regex_token_iterator.h1"></a>
+        <span class="phrase"><a name="boost_regex.ref.regex_token_iterator.examples"></a></span><a class="link" href="regex_token_iterator.html#boost_regex.ref.regex_token_iterator.examples">Examples</a>
+      </h5>
+<p>
+        The following example takes a string and splits it into a series of tokens:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="identifier">string</span> <span class="identifier">s</span><span class="special">;</span>
+   <span class="keyword">do</span><span class="special">{</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">argc</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span>
+      <span class="special">{</span>
+         <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Enter text to split (or \"quit\" to exit): "</span><span class="special">;</span>
+         <span class="identifier">getline</span><span class="special">(</span><span class="identifier">cin</span><span class="special">,</span> <span class="identifier">s</span><span class="special">);</span>
+         <span class="keyword">if</span><span class="special">(</span><span class="identifier">s</span> <span class="special">==</span> <span class="string">"quit"</span><span class="special">)</span> <span class="keyword">break</span><span class="special">;</span>
+      <span class="special">}</span>
+      <span class="keyword">else</span>
+         <span class="identifier">s</span> <span class="special">=</span> <span class="string">"This is a string of tokens"</span><span class="special">;</span>
+
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span> <span class="identifier">re</span><span class="special">(</span><span class="string">"\\s+"</span><span class="special">);</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">sregex_token_iterator</span> <span class="identifier">i</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">re</span><span class="special">,</span> <span class="special">-</span><span class="number">1</span><span class="special">);</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">sregex_token_iterator</span> <span class="identifier">j</span><span class="special">;</span>
+
+      <span class="keyword">unsigned</span> <span class="identifier">count</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+      <span class="keyword">while</span><span class="special">(</span><span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">j</span><span class="special">)</span>
+      <span class="special">{</span>
+         <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">i</span><span class="special">++</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+         <span class="identifier">count</span><span class="special">++;</span>
+      <span class="special">}</span>
+      <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"There were "</span> <span class="special">&lt;&lt;</span> <span class="identifier">count</span> <span class="special">&lt;&lt;</span> <span class="string">" tokens found."</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+   <span class="special">}</span><span class="keyword">while</span><span class="special">(</span><span class="identifier">argc</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        The following example takes a html file and outputs a list of all the linked
+        files:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">fstream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span> <span class="identifier">e</span><span class="special">(</span><span class="string">"&lt;\\s*A\\s+[^&gt;]*href\\s*=\\s*\"([^\"]*)\""</span><span class="special">,</span>
+               <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span><span class="special">::</span><span class="identifier">normal</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regbase</span><span class="special">::</span><span class="identifier">icase</span><span class="special">);</span>
+
+<span class="keyword">void</span> <span class="identifier">load_file</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">istream</span><span class="special">&amp;</span> <span class="identifier">is</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="identifier">s</span><span class="special">.</span><span class="identifier">erase</span><span class="special">();</span>
+   <span class="comment">//</span>
+   <span class="comment">// attempt to grow string buffer to match file size,</span>
+   <span class="comment">// this doesn't always work...</span>
+   <span class="identifier">s</span><span class="special">.</span><span class="identifier">reserve</span><span class="special">(</span><span class="identifier">is</span><span class="special">.</span><span class="identifier">rdbuf</span><span class="special">()-&gt;</span><span class="identifier">in_avail</span><span class="special">());</span>
+   <span class="keyword">char</span> <span class="identifier">c</span><span class="special">;</span>
+   <span class="keyword">while</span><span class="special">(</span><span class="identifier">is</span><span class="special">.</span><span class="identifier">get</span><span class="special">(</span><span class="identifier">c</span><span class="special">))</span>
+   <span class="special">{</span>
+      <span class="comment">// use logarithmic growth stategy, in case</span>
+      <span class="comment">// in_avail (above) returned zero:</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">capacity</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">size</span><span class="special">())</span>
+         <span class="identifier">s</span><span class="special">.</span><span class="identifier">reserve</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">capacity</span><span class="special">()</span> <span class="special">*</span> <span class="number">3</span><span class="special">);</span>
+      <span class="identifier">s</span><span class="special">.</span><span class="identifier">append</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="identifier">c</span><span class="special">);</span>
+   <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">**</span> <span class="identifier">argv</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">s</span><span class="special">;</span>
+   <span class="keyword">int</span> <span class="identifier">i</span><span class="special">;</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="identifier">i</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">argc</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+   <span class="special">{</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Findings URL's in "</span> <span class="special">&lt;&lt;</span> <span class="identifier">argv</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">":"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+      <span class="identifier">s</span><span class="special">.</span><span class="identifier">erase</span><span class="special">();</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">ifstream</span> <span class="identifier">is</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="identifier">i</span><span class="special">]);</span>
+      <span class="identifier">load_file</span><span class="special">(</span><span class="identifier">s</span><span class="special">,</span> <span class="identifier">is</span><span class="special">);</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">sregex_token_iterator</span> <span class="identifier">i</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">e</span><span class="special">,</span> <span class="number">1</span><span class="special">);</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">sregex_token_iterator</span> <span class="identifier">j</span><span class="special">;</span>
+      <span class="keyword">while</span><span class="special">(</span><span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">j</span><span class="special">)</span>
+      <span class="special">{</span>
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">i</span><span class="special">++</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+      <span class="special">}</span>
+   <span class="special">}</span>
+   <span class="comment">//</span>
+   <span class="comment">// alternative method:</span>
+   <span class="comment">// test the array-literal constructor, and split out the whole</span>
+   <span class="comment">// match as well as $1....</span>
+   <span class="comment">//</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="identifier">i</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">argc</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+   <span class="special">{</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Findings URL's in "</span> <span class="special">&lt;&lt;</span> <span class="identifier">argv</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">":"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+      <span class="identifier">s</span><span class="special">.</span><span class="identifier">erase</span><span class="special">();</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">ifstream</span> <span class="identifier">is</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="identifier">i</span><span class="special">]);</span>
+      <span class="identifier">load_file</span><span class="special">(</span><span class="identifier">s</span><span class="special">,</span> <span class="identifier">is</span><span class="special">);</span>
+      <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">subs</span><span class="special">[]</span> <span class="special">=</span> <span class="special">{</span><span class="number">1</span><span class="special">,</span> <span class="number">0</span><span class="special">,};</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">sregex_token_iterator</span> <span class="identifier">i</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">e</span><span class="special">,</span> <span class="identifier">subs</span><span class="special">);</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">sregex_token_iterator</span> <span class="identifier">j</span><span class="special">;</span>
+      <span class="keyword">while</span><span class="special">(</span><span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">j</span><span class="special">)</span>
+      <span class="special">{</span>
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">i</span><span class="special">++</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+      <span class="special">}</span>
+   <span class="special">}</span>
+
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_iterator.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bad_expression.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

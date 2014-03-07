@@ -1,0 +1,18 @@
+# Jamfile.v2
+#
+# Copyright (c) 2010
+# Steven Watanabe
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+project /boost/random
+  : source-location ../src
+  : requirements <link>shared:<define>BOOST_RANDOM_DYN_LINK
+  : usage-requirements <link>shared:<define>BOOST_RANDOM_DYN_LINK
+;
+
+lib boost_random : [ glob *.cpp ] ;
+
+boost-install boost_random ;

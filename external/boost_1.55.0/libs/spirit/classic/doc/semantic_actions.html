@@ -1,0 +1,258 @@
+<html>
+<head>
+<title>Semantic Actions</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr>
+    <td width="10">
+    </td>
+    <td width="85%">
+      <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Semantic Actions</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="subrules.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="indepth_the_parser.html"><img src="theme/r_arr.gif" border="0"></a></td>
+   </tr>
+</table>
+<p>Semantic actions have the form: <b>expression[action]</b></p>
+<p>Ultimately, after having defined our grammar and having generated a corresponding 
+  parser, we will need to produce some output and do some work besides syntax 
+  analysis; unless, of course, what we want is merely to check for the conformance 
+  of an input with our grammar, which is very seldom the case. Semantic actions 
+  may be attached to any expression at any level within the parser hierarchy. 
+  An action is a C/C++ function or function object that will be called if a match 
+  is found in the particular context where it is attached. The action function 
+  serves as a hook into the parser and may be used to, for example:</p>
+<blockquote>
+  <p><img src="theme/bullet.gif" width="13" height="13"> Generate output from 
+    the parser (ASTs, for example)<br>
+    <img src="theme/bullet.gif" width="13" height="13"> Report warnings or errors<br>
+    <img src="theme/bullet.gif" width="13" height="13"> Manage symbol tables</p>
+</blockquote>
+<h2>Generic Semantic Actions (Transduction Interface)</h2>
+<p>A generic semantic action can be any free function or function object that
+  is compatible with the interface:</p>
+<pre><code><font color="#000000"><span class=identifier></span><span class=keyword>    void </span><span class=identifier>f</span><span class=special>(</span><span class=identifier>IteratorT </span><span class=identifier>first</span><span class=special>, </span><span class=identifier>IteratorT </span><span class=identifier>last</span><span class=special>);</span></font></code></pre>
+<p>where <tt>IteratorT</tt> is the type of iterator used, <tt>first</tt> points 
+  to the current input and <tt>last</tt> points to one after the end of the input 
+  (identical to STL iterator ranges). A function object (functor) should have 
+  a member <tt>operator()</tt> with the same signature as above:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>struct </span><span class=identifier>my_functor
+    </span><span class=special>{
+        </span><span class=keyword>void </span><span class=keyword>operator</span><span class=special>()(</span><span class=identifier>IteratorT </span><span class=identifier>first</span><span class=special>, </span><span class=identifier>IteratorT </span><span class=identifier>last</span><span class=special>) </span><span class=keyword>const</span><span class=special>;
+    </span><span class=special>};</span></font></code></pre>
+<p>Iterators pointing to the matching portion of the input are passed into the 
+  function/functor.</p>
+<p>In general, semantic actions accept the first-last iterator pair. This is the 
+  transduction interface. The action functions or functors receive the unprocessed 
+  data representing the matching production directly from the input. In many cases, 
+  this is sufficient. Examples are source to source translation, pre-processing, 
+  etc. </p>
+<h3>Example:</h3>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>void
+    </span><span class=identifier>my_action</span><span class=special>(</span><span class=keyword>char const</span><span class=special>* </span><span class=identifier>first</span><span class=special>, </span><span class=keyword>char const</span><span class=special>* </span><span class=identifier>last</span><span class=special>)
+    {
+        </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special> </span><span class="identifier">str</span><span class=special>(</span><span class=identifier>first</span><span class=special>, </span><span class=identifier>last</span><span class=special>);
+        </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=identifier>str </span><span class=special>&lt;&lt; </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>endl</span><span class=special>;
+    }
+
+    </span><span class=identifier>rule</span><span class=special>&lt;&gt; </span><span class=identifier>myrule </span><span class=special>= (</span><span class=identifier>a </span><span class=special>| </span><span class=identifier>b </span><span class=special>| *(</span><span class=identifier>c </span><span class=special>&gt;&gt; </span><span class=identifier>d</span><span class=special>))[&</span><span class=identifier>my_action</span><span class=special>];</span></font></code></pre>
+<p>The function <tt>my_action</tt> will be called whenever the expression <tt>(a 
+  | b | *(c &gt;&gt; d)</tt> matches a portion of the input stream while parsing. 
+  Two iterators, <tt>first</tt> and <tt>last</tt>, are passed into the function. 
+  These iterators point to the start and end, respectively, of the portion of 
+  input stream where the match is found.</p>
+<h3>Const-ness:</h3>
+<p>With functors, take note that the <tt>operator()</tt> should be <tt>const</tt>.
+  This implies that functors are immutable. One may wish to have some member variables
+  that are modified when the action gets called. This is not a good idea. First
+  of all, functors are preferably lightweight. Functors are passed around a lot
+  and it would incur a lot of overhead if the functors are heavily laden. Second,
+  functors are passed by value. Thus, the actual functor object that finally attaches
+  to the parser, will surely not be the original instance supplied by the client.
+  What this means is that changes to a functor's state will not affect the original
+  functor that the client passed in since they are distinct copies. If a functor
+  needs to update some state variables, which is often the case, it is better
+  to use references to external data. The following example shows how this can
+  be done:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>struct </span><span class=identifier>my_functor
+    </span><span class=special>{
+        </span><span class=identifier>my_functor</span><span class=special>(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>& </span><span class=identifier>str_</span><span class=special>)
+        </span><span class=special>: </span><span class=identifier>str</span><span class=special>(</span><span class=identifier>str_</span><span class=special>) </span><span class=special>{}
+
+        </span><span class=keyword>void
+        </span><span class=keyword>operator</span><span class=special>()(</span><span class=identifier>IteratorT </span><span class=identifier>first</span><span class=special>, </span><span class=identifier>IteratorT </span><span class=identifier>last</span><span class=special>) </span><span class=keyword>const
+        </span><span class=special>{
+            </span><span class=identifier>str</span><span class=special>.</span><span class=identifier>assign</span><span class=special>(</span><span class=identifier>first</span><span class=special>, </span><span class=identifier>last</span><span class=special>);
+        </span><span class=special>}
+
+        </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>& </span><span class=identifier>str</span><span class=special>;
+    </span><span class=special>};</span></font></code></pre>
+<h3>Full Example:</h3>
+<p>Here now is our calculator enhanced with semantic actions:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>namespace
+    </span><span class=special>{
+        </span><span class=keyword>void    </span><span class=identifier>do_int</span><span class=special>(</span><span class=keyword>char </span><span class=keyword>const</span><span class=special>* </span><span class=identifier>str</span><span class=special>, </span><span class=keyword>char </span><span class=keyword>const</span><span class=special>* </span><span class=identifier>end</span><span class=special>)
+        </span><span class=special>{
+            </span><span class=identifier>string  </span><span class=identifier>s</span><span class=special>(</span><span class=identifier>str</span><span class=special>, </span><span class=identifier>end</span><span class=special>);
+            </span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=string>"PUSH(" </span><span class=special>&lt;&lt; </span><span class=identifier>s </span><span class=special>&lt;&lt; </span><span class=literal>')' </span><span class=special>&lt;&lt; </span><span class=identifier>endl</span><span class=special>;
+        </span><span class=special>}
+
+        </span><span class=keyword>void    </span><span class=identifier>do_add</span><span class=special>(</span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*, </span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*)    </span><span class=special>{ </span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=string>"ADD\n"</span><span class=special>; </span><span class=special>}
+        </span><span class=keyword>void    </span><span class=identifier>do_subt</span><span class=special>(</span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*, </span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*)   </span><span class=special>{ </span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=string>"SUBTRACT\n"</span><span class=special>; </span><span class=special>}
+        </span><span class=keyword>void    </span><span class=identifier>do_mult</span><span class=special>(</span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*, </span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*)   </span><span class=special>{ </span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=string>"MULTIPLY\n"</span><span class=special>; </span><span class=special>}
+        </span><span class=keyword>void    </span><span class=identifier>do_div</span><span class=special>(</span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*, </span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*)    </span><span class=special>{ </span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=string>"DIVIDE\n"</span><span class=special>; </span><span class=special>}
+        </span><span class=keyword>void    </span><span class=identifier>do_neg</span><span class=special>(</span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*, </span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*)    </span><span class=special>{ </span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=string>"NEGATE\n"</span><span class=special>; </span><span class=special>}
+    </span><span class=special>}</span></font></code></pre>
+<p>We augment our grammar with semantic actions:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>struct </span><span class=identifier>calculator </span><span class=special>: </span><span class=keyword>public </span><span class=identifier>grammar</span><span class=special>&lt;</span><span class=identifier>calculator</span><span class=special>&gt;
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>struct </span><span class=identifier>definition
+        </span><span class=special>{
+            </span><span class=identifier>definition</span><span class=special>(</span><span class=identifier>calculator </span><span class=keyword>const</span><span class=special>& </span><span class=identifier>self</span><span class=special>)
+            </span><span class=special>{
+                </span><span class=identifier>expression
+                    </span><span class=special>=   </span><span class=identifier>term
+                        </span><span class=special>&gt;&gt; </span><span class=special>*(   </span><span class=special>(</span><span class=literal>'+' </span><span class=special>&gt;&gt; </span><span class=identifier>term</span><span class=special>)[&</span><span class=identifier>do_add</span><span class=special>]
+                            </span><span class=special>|   </span><span class=special>(</span><span class=literal>'-' </span><span class=special>&gt;&gt; </span><span class=identifier>term</span><span class=special>)[&</span><span class=identifier>do_subt</span><span class=special>]
+                            </span><span class=special>)
+                    </span><span class=special>;
+
+                </span><span class=identifier>term </span><span class=special>=
+                    </span><span class=identifier>factor
+                        </span><span class=special>&gt;&gt; </span><span class=special>*(   </span><span class=special>(</span><span class=literal>'*' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>)[&</span><span class=identifier>do_mult</span><span class=special>]
+                            </span><span class=special>|   </span><span class=special>(</span><span class=literal>'/' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>)[&</span><span class=identifier>do_div</span><span class=special>]
+                            </span><span class=special>)
+                        </span><span class=special>;
+
+                </span><span class=identifier>factor
+                    </span><span class=special>=   </span><span class=identifier>lexeme_d</span><span class=special>[(+</span><span class=identifier>digit_p</span><span class=special>)[&</span><span class=identifier>do_int</span><span class=special>]]
+                    </span><span class=special>|   </span><span class=literal>'(' </span><span class=special>&gt;&gt; </span><span class=identifier>expression </span><span class=special>&gt;&gt; </span><span class=literal>')'
+                    </span><span class=special>|   </span><span class=special>(</span><span class=literal>'-' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>)[&</span><span class=identifier>do_neg</span><span class=special>]
+                    </span><span class=special>|   </span><span class=special>(</span><span class=literal>'+' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>)
+                    </span><span class=special>;
+            </span><span class=special>}
+
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt; </span><span class=identifier>expression</span><span class=special>, </span><span class=identifier>term</span><span class=special>, </span><span class=identifier>factor</span><span class=special>;
+
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>&
+            </span><span class=identifier>start</span><span class=special>() </span><span class=keyword>const </span><span class=special>{ </span><span class=keyword>return </span><span class=identifier>expression</span><span class=special>; </span><span class=special>}
+        </span><span class=special>};
+    </span><span class=special>};</span></font></code></pre>
+<p>Feeding in the expression <tt>(-1 + 2) * (3 + -4)</tt>, for example, to the
+  rule <tt>expression</tt> will produce the expected output:</p>
+<pre><code><span class=special>-</span><span class=number>1
+</span><span class=number>2
+</span><span class=identifier>ADD
+</span><span class=number>3
+</span><span class=special>-</span><span class=number>4
+</span><span class=identifier>ADD
+</span><span class=identifier>MULT</span></code></pre>
+<p>which, by the way, is the Reverse Polish Notation (RPN) of the given expression, 
+  reminiscent of some primitive calculators and the language Forth.</p>
+<p><img src="theme/lens.gif" width="15" height="16"> <a href="../example/fundamental/calc_plain.cpp">View 
+  the complete source code here</a>. This is part of the Spirit distribution. 
+</p>
+<h2><a name="specialized_actions"></a>Specialized Actions</h2>
+<p>In general, semantic actions accept the first-last iterator pair. There are 
+  situations though where we might want to pass data in its processed form. A 
+  concrete example is the numeric parser. It is unwise to pass unprocessed data 
+  to a semantic action attached to a numeric parser and just throw away what has 
+  been parsed by the parser. We want to pass the actual parsed number.</p>
+<p>The function and functor signature of a semantic action varies depending on 
+  the parser where it is attached to. The following table lists the parsers that 
+  accept unique signatures.</p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/note.gif" width="16" height="16"> Unless 
+      explicitly stated in the documentation of a specific parser type, parsers 
+      not included in the list by default expect the generic signature as explained 
+      above.</td>
+  </tr>
+</table>
+<h3>Numeric Actions</h3>
+<p><b>Applies to:</b></p>
+<blockquote>
+  <p><img src="theme/bullet.gif" width="13" height="13"> uint_p<br>
+    <img src="theme/bullet.gif" width="13" height="13"> int_p<br>
+    <img src="theme/bullet.gif" width="13" height="13"> ureal_p<br>
+    <img src="theme/bullet.gif" width="13" height="13"> real_p</p>
+</blockquote>
+<p><b>Signature for functions:</b></p>
+<pre><code><font color="#000000"><span class=identifier>    </span><span class=keyword>void </span><span class=identifier>func</span><span class=special>(</span><span class=identifier>NumT </span><span class=identifier>val</span><span class=special>);</span></font></code></pre>
+<p><b>Signature for functors:</b> </p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>struct </span><span class=identifier>ftor
+    </span><span class=special>{
+        </span><span class=keyword>void </span><span class=keyword>operator</span><span class=special>()(</span><span class=identifier>NumT </span><span class=identifier>val</span><span class=special>) </span><span class=keyword>const</span><span class=special>;
+    </span><span class=special>};</span></font></code></pre>
+<p>Where <tt>NumT</tt> is any primitive numeric type such as <tt>int</tt>, <tt>long</tt>,
+  <tt>float</tt>, <tt>double</tt>, etc., or a user defined numeric type such as
+  big_int. <tt>NumT</tt> is the same type used as template parameter to <tt>uint_p</tt>,
+  <tt>int_p</tt>, <tt>ureal_p</tt> or <tt>real_p</tt>. The parsed number is passed
+  into the function/functor.</p>
+<h3>Character Actions</h3>
+<p><b>Applies to:</b></p>
+<blockquote>
+  <p><img src="theme/bullet.gif" width="13" height="13"> chlit, ch_p<br>
+    <img src="theme/bullet.gif" width="13" height="13"> range, range_p<br>
+    <img src="theme/bullet.gif" width="13" height="13"> anychar<br>
+    <img src="theme/bullet.gif" width="13" height="13"> alnum, alpha<br>
+    <img src="theme/bullet.gif" width="13" height="13"> cntrl, digit<br>
+    <img src="theme/bullet.gif" width="13" height="13"> graph, lower<br>
+    <img src="theme/bullet.gif" width="13" height="13"> print, punct<br>
+    <img src="theme/bullet.gif" width="13" height="13"> space, upper<br>
+    <img src="theme/bullet.gif" width="13" height="13"> xdigit</p>
+</blockquote>
+<p><b>Signature for functions:</b></p>
+<pre><code><font color="#000000"><span class=identifier>    </span><span class=keyword>void </span><span class=identifier>func</span><span class=special>(</span><span class=identifier>CharT </span><span class=identifier>ch</span><span class=special>);</span></font></code></pre>
+<p><b>Signature for functors:</b></p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>struct </span><span class=identifier>ftor
+    </span><span class=special>{
+        </span><span class=keyword>void </span><span class=keyword>operator</span><span class=special>()(</span><span class=identifier>CharT </span><span class=identifier>ch</span><span class=special>) </span><span class=keyword>const</span><span class=special>;
+    </span><span class=special>};</span></font></code></pre>
+<p>Where <tt>CharT</tt> is the value_type of the iterator used in parsing. A <tt>char
+  const*</tt> iterator for example has a <tt>value_type</tt> of <tt>char</tt>.
+  The matching character is passed into the function/functor.</p>
+<h2>Cascading Actions</h2>
+<p>Actions can be cascaded. Cascaded actions also inherit the function/functor
+  interface of the original. For example:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>uint_p</span><span class=special>[</span><span class=identifier>fa</span><span class=special>][</span><span class=identifier>fb</span><span class=special>][</span><span class=identifier>fc</span><span class=special>]</span></font></code></pre>
+<p>Here, the functors <tt>fa</tt>, <tt>fb</tt> and <tt>fc</tt> all expect the
+  signature <tt>void operator()(unsigned n) const</tt>.</p>
+<h2>Directives and Actions</h2>
+<p>Directives inherit the the function/functor interface of the subject it is
+  enclosing. Example:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>as_lower_d</span><span class=special>[</span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'x'</span><span class=special>)][</span><span class=identifier>f</span><span class=special>]</span></font></code></pre>
+<p>Here, the functor <tt>f</tt> expects the signature <tt>void operator()(char 
+  ch) const</tt>, assuming that the iterator used is a <tt>char const*</tt>.</p>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="subrules.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="indepth_the_parser.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+</body>
+</html>

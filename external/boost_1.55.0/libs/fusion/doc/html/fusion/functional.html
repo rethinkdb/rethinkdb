@@ -1,0 +1,171 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Functional</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="prev" href="extension/iterator_facade.html" title="Iterator Facade">
+<link rel="next" href="functional/concepts.html" title="Concepts">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extension/iterator_facade.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="functional/concepts.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="fusion.functional"></a><a class="link" href="functional.html" title="Functional">Functional</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="functional/concepts.html">Concepts</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="functional/concepts/callable.html">Callable Object</a></span></dt>
+<dt><span class="section"><a href="functional/concepts/reg_callable.html">Regular Callable
+        Object</a></span></dt>
+<dt><span class="section"><a href="functional/concepts/def_callable.html">Deferred Callable
+        Object</a></span></dt>
+<dt><span class="section"><a href="functional/concepts/poly.html">Polymorphic Function
+        Object</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="functional/invocation.html">Invocation</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="functional/invocation/functions.html">Functions</a></span></dt>
+<dt><span class="section"><a href="functional/invocation/metafunctions.html">Metafunctions</a></span></dt>
+<dt><span class="section"><a href="functional/invocation/limits.html">Limits</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="functional/adapters.html">Adapters</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="functional/adapters/fused.html">fused</a></span></dt>
+<dt><span class="section"><a href="functional/adapters/fused_procedure.html">fused_procedure</a></span></dt>
+<dt><span class="section"><a href="functional/adapters/fused_function_object.html">fused_function_object</a></span></dt>
+<dt><span class="section"><a href="functional/adapters/unfused.html">unfused</a></span></dt>
+<dt><span class="section"><a href="functional/adapters/unfused_typed.html">unfused_typed</a></span></dt>
+<dt><span class="section"><a href="functional/adapters/limits.html">Limits</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="functional/generation.html">Generation</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="functional/generation/functions.html">Functions</a></span></dt>
+<dt><span class="section"><a href="functional/generation/metafunctions.html">Metafunctions</a></span></dt>
+</dl></dd>
+</dl></div>
+<p>
+      Components to call functions and function objects and to make Fusion code callable
+      through a function object interface.
+    </p>
+<h4>
+<a name="fusion.functional.h0"></a>
+      <span class="phrase"><a name="fusion.functional.header"></a></span><a class="link" href="functional.html#fusion.functional.header">Header</a>
+    </h4>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">functional</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="fusion.functional.h1"></a>
+      <span class="phrase"><a name="fusion.functional.fused_and_unfused_forms"></a></span><a class="link" href="functional.html#fusion.functional.fused_and_unfused_forms">Fused
+      and unfused forms</a>
+    </h4>
+<p>
+      What is a function call?
+    </p>
+<pre class="programlisting"><span class="identifier">f</span> <span class="special">(</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">)</span>
+</pre>
+<p>
+      It is a name and a tuple written next to each other, left-to-right.
+    </p>
+<p>
+      Although the C++ syntax does not allow to replace <code class="literal">(a,b,c)</code>
+      with some Fusion <a class="link" href="sequence.html" title="Sequence">Sequence</a>, introducing
+      yet another function provides a solution:
+    </p>
+<pre class="programlisting"><span class="identifier">invoke</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span><span class="identifier">my_sequence</span><span class="special">)</span>
+</pre>
+<p>
+      Alternatively it is possible to apply a simple transformation to <code class="literal">f</code>
+      in order to achieve the same effect:
+    </p>
+<pre class="programlisting"><span class="identifier">f</span> <span class="identifier">tuple</span> <span class="special">&lt;=&gt;</span> f' <span class="special">(</span><span class="identifier">tuple</span><span class="special">)</span>
+</pre>
+<p>
+      Now, <code class="literal">f'</code> is an unary function that takes the arguments to
+      <code class="computeroutput"><span class="identifier">f</span></code> as a tuple; <code class="literal">f'</code>
+      is the <span class="emphasis"><em>fused</em></span> form of <code class="computeroutput"><span class="identifier">f</span></code>.
+      Reading the above equivalence right-to-left to get the inverse transformation,
+      <code class="computeroutput"><span class="identifier">f</span></code> is the <span class="emphasis"><em>unfused</em></span>
+      form of <code class="literal">f'</code>.
+    </p>
+<h4>
+<a name="fusion.functional.h2"></a>
+      <span class="phrase"><a name="fusion.functional.calling_functions_and_function_objects"></a></span><a class="link" href="functional.html#fusion.functional.calling_functions_and_function_objects">Calling
+      functions and function objects</a>
+    </h4>
+<p>
+      Having generic C++ code call back arbitrary functions provided by the client
+      used to be a heavily repetitive task, as different functions can differ in
+      arity, invocation syntax and other properties that might be part of the type.
+      Transporting arguments as Fusion sequences and factoring out the invocation
+      makes Fusion algorithms applicable to function arguments and also reduces the
+      problem to one invocation syntax and a fixed arity (instead of an arbitrary
+      number of arbitrary arguments times several syntactic variants times additional
+      properties).
+    </p>
+<p>
+      Transforming an unfused function into its fused counterpart allows n-ary calls
+      from an algorithm that invokes an unary <a class="link" href="functional/concepts/poly.html" title="Polymorphic Function Object">Polymorphic
+      Function Object</a> with <a class="link" href="sequence.html" title="Sequence">Sequence</a>
+      arguments.
+    </p>
+<p>
+      The library provides several function templates to invoke different kinds of
+      functions and adapters to transform them into fused form, respectively. Every
+      variant has a corresponding generator function template that returns an adapter
+      instance for the given argument.
+    </p>
+<p>
+      Constructors can be called applying <a href="http://www.boost.org/libs/functional/factory/doc/html/index.html" target="_top">Boost.Functional/Factory</a>.
+    </p>
+<h4>
+<a name="fusion.functional.h3"></a>
+      <span class="phrase"><a name="fusion.functional.making_fusion_code_callable_through_a_function_object_interface"></a></span><a class="link" href="functional.html#fusion.functional.making_fusion_code_callable_through_a_function_object_interface">Making
+      Fusion code callable through a function object interface</a>
+    </h4>
+<p>
+      Transforming a fused function into its unfused counterpart allows to create
+      function objects to accept arbitrary calls. In other words, an unary function
+      object can be implemented instead of (maybe heavily overloaded) function templates
+      or function call operators.
+    </p>
+<p>
+      The library provides both a strictly typed and a generic variant for this transformation.
+      The latter should be used in combination with <a href="http://www.boost.org/libs/functional/forward/doc/html/index.html" target="_top">Boost.Functional/Forward</a>
+      to attack <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1385.htm" target="_top">The
+      Forwarding Problem</a>.
+    </p>
+<p>
+      Both variants have a corresponding generator function template that returns
+      an adapter instance for the given argument.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extension/iterator_facade.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="functional/concepts.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+
+  <title>Boost Function Object Adapter Library</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+  <table border="1" bgcolor="#007F7F" cellpadding="2" summary="">
+    <tr>
+      <td bgcolor="#FFFFFF"><img src="../../boost.png" alt=
+      "boost.png (6897 bytes)" width="277" height="86"></td>
+
+      <td><a href="../../index.htm"><font face="Arial" color=
+      "#FFFFFF"><big>Home</big></font></a></td>
+
+      <td><a href="../libraries.htm"><font face="Arial" color=
+      "#FFFFFF"><big>Libraries</big></font></a></td>
+
+      <td><a href="http://www.boost.org/people/people.htm"><font face="Arial" color=
+      "#FFFFFF"><big>People</big></font></a></td>
+
+      <td><a href="http://www.boost.org/more/faq.htm"><font face="Arial" color=
+      "#FFFFFF"><big>FAQ</big></font></a></td>
+
+      <td><a href="../../more/index.htm"><font face="Arial" color=
+      "#FFFFFF"><big>More</big></font></a></td>
+    </tr>
+  </table>
+
+  <h1>Function Pointer Adapters</h1>
+
+  <p>The header <a href="../../boost/functional.hpp">functional.hpp</a>
+  provides enhanced versions of both the function pointer adapters from the
+  C++ Standard Library (&sect;20.3.7):</p>
+
+  <ul>
+    <li><tt>pointer_to_unary_function</tt></li>
+
+    <li><tt>pointer_to_binary_function</tt></li>
+  </ul>
+
+  <p>As well as the corresponding helper function template:</p>
+
+  <ul>
+    <li><tt>ptr_fun</tt></li>
+  </ul>
+
+  <p>However, you should not need to use the adapters in conjunction with the
+  adapters in this library due to our use of <a href=
+  "function_traits.html">function object traits</a>. You will however need to
+  use them if your implementation fails to work properly with our traits
+  classes (due to lack if partial specialisation), or if you wish to use a
+  function object adapter from a third party.</p>
+
+  <h3>Usage</h3>
+
+  <p>If you need to use these adapters, usage is identical to the standard
+  function pointer adapters. For example,</p>
+
+  <blockquote>
+    <pre>
+bool bad(std::string foo) { ... }
+...
+std::vector&lt;std::string&gt; c;
+...
+std::vector&lt;std::string&gt;::iterator it
+     = std::find_if(c.begin(), c.end(), std::not1(boost::ptr_fun(bad)));
+</pre>
+  </blockquote>
+
+  <p>Note however that this library contains enhanced <a href=
+  "negators.html">negators</a> that support function object traits, so the
+  line above could equally be written</p>
+
+  <blockquote>
+    <pre>
+std::vector&lt;std::string&gt;::iterator it
+     = std::find_if(c.begin(), c.end(), boost::not1(bad));
+</pre>
+  </blockquote>
+
+  <h3>Argument Types</h3>
+
+  <p>The standard defines <tt>pointer_to_unary_function</tt> like this
+  (&sect;20.3.8&nbsp;&para;2):</p>
+
+  <blockquote>
+    <pre>
+template &lt;class Arg, class Result&gt;
+class pointer_to_unary_function : public unary_function&lt;Arg, Result&gt; {
+public:
+  explicit pointer_to_unary_function(Result (* f)(<strong>Arg</strong>));
+  Result operator()(<strong>Arg</strong> x) const;
+};
+</pre>
+  </blockquote>
+
+  <p>Note that the argument to <tt>operator()</tt> is exactly the same type
+  as the argument to the wrapped function. If this is a value type, the
+  argument will be passed by value and copied twice.
+  <tt>pointer_to_binary_function</tt> has a similar problem.</p>
+
+  <p>However, if we were to try and eliminate this inefficiency by instead
+  declaring the argument as <tt>const&nbsp;Arg&amp;</tt>, then if Arg were a
+  reference type, we would have a reference to a reference, which is
+  currently illegal (but see <a href=
+  "http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/cwg_active.html#106">C++ core
+  language issue number 106)</a></p>
+
+  <p>So the way in which we want to declare the argument for
+  <tt>operator()</tt> depends on whether or not the wrapped function's
+  argument is a reference. If it is a reference, we want to declare it simply
+  as <tt>Arg</tt>; if it is a value we want to declare it as
+  <tt>const&nbsp;Arg&amp;</tt>.</p>
+
+  <p>The Boost <a href="../utility/call_traits.htm">call_traits</a> class
+  template contains a <tt>param_type</tt> typedef, which uses partial
+  specialisation to make precisely this decision. By declaring the
+  <tt>operator()</tt> as</p>
+
+  <blockquote>
+    <pre>
+Result operator()(typename call_traits&lt;Arg&gt;::param_type x) const
+</pre>
+  </blockquote>
+
+  <p>we achieve the desired result - we improve efficiency without generating
+  references to references.</p>
+
+  <h3>Limitations</h3>
+
+  <p>The call traits template used to realise this improvement relies on
+  partial specialisation, so this improvement is only available on compilers
+  that support that feature. With other compilers, the argument passed to the
+  function will always be passed by reference, thus generating the
+  possibility of references to references.</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->02
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38510" --></p>
+
+  <p><i>Copyright &copy; 2000 Cadenza New Zealand Ltd.</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

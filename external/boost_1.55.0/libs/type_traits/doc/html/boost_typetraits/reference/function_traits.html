@@ -1,0 +1,285 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>function_traits</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="up" href="../reference.html" title="Alphabetical Reference">
+<link rel="prev" href="floating_point_promotion.html" title="floating_point_promotion">
+<link rel="next" href="has_bit_and.html" title="has_bit_and">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="floating_point_promotion.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="has_bit_and.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typetraits.reference.function_traits"></a><a class="link" href="function_traits.html" title="function_traits">function_traits</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">function_traits</span>
+<span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span>    <span class="identifier">arity</span> <span class="special">=</span> <em class="replaceable"><code>see-below</code></em><span class="special">;</span>
+   <span class="keyword">typedef</span> <em class="replaceable"><code>see-below</code></em>           <span class="identifier">result_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <em class="replaceable"><code>see-below</code></em>           arg<em class="replaceable"><code>N</code></em>_type<span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        The class template function_traits will only compile if:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            The compiler supports partial specialization of class templates.
+          </li>
+<li class="listitem">
+            The template argument <code class="computeroutput"><span class="identifier">F</span></code>
+            is a <span class="emphasis"><em>function type</em></span>, note that this <span class="emphasis"><em><span class="bold"><strong>is not</strong></span></em></span> the same thing as a <span class="emphasis"><em>pointer
+            to a function</em></span>.
+          </li>
+</ul></div>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          function_traits is intended to introspect only C++ functions of the form
+          R (), R( A1 ), R ( A1, ... etc. ) and not function pointers or class member
+          functions. To convert a function pointer type to a suitable type use <a class="link" href="remove_pointer.html" title="remove_pointer">remove_pointer</a>.
+        </p></td></tr>
+</table></div>
+<div class="table">
+<a name="boost_typetraits.reference.function_traits.function_traits_members"></a><p class="title"><b>Table&#160;1.19.&#160;Function Traits Members</b></p>
+<div class="table-contents"><table class="table" summary="Function Traits Members">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Member
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">function_traits</span><span class="special">&lt;</span><span class="identifier">F</span><span class="special">&gt;::</span><span class="identifier">arity</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  An integral constant expression that gives the number of arguments
+                  accepted by the function type <code class="computeroutput"><span class="identifier">F</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">function_traits</span><span class="special">&lt;</span><span class="identifier">F</span><span class="special">&gt;::</span><span class="identifier">result_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type returned by function type <code class="computeroutput"><span class="identifier">F</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">function_traits</span><span class="special">&lt;</span><span class="identifier">F</span><span class="special">&gt;::</span>arg<em class="replaceable"><code>N</code></em>_type</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The <em class="replaceable"><code>N</code></em>th argument type of function type <code class="computeroutput"><span class="identifier">F</span></code>,
+                  where <code class="computeroutput"><span class="number">1</span> <span class="special">&lt;=</span>
+                  <span class="identifier">N</span> <span class="special">&lt;=</span>
+                  <span class="identifier">arity</span></code> of <code class="computeroutput"><span class="identifier">F</span></code>.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_typetraits.reference.function_traits.examples"></a><p class="title"><b>Table&#160;1.20.&#160;Examples</b></p>
+<div class="table-contents"><table class="table" summary="Examples">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Result
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">function_traits</span><span class="special">&lt;</span><span class="keyword">void</span>
+                  <span class="special">(</span><span class="keyword">void</span><span class="special">)&gt;::</span><span class="identifier">arity</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  An integral constant expression that has the value 0.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">function_traits</span><span class="special">&lt;</span><span class="keyword">long</span>
+                  <span class="special">(</span><span class="keyword">int</span><span class="special">)&gt;::</span><span class="identifier">arity</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  An integral constant expression that has the value 1.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">function_traits</span><span class="special">&lt;</span><span class="keyword">long</span>
+                  <span class="special">(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">long</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="keyword">void</span><span class="special">*)&gt;::</span><span class="identifier">arity</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  An integral constant expression that has the value 4.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">function_traits</span><span class="special">&lt;</span><span class="keyword">void</span>
+                  <span class="special">(</span><span class="keyword">void</span><span class="special">)&gt;::</span><span class="identifier">result_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type <code class="computeroutput"><span class="keyword">void</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">function_traits</span><span class="special">&lt;</span><span class="keyword">long</span>
+                  <span class="special">(</span><span class="keyword">int</span><span class="special">)&gt;::</span><span class="identifier">result_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type <code class="computeroutput"><span class="keyword">long</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">function_traits</span><span class="special">&lt;</span><span class="keyword">long</span>
+                  <span class="special">(</span><span class="keyword">int</span><span class="special">)&gt;::</span><span class="identifier">arg1_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type <code class="computeroutput"><span class="keyword">int</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">function_traits</span><span class="special">&lt;</span><span class="keyword">long</span>
+                  <span class="special">(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">long</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="keyword">void</span><span class="special">*)&gt;::</span><span class="identifier">arg4_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type <code class="computeroutput"><span class="keyword">void</span><span class="special">*</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">function_traits</span><span class="special">&lt;</span><span class="keyword">long</span>
+                  <span class="special">(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">long</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="keyword">void</span><span class="special">*)&gt;::</span><span class="identifier">arg5_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  A compiler error: there is no <code class="computeroutput"><span class="identifier">arg5_type</span></code>
+                  since there are only four arguments.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">function_traits</span><span class="special">&lt;</span><span class="keyword">long</span>
+                  <span class="special">(*)(</span><span class="keyword">void</span><span class="special">)&gt;::</span><span class="identifier">arity</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  A compiler error: argument type is a <span class="emphasis"><em>function pointer</em></span>,
+                  and not a <span class="emphasis"><em>function type</em></span>.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000, 2011 Adobe Systems Inc, David Abrahams,
+      Frederic Bron, Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant,
+      Jesse Jones, Mat Marcus, Itay Maman, John Maddock, Alexander Nasonov, Thorsten
+      Ottosen, Roman Perepelitsa, Robert Ramey, Jeremy Siek, Robert Stewart and Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="floating_point_promotion.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="has_bit_and.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Quick Start</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="prev" href="introduction.html" title="Introduction">
+<link rel="next" href="organization.html" title="Organization">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="organization.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="fusion.quick_start"></a><a class="link" href="quick_start.html" title="Quick Start">Quick Start</a>
+</h2></div></div></div>
+<p>
+      I assume the reader is already familiar with tuples (<a href="http://www.boost.org/libs/tuple/doc/tuple_users_guide.html" target="_top">Boost.Tuple</a>)
+      and its ancestor <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>. The tuple is a generalization of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>
+      for multiple heterogeneous elements (triples, quadruples, etc.). The tuple
+      is more or less a synonym for fusion's <code class="computeroutput"><a class="link" href="container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a></code>.
+    </p>
+<p>
+      For starters, we shall include all of Fusion's <a class="link" href="sequence.html" title="Sequence">Sequence</a>(s)
+      <a href="#ftn.fusion.quick_start.f0" class="footnote" name="fusion.quick_start.f0"><sup class="footnote">[2]</sup></a>:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">sequence</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">sequence</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      Let's begin with a <code class="computeroutput"><a class="link" href="container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a></code> <a href="#ftn.fusion.quick_start.f1" class="footnote" name="fusion.quick_start.f1"><sup class="footnote">[3]</sup></a>:
+    </p>
+<pre class="programlisting"><a class="link" href="container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">char</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">stuff</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="char">'x'</span><span class="special">,</span> <span class="string">"howdy"</span><span class="special">);</span>
+<span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <a class="link" href="sequence/intrinsic/functions/at_c.html" title="at_c"><code class="computeroutput"><span class="identifier">at_c</span></code></a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">stuff</span><span class="special">);</span>
+<span class="keyword">char</span> <span class="identifier">ch</span> <span class="special">=</span> <a class="link" href="sequence/intrinsic/functions/at_c.html" title="at_c"><code class="computeroutput"><span class="identifier">at_c</span></code></a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">stuff</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">s</span> <span class="special">=</span> <a class="link" href="sequence/intrinsic/functions/at_c.html" title="at_c"><code class="computeroutput"><span class="identifier">at_c</span></code></a><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;(</span><span class="identifier">stuff</span><span class="special">);</span>
+</pre>
+<p>
+      Just replace <code class="computeroutput"><span class="identifier">tuple</span></code> for <code class="computeroutput"><a class="link" href="container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a></code>
+      and <code class="computeroutput"><span class="identifier">get</span></code> for <code class="computeroutput"><a class="link" href="sequence/intrinsic/functions/at_c.html" title="at_c"><code class="computeroutput"><span class="identifier">at_c</span></code></a></code> and this is exactly like
+      <a href="http://www.boost.org/libs/tuple/doc/tuple_users_guide.html" target="_top">Boost.Tuple</a>.
+      Actually, either names can be used interchangeably. Yet, the similarity ends
+      there. You can do a lot more with Fusion <code class="computeroutput"><a class="link" href="container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a></code> or <code class="computeroutput"><span class="identifier">tuple</span></code>.
+      Let's see some examples.
+    </p>
+<h4>
+<a name="fusion.quick_start.h0"></a>
+      <span class="phrase"><a name="fusion.quick_start.print_the_vector_as_xml"></a></span><a class="link" href="quick_start.html#fusion.quick_start.print_the_vector_as_xml">Print
+      the vector as XML</a>
+    </h4>
+<p>
+      First, let's include the algorithms:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      Now, let's write a function object that prints XML of the form &lt;type&gt;data&lt;/type&gt;
+      for each member in the tuple.
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">print_xml</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+            <span class="special">&lt;&lt;</span> <span class="char">'&lt;'</span> <span class="special">&lt;&lt;</span> <span class="keyword">typeid</span><span class="special">(</span><span class="identifier">x</span><span class="special">).</span><span class="identifier">name</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="char">'&gt;'</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">x</span>
+            <span class="special">&lt;&lt;</span> <span class="string">"&lt;/"</span> <span class="special">&lt;&lt;</span> <span class="keyword">typeid</span><span class="special">(</span><span class="identifier">x</span><span class="special">).</span><span class="identifier">name</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="char">'&gt;'</span>
+            <span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      Now, finally:
+    </p>
+<pre class="programlisting"><a class="link" href="algorithm/iteration/functions/for_each.html" title="for_each"><code class="computeroutput"><span class="identifier">for_each</span></code></a><span class="special">(</span><span class="identifier">stuff</span><span class="special">,</span> <span class="identifier">print_xml</span><span class="special">());</span>
+</pre>
+<p>
+      That's it! <code class="computeroutput"><a class="link" href="algorithm/iteration/functions/for_each.html" title="for_each"><code class="computeroutput"><span class="identifier">for_each</span></code></a></code> is a fusion algorithm.
+      It is a generic algorithm similar to <a href="http://en.wikipedia.org/wiki/Standard_Template_Library" target="_top">STL</a>'s.
+      It iterates over the sequence and calls a user supplied function. In our case,
+      it calls <code class="computeroutput"><span class="identifier">print_xml</span></code>'s <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code> for
+      each element in <code class="computeroutput"><span class="identifier">stuff</span></code>.
+    </p>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../../../doc/src/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        The result of <code class="computeroutput"><span class="keyword">typeid</span><span class="special">(</span><span class="identifier">x</span><span class="special">).</span><span class="identifier">name</span><span class="special">()</span></code> is platform specific. The code here is
+        just for exposition. Of course you already know that :-)
+      </p></td></tr>
+</table></div>
+<p>
+      <code class="computeroutput"><a class="link" href="algorithm/iteration/functions/for_each.html" title="for_each"><code class="computeroutput"><span class="identifier">for_each</span></code></a></code> is generic. With
+      <code class="computeroutput"><span class="identifier">print_xml</span></code>, you can use it to
+      print just about any Fusion <a class="link" href="sequence.html" title="Sequence">Sequence</a>.
+    </p>
+<h4>
+<a name="fusion.quick_start.h1"></a>
+      <span class="phrase"><a name="fusion.quick_start.print_only_pointers"></a></span><a class="link" href="quick_start.html#fusion.quick_start.print_only_pointers">Print
+      only pointers</a>
+    </h4>
+<p>
+      Let's get a little cleverer. Say we wish to write a <span class="emphasis"><em>generic</em></span>
+      function that takes in an arbitrary sequence and XML prints only those elements
+      which are pointers. Ah, easy. First, let's include the <code class="computeroutput"><span class="identifier">is_pointer</span></code>
+      boost type trait:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">is_pointer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      Then, simply:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Sequence</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">xml_print_pointers</span><span class="special">(</span><span class="identifier">Sequence</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">seq</span><span class="special">)</span>
+<span class="special">{</span>
+    <a class="link" href="algorithm/iteration/functions/for_each.html" title="for_each"><code class="computeroutput"><span class="identifier">for_each</span></code></a><span class="special">(</span><a class="link" href="algorithm/transformation/functions/filter_if.html" title="filter_if"><code class="computeroutput"><span class="identifier">filter_if</span></code></a><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_pointer</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&gt;</span> <span class="special">&gt;(</span><span class="identifier">seq</span><span class="special">),</span> <span class="identifier">print_xml</span><span class="special">());</span>
+<span class="special">}</span>
+</pre>
+<p>
+      <code class="computeroutput"><a class="link" href="algorithm/transformation/functions/filter_if.html" title="filter_if"><code class="computeroutput"><span class="identifier">filter_if</span></code></a></code> is another Fusion
+      algorithm. It returns a <a class="link" href="view/filter_view.html" title="filter_view"><code class="computeroutput"><span class="identifier">filter_view</span></code></a>, a conforming Fusion sequence.
+      This view reflects only those elements that pass the given predicate. In this
+      case, the predicate is <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_pointer</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&gt;</span></code>.
+      This "filtered view" is then passed to the <a class="link" href="algorithm/iteration/functions/for_each.html" title="for_each"><code class="computeroutput"><span class="identifier">for_each</span></code></a> algorithm, which then prints
+      the "filtered view" as XML.
+    </p>
+<p>
+      Easy, right?
+    </p>
+<h4>
+<a name="fusion.quick_start.h2"></a>
+      <span class="phrase"><a name="fusion.quick_start.associative_tuples"></a></span><a class="link" href="quick_start.html#fusion.quick_start.associative_tuples">Associative
+      tuples</a>
+    </h4>
+<p>
+      Ok, moving on...
+    </p>
+<p>
+      Apart from <code class="computeroutput"><a class="link" href="container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a></code>,
+      fusion has a couple of other sequence types to choose from. Each sequence has
+      its own characteristics. We have <code class="computeroutput"><a class="link" href="container/list.html" title="list"><code class="computeroutput"><span class="identifier">list</span></code></a></code>, <code class="computeroutput"><a class="link" href="container/set.html" title="set"><code class="computeroutput"><span class="identifier">set</span></code></a></code>, <code class="computeroutput"><a class="link" href="container/map.html" title="map"><code class="computeroutput"><span class="identifier">map</span></code></a></code>, plus a multitude of <code class="computeroutput"><span class="identifier">views</span></code> that provide various ways to present
+      the sequences.
+    </p>
+<p>
+      Fusion's <code class="computeroutput"><a class="link" href="container/map.html" title="map"><code class="computeroutput"><span class="identifier">map</span></code></a></code>
+      associate types with elements. It can be used as a cleverer replacement of
+      the <code class="computeroutput"><span class="keyword">struct</span></code>. Example:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">fields</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span><span class="special">;</span>
+    <span class="keyword">struct</span> <span class="identifier">age</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">typedef</span> <a class="link" href="container/map.html" title="map"><code class="computeroutput"><span class="identifier">map</span></code></a><span class="special">&lt;</span>
+    <a class="link" href="support/pair.html" title="pair"><code class="computeroutput"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">pair</span></code></a><span class="special">&lt;</span><span class="identifier">fields</span><span class="special">::</span><span class="identifier">name</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span>
+  <span class="special">,</span> <a class="link" href="support/pair.html" title="pair"><code class="computeroutput"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">pair</span></code></a><span class="special">&lt;</span><span class="identifier">fields</span><span class="special">::</span><span class="identifier">age</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="identifier">person</span><span class="special">;</span>
+</pre>
+<p>
+      <code class="computeroutput"><a class="link" href="container/map.html" title="map"><code class="computeroutput"><span class="identifier">map</span></code></a></code>
+      is an associative sequence. Its elements are Fusion pairs which differ somewhat
+      from <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>. Fusion pairs only contain one member,
+      with the type of their second template parameter. The first type parameter
+      of the pair is used as an index to the associated element in the sequence.
+      For example, given a <code class="computeroutput"><span class="identifier">a_person</span></code>
+      of type, <code class="computeroutput"><span class="identifier">person</span></code>, you can do:
+    </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">fields</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">person_name</span> <span class="special">=</span> <a class="link" href="sequence/intrinsic/functions/at_key.html" title="at_key"><code class="computeroutput"><span class="identifier">at_key</span></code></a><span class="special">&lt;</span><span class="identifier">name</span><span class="special">&gt;(</span><span class="identifier">a_person</span><span class="special">);</span>
+<span class="keyword">int</span> <span class="identifier">person_age</span> <span class="special">=</span> <a class="link" href="sequence/intrinsic/functions/at_key.html" title="at_key"><code class="computeroutput"><span class="identifier">at_key</span></code></a><span class="special">&lt;</span><span class="identifier">age</span><span class="special">&gt;(</span><span class="identifier">a_person</span><span class="special">);</span>
+</pre>
+<p>
+      Why go through all this trouble, you say? Well, for one, unlike the <code class="computeroutput"><span class="keyword">struct</span></code>, we are dealing with a generic data structure.
+      There are a multitude of facilities available at your disposal provided out
+      of the box with fusion or written by others. With these facilities, introspection
+      comes for free, for example. We can write one serialization function (well,
+      two, if you consider loading and saving) that will work for all your fusion
+      <code class="computeroutput"><a class="link" href="container/map.html" title="map"><code class="computeroutput"><span class="identifier">map</span></code></a></code>s.
+      Example:
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">saver</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Pair</span><span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Pair</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">data</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">some_archive</span> <span class="special">&lt;&lt;</span> <span class="identifier">data</span><span class="special">.</span><span class="identifier">second</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Stuff</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">save</span><span class="special">(</span><span class="identifier">Stuff</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">stuff</span><span class="special">)</span>
+<span class="special">{</span>
+    <a class="link" href="algorithm/iteration/functions/for_each.html" title="for_each"><code class="computeroutput"><span class="identifier">for_each</span></code></a><span class="special">(</span><span class="identifier">stuff</span><span class="special">,</span> <span class="identifier">saver</span><span class="special">());</span>
+<span class="special">}</span>
+</pre>
+<p>
+      The <code class="computeroutput"><span class="identifier">save</span></code> function is generic
+      and will work for all types of <code class="computeroutput"><span class="identifier">stuff</span></code>
+      regardless if it is a <code class="computeroutput"><span class="identifier">person</span></code>,
+      a <code class="computeroutput"><span class="identifier">dog</span></code> or a whole <code class="computeroutput"><span class="identifier">alternate_universe</span></code>.
+    </p>
+<h4>
+<a name="fusion.quick_start.h3"></a>
+      <span class="phrase"><a name="fusion.quick_start.tip_of_the_iceberg"></a></span><a class="link" href="quick_start.html#fusion.quick_start.tip_of_the_iceberg">Tip
+      of the Iceberg</a>
+    </h4>
+<p>
+      And... we've barely scratched the surface! You can compose and expand the data
+      structures, remove elements from the structures, find specific data types,
+      query the elements, filter out types for inspection, transform data structures,
+      etc. What you've seen is just the tip of the iceberg.
+    </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.fusion.quick_start.f0" class="footnote"><p><a href="#fusion.quick_start.f0" class="para"><sup class="para">[2] </sup></a>
+        There are finer grained header files available if you wish to have more control
+        over which components to include (see section <a class="link" href="organization.html" title="Organization">Organization</a>
+        for details).
+      </p></div>
+<div id="ftn.fusion.quick_start.f1" class="footnote"><p><a href="#fusion.quick_start.f1" class="para"><sup class="para">[3] </sup></a>
+        Unless otherwise noted, components are in namespace <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">fusion</span></code>.
+        For the sake of simplicity, code in this quick start implies <code class="computeroutput"><span class="keyword">using</span></code> directives for the fusion components
+        we will be using.
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="organization.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

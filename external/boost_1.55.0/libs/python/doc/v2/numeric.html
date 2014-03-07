@@ -1,0 +1,276 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+
+<html>
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Linux/x86 (vers 1 September 2005), see www.w3.org">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../boost.css">
+
+  <title>Boost.Python - &lt;boost/python/numeric.hpp&gt;</title>
+</head>
+
+<body>
+  <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+  "header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+        "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+        <h2 align="center">Header &lt;boost/python/numeric.hpp&gt;</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <h2>Contents</h2>
+
+  <dl class="page-index">
+    <dt><a href="#introduction">Introduction</a></dt>
+
+    <dt><a href="#classes">Classes</a></dt>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#array-spec">Class <code>array</code></a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#array-spec-synopsis">Class <code>array</code>
+            synopsis</a></dt>
+
+            <dt><a href="#array-spec-observers">Class <code>array</code>
+            observer functions</a></dt>
+
+            <dt><a href="#array-spec-statics">Class <code>array</code> static
+            functions</a></dt>
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+
+    <dt><a href="#examples">Example(s)</a></dt>
+  </dl>
+  <hr>
+
+  <h2><a name="introduction" id="introduction"></a>Introduction</h2>
+
+  <p>Exposes a <a href=
+  "ObjectWrapper.html#TypeWrapper-concept">TypeWrapper</a> for the Python
+  <a href=
+  "http://www.python.org/dev/doc/devel/lib/typesmapping.html">array</a>
+  type.</p>
+
+  <h2><a name="classes" id="classes"></a>Classes</h2>
+
+  <h3><a name="array-spec" id="array-spec"></a>Class <code>array</code></h3>
+
+  <p>Provides access to the array types of <a href=
+  "http://www.pfdubois.com/numpy/">Numerical Python</a>'s <a href=
+  "http://www.pfdubois.com/numpy/#Numeric">Numeric</a> and <a href=
+  "http://stsdas.stsci.edu/numarray/index.html">NumArray</a> modules. With
+  the exception of the functions documented <a href=
+  "#array-spec-observers">below</a>, the semantics of the constructors and
+  member functions defined below can be fully understood by reading the
+  <a href="ObjectWrapper.html#TypeWrapper-concept">TypeWrapper</a> concept
+  definition. Since <code>array</code> is publicly derived from
+  <code><a href="object.html#object-spec">object</a></code>, the public
+  object interface applies to <code>array</code> instances as well.</p>
+
+  <p><a name="default_search" id="default_search"></a>The default behavior is
+  to use <code>numarray.NDArray</code> as the associated Python type if the
+  <code>numarray</code> module is installed in the default location.
+  Otherwise it falls back to use <code>Numeric.ArrayType</code>. If neither
+  extension module is installed, overloads of wrapped C++ functions with
+  <code>numeric::array</code> parameters will never be matched, and other
+  attempted uses of <code>numeric::array</code> will <a href=
+  "definitions.html#raise">raise</a> an appropriate Python exception. The
+  associated Python type can be set manually using the <code><a href=
+  "#array-spec-statics">set_module_and_type</a>(...)</code> static
+  function.</p>
+
+  <h4><a name="array-spec-synopsis" id="array-spec-synopsis"></a>Class
+  <code>array</code> synopsis</h4>
+  <pre>
+namespace boost { namespace python { namespace numeric
+{
+   class array : public object
+   {
+    public:
+      object astype();
+      template &lt;class Type&gt;
+      object astype(Type const&amp; type_);
+
+      template &lt;class Type&gt;
+      array new_(Type const&amp; type_) const;
+
+      template &lt;class Sequence&gt; 
+      void resize(Sequence const&amp; x);
+      void resize(long x1);
+      void resize(long x1, long x2);
+      ...
+      void resize(long x1, long x2,...long x<i>n</i>);
+
+      template &lt;class Sequence&gt; 
+      void setshape(Sequence const&amp; x);
+      void setshape(long x1);
+      void setshape(long x1, long x2);
+      ...
+      void setshape(long x1, long x2,...long x<i>n</i>);
+
+      template &lt;class Indices, class Values&gt;
+      void put(Indices const&amp; indices, Values const&amp; values);
+
+      template &lt;class Sequence&gt;
+      object take(Sequence const&amp; sequence, long axis = 0);
+
+      template &lt;class File&gt;
+      void tofile(File const&amp; f) const;
+
+      object factory();
+      template &lt;class Sequence&gt;
+      object factory(Sequence const&amp;);
+      template &lt;class Sequence, class Typecode&gt;
+      object factory(Sequence const&amp;, Typecode const&amp;, bool copy = true, bool savespace = false);
+      template &lt;class Sequence, class Typecode, class Type&gt;
+      object factory(Sequence const&amp;, Typecode const&amp;, bool copy, bool savespace, Type const&amp;);
+      template &lt;class Sequence, class Typecode, class Type, class Shape&gt;
+      object factory(Sequence const&amp;, Typecode const&amp;, bool copy, bool savespace, Type const&amp;, Shape const&amp;);
+
+      template &lt;class T1&gt;
+      explicit array(T1 const&amp; x1);
+      template &lt;class T1, class T2&gt;
+      explicit array(T1 const&amp; x1, T2 const&amp; x2);
+      ...
+      template &lt;class T1, class T2,...class T<i>n</i>&gt;
+      explicit array(T1 const&amp; x1, T2 const&amp; x2,...T<i>n</i> const&amp; xn);
+
+      static void set_module_and_type();
+      static void set_module_and_type(char const* package_path = 0, char const* type_name = 0);
+      static void get_module_name();
+
+      object argmax(long axis=-1);
+
+      object argmin(long axis=-1);
+
+      object argsort(long axis=-1);
+
+      void byteswap();
+
+      object copy() const;
+
+      object diagonal(long offset = 0, long axis1 = 0, long axis2 = 1) const;
+
+      void info() const;
+
+      bool is_c_array() const;
+      bool isbyteswapped() const;
+      void sort();
+      object trace(long offset = 0, long axis1 = 0, long axis2 = 1) const;
+      object type() const;
+      char typecode() const;
+      
+      object getflat() const;
+      long getrank() const;
+      object getshape() const;
+      bool isaligned() const;
+      bool iscontiguous() const;
+      long itemsize() const;
+      long nelements() const;
+      object nonzero() const;
+   
+      void ravel();
+   
+      object repeat(object const&amp; repeats, long axis=0);
+   
+      void setflat(object const&amp; flat);
+   
+      void swapaxes(long axis1, long axis2);
+   
+      str tostring() const;
+   
+      void transpose(object const&amp; axes = object());
+   
+      object view() const;
+  };
+}}}
+</pre>
+
+  <h4><a name="array-spec-observers" id="array-spec-observers"></a>Class
+  <code>array</code> observer functions</h4>
+  <pre>
+object factory();
+template &lt;class Sequence&gt;
+object factory(Sequence const&amp;);
+template &lt;class Sequence, class Typecode&gt;
+object factory(Sequence const&amp;, Typecode const&amp;, bool copy = true, bool savespace = false);
+template &lt;class Sequence, class Typecode, class Type&gt;
+object factory(Sequence const&amp;, Typecode const&amp;, bool copy, bool savespace, Type const&amp;);
+template &lt;class Sequence, class Typecode, class Type, class Shape&gt;
+object factory(Sequence const&amp;, Typecode const&amp;, bool copy, bool savespace, Type const&amp;, Shape const&amp;);
+</pre>These functions map to the underlying array type's <code>array()</code>
+function family. They are not called "<code>array</code>" because of the C++
+limitation that you can't define a member function with the same name as its
+enclosing class.
+  <pre>
+template &lt;class Type&gt;
+array new_(Type const&amp;) const;
+</pre>This function maps to the underlying array type's <code>new()</code>
+function. It is not called "<code>new</code>" because that is a keyword in
+C++.
+
+  <h4><a name="array-spec-statics" id="array-spec-statics"></a>Class
+  <code>array</code> static functions</h4>
+  <pre>
+static void set_module_and_type(char const* package_path, char const* type_name);
+static void set_module_and_type();
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Requires:</b> <code>package_path</code> and
+    <code>type_name</code>, if supplied, is an <a href=
+    "definitions.html#ntbs">ntbs</a>.</dt>
+
+    <dt><b>Effects:</b> The first form sets the package path of the module
+    that supplies the type named by <code>type_name</code> to
+    <code>package_path</code>. The second form restores the <a href=
+    "#default_search">default search behavior</a>. The associated Python type
+    will be searched for only the first time it is needed, and thereafter the
+    first time it is needed after an invocation of
+    <code>set_module_and_type</code>.</dt>
+  </dl>
+  <pre>
+static std::string get_module_name()
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Effects:</b> Returns the name of the module containing the class
+    that will be held by new <code>numeric::array</code> instances.</dt>
+  </dl>
+
+  <h2><a name="examples" id="examples"></a>Example</h2>
+  <pre>
+#include &lt;boost/python/numeric.hpp&gt;
+#include &lt;boost/python/tuple.hpp&gt;
+
+// sets the first element in a 2d numeric array
+void set_first_element(numeric::array&amp; y, double value)
+{
+    y[make_tuple(0,0)] = value;
+}
+</pre>
+
+  <p>Revised 07 October, 2006</p>
+
+  <p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave
+  Abrahams</a> 2002-2006.</i></p>
+</body>
+</html>

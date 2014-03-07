@@ -1,0 +1,365 @@
+<div id="directory" class="section">
+<h1>Download RequireJS</h1>
+<ul class="index mono">
+    <li class="hbox"><a href="#latest">Latest Release</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1</span></li>
+    <ul>
+        <li class="hbox"><a href="#requirejs">require.js</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.1</span></li>
+        <li class="hbox"><a href="#samplejquery">Sample RequireJS + jQuery 1.7 project</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.2</span></li>
+        <li class="hbox"><a href="#rjs">r.js: Optimizer and Node and Rhino adapter</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.3</span></li>
+    </ul>
+    <li class="hbox"><a href="#plugins">Plugins</a><span class="spacer boxFlex"></span><span class="sect">&sect; 2</span></li>
+    <ul>
+        <li class="hbox"><a href="#text">text</a><span class="spacer boxFlex"></span><span class="sect">&sect; 2.1</span></li>
+        <li class="hbox"><a href="#domReady">domReady</a><span class="spacer boxFlex"></span><span class="sect">&sect; 2.2</span></li>
+        <li class="hbox"><a href="#order">order</a><span class="spacer boxFlex"></span><span class="sect">&sect; 2.3</span></li>
+        <li class="hbox"><a href="#cs">cs (CoffeeScript)</a><span class="spacer boxFlex"></span><span class="sect">&sect; 2.4</span></li>
+        <li class="hbox"><a href="#i18n">i18n</a><span class="spacer boxFlex"></span><span class="sect">&sect; 2.5</span></li>
+    </ul>
+    <li class="hbox"><a href="#releasenotes">Release Notes</a><span class="spacer boxFlex"></span><span class="sect">&sect; 3</span></li>
+</ul>
+
+</div>
+
+<div class="section">
+<h2><a name="latest">Latest Release</a><span class="sectionMark">&sect; 1</span></h2>
+
+<div class="subSection">
+<h4 class="hbox">
+<a name="requirejs">require.js 1.0.7</a>
+<span class="boxFlex"></span>
+<a class="download" href="http://requirejs.org/docs/release/1.0.7/minified/require.js">Minified</a>
+<a class="download" href="http://requirejs.org/docs/release/1.0.7/comments/require.js">With Comments</a>
+</h4>
+
+<p>All you need to start using require.js in the browser.</p>
+</div>
+
+<div class="subSection">
+<h4 class="hbox">
+<a name="samplejquery">Sample RequireJS 1.0.7 + jQuery 1.7.1 project</a>
+<span class="boxFlex"></span>
+<a class="download" href="http://requirejs.org/docs/release/jquery-require/jquery1.7.1-requirejs1.0.7/jquery-require-sample.zip">Download</a>
+</h4>
+
+<p>A zip file containing a sample project that uses jQuery and RequireJS.</p>
+</div>
+
+
+<div class="subSection">
+<h4 class="hbox">
+<a name="rjs">r.js: Optimizer and Node and Rhino adapter</a>
+<span class="boxFlex"></span>
+<a class="download" href="http://requirejs.org/docs/release/1.0.7/r.js">Download</a>
+</h4>
+
+<p>The r.js file allows you to run the optimizer as well as run modules in Node or Rhino.</p>
+
+<p>If you are running in Node, and want to use npm to install this file via npm, see the <a href="node.html">Use with Node</a> page for more information.</p>
+
+<p>For information on its use, as well as how to get the JAR files to run it under Rhino, see the <a href="https://github.com/jrburke/r.js">r.js README</a>.</p>
+
+</div>
+
+<div class="section">
+<h2><a name="plugins">Plugins</a><span class="sectionMark">&sect; 2</span></h2>
+
+<p>These are useful loader plugins that have the same license terms as require.js itself. Download the plugin file and place it as a sibling to your "data-main" main.js script.</p>
+
+<div class="subSection">
+<h4 class="hbox">
+<a name="text">text</a>
+<span class="boxFlex"></span>
+<a class="download" href="http://requirejs.org/docs/release/1.0.7/minified/text.js">Minified</a>
+<a class="download" href="http://requirejs.org/docs/release/1.0.7/comments/text.js">With Comments</a>
+</h4>
+<p><a href="api.html#text">Load text files and treat them as dependencies</a>. Great for loading templates. The text strings can be inlined in an optimized build when the optimizer is used.</p>
+</div>
+
+<div class="subSection">
+<h4 class="hbox">
+<a name="domReady">domReady</a>
+<span class="boxFlex"></span>
+<a class="download" href="http://requirejs.org/docs/release/1.0.0/minified/domReady.js">Minified</a>
+<a class="download" href="http://requirejs.org/docs/release/1.0.0/comments/domReady.js">With Comments</a>
+</h4>
+<p><a href="api.html#pageload">Wait for the DOM is ready</a>. Useful for pausing execution of top level application
+logic until the DOM is ready for querying/modification.</p>
+</div>
+
+<div class="subSection">
+<h4 class="hbox">
+<a name="order">order</a>
+<span class="boxFlex"></span>
+<a class="download" href="http://requirejs.org/docs/release/1.0.5/minified/order.js">Minified</a>
+<a class="download" href="http://requirejs.org/docs/release/1.0.5/comments/order.js">With Comments</a>
+</h4>
+<p><a href="api.html#order">Load script in the order specified in the dependency array</a>. Useful for existing scripts that have implied dependencies instead of calling define() to create modular code.</p>
+</div>
+
+
+<div class="subSection">
+<h4 class="hbox">
+<a name="cs">cs (CoffeeScript)</a>
+<span class="boxFlex"></span>
+<a class="download" href="https://github.com/jrburke/require-cs/raw/0.3.2/cs.js">With Comments</a>
+</h4>
+<p>Load files written in CoffeeScript. Includes a version of CoffeeScript, only this one file is needed. With this plugin, it is easy to code in CoffeeScript in the browser, it can participate in the optimizer optimizations, and it works in Node and Rhino via the <a href="#rjs">RequireJS adapter</a>. This is the best way to do cross-environment, modular CoffeeScript. <a href="https://github.com/jrburke/require-cs">The project home</a> has more information on how to use it.</p>
+</div>
+
+
+<div class="subSection">
+<h4 class="hbox">
+<a name="i18n">i18n</a>
+<span class="boxFlex"></span>
+<a class="download" href="http://requirejs.org/docs/release/1.0.0/minified/i18n.js">Minified</a>
+<a class="download" href="http://requirejs.org/docs/release/1.0.0/comments/i18n.js">With Comments</a>
+</h4>
+<p><a href="api.html#i18n">Load string bundles</a> used in internationalization (i18n) that are made up of separate country/language/locale-specific bundles.</p>
+</div>
+
+</div>
+
+<div class="section">
+<h2><a name="releasenotes">Release Notes</a><span class="sectionMark">&sect; 3</span></h2>
+
+<h3 id="1-0-7">1.0.7</h3>
+
+<p>Small bug fixes to:</p>
+
+<ul>
+    <li><a href="https://github.com/jrburke/requirejs/issues?milestone=11&sort=created&direction=desc&state=closed">require.js</a></li>
+    <li><a href="https://github.com/jrburke/r.js/issues?sort=created&direction=desc&state=closed&page=1&milestone=8">r.js optimizer</a></li>
+</ul>
+
+<h3 id="1-0-6">1.0.6</h3>
+
+<p>Main purpose of the release is to fix a regression in 1.0.5 where the
+optimizer's "dir" config option was not applied correctly when passed on the
+command line.</p>
+
+<p>The other notable change: the optimizer now supports
+<a href="https://github.com/jrburke/r.js/blob/master/build/example.build.js#L320">onBuildRead
+and onBuildWrite</a> functions that are called when JS modules are read or written
+for an optimized build layer. This allows doing some regexp work to modify their
+contents.</p>
+
+<p>Small bug fixes to:</p>
+
+<ul>
+    <li><a href="https://github.com/jrburke/requirejs/issues?milestone=10&sort=created&direction=desc&state=closed">require.js</a></li>
+    <li><a href="https://github.com/jrburke/r.js/issues?sort=created&direction=desc&state=closed&page=1&milestone=7">r.js optimizer</a></li>
+</ul>
+
+<h3 id="1-0-5">1.0.5</h3>
+
+<p>Small bug fixes to:</p>
+
+<ul>
+    <li><a href="https://github.com/jrburke/requirejs/issues?milestone=8&sort=created&direction=desc&state=closed">require.js</a></li>
+    <li><a href="https://github.com/jrburke/r.js/issues?sort=created&direction=desc&state=closed&page=1&milestone=6">r.js optimizer</a></li>
+</ul>
+
+<h3 id="1-0-4">1.0.4</h3>
+
+<p>Small bug fixes to:</p>
+
+<ul>
+    <li><a href="https://github.com/jrburke/requirejs/issues?milestone=7&sort=created&direction=desc&state=closed">require.js</a></li>
+    <li><a href="https://github.com/jrburke/r.js/issues?milestone=5&sort=created&direction=desc&state=closed">r.js optimizer</a></li>
+</ul>
+
+<h3 id="1-0-3">1.0.3</h3>
+
+<p>Small bug fixes to:</p>
+
+<ul>
+    <li><a href="https://github.com/jrburke/requirejs/issues?sort=created&direction=desc&state=closed&page=1&milestone=6">require.js</a></li>
+    <li><a href="https://github.com/jrburke/r.js/issues?sort=created&direction=desc&state=closed&page=1&milestone=4">r.js optimizer</a></li>
+</ul>
+
+<h3 id="1-0-2">1.0.2</h3>
+
+<p>Small bug fixes to:</p>
+
+<ul>
+    <li><a href="https://github.com/jrburke/requirejs/issues?sort=created&direction=desc&state=closed&page=1&milestone=5">require.js</a></li>
+    <li><a href="https://github.com/jrburke/r.js/issues?sort=created&direction=desc&state=closed&page=1&milestone=3">r.js optimizer</a></li>
+</ul>
+
+<h3 id="1-0-1">1.0.1</h3>
+
+<p>Just small bug fixes related to:</p>
+
+<ul>
+    <li>allowing full URLs for simplified CommonJS wrapped modules</li>
+    <li>AST parsing of dependencies for modules that use a variable for the factory function</li>
+    <li>catching more cases that should have the "namespace" optimizer option applied</li>
+</ul>
+
+<p>Detailed list of changes for require.js and the r.js optimizer:</p>
+
+<ul>
+    <li><a href="https://github.com/jrburke/requirejs/issues?milestone=4&state=closed">require.js 1.0.1 changes</a></li>
+    <li><a href="https://github.com/jrburke/r.js/issues?milestone=2&state=closed">r.js 1.0.1 changes</a></li>
+</ul>
+
+<h3 id="1-0-0">1.0.0</h3>
+
+<p>Same as RequireJS 0.27.1 release, with some document updates and a
+small fix to the optimizer's regular expression for converting CommonJS modules to AMD.</p>
+
+<h3 id="0-27-1">0.27.1</h3>
+
+<p>RequireJS 1.0 release candidate. Small bugfixes for 0.27.0:</p>
+
+<ul>
+    <li>define(id, function () {}) where the function has require('') dependencies will now be scanned
+    for dependencies. Allows for smaller universal module adapters.</li>
+    <li>Loader plugin that depends on a different plugin's loaded resource works as it did in 0.26.0.</li>
+    <li>Optimizer: update UglifyJS to 1.1.</li>
+    <li>Optimizer: semicolons are inserted between files if concatenating would cause errors.</li>
+    <li>Optimizer: always strip BOM files on all platforms when file transforms/concatenations are done.</li>
+    <li>Optimizer: allow override of modules used in optimizer. <a href="https://github.com/jrburke/r.js/blob/master/build/tests/override/override.js">Example</a>.</li>
+    <li>Optimizer: allow copying of .directories via build config option.</li>
+    <li>Optimizer: Resolving paths for .js dependencies might fail if an appDir was not part of the config.</li>
+</ul>
+
+
+<h3 id="0-27-0">0.27.0</h3>
+
+<p>RequireJS 1.0 release candidate.</p>
+
+<ul>
+    <li><b>require.ready() has been removed</b>. In its place, use the <a href="api.html#pageload">domReady plugin</a>.
+    This allows better interoperability with other AMD loaders and better separation of concerns.</li>
+    <li>A new <a href="faq-optimization.html#wrap">wrap config option</a> for the optimizer is available,
+    for wrapping built code in a function. Allows for better API hiding and tiny builds with the
+    <a href="https://github.com/jrburke/almond">almond API shim</a>.</li>
+    <li>The order plugin is improved for IE.</li>
+    <li>Loader plugins can now have dependencies and they will work in the optimizer, as long as the
+    dependencies work in the optimizer environment (Node, Rhino).</li>
+    <li>The <a href="faq-optimization.html#namespace">namespace config option</a> for the optimizer is more robust.</li>
+    <li>Removed require.def(), use define() instead.</li>
+    <li>Removed module.setExports, use module.exports instead.</li>
+</ul>
+
+<h3 id="0-26-0">0.26.0</h3>
+
+<ul>
+    <li><strong>npm install requirejs</strong> to allow require("requirejs"). This allows you to:
+    <ul>
+        <li><a href="node.html#usage">Load AMD modules inside node</a> without running a bootstrap script. It also
+        fixes some path issues using traditional Node modules alongside AMD modules.</li>
+        <li>Exposes the optimizer as require("requirejs").optimize() to
+        <a href="https://github.com/jrburke/r.js/blob/master/build/tests/http/httpBuild.js">allow dynamic server builds</a>
+        for people who like to do "<a href="node.html#optimizer">only one script tag
+        in the page at the end of body" development</a>. With the "excludeShallow" optimizer config,
+        you can still debug a single module/script while having the rest combined into one script.</li>
+    </ul>
+    This is now the recommended path for using RequireJS in Node. More information on
+    the <a href="node.html">Use with Node</a> page.</li>
+
+    <li>UglifyJS in the minifier is updated to 1.0.6. The upside: now
+    <a href="optimization.html#hasjs">has() branch trimming</a> now works with
+    the default minifier.</li>
+
+    <li>Fixes for running under Node on Windows using the native node.exe builds that are now available
+    in the Node 0.5.x series. Now there is less of a need to use Java to drive the RequireJS
+    Optimizer!</li>
+
+    <li>Configuration is now done via a require.config({}) call, to get in line with
+    the <a href="https://github.com/amdjs/amdjs-api/wiki/require#wiki-globalConfig">amdjs require API</a>.
+    The old require({}) method works on the global require()
+    for backwards compatibility, but the suggested API going forward is require.config({}).
+    The <a href="api.html">API doc</a> has been updated to show proper usage.
+
+    <li>There is <a href="faq-advanced.html#rename">a namespace option now for builds</a>,
+    to allow moving require() and define()
+    calls under a different namespace. This allows you to build an optimized file that uses
+    RequireJS but does not interfere with any other AMD loader on the page, and you can make
+    sure only your modules are loaded in that namespaced object.</li>
+
+    <li>The default error behavior when a define() factory function throws an error is
+    to not catch it. The catching done in 0.25.0 made it more difficult to debug. However,
+    there are some situations where catching the errors is preferred. Setting the config
+    value <a href="api.html#config-catchError">catchError.define = true</a> will switch to catching the errors
+    and allow processing via require.onError()</li>
+
+    <li>Closure Compiler in the optimizer was updated. As a result, the code
+    to invoke Closure Compiler changed, and will likely only work with the latest
+    Closure Compiler release. You can grab a version known to work with
+    the optimizer in the optimizer's <a href="https://github.com/jrburke/r.js/tree/master/lib/closure">lib/closure directory</a>.</li>
+
+    <li>There is now a pragmasOnSave build option, which is used in the
+    <a href="https://github.com/jrburke/require-cs/blob/master/demo/build.js">require-cs CoffeeScript loader plugin build profile</a>
+    to strip out the
+    CoffeeScript compiler after a build. The end result: tiny build layers
+    of converted CoffeeScript code.</li>
+</ul>
+
+<h3 id="0-25-0">0.25.0</h3>
+
+<p>The awesome part: the optimizer is now just one JS file! It also doubles as a bootstrap script that supports the full capability of AMD modules and loader plugins in Node and in Rhino.</p>
+
+<p>To use the optimizer, pass the "-o" option to r.js:</p>
+
+<pre>    node r.js -o app.build.js</pre>
+
+<p>To run your AMD-based project via the adapter (assuming server.js is your top-level AMD module):</p>
+
+<pre>    node r.js server.js</pre>
+
+<p>There is more information about <a href="http://requirejs.org/docs/node.html">running AMD modules in Node</a>. The <a href="http://requirejs.org/docs/optimization.html">optimizer docs</a> have been updated to the new optimizer syntax, and the r.js script has <a href="https://github.com/jrburke/r.js">its own project now</a>, to allow releases that are decoupled from require.js.</p>
+
+<p>Other highlights:</p>
+
+<ul><li>The loader plugin API changed to allow plugins to create cross-domain-accessible resources. The main use case: you use the text plugin to dynamically load text resources, but you want to deploy those scripts to a CDN. See the <a href="http://requirejs.org/docs/download.html#text">text plugin</a>'s implementation of writeFile() as an example.
+</li><li>There is now a global <span style="font-weight: bold;">requirejs()</span> function object that is the same as the old global <span style="font-weight: bold;">require()</span> function object. This should allow RequireJS to work better in environments like <a href="http://mozillalabs.com/chromeless/">Mozilla Chromeless</a>, which already have a built-in require() function that does not have full AMD/loader plugin capabilities.
+</li><li>It is now possible to <a href="http://requirejs.org/docs/api.html#config-jQuery">specify the precise version of jQuery</a> to allow in a RequireJS context. This is useful if you know of other scripts that load different versions of jQuery on a page.</li></ul>
+
+<p>Some changes in the name of compatibility with other AMD module loaders and Node:</p>
+
+
+<ul><li>The "lib" directory configuration in package support was removed. It was always very awkward to support, and Node no longer supports it, so it was enough justification to remove it.</li><li>Relative module IDs are now relative to the related module ID, not the related module ID path.</li><li>includeRequire in the optimizer config was removed, Use a paths config to include require.js instead. See the Optimization docs for more details.</li></ul>
+
+<p>A small change to the context-specific require() passed to <a href="http://requirejs.org/docs/plugins.html#apiload">a loader plugin's load() call</a>: require.isDefined() is now require.defined() and there is require. specified().</p>
+
+<h3>0.24.0</h3>
+
+<ul>
+<li>Support for IE 9. It has <a href="https://connect.microsoft.com/IE/feedback/details/648057/script-onload-event-is-not-fired-immediately-after-script-execution">a non-conformant script loading behavior</a> that necessitated the change. It would be ideal if IE 9 would change the behavior to be conformant.</li>
+<li>Changes to jQuery integration:
+    <ul>
+        <li>jQuery 1.5.1 included in sample project.</li>
+        <li><span style="text-decoration: line-through">No more bundled RequireJS and jQuery file. RequireJS includes special code to detect jQuery as a module, so the combined file is not necessary, and this approach makes it easier to swap in new versions of jQuery as they are released.</span> (Changed on April 1, 2011 back to the old integrated sample)</li>
+        <li><span style="text-decoration: line-through">Because of that change, the jQuery sample project uses the new priority: config approach.</span> (Changed on April 1, 2011 back to the old integrated sample)</li>
+    </ul>
+<li>allplugins-require.js has been removed. Plugins are no longer bundled with require.js or in the sample jQuery project. There are separate download links to the existing plugins on the download page. Special treatment of these plugins has also been removed from the require.js source, so those plugins behave like any other loader plugin.</li>
+<li>There is now a <a href="#cs">CoffeScript plugin</a>. It makes it easy to code in CoffeeScript in the browser, it can participate in the optimizer optimizations, and it works in Node and Rhino. This is the best way to do cross-environment, modular CoffeeScript.</li>
+<li>Bug fixes.</li>
+</ul>
+
+<h3>0.23.0</h3>
+
+<ul>
+<li>Calculation of baseUrl changed. This affects the jQuery Sample project, which has been updated in this release. Instead of baseUrl defaulting to the directory containing require.js, it now defaults to the HTML page's directory. If data-main is used, then the directory used in that attribute becomes the baseUrl. Explicitly setting baseUrl in the configuration overrides the aforementioned defaults.</li>
+<li>The RequireJS optimizer now uses Node by default. So, build.sh/.bat are now Node-based. Java/Rhino is still supported via the buildj.sh/.bat scripts.</li>
+<li><a href="https://github.com/mishoo/UglifyJS">UglifyJS</a> is now the default minifier for the optimizer, since it works both in Node and in Rhino. However, UglifyJS does not do if/else dead code removal, so the <a href="optimization.html#hasjs">has() optimization</a> is not that great when using UglifyJS. Hopefully this will change in a future version of UglifyJS. If you want the full has() optimization, Closure Compiler can still be used, either by using buildj.sh to use Java/Rhino to do the optimization work, or by running Closure Compiler yourself after the optimizer runs.</li>
+<li>The behavior of the Node adapter, r.js has changed. It now assumes that any module found via the RequireJS config uses define() to define modules. If a module is not found via the RequireJS path config, r.js uses Node's native require() function and its pathing rules
+to find the module. This allows the most compatible use of npm-installed modules. However it means you <strong>should not</strong> include RequireJS configuration for npm-installed modules/packages.</li>
+<li>The r.js adapter now works in Node and Rhino.</li>
+<li>The config option, <strong>baseUrlMatch</strong> has been removed, since the data-main baseUrl rule mentioned above removes the need for it.</li>
+<li>Some important fixes around loader plugins: a fix to allow multiple modules to use the same plugin resources as a common dependency, and to allow loader plugins that use a define() function callback to work in the optimizer.</li>
+<li>A fix for the use of jQuery's readyWait capability when jQuery is detected and used as a module.</li>
+<li>Some directory shuffling related to making the rhino and node adapters the same for use in command line tools and in the r.js adapter.</li>
+</ul>
+
+<h3>0.22.0</h3>
+
+<ul>
+<li>A <a href="plugins.html">full plugin API</a> that supports also including plugin loaded artifacts in optimized builds.</li>
+<li><a href="node.html">Robust Node support</a>: now can use npm-installed modules, .node add-ons, and modules on require.paths.</li>
+<li>Support for <a href="optimization.html#hasjs">has.js optimizations</a> in the optimizer, including dead code branch removal via Closure Compiler.</a>
+<li><a href="https://github.com/jrburke/requirejs/commits/">Bug Fixes from 2010-12-21 through 2011-01-05</a>.</li>
+</ul>
+</div>

@@ -1,0 +1,18 @@
+mt19937ar-files = [ glob mt19937ar.c ] ;
+
+if $(mt19937ar-files)
+{
+    alias mt19937ar : $(mt19937ar-files) : : <define>HAVE_MT19937AR_C ;
+}
+else
+{
+    alias mt19937ar ;
+}
+
+exe random_speed.exe : random_speed.cpp mt19937ar : release ;
+exe generate_table.exe : generate_table.cpp /boost//regex : <link>static ;
+exe nondet_random_speed.exe : nondet_random_speed.cpp /boost//random : release <link>static  ;
+
+install random_speed : random_speed.exe : <install-type>EXE <location>. ;
+install nondet_random_speed : nondet_random_speed.exe : <install-type>EXE <location>. ;
+install generate_table : generate_table.exe : <install-type>EXE <location>. ;

@@ -1,0 +1,305 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Partial Matches</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Boost.Regex">
+<link rel="up" href="../index.html" title="Boost.Regex">
+<link rel="prev" href="captures.html" title="Understanding Marked Sub-Expressions and Captures">
+<link rel="next" href="syntax.html" title="Regular Expression Syntax">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="captures.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="syntax.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_partial_matches">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_regex.partial_matches"></a><a class="link" href="partial_matches.html" title="Partial Matches">Partial Matches</a>
+</h2></div></div></div>
+<p>
+      The <a class="link" href="ref/match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a>
+      <code class="computeroutput"><span class="identifier">match_partial</span></code> can be passed
+      to the following algorithms: <a class="link" href="ref/regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a>, <a class="link" href="ref/regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a>, and <a class="link" href="ref/deprecated_interfaces/regex_grep.html" title="regex_grep (Deprecated)"><code class="computeroutput"><span class="identifier">regex_grep</span></code></a>, and used with the iterator
+      <a class="link" href="ref/regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a>.
+      When used it indicates that partial as well as full matches should be found.
+      A partial match is one that matched one or more characters at the end of the
+      text input, but did not match all of the regular expression (although it may
+      have done so had more input been available). Partial matches are typically
+      used when either validating data input (checking each character as it is entered
+      on the keyboard), or when searching texts that are either too long to load
+      into memory (or even into a memory mapped file), or are of indeterminate length
+      (for example the source may be a socket or similar). Partial and full matches
+      can be differentiated as shown in the following table (the variable M represents
+      an instance of <a class="link" href="ref/match_results.html" title="match_results"><code class="computeroutput"><span class="identifier">match_results</span></code></a> as filled in by <a class="link" href="ref/regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a>,
+      <a class="link" href="ref/regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a>
+      or <a class="link" href="ref/deprecated_interfaces/regex_grep.html" title="regex_grep (Deprecated)"><code class="computeroutput"><span class="identifier">regex_grep</span></code></a>):
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+            </th>
+<th>
+              <p>
+                Result
+              </p>
+            </th>
+<th>
+              <p>
+                M[0].matched
+              </p>
+            </th>
+<th>
+              <p>
+                M[0].first
+              </p>
+            </th>
+<th>
+              <p>
+                M[0].second
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                No match
+              </p>
+            </td>
+<td>
+              <p>
+                False
+              </p>
+            </td>
+<td>
+              <p>
+                Undefined
+              </p>
+            </td>
+<td>
+              <p>
+                Undefined
+              </p>
+            </td>
+<td>
+              <p>
+                Undefined
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Partial match
+              </p>
+            </td>
+<td>
+              <p>
+                True
+              </p>
+            </td>
+<td>
+              <p>
+                False
+              </p>
+            </td>
+<td>
+              <p>
+                Start of partial match.
+              </p>
+            </td>
+<td>
+              <p>
+                End of partial match (end of text).
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Full match
+              </p>
+            </td>
+<td>
+              <p>
+                True
+              </p>
+            </td>
+<td>
+              <p>
+                True
+              </p>
+            </td>
+<td>
+              <p>
+                Start of full match.
+              </p>
+            </td>
+<td>
+              <p>
+                End of full match.
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+      Be aware that using partial matches can sometimes result in somewhat imperfect
+      behavior:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          There are some expressions, such as ".*abc" that will always
+          produce a partial match. This problem can be reduced by careful construction
+          of the regular expressions used, or by setting flags like match_not_dot_newline
+          so that expressions like .* can't match past line boundaries.
+        </li>
+<li class="listitem">
+          Boost.Regex currently prefers leftmost matches to full matches, so for
+          example matching "abc|b" against "ab" produces a partial
+          match against the "ab" rather than a full match against "b".
+          It's more efficient to work this way, but may not be the behavior you want
+          in all situations.
+        </li>
+</ul></div>
+<p>
+      The following example tests to see whether the text could be a valid credit
+      card number, as the user presses a key, the character entered would be added
+      to the string being built up, and passed to <code class="computeroutput"><span class="identifier">is_possible_card_number</span></code>.
+      If this returns true then the text could be a valid card number, so the user
+      interface's OK button would be enabled. If it returns false, then this is not
+      yet a valid card number, but could be with more input, so the user interface
+      would disable the OK button. Finally, if the procedure throws an exception
+      the input could never become a valid number, and the inputted character must
+      be discarded, and a suitable error indication displayed to the user.
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span> <span class="identifier">e</span><span class="special">(</span><span class="string">"(\\d{3,4})[- ]?(\\d{4})[- ]?(\\d{4})[- ]?(\\d{4})"</span><span class="special">);</span>
+
+<span class="keyword">bool</span> <span class="identifier">is_possible_card_number</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">input</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="comment">//</span>
+   <span class="comment">// return false for partial match, true for full match, or throw for</span>
+   <span class="comment">// impossible match based on what we have so far...</span>
+   <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">const_iterator</span><span class="special">&gt;</span> <span class="identifier">what</span><span class="special">;</span>
+   <span class="keyword">if</span><span class="special">(</span><span class="number">0</span> <span class="special">==</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex_match</span><span class="special">(</span><span class="identifier">input</span><span class="special">,</span> <span class="identifier">what</span><span class="special">,</span> <span class="identifier">e</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_default</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_partial</span><span class="special">))</span>
+   <span class="special">{</span>
+      <span class="comment">// the input so far could not possibly be valid so reject it:</span>
+      <span class="keyword">throw</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span><span class="special">(</span>
+         <span class="string">"Invalid data entered - this could not possibly be a valid card number"</span><span class="special">);</span>
+   <span class="special">}</span>
+   <span class="comment">// OK so far so good, but have we finished?</span>
+   <span class="keyword">if</span><span class="special">(</span><span class="identifier">what</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">matched</span><span class="special">)</span>
+   <span class="special">{</span>
+      <span class="comment">// excellent, we have a result:</span>
+      <span class="keyword">return</span> <span class="keyword">true</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="comment">// what we have so far is only a partial match...</span>
+   <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      In the following example, text input is taken from a stream containing an unknown
+      amount of text; this example simply counts the number of html tags encountered
+      in the stream. The text is loaded into a buffer and searched a part at a time,
+      if a partial match was encountered, then the partial match gets searched a
+      second time as the start of the next batch of text:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">fstream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">sstream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">// match some kind of html tag:</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span> <span class="identifier">e</span><span class="special">(</span><span class="string">"&lt;[^&gt;]*&gt;"</span><span class="special">);</span>
+<span class="comment">// count how many:</span>
+<span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">tags</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">search</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream</span><span class="special">&amp;</span> <span class="identifier">is</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="comment">// buffer we'll be searching in:</span>
+   <span class="keyword">char</span> <span class="identifier">buf</span><span class="special">[</span><span class="number">4096</span><span class="special">];</span>
+   <span class="comment">// saved position of end of partial match:</span>
+   <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">next_pos</span> <span class="special">=</span> <span class="identifier">buf</span> <span class="special">+</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">buf</span><span class="special">);</span>
+   <span class="comment">// flag to indicate whether there is more input to come:</span>
+   <span class="keyword">bool</span> <span class="identifier">have_more</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+
+   <span class="keyword">while</span><span class="special">(</span><span class="identifier">have_more</span><span class="special">)</span>
+   <span class="special">{</span>
+      <span class="comment">// how much do we copy forward from last try:</span>
+      <span class="keyword">unsigned</span> <span class="identifier">leftover</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">buf</span> <span class="special">+</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">buf</span><span class="special">))</span> <span class="special">-</span> <span class="identifier">next_pos</span><span class="special">;</span>
+      <span class="comment">// and how much is left to fill:</span>
+      <span class="keyword">unsigned</span> <span class="identifier">size</span> <span class="special">=</span> <span class="identifier">next_pos</span> <span class="special">-</span> <span class="identifier">buf</span><span class="special">;</span>
+      <span class="comment">// copy forward whatever we have left:</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">memmove</span><span class="special">(</span><span class="identifier">buf</span><span class="special">,</span> <span class="identifier">next_pos</span><span class="special">,</span> <span class="identifier">leftover</span><span class="special">);</span>
+      <span class="comment">// fill the rest from the stream:</span>
+      <span class="identifier">is</span><span class="special">.</span><span class="identifier">read</span><span class="special">(</span><span class="identifier">buf</span> <span class="special">+</span> <span class="identifier">leftover</span><span class="special">,</span> <span class="identifier">size</span><span class="special">);</span>
+      <span class="keyword">unsigned</span> <span class="identifier">read</span> <span class="special">=</span> <span class="identifier">is</span><span class="special">.</span><span class="identifier">gcount</span><span class="special">();</span>
+      <span class="comment">// check to see if we've run out of text:</span>
+      <span class="identifier">have_more</span> <span class="special">=</span> <span class="identifier">read</span> <span class="special">==</span> <span class="identifier">size</span><span class="special">;</span>
+      <span class="comment">// reset next_pos:</span>
+      <span class="identifier">next_pos</span> <span class="special">=</span> <span class="identifier">buf</span> <span class="special">+</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">buf</span><span class="special">);</span>
+      <span class="comment">// and then iterate:</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">cregex_iterator</span> <span class="identifier">a</span><span class="special">(</span>
+         <span class="identifier">buf</span><span class="special">,</span>
+         <span class="identifier">buf</span> <span class="special">+</span> <span class="identifier">read</span> <span class="special">+</span> <span class="identifier">leftover</span><span class="special">,</span>
+         <span class="identifier">e</span><span class="special">,</span>
+         <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_default</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_partial</span><span class="special">);</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">cregex_iterator</span> <span class="identifier">b</span><span class="special">;</span>
+
+      <span class="keyword">while</span><span class="special">(</span><span class="identifier">a</span> <span class="special">!=</span> <span class="identifier">b</span><span class="special">)</span>
+      <span class="special">{</span>
+         <span class="keyword">if</span><span class="special">((*</span><span class="identifier">a</span><span class="special">)[</span><span class="number">0</span><span class="special">].</span><span class="identifier">matched</span> <span class="special">==</span> <span class="keyword">false</span><span class="special">)</span>
+         <span class="special">{</span>
+            <span class="comment">// Partial match, save position and break:</span>
+            <span class="identifier">next_pos</span> <span class="special">=</span> <span class="special">(*</span><span class="identifier">a</span><span class="special">)[</span><span class="number">0</span><span class="special">].</span><span class="identifier">first</span><span class="special">;</span>
+            <span class="keyword">break</span><span class="special">;</span>
+         <span class="special">}</span>
+         <span class="keyword">else</span>
+         <span class="special">{</span>
+            <span class="comment">// full match:</span>
+            <span class="special">++</span><span class="identifier">tags</span><span class="special">;</span>
+         <span class="special">}</span>
+
+         <span class="comment">// move to next match:</span>
+         <span class="special">++</span><span class="identifier">a</span><span class="special">;</span>
+      <span class="special">}</span>
+   <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="captures.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="syntax.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

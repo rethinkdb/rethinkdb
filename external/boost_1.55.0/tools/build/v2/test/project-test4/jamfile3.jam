@@ -1,0 +1,5 @@
+
+make a.exe : a.obj lib//b.obj/<optimization>on a_gcc.obj : yfc-link : <toolset>gcc ;
+make a.exe : a.obj lib//b.obj/<optimization>on : yfc-link : <threading>multi ;
+make a.obj : a.cpp : yfc-compile ;
+make a_gcc.obj : a_gcc.cpp : yfc-compile ;

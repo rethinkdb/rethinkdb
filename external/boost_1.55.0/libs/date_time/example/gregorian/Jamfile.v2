@@ -1,0 +1,20 @@
+# Copyright (c) 2002-2006 CrystalClear Software, Inc.
+# Use, modification and distribution is subject to the 
+# Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+#
+
+project
+    : requirements <library>../../build/boost_date_time
+    ;
+    
+exe dates_as_strings : dates_as_strings.cpp ;
+exe end_of_month_day : end_of_month_day.cpp ;
+exe period_calc : period_calc.cpp ;
+exe days_alive : days_alive.cpp ;
+exe print_holidays : print_holidays.cpp ;
+exe days_since_year_start : days_since_year_start.cpp ;
+exe print_month : print_month.cpp ;
+exe days_till_new_year : days_till_new_year.cpp ;
+exe date_localization : localization.cpp ;
+    

@@ -1,0 +1,98 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Concepts</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="ch02.html" title="Chapter&nbsp;2.&nbsp;UML Short Guide"><link rel="prev" href="ch02.html" title="Chapter&nbsp;2.&nbsp;UML Short Guide"><link rel="next" href="ch02s03.html" title="Added concepts"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Concepts</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02.html">Prev</a>&nbsp;</td><th width="60%" align="center">Chapter&nbsp;2.&nbsp;UML Short Guide</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch02s03.html">Next</a></td></tr></table><hr></div><div class="sect1" title="Concepts"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d0e116"></a>Concepts</h2></div></div></div><p>Thinking in terms of state machines is a bit surprising at first, so let us
+                    have a quick glance at the concepts.</p><div class="sect2" title="State machine, state, transition, event"><div class="titlepage"><div><div><h3 class="title"><a name="d0e121"></a>State machine, state, transition, event </h3></div></div></div><p>A state machine is a concrete model describing the behavior of a system.
+                        It is composed of a finite number of states and transitions.</p><p>
+                        <span class="inlinemediaobject"><img src="../images/sm.gif"></span></p><p>A simple state has no sub states. It can have data, entry and exit
+                        behaviors and deferred events. One can provide entry and exit behaviors
+                        (also called actions) to states (or state machines), which are executed
+                        whenever a state is entered or left, no matter how. A state can also have
+                        internal transitions which cause no entry or exit behavior to be called. A
+                        state can mark events as deferred. This means the event cannot be processed
+                        if this state is active, but it must be retained. Next time a state not
+                        deferring this event is active, the event will be processed, as if it had
+                        just been fired. </p><p><span class="inlinemediaobject"><img src="../images/state.gif"></span></p><p>A transition is the switching between active states, triggered by an
+                        event. Actions and guard conditions can be attached to the transition. The
+                        action executes when the transition fires, the guard is a Boolean operation
+                        executed first and which can prevent the transition from firing by returning
+                        false.</p><p>
+                        <span class="inlinemediaobject"><img src="../images/transition.jpg"></span></p><p>An initial state marks the first active state of a state machine. It has
+                        no real existence and neither has the transition originating from it.</p><p>
+                        <span class="inlinemediaobject"><img src="../images/init_state.gif"></span></p></div><div class="sect2" title="Submachines, orthogonal regions, pseudostates"><div class="titlepage"><div><div><h3 class="title"><a name="d0e151"></a>Submachines, orthogonal regions, pseudostates </h3></div></div></div><p>A composite state is a state containing a region or decomposed in two or
+                        more regions. A composite state contains its own set of states and regions. </p><p>A submachine is a state machine inserted as a state in another state
+                        machine. The same submachine can be inserted more than once. </p><p>Orthogonal regions are parts of a composite state or submachine, each
+                        having its own set of mutually exclusive set of states and transitions. </p><p><span class="inlinemediaobject"><img src="../images/regions.gif" width="60%"></span></p><p>UML also defines a number of pseudo states, which are considered important
+                        concepts to model, but not enough to make them first-class citizens. The
+                        terminate pseudo state terminates the execution of a state machine (MSM
+                        handles this slightly differently. The state machine is not destroyed but no
+                        further event processing occurs.). </p><p><span class="inlinemediaobject"><img src="../images/terminate.gif"></span></p><p>An exit point pseudo state exits a composite state or a submachine and
+                        forces termination of execution in all contained regions.</p><p><span class="inlinemediaobject"><img src="../images/exit.gif" width="60%"></span></p><p>An entry point pseudo state allows a kind of controlled entry inside a
+                        composite. Precisely, it connects a transition outside the composite to a
+                        transition inside the composite. An important point is that this mechanism
+                        only allows a single region to be entered. In the above diagram, in region1,
+                        the initial state would become active. </p><p><span class="inlinemediaobject"><img src="../images/entry_point.gif"></span></p><p>There are also two more ways to enter a submachine (apart the obvious and
+                        more common case of a transition terminating on the submachine as shown in
+                        the region case). An explicit entry means that an inside state is the target
+                        of a transition. Unlike with direct entry, no tentative encapsulation is
+                        made, and only one transition is executed. An explicit exit is a transition
+                        from an inner state to a state outside the submachine (not supported by
+                        MSM). I would not recommend using explicit entry or exit. </p><p><span class="inlinemediaobject"><img src="../images/explicit.gif"></span></p><p>The last entry possibility is using fork. A fork is an explicit entry into
+                        one or more regions. Other regions are again activated using their initial
+                        state. </p><p><span class="inlinemediaobject"><img src="../images/fork.gif" width="70%"></span></p></div><div class="sect2" title="History"><div class="titlepage"><div><div><h3 class="title"><a name="d0e194"></a>
+                        <span class="command"><strong><a name="uml-history"></a></strong></span>History </h3></div></div></div><p>UML defines two kinds of history, shallow history and deep history.
+                        Shallow history is a pseudo state representing the most recent substate of a
+                        submachine. A submachine can have at most one shallow history. A transition
+                        with a history pseudo state as target is equivalent to a transition with the
+                        most recent substate as target. And very importantly, only one transition
+                        may originate from the history. Deep history is a shallow history
+                        recursively reactivating the substates of the most recent substate. It is
+                        represented like the shallow history with a star (H* inside a
+                        circle).</p><p>
+                        <span class="inlinemediaobject"><img src="../images/history.gif" width="60%"></span></p><p>History is not a completely satisfying concept. First of all, there can be
+                        just one history pseudo state and only one transition may originate from it.
+                        So they do not mix well with orthogonal regions as only one region can be
+                        &#8220;remembered&#8221;. Deep history is even worse and looks like a last-minute
+                        addition. History has to be activated by a transition and only one
+                        transition originates from it, so how to model the transition originating
+                        from the deep history pseudo state and pointing to the most recent substate
+                        of the substate? As a bonus, it is also inflexible and does not accept new
+                        types of histories. Let's face it, history sounds great and is useful in
+                        theory, but the UML version is not quite making the cut. And therefore, MSM
+                        provides a different version of this useful concept. </p></div><div class="sect2" title="Completion transitions / anonymous transitions"><div class="titlepage"><div><div><h3 class="title"><a name="d0e208"></a><span class="command"><strong><a name="uml-anonymous"></a></strong></span>Completion transitions / anonymous
+                        transitions</h3></div></div></div><p>Completion events (or transitions), also called anonymous transitions, are
+                        defined as transitions having no defined event triggering them. This means
+                        that such transitions will immediately fire when a state being the source of
+                        an anonymous transition becomes active, provided that a guard allows it.
+                        They are useful in modeling algorithms as an activity diagram would normally
+                        do. In the real-time world, they have the advantage of making it easier to
+                        estimate how long a periodically executed action will last. For example,
+                        consider the following diagram. </p><p><span class="inlinemediaobject"><img src="../images/completion.gif"></span></p><p>The designer now knows at any time that he will need a maximum of 4
+                        transitions. Being able to estimate how long a transition takes, he can
+                        estimate how much of a time frame he will need to require (real-time tasks
+                        are often executed at regular intervals). If he can also estimate the
+                        duration of actions, he can even use graph algorithms to better estimate his
+                        timing requirements. </p></div><div class="sect2" title="Internal transitions"><div class="titlepage"><div><div><h3 class="title"><a name="d0e220"></a><span class="command"><strong><a name="UML-internal-transition"></a></strong></span> Internal transitions </h3></div></div></div><p>Internal transitions are transitions executing in the scope of the active
+                        state, being a simple state or a submachine. One can see them as a
+                        self-transition of this state, without an entry or exit action
+                        called.</p></div><div class="sect2" title="Conflicting transitions"><div class="titlepage"><div><div><h3 class="title"><a name="d0e226"></a>
+                        <span class="command"><strong><a name="transition-conflict"></a></strong></span>Conflicting transitions </h3></div></div></div><p>If, for a given event, several transitions are enabled, they are said to
+                        be in conflict. There are two kinds of conflicts: </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>For a given source state, several transitions are defined,
+                                    triggered by the same event. Normally, the guard condition in
+                                    each transition defines which one is fired.</p></li><li class="listitem"><p>The source state is a submachine or simple state and the
+                                    conflict is between a transition internal to this state and a
+                                    transition triggered by the same event and having as target
+                                    another state.</p></li></ul></div><p>The first one is simple; one only needs to define two or more
+                        rows in the transition table, with the same source and trigger, with a
+                        different guard condition. Beware, however, that the UML standard wants
+                        these conditions to be not overlapping. If they do, the standard says
+                        nothing except that this is incorrect, so the implementer is free to
+                        implement it the way he sees fit. In the case of MSM, the transition
+                        appearing last in the transition table gets selected first, if it returns
+                        false (meaning disabled), the library tries with the previous one, and so
+                        on.</p><p>
+                        <span class="inlinemediaobject"><img src="../images/conflict1.gif"></span></p><p>In the second case, UML defines that the most inner transition gets
+                        selected first, which makes sense, otherwise no exit point pseudo state
+                        would be possible (the inner transition brings us to the exit point, from
+                        where the containing state machine can take over). </p><p><span class="inlinemediaobject"><img src="../images/conflict2.gif" width="60%"></span></p><p>MSM handles both cases itself, so the designer needs only concentrate on
+                        its state machine and the UML subtleties (not overlapping conditions), not
+                        on implementing this behavior himself. </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="ch02.html">Up</a></td><td width="40%" align="right">&nbsp;<a accesskey="n" href="ch02s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter&nbsp;2.&nbsp;UML Short Guide&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;Added concepts</td></tr></table></div></body></html>

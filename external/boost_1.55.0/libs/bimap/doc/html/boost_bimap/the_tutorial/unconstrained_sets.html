@@ -1,0 +1,145 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Unconstrained Sets</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../the_tutorial.html" title="The tutorial">
+<link rel="prev" href="bimaps_with_user_defined_names.html" title="Bimaps with user defined names">
+<link rel="next" href="additional_information.html" title="Additional information">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bimaps_with_user_defined_names.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../the_tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="additional_information.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_the_tutorial_unconstrained_sets">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.the_tutorial.unconstrained_sets"></a><a class="link" href="unconstrained_sets.html" title="Unconstrained Sets">Unconstrained
+      Sets</a>
+</h3></div></div></div>
+<p>
+        Unconstrained sets allow the user to disable one of the views of a bimap.
+        Doing so makes the bimap operations execute faster and reduces memory consumption.
+        This completes the bidirectional mapping framework by including unidirectional
+        mappings as a particular case.
+      </p>
+<p>
+        Unconstrained sets are useful for the following reasons:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            A bimap type has stronger guarantees than its standard equivalent, and
+            includes some useful functions (replace, modify) that the standard does
+            not have.
+          </li>
+<li class="listitem">
+            You can view the mapping as a collection of relations.
+          </li>
+<li class="listitem">
+            Using this kind of map makes the code very extensible. If, at any moment
+            of the development, the need to perform searches from the right side
+            of the mapping arises, the only necessary change is to the <code class="computeroutput"><span class="keyword">typedef</span></code>.
+          </li>
+</ul></div>
+<p>
+        Given this bimap instance,
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">bimap</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">unconstrained_set_of</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">bm_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_map</span> <span class="identifier">map_type</span><span class="special">;</span>
+
+<span class="identifier">bm_type</span> <span class="identifier">bm</span><span class="special">;</span>
+<span class="identifier">map_type</span> <span class="special">&amp;</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        or this standard map one
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">&gt;</span> <span class="identifier">map_type</span><span class="special">;</span>
+
+<span class="identifier">map_type</span> <span class="identifier">m</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        The following code snippet is valid
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">m</span><span class="special">[</span><span class="string">"one"</span><span class="special">]</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+
+<span class="identifier">assert</span><span class="special">(</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="string">"one"</span><span class="special">)</span> <span class="special">!=</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">);</span>
+
+<span class="keyword">for</span><span class="special">(</span> <span class="identifier">map_type</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">iend</span> <span class="special">=</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span> <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">iend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+<span class="special">{</span>
+    <a class="co" name="boost_bimap.the_tutorial.unconstrained_sets.c0" href="unconstrained_sets.html#boost_bimap.the_tutorial.unconstrained_sets.c1"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a><span class="special">++(</span><span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">second</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="identifier">m</span><span class="special">.</span><span class="identifier">erase</span><span class="special">(</span><span class="string">"one"</span><span class="special">);</span>
+</pre>
+<p>
+      </p>
+<div class="calloutlist"><table border="0" summary="Callout list"><tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.the_tutorial.unconstrained_sets.c1"></a><a href="#boost_bimap.the_tutorial.unconstrained_sets.c0"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            The right collection of the bimap is mutable so its elements can be modified
+            using iterators.
+          </p></td>
+</tr></table></div>
+<p>
+        But using a bimap has some benefits
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">map_type</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">const_iterator</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">const_iterator</span><span class="special">,</span><span class="identifier">const_iterator</span><span class="special">&gt;</span> <span class="identifier">const_range</span><span class="special">;</span>
+
+<a class="co" name="boost_bimap.the_tutorial.unconstrained_sets.c2" href="unconstrained_sets.html#boost_bimap.the_tutorial.unconstrained_sets.c3"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a><span class="identifier">const_range</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">range</span><span class="special">(</span> <span class="string">"one"</span> <span class="special">&lt;=</span> <span class="identifier">_key</span><span class="special">,</span> <span class="identifier">_key</span> <span class="special">&lt;=</span> <span class="string">"two"</span> <span class="special">);</span>
+<span class="keyword">for</span><span class="special">(</span> <span class="identifier">const_iterator</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">first</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">second</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">first</span> <span class="special">&lt;&lt;</span> <span class="string">"--&gt;"</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">second</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="identifier">m</span><span class="special">.</span><span class="identifier">modify_key</span><span class="special">(</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">_key</span> <span class="special">=</span> <span class="string">"1"</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<div class="calloutlist"><table border="0" summary="Callout list"><tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.the_tutorial.unconstrained_sets.c3"></a><a href="#boost_bimap.the_tutorial.unconstrained_sets.c2"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            This range is a model of BidirectionalRange, read the docs of Boost.Range
+            for more information.
+          </p></td>
+</tr></table></div>
+<p>
+        <a href="../../../../example/unconstrained_collection.cpp" target="_top">Go to source code</a>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bimaps_with_user_defined_names.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../the_tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="additional_information.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

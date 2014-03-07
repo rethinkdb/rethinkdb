@@ -1,0 +1,43 @@
+/* Copyright David Abrahams 2006. Distributed under the Boost
+   Software License, Version 1.0. (See accompanying
+   file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) 
+*/
+
+@import "../../../../rst.css";
+
+div.section div.section div.section dl {
+  margin-left: 2em;
+}
+
+td span {
+  vertical-align: text-top;
+}
+
+img {
+  border: none;
+  vertical-align: middle
+}
+
+span.vellipsis {
+  display: block;
+  width: 5px;
+  height: 22px;
+  background: url("vellipsis.gif");
+  margin-left: 3em;
+  text-indent: -1000px;
+}
+
+
+PRE
+{
+    FONT-FAMILY: monospace ;
+}
+
+CODE
+{
+    FONT-FAMILY: monospace;
+}
+.pre
+{
+   FONT-FAMILY: monospace;
+}

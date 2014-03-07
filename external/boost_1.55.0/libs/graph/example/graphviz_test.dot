@@ -1,0 +1,39 @@
+digraph G {
+
+  subgraph cluster0 {  //subgraph<Graph>
+    node [style=filled color=white];
+    style = filled;
+    bgcolor = lightgrey;
+
+    subgraph inner { //subgraph<Graph> or subgraph of subgraph
+	node [color = green];
+	a1 -> a2 -> a3 
+
+    };
+
+    a0 -> subgraph inner;
+
+    label = "process #1";
+  }
+
+  subgraph cluster1 {
+    node [style=filled color=white];
+    b0 -> b1 -> b2 -> b3;
+    label = "process #2";
+    bgcolor = lightgrey
+  }
+
+  subgraph cluster1 -> subgraph cluster0 [style=dashed color=red]
+
+  start -> subgraph inner[style=dotted];
+
+  start -> a0;
+  start -> b0;
+  a1 -> b3;
+  b2 -> a3;
+  a3 -> end;
+  b3 -> end;
+
+  start [shape=Mdiamond];
+  end [shape=Msquare];
+}

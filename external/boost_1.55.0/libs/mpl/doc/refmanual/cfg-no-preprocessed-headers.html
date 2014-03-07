@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./configuration.html" class="navigation-link">Prev</a>&nbsp;<a href="./cfg-no-has-xxx.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./cfg-no-has-xxx.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./configuration.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./macros.html" class="navigation-link">Macros</a> / <a href="./configuration.html" class="navigation-link">Configuration</a> / <a href="./cfg-no-preprocessed-headers.html" class="navigation-link">BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="boost-mpl-cfg-no-preprocessed-headers">
+<h1><a class="toc-backref" href="./configuration.html#id1598">BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS</a></h1>
+<div class="section" id="id1343">
+<span id="boost-mpl-cfg-no-preprocessed"></span><h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+// #define <a href="./cfg-no-preprocessed-headers.html" class="identifier">BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS</a>
+</pre>
+</div>
+<div class="section" id="id1344">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./cfg-no-preprocessed-headers.html" class="identifier">BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS</a></span></tt> is an boolean configuration macro
+regulating library's internal use of preprocessed headers. When defined, it
+instructs the MPL to discard the pre-generated headers found in
+<tt class="literal"><span class="pre">boost/mpl/aux_/preprocessed</span></tt> directory and use <a class="reference external" href="http://boost-consulting.com/tmpbook/preprocessor.html" target="_top">preprocessor
+metaprogramming</a> techniques to generate the necessary versions of the
+library components on the fly.</p>
+<p>In this implementation of the library, the macro is not defined by default.
+To change the default configuration, define
+<tt class="literal"><span class="pre"><a href="./cfg-no-preprocessed-headers.html" class="identifier">BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS</a></span></tt> before  including any library
+header.</p>
+</div>
+<div class="section" id="id1346">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./macros.html">Macros</a>, <a class="reference internal" href="./configuration.html">Configuration</a></p>
+<!-- Macros/Configuration//BOOST_MPL_CFG_NO_HAS_XXX |20 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./configuration.html" class="navigation-link">Prev</a>&nbsp;<a href="./cfg-no-has-xxx.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./cfg-no-has-xxx.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./configuration.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

@@ -1,0 +1,297 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>unfused</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../adapters.html" title="Adapters">
+<link rel="prev" href="fused_function_object.html" title="fused_function_object">
+<link rel="next" href="unfused_typed.html" title="unfused_typed">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fused_function_object.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../adapters.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="unfused_typed.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="fusion.functional.adapters.unfused"></a><a class="link" href="unfused.html" title="unfused">unfused</a>
+</h4></div></div></div>
+<h6>
+<a name="fusion.functional.adapters.unfused.h0"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.unfused.description"></a></span><a class="link" href="unfused.html#fusion.functional.adapters.unfused.description">Description</a>
+        </h6>
+<p>
+          An n-ary <a class="link" href="../concepts/poly.html" title="Polymorphic Function Object">Polymorphic Function
+          Object</a> adapter template for an unary <a class="link" href="../concepts/poly.html" title="Polymorphic Function Object">Polymorphic
+          Function Object</a> target function. When called, its arguments are
+          bundled to a <a class="link" href="../../sequence/concepts/random_access_sequence.html" title="Random Access Sequence">Random
+          Access Sequence</a> of references that is passed to the target function
+          object.
+        </p>
+<p>
+          The nullary overload of the call operator can be removed by setting the
+          second template parameter to <code class="computeroutput"><span class="keyword">false</span></code>,
+          which is very useful if the result type computation would result in a compile
+          error, otherwise (nullary call operator's prototypes can't be templates
+          and thus are instantiated as early as the class template).
+        </p>
+<p>
+          Only LValue arguments are accepted. To overcome this limitation, apply
+          <a href="http://www.boost.org/libs/functional/forward/doc/html/index.html" target="_top">Boost.Functional/Forward</a>.
+        </p>
+<p>
+          The type of the target function is allowed to be const qualified or a reference.
+          Const qualification is preserved and propagated appropriately. In other
+          words, only const versions of <code class="literal">operator()</code> can be used
+          if the target function object is const - or, in case the target function
+          object is held by value, the adapter is const.
+        </p>
+<h6>
+<a name="fusion.functional.adapters.unfused.h1"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.unfused.header"></a></span><a class="link" href="unfused.html#fusion.functional.adapters.unfused.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">functional</span><span class="special">/</span><span class="identifier">adapter</span><span class="special">/</span><span class="identifier">unfused</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="fusion.functional.adapters.unfused.h2"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.unfused.synopsis"></a></span><a class="link" href="unfused.html#fusion.functional.adapters.unfused.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Function</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">AllowNullary</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">unfused</span><span class="special">;</span>
+</pre>
+<h6>
+<a name="fusion.functional.adapters.unfused.h3"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.unfused.template_parameters"></a></span><a class="link" href="unfused.html#fusion.functional.adapters.unfused.template_parameters">Template
+          parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Function</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    A unary <a class="link" href="../concepts/poly.html" title="Polymorphic Function Object">Polymorphic
+                    Function Object</a>
+                  </p>
+                </td>
+<td>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">AllowNullary</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Boolean constant
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="fusion.functional.adapters.unfused.h4"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.unfused.model_of"></a></span><a class="link" href="unfused.html#fusion.functional.adapters.unfused.model_of">Model
+          of</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <a class="link" href="../concepts/poly.html" title="Polymorphic Function Object">Polymorphic Function
+              Object</a>
+            </li>
+<li class="listitem">
+              <a class="link" href="../concepts/def_callable.html" title="Deferred Callable Object">Deferred Callable
+              Object</a>
+            </li>
+</ul></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">F</span></code></span></dt>
+<dd><p>
+                A possibly const qualified, unary <a class="link" href="../concepts/poly.html" title="Polymorphic Function Object">Polymorphic
+                Function Object</a> type or reference type thereof
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">f</span></code></span></dt>
+<dd><p>
+                An object convertible to <code class="computeroutput"><span class="identifier">F</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">UL</span></code></span></dt>
+<dd><p>
+                The type <code class="computeroutput"><span class="identifier">unfused</span><span class="special">&lt;</span><span class="identifier">F</span><span class="special">&gt;</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">ul</span></code></span></dt>
+<dd><p>
+                An instance of <code class="computeroutput"><span class="identifier">UL</span></code>,
+                initialized with <code class="computeroutput"><span class="identifier">f</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a0</span></code>...<code class="computeroutput"><span class="identifier">aN</span></code></span></dt>
+<dd><p>
+                Arguments to <code class="computeroutput"><span class="identifier">ul</span></code>
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="fusion.functional.adapters.unfused.h5"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.unfused.expression_semantics"></a></span><a class="link" href="unfused.html#fusion.functional.adapters.unfused.expression_semantics">Expression
+          Semantics</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">UL</span><span class="special">(</span><span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Creates a fused function as described above, initializes the
+                    target function with <code class="computeroutput"><span class="identifier">f</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">UL</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Creates a fused function as described above, attempts to use
+                    <code class="computeroutput"><span class="identifier">F</span></code>'s default constructor.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">ul</span><span class="special">(</span><span class="identifier">a0</span></code>...<code class="computeroutput"><span class="identifier">aN</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Calls <code class="computeroutput"><span class="identifier">f</span></code> with
+                    a <a class="link" href="../../sequence.html" title="Sequence">Sequence</a> that contains
+                    references to the arguments <code class="computeroutput"><span class="identifier">a0</span></code>...<code class="computeroutput"><span class="identifier">aN</span></code>.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="fusion.functional.adapters.unfused.h6"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.unfused.example"></a></span><a class="link" href="unfused.html#fusion.functional.adapters.unfused.example">Example</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">fused_incrementer</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Seq</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">result</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">void</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Seq</span><span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Seq</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">s</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <a class="link" href="../../algorithm/iteration/functions/for_each.html" title="for_each"><code class="computeroutput"><span class="identifier">for_each</span></code></a><span class="special">(</span><span class="identifier">s</span><span class="special">,++</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">::</span><span class="identifier">_1</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">void</span> <span class="identifier">try_it</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">unfused</span><span class="special">&lt;</span><span class="identifier">fused_incrementer</span><span class="special">&gt;</span> <span class="identifier">increment</span><span class="special">;</span>
+    <span class="keyword">int</span> <span class="identifier">a</span> <span class="special">=</span> <span class="number">2</span><span class="special">;</span> <span class="keyword">char</span> <span class="identifier">b</span> <span class="special">=</span> <span class="char">'X'</span><span class="special">;</span>
+    <span class="identifier">increment</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">);</span>
+    <span class="identifier">assert</span><span class="special">(</span><span class="identifier">a</span> <span class="special">==</span> <span class="number">3</span> <span class="special">&amp;&amp;</span> <span class="identifier">b</span> <span class="special">==</span> <span class="char">'Y'</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<h6>
+<a name="fusion.functional.adapters.unfused.h7"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.unfused.see_also"></a></span><a class="link" href="unfused.html#fusion.functional.adapters.unfused.see_also">See
+          also</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <a class="link" href="unfused_typed.html" title="unfused_typed"><code class="computeroutput"><span class="identifier">unfused_typed</span></code></a>
+            </li>
+<li class="listitem">
+              <a class="link" href="../generation/functions/mk_unfused.html" title="make_unfused"><code class="computeroutput"><span class="identifier">make_unfused</span></code></a>
+            </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fused_function_object.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../adapters.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="unfused_typed.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

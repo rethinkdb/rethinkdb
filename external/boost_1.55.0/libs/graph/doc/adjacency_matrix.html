@@ -1,0 +1,584 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Adjacency Matrix</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:adjacency-matrix-class"></A>
+<pre>
+adjacency_matrix&lt;Directed, VertexProperty, 
+                 EdgeProperty, GraphProperty,
+                 Allocator&gt;
+</pre>
+</H1>
+
+The <tt>adjacency_matrix</tt> class implements the BGL graph interface
+using the traditional adjacency matrix storage format. For a graph
+with <i>V</i> vertices, a <i>V x V</i> matrix is used, where each
+element <i>a<sub>ij</sub></i> is a boolean flag that says whether
+there is an edge from vertex <i>i</i> to vertex <i>j</i>. <a
+href="#fig:adj-matrix-graph">Figure 1</a> shows the adjacency matrix
+representation of a graph.
+
+<P></P>
+<DIV ALIGN="center"><A NAME="fig:adj-matrix-graph"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 1:</STRONG> Adjacency Matrix Representation of a Directed Graph.</CAPTION>
+<TR><TD><IMG SRC="./figs/adj-matrix-graph3.gif" width="386" height="284"></TD>
+<TD><IMG SRC="./figs/adj-matrix.gif" width="135" height="136"></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+The advantage of this matrix format over the adjacency list is that
+edge insertion and removal is constant time.  There are several
+disadvantages. The first is that the amount of memory used is
+<i>O(V<sup>2</sup>)</i> instead of <i>O(V + E)</i> (where <i>E</i> is
+the number of edges). The second is that operations that traverse all
+the out-edges of each vertex (such as breadth-first search) run in
+<i>O(V<sup>2</sup>)</i> time instead of <i>O(V + E)</i> time for the
+adjacency list. In short, it is better to use the
+<tt>adjacency_matrix</tt> for dense graphs (where <i>E</i> is close to
+<i>V<sup>2</sup></i>) and it is better to use <a
+href="adjacency_list.html"><tt>adjacency_list</tt></a> for sparse
+graphs (where <i>E</i> is much smaller than <i>V<sup>2</sup></i>).
+
+The <tt>adjacency_matrix</tt> class extends the traditional
+data-structure by allowing objects to be attached to vertices and
+edges using the same property template parameters supported by <a
+href="adjacency_list.html"><tt>adjacency_list</tt></a>. These may be
+<a href="bundles.html">bundled properties</a> or standard (backward-compatible)
+<a
+href="using_adjacency_list.html#sec:adjacency-list-properties">interior
+properties</a>. The types of all property values must be
+Copy Constructible, Assignable and Default Constructible. 
+
+In the case of an undirected graph, the
+<tt>adjacency_matrix</tt>. class does not use a full <i>V x V</i>
+matrix but instead uses a lower triangle (the diagonal and below)
+since the matrix for an undirected graph is symmetric. This reduces
+the storage to <i>(V<sup>2</sup>)/2</i>.  <a
+href="#fig:undir-adj-matrix-graph">Figure 2</a> shows an adjacency
+matrix representation of an undirected graph.
+
+<P></P>
+<DIV ALIGN="center"><A NAME="fig:undir-adj-matrix-graph"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 1:</STRONG> Adjacency Matrix Representation of an Undirected Graph.</CAPTION>
+<TR><TD><IMG SRC="./figs/undir-adj-matrix-graph3.gif" width="260" height="240"></TD>
+<TD><IMG SRC="./figs/undir-adj-matrix2.gif" width="135" height="136"></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+
+<h3>Example</h3>
+
+Creating the graph of <a href="#fig:adj-matrix-graph">Figure 1</a>. 
+<pre>
+  enum { A, B, C, D, E, F, N };
+  const char* name = "ABCDEF";
+  
+  typedef boost::adjacency_matrix&lt;boost::directedS> Graph;
+  Graph g(N);
+  add_edge(B, C, g);
+  add_edge(B, F, g);
+  add_edge(C, A, g);
+  add_edge(C, C, g);
+  add_edge(D, E, g);
+  add_edge(E, D, g);
+  add_edge(F, A, g);
+
+  std::cout &lt;&lt; "vertex set: ";
+  boost::print_vertices(g, name);
+  std::cout &lt;&lt; std::endl;
+
+  std::cout &lt;&lt; "edge set: ";
+  boost::print_edges(g, name);
+  std::cout &lt;&lt; std::endl;
+
+  std::cout &lt;&lt; "out-edges: " &lt;&lt; std::endl;
+  boost::print_graph(g, name);
+  std::cout &lt;&lt; std::endl;
+</pre>
+The output is:
+<pre>
+  vertex set: A B C D E F 
+
+  edge set: (B,C) (B,F) (C,A) (C,C) (D,E) (E,D) (F,A) 
+
+  out-edges: 
+  A --> 
+  B --> C F 
+  C --> A C 
+  D --> E 
+  E --> D 
+  F --> A 
+</pre>
+
+Creating the graph of <a href="#fig:undir-adj-matrix-graph">Figure 2</a>.
+<pre>
+  enum { A, B, C, D, E, F, N };
+  const char* name = "ABCDEF";
+
+  typedef boost::adjacency_matrix&lt;boost::undirectedS> UGraph;
+  UGraph ug(N);
+  add_edge(B, C, ug);
+  add_edge(B, F, ug);
+  add_edge(C, A, ug);
+  add_edge(D, E, ug);
+  add_edge(F, A, ug);
+
+  std::cout &lt;&lt; "vertex set: ";
+  boost::print_vertices(ug, name);
+  std::cout &lt;&lt; std::endl;
+
+  std::cout &lt;&lt; "edge set: ";
+  boost::print_edges(ug, name);
+  std::cout &lt;&lt; std::endl;
+
+  std::cout &lt;&lt; "incident edges: " &lt;&lt; std::endl;
+  boost::print_graph(ug, name);
+  std::cout &lt;&lt; std::endl;
+</pre>
+The output is:
+<pre>
+  vertex set: A B C D E F 
+
+  edge set: (C,A) (C,B) (E,D) (F,A) (F,B) 
+
+  incident edges: 
+  A &lt;--> C F 
+  B &lt;--> C F 
+  C &lt;--> A B 
+  D &lt;--> E 
+  E &lt;--> D 
+  F &lt;--> A B 
+</pre>
+
+
+<h3>Where Defined</h3>
+
+<a href="../../../boost/graph/adjacency_matrix.hpp"><tt>boost/graph/adjacency_matrix.hpp</tt></a>
+
+
+<h3>Template Parameters</h3>
+
+<p>
+<table border>
+
+<TR>
+<th>Parameter</th><th>Description</th><th>Default</th>
+</tr>
+
+<tr>
+  <td><tt>Directed</tt></td>
+  <td>A selector to choose whether the graph is directed or undirected. The options are <tt>directedS</tt> and <tt>undirectedS</tt>.</td>
+  <td><tt>directedS</tt></td>
+</tr>
+<tr>
+  <td><tt>VertexProperty</tt></td>
+  <td>for specifying internal property storage.</td>
+  <td><tt>no_property</tt></td>
+</tr>
+<tr>
+  <td><tt>EdgeProperty</tt></td>
+  <td>for specifying internal property storage.</td>
+  <td><tt>no_property</tt></td>
+</tr>
+<tr>
+  <td><tt>GraphProperty</tt></td>
+  <td>for specifying property storage for the graph object.</td>
+  <td><tt>no_property</tt></td>
+</tr>
+
+</table>
+
+<h3>Model Of</h3>
+
+<a href="./VertexAndEdgeListGraph.html">VertexAndEdgeListGraph</a>, 
+<a href="./IncidenceGraph.html">Incidence Graph</a>,
+<a href="./BidirectionalGraph.html">Bidirectional Graph</a>,
+<a
+href="./AdjacencyMatrix.html">AdjacencyMatrix</a>, <a
+href="./MutablePropertyGraph.html">MutablePropertyGraph</a>,
+<a href="../../utility/CopyConstructible.html">CopyConstructible</a>,
+and <a href="../../utility/Assignable.html">Assignable</a>.
+
+
+<h3>Associated Types</h3>
+
+<hr>
+
+<tt>graph_traits&lt;adjacency_matrix&gt;::vertex_descriptor</tt>
+<br><br>
+The type for the vertex descriptors associated with the
+<tt>adjacency_matrix</tt>.<br>
+(Required by <a href="./Graph.html">Graph</a>.)
+
+<hr>
+
+<tt>graph_traits&lt;adjacency_matrix&gt;::edge_descriptor</tt>
+<br><br>
+The type for the edge descriptors associated with the
+  <tt>adjacency_matrix</tt>.<br>
+ (Required by <a href="Graph.html">Graph</a>.)
+
+<hr>
+<tt>graph_traits&lt;adjacency_matrix&gt;::vertex_iterator</tt>
+<br><br>
+  The type for the iterators returned by <tt>vertices()</tt>.  
+  The vertex iterator models <a href="http://www.sgi.com/tech/stl/RandomAccessIterator.html">RandomAccessIterator</a>. <br>
+ (Required by <a href="VertexListGraph.html">VertexListGraph</a>.)
+
+<hr>
+<tt>graph_traits&lt;adjacency_matrix&gt;::edge_iterator</tt>
+<br><br>
+  The type for the iterators returned by <tt>edges()</tt>. This
+  iterator models <a href="../../utility/MultiPassInputIterator.html">MultiPassInputIterator</a>.<br>
+ (Required by <a href="EdgeListGraph.html">EdgeListGraph</a>.)
+
+<hr>
+<tt>graph_traits&lt;adjacency_matrix&gt;::out_edge_iterator</tt>
+<br><br>
+  The type for the iterators returned by <tt>out_edges()</tt>.  This
+  iterator models <a href="../../utility/MultiPassInputIterator.html">MultiPassInputIterator</a>. <br>
+  (Required by <a href="IncidenceGraph.html">IncidenceGraph</a>.)
+
+<hr>
+<tt>graph_traits&lt;adjacency_matrix&gt;::in_edge_iterator</tt>
+<br><br>
+  The type for the iterators returned by <tt>in_edges()</tt>.  This
+  iterator models <a href="../../utility/MultiPassInputIterator.html">MultiPassInputIterator</a>. <br>
+  (Required by <a href="BidirectionalGraph.html">BidirectionalGraph</a>.)
+
+<hr>
+<tt>graph_traits&lt;adjacency_matrix&gt;::adjacency_iterator</tt>
+<br><br>
+  The type for the iterators returned by <tt>adjacent_vertices()</tt>. This
+  iterator models the same concept as the out-edge iterator.<br>
+  (Required by <a href="AdjacencyGraph.html">AdjacencyGraph</a>.)
+
+<hr>
+<tt>graph_traits&lt;adjacency_matrix&gt;::directed_category</tt>
+<br><br>
+  Provides information about whether the graph is directed
+  (<tt>directed_tag</tt>) or undirected (<tt>undirected_tag</tt>).<br>
+  (Required by <a href="Graph.html">Graph</a>.)
+
+<hr>
+<tt>graph_traits&lt;adjacency_matrix&gt;::edge_parallel_category</tt>
+<br><br>
+  An adjacency matrix does not allow the insertion of
+  parallel edges, so this type is always
+  <tt>disallow_parallel_edge_tag</tt>. <br>
+  (Required by <a href="Graph.html">Graph</a>.)
+
+<hr>
+<tt>graph_traits&lt;adjacency_matrix&gt;::vertices_size_type</tt>
+<br><br>
+  The type used for dealing with the number of vertices in
+  the graph.<br>
+  (Required by <a href="VertexListGraph.html">VertexListGraph</a>.)
+
+<hr>
+<tt>graph_traits&lt;adjacency_matrix&gt;::edges_size_type</tt>
+<br><br>
+  The type used for dealing with the number of edges in the graph.<br>
+  (Required by <a href="EdgeListGraph.html">EdgeListGraph</a>.)
+
+<hr>
+<tt>graph_traits&lt;adjacency_matrix&gt;::degree_size_type</tt>
+<br><br>
+  The type used for dealing with the number of out-edges of a vertex.<br>
+  (Required by <a href="IncidenceGraph.html">IncidenceGraph</a>.)
+
+<hr>
+<tt>property_map&lt;adjacency_matrix, PropertyTag&gt;::type</tt><br>
+<tt>property_map&lt;adjacency_matrix, PropertyTag&gt;::const_type</tt>
+<br><br>
+  The map type for vertex or edge properties in the graph. The
+  specific property is specified by the <tt>PropertyTag</tt> template
+  argument, and must match one of the properties specified in the
+  <tt>VertexProperty</tt> or <tt>EdgeProperty</tt> for the graph.<br>
+  (Required by <a href="PropertyGraph.html">PropertyGraph</a>.)
+
+<hr>
+
+<h3>Member Functions</h3>
+
+<hr>
+<pre>
+adjacency_matrix(vertices_size_type n,
+                 const GraphProperty& p = GraphProperty())
+</pre>
+Creates a graph object with <tt>n</tt> vertices and zero edges.<br>
+(Required by <a href="MutableGraph.html">MutableGraph</a>.)
+
+<hr>
+<pre>
+template &lt;typename EdgeIterator&gt;
+adjacency_matrix(EdgeIterator first,
+                 EdgeIterator last,
+                 vertices_size_type n,
+                 const GraphProperty& p = GraphProperty())
+</pre>
+  Creates a graph object with <tt>n</tt> vertices with the edges
+  specified in the edge list given by the range <tt>[first, last)</tt>.
+  The value type of the <tt>EdgeIterator</tt> must be a
+  <tt>std::pair</tt>, where the type in the pair is an integer type. The
+  integers will correspond to vertices, and they must all fall in the
+  range of
+  <tt>[0, n)</tt>. <br>
+  (Required by <a href="IteratorConstructibleGraph.html">IteratorConstructibleGraph</a>.)
+
+<hr>
+<pre>
+template &lt;typename EdgeIterator, typename EdgePropertyIterator&gt;
+adjacency_matrix(EdgeIterator first, EdgeIterator last,
+                 EdgePropertyIterator ep_iter,
+                 vertices_size_type n,
+                 const GraphProperty& p = GraphProperty())
+</pre>
+  Creates a graph object with <tt>n</tt> vertices, with the edges
+  specified in the edge list given by the range <tt>[first, last)</tt>.
+  The value type of the <tt>EdgeIterator</tt> must be a
+  <tt>std::pair</tt>, where the type in the pair is an integer type. The
+  integers will correspond to vertices, and they must all fall in the
+  range of <tt>[0, n)</tt>. The <tt>value_type</tt> of the
+  <tt>ep_iter</tt> should be <tt>EdgeProperty</tt>.
+
+<hr>
+
+
+<h3>Non-Member Functions</h3>
+
+<hr>
+<pre>
+std::pair&lt;vertex_iterator, vertex_iterator&gt;
+vertices(const adjacency_matrix&amp; g)
+</pre>
+Returns an iterator-range providing access to the vertex set of graph <tt>g</tt>.<br>
+(Required by <a href="VertexListGraph.html">VertexListGraph</a>.)
+
+<hr>
+<pre>
+std::pair&lt;edge_iterator, edge_iterator&gt;
+edges(const adjacency_matrix&amp; g);
+</pre>
+Returns an iterator-range providing access to the edge set of graph <tt>g</tt>.<br>
+(Required by <a href="EdgeListGraph.html">EdgeListGraph</a>.)
+
+<hr>
+<pre>
+std::pair&lt;adjacency_iterator, adjacency_iterator&gt;
+adjacent_vertices(vertex_descriptor v, const adjacency_matrix&amp; g)
+</pre>
+Returns an iterator-range providing access to the vertices adjacent to
+vertex <tt>v</tt> in graph <tt>g</tt>.<br>
+(Required by <a href="AdjacencyGraph.html">AdjacencyGraph</a>.)
+
+<hr>
+<pre>
+std::pair&lt;out_edge_iterator, out_edge_iterator&gt;
+out_edges(vertex_descriptor v, const adjacency_matrix&amp; g)
+</pre>
+Returns an iterator-range providing access to the out-edges of
+vertex <tt>v</tt> in graph <tt>g</tt>. If the graph is undirected,
+this iterator-range provides access to all edges incident on
+vertex <tt>v</tt>. <br>
+(Required by <a href="IncidenceGraph.html">IncidenceGraph</a>.)
+
+<hr>
+<pre>
+vertex_descriptor
+source(edge_descriptor e, const adjacency_matrix&amp; g)
+</pre>
+Returns the source vertex of edge <tt>e</tt>.<br>
+(Required by <a href="IncidenceGraph.html">IncidenceGraph</a>.)
+
+<hr>
+<pre>
+vertex_descriptor
+target(edge_descriptor e, const adjacency_matrix&amp; g)
+</pre>
+Returns the target vertex of edge <tt>e</tt>.<br>
+(Required by <a href="IncidenceGraph.html">IncidenceGraph</a>.)
+
+<hr>
+<pre>
+degree_size_type
+out_degree(vertex_descriptor u, const adjacency_matrix&amp; g)
+</pre>
+Returns the number of edges leaving vertex <tt>u</tt>.<br>
+(Required by <a href="IncidenceGraph.html">IncidenceGraph</a>.) 
+<hr>
+
+<hr>
+<pre>
+std::pair&lt;in_edge_iterator, in_edge_iterator&gt;
+in_edges(vertex_descriptor v, const adjacency_matrix&amp; g)
+</pre>
+Returns an iterator-range providing access to the in-edges of
+vertex <tt>v</tt> in graph <tt>g</tt>. If the graph is undirected,
+this iterator-range provides access to all edges incident on
+vertex <tt>v</tt>. <br>
+(Required by <a href="BidirectionalGraph.html">BidirectionalGraph</a>.)
+
+<hr>
+<pre>
+degree_size_type
+in_degree(vertex_descriptor u, const adjacency_matrix&amp; g)
+</pre>
+Returns the number of edges entering vertex <tt>u</tt>.<br>
+(Required by <a href="BidirectionalGraph.html">BidirectionalGraph</a>.) 
+<hr>
+
+<hr>
+<pre>
+vertices_size_type num_vertices(const adjacency_matrix&amp; g)
+</pre>
+Returns the number of vertices in the graph <tt>g</tt>.<br>
+(Required by <a href="VertexListGraph.html">VertexListGraph</a>.)
+
+<hr>
+<pre>
+edges_size_type num_edges(const adjacency_matrix&amp; g)
+</pre>
+Returns the number of edges in the graph <tt>g</tt>.<br>
+(Required by <a href="EdgeListGraph.html">EdgeListGraph</a>.)
+
+<hr>
+<pre>
+vertex_descriptor vertex(vertices_size_type n, const adjacency_matrix&amp; g)
+</pre>
+Returns the nth vertex in the graph's vertex list.
+
+<hr>
+<pre>
+std::pair&lt;edge_descriptor, bool&gt;
+edge(vertex_descriptor u, vertex_descriptor v,
+     const adjacency_matrix&amp; g)
+</pre>
+Returns the edge connecting vertex <tt>u</tt> to vertex <tt>v</tt> in graph <tt>g</tt>.<br>
+(Required by <a href="AdjacencyMatrix.html">AdjacencyMatrix</a>.)
+
+<hr>
+<pre>
+std::pair&lt;edge_descriptor, bool&gt;
+add_edge(vertex_descriptor u, vertex_descriptor v,
+         adjacency_matrix&amp; g)
+</pre>
+  Adds edge <tt>(u,v)</tt> to the graph and returns the edge descriptor for
+  the new edge. If the edge is already in the graph then a duplicate
+  will not be added and the <tt>bool</tt> flag will be <tt>false</tt>.
+  This operation does not invalidate any of the graph's iterators
+  or descriptors.<br>
+(Required by <a href="MutableGraph.html">MutableGraph</a>.)
+
+<hr>
+<pre>
+std::pair&lt;edge_descriptor, bool&gt;
+add_edge(vertex_descriptor u, vertex_descriptor v,
+         const EdgeProperty& p,
+         adjacency_matrix&amp; g)
+</pre>
+Adds edge <tt>(u,v)</tt> to the graph and attaches <tt>p</tt> as the
+value of the edge's internal property storage.  Also see the previous
+<tt>add_edge()</tt> member function for more details.
+
+<hr>
+<pre>
+void remove_edge(vertex_descriptor u, vertex_descriptor v,
+                 adjacency_matrix&amp; g)
+</pre>
+Removes the edge <tt>(u,v)</tt> from the graph.  <br>
+(Required by <a href="MutableGraph.html">MutableGraph</a>.)
+
+<hr>
+<pre>
+void remove_edge(edge_descriptor e, adjacency_matrix&amp; g)
+</pre>
+Removes the edge <tt>e</tt> from the graph. This is equivalent
+to calling <tt>remove_edge(source(e, g), target(e, g), g)</tt>.<br>
+(Required by <a href="MutableGraph.html">MutableGraph</a>.)
+
+<hr>
+<pre>
+void clear_vertex(vertex_descriptor u, adjacency_matrix&amp; g)
+</pre>
+Removes all edges to and from vertex <tt>u</tt>. The vertex still appears
+in the vertex set of the graph.<br>
+(Required by <a href="MutableGraph.html">MutableGraph</a>.)
+
+<hr>
+<pre>
+template &lt;typename Property&gt;
+property_map&lt;adjacency_matrix, Property&gt;::type
+get(Property, adjacency_matrix&amp; g)
+
+template &lt;typename Property&gt;
+property_map&lt;adjacency_matrix, Property&gt;::const_type
+get(Property, const adjacency_matrix&amp; g)
+</pre>
+Returns the property map object for the vertex property specified by
+<tt>Property</tt>. The <tt>Property</tt> must match one of the
+properties specified in the graph's <tt>VertexProperty</tt> template
+argument.<br>
+(Required by <a href="PropertyGraph.html">PropertyGraph</a>.)
+
+<hr>
+<pre>
+template &lt;typename Property, typename X&gt;
+typename property_traits&lt;
+  typename property_map&lt;adjacency_matrix, Property&gt;::const_type
+&gt;::value_type
+get(Property, const adjacency_matrix&amp; g, X x)
+</pre>
+This returns the property value for <tt>x</tt>, which is either
+a vertex or edge descriptor.<br>
+(Required by <a href="PropertyGraph.html">PropertyGraph</a>.)
+
+<hr>
+<pre>
+template &lt;typename Property, typename X, typename Value&gt;
+void
+put(Property, const adjacency_matrix&amp; g, X x, const Value& value)
+</pre>
+This sets the property value for <tt>x</tt> to
+<tt>value</tt>. <tt>x</tt> is either a vertex or edge descriptor.
+<tt>Value</tt> must be convertible to
+<tt>typename property_traits&lt;property_map&lt;adjacency_matrix, Property&gt;::type&gt;::value_type</tt>.<br>
+(Required by <a href="PropertyGraph.html">PropertyGraph</a>.)
+
+<hr>
+<pre>
+template &lt;typename GraphProperty, typename GraphProperty&gt;
+typename property_value&lt;GraphProperty, GraphProperty&gt;::type&amp;
+get_property(adjacency_matrix&amp; g, GraphProperty)
+</pre>
+Return the property specified by <tt>GraphProperty</tt> that is attached
+to the graph object <tt>g</tt>. The <tt>property_value</tt> traits class
+is defined in <tt>boost/pending/property.hpp</tt>.
+
+<hr>
+<pre>
+template &lt;typename GraphProperty, typename GraphProperty&gt;
+const typename property_value&lt;GraphProperty, GraphProperty&gt;::type&amp;
+get_property(const adjacency_matrix&amp; g, GraphProperty)
+</pre>
+Return the property specified by <tt>GraphProperty</tt> that is
+attached to the graph object <tt>g</tt>.  The <tt>property_value</tt>
+traits class is defined in <tt>boost/pending/property.hpp</tt>.
+
+
+<hr>

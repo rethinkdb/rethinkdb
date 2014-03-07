@@ -1,0 +1,246 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Boost.Integer</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="index.html" title="Boost.Integer">
+<link rel="next" href="boost_integer/cstdint.html" title="Standard Integer Types">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_integer/cstdint.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="article">
+<div class="titlepage">
+<div>
+<div><h2 class="title">
+<a name="boost_integer"></a>Boost.Integer</h2></div>
+<div><div class="authorgroup">
+<div class="author"><h3 class="author">
+<span class="firstname">Beman</span> <span class="surname">Dawes</span>
+</h3></div>
+<div class="author"><h3 class="author">
+<span class="firstname">Daryle</span> <span class="surname">Walker</span>
+</h3></div>
+<div class="author"><h3 class="author">
+<span class="firstname">Gennaro</span> <span class="surname">Prota</span>
+</h3></div>
+<div class="author"><h3 class="author">
+<span class="firstname">John</span> <span class="surname">Maddock</span>
+</h3></div>
+</div></div>
+<div><p class="copyright">Copyright &#169; 2001 -2009 Beman Dawes, Daryle Walker, Gennaro Prota,
+      John Maddock</p></div>
+<div><div class="legalnotice">
+<a name="id759732"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div>
+<hr>
+</div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="index.html#boost_integer.overview"> Overview</a></span></dt>
+<dt><span class="section"><a href="boost_integer/cstdint.html"> Standard Integer Types</a></span></dt>
+<dt><span class="section"><a href="boost_integer/traits.html"> Integer Traits</a></span></dt>
+<dt><span class="section"><a href="boost_integer/integer.html"> Integer Type Selection</a></span></dt>
+<dt><span class="section"><a href="boost_integer/mask.html"> Integer Masks</a></span></dt>
+<dt><span class="section"><a href="boost_integer/log2.html"> Compile Time log2 Calculation</a></span></dt>
+<dt><span class="section"><a href="boost_integer/minmax.html"> Compile time min/max calculation</a></span></dt>
+<dt><span class="section"><a href="boost_integer/history.html"> History</a></span></dt>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_integer.overview"></a><a class="link" href="index.html#boost_integer.overview" title="Overview"> Overview</a>
+</h2></div></div></div>
+<p>
+      Boost.Integer provides integer type support, particularly helpful in generic
+      programming. It provides standard C99 integer types, such as might be found
+      in &lt;stdint.h&gt;, without requiring that header. It provides the means to
+      select an integer type based upon its properties, like the number of bits or
+      the maximum supported value, as well as compile-time bit mask selection. There
+      is a derivative of std::numeric_limits that provides integral constant expressions
+      for <code class="computeroutput"><span class="identifier">min</span></code> and <code class="computeroutput"><span class="identifier">max</span></code>.
+      Finally, it provides two compile-time algorithms: determining the highest power
+      of two in a compile-time value; and computing min and max of constant expressions.
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Component
+              </p>
+            </th>
+<th>
+              <p>
+                Header
+              </p>
+            </th>
+<th>
+              <p>
+                Purpose
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                Forward Declarations.
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal"><a href="../../../../boost/integer_fwd.hpp" target="_top">&lt;boost/integer_fwd.hpp&gt;</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Forward declarations of classes and class templates - for use when
+                just the name of a class is needed.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="boost_integer/cstdint.html" title="Standard Integer Types">Standard Integer Types</a>.
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal"><a href="../../../../boost/cstdint.hpp" target="_top">&lt;boost/cstdint.hpp&gt;</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Provides typedef's based on the 1999 C Standard header <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">stdint</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span></code>, wrapped in namespace boost.
+                This implementation may #include the compiler supplied <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">stdint</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span></code>, if present.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="boost_integer/traits.html" title="Integer Traits">Integer Traits</a>.
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal"><a href="../../../../boost/integer_traits.hpp" target="_top">&lt;boost/integer_traits.hpp&gt;</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Class template <code class="literal">boost::integer_traits</code>, derives
+                from <code class="literal">std::numeric_limits</code> and adds <code class="literal">const_min</code>
+                and <code class="literal">const_max</code> members.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="boost_integer/integer.html" title="Integer Type Selection">Integer Type Selection</a>.
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal"><a href="../../../../boost/integer.hpp" target="_top">&lt;boost/integer.hpp&gt;</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Templates for integer type selection based on properties such as
+                maximum value or number of bits: Use to select the type of an integer
+                when some property such as maximum value or number of bits is known.
+                Useful for generic programming.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="boost_integer/mask.html" title="Integer Masks">Integer Masks</a>.
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal"><a href="../../../../boost/integer/integer_mask.hpp" target="_top">&lt;boost/integer/integer_mask.hpp&gt;</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Templates for the selection of integer masks, single or lowest group,
+                based on the number of bits: Use to select a particular mask when
+                the bit position(s) are based on a compile-time variable. Useful
+                for generic programming.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="boost_integer/log2.html" title="Compile Time log2 Calculation">Compile time log2 Calculation</a>.
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal"><a href="../../../../boost/integer/static_log2.hpp" target="_top">&lt;boost/integer/static_log2.hpp&gt;</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Template for finding the highest power of two in a number: Use to
+                find the bit-size/range based on a maximum value. Useful for generic
+                programming.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="boost_integer/minmax.html" title="Compile time min/max calculation">Compile time min/max calculation</a>.
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="literal"><a href="../../../../boost/integer/static_min_max.hpp" target="_top">&lt;boost/integer/static_min_max.hpp&gt;</a></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Templates for finding the extrema of two numbers: Use to find a bound
+                based on a minimum or maximum value. Useful for generic programming.
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: July 08, 2010 at 20:45:20 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_integer/cstdint.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

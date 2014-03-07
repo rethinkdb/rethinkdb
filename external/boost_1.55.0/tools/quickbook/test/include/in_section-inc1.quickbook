@@ -1,0 +1,13 @@
+[article Include in section include 1
+[quickbook 1.6]
+]
+
+[h1 Test1]
+
+[section:inner]
+
+[h1 Test2]
+
+[include include-id-inc1.quickbook]
+
+[endsect]

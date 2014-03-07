@@ -1,0 +1,28 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/en_NZ.xml
+// *
+// ***************************************************************************
+en_NZ{
+    Version{"2.0.45.82"}
+    zoneStrings{
+        "meta:Australia_Central"{
+            cu:int{1}
+        }
+        "meta:Australia_CentralWestern"{
+            cu:int{1}
+        }
+        "meta:Australia_Eastern"{
+            cu:int{1}
+        }
+        "meta:Australia_Western"{
+            cu:int{1}
+        }
+        "meta:New_Zealand"{
+            cu:int{1}
+        }
+    }
+}

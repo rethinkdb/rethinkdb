@@ -1,0 +1,105 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Iterator</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="prev" href="support/pair.html" title="pair">
+<link rel="next" href="iterator/concepts.html" title="Concepts">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="support/pair.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="iterator/concepts.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="fusion.iterator"></a><a class="link" href="iterator.html" title="Iterator">Iterator</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="iterator/concepts.html">Concepts</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="iterator/concepts/forward_iterator.html">Forward
+        Iterator</a></span></dt>
+<dt><span class="section"><a href="iterator/concepts/bidirectional_iterator.html">Bidirectional
+        Iterator</a></span></dt>
+<dt><span class="section"><a href="iterator/concepts/random_access_iterator.html">Random
+        Access Iterator</a></span></dt>
+<dt><span class="section"><a href="iterator/concepts/associative_iterator.html">Associative
+        Iterator</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="iterator/functions.html">Functions</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="iterator/functions/deref.html">deref</a></span></dt>
+<dt><span class="section"><a href="iterator/functions/next.html">next</a></span></dt>
+<dt><span class="section"><a href="iterator/functions/prior.html">prior</a></span></dt>
+<dt><span class="section"><a href="iterator/functions/distance.html">distance</a></span></dt>
+<dt><span class="section"><a href="iterator/functions/advance.html">advance</a></span></dt>
+<dt><span class="section"><a href="iterator/functions/advance_c.html">advance_c</a></span></dt>
+<dt><span class="section"><a href="iterator/functions/deref_data.html">deref_data</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="iterator/operator.html">Operator</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="iterator/operator/operator_unary_star.html">Operator
+        *</a></span></dt>
+<dt><span class="section"><a href="iterator/operator/operator_equality.html">Operator
+        ==</a></span></dt>
+<dt><span class="section"><a href="iterator/operator/operator_inequality.html">Operator
+        !=</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="iterator/metafunctions.html">Metafunctions</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="iterator/metafunctions/value_of.html">value_of</a></span></dt>
+<dt><span class="section"><a href="iterator/metafunctions/deref.html">deref</a></span></dt>
+<dt><span class="section"><a href="iterator/metafunctions/next.html">next</a></span></dt>
+<dt><span class="section"><a href="iterator/metafunctions/prior.html">prior</a></span></dt>
+<dt><span class="section"><a href="iterator/metafunctions/equal_to.html">equal_to</a></span></dt>
+<dt><span class="section"><a href="iterator/metafunctions/distance.html">distance</a></span></dt>
+<dt><span class="section"><a href="iterator/metafunctions/advance.html">advance</a></span></dt>
+<dt><span class="section"><a href="iterator/metafunctions/advance_c.html">advance_c</a></span></dt>
+<dt><span class="section"><a href="iterator/metafunctions/key_of.html">key_of</a></span></dt>
+<dt><span class="section"><a href="iterator/metafunctions/value_of_data.html">value_of_data</a></span></dt>
+<dt><span class="section"><a href="iterator/metafunctions/deref_data.html">deref_data</a></span></dt>
+</dl></dd>
+</dl></div>
+<p>
+      Like <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a> and
+      <a href="http://en.wikipedia.org/wiki/Standard_Template_Library" target="_top">STL</a>,
+      iterators are a fundamental concept in Fusion. As with <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+      and <a href="http://en.wikipedia.org/wiki/Standard_Template_Library" target="_top">STL</a>
+      iterators describe positions, and provide access to data within an underlying
+      <a class="link" href="sequence.html" title="Sequence">Sequence</a>.
+    </p>
+<h4>
+<a name="fusion.iterator.h0"></a>
+      <span class="phrase"><a name="fusion.iterator.header"></a></span><a class="link" href="iterator.html#fusion.iterator.header">Header</a>
+    </h4>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">iterator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">iterator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="support/pair.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="iterator/concepts.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template time_facet</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.time_facet_hpp" title="Header &lt;boost/date_time/time_facet.hpp&gt;">
+<link rel="prev" href="time_formats.html" title="Struct template time_formats">
+<link rel="next" href="time_input_facet.html" title="Class template time_input_facet">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="time_formats.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.time_facet_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="time_input_facet.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.time_facet"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template time_facet</span></h2>
+<p>boost::date_time::time_facet</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.time_facet_hpp" title="Header &lt;boost/date_time/time_facet.hpp&gt;">boost/date_time/time_facet.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> time_type<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">,</span> 
+         <span class="keyword">typename</span> OutItrT <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostreambuf_iterator</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">char_traits</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="time_facet.html" title="Class template time_facet">time_facet</a> <span class="special">:</span>
+  <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">date_time</span><span class="special">::</span><span class="identifier">date_facet</span><span class="special">&lt;</span> <span class="identifier">time_type</span><span class="special">::</span><span class="identifier">date_type</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">OutItrT</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">time_type</span><span class="special">::</span><span class="identifier">date_type</span>                                                          <a name="boost.date_time.time_facet.date_type"></a><span class="identifier">date_type</span><span class="special">;</span>                    
+  <span class="keyword">typedef</span> <span class="identifier">time_type</span><span class="special">::</span><span class="identifier">time_duration_type</span>                                                 <a name="boost.date_time.time_facet.time_duration_type"></a><span class="identifier">time_duration_type</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <a class="link" href="period.html" title="Class template period">boost::date_time::period</a><span class="special">&lt;</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_duration_type</span> <span class="special">&gt;</span>                     <a name="boost.date_time.time_facet.period_type"></a><span class="identifier">period_type</span><span class="special">;</span>                  
+  <span class="keyword">typedef</span> <a class="link" href="date_facet.html" title="Class template date_facet">boost::date_time::date_facet</a><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">time_type</span><span class="special">::</span><span class="identifier">date_type</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">OutItrT</span> <span class="special">&gt;</span> <a name="boost.date_time.time_facet.base_type"></a><span class="identifier">base_type</span><span class="special">;</span>                    
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">string_type</span>                                                        <a name="boost.date_time.time_facet.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>                  
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">char_type</span>                                                          <a name="boost.date_time.time_facet.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>                    
+  <span class="keyword">typedef</span> base_type::period_formatter_type                                              <a name="boost.date_time.time_facet.period_formatter_type"></a><span class="identifier">period_formatter_type</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> base_type::special_values_formatter_type                                      <a name="boost.date_time.time_facet.special_values_idp19913256"></a><span class="identifier">special_values_formatter_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> base_type::date_gen_formatter_type                                            <a name="boost.date_time.time_facet.date_gen_formatter_type"></a><span class="identifier">date_gen_formatter_type</span><span class="special">;</span>      
+
+  <span class="comment">// <a class="link" href="time_facet.html#boost.date_time.time_facetconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="time_facet.html#idp52520264-bb"><span class="identifier">time_facet</span></a><span class="special">(</span><span class="special">::</span><span class="identifier">size_t</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="time_facet.html#idp52521464-bb"><span class="identifier">time_facet</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span><span class="special">,</span> 
+                      <a class="link" href="time_facet.html#boost.date_time.time_facet.period_formatter_type">period_formatter_type</a> <span class="special">=</span> <a class="link" href="period_formatter.html" title="Class template period_formatter">period_formatter_type</a><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                      <span class="keyword">const</span> <a class="link" href="time_facet.html#boost.date_time.time_facet.special_values_idp19913256">special_values_formatter_type</a> <span class="special">&amp;</span> <span class="special">=</span> <a class="link" href="special_values_formatter.html" title="Class template special_values_formatter">special_values_formatter_type</a><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                      <a class="link" href="time_facet.html#boost.date_time.time_facet.date_gen_formatter_type">date_gen_formatter_type</a> <span class="special">=</span> <a class="link" href="date_generator_formatter.html" title="Class template date_generator_formatter">date_gen_formatter_type</a><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                      <span class="special">::</span><span class="identifier">size_t</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="time_facet.html#idp35244136-bb">public member functions</a></span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span><span class="special">::</span><span class="identifier">id</span> <span class="special">&amp;</span> <a class="link" href="time_facet.html#idp35244344-bb"><span class="identifier">__get_id</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="time_facet.html#idp35245160-bb"><span class="identifier">time_duration_format</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span><span class="keyword">const</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="time_facet.html#idp53383816-bb"><span class="identifier">set_iso_format</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="time_facet.html#idp53384280-bb"><span class="identifier">set_iso_extended_format</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">OutItrT</span> <a class="link" href="time_facet.html#idp34621960-bb"><span class="identifier">put</span></a><span class="special">(</span><span class="identifier">OutItrT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">char_type</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">OutItrT</span> <a class="link" href="time_facet.html#idp20123272-bb"><span class="identifier">put</span></a><span class="special">(</span><span class="identifier">OutItrT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">char_type</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">OutItrT</span> <a class="link" href="time_facet.html#idp20782968-bb"><span class="identifier">put</span></a><span class="special">(</span><span class="identifier">OutItrT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">char_type</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="time_facet.html#boost.date_time.time_facet.period_type">period_type</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="time_facet.html#idp53192248-bb">protected static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">string_type</span> 
+  <a class="link" href="time_facet.html#idp53192456-bb"><span class="identifier">fractional_seconds_as_string</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">string_type</span> <a class="link" href="time_facet.html#idp53135176-bb"><span class="identifier">hours_as_string</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">=</span> <span class="number">2</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> IntT<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">string_type</span> <a class="link" href="time_facet.html#idp36367448-bb"><span class="identifier">integral_as_string</span></a><span class="special">(</span><span class="identifier">IntT</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">=</span> <span class="number">2</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">fractional_seconds_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">fractional_seconds_or_none_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">seconds_with_fractional_seconds_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">seconds_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">hours_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">unrestricted_hours_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">standard_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">zone_abbrev_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">zone_name_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">zone_iso_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">zone_iso_extended_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">posix_zone_string_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">duration_seperator</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">duration_sign_always</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">duration_sign_negative_only</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">negative_sign</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">positive_sign</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">iso_time_format_specifier</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">iso_time_format_extended_specifier</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">default_time_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> <span class="identifier">default_time_duration_format</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span><span class="special">::</span><span class="identifier">id</span> <span class="identifier">id</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp89982232"></a><h2>Description</h2>
+<p>Facet used for format-based output of time types This class provides for the use of format strings to output times. In addition to the flags for formatting date elements, the following are the allowed format flags:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>x X =&gt; default format - enables addition of more flags to default (ie. "%x %X %z")</p></li>
+<li class="listitem"><p>f =&gt; fractional seconds ".123456"</p></li>
+<li class="listitem"><p>F =&gt; fractional seconds or none: like frac sec but empty if frac sec == 0</p></li>
+<li class="listitem"><p>s =&gt; seconds w/ fractional sec "02.123" (this is the same as "%S%f)
+ - %S =&gt; seconds "02"
+ - %z =&gt; abbreviated time zone "EDT"
+ - %Z =&gt; full time zone name "Eastern Daylight Time" </p></li>
+</ul></div>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp89984792"></a><h3>
+<a name="boost.date_time.time_facetconstruct-copy-destruct"></a><code class="computeroutput">time_facet</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp52520264-bb"></a><span class="identifier">time_facet</span><span class="special">(</span><span class="special">::</span><span class="identifier">size_t</span> ref_arg <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>sets default formats for ptime, local_date_time, and <code class="computeroutput"><a class="link" href="time_duration.html" title="Class template time_duration">time_duration</a></code>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp52521464-bb"></a><span class="identifier">time_facet</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span> format_arg<span class="special">,</span> 
+                    <a class="link" href="time_facet.html#boost.date_time.time_facet.period_formatter_type">period_formatter_type</a> period_formatter_arg <span class="special">=</span> <a class="link" href="period_formatter.html" title="Class template period_formatter">period_formatter_type</a><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                    <span class="keyword">const</span> <a class="link" href="time_facet.html#boost.date_time.time_facet.special_values_idp19913256">special_values_formatter_type</a> <span class="special">&amp;</span> special_value_formatter <span class="special">=</span> <a class="link" href="special_values_formatter.html" title="Class template special_values_formatter">special_values_formatter_type</a><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                    <a class="link" href="time_facet.html#boost.date_time.time_facet.date_gen_formatter_type">date_gen_formatter_type</a> dg_formatter <span class="special">=</span> <a class="link" href="date_generator_formatter.html" title="Class template date_generator_formatter">date_gen_formatter_type</a><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                    <span class="special">::</span><span class="identifier">size_t</span> ref_arg <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>Construct the facet with an explicitly specified format. </li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp90001496"></a><h3>
+<a name="idp35244136-bb"></a><code class="computeroutput">time_facet</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span><span class="special">::</span><span class="identifier">id</span> <span class="special">&amp;</span> <a name="idp35244344-bb"></a><span class="identifier">__get_id</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp35245160-bb"></a><span class="identifier">time_duration_format</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span> <span class="special">*</span><span class="keyword">const</span> format<span class="special">)</span><span class="special">;</span></pre>Changes format for <code class="computeroutput"><a class="link" href="time_duration.html" title="Class template time_duration">time_duration</a></code>. </li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp53383816-bb"></a><span class="identifier">set_iso_format</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp53384280-bb"></a><span class="identifier">set_iso_extended_format</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">OutItrT</span> <a name="idp34621960-bb"></a><span class="identifier">put</span><span class="special">(</span><span class="identifier">OutItrT</span> next_arg<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span> ios_arg<span class="special">,</span> <span class="identifier">char_type</span> fill_arg<span class="special">,</span> 
+            <span class="keyword">const</span> <span class="identifier">time_type</span> <span class="special">&amp;</span> time_arg<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">OutItrT</span> <a name="idp20123272-bb"></a><span class="identifier">put</span><span class="special">(</span><span class="identifier">OutItrT</span> next_arg<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span> ios_arg<span class="special">,</span> <span class="identifier">char_type</span> fill_arg<span class="special">,</span> 
+            <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span> time_dur_arg<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>put function for <code class="computeroutput"><a class="link" href="time_duration.html" title="Class template time_duration">time_duration</a></code>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">OutItrT</span> <a name="idp20782968-bb"></a><span class="identifier">put</span><span class="special">(</span><span class="identifier">OutItrT</span> next<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span> ios_arg<span class="special">,</span> <span class="identifier">char_type</span> fill<span class="special">,</span> 
+            <span class="keyword">const</span> <a class="link" href="time_facet.html#boost.date_time.time_facet.period_type">period_type</a> <span class="special">&amp;</span> p<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp90034632"></a><h3>
+<a name="idp53192248-bb"></a><code class="computeroutput">time_facet</code> protected static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">string_type</span> 
+<a name="idp53192456-bb"></a><span class="identifier">fractional_seconds_as_string</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span> time_arg<span class="special">,</span> 
+                             <span class="keyword">bool</span> null_when_zero<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">string_type</span> 
+<a name="idp53135176-bb"></a><span class="identifier">hours_as_string</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span> time_arg<span class="special">,</span> <span class="keyword">int</span> width <span class="special">=</span> <span class="number">2</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> IntT<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">string_type</span> <a name="idp36367448-bb"></a><span class="identifier">integral_as_string</span><span class="special">(</span><span class="identifier">IntT</span> val<span class="special">,</span> <span class="keyword">int</span> width <span class="special">=</span> <span class="number">2</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="time_formats.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.time_facet_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="time_input_facet.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

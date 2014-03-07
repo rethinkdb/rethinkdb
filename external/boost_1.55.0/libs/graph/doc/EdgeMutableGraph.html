@@ -1,0 +1,108 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2001
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Edge Mutable Graph</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H2><A NAME="concept:EdgeMutableGraph">
+Edge Mutable Graph
+</H2>
+
+The <I>Edge Mutable Graph</I> concept defines the interface for a
+graph that supports the addition and removal of edges.
+
+<H3>Refinement of</H3>
+
+<a href="./Graph.html">Graph</a>
+
+<H3>Associated Types</H3>
+
+No additional associated types.
+
+<h3>Valid Expressions</h3>
+
+<ul>
+
+<li><a name="sec:add_edge"><TT>add_edge(u, v, g)</TT></a> 
+<b>returns</b> <TT>std::pair&lt;edge_descriptor,&nbsp;bool&gt;</TT>
+<br><br>
+
+<b>Semantics:</b> Try to insert the edge <i>(u,v)</i> into the graph,
+returning the inserted edge or a parallel edge and a flag that
+specifies whether an edge was inserted.  This operation must not
+invalidate vertex descriptors or vertex iterators of the graph, though
+it may invalidate edge descriptors or edge iterators.<br>
+
+<b>Preconditions:</b> <i>u</i> and <i>v</i> are vertices in the
+graph. <br>
+
+<b>Postconditions:</b> <i>(u,v)</i> is in the edge set of
+the graph.  The returned edge descriptor will have <i>u</i> in the
+source position and <i>v</i> in the target position. If the graph
+allows parallel edges, then the returned flag is always
+<tt>true</tt>. If the graph does not allow parallel edges, if
+<i>(u,v)</i> was already in the graph then the returned flag is
+<tt>false</tt>. If <i>(u,v)</i> was not in the graph then the returned
+flag is <tt>true</tt>.<br>
+</li><br>
+
+<li><a name="sec:remove_edge_by_pair"><tt>remove_edge(u, v, g)</tt></a>
+<b>returns</b> <tt>void</tt><br><br>
+<b>Semantics:</b> Remove the edge <i>(u,v)</i> from the graph. If the
+graph allows parallel edges this removes all occurrences of <i>(u,v)</i>. <br>
+<b>Precondition:</b> <i>(u,v)</i> is in the edge set of the graph. <br>
+<b>Postcondition:</b> <i>(u,v)</i> is no longer in the edge set of the graph. <br>
+</li><br>
+
+<li>
+<a name="sec:remove_edge"><tt>remove_edge(e, g)</tt></a>
+<b>returns</b> <tt>void</tt><br><br>
+<b>Semantics:</b> Remove the edge <i>e</i> from the graph.<br>
+<b>Precondition:</b> <i>e</i> is an edge in the graph. <br>
+<b>Postcondition:</b> <i>e</i> is no longer in the edge set for <tt>g</tt>. <br>
+</li><br>
+
+<li>
+<a name="sec:clear_vertex"><tt>clear_vertex(u, g)</tt></a>
+<b>returns</b> <tt>void</tt><br><br>
+<b>Semantics:</b> Remove all edges to and from vertex <i>u</i> from the graph. <br>
+<b>Precondition:</b> <i>u</i> is a valid vertex descriptor of
+<tt>g</tt>. <br> <b>Postconditions:</b> <i>u</i> does not appear as a
+source or target of any edge in <tt>g</tt>.
+</li>
+
+</ul>
+
+
+<H3>Complexity guarantees</H3>
+
+<P>
+UNDER CONSTRUCTION
+
+<H3>See Also</H3>
+
+<a href="./graph_concepts.html">Graph concepts</a>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

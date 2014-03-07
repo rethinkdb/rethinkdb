@@ -1,0 +1,274 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template recursive_wrapper</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../variant/reference.html#header.boost.variant.recursive_wrapper_hpp" title="Header &lt;boost/variant/recursive_wrapper.hpp&gt;">
+<link rel="prev" href="make_recursiv_idp160888872.html" title="Class template make_recursive_variant_over">
+<link rel="next" href="is_recursive_wrapper.html" title="Class template is_recursive_wrapper">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_recursiv_idp160888872.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../variant/reference.html#header.boost.variant.recursive_wrapper_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_recursive_wrapper.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.recursive_wrapper"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template recursive_wrapper</span></h2>
+<p>boost::recursive_wrapper &#8212; Solves circular dependencies, enabling recursive types.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../variant/reference.html#header.boost.variant.recursive_wrapper_hpp" title="Header &lt;boost/variant/recursive_wrapper.hpp&gt;">boost/variant/recursive_wrapper.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="recursive_wrapper.html" title="Class template recursive_wrapper">recursive_wrapper</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">T</span> <a name="boost.recursive_wrapper.type"></a><span class="identifier">type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="recursive_wrapper.html#boost.recursive_wrapperconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="recursive_wrapper.html#idp141974872-bb"><span class="identifier">recursive_wrapper</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="recursive_wrapper.html#idp141977768-bb"><span class="identifier">recursive_wrapper</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">recursive_wrapper</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="recursive_wrapper.html#idp58447112-bb"><span class="identifier">recursive_wrapper</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="recursive_wrapper.html#idp141973720-bb"><span class="special">~</span><span class="identifier">recursive_wrapper</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="recursive_wrapper.html#idp161678072-bb">modifiers</a></span>
+  <span class="keyword">void</span> <a class="link" href="recursive_wrapper.html#idp161678312-bb"><span class="identifier">swap</span></a><span class="special">(</span><span class="identifier">recursive_wrapper</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">recursive_wrapper</span> <span class="special">&amp;</span> <a class="link" href="recursive_wrapper.html#idp141872296-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">recursive_wrapper</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">recursive_wrapper</span> <span class="special">&amp;</span> <a class="link" href="recursive_wrapper.html#idp160254376-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="recursive_wrapper.html#idp160035096-bb">queries</a></span>
+  <span class="identifier">T</span> <span class="special">&amp;</span> <a class="link" href="recursive_wrapper.html#idp160035576-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> <a class="link" href="recursive_wrapper.html#idp160035960-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">T</span> <span class="special">*</span> <a class="link" href="recursive_wrapper.html#idp160037592-bb"><span class="identifier">get_pointer</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span> <a class="link" href="recursive_wrapper.html#idp160037976-bb"><span class="identifier">get_pointer</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp250154728"></a><h2>Description</h2>
+<p>The <code class="computeroutput">recursive_wrapper</code> class template has an
+          interface similar to a simple value container, but its content is
+          allocated dynamically. This allows <code class="computeroutput">recursive_wrapper</code> to
+          hold types <code class="computeroutput">T</code> whose member data leads to a circular
+          dependency (e.g., a data member of <code class="computeroutput">T</code> has a data member
+          of type <code class="computeroutput">T</code>).</p>
+<p>The application of <code class="computeroutput">recursive_wrapper</code> is easiest
+          understood in context. See
+          <a class="xref" href="../variant/tutorial.html#variant.tutorial.recursive.recursive-wrapper" title="Recursive types with recursive_wrapper">the section called &#8220;Recursive types with <code class="computeroutput">recursive_wrapper</code>&#8221;</a> for a
+          demonstration of a common use of the class template.</p>
+<p><span class="bold"><strong>Notes</strong></span>:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">Any type specified as the template argument to
+            <code class="computeroutput">recursive_wrapper</code> must be capable of construction via
+            <code class="computeroutput">operator new</code>. Thus, for instance, references are not
+            supported.</li></ul></div>
+<div class="refsect2">
+<a name="idp250160040"></a><h3>
+<a name="boost.recursive_wrapperconstruct-copy-destruct"></a><code class="computeroutput">recursive_wrapper</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp141974872-bb"></a><span class="identifier">recursive_wrapper</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Default constructor.<p class="simpara">Initializes <code class="computeroutput">*this</code> by default construction of
+            <code class="computeroutput">T</code>.</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>
+<code class="computeroutput">T</code> must fulfill the requirements of the
+            <span class="emphasis"><em>DefaultConstructible</em></span> [20.1.4]
+            concept.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>May fail with any exceptions arising from the default
+            constructor of <code class="computeroutput">T</code> or, in the event of
+            insufficient memory, with <code class="computeroutput">std::bad_alloc</code>.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp141977768-bb"></a><span class="identifier">recursive_wrapper</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">recursive_wrapper</span> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>Copy constructor.<p class="simpara">Copies the content of <code class="computeroutput">other</code> into
+            <code class="computeroutput">*this</code>.</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>May fail with any exceptions arising from the
+            copy constructor of <code class="computeroutput">T</code> or, in the event of
+            insufficient memory, with <code class="computeroutput">std::bad_alloc</code>.</td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp58447112-bb"></a><span class="identifier">recursive_wrapper</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> operand<span class="special">)</span><span class="special">;</span></pre>Value constructor.<p class="simpara">Copies <code class="computeroutput">operand</code> into
+            <code class="computeroutput">*this</code>.</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>May fail with any exceptions arising from the
+            copy constructor of <code class="computeroutput">T</code> or, in the event of
+            insufficient memory, with <code class="computeroutput">std::bad_alloc</code>.</td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp141973720-bb"></a><span class="special">~</span><span class="identifier">recursive_wrapper</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Destructor.<p class="simpara">Deletes the content of <code class="computeroutput">*this</code>.</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp250196456"></a><h3>
+<a name="idp161678072-bb"></a><code class="computeroutput">recursive_wrapper</code> modifiers</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp161678312-bb"></a><span class="identifier">swap</span><span class="special">(</span><span class="identifier">recursive_wrapper</span> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p class="simpara">Exchanges contents of <code class="computeroutput">*this</code> and
+              <code class="computeroutput">other</code>.</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">recursive_wrapper</span> <span class="special">&amp;</span> <a name="idp141872296-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">recursive_wrapper</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>Copy assignment operator.<p class="simpara">Assigns the content of <code class="computeroutput">rhs</code> to the content of
+              <code class="computeroutput">*this</code>.</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>
+<code class="computeroutput">T</code> must fulfill the requirements of
+            the <a class="link" href="../Assignable.html" title="Concept Assignable">Assignable</a>
+            concept.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>May fail with any exceptions arising from the assignment
+              operator of <code class="computeroutput">T</code>.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">recursive_wrapper</span> <span class="special">&amp;</span> <a name="idp160254376-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>Value assignment operator.<p class="simpara">Assigns <code class="computeroutput">rhs</code> into the content of
+              <code class="computeroutput">*this</code>.</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>
+<code class="computeroutput">T</code> must fulfill the requirements of the
+              <a class="link" href="../Assignable.html" title="Concept Assignable">Assignable</a>
+              concept.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>May fail with any exceptions arising from the assignment
+              operator of <code class="computeroutput">T</code>.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp250215624"></a><h3>
+<a name="idp160035096-bb"></a><code class="computeroutput">recursive_wrapper</code> queries</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp160035336-bb"></a><span class="identifier">T</span> <span class="special">&amp;</span> <a name="idp160035576-bb"></a><span class="identifier">get</span><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> <a name="idp160035960-bb"></a><span class="identifier">get</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p class="simpara">Returns a reference to the content of
+              <code class="computeroutput">*this</code>.</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp160037352-bb"></a><span class="identifier">T</span> <span class="special">*</span> <a name="idp160037592-bb"></a><span class="identifier">get_pointer</span><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span> <a name="idp160037976-bb"></a><span class="identifier">get_pointer</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p class="simpara">Returns a pointer to the content of
+              <code class="computeroutput">*this</code>.</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002, 2003 Eric Friedman, Itay Maman<p>Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+    <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+    </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_recursiv_idp160888872.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../variant/reference.html#header.boost.variant.recursive_wrapper_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_recursive_wrapper.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

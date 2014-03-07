@@ -1,0 +1,85 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:adjacent_find adjacent_find]
+
+[heading Prototype]
+
+``
+template<class ForwardRange>
+typename range_iterator<ForwardRange>::type
+adjacent_find(ForwardRange& rng);
+
+template<class ForwardRange>
+typename range_iterator<const ForwardRange>::type
+adjacent_find(const ForwardRange& rng);
+
+template<class ForwardRange, class BinaryPredicate>
+typename range_iterator<ForwardRange>::type
+adjacent_find(ForwardRange& rng, BinaryPred pred);
+
+template<class ForwardRange, class BinaryPredicate>
+typename range_iterator<const ForwardRange>::type
+adjacent_find(const ForwardRange& rng, BinaryPred pred);
+
+template<range_return_value_re, class ForwardRange>
+typename range_return<ForwardRange, re>::type
+adjacent_find(ForwardRange& rng);
+
+template<range_return_value_re, class ForwardRange>
+typename range_return<const ForwardRange, re>::type
+adjacent_find(const ForwardRange& rng);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class BinaryPredicate
+    >
+typename range_return<ForwardRange, re>::type
+adjacent_find(ForwardRange& rng, BinaryPredicate pred);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class BinaryPredicate
+    >
+typename range_return<const ForwardRange, re>::type
+adjacent_find(const ForwardRange& rng, BinaryPredicate pred);
+``
+
+[heading Description]
+
+[*Non-predicate versions:]
+
+`adjacent_find` finds the first adjacent elements `[x,y]` in `rng` where `x == y`
+
+[*Predicate versions:]
+
+`adjacent_find` finds the first adjacent elements `[x,y]` in `rng` where `pred(x,y)` is `true`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/adjacent_find.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions of adjacent_find:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange`'s value type is a model of the `EqualityComparableConcept`.
+
+[*For the predicate versions of adjacent_find:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `BinaryPredicate` is a model of the `BinaryPredicateConcept`.
+* `ForwardRange`'s value type is convertible to `BinaryPredicate`'s first argument type and to `BinaryPredicate`'s second argument type.
+
+[heading Complexity]
+
+Linear. If `empty(rng)` then no comparisons are performed; otherwise, at most `distance(rng) - 1` comparisons.
+
+[endsect]
+
+

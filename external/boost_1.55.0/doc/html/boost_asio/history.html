@@ -1,0 +1,1389 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Revision History</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../boost_asio.html" title="Boost.Asio">
+<link rel="prev" href="reference/is_error_code_enum_lt__ssl_errors__gt_/value.html" title="boost::system::is_error_code_enum&lt; boost::asio::error::ssl_errors &gt;::value">
+<link rel="next" href="index.html" title="">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reference/is_error_code_enum_lt__ssl_errors__gt_/value.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_asio.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../boost_asio.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="index.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_asio.history"></a><a class="link" href="history.html" title="Revision History">Revision History</a>
+</h2></div></div></div>
+<h4>
+<a name="boost_asio.history.h0"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_10_1___boost_1_55"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_10_1___boost_1_55">Asio
+      1.10.1 / Boost 1.55</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Implemented a limited port to Windows Runtime. This support requires that
+          the language extensions be enabled. Due to the restricted facilities exposed
+          by the Windows Runtime API, the port also comes with the following caveats:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                The core facilities such as the <code class="computeroutput"><span class="identifier">io_service</span></code>,
+                <code class="computeroutput"><span class="identifier">strand</span></code>, buffers,
+                composed operations, timers, etc., should all work as normal.
+              </li>
+<li class="listitem">
+                For sockets, only client-side TCP is supported.
+              </li>
+<li class="listitem">
+                Explicit binding of a client-side TCP socket is not supported.
+              </li>
+<li class="listitem">
+                The <code class="computeroutput"><span class="identifier">cancel</span><span class="special">()</span></code>
+                function is not supported for sockets. Asynchronous operations may
+                only be cancelled by closing the socket.
+              </li>
+<li class="listitem">
+                Operations that use <code class="computeroutput"><span class="identifier">null_buffers</span></code>
+                are not supported.
+              </li>
+<li class="listitem">
+                Only <code class="computeroutput"><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">no_delay</span></code> and <code class="computeroutput"><span class="identifier">socket_base</span><span class="special">::</span><span class="identifier">keep_alive</span></code>
+                options are supported.
+              </li>
+<li class="listitem">
+                Resolvers do not support service names, only numbers. I.e. you must
+                use "80" rather than "http".
+              </li>
+<li class="listitem">
+                Most resolver query flags have no effect.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          Fixed a regression (introduced in Boost 1.54) where, on some platforms,
+          errors from <code class="computeroutput"><span class="identifier">async_connect</span></code>
+          were not correctly propagated through to the completion handler (<a href="https://svn.boost.org/trac/boost/ticket/8795" target="_top">#8795</a>).
+        </li>
+<li class="listitem">
+          Fixed a Windows-specific regression (introduced in Boost 1.54) that occurs
+          when multiple threads are running an <code class="computeroutput"><span class="identifier">io_service</span></code>.
+          When the bug occurs, the result of an asynchronous operation (error and
+          bytes tranferred) is incorrectly discarded and zero values used instead.
+          For TCP sockets this results in spurious end-of-file notifications (<a href="https://svn.boost.org/trac/boost/ticket/8933" target="_top">#8933</a>).
+        </li>
+<li class="listitem">
+          Fixed a bug in handler tracking, where it was not correctly printing out
+          some handler IDs (<a href="https://svn.boost.org/trac/boost/ticket/8808" target="_top">#8808</a>).
+        </li>
+<li class="listitem">
+          Fixed the comparison used to test for successful synchronous accept operations
+          so that it works correctly with unsigned socket descriptors (<a href="https://svn.boost.org/trac/boost/ticket/8752" target="_top">#8752</a>).
+        </li>
+<li class="listitem">
+          Ensured the signal number is correctly passed to the completion handler
+          when starting an <code class="computeroutput"><span class="identifier">async_wait</span></code>
+          on a signal that is already raised (<a href="https://svn.boost.org/trac/boost/ticket/8738" target="_top">#8738</a>).
+        </li>
+<li class="listitem">
+          Suppressed a g++ 4.8+ warning about unused typedefs (<a href="https://svn.boost.org/trac/boost/ticket/8980" target="_top">#8980</a>).
+        </li>
+<li class="listitem">
+          Enabled the move optimisation for handlers that use the default invocation
+          hook (<a href="https://svn.boost.org/trac/boost/ticket/8624" target="_top">#8624</a>).
+        </li>
+<li class="listitem">
+          Clarified that programs must not issue overlapping <code class="computeroutput"><span class="identifier">async_write_at</span></code>
+          operations (<a href="https://svn.boost.org/trac/boost/ticket/8669" target="_top">#8669</a>).
+        </li>
+<li class="listitem">
+          Changed the Windows <code class="computeroutput"><span class="identifier">HANDLE</span></code>
+          backend to treat <code class="computeroutput"><span class="identifier">ERROR_MORE_DATA</span></code>
+          as a non-fatal error when returned by <code class="computeroutput"><span class="identifier">GetOverlappedResult</span></code>
+          for a synchronous read (<a href="https://svn.boost.org/trac/boost/ticket/8722" target="_top">#8722</a>).
+        </li>
+<li class="listitem">
+          Visual C++ language extensions use <code class="computeroutput"><span class="identifier">generic</span></code>
+          as a keyword. Added a workaround that renames the namespace to <code class="computeroutput"><span class="identifier">cpp_generic</span></code> when those language extensions
+          are in effect.
+        </li>
+<li class="listitem">
+          Fixed some asynchronous operations that missed out on getting <code class="computeroutput"><span class="identifier">async_result</span></code> support in Boost 1.54. In
+          particular, the buffered stream templates have been updated so that they
+          adhere to current handler patterns (<a href="https://svn.boost.org/trac/boost/ticket/9000" target="_top">#9000</a>, <a href="https://svn.boost.org/trac/boost/ticket/9001" target="_top">#9001</a>).
+        </li>
+<li class="listitem">
+          Enabled move support for Microsoft Visual Studio 2012 (<a href="https://svn.boost.org/trac/boost/ticket/8959" target="_top">#8959</a>).
+        </li>
+<li class="listitem">
+          Added <code class="computeroutput"><span class="identifier">use_future</span></code> support
+          for Microsoft Visual Studio 2012.
+        </li>
+<li class="listitem">
+          Removed a use of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">min</span></code> in the Windows IOCP backend to avoid
+          a dependency on the <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">algorithm</span><span class="special">&gt;</span></code> header (<a href="https://svn.boost.org/trac/boost/ticket/8758" target="_top">#8758</a>).
+        </li>
+<li class="listitem">
+          Eliminated some unnecessary handler copies.
+        </li>
+<li class="listitem">
+          Fixed support for older versions of OpenSSL that do not provide the <code class="computeroutput"><span class="identifier">SSL_CTX_clear_options</span></code> function (<a href="https://svn.boost.org/trac/boost/ticket/9273" target="_top">#9273</a>).
+        </li>
+<li class="listitem">
+          Fixed various minor and cosmetic issues in code and documentation (including
+          <a href="https://svn.boost.org/trac/boost/ticket/8347" target="_top">#8347</a>, <a href="https://svn.boost.org/trac/boost/ticket/8950" target="_top">#8950</a>, <a href="https://svn.boost.org/trac/boost/ticket/8953" target="_top">#8953</a>, <a href="https://svn.boost.org/trac/boost/ticket/8965" target="_top">#8965</a>, <a href="https://svn.boost.org/trac/boost/ticket/8997" target="_top">#8997</a>, <a href="https://svn.boost.org/trac/boost/ticket/9230" target="_top">#9230</a>).
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h1"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_10_0___boost_1_54"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_10_0___boost_1_54">Asio
+      1.10.0 / Boost 1.54</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added new traits classes, <code class="computeroutput"><span class="identifier">handler_type</span></code>
+          and <code class="computeroutput"><span class="identifier">async_result</span></code>, that
+          allow the customisation of the return type of an initiating function.
+        </li>
+<li class="listitem">
+          Added the <code class="computeroutput"><span class="identifier">asio</span><span class="special">::</span><span class="identifier">spawn</span><span class="special">()</span></code>
+          function, a high-level wrapper for running stackful coroutines, based on
+          the Boost.Coroutine library. The <code class="computeroutput"><span class="identifier">spawn</span><span class="special">()</span></code> function enables programs to implement
+          asynchronous logic in a synchronous manner. For example: <code class="computeroutput"><span class="identifier">size_t</span> <span class="identifier">n</span>
+          <span class="special">=</span> <span class="identifier">my_socket</span><span class="special">.</span><span class="identifier">async_read_some</span><span class="special">(</span><span class="identifier">my_buffer</span><span class="special">,</span> <span class="identifier">yield</span><span class="special">);</span></code>. For further information, see <a class="link" href="overview/core/spawn.html" title="Stackful Coroutines">Stackful
+          Coroutines</a>.
+        </li>
+<li class="listitem">
+          Added the <code class="computeroutput"><span class="identifier">asio</span><span class="special">::</span><span class="identifier">use_future</span></code> special value, which provides
+          first-class support for returning a C++11 <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">future</span></code>
+          from an asynchronous operation's initiating function. For example: <code class="computeroutput"><span class="identifier">future</span><span class="special">&lt;</span><span class="identifier">size_t</span><span class="special">&gt;</span>
+          <span class="special">=</span> <span class="identifier">my_socket</span><span class="special">.</span><span class="identifier">async_read_some</span><span class="special">(</span><span class="identifier">my_buffer</span><span class="special">,</span> <span class="identifier">asio</span><span class="special">::</span><span class="identifier">use_future</span><span class="special">);</span></code>. For further information, see <a class="link" href="overview/cpp2011/futures.html" title="Futures">C++
+          2011 Support - Futures</a>.
+        </li>
+<li class="listitem">
+          Promoted the stackless coroutine class and macros to be part of Asio's
+          documented interface, rather than part of the HTTP server 4 example. For
+          further information, see <a class="link" href="overview/core/coroutine.html" title="Stackless Coroutines">Stackless
+          Coroutines</a>.
+        </li>
+<li class="listitem">
+          Added a new handler hook called <code class="computeroutput"><span class="identifier">asio_handler_is_continuation</span></code>.
+          Asynchronous operations may represent a continuation of the asynchronous
+          control flow associated with the current executing handler. The <code class="computeroutput"><span class="identifier">asio_handler_is_continuation</span></code> hook can
+          be customised to return <code class="computeroutput"><span class="keyword">true</span></code>
+          if this is the case, and Asio's implementation can use this knowledge to
+          optimise scheduling of the new handler. To cover common cases, Asio customises
+          the hook for strands, <code class="computeroutput"><span class="identifier">spawn</span><span class="special">()</span></code> and composed asynchronous operations.
+        </li>
+<li class="listitem">
+          Added four new generic protocol classes, <code class="computeroutput"><span class="identifier">generic</span><span class="special">::</span><span class="identifier">datagram_protocol</span></code>,
+          <code class="computeroutput"><span class="identifier">generic</span><span class="special">::</span><span class="identifier">raw_protocol</span></code>, <code class="computeroutput"><span class="identifier">generic</span><span class="special">::</span><span class="identifier">seq_packet_protocol</span></code>
+          and <code class="computeroutput"><span class="identifier">generic</span><span class="special">::</span><span class="identifier">stream_protocol</span></code>, which implement the
+          <code class="computeroutput"><span class="identifier">Protocol</span></code> type requirements,
+          but allow the user to specify the address family (e.g. <code class="computeroutput"><span class="identifier">AF_INET</span></code>)
+          and protocol type (e.g. <code class="computeroutput"><span class="identifier">IPPROTO_TCP</span></code>)
+          at runtime. For further information, see <a class="link" href="overview/networking/other_protocols.html" title="Support for Other Protocols">Support
+          for Other Protocols</a>.
+        </li>
+<li class="listitem">
+          Added C++11 move constructors that allow the conversion of a socket (or
+          acceptor) into a more generic type. For example, an <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span></code>
+          can be converted into a <code class="computeroutput"><span class="identifier">generic</span><span class="special">::</span><span class="identifier">stream_protocol</span><span class="special">::</span><span class="identifier">socket</span></code>
+          via move construction. For further information, see <a class="link" href="overview/networking/other_protocols.html" title="Support for Other Protocols">Support
+          for Other Protocols</a>.
+        </li>
+<li class="listitem">
+          Extended the <code class="computeroutput"><span class="identifier">basic_socket_acceptor</span><span class="special">&lt;&gt;</span></code>'s <code class="computeroutput"><span class="identifier">accept</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">async_accept</span><span class="special">()</span></code> functions to allow a new connection to
+          be accepted directly into a socket of a more generic type. For example,
+          an <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">acceptor</span></code> can be used to accept into a
+          <code class="computeroutput"><span class="identifier">generic</span><span class="special">::</span><span class="identifier">stream_protocol</span><span class="special">::</span><span class="identifier">socket</span></code> object. For further information,
+          see <a class="link" href="overview/networking/other_protocols.html" title="Support for Other Protocols">Support
+          for Other Protocols</a>.
+        </li>
+<li class="listitem">
+          Moved existing examples into a C++03-specific directory, and added a new
+          directory for C++11-specific examples. A limited subset of the C++03 examples
+          have been converted to their C++11 equivalents.
+        </li>
+<li class="listitem">
+          Various SSL enhancements. Thanks go to Nick Jones, on whose work these
+          changes are based.
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Added support for SSL handshakes with re-use of data already read
+                from the wire. New overloads of the <code class="computeroutput"><span class="identifier">ssl</span><span class="special">::</span><span class="identifier">stream</span><span class="special">&lt;&gt;</span></code> class's <code class="computeroutput"><span class="identifier">handshake</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">async_handshake</span><span class="special">()</span></code> functions have been added. These
+                accept a <code class="computeroutput"><span class="identifier">ConstBufferSequence</span></code>
+                to be used as initial input to the ssl engine for the handshake procedure.
+              </li>
+<li class="listitem">
+                Added support for creation of TLSv1.1 and TLSv1.2 <code class="computeroutput"><span class="identifier">ssl</span><span class="special">::</span><span class="identifier">context</span></code>
+                objects.
+              </li>
+<li class="listitem">
+                Added a <code class="computeroutput"><span class="identifier">set_verify_depth</span><span class="special">()</span></code> function to the <code class="computeroutput"><span class="identifier">ssl</span><span class="special">::</span><span class="identifier">context</span></code>
+                and <code class="computeroutput"><span class="identifier">ssl</span><span class="special">::</span><span class="identifier">stream</span><span class="special">&lt;&gt;</span></code>
+                classes.
+              </li>
+<li class="listitem">
+                Added the ability to load SSL certificate and key data from memory
+                buffers. New functions, <code class="computeroutput"><span class="identifier">add_certificate_authority</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">use_certificate</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">use_certificate_chain</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">use_private_key</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">use_rsa_private_key</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">use_tmp_dh</span><span class="special">()</span></code>, have been added to the <code class="computeroutput"><span class="identifier">ssl</span><span class="special">::</span><span class="identifier">context</span></code> class.
+              </li>
+<li class="listitem">
+                Changed <code class="computeroutput"><span class="identifier">ssl</span><span class="special">::</span><span class="identifier">context</span></code> to automatically disable
+                SSL compression by default. To enable, use the new <code class="computeroutput"><span class="identifier">ssl</span><span class="special">::</span><span class="identifier">context</span><span class="special">::</span><span class="identifier">clear_options</span><span class="special">()</span></code>
+                function, as in <code class="computeroutput"><span class="identifier">my_context</span><span class="special">.</span><span class="identifier">clear_options</span><span class="special">(</span><span class="identifier">ssl</span><span class="special">::</span><span class="identifier">context</span><span class="special">::</span><span class="identifier">no_compression</span><span class="special">)</span></code>.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          Fixed a potential deadlock in <code class="computeroutput"><span class="identifier">signal_set</span></code>
+          implementation.
+        </li>
+<li class="listitem">
+          Fixed an error in acceptor example in documentation <a href="https://svn.boost.org/trac/boost/ticket/8421" target="_top">#8421</a>.
+        </li>
+<li class="listitem">
+          Fixed copy-paste errors in waitable timer documentation <a href="https://svn.boost.org/trac/boost/ticket/8602" target="_top">#8602</a>.
+        </li>
+<li class="listitem">
+          Added assertions to satisfy some code analysis tools <a href="https://svn.boost.org/trac/boost/ticket/7739" target="_top">#7739</a>.
+        </li>
+<li class="listitem">
+          Fixed a malformed <code class="computeroutput"><span class="preprocessor">#warning</span></code>
+          directive <a href="https://svn.boost.org/trac/boost/ticket/7939" target="_top">#7939</a>.
+        </li>
+<li class="listitem">
+          Fixed a potential data race in the Linux <code class="computeroutput"><span class="identifier">epoll</span></code>
+          implementation.
+        </li>
+<li class="listitem">
+          Fixed a Windows-specific bug, where certain operations might generate an
+          <code class="computeroutput"><span class="identifier">error_code</span></code> with an invalid
+          (i.e. <code class="computeroutput"><span class="identifier">NULL</span></code>) <code class="computeroutput"><span class="identifier">error_category</span></code> <a href="https://svn.boost.org/trac/boost/ticket/8613" target="_top">#8613</a>.
+        </li>
+<li class="listitem">
+          Fixed <code class="computeroutput"><span class="identifier">basic_waitable_timer</span></code>'s
+          underlying implementation so that it can handle any <code class="computeroutput"><span class="identifier">time_point</span></code>
+          value without overflowing the intermediate duration objects.
+        </li>
+<li class="listitem">
+          Fixed a problem with lost thread wakeups that can occur when making concurrent
+          calls to <code class="computeroutput"><span class="identifier">run</span><span class="special">()</span></code>
+          and <code class="computeroutput"><span class="identifier">poll</span><span class="special">()</span></code>
+          on the same <code class="computeroutput"><span class="identifier">io_service</span></code>
+          object <a href="https://svn.boost.org/trac/boost/ticket/8354" target="_top">#8354</a>.
+        </li>
+<li class="listitem">
+          Fixed implementation of asynchronous connect operation so that it can cope
+          with spurious readiness notifications from the reactor <a href="https://svn.boost.org/trac/boost/ticket/7961" target="_top">#7961</a>.
+        </li>
+<li class="listitem">
+          Fixed a memory leak in the <code class="computeroutput"><span class="identifier">ssl</span><span class="special">::</span><span class="identifier">rfc2818_verification</span></code>
+          class.
+        </li>
+<li class="listitem">
+          Added a mechanism for disabling automatic Winsock initialisation <a href="https://svn.boost.org/trac/boost/ticket/3605" target="_top">#3605</a>.
+          See the header file <code class="literal">boost/asio/detail/winsock_init.hpp</code>
+          for details.
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h2"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_8_3___boost_1_53"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_8_3___boost_1_53">Asio
+      1.8.3 / Boost 1.53</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fixed some 64-to-32-bit conversion warnings (<a href="https://svn.boost.org/trac/boost/ticket/7459" target="_top">#7459</a>).
+        </li>
+<li class="listitem">
+          Fixed some small errors in documentation and comments (<a href="https://svn.boost.org/trac/boost/ticket/7761" target="_top">#7761</a>).
+        </li>
+<li class="listitem">
+          Fixed an error in the example embedded in <code class="computeroutput"><span class="identifier">basic_socket</span><span class="special">::</span><span class="identifier">get_option</span></code>'s
+          documentation (<a href="https://svn.boost.org/trac/boost/ticket/7562" target="_top">#7562</a>).
+        </li>
+<li class="listitem">
+          Changed to use <code class="computeroutput"><span class="keyword">long</span></code> rather
+          than <code class="computeroutput"><span class="keyword">int</span></code> for SSL_CTX options,
+          to match OpenSSL (<a href="https://svn.boost.org/trac/boost/ticket/7209" target="_top">#7209</a>).
+        </li>
+<li class="listitem">
+          Changed to use <code class="computeroutput"><span class="identifier">_snwprintf</span></code>
+          to address a compile error due to the changed <code class="computeroutput"><span class="identifier">swprintf</span></code>
+          signature in recent versions of MinGW (<a href="https://svn.boost.org/trac/boost/ticket/7373" target="_top">#7373</a>).
+        </li>
+<li class="listitem">
+          Fixed a deadlock that can occur on Windows when shutting down a pool of
+          <code class="computeroutput"><span class="identifier">io_service</span></code> threads due
+          to running out of work (<a href="https://svn.boost.org/trac/boost/ticket/7552" target="_top">#7552</a>).
+        </li>
+<li class="listitem">
+          Enabled the <code class="computeroutput"><span class="keyword">noexcept</span></code> qualifier
+          for error categories (<a href="https://svn.boost.org/trac/boost/ticket/7797" target="_top">#7797</a>).
+        </li>
+<li class="listitem">
+          Changed UNIX domain socket example to treat errors from <code class="computeroutput"><span class="identifier">accept</span></code>
+          as non-fatal (<a href="https://svn.boost.org/trac/boost/ticket/7488" target="_top">#7488</a>).
+        </li>
+<li class="listitem">
+          Added a small block recycling optimisation to improve default memory allocation
+          behaviour.
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h3"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_8_2___boost_1_51"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_8_2___boost_1_51">Asio
+      1.8.2 / Boost 1.51</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fixed an incompatibility between <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">iostream</span></code>
+          and C++11 (<a href="https://svn.boost.org/trac/boost/ticket/7162" target="_top">#7162</a>).
+        </li>
+<li class="listitem">
+          Decorated GCC attribute names with underscores to prevent interaction with
+          user-defined macros (<a href="https://svn.boost.org/trac/boost/ticket/6415" target="_top">#6415</a>).
+        </li>
+<li class="listitem">
+          Added missing <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cctype</span><span class="special">&gt;</span></code>, needed for some versions of MinGW.
+        </li>
+<li class="listitem">
+          Changed to use <code class="literal">gcc</code>'s atomic builtins on ARM CPUs, when
+          available (<a href="https://svn.boost.org/trac/boost/ticket/7140" target="_top">#7140</a>).
+        </li>
+<li class="listitem">
+          Changed strand destruction to be a no-op, to allow strand objects to be
+          destroyed after their associated <code class="computeroutput"><span class="identifier">io_service</span></code>
+          has been destroyed.
+        </li>
+<li class="listitem">
+          Added support for some newer versions of glibc which provide the <code class="computeroutput"><span class="identifier">epoll_create1</span><span class="special">()</span></code>
+          function but always fail with <code class="computeroutput"><span class="identifier">ENOSYS</span></code>
+          (<a href="https://svn.boost.org/trac/boost/ticket/7012" target="_top">#7012</a>).
+        </li>
+<li class="listitem">
+          Changed the SSL implementation to throw an exception if SSL engine initialisation
+          fails (<a href="https://svn.boost.org/trac/boost/ticket/6303" target="_top">#6303</a>).
+        </li>
+<li class="listitem">
+          Fixed another regression in <code class="computeroutput"><span class="identifier">buffered_write_stream</span></code>
+          (<a href="https://svn.boost.org/trac/boost/ticket/6310" target="_top">#6310</a>).
+        </li>
+<li class="listitem">
+          Implemented various minor performance improvements, primarily targeted
+          at Linux x86 and x86-64 platforms.
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h4"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_8_1___boost_1_50"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_8_1___boost_1_50">Asio
+      1.8.1 / Boost 1.50</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Changed the <code class="computeroutput"><span class="identifier">epoll_reactor</span></code>
+          backend to do lazy registration for <code class="computeroutput"><span class="identifier">EPOLLOUT</span></code>
+          events.
+        </li>
+<li class="listitem">
+          Fixed the <code class="computeroutput"><span class="identifier">epoll_reactor</span></code>
+          handling of out-of-band data, which was broken by an incomplete fix in
+          the last release.
+        </li>
+<li class="listitem">
+          Changed Asio's SSL wrapper to respect OpenSSL's <code class="computeroutput"><span class="identifier">OPENSSL_NO_ENGINE</span></code>
+          feature test <code class="computeroutput"><span class="preprocessor">#define</span></code>
+          (<a href="https://svn.boost.org/trac/boost/ticket/6432" target="_top">#6432</a>).
+        </li>
+<li class="listitem">
+          Fixed <code class="computeroutput"><span class="identifier">windows</span><span class="special">::</span><span class="identifier">object_handle</span></code> so that it works with Windows
+          compilers that support C++11 move semantics (such as <code class="literal">g++</code>).
+        </li>
+<li class="listitem">
+          Improved the performance of strand rescheduling.
+        </li>
+<li class="listitem">
+          Added support for <code class="literal">g++</code> 4.7 when compiling in C++11 mode
+          (<a href="https://svn.boost.org/trac/boost/ticket/6620" target="_top">#6620</a>).
+        </li>
+<li class="listitem">
+          Fixed a problem where <code class="computeroutput"><span class="identifier">signal_set</span></code>
+          handlers were not being delivered when the <code class="computeroutput"><span class="identifier">io_service</span></code>
+          was constructed with a <code class="computeroutput"><span class="identifier">concurrency_hint</span></code>
+          of 1 (<a href="https://svn.boost.org/trac/boost/ticket/6657" target="_top">#6657</a>).
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h5"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_8_0___boost_1_49"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_8_0___boost_1_49">Asio
+      1.8.0 / Boost 1.49</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added a new class template <code class="computeroutput"><span class="identifier">basic_waitable_timer</span></code>
+          based around the C++11 clock type requirements. It may be used with the
+          clocks from the C++11 <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">chrono</span><span class="special">&gt;</span></code>
+          library facility or, if those are not available, Boost.Chrono. The typedefs
+          <code class="computeroutput"><span class="identifier">high_resolution_timer</span></code>,
+          <code class="computeroutput"><span class="identifier">steady_timer</span></code> and <code class="computeroutput"><span class="identifier">system_timer</span></code> may be used to create timer
+          objects for the standard clock types.
+        </li>
+<li class="listitem">
+          Added a new <code class="computeroutput"><span class="identifier">windows</span><span class="special">::</span><span class="identifier">object_handle</span></code> class for performing waits
+          on Windows kernel objects. Thanks go to Boris Schaeling for contributing
+          substantially to the development of this feature.
+        </li>
+<li class="listitem">
+          On Linux, <code class="computeroutput"><span class="identifier">connect</span><span class="special">()</span></code>
+          can return EAGAIN in certain circumstances. Remapped this to another error
+          so that it doesn't look like a non-blocking operation (<a href="https://svn.boost.org/trac/boost/ticket/6048" target="_top">#6048</a>).
+        </li>
+<li class="listitem">
+          Fixed a compile error on NetBSD (<a href="https://svn.boost.org/trac/boost/ticket/6098" target="_top">#6098</a>).
+        </li>
+<li class="listitem">
+          Fixed deadlock on Mac OS X (<a href="https://svn.boost.org/trac/boost/ticket/6275" target="_top">#6275</a>).
+        </li>
+<li class="listitem">
+          Fixed a regression in <code class="computeroutput"><span class="identifier">buffered_write_stream</span></code>
+          (<a href="https://svn.boost.org/trac/boost/ticket/6310" target="_top">#6310</a>).
+        </li>
+<li class="listitem">
+          Fixed a non-paged pool "leak" on Windows when an <code class="computeroutput"><span class="identifier">io_service</span></code> is repeatedly run without
+          anything to do (<a href="https://svn.boost.org/trac/boost/ticket/6321" target="_top">#6321</a>).
+        </li>
+<li class="listitem">
+          Reverted earlier change to allow some speculative operations to be performed
+          without holding the lock, as it introduced a race condition in some multithreaded
+          scenarios.
+        </li>
+<li class="listitem">
+          Fixed a bug where the second buffer in an array of two buffers may be ignored
+          if the first buffer is empty.
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h6"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_6_1___boost_1_48"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_6_1___boost_1_48">Asio
+      1.6.1 / Boost 1.48</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Implemented various performance improvements, including:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Using thread-local operation queues in single-threaded use cases
+                (i.e. when <code class="computeroutput"><span class="identifier">concurrency_hint</span></code>
+                is 1) to eliminate a lock/unlock pair.
+              </li>
+<li class="listitem">
+                Allowing some <code class="computeroutput"><span class="identifier">epoll_reactor</span></code>
+                speculative operations to be performed without holding the lock.
+              </li>
+<li class="listitem">
+                Improving locality of reference by performing an <code class="computeroutput"><span class="identifier">epoll_reactor</span></code>'s
+                I/O operation immediately before the corresponding handler is called.
+                This also improves scalability across CPUs when multiple threads
+                are running the <code class="computeroutput"><span class="identifier">io_service</span></code>.
+              </li>
+<li class="listitem">
+                Specialising asynchronous read and write operations for buffer sequences
+                that are arrays (<code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code>
+                or <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span></code>) of exactly two buffers.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          Fixed a compile error in the regex overload of <code class="computeroutput"><span class="identifier">async_read_until</span></code>
+          (<a href="https://svn.boost.org/trac/boost/ticket/5688" target="_top">#5688</a>).
+        </li>
+<li class="listitem">
+          Fixed a Windows-specific compile error by explicitly specifying the <code class="computeroutput"><span class="identifier">signal</span><span class="special">()</span></code>
+          function from the global namespace (<a href="https://svn.boost.org/trac/boost/ticket/5722" target="_top">#5722</a>).
+        </li>
+<li class="listitem">
+          Changed the <code class="computeroutput"><span class="identifier">deadline_timer</span></code>
+          implementation so that it does not read the clock unless the timer heap
+          is non-empty.
+        </li>
+<li class="listitem">
+          Changed the SSL stream's buffers' sizes so that they are large enough to
+          hold a complete TLS record (<a href="https://svn.boost.org/trac/boost/ticket/5854" target="_top">#5854</a>).
+        </li>
+<li class="listitem">
+          Fixed the behaviour of the synchronous <code class="computeroutput"><span class="identifier">null_buffers</span></code>
+          operations so that they obey the user's non-blocking setting (<a href="https://svn.boost.org/trac/boost/ticket/5756" target="_top">#5756</a>).
+        </li>
+<li class="listitem">
+          Changed to set the size of the select <code class="computeroutput"><span class="identifier">fd_set</span></code>
+          at runtime when using Windows.
+        </li>
+<li class="listitem">
+          Disabled an MSVC warning due to const qualifier being applied to function
+          type.
+        </li>
+<li class="listitem">
+          Fixed a crash that occurs when using the Intel C++ compiler (<a href="https://svn.boost.org/trac/boost/ticket/5763" target="_top">#5763</a>).
+        </li>
+<li class="listitem">
+          Changed the initialisation of the OpenSSL library so that it supports all
+          available algorithms.
+        </li>
+<li class="listitem">
+          Fixed the SSL error mapping used when the session is gracefully shut down.
+        </li>
+<li class="listitem">
+          Added some latency test programs.
+        </li>
+<li class="listitem">
+          Clarified that a read operation ends when the buffer is full (<a href="https://svn.boost.org/trac/boost/ticket/5999" target="_top">#5999</a>).
+        </li>
+<li class="listitem">
+          Fixed an exception safety issue in <code class="computeroutput"><span class="identifier">epoll_reactor</span></code>
+          initialisation (<a href="https://svn.boost.org/trac/boost/ticket/6006" target="_top">#6006</a>).
+        </li>
+<li class="listitem">
+          Made the number of strand implementations configurable by defining <code class="computeroutput"><span class="identifier">BOOST_ASIO_STRAND_IMPLEMENTATIONS</span></code> to
+          the desired number.
+        </li>
+<li class="listitem">
+          Added support for a new <code class="computeroutput"><span class="identifier">BOOST_ASIO_ENABLE_SEQUENTIAL_STRAND_ALLOCATION</span></code>
+          flag which switches the allocation of strand implementations to use a round-robin
+          approach rather than hashing.
+        </li>
+<li class="listitem">
+          Fixed potential strand starvation issue that can occur when <code class="computeroutput"><span class="identifier">strand</span><span class="special">.</span><span class="identifier">post</span><span class="special">()</span></code>
+          is used.
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h7"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_6_0___boost_1_47"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_6_0___boost_1_47">Asio
+      1.6.0 / Boost 1.47</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added support for signal handling, using a new class called <code class="computeroutput"><span class="identifier">signal_set</span></code>. Programs may add one or more
+          signals to the set, and then perform an <code class="computeroutput"><span class="identifier">async_wait</span><span class="special">()</span></code> operation. The specified handler will
+          be called when one of the signals occurs. The same signal number may be
+          registered with multiple <code class="computeroutput"><span class="identifier">signal_set</span></code>
+          objects, however the signal number must be used only with Asio. Addresses
+          <a href="https://svn.boost.org/trac/boost/ticket/2879" target="_top">#2879</a>.
+        </li>
+<li class="listitem">
+          Added handler tracking, a new debugging aid. When enabled by defining
+          <code class="computeroutput"><span class="identifier">BOOST_ASIO_ENABLE_HANDLER_TRACKING</span></code>,
+          Asio writes debugging output to the standard error stream. The output records
+          asynchronous operations and the relationships between their handlers. It
+          may be post-processed using the included <code class="literal">handlerviz.pl</code>
+          tool to create a visual representation of the handlers (requires GraphViz).
+        </li>
+<li class="listitem">
+          Added support for timeouts on socket iostreams, such as <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">iostream</span></code>.
+          A timeout is set by calling <code class="computeroutput"><span class="identifier">expires_at</span><span class="special">()</span></code> or <code class="computeroutput"><span class="identifier">expires_from_now</span><span class="special">()</span></code> to establish a deadline. Any socket operations
+          which occur past the deadline will put the iostream into a bad state.
+        </li>
+<li class="listitem">
+          Added a new <code class="computeroutput"><span class="identifier">error</span><span class="special">()</span></code>
+          member function to socket iostreams, for retrieving the error code from
+          the most recent system call.
+        </li>
+<li class="listitem">
+          Added a new <code class="computeroutput"><span class="identifier">basic_deadline_timer</span><span class="special">::</span><span class="identifier">cancel_one</span><span class="special">()</span></code> function. This function lets you cancel
+          a single waiting handler on a timer. Handlers are cancelled in FIFO order.
+        </li>
+<li class="listitem">
+          Added a new <code class="computeroutput"><span class="identifier">transfer_exactly</span><span class="special">()</span></code> completion condition. This can be used
+          to send or receive a specified number of bytes even if the total size of
+          the buffer (or buffer sequence) is larger.
+        </li>
+<li class="listitem">
+          Added new free functions <code class="computeroutput"><span class="identifier">connect</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">async_connect</span><span class="special">()</span></code>. These operations try each endpoint in
+          a list until the socket is successfully connected, and are useful for creating
+          TCP clients that work with both IPv4 and IPv6.
+        </li>
+<li class="listitem">
+          Extended the <code class="computeroutput"><span class="identifier">buffer_size</span><span class="special">()</span></code> function so that it works for buffer
+          sequences in addition to individual buffers.
+        </li>
+<li class="listitem">
+          Added a new <code class="computeroutput"><span class="identifier">buffer_copy</span><span class="special">()</span></code> function that can be used to copy the
+          raw bytes between individual buffers and buffer sequences.
+        </li>
+<li class="listitem">
+          Added new non-throwing overloads of <code class="computeroutput"><span class="identifier">read</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">read_at</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">write</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">write_at</span><span class="special">()</span></code> that do not require a completion condition.
+        </li>
+<li class="listitem">
+          Added friendlier compiler errors for when a completion handler does not
+          meet the necessary type requirements. When C++0x is available (currently
+          supported for <code class="literal">g++</code> 4.5 or later, and MSVC 10), <code class="computeroutput"><span class="keyword">static_assert</span></code> is also used to generate an
+          informative error message. This checking may be disabled by defining <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_HANDLER_TYPE_REQUIREMENTS</span></code>.
+        </li>
+<li class="listitem">
+          Added a new, completely rewritten SSL implementation. The new implementation
+          compiles faster, shows substantially improved performance, and supports
+          custom memory allocation and handler invocation. It includes new API features
+          such as certificate verification callbacks and has improved error reporting.
+          The new implementation is source-compatible with the old for most uses.
+          However, if necessary, the old implementation may still be used by defining
+          <code class="computeroutput"><span class="identifier">BOOST_ASIO_ENABLE_OLD_SSL</span></code>.
+          Addresses <a href="https://svn.boost.org/trac/boost/ticket/3702" target="_top">#3702</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/3958" target="_top">#3958</a>.
+        </li>
+<li class="listitem">
+          Changed the separate compilation support such that, to use Asio's SSL capabilities,
+          you should also include <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">asio</span><span class="special">/</span><span class="identifier">ssl</span><span class="special">/</span><span class="identifier">impl</span><span class="special">/</span><span class="identifier">src</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          in one source file in your program.
+        </li>
+<li class="listitem">
+          Changed the SSL implementation to support build environments where SSL
+          v2 is explicitly disabled (<a href="https://svn.boost.org/trac/boost/ticket/5453" target="_top">#5453</a>).
+        </li>
+<li class="listitem">
+          Made the <code class="computeroutput"><span class="identifier">is_loopback</span><span class="special">()</span></code>,
+          <code class="computeroutput"><span class="identifier">is_unspecified</span><span class="special">()</span></code>
+          and <code class="computeroutput"><span class="identifier">is_multicast</span><span class="special">()</span></code>
+          functions consistently available across the <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">address</span></code>,
+          <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">address_v4</span></code> and <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">address_v6</span></code>
+          classes (<a href="https://svn.boost.org/trac/boost/ticket/3939" target="_top">#3939</a>).
+        </li>
+<li class="listitem">
+          Added new <code class="computeroutput"><span class="identifier">non_blocking</span><span class="special">()</span></code> functions for managing the non-blocking
+          behaviour of a socket or descriptor. The <code class="computeroutput"><span class="identifier">io_control</span><span class="special">()</span></code> commands named <code class="computeroutput"><span class="identifier">non_blocking_io</span></code>
+          are now deprecated in favour of these new functions.
+        </li>
+<li class="listitem">
+          Added new <code class="computeroutput"><span class="identifier">native_non_blocking</span><span class="special">()</span></code> functions for managing the non-blocking
+          mode of the underlying socket or descriptor. These functions are intended
+          to allow the encapsulation of arbitrary non-blocking system calls as asynchronous
+          operations, in a way that is transparent to the user of the socket object.
+          The functions have no effect on the behaviour of the synchronous operations
+          of the socket or descriptor.
+        </li>
+<li class="listitem">
+          Added the <code class="computeroutput"><span class="identifier">io_control</span><span class="special">()</span></code>
+          member function for socket acceptors (<a href="https://svn.boost.org/trac/boost/ticket/3297" target="_top">#3297</a>).
+        </li>
+<li class="listitem">
+          Added a <code class="computeroutput"><span class="identifier">release</span><span class="special">()</span></code>
+          member function to posix descriptors. This function releases ownership
+          of the underlying native descriptor to the caller. Addresses <a href="https://svn.boost.org/trac/boost/ticket/3900" target="_top">#3900</a>.
+        </li>
+<li class="listitem">
+          Added support for sequenced packet sockets (<code class="computeroutput"><span class="identifier">SOCK_SEQPACKET</span></code>).
+        </li>
+<li class="listitem">
+          Added a new <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">stopped</span><span class="special">()</span></code> function that can be used to determine
+          whether the <code class="computeroutput"><span class="identifier">io_service</span></code>
+          has stopped (i.e. a <code class="computeroutput"><span class="identifier">reset</span><span class="special">()</span></code> call is needed prior to any further calls
+          to <code class="computeroutput"><span class="identifier">run</span><span class="special">()</span></code>,
+          <code class="computeroutput"><span class="identifier">run_one</span><span class="special">()</span></code>,
+          <code class="computeroutput"><span class="identifier">poll</span><span class="special">()</span></code>
+          or <code class="computeroutput"><span class="identifier">poll_one</span><span class="special">()</span></code>).
+        </li>
+<li class="listitem">
+          For consistency with the C++0x standard library, deprecated the <code class="computeroutput"><span class="identifier">native_type</span></code> typedefs in favour of <code class="computeroutput"><span class="identifier">native_handle_type</span></code>, and the <code class="computeroutput"><span class="identifier">native</span><span class="special">()</span></code>
+          member functions in favour of <code class="computeroutput"><span class="identifier">native_handle</span><span class="special">()</span></code>.
+        </li>
+<li class="listitem">
+          Added support for C++0x move construction and assignment to sockets, serial
+          ports, POSIX descriptors and Windows handles.
+        </li>
+<li class="listitem">
+          Reduced the copying of handler function objects.
+        </li>
+<li class="listitem">
+          Added support for C++0x move construction to further reduce (and in some
+          cases eliminate) copying of handler objects.
+        </li>
+<li class="listitem">
+          Added support for the <code class="computeroutput"><span class="identifier">fork</span><span class="special">()</span></code> system call. Programs that use <code class="computeroutput"><span class="identifier">fork</span><span class="special">()</span></code>
+          must call <code class="computeroutput"><span class="identifier">io_service</span><span class="special">.</span><span class="identifier">notify_fork</span><span class="special">()</span></code>
+          at the appropriate times. Two new examples have been added showing how
+          to use this feature. Addresses <a href="https://svn.boost.org/trac/boost/ticket/3238" target="_top">#3238</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/4162" target="_top">#4162</a>.
+        </li>
+<li class="listitem">
+          Cleaned up the handling of errors reported by the <code class="computeroutput"><span class="identifier">close</span><span class="special">()</span></code> system call. In particular, assume that
+          most operating systems won't have <code class="computeroutput"><span class="identifier">close</span><span class="special">()</span></code> fail with <code class="computeroutput"><span class="identifier">EWOULDBLOCK</span></code>,
+          but if it does then set the blocking mode and restart the call. If any
+          other error occurs, assume the descriptor is closed. Addresses <a href="https://svn.boost.org/trac/boost/ticket/3307" target="_top">#3307</a>.
+        </li>
+<li class="listitem">
+          Added new <code class="computeroutput"><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">()</span></code>
+          overloads for <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span></code>, when available.
+        </li>
+<li class="listitem">
+          Changed the implementation to use the C++0x standard library templates
+          <code class="computeroutput"><span class="identifier">array</span></code>, <code class="computeroutput"><span class="identifier">shared_ptr</span></code>,
+          <code class="computeroutput"><span class="identifier">weak_ptr</span></code> and <code class="computeroutput"><span class="identifier">atomic</span></code> when they are available, rather
+          than the Boost equivalents.
+        </li>
+<li class="listitem">
+          Use C++0x variadic templates when available, rather than generating function
+          overloads using Boost.Preprocessor.
+        </li>
+<li class="listitem">
+          Changed exception reporting to include the function name in exception
+          <code class="computeroutput"><span class="identifier">what</span><span class="special">()</span></code>
+          messages.
+        </li>
+<li class="listitem">
+          Fixed insufficient initialisers warning with MinGW.
+        </li>
+<li class="listitem">
+          Changed the <code class="computeroutput"><span class="identifier">shutdown_service</span><span class="special">()</span></code> member functions to be private.
+        </li>
+<li class="listitem">
+          Added archetypes for testing socket option functions.
+        </li>
+<li class="listitem">
+          Changed the Boost.Asio examples so that they don't use Boost.Thread's convenience
+          header. Use the header file that is specifically for the boost::thread
+          class instead.
+        </li>
+<li class="listitem">
+          Removed the dependency on OS-provided macros for the well-known IPv4 and
+          IPv6 addresses. This should eliminate annoying "missing braces around
+          initializer" warnings (<a href="https://svn.boost.org/trac/boost/ticket/3741" target="_top">#3741</a>).
+        </li>
+<li class="listitem">
+          Reduced the size of <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">basic_endpoint</span><span class="special">&lt;&gt;</span></code> objects (such as <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">endpoint</span></code> and <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">udp</span><span class="special">::</span><span class="identifier">endpoint</span></code>).
+        </li>
+<li class="listitem">
+          Changed the reactor backends to assume that any descriptors or sockets
+          added using <code class="computeroutput"><span class="identifier">assign</span><span class="special">()</span></code>
+          may have been <code class="computeroutput"><span class="identifier">dup</span><span class="special">()</span></code>-ed,
+          and so require explicit deregistration from the reactor (<a href="https://svn.boost.org/trac/boost/ticket/4971" target="_top">#4971</a>).
+        </li>
+<li class="listitem">
+          Removed the deprecated member functions named <code class="computeroutput"><span class="identifier">io_service</span><span class="special">()</span></code>. The <code class="computeroutput"><span class="identifier">get_io_service</span><span class="special">()</span></code> member functions should be used instead.
+        </li>
+<li class="listitem">
+          Removed the deprecated typedefs <code class="computeroutput"><span class="identifier">resolver_query</span></code>
+          and <code class="computeroutput"><span class="identifier">resolver_iterator</span></code> from
+          the <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span></code>, <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">udp</span></code>
+          and <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">icmp</span></code> classes.
+        </li>
+<li class="listitem">
+          Modified the <code class="computeroutput"><span class="identifier">buffers_iterator</span><span class="special">&lt;&gt;</span></code> and <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">basic_resolver_iterator</span></code>
+          classes so that the value_type typedefs are non-const byte types.
+        </li>
+<li class="listitem">
+          Fixed warnings reported by g++'s <code class="literal">-Wshadow</code> compiler option
+          (<a href="https://svn.boost.org/trac/boost/ticket/3905" target="_top">#3905</a>).
+        </li>
+<li class="listitem">
+          Added an explicit cast to convert the <code class="computeroutput"><span class="identifier">FIONBIO</span></code>
+          constant to int, to suppress a compiler warning on some platforms (<a href="https://svn.boost.org/trac/boost/ticket/5128" target="_top">#5128</a>).
+        </li>
+<li class="listitem">
+          Changed most examples to treat a failure by an accept operation as non-fatal
+          (<a href="https://svn.boost.org/trac/boost/ticket/5124" target="_top">#5124</a>).
+        </li>
+<li class="listitem">
+          Fixed an error in the <code class="literal">tick_count_timer</code> example by making
+          the duration type signed. Previously, a wait on an already-passed deadline
+          would not return for a very long time (<a href="https://svn.boost.org/trac/boost/ticket/5418" target="_top">#5418</a>).
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h8"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_4_9___boost_1_46_1"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_4_9___boost_1_46_1">Asio
+      1.4.9 / Boost 1.46.1</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">EV_ONESHOT</span></code> seems to cause
+          problems on some versions of Mac OS X, with the <code class="computeroutput"><span class="identifier">io_service</span></code>
+          destructor getting stuck inside the <code class="computeroutput"><span class="identifier">close</span><span class="special">()</span></code> system call. Changed the kqueue backend
+          to use <code class="computeroutput"><span class="identifier">EV_CLEAR</span></code> instead
+          (<a href="https://svn.boost.org/trac/boost/ticket/5021" target="_top">#5021</a>).
+        </li>
+<li class="listitem">
+          Fixed compile failures with some versions of <code class="literal">g++</code> due
+          to the use of anonymous enums (<a href="https://svn.boost.org/trac/boost/ticket/4883" target="_top">#4883</a>).
+        </li>
+<li class="listitem">
+          Fixed a bug on kqueue-based platforms, where some system calls that repeatedly
+          fail with <code class="computeroutput"><span class="identifier">EWOULDBLOCK</span></code> are
+          not correctly re-registered with kqueue.
+        </li>
+<li class="listitem">
+          Changed <code class="computeroutput"><span class="identifier">asio</span><span class="special">::</span><span class="identifier">streambuf</span></code> to ensure that its internal
+          pointers are updated correctly after the data has been modified using
+          <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">streambuf</span></code> member functions.
+        </li>
+<li class="listitem">
+          Fixed a bug that prevented the linger socket option from working on platforms
+          other than Windows.
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h9"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_4_8___boost_1_46"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_4_8___boost_1_46">Asio
+      1.4.8 / Boost 1.46</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fixed an integer overflow problem that occurs when <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">address_v4</span><span class="special">::</span><span class="identifier">broadcast</span><span class="special">()</span></code> is used on 64-bit platforms.
+        </li>
+<li class="listitem">
+          Fixed a problem on older Linux kernels (where epoll is used without timerfd
+          support) that prevents timely delivery of deadline_timer handlers, after
+          the program has been running for some time (<a href="https://svn.boost.org/trac/boost/ticket/5045" target="_top">#5045</a>).
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h10"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_4_7___boost_1_45"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_4_7___boost_1_45">Asio
+      1.4.7 / Boost 1.45</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fixed a problem on kqueue-based platforms where a <code class="computeroutput"><span class="identifier">deadline_timer</span></code>
+          may never fire if the <code class="computeroutput"><span class="identifier">io_service</span></code>
+          is running in a background thread (<a href="https://svn.boost.org/trac/boost/ticket/4568" target="_top">#4568</a>).
+        </li>
+<li class="listitem">
+          Fixed a const-correctness issue that prevented valid uses of <code class="computeroutput"><span class="identifier">has_service</span><span class="special">&lt;&gt;</span></code>
+          from compiling (<a href="https://svn.boost.org/trac/boost/ticket/4638" target="_top">#4638</a>).
+        </li>
+<li class="listitem">
+          Fixed MinGW cross-compilation (<a href="https://svn.boost.org/trac/boost/ticket/4491" target="_top">#4491</a>).
+        </li>
+<li class="listitem">
+          Removed dependency on deprecated Boost.System functions (<a href="https://svn.boost.org/trac/boost/ticket/4672" target="_top">#4672</a>).
+        </li>
+<li class="listitem">
+          Ensured <code class="computeroutput"><span class="identifier">close</span><span class="special">()</span></code>/<code class="computeroutput"><span class="identifier">closesocket</span><span class="special">()</span></code>
+          failures are correctly propagated (<a href="https://svn.boost.org/trac/boost/ticket/4573" target="_top">#4573</a>).
+        </li>
+<li class="listitem">
+          Added a check for errors returned by <code class="computeroutput"><span class="identifier">InitializeCriticalSectionAndSpinCount</span></code>
+          (<a href="https://svn.boost.org/trac/boost/ticket/4574" target="_top">#4574</a>).
+        </li>
+<li class="listitem">
+          Added support for hardware flow control on QNX (<a href="https://svn.boost.org/trac/boost/ticket/4625" target="_top">#4625</a>).
+        </li>
+<li class="listitem">
+          Always use <code class="computeroutput"><span class="identifier">pselect</span><span class="special">()</span></code>
+          on HP-UX, if it is available (<a href="https://svn.boost.org/trac/boost/ticket/4578" target="_top">#4578</a>).
+        </li>
+<li class="listitem">
+          Ensured handler arguments are passed as lvalues (<a href="https://svn.boost.org/trac/boost/ticket/4744" target="_top">#4744</a>).
+        </li>
+<li class="listitem">
+          Fixed Windows build when thread support is disabled (<a href="https://svn.boost.org/trac/boost/ticket/4680" target="_top">#4680</a>).
+        </li>
+<li class="listitem">
+          Fixed a Windows-specific problem where <code class="computeroutput"><span class="identifier">deadline_timer</span></code>
+          objects with expiry times set more than 5 minutes in the future may never
+          expire (<a href="https://svn.boost.org/trac/boost/ticket/4745" target="_top">#4745</a>).
+        </li>
+<li class="listitem">
+          Fixed the <code class="computeroutput"><span class="identifier">resolver</span></code> backend
+          on BSD platforms so that an empty service name resolves to port number
+          <code class="computeroutput"><span class="number">0</span></code>, as per the documentation
+          (<a href="https://svn.boost.org/trac/boost/ticket/4690" target="_top">#4690</a>).
+        </li>
+<li class="listitem">
+          Fixed read operations so that they do not accept buffer sequences of type
+          <code class="computeroutput"><span class="identifier">const_buffers_1</span></code> (<a href="https://svn.boost.org/trac/boost/ticket/4746" target="_top">#4746</a>).
+        </li>
+<li class="listitem">
+          Redefined <code class="computeroutput"><span class="identifier">Protocol</span></code> and
+          <code class="computeroutput"><span class="identifier">id</span></code> to avoid clashing with
+          Objective-C++ keywords (<a href="https://svn.boost.org/trac/boost/ticket/4191" target="_top">#4191</a>).
+        </li>
+<li class="listitem">
+          Fixed a <code class="computeroutput"><span class="identifier">vector</span></code> reallocation
+          performance issue that can occur when there are many active <code class="computeroutput"><span class="identifier">deadline_timer</span></code> objects (<a href="https://svn.boost.org/trac/boost/ticket/4780" target="_top">#4780</a>).
+        </li>
+<li class="listitem">
+          Fixed the kqueue backend so that it compiles on NetBSD (<a href="https://svn.boost.org/trac/boost/ticket/4662" target="_top">#4662</a>).
+        </li>
+<li class="listitem">
+          Fixed the socket <code class="computeroutput"><span class="identifier">io_control</span><span class="special">()</span></code> implementation on 64-bit Mac OS X and
+          BSD platforms (<a href="https://svn.boost.org/trac/boost/ticket/4782" target="_top">#4782</a>).
+        </li>
+<li class="listitem">
+          Fixed a Windows-specific problem where failures from <code class="computeroutput"><span class="identifier">accept</span><span class="special">()</span></code> are incorrectly treated as successes
+          (<a href="https://svn.boost.org/trac/boost/ticket/4859" target="_top">#4859</a>).
+        </li>
+<li class="listitem">
+          Deprecated the separate compilation header <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">asio</span><span class="special">/</span><span class="identifier">impl</span><span class="special">/</span><span class="identifier">src</span><span class="special">.</span><span class="identifier">cpp</span><span class="special">&gt;</span></code>
+          in favour of <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">asio</span><span class="special">/</span><span class="identifier">impl</span><span class="special">/</span><span class="identifier">src</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code> (<a href="https://svn.boost.org/trac/boost/ticket/4560" target="_top">#4560</a>).
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h11"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_4_6___boost_1_44"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_4_6___boost_1_44">Asio
+      1.4.6 / Boost 1.44</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Reduced compile times. (Note that some programs may need to add additional
+          <code class="computeroutput"><span class="preprocessor">#include</span></code>s, e.g. if the
+          program uses <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code> but does not explicitly include
+          <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">array</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>.)
+        </li>
+<li class="listitem">
+          Reduced the size of generated code.
+        </li>
+<li class="listitem">
+          Refactored <code class="computeroutput"><span class="identifier">deadline_timer</span></code>
+          implementation to improve performance.
+        </li>
+<li class="listitem">
+          Improved multiprocessor scalability on Windows by using a dedicated hidden
+          thread to wait for timers.
+        </li>
+<li class="listitem">
+          Improved performance of <code class="computeroutput"><span class="identifier">asio</span><span class="special">::</span><span class="identifier">streambuf</span></code>
+          with <code class="computeroutput"><span class="identifier">async_read</span><span class="special">()</span></code>
+          and <code class="computeroutput"><span class="identifier">async_read_until</span><span class="special">()</span></code>.
+          These read operations now use the existing capacity of the <code class="computeroutput"><span class="identifier">streambuf</span></code> when reading, rather than limiting
+          the read to 512 bytes.
+        </li>
+<li class="listitem">
+          Added optional separate compilation. To enable, add <code class="computeroutput"><span class="preprocessor">#include</span>
+          <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">asio</span><span class="special">/</span><span class="identifier">impl</span><span class="special">/</span><span class="identifier">src</span><span class="special">.</span><span class="identifier">cpp</span><span class="special">&gt;</span></code> to one source file in a program, then
+          build the program with <code class="computeroutput"><span class="identifier">BOOST_ASIO_SEPARATE_COMPILATION</span></code>
+          defined in the project/compiler settings. Alternatively, <code class="computeroutput"><span class="identifier">BOOST_ASIO_DYN_LINK</span></code> may be defined to
+          build a separately-compiled Asio as part of a shared library.
+        </li>
+<li class="listitem">
+          Added new macro <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_FENCED_BLOCK</span></code>
+          to permit the disabling of memory fences around completion handlers, even
+          if thread support is enabled.
+        </li>
+<li class="listitem">
+          Reworked timeout examples to better illustrate typical use cases.
+        </li>
+<li class="listitem">
+          Ensured that handler arguments are passed as <code class="computeroutput"><span class="keyword">const</span></code>
+          types.
+        </li>
+<li class="listitem">
+          Fixed incorrect parameter order in <code class="computeroutput"><span class="identifier">null_buffers</span></code>
+          variant of <code class="computeroutput"><span class="identifier">async_send_to</span></code>
+          (<a href="https://svn.boost.org/trac/boost/ticket/4170" target="_top">#4170</a>).
+        </li>
+<li class="listitem">
+          Ensured <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">char</span></code>
+          is used with <code class="computeroutput"><span class="identifier">isdigit</span></code> in
+          <code class="computeroutput"><span class="identifier">getaddrinfo</span></code> emulation (<a href="https://svn.boost.org/trac/boost/ticket/4201" target="_top">#4201</a>).
+        </li>
+<li class="listitem">
+          Fixed handling of very small but non-zero timeouts (<a href="https://svn.boost.org/trac/boost/ticket/4205" target="_top">#4205</a>).
+        </li>
+<li class="listitem">
+          Fixed crash that occurred when an empty buffer sequence was passed to a
+          composed read or write operation.
+        </li>
+<li class="listitem">
+          Added missing <code class="computeroutput"><span class="keyword">operator</span><span class="special">+</span></code>
+          overload in <code class="computeroutput"><span class="identifier">buffers_iterator</span></code>
+          (<a href="https://svn.boost.org/trac/boost/ticket/4382" target="_top">#4382</a>).
+        </li>
+<li class="listitem">
+          Implemented cancellation of <code class="computeroutput"><span class="identifier">null_buffers</span></code>
+          operations on Windows.
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h12"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_4_5___boost_1_43"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_4_5___boost_1_43">Asio
+      1.4.5 / Boost 1.43</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Improved performance.
+        </li>
+<li class="listitem">
+          Reduced compile times.
+        </li>
+<li class="listitem">
+          Reduced the size of generated code.
+        </li>
+<li class="listitem">
+          Extended the guarantee that background threads don't call user code to
+          all asynchronous operations (<a href="https://svn.boost.org/trac/boost/ticket/3923" target="_top">#3923</a>).
+        </li>
+<li class="listitem">
+          Changed to use edge-triggered epoll on Linux.
+        </li>
+<li class="listitem">
+          Changed to use <code class="computeroutput"><span class="identifier">timerfd</span></code>
+          for dispatching timers on Linux, when available.
+        </li>
+<li class="listitem">
+          Changed to use one-shot notifications with kqueue on Mac OS X and BSD platforms.
+        </li>
+<li class="listitem">
+          Added a bitmask type <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">resolver_query_base</span><span class="special">::</span><span class="identifier">flags</span></code>
+          as per the TR2 proposal. This type prevents implicit conversion from <code class="computeroutput"><span class="keyword">int</span></code> to <code class="computeroutput"><span class="identifier">flags</span></code>,
+          allowing the compiler to catch cases where users incorrectly pass a numeric
+          port number as the service name.
+        </li>
+<li class="listitem">
+          Added <code class="computeroutput"><span class="preprocessor">#define</span> <span class="identifier">NOMINMAX</span></code>
+          for all Windows compilers. Users can define <code class="computeroutput"><span class="identifier">BOOST_ASIO_NO_NOMINMAX</span></code>
+          to suppress this definition (<a href="https://svn.boost.org/trac/boost/ticket/3901" target="_top">#3901</a>).
+        </li>
+<li class="listitem">
+          Fixed a bug where 0-byte asynchronous reads were incorrectly passing an
+          <code class="computeroutput"><span class="identifier">error</span><span class="special">::</span><span class="identifier">eof</span></code> result to the completion handler
+          (<a href="https://svn.boost.org/trac/boost/ticket/4023" target="_top">#4023</a>).
+        </li>
+<li class="listitem">
+          Changed the <code class="computeroutput"><span class="identifier">io_control</span><span class="special">()</span></code> member functions to always call <code class="computeroutput"><span class="identifier">ioctl</span></code> on the underlying descriptor when
+          modifying blocking mode (<a href="https://svn.boost.org/trac/boost/ticket/3307" target="_top">#3307</a>).
+        </li>
+<li class="listitem">
+          Changed the resolver implementation to longer require the typedefs <code class="computeroutput"><span class="identifier">InternetProtocol</span><span class="special">::</span><span class="identifier">resolver_query</span></code> and <code class="computeroutput"><span class="identifier">InternetProtocol</span><span class="special">::</span><span class="identifier">resolver_iterator</span></code>,
+          as neither typedef is part of the documented <code class="computeroutput"><span class="identifier">InternetProtocol</span></code>
+          requirements. The corresponding typedefs in the <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span></code>,
+          <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">udp</span></code> and <code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">icmp</span></code>
+          classes have been deprecated.
+        </li>
+<li class="listitem">
+          Fixed out-of-band handling for reactors not based on <code class="computeroutput"><span class="identifier">select</span><span class="special">()</span></code>.
+        </li>
+<li class="listitem">
+          Added new <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_THREADS</span></code>
+          macro that allows Asio's threading support to be independently disabled.
+        </li>
+<li class="listitem">
+          Minor documentation improvements.
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h13"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_4_4___boost_1_42"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_4_4___boost_1_42">Asio
+      1.4.4 / Boost 1.42</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added a new HTTP Server 4 example illustrating the use of stackless coroutines
+          with Asio.
+        </li>
+<li class="listitem">
+          Changed handler allocation and invocation to use <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">addressof</span></code>
+          to get the address of handler objects, rather than applying <code class="computeroutput"><span class="keyword">operator</span><span class="special">&amp;</span></code>
+          directly (<a href="https://svn.boost.org/trac/boost/ticket/2977" target="_top">#2977</a>).
+        </li>
+<li class="listitem">
+          Restricted MSVC buffer debugging workaround to 2008, as it causes a crash
+          with 2010 beta 2 (<a href="https://svn.boost.org/trac/boost/ticket/3796" target="_top">#3796</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/3822" target="_top">#3822</a>).
+        </li>
+<li class="listitem">
+          Fixed a problem with the lifetime of handler memory, where Windows needs
+          the <code class="computeroutput"><span class="identifier">OVERLAPPED</span></code> structure
+          to be valid until both the initiating function call has returned and the
+          completion packet has been delivered.
+        </li>
+<li class="listitem">
+          Don't block signals while performing system calls, but instead restart
+          the calls if they are interrupted.
+        </li>
+<li class="listitem">
+          Documented the guarantee made by strand objects with respect to order of
+          handler invocation.
+        </li>
+<li class="listitem">
+          Changed strands to use a pool of implementations, to make copying of strands
+          cheaper.
+        </li>
+<li class="listitem">
+          Ensured that kqueue support is enabled for BSD platforms (<a href="https://svn.boost.org/trac/boost/ticket/3626" target="_top">#3626</a>).
+        </li>
+<li class="listitem">
+          Added a <code class="computeroutput"><span class="identifier">boost_</span></code> prefix to
+          the <code class="computeroutput"><span class="keyword">extern</span> <span class="string">"C"</span></code>
+          thread entry point function (<a href="https://svn.boost.org/trac/boost/ticket/3809" target="_top">#3809</a>).
+        </li>
+<li class="listitem">
+          In <code class="computeroutput"><span class="identifier">getaddrinfo</span></code> emulation,
+          only check the socket type (<code class="computeroutput"><span class="identifier">SOCK_STREAM</span></code>
+          or <code class="computeroutput"><span class="identifier">SOCK_DGRAM</span></code>) if a service
+          name has been specified. This should allow the emulation to work with raw
+          sockets.
+        </li>
+<li class="listitem">
+          Added a workaround for some broken Windows firewalls that make a socket
+          appear bound to 0.0.0.0 when it is in fact bound to 127.0.0.1.
+        </li>
+<li class="listitem">
+          Applied a fix for reported excessive CPU usage under Solaris (<a href="https://svn.boost.org/trac/boost/ticket/3670" target="_top">#3670</a>).
+        </li>
+<li class="listitem">
+          Added some support for platforms that use older compilers such as g++ 2.95
+          (<a href="https://svn.boost.org/trac/boost/ticket/3743" target="_top">#3743</a>).
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h14"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_4_3___boost_1_40"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_4_3___boost_1_40">Asio
+      1.4.3 / Boost 1.40</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added a new ping example to illustrate the use of ICMP sockets.
+        </li>
+<li class="listitem">
+          Changed the <code class="computeroutput"><span class="identifier">buffered</span><span class="special">*</span><span class="identifier">_stream</span><span class="special">&lt;&gt;</span></code>
+          templates to treat 0-byte reads and writes as no-ops, to comply with the
+          documented type requirements for <code class="computeroutput"><span class="identifier">SyncReadStream</span></code>,
+          <code class="computeroutput"><span class="identifier">AsyncReadStream</span></code>, <code class="computeroutput"><span class="identifier">SyncWriteStream</span></code> and <code class="computeroutput"><span class="identifier">AsyncWriteStream</span></code>.
+        </li>
+<li class="listitem">
+          Changed some instances of the <code class="computeroutput"><span class="keyword">throw</span></code>
+          keyword to <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">throw_exception</span><span class="special">()</span></code>
+          to allow Asio to be used when exception support is disabled. Note that
+          the SSL wrappers still require exception support (<a href="https://svn.boost.org/trac/boost/ticket/2754" target="_top">#2754</a>).
+        </li>
+<li class="listitem">
+          Made Asio compatible with the OpenSSL 1.0 beta (<a href="https://svn.boost.org/trac/boost/ticket/3256" target="_top">#3256</a>).
+        </li>
+<li class="listitem">
+          Eliminated a redundant system call in the Solaris <code class="literal">/dev/poll</code>
+          backend.
+        </li>
+<li class="listitem">
+          Fixed a bug in resizing of the bucket array in the internal hash maps (<a href="https://svn.boost.org/trac/boost/ticket/3095" target="_top">#3095</a>).
+        </li>
+<li class="listitem">
+          Ensured correct propagation of the error code when a synchronous accept
+          fails (<a href="https://svn.boost.org/trac/boost/ticket/3216" target="_top">#3216</a>).
+        </li>
+<li class="listitem">
+          Ensured correct propagation of the error code when a synchronous read or
+          write on a Windows HANDLE fails.
+        </li>
+<li class="listitem">
+          Fixed failures reported when <code class="computeroutput"><span class="identifier">_GLIBCXX_DEBUG</span></code>
+          is defined (<a href="https://svn.boost.org/trac/boost/ticket/3098" target="_top">#3098</a>).
+        </li>
+<li class="listitem">
+          Fixed custom memory allocation support for timers (<a href="https://svn.boost.org/trac/boost/ticket/3107" target="_top">#3107</a>).
+        </li>
+<li class="listitem">
+          Tidied up various warnings reported by g++ (<a href="https://svn.boost.org/trac/boost/ticket/1341" target="_top">#1341</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/2618" target="_top">#2618</a>).
+        </li>
+<li class="listitem">
+          Various documentation improvements, including more obvious hyperlinks to
+          function overloads, header file information, examples for the handler type
+          requirements, and adding enum values to the index (<a href="https://svn.boost.org/trac/boost/ticket/3157" target="_top">#3157</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/2620" target="_top">#2620</a>).
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h15"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_4_2___boost_1_39"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_4_2___boost_1_39">Asio
+      1.4.2 / Boost 1.39</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Implement automatic resizing of the bucket array in the internal hash maps.
+          This is to improve performance for very large numbers of asynchronous operations
+          and also to reduce memory usage for very small numbers. A new macro <code class="computeroutput"><span class="identifier">BOOST_ASIO_HASH_MAP_BUCKETS</span></code> may be used
+          to tweak the sizes used for the bucket arrays. (N.B. this feature introduced
+          a bug which was fixed in Asio 1.4.3 / Boost 1.40.)
+        </li>
+<li class="listitem">
+          Add performance optimisation for the Windows IOCP backend for when no timers
+          are used.
+        </li>
+<li class="listitem">
+          Prevent locale settings from affecting formatting of TCP and UDP endpoints
+          (<a href="https://svn.boost.org/trac/boost/ticket/2682" target="_top">#2682</a>).
+        </li>
+<li class="listitem">
+          Fix a memory leak that occurred when an asynchronous SSL operation's completion
+          handler threw an exception (<a href="https://svn.boost.org/trac/boost/ticket/2910" target="_top">#2910</a>).
+        </li>
+<li class="listitem">
+          Fix the implementation of <code class="computeroutput"><span class="identifier">io_control</span><span class="special">()</span></code> so that it adheres to the documented
+          type requirements for IoControlCommand (<a href="https://svn.boost.org/trac/boost/ticket/2820" target="_top">#2820</a>).
+        </li>
+<li class="listitem">
+          Fix incompatibility between Asio and ncurses.h (<a href="https://svn.boost.org/trac/boost/ticket/2156" target="_top">#2156</a>).
+        </li>
+<li class="listitem">
+          On Windows, specifically handle the case when an overlapped <code class="computeroutput"><span class="identifier">ReadFile</span></code> call fails with <code class="computeroutput"><span class="identifier">ERROR_MORE_DATA</span></code>. This enables a hack
+          where a <code class="computeroutput"><span class="identifier">windows</span><span class="special">::</span><span class="identifier">stream_handle</span></code> can be used with a message-oriented
+          named pipe (<a href="https://svn.boost.org/trac/boost/ticket/2936" target="_top">#2936</a>).
+        </li>
+<li class="listitem">
+          Fix system call wrappers to always clear the error on success, as POSIX
+          allows successful system calls to modify errno (<a href="https://svn.boost.org/trac/boost/ticket/2953" target="_top">#2953</a>).
+        </li>
+<li class="listitem">
+          Don't include termios.h if <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_SERIAL_PORT</span></code>
+          is defined (<a href="https://svn.boost.org/trac/boost/ticket/2917" target="_top">#2917</a>).
+        </li>
+<li class="listitem">
+          Cleaned up some more MSVC level 4 warnings (<a href="https://svn.boost.org/trac/boost/ticket/2828" target="_top">#2828</a>).
+        </li>
+<li class="listitem">
+          Various documentation fixes (<a href="https://svn.boost.org/trac/boost/ticket/2871" target="_top">#2871</a>).
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h16"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_4_1___boost_1_38"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_4_1___boost_1_38">Asio
+      1.4.1 / Boost 1.38</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Improved compatibility with some Windows firewall software.
+        </li>
+<li class="listitem">
+          Ensured arguments to <code class="computeroutput"><span class="identifier">windows</span><span class="special">::</span><span class="identifier">overlapped_ptr</span><span class="special">::</span><span class="identifier">complete</span><span class="special">()</span></code> are correctly passed to the completion
+          handler (<a href="https://svn.boost.org/trac/boost/ticket/2614" target="_top">#2614</a>).
+        </li>
+<li class="listitem">
+          Fixed a link problem and multicast failure on QNX (<a href="https://svn.boost.org/trac/boost/ticket/2504" target="_top">#2504</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/2530" target="_top">#2530</a>).
+        </li>
+<li class="listitem">
+          Fixed a compile error in SSL support on MinGW / g++ 3.4.5.
+        </li>
+<li class="listitem">
+          Drop back to using a pipe for notification if eventfd is not available
+          at runtime on Linux (<a href="https://svn.boost.org/trac/boost/ticket/2683" target="_top">#2683</a>).
+        </li>
+<li class="listitem">
+          Various minor bug and documentation fixes (<a href="https://svn.boost.org/trac/boost/ticket/2534" target="_top">#2534</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/2541" target="_top">#2541</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/2607" target="_top">#2607</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/2617" target="_top">#2617</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/2619" target="_top">#2619</a>).
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h17"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_4_0___boost_1_37"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_4_0___boost_1_37">Asio
+      1.4.0 / Boost 1.37</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Enhanced CompletionCondition concept with the signature <code class="computeroutput"><span class="identifier">size_t</span>
+          <span class="identifier">CompletionCondition</span><span class="special">(</span><span class="identifier">error_code</span> <span class="identifier">ec</span><span class="special">,</span> <span class="identifier">size_t</span> <span class="identifier">total</span><span class="special">)</span></code>,
+          where the return value indicates the maximum number of bytes to be transferred
+          on the next read or write operation. (The old CompletionCondition signature
+          is still supported for backwards compatibility).
+        </li>
+<li class="listitem">
+          New windows::overlapped_ptr class to allow arbitrary overlapped I/O functions
+          (such as TransmitFile) to be used with Asio.
+        </li>
+<li class="listitem">
+          On recent versions of Linux, an eventfd descriptor is now used (rather
+          than a pipe) to interrupt a blocked select/epoll reactor.
+        </li>
+<li class="listitem">
+          Added const overloads of lowest_layer().
+        </li>
+<li class="listitem">
+          Synchronous read, write, accept and connect operations are now thread safe
+          (meaning that it is now permitted to perform concurrent synchronous operations
+          on an individual socket, if supported by the OS).
+        </li>
+<li class="listitem">
+          Reactor-based io_service implementations now use lazy initialisation to
+          reduce the memory usage of an io_service object used only as a message
+          queue.
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h18"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_2_0___boost_1_36"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_2_0___boost_1_36">Asio
+      1.2.0 / Boost 1.36</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added support for serial ports.
+        </li>
+<li class="listitem">
+          Added support for UNIX domain sockets.
+        </li>
+<li class="listitem">
+          Added support for raw sockets and ICMP.
+        </li>
+<li class="listitem">
+          Added wrappers for POSIX stream-oriented file descriptors (excluding regular
+          files).
+        </li>
+<li class="listitem">
+          Added wrappers for Windows stream-oriented <code class="computeroutput"><span class="identifier">HANDLE</span></code>s
+          such as named pipes (requires <code class="computeroutput"><span class="identifier">HANDLE</span></code>s
+          that work with I/O completion ports).
+        </li>
+<li class="listitem">
+          Added wrappers for Windows random-access <code class="computeroutput"><span class="identifier">HANDLE</span></code>s
+          such as files (requires <code class="computeroutput"><span class="identifier">HANDLE</span></code>s
+          that work with I/O completion ports).
+        </li>
+<li class="listitem">
+          Added support for reactor-style operations (i.e. they report readiness
+          but perform no I/O) using a new <code class="computeroutput"><span class="identifier">null_buffers</span></code>
+          type.
+        </li>
+<li class="listitem">
+          Added an iterator type for bytewise traversal of buffer sequences.
+        </li>
+<li class="listitem">
+          Added new <code class="computeroutput"><span class="identifier">read_until</span><span class="special">()</span></code>
+          and <code class="computeroutput"><span class="identifier">async_read_until</span><span class="special">()</span></code>
+          overloads that take a user-defined function object for locating message
+          boundaries.
+        </li>
+<li class="listitem">
+          Added an experimental two-lock queue (enabled by defining <code class="computeroutput"><span class="identifier">BOOST_ASIO_ENABLE_TWO_LOCK_QUEUE</span></code>) that
+          may provide better <code class="computeroutput"><span class="identifier">io_service</span></code>
+          scalability across many processors.
+        </li>
+<li class="listitem">
+          Various fixes, performance improvements, and more complete coverage of
+          the custom memory allocation support.
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.history.h19"></a>
+      <span class="phrase"><a name="boost_asio.history.asio_1_0_0___boost_1_35"></a></span><a class="link" href="history.html#boost_asio.history.asio_1_0_0___boost_1_35">Asio
+      1.0.0 / Boost 1.35</a>
+    </h4>
+<p>
+      First release of Asio as part of Boost.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reference/is_error_code_enum_lt__ssl_errors__gt_/value.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_asio.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../boost_asio.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="index.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

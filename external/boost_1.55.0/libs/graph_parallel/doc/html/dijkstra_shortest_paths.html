@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Dijkstra's Single-Source Shortest Paths</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-dijkstra-s-single-source-shortest-paths">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Dijkstra's Single-Source Shortest Paths</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+// named parameter version
+template &lt;typename Graph, typename P, typename T, typename R&gt;
+void
+dijkstra_shortest_paths(Graph&amp; g,
+  typename graph_traits&lt;Graph&gt;::vertex_descriptor s,
+  const bgl_named_params&lt;P, T, R&gt;&amp; params);
+
+// non-named parameter version
+template &lt;typename Graph, typename DijkstraVisitor,
+          typename PredecessorMap, typename DistanceMap,
+          typename WeightMap, typename VertexIndexMap, typename CompareFunction, typename CombineFunction,
+          typename DistInf, typename DistZero&gt;
+void dijkstra_shortest_paths
+  (const Graph&amp; g,
+   typename graph_traits&lt;Graph&gt;::vertex_descriptor s,
+   PredecessorMap predecessor, DistanceMap distance, WeightMap weight,
+   VertexIndexMap index_map,
+   CompareFunction compare, CombineFunction combine, DistInf inf, DistZero zero,
+   DijkstraVisitor vis);
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">dijkstra_shortest_paths()</span></tt> function solves the single-source
+shortest paths problem on a weighted, undirected or directed
+distributed graph. There are two implementations of distributed
+Dijkstra's algorithm, which offer different performance
+tradeoffs. Both are accessible via the <tt class="docutils literal"><span class="pre">dijkstra_shortest_paths()</span></tt>
+function (for compatibility with sequential BGL programs). The
+distributed Dijkstra algorithms are very similar to their sequential
+counterparts. Only the differences are highlighted here; please refer
+to the <a class="reference external" href="http://www.boost.org/libs/graph/doc/dijkstra_shortest_paths.html">sequential Dijkstra implementation</a> for additional
+details. The best-performing implementation for most cases is the
+<a class="reference internal" href="#delta-stepping-algorithm">Delta-Stepping algorithm</a>; however, one can also employ the more
+conservative <a class="reference internal" href="#crauser-et-al-s-algorithm">Crauser et al.'s algorithm</a> or the simlistic  <a class="reference internal" href="#eager-dijkstra-s-algorithm">Eager
+Dijkstra's algorithm</a>.</p>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id10">Where Defined</a></li>
+<li><a class="reference internal" href="#parameters" id="id11">Parameters</a></li>
+<li><a class="reference internal" href="#visitor-event-points" id="id12">Visitor Event Points</a></li>
+<li><a class="reference internal" href="#crauser-et-al-s-algorithm" id="id13">Crauser et al.'s algorithm</a><ul>
+<li><a class="reference internal" href="#id2" id="id14">Where Defined</a></li>
+<li><a class="reference internal" href="#complexity" id="id15">Complexity</a></li>
+<li><a class="reference internal" href="#performance" id="id16">Performance</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#eager-dijkstra-s-algorithm" id="id17">Eager Dijkstra's algorithm</a><ul>
+<li><a class="reference internal" href="#id5" id="id18">Where Defined</a></li>
+<li><a class="reference internal" href="#id6" id="id19">Complexity</a></li>
+<li><a class="reference internal" href="#id7" id="id20">Performance</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#delta-stepping-algorithm" id="id21">Delta-Stepping algorithm</a><ul>
+<li><a class="reference internal" href="#id9" id="id22">Where Defined</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example" id="id23">Example</a></li>
+<li><a class="reference internal" href="#bibliography" id="id24">Bibliography</a></li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id10">Where Defined</a></h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/dijkstra_shortest_paths.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="parameters">
+<h1><a class="toc-backref" href="#id11">Parameters</a></h1>
+<p>All parameters of the <a class="reference external" href="http://www.boost.org/libs/graph/doc/dijkstra_shortest_paths.html">sequential Dijkstra implementation</a> are
+supported and have essentially the same meaning. The distributed
+Dijkstra implementations introduce a new parameter that allows one to
+select <a class="reference internal" href="#eager-dijkstra-s-algorithm">Eager Dijkstra's algorithm</a> and control the amount of work it
+performs. Only differences and new parameters are documented here.</p>
+<dl class="docutils">
+<dt>IN: <tt class="docutils literal"><span class="pre">Graph&amp;</span> <span class="pre">g</span></tt></dt>
+<dd>The graph type must be a model of <a class="reference external" href="DistributedGraph.html">Distributed Graph</a>.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">vertex_descriptor</span> <span class="pre">s</span></tt></dt>
+<dd>The start vertex must be the same in every process.</dd>
+<dt>OUT: <tt class="docutils literal"><span class="pre">predecessor_map(PredecessorMap</span> <span class="pre">p_map)</span></tt></dt>
+<dd><p class="first">The predecessor map must be a <a class="reference external" href="distributed_property_map.html">Distributed Property Map</a> or
+<tt class="docutils literal"><span class="pre">dummy_property_map</span></tt>, although only the local portions of the map
+will be written.</p>
+<p class="last"><strong>Default:</strong> <tt class="docutils literal"><span class="pre">dummy_property_map</span></tt></p>
+</dd>
+<dt>UTIL/OUT: <tt class="docutils literal"><span class="pre">distance_map(DistanceMap</span> <span class="pre">d_map)</span></tt></dt>
+<dd>The distance map must be either a <a class="reference external" href="distributed_property_map.html">Distributed Property Map</a> or
+<tt class="docutils literal"><span class="pre">dummy_property_map</span></tt>. It will be given the <tt class="docutils literal"><span class="pre">vertex_distance</span></tt>
+role.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">visitor(DijkstraVisitor</span> <span class="pre">vis)</span></tt></dt>
+<dd>The visitor must be a distributed Dijkstra visitor. The suble differences
+between sequential and distributed Dijkstra visitors are discussed in the
+section <a class="reference internal" href="#visitor-event-points">Visitor Event Points</a>.</dd>
+<dt>UTIL/OUT: <tt class="docutils literal"><span class="pre">color_map(ColorMap</span> <span class="pre">color)</span></tt></dt>
+<dd>The color map must be a <a class="reference external" href="distributed_property_map.html">Distributed Property Map</a> with the same
+process group as the graph <tt class="docutils literal"><span class="pre">g</span></tt> whose colors must monotonically
+darken (white -&gt; gray -&gt; black). The default value is a distributed
+<tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> created from a <tt class="docutils literal"><span class="pre">std::vector</span></tt> of
+<tt class="docutils literal"><span class="pre">default_color_type</span></tt>.</dd>
+</dl>
+<p>IN: <tt class="docutils literal"><span class="pre">lookahead(distance_type</span> <span class="pre">look)</span></tt></p>
+<blockquote>
+<p>When this parameter is supplied, the implementation will use the
+<a class="reference internal" href="#eager-dijkstra-s-algorithm">Eager Dijkstra's algorithm</a> with the given lookahead value.
+Lookahead permits distributed Dijkstra's algorithm to speculatively
+process vertices whose shortest distance from the source may not
+have been found yet. When the distance found is the shortest
+distance, parallelism is improved and the algorithm may terminate
+more quickly. However, if the distance is not the shortest distance,
+the vertex will need to be reprocessed later, resulting in more
+work.</p>
+<p>The type <tt class="docutils literal"><span class="pre">distance_type</span></tt> is the value type of the <tt class="docutils literal"><span class="pre">DistanceMap</span></tt>
+property map. It is a nonnegative value specifying how far ahead
+Dijkstra's algorithm may process values.</p>
+<p><strong>Default:</strong> no value (lookahead is not employed; uses <a class="reference internal" href="#crauser-et-al-s-algorithm">Crauser et
+al.'s algorithm</a>).</p>
+</blockquote>
+</div>
+<div class="section" id="visitor-event-points">
+<h1><a class="toc-backref" href="#id12">Visitor Event Points</a></h1>
+<p>The <a class="reference external" href="http://www.boost.org/libs/graph/doc/DijkstraVisitor.html">Dijkstra Visitor</a> concept defines 7 event points that will be
+triggered by the <a class="reference external" href="http://www.boost.org/libs/graph/doc/dijkstra_shortest_paths.html">sequential Dijkstra implementation</a>. The distributed
+Dijkstra retains these event points, but the sequence of events
+triggered and the process in which each event occurs will change
+depending on the distribution of the graph, lookahead, and edge
+weights.</p>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">initialize_vertex(s,</span> <span class="pre">g)</span></tt></dt>
+<dd>This will be invoked by every process for each local vertex.</dd>
+<dt><tt class="docutils literal"><span class="pre">discover_vertex(u,</span> <span class="pre">g)</span></tt></dt>
+<dd>This will be invoked each type a process discovers a new vertex
+<tt class="docutils literal"><span class="pre">u</span></tt>. Due to incomplete information in distributed property maps,
+this event may be triggered many times for the same vertex <tt class="docutils literal"><span class="pre">u</span></tt>.</dd>
+<dt><tt class="docutils literal"><span class="pre">examine_vertex(u,</span> <span class="pre">g)</span></tt></dt>
+<dd>This will be invoked by the process owning the vertex <tt class="docutils literal"><span class="pre">u</span></tt>. This
+event may be invoked multiple times for the same vertex when the
+graph contains negative edges or lookahead is employed.</dd>
+<dt><tt class="docutils literal"><span class="pre">examine_edge(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>This will be invoked by the process owning the source vertex of
+<tt class="docutils literal"><span class="pre">e</span></tt>. As with <tt class="docutils literal"><span class="pre">examine_vertex</span></tt>, this event may be invoked
+multiple times for the same edge.</dd>
+<dt><tt class="docutils literal"><span class="pre">edge_relaxed(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>Similar to <tt class="docutils literal"><span class="pre">examine_edge</span></tt>, this will be invoked by the process
+owning the source vertex and may be invoked multiple times (even
+without lookahead or negative edges).</dd>
+<dt><tt class="docutils literal"><span class="pre">edge_not_relaxed(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>Similar to <tt class="docutils literal"><span class="pre">edge_relaxed</span></tt>. Some <tt class="docutils literal"><span class="pre">edge_not_relaxed</span></tt> events that
+would be triggered by sequential Dijkstra's will become
+<tt class="docutils literal"><span class="pre">edge_relaxed</span></tt> events in distributed Dijkstra's algorithm.</dd>
+<dt><tt class="docutils literal"><span class="pre">finish_vertex(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>See documentation for <tt class="docutils literal"><span class="pre">examine_vertex</span></tt>. Note that a &quot;finished&quot;
+vertex is not necessarily finished if lookahead is permitted or
+negative edges exist in the graph.</dd>
+</dl>
+</div>
+<div class="section" id="crauser-et-al-s-algorithm">
+<h1><a class="toc-backref" href="#id13">Crauser et al.'s algorithm</a></h1>
+<pre class="literal-block">
+namespace graph {
+  template&lt;typename DistributedGraph, typename DijkstraVisitor,
+           typename PredecessorMap, typename DistanceMap, typename WeightMap,
+           typename IndexMap, typename ColorMap, typename Compare,
+           typename Combine, typename DistInf, typename DistZero&gt;
+  void
+  crauser_et_al_shortest_paths
+    (const DistributedGraph&amp; g,
+     typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+     PredecessorMap predecessor, DistanceMap distance, WeightMap weight,
+     IndexMap index_map, ColorMap color_map,
+     Compare compare, Combine combine, DistInf inf, DistZero zero,
+     DijkstraVisitor vis);
+
+  template&lt;typename DistributedGraph, typename DijkstraVisitor,
+           typename PredecessorMap, typename DistanceMap, typename WeightMap&gt;
+  void
+  crauser_et_al_shortest_paths
+    (const DistributedGraph&amp; g,
+     typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+     PredecessorMap predecessor, DistanceMap distance, WeightMap weight);
+
+  template&lt;typename DistributedGraph, typename DijkstraVisitor,
+           typename PredecessorMap, typename DistanceMap&gt;
+  void
+  crauser_et_al_shortest_paths
+    (const DistributedGraph&amp; g,
+     typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+     PredecessorMap predecessor, DistanceMap distance);
+}
+</pre>
+<p>The formulation of Dijkstra's algorithm by Crauser, Mehlhorn, Meyer,
+and Sanders <a class="citation-reference" href="#cmms98a" id="id1">[CMMS98a]</a> improves the scalability of parallel Dijkstra's
+algorithm by increasing the number of vertices that can be processed
+in a given superstep. This algorithm adapts well to various graph
+types, and is a simple algorithm to use, requiring no additional user
+input to achieve reasonable performance. The disadvantage of this
+algorithm is that the implementation is required to manage three
+priority queues, which creates a large amount of work at each node.</p>
+<p>This algorithm is used by default in distributed
+<tt class="docutils literal"><span class="pre">dijkstra_shortest_paths()</span></tt>.</p>
+<div class="section" id="id2">
+<h2><a class="toc-backref" href="#id14">Where Defined</a></h2>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/distributed/crauser_et_al_shortest_paths.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="complexity">
+<h2><a class="toc-backref" href="#id15">Complexity</a></h2>
+<p>This algorithm performs <em>O(V log V)</em> work in <em>d + 1</em> BSP supersteps,
+where <em>d</em> is at most <em>O(V)</em> but is generally much smaller. On directed
+Erdos-Renyi graphs with edge weights in [0, 1), the expected number of
+supersteps <em>d</em> is <em>O(n^(1/3))</em> with high probability.</p>
+</div>
+<div class="section" id="performance">
+<h2><a class="toc-backref" href="#id16">Performance</a></h2>
+<p>The following charts illustrate the performance of the Parallel BGL implementation of Crauser et al.'s
+algorithm on graphs with edge weights uniformly selected from the
+range <em>[0, 1)</em>.</p>
+<img align="left" alt="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeSparse_columns_4.png" class="align-left" src="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeSparse_columns_4.png" />
+<img alt="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeSparse_columns_4_speedup_1.png" src="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeSparse_columns_4_speedup_1.png" />
+<img align="left" alt="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeDense_columns_4.png" class="align-left" src="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeDense_columns_4.png" />
+<img alt="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeDense_columns_4_speedup_1.png" src="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeDense_columns_4_speedup_1.png" />
+</div>
+</div>
+<div class="section" id="eager-dijkstra-s-algorithm">
+<h1><a class="toc-backref" href="#id17">Eager Dijkstra's algorithm</a></h1>
+<pre class="literal-block">
+namespace graph {
+  template&lt;typename DistributedGraph, typename DijkstraVisitor,
+           typename PredecessorMap, typename DistanceMap, typename WeightMap,
+           typename IndexMap, typename ColorMap, typename Compare,
+           typename Combine, typename DistInf, typename DistZero&gt;
+  void
+  eager_dijkstra_shortest_paths
+    (const DistributedGraph&amp; g,
+     typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+     PredecessorMap predecessor, DistanceMap distance,
+     typename property_traits&lt;DistanceMap&gt;::value_type lookahead,
+     WeightMap weight, IndexMap index_map, ColorMap color_map,
+     Compare compare, Combine combine, DistInf inf, DistZero zero,
+     DijkstraVisitor vis);
+
+  template&lt;typename DistributedGraph, typename DijkstraVisitor,
+           typename PredecessorMap, typename DistanceMap, typename WeightMap&gt;
+  void
+  eager_dijkstra_shortest_paths
+    (const DistributedGraph&amp; g,
+     typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+     PredecessorMap predecessor, DistanceMap distance,
+     typename property_traits&lt;DistanceMap&gt;::value_type lookahead,
+     WeightMap weight);
+
+  template&lt;typename DistributedGraph, typename DijkstraVisitor,
+           typename PredecessorMap, typename DistanceMap&gt;
+  void
+  eager_dijkstra_shortest_paths
+    (const DistributedGraph&amp; g,
+     typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+     PredecessorMap predecessor, DistanceMap distance,
+     typename property_traits&lt;DistanceMap&gt;::value_type lookahead);
+}
+</pre>
+<p>In each superstep, parallel Dijkstra's algorithm typically only
+processes nodes whose distances equivalent to the global minimum
+distance, because these distances are guaranteed to be correct. This
+variation on the algorithm allows the algorithm to process all
+vertices whose distances are within some constant value of the
+minimum distance. The value is called the &quot;lookahead&quot; value and is
+provided by the user as the fifth parameter to the function. Small
+values of the lookahead parameter will likely result in limited
+parallelization opportunities, whereas large values will expose more
+parallelism but may introduce (non-infinite) looping and result in
+extra work. The optimal value for the lookahead parameter depends on
+the input graph; see <a class="citation-reference" href="#cmms98b" id="id3">[CMMS98b]</a> and <a class="citation-reference" href="#ms98" id="id4">[MS98]</a>.</p>
+<p>This algorithm will be used by <tt class="docutils literal"><span class="pre">dijkstra_shortest_paths()</span></tt> when it
+is provided with a lookahead value.</p>
+<div class="section" id="id5">
+<h2><a class="toc-backref" href="#id18">Where Defined</a></h2>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/distributed/eager_dijkstra_shortest_paths.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="id6">
+<h2><a class="toc-backref" href="#id19">Complexity</a></h2>
+<p>This algorithm performs <em>O(V log V)</em> work in <em>d
++ 1</em> BSP supersteps, where <em>d</em> is at most <em>O(V)</em> but may be smaller
+depending on the lookahead value. the algorithm may perform more work
+when a large lookahead is provided, because vertices will be
+reprocessed.</p>
+</div>
+<div class="section" id="id7">
+<h2><a class="toc-backref" href="#id20">Performance</a></h2>
+<p>The performance of the eager Dijkstra's algorithm varies greatly
+depending on the lookahead value. The following charts illustrate the
+performance of the Parallel BGL on graphs with edge weights uniformly
+selected from the range <em>[0, 1)</em> and a constant lookahead of 0.1.</p>
+<img align="left" alt="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeSparse_columns_5.png" class="align-left" src="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeSparse_columns_5.png" />
+<img alt="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeSparse_columns_5_speedup_1.png" src="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeSparse_columns_5_speedup_1.png" />
+<img align="left" alt="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeDense_columns_5.png" class="align-left" src="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeDense_columns_5.png" />
+<img alt="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeDense_columns_5_speedup_1.png" src="chart_php_cluster_Odin_generator_ER_SF_SW_dataset_TimeDense_columns_5_speedup_1.png" />
+</div>
+</div>
+<div class="section" id="delta-stepping-algorithm">
+<h1><a class="toc-backref" href="#id21">Delta-Stepping algorithm</a></h1>
+<pre class="literal-block">
+namespace boost { namespace graph { namespace distributed {
+
+  template &lt;typename Graph, typename PredecessorMap,
+            typename DistanceMap, typename WeightMap&gt;
+  void delta_stepping_shortest_paths
+    (const Graph&amp; g,
+     typename graph_traits&lt;Graph&gt;::vertex_descriptor s,
+     PredecessorMap predecessor, DistanceMap distance, WeightMap weight,
+     typename property_traits&lt;WeightMap&gt;::value_type delta)
+
+
+  template &lt;typename Graph, typename PredecessorMap,
+            typename DistanceMap, typename WeightMap&gt;
+  void delta_stepping_shortest_paths
+    (const Graph&amp; g,
+     typename graph_traits&lt;Graph&gt;::vertex_descriptor s,
+     PredecessorMap predecessor, DistanceMap distance, WeightMap weight)
+  }
+
+} } }
+</pre>
+<p>The delta-stepping algorithm <a class="citation-reference" href="#ms98" id="id8">[MS98]</a> is another variant of the parallel
+Dijkstra algorithm. Like the eager Dijkstra algorithm, it employs a
+lookahead (<tt class="docutils literal"><span class="pre">delta</span></tt>) value that allows processors to process vertices
+before we are guaranteed to find their minimum distances, permitting
+more parallelism than a conservative strategy. Delta-stepping also
+introduces a multi-level bucket data structure that provides more
+relaxed ordering constraints than the priority queues employed by the
+other Dijkstra variants, reducing the complexity of insertions,
+relaxations, and removals from the central data structure. The
+delta-stepping algorithm is the best-performing of the Dijkstra
+variants.</p>
+<p>The lookahead value <tt class="docutils literal"><span class="pre">delta</span></tt> determines how large each of the
+&quot;buckets&quot; within the delta-stepping queue will be, where the ith
+bucket contains edges within tentative distances between <tt class="docutils literal"><span class="pre">delta``*i</span>
+<span class="pre">and</span> <span class="pre">``delta``*(i+1).</span> <span class="pre">``delta</span></tt> must be a positive value. When omitted,
+<tt class="docutils literal"><span class="pre">delta</span></tt> will be set to the maximum edge weight divided by the
+maximum degree.</p>
+<div class="section" id="id9">
+<h2><a class="toc-backref" href="#id22">Where Defined</a></h2>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/distributed/delta_stepping_shortest_paths.hpp</span></tt>&gt;</p>
+</div>
+</div>
+<div class="section" id="example">
+<h1><a class="toc-backref" href="#id23">Example</a></h1>
+<p>See the separate <a class="reference external" href="dijkstra_example.html">Dijkstra example</a>.</p>
+</div>
+<div class="section" id="bibliography">
+<h1><a class="toc-backref" href="#id24">Bibliography</a></h1>
+<table class="docutils citation" frame="void" id="cmms98a" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[CMMS98a]</a></td><td>Andreas Crauser, Kurt Mehlhorn, Ulrich Meyer, and Peter Sanders. A
+Parallelization of Dijkstra's Shortest Path Algorithm. In
+<em>Mathematical Foundations of Computer Science (MFCS)</em>, volume 1450 of
+Lecture Notes in Computer Science, pages 722--731, 1998. Springer.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="cmms98b" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[CMMS98b]</a></td><td>Andreas Crauser, Kurt Mehlhorn, Ulrich Meyer, and Peter
+Sanders. Parallelizing Dijkstra's shortest path algorithm. Technical
+report, MPI-Informatik, 1998.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="ms98" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[MS98]</td><td><em>(<a class="fn-backref" href="#id4">1</a>, <a class="fn-backref" href="#id8">2</a>)</em> Ulrich Meyer and Peter Sanders. Delta-stepping: A parallel
+shortest path algorithm. In <em>6th ESA</em>, LNCS. Springer, 1998.</td></tr>
+</tbody>
+</table>
+<hr class="docutils" />
+<p>Copyright (C) 2004, 2005, 2006, 2007, 2008 The Trustees of Indiana University.</p>
+<p>Authors: Douglas Gregor and Andrew Lumsdaine</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

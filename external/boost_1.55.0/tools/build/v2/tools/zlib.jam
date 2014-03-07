@@ -1,0 +1,227 @@
+# Copyright (c) 2010 Vladimir Prus.
+# Copyright (c) 2013 Steven Watanabe
+#
+# Use, modification and distribution is subject to the Boost Software
+# License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Supports the zlib library
+#
+# After 'using zlib', the following targets are available:
+#
+# /zlib//zlib -- The zlib library
+
+import project ;
+import ac ;
+import errors ;
+import "class" : new ;
+import targets ; 
+import path ;
+import modules ;
+import errors ;
+import indirect ;
+import property ;
+import property-set ;
+
+header = zlib.h ;
+names = z zlib zll zdll ;
+
+sources = adler32.c compress.c
+     crc32.c deflate.c gzclose.c gzio.c gzlib.c gzread.c gzwrite.c
+     infback.c inffast.c inflate.c inftrees.c trees.c uncompr.c zutil.c ;
+
+library-id = 0 ;
+
+if --debug-configuration in [ modules.peek : ARGV ]
+{
+    .debug =  true ;
+}
+
+# Initializes the zlib library.
+#
+# zlib can be configured either to use pre-existing binaries
+# or to build the library from source.
+#
+# Options for configuring a prebuilt zlib::
+#
+#   <search>
+#       The directory containing the zlib binaries.
+#   <name>
+#       Overrides the default library name.
+#   <include>
+#       The directory containing the zlib headers.
+#
+# If none of these options is specified, then the environmental
+# variables ZLIB_LIBRARY_PATH, ZLIB_NAME, and ZLIB_INCLUDE will
+# be used instead.
+#
+# Options for building zlib from source::
+#
+#   <source>
+#       The zlib source directory.  Defaults to the environmental variable
+#       ZLIB_SOURCE.
+#   <tag>
+#       A rule which computes the actual name of the compiled
+#       libraries based on the build properties.  Ignored
+#       when using precompiled binaries.
+#   <build-name>
+#       The base name to use for the compiled library.  Ignored
+#       when using precompiled binaries.
+#
+# Examples::
+#
+#   # Find zlib in the default system location
+#   using zlib ;
+#   # Build zlib from source
+#   using zlib : 1.2.7 : <source>/home/steven/zlib-1.2.7 ;
+#   # Find zlib in /usr/local
+#   using zlib : 1.2.7
+#     : <include>/usr/local/include <search>/usr/local/lib ;
+#   # Build zlib from source for msvc and find
+#   # prebuilt binaries for gcc.
+#   using zlib : 1.2.7 : <source>C:/Devel/src/zlib-1.2.7 : <toolset>msvc ;
+#   using zlib : 1.2.7 : : <toolset>gcc ;
+#
+rule init (
+    version ?
+    # The zlib version (currently ignored)
+
+    : options *
+    # A list of the options to use
+
+    : requirements *
+    # The requirements for the zlib target
+
+    : is-default ?
+    # Default configurations are only used when zlib
+    # has not yet been configured.
+    )
+{
+    local caller = [ project.current ] ;
+
+    if ! $(.initialized)
+    {
+        .initialized = true ;
+
+        project.initialize $(__name__) ;
+        .project = [ project.current ] ;
+        project zlib ;
+    }
+
+    local library-path = [ property.select <search> : $(options) ] ;
+    library-path = $(library-path:G=) ;
+    local include-path = [ property.select <include> : $(options) ] ;
+    include-path = $(include-path:G=) ;
+    local source-path = [ property.select <source> : $(options) ] ;
+    source-path = $(source-path:G=) ;
+    local library-name = [ property.select <name> : $(options) ] ;
+    library-name = $(library-name:G=) ;
+    local tag = [ property.select <tag> : $(options) ] ;
+    tag = $(tag:G=) ;
+    local build-name = [ property.select <build-name> : $(options) ] ;
+    build-name = $(build-name:G=) ;
+
+    condition = [ property-set.create $(requirements) ] ;
+    condition = [ property-set.create [ $(condition).base ] ] ;
+
+    local no-build-from-source ;
+    # Ignore environmental ZLIB_SOURCE if this initialization
+    # requested to search for a specific pre-built library.
+    if $(library-path) || $(include-path) || $(library-name)
+    {
+        if $(source-path) || $(tag) || $(build-name)
+        {
+            errors.user-error "incompatible options for zlib:"
+                [ property.select <search> <include> <name> : $(options) ] "and"
+                [ property.select <source> <tag> <build-name> : $(options) ] ;
+        }
+        else
+        {
+            no-build-from-source = true ;
+        }
+    }
+
+    source-path ?= [ modules.peek : ZLIB_SOURCE ] ;
+
+    if $(.configured.$(condition))
+    {
+        if $(is-default)
+        {
+            if $(.debug)
+            {
+                ECHO "notice: [zlib] zlib is already configured" ;
+            }
+        }
+        else
+        {
+            errors.user-error "zlib is already configured" ;
+        }
+        return ;
+    }
+    else if $(source-path) && ! $(no-build-from-source)
+    {
+        build-name ?= z ;
+        library-id = [ CALC $(library-id) + 1 ] ;
+        tag = [ MATCH ^@?(.*)$ : $(tag) ] ;
+        if $(tag) && ! [ MATCH ^([^%]*)%([^%]+)$ : $(tag) ]
+        {
+            tag = [ indirect.make $(tag) : [ $(caller).project-module ] ] ;
+        }
+        sources = [ path.glob $(source-path) : $(sources) ] ;
+        if $(.debug)
+        {
+            ECHO "notice: [zlib] Building zlib from source as $(build-name)" ;
+            if $(condition)
+            {
+                ECHO "notice: [zlib] Condition" [ $(condition).raw ] ;
+            }
+            if $(sources)
+            {
+                ECHO "notice: [zlib] found zlib source in $(source-path)" ;
+            }
+            else
+            {
+                ECHO "warning: [zlib] could not find zlib source in $(source-path)" ;
+            }
+        }
+        local target ;
+        if $(sources) {
+            target = [ targets.create-typed-target LIB : $(.project)
+              : $(build-name).$(library-id)
+              : $(sources)
+              : $(requirements)
+                <tag>@$(tag)
+                <include>$(source-path)
+                <toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+                <toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+                <link>shared:<define>ZLIB_DLL
+              :
+              : <include>$(source-path) ] ;
+        }
+
+        local mt = [ new ac-library zlib : $(.project) : $(condition) ] ;
+        $(mt).set-header $(header) ;
+        $(mt).set-default-names $(names) ;
+        if $(target)
+        {
+            $(mt).set-target $(target) ;
+        }
+        targets.main-target-alternative $(mt) ;
+    } else {
+        if $(.debug)
+        {
+            ECHO "notice: [zlib] Using pre-installed library" ;
+            if $(condition)
+            {
+                ECHO "notice: [zlib] Condition" [ $(condition).raw ] ;
+            }
+        }
+
+        local mt = [ new ac-library zlib : $(.project) : $(condition) :
+            $(include-path) : $(library-path) : $(library-name) : $(root) ] ;
+        $(mt).set-header $(header) ;
+        $(mt).set-default-names $(names) ;
+        targets.main-target-alternative $(mt) ;
+    }
+    .configured.$(condition) = true ;
+}

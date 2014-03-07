@@ -1,0 +1,333 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:binary Binary Parsers]
+
+This module includes different parsers for parsing binary data in
+various __endianness__. It includes parsers for default (native),
+little, and big endian binary input.
+
+[heading Module Header]
+
+    // forwards to <boost/spirit/home/qi/binary.hpp>
+    #include <boost/spirit/include/qi_binary.hpp>
+
+Also, see __include_structure__.
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:binary_native Binary Native Endianness Parsers]
+
+[heading Description]
+
+Binary native endian parsers are designed to parse binary byte streams
+that are laid out in the native __endianness__ of the target
+architecture. 
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/binary.hpp>
+    #include <boost/spirit/include/qi_binary.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::byte_     // alias: boost::spirit::qi::byte_`]]
+    [[`boost::spirit::word      // alias: boost::spirit::qi::word`]]
+    [[`boost::spirit::dword     // alias: boost::spirit::qi::dword`]]
+    [[`boost::spirit::qword     // alias: boost::spirit::qi::qword`]]
+    [[`boost::spirit::bin_float     // alias: boost::spirit::qi::bin_float`]]
+    [[`boost::spirit::bin_double     // alias: boost::spirit::qi::bin_double`]]
+]
+
+[note `qword` is only available on platforms where the preprocessor
+constant `BOOST_HAS_LONG_LONG` is defined (i.e. on platforms having
+native support for `unsigned long long` (64 bit) integer types).] 
+
+[heading Model of]
+
+[:__primitive_parser_concept__]
+
+[variablelist Notation
+    [[`b`]    [A single byte (8 bit binary value) or a __qi_lazy_argument__ 
+               that evaluates to a single byte. This value is always 
+               in native endian.]]
+    [[`w`]    [A 16 bit binary value or a __qi_lazy_argument__ that 
+               evaluates to a 16 bit binary value. This value is always 
+               in native endian.]]
+    [[`dw`]   [A 32 bit binary value or a __qi_lazy_argument__ that 
+               evaluates to a 32 bit binary value. This value is always 
+               in native endian.]]
+    [[`qw`]   [A 64 bit binary value or a __qi_lazy_argument__ that 
+               evaluates to a 64 bit binary value. This value is always 
+               in native endian.]]
+    [[`f`]    [A float binary value or a __qi_lazy_argument__ that 
+               evaluates to a float binary value. This value is always 
+               in native endian.]]
+    [[`d`]    [A double binary value or a __qi_lazy_argument__ that 
+               evaluates to a double binary value. This value is always 
+               in native endian.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_parser_concept__.
+
+[table
+    [[Expression]           [Description]]
+    [[`byte_`]              [Matches any 8 bit native endian binary.]]
+    [[`word`]               [Matches any 16 bit native endian binary.]]
+    [[`dword`]              [Matches any 32 bit native endian binary.]]
+    [[`qword`]              [Matches any 64 bit native endian binary.]]
+    [[`bin_float`]          [Matches any float native endian binary.]]
+    [[`bin_double`]         [Matches any double native endian binary.]]
+    [[`byte_(b)`]           [Matches an exact 8 bit native endian binary.]]
+    [[`word(w)`]            [Matches an exact 16 bit native endian binary.]]
+    [[`dword(dw)`]          [Matches an exact 32 bit native endian binary.]]
+    [[`qword(qw)`]          [Matches an exact 64 bit native endian binary.]]
+    [[`bin_float(f)`]       [Matches an exact float native endian binary.]]
+    [[`bin_double(d)`]      [Matches an exact double native endian binary.]]
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]           [Attribute]]
+    [[`byte_`]              [`boost::uint_least8_t`]]
+    [[`word`]               [`boost::uint_least16_t`]]
+    [[`dword`]              [`boost::uint_least32_t`]]
+    [[`qword`]              [`boost::uint_least64_t`]]
+    [[`bin_float`]          [`float`]]
+    [[`bin_double`]         [`double`]]
+    [[`byte_(b)`]           [__unused__]]
+    [[`word(w)`]            [__unused__]]
+    [[`dword(dw)`]          [__unused__]]
+    [[`qword(qw)`]          [__unused__]]
+    [[`bin_float(f)`]       [__unused__]]
+    [[`bin_double(d)`]      [__unused__]]
+]
+
+[heading Complexity]
+
+[:O(N), where N is the number of bytes parsed]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+[reference_qi_native_binary]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:binary_little Binary Little Endianness Parser]
+
+[heading Description]
+
+Binary little endian parsers are designed to parse binary byte streams
+that are laid out in little endian.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/binary.hpp>
+    #include <boost/spirit/include/qi_binary.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::little_word        // alias: boost::spirit::qi::little_word` ]]
+    [[`boost::spirit::little_dword       // alias: boost::spirit::qi::little_dword` ]]
+    [[`boost::spirit::little_qword       // alias: boost::spirit::qi::little_qword` ]]
+    [[`boost::spirit::little_bin_float   // alias: boost::spirit::qi::little_bin_float` ]]
+    [[`boost::spirit::little_bin_double  // alias: boost::spirit::qi::little_bin_double` ]]
+]
+
+[note `little_qword` is only available on platforms where the
+preprocessor constant `BOOST_HAS_LONG_LONG` is defined (i.e. on
+platforms having native support for `unsigned long long` (64 bit)
+integer types).] 
+
+[heading Model of]
+
+[:__primitive_parser_concept__]
+
+[variablelist Notation
+    [[`w`]    [A 16 bit binary value or a __qi_lazy_argument__ that 
+               evaluates to a 16 bit binary value. This value is always 
+               in native endian.]]
+    [[`dw`]   [A 32 bit binary value or a __qi_lazy_argument__ that 
+               evaluates to a 32 bit binary value. This value is always 
+               in native endian.]]
+    [[`qw`]   [A 64 bit binary value or a __qi_lazy_argument__ that 
+               evaluates to a 64 bit binary value. This value is always 
+               in native endian.]]
+    [[`f`]    [A float binary value or a __qi_lazy_argument__ that 
+               evaluates to a float binary value. This value is always 
+               in native endian.]]
+    [[`d`]    [A double binary value or a __qi_lazy_argument__ that 
+               evaluates to a double binary value. This value is always 
+               in native endian.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_parser_concept__.
+
+[table
+    [[Expression]              [Description]]
+    [[`little_word`]           [Matches any 16 bit little endian binary.]]
+    [[`little_dword`]          [Matches any 32 bit little endian binary.]]
+    [[`little_qword`]          [Matches any 64 bit little endian binary.]]
+    [[`little_bin_float`]      [Matches any float little endian binary.]]
+    [[`little_bin_double`]     [Matches any double little endian binary.]]
+    [[`little_word(w)`]        [Matches an exact 16 bit little endian binary.]]
+    [[`little_dword(dw)`]      [Matches an exact 32 bit little endian binary.]]
+    [[`little_qword(qw)`]      [Matches an exact 32 bit little endian binary.]]
+    [[`little_bin_float(f)`]   [Matches an exact float little endian binary.]]
+    [[`little_bin_double(d)`]  [Matches an exact double little endian binary.]]
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]              [Attribute]]
+    [[`little_word`]           [`boost::uint_least16_t`]]
+    [[`little_dword`]          [`boost::uint_least32_t`]]
+    [[`little_qword`]          [`boost::uint_least64_t`]]
+    [[`little_bin_float`]      [`float`]]
+    [[`little_bin_double`]     [`double`]]
+    [[`little_word(w)`]        [__unused__]]
+    [[`little_dword(dw)`]      [__unused__]]
+    [[`little_qword(qw)`]      [__unused__]]
+    [[`little_bin_float(f)`]   [__unused__]]
+    [[`little_bin_double(d)`]  [__unused__]]
+]
+
+[heading Complexity]
+
+[:O(N), where N is the number of bytes parsed]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+[reference_qi_little_binary]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:binary_big Binary Big Endianness Parsers]
+
+[heading Description]
+
+Binary big endian parsers are designed to parse binary byte streams that
+are laid out in big endian.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/binary.hpp>
+    #include <boost/spirit/include/qi_binary.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::big_word         // alias: boost::spirit::qi::big_word` ]]
+    [[`boost::spirit::big_dword        // alias: boost::spirit::qi::big_dword` ]]
+    [[`boost::spirit::big_qword        // alias: boost::spirit::qi::big_qword` ]]
+    [[`boost::spirit::big_bin_float    // alias: boost::spirit::qi::big_bin_float` ]]
+    [[`boost::spirit::big_bin_double   // alias: boost::spirit::qi::big_bin_double` ]]
+]
+
+[note `big_qword` is only available on platforms where the
+preprocessor constant `BOOST_HAS_LONG_LONG` is defined (i.e. on
+platforms having native support for `unsigned long long` (64 bit)
+integer types).] 
+
+[heading Model of]
+
+[:__primitive_parser_concept__]
+
+[variablelist Notation
+    [[`w`]      [A 16 bit binary value or a __qi_lazy_argument__ that 
+                evaluates to a 16 bit binary value. This value is always 
+                in native endian.]]
+    [[`dw`]     [A 32 bit binary value or a __qi_lazy_argument__ that 
+                evaluates to a 32 bit binary value. This value is always 
+                in native endian.]]
+    [[`qw`]     [A 64 bit binary value or a __qi_lazy_argument__ that 
+                evaluates to a 64 bit binary value. This value is always 
+                in native endian.]]
+    [[`f`]      [A float binary value or a __qi_lazy_argument__ that 
+                evaluates to a float binary value. This value is always 
+                in native endian.]]
+    [[`d`]      [A double binary value or a __qi_lazy_argument__ that 
+                evaluates to a double binary value. This value is always 
+                in native endian.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_parser_concept__.
+
+[table
+    [[Expression]           [Description]]
+    [[`big_word`]           [Matches any 16 bit big endian binary.]]
+    [[`big_dword`]          [Matches any 32 bit big endian binary.]]
+    [[`big_qword`]          [Matches any 64 bit big endian binary.]]
+    [[`big_bin_float`]      [Matches any float big endian binary.]]
+    [[`big_bin_double`]     [Matches any double big endian binary.]]
+    [[`big_word(w)`]        [Matches an exact 16 bit big endian binary.]]
+    [[`big_dword(dw)`]      [Matches an exact 32 bit big endian binary.]]
+    [[`big_qword(qw)`]      [Matches an exact 32 bit big endian binary.]]
+    [[`big_bin_float(f)`]   [Matches an exact float big endian binary.]]
+    [[`big_bin_double(d)`]  [Matches an exact double big endian binary.]]
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]           [Attribute]]
+    [[`big_word`]           [`boost::uint_least16_t`]]
+    [[`big_dword`]          [`boost::uint_least32_t`]]
+    [[`big_qword`]          [`boost::uint_least64_t`]]
+    [[`big_bin_float`]      [`float`]]
+    [[`big_bin_double`]     [`double`]]
+    [[`big_word(w)`]        [__unused__]]
+    [[`big_dword(dw)`]      [__unused__]]
+    [[`big_qword(qw)`]      [__unused__]]
+    [[`big_bin_float(f)`]   [__unused__]]
+    [[`big_bin_double(d)`]  [__unused__]]
+]
+
+[heading Complexity]
+
+[:O(N), where N is the number of bytes parsed]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+[reference_qi_big_binary]
+
+[endsect]
+
+[endsect]

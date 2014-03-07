@@ -1,0 +1,228 @@
+# Copyright Michael Stevens 2004
+
+# Use, modification, and distribution is subject to the Boost Software
+# License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+# bring in rules for testing
+
+# Boost uBLAS library documentation samples
+
+# Project requirements
+project samples
+    : requirements
+      <toolset>borland:<cxxflags>"-w-8026 -w-8027 -w-8057 -w-8084 -w-8092"
+      <toolset>kylix:<cxxflags>"-w-8026 -w-8027 -w-8057 -w-8084 -w-8092"
+    ;
+
+exe unbounded_array
+    : unbounded_array.cpp
+    ;
+
+exe bounded_array
+    : bounded_array.cpp
+    ;
+
+exe range
+    : range.cpp
+    ;
+
+exe slice
+    : slice.cpp
+    ;
+
+exe map_array
+    : map_array.cpp
+    ;
+
+exe vector
+    : vector.cpp
+    ;
+
+exe unit_vector
+    : unit_vector.cpp
+    ;
+
+exe zero_vector
+    : zero_vector.cpp
+    ;
+
+exe mapped_vector
+    : mapped_vector.cpp
+    ;
+
+exe compressed_vector
+    : compressed_vector.cpp
+    ;
+
+exe coordinate_vector
+    : coordinate_vector.cpp
+    ;
+
+exe vector_range
+    : vector_range.cpp
+    ;
+
+exe vector_range_project
+    : vector_range_project.cpp
+    ;
+
+exe vector_slice
+    : vector_slice.cpp
+    ;
+
+exe vector_slice_project
+    : vector_slice_project.cpp
+    ;
+
+exe vector_unary
+    : vector_unary.cpp
+    ;
+
+exe vector_binary
+    : vector_binary.cpp
+    ;
+
+exe vector_binary_outer
+    : vector_binary_outer.cpp
+    ;
+
+exe vector_binary_scalar
+    : vector_binary_scalar.cpp
+    ;
+
+exe vector_unary_redux
+    : vector_unary_redux.cpp
+    ;
+
+exe vector_binary_redux
+    : vector_binary_redux.cpp
+    ;
+
+exe matrix
+    : matrix.cpp
+    ;
+
+exe identity_matrix
+    : identity_matrix.cpp
+    ;
+
+exe zero_matrix
+    : zero_matrix.cpp
+    ;
+
+exe mapped_matrix
+    : mapped_matrix.cpp
+    ;
+
+exe compressed_matrix
+    : compressed_matrix.cpp
+    ;
+
+exe coordinate_matrix
+    : coordinate_matrix.cpp
+    ;
+
+exe matrix_row
+    : matrix_row.cpp
+    ;
+
+exe matrix_row_project
+    : matrix_row_project.cpp
+    ;
+
+exe matrix_column
+    : matrix_column.cpp
+    ;
+
+exe matrix_column_project
+    : matrix_column_project.cpp
+    ;
+
+exe matrix_vector_range
+    : matrix_vector_range.cpp
+    ;
+
+exe matrix_vector_slice
+    : matrix_vector_slice.cpp
+    ;
+
+exe matrix_range
+    : matrix_range.cpp
+    ;
+
+exe matrix_range_project
+    : matrix_range_project.cpp
+    ;
+
+exe matrix_slice
+    : matrix_slice.cpp
+    ;
+
+exe matrix_slice_project
+    : matrix_slice_project.cpp
+    ;
+
+exe matrix_unary
+    : matrix_unary.cpp
+    ;
+
+exe matrix_binary
+    : matrix_binary.cpp
+    : <include>$(BOOST_ROOT)
+    ;
+
+exe matrix_binary_scalar
+    : matrix_binary_scalar.cpp
+    ;
+
+exe matrix_vector_binary
+    : matrix_vector_binary.cpp
+    ;
+
+exe matrix_vector_solve
+    : matrix_vector_solve.cpp
+    ;
+
+exe matrix_matrix_binary
+    : matrix_matrix_binary.cpp
+    ;
+
+exe matrix_matrix_solve
+    : matrix_matrix_solve.cpp
+    ;
+
+exe banded_matrix
+    : banded_matrix.cpp
+    ;
+
+exe banded_adaptor
+    : banded_adaptor.cpp
+    ;
+
+exe hermitian_matrix
+    : hermitian_matrix.cpp
+    ;
+
+exe hermitian_adaptor
+    : hermitian_adaptor.cpp
+    ;
+
+exe symmetric_matrix
+    : symmetric_matrix.cpp
+    ;
+
+exe symmetric_adaptor
+    : symmetric_adaptor.cpp
+    ;
+
+exe triangular_matrix
+    : triangular_matrix.cpp
+    ;
+
+exe triangular_adaptor
+    : triangular_adaptor.cpp
+    ;
+
+exe ex_triangular
+    : ex_triangular.cpp
+    ;

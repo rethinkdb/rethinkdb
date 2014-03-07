@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<section id="bbv2.reference.class.property-set">
+
+  <title>Class property-set</title>
+  <indexterm>
+    <primary>property-set</primary>
+  </indexterm>
+
+  <para>Class for storing a set of properties.</para>
+
+<programlisting language="jam">
+class property-set {
+    rule <link linkend="bbv2.reference.class.property-set.raw">raw</link> ( )
+    rule <link linkend="bbv2.reference.class.property-set.str">str</link> ( )
+    rule <link linkend="bbv2.reference.class.property-set.propagated">propagated</link> ( )
+    rule <link linkend="bbv2.reference.class.property-set.add">add</link> ( ps )
+    rule <link linkend="bbv2.reference.class.property-set.add-raw">add-raw</link> ( properties * )
+    rule <link linkend="bbv2.reference.class.property-set.refine">refine</link> ( ps )
+    rule <link linkend="bbv2.reference.class.property-set.get">get</link> ( feature )
+}
+</programlisting>
+
+  <para>
+    There is 1&lt;-&gt;1 correspondence between identity and value. No two instances
+    of the class are equal. To maintain this property, the 'property-set.create'
+    rule should be used to create new instances. Instances are immutable.
+  </para>
+
+  <orderedlist>
+
+    <listitem id="bbv2.reference.class.property-set.raw">
+      <indexterm zone="bbv2.reference.class.property-set.raw">
+        <primary>raw</primary>
+        <secondary>Property Set Method</secondary>
+      </indexterm>
+      <code language="jam">rule raw ( )</code>
+      <para>Returns a Jam list of the stored properties.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.property-set.str">
+      <indexterm zone="bbv2.reference.class.property-set.str">
+        <primary>str</primary>
+        <secondary>Property Set Method</secondary>
+      </indexterm>
+      <code language="jam">rule str ( )</code>
+      <para>Returns the string repesentation of the stored properties.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.property-set.propagated">
+      <indexterm zone="bbv2.reference.class.property-set.propagated">
+        <primary>propagated</primary>
+        <secondary>Property Set Method</secondary>
+      </indexterm>
+      <code language="jam">rule propagated ( )</code>
+      <para>
+        Returns a <link linkend="bbv2.reference.class.property-set">property-set</link>
+        containing all the <link linkend="bbv2.reference.features.attributes.propagated">propagated</link>
+        properties in this <link linkend="bbv2.reference.class.property-set">property-set</link>.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.property-set.add">
+      <indexterm zone="bbv2.reference.class.property-set.add">
+        <primary>add</primary>
+        <secondary>Property Set Method</secondary>
+      </indexterm>
+      <code language="jam">rule add ( ps )</code>
+      <para>
+        Returns a new <link linkend="bbv2.reference.class.property-set">
+        property-set</link> containing the union of the properties
+        in this <link linkend="bbv2.reference.class.property-set">
+        property-set</link> and in <literal>ps</literal>.
+        <note>
+          <para>
+            If <literal>ps</literal> contains non-free properties
+            that should override the values in this object, use
+            <link linkend="bbv2.reference.class.property-set.refine">
+            refine</link> instead.
+          </para>
+        </note>
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.property-set.add-raw">
+      <indexterm zone="bbv2.reference.class.property-set.add-raw">
+        <primary>add-raw</primary>
+        <secondary>Property Set Method</secondary>
+      </indexterm>
+      <code language="jam">rule add-raw ( properties * )</code>
+      <para>
+        Link <link linkend="bbv2.reference.class.property-set.add">
+        add</link>, except that it takes a list of properties
+        instead of a <link linkend="bbv2.reference.class.property-set">
+        property-set</link>.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.property-set.refine">
+      <indexterm zone="bbv2.reference.class.property-set.refine">
+        <primary>refine</primary>
+        <secondary>Property Set Method</secondary>
+      </indexterm>
+      <code language="jam">rule refine ( ps )</code>
+      <para>
+        Refines properties by overriding any non-free and non-conditional
+        properties for which a different value is specified in
+        <literal>ps</literal>. Returns the resulting
+        <link linkend="bbv2.reference.class.property-set">property-set</link>.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.property-set.get">
+      <indexterm zone="bbv2.reference.class.property-set.get">
+        <primary>get</primary>
+        <secondary>Property Set Method</secondary>
+      </indexterm>
+      <code language="jam">rule get ( feature )</code>
+      <para>
+        Returns all the values of <literal>feature</literal>.
+      </para>
+    </listitem>
+
+  </orderedlist>
+  
+</section>

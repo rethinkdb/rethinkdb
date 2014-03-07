@@ -1,0 +1,401 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Mini XML - Error Handling</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="mini_xml___asts_.html" title="Mini XML - ASTs!">
+<link rel="next" href="../quick_reference.html" title="Quick Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="mini_xml___asts_.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../quick_reference.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.tutorials.mini_xml___error_handling"></a><a class="link" href="mini_xml___error_handling.html" title="Mini XML - Error Handling">Mini
+        XML - Error Handling</a>
+</h4></div></div></div>
+<p>
+          A parser will not be complete without error handling. Spirit2 provides
+          some facilities to make it easy to adapt a grammar for error handling.
+          We'll wrap up the Qi tutorial with another version of the mini xml parser,
+          this time, with error handling.
+        </p>
+<p>
+          The full cpp file for this example can be found here: <a href="../../../../../example/qi/mini_xml3.cpp" target="_top">../../example/qi/mini_xml3.cpp</a>
+        </p>
+<p>
+          Here's the grammar:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">mini_xml_grammar</span>
+  <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">mini_xml</span><span class="special">(),</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">locals</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;,</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">mini_xml_grammar</span><span class="special">()</span>
+      <span class="special">:</span> <span class="identifier">mini_xml_grammar</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">xml</span><span class="special">,</span> <span class="string">"xml"</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">lexeme</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">on_error</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">fail</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">string</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">labels</span><span class="special">;</span>
+
+        <span class="keyword">using</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">construct</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">val</span><span class="special">;</span>
+
+        <span class="identifier">text</span> <span class="special">%=</span> <span class="identifier">lexeme</span><span class="special">[+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'&lt;'</span><span class="special">)];</span>
+        <span class="identifier">node</span> <span class="special">%=</span> <span class="identifier">xml</span> <span class="special">|</span> <span class="identifier">text</span><span class="special">;</span>
+
+        <span class="identifier">start_tag</span> <span class="special">%=</span>
+                <span class="char">'&lt;'</span>
+            <span class="special">&gt;&gt;</span>  <span class="special">!</span><span class="identifier">lit</span><span class="special">(</span><span class="char">'/'</span><span class="special">)</span>
+            <span class="special">&gt;</span>   <span class="identifier">lexeme</span><span class="special">[+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'&gt;'</span><span class="special">)]</span>
+            <span class="special">&gt;</span>   <span class="char">'&gt;'</span>
+        <span class="special">;</span>
+
+        <span class="identifier">end_tag</span> <span class="special">=</span>
+                <span class="string">"&lt;/"</span>
+            <span class="special">&gt;</span>   <span class="identifier">string</span><span class="special">(</span><span class="identifier">_r1</span><span class="special">)</span>
+            <span class="special">&gt;</span>   <span class="char">'&gt;'</span>
+        <span class="special">;</span>
+
+        <span class="identifier">xml</span> <span class="special">%=</span>
+                <span class="identifier">start_tag</span><span class="special">[</span><span class="identifier">_a</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">]</span>
+            <span class="special">&gt;</span>   <span class="special">*</span><span class="identifier">node</span>
+            <span class="special">&gt;</span>   <span class="identifier">end_tag</span><span class="special">(</span><span class="identifier">_a</span><span class="special">)</span>
+        <span class="special">;</span>
+
+        <span class="identifier">xml</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"xml"</span><span class="special">);</span>
+        <span class="identifier">node</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"node"</span><span class="special">);</span>
+        <span class="identifier">text</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"text"</span><span class="special">);</span>
+        <span class="identifier">start_tag</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"start_tag"</span><span class="special">);</span>
+        <span class="identifier">end_tag</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"end_tag"</span><span class="special">);</span>
+
+        <span class="identifier">on_error</span><span class="special">&lt;</span><span class="identifier">fail</span><span class="special">&gt;</span>
+        <span class="special">(</span>
+            <span class="identifier">xml</span>
+          <span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"Error! Expecting "</span><span class="special">)</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">_4</span>                               <span class="comment">// what failed?</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">" here: \""</span><span class="special">)</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="identifier">_3</span><span class="special">,</span> <span class="identifier">_2</span><span class="special">)</span>   <span class="comment">// iterators to error-pos, end</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"\""</span><span class="special">)</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+        <span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">mini_xml</span><span class="special">(),</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">locals</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;,</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">xml</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">mini_xml_node</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">node</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">text</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">start_tag</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">void</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">end_tag</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          What's new?
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___error_handling.h0"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___error_handling.readable_names"></a></span><a class="link" href="mini_xml___error_handling.html#spirit.qi.tutorials.mini_xml___error_handling.readable_names">Readable
+          Names</a>
+        </h6>
+<p>
+          First, when we call the base class, we give the grammar a name:
+        </p>
+<pre class="programlisting"><span class="special">:</span> <span class="identifier">mini_xml_grammar</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">xml</span><span class="special">,</span> <span class="string">"xml"</span><span class="special">)</span>
+</pre>
+<p>
+          Then, we name all our rules:
+        </p>
+<pre class="programlisting"><span class="identifier">xml</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"xml"</span><span class="special">);</span>
+<span class="identifier">node</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"node"</span><span class="special">);</span>
+<span class="identifier">text</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"text"</span><span class="special">);</span>
+<span class="identifier">start_tag</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"start_tag"</span><span class="special">);</span>
+<span class="identifier">end_tag</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="string">"end_tag"</span><span class="special">);</span>
+</pre>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___error_handling.h1"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___error_handling.on_success"></a></span><a class="link" href="mini_xml___error_handling.html#spirit.qi.tutorials.mini_xml___error_handling.on_success">On Success</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="identifier">on_success</span></code> declares a handler
+          that is applied when a rule is succesfully matched.
+        </p>
+<pre class="programlisting"><span class="identifier">on_success</span><span class="special">(</span><span class="identifier">rule</span><span class="special">,</span> <span class="identifier">handler</span><span class="special">)</span>
+</pre>
+<p>
+          This specifies that the handler will be called when a rule is matched successfully.
+          The handler has the following signature:
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">handler</span><span class="special">(</span>
+	<span class="identifier">fusion</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+		<span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">first</span><span class="special">,</span>
+		<span class="identifier">Iterator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">last</span><span class="special">,</span>
+		<span class="identifier">Iterator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">i</span><span class="special">&gt;</span> <span class="identifier">args</span><span class="special">,</span>
+	<span class="identifier">Context</span><span class="special">&amp;</span> <span class="identifier">context</span><span class="special">)</span>
+</pre>
+<p>
+          <code class="computeroutput"><span class="identifier">first</span></code> points to the position
+          in the input sequence before the rule is matched. <code class="computeroutput"><span class="identifier">last</span></code>
+          points to the last position in the input sequence. <code class="computeroutput"><span class="identifier">i</span></code>
+          points to the position in the input sequence following the last character
+          that was consumed by the rule.
+        </p>
+<p>
+          A success handler can be used to annotate each matched rule in the grammar
+          with additional information about the portion of the input that matched
+          the rule. In a compiler application, this can be a combination of file,
+          line number and column number from the input stream for reporting diagnostics
+          or other messages.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___error_handling.h2"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___error_handling.on_error"></a></span><a class="link" href="mini_xml___error_handling.html#spirit.qi.tutorials.mini_xml___error_handling.on_error">On Error</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="identifier">on_error</span></code> declares our error
+          handler:
+        </p>
+<pre class="programlisting"><span class="identifier">on_error</span><span class="special">&lt;</span><span class="identifier">Action</span><span class="special">&gt;(</span><span class="identifier">rule</span><span class="special">,</span> <span class="identifier">handler</span><span class="special">)</span>
+</pre>
+<p>
+          This will specify what we will do when we get an error. We will print out
+          an error message using phoenix:
+        </p>
+<pre class="programlisting"><span class="identifier">on_error</span><span class="special">&lt;</span><span class="identifier">fail</span><span class="special">&gt;</span>
+<span class="special">(</span>
+    <span class="identifier">xml</span>
+  <span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"Error! Expecting "</span><span class="special">)</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">_4</span>                               <span class="comment">// what failed?</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">" here: \""</span><span class="special">)</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="identifier">_3</span><span class="special">,</span> <span class="identifier">_2</span><span class="special">)</span>   <span class="comment">// iterators to error-pos, end</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"\""</span><span class="special">)</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+<span class="special">);</span>
+</pre>
+<p>
+          we choose to <code class="computeroutput"><span class="identifier">fail</span></code> in our
+          example for the <code class="computeroutput"><span class="identifier">Action</span></code>:
+          Quit and fail. Return a no_match (false). It can be one of:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Action</span></code>
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    fail
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Quit and fail. Return a no_match.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    retry
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Attempt error recovery, possibly moving the iterator position.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    accept
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Force success, moving the iterator position appropriately.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    rethrow
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Rethrows the error.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          <code class="computeroutput"><span class="identifier">rule</span></code> is the rule to which
+          the handler is attached. In our case, we are attaching to the <code class="computeroutput"><span class="identifier">xml</span></code> rule.
+        </p>
+<p>
+          <code class="computeroutput"><span class="identifier">handler</span></code> is the actual error
+          handling function. It expects 4 arguments:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Arg
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    first
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The position of the iterator when the rule with the handler was
+                    entered.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    last
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The end of input.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    error-pos
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The actual position of the iterator where the error occured.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    what
+                  </p>
+                </td>
+<td>
+                  <p>
+                    What failed: a string describing the failure.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___error_handling.h3"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___error_handling.expectation_points"></a></span><a class="link" href="mini_xml___error_handling.html#spirit.qi.tutorials.mini_xml___error_handling.expectation_points">Expectation
+          Points</a>
+        </h6>
+<p>
+          You might not have noticed it, but some of our expressions changed from
+          using the <code class="computeroutput"><span class="special">&gt;&gt;</span></code> to <code class="computeroutput"><span class="special">&gt;</span></code>. Look, for example:
+        </p>
+<pre class="programlisting"><span class="identifier">end_tag</span> <span class="special">=</span>
+        <span class="string">"&lt;/"</span>
+    <span class="special">&gt;</span>   <span class="identifier">lit</span><span class="special">(</span><span class="identifier">_r1</span><span class="special">)</span>
+    <span class="special">&gt;</span>   <span class="char">'&gt;'</span>
+<span class="special">;</span>
+</pre>
+<p>
+          What is it? It's the <span class="emphasis"><em>expectation</em></span> operator. You will
+          have some "deterministic points" in the grammar. Those are the
+          places where backtracking <span class="bold"><strong>cannot</strong></span> occur.
+          For our example above, when you get a <code class="computeroutput"><span class="string">"&lt;/"</span></code>,
+          you definitely must see a valid end-tag label next. It should be the one
+          you got from the start-tag. After that, you definitely must have a <code class="computeroutput"><span class="char">'&gt;'</span></code> next. Otherwise, there is no point in
+          proceeding and trying other branches, regardless where they are. The input
+          is definitely erroneous. When this happens, an expectation_failure exception
+          is thrown. Somewhere outward, the error handler will catch the exception.
+        </p>
+<p>
+          Try building the parser: <a href="../../../../../example/qi/mini_xml3.cpp" target="_top">../../example/qi/mini_xml3.cpp</a>.
+          You can find some examples in: <a href="../../../../../example/qi/mini_xml_samples" target="_top">../../example/qi/mini_xml_samples</a>
+          for testing purposes. "4.toyxml" has an error in it:
+        </p>
+<pre class="programlisting"><span class="special">&lt;</span><span class="identifier">foo</span><span class="special">&gt;&lt;</span><span class="identifier">bar</span><span class="special">&gt;&lt;/</span><span class="identifier">foo</span><span class="special">&gt;&lt;/</span><span class="identifier">bar</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Running the example with this gives you:
+        </p>
+<pre class="programlisting"><span class="identifier">Error</span><span class="special">!</span> <span class="identifier">Expecting</span> <span class="string">"bar"</span> <span class="identifier">here</span><span class="special">:</span> <span class="string">"foo&gt;&lt;/bar&gt;"</span>
+<span class="identifier">Error</span><span class="special">!</span> <span class="identifier">Expecting</span> <span class="identifier">end_tag</span> <span class="identifier">here</span><span class="special">:</span> <span class="string">"&lt;bar&gt;&lt;/foo&gt;&lt;/bar&gt;"</span>
+<span class="special">-------------------------</span>
+<span class="identifier">Parsing</span> <span class="identifier">failed</span>
+<span class="special">-------------------------</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="mini_xml___asts_.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../quick_reference.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

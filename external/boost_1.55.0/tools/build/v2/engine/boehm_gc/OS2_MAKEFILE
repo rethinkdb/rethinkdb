@@ -1,0 +1,45 @@
+# Makefile for OS/2.  Assumes IBM's compiler, static linking, and a single thread.
+# Adding dynamic linking support seems easy, but takes a little bit of work.
+# Adding thread support may be nontrivial, since we haven't yet figured out how to
+# look at another thread's registers.
+
+# Significantly revised for GC version 4.4 by Mark Boulter (Jan 1994).
+
+OBJS= alloc.obj reclaim.obj allchblk.obj misc.obj mach_dep.obj os_dep.obj mark_rts.obj headers.obj mark.obj obj_map.obj blacklst.obj finalize.obj new_hblk.obj dbg_mlc.obj malloc.obj stubborn.obj typd_mlc.obj ptr_chck.obj mallocx.obj
+
+CORDOBJS= cord\cordbscs.obj cord\cordxtra.obj cord\cordprnt.obj
+
+CC= icc
+CFLAGS= /O /Q /DSMALL_CONFIG /DALL_INTERIOR_POINTERS
+# Use /Ti instead of /O for debugging
+# Setjmp_test may yield overly optimistic results when compiled
+# without optimization.
+
+all: $(OBJS) gctest.exe cord\cordtest.exe
+
+$(OBJS) test.obj: include\private\gc_priv.h include\private\gc_hdrs.h include\gc.h include\private\gcconfig.h
+
+## ERASE THE LIB FIRST - if it is already there then this command will fail
+## (make sure its there or erase will fail!)
+gc.lib: $(OBJS)
+        echo . > gc.lib
+        erase gc.lib
+        LIB gc.lib $(OBJS), gc.lst
+
+mach_dep.obj: mach_dep.c
+        $(CC) $(CFLAGS) /C mach_dep.c
+
+gctest.exe: test.obj gc.lib
+        $(CC) $(CFLAGS) /B"/STACK:524288" /Fegctest test.obj gc.lib
+
+cord\cordbscs.obj: cord\cordbscs.c include\cord.h include\private\cord_pos.h
+        $(CC) $(CFLAGS) /C /Focord\cordbscs cord\cordbscs.c
+
+cord\cordxtra.obj: cord\cordxtra.c include\cord.h include\private\cord_pos.h include\ec.h
+        $(CC) $(CFLAGS) /C /Focord\cordxtra cord\cordxtra.c
+
+cord\cordprnt.obj: cord\cordprnt.c include\cord.h include\private\cord_pos.h include\ec.h
+        $(CC) $(CFLAGS) /C /Focord\cordprnt cord\cordprnt.c
+
+cord\cordtest.exe: cord\cordtest.c include\cord.h include\private\cord_pos.h include\ec.h $(CORDOBJS) gc.lib
+        $(CC) $(CFLAGS) /B"/STACK:65536" /Fecord\cordtest cord\cordtest.c gc.lib $(CORDOBJS)

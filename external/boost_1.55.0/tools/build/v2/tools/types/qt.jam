@@ -1,0 +1,12 @@
+# Copyright Vladimir Prus 2005. Distributed under the Boost
+# Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+type UI : ui ;
+type QRC : qrc ;
+type MOCCABLE_CPP ;
+type MOCCABLE_H ;
+type MOCCABLE5_CPP ;
+type MOCCABLE5_H ;
+# Result of running moc.
+type MOC : moc : H ;

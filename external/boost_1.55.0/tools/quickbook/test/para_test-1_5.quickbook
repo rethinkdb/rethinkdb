@@ -1,0 +1,81 @@
+[article Paragraph Test
+  [quickbook 1.5]
+]
+
+[section Some Paragraphs]
+
+[/ Leading comment ] Shouldn't be a code block.
+
+[/ Leading comment ]*Should be bold*.
+
+Should be a
+[/ Breaking comment]
+single paragraph.
+
+Single paragraph.
+[/ Breaking comment]
+
+Single paragraph.
+
+[/ Breaking comment]
+Single paragraph.
+
+Single paragraph.[/ Trailing comment]
+
+
+
+
+
+
+Lots of newlines round this paragraph.
+
+
+
+
+
+
+
+
+Last paragraph.[endsect]
+
+[section Inside
+[/Breaking comment]
+blocks]
+
+[variablelist
+[[Paragraphs][
+[/ Leading comment ] Shouldn't be a code block.
+
+[/ Leading comment ]*Should be bold*.
+
+Should be a
+[/ Breaking comment]
+single paragraph.
+
+Single paragraph.
+[/ Breaking comment]
+
+Single paragraph.
+
+[/ Breaking comment]
+Single paragraph.
+
+Single paragraph.[/ Trailing comment]
+
+
+
+
+
+
+Lots of newlines round this paragraph.
+
+
+
+
+
+
+
+
+Last paragraph.]]]
+
+[endsect]

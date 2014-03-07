@@ -1,0 +1,80 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Bind</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../modules.html" title="Modules">
+<link rel="prev" href="scope/lambda.html" title="lambda">
+<link rel="next" href="bind/binding_function_objects.html" title="Binding Function Objects">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="scope/lambda.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../modules.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bind/binding_function_objects.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.modules.bind"></a><a class="link" href="bind.html" title="Bind">Bind</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="bind/binding_function_objects.html">Binding
+        Function Objects</a></span></dt>
+<dt><span class="section"><a href="bind/binding_functions.html">Binding Functions</a></span></dt>
+<dt><span class="section"><a href="bind/binding_member_functions.html">Binding
+        Member Functions</a></span></dt>
+<dt><span class="section"><a href="bind/binding_member_variables.html">Binding
+        Member Variables</a></span></dt>
+<dt><span class="section"><a href="bind/compatibility_with_boost_bind.html">Compatibility
+        with Boost.Bind</a></span></dt>
+</dl></div>
+<p>
+        <span class="emphasis"><em>Binding</em></span> is the act of tying together a function to some
+        arguments for deferred (lazy) evaluation. Named <a class="link" href="function.html" title="Function">lazy
+        functions</a> require a bit of typing. Unlike (unnamed) lambda expressions,
+        we need to write a functor somewhere offline, detached from the call site.
+        If you wish to transform a plain function, member function or member variable
+        to a lambda expression, <code class="computeroutput"><span class="identifier">bind</span></code>
+        is your friend.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Take note that binding functions, member functions or member variables
+          is monomorphic. Rather than binding functions, the preferred way is to
+          write true generic and polymorphic <a class="link" href="function.html" title="Function">lazy
+          functions</a>.
+        </p></td></tr>
+</table></div>
+<p>
+        There is a set of overloaded <code class="computeroutput"><span class="identifier">bind</span></code>
+        template functions. Each <code class="computeroutput"><span class="identifier">bind</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+        function generates a suitable binder object.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="scope/lambda.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../modules.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bind/binding_function_objects.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

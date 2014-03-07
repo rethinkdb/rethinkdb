@@ -1,0 +1,231 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+
+  <title>Boost Escaped List Separator</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000" link="#0000EE" vlink="#551A8B" alink=
+"#FF0000">
+  <h1 align="left"><img src="../../boost.png" alt="C++ Boost" width="277"
+  height="86"></h1>
+
+  <h1 align="center">Escaped List Separator</h1>
+
+  <div align="left">
+    <pre>
+escaped_list_separator&lt;Char, Traits = std::char_traits&lt;Char&gt; &gt;
+</pre>
+  </div>
+
+  <p>The <tt>escaped_list_separator</tt> class is an implementation of the
+  <a href="tokenizerfunction.htm">TokenizerFunction</a>. The
+  escaped_list_separator parses a superset of the csv (comma separated value)
+  format. The examples of this formate are below. It is assumed that the
+  default characters for separator, quote, and escape are used.</p>
+
+  <p>Field 1,Field 2,Field 3<br>
+  Field 1,"Field 2, with comma",Field 3<br>
+  Field 1,Field 2 with \"embedded quote\",Field 3<br>
+  Field 1, Field 2 with \n new line,Field 3<br>
+  Field 1, Field 2 with embedded \\ ,Field 3</p>
+
+  <p>Fields are normally separated by commas. If you want to put a comma in a
+  field, you need to put quotes around it. Also 3 escape sequences are
+  supported</p>
+
+  <table border="1" summary="">
+    <tr>
+      <td>
+        <p align="center"><strong>Escape Sequence</strong></p>
+      </td>
+
+      <td>
+        <p align="center"><strong>Result</strong></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>&lt;escape&gt;&lt;quote&gt;</td>
+
+      <td>&lt;quote&gt;</td>
+    </tr>
+
+    <tr>
+      <td>&lt;escape&gt;n</td>
+
+      <td>newline</td>
+    </tr>
+
+    <tr>
+      <td>&lt;escape&gt;&lt;escape&gt;</td>
+
+      <td>&lt;escape&gt;</td>
+    </tr>
+  </table>
+
+  <p>Where &lt;quote&gt; is any character specified to be a quote
+  and&lt;escape&gt; is any character specified to be an escape character.</p>
+
+  <h2>Example</h2>
+  <pre>
+// simple_example_2.cpp
+#include&lt;iostream&gt;
+#include&lt;boost/tokenizer.hpp&gt;
+#include&lt;string&gt;
+
+int main(){
+   using namespace std;
+   using namespace boost;
+   string s = "Field 1,\"putting quotes around fields, allows commas\",Field 3";
+   tokenizer&lt;escaped_list_separator&lt;char&gt; &gt; tok(s);
+   for(tokenizer&lt;escaped_list_separator&lt;char&gt; &gt;::iterator beg=tok.begin(); beg!=tok.end();++beg){
+       cout &lt;&lt; *beg &lt;&lt; "\n";
+   }
+}
+</pre>
+
+  <p>&nbsp;</p>
+
+  <h2>Construction and Usage</h2>
+
+  <p>escaped_list_separator has 2 constructors. They are as follows</p>
+  <pre>
+explicit escaped_list_separator(Char e = '\\', Char c = ',',Char q = '\"')
+</pre>
+
+  <table border="1" summary="">
+    <tr>
+      <td>
+        <p align="center"><strong>Parameter</strong></p>
+      </td>
+
+      <td>
+        <p align="center"><strong>Description</strong></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>e</td>
+
+      <td>Specifies the character to use for escape sequences. It defaults to
+      the C style \ (backslash). However you can override by passing in a
+      different character. An example of when you might want to do this is
+      when you have many fields which are Windows style filenames. Instead of
+      escaping out each \ in the path, you can change the escape to something
+      else.</td>
+    </tr>
+
+    <tr>
+      <td>c</td>
+
+      <td>Specifies the character to use to separate the fields</td>
+    </tr>
+
+    <tr>
+      <td>q</td>
+
+      <td>Specifies the character to use for the quote.</td>
+    </tr>
+  </table>
+
+  <p>&nbsp;</p>
+  <pre>
+escaped_list_separator(string_type e, string_type c, string_type q):
+</pre>
+
+  <table border="1" summary="">
+    <tr>
+      <td>
+        <p align="center"><strong>Parameter</strong></p>
+      </td>
+
+      <td>
+        <p align="center"><strong>Description</strong></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>e</td>
+
+      <td>Any character in the string e, is considered to be an escape
+      character. If an empty string is given, then there are no escape
+      characters.</td>
+    </tr>
+
+    <tr>
+      <td>c</td>
+
+      <td>Any character in the string c, is considered to be a separator. If
+      an empty string is given, then there are no separator characters.</td>
+    </tr>
+
+    <tr>
+      <td>q</td>
+
+      <td>Any character in the string q, is considered to be a quote. If an
+      empty string is given, then there are no quote characters.</td>
+    </tr>
+  </table>
+
+  <p>&nbsp;</p>
+
+  <p>To use this class, pass an object of it anywhere in the Tokenizer
+  package where a TokenizerFunction is required.</p>
+
+  <p>&nbsp;</p>
+
+  <h2>Template Parameters</h2>
+
+  <table border="1" summary="">
+    <tr>
+      <th><strong>Parameter</strong></th>
+
+      <th><strong>Description</strong></th>
+    </tr>
+
+    <tr>
+      <td><tt>Char</tt></td>
+
+      <td>The type of the elements within a token, typically
+      <tt>char</tt>.</td>
+    </tr>
+
+    <tr>
+      <td>Traits</td>
+
+      <td>The traits class for the Char type. This is used for comparing
+      Char's. It defaults to std::char_traits&lt;Char&gt;</td>
+    </tr>
+  </table>
+
+  <p>&nbsp;</p>
+
+  <h2>Model of</h2>
+
+  <p><a href="tokenizerfunction.htm">TokenizerFunction</a></p>
+
+  <p>&nbsp;</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->25
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38518" --></p>
+
+  <p><i>Copyright &copy; 2001 John R. Bandela</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

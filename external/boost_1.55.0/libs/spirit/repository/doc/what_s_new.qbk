@@ -1,0 +1,23 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section What's New]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:spirit_2_5_1 Spirit V2.5.1]
+
+This section is added since V2.5.1 (Boost V1.48.0).
+
+[heading New Features in Qi]
+
+* Added the __qi__ directive __qi_seek__ enabling skipping over the input,
+  getting to the interested portion.
+
+[endsect]
+
+[endsect]

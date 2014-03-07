@@ -1,0 +1,242 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Modes</TITLE>
+    <LINK REL="stylesheet" href="../../../../boost.css">
+    <LINK REL="stylesheet" href="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">User's Guide</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+     <A HREF='concepts.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='guide.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='generic_streams.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<H2>3.2 Modes</H2>
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#definitions">Definitions of the Modes</A></DT>
+  <DT><A href="#mode_hierarchy_diagrams">Mode Hierarchy Diagrams</A></DT>
+  <DT><A href="#mode_tags">Mode Tags</A></DT>
+  <DT><A href="#the_metafunction_mode">The metafunction <CODE>mode_of</CODE></A></DT>
+</DL>
+
+<HR STYLE="margin-top:1em">
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    In order for a sequence of <A HREF="concepts.html#filter_concepts">Filters</A> and <A HREF="concepts.html#device_concepts">Devices</A> to work together they must have certain properties in common. The most basic requirement is that they have the same <A HREF="traits.html#char_type">character type</A>; a collection of additional properties which Filters and Devices must share to be used for a particular purpose is called a <SPAN CLASS="term">mode</SPAN>.
+</P>
+
+<P>
+    The templates <A HREF="generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A> and <A HREF="generic_streams.html#stream"><CODE>stream</CODE></A> are each parameterized by a mode, represented by a <A HREF="#mode_tags">mode tag</A>.
+</P>
+
+<P>
+    The Iostreams library supports eight modes, described in the next section (<I>see also</I> <A CLASS="caption_ref" HREF="#mode_hierarchy_diagrams">Figure 2</A>). Of these, four are most import (<I>see </I> <A CLASS="caption_ref" HREF="#mode_hierarchy_diagrams">Figure 1</A>). The two modes <A HREF="#input">input</A> and <A HREF="#output">output</A> are by far the most common. Readers new to the Iostreams library should feel free to concentrate primarily on these two modes.
+</P>
+
+<A NAME="definitions"></A>
+<H2>Definitions of the Modes</H2>
+
+<P>Modes can be categorized in several ways:
+<UL>
+    <LI>Whether input, output or both input and output can be performed.
+    <LI>If both input and output are possible, whether there are two separate character sequences for input and output, or a single combined sequence.
+    <LI>Whether the reading or writing heads are repositionable, and if so, whether there are separate heads for reading and writing or a single read/write head.
+</UL>
+<P>
+    The concepts representing <A HREF="concepts.html#optional_behavior">optional behavior</A> are not related to mode, and so need not be shared in order for a collection of Filters and Devices to work together:
+</P>
+
+<P>Modes are summarized in the following table:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=1 CELLPADDING=4>
+<TR><TH>Mode</TH><TH>Definition/Examples</TH></TR>
+    <!-- Input -->
+    <TR>
+        <TD VALIGN="top"><A NAME="input"></A><B>Input</B></TD>
+        <TD>
+            <TABLE>
+                <TR><TD VALIGN="top"><B>Definition:</B></TD><TD>Involves a single sequence of characters, for input</TD></TR>
+                <TR><TD VALIGN="top"><B>Example:</B></TD><TD><CODE>std::cin</CODE></TD></TR>
+            </TABLE>
+        </TD>
+    </TR>
+
+    <!-- Output -->
+    <TR>
+        <TD VALIGN="top"><A NAME="output"></A><B>Output</B></TD>
+        <TD>
+            <TABLE>
+                <TR><TD VALIGN="top"><B>Definition:</B></TD><TD>Involves a single sequence of characters, for output</TD></TR>
+                <TR><TD VALIGN="top"><B>Example:</B></TD><TD><CODE>std::cout</CODE></TD></TR>
+            </TABLE>
+        </TD>
+    </TR>
+
+    <!-- Bidirectional -->
+    <TR>
+        <TD VALIGN="top"><A NAME="bidirectional"></A><B>Bidirectional</B></TD>
+        <TD>
+            <TABLE>
+                <TR><TD VALIGN="top"><B>Definition:</B></TD>
+                <TD>Involves a two separate sequences of characters, one for input and one for output</TD></TR>
+                <TR><TD VALIGN="top"><B>Example:</B></TD><TD>A <CODE>std::iostream</CODE> for accessing a TCP connection</TD></TR>
+            </TABLE>
+        </TD>
+    </TR>
+
+    <!-- Input-seekable -->
+    <TR>
+        <TD VALIGN="top"><A NAME="input_seekable"></A><B>Input-seekable</B></TD>
+        <TD>
+            <TABLE>
+                <TR><TD VALIGN="top"><B>Definition:</B></TD>
+                <TD>Involves a single sequence of characters, for input, with a repositionable reading head</TD></TR>
+                <TR><TD VALIGN="top"><B>Examples:</B></TD><TD><CODE>std::ifstream</CODE>, <CODE>std::istringstream</CODE></TD></TR>
+            </TABLE>
+        </TD>
+    </TR>
+
+    <!-- Output-seekable -->
+    <TR>
+        <TD VALIGN="top"><A NAME="output_seekable"></A><B><PRE CLASS="plain_code"><P>Output-seekable</P></PRE></B></TD>
+        <TD>
+            <TABLE>
+                <TR><TD VALIGN="top"><B>Definition:</B></TD>
+                <TD>Involves a single sequence of characters, for output, with a repositionable writing head</TD></TR>
+                <TR><TD VALIGN="top"><B>Examples:</B></TD><TD><CODE>std::ofstream</CODE>, <CODE>std::ostringstream</CODE></TD></TR>
+            </TABLE>
+        </TD>
+    </TR>
+
+    <!-- Seekable -->
+    <TR>
+        <TD VALIGN="top"><A NAME="seekable"></A><B>Seekable</B></TD>
+        <TD>
+            <TABLE>
+                <TR><TD VALIGN="top"><B>Definition:</B></TD>
+                    <TD>Involves a single sequence of characters, for input and output, with a combined repositionable read/write head</TD></TR>
+                <TR><TD VALIGN="top"><B>Example:</B></TD><TD><CODE>std::fstream</CODE></TD></TR>
+            </TABLE>
+        </TD>
+    </TR>
+
+    <!-- Dual-seekable -->
+    <TR>
+        <TD VALIGN="top"><A NAME="dual_seekable"></A><B>Dual-seekable</B></TD>
+        <TD>
+            <TABLE>
+                <TR><TD VALIGN="top"><B>Definition:</B></TD>
+                <TD>Involves a single sequence of characters, for input and output, with separate repositionable reading and writing heads</TD></TR>
+                <TR><TD VALIGN="top"><B>Example:</B></TD><TD><CODE>std::stringstream</CODE></TD></TR>
+            </TABLE>
+        </TD>
+    </TR>
+
+    <!-- Bidirectional-seekable -->
+    <TR>
+        <TD VALIGN="top"><A NAME="bidirectional_seekable"></A><B>Bidirectional-seekable</B></TD>
+        <TD>
+            <TABLE>
+                <TR><TD VALIGN="top"><B>Definition:</B></TD><TD>Involves a two separate sequences of characters, one for input and one for output, each with a repositionable head</TD></TR>
+                <TR><TD VALIGN="top"><B>Example:</B></TD><TD>No known examples</TD></TR>
+            </TABLE>
+        </TD>
+    </TR>
+    </TR>
+</TABLE>
+    
+
+<P>
+    For more on the selection of modes, see the <A href="../rationale.html">Rationale</A>.
+</P>
+
+<A ID="mode_hierchy_diagrams"></A>
+<H2 ID="mode_hierarchy_diagrams">Mode Hierarchy Diagrams</H2>
+
+<P>The following diagrams display the refinement hierarchies among modes.</P>
+
+<TABLE STYLE="margin-left:2em" CELLSPACING=10>
+<TR>
+    <TD VALIGN="top">
+        <P CLASS="caption"><B>Figure 1.</B> The four most important modes</P>
+        <IMG SRC="../graphics/important_modes.gif">
+    </TD>
+    <TD WIDTH="30"></TD>
+    <TD ALIGN="right" VALIGN="top">
+        <TABLE>
+        <TR><TD><IMG SRC="../graphics/key_important.gif"></TD><TD CLASS="caption">Most important</TD></TR>
+        <TR><TD><IMG SRC="../graphics/key_input_seq.gif"></TD><TD CLASS="caption">Input sequence</TD></TR>
+        <TR><TD><IMG SRC="../graphics/key_output_seq.gif"></TD><TD CLASS="caption">Output sequence</TD></TR>
+        <TR><TD><IMG SRC="../graphics/key_bidirectional_seq.gif"></TD><TD CLASS="caption">Combined input-output sequence</TD></TR>
+        <TR><TD><IMG SRC="../graphics/key_read_head.gif"></TD><TD CLASS="caption">Repositionable file-pointer for reading</TD></TR>
+        <TR><TD><IMG SRC="../graphics/key_write_head.gif"></TD><TD CLASS="caption">Repositionable file-pointer for writing</TD></TR>
+        <TR><TD><IMG SRC="../graphics/key_read_write_head.gif"></TD><TD CLASS="caption">Combined file-pointer for reading and writing</TD></TR>
+        </TABLE>
+    </TD>
+</TR>
+<TR>
+    <TD COLSPAN="3">
+        <P CLASS="caption"><B>Figure 2.</B> The complete hierarchy of modes</P>
+        <IMG SRC="../graphics/modes.gif">
+    </TD>
+</TR>
+</TABLE>
+
+<A NAME="mode_tags"></A>
+<H2>Mode Tags</H2>
+
+<P>
+    Each mode is represented by a <SPAN CLASS="term">mode tag</SPAN>, defined in the header <A href="../../../../boost/iostreams/traits.hpp"><CODE>&lt;boost/iostreams/traits.hpp&gt;</CODE></A>. There are eight tags for the eight modes: <CODE>input</CODE>, <CODE>output</CODE>, <CODE>bidirectional</CODE>, <CODE>input_seekable</CODE>, <CODE>output_seekable</CODE>, <CODE>seekable</CODE>, <CODE>dual_seekable</CODE> and <CODE>bidirectional_seekable</CODE>.<SUP><A CLASS="footnote_ref" NAME="note_1_ref" HREF="#note_1">[1]</A></SUP> As with standard library iterator category tags, the tag corresponding to a mode is convertible to each of the tags corresponding to modes which the first mode refines.
+</P>
+<P>
+    In addition, there is a <SPAN CLASS="term">pseudo-mode tag</SPAN> <CODE>dual_use</CODE>, which is used to define <A href="../concepts/dual_use_filter.html">DualUseFilters</A> &#8212; which can perform input or output, but not both simultaneously. This is useful to help reduce the number of different of Filter types. The <A href="../classes/regex_filter.html">Regular Expression Filters</A>, <A href="../classes/newline_filter.html">Newline Filters</A> and compression and decompression filters all have mode <CODE>dual_use</CODE> so that they may be used with either input or output streams.
+</P>
+
+<A NAME="the_metafunction_mode"></A>
+<H2>The Metafunction <CODE>mode_of</CODE></H2>
+
+<P>
+    To determine the mode of a model of a Filter or Device, use the metafunction <A href="../classes/mode.html"><CODE>mode_of</CODE></A>.
+   
+</P>
+
+<!-- Begin Footnotes -->
+
+<HR>
+
+<P>
+    <SUP><A CLASS="footnote_ref" NAME="note_1" HREF="#note_1_ref">[1]</A></SUP>It is traditional for tag structures to have names ending with "<CODE>_tag</CODE>". Since mode tags feature prominently in user code, this suffix was dropped to improve readability.
+</P>
+
+<!-- End Footnotes -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

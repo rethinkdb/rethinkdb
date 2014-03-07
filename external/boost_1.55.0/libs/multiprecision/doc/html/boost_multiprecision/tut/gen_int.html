@@ -1,0 +1,180 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Generic Integer Operations</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../tut.html" title="Tutorial">
+<link rel="prev" href="mixed.html" title="Mixed Precision Arithmetic">
+<link rel="next" href="serial.html" title="Boost.Serialization Support">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="mixed.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="serial.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.tut.gen_int"></a><a class="link" href="gen_int.html" title="Generic Integer Operations">Generic Integer Operations</a>
+</h3></div></div></div>
+<p>
+        All of the <a class="link" href="../ref/number.html#boost_multiprecision.ref.number.integer_functions">non-member
+        integer operations</a> are overloaded for the built in integer types in
+        <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">integer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>.
+        Where these operations require a temporary increase in precision (such as
+        for powm), then if no built in type is available, a <a class="link" href="ints/cpp_int.html" title="cpp_int">cpp_int</a>
+        of appropriate precision will be used.
+      </p>
+<p>
+        Some of these functions are trivial, others use compiler intrinsics (where
+        available) to ensure optimal evaluation.
+      </p>
+<p>
+        The overloaded functions are:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">I2</span><span class="special">&gt;</span>
+<span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">multiply</span><span class="special">(</span><span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">result</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">I2</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">I2</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">);</span>
+</pre>
+<p>
+        Multiplies two <code class="computeroutput"><span class="identifier">I2</span></code> values,
+        to produce a wider <code class="computeroutput"><span class="identifier">Integer</span></code>
+        result.
+      </p>
+<p>
+        Returns <code class="computeroutput"><span class="identifier">result</span> <span class="special">=</span>
+        <span class="identifier">a</span> <span class="special">*</span> <span class="identifier">b</span></code> without overflow or loss of precision
+        in the multiplication.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">I2</span><span class="special">&gt;</span>
+<span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">add</span><span class="special">(</span><span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">result</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">I2</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">I2</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">);</span>
+</pre>
+<p>
+        Adds two <code class="computeroutput"><span class="identifier">I2</span></code> values, to produce
+        a wider <code class="computeroutput"><span class="identifier">Integer</span></code> result.
+      </p>
+<p>
+        Returns <code class="computeroutput"><span class="identifier">result</span> <span class="special">=</span>
+        <span class="identifier">a</span> <span class="special">+</span> <span class="identifier">b</span></code> without overflow or loss of precision
+        in the addition.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">I2</span><span class="special">&gt;</span>
+<span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">subtract</span><span class="special">(</span><span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">result</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">I2</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">I2</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">);</span>
+</pre>
+<p>
+        Subtracts two <code class="computeroutput"><span class="identifier">I2</span></code> values,
+        to produce a wider <code class="computeroutput"><span class="identifier">Integer</span></code>
+        result.
+      </p>
+<p>
+        Returns <code class="computeroutput"><span class="identifier">result</span> <span class="special">=</span>
+        <span class="identifier">a</span> <span class="special">-</span> <span class="identifier">b</span></code> without overflow or loss of precision
+        in the subtraction.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">&gt;</span>
+<span class="identifier">Integer</span> <span class="identifier">powm</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">m</span><span class="special">);</span>
+</pre>
+<p>
+        Returns b<sup>p</sup> % m.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">divide_qr</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">q</span><span class="special">,</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">);</span>
+</pre>
+<p>
+        Sets <code class="computeroutput"><span class="identifier">q</span> <span class="special">=</span>
+        <span class="identifier">x</span> <span class="special">/</span> <span class="identifier">y</span></code> and <code class="computeroutput"><span class="identifier">r</span>
+        <span class="special">=</span> <span class="identifier">x</span> <span class="special">%</span> <span class="identifier">y</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Integer2</span><span class="special">&gt;</span>
+<span class="identifier">Integer2</span> <span class="identifier">integer_modulus</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Integer1</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">Integer2</span> <span class="identifier">val</span><span class="special">);</span>
+</pre>
+<p>
+        Returns x % val;
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">&gt;</span>
+<span class="keyword">unsigned</span> <span class="identifier">lsb</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<p>
+        Returns the (zero-based) index of the least significant bit of <code class="computeroutput"><span class="identifier">x</span></code>.
+      </p>
+<p>
+        Throws a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">domain_error</span></code> if <code class="computeroutput"><span class="identifier">x</span>
+        <span class="special">&lt;=</span> <span class="number">0</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">&gt;</span>
+<span class="keyword">unsigned</span> <span class="identifier">msb</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<p>
+        Returns the (zero-based) index of the most significant bit of <code class="computeroutput"><span class="identifier">x</span></code>.
+      </p>
+<p>
+        Throws a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">domain_error</span></code> if <code class="computeroutput"><span class="identifier">x</span>
+        <span class="special">&lt;=</span> <span class="number">0</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">bit_test</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">val</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="identifier">index</span><span class="special">);</span>
+</pre>
+<p>
+        Returns <code class="computeroutput"><span class="keyword">true</span></code> if bit <code class="computeroutput"><span class="identifier">index</span></code> is set in <code class="computeroutput"><span class="identifier">val</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">&gt;</span>
+<span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">bit_set</span><span class="special">(</span><span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">val</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="identifier">index</span><span class="special">);</span>
+</pre>
+<p>
+        Sets the <code class="computeroutput"><span class="identifier">index</span></code> bit in <code class="computeroutput"><span class="identifier">val</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">&gt;</span>
+<span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">bit_unset</span><span class="special">(</span><span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">val</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="identifier">index</span><span class="special">);</span>
+</pre>
+<p>
+        Unsets the <code class="computeroutput"><span class="identifier">index</span></code> bit in
+        <code class="computeroutput"><span class="identifier">val</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">&gt;</span>
+<span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">bit_flip</span><span class="special">(</span><span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">val</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="identifier">index</span><span class="special">);</span>
+</pre>
+<p>
+        Flips the <code class="computeroutput"><span class="identifier">index</span></code> bit in <code class="computeroutput"><span class="identifier">val</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">&gt;</span>
+<span class="identifier">Integer</span> <span class="identifier">sqrt</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Integer</span><span class="special">&gt;</span>
+<span class="identifier">Integer</span> <span class="identifier">sqrt</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">Integer</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">);</span>
+</pre>
+<p>
+        Returns the integer square root <code class="computeroutput"><span class="identifier">s</span></code>
+        of x and sets <code class="computeroutput"><span class="identifier">r</span></code> to the remainder
+        <span class="emphasis"><em>x - s<sup>2</sup></em></span>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Engine</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">miller_rabin_test</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">number</span><span class="special">-</span><span class="keyword">or</span><span class="special">-</span><span class="identifier">expression</span><span class="special">-</span><span class="keyword">template</span><span class="special">-</span><span class="identifier">type</span><span class="special">&amp;</span> <span class="identifier">n</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="identifier">trials</span><span class="special">,</span> <span class="identifier">Engine</span><span class="special">&amp;</span> <span class="identifier">gen</span><span class="special">);</span>
+<span class="keyword">bool</span> <span class="identifier">miller_rabin_test</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">number</span><span class="special">-</span><span class="keyword">or</span><span class="special">-</span><span class="identifier">expression</span><span class="special">-</span><span class="keyword">template</span><span class="special">-</span><span class="identifier">type</span><span class="special">&amp;</span> <span class="identifier">n</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="identifier">trials</span><span class="special">);</span>
+</pre>
+<p>
+        The regular Miller-Rabin functions in <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">miller_rabin</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        are defined in terms of the above generic operations, and so function equally
+        well for built in and multiprecision types.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="mixed.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="serial.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

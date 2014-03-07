@@ -1,0 +1,140 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template weak_ptr</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp" title="Header &lt;boost/interprocess/interprocess_fwd.hpp&gt;">
+<link rel="prev" href="shared_ptr.html" title="Class template shared_ptr">
+<link rel="next" href="message_queue_t.html" title="Class template message_queue_t">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="shared_ptr.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="message_queue_t.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.weak_ptr"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template weak_ptr</span></h2>
+<p>boost::interprocess::weak_ptr</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp" title="Header &lt;boost/interprocess/interprocess_fwd.hpp&gt;">boost/interprocess/interprocess_fwd.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> VoidAllocator<span class="special">,</span> <span class="keyword">typename</span> Deleter<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="weak_ptr.html#boost.interprocess.weak_ptrconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="weak_ptr.html#idp28154648-bb"><span class="identifier">weak_ptr</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Y<span class="special">&gt;</span> <a class="link" href="weak_ptr.html#idp28155336-bb"><span class="identifier">weak_ptr</span></a><span class="special">(</span><a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a><span class="special">&lt;</span> <span class="identifier">Y</span><span class="special">,</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Y<span class="special">&gt;</span> <a class="link" href="weak_ptr.html#idp28157720-bb"><span class="identifier">weak_ptr</span></a><span class="special">(</span><a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a><span class="special">&lt;</span> <span class="identifier">Y</span><span class="special">,</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Y<span class="special">&gt;</span> weak_ptr&amp; <a class="link" href="weak_ptr.html#idp28160104-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a><span class="special">&lt;</span> <span class="identifier">Y</span><span class="special">,</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Y<span class="special">&gt;</span> weak_ptr&amp; <a class="link" href="weak_ptr.html#idp28161880-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a><span class="special">&lt;</span> <span class="identifier">Y</span><span class="special">,</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="weak_ptr.html#idp28148888-bb">public member functions</a></span>
+  <a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span> <a class="link" href="weak_ptr.html#idp28149096-bb"><span class="identifier">lock</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">long</span> <a class="link" href="weak_ptr.html#idp28150120-bb"><span class="identifier">use_count</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="weak_ptr.html#idp28151656-bb"><span class="identifier">expired</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="weak_ptr.html#idp28152712-bb"><span class="identifier">reset</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="weak_ptr.html#idp28153432-bb"><span class="identifier">swap</span></a><span class="special">(</span><span class="identifier">this_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp116294776"></a><h2>Description</h2>
+<p>The <a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a> class template stores a "weak reference" to an object that's already managed by a <a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a>. To access the object, a <a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a> can be converted to a <a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a> using the <a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a> constructor or the member function lock. When the last <a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a> to the object goes away and the object is deleted, the attempt to obtain a <a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a> from the <a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a> instances that refer to the deleted object will fail: the constructor will throw an exception of type bad_weak_ptr, and weak_ptr::lock will return an empty <a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a>.</p>
+<p>Every <a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a> meets the CopyConstructible and Assignable requirements of the C++ Standard Library, and so can be used in standard library containers. Comparison operators are supplied so that <a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a> works with the standard library's associative containers.</p>
+<p><a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a> operations never throw exceptions.</p>
+<p>The class template is parameterized on T, the type of the object pointed to. </p>
+<div class="refsect2">
+<a name="idp116301560"></a><h3>
+<a name="boost.interprocess.weak_ptrconstruct-copy-destruct"></a><code class="computeroutput">weak_ptr</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp28154648-bb"></a><span class="identifier">weak_ptr</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: Constructs an empty <code class="computeroutput"><a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a></code>. Postconditions: use_count() == 0. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Y<span class="special">&gt;</span> <a name="idp28155336-bb"></a><span class="identifier">weak_ptr</span><span class="special">(</span><a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a><span class="special">&lt;</span> <span class="identifier">Y</span><span class="special">,</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> r<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If r is empty, constructs an empty <code class="computeroutput"><a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a></code>; otherwise, constructs a <code class="computeroutput"><a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a></code> that shares ownership with r as if by storing a copy of the pointer stored in r.</p>
+<p>Postconditions: use_count() == r.use_count().</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Y<span class="special">&gt;</span> <a name="idp28157720-bb"></a><span class="identifier">weak_ptr</span><span class="special">(</span><a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a><span class="special">&lt;</span> <span class="identifier">Y</span><span class="special">,</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> r<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If r is empty, constructs an empty <code class="computeroutput"><a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a></code>; otherwise, constructs a <code class="computeroutput"><a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a></code> that shares ownership with r as if by storing a copy of the pointer stored in r.</p>
+<p>Postconditions: use_count() == r.use_count().</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Y<span class="special">&gt;</span> weak_ptr&amp; <a name="idp28160104-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="weak_ptr.html" title="Class template weak_ptr">weak_ptr</a><span class="special">&lt;</span> <span class="identifier">Y</span><span class="special">,</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> r<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: Equivalent to weak_ptr(r).swap(*this).</p>
+<p>Throws: nothing.</p>
+<p>Notes: The implementation is free to meet the effects (and the implied guarantees) via different means, without creating a temporary. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Y<span class="special">&gt;</span> weak_ptr&amp; <a name="idp28161880-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a><span class="special">&lt;</span> <span class="identifier">Y</span><span class="special">,</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> r<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: Equivalent to weak_ptr(r).swap(*this).</p>
+<p>Throws: nothing.</p>
+<p>Notes: The implementation is free to meet the effects (and the implied guarantees) via different means, without creating a temporary. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp116335368"></a><h3>
+<a name="idp28148888-bb"></a><code class="computeroutput">weak_ptr</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span> <a name="idp28149096-bb"></a><span class="identifier">lock</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns: expired()? shared_ptr&lt;T&gt;(): shared_ptr&lt;T&gt;(*this).</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">long</span> <a name="idp28150120-bb"></a><span class="identifier">use_count</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns: 0 if *this is empty; otherwise, the number of <code class="computeroutput"><a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a></code> objects that share ownership with *this.</p>
+<p>Throws: nothing.</p>
+<p>Notes: use_count() is not necessarily efficient. Use only for debugging and testing purposes, not for production code. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28151656-bb"></a><span class="identifier">expired</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns: Returns: use_count() == 0.</p>
+<p>Throws: nothing.</p>
+<p>Notes: expired() may be faster than use_count(). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28152712-bb"></a><span class="identifier">reset</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: Equivalent to: weak_ptr().swap(*this). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28153432-bb"></a><span class="identifier">swap</span><span class="special">(</span><span class="identifier">this_type</span> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: Exchanges the contents of the two smart pointers.</p>
+<p>Throws: nothing. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="shared_ptr.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="message_queue_t.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

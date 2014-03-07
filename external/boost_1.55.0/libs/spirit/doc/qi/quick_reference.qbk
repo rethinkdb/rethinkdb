@@ -1,0 +1,509 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+This quick reference section is provided for convenience. You can use
+this section as a sort of a "cheat-sheet" on the most commonly used Qi
+components. It is not intended to be complete, but should give you an
+easy way to recall a particular component without having to dig up on
+pages and pages of reference documentation.
+
+[section Common Notation]
+
+[variablelist Notation
+    [[`P`]              [Parser type]]
+    [[`p, a, b, c`]     [Parser objects]]
+    [[`A, B, C`]        [Attribute types of parsers `a`, `b` and `c`]]
+    [[`I`]              [The iterator type used for parsing]]
+    [[`Unused`]         [An `unused_type`]]
+    [[`Context`]        [The enclosing rule's `Context` type]]
+    [[`attrib`]         [An attribute value]]
+    [[`Attrib`]         [An attribute type]]
+    [[`b`]              [A boolean expression]]
+    [[`fp`]             [A (lazy parser) function with signature `P(Unused, Context)`]]
+    [[`fa`]             [A (semantic action) function with signature `void(Attrib, Context, bool&)`.
+                        The third parameter is a boolean flag that can be set to false to
+                        force the parse to fail. Both `Context` and the boolean flag are
+                        optional.]]
+    [[`first`]          [An iterator pointing to the start of input]]
+    [[`last`]           [An iterator pointing to the end of input]]
+    [[`Ch`]             [Character-class specific character type (See __char_class_types__)]]
+    [[`ch`]             [Character-class specific character (See __char_class_types__)]]
+    [[`ch2`]            [Character-class specific character (See __char_class_types__)]]
+    [[`charset`]        [Character-set specifier string (example: "a-z0-9")]]
+    [[`str`]            [Character-class specific string (See __char_class_types__)]]
+    [[`Str`]            [Attribute of `str`: `std::basic_string<T>` where `T` is the underlying character type of `str`]]
+    [[`tuple<>`]        [Used as a placeholder for a fusion sequence]]
+    [[`vector<>`]       [Used as a placeholder for an STL container]]
+    [[`variant<>`]      [Used as a placeholder for a boost::variant]]
+    [[`optional<>`]     [Used as a placeholder for a boost::optional]]
+]
+
+[endsect]
+[section:qi_parsers Qi Parsers]
+
+[section:char Character Parsers]
+
+[table
+    [[Expression]                [Attribute]       [Description]]
+    [[[qi_char `ch`]]            [`Unused`]        [Matches `ch`]]
+    [[[qi_char `lit(ch)`]]       [`Unused`]        [Matches `ch`]]
+    [[[qi_char `char_`]]         [`Ch`]            [Matches any character]]
+    [[[qi_char `char_(ch)`]]     [`Ch`]            [Matches `ch`]]
+    [[[qi_char `char_("c")`]]    [`Ch`]            [Matches a single char string literal, `c`]]
+    [[[qi_char `char_(ch, ch2)`]][`Ch`]            [Matches a range of chars from `ch` to `ch2` (inclusive)]]
+    [[[qi_char `char_(charset)`]][`Ch`]            [Matches a character set `charset`]]
+
+    [[[qi_char_class `alnum`]]   [`Ch`]            [Matches a character based on the equivalent of
+                                   `std::isalnum` in the current character set]]
+    [[[qi_char_class `alpha`]]   [`Ch`]            [Matches a character based on the equivalent of
+                                   `std::isalpha` in the current character set]]
+    [[[qi_char_class `blank`]]   [`Ch`]            [Matches a character based on the equivalent of
+                                   `std::isblank` in the current character set]]
+    [[[qi_char_class `cntrl`]]   [`Ch`]            [Matches a character based on the equivalent of
+                                   `std::iscntrl` in the current character set]]
+    [[[qi_char_class `digit`]]   [`Ch`]            [Matches a character based on the equivalent of
+                                   `std::isdigit` in the current character set]]
+    [[[qi_char_class `graph`]]   [`Ch`]            [Matches a character based on the equivalent of
+                                   `std::isgraph` in the current character set]]
+    [[[qi_char_class `print`]]   [`Ch`]            [Matches a character based on the equivalent of
+                                   `std::isprint` in the current character set]]
+    [[[qi_char_class `punct`]]   [`Ch`]            [Matches a character based on the equivalent of
+                                   `std::ispunct` in the current character set]]
+    [[[qi_char_class `space`]]   [`Ch`]            [Matches a character based on the equivalent of
+                                   `std::isspace` in the current character set]]
+    [[[qi_char_class `xdigit`]]  [`Ch`]            [Matches a character based on the equivalent of
+                                   `std::isxdigit` in the current character set]]
+    [[[qi_char_class `lower`]]   [`Ch`]            [Matches a character based on the equivalent of
+                                   `std::islower` in the current character set]]
+    [[[qi_char_class `upper`]]   [`Ch`]            [Matches a character based on the equivalent of
+                                   `std::isupper` in the current character set]]
+]
+
+[endsect]
+[section:numeric Numeric Parsers]
+
+[table
+    [[Expression]                 [Attribute]           [Description]]
+    [[[qi_real_number `float_`]]  [`float`]             [Parse a floating point number into a `float`]]
+    [[[qi_real_number `float_(num)`]]  [`float`]        [Parse a floating point number into a `float`,
+                                                            a number is matched only if it's `num`]]
+    [[[qi_real_number `double_`]] [`double`]            [Parse a floating point number into a `double`]]
+    [[[qi_real_number `double_(num)`]] [`double`]            [Parse a floating point number into a `double`,
+                                                            a number is matched only if it's `num`]]
+    [[[qi_real_number `long_double`]] [`long double`]   [Parse a floating point number into a `long double`]]
+    [[[qi_real_number `long_double(num)`]] [`long double`]   [Parse a floating point number into a `long double`,
+                                                            a number is matched only if it's `num`]]
+
+    [[[qi_unsigned_int `bin`]]     [`unsigned`]                [Parse a binary integer into an `unsigned`]]
+    [[[qi_unsigned_int `oct`]]     [`unsigned`]                [Parse an octal integer into an `unsigned`]]
+    [[[qi_unsigned_int `hex`]]     [`unsigned`]                [Parse a hexadecimal integer into an `unsigned`]]
+    [[[qi_unsigned_int `ushort_`]] [`unsigned short`]          [Parse an unsigned short integer]]
+    [[[qi_unsigned_int `ushort_(num)`]] [`unsigned short`]     [Parse an unsigned short integer,
+                                                            a number is matched only if it's `num`]]
+    [[[qi_unsigned_int `ulong_`]]  [`unsigned long`]           [Parse an unsigned long integer]]
+    [[[qi_unsigned_int `ulong_(num)`]]  [`unsigned long`]      [Parse an unsigned long integer,
+                                                            a number is matched only if it's `num`]]
+    [[[qi_unsigned_int `uint_`]]   [`unsigned int`]            [Parse an unsigned int]]
+    [[[qi_unsigned_int `uint_(num)`]]   [`unsigned int`]       [Parse an unsigned int,
+                                                            a number is matched only if it's `num`]]
+    [[[qi_unsigned_int `ulong_long`]] [`unsigned long long`]   [Parse an unsigned long long]]
+    [[[qi_unsigned_int `ulong_long(num)`]] [`unsigned long long`]   [Parse an unsigned long long,
+                                                            a number is matched only if it's `num`]]
+    [[[qi_signed_int `short_`]]    [`short`]                   [Parse a short integer]]
+    [[[qi_signed_int `short_(num)`]]    [`short`]              [Parse a short integer,
+                                                            a number is matched only if it's `num`]]
+    [[[qi_signed_int `long_`]]     [`long`]                    [Parse a long integer]]
+    [[[qi_signed_int `long_(num)`]]     [`long`]               [Parse a long integer,
+                                                            a number is matched only if it's `num`]]
+    [[[qi_signed_int `int_`]]      [`int`]                     [Parse an int]]
+    [[[qi_signed_int `int_(num)`]]      [`int`]                [Parse an int,
+                                                            a number is matched only if it's `num`]]
+    [[[qi_signed_int `long_long`]] [`long long`]               [Parse a long long]]
+    [[[qi_signed_int `long_long(num)`]] [`long long`]          [Parse a long long,
+                                                            a number is matched only if it's `num`]]
+]
+
+[endsect]
+[section:string String Parsers]
+
+[table
+    [[Expression]           [Attribute]                 [Description]]
+    [[[qi_lit_string `str`]]          [`Unused`]    [Matches `str`]]
+    [[[qi_lit_string `lit(str)`]]     [`Unused`]    [Matches `str`]]
+    [[[qi_lit_string `string(str)`]]  [`Str`]       [Matches `str`]]
+
+    [[__qi_symbols__]       [N/A]                       [Declare a symbol table, `sym`. `Ch` is the
+                                                        underlying char type of the symbol table keys.
+                                                        `T` is the data type associated with each key.]]
+    [[
+``
+    sym.add
+        (str1, val1)
+        (str2, val2)
+        /*...more...*/
+    ;
+``
+    ]
+    [N/A]                                               [Add symbols into a symbol table, `sym`.
+                                                        val1 and val2 are optional data of type `T`,
+                                                        the data type associated with each key.]]
+    [[`sym`]                [`T`]                       [Matches entries in the symbol table, `sym`. If
+                                                        successful, returns the data associated with
+                                                        the key]]
+]
+
+[endsect]
+[section:auxiliary Auxiliary Parsers]
+
+[table
+    [[Expression]           [Attribute]                 [Description]]
+    [[__qi_eol__]           [`Unused`]                  [Matches the end of line (`\r` or `\n` or `\r\n`)]]
+    [[__qi_eoi__]           [`Unused`]                  [Matches the end of input (first == last)]]
+    [[__qi_eps__]           [`Unused`]                  [Match an empty string]]
+    [[__qi_eps__`(b)`]      [`Unused`]                  [If `b` is true, match an empty string]]
+    [[__qi_lazy__`(fp)`]    [Attribute of `P` where `P`
+                            is the return type of `fp`] [Invoke `fp` at parse time, returning a parser
+                                                        `p` which is then called to parse.]]
+    [[`fp`]                 [see `lazy(fp)` above]      [Equivalent to `lazy(fp)`]]
+    [[__qi_attr__]          [`Attrib`]                  [Doesn't consume/parse any input, but exposes the
+                                                         argument `attrib` as its attribute.]]
+]
+
+[endsect]
+[section:binary Binary Parsers]
+
+[table
+    [[Expression]                   [Attribute]                 [Description]]
+    [[[qi_native_binary `byte_`]]   [8 bits native endian]      [Matches an 8 bit binary in native endian representation]]
+    [[[qi_native_binary `word`]]    [16 bits native endian]     [Matches a 16 bit binary in native endian representation]]
+    [[[qi_big_binary `big_word`]]   [16 bits big endian]        [Matches a 16 bit binary in big endian representation]]
+    [[[qi_little_binary `little_word`]]  [16 bits little endian][Matches a 16 bit binary in little endian representation]]
+    [[[qi_native_binary `dword`]]   [32 bits native endian]     [Matches a 32 bit binary in native endian representation]]
+    [[[qi_big_binary `big_dword`]]  [32 bits big endian]        [Matches a 32 bit binary in big endian representation]]
+    [[[qi_little_binary `little_dword`]] [32 bits little endian][Matches a 32 bit binary in little endian representation]]
+    [[[qi_native_binary `qword`]]   [64 bits native endian]     [Matches a 64 bit binary in native endian representation]]
+    [[[qi_big_binary `big_qword`]]  [64 bits big endian]        [Matches a 64 bit binary in big endian representation]]
+    [[[qi_little_binary `little_qword`]] [64 bits little endian][Matches a 64 bit binary in little endian representation]]
+]
+
+[endsect]
+
+[section:auto Auto Parsers]
+
+See here for more information about [qi_auto Auto Parsers].
+
+[table
+    [[Expression]           [Attribute]     [Description]]
+    [[[qi_auto `auto_`]]    [`hold_any`]    [Parse input using a parser
+                                             created from the supplied attribute type
+                                             using the __create_parser__ API function.]]
+]
+
+[endsect]
+
+[section:directive Parser Directives]
+
+[table
+    [[Expression]                   [Attribute]                     [Description]]
+    [[__qi_lexeme__`[a]`]           [`A`]                           [Disable skip parsing for `a`, does pre-skipping]]
+    [[[qi_no_skip `no_skip[a]`]]    [`A`]                           [Disable skip parsing for `a`, no pre-skipping]]
+    [[__qi_no_case__`[a]`]          [`A`]                           [Inhibits case-sensitivity for `a`]]
+    [[__qi_omit__`[a]`]             [`Unused`]                      [Ignores the attribute type of `a`]]
+    [[__qi_matches__`[a]`]          [`bool`]                        [Return if the embedded parser `a` matched its input]]
+
+    [[__qi_as__`()[a]`]             [`A`]                           [Force atomic assignment for arbitrary attribute types]]
+    [[__qi_as_string__`[a]`]        [`A`]                           [Force atomic assignment for string attributes]]
+    [[__qi_as_wstring__`[a]`]       [`A`]                           [Force atomic assignment for wide character string attributes]]
+
+    [[__qi_raw__`[a]`]              [__boost_iterator_range__`<I>`] [Presents the transduction of `a` as an iterator range]]
+
+    [[[qi_repeat `repeat[a]`]]      [`vector<A>`]                   [Repeat `a` zero or more times]]
+    [[[qi_repeat `repeat(N)[a]`]]         [`vector<A>`]             [Repeat `a` `N` times]]
+    [[[qi_repeat `repeat(N, M)[a]`]]      [`vector<A>`]             [Repeat `a` `N` to `M` times]]
+    [[[qi_repeat `repeat(N, inf)[a]`]]    [`vector<A>`]             [Repeat `a` `N` or more times]]
+
+    [[__qi_skip__`[a]`]             [`A`]                           [Re-establish the skipper that got inhibited by lexeme or no_skip.]]
+    [[__qi_skip__`(p)[a]`]          [`A`]                           [Use `p` as a skipper for parsing `a`]]
+]
+
+[endsect]
+[section:operator Parser Operators]
+
+[table
+    [[Expression]           [Attribute]                 [Description]]
+    [[[link spirit.qi.reference.operator.not_predicate `!a`]]
+                            [`Unused`]                  [Not predicate. If the predicate `a` matches,
+                                                        fail. Otherwise, return a zero length match.]]
+    [[[link spirit.qi.reference.operator.not_predicate `&a`]]
+                            [`Unused`]                  [And predicate. If the predicate `a` matches,
+                                                        return a zero length match. Otherwise, fail.]]
+    [[[link spirit.qi.reference.operator.optional `-a`]]
+                            [`optional<A>`]             [Optional. Parse `a` zero or one time]]
+    [[[link spirit.qi.reference.operator.kleene `*a`]]
+                            [`vector<A>`]               [Kleene. Parse `a` zero or more times]]
+    [[[link spirit.qi.reference.operator.plus `+a`]]
+                            [`vector<A>`]               [Plus. Parse `a` one or more times]]
+    [[[link spirit.qi.reference.operator.alternative `a | b`]]
+                            [`variant<A, B>`]           [Alternative. Parse `a` or `b`]]
+    [[[link spirit.qi.reference.operator.sequence `a >> b`]]
+                            [`tuple<A, B>`]             [Sequence. Parse `a` followed by `b`]]
+    [[[link spirit.qi.reference.operator.expect `a > b`]]
+                            [`tuple<A, B>`]             [Expect. Parse `a` followed by `b`. `b` is
+                                                        expected to match when `a` matches, otherwise,
+                                                        an `expectation_failure` is thrown.]]
+    [[[link spirit.qi.reference.operator.difference `a - b`]]
+                            [`A`]                       [Difference. Parse `a` but not `b`]]
+    [[[link spirit.qi.reference.operator.sequential_or `a || b`]]
+                            [`tuple<`
+                                `optional<A>,`
+                                `optional<B> >`
+                            ]                           [Sequential Or. Parse `a` or `b` or `a` followed by `b`]]
+    [[[link spirit.qi.reference.operator.list `a % b`]]
+                            [`vector<A>`]               [List. Parse `a` delimited `b` one or more times]]
+    [[[link spirit.qi.reference.operator.permutation `a ^ b`]]
+                            [`tuple<`
+                                `optional<A>,`
+                                `optional<B> >`
+                            ]                           [Permutation. Parse `a` or `b` or `a` followed by `b` or `b` followed by `a`.]]
+]
+
+[endsect]
+[section:action Parser Semantic Actions]
+
+[table
+    [[Expression]           [Attribute]                 [Description]]
+    [[`p[fa]`]              [Attribute of `p`]          [Call semantic action, `fa` if p succeeds.]]
+]
+
+[endsect]
+[endsect]
+[section Compound Attribute Rules]
+
+[heading Notation]
+
+The notation we will use will be of the form:
+
+    a: A, b: B, ... --> composite-expression: composite-attribute
+
+`a`, `b`, etc. are the operands. `A`, `B`, etc. are the operand's
+attribute types. `composite-expression` is the expression involving the
+operands and `composite-attribute` is the resulting attribute type of
+the composite expression.
+
+For instance:
+
+    a: A, b: B --> (a >> b): tuple<A, B>
+
+reads as: given, `a` and `b` are parsers, and `A` is the type of the
+attribute of `a`, and `B` is the type of the attribute of `b`, then the
+type of the attribute of `a >> b` will be `tuple<A, B>`.
+
+[important In the attribute tables, we will use `vector<A>` and
+`tuple<A, B...>` as placeholders only. The notation of `vector<A>`
+stands for ['any __stl__ container] holding elements of type `A` and the
+notation `tuple<A, B...>` stands for ['any __fusion__ sequence] holding
+`A`, `B`, ... etc. elements. Finally, `Unused` stands for
+__unused_type__. ]
+
+[heading Compound Parser Attribute Types]
+
+[table
+    [[Expression]           [Attribute]]
+
+    [[__qi_sequence__ (`a >> b`)]
+[``a: A, b: B --> (a >> b): tuple<A, B>
+a: A, b: Unused --> (a >> b): A
+a: Unused, b: B --> (a >> b): B
+a: Unused, b: Unused --> (a >> b): Unused
+
+a: A, b: A --> (a >> b): vector<A>
+a: vector<A>, b: A --> (a >> b): vector<A>
+a: A, b: vector<A> --> (a >> b): vector<A>
+a: vector<A>, b: vector<A> --> (a >> b): vector<A>``]]
+
+    [[__qi_expect__ (`a > b`)]
+[``a: A, b: B --> (a > b): tuple<A, B>
+a: A, b: Unused --> (a > b): A
+a: Unused, b: B --> (a > b): B
+a: Unused, b: Unused --> (a > b): Unused
+
+a: A, b: A --> (a > b): vector<A>
+a: vector<A>, b: A --> (a > b): vector<A>
+a: A, b: vector<A> --> (a > b): vector<A>
+a: vector<A>, b: vector<A> --> (a > b): vector<A>``]]
+
+    [[__qi_alternative__ (`a | b`)]
+[``a: A, b: B --> (a | b): variant<A, B>
+a: A, b: Unused --> (a | b): optional<A>
+a: A, b: B, c: Unused --> (a | b | c): optional<variant<A, B> >
+a: Unused, b: B --> (a | b): optional<B>
+a: Unused, b: Unused --> (a | b): Unused
+a: A, b: A --> (a | b): A``]]
+
+    [[__qi_difference__ (`a - b`)]
+[``a: A, b: B --> (a - b): A
+a: Unused, b: B --> (a - b): Unused``]]
+
+    [[__qi_kleene__ (`*a`)]
+[``a: A --> *a: vector<A>
+a: Unused --> *a: Unused``]]
+    [[__qi_plus__ (`+a`)]
+[``a: A --> +a: vector<A>
+a: Unused --> +a: Unused``]]
+
+    [[__qi_list__ (`a % b`)]
+[``a: A, b: B --> (a % b): vector<A>
+a: Unused, b: B --> (a % b): Unused``]]
+
+    [[[link spirit.qi.reference.directive.repeat `repeat(...,...)[a]`]]
+[``a: A --> repeat(...,...)[a]: vector<A>
+a: Unused --> repeat(...,...)[a]: Unused``]]
+
+    [[__qi_sequential_or__ (`a || b`)]
+[``a: A, b: B --> (a || b): tuple<optional<A>, optional<B> >
+a: A, b: Unused --> (a || b): optional<A>
+a: Unused, b: B --> (a || b): optional<B>
+a: Unused, b: Unused --> (a || b): Unused
+
+a: A, b: A --> (a || b): vector<optional<A> >``]]
+
+    [[__qi_optional__ (`-a`)]
+[``a: A --> -a: optional<A>
+a: Unused --> -a: Unused``]]
+
+    [[`&a`]  [`a: A --> &a: Unused`]]
+    [[`!b`]  [`a: A --> !a: Unused`]]
+
+    [[__qi_permutation__ (`a ^ b`)]
+[``a: A, b: B --> (a ^ b): tuple<optional<A>, optional<B> >
+a: A, b: Unused --> (a ^ b): optional<A>
+a: Unused, b: B --> (a ^ b): optional<B>
+a: Unused, b: Unused --> (a ^ b): Unused``]]
+]
+
+[endsect]
+
+[section:non_terminals Nonterminals]
+
+[variablelist Notation
+    [[`RT`]                     [Synthesized attribute. The rule or grammar's return type.]]
+    [[`Arg1`, `Arg2`, `ArgN`]   [Inherited attributes. Zero or more arguments.]]
+    [[`L1`, `L2`, `LN`]         [Zero or more local variables.]]
+    [[`r, r2`]                  [Rules]]
+    [[`g`]                      [A grammar]]
+    [[`p`]                      [A parser expression]]
+    [[`my_grammar`]             [A user defined grammar]]
+]
+
+[variablelist Terminology
+    [[Signature]                [`RT(Arg1, Arg2 ... ,ArgN)`. The signature specifies
+                                the synthesized (return value) and inherited (arguments)
+                                attributes.]]
+    [[Locals]                   [`locals<L1, L2 ..., LN>`. The local variables.]]
+    [[Skipper]                  [The skip-parser type]]
+]
+
+[variablelist Template Arguments
+    [[`Iterator`]               [The iterator type you will use for parsing.]]
+    [[`A1`, `A2`, `A3`]         [Can be one of 1) Signature 2) Locals 3) Skipper.]]
+]
+
+[table
+    [[Expression]                               [Description]]
+    [[`rule<Iterator, A1, A2, A3> r(name);`]    [Rule declaration. `Iterator` is required.
+                                                `A1, A2, A3` are optional and can be specified in any order.
+                                                `name` is an optional string that gives the rule
+                                                its name, useful for debugging and error handling.]]
+    [[`rule<Iterator, A1, A2, A3> r(r2);`]      [Copy construct rule `r` from rule `r2`.]]
+    [[`r = r2;`]                                [Assign rule `r2` to `r`.]]
+    [[`r.alias()`]                              [return an alias of `r`. The alias is a parser that
+                                                holds a reference to `r`. Reference semantics.]]
+    [[`r.copy()`]                               [Get a copy of `r`.]]
+    [[`r.name(name)`]                           [Naming a rule]]
+    [[`r.name()`]                               [Getting the name of a rule]]
+    [[debug(r)]                                 [Debug rule `r`]]
+    [[`r = p;`]                                 [Rule definition]]
+    [[`r %= p;`]                                [Auto-rule definition. The attribute of `p` should be
+                                                compatible with the synthesized attribute of `r`. When `p`
+                                                is successful, its attribute is automatically propagated
+                                                to `r`'s synthesized attribute.]]
+
+    [[
+``
+    template <typename Iterator>
+    struct my_grammar : grammar<Iterator, A1, A2, A3>
+    {
+        my_grammar() : my_grammar::base_type(start, name)
+        {
+            // Rule definitions
+            start = /* ... */;
+        }
+
+        rule<Iterator, A1, A2, A3> start;
+        // more rule declarations...
+    };
+``
+    ]                                           [Grammar definition. `name` is an optional string that gives the
+                                                grammar its name, useful for debugging and error handling.]]
+    [[`g.name(name)`]                           [Naming a grammar]]
+    [[`g.name()`]                               [Getting the name of a grammar]]
+]
+
+[endsect]
+[section:semantic_actions Parser Semantic Actions]
+
+Has the form:
+
+    p[f]
+
+where `f` is a function with the signatures:
+
+    void f(Attrib const&);
+    void f(Attrib const&, Context&);
+    void f(Attrib const&, Context&, bool&);
+
+You can use __boost_bind__ to bind member functions. For function
+objects, the allowed signatures are:
+
+    void operator()(Attrib const&, unused_type, unused_type) const;
+    void operator()(Attrib const&, Context&, unused_type) const;
+    void operator()(Attrib const&, Context&, bool&) const;
+
+The `unused_type` is used in the signatures above to signify 'don't
+care'.
+
+For more detailed information about semantic actions see:
+[link spirit.qi.tutorials.semantic_actions here].
+
+[endsect]
+[section Phoenix]
+
+__boost_phoenix__ makes it easier to attach semantic actions. You just
+inline your lambda expressions:
+
+    p[phoenix-lambda-expression]
+
+Spirit.Qi provides some __boost_phoenix__ placeholders to important
+information from the `Attrib` and `Context` that are otherwise fiddly to extract.
+
+[variablelist Spirit.Qi specific Phoenix placeholders
+    [[`_1, _2... , _N`]         [Nth attribute of `p`]]
+    [[`_val`]                   [The enclosing rule's synthesized attribute.]]
+    [[`_r1, _r2... , _rN`]      [The enclosing rule's Nth inherited attribute.]]
+    [[`_a, _b... , _j`]         [The enclosing rule's local variables (`_a` refers to the first).]]
+    [[`_pass`]                  [Assign `false` to `_pass` to force a parser failure.]]
+]
+
+[important  All placeholders mentioned above are defined in the namespace
+           `boost::spirit` and, for your convenience, are available in the
+           namespace `boost::spirit::qi` as well.]
+
+For more detailed information about semantic actions see:
+[link spirit.qi.tutorials.semantic_actions here].
+
+[endsect]

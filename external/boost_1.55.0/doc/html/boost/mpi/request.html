@@ -1,0 +1,93 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class request</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../mpi/reference.html#header.boost.mpi.request_hpp" title="Header &lt;boost/mpi/request.hpp&gt;">
+<link rel="prev" href="python/register_skele_idp94749672.html" title="Function template register_skeleton_and_content">
+<link rel="next" href="skeleton_proxy.html" title="Struct template skeleton_proxy">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="python/register_skele_idp94749672.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.request_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="skeleton_proxy.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.mpi.request"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class request</span></h2>
+<p>boost::mpi::request &#8212; A request for a non-blocking send or receive. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../mpi/reference.html#header.boost.mpi.request_hpp" title="Header &lt;boost/mpi/request.hpp&gt;">boost/mpi/request.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="request.html" title="Class request">request</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="request.html#boost.mpi.requestconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="request.html#idp94760488-bb"><span class="identifier">request</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="request.html#idp94756168-bb">public member functions</a></span>
+  <a class="link" href="status.html" title="Class status">status</a> <a class="link" href="request.html#idp94756376-bb"><span class="identifier">wait</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">optional</span><span class="special">&lt;</span> <a class="link" href="status.html" title="Class status">status</a> <span class="special">&gt;</span> <a class="link" href="request.html#idp94757448-bb"><span class="identifier">test</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="request.html#idp94759752-bb"><span class="identifier">cancel</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp162768344"></a><h2>Description</h2>
+<p>This structure contains information about a non-blocking send or receive and will be returned from <code class="computeroutput">isend</code> or <code class="computeroutput">irecv</code>, respectively. </p>
+<div class="refsect2">
+<a name="idp162769512"></a><h3>
+<a name="boost.mpi.requestconstruct-copy-destruct"></a><code class="computeroutput">request</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp94760488-bb"></a><span class="identifier">request</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a NULL request. </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp162772568"></a><h3>
+<a name="idp94756168-bb"></a><code class="computeroutput">request</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="status.html" title="Class status">status</a> <a name="idp94756376-bb"></a><span class="identifier">wait</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Wait until the communication associated with this request has completed, then return a <code class="computeroutput">status</code> object describing the communication. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">optional</span><span class="special">&lt;</span> <a class="link" href="status.html" title="Class status">status</a> <span class="special">&gt;</span> <a name="idp94757448-bb"></a><span class="identifier">test</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Determine whether the communication associated with this request has completed successfully. If so, returns the <code class="computeroutput">status</code> object describing the communication. Otherwise, returns an empty <code class="computeroutput">optional&lt;&gt;</code> to indicate that the communication has not completed yet. Note that once <code class="computeroutput">test()</code> returns a <code class="computeroutput">status</code> object, the request has completed and <code class="computeroutput">wait()</code> should not be called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp94759752-bb"></a><span class="identifier">cancel</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Cancel a pending communication, assuming it has not already been completed. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="python/register_skele_idp94749672.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.request_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="skeleton_proxy.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

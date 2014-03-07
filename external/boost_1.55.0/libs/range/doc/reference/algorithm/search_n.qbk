@@ -1,0 +1,63 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:search_n search_n]
+
+[heading Prototype]
+
+``
+template<class ForwardRange, class Integer, class Value>
+typename range_iterator<ForwardRange>::type
+search_n(ForwardRange& rng, Integer n, const Value& value);
+
+template<class ForwardRange, class Integer, class Value>
+typename range_iterator<const ForwardRange>::type
+search_n(const ForwardRange& rng, Integer n, const Value& value);
+
+template<class ForwardRange, class Integer, class Value, class BinaryPredicate>
+typename range_iterator<ForwardRange>::type
+search_n(ForwardRange& rng, Integer n, const Value& value,
+         BinaryPredicate binary_pred);
+
+template<class ForwardRange, class Integer, class Value, class BinaryPredicate>
+typename range_iterator<const ForwardRange>::type
+search_n(const ForwardRange& rng, Integer n, const Value& value,
+         BinaryPredicate binary_pred);
+``
+
+[heading Description]
+
+`search_n` searches `rng` for a sequence of length `n` equal to `value` where
+equality is determined by operator== in the non-predicate case, and by a
+predicate when one is supplied.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/search_n.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange`'s value type is a model of the `EqualityComparableConcept`.
+* `ForwardRange`s value type can be compared for equality with `Value`.
+* `Integer` is a model of the `IntegerConcept`.
+
+[*For the predicate versions:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `BinaryPredicate` is a model of the `BinaryPredicateConcept`.
+* `ForwardRange`'s value type is convertible to `BinaryPredicate`'s first argument type.
+* `Value` is convertible to `BinaryPredicate`'s second argument type.
+* `Integer` is a model of the `IntegerConcept`.
+
+[heading Complexity]
+
+Average complexity is Linear. Worst-case complexity is quadratic.
+
+[endsect]
+
+

@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Quick Start</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="theme/style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body text="#000000" background="theme/bkd.gif">
+<table width="100%" border="0" cellspacing="2" background="theme/bkd2.gif">
+  <tr> 
+    <td width="21"> <h1></h1></td>
+    <td width="885"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">Quick 
+      Start </font></b></font></td>
+    <td width="96"><a href="http://www.boost.org"><img src="theme/wave.gif" width="93" height="68" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="introduction.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="class_reference_context.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>Preprocessing with <tt>Wave</tt> is highly configurable. You must
+define a few options to control it. Here are a few of the
+options you can define:</p>
+<BLOCKQUOTE dir="ltr" style="MARGIN-RIGHT: 0px"> 
+  <P><STRONG><IMG id="IMG1" height="13" src="theme/bullet.gif" width="13"></STRONG>&nbsp;include 
+    search paths defining where to search for files to be included with 
+    <tt>#include&nbsp;&lt;...&gt;</tt> and <tt>#include&nbsp;"..."</tt> directives<br>
+    <STRONG><img src="theme/bullet.gif" width="13" height="13">&nbsp;</STRONG>which 
+    macros to predefine and which of the predefined macros to undefine<br>
+    <STRONG><img src="theme/bullet.gif" width="13" height="13">&nbsp;</STRONG>whether to enable any of several extensions to the C++
+Standard (such as for variadics and placemarkers)
+  </P>
+</BLOCKQUOTE>
+<p>You can access all these processing parameters through the <tt>boost::wave::context</tt> 
+  object. So you must instantiate one object instance of this type to use the <tt>Wave</tt> 
+  library. (For more information about the context template class, please refer 
+  to the class reference <a href="class_reference_context.html">here</a>.) To instantiate 
+  the <tt>boost::wave::context</tt> object you have to supply at least two template parameters: 
+  the iterator type of the underlying input stream to use and the type of the lexer iterator to be used as the token source for the preprocessing engine.</p>
+<P dir="ltr">Do not instantiate the main preprocessing iterators yourself.
+Get them from the <tt>boost::wave::context</tt> object instead.
+The following code snippet is taken from the <tt>quick_start</tt> sample, which shows a minimal usage scenario for <tt>Wave</tt>. </P>
+<pre><span class="comment">    // The following preprocesses a given input file.
+    // Open the file and read it into a string variable</span>
+    <span class="keyword">std::ifstream</span> instream(<span class="string">&quot;input.cpp&quot;</span>);
+    <span class="keyword">std::string </span>input<span class="keyword">(
+        std::istreambuf_iterator&lt;char&gt;</span>(instream.rdbuf()),
+        <span class="keyword">std::istreambuf_iterator&lt;char&gt;</span>());
+
+    <span class="comment">// The template boost::wave::cpplexer::lex_token&lt;&gt; is the  
+    // token type to be used by the Wave library.
+    // This token type is one of the central types throughout 
+    // the library, because it is a template parameter to some 
+    // of the public classes and templates and it is returned 
+    // from the iterators.
+    // The template boost::wave::cpplexer::lex_iterator&lt;&gt; is
+    // the lexer iterator to use as the token source for the
+    // preprocessing engine. In this case this is parametrized
+    // with the token type.</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost::wave::cpplexer::lex_iterator</span><span class="special">&lt;</span>
+            <span class="identifier">boost::wave::cpplexer::lex_token</span><span class="special">&lt;&gt; &gt;</span>
+        <span class="identifier">lex_iterator_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost::wave::context</span><span class="special">&lt;</span>
+            std::string::iterator<span class="special">,</span> lex_iterator_type<span class="special">&gt;</span>
+        <span class="identifier">context_type</span><span class="special">;</span>
+
+    context_type ctx(input.begin(), input.end(), <span class="string">&quot;input.cpp&quot;</span>);
+<span class="comment">
+    // At this point you may want to set the parameters of the
+    // preprocessing as include paths and/or predefined macros.
+</span>        ctx.add_include_path(<span class="literal">&quot;...&quot;</span>);
+        ctx.add_macro_definition(...);
+<span class="comment">
+    // Get the preprocessor iterators and use them to generate 
+    // the token sequence.
+</span>    context_type::iterator_type first = ctx.begin();
+    context_type::iterator_type last = ctx.end();
+
+<span class="comment">    // The input stream is preprocessed for you during iteration<br>    // over [first, last)<br></span>        <span class="keyword">while</span> (first != last) {
+            <span class="keyword">std::cout</span> &lt;&lt; (*first).get_value();
+            ++first;
+        }
+
+</pre>
+<P dir="ltr">The constructor of the <tt>boost::wave::context</tt> object can 
+  take a pair of arbitrary iterator types (at least <tt>input_iterator</tt> type 
+  iterators) to the input stream, which must supply the data to be processed. 
+  The third parameter supplies a filename, which is reported in the preprocessor output to
+indicate the current context. 
+Note though, that this filename is used 
+  only as long as no <tt>#include</tt> or <tt>#line</tt> directives are encountered, 
+  which in turn will alter the current reported filename.</P>
+<P dir="ltr">The iteration over the preprocessed tokens is relatively straightforward. Just get the starting and the ending iterators from the context object 
+  (maybe after initializing some include search paths) and you are done! Dereferencing 
+  the iterator will return the preprocessed tokens generated on 
+  the fly from the input stream. (To get further information about the token type, 
+  you may want to look <a href="class_reference_tokentype.html">here</a>.)</P>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="introduction.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="class_reference_context.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2011 Hartmut Kaiser<br>
+  <br>
+<font size="2">Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<span class="updated"></span>
+<p class="copyright"><span class="updated">Last updated: 
+  <!-- #BeginDate format:fcAm1m -->Tuesday, July 29, 2008  20:34<!-- #EndDate -->
+</span></p>
+</body>
+</html>

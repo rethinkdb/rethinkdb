@@ -1,0 +1,652 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+     "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd"
+[
+    <!ENTITY % entities SYSTEM "program_options.ent" >
+    %entities;
+]>
+<section id="program_options.overview">
+  <title>Library Overview</title>
+
+  <para>In the tutorial section, we saw several examples of library usage.
+    Here we will describe the overall library design including the primary
+    components and their function.
+  </para>
+
+  <para>The library has three main components:
+    <itemizedlist>
+      <listitem>
+        <para>The options description component, which describes the allowed options
+          and what to do with the values of the options.
+        </para>
+      </listitem>
+      <listitem>
+        <para>The parsers component, which uses this information to find option names
+          and values in the input sources and return them. 
+        </para>
+      </listitem>
+      <listitem>
+        <para>The storage component, which provides the
+          interface to access the value of an option. It also converts the string
+          representation of values that parsers return into desired C++ types.
+        </para>
+      </listitem>
+    </itemizedlist>
+  </para>
+
+  <para>To be a little more concrete, the <code>options_description</code>
+  class is from the options description component, the
+  <code>parse_command_line</code> function is from the parsers component, and the
+  <code>variables_map</code> class is from the storage component. </para>
+
+  <para>In the tutorial we've learned how those components can be used by the
+    <code>main</code> function to parse the command line and config
+    file. Before going into the details of each component, a few notes about
+    the world outside of <code>main</code>.
+  </para>
+
+  <para>
+    For that outside world, the storage component is the most important. It
+    provides a class which stores all option values and that class can be
+    freely passed around your program to modules which need access to the
+    options. All the other components can be used only in the place where
+    the actual parsing is the done.  However, it might also make sense for the
+    individual program modules to describe their options and pass them to the
+    main module, which will merge all options. Of course, this is only
+    important when the number of options is large and declaring them in one
+    place becomes troublesome.
+  </para>
+
+<!--
+  <para>The design looks very simple and straight-forward, but it is worth
+  noting some important points:
+    <itemizedlist>
+      <listitem>
+        <para>The options description is not tied to specific source. Once
+        options are described, all parsers can use that description.</para>
+      </listitem>
+      <listitem>
+        <para>The parsers are intended to be fairly dumb. They just
+          split the input into (name, value) pairs, using strings to represent
+          names and values. No meaningful processing of values is done.
+        </para>
+      </listitem>
+      <listitem>
+        <para>The storage component is focused on storing options values. It 
+        </para>
+      </listitem>
+  
+
+    </itemizedlist>
+
+  </para>
+-->
+
+  <section>
+    <title>Options Description Component</title>
+
+    <para>The options description component has three main classes:
+      &option_description;, &value_semantic; and &options_description;. The
+      first two together describe a single option. The &option_description;
+      class contains the option's name, description and a pointer to &value_semantic;,
+      which, in turn, knows the type of the option's value and can parse the value,
+      apply the default value, and so on. The &options_description; class is a
+      container for instances of &option_description;.
+    </para>
+
+    <para>For almost every library, those classes could be created in a
+      conventional way: that is, you'd create new options using constructors and
+      then call the <code>add</code> method of &options_description;. However,
+      that's overly verbose for declaring 20 or 30 options. This concern led
+      to creation of the syntax that you've already seen:
+<programlisting>
+options_description desc;
+desc.add_options()
+    ("help", "produce help")
+    ("optimization", value&lt;int&gt;()->default_value(10), "optimization level")
+    ;
+</programlisting>      
+    </para>
+
+    <para>The call to the <code>value</code> function creates an instance of
+      a class derived from the <code>value_semantic</code> class: <code>typed_value</code>.
+      That class contains the code to parse
+      values of a specific type, and contains a number of methods which can be
+      called by the user to specify additional information. (This
+      essentially emulates named parameters of the constructor.) Calls to
+      <code>operator()</code> on the object returned by <code>add_options</code>
+      forward arguments to the constructor of the <code>option_description</code>
+      class and add the new instance. 
+    </para>
+
+    <para>
+      Note that in addition to the
+      <code>value</code>, library provides the <code>bool_switch</code>
+      function, and user can write his own function which will return
+      other subclasses of <code>value_semantic</code> with 
+      different behaviour. For the remainder of this section, we'll talk only
+      about the <code>value</code> function.
+    </para>
+
+    <para>The information about an option is divided into syntactic and
+      semantic. Syntactic information includes the name of the option and the
+      number of tokens which can be used to specify the value. This
+      information is used by parsers to group tokens into (name, value) pairs,
+      where value is just a vector of strings
+      (<code>std::vector&lt;std::string&gt;</code>). The semantic layer
+      is responsible for converting the value of the option into more usable C++
+      types. 
+    </para>
+
+    <para>This separation is an important part of library design. The parsers
+      use only the syntactic layer, which takes away some of the freedom to
+      use overly complex structures. For example, it's not easy to parse
+      syntax like: <screen>calc --expression=1 + 2/3</screen> because it's not
+      possible to parse <screen>1 + 2/3</screen> without knowing that it's a C
+      expression. With a little help from the user the task becomes trivial,
+      and the syntax clear: <screen>calc --expression="1 + 2/3"</screen>
+    </para>
+
+    <section>
+      <title>Syntactic Information</title>
+      <para>The syntactic information is provided by the
+        <classname>boost::program_options::options_description</classname> class
+        and some methods of the
+        <classname>boost::program_options::value_semantic</classname> class
+        and includes:        
+        <itemizedlist>
+          <listitem>
+            <para>
+              name of the option, used to identify the option inside the
+              program,
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              description of the option, which can be presented to the user,
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+              the allowed number of source tokens that comprise options's
+              value, which is used during parsing.
+            </para>
+          </listitem>
+        </itemizedlist>
+      </para>
+
+      <para>Consider the following example:
+      <programlisting>
+options_description desc;
+desc.add_options()
+    ("help", "produce help message")
+    ("compression", value&lt;string&gt;(), "compression level")
+    ("verbose", value&lt;string&gt;()->implicit_value("0"), "verbosity level")
+    ("email", value&lt;string&gt;()->multitoken(), "email to send to")
+    ;
+      </programlisting>
+      For the first parameter, we specify only the name and the
+      description. No value can be specified in the parsed source.
+      For the first option, the user must specify a value, using a single
+      token. For the third option, the user may either provide a single token
+      for the value, or no token at all. For the last option, the value can
+      span several tokens. For example, the following command line is OK:
+      <screen>
+          test --help --compression 10 --verbose --email beadle@mars beadle2@mars
+      </screen>      
+      </para>
+
+      <section>
+        <title>Description formatting</title>
+
+        <para>
+          Sometimes the description can get rather long, for example, when
+          several option's values need separate documentation. Below we
+          describe some simple formatting mechanisms you can use.
+        </para>
+
+        <para>The description string has one or more paragraphs, separated by
+        the newline character ('\n'). When an option is output, the library
+        will compute the indentation for options's description. Each of the
+        paragraph is output as a separate line with that intentation. If 
+        a paragraph does not fit on one line it is spanned over multiple
+        lines (which will have the same indentation).
+        </para>
+
+        <para>You may specify additional indent for the first specified by
+        inserting spaces at the beginning of a paragraph. For example: 
+        <programlisting>
+options.add_options()
+    ("help", "   A long help msg a long help msg a long help msg a long help
+msg a long help msg a long help msg a long help msg a long help msg ")
+    ;  
+        </programlisting>
+        will specify a four-space indent for the first line. The output will
+        look like:
+        <screen>
+  --help                    A long help msg a long
+                        help msg a long help msg
+                        a long help msg a long
+                        help msg a long help msg
+                        a long help msg a long
+                        help msg
+          
+        </screen>
+        </para>
+
+        <para>For the case where line is wrapped, you can want an additional
+        indent for wrapped text. This can be done by
+        inserting a tabulator character ('\t') at the desired position. For
+        example: 
+        <programlisting>
+options.add_options()
+      ("well_formated", "As you can see this is a very well formatted
+option description.\n"
+                        "You can do this for example:\n\n"
+                        "Values:\n"
+                        "  Value1: \tdoes this and that, bla bla bla bla
+bla bla bla bla bla bla bla bla bla bla bla\n"
+                        "  Value2: \tdoes something else, bla bla bla bla
+bla bla bla bla bla bla bla bla bla bla bla\n\n"
+                        "    This paragraph has a first line indent only,
+bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla");          
+        </programlisting>
+        will produce:
+        <screen>
+  --well_formated       As you can see this is a
+                        very well formatted
+                        option description.
+                        You can do this for
+                        example:
+
+                        Values:
+                          Value1: does this and
+                                  that, bla bla
+                                  bla bla bla bla
+                                  bla bla bla bla
+                                  bla bla bla bla
+                                  bla
+                          Value2: does something
+                                  else, bla bla
+                                  bla bla bla bla
+                                  bla bla bla bla
+                                  bla bla bla bla
+                                  bla
+
+                            This paragraph has a
+                        first line indent only,
+                        bla bla bla bla bla bla
+                        bla bla bla bla bla bla
+                        bla bla bla
+        </screen>
+        The tab character is removed before output. Only one tabulator per
+        paragraph is allowed, otherwisee an exception of type
+        program_options::error is thrown. Finally, the tabulator is ignored if
+        it's is not on the first line of the paragraph or is on the last
+        possible position of the first line.
+        </para>
+
+      </section>
+
+    </section>
+      
+    <section>
+      <title>Semantic Information</title>
+      
+      <para>The semantic information is completely provided by the 
+        <classname>boost::program_options::value_semantic</classname> class. For
+        example:
+<programlisting>
+options_description desc;
+desc.add_options()
+    ("compression", value&lt;int&gt;()->default_value(10), "compression level")
+    ("email", value&lt; vector&lt;string&gt; &gt;()
+        ->composing()->notifier(&amp;your_function), "email")
+    ;
+</programlisting>      
+        These declarations specify that default value of the first option is 10,
+        that the second option can appear several times and all instances should
+        be merged, and that after parsing is done, the library will  call
+        function <code>&amp;your_function</code>, passing the value of the
+        "email" option as argument.      
+      </para>
+    </section>
+    
+    <section>
+      <title>Positional Options</title>
+      
+      <para>Our definition of option as (name, value) pairs is simple and
+        useful, but in one special case of the command line, there's a
+        problem. A command line can include a <firstterm>positional option</firstterm>,
+        which does not specify any name at all, for example:
+        <screen>
+          archiver --compression=9 /etc/passwd
+        </screen>
+        Here, the "/etc/passwd" element does not have any option name.
+      </para>
+      
+      <para>One solution is to ask the user to extract positional options
+        himself and process them as he likes. However, there's a nicer approach
+        -- provide a method to automatically assign the names for positional
+        options, so that the above command line can be interpreted the same way
+        as:
+        <screen>
+          archiver --compression=9 --input-file=/etc/passwd
+        </screen>
+      </para>
+      
+      <para>The &positional_options_desc; class allows the command line
+        parser to assign the names. The class specifies how many positional options
+        are allowed, and for each allowed option, specifies the name. For example:
+<programlisting>
+positional_options_description pd; pd.add("input-file", 1);
+</programlisting> specifies that for exactly one, first, positional
+        option the name will be "input-file".
+      </para>
+      
+      <para>It's possible to specify that a number, or even all positional options, be
+        given the same name.
+<programlisting>
+positional_options_description pd;
+pd.add("output-file", 2).add("input-file", -1);
+</programlisting>
+        In the above example, the first two positional options will be associated
+        with name "output-file", and any others with the name "input-file".
+      </para>
+
+    <warning>
+      <para>The &positional_options_desc; class only specifies translation from
+      position to name, and the option name should still be registered with
+      an instance of the &options_description; class.</para>
+    </warning>
+
+      
+    </section>
+              
+    <!-- Note that the classes are not modified during parsing -->
+          
+  </section>
+
+  <section>
+    <title>Parsers Component</title>
+
+    <para>The parsers component splits input sources into (name, value) pairs.
+      Each parser looks for possible options and consults the options
+      description component to determine if the option is known and how its value
+      is specified. In the simplest case, the name is explicitly specified,
+      which allows the library to decide if such option is known. If it is known, the
+      &value_semantic; instance determines how the value is specified. (If
+      it is not known, an exception is thrown.) Common
+      cases are when the value is explicitly specified by the user, and when
+      the value cannot be specified by the user, but the presence of the
+      option implies some value (for example, <code>true</code>). So, the
+      parser checks that the value is specified when needed and not specified
+      when not needed, and returns new (name, value) pair.
+    </para>
+
+    <para>
+      To invoke a parser you typically call a function, passing the options
+      description and command line or config file or something else.
+      The results of parsing are returned as an instance of the &parsed_options;
+      class. Typically, that object is passed directly to the storage
+      component. However, it also can be used directly, or undergo some additional
+      processing. 
+    </para>
+
+    <para>
+      There are three exceptions to the above model -- all related to
+      traditional usage of the command line. While they require some support
+      from the options description component, the additional complexity is
+      tolerable.
+      <itemizedlist>
+        <listitem>
+          <para>The name specified on the command line may be
+            different from the option name -- it's common to provide a "short option
+            name" alias to a longer name. It's also common to allow an abbreviated name
+            to be specified on the command line.
+          </para>
+        </listitem>
+        <listitem>
+          <para>Sometimes it's desirable to specify value as several
+          tokens. For example, an option "--email-recipient" may be followed
+          by several emails, each as a separate command line token. This
+          behaviour is supported, though it can lead to parsing ambiguities
+          and is not enabled by default.
+          </para>
+        </listitem>
+        <listitem>
+          <para>The command line may contain positional options -- elements
+            which don't have any name. The command line parser provides a
+            mechanism to guess names for such options, as we've seen in the
+            tutorial.
+          </para>
+        </listitem>
+      </itemizedlist>
+    </para>      
+    
+  </section>
+
+
+  <section>
+    <title>Storage Component</title>
+
+    <para>The storage component is responsible for:
+      <itemizedlist>
+        <listitem>
+          <para>Storing the final values of an option into a special class and in
+            regular variables</para>
+        </listitem>
+        <listitem>
+          <para>Handling priorities among different sources.</para>
+        </listitem>
+
+        <listitem>
+          <para>Calling user-specified <code>notify</code> functions with the final
+         values of options.</para>
+        </listitem>
+      </itemizedlist>
+    </para>
+
+    <para>Let's consider an example:
+<programlisting>
+variables_map vm;
+store(parse_command_line(argc, argv, desc), vm);
+store(parse_config_file("example.cfg", desc), vm);
+notify(vm);
+</programlisting>
+      The <code>variables_map</code> class is used to store the option
+      values. The two calls to the <code>store</code> function add values
+      found on the command line and in the config file. Finally the call to
+      the <code>notify</code> function runs the user-specified notify
+      functions and stores the values into regular variables, if needed.
+    </para>
+
+    <para>The priority is handled in a simple way: the <code>store</code>
+      function will not change the value of an option if it's already
+      assigned. In this case, if the command line specifies the value for an
+      option, any value in the config file is ignored.
+    </para>
+
+    <warning>
+      <para>Don't forget to call the <code>notify</code> function after you've
+      stored all parsed values.</para>
+    </warning>
+
+  </section>
+
+  <section>
+    <title>Specific parsers</title>
+
+    <section>
+      <title>Configuration file parser</title>
+
+      <para>The &parse_config_file; function implements parsing
+      of simple INI-like configuration files. Configuration file
+      syntax is line based:
+      </para>
+      <itemizedlist>
+        <listitem><para>A line in the form:</para>
+        <screen>
+<replaceable>name</replaceable>=<replaceable>value</replaceable>
+        </screen>
+        <para>gives a value to an option.</para>
+        </listitem>
+        <listitem><para>A line in the form:</para>
+        <screen>
+[<replaceable>section name</replaceable>]
+        </screen>
+        <para>introduces a new section in the configuration file.</para>
+        </listitem>
+        <listitem><para>The <literal>#</literal> character introduces a
+        comment that spans until the end of the line.</para>
+        </listitem>
+      </itemizedlist>
+
+      <para>The option names are relative to the section names, so
+      the following configuration file part:</para>
+      <screen>
+[gui.accessibility]
+visual_bell=yes
+      </screen>
+      <para>is equivalent to</para>
+      <screen>
+gui.accessibility.visual_bell=yes
+      </screen>
+                  
+    </section>
+
+    <section>
+      <title>Environment variables parser</title>
+
+      <para><firstterm>Environment variables</firstterm> are string variables
+      which are available to all programs via the <code>getenv</code> function
+      of C runtime library. The operating system allows to set initial values
+      for a given user, and the values can be further changed on the command
+      line.  For example, on Windows one can use the
+      <filename>autoexec.bat</filename> file or (on recent versions) the
+      <filename>Control Panel/System/Advanced/Environment Variables</filename>
+      dialog, and on Unix &#x2014;, the <filename>/etc/profile</filename>,
+      <filename>~/.profile</filename> and <filename>~/.bash_profile</filename>
+      files. Because environment variables can be set for the entire system,
+      they are particularly suitable for options which apply to all programs.
+      </para>
+
+      <para>The environment variables can be parsed with the
+      &parse_environment; function. The function have several overloaded
+      versions. The first parameter is always an &options_description;
+      instance, and the second specifies what variables must be processed, and
+      what option names must correspond to it. To describe the second
+      parameter we need to consider naming conventions for environment
+      variables.</para>
+      
+      <para>If you have an option that should be specified via environment
+      variable, you need make up the variable's name. To avoid name clashes,
+      we suggest that you use a sufficiently unique prefix for environment
+      variables. Also, while option names are most likely in lower case,
+      environment variables conventionally use upper case. So, for an option
+      name <literal>proxy</literal> the environment variable might be called
+      <envar>BOOST_PROXY</envar>. During parsing, we need to perform reverse
+      conversion of the names. This is accomplished by passing the choosen
+      prefix as the second parameter of the &parse_environment; function.
+      Say, if you pass <literal>BOOST_</literal> as the prefix, and there are
+      two variables, <envar>CVSROOT</envar> and <envar>BOOST_PROXY</envar>, the
+      first variable will be ignored, and the second one will be converted to
+      option <literal>proxy</literal>. 
+      </para>
+      
+      <para>The above logic is sufficient in many cases, but it is also
+      possible to pass, as the second parameter of the &parse_environment;
+      function, any function taking a <code>std::string</code> and returning
+      <code>std::string</code>. That function will be called for each
+      environment variable and should return either the name of the option, or
+      empty string if the variable should be ignored.
+      </para>
+            
+    </section>
+  </section>
+
+  <section>
+    <title>Annotated List of Symbols</title>
+    
+    <para>The following table describes all the important symbols in the
+      library, for quick access.</para>
+    
+    <informaltable pgwide="1">
+        
+      <tgroup cols="2">
+        <colspec colname='c1'/>
+        <colspec colname='c2'/>
+        <thead>
+          
+          <row>            
+            <entry>Symbol</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        
+        <tbody>
+          
+          <row>            
+            <entry namest='c1' nameend='c2'>Options description component</entry>
+          </row>
+          
+          <row>
+            <entry>&options_description;</entry>
+            <entry>describes a number of options</entry>
+          </row>
+          <row>
+            <entry>&value;</entry>
+            <entry>defines the option's value</entry>
+          </row>
+
+          <row>            
+            <entry namest='c1' nameend='c2'>Parsers component</entry>
+          </row>
+          
+          <row>
+            <entry>&parse_command_line;</entry>
+            <entry>parses command line (simpified interface)</entry>
+          </row>
+
+          <row>
+            <entry>&basic_command_line_parser;</entry>
+            <entry>parses command line (extended interface)</entry>
+          </row>
+
+
+          <row>
+            <entry>&parse_config_file;</entry>
+            <entry>parses config file</entry>
+          </row>
+
+          <row>
+            <entry>&parse_environment;</entry>
+            <entry>parses environment</entry>
+          </row>
+
+          <row>            
+            <entry namest='c1' nameend='c2'>Storage component</entry>
+          </row>
+
+          <row>
+            <entry>&variables_map;</entry>
+            <entry>storage for option values</entry>
+          </row>
+   
+        </tbody>
+      </tgroup>
+      
+    </informaltable>
+    
+  </section>
+  
+</section>
+
+<!--
+     Local Variables:
+     mode: nxml
+     sgml-indent-data: t     
+     sgml-parent-document: ("program_options.xml" "section")
+     sgml-set-face: t
+     End:
+-->

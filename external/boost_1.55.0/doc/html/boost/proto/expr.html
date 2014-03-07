@@ -1,0 +1,266 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template expr</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.expr_hpp" title="Header &lt;boost/proto/expr.hpp&gt;">
+<link rel="prev" href="basic_expr.html" title="Struct template basic_expr">
+<link rel="next" href="expr/result.html" title="Struct template result">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_expr.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.expr_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="expr/result.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.expr"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template expr</span></h2>
+<p>boost::proto::expr &#8212; Representation of a node in an expression tree.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.expr_hpp" title="Header &lt;boost/proto/expr.hpp&gt;">boost/proto/expr.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Tag<span class="special">,</span> <span class="keyword">typename</span> Args<span class="special">,</span> <span class="keyword">long</span> Arity <span class="special">=</span> <span class="identifier">Args</span><span class="special">::</span><span class="identifier">arity</span><span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="expr.html" title="Struct template expr">expr</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">Tag</span>                                   <a name="boost.proto.expr.proto_tag"></a><span class="identifier">proto_tag</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">Args</span>                                  <a name="boost.proto.expr.proto_args"></a><span class="identifier">proto_args</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">long_</span><span class="special">&lt;</span> <span class="identifier">Arity</span> <span class="special">&gt;</span>                   <a name="boost.proto.expr.proto_arity"></a><span class="identifier">proto_arity</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <a class="link" href="default_domain.html" title="Struct default_domain">proto::default_domain</a>                 <a name="boost.proto.expr.proto_domain"></a><span class="identifier">proto_domain</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr</a><span class="special">&lt;</span> <span class="identifier">Tag</span><span class="special">,</span> <span class="identifier">Args</span><span class="special">,</span> <span class="identifier">Arity</span> <span class="special">&gt;</span> <a name="boost.proto.expr.proto_grammar"></a><span class="identifier">proto_grammar</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">expr</span>                                  <a name="boost.proto.expr.proto_base_expr"></a><span class="identifier">proto_base_expr</span><span class="special">;</span>   
+  <span class="keyword">typedef</span> <span class="identifier">expr</span>                                  <a name="boost.proto.expr.proto_derived_expr"></a><span class="identifier">proto_derived_expr</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Args</span><span class="special">::</span><span class="identifier">child</span><em class="replaceable"><code><span class="identifier">N</span></code></em>                 <a name="boost.proto.expr.proto_childN"></a><span class="identifier">proto_childN</span><span class="special">;</span>        <span class="comment">// For each <em class="replaceable"><code>N</code></em> in <em class="replaceable"><code>[0,max(Arity,1))</code></em>.</span>
+
+  <span class="comment">// member classes/structs/unions</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Signature<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="expr/result.html" title="Struct template result">result</a> <span class="special">{</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a class="link" href="expr/result.html#boost.proto.expr.result.type"><span class="identifier">type</span></a><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="expr.html#idp66360312-bb">public static functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> A<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">expr</span> <span class="keyword">const</span> <a class="link" href="expr.html#idp66360760-bb"><span class="identifier">make</span></a><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">...</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="expr.html#idp66364360-bb">public member functions</a></span>
+  <span class="identifier">expr</span> <span class="special">&amp;</span> <a class="link" href="expr.html#idp66372024-bb"><span class="identifier">proto_base</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">expr</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a class="link" href="expr.html#idp66372920-bb"><span class="identifier">proto_base</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a class="link" href="expr.html#idp66374376-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">A</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a class="link" href="expr.html#idp66377048-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a class="link" href="expr.html#idp66485112-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">A</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a class="link" href="expr.html#idp66377976-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a class="link" href="expr.html#idp66380632-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">A</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a class="link" href="expr.html#idp66383336-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a class="link" href="expr.html#idp66385704-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">A</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a class="link" href="expr.html#idp66388168-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a class="link" href="expr.html#idp66390824-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">...</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a class="link" href="expr.html#idp66393752-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">...</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="identifier">proto_child</span><em class="replaceable"><code><span class="identifier">N</span></code></em> <span class="identifier">childN</span><span class="special">;</span>  <span class="comment">// For each <em class="replaceable"><code>N</code></em> in <em class="replaceable"><code>[0,max(Arity,1))</code></em>.</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">long</span> <span class="identifier">proto_arity_c</span><span class="special">;</span>  <span class="comment">// <code class="computeroutput">= Arity;</code></span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp176888136"></a><h2>Description</h2>
+<p>
+            <code class="computeroutput">proto::expr&lt;&gt;</code> is a node in an expression
+            template tree. It is a container for its child sub-trees. It also serves as the
+            terminal nodes of the tree.
+          </p>
+<p>
+            <code class="computeroutput">Tag</code> is type that represents the operation
+            encoded by this expression. It is typically one of the structs in the
+            <code class="computeroutput">boost::proto::tag</code> namespace, but it doesn't
+            have to be. If <code class="computeroutput">Arity</code> is 0 then this
+            <code class="computeroutput">expr&lt;&gt;</code> type represents a leaf in the
+            expression tree.
+          </p>
+<p>
+            <code class="computeroutput">Args</code> is a list of types representing
+            the children of this expression. It is an instantiation of one of
+            <code class="computeroutput"><a class="link" href="listN.html" title="Struct template listN">proto::list1&lt;&gt;</a></code>,
+            <code class="computeroutput"><a class="link" href="listN.html" title="Struct template listN">proto::list2&lt;&gt;</a></code>,
+            etc. The child types
+            must all themselves be either <code class="computeroutput">proto::expr&lt;&gt;</code>
+            or <code class="computeroutput">proto::basic_expr&lt;&gt;&amp;</code> (or extensions thereof via
+            <code class="computeroutput"><a class="link" href="extends.html" title="Struct template extends">proto::extends&lt;&gt;</a></code> or
+            <code class="computeroutput"><a class="link" href="../../BOOST_PROTO_EXTENDS.html" title="Macro BOOST_PROTO_EXTENDS">BOOST_PROTO_EXTENDS</a>()</code>), unless
+            <code class="computeroutput">Arity</code> is 0, in which case
+            <code class="computeroutput">Args</code> must be
+            <code class="computeroutput">proto::term&lt;T&gt;</code>, where
+            <code class="computeroutput">T</code> can be any type.
+          </p>
+<p>
+            <code class="computeroutput">proto::expr&lt;&gt;</code> is a valid Fusion
+            random-access sequence, where the elements of the sequence are the child
+            expressions.
+          </p>
+<div class="refsect2">
+<a name="idp176897416"></a><h3>
+<a name="idp66360312-bb"></a><code class="computeroutput">expr</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> A<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">expr</span> <span class="keyword">const</span> <a name="idp66360760-bb"></a><span class="identifier">make</span><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">...</span> a<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>
+                The number of supplied arguments must be <code class="computeroutput">max(Arity,1)</code>.
+              </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>
+                A new <code class="computeroutput">expr</code> object initialized with the specified arguments.
+              </p></td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp176906008"></a><h3>
+<a name="idp66364360-bb"></a><code class="computeroutput">expr</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">expr</span> <span class="special">&amp;</span> <a name="idp66372024-bb"></a><span class="identifier">proto_base</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">*this</code></p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">expr</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a name="idp66372920-bb"></a><span class="identifier">proto_base</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>This is an overloaded member function, provided for convenience. It differs from
+              the above function only in what argument(s) it accepts.</p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a name="idp66374376-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">A</span> <span class="special">&amp;</span> a<span class="special">)</span><span class="special">;</span></pre>
+<p>Lazy assignment expression</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A new expression node representing the assignment operation.</p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a name="idp66377048-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span> a<span class="special">)</span><span class="special">;</span></pre>
+<p>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a name="idp66485112-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">A</span> <span class="special">&amp;</span> a<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a name="idp66377976-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span> a<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a name="idp66380632-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">A</span> <span class="special">&amp;</span> a<span class="special">)</span><span class="special">;</span></pre>
+<p>Lazy subscript expression</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A new expression node representing the subscript operation.</p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a name="idp66383336-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span> a<span class="special">)</span><span class="special">;</span></pre>
+<p>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a name="idp66385704-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">A</span> <span class="special">&amp;</span> a<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a name="idp66388168-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span> a<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a name="idp66390824-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">...</span> a<span class="special">)</span><span class="special">;</span></pre>
+<p>Lazy function call</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A new expression node representing the function call operation.</p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> A<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">unspecified</span></code></em> <a name="idp66393752-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">...</span> a<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_expr.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.expr_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="expr/result.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

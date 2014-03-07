@@ -1,0 +1,232 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/rof.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/rof.xml
+ */
+rof{
+    Currencies{
+        AED{
+            "AED",
+            "heleri sa Falme za Kiarabu",
+        }
+        AOA{
+            "Kz",
+            "heleri sa Angola",
+        }
+        AUD{
+            "AU$",
+            "heleri sa Australia",
+        }
+        BHD{
+            "BD",
+            "heleri sa Bahareni",
+        }
+        BIF{
+            "FBu",
+            "heleri sa Burundi",
+        }
+        BWP{
+            "BWP",
+            "heleri sa Botswana",
+        }
+        CAD{
+            "CA$",
+            "heleri sa Kanada",
+        }
+        CDF{
+            "CDF",
+            "heleri sa Kongo",
+        }
+        CHF{
+            "CHF",
+            "heleri sa Uswisi",
+        }
+        CNY{
+            "CN¥",
+            "heleri sa China",
+        }
+        CVE{
+            "CV$",
+            "heleri sa Kepuvede",
+        }
+        DJF{
+            "Fdj",
+            "heleri sa Jibuti",
+        }
+        DZD{
+            "DA",
+            "heleri sa Aljeria",
+        }
+        EGP{
+            "EGP",
+            "heleri sa Misri",
+        }
+        ERN{
+            "Nfk",
+            "heleri sa Eritrea",
+        }
+        ETB{
+            "Br",
+            "heleri sa Uhabeshi",
+        }
+        EUR{
+            "€",
+            "yuro",
+        }
+        GBP{
+            "£",
+            "heleri sa Uingereza",
+        }
+        GHC{
+            "₵",
+            "heleri sa Ghana",
+        }
+        GMD{
+            "GMD",
+            "heleri sa Gambia",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "heleri sa Gine",
+        }
+        INR{
+            "Rs",
+            "heleri sa India",
+        }
+        JPY{
+            "JP¥",
+            "heleri sa Japani",
+        }
+        KES{
+            "Ksh",
+            "heleri sa Kenya",
+        }
+        KMF{
+            "CF",
+            "heleri sa Komoro",
+        }
+        LRD{
+            "L$",
+            "heleri sa Liberia",
+        }
+        LSL{
+            "LSL",
+            "heleri sa Lesoto",
+        }
+        LYD{
+            "LD",
+            "heleri sa Libya",
+        }
+        MAD{
+            "MAD",
+            "heleri sa Moroko",
+        }
+        MGA{
+            "MGA",
+            "heleri sa Bukini",
+        }
+        MRO{
+            "UM",
+            "heleri sa Moritania",
+        }
+        MUR{
+            "MURs",
+            "heleri sa Morisi",
+        }
+        MWK{
+            "MWK",
+            "heleri sa Malawi",
+        }
+        MZM{
+            "Mt",
+            "heleri sa Msumbiji",
+        }
+        NAD{
+            "N$",
+            "heleri sa Namibia",
+        }
+        NGN{
+            "₦",
+            "heleri sa Nijeria",
+        }
+        RWF{
+            "RWF",
+            "heleri sa Rwanda",
+        }
+        SAR{
+            "SR",
+            "heleri sa Saudia",
+        }
+        SCR{
+            "SRe",
+            "heleri sa Shelisheli",
+        }
+        SDG{
+            "SDG",
+            "heleri sa Sudani",
+        }
+        SHP{
+            "SH£",
+            "heleri sa Santahelena",
+        }
+        SLL{
+            "Le",
+            "leoni",
+        }
+        SOS{
+            "Ssh",
+            "heleri sa Somalia",
+        }
+        STD{
+            "Db",
+            "heleri sa Sao Tome na Principe",
+        }
+        SZL{
+            "SZL",
+            "lilangeni",
+        }
+        TND{
+            "DT",
+            "heleri sa Tunisia",
+        }
+        TZS{
+            "TSh",
+            "heleri sa Tanzania",
+        }
+        UGX{
+            "USh",
+            "heleri sa Uganda",
+        }
+        USD{
+            "US$",
+            "heleri sa Marekani",
+        }
+        XAF{
+            "FCFA",
+            "heleri sa CFA BEAC",
+        }
+        XOF{
+            "CFA",
+            "heleri sa CFA BCEAO",
+        }
+        ZAR{
+            "R",
+            "heleri sa Afrika Kusini",
+        }
+        ZMK{
+            "ZK",
+            "heleri sa Zambia",
+        }
+        ZWD{
+            "Z$",
+            "heleri sa Zimbabwe",
+        }
+    }
+    Version{"2.0.45.90"}
+}

@@ -1,0 +1,2 @@
+C = Class('add_test::C', 'add_test.h')
+add_method(C, 'add_test::get_x')

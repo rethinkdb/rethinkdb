@@ -1,0 +1,543 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+
+<head>
+<title>Smart Pointer Timings</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h1><img src="../../boost.png" alt="boost.png (6897 bytes)" align="middle" WIDTH="277" HEIGHT="86">Smart Pointer Timings</h1>
+
+<p>In late January 2000, Mark Borgerding put forward a suggestion to boost for 
+  a new design of smart pointer whereby an intrusive doubly linked list is used 
+  to join together all instances of smart pointers sharing a given raw pointer. 
+  This allowed avoidance of the costly heap allocation of a reference count that 
+  occurred in the initial construction of the then current version of boost::shared_ptr. 
+  Of course, nothing is for free and the benefit here was gained at the expense 
+  of increased size and more costly copy operations. A debate ensued on the boost 
+  mailing list and the tests which this page describes were performed to provide 
+  a guide for current and future investigations into smart pointer implementation 
+  strategies.</p>
+<p>Thanks are due to <a href="http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a>,
+Gavin Collings,
+<a href="http://www.boost.org/people/greg_colvin.htm">Greg Colvin</a> and
+<a href="http://www.boost.org/people/beman_dawes.html">Beman Dawes</a> 
+  for test code and trial implementations, the final version of which can be found 
+  in .zip format <a href="smarttest.zip">here</a>.</p>
+<h2>Description</h2>
+<p>Two tests were run: the first aimed to obtain timings for two basic individual 
+  operations:</p>
+<ol type="i">
+  <li> Initial construction from raw pointer.</li>
+  <li> An amortized copy operation consisting of half an assignment and half a 
+    copy construction - designed to reflect average usage.</li>
+</ol>
+<p>The second attempted to gain more insight into normal usage by timing the fill 
+  and sort algorithms for vectors and lists filled with the various smart pointers.</p>
+<p>Five smart pointer implementation strategies were tested:</p>
+<ol type="i">
+  <li>Counted pointer using a heap allocated reference count, this is referred 
+    to as <b>simple counted</b>.</li>
+  <li>Counted pointer using a special purpose allocator for the reference count 
+    - <b>special counted</b>.</li>
+  <li>Counted pointer using an intrusive reference count - <b>intrusive</b>.</li>
+  <li>Linked pointer as described above - <b>linked</b>.</li>
+  <li>Cyclic pointer, a counted implementation using a std::deque for allocation 
+    with provision for weak pointers and garbage collection of cycles of pointers 
+    - <b>cyclic</b>.</li>
+</ol>
+<p>on two compilers:</p>
+<ol type="i">
+  <li>MSVC 6.0 service pack 3, using default release optimization mode (/O2 - 
+    optimized for speed, no inlining of functions defined outside a class body 
+    unless specified as inline).</li>
+  <li>gcc 2.95.2 using full optimization (-O3 -DNDEBUG).</li>
+</ol>
+<p>Additionally, generated pointer sizes (taking into account struct alignment) 
+  were compared, as were generated code sizes for MSVC mainly by manual inspection 
+  of generated assembly code - a necessity due to function inlining.</p>
+<p>All tests were run on a PII-200 running Windows NT version 4.0</p>
+<h2>&nbsp;</h2>
+<h2>Operation Timing Test Results</h2>
+<p>The following graphs show the overall time in nanoseconds to acquire a pointer 
+  (default construction) perform n amortized copy operations on it and finally 
+  release it. The initial allocation time for the contained pointer is not included, 
+  although the time for it's deallocation is. The contained pointer pointed to 
+  a trivial class, but for the inclusion of an intrusive reference count for the 
+  benefit of the intrusive counted shared pointer. A dumb pointer (i.e. a smart 
+  pointer that simply acquires and releases its contained pointer with no extra 
+  overhead) and a raw pointer were also included for comparison.</p>
+<table border="0" align="center">
+  <tr> 
+    <td width="20" height="20">&nbsp;</td>
+    <td>&nbsp;</td>
+    <td width="20">&nbsp;</td>
+  </tr>
+  <tr> 
+    <td width="20">&nbsp; </td>
+    <td><img src="msvcspeed.gif" width="560" height="355" alt="MSVC speed graph"></td>
+    <td width="20">&nbsp;</td>
+  </tr>
+  <tr> 
+    <td height="20">&nbsp;</td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr> 
+    <td>&nbsp;</td>
+    <td><img src="gccspeed.gif" width="560" height="355" alt="GCC speed graph"></td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr> 
+    <td height="20">&nbsp;</td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+</table>
+<p>&nbsp;</p>
+<p>Fitting straight lines to the above plots gives the following figures for initialization 
+  and amortized copy operation for the two compilers (times in nanoseconds, errors 
+  at two standard deviations) : -</p>
+<p>&nbsp;</p>
+<h4 align="center">MSVC</h4>
+<table align="center" cellpadding="5" cellspacing="0" class="codetable" width="400">
+  <tr> 
+    <th width="120"> 
+      <div align="right"></div>
+    </th>
+    <th class="codetabletop" width="120"> 
+      <div align="center">initialization</div>
+    </th>
+    <th class="codetabletop" width="120">copy operation</th>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">simple counted</div>
+    </th>
+    <td class="codetablecell" align="center">3000 +/- 170</td>
+    <td class="codetablecell" align="center">104 +/- 31</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">special counted</div>
+    </th>
+    <td class="codetablecell" align="center">1330 +/- 50</td>
+    <td class="codetablecell" align="center">85 +/- 9</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">intrusive</div>
+    </th>
+    <td class="codetablecell" align="center">1000 +/- 20</td>
+    <td class="codetablecell" align="center">71 +/- 3</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft" align="right">linked</th>
+    <td class="codetablecell" align="center">970 +/- 60</td>
+    <td class="codetablecell" align="center">136 +/- 10</td>
+  </tr>
+  <tr>
+    <th class="codetableleft" align="right">cyclic</th>
+    <td class="codetablecell" align="center">1290 +/- 70</td>
+    <td class="codetablecell" align="center">112 +/- 12</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft" align="right">dumb</th>
+    <td class="codetablecell" align="center">1020 +/- 20</td>
+    <td class="codetablecell" align="center">10 +/- 4</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">raw</div>
+    </th>
+    <td class="codetablecell" align="center">1038 +/- 30</td>
+    <td class="codetablecell" align="center">10 +/- 5</td>
+  </tr>
+</table>
+<h4 align="center">&nbsp;</h4>
+<h4 align="center">GCC</h4>
+<table align="center" cellpadding="5" cellspacing="0" class="codetable" width="400">
+  <tr> 
+    <th width="120"> 
+      <div align="right"></div>
+    </th>
+    <th class="codetabletop" width="120"> 
+      <div align="center">initialization</div>
+    </th>
+    <th class="codetabletop" width="120">copy operation</th>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">simple counted</div>
+    </th>
+    <td class="codetablecell" align="center">4620 +/- 150</td>
+    <td class="codetablecell" align="center">301 +/- 28</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">special counted</div>
+    </th>
+    <td class="codetablecell" align="center">1990 +/- 40</td>
+    <td class="codetablecell" align="center">264 +/- 7</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">intrusive</div>
+    </th>
+    <td class="codetablecell" align="center">1590 +/- 70</td>
+    <td class="codetablecell" align="center">181 +/- 12</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft" align="right">linked</th>
+    <td class="codetablecell" align="center">1470 +/- 140</td>
+    <td class="codetablecell" align="center">345 +/- 26</td>
+  </tr>
+  <tr>
+    <th class="codetableleft" align="right">cyclic</th>
+    <td class="codetablecell" align="center">2180 +/- 100</td>
+    <td class="codetablecell" align="center">330 +/- 18</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft" align="right">dumb</th>
+    <td class="codetablecell" align="center">1590 +/- 70</td>
+    <td class="codetablecell" align="center">74 +/- 12</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft" align="right"> 
+      <div align="right">raw</div>
+    </th>
+    <td class="codetablecell" align="center">1430 +/- 60</td>
+    <td class="codetablecell" align="center">27 +/- 11</td>
+  </tr>
+</table>
+<p>Note that the above times include a certain amount of loop overhead etc. for 
+  each operation. An estimate of the pure smart pointer operation time 'overhead' 
+  can be obtained by subtracting the dumb or raw figure from the smart pointer 
+  time of interest.</p>
+<h3>Detail</h3>
+<p>The test involved iterating a loop which creates raw pointers. These were then 
+  shared among a varying number (set size) of smart pointers. A range of set sizes 
+  was used and then a line fitted to get a linear relation with number of initializations 
+  and copy-operations. A spreadsheet was used for the line fit, and to produce 
+  the performance graphs above.</p>
+<h2>&nbsp;</h2>
+<h2>Container Test Results</h2>
+<p>To gain some insight in to operation within real life programs, this test was 
+  devised. Smart pointers were used to fill standard containers which were then 
+  sorted.</p>
+<p>In this case, the contained pointer pointed to a class which initializes a 
+  private data member to a random value in its default constructor. This value 
+  is used subsequently for the sort comparison test. The class also contains an 
+  intrusive reference count for the benefit of the intrusive counted pointer.</p>
+<p> All times are in seconds for 300,000 contained pointers.</p>
+<h4 align="center">GCC</h4>
+<table align="center" cellpadding="5" cellspacing="0" class="codetable" width="500">
+  <tr> 
+    <th>&nbsp;</th>
+    <th class="codetabletop" colspan="2">vector</th>
+    <th class="codetabletop" colspan="2">list</th>
+  </tr>
+  <tr> 
+    <th width="120"> 
+      <div align="right"></div>
+    </th>
+    <th class="codetabletop2" width="80"> 
+      <div align="center">fill</div>
+    </th>
+    <th class="codetabletop2" width="80">sort</th>
+    <th class="codetabletop2" width="80">fill</th>
+    <th class="codetabletop2" width="80">sort</th>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">simple counted</div>
+    </th>
+    <td class="codetablecell" align="center">46.54</td>
+    <td class="codetablecell" align="center">2.44</td>
+    <td class="codetablecell" align="center">47.09</td>
+    <td class="codetablecell" align="center">3.22</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">special counted</div>
+    </th>
+    <td class="codetablecell" align="center">14.02</td>
+    <td class="codetablecell" align="center">2.83</td>
+    <td class="codetablecell" align="center">7.28</td>
+    <td class="codetablecell" align="center">3.21</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">intrusive</div>
+    </th>
+    <td class="codetablecell" align="center">12.15</td>
+    <td class="codetablecell" align="center">1.91</td>
+    <td class="codetablecell" align="center">7.99</td>
+    <td class="codetablecell" align="center">3.08</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft" align="right">linked</th>
+    <td class="codetablecell" align="center">12.46</td>
+    <td class="codetablecell" align="center">2.32</td>
+    <td class="codetablecell" align="center">8.14</td>
+    <td class="codetablecell" align="center">3.27</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft" align="right">cyclic</th>
+    <td class="codetablecell" align="center">22.60</td>
+    <td class="codetablecell" align="center">3.19</td>
+    <td class="codetablecell" align="center">1.63</td>
+    <td class="codetablecell" align="center">3.18</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft" align="right"> 
+      <div align="right">raw</div>
+    </th>
+    <td class="codetablecell" align="center">11.81</td>
+    <td class="codetablecell" align="center">0.24</td>
+    <td class="codetablecell" align="center">27.51</td>
+    <td class="codetablecell" align="center">0.77</td>
+  </tr>
+</table>
+<p>&nbsp;</p>
+<h4 align="center">MSVC</h4>
+<table align="center" cellpadding="5" cellspacing="0" class="codetable" width="500">
+  <tr> 
+    <th>&nbsp;</th>
+    <th class="codetabletop" colspan="2">vector</th>
+    <th class="codetabletop" colspan="2">list</th>
+  </tr>
+  <tr> 
+    <th width="120"> 
+      <div align="right"></div>
+    </th>
+    <th class="codetabletop2" width="80"> 
+      <div align="center">fill</div>
+    </th>
+    <th class="codetabletop2" width="80">sort</th>
+    <th class="codetabletop2" width="80">fill</th>
+    <th class="codetabletop2" width="80">sort</th>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">simple counted</div>
+    </th>
+    <td class="codetablecell" align="center">1.83</td>
+    <td class="codetablecell" align="center">2.37</td>
+    <td class="codetablecell" align="center">1.86</td>
+    <td class="codetablecell" align="center">4.85</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">special counted</div>
+    </th>
+    <td class="codetablecell" align="center">1.04</td>
+    <td class="codetablecell" align="center">2.35</td>
+    <td class="codetablecell" align="center">1.38</td>
+    <td class="codetablecell" align="center">4.58</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">intrusive</div>
+    </th>
+    <td class="codetablecell" align="center">1.04</td>
+    <td class="codetablecell" align="center">1.84</td>
+    <td class="codetablecell" align="center">1.16</td>
+    <td class="codetablecell" align="center">4.29</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft" align="right">linked</th>
+    <td class="codetablecell" align="center">1.08</td>
+    <td class="codetablecell" align="center">2.00</td>
+    <td class="codetablecell" align="center">1.21</td>
+    <td class="codetablecell" align="center">4.33</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft" align="right">cyclic</th>
+    <td class="codetablecell" align="center">1.38</td>
+    <td class="codetablecell" align="center">2.84</td>
+    <td class="codetablecell" align="center">1.47</td>
+    <td class="codetablecell" align="center">4.73</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft" align="right"> 
+      <div align="right">raw</div>
+    </th>
+    <td class="codetablecell" align="center">0.67</td>
+    <td class="codetablecell" align="center">0.28</td>
+    <td class="codetablecell" align="center">1.24</td>
+    <td class="codetablecell" align="center">1.81</td>
+  </tr>
+</table>
+<p>&nbsp;</p>
+<h2>Code Size</h2>
+<p>The following code sizes were determined by inspection of generated code for 
+  MSVC only. Sizes are given in the form N / M / I where:</p>
+<ul type="circle">
+  <li> N is the instruction count of the operation</li>
+  <li>M is the size of the code in bytes</li>
+  <li>I determines whether generated code was inlined or not I = inline, O = &quot;outline&quot;</li>
+</ul>
+<p>&nbsp;</p>
+<table align="center" cellpadding="5" cellspacing="0" class="codetable" width="570">
+  <tr> 
+    <th height="28" width="140"> 
+      <div align="right"></div>
+    </th>
+    <th height="28" class="codetabletop" width="80"> 
+      <div align="center">ptr()</div>
+    </th>
+    <th height="28" class="codetabletop" width="80">ptr(p)</th>
+    <th height="28" class="codetabletop" width="80">ptr(ptr)</th>
+    <th height="28" class="codetabletop" width="80">op=()</th>
+    <th height="28" class="codetabletop" width="80"> 
+      <div align="center">~ptr()</div>
+    </th>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">simple counted</div>
+    </th>
+    <td class="codetablecell" align="center">38/110/O</td>
+    <td class="codetablecell" align="center">38/110/O</td>
+    <td class="codetablecell" align="center">9/23/I</td>
+    <td class="codetablecell" align="center">22/57/I</td>
+    <td class="codetablecell" align="center">17/40/I</td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">special counted</div>
+    </th>
+    <td class="codetablecell" align="center"><font size="-1">50/141/O</font></td>
+    <td class="codetablecell" align="center"><font size="-1">50/141/O</font></td>
+    <td class="codetablecell" align="center"><font size="-1">9/23/I</font></td>
+    <td class="codetablecell" align="center"><font size="-1">23/64/I</font></td>
+    <td class="codetablecell" align="center"><font size="-1">13/38/I</font></td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">intrusive</div>
+    </th>
+    <td class="codetablecell" align="center"><font size="-1">1/2/I</font></td>
+    <td class="codetablecell" align="center"><font size="-1">3/6/I</font></td>
+    <td class="codetablecell" align="center"><font size="-1">3/6/I</font></td>
+    <td class="codetablecell" align="center"><font size="-1">6/11/I</font></td>
+    <td class="codetablecell" align="center"><font size="-1">6/11/I</font></td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">linked</div>
+    </th>
+    <td class="codetablecell" align="center"><font size="-1">5/19/I</font></td>
+    <td class="codetablecell" align="center"><font size="-1">5/15/I</font></td>
+    <td class="codetablecell" align="center"><font size="-1">10/30/I</font></td>
+    <td class="codetablecell" align="center"><font size="-1">27/59/I</font></td>
+    <td class="codetablecell" align="center"><font size="-1">14/38/I</font></td>
+  </tr>
+</table>
+<p>During the code inspection, a couple of minor points were noticed: -</p>
+<ul>
+  <li>Function inlining was critical to performance.</li>
+  <li>For MSVC, at least, a &quot;delete 0&quot; caused execution of 11 assembly 
+    instructions, including a function call. So in cases where performance is 
+    at an absolute premium it can be worth inserting the extra manual test.</li>
+</ul>
+<h2>&nbsp;</h2>
+<h2>Data Size</h2>
+<p>The following smart pointer sizes were obtained in bytes</p>
+<table align="center" cellpadding="5" cellspacing="0" class="codetable" width="270">
+  <tr> 
+    <th height="28" width="150"> 
+      <div align="right"></div>
+    </th>
+    <th height="28" class="codetabletop" width="60"> 
+      <div align="center">MSVC</div>
+    </th>
+    <th height="28" class="codetabletop" width="60"> 
+      <div align="center">GCC</div>
+    </th>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">simple counted</div>
+    </th>
+    <td class="codetablecell"> 
+      <div align="center">8</div>
+    </td>
+    <td class="codetablecell"> 
+      <div align="center">8</div>
+    </td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">special counted</div>
+    </th>
+    <td class="codetablecell"> 
+      <div align="center">8</div>
+    </td>
+    <td class="codetablecell"> 
+      <div align="center">12</div>
+    </td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">intrusive</div>
+    </th>
+    <td class="codetablecell"> 
+      <div align="center">4</div>
+    </td>
+    <td class="codetablecell"> 
+      <div align="center">4</div>
+    </td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">linked</div>
+    </th>
+    <td class="codetablecell"> 
+      <div align="center">12</div>
+    </td>
+    <td class="codetablecell"> 
+      <div align="center">12</div>
+    </td>
+  </tr>
+  <tr> 
+    <th class="codetableleft"> 
+      <div align="right">cyclic</div>
+    </th>
+    <td class="codetablecell"> 
+      <div align="center">8</div>
+    </td>
+    <td class="codetablecell"> 
+      <div align="center">8</div>
+    </td>
+  </tr>
+</table>
+<h2>&nbsp;</h2>
+<h2>Summary</h2>
+<p>The timing results mainly speak for themselves: clearly an intrusive pointer 
+  outperforms all others and a simple heap based counted pointer has poor performance 
+  relative to other implementations. The selection of an optimal non-intrusive 
+  smart pointer implementation is more application dependent, however. Where small 
+  numbers of copies are expected, it is likely that the linked implementation 
+  will be favoured. Conversely, for larger numbers of copies a counted pointer 
+  with some type of special purpose allocator looks like a win. Other factors 
+  to bear in mind are: -</p>
+<ul>
+  <li>Deterministic individual, as opposed to amortized, operation time. This 
+    weighs against any implementation depending on an allocator.</li>
+  <li>Multithreaded synchronization. This weighs against an implementation which 
+    spreads its information as in the case of linked pointer.</li>
+</ul>
+<hr>
+<p>Revised <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B %Y" startspan -->19 August 2001<!--webbot bot="Timestamp" endspan i-checksum="14767" -->
+</p>
+<p>© Copyright Gavin Collings 2000. Permission to copy, use, modify, sell
+and distribute this document is granted provided this copyright notice appears in all
+copies. This document is provided &quot;as is&quot; without express or implied warranty,
+and with no claim as to its suitability for any purpose.</p>
+</body>
+</html>

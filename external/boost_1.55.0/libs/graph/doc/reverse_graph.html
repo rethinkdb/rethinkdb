@@ -1,0 +1,446 @@
+<HTML>
+<!--
+      (C) Copyright David Abrahams and Jeremy Siek 2000.
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Reverse Graph Adaptor</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+
+<H1><A NAME="sec:reverse-graph-adaptor"></A>
+</h1>
+<pre>
+reverse_graph&lt;<a href="./BidirectionalGraph.html">BidirectionalGraph</a>, GraphReference&gt;
+</pre>
+
+The <tt>reverse_graph</tt> adaptor flips the in-edges and out-edges of
+a <a href="./BidirectionalGraph.html">BidirectionalGraph</a>,
+effectively transposing the graph. The construction of the
+<tt>reverse_graph</tt> is constant time, providing a highly efficient
+way to obtain a transposed view of a graph.
+
+
+<H3>Example</H3>
+
+The example from <a
+href="../example/reverse-graph-eg.cpp"><tt>examples/reverse-graph-eg.cpp</tt></a>.
+
+<pre>
+int
+main()
+{
+  typedef boost::adjacency_list&lt; 
+    boost::vecS, boost::vecS, boost::bidirectionalS,
+  &gt; Graph;
+  
+  Graph G(5);
+  boost::add_edge(0, 2, G);
+  boost::add_edge(1, 1, G);
+  boost::add_edge(1, 3, G);
+  boost::add_edge(1, 4, G);
+  boost::add_edge(2, 1, G);
+  boost::add_edge(2, 3, G);
+  boost::add_edge(2, 4, G);
+  boost::add_edge(3, 1, G);
+  boost::add_edge(3, 4, G);
+  boost::add_edge(4, 0, G);
+  boost::add_edge(4, 1, G);
+
+  std::cout &lt;&lt; &quot;original graph:&quot; &lt;&lt; std::endl;
+  boost::print_graph(G, boost::get(boost::vertex_index, G));
+
+  std::cout &lt;&lt; std::endl &lt;&lt; &quot;reversed graph:&quot; &lt;&lt; std::endl;
+  boost::print_graph(boost::make_reverse_graph(G), 
+                     boost::get(boost::vertex_index, G));
+
+
+  return 0;
+}
+</pre>
+The output is:
+<pre>
+original graph:
+0 --&gt; 2 
+1 --&gt; 1 3 4 
+2 --&gt; 1 3 4 
+3 --&gt; 1 4 
+4 --&gt; 0 1 
+
+reversed graph:
+0 --&gt; 4 
+1 --&gt; 1 2 3 4 
+2 --&gt; 0 
+3 --&gt; 1 2 
+4 --&gt; 1 2 3 
+</pre>
+
+<H3>Template Parameters</H3>
+
+<P>
+<TABLE border>
+<TR>
+<th>Parameter</th><th>Description</th><th>Default</th>
+</tr>
+
+<TR><TD><TT>BidirectionalGraph</TT></TD>
+<TD>The graph type to be adapted.</TD>
+<TD>&nbsp;</TD>
+</TR>
+
+<TR><TD><TT>GraphReference</TT></TD>
+<TD>This type should be <tt>const&nbsp;BidirectionalGraph&amp;</tt>
+if you want to create a const reverse graph, or <tt>BidirectionalGraph&amp;</tt> if you want to create a non-const reverse graph.</TD>
+<TD><tt>const&nbsp;BidirectionalGraph&amp;</tt></TD>
+</TR>
+
+
+</table>
+
+
+<H3>Model of</H3>
+
+<P>
+<a href="./BidirectionalGraph.html">BidirectionalGraph</a>
+and optionally
+<a href="./VertexListGraph.html">VertexListGraph</a>
+and <a href="./PropertyGraph.html">PropertyGraph</a>
+
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/reverse_graph.hpp"><TT>boost/graph/reverse_graph.hpp</TT></a>
+
+
+<H2>Associated Types</H2>
+
+<hr>
+
+<tt>graph_traits&lt;reverse_graph&gt;::vertex_descriptor</tt>
+<br><br>
+The type for the vertex descriptors associated with the
+<TT>reverse_graph</TT>.
+
+<hr>
+
+<tt>graph_traits&lt;reverse_graph&gt;::edge_descriptor</tt>
+<br><br>
+The type for the edge descriptors associated with the
+<TT>reverse_graph</TT>.
+
+<hr>
+
+<tt>graph_traits&lt;reverse_graph&gt;::vertex_iterator</tt>
+<br><br>
+The type for the iterators returned by <TT>vertices()</TT>.
+
+<hr>
+
+<tt>graph_traits&lt;reverse_graph&gt;::edge_iterator</tt>
+<br><br>
+The type for the iterators returned by <TT>edges()</TT>.
+
+<hr>
+
+
+<tt>graph_traits&lt;reverse_graph&gt;::out_edge_iterator</tt>
+<br><br>
+The type for the iterators returned by <TT>out_edges()</TT>.
+
+<hr>
+
+<tt>graph_traits&lt;reverse_graph&gt;::adjacency_iterator</tt>
+<br><br>
+The type for the iterators returned by <TT>adjacent_vertices()</TT>.
+
+<hr>
+
+<tt>graph_traits&lt;reverse_graph&gt;::directed_category</tt>
+<br><br>
+Provides information about whether the graph is
+directed (<TT>directed_tag</TT>) or undirected
+(<TT>undirected_tag</TT>).
+
+<hr>
+
+<tt>graph_traits&lt;reverse_graph&gt;::edge_parallel_category</tt>
+<br><br>
+This describes whether the graph class allows the insertion of
+parallel edges (edges with the same source and target). The two tags
+are <TT>allow_parallel_edge-_tag</TT> and
+<TT>disallow_parallel_edge_tag</TT>. The
+<TT>setS</TT> and <TT>hash_setS</TT> variants disallow
+parallel edges while the others allow parallel edges.
+
+<hr>
+
+<tt>graph_traits&lt;reverse_graph&gt;::vertices_size_type</tt>
+<br><br>
+The type used for dealing with the number of vertices in the graph.
+
+<hr>
+
+<tt>graph_traits&lt;reverse_graph&gt;::edge_size_type</tt>
+<br><br>
+The type used for dealing with the number of edges in the graph.
+
+<hr>
+
+<tt>graph_traits&lt;reverse_graph&gt;::degree_size_type</tt>
+<br><br>
+The type used for dealing with the number of edges incident to a vertex
+in the graph.
+
+<hr>
+
+<tt>property_map&lt;reverse_graph, PropertyTag&gt;::type</tt><br>
+and<br>
+<tt>property_map&lt;reverse_graph, PropertyTag&gt;::const_type</tt>
+<br><br>
+The property map type for vertex or edge properties in the graph. The
+specific property is specified by the <TT>PropertyTag</TT> template argument,
+and must match one of the properties specified in the
+<TT>VertexProperty</TT> or <TT>EdgeProperty</TT> for the graph.
+
+<hr>
+
+
+<tt>property_map&lt;reverse_graph, edge_underlying_t&gt;::type</tt><br>
+and<br>
+<tt>property_map&lt;reverse_graph, edge_underlying_t&gt;::const_type</tt>
+<br><br>
+An edge property type mapping from edge descriptors in the <tt>reverse_graph</tt> to
+edge descriptors in the underlying <tt>BidirectionalGraph</tt> object.
+
+<hr>
+
+
+<H2>Member Functions</H2>
+
+<hr>
+
+<pre>
+reverse_graph(BidirectionalGraph&amp;&nbsp;g)
+</pre>
+Constructor. Create a reversed (transposed) view of the graph <tt>g</tt>.
+
+<hr>
+
+<H2>Non-Member Functions</H2>
+
+<hr>
+
+<pre>
+template &lt;class BidirectionalGraph&gt;
+reverse_graph&lt;BidirectionalGraph, BidirectionalGraph&amp;&gt;
+make_reverse_graph(BidirectionalGraph&amp; g);
+
+template &lt;class BidirectionalGraph&gt;
+reverse_graph&lt;BidirectionalGraph, const BidirectionalGraph&amp;&gt;
+make_reverse_graph(const BidirectionalGraph&amp; g)
+
+</pre>
+Helper function for creating a <tt>reverse_graph</tt>.
+
+<hr>
+
+<pre>
+std::pair&lt;vertex_iterator,&nbsp;vertex_iterator&gt;
+vertices(const reverse_graph&amp; g)
+</pre>
+Returns an iterator-range providing access to the vertex set of graph
+<tt>g</tt>.
+
+<hr>
+
+<pre>
+std::pair&lt;out_edge_iterator,&nbsp;out_edge_iterator&gt;
+out_edges(vertex_descriptor&nbsp;v, const&nbsp;reverse_graph&amp;&nbsp;g)
+</pre>
+Returns an iterator-range providing access to the out-edges of vertex
+<tt>v</tt> in graph <tt>g</tt>. These out-edges correspond to the
+in-edges of the adapted graph.
+
+<hr>
+
+<pre>
+std::pair&lt;in_edge_iterator,&nbsp;in_edge_iterator&gt;
+in_edges(vertex_descriptor&nbsp;v, const&nbsp;reverse_graph&amp;&nbsp;g)
+</pre>
+Returns an iterator-range providing access to the in-edges of vertex
+<tt>v</tt> in graph <tt>g</tt>. These in-edges correspond to the
+out edges of the adapted graph.
+
+<hr>
+
+<pre>
+std::pair&lt;adjacency_iterator,&nbsp;adjacency__iterator&gt;
+adjacent_vertices(vertex_descriptor&nbsp;v, const&nbsp;reverse_graph&amp;&nbsp;g)
+</pre>
+Returns an iterator-range providing access to the adjacent vertices of vertex
+<tt>v</tt> in graph <tt>g</tt>.
+
+<hr>
+
+<pre>
+vertex_descriptor
+source(edge_descriptor&nbsp;e, const&nbsp;reverse_graph&amp;&nbsp;g)
+</pre>
+Returns the source vertex of edge <tt>e</tt>.
+
+<hr>
+
+<pre>
+vertex_descriptor
+target(edge_descriptor&nbsp;e, const&nbsp;reverse_graph&amp;&nbsp;g)
+</pre>
+Returns the target vertex of edge <tt>e</tt>.
+
+<hr>
+
+<pre>
+degree_size_type
+out_degree(vertex_descriptor&nbsp;u, const&nbsp;reverse_graph&amp;&nbsp;g)
+</pre>
+Returns the number of edges leaving vertex <tt>u</tt>.
+
+<hr>
+
+<pre>
+degree_size_type
+in_degree(vertex_descriptor&nbsp;u, const&nbsp;reverse_graph&amp;&nbsp;g)
+</pre>
+Returns the number of edges entering vertex <tt>u</tt>. This operation
+is only available if <TT>bidirectionalS</TT> was specified for
+the <TT>Directed</TT> template parameter.
+
+<hr>
+
+<pre>
+vertices_size_type
+num_vertices(const reverse_graph&amp; g)
+</pre>
+Returns the number of vertices in the graph <tt>g</tt>.
+
+<hr>
+
+<pre>
+vertex_descriptor
+vertex(vertices_size_type&nbsp;n, const&nbsp;reverse_graph&amp;&nbsp;g)
+</pre>
+Returns the nth vertex in the graph's vertex list.
+
+<hr>
+
+<pre>
+std::pair&lt;edge_descriptor, bool&gt;
+edge(vertex_descriptor&nbsp;u, vertex_descriptor&nbsp;v,
+     const&nbsp;reverse_graph&amp;&nbsp;g)
+</pre>
+Returns the edge connecting vertex <tt>u</tt> to vertex <tt>v</tt> in
+graph <tt>g</tt>.
+
+<hr>
+
+<pre>
+template &lt;class <a href="./PropertyTag.html">PropertyTag</a>&gt;
+property_map&lt;reverse_graph, PropertyTag&gt;::type
+get(PropertyTag, reverse_graph&amp; g)
+
+template &lt;class <a href="./PropertyTag.html">PropertyTag</a>&gt;
+property_map&lt;reverse_graph, Tag&gt;::const_type
+get(PropertyTag, const reverse_graph&amp; g)
+</pre>
+Returns the property map object for the vertex property specified by
+<TT>PropertyTag</TT>. The <TT>PropertyTag</TT> must match one of the
+properties specified in the graph's <TT>VertexProperty</TT> template
+argument.
+
+<hr>
+
+<pre>
+property_map&lt;reverse_graph, edge_underlying_t&gt;::const_type
+get(PropertyTag, const reverse_graph&amp; g)
+</pre>
+Returns a property map object that converts from edge descriptors in the
+<tt>reverse_graph</tt> to edge descriptors in the underlying
+<tt>BidirectionalGraph</tt> object.
+
+<hr>
+
+<pre>
+template &lt;class <a href="./PropertyTag.html">PropertyTag</a>, class X&gt;
+typename property_traits&lt;property_map&lt;reverse_graph, PropertyTag&gt;::const_type&gt;::value_type
+get(PropertyTag, const reverse_graph&amp; g, X x)
+</pre>
+This returns the property value for <tt>x</tt>, which is either
+a vertex or edge descriptor.
+<hr>
+
+<pre>
+typename graph_traits&lt;BidirectionalGraph&gt;::edge_descriptor
+get(edge_underlying_t, const reverse_graph&amp; g, edge_descriptor e)
+</pre>
+This returns the underlying edge descriptor for the edge <tt>e</tt> in the <tt>reverse_graph</tt>.
+<hr>
+
+<pre>
+template &lt;class <a href="./PropertyTag.html">PropertyTag</a>, class X, class Value&gt;
+void
+put(PropertyTag, const reverse_graph&amp; g, X x, const Value&amp; value)
+</pre>
+This sets the property value for <tt>x</tt> to
+<tt>value</tt>. <tt>x</tt> is either a vertex or edge descriptor.
+<tt>Value</tt> must be convertible to
+<tt>typename property_traits&lt;property_map&lt;reverse_graph, PropertyTag&gt;::type&gt::value_type</tt>
+
+<hr>
+
+<pre>
+template &lt;class GraphProperties, class <a href="./PropertyTag.html#GraphPropertyTag">GraphPropertyTag</a>&gt;
+typename property_value&lt;GraphProperties, GraphPropertyTag&gt;::type&amp;
+get_property(reverse_graph&amp; g, GraphPropertyTag);
+</pre>
+Return the property specified by <tt>GraphPropertyTag</tt> that is
+attached to the graph object <tt>g</tt>. The <tt>property_value</tt>
+traits class is defined in <a
+href="../../../boost/pending/property.hpp"><tt>boost/pending/property.hpp</tt></a>.
+
+<hr>
+
+<pre>
+template &lt;class GraphProperties, class <a href="./PropertyTag.html#GraphPropertyTag">GraphPropertyTag</a>&gt;
+const typename property_value&lt;GraphProperties, GraphPropertyTag&gt;::type&amp;
+get_property(const reverse_graph&amp; g, GraphPropertyTag);
+</pre>
+Return the property specified by <tt>GraphPropertyTag</tt> that is
+attached to the graph object <tt>g</tt>.  The <tt>property_value</tt>
+traits class is defined in <a
+href="../../../boost/pending/property.hpp"><tt>boost/pending/property.hpp</tt></a>.
+
+<hr>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<a HREF="http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a>
+(<A HREF="mailto:david.abrahams@rcn.com">david.abrahams@rcn.com</A>)<br>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

@@ -1,0 +1,101 @@
+<html>
+<head>
+	<title>BOOST_PP_INCLUDE_SELF</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_INCLUDE_SELF</b> macro includes a file indirectly.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			#include <b>BOOST_PP_INCLUDE_SELF</b>()
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>filename</dt>
+			<dd>
+				A quoted or angle-bracketed filename to be included by <b>BOOST_PP_INCLUDE_SELF</b>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			<b>BOOST_PP_INDIRECT_SELF</b> must be defined prior to using this macro.
+		</div>
+		<div>
+			Most preprocessors will not allow a file to directly include itself--even when the file protects itself from such a scenario.&nbsp;
+			This macro, in combination with <b>BOOST_PP_INDIRECT_SELF</b> allows a file to include itself indirectly.
+		</div>
+		<div>
+			While <b>BOOST_PP_INDIRECT_SELF</b> is being included, <b>BOOST_PP_INCLUDE_SELF</b> defines the macro <b>BOOST_PP_IS_SELFISH</b> to <i>1</i>.&nbsp;
+			When it returns from the inclusion, <b>BOOST_PP_IS_SELFISH</b> is undefined.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="indirect_self.html">BOOST_PP_INDIRECT_SELF</a></li>
+			<li><a href="is_selfish.html">BOOST_PP_IS_SELFISH</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/iteration/self.html">&lt;boost/preprocessor/iteration/self.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+// file.h
+#if !<a href="is_selfish.html">BOOST_PP_IS_SELFISH</a>
+
+   #ifndef FILE_H_
+   #define FILE_H_
+
+   #include &lt;<a href="../headers/iteration/self.html">boost/preprocessor/iteration/self.hpp</a>&gt;
+
+   #define NAME X
+   struct NAME {
+      // ...
+      #define <a href="indirect_self.html">BOOST_PP_INDIRECT_SELF</a> "file.h"
+      #include <a href="include_self.html">BOOST_PP_INCLUDE_SELF</a>()
+   };
+
+   #define NAME Y
+   struct NAME {
+      // ...
+      #define <a href="indirect_self.html">BOOST_PP_INDIRECT_SELF</a> "file.h"
+      #include <a href="include_self.html">BOOST_PP_INCLUDE_SELF</a>()
+   };
+
+   #define NAME Z
+   struct NAME {
+      // ...
+      #define <a href="indirect_self.html">BOOST_PP_INDIRECT_SELF</a> "file.h"
+      #include <a href="include_self.html">BOOST_PP_INCLUDE_SELF</a>()
+   };
+
+   #endif
+
+#else
+
+      inline bool validate(NAME* p) {
+         return true;
+      }
+
+      template&lt;class T&gt; bool validate(T* p) {
+         return dynamic_cast&lt;NAME*&gt;(p);
+      }
+
+   #undef NAME
+
+#endif
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

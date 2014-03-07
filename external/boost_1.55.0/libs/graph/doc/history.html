@@ -1,0 +1,214 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: History</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<h1>History of the Boost Graph Library</h1>
+
+The Boost Graph Library began its life as the Generic Graph Component
+Library (GGCL), a software project at the <a
+href="http://www.lsc.nd.edu">Lab for Scientific Computing (LSC)</a> at
+the University of Notre Dame, under the direction of Professor <a
+href="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</a>. The Lab's
+research directions include numerical linear algebra, parallel
+computing, and software engineering (including generic programming).
+
+<p>
+Soon after the Standard Template Library was released, work began at
+the LSC to apply generic programming to scientific computing.  The <a
+href="http://www.lsc.nd.edu/research/mtl">Matrix Template Library</a>
+(Jeremy Siek's masters thesis) was one of the first projects. Many of
+the lessons learned during construction of the MTL were applied to the
+design and implementation of the GGCL.
+
+<p>
+Graph algorithms play an important role in sparse matrix computations,
+so the LSC had a need for a good graph library. However, none of the
+available graph libraries (LEDA, GTL, Stanford GraphBase) were
+written using the generic programming style of the STL, and hence did
+not fulfill the flexibility and high-performance requirements of the
+LSC. Others were also expressing interest in a generic C++ graph
+library. During a meeting with Bjarne Stroustrup we were introduced to
+several people at AT\&T who needed such a library. There had also been
+earlier work in the area of generic graph algorithms, including some
+codes written by Alexander Stepanov, and Dietmar K&uuml;hl's masters
+thesis.
+
+<p>
+With this in mind, and motivated by homework assignments in his
+algorithms class, Jeremy began prototyping an interface and some graph
+classes in the spring on 1998. Lie-Quan Lee then developed the first
+version of GGCL, which became his masters thesis project.
+
+<p>
+The following year, Jeremy went to work for SGI with Alexander
+Stepanov and Matt Austern. During this time Alex's disjoint-sets based
+connected components algorithm was added to GGCL, and Jeremy began
+working on the concept documentation for GGCL similar to Matt's STL
+documentation.
+
+<p>
+While working at SGI, Jeremy heard about Boost and was excited to find
+a group of people interested in creating high-quality C++
+libraries. At boost there were several people interested in generic
+graph algorithms, most notably Dietmar K&uuml;hl.  Some discussions
+about generic interfaces for graph structures resulted in the a
+revision of GGCL which closely resembles the current Boost Graph
+Library interface.
+
+<p>
+On September 4, 2000 GGCL passed the Boost formal review and became
+the Boost Graph Library (BGL). The first release of BGL was
+September 27, 2000.
+
+<h2>Changes by version</h2>
+<a name="by-version">
+<ul>
+  <a name="1.36.0"></a><li>Version 1.36.0<br><b>New algorithms and components</b>
+    <ul>
+      <li><a href="r_c_shortest_paths.html"><tt>r_c_shortest_paths</tt></a>, resource-constrained shortest paths, from Michael Drexl.</li>
+    </ul>
+  </li>
+
+  <a name="1.35.0"></a><li>Version 1.35.0<br><b>New algorithms and components</b>
+    <ul>
+      <li><a href="boykov_kolmogorov_max_flow.html"><tt>boykov_kolmogorov_max_flow</tt></a> (formerly kolmogorov_max_flow), from Stephan Diederich as part of the <a href="http://code.google.com/soc/">2006 Google Summer of Code</a>.</li>
+      <li><a href="read_dimacs.html">read_dimacs_max_flow</a> and <a href="write_dimacs.html">write_dimacs_max_flow</a> for max-flow problems, from Stephan Diederich.</li>
+      <li><a href="read_graphml.html">read_graphml</a> and <a href="write_graphml.html">write_graphml</a> for <a href="http://graphml.graphdrawing.org/">GraphML</a> input/output, from Tiago de Paula Peixoto.</li>
+      <li><a href="howard_cycle_ratio.html"><tt>minimum_cycle_ratio</tt> and <tt>maximum_cycle_ratio</tt></a>, from Dmitry Bufistov and Andrey Parfenov.</li>
+      <li><a href="boyer_myrvold.html"><tt>boyer_myrvold_planarity_test</tt></a>, along with a suite of <a href="planar_graphs.html">algorithms for planar graphs</a>, from Aaron Windsor.</li>
+    </ul><br><b>Enhancements</b><br>
+    <ul>
+      <li><a href="leda_conversion.html">LEDA Adaptor</a> improvements, from Jens M&uuml;ller.</li>
+    </ul>
+  </li><br>
+
+  <a name="1.34.1"></a><li>Version 1.34.1</br><b>Bug Fixes</b><br>
+  <ul>
+     <li><a href="bellman_ford_shortest.html"><tt>bellman_ford_shortest_paths</tt></a>: fixed a bug where certain negative cycles were not correctly detected.</li>
+  </ul>
+  <a name="1.34.0"></a><li>Version 1.34.0<br><b>New algorithms and components</b>
+    <ul>
+      <li><a href="maximum_matching.html"><tt>edmonds_maximum_cardinality_matching</tt></a>, from Aaron Windsor.</li>
+      <li><a href="lengauer_tarjan_dominator.htm"><tt>lengauer_tarjan_dominator_tree</tt></a>, from JongSoo Park.</li>
+      <li><a href="compressed_sparse_row.html"><tt>compressed_sparse_row_graph</tt></a>, from Jeremiah Willcock and Douglas Gregor of Indiana University.</li>
+      <li><a href="sorted_erdos_renyi_gen.html"><tt>sorted_erdos_renyi_iterator</tt></a>, from Jeremiah Willcock of Indiana University.</li>
+    </ul><br><b>Enhancements</b><br>
+    <ul>
+       <li>Note: the name of the compiled library for GraphViz reading is now called <code>boost_graph</code> rather than <code>bgl-viz</code>.</li>
+      <li><a href="biconnected_components.html"><tt>biconnected_components</tt></a> now has a visitor parameter and supports named parameters, from Janusz Piwowarski.</li>
+      <li><a href="adjacency_matrix.html"><tt>adjacency_matrix</tt></a> now models the <a href="BidirectionalGraph.html">Bidirectional Graph</a> concept.</li>
+                             <li><a href="adjacency_list.html"><tt>adjacency_list</tt></a> is now <a href="../../serialization/doc/index.html">Serializable</a>, from Jeremy Siek of Rice University.</li>
+       <li>Added <tt>edges_size_type</tt> and <tt>vertices_size_type</tt> to <tt>adjacency_list_traits</tt>, from Jeremy Siek of Rice University.</li>
+       <li>Added <tt>operator< </tt>, etc. to the edge descriptor of <tt>adjacency_list</tt>,
+             from Jeremy Siek of Rice University.</li>
+    </ul>
+    <br><b>Bug Fixes</b><br>
+    <ul>
+      <li>Fixed a bug that causes the relaxed heap to fail on x86 Linux.</li>
+      <li>Bundled properties now work with adjacency list I/O.</li>
+      <li><a href="floyd_warshall_shortest.html"><tt>floyd_warshall_all_pairs_shortest_paths</tt></a> now properly uses its <tt>compare</tt>, <tt>inf</tt>, and <tt>zero</tt> parameters.</li>
+      <li><a href="johnson_all_pairs_shortest.html"><tt>johnson_all_pairs_shortest_paths</tt></a> now supports <tt>compare</tt>, <tt>combine</tt>, <tt>inf</tt>, and <tt>zero</tt>.</li>
+      <li>Fixed a bug in smallest_last_vertex_ordering.hpp which could cause a vertex to be moved to the wrong bucket during an BucketSorter update. 
+    </ul>
+    <br>
+  </li>
+
+  <li>Version 1.33.1<br><b>Bug Fixes</b>
+    <ul>
+      <li><a href="fruchterman_reingold.html"><TT>fruchterman_reingold_force_directed_layout</TT></A>: Fixed enumeration of grid-force pairs, which caused some odd graph formations along grid lines.</li>
+      <li><a href="king_ordering.html"><tt>king_ordering</tt></a> and <a
+      href="cuthill_mckee_ordering.html"><tt>cuthill_mckee_ordering</tt></a>: Fixed bug that caused failures with the multi-component version of these algorithms.</li>
+    </ul></li>
+
+  <li>Version 1.33.0<br><b>New algorithms and components</b>
+    <ul>
+      <li><a href="python.html">Experimental Python bindings</a>, from Doug Gregor and Indiana University.</li>
+      <LI><A href="floyd_warshall_shortest.html"><TT>floyd_warshall_all_pairs_shortest_paths</TT></A>, from Lauren Foutz and Scott Hill.</LI>
+      <LI><A href="astar_search.html"><TT>astar_search</TT></A>, from Kristopher Beevers and Jufeng Peng.</LI>
+      <LI><A href="fruchterman_reingold.html"><TT>fruchterman_reingold_force_directed_layout</TT></A>, from Doug Gregor and Indiana University.</a></LI>
+      <LI><A href="biconnected_components.html"><tt>biconnected_components</tt> and <tt>articulation_points</tt></a>, from Indiana University.</a></li>
+      <li><a href="gursoy_atun_layout.html"><tt>gursoy_atun_layout</tt></a>, from Jeremiah Willcock and Doug Gregor of Indiana University.</li>
+      <li><a href="king_ordering.html"><tt>king_ordering</tt></a>, from
+      D. Kevin McGrath of Indiana University.</li>
+      <li><a href="erdos_renyi_generator.html"><tt>erdos_renyi_iterator</tt></a></li>
+      <li><a href="plod_generator.html"><tt>plod_iterator</tt></a></li>
+      <li><a href="small_world_generator.html"><tt>small_world_iterator</tt></a></li>
+    </ul><br><b>Enhancements</b><br>
+    <ul>
+      <li><a href="bellman_ford_shortest.html"><tt>bellman_ford_shortest_paths</tt></a> now permits one to specify the starting vertex, so that it will perform its own initialization.</li>
+      <li><a href="undirected_dfs.html"><tt>undirected_dfs</tt></a> is now data-recursive, resulting in improved performance in some cases, from Synge Todo.</li>
+      <li><a href="dijkstra_shortest_paths.html"><tt>dijkstra_shortest_paths</tt></a> now uses a relaxed heap&nbsp;[<A
+  HREF="bibliography.html#driscoll88">61</A>] as its priority queue, improving its complexity to <em>O(V log V)</em> and improving real-world performance for larger graphs.</li>
+      <li><a href="read_graphviz.html"><code>read_graphviz</code></a> now has a new, Spirit-based parser that works for all graph types and supports arbitrary properties on the graph, from Ron Garcia. The old, Bison-based GraphViz reader has been deprecated and will be removed in a future Boost release.</li>
+      
+      <li><a
+      href="write-graphviz.html"><code>write_graphviz</code></a> now
+      supports output of dynamic properties (as read in through the
+      new <code>read_graphviz</code>).</li>
+
+      <li><a
+      href="cuthill_mckee_ordering.html"><tt>cuthill_mckee_ordering</tt></a>
+      has been recast as an invocation of
+      <tt>breadth_first_search</tt> and now supports graphs with
+      multiple components.</li>
+ 
+      <li><a href="subgraph.html"><tt>subgraph</tt></a> now supports
+      <a href="bundles.html">bundled
+      properties</a>. <code>get_property</code> now refers to the
+      subgraph property, not the root graph's property.</li></li>
+
+      <li><a href="filtered_graph.html"><tt>filtered_graph</tt></a> now
+      supports <a href="bundles.html">bundled properties</a>.</li>
+
+      <li><a href="reverse_graph.html"><tt>reverse_graph</tt></a> now
+      supports <a href="bundles.html">bundled properties</a>,
+      <tt>set_property</tt>, and <tt>get_property</tt>.</li>
+
+    </ul><br><b>Bug fixes</b><br>
+    <ul>
+      <li><a href="bellman_ford_shortest.html"><tt>bellman_ford_shortest_paths</tt></a> now deals with unreachable vertices better.</li>
+      <li><a href="adjacency_list.html"><tt>adjacency_list</tt></a>: parallel edge removal with <tt>OutEdgeListS = listS</tt> has been fixed. Copying and swapping has been fixed.</li>
+      <li><a href="incremental_components.html">Incremental connected components</a>: fixed a bug in the <tt>incremental_components</tt> routine that may have caused incorrect results.</li>
+      <li>The <tt>remove_out_edge_if</tt> function for an undirected <a href="adjacency_list.html"><tt>adjacency_list</tt></a> has been rewritten and should no longer dereference singular iterators.</li>
+      <li><a href="write-graphviz.html"><tt>write_graphviz</tt></a> now accepts a <tt>vertex_id</tt> parameter that is used to name the nodes.</li>
+      <li><a href="read_graphviz.html"><tt>read_graphviz</tt></a> now accepts empty attribute lists.</li>
+      <li><a href="sequential_vertex_coloring.html"><tt>sequential_vertex_coloring</tt></a> has been updated, tested, and documented.</li>
+    </ul>
+  </li>
+</ul>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 
+<!--  LocalWords:  gif ALT GGCL LSC Lumsdaine Siek's MTL LEDA GTL GraphBase STL
+ -->
+<!--  LocalWords:  Bjarne Stroustrup hl's Quan SGI Stepanov Austern Alex's hl
+ -->
+<!--  LocalWords:  Dietmar BGL siek htm Univ
+ -->

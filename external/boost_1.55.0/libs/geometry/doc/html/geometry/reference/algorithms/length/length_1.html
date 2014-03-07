@@ -1,0 +1,256 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>length</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../length.html" title="length">
+<link rel="prev" href="../length.html" title="length">
+<link rel="next" href="length_2_with_strategy.html" title="length (with strategy)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../length.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../length.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="length_2_with_strategy.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.algorithms.length.length_1"></a><a class="link" href="length_1.html" title="length">length</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp55665096"></a>
+Calculates the length of a geometry.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.length.length_1.h0"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.length.length_1.description"></a></span><a class="link" href="length_1.html#geometry.reference.algorithms.length.length_1.description">Description</a>
+          </h6>
+<p>
+            The free function length calculates the length (the sum of distances
+            between consecutive points) of a geometry. It uses the default strategy,
+            based on the coordinate system of the geometry.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.length.length_1.h1"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.length.length_1.synopsis"></a></span><a class="link" href="length_1.html#geometry.reference.algorithms.length.length_1.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">&gt;</span>
+<span class="identifier">dispatch</span><span class="special">::</span><span class="identifier">devarianted_length</span><span class="special">&lt;</span><span class="identifier">Geometry</span><span class="special">&gt;::</span><span class="identifier">result_type</span> <span class="identifier">length</span><span class="special">(</span><span class="identifier">Geometry</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.length.length_1.h2"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.length.length_1.parameters"></a></span><a class="link" href="length_1.html#geometry.reference.algorithms.length.length_1.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Concept
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      Geometry const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Geometry Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.length.length_1.h3"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.length.length_1.returns"></a></span><a class="link" href="length_1.html#geometry.reference.algorithms.length.length_1.returns">Returns</a>
+          </h6>
+<p>
+            The calculated length
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.length.length_1.h4"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.length.length_1.header"></a></span><a class="link" href="length_1.html#geometry.reference.algorithms.length.length_1.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">length</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.length.length_1.h5"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.length.length_1.conformance"></a></span><a class="link" href="length_1.html#geometry.reference.algorithms.length.length_1.conformance">Conformance</a>
+          </h6>
+<p>
+            The function length implements function Length from the <a href="http://www.opengeospatial.org/standards/sfa" target="_top">OGC
+            Simple Feature Specification</a>.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.length.length_1.h6"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.length.length_1.behavior"></a></span><a class="link" href="length_1.html#geometry.reference.algorithms.length.length_1.behavior">Behavior</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Case
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Behavior
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      pointlike (e.g. point)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns 0
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      linear (e.g. linestring)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns the length
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      areal (e.g. polygon)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns 0
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.length.length_1.h7"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.length.length_1.complexity"></a></span><a class="link" href="length_1.html#geometry.reference.algorithms.length.length_1.complexity">Complexity</a>
+          </h6>
+<p>
+            Linear
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.length.length_1.h8"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.length.length_1.examples"></a></span><a class="link" href="length_1.html#geometry.reference.algorithms.length.length_1.examples">Examples</a>
+          </h6>
+<p>
+            The following simple example shows the calculation of the length of a
+            linestring containing three points
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">linestring</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point_xy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">io</span><span class="special">/</span><span class="identifier">wkt</span><span class="special">/</span><span class="identifier">wkt</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">;</span>
+    <span class="identifier">model</span><span class="special">::</span><span class="identifier">linestring</span><span class="special">&lt;</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">d2</span><span class="special">::</span><span class="identifier">point_xy</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">line</span><span class="special">;</span>
+    <span class="identifier">read_wkt</span><span class="special">(</span><span class="string">"linestring(0 0,1 1,4 8,3 2)"</span><span class="special">,</span> <span class="identifier">line</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"linestring length is "</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">length</span><span class="special">(</span><span class="identifier">line</span><span class="special">)</span>
+        <span class="special">&lt;&lt;</span> <span class="string">" units"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            Output:
+          </p>
+<pre class="programlisting">linestring length is 15.1127 units
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../length.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../length.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="length_2_with_strategy.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

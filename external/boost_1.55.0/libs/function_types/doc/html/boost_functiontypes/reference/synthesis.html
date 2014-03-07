@@ -1,0 +1,213 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class templates for type synthesis</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.FunctionTypes 2.5">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="decomposition.html" title="Class templates for type decomposition">
+<link rel="next" href="tag_types.html" title="Tag Types">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="decomposition.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tag_types.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_functiontypes.reference.synthesis"></a><a class="link" href="synthesis.html" title="Class templates for type synthesis">Class templates
+      for type synthesis</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="synthesis.html#boost_functiontypes.reference.synthesis.function_type">function_type</a></span></dt>
+<dt><span class="section"><a href="synthesis.html#boost_functiontypes.reference.synthesis.function_pointer">function_pointer</a></span></dt>
+<dt><span class="section"><a href="synthesis.html#boost_functiontypes.reference.synthesis.function_reference">function_reference</a></span></dt>
+<dt><span class="section"><a href="synthesis.html#boost_functiontypes.reference.synthesis.member_function_pointer">member_function_pointer</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.synthesis.function_type"></a><a class="link" href="synthesis.html#boost_functiontypes.reference.synthesis.function_type" title="function_type">function_type</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Types</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Tag</span> <span class="special">=</span> <a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.null_tag" title="null_tag">null_tag</a><span class="special">&gt;</span> 
+<span class="keyword">struct</span> <span class="identifier">function_type</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">function_type</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term"><code class="literal">Types</code></span></dt>
+<dd><p>
+                Component types in form of an <a href="../../../../../mpl/index.html" target="_top">MPL</a>
+                - <a href="../../../../../mpl/doc/refmanual/forward-sequence.html" target="_top">Forward
+                Sequence</a> or another callable, builtin type
+              </p></dd>
+<dt><span class="term"><code class="literal">Tag</code></span></dt>
+<dd><p>
+                Further properties
+              </p></dd>
+<dt><span class="term"><code class="literal">function_type&lt;Types,Tag&gt;::type</code></span></dt>
+<dd><p>
+                Synthesized type
+              </p></dd>
+</dl>
+</div>
+<p>
+          Synthesizes a function type from given properties.
+        </p>
+<p>
+          If the template parameters do not describe a valid type, any attempt to
+          access the <code class="literal">type</code> member will result in a compile error.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.synthesis.function_pointer"></a><a class="link" href="synthesis.html#boost_functiontypes.reference.synthesis.function_pointer" title="function_pointer">function_pointer</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Types</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Tag</span> <span class="special">=</span> <a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.null_tag" title="null_tag">null_tag</a><span class="special">&gt;</span> 
+<span class="keyword">struct</span> <span class="identifier">function_pointer</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">function_pointer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term"><code class="literal">Types</code></span></dt>
+<dd><p>
+                Component types in form of an <a href="../../../../../mpl/index.html" target="_top">MPL</a>
+                - <a href="../../../../../mpl/doc/refmanual/forward-sequence.html" target="_top">Forward
+                Sequence</a> or another callable, builtin type
+              </p></dd>
+<dt><span class="term"><code class="literal">Tag</code></span></dt>
+<dd><p>
+                Further properties
+              </p></dd>
+<dt><span class="term"><code class="literal">function_pointer&lt;Types,Tag&gt;::type</code></span></dt>
+<dd><p>
+                Synthesized type
+              </p></dd>
+</dl>
+</div>
+<p>
+          Synthesizes a function pointer type from given properties.
+        </p>
+<p>
+          If the template parameters do not describe a valid type, any attempt to
+          access the <code class="literal">type</code> member will result in a compile error.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.synthesis.function_reference"></a><a class="link" href="synthesis.html#boost_functiontypes.reference.synthesis.function_reference" title="function_reference">function_reference</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Types</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Tag</span> <span class="special">=</span> <a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.null_tag" title="null_tag">null_tag</a><span class="special">&gt;</span> 
+<span class="keyword">struct</span> <span class="identifier">function_reference</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">function_reference</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term"><code class="literal">Types</code></span></dt>
+<dd><p>
+                Component types in form of an <a href="../../../../../mpl/index.html" target="_top">MPL</a>
+                - <a href="../../../../../mpl/doc/refmanual/forward-sequence.html" target="_top">Forward
+                Sequence</a> or another callable, builtin type
+              </p></dd>
+<dt><span class="term"><code class="literal">Tag</code></span></dt>
+<dd><p>
+                Further properties
+              </p></dd>
+<dt><span class="term"><code class="literal">function_reference&lt;Types,Tag&gt;::type</code></span></dt>
+<dd><p>
+                Synthesized type
+              </p></dd>
+</dl>
+</div>
+<p>
+          Synthesizes a function reference type from given properties.
+        </p>
+<p>
+          If the template parameters do not describe a valid type, any attempt to
+          access the <code class="literal">type</code> member will result in a compile error.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.synthesis.member_function_pointer"></a><a class="link" href="synthesis.html#boost_functiontypes.reference.synthesis.member_function_pointer" title="member_function_pointer">member_function_pointer</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Types</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Tag</span> <span class="special">=</span> <a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.null_tag" title="null_tag">null_tag</a><span class="special">&gt;</span> 
+<span class="keyword">struct</span> <span class="identifier">member_function_pointer</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">member_function_pointer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term"><code class="literal">Types</code></span></dt>
+<dd><p>
+                Component types in form of an <a href="../../../../../mpl/index.html" target="_top">MPL</a>
+                - <a href="../../../../../mpl/doc/refmanual/forward-sequence.html" target="_top">Forward
+                Sequence</a> or another callable, builtin type
+              </p></dd>
+<dt><span class="term"><code class="literal">Tag</code></span></dt>
+<dd><p>
+                Further properties
+              </p></dd>
+<dt><span class="term"><code class="literal">member_function_pointer&lt;Types,Tag&gt;::type</code></span></dt>
+<dd><p>
+                Synthesized type
+              </p></dd>
+</dl>
+</div>
+<p>
+          Synthesizes a member function pointer type from given properties.
+        </p>
+<p>
+          An optional reference or possibly cv-qualified pointer is removed from
+          the second type in the sequence to determine the the class type. The cv-qualification
+          of the resulting type applies to the member function, unless otherwise
+          explicitly specified by the property tag.
+        </p>
+<p>
+          If the template parameters do not describe a valid type, any attempt to
+          access the <code class="literal">type</code> member will result in a compile error.
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004-2007 Tobias
+      Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="decomposition.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tag_types.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

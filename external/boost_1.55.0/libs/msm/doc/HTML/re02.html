@@ -1,0 +1,120 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Back-end</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="pt02.html" title="Part&nbsp;II.&nbsp;Reference"><link rel="prev" href="re01.html" title="Common headers"><link rel="next" href="re03.html" title="Front-end"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Back-end</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="re01.html">Prev</a>&nbsp;</td><th width="60%" align="center">Part&nbsp;II.&nbsp;Reference</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="re03.html">Next</a></td></tr></table><hr></div><div class="refentry" title="Back-end"><a name="d0e5160"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>Back-end &#8212; The back-end headers</p></div><div class="refsect1" title="msm/back/state_machine.hpp"><a name="d0e5166"></a><h2>msm/back/state_machine.hpp</h2><p> This header provides one type, state_machine, MSM's state machine engine
+                    implementation.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">template &lt;class Derived,class HistoryPolicy=NoHistory,class
+                            CompilePolicy=favor_runtime_speed&gt; state_machine</span></span>&nbsp;{<br>}</pre><div class="refsect2" title="Template arguments"><a name="d0e5175"></a><h3> Template arguments </h3><div class="refsect3" title="Derived"><a name="d0e5178"></a><h4> Derived </h4><p>The name of the front-end state machine definition. All three
+                            front-ends are possible.</p></div><div class="refsect3" title="HistoryPolicy"><a name="d0e5183"></a><h4> HistoryPolicy </h4><p>The desired history. This can be: AlwaysHistory, NoHistory,
+                            ShallowHistory. Default is NoHistory.</p></div><div class="refsect3" title="CompilePolicy"><a name="d0e5188"></a><h4> CompilePolicy </h4><p>The trade-off performance / compile-time. There are two predefined
+                            policies, favor_runtime_speed and favor_compile_time. Default is
+                            favor_runtime_speed, best performance, longer compile-time. See <a class="link" href="ch03s05.html#backend-tradeof-rt-ct">the backend</a>.</p></div></div><div class="refsect2" title="methods"><a name="d0e5196"></a><h3> methods </h3><div class="refsect3" title="start"><a name="d0e5199"></a><h4>start</h4><p> The start methods must be called before any call to process_event. It
+                            activates the entry action of the initial state(s). This allows you to
+                            choose when a state machine can start. See <a class="link" href="ch03s05.html#backend-start">backend</a>.</p><code class="methodsynopsis"><span class="methodname">void start</span>(<span class="methodparam"></span>);</code></div><div class="refsect3" title="process_event"><a name="d0e5212"></a><h4>process_event</h4><p>The event processing method implements the double-dispatch. Each call
+                            to this function with a new event type instantiates a new dispatch
+                            algorithm and increases compile-time.</p><code class="methodsynopsis"><span class="methodname">template &lt;class Event&gt; HandledEnum
+                                process_event</span>(<span class="methodparam">Event const&amp;</span>);</code></div><div class="refsect3" title="current_state"><a name="d0e5223"></a><h4>current_state</h4><p>Returns the ids of currently active states. You will typically need it
+                            only for debugging or logging purposes.</p><code class="methodsynopsis"><span class="methodname">const int* current_state const</span>(<span class="methodparam"></span>);</code></div><div class="refsect3" title="get_state_by_id"><a name="d0e5233"></a><h4>get_state_by_id</h4><p>Returns the state whose id is given. As all states of a concrete state
+                            machine share a common base state, the return value is a base state. If
+                            the id corresponds to no state, a null pointer is returned.</p><code class="methodsynopsis"><span class="methodname">const BaseState* get_state_by_id const</span>(<span class="methodparam">int id</span>);</code></div><div class="refsect3" title="is_contained"><a name="d0e5244"></a><h4>is_contained</h4><p>Helper returning true if the state machine is contained as a
+                            submachine of another state machine.</p><code class="methodsynopsis"><span class="methodname">bool is_contained const</span>(<span class="methodparam"></span>);</code></div><div class="refsect3" title="get_state"><a name="d0e5254"></a><h4>get_state</h4><p>Returns the required state of the state machine as a pointer. A
+                            compile error will occur if the state is not to be found in the state
+                            machine.</p><code class="methodsynopsis"><span class="methodname">template &lt;class State&gt; State* get_state</span>(<span class="methodparam"></span>);</code></div><div class="refsect3" title="get_state"><a name="d0e5264"></a><h4>get_state</h4><p>Returns the required state of the state machine as a reference. A
+                            compile error will occur if the state is not to be found in the state
+                            machine.</p><code class="methodsynopsis"><span class="methodname">template &lt;class State&gt; State&amp; get_state</span>(<span class="methodparam"></span>);</code></div><div class="refsect3" title="is_flag_active"><a name="d0e5274"></a><h4>is_flag_active</h4><p>Returns true if the given flag is currently active. A flag is active
+                            if the active state of one region is tagged with this flag (using OR as
+                            BinaryOp) or active states of <span class="underline">all</span>
+                            regions (using AND as BinaryOp)</p><code class="methodsynopsis"><span class="methodname">template &lt;class Flag,class BinaryOp&gt; bool
+                                is_flag_active</span>(<span class="methodparam"></span>);</code></div><div class="refsect3" title="is_flag_active"><a name="d0e5287"></a><h4>is_flag_active</h4><p>Returns true if the given flag is currently active. A flag is active
+                            if the active state of one region is tagged with this flag.</p><code class="methodsynopsis"><span class="methodname">template &lt;class Flag&gt; bool is_flag_active</span>(<span class="methodparam"></span>);</code></div><div class="refsect3" title="visit_current_states"><a name="d0e5297"></a><h4>visit_current_states</h4><p>Visits all active states and their substates. A state is visited using
+                            the <code class="code">accept</code> method without argument. The base class of all
+                            states must provide an <code class="code">accept_sig</code> type.</p><code class="methodsynopsis"><span class="methodname">void visit_current_states</span>(<span class="methodparam"></span>);</code></div><div class="refsect3" title="visit_current_states"><a name="d0e5313"></a><h4>visit_current_states</h4><p>Visits all active states and their substates. A state is visited using
+                            the <code class="code">accept</code> method with arguments. The base class of all
+                            states must provide an <code class="code">accept_sig</code> type defining the
+                            signature and thus the number and type of the parameters.</p><code class="methodsynopsis"><span class="methodname">void visit_current_states</span>(<span class="methodparam">any-type param1, any-type param2,...</span>);</code></div><div class="refsect3" title="defer_event"><a name="d0e5330"></a><h4>defer_event</h4><p> Defers the provided event. This method can be called only if at least
+                            one state defers an event or if the state machine provides the
+                                <code class="code">activate_deferred_events</code>(see <a class="link" href="examples/Orthogonal-deferred2.cpp" target="_top">example</a>) type
+                            either directly or using the deferred_events configuration of eUML
+                                (<code class="code">configure_ &lt;&lt; deferred_events</code>)</p><code class="methodsynopsis"><span class="methodname">template &lt;class Event&gt; void defer_event</span>(<span class="methodparam">Event const&amp;</span>);</code></div></div><div class="refsect2" title="Types"><a name="d0e5350"></a><h3>Types</h3><div class="refsect3" title="nr_regions"><a name="d0e5353"></a><h4>nr_regions </h4><p>The number of orthogonal regions contained in the state machine</p></div><div class="refsect3" title="entry_pt"><a name="d0e5358"></a><h4>entry_pt</h4><p>This nested type provides the necessary typedef for entry point
+                            pseudostates.
+                                <code class="code">state_machine&lt;...&gt;::entry_pt&lt;state_name&gt;</code> is a
+                            transition's valid target inside the containing state machine's
+                            transition table.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">entry_pt</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="exit_pt"><a name="d0e5370"></a><h4>exit_pt</h4><p>This nested type provides the necessary typedef for exit point
+                            pseudostates. <code class="code">state_machine&lt;...&gt;::exit_pt&lt;state_name&gt;</code>
+                            is a transition's valid source inside the containing state machine's
+                            transition table.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">exit_pt</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="direct"><a name="d0e5382"></a><h4>direct</h4><p>This nested type provides the necessary typedef for an explicit entry
+                            inside a submachine.
+                                <code class="code">state_machine&lt;...&gt;::direct&lt;state_name&gt;</code> is a
+                            transition's valid target inside the containing state machine's
+                            transition table.</p><pre class="classsynopsis"> <span class="ooclass"><span class="classname">direct</span></span>&nbsp;{<br>}</pre></div><div class="refsect3" title="stt"><a name="d0e5394"></a><h4>stt</h4><p>Calling state_machine&lt;frontend&gt;::stt returns a mpl::vector
+                            containing the transition table of the state machine. This type can then
+                            be used with generate_state_set or generate_event_set.</p></div></div></div><div class="refsect1" title="args.hpp"><a name="d0e5399"></a><h2>args.hpp</h2><p>This header provides one type, args. which provides the necessary types for a
+                    visitor implementation.</p></div><div class="refsect1" title="msm/back/history_policies.hpp"><a name="d0e5404"></a><h2><span class="command"><strong><a name="history-interface"></a></strong></span>msm/back/history_policies.hpp</h2><p>This header provides the out-of-the-box history policies supported by MSM.
+                    There are 3 such policies.</p><div class="refsect2" title="Every history policy must implement the following methods:"><a name="d0e5410"></a><h3>Every history policy must implement the following methods: </h3><div class="refsect3" title="set_initial_states"><a name="d0e5413"></a><h4> set_initial_states </h4><p> This method is called by msm::back::state_machine when constructed.
+                            It gives the policy a chance to save the ids of all initial states
+                            (passed as array).</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">void set_initial_states(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                    <code>(</code>int* const<code>)</code>
+                                </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div></div><div class="refsect3" title="history_exit"><a name="d0e5427"></a><h4> history_exit </h4><p>This method is called by msm::back::state_machine when the submachine
+                            is exited. It gives the policy a chance to remember the ids of the last
+                            active substates of this submachine (passed as array).</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">void history_exit(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                    <code>(</code>int* const<code>)</code>
+                                </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div></div><div class="refsect3" title="history_entry"><a name="d0e5441"></a><h4> history_entry </h4><p>This method is called by msm::back::state_machine when the submachine
+                            is entered. It gives the policy a chance to set the active states
+                            according to the policy's aim. The policy gets as parameter the event
+                            which activated the submachine and returns an array of active states
+                            ids.</p><div class="funcsynopsis"><table border="0" summary="Function synopsis" cellspacing="0" cellpadding="0" class="funcprototype-table"><tr><td><code class="funcdef">template &lt;class Event&gt; int* const history_exit(</code></td><td><code>)</code>;</td><td>&nbsp;</td></tr></table><div class="paramdef-list"><code>
+                                    <code>(</code>Event const&amp;<code>)</code>
+                                </code>;</div><div class="funcprototype-spacer">&nbsp;</div></div></div></div><div class="refsect2" title="Out-of-the-box policies:"><a name="d0e5455"></a><h3>Out-of-the-box policies: </h3><div class="refsect3" title="NoHistory"><a name="d0e5458"></a><h4>NoHistory</h4><p>This policy is the default used by state_machine. No active state of a
+                            submachine is remembered and at every new activation of the submachine,
+                            the initial state(s) are activated. </p></div><div class="refsect3" title="AlwaysHistory"><a name="d0e5463"></a><h4>AlwaysHistory</h4><p>This policy is a non-UML-standard extension. The active state(s) of a
+                            submachine is (are) always remembered at every new activation of the
+                            submachine. </p></div><div class="refsect3" title="ShallowHistory"><a name="d0e5468"></a><h4>ShallowHistory</h4><p>This policy activates the active state(s) of a submachine if the event
+                            is found in the policy's event list. </p></div></div></div><div class="refsect1" title="msm/back/default_compile_policy.hpp"><a name="d0e5473"></a><h2>msm/back/default_compile_policy.hpp</h2><p>This header contains the definition of favor_runtime_speed. This policy has
+                    two settings:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Submachines dispatch faster because their transitions are added
+                                into their containing machine's transition table instead of simply
+                                forwarding events.</p></li><li class="listitem"><p>It solves transition conflicts at compile-time</p></li></ul></div></div><div class="refsect1" title="msm/back/favor_compile_time.hpp"><a name="d0e5485"></a><h2>msm/back/favor_compile_time.hpp</h2><p>This header contains the definition of favor_compile_time. This policy has two settings:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Submachines dispatch is slower because all events, even those with
+                                no dispatch chance, are forwarded to submachines. In exchange, no
+                                row is added into the containing machine's transition table, which
+                                reduces compile-time.</p></li><li class="listitem"><p>It solves transition conflicts at run-time.</p></li></ul></div></div><div class="refsect1" title="msm/back/metafunctions.hpp"><a name="d0e5497"></a><h2>msm/back/metafunctions.hpp </h2><p>This header contains metafunctions for use by the library. Three metafunctions
+                    can be useful for the user:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p><code class="code">generate_state_set&lt; stt &gt;</code>: generates the list of
+                                all states referenced by the transition table stt. If stt is a
+                                recursive table (generated by
+                                    <code class="code">recursive_get_transition_table</code>), the metafunction
+                                finds recursively all states of the submachines. A non-recursive
+                                table can be obtained with some_backend_fsm::stt.</p></li><li class="listitem"><p><code class="code">generate_event_set&lt; stt&gt;</code>: generates the list of
+                                all events referenced by the transition table stt. If stt is a
+                                recursive table (generated by
+                                    <code class="code">recursive_get_transition_table</code>), the metafunction
+                                finds recursively all events of the submachines. A non-recursive
+                                table can be obtained with some_backend_fsm::stt.</p></li><li class="listitem"><p><code class="code">recursive_get_transition_table&lt;fsm&gt;</code>: recursively
+                                extends the transition table of the state machine fsm with tables
+                                from the submachines.</p></li></ul></div></div><div class="refsect1" title="msm/back/tools.hpp"><a name="d0e5524"></a><h2>msm/back/tools.hpp </h2><p> This header contains a few metaprogramming tools to get some information out
+                    of a state machine.</p><div class="refsect2" title="fill_state_names"><a name="d0e5529"></a><h3>fill_state_names </h3><div class="refsect3" title="attributes"><a name="d0e5532"></a><h4>attributes </h4><p> fill_state_names has for attribute:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p><code class="code">char const** m_names</code>: an already allocated
+                                        array of const char* where the typeid-generated names of a
+                                        state machine states will be witten.</p></li></ul></div></div><div class="refsect3" title="constructor"><a name="d0e5543"></a><h4>constructor </h4><code class="constructorsynopsis"><span class="methodparam">char const** names_to_fill</span>(<span class="methodparam">char const** names_to_fill</span>);</code></div><div class="refsect3" title="usage"><a name="d0e5550"></a><h4>usage</h4><p> fill_state_names is made for use in a mpl::for_each iterating on a
+                            state list and writing inside a pre-allocated array the state names.
+                            Example:</p><pre class="programlisting">typedef some_fsm::stt Stt;
+typedef msm::back::generate_state_set&lt;Stt&gt;::type all_states; //states
+static char const* state_names[mpl::size&lt;all_states&gt;::value];
+// array to fill with names
+// fill the names of the states defined in the state machine
+mpl::for_each&lt;all_states,boost::msm::wrap&lt;mpl::placeholders::_1&gt; &gt; 
+    (msm::back::fill_state_names&lt;Stt&gt;(state_names));
+// display all active states
+for (unsigned int i=0;i&lt;some_fsm::nr_regions::value;++i)
+{
+    std::cout &lt;&lt; " -&gt; " 
+              &lt;&lt; state_names[my_fsm_instance.current_state()[i]] 
+              &lt;&lt; std::endl;
+}</pre></div></div><div class="refsect2" title="get_state_name"><a name="d0e5557"></a><h3>get_state_name </h3><div class="refsect3" title="attributes"><a name="d0e5560"></a><h4> attributes </h4><p>get_state_name has for attributes:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>std::string&amp; m_name: the return value of the
+                                        iteration</p></li><li class="listitem"><p>int m_state_id: the searched state's id</p></li></ul></div></div><div class="refsect3" title="constructor"><a name="d0e5572"></a><h4>constructor</h4><p>The constructor takes as argument a reference to the string to fill
+                            with the state name and the id which must be searched.</p><code class="constructorsynopsis"><span class="methodparam">string&amp; name_to_fill,int state_id</span>(<span class="methodparam">string&amp; name_to_fill,int state_id</span>);</code></div><div class="refsect3" title="usage"><a name="d0e5581"></a><h4> usage</h4><p>This type is made for the same search as in the previous example,
+                            using a mpl::for_each to iterate on states. After the iteration, the
+                            state name reference has been set.</p><pre class="programlisting">// we need a fsm's table
+typedef player::stt Stt;
+typedef msm::back::generate_state_set&lt;Stt&gt;::type all_states; //all states
+std::string name_of_open; // id of Open is 1
+// fill name_of_open for state of id 1
+boost::mpl::for_each&lt;all_states,boost::msm::wrap&lt;mpl::placeholders::_1&gt; &gt; 
+          (msm::back::get_state_name&lt;Stt&gt;(name_of_open,1));
+std::cout &lt;&lt; "typeid-generated name Open is: " &lt;&lt;  name_of_open &lt;&lt; std::endl;</pre></div></div><div class="refsect2" title="display_type"><a name="d0e5588"></a><h3>display_type </h3><div class="refsect3" title="attributes"><a name="d0e5591"></a><h4> attributes </h4><p>none</p></div><div class="refsect3" title="usage"><a name="d0e5596"></a><h4> usage</h4><p>Reusing the state list from the previous example, we can output all
+                            state names:</p><p><code class="code">mpl::for_each&lt;all_states,boost::msm::wrap&lt;mpl::placeholders::_1&gt;
+                                &gt;(msm::back::display_type ());</code></p></div></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="re01.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="pt02.html">Up</a></td><td width="40%" align="right">&nbsp;<a accesskey="n" href="re03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Common headers&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;Front-end</td></tr></table></div></body></html>

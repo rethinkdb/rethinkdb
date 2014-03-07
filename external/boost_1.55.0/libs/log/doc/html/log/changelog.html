@@ -1,0 +1,718 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Changelog</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="prev" href="../boost/log/current_scope.html" title="Function current_scope">
+<link rel="next" href="todo.html" title="TODO in future releases">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/log/current_scope.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="todo.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="log.changelog"></a><a class="link" href="changelog.html" title="Changelog">Changelog</a>
+</h2></div></div></div>
+<h4>
+<a name="log.changelog.h0"></a>
+      <span class="phrase"><a name="log.changelog.2_2__boost_1_55"></a></span><a class="link" href="changelog.html#log.changelog.2_2__boost_1_55">2.2,
+      Boost 1.55</a>
+    </h4>
+<p>
+      <span class="bold"><strong>General changes:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added a new configuration macro <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_DEFAULT_FACTORIES</span></code>.
+          By defining this macro the user can disable compilation of the default
+          filter and formatter factories used by settings parsers. This can substantially
+          reduce binary sizes while still retaining support for settings parsers.
+          Note that when this macro is defined the user will have to register <span class="underline">all</span> attributes in the library.
+        </li>
+<li class="listitem">
+          Rewritten some of the parsers to reduce the compiled binary size. The rewritten
+          parsers are more robust in detecting ambiguous and incorrect input.
+        </li>
+<li class="listitem">
+          The header <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">log</span><span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">intrusive_ref_counter</span><span class="special">.</span><span class="identifier">hpp</span></code> is deprecated and will be removed
+          in future releases. Its contents have been reworked and moved to <a href="http://www.boost.org/doc/libs/release/libs/smart_ptr/smart_ptr.htm" target="_top">Boost.SmartPtr</a>,
+          as <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">smart_ptr</span><span class="special">/</span><span class="identifier">intrusive_ref_counter</span><span class="special">.</span><span class="identifier">hpp</span></code>.
+        </li>
+<li class="listitem">
+          The header <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">log</span><span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">explicit_operator_bool</span><span class="special">.</span><span class="identifier">hpp</span></code> is deprecated and will be removed
+          in future releases. Its contents have been moved to <a href="http://www.boost.org/doc/libs/release/libs/utility/utility.htm" target="_top">Boost.Utility</a>,
+          as <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">explicit_operator_bool</span><span class="special">.</span><span class="identifier">hpp</span></code>.
+        </li>
+<li class="listitem">
+          The header <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">log</span><span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">empty_deleter</span><span class="special">.</span><span class="identifier">hpp</span></code> is deprecated and will be removed
+          in future releases. Its contents have been moved to <a href="http://www.boost.org/doc/libs/release/libs/utility/utility.htm" target="_top">Boost.Utility</a>,
+          as <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">empty_deleter</span><span class="special">.</span><span class="identifier">hpp</span></code>.
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>Bug fixes:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fixed <a class="link" href="detailed/attributes.html#log.detailed.attributes.timer" title="Stop watch (timer)"><code class="computeroutput"><span class="identifier">timer</span></code></a>
+          attribute generating incorrect time readings on Windows on heavy thread
+          contention when <code class="computeroutput"><span class="identifier">QueryPerformanceCounter</span></code>
+          API was used.
+        </li>
+<li class="listitem">
+          Fixed a bug in the filter parser that prevented using parsed filters with
+          some attributes. For example, parsed filters didn't work with a string-typed
+          attribute value, if the value was compared to a numeric operand.
+        </li>
+<li class="listitem">
+          Fixed thread id formatting discrepancies between the default sink and formatters.
+        </li>
+<li class="listitem">
+          Fixed parsing RotationTimePoint parameter values from settings, when the
+          time point only included time of day (i.e. daily rotation).
+        </li>
+<li class="listitem">
+          Closed tickets: <a href="https://svn.boost.org/trac/boost/ticket/8815" target="_top">#8815</a>, <a href="https://svn.boost.org/trac/boost/ticket/8819" target="_top">#8819</a>, <a href="https://svn.boost.org/trac/boost/ticket/8915" target="_top">#8915</a>, <a href="https://svn.boost.org/trac/boost/ticket/8917" target="_top">#8917</a>, <a href="https://svn.boost.org/trac/boost/ticket/9139" target="_top">#9139</a>, <a href="https://svn.boost.org/trac/boost/ticket/9140" target="_top">#9140</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/9153" target="_top">#9153</a>, <a href="https://svn.boost.org/trac/boost/ticket/9155" target="_top">#9155</a>.
+        </li>
+</ul></div>
+<h4>
+<a name="log.changelog.h1"></a>
+      <span class="phrase"><a name="log.changelog.2_1__boost_1_54"></a></span><a class="link" href="changelog.html#log.changelog.2_1__boost_1_54">2.1,
+      Boost 1.54</a>
+    </h4>
+<p>
+      <span class="bold"><strong>Breaking changes:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <code class="computeroutput"><a class="link" href="../boost/log/basic_formatting_ostream.html" title="Class template basic_formatting_ostream">basic_formatting_ostream</a></code>
+          no longer derives from <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span></code>,
+          but rather reimplements its and its base classes interface closely. This
+          solves problems with overloading <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></code> for <code class="computeroutput"><a class="link" href="../boost/log/basic_formatting_ostream.html" title="Class template basic_formatting_ostream">basic_formatting_ostream</a></code>
+          and user-defined types. This will break user's code if it relied on the
+          inheritance from the standard stream types (such as passing <code class="computeroutput"><a class="link" href="../boost/log/basic_formatting_ostream.html" title="Class template basic_formatting_ostream">basic_formatting_ostream</a></code>
+          object as an argument to a function receiving <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span></code>).
+          Please, use the <code class="computeroutput"><span class="identifier">stream</span><span class="special">()</span></code> member function to access the standard
+          stream. This change will <span class="bold"><strong>not</strong></span> break the
+          code that outputs user-defined types to a <code class="computeroutput"><a class="link" href="../boost/log/basic_formatting_ostream.html" title="Class template basic_formatting_ostream">basic_formatting_ostream</a></code>
+          stream while there are only <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></code> overloads for the standard stream
+          types - the code will compile and use the standard operator overloads,
+          as before.
+        </li></ul></div>
+<p>
+      <span class="bold"><strong>General changes:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Removed the use of deprecated macros of <a href="http://www.boost.org/doc/libs/release/libs/config/doc/html/index.html" target="_top">Boost.Config</a>.
+        </li>
+<li class="listitem">
+          Build system improved. On Windows, presence of Message Compiler is now
+          detected automatically, and support for event log is only enabled when
+          the tool is available.
+        </li>
+<li class="listitem">
+          Fixed compilation when <code class="computeroutput"><span class="identifier">BOOST_LOG_USE_COMPILER_TLS</span></code>
+          configuration macro is defined.
+        </li>
+<li class="listitem">
+          Fixed compilation of some uses of the <a class="link" href="detailed/utilities.html#log.detailed.utilities.manipulators.add_value" title="Attribute value attaching manipulator"><code class="computeroutput"><span class="identifier">add_value</span></code></a> manipulator with MSVC.
+        </li>
+<li class="listitem">
+          Added a new <a class="link" href="detailed/utilities.html#log.detailed.utilities.manipulators.dump" title="Binary dump manipulator"><code class="computeroutput"><span class="identifier">dump</span></code></a> output manipulator for printing
+          binary data.
+        </li>
+</ul></div>
+<h4>
+<a name="log.changelog.h2"></a>
+      <span class="phrase"><a name="log.changelog.2_0__13_april_2013"></a></span><a class="link" href="changelog.html#log.changelog.2_0__13_april_2013">2.0,
+      13 April 2013</a>
+    </h4>
+<p>
+      <span class="bold"><strong>General changes:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          The library is now compatible with Boost 1.53 or newer. <a href="http://www.boost.org/doc/libs/release/libs/filesystem/doc/index.htm" target="_top">Boost.Filesystem</a>
+          v2 no longer supported.
+        </li>
+<li class="listitem">
+          The library now does not introduce separate logging cores for different
+          character types. A lot of other library components also became character
+          type agnostic. The application can now use loggers of different character
+          types with the common logging core. The library performs character code
+          conversion as needed. <a href="http://www.boost.org/doc/libs/release/libs/locale/doc/html/index.html" target="_top">Boost.Locale</a>
+          can be used to construct locale objects for proper encoding conversion.
+        </li>
+<li class="listitem">
+          The <code class="computeroutput"><span class="identifier">BOOST_LOG_NO_COMPILER_TLS</span></code>
+          configuration macro has been replaced with <code class="computeroutput"><span class="identifier">BOOST_LOG_USE_COMPILER_TLS</span></code>
+          with the opposite meaning. The support for compiler intrinsics for TLS
+          is now disabled by default.
+        </li>
+<li class="listitem">
+          Added configuration macros <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_DEBUG_OUTPUT</span></code>,
+          <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_EVENT_LOG</span></code>
+          and <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_SYSLOG</span></code>.
+          <code class="computeroutput"><span class="identifier">BOOST_LOG_NO_SETTINGS_PARSERS_SUPPORT</span></code>
+          macro renamed to <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_SETTINGS_PARSERS</span></code>.
+          The new macros allow to selectively disable support for the corresponding
+          sink backends.
+        </li>
+<li class="listitem">
+          The library now uses <a href="http://www.boost.org/doc/libs/release/doc/html/xpressive.html" target="_top">Boost.Xpressive</a>
+          instead of <a href="http://www.boost.org/doc/libs/release/libs/regex/index.html" target="_top">Boost.Regex</a>
+          internally which makes it unnecessary to build the latter in order to use
+          the library. <a href="http://www.boost.org/doc/libs/release/libs/regex/index.html" target="_top">Boost.Regex</a>
+          is still supported on the user's side.
+        </li>
+<li class="listitem">
+          Made some internal code to detect Windows NT6 API availability at run time,
+          if not explicitly enabled by the <code class="computeroutput"><span class="identifier">BOOST_LOG_USE_WINNT6_API</span></code>
+          macro. The code compiled without the macro defined will still be able run
+          on NT5, but when run on NT6 it will be more efficient. With the macro defined
+          the resulting code will not run on NT5, but will be a little more efficient
+          on NT6 than without the macro.
+        </li>
+<li class="listitem">
+          Added a concept of a default sink. The default sink is used when there
+          are no sinks configured in the logging core. The sink is synchronous and
+          thread-safe, it requires no configuration and is overridden by any sinks
+          configured in the core by user. The default sink will write log messages
+          to the console, prepending with a timestamp, thread id and severity level.
+        </li>
+<li class="listitem">
+          Trivial logging no longer implicitly initializes the library. Instead,
+          the default sink is used to display log messages, unless the library is
+          configured otherwise. It is now possible to use both trivial and advanced
+          logging.
+        </li>
+<li class="listitem">
+          Attribute values can now be added to log records after filtering. Such
+          values do not participate in filtering but can be used by formatters and
+          sinks. Log record message is now one of such attribute values, it is no
+          longer directly accessible from the log record interface.
+        </li>
+<li class="listitem">
+          Formatters and sinks no longer operate on log records but rather on <code class="computeroutput"><a class="link" href="../boost/log/record_view.html" title="Class record_view">record_view</a></code>s. Records are now
+          moved from when pushed to the core for further processing. This is done
+          in order to eliminate the possibility of unsafe record modification after
+          pushing to the core. As a consequence, log records can no longer be copied,
+          only moving is allowed. Record views can be copied and moved; copying is
+          a shallow operation.
+        </li>
+<li class="listitem">
+          The implementation now provides several stream manipulators. Notably, the
+          <a class="link" href="detailed/utilities.html#log.detailed.utilities.manipulators.to_log" title="Customized logging manipulator"><code class="computeroutput"><span class="identifier">to_log</span></code></a> manipulator allows to customize
+          formatting for particular types and attributes without changing the regular
+          streaming operator. Also, the <a class="link" href="detailed/utilities.html#log.detailed.utilities.manipulators.add_value" title="Attribute value attaching manipulator"><code class="computeroutput"><span class="identifier">add_value</span></code></a> manipulator can be used
+          in logging expressions to attach attribute values to the record.
+        </li>
+<li class="listitem">
+          Made a lot of improvements to speedup code compilation.
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>Attributes:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Changed the interface and the way of handling attribute values. The value
+          is now a pimpl wrapper around the value holder. The <code class="computeroutput"><a class="link" href="../boost/log/attribute_value.html" title="Class attribute_value">attribute_value</a></code>
+          class in various components of the library is no longer pointed to with
+          <code class="computeroutput"><span class="identifier">shared_ptr</span></code>s but instead
+          is handled by value. This allowed to simplify attribute value handling
+          in simple cases.
+        </li>
+<li class="listitem">
+          Similarly to attribute values, the interface of attributes has been reworked
+          in the pimpl fashion. All attributes now derive from the <code class="computeroutput"><a class="link" href="../boost/log/attribute.html" title="Class attribute">attribute</a></code>
+          base class, which holds the reference to the implementation. All attributes
+          now have to be created by value rather than wrapped into <code class="computeroutput"><span class="identifier">shared_ptr</span></code> by user, which makes the code
+          more concise.
+        </li>
+<li class="listitem">
+          Added support for casting attributes from the base class <code class="computeroutput"><a class="link" href="../boost/log/attribute.html" title="Class attribute">attribute</a></code>
+          to the actual attribute type. This can be useful when the concrete attribute
+          factory provides additional interfaces.
+        </li>
+<li class="listitem">
+          The attribute value no longer has the <code class="computeroutput"><span class="identifier">get</span></code>
+          method. Use the <code class="computeroutput"><span class="identifier">extract</span></code>
+          function as a replacement.
+        </li>
+<li class="listitem">
+          The key type of attribute sets and attribute values set has been changed.
+          The new key type is called <code class="computeroutput"><a class="link" href="../boost/log/attribute_name.html" title="Class attribute_name">attribute_name</a></code>.
+          It is constructible from strings, so in most cases users won't need to
+          change the code. See <a class="link" href="detailed/attributes.html#log.detailed.attributes.related_components.attribute_name" title="Attribute names">here</a>
+          for more information.
+        </li>
+<li class="listitem">
+          Attribute values view have been renamed to attribute value set. The container
+          now supports adding more attribute values after being constructed.
+        </li>
+<li class="listitem">
+          Attribute sets and attribute value sets no longer maintain order of elements.
+          Although it wasn't stated explicitly, the containers used to be ordered
+          associative containers. Now the order of elements is unspecified. The implementation
+          has been reworked to speed up insertion/removal of attributes, as well
+          as attribute lookup and values set construction. The drawback is that memory
+          footprint may get increased in some cases.
+        </li>
+<li class="listitem">
+          Attribute sets now use small memory pools to speed up element insertion/removal.
+        </li>
+<li class="listitem">
+          The header <code class="computeroutput"><span class="identifier">scoped_attribute</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          moved from <code class="computeroutput"><span class="identifier">utility</span></code> to the
+          <code class="computeroutput"><span class="identifier">attributes</span></code> directory. The
+          header <code class="computeroutput"><span class="identifier">attribute_value_extractor</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          in <code class="computeroutput"><span class="identifier">utility</span></code> has been replaced
+          with headers <code class="computeroutput"><a class="link" href="../attributes.html#header.boost.log.attributes.value_extraction_hpp" title="Header &lt;boost/log/attributes/value_extraction.hpp&gt;">boost/log/attributes/value_extraction.hpp</a></code>
+          and <code class="computeroutput"><a class="link" href="../attributes.html#header.boost.log.attributes.value_visitation_hpp" title="Header &lt;boost/log/attributes/value_visitation.hpp&gt;">boost/log/attributes/value_visitation.hpp</a></code>
+          in the <code class="computeroutput"><span class="identifier">attributes</span></code> directory.
+          The two new headers define the revised API of attribute value extraction
+          and visitation, respectively. See <a class="link" href="detailed/attributes.html#log.detailed.attributes.related_components.value_processing" title="Attribute value extraction and visitation">here</a>
+          for more details.
+        </li>
+<li class="listitem">
+          <a class="link" href="detailed/attributes.html#log.detailed.attributes.related_components.scoped_attributes" title="Scoped attributes">Scoped
+          attribute</a> macros simplified. The attribute constructor arguments
+          are specified next to the attribute type and tag type is no longer required.
+        </li>
+<li class="listitem">
+          The <a class="link" href="detailed/attributes.html#log.detailed.attributes.thread_id" title="Current thread identifier"><code class="computeroutput"><span class="identifier">current_thread_id</span></code></a>
+          attribute no longer uses <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span></code>
+          type for thread identification. An internal type is used instead, the type
+          is accessible as <code class="computeroutput"><span class="identifier">current_thread_id</span><span class="special">::</span><span class="identifier">value_type</span></code>.
+          The new thread ids are taken from the underlying OS API and thus more closely
+          correlate to what may be displayed by debuggers and system diagnostic tools.
+        </li>
+<li class="listitem">
+          Added <a class="link" href="detailed/attributes.html#log.detailed.attributes.process_name" title="Current process name"><code class="computeroutput"><span class="identifier">current_process_name</span></code></a> attribute.
+          The attribute generates a string with the executable name of the current
+          process.
+        </li>
+<li class="listitem">
+          The <code class="computeroutput"><span class="identifier">functor</span></code> attribute has
+          been renamed to <code class="computeroutput"><a class="link" href="../boost/log/attributes/function.html" title="Class template function">function</a></code>.
+          The generator function has been renamed from <code class="computeroutput"><span class="identifier">make_functor_attr</span></code>
+          to <code class="computeroutput"><span class="identifier">make_function</span></code>. The header
+          has been renamed from <code class="computeroutput"><span class="identifier">functor</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          to <code class="computeroutput"><span class="identifier">function</span><span class="special">.</span><span class="identifier">hpp</span></code>.
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>Logging sources:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fixed compilation problems with exception handling logger feature.
+        </li>
+<li class="listitem">
+          Global logger storage made more friendly to the setups in which hidden
+          visibility is set by default.
+        </li>
+<li class="listitem">
+          Added the macros for separated global logger declaration and definition.
+          Old macros have been renamed to better reflect their effect (<code class="computeroutput"><span class="identifier">BOOST_LOG_DECLARE_GLOBAL_LOGGER_INIT</span></code>
+          to <code class="computeroutput"><span class="identifier">BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT</span></code>,
+          <code class="computeroutput"><span class="identifier">BOOST_LOG_DECLARE_GLOBAL_LOGGER</span></code>
+          to <code class="computeroutput"><span class="identifier">BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT</span></code>,
+          <code class="computeroutput"><span class="identifier">BOOST_LOG_DECLARE_GLOBAL_LOGGER_CTOR_ARGS</span></code>
+          to <code class="computeroutput"><span class="identifier">BOOST_LOG_INLINE_GLOBAL_LOGGER_CTOR_ARGS</span></code>).
+          Also, the macros no longer define the <code class="computeroutput"><span class="identifier">get_logger</span></code>
+          free function for logger acquisition. Use <code class="computeroutput"><span class="identifier">logger</span><span class="special">::</span><span class="identifier">get</span></code>
+          instead. See <a class="link" href="detailed/sources.html#log.detailed.sources.global_storage" title="Global storage for loggers">here</a>
+          for more information.
+        </li>
+<li class="listitem">
+          The channel logger now supports changing the channel name after construction.
+          The channel name can be set either by calling the modifier method or by
+          specifying the name in the logging statement. Added <code class="computeroutput"><span class="identifier">BOOST_LOG_STREAM_CHANNEL</span></code>
+          and <code class="computeroutput"><span class="identifier">BOOST_LOG_STREAM_CHANNEL_SEV</span></code>
+          (as well as their shorthands <code class="computeroutput"><span class="identifier">BOOST_LOG_CHANNEL</span></code>
+          and <code class="computeroutput"><span class="identifier">BOOST_LOG_CHANNEL_SEV</span></code>)
+          macros that allow to specify channel name for the log record.
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>Logging sinks:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Types for integral constants for syslog and event log were renamed to drop
+          the <code class="computeroutput"><span class="identifier">_t</span></code> suffix.
+        </li>
+<li class="listitem">
+          Formatting functionality moved to sink frontends. Sink backends that support
+          record formatting derive from the <code class="computeroutput"><span class="identifier">basic_formatting_sink_backend</span></code>
+          class template, which indicates to the frontend that record formatting
+          is required. This breaks user-side API of the library: the formatter and
+          locale has to be set to the frontend rather than backend.
+        </li>
+<li class="listitem">
+          Formatting support no longer makes frontend thread synchronization mandatory.
+          Formatting is done prior to locking for processing the record in the backend
+          and can be performed concurrently in multiple threads.
+        </li>
+<li class="listitem">
+          Added support for flushing sinks. A sink backend that supports flushing
+          has to define public method with the following signature: <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">flush</span><span class="special">()</span></code>.
+        </li>
+<li class="listitem">
+          Asynchronous sink frontend reworked, ordering asynchronous sink removed.
+          The <code class="computeroutput"><a class="link" href="../boost/log/sinks/asynchronous_sink.html" title="Class template asynchronous_sink">asynchronous_sink</a></code>
+          class template now allows to specify record queueing strategy. Several
+          strategies provided, including <code class="computeroutput"><a class="link" href="../boost/log/sinks/unbounded_fifo_queue.html" title="Class unbounded_fifo_queue">unbounded_fifo_queue</a></code>
+          (the default) and <code class="computeroutput"><a class="link" href="../boost/log/sinks/unbounded_ordering_queue.html" title="Class template unbounded_ordering_queue">unbounded_ordering_queue</a></code>
+          which cover the functionality of asynchronous sink frontends in 1.x releases.
+          See the <a class="link" href="detailed/sink_frontends.html#log.detailed.sink_frontends.async" title="Asynchronous sink frontend">asynchronous
+          sink frontend</a> docs for more details.
+        </li>
+<li class="listitem">
+          Lock-free FIFO record queueing in asynchronous sinks reworked to reduce
+          log record processing stalls.
+        </li>
+<li class="listitem">
+          Added <code class="computeroutput"><span class="identifier">Append</span></code> configuration
+          file parameter for text file sinks. If this parameter is set to <code class="computeroutput"><span class="keyword">true</span></code>, the sink will append log records to
+          the existing log file instead of overwriting it.
+        </li>
+<li class="listitem">
+          Added bounded variants of asynchronous sink frontends. Implemented two
+          strategies to handle queue overflows: either log records are dropped or
+          logging threads are blocked until there is space in the queue.
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>Filters and formatters:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          As a result of character type unification, filters no longer depend on
+          the character type.
+        </li>
+<li class="listitem">
+          Two new types were introduced to dynamically store filters and formatters:
+          [class_log_filter] and [class_log_basic_formatter]. Both new types implement
+          type erasure and provide function calling operators to invoke the stored
+          filter or formatter.
+        </li>
+<li class="listitem">
+          Filters and formatters were rewritten. The new implementation is based
+          on <a href="http://www.boost.org/doc/libs/release/libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+          and resides in the <code class="computeroutput"><span class="identifier">expressions</span></code>
+          namespace. Attribute placeholders are now interoperable with other template
+          expressions based on <a href="http://www.boost.org/doc/libs/release/libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>.
+          All template expression headers now reside in the <code class="computeroutput"><span class="identifier">expressions</span></code>
+          subdirectory.
+        </li>
+<li class="listitem">
+          The library now supports defining keywords for attributes (see <code class="computeroutput"><span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span></code> macro). Keywords
+          can be used in template expressions instead of attribute placeholders and
+          also as a key in container lookups.
+        </li>
+<li class="listitem">
+          Filters and formatters do not throw exceptions by default when an attribute
+          value cannot be used to complete the function (e.g. when the value is missing
+          or has inappropriate type). The offending filter subexpression will return
+          <code class="computeroutput"><span class="keyword">false</span></code> in such cases, the formatter
+          will result in empty string instead of the value. The behavior can be changed
+          by calling <code class="computeroutput"><span class="identifier">or_default</span></code> or
+          <code class="computeroutput"><span class="identifier">or_throw</span></code> member functions
+          on the attribute value placeholder in the filtering/formatting expression.
+        </li>
+<li class="listitem">
+          Date and time formatter implementation is not based on <a href="http://www.boost.org/doc/libs/release/doc/html/date_time.html" target="_top">Boost.DateTime</a>
+          IO facets anymore. The new implementation improves formatting performance.
+          The formatter has been renamed to <a class="link" href="detailed/expressions.html#log.detailed.expressions.formatters.date_time" title="Date and time formatter"><code class="computeroutput"><span class="identifier">format_date_time</span></code></a>.
+        </li>
+<li class="listitem">
+          Named scope formatter now supports scope format specification. The scope
+          format can include the scope name, as well as file name and line number.
+          The formatter has been renamed to <a class="link" href="detailed/expressions.html#log.detailed.expressions.formatters.named_scope" title="Named scope formatter"><code class="computeroutput"><span class="identifier">format_named_scope</span></code></a>.
+        </li>
+<li class="listitem">
+          <a class="link" href="detailed/expressions.html#log.detailed.expressions.formatters.decorators" title="Character decorators">Character
+          decorators</a> were renamed to <code class="computeroutput"><span class="identifier">c_decor</span></code>,
+          <code class="computeroutput"><span class="identifier">c_ascii_decor</span></code>, <code class="computeroutput"><span class="identifier">xml_decor</span></code> and <code class="computeroutput"><span class="identifier">csv_decor</span></code>.
+          The generic character decorator is named <code class="computeroutput"><span class="identifier">char_decor</span></code>
+          now.
+        </li>
+<li class="listitem">
+          Added a new <a class="link" href="detailed/expressions.html#log.detailed.expressions.predicates.channel_severity_filter" title="Severity threshold per channel filter">channel
+          severity filter</a>. The filter allows to setup severity thresholds
+          for different channels. The filter checks log record severity level against
+          the threshold corresponding to the channel the record belongs to.
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>Documentation changes:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Most code examples from the docs have been extracted into compilable standalone
+          examples, which can be used for testing and experimenting with the library.
+        </li>
+<li class="listitem">
+          Added a lot of cross-references to the documentation, which should simplify
+          navigation.
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>Miscellaneous:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fixed a bug: the logging core could enter an infinite loop inside <code class="computeroutput"><span class="identifier">push_record</span></code> if a sink throws and the
+          exception is suppressed by the exception handler set in the core.
+        </li>
+<li class="listitem">
+          Changed the type dispatching implementation to reduce the usage of virtual
+          functions. This greatly reduced the library size.
+        </li>
+<li class="listitem">
+          Type dispatchers made more friendly to the setups in which hidden visibility
+          is set by default.
+        </li>
+<li class="listitem">
+          The interface of type dispatchers changed. The dispatcher now returns
+          <code class="computeroutput"><span class="identifier">type_visitor</span></code> instance by
+          value, and the visitor is no longer a base for the actual receiver of the
+          dispatched value. Instead, the visitor now refers to the receiver, if one
+          is capable to consume the value. The <code class="computeroutput"><span class="identifier">visit</span></code>
+          method has been renamed to <code class="computeroutput"><span class="keyword">operator</span>
+          <span class="special">()</span></code>. The static type dispatcher now
+          requires a reference to the receiver on construction, it doesn't imply
+          that the receiver derives from the dispatcher anymore.
+        </li>
+<li class="listitem">
+          The <code class="computeroutput"><span class="identifier">slim_string</span></code> utility
+          has been removed. There is no replacement.
+        </li>
+<li class="listitem">
+          The library now uses many features from the latest C++ standard (aka C++11).
+          For instance, many library components now support move semantics. <a href="http://www.boost.org/doc/libs/release/doc/html/move.html" target="_top">Boost.Move</a>
+          is used for move emulation on C++03-compatible compilers.
+        </li>
+</ul></div>
+<h4>
+<a name="log.changelog.h3"></a>
+      <span class="phrase"><a name="log.changelog.1_1__02_december_2011"></a></span><a class="link" href="changelog.html#log.changelog.1_1__02_december_2011">1.1,
+      02 December 2011</a>
+    </h4>
+<p>
+      This release mostly fixes bugs in the code and documentation.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added support for <a href="http://www.boost.org/doc/libs/release/libs/filesystem/doc/index.htm" target="_top">Boost.Filesystem</a>
+          v3.
+        </li>
+<li class="listitem">
+          A number of bugs fixed.
+        </li>
+<li class="listitem">
+          Corrections in the documentation.
+        </li>
+</ul></div>
+<h4>
+<a name="log.changelog.h4"></a>
+      <span class="phrase"><a name="log.changelog.1_0__09_may_2010"></a></span><a class="link" href="changelog.html#log.changelog.1_0__09_may_2010">1.0,
+      09 May 2010</a>
+    </h4>
+<p>
+      This release mostly fixes bugs in the code and documentation. The next major
+      release (2.0) will contain breaking changes and feature additions. The 1.0
+      branch will not receive any feature updates.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added some optimization for thread local storage. In Windows setups, if
+          you dynamically load Boost.Log binaries during the application run time,
+          this optimization may lead to crashes. In that case, you may disable it
+          by defining <code class="computeroutput"><span class="identifier">BOOST_LOG_NO_COMPILER_TLS</span></code>
+          during the library build process. The macro also affects other platforms,
+          which may be useful if your compiler does not support TLS.
+        </li>
+<li class="listitem">
+          Added a few public accessors and convenience constructors to severity and
+          channel loggers.
+        </li>
+<li class="listitem">
+          Added ability to rotate log files at the specified time points. The <code class="computeroutput"><span class="identifier">rotation_interval</span></code> keyword is no longer
+          available. The same functionality is achieved with the new <code class="computeroutput"><span class="identifier">time_based_rotation</span></code> keyword and the
+          <code class="computeroutput"><span class="identifier">rotation_at_time_interval</span></code>
+          predicate. See <a class="link" href="detailed/sink_backends.html#log.detailed.sink_backends.text_file" title="Text file backend">here</a>
+          for more details.
+        </li>
+<li class="listitem">
+          Improved support for MinGW and Cygwin.
+        </li>
+<li class="listitem">
+          A number of bugs fixed. Added workarounds to compile on GCC 4.2.
+        </li>
+<li class="listitem">
+          Lots of corrections in the documentation.
+        </li>
+</ul></div>
+<h4>
+<a name="log.changelog.h5"></a>
+      <span class="phrase"><a name="log.changelog.release_candidate_4__08_jan_2010"></a></span><a class="link" href="changelog.html#log.changelog.release_candidate_4__08_jan_2010">Release
+      Candidate 4, 08 Jan 2010</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Substantial documentation improvement. The tutorial section has been reorganized.
+        </li>
+<li class="listitem">
+          Library headers have been reorganized. Some other Boost libraries that
+          were previously included by headers have been made optional. Such dependencies
+          have been extracted into separate headers in the <code class="computeroutput"><span class="identifier">support</span></code>
+          directory. Top level library headers now mostly include nested headers.
+        </li>
+<li class="listitem">
+          Keywords have moved into a dedicated <code class="computeroutput"><span class="identifier">keywords</span></code>
+          namespace. There are no longer nested <code class="computeroutput"><span class="identifier">keywords</span></code>
+          namespaces in <code class="computeroutput"><span class="identifier">sinks</span></code>, <code class="computeroutput"><span class="identifier">attributes</span></code>, etc. All keywords have been
+          extracted into separate headers in the <code class="computeroutput"><span class="identifier">keywords</span></code>
+          directory.
+        </li>
+<li class="listitem">
+          Removed rotating file stream. As a replacement, a <a class="link" href="detailed/sink_backends.html#log.detailed.sink_backends.text_file" title="Text file backend">new
+          file sink</a> has been added, which allows to achieve the same results
+          ans adds a few more features.
+        </li>
+<li class="listitem">
+          Added a new <a class="link" href="detailed/sink_backends.html#log.detailed.sink_backends.text_multifile" title="Text multi-file backend">multifile</a>
+          sink backend.
+        </li>
+<li class="listitem">
+          Added a new ordering asynchronous sink frontend.
+        </li>
+<li class="listitem">
+          The <a class="link" href="detailed/sink_backends.html#log.detailed.sink_backends.syslog" title="Syslog backend">syslog</a> sink
+          backend is now supported on Windows, too. The sink no longer requires native
+          support for POSIX API for syslog, but is able to send syslog packets to
+          a remote server over UDP.
+        </li>
+<li class="listitem">
+          Loggers implementation has been improved. Feature composition mechanism
+          has been cleaned up.
+        </li>
+<li class="listitem">
+          Added support for scoped logging. There is now a distinct <a class="link" href="detailed.html#log.detailed.core.record" title="Logging records">log
+          record entity</a>, which is returned by the core as a result of filtering.
+          It is possible to fill in the record message in any way the user wants,
+          not necessarily with a streaming expression. The record object is now processed
+          by sinks and formatters.
+        </li>
+<li class="listitem">
+          Added support for exception control. User can register exception handlers
+          at one of the three layers: for a particular sink, at the core layer, and
+          for a particular logger (given that it has the appropriate feature). Sinks
+          and core will not suppress exceptions by default. Filter and formatters
+          will throw if the requested attribute value is not found.
+        </li>
+<li class="listitem">
+          Added a few new formatters, called character decorators. These can be useful
+          to post-process the formatted output before passing it on to the sink.
+        </li>
+<li class="listitem">
+          Added attributes for thread and process identifiers. These identifiers
+          are automatically added after the call to <code class="computeroutput"><span class="identifier">add_common_attributes</span></code>.
+        </li>
+<li class="listitem">
+          Helper initialization functions, such as <code class="computeroutput"><span class="identifier">init_log_to_file</span></code>
+          now accept more customization options as named arguments.
+        </li>
+<li class="listitem">
+          A new <a class="link" href="detailed/utilities.html#log.detailed.utilities.setup.settings" title="Library initialization from a settings container">initialization
+          interface</a> has been exposed. One can fill a settings container and
+          use it to initialize the library.
+        </li>
+<li class="listitem">
+          The library setup support code has been extracted into a separate binary.
+          Further on, this binary will be made optional to build.
+        </li>
+<li class="listitem">
+          Added a new mode of logging, called trivial logging. In this mode the library
+          requires no initialization at all, however it does not offer many ways
+          of customization.
+        </li>
+<li class="listitem">
+          A number of bugs fixed.
+        </li>
+<li class="listitem">
+          A few optimizations added to improve multithreaded applications performance.
+        </li>
+<li class="listitem">
+          Removed some bug workarounds for older Boost releases. The library now
+          requires Boost 1.39 or newer.
+        </li>
+</ul></div>
+<h4>
+<a name="log.changelog.h6"></a>
+      <span class="phrase"><a name="log.changelog.release_candidate_3__08_feb_2009"></a></span><a class="link" href="changelog.html#log.changelog.release_candidate_3__08_feb_2009">Release
+      Candidate 3, 08 Feb 2009</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Substantial documentation improvement.
+        </li>
+<li class="listitem">
+          Added several Windows-specific sinks: Event Log (simplified and advanced),
+          Windows debugger and experimental Event Trace for Windows Vista and later.
+        </li>
+<li class="listitem">
+          Loggers now consist of a number of independent features that can be composed
+          the way the user needs. User-defined features can be developed and injected
+          into the mix.
+        </li>
+<li class="listitem">
+          Attribute value extractors improved. With the new extract function attribute
+          values can be extracted from the attribute values view by employing lambda
+          functors.
+        </li>
+<li class="listitem">
+          Some files and classes were moved or renamed to improve code clarity and
+          shorten names.
+        </li>
+<li class="listitem">
+          A number of bugs fixed.
+        </li>
+<li class="listitem">
+          Added tests.
+        </li>
+</ul></div>
+<h4>
+<a name="log.changelog.h7"></a>
+      <span class="phrase"><a name="log.changelog.release_candidate_2"></a></span><a class="link" href="changelog.html#log.changelog.release_candidate_2">Release
+      Candidate 2</a>
+    </h4>
+<p>
+      No one really remembers these dark ages...
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/log/current_scope.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="todo.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

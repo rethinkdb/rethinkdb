@@ -1,0 +1,43 @@
+# Support for the Message Passing Interface (MPI)
+#
+# (C) Copyright 2005, 2006 Trustees of Indiana University
+# (C) Copyright 2005 Douglas Gregor
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.)
+#
+# Authors: Douglas Gregor
+#          Andrew Lumsdaine
+
+use-project /boost/mpi : ../build ;
+project /boost/mpi/test ;
+import mpi : mpi-test ;
+
+if [ mpi.configured ]
+{
+test-suite mpi
+  :
+  [ mpi-test all_gather_test  ]
+  [ mpi-test all_reduce_test  ]
+  [ mpi-test all_to_all_test  ]
+  [ mpi-test broadcast_test  : : : 2 17 ]
+  [ mpi-test gather_test  ]
+  [ mpi-test is_mpi_op_test : : : 1 ]
+  [ mpi-test mt_level_test : : : 1 ]
+  [ mpi-test mt_init_test-single : mt_init_test.cpp : <testing.arg>"single" : 1 4 ]
+  [ mpi-test mt_init_test-funneled : mt_init_test.cpp : <testing.arg>"funneled" : 1 4 ]
+  [ mpi-test mt_init_test-serialized : mt_init_test.cpp : <testing.arg>"serialized" : 1 4 ]
+  [ mpi-test mt_init_test-multiple : mt_init_test.cpp : <testing.arg>"multiple" : 1 4 ]
+  # Note: Microsoft MPI fails nonblocking_test on 1 processor
+  [ mpi-test nonblocking_test ]
+  [ mpi-test reduce_test  ]
+  [ mpi-test ring_test : : : 2 3 4 7 8 13 17 ]
+  [ mpi-test scan_test  ]
+  [ mpi-test scatter_test  ]
+  # Note: Microsoft MPI fails all skeleton-content tests
+  [ mpi-test skeleton_content_test : : : 2 3 4 7 8 13 17 ]
+  [ mpi-test graph_topology_test : : : 2 7 13 ]
+  [ mpi-test pointer_test : : : 2 ]
+  [ mpi-test groups_test  ]
+  ;
+}

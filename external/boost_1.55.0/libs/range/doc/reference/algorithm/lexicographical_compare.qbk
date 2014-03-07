@@ -1,0 +1,60 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:lexicographical_compare lexicographical_compare]
+
+[heading Prototype]
+
+``
+template<
+    class SinglePassRange1,
+    class SinglePassRange2
+    >
+bool lexicographical_compare(const SinglePassRange1& rng1,
+                             const SinglePassRange2& rng2);
+
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class BinaryPredicate
+    >
+bool lexicographical_compare(const SinglePassRange1& rng1,
+                             const SinglePassRange2& rng2,
+                             BinaryPredicate pred);    
+``
+
+[heading Description]
+
+`lexicographical_compare` compares element by element `rng1` against `rng2`. If the element from `rng1` is less than the element from `rng2` then `true` is returned. If the end of `rng1` without reaching the end of `rng2` this also causes the return value to be `true`. The return value is `false` in all other circumstances. The elements are compared using `operator<` in the non-predicate versions of `lexicographical_compare` and using `pred` in the predicate versions.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/lexicographical_compare.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions of lexicographical_compare:]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange1`'s value type is a model of the `LessThanComparableConcept`.
+* `SinglePassRange2`'s value type is a model of the `LessThanComparableConcept`.
+* Let `x` be an object of `SinglePassRange1`'s value type. Let `y` be an object of `SinglePassRange2`'s value type. `x < y` must be valid. `y < x` must be valid.
+
+[*For the predicate versions of lexicographical_compare:]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+* `BinaryPredicate` is a model of the `BinaryPredicateConcept`.
+* `SinglePassRange1`'s value type is convertible to `BinaryPredicate`'s first argument type.
+* `SinglePassRange2`'s value type is convertible to `BinaryPredicate`'s second argument type.
+
+[heading Complexity]
+
+Linear. At most `2 * min(distance(rng1), distance(rng2))` comparisons.
+
+[endsect]
+
+

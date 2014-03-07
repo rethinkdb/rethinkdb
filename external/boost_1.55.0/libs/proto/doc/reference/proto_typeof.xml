@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/proto_typeof.hpp">
+  <para>Boost.Typeof registrations for Proto's types, and definition of the
+    <computeroutput><macroname>BOOST_PROTO_AUTO</macroname>()</computeroutput> macro.</para>
+  <macro name="BOOST_PROTO_AUTO" kind="functionlike">
+    <macro-parameter name="Var"/>
+    <macro-parameter name="Expr"/>
+    <purpose>For defining a local variable that stores a Proto expression template,
+      deep-copying the expression so there are no dangling references.</purpose>
+    <description>
+      <para>
+        To define a local variable <computeroutput>ex</computeroutput> that stores the expression
+        <computeroutput><functionname alt="boost::proto::lit">proto::lit</functionname>(1) + 2</computeroutput>,
+        do the following:<programlisting>BOOST_PROTO_AUTO( ex, <functionname alt="boost::proto::lit">proto::lit</functionname>(1) + 2 );</programlisting>.
+        The above is equivalent to the following:
+        <programlisting>BOOST_AUTO( ex, <functionname alt="boost::proto::deep_copy">proto::deep_copy</functionname>( <functionname alt="boost::proto::lit">proto::lit</functionname>(1) + 2 ) );</programlisting>
+      </para>
+    </description>
+  </macro>
+</header>

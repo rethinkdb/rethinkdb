@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+
+  <title>Boost Function Object Adapter Library</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+  <table border="1" bgcolor="#007F7F" cellpadding="2" summary="">
+    <tr>
+      <td bgcolor="#FFFFFF"><img src="../../boost.png" alt=
+      "boost.png (6897 bytes)" width="277" height="86"></td>
+
+      <td><a href="../../index.htm"><font face="Arial" color=
+      "#FFFFFF"><big>Home</big></font></a></td>
+
+      <td><a href="../libraries.htm"><font face="Arial" color=
+      "#FFFFFF"><big>Libraries</big></font></a></td>
+
+      <td><a href="http://www.boost.org/people/people.htm"><font face="Arial" color=
+      "#FFFFFF"><big>People</big></font></a></td>
+
+      <td><a href="http://www.boost.org/more/faq.htm"><font face="Arial" color=
+      "#FFFFFF"><big>FAQ</big></font></a></td>
+
+      <td><a href="../../more/index.htm"><font face="Arial" color=
+      "#FFFFFF"><big>More</big></font></a></td>
+    </tr>
+  </table>
+
+  <h1>Binders</h1>
+
+  <p>The header <a href="../../boost/functional.hpp">functional.hpp</a>
+  provides enhanced versions of both the binder function object adapters from
+  the C++ Standard Library (&sect;20.3.6):</p>
+
+  <ul>
+    <li><tt>binder1st</tt></li>
+
+    <li><tt>binder2nd</tt></li>
+  </ul>
+
+  <p>As well as the corresponding helper functions</p>
+
+  <ul>
+    <li><tt>bind1st</tt></li>
+
+    <li><tt>bind2nd</tt></li>
+  </ul>
+
+  <p>The key benefit of these adapters over those in the Standard Library is
+  they avoid the problem of <a href="#refref">references to
+  references.</a></p>
+
+  <h3>Usage</h3>
+
+  <p>Usage is identical to the standard binders. For example,</p>
+
+  <blockquote>
+    <pre>
+class Foo {
+public:
+  void bar(std::ostream &amp;);
+  // ...
+};
+// ...
+std::vector&lt;Foo&gt; c;
+// ...
+std::for_each(c.begin(), c.end(), 
+              boost::bind2nd(boost::mem_fun_ref(&amp;Foo::bar), std::cout));
+</pre>
+  </blockquote>
+
+  <h3 id="refref">References to References</h3>
+
+  <p>Consider the usage example above</p>
+
+  <blockquote>
+    <pre>
+class Foo {
+public:
+  void bar(<strong>std::ostream &amp;</strong>);
+  // ...
+};
+// ...
+std::for_each(c.begin(), c.end(), 
+              boost::bind2nd(boost::mem_fun_ref(&amp;Foo::bar), std::cout));
+</pre>
+  </blockquote>
+
+  <p>If this had been written using <tt>std::bind2nd</tt> and
+  <tt>std::mem_fun_ref</tt>, it would be unlikely to compile.</p>
+
+  <p>The problem arises because <tt>bar</tt> takes a reference argument. The
+  Standard defines <tt>std::mem_fun_ref</tt> such that it creates a function
+  object whose <tt>second_argument_type</tt> will be
+  <tt>std::ostream&amp;</tt>.</p>
+
+  <p>The call to <tt>bind2nd</tt> creates a <tt>binder2nd</tt> which the
+  Standard defines as follows:</p>
+
+  <blockquote>
+    <pre>
+template &lt;class Operation&gt;
+class binder2nd
+    : public unary_function&lt;typename Operation::first_argument_type,
+                            typename Operation::result_type&gt; {
+...
+public:
+  binder2nd(const Operation&amp; x,
+            <strong>const typename Operation::second_argument_type&amp; y</strong>);
+  ...
+</pre>
+  </blockquote>
+
+  <p>Since our operation's <tt>second_argument_type</tt> is
+  <tt>std::ostream&amp;</tt>, the type of <tt>y</tt> in the constructor would
+  be <tt>std::ostream&amp;&amp;</tt>. Since you cannot have a reference to a
+  reference, at this point we should get a compilation error because
+  references to references are illegal in C++ (but see <a href=
+  "http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/cwg_active.html#106">C++
+  Standard core language active issues list</a>).</p>
+
+  <p>The binders in this library avoid this problem by using the Boost
+  <tt><a href="../utility/call_traits.htm">call_traits</a></tt>
+  templates.</p>
+
+  <p>Our constructor is declared</p>
+
+  <blockquote>
+    <pre>
+binder2nd(const Operation&amp; x,
+          <strong>typename call_traits&lt;
+             typename binary_traits&lt;Operation&gt;::second_argument_type
+          &gt;::param_type y</strong>)
+</pre>
+  </blockquote>
+
+  <p>As a result, <tt>y</tt> has a type of <tt>std::ostream&amp;</tt>, and
+  our example compiles.</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->02
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38510" --></p>
+
+  <p><i>Copyright &copy; 2000 Cadenza New Zealand Ltd.</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

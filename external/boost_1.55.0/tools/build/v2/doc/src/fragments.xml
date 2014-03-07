@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<chapter>
+  <section id="root_option">
+    <varlistentry>
+      <term><literal>root</literal></term>
+
+      <!-- At present, this option is only used to set LD_LIBRARY_PATH when
+      running tests, and matters only if compiler's lib directory is not in
+      LD_LIBRARY_PATH. -->
+
+      <listitem><para>Specifies root directory of the compiler installation.
+      This option is necessary only if it is not possible to detect this
+      information from the compiler command&#x2014;for example if the specified
+      compiler command is a user script.</para></listitem>
+    </varlistentry>
+  </section>
+
+  <section id="common_options">
+
+    <!-- This most likely needs splitting into common_options,
+    common_cxx_options & common_fortran_options or something similar. We also
+    need to document the fortran specific fflags option. Possibly related Boost
+    Build code should be updated as well so that fortran options may not be
+    specified for non-fortran toolsets and C/C++ options may not be specified
+    for non-C/C++ ones. -->
+
+    <varlistentry>
+      <term><literal>cflags</literal></term>
+
+      <listitem><para>Specifies additional compiler flags that will be used when
+      compiling C sources.</para></listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><literal>cxxflags</literal></term>
+
+      <listitem><para>Specifies additional compiler flags that will be used when
+      compiling C++ sources.</para></listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><literal>compileflags</literal></term>
+
+      <listitem><para>Specifies additional compiler flags that will be used when
+      compiling both C and C++ sources.</para></listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term><literal>linkflags</literal></term>
+
+      <listitem><para>Specifies additional command line options that will be
+      passed to the linker.</para>
+      </listitem>
+    </varlistentry>
+  </section>
+</chapter>

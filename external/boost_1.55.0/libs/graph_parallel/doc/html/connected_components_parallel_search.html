@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Connected Components Parallel Search</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-connected-components-parallel-search">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Connected Components Parallel Search</h1>
+
+<!-- Copyright (C) 2004-2009 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+namespace graph { namespace distributed {
+  template&lt;typename Graph, typename ComponentMap&gt;
+  typename property_traits&lt;ComponentMap&gt;::value_type
+  connected_components_ps(const Graph&amp; g, ComponentMap c)
+} }
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">connected_components_ps()</span></tt> function computes the connected
+components of a graph by performing a breadth-first search from
+several sources in parallel while recording and eventually resolving
+the collisions.</p>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id1">Where Defined</a></li>
+<li><a class="reference internal" href="#parameters" id="id2">Parameters</a></li>
+<li><a class="reference internal" href="#complexity" id="id3">Complexity</a></li>
+<li><a class="reference internal" href="#algorithm-description" id="id4">Algorithm Description</a></li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id1">Where Defined</a></h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/distributed/connected_components_parallel_search.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="parameters">
+<h1><a class="toc-backref" href="#id2">Parameters</a></h1>
+<dl class="docutils">
+<dt>IN:  <tt class="docutils literal"><span class="pre">const</span> <span class="pre">Graph&amp;</span> <span class="pre">g</span></tt></dt>
+<dd>The graph type must be a model of <a class="reference external" href="DistributedGraph.html">Distributed Graph</a>.  The graph
+type must also model the <a class="reference external" href="http://www.boost.org/libs/graph/doc/IncidenceGraph.html">Incidence Graph</a> and be directed.</dd>
+<dt>OUT:  <tt class="docutils literal"><span class="pre">ComponentMap</span> <span class="pre">c</span></tt></dt>
+<dd>The algorithm computes how many connected components are in the
+graph, and assigns each component an integer label.  The algorithm
+then records to which component each vertex in the graph belongs by
+recording the component number in the component property map.  The
+<tt class="docutils literal"><span class="pre">ComponentMap</span></tt> type must be a <a class="reference external" href="distributed_property_map.html">Distributed Property Map</a>.  The
+value type must be the <tt class="docutils literal"><span class="pre">vertices_size_type</span></tt> of the graph.  The key
+type must be the graph's vertex descriptor type.</dd>
+</dl>
+</div>
+<div class="section" id="complexity">
+<h1><a class="toc-backref" href="#id3">Complexity</a></h1>
+<p><em>O(PN^2 + VNP)</em> work, in <em>O(N + V)</em> time, where N is the
+number of mappings and V is the number of local vertices.</p>
+</div>
+<div class="section" id="algorithm-description">
+<h1><a class="toc-backref" href="#id4">Algorithm Description</a></h1>
+<p>Every <em>N</em> th nodes starts a parallel search from the first vertex in
+their local vertex list during the first superstep (the other nodes
+remain idle during the first superstep to reduce the number of
+conflicts in numbering the components).  At each superstep, all new
+component mappings from remote nodes are handled.  If there is no work
+from remote updates, a new vertex is removed from the local list and
+added to the work queue.</p>
+<p>Components are allocated from the <tt class="docutils literal"><span class="pre">component_value_allocator</span></tt>
+object, which ensures that a given component number is unique in the
+system, currently by using the rank and number of processes to stride
+allocations.</p>
+<p>When two components are discovered to actually be the same component,
+a collision is recorded.  The lower component number is prefered in
+the resolution, so component numbering resolution is consistent.
+After the search has exhausted all vertices in the graph, the mapping
+is shared with all processes and they independently resolve the
+comonent mapping.  This phase can likely be significantly sped up if a
+clever algorithm for the reduction can be found.</p>
+<hr class="docutils" />
+<p>Copyright (C) 2009 The Trustees of Indiana University.</p>
+<p>Authors: Brian Barrett, Douglas Gregor, and Andrew Lumsdaine</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

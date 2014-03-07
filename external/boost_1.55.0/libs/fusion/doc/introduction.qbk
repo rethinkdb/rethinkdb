@@ -1,0 +1,91 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Introduction]
+
+An advantage other languages such as Python and Lisp/ Scheme, ML and
+Haskell, etc., over C++ is the ability to have heterogeneous containers
+that can hold arbitrary element types. All the containers in the standard
+library can only hold a specific type. A `vector<int>` can only hold
+`int`s. A `list<X>` can only hold elements of type `X`, and so on.
+
+True, you can use inheritance to make the containers hold different types,
+related through subclassing. However, you have to hold the objects through
+a pointer or smart reference of some sort. Doing this, you'll have to rely
+on virtual functions to provide polymorphic behavior since the actual type
+is erased as soon as you store a pointer to a derived class to a pointer to
+its base. The held objects must be related: you cannot hold objects of
+unrelated types such as `char`, `int`, `class X`, `float`, etc. Oh sure you
+can use something like __boost_any__ to hold arbitrary types, but then you
+pay more in terms of runtime costs and due to the fact that you practically
+erased all type information, you'll have to perform dangerous casts to get
+back the original type.
+
+The __tuple__ library written by __jaakko_jarvi__ provides heterogeneous
+containers in C++. The `tuple` is a basic data structure that can hold
+heterogeneous types. It's a good first step, but it's not complete. What's
+missing are the algorithms. It's nice that we can store and retrieve data
+to and from tuples, pass them around as arguments and return types. As it
+is, the __tuple__ facility is already very useful. Yet, as soon as you use
+it more often, usage patterns emerge. Eventually, you collect these
+patterns into algorithm libraries.
+
+Hmmm, kinda reminds us of STL right? Right! Can you imagine how it would be
+like if you used STL without the algorithms? Everyone will have to reinvent
+their own /algorithm/ wheels.
+
+Fusion is a library and a framework similar to both __stl__ and the boost
+__mpl__. The structure is modeled after __mpl__, which is modeled
+after __stl__. It is named "fusion" because the library is reminiscent of
+the "fusion" of compile time meta-programming with runtime programming. The
+library inherently has some interesting flavors and characteristics of both
+__mpl__ and __stl__. It lives in the twilight zone between compile time
+meta-programming and run time programming. __stl__ containers work on
+values. MPL containers work on types. Fusion containers work on both types
+and values.
+
+Unlike __mpl__, Fusion algorithms are lazy and non sequence-type
+preserving. What does that mean? It means that when you operate on a
+sequence through a Fusion algorithm that returns a sequence, the sequence
+returned may not be of the same class as the original. This is by design.
+Runtime efficiency is given a high priority. Like __mpl__, and unlike
+__stl__, fusion algorithms are functional in nature such that algorithms
+are non mutating (no side effects). However, due to the high cost of
+returning full sequences such as vectors and lists, /Views/ are returned
+from Fusion algorithms instead. For example, the __transform__ algorithm
+does not actually return a transformed version of the original sequence.
+__transform__ returns a __transform_view__. This view holds a reference to
+the original sequence plus the transform function. Iteration over the
+__transform_view__ will apply the transform function over the sequence
+elements on demand. This /lazy/ evaluation scheme allows us to chain as
+many algorithms as we want without incurring a high runtime penalty.
+
+The /lazy/ evaluation scheme where algorithms return views allows
+operations such as __push_back__ to be totally generic. In Fusion,
+__push_back__ is actually a generic algorithm that works on all sequences.
+Given an input sequence `s` and a value `x`, Fusion's __push_back__
+algorithm simply returns a __joint_view__: a view that holds a reference to
+the original sequence `s` and the value `x`. Functions that were once
+sequence specific and need to be implemented N times over N different
+sequences are now implemented only once.
+
+Fusion provides full round compatibility with __mpl__. Fusion sequences are
+fully conforming __mpl__ sequences and __mpl__ sequences are fully compatible
+with Fusion. You can work with Fusion sequences on __mpl__ if you wish to work
+solely on types [footnote Choose __mpl__ over fusion when doing pure type
+calculations. Once the static type calculation is finished, you can instantiate
+a fusion sequence (see __conversion__) for the runtime part.]. In __mpl__,
+Fusion sequences follow __mpl__'s sequence-type preserving semantics (i.e.
+algorithms preserve the original sequence type. e.g. transforming a vector
+returns a vector). You can also convert from an __mpl__ sequence to a Fusion
+sequence. For example, there are times when it is convenient to work solely on
+__mpl__ using pure __mpl__ sequences, then, convert them to Fusion sequences as
+a final step before actual instantiation of real runtime objects with data. You
+have the best of both worlds.
+
+[endsect]

@@ -1,0 +1,54 @@
+/* Copyright 2003-2004 Joaquín M López Muñoz.
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See accompanying file LICENSE_1_0.txt or copy at
+ * http://www.boost.org/LICENSE_1_0.txt)
+ */
+
+pre{
+  BORDER-RIGHT: gray 1pt solid;
+  PADDING-RIGHT: 2pt;
+  BORDER-TOP: gray 1pt solid;
+  DISPLAY: block;
+  PADDING-LEFT: 2pt;
+  PADDING-BOTTOM: 2pt;
+  BORDER-LEFT: gray 1pt solid;
+  MARGIN-RIGHT: 32pt;
+  PADDING-TOP: 2pt;
+  BORDER-BOTTOM: gray 1pt solid;
+  FONT-FAMILY: "Courier New", Courier, mono;
+  background-color: #EEEEEE;
+}
+
+table{
+  PADDING-RIGHT: 2pt;
+  BORDER-TOP: gray 1pt solid;
+  DISPLAY: block;
+  PADDING-LEFT: 2pt;
+  PADDING-BOTTOM: 2pt;
+  BORDER-LEFT: gray 1pt solid;
+  MARGIN-RIGHT: 32pt;
+  PADDING-TOP: 2pt;
+  background-color: #EEEEEE;
+}
+td{
+  BORDER-STYLE: solid;
+  BORDER-WIDTH: 1pt;
+  BORDER-LEFT: ;
+  BORDER-RIGHT: gray 1pt solid;
+  BORDER-TOP: ;
+  BORDER-BOTTOM: gray 1pt solid;
+}
+th{color: #ffffff; background-color: #000000;}
+.odd_tr{background-color: #ffffff;}
+
+.keyword{color: #0000FF;}
+.identifier{}
+.comment{font-style: italic; color: #008000;}
+.special{color: #800040;}
+.preprocessor{color: #3F007F;}
+.string{font-style: italic; color: #666666;}
+.literal{font-style: italic; color: #666666;}
+
+.prev_link{width: 30%; float: left; text-align: left;}
+.up_link{width: 39.9%; float: left; text-align: center;}
+.next_link{width: 30%; float: left; text-align: right;}

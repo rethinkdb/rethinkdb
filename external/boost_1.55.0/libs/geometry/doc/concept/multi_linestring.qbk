@@ -1,0 +1,31 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:concept_multi_linestring MultiLinestring Concept]
+
+[heading Description]
+[concept MultiLinestring..multi linestring]
+
+[heading Concept Definition]
+
+The MultiLinestring Concept is defined as following:
+
+* There must be a specialization of the metafunction `traits::tag`, defining `multi_linestring_tag` as type
+* It must behave like a Boost.Range Random Access Range
+* The type defined by the metafunction `range_value<...>::type` must fulfill 
+	the [link geometry.reference.concepts.concept_linestring Linestring Concept]
+
+[heading Available Models]	
+* [link geometry.reference.models.model_multi_linestring model::multi_linestring]
+
+
+[endsect]

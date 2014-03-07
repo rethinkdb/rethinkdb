@@ -1,0 +1,234 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ms.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ms.xml
+ */
+ms{
+    ExemplarCharacters{
+        "[a {ai} {au} b c d {dz} e f g h i j k {kh} l m n {ng} {ngg} {ny} o p q r s {"
+        "sy} t {ts} u {ua} v w x y z]"
+    }
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00;(¤#,##0.00)"}
+            }
+        }
+    }
+    Version{"2.0.50.96"}
+    calendar{
+        buddhist{
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y G",
+                "d MMMM y G",
+                "dd/MM/y G",
+                "d/MM/y G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E, d"}
+                MEd{"E, d/M"}
+                MMMEd{"E, d MMM"}
+                MMMMd{"d MMMM"}
+                Md{"d/M"}
+                yM{"M/y G"}
+                yMEd{"EEE, d/M/y G"}
+                yMMM{"MMM y G"}
+                yMMMEd{"EEE, d MMM y G"}
+                yMMMd{"d MMM y G"}
+            }
+        }
+        gregorian{
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y",
+                "d MMMM y",
+                "dd/MM/yyyy",
+                "d/MM/yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E, d"}
+                MEd{"E, d-M"}
+                MMMEd{"EEE, d MMM"}
+                MMMd{"d MMM"}
+                Md{"d-M"}
+                yM{"M-y"}
+                yMEd{"EEE, d-M-yyyy"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE, d MMM y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "Ahd",
+                        "Isn",
+                        "Sel",
+                        "Rab",
+                        "Kha",
+                        "Jum",
+                        "Sab",
+                    }
+                    wide{
+                        "Ahad",
+                        "Isnin",
+                        "Selasa",
+                        "Rabu",
+                        "Khamis",
+                        "Jumaat",
+                        "Sabtu",
+                    }
+                }
+            }
+            intervalFormats{
+                h{
+                    a{"H – H"}
+                    h{"H – H"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Jan",
+                        "Feb",
+                        "Mac",
+                        "Apr",
+                        "Mei",
+                        "Jun",
+                        "Jul",
+                        "Ogos",
+                        "Sep",
+                        "Okt",
+                        "Nov",
+                        "Dis",
+                    }
+                    wide{
+                        "Januari",
+                        "Februari",
+                        "Mac",
+                        "April",
+                        "Mei",
+                        "Jun",
+                        "Julai",
+                        "Ogos",
+                        "September",
+                        "Oktober",
+                        "November",
+                        "Disember",
+                    }
+                }
+            }
+        }
+        islamic{
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y G",
+                "d MMMM y G",
+                "dd/MM/y G",
+                "d/MM/y G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E, d"}
+                MEd{"E, d/M"}
+                MMMEd{"E, d MMM"}
+                MMMMd{"d MMMM"}
+                Md{"d/M"}
+                yyyyM{"M/y G"}
+                yyyyMEd{"EEE, d/M/y G"}
+                yyyyMMM{"MMM y G"}
+                yyyyMMMEd{"EEE, d MMM y G"}
+                yyyyMMMd{"d MMM y G"}
+            }
+        }
+        japanese{
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y G",
+                "d MMMM y G",
+                "dd/MM/y G",
+                "d/MM/y G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E, d"}
+                MEd{"E, d/M"}
+                MMMEd{"E, d MMM"}
+                MMMMd{"d MMMM"}
+                Md{"d/M"}
+                yyyyM{"M/y G"}
+                yyyyMEd{"EEE, d/M/y G"}
+                yyyyMMM{"MMM y G"}
+                yyyyMMMEd{"EEE, d MMM y G"}
+                yyyyMMMd{"d MMM y G"}
+            }
+        }
+        roc{
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y G",
+                "d MMMM y G",
+                "dd/MM/y G",
+                "d/MM/y G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E, d"}
+                MEd{"E, d/M"}
+                MMMEd{"EEE, d MMM"}
+                MMMMd{"d MMMM"}
+                Md{"d/M"}
+                yyyyM{"M/y G"}
+                yyyyMEd{"EEE, d/M/y G"}
+                yyyyMMM{"MMM y G"}
+                yyyyMMMEd{"EEE, d MMM y G"}
+                yyyyMMMd{"d MMM y G"}
+            }
+        }
+    }
+}

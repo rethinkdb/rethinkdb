@@ -1,0 +1,387 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Numeric Converter Policy Classes</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_numericconversion.numeric_converter_policy_classes"></a><a class="link" href="numeric_converter_policy_classes.html" title="Numeric Converter Policy Classes">Numeric
+    Converter Policy Classes</a>
+</h2></div></div></div>
+    
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.numeric_converter_policy_classes.enum_range_check_result"></a><a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.enum_range_check_result" title="enum range_check_result">enum
+      range_check_result</a>
+</h3></div></div></div>
+      
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+    <span class="keyword">enum</span> <span class="identifier">range_check_result</span>
+    <span class="special">{</span>
+        <span class="identifier">cInRange</span>     <span class="special">,</span>
+        <span class="identifier">cNegOverflow</span> <span class="special">,</span>
+        <span class="identifier">cPosOverflow</span>
+    <span class="special">}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span>
+</pre>
+      <p>
+        Defines the values returned by <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">converter</span><span class="special">&lt;&gt;::</span><span class="identifier">out_of_range</span><span class="special">()</span></code>
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.numeric_converter_policy_classes.policy_overflowhandler"></a><a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_overflowhandler" title="Policy OverflowHandler">Policy
+      OverflowHandler</a>
+</h3></div></div></div>
+      
+      <p>
+        This <span class="emphasis"><em>stateless</em></span> non-template policy class must be a
+        <span class="emphasis"><em>function object</em></span> and is called to administrate the result
+        of the range checking. It can throw an exception if overflow has been detected
+        by the range checking as indicated by its argument. If it throws, is is recommended
+        that it be <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">bad_cast</span></code> or derived.
+      </p>
+      <p>
+        It must have the following interface (it does not has to be a template class):
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">YourOverflowHandlerPolicy</span>
+<span class="special">{</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_check_result</span> <span class="special">)</span> <span class="special">;</span> <span class="comment">// throw bad_cast or derived</span>
+<span class="special">}</span> <span class="special">;</span>
+</pre>
+      <p>
+        It is called with the result of the converter's <code class="computeroutput"><span class="identifier">out_of_range</span><span class="special">()</span></code> inside <code class="computeroutput"><span class="identifier">validate_range</span><span class="special">()</span></code>.
+      </p>
+      <p>
+        These are the two overflow handler classes provided by the library:
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+    <span class="keyword">struct</span> <span class="identifier">def_overflow_handler</span>
+    <span class="special">{</span>
+        <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span> <span class="identifier">range_check_result</span> <span class="identifier">r</span> <span class="special">)</span> <span class="comment">// throw bad_numeric_conversion derived</span>
+        <span class="special">{</span>
+            <span class="keyword">if</span> <span class="special">(</span> <span class="identifier">r</span> <span class="special">==</span> <span class="identifier">cNegOverflow</span> <span class="special">)</span>
+                <span class="keyword">throw</span> <span class="identifier">negative_overflow</span><span class="special">()</span> <span class="special">;</span>
+            <span class="keyword">else</span> <span class="keyword">if</span> <span class="special">(</span> <span class="identifier">r</span> <span class="special">==</span> <span class="identifier">cPosOverflow</span> <span class="special">)</span>
+                <span class="keyword">throw</span> <span class="identifier">positive_overflow</span><span class="special">()</span> <span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">}</span> <span class="special">;</span>
+
+    <span class="keyword">struct</span> <span class="identifier">silent_overflow_handler</span>
+    <span class="special">{</span>
+        <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span> <span class="identifier">range_check_result</span> <span class="special">)</span> <span class="comment">// no-throw</span>
+        <span class="special">{}</span>
+    <span class="special">}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span>
+</pre>
+      <p>
+        And these are the Exception Classes thrown by the default overflow handler
+        <a class="link" href="numeric_converter_policy_classes.html#numeric_conversion_policy_overflow_handler_important_note">(see
+        IMPORTANT note)</a>
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+    <a name="numeric_conversion_bad_numeric_cast"></a>
+    <span class="keyword">class</span> <span class="identifier">bad_numeric_cast</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">bad_cast</span>
+    <span class="special">{</span>
+        <span class="keyword">public</span><span class="special">:</span>
+        <span class="keyword">virtual</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">what</span><span class="special">()</span> <span class="keyword">const</span> <span class="comment">// throw()</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="string">"bad numeric conversion: overflow"</span><span class="special">;</span>
+        <span class="special">}</span>
+
+    <span class="special">};</span>
+
+    <a name="numeric_conversion_negative_overflow"></a>
+    <span class="keyword">class</span> <span class="identifier">negative_overflow</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">bad_numeric_cast</span>
+    <span class="special">{</span>
+        <span class="keyword">public</span><span class="special">:</span>
+        <span class="keyword">virtual</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">what</span><span class="special">()</span> <span class="keyword">const</span> <span class="comment">// throw()</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="string">"bad numeric conversion: negative overflow"</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <a name="numeric_conversion_possitive_overflow"></a>
+    <span class="keyword">class</span> <span class="identifier">positive_overflow</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">bad_numeric_cast</span>
+    <span class="special">{</span>
+        <span class="keyword">public</span><span class="special">:</span>
+        <span class="keyword">virtual</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">what</span><span class="special">()</span> <span class="keyword">const</span> <span class="comment">// throw()</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="string">"bad numeric conversion: positive overflow"</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+
+<span class="special">}</span> <span class="special">}</span>
+</pre>
+      <a name="numeric_conversion_policy_overflow_handler_important_note"></a>
+      <div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top">
+        <p>
+          <span class="bold"><strong>RELEASE NOTE for 1.33</strong></span> Previous to boost
+          version 1.33, the exception class <code class="computeroutput"><span class="identifier">bad_numeric_cast</span></code>
+          was named <code class="computeroutput"><span class="identifier">bad_numeric_conversion</span></code>.
+          However, in 1.33, the old function <code class="computeroutput"><span class="identifier">numeric_cast</span><span class="special">&lt;&gt;</span></code> from <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">cast</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          was completly replaced by the new <code class="computeroutput"><span class="identifier">numeric_cast</span><span class="special">&lt;&gt;</span></code> in <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">numeric</span><span class="special">/</span><span class="identifier">conversion</span><span class="special">/</span><span class="identifier">cast</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          (and <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">cast</span><span class="special">.</span><span class="identifier">hpp</span></code> is including <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">numeric</span><span class="special">/</span><span class="identifier">conversion</span><span class="special">/</span><span class="identifier">cast</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          now). That old function which existed in boost for quite some time used
+          the <code class="computeroutput"><span class="identifier">bad_numeric_cast</span></code> as
+          its exception type so I decided to avoid backward compatibility problems
+          by adopting it (guessing that the user base for the old code is wider than
+          for the new code).
+        </p>
+      </td></tr>
+</table></div>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.numeric_converter_policy_classes.policy_float2introunder"></a><a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_float2introunder" title="Policy Float2IntRounder">Policy
+      Float2IntRounder</a>
+</h3></div></div></div>
+      
+      <p>
+        This <span class="emphasis"><em>stateless</em></span> template policy class specifies the rounding
+        mode used for <span class="underline">float to integral</span> conversions.
+        It supplies the <code class="computeroutput"><span class="identifier">nearbyint</span><span class="special">()</span></code> static member function exposed by the converter,
+        which means that it <span class="underline">publicly inherits from this
+        policy</span>.
+      </p>
+      <p>
+        The policy must have the following interface:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">S</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">YourFloat2IntRounderPolicy</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">S</span>               <span class="identifier">source_type</span> <span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="special">{</span><span class="identifier">S</span> <span class="keyword">or</span> <span class="identifier">S</span> <span class="keyword">const</span><span class="special">&amp;}</span> <span class="identifier">argument_type</span> <span class="special">;</span>
+
+    <span class="keyword">static</span> <span class="identifier">source_type</span> <span class="identifier">nearbyint</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span> <span class="special">{</span> <span class="special">...</span> <span class="special">}</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">float_round_style</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">round_</span><span class="special">...&gt;</span> <span class="identifier">round_style</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">;</span>
+</pre>
+      <p>
+        These are the rounder classes provided by the library (only the specific
+        parts are shown, see the general policy form above)
+      </p>
+      <div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+        <p>
+          These classes are not intended to be general purpose rounding functions
+          but specific policies for <code class="computeroutput"><span class="identifier">converter</span><span class="special">&lt;&gt;</span></code>. This is why they are not function
+          objects.
+        </p>
+      </td></tr>
+</table></div>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">Trunc</span>
+    <span class="special">{</span>
+        <span class="keyword">static</span> <span class="identifier">source_type</span> <span class="identifier">nearbyint</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">using</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">floor</span> <span class="special">;</span>
+            <span class="keyword">using</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ceil</span>  <span class="special">;</span>
+
+            <span class="keyword">return</span> <span class="identifier">s</span> <span class="special">&gt;=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">&gt;(</span><span class="number">0</span><span class="special">)</span> <span class="special">?</span> <span class="identifier">floor</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">ceil</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span> <span class="special">;</span>
+        <span class="special">}</span>
+
+        <span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">float_round_style</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">round_toward_zero</span><span class="special">&gt;</span> <span class="identifier">round_style</span> <span class="special">;</span>
+    <span class="special">}</span> <span class="special">;</span>
+
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">RoundEven</span>
+    <span class="special">{</span>
+        <span class="keyword">static</span> <span class="identifier">source_type</span> <span class="identifier">nearbyint</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">impl</span><span class="special">-</span><span class="identifier">defined</span><span class="special">-</span><span class="identifier">value</span> <span class="special">;</span>
+        <span class="special">}</span>
+
+        <span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">float_round_style</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">round_to_nearest</span><span class="special">&gt;</span> <span class="identifier">round_style</span> <span class="special">;</span>
+    <span class="special">}</span> <span class="special">;</span>
+
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">Ceil</span>
+    <span class="special">{</span>
+        <span class="keyword">static</span> <span class="identifier">source_type</span> <span class="identifier">nearbyint</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">using</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ceil</span> <span class="special">;</span>
+            <span class="keyword">return</span> <span class="identifier">ceil</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span> <span class="special">;</span>
+        <span class="special">}</span>
+
+        <span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">float_round_style</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">round_toward_infinity</span><span class="special">&gt;</span> <span class="identifier">round_style</span> <span class="special">;</span>
+    <span class="special">}</span> <span class="special">;</span>
+
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">Floor</span>
+    <span class="special">{</span>
+        <span class="keyword">static</span> <span class="identifier">source_type</span> <span class="identifier">nearbyint</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">using</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">floor</span> <span class="special">;</span>
+            <span class="keyword">return</span> <span class="identifier">floor</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span> <span class="special">;</span>
+        <span class="special">}</span>
+        <span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">float_round_style</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">round_toward_neg_infinity</span><span class="special">&gt;</span> <span class="identifier">round_style</span> <span class="special">;</span>
+    <span class="special">}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span> <span class="comment">// namespace numeric, namespace boost</span>
+</pre>
+      <h5>
+<a name="boost_numericconversion.numeric_converter_policy_classes.policy_float2introunder.h0"></a>
+        <span><a name="boost_numericconversion.numeric_converter_policy_classes.policy_float2introunder.math_functions_used_by_the_rounder_policies"></a></span><a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_float2introunder.math_functions_used_by_the_rounder_policies">Math
+        Functions used by the rounder policies</a>
+      </h5>
+      <p>
+        The rounder policies supplied by this header use math functions <code class="computeroutput"><span class="identifier">floor</span><span class="special">()</span></code>
+        and <code class="computeroutput"><span class="identifier">ceil</span><span class="special">()</span></code>.
+        The standard versions of these functions are introduced in context by a using
+        directive, so in normal conditions, the standard functions will be used.
+      </p>
+      <p>
+        However, if there are other visible corresponding overloads an ambiguity
+        could arise. In this case, the user can supply her own rounder policy which
+        could, for instance, use a fully qualified call.
+      </p>
+      <p>
+        This technique allows the default rounder policies to be used directly with
+        user defined types. The user only requires that suitable overloads of <code class="computeroutput"><span class="identifier">floor</span><span class="special">()</span></code>
+        and <code class="computeroutput"><span class="identifier">ceil</span><span class="special">()</span></code>
+        be visible. See also <a class="link" href="type_requirements_and_user_defined_types_support.html" title="Type Requirements and User-defined-types support">User
+        Defined Numeric Types</a> support.
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.numeric_converter_policy_classes.policy_rawconverter"></a><a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_rawconverter" title="Policy RawConverter">Policy
+      RawConverter</a>
+</h3></div></div></div>
+      
+      <p>
+        This <span class="emphasis"><em>stateless</em></span> template policy class is used to perform
+        the actual conversion from Source to Target. It supplies the <code class="computeroutput"><span class="identifier">low_level_convert</span><span class="special">()</span></code>
+        static member function exposed by the converter, which means that it publicly
+        inherits from this policy.
+      </p>
+      <p>
+        The policy must have the following interface:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">YourRawConverterPolicy</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">::</span><span class="identifier">result_type</span>   <span class="identifier">result_type</span>   <span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">::</span><span class="identifier">argument_type</span> <span class="identifier">argument_type</span> <span class="special">;</span>
+
+    <span class="keyword">static</span> <span class="identifier">result_type</span> <span class="identifier">low_level_convert</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span> <span class="special">{</span> <span class="keyword">return</span> <span class="special">&lt;</span><span class="identifier">impl</span> <span class="identifier">defined</span><span class="special">&gt;</span> <span class="special">;</span> <span class="special">}</span>
+<span class="special">}</span> <span class="special">;</span>
+</pre>
+      <p>
+        This policy is mostly provided as a hook for user defined types which don't
+        support <code class="computeroutput"><span class="keyword">static_cast</span><span class="special">&lt;&gt;</span></code>
+        conversions to some types
+      </p>
+      <p>
+        This is the only raw converter policy class provided by the library:
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">raw_numeric_converter</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">::</span><span class="identifier">result_type</span>   <span class="identifier">result_type</span>   <span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">::</span><span class="identifier">argument_type</span> <span class="identifier">argument_type</span> <span class="special">;</span>
+
+        <span class="keyword">static</span> <span class="identifier">result_type</span> <span class="identifier">low_level_convert</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">result_type</span><span class="special">&gt;(</span><span class="identifier">s</span><span class="special">)</span> <span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span>
+</pre>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.numeric_converter_policy_classes.policy_userrangechecker"></a><a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_userrangechecker" title="Policy UserRangeChecker">Policy
+      UserRangeChecker</a>
+</h3></div></div></div>
+      
+      <p>
+        This <span class="emphasis"><em>stateless</em></span> template policy class is used <span class="underline">only if supplied</span> to <span class="bold"><strong>override</strong></span>
+        the internal range checking logic.
+      </p>
+      <p>
+        It supplies the <code class="computeroutput"><span class="identifier">validate_range</span><span class="special">()</span></code> static member function exposed by the converter,
+        which means that it publicly inherits from this policy.
+      </p>
+      <p>
+        The policy must have the following interface:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">YourRangeCheckerPolicy</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">::</span><span class="identifier">argument_type</span> <span class="identifier">argument_type</span> <span class="special">;</span>
+
+    <span class="comment">// Determines if the value 's' fits in the range of the Target type.</span>
+    <span class="keyword">static</span> <span class="identifier">range_check_result</span> <span class="identifier">out_of_range</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span> <span class="special">;</span>
+
+    <span class="comment">// Checks whether the value 's' is out_of_range()</span>
+    <span class="comment">// and passes the result of the check to the OverflowHandler policy.</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">validate_range</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">OverflowHandler</span><span class="special">()(</span> <span class="identifier">out_of_range</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span> <span class="special">)</span> <span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span> <span class="special">;</span>
+</pre>
+      <p>
+        This policy is <span class="bold"><strong>only</strong></span> provided as a hook for
+        user defined types which require range checking (which is disabled by default
+        when a UDT is involved). The library provides a class: <code class="computeroutput"><span class="identifier">UseInternalRangeChecker</span><span class="special">{}</span></code>; which is a <span class="emphasis"><em>fake</em></span>
+        <code class="computeroutput"><span class="identifier">RangeChecker</span></code> policy used
+        to signal the converter to use its internal range checking implementation.
+      </p>
+    </div>
+  </div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+</body>
+</html>

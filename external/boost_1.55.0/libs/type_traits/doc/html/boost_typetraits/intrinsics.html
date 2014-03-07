@@ -1,0 +1,389 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Support for Compiler Intrinsics</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="prev" href="user_defined.html" title="User Defined Specializations">
+<link rel="next" href="mpl.html" title="MPL Interoperability">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="user_defined.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mpl.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_typetraits.intrinsics"></a><a class="link" href="intrinsics.html" title="Support for Compiler Intrinsics">Support for Compiler Intrinsics</a>
+</h2></div></div></div>
+<p>
+      There are some traits that can not be implemented within the current C++ language:
+      to make these traits "just work" with user defined types, some kind
+      of additional help from the compiler is required. Currently (April 2008) Visual
+      C++ 8 and 9, GNU GCC 4.3 and MWCW 9 provide at least some of the the necessary
+      intrinsics, and other compilers will no doubt follow in due course.
+    </p>
+<p>
+      The Following traits classes always need compiler support to do the right thing
+      for all types (but all have safe fallback positions if this support is unavailable):
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          <a class="link" href="reference/is_union.html" title="is_union">is_union</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/is_pod.html" title="is_pod">is_pod</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/has_trivial_constructor.html" title="has_trivial_constructor">has_trivial_constructor</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/has_trivial_copy.html" title="has_trivial_copy">has_trivial_copy</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/has_trivial_move_constructor.html" title="has_trivial_move_constructor">has_trivial_move_constructor</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/has_trivial_assign.html" title="has_trivial_assign">has_trivial_assign</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/has_trivial_move_assign.html" title="has_trivial_move_assign">has_trivial_move_assign</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/has_trivial_destructor.html" title="has_trivial_destructor">has_trivial_destructor</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/has_nothrow_constructor.html" title="has_nothrow_constructor">has_nothrow_constructor</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/has_nothrow_copy.html" title="has_nothrow_copy">has_nothrow_copy</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/has_nothrow_assign.html" title="has_nothrow_assign">has_nothrow_assign</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/has_virtual_destructor.html" title="has_virtual_destructor">has_virtual_destructor</a>
+        </li>
+</ul></div>
+<p>
+      The following traits classes can't be portably implemented in the C++ language,
+      although in practice, the implementations do in fact do the right thing on
+      all the compilers we know about:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          <a class="link" href="reference/is_empty.html" title="is_empty">is_empty</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/is_polymorphic.html" title="is_polymorphic">is_polymorphic</a>
+        </li>
+</ul></div>
+<p>
+      The following traits classes are dependent on one or more of the above:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          <a class="link" href="reference/is_class.html" title="is_class">is_class</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="reference/is_stateless.html" title="is_stateless">is_stateless</a>
+        </li>
+</ul></div>
+<p>
+      The hooks for compiler-intrinsic support are defined in <a href="../../../../../boost/type_traits/intrinsics.hpp" target="_top">boost/type_traits/intrinsics.hpp</a>,
+      adding support for new compilers is simply a matter of defining one of more
+      of the following macros:
+    </p>
+<div class="table">
+<a name="boost_typetraits.intrinsics.macros_for_compiler_intrinsics"></a><p class="title"><b>Table&#160;1.9.&#160;Macros for Compiler Intrinsics</b></p>
+<div class="table-contents"><table class="table" summary="Macros for Compiler Intrinsics">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                BOOST_IS_UNION(T)
+              </p>
+            </th>
+<th>
+              <p>
+                Should evaluate to true if T is a union type
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                BOOST_IS_POD(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if T is a POD type
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_IS_EMPTY(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if T is an empty struct or union
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_HAS_TRIVIAL_CONSTRUCTOR(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if the default constructor for T is trivial
+                (i.e. has no effect)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_HAS_TRIVIAL_COPY(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if T has a trivial copy constructor (and
+                can therefore be replaced by a call to memcpy)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_HAS_TRIVIAL_MOVE_CONSTRUCTOR(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if T has a trivial move constructor (and
+                can therefore be replaced by a call to memcpy)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_HAS_TRIVIAL_ASSIGN(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if T has a trivial assignment operator (and
+                can therefore be replaced by a call to memcpy)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_HAS_TRIVIAL_MOVE_ASSIGN(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if T has a trivial move assignment operator
+                (and can therefore be replaced by a call to memcpy)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_HAS_TRIVIAL_DESTRUCTOR(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if T has a trivial destructor (i.e. ~T()
+                has no effect)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_HAS_NOTHROW_CONSTRUCTOR(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if <code class="computeroutput"><span class="identifier">T</span>
+                <span class="identifier">x</span><span class="special">;</span></code>
+                can not throw
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_HAS_NOTHROW_COPY(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if <code class="computeroutput"><span class="identifier">T</span><span class="special">(</span><span class="identifier">t</span><span class="special">)</span></code> can not throw
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_HAS_NOTHROW_ASSIGN(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if <code class="computeroutput"><span class="identifier">T</span>
+                <span class="identifier">t</span><span class="special">,</span>
+                <span class="identifier">u</span><span class="special">;</span>
+                <span class="identifier">t</span> <span class="special">=</span>
+                <span class="identifier">u</span></code> can not throw
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_HAS_VIRTUAL_DESTRUCTOR(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true T has a virtual destructor
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_IS_ABSTRACT(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if T is an abstract type
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_IS_BASE_OF(T,U)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if T is a base class of U
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_IS_CLASS(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if T is a class type
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_IS_CONVERTIBLE(T,U)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if T is convertible to U
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_IS_ENUM(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true is T is an enum
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_IS_POLYMORPHIC(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to true if T is a polymorphic type
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_ALIGNMENT_OF(T)
+              </p>
+            </td>
+<td>
+              <p>
+                Should evaluate to the alignment requirements of type T.
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000, 2011 Adobe Systems Inc, David Abrahams,
+      Frederic Bron, Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant,
+      Jesse Jones, Mat Marcus, Itay Maman, John Maddock, Alexander Nasonov, Thorsten
+      Ottosen, Roman Perepelitsa, Robert Ramey, Jeremy Siek, Robert Stewart and Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="user_defined.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mpl.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

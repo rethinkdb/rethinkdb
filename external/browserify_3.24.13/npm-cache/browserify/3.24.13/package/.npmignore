@@ -1,0 +1,5 @@
+.gitignore
+example/source_maps/js/build/bundle.js
+example/multiple_bundles/static/beep.js
+example/multiple_bundles/static/boop.js
+example/multiple_bundles/static/common.js

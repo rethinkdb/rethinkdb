@@ -1,0 +1,82 @@
+<html>
+<head>
+	<title>BOOST_PP_LIST_FOR_EACH_I_R</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_LIST_FOR_EACH_I_R</b> macro repeats a macro for each element in a <i>list</i>.&nbsp;
+		It reenters <b>BOOST_PP_FOR</b> with maximum efficiency.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_LIST_FOR_EACH_I_R</b>(<i>r</i>, <i>macro</i>, <i>data</i>, <i>list</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>r</dt>
+			<dd>
+				The next available <b>BOOST_PP_FOR</b> repetition.
+			</dd>
+			<dt>macro</dt>
+			<dd>
+				A macro of the for <i>macro</i>(<i>r</i>, <i>data</i>, <i>i</i>, <i>elem</i>).&nbsp;
+				This macro is expanded by <b>BOOST_PP_LIST_FOR_EACH_I</b> with each element in <i>list</i>.&nbsp;
+				It is expanded with the next available <b>BOOST_PP_FOR</b> repetition, the auxiliary <i>data</i>, the index of the current element, and the current element.
+			</dd>
+			<dt>data</dt>
+			<dd>
+				Auxiliary data passed to <i>macro</i>.
+			</dd>
+			<dt>list</dt>
+			<dd>
+				The <i>list</i> for which <i>macro</i> will be invoked on each element.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro is a repetition construct.&nbsp;
+			If <i>list</i> is (<i>a</i>, (<i>b</i>, (<i>c</i>, <b>BOOST_PP_NIL</b>))), it expands to the sequence:
+			<div>
+				<i>macro</i>(<i>r</i>, <i>data</i>, <i>0</i>, <i>a</i>) <i>macro</i>(<i>r</i>, <i>data</i>, <i>1</i>, <i>b</i>) <i>macro</i>(<i>r</i>, <i>data</i>, <i>2</i>, <i>c</i>)
+			</div>
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="list_for_each_i.html">BOOST_PP_LIST_FOR_EACH_I</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/list/for_each_i.html">&lt;boost/preprocessor/list/for_each_i.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/cat.html">boost/preprocessor/cat.hpp</a>&gt;
+#include &lt;<a href="../headers/list/adt.html">boost/preprocessor/list/adt.hpp</a>&gt;
+#include &lt;<a href="../headers/list/for_each_i.html">boost/preprocessor/list/for_each_i.hpp</a>&gt;
+#include &lt;<a href="../headers/repetition/for.html">boost/preprocessor/repetition/for.hpp</a>&gt;
+
+#define LIST (x, (y, (z, <a href="nil.html">BOOST_PP_NIL</a>)))
+
+#define MACRO_2(r, data, i, elem) <a href="cat.html">BOOST_PP_CAT</a>(elem, i)
+
+#define PRED(r, state) <a href="list_is_cons.html">BOOST_PP_LIST_IS_CONS</a>(state)
+#define OP(r, state) <a href="list_rest.html">BOOST_PP_LIST_REST</a>(state)
+#define MACRO(r, state) [ <a href="list_for_each_i_r.html">BOOST_PP_LIST_FOR_EACH_I_R</a>(r, MACRO_2, _, state) ]
+
+<a href="for.html">BOOST_PP_FOR</a>(LIST, PRED, OP, MACRO)
+   // expands to [x0 y1 z2] [y0 z1] [z0]
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

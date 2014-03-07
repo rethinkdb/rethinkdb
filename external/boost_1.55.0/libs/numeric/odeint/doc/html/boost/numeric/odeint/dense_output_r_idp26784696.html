@@ -1,0 +1,365 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template dense_output_runge_kutta&lt;Stepper, stepper_tag&gt;</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../../../header/boost/numeric/odeint/stepper/dense_output_runge_kutta_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/dense_output_runge_kutta.hpp&gt;">
+<link rel="prev" href="dense_output_runge_kutta.html" title="Class template dense_output_runge_kutta">
+<link rel="next" href="dense_output_r_idp26819032.html" title="Class template dense_output_runge_kutta&lt;Stepper, explicit_controlled_stepper_fsal_tag&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="dense_output_runge_kutta.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/stepper/dense_output_runge_kutta_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="dense_output_r_idp26819032.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.numeric.odeint.dense_output_r_idp26784696"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template dense_output_runge_kutta&lt;Stepper, stepper_tag&gt;</span></h2>
+<p>boost::numeric::odeint::dense_output_runge_kutta&lt;Stepper, stepper_tag&gt; &#8212; The class representing dense-output Runge-Kutta steppers. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../header/boost/numeric/odeint/stepper/dense_output_runge_kutta_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/dense_output_runge_kutta.hpp&gt;">boost/numeric/odeint/stepper/dense_output_runge_kutta.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Stepper<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="dense_output_r_idp26784696.html" title="Class template dense_output_runge_kutta&lt;Stepper, stepper_tag&gt;">dense_output_runge_kutta</a><span class="special">&lt;</span><span class="identifier">Stepper</span><span class="special">,</span> <span class="identifier">stepper_tag</span><span class="special">&gt;</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">Stepper</span>                             <a name="boost.numeric.odeint.dense_output_r_idp26784696.stepper_type"></a><span class="identifier">stepper_type</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">state_type</span>            <a name="boost.numeric.odeint.dense_output_r_idp26784696.state_type"></a><span class="identifier">state_type</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">wrapped_state_type</span>    <a name="boost.numeric.odeint.dense_output_r_idp26784696.wrapped_state_type"></a><span class="identifier">wrapped_state_type</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">value_type</span>            <a name="boost.numeric.odeint.dense_output_r_idp26784696.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">deriv_type</span>            <a name="boost.numeric.odeint.dense_output_r_idp26784696.deriv_type"></a><span class="identifier">deriv_type</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">wrapped_deriv_type</span>    <a name="boost.numeric.odeint.dense_output_r_idp26784696.wrapped_deriv_type"></a><span class="identifier">wrapped_deriv_type</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">time_type</span>             <a name="boost.numeric.odeint.dense_output_r_idp26784696.time_type"></a><span class="identifier">time_type</span><span class="special">;</span>                
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">algebra_type</span>          <a name="boost.numeric.odeint.dense_output_r_idp26784696.algebra_type"></a><span class="identifier">algebra_type</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">operations_type</span>       <a name="boost.numeric.odeint.dense_output_r_idp26784696.operations_type"></a><span class="identifier">operations_type</span><span class="special">;</span>          
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">resizer_type</span>          <a name="boost.numeric.odeint.dense_output_r_idp26784696.resizer_type"></a><span class="identifier">resizer_type</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">dense_output_stepper_tag</span>            <a name="boost.numeric.odeint.dense_output_r_idp26784696.stepper_category"></a><span class="identifier">stepper_category</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">dense_output_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">Stepper</span> <span class="special">&gt;</span> <a name="boost.numeric.odeint.dense_output_r_idp26784696.dense_output_stepper_type"></a><span class="identifier">dense_output_stepper_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="dense_output_r_idp26784696.html#idp26791992-bb">public member functions</a></span>
+   <a class="link" href="dense_output_r_idp26784696.html#idp26792200-bb"><span class="identifier">m_resizer</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26784696.html#idp26792584-bb"><span class="identifier">m_x1</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26784696.html#idp26792968-bb"><span class="identifier">m_x2</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26784696.html#idp26793352-bb"><span class="identifier">m_current_state_x1</span></a><span class="special">(</span><span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26784696.html#idp26794088-bb"><span class="identifier">m_t</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26784696.html#idp26794472-bb"><span class="identifier">m_t_old</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26784696.html#idp26794856-bb"><span class="identifier">m_dt</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateType<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="dense_output_r_idp26784696.html#idp26795240-bb"><span class="identifier">initialize</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">&gt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&gt;</span> <a class="link" href="dense_output_r_idp26784696.html#idp26798328-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateOut<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="dense_output_r_idp26784696.html#idp26800840-bb"><span class="identifier">calc_state</span></a><span class="special">(</span><span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateOut<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="dense_output_r_idp26784696.html#idp26803336-bb"><span class="identifier">calc_state</span></a><span class="special">(</span><span class="identifier">time_type</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateType<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="dense_output_r_idp26784696.html#idp26805896-bb"><span class="identifier">adjust_size</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateType</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26784696.html#idp26807800-bb"><span class="identifier">current_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">time_type</span> <a class="link" href="dense_output_r_idp26784696.html#idp26809240-bb"><span class="identifier">current_time</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26784696.html#idp26810664-bb"><span class="identifier">previous_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">time_type</span> <a class="link" href="dense_output_r_idp26784696.html#idp26812104-bb"><span class="identifier">previous_time</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="dense_output_r_idp26784696.html#idp26813528-bb">private member functions</a></span>
+  <span class="identifier">state_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26784696.html#idp26813736-bb"><span class="identifier">get_current_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26784696.html#idp26814552-bb"><span class="identifier">get_current_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">state_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26784696.html#idp26815384-bb"><span class="identifier">get_old_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26784696.html#idp26816184-bb"><span class="identifier">get_old_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="dense_output_r_idp26784696.html#idp26817000-bb"><span class="identifier">toggle_current_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="dense_output_r_idp26784696.html#idp26817816-bb"><span class="identifier">resize_impl</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="dense_output_r_idp26784696.html#boost.numeric.odeint.dense_output_r_idp26784696public-data-members">public data members</a></span>
+   <a class="link" href="dense_output_r_idp26784696.html#boost.numeric.odeint.dense_output_r_idp26784696.__pad0__"><span class="identifier">__pad0__</span></a><span class="special">;</span>  <span class="comment">// Constructs the dense_output_runge_kutta class. An instance of the underlying stepper can be provided. </span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp56900824"></a><h2>Description</h2>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>In this stepper, the initialize method has to be called before using the do_step method.</p></td></tr>
+</table></div>
+<p>
+The dense-output functionality allows to interpolate the solution between subsequent integration points using intermediate results obtained during the computation. This version works based on a normal stepper without step-size control.</p>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp56901816"></a><h3>Template Parameters</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Stepper</pre>
+<p>The stepper type of the underlying algorithm. </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp56903400"></a><h3>
+<a name="idp26791992-bb"></a><code class="computeroutput">dense_output_runge_kutta</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"> <a name="idp26792200-bb"></a><span class="identifier">m_resizer</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26792584-bb"></a><span class="identifier">m_x1</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26792968-bb"></a><span class="identifier">m_x2</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26793352-bb"></a><span class="identifier">m_current_state_x1</span><span class="special">(</span><span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26794088-bb"></a><span class="identifier">m_t</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26794472-bb"></a><span class="identifier">m_t_old</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26794856-bb"></a><span class="identifier">m_dt</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateType<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp26795240-bb"></a><span class="identifier">initialize</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateType</span> <span class="special">&amp;</span> x0<span class="special">,</span> <span class="identifier">time_type</span> t0<span class="special">,</span> <span class="identifier">time_type</span> dt0<span class="special">)</span><span class="special">;</span></pre>Initializes the stepper. Has to be called before do_step can be used to set the initial conditions and the step size. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt0</code></span></p></td>
+<td><p>The step size. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t0</code></span></p></td>
+<td><p>The initial time, at which the step should be performed. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">x0</code></span></p></td>
+<td><p>The initial state of the ODE which should be solved. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">&gt;</span> 
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&gt;</span> <a name="idp26798328-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">)</span><span class="special">;</span></pre>Does one time step. <div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>initialize has to be called before using this method to set the initial conditions x,t and the stepsize. </p></td></tr>
+</table></div>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ordinary differential equation. It must fulfill the Simple System concept. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Pair with start and end time of the integration step. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateOut<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp26800840-bb"></a><span class="identifier">calc_state</span><span class="special">(</span><span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> x<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Calculates the solution at an intermediate point. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The time at which the solution should be calculated, has to be in the current time interval. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>The output variable where the result is written into. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateOut<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp26803336-bb"></a><span class="identifier">calc_state</span><span class="special">(</span><span class="identifier">time_type</span> t<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> x<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Calculates the solution at an intermediate point. Solves the forwarding problem. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The time at which the solution should be calculated, has to be in the current time interval. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>The output variable where the result is written into, can be a boost range. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateType<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp26805896-bb"></a><span class="identifier">adjust_size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateType</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>Adjust the size of all temporaries in the stepper manually. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>A state from which the size of the temporaries to be resized is deduced. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a name="idp26807800-bb"></a><span class="identifier">current_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns the current state of the solution. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The current state of the solution x(t). </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">time_type</span> <a name="idp26809240-bb"></a><span class="identifier">current_time</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns the current time of the solution. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The current time of the solution t. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a name="idp26810664-bb"></a><span class="identifier">previous_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns the last state of the solution. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The last state of the solution x(t-dt). </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">time_type</span> <a name="idp26812104-bb"></a><span class="identifier">previous_time</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns the last time of the solution. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The last time of the solution t-dt. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp56972216"></a><h3>
+<a name="idp26813528-bb"></a><code class="computeroutput">dense_output_runge_kutta</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="identifier">state_type</span> <span class="special">&amp;</span> <a name="idp26813736-bb"></a><span class="identifier">get_current_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a name="idp26814552-bb"></a><span class="identifier">get_current_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">state_type</span> <span class="special">&amp;</span> <a name="idp26815384-bb"></a><span class="identifier">get_old_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a name="idp26816184-bb"></a><span class="identifier">get_old_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp26817000-bb"></a><span class="identifier">toggle_current_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp26817816-bb"></a><span class="identifier">resize_impl</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp56992120"></a><h3>
+<a name="boost.numeric.odeint.dense_output_r_idp26784696public-data-members"></a><code class="computeroutput">dense_output_runge_kutta</code> 
+        public
+       public data members</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"> <a name="boost.numeric.odeint.dense_output_r_idp26784696.__pad0__"></a><span class="identifier">__pad0__</span><span class="special">;</span></pre>
+<p>
+</p>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="dense_output_runge_kutta.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/stepper/dense_output_runge_kutta_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="dense_output_r_idp26819032.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

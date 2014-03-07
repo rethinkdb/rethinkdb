@@ -1,0 +1,65 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+    <title>require.js: Priority With Deps Test</title>
+    <link rel="stylesheet" href="style/qunit.css" type="text/css" media="screen"> 
+    <script src="script/lib/qunit.js"></script>
+
+    <script type="text/javascript" src="../../doh/runner.js"></script>
+    <script type="text/javascript" src="../../doh/_browserRunner.js"></script>
+ 
+    <script>
+        var master = new doh.Deferred();
+
+        doh.register(
+            "priorityWithDeps", 
+            [
+                {
+                    name: "priorityWithDeps",
+                    timeout: 3000,
+                    runTest: function () {
+                        return master;
+                    }
+                }
+            ]
+        );
+        doh.run();
+
+        require = {
+            baseUrl: 'script',
+            // should also work
+            //deps: ['req/begin', 'req/config', 'req/utils/utils'],
+            deps: ['req/bootstrap'],
+            priority: ['req/bootstrap'],
+            callback: function() {
+ 
+                doh.is(ip.begin, 'begin');
+                doh.is(ip.config.state, 'alpha');
+                doh.is(ip.utils.test(), 'utils Hello require');
+
+                master.callback(true);
+            }
+        };
+    </script> 
+ 
+    <script src="../../../require.js"></script> 
+<script> 
+</script> 
+    
+</head> 
+<body>
+    <h1>require.js: Priority With Deps Test</h1>
+    <p>Tests a priority with a callback, and with the priority item needing
+    to still load some modules, not all of the modules are included in the
+    priority build layer.</p>
+    <p>Check console for messages</p>
+
+    <h1 id="qunit-header">QUnit Test Suite</h1> 
+    <h2 id="qunit-banner"></h2> 
+    <div id="qunit-testrunner-toolbar"></div> 
+    <h2 id="qunit-userAgent"></h2> 
+    <ol id="qunit-tests"></ol> 
+    <div id="qunit-fixture">test markup</div> 
+
+</body>
+</html> 

@@ -1,0 +1,105 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Quick Start</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="../tutorials.html" title="Tutorials">
+<link rel="next" href="warming_up.html" title="Warming up">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../tutorials.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="warming_up.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.karma.tutorials.quick_start"></a><a class="link" href="quick_start.html" title="Quick Start">Quick Start</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit.karma.tutorials.quick_start.h0"></a>
+          <span class="phrase"><a name="spirit.karma.tutorials.quick_start.spirit_karma___what_s_that_"></a></span><a class="link" href="quick_start.html#spirit.karma.tutorials.quick_start.spirit_karma___what_s_that_">Spirit.Karma
+          - what's that?</a>
+        </h6>
+<p>
+          Throughout the description of <span class="emphasis"><em>Spirit.Karma</em></span> we will
+          try to align ourselves very much with the documentation for <span class="emphasis"><em>Spirit.Qi</em></span>.
+          The reasons are many fold:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <span class="emphasis"><em>Spirit.Karma</em></span> is the counterpart to <span class="emphasis"><em>Spirit.Qi</em></span>.
+              Some people say it's the Yin to <span class="emphasis"><em>Spirit.Qi</em></span>'s Yang.
+              <span class="emphasis"><em>Spirit.Karma</em></span> is generating byte sequences from
+              internal data structures as <span class="emphasis"><em>Spirit.Qi</em></span> is parsing
+              byte sequences into those (very same) internal data structures.
+            </li>
+<li class="listitem">
+              Both libraries have an almost identical structure, very similar semantics,
+              and are both built using identical tools. Both libraries implement
+              a language casting the specifics of their domain (parsing and generating)
+              into a simple interface.
+            </li>
+</ul></div>
+<p>
+          Why should you use a generator library for such a simple thing as output
+          generation? Programmers have been using <code class="computeroutput"><span class="identifier">printf</span></code>,
+          <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">stream</span></code> formatting, or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">format</span></code>
+          for quite some time. The answer is - yes, for simple output formatting
+          tasks those familiar tools might be a quick solution. But experience shows:
+          as soon as the formatting requirements are becoming more complex output
+          generation is getting more and more challenging in terms of readability,
+          maintainability, and flexibility of the code. Last, but not least, it turns
+          out that code using <span class="emphasis"><em>Spirit.Karma</em></span> runs much faster
+          than equivalent code using either of the 'straight' methods mentioned above
+          (see here for some numbers: <a class="link" href="../performance_measurements/numeric_performance.html" title="Performance of Numeric Generators">Performance
+          of Numeric Generators</a>)
+        </p>
+<p>
+          You might argue that more complex tasks require more complex tools. But
+          this turns out not to be the case! The whole Spirit library is designed
+          to be simple to use, while being scalable from trivial to very complicated
+          applications.
+        </p>
+<p>
+          In terms of development simplicity and ease in deployment, the same is
+          true for <span class="emphasis"><em>Spirit.Karma</em></span> as has been described elsewhere
+          in this documentation for <span class="emphasis"><em>Spirit.Qi</em></span>: the entire library
+          consists of only header files, with no libraries to link against or build.
+          Just put the spirit distribution in your include path, compile and run.
+          Code size? Very tight, essentially comparable to hand written code.
+        </p>
+<p>
+          The <span class="emphasis"><em>Spirit.Karma</em></span> tutorials are built in a walk through
+          style, starting with elementary things growing step by step in complexity.
+          And again: keep in mind output generation is the exact opposite of parsing.
+          Everything you already learnt about parsing using <span class="emphasis"><em>Spirit.Qi</em></span>
+          is applicable to generating formatted output using <span class="emphasis"><em>Spirit.Karma</em></span>.
+          All you have to do is to look at <span class="emphasis"><em>Spirit.Karma</em></span> as being
+          a mirror image of <span class="emphasis"><em>Spirit.Qi</em></span>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../tutorials.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="warming_up.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

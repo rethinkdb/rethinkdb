@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="preformatted" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Preformatted</title>
+  <section id="preformatted.preformatted">
+    <title>Preformatted</title>
+    <para>
+      Here's the ubiquitous <emphasis>Hello World</emphasis> program in C++.
+    </para>
+<programlisting>#include &lt;iostream&gt;
+
+int main()
+{
+    std::cout &lt;&lt; &quot;Hello, World!&quot; &lt;&lt; std::endl;
+    return 0;
+}
+</programlisting>
+    <para>
+      The code should appear as a single block of code in a monospaced font and with
+      no syntax highlighting. The fifth and sixth lines should appear indented to
+      the right, aligning under <code><phrase role="identifier">main</phrase></code>,
+      on line 3.
+    </para>
+    <para>
+      Here's a one line function definitition:
+    </para>
+<programlisting>void something(); </programlisting>
+    <para>
+      .
+    </para>
+    <para>
+      And some indented code:
+    </para>
+<programlisting>void go()
+    {
+    }
+</programlisting>
+  </section>
+</article>

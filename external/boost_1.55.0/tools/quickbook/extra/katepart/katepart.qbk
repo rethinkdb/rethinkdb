@@ -1,0 +1,125 @@
+[/
+    Boost.hs
+
+    Copyright 2007 Matias Capeletto
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section KDE Support]
+
+[heading boost::hs::quickbook]
+
+boost::hs::quickbook is a syntax highlighting designed to work with Katepart.
+It can be used in KWrite, Kate, Konqueror and KDevelop, and supports all the
+constructs of Quickbook 1.4 including tables, list, templates and macros.
+
+[variablelist
+[[.qbk loaded in a text editor][
+[$../../tools/quickbook/doc/html/images/extra/katepart/table.text.editor.png]
+]]
+[[.qbk loaded with boost::hs support][
+[$../../tools/quickbook/doc/html/images/extra/katepart/table.boost.hs.png]
+]]
+]
+
+[*html generated from this .qbk file]
+
+[table Code examples
+[[Name][Code][Description]]
+[[for loop     ][` for(int k=0; k<10; k++) v+=k; `           ][Sums some numbers. ]]
+[[while loop   ][` { int k; while( k < 10 ) { v+=k; k++ } } `][Same effect.       ]]
+[[infinite loop][` while( true ) { v+=1; } `                 ][Not a good example.]]
+]
+
+[heading Code Folding ]
+
+boost::hs goes far beyond simple coloring. One useful thing
+you can get the editor to do is to mark regions. They appear in a small grey line
+and each region can be folded or unfolded independently.
+
+[heading Auto Comment / Uncomment ]
+
+Another important feature is the possibility to auto-comment or uncomment some
+piece of code (/Tools - Comment/).
+Commented regions can be uncommented simple calling the /uncomment/ command
+while being in it.
+
+[heading Styles reference ]
+
+[table 
+[[      Name        ][       Style       ][        Description        ]]
+
+[[*plain text*           ][normal black                                      ]
+[Plain text at each level.                                                  ]]
+
+[[*formatted text*       ][formatted black                                   ]
+[  Bold, italic, underline and mixes. Teletype, replaceable, strikeout.     ]]
+
+[[*structure*            ][light blue                                        ]
+[All quickbook structures characters (\[, \], \[block-type, simple
+formating boundaries, lists keywords (\*, \#)                               ]]
+
+[[*macros*               ][red                                               ]
+[Names in macro definitions, macros insertion if it is used the \_\_xxx\_\_ 
+proposed sintaxis.                                                          ]]
+
+[[*templates*            ][red                                               ]
+[Names in template definitions                                              ]]
+
+[[*anchors*              ][red                                               ]
+[All the keywords that are used to link quickbooks together.                ]]
+
+[[*comments*             ][italic light gray                                 ]
+[Inside the commentaries.                                                   ]]
+
+[[*tables*               ][HTML like                                         ]
+[Reveal the structure, bold title, higlighted HTML like columns titles.     ]]
+
+[[*variable lists*       ][HTML like                                         ]
+[Reveal the structure, bold title, bold HTML like items names.              ]]
+
+[[*c++ code*             ][cpp Kate syntax                                   ]
+[Code blocks and inline code.                                               ]]
+
+[[*paths*                ][green                                             ]
+[Image, files and web paths                                                 ]]
+
+[[*IDE specific*         ][dark blue                                         ]
+[IDE commands                                                               ]]
+]
+
+[heading About boost::hs]
+
+[$../../tools/quickbook/doc/html/images/extra/katepart/boost.hs.logo.png]
+
+boost::hs::quickbook is a component of boost::hs, a syntax highlighting
+for C++, doxygen, Boost.Build jamfiles and QuickBook.
+boost::hs has his own page [@http://tinyurl.com/2l7u33 here].
+
+[note
+boost::hs::cpp support QuickBook code import comments style!
+]
+
+[heading Installing boost::hs]
+
+There exist an ongoing effort to push boost::hs upstream to the KatePart
+project. In a few months KDE may have native Quickbook support!
+For the moment you must download and install it.
+
+You can download boost::hs from
+[@http://matias.capeletto.googlepages.com/boost_hs.zip here].
+
+[note
+A copy of boost::hs::quickbook and boost::hs::cpp is available in `boost/tools/quickbook/extra/katepart`.
+]
+
+In order to install it you must copy the content in the folder
+[*katepart\/syntax\/] to the appropriate katepart syntax folder in your
+machine. In general this folder will be in
+[*\/usr\/share\/apps\/katepart\/syntax]. A bash script named ['install.sh]
+is included that copy the files to this folder.
+
+[endsect]

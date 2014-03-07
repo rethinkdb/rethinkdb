@@ -1,0 +1,208 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:value_traits Type Traits that Describe the Properties of a Type]
+
+These traits are all /value traits/, which is to say the traits classes all
+inherit from __integral_constant, and are used to access some numerical
+property of a type.  Often this is a simple true or false Boolean value, 
+but in a few cases may be some other integer value (for example when dealing
+with type alignments, or array bounds: see `__alignment_of`, `__rank` and `__extent`).
+
+[section:primary Categorizing a Type]
+
+These traits identify what "kind" of type some type `T` is.  These are split into
+two groups: primary traits which are all mutually exclusive, and composite traits
+that are compositions of one or more primary traits.
+
+For any given type, exactly one primary type trait will inherit from
+__true_type, and all the others will inherit from __false_type, in other
+words these traits are mutually exclusive.
+ 
+This means that `__is_integral<T>::value` and `__is_floating_point<T>::value` 
+will only ever be true for built-in types; if you want to check for a 
+user-defined class type that behaves "as if" it is an integral or floating point type, 
+then use the `std::numeric_limits template` instead.
+
+[*Synopsis:]
+
+   template <class T>
+   struct __is_array;
+     
+   template <class T>
+   struct __is_class;
+   
+   template <class T>
+   struct __is_complex;
+     
+   template <class T>
+   struct __is_enum;
+     
+   template <class T>
+   struct __is_floating_point;
+     
+   template <class T>
+   struct __is_function;
+
+   template <class T>
+   struct __is_integral;
+     
+   template <class T>
+   struct __is_member_function_pointer;
+     
+   template <class T>
+   struct __is_member_object_pointer;
+     
+   template <class T>
+   struct __is_pointer;
+     
+   template <class T>
+   struct __is_lvalue_reference;
+     
+   template <class T>
+   struct __is_rvalue_reference;
+     
+   template <class T>
+   struct __is_union;
+     
+   template <class T>
+   struct __is_void;
+     
+The following traits are made up of the union of one or more type
+categorizations. A type may belong to more than one of these categories, 
+in addition to one of the primary categories.
+
+   template <class T>
+   struct __is_arithmetic;
+   
+   template <class T>
+   struct __is_compound;
+   
+   template <class T>
+   struct __is_fundamental;
+   
+   template <class T>
+   struct __is_member_pointer;
+   
+   template <class T>
+   struct __is_object;
+   
+   template <class T>
+   struct __is_reference;
+     
+   template <class T>
+   struct __is_scalar;
+   
+[endsect]
+
+[section:properties General Type Properties]
+
+The following templates describe the general properties of a type.
+
+[*Synopsis:]
+
+   template <class T>
+   struct __alignment_of;
+
+   template <class T>
+   struct __has_new_operator;
+
+   template <class T>
+   struct __has_nothrow_assign;
+
+   template <class T>
+   struct __has_nothrow_constructor;
+
+   template <class T>
+   struct __has_nothrow_default_constructor;
+
+   template <class T>
+   struct __has_nothrow_copy;
+
+   template <class T>
+   struct __has_nothrow_copy_constructor;
+
+   template <class T>
+   struct __has_trivial_assign;
+
+   template <class T>
+   struct __has_trivial_constructor;
+
+   template <class T>
+   struct __has_trivial_default_constructor;
+
+   template <class T>
+   struct __has_trivial_copy;
+
+   template <class T>
+   struct __has_trivial_copy_constructor;
+
+   template <class T>
+   struct __has_trivial_destructor;
+
+   template <class T>
+   struct __has_virtual_destructor;
+
+   template <class T>
+   struct __is_abstract;
+
+   template <class T>
+   struct __is_const;
+
+   template <class T>
+   struct __is_empty;
+
+   template <class T>
+   struct __is_stateless;
+
+   template <class T>
+   struct __is_pod;
+
+   template <class T>
+   struct __is_polymorphic;
+   
+   template <class T>
+   struct __is_signed;
+   
+   template <class T>
+   struct __is_unsigned;
+
+   template <class T>
+   struct __is_volatile;
+
+   template <class T, std::size_t N = 0>
+   struct __extent;
+
+   template <class T>
+   struct __rank;
+
+[endsect]
+
+[section:relate Relationships Between Two Types]
+
+These templates determine the whether there is a relationship 
+between two types:
+
+[*Synopsis:]
+
+   template <class Base, class Derived>
+   struct __is_base_of;
+
+   template <class Base, class Derived>
+   struct __is_virtual_base_of;
+
+   template <class From, class To>
+   struct __is_convertible;
+
+   template <class T, class U>
+   struct __is_same;
+   
+[endsect]
+
+[include operators.qbk]
+
+[endsect]

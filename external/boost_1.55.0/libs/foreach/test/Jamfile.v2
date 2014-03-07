@@ -1,0 +1,36 @@
+# (C) Copyright 2004: Eric Niebler
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# bring in rules for testing
+import testing ;
+
+project : requirements <toolset>msvc:<asynch-exceptions>on ;
+
+test-suite "foreach"
+    : [ run stl_byval.cpp ]
+      [ run stl_byref.cpp ]
+      [ run stl_byval_r.cpp ]
+      [ run stl_byref_r.cpp ]
+      [ run array_byval.cpp ]
+      [ run array_byref.cpp ]
+      [ run array_byval_r.cpp ]
+      [ run array_byref_r.cpp ]
+      [ run cstr_byval.cpp ]
+      [ run cstr_byref.cpp ]
+      [ run cstr_byval_r.cpp ]
+      [ run cstr_byref_r.cpp ]
+      [ run pair_byval.cpp ]
+      [ run pair_byref.cpp ]
+      [ run pair_byval_r.cpp ]
+      [ run pair_byref_r.cpp ]
+      [ run user_defined.cpp ]
+      [ run call_once.cpp ]
+      [ run rvalue_const.cpp ]
+      [ run rvalue_nonconst.cpp ]
+      [ run rvalue_const_r.cpp ]
+      [ run rvalue_nonconst_r.cpp ]
+      [ run dependent_type.cpp ]
+      [ run misc.cpp ]
+      [ compile noncopyable.cpp ]
+    ;

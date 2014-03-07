@@ -1,0 +1,477 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Main features</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../container.html" title="Chapter&#160;8.&#160;Boost.Container">
+<link rel="prev" href="../container.html" title="Chapter&#160;8.&#160;Boost.Container">
+<link rel="next" href="exception_handling.html" title="Boost.Container and C++ exceptions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../container.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../container.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="exception_handling.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="container.main_features"></a><a class="link" href="main_features.html" title="Main features">Main features</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="main_features.html#container.main_features.move_emplace">Efficient insertion</a></span></dt>
+<dt><span class="section"><a href="main_features.html#container.main_features.containers_of_incomplete_types">Containers
+      of Incomplete Types</a></span></dt>
+<dt><span class="section"><a href="main_features.html#container.main_features.scary_iterators">SCARY iterators</a></span></dt>
+<dt><span class="section"><a href="main_features.html#container.main_features.other_features">Other features</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.main_features.move_emplace"></a><a class="link" href="main_features.html#container.main_features.move_emplace" title="Efficient insertion">Efficient insertion</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="main_features.html#container.main_features.move_emplace.move_containers">Move-aware
+        containers</a></span></dt>
+<dt><span class="section"><a href="main_features.html#container.main_features.move_emplace.emplace">Emplace:
+        Placement insertion</a></span></dt>
+</dl></div>
+<p>
+        Move semantics and placement insertion are two features brought by C++11
+        containers that can have a very positive impact in your C++ applications.
+        Boost.Container implements both techniques both for C++11 and C++03 compilers.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="container.main_features.move_emplace.move_containers"></a><a class="link" href="main_features.html#container.main_features.move_emplace.move_containers" title="Move-aware containers">Move-aware
+        containers</a>
+</h4></div></div></div>
+<p>
+          All containers offered by <span class="bold"><strong>Boost.Container</strong></span>
+          can store movable-only types and actual requirements for <code class="computeroutput"><span class="identifier">value_type</span></code> depend on each container operations.
+          Following C++11 requirements even for C++03 compilers, many operations
+          now require movable or default constructible types instead of just copy
+          constructible types.
+        </p>
+<p>
+          Containers themselves are also movable, with no-throw guarantee if allocator
+          or predicate (if present) copy operations are no-throw. This allows high
+          performance operations when transferring data between vectors. Let's see
+          an example:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">move</span><span class="special">/</span><span class="identifier">utility</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+
+<span class="comment">//Non-copyable class</span>
+<span class="keyword">class</span> <span class="identifier">non_copyable</span>
+<span class="special">{</span>
+   <span class="identifier">BOOST_MOVABLE_BUT_NOT_COPYABLE</span><span class="special">(</span><span class="identifier">non_copyable</span><span class="special">)</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="identifier">non_copyable</span><span class="special">(){}</span>
+   <span class="identifier">non_copyable</span><span class="special">(</span><span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">non_copyable</span><span class="special">))</span> <span class="special">{}</span>
+   <span class="identifier">non_copyable</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">non_copyable</span><span class="special">))</span> <span class="special">{</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span> <span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">container</span><span class="special">;</span>
+
+   <span class="comment">//Store non-copyable objects in a vector</span>
+   <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">non_copyable</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">;</span>
+   <span class="identifier">non_copyable</span> <span class="identifier">nc</span><span class="special">;</span>
+   <span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="identifier">nc</span><span class="special">));</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+
+   <span class="comment">//Reserve no longer needs copy-constructible</span>
+   <span class="identifier">v</span><span class="special">.</span><span class="identifier">reserve</span><span class="special">(</span><span class="number">100</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">capacity</span><span class="special">()</span> <span class="special">&gt;=</span> <span class="number">100</span><span class="special">);</span>
+
+   <span class="comment">//This resize overload only needs movable and default constructible</span>
+   <span class="identifier">v</span><span class="special">.</span><span class="identifier">resize</span><span class="special">(</span><span class="number">200</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">200</span><span class="special">);</span>
+
+   <span class="comment">//Containers are also movable</span>
+   <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">non_copyable</span><span class="special">&gt;</span> <span class="identifier">v_other</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="identifier">v</span><span class="special">));</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">v_other</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">200</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">empty</span><span class="special">());</span>
+
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="container.main_features.move_emplace.emplace"></a><a class="link" href="main_features.html#container.main_features.move_emplace.emplace" title="Emplace: Placement insertion">Emplace:
+        Placement insertion</a>
+</h4></div></div></div>
+<p>
+          All containers offered by <span class="bold"><strong>Boost.Container</strong></span>
+          implement placement insertion, which means that objects can be built directly
+          into the container from user arguments without creating any temporary object.
+          For compilers without variadic templates support placement insertion is
+          emulated up to a finite (10) number of arguments.
+        </p>
+<p>
+          Expensive to move types are perfect candidates emplace functions and in
+          case of node containers (<code class="computeroutput">list</code>,
+          <code class="computeroutput">set</code>, ...) emplace allows
+          storing non-movable and non-copyable types in containers! Let's see an
+          example:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+
+<span class="comment">//Non-copyable and non-movable class</span>
+<span class="keyword">class</span> <span class="identifier">non_copy_movable</span>
+<span class="special">{</span>
+   <span class="identifier">non_copy_movable</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">non_copy_movable</span> <span class="special">&amp;);</span>
+   <span class="identifier">non_copy_movable</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">non_copy_movable</span> <span class="special">&amp;);</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="identifier">non_copy_movable</span><span class="special">(</span><span class="keyword">int</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="special">{}</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span> <span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">container</span><span class="special">;</span>
+
+   <span class="comment">//Store non-copyable and non-movable objects in a list</span>
+   <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">non_copy_movable</span><span class="special">&gt;</span> <span class="identifier">l</span><span class="special">;</span>
+   <span class="identifier">non_copy_movable</span> <span class="identifier">ncm</span><span class="special">;</span>
+
+   <span class="comment">//A new element will be built calling non_copy_movable(int) contructor</span>
+   <span class="identifier">l</span><span class="special">.</span><span class="identifier">emplace</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="number">0</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+
+   <span class="comment">//A new element will be built calling the default constructor</span>
+   <span class="identifier">l</span><span class="special">.</span><span class="identifier">emplace</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">begin</span><span class="special">());</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.main_features.containers_of_incomplete_types"></a><a class="link" href="main_features.html#container.main_features.containers_of_incomplete_types" title="Containers of Incomplete Types">Containers
+      of Incomplete Types</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="main_features.html#container.main_features.containers_of_incomplete_types.recursive_containers">Recursive
+        containers</a></span></dt>
+<dt><span class="section"><a href="main_features.html#container.main_features.containers_of_incomplete_types.type_erasure">Type
+        Erasure</a></span></dt>
+</dl></div>
+<p>
+        Incomplete types allow <a href="http://en.wikipedia.org/wiki/Type_erasure" target="_top"><span class="bold"><strong>type erasure </strong></span></a> and <a href="http://en.wikipedia.org/wiki/Recursive_data_type" target="_top"><span class="bold"><strong>recursive data types</strong></span></a>, and C and C++ programmers
+        have been using it for years to build complex data structures, like tree
+        structures where a node may have an arbitrary number of children.
+      </p>
+<p>
+        What about standard containers? Containers of incomplete types have been
+        under discussion for a long time, as explained in Matt Austern's great article
+        (<a href="http://drdobbs.com/184403814" target="_top"><span class="bold"><strong>The Standard
+        Librarian: Containers of Incomplete Types</strong></span></a>):
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>Unlike most of my columns, this one is about something you
+        can't do with the C++ Standard library: put incomplete types in one of the
+        standard containers. This column explains why you might want to do this,
+        why the standardization committee banned it even though they knew it was
+        useful, and what you might be able to do to get around the restriction.</em></span></span>&#8221;</span>
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>In 1997, shortly before the C++ Standard was completed,
+        the standardization committee received a query: Is it possible to create
+        standard containers with incomplete types? It took a while for the committee
+        to understand the question. What would such a thing even mean, and why on
+        earth would you ever want to do it? The committee eventually worked it out
+        and came up with an answer to the question. (Just so you don't have to skip
+        ahead to the end, the answer is "no.") But the question is much
+        more interesting than the answer: it points to a useful, and insufficiently
+        discussed, programming technique. The standard library doesn't directly support
+        that technique, but the two can be made to coexist.</em></span></span>&#8221;</span>
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>In a future revision of C++, it might make sense to relax
+        the restriction on instantiating standard library templates with incomplete
+        types. Clearly, the general prohibition should stay in place - instantiating
+        templates with incomplete types is a delicate business, and there are too
+        many classes in the standard library where it would make no sense. But perhaps
+        it should be relaxed on a case-by-case basis, and <code class="computeroutput"><span class="identifier">vector</span></code>
+        looks like a good candidate for such special-case treatment: it's the one
+        standard container class where there are good reasons to instantiate it with
+        an incomplete type and where Standard Library implementors want to make it
+        work. As of today, in fact, implementors would have to go out of their way
+        to prohibit it!</em></span></span>&#8221;</span>
+      </p>
+<p>
+        C++11 standard is also cautious about incomplete types and STL: <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>17.6.4.8
+        Other functions (...) 2. the effects are undefined in the following cases:
+        (...) In particular - if an incomplete type (3.9) is used as a template argument
+        when instantiating a template component, unless specifically allowed for
+        that component</em></span></span>&#8221;</span>. Fortunately <span class="bold"><strong>Boost.Container</strong></span>
+        containers are designed to support type erasure and recursive types, so let's
+        see some examples:
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="container.main_features.containers_of_incomplete_types.recursive_containers"></a><a class="link" href="main_features.html#container.main_features.containers_of_incomplete_types.recursive_containers" title="Recursive containers">Recursive
+        containers</a>
+</h4></div></div></div>
+<p>
+          All containers offered by <span class="bold"><strong>Boost.Container</strong></span>
+          can be used to define recursive containers:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">map</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">stable_vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">string</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">container</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">data</span>
+<span class="special">{</span>
+   <span class="keyword">int</span>               <span class="identifier">i_</span><span class="special">;</span>
+   <span class="comment">//A vector holding still undefined class 'data'</span>
+   <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">data</span><span class="special">&gt;</span>      <span class="identifier">v_</span><span class="special">;</span>
+   <span class="comment">//A list holding still undefined 'data'</span>
+   <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">data</span><span class="special">&gt;</span>        <span class="identifier">l_</span><span class="special">;</span>
+   <span class="comment">//A map holding still undefined 'data'</span>
+   <span class="identifier">map</span><span class="special">&lt;</span><span class="identifier">data</span><span class="special">,</span> <span class="identifier">data</span><span class="special">&gt;</span>   <span class="identifier">m_</span><span class="special">;</span>
+
+   <span class="keyword">friend</span> <span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">&lt;(</span><span class="keyword">const</span> <span class="identifier">data</span> <span class="special">&amp;</span><span class="identifier">l</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">data</span> <span class="special">&amp;</span><span class="identifier">r</span><span class="special">)</span>
+   <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">l</span><span class="special">.</span><span class="identifier">i_</span> <span class="special">&lt;</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">i_</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">struct</span> <span class="identifier">tree_node</span>
+<span class="special">{</span>
+   <span class="identifier">string</span> <span class="identifier">name</span><span class="special">;</span>
+   <span class="identifier">string</span> <span class="identifier">value</span><span class="special">;</span>
+
+   <span class="comment">//children nodes of this node</span>
+   <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">tree_node</span><span class="special">&gt;</span>        <span class="identifier">children_</span><span class="special">;</span>
+<span class="special">};</span>
+
+
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">//a container holding a recursive data type</span>
+   <span class="identifier">stable_vector</span><span class="special">&lt;</span><span class="identifier">data</span><span class="special">&gt;</span> <span class="identifier">sv</span><span class="special">;</span>
+   <span class="identifier">sv</span><span class="special">.</span><span class="identifier">resize</span><span class="special">(</span><span class="number">100</span><span class="special">);</span>
+
+   <span class="comment">//Let's build a tree based in</span>
+   <span class="comment">//a recursive data type</span>
+   <span class="identifier">tree_node</span> <span class="identifier">root</span><span class="special">;</span>
+   <span class="identifier">root</span><span class="special">.</span><span class="identifier">name</span>  <span class="special">=</span> <span class="string">"root"</span><span class="special">;</span>
+   <span class="identifier">root</span><span class="special">.</span><span class="identifier">value</span> <span class="special">=</span> <span class="string">"root_value"</span><span class="special">;</span>
+   <span class="identifier">root</span><span class="special">.</span><span class="identifier">children_</span><span class="special">.</span><span class="identifier">resize</span><span class="special">(</span><span class="number">7</span><span class="special">);</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="container.main_features.containers_of_incomplete_types.type_erasure"></a><a class="link" href="main_features.html#container.main_features.containers_of_incomplete_types.type_erasure" title="Type Erasure">Type
+        Erasure</a>
+</h4></div></div></div>
+<p>
+          Containers of incomplete types are useful to break header file dependencies
+          and improve compilation types. With Boost.Container, you can write a header
+          file defining a class with containers of incomplete types as data members,
+          if you carefully put all the implementation details that require knowing
+          the size of the <code class="computeroutput"><span class="identifier">value_type</span></code>
+          in your implementation file:
+        </p>
+<p>
+          In this header file we define a class (<code class="computeroutput"><span class="identifier">MyClassHolder</span><span class="special">)</span></code> that holds a <code class="computeroutput"><span class="identifier">vector</span></code>
+          of an incomplete type (<code class="computeroutput"><span class="identifier">MyClass</span></code>)
+          that it's only forward declared.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">//MyClassHolder.h</span>
+
+<span class="comment">//We don't need to include "MyClass.h"</span>
+<span class="comment">//to store vector&lt;MyClass&gt;</span>
+<span class="keyword">class</span> <span class="identifier">MyClass</span><span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">MyClassHolder</span>
+<span class="special">{</span>
+   <span class="keyword">public</span><span class="special">:</span>
+
+   <span class="keyword">void</span> <span class="identifier">AddNewObject</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MyClass</span> <span class="special">&amp;</span><span class="identifier">o</span><span class="special">);</span>
+   <span class="keyword">const</span> <span class="identifier">MyClass</span> <span class="special">&amp;</span> <span class="identifier">GetLastObject</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+   <span class="keyword">private</span><span class="special">:</span>
+   <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">container</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;</span> <span class="identifier">vector_</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          Then we can define <code class="computeroutput"><span class="identifier">MyClass</span></code>
+          in its own header file.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">//MyClass.h</span>
+
+<span class="keyword">class</span> <span class="identifier">MyClass</span>
+<span class="special">{</span>
+   <span class="keyword">private</span><span class="special">:</span>
+   <span class="keyword">int</span> <span class="identifier">value_</span><span class="special">;</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="identifier">MyClass</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">val</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">value_</span><span class="special">(</span><span class="identifier">val</span><span class="special">){}</span>
+
+   <span class="keyword">friend</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="keyword">const</span> <span class="identifier">MyClass</span> <span class="special">&amp;</span><span class="identifier">l</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">MyClass</span> <span class="special">&amp;</span><span class="identifier">r</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">l</span><span class="special">.</span><span class="identifier">value_</span> <span class="special">==</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">value_</span><span class="special">;</span>  <span class="special">}</span>
+   <span class="comment">//...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          And include it only in the implementation file of <code class="computeroutput"><span class="identifier">MyClassHolder</span></code>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">//MyClassHolder.cpp</span>
+
+<span class="preprocessor">#include</span> <span class="string">"MyClassHolder.h"</span>
+
+<span class="comment">//In the implementation MyClass must be a complete</span>
+<span class="comment">//type so we include the appropriate header</span>
+<span class="preprocessor">#include</span> <span class="string">"MyClass.h"</span>
+
+<span class="keyword">void</span> <span class="identifier">MyClassHolder</span><span class="special">::</span><span class="identifier">AddNewObject</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MyClass</span> <span class="special">&amp;</span><span class="identifier">o</span><span class="special">)</span>
+<span class="special">{</span>  <span class="identifier">vector_</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">o</span><span class="special">);</span>  <span class="special">}</span>
+
+<span class="keyword">const</span> <span class="identifier">MyClass</span> <span class="special">&amp;</span> <span class="identifier">MyClassHolder</span><span class="special">::</span><span class="identifier">GetLastObject</span><span class="special">()</span> <span class="keyword">const</span>
+<span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">vector_</span><span class="special">.</span><span class="identifier">back</span><span class="special">();</span>  <span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Finally, we can just compile, link, and run!
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">//Main.cpp</span>
+
+<span class="preprocessor">#include</span> <span class="string">"MyClassHolder.h"</span>
+<span class="preprocessor">#include</span> <span class="string">"MyClass.h"</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="identifier">MyClass</span> <span class="identifier">mc</span><span class="special">(</span><span class="number">7</span><span class="special">);</span>
+   <span class="identifier">MyClassHolder</span> <span class="identifier">myclassholder</span><span class="special">;</span>
+   <span class="identifier">myclassholder</span><span class="special">.</span><span class="identifier">AddNewObject</span><span class="special">(</span><span class="identifier">mc</span><span class="special">);</span>
+   <span class="keyword">return</span> <span class="identifier">myclassholder</span><span class="special">.</span><span class="identifier">GetLastObject</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">mc</span> <span class="special">?</span> <span class="number">0</span> <span class="special">:</span> <span class="number">1</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.main_features.scary_iterators"></a><a class="link" href="main_features.html#container.main_features.scary_iterators" title="SCARY iterators">SCARY iterators</a>
+</h3></div></div></div>
+<p>
+        The paper N2913, titled <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2009/n2913.pdf," target="_top">SCARY
+        Iterator Assignment and Initialization</a>, proposed a requirement that
+        a standard container's iterator types have no dependency on any type argument
+        apart from the container's <code class="computeroutput"><span class="identifier">value_type</span></code>,
+        <code class="computeroutput"><span class="identifier">difference_type</span></code>, <code class="computeroutput"><span class="identifier">pointer</span> <span class="identifier">type</span></code>,
+        and <code class="computeroutput"><span class="identifier">const_pointer</span></code> type. In
+        particular, according to the proposal, the types of a standard container's
+        iterators should not depend on the container's <code class="computeroutput"><span class="identifier">key_compare</span></code>,
+        <code class="computeroutput"><span class="identifier">hasher</span></code>, <code class="computeroutput"><span class="identifier">key_equal</span></code>,
+        or <code class="computeroutput"><span class="identifier">allocator</span></code> types.
+      </p>
+<p>
+        That paper demonstrated that SCARY operations were crucial to the performant
+        implementation of common design patterns using STL components. It showed
+        that implementations that support SCARY operations reduce object code bloat
+        by eliminating redundant specializations of iterator and algorithm templates.
+      </p>
+<p>
+        <span class="bold"><strong>Boost.Container</strong></span> containers implement SCARY
+        iterators so the iterator type of a container is only dependent on the <code class="computeroutput"><span class="identifier">allocator_traits</span><span class="special">&lt;</span><span class="identifier">allocator_type</span><span class="special">&gt;::</span><span class="identifier">pointer</span></code> type (the pointer type of the
+        <code class="computeroutput"><span class="identifier">value_type</span></code> to be inserted
+        in the container). Reference types and all other typedefs are deduced from
+        the pointer type using the C++11 <code class="computeroutput"><span class="identifier">pointer_traits</span></code>
+        utility. This leads to lower code bloat in algorithms and classes templated
+        on iterators.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.main_features.other_features"></a><a class="link" href="main_features.html#container.main_features.other_features" title="Other features">Other features</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Default constructors don't allocate memory which improves performance
+            and usually implies a no-throw guarantee (if predicate's or allocator's
+            default constructor doesn't throw).
+          </li>
+<li class="listitem">
+            Small string optimization for <code class="computeroutput"><a class="link" href="../boost/container/basic_string.html" title="Class template basic_string">basic_string</a></code>,
+            with an internal buffer of 11/23 bytes (32/64 bit systems) <span class="bold"><strong>without</strong></span> increasing the usual <code class="computeroutput"><span class="keyword">sizeof</span></code>
+            of the string (3 words).
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span><span class="special">/</span><span class="identifier">map</span></code>
+            containers are size optimized embedding the color bit of the red-black
+            tree nodes in the parent pointer.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span><span class="special">/</span><span class="identifier">map</span></code>
+            containers use no recursive functions so stack problems are avoided.
+          </li>
+</ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../container.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../container.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="exception_handling.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

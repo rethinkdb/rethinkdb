@@ -1,0 +1,76 @@
+<html>
+   <head>
+      <title>Regular Expression Performance Comparison</title>
+      <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+      <meta name="vs_targetSchema" content="http://schemas.microsoft.com/intellisense/ie5">
+      <meta name="Template" content="C:\PROGRAM FILES\MICROSOFT OFFICE\OFFICE\html.dot">
+      <meta name="GENERATOR" content="Microsoft FrontPage Express 2.0">
+      <!-- boostinspect:nounlinked -->
+   </head>
+   <body bgcolor="#ffffff" link="#0000ff" vlink="#800080">
+      <h2>Regular Expression Performance Comparison</h2>
+      <p>
+         The following tables provide comparisons between the following regular 
+         expression libraries:</p>
+      <p><a href="http://research.microsoft.com/projects/greta">GRETA</a>.</p>
+      <p><a href="http://www.boost.org/">The Boost regex library</a>.</p>
+      <p><a href="http://arglist.com/regex/">Henry Spencer's regular expression library</a>
+         - this is provided for comparison as a typical non-backtracking implementation.</p>
+      <P>Philip Hazel's <A href="http://www.pcre.org">PCRE</A> library.</P>
+      <H3>Details</H3>
+      <P>Machine: Intel Pentium 4 2.8GHz PC.</P>
+      <P>Compiler: %compiler%.</P>
+      <P>C++ Standard Library: %library%.</P>
+      <P>OS: %os%.</P>
+      <P>Boost version: %boost%.</P>
+      <P>PCRE version: %pcre%.</P>
+      <P>
+         As ever care should be taken in interpreting the results, only sensible regular 
+         expressions (rather than pathological cases) are given, most are taken from the 
+         Boost regex examples, or from the <a href="http://www.regxlib.com/">Library of 
+            Regular Expressions</a>. In addition, some variation in the relative 
+         performance of these libraries can be expected on other machines - as memory 
+         access and processor caching effects can be quite large for most finite state 
+         machine algorithms.</P>
+      <H3>Averages</H3>
+      <P>The following are the average relative scores for all the tests: the perfect 
+         regular expression library&nbsp;would score 1, in practice anything less than 2 
+         is pretty good.</P>
+      <P>%averages%</P>
+      <h3>Comparison 1: Long Search</h3>
+      <p>For each of the following regular expressions the time taken to find all 
+         occurrences of the expression within a long English language text was measured 
+         (<a href="http://www.gutenberg.org/files/3200/old/mtent12.zip">mtent12.txt</a>
+         from <a href="http://promo.net/pg/">Project Gutenberg</a>, 19Mb).&nbsp;</p>
+      <P>%long_twain_search%</P>
+      <h3>Comparison 2: Medium Sized Search</h3>
+      <p>For each of the following regular expressions the time taken to find all 
+         occurrences of the expression within a medium sized English language text was 
+         measured (the first 50K from mtent12.txt - up to the end of Chapter 1).&nbsp;</p>
+      <P>%short_twain_search%</P>
+      <H3>Comparison 3:&nbsp;C++ Code&nbsp;Search</H3>
+      <P>For each of the following regular expressions the time taken to find all 
+         occurrences of the expression within the C++ source file <A href="../../../boost/crc.hpp">
+            boost/crc.hpp</A>&nbsp;was measured.&nbsp;</P>
+      <P>%code_search%</P>
+      <H3>
+         <H3>Comparison 4: HTML Document Search</H3>
+      </H3>
+      <P>For each of the following regular expressions the time taken to find all 
+         occurrences of the expression within the html file <A href="../../libraries.htm">libs/libraries.htm</A>
+         was measured.&nbsp;</P>
+      <P>%html_search%</P>
+      <H3>Comparison 3: Simple Matches</H3>
+      <p>
+         For each of the following regular expressions the time taken to match against 
+         the text indicated was measured.&nbsp;</p>
+      <P>%short_matches%</P>
+      <hr>
+      <p><i>© Copyright John Maddock&nbsp;2003</i></p>
+      <p><i>Use, modification and distribution are subject to the Boost Software License, 
+            Version 1.0. (See accompanying file <a href="../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+            or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+
+   </body>
+</html>
+

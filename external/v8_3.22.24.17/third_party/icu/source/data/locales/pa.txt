@@ -1,0 +1,26 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/pa.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/pa.xml
+ *  Chrome Note: This locale data is abridged to contain categories
+ *  actually used by Chrome.
+ */
+pa{
+    AuxExemplarCharacters{"[\u200C \u200D ਃ \u0A02 \u0A01 {ਲ\u0A3C}]"}
+    ExemplarCharacters{
+        "[\u0A71 \u0A70 \u0A3C ੦ ੧ ੨ ੩ ੪ ੫ ੬ ੭ ੮ ੯ ੴ ੳ ਉ ਊ ਓ ਅ ਆ ਐ ਔ ੲ ਇ ਈ ਏ ਸ {ਸ"
+        "\u0A3C} ਹ ਕ ਖ {ਖ\u0A3C} ਗ {ਗ\u0A3C} ਘ ਙ ਚ ਛ ਜ {ਜ\u0A3C} ਝ ਞ ਟ ਠ ਡ ਢ ਣ ਤ ਥ ਦ "
+        "ਧ ਨ ਪ ਫ {ਫ\u0A3C} ਬ ਭ ਮ ਯ ਰ ਲ ਵ ੜ \u0A4D ਾ ਿ ੀ \u0A41 \u0A42 \u0A47 \u0A48 "
+        "\u0A4B \u0A4C]"
+    }
+    LocaleScript{
+        "Guru",
+    }
+    Version{"2.0.50.30"}
+}

@@ -1,0 +1,125 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!-- Copyright (c) Jeremy Siek and Andrew Lumsdaine 2000 -->
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Linux/x86 (vers 1 September 2005), see www.w3.org" />
+
+  <title>Concept Covering and Archetypes</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <link rel="stylesheet" href="../../rst.css" type="text/css" />
+</head>
+
+<body bgcolor="#FFFFFF" link="#0000EE" text="#000000" vlink="#551A8B" alink=
+"#FF0000">
+  <img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86" /><br clear="none" />
+
+  <h2><a name="concept-covering" id="concept-covering">Concept Covering and
+  Archetypes</a></h2>
+
+  <p>We have discussed how it is important to select the minimal requirements
+  (concepts) for the inputs to a component, but it is equally important to
+  verify that the chosen concepts <i>cover</i> the algorithm. That is, any
+  possible user error should be caught by the concept checks and not let slip
+  through. Concept coverage can be verified through the use of <i>archetype
+  classes</i>. An archetype class is an exact implementation of the interface
+  associated with a particular concept. The run-time behavior of the
+  archetype class is not important, the functions can be left empty. A simple
+  test program can then be compiled with the archetype classes as the inputs
+  to the component. If the program compiles then one can be sure that the
+  concepts cover the component. The following code shows the archetype class
+  for the <a href="http://www.sgi.com/tech/stl/InputIterator.html">Input
+  Iterator</a> concept. Some care must be taken to ensure that the archetype
+  is an exact match to the concept. For example, the concept states that the
+  return type of <tt>operator*()</tt> must be convertible to the value type.
+  It does not state the more stringent requirement that the return type be
+  <tt>T&amp;</tt> or <tt>const T&amp;</tt>. That means it would be a mistake
+  to use <tt>T&amp;</tt> or <tt>const T&amp;</tt> for the return type of the
+  archetype class. The correct approach is to create an artificial return
+  type that is convertible to <tt>T</tt>, as we have done here with
+  <tt>reference</tt>. The validity of the archetype class test is completely
+  dependent on it being an exact match with the concept, which must be
+  verified by careful (manual) inspection.</p>
+  <pre>
+template &lt;class T&gt;
+class input_iterator_archetype
+{
+private:
+  typedef input_iterator_archetype self;
+public:
+  typedef std::input_iterator_tag iterator_category;
+  typedef T value_type;
+  struct reference {
+    operator const value_type&amp;() const { return static_object&lt;T&gt;::get(); }
+  };
+  typedef const T* pointer;
+  typedef std::ptrdiff_t difference_type;
+  self&amp; operator=(const self&amp;) { return *this;  }
+  bool operator==(const self&amp;) const { return true; }
+  bool operator!=(const self&amp;) const { return true; }
+  reference operator*() const { return reference(); }
+  self&amp; operator++() { return *this; }
+  self operator++(int) { return *this; }
+};
+</pre>
+
+  <p>Generic algorithms are often tested by being instantiated with a number
+  of common input types. For example, one might apply
+  <tt>std::stable_sort()</tt> with basic pointer types as the iterators.
+  Though appropriate for testing the run-time behavior of the algorithm, this
+  is not helpful for ensuring concept coverage because C++ types never match
+  particular concepts exactly. Instead, they often provide more than the
+  minimal functionality required by any one concept. Even though the function
+  template has concept checks, and compiles with a given type, the checks may
+  still fall short of covering all the functionality that is actually used.
+  This is why it is important to compile with archetype classes in addition
+  to testing with common input types.</p>
+
+  <p>The following is an excerpt from <a href=
+  "./stl_concept_covering.cpp"><tt>stl_concept_covering.cpp</tt></a> that
+  shows how archetypes can be used to check the requirement documentation for
+  <a href=
+  "http://www.sgi.com/tech/stl/stable_sort.html"><tt>std::stable_sort()</tt></a>.
+  In this case, it looks like the <a href=
+  "../utility/CopyConstructible.html">CopyConstructible</a> and <a href=
+  "../utility/Assignable.html">Assignable</a> requirements were forgotten in
+  the SGI STL documentation (try removing those archetypes). The Boost
+  archetype classes have been designed so that they can be layered. In this
+  example the value type of the iterator is composed out of three archetypes.
+  In the <a href="reference.htm#basic-archetype">archetype class
+  reference</a>, template parameters named <tt>Base</tt> indicate where the
+  layered archetype paradigm can be used.</p>
+  <pre>
+{
+  typedef less_than_comparable_archetype&lt; 
+      sgi_assignable_archetype&lt;&gt; &gt; ValueType;
+  random_access_iterator_archetype&lt;ValueType&gt; ri;
+  std::stable_sort(ri, ri);
+}
+</pre>
+
+  <p><a href="./prog_with_concepts.htm">Next: Programming with
+  Concepts</a><br />
+  <a href="./creating_concepts.htm">Prev: Creating Concept Checking
+  Classes</a><br />
+  <hr />
+
+  <table>
+    <tr valign="top">
+      <td nowrap="nowrap">Copyright &copy; 2000</td>
+
+      <td><a href="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>(<a href=
+      "mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</a>) Andrew
+      Lumsdaine(<a href="mailto:lums@osl.iu.edu">lums@osl.iu.edu</a>),
+        2007 <a href="mailto:dave@boost-consulting.com">David Abrahams</a>.
+    </tr>
+  </table>
+</body>
+</html>

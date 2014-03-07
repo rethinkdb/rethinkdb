@@ -1,0 +1,4 @@
+Running 1 test case...
+test.cpp(28): error in "test_list_comparizon": check compare_lists( l1, l2 ) failed. Different sizes [2!=0]
+
+*** 1 failure detected in test suite "example"

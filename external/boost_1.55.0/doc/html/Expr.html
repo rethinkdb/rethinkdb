@@ -1,0 +1,221 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Concept Expr</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="proto/reference.html" title="Reference">
+<link rel="prev" href="Domain.html" title="Concept Domain">
+<link rel="next" href="ObjectTransform.html" title="Concept ObjectTransform">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="Domain.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="proto/reference.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ObjectTransform.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="Expr"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Concept Expr</span></h2>
+<p>Expr</p>
+</div>
+<div class="refsect1">
+<a name="idp188800456"></a><h2>Description</h2>
+<p>
+      An Expr represents a tagged node in an expression tree.
+      The children of the Expr must themselves satisfy the
+      Expr concept. The Expr has an arity representing the
+      number of children. If the number of children is zero,
+      the Expr also has a value. An Expr also has an associated
+      <a class="link" href="Domain.html" title="Concept Domain">Domain</a>.
+    </p>
+</div>
+<div class="refsect1">
+<a name="idp188801656"></a><h2>Associated types</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p><span class="bold"><strong>proto_tag</strong></span></p>
+<pre class="literallayout">Expr::proto_tag</pre>
+<p>
+      </p>
+<p>The tag type of the Expr.</p>
+<p>
+    </p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>proto_args</strong></span></p>
+<pre class="literallayout">Expr::proto_args</pre>
+<p>
+      </p>
+<p>A typelist representing either the types of the child nodes, or,
+        if the arity of the Expr is 0, of the value of the terminal.</p>
+<p>
+    </p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>proto_arity</strong></span></p>
+<pre class="literallayout">Expr::proto_arity</pre>
+<p>
+      </p>
+<p>
+        The arity (number of child nodes) of the Expr.
+        <code class="computeroutput">proto_arity</code> is an MPL Integral Constant.
+      </p>
+<p>
+    </p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>proto_grammar</strong></span></p>
+<pre class="literallayout">Expr::proto_grammar</pre>
+<p>
+      </p>
+<p>
+        A typedef for an instantiation of
+        <code class="computeroutput"><a class="link" href="boost/proto/basic_expr.html" title="Struct template basic_expr">
+          proto::basic_expr&lt;&gt;
+        </a></code>
+        that is equivalent to Expr. Expression types are equivalent if they have the
+        same <code class="computeroutput">proto_tag</code>, <code class="computeroutput">proto_args</code>, and <code class="computeroutput">proto_arity</code>.
+      </p>
+<p>
+    </p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>proto_base_expr</strong></span></p>
+<pre class="literallayout">Expr::proto_base_expr</pre>
+<p>
+      </p>
+<p>
+        A typedef for an instantiation of
+        <code class="computeroutput"><a class="link" href="boost/proto/expr.html" title="Struct template expr">proto::expr&lt;&gt;</a></code> or
+        <code class="computeroutput"><a class="link" href="boost/proto/basic_expr.html" title="Struct template basic_expr">proto::basic_expr&lt;&gt;</a></code>
+        that is equivalent to Expr. Expression types are equivalent if they have the
+        same <code class="computeroutput">proto_tag</code>, <code class="computeroutput">proto_args</code>, and <code class="computeroutput">proto_arity</code>.
+      </p>
+<p>
+    </p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>proto_derived_expr</strong></span></p>
+<pre class="literallayout">Expr::proto_derived_expr</pre>
+<p>
+      </p>
+<p>
+        A typedef for <code class="computeroutput">Expr</code>.
+      </p>
+<p>
+    </p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>proto_domain</strong></span></p>
+<pre class="literallayout">Expr::proto_domain</pre>
+<p>
+      </p>
+<p>
+        The Domain of the Expr. <code class="computeroutput">proto_domain</code>
+        models <a class="link" href="Domain.html" title="Concept Domain">Domain</a>.
+      </p>
+<p>
+    </p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>proto_childN</strong></span></p>
+<pre class="literallayout">Expr::proto_childN</pre>
+<p>
+      </p>
+<p>The type of the Nth child of Expr. Requires 
+        <code class="computeroutput">0 == N::value || N::value &lt; proto_arity::value</code></p>
+<p>
+    </p>
+</li>
+</ul></div>
+</div>
+<div class="refsect1">
+<a name="idp188817208"></a><h2>Notation</h2>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term">Expr</span></dt>
+<dd>A type playing the role of expession-type in the <a class="link" href="Expr.html" title="Concept Expr">Expr</a> concept.</dd>
+<dt><span class="term">Tag</span></dt>
+<dd>A type playing the role of tag-type in the <a class="link" href="Expr.html" title="Concept Expr">Expr</a> concept.</dd>
+<dt><span class="term">Domain</span></dt>
+<dd>A type playing the role of domain-type in the <a class="link" href="Expr.html" title="Concept Expr">Expr</a> concept.</dd>
+<dt><span class="term">N</span></dt>
+<dd>A type playing the role of mpl-integral-constant-type in the <a class="link" href="Expr.html" title="Concept Expr">Expr</a> concept.</dd>
+<dt><span class="term"><code class="varname">e</code></span></dt>
+<dd>Object of type Expr</dd>
+</dl></div>
+</div>
+<div class="refsect1">
+<a name="idp188821384"></a><h2>Valid expressions</h2>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type</th>
+<th>Semantics</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><p>Get N-th Child</p></td>
+<td><p>boost::proto::child&lt; N &gt;(e)</p></td>
+<td><p><span class="type">proto_childN</span></p></td>
+<td><p>Extracts the Nth child from this Expr.
+      Requires <code class="computeroutput">N::value &lt; proto_arity::value</code>.</p></td>
+</tr>
+<tr>
+<td><p>Get Terminal Value</p></td>
+<td><p>boost::proto::value(e)</p></td>
+<td><p><span class="type">proto_child0</span></p></td>
+<td><p>
+      Extracts the value from a terminal Expr.
+      Requires <code class="computeroutput">0 == proto_arity::value</code>.
+    </p></td>
+</tr>
+<tr>
+<td><p>Get Base</p></td>
+<td><p>e.proto_base()</p></td>
+<td><p><span class="type">proto_base_expr</span></p></td>
+<td><p>
+        Returns an object of type
+        <code class="computeroutput"><a class="link" href="boost/proto/expr.html" title="Struct template expr">proto::expr&lt;&gt;</a></code> or
+        <code class="computeroutput"><a class="link" href="boost/proto/basic_expr.html" title="Struct template basic_expr">proto::basic_expr&lt;&gt;</a></code>
+        that is equivalent to <code class="computeroutput">e</code>.
+    </p></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="refsect1">
+<a name="idp188828152"></a><h2>Models</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><span class="simplelist"><span class="type">boost::proto::literal&lt; int &gt;</span></span></li></ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="Domain.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="proto/reference.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ObjectTransform.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,19 @@
+[quickbook 1.6]
+[article Test include ids with unbalanced sections
+    [id unbalanced]
+]
+
+[/ Sections start in included files ]
+
+[include:include1 include_id_unbalanced-inc1.quickbook]
+[heading:x1 X1]
+[endsect]
+[heading:x2 X2]
+[endsect]
+
+[/ Sections end in included files ]
+[section:sect1 Section 1]
+[heading:x1 X1]
+[section:sect2 Section 2]
+[heading:x2 X2]
+[include:include2 include_id_unbalanced-inc2.quickbook]

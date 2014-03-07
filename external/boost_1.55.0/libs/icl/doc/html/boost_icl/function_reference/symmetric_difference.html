@@ -1,0 +1,831 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Symmetric Difference</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../function_reference.html" title="Function Reference">
+<link rel="prev" href="intersection.html" title="Intersection">
+<link rel="next" href="iterator_related.html" title="Iterator related">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="intersection.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function_reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="iterator_related.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_function_reference_symmetric_difference" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.function_reference.symmetric_difference"></a><a class="link" href="symmetric_difference.html" title="Symmetric Difference">Symmetric
+      Difference</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="symmetric_difference.html#boost_icl.function_reference.symmetric_difference.synopsis">Synopsis</a></span></dt>
+<dt><span class="section"><a href="symmetric_difference.html#boost_icl.function_reference.symmetric_difference.functions">Functions</a></span></dt>
+<dt><span class="section"><a href="symmetric_difference.html#boost_icl.function_reference.symmetric_difference.inplace_operators">Inplace
+        operators</a></span></dt>
+<dt><span class="section"><a href="symmetric_difference.html#boost_icl.function_reference.symmetric_difference.infix_operators">Infix
+        operators</a></span></dt>
+</dl></div>
+<div class="section boost_icl_function_reference_symmetric_difference_synopsis" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.symmetric_difference.synopsis"></a><a class="link" href="symmetric_difference.html#boost_icl.function_reference.symmetric_difference.synopsis" title="Synopsis">Synopsis</a>
+</h4></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Symmetric difference
+                </p>
+                </th>
+<th>
+                <p>
+                  interval<br> sets
+                </p>
+                </th>
+<th>
+                <p>
+                  interval<br> maps
+                </p>
+                </th>
+<th>
+                <p>
+                  element<br> sets
+                </p>
+                </th>
+<th>
+                <p>
+                  element<br> maps
+                </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+                  <span class="identifier">T</span><span class="special">::</span><span class="identifier">flip</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+                  <span class="identifier">flip</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+                  <span class="keyword">operator</span> <span class="special">^=(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span> <span class="keyword">operator</span>
+                  <span class="special">^</span> <span class="special">(</span><span class="identifier">T</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code><br> <code class="computeroutput"><span class="identifier">T</span>
+                  <span class="keyword">operator</span> <span class="special">^</span>
+                  <span class="special">(</span><span class="keyword">const</span>
+                  <span class="identifier">P</span><span class="special">&amp;,</span>
+                  <span class="identifier">T</span><span class="special">)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+                </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          Functions and operators that implement <span class="emphasis"><em><span class="bold"><strong>symmetric
+          difference</strong></span></em></span> on <span class="bold"><strong>icl</strong></span>
+          objects are given in the table above.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                </p>
+                </th>
+<th>
+                <p>
+                  Description of symmetric difference
+                </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">Sets</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">operator</span> <span class="special">^</span></code>
+                  implements <span class="emphasis"><em><span class="bold"><strong>set symmetric difference</strong></span></em></span>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">Maps</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">operator</span> <span class="special">^</span></code>
+                  implements a <span class="emphasis"><em><span class="bold"><strong>map symmetric difference</strong></span></em></span>
+                  function similar to <span class="emphasis"><em>set symmetric difference</em></span>.
+                  All pairs that are common to both arguments are removed. All others
+                  unified.
+                </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="section boost_icl_function_reference_symmetric_difference_functions" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.symmetric_difference.functions"></a><a class="link" href="symmetric_difference.html#boost_icl.function_reference.symmetric_difference.functions" title="Functions">Functions</a>
+</h4></div></div></div>
+<p>
+          <span class="emphasis"><em>Symmetric difference</em></span> is implemented on interval containers
+          by the function <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+          <span class="identifier">flip</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">operand</span><span class="special">)</span></code>.
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="identifier">flip</span><span class="special">(</span><span class="identifier">y</span><span class="special">,</span><span class="identifier">x</span><span class="special">)</span>
+</pre>
+<p>
+        </p>
+<p>
+          deletes every element of <code class="computeroutput"><span class="identifier">y</span></code>,
+          if it is contained in <code class="computeroutput"><span class="identifier">x</span></code>.
+          Elements of <code class="computeroutput"><span class="identifier">x</span></code> not contained
+          in <code class="computeroutput"><span class="identifier">y</span></code> are added. For icl
+          containers flip is also availabel as memeber function <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">flip</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">operand</span><span class="special">)</span></code>.
+        </p>
+<p>
+          The admissible combinations of types for member function <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">flip</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+          can be summarized in the <span class="emphasis"><em><span class="bold"><strong>overload table</strong></span></em></span>
+          below:
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">/* overload table for */</span>           <span class="identifier">T</span><span class="special">\</span><span class="identifier">P</span><span class="special">|</span> <span class="identifier">e</span> <span class="identifier">i</span> <span class="identifier">b</span> <span class="identifier">p</span>  
+<span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">flip</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>               <span class="special">---+--------</span>
+<span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">flip</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>               <span class="identifier">s</span> <span class="special">|</span> <span class="identifier">s</span>
+                                    <span class="identifier">m</span> <span class="special">|</span>     <span class="identifier">m</span>
+                                    <span class="identifier">S</span> <span class="special">|</span> <span class="identifier">S</span> <span class="identifier">S</span>     
+                                    <span class="identifier">M</span> <span class="special">|</span>     <span class="identifier">M</span> <span class="identifier">M</span>
+</pre>
+<p>
+        </p>
+<p>
+          The next table contains complexity characteristics for functions <code class="computeroutput"><span class="identifier">flip</span></code>.
+        </p>
+<div class="table">
+<a name="id1217285"></a><p class="title"><b>Table&#160;1.37.&#160;Time Complexity for member functions flip on icl
+        containers</b></p>
+<div class="table-contents"><table class="table" summary="Time Complexity for member functions flip on icl
+        containers">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+                <span class="identifier">T</span><span class="special">::</span><span class="identifier">flip</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code><br> <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">flip</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                <span class="identifier">P</span><span class="special">&amp;)</span></code>
+              </p>
+              </th>
+<th>
+              <p>
+                domain<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                domain<br> mapping<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> mapping<br> type
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code> </a>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/map.html" title="Class template map">icl::map</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/interval_set.html" title="Class template interval_set">interval_set</a></code><br>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_set</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code><br>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/split_interval_map.html" title="Class template split_interval_map">split_interval_map</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section boost_icl_function_reference_symmetric_difference_inplace_operators" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.symmetric_difference.inplace_operators"></a><a class="link" href="symmetric_difference.html#boost_icl.function_reference.symmetric_difference.inplace_operators" title="Inplace operators">Inplace
+        operators</a>
+</h4></div></div></div>
+<p>
+          The overload tables below are giving admissible type combinations for
+          <code class="computeroutput"><span class="keyword">operator</span> <span class="special">^=</span></code>
+          that implements <span class="emphasis"><em><span class="bold"><strong>symmetric difference</strong></span></em></span>.
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">// overload tables for             element containers:     interval containers:
+</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">^=</span> <span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>      <span class="special">^=</span> <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">b</span> <span class="identifier">s</span> <span class="identifier">m</span>            <span class="special">^=</span> <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">i</span> <span class="identifier">b</span> <span class="identifier">p</span> <span class="identifier">S</span> <span class="identifier">M</span>    
+                                   <span class="special">---+--------</span>            <span class="special">---+------------</span>    
+                                   <span class="identifier">s</span>  <span class="special">|</span> <span class="identifier">s</span>   <span class="identifier">s</span>              <span class="identifier">S</span>  <span class="special">|</span> <span class="identifier">S</span> <span class="identifier">S</span>     <span class="identifier">S</span>      
+                                   <span class="identifier">m</span>  <span class="special">|</span>   <span class="identifier">m</span>   <span class="identifier">m</span>            <span class="identifier">M</span>  <span class="special">|</span>     <span class="identifier">M</span> <span class="identifier">M</span>   <span class="identifier">M</span>    
+</pre>
+<p>
+          Complexity characteristics for inplace operators that implement <span class="emphasis"><em><span class="bold"><strong>symmetric difference</strong></span></em></span> are given by the
+          next tables where 
+</p>
+<pre class="programlisting"><span class="identifier">n</span> <span class="special">=</span> <span class="identifier">iterative_size</span><span class="special">(</span><span class="identifier">y</span><span class="special">);</span>
+<span class="identifier">m</span> <span class="special">=</span> <span class="identifier">iterative_size</span><span class="special">(</span><span class="identifier">x</span><span class="special">);</span> <span class="comment">//if P is a container
+</span></pre>
+<p>
+        </p>
+<div class="table">
+<a name="id1218014"></a><p class="title"><b>Table&#160;1.38.&#160;Time Complexity for inplace symmetric difference
+        on element containers</b></p>
+<div class="table-contents"><table class="table" summary="Time Complexity for inplace symmetric difference
+        on element containers">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+                <span class="keyword">operator</span> <span class="special">&amp;=</span>
+                <span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">y</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">P</span><span class="special">&amp;</span>
+                <span class="identifier">x</span><span class="special">)</span></code>
+              </p>
+              </th>
+<th>
+              <p>
+                domain<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                domain<br> mapping<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                std::set
+              </p>
+              </th>
+<th>
+              <p>
+                icl::map
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code> </a>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(m log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/map.html" title="Class template map">icl::map</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(m log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(m log n)</em></span>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="id1218255"></a><p class="title"><b>Table&#160;1.39.&#160;Time Complexity for inplace symmetric
+        difference on interval containers</b></p>
+<div class="table-contents"><table class="table" summary="Time Complexity for inplace symmetric
+        difference on interval containers">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+                <span class="keyword">operator</span> <span class="special">&amp;=</span>
+                <span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                <span class="identifier">P</span><span class="special">&amp;)</span></code>
+              </p>
+              </th>
+<th>
+              <p>
+                domain<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                domain<br> mapping<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> mapping<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> sets
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> maps
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                interval_sets
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(m log(n+m))</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                interval_maps
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(m log(n+m))</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(m log(n+m))</em></span>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section boost_icl_function_reference_symmetric_difference_infix_operators" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.symmetric_difference.infix_operators"></a><a class="link" href="symmetric_difference.html#boost_icl.function_reference.symmetric_difference.infix_operators" title="Infix operators">Infix
+        operators</a>
+</h4></div></div></div>
+<p>
+          For the infix version of symmetric difference the following overloads are
+          available:
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">// overload tables for             element containers:     interval containers:
+</span><span class="identifier">T</span> <span class="keyword">operator</span> <span class="special">^</span> <span class="special">(</span><span class="identifier">T</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>         <span class="special">^</span>  <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">b</span> <span class="identifier">s</span> <span class="identifier">m</span>            <span class="special">^</span>  <span class="special">|</span> <span class="identifier">e</span>  <span class="identifier">i</span>  <span class="identifier">b</span>  <span class="identifier">p</span>  <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+<span class="identifier">T</span> <span class="keyword">operator</span> <span class="special">^</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="identifier">T</span><span class="special">)</span>         <span class="special">---+--------</span>            <span class="special">---+---------------------------</span>
+                                   <span class="identifier">e</span>  <span class="special">|</span>     <span class="identifier">s</span>              <span class="identifier">e</span>  <span class="special">|</span>             <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span>
+                                   <span class="identifier">b</span>  <span class="special">|</span>       <span class="identifier">m</span>            <span class="identifier">i</span>  <span class="special">|</span>             <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span>
+                                   <span class="identifier">s</span>  <span class="special">|</span> <span class="identifier">s</span>   <span class="identifier">s</span>              <span class="identifier">b</span>  <span class="special">|</span>                      <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                   <span class="identifier">m</span>  <span class="special">|</span>   <span class="identifier">m</span>   <span class="identifier">m</span>            <span class="identifier">p</span>  <span class="special">|</span>                      <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                                           <span class="identifier">S1</span> <span class="special">|</span> <span class="identifier">S1</span> <span class="identifier">S1</span>       <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span>
+                                                           <span class="identifier">S2</span> <span class="special">|</span> <span class="identifier">S2</span> <span class="identifier">S2</span>       <span class="identifier">S2</span> <span class="identifier">S2</span> <span class="identifier">S3</span>
+                                                           <span class="identifier">S3</span> <span class="special">|</span> <span class="identifier">S3</span> <span class="identifier">S3</span>       <span class="identifier">S3</span> <span class="identifier">S3</span> <span class="identifier">S3</span>
+                                                           <span class="identifier">M1</span> <span class="special">|</span>       <span class="identifier">M1</span> <span class="identifier">M1</span>          <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                                           <span class="identifier">M3</span> <span class="special">|</span>       <span class="identifier">M3</span> <span class="identifier">M3</span>          <span class="identifier">M3</span> <span class="identifier">M3</span>
+</pre>
+<p>
+        </p>
+<p>
+          To resolve ambiguities among interval containers the <span class="emphasis"><em><span class="bold"><strong>finer</strong></span></em></span> container type is chosen as result
+          type.
+        </p>
+</div>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>See also . . .</strong></span></em></span>
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr><td>
+              <p>
+                <a class="link" href="intersection.html" title="Intersection"><span class="emphasis"><em><span class="bold"><strong>Intersection</strong></span></em></span></a>
+              </p>
+              </td></tr>
+<tr><td>
+              <p>
+                <a class="link" href="subtraction.html" title="Subtraction"><span class="emphasis"><em><span class="bold"><strong>Subtraction</strong></span></em></span></a>
+              </p>
+              </td></tr>
+<tr><td>
+              <p>
+                <a class="link" href="addition.html" title="Addition"><span class="emphasis"><em><span class="bold"><strong>Addition</strong></span></em></span></a>
+              </p>
+              </td></tr>
+</tbody>
+</table></div>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>Back to section . . .</strong></span></em></span>
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr><td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#function_synopsis_table"><span class="emphasis"><em><span class="bold"><strong>Function
+                Synopsis</strong></span></em></span></a>
+              </p>
+              </td></tr>
+<tr><td>
+              <p>
+                <a class="link" href="../interface.html" title="Interface"><span class="emphasis"><em><span class="bold"><strong>Interface</strong></span></em></span></a>
+              </p>
+              </td></tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="intersection.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function_reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="iterator_related.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

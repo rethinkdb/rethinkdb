@@ -1,0 +1,135 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Move iterators</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../move.html" title="Chapter&#160;19.&#160;Boost.Move">
+<link rel="prev" href="construct_forwarding.html" title="Constructor Forwarding">
+<link rel="next" href="move_inserters.html" title="Move inserters">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="construct_forwarding.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../move.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="move_inserters.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="move.move_iterator"></a><a class="link" href="move_iterator.html" title="Move iterators">Move iterators</a>
+</h2></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">move_iterator</span><span class="special">;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">It</span><span class="special">&gt;</span>
+<span class="identifier">move_iterator</span><span class="special">&lt;</span><span class="identifier">It</span><span class="special">&gt;</span> <span class="identifier">make_move_iterator</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">It</span> <span class="special">&amp;</span><span class="identifier">it</span><span class="special">);</span>
+</pre>
+<p>
+      <code class="computeroutput"><a class="link" href="../boost/move_iterator.html" title="Class template move_iterator">move_iterator</a></code> is an iterator
+      adaptor with the same behavior as the underlying iterator except that its dereference
+      operator implicitly converts the value returned by the underlying iterator's
+      dereference operator to an rvalue reference: <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(*</span><span class="identifier">underlying_iterator</span><span class="special">)</span></code>
+      It is a read-once iterator, but can have up to random access traversal characteristics.
+    </p>
+<p>
+      <code class="computeroutput"><span class="identifier">move_iterator</span></code> is very useful
+      because some generic algorithms and container insertion functions can be called
+      with move iterators to replace copying with moving. For example:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">//header file "movable.hpp"</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">move</span><span class="special">/</span><span class="identifier">core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">move</span><span class="special">/</span><span class="identifier">traits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">//A movable class</span>
+<span class="keyword">class</span> <span class="identifier">movable</span>
+<span class="special">{</span>
+   <span class="identifier">BOOST_MOVABLE_BUT_NOT_COPYABLE</span><span class="special">(</span><span class="identifier">movable</span><span class="special">)</span>
+   <span class="keyword">int</span> <span class="identifier">value_</span><span class="special">;</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="identifier">movable</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">value_</span><span class="special">(</span><span class="number">1</span><span class="special">){}</span>
+
+   <span class="comment">//Move constructor and assignment</span>
+   <span class="identifier">movable</span><span class="special">(</span><span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">movable</span><span class="special">)</span> <span class="identifier">m</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="identifier">value_</span> <span class="special">=</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">value_</span><span class="special">;</span>   <span class="identifier">m</span><span class="special">.</span><span class="identifier">value_</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>  <span class="special">}</span>
+
+   <span class="identifier">movable</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">movable</span><span class="special">)</span> <span class="identifier">m</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="identifier">value_</span> <span class="special">=</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">value_</span><span class="special">;</span>   <span class="identifier">m</span><span class="special">.</span><span class="identifier">value_</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>  <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>  <span class="special">}</span>
+
+   <span class="keyword">bool</span> <span class="identifier">moved</span><span class="special">()</span> <span class="keyword">const</span> <span class="comment">//Observer</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">value_</span> <span class="special">==</span> <span class="number">0</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span>
+
+<span class="keyword">template</span><span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">has_nothrow_move</span><span class="special">&lt;</span><span class="identifier">movable</span><span class="special">&gt;</span>
+<span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="special">}</span>  <span class="comment">//namespace boost{</span>
+</pre>
+<p>
+    </p>
+<p>
+      <code class="computeroutput"><span class="identifier">movable</span></code> objects can be moved
+      from one container to another using move iterators and insertion and assignment
+      operations.w
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="string">"movable.hpp"</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">container</span><span class="special">;</span>
+
+   <span class="comment">//Create a vector with 10 default constructed objects</span>
+   <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">movable</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">(</span><span class="number">10</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(!</span><span class="identifier">v</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">moved</span><span class="special">());</span>
+
+   <span class="comment">//Move construct all elements in v into v2</span>
+   <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">movable</span><span class="special">&gt;</span> <span class="identifier">v2</span><span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_move_iterator</span><span class="special">(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">begin</span><span class="special">())</span>
+                     <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_move_iterator</span><span class="special">(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">end</span><span class="special">()));</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">v</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">moved</span><span class="special">());</span>
+   <span class="identifier">assert</span><span class="special">(!</span><span class="identifier">v2</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">moved</span><span class="special">());</span>
+
+   <span class="comment">//Now move assign all elements from in v2 back into v</span>
+   <span class="identifier">v</span><span class="special">.</span><span class="identifier">assign</span><span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_move_iterator</span><span class="special">(</span><span class="identifier">v2</span><span class="special">.</span><span class="identifier">begin</span><span class="special">())</span>
+           <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_move_iterator</span><span class="special">(</span><span class="identifier">v2</span><span class="special">.</span><span class="identifier">end</span><span class="special">()));</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">v2</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">moved</span><span class="special">());</span>
+   <span class="identifier">assert</span><span class="special">(!</span><span class="identifier">v</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">moved</span><span class="special">());</span>
+
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="construct_forwarding.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../move.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="move_inserters.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

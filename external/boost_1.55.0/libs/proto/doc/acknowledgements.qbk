@@ -1,0 +1,24 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:acknowledgements Appendix E: Acknowledgements]
+
+I'd like to thank Joel de Guzman and Hartmut Kaiser for being willing to take a chance on using Proto for their work on Spirit-2 and Karma when Proto was little more than a vision. Their requirements and feedback have been indespensable.
+
+Thanks also to Thomas Heller and again to Hartmut for their feedback and suggestions during the redesign of Phoenix. That effort yielded several valuable advanced features such as sub-domains, external transforms, and per-domain `as_child` customization.
+
+Thanks to Daniel James for providing a patch to remove the dependence on deprecated configuration macros for C++0x features.
+
+Thanks to Joel Falcou and Christophe Henry for their enthusiasm, support, feedback, and humor; and for volunteering to be Proto's co-maintainers.
+
+Thanks to Dave Abrahams for an especially detailed review, and for making a VM with msvc-7.1 available so I could track down portability issues on that compiler.
+
+Many thanks to Daniel Wallin who first implemented the code used to find the common domain among a set, accounting for super- and sub-domains. Thanks also to Jeremiah Willcock, John Bytheway and Krishna Achuthan who offered alternate solutions to this tricky programming problem.
+
+Thanks also to the developers of _PETE_. I found many good ideas there.
+
+[endsect]

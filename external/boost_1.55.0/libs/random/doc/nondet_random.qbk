@@ -1,0 +1,103 @@
+[/
+ / Copyright (c) 2009 Steven Watanabe
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See
+ / accompanying file LICENSE_1_0.txt or copy at
+ / http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Header <boost/nondet_random.hpp> Synopsis]
+
+  namespace boost {
+    class random_device;
+  } // namespace boost
+
+[endsect]
+
+[section Class random_device]
+
+[section Synopsis]
+
+  class random_device : noncopyable
+  {
+  public:
+    typedef unsigned int result_type;
+    static const bool has_fixed_range = true;
+    static const result_type min_value = /* implementation defined */;
+    static const result_type max_value = /* implementation defined */;
+    result_type min() const;
+    result_type max() const;
+    explicit random_device(const std::string& token = default_token);
+    ~random_device();
+    double entropy() const;
+    unsigned int operator()();
+  };
+
+[endsect]
+
+[section Description]
+
+Class `random_device` models a non-deterministic random number generator. It
+uses one or more implementation-defined stochastic processes to generate a
+sequence of uniformly distributed non-deterministic random numbers. For those
+environments where a non-deterministic random number generator is not
+available, class random_device must not be implemented. See
+
+[:"Randomness Recommendations for Security", D. Eastlake, S. Crocker,
+J. Schiller, Network Working Group, RFC 1750, December 1994]
+
+for further discussions.
+
+[note Some operating systems abstract the computer hardware enough to make it
+difficult to non-intrusively monitor stochastic processes. However, several do
+provide a special device for exactly this purpose. It seems to be impossible
+to emulate the functionality using Standard C++ only, so users should be aware
+that this class may not be available on all platforms.]
+
+[endsect]
+
+[section Members]
+
+  explicit random_device(const std::string& token = default_token)
+
+Effects: Constructs a random_device, optionally using the given token as an
+access specification (for example, a URL) to some implementation-defined
+service for monitoring a stochastic process. 
+
+  double entropy() const
+
+Returns: An entropy estimate for the random numbers returned by `operator()`,
+in the range `min()` to `log2(max()+1)`. A deterministic random number
+generator (e.g. a pseudo-random number engine) has entropy 0.
+
+Throws: Nothing. 
+
+[endsect]
+
+Implementation Note for Linux
+On the Linux operating system, token is interpreted as a filesystem path. It
+is assumed that this path denotes an operating system pseudo-device which
+generates a stream of non-deterministic random numbers. The pseudo-device
+should never signal an error or end-of-file. Otherwise, std::ios_base::failure
+is thrown. By default, random_device uses the /dev/urandom pseudo-device to
+retrieve the random numbers. Another option would be to specify the
+/dev/random pseudo-device, which blocks on reads if the entropy pool has no
+more random bits available.
+
+[endsect]
+
+[section Performance]
+
+The test program nondet_random_speed.cpp measures the execution times of the
+nondet_random.hpp implementation of the above algorithms in a tight loop.
+The performance has been evaluated on a Pentium Pro 200 MHz with gcc 2.95.2,
+Linux 2.2.13, glibc 2.1.2.
+
+[table preformance
+  [[class] [time per invocation \[usec\]]]
+  [[random_device] [92.0]]
+]
+
+The measurement error is estimated at +/- 1 usec.
+
+[endsect]

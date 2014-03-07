@@ -1,0 +1,167 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>adjacent_find</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../non_mutating.html" title="Non-mutating algorithms">
+<link rel="prev" href="../non_mutating.html" title="Non-mutating algorithms">
+<link rel="next" href="binary_search.html" title="binary_search">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../non_mutating.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../non_mutating.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="binary_search.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_algorithms_non_mutating_adjacent_find">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="range.reference.algorithms.non_mutating.adjacent_find"></a><a class="link" href="adjacent_find.html" title="adjacent_find">adjacent_find</a>
+</h5></div></div></div>
+<h6>
+<a name="range.reference.algorithms.non_mutating.adjacent_find.h0"></a>
+            <span><a name="range.reference.algorithms.non_mutating.adjacent_find.prototype"></a></span><a class="link" href="adjacent_find.html#range.reference.algorithms.non_mutating.adjacent_find.prototype">Prototype</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">ForwardRange</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">adjacent_find</span><span class="special">(</span><span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">adjacent_find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">ForwardRange</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">adjacent_find</span><span class="special">(</span><span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">BinaryPred</span> <span class="identifier">pred</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">adjacent_find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">BinaryPred</span> <span class="identifier">pred</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="identifier">range_return_value_re</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_return</span><span class="special">&lt;</span><span class="identifier">ForwardRange</span><span class="special">,</span> <span class="identifier">re</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">adjacent_find</span><span class="special">(</span><span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="identifier">range_return_value_re</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_return</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">,</span> <span class="identifier">re</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">adjacent_find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="identifier">range_return_value</span> <span class="identifier">re</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span>
+    <span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_return</span><span class="special">&lt;</span><span class="identifier">ForwardRange</span><span class="special">,</span> <span class="identifier">re</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">adjacent_find</span><span class="special">(</span><span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">BinaryPredicate</span> <span class="identifier">pred</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="identifier">range_return_value</span> <span class="identifier">re</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span>
+    <span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_return</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">,</span> <span class="identifier">re</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">adjacent_find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">BinaryPredicate</span> <span class="identifier">pred</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+<h6>
+<a name="range.reference.algorithms.non_mutating.adjacent_find.h1"></a>
+            <span><a name="range.reference.algorithms.non_mutating.adjacent_find.description"></a></span><a class="link" href="adjacent_find.html#range.reference.algorithms.non_mutating.adjacent_find.description">Description</a>
+          </h6>
+<p>
+            <span class="bold"><strong>Non-predicate versions:</strong></span>
+          </p>
+<p>
+            <code class="computeroutput"><span class="identifier">adjacent_find</span></code> finds the
+            first adjacent elements <code class="computeroutput"><span class="special">[</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">]</span></code>
+            in <code class="computeroutput"><span class="identifier">rng</span></code> where <code class="computeroutput"><span class="identifier">x</span> <span class="special">==</span> <span class="identifier">y</span></code>
+          </p>
+<p>
+            <span class="bold"><strong>Predicate versions:</strong></span>
+          </p>
+<p>
+            <code class="computeroutput"><span class="identifier">adjacent_find</span></code> finds the
+            first adjacent elements <code class="computeroutput"><span class="special">[</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">]</span></code>
+            in <code class="computeroutput"><span class="identifier">rng</span></code> where <code class="computeroutput"><span class="identifier">pred</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">)</span></code>
+            is <code class="computeroutput"><span class="keyword">true</span></code>.
+          </p>
+<h6>
+<a name="range.reference.algorithms.non_mutating.adjacent_find.h2"></a>
+            <span><a name="range.reference.algorithms.non_mutating.adjacent_find.definition"></a></span><a class="link" href="adjacent_find.html#range.reference.algorithms.non_mutating.adjacent_find.definition">Definition</a>
+          </h6>
+<p>
+            Defined in the header file <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">adjacent_find</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          </p>
+<h6>
+<a name="range.reference.algorithms.non_mutating.adjacent_find.h3"></a>
+            <span><a name="range.reference.algorithms.non_mutating.adjacent_find.requirements"></a></span><a class="link" href="adjacent_find.html#range.reference.algorithms.non_mutating.adjacent_find.requirements">Requirements</a>
+          </h6>
+<p>
+            <span class="bold"><strong>For the non-predicate versions of adjacent_find:</strong></span>
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">ForwardRange</span></code> is a
+                model of the <a class="link" href="../../../concepts/forward_range.html" title="Forward Range">Forward
+                Range</a> Concept.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">ForwardRange</span></code>'s value
+                type is a model of the <code class="computeroutput"><span class="identifier">EqualityComparableConcept</span></code>.
+              </li>
+</ul></div>
+<p>
+            <span class="bold"><strong>For the predicate versions of adjacent_find:</strong></span>
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">ForwardRange</span></code> is a
+                model of the <a class="link" href="../../../concepts/forward_range.html" title="Forward Range">Forward
+                Range</a> Concept.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">BinaryPredicate</span></code> is
+                a model of the <code class="computeroutput"><span class="identifier">BinaryPredicateConcept</span></code>.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">ForwardRange</span></code>'s value
+                type is convertible to <code class="computeroutput"><span class="identifier">BinaryPredicate</span></code>'s
+                first argument type and to <code class="computeroutput"><span class="identifier">BinaryPredicate</span></code>'s
+                second argument type.
+              </li>
+</ul></div>
+<h6>
+<a name="range.reference.algorithms.non_mutating.adjacent_find.h4"></a>
+            <span><a name="range.reference.algorithms.non_mutating.adjacent_find.complexity"></a></span><a class="link" href="adjacent_find.html#range.reference.algorithms.non_mutating.adjacent_find.complexity">Complexity</a>
+          </h6>
+<p>
+            Linear. If <code class="computeroutput"><span class="identifier">empty</span><span class="special">(</span><span class="identifier">rng</span><span class="special">)</span></code>
+            then no comparisons are performed; otherwise, at most <code class="computeroutput"><span class="identifier">distance</span><span class="special">(</span><span class="identifier">rng</span><span class="special">)</span> <span class="special">-</span> <span class="number">1</span></code>
+            comparisons.
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../non_mutating.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../non_mutating.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="binary_search.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

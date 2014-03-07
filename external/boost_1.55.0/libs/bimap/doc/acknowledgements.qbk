@@ -1,0 +1,66 @@
+[/license
+
+Boost.Bimap
+
+Copyright (c) 2006-2007 Matias Capeletto
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+[/ QuickBook Document version 1.4 ]
+
+[section Acknowledgements]
+
+This library was developed in the context of the Google SoC 2006. I
+first want to thank my mentor, Joaquin, for his friendship during this
+project. Not only did he help me go through the process of creating this
+library, but he also did his best so we could have a great time doing
+it. Also, Boost.Bimap would not exist had Boost.MultiIndex, Joaquin's
+masterpiece, not existed. Thanks a lot!
+
+__GOOGLE_SOC_2006__
+
+I want to thank Google for this amazing ['boost] to the open-source
+community and to Boost mentors for trusting in my proposal in the first
+place. Next on the list are my colleagues from SoC that helped me not
+get bored during the long hours of coding.
+
+Special acknowledgements to the developers of the Boost libraries that
+Boost.Bimap has abused. See the dependencies section for a complete list.
+
+I want to thank the open-source developers who wrote the tools I used
+during this project. The list of names is infinitely long, so I
+give a general huge thanks here.
+
+Thanks to Paul Giaccone for proof-reading this documentation. (He has
+not finished yet -- the remaining typos and spelling errors are mine and
+will be corrected as soon as possible.)
+
+Finally, thanks to my family, who had to see me at home all day during
+the SoC. Special thanks to my brother Agustin, future famous novelist
+(at the present time he is 19 years old), who patiently read every word
+of these docs and while correcting them, barked at me for my bad written
+English. I have learned a lot from his sermons. I want to thank my dog,
+Mafalda, too for barking all day from my window and for being such a
+good company.
+
+Thanks to Alisdair Meredith, Fernando Cacciola, Jeff Garland, John Maddock,
+Thorsten Ottosen, Tony and Giovanni Piero Deretta for participating in
+the formal review and give me useful advices to improve this library.
+And thanks a lot to Ion Gaztañaga for managing the review.
+
+[heading Boost.Bimap Team]
+
+From Argentina... Matias and Mafalda and from Spain... Joaquin and Hector
+
+__MATIAS_PHOTO__
+__MAFALDA_PHOTO__
+__JOAQUIN_PHOTO__
+__HECTOR_PHOTO__
+
+Luckily, the distance helps team members avoid eating each other.
+
+[endsect]

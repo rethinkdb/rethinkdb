@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<section id="variant.refs">
+  <title>References</title>
+
+<para id="variant.refs.abr00">
+    <ulink url="http://boost.org/more/generic_exception_safety.html">[Abr00]</ulink>
+    David Abrahams.
+    &quot;Exception-Safety in Generic Components.&quot;
+    M. Jazayeri, R. Loos, D. Musser (eds.):
+      Generic Programming '98, Proc. of a Dagstuhl Seminar, Lecture Notes on Computer Science, Vol. 1766, pp. 69-79.
+    Springer-Verlag Berlin Heidelberg.
+    2000.
+</para>
+<para id="variant.refs.abr01">
+    <ulink url="http://boost.org/more/error_handling.html">[Abr01]</ulink>
+    David Abrahams.
+    &quot;Error and Exception Handling.&quot;
+    Boost technical article.
+    2001-2003.
+</para>
+<para id="variant.refs.ale01a">
+    <ulink url="http://www.oonumerics.org/tmpw01/alexandrescu.pdf">[Ale01a]</ulink>
+    Andrei Alexandrescu.
+    &quot;An Implementation of Discriminated Unions in C++.&quot;
+    <emphasis>OOPSLA 2001</emphasis>, Second Workshop on C++ Template Programming.
+    Tampa Bay, 14 October 2001.
+</para>
+<para id="variant.refs.ale01b">
+    <ulink url="http://www.moderncppdesign.com/book/main.html">[Ale01b]</ulink>
+    Andrei Alexandrescu.
+    <emphasis>Modern C++ Design</emphasis>.
+    Addison-Wesley, C++ In-Depth series.
+    2001.
+</para>
+<para id="variant.refs.ale02">
+    <ulink url="http://cuj.com/experts/2008/alexandr.htm">[Ale02]</ulink>
+    Andrei Alexandrescu.
+    &quot;Generic&lt;Programming&gt;: Discriminated Unions&quot; series:
+        <ulink url="http://cuj.com/experts/2004/alexandr.htm">Part 1</ulink>,
+        <ulink url="http://cuj.com/experts/2006/alexandr.htm">Part 2</ulink>,
+        <ulink url="http://cuj.com/experts/2008/alexandr.htm">Part 3</ulink>.
+    <emphasis>C/C++ Users Journal</emphasis>.
+    2002.
+</para>
+<para id="variant.refs.boo02">
+    <ulink url="http://lists.boost.org/MailArchives/boost/msg30415.php">[Boo02]</ulink>
+    Various Boost members.
+    &quot;Proposal --- A type-safe union.&quot;
+    Boost public discussion.
+    2002.
+</para>
+<para id="variant.refs.c++98">
+  [C++98]
+  <emphasis>International Standard, Programming Languages – C++</emphasis>.
+  ISO/IEC:14882.
+  1998.
+</para>
+<para id="variant.refs.gof95">
+    [GoF95]
+    Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides.
+    <emphasis>Design Patterns: Elements of Reusable Object-Oriented Software</emphasis>.
+    Addison-Wesley.
+    1995.
+</para>
+<para id="variant.refs.gre02">
+    <ulink url="http://www.crystalclearsoftware.com/cgi-bin/boost_wiki/wiki.pl?variant">[Gre02]</ulink>
+    Douglas Gregor.
+    &quot;BOOST_USER: variant.&quot;
+    Boost Wiki paper.
+    2002.
+</para>
+<para id="variant.refs.gur02">
+    <libraryname alt="MPL">[Gur02]</libraryname>
+    Aleksey Gurtovoy.
+    <emphasis>Boost Metaprogramming Library.</emphasis>
+    2002.
+</para>
+<para id="variant.refs.hen01">
+    <libraryname alt="Any">[Hen01]</libraryname>
+    Kevlin Henney.
+    <emphasis>Boost Any Library.</emphasis>
+    2001.
+</para>
+<para id="variant.refs.mk02">
+    <libraryname alt="Preprocessor">[MK02]</libraryname>
+    Paul Mensonides and Vesa Karvonen.
+    <emphasis>Boost Preprocessor Library.</emphasis>
+    2002.
+</para>
+<para id="variant.refs.mcd+01">
+    <libraryname alt="Type Traits">[MCD+01]</libraryname>
+    Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant, Jesse Jones, Mat Marcus, John Maddock, Jeremy Siek.
+    <emphasis>Boost Type Traits Library</emphasis>.
+    2001.
+</para>
+<para id="variant.refs.sut00">
+    <ulink url="http://www.gotw.ca/publications/xc++.htm">[Sut00]</ulink>
+    Herb Sutter.
+    <emphasis>Exceptional C++: 47 Engineering Puzzles, Programming Problems, and Solutions</emphasis>.
+    Addison-Wesley, C++ In-Depth series.
+    2000.
+</para>
+<para id="variant.refs.wil02">
+    <ulink url="http://aspn.activestate.com/ASPN/Mail/Message/boost/1314807">[Wil02]</ulink>
+    Anthony Williams.
+    Double-Storage Proposal.
+    2002.
+</para>
+
+</section>

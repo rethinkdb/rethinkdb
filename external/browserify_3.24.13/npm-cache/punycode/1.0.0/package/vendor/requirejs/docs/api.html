@@ -1,0 +1,935 @@
+<div id="directory" class="section">
+<h1>RequireJS API</h1>
+
+<ul class="index mono">
+    <li class="hbox"><a href="#usage">Usage</a><span class="spacer boxFlex"></span><span class="sect">&sect;&sect; 1-1.2</span></li>
+        <ul>
+            <li class="hbox"><a href="#jsfiles">Load JavaScript Files</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.1</span></li>
+            <li class="hbox"><a href="#define">Define a Module</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.2</span></li>
+            <ul>
+                <li class="hbox"><a href="#defsimple">Simple Name/Value Pairs</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.2.1</span></li>
+                <li class="hbox"><a href="#deffunc">Definition Functions</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.2.2</span></li>
+                <li class="hbox"><a href="#defdep">Definition Functions with Dependencies</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.2.3</span></li>
+                <li class="hbox"><a href="#funcmodule">Define a Module as a Function</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.2.4</span></li>
+                <li class="hbox"><a href="#cjsmodule">Define a Module with Simplified CommonJS Wrapper</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.2.5</span></li>
+                <li class="hbox"><a href="#modulename">Define a Module with a name</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.2.6</span></li>
+                <li class="hbox"><a href="#modulenotes">Other Module Notes</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.2.7</span></li>
+                <li class="hbox"><a href="#circular">Circular Dependencies</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.2.8</span></li>
+                <li class="hbox"><a href="#jsonp">Specify a JSONP Service Dependency</a><span class="spacer boxFlex"></span><span class="sect">&sect; 1.2.9</span></li>
+
+            </ul>
+        </ul>
+    <li class="hbox"><a href="#mechanics">Mechanics</a><span class="spacer boxFlex"></span><span class="sect">&sect;&sect; 2</span></li>
+    <li class="hbox"><a href="#config">Configuration Options</a><span class="spacer boxFlex"></span><span class="sect">&sect;&sect; 3</span></li>
+    <li class="hbox"><a href="#advanced">Advanced Usage</a><span class="spacer boxFlex"></span><span class="sect">&sect;&sect; 4-4.6</span></li>
+    <ul>
+        <li class="hbox"><a href="#packages">Loading Modules from Packages</a><span class="spacer boxFlex"></span><span class="sect">&sect; 4.1</span></li>
+        <li class="hbox"><a href="#multiversion">Multiversion Support</a><span class="spacer boxFlex"></span><span class="sect">&sect; 4.2</span></li>
+        <li class="hbox"><a href="#afterload">Loading Code After Page Load</a><span class="spacer boxFlex"></span><span class="sect">&sect; 4.3</span></li>
+        <li class="hbox"><a href="#webworker">Web Worker Support</a><span class="spacer boxFlex"></span><span class="sect">&sect; 4.4</span></li>
+        <li class="hbox"><a href="#rhino">Rhino Support</a><span class="spacer boxFlex"></span><span class="sect">&sect; 4.5</span></li>
+        <li class="hbox"><a href="#errors">Handling Errors</a><span class="spacer boxFlex"></span><span class="sect">&sect; 4.6</span></li>
+    </ul>
+    <li class="hbox"><a href="#plugins">Loader Plugins</a><span class="spacer boxFlex"></span><span class="sect">&sect;&sect; 5-5.4</span></li>
+        <ul>
+            <li class="hbox"><a href="#text">Specify a Text File Dependency</a><span class="spacer boxFlex"></span><span class="sect">&sect; 5.1</span></li>
+            <li class="hbox"><a href="#order">Load Scripts in a Specific Order</a><span class="spacer boxFlex"></span><span class="sect">&sect; 5.2</span></li>
+            <li class="hbox"><a href="#pageload">Page Load Event Support/DOM Ready</a><span class="spacer boxFlex"></span><span class="sect">&sect; 5.3</span></li>
+            <li class="hbox"><a href="#i18n">Define an I18N Bundle</a><span class="spacer boxFlex"></span><span class="sect">&sect; 5.4</span></li>
+        </ul>
+</ul>
+</div>
+
+<div class="section">
+<h2>
+<a href="#usage" name="usage">Usage</a>
+<span class="sectionMark">&sect; 1</span>
+</h2>
+
+<h3>
+<a href="#jsfiles" name="jsfiles">Load JavaScript Files</a>
+<span class="sectionMark">&sect; 1.1</span>
+</h3>
+
+<p>If you just want to load some JavaScript files, use the <code>require()</code> API. If there is already a <code>require()</code> in the page, you can use <code>requirejs()</code> to access the RequireJS API for loading scripts.</p>
+
+<p>Here is a simple example of calling <code>require()</code>, ideally placed inside the HEAD tag in an HTML document:</p>
+
+<pre><code>&lt;script src="scripts/require.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+    require(["some/module", "a.js", "b.js"], function(someModule) {
+        //This function will be called when all the dependencies
+        //listed above are loaded. Note that this function could
+        //be called before the page is loaded.
+        //This callback is optional.
+    });
+&lt;/script&gt;
+</code></pre>
+
+<p>The dependencies above, ["some/module", "a.js", "b.js"], will be loaded via script tags that have the following src values:</p>
+
+<ul>
+<li>some/module.js</li>
+<li>a.js (in the same directory as the HTML page that has the above HTML snippet)</li>
+<li>b.js (in the same directory as the HTML page that has the above HTML snippet)</li>
+</ul>
+
+<p>RequireJS normally uses the <a href="#config-baseUrl">baseUrl</a> and <a href="#config-paths">paths</a> configuration to convert names like "some/module" into a file path.</p>
+
+<p>However, if the dependency name has one of the following properties, it is treated as a regular file path, like something that was passed to a &lt;script src=""&gt; tag:</p>
+
+<ul>
+<li>Ends in ".js".</li>
+<li>Starts with a "/".</li>
+<li>Contains an URL protocol, like "http:" or "https:".</li>
+</ul>
+
+<p>See the <a href="#config">Configuration Options</a> section for information on changing the lookup paths used for dependencies.</p>
+
+<p>While you can use require() inside a script tag in an HTML file, it is strongly encouraged to place the work in a file that is loaded by RequireJS. This allows for easier optimization via the optimization tool, and there is a shorthand that can be used in the HTML for this pattern. The above example would be structured like this:</p>
+
+<pre><code>&lt;script data-main="scripts/main" src="scripts/require.js"&gt;&lt;/script&gt;
+</code></pre>
+
+<span class="note">The path rules used for data-main changed in RequireJS 0.23. Before that version, data-main="main" for the above example.</span>
+
+<p>The data-main attribute tells RequireJS to take the value of the data-main attribute and treat it like a require([]) call. So, in this case, it would load scripts/main.js, and that file should have the top-level require call:</p>
+
+<pre><code>//Inside scripts/main.js
+require(["some/module", "a.js", "b.js"], function(someModule) {
+    //...
+});
+</code></pre>
+
+<p>The directory that contains the data-main script also then becomes the root URL value (or <strong>baseUrl</strong> in the RequireJS terms) to find other scripts that use the <strong>module naming scheme</strong>, the scheme that does not end a ".js" extension. In this example "some/module" is using the module naming scheme, where "a.js" and "b.js" are not.</p>
+
+<p>Since data-main was used, and main.js is in the scripts directory, the baseUrl for RequireJS becomes the <strong>scripts</strong> directory. The <strong>"some/module"</strong> script would map to a path relative to the scripts directory. So it would be found at <strong>scripts/some/module.js</strong>.</p>
+
+<p>Note how this is different from the first example where "some/module" was found at some/module.js. If data-main is not used and an explicit baseUrl value is not passed in the <a href="#config">RequireJS configuration</a>, then then the default baseUrl is the directory containing the HTML page that loads RequireJS.</p>
+
+<p>Script names that are just regular paths ending in ".js", start with a "/" or have a protocol in them are always mapped relative to the HTML page instead of relative to baseUrl, just like HTML &lt;script&gt; src="" values. You can use the "module naming scheme" even if the script does not define a module, it is just means the path will be relative to baseUrl in that case.</p>
+
+<h3>
+<a href="#define" name="define">Define a Module</a>
+<span class="sectionMark">&sect; 1.2</span>
+</h3>
+
+<p>A module is different from a traditional script file in that it defines a well-scoped object that avoids polluting the global namespace. It can explicitly list its dependencies and get a handle on those dependencies without needing to refer to global objects, but instead receive the dependencies as arguments to the function that defines the module. Modules in RequireJS are an extension of the <a href="http://www.adequatelygood.com/2010/3/JavaScript-Module-Pattern-In-Depth">Module Pattern</a>, with the benefit of not needing globals to refer to other modules.</p>
+
+<p>The RequireJS syntax for modules allows them to be loaded as fast as possible, even out of order, but evaluated in the correct dependency order, and since global variables are not created, it makes it possible to <a href="#multiversion">load multiple versions of a module in a page</a>.</p>
+
+<p>(If you are familiar with or are using CommonJS modules, then please also see <a href="commonjs.html">CommonJS Notes</a> for information on how the RequirejS module format maps to CommonJS modules).</p>
+
+<p>There should only be <strong>one</strong> module definition per file on disk. The modules can be grouped into optimized bundles by the <a href="optimization.html">optimization tool</a>.</p>
+
+<div class="subSection">
+<h4>
+<a href="#defsimple" name="defsimple">Simple Name/Value Pairs</a>
+<span class="sectionMark">&sect; 1.2.1</span>
+</h4>
+
+<p>If the module does not have any dependencies, and it is just a collection of name/value pairs, then just pass an object literal to define():</p>
+
+<pre><code>//Inside file my/shirt.js:
+define({
+    color: "black",
+    size: "unisize"
+});
+</code></pre>
+</div>
+
+<div class="subSection">
+<h4>
+<a href="#deffunc" name="deffunc">Definition Functions</a>
+<span class="sectionMark">&sect; 1.2.2</span>
+</h4>
+
+<p>If the module does not have dependencies, but needs to use a function to do some setup work, then define itself, pass a function to define():</p>
+
+<pre><code>//my/shirt.js now does setup work
+//before returning its module definition.
+define(function () {
+    //Do setup work here
+
+    return {
+        color: "black",
+        size: "unisize"
+    }
+});
+</code></pre>
+</div>
+
+<div href="#subSection" class="subSection">
+<h4><a href="#defdep" name="defdep">Definition Functions with Dependencies</a><span class="sectionMark">&sect; 1.2.3</span></h4>
+
+<p>If the module has dependencies, the first argument should be an array of dependency names, and the second argument should be a definition function. The function will be called to define the module once all dependencies have loaded. The function should return an object that defines the module. The dependencies will be passed to the definition function as function arguments, listed in the same order as the order in the dependency array:</p>
+
+<pre><code>//my/shirt.js now has some dependencies, a cart and inventory
+//module in the same directory as shirt.js
+define(["./cart", "./inventory"], function(cart, inventory) {
+        //return an object to define the "my/shirt" module.
+        return {
+            color: "blue",
+            size: "large",
+            addToCart: function() {
+                inventory.decrement(this);
+                cart.add(this);
+            }
+        }
+    }
+);
+</code></pre>
+
+<p>In this example, a my/shirt module is created. It depends on my/cart and my/inventory. On disk, the files are structured like this:</p>
+
+<ul>
+<li>my/cart.js</li>
+<li>my/inventory.js</li>
+<li>my/shirt.js</li>
+</ul>
+
+<p>The function call above specifies two arguments, "cart" and "inventory". These are the modules represented by the "./cart" and "./inventory" module names.</p>
+
+<p>The function is not called until the my/cart and my/inventory modules have been loaded, and the function receives the modules as the "cart" and "inventory" arguments.</p>
+
+<p>Modules that define globals are explicitly discouraged, so that multiple versions of a module can exist in a page at a time (see <strong>Advanced Usage</strong>). Also, the order of the function arguments should match the order of the dependencies.</p>
+
+<p>The return object from the function call defines the "my/shirt" module. By defining modules in this way, "my/shirt" does not exist as a global object.</p>
+</div>
+
+<div class="subSection">
+<h4><a href="#funcmodule" name="funcmodule">Define a Module as a Function</a><span class="sectionMark">&sect; 1.2.4</span></h4>
+
+<p>Modules do not have to return objects. Any valid return value from a function is allowed. Here is a module that returns a function as its module definition:</p>
+
+<pre><code>//A module definition inside foo/title.js. It uses
+//my/cart and my/inventory modules from before,
+//but since foo/bar.js is in a different directory than
+//the "my" modules, it uses the "my" in the module dependency
+//name to find them. The "my" part of the name can be mapped
+//to any directory, but by default, it is assumed to be a
+//sibling to the "foo" directory.
+define(["my/cart", "my/inventory"],
+    function(cart, inventory) {
+        //return a function to define "foo/title".
+        //It gets or sets the window title.
+        return function(title) {
+            return title ? (window.title = title) :
+                   inventory.storeName + ' ' + cart.name;
+        }
+    }
+);
+</code></pre>
+</div>
+
+
+<div class="subSection">
+<h4><a href="#cjsmodule" name="cjsmodule">Define a Module with Simplified CommonJS Wrapper</a><span class="sectionMark">&sect; 1.2.5</span></h4>
+
+<p>If you wish to reuse some code that was written in the traditional <a href="http://wiki.commonjs.org/wiki/Modules/1.1.1">CommonJS module format</a> it may be difficult to re-work to the array of dependencies used above, and you may prefer to have
+direct alignment of dependency name to the local variable used for that dependency. You can use the <a href="commonjs.html">simplified CommonJS wrapper</a> for those cases:</p>
+
+
+<pre><code>define(function(require, exports, module) {
+        var a = require('a'),
+            b = require('b');
+
+        //Return the module value
+        return function () {};
+    }
+);
+</code></pre>
+
+<p>This wrapper relies on Function.prototype.toString() to give a useful string value of the function contents. This does not work on some devices like the PS3 and some older Opera mobile browsers. Use the <a href="optimization.html">optimizer</a> to pull out the dependencies in the array format for use on those devices.</p>
+
+<p>More information is available on the <a href="commonjs.html">CommonJS page</a>, and in the in the <a href="whyamd.html#sugar">"Sugar" section in the Why AMD page</a>.
+</div>
+
+
+<div class="subSection">
+<h4><a href="#modulename" name="modulename">Define a Module with a Name</a><span class="sectionMark">&sect; 1.2.6</span></h4>
+
+<p>You may encounter some define() calls that include a name for the module as the first argument to define():</p>
+
+<pre><code>    //Explicitly defines the "foo/title" module:
+    define("foo/title",
+        ["my/cart", "my/inventory"],
+        function(cart, inventory) {
+            //Define foo/title object in here.
+       }
+    );
+</code></pre>
+
+<p>These are normally generated by the <a href="optimization.html">optimization tool</a>. You can explicitly name modules yourself, but it makes the modules less portable -- if you move the file to another directory you will need to change the name. It is normally best to avoid coding in a name for the module and just let the optimization tool burn in the module names. The optimization tool needs to add the names so that more than one module can be bundled in a file, to allow for faster loading in the browser.</p>
+</div>
+
+<div class="subSection">
+
+<h4><a href="#modulenotes" name="modulenotes">Other Module Notes</a><span class="sectionMark">&sect; 1.2.7</span></h4>
+
+<p id="modulenotes-onemodule"><strong>One module per file.</strong>: Only one module should be defined per JavaScript file, given the nature of the module name-to-file-path lookup algorithm. Multiple modules will be grouped into optimized files by the <a href="optimization.html">optimization tool</a>, but you should only use the optimization tool to place more than one module in a file.</p>
+
+<p id="modulenotes-relative"><strong>Relative module names inside define()</strong>: For require("./relative/name") calls that can happen inside a define() function call, be sure to ask for "require" as a dependency, so that the relative name is resolved correctly:</p>
+
+<pre><code>define(["require", "./relative/name"], function(require) {
+    var mod = require("./relative/name");
+});
+</code></pre>
+
+<p>Or better yet, use the shortened syntax that is available for use with <a href="commonjs.html">translating CommonJS</a> modules:</p>
+
+<pre><code>define(function(require) {
+    var mod = require("./relative/name");
+});
+</code></pre>
+
+<p>This form will use Function.prototype.toString() to find the require() calls, and add them to the dependency array, along with "require", so the code will work correctly with relative paths.</p>
+
+<p>Relative paths are really useful if you are creating a few modules inside a directory, so that you can share the directory with other people or other projects, and you want to be able to get a handle on the sibling modules in that directory without
+having to know the directory's name.</p>
+
+<p id="modulenotes-urls"><strong>Generate URLs relative to module</strong>: You may need to generate an URL that is relative to a module. To do so, ask for "require" as a dependency and then use require.toUrl() to generate the URL:</p>
+
+<pre><code>define(["require"], function(require) {
+    var cssUrl = require.toUrl("./style.css");
+});
+</code></pre>
+
+<p id="modulenotes-console"><strong>Console debugging</strong>: If you need to work with a module you already loaded via a require(["module/name"], function(){}) call in the JavaScript console, then you can use  the require() form that just uses the string name of the module to fetch it:</p>
+
+<pre><code>require("module/name").callSomeFunction()
+</code></pre>
+
+<p>Note this only works if "module/name" was previously loaded via the async version of require: require(["module/name"]). If using a relative path, like './module/name', those only work inside define</p>
+</div>
+
+<div class="subSection">
+<h4><a href="#circular" name="circular">Circular Dependencies</a><span class="sectionMark">&sect; 1.2.8</span></h4>
+
+<p>If you define a circular dependency (a needs b and b needs a), then in this case when b's module function is called, it will get an undefined value for a. b can fetch a later after modules have been defined by using the require() method (be sure to specify require as a dependency so the right context is used to look up a):</p>
+
+<pre><code>//Inside b.js:
+define(["require", "a"],
+    function(require, a) {
+        //"a" in this case will be null if a also asked for b,
+        //a circular dependency.
+        return function(title) {
+            return require("a").doSomething();
+        }
+    }
+);
+</code></pre>
+
+<p>Normally you should not need to use require() to fetch a module, but instead rely on the module being passed in to the function as an argument. Circular dependencies are rare, and usually a sign that you might want to rethink the design. However, sometimes they are needed, and in that case, use require() as specified above.</p>
+
+<p>If you are familiar with CommonJS modules, you could instead use <strong>exports</strong> to create an empty object for the module that is available immediately for reference by other modules. By doing this on both sides of a circular dependency, you can then safely hold on to the the other module. This only works if each module is exporting an object for the module value, not a function:</p>
+
+<pre><code>//Inside b.js:
+define(function(require, exports, module) {
+    //If "a" has used exports, then we have a real
+    //object reference here. However, we cannot use
+    //any of a's properties until after b returns a value.
+    var a = require("a");
+
+    exports.foo = function () {
+        return a.bar();
+    };
+});
+</code></pre>
+
+<p>Or, if you are using the dependency array approach, ask for the special
+<a href="https://github.com/jrburke/requirejs/wiki/Differences-between-the-simplified-CommonJS-wrapper-and-standard-AMD-define#wiki-magic">'exports' dependency:</a></p>
+
+<pre><code>//Inside b.js:
+define(['a', 'exports'], function(a, exports) {
+    //If "a" has used exports, then we have a real
+    //object reference here. However, we cannot use
+    //any of a's properties until after b returns a value.
+
+    exports.foo = function () {
+        return a.bar();
+    };
+});
+</code></pre>
+
+</div>
+
+<div class="subSection">
+<h4><a href="#jsonp" name="jsonp">Specify a JSONP Service Dependency</a><span class="sectionMark">&sect; 1.2.9</span></h4>
+
+<p><a href="http://en.wikipedia.org/wiki/JSON#JSONP">JSONP</a> is a way of calling some services in JavaScript. It works across domains and it is an established approach to calling services that just require an HTTP GET via a script tag.</p>
+
+<p>To use a JSONP service in RequireJS, specify "define" as the callback parameter's value. This means you can get the value of a JSONP URL as if it was a module definition.</p>
+
+<p>Here is an example that calls a JSONP API endpoint. In this example, the JSONP callback parameter is called "callback", so "callback=define" tells the API to wrap the JSON response in a "define()" wrapper:</p>
+
+<pre><code>require(["http://example.com/api/data.json?callback=define"],
+    function (data) {
+        //The dta object will be the API response for the
+        //JSONP data call.
+        console.log(data);
+    }
+);
+</code></pre>
+
+<p>This use of JSONP should be limited to JSONP services for initial application setup. If the JSONP service times out, it means other modules you define via define() may not get executed, so the error handling is not robust.</p>
+
+<p><strong>Only JSONP return values that are JSON objects are supported</strong>. A JSONP response that is an array, a string or a number will not work.</p>
+
+<p>This functionality should not be used for long-polling JSONP connections -- APIs that deal with real time streaming. Those kinds of APIs should do more script cleanup after receiving each response, and RequireJS will only fetch a JSONP URL once -- subsequent uses of the same URL as a dependency in a require() or define() call will get a cached value.</p>
+
+<p>Errors in loading a JSONP service are normally surfaced via timeouts for the service, since script tag loading does not give much detail into network problems. To detect errors, you can override requirejs.onError() to get errors. There is more information in the <a href="#errors">Handling Errors</a> section.</p>
+
+</div>
+
+</div>
+
+<div class="section">
+<h2>
+<a href="#mechanics" name="mechanics">Mechanics</a>
+<span class="sectionMark">&sect; 2</span>
+</h2>
+
+<p>RequireJS loads each dependency as a script tag, using head.appendChild().</p>
+
+<p>RequireJS waits for all dependencies to load, figures out the right order in which to call the functions that define the modules, then calls the module definition functions in the right order.</p>
+
+<p>Using RequireJS in a server-side JavaScript environment that has synchronous loading should be as easy as redefining require.load(). The build system does this, the require.load method for that environment can be found in build/jslib/requirePatch.js.</p>
+
+<p>In the future, this code may be pulled into the require/ directory as an optional module that you can load in your env to get the right load behavior based on the host environment.</p>
+</div>
+
+<div class="section">
+<h2>
+<a href="#config" name="config">Configuration Options</a>
+<span class="sectionMark">&sect; 3</span>
+</h2>
+
+<p>When using require() in the top-level HTML page (or top-level script file that does not define a module), a configuration object can be passed as the first option:</p>
+
+<pre><code>&lt;script type="text/javascript" src="scripts/require.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript"&gt;
+  require.config({
+    baseUrl: "/another/path",
+    paths: {
+        "some": "some/v1.0"
+    },
+    waitSeconds: 15,
+    locale: "fr-fr"
+  });
+  require( ["some/module", "my/module", "a.js", "b.js"],
+    function(someModule,    myModule) {
+        //This function will be called when all the dependencies
+        //listed above are loaded. Note that this function could
+        //be called before the page is loaded.
+        //This callback is optional.
+    }
+  );
+&lt;/script&gt;
+</code></pre>
+
+<p>Also, you can define require to be an object <strong>before</strong> require.js is
+loaded, and have the values applied.
+This example specifies some dependencies to load as soon as require.js defines require():</p>
+
+<pre><code>&lt;script type="text/javascript"&gt;
+    var require = {
+        deps: ["some/module1", "my/module2", "a.js", "b.js"],
+        callback: function(module1, module2) {
+            //This function will be called when all the dependencies
+            //listed above in deps are loaded. Note that this
+            //function could be called before the page is loaded.
+            //This callback is optional.
+        }
+    };
+&lt;/script&gt;
+&lt;script type="text/javascript" src="scripts/require.js"&gt;&lt;/script&gt;
+</code></pre>
+
+<p><b>Note:</b> It is best to use <code>var require = {}</code> and do not use
+<code>window.require = {}</code>, it will not behave correctly in IE.</p>
+
+<p>Supported configuration options:</p>
+
+<p id="config-baseUrl"><strong>baseUrl</strong>: the root path to use for all module lookups. So in the above example, "my/module"'s script tag will have a src="/another/path/my/module.js". baseUrl is <strong>not</strong> used when loading plain .js files, those strings are used as-is, so a.js and b.js will be loaded from the same directory as the HTML page that contains the above snippet.</p>
+
+<p>If no baseUrl is explicitly set in the configuration, the default value will be the location of the HTML page that loads require.js. If a <strong>data-main</strong> attribute is used, that path will become the baseUrl.</p>
+
+<p>The baseUrl can be a URL on a different domain as the page that will load require.js. RequireJS script loading works across domains. The only restriction is on text content loaded by text! plugins: those paths should be on the same domain as the page, at least during development. The optimization tool will inline text! plugin resources so after using the optimization tool, you can use resources that reference text! plugin resources from another domain.</p>
+
+<p id="config-paths"><strong>paths</strong>: path mappings for module names not found directly under baseUrl. The path settings are assumed to be relative to baseUrl, unless the paths setting starts with a "/" or has a URL protocol in it ("like http:"). In those cases, the path is determined relative to baseUrl. Using the above sample config, "some/module"'s script tag will be src="/another/path/some/v1.0/module.js". The path that is used for a module name should <strong>not</strong> include the .js extension, since the path mapping could be for a directory. The path mapping code will automatically add the .js extension when mapping the module name to a path.</p>
+
+<p id="config-packages"><strong>packages</strong>: configures loading modules from CommonJS packages. See the <a href="#packages">packages topic</a> for more information. Related to <strong>packagePaths</strong> config option.</p>
+
+<p id="config-waitSeconds"><strong>waitSeconds</strong>: The number of seconds to wait before giving up on loading a script. The default is 7 seconds.</p>
+
+<p id="config-locale"><strong>locale</strong>: The locale to use for loading i18n bundles. By default navigator.language or navigator.userLanguage will be used. The proper syntax for specifying a locale is using lowercase and separating values by dashes, for instance: "fr-fr-paris" or "en-us".</p>
+
+<p id="config-context"><strong>context</strong>: A name to give to a loading context. This allows require.js to load multiple versions of modules in a page, as long as each top-level require call specifies a unique context string. To use it correctly, see the <a href="#multiversion">Multiversion Support</a> section.</p>
+
+<p id="config-deps"><strong>deps</strong>: An array of dependencies to load. Useful when require is defined as a config object before require.js is loaded, and you want to specify dependencies to load as soon as require() is defined.</p>
+
+<p id="config-callback"><strong>callback</strong>: A function to pass to require that should be require after <strong>deps</strong> have been loaded. Useful when require is defined as a config object before require.js is loaded, and you want to specify a function to require after the configuration's <strong>deps</strong> array has been loaded.</p>
+
+<p id="config-priority"><strong>priority</strong>: An array of module/file names to load immediately, before tracing down any other dependencies. This allows you to set up a small set of files that are downloaded in parallel that contain most of the modules and their dependencies already built in. More information is in the <a href="faq-optimization.html#priority">Optimization FAQ, Priority Downloads</a>.<b>Note:</b> resources loaded by loader plugins (like 'text!template.html') <b>cannot</b> be specified in the priority array: the priority mechanism only works with regular JavaScript resources.</p>
+
+<p id="config-xhtml"><strong>xhtml</strong>: If set to true, document.createElementNS() will be used to create script elements.</p>
+
+<p id="config-urlArgs"><strong>urlArgs</strong>: Extra query string arguments appended to URLs that RequireJS uses to fetch resources. Most useful to cache bust when the browser or server is not configured correctly. Example cache bust setting for urlArgs:</p>
+
+<pre><code>urlArgs: "bust=" +  (new Date()).getTime()
+</code></pre>
+
+<p>During development it can be useful to use this, however <strong>be sure</strong> to remove it before deploying your code.</p>
+
+<p id="config-jQuery"><strong>jQuery</strong>: (RequireJS 0.25.0+) specify an exact version match for the version of jQuery that should be allowed to register as the 'jquery' dependency. This is useful in environments where multiple jQuery files could be loaded but you want
+to be sure to get the right version of jQuery for your loading context. Normally you do not need to set this if you are only loading one version of jQuery in a page. However, if you use third party libraries that may also load jQuery, it is best to set this option.</p>
+
+<p id="config-scriptType"><strong>scriptType</strong>: (RequireJS 1.0.4+) specify the value for the type="" attribute used for script tags inserted into the document by RequireJS. Default is "text/javascript". To use Firefox's JavaScript 1.8 features, use "text/javascript;version=1.8".</p>
+
+<p id="config-catchError"><strong>catchError</strong>: (RequireJS 0.26.0+) Normally, errors evaluating define() factory functions are not caught, to allow easy debugging during development. However, for some scenarios and production deployments, it is useful to have the errors caught. By specifying catchError.define = true, the errors will be caught and passed to <a href="#errors">requirejs.onError()</a>. Normally requirejs.onError() throws the error, but you can override the definition of requirejs.onError() to do something different.</p>
+
+</div>
+
+<div class="section">
+<h2>
+<a href="#advanced" name="advanced">Advanced Usage</a>
+<span class="sectionMark">&sect; 4</span>
+</h2>
+
+<h3><a href="#packages" name="packages">Loading Modules from Packages</a><span class="sectionMark">&sect; 4.1</span></h3>
+
+<p>RequireJS supports loading modules that are in a <a href="http://wiki.commonjs.org/wiki/Packages/1.1">CommonJS Packages</a> directory structure, but some additional configuration needs to be specified for it to work. Specifically, there is support for the following CommonJS Packages features:</p>
+
+<ul>
+<li>A package can be associated with a module name/prefix.</li>
+<li>The package config can specify the following properties for a specific package:
+<ul>
+<li><strong>name</strong>: The name of the package (used for the module name/prefix mapping)</li>
+<li><strong>location</strong>: The location on disk. Locations are relative to the baseUrl configuration value, unless they contain a protocol or start with a front slash (/).</li>
+<li><strong>main</strong>: The name of the module inside the package that should be used when someone does a require for "packageName". The default value is "main", so only specify it if it differs from the default. The value is relative to the package folder.</li>
+</ul></li>
+</ul>
+
+<p><strong>IMPORTANT NOTES</strong></p>
+
+<ul>
+<li>While the packages can have the CommonJS directory layout, the modules themselves should be in a module format that RequireJS can understand. Exception to the rule: if you are using the r.js Node adapter, the modules can be in the traditional CommonJS module format. You can use the <a href="commonjs.html#autoconversion">CommonJS converter tool</a> if you need to convert traditional CommonJS modules into the async module format that RequireJS uses.</li>
+<li>Only one version of a package can be used in a project context at a time. You can use RequireJS <a href="#multiversion">multiversion support</a> to load two different module contexts, but if you want to use Package A and B in one context and they depend on different versions of Package C, then that will be a problem. This may change in the future.</li>
+</ul>
+
+<p>If you use a similar project layout as specified in the <a href="start.html">Start Guide</a>, the start of your web project would look something like this (Node/Rhino-based projects are similar, just use the contents of the <strong>scripts</strong> directory as the top-level project directory):</p>
+
+<ul>
+<li>project-directory/
+<ul>
+<li>project.html</li>
+<li>scripts/
+<ul>
+<li>require.js</li>
+</ul></li>
+</ul></li>
+</ul>
+
+<p>Here is how the example directory layout looks with two packages, <strong>cart</strong> and <strong>store</strong>:</p>
+
+<ul>
+<li>project-directory/
+<ul>
+<li>project.html</li>
+<li>scripts/
+<ul>
+<li>omega/
+<ul>
+<li>main.js</li>
+</ul></li>
+</ul></li>
+<li>cart/
+<ul>
+<li>main.js</li>
+</ul></li>
+<li>store/
+<ul>
+<li>main.js</li>
+<li>util.js</li>
+</ul></li>
+<li>main.js</li>
+<li>require.js</li>
+</ul></li>
+</ul></li>
+</ul>
+
+<p><strong>project.html</strong> will have a script tag like this:</p>
+
+<pre><code>&lt;script data-main="scripts/main" src="scripts/require.js"&gt;&lt;/script&gt;
+</code></pre>
+
+<p>This will instruct require.js to load scripts/main.js. <strong>main.js</strong> uses the "packages" config to set up packages that are relative to require.js, which in this case are the source packages "cart" and "store":</p>
+
+<pre><code>//main.js contents
+//Pass a config object to require
+require.config({
+    "packages": ["cart", "store"]
+});
+
+require(["cart", "store", "store/util"],
+function (cart,   store,   util) {
+    //use the modules as usual.
+});
+</code></pre>
+
+<p>A require of "cart" means that it will be loaded from <strong>scripts/cart/main.js</strong>, since "main" is the default main module setting supported by RequireJS. A require of "store/util" will be loaded from <strong>scripts/store/util.js</strong>.</p>
+
+<p>If the "store" package did not follow the "main.js" convention, and looked more like this:</p>
+
+<ul>
+<li>project-directory/
+<ul>
+<li>project.html</li>
+<li>scripts/
+<ul>
+<li>cart/
+<ul>
+<li>main.js</li>
+</ul></li>
+<li>store/
+<ul>
+<li>store.js</li>
+<li>util.js</li>
+</ul></li>
+<li>main.js</li>
+<li>package.json</li>
+<li>require.js</li>
+</ul></li>
+</ul></li>
+</ul>
+
+<p>Then the RequireJS configuration would look like so:</p>
+
+<pre><code>require.config({
+    packages: [
+        "cart",
+        {
+            name: "store",
+            main: "store"
+        }
+    ]
+});
+</code></pre>
+
+<p>To avoid verbosity, it is strongly suggested to always use packages that use "main" convention in their structure.</p>
+
+<h3><a href="#multiversion" name="multiversion">Multiversion Support</a><span class="sectionMark">&sect; 4.2</span></h3>
+
+<p>As mentioned in <a href="#config">Configuration Options</a>, multiple versions of a module can be loaded in a page by using different "context" configuration options. require.config() returns a require function that will use the context configuration. Here is an example that loads two different versions of the alpha and beta modules (this example is taken from one of the test files):</p>
+
+<pre><code>&lt;script type="text/javascript" src="../require.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript"&gt;
+var reqOne = require.config({
+  context: "version1",
+  baseUrl: "version1"
+});
+
+reqOne(["require", "alpha", "beta",],
+function(require,   alpha,   beta) {
+  log("alpha version is: " + alpha.version); //prints 1
+  log("beta version is: " + beta.version); //prints 1
+
+  setTimeout(function() {
+    require(["omega"],
+      function(omega) {
+        log("version1 omega loaded with version: " +
+             omega.version); //prints 1
+      }
+    );
+  }, 100);
+});
+
+var reqTwo = require.config({
+      context: "version2",
+      baseUrl: "version2"
+    });
+
+reqTwo(["require", "alpha", "beta"],
+function(require,   alpha,   beta) {
+  log("alpha version is: " + alpha.version); //prints 2
+  log("beta version is: " + beta.version); //prints 2
+
+  setTimeout(function() {
+    require(["omega"],
+      function(omega) {
+        log("version2 omega loaded with version: " +
+            omega.version); //prints 2
+      }
+    );
+  }, 100);
+});
+&lt;/script&gt;
+</code></pre>
+
+<p>Note that "require" is specified as a dependency for the module. This allows the require() function that is passed to the function callback to use the right context to load the modules correctly for multiversion support. If "require" is not specified as a dependency, then there will likely be an error.</p>
+
+<h3><a href="#afterload" name="afterload">Loading Code After Page Load</a><span class="sectionMark">&sect; 4.3</span></h3>
+
+<p>The example above in the <strong>Multiversion Support</strong> section shows how code can later be loaded by nested require() calls. </p>
+
+<h3><a href="#webworker" name="webworker">Web Worker Support</a><span class="sectionMark">&sect; 4.4</span></h3>
+
+<p>As of release 0.12, RequireJS can be run inside a Web Worker. Just use importScripts() inside a web worker to load require.js (or the JS file that contains the require() definition), then call require.</p>
+
+<p>You will likely need to set the <strong>baseUrl</strong> <a href="#config">configuration option</a> to make sure require() can find the scripts to load.</p>
+
+<p>You can see an example of its use by looking at one of the files used in <a href="http://github.com/jrburke/requirejs/blob/master/tests/workers.js">the unit test</a>.</p>
+
+<h3><a href="#rhino" name="rhino">Rhino Support</a><span class="sectionMark">&sect; 4.5</span></h3>
+
+<p>RequireJS can be used in Rhino via the <a href="download.html#rjs">r.js adapter</a>.
+See <a href="https://github.com/jrburke/r.js/blob/master/README.md">the r.js README</a> for more information.</p>
+
+<h3><a href="#errors" name="errors">Handling Errors</a><span class="sectionMark">&sect; 4.6</span></h3>
+
+<p>Errors in loading a script or module are normally surfaced via timeouts, since script tag loading does not give much detail into network problems. To detect errors, you can override requirejs.onError() to get errors. The error object passed to the error function will contain two properties if it is a timeout issue:</p>
+
+<ul>
+<li><strong>requireType</strong>: value will be "timeout"</li>
+<li><strong>requireModules</strong>: an array of module names/URLs that timed out. You can find the JSONP service URL in here.</li>
+</ul>
+
+<p>Note however that if you get this type of error it probably means other modules that depend on the modules that failed did not get defined.</p>
+
+<p>Example:</p>
+
+<pre><code>requirejs.onError = function (err) {
+    console.log(err.requireType);
+    if (err.requireType === 'timeout') {
+        console.log('modules: ' + err.requireModules);
+    }
+
+    throw err;
+};
+</code></pre>
+
+<p>If you want errors that occur as part of calling the define() factory function to create a module export value, you can set <a href="#config-catchError">catchError</a> to true, and any errors from running the factory function will be passed to
+requirejs.onError().</p>
+
+</div>
+
+<div class="section">
+<h2>
+<a href="#plugins" name="plugins">Loader Plugins</a>
+<span class="sectionMark">&sect; 5</span>
+</h2>
+
+<p>RequireJS supports <a href="plugins.html">loader plugins</a>. This is a way to support dependencies that are not plain JS files, but are still important for a script to have loaded before it can do its work. The RequireJS wiki has <a href="https://github.com/jrburke/requirejs/wiki/Plugins">a list of plugins</a>. This section talks about some specific plugins that are maintained alongside RequireJS:</p>
+
+<h3><a href="#text" name="text">Specify a Text File Dependency</a><span class="sectionMark">&sect; 5.1</span></h3>
+
+<p>It is nice to build HTML using regular HTML tags, instead of building up DOM structures in script. However, there is no good way to embed HTML in a JavaScript file. The best that can be done is using a string of HTML, but that can be hard to manage, particularly for multi-line HTML.</p>
+
+<p>RequireJS has a plugin, text.js, that can help with this issue. It will automatically be loaded if the text! prefix is used for a dependency. <a href="download.html#text">Download the plugin</a> and put it in the same directory as your app's main JS file.</p>
+
+<p>You can specify a text file resource as a dependency like so:</p>
+
+<pre><code>require(["some/module", "text!some/module.html", "text!some/module.css"],
+    function(module, html, css) {
+        //the html variable will be the text
+        //of the some/module.html file
+        //the css variable will be the text
+        //of the some/module.css file.
+    }
+);
+</code></pre>
+
+<p>Notice the .html and .css suffixes to specify the extension of the file. The "some/module" part of the path will be resolved according to normal module name resolution: it will use the <strong>baseUrl</strong> and <strong>paths</strong> <a href="#config">configuration options</a> to map that name to a path.</p>
+
+<p>For HTML/XML/SVG files, there is another option. You can pass !strip, which strips XML declarations so that external SVG and XML documents can be added to a document without worry. Also, if the string is an HTML document, only the part inside the body tag is returned. Example:</p>
+
+<pre><code>require(["text!some/module.html!strip"],
+    function(html) {
+        //the html variable will be the text of the
+        //some/module.html file, but only the part
+        //inside the body tag.
+    }
+);
+</code></pre>
+
+<p>The text files are loaded via asynchronous XMLHttpRequest (XHR) calls, so you can only fetch files from the same domain as the web page.</p>
+
+<p>However, <a href="optimization.html">the RequireJS optimizer</a> will inline any text! references with the actual text file contents into the modules, so after a build, the modules that have text! dependencies can be used from other domains.</p>
+
+<h3><a href="#order" name="order">Load Scripts in a Specific Order</a><span class="sectionMark">&sect; 5.2</span></h3>
+
+<p>Normally RequireJS loads and evaluates scripts in an undetermined order. However, there are some traditional scripts that depend on being loaded in a specific order. For those cases you can use the <strong>order</strong> plugin. <a href="download.html#order">Download the plugin</a> and put it in the same directory as your app's main JS file. Example usage:</p>
+
+<pre><code>require(["order!one.js", "order!two.js", "order!three.js"], function () {
+    //This callback is called after the three scripts finish loading.
+});
+</code></pre>
+
+<p>Scripts loaded by the <strong>order</strong> plugin will be fetched asynchronously, but evaluated in the order they are passed to require, so it should still perform better than using script tags in the head of an HTML document.</p>
+
+<p>The <strong>order</strong> plugin is best used with traditional scripts. It is not needed for scripts that use define() to define modules. It is possible to mix and match "order!" dependencies with regular dependencies, but only the "order!" ones will be evaluated in relative order to each other. </p>
+
+<p><strong>Notes:</strong></p>
+<ul>
+    <li>The order! plugin only works with JavaScript files that are cacheable by the browser. If the JS file has headers that do not allow the browser to cache the file, then the order of scripts will not be maintained.</li>
+    <li>Do not use the order! plugin to load other plugin-loaded resources. For instance. 'order!cs!my/coffescript/module' is not recommended. You will get errors in some versions of IE and WebKit. This is due to the workarounds the order plugin needs to do for those browsers to ensure ordered execution.</li>
+</ul>
+
+
+<h3><a href="#pageload" name="pageload">Page Load Event Support/DOM Ready</a><span class="sectionMark">&sect; 5.3</span></h3>
+
+<p>It is possible when using RequireJS to load scripts quickly enough that they complete before the DOM is ready. Any work that tries to interact with the DOM should wait for the DOM to be ready. For modern browsers, this is done by waiting for the DOMContentLoaded event.</p>
+
+<p>However, not all browsers in use support DOMContentLoaded. The domReady module implements a cross-browser method to determine when the DOM is ready. <a href="download.html#domReady">Download the module</a> and use it in your project like so:</p>
+
+<pre><code>require(['domReady'], function (domReady) {
+  domReady(function () {
+    //This function is called once the DOM is ready.
+    //It will be safe to query the DOM and manipulate
+    //DOM nodes in this function.
+  }):
+});
+</code></pre>
+
+<p>Since DOM ready is a common application need, ideally the nested functions
+in the API above could be avoided. The domReady module also implements the <a href="plugin.html">Loader Plugin API</a>,
+so you can use the loader plugin syntax (notice the <b>!</b> in the domReady dependency) to force the
+require() callback function to wait for the DOM to be ready before executing. domReady will return
+the current document when used as a loader plugin:</p>
+
+<pre><code>require(['domReady!'], function (doc) {
+    //This function is called once the DOM is ready,
+    //notice the value for 'domReady!' is the current
+    //document.
+  }):
+});
+</code></pre>
+
+<p><b>Note:</b> If the document takes a while to load (maybe it is a very large document, or has HTML script tags loading large JS files that block DOM completion until they are done), using domReady as a loader plugin may result in a RequireJS "timeout" error. If this a problem either increase the <a href="#config-waitSeconds">waitSeconds</a> configuration, or just use domReady as a module and
+call domReady() inside the require() callback.</p>
+
+<p id="domReadyWithResources"><b>DOM Ready with implicit dependencies</b>: If you are working on a project that does not use require() and define() to explicitly indicate dependencies in all scripts, you many notice some errors when waiting for the DOM to be ready then executing code that depends on those implicit dependencies.</p>
+
+<p>The best fix is to wrap all scripts in explicit define() calls that specify all the direct dependencies. However, if that is not an option, you can call a special method on the domReady plugin to wait for all scripts to load and the DOM to be ready:</p>
+
+<pre><code>require(['domReady'], function (domReady) {
+  domReady.withResources(function () {
+    //This function is called once the DOM is ready,
+    //and all modules/plugin resources that RequireJS is loading
+    //finish loading.
+  }):
+});
+</code></pre>
+
+<p><b>You should avoid using this function</b>, and instead be very explicit about the dependencies in each file.
+However, as an intermediate patch to get a project working with RequireJS, it can be useful.</p>
+
+<h3><a href="#i18n" name="i18n">Define an I18N Bundle</a><span class="sectionMark">&sect; 5.4</span></h3>
+
+<p>Once your web app gets to a certain size and popularity, localizing the strings in the interface and providing other locale-specific information becomes more useful. However, it can be cumbersome to work out a scheme that scales well for supporting multiple locales.</p>
+
+<p>RequireJS allows you to set up a basic module that has localized information without forcing you to provide all locale-specific information up front. It can be added over time, and only strings/values that change between locales can be defined in the locale-specific file.</p>
+
+<p>i18n bundle support is provided by the i18n.js plugin. It is automatically loaded when a module or dependency specifies the i18n! prefix (more info below). <a href="download.html#i18n">Download the plugin</a> and put it in the same directory as your app's main JS file.</p>
+
+<p>To define a bundle, put it in a directory called "nls" -- the i18n! plugin assumes a module name with "nls" in it indicates an i18n bundle. The "nls" marker in the name tells the i18n plugin where to expect the locale directories (they should be immediate children of the nls directory). If you wanted to provide a bundle of color names in your "my" set of modules, create the directory structure like so:</p>
+
+<ul>
+<li>my/nls/colors.js</li>
+</ul>
+
+<p>The contents of that file should look like so:</p>
+
+<pre><code>//my/nls/colors.js contents:
+define({
+    "root": {
+        "red": "red",
+        "blue": "blue",
+        "green": "green"
+    }
+});
+</code></pre>
+
+<p>An object literal with a property of "root" defines this module. That is all you have to do to set the stage for later localization work.</p>
+
+<p>You can then use the above module in another module, say, in a my/lamps.js file:</p>
+
+<pre><code>//Contents of my/lamps.js
+define(["i18n!my/nls/colors"], function(colors) {
+    return {
+        testMessage: "The name for red in this locale is: " + colors.red
+    }
+});
+</code></pre>
+
+<p>The my/lamps module has one property called "testMessage" that uses colors.red to show the localized value for the color red.</p>
+
+<p>Later, when you want to add a specific translation to a file, say for the fr-fr locale, change my/nls/colors to look like so:</p>
+
+<pre><code>//Contents of my/nls/colors.js
+define({
+    "root": {
+        "red": "red",
+        "blue": "blue",
+        "green": "green"
+    },
+    "fr-fr": true
+});
+</code></pre>
+
+<p>Then define a file at my/nls/fr-fr/colors.js that has the following contents:</p>
+
+<pre><code>//Contents of my/nls/fr-fr/colors.js
+define({
+    "red": "rouge",
+    "blue": "bleu",
+    "green": "vert"
+});
+</code></pre>
+
+<p>RequireJS will use the browser's navigator.language or navigator.userLanguage property to determine what locale values to use for my/nls/colors, so your app does not have to change. If you prefer to set the locale, you can use the locale: configuration parameter (see the <a href="#config">Configuration options</a> section).</p>
+
+<p><strong>Note</strong> that RequireJS will always use a lowercase version of the locale, to avoid case issues, so all of the directories and files on disk for i18n bundles should use lowercase locales.</p>
+
+<p>RequireJS is also smart enough to pick the right locale bundle, the one that most closely matches the ones provided by my/nls/colors. For instance, if the locale is "en-us", then the "root" bundle will be used. If the locale is "fr-fr-paris" then the "fr-fr" bundle will be used.</p>
+
+<p>RequireJS also combines bundles together, so for instance, if the french bundle was defined like so (omitting a value for red):</p>
+
+<pre><code>//Contents of my/nls/fr-fr/colors.js
+define({
+    "blue": "bleu",
+    "green": "vert"
+});
+</code></pre>
+
+<p>Then the value for red in "root" will be used. This works for all locale pieces. If all the bundles listed below were defined, then RequireJS will use the values in the following priority order (the one at the top takes the most precedence):</p>
+
+<ul>
+<li>my/nls/fr-fr-paris/colors.js</li>
+<li>my/nls/fr-fr/colors.js</li>
+<li>my/nls/fr/colors.js</li>
+<li>my/nls/colors.js</li>
+</ul>
+
+<p>If you prefer to not include the root bundle in the top level module, you can define it like a normal locale bundle. In that case, the top level module would look like:</p>
+
+<pre><code>//my/nls/colors.js contents:
+define({
+    "root": true,
+    "fr-fr": true,
+    "fr-fr-paris": true
+});
+</code></pre>
+
+<p>and the root bundle would look like:</p>
+
+<pre><code>//Contents of my/nls/root/colors.js
+define({
+    "red": "red",
+    "blue": "blue",
+    "green": "green"
+});
+</code></pre>
+
+</div>

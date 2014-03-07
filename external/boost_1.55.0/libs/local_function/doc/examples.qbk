@@ -1,0 +1,190 @@
+
+[/ Copyright (C) 2009-2012 Lorenzo Caminiti ]
+[/ Distributed under the Boost Software License, Version 1.0 ]
+[/ (see accompanying file LICENSE_1_0.txt or a copy at ]
+[/ http://www.boost.org/LICENSE_1_0.txt) ]
+[/ Home at http://www.boost.org/libs/local_function ]
+
+[section Examples]
+
+This section lists some examples that use this library.
+
+[section GCC Lambdas (without C++11)]
+
+Combing local functions with the non-standard [@http://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html statement expression] extension of the GCC compiler, it is possible to implement lambda functions for GCC compilers even without __CXX11__ support.
+
+[warning
+This code only works on compilers that support GCC statement expression extension or that support __CXX11_lambda_functions__.
+]
+
+For example (see also [@../../example/gcc_lambda.cpp =gcc_lambda.cpp=] and [@../../example/gcc_cxx11_lambda.cpp =gcc_cxx11_lambda.cpp=]):
+
+[table
+    [ [With Local Functions (GCC only)] [C++11 Lambdas] ]
+    [ [[gcc_lambda]] [[gcc_cxx11_lambda]] ]
+]
+
+The GCC lambda function macros are implemented using local functions (see also [@../../example/gcc_lambda.hpp =gcc_lambda.hpp=]):
+
+[gcc_lambda_macro]
+[gcc_lambda_end_macro]
+
+This is possible because GCC statement expressions allow to use declaration statements within expressions and therefore to declare a local function within an expression.
+The macros automatically detect if the compiler supports __CXX11_lambda_functions__ in which case the implementation uses native lambdas instead of local functions in GCC statement expressions.
+However, __CXX11_lambda_functions__ do not support constant binding so it is best to only use `const bind variable` (same as `=variable` for __CXX11_lambda_functions__) and `bind& variable` (same as `&variable` for __CXX11_lambda_functions__') because these have the exact same semantic between the local function and the native lambda implementations.
+Furthermore, local functions allow to bind data members directly while __CXX11_lambda_functions__ require to access data members via binding the object `this`.
+Unfortunately, the short-hand binds `&` and `=` of __CXX11_lambda_functions__ (which automatically bind all variables in scope either by reference or value) are not supported by these GCC lambda function macros because they are not supported by local functions.
+Finally, the result type `return `[^['result-type]] is optional and it is assumed `void` when it is not specified (same as with __CXX11_lambda_functions__).
+
+[endsect]
+
+[section Constant Blocks]
+
+It is possible to use local functions to check assertions between variables that are made constant within the asserted expressions.
+This is advantageous because assertions are not supposed to change the state of the program and ideally the compiler will not compile assertions that modify variables.
+
+For example, consider the following assertion where by mistake we programmed `operator=` instead of `operator==`:
+
+    int x = 1, y = 2;
+    assert(x = y); // Mistakenly `=` instead of `==`.
+
+Ideally this code will not compile instead this example not only compiles but the assertion even passes the run-time check and no error is generated at all.
+The __N1613__ paper introduces the concept of a /const-block/ which could be used to wrap the assertion above and catch the programming error at compile-time.
+Similarly, the following code will generate a compile-time error when `operator=` is mistakenly used instead of `operator==` because both `x` and `y` are made constants (using local functions) within the block of code performing the assertion (see also [@../../example/const_block_error.cpp =const_block_error.cpp=]):
+
+[table
+    [ [With Local Functions] [N1613 Const-Blocks] ]
+    [ [[const_block]] [``
+    int x = 1, y = 2;
+    const {             // Constant block.
+        assert(x = y);  // Compiler error.
+    }
+    ``] ]
+]
+
+The constant block macros are implemented using local functions (see also [@../../example/const_block.hpp =const_block.hpp=]):
+
+[const_block_macro]
+[const_block_end_macro]
+
+The constant block macros are implemented using a local function which binds by constant reference `const bind&` all the specified variables (so the variables are constant within the code block but they do not need to be `CopyConstructible` and no extra copy is performed).
+The local function executes the `assert` instruction in its body and it is called immediately after it is defined.
+More in general, constant blocks can be used to evaluate any instruction (not just assertions) within a block were all specified variables are constant.
+
+Unfortunately, constant blocks cannot be implemented with __CXX11_lambda_functions__ because these do not support constant binding.
+Variables bound by value using __CXX11_lambda_functions__ (`variable`, `=variable`, and `=`) are constant but they are required to be `CopyConstructible` and they introduce potentially expensive copy operations.
+[footnote
+Ideally, __CXX11_lambda_functions__ would allow to bind variables also using `const& variable` (constant reference) and `const&` (all variables by constant reference).
+]
+Of course it is always possible to introduce extra constant variables and bind these variables to the __CXX11_lambda_functions__ but the constant block code will then have to manage the declaration and initialization of these extra variables plus it will have to use the extra variable names instead of the original variable names:
+
+[const_block_cxx11_lambda]
+
+In many cases the use of an extra constant variable `const_x` can be acceptable but in other cases it might be preferable to maintain the same variable name `x` within the function body.
+
+[endsect]
+
+[section Scope Exits]
+
+Scope exits allow to execute arbitrary code at the exit of the enclosing scope and they are provided by the __Boost_ScopeExit__ library.
+
+For curiosity, here we show how to re-implement scope exits using local functions.
+One small advantage of scope exits that use local functions is that they support constant binding.
+__Boost_ScopeExit__ does not directly support constant binding (however, it is always possible to introduce an extra `const` local variable, assign it to the value to bind, and then bind the `const` variable so to effectively have constant binding with __Boost_ScopeExit__ as well).
+
+[note
+In general, the authors recommend to use __Boost_ScopeExit__ instead of the code listed by this example whenever possible (because __Boost_ScopeExit__ is a library deliberately designed to support the scope exit construct).
+]
+
+The following example binds `p` by constant reference so this variable cannot be modified within the scope exit body but it is not copied and it will present the value it has at the exit of the enclosing scope and not at the scope exit declaration (see also [@../../example/scope_exit.cpp =scope_exit.cpp=]):
+
+[table
+    [ [With Local Functions] [Boost.ScopeExit] ]
+    [ [[scope_exit]] [``
+    person& p = persons_.back();
+    person::evolution_t checkpoint = p.evolution_;
+
+    BOOST_SCOPE_EXIT(checkpoint, &p, this_) { // Or extra variable `const_p`.
+        if (checkpoint == p.evolution_) this_->persons_.pop_back();
+    } BOOST_SCOPE_EXIT_END
+    ``] ]
+]
+
+The scope exit macros are implemented by passing a local function when constructing an object of the following class (see also [@../../example/scope_exit.hpp =scope_exit.hpp=]):
+
+[scope_exit_class]
+[scope_exit_macro]
+[scope_exit_end_macro]
+
+A local variable within the enclosing scope is used to hold the object so the destructor will be invoked at the exit of the enclosing scope and it will in turn call the local function executing the scope exit instructions.
+The scope exit local function has no parameter and `void` result type but it supports binding and constant binding.
+
+[endsect]
+
+[section Boost.Phoenix Functions]
+
+Local functions can be used to create __Boost_Phoenix__ functions.
+For example (see also [@../../example/phoenix_factorial_local.cpp =phoenix_factorial_local.cpp=] and [@../../example/phoenix_factorial.cpp =phoenix_factorial.cpp=]):
+
+[table
+    [ [Local Functions] [Global Functor] ]
+    [ [[phoenix_factorial_local]] [[phoenix_factorial]] ]
+]
+
+This is presented here mainly as a curiosity because __Boost_Phoenix__ functions created from local functions have the important limitation that they cannot be polymorphic.
+[footnote
+*Rationale.*
+Local functions can only be monomorphic because they are implemented using local classes and local classes cannot be templates in C++ (not even in __CXX11__).
+]
+Therefore, in many cases creating the __Boost_Phoenix__ function from global functors (possibly with the help of __Boost_Phoenix__ adaptor macros) might be a more useful.
+
+[endsect]
+
+[section Closures]
+
+The following are examples of [@http://en.wikipedia.org/wiki/Closure_(computer_science) closures] that illustrate how to return local functions to the calling scope (note how extra care is taken in order to ensure that all bound variables remain valid at the calling scope):
+
+[table
+    [ [Files] ]
+    [ [[@../../test/return_inc.cpp =return_inc.cpp=]] ]
+    [ [[@../../test/return_this.cpp =return_this.cpp=]] ]
+    [ [[@../../test/return_setget.cpp =return_setget.cpp=]] ]
+    [ [[@../../test/return_derivative.cpp =return_derivative.cpp=]] ]
+]
+
+[endsect]
+
+[section GCC Nested Functions]
+
+The GCC C compiler supports local functions as a non-standard extension under the name of [@http://gcc.gnu.org/onlinedocs/gcc/Nested-Functions.html nested functions].
+Note that nested functions are exclusively a C extension of the GCC compiler (they are not supported for C++ not even by the GCC compiler, and they are not part of any C or C++ standard, nor they are supported by other compilers like MSVC).
+
+The following examples are taken form the GCC nested function documentation and programmed using local functions:
+
+[table
+    [ [Files] ]
+    [ [[@../../example/gcc_square.cpp =gcc_square.cpp=]] ]
+    [ [[@../../example/gcc_access.cpp =gcc_access.cpp=]] ]
+    [ [[@../../example/gcc_store.cpp =gcc_store.cpp=]] ]
+]
+
+[endsect]
+
+[section N-Papers]
+
+The following examples are taken from different C++ "N-papers" and programmed using local functions:
+
+[table
+    [ [Files] [Notes] ]
+    [ [[@../../example/n2550_find_if.cpp =n2550_find_if.cpp=]] [
+This example is adapted from __N2550__ (__CXX11_lambda_functions__): It passes a local function to the STL algorithm `std::find_if`.
+    ] ]
+    [ [[@../../example/n2529_this.cpp =n2529_this.cpp=]] [
+This example is adapted from __N2529__ (__CXX11_lambda_functions__): It binds the object in scope `this` to a local function.
+    ] ]
+]
+
+[endsect]
+
+[endsect]
+

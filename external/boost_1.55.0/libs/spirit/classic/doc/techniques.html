@@ -1,0 +1,373 @@
+<html>
+<head>
+<title>Techniques</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Techniques</b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="style_guide.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="faq.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<ul>
+  <li><a href="#templatized_functors">Templatized Functors</a></li>
+  <li><a href="#multiple_scanner_support">Rule With Multiple Scanners</a></li>
+  <li><a href="#no_rules">Look Ma' No Rules!</a></li>
+  <li><a href="#typeof">typeof</a></li>
+  <li><a href="#nabialek_trick">Nabialek trick</a></li>
+</ul>
+<h3><a name="templatized_functors"></a> Templatized Functors</h3>
+<p>For the sake of genericity, it is often better to make the functor's member 
+  <tt>operator()</tt> a template. That way, we do not have to concern ourselves 
+  with the type of the argument to expect as long as the behavior is appropriate. 
+  For instance, rather than hard-coding <tt>char const*</tt> as the argument of 
+  a generic semantic action, it is better to make it a template member function. 
+  That way, it can accept any type of iterator:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>struct </span><span class=identifier>my_functor
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>IteratorT</span><span class=special>&gt;
+        </span><span class=keyword>void </span><span class=keyword>operator</span><span class=special>()(</span><span class=identifier>IteratorT </span><span class=identifier>first</span><span class=special>, </span><span class=identifier>IteratorT </span><span class=identifier>last</span><span class=special>) </span><span class=keyword>const</span><span class=special>;
+    </span><span class=special>};</span></font></code></pre>
+<p>Take note that this is only possible with functors. It is not possible to pass 
+  in template functions as semantic actions unless you cast it to the correct 
+  function signature; in which case, you <em>monomorphize</em> the function. This 
+  clearly shows that functors are superior to plain functions.</p>
+<h3><b><a name="multiple_scanner_support" id="multiple_scanner_support"></a> Rule 
+  With Multiple Scanners</b></h3>
+<p>As of v1.8.0, rules can use one or more scanner types. There are cases, for 
+  instance, where we need a rule that can work on the phrase and character levels. 
+  Rule/scanner mismatch has been a source of confusion and is the no. 1 <a href="faq.html#scanner_business">FAQ</a>. 
+  To address this issue, we now have <a href="rule.html#multiple_scanner_support">multiple 
+  scanner support</a>. </p>
+<p>Here is an example of a grammar with a rule <tt>r</tt> that can be called with 
+  3 types of scanners (phrase-level, lexeme, and lower-case). See the <a href="rule.html">rule</a>, 
+  <a href="grammar.html">grammar</a>, <a href="scanner.html#lexeme_scanner">lexeme_scanner</a> 
+  and <a href="scanner.html#as_lower_scanner">as_lower_scanner </a>for more information. 
+</p>
+<p>Here's the grammar (see <a href="../example/techniques/multiple_scanners.cpp">multiple_scanners.cpp</a>): 
+</p>
+<pre><span class=special>    </span><span class=keyword>struct </span><span class=identifier>my_grammar </span><span class=special>: </span><span class=identifier>grammar</span><span class=special>&lt;</span><span class=identifier>my_grammar</span><span class=special>&gt;
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>struct </span><span class=identifier>definition
+        </span><span class=special>{
+            </span><span class=identifier>definition</span><span class=special>(</span><span class=identifier>my_grammar </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>self</span><span class=special>)
+            </span><span class=special>{
+                </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>lower_p</span><span class=special>;
+                </span><span class=identifier>rr </span><span class=special>= </span><span class=special>+(</span><span class=identifier>lexeme_d</span><span class=special>[</span><span class=identifier>r</span><span class=special>] </span><span class=special>&gt;&gt; </span><span class=identifier>as_lower_d</span><span class=special>[</span><span class=identifier>r</span><span class=special>] </span><span class=special>&gt;&gt; </span><span class=identifier>r</span><span class=special>);
+            </span><span class=special>}
+
+            </span><span class=keyword>typedef </span><span class=identifier>scanner_list</span><span class=special>&lt;
+                </span><span class=identifier>ScannerT
+              </span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>lexeme_scanner</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+              </span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>as_lower_scanner</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+            </span><span class=special>&gt; </span><span class=identifier>scanners</span><span class=special>;
+
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>scanners</span><span class=special>&gt; </span><span class=identifier>r</span><span class=special>;
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt; </span><span class=identifier>rr</span><span class=special>;
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>start</span><span class=special>() </span><span class=keyword>const </span><span class=special>{ </span><span class=keyword>return </span><span class=identifier>rr</span><span class=special>; </span><span class=special>}
+        </span><span class=special>};
+    </span><span class=special>};</span></pre>
+<p>By default support for multiple scanners is disabled.  The macro
+  <tt>BOOST_SPIRIT_RULE_SCANNERTYPE_LIMIT</tt> must be defined to the
+  maximum number of scanners allowed in a scanner_list.  The value must
+  be greater than 1 to enable multiple scanners.  Given the
+  example above, to define a limit of three scanners for the list, the
+  following line must be inserted into the source file before the
+  inclusion of Spirit headers:
+</p>
+<pre><span class=special>    </span><span class=preprocessor>#define </span><span class=identifier>BOOST_SPIRIT_RULE_SCANNERTYPE_LIMIT</span> <span class=literal>3</span></pre>
+<h3><span class=special></span><b> <a name="no_rules" id="no_rules"></a> Look 
+  Ma' No Rules</b></h3>
+<p>You use grammars and you use lots of 'em? Want a fly-weight, no-cholesterol, 
+  super-optimized grammar? Read on...</p>
+<p>I have a love-hate relationship with rules. I guess you know the reasons why. 
+  A lot of problems stem from the limitation of rules. Dynamic polymorphism and 
+  static polymorphism in C++ do not mix well. There is no notion of virtual template 
+  functions in C++; at least not just yet. Thus, the <strong>rule is tied to a 
+  specific scanner type</strong>. This results in problems such as the <a href="faq.html#scanner_business">scanner 
+  business</a>, our no. 1 FAQ. Apart from that, the virtual functions in rules 
+  slow down parsing, kill all meta-information, and kills inlining, hence bloating 
+  the generated code, especially for very tiny rules such as:</p>
+<pre>    r <span class="special">=</span> ch_p<span class="special">(</span><span class="quotes">'x'</span><span class="special">) &gt;&gt;</span> uint_p<span class="special">;</span></pre>
+<p> The rule's limitation is the main reason why the grammar is designed the way 
+  it is now, with a nested template definition class. The rule's limitation is 
+  also the reason why subrules exists. But do we really need rules? Of course! 
+  Before C++ adopts some sort of auto-type deduction, such as that proposed by 
+  David Abrahams in clc++m:</p>
+<pre>
+    <code><span class=keyword>auto </span><span class=identifier>r </span><span class=special>= ...</span><span class=identifier>definition </span><span class=special>...</span></code></pre>
+<p> we are tied to the rule as RHS placeholders. However.... in some occasions 
+  we can get by without rules! For instance, rather than writing:</p>
+<pre>
+    <code><span class=identifier>rule</span><span class=special>&lt;&gt; </span><span class=identifier>x </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'x'</span><span class=special>);</span></code></pre>
+<p> It's better to write:</p>
+<pre>
+    <code><span class=identifier>chlit</span><span class=special>&lt;&gt; </span><span class=identifier>x </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'x'</span><span class=special>);</span></code></pre>
+<p> That's trivial. But what if the rule is rather complicated? Ok, let's proceed 
+  stepwise... I'll investigate a simple skip_parser based on the C grammar from 
+  Hartmut Kaiser. Basically, the grammar is written as (see <a href="../example/techniques/no_rules/no_rule1.cpp">no_rule1.cpp</a>):</p>
+<pre><code>    <span class=keyword>struct </span><span class=identifier>skip_grammar </span><span class=special>: </span><span class=identifier>grammar</span><span class=special>&lt;</span><span class=identifier>skip_grammar</span><span class=special>&gt;
+    {
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>struct </span><span class=identifier>definition
+        </span><span class=special>{
+            </span><span class=identifier>definition</span><span class=special>(</span><span class=identifier>skip_grammar </span><span class=keyword>const</span><span class=special>&amp; /*</span><span class=identifier>self</span><span class=special>*/)
+            {
+                </span><span class=identifier>skip
+                    </span><span class=special>=   </span><span class=identifier>space_p
+                    </span><span class=special>|   </span><span class=string>&quot;//&quot; </span><span class=special>&gt;&gt; *(</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=literal>'\n'</span><span class=special>) &gt;&gt; </span><span class=literal>'\n'
+                    </span><span class=special>|   </span><span class=string>&quot;/*&quot; </span><span class=special>&gt;&gt; *(</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=string>&quot;*/&quot;</span><span class=special>) &gt;&gt; </span><span class=string>&quot;*/&quot;
+                    </span><span class=special>;
+            }
+
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt; </span><span class=identifier>skip</span><span class=special>;
+
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>&amp;
+            </span><span class=identifier>start</span><span class=special>() </span><span class=keyword>const </span><span class=special>{ </span><span class=keyword>return </span><span class=identifier>skip</span><span class=special>; }
+        };
+    };</span></code></pre>
+<p> Ok, so far so good. Can we do better? Well... since there are no recursive 
+  rules there (in fact there's only one rule), you can expand the type of rule's 
+  RHS as the rule type (see <a href="../example/techniques/no_rules/no_rule2.cpp">no_rule2.cpp</a>):</p>
+<pre><code><span class=special>    </span><span class=keyword>struct </span><span class=identifier>skip_grammar </span><span class=special>: </span><span class=identifier>grammar</span><span class=special>&lt;</span><span class=identifier>skip_grammar</span><span class=special>&gt;
+    {
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>struct </span><span class=identifier>definition
+        </span><span class=special>{
+</span>            <span class=identifier>definition</span><span class=special>(</span><span class=identifier>skip_grammar </span><span class=keyword>const</span><span class=special>&amp; /*</span><span class=identifier>self</span><span class=special>*/)
+            : </span><span class=identifier>skip</span><span class=special>
+                (       </span><span class=identifier>space_p
+                    </span><span class=special>|   </span><span class=string>&quot;//&quot; </span><span class=special>&gt;&gt; *(</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=literal>'\n'</span><span class=special>) &gt;&gt; </span><span class=literal>'\n'
+                    </span><span class=special>|   </span><span class=string>&quot;/*&quot; </span><span class=special>&gt;&gt; *(</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=string>&quot;*/&quot;</span><span class=special>) &gt;&gt; </span><span class=string>&quot;*/&quot;
+                </span><span class=special>)
+            {
+            }
+
+            </span><span class=keyword>typedef
+               </span><span class=identifier>alternative</span><span class=special>&lt;</span><span class=identifier>alternative</span><span class=special>&lt;</span><span class=identifier>space_parser</span><span class=special>, </span><span class=identifier>sequence</span><span class=special>&lt;</span><span class=identifier>sequence</span><span class=special>&lt;
+               </span><span class=identifier>strlit</span><span class=special>&lt;</span><span class=keyword>const </span><span class=keyword>char</span><span class=special>*&gt;, </span><span class=identifier>kleene_star</span><span class=special>&lt;</span><span class=identifier>difference</span><span class=special>&lt;</span><span class=identifier>anychar_parser</span><span class=special>,
+               </span><span class=identifier>chlit</span><span class=special>&lt;</span><span class=keyword>char</span><span class=special>&gt; &gt; &gt; &gt;, </span><span class=identifier>chlit</span><span class=special>&lt;</span><span class=keyword>char</span><span class=special>&gt; &gt; &gt;, </span><span class=identifier>sequence</span><span class=special>&lt;</span><span class=identifier>sequence</span><span class=special>&lt;
+               </span><span class=identifier>strlit</span><span class=special>&lt;</span><span class=keyword>const </span><span class=keyword>char</span><span class=special>*&gt;, </span><span class=identifier>kleene_star</span><span class=special>&lt;</span><span class=identifier>difference</span><span class=special>&lt;</span><span class=identifier>anychar_parser</span><span class=special>,
+               </span><span class=identifier>strlit</span><span class=special>&lt;</span><span class=keyword>const </span><span class=keyword>char</span><span class=special>*&gt; &gt; &gt; &gt;, </span><span class=identifier>strlit</span><span class=special>&lt;</span><span class=keyword>const </span><span class=keyword>char</span><span class=special>*&gt; &gt; &gt;
+            </span><span class=identifier>skip_t</span><span class=special>;
+</span><span class=special>            </span><span class=identifier>skip_t </span><span class=identifier>skip</span><span class=special>;
+
+            </span><span class=identifier>skip_t </span><span class=keyword>const</span><span class=special>&amp;
+            </span><span class=identifier>start</span><span class=special>() </span><span class=keyword>const </span><span class=special>{ </span><span class=keyword>return </span><span class=identifier>skip</span><span class=special>; }
+        };
+    };</span></code></pre>
+<p> Ughhh! How did I do that? How was I able to get at the complex typedef? Am 
+  I insane? Well, not really... there's a trick! What you do is define the typedef 
+  <tt>skip_t</tt> first as int:</p>
+<pre>
+    <code><span class=keyword>typedef </span><span class=keyword>int </span><span class=identifier>skip_t</span><span class=special>;</span></code></pre>
+<p> Try to compile. Then, the compiler will generate an obnoxious error message 
+  such as:</p>
+<pre>
+    <code><span class=string>&quot;cannot convert boost::spirit::alternative&lt;... blah blah...to int&quot;</span><span class=special>.</span></code></pre>
+<p> <strong>THERE YOU GO!</strong> You got it's type! I just copy and paste the 
+  correct type (removing explicit qualifications, if preferred).</p>
+<p> Can we still go further? Yes. Remember that the grammar was designed for rules. 
+  The nested template definition class is needed to get around the rule's limitations. 
+  Without rules, I propose a new class called <tt>sub_grammar</tt>, the grammar's 
+  low-fat counterpart:</p>
+<pre><code><span class=special>    </span><span class=keyword>namespace </span><span class=identifier>boost </span><span class=special>{ </span><span class=keyword>namespace </span><span class=identifier>spirit
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>DerivedT</span><span class=special>&gt;
+        </span><span class=keyword>struct </span><span class=identifier>sub_grammar </span><span class=special>: </span><span class=identifier>parser</span><span class=special>&lt;</span><span class=identifier>DerivedT</span><span class=special>&gt;
+        {
+            </span><span class=keyword>typedef </span><span class=identifier>sub_grammar </span><span class=identifier>self_t</span><span class=special>;
+            </span><span class=keyword>typedef </span><span class=identifier>DerivedT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>embed_t</span><span class=special>;
+
+            </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+            </span><span class=keyword>struct </span><span class=identifier>result
+            </span><span class=special>{
+                </span><span class=keyword>typedef </span><span class=keyword>typename </span><span class=identifier>parser_result</span><span class=special>&lt;
+                    </span><span class=keyword>typename </span><span class=identifier>DerivedT</span><span class=special>::</span><span class=identifier>start_t</span><span class=special>, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+                </span><span class=identifier>type</span><span class=special>;
+            };
+
+            </span><span class=identifier>DerivedT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>derived</span><span class=special>() </span><span class=keyword>const
+            </span><span class=special>{ </span><span class=keyword>return </span><span class=special>*</span><span class=keyword>static_cast</span><span class=special>&lt;</span><span class=identifier>DerivedT </span><span class=keyword>const</span><span class=special>*&gt;(</span><span class=keyword>this</span><span class=special>); }
+
+            </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+            </span><span class=keyword>typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>self_t</span><span class=special>, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+            </span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>ScannerT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>) </span><span class=keyword>const
+            </span><span class=special>{
+                </span><span class=keyword>return </span><span class=identifier>derived</span><span class=special>().</span><span class=identifier>start</span><span class=special>.</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>);
+            }
+        };
+    }}</span></code></pre>
+<p>With the <tt>sub_grammar</tt> class, we can define our skipper grammar this 
+  way (see <a href="../example/techniques/no_rules/no_rule3.cpp">no_rule3.cpp</a>):</p>
+<pre><code><span class=special>    </span><span class=keyword>struct </span><span class=identifier>skip_grammar </span><span class=special>: </span><span class=identifier>sub_grammar</span><span class=special>&lt;</span><span class=identifier>skip_grammar</span><span class=special>&gt;
+    {
+        </span><span class=keyword>typedef
+           </span><span class=identifier>alternative</span><span class=special>&lt;</span><span class=identifier>alternative</span><span class=special>&lt;</span><span class=identifier>space_parser</span><span class=special>, </span><span class=identifier>sequence</span><span class=special>&lt;</span><span class=identifier>sequence</span><span class=special>&lt;
+           </span><span class=identifier>strlit</span><span class=special>&lt;</span><span class=keyword>const </span><span class=keyword>char</span><span class=special>*&gt;, </span><span class=identifier>kleene_star</span><span class=special>&lt;</span><span class=identifier>difference</span><span class=special>&lt;</span><span class=identifier>anychar_parser</span><span class=special>,
+           </span><span class=identifier>chlit</span><span class=special>&lt;</span><span class=keyword>char</span><span class=special>&gt; &gt; &gt; &gt;, </span><span class=identifier>chlit</span><span class=special>&lt;</span><span class=keyword>char</span><span class=special>&gt; &gt; &gt;, </span><span class=identifier>sequence</span><span class=special>&lt;</span><span class=identifier>sequence</span><span class=special>&lt;
+           </span><span class=identifier>strlit</span><span class=special>&lt;</span><span class=keyword>const </span><span class=keyword>char</span><span class=special>*&gt;, </span><span class=identifier>kleene_star</span><span class=special>&lt;</span><span class=identifier>difference</span><span class=special>&lt;</span><span class=identifier>anychar_parser</span><span class=special>,
+           </span><span class=identifier>strlit</span><span class=special>&lt;</span><span class=keyword>const </span><span class=keyword>char</span><span class=special>*&gt; &gt; &gt; &gt;, </span><span class=identifier>strlit</span><span class=special>&lt;</span><span class=keyword>const </span><span class=keyword>char</span><span class=special>*&gt; &gt; &gt;
+        </span><span class=identifier>start_t</span><span class=special>;
+
+        </span><span class=identifier>skip_grammar</span><span class=special>()
+        : </span><span class=identifier>start
+            </span><span class=special>(
+                </span><span class=identifier>space_p
+            </span><span class=special>|   </span><span class=string>&quot;//&quot; </span><span class=special>&gt;&gt; *(</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=literal>'\n'</span><span class=special>) &gt;&gt; </span><span class=literal>'\n'
+            </span><span class=special>|   </span><span class=string>&quot;/*&quot; </span><span class=special>&gt;&gt; *(</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=string>&quot;*/&quot;</span><span class=special>) &gt;&gt; </span><span class=string>&quot;*/&quot;
+            </span><span class=special>)
+        {}
+
+        </span><span class=identifier>start_t </span><span class=identifier>start</span><span class=special>;
+    };</span></code></pre>
+<p>But what for, you ask? You can simply use the <tt>start_t</tt> type above as-is. 
+  It's already a parser! We can just type:</p>
+<pre>
+    <code><span class=identifier>skipper_t </span><span class=identifier>skipper </span><span class=special>=
+        </span><span class=identifier>space_p
+        </span><span class=special>|   </span><span class=string>&quot;//&quot; </span><span class=special>&gt;&gt; *(</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=literal>'\n'</span><span class=special>) &gt;&gt; </span><span class=literal>'\n'     </span><br>        <span class=special>|   </span><span class=string>&quot;/*&quot; </span><span class=special>&gt;&gt; *(</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=string>&quot;*/&quot;</span><span class=special>) &gt;&gt; </span><span class=string>&quot;*/&quot;</span>
+    <span class=special>    ;</span></code></pre>
+<p> and use <tt>skipper</tt> just as we would any parser? Well, a subtle difference 
+  is that <tt>skipper</tt>, used this way will be embedded <strong>by value </strong>when<strong> 
+  </strong>you compose more complex parsers using it. That is, if we use <tt>skipper</tt> 
+  inside another production, the whole thing will be stored in the composite. 
+  Heavy!</p>
+<p> The proposed <tt>sub_grammar</tt> OTOH will be held by reference. Note:</p>
+<pre><code>    <span class=keyword>typedef </span><span class=identifier>DerivedT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>embed_t</span><span class=special>;</span></code></pre>
+<p>The proposed <tt>sub_grammar</tt> does not have the inherent limitations of 
+  rules, is very lighweight, and should be blazingly fast (can be fully inlined 
+  and does not use virtual functions). Perhaps this class will be part of a future 
+  spirit release. </p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/note.gif" width="16" height="16"> <strong>The 
+      no-rules result</strong><br> <br>
+      So, how much did we save? On MSVCV7.1, the original code: <a href="../example/techniques/no_rules/no_rule1.cpp">no_rule1.cpp</a> 
+      compiles to <strong>28k</strong>. Eliding rules, <a href="../example/techniques/no_rules/no_rule2.cpp">no_rule2.cpp</a>, 
+      we got <strong>24k</strong>. Not bad, we shaved off 4k amounting to a 14% 
+      reduction. But you'll be in for a surprise. The last version, using the 
+      sub-grammar: <a href="../example/techniques/no_rules/no_rule3.cpp">no_rule3.cpp</a>, 
+      compiles to <strong>5.5k</strong>! That's a whopping 80% reduction.<br>
+      <br>
+      <table width="100%" border="1">
+        <tr> 
+          <td><a href="../example/techniques/no_rules/no_rule1.cpp">no_rule1.cpp</a></td>
+          <td><strong>28k</strong></td>
+          <td>standard rule and grammar</td>
+        </tr>
+        <tr> 
+          <td><a href="../example/techniques/no_rules/no_rule2.cpp">no_rule2.cpp</a></td>
+          <td><strong>24k</strong></td>
+          <td>standard grammar, no rule</td>
+        </tr>
+        <tr> 
+          <td><a href="../example/techniques/no_rules/no_rule3.cpp">no_rule3.cpp</a></td>
+          <td><strong>5.5k</strong></td>
+          <td>sub_grammar, no rule, no grammar</td>
+        </tr>
+      </table> </td>
+  </tr>
+</table>
+<h3><b> <a name="typeof" id="typeof"></a> typeof</b></h3>
+<p>Some compilers already support the <tt>typeof</tt> keyword. Examples are g++ 
+  and Metrowerks CodeWarrior. Someday, <tt>typeof</tt> will become commonplace. 
+  It is worth noting that we can use <tt>typeof</tt> to define non-recursive rules 
+  without using the rule class. To give an example, we'll use the skipper example 
+  above; this time using <tt>typeof</tt>. First, to avoid redundancy, we'll introduce 
+  a macro <tt>RULE</tt>: </p>
+<pre><code>    <span class=preprocessor>#define </span><span class=identifier>RULE</span><span class=special>(</span><span class=identifier>name</span><span class=special>, </span><span class=identifier>definition</span><span class=special>) </span><span class="keyword">typeof</span><span class=special>(</span><span class=identifier>definition</span><span class=special>) </span><span class=identifier>name </span><span class=special>= </span><span class=identifier>definition</span></code></pre>
+<p>Then, simply:</p>
+<pre><code><span class=identifier>    </span><span class=identifier>RULE</span><span class=special>(
+        </span><span class=identifier>skipper</span><span class=special>,
+        (       </span><span class=identifier>space_p
+            </span><span class=special>|   </span><span class=string>&quot;//&quot; </span><span class=special>&gt;&gt; *(</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=literal>'\n'</span><span class=special>) &gt;&gt; </span><span class=literal>'\n'
+            </span><span class=special>|   </span><span class=string>&quot;/*&quot; </span><span class=special>&gt;&gt; *(</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=string>&quot;*/&quot;</span><span class=special>) &gt;&gt; </span><span class=string>&quot;*/&quot;
+        </span><span class=special>)
+    );</span></code></pre>
+<p>(see <a href="../example/techniques/typeof.cpp">typeof.cpp</a>)</p>
+<p>That's it! Now you can use skipper just as you would any parser. Be reminded, 
+    however, that <tt>skipper</tt> above will be embedded by value when<strong> 
+  </strong>you compose more complex parsers using it (see <tt>sub_grammar</tt> rationale above). You can use the <tt>sub_grammar</tt> class to avoid this problem.</p>
+<h3><a name="nabialek_trick"></a> Nabialek trick</h3>
+<p>This technique, I'll call the <strong><em>&quot;Nabialek trick&quot; </em></strong>(from the name of its inventor, Sam Nabialek), can improve the rule dispatch from linear non-deterministic to deterministic. The trick applies to grammars where a keyword (operator, etc), precedes a production. There are lots of grammars similar to this:</p>
+<pre>    <span class=identifier>r </span><span class=special>=
+            </span><span class=identifier>keyword1 </span><span class=special>&gt;&gt; </span><span class=identifier>production1
+        </span><span class=special>|   </span><span class=identifier>keyword2 </span><span class=special>&gt;&gt; </span><span class=identifier>production2
+        </span><span class=special>|   </span><span class=identifier>keyword3 </span><span class=special>&gt;&gt; </span><span class=identifier>production3
+        </span><span class=special>|   </span><span class=identifier>keyword4 </span><span class=special>&gt;&gt; </span><span class=identifier>production4
+        </span><span class=special>|   </span><span class=identifier>keyword5 </span><span class=special>&gt;&gt; </span><span class=identifier>production5
+        </span><span class=comment>/*** etc ***/
+        </span><span class=special>;</span></pre>
+<p>The cascaded alternatives are tried one at a time through trial and error until something matches. The Nabialek trick takes advantage of the <a href="symbols.html">symbol table</a>'s search properties to optimize the dispatching of the alternatives. For an example, see <a href="../example/techniques/nabialek.cpp">nabialek.cpp</a>. The grammar works as follows. There are two rules (<tt>one</tt> and <tt>two</tt>). When &quot;one&quot; is recognized, rule <tt>one</tt> is invoked. When &quot;two&quot; is recognized, rule <tt>two</tt> is invoked.  Here's  the grammar:</p>
+<pre><span class=special>    </span><span class=identifier>one </span><span class=special>= </span><span class=identifier>name</span><span class=special>;
+    </span><span class=identifier>two </span><span class=special>= </span><span class=identifier>name </span><span class=special>&gt;&gt; </span><span class=literal>',' </span><span class=special>&gt;&gt; </span><span class=identifier>name</span><span class=special>;
+    
+    </span><span class=identifier>continuations</span><span class=special>.</span><span class=identifier>add
+        </span><span class=special>(</span><span class=string>&quot;one&quot;</span><span class=special>, &amp;</span><span class=identifier>one</span><span class=special>)
+        </span><span class=special>(</span><span class=string>&quot;two&quot;</span><span class=special>, &amp;</span><span class=identifier>two</span><span class=special>)
+    </span><span class=special>;
+    
+    </span><span class=identifier>line </span><span class=special>= </span><span class=identifier>continuations</span><span class=special>[</span><span class=identifier>set_rest</span><span class=special>&lt;</span><span class=identifier>rule_t</span><span class=special>&gt;(</span><span class=identifier>rest</span><span class=special>)] </span><span class=special>&gt;&gt; </span><span class=identifier>rest</span><span class=special>;</span></pre>
+<p>where continuations is a <a href="symbols.html">symbol table</a> with pointer to rule_t  slots. one, two, name, line and rest are rules:</p>
+<pre><span class=special>    </span><span class=identifier>rule_t </span><span class=identifier>name</span><span class=special>;
+    </span><span class=identifier>rule_t </span><span class=identifier>line</span><span class=special>;
+    </span><span class=identifier>rule_t </span><span class=identifier>rest</span><span class=special>;
+    </span><span class=identifier>rule_t </span><span class=identifier>one</span><span class=special>;
+    </span><span class=identifier>rule_t </span><span class=identifier>two</span><span class=special>;
+    
+    </span><span class=identifier>symbols</span><span class=special>&lt;</span><span class=identifier>rule_t</span><span class=special>*&gt; </span><span class=identifier>continuations</span><span class=special>;</span></pre>
+<p>set_rest, the semantic action attached to continuations is:</p>
+<pre><span class=special>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>Rule</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>set_rest
+    </span><span class=special>{
+        </span><span class=identifier>set_rest</span><span class=special>(</span><span class=identifier>Rule</span><span class=special>&amp; </span><span class=identifier>the_rule</span><span class=special>)
+        </span><span class=special>: </span><span class=identifier>the_rule</span><span class=special>(</span><span class=identifier>the_rule</span><span class=special>) </span><span class=special>{}
+
+        </span><span class=keyword>void </span><span class=keyword>operator</span><span class=special>()(</span><span class=identifier>Rule</span><span class=special>* </span><span class=identifier>newRule</span><span class=special>) </span><span class=keyword>const
+        </span><span class=special>{ </span><span class=identifier>m_theRule </span><span class=special>= </span><span class=special>*</span><span class=identifier>newRule</span><span class=special>; </span><span class=special>}
+
+        </span><span class=identifier>Rule</span><span class=special>&amp; </span><span class=identifier>the_rule</span><span class=special>;
+    </span><span class=special>};</span></pre>
+<p>Notice how the rest <tt>rule</tt> gets set dynamically when the set_rule action is called. The dynamic grammar parses inputs such as:</p>
+<p> &quot;one only&quot;<br>
+&quot;one again&quot;<br>
+&quot;two first, second&quot;</p>
+<p>The cool part is that the <tt>rest</tt> rule is set (by the <tt>set_rest</tt> action) depending on what the symbol table got. If it got a <em>&quot;one&quot;</em> then rest = one. If it got <em>&quot;two&quot;</em>, then rest = two. Very nifty! This technique should be very fast, especially when there are lots of keywords. It would be nice to add special facilities to make this easy to use. I imagine:</p>
+<pre><span class=special>    </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>keywords </span><span class=special>&gt;&gt; </span><span class=identifier>rest</span><span class=special>;</span></pre>
+<p>where <tt>keywords</tt> is a special parser (based on the symbol table) that automatically sets its RHS (rest) depending on the acquired symbol. This, I think, is mighty cool! Someday perhaps... </p>
+<p><img src="theme/note.gif" width="16" height="16"> Also, see the <a href="switch_parser.html">switch parser</a> for another deterministic parsing trick for character/token prefixes. </p>
+<span class=special></span>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="style_guide.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="faq.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+<font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

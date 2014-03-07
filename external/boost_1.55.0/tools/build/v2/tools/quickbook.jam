@@ -1,0 +1,361 @@
+#
+#   Copyright (c) 2005 João Abecasis
+#   Copyright (c) 2005 Vladimir Prus
+#   Copyright (c) 2006 Rene Rivera
+#
+#   Distributed under the Boost Software License, Version 1.0. (See
+#   accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#
+
+# This toolset defines a generator to translate QuickBook to BoostBook. It can
+# be used to generate nice (!) user documentation in different formats
+# (pdf/html/...), from a single text file with simple markup.
+#
+# The toolset defines the QUICKBOOK type (file extension 'qbk') and
+# a QUICKBOOK to XML (BOOSTBOOK) generator.
+#
+#
+#   ===========================================================================
+#   Q & A
+#   ===========================================================================
+#
+#   If you don't know what this is all about, some Q & A will hopefully get you
+#   up to speed with QuickBook and this toolset.
+#
+#
+#   What is QuickBook ?
+#
+#       QuickBook is a WikiWiki style documentation tool geared towards C++
+#       documentation using simple rules and markup for simple formatting tasks.
+#       QuickBook extends the WikiWiki concept. Like the WikiWiki, QuickBook
+#       documents are simple text files. A single QuickBook document can
+#       generate a fully linked set of nice HTML and PostScript/PDF documents
+#       complete with images and syntax-colorized source code.
+#
+#
+#   Where can I get QuickBook ?
+#
+#       Quickbook can be found in Boost's repository, under the tools/quickbook
+#       directory it was added there on Jan 2005, some time after the release of
+#       Boost v1.32.0 and has been an integral part of the Boost distribution
+#       since v1.33.
+#
+#       Here's a link to the SVN repository:
+#           https://svn.boost.org/svn/boost/trunk/tools/quickbook
+#
+#       And to QuickBook's QuickBook-generated docs:
+#           http://www.boost.org/doc/libs/release/tools/quickbook/index.html
+#
+#
+#   How do I use QuickBook and this toolset in my projects ?
+#
+#       The minimal example is:
+#
+#           using boostbook ;
+#           import quickbook ;
+#
+#           boostbook my_docs : my_docs_source.qbk ;
+#
+#       where my_docs is a target name and my_docs_source.qbk is a QuickBook
+#       file. The documentation format to be generated is determined by the
+#       boostbook toolset. By default html documentation should be generated,
+#       but you should check BoostBook's docs to be sure.
+#
+#
+#   What do I need ?
+#
+#       You should start by setting up the BoostBook toolset. Please refer to
+#       boostbook.jam and the BoostBook documentation for information on how to
+#       do this.
+#
+#       A QuickBook executable is also needed. The toolset will generate this
+#       executable if it can find the QuickBook sources. The following
+#       directories will be searched:
+#
+#           BOOST_ROOT/tools/quickbook/
+#           BOOST_BUILD_PATH/../../quickbook/
+#
+#       (BOOST_ROOT and BOOST_BUILD_PATH are environment variables)
+#
+#       If QuickBook sources are not found the toolset will then try to use
+#       the shell command 'quickbook'.
+#
+#
+#   How do I provide a custom QuickBook executable ?
+#
+#       You may put the following in your user-config.jam or site-config.jam:
+#
+#           using quickbook : /path/to/quickbook ;
+#
+#       or, if 'quickbook' can be found in your PATH,
+#
+#           using quickbook : quickbook ;
+#
+#
+#   For convenience three alternatives are tried to get a QuickBook executable:
+#
+#       1.  If the user points us to the a QuickBook executable, that is used.
+#
+#       2.  Otherwise, we search for the QuickBook sources and compile QuickBook
+#           using the default toolset.
+#
+#       3.  As a last resort, we rely on the shell for finding 'quickbook'.
+#
+
+import boostbook ;
+import "class" : new ;
+import feature ;
+import generators ;
+import toolset ;
+import type ;
+import scanner ;
+import project ;
+import targets ;
+import build-system ;
+import path ;
+import common ;
+import errors ;
+
+# The one and only QUICKBOOK type!
+type.register QUICKBOOK : qbk ;
+
+# <quickbook-binary> shell command to run QuickBook
+# <quickbook-binary-dependencies> targets to build QuickBook from sources.
+feature.feature <quickbook-binary> : : free ;
+feature.feature <quickbook-binary-dependencies> : : free dependency ;
+feature.feature <quickbook-define> : : free ;
+feature.feature <quickbook-indent> : : free ;
+feature.feature <quickbook-line-width> : : free ;
+
+
+# quickbook-binary-generator handles generation of the QuickBook executable, by
+# marking it as a dependency for QuickBook docs.
+#
+# If the user supplied the QuickBook command that will be used.
+#
+# Otherwise we search some sensible places for the QuickBook sources and compile
+# from scratch using the default toolset.
+#
+# As a last resort we rely on the shell to find 'quickbook'.
+#
+class quickbook-binary-generator : generator
+{
+    import modules path targets quickbook ;
+
+    rule run ( project name ? : property-set : sources * : multiple ? )
+    {
+        quickbook.freeze-config ;
+        # QuickBook invocation command and dependencies.
+        local quickbook-binary = [ modules.peek quickbook : .quickbook-binary ] ;
+        local quickbook-binary-dependencies ;
+
+        if ! $(quickbook-binary)
+        {
+            # If the QuickBook source directory was found, mark its main target
+            # as a dependency for the current project. Otherwise, try to find
+            # 'quickbook' in user's PATH
+            local quickbook-dir = [ modules.peek quickbook : .quickbook-dir ] ;
+            if $(quickbook-dir)
+            {
+                # Get the main-target in QuickBook directory.
+                local quickbook-main-target = [ targets.resolve-reference $(quickbook-dir) : $(project) ] ;
+
+                # The first element are actual targets, the second are
+                # properties found in target-id. We do not care about these
+                # since we have passed the id ourselves.
+                quickbook-main-target =
+                    [ $(quickbook-main-target[1]).main-target quickbook ] ;
+
+                quickbook-binary-dependencies =
+                    [ $(quickbook-main-target).generate [ $(property-set).propagated ] ] ;
+
+                # Ignore usage-requirements returned as first element.
+                quickbook-binary-dependencies = $(quickbook-binary-dependencies[2-]) ;
+
+                # Some toolsets generate extra targets (e.g. RSP). We must mark
+                # all targets as dependencies for the project, but we will only
+                # use the EXE target for quickbook-to-boostbook translation.
+                for local target in $(quickbook-binary-dependencies)
+                {
+                    if [ $(target).type ] = EXE
+                    {
+                        quickbook-binary = 
+                            [ path.native 
+                                [ path.join
+                                    [ $(target).path ]
+                                    [ $(target).name ]
+                                ]
+                            ] ;
+                    }
+                }
+            }
+        }
+
+        # Add $(quickbook-binary-dependencies) as a dependency of the current
+        # project and set it as the <quickbook-binary> feature for the
+        # quickbook-to-boostbook rule, below.
+        property-set = [ $(property-set).add-raw
+            <dependency>$(quickbook-binary-dependencies)
+            <quickbook-binary>$(quickbook-binary)
+            <quickbook-binary-dependencies>$(quickbook-binary-dependencies)
+        ] ;
+
+        return [ generator.run $(project) $(name) : $(property-set) : $(sources) : $(multiple) ] ;
+    }
+}
+
+
+# Define a scanner for tracking QBK include dependencies.
+#
+class qbk-scanner : common-scanner
+{
+    rule pattern ( )
+    {
+        return "\\[[ ]*include[ ]+([^]]+)\\]" 
+        "\\[[ ]*include:[a-zA-Z0-9_]+[ ]+([^]]+)\\]" 
+        "\\[[ ]*import[ ]+([^]]+)\\]" ;
+    }
+}
+
+
+scanner.register qbk-scanner : include ;
+
+type.set-scanner QUICKBOOK : qbk-scanner ;
+
+
+# Initialization of toolset.
+#
+# Parameters:
+#   command ?    -> path to QuickBook executable.
+#
+# When command is not supplied toolset will search for QuickBook directory and
+# compile the executable from source. If that fails we still search the path for
+# 'quickbook'.
+#
+rule init (
+        command ?   # path to the QuickBook executable.
+    )
+{
+    if $(command)
+    {
+        if $(.config-frozen)
+        {
+            errors.user-error "quickbook: configuration cannot be changed after it has been used." ;
+        }
+        .command = $(command) ;
+    }
+}
+
+rule freeze-config ( )
+{
+    if ! $(.config-frozen)
+    {
+        .config-frozen = true ;
+
+        # QuickBook invocation command and dependencies.
+
+        .quickbook-binary = $(.command) ;
+
+        if $(.quickbook-binary)
+        {
+            # Use user-supplied command.
+            .quickbook-binary = [ common.get-invocation-command quickbook : quickbook : $(.quickbook-binary) ] ;
+        }
+        else
+        {
+            # Search for QuickBook sources in sensible places, like
+            #   $(BOOST_ROOT)/tools/quickbook
+            #   $(BOOST_BUILD_PATH)/../../quickbook
+
+            # And build quickbook executable from sources.
+
+            local boost-root = [ modules.peek : BOOST_ROOT ] ;
+            local boost-build-path = [ build-system.location ] ;
+
+            if $(boost-root)
+            {
+                .quickbook-dir += [ path.join $(boost-root) tools ] ;
+            }
+
+            if $(boost-build-path)
+            {
+                .quickbook-dir += $(boost-build-path)/../.. ;
+            }
+
+            .quickbook-dir = [ path.glob $(.quickbook-dir) : quickbook ] ;
+
+            # If the QuickBook source directory was found, mark its main target
+            # as a dependency for the current project. Otherwise, try to find
+            # 'quickbook' in user's PATH
+            if $(.quickbook-dir)
+            {
+                .quickbook-dir = [ path.make $(.quickbook-dir[1]) ] ;
+            }
+            else
+            {
+                ECHO "QuickBook warning: The path to the quickbook executable was" ;
+                ECHO "  not provided. Additionally, couldn't find QuickBook" ;
+                ECHO "  sources searching in" ;
+                ECHO "    * BOOST_ROOT/tools/quickbook" ;
+                ECHO "    * BOOST_BUILD_PATH/../../quickbook" ;
+                ECHO "  Will now try to find a precompiled executable by searching" ;
+                ECHO "  the PATH for 'quickbook'." ;
+                ECHO "  To disable this warning in the future, or to completely" ;
+                ECHO "  avoid compilation of quickbook, you can explicitly set the" ;
+                ECHO "  path to a quickbook executable command in user-config.jam" ;
+                ECHO "  or site-config.jam with the call" ;
+                ECHO "    using quickbook : /path/to/quickbook ;" ;
+
+                # As a last resort, search for 'quickbook' command in path. Note
+                # that even if the 'quickbook' command is not found,
+                # get-invocation-command will still return 'quickbook' and might
+                # generate an error while generating the virtual-target.
+
+                .quickbook-binary = [ common.get-invocation-command quickbook : quickbook ] ;
+            }
+        }
+    }
+}
+
+
+generators.register [ new quickbook-binary-generator quickbook.quickbook-to-boostbook : QUICKBOOK : XML ] ;
+
+
+# <quickbook-binary> shell command to run QuickBook
+# <quickbook-binary-dependencies> targets to build QuickBook from sources.
+toolset.flags quickbook.quickbook-to-boostbook QB-COMMAND      <quickbook-binary> ;
+toolset.flags quickbook.quickbook-to-boostbook QB-DEPENDENCIES <quickbook-binary-dependencies> ;
+toolset.flags quickbook.quickbook-to-boostbook INCLUDES        <include> ;
+toolset.flags quickbook.quickbook-to-boostbook QB-DEFINES      <quickbook-define> ;
+toolset.flags quickbook.quickbook-to-boostbook QB-INDENT       <quickbook-indent> ;
+toolset.flags quickbook.quickbook-to-boostbook QB-LINE-WIDTH   <quickbook-line-width> ;
+
+
+rule quickbook-to-boostbook ( target : source : properties * )
+{
+    # Signal dependency of quickbook sources on <quickbook-binary-dependencies>
+    # upon invocation of quickbook-to-boostbook.
+    DEPENDS $(target) : [ on $(target) return $(QB-DEPENDENCIES) ] ;
+}
+
+
+actions quickbook-to-boostbook
+{
+    "$(QB-COMMAND)" -I"$(INCLUDES)" -D"$(QB-DEFINES)" --indent="$(QB-INDENT)" --linewidth="$(QB-LINE-WIDTH)" --output-file="$(1)" "$(2)"
+}
+
+
+# Declare a main target to convert a quickbook source into a boostbook XML file.
+#
+rule to-boostbook ( target-name : sources * : requirements * : default-build * )
+{ 
+  local project = [ project.current ] ;
+    
+  targets.main-target-alternative 
+    [ new typed-target $(target-name) : $(project) : XML
+        : [ targets.main-target-sources $(sources) : $(target-name) ] 
+        : [ targets.main-target-requirements $(requirements) : $(project) ]
+        : [ targets.main-target-default-build $(default-build) : $(project) ] 
+    ] ;
+}

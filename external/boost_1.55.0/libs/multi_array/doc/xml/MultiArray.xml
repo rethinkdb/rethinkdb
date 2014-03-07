@@ -1,0 +1,1019 @@
+<sect1 id="MultiArray"><title>MultiArray Concept</title>
+
+
+<para>The MultiArray
+concept defines an interface to hierarchically nested
+containers.  It specifies operations for accessing elements,
+traversing containers, and creating views
+of array data.
+MultiArray defines
+a flexible memory model that accomodates
+a variety of data layouts.
+</para>
+
+<para>
+At each level (or dimension) of a MultiArray's
+container hierarchy lie a set of ordered containers, each of which
+contains the same number and type of values. The depth of this
+container hierarchy is the MultiArray's <emphasis>dimensionality</emphasis>. 
+MultiArray is recursively defined; the
+containers at each level of the container hierarchy model
+MultiArray as well. While each dimension of a MultiArray
+has its own size, the list of sizes for all dimensions 
+defines the <emphasis>shape</emphasis> of the entire MultiArray.
+At the base of this hierarchy lie 1-dimensional
+MultiArrays.  Their values are the contained
+objects of interest and not part of the container hierarchy. These are
+the MultiArray's elements.
+</para>
+
+
+<para>
+Like other container concepts, MultiArray exports
+iterators to traverse its values. In addition, values can be
+addressed directly using the familiar bracket notation.
+</para>
+
+<para>
+MultiArray also specifies
+routines for creating
+specialized views. A <emphasis>view</emphasis> lets you treat a 
+subset of the underlying
+elements in a MultiArray as though it were a separate
+MultiArray. Since a view refers to the same underlying elements,
+changes made to a view's elements will be reflected in the original
+MultiArray. For
+example, given a 3-dimensional "cube" of elements, a 2-dimensional
+slice can be viewed as if it were an independent
+MultiArray.
+
+Views are created using <literal>index_gen</literal> and
+<literal>index_range</literal> objects.
+<literal>index_range</literal>s denote elements from a certain
+dimension that are to be included in a
+view. <literal>index_gen</literal> aggregates range data and performs
+bookkeeping to determine the view type to be returned.
+
+MultiArray's <literal>operator[]</literal>
+ must be passed the result
+of <literal>N</literal> chained calls to 
+<literal>index_gen::operator[]</literal>, i.e.
+
+<programlisting>indices[a0][a1]...[aN];
+</programlisting>
+
+where <literal>N</literal> is the 
+MultiArray's dimensionality and
+<literal>indices</literal> an object of type <literal>index_gen</literal>.
+
+The view type is dependent upon the number of degenerate dimensions
+specified to <literal>index_gen</literal>.  A degenerate dimension
+occurs when a single-index is specified to
+<literal>index_gen</literal> for a certain dimension.  For example, if
+<literal>indices</literal> is an object of type
+<literal>index_gen</literal>, then the following example:
+
+<programlisting>indices[index_range(0,5)][2][index_range(0,4)];
+</programlisting>
+
+has a degenerate second dimension.  The view generated from the above
+specification will have 2 dimensions with shape <literal>5 x 4</literal>.
+If the "<literal>2</literal>" above were replaced with
+another <literal>index_range</literal> object, for example:
+
+<programlisting>indices[index_range(0,5)][index_range(0,2)][index_range(0,4)];
+</programlisting>
+
+then the view would have 3 dimensions.</para>
+
+<para>
+MultiArray exports
+information regarding the memory
+layout of its contained elements. Its memory model for elements is
+completely defined by 4 properties: the origin, shape, index bases,
+and strides.  The origin is the address in memory of the element
+accessed as <literal>a[0][0]...[0]</literal>, where
+<literal>a</literal> is a MultiArray. The shape is a list of numbers
+specifying the size of containers at each dimension.  For example, the
+first extent is the size of the outermost container, the second extent
+is the size of its subcontainers, and so on. The index bases are a
+list of signed values specifying the index of the first value in a
+container. All containers at the same dimension share the same index
+base.  Note that since positive index bases are
+possible, the origin need not exist in order to determine the location
+in memory of the MultiArray's elements.
+  The strides determine how index values are mapped to memory offsets. 
+They accomodate a
+number of possible element layouts.  For example, the elements of a 2
+dimensional array can be stored by row (i.e., the elements of each row
+are stored contiguously) or by column (i.e., the elements of each
+column are stored contiguously).
+</para>
+
+<para>
+Two concept checking classes for the MultiArray concepts
+(<literal>ConstMultiArrayConcept</literal> and
+<literal>MutableMultiArrayConcept</literal>) are in the namespace
+<literal>boost::multi_array_concepts</literal> in
+<literal>&lt;boost/multi_array/concept_checks.hpp&gt;</literal>.
+</para>
+
+
+<sect2><title>Notation</title>
+<para>What follows are the descriptions of symbols that will be used
+to describe the MultiArray interface.</para>
+    <table>
+      <title>Notation</title>
+      <tgroup cols="2">
+	<tbody>
+	  <row>
+	      <entry><literal>A</literal></entry>
+	      <entry>A type that is a model of MultiArray
+</entry>
+	    </row>
+	    <row>
+	      <entry><literal>a,b</literal></entry>
+	      <entry>Objects of type <literal>A</literal></entry>
+	    </row>
+	    <row>
+	      <entry><literal>NumDims</literal></entry>
+	      <entry>The numeric dimension parameter associated with
+<literal>A</literal>.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>Dims</literal></entry>
+	      <entry>Some numeric dimension parameter such that 
+<literal>0&lt;Dims&lt;NumDims</literal>.
+</entry>
+	  </row>
+	  <row>
+	      <entry><literal>indices</literal></entry>
+	      <entry>An object created by some number of chained calls
+to <literal>index_gen::operator[](index_range)</literal>.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>index_list</literal></entry>
+	      <entry>An object whose type models
+<ulink url="../../utility/Collection.html">Collection</ulink>
+</entry>
+	    </row>
+	    <row>
+	      <entry><literal>idx</literal></entry>
+	      <entry>A signed integral value.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>tmp</literal></entry> 
+	      <entry>An object of type
+	      <literal>boost::array&lt;index,NumDims&gt;</literal></entry>
+	    </row>
+	</tbody>
+      </tgroup>
+    </table>
+</sect2>
+
+<sect2><title>Associated Types</title>
+<para>
+</para>
+<table><title>Associated Types</title>
+<tgroup cols="2">
+
+<thead>
+<row>
+<entry>Type</entry>
+<entry>Description</entry>
+</row>
+</thead>
+
+<tbody>
+
+<row>
+<entry><literal>value_type</literal></entry>
+
+<entry>This is the value type of the container.
+  If <literal>NumDims == 1</literal>, then this is
+<literal>element</literal>. Otherwise, this is the value type of the
+immediately nested containers.
+</entry>
+</row>
+
+<row>
+<entry>
+<literal>reference</literal>
+</entry>
+
+<entry>
+This is the reference type of the contained value. 
+If <literal>NumDims == 1</literal>, then this is 
+<literal>element&amp;</literal>. Otherwise, this is the same type as
+<literal>template subarray&lt;NumDims-1&gt;::type</literal>.
+</entry>
+</row>
+
+<row>
+<entry>
+<literal>const_reference</literal>
+</entry>
+<entry>
+This is the const reference type of the contained value.
+If <literal>NumDims == 1</literal>, then this is  
+<literal>const element&amp;</literal>. Otherwise, this is the same
+type as
+<literal>template const_subarray&lt;NumDims-1&gt;::type</literal>.
+</entry>
+</row>
+
+<row>
+<entry>
+<literal>size_type</literal>
+</entry>
+<entry>
+This is an unsigned integral type.  It is primarily used to specify array shape.
+</entry>
+</row>
+
+
+<row>
+<entry>
+<literal>difference_type</literal>
+</entry>
+<entry>
+This is a signed integral type used to represent the distance between two
+iterators. It is the same type as
+<literal>std::iterator_traits&lt;iterator&gt;::difference_type</literal>.
+</entry>
+</row>
+
+<row>
+<entry><literal>iterator</literal></entry>
+<entry>
+This is an iterator over the values of <literal>A</literal>.
+If <literal>NumDims == 1</literal>, then it models 
+<ulink url="http://www.boost.org/doc/html/RandomAccessIterator.html">
+<literal>Random Access Iterator</literal></ulink>. 
+Otherwise it models 
+<ulink url="./iterator_categories.html#concept_RandomAccessTraversalIterator">
+Random Access Traversal Iterator</ulink>,
+<ulink url="./iterator_categories.html#concept_ReadableIterator">
+Readable Iterator</ulink>,
+<ulink url="./iterator_categories.html#concept_WritableIterator">
+Writable Iterator</ulink>, and 
+<ulink url="http://www.boost.org/doc/html/OutputIterator.html">
+<literal>Output Iterator</literal></ulink>.
+</entry>
+</row>
+
+<row>
+<entry>
+<literal>const_iterator</literal>
+</entry>
+<entry>
+This is the const iterator over the values of <literal>A</literal>.
+</entry>
+</row>
+<row>
+
+<entry>
+<literal>reverse_iterator</literal>
+</entry>
+<entry>
+This is the reversed iterator, used to iterate backwards over the values of 
+<literal>A</literal>.
+</entry>
+</row>
+
+<row>
+<entry>
+<literal>const_reverse_iterator</literal>
+</entry>
+<entry>
+This is the reversed const iterator.
+<literal>A</literal>.
+</entry>
+</row>
+<row>
+
+<entry>
+<literal>element</literal>
+</entry>
+<entry>
+This is the type of objects stored at the base of the
+hierarchy of MultiArrays. It is the same as
+<literal>template subarray&lt;1&gt;::value_type</literal>
+</entry>
+</row>
+
+<row>
+<entry>
+<literal>index</literal>
+</entry>
+<entry>
+This is a signed integral type used for indexing into <literal>A</literal>. It 
+is also used to represent strides and index bases.
+</entry>
+</row>
+
+<row>
+<entry>
+<literal>index_gen</literal>
+</entry>
+<entry>
+This type is used to create a tuple of <literal>index_range</literal>s 
+passed to <literal>operator[]</literal> to create
+an <literal>array_view&lt;Dims&gt;::type</literal> object.
+</entry>
+</row>
+
+<row>
+<entry>
+<literal>index_range</literal>
+</entry>
+<entry>
+This type specifies a range of indices over some dimension of a
+MultiArray.  This range will be visible through an 
+<literal>array_view&lt;Dims&gt;::type</literal> object.
+</entry>
+</row>
+
+<row>
+<entry>
+<literal>template subarray&lt;Dims&gt;::type</literal>
+</entry>
+<entry>
+This is subarray type with <literal>Dims</literal> dimensions.
+It is the reference type of the <literal>(NumDims - Dims)</literal>
+dimension of <literal>A</literal> and also models
+MultiArray.
+</entry>
+</row>
+
+<row>
+<entry>
+<literal>template const_subarray&lt;Dims&gt;::type</literal>
+</entry>
+<entry>
+This is the const subarray type.
+</entry>
+</row>
+
+<row>
+<entry>
+<literal>template array_view&lt;Dims&gt;::type</literal>
+</entry>
+<entry>
+This is the view type with <literal>Dims</literal> dimensions.  It is
+returned by calling <literal>operator[](<literal>indices</literal>)</literal>.
+It models MultiArray.
+</entry>
+</row>
+
+<row>
+<entry>
+<literal>template
+const_array_view&lt;Dims&gt;::type</literal>
+</entry>
+<entry>
+This is the const view type with <literal>Dims</literal> dimensions.
+</entry>
+</row>
+
+</tbody>
+</tgroup>
+</table>
+
+</sect2>
+
+
+  <sect2><title>Valid expressions</title>
+    
+    <table><title>Valid Expressions</title>
+      <tgroup cols="3">
+	<thead>
+	  <row>
+	    <entry>Expression</entry>
+	    <entry>Return type</entry>
+	    <entry>Semantics</entry>
+	  </row>
+	</thead>
+	<tbody>
+	  <row>
+	    <entry><literal>A::dimensionality</literal></entry>
+	    <entry><literal>size_type</literal></entry>
+	    <entry>This compile-time constant represents the number of
+dimensions of the array (note that 
+<literal>A::dimensionality == NumDims</literal>).</entry>
+	  </row>
+	  <row>
+	    <entry><literal>a.shape()</literal></entry>
+	    <entry><literal>const size_type*</literal></entry>
+	    <entry>
+This returns a list of <literal>NumDims</literal> elements specifying the
+extent of each array dimension.
+</entry>
+	  </row>
+
+	  <row>
+	    <entry><literal>a.strides()</literal></entry>
+	    <entry><literal>const index*</literal></entry>
+	    <entry>
+This returns a list of <literal>NumDims</literal> elements specifying the
+stride associated with each array dimension. When accessing values,
+strides is used to calculate an element's location in memory.
+</entry>
+	  </row>
+
+	  <row>
+	    <entry><literal>a.index_bases()</literal></entry>
+	    <entry><literal>const index*</literal></entry>
+	    <entry>
+This returns a list of <literal>NumDims</literal> elements specifying the
+numeric index of the first element for each array dimension.
+</entry>
+	  </row>
+	  <row>
+	    <entry><literal>a.origin()</literal></entry>
+	    <entry>
+<literal>element*</literal> if <literal>a</literal> is mutable,
+<literal>const element*</literal> otherwise.
+</entry>
+<entry>
+This returns the address of the element accessed by the expression
+<literal>a[0][0]...[0].</literal>. If the index bases are positive,
+this element won't exist, but the address can still be used to locate
+a valid element given its indices.
+</entry>
+	  </row>
+	  <row>
+	    <entry><literal>a.num_dimensions()</literal></entry>
+	    <entry><literal>size_type</literal></entry>
+	    <entry>This returns the number of dimensions of the array
+(note that <literal>a.num_dimensions() == NumDims</literal>).</entry>
+	  </row>
+
+	    <row>
+	      <entry><literal>a.num_elements()</literal></entry>
+	      <entry><literal>size_type</literal></entry>
+	      <entry>This returns the number of elements contained
+in the array. It is equivalent to the following code:
+<programlisting>
+std::accumulate(a.shape(),a.shape+a.num_dimensions(),
+    size_type(1),std::multiplies&lt;size_type&gt;());
+</programlisting>
+</entry>
+	  </row>
+
+	  <row>
+	    <entry><literal>a.size()</literal></entry>
+	    <entry><literal>size_type</literal></entry>
+	    <entry>
+This returns the number of values contained in
+<literal>a</literal>. It is equivalent to <literal>a.shape()[0];</literal>
+</entry>
+	  </row>
+	  <row>
+	    <entry><literal>a(index_list)</literal></entry>
+            <entry>
+<literal>element&amp;</literal>;  if <literal>a</literal> is mutable,
+<literal>const element&amp;</literal> otherwise.
+            </entry>
+	    <entry>
+This expression accesses a specific element of
+<literal>a</literal>.<literal>index_list</literal> is the unique set
+of indices that address the element returned.  It is 
+equivalent to the following code (disregarding intermediate temporaries):
+<programlisting>
+    // multiply indices by strides
+    std::transform(index_list.begin(), index_list.end(),
+      a.strides(), tmp.begin(), std::multiplies&lt;index&gt;()),
+
+    // add the sum of the products to the origin
+    *std::accumulate(tmp.begin(), tmp.end(), a.origin());
+</programlisting>
+</entry>
+	  </row>
+
+	  <row>
+	    <entry><literal>a.begin()</literal></entry>
+	    <entry>
+<literal>iterator</literal> if <literal>a</literal> is mutable,
+<literal>const_iterator</literal> otherwise.
+            </entry>
+	    <entry>This returns an iterator pointing to the beginning of
+<literal>a</literal>.</entry>
+	  </row>
+
+	  <row>
+	    <entry><literal>a.end()</literal></entry>
+	    <entry>
+<literal>iterator</literal> if <literal>a</literal> is mutable,
+<literal>const_iterator</literal> otherwise.
+            </entry>
+	      <entry>This returns an iterator pointing to the end of
+<literal>a</literal>.</entry>
+	  </row>
+
+	  <row>
+	    <entry><literal>a.rbegin()</literal></entry>
+	    <entry>
+<literal>reverse_iterator</literal> if <literal>a</literal> is mutable, 
+<literal>const_reverse_iterator</literal> otherwise.
+            </entry>
+	    <entry>This returns a reverse iterator pointing to the
+beginning of <literal>a</literal> reversed.
+</entry>
+	  </row>
+
+	  <row>
+	    <entry><literal>a.rend()</literal></entry>
+	    <entry>
+<literal>reverse_iterator</literal> if <literal>a</literal> is mutable, 
+<literal>const_reverse_iterator</literal> otherwise.
+</entry>
+	    <entry>
+This returns a reverse iterator pointing to the end of <literal>a</literal>
+reversed.
+</entry>
+</row>
+	  <row>
+	    <entry><literal>a[idx]</literal></entry>
+	    <entry>
+<literal>reference</literal> if <literal>a</literal> is mutable,
+<literal>const_reference</literal> otherwise.
+            </entry>
+	    <entry>
+This returns a reference type that is bound to the index
+<literal>idx</literal> value of <literal>a</literal>.  Note that if
+<literal>i</literal> is the index base for this dimension, the above
+expression returns the <literal>(idx-i)</literal>th element (counting
+from zero).  The expression is equivalent to
+<literal>*(a.begin()+idx-a.index_bases()[0]);</literal>.
+</entry>
+	  </row>
+
+	  <row>
+	    <entry><literal>a[indices]</literal></entry>
+	    <entry>
+<literal>array_view&lt;Dims&gt;::type</literal> if
+<literal>a</literal> is mutable,
+<literal>const_array_view&lt;Dims&gt;::type</literal> otherwise.
+            </entry>
+	<entry>
+This expression generates a view of the array determined by the
+<literal>index_range</literal> and <literal>index</literal> values
+ used to construct <literal>indices</literal>.
+</entry>
+      </row>
+	    <row>
+	      <entry><literal>a == b</literal></entry>
+	      <entry>bool</entry>
+	      <entry>This performs a lexicographical comparison of the
+values of <literal>a</literal> and <literal>b</literal>.  The element
+type must model <ulink url="http://www.sgi.com/tech/stl/EqualityComparable.html">EqualityComparable</ulink> for this
+expression to be valid.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>a &lt; b</literal></entry>
+	      <entry>bool</entry>
+	      <entry>This performs a lexicographical comparison of the
+values of <literal>a</literal> and <literal>b</literal>.  The element
+type must model <ulink url="http://www.sgi.com/tech/stl/LessThanComparable.html">LessThanComparable</ulink> for this
+expression to be valid.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>a &lt;= b</literal></entry>
+	      <entry>bool</entry>
+	      <entry>This performs a lexicographical comparison of the
+values of <literal>a</literal> and <literal>b</literal>.  The element
+type must model <ulink url="http://www.sgi.com/tech/stl/EqualityComparable.html">EqualityComparable</ulink> and
+<ulink url="http://www.sgi.com/tech/stl/LessThanComparable.html">LessThanComparable</ulink> for this
+expression to be valid.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>a &gt; b</literal></entry>
+	      <entry>bool</entry>
+	      <entry>This performs a lexicographical comparison of the
+values of <literal>a</literal> and <literal>b</literal>.  The element
+type must model <ulink url="http://www.sgi.com/tech/stl/EqualityComparable.html">EqualityComparable</ulink> and 
+<ulink url="http://www.sgi.com/tech/stl/LessThanComparable.html">LessThanComparable</ulink> for this
+expression to be valid.</entry>
+	    </row>
+	    <row>
+	      <entry><literal>a &gt;= b</literal></entry>
+	      <entry>bool</entry>
+	      <entry>This performs a lexicographical comparison of the
+values of <literal>a</literal> and <literal>b</literal>.  The element
+type must model <ulink url="http://www.sgi.com/tech/stl/LessThanComparable.html">LessThanComparable</ulink> for this
+expression to be valid.</entry>
+	    </row>
+    </tbody>
+    </tgroup>
+    </table>
+    </sect2>
+
+
+<sect2><title>Complexity guarantees</title>
+
+<literal>begin()</literal> and <literal>end()</literal> execute in amortized
+constant time.
+<literal>size()</literal> executes in at most linear time in the 
+MultiArray's size. 
+</sect2>
+
+<sect2>
+<title>Invariants</title>
+<table><title>Invariants</title>
+      <tgroup cols="2">
+	<tbody>
+	  <row>
+	    <entry>Valid range</entry>
+	    <entry><literal>[a.begin(),a.end())</literal> is a valid range.
+            </entry>
+	  </row>
+
+	  <row>
+	    <entry>Range size</entry>
+	    <entry>
+<literal>a.size() == std::distance(a.begin(),a.end());</literal>.
+</entry>
+	  </row>
+
+	  <row>
+	    <entry>Completeness</entry>
+	    <entry>
+Iteration through the range 
+<literal>[a.begin(),a.end())</literal> will traverse across every
+<literal>value_type</literal> of <literal>a</literal>.
+</entry>
+	    </row>
+	    <row>
+	      <entry>Accessor Equivalence</entry>
+	      <entry>
+Calling <literal>a[a1][a2]...[aN]</literal> where <literal>N==NumDims</literal>
+yields the same result as calling 
+<literal>a(index_list)</literal>, where <literal>index_list</literal>
+is a <ulink url="../../utility/Collection.html">Collection</ulink> containing the values <literal>a1...aN</literal>.
+</entry>
+	      </row>
+	</tbody>
+      </tgroup>
+    </table>
+  </sect2>
+
+<sect2 id="view_types">
+      <title>Associated Types for Views</title>
+      <para>The following MultiArray  associated 
+types define the interface for creating views of existing
+MultiArrays. Their interfaces and roles in the
+concept are described below.</para>
+  
+  <sect3 id="index_range">
+    <title><literal>index_range</literal></title>
+
+    <para><literal>index_range</literal> objects represent half-open
+strided intervals.  They are aggregated (using an
+<literal>index_gen</literal> object) and passed to 
+a MultiArray's <literal>operator[]</literal>
+to create an array view. When creating a view, 
+each <literal>index_range</literal> denotes a range of
+valid indices along one dimension of a MultiArray.
+Elements that are accessed through the set of ranges specified will be 
+included in the constructed view. In some cases, an
+<literal>index_range</literal> is created without specifying start
+or finish values.  In those cases, the object is interpreted to
+start at the beginning of a MultiArray dimension
+and end at its end.</para>
+
+<para>
+<literal>index_range</literal> objects can be constructed and modified 
+several ways in order to allow convenient and clear expression of a
+range of indices.  To specify ranges, <literal>index_range</literal>
+supports a set of constructors, mutating member functions, and a novel 
+specification involving inequality operators.  Using inequality
+operators,  a half open range [5,10) can be specified as follows:
+<programlisting>5 &lt;= index_range() &lt; 10;</programlisting> or
+<programlisting>4 &lt; index_range() &lt;= 9;</programlisting> and so on.
+
+The following describes the
+<literal>index_range</literal> interface.
+</para>
+
+    <table>
+      <title>Notation</title>
+      <tgroup cols="2">
+	<tbody>
+	  <row>
+	    <entry><literal>i</literal></entry>
+	    <entry>An object of type <literal>index_range</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>idx,idx1,idx2,idx3</literal></entry>
+	    <entry>Objects of type <literal>index</literal>.</entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </table>
+
+    <table><title>Associated Types</title>
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry>Type</entry>
+	    <entry>Description</entry>
+	  </row>
+	</thead>
+	<tbody>
+	  <row>
+	    <entry><literal>index</literal></entry>
+	    <entry>This is a signed integral type. It is used to
+specify the start, finish, and stride values.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>size_type</literal></entry>
+	    <entry>This is an unsigned integral type. It is used to
+report the size of the range an <literal>index_range</literal> 
+represents.</entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </table>
+    
+
+    <table><title>Valid Expressions</title>
+      <tgroup cols="3">
+	<thead>
+	  <row>
+	    <entry>Expression</entry>
+	    <entry>Return type</entry>
+	    <entry>Semantics</entry>
+	  </row>
+	</thead>
+	<tbody>
+	  <row>
+	    <entry><literal>index_range(idx1,idx2,idx3)</literal></entry>
+	    <entry><literal>index_range</literal></entry>
+	    <entry>This constructs an <literal>index_range</literal>
+	    representing the interval <literal>[idx1,idx2)</literal>
+ with stride <literal>idx3</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>index_range(idx1,idx2)</literal></entry>
+	    <entry><literal>index_range</literal></entry>
+	    <entry>This constructs an <literal>index_range</literal>
+	    representing the interval <literal>[idx1,idx2)</literal>
+ with unit stride. It is equivalent to
+	    <literal>index_range(idx1,idx2,1)</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>index_range()</literal></entry>
+	    <entry><literal>index_range</literal></entry>
+	    <entry>This construct an <literal>index_range</literal>
+with unspecified start and finish values.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>i.start(idx1)</literal></entry> 
+	    <entry><literal>index&amp;</literal></entry>
+	    <entry>This sets the start index of <literal>i</literal> to
+	    <literal>idx</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>i.finish(idx)</literal></entry>
+	    <entry><literal>index&amp;</literal></entry>
+	    <entry>This sets the finish index of <literal>i</literal> to 
+            <literal>idx</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>i.stride(idx)</literal></entry>
+	    <entry><literal>index&amp;</literal></entry>
+	    <entry>This sets the stride length of <literal>i</literal> to
+            <literal>idx</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>i.start()</literal></entry>
+	    <entry><literal>index</literal></entry>
+	    <entry>This returns the start index of <literal>i</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>i.finish()</literal></entry>
+	    <entry><literal>index</literal></entry>
+	    <entry>This returns the finish index of <literal>i</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>i.stride()</literal></entry>
+	    <entry><literal>index</literal></entry>
+	    <entry>This returns the stride length of <literal>i</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>i.get_start(idx)</literal></entry> 
+	    <entry><literal>index</literal></entry>
+	    <entry>If <literal>i</literal> specifies a start
+value, this is equivalent to <literal>i.start()</literal>. Otherwise it
+returns <literal>idx</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>i.get_finish(idx)</literal></entry>
+	    <entry><literal>index</literal></entry>
+	    <entry>If <literal>i</literal> specifies a finish
+value, this is equivalent to <literal>i.finish()</literal>. Otherwise it
+returns <literal>idx</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>i.size(idx)</literal></entry>
+	    <entry><literal>size_type</literal></entry>
+	    <entry>If <literal>i</literal> specifies a both finish and
+start values, this is equivalent to
+<literal>(i.finish()-i.start())/i.stride()</literal>. Otherwise it
+returns <literal>idx</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>i &lt; idx</literal></entry>
+	    <entry><literal>index</literal></entry>
+	    <entry>This is another syntax for specifying the finish
+value. This notation does not include 
+<literal>idx</literal> in the range of valid indices. It is equivalent to 
+<literal>index_range(r.start(), idx, r.stride())</literal></entry>
+	  </row>
+	  <row>
+	    <entry><literal>i &lt;= idx</literal></entry>
+	    <entry><literal>index</literal></entry>
+	    <entry>This is another syntax for specifying the finish
+value. This notation includes 
+<literal>idx</literal> in the range of valid indices. It is equivalent to 
+<literal>index_range(r.start(), idx + 1, r.stride())</literal></entry>
+	  </row>
+	  <row>
+	    <entry><literal>idx &lt; i</literal></entry>
+	    <entry><literal>index</literal></entry>
+	    <entry>This is another syntax for specifying the start
+value. This notation does not include 
+<literal>idx</literal> in the range of valid indices. It is equivalent to 
+<literal>index_range(idx + 1, i.finish(), i.stride())</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>idx &lt;= i</literal></entry>
+	    <entry><literal>index</literal></entry>
+	    <entry>This is another syntax for specifying the start
+value. This notation includes
+<literal>idx1</literal> in the range of valid indices. It is equivalent to 
+<literal>index_range(idx, i.finish(), i.stride())</literal>.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>i + idx</literal></entry>
+	    <entry><literal>index</literal></entry>
+	    <entry>This expression shifts the start and finish values
+of <literal>i</literal> up by <literal>idx</literal>. It is equivalent to 
+<literal>index_range(r.start()+idx1, r.finish()+idx, r.stride())</literal></entry>
+	  </row>
+	  <row>
+	    <entry><literal>i - idx</literal></entry>
+	    <entry><literal>index</literal></entry>
+	    <entry>This expression shifts the start and finish values
+of <literal>i</literal> up by <literal>idx</literal>. It is equivalent to 
+<literal>index_range(r.start()-idx1, r.finish()-idx, r.stride())</literal></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </table>
+  </sect3>
+
+      <sect3 id="index_gen">
+	<title><literal>index_gen</literal></title>
+	<para> <literal>index_gen</literal> aggregates 
+<literal>index_range</literal> objects in order to specify view
+parameters.  Chained calls to <literal>operator[]</literal> store
+range and dimension information used to 
+instantiate a new view into a MultiArray.
+</para>
+	<table>
+	  <title>Notation</title>
+	  <tgroup cols="2">
+	    <tbody>
+	      <row>
+		<entry><literal>Dims,Ranges</literal></entry>
+		<entry>Unsigned integral values.</entry>
+	      </row>
+	      <row>
+		<entry><literal>x</literal></entry>
+		<entry>An object of type 
+<literal>template gen_type&lt;Dims,Ranges&gt;::type</literal>.</entry>
+	      </row>
+	      <row>
+		<entry><literal>i</literal></entry>
+		<entry>An object of type 
+<literal>index_range</literal>.</entry>
+	      </row>
+	      <row>
+		<entry><literal>idx</literal></entry>
+		<entry>Objects of type <literal>index</literal>.</entry>
+	      </row>
+	    </tbody>
+	  </tgroup>
+	</table>
+	
+    <table><title>Associated Types</title>
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry>Type</entry>
+	    <entry>Description</entry>
+	  </row>
+	</thead>
+	<tbody>
+	  <row>
+	    <entry><literal>index</literal></entry>
+	    <entry>This is a signed integral type. It is used to
+specify degenerate dimensions.</entry>
+	  </row>
+	  <row>
+	    <entry><literal>size_type</literal></entry>
+	    <entry>This is an unsigned integral type. It is used to
+report the size of the range an <literal>index_range</literal> 
+represents.</entry>
+	  </row>
+	      <row>
+		<entry>
+<literal>template gen_type::&lt;Dims,Ranges&gt;::type</literal></entry>
+	<entry>This type generator names the result of 
+<literal>Dims</literal> chained calls to
+<literal>index_gen::operator[]</literal>.  The
+<literal>Ranges</literal> parameter is determined by the number of
+degenerate ranges specified (i.e. calls to
+<literal>operator[](index)</literal>). Note that  
+<classname>index_gen</classname> and
+<classname>gen_type&lt;0,0&gt;::type</classname> are the same type.</entry>
+	      </row>
+	</tbody>
+      </tgroup>
+    </table>
+    
+      
+
+
+    <table><title>Valid Expressions</title>
+      <tgroup cols="3">
+	<thead>
+	  <row>
+	    <entry>Expression</entry>
+	    <entry>Return type</entry>
+	    <entry>Semantics</entry>
+	  </row>
+	</thead>
+	<tbody>
+	  <row>
+	    <entry><literal>index_gen()</literal></entry>
+	    <entry><literal>gen_type&lt;0,0&gt;::type</literal></entry>
+	    <entry>This constructs an <literal>index_gen</literal>
+object. This object can then be used to generate tuples of
+<literal>index_range</literal> values.</entry>
+	  </row>
+
+	      <row>
+		<entry><literal>x[i]</literal></entry>
+		<entry><literal>gen_type&lt;Dims+1,Ranges+1&gt;::type</literal>
+</entry>
+		<entry>Returns a new object containing all previous
+<classname>index_range</classname> objects in addition to
+<literal>i.</literal> Chained calls to
+<function>operator[]</function> are the means by which
+<classname>index_range</classname> objects are aggregated.</entry>
+	      </row>
+	      <row>
+		<entry><literal>x[idx]</literal></entry>
+		<entry><literal>gen_type&lt;Dims,Ranges+1&gt;::type</literal>
+</entry>
+	<entry>Returns a new object containing all previous
+<classname>index_range</classname> objects in addition to a degenerate
+range, <literal>index_range(idx,idx).</literal> Note that this is NOT
+equivalent to <literal>x[index_range(idx,idx)].</literal>, which will
+return an object of type
+<literal>gen_type&lt;Dims+1,Ranges+1&gt;::type</literal>.
+</entry>
+	      </row>
+	    </tbody>
+	  </tgroup>
+	</table>
+      </sect3>
+      
+    </sect2>
+
+<sect2>
+<title>Models</title>
+
+    <itemizedlist>
+      <listitem> <literal>multi_array</literal> </listitem>
+      <listitem> <literal>multi_array_ref</literal> </listitem>
+      <listitem> <literal>const_multi_array_ref</literal> </listitem>
+      <listitem> 
+	<literal>template array_view&lt;Dims&gt;::type</literal> 
+      </listitem>
+      <listitem> 
+	<literal>template const_array_view&lt;Dims&gt;::type</literal> 
+      </listitem>
+      <listitem>
+	<literal>template subarray&lt;Dims&gt;::type</literal>
+      </listitem>
+      <listitem>
+	<literal>template const_subarray&lt;Dims&gt;::type</literal>
+      </listitem>
+    </itemizedlist>
+</sect2>
+
+</sect1>

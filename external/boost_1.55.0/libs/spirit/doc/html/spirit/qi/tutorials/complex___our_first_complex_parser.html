@@ -1,0 +1,155 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Complex - Our first complex parser</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="semantic_actions.html" title="Parser Semantic Actions">
+<link rel="next" href="sum___adding_numbers.html" title="Sum - adding numbers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="semantic_actions.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sum___adding_numbers.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.tutorials.complex___our_first_complex_parser"></a><a class="link" href="complex___our_first_complex_parser.html" title="Complex - Our first complex parser">Complex
+        - Our first complex parser</a>
+</h4></div></div></div>
+<p>
+          Well, not really a complex parser, but a parser that parses complex numbers.
+          This time, we're using <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>
+          to do the semantic actions.
+        </p>
+<p>
+          Here's a simple parser expression for complex numbers:
+        </p>
+<pre class="programlisting">    <span class="char">'('</span> <span class="special">&gt;&gt;</span> <span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="special">-(</span><span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">double_</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="char">')'</span>
+<span class="special">|</span>   <span class="identifier">double_</span>
+</pre>
+<p>
+          What's new? Well, we have:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              Alternates: e.g. <code class="computeroutput"><span class="identifier">a</span> <span class="special">|</span> <span class="identifier">b</span></code>.
+              Try <code class="computeroutput"><span class="identifier">a</span></code> first. If it
+              succeeds, good. If not, try the next alternative, <code class="computeroutput"><span class="identifier">b</span></code>.
+            </li>
+<li class="listitem">
+              Optionals: e.g. -p. Match the parser p zero or one time.
+            </li>
+</ol></div>
+<p>
+          The complex parser presented above reads as:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              One or two real numbers in parentheses, separated by comma (the second
+              number is optional)
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>OR</strong></span> a single real number.
+            </li>
+</ul></div>
+<p>
+          This parser can parse complex numbers of the form:
+        </p>
+<pre class="programlisting"><span class="special">(</span><span class="number">123.45</span><span class="special">,</span> <span class="number">987.65</span><span class="special">)</span>
+<span class="special">(</span><span class="number">123.45</span><span class="special">)</span>
+<span class="number">123.45</span>
+</pre>
+<p>
+          Here goes, this time with actions:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">client</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+    <span class="keyword">bool</span> <span class="identifier">parse_complex</span><span class="special">(</span><span class="identifier">Iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">complex</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;&amp;</span> <span class="identifier">c</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">_1</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">ref</span><span class="special">;</span>
+
+        <span class="keyword">double</span> <span class="identifier">rN</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span>
+        <span class="keyword">double</span> <span class="identifier">iN</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span>
+        <span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">phrase_parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span>
+
+            <span class="comment">//  Begin grammar</span>
+            <span class="special">(</span>
+                    <span class="char">'('</span> <span class="special">&gt;&gt;</span> <span class="identifier">double_</span><span class="special">[</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">rN</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">]</span>
+                        <span class="special">&gt;&gt;</span> <span class="special">-(</span><span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">double_</span><span class="special">[</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">iN</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">])</span> <span class="special">&gt;&gt;</span> <span class="char">')'</span>
+                <span class="special">|</span>   <span class="identifier">double_</span><span class="special">[</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">rN</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">]</span>
+            <span class="special">),</span>
+            <span class="comment">//  End grammar</span>
+
+            <span class="identifier">space</span><span class="special">);</span>
+
+        <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">r</span> <span class="special">||</span> <span class="identifier">first</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">)</span> <span class="comment">// fail if we did not get a full match</span>
+            <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+        <span class="identifier">c</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">complex</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">rN</span><span class="special">,</span> <span class="identifier">iN</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="identifier">r</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          The full cpp file for this example can be found here: <a href="../../../../../example/qi/complex_number.cpp" target="_top">../../example/qi/complex_number.cpp</a>
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Those with experience using <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>
+            might be confused with the placeholders that we are using (i.e. <code class="computeroutput"><span class="identifier">_1</span></code>, <code class="computeroutput"><span class="identifier">_2</span></code>,
+            etc.). Please be aware that we are not using the same placeholders supplied
+            by Phoenix. Take note that we are pulling in the placeholders from namespace
+            <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span></code>. These placeholders are specifically
+            tailored for Spirit.
+          </p></td></tr>
+</table></div>
+<p>
+          The <code class="computeroutput"><span class="identifier">double_</span></code> parser attaches
+          this action:
+        </p>
+<pre class="programlisting"><span class="identifier">ref</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">_1</span>
+</pre>
+<p>
+          This assigns the parsed result (actually, the attribute of <code class="computeroutput"><span class="identifier">double_</span></code>) to n. <code class="computeroutput"><span class="identifier">ref</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>
+          tells Phoenix that <code class="computeroutput"><span class="identifier">n</span></code> is
+          a mutable reference. <code class="computeroutput"><span class="identifier">_1</span></code>
+          is a Phoenix placeholder for the parsed result attribute.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="semantic_actions.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sum___adding_numbers.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

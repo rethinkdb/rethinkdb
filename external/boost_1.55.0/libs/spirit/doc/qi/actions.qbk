@@ -1,0 +1,125 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:semantic_actions Parser Semantic Actions]
+
+The example in the previous section was very simplistic. It only recognized
+data, but did nothing with it. It answered the question: "Did the input match?".
+Now, we want to extract information from what was parsed. For example, we would
+want to store the parsed number after a successful match. To do this, you will 
+need ['semantic actions].
+
+Semantic actions may be attached to any point in the grammar specification. 
+These actions are C++ functions or function objects that are called whenever a 
+part of the parser successfully recognizes a portion of the input. Say you have 
+a parser `P`, and a C++ function `F`. You can make the parser call `F` whenever 
+it matches an input by attaching `F`:
+
+    P[F]
+
+The expression above links `F` to the parser, `P`.
+
+The function/function object signature depends on the type of the parser to
+which it is attached. The parser `double_` passes the parsed number. Thus, if we
+were to attach a function `F` to `double_`, we need `F` to be declared as:
+
+    void F(double n);
+
+There are actually 2 more arguments being passed (the parser context and a
+reference to a boolean 'hit' parameter). We don't need these, for now, but we'll
+see more on these other arguments later. Spirit.Qi allows us to bind a single
+argument function, like above. The other arguments are simply ignored.
+
+[heading Examples of Semantic Actions]
+
+Presented are various ways to attach semantic actions:
+
+* Using plain function pointer
+* Using simple function object
+* Using __boost_bind__ with a plain function
+* Using __boost_bind__ with a member function
+* Using __boost_lambda__
+
+[import ../../example/qi/actions.cpp]
+
+Given:
+
+[tutorial_semantic_action_functions]
+
+Take note that with function objects, we need to have an `operator()` with 3
+arguments. Since we don't care about the other two, we can use `unused_type` for
+these. We'll see more of `unused_type` elsewhere. `unused_type` is a Spirit 
+supplied support class.
+
+All examples parse inputs of the form:
+
+    "{integer}"
+
+An integer inside the curly braces.
+
+The first example shows how to attach a plain function:
+
+[tutorial_attach_actions1]
+
+What's new? Well `int_` is the sibling of `double_`. I'm sure you can guess
+what this parser does.
+
+The next example shows how to attach a simple function object:
+
+[tutorial_attach_actions2]
+
+We can use __boost_bind__ to 'bind' member functions:
+
+[tutorial_attach_actions4]
+
+Likewise, we can also use __boost_bind__ to 'bind' plain functions:
+
+[tutorial_attach_actions3]
+
+Yep, we can also use __boost_lambda__:
+
+[tutorial_attach_actions5]
+
+There are more ways to bind semantic action functions, but the examples above
+are the most common. Attaching semantic actions is the first hurdle one has
+to tackle when getting started with parsing with Spirit. Familiarize yourself
+with this task and get intimate with the tools behind it such as __boost_bind__
+and __boost_lambda__.
+
+The examples above can be found here: [@../../example/qi/actions.cpp]
+
+[heading Phoenix]
+
+__phoenix__, a companion library bundled with Spirit, is specifically suited
+for binding semantic actions. It is like __boost_lambda__ on steroids, with
+special custom features that make it easy to integrate semantic actions with
+Spirit. If your requirements go beyond simple to moderate parsing, it is 
+suggested that you use this library. All the following examples in this tutorial
+will use __phoenix__ for semantic actions.
+
+[important There are different ways to write semantic actions for __qi__: 
+           using plain functions, __boost_bind__, __boost_lambda__, or 
+           __phoenix__. The latter three allow you to use special placeholders
+           to control parameter placement (`_1`, `_2`, etc.). Each of those
+           libraries has it's own implementation of the placeholders, all
+           in different namespaces. You have to make sure not to mix 
+           placeholders with a library they don't belong to and not to 
+           use different libraries while writing a semantic action.
+
+           Generally, for __boost_bind__, use `::_1`, `::_2`, etc. (yes, these
+           placeholders are defined in the global namespace). 
+
+           For __boost_lambda__ use the placeholders defined in the namespace 
+           `boost::lambda`. 
+
+          For semantic actions written using __phoenix__ use the placeholders 
+          defined in the namespace `boost::spirit`. Please note that all 
+          existing placeholders for your convenience are also available from 
+          the namespace `boost::spirit::qi`.]
+
+[endsect]

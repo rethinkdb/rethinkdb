@@ -1,0 +1,61 @@
+Copyright (C) 2008, International Business Machines
+Corporation and others.  All Rights Reserved.
+
+README for ICU4C Performance Test
+
+Introduction:
+The performance tests in ICU4C compares various aspects of ICU against previous versions of ICU,
+Posix, and/or Windows.  Some tests only run on Windows and are labeled accordingly.All of the 
+performance tests are driven by a perl-based script which calls the underlying C program and 
+displays the statistical analysis of the test in an easy to read HTML web page.  Each test will
+have its own web page.
+
+
+Requirements:
+The most up to date tests are in ICU 4.0 and later. In addition, most tests depend on data which are 
+in a seperate repository.  
+
+Data repository:
+http://source.icu-project.org/repos/icu/data/trunk/test/perf
+There are 3 folders in here: collation, conversion, and udr.
+
+
+Running Performance Test:
+
+1) You should create a directory to hold the ICU (current and previous versions) and the data.
+   (e.g. C:\ICUPerformanceTest)
+
+2) Checkout the current ICU and 2 previous versions (for proper regression testing) and the data
+   into the ICUPerformanceTest directory.
+
+3) Do a general build on all the ICUs either through Visual Studios or with the Makefile.
+
+4) Build the ICU performance tests either through Visual Studios or with the Makefile.
+   (The location of the performance test is: icu/source/test/perf)
+
+5) Go to perf/perldriver and edit Common.pl.
+   In this file, you will need to set a few variables:
+   a) ICU version numbers
+   b) Path to the performance test data
+   c) Path to the root directory of the different versions of ICU
+   d) Whether or not you are running the test on Windows
+   * The Path needs to be absolute
+   * All other variables should be left as is
+
+6) In the perf directory, there are several other directories for the various tests that can be run.
+   (e.g. convperf (Conversion tests)). Go to each directory and execute the perl script for each test
+   you want to run. (e.g. CharPerf_r.pl in CharPerf directory)
+   * You only need to run the perl script from the latest ICU version.  The corresponding perl script 
+     in the previous versions of ICU do not need to be run seperately.
+   * All of the test result web pages will be stored in perf/results.
+
+
+Note: When running on Windows, cygwin is preferred.
+Note: If a test needs to be run on Windows, a message will be displayed.
+Note: After building the performance tests, it is a good idea to execute each C program to ensure that each
+      test can run. (e.g. convperf.exe)
+Note: To run the actual performance test, you will need to setup Perl with the following modules:
+      a) Statistics/Distribution.pm
+      b) Statistics/Descriptive.pm 
+Note: Some tests take a while depending on the machine it is running on so a script to run each performance test's
+      perl script might be helpful.

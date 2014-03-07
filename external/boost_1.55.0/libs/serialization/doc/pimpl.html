@@ -1,0 +1,124 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - PIMPL</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">PIMPL</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+PIMPL is a C++ programming idiom described by Herb Sutter <a href="bibliography.html#10">[10]</a>
+which stands for "Private Implementation".  It is also referred to as
+the "Handle Body Idiom". Included in this library is a program called 
+<a href="../example/demo_pimpl.cpp" target="demo_impl_cpp">demo_pimpl.cpp</a> 
+which illustrates how this is used. The file 
+<a href="../example/demo_pimpl_A.cpp" target="demo_impl__Acpp">demo_pimpl_A.hpp</a>
+contains the declaration of the a class that hides its implementation
+by including a pointer to struct B that is only defined as a pointer.
+<pre><code>
+// class whose declaration is hidden by a pointer
+struct B;
+
+struct A {
+    // class a contains a pointer to a "hidden" declaration
+    B *pimpl;
+    template&lt;class Archive&gt;
+    void serialize(Archive & ar, const unsigned int file_version);
+    A();
+};
+</code></pre>
+Serialization of A requires access to the definition of B in order so it
+is defined in the separately compiled module:
+<a href="../example/demo_pimpl_A.cpp" target="demo_impl_A_cpp">demo_pimpl_A.cpp</a>
+by:
+<pre><code>
+#include "demo_pimpl_A.hpp"
+
+// "hidden" definition of class B
+struct B {
+    int b;
+    template&lt;class Archive&gt;
+    void serialize(Archive & ar, const unsigned int file_version){
+        ar & b;
+    }
+};
+
+A::A() :
+    pimpl(new B)
+{}
+
+A::~A(){
+    delete pimpl;
+}
+
+// now we can define the serialization for class A
+template&lt;class Archive&gt;
+void A::serialize(Archive & ar, const unsigned int file_version){
+    ar & pimpl;
+}
+</code></pre>
+As described in <a href="bibliography.html#10">[10]</a> this brings the
+following advantages:
+<ul>
+    <li>type "B" can be used without using its header.
+    <li>implementation of B can be changed without generating a 
+    cascade of recompilations.
+</ul>
+So, we compile the modules and everything is fine.  However when we
+link, we get an error.  Two symbols are undefined:
+<pre><code>
+void A::serialize(boost::archive::text_oarchive & ar, const unsigned int file_version);
+void A::serialize(boost::archive::text_iarchive & ar, const unsigned int file_version);
+</code></pre>
+The problem is that when compiling the above code, 
+there is no instantiation of the <code style="white-space: normal">serialize</code> template.
+There can't be as its not "known" what types of archives
+the serialization is going to be used with.  So these functions are "missing"
+when an attempt to link is made.  The solution is to explicitly instantiate
+serialization code for those archives which are going to be used.  In this
+example, including the the following code in any *.cpp file does just that:
+<pre></code>
+#include &lt;boost/archive/text_iarchive.hpp&gt;
+#include &lt;boost/archive/text_oarchive.hpp&gt;
+
+template void A::serialize&lt;boost::archive::text_iarchive&gt;(
+    boost::archive::text_iarchive & ar, 
+    const unsigned int file_version
+);
+template void A::serialize&lt;boost::archive::text_oarchive&gt;(
+    boost::archive::text_oarchive & ar, 
+    const unsigned int file_version
+);
+</code></pre>
+The program should now link as well as compile.
+<p>
+The downside of this is that one has to know which archives are going 
+to be used with hidden serializations.  This is an effect of using template
+driven code.  One can invoke explicity instantiation for all known templates and
+presume that the linker will exclude unreferenced code.  This should
+work but is platform dependent.
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

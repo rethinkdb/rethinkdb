@@ -1,0 +1,11 @@
+# Copyright 2004 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+
+# By default, build the project with the two variants we have defined in
+# jamroot.jam.
+
+project : default-build crazy super_release ;
+
+exe a : a.cpp libs//l ;

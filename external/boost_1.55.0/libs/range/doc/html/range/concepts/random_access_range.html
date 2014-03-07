@@ -1,0 +1,187 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Random Access Range</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../concepts.html" title="Range Concepts">
+<link rel="prev" href="bidirectional_range.html" title="Bidirectional Range">
+<link rel="next" href="concept_checking.html" title="Concept Checking">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bidirectional_range.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concept_checking.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_concepts_random_access_range">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="range.concepts.random_access_range"></a><a class="link" href="random_access_range.html" title="Random Access Range">Random Access Range</a>
+</h3></div></div></div>
+<h5>
+<a name="range.concepts.random_access_range.h0"></a>
+        <span><a name="range.concepts.random_access_range.description"></a></span><a class="link" href="random_access_range.html#range.concepts.random_access_range.description">Description</a>
+      </h5>
+<p>
+        A range <code class="computeroutput"><span class="identifier">X</span></code> where <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code> is a model of <a href="../../../../../../libs/iterator/doc/new-iter-concepts.html#random-access-traversal-iterators-lib-random-access-traversal-iterators" target="_top">Random
+        Access Traversal Iterator</a>.
+      </p>
+<h5>
+<a name="range.concepts.random_access_range.h1"></a>
+        <span><a name="range.concepts.random_access_range.refinement_of"></a></span><a class="link" href="random_access_range.html#range.concepts.random_access_range.refinement_of">Refinement
+        of</a>
+      </h5>
+<p>
+        <a class="link" href="bidirectional_range.html" title="Bidirectional Range">Bidirectional Range</a>
+      </p>
+<h5>
+<a name="range.concepts.random_access_range.h2"></a>
+        <span><a name="range.concepts.random_access_range.valid_expressions"></a></span><a class="link" href="random_access_range.html#range.concepts.random_access_range.valid_expressions">Valid expressions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Return type
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  Size of range
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">size</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_size</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+<h5>
+<a name="range.concepts.random_access_range.h3"></a>
+        <span><a name="range.concepts.random_access_range.expression_semantics"></a></span><a class="link" href="random_access_range.html#range.concepts.random_access_range.expression_semantics">Expression
+        semantics</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Semantics
+                </p>
+              </th>
+<th>
+                <p>
+                  Postcondition
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">size</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns the size of the Range, that is, its number of elements.
+                  Note <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">size</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span>
+                  <span class="special">==</span> <span class="number">0u</span></code>
+                  is equivalent to <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">empty</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code>.
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">size</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span>
+                  <span class="special">&gt;=</span> <span class="number">0</span></code>
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+<h5>
+<a name="range.concepts.random_access_range.h4"></a>
+        <span><a name="range.concepts.random_access_range.complexity_guarantees"></a></span><a class="link" href="random_access_range.html#range.concepts.random_access_range.complexity_guarantees">Complexity
+        guarantees</a>
+      </h5>
+<p>
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">size</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code> completes in amortized constant time.
+      </p>
+<h5>
+<a name="range.concepts.random_access_range.h5"></a>
+        <span><a name="range.concepts.random_access_range.invariants"></a></span><a class="link" href="random_access_range.html#range.concepts.random_access_range.invariants">Invariants</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr></tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  Range size
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">size</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code>
+                  is equal to the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code> - <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code>.
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bidirectional_range.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concept_checking.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

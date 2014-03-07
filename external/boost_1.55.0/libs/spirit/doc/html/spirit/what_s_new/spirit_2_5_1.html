@@ -1,0 +1,84 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Spirit V2.5.1</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../what_s_new.html" title="What's New">
+<link rel="prev" href="spirit_2_5_2.html" title="Spirit V2.5.2">
+<link rel="next" href="spirit_2_5.html" title="Spirit V2.5">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="spirit_2_5_2.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../what_s_new.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="spirit_2_5.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.what_s_new.spirit_2_5_1"></a><a class="link" href="spirit_2_5_1.html" title="Spirit V2.5.1">Spirit V2.5.1</a>
+</h3></div></div></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_5_1.h0"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_5_1.what_s_changed_from_v2_5__boost_v1_47_0__to_v2_5_1__boost_v1_48_0_"></a></span><a class="link" href="spirit_2_5_1.html#spirit.what_s_new.spirit_2_5_1.what_s_changed_from_v2_5__boost_v1_47_0__to_v2_5_1__boost_v1_48_0_">What's
+        changed from V2.5 (Boost V1.47.0) to V2.5.1 (Boost V1.48.0)</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The <code class="computeroutput"><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">istream_iterator</span></code> (see <a class="link" href="../support/multi_pass.html" title="The multi pass iterator"><code class="computeroutput"><span class="identifier">multi_pass</span></code></a>) now checks at construction
+            time whether the underlying stream has reached eof (end of file).
+          </li>
+<li class="listitem">
+            <span class="emphasis"><em>Spirit.Qi</em></span> now properly collapses attributes generated
+            from optionals embedded inside another optional parser (i.e. <code class="computeroutput"><span class="special">-(</span><span class="char">'('</span> <span class="special">&gt;</span>
+            <span class="special">-</span><span class="identifier">int_</span>
+            <span class="special">&gt;&gt;</span> <span class="char">')'</span><span class="special">).</span> <span class="identifier">That</span> <span class="identifier">means</span> <span class="identifier">that</span>
+            <span class="identifier">attributes</span> <span class="identifier">like</span>
+            </code>boost::optional&lt;boost::optional&lt;int&gt; &gt;<code class="computeroutput"> <span class="identifier">will</span> <span class="identifier">be</span>
+            <span class="identifier">collapsed</span> <span class="identifier">to</span>
+            </code>boost::optional&lt;int&gt;`. Thanks to Peter Schueller for reporting
+            that problem.
+          </li>
+<li class="listitem">
+            Actions attached to binary parsers now properly propagate the parser's
+            attribute. Thanks to Mathias Born for reporting this issue.
+          </li>
+</ul></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_5_1.h1"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_5_1.bug_fixes_in_lex"></a></span><a class="link" href="spirit_2_5_1.html#spirit.what_s_new.spirit_2_5_1.bug_fixes_in_lex">Bug
+        Fixes in Lex</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Fixed Boost ticket #5701: lexertl token_value_type returns const unused
+            for nonconst ref.
+          </li>
+<li class="listitem">
+            Fixed a problem in the lexer (position_token) causing problems with enabled
+            parser debugging (MSVC2010).
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="spirit_2_5_2.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../what_s_new.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="spirit_2_5.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

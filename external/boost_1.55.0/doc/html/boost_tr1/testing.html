@@ -1,0 +1,70 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Testing</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_tr1.html" title="Chapter&#160;32.&#160;Boost.TR1">
+<link rel="prev" href="implementation.html" title="Implementation">
+<link rel="next" href="../tribool.html" title="Chapter&#160;33.&#160;Boost.Tribool">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="implementation.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_tr1.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../tribool.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_tr1.testing"></a><a class="link" href="testing.html" title="Testing">Testing</a>
+</h2></div></div></div>
+<p>
+      The test suite for Boost.TR1 is relatively lightweight; tests have been added
+      to the Boost.Config test suite for each new configuration macro, and each TR1
+      component has a very short concept check test added. The concept test programs
+      are designed only to verify that all the TR1 components that are supposed to
+      be in <code class="computeroutput"><span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">tr1</span></code> are
+      indeed present and have standards conforming interfaces. There are a few test
+      programs (those which end in the suffix "_tricky") which do not currently
+      compile with the Boost.TR1 implementation, because the relevant Boost libraries
+      have not yet implemented the features tested; hopefully these incompatibilities
+      will be removed in future releases.
+    </p>
+<p>
+      The concept tests do not take account of compiler defects (quite deliberately
+      so); the intent is that the tests can be used to verify conformance with the
+      standard, both for Boost code, and for third party implementations. Consequently
+      very many of these tests are known to fail with older compilers. This should
+      not be taken as evidence that these compilers can not be used at all with Boost.TR1,
+      simply that there are features missing that make those compilers non-conforming.
+    </p>
+<p>
+      Full runtime tests for TR1 components are not in general part of this test
+      suite, however, it is hoped that the Boost.TR1 component authors will make
+      their regular test suites compile with the standards conforming headers as
+      well as the Boost-specific ones. This will allow these tests to be used against
+      the standard library's own TR1 implementation as well as the Boost one.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="implementation.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_tr1.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../tribool.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

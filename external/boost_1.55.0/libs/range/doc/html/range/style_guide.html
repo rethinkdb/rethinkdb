@@ -1,0 +1,150 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Terminology and style guidelines</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="prev" href="reference/extending/method_3/method_3_2.html" title="Method 3.2: Implement a Range Adaptor with arguments">
+<link rel="next" href="headers.html" title="Library Headers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reference/extending/method_3/method_3_2.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="headers.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_style_guide">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="range.style_guide"></a><a class="link" href="style_guide.html" title="Terminology and style guidelines">Terminology and style guidelines</a>
+</h2></div></div></div>
+<p>
+      The use of a consistent terminology is as important for <a class="link" href="concepts.html" title="Range Concepts">Ranges</a>
+      and range-based algorithms as it is for iterators and iterator-based algorithms.
+      If a conventional set of names are adopted, we can avoid misunderstandings
+      and write generic function prototypes that are <span class="bold"><strong><span class="emphasis"><em>self-documenting</em></span></strong></span>.
+    </p>
+<p>
+      Since ranges are characterized by a specific underlying iterator type, we get
+      a type of range for each type of iterator. Hence we can speak of the following
+      types of ranges:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          <span class="bold"><strong><span class="emphasis"><em>Value access</em></span></strong></span> category:
+          <div class="itemizedlist"><ul class="itemizedlist" type="circle">
+<li class="listitem">
+                Readable Range
+              </li>
+<li class="listitem">
+                Writeable Range
+              </li>
+<li class="listitem">
+                Swappable Range
+              </li>
+<li class="listitem">
+                Lvalue Range
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong><span class="emphasis"><em>Traversal</em></span></strong></span> category:
+          <div class="itemizedlist"><ul class="itemizedlist" type="circle">
+<li class="listitem">
+                <a class="link" href="concepts/single_pass_range.html" title="Single Pass Range">Single Pass Range</a>
+              </li>
+<li class="listitem">
+                <a class="link" href="concepts/forward_range.html" title="Forward Range">Forward Range</a>
+              </li>
+<li class="listitem">
+                <a class="link" href="concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                Range</a>
+              </li>
+<li class="listitem">
+                <a class="link" href="concepts/random_access_range.html" title="Random Access Range">Random Access
+                Range</a>
+              </li>
+</ul></div>
+        </li>
+</ul></div>
+<p>
+      Notice how we have used the categories from the <a href="../../../../../libs/iterator/doc/new-iter-concepts.html" target="_top">new
+      style iterators</a>.
+    </p>
+<p>
+      Notice that an iterator (and therefore an range) has one <span class="bold"><strong><span class="emphasis"><em>traversal</em></span></strong></span>
+      property and one or more properties from the <span class="bold"><strong><span class="emphasis"><em>value
+      access</em></span></strong></span> category. So in reality we will mostly talk about
+      mixtures such as
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          Random Access Readable Writeable Range
+        </li>
+<li class="listitem">
+          Forward Lvalue Range
+        </li>
+</ul></div>
+<p>
+      By convention, we should always specify the <span class="bold"><strong><span class="emphasis"><em>traversal</em></span></strong></span>
+      property first as done above. This seems reasonable since there will only be
+      one <span class="bold"><strong><span class="emphasis"><em>traversal</em></span></strong></span> property,
+      but perhaps many <span class="bold"><strong><span class="emphasis"><em>value access</em></span></strong></span>
+      properties.
+    </p>
+<p>
+      It might, however, be reasonable to specify only one category if the other
+      category does not matter. For example, the <a class="link" href="reference/utilities/iterator_range.html" title="Class iterator_range"><code class="computeroutput"><span class="identifier">iterator_range</span></code></a> can be constructed
+      from a Forward Range. This means that we do not care about what <span class="bold"><strong><span class="emphasis"><em>value
+      access</em></span></strong></span> properties the Range has. Similarly, a Readable
+      Range will be one that has the lowest possible <span class="bold"><strong><span class="emphasis"><em>traversal</em></span></strong></span>
+      property (Single Pass).
+    </p>
+<p>
+      As another example, consider how we specify the interface of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">sort</span><span class="special">()</span></code>. Algorithms are usually more cumbersome to
+      specify the interface of since both <span class="bold"><strong><span class="emphasis"><em>traversal</em></span></strong></span>
+      and <span class="bold"><strong><span class="emphasis"><em>value access</em></span></strong></span> properties
+      must be exactly defined. The iterator-based version looks like this:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">RandomAccessTraversalReadableWritableIterator</span> <span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">sort</span><span class="special">(</span> <span class="identifier">RandomAccessTraversalReadableWritableIterator</span> <span class="identifier">first</span><span class="special">,</span>
+           <span class="identifier">RandomAccessTraversalReadableWritableIterator</span> <span class="identifier">last</span> <span class="special">);</span>
+</pre>
+<p>
+    </p>
+<p>
+      For ranges the interface becomes
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">RandomAccessReadableWritableRange</span> <span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">sort</span><span class="special">(</span> <span class="identifier">RandomAccessReadableWritableRange</span><span class="special">&amp;</span> <span class="identifier">r</span> <span class="special">);</span>
+</pre>
+<p>
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reference/extending/method_3/method_3_2.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="headers.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

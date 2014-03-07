@@ -1,0 +1,154 @@
+<HTML>
+<!-- Copyright 2007 Aaron Windsor
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  -->
+<Head>
+<Title>Boost Graph Library: Chrobak-Payne Straight Line Drawing</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>Chrobak-Payne Straight Line Drawing</H1>
+
+<p>
+<pre>
+template&lt;typename Graph, 
+         typename PlanarEmbedding, 
+         typename ForwardIterator, 
+         typename PositionMap,
+         typename VertexIndexMap&gt;
+void chrobak_payne_straight_line_drawing(const Graph& g, 
+                                         PlanarEmbedding perm, 
+                                         ForwardIterator ordering_begin,
+                                         ForwardIterator ordering_end,
+                                         PositionMap drawing,
+                                         VertexIndexMap vm
+                                         );
+</pre>
+
+<br>
+<p>
+A <i>straight line drawing</i> of a <a href="./planar_graphs.html#planar">
+planar graph</a> is a <a href="./planar_graphs.html#plane_drawing">plane 
+drawing</a> where each edge is drawn using a straight line segment. Since all 
+edges are line segments, the drawing is completely determined by the placement 
+of vertices in the plane. <tt>chrobak_payne_straight_line_drawing</tt> uses an 
+algorithm of Chrobak and Payne 
+[<a href = "./bibliography.html#chrobakpayne95">71</a>] 
+to form a straight 
+line drawing of a planar graph by mapping all <i>n</i> vertices in a planar 
+graph to integer coordinates in a <i>(2n - 4) x (n - 2)</i> grid.
+
+<center>
+<img src="./figs/straight_line_drawing.png">
+</center>
+
+<p>
+The input graph passed to <tt>chrobak_payne_straight_line_drawing</tt> must 
+be a <a href="make_maximal_planar.html">maximal planar graph</a> with at least 
+3 vertices. Self-loops and parallel edges are ignored by this function. Note 
+that the restriction that the graph be maximal planar does not
+mean that this function can only draw maximal planar graphs (the graph pictured
+above is not maximal planar, for example). If you want to 
+draw a graph <i>g</i>, you can create a copy <i>g'</i> of <i>g</i>, store a 
+mapping <i>m</i> of vertices in <i>g'</i> to vertices in <i>g</i>, 
+<a href="make_maximal_planar.html">triangulate</a> <i>g'</i>, and then send 
+<i>g'</i> in as the input to <tt>chrobak_payne_straight_line_drawing</tt>. The 
+drawing returned can then be applied to <i>g</i> using <i>m</i> to translate 
+vertices from one graph to another, since <i>g</i> contains a subset of the 
+edges in <i>g'</i>.
+
+
+
+<h3>Complexity</h3>
+
+If the vertex index map provides constant-time access to indices, this
+function takes time <i>O(n + m)</i> for a planar graph with <i>n</i> vertices 
+and <i>m</i> edges. Note that 
+in a simple planar graph with <i>f</i> faces, <i>m</i> edges, and <i>n</i> 
+vertices, both <i>f</i> and <i>m</i> are <i>O(n)</i>. 
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/chrobak_payne_drawing.hpp">
+<TT>boost/graph/chrobak_payne_drawing.hpp</TT>
+</a>
+
+
+<h3>Parameters</h3>
+
+IN: <tt>Graph&amp; g</tt>
+
+<blockquote>
+An undirected graph. The graph type must be a model of <a
+href="VertexListGraph.html">Vertex List Graph</a>
+</blockquote>
+
+IN <tt>PlanarEmbedding embedding</tt>
+
+<blockquote>
+A <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map
+</a> that models the <a href="PlanarEmbedding.html">PlanarEmbedding</a> 
+concept.
+</blockquote>
+
+IN <tt>ForwardIterator</tt>
+
+<blockquote>
+A ForwardIterator that has <tt>value_type</tt> equal to 
+<tt>graph_traits&lt;Graph&gt;::vertex_descriptor</tt>.
+</blockquote>
+
+OUT: <tt>PositionMap</tt> 
+
+<blockquote>
+A <a href="../../property_map/doc/LvaluePropertyMap.html">Writable LValue Property 
+Map</a> that models the Position Map concept. The Position Map concept requires
+that the value mapped to be an object that has members <tt>x</tt> and
+<tt>y</tt>. For example, if <tt>p</tt> models PositionMap and <tt>v</tt>
+is a vertex in the graph, <tt>p[v].x</tt> and <tt>p[v].y</tt> are valid
+expressions. The type of <tt>x</tt> and <tt>y</tt> must be implicitly 
+convertable to <tt>std::size_t</tt>.
+</blockquote>
+
+IN: <tt>VertexIndexMap vm</tt>
+
+<blockquote>
+A <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map
+</a> that maps vertices from <tt>g</tt> to distinct integers in the range 
+<tt>[0, num_vertices(g) )</tt><br>
+<b>Default</b>: <tt>get(vertex_index,g)</tt><br>
+</blockquote>
+
+
+
+<H3>Example</H3>
+
+<P>
+<a href="../example/straight_line_drawing.cpp">
+<TT>examples/straight_line_drawing.cpp</TT>
+</a>
+
+<h3>See Also</h3>
+
+<p>
+<ul>
+<li> <a href="planar_graphs.html">Planar Graphs in the Boost Graph Library</a>
+<li> <a href="is_straight_line_drawing.html"><tt>is_straight_line_drawing</tt>
+</a>
+</ul>
+
+<br>
+<HR>
+Copyright &copy; 2007 Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">
+aaron.windsor@gmail.com</a>)
+</BODY>
+</HTML> 

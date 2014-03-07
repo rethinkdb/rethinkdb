@@ -1,0 +1,802 @@
+[/license
+
+Boost.Bimap
+
+Copyright (c) 2006-2007 Matias Capeletto
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+[/ QuickBook Document version 1.4 ]
+
+[section list_of Reference]
+
+[section Header "boost/bimap/list_of.hpp" synopsis]
+
+    namespace boost {
+    namespace bimaps {
+
+
+    template< class KeyType >
+    struct list_of;
+
+    struct list_of_relation;
+
+
+    } // namespace bimap
+    } // namespace boost
+
+[endsect]
+
+[section list_of Views]
+
+A list_of set view is a std::list signature compatible
+interface to the underlying heap of elements contained in a `bimap`.
+
+If you look the bimap by a side, you will use a map view and if you looked
+it as a whole you will be using a set view.
+
+Elements in a list_of view are by default sorted according to
+their order of insertion: this means that new elements inserted through a
+different view of the `bimap` are appended to the end of the
+list_of view. Additionally, the view allows for free reordering of elements
+in the same vein as `std::list` does. Validity of iterators and references to
+elements is preserved in all operations.
+
+There are a number of differences with respect to `std::lists`:
+
+* list_of views are not
+__SGI_ASSIGNABLE__ (like any other view.)
+* Unlike as in `std::list`, insertions into a list_of view may fail due to
+clashings with other views. This alters the semantics of the operations
+provided with respect to their analogues in `std::list`.
+* Elements in a list_of view are not mutable, and can only be changed
+by means of `replace` and `modify` member functions.
+
+Having these restrictions into account, list_of views are models of
+__SGI_REVERSIBLE_CONTAINER__, __SGI_FRONT_INSERTION_SEQUENCE__ and
+__SGI_BACK_INSERTION_SEQUENCE__.
+We only provide descriptions of those types and operations that are either
+not present in the concepts modeled or do not exactly conform to the
+requirements for these types of containers.
+
+    namespace boost {
+    namespace bimaps {
+    namespace views {
+
+    template< ``['-implementation defined parameter list-]`` >
+    class ``['-implementation defined view name-]``
+    {
+        public:
+
+        // types
+
+        typedef ``['-unspecified-]`` value_type;
+        typedef ``['-unspecified-]`` allocator_type;
+        typedef ``['-unspecified-]`` reference;
+        typedef ``['-unspecified-]`` const_reference;
+        typedef ``['-unspecified-]`` iterator;
+        typedef ``['-unspecified-]`` const_iterator;
+        typedef ``['-unspecified-]`` size_type;
+        typedef ``['-unspecified-]`` difference_type;
+        typedef ``['-unspecified-]`` pointer;
+        typedef ``['-unspecified-]`` const_pointer;
+        typedef ``['-unspecified-]`` reverse_iterator;
+        typedef ``['-unspecified-]`` const_reverse_iterator;
+
+        typedef ``['-unspecified-]`` info_type;
+
+        // construct/copy/destroy
+
+        this_type & operator=(const this_type & x);
+
+        template< class InputIterator >
+        void ``[link reference_list_of_assign_iterator_iterator assign]``(InputIterator first, InputIterator last);
+
+        void ``[link reference_list_of_assign_size_value assign]``(size_type n, const value_type & value);
+
+        allocator_type get_allocator() const;
+
+        // iterators
+
+        iterator               begin();
+        const_iterator         begin() const;
+
+        iterator               end();
+        const_iterator         end() const;
+
+        reverse_iterator       rbegin();
+        const_reverse_iterator rbegin() const;
+
+        reverse_iterator       rend();
+        const_reverse_iterator rend() const;
+
+        // capacity
+
+        bool      empty() const;
+
+        size_type size() const;
+
+        size_type max_size() const;
+
+        void ``[link reference_list_of_resize_size_value resize]``(size_type n, const value_type & x = value_type());
+
+        // access
+
+        const_reference front() const;
+        const_reference back() const;
+
+        // modifiers
+
+        std::pair<iterator,bool> ``[link reference_list_of_push_front_value push_front]``(const value_type & x);
+        void                     pop_front();
+
+        std::pair<iterator,bool> ``[link reference_list_of_push_back_value push_back]``(const value_type & x);
+        void                     pop_back();
+
+        std::pair<iterator,bool> ``[link reference_list_of_insert_iterator_value insert]``(iterator position, const value_type & x);
+
+        void ``[link reference_list_of_insert_iterator_size_value insert]``(iterator position, size_type n, const value_type & x);
+
+        template< class InputIterator >
+        void ``[link reference_list_of_insert_iterator_iterator_iterator insert]``(iterator position, InputIterator first, InputIterator last);
+
+        iterator ``[link reference_list_of_erase_iterator erase]``(iterator position);
+        iterator ``[link reference_list_of_erase_iterator_iterator erase]``(iterator first, iterator last);
+
+        bool ``[link reference_list_of_replace_iterator_value replace]``(iterator position, const value_type & x);
+
+        // Only in map views
+        // {
+
+          typedef ``['-unspecified-]`` key_type;
+          typedef ``['-unspecified-]`` mapped_type;
+          typedef ``['-unspecified-]`` mapped_type; // Equal to mapped_type
+
+          template< class CompatibleKey >
+          bool ``[link reference_list_of_replace_key_iterator_key replace_key]``(iterator position, const CompatibleKey & x);
+
+          template< class CompatibleData >
+          bool ``[link reference_list_of_replace_data_iterator_data replace_data]``(iterator position, const CompatibleData & x);
+
+          template< class KeyModifier >
+          bool ``[link reference_list_of_modify_key_iterator_modifier modify_key]``(iterator position, KeyModifier mod);
+
+          template< class DataModifier >
+          bool ``[link reference_list_of_modify_data_iterator_modifier modify_data]``(iterator position, DataModifier mod);
+
+        // }
+
+
+        void clear();
+
+        // list operations
+
+        void ``[link reference_list_of_splice_iterator_this splice]``(iterator position, this_type & x);
+        void ``[link reference_list_of_splice_iterator_this_iterator splice]``(iterator position, this_type & x, iterator i);
+        void splice(
+            iterator position, this_type & x, iterator first, iterator last);
+
+        void ``[link reference_list_of_remove_value remove]``(const value_type & value);
+
+        template< class Predicate >
+        void ``[link reference_list_of_remove_if_predicate remove_if]``(Predicate pred);
+
+        void ``[link reference_list_of_unique unique]``();
+
+        template< class BinaryPredicate >
+        void ``[link reference_list_of_unique_predicate unique]``(BinaryPredicate binary_pred);
+
+        void ``[link reference_list_of_merge_this merge]``(this_type & x);
+
+        template< class Compare >
+        void ``[link reference_list_of_merge_this_compare merge]``(this_type & x,Compare comp);
+
+        void ``[link reference_list_of_sort sort]``();
+
+        template< class Compare >
+        void ``[link reference_list_of_sort_compare sort]``(Compare comp);
+
+        void ``[link reference_list_of_reverse reverse]``();
+
+        // rearrange operations
+
+        void relocate(iterator position, iterator i);
+        void relocate(iterator position, iterator first, iterator last);
+
+    }
+
+    // view comparison
+
+    bool operator==(const this_type & v1, const this_type & v2 );
+    bool operator< (const this_type & v1, const this_type & v2 );
+    bool operator!=(const this_type & v1, const this_type & v2 );
+    bool operator> (const this_type & v1, const this_type & v2 );
+    bool operator>=(const this_type & v1, const this_type & v2 );
+    bool operator<=(const this_type & v1, const this_type & v2 );
+
+    } // namespace views
+    } // namespace bimap
+    } // namespace boost
+
+In the case of a `bimap< list_of<Left>, ... >`
+
+In the set view:
+
+    typedef signature-compatible with relation< Left, ... > key_type;
+    typedef signature-compatible with relation< Left, ... > value_type;
+
+In the left map view:
+
+    typedef  Left  key_type;
+    typedef  ...   mapped_type;
+
+    typedef signature-compatible with std::pair< Left, ... > value_type;
+
+In the right map view:
+
+    typedef  ...  key_type;
+    typedef  Left mapped_type;
+
+    typedef signature-compatible with std::pair< ... , Left > value_type;
+
+
+[#list_of_complexity_signature]
+
+[section Complexity signature]
+
+Here and in the descriptions of operations of `list_of` views, we adopt the
+scheme outlined in the
+[link complexity_signature_explanation complexity signature section].
+The complexity signature of a `list_of` view is:
+
+* copying: `c(n) = n * log(n)`,
+* insertion: `i(n) = 1` (constant),
+* hinted insertion: `h(n) = 1` (constant),
+* deletion: `d(n) = 1` (constant),
+* replacement: `r(n) = 1` (constant),
+* modifying: `m(n) = 1` (constant).
+
+[endsect]
+
+[section Instantiation types]
+
+`list_of` views are instantiated internally to `bimap` and specified
+by means of the collection type specifiers and the bimap itself.
+Instantiations are dependent on the following types:
+
+* `Value` from `list_of`,
+* `Allocator` from `bimap`,
+
+[endsect]
+
+[section Constructors, copy and assignment]
+
+As explained in the view concepts section, views do not have public
+constructors or destructors. Assignment, on the other hand, is provided.
+
+    this_type & operator=(const this_type & x);
+
+* [*Effects: ] `a = b;`
+where a and b are the `bimap` objects to which `*this` and `x` belong,
+respectively.
+* [*Returns: ] `*this`.
+
+
+[#reference_list_of_assign_iterator_iterator]
+
+    template< class InputIterator >
+    void assign(InputIterator first, InputIterator last);
+
+* [*Requires: ] `InputIterator` is a model of __SGI_INPUT_ITERATOR__ over elements of type
+`value_type` or a type convertible to `value_type`. first and last are not
+iterators into any views of the `bimap` to which this view belongs.
+`last` is reachable from `first`.
+* [*Effects: ] `clear(); insert(end(),first,last);`
+
+
+[#reference_list_of_assign_size_value]
+
+    void assign(size_type n, const value_type & value);
+
+* [*Effects: ] `clear(); for(size_type i = 0; i < n ; ++n) push_back(v);`
+
+
+[endsect]
+
+[section Capacity operations]
+
+[#reference_list_of_resize_size_value]
+
+    void resize(size_type n,const value_type& x=value_type()); 
+
+* [*Effects: ]
+`if( n > size() ) insert(end(), n - size(), x);`
+`else if( n < size() ) {`
+`    iterator it = begin();`
+`    std::advance(it, n);`
+`    erase(it, end());`
+`}`
+* [*Note:] If an expansion is requested, the size of the view is not
+guaranteed to be n after this operation (other views may ban insertions.)
+
+[endsect]
+
+[section Modifiers]
+
+[#reference_list_of_push_front_value]
+
+    std::pair<iterator,bool> push_front(const value_type& x);
+
+* [*Effects:] Inserts `x` at the beginning of the sequence if no other views
+of the `bimap` bans the insertion.
+* [*Returns:] The return value is a pair `p`. `p.second` is `true` if and only
+if insertion took place. On successful insertion, `p.first` points to the element
+inserted; otherwise, `p.first` points to an element that caused the insertion to be
+banned. Note that more than one element can be causing insertion not to be allowed.
+* [link list_of_complexity_signature [*Complexity:]] O(I(n)).
+* [*Exception safety:] Strong.
+
+
+[#reference_list_of_push_back_value]
+
+    std::pair<iterator,bool> push_back(const value_type & x);
+
+* [*Effects:] Inserts `x` at the end of the sequence if no other views of the
+`bimap` bans the insertion.
+* [*Returns:] The return value is a pair `p`. `p.second` is `true` if and only if
+insertion took place. On successful insertion, `p.first` points to the element
+inserted; otherwise, `p.first` points to an element that caused the insertion
+to be banned. Note that more than one element can be causing insertion not
+to be allowed.
+* [link list_of_complexity_signature [*Complexity:]] O(I(n)).
+* [*Exception safety:] Strong.
+
+
+[#reference_list_of_insert_iterator_value]
+
+    std::pair<iterator,bool> insert(iterator position, const value_type & x);
+
+* [*Requires: ] `position` is a valid `iterator` of the view.
+* [*Effects:] Inserts `x` before position if insertion is allowed by all other
+views of the `bimap`.
+* [*Returns:] The return value is a pair `p`. `p.second` is `true` if and only if
+insertion took place. On successful insertion, `p.first` points to the element
+inserted; otherwise, `p.first` points to an element that caused the insertion
+to be banned. Note that more than one element can be causing insertion not
+to be allowed.
+* [link list_of_complexity_signature 
+[*Complexity:]] O(I(n)).
+* [*Exception safety:] Strong.
+
+
+[#reference_list_of_insert_iterator_size_value]
+
+    void insert(iterator position, size_type n, const value_type & x);
+
+* [*Requires: ] `position` is a valid `iterator` of the view.
+* [*Effects: ] `for(size_type i = 0; i < n; ++i) insert(position, x);`
+
+
+[#reference_list_of_insert_iterator_iterator_iterator]
+
+    template< class InputIterator>
+    void insert(iterator position,InputIterator first,InputIterator last);
+
+* [*Requires: ] `position` is a valid `iterator` of the view. `InputIterator` is
+a model of __SGI_INPUT_ITERATOR__ over elements of type `value_type`.
+`first` and `last` are not iterators into any view of the
+`bimap` to which this view belongs. `last` is reachable from `first`.
+* [*Effects: ] `while(first != last) insert(position, *first++);`
+* [link list_of_complexity_signature 
+[*Complexity:]] O(m*I(n+m)), where m is the number of elements in `[first,last)`.
+* [*Exception safety:] Basic.
+
+
+[#reference_list_of_erase_iterator]
+
+    iterator erase(iterator position);
+
+* [*Requires: ] `position` is a valid dereferenceable `iterator` of the view.
+* [*Effects:] Deletes the element pointed to by `position`.
+* [*Returns:] An iterator pointing to the element immediately following the
+one that was deleted, or `end()` if no such element exists.
+* [link list_of_complexity_signature 
+[*Complexity:]] O(D(n)).
+* [*Exception safety:] nothrow.
+
+
+[#reference_list_of_erase_iterator_iterator]
+
+    iterator erase(iterator first, iterator last); 
+
+* [*Requires: ] `[first,last)` is a valid range of the view.
+* [*Effects:] Deletes the elements in `[first,last)`.
+* [*Returns: ] `last`.
+* [link list_of_complexity_signature 
+[*Complexity:]] O(m*D(n)), where m is the number of elements in `[first,last)`.
+* [*Exception safety:] nothrow.
+
+
+[#reference_list_of_replace_iterator_value]
+
+    bool replace(iterator position,const value_type& x);
+
+* [*Requires: ] `position` is a valid dereferenceable iterator of the view.
+* [*Effects:] Assigns the value `x` to the element pointed to by `position` into
+the `bimap` to which the view belongs if replacing is allowed by
+all other views of the `bimap`.
+* [*Postconditions:] Validity of `position` is preserved in all cases.
+* [*Returns: ] `true` if the replacement took place, `false` otherwise.
+* [link list_of_complexity_signature 
+[*Complexity:]] O(R(n)).
+* [*Exception safety:] Strong. If an exception is thrown by some user-provided
+operation the `bimap` to which the view belongs remains in its
+original state.
+
+
+[#reference_list_of_replace_key_iterator_key]
+
+    template< class CompatibleKey >
+    bool replace_key(iterator position, const CompatibleKey & x);
+
+* [*Requires: ] `position` is a valid dereferenceable iterator of the set view.
+`CompatibleKey` can be assigned to `key_type`.
+* [*Effects:] Assigns the value `x` to `e.first`, where `e` is the element pointed 
+to by `position` into the `bimap` to which the set view belongs if replacing is allowed by
+all other views of the `bimap`.
+* [*Postconditions:] Validity of position is preserved in all cases.
+* [*Returns: ] `true` if the replacement took place, `false` otherwise.
+* [link list_of_complexity_signature
+[*Complexity:]] O(R(n)).
+* [*Exception safety:] Strong. If an exception is thrown by some user-provided
+operation, the `bimap` to which the set view belongs remains in
+its original state.
+
+
+[#reference_list_of_replace_data_iterator_data]
+
+    template< class CompatibleData >
+    bool replace_data(iterator position, const CompatibleData & x);
+
+* [*Requires: ] `position` is a valid dereferenceable iterator of the set view.
+`CompatibleKey` can be assigned to `mapped_type`.
+* [*Effects:] Assigns the value `x` to `e.second`, where `e` is the element pointed 
+to by `position` into the `bimap` to which the set view belongs if replacing is allowed by
+all other views of the `bimap`.
+* [*Postconditions:] Validity of position is preserved in all cases.
+* [*Returns: ] `true` if the replacement took place, `false` otherwise.
+* [link list_of_complexity_signature
+[*Complexity:]] O(R(n)).
+* [*Exception safety:] Strong. If an exception is thrown by some user-provided
+operation, the `bimap` to which the set view belongs remains in
+its original state.
+
+
+[#reference_list_of_modify_key_iterator_modifier]
+
+    template< class KeyModifier >
+    bool modify_key(iterator position, KeyModifier mod);
+
+* [*Requires: ] `KeyModifier` is a model of __SGI_UNARY_FUNCTION__ accepting arguments of
+type: `key_type&`; `position` is a valid dereferenceable iterator of the view.
+* [*Effects:] Calls `mod(e.first)` where e is the element pointed to by position and 
+rearranges `*position` into all the views of the `bimap`.
+If the rearrangement fails, the element is erased.
+It is successful if the rearrangement is allowed by all other views of the `bimap`.
+* [*Postconditions:] Validity of `position` is preserved if the operation succeeds.
+* [*Returns: ] `true` if the operation succeeded, `false` otherwise.
+* [link list_of_complexity_signature
+[*Complexity:]] O(M(n)).
+* [*Exception safety:] Basic. If an exception is thrown by some user-provided
+operation (except possibly mod), then the element pointed to by position is erased.
+* [*Note:] Only provided for map views. 
+
+
+[#reference_list_of_modify_data_iterator_modifier]
+
+    template< class DataModifier >
+    bool modify_data(iterator position, DataModifier mod);
+
+* [*Requires: ] `DataModifier` is a model of __SGI_UNARY_FUNCTION__ accepting arguments of
+type: `mapped_type&`; `position` is a valid dereferenceable iterator of the view.
+* [*Effects:] Calls `mod(e.second)` where e is the element pointed to by position and 
+rearranges `*position` into all the views of the `bimap`.
+If the rearrangement fails, the element is erased.
+It is successful if the rearrangement is allowed by all other views of the `bimap`.
+* [*Postconditions:] Validity of `position` is preserved if the operation succeeds.
+* [*Returns: ] `true` if the operation succeeded, `false` otherwise.
+* [link list_of_complexity_signature
+[*Complexity:]] O(M(n)).
+* [*Exception safety:] Basic. If an exception is thrown by some user-provided
+operation (except possibly mod), then the element pointed to by position is erased.
+* [*Note:] Only provided for map views. 
+
+[/
+[#reference_list_of_modify_iterator_modifier]
+
+    template< class Modifier >
+    bool modify(iterator position,Modifier mod);
+
+* [*Requires: ] `Modifier` is a model of __SGI_BINARY_FUNCTION__ accepting arguments of
+type: `first_type&` and `second_type&` for ['Map View] and `left_type&` and `right_type&`
+for ['Set View]. `position` is a valid dereferenceable iterator of the view.
+* [*Effects:] Calls `mod(e.first,e.second)` for ['Map View] or calls `mod(e.left,e.right)`
+for ['Set View] where `e` is the element pointed to by `position` and
+rearranges `*position` into all the views of the `bimap`.
+Rearrangement on `list_of` views does not change the position of the element
+with respect to the view; rearrangement on other views may or might not suceed.
+If the rearrangement fails, the element is erased.
+* [*Postconditions:] Validity of `position` is preserved if the operation succeeds.
+* [*Returns: ] `true` if the operation succeeded, `false` otherwise.
+* [link list_of_complexity_signature 
+[*Complexity:]] O(M(n)).
+* [*Exception safety:] Basic. If an exception is thrown by some user-provided
+operation (except possibly `mod`), then the element pointed to by position is erased.
+]
+
+[endsect]
+
+[section List operations]
+
+`list_of` views provide the full set of list operations found in `std::list`;
+the semantics of these member functions, however, differ from that of `std::list`
+in some cases as insertions might not succeed due to banning by other views.
+Similarly, the complexity of the operations may depend on the other views
+belonging to the same `bimap`.
+
+
+[#reference_list_of_splice_iterator_this]
+
+    void splice(iterator position, this_type & x);
+
+* [*Requires: ] `position` is a valid iterator of the view. `&x!=this`.
+* [*Effects:] Inserts the contents of `x` before position, in the same order as
+they were in `x`. Those elements successfully inserted are erased from `x`.
+* [link list_of_complexity_signature 
+[*Complexity:]] O(`x.size()`*I(n+`x.size()`) + `x.size()`*D(`x.size()`)).
+* [*Exception safety:] Basic.
+
+
+[#reference_list_of_splice_iterator_this_iterator]
+
+    void splice(iterator position, this_type & x,iterator i);
+
+* [*Requires: ] `position` is a valid iterator of the view. `i` is a valid
+dereferenceable iterator `x`.
+* [*Effects:] Inserts the element pointed to by `i` before position: if insertion
+is successful, the element is erased from `x`. In the special case `&x==this`,
+no copy or deletion is performed, and the operation is always successful. If
+`position==i`, no operation is performed.
+* [*Postconditions:] If `&x==this`, no iterator or reference is invalidated.
+* [link list_of_complexity_signature 
+[*Complexity:]] If `&x==this`, constant; otherwise O(I(n) + D(n)).
+* [*Exception safety:] If `&x==this`, nothrow; otherwise, strong.
+
+
+[#reference_list_of_splice_iterator_this_iterator_iterator]
+
+    void splice(iterator position, this_type & x, iterator first, iterator last);
+
+* [*Requires: ] `position` is a valid iterator of the view. `first` and `last` are
+valid iterators of `x`. last is reachable from `first`. position is not in the
+range `[first,last)`.
+* [*Effects:] For each element in the range `[first,last)`, insertion is tried
+before position; if the operation is successful, the element is erased from x.
+In the special case `&x==this`, no copy or deletion is performed, and insertions
+are always successful.
+* [*Postconditions:] If `&x==this`, no iterator or reference is invalidated.
+* [link list_of_complexity_signature 
+[*Complexity:]] If `&x==this`, constant; otherwise O(m*I(n+m) + m*D(x.size()))
+where m is the number of elements in `[first,last)`.
+* [*Exception safety:] If `&x==this`, nothrow; otherwise, basic.
+
+
+[#reference_list_of_remove_value]
+
+    void remove(const value_type & value);
+
+* [*Effects:] Erases all elements of the view which compare equal to `value`.
+* [link list_of_complexity_signature 
+[*Complexity:]] O(n + m*D(n)), where m is the number of elements erased.
+* [*Exception safety:] Basic.
+
+
+[#reference_list_of_remove_if_predicate]
+
+    template< class Predicate >
+    void remove_if(Predicate pred);
+
+* [*Effects:] Erases all elements `x` of the view for which `pred(x)` holds.
+* [link list_of_complexity_signature 
+[*Complexity:]] O(n + m*D(n)), where m is the number of elements erased.
+* [*Exception safety:] Basic.
+
+
+[#reference_list_of_unique]
+
+    void unique();
+
+* [*Effects:] Eliminates all but the first element from every consecutive
+group of equal elements referred to by the iterator `i` in the range
+`[first+1,last)` for which `*i==*(i-1)`.
+* [link list_of_complexity_signature 
+[*Complexity:]] O(n + m*D(n)), where m is the number of elements erased.
+* [*Exception safety:] Basic.
+
+
+[#reference_list_of_unique_predicate]
+
+    template< class BinaryPredicate >
+    void unique(BinaryPredicate binary_pred);
+
+* [*Effects:] Eliminates all but the first element from every consecutive
+group of elements referred to by the iterator i in the range \[first+1,last)
+for which `binary_pred(*i,*(i-1))` holds.
+* [link list_of_complexity_signature 
+[*Complexity:]] O(n + m*D(n)), where m is the number of elements erased.
+* [*Exception safety:] Basic.
+
+
+[#reference_list_of_merge_this]
+
+    void merge(this_type & x);
+
+* [*Requires: ] `std::less<value_type>` is a __SGI_STRICT_WEAK_ORDERING__ over `value_type`.
+Both the view and `x` are sorted according to `std::less<value_type>`.
+* [*Effects:] Attempts to insert every element of `x` into the corresponding
+position of the view (according to the order). Elements successfully inserted
+are erased from `x`. The resulting sequence is stable, i.e. equivalent elements
+of either container preserve their relative position. In the special case
+`&x==this`, no operation is performed.
+* [*Postconditions:] Elements in the view and remaining elements in `x` are sorted.
+Validity of iterators to the view and of non-erased elements of `x` references
+is preserved.
+* [link list_of_complexity_signature 
+[*Complexity:]] If `&x==this`, constant; otherwise
+O(n + `x.size()`*I(n+`x.size()`) + `x.size()`*D(`x.size()`)).
+* [*Exception safety:] If `&x==this`, nothrow; otherwise, basic.
+
+
+[#reference_list_of_merge_this_compare]
+
+    template< class Compare >
+    void merge(this_type & x, Compare comp);
+
+* [*Requires:] Compare is a __SGI_STRICT_WEAK_ORDERING__ over `value_type`. Both the view
+and `x` are sorted according to `comp`.
+* [*Effects:] Attempts to insert every element of `x` into the corresponding position
+of the view (according to `comp`). Elements successfully inserted are erased from `x`.
+The resulting sequence is stable, i.e. equivalent elements of either container preserve
+their relative position. In the special case `&x==this`, no operation is performed.
+* [*Postconditions:] Elements in the view and remaining elements in `x` are sorted
+according to `comp`. Validity of iterators to the view and of non-erased elements
+of `x` references is preserved.
+* [link list_of_complexity_signature 
+[*Complexity:]] If `&x==this`, constant;
+otherwise O(n + `x.size()`*I(n+`x.size()`) + `x.size()`*D(`x.size()`)).
+* [*Exception safety:] If `&x==this`, nothrow; otherwise, basic.
+
+
+[#reference_list_of_sort]
+
+    void sort();
+
+* [*Requires: ] `std::less<value_type>` is a __SGI_STRICT_WEAK_ORDERING__ over value_type.
+* [*Effects:] Sorts the view according to `std::less<value_type>`. The sorting is stable,
+i.e. equivalent elements preserve their relative position.
+* [*Postconditions:] Validity of iterators and references is preserved.
+* [*Complexity:] O(n*log(n)).
+* [*Exception safety:] nothrow if `std::less<value_type>` does not throw; otherwise, basic.
+
+
+[#reference_list_of_sort_compare]
+
+    template< typename Compare >
+    void sort(Compare comp);
+
+* [*Requires:] Compare is a __SGI_STRICT_WEAK_ORDERING__ over value_type.
+* [*Effects:] Sorts the view according to comp. The sorting is stable, i.e. equivalent
+elements preserve their relative position.
+* [*Postconditions:] Validity of iterators and references is preserved.
+* [*Complexity:] O(n*log(n)).
+* [*Exception safety:] nothrow if comp does not throw; otherwise, basic.
+
+
+[#reference_list_of_reverse]
+
+    void reverse();
+
+* [*Effects:] Reverses the order of the elements in the view.
+* [*Postconditions:] Validity of iterators and references is preserved.
+* [*Complexity:] O(n).
+* [*Exception safety:] nothrow.
+
+
+[endsect]
+
+[section Rearrange operations]
+
+These operations, without counterpart in `std::list` (although splice provides
+partially overlapping functionality), perform individual and global repositioning
+of elements inside the index.
+
+
+[#reference_list_of_relocate_iterator_iterator]
+
+    void relocate(iterator position, iterator i);
+
+* [*Requires: ] `position` is a valid iterator of the view. `i` is a valid
+dereferenceable iterator of the view.
+* [*Effects:] Inserts the element pointed to by `i` before `position`.
+If `position==i`, no operation is performed.
+* [*Postconditions:] No iterator or reference is invalidated.
+* [*Complexity:] Constant.
+* [*Exception safety:] nothrow.
+
+
+[#reference_list_of_relocate_iterator_iterator_iterator]
+
+    void relocate(iterator position, iterator first, iterator last);
+
+* [*Requires: ] `position` is a valid iterator of the view. `first` and `last` are
+valid iterators of the view. `last` is reachable from `first`. `position` is not
+in the range `[first,last)`.
+* [*Effects:] The range of elements `[first,last)` is repositioned just before
+`position`.
+* [*Postconditions:] No iterator or reference is invalidated.
+* [*Complexity:] Constant.
+* [*Exception safety:] nothrow.
+
+
+[endsect]
+
+[section Serialization]
+
+Views cannot be serialized on their own, but only as part of the
+`bimap` into which they are embedded. In describing the additional
+preconditions and guarantees associated to `list_of` views with respect to
+serialization of their embedding containers, we use the concepts defined in the
+`bimap` serialization section.
+
+[blurb [*Operation:] saving of a `bimap` b to an output archive
+(XML archive) ar.]
+
+* [*Requires:] No additional requirements to those imposed by the container.
+
+
+[blurb [*Operation:] loading of a `bimap` b' from an input archive
+(XML archive) ar.]
+
+* [*Requires:] No additional requirements to those imposed by the container.
+[*Postconditions:] On successful loading, each of the elements of
+`[begin(), end())`
+is a restored copy of the corresponding element in
+`[m.get<i>().begin(), m.get<i>().end())`,
+where `i` is the position of the `list_of` view in the container.
+
+
+[blurb [*Operation:] saving of an `iterator` or `const_iterator` it to an output
+archive (XML archive) ar.]
+
+* [*Requires: ] `it` is a valid iterator of the view. The associated
+`bimap` has been previously saved.
+
+
+[blurb [*Operation:] loading of an `iterator` or `const_iterator it`' from an input
+archive (XML archive) ar.]
+
+* [*Postconditions:] On successful loading, if it was dereferenceable then `*it`' is the
+restored copy of `*it`, otherwise `it`'` == end()`.
+* [*Note:] It is allowed that `it` be a `const_iterator` and the restored `it`' an iterator,
+or viceversa.
+
+
+[endsect]
+[endsect]
+
+
+[endsect]

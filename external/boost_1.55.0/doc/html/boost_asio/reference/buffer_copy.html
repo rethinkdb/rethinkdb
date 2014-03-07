@@ -1,0 +1,284 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>buffer_copy</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="buffer_cast/overload2.html" title="buffer_cast (2 of 2 overloads)">
+<link rel="next" href="buffer_copy/overload1.html" title="buffer_copy (1 of 30 overloads)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="buffer_cast/overload2.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="buffer_copy/overload1.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.buffer_copy"></a><a class="link" href="buffer_copy.html" title="buffer_copy">buffer_copy</a>
+</h3></div></div></div>
+<p>
+        <a class="indexterm" name="idp78781336"></a> 
+The <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_copy</span></code> function is used to copy bytes
+        from a source buffer (or buffer sequence) to a target buffer (or buffer sequence).
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload1.html" title="buffer_copy (1 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffer</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload1.html" title="buffer_copy (1 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload2.html" title="buffer_copy (2 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload2.html" title="buffer_copy (2 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload3.html" title="buffer_copy (3 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload3.html" title="buffer_copy (3 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload4.html" title="buffer_copy (4 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload4.html" title="buffer_copy (4 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="ConstBufferSequence.html" title="Constant buffer sequence requirements">ConstBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload5.html" title="buffer_copy (5 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">ConstBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload5.html" title="buffer_copy (5 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload6.html" title="buffer_copy (6 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffer</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload6.html" title="buffer_copy (6 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload7.html" title="buffer_copy (7 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload7.html" title="buffer_copy (7 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload8.html" title="buffer_copy (8 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload8.html" title="buffer_copy (8 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload9.html" title="buffer_copy (9 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload9.html" title="buffer_copy (9 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="ConstBufferSequence.html" title="Constant buffer sequence requirements">ConstBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload10.html" title="buffer_copy (10 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">ConstBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload10.html" title="buffer_copy (10 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="MutableBufferSequence.html" title="Mutable buffer sequence requirements">MutableBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload11.html" title="buffer_copy (11 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">MutableBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffer</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload11.html" title="buffer_copy (11 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="MutableBufferSequence.html" title="Mutable buffer sequence requirements">MutableBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload12.html" title="buffer_copy (12 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">MutableBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload12.html" title="buffer_copy (12 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="MutableBufferSequence.html" title="Mutable buffer sequence requirements">MutableBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload13.html" title="buffer_copy (13 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">MutableBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload13.html" title="buffer_copy (13 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="MutableBufferSequence.html" title="Mutable buffer sequence requirements">MutableBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload14.html" title="buffer_copy (14 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">MutableBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload14.html" title="buffer_copy (14 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="MutableBufferSequence.html" title="Mutable buffer sequence requirements">MutableBufferSequence</a><span class="special">,</span>
+    <span class="keyword">typename</span> <a class="link" href="ConstBufferSequence.html" title="Constant buffer sequence requirements">ConstBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload15.html" title="buffer_copy (15 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">MutableBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">ConstBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload15.html" title="buffer_copy (15 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload16.html" title="buffer_copy (16 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffer</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload16.html" title="buffer_copy (16 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload17.html" title="buffer_copy (17 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload17.html" title="buffer_copy (17 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload18.html" title="buffer_copy (18 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload18.html" title="buffer_copy (18 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload19.html" title="buffer_copy (19 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload19.html" title="buffer_copy (19 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="ConstBufferSequence.html" title="Constant buffer sequence requirements">ConstBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload20.html" title="buffer_copy (20 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">ConstBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload20.html" title="buffer_copy (20 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload21.html" title="buffer_copy (21 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffer</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload21.html" title="buffer_copy (21 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload22.html" title="buffer_copy (22 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload22.html" title="buffer_copy (22 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload23.html" title="buffer_copy (23 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload23.html" title="buffer_copy (23 of 30 overloads)">more...</a></em></span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload24.html" title="buffer_copy (24 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload24.html" title="buffer_copy (24 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="ConstBufferSequence.html" title="Constant buffer sequence requirements">ConstBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload25.html" title="buffer_copy (25 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">ConstBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload25.html" title="buffer_copy (25 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="MutableBufferSequence.html" title="Mutable buffer sequence requirements">MutableBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload26.html" title="buffer_copy (26 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">MutableBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffer</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload26.html" title="buffer_copy (26 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="MutableBufferSequence.html" title="Mutable buffer sequence requirements">MutableBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload27.html" title="buffer_copy (27 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">MutableBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload27.html" title="buffer_copy (27 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="MutableBufferSequence.html" title="Mutable buffer sequence requirements">MutableBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload28.html" title="buffer_copy (28 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">MutableBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload28.html" title="buffer_copy (28 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="MutableBufferSequence.html" title="Mutable buffer sequence requirements">MutableBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload29.html" title="buffer_copy (29 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">MutableBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffers_1</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload29.html" title="buffer_copy (29 of 30 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="MutableBufferSequence.html" title="Mutable buffer sequence requirements">MutableBufferSequence</a><span class="special">,</span>
+    <span class="keyword">typename</span> <a class="link" href="ConstBufferSequence.html" title="Constant buffer sequence requirements">ConstBufferSequence</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="buffer_copy/overload30.html" title="buffer_copy (30 of 30 overloads)">buffer_copy</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">MutableBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">target</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">ConstBufferSequence</span> <span class="special">&amp;</span> <span class="identifier">source</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_bytes_to_copy</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_copy/overload30.html" title="buffer_copy (30 of 30 overloads)">more...</a></em></span>
+</pre>
+<p>
+        The <code class="computeroutput"><span class="identifier">buffer_copy</span></code> function
+        is available in two forms:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            A 2-argument form: <code class="computeroutput"><span class="identifier">buffer_copy</span><span class="special">(</span><span class="identifier">target</span><span class="special">,</span> <span class="identifier">source</span><span class="special">)</span></code>
+          </li>
+<li class="listitem">
+            A 3-argument form: <code class="computeroutput"><span class="identifier">buffer_copy</span><span class="special">(</span><span class="identifier">target</span><span class="special">,</span> <span class="identifier">source</span><span class="special">,</span> <span class="identifier">max_bytes_to_copy</span><span class="special">)</span></code>
+          </li>
+</ul></div>
+<p>
+        Both forms return the number of bytes actually copied. The number of bytes
+        copied is the lesser of:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">buffer_size</span><span class="special">(</span><span class="identifier">target</span><span class="special">)</span></code>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">buffer_size</span><span class="special">(</span><span class="identifier">source</span><span class="special">)</span></code>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">If</span></code> specified, <code class="computeroutput"><span class="identifier">max_bytes_to_copy</span></code>.
+          </li>
+</ul></div>
+<p>
+        This prevents buffer overflow, regardless of the buffer sizes used in the
+        copy operation.
+      </p>
+<h5>
+<a name="boost_asio.reference.buffer_copy.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffer_copy.requirements"></a></span><a class="link" href="buffer_copy.html#boost_asio.reference.buffer_copy.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/buffer.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="buffer_cast/overload2.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="buffer_copy/overload1.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

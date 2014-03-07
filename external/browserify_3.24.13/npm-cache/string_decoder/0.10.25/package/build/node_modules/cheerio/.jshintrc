@@ -1,0 +1,15 @@
+{
+  "indent": 2,
+  "eqnull": true,
+  "laxbreak": true,
+  "proto": true,
+  "undef": true,
+  "node": true,
+  "quotmark": "single",
+  "globals": {
+    "expect": true,
+    "it": true,
+    "describe": true,
+    "beforeEach": true
+  }
+}

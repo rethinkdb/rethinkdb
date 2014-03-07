@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>The Macro Expansion Process</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="theme/style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" cellspacing="2" background="theme/bkd2.gif">
+  <tr> 
+    <td width="21"> <h1></h1></td>
+    <td width="885"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">The 
+      Macro Expansion Process</font></b></font></td>
+    <td width="96"><a href="http://www.boost.org"><img src="theme/wave.gif" width="93" height="68" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="predefined_macros.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="compiletime_config.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>The macro expansion process described here was initially developed by <a href="mailto:pmenso57@attbi.com">Paul 
+  Mensonides</a> and is implemented in <tt>Wave</tt>. It is much more understandable 
+  as the description of the desired macro expansion algorithm provided in the 
+  C++ Standard <a href="references.html#iso_cpp">[1]</a>.</p>
+<p>Macro replacement proceeds left-to-right. </p>
+<p>If, during scanning (or rescanning) an identifier is found, it is looked up 
+  in the symbol table. If the identifier is not found in the symbol table, it 
+  is not a macro and scanning continues.</p>
+<p>If the identifier is found, the value of a flag associated with the identifier 
+  is used to determine if the identifier is available for expansion. If it is 
+  not, the specific token (i.e. the specific instance of the identifier) is marked 
+  as disabled and is not expanded. If the identifier is available for expansion, 
+  the value of a different flag associated with the identifier in the symbol table 
+  is used to determine if the identifier is an object-like or function-like macro. 
+  If it is an object-like macro, it is expanded. If it is a function-like macro, 
+  it is only expanded if the next token is an left parenthesis.<br>
+  An identifier is available for expansion if it is not marked as disabled and 
+  if the the value of the flag associated with the identifier is not set, which 
+  is used to determine if the identifier is available for expansion.</p>
+<p>(If a macro is an object-like macro, skip past the next two paragraphs.)</p>
+<p>If a macro to be expanded is a function-like macro, it must have the exact 
+  number of actual arguments as the number of formal parameters required by the 
+  definition of the macro. Each argument is recursively scanned and expanded. 
+  Each parameter name found in the replacement list is replaced by the expanded 
+  actual argument after leading and trailing whitespace and all placeholder tokens 
+  are removed unless the parameter name immediately follows the stringizing operator 
+  (<tt>'#'</tt>) or is adjacent to the token-pasting operator (<tt>'##'</tt>).</p>
+<p>If the parameter name immediately follows the stringizing operator (<tt>'#'</tt>), 
+  a stringized version of the unexpanded actual argument is inserted. If the parameter 
+  name is adjacent to the token-pasting operator (<tt>'##'</tt>), the unexpanded 
+  actual argument is inserted after all placeholder tokens are removed.</p>
+<p>All concatenation takes place in the replacement list. (If a single concatenation 
+  yields multiple tokens, the behavior is undefined. Moreover, <tt>Wave</tt> in 
+  normal C++98 and C99 modes issues an error, if more then one token is produced 
+  as the result of the concatenation. In C++0x mode <tt>Wave</tt> treats token-pasting 
+  of unrelated tokens as well defined and inserts the reparsed string representation 
+  of the concatenated tokens into the replacement list.).</p>
+<p>The flag in the symbol table entry associated with the name of the macro being 
+  expanded is set to indicate the that the macro is not available for expansion.</p>
+<p>The replacement list is rescanned for further macro expansion. All leading 
+  and trailing whitespace tokens in the replacement list are removed (the placeholder 
+  tokens are left intact). </p>
+<p>After rescanning completes, the flag in the symbol table entry associated with 
+  the name of macro being expanded is cleared to indicate that the macro is again 
+  available for expansion, and the sequence of tokens that constitutes the rescanned 
+  replacement list is returned to the point of invocation of the macro.</p>
+<p>If this sequence of tokens is empty, it is replaced by a placeholder token. 
+  If a placeholder is found during scanning (or rescanning) it is ignored. (Also, 
+  if the only thing separating a parameter from the stringizing operator or token-pasting 
+  operator is placeholder, it is also ignored in that context.)</p>
+<p>This sequence of tokens is inserted at the original point that the macro was 
+  invoked, and scanning continues starting with the last token of the newly inserted 
+  sequence of tokens. I.e. scanning looks back a single token (possibly a placeholder 
+  token) and continues.<br>
+</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="predefined_macros.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="compiletime_config.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2011 Hartmut Kaiser<br>
+  <br>
+<font size="2">Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<span class="updated"></span>
+<p class="copyright"><span class="updated">Last updated: 
+  <!-- #BeginDate format:fcAm1m -->Sunday, May 15, 2005  12:23<!-- #EndDate -->
+  </span>
+</p>
+<p>&nbsp; </p>
+</body>
+</html>
+<!-- #BeginDate format:fcAm1m -->Saturday, February 25, 2006  15:46<!-- #EndDate -->

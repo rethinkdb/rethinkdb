@@ -1,0 +1,272 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Miscellaneous Notes</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../variant.html" title="Chapter&#160;38.&#160;Boost.Variant">
+<link rel="prev" href="design.html" title="Design Overview">
+<link rel="next" href="refs.html" title="References">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="design.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../variant.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="refs.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="variant.misc"></a>Miscellaneous Notes</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="misc.html#variant.versus-any">Boost.Variant vs. Boost.Any</a></span></dt>
+<dt><span class="section"><a href="misc.html#idp250742664">Portability</a></span></dt>
+<dt><span class="section"><a href="misc.html#variant.troubleshooting">Troubleshooting</a></span></dt>
+<dt><span class="section"><a href="misc.html#variant.ack">Acknowledgments</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="variant.versus-any"></a>Boost.Variant vs. Boost.Any</h3></div></div></div>
+<p>As a discriminated union container, the Variant library shares many
+    of the same features of the <a class="link" href="../any.html" title="Chapter&#160;2.&#160;Boost.Any">Any</a> library.
+    However, since neither library wholly encapsulates the features of the
+    other, one library cannot be generally recommended for use over the
+    other.</p>
+<p>That said, Boost.Variant has several advantages over Boost.Any,
+    such as:
+
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">Boost.Variant guarantees the type of its content is one of a
+        finite, user-specified set of types.</li>
+<li class="listitem">Boost.Variant provides <span class="emphasis"><em>compile-time</em></span>
+        checked visitation of its content. (By contrast, the current version
+        of Boost.Any provides no visitation mechanism at all; but even if it
+        did, it would need to be checked at run-time.)</li>
+<li class="listitem">Boost.Variant enables generic visitation of its content.
+        (Even if Boost.Any did provide a visitation mechanism, it would enable
+        visitation only of explicitly-specified types.)</li>
+<li class="listitem">Boost.Variant offers an efficient, stack-based storage scheme
+        (avoiding the overhead of dynamic allocation).</li>
+</ul></div>
+<p>
+
+  </p>
+<p>Of course, Boost.Any has several advantages over Boost.Variant,
+    such as:
+
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">Boost.Any, as its name implies, allows virtually any type for
+        its content, providing great flexibility.</li>
+<li class="listitem">Boost.Any provides the no-throw guarantee of exception safety
+        for its swap operation.</li>
+<li class="listitem">Boost.Any makes little use of template metaprogramming
+        techniques (avoiding potentially hard-to-read error messages and
+        significant compile-time processor and memory demands).</li>
+</ul></div>
+<p>
+
+  </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp250742664"></a>Portability</h3></div></div></div>
+<p>The library aims for 100% ANSI/ISO C++ conformance. However, this is
+    strictly impossible due to the inherently non-portable nature of the
+    <a href="../../../libs/type_traits/index.html" target="_top">Type Traits</a> library's
+    <code class="computeroutput">type_with_alignment</code> facility. In
+    practice though, no compilers or platforms have been discovered where this
+    reliance on undefined behavior has been an issue.</p>
+<p>Additionally, significant effort has been expended to ensure proper
+    functioning despite various compiler bugs and other conformance problems.
+    To date the library testsuite has
+    been compiled and tested successfully on at least the following compilers
+    for basic and advanced functionality:
+
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>&#160;</th>
+<th>Basic</th>
+<th>
+              <code class="computeroutput">variant&lt;T&amp;&gt;</code>
+            </th>
+<th>
+              <a class="link" href="tutorial.html#variant.tutorial.over-sequence" title="Using a type sequence to specify bounded types">
+                <code class="computeroutput">make_variant_over</code>
+              </a>
+            </th>
+<th>
+              <a class="link" href="tutorial.html#variant.tutorial.recursive.recursive-variant" title="Recursive types with make_recursive_variant">
+                <code class="computeroutput">make_recursive_variant</code>
+              </a>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Borland C++ 5.5.1 and 5.6.4</td>
+<td>X</td>
+<td>X</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr>
+<td>Comeau C++ 4.3.0</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+</tr>
+<tr>
+<td>GNU GCC 3.3.1</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+</tr>
+<tr>
+<td>GNU GCC 2.95.3</td>
+<td>X</td>
+<td>X</td>
+<td>&#160;</td>
+<td>X</td>
+</tr>
+<tr>
+<td>Intel C++ 7.0</td>
+<td>X</td>
+<td>&#160;</td>
+<td>X</td>
+<td>X</td>
+</tr>
+<tr>
+<td>Metrowerks CodeWarrior 8.3</td>
+<td>X</td>
+<td>&#160;</td>
+<td>X</td>
+<td>X</td>
+</tr>
+<tr>
+<td>Microsoft Visual C++ 7.1</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+</tr>
+<tr>
+<td>Microsoft Visual C++ 6 SP5 and 7</td>
+<td>X</td>
+<td>&#160;</td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table></div>
+<p>
+
+  </p>
+<p>Finally, the current state of the testsuite in CVS may be found on the
+    <a href="http://boost.sourceforge.net/regression-logs" target="_top">Test Summary</a>
+    page. Please note, however, that this page reports on day-to-day changes
+    to inter-release code found in the Boost CVS and thus likely does not
+    match the state of code found in Boost releases.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="variant.troubleshooting"></a>Troubleshooting</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="misc.html#variant.troubleshooting.template-depth">"Template instantiation depth exceeds maximum"</a></span></dt>
+<dt><span class="section"><a href="misc.html#variant.troubleshooting.compiler-memory">"Internal heap limit reached"</a></span></dt>
+</dl></div>
+<p>Due to the heavy use of templates in the implementation of
+  <code class="computeroutput">variant</code>, it is not uncommon when compiling to encounter
+  problems related to template instantiaton depth, compiler memory, etc. This
+  section attempts to provide advice to common problems experienced on several
+  popular compilers.</p>
+<p>(This section is still in progress, with additional advice/feedback
+  welcome. Please post to the Boost-Users list with any useful experiences you
+  may have.)</p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.troubleshooting.template-depth"></a>"Template instantiation depth exceeds maximum"</h4></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="misc.html#variant.troubleshooting.template-depth.gcc">GNU GCC</a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="variant.troubleshooting.template-depth.gcc"></a>GNU GCC</h5></div></div></div>
+<p>The compiler option
+        <code class="computeroutput">-ftemplate-depth-<span class="emphasis"><em>NN</em></span></code> can increase the
+        maximum allowed instantiation depth. (Try
+        <code class="computeroutput">-ftemplate-depth-50</code>.)</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.troubleshooting.compiler-memory"></a>"Internal heap limit reached"</h4></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="misc.html#variant.troubleshooting.compiler-memory.msvc">Microsoft Visual C++</a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="variant.troubleshooting.compiler-memory.msvc"></a>Microsoft Visual C++</h5></div></div></div>
+<p>The compiler option <code class="computeroutput">/Zm<span class="emphasis"><em>NNN</em></span></code> can
+        increase the memory allocation limit. The <code class="computeroutput">NNN</code> is a
+        scaling percentage (i.e., <code class="computeroutput">100</code> denotes the default limit).
+        (Try <code class="computeroutput">/Zm200</code>.)</p>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="variant.ack"></a>Acknowledgments</h3></div></div></div>
+<p>Eric Friedman and Itay Maman designed the initial submission; Eric was
+  the primary implementer.</p>
+<p>Eric is also the library maintainer and has expanded upon the initial
+  submission -- adding
+  <code class="computeroutput"><a class="link" href="../boost/make_recursive_variant.html" title="Class template make_recursive_variant">make_recursive_variant</a></code>,
+  <code class="computeroutput"><a class="link" href="../boost/make_variant_over.html" title="Class template make_variant_over">make_variant_over</a></code>, support for
+  reference content, etc.</p>
+<p>Andrei Alexandrescu's work in
+    [<a class="link" href="refs.html#variant.refs.ale01a">Ale01a</a>]
+and
+    [<a class="link" href="refs.html#variant.refs.ale02">Ale02</a>]
+inspired the library's design.</p>
+<p>Jeff Garland was the formal review manager.</p>
+<p>Douglas Gregor,
+Dave Abrahams,
+Anthony Williams,
+Fernando Cacciola,
+Joel de Guzman,
+Dirk Schreib,
+Brad King,
+Giovanni Bajo,
+Eugene Gladyshev,
+and others provided helpful feedback and suggestions to refine the semantics,
+interface, and implementation of the library.</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002, 2003 Eric Friedman, Itay Maman<p>Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+    <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+    </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="design.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../variant.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="refs.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

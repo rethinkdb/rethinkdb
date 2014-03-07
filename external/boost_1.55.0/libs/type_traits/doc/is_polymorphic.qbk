@@ -1,0 +1,37 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_polymorphic is_polymorphic]
+   template <class T>
+   struct is_polymorphic : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) polymorphic type 
+then inherits from __true_type, 
+otherwise inherits from __false_type.  Type `T` must be a complete type.
+
+__std_ref 10.3.
+
+__compat The implementation requires some knowledge of the compilers ABI, 
+it does actually seem to work with the majority of compilers though.
+
+__header ` #include <boost/type_traits/is_polymorphic.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+[: Given: `class poly{ virtual ~poly(); };` ]
+
+[:`is_polymorphic<poly>` inherits from `__true_type`.]
+
+[:`is_polymorphic<poly const>::type` is the type `__true_type`.]
+
+[:`is_polymorphic<poly>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_polymorphic<T>::value_type` is the type `bool`.]
+
+[endsect]
+

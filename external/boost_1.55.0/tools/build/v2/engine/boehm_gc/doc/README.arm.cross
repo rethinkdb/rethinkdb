@@ -1,0 +1,68 @@
+From: Margaret Fleck
+
+Here's the key details of what worked for me, in case anyone else needs them.
+There may well be better ways to do some of this, but ....
+   -- Margaret
+
+
+The badge4 has a StrongArm-1110 processor and a StrongArm-1111 coprocessor.  
+
+Assume that the garbage collector distribution is unpacked into /home/arm/gc6.0,
+which is visible to both the ARM machine and a linux desktop (e.g. via NFS mounting).
+
+Assume that you have a file /home/arm/config.site with contents something like the
+example attached below.  Notice that our local ARM toolchain lives in
+/skiff/local.
+
+Go to /home/arm/gc6.0 directory.  Do
+  CONFIG_SITE=/home/arm/config.site ./configure --target=arm-linux
+--prefix=/home/arm/gc6.0
+
+On your desktop, do:
+   make
+   make install
+The main garbage collector library should now be in ../gc6.0/lib/libgc.so.  
+
+To test the garbage collector, first do the following on your desktop
+   make gctest
+   ./gctest
+Then do the following on the ARM machine
+   cd .libs
+   ./lt-gctest
+
+Do not try to do "make test" (the usual way of running the test
+program).  This does not work and seems to erase some of the important
+files.
+
+The gctest program claims to have succeeded.  Haven't run any further tests
+with it, though I'll be doing so in the near future.
+
+-------------------------------
+# config.site for configure
+
+# Modified from the one provided by Bradley D. LaRonde
+# Edited by Andrej Cedilnik <acedil1@csee.umbc.edu>
+# Used some of solutions by Tilman Vogel <Tilman.Vogel@web.de>
+# Ported for iPAQ Familiar by Oliver Kurth <oliver.kurth@innominate.com>
+# Further modified by Margaret Fleck for the badge4
+
+HOSTCC=gcc
+
+# Names of the cross-compilers
+CC=/skiff/local/bin/arm-linux-gcc
+CXX=/skiff/local/bin/arm-linux-gcc
+
+# The cross compiler specific options
+CFLAGS="-O2 -fno-exceptions"
+CXXFLAGS="-O2 -fno-exceptions"
+CPPFLAGS="-O2 -fno-exceptions"
+LDFLAGS=""
+
+# Some other programs
+AR=/skiff/local/bin/arm-linux-ar
+RANLIB=/skiff/local/bin/arm-linux-ranlib
+NM=/skiff/local/bin/arm-linux-nm
+ac_cv_path_NM=/skiff/local/bin/arm-linux-nm
+ac_cv_func_setpgrp_void=yes
+x_includes=/skiff/local/arm-linux/include/X11
+x_libraries=/skiff/local/arm-linux/lib/X11

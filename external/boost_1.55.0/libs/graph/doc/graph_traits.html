@@ -1,0 +1,256 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Graph Traits</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME=""></A>
+<pre>
+graph_traits&lt;<a href="./Graph.html">Graph</a>&gt;
+</pre>
+</H1>
+
+Just like the <a
+href="http://www.sgi.com/tech/stl/iterator_traits.html">
+iterators</a> of STL, graphs have <b>associated types</b>.  As stated
+in the various <a href="./graph_concepts.html">graph concepts</a>, a
+graph has quite a few associated types: <tt>vertex_descriptor</tt>,
+<tt>edge_descriptor</tt>, <tt>out_edge_iterator</tt>, etc..  Any
+particular graph concepts will not require that all of the following
+associated types be defined. When implementing a graph class that
+fullfils one or more graph concepts, for associated types that are not
+required by the concepts, it is ok to use <tt>void</tt> as the type
+(when using nested typedefs inside the graph class), or to leave the
+typedef out of the <tt>graph_traits</tt> specialization for the graph
+class.
+Note that because of the use of traits classes rather than member
+types, it is not safe (and often will not work) to define subclasses of BGL
+graph types; those types may be missing important traits and properties that
+were defined externally to the class definition.
+
+<pre>
+  template &lt;typename Graph&gt;
+  struct graph_traits {
+    typedef typename Graph::vertex_descriptor      vertex_descriptor;
+    typedef typename Graph::edge_descriptor        edge_descriptor;
+    typedef typename Graph::adjacency_iterator     adjacency_iterator;
+    typedef typename Graph::out_edge_iterator      out_edge_iterator;
+    typedef typename Graph::in_edge_iterator       in_edge_iterator;
+    typedef typename Graph::vertex_iterator        vertex_iterator;
+    typedef typename Graph::edge_iterator          edge_iterator;
+
+    typedef typename Graph::directed_category      directed_category;
+    typedef typename Graph::edge_parallel_category edge_parallel_category;
+    typedef typename Graph::traversal_category     traversal_category;
+
+    typedef typename Graph::vertices_size_type     vertices_size_type;
+    typedef typename Graph::edges_size_type        edges_size_type;
+    typedef typename Graph::degree_size_type       degree_size_type;
+  };
+</pre>
+
+<h3>Where Defined</h3>
+
+<a href="../../../boost/graph/graph_traits.hpp"><tt>boost/graph/graph_traits.hpp</tt></a>
+
+<H3>Template Parameters</H3>
+
+<P>
+<TABLE border>
+<TR>
+<th>Parameter</th><th>Description</th>
+</tr>
+
+<TR><TD><TT>Graph</TT></TD>
+<TD>
+The graph type whose associated types are being accessed.
+</TD>
+</TR>
+
+</table>
+
+<h3>Model of</h3>
+
+<a
+href="http://www.sgi.com/tech/stl/DefaultConstructible.html">DefaultConstructible</a> and
+<a href="http://www.sgi.com/tech/stl/Assignable.html">Assignable</a>
+
+<h3>Type Requirements</h3>
+
+<ul>
+  <li><tt>Graph</tt> is a model of one of the <a
+  href="./graph_concepts.html">graph concepts</a>.
+</ul>
+
+<H2>Members</H2>
+
+<p>
+
+<table border>
+<tr>
+<th>Member</th><th>Description</th>
+</tr>
+
+<tr>
+<td><tt>
+vertex_descriptor
+</tt></td>
+<td>
+The type for the objects used to identity vertices in the graph.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+edge_descriptor
+</tt></td>
+<td>
+The type for the objects used to identity edges in the graph.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+adjacency_iterator
+</tt></td>
+<td>
+The type for the iterators that traverse the vertices adjacent
+to a vertex.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+out_edge_iterator
+</tt></td>
+<td>
+The type for the iterators that traverse through the out-edges
+of a vertex.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+in_edge_iterator
+</tt></td>
+<td>
+The type for the iterators that traverse through the in-edges
+of a vertex.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+vertex_iterator
+</tt></td>
+<td>
+The type for the iterators that traverse through the complete vertex
+set of the graph.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+edge_iterator
+</tt></td>
+<td>
+The type for the iterators that traverse through the complete edge
+set of the graph.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+directed_category
+</tt></td>
+<td>
+This says whether the graph is undirected (<tt>undirected_tag</tt>)
+or directed (<tt>directed_tag</tt>).
+</td>
+</tr>
+
+<tr>
+<td><tt>
+edge_parallel_category
+</tt></td>
+<td>
+This says whether the graph allows parallel edges to be inserted
+(<tt>allow_parallel_edge_tag</tt>) or if it automatically removes
+parallel edges (<tt>disallow_parallel_edge_tag</tt>).
+</td>
+</tr>
+
+<tr>
+<td><tt>
+traversal_category
+</tt></td>
+<td>
+The ways in which the vertices in the graph can be traversed.
+The traversal category tags are: 
+<tt>incidence_graph_tag, adjacency_graph_tag,
+bidirectional_graph_tag, vertex_list_graph_tag,
+edge_list_graph_tag, vertex_and_edge_list_graph_tag,
+adjacency_matrix_tag</tt>. You can also create your own
+tag which should inherit from one of the above. 
+</td>
+</tr>
+
+<tr>
+<td><tt>
+vertices_size_type
+</tt></td>
+<td>
+The unsigned integer type used for representing the number of
+vertices in the graph.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+edge_size_type
+</tt></td>
+<td>
+The unsigned integer type used for representing the number of
+edge in the graph.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+degree_size_type
+</tt></td>
+<td>
+The unsigned integer type used for representing the degree
+of vertices in the graph.
+</td>
+</tr>
+
+</table>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

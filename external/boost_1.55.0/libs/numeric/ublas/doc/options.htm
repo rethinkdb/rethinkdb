@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" >
+<head>
+<meta name="generator" content="HTML Tidy for Linux (vers 6 November 2007), see www.w3.org" />
+<!-- tidy options: -w 120 -asxhtml -clean - - vertical-space yes -f index.htm.err -m index.htm -->
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Boost Basic Linear Algebra - Configuration Options</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" alt="logo"/>Boost Basic Linear Algebra - Configuration Options</h1>
+<div class="toc" id="toc"></div>
+
+<div class="navigation">
+<a href="index.htm">back to uBLAS home</a>
+</div>
+
+<h2>NDEBUG</h2> 
+
+<p><strong>Make sure you define NDEBUG</strong> The only way uBLAS
+knows you want a release configuration is to check if you have defined
+NDEBUG. If you don't it assumes you want a debug configuration and
+adds a lot of very useful runtime check. However these are very slow!
+</p>
+
+
+<h2>BOOST_UBLAS_MOVE_SEMANTICS</h2>
+
+<p class="credit">The patch and description was provided by Nasos Iliopoulos.</p>
+
+<p>An immediate effect of this option is the elimination of the need
+for noalias in types <tt>vector&lt;T&gt;</tt> and <tt>matrix&lt;T&gt;</tt>,
+when assigned to the same type. This option doesn't have an effect on
+bounded and c types. Although it is rare, not all compilers support copy
+elision (that allows for move semantics), so a test must be performed to
+make sure that there is a benefit when it is enabled. A small
+demonstration and test can be found in
+<a href="../test/manual/test_move_semantics.cpp"><tt>test_move_semantics.cpp</tt></a></p>
+
+<p>
+In the <a href="../test/manual/test_move_semantics.cpp">test
+example</a> two tests are defined, one for vectors and one for
+matrices. The aim of this example is to print the pointers of the
+storage of each of the containers, before and after the assignment to
+a temporary object. When move semantics are enabled, the
+<tt>vector&lt;T&gt;</tt> and <tt>matrix&lt;T&gt;</tt> storage is moved
+from the temporary and no copy is performed.
+</p>
+
+<p>
+If move semantics are supported by your compiler you will get an output like the following:
+</p>
+<pre class="screen">
+matrix&lt;double&gt; --------------------------------------------------------------------
+Temporary pointer r: 0x94790c0
+Pointer (must be equal to temp. pointer if move semantics are enabled) : 0x94790c0
+</pre>
+
+<p>Notes:</p>
+<ul>
+<li>It should be no surprise to see matrices and vectors been passed
+by VALUE, the compiler takes care and either moves (if the underlying
+code does not modify the object), or copies (if the underlying code
+modifies the object).
+</li>
+<li>There might be some space for some improvements (like clearing the
+data, before swaping)
+</li>
+<li>Move semantics don't eliminate temporaries. They rather move their
+storage around so no copies are performed.
+</li>
+<li>MSVC does no implement Named Return Value Optimization in debug
+mode. So if you build in debug with this compiler you might get <a
+href="https://connect.microsoft.com/VisualStudio/feedback/ViewFeedback.aspx?FeedbackID=483229"
+target="_blank">different behaviour</a> than a release build.
+</li>
+<li>Enabling move semantics is done via #define BOOST_UBLAS_MOVE_SEMANTICS.
+</li>
+<li>There is plenty of room for optimizations when c++0x standard is
+out, taking advantage of rvalue references. (I have a sweet vector
+implementation using that).
+</li>
+<li>If you enable move semantics and your compiler does not support
+them, the operation will just be as passing by const reference.
+</li>
+</ul>
+
+<p>Interesting links</p>
+<ul>
+<li> <a href="http://cpp-next.com/archive/2009/08/want-speed-pass-by-value/" target="_blank">Want Speed? Pass by Value.</a>
+</li>
+<li> <a href="http://blogs.msdn.com/vcblog/archive/2009/02/03/rvalue-references-c-0x-features-in-vc10-part-2.aspx" target="_blank">Rvalue References: C++0x Features in VC10, Part 2</a>
+</li>
+<li> <a href="http://cpp-next.com/archive/2009/09/move-it-with-rvalue-references/" target="_blank">Move It With Rvalue References</a>
+</li>
+</ul>
+
+<h2>BOOST_UBLAS_CHECK_ENABLE</h2>
+
+<p>When BOOST_UBLAS_CHECK_ENABLE is defined then all index and
+parameter checks are enabled. This is enabled in debug mode and
+disabled in release mode.
+</p>
+
+<h2>BOOST_UBLAS_TYPE_CHECK</h2>
+
+<p>When BOOST_UBLAS_TYPE_CHECK is enabled then all possibly expensive
+structure checks are enabled. If this is not desireable then use
+<tt>#define BOOST_UBLAS_TYPE_CHECK 0</tt> before including any uBLAS
+header. The define BOOST_UBLAS_TYPE_CHECK_EPSILON can be used to
+control the acceptable tolerance, see
+<tt>detail/matrix_assign.hpp</tt> for implementation details of this
+check.
+</p>
+
+<h2>BOOST_UBLAS_USE_LONG_DOUBLE</h2> 
+
+<p>Enable uBLAS expressions that involve containers of 'long double'</p>
+
+<h2>BOOST_UBLAS_USE_INTERVAL</h2>
+
+<p>Enable uBLAS expressions that involve containers of 'boost::numeric::interval' types</p>
+
+<h2>Configuring uBLAS with Macros</h2>
+
+<p>Many macro's appear in ublas/config.hpp and elsewhere. Hopefully in the future some of these will disappear!
+They fall into 4 groups:
+</p>
+<ul>
+<li> Automatically set by 'boost/numeric/ublas/config.hpp' based on
+NDEBUG. Makes the distinction between debug (safe) and release (fast)
+mode. Similar to STLport
+<ul>
+<li> <i>Release</i> mode (NDEBUG defined)
+<ul>
+<li> BOOST_UBLAS_INLINE <i>Compiler dependant definition to control
+function inlining.</i> </li><li> BOOST_UBLAS_USE_FAST_SAME </li></ul>
+</li><li> <i>Debug</i> mode
+<ul>
+<li> BOOST_UBLAS_CHECK_ENABLE <i>Enable checking of indexs, iterators
+and parameters. Prevents out of bound access etc.</i> </li><li>
+BOOST_UBLAS_TYPE_CHECK <i>Enable additional checks for the results of
+expressions using non dense types. Picks up runtime error such as the
+assignment of a numerically non-symmetric matrix to
+symmertic_matrix. Use <tt>#define BOOST_UBLAS_TYPE_CHECK 0</tt> to
+disable expensive numeric type checks.</i> (Note: "structure check"
+would be a much better name.)  </li><li>
+BOOST_UBLAS_TYPE_CHECK_EPSILON <i>default: sqrt(epsilon), controls how
+large the difference between the expected result and the computed
+result may become. Increase this value if you are going to use near
+singular or badly scaled matrices. Please, refer to
+<tt>detail/matrix_assign.hpp</tt> for implementation of these type
+checks.</i> </li></ul> </li></ul>
+</li>
+<li> Automatically set by 'boost/numeric/ublas/config.hpp' based on
+compiler and boost/config.hpp macro's. Augments the compiler
+deficiency workarounds already supplied by boost/config.hpp
+<ul>
+<li> BOOST_UBLAS_NO_NESTED_CLASS_RELATION <i>A particularly nasty
+problem with VC7.1 Requires that uBLAS and the user use begin(it)
+rather then it.begin()</i> </li><li> BOOST_UBLAS_NO_SMART_PROXIES
+<i>Disable the automatic propagation of 'constantness' to
+proxies. Smart proxies automatically determine if the underling
+container they reference is constant or not. They adjust there
+definition of iterators and container access to reflect this
+constantness.</i> </li></ul>
+</li>
+<li> For use by uBLAS authors to test implementation methods. Preset
+in config.hpp
+<ul>
+<li> BOOST_UBLAS_USE_INVARIANT_HOISTING </li><li>
+BOOST_UBLAS_USE_INDEXING </li><li> BOOST_UBLAS_USE_INDEXED_ITERATOR
+</li><li> BOOST_UBLAS_NON_CONFORMANT_PROXIES <i>Gappy containers may
+be non-conformant, that is contain elements at different
+indices. Assigning between proxies (vector ranges for example) of
+these containers is difficult as the LHS may need insert new
+elements. This is slow.</i> </li><li> BOOST_UBLAS_USE_DUFF_DEVICE
+<i>Near useless on all platforms (see GCC's -funroll-loops)</i>
+
+</li></ul>
+</li>
+<li> User options. Can be predefined by user before including any
+uBLAS headers. They may also be automatically defined for some
+compilers to work around compile bugs.
+<ul>
+<li> BOOST_UBLAS_USE_LONG_DOUBLE <i>Enable uBLAS expressions that
+involve containers of 'long double'</i> </li><li>
+BOOST_UBLAS_USE_INTERVAL <i>Enable uBLAS expressions that involve
+containers of 'boost::numeric::interval' types</i> </li><li>
+BOOST_UBLAS_SIMPLE_ET_DEBUG <i>In order to simplify debugging is is
+possible to simplify expression templateso they are restricted to a
+single operation</i>
+
+</li><li> BOOST_UBLAS_ENABLE_PROXY_SHORTCUTS <i> enable automatic
+conversion from proxy class to matrix expression </i> </li><li>
+BOOST_UBLAS_NO_ELEMENT_PROXIES <i>Disables the use of element proxies
+for gappy types.</i> </li><li> <i>The Gappy types (sparse, coordinate,
+compressed) store non-zero elements in their own containers. When new
+non-zero elements are assigned they must rearrange these
+containers. This invalidates references, iterators or pointers to
+these elements. This can happen at some surprising times such as the
+expression "a [1] = a [0] = 1;". Element proxies guarantee all such
+expressions will work as expected. However they bring their own
+restrictions and efficiency problems. For example as of Boost 1.30.0
+they prevent the assignment of elements between different types.</i>
+</li>
+<li> BOOST_UBLAS_REFERENCE_CONST_MEMBER <i>Enable to allow refernces
+to be returned to fixed (zero or one) elements of triangular or banded
+matrices</i>
+
+</li><li> BOOST_UBLAS_NO_EXCEPTIONS <i>Disable the use exceptions of
+uBLAS internal checks and error conditions. BOOST_NO_EXCEPTIONS has
+same effect.</i> 
+</li> 
+<li> BOOST_UBLAS_SINGULAR_CHECK <i>Check the for singularity in triangular solve() functions</i></li>
+</ul>
+</li>
+</ul>
+
+<hr />
+<div id="copyright">
+ <p>Copyright (&copy;) 2000-2009 Joerg Walter, Mathias Koch, Gunter Winkler<br />
+   Use, modification and distribution are subject to the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+ </p>
+</div>
+<div id="revision">
+<p>
+<!-- Created: Wed Sep 16 21:19:20 CEST 2009 -->
+<!-- hhmts start -->
+Last modified: Wed Sep 16 23:16:45 CEST 2009
+<!-- hhmts end -->
+</p>
+</div>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

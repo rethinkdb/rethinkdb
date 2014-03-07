@@ -1,0 +1,210 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Literal Types and constexpr Support</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../tut.html" title="Tutorial">
+<link rel="prev" href="primetest.html" title="Primality Testing">
+<link rel="next" href="rounding.html" title="Rounding Rules for Conversions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="primetest.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rounding.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.tut.lits"></a><a class="link" href="lits.html" title="Literal Types and constexpr Support">Literal Types and <code class="computeroutput"><span class="keyword">constexpr</span></code> Support</a>
+</h3></div></div></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          The features described in this section make heavy use of C++11 language
+          features, currently (as of May 2013) only GCC-4.7 and later, and Clang
+          3.3 and later have the support required to make these features work.
+        </p></td></tr>
+</table></div>
+<p>
+        There is limited support for <code class="computeroutput"><span class="keyword">constexpr</span></code>
+        and user-defined literals in the library, currently the <code class="computeroutput"><span class="identifier">number</span></code>
+        front end supports <code class="computeroutput"><span class="keyword">constexpr</span></code>
+        on default construction and all forwarding constructors, but not on any of
+        the non-member operators. So if some type <code class="computeroutput"><span class="identifier">B</span></code>
+        is a literal type, then <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">&gt;</span></code>
+        is also a literal type, and you will be able to compile-time-construct such
+        a type from any literal that <code class="computeroutput"><span class="identifier">B</span></code>
+        is compile-time-constructible from. However, you will not be able to perform
+        compile-time arithmetic on such types.
+      </p>
+<p>
+        Currently the only backend type provided by the library that is also a literal
+        type are instantiations of <code class="computeroutput"><span class="identifier">cpp_int_backend</span></code>
+        where the Allocator parameter is type <code class="computeroutput"><span class="keyword">void</span></code>,
+        and the Checked parameter is <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">::</span><span class="identifier">unchecked</span></code>.
+      </p>
+<p>
+        For example:
+      </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">;</span>
+
+<span class="keyword">constexpr</span> <span class="identifier">int128_t</span>            <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>     <span class="comment">// OK, fixed precision int128_t has no allocator.</span>
+<span class="keyword">constexpr</span> <span class="identifier">uint1024_t</span>          <span class="identifier">j</span> <span class="special">=</span> <span class="number">0</span><span class="identifier">xFFFFFFFF00000000uLL</span><span class="special">;</span>  <span class="comment">// OK, fixed precision uint1024_t has no allocator.</span>
+
+<span class="keyword">constexpr</span> <span class="identifier">checked_uint128_t</span>   <span class="identifier">k</span> <span class="special">=</span> <span class="special">-</span><span class="number">1</span><span class="special">;</span> <span class="comment">// Error, checked type is not a literal type as we need runtime error checking.</span>
+<span class="keyword">constexpr</span> <span class="identifier">cpp_int</span>             <span class="identifier">l</span> <span class="special">=</span> <span class="number">2</span><span class="special">;</span>  <span class="comment">// Error, type is not a literal as it performs memory management.</span>
+</pre>
+<p>
+        There is also limited support for user defined-literals - these are limited
+        to unchecked, fixed precision <code class="computeroutput"><span class="identifier">cpp_int</span></code>'s
+        which are specified in hexadecimal notation. The suffixes supported are:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Suffix
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  _cppi
+                </p>
+              </td>
+<td>
+                <p>
+                  Specifies a value of type: <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">,</span><span class="identifier">N</span><span class="special">,</span><span class="identifier">signed_magnitude</span><span class="special">,</span><span class="identifier">unchecked</span><span class="special">,</span><span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>,
+                  where N is chosen to contain just enough digits to hold the number
+                  specified.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  _cppui
+                </p>
+              </td>
+<td>
+                <p>
+                  Specifies a value of type: <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">,</span><span class="identifier">N</span><span class="special">,</span><span class="identifier">unsigned_magnitude</span><span class="special">,</span><span class="identifier">unchecked</span><span class="special">,</span><span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>,
+                  where N is chosen to contain just enough digits to hold the number
+                  specified.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  _cppi<span class="emphasis"><em>N</em></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  Specifies a value of type <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">,</span><span class="identifier">N</span><span class="special">,</span><span class="identifier">signed_magnitude</span><span class="special">,</span><span class="identifier">unchecked</span><span class="special">,</span><span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  _cppui<span class="emphasis"><em>N</em></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  Specifies a value of type <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">,</span><span class="identifier">N</span><span class="special">,</span><span class="identifier">signed_magnitude</span><span class="special">,</span><span class="identifier">unchecked</span><span class="special">,</span><span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        In each case, use of these suffixes with hexadecimal values produces a <code class="computeroutput"><span class="keyword">constexpr</span></code> result.
+      </p>
+<p>
+        Examples:
+      </p>
+<pre class="programlisting"><span class="comment">//</span>
+<span class="comment">// Any use of user defined literals requires that we import the literal-operators</span>
+<span class="comment">// into current scope first:</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">::</span><span class="identifier">literals</span><span class="special">;</span>
+<span class="comment">//</span>
+<span class="comment">// To keep things simple in the example, we'll make our types used visible to this scope as well:</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">;</span>
+<span class="comment">//</span>
+<span class="comment">// The value zero as a number&lt;cpp_int_backend&lt;4,4,signed_magnitude,unchecked,void&gt; &gt;:</span>
+<span class="keyword">constexpr</span> <span class="keyword">auto</span> <span class="identifier">a</span> <span class="special">=</span> <span class="number">0x0</span><span class="identifier">_cppi</span><span class="special">;</span>
+<span class="comment">// The type of each constant has 4 bits per hexadecimal digit,</span>
+<span class="comment">// so this is of type uint256_t (ie number&lt;cpp_int_backend&lt;256,256,unsigned_magnitude,unchecked,void&gt; &gt;):</span>
+<span class="keyword">constexpr</span> <span class="keyword">auto</span> <span class="identifier">b</span> <span class="special">=</span> <span class="number">0</span><span class="identifier">xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF_cppui</span><span class="special">;</span>
+<span class="comment">//</span>
+<span class="comment">// Smaller values can be assigned to larger values:</span>
+<span class="identifier">int256_t</span> <span class="identifier">c</span> <span class="special">=</span> <span class="number">0x1234</span><span class="identifier">_cppi</span><span class="special">;</span> <span class="comment">// OK</span>
+<span class="comment">//</span>
+<span class="comment">// However, this does not currently work in constexpr contexts:</span>
+<span class="keyword">constexpr</span> <span class="identifier">int256_t</span> <span class="identifier">d</span> <span class="special">=</span> <span class="number">0x1</span><span class="identifier">_cppi</span><span class="special">;</span> <span class="comment">// Compiler error</span>
+<span class="comment">//</span>
+<span class="comment">// Constants can be padded out with leading zeros to generate wider types:</span>
+<span class="keyword">constexpr</span> <span class="identifier">uint256_t</span> <span class="identifier">e</span> <span class="special">=</span> <span class="number">0</span><span class="identifier">x0000000000000000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFF_cppui</span><span class="special">;</span> <span class="comment">// OK</span>
+<span class="comment">//</span>
+<span class="comment">// However, specific width types are best produced with specific-width suffixes,</span>
+<span class="comment">// ones supported by default are `_cpp[u]i128`, `_cpp[u]i256`, `_cpp[u]i512`, `_cpp[u]i1024`.</span>
+<span class="comment">//</span>
+<span class="keyword">constexpr</span> <span class="identifier">int128_t</span> <span class="identifier">f</span> <span class="special">=</span> <span class="number">0x1234</span><span class="identifier">_cppi128</span><span class="special">;</span> <span class="comment">// OK, always produces an int128_t as the result.</span>
+<span class="keyword">constexpr</span> <span class="identifier">uint1024_t</span> <span class="identifier">g</span> <span class="special">=</span> <span class="number">0</span><span class="identifier">xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbccccccccccccccccccccc_cppui1024</span><span class="special">;</span>
+<span class="comment">//</span>
+<span class="comment">// If other specific width types are required, then there is a macro for generating the operators</span>
+<span class="comment">// for these.  The macro can be used at namespace scope only:</span>
+<span class="comment">//</span>
+<span class="identifier">BOOST_MP_DEFINE_SIZED_CPP_INT_LITERAL</span><span class="special">(</span><span class="number">2048</span><span class="special">);</span>
+<span class="comment">//</span>
+<span class="comment">// Now we can create 2048-bit literals as well:</span>
+<span class="keyword">constexpr</span> <span class="keyword">auto</span> <span class="identifier">h</span> <span class="special">=</span> <span class="number">0xff</span><span class="identifier">_cppi2048</span><span class="special">;</span> <span class="comment">// h is of type number&lt;cpp_int_backend&lt;2048,2048,signed_magnitude,unchecked,void&gt; &gt;</span>
+<span class="comment">//</span>
+<span class="comment">// Finally negative values are handled via the unary minus operator:</span>
+<span class="comment">//</span>
+<span class="keyword">constexpr</span> <span class="identifier">int1024_t</span> <span class="identifier">i</span> <span class="special">=</span> <span class="special">-</span><span class="number">0</span><span class="identifier">xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF_cppui1024</span><span class="special">;</span>
+<span class="comment">//</span>
+<span class="comment">// Which means this also works:</span>
+<span class="keyword">constexpr</span> <span class="identifier">int1024_t</span> <span class="identifier">j</span> <span class="special">=</span> <span class="special">-</span><span class="identifier">g</span><span class="special">;</span>   <span class="comment">// OK: unary minus operator is constexpr.</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="primetest.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rounding.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual C++ Express 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "compare_trees", "compare_trees\compare_trees.vcproj", "{7E6AD5ED-4168-4613-A342-0217AA82DEC1}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "strftime", "strftime\strftime.vcproj", "{4A82F955-7630-4B79-9C50-E45F27E28BA8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7E6AD5ED-4168-4613-A342-0217AA82DEC1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7E6AD5ED-4168-4613-A342-0217AA82DEC1}.Debug|Win32.Build.0 = Debug|Win32
+		{7E6AD5ED-4168-4613-A342-0217AA82DEC1}.Release|Win32.ActiveCfg = Release|Win32
+		{7E6AD5ED-4168-4613-A342-0217AA82DEC1}.Release|Win32.Build.0 = Release|Win32
+		{4A82F955-7630-4B79-9C50-E45F27E28BA8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4A82F955-7630-4B79-9C50-E45F27E28BA8}.Debug|Win32.Build.0 = Debug|Win32
+		{4A82F955-7630-4B79-9C50-E45F27E28BA8}.Release|Win32.ActiveCfg = Release|Win32
+		{4A82F955-7630-4B79-9C50-E45F27E28BA8}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

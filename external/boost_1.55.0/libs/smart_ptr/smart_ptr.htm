@@ -1,0 +1,207 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>
+		<title>Smart Pointers</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	</head>
+	<body bgcolor="#ffffff" text="#000000">
+		<h1><A href="../../index.htm"><img src="../../boost.png" alt="boost.png (6897 bytes)" align="middle" width="277" height="86"
+					border="0"></A>Smart Pointers</h1>
+		<p><a href="#Introduction">Introduction</a><br>
+			<a href="#common_requirements">Common Requirements</a><br>
+			<a href="#Exception_Safety">Exception Safety</a><br>
+			<a href="#Exception-specifications">Exception-specifications</a><br>
+			<a href="#History">History and Acknowledgements</a><br>
+			<a href="#References">References</a></p>
+		<h2><a name="Introduction">Introduction</a></h2>
+		<p>Smart pointers are objects which store pointers to dynamically allocated (heap)
+			objects. They behave much like built-in C++ pointers except that they
+			automatically delete the object pointed to at the appropriate time. Smart
+			pointers are particularly useful in the face of exceptions as they ensure
+			proper destruction of dynamically allocated objects. They can also be used to
+			keep track of dynamically allocated objects shared by multiple owners.</p>
+		<p>Conceptually, smart pointers are seen as owning the object pointed to, and thus
+			responsible for deletion of the object when it is no longer needed.</p>
+		<p>The smart pointer library provides six smart pointer class templates:</p>
+		<div align="left">
+			<table border="1" cellpadding="4" cellspacing="0">
+				<tr>
+					<td><a href="scoped_ptr.htm"><b>scoped_ptr</b></a></td>
+					<td><a href="../../boost/scoped_ptr.hpp">&lt;boost/scoped_ptr.hpp&gt;</a></td>
+					<td>Simple sole ownership of single objects. Noncopyable.</td>
+				</tr>
+				<tr>
+					<td><a href="scoped_array.htm"><b>scoped_array</b></a></td>
+					<td><a href="../../boost/scoped_array.hpp">&lt;boost/scoped_array.hpp&gt;</a></td>
+					<td>Simple sole ownership of arrays. Noncopyable.</td>
+				</tr>
+				<tr>
+					<td><a href="shared_ptr.htm"><b>shared_ptr</b></a></td>
+					<td><a href="../../boost/shared_ptr.hpp">&lt;boost/shared_ptr.hpp&gt;</a></td>
+					<td>Object ownership shared among multiple pointers.</td>
+				</tr>
+				<tr>
+					<td><a href="shared_array.htm"><b>shared_array</b></a></td>
+					<td><a href="../../boost/shared_array.hpp">&lt;boost/shared_array.hpp&gt;</a></td>
+					<td>Array ownership shared among multiple pointers.</td>
+				</tr>
+				<tr>
+					<td><a href="weak_ptr.htm"><b>weak_ptr</b></a></td>
+					<td><a href="../../boost/weak_ptr.hpp">&lt;boost/weak_ptr.hpp&gt;</a></td>
+					<td>Non-owning observers of an object owned by <b>shared_ptr</b>.</td>
+				</tr>
+				<tr>
+					<td><a href="intrusive_ptr.html"><b>intrusive_ptr</b></a></td>
+					<td><a href="../../boost/intrusive_ptr.hpp">&lt;boost/intrusive_ptr.hpp&gt;</a></td>
+					<td>Shared ownership of objects with an embedded reference count.</td>
+				</tr>
+			</table>
+		</div>
+		<p>These templates are designed to complement the <b>std::auto_ptr</b> template.</p>
+		<p>They are examples of the "resource acquisition is initialization" idiom
+			described in Bjarne Stroustrup's "The C++ Programming Language", 3rd edition,
+			Section 14.4, Resource Management.</p>
+		<p>Additionally, the smart pointer library provides efficient factory functions
+			for creating <code>shared_ptr</code> objects:</p>
+		<div align="left">
+			<table border="1" cellpadding="4" cellspacing="0">
+				<tr>
+					<td><a href="make_shared.html"><b>make_shared and allocate_shared</b></a></td>
+					<td><a href="../../boost/make_shared.hpp">&lt;boost/make_shared.hpp&gt;</a></td>
+					<td>Efficient creation of <code>shared_ptr</code> objects.</td>
+				</tr>
+				<tr>
+					<td><a href="make_shared_array.html"><b>make_shared and allocate_shared for arrays</b></a></td>
+					<td><a href="../../boost/make_shared.hpp">&lt;boost/make_shared.hpp&gt;</a></td>
+					<td>Efficient creation of <code>shared_ptr</code> arrays.</td>
+				</tr>
+			</table>
+		</div>
+		<p>A test program, <a href="test/smart_ptr_test.cpp">smart_ptr_test.cpp</a>, is
+			provided to verify correct operation.</p>
+		<p>A page on <a href="compatibility.htm">compatibility</a> with older versions of
+			the Boost smart pointer library describes some of the changes since earlier
+			versions of the smart pointer implementation.</p>
+		<p>A page on <a href="smarttests.htm">smart pointer timings</a> will be of interest
+			to those curious about performance issues.</p>
+		<P>A page on <A href="sp_techniques.html">smart pointer programming techniques</A> lists
+			some advanced applications of <code>shared_ptr</code> and <code>weak_ptr</code>.</P>
+		<h2><a name="common_requirements">Common Requirements</a></h2>
+		<p>These smart pointer class templates have a template parameter, <b>T</b>, which
+			specifies the type of the object pointed to by the smart pointer. The behavior
+			of the smart pointer templates is undefined if the destructor or <b>operator delete</b>
+			for objects of type <b>T</b> throw exceptions.</p>
+		<p><b>T</b> may be an incomplete type at the point of smart pointer declaration.
+			Unless otherwise specified, it is required that <b>T</b> be a complete type at
+			points of smart pointer instantiation. Implementations are required to diagnose
+			(treat as an error) all violations of this requirement, including deletion of
+			an incomplete type. See the description of the <a href="../utility/utility.htm#checked_delete">
+				<b>checked_delete</b></a> function template.</p>
+		<P>Note that <STRONG>shared_ptr</STRONG> does not have this restriction, as most of
+			its member functions do not require <STRONG>T</STRONG> to be a complete type.</P>
+		<h3>Rationale</h3>
+		<p>The requirements on <b>T</b> are carefully crafted to maximize safety yet allow
+			handle-body (also called pimpl) and similar idioms. In these idioms a smart
+			pointer may appear in translation units where <b>T</b> is an incomplete type.
+			This separates interface from implementation and hides implementation from
+			translation units which merely use the interface. Examples described in the
+			documentation for specific smart pointers illustrate use of smart pointers in
+			these idioms.</p>
+		<p>Note that <b>scoped_ptr</b> requires that <b>T</b> be a complete type at
+			destruction time, but <b>shared_ptr</b> does not.</p>
+		<h2><a name="Exception_Safety">Exception Safety</a></h2>
+		<p>Several functions in these smart pointer classes are specified as having "no
+			effect" or "no effect except such-and-such" if an exception is thrown. This
+			means that when an exception is thrown by an object of one of these classes,
+			the entire program state remains the same as it was prior to the function call
+			which resulted in the exception being thrown. This amounts to a guarantee that
+			there are no detectable side effects. Other functions never throw exceptions.
+			The only exception ever thrown by functions which do throw (assuming <b>T</b> meets
+			the <a href="#common_requirements">common requirements</a>) is <b>std::bad_alloc</b>,
+			and that is thrown only by functions which are explicitly documented as
+			possibly throwing <b>std::bad_alloc</b>.</p>
+		<h2><a name="Exception-specifications">Exception-specifications</a></h2>
+		<p>Exception-specifications are not used; see <a href="http://www.boost.org/more/lib_guide.htm#Exception-specification">
+				exception-specification rationale</a>.</p>
+		<p>All the smart pointer templates contain member functions which can never throw
+			exceptions, because they neither throw exceptions themselves nor call other
+			functions which may throw exceptions. These members are indicated by a comment: <code>
+				// never throws</code>.
+		</p>
+		<p>Functions which destroy objects of the pointed to type are prohibited from
+			throwing exceptions by the <a href="#common_requirements">common requirements</a>.</p>
+		<h2><a name="History">History</a> and Acknowledgements</h2>
+		<p>November 2012. Glen Fernandes provided implementations of <b>make_shared</b> 
+		  and <b>allocate_shared</b> for arrays. They achieve a single allocation for an
+		  array that can be initialized with constructor arguments or initializer lists 
+		  as well as overloads for default initialization and no value initialization. 
+		  See the <a href="make_shared_array.html">make_shared and allocate_shared for 
+		  arrays</a> page for more information.</p>
+		<p>January 2002. Peter Dimov reworked all four classes, adding features, fixing
+			bugs, and splitting them into four separate headers, and added <b>weak_ptr</b>.
+			See the <a href="compatibility.htm">compatibility</a> page for a summary of the
+			changes.</p>
+		<p>May 2001. Vladimir Prus suggested requiring a complete type on destruction.
+			Refinement evolved in discussions including Dave Abrahams, Greg Colvin, Beman
+			Dawes, Rainer Deyke, Peter Dimov, John Maddock, Vladimir Prus, Shankar Sai, and
+			others.</p>
+		<p>November 1999. Darin Adler provided <b>operator ==</b>, <b>operator !=</b>, and <b>std::swap</b>
+			and <b>std::less</b> specializations for shared types.</p>
+		<p>September 1999. Luis Coelho provided <b>shared_ptr::swap</b> and <b>shared_array::swap</b></p>
+		<p>May 1999. In April and May, 1999, Valentin Bonnard and David Abrahams made a
+			number of suggestions resulting in numerous improvements.</p>
+		<p>October 1998. Beman Dawes proposed reviving the original semantics under the
+			names <b>safe_ptr</b> and <b>counted_ptr</b>, meeting of Per Andersson, Matt
+			Austern, Greg Colvin, Sean Corfield, Pete Becker, Nico Josuttis, Dietmar K&uuml;hl,
+			Nathan Myers, Chichiang Wan and Judy Ward. During the discussion, the four new
+			class names were finalized, it was decided that there was no need to exactly
+			follow the <b>std::auto_ptr</b> interface, and various function signatures and
+			semantics were finalized.</p>
+		<p>Over the next three months, several implementations were considered for <b>shared_ptr</b>,
+			and discussed on the <a href="http://www.boost.org">boost.org</a> mailing list.
+			The implementation questions revolved around the reference count which must be
+			kept, either attached to the pointed to object, or detached elsewhere. Each of
+			those variants have themselves two major variants:
+			<ul>
+				<li>
+				Direct detached: the shared_ptr contains a pointer to the object, and a pointer
+				to the count.
+				<li>
+				Indirect detached: the shared_ptr contains a pointer to a helper object, which
+				in turn contains a pointer to the object and the count.
+				<li>
+				Embedded attached: the count is a member of the object pointed to.
+				<li>
+					Placement attached: the count is attached via operator new manipulations.</li>
+			</ul>
+		<p>Each implementation technique has advantages and disadvantages. We went so far
+			as to run various timings of the direct and indirect approaches, and found that
+			at least on Intel Pentium chips there was very little measurable difference.
+			Kevlin Henney provided a paper he wrote on "Counted Body Techniques." Dietmar
+			K&uuml;hl suggested an elegant partial template specialization technique to allow
+			users to choose which implementation they preferred, and that was also
+			experimented with.</p>
+		<p>But Greg Colvin and Jerry Schwarz argued that "parameterization will discourage
+			users", and in the end we choose to supply only the direct implementation.</p>
+		<p>Summer, 1994. Greg Colvin proposed to the C++ Standards Committee classes named <b>auto_ptr</b>
+			and <b>counted_ptr</b> which were very similar to what we now call <b>scoped_ptr</b>
+			and <b>shared_ptr</b>. <a href="#Col-94">[Col-94]</a> In one of the very few
+			cases where the Library Working Group's recommendations were not followed by
+			the full committee, <b>counted_ptr</b> was rejected and surprising
+			transfer-of-ownership semantics were added to <b>auto_ptr</b>.</p>
+		<h2><a name="References">References</a></h2>
+		<p>[<a name="Col-94">Col-94</a>] Gregory Colvin, <a href="http://std.dkuug.dk/jtc1/sc22/wg21/docs/papers/1994/N0555.pdf">
+				Exception Safe Smart Pointers</a>, C++ committee document 94-168/N0555,
+			July, 1994.</p>
+		<p>[<a name="E&amp;D-94">E&amp;D-94</a>] John R. Ellis &amp; David L. Detlefs, <a href="http://www.usenix.org/publications/library/proceedings/c++94/full_papers/ellis.a">
+				Safe, Efficient Garbage Collection for C++</a>, Usenix Proceedings,
+			February, 1994. This paper includes an extensive discussion of weak pointers
+			and an extensive bibliography.</p>
+		<hr>
+		<p>$Date: 2012-11-21 07:38:06 -0800 (Wed, 21 Nov 2012) $</p>
+		<p><small>Copyright 1999 Greg Colvin and Beman Dawes. Copyright 2002 Darin Adler.
+			Distributed under the Boost Software License, Version 1.0. See accompanying
+			file <A href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at
+			<A href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>.</small></p>
+	</body>
+</html>

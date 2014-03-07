@@ -1,0 +1,368 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Useful functions</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../the_tutorial.html" title="The tutorial">
+<link rel="prev" href="differences_with_standard_maps.html" title="Differences with standard maps">
+<link rel="next" href="bimaps_with_user_defined_names.html" title="Bimaps with user defined names">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="differences_with_standard_maps.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../the_tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bimaps_with_user_defined_names.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_the_tutorial_useful_functions">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.the_tutorial.useful_functions"></a><a class="link" href="useful_functions.html" title="Useful functions">Useful functions</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="useful_functions.html#boost_bimap.the_tutorial.useful_functions.projection_of_iterators">Projection
+        of iterators</a></span></dt>
+<dt><span class="section"><a href="useful_functions.html#boost_bimap.the_tutorial.useful_functions.replace_and_modify">replace
+        and modify</a></span></dt>
+<dt><span class="section"><a href="useful_functions.html#boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges">Retrieval
+        of ranges</a></span></dt>
+</dl></div>
+<div class="section boost_bimap_the_tutorial_useful_functions_projection_of_iterators">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.the_tutorial.useful_functions.projection_of_iterators"></a><a class="link" href="useful_functions.html#boost_bimap.the_tutorial.useful_functions.projection_of_iterators" title="Projection of iterators">Projection
+        of iterators</a>
+</h4></div></div></div>
+<p>
+          Iterators can be projected to any of the three views of the bimap. A bimap
+          provides three member functions to cope with projection: <code class="computeroutput"><span class="identifier">project_left</span></code>, <code class="computeroutput"><span class="identifier">project_right</span></code>
+          and <code class="computeroutput"><span class="identifier">project_up</span></code>, with projects
+          iterators to the <span class="emphasis"><em>left map view</em></span>, the <span class="emphasis"><em>right
+          map view</em></span> and the <span class="emphasis"><em>collection of relations view</em></span>.
+          These functions take any iterator from the bimap and retrieve an iterator
+          over the projected view pointing to the same element.
+        </p>
+<p>
+          Here is an example that uses projection:
+        </p>
+<p>
+          <a href="../../../../example/projection.cpp" target="_top">Go to source code</a>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">bimap</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span><span class="identifier">multiset_of</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">greater</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">bm_type</span><span class="special">;</span>
+
+<span class="identifier">bm_type</span> <span class="identifier">bm</span><span class="special">;</span>
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="string">"John"</span> <span class="special">,</span><span class="number">34</span><span class="special">)</span> <span class="special">);</span>
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="string">"Peter"</span><span class="special">,</span><span class="number">24</span><span class="special">)</span> <span class="special">);</span>
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="string">"Mary"</span> <span class="special">,</span><span class="number">12</span><span class="special">)</span> <span class="special">);</span>
+
+<span class="comment">// Find the name of the next younger person after Peter</span>
+
+<span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_const_iterator</span> <span class="identifier">name_iter</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="string">"Peter"</span><span class="special">);</span>
+
+<span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">right_const_iterator</span> <span class="identifier">years_iter</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">project_right</span><span class="special">(</span><span class="identifier">name_iter</span><span class="special">);</span>
+
+<span class="special">++</span><span class="identifier">years_iter</span><span class="special">;</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"The next younger person after Peter is "</span> <span class="special">&lt;&lt;</span> <span class="identifier">years_iter</span><span class="special">-&gt;</span><span class="identifier">second</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+</div>
+<div class="section boost_bimap_the_tutorial_useful_functions_replace_and_modify">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.the_tutorial.useful_functions.replace_and_modify"></a><a class="link" href="useful_functions.html#boost_bimap.the_tutorial.useful_functions.replace_and_modify" title="replace and modify">replace
+        and modify</a>
+</h4></div></div></div>
+<p>
+          These functions are members of the views of a bimap that are not founded
+          in their standard counterparts.
+        </p>
+<p>
+          The <code class="computeroutput"><span class="identifier">replace</span></code> family member
+          functions performs in-place replacement of a given element as the following
+          example shows:
+        </p>
+<p>
+          <a href="../../../../example/tutorial_modify_and_replace.cpp" target="_top">Go to source
+          code</a>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">bimap</span><span class="special">&lt;</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;</span> <span class="identifier">bm_type</span><span class="special">;</span>
+<span class="identifier">bm_type</span> <span class="identifier">bm</span><span class="special">;</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="string">"one"</span><span class="special">)</span> <span class="special">);</span>
+
+<span class="comment">// Replace (1,"one") with (1,"1") using the right map view</span>
+<span class="special">{</span>
+    <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">right_iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="string">"one"</span><span class="special">);</span>
+
+    <span class="keyword">bool</span> <span class="identifier">successful_replace</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">replace_key</span><span class="special">(</span> <span class="identifier">it</span><span class="special">,</span> <span class="string">"1"</span> <span class="special">);</span>
+
+    <span class="identifier">assert</span><span class="special">(</span> <span class="identifier">successful_replace</span> <span class="special">);</span>
+<span class="special">}</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="number">2</span><span class="special">,</span><span class="string">"two"</span><span class="special">)</span> <span class="special">);</span>
+
+<span class="comment">// Fail to replace (1,"1") with (1,"two") using the left map view</span>
+<span class="special">{</span>
+    <span class="identifier">assert</span><span class="special">(</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span> <span class="special">);</span>
+
+    <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+
+    <span class="keyword">bool</span> <span class="identifier">successful_replace</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">replace_data</span><span class="special">(</span> <span class="identifier">it</span><span class="special">,</span> <span class="string">"two"</span> <span class="special">);</span>
+
+    <a class="co" name="boost_bimap.the_tutorial.useful_functions.replace_and_modify.c0" href="useful_functions.html#boost_bimap.the_tutorial.useful_functions.replace_and_modify.c1"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a><span class="identifier">assert</span><span class="special">(</span> <span class="special">!</span> <span class="identifier">successful_replace</span> <span class="special">);</span>
+    <span class="identifier">assert</span><span class="special">(</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span> <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="calloutlist"><table border="0" summary="Callout list"><tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.the_tutorial.useful_functions.replace_and_modify.c1"></a><a href="#boost_bimap.the_tutorial.useful_functions.replace_and_modify.c0"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              <code class="computeroutput"><span class="identifier">it</span></code> is still valid here,
+              and the bimap was left unchanged
+            </p></td>
+</tr></table></div>
+<p>
+          <code class="computeroutput"><span class="identifier">replace</span></code> functions performs
+          this substitution in such a manner that:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              The complexity is constant time if the changed element retains its
+              original order with respect to all views; it is logarithmic otherwise.
+            </li>
+<li class="listitem">
+              Iterator and reference validity are preserved.
+            </li>
+<li class="listitem">
+              The operation is strongly exception-safe, i.e. the <code class="computeroutput"><span class="identifier">bimap</span></code>
+              remains unchanged if some exception (originated by the system or the
+              user's data types) is thrown.
+            </li>
+</ul></div>
+<p>
+          <code class="computeroutput"><span class="identifier">replace</span></code> functions are powerful
+          operations not provided by standard STL containers, and one that is specially
+          handy when strong exception-safety is required.
+        </p>
+<p>
+          The observant reader might have noticed that the convenience of replace
+          comes at a cost: namely the whole element has to be copied <span class="emphasis"><em>twice</em></span>
+          to do the updating (when retrieving it and inside <code class="computeroutput"><span class="identifier">replace</span></code>).
+          If elements are expensive to copy, this may be quite a computational cost
+          for the modification of just a tiny part of the object. To cope with this
+          situation, Boost.Bimap provides an alternative updating mechanism: <code class="computeroutput"><span class="identifier">modify</span></code> functions.
+        </p>
+<p>
+          <code class="computeroutput"><span class="identifier">modify</span></code> functions accepts
+          a functor (or pointer to function) taking a reference to the data to be
+          changed, thus eliminating the need for spurious copies. Like <code class="computeroutput"><span class="identifier">replace</span></code> functions, <code class="computeroutput"><span class="identifier">modify</span></code>
+          functions does preserve the internal orderings of all the indices of the
+          <code class="computeroutput"><span class="identifier">bimap</span></code>. However, the semantics
+          of modify functions are not entirely equivalent to replace functions. Consider
+          what happens if a collision occurs as a result of modifying the element,
+          i.e. the modified element clashes with another with respect to some unique
+          view. In the case of <code class="computeroutput"><span class="identifier">replace</span></code>
+          functions, the original value is kept and the method returns without altering
+          the container, but <code class="computeroutput"><span class="identifier">modify</span></code>
+          functions cannot afford such an approach, since the modifying functor leaves
+          no trace of the previous value of the element. Integrity constraints thus
+          lead to the following policy: when a collision happens in the process of
+          calling a modify functions, the element is erased and the method returns
+          false. This difference in behavior between <code class="computeroutput"><span class="identifier">replace</span></code>
+          and <code class="computeroutput"><span class="identifier">modify</span></code> functions has
+          to be considered by the programmer on a case-by-case basis.
+        </p>
+<p>
+          Boost.Bimap defines new placeholders named <code class="computeroutput"><span class="identifier">_key</span></code>
+          and <code class="computeroutput"><span class="identifier">_data</span></code> to allow a sounder
+          solution. You have to include <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">support</span><span class="special">/</span><span class="identifier">lambda</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          to use them.
+        </p>
+<p>
+          <a href="../../../../example/tutorial_modify_and_replace.cpp" target="_top">Go to source
+          code</a>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">bimap</span><span class="special">&lt;</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;</span> <span class="identifier">bm_type</span><span class="special">;</span>
+<span class="identifier">bm_type</span> <span class="identifier">bm</span><span class="special">;</span>
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="string">"one"</span><span class="special">)</span> <span class="special">);</span>
+
+<span class="comment">// Modify (1,"one") to (1,"1") using the right map view</span>
+<span class="special">{</span>
+    <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">right_iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="string">"one"</span><span class="special">);</span>
+
+    <span class="keyword">bool</span> <span class="identifier">successful_modify</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">modify_key</span><span class="special">(</span> <span class="identifier">it</span> <span class="special">,</span> <span class="identifier">_key</span> <span class="special">=</span> <span class="string">"1"</span> <span class="special">);</span>
+
+    <span class="identifier">assert</span><span class="special">(</span> <span class="identifier">successful_modify</span> <span class="special">);</span>
+<span class="special">}</span>
+
+<span class="identifier">bm</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="number">2</span><span class="special">,</span><span class="string">"two"</span><span class="special">)</span> <span class="special">);</span>
+
+<span class="comment">// Fail to modify (1,"1") to (1,"two") using the left map view</span>
+<span class="special">{</span>
+    <span class="identifier">assert</span><span class="special">(</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span> <span class="special">);</span>
+
+    <span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+
+    <span class="keyword">bool</span> <span class="identifier">successful_modify</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">modify_data</span><span class="special">(</span> <span class="identifier">it</span><span class="special">,</span> <span class="identifier">_data</span> <span class="special">=</span> <span class="string">"two"</span> <span class="special">);</span>
+
+    <a class="co" name="boost_bimap.the_tutorial.useful_functions.replace_and_modify.c2" href="useful_functions.html#boost_bimap.the_tutorial.useful_functions.replace_and_modify.c3"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a><span class="identifier">assert</span><span class="special">(</span> <span class="special">!</span> <span class="identifier">successful_modify</span> <span class="special">);</span>
+    <span class="identifier">assert</span><span class="special">(</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span> <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="calloutlist"><table border="0" summary="Callout list"><tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.the_tutorial.useful_functions.replace_and_modify.c3"></a><a href="#boost_bimap.the_tutorial.useful_functions.replace_and_modify.c2"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              <code class="computeroutput"><span class="identifier">it</span></code> is not longer valid
+              and <code class="computeroutput"><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="string">"1"</span><span class="special">)</span></code> is removed from the bimap
+            </p></td>
+</tr></table></div>
+</div>
+<div class="section boost_bimap_the_tutorial_useful_functions_retrieval_of_ranges">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges"></a><a class="link" href="useful_functions.html#boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges" title="Retrieval of ranges">Retrieval
+        of ranges</a>
+</h4></div></div></div>
+<p>
+          Standard <code class="computeroutput"><span class="identifier">lower_bound</span></code> and
+          <code class="computeroutput"><span class="identifier">upper_bound</span></code> functions can
+          be used to lookup for all the elements in a given range.
+        </p>
+<p>
+          Suppose we want to retrieve the elements from a <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span></code> where the left value is in the range
+          <code class="computeroutput"><span class="special">[</span><span class="number">20</span><span class="special">,</span><span class="number">50</span><span class="special">]</span></code>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">bimap</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">bm_type</span><span class="special">;</span>
+<span class="identifier">bm_type</span> <span class="identifier">bm</span><span class="special">;</span>
+
+<span class="comment">// ...</span>
+
+<span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_iterator</span> <span class="identifier">iter_first</span>  <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">lower_bound</span><span class="special">(</span><span class="number">20</span><span class="special">);</span>
+<span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_iterator</span> <span class="identifier">iter_second</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">upper_bound</span><span class="special">(</span><span class="number">50</span><span class="special">);</span>
+
+<span class="comment">// range [iter_first,iter_second) contains the elements in [20,50]</span>
+</pre>
+<p>
+        </p>
+<p>
+          Subtle changes to the code are required when strict inequalities are considered.
+          To retrieve the elements greater than 20 and less than 50, the code has
+          to be rewritten as
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_iterator</span> <span class="identifier">iter_first</span>  <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">upper_bound</span><span class="special">(</span><span class="number">20</span><span class="special">);</span>
+<span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_iterator</span> <span class="identifier">iter_second</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">lower_bound</span><span class="special">(</span><span class="number">50</span><span class="special">);</span>
+
+<span class="comment">// range [iter_first,iter_second) contains the elements in (20,50)</span>
+</pre>
+<p>
+        </p>
+<p>
+          To add to this complexity, the careful programmer has to take into account
+          that the lower and upper bounds of the interval searched be compatible:
+          for instance, if the lower bound is 50 and the upper bound is 20, the iterators
+          <code class="computeroutput"><span class="identifier">iter_first</span></code> and <code class="computeroutput"><span class="identifier">iter_second</span></code> produced by the code above
+          will be in reverse order, with possibly catastrophic results if a traversal
+          from <code class="computeroutput"><span class="identifier">iter_first</span></code> to <code class="computeroutput"><span class="identifier">iter_second</span></code> is tried. All these details
+          make range searching a tedious and error prone task.
+        </p>
+<p>
+          The range member function, often in combination with lambda expressions,
+          can greatly help alleviate this situation:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">bimap</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">bm_type</span><span class="special">;</span>
+<span class="identifier">bm_type</span> <span class="identifier">bm</span><span class="special">;</span>
+
+<span class="comment">// ...</span>
+
+<a class="co" name="boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges.c0" href="useful_functions.html#boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges.c1"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a><span class="identifier">bm_type</span><span class="special">::</span><span class="identifier">left_range_type</span> <span class="identifier">r</span><span class="special">;</span>
+
+<a class="co" name="boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges.c2" href="useful_functions.html#boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges.c3"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a><span class="identifier">r</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">range</span><span class="special">(</span> <span class="number">20</span> <span class="special">&lt;=</span> <span class="identifier">_key</span><span class="special">,</span> <span class="identifier">_key</span> <span class="special">&lt;=</span> <span class="number">50</span> <span class="special">);</span> <span class="comment">// [20,50]</span>
+
+<span class="identifier">r</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">range</span><span class="special">(</span> <span class="number">20</span> <span class="special">&lt;</span>  <span class="identifier">_key</span><span class="special">,</span> <span class="identifier">_key</span> <span class="special">&lt;</span>  <span class="number">50</span> <span class="special">);</span> <span class="comment">// (20,50)</span>
+
+<span class="identifier">r</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">range</span><span class="special">(</span> <span class="number">20</span> <span class="special">&lt;=</span> <span class="identifier">_key</span><span class="special">,</span> <span class="identifier">_key</span> <span class="special">&lt;</span>  <span class="number">50</span> <span class="special">);</span> <span class="comment">// [20,50)</span>
+</pre>
+<p>
+        </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges.c1"></a><a href="#boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges.c0"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              <code class="computeroutput"><span class="identifier">range_type</span></code> is a handy
+              typedef equal to <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span><span class="identifier">iterator</span><span class="special">&gt;</span></code>. <code class="computeroutput"><span class="identifier">const_range_type</span></code>
+              is provided too, and it is equal to <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">const_iterator</span><span class="special">,</span><span class="identifier">const_iterator</span><span class="special">&gt;</span></code>
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges.c3"></a><a href="#boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges.c2"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              _key is a Boost.Lambda placeholder. To use it you have to include
+              <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">support</span><span class="special">/</span><span class="identifier">lambda</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+            </p></td>
+</tr>
+</table></div>
+<p>
+          <code class="computeroutput"><span class="identifier">range</span></code> simply accepts predicates
+          specifying the lower and upper bounds of the interval searched. Please
+          consult the reference for a detailed explanation of the permissible predicates
+          passed to range.
+        </p>
+<p>
+          One or both bounds can be omitted with the special unbounded marker:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">r</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">range</span><span class="special">(</span> <span class="number">20</span> <span class="special">&lt;=</span> <span class="identifier">_key</span><span class="special">,</span> <span class="identifier">unbounded</span> <span class="special">);</span> <span class="comment">// [20,inf)</span>
+
+<span class="identifier">r</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">range</span><span class="special">(</span> <span class="identifier">unbounded</span> <span class="special">,</span> <span class="identifier">_key</span> <span class="special">&lt;</span> <span class="number">50</span> <span class="special">);</span> <span class="comment">// (-inf,50)</span>
+
+<a class="co" name="boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges.c4" href="useful_functions.html#boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges.c5"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a><span class="identifier">r</span> <span class="special">=</span> <span class="identifier">bm</span><span class="special">.</span><span class="identifier">left</span><span class="special">.</span><span class="identifier">range</span><span class="special">(</span> <span class="identifier">unbounded</span> <span class="special">,</span> <span class="identifier">unbounded</span> <span class="special">);</span> <span class="comment">// (-inf,inf)</span>
+</pre>
+<p>
+        </p>
+<div class="calloutlist"><table border="0" summary="Callout list"><tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges.c5"></a><a href="#boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges.c4"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              This is equivalent to std::make_pair(s.begin(),s.end())
+            </p></td>
+</tr></table></div>
+<p>
+          <a href="../../../../example/tutorial_range.cpp" target="_top">Go to source code</a>
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="differences_with_standard_maps.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../the_tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bimaps_with_user_defined_names.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

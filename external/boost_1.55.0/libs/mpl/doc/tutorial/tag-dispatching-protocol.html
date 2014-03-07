@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Tag Dispatching Protocol</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./iterator-protocol.html" class="navigation-link">Prev</a>&nbsp;<a href="./numeric-metafunction.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterator-protocol.html" class="navigation-link">Back</a>&nbsp;<a href="./numeric-metafunction.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./changes-in-boost-1-32-0.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./changelog-history.html" class="navigation-link">Changelog & History</a> / <a href="./changes-in-boost-1-32-0.html" class="navigation-link">Changes in Boost 1.32.0 Release</a> / <a href="./tag-dispatching-protocol.html" class="navigation-link">Tag Dispatching Protocol</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="tag-dispatching-protocol">
+<h1><a class="toc-backref" href="./changes-in-boost-1-32-0.html#id66" name="tag-dispatching-protocol">Tag Dispatching Protocol</a></h1>
+<p>The mechanism used to select algorithm implementations based on
+sequence family has been changed to use metafunction classes:</p>
+<table border="1" class="table">
+<colgroup>
+<col width="53%" />
+<col width="47%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th>Before</th>
+<th>Now</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><em>name</em><tt class="literal"><span class="pre">_traits&lt;Tag&gt;::algorithm&lt;...&gt;::type</span></tt></td>
+<td><em>name</em><tt class="literal"><span class="pre">_impl&lt;Tag&gt;::apply&lt;...&gt;::type</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p>If your code implemented a custom sequence, it needs to be adjusted
+according to the above table; for example:</p>
+<table border="1" class="table">
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th>Before</th>
+<th>Now</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><pre class="first last literal-block">
+template&lt;&gt; struct begin_traits&lt;my_tag&gt;
+{
+    template&lt; typename S &gt; struct algorithm
+    {
+        typedef ... type;
+    };
+};
+</pre>
+</td>
+<td><pre class="first last literal-block">
+template&lt;&gt; struct begin_<strong>impl</strong>&lt;my_tag&gt;
+{
+    template&lt; typename S &gt; struct <strong>apply</strong>
+    {
+        typedef ... type;
+    };
+};
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./iterator-protocol.html" class="navigation-link">Prev</a>&nbsp;<a href="./numeric-metafunction.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterator-protocol.html" class="navigation-link">Back</a>&nbsp;<a href="./numeric-metafunction.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./changes-in-boost-1-32-0.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

@@ -1,0 +1,611 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Unidirectional coroutine</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Coroutine">
+<link rel="up" href="../coroutine.html" title="Coroutine">
+<link rel="prev" href="../coroutine.html" title="Coroutine">
+<link rel="next" href="unidirect/pull_coro.html" title="Class coroutine&lt;&gt;::pull_type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../coroutine.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../coroutine.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="unidirect/pull_coro.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="coroutine.coroutine.unidirect"></a><a class="link" href="unidirect.html" title="Unidirectional coroutine">Unidirectional coroutine</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="unidirect/pull_coro.html">Class <code class="computeroutput"><span class="identifier">coroutine</span><span class="special">&lt;&gt;::</span><span class="identifier">pull_type</span></code></a></span></dt>
+<dt><span class="section"><a href="unidirect/push_coro.html">Class <code class="computeroutput"><span class="identifier">coroutine</span><span class="special">&lt;&gt;::</span><span class="identifier">push_type</span></code></a></span></dt>
+</dl></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          This is the default interface (macro BOOST_COROUTINES_UNIDIRECT).
+        </p></td></tr>
+</table></div>
+<p>
+        Two coroutine types - <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span> and
+        <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span> - providing a unidirectional
+        transfer of data.
+      </p>
+<h5>
+<a name="coroutine.coroutine.unidirect.h0"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect._emphasis_coroutine_lt__gt___pull_type__emphasis_"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect._emphasis_coroutine_lt__gt___pull_type__emphasis_"><span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span></a>
+      </h5>
+<p>
+        <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span> transfers data from another
+        execution context (== pulled-from). The class has only one template parameter
+        defining the transferred parameter type. The constructor of <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>
+        takes a function (<span class="emphasis"><em>coroutine-function</em></span>) accepting a reference
+        to a <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span> as argument. Instantiating
+        a <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span> passes the control of
+        execution to <span class="emphasis"><em>coroutine-function</em></span> and a complementary
+        <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span> is synthesized by the runtime
+        and passed as reference to <span class="emphasis"><em>coroutine-function</em></span>.
+      </p>
+<p>
+        This kind of coroutine provides <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::operator()</em></span>.
+        This method only switches context; it transfers no data.
+      </p>
+<p>
+        <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span> provides input iterators
+        (<span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::iterator</em></span>)
+        and <span class="emphasis"><em>boost::begin()</em></span>/<span class="emphasis"><em>boost::end()</em></span>
+        are overloaded. The increment-operation switches the context and transfers
+        data.
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">pull_type</span> <span class="identifier">source</span><span class="special">(</span>
+    <span class="special">[&amp;](</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">push_type</span><span class="special">&amp;</span> <span class="identifier">sink</span><span class="special">){</span>
+        <span class="keyword">int</span> <span class="identifier">first</span><span class="special">=</span><span class="number">1</span><span class="special">,</span><span class="identifier">second</span><span class="special">=</span><span class="number">1</span><span class="special">;</span>
+        <span class="identifier">sink</span><span class="special">(</span><span class="identifier">first</span><span class="special">);</span>
+        <span class="identifier">sink</span><span class="special">(</span><span class="identifier">second</span><span class="special">);</span>
+        <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span><span class="special">;</span><span class="identifier">i</span><span class="special">&lt;</span><span class="number">8</span><span class="special">;++</span><span class="identifier">i</span><span class="special">){</span>
+            <span class="keyword">int</span> <span class="identifier">third</span><span class="special">=</span><span class="identifier">first</span><span class="special">+</span><span class="identifier">second</span><span class="special">;</span>
+            <span class="identifier">first</span><span class="special">=</span><span class="identifier">second</span><span class="special">;</span>
+            <span class="identifier">second</span><span class="special">=</span><span class="identifier">third</span><span class="special">;</span>
+            <span class="identifier">sink</span><span class="special">(</span><span class="identifier">third</span><span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">});</span>
+
+<span class="keyword">for</span><span class="special">(</span><span class="keyword">auto</span> <span class="identifier">i</span><span class="special">:</span><span class="identifier">source</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span>  <span class="string">" "</span><span class="special">;</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"\nDone"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+<span class="identifier">output</span><span class="special">:</span>
+<span class="number">1</span> <span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">5</span> <span class="number">8</span> <span class="number">13</span> <span class="number">21</span> <span class="number">34</span> <span class="number">55</span>
+<span class="identifier">Done</span>
+</pre>
+<p>
+        In this example a <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span> is created
+        in the main execution context taking a lambda function (== <span class="emphasis"><em>coroutine-function</em></span>)
+        which calculates Fibonacci numbers in a simple <span class="emphasis"><em>for</em></span>-loop).
+        The <span class="emphasis"><em>coroutine-function</em></span> is executed in a newly created
+        execution context which is managed by the instance of <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>.
+        A <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span> is automatically generated
+        by the runtime and passed as reference to the lambda function. Each time
+        the lambda function calls <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::push_type::operator()</em></span>
+        with another Fibonacci number, <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span>
+        transfers it back to the main execution context. The local state of <span class="emphasis"><em>coroutine-function</em></span>
+        is preserved and will be restored upon transferring execution control back
+        to <span class="emphasis"><em>coroutine-function</em></span> to calculate the next Fibonacci
+        number. Because <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span> provides
+        input iterators and <span class="emphasis"><em>boost::begin()</em></span>/<span class="emphasis"><em>boost::end()</em></span>
+        are overloaded, a <span class="emphasis"><em>range-based for</em></span>-loop can be used to
+        iterate over the generated Fibonacci numbers.
+      </p>
+<h5>
+<a name="coroutine.coroutine.unidirect.h1"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect._emphasis_coroutine_lt__gt___push_type__emphasis_"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect._emphasis_coroutine_lt__gt___push_type__emphasis_"><span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span></a>
+      </h5>
+<p>
+        <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span> transfers data to the other
+        execution context (== pushed-to). The class has only one template parameter
+        defining the transferred parameter type. The constructor of <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span>
+        takes a function (<span class="emphasis"><em>coroutine-function</em></span>) accepting a reference
+        to a <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span> as argument. In contrast
+        to <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>, instantiating a <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span>
+        does not pass the control of execution to <span class="emphasis"><em>coroutine-function</em></span>
+        - instead the first call of <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::push_type::operator()</em></span>
+        synthesizes a complementary <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>
+        and passes it as reference to <span class="emphasis"><em>coroutine-function</em></span>.
+      </p>
+<p>
+        The interface does not contain a <span class="emphasis"><em>get()</em></span>-function: you
+        can not retrieve values from another execution context with this kind of
+        coroutine.
+      </p>
+<p>
+        <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span> provides output iterators
+        (__push_coro__iterator) and <span class="emphasis"><em>boost::begin()</em></span>/<span class="emphasis"><em>boost::end()</em></span>
+        are overloaded. The increment-operation switches the context and transfers
+        data.
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">FinalEOL</span><span class="special">{</span>
+    <span class="special">~</span><span class="identifier">FinalEOL</span><span class="special">(){</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">num</span><span class="special">=</span><span class="number">5</span><span class="special">,</span> <span class="identifier">width</span><span class="special">=</span><span class="number">15</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;::</span><span class="identifier">push_type</span> <span class="identifier">writer</span><span class="special">(</span>
+    <span class="special">[&amp;](</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;::</span><span class="identifier">pull_type</span><span class="special">&amp;</span> <span class="identifier">in</span><span class="special">){</span>
+        <span class="comment">// finish the last line when we leave by whatever means</span>
+        <span class="identifier">FinalEOL</span> <span class="identifier">eol</span><span class="special">;</span>
+        <span class="comment">// pull values from upstream, lay them out 'num' to a line</span>
+        <span class="keyword">for</span> <span class="special">(;;){</span>
+            <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span><span class="special">;</span><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">num</span><span class="special">;++</span><span class="identifier">i</span><span class="special">){</span>
+                <span class="comment">// when we exhaust the input, stop</span>
+                <span class="keyword">if</span><span class="special">(!</span><span class="identifier">in</span><span class="special">)</span> <span class="keyword">return</span><span class="special">;</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setw</span><span class="special">(</span><span class="identifier">width</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">in</span><span class="special">.</span><span class="identifier">get</span><span class="special">();</span>
+                <span class="comment">// now that we've handled this item, advance to next</span>
+                <span class="identifier">in</span><span class="special">();</span>
+            <span class="special">}</span>
+            <span class="comment">// after 'num' items, line break</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">});</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">words</span><span class="special">{</span>
+    <span class="string">"peas"</span><span class="special">,</span> <span class="string">"porridge"</span><span class="special">,</span> <span class="string">"hot"</span><span class="special">,</span> <span class="string">"peas"</span><span class="special">,</span>
+    <span class="string">"porridge"</span><span class="special">,</span> <span class="string">"cold"</span><span class="special">,</span> <span class="string">"peas"</span><span class="special">,</span> <span class="string">"porridge"</span><span class="special">,</span>
+    <span class="string">"in"</span><span class="special">,</span> <span class="string">"the"</span><span class="special">,</span> <span class="string">"pot"</span><span class="special">,</span> <span class="string">"nine"</span><span class="special">,</span>
+    <span class="string">"days"</span><span class="special">,</span> <span class="string">"old"</span> <span class="special">};</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">words</span><span class="special">),</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">words</span><span class="special">),</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">writer</span><span class="special">));</span>
+
+<span class="identifier">output</span><span class="special">:</span>
+           <span class="identifier">peas</span>       <span class="identifier">porridge</span>            <span class="identifier">hot</span>           <span class="identifier">peas</span>       <span class="identifier">porridge</span>
+           <span class="identifier">cold</span>           <span class="identifier">peas</span>       <span class="identifier">porridge</span>             <span class="identifier">in</span>            <span class="identifier">the</span>
+            <span class="identifier">pot</span>           <span class="identifier">nine</span>           <span class="identifier">days</span>            <span class="identifier">old</span>
+</pre>
+<p>
+        In this example a <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span> is created
+        in the main execution context accepting a lambda function (== <span class="emphasis"><em>coroutine-function</em></span>)
+        which requests strings and lays out 'num' of them on each line. This demonstrates
+        the inversion of control permitted by coroutines. Without coroutines, a utility
+        function to perform the same job would necessarily accept each new value
+        as a function parameter, returning after processing that single value. That
+        function would depend on a static state variable. A <span class="emphasis"><em>coroutine-function</em></span>,
+        however, can request each new value as if by calling a function -- even though
+        its caller also passes values as if by calling a function. The <span class="emphasis"><em>coroutine-function</em></span>
+        is executed in a newly created execution context which is managed by the
+        instance of <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span>. The main execution
+        context passes the strings to the <span class="emphasis"><em>coroutine-function</em></span>
+        by calling <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::push_type::operator()</em></span>.
+        A <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span> is automatically generated
+        by the runtime and passed as reference to the lambda function. The <span class="emphasis"><em>coroutine-function</em></span>
+        accesses the strings passed from the main execution context by calling <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::get()</em></span>
+        and lays those strings out on <span class="emphasis"><em>std::cout</em></span> according the
+        parameters 'num' and 'width'. The local state of <span class="emphasis"><em>coroutine-function</em></span>
+        is preserved and will be restored after transferring execution control back
+        to <span class="emphasis"><em>coroutine-function</em></span>. Because <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span>
+        provides output iterators and <span class="emphasis"><em>boost::begin()</em></span>/<span class="emphasis"><em>boost::end()</em></span>
+        are overloaded, the <span class="emphasis"><em>std::copy</em></span> algorithm can be used
+        to iterate over the vector containing the strings and pass them one by one
+        to the coroutine.
+      </p>
+<h5>
+<a name="coroutine.coroutine.unidirect.h2"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.stackful"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.stackful">stackful</a>
+      </h5>
+<p>
+        Each instance of a coroutine has its own stack.
+      </p>
+<p>
+        In contrast to stackless coroutines, stackful coroutines allow invoking the
+        suspend operation out of arbitrary sub-stackframes, enabling escape-and-reenter
+        recursive operations.
+      </p>
+<h5>
+<a name="coroutine.coroutine.unidirect.h3"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.move_only"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.move_only">move-only</a>
+      </h5>
+<p>
+        A coroutine is moveable-only.
+      </p>
+<p>
+        If it were copyable, then its stack with all the objects allocated on it
+        would be copied too. That would force undefined behaviour if some of these
+        objects were RAII-classes (manage a resource via RAII pattern). When the
+        first of the coroutine copies terminates (unwinds its stack), the RAII class
+        destructors will release their managed resources. When the second copy terminates,
+        the same destructors will try to doubly-release the same resources, leading
+        to undefined behavior.
+      </p>
+<h5>
+<a name="coroutine.coroutine.unidirect.h4"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.clean_up"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.clean_up">clean-up</a>
+      </h5>
+<p>
+        On coroutine destruction the associated stack will be unwound.
+      </p>
+<p>
+        The constructor of coroutine allows to pass an customized <span class="emphasis"><em>stack-allocator</em></span>.
+        <span class="emphasis"><em>stack-allocator</em></span> is free to deallocate the stack or cache
+        it for future usage (for coroutines created later).
+      </p>
+<h5>
+<a name="coroutine.coroutine.unidirect.h5"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.segmented_stack"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.segmented_stack">segmented
+        stack</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span> and <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>
+        does support segmented stacks (growing on demand).
+      </p>
+<p>
+        It is not always possible to estimated the required stack size - in most
+        cases too much memory is allocated (waste of virtual address-space).
+      </p>
+<p>
+        At construction a coroutine starts with a default (minimal) stack size. This
+        minimal stack size is the maximum of page size and the canonical size for
+        signal stack (macro SIGSTKSZ on POSIX).
+      </p>
+<p>
+        At this time of writing only GCC (4.7)\cite{gccsplit} is known to support
+        segmented stacks. With version 1.54 <span class="bold"><strong>Boost.Coroutine</strong></span>
+        provides support for segmented stacks.
+      </p>
+<p>
+        The destructor releases the associated stack. The implementer is free to
+        deallocate the stack or to cache it for later usage.
+      </p>
+<h5>
+<a name="coroutine.coroutine.unidirect.h6"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.context_switch"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.context_switch">context
+        switch</a>
+      </h5>
+<p>
+        A coroutine saves and restores registers according to the underlying ABI
+        on each context switch.
+      </p>
+<p>
+        Some applications do not use floating-point registers and can disable preserving
+        fpu registers for performance reasons.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          According to the calling convention the FPU registers are preserved by
+          default.
+        </p></td></tr>
+</table></div>
+<p>
+        On POSIX systems, the coroutine context switch does not preserve signal masks
+        for performance reasons.
+      </p>
+<p>
+        A context switch is done via <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::push_type::operator()</em></span>
+        and <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::operator()</em></span>.
+      </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Calling <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::push_type::operator()</em></span>/<span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::operator()</em></span>
+          from inside the <span class="underline">same</span> coroutine results
+          in undefined behaviour.
+        </p></td></tr>
+</table></div>
+<h5>
+<a name="coroutine.coroutine.unidirect.h7"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.coroutine_function"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.coroutine_function">coroutine-function</a>
+      </h5>
+<p>
+        The <span class="emphasis"><em>coroutine-function</em></span> returns <span class="emphasis"><em>void</em></span>
+        and takes its counterpart-coroutine as argument, so that using the coroutine
+        passed as argument to <span class="emphasis"><em>coroutine-function</em></span> is the only
+        way to transfer data and execution control back to the caller. Both coroutine
+        types take the same template argument. For <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>
+        the <span class="emphasis"><em>coroutine-function</em></span> is entered at <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>
+        construction. For <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span> the
+        <span class="emphasis"><em>coroutine-function</em></span> is not entered at <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span>
+        construction but entered by the first invocation of <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::push_type::operator()</em></span>.
+        After execution control is returned from <span class="emphasis"><em>coroutine-function</em></span>
+        the state of the coroutine can be checked via <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::operator
+        bool</em></span> returning true if the coroutine is still valid (<span class="emphasis"><em>coroutine-function</em></span>
+        has not terminated). Unless T is void, true also implies that a data value
+        is available.
+      </p>
+<h5>
+<a name="coroutine.coroutine.unidirect.h8"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.passing_data_from_a_pull_coroutine_to_main_context"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.passing_data_from_a_pull_coroutine_to_main_context">passing
+        data from a pull-coroutine to main-context</a>
+      </h5>
+<p>
+        In order to transfer data from a <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>
+        to the main-context the framework synthesizes a <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span>
+        associated with the <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span> instance
+        in the main-context. The synthesized <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span>
+        is passed as argument to <span class="emphasis"><em>coroutine-function</em></span>.\ The <span class="emphasis"><em>coroutine-function</em></span>
+        must call this <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::push_type::operator()</em></span>
+        in order to transfer each data value back to the main-context. In the main-context,
+        the <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::operator bool</em></span>
+        determines whether the coroutine is still valid and a data value is available
+        or <span class="emphasis"><em>coroutine-function</em></span> has terminated (<span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>
+        is invalid; no data value available). Access to the transferred data value
+        is given by <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::get()</em></span>.
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">pull_type</span> <span class="identifier">source</span><span class="special">(</span> <span class="comment">// constructor enters coroutine-function</span>
+    <span class="special">[&amp;](</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">push_type</span><span class="special">&amp;</span> <span class="identifier">sink</span><span class="special">){</span>
+        <span class="identifier">sink</span><span class="special">(</span><span class="number">1</span><span class="special">);</span> <span class="comment">// push {1} back to main-context</span>
+        <span class="identifier">sink</span><span class="special">(</span><span class="number">1</span><span class="special">);</span> <span class="comment">// push {1} back to main-context</span>
+        <span class="identifier">sink</span><span class="special">(</span><span class="number">2</span><span class="special">);</span> <span class="comment">// push {2} back to main-context</span>
+        <span class="identifier">sink</span><span class="special">(</span><span class="number">3</span><span class="special">);</span> <span class="comment">// push {3} back to main-context</span>
+        <span class="identifier">sink</span><span class="special">(</span><span class="number">5</span><span class="special">);</span> <span class="comment">// push {5} back to main-context</span>
+        <span class="identifier">sink</span><span class="special">(</span><span class="number">8</span><span class="special">);</span> <span class="comment">// push {8} back to main-context</span>
+    <span class="special">});</span>
+
+<span class="keyword">while</span><span class="special">(</span><span class="identifier">source</span><span class="special">){</span>            <span class="comment">// test if pull-coroutine is valid</span>
+    <span class="keyword">int</span> <span class="identifier">ret</span><span class="special">=</span><span class="identifier">source</span><span class="special">.</span><span class="identifier">get</span><span class="special">();</span> <span class="comment">// access data value</span>
+    <span class="identifier">source</span><span class="special">();</span>             <span class="comment">// context-switch to coroutine-function</span>
+<span class="special">}</span>
+</pre>
+<h5>
+<a name="coroutine.coroutine.unidirect.h9"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.passing_data_from_main_context_to_a_push_coroutine"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.passing_data_from_main_context_to_a_push_coroutine">passing
+        data from main-context to a push-coroutine</a>
+      </h5>
+<p>
+        In order to transfer data to a <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span>
+        from the main-context the framework synthesizes a <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>
+        associated with the <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span> instance
+        in the main-context. The synthesized <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>
+        is passed as argument to <span class="emphasis"><em>coroutine-function</em></span>. The main-context
+        must call this <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::push_type::operator()</em></span>
+        in order to transfer each data value into the <span class="emphasis"><em>coroutine-function</em></span>.
+        Access to the transferred data value is given by <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::get()</em></span>.
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">push_type</span> <span class="identifier">sink</span><span class="special">(</span> <span class="comment">// constructor does NOT enter coroutine-function</span>
+    <span class="special">[&amp;](</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">pull_type</span><span class="special">&amp;</span> <span class="identifier">source</span><span class="special">){</span>
+        <span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">:</span><span class="identifier">source</span><span class="special">)</span> <span class="special">{</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span>  <span class="string">" "</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">});</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">{</span><span class="number">1</span><span class="special">,</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">,</span><span class="number">5</span><span class="special">,</span><span class="number">8</span><span class="special">,</span><span class="number">13</span><span class="special">,</span><span class="number">21</span><span class="special">,</span><span class="number">34</span><span class="special">,</span><span class="number">55</span><span class="special">};</span>
+<span class="keyword">for</span><span class="special">(</span> <span class="keyword">int</span> <span class="identifier">i</span><span class="special">:</span><span class="identifier">v</span><span class="special">){</span>
+    <span class="identifier">sink</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span> <span class="comment">// push {i} to coroutine-function</span>
+<span class="special">}</span>
+</pre>
+<h5>
+<a name="coroutine.coroutine.unidirect.h10"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.accessing_parameters"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.accessing_parameters">accessing
+        parameters</a>
+      </h5>
+<p>
+        Parameters returned from or transferred to the <span class="emphasis"><em>coroutine-function</em></span>
+        can be accessed with <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::get()</em></span>.
+      </p>
+<p>
+        Splitting-up the access of parameters from context switch function enables
+        to check if <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span> is valid after
+        return from <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::operator()</em></span>,
+        e.g. <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span> has values and <span class="emphasis"><em>coroutine-function</em></span>
+        has not terminated.
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;&gt;::</span><span class="identifier">push_type</span> <span class="identifier">sink</span><span class="special">(</span>
+    <span class="special">[&amp;](</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;&gt;::</span><span class="identifier">pull_type</span><span class="special">&amp;</span> <span class="identifier">source</span><span class="special">){</span>
+        <span class="comment">// access tuple {7,11}; x==7 y==1</span>
+        <span class="keyword">int</span> <span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">;</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">tie</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">)=</span><span class="identifier">source</span><span class="special">.</span><span class="identifier">get</span><span class="special">();</span>
+    <span class="special">});</span>
+
+<span class="identifier">sink</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span><span class="number">7</span><span class="special">,</span><span class="number">11</span><span class="special">));</span>
+</pre>
+<h5>
+<a name="coroutine.coroutine.unidirect.h11"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.exceptions"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.exceptions">exceptions</a>
+      </h5>
+<p>
+        An exception thrown inside a <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>'s
+        <span class="emphasis"><em>coroutine-function</em></span> before its first call to <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::push_type::operator()</em></span>
+        will be re-thrown by the <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>
+        constructor. After a <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>'s
+        <span class="emphasis"><em>coroutine-function</em></span>'s first call to <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::push_type::operator()</em></span>,
+        any subsequent exception inside that <span class="emphasis"><em>coroutine-function</em></span>
+        will be re-thrown by <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::operator()</em></span>.
+        <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::pull_type::get()</em></span>
+        does not throw.
+      </p>
+<p>
+        An exception thrown inside a <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span>'s
+        <span class="emphasis"><em>coroutine-function</em></span> will be re-thrown by <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::push_type::operator()</em></span>.
+      </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Code executed by coroutine must not prevent the propagation of the <span class="emphasis"><em>boost::coroutines::detail::forced_unwind</em></span>
+          exception. Absorbing that exception will cause stack unwinding to fail.
+          Thus, any code that catches all exceptions must re-throw the pending exception.
+        </p></td></tr>
+</table></div>
+<pre class="programlisting"><span class="keyword">try</span> <span class="special">{</span>
+    <span class="comment">// code that might throw</span>
+<span class="special">}</span> <span class="keyword">catch</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">forced_unwind</span><span class="special">&amp;)</span> <span class="special">{</span>
+    <span class="keyword">throw</span><span class="special">;</span>
+<span class="special">}</span> <span class="keyword">catch</span><span class="special">(...)</span> <span class="special">{</span>
+    <span class="comment">// possibly not re-throw pending exception</span>
+<span class="special">}</span>
+</pre>
+<h5>
+<a name="coroutine.coroutine.unidirect.h12"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.stack_unwinding"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.stack_unwinding">Stack
+        unwinding</a>
+      </h5>
+<p>
+        Sometimes it is necessary to unwind the stack of an unfinished coroutine
+        to destroy local stack variables so they can release allocated resources
+        (RAII pattern). The third argument of the coroutine constructor, <code class="computeroutput"><span class="identifier">do_unwind</span></code>, indicates whether the destructor
+        should unwind the stack (stack is unwound by default).
+      </p>
+<p>
+        Stack unwinding assumes the following preconditions:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The coroutine is not <span class="emphasis"><em>not-a-coroutine</em></span>
+          </li>
+<li class="listitem">
+            The coroutine is not complete
+          </li>
+<li class="listitem">
+            The coroutine is not running
+          </li>
+<li class="listitem">
+            The coroutine owns a stack
+          </li>
+</ul></div>
+<p>
+        After unwinding, a <span class="emphasis"><em>coroutine</em></span> is complete.
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">X</span> <span class="special">{</span>
+    <span class="identifier">X</span><span class="special">(){</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="string">"X()"</span><span class="special">&lt;&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="special">~</span><span class="identifier">X</span><span class="special">(){</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="string">"~X()"</span><span class="special">&lt;&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;::</span><span class="identifier">push_type</span> <span class="identifier">sink</span><span class="special">(</span>
+        <span class="special">[&amp;](</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;::</span><span class="identifier">pull_type</span><span class="special">&amp;</span> <span class="identifier">source</span><span class="special">){</span>
+            <span class="identifier">X</span> <span class="identifier">x</span><span class="special">;</span>
+            <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span><span class="special">=</span><span class="number">0</span><span class="special">;;++</span><span class="identifier">i</span><span class="special">){</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="string">"fn(): "</span><span class="special">&lt;&lt;</span><span class="identifier">i</span><span class="special">&lt;&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+                <span class="comment">// transfer execution control back to main()</span>
+                <span class="identifier">source</span><span class="special">();</span>
+            <span class="special">}</span>
+        <span class="special">});</span>
+
+    <span class="identifier">sink</span><span class="special">();</span>
+    <span class="identifier">sink</span><span class="special">();</span>
+    <span class="identifier">sink</span><span class="special">();</span>
+    <span class="identifier">sink</span><span class="special">();</span>
+    <span class="identifier">sink</span><span class="special">();</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="string">"c is complete: "</span><span class="special">&lt;&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">boolalpha</span><span class="special">&lt;&lt;</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">is_complete</span><span class="special">()&lt;&lt;</span><span class="string">"\n"</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="string">"Done"</span><span class="special">&lt;&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+<span class="identifier">output</span><span class="special">:</span>
+    <span class="identifier">X</span><span class="special">()</span>
+    <span class="identifier">fn</span><span class="special">():</span> <span class="number">0</span>
+    <span class="identifier">fn</span><span class="special">():</span> <span class="number">1</span>
+    <span class="identifier">fn</span><span class="special">():</span> <span class="number">2</span>
+    <span class="identifier">fn</span><span class="special">():</span> <span class="number">3</span>
+    <span class="identifier">fn</span><span class="special">():</span> <span class="number">4</span>
+    <span class="identifier">fn</span><span class="special">():</span> <span class="number">5</span>
+    <span class="identifier">c</span> <span class="identifier">is</span> <span class="identifier">complete</span><span class="special">:</span> <span class="keyword">false</span>
+    <span class="special">~</span><span class="identifier">X</span><span class="special">()</span>
+    <span class="identifier">Done</span>
+</pre>
+<h5>
+<a name="coroutine.coroutine.unidirect.h13"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.range_iterators"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.range_iterators">Range
+        iterators</a>
+      </h5>
+<p>
+        <span class="bold"><strong>Boost.Coroutine</strong></span> provides output- and input-iterators
+        using <span class="bold"><strong>Boost.Range</strong></span>. <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>
+        can be used via input-iterators using <span class="emphasis"><em>boost::begin()</em></span>
+        and <span class="emphasis"><em>boost::end()</em></span>.
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">number</span><span class="special">=</span><span class="number">2</span><span class="special">,</span><span class="identifier">exponent</span><span class="special">=</span><span class="number">8</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;::</span><span class="identifier">pull_type</span> <span class="identifier">source</span><span class="special">(</span>
+    <span class="special">[&amp;](</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;::</span><span class="identifier">push_type</span> <span class="special">&amp;</span> <span class="identifier">sink</span><span class="special">){</span>
+        <span class="keyword">int</span> <span class="identifier">counter</span><span class="special">=</span><span class="number">0</span><span class="special">,</span><span class="identifier">result</span><span class="special">=</span><span class="number">1</span><span class="special">;</span>
+        <span class="keyword">while</span><span class="special">(</span><span class="identifier">counter</span><span class="special">++&lt;</span><span class="identifier">exponent</span><span class="special">){</span>
+            <span class="identifier">result</span><span class="special">=</span><span class="identifier">result</span><span class="special">*</span><span class="identifier">number</span><span class="special">;</span>
+            <span class="identifier">sink</span><span class="special">(</span><span class="identifier">result</span><span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">});</span>
+
+<span class="keyword">for</span> <span class="special">(</span><span class="keyword">auto</span> <span class="identifier">i</span><span class="special">:</span><span class="identifier">source</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span>  <span class="string">" "</span><span class="special">;</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"\nDone"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+<span class="identifier">output</span><span class="special">:</span>
+    <span class="number">2</span> <span class="number">4</span> <span class="number">8</span> <span class="number">16</span> <span class="number">32</span> <span class="number">64</span> <span class="number">128</span> <span class="number">256</span>
+    <span class="identifier">Done</span>
+</pre>
+<p>
+        Output-iterators can be created from <span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span>.
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">push_type</span> <span class="identifier">sink</span><span class="special">(</span>
+    <span class="special">[&amp;](</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">coroutines</span><span class="special">::</span><span class="identifier">coroutine</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">pull_type</span><span class="special">&amp;</span> <span class="identifier">source</span><span class="special">){</span>
+        <span class="keyword">while</span><span class="special">(</span><span class="identifier">source</span><span class="special">){</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">source</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">&lt;&lt;</span>  <span class="string">" "</span><span class="special">;</span>
+            <span class="identifier">source</span><span class="special">();</span>
+        <span class="special">}</span>
+    <span class="special">});</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">{</span><span class="number">1</span><span class="special">,</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">,</span><span class="number">5</span><span class="special">,</span><span class="number">8</span><span class="special">,</span><span class="number">13</span><span class="special">,</span><span class="number">21</span><span class="special">,</span><span class="number">34</span><span class="special">,</span><span class="number">55</span><span class="special">};</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">v</span><span class="special">),</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">v</span><span class="special">),</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">sink</span><span class="special">));</span>
+</pre>
+<h5>
+<a name="coroutine.coroutine.unidirect.h14"></a>
+        <span class="phrase"><a name="coroutine.coroutine.unidirect.exit_a__emphasis_coroutine_function__emphasis_"></a></span><a class="link" href="unidirect.html#coroutine.coroutine.unidirect.exit_a__emphasis_coroutine_function__emphasis_">Exit
+        a <span class="emphasis"><em>coroutine-function</em></span></a>
+      </h5>
+<p>
+        <span class="emphasis"><em>coroutine-function</em></span> is exited with a simple return statement
+        jumping back to the calling routine. The <span class="emphasis"><em>coroutine&lt;&gt;::pull_type</em></span>/<span class="emphasis"><em>coroutine&lt;&gt;::push_type</em></span>
+        becomes complete, e.g. <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::operator
+        bool</em></span> will return 'false'.
+      </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          After returning from <span class="emphasis"><em>coroutine-function</em></span> the <span class="emphasis"><em>coroutine</em></span>
+          is complete (can not resumed with <span class="emphasis"><em>boost::coroutines::coroutine&lt;&gt;::operator()</em></span>).
+        </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009 Oliver Kowalke<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../coroutine.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../coroutine.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="unidirect/pull_coro.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

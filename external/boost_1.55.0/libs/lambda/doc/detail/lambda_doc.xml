@@ -1,0 +1,3456 @@
+<?xml version="1.0" encoding="ISO-Latin-1"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library name="Lambda" dirname="lambda" id="lambda" 
+         last-revision="$Date: 2008-03-22 14:45:55 -0700 (Sat, 22 Mar 2008) $" 
+         xmlns:xi="http://www.w3.org/2001/XInclude">
+<libraryinfo>
+  <author>
+    <firstname>Jaakko</firstname>
+    <surname>Järvi</surname>
+     <email>jarvi at cs tamu edu</email>
+  </author>
+
+  <copyright>
+    <year>1999</year>
+    <year>2000</year>
+    <year>2001</year>
+    <year>2002</year>
+    <year>2003</year>
+    <year>2004</year>
+    <holder>Jaakko Järvi</holder>
+    <holder>Gary Powell</holder>
+  </copyright>
+
+  <legalnotice>
+    <para>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <filename>LICENSE_1_0.txt</filename> or copy at <ulink
+    url="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</ulink>)</para>
+  </legalnotice>
+
+  <librarypurpose>Define small unnamed function objects at the actual call site, and more</librarypurpose>
+  <librarycategory name="category:higher-order"/>
+</libraryinfo>
+
+  <!--  -->
+
+  <section id="introduction">
+
+    <title>In a nutshell</title>
+
+    <para>
+
+      The Boost Lambda Library (BLL in the sequel) is a C++ template
+      library, which implements form of <emphasis>lambda abstractions</emphasis> for C++.
+The term originates from functional programming and lambda calculus, where a lambda abstraction defines an unnamed function.
+      The primary motivation for the BLL is to provide flexible and
+      convenient means to define unnamed function objects for STL algorithms.
+In explaining what the library is about, a line of code says more than a thousand words; the
+      following line outputs the elements of some STL container
+      <literal>a</literal> separated by spaces:
+
+      <programlisting><![CDATA[for_each(a.begin(), a.end(), std::cout << _1 << ' ');]]></programlisting>
+
+      The expression <literal><![CDATA[std::cout << _1 << ' ']]></literal> defines a unary function object. 
+      The variable <literal>_1</literal> is the parameter of this function, a <emphasis>placeholder</emphasis> for the actual argument. 
+      Within each iteration of <literal>for_each</literal>, the function is
+      called with an element of <literal>a</literal> as the actual argument.
+      This actual argument is substituted for the placeholder, and the <quote>body</quote> of the function is evaluated.
+    </para>
+
+    <para>The essence of BLL is letting you define small unnamed function objects, such as the one above, directly on the call site of an STL algorithm.
+    </para>
+  </section>
+
+  <section id="sect:getting_started">
+    <title>Getting Started</title>
+
+    <section>
+      <title>Installing the library</title>
+      
+
+      <para>
+	The library consists of include files only, hence there is no
+	installation procedure. The <literal>boost</literal> include directory
+	must be on the include path.
+	There are a number of include files that give different functionality:
+
+	<!-- TODO: tarkista vielä riippuvuudet-->
+	<itemizedlist>
+
+	  <listitem><para>
+	      <filename>lambda/lambda.hpp</filename> defines lambda expressions for different C++
+	      operators, see <xref linkend="sect:operator_expressions"/>.
+	    </para></listitem>
+
+	  <listitem><para>
+	      <filename>lambda/bind.hpp</filename> defines <literal>bind</literal> functions for up to 9 arguments, see <xref linkend="sect:bind_expressions"/>.</para></listitem>
+
+
+	  <listitem><para>
+	      <filename>lambda/if.hpp</filename> defines lambda function equivalents for if statements and the conditional operator, see <xref linkend="sect:lambda_expressions_for_control_structures"/> (includes <filename>lambda.hpp</filename>).
+	    </para></listitem>
+
+	  <listitem><para>
+	      <filename>lambda/loops.hpp</filename> defines lambda function equivalent for looping constructs, see <xref linkend="sect:lambda_expressions_for_control_structures"/>.
+	    </para></listitem>
+
+	  <listitem><para>
+	      <filename>lambda/switch.hpp</filename> defines lambda function equivalent for the switch statement, see <xref linkend="sect:lambda_expressions_for_control_structures"/>.
+	    </para></listitem>
+
+	  <listitem><para>
+	      <filename>lambda/construct.hpp</filename> provides tools for writing lambda expressions with constructor, destructor, new and delete invocations, see <xref linkend="sect:construction_and_destruction"/> (includes <filename>lambda.hpp</filename>).
+	    </para></listitem>
+
+	  <listitem><para>
+	      <filename>lambda/casts.hpp</filename> provides lambda versions of different casts, as well as <literal>sizeof</literal> and <literal>typeid</literal>, see <xref linkend="sect:cast_expressions"/>.
+	    </para></listitem>
+
+	  <listitem><para>
+	      <filename>lambda/exceptions.hpp</filename> gives tools for throwing and catching
+	      exceptions within lambda functions, <xref linkend="sect:exceptions"/> (includes
+	      <filename>lambda.hpp</filename>).
+	    </para></listitem>
+
+	  <listitem><para>
+	      <filename>lambda/algorithm.hpp</filename> and <filename>lambda/numeric.hpp</filename> (cf. standard <filename>algortihm</filename> and <filename>numeric</filename> headers) allow nested STL algorithm invocations, see <xref linkend="sect:nested_stl_algorithms"/>.
+	    </para></listitem>
+
+	</itemizedlist>
+
+	Any other header files in the package are for internal use.
+	Additionally, the library depends on two other Boost Libraries, the
+	<emphasis>Tuple</emphasis> <xref linkend="cit:boost::tuple"/> and the <emphasis>type_traits</emphasis> <xref linkend="cit:boost::type_traits"/> libraries, and on the <filename>boost/ref.hpp</filename> header.
+      </para>
+
+      <para>
+	All definitions are placed in the namespace <literal>boost::lambda</literal> and its subnamespaces.
+      </para>
+
+    </section>
+
+    <section>
+      <title>Conventions used in this document</title>
+
+      <para>In most code examples, we omit the namespace prefixes for names in the <literal moreinfo="none">std</literal> and <literal moreinfo="none">boost::lambda</literal> namespaces.
+Implicit using declarations
+<programlisting>
+using namespace std;
+using namespace boost::lambda;
+</programlisting>
+are assumed to be in effect.
+</para> 
+
+    </section>
+  </section>
+
+  <section>
+    <title>Introduction</title>
+
+    <section>
+      <title>Motivation</title>
+      <para>The Standard Template Library (STL)
+	<xref role="citation" linkend="cit:stepanov:94"/>, now part of the C++ Standard Library <xref role="citation" linkend="cit:c++:98"/>, is a generic container and algorithm library.
+Typically STL algorithms operate on container elements via <emphasis>function objects</emphasis>. These function objects are passed as arguments to the algorithms.
+</para>
+
+<para>
+Any C++ construct that can be called with the function call syntax
+is a function object. 
+The STL contains predefined function objects for some common cases (such as <literal>plus</literal>, <literal>less</literal> and <literal>not1</literal>). 
+As an example, one possible implementation for the standard <literal>plus</literal> template is:
+
+<programlisting>
+<![CDATA[template <class T>
+struct plus : public binary_function<T, T, T> {
+  T operator()(const T& i, const T& j) const {
+    return i + j; 
+  }
+};]]>
+</programlisting>
+
+The base class <literal><![CDATA[binary_function<T, T, T>]]></literal> contains typedefs for the argument and return types of the function object, which are needed to make the function object <emphasis>adaptable</emphasis>.
+</para>
+
+<para>
+In addition to the basic function object classes, such as the one above,
+the STL contains <emphasis>binder</emphasis> templates for creating a unary function object from an adaptable binary function object by fixing one of the arguments to a constant value.
+For example, instead of having to explicitly write a function object class like:
+
+<programlisting>
+<![CDATA[class plus_1 {
+  int _i;
+public:
+  plus_1(const int& i) : _i(i) {}
+  int operator()(const int& j) { return _i + j; }
+};]]>
+</programlisting>
+
+the equivalent functionality can be achieved with the <literal moreinfo="none">plus</literal> template and one of the binder templates (<literal moreinfo="none">bind1st</literal>).
+E.g., the following two expressions create function objects with identical functionalities; 
+when invoked, both return the result of adding <literal moreinfo="none">1</literal> to the argument of the function object:
+
+<programlisting>
+<![CDATA[plus_1(1)
+bind1st(plus<int>(), 1)]]>
+</programlisting>
+
+The subexpression <literal><![CDATA[plus<int>()]]></literal> in the latter line is a binary function object which computes the sum of two integers, and <literal>bind1st</literal> invokes this function object partially binding the first argument to <literal>1</literal>.
+As an example of using the above function object, the following code adds <literal>1</literal> to each element of some container <literal>a</literal> and outputs the results into the standard output stream <literal>cout</literal>.
+
+<programlisting>
+<![CDATA[transform(a.begin(), a.end(), ostream_iterator<int>(cout),
+          bind1st(plus<int>(), 1));]]>
+</programlisting>
+
+</para>
+
+<para>
+To make the binder templates more generally applicable, the STL contains <emphasis>adaptors</emphasis> for making 
+pointers or references to functions, and pointers to member functions, 
+adaptable.
+
+Finally, some STL implementations contain function composition operations as
+extensions to the standard <xref linkend="cit:sgi:02"/>.
+      </para>
+
+<para>
+All these tools aim at one goal: to make it possible to specify 
+<emphasis>unnamed functions</emphasis> in a call of an STL algorithm, 
+in other words, to pass code fragments as an argument to a function. 
+
+However, this goal is attained only partially.
+The simple example above shows that the definition of unnamed functions 
+with the standard tools is cumbersome.
+
+Complex expressions involving functors, adaptors, binders and 
+function composition operations tend to be difficult to comprehend.
+
+In addition to this, there are significant restrictions in applying 
+the standard tools. E.g. the standard binders allow only one argument 
+of a binary function to be bound; there are no binders for 
+3-ary, 4-ary etc. functions. 
+</para>
+
+<para>
+The Boost Lambda Library provides solutions for the problems described above:
+
+<itemizedlist>
+<listitem>
+<para>
+Unnamed functions can be created easily with an intuitive syntax. 
+
+The above example can be written as:
+
+<programlisting>
+<![CDATA[transform(a.begin(), a.end(), ostream_iterator<int>(cout), 
+          1 + _1);]]>
+</programlisting>
+
+or even more intuitively:
+
+<programlisting>
+<![CDATA[for_each(a.begin(), a.end(), cout << (1 + _1));]]>
+</programlisting>
+</para>
+
+</listitem>
+
+<listitem>
+<para>
+Most of the restrictions in argument binding are removed, 
+arbitrary arguments of practically any C++ function can be bound.
+</para>
+</listitem>
+
+<listitem>
+<para>
+Separate function composition operations are not needed, 
+as function composition is supported implicitly.
+
+</para>
+</listitem>
+
+</itemizedlist>
+
+</para>
+
+</section>
+
+
+
+<section>
+      <title>Introduction to lambda expressions</title>
+
+      <para>
+	Lambda expression are common in functional programming languages. 
+	Their syntax varies between languages (and between different forms of lambda calculus), but the basic form of a lambda expressions is:
+
+
+<programlisting>
+lambda x<subscript>1</subscript> ... x<subscript>n</subscript>.e
+</programlisting>
+	<!-- $\lambda x_1 \cdots x_n . e$ -->
+
+	A lambda expression defines an unnamed function and consists of:
+	<itemizedlist>
+	  <listitem>
+	    <para>
+	      the parameters of this function: <literal>x<subscript>1</subscript> ... x<subscript>n</subscript></literal>.
+	      <!--$x_1 \cdots x_n$-->
+	    </para>
+	  </listitem>
+	  <listitem>
+	    <para>the expression e which computes the value of the function in terms of the parameters <literal>x<subscript>1</subscript> ... x<subscript>n</subscript></literal>.
+	    </para>
+	  </listitem>
+	</itemizedlist>
+
+	A simple example of a lambda expression is 
+<programlisting>
+lambda x y.x+y
+</programlisting>
+Applying the lambda function means substituting the formal parameters with the actual arguments:
+<programlisting>
+(lambda x y.x+y) 2 3 = 2 + 3 = 5 
+</programlisting>
+
+
+      </para>
+
+<para>
+In the C++ version of lambda expressions the <literal>lambda x<subscript>1</subscript> ... x<subscript>n</subscript></literal> part is missing and the formal parameters have predefined names.
+In the current version of the library, 
+there are three such predefined formal parameters, 
+called <emphasis>placeholders</emphasis>: 
+<literal>_1</literal>, <literal>_2</literal> and <literal>_3</literal>. 
+They refer to the first, second and third argument of the function defined 
+by the lambda expression.
+	
+For example, the C++ version of the definition
+<programlisting>lambda x y.x+y</programlisting>
+is 
+<programlisting>_1 + _2</programlisting>
+</para>
+
+      <para>
+Hence, there is no syntactic keyword for C++ lambda expressions. 
+	The use of a placeholder as an operand implies that the operator invocation is a lambda expression.
+	However, this is true only for operator invocations.
+	Lambda expressions containing function calls, control structures, casts etc. require special syntactic constructs. 
+	Most importantly, function calls need to be wrapped inside a <literal>bind</literal> function. 
+
+	As an example, consider the lambda expression:
+
+	<programlisting>lambda x y.foo(x,y)</programlisting>
+
+	Rather than <literal>foo(_1, _2)</literal>, the C++ counterpart for this expression is:
+
+	<programlisting>bind(foo, _1, _2)</programlisting>
+
+	We refer to this type of C++ lambda expressions as <emphasis>bind expressions</emphasis>. 
+      </para>
+
+      <para>A lambda expression defines a C++ function object, hence function application syntax is like calling any other function object, for instance: <literal>(_1 + _2)(i, j)</literal>.
+
+
+      </para>
+
+
+
+<section id="sect:partial_function_application"> 
+<title>Partial function application</title>
+
+<para>
+A bind expression is in effect a <emphasis>partial function application</emphasis>.
+In partial function application, some of the arguments of a function are bound to fixed values. 
+	  The result is another function, with possibly fewer arguments. 
+	  When called with the unbound arguments, this new function invokes the original function with the merged argument list of bound and unbound arguments.
+	</para>
+
+<!--	<para>The underlying implementation of the BLL unifies the two types of lambda expressions (bind expressions and lambda expressions consisting of operator calls).
+	  If operators are regarded as functions, it is easy to see that lambda expressions using operators are partial function applications as well. 
+	  E.g. the lambda expression <literal>_1 + 1</literal> can be seen as syntactic sugar for the pseudo code <literal>bind(operator+, _1, 1)</literal>.
+	</para>
+-->
+
+      </section>
+
+
+
+      <section id="sect:terminology">
+	<title>Terminology</title>
+
+	<para>
+	  A lambda expression defines a function. A C++ lambda expression concretely constructs a function object, <emphasis>a functor</emphasis>, when evaluated. We use the name <emphasis>lambda functor</emphasis> to refer to such a function object. 
+	  Hence, in the terminology adopted here, the result of evaluating a lambda expression is a lambda functor.
+	</para>
+
+      </section>
+
+    </section>
+
+
+
+  </section>
+
+  <section id = "sect:using_library">
+    <title>Using the library</title>
+
+    <para>
+The purpose of this section is to introduce the basic functionality of the library.
+There are quite a lot of exceptions and special cases, but discussion of them is postponed until later sections.
+
+
+    </para>
+
+    <section id = "sect:introductory_examples">
+      <title>Introductory Examples</title>
+
+      <para>
+	In this section we give basic examples of using BLL lambda expressions in STL algorithm invocations. 
+	We start with some simple expressions and work up. 
+	First, we initialize the elements of a container, say, a <literal>list</literal>, to the value <literal>1</literal>:
+
+
+	<programlisting>
+<![CDATA[list<int> v(10);
+for_each(v.begin(), v.end(), _1 = 1);]]></programlisting>
+
+	The expression <literal>_1 = 1</literal> creates a lambda functor which assigns the value <literal>1</literal> to every element in <literal>v</literal>.<footnote>
+<para>
+Strictly taken, the C++ standard defines <literal>for_each</literal> as a <emphasis>non-modifying sequence operation</emphasis>, and the function object passed to <literal moreinfo="none">for_each</literal> should not modify its argument. 
+The requirements for the arguments of <literal>for_each</literal> are unnecessary strict, since as long as the iterators are <emphasis>mutable</emphasis>, <literal>for_each</literal> accepts a function object that can have side-effects on their argument.
+Nevertheless, it is straightforward to provide another function template with the functionality of<literal>std::for_each</literal> but more fine-grained requirements for its arguments.
+</para>
+</footnote>
+      </para>
+
+      <para>
+	Next, we create a container of pointers and make them point to the elements in the first container <literal>v</literal>:
+
+	<programlisting>
+<![CDATA[vector<int*> vp(10); 
+transform(v.begin(), v.end(), vp.begin(), &_1);]]></programlisting>
+
+The expression <literal><![CDATA[&_1]]></literal> creates a function object for getting the address of each element in <literal>v</literal>.
+The addresses get assigned to the corresponding elements in <literal>vp</literal>.
+      </para>
+
+      <para>
+	The next code fragment changes the values in <literal>v</literal>. 
+	For each element, the function <literal>foo</literal> is called. 
+The original value of the element is passed as an argument to <literal>foo</literal>.
+The result of <literal>foo</literal> is assigned back to the element:
+
+
+	<programlisting>
+<![CDATA[int foo(int);
+for_each(v.begin(), v.end(), _1 = bind(foo, _1));]]></programlisting>
+      </para>
+
+
+      <para>
+	The next step is to sort the elements of <literal>vp</literal>:
+	
+	<programlisting>sort(vp.begin(), vp.end(), *_1 > *_2);</programlisting>
+
+	In this call to <literal>sort</literal>, we are sorting the elements by their contents in descending order. 
+      </para>
+
+      <para>
+	Finally, the following <literal>for_each</literal> call outputs the sorted content of <literal>vp</literal> separated by line breaks:
+
+<programlisting>
+<![CDATA[for_each(vp.begin(), vp.end(), cout << *_1 << '\n');]]>
+</programlisting>
+
+Note that a normal (non-lambda) expression as subexpression of a lambda expression is evaluated immediately.  
+This may cause surprises. 
+For instance, if the previous example is rewritten as
+<programlisting>
+<![CDATA[for_each(vp.begin(), vp.end(), cout << '\n' << *_1);]]>
+</programlisting>
+the subexpression <literal><![CDATA[cout << '\n']]></literal> is evaluated immediately and the effect is to output a single line break, followed by the elements of <literal>vp</literal>.
+The BLL provides functions <literal>constant</literal> and <literal>var</literal> to turn constants and, respectively, variables into lambda expressions, and can be used to prevent the immediate evaluation of subexpressions:
+<programlisting>
+<![CDATA[for_each(vp.begin(), vp.end(), cout << constant('\n') << *_1);]]>
+</programlisting>
+These functions are described more thoroughly in <xref linkend="sect:delaying_constants_and_variables"/>
+
+</para>
+
+
+
+
+
+    </section>
+
+
+    <section id="sect:parameter_and_return_types">
+      <title>Parameter and return types of lambda functors</title>
+
+      <para>
+	During the invocation of a lambda functor, the actual arguments are substituted for the placeholders. 
+	The placeholders do not dictate the type of these actual arguments.
+	The basic rule is that a lambda function can be called with arguments of any types, as long as the lambda expression with substitutions performed is a valid C++ expression. 
+	As an example, the expression
+	<literal>_1 + _2</literal> creates a binary lambda functor. 
+	It can be called with two objects of any types <literal>A</literal> and <literal>B</literal> for which <literal>operator+(A,B)</literal> is defined (and for which BLL knows the return type of the operator, see below).
+      </para>
+
+      <para>
+	C++ lacks a mechanism to query a type of an expression. 
+	However, this precise mechanism is crucial for the implementation of C++ lambda expressions.
+	Consequently, BLL includes a somewhat complex type deduction system which uses a set of traits classes for deducing the resulting type of lambda functions.
+	It handles expressions where the operands are of built-in types and many of the expressions with operands of standard library types.
+	Many of the user defined types are covered as well, particularly if the user defined operators obey normal conventions in defining the return types. 
+      </para>
+
+      <!-- TODO: move  this forward, and just refer to it. -->
+      <para>
+	There are, however, cases when the return type cannot be deduced. For example, suppose you have defined:
+
+	<programlisting>C operator+(A, B);</programlisting>
+
+	The following lambda function invocation fails, since the return type cannot be deduced:
+
+	<programlisting>A a; B b; (_1 + _2)(a, b);</programlisting>
+      </para>
+
+      <para>
+	There are two alternative solutions to this. 
+	The first is to extend the BLL type deduction system to cover your own types (see <xref linkend="sect:extending_return_type_system"/>). 
+	The second is to use a special lambda expression (<literal>ret</literal>) which defines the return type in place (see <xref linkend = "sect:overriding_deduced_return_type"/>):
+
+	<programlisting><![CDATA[A a; B b; ret<C>(_1 + _2)(a, b);]]></programlisting>
+      </para>
+
+      <para>
+	For bind expressions, the return type can be defined as a template argument of the bind function as well: 
+	<programlisting><![CDATA[bind<int>(foo, _1, _2);]]></programlisting>
+
+<!--
+	A rare case, where the <literal><![CDATA[ret<type>(bind(...))]]></literal> syntax does not work, but
+	<literal><![CDATA[bind<type>(...)]]></literal> does, is explained in <xref linkend="sect:nullary_functors_and_ret"/>.
+-->
+      </para>
+    </section>
+
+    <section id="sect:actual_arguments_to_lambda_functors">
+      <title>About actual arguments to lambda functors</title>
+
+      <para><emphasis>This section is no longer (or currently) relevant;
+       acual arguments can be non-const rvalues.
+       The section can, however, become relevant again, if in the future BLL will support
+       lambda functors with higher arities than 3.</emphasis></para>
+
+      <para>A general restriction for the actual arguments is that they cannot be non-const rvalues. 
+	For example:
+
+<programlisting>
+int i = 1; int j = 2; 
+(_1 + _2)(i, j); // ok
+(_1 + _2)(1, 2); // error (!)
+</programlisting>
+
+	This restriction is not as bad as it may look. 
+	Since the lambda functors are most often called inside STL-algorithms, 
+	the arguments originate from dereferencing iterators and the dereferencing operators seldom return rvalues.
+	And for the cases where they do, there are workarounds discussed in 
+<xref linkend="sect:rvalues_as_actual_arguments"/>.
+
+
+      </para>
+
+    </section>
+
+
+<section id="sect:storing_bound_arguments">
+
+<title>Storing bound arguments in lambda functions</title>
+      
+<para>
+
+By default, temporary const copies of the bound arguments are stored 
+in the lambda functor.
+
+This means that the value of a bound argument is fixed at the time of the 
+creation of the lambda function and remains constant during the lifetime 
+of the lambda function object.
+For example:
+<programlisting>
+int i = 1;
+(_1 = 2, _1 + i)(i);
+</programlisting>
+The comma operator is overloaded to combine lambda expressions into a sequence;
+the resulting unary lambda functor first assigns 2 to its argument, 
+then adds the value of <literal>i</literal> to it.
+The value of the expression in the last line is 3, not 4. 
+In other words, the lambda expression that is created is
+<literal>lambda x.(x = 2, x + 1)</literal> rather than
+<literal>lambda x.(x = 2, x + i)</literal>.
+      
+</para>
+
+<para>
+
+As said, this is the default behavior for which there are exceptions.
+The exact rules are as follows:
+
+<itemizedlist>
+
+<listitem>
+
+<para>
+
+The programmer can control the storing mechanism with <literal>ref</literal> 
+and <literal>cref</literal> wrappers <xref linkend="cit:boost::ref"/>.
+
+Wrapping an argument with <literal>ref</literal>, or <literal>cref</literal>, 
+instructs the library to store the argument as a reference, 
+or as a reference to const respectively.
+
+For example, if we rewrite the previous example and wrap the variable 
+<literal>i</literal> with <literal>ref</literal>, 
+we are creating the lambda expression <literal>lambda x.(x = 2, x + i)</literal> 
+and the value of the expression in the last line will be 4:
+
+<programlisting>
+i = 1;
+(_1 = 2, _1 + ref(i))(i);
+</programlisting>
+
+Note that <literal>ref</literal> and <literal>cref</literal> are different
+from <literal>var</literal> and <literal>constant</literal>.
+
+While the latter ones create lambda functors, the former do not. 
+For example:
+
+<programlisting>
+int i; 
+var(i) = 1; // ok
+ref(i) = 1; // not ok, ref(i) is not a lambda functor
+</programlisting>
+
+The functions <literal>ref</literal> and <literal>cref</literal> mostly 
+exist for historical reasons,
+and <literal>ref</literal> can always
+be replaced with <literal>var</literal>, and <literal>cref</literal> with
+<literal>constant_ref</literal>. 
+See <xref linkend="sect:delaying_constants_and_variables"/> for details.
+The <literal>ref</literal> and <literal>cref</literal> functions are
+general purpose utility functions in Boost, and hence defined directly
+in the <literal moreinfo="none">boost</literal> namespace.
+
+</para>
+</listitem>
+	  
+<listitem>
+<para>
+Array types cannot be copied, they are thus stored as const reference by default.
+</para>
+</listitem>
+
+<listitem>
+
+<para> 
+For some expressions it makes more sense to store the arguments as references. 
+
+For example, the obvious intention of the lambda expression 
+<literal>i += _1</literal> is that calls to the lambda functor affect the 
+value of the variable <literal>i</literal>, 
+rather than some temporary copy of it. 
+
+As another example, the streaming operators take their leftmost argument 
+as non-const references. 
+
+The exact rules are:
+
+<itemizedlist>
+<listitem>
+<para>The left argument of compound assignment operators (<literal>+=</literal>, <literal>*=</literal>, etc.) are stored as references to non-const.</para>
+</listitem>
+
+<listitem>
+<para>If the left argument of <literal><![CDATA[<<]]></literal> or <literal><![CDATA[>>]]></literal>  operator is derived from an instantiation of <literal>basic_ostream</literal> or respectively from <literal>basic_istream</literal>, the argument is stored as a reference to non-const. 
+For all other types, the argument is stored as a copy.
+</para>
+</listitem>
+
+<listitem>
+<para>
+In pointer arithmetic expressions, non-const array types are stored as non-const references.
+This is to prevent pointer arithmetic making non-const arrays const. 
+
+</para>
+</listitem> 
+
+</itemizedlist>
+
+</para>
+</listitem>
+
+</itemizedlist>
+</para>
+
+</section>
+
+</section>
+
+<section id="sect:lambda_expressions_in_details">
+<title>Lambda expressions in details</title>
+
+<para>
+This section describes different categories of lambda expressions in details.
+We devote a separate section for each of the possible forms of a lambda expression.
+
+
+</para>
+
+<section id="sect:placeholders">
+<title>Placeholders</title>
+
+<para>
+The BLL defines three placeholder types: <literal>placeholder1_type</literal>, <literal>placeholder2_type</literal> and <literal>placeholder3_type</literal>. 
+BLL has a predefined placeholder variable for each placeholder type: <literal>_1</literal>, <literal>_2</literal> and <literal>_3</literal>. 
+However, the user is not forced to use these placeholders. 
+It is easy to define placeholders with alternative names.
+This is done by defining new variables of placeholder types. 
+For example:
+
+<programlisting>boost::lambda::placeholder1_type X;
+boost::lambda::placeholder2_type Y;
+boost::lambda::placeholder3_type Z;
+</programlisting>
+
+With these variables defined, <literal>X += Y * Z</literal> is equivalent to <literal>_1 += _2 * _3</literal>.
+</para>
+
+<para>
+The use of placeholders in the lambda expression determines whether the resulting function is nullary, unary, binary or 3-ary. 
+The highest placeholder index is decisive. For example:
+
+<programlisting>
+_1 + 5              // unary
+_1 * _1 + _1        // unary
+_1 + _2             // binary
+bind(f, _1, _2, _3) // 3-ary
+_3 + 10             // 3-ary
+</programlisting>
+
+Note that the last line creates a 3-ary function, which adds <literal>10</literal> to its <emphasis>third</emphasis> argument. 
+The first two arguments are discarded.
+Furthermore, lambda functors only have a minimum arity.
+One can always provide more arguments (up the number of supported placeholders)
+that is really needed.
+The remaining arguments are just discarded.
+For example:
+
+<programlisting>
+int i, j, k; 
+_1(i, j, k)        // returns i, discards j and k
+(_2 + _2)(i, j, k) // returns j+j, discards i and k
+</programlisting>
+
+See
+<xref linkend="sect:why_weak_arity"/> for the design rationale behind this
+functionality.
+
+</para>
+
+<para>
+In addition to these three placeholder types, there is also a fourth placeholder type <literal>placeholderE_type</literal>.
+The use of this placeholder is defined in <xref linkend="sect:exceptions"/> describing exception handling in lambda expressions. 
+</para>
+
+<para>When an actual argument is supplied for a placeholder, the parameter passing mode is always by reference. 
+This means that any side-effects to the placeholder are reflected to the actual argument. 
+For example:
+
+
+<programlisting>
+<![CDATA[int i = 1; 
+(_1 += 2)(i);         // i is now 3
+(++_1, cout << _1)(i) // i is now 4, outputs 4]]>
+</programlisting>
+</para>
+
+</section>
+
+<section id="sect:operator_expressions">
+<title>Operator expressions</title>
+
+<para>
+The basic rule is that any C++ operator invocation with at least one argument being a lambda expression is itself a lambda expression.
+Almost all overloadable operators are supported. 
+For example, the following is a valid lambda expression:
+
+<programlisting><![CDATA[cout << _1, _2[_3] = _1 && false]]></programlisting>
+</para>
+
+<para>
+However, there are some restrictions that originate from the C++ operator overloading rules, and some special cases.
+</para>
+
+
+<section>
+<title>Operators that cannot be overloaded</title>
+
+<para>
+Some operators cannot be overloaded at all (<literal>::</literal>, <literal>.</literal>, <literal>.*</literal>).
+For some operators, the requirements on return types prevent them to be overloaded to create lambda functors.
+These operators are <literal>->.</literal>, <literal>-></literal>, <literal>new</literal>, <literal>new[]</literal>, <literal>delete</literal>, <literal>delete[]</literal> and <literal>?:</literal> (the conditional operator).
+</para>
+
+</section>
+
+<section id="sect:assignment_and_subscript">
+<title>Assignment and subscript operators</title>
+
+<para>
+These operators must be implemented as class members. 
+Consequently, the left operand must be a lambda expression. For example:
+
+<programlisting>
+int i; 
+_1 = i;      // ok
+i = _1;      // not ok. i is not a lambda expression
+</programlisting>
+
+There is a simple solution around this limitation, described in <xref linkend="sect:delaying_constants_and_variables"/>.
+In short, 
+the left hand argument can be explicitly turned into a lambda functor by wrapping it with a special <literal>var</literal> function:
+<programlisting>
+var(i) = _1; // ok
+</programlisting>
+
+</para>
+</section>
+
+<section id="sect:logical_operators">
+<title>Logical operators</title>
+
+<para>
+Logical operators obey the short-circuiting evaluation rules. For example, in the following code, <literal>i</literal> is never incremented:
+<programlisting>
+bool flag = true; int i = 0;
+(_1 || ++_2)(flag, i);
+</programlisting>
+</para>
+</section>
+
+<section id="sect:comma_operator">
+<title>Comma operator</title>
+
+<para>
+Comma operator is the <quote>statement separator</quote> in lambda expressions. 
+Since comma is also the separator between arguments in a function call, extra parenthesis are sometimes needed:
+
+<programlisting>
+for_each(a.begin(), a.end(), (++_1, cout &lt;&lt; _1));
+</programlisting>
+
+Without the extra parenthesis around <literal>++_1, cout &lt;&lt; _1</literal>, the code would be interpreted as an attempt to call <literal>for_each</literal> with four arguments.
+</para>
+<para>
+The lambda functor created by the comma operator adheres to the C++ rule of always evaluating the left operand before the right one.
+In the above example, each element of <literal>a</literal> is first incremented, then written to the stream.
+</para>
+</section>
+
+<section id="sect:function_call_operator">
+<title>Function call operator</title>
+
+<para>
+The function call operators have the effect of evaluating the lambda
+functor. 
+Calls with too few arguments lead to a compile time error.
+</para>
+</section>
+
+<section id="sect:member_pointer_operator">
+<title>Member pointer operator</title>
+
+<para>
+The member pointer operator <literal>operator->*</literal> can be overloaded freely. 
+Hence, for user defined types, member pointer operator is no special case.
+The built-in meaning, however, is a somewhat more complicated case.
+The built-in member pointer operator is applied if the left argument is a pointer to an object of some class <literal>A</literal>, and the right hand argument is a pointer to a member of <literal>A</literal>, or a pointer to a member of a class from which <literal>A</literal> derives.
+We must separate two cases:
+
+<itemizedlist>
+
+<listitem>
+<para>The right hand argument is a pointer to a data member. 
+In this case the lambda functor simply performs the argument substitution and calls the built-in member pointer operator, which returns a reference to the member pointed to. 
+For example:
+<programlisting>
+<![CDATA[struct A { int d; };
+A* a = new A();
+  ...
+(a ->* &A::d);     // returns a reference to a->d 
+(_1 ->* &A::d)(a); // likewise]]>
+</programlisting>
+</para>
+</listitem>
+
+<listitem>
+<para>
+The right hand argument is a pointer to a member function.
+For a built-in call like this, the result is kind of a delayed member function call. 
+Such an expression must be followed by a function argument list, with which the delayed member function call is performed.
+For example:
+<programlisting>
+<![CDATA[struct B { int foo(int); };
+B* b = new B();
+  ...
+(b ->* &B::foo)         // returns a delayed call to b->foo
+                        // a function argument list must follow
+(b ->* &B::foo)(1)      // ok, calls b->foo(1)
+
+(_1 ->* &B::foo)(b);    // returns a delayed call to b->foo, 
+                        // no effect as such
+(_1 ->* &B::foo)(b)(1); // calls b->foo(1)]]>
+</programlisting>
+</para>
+</listitem>
+</itemizedlist>
+</para>
+</section>
+
+</section>
+
+<section id="sect:bind_expressions">
+<title>Bind expressions</title>
+
+<para>
+Bind expressions can have two forms: 
+
+<!-- TODO: shouldn't really be emphasis, but a variable or something-->
+<programlisting>
+bind(<parameter>target-function</parameter>, <parameter>bind-argument-list</parameter>)
+bind(<parameter>target-member-function</parameter>, <parameter>object-argument</parameter>, <parameter>bind-argument-list</parameter>)
+</programlisting>
+
+A bind expression delays the call of a function. 
+If this <emphasis>target function</emphasis> is <emphasis>n</emphasis>-ary, then the <literal><emphasis>bind-argument-list</emphasis></literal> must contain <emphasis>n</emphasis> arguments as well.
+In the current version of the BLL, <inlineequation>0 &lt;= n &lt;= 9</inlineequation> must hold. 
+For member functions, the number of arguments must be at most <inlineequation>8</inlineequation>, as the object argument takes one argument position.
+
+Basically, the
+<emphasis><literal>bind-argument-list</literal></emphasis> must be a valid argument list for the target function, except that any argument can be replaced with a placeholder, or more generally, with a lambda expression. 
+Note that also the target function can be a lambda expression.
+
+The result of a bind expression is either a nullary, unary, binary or 3-ary function object depending on the use of placeholders in the <emphasis><literal>bind-argument-list</literal></emphasis> (see <xref linkend="sect:placeholders"/>).
+</para>
+
+<para>
+The return type of the lambda functor created by the bind expression can be given as an explicitly specified template parameter, as in the following example:
+<programlisting>
+bind&lt;<emphasis>RET</emphasis>&gt;(<emphasis>target-function</emphasis>, <emphasis>bind-argument-list</emphasis>)
+</programlisting>
+This is only necessary if the return type of the target function cannot be deduced.
+</para>
+
+<para>
+The following sections describe the different types of bind expressions.
+</para>
+
+<section id="sect:function_pointers_as_targets">
+<title>Function pointers or references as targets</title>
+
+<para>The target function can be a pointer or a reference to a function and it can be either bound or unbound. For example:
+<programlisting>
+<![CDATA[X foo(A, B, C); A a; B b; C c;
+bind(foo, _1, _2, c)(a, b);
+bind(&foo, _1, _2, c)(a, b);
+bind(_1, a, b, c)(foo);]]>
+</programlisting>
+ 
+The return type deduction always succeeds with this type of bind expressions. 
+</para>
+
+<para>
+Note, that in C++ it is possible to take the address of an overloaded function only if the address is assigned to, or used as an initializer of, a variable, the type of which solves the amibiguity, or if an explicit cast expression is used.
+This means that overloaded functions cannot be used in bind expressions directly, e.g.:
+<programlisting>
+<![CDATA[void foo(int);
+void foo(float);
+int i; 
+  ...
+bind(&foo, _1)(i);                            // error 
+  ...
+void (*pf1)(int) = &foo;
+bind(pf1, _1)(i);                             // ok
+bind(static_cast<void(*)(int)>(&foo), _1)(i); // ok]]>
+</programlisting>
+</para>
+</section>
+
+<section id="member_functions_as_targets">
+<title>Member functions as targets</title>
+
+<para>
+The syntax for using pointers to member function in bind expression is:
+<programlisting>
+bind(<parameter>target-member-function</parameter>, <parameter>object-argument</parameter>, <parameter>bind-argument-list</parameter>)
+</programlisting>
+
+The object argument can be a reference or pointer to the object, the BLL supports both cases with a uniform interface: 
+
+<programlisting>
+<![CDATA[bool A::foo(int) const; 
+A a;
+vector<int> ints; 
+  ...
+find_if(ints.begin(), ints.end(), bind(&A::foo, a, _1)); 
+find_if(ints.begin(), ints.end(), bind(&A::foo, &a, _1));]]>
+</programlisting>
+
+Similarly, if the object argument is unbound, the resulting lambda functor can be called both via a pointer or a reference:
+
+<programlisting>
+<![CDATA[bool A::foo(int); 
+list<A> refs; 
+list<A*> pointers; 
+  ...
+find_if(refs.begin(), refs.end(), bind(&A::foo, _1, 1)); 
+find_if(pointers.begin(), pointers.end(), bind(&A::foo, _1, 1));]]>
+</programlisting>
+
+</para>
+
+<!--%The exact rules for the object argument (whether it is bound, or supplied in the lambda function invoction) are as follows:
+%If the target function is a pointer to a member function of some class \snip{A}, then the object argument must be an expression of type \snip{B}, where either
+%\begin{itemize}
+%\item \snip{B} = \snip{A} or there is an implicit conversion from \snip{B} to \snip{A}.
+%\item \snip{B} = \snip{A*}.
+%\item \snip{B} = \snip{C*}, where \snip{C} is any class derived form \snip{A}.
+%\end{itemize}
+%For example:
+%\begin{alltt}
+%struct A \{
+%  virtual void f();
+%  void fc() const;
+%\};
+%
+%struct B : public A \{ 
+%  virtual void f(); 
+%\};
+%
+%struct C \{
+%  operator A const() \{ return A(); \}
+%\};
+%
+% A a; B b; C c;
+%  ...
+% bind(&A::f, a)(); 
+% bind(&A::f, b)(); // calls B::f
+% bind(&A::fc, c)(); 
+%
+% bind(&A::f, &a)();
+% bind(&A::f, &b)(); // calls B::f
+% bind(&A::f, &c)(); // error: no conversion from C* \(\rightarrow\) A, 
+%\end{alltt}
+-->
+
+<para>
+Even though the interfaces are the same, there are important semantic differences between using a pointer or a reference as the object argument.
+The differences stem from the way <literal>bind</literal>-functions take their parameters, and how the bound parameters are stored within the lambda functor.
+The object argument has the same parameter passing and storing mechanism as any other bind argument slot (see <xref linkend="sect:storing_bound_arguments"/>); it is passed as a const reference and stored as a const copy in the lambda functor.
+This creates some asymmetry between the lambda functor and the original member function, and between seemingly similar lambda functors. For example:
+<programlisting>
+class A {
+  int i; mutable int j;
+public:
+
+  A(int ii, int jj) : i(ii), j(jj) {};
+  void set_i(int x) { i = x; }; 
+  void set_j(int x) const { j = x; }; 
+};
+</programlisting>
+
+When a pointer is used, the behavior is what the programmer might expect:
+
+<programlisting>
+<![CDATA[A a(0,0); int k = 1;
+bind(&A::set_i, &a, _1)(k); // a.i == 1
+bind(&A::set_j, &a, _1)(k); // a.j == 1]]>
+</programlisting>
+
+Even though a const copy of the object argument is stored, the original object <literal>a</literal> is still modified.
+This is since the object argument is a pointer, and the pointer is copied, not the object it points to.
+When we use a reference, the behaviour is different:
+
+<programlisting>
+<![CDATA[A a(0,0); int k = 1;
+bind(&A::set_i, a, _1)(k); // error; a const copy of a is stored. 
+                           // Cannot call a non-const function set_i
+bind(&A::set_j, a, _1)(k); // a.j == 0, as a copy of a is modified]]>
+</programlisting>
+</para>
+
+<para>
+To prevent the copying from taking place, one can use the <literal>ref</literal> or <literal>cref</literal> wrappers (<literal>var</literal> and <literal>constant_ref</literal> would do as well):
+<programlisting>
+<![CDATA[bind(&A::set_i, ref(a), _1)(k); // a.j == 1
+bind(&A::set_j, cref(a), _1)(k); // a.j == 1]]>
+</programlisting>
+</para>
+
+<para>Note that the preceding discussion is relevant only for bound arguments. 
+If the object argument is unbound, the parameter passing mode is always by reference. 
+Hence, the argument <literal>a</literal> is not copied in the calls to the two lambda functors below:
+<programlisting>
+<![CDATA[A a(0,0);
+bind(&A::set_i, _1, 1)(a); // a.i == 1
+bind(&A::set_j, _1, 1)(a); // a.j == 1]]>
+</programlisting>
+</para>
+</section>
+
+<section id="sect:members_variables_as_targets">
+<title>Member variables as targets</title>
+
+<para>
+A pointer to a member variable is not really a function, but 
+the first argument to the <literal>bind</literal> function can nevertheless
+be a pointer to a member variable.
+Invoking such a bind expression returns a reference to the data member.
+For example:
+
+<programlisting>
+<![CDATA[struct A { int data; };
+A a;
+bind(&A::data, _1)(a) = 1;     // a.data == 1]]>
+</programlisting>
+
+The cv-qualifiers of the object whose member is accessed are respected.
+For example, the following tries to write into a const location:
+<programlisting>
+<![CDATA[const A ca = a;
+bind(&A::data, _1)(ca) = 1;     // error]]>
+</programlisting>
+
+</para>
+</section>
+
+<section id="sect:function_objects_as_targets">
+<title>Function objects as targets</title>
+
+<para>
+
+Function objects, that is, class objects which have the function call 
+operator defined, can be used as target functions. 
+
+In general, BLL cannot deduce the return type of an arbitrary function object. 
+
+However, there are two methods for giving BLL this capability for a certain 
+function object class.
+
+</para>
+
+<simplesect>
+
+<title>The result_type typedef</title>
+
+<para>
+
+The BLL supports the standard library convention of declaring the return type
+of a function object with a member typedef named <literal>result_type</literal> in the
+function object class.
+
+Here is a simple example:
+<programlisting>
+<![CDATA[struct A {
+  typedef B result_type;
+  B operator()(X, Y, Z); 
+};]]>
+</programlisting>
+
+If a function object does not define a <literal>result_type</literal> typedef, 
+the method described below (<literal>sig</literal> template) 
+is attempted to resolve the return type of the
+function object. If a function object defines both <literal>result_type</literal>
+and <literal>sig</literal>, <literal>result_type</literal> takes precedence.
+
+</para>
+
+</simplesect>
+
+<simplesect>
+
+<title>The sig template</title>
+
+<para>
+Another mechanism that make BLL aware of the return type(s) of a function object is defining
+member template struct 
+<literal><![CDATA[sig<Args>]]></literal> with a typedef 
+<literal>type</literal> that specifies the return type.
+
+Here is a simple example:
+<programlisting>
+<![CDATA[struct A {
+  template <class Args> struct sig { typedef B type; }
+  B operator()(X, Y, Z); 
+};]]>
+</programlisting>
+
+The template argument <literal>Args</literal> is a 
+<literal>tuple</literal> (or more precisely a <literal>cons</literal> list) 
+type <xref linkend="cit:boost::tuple"/>, where the first element 
+is the function 
+object type itself, and the remaining elements are the types of 
+the arguments, with which the function object is being called.
+
+This may seem overly complex compared to defining the <literal>result_type</literal> typedef.
+Howver, there are two significant restrictions with using just a simple
+typedef to express the return type:
+<orderedlist>
+<listitem>
+<para>
+If the function object defines several function call operators, there is no way to specify different result types for them.
+</para>
+</listitem>
+<listitem>
+<para>
+If the function call operator is a template, the result type may 
+depend on the template parameters. 
+Hence, the typedef ought to be a template too, which the C++ language 
+does not support.
+</para>
+</listitem>
+</orderedlist>
+
+The following code shows an example, where the return type depends on the type
+of one of the arguments, and how that dependency can be expressed with the
+<literal>sig</literal> template:
+
+<programlisting>
+<![CDATA[struct A {
+
+  // the return type equals the third argument type:
+  template<class T1, T2, T3>
+  T3 operator()(const T1& t1, const T2& t2, const T3& t3);
+
+  template <class Args> 
+  class sig {
+    // get the third argument type (4th element)
+    typedef typename 
+      boost::tuples::element<3, Args>::type T3;
+  public:
+    typedef typename 
+      boost::remove_cv<T3>::type type;
+  }
+};]]>
+</programlisting>
+
+
+The elements of the <literal>Args</literal> tuple are always 
+non-reference types.
+
+Moreover, the element types can have a const or volatile qualifier
+(jointly referred to as <emphasis>cv-qualifiers</emphasis>), or both.
+This is since the cv-qualifiers in the arguments can affect the return type.
+The reason for including the potentially cv-qualified function object 
+type itself into the <literal>Args</literal> tuple, is that the function
+object class can contain both const and non-const (or volatile, even
+const volatile) function call operators, and they can each have a different
+return type.
+</para>
+
+<para>
+The <literal>sig</literal> template can be seen as a 
+<emphasis>meta-function</emphasis> that maps the argument type tuple to 
+the result type of the call made with arguments of the types in the tuple.
+
+As the example above demonstrates, the template can end up being somewhat 
+complex.
+Typical tasks to be performed are the extraction of the relevant types 
+from the tuple, removing cv-qualifiers etc.
+See the Boost type_traits <xref linkend="cit:boost::type_traits"/> and
+Tuple <xref linkend="cit:boost::type_traits"/> libraries 
+for tools that can aid in these tasks.
+The <literal>sig</literal> templates are a refined version of a similar
+mechanism first introduced in the FC++ library  
+<xref linkend="cit:fc++"/>.
+</para>
+
+</simplesect>
+
+</section>
+
+
+
+</section>
+
+<section id="sect:overriding_deduced_return_type">
+<title>Overriding the deduced return type</title>
+
+<para>
+The return type deduction system may not be able to deduce the return types of some user defined operators or bind expressions with class objects.
+<!-- (see the example in <xref linkend="sect:parameter_and_return_types"/>).-->
+A special lambda expression type is provided for stating the return type explicitly and overriding the deduction system. 
+To state that the return type of the lambda functor defined by the lambda expression <literal>e</literal> is <literal>T</literal>, you can write:
+
+<programlisting><![CDATA[ret<T>(e);]]></programlisting>
+
+The effect is that the return type deduction is not performed for the lambda expression <literal>e</literal> at all, but instead, <literal>T</literal> is used as the return type. 
+Obviously <literal>T</literal> cannot be an arbitrary type, the true result of the lambda functor must be implicitly convertible to <literal>T</literal>. 
+For example:
+
+<programlisting>
+<![CDATA[A a; B b;
+C operator+(A, B);
+int operator*(A, B); 
+  ...
+ret<D>(_1 + _2)(a, b);     // error (C cannot be converted to D)
+ret<C>(_1 + _2)(a, b);     // ok
+ret<float>(_1 * _2)(a, b); // ok (int can be converted to float)
+  ...
+struct X {
+  Y operator(int)();   
+};
+  ...
+X x; int i;
+bind(x, _1)(i);            // error, return type cannot be deduced
+ret<Y>(bind(x, _1))(i);    // ok]]>
+</programlisting>
+For bind expressions, there is a short-hand notation that can be used instead of <literal>ret</literal>. 
+The last line could alternatively be written as:
+
+<programlisting><![CDATA[bind<Z>(x, _1)(i);]]></programlisting>
+This feature is modeled after the Boost Bind library <xref linkend="cit:boost::bind"/>.
+
+</para>
+
+<para>Note that within nested lambda expressions, 
+the <literal>ret</literal> must be used at each subexpression where 
+the deduction would otherwise fail. 
+For example:
+<programlisting>
+<![CDATA[A a; B b;
+C operator+(A, B); D operator-(C);
+  ...
+ret<D>( - (_1 + _2))(a, b); // error 
+ret<D>( - ret<C>(_1 + _2))(a, b); // ok]]>
+</programlisting>
+</para>
+
+<para>If you find yourself using  <literal>ret</literal> repeatedly with the same types, it is worth while extending the return type deduction (see <xref linkend="sect:extending_return_type_system"/>).
+</para>
+
+<section id="sect:nullary_functors_and_ret">
+<title>Nullary lambda functors and ret</title>
+
+<para>
+As stated above, the effect of <literal>ret</literal> is to prevent the return type deduction to be performed. 
+However, there is an exception. 
+Due to the way the C++ template instantiation works, the compiler is always forced to instantiate the return type deduction templates for zero-argument lambda functors.
+This introduces a slight problem with <literal>ret</literal>, best described with an example:
+
+<programlisting>
+<![CDATA[struct F { int operator()(int i) const; }; 
+F f;
+  ...
+bind(f, _1);           // fails, cannot deduce the return type
+ret<int>(bind(f, _1)); // ok
+  ...
+bind(f, 1);            // fails, cannot deduce the return type
+ret<int>(bind(f, 1));  // fails as well!]]>
+</programlisting>
+The BLL cannot deduce the return types of the above bind calls, as <literal>F</literal> does not define the typedef <literal>result_type</literal>. 
+One would expect <literal>ret</literal> to fix this, but for the nullary lambda functor that results from a bind expression (last line above) this does not work.
+The return type deduction templates are instantiated, even though it would not be necessary and the result is a compilation error.
+</para>
+
+<para>The solution to this is not to use the <literal>ret</literal> function, but rather define the return type as an explicitly specified template parameter in the <literal>bind</literal> call:
+<programlisting>
+<![CDATA[bind<int>(f, 1);       // ok]]>
+</programlisting>
+
+The lambda functors created with 
+<literal>ret&lt;<parameter>T</parameter>&gt;(bind(<parameter>arg-list</parameter>))</literal> and 
+<literal>bind&lt;<parameter>T</parameter>&gt;(<parameter>arg-list</parameter>)</literal> have the exact same functionality &mdash;
+apart from the fact that for some nullary lambda functors the former does not work while the latter does. 
+</para>
+</section>
+</section>
+
+
+<section id="sect:delaying_constants_and_variables">
+<title>Delaying constants and variables</title>
+
+<para>
+The unary functions <literal>constant</literal>,
+<literal>constant_ref</literal> and <literal>var</literal> turn their argument into a lambda functor, that implements an identity mapping.
+The former two are for constants, the latter for variables. 
+The use of these <emphasis>delayed</emphasis> constants and variables is sometimes necessary due to the lack of explicit syntax for lambda expressions. 
+For example:
+<programlisting>
+<![CDATA[for_each(a.begin(), a.end(), cout << _1 << ' ');
+for_each(a.begin(), a.end(), cout << ' ' << _1);]]>
+</programlisting>
+The first line outputs the elements of <literal>a</literal> separated by spaces, while the second line outputs a space followed by the elements of <literal>a</literal> without any separators.
+The reason for this is that neither of the operands of 
+<literal><![CDATA[cout << ' ']]></literal> is a lambda expression, hence <literal><![CDATA[cout << ' ']]></literal> is evaluated immediately.
+
+To delay the evaluation of <literal><![CDATA[cout << ' ']]></literal>, one of the operands must be explicitly marked as a lambda expression. 
+This is accomplished with the <literal>constant</literal> function:
+<programlisting>
+<![CDATA[for_each(a.begin(), a.end(), cout << constant(' ') << _1);]]>
+</programlisting>
+
+The call <literal>constant(' ')</literal> creates a nullary lambda functor which stores the character constant <literal>' '</literal> 
+and returns a reference to it when invoked. 
+The function <literal>constant_ref</literal> is similar, except that it
+stores a constant reference to its argument.
+
+The <literal>constant</literal> and <literal>consant_ref</literal> are only
+needed when the operator call has side effects, like in the above example.
+</para>
+
+<para>
+Sometimes we need to delay the evaluation of a variable. 
+Suppose we wanted to output the elements of a container in a numbered list:
+
+<programlisting>
+<![CDATA[int index = 0; 
+for_each(a.begin(), a.end(), cout << ++index << ':' << _1 << '\n');
+for_each(a.begin(), a.end(), cout << ++var(index) << ':' << _1 << '\n');]]>
+</programlisting>
+
+The first <literal>for_each</literal> invocation does not do what we want; <literal>index</literal> is incremented only once, and its value is written into the output stream only once.
+By using <literal>var</literal> to make <literal>index</literal> a lambda expression, we get the desired effect.
+<!-- Note that <literal>var</literal> accepts const objects as well, in which case
+calling <literal>var</literal> equals calling <literal>constant_ref</literal>.-->
+</para>
+
+<para>
+In sum, <literal>var(x)</literal> creates a nullary lambda functor, 
+which stores a reference to the variable <literal>x</literal>. 
+When the lambda functor is invoked, a reference to <literal>x</literal> is returned.
+</para>
+
+<simplesect>
+<title>Naming delayed constants and variables</title>
+
+<para>
+It is possible to predefine and name a delayed variable or constant outside a lambda expression. 
+The templates <literal>var_type</literal>, <literal>constant_type</literal> 
+and <literal>constant_ref_type</literal> serve for this purpose. 
+They are used as:
+<programlisting>
+<![CDATA[var_type<T>::type delayed_i(var(i));
+constant_type<T>::type delayed_c(constant(c));]]>
+</programlisting>
+The first line defines the variable <literal>delayed_i</literal> which is a delayed version of the variable <literal>i</literal> of type <literal>T</literal>.
+Analogously, the second line defines the constant <literal>delayed_c</literal> as a delayed version of the constant <literal>c</literal>.
+For example:
+
+<programlisting>
+int i = 0; int j;
+for_each(a.begin(), a.end(), (var(j) = _1, _1 = var(i), var(i) = var(j))); 
+</programlisting>
+is equivalent to:
+<programlisting>
+<![CDATA[int i = 0; int j;
+var_type<int>::type vi(var(i)), vj(var(j));
+for_each(a.begin(), a.end(), (vj = _1, _1 = vi, vi = vj));]]>
+</programlisting>
+</para>
+<para>
+Here is an example of naming a delayed constant:
+<programlisting>
+<![CDATA[constant_type<char>::type space(constant(' '));
+for_each(a.begin(),a.end(), cout << space << _1);]]>
+</programlisting>
+</para>
+
+</simplesect>
+
+<simplesect>
+<title>About assignment and subscript operators</title>
+
+<para>
+As described in <xref linkend="sect:assignment_and_subscript"/>, assignment and subscripting operators are always defined as member functions.
+This means, that for expressions of the form
+<literal>x = y</literal> or <literal>x[y]</literal> to be interpreted as lambda expressions, the left-hand operand <literal>x</literal> must be a lambda expression. 
+Consequently, it is sometimes necessary to use <literal>var</literal> for this purpose.
+We repeat the example from <xref linkend="sect:assignment_and_subscript"/>:
+
+<programlisting>
+int i; 
+i = _1;       // error
+var(i) = _1;  // ok
+</programlisting>
+</para>
+
+<para>
+
+Note that the compound assignment operators <literal>+=</literal>, <literal>-=</literal> etc. can be defined as non-member functions, and thus they are interpreted as lambda expressions even if only the right-hand operand is a lambda expression.
+Nevertheless, it is perfectly ok to delay the left operand explicitly. 
+For example, <literal>i += _1</literal> is equivalent to <literal>var(i) += _1</literal>.
+</para>
+</simplesect>
+
+</section>
+
+<section id="sect:lambda_expressions_for_control_structures">
+<title>Lambda expressions for control structures</title>
+
+<para>
+BLL defines several functions to create lambda functors that represent control structures. 
+They all take lambda functors as parameters and return <literal>void</literal>.
+To start with an example, the following code outputs all even elements of some container <literal>a</literal>:
+
+<programlisting>
+<![CDATA[for_each(a.begin(), a.end(), 
+         if_then(_1 % 2 == 0, cout << _1));]]>  
+</programlisting>
+</para>
+
+<para>
+The BLL supports the following function templates for control structures: 
+
+<programlisting>
+if_then(condition, then_part)
+if_then_else(condition, then_part, else_part)
+if_then_else_return(condition, then_part, else_part)
+while_loop(condition, body)
+while_loop(condition) // no body case
+do_while_loop(condition, body)
+do_while_loop(condition) // no body case 
+for_loop(init, condition, increment, body)
+for_loop(init, condition, increment) // no body case
+switch_statement(...)
+</programlisting>
+
+The return types of all control construct lambda functor is 
+<literal>void</literal>, except for <literal>if_then_else_return</literal>,
+which wraps a call to the conditional operator 
+<programlisting>
+condition ? then_part : else_part
+</programlisting>
+The return type rules for this operator are somewhat complex. 
+Basically, if the branches have the same type, this type is the return type.
+If the type of the branches differ, one branch, say of type 
+<literal>A</literal>, must be convertible to the other branch, 
+say of type <literal>B</literal>.
+In this situation, the result type is <literal>B</literal>.
+Further, if the common type is an lvalue, the return type will be an lvalue
+too.
+</para>
+
+
+<para>
+Delayed variables tend to be commonplace in control structure lambda expressions. 
+For instance, here we use the <literal>var</literal> function to turn the arguments of <literal>for_loop</literal> into lambda expressions. 
+The effect of the code is to add 1 to each element of a two-dimensional array:
+
+<programlisting>
+<![CDATA[int a[5][10]; int i;
+for_each(a, a+5, 
+  for_loop(var(i)=0, var(i)<10, ++var(i), 
+           _1[var(i)] += 1));]]>  
+</programlisting>
+
+<!--
+As explained in <xref linkend="sect:delaying_constants_and_variables"/>, we can avoid the repeated use of wrapping of <literal>var</literal> if we define it beforehand:
+
+<programlisting>
+<![CDATA[int i;
+var_type<int>::type vi(var(i));
+for_each(a, a+5, 
+  for_loop(vi=0, vi<10, ++vi, _1[vi] += 6));]]>  
+</programlisting>
+
+-->
+</para>
+
+<para>
+The BLL supports an alternative syntax for control expressions, suggested
+by Joel de Guzmann. 
+By overloading the <literal>operator[]</literal> we can
+get a closer resemblance with the built-in control structures:
+
+<programlisting>
+<![CDATA[if_(condition)[then_part]
+if_(condition)[then_part].else_[else_part]
+while_(condition)[body]
+do_[body].while_(condition)
+for_(init, condition, increment)[body]]]>
+</programlisting>
+
+For example, using this syntax the <literal>if_then</literal> example above
+can be written as:
+<programlisting>
+<![CDATA[for_each(a.begin(), a.end(), 
+         if_(_1 % 2 == 0)[ cout << _1 ])]]>  
+</programlisting>
+
+As more experience is gained, we may end up deprecating one or the other 
+of these syntaces. 
+
+</para>
+
+
+
+<section id="sect:switch_statement">
+<title>Switch statement</title>
+</section>
+
+<para>
+The lambda expressions for <literal>switch</literal> control structures are more complex since the number of cases may vary. 
+The general form of a switch lambda expression is:
+
+<programlisting>
+switch_statement(<parameter>condition</parameter>, 
+  case_statement&lt;<parameter>label</parameter>&gt;(<parameter>lambda expression</parameter>),
+  case_statement&lt;<parameter>label</parameter>&gt;(<parameter>lambda expression</parameter>),
+  ...
+  default_statement(<parameter>lambda expression</parameter>)
+)
+</programlisting>
+
+The <literal><parameter>condition</parameter></literal> argument must be a lambda expression that creates a lambda functor with an integral return type.
+The different cases are created with the <literal>case_statement</literal> functions, and the optional default case with the <literal>default_statement</literal> function.
+The case labels are given as explicitly specified template arguments to <literal>case_statement</literal> functions and 
+<literal>break</literal> statements are implicitly part of each case. 
+For example, <literal><![CDATA[case_statement<1>(a)]]></literal>, where <literal>a</literal> is some lambda functor,  generates the code:
+
+<programlisting>
+case 1: 
+  <parameter>evaluate lambda functor</parameter> a; 
+  break;
+</programlisting>
+The <literal>switch_statement</literal> function is specialized for up to 9 case statements.
+
+</para>
+
+<para>
+As a concrete example, the following code iterates over some container <literal>v</literal> and ouptuts <quote>zero</quote> for each <literal>0</literal>, <quote>one</quote> for each <literal>1</literal>, and <quote>other: <parameter>n</parameter></quote> for any other value <parameter>n</parameter>.
+Note that another lambda expression is sequenced after the <literal>switch_statement</literal> to output a line break after each element:
+
+<programlisting>
+<![CDATA[std::for_each(v.begin(), v.end(),
+  ( 
+    switch_statement(
+      _1,
+      case_statement<0>(std::cout << constant("zero")),
+      case_statement<1>(std::cout << constant("one")),
+      default_statement(cout << constant("other: ") << _1)
+    ), 
+    cout << constant("\n") 
+  )
+);]]>
+</programlisting>
+</para>
+
+</section>
+
+<section id="sect:exceptions">
+<title>Exceptions</title>
+
+<para>
+The BLL provides lambda functors that throw and catch exceptions.
+Lambda functors for throwing exceptions are created with the unary function <literal>throw_exception</literal>.
+The argument to this function is the exception to be thrown, or a lambda functor which creates the exception to be thrown.
+A lambda functor for rethrowing exceptions is created with the nullary <literal>rethrow</literal> function.
+</para>
+
+<para>
+Lambda expressions for handling exceptions are somewhat more complex.
+The general form of a lambda expression for try catch blocks is as follows:
+
+<programlisting>
+try_catch(
+  <parameter>lambda expression</parameter>,
+  catch_exception&lt;<parameter>type</parameter>&gt;(<parameter>lambda expression</parameter>),
+  catch_exception&lt;<parameter>type</parameter>&gt;(<parameter>lambda expression</parameter>),
+  ...
+  catch_all(<parameter>lambda expression</parameter>)
+)
+</programlisting>
+
+The first lambda expression is the try block. 
+Each <literal>catch_exception</literal> defines a catch block where the 
+explicitly specified template argument defines the type of the exception 
+to catch.
+
+The lambda expression within the <literal>catch_exception</literal> defines 
+the actions to take if the exception is caught.
+
+Note that the resulting exception handlers catch the exceptions as 
+references, i.e., <literal>catch_exception&lt;T&gt;(...)</literal> 
+results in the catch block:
+
+<programlisting>
+catch(T&amp; e) { ... }
+</programlisting>
+
+The last catch block can alternatively be a call to 
+<literal>catch_exception&lt;<parameter>type</parameter>&gt;</literal> 
+or to 
+<literal>catch_all</literal>, which is the lambda expression equivalent to 
+<literal>catch(...)</literal>.
+
+</para>
+
+<para>
+
+The <xref linkend="ex:exceptions"/> demonstrates the use of the BLL 
+exception handling tools. 
+The first handler catches exceptions of type <literal>foo_exception</literal>. 
+Note the use of <literal>_1</literal> placeholder in the body of the handler.
+</para>
+
+<para>
+The second handler shows how to throw exceptions, and demonstrates the 
+use of the <emphasis>exception placeholder</emphasis> <literal>_e</literal>.
+
+It is a special placeholder, which refers to the caught exception object 
+within the handler body.
+
+Here we are handling an exception of type <literal>std::exception</literal>, 
+which carries a string explaining the cause of the exception. 
+
+This explanation can be queried with the zero-argument member 
+function <literal>what</literal>.
+
+The expression
+<literal>bind(&amp;std::exception::what, _e)</literal> creates the lambda 
+function for making that call.
+
+Note that <literal>_e</literal> cannot be used outside of an exception handler lambda expression.
+<!--Violating this rule is caught by the compiler.-->
+
+The last line of the second handler constructs a new exception object and 
+throws that with <literal>throw exception</literal>. 
+
+Constructing and destructing objects within lambda expressions is 
+explained in <xref linkend="sect:construction_and_destruction"/>
+</para>
+
+<para>
+Finally, the third handler (<literal>catch_all</literal>) demonstrates 
+rethrowing exceptions.
+</para>
+
+<example id="ex:exceptions">
+<title>Throwing and handling exceptions in lambda expressions.</title>
+<programlisting>
+<![CDATA[for_each(
+  a.begin(), a.end(),
+  try_catch(
+    bind(foo, _1),                 // foo may throw
+    catch_exception<foo_exception>(
+      cout << constant("Caught foo_exception: ") 
+           << "foo was called with argument = " << _1
+    ),
+    catch_exception<std::exception>(
+      cout << constant("Caught std::exception: ") 
+           << bind(&std::exception::what, _e),
+      throw_exception(bind(constructor<bar_exception>(), _1)))
+    ),      
+    catch_all(
+      (cout << constant("Unknown"), rethrow())
+    )
+  )
+);]]>
+</programlisting>
+</example>
+
+</section>
+
+<section id="sect:construction_and_destruction">
+<title>Construction and destruction</title>
+
+
+<para>
+Operators <literal>new</literal> and <literal>delete</literal> can be 
+overloaded, but their return types are fixed. 
+
+Particularly, the return types cannot be lambda functors, 
+which prevents them to be overloaded for lambda expressions.
+
+It is not possible to take the address of a constructor, 
+hence constructors cannot be used as target functions in bind expressions.
+
+The same is true for destructors.
+
+As a way around these constraints, BLL defines wrapper classes for 
+<literal>new</literal> and <literal>delete</literal> calls, 
+as well as for constructors and destructors.
+
+Instances of these classes are function objects, that can be used as 
+target functions of bind expressions. 
+
+For example:
+
+<programlisting>
+<![CDATA[int* a[10];
+for_each(a, a+10, _1 = bind(new_ptr<int>())); 
+for_each(a, a+10, bind(delete_ptr(), _1));]]>
+</programlisting>
+
+The <literal>new_ptr&lt;int&gt;()</literal> expression creates 
+a function object that calls <literal>new int()</literal> when invoked, 
+and wrapping that inside <literal>bind</literal> makes it a lambda functor.
+
+In the same way, the expression <literal>delete_ptr()</literal> creates 
+a function object that invokes <literal>delete</literal> on its argument. 
+
+Note that <literal>new_ptr&lt;<parameter>T</parameter>&gt;()</literal> 
+can take arguments as well.
+
+They are passed directly to the constructor invocation and thus allow 
+calls to constructors which take arguments. 
+
+</para>
+
+<para>
+
+As an example of constructor calls in lambda expressions, 
+the following code reads integers from two containers <literal>x</literal> 
+and <literal>y</literal>, 
+constructs pairs out of them and inserts them into a third container:
+
+<programlisting>
+<![CDATA[vector<pair<int, int> > v;
+transform(x.begin(), x.end(), y.begin(), back_inserter(v),
+          bind(constructor<pair<int, int> >(), _1, _2));]]>
+</programlisting>
+
+<xref linkend="table:constructor_destructor_fos"/> lists all the function 
+objects related to creating and destroying objects,
+ showing the expression to create and call the function object, 
+and the effect of evaluating that expression.
+
+</para>
+
+
+
+<table id="table:constructor_destructor_fos">
+<title>Construction and destruction related function objects.</title>
+<tgroup cols="2">
+<thead>
+<row>
+<entry>Function object call</entry>
+<entry>Wrapped expression</entry>
+</row>
+</thead>
+<tbody>
+<row>
+<entry><literal>constructor&lt;T&gt;()(<parameter>arg_list</parameter>)</literal></entry>
+<entry>T(<parameter>arg_list</parameter>)</entry>
+</row>
+<row>
+<entry><literal>destructor()(a)</literal></entry>
+<entry><literal>a.~A()</literal>, where <literal>a</literal> is of type <literal>A</literal></entry>
+</row>
+<row>
+<entry><literal>destructor()(pa)</literal></entry>
+<entry><literal>pa->~A()</literal>, where <literal>pa</literal> is of type <literal>A*</literal></entry>
+</row>
+<row>
+<entry><literal>new_ptr&lt;T&gt;()(<parameter>arg_list</parameter>)</literal></entry>
+<entry><literal>new T(<parameter>arg_list</parameter>)</literal></entry>
+</row>
+<row>
+<entry><literal>new_array&lt;T&gt;()(sz)</literal></entry>
+<entry><literal>new T[sz]</literal></entry>
+</row>
+<row>
+<entry><literal>delete_ptr()(p)</literal></entry>
+<entry><literal>delete p</literal></entry>
+</row>
+<row>
+<entry><literal>delete_array()(p)</literal></entry>
+<entry><literal>delete p[]</literal></entry>
+</row>
+
+
+</tbody>
+</tgroup>
+</table> 
+
+</section>
+
+
+<section>
+<title>Special lambda expressions</title>
+
+<section>
+<title>Preventing argument substitution</title>
+
+<para>
+When a lambda functor is called, the default behavior is to substitute 
+the actual arguments for the placeholders within all subexpressions.
+
+This section describes the tools to prevent the substitution and 
+evaluation of a subexpression, and explains when these tools should be used.
+</para>
+
+
+<para>
+The arguments to a bind expression can be arbitrary lambda expressions, 
+e.g., other bind expressions.
+
+For example:
+
+<programlisting>
+int foo(int); int bar(int);
+...
+int i;
+bind(foo, bind(bar, _1)(i);
+</programlisting>
+
+The last line makes the call <literal>foo(bar(i));</literal>
+
+Note that the first argument in a bind expression, the target function, 
+is no exception, and can thus be a bind expression too.
+
+The innermost lambda functor just has to return something that can be used 
+as a target function: another lambda functor, function pointer, 
+pointer to member function etc. 
+
+For example, in the following code the innermost lambda functor makes 
+a selection between two functions, and returns a pointer to one of them:
+
+<programlisting>
+int add(int a, int b) { return a+b; }
+int mul(int a, int b) { return a*b; }
+
+int(*)(int, int)  add_or_mul(bool x) { 
+  return x ? add : mul; 
+}
+
+bool condition; int i; int j;
+...
+bind(bind(&amp;add_or_mul, _1), _2, _3)(condition, i, j);
+</programlisting>
+
+</para>
+
+
+
+<section id="sect:unlambda">
+<title>Unlambda</title>
+
+<para>A nested bind expression may occur inadvertently, 
+if the target function is a variable with a type that depends on a 
+template parameter. 
+
+Typically the target function could be a formal parameter of a 
+function template. 
+
+In such a case, the programmer may not know whether the target function is a lambda functor or not.
+</para>
+
+<para>Consider the following function template:
+
+<programlisting>
+<![CDATA[template<class F>
+int nested(const F& f) {
+  int x;
+  ...
+  bind(f, _1)(x);
+  ...
+}]]>
+</programlisting>
+
+Somewhere inside the function the formal parameter
+<literal>f</literal> is used as a target function in a bind expression. 
+
+In order for this <literal>bind</literal> call to be valid, 
+<literal>f</literal> must be a unary function.
+
+Suppose the following two calls to <literal>nested</literal> are made:
+
+<programlisting>
+<![CDATA[int foo(int);
+int bar(int, int);
+nested(&foo);
+nested(bind(bar, 1, _1));]]>
+</programlisting>
+
+Both are unary functions, or function objects, with appropriate argument 
+and return types, but the latter will not compile.
+
+In the latter call, the bind expression inside <literal>nested</literal> 
+will become:
+
+<programlisting>
+bind(bind(bar, 1, _1), _1) 
+</programlisting>
+
+When this is invoked with <literal>x</literal>, 
+after substituitions we end up trying to call
+
+<programlisting>
+bar(1, x)(x)
+</programlisting>
+
+which is an error. 
+
+The call to <literal>bar</literal> returns int, 
+not a unary function or function object.
+</para>
+
+<para>
+In the example above, the intent of the bind expression in the 
+<literal>nested</literal> function is to treat <literal>f</literal> 
+as an ordinary function object, instead of a lambda functor. 
+
+The BLL provides the function template <literal>unlambda</literal> to 
+express this: a lambda functor wrapped inside <literal>unlambda</literal> 
+is not a lambda functor anymore, and does not take part into the 
+argument substitution process.
+
+Note that for all other argument types <literal>unlambda</literal> is 
+an identity operation, except for making non-const objects const.
+</para>
+
+<para>
+Using <literal>unlambda</literal>, the <literal>nested</literal> 
+function is written as:
+
+<programlisting>
+<![CDATA[template<class F>
+int nested(const F& f) {
+  int x;
+  ...
+  bind(unlambda(f), _1)(x);
+  ...
+}]]>
+</programlisting>
+
+</para>
+
+</section>
+
+<section>
+<title>Protect</title>
+
+<para>
+The <literal>protect</literal> function is related to unlambda. 
+
+It is also used to prevent the argument substitution taking place, 
+but whereas <literal>unlambda</literal> turns a lambda functor into 
+an ordinary function object for good, <literal>protect</literal> does 
+this temporarily, for just one evaluation round.
+
+For example:
+
+<programlisting>
+int x = 1, y = 10;
+(_1 + protect(_1 + 2))(x)(y);
+</programlisting>
+    
+The first call substitutes <literal>x</literal> for the leftmost 
+<literal>_1</literal>, and results in another lambda functor 
+<literal>x + (_1 + 2)</literal>, which after the call with 
+<literal>y</literal> becomes <literal>x + (y + 2)</literal>, 
+and thus finally 13.
+</para>
+
+<para>
+Primary motivation for including <literal>protect</literal> into the library, 
+was to allow nested STL algorithm invocations 
+(<xref linkend="sect:nested_stl_algorithms"/>).
+</para>
+
+</section>
+
+</section>
+
+<section id="sect:rvalues_as_actual_arguments">
+<title>Rvalues as actual arguments to lambda functors</title>
+
+      <para><emphasis>This section and all of its subsections
+       are no longer (or currently) relevant;
+       acual arguments can be non-const rvalues and these workarounds are thus
+       not needed.
+       The section can, however, become relevant again, if in the future BLL will support
+       lambda functors with higher arities than 3.</emphasis></para>
+
+<para>
+Actual arguments to the lambda functors cannot be non-const rvalues.
+This is due to a deliberate design decision: either we have this restriction, 
+or there can be no side-effects to the actual arguments.
+
+There are ways around this limitation.
+
+We repeat the example from section 
+<xref linkend="sect:actual_arguments_to_lambda_functors"/> and list the 
+different solutions:
+
+<programlisting>
+int i = 1; int j = 2; 
+(_1 + _2)(i, j); // ok
+(_1 + _2)(1, 2); // error (!)
+</programlisting>
+
+<orderedlist>
+<listitem>
+<para>
+If the rvalue is of a class type, the return type of the function that 
+creates the rvalue should be defined as const. 
+Due to an unfortunate language restriction this does not work for 
+built-in types, as built-in rvalues cannot be const qualified. 
+</para>
+</listitem>
+
+<listitem>
+<para>
+If the lambda function call is accessible, the <literal>make_const</literal> 
+function can be used to <emphasis>constify</emphasis> the rvalue. E.g.:
+
+<programlisting>
+(_1 + _2)(make_const(1), make_const(2)); // ok
+</programlisting>
+
+Commonly the lambda function call site is inside a standard algorithm 
+function template, preventing this solution to be used.
+
+</para>
+</listitem>
+
+<listitem>
+<para>
+If neither of the above is possible, the lambda expression can be wrapped 
+in a <literal>const_parameters</literal> function. 
+It creates another type of lambda functor, which takes its arguments as 
+const references. For example:
+
+<programlisting>
+const_parameters(_1 + _2)(1, 2); // ok
+</programlisting>
+
+Note that <literal>const_parameters</literal> makes all arguments const.
+Hence, in the case were one of the arguments is a non-const rvalue, 
+and another argument needs to be passed as a non-const reference, 
+this approach cannot be used.
+</para>
+
+</listitem>
+
+<listitem>
+<para>If none of the above is possible, there is still one solution, 
+which unfortunately can break const correctness.
+
+The solution is yet another lambda functor wrapper, which we have named 
+<literal>break_const</literal> to alert the user of the potential dangers 
+of this function. 
+
+The <literal>break_const</literal> function creates a lambda functor that 
+takes its arguments as const, and casts away constness prior to the call 
+to the original wrapped lambda functor.
+
+For example:
+<programlisting>
+int i; 
+...
+(_1 += _2)(i, 2);                 // error, 2 is a non-const rvalue
+const_parameters(_1 += _2)(i, 2); // error, i becomes const
+break_const(_1 += _2)(i, 2);      // ok, but dangerous
+</programlisting>
+
+Note, that the results of <literal> break_const</literal> or 
+<literal>const_parameters</literal> are not lambda functors, 
+so they cannot be used as subexpressions of lambda expressions. For instance:
+
+<programlisting>
+break_const(_1 + _2) + _3; // fails.
+const_parameters(_1 + _2) + _3; // fails.
+</programlisting>
+
+However, this kind of code should never be necessary, 
+since calls to sub lambda functors are made inside the BLL, 
+and are not affected by the non-const rvalue problem.
+</para>
+</listitem>
+
+</orderedlist>
+
+</para>
+</section>
+
+</section>
+
+
+<section>
+<title>Casts, sizeof and typeid</title>
+
+<section id="sect:cast_expressions">
+<title>
+Cast expressions
+</title>
+<para>
+The BLL defines its counterparts for the four cast expressions 
+<literal>static_cast</literal>, <literal>dynamic_cast</literal>, 
+<literal>const_cast</literal> and <literal>reinterpret_cast</literal>.
+
+The BLL versions of the cast expressions have the prefix 
+<literal>ll_</literal>.
+
+The type to cast to is given as an explicitly specified template argument, 
+and the sole argument is the expression from which to perform the cast.
+
+If the argument is a lambda functor, the lambda functor is evaluated first.
+
+For example, the following code uses <literal>ll_dynamic_cast</literal> 
+to count the number of <literal>derived</literal> instances in the container 
+<literal>a</literal>:
+
+<programlisting>
+<![CDATA[class base {};
+class derived : public base {};
+
+vector<base*> a;
+...
+int count = 0;
+for_each(a.begin(), a.end(), 
+         if_then(ll_dynamic_cast<derived*>(_1), ++var(count)));]]>
+</programlisting>
+</para>
+</section>
+
+<section>
+<title>Sizeof and typeid</title>
+<para>
+The BLL counterparts for these expressions are named 
+<literal>ll_sizeof</literal> and <literal>ll_typeid</literal>.
+
+Both take one argument, which can be a lambda expression.
+The lambda functor created wraps the <literal>sizeof</literal> or 
+<literal>typeid</literal> call, and when the lambda functor is called 
+the wrapped operation is performed.
+
+For example:
+
+<programlisting>
+<![CDATA[vector<base*> a; 
+...
+for_each(a.begin(), a.end(), 
+         cout << bind(&type_info::name, ll_typeid(*_1)));]]>
+</programlisting>
+
+Here <literal>ll_typeid</literal> creates a lambda functor for 
+calling <literal>typeid</literal> for each element.
+
+The result of a <literal>typeid</literal> call is an instance of 
+the <literal>type_info</literal> class, and the bind expression creates 
+a lambda functor for calling the <literal>name</literal> member 
+function of that class.
+
+</para>
+</section>
+
+
+
+</section>
+
+<section id="sect:nested_stl_algorithms">
+<title>Nesting STL algorithm invocations</title>
+
+<para>
+The BLL defines common STL algorithms as function object classes, 
+instances of which can be used as target functions in bind expressions.
+For example, the following code iterates over the elements of a 
+two-dimensional array, and computes their sum.
+
+<programlisting>
+int a[100][200];
+int sum = 0;
+
+std::for_each(a, a + 100, 
+	      bind(ll::for_each(), _1, _1 + 200, protect(sum += _1)));
+</programlisting>
+
+The BLL versions of the STL algorithms are classes, which define the function call operator (or several overloaded ones) to call the corresponding function templates in the <literal>std</literal> namespace.
+All these structs are placed in the subnamespace <literal>boost::lambda:ll</literal>. 
+<!--The supported algorithms are listed in <xref linkend="table:nested_algorithms"/>.-->
+</para>
+
+<para>
+Note that there is no easy way to express an overloaded member function 
+call in a lambda expression. 
+
+This limits the usefulness of nested STL algorithms, as for instance 
+the <literal>begin</literal> function has more than one overloaded 
+definitions in container templates.
+
+In general, something analogous to the pseudo-code below cannot be written:
+
+<programlisting>
+std::for_each(a.begin(), a.end(), 
+	      bind(ll::for_each(), _1.begin(), _1.end(), protect(sum += _1)));
+</programlisting>
+
+Some aid for common special cases can be provided though.
+
+The BLL defines two helper function object classes, 
+<literal>call_begin</literal> and <literal>call_end</literal>, 
+which wrap a call to the <literal>begin</literal> and, respectively, 
+<literal>end</literal> functions of a container, and return the 
+<literal>const_iterator</literal> type of the container.
+
+With these helper templates, the above code becomes:
+<programlisting>
+std::for_each(a.begin(), a.end(), 
+	      bind(ll::for_each(), 
+                   bind(call_begin(), _1), bind(call_end(), _1),
+                        protect(sum += _1)));
+</programlisting>
+
+</para>
+
+<!--
+<table id="table:nested_algorithms">
+<title>The nested STL algorithms.</title>
+<tgroup cols="1">
+<thead>
+<trow><entry>Otsikko</entry></trow>
+</thead>
+<tbody>
+<row><entry><literal>for_each</literal></entry></row>
+<row><entry><literal>find</literal></entry></row>
+<row><entry><literal>find_if</literal></entry></row>
+<row><entry><literal>find_end</literal></entry></row>
+<row><entry><literal>find_first_of</literal></entry></row>
+<row><entry><literal>transform</literal></entry></row>
+</tbody>
+</tgroup>
+
+</table>
+
+-->
+
+</section>
+
+
+</section>
+
+
+<!--
+<section>
+<title>Common gothcas</title>
+
+calling member functions a.begin() 
+
+calling templated functions ...
+
+</section>
+
+-->
+
+<section id="sect:extending_return_type_system">
+<title>Extending return type deduction system</title>
+
+<para>
+<!--The <xref linkend = "sect:overriding_deduced_return_type"/> showed how to make BLL aware of the return type of a function object in bind expressions.-->
+
+In this section, we explain  how to extend the return type deduction system 
+to cover user defined operators. 
+
+In many cases this is not necessary, 
+as the BLL defines default return types for operators.
+
+For example, the default return type for all comparison operators is 
+<literal>bool</literal>, and as long as the user defined comparison operators 
+have a bool return type, there is no need to write new specializations 
+for the return type deduction classes.
+
+Sometimes this cannot be avoided, though.
+
+</para>
+
+<para>
+The overloadable user defined operators are either unary or binary. 
+
+For each arity, there are two traits templates that define the 
+return types of the different operators.
+
+Hence, the return type system can be extended by providing more 
+specializations for these templates.
+
+The templates for unary functors are
+
+<literal>
+<![CDATA[plain_return_type_1<Action, A>]]>
+</literal>
+
+and 
+
+<literal>
+<![CDATA[return_type_1<Action, A>]]>
+</literal>, and 
+
+<literal>
+<![CDATA[plain_return_type_2<Action, A, B>]]>
+</literal>
+
+and 
+
+<literal>
+<![CDATA[return_type_2<Action, A, B>]]>
+</literal>
+
+respectively for binary functors.
+
+</para>
+
+<para>
+The first parameter (<literal>Action</literal>) to all these templates 
+is the <emphasis>action</emphasis> class, which specifies the operator. 
+
+Operators with similar return type rules are grouped together into 
+<emphasis>action groups</emphasis>, 
+and only the action class and action group together define the operator 
+unambiguously. 
+
+As an example, the action type 
+<literal><![CDATA[arithmetic_action<plus_action>]]></literal> stands for 
+<literal>operator+</literal>. 
+
+The complete listing of different action types is shown in 
+<xref linkend="table:actions"/>. 
+</para>
+
+<para>
+The latter parameters, <literal>A</literal> in the unary case, 
+or <literal>A</literal> and <literal>B</literal> in the binary case, 
+stand for the argument types of the operator call. 
+
+The two sets of templates, 
+<literal>plain_return_type_<parameter>n</parameter></literal> and 
+<literal>return_type_<parameter>n</parameter></literal> 
+(<parameter>n</parameter> is 1 or 2) differ in the way how parameter types 
+are presented to them.
+
+For the former templates, the parameter types are always provided as 
+non-reference types, and do not have const or volatile qualifiers.
+
+This makes specializing easy, as commonly one specialization for each 
+user defined operator, or operator group, is enough.
+
+On the other hand, if a particular operator is overloaded for different 
+cv-qualifications of the same argument types, 
+and the return types of these overloaded versions differ, a more fine-grained control is needed.
+
+Hence, for the latter templates, the parameter types preserve the 
+cv-qualifiers, and are non-reference types as well. 
+ 
+The downside is, that for an overloaded set of operators of the 
+kind described above, one may end up needing up to 
+16 <literal>return_type_2</literal> specializations.
+</para>
+
+<para>
+Suppose the user has overloaded the following operators for some user defined 
+types <literal>X</literal>, <literal>Y</literal> and <literal>Z</literal>:
+
+<programlisting>
+<![CDATA[Z operator+(const X&, const Y&);
+Z operator-(const X&, const Y&);]]>
+</programlisting>
+
+Now, one can add a specialization stating, that if the left hand argument 
+is of type <literal>X</literal>, and the right hand one of type 
+<literal>Y</literal>, the return type of all such binary arithmetic 
+operators is <literal>Z</literal>:
+
+<programlisting>
+<![CDATA[namespace boost { 
+namespace lambda {
+  
+template<class Act> 
+struct plain_return_type_2<arithmetic_action<Act>, X, Y> {
+  typedef Z type;
+};
+
+}
+}]]>
+</programlisting>
+
+Having this specialization defined, BLL is capable of correctly 
+deducing the return type of the above two operators.
+
+Note, that the specializations must be in the same namespace, 
+<literal>::boost::lambda</literal>, with the primary template. 
+
+For brevity, we do not show the namespace definitions in the examples below.
+</para>
+
+<para>
+It is possible to specialize on the level of an individual operator as well, 
+in addition to providing a specialization for a group of operators. 
+Say, we add a new arithmetic operator for argument types <literal>X</literal> 
+and <literal>Y</literal>:
+
+<programlisting>
+<![CDATA[X operator*(const X&, const Y&);]]>
+</programlisting>
+
+Our first rule for all arithmetic operators specifies that the return 
+type of this operator is <literal>Z</literal>, 
+which obviously is not the case.
+Hence, we provide a new rule for the multiplication operator:
+
+<programlisting>
+<![CDATA[template<> 
+struct plain_return_type_2<arithmetic_action<multiply_action>, X, Y> {
+  typedef X type;
+};]]>
+</programlisting>
+</para>
+
+<para>
+The specializations can define arbitrary mappings from the argument types 
+to the return type. 
+
+Suppose we have some mathematical vector type, templated on the element type:
+
+<programlisting>
+<![CDATA[template <class T> class my_vector;]]>
+</programlisting>
+
+Suppose the addition operator is defined between any two 
+<literal>my_vector</literal> instantiations, 
+as long as the addition operator is defined between their element types. 
+
+Furthermore, the element type of the resulting <literal>my_vector</literal> 
+is the same as the result type of the addition between the element types.
+
+E.g., adding <literal><![CDATA[my_vector<int>]]></literal> and 
+<literal><![CDATA[my_vector<double>]]></literal> results in 
+<literal><![CDATA[my_vector<double>]]></literal>.
+
+The BLL has traits classes to perform the implicit built-in and standard 
+type conversions between integral, floating point, and complex classes.
+
+Using BLL tools, the addition operator described above can be defined as:
+
+<programlisting>
+<![CDATA[template<class A, class B> 
+my_vector<typename return_type_2<arithmetic_action<plus_action>, A, B>::type>
+operator+(const my_vector<A>& a, const my_vector<B>& b)
+{
+  typedef typename 
+    return_type_2<arithmetic_action<plus_action>, A, B>::type res_type;
+  return my_vector<res_type>();
+}]]>
+</programlisting>
+</para>
+
+<para>
+To allow BLL to deduce the type of <literal>my_vector</literal> 
+additions correctly, we can define:
+
+<programlisting>
+<![CDATA[template<class A, class B> 
+class plain_return_type_2<arithmetic_action<plus_action>, 
+                           my_vector<A>, my_vector<B> > {
+  typedef typename 
+    return_type_2<arithmetic_action<plus_action>, A, B>::type res_type;
+public:
+  typedef my_vector<res_type> type;
+};]]>
+</programlisting>
+Note, that we are reusing the existing specializations for the 
+BLL <literal>return_type_2</literal> template, 
+which require that the argument types are references. 
+</para>
+
+<!-- TODO: is an example of specifying the other level needed at all -->
+<!-- TODO: comma operator is a special case for that -->
+
+<table id = "table:actions">
+<title>Action types</title>
+<tgroup cols="2">
+<tbody>
+
+<row><entry><literal><![CDATA[+]]></literal></entry><entry><literal><![CDATA[arithmetic_action<plus_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[-]]></literal></entry><entry><literal><![CDATA[arithmetic_action<minus_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[*]]></literal></entry><entry><literal><![CDATA[arithmetic_action<multiply_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[/]]></literal></entry><entry><literal><![CDATA[arithmetic_action<divide_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[%]]></literal></entry><entry><literal><![CDATA[arithmetic_action<remainder_action>]]></literal></entry></row>
+
+
+
+<row><entry><literal><![CDATA[+]]></literal></entry><entry><literal><![CDATA[unary_arithmetic_action<plus_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[-]]></literal></entry><entry><literal><![CDATA[unary_arithmetic_action<minus_action>]]></literal></entry></row>
+
+
+
+<row><entry><literal><![CDATA[&]]></literal></entry><entry><literal><![CDATA[bitwise_action<and_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[|]]></literal></entry><entry><literal><![CDATA[bitwise_action<or_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[~]]></literal></entry><entry><literal><![CDATA[bitwise_action<not_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[^]]></literal></entry><entry><literal><![CDATA[bitwise_action<xor_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[<<]]></literal></entry><entry><literal><![CDATA[bitwise_action<leftshift_action_no_stream>]]></literal></entry></row>
+<row><entry><literal><![CDATA[>>]]></literal></entry><entry><literal><![CDATA[bitwise_action<rightshift_action_no_stream>]]></literal></entry></row>
+
+
+
+<row><entry><literal><![CDATA[&&]]></literal></entry><entry><literal><![CDATA[logical_action<and_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[||]]></literal></entry><entry><literal><![CDATA[logical_action<or_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[!]]></literal></entry><entry><literal><![CDATA[logical_action<not_action>]]></literal></entry></row>
+
+
+
+<row><entry><literal><![CDATA[<]]></literal></entry><entry><literal><![CDATA[relational_action<less_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[>]]></literal></entry><entry><literal><![CDATA[relational_action<greater_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[<=]]></literal></entry><entry><literal><![CDATA[relational_action<lessorequal_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[>=]]></literal></entry><entry><literal><![CDATA[relational_action<greaterorequal_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[==]]></literal></entry><entry><literal><![CDATA[relational_action<equal_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[!=]]></literal></entry><entry><literal><![CDATA[relational_action<notequal_action>]]></literal></entry></row>
+
+
+
+<row><entry><literal><![CDATA[+=]]></literal></entry><entry><literal><![CDATA[arithmetic_assignment_action<plus_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[-=]]></literal></entry><entry><literal><![CDATA[arithmetic_assignment_action<minus_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[*=]]></literal></entry><entry><literal><![CDATA[arithmetic_assignment_action<multiply_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[/=]]></literal></entry><entry><literal><![CDATA[arithmetic_assignment_action<divide_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[%=]]></literal></entry><entry><literal><![CDATA[arithmetic_assignment_action<remainder_action>]]></literal></entry></row>
+
+
+
+<row><entry><literal><![CDATA[&=]]></literal></entry><entry><literal><![CDATA[bitwise_assignment_action<and_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[=|]]></literal></entry><entry><literal><![CDATA[bitwise_assignment_action<or_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[^=]]></literal></entry><entry><literal><![CDATA[bitwise_assignment_action<xor_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[<<=]]></literal></entry><entry><literal><![CDATA[bitwise_assignment_action<leftshift_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[>>=]]></literal></entry><entry><literal><![CDATA[bitwise_assignment_action<rightshift_action>]]></literal></entry></row>
+
+
+
+<row><entry><literal><![CDATA[++]]></literal></entry><entry><literal><![CDATA[pre_increment_decrement_action<increment_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[--]]></literal></entry><entry><literal><![CDATA[pre_increment_decrement_action<decrement_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[++]]></literal></entry><entry><literal><![CDATA[post_increment_decrement_action<increment_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[--]]></literal></entry><entry><literal><![CDATA[post_increment_decrement_action<decrement_action>]]></literal></entry></row>
+
+
+
+<row><entry><literal><![CDATA[&]]></literal></entry><entry><literal><![CDATA[other_action<address_of_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[*]]></literal></entry><entry><literal><![CDATA[other_action<contents_of_action>]]></literal></entry></row>
+<row><entry><literal><![CDATA[,]]></literal></entry><entry><literal><![CDATA[other_action<comma_action>]]></literal></entry></row>
+
+</tbody>
+</tgroup>
+</table>
+
+</section>
+
+
+<section>
+<title>Practical considerations</title>
+
+
+<section>
+<title>Performance</title>
+
+<para>In theory, all overhead of using STL algorithms and lambda functors 
+compared to hand written loops can be optimized away, just as the overhead 
+from standard STL function objects and binders can.
+
+Depending on the compiler, this can also be true in practice.
+We ran two tests with the GCC 3.0.4 compiler on 1.5 GHz Intel Pentium 4.
+The optimization flag -03 was used.
+</para>
+
+<para>
+In the first test we compared lambda functors against explicitly written 
+function objects. 
+We used both of these styles to define unary functions which multiply the
+argument repeatedly by itself. 
+We started with the identity function, going up to 
+x<superscript>5</superscript>.
+The expressions were called inside a <literal>std::transform</literal> loop, 
+reading the argument from one <literal><![CDATA[std::vector<int>]]></literal> 
+and placing the result into another.
+The length of the vectors was 100 elements.
+The running times are listed in 
+<xref linkend="table:increasing_arithmetic_test"/>.
+
+We can observe that there is no significant difference between the
+two approaches.
+</para>
+
+<para>
+In the second test we again used <literal>std::transform</literal> to 
+perform an operation to each element in a 100-element long vector.
+This time the element type of the vectors was <literal>double</literal>
+and we started with very simple arithmetic expressions and moved to 
+more complex ones.
+The running times are listed in <xref linkend="table:ll_vs_stl_test"/>.
+
+Here, we also included classic STL style unnamed functions into tests.
+We do not show these expressions, as they get rather complex. 
+For example, the
+last expression in <xref linkend="table:ll_vs_stl_test"/> written with
+classic STL tools contains 7 calls to <literal>compose2</literal>, 
+8 calls to <literal>bind1st</literal>
+and altogether 14 constructor invocations for creating 
+<literal>multiplies</literal>, <literal>minus</literal> 
+and <literal>plus</literal> objects.
+
+In this test the BLL expressions are a little slower (roughly 10% on average,
+less than 14% in all cases)
+than the corresponding hand-written function objects.
+The performance hit is a bit greater with classic STL expressions,
+up to 27% for the simplest expressios.
+</para>
+
+<para>
+The tests suggest that the BLL does not introduce a loss of performance 
+compared to STL function objects.  
+With a reasonable optimizing compiler, one should expect the performance characteristics be comparable to using classic STL.
+Moreover, with simple expressions the performance can be expected to be close
+to that of explicitly written function objects.
+
+<!-- We repeated both tests with the KAI C++ 4.0f compiler (using +K2 -O3 flags), 
+generally considered a good optimizing compiler.
+We do not list the results here, since the running times for the two alternatives in the first test were essentially the same, just as the running times
+for the three different alternatives in the second test.
+These tests suggest there to be no performance penalty at all
+with a good optimizing compiler.
+-->
+
+Note however, that evaluating a lambda functor consist of a sequence of calls to small functions that are declared inline. 
+If the compiler fails to actually expand these functions inline, 
+the performance can suffer. 
+The running time can more than double if this happens.
+Although the above tests do not include such an expression, we have experienced
+this for some seemingly simple expressions.
+
+
+<table id = "table:increasing_arithmetic_test">
+<title>Test 1. CPU time of expressions with integer multiplication written as a lambda expression and as a traditional hand-coded function object class. 
+The running times are expressed in arbitrary units.</title>
+<tgroup cols="3">
+<thead>
+<row>
+<entry>expression</entry><entry>lambda expression</entry><entry>hand-coded function object</entry></row>
+</thead>
+
+<tbody>
+
+<row>
+<entry>x</entry><entry>240</entry><entry>230</entry>
+</row>
+
+<row>
+<entry>x*x</entry><entry>340</entry><entry>350</entry>
+</row>
+
+<row>
+<entry>x*x*x</entry><entry>770</entry><entry>760</entry>
+</row>
+
+<row>
+<entry>x*x*x*x</entry><entry>1180</entry><entry>1210</entry>
+</row>
+
+<row>
+<entry>x*x*x*x*x</entry><entry>1950</entry><entry>1910</entry>
+</row>
+
+</tbody>
+</tgroup>
+</table>
+</para>
+
+<!--
+16:19:49 bench [601] ./arith.out 100 1000000
+
+Number of elements = 100
+L1 : 240
+L2 : 340
+L3 : 770
+L4 : 1180
+L5 : 1950
+
+P2 : 1700
+P3 : 2130
+P4 : 2530
+P5 : 3000
+
+F1 : 230
+F2 : 350
+F3 : 760
+F4 : 1210
+F5 : 1910
+
+
+Number of elements    = 100
+Number of outer_iters = 1000000
+L1 : 330
+L2 : 350
+L3 : 470
+L4 : 620
+L5 : 1660
+LP : 1230
+C1 : 370
+C2 : 370
+C3 : 500
+C4 : 670
+C5 : 1660
+CP : 1770
+F1 : 290
+F2 : 310
+F3 : 420
+F4 : 600
+F5 : 1460
+FP : 1040
+
+-->
+
+
+<para>
+<table id = "table:ll_vs_stl_test">
+<title>Test 2. CPU time of arithmetic expressions written as lambda 
+expressions, as classic STL unnamed functions (using <literal>compose2</literal>, <literal>bind1st</literal> etc.) and as traditional hand-coded function object classes. 
+Using BLL terminology, 
+<literal>a</literal> and <literal>b</literal> are bound arguments in the expressions, and <literal>x</literal> is open. 
+All variables were of types <literal>double</literal>.
+The running times are expressed in arbitrary units.</title>
+<tgroup cols="4">
+<thead>
+<row>
+<entry>expression</entry><entry>lambda expression</entry><entry>classic STL expression</entry><entry>hand-coded function object</entry></row>
+</thead>
+
+<tbody>
+
+<row>
+<entry>ax</entry><entry>330</entry><entry>370</entry><entry>290</entry>
+</row>
+
+<row>
+<entry>-ax</entry><entry>350</entry><entry>370</entry><entry>310</entry>
+</row>
+
+<row>
+<entry>ax-(a+x)</entry><entry>470</entry><entry>500</entry><entry>420</entry>
+</row>
+
+<row>
+<entry>(ax-(a+x))(a+x)</entry><entry>620</entry><entry>670</entry><entry>600</entry>
+</row>
+
+<row>
+<entry>((ax) - (a+x))(bx - (b+x))(ax - (b+x))(bx - (a+x))</entry><entry>1660</entry><entry>1660</entry><entry>1460</entry>
+</row>
+
+</tbody>
+</tgroup>
+
+</table>
+</para>
+
+
+<para>Some additional performance testing with an earlier version of the
+library is described
+<xref linkend="cit:jarvi:00"/>.
+</para>
+
+</section>
+    <section>
+      <title>About compiling</title>
+
+      <para>The BLL uses templates rather heavily, performing numerous recursive instantiations of the same templates. 
+This has (at least) three implications:
+<itemizedlist>
+
+<listitem>
+<para>
+While it is possible to write incredibly complex lambda expressions, it probably isn't a good idea. 
+Compiling such expressions may end up requiring a lot of memory 
+at compile time, and being slow to compile.
+</para>
+</listitem>
+
+
+<listitem>
+<para>
+The types of lambda functors that result from even the simplest lambda expressions are cryptic. 
+Usually the programmer doesn't need to deal with the lambda functor types at all, but in the case of an error in a lambda expression, the compiler usually outputs the types of the lambda functors involved. 
+This can make the error messages very long and difficult to interpret, particularly if the compiler outputs the whole chain of template instantiations.
+</para>
+</listitem>
+
+<listitem>
+<para>
+The C++ Standard suggests a template nesting level of 17 to help detect infinite recursion. 
+Complex lambda templates can easily exceed this limit. 
+Most compilers allow a greater number of nested templates, but commonly require the limit explicitly increased with a command line argument.
+</para>
+</listitem>
+</itemizedlist></para>
+
+    </section>
+
+    <section>
+      <title>Portability</title>
+      <para>
+The BLL works with the following compilers, that is, the compilers are capable of compiling the test cases that are included with the BLL:
+
+      <itemizedlist>
+	<listitem>GCC 3.0.4
+	</listitem>
+	<listitem>KCC 4.0f with EDG 2.43.1
+	</listitem>
+	<listitem>GCC 2.96 (fails with one test case, the <filename>exception_test.cpp</filename> results in an internal compiler error.
+)
+
+	</listitem>
+      </itemizedlist>
+</para>
+
+      <section>
+	<title>Test coverage</title>
+
+<para>The following list describes the test files included and the features that each file covers:
+
+<itemizedlist>
+<listitem>
+<para>
+<filename>bind_tests_simple.cpp</filename> : Bind expressions of different arities and types of target functions: function pointers, function objects and member functions.
+Function composition with bind expressions.</para>
+</listitem>
+
+<listitem>
+<para><filename>bind_tests_simple_function_references.cpp</filename> :
+Repeats all tests from <filename moreinfo="none">bind_tests_simple.cpp</filename> where the target function is a function pointer, but uses function references instead.
+</para></listitem>
+
+	    
+<listitem>
+<para><filename>bind_tests_advanced.cpp</filename> : Contains tests for nested bind expressions, <literal>unlambda</literal>, <literal>protect</literal>, <literal>const_parameters</literal> and <literal>break_const</literal>.
+Tests passing lambda functors as actual arguments to other lambda functors, currying, and using the <literal>sig</literal> template to specify the return type of a function object.
+</para>
+</listitem>
+
+<listitem>
+<para>
+<filename>operator_tests_simple.cpp</filename> :
+Tests using all operators that are overloaded for lambda expressions, that is, unary and binary arithmetic, 
+bitwise, 
+comparison, 
+logical,
+increment and decrement, 
+compound, 
+assignment,
+subscrict, 
+address of,
+dereference, and comma operators.
+The streaming nature of shift operators is tested, as well as pointer arithmetic with plus and minus operators.
+</para>
+</listitem>
+	    
+<listitem>
+<para><filename>member_pointer_test.cpp</filename> : The pointer to member operator is complex enough to warrant a separate test file.
+</para>
+</listitem>
+
+<listitem>
+<para>
+<filename>control_structures.cpp</filename> :
+Tests for the looping and if constructs.
+</para></listitem>
+
+<listitem>
+<para>
+<filename>switch_construct.cpp</filename> :
+Includes tests for all supported arities of the switch statement, both with and without the default case.
+</para>
+</listitem>
+
+<listitem>
+<para>
+<filename>exception_test.cpp</filename> :
+Includes tests for throwing exceptions and for try/catch constructs with varying number of catch blocks.
+</para>
+</listitem>
+
+<listitem>
+<para>
+<filename>constructor_tests.cpp</filename> :
+Contains tests for <literal>constructor</literal>, <literal>destructor</literal>, <literal>new_ptr</literal>, <literal>delete_ptr</literal>, <literal>new_array</literal> and <literal>delete_array</literal>.
+</para>
+</listitem>
+
+<listitem>
+<para>
+<filename>cast_test.cpp</filename> : Tests for the four cast expressions, as well as <filename>typeid</filename> and <literal>sizeof</literal>.
+</para>
+</listitem>
+
+<listitem>
+<para>
+<filename>extending_return_type_traits.cpp</filename> : Tests extending the return type deduction system for user defined types.
+Contains several user defined operators and the corresponding specializations for the return type deduction templates.
+</para>
+</listitem>
+
+<listitem>
+<para>
+<filename>is_instance_of_test.cpp</filename> : Includes tests for an internally used traits template, which can detect whether a given type is an instance of a certain template or not. 
+</para></listitem>
+
+<listitem>
+<para>
+<filename>bll_and_function.cpp</filename> :
+Contains tests for using <literal>boost::function</literal> together with lambda functors.
+</para></listitem>
+
+	  </itemizedlist>
+
+</para>
+
+      </section>
+
+    </section>
+
+
+</section>
+
+
+<section>
+<title>Relation to other Boost libraries</title>
+
+<section>
+<title>Boost Function</title>
+
+<para>Sometimes it is convenient to store lambda functors in variables.
+However, the types of even the simplest lambda functors are long and unwieldy, and it is in general unfeasible to declare variables with lambda functor types.
+<emphasis>The Boost Function library</emphasis> <xref linkend="cit:boost::function"/> defines wrappers for arbitrary function objects, for example 
+lambda functors; and these wrappers have types that are easy to type out.
+
+For example:
+
+<programlisting>
+<![CDATA[boost::function<int(int, int)> f = _1 + _2;
+boost::function<int&(int&)> g = (_1 += 10);
+int i = 1, j = 2;
+f(i, j); // returns 3
+g(i);    // sets i to = 11;]]>
+</programlisting>
+
+The return and parameter types of the wrapped function object must be written explicilty as the template argument to the wrapper template <literal>boost::function</literal>; even when lambda functors, which otherwise have generic parameters, are wrapped.
+Wrapping a function object with <literal>boost::function</literal> introduces a performance cost comparable to virtual function dispatch, though virtual functions are not actually used.
+
+Note that storing lambda functors inside <literal>boost::function</literal> 
+introduces a danger.
+Certain types of lambda functors may store references to the bound 
+arguments, instead as taking copies of the arguments of the lambda expression.
+When temporary lambda functor objects are used 
+in STL algorithm invocations this is always safe, as the lambda functor gets 
+destructed immediately after the STL algortihm invocation is completed.
+
+However, a lambda functor wrapped inside <literal>boost::function</literal> 
+may continue to exist longer, creating the possibility of dangling references.
+For example:
+
+<programlisting>
+<![CDATA[int* sum = new int();
+*sum = 0;
+boost::function<int&(int)> counter = *sum += _1;
+counter(5); // ok, *sum = 5;
+delete sum; 
+counter(3); // error, *sum does not exist anymore]]>
+</programlisting>
+
+</para>
+
+</section>
+
+<section>
+<title>Boost Bind</title>
+<para>
+<emphasis>The Boost Bind</emphasis> <xref linkend="cit:boost::bind"/> library has partially overlapping functionality with the BLL. 
+Basically, the Boost Bind library (BB in the sequel) implements the bind expression part of BLL.
+There are, however, some semantical differerences.
+</para>
+<para>
+The BLL and BB evolved separately, and have different implementations. 
+This means that the bind expressions from the BB cannot be used within 
+bind expressions, or within other type of lambda expressions, of the BLL.
+The same holds for using BLL bind expressions in the BB.
+The libraries can coexist, however, as
+the names of the BB library are in <literal>boost</literal> namespace, 
+whereas the BLL names are in <literal>boost::lambda</literal> namespace.
+</para>
+
+<para>
+The BLL requires a compiler that is reasonably conformant to the 
+C++ standard, whereas the BB library is more portable, and works with 
+a larger set of compilers. 
+</para>
+
+<para>
+The following two sections describe what are the semantic differences 
+between the bind expressions in BB and BLL.
+</para>
+
+
+
+
+<section>
+<title>First argument of bind expression</title>
+
+In BB the first argument of the bind expression, the target function, 
+is treated differently from the other arguments, 
+as no argument substitution takes place within that argument.
+In BLL the first argument is not a special case in this respect.
+
+For example:
+
+<programlisting>
+<![CDATA[template<class F>
+int foo(const F& f) {
+  int x;
+  ..
+  bind(f, _1)(x);
+  ...
+}]]>
+</programlisting>
+
+<programlisting>
+<![CDATA[int bar(int, int);
+nested(bind(bar, 1, _1));]]>
+</programlisting>
+
+The bind expression inside <literal>foo</literal> becomes:
+<programlisting>
+bind(bind(bar, 1, _1), _1)(x)
+</programlisting>
+
+The BLL interpretes this as:
+<programlisting>
+bar(1, x)(x)
+</programlisting>
+whereas the BB library as
+<programlisting>
+bar(1, x)
+</programlisting>
+
+To get this functionality in BLL, the bind expression inside the <literal moreinfo="none">foo</literal> function can be written as:
+<programlisting>
+bind(unlambda(f), _1)(x);
+</programlisting>
+as explained in <xref linkend = "sect:unlambda"/>. 
+
+</section>
+
+
+
+
+<para>
+The BB library supports up to nine placeholders, while the BLL 
+defines only three placeholders. 
+The rationale for not providing more, is that the highest arity of the
+function objects accepted by any STL algorithm is two. 
+The placeholder count is easy to increase in the BB library.
+In BLL it is possible, but more laborous.
+The BLL currently passes the actual arguments to the lambda functors
+internally just as they are and does not wrap them inside a tuple object.
+The reason for this is that some widely used compilers are not capable
+of optimizing the intermediate tuple objects away. 
+The creation of the intermediate tuples would cause a significant
+performance hit, particularly for the simplest (and thus the most common) 
+lambda functors.  
+We are working on a hybrid approach, which will allow more placeholders
+but not compromise the performance of simple lambda functors.
+</para>
+
+</section>
+
+  </section>
+
+
+<section>
+<title>Contributors</title>
+
+The main body of the library was written by Jaakko Järvi and Gary Powell.
+We've got outside help, suggestions and ideas from Jeremy Siek, Peter Higley, Peter Dimov, Valentin Bonnard, William Kempf.
+We would particularly like to mention Joel de Guzmann and his work with 
+Phoenix which has influenced BLL significantly, making it considerably simpler 
+to extend the library with new features.
+
+</section>
+
+
+
+<appendix>
+<title>Rationale for some of the design decisions</title>
+
+<section id="sect:why_weak_arity">
+<title>
+Lambda functor arity
+</title>
+
+<para>
+The highest placeholder index in a lambda expression determines the arity of the resulting function object.
+However, this is just the minimal arity, as the function object can take arbitrarily many arguments; those not needed are discarded.
+Consider the two bind expressions and their invocations below:
+
+<programlisting>
+bind(g, _3, _3, _3)(x, y, z); 
+bind(g, _1, _1, _1)(x, y, z); 
+</programlisting>
+
+This first line discards arguments <literal>x</literal> and
+<literal>y</literal>, and makes the call:
+<programlisting>
+g(z, z, z) 
+</programlisting>
+whereas the second line discards arguments <literal>y</literal> and
+<literal>z</literal>, and calls:
+<programlisting>
+g(x, x, x)
+</programlisting>
+In earlier versions of the library, the latter line resulted in a compile 
+time error.
+
+This is basically a tradeoff between safety and flexibility, and the issue
+was extensively discussed during the Boost review period of the library.
+The main points for the <emphasis>strict arity</emphasis> checking
+was that it might
+catch a programming error at an earlier time and that a lambda expression that
+explicitly discards its arguments is easy to write:
+<programlisting>
+(_3, bind(g, _1, _1, _1))(x, y, z);
+</programlisting>
+This lambda expression takes three arguments.
+The left-hand argument of the comma operator does nothing, and as comma 
+returns the result of evaluating the right-hand argument we end up with 
+the call
+<literal>g(x, x, x)</literal>
+even with the strict arity.
+</para>
+
+<para>
+The main points against the strict arity checking were that the need to 
+discard arguments is commonplace, and should therefore be straightforward, 
+and that strict arity checking does not really buy that much more safety, 
+particularly as it is not symmetric.
+For example, if the programmer wanted to write the expression 
+<literal>_1 + _2</literal> but mistakenly wrote <literal>_1 + 2</literal>, 
+with strict arity checking, the complier would spot the error.
+However, if the erroneous expression was <literal>1 + _2</literal> instead,
+the error would go unnoticed.
+Furthermore, weak arity checking simplifies the implementation a bit.
+Following the recommendation of the Boost review, strict arity checking 
+was dropped.
+</para>
+
+</section>
+
+</appendix>
+
+
+
+<bibliography>
+
+<biblioentry id="cit:stepanov:94">
+<abbrev>STL94</abbrev>
+<authorgroup>
+<author>
+<surname>Stepanov</surname>
+<firstname>A. A.</firstname>
+</author>
+<author>
+<surname>Lee</surname>
+<firstname>M.</firstname>
+</author>
+</authorgroup>      
+<title>The Standard Template Library</title>
+<orgname>Hewlett-Packard Laboratories</orgname>
+<pubdate>1994</pubdate>
+<bibliomisc>
+<ulink url="http://www.hpl.hp.com/techreports">www.hpl.hp.com/techreports</ulink>
+</bibliomisc>
+</biblioentry>
+
+<biblioentry id="cit:sgi:02">
+<abbrev>SGI02</abbrev>
+<title>The SGI Standard Template Library</title>
+<pubdate>2002</pubdate>
+<bibliomisc><ulink url="http://www.sgi.com/tech/stl/">www.sgi.com/tech/stl/</ulink></bibliomisc>
+
+</biblioentry>
+    
+<biblioentry id="cit:c++:98">
+<abbrev>C++98</abbrev>
+<title>International Standard, Programming Languages &ndash; C++</title>
+<subtitle>ISO/IEC:14882</subtitle>
+<pubdate>1998</pubdate>
+</biblioentry>
+
+
+<biblioentry id="cit:jarvi:99">
+<abbrev>Jär99</abbrev>
+
+<articleinfo>
+<author>
+<surname>Järvi</surname>
+<firstname>Jaakko</firstname>
+</author>
+<title>C++ Function Object Binders Made Easy</title>
+</articleinfo>
+
+<title>Lecture Notes in Computer Science</title>
+<volumenum>1977</volumenum>
+<publishername>Springer</publishername>
+
+<pubdate>2000</pubdate>
+</biblioentry>
+
+
+
+<biblioentry id="cit:jarvi:00">
+<abbrev>Jär00</abbrev>
+<author>
+<surname>Järvi</surname>
+<firstname>Jaakko</firstname>
+</author>
+<author>
+<firstname>Gary</firstname>
+<surname>Powell</surname>
+</author>
+<title>The Lambda Library : Lambda Abstraction in C++</title>
+      <orgname>Turku Centre for Computer Science</orgname>
+<bibliomisc>Technical Report </bibliomisc>
+      <issuenum>378</issuenum>
+<pubdate>2000</pubdate>
+<bibliomisc><ulink url="http://www.tucs.fi/Publications/techreports/TR378.php">www.tucs.fi/publications</ulink></bibliomisc>
+
+
+</biblioentry>
+
+
+<biblioentry id="cit:jarvi:01">
+<abbrev>Jär01</abbrev>
+<author>
+<surname>Järvi</surname>
+<firstname>Jaakko</firstname>
+</author>
+<author>
+<firstname>Gary</firstname>
+<surname>Powell</surname>
+</author>
+<title>The Lambda Library : Lambda Abstraction in C++</title>
+      <confgroup>
+	<conftitle>Second  Workshop on C++ Template Programming</conftitle>
+	<address>Tampa Bay, OOPSLA'01</address>
+      </confgroup>
+<pubdate>2001</pubdate>
+<bibliomisc><ulink url="http://www.oonumerics.org/tmpw01/">www.oonumerics.org/tmpw01/</ulink></bibliomisc>
+</biblioentry>
+
+<biblioentry id="cit:jarvi:03">
+<abbrev>Jär03</abbrev>
+
+<articleinfo>
+
+<author>
+<surname>Järvi</surname>
+<firstname>Jaakko</firstname>
+</author>
+
+<author>
+<firstname>Gary</firstname>
+<surname>Powell</surname>
+</author>
+
+<author>
+<firstname>Andrew</firstname>
+<surname>Lumsdaine</surname>
+</author>
+<title>The Lambda Library : unnamed functions in C++</title>
+
+</articleinfo>
+
+<title>Software - Practice and Expreience</title>
+<volumenum>33:259-291</volumenum>
+
+
+<pubdate>2003</pubdate>
+</biblioentry>
+
+
+<biblioentry id="cit:boost::tuple">
+<abbrev>tuple</abbrev>
+<title>The Boost Tuple Library</title>
+<bibliomisc><ulink url="http://www.boost.org/libs/tuple/doc/tuple_users_guide.html">www.boost.org/libs/tuple/doc/tuple_users_guide.html</ulink>
+</bibliomisc>
+<pubdate>2002</pubdate>
+</biblioentry>
+
+<biblioentry id="cit:boost::type_traits">
+<abbrev>type_traits</abbrev>
+<title>The Boost type_traits</title>
+<bibliomisc><ulink url="http://www.boost.org/libs/type_traits/index.htm">www.boost.org/libs/type_traits/</ulink>
+</bibliomisc>
+<pubdate>2002</pubdate>
+</biblioentry>
+
+<biblioentry id="cit:boost::ref">
+<abbrev>ref</abbrev>
+<title>Boost ref</title>
+<bibliomisc><ulink url="http://www.boost.org/libs/bind/ref.html">www.boost.org/libs/bind/ref.html</ulink>
+</bibliomisc>
+<pubdate>2002</pubdate>
+</biblioentry>
+
+<biblioentry id="cit:boost::bind">
+<abbrev>bind</abbrev>
+<title>Boost Bind Library</title>
+<bibliomisc><ulink url="http://www.boost.org/libs/bind/bind.html">www.boost.org/libs/bind/bind.html</ulink>
+</bibliomisc>
+<pubdate>2002</pubdate>
+</biblioentry>
+
+<biblioentry id="cit:boost::function">
+<abbrev>function</abbrev>
+<title>Boost Function Library</title>
+<bibliomisc><ulink url="http://www.boost.org/libs/function/">www.boost.org/libs/function/</ulink>
+</bibliomisc>
+<pubdate>2002</pubdate>
+</biblioentry>
+
+<biblioentry id="cit:fc++">
+<abbrev>fc++</abbrev>
+<title>The FC++ library: Functional Programming in C++</title>
+<author>
+<surname>Smaragdakis</surname>
+<firstname>Yannis</firstname>
+</author>
+<author>
+<firstname>Brian</firstname>
+<surname>McNamara</surname>
+</author>
+<bibliomisc><ulink url="http://www.cc.gatech.edu/~yannis/fc++/">www.cc.gatech.edu/~yannis/fc++/</ulink>
+</bibliomisc>
+<pubdate>2002</pubdate>
+</biblioentry>
+
+
+
+
+</bibliography>
+
+
+
+</library>
+
+
+
+
+
+

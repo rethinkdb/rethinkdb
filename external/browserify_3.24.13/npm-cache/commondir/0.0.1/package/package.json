@@ -1,0 +1,38 @@
+{
+    "name" : "commondir",
+    "version" : "0.0.1",
+    "description" : "Compute the closest common parent for file paths",
+    "main" : "index.js",
+    "directories" : {
+        "lib" : ".",
+        "example" : "example",
+        "test" : "test"
+    },
+    "dependencies" : {
+    },
+    "devDependencies" : {
+        "expresso" : "0.7.x"
+    },
+    "scripts" : {
+        "test" : "expresso"
+    },
+    "repository" : {
+        "type" : "git",
+        "url" : "http://github.com/substack/node-commondir.git"
+    },
+    "keywords" : [
+        "common",
+        "path",
+        "directory",
+        "file",
+        "parent",
+        "root"
+    ],
+    "author" : {
+        "name" : "James Halliday",
+        "email" : "mail@substack.net",
+        "url" : "http://substack.net"
+    },
+    "license" : "MIT/X11",
+    "engine" : { "node" : ">=0.4" }
+}

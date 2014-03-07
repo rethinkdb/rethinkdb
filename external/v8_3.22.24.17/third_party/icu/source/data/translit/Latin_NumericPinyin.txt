@@ -1,0 +1,22 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Latin_NumericPinyin.txt
+# Generated from CLDR 
+#
+::NFD (NFC);
+$tone = [\u0304\u0301\u030C\u0300\u0306] ;
+e {($tone) r} → r &Pinyin-NumericPinyin($1);
+($tone) ( [i o n u {o n} {n g}]) → $2 &Pinyin-NumericPinyin($1);
+($tone) → &Pinyin-NumericPinyin($1);
+$vowel = [aAeEiIoOuUüÜ {u\u0308} {U\u0308} ];
+$consonant = [[a-z A-Z] - [$vowel]];
+$digit = [1-5];
+$1 &NumericPinyin-Pinyin($3) $2 ← ([aAeE]) ($vowel* $consonant*) ($digit);
+$1 &NumericPinyin-Pinyin($3) $2 ← ([oO]) ([$vowel-[aeAE]]* $consonant*) ($digit);
+$1 &NumericPinyin-Pinyin($3) $2 ← ($vowel) ($consonant*) ($digit);
+&NumericPinyin-Pinyin($1) ← [:letter:] {($digit)};
+::NFC (NFD);

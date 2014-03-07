@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="paragraph_test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Paragraph Test</title>
+  <section id="paragraph_test.some_paragraphs">
+    <title><link linkend="paragraph_test.some_paragraphs">Some Paragraphs</link></title>
+    <para>
+      Shouldn't be a code block.
+    </para>
+    <para>
+      <emphasis role="bold">Should be bold</emphasis>.
+    </para>
+    <para>
+      Should be a single paragraph.
+    </para>
+    <para>
+      Single paragraph.
+    </para>
+    <para>
+      Single paragraph.
+    </para>
+    <para>
+      Single paragraph.
+    </para>
+    <para>
+      Single paragraph.
+    </para>
+    <para>
+      Lots of newlines round this paragraph.
+    </para>
+    <para>
+      Last paragraph.
+    </para>
+  </section>
+  <section id="paragraph_test.inside___breaking_comment__blocks">
+    <title><link linkend="paragraph_test.inside___breaking_comment__blocks">Inside
+    blocks</link></title>
+    <variablelist>
+      <title></title>
+      <varlistentry>
+        <term>Paragraphs</term>
+        <listitem>
+          <para>
+            Shouldn't be a code block.
+          </para>
+          <para>
+            <emphasis role="bold">Should be bold</emphasis>.
+          </para>
+          <para>
+            Should be a single paragraph.
+          </para>
+          <para>
+            Single paragraph.
+          </para>
+          <para>
+            Single paragraph.
+          </para>
+          <para>
+            Single paragraph.
+          </para>
+          <para>
+            Single paragraph.
+          </para>
+          <para>
+            Lots of newlines round this paragraph.
+          </para>
+          <para>
+            Last paragraph.
+          </para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </section>
+</article>

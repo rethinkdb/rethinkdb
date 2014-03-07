@@ -1,0 +1,41 @@
+# Boost.Signals Library 
+
+# Copyright Douglas Gregor 2001-2003. Use, modification and
+# distribution is subject to the Boost Software License, Version
+# 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# For more information, see http://www.boost.org
+
+# bring in rules for testing
+import testing ;
+
+project
+    : source-location .
+    : requirements
+        <hardcode-dll-paths>true
+        <library>../../test/build//boost_test_exec_monitor
+        <library>../build//boost_signals
+        <define>BOOST_SIGNALS_NO_DEPRECATION_WARNING
+        <define>BOOST_SIGNALS_STATIC_LINK
+        <link>static
+    ;
+{
+  test-suite signals
+    : 
+  [ run dead_slot_test.cpp  ]
+
+  [ run deletion_test.cpp   ]
+
+  [ run ordering_test.cpp   ]
+
+  [ run signal_n_test.cpp   ]
+
+  [ run signal_test.cpp     ]
+
+  [ run trackable_test.cpp  ]
+
+  [ run swap_test.cpp  ]
+ ;
+}
+      

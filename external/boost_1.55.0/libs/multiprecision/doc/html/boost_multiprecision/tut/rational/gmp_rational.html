@@ -1,0 +1,153 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>gmp_rational</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../rational.html" title="Rational Number Types">
+<link rel="prev" href="cpp_rational.html" title="cpp_rational">
+<link rel="next" href="tommath_rational.html" title="tommath_rational">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cpp_rational.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rational.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tommath_rational.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_multiprecision.tut.rational.gmp_rational"></a><a class="link" href="gmp_rational.html" title="gmp_rational">gmp_rational</a>
+</h4></div></div></div>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">gmp</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">multiprecision</span><span class="special">{</span>
+
+<span class="keyword">class</span> <span class="identifier">gmp_rational</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_rational</span> <span class="special">&gt;</span>         <span class="identifier">mpq_rational</span><span class="special">;</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">gmp_rational</span></code> back-end
+          is used via the typedef <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">::</span><span class="identifier">mpq_rational</span></code>.
+          It acts as a thin wrapper around the <a href="http://gmplib.org" target="_top">GMP</a>
+          <code class="computeroutput"><span class="identifier">mpq_t</span></code> to provide a rational
+          number type that is a drop-in replacement for the native C++ number types,
+          but with unlimited precision.
+        </p>
+<p>
+          As well as the usual conversions from arithmetic and string types, instances
+          of <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_rational</span><span class="special">&gt;</span></code>
+          are copy constructible and assignable from:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              The <a href="http://gmplib.org" target="_top">GMP</a> native types: <code class="computeroutput"><span class="identifier">mpz_t</span></code>, <code class="computeroutput"><span class="identifier">mpq_t</span></code>.
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_int</span><span class="special">&gt;</span></code>.
+            </li>
+</ul></div>
+<p>
+          There is also a two-argument constructor that accepts a numerator and denominator
+          (both of type <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_int</span><span class="special">&gt;</span></code>).
+        </p>
+<p>
+          There are also non-member functions:
+        </p>
+<pre class="programlisting"><span class="identifier">mpz_int</span> <span class="identifier">numerator</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">mpq_rational</span><span class="special">&amp;);</span>
+<span class="identifier">mpz_int</span> <span class="identifier">denominator</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">mpq_rational</span><span class="special">&amp;);</span>
+</pre>
+<p>
+          which return the numerator and denominator of the number.
+        </p>
+<p>
+          It's also possible to access the underlying <code class="computeroutput"><span class="identifier">mpq_t</span></code>
+          via the <code class="computeroutput"><span class="identifier">data</span><span class="special">()</span></code>
+          member function of <code class="computeroutput"><span class="identifier">mpq_rational</span></code>.
+        </p>
+<p>
+          Things you should know when using this type:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Default constructed <code class="computeroutput"><span class="identifier">mpq_rational</span></code>s
+              have the value zero (this is the <a href="http://gmplib.org" target="_top">GMP</a>
+              default behavior).
+            </li>
+<li class="listitem">
+              Division by zero results in a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">overflow_error</span></code>
+              being thrown.
+            </li>
+<li class="listitem">
+              Conversion from a string results in a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+              being thrown if the string can not be interpreted as a valid rational
+              number.
+            </li>
+<li class="listitem">
+              No changes are made to the <a href="http://gmplib.org" target="_top">GMP</a>
+              library's global settings, so this type can coexist with existing
+              <a href="http://gmplib.org" target="_top">GMP</a> code.
+            </li>
+<li class="listitem">
+              The code can equally be used with <a href="http://mpir.org/" target="_top">MPIR</a>
+              as the underlying library - indeed that is the preferred option on
+              Win32.
+            </li>
+</ul></div>
+<h6>
+<a name="boost_multiprecision.tut.rational.gmp_rational.h0"></a>
+          <span class="phrase"><a name="boost_multiprecision.tut.rational.gmp_rational.example_"></a></span><a class="link" href="gmp_rational.html#boost_multiprecision.tut.rational.gmp_rational.example_">Example:</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">gmp</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">;</span>
+
+<span class="identifier">mpq_rational</span> <span class="identifier">v</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+
+<span class="comment">// Do some arithmetic:</span>
+<span class="keyword">for</span><span class="special">(</span><span class="keyword">unsigned</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;=</span> <span class="number">1000</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+   <span class="identifier">v</span> <span class="special">*=</span> <span class="identifier">i</span><span class="special">;</span>
+<span class="identifier">v</span> <span class="special">/=</span> <span class="number">10</span><span class="special">;</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">v</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// prints 1000! / 10</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">numerator</span><span class="special">(</span><span class="identifier">v</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">denominator</span><span class="special">(</span><span class="identifier">v</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+<span class="identifier">mpq_rational</span> <span class="identifier">w</span><span class="special">(</span><span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">);</span>  <span class="comment">// component wise constructor</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">w</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// prints 2/3</span>
+
+<span class="comment">// Access the underlying data:</span>
+<span class="identifier">mpq_t</span> <span class="identifier">q</span><span class="special">;</span>
+<span class="identifier">mpq_init</span><span class="special">(</span><span class="identifier">q</span><span class="special">);</span>
+<span class="identifier">mpq_set</span><span class="special">(</span><span class="identifier">q</span><span class="special">,</span> <span class="identifier">v</span><span class="special">.</span><span class="identifier">backend</span><span class="special">().</span><span class="identifier">data</span><span class="special">());</span>
+</pre>
+<p>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cpp_rational.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rational.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tommath_rational.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

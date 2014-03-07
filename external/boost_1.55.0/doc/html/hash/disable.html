@@ -1,0 +1,69 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Disabling The Extensions</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../hash.html" title="Chapter&#160;12.&#160;Boost.Functional/Hash">
+<link rel="prev" href="portability.html" title="Portability">
+<link rel="next" href="changes.html" title="Change Log">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="portability.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../hash.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="changes.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="hash.disable"></a><a class="link" href="disable.html" title="Disabling The Extensions">Disabling The Extensions</a>
+</h2></div></div></div>
+<p>
+      While <code class="computeroutput"><a class="link" href="../boost/hash.html" title="Struct template hash">boost::hash</a></code>'s extensions are
+      generally useful, you might want to turn them of in order to check that your
+      code will work with other implementations of TR1. To do this define the macro
+      <code class="computeroutput"><span class="identifier">BOOST_HASH_NO_EXTENSIONS</span></code>. When
+      this macro is defined, only the specialisations detailed in TR1 will be declared.
+      But, if you later undefine the macro and include &lt;<code class="computeroutput"><a class="link" href="reference.html#header.boost.functional.hash_hpp" title="Header &lt;boost/functional/hash.hpp&gt;">boost/functional/hash.hpp</a></code>&gt;
+      then the non-specialised form will be defined - activating the extensions.
+    </p>
+<p>
+      It is strongly recommended that you never undefine the macro - and only define
+      it so that it applies to the complete translation unit, either by defining
+      it at the beginning of the main source file or, preferably, by using a compiler
+      switch or preference. And you really should never define it in header files.
+    </p>
+<p>
+      If you are writing a library which has code in the header which requires the
+      extensions, then the best action is to tell users not to define the macro.
+      Their code won't <span class="emphasis"><em>require</em></span> the macro.
+    </p>
+<p>
+      Translation units that are compiled with the macro defined will link with units
+      that were compiled without it. This feature has been designed to avoid ODR
+      violations.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2008 Daniel
+      James<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="portability.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../hash.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="changes.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

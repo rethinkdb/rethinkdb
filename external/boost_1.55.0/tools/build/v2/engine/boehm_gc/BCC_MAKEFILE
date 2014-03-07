@@ -1,0 +1,87 @@
+# Makefile for Borland C++ 5.5 on NT
+# If you have the Borland assembler, remove "-DUSE_GENERIC"
+#
+bc=	   c:\Borland\BCC55
+bcbin=	   $(bc)\bin
+bclib=	   $(bc)\lib
+bcinclude= $(bc)\include
+
+gcinclude1 = $(bc)\gc6.2\include
+gcinclude2 = $(bc)\gc6.2\cord
+
+cc=	 $(bcbin)\bcc32
+rc=	 $(bcbin)\brc32
+lib=	 $(bcbin)\tlib
+link=	 $(bcbin)\ilink32
+cflags=  -O2 -R -v- -vi -H -H=gc.csm -I$(bcinclude);$(gcinclude1);$(gcinclude2) -L$(bclib) \
+	 -w-pro -w-aus -w-par -w-ccc -w-rch -a4 -D__STDC__=0
+defines= -DALL_INTERIOR_POINTERS -DUSE_GENERIC -DNO_GETENV -DJAVA_FINALIZATION -DGC_OPERATOR_NEW_ARRAY
+
+.c.obj:
+	$(cc) @&&|
+	$(cdebug) $(cflags) $(cvars) $(defines) -o$* -c $*.c
+|
+
+.cpp.obj:
+	$(cc) @&&|
+	$(cdebug) $(cflags) $(cvars) $(defines) -o$* -c $*.cpp
+|
+
+.rc.res:
+    $(rc) -i$(bcinclude) -r -fo$* $*.rc
+
+XXXOBJS= XXXalloc.obj XXXreclaim.obj XXXallchblk.obj XXXmisc.obj \
+    XXXmach_dep.obj XXXos_dep.obj XXXmark_rts.obj XXXheaders.obj XXXmark.obj \
+    XXXobj_map.obj XXXblacklst.obj XXXfinalize.obj XXXnew_hblk.obj \
+    XXXdbg_mlc.obj XXXmalloc.obj XXXstubborn.obj XXXdyn_load.obj \
+    XXXtypd_mlc.obj XXXptr_chck.obj XXXgc_cpp.obj XXXmallocx.obj
+
+OBJS= $(XXXOBJS:XXX=)
+
+all: gctest.exe cord\de.exe test_cpp.exe
+
+$(OBJS) test.obj: include\private\gc_priv.h include\private\gc_hdrs.h include\gc.h include\private\gcconfig.h MAKEFILE
+
+gc.lib: $(OBJS)
+	del gc.lib
+	$(lib) $* @&&|
+	$(XXXOBJS:XXX=+)
+|
+
+gctest.exe: tests\test.obj gc.lib
+    $(cc) @&&|
+	$(cflags) -W -e$* tests\test.obj gc.lib
+|
+
+cord\de.obj cord\de_win.obj: include\cord.h include\private\cord_pos.h cord\de_win.h \
+    cord\de_cmds.h
+
+cord\de.exe: cord\cordbscs.obj cord\cordxtra.obj cord\de.obj cord\de_win.obj \
+	cord\de_win.res gc.lib
+	$(cc) @&&|
+	$(cflags) -W -e$* cord\cordbscs.obj cord\cordxtra.obj \
+	cord\de.obj cord\de_win.obj gc.lib
+|
+    $(rc) cord\de_win.res cord\de.exe
+
+gc_cpp.obj: include\gc_cpp.h include\gc.h
+
+gc_cpp.cpp: gc_cpp.cc
+	copy gc_cpp.cc gc_cpp.cpp
+
+test_cpp.cpp: tests\test_cpp.cc
+	copy tests\test_cpp.cc test_cpp.cpp
+
+test_cpp.exe: test_cpp.obj include\gc_cpp.h include\gc.h gc.lib
+    $(cc) @&&|
+	$(cflags) -W -e$* test_cpp.obj gc.lib
+|
+
+scratch:
+    -del *.obj *.res *.exe *.csm cord\*.obj cord\*.res cord\*.exe cord\*.csm
+
+clean:
+      del gc.lib
+      del *.obj
+      del tests\test.obj
+

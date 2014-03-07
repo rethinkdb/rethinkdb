@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: c_str</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./string-operations.html" class="navigation-link">Prev</a>&nbsp;<a href="./miscellaneous.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./string-operations.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./string-operations.html" class="navigation-link">String Operations</a> / <a href="./c-str.html" class="navigation-link">c_str</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="c-str">
+<h1><a class="toc-backref" href="./string-operations.html#id1562">c_str</a></h1>
+<div class="section" id="id1137">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Sequence
+    &gt;
+struct <a href="./c-str.html" class="identifier">c_str</a>
+{
+    typedef <em>unspecified</em> type;
+    static char const value[];
+};
+</pre>
+</div>
+<div class="section" id="id1138">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./c-str.html" class="identifier">c_str</a></span></tt> converts the <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> of <a class="reference internal" href="./integral-constant.html">Integral Constant</a>s <tt class="literal"><span class="pre">Sequence</span></tt>
+into a null-terminated byte string containing an equivalent sequence.</p>
+</div>
+<div class="section" id="id1139">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/string.hpp" class="header">boost/mpl/string.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1140">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./metafunction.html">Metafunction</a></p>
+</div>
+<div class="section" id="id1141">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="17%" />
+<col width="30%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Sequence</span></tt></td>
+<td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> of
+<a class="reference internal" href="./integral-constant.html">Integral Constant</a>s</td>
+<td>A sequence to be converted into a
+null-terminated byte string.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1142">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<div class="expression-semantics compound">
+<p class="compound-first">For any <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> of <a class="reference internal" href="./integral-constant.html">Integral Constant</a>s <tt class="literal"><span class="pre">s</span></tt>,</p>
+<pre class="compound-middle literal-block">
+<a href="./c-str.html" class="identifier">c_str</a>&lt;s&gt;::value;
+</pre>
+<table class="compound-last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">A null-terminated byte string.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::value</span> <span class="pre">&lt;=</span> <span class="pre">BOOST_MPL_STRING_MAX_LENGTH</span></tt>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="last literal-block">
+char const value[] = {
+    <a href="./at.html" class="identifier">at</a>&lt;s, 0&gt;::type::value
+  , ...
+  , <a href="./at.html" class="identifier">at</a>&lt;s, <a href="./size.html" class="identifier">size</a>&lt;s&gt;::value-1&gt;::type::value
+  , '\0'
+};
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="id1143">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="47%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Sequence archetype</th>
+<th class="head">Complexity</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>Linear.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1144">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./vector-c.html" class="identifier">vector_c</a>&lt;char,'h','e','l','l','o'&gt; hello;
+assert( 0 == std::strcmp( <a href="./c-str.html" class="identifier">c_str</a>&lt;hello&gt;::value, &quot;hello&quot; ) );
+</pre>
+</div>
+<div class="section" id="id1145">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>, <a class="reference internal" href="./integral-constant.html">Integral Constant</a>, <a class="reference internal" href="./string.html">string</a></p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./string-operations.html" class="navigation-link">Prev</a>&nbsp;<a href="./miscellaneous.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./string-operations.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2009 Eric Niebler</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

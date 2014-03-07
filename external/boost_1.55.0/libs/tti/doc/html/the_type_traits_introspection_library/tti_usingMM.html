@@ -1,0 +1,418 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>An example using the Macro Metafunctions</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="prev" href="tti_func_sig.html" title="Nested Types and Function Signatures">
+<link rel="next" href="tti_func_templates.html" title="Introspecting Function Templates">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_func_sig.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_func_templates.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="the_type_traits_introspection_library.tti_usingMM"></a><a class="link" href="tti_usingMM.html" title="An example using the Macro Metafunctions">An example
+    using the Macro Metafunctions</a>
+</h2></div></div></div>
+<p>
+      <a name="sectti_usingMM"></a>Using the macro metafunctions can be illustrated
+      by first creating some hypothetical user-defined type with corresponding nested
+      types and other inner elements. With this type we can illustrate the use of
+      the macro metafunctions. This is just meant to serve as a model for what a
+      type T might entail from within a class or function template where 'T' is a
+      type passed to the template.
+    </p>
+<pre class="programlisting"><span class="comment">// An enclosing type</span>
+
+<span class="keyword">struct</span> <span class="identifier">AType</span>
+  <span class="special">{</span>
+
+  <span class="comment">// Type</span>
+
+  <span class="keyword">typedef</span> <span class="keyword">int</span> <span class="identifier">AnIntType</span><span class="special">;</span> <span class="comment">// as a typedef</span>
+
+  <span class="keyword">struct</span> <span class="identifier">BType</span> <span class="comment">// as a nested type</span>
+    <span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">CType</span>
+      <span class="special">{</span>
+      <span class="special">};</span>
+    <span class="special">};</span>
+
+  <span class="comment">// Template</span>
+
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">struct</span> <span class="identifier">AMemberTemplate</span> <span class="special">{</span> <span class="special">};</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">struct</span> <span class="identifier">AnotherMemberTemplate</span> <span class="special">{</span> <span class="special">};</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">long</span><span class="special">&gt;</span> <span class="keyword">struct</span> <span class="identifier">ManyParameters</span> <span class="special">{</span> <span class="special">};</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">short</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">struct</span> <span class="identifier">MoreParameters</span> <span class="special">{</span> <span class="special">};</span>
+
+  <span class="comment">// Data</span>
+
+  <span class="identifier">BType</span> <span class="identifier">IntBT</span><span class="special">;</span>
+
+  <span class="comment">// Function</span>
+
+  <span class="keyword">int</span> <span class="identifier">IntFunction</span><span class="special">(</span><span class="keyword">short</span><span class="special">)</span> <span class="special">{</span> <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span> <span class="special">}</span>
+
+  <span class="comment">// Static Data</span>
+
+  <span class="keyword">static</span> <span class="keyword">short</span> <span class="identifier">DSMember</span><span class="special">;</span>
+
+  <span class="comment">// Static Function</span>
+
+  <span class="keyword">static</span> <span class="keyword">int</span> <span class="identifier">SIntFunction</span><span class="special">(</span><span class="keyword">long</span><span class="special">,</span><span class="keyword">double</span><span class="special">)</span> <span class="special">{</span> <span class="keyword">return</span> <span class="number">2</span><span class="special">;</span> <span class="special">}</span>
+
+  <span class="special">};</span>
+</pre>
+<p>
+      I will be using the type above just to illustrate the sort of metaprogramming
+      questions we can ask of some type T which is passed to the template programmer
+      in a class template. Here is what the class template might look like:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">tti</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">OurTemplateClass</span>
+  <span class="special">{</span>
+
+  <span class="comment">// compile-time template code regarding T</span>
+
+  <span class="special">};</span>
+</pre>
+<p>
+      Now let us create and invoke the macro metafunctions for each of our inner
+      element types, to see if type T above corresponds to our hypothetical type
+      above. Imagine this being within 'OurTemplateClass' above. In the examples
+      below the same macro is invoked just once to avoid ODR violations.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h0"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.type"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.type">Type</a>
+    </h4>
+<p>
+      Does T have a nested type called 'AnIntType' ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_TYPE</span><span class="special">(</span><span class="identifier">AnIntType</span><span class="special">)</span>
+
+<span class="identifier">has_type_AnIntType</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span>
+  <span class="special">&gt;</span>
+</pre>
+<p>
+      Does T have a nested type called 'BType' ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_TYPE</span><span class="special">(</span><span class="identifier">BType</span><span class="special">)</span>
+
+<span class="identifier">has_type_BType</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h1"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.type_checking_the_typedef_using_a_lambda_expression"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.type_checking_the_typedef_using_a_lambda_expression">Type
+      checking the typedef using a lambda expression</a>
+    </h4>
+<p>
+      Does T have a nested typedef called 'AnIntType' whose type is an 'int' ?
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">mpl</span><span class="special">/</span><span class="identifier">placeholders</span><span class="special">.</span><span class="identifier">hpp</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">is_same</span><span class="special">.</span><span class="identifier">hpp</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">placeholders</span><span class="special">;</span>
+
+<span class="identifier">has_type_AnIntType</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span><span class="special">,</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">_1</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h2"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.template"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.template">Template</a>
+    </h4>
+<p>
+      Does T have a nested class template called 'AMemberTemplate' whose template
+      parameters are all types ('class' or 'typename') ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_TEMPLATE</span><span class="special">(</span><span class="identifier">AMemberTemplate</span><span class="special">,</span><span class="identifier">BOOST_PP_NIL</span><span class="special">)</span>
+
+<span class="identifier">has_template_AMemberTemplate</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h3"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.template_using_variadic_macros"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.template_using_variadic_macros">Template
+      using variadic macros</a>
+    </h4>
+<p>
+      Does T have a nested class template called 'AMemberTemplate' whose template
+      parameters are all types ('class' or 'typename') ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_TEMPLATE</span><span class="special">(</span><span class="identifier">AnotherMemberTemplate</span><span class="special">)</span>
+
+<span class="identifier">has_template_AnotherMemberTemplate</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h4"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.template_with_params"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.template_with_params">Template
+      with params</a>
+    </h4>
+<p>
+      Does T have a nested class template called 'MoreParameters' whose template
+      parameters are specified exactly ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_TEMPLATE</span><span class="special">(</span><span class="identifier">MoreParameters</span><span class="special">,(</span><span class="number">8</span><span class="special">,(</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">short</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">)))</span>
+
+<span class="identifier">has_template_MoreParameters</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h5"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.template_with_params_using_variadic_macros"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.template_with_params_using_variadic_macros">Template
+      with params using variadic macros</a>
+    </h4>
+<p>
+      Does T have a nested class template called 'ManyParameters' whose template
+      parameters are specified exactly ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_TEMPLATE</span><span class="special">(</span><span class="identifier">ManyParameters</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">long</span><span class="special">)</span>
+
+<span class="identifier">has_template_ManyParameters</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h6"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.member_data"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.member_data">Member
+      data</a>
+    </h4>
+<p>
+      Does T have a member data called 'IntBT' whose type is 'AType::BType' ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_MEMBER_DATA</span><span class="special">(</span><span class="identifier">IntBT</span><span class="special">)</span>
+
+<span class="identifier">has_member_data_IntBT</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span><span class="special">,</span>
+  <span class="identifier">AType</span><span class="special">::</span><span class="identifier">BType</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h7"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.member_data_with_composite_type"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.member_data_with_composite_type">Member
+      data with composite type</a>
+    </h4>
+<p>
+      Does T have a member data called 'IntBT' whose type is 'AType::BType' ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_MEMBER_DATA</span><span class="special">(</span><span class="identifier">IntBT</span><span class="special">)</span>
+
+<span class="identifier">has_member_data_IntBT</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">AType</span><span class="special">::</span><span class="identifier">BType</span> <span class="identifier">T</span><span class="special">::*</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h8"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.member_function_with_individual_types"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.member_function_with_individual_types">Member
+      function with individual types</a>
+    </h4>
+<p>
+      Does T have a member function called 'IntFunction' whose type is 'int (short)'
+      ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">IntFunction</span><span class="special">)</span>
+
+<span class="identifier">has_member_function_IntFunction</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span><span class="special">,</span>
+  <span class="keyword">int</span><span class="special">,</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">short</span><span class="special">&gt;</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h9"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.member_function_with_composite_type"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.member_function_with_composite_type">Member
+      function with composite type</a>
+    </h4>
+<p>
+      Does T have a member function called 'IntFunction' whose type is 'int (short)'
+      ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">IntFunction</span><span class="special">)</span>
+<span class="identifier">has_member_function_IntFunction</span>
+  <span class="special">&lt;</span>
+  <span class="keyword">int</span> <span class="special">(</span><span class="identifier">T</span><span class="special">::*)(</span><span class="keyword">short</span><span class="special">)</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h10"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.static_member_data"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.static_member_data">Static
+      member data</a>
+    </h4>
+<p>
+      Does T have a static member data called 'DSMember' whose type is 'short' ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_DATA</span><span class="special">(</span><span class="identifier">DSMember</span><span class="special">)</span>
+
+<span class="identifier">has_static_member_data_DSMember</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span><span class="special">,</span>
+  <span class="keyword">short</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h11"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.static_member_function_with_individual_types"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.static_member_function_with_individual_types">Static
+      member function with individual types</a>
+    </h4>
+<p>
+      Does T have a static member function called 'SIntFunction' whose type is 'int
+      (long,double)' ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">SIntFunction</span><span class="special">)</span>
+
+<span class="identifier">has_static_member_function_SIntFunction</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span><span class="special">,</span>
+  <span class="keyword">int</span><span class="special">,</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">long</span><span class="special">,</span><span class="keyword">double</span><span class="special">&gt;</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h12"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.static_member_function_with_composite_type"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.static_member_function_with_composite_type">Static
+      member function with composite type</a>
+    </h4>
+<p>
+      Does T have a static member function called 'SIntFunction' whose type is 'int
+      (long,double)' ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">SIntFunction</span><span class="special">)</span>
+
+<span class="identifier">has_static_member_function_SIntFunction</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span><span class="special">,</span>
+  <span class="keyword">int</span> <span class="special">(</span><span class="keyword">long</span><span class="special">,</span><span class="keyword">double</span><span class="special">)</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h13"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.data"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.data">Data</a>
+    </h4>
+<p>
+      Does T have a member data or static member data called 'DSMember' whose type
+      is 'short' ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_DATA</span><span class="special">(</span><span class="identifier">DSMember</span><span class="special">)</span>
+
+<span class="identifier">has_static_member_data_DSMember</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span><span class="special">,</span>
+  <span class="keyword">short</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h14"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.function"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.function">Function</a>
+    </h4>
+<p>
+      Does T have a member function or a static member function called 'IntFunction'
+      whose type is 'int (short)' ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_FUNCTION</span><span class="special">(</span><span class="identifier">IntFunction</span><span class="special">)</span>
+
+<span class="identifier">has_function_IntFunction</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">T</span><span class="special">,</span>
+  <span class="keyword">int</span><span class="special">,</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">short</span><span class="special">&gt;</span>
+  <span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h15"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.member_type"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.member_type">Member
+      type</a>
+    </h4>
+<p>
+      Create a nested type T::BType::CType without creating a compiler error if T
+      does not have the nested type BType::CType ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">BType</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">CType</span><span class="special">)</span>
+
+<span class="keyword">typename</span>
+<span class="identifier">member_type_CType</span>
+  <span class="special">&lt;</span>
+  <span class="keyword">typename</span>
+  <span class="identifier">member_type_BType</span>
+    <span class="special">&lt;</span>
+    <span class="identifier">T</span>
+    <span class="special">&gt;::</span><span class="identifier">type</span>
+  <span class="special">&gt;::</span><span class="identifier">type</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_usingMM.h16"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_usingMM.member_type_existence"></a></span><a class="link" href="tti_usingMM.html#the_type_traits_introspection_library.tti_usingMM.member_type_existence">Member
+      type existence</a>
+    </h4>
+<p>
+      Does a nested type T::BType::CType, created without creating a compiler error
+      if T does not have the nested type BType::CType, actually exist ?
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">BType</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">CType</span><span class="special">)</span>
+
+<span class="keyword">typedef</span> <span class="keyword">typename</span>
+<span class="identifier">member_type_CType</span>
+  <span class="special">&lt;</span>
+  <span class="keyword">typename</span>
+  <span class="identifier">member_type_BType</span>
+    <span class="special">&lt;</span>
+    <span class="identifier">T</span>
+    <span class="special">&gt;::</span><span class="identifier">type</span>
+  <span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">AType</span><span class="special">;</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">tti</span><span class="special">::</span><span class="identifier">valid_member_type</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">AType</span>
+  <span class="special">&gt;</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Tropic Software
+      East Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_func_sig.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_func_templates.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

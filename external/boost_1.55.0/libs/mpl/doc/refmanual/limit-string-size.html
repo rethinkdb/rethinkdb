@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: BOOST_MPL_LIMIT_STRING_SIZE</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./limit-map-size.html" class="navigation-link">Prev</a>&nbsp;<a href="./limit-unrolling.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./limit-map-size.html" class="navigation-link">Back</a>&nbsp;<a href="./limit-unrolling.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./configuration.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./macros.html" class="navigation-link">Macros</a> / <a href="./configuration.html" class="navigation-link">Configuration</a> / <a href="./limit-string-size.html" class="navigation-link">BOOST_MPL_LIMIT_STRING_SIZE</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="boost-mpl-limit-string-size">
+<h1><a class="toc-backref" href="./configuration.html#id1606">BOOST_MPL_LIMIT_STRING_SIZE</a></h1>
+<div class="section" id="id1376">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+#if !defined(<a href="./limit-string-size.html" class="identifier">BOOST_MPL_LIMIT_STRING_SIZE</a>)
+#   define <a href="./limit-string-size.html" class="identifier">BOOST_MPL_LIMIT_STRING_SIZE</a> \
+        <em>implementation-defined integral constant</em> \
+/**/
+#endif
+</pre>
+</div>
+<div class="section" id="id1377">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./limit-string-size.html" class="identifier">BOOST_MPL_LIMIT_STRING_SIZE</a></span></tt> is an overridable configuration macro regulating
+the maximum arity of the <tt class="literal"><span class="pre"><a href="./string.html" class="identifier">string</a></span></tt>'s <a class="reference internal" href="./variadic-sequence.html">variadic forms</a>. In this
+implementation of the library, <tt class="literal"><span class="pre"><a href="./limit-string-size.html" class="identifier">BOOST_MPL_LIMIT_STRING_SIZE</a></span></tt> has a default value
+of 32. To override the default limit, define <tt class="literal"><span class="pre"><a href="./limit-string-size.html" class="identifier">BOOST_MPL_LIMIT_STRING_SIZE</a></span></tt> to
+the desired maximum arity before including any library header.</p>
+</div>
+<div class="section" id="id1378">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+#define <a href="./limit-string-size.html" class="identifier">BOOST_MPL_LIMIT_STRING_SIZE</a> 8
+<tt class="literal"><span class="pre">#</span></tt>include &lt;boost/mpl/<a href="./string.html" class="identifier">string</a>.hpp&gt;
+
+using namespace boost::mpl;
+
+typedef <a href="./string.html" class="identifier">string</a>&lt;'a'&gt; s_1;
+typedef <a href="./string.html" class="identifier">string</a>&lt;'abcd','efgh'&gt; s_8;
+// typedef <a href="./string.html" class="identifier">string</a>&lt;'abcd','efgh','i'&gt; s_9; // error!
+</pre>
+</div>
+<div class="section" id="id1379">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./configuration.html">Configuration</a>, <a class="reference internal" href="./limit-vector-size.html">BOOST_MPL_LIMIT_VECTOR_SIZE</a></p>
+<!-- Macros/Configuration//BOOST_MPL_LIMIT_UNROLLING |70 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./limit-map-size.html" class="navigation-link">Prev</a>&nbsp;<a href="./limit-unrolling.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./limit-map-size.html" class="navigation-link">Back</a>&nbsp;<a href="./limit-unrolling.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./configuration.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2009 Eric Niebler</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

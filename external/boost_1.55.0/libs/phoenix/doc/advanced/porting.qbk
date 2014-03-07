@@ -1,0 +1,115 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Porting from Phoenix 2.0]
+
+While reading the current documentation you might have noticed that the
+[link phoenix.starter_kit Starter Kit] didn't change very much. This is because
+a lot of effort was put into being compatible with Phoenix 2.0, at least on the
+outside.
+
+That being said, the only major difference is the result type deduction protocol.
+The everyday Phoenix-User will encounter this change only when writing
+[link phoenix.reference.modules.function Functions].
+
+To make your function implementations Phoenix compliant again change from
+the old Phoenix result type deduction protocol to the new (standard compliant)
+result type deduction protocol:
+
+[table
+	[[Phoenix 2.0] [Phoenix 3.0] [Notes]]
+	[
+	[``
+		struct is_odd_impl
+		{
+			template <typename Arg>
+			struct result
+			{
+				typedef bool type;
+			};
+
+			template <typename Arg>
+			bool operator()(Arg arg) const
+			{
+				return arg % 2 == 1;
+			}
+		};
+	
+		boost::phoenix::function<is_odd_impl> is_odd = is_odd_impl();
+	``]
+	[``
+		struct is_odd_impl
+		{
+			typedef bool result_type;
+
+			template <typename Arg>
+			bool operator()(Arg arg) const
+			{
+				return arg % 2 == 1;
+			}
+		};
+	
+		boost::phoenix::function<is_odd_impl> is_odd = is_odd_impl();
+	``]
+	[ __note__
+	 The result_of protocol is particularly easy when you implement a monomorphic
+	 function (return type not dependent on the arguments). You then just need a
+	 single nested return_type typedef.
+	]
+	]
+	[
+	[``
+		struct add_impl
+		{
+			template <typename Arg1, typename Arg2>
+			struct result
+			{
+				typedef Arg1 type;
+			};
+
+			template <typename Arg1, typename Arg2>
+			Arg1 operator()(Arg1 arg1, Arg2 arg2) const
+			{
+				return arg1 + arg2;
+			}
+		};
+	
+		boost::phoenix::function<add_impl> add = add_impl();
+	``]
+	[``
+		struct add_impl
+		{
+			template <typename Sig>
+			struct result;
+
+			template <typename This, typename Arg1, typename Arg2>
+			struct result<This(Arg1, Arg2)>
+				: boost::remove_reference<Arg1> {};
+
+			template <typename Arg1, typename Arg2>
+			typename boost::remove_reference<Arg1>::type
+			operator()(Arg1 arg1, Arg2 arg2) const
+			{
+				return arg1 + arg2;
+			}
+		};
+	
+		boost::phoenix::function<add_impl> add = add_impl();
+	``]
+	[__alert__ When dealing with polymorphic functions the template arguments can
+	be any type including cv-qualifiers and references. For that reason, the calculated
+	result type need to remove the reference whenever appropriate!]
+	]
+]
+
+[blurb __tip__ There is no general guideline for porting code which relies on the
+internals of Phoenix 2.0. If you plan on porting your Phoenix 2.0 extensions
+please refer to the next sections.]
+
+[endsect]

@@ -1,0 +1,90 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function template assert_matches</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.debug_hpp" title="Header &lt;boost/proto/debug.hpp&gt;">
+<link rel="prev" href="display_expr_idp66182648.html" title="Function display_expr">
+<link rel="next" href="assert_matches_not.html" title="Function template assert_matches_not">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="display_expr_idp66182648.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.debug_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="assert_matches_not.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.assert_matches"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function template assert_matches</span></h2>
+<p>boost::proto::assert_matches &#8212; 
+          Assert at compile time that a particular expression
+          matches the specified grammar.
+        </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.debug_hpp" title="Header &lt;boost/proto/debug.hpp&gt;">boost/proto/debug.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Grammar<span class="special">,</span> <span class="keyword">typename</span> <a class="link" href="../../Expr.html" title="Concept Expr">Expr</a><span class="special">&gt;</span> 
+  <span class="keyword">void</span> <span class="identifier">assert_matches</span><span class="special">(</span><span class="identifier">Expr</span> <span class="keyword">const</span> <span class="special">&amp;</span> expr<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp176240728"></a><h2>Description</h2>
+<p>
+            Use <code class="computeroutput">proto::assert_matches()</code> to assert at compile-time that
+            an expression matches a grammar. 
+          </p>
+<p>
+            <span class="bold"><strong>Example:</strong></span></p>
+<pre class="programlisting">typedef proto::plus&lt; proto::terminal&lt; int &gt;, proto::terminal&lt; int &gt; &gt; PlusInts;
+
+proto::assert_matches&lt;PlusInts&gt;( <code class="computeroutput"><a class="link" href="lit.html" title="Function lit">proto::lit</a></code>(1) + 42 );</pre>
+<p>
+          </p>
+<p>
+            See also:
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><code class="computeroutput"><a class="link" href="assert_matches_not.html" title="Function template assert_matches_not">proto::assert_matches_not</a>()</code></li>
+<li class="listitem"><code class="computeroutput"><a class="link" href="../../BOOST_PROTO_ASSERT_MATCHES.html" title="Macro BOOST_PROTO_ASSERT_MATCHES">BOOST_PROTO_ASSERT_MATCHES</a>()</code></li>
+<li class="listitem"><code class="computeroutput"><a class="link" href="../../BOOST_PROTO_ASSERT_MATCHES_NOT.html" title="Macro BOOST_PROTO_ASSERT_MATCHES_NOT">BOOST_PROTO_ASSERT_MATCHES_NOT</a>()</code></li>
+</ul></div>
+<p>
+          </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Notes:</span></p></td>
+<td><p>
+            Equivalent to <code class="computeroutput">BOOST_MPL_ASSERT((<a class="link" href="matches.html" title="Struct template matches">proto::matches</a>&lt;Expr, Grammar&gt;))</code>.
+          </p></td>
+</tr></tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="display_expr_idp66182648.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.debug_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="assert_matches_not.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

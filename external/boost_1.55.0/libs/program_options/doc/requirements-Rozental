@@ -1,0 +1,209 @@
+From rogeeff@mail.com Fri Nov 16 19:57:49 2001
+Received: from imap.cs.msu.su (imap.cs.msu.su [158.250.10.15])
+	by redsun.cs.msu.su (8.9.3/8.9.3) with ESMTP id TAA06515
+	for <ghost@redsun.cs.msu.su>; Fri, 16 Nov 2001 19:59:43 +0300 (MSK)
+Received: from n15.groups.yahoo.com (n15.groups.yahoo.com [216.115.96.65])
+	by imap.cs.msu.su (8.11.6/8.11.6) with SMTP id fAGGtrd57869
+	for <ghost@cs.msu.su>; Fri, 16 Nov 2001 19:55:54 +0300 (MSK)
+	(envelope-from sentto-1234907-17382-1005929874-ghost=cs.msu.su@returns.groups.yahoo.com)
+X-eGroups-Return: sentto-1234907-17382-1005929874-ghost=cs.msu.su@returns.groups.yahoo.com
+Received: from [10.1.1.222] by n15.groups.yahoo.com with NNFMP; 16 Nov 2001 16:57:42 -0000
+X-Sender: rogeeff@mail.com
+X-Apparently-To: boost@yahoogroups.com
+Received: (EGP: mail-8_0_0_1); 16 Nov 2001 16:57:53 -0000
+Received: (qmail 2553 invoked from network); 16 Nov 2001 16:57:53 -0000
+Received: from unknown (216.115.97.172)
+  by m4.grp.snv.yahoo.com with QMQP; 16 Nov 2001 16:57:53 -0000
+Received: from unknown (HELO n6.groups.yahoo.com) (216.115.96.56)
+  by mta2.grp.snv.yahoo.com with SMTP; 16 Nov 2001 16:57:53 -0000
+X-eGroups-Return: rogeeff@mail.com
+Received: from [10.1.10.109] by n6.groups.yahoo.com with NNFMP; 16 Nov 2001 16:57:52 -0000
+To: boost@yahoogroups.com
+Message-ID: <9t3gid+hdf3@eGroups.com>
+In-Reply-To: <E164iu4-00052e-00@zigzag.cs.msu.su>
+User-Agent: eGroups-EW/0.82
+X-Mailer: eGroups Message Poster
+X-Originating-IP: 199.119.33.162
+From: "Gennadiy E. Rozental" <rogeeff@mail.com>
+X-Yahoo-Profile: rogeeff
+MIME-Version: 1.0
+Mailing-List: list boost@yahoogroups.com; contact boost-owner@yahoogroups.com
+Delivered-To: mailing list boost@yahoogroups.com
+Precedence: bulk
+List-Unsubscribe: <mailto:boost-unsubscribe@yahoogroups.com>
+Date: Fri, 16 Nov 2001 16:57:49 -0000
+Reply-To: boost@yahoogroups.com
+Subject: [boost] Re: arguments parsing, wildcard matcher
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain;
+  charset=US-ASCII
+Content-Length: 5662
+Status: R 
+X-Status: N
+
+--- In boost@y..., Vladimir Prus <ghost@c...> wrote:
+> 
+> > Just a couple of classes I wrote that I wondered if anyone thought
+> > any place in boost:
+> >
+> > arguments : simple command-line arguments and options parser:
+> >
+> > class arguments
+> > {
+> > public:
+> > 	arguments(int argc, char* argv[]);
+> >
+> > 	bool has_option(const char* name) const;
+> > 	bool get_option(const char* name, bool& value) const;
+> 
+> > Any interest? Already proposed? Wasting my time?
+> 
+> Actually, I'm already working on library with the same goals but 
+more 
+> elaborated. Moreover, it's almost finished. I planned to announce 
+it later, 
+> but have to do it now. My design goals were:
+>  - It should be resonable to use the library to parse as little as 
+2 command 
+> line options.
+> - It must be extandable to privide any resonable handling
+> - since command line is just a way to affect the program behaviour, 
+other 
+> ways to accomplish that must be provided, most notable is 
+configuration file
+> - library should provide a way to store information from command 
+line and 
+> config file in a way allowing easy retrieval and using to change 
+configurable 
+> parameters of the program.
+> 
+> The docs are available at:
+> http://chronos.cs.msu.su/~ghost/projects/config_db/doc/index.html
+> 
+> Let me know what you think.
+
+Privet, Volodya.
+
+Here what I am looking for to be supported by Command Line Argument 
+Framework directly or by means of easy extension:
+
+1. command line argument formats
+  a. -<one letter key> <value>
+  b. -<one letter key><value>
+  c. -<key> <value>
+  d. -<option> - any length
+  e. /<key> <value> - and all other cases like a,b,c but with / 
+instead
+  g. --<key> <value>
+  h. -<key substring> <value>
+    An example: let say you expecting argument -osagent_port
+    then following argument lists should be valid:
+       -o 15000
+       -osa 15000
+       -osagent_port 15000
+    On the other hand it should perform validity checks. For example
+    if you also expect another argument -osagent_host. then first 2
+    argument list above should generate runtime error and 3d should
+    pass. Arguments integrity check should also be performed, i.e. 
+    you should not allow for user to define 2 argument like this:
+     "-port"
+     "-port_type"
+
+2. argument types
+   I should be able to explicitle specify expected argument type. For 
+example: std::string, int, double, option(bool). The framework should 
+perform value validation. For example 1.23 is not valid for int 
+argument. The framework should allow to use user-defined classes as 
+expected types for command-line argument. In other word. If I provide 
+you a class with predefined psecification framework should try to 
+generate object of argument class. Some simple extention you can 
+provide youself. For example, using following command line you should 
+be able to generate std::list<int>
+     -values 2 5 7 8
+and using following command line you should be able to generate 
+std::list<std::string>
+     -files_to_test test1.td test2.td test3.td test4.td
+and using following command line user should be able to provide 
+argument class A to generate std::list<A>
+struct A{
+std::string key;
+int         value;
+};
+
+-parameters_mapping name1 4 name5 7 name6 8 name9 1123
+
+3. argument storage.
+  a. Framework should be able to generate and store arguments 
+internally. In this case framework in responsable for memory.
+  b. Framework should be able to generate and store argument into the 
+user-bound location. In this case user in responsable for memory.
+
+4. arguments can have default values
+
+5. arguments can be optional and required. The framework should 
+automatically check presence of of all required arguments.
+
+6. argument value access
+  a. if user passed storage location - he will be able to get value 
+from there
+  b. by name and type. If any of them is incorrect - error. The same 
+rules aplied here as in 1.h if argument matching algorithm allows 
+substrings.
+  c. is_present check - to be able to check presence of optional 
+arguments.
+
+7. usage line.
+  The framework should be able to generate a using line given a 
+difinition of all feilds. To support this you will probably need 
+argument description as one of the command line argument 
+constructor's argument. Thr framework should be able to configured to 
+use different usage line. If command line contain predefined keyword 
+(-help or /? for example) framework should print usage message.
+
+8. Framework Error
+  If any of the following condition occures during command line 
+processing the framework should generate an error and print a usage 
+line:
+   a. invalid aargument
+   b. ambiguous argument
+   c. invalid value for the argument
+   d. absence of required argument
+   e. framework meet -help (of any other predefined keyword)
+
+Invalid name or type should generate exception during value access.
+
+Here my view on the problem.
+
+Regards,
+
+Gennadiy.
+
+
+P.S. Did you look into Brat Appleton's work? It seems to be close to 
+what you are doing.
+
+> 
+> Concerning your proposal, I can mark two points, apart from it's 
+been a 
+> subset of mine:
+> 1. It uses get_options(const char* name, type& value) methods, 
+which are not 
+> extendable (and the similar thing is used in KConfig class in 
+KDE....) What I 
+> propose is
+> variables_map vm .....
+> int i = vm["magic"].as<int>()
+> FontName fn = vm["font"].as<FontName>()
+> 2. You propose wildcard expansions. This is good. But it is easy to 
+add it to 
+> any existing command line parsing library.
+> 
+> - Volodya
+
+
+Info: http://www.boost.org  Unsubscribe: <mailto:boost-unsubscribe@yahoogroups.com> 
+
+Your use of Yahoo! Groups is subject to http://docs.yahoo.com/info/terms/ 
+
+
+

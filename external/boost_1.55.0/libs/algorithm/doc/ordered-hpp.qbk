@@ -1,0 +1,130 @@
+[/ QuickBook Document version 1.5 ]
+[section:is_sorted is_sorted ]
+
+[/license
+
+Copyright (c) 2010-2012 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+
+The header file `<boost/algorithm/cxx11/is_sorted.hpp>` contains functions for determining if a sequence is ordered.
+
+[heading is_sorted]
+The function `is_sorted(sequence)` determines whether or not a sequence is completely sorted according so some criteria.  If no comparison predicate is specified, then std::less_equal is used (i.e, the test is to see if the sequence is non-decreasing)
+
+``
+namespace boost { namespace algorithm {
+	template <typename Iterator, typename Pred>
+	bool is_sorted ( Iterator first, Iterator last, Pred p );
+	
+	template <typename Iterator>
+	bool is_sorted ( Iterator first, Iterator last );
+	
+	
+	template <typename Range, typename Pred>
+	bool is_sorted ( const Range &r, Pred p );
+	
+	template <typename Range>
+	bool is_sorted ( const Range &r );
+}}
+``
+
+Iterator requirements: The `is_sorted` functions will work on all kinds of iterators (except output iterators). 
+
+[heading is_sorted_until]
+
+If `distance(first, last) < 2`, then `is_sorted ( first, last )` returns `last`. Otherwise, it returns the last iterator i in [first,last] for which the range [first,i) is sorted.
+
+In short, it returns the element in the sequence that is "out of order". If the entire sequence is sorted (according to the predicate), then it will return `last`.
+
+``
+namespace boost { namespace algorithm {
+	template <typename ForwardIterator, typename Pred>
+	FI is_sorted_until ( ForwardIterator first, ForwardIterator last, Pred p );
+	
+	template <typename ForwardIterator>
+	ForwardIterator is_sorted_until ( ForwardIterator first, ForwardIterator last );
+	
+	
+	template <typename Range, typename Pred>
+	typename boost::range_iterator<const R>::type is_sorted_until ( const Range &r, Pred p );
+	
+	template <typename Range>
+	typename boost::range_iterator<const R>::type is_sorted_until ( const Range &r );
+}}
+``
+
+Iterator requirements: The `is_sorted_until` functions will work on forward iterators or better. Since they have to return a place in the input sequence, input iterators will not suffice.
+
+Complexity:
+	`is_sorted_until` will make at most ['N-1] calls to the predicate (given a sequence of length ['N]).
+
+Examples:
+
+Given the sequence `{ 1, 2, 3, 4, 5, 3 }`,   `is_sorted_until ( beg, end, std::less<int>())` would return an iterator pointing at the second `3`.
+
+Given the sequence `{ 1, 2, 3, 4, 5, 9 }`,   `is_sorted_until ( beg, end, std::less<int>())` would return `end`.
+
+
+There are also a set of "wrapper functions" for is_ordered which make it easy to see if an entire sequence is ordered. These functions return a boolean indicating success or failure rather than an iterator to where the out of order items were found.
+
+To test if a sequence is increasing (each element at least as large as the preceding one):
+``
+namespace boost { namespace algorithm {
+	template <typename Iterator>
+	bool is_increasing ( Iterator first, Iterator last );
+	
+	template <typename R>
+	bool is_increasing ( const R &range );
+}}
+``
+
+To test if a sequence is decreasing (each element no larger than the preceding one):
+
+``
+namespace boost { namespace algorithm {
+	template <typename Iterator>
+	bool is_decreasing ( Iterator first, Iterator last );
+	
+	template <typename R>
+	bool is_decreasing ( const R &range );
+}}
+``
+
+To test if a sequence is strictly increasing (each element larger than the preceding one):
+``
+namespace boost { namespace algorithm {
+	template <typename Iterator>
+	bool is_strictly_increasing ( Iterator first, Iterator last );
+	
+	template <typename R>
+	bool is_strictly_increasing ( const R &range );
+}}
+``
+
+To test if a sequence is strictly decreasing (each element smaller than the preceding one):
+``
+namespace boost { namespace algorithm {
+	template <typename Iterator>
+	bool is_strictly_decreasing ( Iterator first, Iterator last );
+	
+	template <typename R>
+	bool is_strictly_decreasing ( const R &range );
+}}
+``
+
+Complexity:
+	Each of these calls is just a thin wrapper over `is_sorted`, so they have the same complexity as `is_sorted`.
+
+[heading Notes]
+
+* The routines `is_sorted` and `is_sorted_until` are part of the C++11 standard. When compiled using a C++11 implementation, the implementation from the standard library will be used.
+
+* `is_sorted` and `is_sorted_until` both return true for empty ranges and ranges of length one.
+
+[endsect]

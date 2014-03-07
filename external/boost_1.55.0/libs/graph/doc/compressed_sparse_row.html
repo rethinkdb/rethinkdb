@@ -1,0 +1,971 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<!--
+     Copyright (c) 2005-2009 Trustees of Indiana University
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+  <head>
+    <title>Compressed Sparse Row Graph</title>
+
+    <STYLE TYPE="text/css">
+      <!--
+        .indent
+        {
+          padding-left: 50pt;
+          padding-right: 50pt;
+        }
+       -->
+    </STYLE>
+
+<script language="JavaScript" type="text/JavaScript">
+<!--
+function address(host, user) {
+        var atchar = '@';
+        var thingy = user+atchar+host;
+        thingy = '<a hre' + 'f=' + "mai" + "lto:" + thingy + '>' + user+atchar+host + '</a>';
+        document.write(thingy);
+}
+//-->
+</script>
+
+  </head>
+  
+  <body>
+    <IMG SRC="../../../boost.png" 
+      ALT="C++ Boost" width="277" height="86"></img>
+    <h1>Compressed Sparse Row Graph</h1>
+          
+    <p>The class template <code>compressed_sparse_row_graph</code> is
+    a graph class that uses the compact Compressed Sparse Row (CSR)
+    format to store directed (and bidirectional) graphs. While CSR graphs have
+    much less
+    overhead than many other graph formats (e.g., <a
+    href="adjacency_list.html"><code>adjacency_list</code></a>), they
+    do not provide any mutability: one cannot add or remove vertices
+    or edges from a CSR graph. Use this format in high-performance
+    applications or for very large graphs that you do not need to
+    change.</p>
+
+    <p>The CSR format stores vertices and edges in separate arrays,
+    with the indices into these arrays corresponding to the identifier
+    for the vertex or edge, respectively. The edge array is sorted by
+    the source of each edge, but contains only the targets for the
+    edges. The vertex array stores offsets into the edge array,
+    providing the offset of the first edge outgoing from each
+    vertex. Iteration over the out-edges for the <i>i</i><sup>th</sup>
+    vertex in the graph is achieved by
+    visiting <tt>edge_array[vertex_array[i]]</tt>,
+    <tt>edge_array[vertex_array[i]+1]</tt>,
+    ..., <tt>edge_array[vertex_array[i+1]]</tt>. This format minimizes
+    memory use to <i>O(n + m)</i>, where <i>n</i> and <i>m</i> are the
+    number of vertices and edges, respectively. The constants
+    multiplied by <i>n</i> and <i>m</i> are based on the size of the
+    integers needed to represent indices into the edge and vertex
+    arrays, respectively, which can be controlled using
+    the <a href="#template-parms">template parameters</a>.  The
+    <tt>Directed</tt> template parameter controls whether one edge direction
+    (the default) or both directions are stored.  A directed CSR graph has
+    <tt>Directed</tt> = <tt>directedS</tt> and a bidirectional CSR graph (with
+    a limited set of constructors)
+    has <tt>Directed</tt> = <tt>bidirectionalS</tt>.</p>
+
+    <ul>
+      <li><a href="#synopsis">Synopsis</a></li>
+      <li><a href="#where">Where Defined</a></li>
+      <li><a href="#models">Models</a></li>
+      <li><a href="#template-parms">Template parameters</a></li>
+      <li><a href="#properties">Properties</a></li>
+      <li><a href="#member-functions">Member functions</a>
+        <ul>
+          <li><a href="#constructors">Constructors</a></li>
+          <li><a href="#mutators">Mutators</a></li>
+          <li><a href="#property-access">Property access</a></li>
+        </ul></li>
+
+      <li><a href="#non-members">Non-member functions</a>
+        <ul>
+          <li><a href="#vertex-access">Vertex access</a></li>
+          <li><a href="#edge-access">Edge access</a></li>
+          <li><a href="#property-map-accessors">Property map accessors</a></li>
+          <li><a href="#incremental-construction-functions">Incremental construction functions</a></li>
+        </ul></li>
+
+      <li><a href="#example">Example</a></li>
+    </ul>
+
+    <a name="synopsis"></a><h2>Synopsis</h2>
+
+    <pre>
+namespace boost {
+
+template&lt;typename <a href="#Directed">Directed</a> = directedS, typename <a href="#VertexProperty">VertexProperty</a> = no_property, 
+         typename <a href="#EdgeProperty">EdgeProperty</a> = no_property, typename <a href="#GraphProperty">GraphProperty</a> = no_property, 
+         typename <a href="#Vertex">Vertex</a> = std::size_t, typename <a href="#EdgeIndex">EdgeIndex</a> = Vertex&gt;
+class compressed_sparse_row_graph
+{
+public:
+  <i>// <a href="#constructors">Graph constructors</a></i>
+  <a href="#default-const">compressed_sparse_row_graph</a>();
+
+  <i>// Unsorted edge list constructors </i>
+  template&lt;typename InputIterator&gt;
+  <a href="#edge-const">compressed_sparse_row_graph</a>(edges_are_unsorted_t,
+                              InputIterator edge_begin, InputIterator edge_end,
+                              vertices_size_type numverts,
+                              const GraphProperty&amp; prop = GraphProperty());
+
+  template&lt;typename InputIterator, typename EdgePropertyIterator&gt;
+  <a href="#edge-prop-const">compressed_sparse_row_graph</a>(edges_are_unsorted_t,
+                              InputIterator edge_begin, InputIterator edge_end,
+                              EdgePropertyIterator ep_iter,
+                              vertices_size_type numverts,
+                              const GraphProperty&amp; prop = GraphProperty());
+
+  template&lt;typename MultiPassInputIterator&gt;
+  <a href="#edge-multi-const">compressed_sparse_row_graph</a>(edges_are_unsorted_multi_pass_t,
+                              MultiPassInputIterator edge_begin, MultiPassInputIterator edge_end,
+                              vertices_size_type numverts,
+                              const GraphProperty&amp; prop = GraphProperty());
+
+  template&lt;typename MultiPassInputIterator, typename EdgePropertyIterator&gt;
+  <a href="#edge-multi-prop-const">compressed_sparse_row_graph</a>(edges_are_unsorted_multi_pass_t,
+                              MultiPassInputIterator edge_begin, MultiPassInputIterator edge_end,
+                              EdgePropertyIterator ep_iter,
+                              vertices_size_type numverts,
+                              const GraphProperty&amp; prop = GraphProperty());
+
+  <i>// New sorted edge list constructors <b>(directed only)</b></i>
+  template&lt;typename InputIterator&gt;
+  <a href="#edge-sorted-const">compressed_sparse_row_graph</a>(edges_are_sorted_t,
+                              InputIterator edge_begin, InputIterator edge_end,
+                              vertices_size_type numverts,
+                              edges_size_type numedges = 0,
+                              const GraphProperty&amp; prop = GraphProperty());
+
+  template&lt;typename InputIterator, typename EdgePropertyIterator&gt;
+  <a href="#edge-sorted-prop-const">compressed_sparse_row_graph</a>(edges_are_sorted_t,
+                              InputIterator edge_begin, InputIterator edge_end,
+                              EdgePropertyIterator ep_iter,
+                              vertices_size_type numverts,
+                              edges_size_type numedges = 0,
+                              const GraphProperty&amp; prop = GraphProperty());
+
+  <i>// In-place unsorted edge list constructors <b>(directed only)</b></i>
+  template&lt;typename InputIterator&gt;
+  <a href="#edge-inplace-const">compressed_sparse_row_graph</a>(construct_inplace_from_sources_and_targets_t,
+                              std::vector&lt;vertex_descriptor&gt;&amp; sources,
+                              std::vector&lt;vertex_descriptor&gt;&amp; targets,
+                              vertices_size_type numverts,
+                              const GraphProperty&amp; prop = GraphProperty());
+
+  template&lt;typename InputIterator&gt;
+  <a href="#edge-inplace-prop-const">compressed_sparse_row_graph</a>(construct_inplace_from_sources_and_targets_t,
+                              std::vector&lt;vertex_descriptor&gt;&amp; sources,
+                              std::vector&lt;vertex_descriptor&gt;&amp; targets,
+                              std::vector&lt;EdgeProperty&gt;&amp; edge_props,
+                              vertices_size_type numverts,
+                              const GraphProperty&amp; prop = GraphProperty());
+
+  <i>// Miscellaneous constructors <b>(directed only)</b></i>
+  template&lt;typename Graph, typename VertexIndexMap&gt;
+  <a href="#graph-const">compressed_sparse_row_graph</a>(const Graph&amp; g, const VertexIndexMap&amp; vi,
+                              vertices_size_type numverts,
+                              edges_size_type numedges); 
+
+  template&lt;typename Graph, typename VertexIndexMap&gt;
+  compressed_sparse_row_graph(const Graph&amp; g, const VertexIndexMap&amp; vi);
+
+  template&lt;typename Graph&gt;
+  explicit <a href="#graph-const">compressed_sparse_row_graph</a>(const Graph&amp; g);
+
+  <i>// <a href="#mutators">Graph mutators <b>(directed only)</b></a></i>
+  template&lt;typename Graph, typename VertexIndexMap&gt;
+  void <a href="#assign">assign</a>(const Graph&amp; g, const VertexIndexMap&amp; vi,
+              vertices_size_type numverts, edges_size_type numedges);
+
+  template&lt;typename Graph, typename VertexIndexMap&gt;
+  void <a href="#assign">assign</a>(const Graph&amp; g, const VertexIndexMap&amp; vi);
+
+  template&lt;typename Graph&gt;
+  void <a href="#assign">assign</a>(const Graph&amp; g);
+
+  <i>// <a href="#property-access">Property Access</a></i>
+  VertexProperty&amp; <a href="#vertex-subscript">operator[]</a>(vertex_descriptor v);
+  const VertexProperty&amp; <a href="#vertex-subscript">operator[]</a>(vertex_descriptor v) const;
+  EdgeProperty&amp; <a href="#edge-subscript">operator[]</a>(edge_descriptor v);
+  const EdgeProperty&amp; <a href="#edge-subscript">operator[]</a>(edge_descriptor v) const;
+};
+
+<i>// <a href="IncidenceGraph.html">Incidence Graph requirements</a></i>
+vertex_descriptor source(edge_descriptor, const compressed_sparse_row_graph&amp;);
+vertex_descriptor target(edge_descriptor, const compressed_sparse_row_graph&amp;);
+std::pair&lt;out_edge_iterator, out_edge_iterator&gt; 
+  out_edges(vertex_descriptor, const compressed_sparse_row_graph&amp;);
+degree_size_type out_degree(vertex_descriptor v, const compressed_sparse_row_graph&amp;);
+
+<i>// <a href="BidirectionalGraph.html">Bidirectional Graph requirements <b>(bidirectional only)</b></a></i>
+std::pair&lt;in_edge_iterator, in_edge_iterator&gt; 
+  in_edges(vertex_descriptor, const compressed_sparse_row_graph&amp;);
+degree_size_type in_degree(vertex_descriptor v, const compressed_sparse_row_graph&amp;);
+
+<i>// <a href="AdjacencyGraph.html">Adjacency Graph requirements</a></i>
+std::pair&lt;adjacency_iterator, adjacency_iterator&gt; 
+  adjacent_vertices(vertex_descriptor, const compressed_sparse_row_graph&amp;);
+
+<i>// <a href="VertexListGraph.html">Vertex List Graph requirements</a></i>
+std::pair&lt;vertex_iterator, vertex_iterator&gt; vertices(const compressed_sparse_row_graph&amp;);
+vertices_size_type num_vertices(const compressed_sparse_row_graph&amp;);
+
+<i>// <a href="EdgeListGraph.html">Edge List Graph requirements</a></i>
+std::pair&lt;edge_iterator, edge_iterator&gt; edges(const compressed_sparse_row_graph&amp;);
+edges_size_type num_edges(const compressed_sparse_row_graph&amp;);
+
+<i>// <a href="#vertex-access">Vertex access</a></i>
+vertex_descriptor <a href="#vertex-lookup">vertex</a>(vertices_size_type i, const compressed_sparse_row_graph&amp;);
+
+<i>// <a href="#edge-access">Edge access</a></i>
+std::pair&lt;edge_descriptor, bool&gt; 
+  <a href="#edge">edge</a>(vertex_descriptor u, vertex_descriptor v, const compressed_sparse_row_graph&amp;);
+edge_descriptor <a href="#edge_from_index">edge_from_index</a>(edges_size_type i, const compressed_sparse_row_graph&amp;);
+
+<i>// <a href="#property-map-accessors">Property map accessors</a></i>
+template&lt;typename <a href="./PropertyTag.html">PropertyTag</a>&gt;
+property_map&lt;compressed_sparse_row_graph, PropertyTag&gt;::type
+<a href="#get">get</a>(PropertyTag, compressed_sparse_row_graph&amp; g)
+
+template&lt;typename <a href="./PropertyTag.html">PropertyTag</a>&gt;
+property_map&lt;compressed_sparse_row_graph, Tag&gt;::const_type
+<a href="#get">get</a>(PropertyTag, const compressed_sparse_row_graph&amp; g)
+
+template&lt;typename <a href="./PropertyTag.html">PropertyTag</a>, class X&gt;
+typename property_traits&lt;property_map&lt;compressed_sparse_row_graph, PropertyTag&gt;::const_type&gt;::value_type
+<a href="#get-x">get</a>(PropertyTag, const compressed_sparse_row_graph&amp; g, X x)
+
+template&lt;typename <a href="./PropertyTag.html">PropertyTag</a>, class X, class Value&gt;
+void <a href="#put-x">put</a>(PropertyTag, const compressed_sparse_row_graph&amp; g, X x, const Value&amp; value);
+
+template&lt;typename <a href="./PropertyTag.html#GraphPropertyTag">GraphPropertyTag</a>&gt;
+typename graph_property&lt;compressed_sparse_row_graph, GraphPropertyTag&gt;::type&amp;
+<a href="#get_property">get_property</a>(compressed_sparse_row_graph&amp; g, GraphPropertyTag);
+
+template&lt;typename <a href="./PropertyTag.html#GraphPropertyTag">GraphPropertyTag</a>&gt;
+typename graph_property&lt;compressed_sparse_row_graph, GraphPropertyTag&gt;::type const &amp;
+<a href="#get_property">get_property</a>(const compressed_sparse_row_graph&amp; g, GraphPropertyTag);
+
+template&lt;typename <a href="./PropertyTag.html#GraphPropertyTag">GraphPropertyTag</a>&gt;
+void <a href="#set_property">set_property</a>(const compressed_sparse_row_graph&amp; g, GraphPropertyTag,
+                  const typename graph_property&lt;compressed_sparse_row_graph, GraphPropertyTag&gt;::type&amp; value);
+
+<i>// <a href="#incremental-construction-functions">Incremental construction functions</a></i>
+<b>(directed only)</b>
+template&lt;typename InputIterator, typename Graph&gt;
+void <a href="#add_edges">add_edges</a>(InputIterator first, InputIterator last, compressed_sparse_row_graph&amp; g);
+
+<b>(directed only)</b>
+template&lt;typename InputIterator, typename EPIter, typename Graph&gt;
+void <a href="#add_edges_prop">add_edges</a>(InputIterator first, InputIterator last, EPIter ep_first, EPIter ep_last, compressed_sparse_row_graph&amp; g);
+
+<b>(directed only)</b>
+template&lt;typename BidirectionalIterator, typename Graph&gt;
+void <a href="#add_edges_sorted">add_edges_sorted</a>(BidirectionalIterator first, BidirectionalIterator last, compressed_sparse_row_graph&amp; g);
+
+<b>(directed only)</b>
+template&lt;typename BidirectionalIterator, typename EPIter, typename Graph&gt;
+void <a href="#add_edges_sorted_prop">add_edges_sorted</a>(BidirectionalIterator first, BidirectionalIterator last, EPIter ep_iter, compressed_sparse_row_graph&amp; g);
+
+} <i>// end namespace boost</i>
+   </pre>
+
+    <a name="where"></a><h2>Where Defined</h2>
+    <p><code>&lt;<a href="../../../boost/graph/compressed_sparse_row_graph.hpp">boost/graph/compressed_sparse_row_graph.hpp</a>&gt;</code></p>
+
+    <a name="models"></a><h2>Models</h2>
+    
+    <p>The <tt>compressed_sparse_row_graph</tt> class template models
+    (i.e., implements the requirements of) many of the
+    BGL <a href="graph_concepts.html">graph concepts</a>, allowing it
+    to be used with most of the BGL algorithms. In particular, it
+    models the following specific graph concepts:</p>
+
+    <ul>
+      <li><a href="Graph.html">Graph</a></li>
+      <li><a href="IncidenceGraph.html">IncidenceGraph</a></li>
+      <li><a href="AdjacencyGraph.html">AdjacencyGraph</a></li>
+      <li><a href="VertexListGraph.html">VertexListGraph</a></li>
+      <li><a href="EdgeListGraph.html">EdgeListGraph</a></li>
+      <li><a href="PropertyGraph.html">PropertyGraph</a></li>
+    </ul>
+
+    <a name="template-parms"></a><h2>Template Parameters</h2>
+
+    <p>The <tt>compressed_sparse_row_graph</tt> class has several
+      template parameters that can customize the layout in memory and
+      what properties are attached to the graph itself. All
+      parameters have defaults, so users interested only in the
+      structure of a graph can use the
+      type <tt>compressed_sparse_row_graph&lt;&gt;</tt> and ignore
+      the parameters.</p>
+
+    <b>Parameters</b>
+    <br>
+    <br>
+
+    <a name="Directed"></a><code>Directed</code>
+      <blockquote>
+        A selector that determines whether the graph will be directed,
+        bidirectional or undirected. At this time, the CSR graph type
+        only supports directed and bidirectional graphs, so this value must
+        be either <code>boost::directedS</code> or
+        <code>boost::bidirectionalS</code>.<br>
+        <b>Default</b>: <code>boost::directedS</code>
+      </blockquote>
+
+    <a name="VertexProperty"></a><code>VertexProperty</code>
+      <blockquote>
+        A class type that will be
+        attached to each vertex in the graph. If this value
+        is <code>void</code>, no properties will be attached to
+        the vertices of the graph.<br>
+        <b>Default</b>: <code>void</code>
+      </blockquote>
+
+    <a name="EdgeProperty"></a><code>EdgeProperty</code>
+    <blockquote>
+      A class type that will be attached to each edge in the graph. If
+        this value is <code>void</code>, no properties will be
+        attached to the edges of the graph.<br>
+        <b>Default</b>: <code>void</code>
+    </blockquote>
+
+    <a name="GraphProperty"></a><code>GraphProperty</code>
+    <blockquote>
+      A nested set
+        of <code>property</code> templates that describe the
+        properties of the graph itself.  If this value
+        is <code>no_property</code>, no properties will be attached to
+        the graph.<br>
+        <b>Default</b>: <code>no_property</code>
+    </blockquote>
+
+    <a name="Vertex"></a><code>Vertex</code>
+    <blockquote>
+      An unsigned integral type that will be
+      used as both the index into the array of vertices and as the
+      vertex descriptor itself. Larger types permit the CSR graph to
+      store more vertices; smaller types reduce the storage required
+      per vertex.<br>
+        <b>Default</b>: <code>std::size_t</code>
+    </blockquote>
+
+    <a name="EdgeIndex"></a><code>EdgeIndex</code>
+    <blockquote>
+      An unsigned integral type that will be used as the index into
+        the array of edges. As with the <code>Vertex</code> parameter,
+        larger types permit more edges whereas smaller types reduce
+        the amount of storage needed per
+        edge. The <code>EdgeIndex</code> type shall not be smaller
+        than the <code>Vertex</code> type, but it may be larger. For
+        instance, <code>Vertex</code> may be a 16-bit integer
+        (allowing 32,767 vertices in the graph)
+        whereas <code>EdgeIndex</code> could then be a 32-bit integer
+        to allow a complete graph to be stored in the CSR format.<br>
+        <b>Default</b>: <code>Vertex</code>
+    </blockquote>
+
+    <a name="properties"></a><h2>Interior Properties</h2>
+
+    <p> The <tt>compressed_sparse_row_graph</tt> allows properties to
+    be attached to its vertices, edges, or to the graph itself by way
+    of its <a href="#template-parms">template parameters</a>. These
+    properties may be accessed via
+    the <a href="#property-access">member</a>
+    and <a href="#property-map-accessors">non-member</a> property
+    access functions, using the <a href="bundles.html">bundled
+    properties</a> scheme.</p>
+
+    <p>The CSR graph provides two kinds of built-in
+    properties: <tt>vertex_index</tt>, which maps from vertices to
+      values in <tt>[0, n)</tt> and <tt>edge_index</tt>, which maps
+      from edges to values in <tt>[0, m)</tt>, where <tt>n</tt>
+    and <tt>m</tt> are the number of vertices and edges in the graph,
+    respectively. </p>
+
+    <a name="member-functions"></a><h2>Member Functions</h2>
+
+    <a name="constructors"></a><h3>Constructors</h3>
+    <pre><a name="default-const"></a>
+  compressed_sparse_row_graph();
+    </pre>
+    <p class="indent">Constructs a graph with no vertices or edges.</p>
+
+    <hr></hr>
+
+    <pre><a name="edge-const"></a>
+  template&lt;typename InputIterator&gt;
+  compressed_sparse_row_graph(edges_are_unsorted_t,
+                              InputIterator edge_begin, InputIterator edge_end,
+                              vertices_size_type numverts,
+                              const GraphProperty&amp; prop = GraphProperty());
+    </pre>
+
+    <p class="indent">
+      Constructs a graph with <code>numverts</code> vertices whose
+      edges are specified by the iterator range <code>[edge_begin,
+      edge_end)</code>. The <tt>InputIterator</tt> must be a model of
+      <a
+      href="http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a>
+      whose <code>value_type</code> is an <code>std::pair</code> of
+      integer values. These integer values are the source and target
+      vertices for the edges, and must fall within the range <code>[0,
+      numverts)</code>. The edges in <code>[edge_begin,
+      edge_end)</code> do not need to be sorted.  This constructor uses extra
+      memory to save the edge information before adding it to the graph,
+      avoiding the requirement for the iterator to have multi-pass capability.
+    </p>
+
+    <p class="indent">
+      The value <code>prop</code> will be used to initialize the graph
+      property.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="edge-prop-const"></a>
+  template&lt;typename InputIterator, typename EdgePropertyIterator&gt;
+  compressed_sparse_row_graph(edges_are_unsorted_t,
+                              InputIterator edge_begin, InputIterator edge_end,
+                              EdgePropertyIterator ep_iter,
+                              vertices_size_type numverts,
+                              const GraphProperty&amp; prop = GraphProperty());
+    </pre>
+    <p class="indent">
+      This constructor constructs a graph with <code>numverts</code>
+      vertices and the edges provided in the iterator range
+      <code>[edge_begin, edge_end)</code>. Its semantics are identical
+      to the <a href="#edge-const">edge range constructor</a>, except
+      that edge properties are also initialized. The type
+      <tt>EdgePropertyIterator</tt> must be a model of the <a
+      href="http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a>
+      concept whose <tt>value_type</tt> is convertible to
+      <tt>EdgeProperty</tt>. The iterator range <tt>[ep_iter, ep_ter +
+        m)</tt> will be used to initialize the properties on the edges
+      of the graph, where <tt>m</tt> is distance from
+      <tt>edge_begin</tt> to <tt>edge_end</tt>.  This constructor uses extra
+      memory to save the edge information before adding it to the graph,
+      avoiding the requirement for the iterator to have multi-pass capability.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="edge-multi-const"></a>
+  template&lt;typename MultiPassInputIterator&gt;
+  compressed_sparse_row_graph(edges_are_unsorted_multi_pass_t,
+                              MultiPassInputIterator edge_begin, MultiPassInputIterator edge_end,
+                              vertices_size_type numverts,
+                              const GraphProperty&amp; prop = GraphProperty());
+    </pre>
+
+    <p class="indent">
+      Constructs a graph with <code>numverts</code> vertices whose
+      edges are specified by the iterator range <code>[edge_begin,
+      edge_end)</code>. The <tt>MultiPassInputIterator</tt> must be a model of
+      <a
+      href="../../utility/MultiPassInputIterator.html">MultiPassInputIterator</a>
+      whose <code>value_type</code> is an <code>std::pair</code> of
+      integer values. These integer values are the source and target
+      vertices for the edges, and must fall within the range <code>[0,
+      numverts)</code>. The edges in <code>[edge_begin,
+      edge_end)</code> do not need to be sorted.  Multiple passes will be made
+      over the edge range.
+    </p>
+
+    <p class="indent">
+      The value <code>prop</code> will be used to initialize the graph
+      property.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="edge-multi-prop-const"></a>
+  template&lt;typename MultiPassInputIterator, typename EdgePropertyIterator&gt;
+  compressed_sparse_row_graph(edges_are_unsorted_multi_pass_t,
+                              MultiPassInputIterator edge_begin, MultiPassInputIterator edge_end,
+                              EdgePropertyIterator ep_iter,
+                              vertices_size_type numverts,
+                              const GraphProperty&amp; prop = GraphProperty());
+    </pre>
+    <p class="indent">
+      This constructor constructs a graph with <code>numverts</code>
+      vertices and the edges provided in the iterator range
+      <code>[edge_begin, edge_end)</code>. Its semantics are identical
+      to the <a href="#edge-const">edge range constructor</a>, except
+      that edge properties are also initialized. The type
+      <tt>EdgePropertyIterator</tt> must be a model of the <a
+      href="../../utility/MultiPassInputIterator.html">MultiPassInputIterator</a>
+      concept whose <tt>value_type</tt> is convertible to
+      <tt>EdgeProperty</tt>. The iterator range <tt>[ep_iter, ep_ter +
+        m)</tt> will be used to initialize the properties on the edges
+      of the graph, where <tt>m</tt> is distance from
+      <tt>edge_begin</tt> to <tt>edge_end</tt>.  Multiple passes will be made
+      over the edge and property ranges.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="edge-sorted-const"></a>
+  template&lt;typename InputIterator&gt;
+  compressed_sparse_row_graph(edges_are_sorted_t,
+                              InputIterator edge_begin, InputIterator edge_end,
+                              vertices_size_type numverts,
+                              edges_size_type numedges = 0,
+                              const GraphProperty&amp; prop = GraphProperty());
+    </pre>
+
+    <p class="indent">
+      Constructs a graph with <code>numverts</code> vertices whose
+      edges are specified by the iterator range <code>[edge_begin,
+      edge_end)</code>. The argument of type <code>edges_are_sorted_t</code> is
+      a tag used to distinguish this constructor; the value
+      <code>edges_are_sorted</code> can be used to initialize this parameter.
+      The <tt>InputIterator</tt> must be a model of
+      <a
+      href="http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a>
+      whose <code>value_type</code> is an <code>std::pair</code> of
+      integer values. These integer values are the source and target
+      vertices for the edges, and must fall within the range <code>[0,
+      numverts)</code>. The edges in <code>[edge_begin,
+      edge_end)</code> must be sorted so that all edges originating
+      from vertex <i>i</i> preceed any edges originating from all
+      vertices <i>j</i> where <i>j &gt; i</i>.
+    </p>
+
+    <p class="indent">
+      The value <code>numedges</code>, if provided, tells how many
+      edges are in the range <code>[edge_begin, edge_end)</code> and
+      will be used to preallocate data structures to save both memory
+      and time during construction.
+    </p>
+
+    <p class="indent">
+      The value <code>prop</code> will be used to initialize the graph
+      property.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="edge-sorted-prop-const"></a>
+  template&lt;typename InputIterator, typename EdgePropertyIterator&gt;
+  compressed_sparse_row_graph(edges_are_sorted_t,
+                              InputIterator edge_begin, InputIterator edge_end,
+                              EdgePropertyIterator ep_iter,
+                              vertices_size_type numverts,
+                              edges_size_type numedges = 0,
+                              const GraphProperty&amp; prop = GraphProperty());
+    </pre>
+    <p class="indent">
+      This constructor constructs a graph with <code>numverts</code>
+      vertices and the edges provided in the iterator range
+      <code>[edge_begin, edge_end)</code>. Its semantics are identical
+      to the <a href="#edge-const">edge range constructor</a>, except
+      that edge properties are also initialized. The type
+      <tt>EdgePropertyIterator</tt> must be a model of the <a
+      href="http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a>
+      concept whose <tt>value_type</tt> is convertible to
+      <tt>EdgeProperty</tt>. The iterator range <tt>[ep_iter, ep_ter +
+        m)</tt> will be used to initialize the properties on the edges
+      of the graph, where <tt>m</tt> is distance from
+      <tt>edge_begin</tt> to <tt>edge_end</tt>.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="edge-inplace-const"></a>
+  template&lt;typename InputIterator&gt;
+  compressed_sparse_row_graph(construct_inplace_from_sources_and_targets_t,
+                              std::vector&lt;vertex_descriptor&gt;&amp; sources,
+                              std::vector&lt;vertex_descriptor&gt;&amp; targets,
+                              vertices_size_type numverts,
+                              const GraphProperty&amp; prop = GraphProperty());
+    </pre>
+    <p class="indent">
+      This constructor constructs a graph with <code>numverts</code> vertices
+      and the edges provided in the two vectors <code>sources</code> and
+      <code>targets</code>.  The two vectors are mutated in-place to sort them
+      by source vertex.  They are returned with unspecified values, but do not
+      share storage with the constructed graph (and so are safe to destroy).
+      The parameter <code>prop</code>, if provided, is used to initialize the
+      graph property.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="edge-inplace-prop-const"></a>
+  template&lt;typename InputIterator&gt;
+  compressed_sparse_row_graph(construct_inplace_from_sources_and_targets_t,
+                              std::vector&lt;vertex_descriptor&gt;&amp; sources,
+                              std::vector&lt;vertex_descriptor&gt;&amp; targets,
+                              std::vector&lt;EdgeProperty&gt;&amp; edge_props,
+                              vertices_size_type numverts,
+                              const GraphProperty&amp; prop = GraphProperty());
+    </pre>
+    <p class="indent">
+      This constructor constructs a graph with <code>numverts</code> vertices
+      and the edges provided in the two vectors <code>sources</code> and
+      <code>targets</code>.  Edge properties are initialized from the vector
+      <code>edge_props</code>.  The three vectors are mutated in-place to sort
+      them by source vertex.  They are returned with unspecified values, but do
+      not share storage with the constructed graph (and so are safe to
+      destroy).  The parameter <code>prop</code>, if provided, is used to
+      initialize the graph property.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="graph-const"></a>
+  template&lt;typename Graph, typename VertexIndexMap&gt;
+  compressed_sparse_row_graph(const Graph&amp; g, const VertexIndexMap&amp; vi,
+                              vertices_size_type numverts,
+                              edges_size_type numedges); 
+
+  template&lt;typename Graph, typename VertexIndexMap&gt;
+  compressed_sparse_row_graph(const Graph&amp; g, const VertexIndexMap&amp; vi);
+
+  template&lt;typename Graph&gt;
+  explicit compressed_sparse_row_graph(const Graph&amp; g);
+    </pre>
+
+    <p class="indent">
+      Calls the <a href="#assign"><tt>assign</tt></a> function with
+      all of the arguments it is given.
+    </p>
+
+    <hr></hr>
+
+    <a name="mutators"></a><h3>Mutators</h3>
+    <pre><a name="assign"></a>
+  template&lt;typename Graph, typename VertexIndexMap&gt;
+  void assign(const Graph&amp; g, const VertexIndexMap&amp; vi,
+              vertices_size_type numverts, edges_size_type numedges);
+
+  template&lt;typename Graph, typename VertexIndexMap&gt;
+  void assign(const Graph&amp; g, const VertexIndexMap&amp; vi);
+
+  template&lt;typename Graph&gt;
+  void assign(const Graph&amp; g);
+    </pre>
+
+    <p class="indent">
+      Clears the CSR graph and builds a CSR graph in place from the
+      structure of another graph. The graph type <tt>Graph</tt> must
+      be a model of <a href="IncidenceGraph.html">IncidenceGraph</a>.
+
+      <br><b>Parameters</b>
+
+      <ul>
+        <li><tt>g</tt>: The incoming graph.</li>
+        
+        <li><tt>vi</tt>: A map from vertices to indices. If not
+          provided, <tt>get(vertex_index, g)</tt> will be used.</li>
+        
+        <li><tt>numverts</tt>: The number of vertices in the graph
+          <tt>g</tt>. If not provided, <tt>Graph</tt> must be a model of
+          <a href="VertexListGraph.html">VertexListGraph</a>.</li>
+        
+        <li><tt>numedges</tt>: The number of edges in the graph
+          <tt>g</tt>. If not provided, <tt>Graph</tt> must be a model of
+          <a href="EdgeListGraph.html">EdgeListGraph</a>.</li>
+      </ul>
+    </p>
+
+    <hr></hr>
+
+    <a name="property-access"></a><h3>Property Access</h3>
+
+    <pre><a name="vertex-subscript"></a>
+  VertexProperty&amp; operator[](vertex_descriptor v);
+  const VertexProperty&amp; operator[](vertex_descriptor v) const;
+    </pre>
+
+    <p class="indent">
+      Retrieves the property value associated with vertex
+      <tt>v</tt>. Only valid when <tt>VertexProperty</tt> is a class
+      type that is not <tt>no_property</tt>.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="edge-subscript">
+  EdgeProperty&amp; operator[](edge_descriptor v);
+  const EdgeProperty&amp; operator[](edge_descriptor v) const;
+    </pre>
+
+    <p class="indent">
+      Retrieves the property value associated with edge
+      <tt>v</tt>. Only valid when <tt>EdgeProperty</tt> is a class
+      type that is not <tt>no_property</tt>.
+    </p>
+
+    <hr></hr>
+    <a name="non-members"></a><h2>Non-member Functions</h2>
+
+    <a name="vertex-access"></a><h3>Vertex access</h3>
+
+    <pre><a name="vertex-lookup"></a>
+  vertex_descriptor vertex(vertices_size_type i, const compressed_sparse_row_graph&amp;);
+    </pre>
+    <p class="indent">
+      Retrieves the <i>i</i><sup>th</sup> vertex in the graph in
+      constant time.
+    </p>
+
+    <hr></hr>
+
+    <a name="edge-access"></a><h3>Edge access</h3>
+
+    <pre><a name="edge"></a>
+  std::pair&lt;edge_descriptor, bool&gt; 
+    edge(vertex_descriptor u, vertex_descriptor v, const compressed_sparse_row_graph&amp;);
+    </pre>
+
+    <p class="indent">
+      If there exists an edge <i>(u, v)</i> in the graph, returns the
+      descriptor for that edge and <tt>true</tt>; otherwise, the
+      second value in the pair will be <tt>false</tt>. If multiple
+      edges exist from <tt>u</tt> to <tt>v</tt>, the first edge will
+      be returned; use <a href="IncidenceGraph.html"><tt>out_edges</tt></a> and a
+      conditional statement
+      to retrieve all edges to a given target.  This function requires linear
+      time in the
+      number of edges outgoing from <tt>u</tt>.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="edge_from_index"></a>
+  edge_descriptor edge_from_index(edges_size_type i, const compressed_sparse_row_graph&amp;);
+    </pre>
+
+    <p class="indent">
+      Returns the <i>i</i><sup>th</sup> edge in the graph. This
+      operation requires logarithmic time in the number of vertices.
+    </p>
+
+    <hr></hr>
+
+    <h3><a name="property-map-accessors">Property Map Accessors</a></h3>
+
+    <pre><a name="get"></a>
+template&lt;typename <a href="./PropertyTag.html">PropertyTag</a>&gt;
+property_map&lt;compressed_sparse_row_graph, PropertyTag&gt;::type
+get(PropertyTag, compressed_sparse_row_graph&amp; g)
+
+template&lt;typename <a href="./PropertyTag.html">PropertyTag</a>&gt;
+property_map&lt;compressed_sparse_row_graph, Tag&gt;::const_type
+get(PropertyTag, const compressed_sparse_row_graph&amp; g)
+    </pre>
+    
+    <p class="indent">
+      Returns the property map object for the vertex property
+      specified by <TT>PropertyTag</TT>. The <TT>PropertyTag</TT> must
+      be a member pointer to access one of the fields in
+      <tt>VertexProperty</tt> or <tt>EdgeProperty</tt>.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="get-x"></a>
+template&lt;typename <a href="./PropertyTag.html">PropertyTag</a>, class X&gt;
+typename property_traits&lt;property_map&lt;compressed_sparse_row_graph, PropertyTag&gt;::const_type&gt::value_type
+get(PropertyTag, const compressed_sparse_row_graph&amp; g, X x)
+    </pre>
+
+    <p class="indent">
+      This returns the property value for <tt>x</tt>, where <tt>x</tt>
+      is either a vertex or edge descriptor.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="put-x"></a>
+template&lt;typename <a href="./PropertyTag.html">PropertyTag</a>, class X, class Value&gt;
+void put(PropertyTag, const compressed_sparse_row_graph&amp; g, X x, const Value&amp; value);
+    </pre>
+
+    <p class="indent">
+      This sets the property value for <tt>x</tt> to
+      <tt>value</tt>. <tt>x</tt> is either a vertex or edge
+      descriptor.  <tt>Value</tt> must be convertible to <tt>typename
+      property_traits&lt;property_map&lt;compressed_sparse_row_graph,
+      PropertyTag&gt;::type&gt::value_type</tt>
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="get_property"></a>
+template&lt;typename <a href="./PropertyTag.html#GraphPropertyTag">GraphPropertyTag</a>&gt;
+typename graph_property&lt;compressed_sparse_row_graph, GraphPropertyTag&gt;::type&amp;
+get_property(compressed_sparse_row_graph&amp; g, GraphPropertyTag);
+
+template&lt;typename <a href="./PropertyTag.html#GraphPropertyTag">GraphPropertyTag</a>&gt;
+typename graph_property&lt;compressed_sparse_row_graph, GraphPropertyTag&gt;::type const &amp;
+get_property(const compressed_sparse_row_graph&amp; g, GraphPropertyTag);
+    </pre>
+
+    <p class="indent">
+      Return the property specified by <tt>GraphPropertyTag</tt> that
+      is attached to the graph object <tt>g</tt>. 
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="set_property"></a>
+template&lt;typename <a href="./PropertyTag.html#GraphPropertyTag">GraphPropertyTag</a>&gt;
+void set_property(const compressed_sparse_row_graph&amp; g, GraphPropertyTag,
+                  const typename graph_property&lt;compressed_sparse_row_graph, GraphPropertyTag&gt;::type&amp; value);
+    </pre>
+
+    <p class="indent">
+      Set the property specified by <tt>GraphPropertyTag</tt> that
+      is attached to the graph object <tt>g</tt>.
+    </p>
+
+    <hr></hr>
+
+    <h3><a name="incremental-construction-functions">Incremental construction functions</a></h3>
+
+    <pre><a name="add_edges"></a>
+template&lt;typename InputIterator&gt;
+void add_edges(InputIterator first, InputIterator last, compressed_sparse_row_graph&amp; g)
+    </pre>
+    
+    <p class="indent">
+      Add a range of edges (from <tt>first</tt> to <tt>last</tt>) to the graph.
+      The <tt>InputIterator</tt> must be a model of <a
+      href="http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a>
+      whose <code>value_type</code> is an <code>std::pair</code> of integer
+      values. These integer values are the source and target vertices of the
+      new edges.  The edges do not need to be sorted.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="add_edges_prop"></a>
+template&lt;typename InputIterator, typename EPIter&gt;
+void add_edges(InputIterator first, InputIterator last, EPIter ep_first, EPIter ep_last, compressed_sparse_row_graph&amp; g)
+    </pre>
+    
+    <p class="indent">
+      Add a range of edges (from <tt>first</tt> to <tt>last</tt>) with
+      corresponding edge properties (from <tt>ep_first</tt> to
+      <tt>ep_last</tt>) to the graph.  The <tt>InputIterator</tt> and
+      <tt>EPIter</tt> must be models of <a
+      href="http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a>;
+      the <code>value_type</code> of <tt>InputIterator</tt> must be an
+      <code>std::pair</code> of integer values, and the <code>value_type</code>
+      of <tt>EPIter</tt> must be the edge property type of the graph. The
+      integer values produced by the <tt>InputIterator</tt> are the source and
+      target vertices of the new edges.  The edges do not need to be sorted.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="add_edges_sorted"></a>
+template&lt;typename BidirectionalIterator&gt;
+void add_edges_sorted(BidirectionalIterator first, BidirectionalIterator last, compressed_sparse_row_graph&amp; g)
+    </pre>
+    
+    <p class="indent">
+      Add a range of edges (from <tt>first</tt> to <tt>last</tt>) to the graph.
+      The <tt>BidirectionalIterator</tt> must be a model of <a
+      href="http://www.sgi.com/tech/stl/BidirectionalIterator.html">BidirectionalIterator</a>
+      whose <code>value_type</code> is an <code>std::pair</code> of integer
+      values. These integer values are the source and target vertices of the
+      new edges.  The edges must be sorted in increasing order by source vertex
+      index.
+    </p>
+
+    <hr></hr>
+
+    <pre><a name="add_edges_sorted_prop"></a>
+template&lt;typename BidirectionalIterator, typename EPIter&gt;
+void add_edges_sorted(BidirectionalIterator first, BidirectionalIterator last, EPIter ep_iter, compressed_sparse_row_graph&amp; g)
+    </pre>
+    
+    <p class="indent">
+      Add a range of edges (from <tt>first</tt> to <tt>last</tt>) to the graph.
+      The <tt>BidirectionalIterator</tt> and <tt>EPIter</tt> must be models of
+      <a
+      href="http://www.sgi.com/tech/stl/BidirectionalIterator.html">BidirectionalIterator</a>.
+      The <code>value_type</code> of the <tt>BidirectionalIterator</tt> must be
+      an <code>std::pair</code> of integer
+      values. These integer values are the source and target vertices of the
+      new edges.
+      The <code>value_type</code> of the <tt>EPIter</tt> must be the edge
+      property type of the graph.
+      The edges must be sorted in increasing order by source vertex
+      index.
+    </p>
+
+    <hr></hr>
+    <a name="example"></a><h2>Example</h2>
+
+    <br>[<a
+    href="../example/csr-example.cpp">libs/graph/example/csr-example.cpp</a>]
+
+    <p>We will use the <tt>compressed_sparse_row_graph</tt> graph
+    class to store a simple Web graph. In this web graph the vertices
+    represent web pages and the edges represent links from one web
+    page to another. With each web page we want to associate a URL, so
+    we initially create a <tt>WebPage</tt> class that stores the
+    URL. Then we can create our graph type by providing
+    <tt>WebPage</tt> as a parameter to the
+    <tt>compressed_sparse_row_graph</tt> class template.</p>
+
+    <pre>
+class WebPage
+{
+ public:
+  std::string url;
+};
+
+// ...
+
+typedef compressed_sparse_row_graph&lt;directedS, WebPage&gt; WebGraph;
+WebGraph g(&the_edges[0], &the_edges[0] + sizeof(the_edges)/sizeof(E), 6);
+    </pre>
+
+    <p>We can then set the properties on the vertices of the graph
+    using the <a href="bundles.html">bundled properties</a> syntax,
+    and display the edges for the user.</p>
+
+    <pre>
+// Set the URLs of each vertex
+int index = 0;
+BGL_FORALL_VERTICES(v, g, WebGraph)
+  g[v].url = urls[index++];
+
+// Output each of the links
+std::cout &lt;&lt; "The web graph:" &lt;&lt; std::endl;
+BGL_FORALL_EDGES(e, g, WebGraph)
+  std::cout &lt;&lt; "  " &lt;&lt; g[source(e, g)].url &lt;&lt; " -> " &lt;&lt; g[target(e, g)].url 
+            &lt;&lt; std::endl;
+    </pre>
+
+    <p>See the <a href="../example/csr-example.cpp">complete example
+    source</a> for other operations one can perform with a
+    <tt>compressed_sparse_row_graph</tt>.</p>
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2005</TD><TD>
+<A HREF="http://www.boost.org/people/doug_gregor.html">Doug Gregor</A>, Indiana University (<script language="Javascript">address("cs.indiana.edu", "dgregor")</script>)<br>
+Jeremiah Willcock, Indiana University (<script language="Javascript">address("osl.iu.edu", "jewillco")</script>)<br>
+  <A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<script language="Javascript">address("osl.iu.edu", "lums")</script>)
+</TD></TR></TABLE>
+  </body>
+</html>

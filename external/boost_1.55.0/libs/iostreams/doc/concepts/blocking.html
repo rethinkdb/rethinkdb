@@ -1,0 +1,64 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Blocking</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Blocking</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Description</H2>
+
+<P>
+    A <A HREF="device.html">Device</A> is Blocking if a <CODE>read</CODE> request never produces fewer characters than requested except at end-of-stream, and if a <CODE>write</CODE> request never consumes fewer characters than requested under any circumstances. All Devices currently provided with the Iostreams library are Blocking. Limited support for non-Blocking Devices has been provided as a foundation for future more comprehensive support of <A HREF='../guide/asynchronous.html'>asynchronous and non-blocking i/o</A>.
+</P>
+
+<P>
+    The Blocking concept does not apply to filters. Instead, filters are required to be <SPAN CLASS='term'>blocking-preserving</SPAN>, which means that
+</P>
+<UL>
+    <LI>
+        a <CODE>read</CODE> request never produces fewer characters than requested unless end-of-stream has been reached or unless a <CODE>read</CODE> request to a downsteam Source produces fewer characters than requested, and
+    </LI>
+    <LI>
+        a <CODE>write</CODE> request never consumes fewer characters than requested unless a <CODE>write</CODE> request to a downsteam Sink consumes fewer characters than requested.
+    </LI>
+</UL>
+
+<P>
+    Unlike other Iostreams library concepts, Blocking is not associated with any <A HREF='../guide/traits.html#category_tags'>category tag</A>. In the future, a <CODE>non_blocking_tag</CODE> may be introduced.
+</P>
+
+<H2>Refinement of</H2>
+
+<P><A HREF="device.html">Device</A>.</P>
+
+<A NAME="types"></A>
+<H2>Associated Types</H2>
+
+<P>Same as <A HREF="device.html">Device</A>.</P>
+
+<A NAME="expressions"></A>
+<H2>Valid Expressions / Semantics</H2>
+
+<P>Valid expressions are the same as <A HREF="device.html">Device</A>. The additional semantic requirements are described informally above.</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

@@ -1,0 +1,280 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2009 Andreas Haberstroh?
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:indepth In Depth]
+
+[section:parsers_indepth Parsers in Depth]
+
+This section is not for the faint of heart. In here, are distilled the inner 
+workings of __qi__ parsers, using real code from the __spirit__ library as 
+examples. On the other hand, here is no reason to fear reading on, though. 
+We tried to explain things step by step while highlighting the important 
+insights.
+
+The `__parser_concept__` class is the base class for all parsers. 
+
+[import ../../../../boost/spirit/home/qi/parser.hpp]
+[parser_base_parser]
+
+The `__parser_concept__` class does not really know how to parse anything but 
+instead relies on the template parameter `Derived` to do the actual parsing. 
+This technique is known as the "Curiously Recurring Template Pattern" in template 
+meta-programming circles. This inheritance strategy gives us the power of 
+polymorphism without the virtual function overhead. In essence this is a way to 
+implement compile time polymorphism.
+
+The Derived parsers, `__primitive_parser_concept__`, `__unary_parser_concept__`,
+`__binary_parser_concept__` and `__nary_parser_concept__` provide the necessary 
+facilities for parser detection, introspection, transformation and visitation.
+
+Derived parsers must support the following:
+
+[variablelist bool parse(f, l, context, skip, attr)
+  [[`f`, `l`] [first/last iterator pair]]
+  [[`context`]    [enclosing rule context (can be unused_type)]]
+  [[`skip`]   [skipper (can be unused_type)]]
+  [[`attr`]   [attribute (can be unused_type)]]
+]
+
+The /parse/ is the main parser entry point. /skipper/ can be an `unused_type`. 
+It's a type used every where in __spirit__ to signify "don't-care". There
+is an overload for /skip/ for `unused_type` that is simply a no-op.
+That way, we do not have to write multiple parse functions for
+phrase and character level parsing.
+
+Here are the basic rules for parsing:
+
+* The parser returns `true` if successful, `false` otherwise.
+* If successful, `first` is incremented N number of times, where N
+   is the number of characters parsed. N can be zero --an empty (epsilon)
+   match.
+* If successful, the parsed attribute is assigned to /attr/
+* If unsuccessful, `first` is reset to its position before entering
+   the parser function. /attr/ is untouched.
+
+[variablelist void what(context)
+  [[`context`]    [enclosing rule context (can be `unused_type`)]]
+]
+
+The /what/ function should be obvious. It provides some information
+about ["what] the parser is. It is used as a debugging aid, for
+example.
+
+[variablelist P::template attribute<context>::type
+  [[`P`]       [a parser type]]
+  [[`context`] [A context type (can be unused_type)]]
+]
+
+The /attribute/ metafunction returns the expected attribute type
+of the parser. In some cases, this is context dependent.
+
+In this section, we will dissect two parser types:
+
+[variablelist Parsers
+  [[`__primitive_parser_concept__`]  [A parser for primitive data (e.g. integer parsing).]]
+  [[`__unary_parser_concept__`]  [A parser that has single subject (e.g. kleene star).]]
+] 
+
+[/------------------------------------------------------------------------------]
+[heading Primitive Parsers]
+
+For our dissection study, we will use a __spirit__ primitive, the `any_int_parser`
+in the boost::spirit::qi namespace.
+
+[import ../../../../boost/spirit/home/qi/numeric/int.hpp]
+[primitive_parsers_any_int_parser]
+
+The `any_int_parser` is derived from a `__primitive_parser_concept__<Derived>`,
+which in turn derives from `parser<Derived>`. Therefore, it supports the
+following requirements:
+
+* The `parse` member function
+* The `what` member function
+* The nested `attribute` metafunction
+
+/parse/ is the main entry point. For primitive parsers, our first thing to do is 
+call:
+
+``
+qi::skip(first, last, skipper);
+``
+
+to do a pre-skip. After pre-skipping, the parser proceeds to do its thing. The
+actual parsing code is placed in `extract_int<T, Radix, MinDigits,
+MaxDigits>::call(first, last, attr);`
+
+This simple no-frills protocol is one of the reasons why __spirit__ is
+fast. If you know the internals of __classic__ and perhaps
+even wrote some parsers with it, this simple __spirit__ mechanism
+is a joy to work with. There are no scanners and all that crap.
+
+The /what/ function just tells us that it is an integer parser. Simple.
+
+The /attribute/ metafunction returns the T template parameter. We associate the 
+`any_int_parser` to some placeholders for `short_`, `int_`, `long_` and
+`long_long` types. But, first, we enable these placeholders in namespace
+boost::spirit:
+
+[primitive_parsers_enable_short]
+[primitive_parsers_enable_int]
+[primitive_parsers_enable_long]
+[primitive_parsers_enable_long_long]
+
+Notice that `any_int_parser` is placed in the namespace boost::spirit::qi
+while these /enablers/ are in namespace boost::spirit. The reason is
+that these placeholders are shared by other __spirit__ /domains/. __qi__,
+the parser is one domain. __karma__, the generator is another domain.
+Other parser technologies may be developed and placed in yet
+another domain. Yet, all these can potentially share the same
+placeholders for interoperability. The interpretation of these
+placeholders is domain-specific.
+
+Now that we enabled the placeholders, we have to write generators
+for them. The make_xxx stuff (in boost::spirit::qi namespace):
+
+[primitive_parsers_make_int]
+
+This one above is our main generator. It's a simple function object
+with 2 (unused) arguments. These arguments are
+
+# The actual terminal value obtained by proto. In this case, either
+  a short_, int_, long_ or long_long. We don't care about this.
+
+# Modifiers. We also don't care about this. This allows directives
+  such as `no_case[p]` to pass information to inner parser nodes.
+  We'll see how that works later.
+
+Now:
+
+[primitive_parsers_short_primitive]
+[primitive_parsers_int_primitive]
+[primitive_parsers_long_primitive]
+[primitive_parsers_long_long_primitive]
+
+These, specialize `qi:make_primitive` for specific tags. They all
+inherit from `make_int` which does the actual work.
+
+[heading Composite Parsers]
+
+Let me present the kleene star (also in namespace spirit::qi):
+
+[import ../../../../boost/spirit/home/qi/operator/kleene.hpp]
+[composite_parsers_kleene]
+
+Looks similar in form to its primitive cousin, the `int_parser`. And, again, it
+has the same basic ingredients required by `Derived`.
+
+* The nested attribute metafunction
+* The parse member function
+* The what member function
+
+kleene is a composite parser. It is a parser that composes another
+parser, its ["subject]. It is a `__unary_parser_concept__` and subclasses from it.
+Like `__primitive_parser_concept__`, `__unary_parser_concept__<Derived>` derives 
+from `parser<Derived>`.
+
+unary_parser<Derived>, has these expression requirements on Derived:
+
+* p.subject -> subject parser ( ['p] is a __unary_parser_concept__ parser.)
+* P::subject_type -> subject parser type ( ['P] is a __unary_parser_concept__ type.)
+
+/parse/ is the main parser entry point. Since this is not a primitive
+parser, we do not need to call `qi::skip(first, last, skipper)`. The
+['subject], if it is a primitive, will do the pre-skip. If if it is
+another composite parser, it will eventually call a primitive parser
+somewhere down the line which will do the pre-skip. This makes it a
+lot more efficient than __classic__. __classic__ puts the skipping business
+into the so-called "scanner" which blindly attempts a pre-skip
+every time we increment the iterator.
+
+What is the /attribute/ of the kleene? In general, it is a `std::vector<T>`
+where `T` is the attribute of the subject. There is a special case though.
+If `T` is an `unused_type`, then the attribute of kleene is also `unused_type`.
+`traits::build_std_vector` takes care of that minor detail.
+
+So, let's parse. First, we need to provide a local attribute of for
+the subject:
+
+``
+typename traits::attribute_of<Subject, Context>::type val;
+``
+
+`traits::attribute_of<Subject, Context>` simply calls the subject's
+`struct attribute<Context>` nested metafunction.
+
+/val/ starts out default initialized. This val is the one we'll
+pass to the subject's parse function.
+
+The kleene repeats indefinitely while the subject parser is
+successful. On each successful parse, we `push_back` the parsed
+attribute to the kleene's attribute, which is expected to be,
+at the very least, compatible with a `std::vector`. In other words,
+although we say that we want our attribute to be a `std::vector`,
+we try to be more lenient than that. The caller of kleene's
+parse may pass a different attribute type. For as long as it is
+also a conforming STL container with `push_back`, we are ok. Here
+is the kleene loop:
+
+``
+while (subject.parse(first, last, context, skipper, val))
+{
+    // push the parsed value into our attribute
+    traits::push_back(attr, val);
+    traits::clear(val);
+}
+return true;
+``
+Take note that we didn't call attr.push_back(val). Instead, we
+called a Spirit provided function:
+
+``
+traits::push_back(attr, val);
+``
+
+This is a recurring pattern. The reason why we do it this way is
+because attr [*can] be `unused_type`. `traits::push_back` takes care
+of that detail. The overload for unused_type is a no-op. Now, you
+can imagine why __spirit__ is fast! The parsers are so simple and the
+generated code is as efficient as a hand rolled loop. All these
+parser compositions and recursive parse invocations are extensively
+inlined by a modern C++ compiler. In the end, you get a tight loop
+when you use the kleene. No more excess baggage. If the attribute
+is unused, then there is no code generated for that. That's how
+__spirit__ is designed.
+
+The /what/ function simply wraps the output of the subject in a 
+"kleene[" ... "]".
+
+Ok, now, like the `int_parser`, we have to hook our parser to the
+_qi_ engine. Here's how we do it:
+
+First, we enable the prefix star operator. In proto, it's called
+the "dereference":
+
+[composite_parsers_kleene_enable_]
+
+This is done in namespace `boost::spirit` like its friend, the `use_terminal`
+specialization for our `int_parser`. Obviously, we use /use_operator/ to
+enable the dereference for the qi::domain.
+
+Then, we need to write our generator (in namespace qi):
+
+[composite_parsers_kleene_generator]
+
+This essentially says; for all expressions of the form: `*p`, to build a kleene 
+parser. Elements is a __fusion__ sequence. For the kleene, which is a unary 
+operator, expect only one element in the sequence. That element is the subject 
+of the kleene.
+
+We still don't care about the Modifiers. We'll see how the modifiers is
+all about when we get to deep directives.
+
+[endsect]
+
+[endsect]

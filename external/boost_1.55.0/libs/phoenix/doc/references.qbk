@@ -1,0 +1,39 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section References]
+
+# Why Functional Programming Matters, John Hughes, 1989.
+  Available online at [@http://www.math.chalmers.se/~rjmh/Papers/whyfp.html].
+# Boost.Lambda library, Jaakko Jarvi, 1999-2004 Jaakko Jarvi, Gary Powell.
+  Available online at [@http://www.boost.org/libs/lambda/].
+# Functional Programming in C++ using the FC++ Library: a short article
+  introducing FC++, Brian McNamara and Yannis Smaragdakis, August 2003. Available
+  online at [@http://www.cc.gatech.edu/~yannis/fc++/].
+# Side-effects and partial function application in C++, Jaakko Jarvi and Gary
+  Powell, 2001. Available online at
+  [@http://osl.iu.edu/~jajarvi/publications/papers/mpool01.pdf].
+# Spirit Version 1.8.1, Joel de Guzman, Nov 2004. Available online at
+  [@http://www.boost.org/libs/spirit/].
+# The Boost MPL Library, Aleksey Gurtovoy and David Abrahams, 2002-2004.
+  Available online at [@http://www.boost.org/libs/mpl/].
+# Generic Programming Redesign of Patterns, Proceedings of the 5th European
+  Conference on Pattern Languages of Programs, (EuroPLoP'2000) Irsee, Germany,
+  July 2000. Available online at
+  [@http://www.coldewey.com/europlop2000/papers/geraud%2Bduret.zip].
+# A Gentle Introduction to Haskell, Paul Hudak, John Peterson and Joseph Fasel,
+  1999. Available online at [@http://www.haskell.org/tutorial/].
+# Large scale software design, John Lackos, ISBN 0201633620, Addison-Wesley, July
+  1996.
+# Design Patterns, Elements of Reusable Object-Oriented Software, Erich Gamma,
+  Richard Helm, Ralph Jhonson, and John Vlissides, Addison-Wesley, 1995.
+# The Forwarding Problem: Arguments Peter Dimov, Howard E. Hinnant, Dave
+  Abrahams, September 09, 2002. Available online: __forwarding__.
+
+[endsect]

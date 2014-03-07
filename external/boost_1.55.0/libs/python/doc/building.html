@@ -1,0 +1,636 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>Boost C++ Libraries: Boost.Python Build and Test HOWTO</title>
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-boost-python-build-and-test-howto">
+<h1 class="title"><a class="reference external" href="../index.html"><img alt="Boost C++ Libraries:" class="boost-logo" src="../../../boost.png" /></a> Boost.Python Build and Test HOWTO</h1>
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at -->
+<!-- http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="contents sidebar small topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="auto-toc simple">
+<li><a class="reference internal" href="#requirements" id="id25">1&nbsp;&nbsp;&nbsp;Requirements</a></li>
+<li><a class="reference internal" href="#background" id="id26">2&nbsp;&nbsp;&nbsp;Background</a></li>
+<li><a class="reference internal" href="#no-install-quickstart" id="id27">3&nbsp;&nbsp;&nbsp;No-Install Quickstart</a><ul class="auto-toc">
+<li><a class="reference internal" href="#basic-procedure" id="id28">3.1&nbsp;&nbsp;&nbsp;Basic Procedure</a></li>
+<li><a class="reference internal" href="#in-case-of-trouble" id="id29">3.2&nbsp;&nbsp;&nbsp;In Case of Trouble</a></li>
+<li><a class="reference internal" href="#in-case-everything-seemed-to-work" id="id30">3.3&nbsp;&nbsp;&nbsp;In Case Everything Seemed to Work</a></li>
+<li><a class="reference internal" href="#modifying-the-example-project" id="id31">3.4&nbsp;&nbsp;&nbsp;Modifying the Example Project</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#installing-boost-python-on-your-system" id="id32">4&nbsp;&nbsp;&nbsp;Installing Boost.Python on your System</a></li>
+<li><a class="reference internal" href="#configuring-boost-build" id="id33">5&nbsp;&nbsp;&nbsp;Configuring Boost.Build</a><ul class="auto-toc">
+<li><a class="reference internal" href="#python-configuration-parameters" id="id34">5.1&nbsp;&nbsp;&nbsp;Python Configuration Parameters</a></li>
+<li><a class="reference internal" href="#examples" id="id35">5.2&nbsp;&nbsp;&nbsp;Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#choosing-a-boost-python-library-binary" id="id36">6&nbsp;&nbsp;&nbsp;Choosing a Boost.Python Library Binary</a><ul class="auto-toc">
+<li><a class="reference internal" href="#the-dynamic-binary" id="id37">6.1&nbsp;&nbsp;&nbsp;The Dynamic Binary</a></li>
+<li><a class="reference internal" href="#the-static-binary" id="id38">6.2&nbsp;&nbsp;&nbsp;The Static Binary</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#include-issues" id="id39">7&nbsp;&nbsp;&nbsp;<tt class="docutils literal"><span class="pre">#include</span></tt> Issues</a></li>
+<li><a class="reference internal" href="#python-debugging-builds" id="id40">8&nbsp;&nbsp;&nbsp;Python Debugging Builds</a></li>
+<li><a class="reference internal" href="#testing-boost-python" id="id41">9&nbsp;&nbsp;&nbsp;Testing Boost.Python</a></li>
+<li><a class="reference internal" href="#notes-for-mingw-and-cygwin-with-mno-cygwin-gcc-users" id="id42">10&nbsp;&nbsp;&nbsp;Notes for MinGW (and Cygwin with -mno-cygwin) GCC Users</a></li>
+</ul>
+</div>
+<div class="section" id="requirements">
+<h1><a class="toc-backref" href="#id25">1&nbsp;&nbsp;&nbsp;Requirements</a></h1>
+<p>Boost.Python requires <a class="reference external" href="http://www.python.org/2.2">Python 2.2</a><a class="footnote-reference" href="#id22" id="id2"><sup>1</sup></a> <em>or</em> <a class="reference external" href="http://www.python.org"><em>newer</em></a>.</p>
+</div>
+<div class="section" id="background">
+<h1><a class="toc-backref" href="#id26">2&nbsp;&nbsp;&nbsp;Background</a></h1>
+<p>There are two basic models for combining C++ and Python:</p>
+<ul class="simple">
+<li><a class="reference external" href="http://www.python.org/doc/current/ext/intro.html">extending</a>, in which the end-user launches the Python interpreter
+executable and imports Python “extension modules” written in C++.
+Think of taking a library written in C++ and giving it a Python
+interface so Python programmers can use it.  From Python, these
+modules look just like regular Python modules.</li>
+<li><a class="reference external" href="http://www.python.org/doc/current/ext/embedding.html">embedding</a>, in which the end-user launches a program written
+in C++ that in turn invokes the Python interpreter as a library
+subroutine.  Think of adding scriptability to an existing
+application.</li>
+</ul>
+<p>The key distinction between extending and embedding is the location
+of the C++ <tt class="docutils literal"><span class="pre">main()</span></tt> function: in the Python interpreter executable,
+or in some other program, respectively.  Note that even when
+embedding Python in another program, <a class="reference external" href="http://www.python.org/doc/current/ext/extending-with-embedding.html">extension modules are often
+the best way to make C/C++ functionality accessible to Python
+code</a>, so the use of extension modules is really at the heart of
+both models.</p>
+<p>Except in rare cases, extension modules are built as
+dynamically-loaded libraries with a single entry point, which means
+you can change them without rebuilding either the other extension
+modules or the executable containing <tt class="docutils literal"><span class="pre">main()</span></tt>.</p>
+</div>
+<div class="section" id="no-install-quickstart">
+<span id="quickstart"></span><h1><a class="toc-backref" href="#id27">3&nbsp;&nbsp;&nbsp;No-Install Quickstart</a></h1>
+<p>There is no need to “install Boost” in order to get started using
+Boost.Python.  These instructions use <a class="reference external" href="../../../tools/build/index.html">Boost.Build</a> projects,
+which will build those binaries as soon as they're needed.  Your
+first tests may take a little longer while you wait for
+Boost.Python to build, but doing things this way will save you from
+worrying about build intricacies like which library binaries to use
+for a specific compiler configuration and figuring out the right
+compiler options to use yourself.</p>
+<!-- .. raw:: html
+
+<div style="width:50%"> -->
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p>Of course it's possible to use other build systems to
+build Boost.Python and its extensions, but they are not
+officially supported by Boost.  Moreover <strong>99% of all “I can't
+build Boost.Python” problems come from trying to use another
+build system</strong> without first following these instructions.</p>
+<p>If you want to use another system anyway, we suggest that you
+follow these instructions, and then invoke <tt class="docutils literal"><span class="pre">bjam</span></tt> with the</p>
+<pre class="literal-block">
+<tt class="docutils literal"><span class="pre">-a</span> <span class="pre">-o</span></tt><em>filename</em>
+</pre>
+<p class="last">options to dump the build commands it executes to a file, so
+you can see what your alternate build system needs to do.</p>
+</div>
+<!-- .. raw:: html
+
+</div> -->
+<div class="section" id="basic-procedure">
+<h2><a class="toc-backref" href="#id28">3.1&nbsp;&nbsp;&nbsp;Basic Procedure</a></h2>
+<ol class="arabic">
+<li><p class="first">Get Boost; see sections 1 and 2 [<a class="reference external" href="../../../more/getting_started/unix-variants.html#get-boost">Unix/Linux</a>, <a class="reference external" href="../../../more/getting_started/windows.html#get-boost">Windows</a>] of the
+Boost <a class="reference external" href="../../../more/getting_started/index.html">Getting Started Guide</a>.</p>
+</li>
+<li><p class="first">Get the <tt class="docutils literal"><span class="pre">bjam</span></tt> build driver.  See section 5 [<a class="reference external" href="../../../more/getting_started/unix-variants.html#prepare-to-use-a-boost-library-binary">Unix/Linux</a>,
+<a class="reference external" href="../../../more/getting_started/windows.html#prepare-to-use-a-boost-library-binary">Windows</a>] of the Boost <a class="reference external" href="../../../more/getting_started/index.html">Getting Started Guide</a>.</p>
+</li>
+<li><p class="first">cd into the <tt class="docutils literal"><span class="pre">libs/python/example/quickstart/</span></tt> directory of your
+Boost installation, which contains a small example project.</p>
+</li>
+<li><p class="first">Invoke <tt class="docutils literal"><span class="pre">bjam</span></tt>.  Replace the “<tt class="docutils literal"><span class="pre">stage</span></tt>“ argument from the
+example invocation from section 5 of the <a class="reference external" href="../../../more/getting_started/index.html">Getting Started
+Guide</a> with “<tt class="docutils literal"><span class="pre">test</span></tt>,“ to build all the test targets.  Also add
+the argument “<tt class="docutils literal"><span class="pre">--verbose-test</span></tt>” to see the output generated by
+the tests when they are run.</p>
+<p>On Windows, your <tt class="docutils literal"><span class="pre">bjam</span></tt> invocation might look something like:</p>
+<pre class="literal-block">
+C:\boost_1_34_0\…\quickstart&gt; <strong>bjam toolset=msvc --verbose-test test</strong>
+</pre>
+<p>and on Unix variants, perhaps,</p>
+<pre class="literal-block">
+~/boost_1_34_0/…/quickstart$ <strong>bjam toolset=gcc --verbose-test test</strong>
+</pre>
+</li>
+</ol>
+<div class="admonition-note-to-windows-users admonition">
+<p class="first admonition-title">Note to Windows Users</p>
+<p class="last">For the sake of concision, the rest of this guide will use
+unix-style forward slashes in pathnames instead of the
+backslashes with which you may be more familiar.  The forward
+slashes should work everywhere except in <a class="reference external" href="../../../more/getting_started/windows.html#command-prompt">Command Prompt</a>
+windows, where you should use backslashes.</p>
+</div>
+<p>If you followed this procedure successfully, you will have built an
+extension module called <tt class="docutils literal"><span class="pre">extending</span></tt> and tested it by running a
+Python script called <tt class="docutils literal"><span class="pre">test_extending.py</span></tt>.  You will also have
+built and run a simple application called <tt class="docutils literal"><span class="pre">embedding</span></tt> that embeds
+python.</p>
+</div>
+<div class="section" id="in-case-of-trouble">
+<h2><a class="toc-backref" href="#id29">3.2&nbsp;&nbsp;&nbsp;In Case of Trouble</a></h2>
+<p>If you're seeing lots of compiler and/or linker error messages,
+it's probably because Boost.Build is having trouble finding your
+Python installation.  You might want to pass the
+<tt class="docutils literal"><span class="pre">--debug-configuration</span></tt> option to <tt class="docutils literal"><span class="pre">bjam</span></tt> the first few times
+you invoke it, to make sure that Boost.Build is correctly locating
+all the parts of your Python installation.  If it isn't, consider
+<a class="reference internal" href="#configuring-boost-build">Configuring Boost.Build</a> as detailed below.</p>
+<p>If you're still having trouble, Someone on one of the following
+mailing lists may be able to help:</p>
+<ul class="simple">
+<li>The <a class="reference external" href="http://www.boost.org/more/mailing_lists.htm#jamboost">Boost.Build mailing list</a> for issues related to Boost.Build</li>
+<li>The Python <a class="reference external" href="http://www.boost.org/more/mailing_lists.htm#cplussig">C++ Sig</a> for issues specifically related to Boost.Python</li>
+</ul>
+</div>
+<div class="section" id="in-case-everything-seemed-to-work">
+<h2><a class="toc-backref" href="#id30">3.3&nbsp;&nbsp;&nbsp;In Case Everything Seemed to Work</a></h2>
+<p>Rejoice!  If you're new to Boost.Python, at this point it might be
+a good idea to ignore build issues for a while and concentrate on
+learning the library by going through the <a class="reference external" href="tutorial/index.html">tutorial</a> and perhaps
+some of the <a class="reference external" href="v2/reference.html">reference documentation</a>, trying out what you've
+learned about the API by modifying the quickstart project.</p>
+</div>
+<div class="section" id="modifying-the-example-project">
+<h2><a class="toc-backref" href="#id31">3.4&nbsp;&nbsp;&nbsp;Modifying the Example Project</a></h2>
+<p>If you're content to keep your extension module forever in one
+source file called <a class="reference external" href="../example/quickstart/extending.cpp"><tt class="docutils literal"><span class="pre">extending.cpp</span></tt></a>, inside your Boost
+distribution, and import it forever as <tt class="docutils literal"><span class="pre">extending</span></tt>, then you can
+stop here.  However, it's likely that you will want to make a few
+changes.  There are a few things you can do without having to learn
+<a class="reference external" href="../../../tools/build/index.html">Boost.Build</a> in depth.</p>
+<p>The project you just built is specified in two files in the current
+directory: <a class="reference external" href="../example/quickstart/boost-build.jam"><tt class="docutils literal"><span class="pre">boost-build.jam</span></tt></a>, which tells <tt class="docutils literal"><span class="pre">bjam</span></tt> where it can
+find the interpreted code of the Boost build system, and
+<a class="reference external" href="../example/quickstart/Jamroot"><tt class="docutils literal"><span class="pre">Jamroot</span></tt></a>, which describes the targets you just built.  These
+files are heavily commented, so they should be easy to modify.
+Take care, however, to preserve whitespace.  Punctuation such as
+<tt class="docutils literal"><span class="pre">;</span></tt> will not be recognized as intended by <tt class="docutils literal"><span class="pre">bjam</span></tt> if it is not
+surrounded by whitespace.</p>
+<div class="section" id="relocate-the-project">
+<h3>Relocate the Project</h3>
+<p>You'll probably want to copy this project elsewhere so you can
+change it without modifying your Boost distribution.  To do that,
+simply</p>
+<ol class="loweralpha simple">
+<li>copy the entire <tt class="docutils literal"><span class="pre">libs/python/example/quickstart/</span></tt> directory
+into a new directory.</li>
+<li>In the new copies of <a class="reference external" href="../example/quickstart/boost-build.jam"><tt class="docutils literal"><span class="pre">boost-build.jam</span></tt></a> and <a class="reference external" href="../example/quickstart/Jamroot"><tt class="docutils literal"><span class="pre">Jamroot</span></tt></a>, locate
+the relative path near the top of the file that is clearly
+marked by a comment, and edit that path so that it refers to the
+same directory your Boost distribution as it referred to when
+the file was in its original location in the
+<tt class="docutils literal"><span class="pre">libs/python/example/quickstart/</span></tt> directory.</li>
+</ol>
+<p>For example, if you moved the project from
+<tt class="docutils literal"><span class="pre">/home/dave/boost_1_34_0/libs/python/example/quickstart</span></tt> to
+<tt class="docutils literal"><span class="pre">/home/dave/my-project</span></tt>, you could change the first path in
+<a class="reference external" href="../example/quickstart/boost-build.jam"><tt class="docutils literal"><span class="pre">boost-build.jam</span></tt></a> from</p>
+<pre class="literal-block">
+<strong>../../../..</strong>/tools/build/v2
+</pre>
+<p>to</p>
+<pre class="literal-block">
+<strong>/home/dave/boost_1_34_0</strong>/tools/build/v2
+</pre>
+<p>and change the first path in <a class="reference external" href="../example/quickstart/Jamroot"><tt class="docutils literal"><span class="pre">Jamroot</span></tt></a> from</p>
+<pre class="literal-block">
+<strong>../../../..</strong>
+</pre>
+<p>to</p>
+<pre class="literal-block">
+<strong>/home/dave/boost_1_34_0</strong>
+</pre>
+</div>
+<div class="section" id="add-new-or-change-names-of-existing-source-files">
+<h3>Add New or Change Names of Existing Source Files</h3>
+<p>The names of additional source files involved in building your
+extension module or embedding application can be listed in
+<a class="reference external" href="../example/quickstart/Jamroot"><tt class="docutils literal"><span class="pre">Jamroot</span></tt></a> right alongside <tt class="docutils literal"><span class="pre">extending.cpp</span></tt> or <tt class="docutils literal"><span class="pre">embedding.cpp</span></tt>
+respectively.  Just be sure to leave whitespace around each
+filename:</p>
+<pre class="literal-block">
+… file1.cpp file2.cpp file3.cpp …
+</pre>
+<p>Naturally, if you want to change the name of a source file you can
+tell Boost.Build about it by editing the name in <a class="reference external" href="../example/quickstart/Jamroot"><tt class="docutils literal"><span class="pre">Jamroot</span></tt></a>.</p>
+</div>
+<div class="section" id="change-the-name-of-your-extension-module">
+<h3>Change the Name of your Extension Module</h3>
+<p>The name of the extension module is determined by two things:</p>
+<ol class="arabic simple">
+<li>the name in <a class="reference external" href="../example/quickstart/Jamroot"><tt class="docutils literal"><span class="pre">Jamroot</span></tt></a> immediately following <tt class="docutils literal"><span class="pre">python-extension</span></tt>, and</li>
+<li>the name passed to <tt class="docutils literal"><span class="pre">BOOST_PYTHON_MODULE</span></tt> in <a class="reference external" href="../example/quickstart/extending.cpp"><tt class="docutils literal"><span class="pre">extending.cpp</span></tt></a>.</li>
+</ol>
+<p>To change the name of the extension module from <tt class="docutils literal"><span class="pre">extending</span></tt> to
+<tt class="docutils literal"><span class="pre">hello</span></tt>, you'd edit <a class="reference external" href="../example/quickstart/Jamroot"><tt class="docutils literal"><span class="pre">Jamroot</span></tt></a>, changing</p>
+<pre class="literal-block">
+python-extension <strong>extending</strong> : extending.cpp ;
+</pre>
+<p>to</p>
+<pre class="literal-block">
+python-extension <strong>hello</strong> : extending.cpp ;
+</pre>
+<p>and you'd edit extending.cpp, changing</p>
+<pre class="literal-block">
+BOOST_PYTHON_MODULE(<strong>extending</strong>)
+</pre>
+<p>to</p>
+<pre class="literal-block">
+BOOST_PYTHON_MODULE(<strong>hello</strong>)
+</pre>
+</div>
+</div>
+</div>
+<div class="section" id="installing-boost-python-on-your-system">
+<h1><a class="toc-backref" href="#id32">4&nbsp;&nbsp;&nbsp;Installing Boost.Python on your System</a></h1>
+<p>Since Boost.Python is a separately-compiled (as opposed to
+<a class="reference external" href="../../../more/getting_started/windows.html#header-only-libraries">header-only</a>) library, its user relies on the services of a
+Boost.Python library binary.</p>
+<p>If you need a regular installation of the Boost.Python library
+binaries on your system, the Boost <a class="reference external" href="../../../more/getting_started/index.html">Getting Started Guide</a> will
+walk you through the steps of creating one.  If building binaries
+from source, you might want to supply the <tt class="docutils literal"><span class="pre">--with-python</span></tt>
+argument to <tt class="docutils literal"><span class="pre">bjam</span></tt> (or the <tt class="docutils literal"><span class="pre">--with-libraries=python</span></tt> argument
+to <tt class="docutils literal"><span class="pre">configure</span></tt>), so only the Boost.Python binary will be built,
+rather than all the Boost binaries.</p>
+</div>
+<div class="section" id="configuring-boost-build">
+<h1><a class="toc-backref" href="#id33">5&nbsp;&nbsp;&nbsp;Configuring Boost.Build</a></h1>
+<p>As described in the <a class="reference external" href="http://www.boost.orgdoc/html/bbv2/advanced.html#bbv2.advanced.configuration">Boost.Build reference manual</a>, a file called
+<tt class="docutils literal"><span class="pre">user-config.jam</span></tt> in your home directory<a class="footnote-reference" href="#home-dir" id="id11"><sup>6</sup></a> is used to
+specify the tools and libraries available to the build system. You
+may need to create or edit <tt class="docutils literal"><span class="pre">user-config.jam</span></tt> to tell Boost.Build
+how to invoke Python, <tt class="docutils literal"><span class="pre">#include</span></tt> its headers, and link with its
+libraries.</p>
+<div class="admonition-users-of-unix-variant-oses admonition">
+<p class="first admonition-title">Users of Unix-Variant OSes</p>
+<p class="last">If you are using a unix-variant OS and you ran Boost's
+<tt class="docutils literal"><span class="pre">configure</span></tt> script, it may have generated a
+<tt class="docutils literal"><span class="pre">user-config.jam</span></tt> for you.<a class="footnote-reference" href="#overwrite" id="id13"><sup>4</sup></a> If your <tt class="docutils literal"><span class="pre">configure</span></tt>/<tt class="docutils literal"><span class="pre">make</span></tt> sequence was successful and Boost.Python binaries
+were built, your <tt class="docutils literal"><span class="pre">user-config.jam</span></tt> file is probably already
+correct.</p>
+</div>
+<p>If you have one fairly “standard” python installation for your
+platform, you might not need to do anything special to describe it.  If
+you haven't configured python in <tt class="docutils literal"><span class="pre">user-config.jam</span></tt> (and you don't
+specify <tt class="docutils literal"><span class="pre">--without-python</span></tt> on the Boost.Build command line),
+Boost.Build will automatically execute the equivalent of</p>
+<pre class="literal-block">
+import toolset : using ;
+using python ;
+</pre>
+<p>which automatically looks for Python in the most likely places.
+However, that only happens when using the Boost.Python project file
+(e.g. when referred to by another project as in the <a class="reference internal" href="#quickstart">quickstart</a>
+method).  If instead you are linking against separately-compiled
+Boost.Python binaries, you should set up a <tt class="docutils literal"><span class="pre">user-config.jam</span></tt> file
+with at least the minimal incantation above.</p>
+<div class="section" id="python-configuration-parameters">
+<h2><a class="toc-backref" href="#id34">5.1&nbsp;&nbsp;&nbsp;Python Configuration Parameters</a></h2>
+<p>If you have several versions of Python installed, or Python is
+installed in an unusual way, you may want to supply any or all of
+the following optional parameters to <tt class="docutils literal"><span class="pre">using</span> <span class="pre">python</span></tt>.</p>
+<dl class="docutils">
+<dt>version</dt>
+<dd>the version of Python to use.  Should be in Major.Minor
+format, for example, <tt class="docutils literal"><span class="pre">2.3</span></tt>.  Do not include the subminor
+version (i.e. <em>not</em> <tt class="docutils literal"><span class="pre">2.5.1</span></tt>).  If you have multiple Python
+versions installed, the version will usually be the only
+configuration argument required.</dd>
+<dt>cmd-or-prefix</dt>
+<dd>preferably, a command that invokes a Python interpreter.
+Alternatively, the installation prefix for Python libraries and
+header files.  Only use the alternative formulation if there is
+no appropriate Python executable available.</dd>
+<dt>includes</dt>
+<dd>the <tt class="docutils literal"><span class="pre">#include</span></tt> paths for Python headers.  Normally the correct
+path(s) will be automatically deduced from <tt class="docutils literal"><span class="pre">version</span></tt> and/or
+<tt class="docutils literal"><span class="pre">cmd-or-prefix</span></tt>.</dd>
+<dt>libraries</dt>
+<dd>the path to Python library binaries.  On MacOS/Darwin,
+you can also pass the path of the Python framework.  Normally the
+correct path(s) will be automatically deduced from <tt class="docutils literal"><span class="pre">version</span></tt>
+and/or <tt class="docutils literal"><span class="pre">cmd-or-prefix</span></tt>.</dd>
+<dt>condition</dt>
+<dd>if specified, should be a set of Boost.Build
+properties that are matched against the build configuration when
+Boost.Build selects a Python configuration to use.  See examples
+below for details.</dd>
+<dt>extension-suffix</dt>
+<dd>A string to append to the name of extension
+modules before the true filename extension.  You almost certainly
+don't need to use this.  Usually this suffix is only used when
+targeting a Windows debug build of Python, and will be set
+automatically for you based on the value of the
+<a class="reference internal" href="#python-debugging"><tt class="docutils literal"><span class="pre">&lt;python-debugging&gt;</span></tt></a> feature.  However, at least one Linux
+distribution (Ubuntu Feisty Fawn) has a specially configured
+<a class="reference external" href="https://wiki.ubuntu.com/PyDbgBuilds">python-dbg</a> package that claims to use such a suffix.</dd>
+</dl>
+</div>
+<div class="section" id="examples">
+<h2><a class="toc-backref" href="#id35">5.2&nbsp;&nbsp;&nbsp;Examples</a></h2>
+<p>Note that in the examples below, case and <em>especially whitespace</em> are
+significant.</p>
+<ul>
+<li><p class="first">If you have both python 2.5 and python 2.4 installed,
+<tt class="docutils literal"><span class="pre">user-config.jam</span></tt> might contain:</p>
+<pre class="literal-block">
+using python : 2.5 ;  # Make both versions of Python available
+
+using python : 2.4 ;  # To build with python 2.4, add python=2.4
+                      # to your command line.
+</pre>
+<p>The first version configured (2.5) becomes the default.  To build
+against python 2.4, add <tt class="docutils literal"><span class="pre">python=2.4</span></tt> to the <tt class="docutils literal"><span class="pre">bjam</span></tt> command line.</p>
+</li>
+<li><p class="first">If you have python installed in an unusual location, you might
+supply the path to the interpreter in the <tt class="docutils literal"><span class="pre">cmd-or-prefix</span></tt>
+parameter:</p>
+<pre class="literal-block">
+using python : : /usr/local/python-2.6-beta/bin/python ;
+</pre>
+</li>
+<li><p class="first">If you have a separate build of Python for use with a particular
+toolset, you might supply that toolset in the <tt class="docutils literal"><span class="pre">condition</span></tt>
+parameter:</p>
+<pre class="literal-block">
+using python ;  # use for most toolsets
+
+# Use with Intel C++ toolset
+using python
+     : # version
+     : c:\\Devel\\Python-2.5-IntelBuild\\PCBuild\\python # cmd-or-prefix
+     : # includes
+     : # libraries
+     : &lt;toolset&gt;intel # condition
+     ;
+</pre>
+</li>
+<li><p class="first">If you have downloaded the Python sources and built both the
+normal and the “<a class="reference internal" href="#id19">python debugging</a>” builds from source on
+Windows, you might see:</p>
+<pre class="literal-block">
+using python : 2.5 : C:\\src\\Python-2.5\\PCBuild\\python ;
+using python : 2.5 : C:\\src\\Python-2.5\\PCBuild\\python_d
+  : # includes
+  : # libs
+  : &lt;python-debugging&gt;on ;
+</pre>
+</li>
+<li><p class="first">You can set up your user-config.jam so a bjam built under Windows
+can build/test both Windows and <a class="reference external" href="http://cygwin.com">Cygwin</a> python extensions.  Just pass
+<tt class="docutils literal"><span class="pre">&lt;target-os&gt;cygwin</span></tt> in the <tt class="docutils literal"><span class="pre">condition</span></tt> parameter
+for the cygwin python installation:</p>
+<pre class="literal-block">
+# windows installation
+using python ;
+
+# cygwin installation
+using python : : c:\\cygwin\\bin\\python2.5 : : : &lt;target-os&gt;cygwin ;
+</pre>
+<p>when you put target-os=cygwin in your build request, it should build
+with the cygwin version of python:<a class="footnote-reference" href="#flavor" id="id15"><sup>5</sup></a></p>
+<blockquote>
+<p>bjam target-os=cygwin toolset=gcc</p>
+</blockquote>
+<p>This is supposed to work the other way, too (targeting windows
+python with a <a class="reference external" href="http://cygwin.com">Cygwin</a> bjam) but it seems as though the support in
+Boost.Build's toolsets for building that way is broken at the
+time of this writing.</p>
+</li>
+<li><p class="first">Note that because of <a class="reference external" href="http://zigzag.cs.msu.su/boost.build/wiki/AlternativeSelection">the way Boost.Build currently selects target
+alternatives</a>, you might have be very explicit in your build
+requests.  For example, given:</p>
+<pre class="literal-block">
+using python : 2.5 ; # a regular windows build
+using python : 2.4 : : : : &lt;target-os&gt;cygwin ;
+</pre>
+<p>building with</p>
+<pre class="literal-block">
+bjam target-os=cygwin
+</pre>
+<p>will yield an error.  Instead, you'll need to write:</p>
+<pre class="literal-block">
+bjam target-os=cygwin/python=2.4
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="choosing-a-boost-python-library-binary">
+<h1><a class="toc-backref" href="#id36">6&nbsp;&nbsp;&nbsp;Choosing a Boost.Python Library Binary</a></h1>
+<p>If—instead of letting Boost.Build construct and link with the right
+libraries automatically—you choose to use a pre-built Boost.Python
+library, you'll need to think about which one to link with.  The
+Boost.Python binary comes in both static and dynamic flavors.  Take
+care to choose the right flavor for your application.<a class="footnote-reference" href="#naming" id="id17"><sup>2</sup></a></p>
+<div class="section" id="the-dynamic-binary">
+<h2><a class="toc-backref" href="#id37">6.1&nbsp;&nbsp;&nbsp;The Dynamic Binary</a></h2>
+<p>The dynamic library is the safest and most-versatile choice:</p>
+<ul class="simple">
+<li>A single copy of the library code is used by all extension
+modules built with a given toolset.<a class="footnote-reference" href="#toolset-specific" id="id18"><sup>3</sup></a></li>
+<li>The library contains a type conversion registry.  Because one
+registry is shared among all extension modules, instances of a
+class exposed to Python in one dynamically-loaded extension
+module can be passed to functions exposed in another such module.</li>
+</ul>
+</div>
+<div class="section" id="the-static-binary">
+<h2><a class="toc-backref" href="#id38">6.2&nbsp;&nbsp;&nbsp;The Static Binary</a></h2>
+<p>It might be appropriate to use the static Boost.Python library in
+any of the following cases:</p>
+<ul class="simple">
+<li>You are <a class="reference external" href="http://www.python.org/doc/current/ext/intro.html">extending</a> python and the types exposed in your
+dynamically-loaded extension module don't need to be used by any
+other Boost.Python extension modules, and you don't care if the
+core library code is duplicated among them.</li>
+<li>You are <a class="reference external" href="http://www.python.org/doc/current/ext/embedding.html">embedding</a> python in your application and either:<ul>
+<li>You are targeting a Unix variant OS other than MacOS or AIX,
+where the dynamically-loaded extension modules can “see” the
+Boost.Python library symbols that are part of the executable.</li>
+<li>Or, you have statically linked some Boost.Python extension
+modules into your application and you don't care if any
+dynamically-loaded Boost.Python extension modules are able to
+use the types exposed by your statically-linked extension
+modules (and vice-versa).</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="include-issues">
+<h1><a class="toc-backref" href="#id39">7&nbsp;&nbsp;&nbsp;<tt class="docutils literal"><span class="pre">#include</span></tt> Issues</a></h1>
+<ol class="arabic simple">
+<li>If you should ever have occasion to <tt class="docutils literal"><span class="pre">#include</span> <span class="pre">&quot;python.h&quot;</span></tt>
+directly in a translation unit of a program using Boost.Python,
+use <tt class="docutils literal"><span class="pre">#include</span> <span class="pre">&quot;boost/python/detail/wrap_python.hpp&quot;</span></tt> instead.
+It handles several issues necessary for use with Boost.Python,
+one of which is mentioned in the next section.</li>
+<li>Be sure not to <tt class="docutils literal"><span class="pre">#include</span></tt> any system headers before
+<tt class="docutils literal"><span class="pre">wrap_python.hpp</span></tt>.  This restriction is actually imposed by
+Python, or more properly, by Python's interaction with your
+operating system.  See
+<a class="reference external" href="http://docs.python.org/ext/simpleExample.html">http://docs.python.org/ext/simpleExample.html</a> for details.</li>
+</ol>
+</div>
+<div class="section" id="python-debugging-builds">
+<span id="id19"></span><span id="python-debugging"></span><h1><a class="toc-backref" href="#id40">8&nbsp;&nbsp;&nbsp;Python Debugging Builds</a></h1>
+<p>Python can be built in a special “python debugging” configuration
+that adds extra checks and instrumentation that can be very useful
+for developers of extension modules.  The data structures used by
+the debugging configuration contain additional members, so <strong>a
+Python executable built with python debugging enabled cannot be
+used with an extension module or library compiled without it, and
+vice-versa.</strong></p>
+<p>Since pre-built “python debugging” versions of the Python
+executable and libraries are not supplied with most distributions
+of Python,<a class="footnote-reference" href="#get-debug-build" id="id20"><sup>7</sup></a> and we didn't want to force our users
+to build them, Boost.Build does not automatically enable python
+debugging in its <tt class="docutils literal"><span class="pre">debug</span></tt> build variant (which is the default).
+Instead there is a special build property called
+<tt class="docutils literal"><span class="pre">python-debugging</span></tt> that, when used as a build property, will
+define the right preprocessor symbols and select the right
+libraries to link with.</p>
+<p>On unix-variant platforms, the debugging versions of Python's data
+structures will only be used if the symbol <tt class="docutils literal"><span class="pre">Py_DEBUG</span></tt> is defined.
+On many windows compilers, when extension modules are built with
+the preprocessor symbol <tt class="docutils literal"><span class="pre">_DEBUG</span></tt>, Python defaults to force
+linking with a special debugging version of the Python DLL.  Since
+that symbol is very commonly used even when Python is not present,
+Boost.Python temporarily undefines _DEBUG when Python.h
+is #included from <tt class="docutils literal"><span class="pre">boost/python/detail/wrap_python.hpp</span></tt> - unless
+<tt class="docutils literal"><span class="pre">BOOST_DEBUG_PYTHON</span></tt> is defined.  The upshot is that if you want
+“python debugging”and you aren't using Boost.Build, you should make
+sure <tt class="docutils literal"><span class="pre">BOOST_DEBUG_PYTHON</span></tt> is defined, or python debugging will be
+suppressed.</p>
+</div>
+<div class="section" id="testing-boost-python">
+<h1><a class="toc-backref" href="#id41">9&nbsp;&nbsp;&nbsp;Testing Boost.Python</a></h1>
+<p>To run the full test suite for Boost.Python, invoke <tt class="docutils literal"><span class="pre">bjam</span></tt> in the
+<tt class="docutils literal"><span class="pre">libs/python/test</span></tt> subdirectory of your Boost distribution.</p>
+</div>
+<div class="section" id="notes-for-mingw-and-cygwin-with-mno-cygwin-gcc-users">
+<h1><a class="toc-backref" href="#id42">10&nbsp;&nbsp;&nbsp;Notes for MinGW (and Cygwin with -mno-cygwin) GCC Users</a></h1>
+<p>If you are using a version of Python prior to 2.4.1 with a MinGW
+prior to 3.0.0 (with binutils-2.13.90-20030111-1), you will need to
+create a MinGW-compatible version of the Python library; the one
+shipped with Python will only work with a Microsoft-compatible
+linker. Follow the instructions in the “Non-Microsoft” section of
+the “Building Extensions: Tips And Tricks” chapter in <a class="reference external" href="http://www.python.org/doc/current/inst/index.html">Installing
+Python Modules</a> to create <tt class="docutils literal"><span class="pre">libpythonXX.a</span></tt>, where <tt class="docutils literal"><span class="pre">XX</span></tt>
+corresponds to the major and minor version numbers of your Python
+installation.</p>
+<hr class="docutils" />
+<table class="docutils footnote" frame="void" id="id22" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[1]</a></td><td>Note that although we tested earlier versions of
+Boost.Python with Python 2.2, and we don't <em>think</em> we've done
+anything to break compatibility, this release of Boost.Python
+may not have been tested with versions of Python earlier than
+2.4, so we're not 100% sure that python 2.2 and 2.3 are
+supported.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="naming" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id17">[2]</a></td><td><p class="first">Information about how to identify the
+static and dynamic builds of Boost.Python:</p>
+<ul class="simple">
+<li><a class="reference external" href="../../../more/getting_started/windows.html#library-naming">on Windows</a></li>
+<li><a class="reference external" href="../../../more/getting_started/unix-variants.html#library-naming">on Unix variants</a></li>
+</ul>
+</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="toolset-specific" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id18">[3]</a></td><td>Because of the way most *nix platforms
+share symbols among dynamically-loaded objects, I'm not certain
+that extension modules built with different compiler toolsets
+will always use different copies of the Boost.Python library
+when loaded into the same Python instance.  Not using different
+libraries could be a good thing if the compilers have compatible
+ABIs, because extension modules built with the two libraries
+would be interoperable.  Otherwise, it could spell disaster,
+since an extension module and the Boost.Python library would
+have different ideas of such things as class layout. I would
+appreciate someone doing the experiment to find out what
+happens.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="overwrite" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id13">[4]</a></td><td><tt class="docutils literal"><span class="pre">configure</span></tt> overwrites the existing
+<tt class="docutils literal"><span class="pre">user-config.jam</span></tt> in your home directory
+(if any) after making a backup of the old version.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="flavor" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id15">[5]</a></td><td>Note that the <tt class="docutils literal"><span class="pre">&lt;target-os&gt;cygwin</span></tt> feature is
+different from the <tt class="docutils literal"><span class="pre">&lt;flavor&gt;cygwin</span></tt> subfeature of the <tt class="docutils literal"><span class="pre">gcc</span></tt>
+toolset, and you might need handle both explicitly if you also
+have a MinGW GCC installed.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="home-dir" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id11">[6]</a></td><td><p class="first">Windows users, your home directory can be
+found by typing:</p>
+<pre class="literal-block">
+ECHO %HOMEDRIVE%%HOMEPATH%
+</pre>
+<p class="last">into a <a class="reference external" href="../../../more/getting_started/windows.html#command-prompt">command prompt</a> window.</p>
+</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="get-debug-build" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id20">[7]</a></td><td>On Unix and similar platforms, a debugging
+python and associated libraries are built by adding
+<tt class="docutils literal"><span class="pre">--with-pydebug</span></tt> when configuring the Python build. On
+Windows, the debugging version of Python is generated by
+the &quot;Win32 Debug&quot; target of the Visual Studio project in the
+PCBuild subdirectory of a full Python source code distribution.
+</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="./building.rst">View document source</a>.
+Generated on: 2007-07-02 13:46 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

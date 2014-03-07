@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:attributeGroup name="TestUnitAttributes">
+		<xs:attribute name="name" type="xs:string" use="required">
+			<xs:annotation>
+				<xs:documentation>name of the test unit</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="skipped" type="xs:string" use="optional" fixed="yes">
+			<xs:annotation>
+				<xs:documentation>Specified with value "yes" only if test unit was skipped during execution</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:attributeGroup>
+	<xs:complexType name="LogEntry">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="line" type="xs:integer" use="required">
+					<xs:annotation>
+						<xs:documentation>Line number corresponding to the log entry</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:attribute name="file" type="xs:anyURI" use="required">
+					<xs:annotation>
+						<xs:documentation>file name corresponding to the log entry</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+	<xs:complexType name="ExceptionEntry" mixed="true">
+		<xs:annotation>
+			<xs:documentation>Exception description</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="LastCheckpoint" type="LogEntry">
+				<xs:annotation>
+					<xs:documentation>Location of last checkpoint before exception occured</xs:documentation>
+				</xs:annotation>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="name" type="xs:string" use="optional">
+			<xs:annotation>
+				<xs:documentation>obsolete?</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:complexType>
+	<xs:element name="TestCase">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:choice minOccurs="0" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>different log entries</xs:documentation>
+					</xs:annotation>
+					<xs:element name="Info" type="LogEntry">
+						<xs:annotation>
+							<xs:documentation>Log entry corresponding to  the successfully passed assertion</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="Message" type="LogEntry">
+						<xs:annotation>
+							<xs:documentation>Log entry corresponding to  the message generated during test execution</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="Warning" type="LogEntry">
+						<xs:annotation>
+							<xs:documentation>Log entry corresponding to  the warning generated during test execution</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="Error" type="LogEntry">
+						<xs:annotation>
+							<xs:documentation>Log entry corresponding to  the non-fatal error occured during test execution</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="FatalError" type="LogEntry">
+						<xs:annotation>
+							<xs:documentation>Log entry corresponding to  the fatal error occured during test execution</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element name="Exception" type="ExceptionEntry">
+						<xs:annotation>
+							<xs:documentation>Log entry corresponding to  an exception occured during test execution</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+				</xs:choice>
+				<xs:element name="TestingTime" type="xs:float">
+					<xs:annotation>
+						<xs:documentation>approximate time spent on test unit execution</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+			<xs:attributeGroup ref="TestUnitAttributes"/>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="TestSuite">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:annotation>
+					<xs:documentation>List of test units composing test suite</xs:documentation>
+				</xs:annotation>
+				<xs:choice minOccurs="0" maxOccurs="unbounded">
+					<xs:element ref="TestCase"/>
+					<xs:element ref="TestSuite"/>
+				</xs:choice>
+			</xs:sequence>
+			<xs:attributeGroup ref="TestUnitAttributes"/>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="TestLog">
+		<xs:annotation>
+			<xs:documentation>Holds whole unit test log content</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="BuildInfo" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Optional build information for the unit test. </xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:attribute name="platform" type="xs:string">
+							<xs:annotation>
+								<xs:documentation>unique identifier for the  platform unit test was compiled on</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="compiler" type="xs:string">
+							<xs:annotation>
+								<xs:documentation>unique identifier for the  compiler unit test was compiled with</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="stl" type="xs:string">
+							<xs:annotation>
+								<xs:documentation>unique identifier for the  STL implementation used during unit test compilation</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+						<xs:attribute name="boost" type="xs:string">
+							<xs:annotation>
+								<xs:documentation>version of the boost used</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+					</xs:complexType>
+				</xs:element>
+				<xs:element ref="TestSuite"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

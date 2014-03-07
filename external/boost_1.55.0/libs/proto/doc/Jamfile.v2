@@ -1,0 +1,75 @@
+# Copyright Eric Niebler 2007. Use, modification, and distribution are
+# subject to the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import os ;
+import path ;
+import quickbook ;
+import boostbook ;
+
+local admon-graphics-path = [ path.join [ boostbook.docbook-xsl-dir ] images ] ;
+local callout-graphics-path = [ path.join $(admon-graphics-path) callouts ] ;
+
+admon-graphics-path = [ path.native $(admon-graphics-path)/ ] ;
+callout-graphics-path = [ path.native $(callout-graphics-path)/ ] ;
+
+if [ os.name ] = CYGWIN
+{
+    admon-graphics-path = $(admon-graphics-path:W) ;
+    callout-graphics-path = $(callout-graphics-path:W) ;
+
+    admon-graphics-path = $(admon-graphics-path:T) ;
+    callout-graphics-path = $(callout-graphics-path:T) ;
+}
+
+xml proto
+    :
+        proto.qbk
+    ;
+
+boostbook standalone
+    :
+        proto
+    :
+        <xsl:param>boost.root=../../../..
+        # HTML options first:
+        # Use graphics not text for navigation:
+        <xsl:param>navig.graphics=1
+        # How far down we chunk nested sections, basically all of them:
+        <xsl:param>chunk.section.depth=10
+        # Don't put the first section on the same page as the TOC:
+        <xsl:param>chunk.first.sections=1
+        # How far down sections get TOC's
+        <xsl:param>toc.section.depth=10
+        # Max depth in each TOC:
+        <xsl:param>toc.max.depth=4
+        # How far down we go with TOC's
+        <xsl:param>generate.section.toc.level=10
+        # Set the path to the boost-root so we find our graphics:
+        #<xsl:param>boost.root=$(BOOST_ROOT)
+        # location of the main index file so our links work:
+        #<xsl:param>boost.libraries=$(BOOST_ROOT)/libs/libraries.htm
+
+        # PDF Options:
+        # TOC Generation: this is needed for FOP-0.9 and later:
+        # <xsl:param>fop1.extensions=1
+        <format>pdf:<xsl:param>fop1.extensions=0
+        <format>pdf:<xsl:param>xep.extensions=1
+        # TOC generation: this is needed for FOP 0.2, but must not be set to zero for FOP-0.9!
+        <format>pdf:<xsl:param>fop.extensions=0
+        # No indent on body text:
+        <format>pdf:<xsl:param>body.start.indent=0pt
+        # Margin size:
+        <format>pdf:<xsl:param>page.margin.inner=0.5in
+        # Margin size:
+        <format>pdf:<xsl:param>page.margin.outer=0.5in
+        # Yes, we want graphics for admonishments:
+        <format>pdf:<xsl:param>admon.graphics=1
+        # Set this one for PDF generation *only*:
+        # default png graphics are awful in PDF form,
+        # better use SVG's instead:
+        #<format>pdf:<xsl:param>admon.graphics.extension=".svg"
+        #<format>pdf:<xsl:param>admon.graphics.path="$(admon-graphics-path)"
+        #<format>pdf:<xsl:param>callout.graphics.path="$(callout-graphics-path)"
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/doc/html
+    ;

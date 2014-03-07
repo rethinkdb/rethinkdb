@@ -1,0 +1,68 @@
+﻿[/============================================================================
+  Boost.Geometry Index
+
+  Copyright (c) 2011-2012 Adam Wulkiewicz.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section Introduction]
+
+__rtree__ is a tree data structure used for spatial searching. It was proposed by
+Antonin Guttman in 1984 [footnote Guttman, A. (1984). /R-Trees: A Dynamic Index Structure for Spatial Searching/]
+as an expansion of B-tree for multi-dimensional data. It may be used to store points or volumetric data in order to
+perform a spatial query later. This query may return objects that are inside some area or are close to some point in space
+[footnote Cheung, K.; Fu, A. (1998). /Enhanced Nearest Neighbour Search on the R-tree/].
+
+The __rtree__ structure is presented on the image below. Each __rtree__'s node store a box describing the space occupied by
+its children nodes. At the bottom of the structure, there are leaf-nodes which contains values
+(geometric objects representations). 
+
+[$img/index/rtree/rstar.png]
+
+The __rtree__ is a self-balanced data structure. The key part of balancing algorithm is node splitting algorithm
+[footnote Greene, D. (1989). /An implementation and performance analysis of spatial data access methods/]
+[footnote Beckmann, N.; Kriegel, H. P.; Schneider, R.; Seeger, B. (1990). /The R*-tree: an efficient and robust access method for points and rectangles/].
+Each algorithm produces different splits so the internal structure of a tree may be different for each one of them.
+In general more complex algorithms analyses elements better and produces less overlapping nodes. In the searching process less nodes must be traversed
+in order to find desired objects. On the other hand more complex analysis takes more time. In general faster inserting will result in slower searching
+and vice versa. The performance of the R-tree depends on balancing algorithm, parameters and data inserted into the container.
+Example structures of trees created by use of three different algorithms and operations time are presented below. Data used in benchmark was random,
+non-overlapping boxes.
+
+[table
+[[]                         [linear algorithm] [quadratic algorithm] [R*-tree]]
+[[*Example structure*]      [[$img/index/rtree/linear.png]] [[$img/index/rtree/quadratic.png]] [[$img/index/rtree/rstar.png]]]
+[[*1M Values inserts*]      [1.65s] [2.51s] [4.96s]]
+[[*100k spatial queries*]   [0.87s] [0.25s] [0.09s]]
+[[*100k knn queries*]       [3.25s] [1.41s] [0.51s]]
+]
+
+[heading Implementation details]
+
+Key features of this implementation of the __rtree__ are:
+
+* capable to store arbitrary __value__ type,
+* three different creation algorithms - linear, quadratic or rstar,
+* parameters (including maximal and minimal number of elements) may be passed as compile- or run-time parameters,
+* advanced queries - e.g. search for 5 nearest values to some point and intersecting some region but not within the other one,
+* C++11 conformant: move semantics, stateful allocators,
+* capable to store __value__ type with no default constructor.
+
+[heading Dependencies]
+
+R-tree depends on *Boost.Move*, *Boost.Container*, *Boost.Tuple*, *Boost.Utility*, *Boost.MPL*.
+
+[heading Contributors]
+
+The spatial index was originally started by Federico J. Fernandez during the Google Summer of Code 2008 program, mentored by Hartmut Kaiser.
+
+[heading Spatial thanks]
+
+I'd like to thank Barend Gehrels, Bruno Lalande, Mateusz Łoskot, Lucanus J. Simonson for their support and ideas.
+
+[endsect]
+
+

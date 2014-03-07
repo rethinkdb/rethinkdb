@@ -1,0 +1,26 @@
+[article Horizontal Rule
+[quickbook 1.6]
+]
+
+---- [/
+This should be a comment.
+] This should be displayed.
+
+---- [/ ] This shouldn't be displayed.
+
+---- [/
+This should be a comment.
+] * This shouldn't be a list
+
+---- [/
+This should be a comment.
+]
+* This should be a list
+
+---- [/ This should be a comment]
+* This should be a list
+
+---- [* This should be displayed. Maybe that's wrong?]
+
+[template nothing]
+---- [nothing] Odd way to get text displayed.

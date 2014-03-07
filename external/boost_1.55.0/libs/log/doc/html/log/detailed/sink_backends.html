@@ -1,0 +1,1254 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Sink backends</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../detailed.html" title="Detailed features description">
+<link rel="prev" href="sink_frontends.html" title="Sink frontends">
+<link rel="next" href="expressions.html" title="Lambda expressions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sink_frontends.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../detailed.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="expressions.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.detailed.sink_backends"></a><a class="link" href="sink_backends.html" title="Sink backends">Sink backends</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="sink_backends.html#log.detailed.sink_backends.text_ostream">Text stream
+        backend</a></span></dt>
+<dt><span class="section"><a href="sink_backends.html#log.detailed.sink_backends.text_file">Text file backend</a></span></dt>
+<dt><span class="section"><a href="sink_backends.html#log.detailed.sink_backends.text_multifile">Text multi-file
+        backend</a></span></dt>
+<dt><span class="section"><a href="sink_backends.html#log.detailed.sink_backends.syslog">Syslog backend</a></span></dt>
+<dt><span class="section"><a href="sink_backends.html#log.detailed.sink_backends.debugger">Windows debugger
+        output backend</a></span></dt>
+<dt><span class="section"><a href="sink_backends.html#log.detailed.sink_backends.event_log">Windows event
+        log backends</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.sink_backends.text_ostream"></a><a class="link" href="sink_backends.html#log.detailed.sink_backends.text_ostream" title="Text stream backend">Text stream
+        backend</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../sinks.html#header.boost.log.sinks.text_ostream_backend_hpp" title="Header &lt;boost/log/sinks/text_ostream_backend.hpp&gt;">boost/log/sinks/text_ostream_backend.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          The text output stream sink backend is the most generic backend provided
+          by the library out of the box. The backend is implemented in the <code class="computeroutput"><a class="link" href="../../boost/log/sinks/basic_text_ostream_backend.html" title="Class template basic_text_ostream_backend">basic_text_ostream_backend</a></code>
+          class template (<code class="computeroutput"><span class="identifier">text_ostream_backend</span></code>
+          and <code class="computeroutput"><span class="identifier">wtext_ostream_backend</span></code>
+          convenience typedefs provided for narrow and wide character support). It
+          supports formatting log records into strings and putting into one or several
+          streams. Each attached stream gets the same result of formatting, so if
+          you need to format log records differently for different streams, you will
+          need to create several sinks - each with its own formatter.
+        </p>
+<p>
+          The backend also provides a feature that may come useful when debugging
+          your application. With the <code class="computeroutput"><span class="identifier">auto_flush</span></code>
+          method one can tell the sink to automatically flush the buffers of all
+          attached streams after each log record is written. This will, of course,
+          degrade logging performance, but in case of an application crash there
+          is a good chance that last log records will not be lost.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">init_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="comment">// Create a backend and attach a couple of streams to it</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_ostream_backend</span> <span class="special">&gt;</span> <span class="identifier">backend</span> <span class="special">=</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_ostream_backend</span> <span class="special">&gt;();</span>
+    <span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">add_stream</span><span class="special">(</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&gt;(&amp;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">clog</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">empty_deleter</span><span class="special">()));</span>
+    <span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">add_stream</span><span class="special">(</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&gt;(</span><span class="keyword">new</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ofstream</span><span class="special">(</span><span class="string">"sample.log"</span><span class="special">)));</span>
+
+    <span class="comment">// Enable auto-flushing after each log record written</span>
+    <span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">auto_flush</span><span class="special">(</span><span class="keyword">true</span><span class="special">);</span>
+
+    <span class="comment">// Wrap it into the frontend and register in the core.</span>
+    <span class="comment">// The backend requires synchronization in the frontend.</span>
+    <span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_ostream_backend</span> <span class="special">&gt;</span> <span class="identifier">sink_t</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sink_t</span> <span class="special">&gt;</span> <span class="identifier">sink</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">sink_t</span><span class="special">(</span><span class="identifier">backend</span><span class="special">));</span>
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.sink_backends.text_file"></a><a class="link" href="sink_backends.html#log.detailed.sink_backends.text_file" title="Text file backend">Text file backend</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../sinks.html#header.boost.log.sinks.text_file_backend_hpp" title="Header &lt;boost/log/sinks/text_file_backend.hpp&gt;">boost/log/sinks/text_file_backend.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          Although it is possible to write logs into files with the <a class="link" href="sink_backends.html#log.detailed.sink_backends.text_ostream" title="Text stream backend">text
+          stream backend</a> the library also offers a special sink backend with
+          an extended set of features suitable for file-based logging. The features
+          include:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Log file rotation based on file size and/or time
+            </li>
+<li class="listitem">
+              Flexible log file naming
+            </li>
+<li class="listitem">
+              Placing the rotated files into a special location in the file system
+            </li>
+<li class="listitem">
+              Deleting the oldest files in order to free more space on the file system
+            </li>
+</ul></div>
+<p>
+          The backend is called <code class="computeroutput"><a class="link" href="../../boost/log/sinks/text_file_backend.html" title="Class text_file_backend">text_file_backend</a></code>.
+        </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This sink uses <a href="http://www.boost.org/doc/libs/release/libs/filesystem/doc/index.htm" target="_top">Boost.Filesystem</a>
+            internally, which may cause problems on process termination. See <a class="link" href="../rationale/why_crash_on_term.html" title="Why my application crashes on process termination when file sinks are used?">here</a> for more details.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="log.detailed.sink_backends.text_file.h0"></a>
+          <span class="phrase"><a name="log.detailed.sink_backends.text_file.file_rotation"></a></span><a class="link" href="sink_backends.html#log.detailed.sink_backends.text_file.file_rotation">File rotation</a>
+        </h6>
+<p>
+          File rotation is implemented by the sink backend itself. The file name
+          pattern and rotation thresholds can be specified when the <code class="computeroutput"><a class="link" href="../../boost/log/sinks/text_file_backend.html" title="Class text_file_backend">text_file_backend</a></code>
+          backend is constructed.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">init_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_file_backend</span> <span class="special">&gt;</span> <span class="identifier">backend</span> <span class="special">=</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_file_backend</span> <span class="special">&gt;(</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">file_name</span> <span class="special">=</span> <span class="string">"file_%5N.log"</span><span class="special">,</span>                                          <a class="co" name="log.detailed.sink_backends.text_file.c0" href="sink_backends.html#log.detailed.sink_backends.text_file.c1"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">rotation_size</span> <span class="special">=</span> <span class="number">5</span> <span class="special">*</span> <span class="number">1024</span> <span class="special">*</span> <span class="number">1024</span><span class="special">,</span>                                     <a class="co" name="log.detailed.sink_backends.text_file.c2" href="sink_backends.html#log.detailed.sink_backends.text_file.c3"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">time_based_rotation</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">rotation_at_time_point</span><span class="special">(</span><span class="number">12</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">)</span>  <a class="co" name="log.detailed.sink_backends.text_file.c4" href="sink_backends.html#log.detailed.sink_backends.text_file.c5"><img src="../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a>
+        <span class="special">);</span>
+
+    <span class="comment">// Wrap it into the frontend and register in the core.</span>
+    <span class="comment">// The backend requires synchronization in the frontend.</span>
+    <span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_file_backend</span> <span class="special">&gt;</span> <span class="identifier">sink_t</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sink_t</span> <span class="special">&gt;</span> <span class="identifier">sink</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">sink_t</span><span class="special">(</span><span class="identifier">backend</span><span class="special">));</span>
+
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.text_file.c1"></a><a href="#log.detailed.sink_backends.text_file.c0"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              file name pattern
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.text_file.c3"></a><a href="#log.detailed.sink_backends.text_file.c2"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              rotate the file upon reaching 5 MiB size...
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.text_file.c5"></a><a href="#log.detailed.sink_backends.text_file.c4"><img src="../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              ...or every day, at noon, whichever comes first
+            </p></td>
+</tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The file size at rotation can be imprecise. The implementation counts
+            the number of characters written to the file, but the underlying API
+            can introduce additional auxiliary data, which would increase the log
+            file's actual size on disk. For instance, it is well known that Windows
+            and DOS operating systems have a special treatment with regard to new-line
+            characters. Each new-line character is written as a two byte sequence
+            0x0D 0x0A instead of a single 0x0A. Other platform-specific character
+            translations are also known.
+          </p></td></tr>
+</table></div>
+<p>
+          The time-based rotation is not limited by only time points. There are following
+          options available out of the box:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              Time point rotations: <code class="computeroutput"><a class="link" href="../../boost/log/sinks/file/rotation_at_time_point.html" title="Class rotation_at_time_point">rotation_at_time_point</a></code>
+              class. This kind of rotation takes place whenever the specified time
+              point is reached. The following variants are available:
+              <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                    Every day rotation, at the specified time. This is what was presented
+                    in the code snippet above:
+<pre class="programlisting"><span class="identifier">sinks</span><span class="special">::</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">rotation_at_time_point</span><span class="special">(</span><span class="number">12</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">)</span>
+</pre>
+                  </li>
+<li class="listitem">
+                    Rotation on the specified day of every week, at the specified
+                    time. For instance, this will make file rotation to happen every
+                    Tuesday, at midnight:
+<pre class="programlisting"><span class="identifier">sinks</span><span class="special">::</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">rotation_at_time_point</span><span class="special">(</span><span class="identifier">date_time</span><span class="special">::</span><span class="identifier">Tuesday</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">)</span>
+</pre>
+                    in case of midnight, the time can be omitted:
+<pre class="programlisting"><span class="identifier">sinks</span><span class="special">::</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">rotation_at_time_point</span><span class="special">(</span><span class="identifier">date_time</span><span class="special">::</span><span class="identifier">Tuesday</span><span class="special">)</span>
+</pre>
+                  </li>
+<li class="listitem">
+                    Rotation on the specified day of each month, at the specified
+                    time. For example, this is how to rotate files on the 1-st of
+                    every month:
+<pre class="programlisting"><span class="identifier">sinks</span><span class="special">::</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">rotation_at_time_point</span><span class="special">(</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">greg_day</span><span class="special">(</span><span class="number">1</span><span class="special">),</span> <span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">)</span>
+</pre>
+                    like with weekdays, midnight is implied:
+<pre class="programlisting"><span class="identifier">sinks</span><span class="special">::</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">rotation_at_time_point</span><span class="special">(</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">greg_day</span><span class="special">(</span><span class="number">1</span><span class="special">))</span>
+</pre>
+                  </li>
+</ul></div>
+            </li>
+<li class="listitem">
+              Time interval rotations: <code class="computeroutput"><a class="link" href="../../boost/log/sinks/file/rotation_at_time_interval.html" title="Class rotation_at_time_interval">rotation_at_time_interval</a></code>
+              class. With this predicate the rotation is not bound to any time points
+              and happens as soon as the specified time interval since the previous
+              rotation elapses. This is how to make rotations every hour:
+<pre class="programlisting"><span class="identifier">sinks</span><span class="special">::</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">rotation_at_time_interval</span><span class="special">(</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">hours</span><span class="special">(</span><span class="number">1</span><span class="special">))</span>
+</pre>
+            </li>
+</ol></div>
+<p>
+          If none of the above applies, one can specify his own predicate for time-based
+          rotation. The predicate should take no arguments and return <code class="computeroutput"><span class="keyword">bool</span></code> (the <code class="computeroutput"><span class="keyword">true</span></code>
+          value indicates that the rotation should take place). The predicate will
+          be called for every log record being written to the file.
+        </p>
+<pre class="programlisting"><span class="keyword">bool</span> <span class="identifier">is_it_time_to_rotate</span><span class="special">();</span>
+
+<span class="keyword">void</span> <span class="identifier">init_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// ...</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_file_backend</span> <span class="special">&gt;</span> <span class="identifier">backend</span> <span class="special">=</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_file_backend</span> <span class="special">&gt;(</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">file_name</span> <span class="special">=</span> <span class="string">"file_%5N.log"</span><span class="special">,</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">time_based_rotation</span> <span class="special">=</span> <span class="special">&amp;</span><span class="identifier">is_it_time_to_rotate</span>
+        <span class="special">);</span>
+
+    <span class="comment">// ...</span>
+<span class="special">}</span>
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The log file rotation takes place on an attempt to write a new log record
+            to the file. Thus the time-based rotation is not a strict threshold,
+            either. The rotation will take place as soon as the library detects that
+            the rotation should have happened.
+          </p></td></tr>
+</table></div>
+<p>
+          The file name pattern may contain a number of wildcards, like the one you
+          can see in the example above. Supported placeholders are:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Current date and time components. The placeholders conform to the ones
+              specified by <a href="http://www.boost.org/doc/libs/release/doc/html/date_time.html" target="_top">Boost.DateTime</a>
+              library.
+            </li>
+<li class="listitem">
+              File counter (<code class="computeroutput"><span class="special">%</span><span class="identifier">N</span></code>)
+              with an optional width specification in the <code class="computeroutput"><span class="identifier">printf</span></code>-like
+              format. The file counter will always be decimal, zero filled to the
+              specified width.
+            </li>
+<li class="listitem">
+              A percent sign (<code class="computeroutput"><span class="special">%%</span></code>).
+            </li>
+</ul></div>
+<p>
+          A few quick examples:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Template
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Expands to
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    file_%N.log
+                  </p>
+                </td>
+<td>
+                  <p>
+                    file_1.log, file_2.log...
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    file_%3N.log
+                  </p>
+                </td>
+<td>
+                  <p>
+                    file_001.log, file_002.log...
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    file_%Y%m%d.log
+                  </p>
+                </td>
+<td>
+                  <p>
+                    file_20080705.log, file_20080706.log...
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    file_%Y-%m-%d_%H-%M-%S.%N.log
+                  </p>
+                </td>
+<td>
+                  <p>
+                    file_2008-07-05_13-44-23.1.log, file_2008-07-06_16-00-10.2.log...
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Although all <a href="http://www.boost.org/doc/libs/release/doc/html/date_time.html" target="_top">Boost.DateTime</a>
+            format specifiers will work, there are restrictions on some of them,
+            if you intend to scan for old log files. This functionality is discussed
+            in the next section.
+          </p></td></tr>
+</table></div>
+<p>
+          The sink backend allows hooking into the file rotation process in order
+          to perform pre- and post-rotation actions. This can be useful to maintain
+          log file validity by writing headers and footers. For example, this is
+          how we could modify the <code class="computeroutput"><span class="identifier">init_logging</span></code>
+          function in order to write logs into XML files:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Complete file sink type</span>
+<span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_file_backend</span> <span class="special">&gt;</span> <span class="identifier">file_sink</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">write_header</span><span class="special">(</span><span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_file_backend</span><span class="special">::</span><span class="identifier">stream_type</span><span class="special">&amp;</span> <span class="identifier">file</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">file</span> <span class="special">&lt;&lt;</span> <span class="string">"&lt;?xml version=\"1.0\"?&gt;\n&lt;log&gt;\n"</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">write_footer</span><span class="special">(</span><span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_file_backend</span><span class="special">::</span><span class="identifier">stream_type</span><span class="special">&amp;</span> <span class="identifier">file</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">file</span> <span class="special">&lt;&lt;</span> <span class="string">"&lt;/log&gt;\n"</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">init_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Create a text file sink</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">file_sink</span> <span class="special">&gt;</span> <span class="identifier">sink</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">file_sink</span><span class="special">(</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">file_name</span> <span class="special">=</span> <span class="string">"%Y%m%d_%H%M%S_%5N.xml"</span><span class="special">,</span>  <a class="co" name="log.detailed.sink_backends.text_file.c6" href="sink_backends.html#log.detailed.sink_backends.text_file.c7"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">rotation_size</span> <span class="special">=</span> <span class="number">16384</span>                 <a class="co" name="log.detailed.sink_backends.text_file.c8" href="sink_backends.html#log.detailed.sink_backends.text_file.c9"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a>
+    <span class="special">));</span>
+
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+    <span class="special">(</span>
+        <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format</span><span class="special">(</span><span class="string">"\t&lt;record id=\"%1%\" timestamp=\"%2%\"&gt;%3%&lt;/record&gt;"</span><span class="special">)</span>
+            <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"RecordID"</span><span class="special">)</span>
+            <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&gt;(</span><span class="string">"TimeStamp"</span><span class="special">)</span>
+            <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">xml_decor</span><span class="special">[</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span> <span class="special">]</span>            <a class="co" name="log.detailed.sink_backends.text_file.c10" href="sink_backends.html#log.detailed.sink_backends.text_file.c11"><img src="../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a>
+    <span class="special">);</span>
+
+    <span class="comment">// Set header and footer writing functors</span>
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">locked_backend</span><span class="special">()-&gt;</span><span class="identifier">set_open_handler</span><span class="special">(&amp;</span><span class="identifier">write_header</span><span class="special">);</span>
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">locked_backend</span><span class="special">()-&gt;</span><span class="identifier">set_close_handler</span><span class="special">(&amp;</span><span class="identifier">write_footer</span><span class="special">);</span>
+
+    <span class="comment">// Add the sink to the core</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">()-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.text_file.c7"></a><a href="#log.detailed.sink_backends.text_file.c6"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              the resulting file name pattern
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.text_file.c9"></a><a href="#log.detailed.sink_backends.text_file.c8"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              rotation size, in characters
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.text_file.c11"></a><a href="#log.detailed.sink_backends.text_file.c10"><img src="../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              the log message has to be decorated, if it contains special characters
+            </p></td>
+</tr>
+</table></div>
+<p>
+          <a href="../../../../../../libs/log/example/doc/sinks_xml_file.cpp" target="_top">See the complete
+          code</a>.
+        </p>
+<p>
+          Finally, the sink backend also supports the auto-flush feature, like the
+          <a class="link" href="sink_backends.html#log.detailed.sink_backends.text_ostream" title="Text stream backend">text stream backend</a>
+          does.
+        </p>
+<h6>
+<a name="log.detailed.sink_backends.text_file.h1"></a>
+          <span class="phrase"><a name="log.detailed.sink_backends.text_file.managing_rotated_files"></a></span><a class="link" href="sink_backends.html#log.detailed.sink_backends.text_file.managing_rotated_files">Managing
+          rotated files</a>
+        </h6>
+<p>
+          After being closed, the rotated files can be collected. In order to do
+          so one has to set up a file collector by specifying the target directory
+          where to collect the rotated files and, optionally, size thresholds. For
+          example, we can modify the <code class="computeroutput"><span class="identifier">init_logging</span></code>
+          function to place rotated files into a distinct directory and limit total
+          size of the files. Let's assume the following function is called by <code class="computeroutput"><span class="identifier">init_logging</span></code> with the constructed sink:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">init_file_collecting</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">file_sink</span> <span class="special">&gt;</span> <span class="identifier">sink</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">locked_backend</span><span class="special">()-&gt;</span><span class="identifier">set_file_collector</span><span class="special">(</span><span class="identifier">sinks</span><span class="special">::</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">make_collector</span><span class="special">(</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">target</span> <span class="special">=</span> <span class="string">"logs"</span><span class="special">,</span>                      <a class="co" name="log.detailed.sink_backends.text_file.c12" href="sink_backends.html#log.detailed.sink_backends.text_file.c13"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">max_size</span> <span class="special">=</span> <span class="number">16</span> <span class="special">*</span> <span class="number">1024</span> <span class="special">*</span> <span class="number">1024</span><span class="special">,</span>          <a class="co" name="log.detailed.sink_backends.text_file.c14" href="sink_backends.html#log.detailed.sink_backends.text_file.c15"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">min_free_space</span> <span class="special">=</span> <span class="number">100</span> <span class="special">*</span> <span class="number">1024</span> <span class="special">*</span> <span class="number">1024</span>    <a class="co" name="log.detailed.sink_backends.text_file.c16" href="sink_backends.html#log.detailed.sink_backends.text_file.c17"><img src="../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a>
+    <span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.text_file.c13"></a><a href="#log.detailed.sink_backends.text_file.c12"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              the target directory
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.text_file.c15"></a><a href="#log.detailed.sink_backends.text_file.c14"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              maximum total size of the stored files, in bytes
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.text_file.c17"></a><a href="#log.detailed.sink_backends.text_file.c16"><img src="../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              minimum free space on the drive, in bytes
+            </p></td>
+</tr>
+</table></div>
+<p>
+          The <code class="computeroutput"><span class="identifier">max_size</span></code> and <code class="computeroutput"><span class="identifier">min_free_space</span></code> parameters are optional,
+          the corresponding threshold will not be taken into account if the parameter
+          is not specified.
+        </p>
+<p>
+          One can create multiple file sink backends that collect files into the
+          same target directory. In this case the most strict thresholds are combined
+          for this target directory. The files from this directory will be erased
+          without regard for which sink backend wrote it, i.e. in the strict chronological
+          order.
+        </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The collector does not resolve log file name clashes between different
+            sink backends, so if the clash occurs the behavior is undefined, in general.
+            Depending on the circumstances, the files may overwrite each other or
+            the operation may fail entirely.
+          </p></td></tr>
+</table></div>
+<p>
+          The file collector provides another useful feature. Suppose you ran your
+          application 5 times and you have 5 log files in the "logs" directory.
+          The file sink backend and file collector provide a <code class="computeroutput"><span class="identifier">scan_for_files</span></code>
+          method that searches the target directory for these files and takes them
+          into account. So, if it comes to deleting files, these files are not forgotten.
+          What's more, if the file name pattern in the backend involves a file counter,
+          scanning for older files allows updating the counter to the most recent
+          value. Here is the final version of our <code class="computeroutput"><span class="identifier">init_logging</span></code>
+          function:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">init_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Create a text file sink</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">file_sink</span> <span class="special">&gt;</span> <span class="identifier">sink</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">file_sink</span><span class="special">(</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">file_name</span> <span class="special">=</span> <span class="string">"%Y%m%d_%H%M%S_%5N.xml"</span><span class="special">,</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">rotation_size</span> <span class="special">=</span> <span class="number">16384</span>
+    <span class="special">));</span>
+
+    <span class="comment">// Set up where the rotated files will be stored</span>
+    <span class="identifier">init_file_collecting</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+
+    <span class="comment">// Upon restart, scan the directory for files matching the file_name pattern</span>
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">locked_backend</span><span class="special">()-&gt;</span><span class="identifier">scan_for_files</span><span class="special">();</span>
+
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+    <span class="special">(</span>
+        <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format</span><span class="special">(</span><span class="string">"\t&lt;record id=\"%1%\" timestamp=\"%2%\"&gt;%3%&lt;/record&gt;"</span><span class="special">)</span>
+            <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"RecordID"</span><span class="special">)</span>
+            <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&gt;(</span><span class="string">"TimeStamp"</span><span class="special">)</span>
+            <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">xml_decor</span><span class="special">[</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span> <span class="special">]</span>
+    <span class="special">);</span>
+
+    <span class="comment">// Set header and footer writing functors</span>
+    <span class="keyword">namespace</span> <span class="identifier">bll</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">;</span>
+
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">locked_backend</span><span class="special">()-&gt;</span><span class="identifier">set_open_handler</span>
+    <span class="special">(</span>
+        <span class="identifier">bll</span><span class="special">::</span><span class="identifier">_1</span> <span class="special">&lt;&lt;</span> <span class="string">"&lt;?xml version=\"1.0\"?&gt;\n&lt;log&gt;\n"</span>
+    <span class="special">);</span>
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">locked_backend</span><span class="special">()-&gt;</span><span class="identifier">set_close_handler</span>
+    <span class="special">(</span>
+        <span class="identifier">bll</span><span class="special">::</span><span class="identifier">_1</span> <span class="special">&lt;&lt;</span> <span class="string">"&lt;/log&gt;\n"</span>
+    <span class="special">);</span>
+
+    <span class="comment">// Add the sink to the core</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">()-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          There are two methods of file scanning: the scan that involves file name
+          matching with the file name pattern (the default) and the scan that assumes
+          that all files in the target directory are log files. The former applies
+          certain restrictions on the placeholders that can be used within the file
+          name pattern, in particular only file counter placeholder and these placeholders
+          of <a href="http://www.boost.org/doc/libs/release/doc/html/date_time.html" target="_top">Boost.DateTime</a>
+          are supported: <code class="computeroutput"><span class="special">%</span><span class="identifier">y</span></code>,
+          <code class="computeroutput"><span class="special">%</span><span class="identifier">Y</span></code>,
+          <code class="computeroutput"><span class="special">%</span><span class="identifier">m</span></code>,
+          <code class="computeroutput"><span class="special">%</span><span class="identifier">d</span></code>,
+          <code class="computeroutput"><span class="special">%</span><span class="identifier">H</span></code>,
+          <code class="computeroutput"><span class="special">%</span><span class="identifier">M</span></code>,
+          <code class="computeroutput"><span class="special">%</span><span class="identifier">S</span></code>,
+          <code class="computeroutput"><span class="special">%</span><span class="identifier">f</span></code>.
+          The latter scanning method, in its turn, has its own drawback: it does
+          not allow updating the file counter in the backend. It is also considered
+          to be more dangerous as it may result in unintended file deletion, so be
+          cautious. The all-files scanning method can be enabled by passing it as
+          an additional parameter to the <code class="computeroutput"><span class="identifier">scan_for_files</span></code>
+          call:
+        </p>
+<pre class="programlisting"><span class="comment">// Look for all files in the target directory</span>
+<span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">scan_for_files</span><span class="special">(</span><span class="identifier">sinks</span><span class="special">::</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">scan_all</span><span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.sink_backends.text_multifile"></a><a class="link" href="sink_backends.html#log.detailed.sink_backends.text_multifile" title="Text multi-file backend">Text multi-file
+        backend</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../sinks.html#header.boost.log.sinks.text_multifile_backend_hpp" title="Header &lt;boost/log/sinks/text_multifile_backend.hpp&gt;">boost/log/sinks/text_multifile_backend.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          While the text stream and file backends are aimed to store all log records
+          into a single file/stream, this backend serves a different purpose. Assume
+          we have a banking request processing application and we want logs related
+          to every single request to be placed into a separate file. If we can associate
+          some attribute with the request identity then the <code class="computeroutput"><a class="link" href="../../boost/log/sinks/text_multifile_backend.html" title="Class text_multifile_backend">text_multifile_backend</a></code>
+          backend is the way to go.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">init_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_multifile_backend</span> <span class="special">&gt;</span> <span class="identifier">backend</span> <span class="special">=</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_multifile_backend</span> <span class="special">&gt;();</span>
+
+    <span class="comment">// Set up the file naming pattern</span>
+    <span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">set_file_name_composer</span>
+    <span class="special">(</span>
+        <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">as_file_name_composer</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="string">"logs/"</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="string">"RequestID"</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">".log"</span><span class="special">)</span>
+    <span class="special">);</span>
+
+    <span class="comment">// Wrap it into the frontend and register in the core.</span>
+    <span class="comment">// The backend requires synchronization in the frontend.</span>
+    <span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_multifile_backend</span> <span class="special">&gt;</span> <span class="identifier">sink_t</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sink_t</span> <span class="special">&gt;</span> <span class="identifier">sink</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">sink_t</span><span class="special">(</span><span class="identifier">backend</span><span class="special">));</span>
+
+    <span class="comment">// Set the formatter</span>
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+    <span class="special">(</span>
+        <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+            <span class="special">&lt;&lt;</span> <span class="string">"[RequestID: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="string">"RequestID"</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="string">"] "</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span>
+    <span class="special">);</span>
+
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          You can see we used a regular <a class="link" href="expressions.html#log.detailed.expressions.formatters" title="Formatting expressions">formatter</a>
+          in order to specify file naming pattern. Now, every log record with a distinct
+          value of the "RequestID" attribute will be stored in a separate
+          file, no matter how many different requests are being processed by the
+          application concurrently. You can also find the <a href="../../../../../../libs/log/example/multiple_files/main.cpp" target="_top"><code class="computeroutput"><span class="identifier">multiple_files</span></code></a> example in the
+          library distribution, which shows a similar technique to separate logs
+          generated by different threads of the application.
+        </p>
+<p>
+          If using formatters is not appropriate for some reason, you can provide
+          your own file name composer. The composer is a mere function object that
+          accepts a log record as a single argument and returns a value of the <code class="computeroutput"><span class="identifier">text_multifile_backend</span><span class="special">::</span><span class="identifier">path_type</span></code> type.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The multi-file backend has no knowledge of whether a particular file
+            is going to be used or not. That is, if a log record has been written
+            into file A, the library cannot tell whether there will be more records
+            that fit into the file A or not. This makes it impossible to implement
+            file rotation and removing unused files to free space on the file system.
+            The user will have to implement such functionality himself.
+          </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.sink_backends.syslog"></a><a class="link" href="sink_backends.html#log.detailed.sink_backends.syslog" title="Syslog backend">Syslog backend</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../sinks.html#header.boost.log.sinks.syslog_backend_hpp" title="Header &lt;boost/log/sinks/syslog_backend.hpp&gt;">boost/log/sinks/syslog_backend.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          The syslog backend, as comes from its name, provides support for the syslog
+          API that is available on virtually any UNIX-like platform. On Windows there
+          exists at least <a href="http://syslog-win32.sourceforge.net" target="_top">one</a>
+          public implementation of the syslog client API. However, in order to provide
+          maximum flexibility and better portability the library offers built-in
+          support for the syslog protocol described in <a href="http://tools.ietf.org/html/rfc3164" target="_top">RFC
+          3164</a>. Thus on Windows only the built-in implementation is supported,
+          while on UNIX-like systems both built-in and system API based implementations
+          are supported.
+        </p>
+<p>
+          The backend is implemented in the <code class="computeroutput"><a class="link" href="../../boost/log/sinks/syslog_backend.html" title="Class syslog_backend">syslog_backend</a></code>
+          class. The backend supports formatting log records, and therefore requires
+          thread synchronization in the frontend. The backend also supports severity
+          level translation from the application-specific values to the syslog-defined
+          values. This is achieved with an additional function object, level mapper,
+          that receives a set of attribute values of each log record and returns
+          the appropriate syslog level value. This value is used by the backend to
+          construct the final priority value of the syslog record. The other component
+          of the syslog priority value, the facility, is constant for each backend
+          object and can be specified in the backend constructor arguments.
+        </p>
+<p>
+          Level mappers can be written by library users to translate the application
+          log levels to the syslog levels in the best way. However, the library provides
+          two mappers that would fit this need in obvious cases. The <code class="computeroutput"><a class="link" href="../../boost/log/sinks/syslog/direct_severity_mapping.html" title="Class template direct_severity_mapping">direct_severity_mapping</a></code>
+          class template provides a way to directly map values of some integral attribute
+          to syslog levels, without any value conversion. The <code class="computeroutput"><a class="link" href="../../boost/log/sinks/syslog/custom_severity_mapping.html" title="Class template custom_severity_mapping">custom_severity_mapping</a></code>
+          class template adds some flexibility and allows to map arbitrary values
+          of some attribute to syslog levels.
+        </p>
+<p>
+          Anyway, one example is better than a thousand words.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Complete sink type</span>
+<span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog_backend</span> <span class="special">&gt;</span> <span class="identifier">sink_t</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">init_native_syslog</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="comment">// Create a backend</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog_backend</span> <span class="special">&gt;</span> <span class="identifier">backend</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog_backend</span><span class="special">(</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">facility</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog</span><span class="special">::</span><span class="identifier">user</span><span class="special">,</span>               <a class="co" name="log.detailed.sink_backends.syslog.c0" href="sink_backends.html#log.detailed.sink_backends.syslog.c1"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">use_impl</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog</span><span class="special">::</span><span class="identifier">native</span>              <a class="co" name="log.detailed.sink_backends.syslog.c2" href="sink_backends.html#log.detailed.sink_backends.syslog.c3"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a>
+    <span class="special">));</span>
+
+    <span class="comment">// Set the straightforward level translator for the "Severity" attribute of type int</span>
+    <span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">set_severity_mapper</span><span class="special">(</span><span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog</span><span class="special">::</span><span class="identifier">direct_severity_mapping</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"Severity"</span><span class="special">));</span>
+
+    <span class="comment">// Wrap it into the frontend and register in the core.</span>
+    <span class="comment">// The backend requires synchronization in the frontend.</span>
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">sink_t</span> <span class="special">&gt;(</span><span class="identifier">backend</span><span class="special">));</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">init_builtin_syslog</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="comment">// Create a new backend</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog_backend</span> <span class="special">&gt;</span> <span class="identifier">backend</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog_backend</span><span class="special">(</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">facility</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog</span><span class="special">::</span><span class="identifier">local0</span><span class="special">,</span>             <a class="co" name="log.detailed.sink_backends.syslog.c4" href="sink_backends.html#log.detailed.sink_backends.syslog.c5"><img src="../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">use_impl</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog</span><span class="special">::</span><span class="identifier">udp_socket_based</span>    <a class="co" name="log.detailed.sink_backends.syslog.c6" href="sink_backends.html#log.detailed.sink_backends.syslog.c7"><img src="../../../../../../doc/src/images/callouts/4.png" alt="4" border="0"></a>
+    <span class="special">));</span>
+
+    <span class="comment">// Setup the target address and port to send syslog messages to</span>
+    <span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">set_target_address</span><span class="special">(</span><span class="string">"192.164.1.10"</span><span class="special">,</span> <span class="number">514</span><span class="special">);</span>
+
+    <span class="comment">// Create and fill in another level translator for "MyLevel" attribute of type string</span>
+    <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog</span><span class="special">::</span><span class="identifier">custom_severity_mapping</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;</span> <span class="identifier">mapping</span><span class="special">(</span><span class="string">"MyLevel"</span><span class="special">);</span>
+    <span class="identifier">mapping</span><span class="special">[</span><span class="string">"debug"</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog</span><span class="special">::</span><span class="identifier">debug</span><span class="special">;</span>
+    <span class="identifier">mapping</span><span class="special">[</span><span class="string">"normal"</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog</span><span class="special">::</span><span class="identifier">info</span><span class="special">;</span>
+    <span class="identifier">mapping</span><span class="special">[</span><span class="string">"warning"</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog</span><span class="special">::</span><span class="identifier">warning</span><span class="special">;</span>
+    <span class="identifier">mapping</span><span class="special">[</span><span class="string">"failure"</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">syslog</span><span class="special">::</span><span class="identifier">critical</span><span class="special">;</span>
+    <span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">set_severity_mapper</span><span class="special">(</span><span class="identifier">mapping</span><span class="special">);</span>
+
+    <span class="comment">// Wrap it into the frontend and register in the core.</span>
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">sink_t</span> <span class="special">&gt;(</span><span class="identifier">backend</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.syslog.c1"></a><a href="#log.detailed.sink_backends.syslog.c0"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              the logging facility
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.syslog.c3"></a><a href="#log.detailed.sink_backends.syslog.c2"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              the native syslog API should be used
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.syslog.c5"></a><a href="#log.detailed.sink_backends.syslog.c4"><img src="../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              the logging facility
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.detailed.sink_backends.syslog.c7"></a><a href="#log.detailed.sink_backends.syslog.c6"><img src="../../../../../../doc/src/images/callouts/4.png" alt="4" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              the built-in socket-based implementation should be used
+            </p></td>
+</tr>
+</table></div>
+<p>
+          Please note that all syslog constants, as well as level extractors, are
+          declared within a nested namespace <code class="computeroutput"><span class="identifier">syslog</span></code>.
+          The library will not accept (and does not declare in the backend interface)
+          native syslog constants, which are macros, actually.
+        </p>
+<p>
+          Also note that the backend will default to the built-in implementation
+          and <code class="computeroutput"><span class="identifier">user</span></code> logging facility,
+          if the corresponding constructor parameters are not specified.
+        </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The <code class="computeroutput"><span class="identifier">set_target_address</span></code>
+            method will also accept DNS names, which it will resolve to the actual
+            IP address. This feature, however, is not available in single threaded
+            builds.
+          </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.sink_backends.debugger"></a><a class="link" href="sink_backends.html#log.detailed.sink_backends.debugger" title="Windows debugger output backend">Windows debugger
+        output backend</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../sinks.html#header.boost.log.sinks.debug_output_backend_hpp" title="Header &lt;boost/log/sinks/debug_output_backend.hpp&gt;">boost/log/sinks/debug_output_backend.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          Windows API has an interesting feature: a process, being run under a debugger,
+          is able to emit messages that will be intercepted and displayed in the
+          debugger window. For example, if an application is run under the Visual
+          Studio IDE it is able to write debug messages to the IDE window. The <code class="computeroutput"><a class="link" href="../../boost/log/sinks/basic_debug_output_backend.html" title="Class template basic_debug_output_backend">basic_debug_output_backend</a></code>
+          backend provides a simple way of emitting such messages. Additionally,
+          in order to optimize application performance, a <a class="link" href="expressions.html#log.detailed.expressions.predicates.is_debugger_present" title="Debugger presence filter">special
+          filter</a> is available that checks whether the application is being
+          run under a debugger. Like many other sink backends, this backend also
+          supports setting a formatter in order to compose the message text.
+        </p>
+<p>
+          The usage is quite simple and straightforward:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Complete sink type</span>
+<span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">debug_output_backend</span> <span class="special">&gt;</span> <span class="identifier">sink_t</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">init_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="comment">// Create the sink. The backend requires synchronization in the frontend.</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sink_t</span> <span class="special">&gt;</span> <span class="identifier">sink</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">sink_t</span><span class="special">());</span>
+
+    <span class="comment">// Set the special filter to the frontend</span>
+    <span class="comment">// in order to skip the sink when no debugger is available</span>
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">is_debugger_present</span><span class="special">());</span>
+
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Note that the sink backend is templated on the character type. This type
+          defines the Windows API version that is used to emit messages. Also, <code class="computeroutput"><span class="identifier">debug_output_backend</span></code> and <code class="computeroutput"><span class="identifier">wdebug_output_backend</span></code> convenience typedefs
+          are provided.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.sink_backends.event_log"></a><a class="link" href="sink_backends.html#log.detailed.sink_backends.event_log" title="Windows event log backends">Windows event
+        log backends</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span>[boost/log/sinks/event_log_backend.hpp]<span class="special">&gt;</span>
+</pre>
+<p>
+          Windows operating system provides a special API for publishing events related
+          to application execution. A wide range of applications, including Windows
+          components, use this facility to provide the user with all essential information
+          about computer health in a single place - an event log. There can be more
+          than one event log. However, typically all user-space applications use
+          the common Application log. Records from different applications or their
+          parts can be selected from the log by a record source name. Event logs
+          can be read with a standard utility, an Event Viewer, that comes with Windows.
+        </p>
+<p>
+          Although it looks very tempting, the API is quite complicated and intrusive,
+          which makes it difficult to support. The application is required to provide
+          a dynamic library with special resources that describe all events the application
+          supports. This library must be registered in the Windows registry, which
+          pins its location in the file system. The Event Viewer uses this registration
+          to find the resources and compose and display messages. The positive feature
+          of this approach is that since event resources can describe events differently
+          for different languages, it allows the application to support event internationalization
+          in a quite transparent manner: the application simply provides event identifiers
+          and non-localizable event parameters to the API, and it does the rest of
+          the work.
+        </p>
+<p>
+          In order to support both the simplistic approach "it just works"
+          and the more elaborate event composition, including internationalization
+          support, the library provides two sink backends that work with event log
+          API.
+        </p>
+<h6>
+<a name="log.detailed.sink_backends.event_log.h0"></a>
+          <span class="phrase"><a name="log.detailed.sink_backends.event_log.simple_event_log_backend"></a></span><a class="link" href="sink_backends.html#log.detailed.sink_backends.event_log.simple_event_log_backend">Simple
+          event log backend</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><a class="link" href="../../boost/log/sinks/basic_simple_e_idp27205816.html" title="Class template basic_simple_event_log_backend">basic_simple_event_log_backend</a></code>
+          backend is intended to encapsulate as much of the event log API as possible,
+          leaving interface and usage model very similar to other sink backends.
+          It contains all resources that are needed for the Event Viewer to function
+          properly, and registers the Boost.Log library in the Windows registry in
+          order to populate itself as the container of these resources.
+        </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The library must be built as a dynamic library in order to use this backend
+            flawlessly. Otherwise event description resources are not linked into
+            the executable, and the Event Viewer is not able to display events properly.
+          </p></td></tr>
+</table></div>
+<p>
+          The only thing user has to do to add Windows event log support to his application
+          is to provide event source and log names (which are optional and can be
+          automatically suggested by the library), set up an appropriate filter,
+          formatter and event severity mapping.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Complete sink type</span>
+<span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">simple_event_log_backend</span> <span class="special">&gt;</span> <span class="identifier">sink_t</span><span class="special">;</span>
+
+<span class="comment">// Define application-specific severity levels</span>
+<span class="keyword">enum</span> <span class="identifier">severity_level</span>
+<span class="special">{</span>
+    <span class="identifier">normal</span><span class="special">,</span>
+    <span class="identifier">warning</span><span class="special">,</span>
+    <span class="identifier">error</span>
+<span class="special">};</span>
+
+<span class="keyword">void</span> <span class="identifier">init_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Create an event log sink</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sink_t</span> <span class="special">&gt;</span> <span class="identifier">sink</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">sink_t</span><span class="special">());</span>
+
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+    <span class="special">(</span>
+        <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format</span><span class="special">(</span><span class="string">"%1%: [%2%] - %3%"</span><span class="special">)</span>
+            <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"LineID"</span><span class="special">)</span>
+            <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&gt;(</span><span class="string">"TimeStamp"</span><span class="special">)</span>
+            <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span>
+    <span class="special">);</span>
+
+    <span class="comment">// We'll have to map our custom levels to the event log event types</span>
+    <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">custom_event_type_mapping</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;</span> <span class="identifier">mapping</span><span class="special">(</span><span class="string">"Severity"</span><span class="special">);</span>
+    <span class="identifier">mapping</span><span class="special">[</span><span class="identifier">normal</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">info</span><span class="special">;</span>
+    <span class="identifier">mapping</span><span class="special">[</span><span class="identifier">warning</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">warning</span><span class="special">;</span>
+    <span class="identifier">mapping</span><span class="special">[</span><span class="identifier">error</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">error</span><span class="special">;</span>
+
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">locked_backend</span><span class="special">()-&gt;</span><span class="identifier">set_event_type_mapper</span><span class="special">(</span><span class="identifier">mapping</span><span class="special">);</span>
+
+    <span class="comment">// Add the sink to the core</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">()-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Having done that, all logging records that pass to the sink will be formatted
+          the same way they are in the other sinks. The formatted message will be
+          displayed in the Event Viewer as the event description.
+        </p>
+<h6>
+<a name="log.detailed.sink_backends.event_log.h1"></a>
+          <span class="phrase"><a name="log.detailed.sink_backends.event_log.advanced_event_log_backend"></a></span><a class="link" href="sink_backends.html#log.detailed.sink_backends.event_log.advanced_event_log_backend">Advanced
+          event log backend</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><a class="link" href="../../boost/log/sinks/basic_event_log_backend.html" title="Class template basic_event_log_backend">basic_event_log_backend</a></code>
+          allows more detailed control over the logging API, but requires considerably
+          more scaffolding during initialization and usage.
+        </p>
+<p>
+          First, the user has to build his own library with the event resources (the
+          process is described in <a href="http://msdn.microsoft.com/en-us/library/aa363681(VS.85).aspx" target="_top">MSDN</a>).
+          As a part of this process one has to create a message file that describes
+          all events. For the sake of example, let's assume the following contents
+          were used as the message file:
+        </p>
+<pre class="programlisting">; /* --------------------------------------------------------
+; HEADER SECTION
+; */
+SeverityNames=(Debug=0x0:MY_SEVERITY_DEBUG
+            Info=0x1:MY_SEVERITY_INFO
+            Warning=0x2:MY_SEVERITY_WARNING
+            Error=0x3:MY_SEVERITY_ERROR
+            )
+
+; /* --------------------------------------------------------
+; MESSAGE DEFINITION SECTION
+; */
+
+MessageIdTypedef=WORD
+
+MessageId=0x1
+SymbolicName=MY_CATEGORY_1
+Language=English
+Category 1
+.
+
+MessageId=0x2
+SymbolicName=MY_CATEGORY_2
+Language=English
+Category 2
+.
+
+MessageId=0x3
+SymbolicName=MY_CATEGORY_3
+Language=English
+Category 3
+.
+
+MessageIdTypedef=DWORD
+
+MessageId=0x100
+Severity=Warning
+Facility=Application
+SymbolicName=LOW_DISK_SPACE_MSG
+Language=English
+The drive %1 has low free disk space. At least %2 Mb of free space is recommended.
+.
+
+MessageId=0x101
+Severity=Error
+Facility=Application
+SymbolicName=DEVICE_INACCESSIBLE_MSG
+Language=English
+The drive %1 is not accessible.
+.
+
+MessageId=0x102
+Severity=Info
+Facility=Application
+SymbolicName=SUCCEEDED_MSG
+Language=English
+Operation finished successfully in %1 seconds.
+.
+</pre>
+<p>
+          After compiling the resource library, the path to this library must be
+          provided to the sink backend constructor, among other parameters used with
+          the simple backend. The path may contain placeholders that will be expanded
+          with the appropriate environment variables.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Create an event log sink</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log_backend</span> <span class="special">&gt;</span> <span class="identifier">backend</span><span class="special">(</span>
+    <span class="keyword">new</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log_backend</span><span class="special">((</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">message_file</span> <span class="special">=</span> <span class="string">"%SystemDir%\\event_log_messages.dll"</span><span class="special">,</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">log_name</span> <span class="special">=</span> <span class="string">"My Application"</span><span class="special">,</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">log_source</span> <span class="special">=</span> <span class="string">"My Source"</span>
+    <span class="special">))</span>
+<span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          Like the simple backend, <code class="computeroutput"><a class="link" href="../../boost/log/sinks/basic_event_log_backend.html" title="Class template basic_event_log_backend">basic_event_log_backend</a></code>
+          will register itself in the Windows registry, which will enable the Event
+          Viewer to display the emitted events.
+        </p>
+<p>
+          Next, the user will have to provide the mapping between the application
+          logging attributes and event identifiers. These identifiers were provided
+          in the message compiler output as a result of compiling the message file.
+          One can use <code class="computeroutput"><a class="link" href="../../boost/log/sinks/event_log/basic_event_composer.html" title="Class template basic_event_composer">basic_event_composer</a></code>
+          and one of the event ID mappings, like in the following example:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Create an event composer. It is initialized with the event identifier mapping.</span>
+<span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">event_composer</span> <span class="identifier">composer</span><span class="special">(</span>
+    <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">direct_event_id_mapping</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"EventID"</span><span class="special">));</span>
+
+<span class="comment">// For each event described in the message file, set up the insertion string formatters</span>
+<span class="identifier">composer</span><span class="special">[</span><span class="identifier">LOW_DISK_SPACE_MSG</span><span class="special">]</span>
+    <span class="comment">// the first placeholder in the message</span>
+    <span class="comment">// will be replaced with contents of the "Drive" attribute</span>
+    <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="string">"Drive"</span><span class="special">)</span>
+    <span class="comment">// the second placeholder in the message</span>
+    <span class="comment">// will be replaced with contents of the "Size" attribute</span>
+    <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span> <span class="special">&gt;(</span><span class="string">"Size"</span><span class="special">);</span>
+
+<span class="identifier">composer</span><span class="special">[</span><span class="identifier">DEVICE_INACCESSIBLE_MSG</span><span class="special">]</span>
+    <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="string">"Drive"</span><span class="special">);</span>
+
+<span class="identifier">composer</span><span class="special">[</span><span class="identifier">SUCCEEDED_MSG</span><span class="special">]</span>
+    <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"Duration"</span><span class="special">);</span>
+
+<span class="comment">// Then put the composer to the backend</span>
+<span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">set_event_composer</span><span class="special">(</span><span class="identifier">composer</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          As you can see, one can use regular <a class="link" href="expressions.html#log.detailed.expressions.formatters" title="Formatting expressions">formatters</a>
+          to specify which attributes will be inserted instead of placeholders in
+          the final event message. Aside from that, one can specify mappings of attribute
+          values to event types and categories. Suppose our application has the following
+          severity levels:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Define application-specific severity levels</span>
+<span class="keyword">enum</span> <span class="identifier">severity_level</span>
+<span class="special">{</span>
+    <span class="identifier">normal</span><span class="special">,</span>
+    <span class="identifier">warning</span><span class="special">,</span>
+    <span class="identifier">error</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          Then these levels can be mapped onto the values in the message description
+          file:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// We'll have to map our custom levels to the event log event types</span>
+<span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">custom_event_type_mapping</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;</span> <span class="identifier">type_mapping</span><span class="special">(</span><span class="string">"Severity"</span><span class="special">);</span>
+<span class="identifier">type_mapping</span><span class="special">[</span><span class="identifier">normal</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">make_event_type</span><span class="special">(</span><span class="identifier">MY_SEVERITY_INFO</span><span class="special">);</span>
+<span class="identifier">type_mapping</span><span class="special">[</span><span class="identifier">warning</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">make_event_type</span><span class="special">(</span><span class="identifier">MY_SEVERITY_WARNING</span><span class="special">);</span>
+<span class="identifier">type_mapping</span><span class="special">[</span><span class="identifier">error</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">make_event_type</span><span class="special">(</span><span class="identifier">MY_SEVERITY_ERROR</span><span class="special">);</span>
+
+<span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">set_event_type_mapper</span><span class="special">(</span><span class="identifier">type_mapping</span><span class="special">);</span>
+
+<span class="comment">// Same for event categories.</span>
+<span class="comment">// Usually event categories can be restored by the event identifier.</span>
+<span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">custom_event_category_mapping</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;</span> <span class="identifier">cat_mapping</span><span class="special">(</span><span class="string">"EventID"</span><span class="special">);</span>
+<span class="identifier">cat_mapping</span><span class="special">[</span><span class="identifier">LOW_DISK_SPACE_MSG</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">make_event_category</span><span class="special">(</span><span class="identifier">MY_CATEGORY_1</span><span class="special">);</span>
+<span class="identifier">cat_mapping</span><span class="special">[</span><span class="identifier">DEVICE_INACCESSIBLE_MSG</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">make_event_category</span><span class="special">(</span><span class="identifier">MY_CATEGORY_2</span><span class="special">);</span>
+<span class="identifier">cat_mapping</span><span class="special">[</span><span class="identifier">SUCCEEDED_MSG</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log</span><span class="special">::</span><span class="identifier">make_event_category</span><span class="special">(</span><span class="identifier">MY_CATEGORY_3</span><span class="special">);</span>
+
+<span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">set_event_category_mapper</span><span class="special">(</span><span class="identifier">cat_mapping</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            As of Windows NT 6 (Vista, Server 2008) it is not needed to specify event
+            type mappings. This information is available in the message definition
+            resources and need not be duplicated in the API call.
+          </p></td></tr>
+</table></div>
+<p>
+          Now that initialization is done, the sink can be registered into the core.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Create the frontend for the sink</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log_backend</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">sink</span><span class="special">(</span>
+    <span class="keyword">new</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">event_log_backend</span> <span class="special">&gt;(</span><span class="identifier">backend</span><span class="special">));</span>
+
+<span class="comment">// Set up filter to pass only records that have the necessary attribute</span>
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">has_attr</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"EventID"</span><span class="special">));</span>
+
+<span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">()-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          In order to emit events it is convenient to create a set of functions that
+          will accept all needed parameters for the corresponding events and announce
+          that the event has occurred.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT</span><span class="special">(</span><span class="identifier">event_logger</span><span class="special">,</span> <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_logger_mt</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;)</span>
+
+<span class="comment">// The function raises an event of the disk space depletion</span>
+<span class="keyword">void</span> <span class="identifier">announce_low_disk_space</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">drive</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span> <span class="identifier">size</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_LOG_SCOPED_THREAD_TAG</span><span class="special">(</span><span class="string">"EventID"</span><span class="special">,</span> <span class="special">(</span><span class="keyword">int</span><span class="special">)</span><span class="identifier">LOW_DISK_SPACE_MSG</span><span class="special">);</span>
+    <span class="identifier">BOOST_LOG_SCOPED_THREAD_TAG</span><span class="special">(</span><span class="string">"Drive"</span><span class="special">,</span> <span class="identifier">drive</span><span class="special">);</span>
+    <span class="identifier">BOOST_LOG_SCOPED_THREAD_TAG</span><span class="special">(</span><span class="string">"Size"</span><span class="special">,</span> <span class="identifier">size</span><span class="special">);</span>
+    <span class="comment">// Since this record may get accepted by other sinks,</span>
+    <span class="comment">// this message is not completely useless</span>
+    <span class="identifier">BOOST_LOG_SEV</span><span class="special">(</span><span class="identifier">event_logger</span><span class="special">::</span><span class="identifier">get</span><span class="special">(),</span> <span class="identifier">warning</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Low disk "</span> <span class="special">&lt;&lt;</span> <span class="identifier">drive</span>
+        <span class="special">&lt;&lt;</span> <span class="string">" space, "</span> <span class="special">&lt;&lt;</span> <span class="identifier">size</span> <span class="special">&lt;&lt;</span> <span class="string">" Mb is recommended"</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// The function raises an event of inaccessible disk drive</span>
+<span class="keyword">void</span> <span class="identifier">announce_device_inaccessible</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">drive</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_LOG_SCOPED_THREAD_TAG</span><span class="special">(</span><span class="string">"EventID"</span><span class="special">,</span> <span class="special">(</span><span class="keyword">int</span><span class="special">)</span><span class="identifier">DEVICE_INACCESSIBLE_MSG</span><span class="special">);</span>
+    <span class="identifier">BOOST_LOG_SCOPED_THREAD_TAG</span><span class="special">(</span><span class="string">"Drive"</span><span class="special">,</span> <span class="identifier">drive</span><span class="special">);</span>
+    <span class="identifier">BOOST_LOG_SEV</span><span class="special">(</span><span class="identifier">event_logger</span><span class="special">::</span><span class="identifier">get</span><span class="special">(),</span> <span class="identifier">error</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Cannot access drive "</span> <span class="special">&lt;&lt;</span> <span class="identifier">drive</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// The structure is an activity guard that will emit an event upon the activity completion</span>
+<span class="keyword">struct</span> <span class="identifier">activity_guard</span>
+<span class="special">{</span>
+    <span class="identifier">activity_guard</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="comment">// Add a stop watch attribute to measure the activity duration</span>
+        <span class="identifier">m_it</span> <span class="special">=</span> <span class="identifier">event_logger</span><span class="special">::</span><span class="identifier">get</span><span class="special">().</span><span class="identifier">add_attribute</span><span class="special">(</span><span class="string">"Duration"</span><span class="special">,</span> <span class="identifier">attrs</span><span class="special">::</span><span class="identifier">timer</span><span class="special">()).</span><span class="identifier">first</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="special">~</span><span class="identifier">activity_guard</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">BOOST_LOG_SCOPED_THREAD_TAG</span><span class="special">(</span><span class="string">"EventID"</span><span class="special">,</span> <span class="special">(</span><span class="keyword">int</span><span class="special">)</span><span class="identifier">SUCCEEDED_MSG</span><span class="special">);</span>
+        <span class="identifier">BOOST_LOG_SEV</span><span class="special">(</span><span class="identifier">event_logger</span><span class="special">::</span><span class="identifier">get</span><span class="special">(),</span> <span class="identifier">normal</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Activity ended"</span><span class="special">;</span>
+        <span class="identifier">event_logger</span><span class="special">::</span><span class="identifier">get</span><span class="special">().</span><span class="identifier">remove_attribute</span><span class="special">(</span><span class="identifier">m_it</span><span class="special">);</span>
+    <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">m_it</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          Now you are able to call these helper functions to emit events. The complete
+          code from this section is available in the <a href="../../../../../../libs/log/example/event_log/main.cpp" target="_top"><code class="computeroutput"><span class="identifier">event_log</span></code></a> example in the library
+          distribution.
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sink_frontends.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../detailed.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="expressions.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

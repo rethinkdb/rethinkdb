@@ -1,0 +1,89 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Nullary function based test case with automated registration</title>
+<link rel="stylesheet" href="../../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../../index.html" title="Boost Test Library">
+<link rel="up" href="nullary-test-case.html" title="Nullary function based test case">
+<link rel="prev" href="manual-nullary-test-case.html" title="Manually registered nullary function based test case">
+<link rel="next" href="unary-test-case.html" title="Unary function based test case">
+<script language="JavaScript1.2" src="../../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../../utf.html">The Unit Test Framework</a> &gt; <a href="../../user-guide.html">User's guide</a><a href="../../testing-tools.html">
+      &gt;
+      </a><a href="../test-organization.html">Test organization</a><a href="../fixture.html">
+      &gt;
+      </a><a href="nullary-test-case.html">Nullary function based test case</a><a href="unary-test-case.html">
+      &gt;
+      </a><b>Automated registration</b>
+</td>
+<td><div class="spirit-nav">
+<a href="manual-nullary-test-case.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="unary-test-case.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-organization.auto-nullary-test-case"></a>Nullary function based test case with automated registration</h6></div></div></div>
+<p class="first-line-indented">
+    To create a nullary free function cased test case, which is registered in place of implementation, employ the
+    macro BOOST_AUTO_TEST_CASE.
+   </p>
+<pre class="inline-synopsis">
+<a name="BOOST_AUTO_TEST_CASE"></a>BOOST_AUTO_TEST_CASE(<span class="emphasis"><em>test_case_name</em></span>)</pre>
+<p class="first-line-indented">
+    The macro is designed to closely mimic nullary free function syntax. Changes that are required to make an
+    existing test case, implemented as a free function, registered in place are illustrated in the following
+    example (compare with <a class="xref" href="manual-nullary-test-case.html#utf.user-guide.test-organization.manual-nullary-test-case.example01" title="Example 5. Nullary free function manually registered">Example 5, &#8220;Nullary free function manually registered&#8221;</a>):
+   </p>
+<div class="example">
+<a name="utf.user-guide.test-organization.auto-nullary-test-case.example06"></a><p class="title"><b>Example 10. Nullary function based test case with automated registration</b></p>
+<div class="example-contents">
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+
+//____________________________________________________________________________//
+
+BOOST_AUTO_TEST_CASE( free_test_function )
+{
+    BOOST_CHECK( true /* test assertion */ );
+}
+
+//____________________________________________________________________________//
+
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example06.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id649807" onclick="toggle_element( 'example06-output', 'id649807', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example06-output">&gt; example --log_level=test_suite
+Running 1 test case...
+Entering test suite "example"
+Entering test case "free_test_function"
+Leaving test case "free_test_function"; testing time: 16ms
+Leaving test suite "example"
+
+*** No errors detected
+</pre>
+</div>
+</div>
+<br class="example-break"><p class="first-line-indented">
+    With this macro you don't need to implement the initialization function at all. The macro creates and
+    registers the test case with the name free_test_function automatically.
+   </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="manual-nullary-test-case.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="nullary-test-case.html"><img src="../../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="unary-test-case.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

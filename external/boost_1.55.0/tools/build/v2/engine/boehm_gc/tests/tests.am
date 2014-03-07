@@ -1,0 +1,57 @@
+#
+#
+# THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY EXPRESSED
+# OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
+#
+# Permission is hereby granted to use or copy this program
+# for any purpose,  provided the above notices are retained on all copies.
+# Permission to modify the code and to distribute modified code is granted,
+# provided the above notices are retained, and a notice that the code was
+# modified is included with the above copyright notice.
+
+
+## FIXME: trace_test don't works on macosx 10.3 
+## gcc -g -O2 -o .libs/tracetest trace_test.o  ../.libs/libgc.dylib -lpthread
+## ld: Undefined symbols:
+## _GC_generate_random_backtrace
+
+
+# Common libs to _LDADD for all tests.
+test_ldadd = $(top_builddir)/libgc.la $(EXTRA_TEST_LIBS)
+
+
+TESTS += gctest$(EXEEXT)
+check_PROGRAMS += gctest
+gctest_SOURCES = tests/test.c
+gctest_LDADD = $(test_ldadd)
+gctest_DEPENDENCIES = $(top_builddir)/libgc.la
+
+TESTS += leaktest$(EXEEXT)
+check_PROGRAMS += leaktest
+leaktest_SOURCES = tests/leak_test.c
+leaktest_LDADD = $(test_ldadd)
+
+TESTS += middletest$(EXEEXT)
+check_PROGRAMS += middletest
+middletest_SOURCES = tests/middle.c
+middletest_LDADD = $(test_ldadd)
+
+#TESTS += tracetest$(EXEEXT)
+#check_PROGRAMS += tracetest
+#tracetest_SOURCES = tests/trace_test.c
+#tracetest_LDADD = $(test_ldadd)
+
+if THREADS
+TESTS += threadleaktest$(EXEEXT)
+check_PROGRAMS += threadleaktest
+threadleaktest_SOURCES = tests/thread_leak_test.c
+threadleaktest_LDADD = $(test_ldadd)
+endif
+
+if CPLUSPLUS
+TESTS += test_cpp$(EXEEXT)
+check_PROGRAMS += test_cpp
+test_cpp_SOURCES = tests/test_cpp.cc
+test_cpp_LDADD = libgccpp.la $(test_ldadd)
+endif
+

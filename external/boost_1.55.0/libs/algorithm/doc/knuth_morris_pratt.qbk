@@ -1,0 +1,88 @@
+[/ QuickBook Document version 1.5 ]
+
+[section:KnuthMorrisPratt Knuth-Morris-Pratt Search]
+
+[/license
+
+Copyright (c) 2010-2012 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[heading Overview]
+
+The header file 'knuth_morris_pratt.hpp' contains an implementation of the Knuth-Morris-Pratt algorithm for searching sequences of values. 
+
+The basic premise of the Knuth-Morris-Pratt algorithm is that when a mismatch occurs, there is information in the pattern being searched for that can be used to determine where the next match could begin, enabling the skipping of some elements of the corpus that have already been examined.
+
+It does this by building a table from the pattern being searched for, with one entry for each element in the pattern.
+
+The algorithm was conceived in 1974 by Donald Knuth and Vaughan Pratt, and independently by James H. Morris. The three published it jointly in 1977 in the SIAM Journal on Computing [@http://citeseer.ist.psu.edu/context/23820/0]
+
+However, the Knuth-Morris-Pratt algorithm cannot be used with comparison predicates like `std::search`.
+
+[heading Interface]
+
+Nomenclature: I refer to the sequence being searched for as the "pattern", and the sequence being searched in as the "corpus".
+
+For flexibility, the Knuth-Morris-Pratt algorithm has two interfaces; an object-based interface and a procedural one. The object-based interface builds the table in the constructor, and uses operator () to perform the search. The procedural interface builds the table and does the search all in one step. If you are going to be searching for the same pattern in multiple corpora, then you should use the object interface, and only build the tables once.
+
+Here is the object interface:
+``
+template <typename patIter>
+class knuth_morris_pratt {
+public:
+    knuth_morris_pratt ( patIter first, patIter last );
+    ~knuth_morris_pratt ();
+    
+    template <typename corpusIter>
+    corpusIter operator () ( corpusIter corpus_first, corpusIter corpus_last );
+    };
+``
+
+and here is the corresponding procedural interface:
+
+``
+template <typename patIter, typename corpusIter>
+corpusIter knuth_morris_pratt_search ( 
+        corpusIter corpus_first, corpusIter corpus_last, 
+        patIter pat_first, patIter pat_last );
+``
+
+Each of the functions is passed two pairs of iterators. The first two define the corpus and the second two define the pattern. Note that the two pairs need not be of the same type, but they do need to "point" at the same type. In other words, `patIter::value_type` and `curpusIter::value_type` need to be the same type.
+
+The return value of the function is an iterator pointing to the start of the pattern in the corpus. If the pattern is not found, it returns the end of the corpus (`corpus_last`).
+
+[heading Performance]
+
+The execution time of the Knuth-Morris-Pratt algorithm is linear in the size of the string being searched. Generally the algorithm gets faster as the pattern being searched for becomes longer. Its efficiency derives from the fact that with each unsuccessful attempt to find a match between the search string and the text it is searching, it uses the information gained from that attempt to rule out as many positions of the text as possible where the string cannot match.
+
+[heading Memory Use]
+
+The algorithm an that contains one entry for each element the pattern, plus one extra.  So, when searching for a 1026 byte string, the table will have 1027 entries.
+
+[heading Complexity]
+
+The worst-case performance is ['O(2n)], where ['n] is the length of the corpus. The average time is ['O(n)]. The best case performance is sub-linear.
+
+[heading Exception Safety]
+
+Both the object-oriented and procedural versions of the Knuth-Morris-Pratt algorithm take their parameters by value and do not use any information other than what is passed in. Therefore, both interfaces provide the strong exception guarantee.
+
+[heading Notes]
+
+* When using the object-based interface, the pattern must remain unchanged for during the searches; i.e, from the time the object is constructed until the final call to operator () returns.
+
+* The Knuth-Morris-Pratt algorithm requires random-access iterators for both the pattern and the corpus. It should be possible to write this to use bidirectional iterators (or possibly even forward ones), but this implementation does not do that.
+
+[endsect]
+
+[/ File knuth_morris_pratt.qbk
+Copyright 2011 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

@@ -1,0 +1,87 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Lazy Operators]
+
+You can use the usual set of operators to form expressions. Examples:
+
+    arg1 * arg1
+    ref(x) = arg1 + ref(z)
+    arg1 = arg2 + (3 * arg3)
+    ref(x) = arg1[arg2] // assuming arg1 is indexable and arg2 is a valid index
+
+Note the expression: `3 * arg3`. This expression is actually a short-hand
+equivalent to: `val(3) * arg3`. In most cases, like above, you can get away with
+it. But in some cases, you will have to explicitly wrap your values in `val`.
+Rules of thumb:
+
+* In a binary expression (e.g. `3 * arg3`), at least one of the operands must be
+  a phoenix primitive or expression.
+* In a unary expression (e.g. `arg1++`), the single operand must be a phoenix
+  primitive or expression.
+
+If these basic rules are not followed, the result is either an error, or is
+immediately evaluated. Some examples:
+
+    ref(x) = 123    // lazy
+    x = 123         // immediate
+
+    ref(x)[0]       // lazy
+    x[0]            // immediate
+
+    ref(x)[ref(i)]  // lazy
+    ref(x)[i]       // lazy (equivalent to ref(x)[val(i)])
+    x[ref(i)]       // illegal (x is not a phoenix primitive or expression)
+    ref(x[ref(i)])  // illegal (x is not a phoenix primitive or expression)
+
+Why are the last two expression illegal? Although `operator[]` looks as
+much like a binary operator as `operator=` above it; the difference is
+that the former must be a member (i.e. `x` must have an `operator[]`
+that takes a phoenix primitive or expression as its argument). This will
+most likely not be the case.
+
+[blurb __tip__ Learn more about operators [link phoenix.modules.operator here.]]
+
+[heading First Practical Example]
+
+We've covered enough ground to present a real world example. We want to find the
+first odd number in an STL container. Normally we use a functor (function
+object) or a function pointer and pass that in to STL's `find_if` generic
+function:
+
+Write a function:
+
+    bool
+    is_odd(int arg1)
+    {
+        return arg1 % 2 == 1;
+    }
+
+Pass a pointer to the function to STL's `find_if` algorithm:
+
+    std::find_if(c.begin(), c.end(), &is_odd)
+
+Using Phoenix, the same can be achieved directly with a one-liner:
+
+    std::find_if(c.begin(), c.end(), arg1 % 2 == 1)
+
+The expression `arg1 % 2 == 1` automagically creates a functor with the expected
+behavior. In FP, this unnamed function is called a lambda function. Unlike the
+function pointer version, which is monomorphic (expects and works only with a
+fixed type int argument), the Phoenix version is fully polymorphic and works
+with any container (of ints, of longs, of bignum, etc.) as long as its elements
+can handle the `arg1 % 2 == 1` expression.
+
+(See [@../../example/find_if.cpp find_if.cpp])
+
+[blurb __tip__ ...[*That's it, we're done]. Well if you wish to know a little bit
+more, read on...]
+
+[endsect]
+

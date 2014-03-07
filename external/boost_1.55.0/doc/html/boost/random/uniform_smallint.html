@@ -1,0 +1,213 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template uniform_smallint</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_random/reference.html#header.boost.random.uniform_smallint_hpp" title="Header &lt;boost/random/uniform_smallint.hpp&gt;">
+<link rel="prev" href="uniform_real_distribution/param_type.html" title="Class param_type">
+<link rel="next" href="uniform_smallint/param_type.html" title="Class param_type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="uniform_real_distribution/param_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_random/reference.html#header.boost.random.uniform_smallint_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="uniform_smallint/param_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.random.uniform_smallint"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template uniform_smallint</span></h2>
+<p>boost::random::uniform_smallint</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_random/reference.html#header.boost.random.uniform_smallint_hpp" title="Header &lt;boost/random/uniform_smallint.hpp&gt;">boost/random/uniform_smallint.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> IntType <span class="special">=</span> <span class="keyword">int</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">IntType</span> <a name="boost.random.uniform_smallint.input_type"></a><span class="identifier">input_type</span><span class="special">;</span> 
+  <span class="keyword">typedef</span> <span class="identifier">IntType</span> <a name="boost.random.uniform_smallint.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>
+
+  <span class="comment">// member classes/structs/unions</span>
+
+  <span class="keyword">class</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <a class="link" href="uniform_smallint/param_type.html#boost.random.uniform_smallint.param_type.distribution_type"><span class="identifier">distribution_type</span></a><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="uniform_smallint/param_type.html#boost.random.uniform_smallint.param_typeconstruct-copy-destruct">construct/copy/destruct</a></span>
+    <a class="link" href="uniform_smallint/param_type.html#idp35083128-bb"><span class="identifier">param_type</span></a><span class="special">(</span><span class="identifier">IntType</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">IntType</span> <span class="special">=</span> <span class="number">9</span><span class="special">)</span><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="uniform_smallint/param_type.html#idp22226616-bb">public member functions</a></span>
+    <span class="identifier">IntType</span> <a class="link" href="uniform_smallint/param_type.html#idp22226824-bb"><span class="identifier">a</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">IntType</span> <a class="link" href="uniform_smallint/param_type.html#idp35082440-bb"><span class="identifier">b</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="uniform_smallint/param_type.html#idp35084856-bb">friend functions</a></span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+      <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+      <a class="link" href="uniform_smallint/param_type.html#idp35085064-bb"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+      <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+      <a class="link" href="uniform_smallint/param_type.html#idp35087656-bb"><span class="keyword">operator</span><span class="special">&gt;&gt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="uniform_smallint/param_type.html#idp20831800-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="uniform_smallint/param_type.html#idp36651608-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="uniform_smallint.html#boost.random.uniform_smallintconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="uniform_smallint.html#idp46190280-bb"><span class="identifier">uniform_smallint</span></a><span class="special">(</span><span class="identifier">IntType</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">IntType</span> <span class="special">=</span> <span class="number">9</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="uniform_smallint.html#idp52615800-bb"><span class="identifier">uniform_smallint</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="uniform_smallint.html#idp36654072-bb">public member functions</a></span>
+  <span class="identifier">result_type</span> <a class="link" href="uniform_smallint.html#idp36654280-bb"><span class="identifier">a</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">result_type</span> <a class="link" href="uniform_smallint.html#idp36654984-bb"><span class="identifier">b</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">result_type</span> <a class="link" href="uniform_smallint.html#idp36655720-bb"><span class="identifier">min</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">result_type</span> <a class="link" href="uniform_smallint.html#idp36656424-bb"><span class="identifier">max</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <a class="link" href="uniform_smallint.html#idp36657192-bb"><span class="identifier">param</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="uniform_smallint.html#idp34738552-bb"><span class="identifier">param</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="uniform_smallint.html#idp36130840-bb"><span class="identifier">reset</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Engine<span class="special">&gt;</span> <span class="identifier">result_type</span> <a class="link" href="uniform_smallint.html#idp53226824-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">Engine</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Engine<span class="special">&gt;</span> 
+    <span class="identifier">result_type</span> <a class="link" href="uniform_smallint.html#idp21778968-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">Engine</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="uniform_smallint.html#idp52617224-bb">friend functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+    <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+    <a class="link" href="uniform_smallint.html#idp19669896-bb"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">const</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+    <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+    <a class="link" href="uniform_smallint.html#idp19727736-bb"><span class="keyword">operator</span><span class="special">&gt;&gt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">const</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="uniform_smallint.html#idp51406424-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="uniform_smallint.html#idp46439000-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp199935992"></a><h2>Description</h2>
+<p>The distribution function <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> models a <a class="link" href="../../boost_random/reference.html#boost_random.reference.concepts.random_distribution" title="Random Distribution">random distribution</a> . On each invocation, it returns a random integer value uniformly distributed in the set of integer numbers {min, min+1, min+2, ..., max}. It assumes that the desired range (max-min+1) is small compared to the range of the underlying source of random numbers and thus makes no attempt to limit quantization errors.</p>
+<p>Let <span class="inlinemediaobject"><img src="../../images/random//form_19.png"></span> the desired range of integer numbers, and let <span class="inlinemediaobject"><img src="../../images/random//form_20.png"></span> be the range of the underlying source of random numbers. Then, for the uniform distribution, the theoretical probability for any number i in the range <span class="inlinemediaobject"><img src="../../images/random//form_21.png"></span> will be <span class="inlinemediaobject"><img src="../../images/random//form_22.png"></span>. Likewise, assume a uniform distribution on <span class="inlinemediaobject"><img src="../../images/random//form_20.png"></span> for the underlying source of random numbers, i.e. <span class="inlinemediaobject"><img src="../../images/random//form_23.png"></span>. Let <span class="inlinemediaobject"><img src="../../images/random//form_24.png"></span> denote the random distribution generated by <code class="computeroutput"><a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a></code>. Then the sum over all i in <span class="inlinemediaobject"><img src="../../images/random//form_21.png"></span> of <span class="inlinemediaobject"><img src="../../images/random//form_25.png"></span> shall not exceed <span class="inlinemediaobject"><img src="../../images/random//form_26.png"></span>.</p>
+<p>The template parameter IntType shall denote an integer-like value type.</p>
+<p> </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>  The property above is the square sum of the relative differences in probabilities between the desired uniform distribution <span class="inlinemediaobject"><img src="../../images/random//form_27.png"></span> and the generated distribution <span class="inlinemediaobject"><img src="../../images/random//form_24.png"></span>. The property can be fulfilled with the calculation <span class="inlinemediaobject"><img src="../../images/random//form_28.png"></span>, as follows: Let <span class="inlinemediaobject"><img src="../../images/random//form_29.png"></span>. The base distribution on <span class="inlinemediaobject"><img src="../../images/random//form_20.png"></span> is folded onto the range <span class="inlinemediaobject"><img src="../../images/random//form_21.png"></span>. The numbers i &lt; r have assigned <span class="inlinemediaobject"><img src="../../images/random//form_30.png"></span> numbers of the base distribution, the rest has only <span class="inlinemediaobject"><img src="../../images/random//form_31.png"></span>. Therefore, <span class="inlinemediaobject"><img src="../../images/random//form_32.png"></span> for i &lt; r and <span class="inlinemediaobject"><img src="../../images/random//form_33.png"></span> otherwise. Substituting this in the above sum formula leads to the desired result.  </p></td></tr>
+</table></div>
+<p> </p>
+<p>Note: The upper bound for <span class="inlinemediaobject"><img src="../../images/random//form_34.png"></span> is <span class="inlinemediaobject"><img src="../../images/random//form_35.png"></span>. Regarding the upper bound for the square sum of the relative quantization error of <span class="inlinemediaobject"><img src="../../images/random//form_36.png"></span>, it seems wise to either choose <span class="inlinemediaobject"><img src="../../images/random//form_20.png"></span> so that <span class="inlinemediaobject"><img src="../../images/random//form_37.png"></span> or ensure that <span class="inlinemediaobject"><img src="../../images/random//form_20.png"></span> is divisible by <span class="inlinemediaobject"><img src="../../images/random//form_21.png"></span>. </p>
+<div class="refsect2">
+<a name="idp199974888"></a><h3>
+<a name="boost.random.uniform_smallintconstruct-copy-destruct"></a><code class="computeroutput">uniform_smallint</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp46190280-bb"></a><span class="identifier">uniform_smallint</span><span class="special">(</span><span class="identifier">IntType</span> min <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">IntType</span> max <span class="special">=</span> <span class="number">9</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><code class="computeroutput"><a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a></code></code>. <code class="computeroutput">min</code> and <code class="computeroutput">max</code> are the lower and upper bounds of the output range, respectively. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp52615800-bb"></a><span class="identifier">uniform_smallint</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span> param<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><code class="computeroutput"><a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a></code></code> from its parameters. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp199986376"></a><h3>
+<a name="idp36654072-bb"></a><code class="computeroutput">uniform_smallint</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp36654280-bb"></a><span class="identifier">a</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the minimum value of the distribution. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp36654984-bb"></a><span class="identifier">b</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the maximum value of the distribution. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp36655720-bb"></a><span class="identifier">min</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the minimum value of the distribution. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp36656424-bb"></a><span class="identifier">max</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the maximum value of the distribution. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <a name="idp36657192-bb"></a><span class="identifier">param</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the parameters of the distribution. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp34738552-bb"></a><span class="identifier">param</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span> param<span class="special">)</span><span class="special">;</span></pre>
+<p>Sets the parameters of the distribution. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp36130840-bb"></a><span class="identifier">reset</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: Subsequent uses of the distribution do not depend on values produced by any engine prior to invoking reset. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Engine<span class="special">&gt;</span> <span class="identifier">result_type</span> <a name="idp53226824-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">Engine</span> <span class="special">&amp;</span> eng<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a value uniformly distributed in the range [min(), max()]. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Engine<span class="special">&gt;</span> 
+  <span class="identifier">result_type</span> <a name="idp21778968-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">Engine</span> <span class="special">&amp;</span> eng<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="uniform_smallint/param_type.html" title="Class param_type">param_type</a> <span class="special">&amp;</span> param<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a value uniformly distributed in the range [param.a(), param.b()]. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp200017816"></a><h3>
+<a name="idp52617224-bb"></a><code class="computeroutput">uniform_smallint</code> friend functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+  <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+  <a name="idp19669896-bb"></a><span class="keyword">operator</span><span class="special">&lt;&lt;</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> os<span class="special">,</span> 
+             <span class="keyword">const</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">&amp;</span> ud<span class="special">)</span><span class="special">;</span></pre>
+<p>Writes the distribution to a <code class="computeroutput">std::ostream</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+  <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+  <a name="idp19727736-bb"></a><span class="keyword">operator</span><span class="special">&gt;&gt;</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> is<span class="special">,</span> 
+             <span class="keyword">const</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">&amp;</span> ud<span class="special">)</span><span class="special">;</span></pre>
+<p>Reads the distribution from a <code class="computeroutput">std::istream</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">friend</span> <span class="keyword">bool</span> <a name="idp51406424-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">&amp;</span> lhs<span class="special">,</span> 
+                       <span class="keyword">const</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns true if the two distributions will produce identical sequences of values given equal generators. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">friend</span> <span class="keyword">bool</span> <a name="idp46439000-bb"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">&amp;</span> lhs<span class="special">,</span> 
+                       <span class="keyword">const</span> <a class="link" href="uniform_smallint.html" title="Class template uniform_smallint">uniform_smallint</a> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns true if the two distributions may produce different sequences of values given equal generators. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2005 Jens Maurer<br>Copyright &#169; 2009, 2010 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="uniform_real_distribution/param_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_random/reference.html#header.boost.random.uniform_smallint_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="uniform_smallint/param_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

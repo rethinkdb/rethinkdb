@@ -1,0 +1,24 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/xml/brkitr/root.xml
+// *
+// ***************************************************************************
+root{
+    Version{"1.1"}
+    boundaries{
+        grapheme:process(dependency){"char.brk"}
+        line:process(dependency){"line.brk"}
+        sentence:process(dependency){"sent.brk"}
+        title:process(dependency){"title.brk"}
+        word:process(dependency){"word.brk"}
+    }
+    dictionaries{
+        Thai:process(dependency){"thaidict.ctd"}
+        Hani:process(dependency){"cjdict.ctd"}
+        Hira:process(dependency){"cjdict.ctd"}
+        Kata:process(dependency){"cjdict.ctd"}
+    }
+}

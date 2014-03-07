@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>require.js: Order Plugin Test</title>
+    <script type="text/javascript" src="../../require.js"></script>
+    <script type="text/javascript" src="../doh/runner.js"></script>
+    <script type="text/javascript" src="../doh/_browserRunner.js"></script>
+    <script type="text/javascript">
+        require({
+                baseUrl: "./",
+                paths: {
+                    order: "../../order"
+                }
+            },
+            //Test ordering .js paths and scripts referred to without .js
+            ["require", "order!one.js", "order!two", "order!three.js", "order!bar.js"],
+            function(require) {
+                var oneName = one.name,
+                    twoName = two.name,
+                    threeName = three.name;
+                doh.register(
+                    "order",
+                    [
+                        function order(t){
+                            t.is("one", oneName);
+                            t.is("one", two.oneName);
+                            t.is("two", twoName);
+                            t.is("two", three.twoName);
+                            t.is("three", threeName);
+                            t.is(1, bar);
+                       }
+                    ]
+                );
+                doh.run();
+            }
+        );
+    </script>
+</head>
+<body>
+    <h1>require.js: Order Plugin Test</h1>
+    <p>To properly test, clear cache in the browser.</p>
+    <p>Check console for messages</p>
+</body>
+</html>

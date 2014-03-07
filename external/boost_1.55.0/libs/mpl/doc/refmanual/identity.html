@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: identity</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Prev</a>&nbsp;<a href="./always.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./always.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./miscellaneous.html" class="navigation-link">Miscellaneous</a> / <a href="./identity.html" class="navigation-link">identity</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="identity">
+<h1><a class="toc-backref" href="./miscellaneous.html#id1564">identity</a></h1>
+<div class="section" id="id1146">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename X
+    &gt;
+struct <a href="./identity.html" class="identifier">identity</a>
+{
+    typedef X type;
+};
+</pre>
+</div>
+<div class="section" id="id1147">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>The <a class="reference external" href="http://mathworld.wolfram.com/IdentityFunction.html" target="_top">identity</a> metafunction. Returns <tt class="literal"><span class="pre">X</span></tt> unchanged.</p>
+</div>
+<div class="section" id="id1149">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/identity.hpp" class="header">boost/mpl/identity.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1150">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./metafunction.html">Metafunction</a></p>
+</div>
+<div class="section" id="id1151">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="22%" />
+<col width="28%" />
+<col width="51%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">X</span></tt></td>
+<td>Any type</td>
+<td>An argument to be returned.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1152">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For an arbitrary type <tt class="literal"><span class="pre">x</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./identity.html" class="identifier">identity</a>&lt;x&gt;::type r;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">A type.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="literal-block">
+typedef x r;
+</pre>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Postcondition:</th><td class="field-body"><p class="first last"><tt class="literal"><span class="pre">is_same&lt;r,x&gt;::value</span> <span class="pre">==</span> <span class="pre">true</span></tt>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1153">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./apply.html" class="identifier">apply</a>&lt; <a href="./identity.html" class="identifier">identity</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>&gt;, char &gt;::type t1;
+typedef <a href="./apply.html" class="identifier">apply</a>&lt; <a href="./identity.html" class="identifier">identity</a>&lt;<a href="./placeholders.html" class="identifier">_2</a>&gt;, char,int &gt;::type t2;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; t1, char &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; t2, int > ));
+</pre>
+</div>
+<div class="section" id="id1154">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./placeholders.html">Placeholders</a>, <a class="reference internal" href="./trivial.html#label-metafunctions-trivial">Trivial Metafunctions</a>, <a class="reference internal" href="./always.html">always</a>, <a class="reference internal" href="./apply.html">apply</a></p>
+<!-- Metafunctions/Miscellaneous//always |20 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Prev</a>&nbsp;<a href="./always.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./always.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

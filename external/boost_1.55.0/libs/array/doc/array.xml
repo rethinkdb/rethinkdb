@@ -1,0 +1,551 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library name="Array" dirname="array" id="array" last-revision="$Date: 2012-06-14 09:01:03 -0700 (Thu, 14 Jun 2012) $">
+  <libraryinfo>
+    <author>
+      <firstname>Nicolai</firstname>
+      <surname>Josuttis</surname>
+    </author>
+
+    <copyright>
+      <year>2001</year>
+      <year>2002</year>
+      <year>2003</year>
+      <year>2004</year>
+      <holder>Nicolai M. Josuttis</holder>
+    </copyright>
+   
+    <legalnotice>
+      <para>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <filename>LICENSE_1_0.txt</filename> or copy at 
+      <ulink
+      url="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</ulink>)
+      </para>
+    </legalnotice>
+
+    <librarypurpose>STL compliant container wrapper for arrays of constant size</librarypurpose>
+    <librarycategory name="category:containers"/>
+  </libraryinfo>
+
+  <title>Boost.Array</title>
+ 
+  <section id="array.intro">
+    <title>Introduction</title> 
+
+    <using-namespace name="boost"/>
+    <using-class name="array"/>
+
+    <para>The C++ Standard Template Library STL as part of the C++
+    Standard Library provides a framework for processing algorithms on
+    different kind of containers. However, ordinary arrays don't
+    provide the interface of STL containers (although, they provide
+    the iterator interface of STL containers).</para>
+
+    <para>As replacement for ordinary arrays, the STL provides class
+    <code><classname>std::vector</classname></code>.  However,
+    <code><classname>std::vector&lt;&gt;</classname></code> provides
+    the semantics of dynamic arrays. Thus, it manages data to be able
+    to change the number of elements. This results in some overhead in
+    case only arrays with static size are needed.</para>
+
+    <para>In his book, <emphasis>Generic Programming and the
+    STL</emphasis>, Matthew H. Austern introduces a useful wrapper
+    class for ordinary arrays with static size, called
+    <code>block</code>.  It is safer and has no worse performance than
+    ordinary arrays. In <emphasis>The C++ Programming
+    Language</emphasis>, 3rd edition, Bjarne Stroustrup introduces a
+    similar class, called <code>c_array</code>, which I (<ulink
+    url="http://www.josuttis.com">Nicolai Josuttis</ulink>) present
+    slightly modified in my book <emphasis>The C++ Standard Library -
+    A Tutorial and Reference</emphasis>, called
+    <code>carray</code>. This is the essence of these approaches
+    spiced with many feedback from <ulink
+    url="http://www.boost.org">boost</ulink>.</para>
+
+    <para>After considering different names, we decided to name this
+    class simply <code><classname>array</classname></code>.</para>
+
+    <para>Note that this class is suggested to be part of the next
+    Technical Report, which will extend the C++ Standard (see
+    <ulink url="http://std.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1548.htm">http://std.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1548.htm</ulink>).</para>
+
+    <para>Update: <code>std::array</code> is (as of C++11) part of the C++ standard.
+    The differences between <code>boost::array</code> and <code>std::array</code> are minimal.
+    If you are using C++11, you should consider using <code>std::array</code> instead of <code>boost::array</code>.
+    </para>
+
+    <para>Class <code><classname>array</classname></code> fulfills most
+    but not all of the requirements of "reversible containers" (see
+    Section 23.1, [lib.container.requirements] of the C++
+    Standard). The reasons array is not an reversible STL container is
+    because:
+      <itemizedlist spacing="compact">
+        <listitem><simpara>No constructors are provided.</simpara></listitem>
+        <listitem><simpara>Elements may have an undetermined initial value (see <xref linkend="array.rationale"/>).</simpara></listitem>
+        <listitem><simpara><functionname>swap</functionname>() has no constant complexity.</simpara></listitem>
+        <listitem><simpara><methodname>size</methodname>() is always constant, based on the second template argument of the type.</simpara></listitem>
+        <listitem><simpara>The container provides no allocator support.</simpara></listitem>
+      </itemizedlist>
+    </para>
+
+    <para>It doesn't fulfill the requirements of a "sequence" (see Section 23.1.1, [lib.sequence.reqmts] of the C++ Standard), except that:
+      <itemizedlist spacing="compact">
+        <listitem><simpara><methodname>front</methodname>() and <methodname>back</methodname>() are provided.</simpara></listitem>
+        <listitem><simpara><methodname>operator[]</methodname> and <methodname>at</methodname>() are provided.</simpara></listitem>
+      </itemizedlist>
+    </para>
+  </section>
+  
+  <library-reference>
+    <header name="boost/array.hpp">
+      <namespace name="boost">
+        <class name="array">
+          <template>
+            <template-type-parameter name="T"/>
+            <template-nontype-parameter name="N">
+              <type>std::size_t</type>
+            </template-nontype-parameter>
+          </template>
+
+          <purpose><para>STL compliant container wrapper for arrays of constant size</para></purpose>
+          <typedef name="value_type">
+            <type>T</type>
+          </typedef>
+          <typedef name="iterator">
+             <type>T*</type>
+          </typedef>
+          <typedef name="const_iterator">
+             <type>const T*</type>
+          </typedef>
+          <typedef name="reverse_iterator">
+             <type><classname>std::reverse_iterator</classname>&lt;iterator&gt;</type>
+          </typedef>
+          <typedef name="const_reverse_iterator">
+             <type><classname>std::reverse_iterator</classname>&lt;const_iterator&gt;</type>
+          </typedef>
+          <typedef name="reference">
+             <type>T&amp;</type>
+          </typedef>
+          <typedef name="const_reference">
+             <type>const T&amp;</type>
+          </typedef>
+          <typedef name="size_type">
+             <type>std::size_t</type>
+          </typedef>
+          <typedef name="difference_type">
+             <type>std::ptrdiff_t</type>
+          </typedef>
+
+          <static-constant name="static_size">
+            <type>size_type</type>
+            <default>N</default>
+          </static-constant>
+
+          <copy-assignment>
+            <template>
+              <template-type-parameter name="U"/>
+            </template>
+            <parameter name="other">
+              <paramtype>const <classname>array</classname>&lt;U, N&gt;&amp;</paramtype>
+            </parameter>
+            <effects><simpara><code>std::copy(rhs.<methodname>begin</methodname>(),rhs.<methodname>end</methodname>(), <methodname>begin</methodname>())</code></simpara></effects>
+          </copy-assignment>
+
+          <method-group name="iterator support">
+            <overloaded-method name="begin">
+              <signature>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <type>const_iterator</type>
+              </signature>
+
+              <returns><simpara>iterator for the first element</simpara></returns>
+              <throws><simpara>will not throw</simpara></throws>
+            </overloaded-method>
+
+            <overloaded-method name="end">
+              <signature>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <type>const_iterator</type>
+              </signature>
+
+              <returns><simpara>iterator for position after the last element</simpara></returns>
+              <throws><simpara>will not throw</simpara></throws>
+            </overloaded-method>
+          </method-group>
+
+          <method-group name="reverse iterator support">
+            <overloaded-method name="rbegin">
+              <signature>
+                <type>reverse_iterator</type>
+              </signature>
+              <signature cv="const">
+                <type>const_reverse_iterator</type>
+              </signature>
+
+              <returns><simpara>reverse iterator for the first element of reverse iteration</simpara></returns>
+            </overloaded-method>
+
+            <overloaded-method name="rend">
+              <signature>
+                <type>reverse_iterator</type>
+              </signature>
+              <signature cv="const">
+                <type>const_reverse_iterator</type>
+              </signature>
+
+              <returns><simpara>reverse iterator for position after the last element in reverse iteration</simpara></returns>
+            </overloaded-method>
+          </method-group>
+
+          <method-group name="capacity">
+            <method name="size">
+              <type>size_type</type>
+              <returns><simpara><code>N</code></simpara></returns>
+            </method>
+            <method name="empty">
+              <type>bool</type>
+              <returns><simpara><code>N==0</code></simpara></returns>
+              <throws><simpara>will not throw</simpara></throws>
+            </method>
+            <method name="max_size">
+              <type>size_type</type>
+              <returns><simpara><code>N</code></simpara></returns>
+              <throws><simpara>will not throw</simpara></throws>
+            </method>
+          </method-group>
+
+          <method-group name="element access">
+            <overloaded-method name="operator[]">
+              <signature>
+                <type>reference</type>
+                <parameter name="i">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+              </signature>
+
+              <signature cv="const">
+                <type>const_reference</type>
+                <parameter name="i">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+              </signature>
+
+              <requires><simpara><code>i &lt; N</code></simpara></requires>
+              <returns><simpara>element with index <code>i</code></simpara></returns>
+              <throws><simpara>will not throw.</simpara></throws>
+            </overloaded-method>
+
+            <overloaded-method name="at">
+              <signature>
+                <type>reference</type>
+                <parameter name="i">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+              </signature>
+
+              <signature cv="const">
+                <type>const_reference</type>
+                <parameter name="i">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+              </signature>
+
+              <returns><simpara>element with index <code>i</code></simpara></returns>
+              <throws><simpara><code><classname>std::range_error</classname></code> if <code>i &gt;= N</code></simpara></throws>
+            </overloaded-method>
+
+            <overloaded-method name="front">
+              <signature>
+                <type>reference</type>
+              </signature>
+              <signature cv="const">
+                <type>const_reference</type>
+              </signature>
+              <requires><simpara><code>N &gt; 0</code></simpara></requires>
+              <returns><simpara>the first element</simpara></returns>
+              <throws><simpara>will not throw</simpara></throws>
+            </overloaded-method>
+
+            <overloaded-method name="back">
+              <signature>
+                <type>reference</type>
+              </signature>
+              <signature cv="const">
+                <type>const_reference</type>
+              </signature>
+              <requires><simpara><code>N &gt; 0</code></simpara></requires>
+              <returns><simpara>the last element</simpara></returns>
+              <throws><simpara>will not throw</simpara></throws>
+            </overloaded-method>
+
+            <method name="data" cv="const">
+              <type>const T*</type>
+              <returns><simpara><code>elems</code></simpara></returns>
+              <throws><simpara>will not throw</simpara></throws>
+            </method>
+
+           <method name="c_array">
+              <type>T*</type>
+              <returns><simpara><code>elems</code></simpara></returns>
+              <throws><simpara>will not throw</simpara></throws>
+            </method>
+          </method-group>
+
+          <method-group name="modifiers">
+            <method name="swap">
+              <type>void</type>
+              <parameter name="other">
+                <paramtype><classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+              <effects><simpara><code>std::swap_ranges(<methodname>begin</methodname>(), <methodname>end</methodname>(), other.<methodname>begin</methodname>())</code></simpara></effects>
+              <complexity><simpara>linear in <code>N</code></simpara></complexity>
+            </method>
+            <method name="assign">
+              <type>void</type>
+              <parameter name="value">
+                <paramtype>const T&amp;</paramtype>
+              </parameter>
+              <effects><simpara><code>std::fill_n(<methodname>begin</methodname>(), N, value)</code></simpara></effects>
+            </method>
+          </method-group>
+
+          <data-member name="elems[N]"> <!-- HACK -->
+            <type>T</type>
+          </data-member>
+
+          <free-function-group name="specialized algorithms">
+            <function name="swap"> 
+              <template>
+                <template-type-parameter name="T"/>
+                <template-nontype-parameter name="N">
+                  <type>std::size_t</type>
+                </template-nontype-parameter>
+              </template>
+
+              <type>void</type>
+              
+              <parameter name="x">
+                <paramtype><classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype><classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+
+              <effects><simpara><code>x.<methodname>swap</methodname>(y)</code></simpara></effects>
+              <throws><simpara>will not throw.</simpara></throws>
+            </function>
+          </free-function-group>
+
+          <free-function-group name="comparisons">
+            <function name="operator==">
+              <template>
+                <template-type-parameter name="T"/>
+                <template-nontype-parameter name="N">
+                  <type>std::size_t</type>
+                </template-nontype-parameter>
+              </template>
+
+              <type>bool</type>
+              
+              <parameter name="x">
+                <paramtype>const <classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>const <classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+
+              <returns><simpara><code>std::equal(x.<methodname>begin</methodname>(), x.<methodname>end</methodname>(), y.<methodname>begin</methodname>())</code></simpara>
+              </returns>
+            </function>
+ 
+            <function name="operator!=">
+              <template>
+                <template-type-parameter name="T"/>
+                <template-nontype-parameter name="N">
+                  <type>std::size_t</type>
+                </template-nontype-parameter>
+              </template>
+
+              <type>bool</type>
+              
+              <parameter name="x">
+                <paramtype>const <classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>const <classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+
+              <returns><simpara><code>!(x == y)</code></simpara>
+              </returns>
+            </function>
+
+            <function name="operator&lt;">
+              <template>
+                <template-type-parameter name="T"/>
+                <template-nontype-parameter name="N">
+                  <type>std::size_t</type>
+                </template-nontype-parameter>
+              </template>
+
+              <type>bool</type>
+              
+              <parameter name="x">
+                <paramtype>const <classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>const <classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+
+              <returns><simpara><code>std::lexicographical_compare(x.<methodname>begin</methodname>(), x.<methodname>end</methodname>(), y.<methodname>begin</methodname>(), y.<methodname>end</methodname>())</code></simpara>
+              </returns>
+            </function>
+
+            <function name="operator&gt;">
+              <template>
+                <template-type-parameter name="T"/>
+                <template-nontype-parameter name="N">
+                  <type>std::size_t</type>
+                </template-nontype-parameter>
+              </template>
+
+              <type>bool</type>
+              
+              <parameter name="x">
+                <paramtype>const <classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>const <classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+
+              <returns><simpara><code>y &lt; x</code></simpara></returns>
+            </function>
+
+            <function name="operator&lt;=">
+              <template>
+                <template-type-parameter name="T"/>
+                <template-nontype-parameter name="N">
+                  <type>std::size_t</type>
+                </template-nontype-parameter>
+              </template>
+
+              <type>bool</type>
+              
+              <parameter name="x">
+                <paramtype>const <classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>const <classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+
+              <returns><simpara><code>!(y &lt; x)</code></simpara></returns>
+            </function>
+
+            <function name="operator&gt;=">
+              <template>
+                <template-type-parameter name="T"/>
+                <template-nontype-parameter name="N">
+                  <type>std::size_t</type>
+                </template-nontype-parameter>
+              </template>
+
+              <type>bool</type>
+              
+              <parameter name="x">
+                <paramtype>const <classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>const <classname>array</classname>&lt;T, N&gt;&amp;</paramtype>
+              </parameter>
+
+              <returns><simpara><code>!(x &lt; y)</code></simpara></returns>
+            </function>
+          </free-function-group>
+        </class>
+      </namespace>
+    </header>
+  </library-reference>
+
+<section id="array.rationale">
+  <title>Design Rationale</title>
+
+  <para>There was an important design tradeoff regarding the
+  constructors: We could implement array as an "aggregate" (see
+  Section 8.5.1, [dcl.init.aggr], of the C++ Standard). This would
+  mean:
+    <itemizedlist>
+      <listitem><simpara>An array can be initialized with a
+      brace-enclosing, comma-separated list of initializers for the
+      elements of the container, written in increasing subscript
+      order:</simpara>
+
+      <programlisting><classname>boost::array</classname>&lt;int,4&gt; a = { { 1, 2, 3 } };</programlisting>
+
+      <simpara>Note that if there are fewer elements in the
+      initializer list, then each remaining element gets
+      default-initialized (thus, it has a defined value).</simpara>
+  </listitem></itemizedlist></para>
+
+  <para>However, this approach has its drawbacks: <emphasis
+  role="bold"> passing no initializer list means that the elements
+  have an indetermined initial value</emphasis>, because the rule says
+  that aggregates may have:
+    <itemizedlist>
+      <listitem><simpara>No user-declared constructors.</simpara></listitem>
+      <listitem><simpara>No private or protected non-static data members.</simpara></listitem>
+      <listitem><simpara>No base classes.</simpara></listitem>
+      <listitem><simpara>No virtual functions.</simpara></listitem>
+    </itemizedlist>
+  </para>
+
+  <para>Nevertheless, The current implementation uses this approach.</para>
+
+  <para>Note that for standard conforming compilers it is possible to
+  use fewer braces (according to 8.5.1 (11) of the Standard). That is,
+  you can initialize an array as follows:</para>
+
+<programlisting>
+<classname>boost::array</classname>&lt;int,4&gt; a = { 1, 2, 3 };
+</programlisting>
+
+  <para>I'd appreciate any constructive feedback. <emphasis
+  role="bold">Please note: I don't have time to read all boost
+  mails. Thus, to make sure that feedback arrives to me, please send
+  me a copy of each mail regarding this class.</emphasis></para>
+
+  <para>The code is provided "as is" without expressed or implied
+  warranty.</para>
+
+</section>
+
+<section id="array.more.info">
+  <title>For more information...</title>
+  <para>To find more details about using ordinary arrays in C++ and
+  the framework of the STL, see e.g.
+
+    <literallayout>The C++ Standard Library - A Tutorial and Reference
+by Nicolai M. Josuttis
+Addison Wesley Longman, 1999
+ISBN 0-201-37926-0</literallayout>
+   </para>
+
+  <para><ulink url="http://www.josuttis.com/">Home Page of Nicolai
+  Josuttis</ulink></para>
+</section>
+
+<section id="array.ack">
+  <title>Acknowledgements</title>
+  
+  <para>Doug Gregor ported the documentation to the BoostBook format.</para>
+</section>
+
+<!-- Notes:
+   empty() should return N != 0
+   size(), empty(), max_size() should be const
+   -->
+
+</library>

@@ -1,0 +1,259 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template asynchronous_sink</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../sinks.html#header.boost.log.sinks.async_frontend_hpp" title="Header &lt;boost/log/sinks/async_frontend.hpp&gt;">
+<link rel="prev" href="../../../sinks.html" title="Sinks">
+<link rel="next" href="asynchronous_sink/scoped_flag.html" title="Class scoped_flag">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../sinks.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.async_frontend_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="asynchronous_sink/scoped_flag.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.sinks.asynchronous_sink"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template asynchronous_sink</span></h2>
+<p>boost::log::sinks::asynchronous_sink &#8212; Asynchronous logging sink frontend. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../sinks.html#header.boost.log.sinks.async_frontend_hpp" title="Header &lt;boost/log/sinks/async_frontend.hpp&gt;">boost/log/sinks/async_frontend.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SinkBackendT<span class="special">,</span> 
+         <span class="keyword">typename</span> QueueingStrategyT <span class="special">=</span> <a class="link" href="unbounded_fifo_queue.html" title="Class unbounded_fifo_queue">unbounded_fifo_queue</a><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="asynchronous_sink.html" title="Class template asynchronous_sink">asynchronous_sink</a> <span class="special">:</span> <span class="keyword">public</span> basic_sink_frontend,
+                          <span class="keyword">private</span> locking_ptr_counter_base,
+                          <span class="keyword">public</span> QueueingStrategyT
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">SinkBackendT</span>           <a name="boost.log.sinks.asynchronous_sink.sink_backend_type"></a><span class="identifier">sink_backend_type</span><span class="special">;</span>   <span class="comment">// Sink implementation type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span> <a name="boost.log.sinks.asynchronous_sink.locked_backend_ptr"></a><span class="identifier">locked_backend_ptr</span><span class="special">;</span>  <span class="comment">// A pointer type that locks the backend until it's destroyed. </span>
+
+  <span class="comment">// member classes/structs/unions</span>
+
+  <span class="comment">// A scope guard that resets a flag on destructor.</span>
+
+  <span class="keyword">class</span> <a class="link" href="asynchronous_sink/scoped_flag.html" title="Class scoped_flag">scoped_flag</a> <span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// <a class="link" href="asynchronous_sink/scoped_flag.html#boost.log.sinks.asynchronous_sink.scoped_flagconstruct-copy-destruct">construct/copy/destruct</a></span>
+    <span class="keyword">explicit</span> <a class="link" href="asynchronous_sink/scoped_flag.html#idp27056344-bb"><span class="identifier">scoped_flag</span></a><span class="special">(</span><span class="identifier">frontend_mutex_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">condition_variable_any</span> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="keyword">volatile</span> <span class="keyword">bool</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <a class="link" href="asynchronous_sink/scoped_flag.html#idp27057848-bb"><span class="identifier">scoped_flag</span></a><span class="special">(</span><span class="identifier">scoped_flag</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    scoped_flag&amp; <a class="link" href="asynchronous_sink/scoped_flag.html#idp27058264-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">scoped_flag</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <a class="link" href="asynchronous_sink/scoped_flag.html#idp27057576-bb"><span class="special">~</span><span class="identifier">scoped_flag</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// A scope guard that implements thread ID management.</span>
+
+  <span class="keyword">class</span> <a class="link" href="asynchronous_sink/scoped_thread_id.html" title="Class scoped_thread_id">scoped_thread_id</a> <span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// <a class="link" href="asynchronous_sink/scoped_thread_id.html#boost.log.sinks.asynchronous_sink.scoped_thread_idconstruct-copy-destruct">construct/copy/destruct</a></span>
+    <a class="link" href="asynchronous_sink/scoped_thread_id.html#idp27059416-bb"><span class="identifier">scoped_thread_id</span></a><span class="special">(</span><span class="identifier">frontend_mutex_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">condition_variable_any</span> <span class="special">&amp;</span><span class="special">,</span> 
+                     <span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">bool</span> <span class="keyword">volatile</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <a class="link" href="asynchronous_sink/scoped_thread_id.html#idp27061016-bb"><span class="identifier">scoped_thread_id</span></a><span class="special">(</span><span class="identifier">unique_lock</span><span class="special">&lt;</span> <span class="identifier">frontend_mutex_type</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+                     <span class="identifier">condition_variable_any</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">bool</span> <span class="keyword">volatile</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <a class="link" href="asynchronous_sink/scoped_thread_id.html#idp27063048-bb"><span class="identifier">scoped_thread_id</span></a><span class="special">(</span><span class="identifier">scoped_thread_id</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    scoped_thread_id&amp; <a class="link" href="asynchronous_sink/scoped_thread_id.html#idp27063464-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">scoped_thread_id</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <a class="link" href="asynchronous_sink/scoped_thread_id.html#idp27062632-bb"><span class="special">~</span><span class="identifier">scoped_thread_id</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="asynchronous_sink.html#boost.log.sinks.asynchronous_sinkconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="asynchronous_sink.html#idp27075944-bb"><span class="identifier">asynchronous_sink</span></a><span class="special">(</span><span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="asynchronous_sink.html#idp27077960-bb"><span class="identifier">asynchronous_sink</span></a><span class="special">(</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sink_backend_type</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                             <span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="asynchronous_sink.html#idp27081240-bb"><span class="special">~</span><span class="identifier">asynchronous_sink</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="asynchronous_sink.html#idp27065080-bb">public member functions</a></span>
+  <span class="identifier">locked_backend_ptr</span> <a class="link" href="asynchronous_sink.html#idp27065288-bb"><span class="identifier">locked_backend</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="asynchronous_sink.html#idp27066008-bb"><span class="identifier">consume</span></a><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="asynchronous_sink.html#idp27067064-bb"><span class="identifier">try_consume</span></a><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="asynchronous_sink.html#idp27068136-bb"><span class="identifier">run</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="asynchronous_sink.html#idp27070472-bb"><span class="identifier">stop</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="asynchronous_sink.html#idp27073224-bb"><span class="identifier">feed_records</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="asynchronous_sink.html#idp27074392-bb"><span class="identifier">flush</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp63591400"></a><h2>Description</h2>
+<p>The frontend starts a separate thread on construction. All logging records are passed to the backend in this dedicated thread only. </p>
+<div class="refsect2">
+<a name="idp63591880"></a><h3>
+<a name="boost.log.sinks.asynchronous_sinkconstruct-copy-destruct"></a><code class="computeroutput">asynchronous_sink</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp27075944-bb"></a><span class="identifier">asynchronous_sink</span><span class="special">(</span><span class="keyword">bool</span> start_thread <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Default constructor. Constructs the sink backend instance. Requires the backend to be default-constructible.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">start_thread</code></span></p></td>
+<td><p>If <code class="computeroutput">true</code>, the frontend creates a thread to feed log records to the backend. Otherwise no thread is started and it is assumed that the user will call either <code class="computeroutput">run</code> or <code class="computeroutput">feed_records</code> himself. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp27077960-bb"></a><span class="identifier">asynchronous_sink</span><span class="special">(</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sink_backend_type</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> backend<span class="special">,</span> 
+                           <span class="keyword">bool</span> start_thread <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor attaches user-constructed backend instance</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">backend</code></span></p></td>
+<td><p>Pointer to the backend instance. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">start_thread</code></span></p></td>
+<td><p>If <code class="computeroutput">true</code>, the frontend creates a thread to feed log records to the backend. Otherwise no thread is started and it is assumed that the user will call either <code class="computeroutput">run</code> or <code class="computeroutput">feed_records</code> himself.</p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><span class="emphasis"><em>backend</em></span> is not <code class="computeroutput">NULL</code>. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp27081240-bb"></a><span class="special">~</span><span class="identifier">asynchronous_sink</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destructor. Implicitly stops the dedicated feeding thread, if one is running. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp63610952"></a><h3>
+<a name="idp27065080-bb"></a><code class="computeroutput">asynchronous_sink</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">locked_backend_ptr</span> <a name="idp27065288-bb"></a><span class="identifier">locked_backend</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Locking accessor to the attached backend </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27066008-bb"></a><span class="identifier">consume</span><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span> rec<span class="special">)</span><span class="special">;</span></pre>
+<p>Enqueues the log record to the backend </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp27067064-bb"></a><span class="identifier">try_consume</span><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span> rec<span class="special">)</span><span class="special">;</span></pre>
+<p>The method attempts to pass logging record to the backend </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27068136-bb"></a><span class="identifier">run</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method starts record feeding loop and effectively blocks until either of this happens:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>the thread is interrupted due to either standard thread interruption or a call to <code class="computeroutput">stop</code> </p></li>
+<li class="listitem"><p>an exception is thrown while processing a log record in the backend, and the exception is not terminated by the exception handler, if one is installed</p></li>
+</ul></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The sink frontend must be constructed without spawning a dedicated thread </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27070472-bb"></a><span class="identifier">stop</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method softly interrupts record feeding loop. This method must be called when the <code class="computeroutput">run</code> method execution has to be interrupted. Unlike regular thread interruption, calling <code class="computeroutput">stop</code> will not interrupt the record processing in the middle. Instead, the sink frontend will attempt to finish its business with the record in progress and return afterwards. This method can be called either if the sink was created with a dedicated thread, or if the feeding loop was initiated by user.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>Returning from this method does not guarantee that there are no records left buffered in the sink frontend. It is possible that log records keep coming during and after this method is called. At some point of execution of this method log records stop being processed, and all records that come after this point are put into the queue. These records will be processed upon further calls to <code class="computeroutput">run</code> or <code class="computeroutput">feed_records</code>. </p></td></tr>
+</table></div>
+<p>
+</p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27073224-bb"></a><span class="identifier">feed_records</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method feeds log records that may have been buffered to the backend and returns</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The sink frontend must be constructed without spawning a dedicated thread </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27074392-bb"></a><span class="identifier">flush</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method feeds all log records that may have been buffered to the backend and returns. Unlike <code class="computeroutput">feed_records</code>, in case of ordering queueing the method also feeds records that were enqueued during the ordering window, attempting to empty the queue completely.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The sink frontend must be constructed without spawning a dedicated thread </p></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../sinks.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.async_frontend_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="asynchronous_sink/scoped_flag.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

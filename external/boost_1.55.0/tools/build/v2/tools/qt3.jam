@@ -1,0 +1,209 @@
+# Copyright 2006 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+# Support for the Qt GUI library version 3
+# (http://www.trolltech.com/products/qt3/index.html).
+# For new developments, it is recommended to use Qt4 via the qt4 Boost.Build
+# module.
+
+import modules ;
+import feature ;
+import errors ;
+import type ;
+import "class" : new ;
+import generators ;
+import project ;
+import toolset : flags ;
+
+# Convert this module into a project, so that we can declare targets here.
+project.initialize $(__name__) ;
+project qt3 ;
+
+
+# Initialized the QT support module. The 'prefix' parameter tells where QT is
+# installed. When not given, environmental variable QTDIR should be set.
+#
+rule init ( prefix ? )
+{
+    if ! $(prefix)
+    {
+        prefix = [ modules.peek : QTDIR ] ;
+        if ! $(prefix) 
+        {
+            errors.error 
+              "QT installation prefix not given and QTDIR variable is empty" ;
+        }        
+    }
+ 
+    if $(.initialized)
+    {
+        if $(prefix) != $(.prefix)
+        {
+            errors.error 
+              "Attempt the reinitialize QT with different installation prefix" ;
+        }        
+    } 
+    else
+    {            
+        .initialized = true ;
+        .prefix = $(prefix) ;
+        
+        generators.register-standard qt3.moc : H : CPP(moc_%) : <allow>qt3 ;
+        # Note: the OBJ target type here is fake, take a look at
+        # qt4.jam/uic-h-generator for explanations that apply in this case as
+        # well.
+        generators.register [ new moc-h-generator-qt3 
+            qt3.moc.cpp : MOCCABLE_CPP : OBJ : <allow>qt3 ] ;
+        
+        # The UI type is defined in types/qt.jam, and UIC_H is only used in
+        # qt.jam, but not in qt4.jam, so define it here.
+        type.register UIC_H : : H ;
+        
+        generators.register-standard qt3.uic-h : UI : UIC_H : <allow>qt3 ;
+        
+        # The following generator is used to convert UI files to CPP. It creates
+        # UIC_H from UI, and constructs CPP from UI/UIC_H. In addition, it also
+        # returns UIC_H target, so that it can be mocced.
+        class qt::uic-cpp-generator : generator
+        {
+            rule __init__ ( )
+            {
+                generator.__init__ qt3.uic-cpp : UI UIC_H : CPP : <allow>qt3 ;
+            }
+                        
+            rule run ( project name ? : properties * : sources + )
+            {
+                # Consider this:
+                #    obj test : test_a.cpp : <optimization>off ;
+                #
+                # This generator will somehow be called in this case, and,
+                # will fail -- which is okay. However, if there are <library>
+                # properties they will be converted to sources, so the size of 
+                # 'sources' will be more than 1. In this case, the base generator
+                # will just crash -- and that's not good. Just use a quick test
+                # here.
+                                
+                local result ;
+                if ! $(sources[2])
+                {    
+                    # Construct CPP as usual
+                    result = [ generator.run $(project) $(name) 
+                      : $(properties) : $(sources) ] ;
+                    
+                    # If OK, process UIC_H with moc. It's pretty clear that
+                    # the object generated with UIC will have Q_OBJECT macro.
+                    if $(result)
+                    {
+                        local action = [ $(result[1]).action ] ;
+                        local sources = [ $(action).sources ] ;
+                        local mocced = [ generators.construct $(project) $(name)
+                          : CPP : $(properties) : $(sources[2]) ] ;
+                        result += $(mocced[2-]) ;
+                    }
+                }
+                            
+                return $(result) ;
+            }               
+        }
+    
+        generators.register [ new qt::uic-cpp-generator ] ;
+        
+        # Finally, declare prebuilt target for QT library.
+        local usage-requirements = 
+             <include>$(.prefix)/include 
+             <dll-path>$(.prefix)/lib
+             <library-path>$(.prefix)/lib     
+             <allow>qt3
+             ;  
+        lib qt : : <name>qt-mt <threading>multi : : $(usage-requirements) ;
+        lib qt : : <name>qt <threading>single : : $(usage-requirements) ;        
+    }
+}
+
+class moc-h-generator-qt3 : generator
+{
+    rule __init__ ( * : * )
+    {
+        generator.__init__ $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    }
+
+    rule run ( project name ? : property-set : sources * )
+    {       
+        if ! $(sources[2]) && [ $(sources[1]).type ] = MOCCABLE_CPP
+        {                              
+            name = [ $(sources[1]).name ] ;
+            name = $(name:B) ;
+            
+            local a = [ new action $(sources[1]) : qt3.moc.cpp :
+              $(property-set) ] ;
+            
+            local target = [ 
+              new file-target $(name) : MOC : $(project) : $(a) ] ;
+            
+            local r = [ virtual-target.register $(target) ] ; 
+                                  
+            # Since this generator will return a H target, the linking generator
+            # won't use it at all, and won't set any dependency on it. However, 
+            # we need the target to be seen by bjam, so that the dependency from
+            # sources to this generated header is detected -- if Jam does not
+            # know about this target, it won't do anything.
+            DEPENDS all : [ $(r).actualize ] ;
+            
+            return $(r) ;            
+        }        
+    }    
+}
+
+
+# Query the installation directory. This is needed in at least two scenarios.
+# First, when re-using sources from the Qt-Tree. Second, to "install" custom Qt
+# plugins to the Qt-Tree.
+#
+rule directory 
+{ 
+    return $(.prefix) ; 
+} 
+
+# -f forces moc to include the processed source file. Without it, it would think
+# that .qpp is not a header and would not include it from the generated file.
+#
+actions moc 
+{
+    $(.prefix)/bin/moc -f $(>) -o $(<)
+}
+
+# When moccing .cpp files, we don't need -f, otherwise generated code will
+# include .cpp and we'll get duplicated symbols.
+#
+actions moc.cpp
+{
+    $(.prefix)/bin/moc $(>) -o $(<)
+}
+
+
+space = " " ;
+
+# Sometimes it's required to make 'plugins' available during uic invocation. To
+# help with this we add paths to all dependency libraries to uic commane line.
+# The intention is that it's possible to write
+#    
+#     exe a : ... a.ui ... : <uses>some_plugin ; 
+# 
+# and have everything work. We'd add quite a bunch of unrelated paths but it
+# won't hurt.
+#
+flags qt3.uic-h LIBRARY_PATH <xdll-path> ;
+actions uic-h
+{
+    $(.prefix)/bin/uic $(>) -o $(<) -L$(space)$(LIBRARY_PATH)
+}
+
+
+flags qt3.uic-cpp LIBRARY_PATH <xdll-path> ;
+# The second target is uic-generated header name. It's placed in build dir, but
+# we want to include it using only basename.
+actions uic-cpp
+{
+    $(.prefix)/bin/uic $(>[1]) -i $(>[2]:D=) -o $(<) -L$(space)$(LIBRARY_PATH)
+}

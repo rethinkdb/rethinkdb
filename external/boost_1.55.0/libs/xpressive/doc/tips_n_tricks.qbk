@@ -1,0 +1,89 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:tips_n_tricks Tips 'N Tricks]
+
+Squeeze the most performance out of xpressive with these tips and tricks.
+
+[h2 Compile Patterns Once And Reuse Them]
+
+Compiling a regex (dynamic or static) is /far/ more expensive than executing a
+match or search. If you have the option, prefer to compile a pattern into
+a _basic_regex_ object once and reuse it rather than recreating it over
+and over.
+
+Since _basic_regex_ objects are not mutated by any of the regex algorithms, they
+are completely thread-safe once their initialization (and that of any grammars of
+which they are members) completes. The easiest way to reuse your patterns is
+to simply make your _basic_regex_ objects "static const".
+
+[h2 Reuse _match_results_ Objects]
+
+The _match_results_ object caches dynamically allocated memory. For this
+reason, it is far better to reuse the same _match_results_ object if you
+have to do many regex searches.
+
+Caveat: _match_results_ objects are not thread-safe, so don't go wild
+reusing them across threads.
+
+[h2 Prefer Algorithms That Take A _match_results_ Object]
+
+This is a corollary to the previous tip. If you are doing multiple searches,
+you should prefer the regex algorithms that accept a _match_results_ object
+over the ones that don't, and you should reuse the same _match_results_ object
+each time. If you don't provide a _match_results_ object, a temporary one
+will be created for you and discarded when the algorithm returns. Any
+memory cached in the object will be deallocated and will have to be reallocated
+the next time.
+
+[h2 Prefer Algorithms That Accept Iterator Ranges Over Null-Terminated Strings]
+
+xpressive provides overloads of the _regex_match_ and _regex_search_
+algorithms that operate on C-style null-terminated strings. You should
+prefer the overloads that take iterator ranges. When you pass a
+null-terminated string to a regex algorithm, the end iterator is calculated
+immediately by calling `strlen`. If you already know the length of the string,
+you can avoid this overhead by calling the regex algorithms with a `[begin, end)`
+pair.
+
+[h2 Use Static Regexes]
+
+On average, static regexes execute about 10 to 15% faster than their
+dynamic counterparts. It's worth familiarizing yourself with the static
+regex dialect.
+
+[h2 Understand [^syntax_option_type::optimize]]
+
+The `optimize` flag tells the regex compiler to spend some extra time analyzing
+the pattern. It can cause some patterns to execute faster, but it increases
+the time to compile the pattern, and often increases the amount of memory
+consumed by the pattern. If you plan to reuse your pattern, `optimize` is
+usually a win. If you will only use the pattern once, don't use `optimize`.
+
+[h1 Common Pitfalls]
+
+Keep the following tips in mind to avoid stepping in potholes with xpressive.
+
+[h2 Create Grammars On A Single Thread]
+
+With static regexes, you can create grammars by nesting regexes inside one
+another. When compiling the outer regex, both the outer and inner regex objects,
+and all the regex objects to which they refer either directly or indirectly, are
+modified. For this reason, it's dangerous for global regex objects to participate
+in grammars. It's best to build regex grammars from a single thread. Once built,
+the resulting regex grammar can be executed from multiple threads without
+problems.
+
+[h2 Beware Nested Quantifiers]
+
+This is a pitfall common to many regular expression engines. Some patterns can
+cause exponentially bad performance. Often these patterns involve one quantified
+term nested withing another quantifier, such as `"(a*)*"`, although in many
+cases, the problem is harder to spot. Beware of patterns that have nested
+quantifiers.
+
+[endsect]

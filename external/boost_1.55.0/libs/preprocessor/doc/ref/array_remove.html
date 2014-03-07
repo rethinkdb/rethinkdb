@@ -1,0 +1,60 @@
+<html>
+<head>
+	<title>BOOST_PP_ARRAY_REMOVE</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_ARRAY_REMOVE</b> macro removes an element from an <i>array</i>.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_ARRAY_REMOVE</b>(<i>array</i>, <i>i</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>array</dt>
+			<dd>
+				The <i>array</i> from which an element is to be removed.
+			</dd>
+			<dt>i</dt>
+			<dd>
+				The zero-based position in <i>array</i> of the element to be removed.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_ARRAY_SIZE</b>(<i>array</i>) - <i>1</i>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro uses <b>BOOST_PP_WHILE</b> interally.&nbsp;
+			Therefore, to use the <i>d</i> parameter passed from other macros that use <b>BOOST_PP_WHILE</b>,
+			see <b>BOOST_PP_ARRAY_REMOVE_D</b>.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="array_remove_d.html">BOOST_PP_ARRAY_REMOVE_D</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/array/remove.html">&lt;boost/preprocessor/array/remove.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/array/remove.html">boost/preprocessor/array/remove.hpp</a>&gt;
+
+#define ARRAY (3, (a, b, d))
+
+<a href="array_remove.html">BOOST_PP_ARRAY_REMOVE</a>(ARRAY, 2) // expands to (2, (a, b))
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

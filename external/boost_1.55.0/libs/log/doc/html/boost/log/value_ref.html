@@ -1,0 +1,118 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template value_ref</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../utilities.html#header.boost.log.utility.value_ref_hpp" title="Header &lt;boost/log/utility/value_ref.hpp&gt;">
+<link rel="prev" href="../../BOOST_LOG_UNUSED_VARIABLE.html" title="Macro BOOST_LOG_UNUSED_VARIABLE">
+<link rel="next" href="swap_idp28667816.html" title="Function template swap">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../BOOST_LOG_UNUSED_VARIABLE.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../utilities.html#header.boost.log.utility.value_ref_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="swap_idp28667816.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.value_ref"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template value_ref</span></h2>
+<p>boost::log::value_ref &#8212; Reference wrapper for a stored attribute value. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../utilities.html#header.boost.log.utility.value_ref_hpp" title="Header &lt;boost/log/utility/value_ref.hpp&gt;">boost/log/utility/value_ref.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="value_ref.html" title="Class template value_ref">value_ref</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="value_ref.html#boost.log.value_refconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="value_ref.html#idp28664648-bb"><span class="identifier">value_ref</span></a><span class="special">(</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">default</span><span class="special">;</span>
+  <a class="link" href="value_ref.html#idp28665128-bb"><span class="identifier">value_ref</span></a><span class="special">(</span><a class="link" href="value_ref.html" title="Class template value_ref">value_ref</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">default</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> 
+    <span class="keyword">explicit</span> <a class="link" href="value_ref.html#idp28666024-bb"><span class="identifier">value_ref</span></a><span class="special">(</span><span class="identifier">U</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                       <span class="keyword">typename</span> <span class="identifier">enable_if</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">base_type</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">is_compatible</span><span class="special">&lt;</span> <span class="identifier">U</span> <span class="special">&gt;</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="value_ref.html#idp28660616-bb">public member functions</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="value_ref.html#idp28660824-bb"><span class="keyword">operator</span> <span class="keyword">bool</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="value_ref.html#idp28661688-bb"><span class="keyword">operator</span><span class="special">!</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="value_ref.html#idp28662424-bb"><span class="identifier">empty</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="value_ref.html#idp28663480-bb"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="value_ref.html" title="Class template value_ref">value_ref</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp71739144"></a><h2>Description</h2>
+<p>The <code class="computeroutput"><a class="link" href="value_ref.html" title="Class template value_ref">value_ref</a></code> class template provides access to the stored attribute value. It is not a traditional reference wrapper since it may be empty (i.e. refer to no value at all) and it can also refer to values of different types. Therefore its interface and behavior combines features of Boost.Ref, Boost.Optional and Boost.Variant, depending on the use case.</p>
+<p>The template parameter <code class="computeroutput">T</code> can be a single type or an MPL sequence of possible types being referred. The reference wrapper will act as either an optional reference or an optional variant of references to the specified types. In any case, the referred values will not be modifiable (i.e. <code class="computeroutput"><a class="link" href="value_ref.html" title="Class template value_ref">value_ref</a></code> always models a const reference).</p>
+<p>Template parameter <code class="computeroutput">TagT</code> is optional. It can be used for customizing the operations on this reference wrapper, such as putting the referred value to log. </p>
+<div class="refsect2">
+<a name="idp71742504"></a><h3>
+<a name="boost.log.value_refconstruct-copy-destruct"></a><code class="computeroutput">value_ref</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp28664648-bb"></a><span class="identifier">value_ref</span><span class="special">(</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">default</span><span class="special">;</span></pre>
+<p>Default constructor. Creates a reference wrapper that does not refer to a value. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28665128-bb"></a><span class="identifier">value_ref</span><span class="special">(</span><a class="link" href="value_ref.html" title="Class template value_ref">value_ref</a> <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span> <span class="special">=</span> <span class="keyword">default</span><span class="special">;</span></pre>
+<p>Copy constructor. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> 
+  <span class="keyword">explicit</span> <a name="idp28666024-bb"></a><span class="identifier">value_ref</span><span class="special">(</span><span class="identifier">U</span> <span class="keyword">const</span> <span class="special">&amp;</span> val<span class="special">,</span> 
+                     <span class="keyword">typename</span> <span class="identifier">enable_if</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">base_type</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">is_compatible</span><span class="special">&lt;</span> <span class="identifier">U</span> <span class="special">&gt;</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Initializing constructor. Creates a reference wrapper that refers to the specified value. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp71760296"></a><h3>
+<a name="idp28660616-bb"></a><code class="computeroutput">value_ref</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp28660824-bb"></a><span class="keyword">operator</span> <span class="keyword">bool</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The operator verifies if the wrapper refers to a value. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28661688-bb"></a><span class="keyword">operator</span><span class="special">!</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The operator verifies if the wrapper does not refer to a value. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28662424-bb"></a><span class="identifier">empty</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if the wrapper does not refer to a value. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28663480-bb"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="value_ref.html" title="Class template value_ref">value_ref</a> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Swaps two reference wrappers </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../BOOST_LOG_UNUSED_VARIABLE.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../utilities.html#header.boost.log.utility.value_ref_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="swap_idp28667816.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

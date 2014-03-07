@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!ENTITY positional_options_desc 
+     "<classname alt='boost::program_options::positional_options_description'>positional_options_description</classname>">
+
+<!ENTITY options_description
+     "<classname alt='boost::program_options::options_description'>options_description</classname>">
+
+<!ENTITY option_description
+     "<classname alt='boost::program_options::option_description'>option_description</classname>">
+
+<!ENTITY value_semantic
+     "<classname alt='boost::program_options::value_semantic'>value_semantic</classname>">
+
+<!ENTITY parsed_options
+     "<classname alt='boost::program_options::parsed_options'>parsed_options</classname>">
+
+<!ENTITY variables_map
+     "<classname alt='boost::program_options::variables_map'>variables_map</classname>">
+
+
+<!ENTITY value
+     "<functionname alt='boost::program_options::value'>value</functionname>">
+
+<!ENTITY parse_command_line
+     "<functionname
+     alt='boost::program_options::parse_command_line'>parse_command_line</functionname>">
+
+<!ENTITY parse_config_file
+     "<functionname alt='boost::program_options::parse_config_file'>parse_config_file</functionname>">
+
+<!ENTITY parse_environment
+     "<functionname alt='boost::program_options::parse_environment'>parse_environment</functionname>">
+
+<!ENTITY store
+     "<functionname alt='boost::program_options::store'>store</functionname>">
+
+<!ENTITY command_line_parser
+     "<classname alt='boost::program_options::command_line_parser'>command_line_parser</classname>">
+
+<!ENTITY basic_command_line_parser
+     "<classname alt='boost::program_options::basic_command_line_parser'>basic_command_line_parser</classname>">
+
+
+<!ENTITY basic_option
+     "<classname alt='boost::program_options::basic_option'>basic_option</classname>">
+

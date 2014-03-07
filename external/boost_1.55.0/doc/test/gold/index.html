@@ -1,0 +1,151 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Document To Test Formatting</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="index.html" title="Document To Test Formatting">
+<link rel="next" href="document_to_test_formatting/code_blocks.html" title="Code Blocks">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="document_to_test_formatting/code_blocks.html"><img src="../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="article">
+<div class="titlepage">
+<div>
+<div><h2 class="title">
+<a name="document_to_test_formatting"></a>Document To Test Formatting</h2></div>
+<div><div class="authorgroup">
+<div class="author"><h3 class="author">
+<span class="firstname">John</span> <span class="surname">Maddock</span>
+</h3></div>
+<div class="author"><h3 class="author">
+<span class="firstname">Joel</span> <span class="surname">de Guzman</span>
+</h3></div>
+<div class="author"><h3 class="author">
+<span class="firstname">Eric</span> <span class="surname">Niebler</span>
+</h3></div>
+<div class="author"><h3 class="author">
+<span class="firstname">Matias</span> <span class="surname">Capeletto</span>
+</h3></div>
+</div></div>
+<div><p class="copyright">Copyright &#169; 2007 John Maddock, Joel de Guzman, Eric Niebler and Matias
+      Capeletto</p></div>
+<div><div class="legalnotice">
+<a name="id759728"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div>
+<hr>
+</div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="index.html#document_to_test_formatting.introduction">Introduction</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/code_blocks.html">Code Blocks</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="document_to_test_formatting/code_blocks.html#document_to_test_formatting.code_blocks.embedded_code">Embedded
+      code</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/code_blocks.html#document_to_test_formatting.code_blocks.code_with_a_very_long_line">Code
+      With a Very Long Line</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/code_blocks.html#document_to_test_formatting.code_blocks.imported_code_and_callouts">Imported
+      code and callouts</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/code_blocks.html#document_to_test_formatting.code_blocks.larger_example">Larger
+      example</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="document_to_test_formatting/basic_formatting.html">Basic Formatting</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="document_to_test_formatting/basic_formatting.html#document_to_test_formatting.basic_formatting.font_styles">Font
+      Styles</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/basic_formatting.html#document_to_test_formatting.basic_formatting.replaceable_text">Replaceable
+      Text</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/basic_formatting.html#document_to_test_formatting.basic_formatting.quotations">Quotations</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/basic_formatting.html#document_to_test_formatting.basic_formatting.inline_code">Inline
+      Code</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/basic_formatting.html#document_to_test_formatting.basic_formatting.links">Links</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/basic_formatting.html#document_to_test_formatting.basic_formatting.footnotes">Footnotes</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/basic_formatting.html#document_to_test_formatting.basic_formatting.blockquote">Blockquote</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/basic_formatting.html#document_to_test_formatting.basic_formatting.headings">Headings</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="document_to_test_formatting/blurbs.html">Blurbs</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="document_to_test_formatting/blurbs.html#document_to_test_formatting.blurbs.preformatted_text">Preformatted
+      text</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/blurbs.html#document_to_test_formatting.blurbs.admonishments">Admonishments</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/blurbs.html#document_to_test_formatting.blurbs.blurbs">Blurbs</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="document_to_test_formatting/lists_and_tables.html">Lists and
+    Tables</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="document_to_test_formatting/lists_and_tables.html#document_to_test_formatting.lists_and_tables.lists">Lists</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/lists_and_tables.html#document_to_test_formatting.lists_and_tables.variable_lists">Variable
+      Lists</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/lists_and_tables.html#document_to_test_formatting.lists_and_tables.tables">Tables</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="document_to_test_formatting/images.html">Images</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/test.html"> test HTML4 symbols</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="document_to_test_formatting/test.html#document_to_test_formatting.test.test_greek_and_math_symbols">test
+      Greek and Math symbols</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/test.html#document_to_test_formatting.test.test_latin1_symbols">test
+      Latin1 symbols</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="document_to_test_formatting/remez.html"> Sample Article (The
+    Remez Method)</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/array.html"> Array Example Boostbook
+    XML Documentation</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="document_to_test_formatting/array.html#array.intro">Introduction</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/array.html#id772287">Reference</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/array.html#array.rationale">Design Rationale</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/array.html#array.more.info">For more information...</a></span></dt>
+<dt><span class="section"><a href="document_to_test_formatting/array.html#array.ack">Acknowledgements</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="document_to_test_formatting/accumulators.html"> Accumulators
+    Example Doxygen Documentation</a></span></dt>
+<dd><dl><dt><span class="section"><a href="document_to_test_formatting/accumulators.html#statistics_library_reference">Statistics Library Reference</a></span></dt></dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="document_to_test_formatting.introduction"></a><a class="link" href="index.html#document_to_test_formatting.introduction" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<p>
+      This document is purely a test case to test out HTML and PDF generation and
+      style.
+    </p>
+<p>
+      This is some body text.
+    </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="number">2.345</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">d</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      We can count in Greek too: &#945;, &#946;, &#947;.
+    </p>
+<p>
+      Try some superscrips and subscripts: x<sup>2</sup>, x<sub>i</sub><sup>3</sup>, &#945;<sup>2</sup>, &#946;<sup>&#945;</sup>, &#8970;x&#8971;, &#8970;&#945;&#8971;, &#8968;a&#8969;.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: July 22, 2010 at 21:58:58 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="document_to_test_formatting/code_blocks.html"><img src="../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+[article 1.5 Elements
+[quickbook 1.5]
+]
+
+[/ elements from 1.6]
+
+[ordered_list [item1][item2]]
+
+[itemized_list [item1][item2]]
+
+[block'''<simplesect><title>'''A *simplesect*!'''</title>''']
+
+[block'''</simplesect>''']

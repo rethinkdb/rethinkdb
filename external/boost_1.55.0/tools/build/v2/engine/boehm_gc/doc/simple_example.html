@@ -1,0 +1,202 @@
+<HTML>
+<HEAD>
+<TITLE>Using the Garbage Collector: A simple example</title>
+</head>
+<BODY>
+<H1>Using the Garbage Collector: A simple example</h1>
+The following consists of step-by-step instructions for building and
+using the collector.  We'll assume a Linux/gcc platform and
+a single-threaded application.  <FONT COLOR=green>The green
+text contains information about other platforms or scenarios.
+It can be skipped, especially on first reading</font>.
+<H2>Building the collector</h2>
+If you haven't already so, unpack the collector and enter
+the newly created directory with
+<PRE>
+tar xvfz gc<version>.tar.gz
+cd gc<version>
+</pre>
+<P>
+You can configure, build, and install the collector in a private
+directory, say /home/xyz/gc, with the following commands:
+<PRE>
+./configure --prefix=/home/xyz/gc --disable-threads
+make
+make check
+make install
+</pre>
+Here the "<TT>make check</tt>" command is optional, but highly recommended.
+It runs a basic correctness test which usually takes well under a minute.
+<FONT COLOR=green>
+<H3>Other platforms</h3>
+On non-Unix, non-Linux platforms, the collector is usually built by copying
+the appropriate makefile (see the platform-specific README in doc/README.xxx
+in the distribution) to the file "Makefile" (overwriting the copy of
+Makefile.direct that was originally there), and then typing "make"
+(or "nmake" or ...).  This builds the library in the source tree.  You may
+want to move it and the files in the include directory to a more convenient
+place.
+<P>
+If you use a makefile that does not require running a configure script,
+you should first look at the makefile, and adjust any options that are
+documented there.
+<P>
+If your platform provides a "make" utility, that is generally preferred
+to platform- and compiler- dependent "project" files.  (At least that is the
+strong preference of the would-be maintainer of those project files.)
+<H3>Threads</h3>
+If you need thread support, configure the collector with
+<PRE>
+--enable-threads=posix --enable-thread-local-alloc --enable-parallel-mark
+</pre>
+instead of
+<TT>--disable-threads</tt>
+If your target is a real old-fashioned uniprocessor (no "hyperthreading",
+etc.) you will want to omit <TT>--enable-parallel-mark</tt>.
+<H3>C++</h3>
+You will need to include the C++ support, which unfortunately tends to
+be among the least portable parts of the collector, since it seems
+to rely on some corner cases of the language.  On Linux, it
+suffices to add <TT>--enable-cplusplus</tt> to the configure options.
+</font>
+<H2>Writing the program</h2>
+You will need a
+<PRE>
+#include "gc.h"
+</pre>
+at the beginning of every file that allocates memory through the
+garbage collector.  Call <TT>GC_MALLOC</tt> wherever you would
+have call <TT>malloc</tt>.  This initializes memory to zero like
+<TT>calloc</tt>; there is no need to explicitly clear the
+result.
+<P>
+If you know that an object will not contain pointers to the
+garbage-collected heap, and you don't need it to be initialized,
+call <TT>GC_MALLOC_ATOMIC</tt> instead.
+<P>
+A function <TT>GC_FREE</tt> is provided but need not be called.
+For very small objects, your program will probably perform better if
+you do not call it, and let the collector do its job.
+<P>
+A <TT>GC_REALLOC</tt> function behaves like the C library <TT>realloc</tt>.
+It allocates uninitialized pointer-free memory if the original
+object was allocated that way.
+<P>
+The following program <TT>loop.c</tt> is a trivial example:
+<PRE>
+#include "gc.h"
+#include &lt;assert.h&gt;
+#include &lt;stdio.h&gt;
+
+int main()
+{
+  int i;
+
+  GC_INIT();	/* Optional on Linux/X86; see below.  */
+  for (i = 0; i < 10000000; ++i)
+   {
+     int **p = (int **) GC_MALLOC(sizeof(int *));
+     int *q = (int *) GC_MALLOC_ATOMIC(sizeof(int));
+     assert(*p == 0);
+     *p = (int *) GC_REALLOC(q, 2 * sizeof(int));
+     if (i % 100000 == 0)
+       printf("Heap size = %d\n", GC_get_heap_size());
+   }
+  return 0;
+}
+</pre>
+<FONT COLOR=green>
+<H3>Interaction with the system malloc</h3>
+It is usually best not to mix garbage-collected allocation with the system
+<TT>malloc-free</tt>.  If you do, you need to be careful not to store
+pointers to the garbage-collected heap in memory allocated with the system
+<TT>malloc</tt>.
+<H3>Other Platforms</h3>
+On some other platforms it is necessary to call <TT>GC_INIT()</tt> from the main program,
+which is presumed to be part of the main executable, not a dynamic library.
+This can never hurt, and is thus generally good practice.
+
+<H3>Threads</h3>
+For a multithreaded program some more rules apply:
+<UL>
+<LI>
+Files that either allocate through the GC <I>or make thread-related calls</i>
+should first define the macro <TT>GC_THREADS</tt>, and then
+include <TT>"gc.h"</tt>.  On some platforms this will redefine some
+threads primitives, e.g. to let the collector keep track of thread creation.
+<LI>
+To take advantage of fast thread-local allocation, use the following instead
+of including <TT>gc.h</tt>:
+<PRE>
+#define GC_REDIRECT_TO_LOCAL
+#include "gc_local_alloc.h"
+</pre>
+This will cause GC_MALLOC and GC_MALLOC_ATOMIC to keep per-thread allocation
+caches, and greatly reduce the number of lock acquisitions during allocation.
+</ul>
+
+<H3>C++</h3>
+In the case of C++, you need to be especially careful not to store pointers
+to the garbage-collected heap in areas that are not traced by the collector.
+The collector includes some <A HREF="gcinterface.html">alternate interfaces</a>
+to make that easier.
+
+<H3>Debugging</h3>
+Additional debug checks can be performed by defining <TT>GC_DEBUG</tt> before
+including <TT>gc.h</tt>.  Additional options are available if the collector
+is also built with <TT>--enable-full_debug</tt> and all allocations are
+performed with <TT>GC_DEBUG</tt> defined.
+
+<H3>What if I can't rewrite/recompile my program?</h3>
+You may be able to build the collector with <TT>--enable-redirect-malloc</tt>
+and set the <TT>LD_PRELOAD</tt> environment variable to point to the resulting
+library, thus replacing the standard <TT>malloc</tt> with its garbage-collected
+counterpart.  This is rather platform dependent.  See the
+<A HREF="leak.html">leak detection documentation</a> for some more details.
+
+</font>
+
+<H2>Compiling and linking</h2>
+
+The above application <TT>loop.c</tt> test program can be compiled and linked
+with
+
+<PRE>
+cc -I/home/xyz/gc/include loop.c /home/xyz/gc/lib/libgc.a -o loop
+</pre>
+
+The <TT>-I</tt> option directs the compiler to the right include
+directory.  In this case, we list the static library
+directly on the compile line; the dynamic library could have been
+used instead, provided we arranged for the dynamic loader to find
+it, e.g. by setting <TT>LD_LIBRARY_PATH</tt>.
+
+<FONT COLOR=green>
+
+<H3>Threads</h3>
+
+On pthread platforms, you will of course also have to link with
+<TT>-lpthread</tt>,
+and compile with any thread-safety options required by your compiler.
+On some platforms, you may also need to link with <TT>-ldl</tt>
+or <TT>-lrt</tt>.
+Looking at threadlibs.c in the GC build directory
+should give you the appropriate
+list if a plain <TT>-lpthread</tt> doesn't work.
+
+</font>
+
+<H2>Running the executable</h2>
+
+The executable can of course be run normally, e.g. by typing
+
+<PRE>
+./loop
+</pre>
+
+The operation of the collector is affected by a number of environment variables.
+For example, setting <TT>GC_PRINT_STATS</tt> produces some
+GC statistics on stdout.
+See <TT>README.environment</tt> in the distribution for details.
+</body>
+</html>

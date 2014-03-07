@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library name="Ref" dirname="ref" id="ref" last-revision="$Date: 2009-06-03 07:36:08 -0700 (Wed, 03 Jun 2009) $">
+  <libraryinfo>
+    <author>
+      <firstname>Jaakko</firstname>
+      <surname>J&auml;rvi</surname>
+    </author>
+    <author>
+      <firstname>Peter</firstname>
+      <surname>Dimov</surname>
+    </author>
+    <author>
+      <firstname>Douglas</firstname>
+      <surname>Gregor</surname>
+    </author>
+    <author>
+      <firstname>Dave</firstname>
+      <surname>Abrahams</surname>
+    </author>
+
+    <copyright>
+      <year>1999</year>
+      <year>2000</year>
+      <holder>Jaakko J&auml;rvi</holder>
+    </copyright>
+
+    <copyright>
+      <year>2001</year>
+      <year>2002</year>
+      <holder>Peter Dimov</holder>
+    </copyright>
+    
+    <copyright>
+      <year>2002</year>
+      <holder>David Abrahams</holder>
+    </copyright>
+
+    <legalnotice>
+      <para>Subject to the Boost Software License, Version 1.0. See 
+      accompanying file <filename>LICENSE_1_0.txt</filename> or copy at
+      <ulink url="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</ulink>.
+      </para>
+    </legalnotice>
+
+    <librarypurpose>A utility library for passing references to generic functions</librarypurpose>
+    <librarycategory name="category:higher-order"/>
+  </libraryinfo>
+
+<title>Boost.Ref</title>
+
+<section id="ref.intro">
+  <title>Introduction</title> 
+
+  <using-namespace name="boost"/>
+
+  <para>The Ref library is a small library that is useful for passing
+  references to function templates (algorithms) that would usually
+  take copies of their arguments. It defines the class template
+  <code><classname>boost::reference_wrapper&lt;T&gt;</classname></code>,
+  two functions
+  <code><functionname>boost::ref</functionname></code> and
+  <code><functionname>boost::cref</functionname></code> that return
+  instances of <code>boost::reference_wrapper&lt;T&gt;</code>, 
+  a function <code><functionname>boost::unwrap_ref</functionname></code>
+  that unwraps a <code>boost::reference_wrapper&lt;T&gt;</code> or
+  returns a reference to any other type of object, and the
+  two traits classes
+  <code><classname>boost::is_reference_wrapper&lt;T&gt;</classname></code>
+  and
+  <code><classname>boost::unwrap_reference&lt;T&gt;</classname></code>.</para>
+
+  <para>The purpose of
+  <code>boost::reference_wrapper&lt;T&gt;</code> is to
+  contain a reference to an object of type T. It is primarily used to
+  "feed" references to function templates (algorithms) that take their
+  parameter by value.</para>
+
+  <para>To support this usage,
+  <code>boost::reference_wrapper&lt;T&gt;</code> provides an implicit
+  conversion to <code>T&amp;</code>. This usually allows the function
+  templates to work on references unmodified.</para>
+
+  <para><code>boost::reference_wrapper&lt;T&gt;</code> is
+  both CopyConstructible and Assignable (ordinary references are not
+  Assignable).</para>
+
+  <para>The expression <code>boost::ref(x)</code>
+  returns a
+  <code>boost::reference_wrapper&lt;X&gt;(x)</code> where X
+  is the type of x. Similarly,
+  <code>boost::cref(x)</code> returns a
+  <code>boost::reference_wrapper&lt;X const&gt;(x)</code>.</para>
+
+  <para>The expression <code>boost::unwrap_ref(x)</code>
+  returns a
+  <code>boost::unwrap_reference&lt;X&gt;::type&amp;</code> where X
+  is the type of x.</para>
+
+  <para>The expression
+  <code>boost::is_reference_wrapper&lt;T&gt;::value</code>
+  is true if T is a <code>reference_wrapper</code>, and
+  false otherwise.</para>
+
+  <para>The type-expression
+  <code>boost::unwrap_reference&lt;T&gt;::type</code> is T::type if T
+  is a <code>reference_wrapper</code>, T otherwise.</para>
+</section>
+
+<library-reference>
+<header name="boost/ref.hpp">
+  <namespace name="boost">
+    <class name="reference_wrapper">
+      <template>
+        <template-type-parameter name="T"/>
+      </template>
+      <purpose>
+        Contains a reference to an object of type
+        <computeroutput>T</computeroutput>. 
+      </purpose>
+
+      <description>
+        <para><computeroutput><classname>reference_wrapper</classname></computeroutput>
+        is primarily used to "feed" references to function templates
+        (algorithms) that take their parameter by value.  It provides
+        an implicit conversion to
+        <computeroutput>T&amp;</computeroutput>, which usually allows
+        the function templates to work on references
+        unmodified.</para>
+      </description>
+
+      <typedef name="type"><type>T</type></typedef>
+
+      <constructor specifiers="explicit">
+        <parameter name="t">
+          <paramtype>T&amp;</paramtype>
+        </parameter>
+
+        <effects><simpara>Constructs a
+        <computeroutput><classname>reference_wrapper</classname></computeroutput>
+        object that stores a reference to
+        <computeroutput>t</computeroutput>.</simpara></effects>
+
+        <throws><simpara>Does not throw.</simpara></throws>
+      </constructor>    
+
+      <method-group name="access">
+        <method name="conversion-operator" cv="const">
+          <type>T&amp;</type>
+          <returns><simpara>The stored reference.</simpara></returns>
+          <throws><simpara>Does not throw.</simpara></throws>
+        </method>
+
+        <method name="get" cv="const">
+          <type>T&amp;</type>
+          <returns><simpara>The stored reference.</simpara></returns>
+          <throws><simpara>Does not throw.</simpara></throws>
+        </method>
+
+        <method name="get_pointer" cv="const">
+          <type>T*</type>
+          <returns><simpara>A pointer to the object referenced by the stored reference.</simpara></returns>
+          <throws><simpara>Does not throw.</simpara></throws>
+        </method>
+      </method-group>
+
+      <free-function-group name="constructors">
+        <function name="ref">
+          <type>reference_wrapper&lt;T&gt;</type>
+          <parameter name="t">
+            <paramtype>T&amp;</paramtype>
+          </parameter>
+
+          <returns><simpara><computeroutput><classname>reference_wrapper</classname>&lt;T&gt;(t)</computeroutput></simpara></returns>
+
+          <throws><simpara>Does not throw.</simpara></throws>
+        </function>
+
+        <function name="cref">
+          <type>reference_wrapper&lt;T const&gt;</type>
+          <parameter name="t">
+            <paramtype>T const&amp;</paramtype>
+          </parameter>
+
+          <returns><simpara><computeroutput><classname>reference_wrapper</classname>&lt;T const&gt;(t)</computeroutput></simpara></returns>
+
+          <throws><simpara>Does not throw.</simpara></throws>
+        </function>
+      </free-function-group>
+
+      <free-function-group name="access">
+        <function name="unwrap_ref">
+          <type>unwrap_reference&lt;T&gt;::type&amp;</type>
+          <parameter name="t">
+            <paramtype>T&amp;</paramtype>
+          </parameter>
+
+          <returns><simpara><computeroutput><classname>unwrap_reference</classname>&lt;T&gt;::type&amp;(t)</computeroutput></simpara></returns>
+
+          <throws><simpara>Does not throw.</simpara></throws>
+        </function>
+      </free-function-group>
+    </class>
+
+    <class name="is_reference_wrapper">
+      <template>
+        <template-type-parameter name="T"/>
+      </template>
+
+      <purpose>Determine if a type <computeroutput>T</computeroutput> is an instantiation of <computeroutput><classname>reference_wrapper</classname></computeroutput>.</purpose>
+
+      <description>
+        <para>The <computeroutput>value</computeroutput> static
+        constant will be <computeroutput>true</computeroutput> iff the
+        type <computeroutput>T</computeroutput> is a specialization of
+        <computeroutput><classname>reference_wrapper</classname></computeroutput>.</para>
+      </description>
+
+      <static-constant name="value">
+        <type>bool</type>
+        <default><emphasis>unspecified</emphasis></default>
+      </static-constant>
+    </class>
+
+    <class name="unwrap_reference">
+      <template>
+        <template-type-parameter name="T"/>
+      </template>
+  
+      <purpose>Find the type in a <computeroutput><classname>reference_wrapper</classname></computeroutput>.</purpose>
+
+      <description>
+        <para>The typedef <computeroutput>type</computeroutput> is
+        <computeroutput>T::type</computeroutput> if
+        <computeroutput>T</computeroutput> is a
+        <computeroutput><classname>reference_wrapper</classname></computeroutput>,
+        <computeroutput>T</computeroutput> otherwise.</para>
+      </description>
+
+      <typedef name="type"><type><emphasis>unspecified</emphasis></type></typedef>
+    </class>
+  </namespace>
+</header>
+</library-reference>
+
+<section id="ref.ack">
+  <title>Acknowledgements</title>
+
+  <using-namespace name="boost"/> 
+
+  <para><functionname>ref</functionname> and <functionname>cref</functionname>
+  were originally part of the <libraryname>Tuple</libraryname> library
+  by Jaakko J&auml;rvi. They were "promoted to boost:: status" by
+  Peter Dimov because they are generally useful.  Douglas Gregor and
+  Dave Abrahams contributed
+  <classname>is_reference_wrapper</classname> and
+  <classname>unwrap_reference</classname>.  Frank Mori Hess and Ronald
+  Garcia contributed <functionname>boost::unwrap_ref</functionname></para>
+</section>
+
+</library>

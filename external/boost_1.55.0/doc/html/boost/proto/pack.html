@@ -1,0 +1,159 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct pack</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.transform.impl_hpp" title="Header &lt;boost/proto/transform/impl.hpp&gt;">
+<link rel="prev" href="transform_impl.html" title="Struct template transform_impl">
+<link rel="next" href="integral_c.html" title="Struct template integral_c">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="transform_impl.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.transform.impl_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="integral_c.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.pack"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct pack</span></h2>
+<p>boost::proto::pack &#8212; To turn an expression into a pseudo-parameter pack containing the
+        expression's children, for the purpose of expanding the pack expression within
+        a <a class="link" href="../../CallableTransform.html" title="Concept CallableTransform">CallableTransform</a> or
+        <a class="link" href="../../ObjectTransform.html" title="Concept ObjectTransform">ObjectTransform</a>.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.transform.impl_hpp" title="Header &lt;boost/proto/transform/impl.hpp&gt;">boost/proto/transform/impl.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="pack.html" title="Struct pack">pack</a> <span class="special">{</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp187175960"></a><h2>Description</h2>
+<p>
+            <code class="computeroutput">proto::pack</code> is useful within
+            <a class="link" href="../../CallableTransform.html" title="Concept CallableTransform">CallableTransform</a>s and
+            <a class="link" href="../../ObjectTransform.html" title="Concept ObjectTransform">ObjectTransform</a>s when one wishes to unpack an expression
+            into a function call or an object constructor. <code class="computeroutput">proto::pack</code>
+            turns a Proto expression into a pseudo-parameter pack, which may appear in an unpacking
+            pattern to be expanded with the "<code class="computeroutput">...</code>" syntax.
+          </p>
+<p>
+            <span class="bold"><strong>Example:</strong></span>
+          </p>
+<p>
+            </p>
+<pre class="programlisting"><span class="comment">// The following demonstrates how to use a pseudo-pack expansion</span>
+<span class="comment">// to unpack an expression into a function call.</span>
+
+<span class="keyword">struct</span> <span class="identifier">do_sum</span> <span class="special">:</span> <a class="link" href="callable.html" title="Struct callable">proto::callable</a>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">int</span> <span class="identifier">result_type</span><span class="special">;</span>
+    
+    <span class="keyword">int</span> <span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">i</span><span class="special">;</span> <span class="special">}</span>
+    <span class="keyword">int</span> <span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">j</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">i</span> <span class="special">+</span> <span class="identifier">j</span><span class="special">;</span> <span class="special">}</span>
+    <span class="keyword">int</span> <span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">j</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">k</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">i</span> <span class="special">+</span> <span class="identifier">j</span> <span class="special">+</span> <span class="identifier">k</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">}</span><span class="special">;</span>
+
+<span class="comment">// Take any n-ary expression where the children are all int terminals and sum all the ints</span>
+<span class="keyword">struct</span> <span class="identifier">sum</span>
+  <span class="special">:</span> <a class="link" href="when.html" title="Struct template when">proto::when</a><span class="special">&lt;</span>
+  
+        <span class="comment">// Match any nary expression where the children are all int terminals</span>
+        <a class="link" href="nary_expr.html" title="Struct template nary_expr">proto::nary_expr</a><span class="special">&lt;</span><a class="link" href="_.html" title="Struct _">_</a><span class="special">,</span> <a class="link" href="vararg.html" title="Struct template vararg">proto::vararg</a><span class="special">&lt;</span><a class="link" href="terminal.html" title="Struct template terminal">proto::terminal</a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+
+        <span class="comment">// Turn the current expression into a pseudo-parameter pack, then expand it,</span>
+        <span class="comment">// extracting the value from each child in turn.</span>
+      <span class="special">,</span> <span class="identifier">do_sum</span><span class="special">(</span><a class="link" href="_value.html" title="Struct _value">proto::_value</a><span class="special">(</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">pack</span><span class="special">(</span><a class="link" href="_.html" title="Struct _">_</a><span class="special">)</span><span class="special">)</span><span class="special">...</span><span class="special">)</span>
+    <span class="special">&gt;</span>
+<span class="special">{</span><span class="special">}</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="special">)</span>
+<span class="special">{</span>
+    <a class="link" href="terminal.html" title="Struct template terminal">proto::terminal</a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="identifier">i</span> <span class="special">=</span> <span class="special">{</span><span class="number">42</span><span class="special">}</span><span class="special">;</span>
+    <span class="keyword">int</span> <span class="identifier">result</span> <span class="special">=</span> <span class="identifier">sum</span><span class="special">(</span><span class="special">)</span><span class="special">(</span> <span class="identifier">i</span><span class="special">(</span><span class="number">3</span><span class="special">,</span><span class="number">5</span><span class="special">)</span> <span class="special">)</span><span class="special">;</span> <span class="comment">// Creates a ternary functional-call expression</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Sum of 42, 3, and 5 : "</span> <span class="special">&lt;&lt;</span> <span class="identifier">result</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span></pre>
+<p>
+          </p>
+<p>
+            The above program displays:
+          </p>
+<p>
+            <code class="computeroutput">Sum of 42, 3, and 5 : 50</code>
+          </p>
+<p>
+            In the above example, the type
+            <code class="computeroutput">
+              <a class="link" href="_value.html" title="Struct _value">proto::_value</a>(proto::pack(<a class="link" href="_.html" title="Struct _">_</a>))
+            </code>
+            is a so-called <span class="emphasis"><em>unpacking pattern</em></span>, described below.
+          </p>
+<p>
+            <span class="bold"><strong>Unpacking Patterns:</strong></span>
+          </p>
+<p>
+            Composite transforms (either <a class="link" href="../../CallableTransform.html" title="Concept CallableTransform">CallableTransform</a>s or
+            <a class="link" href="../../ObjectTransform.html" title="Concept ObjectTransform">ObjectTransform</a>s) usually have the form
+            <code class="computeroutput">X(A<sub>0</sub>,&#8230;A<sub>n</sub>)</code>.
+            However, when the argument list in a composite transform is terminated with a C-style
+            vararg ellipsis as in <code class="computeroutput">X(A<sub>0</sub>,&#8230;A<sub>n</sub> ...)</code>,
+            the final argument <code class="computeroutput">A<sub>n</sub></code> is treated
+            as an <span class="emphasis"><em>unpacking pattern</em></span>.
+          </p>
+<p>
+            An unpacking pattern must itself be a composite transform; that is, it must be a
+            function type representing either a <a class="link" href="../../CallableTransform.html" title="Concept CallableTransform">CallableTransform</a> or
+            an <a class="link" href="../../ObjectTransform.html" title="Concept ObjectTransform">ObjectTransform</a>. The type <code class="computeroutput">proto::pack(_)</code>
+            must appear exactly once in the unpacking pattern. This type will receive a substitution
+            when the unpacking pattern is expanded.
+          </p>
+<p>
+            A composite transform like <code class="computeroutput">X(A<sub>0</sub>,&#8230;A<sub>n</sub> ...)</code>,
+            when evaluated against a given expression <em class="replaceable"><code>E</code></em>, state and data, is evaluated as if it were
+            <code class="computeroutput">X(A<sub>0</sub>,&#8230;A<sub>n-1</sub>,<em class="replaceable"><code>S</code></em>)</code>
+            where <em class="replaceable"><code>S</code></em> is a type sequence computed as follows:
+          </p>
+<p>
+            Let <code class="computeroutput"><em class="replaceable"><code>SUB</code></em>(A,B)</code> be a type function that replaces every occurence of
+            <code class="computeroutput">proto::pack(_)</code> within <code class="computeroutput">A</code> with <code class="computeroutput">B</code>.
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                If the expression <em class="replaceable"><code>E</code></em> is a terminal (i.e. it has arity 0), <em class="replaceable"><code>S</code></em>
+                is the one-element sequence containing <code class="computeroutput"><em class="replaceable"><code>SUB</code></em>(A<sub>n</sub>, <a class="link" href="_value.html" title="Struct _value">proto::_value</a>)</code>.
+              </li>
+<li class="listitem">
+                If the expression <em class="replaceable"><code>E</code></em> is a non-terminal, <em class="replaceable"><code>S</code></em> is the sequence
+                <code class="computeroutput"><em class="replaceable"><code>SUB</code></em>(A<sub>n</sub>, <a class="link" href="_child_c.html" title="Struct template _child_c">proto::_child_c</a>&lt;0&gt;),&#8230;
+                <em class="replaceable"><code>SUB</code></em>(A<sub>n</sub>, <a class="link" href="_child_c.html" title="Struct template _child_c">proto::_child_c</a>&lt;<em class="replaceable"><code>M</code></em>-1&gt;)</code>, where
+                <em class="replaceable"><code>M</code></em> is the arity of the expression <em class="replaceable"><code>E</code></em>.
+              </li>
+</ul></div>
+<p>
+          </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="transform_impl.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.transform.impl_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="integral_c.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

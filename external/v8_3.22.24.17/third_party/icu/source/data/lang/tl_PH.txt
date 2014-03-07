@@ -1,0 +1,12 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/tl_PH.xml
+// *
+// ***************************************************************************
+tl_PH{
+    "%%ALIAS"{"fil_PH"}
+    Version{"2.0.49.91"}
+}

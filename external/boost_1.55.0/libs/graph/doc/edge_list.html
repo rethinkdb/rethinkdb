@@ -1,0 +1,221 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Edge List Class</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H1><A NAME="sec:edge-list-class"></A>
+<PRE>
+edge_list&lt;EdgeIterator, ValueType, DiffType&gt;
+</PRE>
+</H1>
+
+<P>
+The <TT>edge_list</TT> class is an adaptor that turns a pair of edge
+iterators into a class that models <TT>EdgeListGraph</TT>. The
+<TT>value_type</TT> of the edge iterator must be a <TT>std::pair</TT> (or
+at least have <TT>first</TT> and <TT>second</TT> members). The
+<TT>first_type</TT> and <TT>second_type</TT> of the pair must be the
+same and they will be used for the graph's <TT>vertex_descriptor</TT>.
+The <TT>ValueType</TT> and <TT>DiffType</TT> template parameters are only
+needed if your compiler does not support partial
+specialization. Otherwise they default to the correct types.
+
+<P>
+
+<H3>Example</H3>
+
+<P>
+Applying the Bellman-Ford shortest paths algorithm to an
+<TT>edge_list</TT>.
+
+<P>
+<PRE>
+  enum { u, v, x, y, z, N };
+  char name[] = { 'u', 'v', 'x', 'y', 'z' };
+
+  typedef std::pair&lt;int,int&gt; E;
+  E edges[] = { E(u,y), E(u,x), E(u,v),
+                E(v,u),
+                E(x,y), E(x,v),
+                E(y,v), E(y,z),
+                E(z,u), E(z,x) };
+  
+  int weight[] = { -4, 8, 5,
+                   -2,
+                   9, -3,
+                   7, 2,
+                   6, 7 };
+
+  typedef boost::edge_list&lt;E*&gt; Graph;
+  Graph g(edges, edges + sizeof(edges) / sizeof(E));
+    
+  std::vector&lt;int&gt; distance(N, std::numeric_limits&lt;short&gt;::max());
+  std::vector&lt;int&gt; parent(N,-1);
+  
+  distance[z] = 0;
+  parent[z] = z;
+  bool r = boost::bellman_ford_shortest_paths(g, int(N), weight,
+                                              distance.begin(),
+                                              parent.begin());
+  if (r)  
+    for (int i = 0; i &lt; N; ++i)
+      std::cout &lt;&lt; name[i] &lt;&lt; ": " &lt;&lt; distance[i]
+                &lt;&lt; " " &lt;&lt; name[parent[i]] &lt;&lt; std::endl;
+  else
+    std::cout &lt;&lt; "negative cycle" &lt;&lt; std::endl;
+</PRE>
+The output is the distance from the root and the parent
+of each vertex in the shortest paths tree.
+<PRE>
+  u: 2 v
+  v: 4 x
+  x: 7 z
+  y: -2 u
+  z: 0 z
+</PRE>
+
+<P>
+<p>
+
+<H3>Where Defined</H3>
+
+<a href="../../../boost/graph/edge_list.hpp"><TT>boost/graph/edge_list.hpp</TT></a>
+
+<P>
+<H3>Template Parameters</H3>
+
+<P>
+<TABLE border>
+<TR>
+<th>Parameter</th><th>Description</th>
+</tr>
+
+<TR><TD><TT>EdgeIterator</TT></TD> <TD>Must be model of <a
+href="http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a>
+who's <TT>value_type</TT> must be a pair of vertex descriptors.</TD>
+</TR>
+
+<TR><TD><TT>ValueType</TT></TD>
+<TD>The <TT>value_type</TT> of the <TT>EdgeIterator</TT>.<br>
+Default: <TT>std::iterator_traits&lt;EdgeIterator&gt;::value_type</TT></TD>
+</TR>
+
+<TR><TD><TT>DiffType</TT></TD>
+<TD>The <TT>difference_type</TT> of the <TT>EdgeIterator</TT>.<br>
+Default: <TT>std::iterator_traits&lt;EdgeIterator&gt;::difference_type</TT></TD>
+</TR>
+
+</TABLE>
+<P>
+
+<H3>Model of</H3>
+
+<a href="./EdgeListGraph.html">EdgeListGraph</a>
+
+<P>
+
+
+<H3>Associated Types</H3>
+
+<hr>
+
+<tt>boost::graph_traits&lt;edge_list&gt;::vertex_descriptor</tt>
+<br><br>
+The type for the vertex descriptors associated with the
+<TT>edge_list</TT>. This will be the same type as
+<TT>std::iterator_traits&lt;EdgeIterator&gt;::value_type::first_type</TT>.
+
+<hr>
+
+<tt>
+boost::graph_traits&lt;edge_list&gt;::edge_descriptor
+</tt>
+<br><br>
+The type for the edge descriptors associated with the
+<TT>edge_list</TT>. 
+
+<hr>
+
+<tt>
+boost::graph_traits&lt;edge_list&gt;::edge_iterator
+</tt>
+<br><br>
+The type for the iterators returned by <TT>edges()</TT>. The iterator
+category of the <TT>edge_iterator</TT> will be the same as that of the
+<TT>EdgeIterator</TT>.
+
+<hr>
+
+<h3>Member Functions</h3>
+
+<hr>
+
+<tt>
+edge_list(EdgeIterator first, EdgeIterator last)
+</tt>
+<br><br>
+Creates a graph object with <TT>n</TT> vertices and with the
+edges specified in the edge list given by the range <TT>[first,last)</TT>.
+
+<hr>
+
+<H3>Non-Member Functions</H3>
+
+<hr>
+
+<tt>
+std::pair&lt;edge_iterator, edge_iterator&gt;<br>
+edges(const edge_list&amp; g)
+</tt>
+<br><br>
+Returns an iterator-range providing access to the edge set of graph <TT>g</TT>.
+
+<hr>
+
+<tt>
+vertex_descriptor<br>
+source(edge_descriptor e, const edge_list&amp; g)
+</tt>
+<br><br>
+Returns the source vertex of edge <TT>e</TT>.
+
+<hr>
+
+<tt>
+vertex_descriptor<br>
+target(edge_descriptor e, const edge_list&amp; g)
+</tt>
+<br><br>
+Returns the target vertex of edge <TT>e</TT>.
+
+<hr>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

@@ -1,0 +1,5 @@
+> example
+Running 1 test case...
+test.cpp(10): fatal error in "test": critical check i == j failed [2 != 1]
+
+*** 1 failure detected in test suite "example"

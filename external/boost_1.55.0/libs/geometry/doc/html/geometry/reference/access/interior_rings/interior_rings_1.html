@@ -1,0 +1,136 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>interior_rings</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../interior_rings.html" title="interior_rings">
+<link rel="prev" href="../interior_rings.html" title="interior_rings">
+<link rel="next" href="interior_rings_1_const_version.html" title="interior_rings (const version)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../interior_rings.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interior_rings.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interior_rings_1_const_version.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.access.interior_rings.interior_rings_1"></a><a class="link" href="interior_rings_1.html" title="interior_rings">interior_rings</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp50040200"></a>
+Function to get the interior rings of a polygon (non const version)
+          </p>
+<h6>
+<a name="geometry.reference.access.interior_rings.interior_rings_1.h0"></a>
+            <span class="phrase"><a name="geometry.reference.access.interior_rings.interior_rings_1.synopsis"></a></span><a class="link" href="interior_rings_1.html#geometry.reference.access.interior_rings.interior_rings_1.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Polygon</span><span class="special">&gt;</span>
+<span class="identifier">interior_return_type</span><span class="special">&lt;</span><span class="identifier">Polygon</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">interior_rings</span><span class="special">(</span><span class="identifier">Polygon</span> <span class="special">&amp;</span> <span class="identifier">polygon</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.access.interior_rings.interior_rings_1.h1"></a>
+            <span class="phrase"><a name="geometry.reference.access.interior_rings.interior_rings_1.parameters"></a></span><a class="link" href="interior_rings_1.html#geometry.reference.access.interior_rings.interior_rings_1.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Concept
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      Polygon &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      polygon type
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      polygon
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      the polygon to get the interior rings from
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.access.interior_rings.interior_rings_1.h2"></a>
+            <span class="phrase"><a name="geometry.reference.access.interior_rings.interior_rings_1.returns"></a></span><a class="link" href="interior_rings_1.html#geometry.reference.access.interior_rings.interior_rings_1.returns">Returns</a>
+          </h6>
+<p>
+            the interior rings (possibly a reference)
+          </p>
+<h6>
+<a name="geometry.reference.access.interior_rings.interior_rings_1.h3"></a>
+            <span class="phrase"><a name="geometry.reference.access.interior_rings.interior_rings_1.header"></a></span><a class="link" href="interior_rings_1.html#geometry.reference.access.interior_rings.interior_rings_1.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">interior_rings</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../interior_rings.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interior_rings.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interior_rings_1_const_version.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

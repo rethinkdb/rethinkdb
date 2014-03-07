@@ -1,0 +1,149 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "copy_elision_test_test", "copy_elision_test.vcproj", "{C8AD2618-79EB-8612-42FE-2A3AC9667A13}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "doc_how_works", "doc_how_works.vcproj", "{C7C2F583-4FE2-1862-BF87-BA26D31A7995}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "conversion_test", "conversion_test.vcproj", "{CD57C283-1862-42FE-BF87-B96D3A2A7912}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "back_move_inserter_test", "back_move_inserter_test.vcproj", "{C8AD2618-79EB-8612-42FE-2A3AC9667A13}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "construct_forward_test", "construct_forward_test.vcproj", "{C8AD2618-79EB-8612-42FE-2A3AC9667A13}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "copy_move_optimization_test", "copy_move_optimization.vcproj", "{C8AD2618-79EB-8612-42FE-2A3AC9667A13}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "doc_clone_ptr", "doc_clone_ptr.vcproj", "{CD57C283-1862-42FE-BF87-B96D3A2A7912}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "doc_construct_forward", "doc_construct_forward.vcproj", "{CD57C283-1862-42FE-BF87-B96D3A2A7912}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "doc_file_descriptor", "doc_file_descriptor.vcproj", "{CD57C283-1862-42FE-BF87-B96D3A2A7912}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "doc_move_algorithms", "doc_move_algorithms.vcproj", "{CD57C283-1862-42FE-BF87-B96D3A2A7912}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "doc_move_inserter", "doc_move_inserter.vcproj", "{CD57C283-1862-42FE-BF87-B96D3A2A7912}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "doc_move_iterator", "doc_move_iterator.vcproj", "{CD57C283-1862-42FE-BF87-B96D3A2A7912}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "move_algorithm_test", "move_algorithm.vcproj", "{C8AD2618-79EB-8612-42FE-2A3AC9667A13}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "move_iterator_test", "move_iterator_test.vcproj", "{C8AD2618-79EB-8612-42FE-2A3AC9667A13}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "move_test", "move_test.vcproj", "{CD57C283-1862-42FE-BF87-B96D3A2A7912}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectDependencies) = postSolution
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Debug.ActiveCfg = Debug|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Debug.Build.0 = Debug|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Release.ActiveCfg = Release|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Release.Build.0 = Release|Win32
+		{C7C2F583-4FE2-1862-BF87-BA26D31A7995}.Debug.ActiveCfg = Debug|Win32
+		{C7C2F583-4FE2-1862-BF87-BA26D31A7995}.Debug.Build.0 = Debug|Win32
+		{C7C2F583-4FE2-1862-BF87-BA26D31A7995}.Release.ActiveCfg = Release|Win32
+		{C7C2F583-4FE2-1862-BF87-BA26D31A7995}.Release.Build.0 = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.ActiveCfg = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.Build.0 = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.ActiveCfg = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.Build.0 = Release|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Debug.ActiveCfg = Debug|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Debug.Build.0 = Debug|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Release.ActiveCfg = Release|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Release.Build.0 = Release|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Debug.ActiveCfg = Debug|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Debug.Build.0 = Debug|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Release.ActiveCfg = Release|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Release.Build.0 = Release|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Debug.ActiveCfg = Debug|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Debug.Build.0 = Debug|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Release.ActiveCfg = Release|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Release.Build.0 = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.ActiveCfg = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.Build.0 = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.ActiveCfg = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.Build.0 = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.ActiveCfg = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.Build.0 = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.ActiveCfg = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.Build.0 = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.ActiveCfg = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.Build.0 = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.ActiveCfg = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.Build.0 = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.ActiveCfg = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.Build.0 = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.ActiveCfg = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.Build.0 = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.ActiveCfg = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.Build.0 = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.ActiveCfg = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.Build.0 = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.ActiveCfg = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.Build.0 = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.ActiveCfg = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.Build.0 = Release|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Debug.ActiveCfg = Debug|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Debug.Build.0 = Debug|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Release.ActiveCfg = Release|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Release.Build.0 = Release|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Debug.ActiveCfg = Debug|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Debug.Build.0 = Debug|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Release.ActiveCfg = Release|Win32
+		{C8AD2618-79EB-8612-42FE-2A3AC9667A13}.Release.Build.0 = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.ActiveCfg = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Debug.Build.0 = Debug|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.ActiveCfg = Release|Win32
+		{CD57C283-1862-42FE-BF87-B96D3A2A7912}.Release.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionItems) = postSolution
+		..\..\..\..\boost\move\algorithm.hpp = ..\..\..\..\boost\move\algorithm.hpp
+		..\..\..\..\boost\move\detail\config_begin.hpp = ..\..\..\..\boost\move\detail\config_begin.hpp
+		..\..\..\..\boost\move\detail\config_end.hpp = ..\..\..\..\boost\move\detail\config_end.hpp
+		..\..\..\..\boost\move\core.hpp = ..\..\..\..\boost\move\core.hpp
+		..\..\..\..\boost\move\iterator.hpp = ..\..\..\..\boost\move\iterator.hpp
+		..\..\doc\Jamfile.v2 = ..\..\doc\Jamfile.v2
+		..\..\..\..\boost\move\detail\meta_utils.hpp = ..\..\..\..\boost\move\detail\meta_utils.hpp
+		..\..\..\..\boost\move\move.hpp = ..\..\..\..\boost\move\move.hpp
+		..\..\doc\move.qbk = ..\..\doc\move.qbk
+		..\..\..\..\boost\move\detail\move_helpers.hpp = ..\..\..\..\boost\move\detail\move_helpers.hpp
+		..\..\..\..\boost\move\traits.hpp = ..\..\..\..\boost\move\traits.hpp
+		..\..\..\..\boost\move\utility.hpp = ..\..\..\..\boost\move\utility.hpp
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,181 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Test suites with automated registration</title>
+<link rel="stylesheet" href="../../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../../index.html" title="Boost Test Library">
+<link rel="up" href="test-suite.html" title="Test suite">
+<link rel="prev" href="manual-test-suite.html" title="Manually registered test suites">
+<link rel="next" href="master-test-suite.html" title="Master Test Suite">
+<script language="JavaScript1.2" src="../../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../../utf.html">The Unit Test Framework</a> &gt; <a href="../../user-guide.html">User's guide</a><a href="../../testing-tools.html">
+      &gt;
+      </a><a href="../test-organization.html">Test organization</a><a href="../fixture.html">
+      &gt;
+      </a><a href="test-suite.html">Test suite</a><a href="expected-failures.html">
+      &gt;
+      </a><b>Automated registration</b>
+</td>
+<td><div class="spirit-nav">
+<a href="manual-test-suite.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="master-test-suite.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-organization.auto-test-suite"></a>Test suites with automated registration</h6></div></div></div>
+<p class="first-line-indented">
+    The solution the <acronym class="acronym">UTF</acronym> presents for automated test suite creation and registration is designed to facilitate
+    multiple points of definition, arbitrary test suites depth and smooth integration with automated test case creation 
+    and registration. This facility should significantly simplify a test tree construction process in comparison with 
+    manual explicit registration case.
+   </p>
+<p class="first-line-indented">
+    The implementation is based on the order of file scope variables definitions within a single compilation unit.
+    The semantic of this facility is very similar to the namespace feature of C++, including support for test suite 
+    extension. To start test suite use the macro BOOST_AUTO_TEST_SUITE. To end test suite use the macro 
+    BOOST_AUTO_TEST_SUITE_END. The same test suite can be restarted multiple times inside the same test file or in a 
+    different test files. In a result all test units will be part of the same test suite in a constructed test tree.
+   </p>
+<pre class="inline-synopsis">
+<a name="BOOST_AUTO_TEST_SUITE"></a>BOOST_AUTO_TEST_SUITE(<span class="emphasis"><em>test_suite_name</em></span>)
+<a name="BOOST_AUTO_TEST_SUITE_END"></a>BOOST_AUTO_TEST_SUITE_END()</pre>
+<p class="first-line-indented">
+    Test units defined in between test suite start and end declarations become members of the test suite. A test
+    unit always becomes the member of the closest test suite declared. Test units declared at a test file scope
+    become members of the master test suite. There is no limit on depth of test suite inclusion.
+   </p>
+<div class="example">
+<a name="utf.user-guide.test-organization.auto-test-suite.example12"></a><p class="title"><b>Example 16. Test suites with automated registration</b></p>
+<div class="example-contents">
+<p class="first-line-indented">
+     This example creates a test tree that matches exactly the one created in the manual test suite registration
+     example. As you can see test tree construction in this example is more straightforward and automated.
+    </p>
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+
+BOOST_AUTO_TEST_SUITE( test_suite1 )
+
+BOOST_AUTO_TEST_CASE( test_case1 )
+{
+    BOOST_WARN( sizeof(int) &lt; 4 );
+}
+
+BOOST_AUTO_TEST_CASE( test_case2 )
+{
+    BOOST_REQUIRE_EQUAL( 1, 2 );
+    BOOST_FAIL( "Should never reach this line" );
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+BOOST_AUTO_TEST_SUITE( test_suite2 )
+
+BOOST_AUTO_TEST_CASE( test_case3 )
+{
+    BOOST_CHECK( true );
+}
+
+BOOST_AUTO_TEST_CASE( test_case4 )
+{
+    BOOST_CHECK( false );
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example12.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id651307" onclick="toggle_element( 'example12-output', 'id651307', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example12-output">&gt; example
+Running 4 test cases...
+test.cpp(12): fatal error in "test_case2": critical check 1 == 2 failed [1 != 2]
+test.cpp(27): error in "test_case4": check false failed
+
+*** 2 failures detected in test suite "example"
+</pre>
+</div>
+</div>
+<br class="example-break"><div class="example">
+<a name="utf.user-guide.test-organization.auto-test-suite.example53"></a><p class="title"><b>Example 17. Example of test suite extension using automated registration facility</b></p>
+<div class="example-contents">
+<p class="first-line-indented">
+     In this example test suite test_suite consists of two parts. Their definition is remote and is separated by another
+     test case. In fact these parts may even reside in different test files. The resulting test tree remains the same. As
+     you can see from the output both test_case1 and test_case2 reside in the same test suite test_suite. 
+    </p>
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+
+BOOST_AUTO_TEST_SUITE( test_suite )
+
+BOOST_AUTO_TEST_CASE( test_case1 )
+{
+    BOOST_ERROR( "some error 1" );
+}
+
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_CASE( test_case_on_file_scope )
+{
+    BOOST_CHECK( true );
+}
+
+BOOST_AUTO_TEST_SUITE( test_suite )
+
+BOOST_AUTO_TEST_CASE( test_case2 )
+{
+    BOOST_ERROR( "some error 2" );
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example53.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id651401" onclick="toggle_element( 'example53-output', 'id651401', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example53-output">&gt;example --report_level=detailed
+Running 3 test cases...
+test.cpp(8): error in "test_case1": some error 1
+test.cpp(23): error in "test_case2": some error 2
+
+Test suite "example" failed with:
+  1 assertion out of 3 passed
+  2 assertions out of 3 failed
+  1 test case out of 3 passed
+  2 test cases out of 3 failed
+
+  Test suite "test_suite" failed with:
+    2 assertions out of 2 failed
+    2 test cases out of 2 failed
+
+    Test case "test_case1" failed with:
+      1 assertion out of 1 failed
+
+    Test case "test_case2" failed with:
+      1 assertion out of 1 failed
+
+  Test case "test_case_on_file_scope" passed with:
+    1 assertion out of 1 passed</pre>
+</div>
+</div>
+<br class="example-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="manual-test-suite.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="test-suite.html"><img src="../../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="master-test-suite.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

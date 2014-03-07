@@ -1,0 +1,55 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:random_shuffle random_shuffle]
+
+[heading Prototype]
+
+``
+template<class RandomAccessRange>
+RandomAccessRange& random_shuffle(RandomAccessRange& rng);
+
+template<class RandomAccessRange>
+const RandomAccessRange& random_shuffle(const RandomAccessRange& rng);
+
+template<class RandomAccessRange, class Generator>
+RandomAccessRange& random_shuffle(RandomAccessRange& rng, Generator& gen);
+
+template<class RandomAccessRange, class Generator>
+const RandomAccessRange& random_shuffle(const RandomAccessRange& rng, Generator& gen);
+``
+
+[heading Description]
+
+`random_shuffle` randomly rearranges the elements in `rng`. The versions of `random_shuffle` that do not specify a `Generator` use an internal random number generator. The versions of `random_shuffle` that do specify a `Generator` use this instead. Returns the shuffles range.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/random_shuffle.hpp`
+
+[heading Requirements]
+
+[*For the version without a Generator:]
+
+* `RandomAccessRange` is a model of the __random_access_range__ Concept.
+
+[*For the version with a Generator:]
+
+* `RandomAccessRange` is a model of the __random_access_range__ Concept.
+* `Generator` is a model of the `RandomNumberGeneratorConcept`.
+* `RandomAccessRange`'s distance type is convertible to `Generator`'s argument type.
+
+[heading Precondition:]
+
+* `distance(rng)` is less than `gen`'s maximum value.
+
+
+[heading Complexity]
+
+Linear. If `!empty(rng)`, exactly `distance(rng) - 1` swaps are performed.
+
+[endsect]
+
+

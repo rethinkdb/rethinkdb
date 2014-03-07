@@ -1,0 +1,96 @@
+[/ 
+  (C) Copyright Edward Diener 2011,2012
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:tti_detail_has_static_member_data Introspecting static member data]
+
+The TTI macro [macroref BOOST_TTI_HAS_STATIC_MEMBER_DATA] introspects
+static member data of a class.
+
+BOOST_TTI_HAS_STATIC_MEMBER_DATA macro takes a single
+parameter which is the name of an inner static member data whose existence
+the programmer wants to check. The macro generates a metafunction
+called 'has_static_member_data_'name_of_inner_static_member_data'. 
+
+The metafunction can be invoked by passing it the enclosing type 
+to introspect and the type of the static member data.
+
+The metafunction returns a single type called 'type', which is a 
+boost::mpl::bool_. As a convenience the metafunction 
+returns the value of this type directly as a compile time bool constant 
+called 'value'. This is true or false depending on whether the inner 
+static member data, of the specified type, exists or not.
+
+[heading Generating the metafunction]
+
+You generate the metafunction by invoking the macro with the name 
+of an inner static member data:
+
+  BOOST_TTI_HAS_STATIC_MEMBER_DATA(AStaticMemberData)
+  
+generates a metafunction called 'has_static_member_data_AStaticMemberData' in the current scope.
+
+[heading Invoking the metafunction]
+
+You invoke the metafunction by instantiating the template with an enclosing 
+type to introspect and the type of the static member data. A return value called 
+'value' is a compile time bool constant.
+
+  has_static_member_data_AStaticMemberData<Enclosing_Type,StaticMemberData_Type>::value
+  
+[heading Examples]
+
+First we generate metafunctions for various inner member data names: 
+
+ #include <boost/tti/has_static_member_data.hpp>
+ 
+ BOOST_TTI_HAS_STATIC_MEMBER_DATA(data1)
+ BOOST_TTI_HAS_STATIC_MEMBER_DATA(data2)
+ BOOST_TTI_HAS_STATIC_MEMBER_DATA(data3)
+ 
+Next let us create some user-defined types we want to introspect. 
+
+ struct AClass 
+   { 
+   };
+ struct Top
+   {
+   static int data1;
+   static AClass * data2;
+   };
+ struct Top2
+   {
+   static long data1;
+   static Top data3;
+   };
+   
+Finally we invoke our metafunction and return our value.
+This all happens at compile time, and can be used by 
+programmers doing compile time template metaprogramming.
+  
+ has_static_member_data_data1<Top,int>::value; // true
+ has_static_member_data_data1<Top,long>::value; // false
+ has_static_member_data_data1<Top2,int>::value; // false
+ has_static_member_data_data1<Top2,long>::value; // true
+ 
+ has_static_member_data_data2<Top,AClass *>::value; // true
+ has_static_member_data_data2<Top,int *>::value; // false
+ 
+ has_static_member_data_data3<Top2,int>::value; // false
+ has_static_member_data_data3<Top2,Top>::value; // true;
+   
+[heading Metafunction re-use]
+
+The macro encodes only the name of the static member data for 
+which we are searching and the fact that we are introspecting 
+for static member data within an enclosing type.
+
+Because of this, once we create our metafunction for 
+introspecting an inner static member data by name, we can reuse 
+the metafunction for introspecting any enclosing type, having 
+any inner static member data type, for that name.
+
+[endsect]

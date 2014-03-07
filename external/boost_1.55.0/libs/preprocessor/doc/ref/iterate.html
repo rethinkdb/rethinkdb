@@ -1,0 +1,83 @@
+<html>
+<head>
+	<title>BOOST_PP_ITERATE</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_ITERATE</b> macro initiates a <i>file-iteration</i>.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			#include <b>BOOST_PP_ITERATE</b>()
+		</div>
+	<h4>Remarks</h4>
+		<div>
+			Arguments to this macro are passed as <i>external named arguments</i> in one of two
+			ways--either through <b>BOOST_PP_FILENAME_<i>x</i></b> and <b>BOOST_PP_ITERATION_LIMITS</b> <i>or</i>
+			through <b>BOOST_PP_ITERATION_PARAMS_<i>x</i></b>.&nbsp;
+		</div>
+		<div>
+			Three pieces of information are required to perform a <i>file-iteration</i>.&nbsp;
+			First, the name of a file to iterate over.&nbsp;
+			This is passed via <b>BOOST_PP_FILENAME_<i>x</i></b> <i>or</i> as part of <b>BOOST_PP_ITERATION_PARAMS_<i>x</i></b>.&nbsp;
+			The <i>file-iteration</i> mechanism will repeatedly include this file with iteration values ranging from a lower bound to an upper bound--the second and third <i>required</i> parameters.&nbsp;
+			These two boundaries are either passed through <b>BOOST_PP_ITERATION_LIMITS</b> <i>or</i> as part of <b>BOOST_PP_ITERATION_PARAMS_<i>x</i></b>.
+		</div>
+		<div>
+			Optionally, a fourth parameter may be passed that associates flags with an iteration.&nbsp;
+			These flags are primarily useful to distinguish one iteration from another in the same file.&nbsp;
+			This parameter can only be passed through <b>BOOST_PP_ITERATION_PARAMS_<i>x</i></b>.
+		</div>
+		<div>
+			While a <i>file-iteration</i> is in progress, <b>BOOST_PP_IS_ITERATING</b> is defined as <i>1</i>.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="filename_x.html">BOOST_PP_FILENAME_<i>x</i></a></li>
+			<li><a href="is_iterating.html">BOOST_PP_IS_ITERATING</a></li>
+			<li><a href="iteration_limits.html">BOOST_PP_ITERATION_LIMITS</a></li>
+			<li><a href="iteration_params_x.html">BOOST_PP_ITERATION_PARAMS_<i>x</i></a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/iteration/iterate.html">&lt;boost/preprocessor/iteration/iterate.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+// file.h
+#if !<a href="is_iterating.html">BOOST_PP_IS_ITERATING</a>
+
+   #ifndef FILE_H_
+   #define FILE_H_
+
+   #include &lt;<a href="../headers/iteration/iterate.html">boost/preprocessor/iteration/iterate.hpp</a>&gt;
+
+   #define <a href="iteration_params_x.html">BOOST_PP_ITERATION_PARAMS_1</a> (3, (1, 10, "file.h"))
+   #include <a href="iterate.html">BOOST_PP_ITERATE</a>()
+
+   #define <a href="filename_x.html">BOOST_PP_FILENAME_1</a> "file.h"
+   #define <a href="iteration_limits.html">BOOST_PP_ITERATION_LIMITS</a> (11, 20)
+   #include <a href="iterate.html">BOOST_PP_ITERATE</a>()
+
+   #endif
+
+#else
+
+   current iteration value is <a href="iteration.html">BOOST_PP_ITERATION</a>()
+
+#endif
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

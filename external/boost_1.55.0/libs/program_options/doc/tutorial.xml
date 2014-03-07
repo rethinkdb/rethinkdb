@@ -1,0 +1,353 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+     "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd"
+[
+    <!ENTITY % entities SYSTEM "program_options.ent" >
+    %entities;
+]>
+
+<section id="program_options.tutorial">
+  <title>Tutorial</title>
+  
+  <para>In this section, we'll take a look at the most common usage scenarios
+  of the program_options library, starting with the simplest one. The examples
+  show only the interesting code parts, but the complete programs can be found
+  in the "BOOST_ROOT/libs/program_options/example" directory. Through all the
+  examples, we'll assume that the following namespace alias is in effect:
+<programlisting>namespace po = boost::program_options;</programlisting>
+  </para>
+
+  <section>
+    <title>Getting Started</title>
+
+  <para>The first example is the simplest possible: it only handles two
+    options. Here's the source code (the full program is in
+    "example/first.cpp"):
+
+<programlisting>
+// Declare the supported options.
+po::options_description desc(&quot;Allowed options&quot;);
+desc.add_options()
+    (&quot;help&quot;, &quot;produce help message&quot;)
+    (&quot;compression&quot;, po::value&lt;int&gt;(), &quot;set compression level&quot;)
+;
+
+po::variables_map vm;
+po::store(po::parse_command_line(ac, av, desc), vm);
+po::notify(vm);    
+
+if (vm.count(&quot;help&quot;)) {
+    cout &lt;&lt; desc &lt;&lt; &quot;\n&quot;;
+    return 1;
+}
+
+if (vm.count(&quot;compression&quot;)) {
+    cout &lt;&lt; &quot;Compression level was set to &quot; 
+ &lt;&lt; vm[&quot;compression&quot;].as&lt;int&gt;() &lt;&lt; &quot;.\n&quot;;
+} else {
+    cout &lt;&lt; &quot;Compression level was not set.\n&quot;;
+}
+</programlisting>
+  </para>
+
+  <para>We start by declaring all allowed options using the
+    &options_description; class. The <code>add_options</code> method of that
+    class returns a special proxy object that defines
+    <code>operator()</code>. Calls to that operator actually declare
+    options. The parameters are option name, information about value, and option
+    description. In this example, the first option has no value, and the second
+    one has a value of type <code>int</code>.
+  </para>
+  
+  <para>After that, an object of class <code>variables_map</code> is
+    declared. That class is intended to store values of options, and can store
+    values of arbitrary types. Next, the calls to <code>store</code>,
+    <code>parse_command_line</code> and <code>notify</code> functions cause
+    <code>vm</code> to contain all the options found on the command
+    line.</para>
+
+  <para>And now, finally, we can use the options as we like. The
+    <code>variables_map</code> class can be used just like
+    <code>std::map</code>, except that values stored there must be retrieved
+    with the <code>as</code> method shown above. (If the type specified in the
+    call to the <code>as</code> method is different from the actually stored
+    type, an exception is thrown.)
+  </para>
+
+  <para>It's now a good time to try compiling the code yourself, but if
+    you're not yet ready, here's an example session:
+<screen>
+$ <userinput>bin/gcc/debug/first</userinput>
+Compression level was not set.
+$ <userinput>bin/gcc/debug/first --help</userinput>
+Allowed options:
+  --help                 : produce help message
+  --compression arg      : set compression level
+$ <userinput>bin/gcc/debug/first --compression 10</userinput>
+Compression level was set to 10.
+    </screen>
+  </para>
+    
+  </section>
+
+  <section>
+    <title>Option Details</title>
+    
+  <para>An option value, surely, can have other types than <code>int</code>, and
+  can have other interesting properties, which we'll discuss right now. The
+  complete version of the code snipped below can be found in
+  <filename>example/options_description.cpp</filename>.</para>
+
+  <para>Imagine we're writing a compiler. It should take the optimization
+    level, a number of include paths, and a number of input files, and perform some
+    interesting work. Let's describe the options:
+    <programlisting>
+int opt;
+po::options_description desc(&quot;Allowed options&quot;);
+desc.add_options()
+    (&quot;help&quot;, &quot;produce help message&quot;)
+    (&quot;optimization&quot;, po::value&lt;int&gt;(&amp;opt)-&gt;default_value(10), 
+  &quot;optimization level&quot;)
+    (&quot;include-path,I&quot;, po::value&lt; vector&lt;string&gt; &gt;(), 
+  &quot;include path&quot;)
+    (&quot;input-file&quot;, po::value&lt; vector&lt;string&gt; &gt;(), &quot;input file&quot;)
+;
+</programlisting>
+  </para>
+
+  <para>The <literal>"help"</literal> option should be familiar from 
+  the previous example. It's a good idea to have this option in all cases.
+  </para>
+
+  <para>The <literal>"optimization"</literal> option shows two new features. First, we specify
+    the address of the variable(<code>&amp;opt</code>). After storing values, that
+    variable will have the value of the option. Second, we specify a default
+    value of 10, which will be used if no value is specified by the user.
+  </para>
+
+  <para>The <literal>"include-path"</literal> option is an example of the 
+  only case where the interface of the <code>options_description</code> 
+  class serves only one
+    source -- the command line. Users typically like to use short option names
+    for common options, and the "include-path,I" name specifies that short
+    option name is "I". So, both "--include-path" and "-I" can be used.
+  </para>
+
+  <para>Note also that the type of the <literal>"include-path"</literal>
+  option is <type>std::vector</type>. The library provides special 
+  support for vectors -- it will be possible to specify the option several 
+  times, and all specified values will be collected in one vector.  
+  </para>
+    
+  <para>The "input-file" option specifies the list of files to
+    process. That's okay for a start, but, of course, writing something like:
+    <screen>
+<userinput>compiler --input-file=a.cpp</userinput>
+    </screen>
+    is a little non-standard, compared with
+    <screen>
+<userinput>compiler a.cpp</userinput>
+    </screen>
+    We'll address this in a moment.
+  </para>
+
+  <para>
+    The command line tokens which have no option name, as above, are
+    called "positional options" by this library. They can be handled
+    too. With a little help from the user, the library can decide that "a.cpp"
+    really means the same as "--input-file=a.cpp". Here's the additional code
+    we need:
+    <programlisting>
+po::positional_options_description p;
+p.add(&quot;input-file&quot;, -1);
+
+po::variables_map vm;
+po::store(po::command_line_parser(ac, av).
+          options(desc).positional(p).run(), vm);
+po::notify(vm);
+    </programlisting>    
+  </para>
+
+  <para>
+    The first two lines say that all positional options should be translated
+    into "input-file" options. Also note that we use the
+    &command_line_parser; class to parse the command
+    line, not the &parse_command_line;
+    function. The latter is a convenient wrapper for simple cases, but now we
+    need to pass additional information.
+  </para>
+
+  <para>By now, all options are described and parsed. We'll save ourselves the
+      trouble of implementing the rest of the compiler logic and only print the
+      options:
+    <programlisting>
+if (vm.count(&quot;include-path&quot;))
+{
+    cout &lt;&lt; &quot;Include paths are: &quot; 
+         &lt;&lt; vm[&quot;include-path&quot;].as&lt; vector&lt;string&gt; &gt;() &lt;&lt; &quot;\n&quot;;
+}
+
+if (vm.count(&quot;input-file&quot;))
+{
+    cout &lt;&lt; &quot;Input files are: &quot; 
+         &lt;&lt; vm[&quot;input-file&quot;].as&lt; vector&lt;string&gt; &gt;() &lt;&lt; &quot;\n&quot;;
+}
+
+cout &lt;&lt; &quot;Optimization level is &quot; &lt;&lt; opt &lt;&lt; &quot;\n&quot;;                
+</programlisting>
+  </para>
+
+  <para>Here's an example session:
+    <screen>
+$ <userinput>bin/gcc/debug/options_description --help</userinput>
+Usage: options_description [options]
+Allowed options:
+  --help                 : produce help message
+  --optimization arg     : optimization level
+  -I [ --include-path ] arg : include path
+  --input-file arg       : input file
+$ <userinput>bin/gcc/debug/options_description</userinput>
+Optimization level is 10
+$ <userinput>bin/gcc/debug/options_description --optimization 4 -I foo a.cpp</userinput>
+Include paths are: foo
+Input files are: a.cpp
+Optimization level is 4
+</screen>
+  </para>
+
+  <para>
+    Oops, there's a slight problem. It's still possible to specify the
+    "--input-file" option, and usage message says so, which can be confusing
+    for the user. It would be nice to hide this information, but let's wait
+    for the next example.
+  </para>
+
+  </section>
+
+  <section>
+    <title>Multiple Sources</title>
+
+    <para>It's quite likely that specifying all options to our compiler on the
+    command line will annoy users. What if a user installs a new library and
+    wants to always pass an additional command line element? What if he has
+    made some choices which should be applied on every run? It's desirable to
+    create a config file with common settings which will be used together with
+    the command line.
+    </para>
+
+    <para>Of course, there will be a need to combine the values from command
+    line and config file. For example, the optimization level specified on the
+    command line should override the value from the config file. On the other
+    hand, include paths should be combined.
+    </para>
+
+    <para>Let's see the code now. The complete program is in
+      "examples/multiple_sources.cpp". The option definition has two interesting
+      details. First, we declare several instances of the
+      <code>options_description</code> class. The reason is that, in general,
+      not all options are alike. Some options, like "input-file" above, should
+      not be presented in an automatic help message. Some options make sense only
+      in the config file. Finally, it's nice to have some structure in the help message,
+      not just a long list of options. Let's declare several option groups:
+      <programlisting>
+// Declare a group of options that will be 
+// allowed only on command line
+po::options_description generic(&quot;Generic options&quot;);
+generic.add_options()
+    (&quot;version,v&quot;, &quot;print version string&quot;)
+    (&quot;help&quot;, &quot;produce help message&quot;)    
+    ;
+    
+// Declare a group of options that will be 
+// allowed both on command line and in
+// config file
+po::options_description config(&quot;Configuration&quot;);
+config.add_options()
+    (&quot;optimization&quot;, po::value&lt;int&gt;(&amp;opt)-&gt;default_value(10), 
+          &quot;optimization level&quot;)
+    (&quot;include-path,I&quot;, 
+         po::value&lt; vector&lt;string&gt; &gt;()-&gt;composing(), 
+         &quot;include path&quot;)
+    ;
+
+// Hidden options, will be allowed both on command line and
+// in config file, but will not be shown to the user.
+po::options_description hidden(&quot;Hidden options&quot;);
+hidden.add_options()
+    (&quot;input-file&quot;, po::value&lt; vector&lt;string&gt; &gt;(), &quot;input file&quot;)
+    ;        
+</programlisting>
+      Note the call to the <code>composing</code> method in the declaration of the
+      "include-path" option. It tells the library that values from different sources
+      should be composed together, as we'll see shortly.
+    </para>
+
+    <para>    
+      The <code>add</code> method of the <code>options_description</code>
+      class can be used to further group the options:
+      <programlisting>
+po::options_description cmdline_options;
+cmdline_options.add(generic).add(config).add(hidden);
+
+po::options_description config_file_options;
+config_file_options.add(config).add(hidden);
+
+po::options_description visible(&quot;Allowed options&quot;);
+visible.add(generic).add(config);
+      </programlisting>
+    </para>
+
+    <para>The parsing and storing of values follows the usual pattern, except that
+      we additionally call <functionname>parse_config_file</functionname>, and
+      call the &store; function twice. But what
+      happens if the same value is specified both on the command line and in
+      config file? Usually, the value stored first is preferred. This is what
+      happens for the "--optimization" option. For "composing" options, like
+      "include-file", the values are merged.
+    </para>
+
+    <para>Here's an example session:
+<screen>
+$ <userinput>bin/gcc/debug/multiple_sources</userinput>
+Include paths are: /opt
+Optimization level is 1
+$ <userinput>bin/gcc/debug/multiple_sources --help</userinput>
+Allows options:
+
+Generic options:
+  -v [ --version ]       : print version string
+  --help                 : produce help message
+
+Configuration:
+  --optimization n       : optimization level
+  -I [ --include-path ] path : include path
+
+$ <userinput>bin/gcc/debug/multiple_sources --optimization=4 -I foo a.cpp b.cpp</userinput>
+Include paths are: foo /opt
+Input files are: a.cpp b.cpp
+Optimization level is 4
+</screen>
+      The first invocation uses values from the configuration file. The second
+      invocation also uses values from command line. As we see, the include
+      paths on the command line and in the configuration file are merged,
+      while optimization is taken from the command line.
+    </para>
+      
+  </section>
+
+  
+
+  
+
+  
+        
+</section>
+
+<!--
+     Local Variables:
+     mode: nxml
+     sgml-indent-data: t     
+     sgml-parent-document: ("program_options.xml" "section")
+     sgml-set-face: t
+     End:
+-->

@@ -1,0 +1,116 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template default_error_checker</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../../../header/boost/numeric/odeint/stepper/controlled_runge_kutta_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/controlled_runge_kutta.hpp&gt;">
+<link rel="prev" href="../../../header/boost/numeric/odeint/stepper/controlled_runge_kutta_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/controlled_runge_kutta.hpp&gt;">
+<link rel="next" href="controlled_runge_kutta.html" title="Class template controlled_runge_kutta">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../header/boost/numeric/odeint/stepper/controlled_runge_kutta_hpp.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/stepper/controlled_runge_kutta_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="controlled_runge_kutta.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.numeric.odeint.default_error_checker"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template default_error_checker</span></h2>
+<p>boost::numeric::odeint::default_error_checker &#8212; The default error checker to be used with Runge-Kutta error steppers. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../header/boost/numeric/odeint/stepper/controlled_runge_kutta_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/controlled_runge_kutta.hpp&gt;">boost/numeric/odeint/stepper/controlled_runge_kutta.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Value<span class="special">,</span> <span class="keyword">typename</span> Algebra <span class="special">=</span> <span class="identifier">range_algebra</span><span class="special">,</span> 
+         <span class="keyword">typename</span> Operations <span class="special">=</span> <span class="identifier">default_operations</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="default_error_checker.html" title="Class template default_error_checker">default_error_checker</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">Value</span>      <a name="boost.numeric.odeint.default_error_checker.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">Algebra</span>    <a name="boost.numeric.odeint.default_error_checker.algebra_type"></a><span class="identifier">algebra_type</span><span class="special">;</span>   
+  <span class="keyword">typedef</span> <span class="identifier">Operations</span> <a name="boost.numeric.odeint.default_error_checker.operations_type"></a><span class="identifier">operations_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="default_error_checker.html#boost.numeric.odeint.default_error_checkerconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="default_error_checker.html#idp26670808-bb"><span class="identifier">default_error_checker</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span><span class="special">(</span><span class="number">1</span><span class="special">.</span><span class="number">0e</span><span class="special">-</span><span class="number">6</span><span class="special">)</span><span class="special">,</span> 
+                        <span class="identifier">value_type</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span><span class="special">(</span><span class="number">1</span><span class="special">.</span><span class="number">0e</span><span class="special">-</span><span class="number">6</span><span class="special">)</span><span class="special">,</span> 
+                        <span class="identifier">value_type</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span><span class="special">(</span><span class="number">1</span><span class="special">)</span><span class="special">,</span> 
+                        <span class="identifier">value_type</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span><span class="special">(</span><span class="number">1</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="default_error_checker.html#idp26664184-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> State<span class="special">,</span> <span class="keyword">typename</span> Deriv<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">,</span> <span class="keyword">typename</span> Time<span class="special">&gt;</span> 
+    <span class="identifier">value_type</span> <a class="link" href="default_error_checker.html#idp26664392-bb"><span class="identifier">error</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">State</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Deriv</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Time</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> State<span class="special">,</span> <span class="keyword">typename</span> Deriv<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">,</span> <span class="keyword">typename</span> Time<span class="special">&gt;</span> 
+    <span class="identifier">value_type</span> <a class="link" href="default_error_checker.html#idp26667432-bb"><span class="identifier">error</span></a><span class="special">(</span><span class="identifier">algebra_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">State</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Deriv</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span><span class="special">,</span> 
+                     <span class="identifier">Time</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp56157864"></a><h2>Description</h2>
+<p>This class provides the default mechanism to compare the error estimates reported by Runge-Kutta error steppers with user defined error bounds. It is used by the controlled_runge_kutta steppers.</p>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp56158536"></a><h3>Template Parameters</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Value</pre>
+<p>The value type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Algebra <span class="special">=</span> <span class="identifier">range_algebra</span></pre>
+<p>The algebra type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Operations <span class="special">=</span> <span class="identifier">default_operations</span></pre>
+<p>The operations type. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp56163352"></a><h3>
+<a name="boost.numeric.odeint.default_error_checkerconstruct-copy-destruct"></a><code class="computeroutput">default_error_checker</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><a name="idp26670808-bb"></a><span class="identifier">default_error_checker</span><span class="special">(</span><span class="identifier">value_type</span> eps_abs <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span><span class="special">(</span><span class="number">1</span><span class="special">.</span><span class="number">0e</span><span class="special">-</span><span class="number">6</span><span class="special">)</span><span class="special">,</span> 
+                      <span class="identifier">value_type</span> eps_rel <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span><span class="special">(</span><span class="number">1</span><span class="special">.</span><span class="number">0e</span><span class="special">-</span><span class="number">6</span><span class="special">)</span><span class="special">,</span> 
+                      <span class="identifier">value_type</span> a_x <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span><span class="special">(</span><span class="number">1</span><span class="special">)</span><span class="special">,</span> 
+                      <span class="identifier">value_type</span> a_dxdt <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">&gt;</span><span class="special">(</span><span class="number">1</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp56180008"></a><h3>
+<a name="idp26664184-bb"></a><code class="computeroutput">default_error_checker</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> State<span class="special">,</span> <span class="keyword">typename</span> Deriv<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">,</span> <span class="keyword">typename</span> Time<span class="special">&gt;</span> 
+  <span class="identifier">value_type</span> <a name="idp26664392-bb"></a><span class="identifier">error</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">State</span> <span class="special">&amp;</span> x_old<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Deriv</span> <span class="special">&amp;</span> dxdt_old<span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span> x_err<span class="special">,</span> 
+                   <span class="identifier">Time</span> dt<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> State<span class="special">,</span> <span class="keyword">typename</span> Deriv<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">,</span> <span class="keyword">typename</span> Time<span class="special">&gt;</span> 
+  <span class="identifier">value_type</span> <a name="idp26667432-bb"></a><span class="identifier">error</span><span class="special">(</span><span class="identifier">algebra_type</span> <span class="special">&amp;</span> algebra<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">State</span> <span class="special">&amp;</span> x_old<span class="special">,</span> 
+                   <span class="keyword">const</span> <span class="identifier">Deriv</span> <span class="special">&amp;</span> dxdt_old<span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span> x_err<span class="special">,</span> <span class="identifier">Time</span> dt<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../header/boost/numeric/odeint/stepper/controlled_runge_kutta_hpp.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/stepper/controlled_runge_kutta_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="controlled_runge_kutta.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

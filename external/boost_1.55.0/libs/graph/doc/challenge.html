@@ -1,0 +1,120 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Challenge</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<h2>Boost Graph Library Challenge and To-Do Items</h2>
+
+
+<ul>
+
+<li>Dynamic graph algorithms such as described in <a
+href="http://citeseer.ist.psu.edu/eppstein99dynamic.html">Dynamic Graph
+Algorithms</a> and <a
+href="http://citeseer.ist.psu.edu/alberts98software.html">A Software
+Library of Dynamic Graph Algorithms</a>.
+
+<li>Polish up code/docs for pending items and champion the formal
+review. The pending items are:</li>
+  <ul>
+   <li><tt>container_traits.hpp</tt> (this should also include
+     the work Matt Austern is doing on this topic)</li>
+
+   <li>The queues and heaps: <tt>queue.hpp</tt>,
+     <tt>mutable_queue.hpp</tt>, <tt>fibonacci_heap.hpp</tt>.
+      Somehow merge implementation with Dietmer's heaps and queues.</li>
+
+   <li><tt>disjoint_sets</tt> </li>
+  </ul>
+
+<li>Construct a set of planar graph algorithms.</li>
+  <ul>
+   <li> Is the graph planar?</li>
+   <li> &quot;Walk around the block&quot; and similar open and closed neighborhood 
+traversals. Note that edge traversals need to resolve to particular ends 
+and sides (see below), not just to the edge as a whole.</li>
+   <li> Given a point, find the nearest vertex, edge, or bounded polygon. 
+Again, edges are viewed as having left and right sides.</li>
+   <li> Given a line segment, find intersecting vertices, edges, or bounded 
+polygons.</li>
+   <li> Given a polygon, find intersecting whatever...</li>
+   <li> Various minimum bounding rectangle and clipping problems.</li>
+   <li> Construct a planar embedding of a planar graph.</li>
+   <li> Find a balanced separator of a graph.</li>
+   <li> Modify adjacency_list so that the out-edges can be ordered
+    according to a user defined comparison object.</li>
+  </ul>
+
+<li>Rewrite the Qhull algorithm using the Boost Graph Library (this is
+high difficulty challenge).  Or, for a more manageable challenge,
+write an interface for Qhull with the BGL.  <a
+href="http://www.geom.umn.edu/locate/qhull">Qhull</a> computes the
+convex hull, Delaunay triangulation, Voronoi diagram, and halfspace
+intersection about a point.  Qhull runs in 2-d, 3-d, 4-d, and higher
+dimensions.  Qhull is used for collision detection, animation, plate
+tectonics, 3-d modeling, robot motion planning, and other <a
+href="http://www.geom.umn.edu/~bradb/qhull-news.html#use">applications</a>.
+It is currently difficult to use from a C++ program.
+
+</li>
+
+
+<li>Explore the use of Algorithm Objects as an alternative to
+  the current approach with visitors.</li>
+
+<li>Analyze the algorithms that do not yet have visitors, and
+  come up with visitor interfaces for them.</li>
+
+<li>Add a check in the adjacency_list class to make sure
+  all the vertex property template arguments have kind=vertex_property_tag
+  and all edge property template arguments have kind=edge_property_tag.</li>
+
+<li>Clean up the output functions in graph_utility.hpp to
+  use streams, and document all the utility functions. Replace
+  the random number stuff with calls to the boost random number generator.</li>
+
+<li>Modularize the tests in test/graph.cpp to apply to particular
+  concepts. Make sure there are run-time tests for every BGL concept.</li>
+
+<li>Write tests for the BGL algorithms. There are a few, but
+   more are needed. The example provide a sanity check but do not
+   provide full coverage.</li>
+
+<li>Write up the examples from Knuth's <i>Stanford GraphBase</i> using
+  the BGL. The file <a
+  href="../example/miles_span.cpp"><tt>examples/miles_span.cpp</tt></a>
+  is a start.</li>
+
+<li>Further testing of the <tt>subgraph</tt> class and add more
+   features.</li>
+
+<li>Implement a minimum-cost maximum-flow algorithm.</li>
+
+<li>Make the <tt>type</tt> of all (internal) property maps convertible to the <tt>const_type</tt> of the property maps.<li>
+
+<li>Add static functions to <tt>adjacency_list</tt> to return the per-vertex, per-edge, and per-graph overhead.</li>
+</ul>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

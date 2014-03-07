@@ -1,0 +1,28 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/om.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/om.xml
+ */
+om{
+    Countries{
+        BR{"Brazil"}
+        CN{"China"}
+        DE{"Germany"}
+        ET{"Itoophiyaa"}
+        FR{"France"}
+        GB{"United Kingdom"}
+        IN{"India"}
+        IT{"Italy"}
+        JP{"Japan"}
+        KE{"Keeniyaa"}
+        RU{"Russia"}
+        US{"United States"}
+    }
+    Version{"2.0.48.64"}
+}

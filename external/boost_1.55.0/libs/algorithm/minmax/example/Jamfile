@@ -1,0 +1,12 @@
+#  Boost.Minmax Library Example Jamfile
+#
+#  Copyright (C) 2002--2004, Herve Bronnimann
+#
+# Use, modification, and distribution is subject to the Boost Software
+# License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+#
+
+exe minmax_ex : minmax_ex.cpp ;
+exe minmax_timer : minmax_timer.cpp ;
+

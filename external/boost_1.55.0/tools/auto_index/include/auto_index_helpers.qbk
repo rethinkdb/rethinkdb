@@ -1,0 +1,19 @@
+
+
+[template index[]
+'''<index/>'''
+]
+
+[template named_index[type title]
+'''<index type="'''[type]'''"><title>'''[title]'''</title></index>'''
+]
+
+[template AutoIndex [Args] '''<?BoostAutoIndex  ''' [Args]'''?>''']
+
+[template indexterm1 [primary] '''<indexterm><primary>'''[primary]'''</primary></indexterm>''']
+[template indexterm2 [primary secondary] '''<indexterm><primary>'''[primary]'''</primary><secondary>'''[secondary]'''</secondary></indexterm>''']
+[template indexterm3 [primary secondary tertiary] '''<indexterm><primary>'''[primary]'''</primary><secondary>'''[secondary]'''</secondary><tertiary>'''[tertiary]'''</tertiary></indexterm>''']
+
+[template typed_indexterm1 [type primary] '''<indexterm type="'''[type]'''"><primary>'''[primary]'''</primary></indexterm>''']
+[template typed_indexterm2 [type primary secondary] '''<indexterm type="'''[type]'''"><primary>'''[primary]'''</primary><secondary>'''[secondary]'''</secondary></indexterm>''']
+[template typed_indexterm3 [type primary secondary tertiary] '''<indexterm type="'''[type]'''"><primary>'''[primary]'''</primary><secondary>'''[secondary]'''</secondary><tertiary>'''[tertiary]'''</tertiary></indexterm>''']

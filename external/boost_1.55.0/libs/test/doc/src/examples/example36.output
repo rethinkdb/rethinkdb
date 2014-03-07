@@ -1,0 +1,7 @@
+> example
+Running 1 test case...
+test.cpp(11): error in "test": check { col1, col1+7 } == { col2, col2+7 } failed. 
+Mismatch in a position 2: 3 != 4
+Mismatch in a position 5: 6 != 7
+
+*** 1 failure detected in test suite "example"

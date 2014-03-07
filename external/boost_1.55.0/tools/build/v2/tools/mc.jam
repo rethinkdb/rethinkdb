@@ -1,0 +1,44 @@
+#~ Copyright 2005 Alexey Pakhunov.
+#~ Distributed under the Boost Software License, Version 1.0.
+#~ (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+#  Support for Microsoft message compiler tool.
+#  Notes:
+#  - there's just message compiler tool, there's no tool for 
+#    extracting message strings from sources
+#  - This file allows to use Microsoft message compiler
+#    with any toolset. In msvc.jam, there's more specific
+#    message compiling action.
+
+import common ;
+import generators ;
+import feature : feature get-values ;
+import toolset : flags ;
+import type ;
+import rc ;
+
+rule init ( )
+{
+}
+
+type.register MC : mc ;
+
+
+# Command line options
+feature mc-input-encoding : ansi unicode : free ;
+feature mc-output-encoding : unicode ansi : free ;
+feature mc-set-customer-bit : no yes : free ;
+
+flags mc.compile MCFLAGS <mc-input-encoding>ansi : -a ;
+flags mc.compile MCFLAGS <mc-input-encoding>unicode : -u ;
+flags mc.compile MCFLAGS <mc-output-encoding>ansi : -A ;
+flags mc.compile MCFLAGS <mc-output-encoding>unicode : -U ;
+flags mc.compile MCFLAGS <mc-set-customer-bit>no : ;
+flags mc.compile MCFLAGS <mc-set-customer-bit>yes : -c ;
+
+generators.register-standard mc.compile : MC : H RC ;
+
+actions compile
+{
+    mc $(MCFLAGS) -h "$(<[1]:DW)" -r "$(<[2]:DW)" "$(>:W)"
+}

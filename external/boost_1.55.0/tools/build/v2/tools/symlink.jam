@@ -1,0 +1,140 @@
+# Copyright 2003 Dave Abrahams 
+# Copyright 2002, 2003 Rene Rivera 
+# Copyright 2002, 2003, 2004, 2005 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+# Defines the "symlink" special target. 'symlink' targets make symbolic links
+# to the sources.
+
+import targets modules path class os feature project property-set ;
+
+.count = 0 ;
+
+feature.feature symlink-location : project-relative build-relative : incidental ;
+
+# The class representing "symlink" targets.
+#
+class symlink-targets : basic-target
+{
+    import numbers modules class property project path ;
+    
+    rule __init__ (
+      project
+        : targets *
+        : sources *
+    )
+    {    
+        # Generate a fake name for now. Need unnamed targets eventually.
+        local c = [ modules.peek symlink : .count ] ;
+        modules.poke symlink : .count : [ numbers.increment $(c) ] ;
+        local fake-name = symlink#$(c) ;
+    
+          basic-target.__init__ $(fake-name) : $(project) : $(sources) ;
+    
+        # Remember the targets to map the sources onto. Pad or truncate
+        # to fit the sources given.
+        self.targets = ;
+        for local source in $(sources)
+        {
+            if $(targets)
+            {
+                self.targets += $(targets[1]) ;
+                targets = $(targets[2-]) ;
+            }
+            else
+            {
+                self.targets += $(source) ;
+            }
+        }
+    
+        # The virtual targets corresponding to the given targets.
+        self.virtual-targets = ;
+    }    
+    
+    rule construct ( name : source-targets * : property-set )
+    {
+        local i = 1 ;
+        for local t in $(source-targets)
+        {
+            local s = $(self.targets[$(i)]) ;
+            local a = [ class.new action  $(t) : symlink.ln : $(property-set) ] ;
+            local vt = [ class.new file-target $(s:D=) 
+              : [ $(t).type ] : $(self.project) : $(a) ] ;
+            
+            # Place the symlink in the directory relative to the project
+            # location, instead of placing it in the build directory.
+            if [ property.select <symlink-location> : [ $(property-set).raw ] ] = <symlink-location>project-relative
+            {
+                $(vt).set-path [ path.root $(s:D) [ $(self.project).get location ] ] ;
+            }
+            
+            self.virtual-targets += $(vt) ;
+            i = [ numbers.increment $(i) ] ;
+        }
+        return [ property-set.empty ] $(self.virtual-targets) ;
+    }
+}
+
+# Creates a symbolic link from a set of targets to a set of sources.
+# The targets and sources map one to one. The symlinks generated are
+# limited to be the ones given as the sources. That is, the targets
+# are either padded or trimmed to equate to the sources. The padding
+# is done with the name of the corresponding source. For example::
+#
+#     symlink : one two ;
+#
+# Is equal to::
+#
+#     symlink one two : one two ;
+#
+# Names for symlink are relative to the project location. They cannot
+# include ".." path components.
+rule symlink (
+    targets *
+    : sources *
+    )
+{
+    local project = [ project.current ] ;
+    
+    return [ targets.main-target-alternative
+        [ class.new symlink-targets $(project) : $(targets) : 
+          # Note: inline targets are not supported for symlink, intentionally,
+          # since it's used to linking existing non-local targets.
+          $(sources) ] ] ;
+}
+
+rule ln
+{
+    local os ;
+    if [ modules.peek : UNIX ] { os = UNIX ; }
+    else { os ?= [ os.name ] ; }
+    # Remember the path to make the link relative to where the symlink is located.
+    local path-to-source = [ path.relative-to
+        [ path.make [ on $(<) return $(LOCATE) ] ]
+        [ path.make [ on $(>) return $(LOCATE) ] ] ] ;
+    if $(path-to-source) = .
+    {
+        PATH_TO_SOURCE on $(<) = "" ;
+    }
+    else
+    {
+        PATH_TO_SOURCE on $(<) = [ path.native $(path-to-source) ] ;
+    }
+    ln-$(os) $(<) : $(>) ;
+}
+
+actions ln-UNIX
+{
+    ln -f -s '$(>:D=:R=$(PATH_TO_SOURCE))' '$(<)'
+}
+
+# there is a way to do this; we fall back to a copy for now
+actions ln-NT
+{
+    echo "NT symlinks not supported yet, making copy"
+    del /f /q "$(<)" 2>nul >nul
+    copy "$(>)" "$(<)" $(NULL_OUT)
+}
+
+IMPORT $(__name__) : symlink : : symlink ;

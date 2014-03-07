@@ -1,0 +1,418 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - extended_type_info</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center"><code style="white-space: normal">extended_type_info</code></h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="page-index">
+  <dt><a href="#motivation">Motivation</a>
+  <dt><a href="#runtime">Runtime Interface</a>
+  <dt><a href="#requirements">Requirements</a>
+  <dt><a href="#models">Models</a>
+  <dt><a href="#example">Example</a>
+</dl>
+
+<h3><a name="motivation">Motivation</a></h3>
+The serialization library needs a system like 
+<code style="white-space: normal">type_info/typeid()</code> to perform
+the following functions
+<ol>
+  <li>
+     given a pointer to a type T discover the true type pointed to.
+  <li>
+     given an "external" key - determine what type of object to create.
+</ol>
+<h3>The problem with <code style="white-space: normal">std::type_info</code></h3>
+<ul>
+  <li>
+    The main function we require - <code style="white-space: normal">std::typeid()</code>
+    is not available in all environments. Support for this function depends upon
+    runtime typing(RTTI) support from the compiler.  This may be non-existent
+    or not enabled for reasons such as a percieved inefficiency.
+  <li>
+    <code style="white-space: normal">std::type_info</code> includes a string
+    containing type name.  This would seem to satisfy 2) above.
+    But the format of this string is not consistent accross compilers, libraries, 
+    and operating systems. This makes it unusable for support of portable archives.
+  <li>
+    Even if the type name string could somehow be made portable, there is no 
+    guarentee that class headers would be included in the same name space accross 
+    different applications. In fact, including different headers in different
+    name spaces is an accepted method used to avoid name space conflicts.
+    Thus the namespace::class_name can't be used as a key.
+  <li>
+    There exists the possibility that different classes use different type id 
+    mechanism.  The class header might include this information. If we want to 
+    import class headers accross applications, its convenient that the type id
+    mechanism support inter-operability accross different type id systems.
+</ul>
+<h3>Features</h3>
+<code style="white-space: normal"><a target="extended_type_info.hpp" href = "../../../boost/serialization/extended_type_info.hpp">
+extended_type_info</a></code> is an implementation
+of <code style="white-space: normal">std::type_info</code> functionality with the 
+following features:
+<ul>
+  <li>
+    Builds a set of <a target="extended_type_info.hpp" href = "../../../boost/serialization/extended_type_info.hpp">
+    <code style="white-space: normal">extended_type_info</a></code> records - one for each type
+    serialized.
+  <li>
+    permits association of an arbitrary string key with a type.  Often this key would
+    be the class name - but it doesn't have to be.  This key is referred to as
+    a GUID - Globally Unique IDentifier.  Presumably it should be unique in the universe.
+    Typically this GUID would be in header files and be used to match type accross
+    applications.  The macro BOOST_CLASS_EXPORT can be invoked to associate a string
+    key with any known type.  We'll refer to these types as "exported types"
+  <li>
+    permits the "mixing" of type info systems.  For example, one class might use 
+    <code style="white-space: normal">typeid()</code> to find the external identifier 
+    of a class while another might not.
+</ul>
+
+Exported types are maintained in a global table so that given a string key, the
+corresponding type can be found.  This facility is used by the serialization library
+in order to construct types serialized through a base class pointer.
+
+<h3><a name="runtime">Runtime Interface</a></h3>
+<pre><code">
+namespace boost { 
+namespace serialization {
+
+class extended_type_info
+{
+protected:
+    // this class can't be used as is. It's just the 
+    // common functionality for all type_info replacement
+    // systems.  Hence, make these protected
+    extended_type_info(
+        const unsigned int type_info_key,
+        const char * key
+    );
+    ~extended_type_info();
+    void key_register();
+    void key_unregister();
+public:
+    const char * get_key() const;
+    bool operator<(const extended_type_info &rhs) const;
+    bool operator==(const extended_type_info &rhs) const;
+    bool operator!=(const extended_type_info &rhs) const {
+        return !(operator==(rhs));
+    }
+    // for plugins
+    virtual void * construct(unsigned int count = 0, ...) const;
+    virtual void destroy(void const * const p) const;
+    static const extended_type_info * find(const char *key);
+};
+
+} // namespace serialization 
+} // namespace boost
+</code></pre>
+<p>
+Generally, there will be one and only one
+<code style="white-space: normal"><a target="extended_type_info.hpp" href = "../../../boost/serialization/extended_type_info.hpp">extended_type_info</a></code>
+instance created for each type.  However, this is enforced only at the executable
+module level.  That is, if a program includes some shared libraries or DLLS,
+there may be more than one instance of this class correponding to a particular type.
+For this reason the comparison functions below can't just compare the addresses of 
+this instance but rather must be programmed to compare the the actual information 
+the instances contain.
+<dl>
+
+<dt><h4><pre><code>
+extended_type_info(unsigned int type_info_key, const char *key);
+</code></pre></h4></dt>
+<dd>
+This constructor should be called by all derived classes.
+The first argument should be the particular implementation. 
+For this default implementation base on typeid(), this is the 
+value 1.  Each system must have its own integer.  This value
+is used to permit the inter-operability of different typeinfo
+systems.
+<p>
+The second argument is a const string which is the external
+name of the type to which this record corresponds.  
+It may sometimes be referred to as a GUID - a <b>G</b>lobal <b>U</b>nique <b>ID</b>entifier.
+It is passed through archives from one program invocation to
+another to uniquely identify the types that the archive contains.
+If the "export" facility is not going to be used, 
+this value may be NULL.
+</dd>
+
+<dt><h4><pre><code>
+void key_register();
+void key_unregister();
+</code></pre></h4></dt>
+<dd>
+This system maintains a global table which relates
+external strings to 
+<code style="white-space: normal">extended_type_info</code> records.
+This table is used when loading pointers to objects serialized
+through a base class pointer.  In this case, the archive 
+contains a string which is looked up in this table to
+determine which <code style="white-space: normal">extended_type_info</code>
+to use for creating a new object.
+<p>
+These functions are called by constructors and
+destructors of classes which implement 
+<code style="white-space: normal">extended_type_info</code>
+to add and remove entries from this table.
+</dd>
+
+<dt><h4><pre><code>
+const char *get_key() const;
+</code></pre></h4></dt>
+<dd>
+Retrieves the key for <code style="white-space: normal"><a target="extended_type_info.hpp" href = "../../../boost/serialization/extended_type_info.hpp">extended_type_info</a></code>
+instance.  If no key has been associated with the instance, then a NULL is returned.
+</dd>
+
+<dt><h4><pre><code>
+bool operator<(const extended_type_info & rhs) const;
+bool operator==(const extended_type_info & rhs) const;
+bool operator!=(const extended_type_info & rhs) const;
+</code></pre></h4></dt>
+<dd>
+These functions are used to compare 'wo 
+<a target="extended_type_info.hpp" href = "../../../boost/serialization/extended_type_info.hpp">
+<code style="white-space: normal">
+extended_type_info
+</code> 
+</a>
+objects. They impose a strict total ordering on all
+<code style="white-space: normal">extended_type_info</code> records.
+</dd>
+
+<dt><h4><pre><code>
+virtual void * construct(unsigned int count = 0, ...) const;
+</code></pre></h4></dt>
+<dd>
+Construct a new instance of the type to which this
+<a target="extended_type_info.hpp" href = "../../../boost/serialization/extended_type_info.hpp">
+<code style="white-space: normal">
+extended_type_info
+</code>
+</a>
+record corresponds. This function takes variable list of up to 4 arguments
+of any type.  These arguments are passed to the type's constructor
+at runtime.  In order to use the facility, 
+one must declare a type sequence for the constructor arguments.  
+Arguments for this function must match in number and type
+with those specified when the type was exported.  
+This function permits one to create instances of
+any exported type given only the exported <strong>GUID</strong> assigned
+with BOOST_CLASS_EXPORT.  
+If these types are defined in DLLS or shared libraries.  When these modules
+are loaded at runtime, these constructor can be called until the module
+is unloaded.  These modules are referred to as <b>plugin</b>. 
+</code>
+</dd>
+
+<dt><h4><pre><code>
+virtual void destroy(void const * const p) const;
+</code></pre></h4></dt>
+<dd>
+Destroy an instance created by the above constructor.
+</dd>
+
+<dt><h4><pre><code>
+static const extended_type_info * find(const char *key);
+</code></pre></h4></dt>
+<dd>
+Given a character string key or <strong>GUID</strong>, return the address of a 
+corresponding <code style="white-space: normal"><a target="extended_type_info.hpp" href = "../../../boost/serialization/extended_type_info.hpp">extended_type_info</a></code>
+object. 
+
+</dl>
+
+<h3><a name="requirements">Requirements for and Implementation</a></h3>
+In order to be used by the serialization library, an implementation of
+<code style="white-space: normal">extended_type_info</code>, 
+(referred to as ETI here), must be derived from 
+<a target="extended_type_info.hpp" href = "../../../boost/serialization/extended_type_info.hpp">
+<code style="white-space: normal">
+extended_type_info
+</code> 
+</a>
+and also implement the following:
+
+<dl>
+
+<dt><h4><code style="white-space: normal"><pre>
+template&lt;class ETI&gt;
+const extended_type_info *
+ETI::get_derived_extended_type_info(const T & t) const;
+</pre></code></h4></dt>
+<dd>
+Return a pointer to the 
+<code style="white-space: normal">extended_type_info</code>
+instance that corresponds to
+the "true type" of the type T.  The "true type" is the lowest type in the
+hierarchy of classes.  The type T can always be cast to the "true type" with
+a static cast.  Implementation of this function will vary among type id systems
+and sometimes will make presumptions about the type T than can be identified
+with a particular <code style="white-space: normal">extended_type_info</code> implementation.
+</dd>
+
+<dt><h4><code style="white-space: normal"><pre>
+virtual bool ETI::is_less_than(const extended_type_info &rhs) const;
+</pre></code></h4></dt>
+<dd>
+Compare this instance to another one using the same
+<code style="white-space: normal">extended_type_info</code> implementation.
+</dd>
+
+<dt><h4><code style="white-space: normal"><pre>
+virtual bool ETI::is_equal(const extended_type_info &rhs) const;
+</pre></code></h4></dt>
+<dd>
+Compare this instance to another one using the same
+<code style="white-space: normal">extended_type_info</code> implementation.
+Return <code style="white-space: normal">true</code> if the types referred
+to are the same.  Otherwise return 
+<code style="white-space: normal">false</code>
+</dd>
+
+<dt><h4><code style="white-space: normal"><pre>
+const char ETI::get_key() const;
+</pre></code></h4></dt>
+<dd>
+Retrieve the external key (aka GUID) for this class.
+</dd>
+
+<dt><h4><code style="white-space: normal"><pre>
+virtual void * construct(unsigned int count, ...) const;
+</pre></code></h4></dt>
+<dd>
+Construct an instance of the corresponding type
+with the include argument list.
+</dd>
+
+<dt><h4><code style="white-space: normal"><pre>
+virtual void * destroy(void const * const ptr ) const;
+</pre></code></h4></dt>
+<dd>
+Destroy an instance of this type. This calls the
+proper destructor and recovers allocated memory.
+</dd>
+
+</dl>
+
+<h3><a name="models">Models</a></h3>
+The serialization library includes two distinct
+<code style="white-space: normal"><a target="extended_type_info.hpp" href="../../../boost/serialization/extended_type_info.hpp">extended_type_info</a></code>
+implementations.
+<p>
+<code style="white-space: normal"><h4><a target="extended_type_info_typeid.hpp" href = "../../../boost/serialization/extended_type_info_typeid.hpp">
+extended_type_info_typeid</a></h4></code>is implemented in terms of the standard typeid(). It presumes that RTTI support is enabled
+by the compiler.
+<p>
+<code style="white-space: normal"><h4><a target="extended_type_info_no_rtti.hpp" href="../../../boost/serialization/extended_type_info_no_rtti.hpp">
+extended_type_info_no_rtti</a></h4></code>
+is implemented in a way that doesn't rely on the existence RTTI.
+Instead, it requires that all polymorphic types be explictly exported.
+In addition, if the export facility is to be used to serialize types
+through base class pointers, those types are required to implement
+a virtual function with the signature:
+
+<code><pre>
+virtual const char * get_key();
+</pre></code>
+which returns a unique string the most derived object this class.  
+This function must be virtual in order to implement the functionality required by
+<code style="white-space: normal">ETI::get_derived_extended_type_info</code>
+as described above.
+
+<h3><a name="example">Example</a></h3>
+The test program <code style="white-space: normal"><a target="test_no_rtti" href="../test/test_no_rtti.cpp">test_no_rtti</a></code>
+implements this function in terms of the <code style="white-space: normal"><a target="extended_type_info_no_rtti.hpp" href="../../../boost/serialization/extended_type_info_no_rtti.hpp">
+extended_type_info</a></code> API above to return the export key associated with the class.  
+This requires that non-abstract types be exported. It also demonstrates the
+inter-operability with between two different implementations of
+<code style="white-space: normal">extended_type_info</code>.
+
+<h3><a name="type_requirements">Requirements for Each Type</a></h3>
+Each type to be managed by the system must be
+"registered" individually. This is accomplished by instantiating
+templates.  For example, if the type T is to use the type_info system
+one would include the following code:
+
+<code style="white-space: normal"><pre>
+namespace boost {
+namespace serialization {
+template
+struct extended_type_info_typeid&gt;T&gt;;
+template
+struct extended_type_info_typeid&gt;const T&gt;;
+} // serialization
+} // boost
+</pre></code>
+
+For those using the serialization library, this step can be skipped
+as it is done automatically.  The serialization library includes
+the macro:
+
+<code style="white-space: normal"><pre>
+BOOST_CLASS_TYPE_INFO(
+    my_type, 
+    extended_type_info_typeid&gt;my_class&gt;
+)
+</pre></code>
+
+which is used to specify which <code>extended_type_info</code> system is to 
+be used for a given type.
+<p>
+<code>extended_type_info</code> includes a facility for constructing
+instances of types without knowing what the exact types are. This is done
+with the function 
+<code>
+virtual void * extended_type_info::construct(unsigned int count = 0, ...) const;
+</code>
+. For example:
+<br>
+<code><pre>
+struct base {
+...
+};
+struct derived : public base {
+...
+};
+...
+extended_type_info *eti = extended_type_info::find("my_class")
+base * b = eti->construct(...);
+</pre></code>
+<br>
+The <code>construct</code> takes an argument count and up to
+four parameters of any type.  The arguments are passed to the
+constructor of "my_class".
+
+
+A complete example of this can be found
+<a target="test_dll_plugin.cpp" href="../test/test_dll_plugin.cpp">here</a>
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2005-2009. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

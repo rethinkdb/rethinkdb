@@ -1,0 +1,503 @@
+[/
+    Copyright (c) 2009-2009 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Projects]
+
+['*Projects*] are examples on the usage of interval containers
+that go beyond small toy snippets of code. The code presented
+here addresses more serious applications that approach the
+quality of real world programming. At the same time it aims to
+guide the reader more deeply into various aspects of 
+the library. In order not to overburden the reader with implementation
+details, the code in ['*projects*] tries to be ['*minimal*]. It has a focus on
+the main aspects of the projects and is not intended to be complete 
+and mature like the library code itself. Cause it's minimal,
+project code lives in `namespace mini`.
+
+[/ 
+[section Overview]
+
+[table Overview over Icl Examples
+    [[level]   [example] [classes] [features]]
+    [[basic]   [[link boost_icl.examples.large_bitset Large Bitset]]
+        [__itv_map__][The most simple application of an interval map: 
+                      Counting the overlaps of added intervals.]]
+]
+
+[endsect][/ Overview IN Projects]
+]
+
+[section Large Bitset][/ IN Projects]
+
+Bitsets are just sets. Sets of unsigned integrals, 
+to be more precise. 
+The prefix ['*bit*] usually only indicates,
+that the representation of those sets is organized in a compressed
+form that exploits the fact, that we can switch on an off single
+bits in machine words. Bitsets are therefore known to be very small
+and thus efficient.
+The efficiency of bitsets is usually coupled to the 
+precondition that the range of values of elements  
+is relatively small, like [0..32) or [0..64), values that can
+be typically represented in single or a small number of
+machine words. If we wanted to represent a set containing
+two values {1, 1000000}, we would be much better off using
+other sets like e.g. an `std::set`.
+
+Bitsets compress well, if elements spread over narrow ranges
+only. Interval sets compress well, if many elements are clustered
+over intervals. They can span large sets very efficiently then.
+In project ['*Large Bitset*] we want to ['*combine the bit compression
+and the interval compression*] to achieve a set implementation, 
+that is capable of spanning large chunks of contiguous elements 
+using intervals and also to represent more narrow ['nests] of varying 
+bit sequences using bitset compression.
+As we will see, this can be achieved using only a small
+amount of code because most of the properties we need
+are provided by an __itv_map__ of `bitsets`:
+
+``
+typedef interval_map<IntegralT, SomeBitSet<N>, partial_absorber,
+                     std::less, inplace_bit_add, inplace_bit_and> IntervalBitmap;
+``
+
+Such an `IntervalBitmap` represents `k*N` bits for every segment. 
+``
+[a, a+k)->'1111....1111' // N bits associated: Represents a total of k*N bits.  
+``
+
+For the interval `[a, a+k)` above all bits are set.
+But we can also have individual ['nests] or ['clusters]
+of bitsequences.
+
+``
+[b,  b+1)->'01001011...1'
+[b+1,b+2)->'11010001...0'
+. . .
+``
+
+and we can span intervals of equal bit sequences that represent
+periodic patterns.
+
+``
+[c,d)->'010101....01'  // Every second bit is set              in range [c,d)
+[d,e)->'001100..0011'  // Every two bits alterate              in range [d,e)
+[e,f)->'bit-sequence'  // 'bit-sequence' reoccurs every N bits in range [e,f)
+``
+
+An `IntervalBitmap` can represent
+`N*(2^M)` elements, if `M` is the number of bits of the 
+integral type `IntegralT`. Unlike bitsets, that usually
+represent ['*unsigned*] integral numbers, large_bitset may 
+range over negative numbers as well.
+There are fields where such large
+bitsets implementations are needed. E.g. for the compact
+representation of large file allocation tables.
+What remains to be done for project *Large Bitset* is
+to code a wrapper `class large_bitset` around `IntervalBitmap`
+so that `large_bitset` looks and feels like a usual
+set class.
+
+[section Using large_bitset]
+
+To quicken your appetite for a look at the implementation
+here are a few use cases first. Within the examples that follow,
+we will use `nat`[^['k]] for unsigned integrals 
+and `bits`[^['k]] for bitsets containing [^['k]] bits.
+
+Let's start large.
+In the first example . . . 
+
+[import ../example/large_bitset_/large_bitset.cpp]
+[large_bitset_test_large_set_all]
+
+. . . we are testing the limits. First we set all bits and
+then we switch off the very last bit.
+
+[large_bitset_test_large_erase_last]
+
+Program output (/a little beautified/):
+``
+----- Test function test_large() -----------------------------------------------
+We have just turned on the awesome amount of 18,446,744,073,709,551,616 bits ;-)
+[                 0, 288230376151711744) -> 1111111111111111111111111111111111111111111111111111111111111111
+---- Let's swich off the very last bit -----------------------------------------
+[                 0, 288230376151711743) -> 1111111111111111111111111111111111111111111111111111111111111111
+[288230376151711743, 288230376151711744) -> 1111111111111111111111111111111111111111111111111111111111111110
+---- Venti is plenty ... let's do something small: A tall ----------------------
+``
+
+More readable is a smaller version of `large_bitset`.
+In function `test_small()` we apply a few more operations . . .
+
+[large_bitset_test_small]
+
+. . . producing this output:
+``
+----- Test function test_small() -----------
+-- Switch on all bits in range [0,64] ------
+[0,8)->11111111
+[8,9)->10000000
+--------------------------------------------
+-- Turn off bits: 25,27,28 -----------------
+[0,3)->11111111
+[3,4)->10100111
+[4,8)->11111111
+[8,9)->10000000
+--------------------------------------------
+-- Flip bits in range [24,30) --------------
+[0,3)->11111111
+[3,4)->01011011
+[4,8)->11111111
+[8,9)->10000000
+--------------------------------------------
+-- Remove the first 10 bits ----------------
+[1,2)->00111111
+[2,3)->11111111
+[3,4)->01011011
+[4,8)->11111111
+[8,9)->10000000
+-- Remove even bits in range [0,72) --------
+[1,2)->00010101
+[2,3)->01010101
+[3,4)->01010001
+[4,8)->01010101
+--    Set odd  bits in range [0,72) --------
+[0,9)->01010101
+--------------------------------------------
+``
+
+Finally, we present a little /picturesque/ example, 
+that demonstrates that `large_bitset` can also serve
+as a self compressing bitmap, that we can 'paint' with.
+
+[large_bitset_test_picturesque]
+
+Note that we have two `large_bitsets` for the /outline/ 
+and the /interior/. Both parts are compressed but we can
+compose both by `operator +`, because the right /positions/
+are provided. This is the program output:
+
+``
+----- Test function test_picturesque() -----
+-------- empty face:       3 intervals -----
+********
+*      *
+*      *
+*      *
+*      *
+ ******
+-------- compressed smile: 2 intervals -----
+  *  *
+  ****
+-------- staring bitset:   6 intervals -----
+********
+*      *
+* *  * *
+*      *
+* **** *
+ ******
+--------------------------------------------
+``
+
+So, may be you are curious how this class template
+is coded on top of __itv_map__ using only about 250 lines 
+of code. This is shown in the sections that follow.
+
+[endsect][/ Usage of a large_bitset]
+
+[section The interval_bitmap]
+
+To begin, let's look at the basic data type again, that
+will be providing the major functionality:
+
+``
+typedef interval_map<DomainT, BitSetT, partial_absorber,
+                     std::less, inplace_bit_add, inplace_bit_and> IntervalBitmap;
+``
+
+`DomainT` is supposed to be an integral
+type, the bitset type `BitSetT` will be a wrapper class around an
+unsigned integral type. `BitSetT` has to implement bitwise operators
+that will be called by the functors `inplace_bit_add<BitSetT>` 
+and `inplace_bit_and<BitSetT>`.
+The type trait of interval_map is `partial_absorber`, which means
+that it is /partial/ and that empty `BitSetTs` are not stored in
+the map. This is desired and keeps the `interval_map` minimal, storing
+only bitsets, that contain at least one bit switched on. 
+Functor template `inplace_bit_add` for parameter `Combine` indicates that we
+do not expect `operator +=` as addition but the bitwise operator
+`|=`. For template parameter `Section` which is instaniated by 
+`inplace_bit_and` we expect the bitwise `&=` operator.
+
+[endsect][/ section The interval_bitmap]
+
+[section A class implementation for the bitset type]
+
+The code of the project is enclosed in a `namespace mini`.
+The name indicates, that the implementation is a /minimal/
+example implementation. The name of the bitset class will
+be `bits` or `mini::bits` if qualified.
+
+To be used as a codomain parameter of class template __itv_map__,
+`mini::bits` has to implement all the functions that are required
+for a codomain_type in general, which are the default constructor `bits()`
+and an equality `operator==`. Moreover `mini::bits` has to implement operators
+required by the instantiations for parameter `Combine` and `Section`
+which are `inplace_bit_add` and `inplace_bit_and`. From functors
+`inplace_bit_add` and `inplace_bit_and` there are inverse functors
+`inplace_bit_subtract` and `inplace_bit_xor`. Those functors 
+use operators `|= &= ^=` and `~`. Finally if we want to apply
+lexicographical and subset comparison on large_bitset, we also
+need an `operator <`. All the operators that we need can be implemented
+for `mini::bits` on a few lines:
+
+[import ../example/large_bitset_/bits.hpp]
+[mini_bits_class_bits]
+
+Finally there is one important piece of meta information, we have 
+to provide: `mini::bits` has to be recognized as a `Set` by the
+icl code. Otherwise we can not exploit the fact that a map of
+sets is model of `Set` and the resulting large_bitset would not
+behave like a set. So we have to say that `mini::bits` shall be sets:
+
+[mini_bits_is_set]
+
+This is done by adding a partial template specialization to
+the type trait template `icl::is_set`.
+For the extension of this type trait template and the result
+values of inclusion_compare we need these `#includes` for the
+implementation of `mini::bits`:
+ 
+[mini_bits_includes]
+ 
+[endsect][/ A class implementation for the bitset type]
+
+[section Implementation of a large bitset]
+
+Having finished our `mini::bits` implementation, we can start to
+code the wrapper class that hides the efficient interval map of mini::bits
+and exposes a simple and convenient set behavior to the world of users.
+
+Let's start with the required `#include`s this time:
+
+[import ../example/large_bitset_/large_bitset.hpp]
+[large_bitset_includes]
+
+Besides `boost/icl/interval_map.hpp` and `bits.hpp` the most important
+include here is `boost/operators.hpp`. We use this library in order
+to further minimize the code and to provide pretty extensive operator
+functionality using very little code.
+
+For a short and concise naming of the most important unsigned integer
+types and the corresponding `mini::bits` we define this:
+
+[large_bitset_natural_typedefs]
+
+[section large_bitset: Public interface][/ ------------------------------------]
+
+And now let's code `large_bitset`. 
+
+[large_bitset_class_template_header]
+
+The first template parameter `DomainT` will be instantiated with
+an integral type that defines the kind of numbers that can
+be elements of the set. Since we want to go for a large set we
+use `nat64` as default which is a 64 bit unsigned integer ranging
+from `0` to `2^64-1`. As bitset parameter we also choose a 64-bit
+default. Parameters `Combine` and `Interval` are necessary to
+be passed to dependent type expressions. An allocator can be
+chosen, if desired.
+
+The nested list of private inheritance contains groups of template
+instantiations from 
+[@http://www.boost.org/doc/libs/1_39_0/libs/utility/operators.htm Boost.Operator], 
+that provides derivable operators from more fundamental once.
+Implementing the fundamental operators, we get the derivable ones
+/for free/. Below is a short overview of what we get using Boost.Operator,
+where __S stands for `large_bitset`, __i for it's `interval_type` 
+and __e for it's `domain_type` or `element_type`.
+
+[table
+[[Group                    ][fundamental]      [derivable     ]]
+[[Equality, ordering       ][`==`]             [`!=`          ]]
+[[                         ][`<` ]             [`> <= >=`     ]]
+[[Set operators (__S x __S)][`+= |= -= &= ^=` ][`+ | - & ^`   ]]
+[[Set operators (__S x __e)][`+= |= -= &= ^=` ][`+ | - & ^`   ]]
+[[Set operators (__S x __i)][`+= |= -= &= ^=` ][`+ | - & ^`   ]]
+]
+
+There is a number of associated types
+
+[large_bitset_associated_types]
+
+most importantly the implementing `interval_bitmap_type` that is used
+for the implementing container.
+
+[large_bitmap_impl_map]
+
+In order to use
+[@http://www.boost.org/doc/libs/1_39_0/libs/utility/operators.htm Boost.Operator]
+we have to implement the fundamental operators as class members. This can be
+done quite schematically.
+
+[large_bitset_operators]
+
+As we can see, the seven most important operators that work on the
+class type `large_bitset` can be directly implemented by propagating
+the operation to the implementing `_map`
+of type `interval_bitmap_type`. For the operators that work on segment and
+element types, we use member functions `add`, `subtract`, `intersect` and
+`flip`. As we will see only a small amount of adaper code is needed
+to couple those functions with the functionality of the implementing
+container.
+
+Member functions `add`, `subtract`, `intersect` and `flip`, 
+that allow to combine ['*intervals*] to `large_bitsets` can
+be uniformly implemented using a private function
+`segment_apply` that applies /addition/, /subtraction/,
+/intersection/ or /symmetric difference/, after having
+translated the interval's borders into the right bitset
+positions.  
+
+[large_bitset_fundamental_functions]
+
+In the sample programs, that we will present to demonstrate
+the capabilities of `large_bitset` we will need a few additional
+functions specifically output functions in two different
+flavors.
+
+[large_bitset_demo_functions]
+
+* The first one, `show_segments()` shows the container 
+content as it is implemented, in the compressed form.
+
+* The second function `show_matrix` shows the complete
+matrix of bits that is represented by the container.
+
+[endsect][/ large_bitset: Public interface] 
+[section large_bitset: Private implementation]  [/ -------------------------------------]
+
+In order to implement operations like the addition of 
+an element say `42` to
+the large bitset, we need to translate the /value/ to the
+/position/ of the associated *bit* representing `42` in the
+interval container of bitsets. As an example, suppose we
+use a
+``
+large_bitset<nat, mini::bits8> lbs;
+``
+that carries small bitsets of 8 bits only. 
+The first four interval of `lbs` are assumed to
+be associated with some bitsets. Now we want to add the interval
+`[a,b]==[5,27]`. This will result in the following situation:
+``
+   [0,1)->   [1,2)->   [2,3)->   [3,4)->   
+   [00101100][11001011][11101001][11100000]
++       [111  11111111  11111111  1111]      [5,27] as bitset
+         a                           b
+         
+=> [0,1)->   [1,3)->   [3,4)->
+   [00101111][11111111][11110000]
+``
+So we have to convert values 5 and 27 into a part that
+points to the interval and a part that refers to the
+position within the interval, which is done by a
+/division/ and a /modulo/ computation. (In order to have a
+consistent representation of the bitsequences across the containers,
+within this project, bitsets are denoted with the
+['*least significant bit on the left!*])
+
+``
+A = a/8 =  5/8 = 0 // refers to interval 
+B = b/8 = 27/8 = 3
+R = a%8 =  5%8 = 5 // refers to the position in the associated bitset.
+S = b%8 = 27%8 = 3
+``
+
+All /division/ and /modulo operations/ needed here are always done
+using a divisor `d` that is a power of `2`: `d = 2^x`. Therefore
+division and modulo can be expressed by bitset operations.
+The constants needed for those bitset computations are defined here:
+ 
+[large_bitset_impl_constants]
+
+Looking at the example again, we can see that we have to identify the
+positions of the beginning and ending of the interval [5,27] that is
+to insert, and then ['*subdivide*] that range of bitsets into three partitions.
+
+# The bitset where the interval starts.
+# the bitset where the interval ends
+# The bitsets that are completely overlapped by the interval
+
+``
+combine interval [5,27] to large_bitset lbs w.r.t. some operation o
+
+   [0,1)->   [1,2)->   [2,3)->   [3,4)->   
+   [00101100][11001011][11101001][11100000]
+o       [111  11111111  11111111  1111]
+         a                           b
+subdivide:
+   [first!  ][mid_1] . . .[mid_n][   !last]
+   [00000111][1...1] . . .[1...1][11110000]
+``
+
+After subdividing, we perform the operation `o` as follows:
+
+# For the first bitset: Set all bits from ther starting bit (`!`)
+  to the end of the bitset to `1`. All other bits are `0`. Then
+  perform operation `o`: `_map o= ([0,1)->00000111)`
+  
+# For the last bitset: Set all bits from the beginning of the bitset
+  to the ending bit (`!`) to `1`. All other bits are `0`. Then
+  perform operation `o`: `_map o= ([3,4)->11110000)`
+  
+# For the range of bitsets in between the staring and ending one,
+  perform operation `o`: `_map o= ([1,3)->11111111)`
+
+The algorithm, that has been outlined and illustrated by the 
+example, is implemented by the private member function
+`segment_apply`. To make the combiner operation a variable
+in this algorithm, we use a /pointer to member function type/
+
+[large_bitset_segment_combiner]
+
+as first function argument. We will pass member functions `combine_` here, 
+``
+combine_(first_of_interval, end_of_interval, some_bitset);
+``
+that take the beginning and ending of an interval and a bitset and combine
+them to the implementing `interval_bitmap_type _map`. Here are these functions:
+
+[large_bitmap_combiners]
+
+Finally we can code function `segment_apply`, that does the partitioning
+and subsequent combining:
+
+[large_bitset_segment_apply]
+
+The functions that help filling bitsets to and from a given bit are 
+implemented here:
+[large_bitset_bitset_filler]
+
+This completes the implementation of class template `large_bitset`.
+Using only a small amount of mostly schematic code,
+we have been able to provide a pretty powerful, self compressing
+and generally usable set type for all integral domain types. 
+
+[endsect][/ large_bitset: Private implementation]
+
+[endsect][/ Implementation of a large bitset]
+
+[endsect][/ Large Bitsets IN Projects]
+
+
+[endsect][/ Projects]
+
+
+

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2004 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.examples.days_alive"> 
+  <title>Days Alive</title>
+
+  <para> 
+    Calculate the number of days you have been living using durations and dates.
+  </para>
+<programlisting>
+<literal>
+<phrase role="comment">/* Short example that calculates the number of days since user was born.
+ * Demonstrates comparisons of durations, use of the day_clock,
+ * and parsing a date from a string.
+ */</phrase><phrase role="preprocessor">
+
+#include</phrase><phrase role="string"> &quot;boost/date_time/gregorian/gregorian.hpp&quot;</phrase><phrase role="preprocessor">
+#include</phrase><phrase role="special"> &lt;</phrase><phrase role="identifier">iostream</phrase><phrase role="special">&gt;</phrase><phrase role="keyword">
+
+int</phrase><phrase role="identifier">
+main</phrase><phrase role="special">()</phrase><phrase role="special"> 
+{</phrase><phrase role="keyword">
+  
+  using</phrase><phrase role="keyword"> namespace</phrase><phrase role="identifier"> boost</phrase><phrase role="special">::</phrase><phrase role="identifier">gregorian</phrase><phrase role="special">;</phrase><phrase role="identifier">
+  std</phrase><phrase role="special">::</phrase><phrase role="identifier">string</phrase><phrase role="identifier"> s</phrase><phrase role="special">;</phrase><phrase role="identifier">
+  std</phrase><phrase role="special">::</phrase><phrase role="identifier">cout</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="string"> &quot;Enter birth day YYYY-MM-DD (eg: 2002-02-01): &quot;</phrase><phrase role="special">;</phrase><phrase role="identifier">
+  std</phrase><phrase role="special">::</phrase><phrase role="identifier">cin</phrase><phrase role="special"> &gt;&gt;</phrase><phrase role="identifier"> s</phrase><phrase role="special">;</phrase><phrase role="keyword">
+  try</phrase><phrase role="special"> {</phrase><phrase role="identifier">
+    date</phrase><phrase role="identifier"> birthday</phrase><phrase role="special">(</phrase><phrase role="identifier">from_simple_string</phrase><phrase role="special">(</phrase><phrase role="identifier">s</phrase><phrase role="special">));</phrase><phrase role="identifier">
+    date</phrase><phrase role="identifier"> today</phrase><phrase role="special"> =</phrase><phrase role="identifier"> day_clock</phrase><phrase role="special">::</phrase><phrase role="identifier">local_day</phrase><phrase role="special">();</phrase><phrase role="identifier">
+    days</phrase><phrase role="identifier"> days_alive</phrase><phrase role="special"> =</phrase><phrase role="identifier"> today</phrase><phrase role="special"> -</phrase><phrase role="identifier"> birthday</phrase><phrase role="special">;</phrase><phrase role="identifier">
+    days</phrase><phrase role="identifier"> one_day</phrase><phrase role="special">(</phrase><phrase role="number">1</phrase><phrase role="special">);</phrase><phrase role="keyword">
+    if</phrase><phrase role="special"> (</phrase><phrase role="identifier">days_alive</phrase><phrase role="special"> ==</phrase><phrase role="identifier"> one_day</phrase><phrase role="special">)</phrase><phrase role="special"> {</phrase><phrase role="identifier">
+      std</phrase><phrase role="special">::</phrase><phrase role="identifier">cout</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="string"> &quot;Born yesterday, very funny&quot;</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier"> std</phrase><phrase role="special">::</phrase><phrase role="identifier">endl</phrase><phrase role="special">;</phrase><phrase role="special">
+    }</phrase><phrase role="keyword">
+    else</phrase><phrase role="keyword"> if</phrase><phrase role="special"> (</phrase><phrase role="identifier">days_alive</phrase><phrase role="special"> &lt;</phrase><phrase role="identifier"> days</phrase><phrase role="special">(</phrase><phrase role="number">0</phrase><phrase role="special">))</phrase><phrase role="special"> {</phrase><phrase role="identifier">
+      std</phrase><phrase role="special">::</phrase><phrase role="identifier">cout</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="string"> &quot;Not born yet, hmm: &quot;</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier"> days_alive</phrase><phrase role="special">.</phrase><phrase role="identifier">days</phrase><phrase role="special">()</phrase><phrase role="special"> 
+                &lt;&lt;</phrase><phrase role="string"> &quot; days&quot;</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier">std</phrase><phrase role="special">::</phrase><phrase role="identifier">endl</phrase><phrase role="special">;</phrase><phrase role="special">
+    }</phrase><phrase role="keyword">
+    else</phrase><phrase role="special"> {</phrase><phrase role="identifier">
+      std</phrase><phrase role="special">::</phrase><phrase role="identifier">cout</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="string"> &quot;Days alive: &quot;</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier"> days_alive</phrase><phrase role="special">.</phrase><phrase role="identifier">days</phrase><phrase role="special">()</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier"> std</phrase><phrase role="special">::</phrase><phrase role="identifier">endl</phrase><phrase role="special">;</phrase><phrase role="special">
+    }</phrase><phrase role="special">
+
+  }</phrase><phrase role="keyword">
+  catch</phrase><phrase role="special">(...)</phrase><phrase role="special"> {</phrase><phrase role="identifier">
+    std</phrase><phrase role="special">::</phrase><phrase role="identifier">cout</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="string"> &quot;Bad date entered: &quot;</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier"> s</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier"> std</phrase><phrase role="special">::</phrase><phrase role="identifier">endl</phrase><phrase role="special">;</phrase><phrase role="special">
+  }</phrase><phrase role="keyword">
+  return</phrase><phrase role="number"> 0</phrase><phrase role="special">;</phrase><phrase role="special">
+}</phrase>
+</literal>
+</programlisting>
+
+</section>

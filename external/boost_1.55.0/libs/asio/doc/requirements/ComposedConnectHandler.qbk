@@ -1,0 +1,56 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:ComposedConnectHandler Composed connect handler requirements]
+
+A composed connect handler must meet the requirements for a [link
+boost_asio.reference.Handler handler]. A value `h` of a composed connect handler
+class should work correctly in the expression `h(ec, i)`, where `ec` is an
+lvalue of type `const error_code` and `i` is an lvalue of the type `Iterator`
+used in the corresponding `connect()` or async_connect()` function.
+
+[heading Examples]
+
+A free function as a composed connect handler:
+
+  void connect_handler(
+      const boost::system::error_code& ec,
+      boost::asio::ip::tcp::resolver::iterator iterator)
+  {
+    ...
+  }
+
+A composed connect handler function object:
+
+  struct connect_handler
+  {
+    ...
+    template <typename Iterator>
+    void operator()(
+        const boost::system::error_code& ec,
+        Iterator iterator)
+    {
+      ...
+    }
+    ...
+  };
+
+A non-static class member function adapted to a composed connect handler using `bind()`:
+
+  void my_class::connect_handler(
+      const boost::system::error_code& ec,
+      boost::asio::ip::tcp::resolver::iterator iterator)
+  {
+    ...
+  }
+  ...
+  boost::asio::async_connect(...,
+      boost::bind(&my_class::connect_handler,
+        this, boost::asio::placeholders::error,
+        boost::asio::placeholders::iterator));
+
+[endsect]

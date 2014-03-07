@@ -1,0 +1,30 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ga.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ga.xml
+ */
+ga{
+    Version{"2.0.47.67"}
+    zoneStrings{
+        "Europe:Dublin"{
+            ec{"Baile Átha Cliath"}
+            ld{"Am Samhraidh na hÉireann"}
+            sd{"ASÉ"}
+        }
+        "Europe:London"{
+            ec{"Londain"}
+            ld{"Am Samhraidh na Breataine"}
+            sd{"ASB"}
+        }
+        "meta:GMT"{
+            ls{"Meán-Am Greenwich"}
+            ss{"MAG"}
+        }
+    }
+}

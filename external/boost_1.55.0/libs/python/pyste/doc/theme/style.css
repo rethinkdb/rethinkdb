@@ -1,0 +1,178 @@
+/*=============================================================================
+    Copyright (c) 2003 Bruno da Silva de Oliveira
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================*/
+
+body
+{
+    background-image: url(bkd.gif);
+    background-color: #FFFFFF;
+    margin: 1em 2em 1em 2em;
+}
+
+h1 { font-family: Verdana, Arial, Helvetica, sans-serif; font-weight: bold; text-align: left;  }
+h2 { font: 140% sans-serif; font-weight: bold; text-align: left;  }
+h3 { font: 120% sans-serif; font-weight: bold; text-align: left;  }
+h4 { font: bold 100% sans-serif; font-weight: bold; text-align: left;  }
+h5 { font: italic 100% sans-serif; font-weight: bold; text-align: left;  }
+h6 { font: small-caps 100% sans-serif; font-weight: bold; text-align: left;  }
+
+pre
+{
+    border-top: gray 1pt solid;
+    border-right: gray 1pt solid;
+    border-left: gray 1pt solid;
+    border-bottom: gray 1pt solid;
+
+    padding-top: 2pt;
+    padding-right: 2pt;
+    padding-left: 2pt;
+    padding-bottom: 2pt;
+
+    display: block;
+    font-family: "courier new", courier, mono;
+    background-color: #eeeeee; font-size: small
+}
+
+code
+{
+    font-family: "Courier New", Courier, mono;
+    font-size: small
+}
+
+tt
+{
+    display: inline;
+    font-family: "Courier New", Courier, mono;
+    color: #000099;
+    font-size: small
+}
+
+p
+{
+    text-align: justify;
+    font-family: Georgia, "Times New Roman", Times, serif
+}
+
+ul
+{
+    list-style-image: url(bullet.gif);
+    font-family: Georgia, "Times New Roman", Times, serif
+}
+
+ol
+{
+    font-family: Georgia, "Times New Roman", Times, serif
+}
+
+a
+{
+    font-weight: bold;
+    color: #003366;
+    text-decoration: none;
+}
+
+a:hover { color: #8080FF; }
+
+.literal        {  color: #666666; font-style: italic}
+.keyword        {  color: #000099}
+.identifier     {}
+.comment        {  font-style: italic; color: #990000}
+.special        {  color: #800040}
+.preprocessor   {  color: #FF0000}
+.string         {  font-style: italic; color: #666666}
+.copyright      {  color: #666666; font-size: small}
+.white_bkd      {  background-color: #FFFFFF}
+.dk_grey_bkd    {  background-color: #999999}
+.quotes         {  color: #666666; font-style: italic; font-weight: bold}
+
+.note_box
+{
+    display: block;
+
+    border-top: gray 1pt solid;
+    border-right: gray 1pt solid;
+    border-left: gray 1pt solid;
+    border-bottom: gray 1pt solid;
+
+    padding-right: 12pt;
+    padding-left: 12pt;
+    padding-bottom: 12pt;
+    padding-top: 12pt;
+
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #E2E9EF;
+    font-size: small; text-align: justify
+}
+
+.table_title
+{
+    background-color: #648CCA;
+
+    font-family: Verdana, Arial, Helvetica, sans-serif; color: #FFFFFF;
+    font-weight: bold
+; padding-top: 4px; padding-right: 4px; padding-bottom: 4px; padding-left: 4px
+}
+
+.table_cells
+{
+    background-color: #E2E9EF;
+
+    font-family: Geneva, Arial, Helvetica, san-serif;
+    font-size: small
+; padding-top: 4px; padding-right: 4px; padding-bottom: 4px; padding-left: 4px
+}
+
+.toc
+{
+    DISPLAY: block;
+    background-color: #E2E9EF
+    font-family: Arial, Helvetica, sans-serif;
+
+    border-top: gray 1pt solid;
+    border-left: gray 1pt solid;
+    border-bottom: gray 1pt solid;
+    border-right: gray 1pt solid;
+
+    padding-top: 24pt;
+    padding-right: 24pt;
+    padding-left: 24pt;
+    padding-bottom: 24pt;
+}
+
+.toc_title
+{
+    background-color: #648CCA;
+    padding-top: 4px;
+    padding-right: 4px;
+    padding-bottom: 4px;
+    padding-left: 4px;
+    font-family: Geneva, Arial, Helvetica, san-serif;
+    color: #FFFFFF;
+    font-weight: bold
+}
+
+.toc_cells
+{
+    background-color: #E2E9EF;
+    padding-top: 4px;
+    padding-right: 4px;
+    padding-bottom: 4px;
+    padding-left: 4px;
+    font-family: Geneva, Arial, Helvetica, san-serif;
+    font-size: small
+}
+
+div.logo
+{
+	float: right;
+}
+
+.toc_cells_L0 { background-color: #E2E9EF; padding-top: 4px; padding-right: 4px; padding-bottom: 4px; padding-left: 4px; font-family: Geneva, Arial, Helvetica, san-serif; font-size: small }
+.toc_cells_L1 { background-color: #E2E9EF; padding-top: 4px; padding-right: 4px; padding-bottom: 4px; padding-left: 44px; font-family: Geneva, Arial, Helvetica, san-serif; font-size: small }
+.toc_cells_L2 { background-color: #E2E9EF; padding-top: 4px; padding-right: 4px; padding-bottom: 4px; padding-left: 88px; font-family: Geneva, Arial, Helvetica, san-serif; font-size: small }
+.toc_cells_L3 { background-color: #E2E9EF; padding-top: 4px; padding-right: 4px; padding-bottom: 4px; padding-left: 122px; font-family: Geneva, Arial, Helvetica, san-serif; font-size: small }
+.toc_cells_L4 { background-color: #E2E9EF; padding-top: 4px; padding-right: 4px; padding-bottom: 4px; padding-left: 166px; font-family: Geneva, Arial, Helvetica, san-serif; font-size: small }

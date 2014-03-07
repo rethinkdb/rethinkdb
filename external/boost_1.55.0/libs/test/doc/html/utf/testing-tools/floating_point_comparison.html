@@ -1,0 +1,253 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Floating-point comparison algorithms</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../testing-tools.html" title="The UTF testing tools or tester's toolbox for all occasions">
+<link rel="prev" href="custom-predicate.html" title="Custom predicate support">
+<link rel="next" href="reference.html" title="The UTF testing tools reference">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../testing-tools.html">Testing tools</a><a href="../usage-recommendations.html">
+      &gt;
+      </a><b>Floating-point comparison algorithms</b>
+</td>
+<td><div class="spirit-nav">
+<a href="custom-predicate.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="reference.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.testing-tools.fpv-comparison"></a>Floating-point comparison algorithms</h4></div></div></div>
+<p class="first-line-indented">
+   In most cases it is unreasonable to use an <code class="computeroutput">operator==(...)</code> for a floating-point values equality check.
+   The simple, absolute value comparison based, solution for a floating-point values <code class="varname">u</code>,
+   <code class="varname">v</code> and a tolerance :
+  </p>
+<div class="equation">
+<a name="utf.testing-tools.fpv-comparison.eq.1"></a><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody><tr>
+<td><div class="informalequation"><span class="mathphrase">
+   |<code class="varname">u</code>  <code class="varname">v</code>|  
+  </span></div></td>
+<td class="index">(<span class="bold"><strong>1</strong></span>)</td>
+</tr></tbody>
+</table>
+</div>
+<p>
+   does not produce expected results in many circumstances - specifically for very small or very big values (See
+   <a class="xref" href="floating_point_comparison.html#bbl.Squassabia" title="Comparing Floats: How To Determine if Floating Quantities Are Close Enough Once a Tolerance Has Been Reached">[<abbr class="abbrev">Squassabia</abbr>]</a> for examples). The <acronym class="acronym">UTF</acronym> implements floating-point comparison algorithm that is
+   based on the more confident solution first presented in <a class="xref" href="floating_point_comparison.html#bbl.KnuthII" title="The art of computer programming (vol II)">[<abbr class="abbrev">KnuthII</abbr>]</a>:
+  </p>
+<div class="equation">
+<a name="utf.testing-tools.fpv-comparison.eq.2"></a><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody><tr>
+<td><div class="informalequation"><span class="mathphrase">
+   |<code class="varname">u</code>  <code class="varname">v</code>|    |<code class="varname">u</code>|  |<code class="varname">u</code>  <code class="varname">v</code>|    |<code class="varname">v</code>|
+  </span></div></td>
+<td class="index">(<span class="bold"><strong>2</strong></span>)</td>
+</tr></tbody>
+</table>
+</div>
+<p>
+  defines a <em class="firstterm">very close with tolerance </em> relationship between <code class="varname">u</code> and <code class="varname">v</code>
+  </p>
+<div class="equation">
+<a name="utf.testing-tools.fpv-comparison.eq.3"></a><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody><tr>
+<td><div class="informalequation"><span class="mathphrase">
+   |<code class="varname">u</code>  <code class="varname">v</code>|    |<code class="varname">u</code>|  |<code class="varname">u</code>  <code class="varname">v</code>|    |<code class="varname">v</code>|
+  </span></div></td>
+<td class="index">(<span class="bold"><strong>3</strong></span>)</td>
+</tr></tbody>
+</table>
+</div>
+<p>
+   defines a <em class="firstterm">close enough with tolerance </em> relationship between <code class="varname">u</code> and <code class="varname">v</code>
+  </p>
+<p class="first-line-indented">
+   Both relationships are commutative but are not transitive. The relationship defined by inequations
+   (<a href="../../" target="_top">2</a>) is stronger
+   that the relationship defined by inequations (<a href="../../" target="_top">3</a>)
+   (i.e. (<a href="../../" target="_top">2</a>) 
+   (<a href="../../" target="_top">3</a>)). Because of the multiplication in the right side
+   of inequations, that can cause an unwanted underflow condition, the implementation is using modified version of the
+   inequations (<a href="../../" target="_top">2</a>) and
+   (<a href="../../" target="_top">3</a>) where all underflow, overflow conditions can be
+   guarded safely:
+  </p>
+<div class="equation">
+<a name="utf.testing-tools.fpv-comparison.eq.4"></a><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody><tr>
+<td><div class="informalequation"><span class="mathphrase">
+   |<code class="varname">u</code>  <code class="varname">v</code>|  |<code class="varname">u</code>|    |<code class="varname">u</code>  <code class="varname">v</code>| / |<code class="varname">v</code>|  
+  </span></div></td>
+<td class="index">(<span class="bold"><strong>4</strong></span>)</td>
+</tr></tbody>
+</table>
+</div>
+<div class="equation">
+<a name="utf.testing-tools.fpv-comparison.eq.5"></a><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody><tr>
+<td><div class="informalequation"><span class="mathphrase">
+   |<code class="varname">u</code>  <code class="varname">v</code>|  |<code class="varname">u</code>|    |<code class="varname">u</code>  <code class="varname">v</code>| / |<code class="varname">v</code>|  
+  </span></div></td>
+<td class="index">(<span class="bold"><strong>5</strong></span>)</td>
+</tr></tbody>
+</table>
+</div>
+<p class="first-line-indented">
+    Checks based on equations (<a href="../../" target="_top">4</a>) and
+    (<a href="../../" target="_top">5</a>) are implemented by two predicates with
+    alternative interfaces: binary predicate <code class="computeroutput">close_at_tolerance</code><sup>[<a name="id658995" href="#ftn.id658995" class="footnote">8</a>]</sup> and predicate with four arguments
+    <code class="computeroutput">check_is_close</code><sup>[<a name="id659008" href="#ftn.id659008" class="footnote">9</a>]</sup>.
+  </p>
+<p class="first-line-indented">
+   While equations (<a href="../../" target="_top">4</a>) and
+   (<a href="../../" target="_top">5</a>) in general are preferred for the general floating
+   point comparison check over equation (<a href="../../" target="_top">1</a>), they are
+   unusable for the test on closeness to zero. The later check is still might be useful in some cases and the <acronym class="acronym">UTF</acronym>
+   implements an algorithm based on equation (<a href="../../" target="_top">1</a>) in
+   binary predicate <code class="computeroutput">check_is_small</code><sup>[<a name="id659064" href="#ftn.id659064" class="footnote">10</a>]</sup>.
+  </p>
+<p class="first-line-indented">
+   On top of the generic, flexible predicates the <acronym class="acronym">UTF</acronym> implements macro based family of tools
+   <code class="computeroutput"><a class="link" href="reference.html" title="The UTF testing tools reference">BOOST_CHECK_CLOSE</a></code> and <code class="computeroutput"><a class="link" href="reference.html" title="The UTF testing tools reference">BOOST_CHECK_SMALL</a></code>. These tools limit the check
+   flexibility to strong-only checks, but automate failed check arguments reporting.
+  </p>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.testing-tools.fpv-comparison.tolerance-selection"></a>Tolerance selection considerations</h5></div></div></div>
+<p class="first-line-indented">
+    In case of absence of domain specific requirements the value of tolerance can be chosen as a sum of the predicted 
+    upper limits for "relative rounding errors" of compared values. The "rounding" is the operation by which a real 
+    value 'x' is represented in a floating-point format with 'p' binary digits (bits) as the floating-point value 'X'.
+    The "relative rounding error" is the difference between the real and the floating point values in relation to real
+    value: |x-X|/|x|. The discrepancy between real and floating point value may be caused by several reasons:
+   </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>Type promotion</li>
+<li>Arithmetic operations</li>
+<li>Conversion from a decimal presentation to a binary presentation</li>
+<li>Non-arithmetic operation</li>
+</ul></div>
+<p class="first-line-indented">
+    The first two operations proved to have a relative rounding error that does not exceed  
+    "machine epsilon value" for the appropriate floating point type (represented by
+    <code class="computeroutput">std::numeric_limits</code>&lt;FPT&gt;::epsilon()). Conversion to binary presentation, sadly, does
+    not have such requirement. So we can't assume that float 1.1 is close to real 1.1 with tolerance  
+     "machine epsilon value" for float (though for 11./10 we can). Non arithmetic operations either do not have a
+    predicted upper limit relative rounding errors. Note that both arithmetic and non-arithmetic operations might also
+    produce others "non-rounding" errors, such as underflow/overflow, division-by-zero or 'operation errors'.
+   </p>
+<p class="first-line-indented">
+    All theorems about the upper limit of a rounding error, including that of   epsilon, refer only to 
+    the 'rounding' operation, nothing more. This means that the 'operation error', that is, the error incurred by the 
+    operation itself, besides rounding, isn't considered. In order for numerical software to be able to actually 
+    predict error bounds, the IEEE754 standard requires arithmetic operations to be 'correctly or exactly rounded'. 
+    That is, it is required that the internal computation of a given operation be such that the floating point result 
+    is the exact result rounded to the number of working bits. In other words, it is required that the computation used
+    by the operation itself doesn't introduce any additional errors. The IEEE754 standard does not require same behavior
+    from most non-arithmetic operation. The underflow/overflow and division-by-zero errors may cause rounding errors 
+    with unpredictable upper limits.
+   </p>
+<p class="first-line-indented">
+    At last be aware that   epsilon rules are not transitive. In other words combination of two 
+    arithmetic operations may produce rounding error that significantly exceeds 2    epsilon. All 
+    in all there are no generic rules on how to select the tolerance and users need to apply common sense and domain/
+    problem specific knowledge to decide on tolerance value.
+   </p>
+<p class="first-line-indented">
+    To simplify things in most usage cases latest version of algorithm below opted to use percentage values for
+    tolerance specification (instead of fractions of related values). In other words now you use it to check that
+    difference between two values does not exceed x percent.
+   </p>
+<p class="first-line-indented">
+   For more reading about floating-point comparison see references below.
+   </p>
+</div>
+<div class="bibliography">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbl.fpv-comparison"></a>A floating-point comparison related references</h3></div></div></div>
+<div class="bibliodiv">
+<h3 class="title">
+<a name="bbl.fpv-comparison.books"></a>Books</h3>
+<div class="biblioentry">
+<a name="bbl.KnuthII"></a><p>[<abbr class="abbrev">KnuthII</abbr>] <span class="title"><i>The art of computer programming (vol II)</i>. </span><span class="author"><span class="firstname">Donald. E.</span> <span class="surname">Knuth</span>. </span><span class="copyright">Copyright © 1998 Addison-Wesley Longman, Inc.. </span><span class="isbn">0-201-89684-2. </span><span class="publisher"><span class="publishername">Addison-Wesley Professional; 3 edition. </span></span></p>
+</div>
+<div class="biblioentry">
+<a name="bbl.Kulisch"></a><p>[<abbr class="abbrev">Kulisch</abbr>] <span class="biblioset"><i>Rounding near zero</i>. </span><span class="biblioset"><i><a href="http://www.amazon.com/Advanced-Arithmetic-Digital-Computer-Kulisch/dp/3211838708" target="_top">Advanced Arithmetic for the Digital Computer</a></i>. <span class="author"><span class="firstname">Ulrich W</span> <span class="surname">Kulisch</span>. </span><span class="copyright">Copyright © 2002 Springer, Inc.. </span><span class="isbn">0-201-89684-2. </span><span class="publisher"><span class="publishername">Springer; 1 edition. </span></span></span></p>
+</div>
+</div>
+<div class="bibliodiv">
+<h3 class="title">
+<a name="bbl.fpv-comparison.periodicals"></a>Periodicals</h3>
+<div class="biblioentry">
+<a name="bbl.Squassabia"></a><p>[<abbr class="abbrev">Squassabia</abbr>] <span class="title"><i><a href="http://www.adtmag.com/joop/carticle.aspx?ID=396" target="_top">Comparing Floats: How To Determine if Floating Quantities Are Close Enough Once a Tolerance Has Been Reached</a></i>. </span><span class="author"><span class="firstname">Alberto</span> <span class="surname">Squassabia</span>. </span><span class="biblioset"><i>C++ Report</i>. <span class="issuenum">March 2000. </span>.
+     </span></p>
+</div>
+<div class="biblioentry">
+<a name="bbl.Becker"></a><p>[<abbr class="abbrev">Becker</abbr>] <span class="biblioset">&#8220;The Journeyman's Shop: Trap Handlers, Sticky Bits, and Floating-Point Comparisons&#8221;. <span class="author"><span class="firstname">Pete</span> <span class="surname">Becker</span>. </span></span><span class="biblioset"><i>C/C++ Users Journal</i>. <span class="issuenum">December 2000. </span>.
+     </span></p>
+</div>
+</div>
+<div class="bibliodiv">
+<h3 class="title">
+<a name="bbl.fpv-comparison.publications"></a>Publications</h3>
+<div class="biblioentry">
+<a name="bbl.Goldberg"></a><p>[<abbr class="abbrev">Goldberg</abbr>] <span class="biblioset">&#8220;<a href="http://citeseer.ist.psu.edu/goldberg91what.html" target="_top">What Every Computer Scientist Should Know About Floating-Point Arithmetic</a>&#8221;. <span class="author"><span class="firstname">David</span> <span class="surname">Goldberg</span>. </span><span class="copyright">Copyright © 1991 Association for Computing Machinery, Inc.. </span><span class="pagenums">150-230. </span></span><span class="biblioset"><i>Computing Surveys</i>. <span class="issuenum">March. </span>.
+     </span></p>
+</div>
+<div class="biblioentry">
+<a name="bbl.Langlois"></a><p>[<abbr class="abbrev">Langlois</abbr>] <span class="title"><i><a href="http://www.inria.fr/rrrt/rr-3967.html" target="_top">From Rounding Error Estimation to Automatic Correction with Automatic Differentiation</a></i>. </span><span class="author"><span class="firstname">Philippe</span> <span class="surname">Langlois</span>. </span><span class="copyright">Copyright © 2000. </span><span class="issn">0249-6399. </span></p>
+</div>
+<div class="biblioentry">
+<a name="bbl.Kahan"></a><p>[<abbr class="abbrev">Kahan</abbr>] <span class="title"><i><a href="http://www.cs.berkeley.edu/~wkahan/" target="_top">Lots of information on William Kahan home page</a></i>. </span><span class="author"><span class="firstname">William</span> <span class="surname">Kahan</span>. </span></p>
+</div>
+</div>
+</div>
+<div class="footnotes">
+<br><hr width="100" align="left">
+<div class="footnote"><p><sup>[<a name="ftn.id658995" href="#id658995" class="simpara">8</a>] </sup>check type 
+    and tolerance value are fixed at predicate construction time</p></div>
+<div class="footnote"><p><sup>[<a name="ftn.id659008" href="#id659008" class="simpara">9</a>] </sup>check type and tolerance value are the arguments of the
+    predicate</p></div>
+<div class="footnote"><p><sup>[<a name="ftn.id659064" href="#id659064" class="simpara">10</a>] </sup><code class="varname">v</code> is zero</p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="custom-predicate.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../testing-tools.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

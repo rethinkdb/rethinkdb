@@ -1,0 +1,161 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Greek_Latin_UNGEGN.txt
+# Generated from CLDR 
+#
+:: [[[:Greek:][:Mn:][:Me:]] [\:-;?·;·]] ;
+::NFD (NFC) ;
+$lower = [[:latin:][:greek:] & [:Ll:]] ;
+$upper = [[:latin:][:greek:] & [:Lu:]] ;
+$accent = [[:Mn:][:Me:]] ;
+$macron = \u0304 ;
+$ddot = \u0308 ;
+$lcgvowel = [αεηιουω] ;
+$ucgvowel = [ΑΕΗΙΟΥΩ] ;
+$gvowel = [$lcgvowel $ucgvowel] ;
+$lcgvowelC = [$lcgvowel $accent] ;
+$evowel = [aeiouyAEIOUY];
+$vowel = [ $evowel $gvowel] ;
+$beforeLower = $accent * $lower ;
+$gammaLike = [ΓΚΞΧγκξχϰ] ;
+$egammaLike = [GKXCgkxc] ;
+$smooth = \u0313 ;
+$rough = \u0314 ;
+$iotasub = \u0345 ;
+$softener = [βΒγΓδΔζΖλΛμΜνΝρΡ$gvowel] ;
+$under = \u0331;
+$caron = \u030C;
+$afterLetter = [:L:] [\'$accent]* ;
+$beforeLetter = [\'$accent]* [:L:] ;
+\: ↔ \: $under ;
+\? ↔ \? $under ;
+\; ↔ \? ;
+· ↔ \: ;
+\u0342 → \u0301 ;
+\u0302 → \u0301 ;
+\u0300 → \u0301 ;
+$smooth → ;
+$rough → ;
+$iotasub → ;
+ͺ → ;
+η ↔ i $under ;
+Η ↔ I $under ;
+Ψ } $beforeLower ↔ Ps ;
+Ψ ↔ PS ;
+ψ ↔ ps ;
+ω ↔ o $under ;
+Ω ↔  O $under;
+[^[:L:]$accent] { μπ → b ;
+μπ } [^[:L:]$accent] → b ;
+[^[:L:]$accent] { [Μμ][Ππ] → B ;
+[Μμ][Ππ] } [^[:L:]$accent] → B ;
+μπ ← b ;
+Μπ ← B } $beforeLower ;
+ΜΠ ← B ;
+ου ↔ ou ;
+ΟΥ ↔ OU ;
+Ου ↔ Ou ;
+οΥ ↔ oU ;
+$fmaker = [aeiAEI] $under ? ;
+$shiftForwardVowels = [[:Mn:]-[\u0308]]; # note: a diaeresis keeps the items separate
+$fmaker { υ ( $shiftForwardVowels )* } $softener → $1 v $under ;
+υ $1 ← ( $shiftForwardVowels )* v $under ;
+$fmaker { υ ( $shiftForwardVowels )* } → $1 f $under;
+υ $1 ← ( $shiftForwardVowels )* f $under ;
+$fmaker { Υ } $softener ↔ V $under ;
+$fmaker { Υ ↔ U $under ;
+υ ↔ y ;
+Υ ↔ Y ;
+α ↔ a ;
+Α ↔ A ;
+β ↔ v ;
+Β ↔ V ;
+γ } $gammaLike ↔ n } $egammaLike ;
+γ ↔ g ;
+Γ } $gammaLike ↔ N } $egammaLike ;
+Γ ↔ G ;
+δ ↔ d ;
+Δ ↔ D ;
+ε ↔ e ;
+Ε ↔ E ;
+ζ ↔ z ;
+Ζ ↔ Z ;
+θ ↔ th ;
+Θ } $beforeLower ↔ Th ;
+Θ ↔ TH ;
+ι ↔ i ;
+Ι ↔ I ;
+κ ↔ k ;
+Κ ↔ K ;
+λ ↔ l ;
+Λ ↔ L ;
+μ ↔ m ;
+Μ ↔ M ;
+ν } $gammaLike → n\' ;
+ν ↔ n ;
+Ν } $gammaLike ↔ N\' ;
+Ν ↔ N ;
+ξ ↔ x ;
+Ξ ↔ X ;
+ο ↔ o ;
+Ο ↔ O ;
+π ↔ p ;
+Π ↔ P ;
+ρ ↔ r ;
+Ρ ↔ R ;
+[Pp] { } [ςσΣϷϸϺϻ] → \' ;
+Ϸ ↔ S\u030C ; # Ϸ GREEK CAPITAL LETTER SHO Uppercase_Letter Grek - L
+ϸ ↔ s\u030C ; #ϸ GREEK SMALL LETTER SHO Lowercase_Letter Grek - L
+Ϻ ↔ S\u0302 ; # Ϻ GREEK CAPITAL LETTER SAN Uppercase_Letter Grek - L
+ϻ ↔ s\u0302 ; # ϻ GREEK SMALL LETTER SAN Lowercase_Letter Grek - L
+ς } $beforeLetter ↔ s $under } $beforeLetter;
+σ } $beforeLetter ↔ s } $beforeLetter;
+$afterLetter { σ ↔ $afterLetter { s $under;
+$afterLetter { ς ↔ $afterLetter { s ;
+ς ↔ s $under;
+σ ↔ s ;
+Σ ↔ S ;
+τ ↔ t ;
+Τ ↔ T ;
+φ ↔ f ;
+Φ ↔ F ;
+χ ↔ ch ;
+Χ } $beforeLower ↔ Ch ;
+Χ ↔ CH ;
+| ch ← h ;
+| k  ← c ;
+| i  ← j ;
+| k ← q ;
+| b ← u } $vowel ;
+| b ← w } $vowel ;
+| y ← u ;
+| y ← w ;
+| Ch ← H ;
+| K ← C ;
+| I ← J ;
+| K ← Q ;
+| B ← W } $vowel ;
+| B ← U } $vowel ;
+| Y ← W ;
+| Y ← U ;
+ϐ → | β ;
+ϑ → | θ ;
+ϒ → | Υ ;
+ϕ → | φ ;
+ϖ → | π ;
+ϰ → | κ ;
+ϱ → | ρ ;
+ϲ → | σ ;
+Ϲ → | Σ; #U+03F9 GREEK CAPITAL LUNATE SIGMA SYMBOL
+ϳ → j ;
+ϴ → | Θ ;
+ϵ → | ε ;
+µ → | μ ;
+← [Ππ] { \' } [Ss] ;
+← [Νν] { \' } $egammaLike ;
+::NFC (NFD) ;
+:: ([[[:Latin:][:Mn:][:Me:]] ['\:?]]) ;

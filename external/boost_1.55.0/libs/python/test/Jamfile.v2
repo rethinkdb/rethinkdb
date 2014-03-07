@@ -1,0 +1,236 @@
+# Copyright David Abrahams 2006. Distributed under the Boost
+# Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import python ;
+import os ;
+
+lib socket ;
+
+use-project /boost/python : ../build ;
+project /boost/python/test 
+  : requirements
+    <toolset>gcc:<cxxflags>-Wextra
+    <target-os>qnxnto:<library>socket
+  ;
+
+local PY = ;
+if [ python.configured ]
+{
+  PY = /python//python ;
+}
+
+rule py-run ( sources * : input-file ? )
+{
+    return [ run $(sources) /boost/python//boost_python $(PY)
+      : # args
+      : $(input-file)
+      : #requirements
+        <define>BOOST_PYTHON_SUPPRESS_REGISTRY_INITIALIZATION
+ 
+    ] ;
+}
+
+rule py-compile ( sources * )
+{
+    return [ compile $(sources) /boost/python//boost_python ] ;
+}
+
+rule py-compile-fail ( sources * )
+{
+    return [ compile-fail $(sources) /boost/python//boost_python ] ;
+}
+
+rule require-windows ( properties * )
+{
+    if ! <target-os>windows in $(properties)
+    {
+        return <build>no ;
+    }
+}
+
+test-suite python
+  :
+
+  [
+    run exec.cpp /boost/python//boost_python/<link>static $(PY)
+      : # program args
+      : exec.py # input files
+      : # requirements
+      : # target-name
+  ]
+
+  [
+    run exec.cpp ../build//boost_python/<link>shared /python//python
+      : # program args
+      : exec.py
+      : # requirements
+      : exec-dynamic # target-name
+  ]
+
+#   [
+#     run import_.cpp ../build//boost_python /python//python
+#       : # program args
+#       : import_.py # input files
+#       : # requirements
+#       : # target-name
+#   ]
+
+[
+bpl-test crossmod_exception
+  : crossmod_exception.py crossmod_exception_a.cpp crossmod_exception_b.cpp
+]
+
+[ bpl-test injected ]
+[ bpl-test properties ]
+[ bpl-test return_arg ]
+[ bpl-test staticmethod ]
+[ bpl-test shared_ptr ]
+[ bpl-test enable_shared_from_this ]
+[ bpl-test andreas_beyer ]
+[ bpl-test wrapper_held_type ]
+
+[ bpl-test polymorphism2_auto_ptr 
+  : polymorphism2_auto_ptr.py polymorphism2.py polymorphism2_auto_ptr.cpp 
+]
+
+[ bpl-test polymorphism ]
+[ bpl-test polymorphism2 ]
+
+[ bpl-test auto_ptr ]
+
+[ bpl-test minimal ]
+[ bpl-test args ]
+[ bpl-test raw_ctor ]
+[ bpl-test numpy : printer.py numeric_tests.py numarray_tests.py numpy.py numpy.cpp ]
+[ bpl-test enum ]
+[ bpl-test exception_translator ]
+[ bpl-test pearu1 : test_cltree.py cltree.cpp ]
+[ bpl-test try : newtest.py m1.cpp m2.cpp ]
+[ bpl-test const_argument ]
+[ bpl-test keywords : keywords.cpp keywords_test.py ]
+   
+
+[ python-extension builtin_converters_ext : test_builtin_converters.cpp /boost/python//boost_python ]
+[ bpl-test builtin_converters : test_builtin_converters.py builtin_converters_ext ]
+
+ [ bpl-test test_pointer_adoption ]
+ [ bpl-test operators ]
+ [ bpl-test operators_wrapper ]
+ [ bpl-test callbacks ]
+ [ bpl-test defaults ]
+
+[ bpl-test object ]
+[ bpl-test class ]
+[ bpl-test list ]
+[ bpl-test long ]
+[ bpl-test dict ]
+[ bpl-test tuple ]
+[ bpl-test str ]
+[ bpl-test slice ]
+
+[ bpl-test virtual_functions ]
+[ bpl-test back_reference ]
+[ bpl-test implicit ]
+[ bpl-test data_members ]
+
+[ bpl-test ben_scott1 ]
+
+[ bpl-test bienstman1 ]
+[ bpl-test bienstman2 ]
+[ bpl-test bienstman3 ]
+
+[ bpl-test multi_arg_constructor
+  : # files
+  : # requirements
+    # A bug in the Win32 intel compilers causes compilation of one of our
+    # tests to take forever when debug symbols are enabled. This rule
+    # turns them off when added to the requirements section
+    <toolset>intel-win:<debug-symbols>off
+]
+
+[ bpl-test iterator : iterator.py iterator.cpp input_iterator.cpp ]
+
+[ bpl-test stl_iterator : stl_iterator.py stl_iterator.cpp ]
+
+[ bpl-test extract ]
+
+[
+bpl-test crossmod_opaque
+  : crossmod_opaque.py crossmod_opaque_a.cpp crossmod_opaque_b.cpp
+]
+[ bpl-test opaque ]
+[ bpl-test voidptr ]
+
+[ bpl-test pickle1 ]
+[ bpl-test pickle2 ]
+[ bpl-test pickle3 ]
+[ bpl-test pickle4 ]
+
+[ bpl-test nested ]
+
+[ bpl-test docstring ]
+[ bpl-test pytype_function ]
+
+[ bpl-test vector_indexing_suite ]
+
+[ bpl-test pointer_vector
+  : # files
+  : # requirements
+    # Turn off this test on HP CXX, as the test hangs when executing.
+    # Whenever the cause for the failure of the polymorphism test is found
+    # and fixed, this should be retested.
+    <toolset>hp_cxx:<build>no ]
+      
+[ python-extension map_indexing_suite_ext
+    : map_indexing_suite.cpp int_map_indexing_suite.cpp a_map_indexing_suite.cpp
+    /boost/python//boost_python ]
+[ bpl-test  
+    map_indexing_suite : map_indexing_suite.py map_indexing_suite_ext ]
+      
+[ run import_.cpp /boost/python//boost_python $(PY) : : import_.py ]
+
+# if $(TEST_BIENSTMAN_NON_BUGS)
+# {
+#     bpl-test bienstman4 ;
+#     bpl-test bienstman5 ;
+# }
+
+[ bpl-test calling_conventions : : <conditional>@require-windows ]
+[ bpl-test calling_conventions_mf : : <conditional>@require-windows ]
+
+# --- unit tests of library components ---
+
+[ compile indirect_traits_test.cpp ]
+[ run destroy_test.cpp ]
+[ py-run pointer_type_id_test.cpp ]
+[ py-run bases.cpp ]
+[ run if_else.cpp ]
+[ py-run pointee.cpp ]
+[ run result.cpp ]
+
+[ compile string_literal.cpp ]
+[ py-compile borrowed.cpp ]
+[ py-compile object_manager.cpp ]
+[ py-compile copy_ctor_mutates_rhs.cpp ]
+
+[ py-run upcast.cpp ]
+  
+[ py-compile select_holder.cpp ]
+  
+[ run select_from_python_test.cpp ../src/converter/type_id.cpp 
+  :   
+  :
+  : <define>BOOST_PYTHON_STATIC_LIB
+    <use>$(PY)
+
+]
+
+ [ py-compile select_arg_to_python_test.cpp ]
+
+[ py-compile-fail ./raw_pyobject_fail1.cpp ]
+[ py-compile-fail ./raw_pyobject_fail2.cpp ]
+[ py-compile-fail ./as_to_python_function.cpp ]
+[ py-compile-fail ./object_fail1.cpp ]
+
+  ;

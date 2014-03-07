@@ -1,0 +1,20 @@
+#==============================================================================
+#    Copyright (c) 2003-2006 Joel de Guzman
+#    Copyright (c) 2006 Dan Marsden
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+project fusion-performance ;
+
+exe accumulate : accumulate.cpp ;
+
+exe inner_product : inner_product.cpp ;
+
+exe inner_product2 : inner_product2.cpp ;
+
+exe sequence_efficiency : sequence_efficiency.cpp ;
+
+exe functional : functional.cpp ;
+

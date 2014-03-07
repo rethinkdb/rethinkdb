@@ -1,0 +1,253 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Documenting libraries</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boostbook.html" title="Chapter&#160;40.&#160;The BoostBook Documentation Format">
+<link rel="prev" href="getting/started.html" title="Getting Started">
+<link rel="next" href="together.html" title="Bringing Together a BoostBook Document">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="getting/started.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boostbook.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="together.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boostbook.documenting"></a>Documenting libraries</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="documenting.html#boostbook.defining">Defining a BoostBook library</a></span></dt>
+<dt><span class="section"><a href="documenting.html#idp259191832">From HTML to BoostBook</a></span></dt>
+<dt><span class="section"><a href="documenting.html#boostbook.sectioning">Sectioning in BoostBook</a></span></dt>
+</dl></div>
+<p>BoostBook is an extension to <a href="http://www.docbook.org" target="_top">DocBook</a>, an XML format for
+  representing documentation. BoostBook inherits much of its
+  functionality and many elements from DocBook that are not
+  redocumented here. When writing BoostBook documentation, please
+  refer also to <a href="http://docbook.org/tdg/en/index.html" target="_top">DocBook: The Definitive
+  Guide</a>.</p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boostbook.defining"></a>Defining a BoostBook library</h3></div></div></div>
+<p>BoostBook library documentation is contained entirely within
+    a &lt;library&gt; XML element. To create a skeletal library, we
+    need to create a new XML document (call it <code class="computeroutput">any.xml</code>)
+    that contains basic information about the library. The following
+    <a class="link" href="documenting.html#boostbook.documenting.skeletal" title="Example&#160;40.1.&#160;A Skeletal BoostBook Library">BoostBook XML
+    example</a> describes basic information about the <a href="http://www.boost.org/libs/any/index.html" target="_top">Boost.Any</a>
+    library:</p>
+<div class="example">
+<a name="boostbook.documenting.skeletal"></a><p class="title"><b>Example&#160;40.1.&#160;A Skeletal BoostBook Library</b></p>
+<div class="example-contents"><pre class="programlisting">
+&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd"&gt;
+&lt;library name="Any" dirname="any" xmlns:xi="http://www.w3.org/2001/XInclude"
+  id="any" last-revision="$Date: 2008-07-12 20:30:45 +0100 (Sat, 12 Jul 2008) $"&gt;
+  &lt;libraryinfo&gt;
+    &lt;author&gt;
+      &lt;firstname&gt;Kevlin&lt;/firstname&gt;
+      &lt;surname&gt;Henney&lt;/surname&gt;
+    &lt;/author&gt;
+    &lt;librarypurpose&gt;
+      Safe, generic container for single values of different value types
+    &lt;/librarypurpose&gt; 
+    &lt;librarycategory name="category:data-structures"/&gt;
+  &lt;/libraryinfo&gt;
+&lt;/library&gt;
+</pre></div>
+</div>
+<br class="example-break"><p>The first three lines identify this document as a BoostBook
+    <a href="http://www.w3.org/XML/" target="_top">XML</a> document. The
+    DOCTYPE line states that the document conforms to the BoostBook
+    DTD, and that the top-level element is a BoostBook
+    &lt;library&gt;.</p>
+<p>The &lt;library&gt; element actually describes the aspects
+    of BoostBook library documentation. The attributes for the
+    &lt;library&gt; element are:</p>
+<div class="variablelist">
+<p class="title"><b>Attributes for the &lt;library&gt; element</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput">name</code></span></dt>
+<dd>The full name of the library, e.g., "Any"</dd>
+<dt><span class="term"><code class="computeroutput">dirname</code></span></dt>
+<dd>The name of the directory, relative to
+            <code class="computeroutput">boost/libs</code>, in which the library
+            resides. This name may be a relative path, such as
+            <code class="computeroutput">math/octonion</code>, using "/" for the directory
+            separator.</dd>
+<dt><span class="term"><code class="computeroutput">id</code></span></dt>
+<dd>A short, unique name for the library. For libraries
+          with simple directory names (e.g., ones that do not contain
+          a "/"), this should be the same as the
+          <code class="computeroutput">dirname</code>. This <code class="computeroutput">id</code> will be used to
+          identify libraries and, for HTML output, will be used as the
+          base name for the HTML file in which the library's
+          documentation resides, so it should use only lowercase
+          alphanumeric characters and underscores.</dd>
+<dt><span class="term"><code class="computeroutput">last-revision</code></span></dt>
+<dd>Always set to <code class="computeroutput">$Date: 2008-07-12 20:30:45 +0100 (Sat, 12 Jul 2008) $</code>, which is
+          expanded by CVS to include the date and time that the file
+          was last modified.</dd>
+</dl>
+</div>
+<p>Inside the &lt;library&gt; element we have the
+    &lt;libraryinfo&gt; element, which gives information about the
+    library itself. It contains the author's name (there may be more
+    than one &lt;author&gt; element), followed by the purpose of the
+    library and the list of categorizations. The
+    &lt;librarypurpose&gt; element should always contain a very short
+    (single sentence) description of the library's purpose, and should
+    <span class="emphasis"><em>not</em></span> terminate with a period.</p>
+<p>The list of categories is specified by a set of
+    &lt;librarycategory&gt; elements. Each &lt;librarycategory&gt;
+    element has a <code class="computeroutput">name</code> element that identifies one of the
+    categories. The actual list of categories is in the file
+    <code class="filename">doc/src/boost.xml</code>.
+    </p>
+<p>At this point, we can apply the BoostBook XSL stylesheets to
+    <code class="computeroutput">any.xml</code> (to DocBook) followed by a DocBook XSL
+    stylesheet to generate HTML output, as described in <a class="xref" href="getting/started.html" title="Getting Started">the section called &#8220;Getting Started&#8221;</a>.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp259191832"></a>From HTML to BoostBook</h3></div></div></div>
+<p>Most library authors are comfortable with writing HTML
+    documentation. Writing <a href="http://www.docbook.org" target="_top">DocBook</a> documentation (and,
+    by extension, BoostBook documentation) is quite similar to writing
+    HTML, except that BoostBook uses different element names from HTML
+    (see <a class="xref" href="documenting.html#html.to.boostbook" title="Table&#160;40.2.&#160;Converting HTML elements to BoostBook">Table&#160;40.2, &#8220;Converting HTML elements to BoostBook&#8221;</a>) and BoostBook XML is a
+    much more rigid format than HTML.</p>
+<p>One of the easiest ways to convert HTML documentation into
+    BoostBook documentation is to use <a href="http://tidy.sourceforge.net/" target="_top">HTML Tidy</a> to transform
+    your HTML into valid XHTML, which will make sure that all elements
+    are properly closed, then apply the transformations in <a class="xref" href="documenting.html#html.to.boostbook" title="Table&#160;40.2.&#160;Converting HTML elements to BoostBook">Table&#160;40.2, &#8220;Converting HTML elements to BoostBook&#8221;</a> to the body of the XHTML
+    document. The following command uses HTML Tidy to transform HTML
+    into valid XHTML:</p>
+<pre class="programlisting">
+  tidy -asxhtml input.html &gt; output.xhtml</pre>
+<p>When converting documentation from HTML to BoostBook, note
+    that some redundant information that has to be manually maintained
+    in HTML is automatically generated in BoostBook: for instance, the
+    library categorizations, purpose, and author list described in
+    <a class="xref" href="documenting.html#boostbook.defining" title="Defining a BoostBook library">the section called &#8220;Defining a BoostBook library&#8221;</a> are used both in the
+    documentation for the library and to build alphabetical and
+    categorized lists of known libraries; similarly, tables of
+    contents are built automatically from the titles of sections in
+    the BoostBook document.</p>
+<div class="table">
+<a name="html.to.boostbook"></a><p class="title"><b>Table&#160;40.2.&#160;Converting HTML elements to BoostBook</b></p>
+<div class="table-contents"><table class="table" summary="Converting HTML elements to BoostBook">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th align="left">HTML</th>
+<th align="left">BoostBook</th>
+</tr></thead>
+<tbody>
+<tr>
+<td align="left"><p>&lt;h1&gt;, &lt;h2&gt;, etc.</p></td>
+<td align="left">
+<p>&lt;section&gt;, &lt;title&gt;; See <a class="xref" href="documenting.html#boostbook.sectioning" title="Sectioning in BoostBook">the section called &#8220;Sectioning in BoostBook&#8221;</a></p>
+</td>
+</tr>
+<tr>
+<td align="left"><p>&lt;i&gt;, &lt;em&gt;</p></td>
+<td align="left"><p>&lt;emphasis&gt;</p></td>
+</tr>
+<tr>
+<td align="left"><p>&lt;b&gt;</p></td>
+<td align="left"><p>&lt;emphasis role="bold"&gt;</p></td>
+</tr>
+<tr>
+<td align="left"><p>&lt;ol&gt;</p></td>
+<td align="left"><p>&lt;orderedlist&gt;</p></td>
+</tr>
+<tr>
+<td align="left"><p>&lt;ul&gt;</p></td>
+<td align="left"><p>&lt;itemizedlist&gt;</p></td>
+</tr>
+<tr>
+<td align="left"><p>&lt;li&gt;</p></td>
+<td align="left"><p>&lt;listitem&gt;</p></td>
+</tr>
+<tr>
+<td align="left"><p>&lt;pre&gt;</p></td>
+<td align="left"><p>&lt;programlisting&gt;</p></td>
+</tr>
+<tr>
+<td align="left"><p>&lt;code&gt;</p></td>
+<td align="left"><p>&lt;computeroutput&gt;,&lt;code&gt;</p></td>
+</tr>
+<tr>
+<td align="left"><p>&lt;p&gt;</p></td>
+<td align="left"><p>&lt;para&gt;, &lt;simpara&gt;</p></td>
+</tr>
+<tr>
+<td align="left"><p>&lt;a&gt;</p></td>
+<td align="left">
+<p>&lt;xref&gt;, &lt;link&gt;, &lt;ulink&gt;;, See <a class="xref" href="together.html#boostbook.linking" title="Linking in BoostBook">the section called &#8220;Linking in BoostBook&#8221;</a></p>
+</td>
+</tr>
+<tr>
+<td align="left"><p>&lt;table&gt;, &lt;tr&gt;, &lt;th&gt;, &lt;td&gt;</p></td>
+<td align="left"><p>&lt;table&gt;, &lt;informaltable&gt;, &lt;tgroup&gt;, &lt;thead&gt;, &lt;tfoot&gt;, &lt;tbody&gt;, &lt;row&gt;, &lt;entry&gt;, &lt;entrytbl&gt;; BoostBook tables are equivalent to DocBook tables, for which there is a good <a href="http://opensource.bureau-cornavin.com/crash-course/en/tables.html" target="_top">tutorial here</a></p></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boostbook.sectioning"></a>Sectioning in BoostBook</h3></div></div></div>
+<p>"Sectioning" refers to organization of a document into separate sections, each with a title, some text, and possibly subsections. Each section is described in BoostBook via a &lt;section&gt; element. An introduction section may look like this:</p>
+<pre class="programlisting">
+&lt;section id="any.intro"&gt;
+  &lt;title&gt;Introduction&lt;/title&gt;
+ 
+  &lt;para&gt;Introduction to a library...&lt;/para&gt;
+
+  &lt;section&gt;
+    &lt;title&gt;A Subsection&lt;/title&gt;
+    &lt;para&gt;Subsection information...&lt;/para&gt;
+  &lt;/section&gt;
+&lt;/section&gt;
+</pre>
+<p>The &lt;section&gt; element contains all information that
+    should logically be grouped within that section. The title of the
+    section is placed within the &lt;title&gt; element, and any
+    paragraphs, programs, lists, tables, or subsections can occur
+    within the section. The <code class="computeroutput">id</code> attribute of the
+    &lt;section&gt; element gives a unique ID to each section, so that
+    it may later be identified for linking. It is suggested that all
+    IDs start with the short name of a library followed by a period,
+    so that IDs do not conflict between libraries.</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2005 Douglas Gregor<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file LICENSE_1_0.txt or copy at
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="getting/started.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boostbook.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="together.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

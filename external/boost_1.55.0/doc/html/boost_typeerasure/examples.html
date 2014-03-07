@@ -1,0 +1,700 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Examples</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_typeerasure.html" title="Chapter&#160;34.&#160;Boost.TypeErasure">
+<link rel="prev" href="any.html" title="Using Any">
+<link rel="next" href="conceptdef.html" title="Concept Definitions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="any.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_typeerasure.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="conceptdef.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_typeerasure.examples"></a><a class="link" href="examples.html" title="Examples">Examples</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="examples.html#boost_typeerasure.examples.print_sequence">A polymorphic
+      range formatter</a></span></dt>
+<dt><span class="section"><a href="examples.html#boost_typeerasure.examples.printf">A type-safe printf</a></span></dt>
+<dt><span class="section"><a href="examples.html#boost_typeerasure.examples.multifunction">Boost.Function
+      with multiple signatures</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typeerasure.examples.print_sequence"></a><a class="link" href="examples.html#boost_typeerasure.examples.print_sequence" title="A polymorphic range formatter">A polymorphic
+      range formatter</a>
+</h3></div></div></div>
+<p>
+        (For the source of this example see <a href="../../../libs/type_erasure/example/print_sequence.cpp" target="_top">print_sequence.cpp</a>)
+      </p>
+<p>
+        This example defines a class hierarchy that allows a sequence to be formatted
+        in several different ways. We'd like to be able to handle any sequence and
+        any stream type, since the range formatting is independent of the formatting
+        of individual elements. Thus, our interface needs to look something like
+        this:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">abstract_printer</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Range</span><span class="special">&gt;</span>
+    <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="identifier">print</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">&gt;&amp;</span> <span class="identifier">os</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Range</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        Unfortunately, this is illegal because a virtual function cannot be a template.
+        However, we can define a class with much the same behavior using Boost.TypeErasure.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_erasure</span><span class="special">/</span><span class="identifier">any</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_erasure</span><span class="special">/</span><span class="identifier">iterator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_erasure</span><span class="special">/</span><span class="identifier">operators</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_erasure</span><span class="special">/</span><span class="identifier">tuple</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_erasure</span><span class="special">/</span><span class="identifier">same_type</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">begin</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">end</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">iterator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iomanip</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_erasure</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">_t</span> <span class="special">:</span> <span class="identifier">placeholder</span> <span class="special">{};</span>
+<span class="keyword">struct</span> <span class="identifier">_iter</span> <span class="special">:</span> <span class="identifier">placeholder</span> <span class="special">{};</span>
+<span class="keyword">struct</span> <span class="identifier">_os</span> <span class="special">:</span> <span class="identifier">placeholder</span> <span class="special">{};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">U</span> <span class="special">=</span> <span class="identifier">_self</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">base_and_derived</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">apply</span><span class="special">(</span><span class="identifier">U</span><span class="special">&amp;</span> <span class="identifier">arg</span><span class="special">)</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">arg</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">type_erasure</span> <span class="special">{</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">U</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Base</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">concept_interface</span><span class="special">&lt;</span><span class="identifier">base_and_derived</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">U</span><span class="special">&gt;,</span> <span class="identifier">Base</span><span class="special">,</span> <span class="identifier">U</span><span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">Base</span>
+<span class="special">{</span>
+    <span class="keyword">operator</span> <span class="keyword">typename</span> <span class="identifier">rebind_any</span><span class="special">&lt;</span><span class="identifier">Base</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span><span class="special">()</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">call</span><span class="special">(</span><span class="identifier">base_and_derived</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">U</span><span class="special">&gt;(),</span> <span class="keyword">const_cast</span><span class="special">&lt;</span><span class="identifier">concept_interface</span><span class="special">&amp;&gt;(*</span><span class="keyword">this</span><span class="special">));</span>
+    <span class="special">}</span>
+    <span class="keyword">operator</span> <span class="keyword">typename</span> <span class="identifier">rebind_any</span><span class="special">&lt;</span><span class="identifier">Base</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">call</span><span class="special">(</span><span class="identifier">base_and_derived</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">U</span><span class="special">&gt;(),</span> <span class="special">*</span><span class="keyword">this</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="special">}</span>
+<span class="special">}</span>
+
+<span class="comment">// abstract_printer - An abstract base class for formatting sequences.</span>
+<span class="keyword">class</span> <span class="identifier">abstract_printer</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// print - write a sequence to a std::ostream in a manner</span>
+    <span class="comment">//   specific to the derived class.</span>
+    <span class="comment">//</span>
+    <span class="comment">// Requires: Range must be a Forward Range whose elements can be</span>
+    <span class="comment">//   printed to os.</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Range</span><span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="identifier">print</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">&gt;&amp;</span> <span class="identifier">os</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Range</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">{</span>
+        <span class="comment">// Capture the arguments</span>
+        <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span>
+            <span class="identifier">first</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">)),</span>
+            <span class="identifier">last</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">));</span>
+        <span class="identifier">tuple</span><span class="special">&lt;</span><span class="identifier">requirements</span><span class="special">,</span> <span class="identifier">_os</span><span class="special">&amp;,</span> <span class="identifier">_iter</span><span class="special">,</span> <span class="identifier">_iter</span><span class="special">&gt;</span> <span class="identifier">args</span><span class="special">(</span><span class="identifier">os</span><span class="special">,</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">);</span>
+        <span class="comment">// and forward to the real implementation</span>
+        <span class="identifier">do_print</span><span class="special">(</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">args</span><span class="special">),</span> <span class="identifier">get</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">args</span><span class="special">),</span> <span class="identifier">get</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;(</span><span class="identifier">args</span><span class="special">));</span>
+    <span class="special">}</span>
+    <span class="keyword">virtual</span> <span class="special">~</span><span class="identifier">abstract_printer</span><span class="special">()</span> <span class="special">{}</span>
+<span class="keyword">protected</span><span class="special">:</span>
+    <span class="comment">// define the concept requirements of the arguments of</span>
+    <span class="comment">// print and typedef the any types.</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+        <span class="identifier">base_and_derived</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">,</span> <span class="identifier">_os</span><span class="special">&gt;,</span>
+        <span class="identifier">ostreamable</span><span class="special">&lt;</span><span class="identifier">_os</span><span class="special">,</span> <span class="identifier">_t</span><span class="special">&gt;,</span>
+        <span class="identifier">ostreamable</span><span class="special">&lt;</span><span class="identifier">_os</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*&gt;,</span>
+        <span class="identifier">forward_iterator</span><span class="special">&lt;</span><span class="identifier">_iter</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">_t</span><span class="special">&amp;&gt;,</span>
+        <span class="identifier">same_type</span><span class="special">&lt;</span><span class="identifier">_t</span><span class="special">,</span> <span class="identifier">forward_iterator</span><span class="special">&lt;</span><span class="identifier">_iter</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">_t</span><span class="special">&amp;&gt;::</span><span class="identifier">value_type</span><span class="special">&gt;</span>
+    <span class="special">&gt;</span> <span class="identifier">requirements</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_erasure</span><span class="special">::</span><span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">requirements</span><span class="special">,</span> <span class="identifier">_os</span><span class="special">&amp;&gt;</span> <span class="identifier">ostream_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_erasure</span><span class="special">::</span><span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">requirements</span><span class="special">,</span> <span class="identifier">_iter</span><span class="special">&gt;</span> <span class="identifier">iterator_type</span><span class="special">;</span>
+    <span class="comment">// do_print - This method must be implemented by derived classes</span>
+    <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="identifier">do_print</span><span class="special">(</span>
+        <span class="identifier">ostream_type</span> <span class="identifier">os</span><span class="special">,</span> <span class="identifier">iterator_type</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator_type</span> <span class="identifier">last</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">// separator_printer - writes the elements of a sequence</span>
+<span class="comment">//   separated by a fixed string.  For example, if</span>
+<span class="comment">//   the separator is ", " separator_printer produces</span>
+<span class="comment">//   a comma separated list.</span>
+<span class="keyword">class</span> <span class="identifier">separator_printer</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">abstract_printer</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">explicit</span> <span class="identifier">separator_printer</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">sep</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">separator</span><span class="special">(</span><span class="identifier">sep</span><span class="special">)</span> <span class="special">{}</span>
+<span class="keyword">protected</span><span class="special">:</span>
+    <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="identifier">do_print</span><span class="special">(</span>
+        <span class="identifier">ostream_type</span> <span class="identifier">os</span><span class="special">,</span> <span class="identifier">iterator_type</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator_type</span> <span class="identifier">last</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">{</span>
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">first</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">)</span> <span class="special">{</span>
+            <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">first</span><span class="special">;</span>
+            <span class="special">++</span><span class="identifier">first</span><span class="special">;</span>
+            <span class="keyword">for</span><span class="special">(;</span> <span class="identifier">first</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">;</span> <span class="special">++</span><span class="identifier">first</span><span class="special">)</span> <span class="special">{</span>
+                <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">separator</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">first</span><span class="special">;</span>
+            <span class="special">}</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">separator</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">// column_separator_printer - like separator_printer, but</span>
+<span class="comment">//   also inserts a line break after every n elements.</span>
+<span class="keyword">class</span> <span class="identifier">column_separator_printer</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">abstract_printer</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">column_separator_printer</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">sep</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">num_columns</span><span class="special">)</span>
+      <span class="special">:</span> <span class="identifier">separator</span><span class="special">(</span><span class="identifier">sep</span><span class="special">),</span>
+        <span class="identifier">cols</span><span class="special">(</span><span class="identifier">num_columns</span><span class="special">)</span>
+    <span class="special">{}</span>
+<span class="keyword">protected</span><span class="special">:</span>
+    <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="identifier">do_print</span><span class="special">(</span>
+        <span class="identifier">ostream_type</span> <span class="identifier">os</span><span class="special">,</span> <span class="identifier">iterator_type</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator_type</span> <span class="identifier">last</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">count</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+        <span class="keyword">for</span><span class="special">(;</span> <span class="identifier">first</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">;</span> <span class="special">++</span><span class="identifier">first</span><span class="special">)</span> <span class="special">{</span>
+            <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">first</span><span class="special">;</span>
+            <span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_erasure</span><span class="special">::</span><span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">requirements</span><span class="special">,</span> <span class="identifier">_iter</span><span class="special">&gt;</span> <span class="identifier">temp</span> <span class="special">=</span> <span class="identifier">first</span><span class="special">;</span>
+            <span class="special">++</span><span class="identifier">temp</span><span class="special">;</span>
+            <span class="keyword">if</span><span class="special">(</span><span class="identifier">temp</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">)</span> <span class="special">{</span>
+                <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">separator</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">();</span>
+            <span class="special">}</span>
+            <span class="keyword">if</span><span class="special">(++</span><span class="identifier">count</span> <span class="special">%</span> <span class="identifier">cols</span> <span class="special">==</span> <span class="number">0</span><span class="special">)</span> <span class="special">{</span>
+                <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+            <span class="special">}</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">separator</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">cols</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">// aligned_column_printer - formats a sequence in columns</span>
+<span class="comment">//   reading down.  For example, given the sequence</span>
+<span class="comment">//   { 1, 2, 3, 4, 5 }, aligned_column_printer might print</span>
+<span class="comment">//   1   4</span>
+<span class="comment">//   2   5</span>
+<span class="comment">//   3</span>
+<span class="keyword">class</span> <span class="identifier">aligned_column_printer</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">abstract_printer</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">aligned_column_printer</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">column_width</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">num_columns</span><span class="special">)</span>
+      <span class="special">:</span> <span class="identifier">width</span><span class="special">(</span><span class="identifier">column_width</span><span class="special">),</span>
+        <span class="identifier">cols</span><span class="special">(</span><span class="identifier">num_columns</span><span class="special">)</span>
+    <span class="special">{}</span>
+<span class="keyword">protected</span><span class="special">:</span>
+    <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="identifier">do_print</span><span class="special">(</span>
+        <span class="identifier">ostream_type</span> <span class="identifier">os</span><span class="special">,</span> <span class="identifier">iterator_type</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator_type</span> <span class="identifier">last</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">first</span> <span class="special">==</span> <span class="identifier">last</span><span class="special">)</span> <span class="keyword">return</span><span class="special">;</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">iterator_type</span><span class="special">&gt;</span> <span class="identifier">column_iterators</span><span class="special">;</span>
+
+        <span class="comment">// find the tops of the columns</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">count</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+        <span class="keyword">for</span><span class="special">(</span><span class="identifier">iterator_type</span> <span class="identifier">iter</span> <span class="special">=</span> <span class="identifier">first</span><span class="special">;</span> <span class="identifier">iter</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">;</span> <span class="special">++</span><span class="identifier">iter</span><span class="special">)</span> <span class="special">{</span>
+            <span class="special">++</span><span class="identifier">count</span><span class="special">;</span>
+        <span class="special">}</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">rows</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">count</span> <span class="special">+</span> <span class="identifier">cols</span> <span class="special">-</span> <span class="number">1</span><span class="special">)</span> <span class="special">/</span> <span class="identifier">cols</span><span class="special">;</span>
+        <span class="identifier">count</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+        <span class="keyword">for</span><span class="special">(</span><span class="identifier">iterator_type</span> <span class="identifier">iter</span> <span class="special">=</span> <span class="identifier">first</span><span class="special">;</span> <span class="identifier">iter</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">;</span> <span class="special">++</span><span class="identifier">iter</span><span class="special">)</span> <span class="special">{</span>
+            <span class="keyword">if</span><span class="special">(</span><span class="identifier">count</span> <span class="special">%</span> <span class="identifier">rows</span> <span class="special">==</span> <span class="number">0</span><span class="special">)</span> <span class="special">{</span>
+                <span class="identifier">column_iterators</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">iter</span><span class="special">);</span>
+            <span class="special">}</span>
+            <span class="special">++</span><span class="identifier">count</span><span class="special">;</span>
+        <span class="special">}</span>
+
+        <span class="identifier">iterator_type</span> <span class="identifier">last_col</span> <span class="special">=</span> <span class="identifier">column_iterators</span><span class="special">.</span><span class="identifier">back</span><span class="special">();</span>
+
+        <span class="comment">// print the full rows</span>
+        <span class="keyword">while</span><span class="special">(</span><span class="identifier">column_iterators</span><span class="special">.</span><span class="identifier">back</span><span class="special">()</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">)</span> <span class="special">{</span>
+            <span class="keyword">for</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">iterator_type</span><span class="special">&gt;::</span><span class="identifier">iterator</span>
+                <span class="identifier">iter</span> <span class="special">=</span> <span class="identifier">column_iterators</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span>
+                <span class="identifier">end</span> <span class="special">=</span> <span class="identifier">column_iterators</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span> <span class="identifier">iter</span> <span class="special">!=</span> <span class="identifier">end</span><span class="special">;</span> <span class="special">++</span><span class="identifier">iter</span><span class="special">)</span>
+            <span class="special">{</span>
+                <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">&amp;&gt;(</span><span class="identifier">os</span><span class="special">).</span><span class="identifier">width</span><span class="special">(</span><span class="identifier">width</span><span class="special">);</span>
+                <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="special">**</span><span class="identifier">iter</span><span class="special">;</span>
+                <span class="special">++*</span><span class="identifier">iter</span><span class="special">;</span>
+            <span class="special">}</span>
+            <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+        <span class="special">}</span>
+
+        <span class="comment">// print the rows that are missing the last column</span>
+        <span class="identifier">column_iterators</span><span class="special">.</span><span class="identifier">pop_back</span><span class="special">();</span>
+        <span class="keyword">if</span><span class="special">(!</span><span class="identifier">column_iterators</span><span class="special">.</span><span class="identifier">empty</span><span class="special">())</span> <span class="special">{</span>
+            <span class="keyword">while</span><span class="special">(</span><span class="identifier">column_iterators</span><span class="special">.</span><span class="identifier">back</span><span class="special">()</span> <span class="special">!=</span> <span class="identifier">last_col</span><span class="special">)</span> <span class="special">{</span>
+                <span class="keyword">for</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">iterator_type</span><span class="special">&gt;::</span><span class="identifier">iterator</span>
+                    <span class="identifier">iter</span> <span class="special">=</span> <span class="identifier">column_iterators</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span>
+                    <span class="identifier">end</span> <span class="special">=</span> <span class="identifier">column_iterators</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span> <span class="identifier">iter</span> <span class="special">!=</span> <span class="identifier">end</span><span class="special">;</span> <span class="special">++</span><span class="identifier">iter</span><span class="special">)</span>
+                <span class="special">{</span>
+                    <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">&amp;&gt;(</span><span class="identifier">os</span><span class="special">).</span><span class="identifier">width</span><span class="special">(</span><span class="identifier">width</span><span class="special">);</span>
+                    <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="special">**</span><span class="identifier">iter</span><span class="special">;</span>
+                    <span class="special">++*</span><span class="identifier">iter</span><span class="special">;</span>
+                <span class="special">}</span>
+                <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+            <span class="special">}</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">width</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">cols</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span> <span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">test</span><span class="special">[]</span> <span class="special">=</span> <span class="special">{</span> <span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="number">4</span><span class="special">,</span> <span class="number">5</span><span class="special">,</span> <span class="number">6</span><span class="special">,</span> <span class="number">7</span><span class="special">,</span> <span class="number">8</span><span class="special">,</span> <span class="number">9</span><span class="special">,</span> <span class="number">10</span> <span class="special">};</span>
+    <span class="identifier">separator_printer</span> <span class="identifier">p1</span><span class="special">(</span><span class="string">","</span><span class="special">);</span>
+    <span class="identifier">p1</span><span class="special">.</span><span class="identifier">print</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">,</span> <span class="identifier">test</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">column_separator_printer</span> <span class="identifier">p2</span><span class="special">(</span><span class="string">","</span><span class="special">,</span> <span class="number">4</span><span class="special">);</span>
+    <span class="identifier">p2</span><span class="special">.</span><span class="identifier">print</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">,</span> <span class="identifier">test</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">aligned_column_printer</span> <span class="identifier">p3</span><span class="special">(</span><span class="number">16</span><span class="special">,</span> <span class="number">4</span><span class="special">);</span>
+    <span class="identifier">p3</span><span class="special">.</span><span class="identifier">print</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">,</span> <span class="identifier">test</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typeerasure.examples.printf"></a><a class="link" href="examples.html#boost_typeerasure.examples.printf" title="A type-safe printf">A type-safe printf</a>
+</h3></div></div></div>
+<p>
+        (For the source of this example see <a href="../../../libs/type_erasure/example/printf.cpp" target="_top">printf.cpp</a>)
+      </p>
+<p>
+        This example uses the library to implement a type safe printf.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          This example uses C++11 features. You'll need a recent compiler for it
+          to work.
+        </p></td></tr>
+</table></div>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_erasure</span><span class="special">/</span><span class="identifier">builtin</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_erasure</span><span class="special">/</span><span class="identifier">operators</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_erasure</span><span class="special">/</span><span class="identifier">any_cast</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_erasure</span><span class="special">/</span><span class="identifier">any</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">mpl</span><span class="special">/</span><span class="identifier">vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">io</span><span class="special">/</span><span class="identifier">ios_state</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">sstream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iomanip</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">mpl</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_erasure</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">io</span><span class="special">;</span>
+
+<span class="comment">// We capture the arguments by reference and require nothing</span>
+<span class="comment">// except that each one must provide a stream insertion operator.</span>
+<span class="keyword">typedef</span> <span class="identifier">any</span><span class="special">&lt;</span>
+    <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+        <span class="identifier">typeid_</span><span class="special">&lt;&gt;,</span>
+        <span class="identifier">ostreamable</span><span class="special">&lt;&gt;</span>
+    <span class="special">&gt;,</span>
+    <span class="keyword">const</span> <span class="identifier">_self</span><span class="special">&amp;</span>
+<span class="special">&gt;</span> <span class="identifier">any_printable</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">any_printable</span><span class="special">&gt;</span> <span class="identifier">print_storage</span><span class="special">;</span>
+
+<span class="comment">// Forward declaration of the implementation function</span>
+<span class="keyword">void</span> <span class="identifier">print_impl</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span><span class="special">&amp;</span> <span class="identifier">os</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> <span class="identifier">format</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">print_storage</span><span class="special">&amp;</span> <span class="identifier">args</span><span class="special">);</span>
+
+<span class="comment">// print</span>
+<span class="comment">//</span>
+<span class="comment">// Writes values to a stream like the classic C printf function.  The</span>
+<span class="comment">// arguments are formatted based on specifiers in the format string,</span>
+<span class="comment">// which match the pattern:</span>
+<span class="comment">//</span>
+<span class="comment">// '%' [ argument-number '$' ] flags * [ width ] [ '.' precision ] [ type-code ] format-specifier</span>
+<span class="comment">//</span>
+<span class="comment">// Other characters in the format string are written to the stream unchanged.</span>
+<span class="comment">// In addition the sequence, "%%" can be used to print a literal '%' character.</span>
+<span class="comment">// Each component is explained in detail below</span>
+<span class="comment">//</span>
+<span class="comment">// argument-number:</span>
+<span class="comment">//   The value must be between 1 and sizeof... T.  It indicates the</span>
+<span class="comment">//   index of the argument to be formatted.  If no index is specified</span>
+<span class="comment">//   the arguments will be processed sequentially.  If an index is</span>
+<span class="comment">//   specified for one argument, then it must be specified for every argument.</span>
+<span class="comment">//</span>
+<span class="comment">// flags:</span>
+<span class="comment">//   Consists of zero or more of the following:</span>
+<span class="comment">//   '-': Left justify the argument</span>
+<span class="comment">//   '+': Print a plus sign for positive integers</span>
+<span class="comment">//   '0': Use leading 0's to pad instead of filling with spaces.</span>
+<span class="comment">//   ' ': If the value doesn't begin with a sign, prepend a space</span>
+<span class="comment">//   '#': Print 0x or 0 for hexadecimal and octal numbers.</span>
+<span class="comment">//</span>
+<span class="comment">// width:</span>
+<span class="comment">//   Indicates the minimum width to print.  This can be either</span>
+<span class="comment">//   an integer or a '*'.  an asterisk means to read the next</span>
+<span class="comment">//   argument (which must have type int) as the width.</span>
+<span class="comment">//</span>
+<span class="comment">// precision:</span>
+<span class="comment">//   For numeric arguments, indicates the number of digits to print.  For</span>
+<span class="comment">//   strings (%s) the precision indicates the maximum number of characters</span>
+<span class="comment">//   to print.  Longer strings will be truncated.  As with width</span>
+<span class="comment">//   this can be either an integer or a '*'.  an asterisk means</span>
+<span class="comment">//   to read the next argument (which must have type int) as</span>
+<span class="comment">//   the width.  If both the width and the precision are specified</span>
+<span class="comment">//   as '*', the width is read first.</span>
+<span class="comment">//</span>
+<span class="comment">// type-code:</span>
+<span class="comment">//   This is ignored, but provided for compatibility with C printf.</span>
+<span class="comment">//</span>
+<span class="comment">// format-specifier:</span>
+<span class="comment">//   Must be one of the following characters:</span>
+<span class="comment">//   d, i, u: The argument is formatted as a decimal integer</span>
+<span class="comment">//   o:       The argument is formatted as an octal integer</span>
+<span class="comment">//   x, X:    The argument is formatted as a hexadecimal integer</span>
+<span class="comment">//   p:       The argument is formatted as a pointer</span>
+<span class="comment">//   f:       The argument is formatted as a fixed point decimal</span>
+<span class="comment">//   e, E:    The argument is formatted in exponential notation</span>
+<span class="comment">//   g, G:    The argument is formatted as either fixed point or using</span>
+<span class="comment">//            scientific notation depending on its magnitude</span>
+<span class="comment">//   c:       The argument is formatted as a character</span>
+<span class="comment">//   s:       The argument is formatted as a string</span>
+<span class="comment">//</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">...</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">print</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span><span class="special">&amp;</span> <span class="identifier">os</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> <span class="identifier">format</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;...</span> <span class="identifier">t</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// capture the arguments</span>
+    <span class="identifier">print_storage</span> <span class="identifier">args</span> <span class="special">=</span> <span class="special">{</span> <span class="identifier">any_printable</span><span class="special">(</span><span class="identifier">t</span><span class="special">)...</span> <span class="special">};</span>
+    <span class="comment">// and forward to the real implementation</span>
+    <span class="identifier">print_impl</span><span class="special">(</span><span class="identifier">os</span><span class="special">,</span> <span class="identifier">format</span><span class="special">,</span> <span class="identifier">args</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="comment">// This overload of print with no explicit stream writes to std::cout.</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">...</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">print</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> <span class="identifier">format</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;...</span> <span class="identifier">t</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">,</span> <span class="identifier">format</span><span class="special">,</span> <span class="identifier">t</span><span class="special">...);</span>
+<span class="special">}</span>
+
+<span class="comment">// The implementation from here on can be separately compiled.</span>
+
+<span class="comment">// utility function to parse an integer</span>
+<span class="keyword">int</span> <span class="identifier">parse_int</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*&amp;</span> <span class="identifier">format</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">result</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+    <span class="keyword">while</span><span class="special">(</span><span class="keyword">char</span> <span class="identifier">ch</span> <span class="special">=</span> <span class="special">*</span><span class="identifier">format</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">switch</span><span class="special">(</span><span class="identifier">ch</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">case</span> <span class="char">'0'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'1'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'2'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'3'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'4'</span><span class="special">:</span>
+        <span class="keyword">case</span> <span class="char">'5'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'6'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'7'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'8'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'9'</span><span class="special">:</span>
+            <span class="identifier">result</span> <span class="special">=</span> <span class="identifier">result</span> <span class="special">*</span> <span class="number">10</span> <span class="special">+</span> <span class="special">(</span><span class="identifier">ch</span> <span class="special">-</span> <span class="char">'0'</span><span class="special">);</span>
+            <span class="keyword">break</span><span class="special">;</span>
+        <span class="keyword">default</span><span class="special">:</span> <span class="keyword">return</span> <span class="identifier">result</span><span class="special">;</span>
+        <span class="special">}</span>
+        <span class="special">++</span><span class="identifier">format</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">return</span> <span class="identifier">result</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// printf implementation</span>
+<span class="keyword">void</span> <span class="identifier">print_impl</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span><span class="special">&amp;</span> <span class="identifier">os</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> <span class="identifier">format</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">print_storage</span><span class="special">&amp;</span> <span class="identifier">args</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">idx</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+    <span class="identifier">ios_flags_saver</span> <span class="identifier">savef_outer</span><span class="special">(</span><span class="identifier">os</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">dec</span><span class="special">);</span>
+    <span class="keyword">bool</span> <span class="identifier">has_positional</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="keyword">bool</span> <span class="identifier">has_indexed</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="keyword">while</span><span class="special">(</span><span class="keyword">char</span> <span class="identifier">ch</span> <span class="special">=</span> <span class="special">*</span><span class="identifier">format</span><span class="special">++)</span> <span class="special">{</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">ch</span> <span class="special">==</span> <span class="char">'%'</span><span class="special">)</span> <span class="special">{</span>
+            <span class="keyword">if</span> <span class="special">(*</span><span class="identifier">format</span> <span class="special">==</span> <span class="char">'%'</span><span class="special">)</span> <span class="special">{</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="char">'%'</span><span class="special">;</span> <span class="keyword">continue</span><span class="special">;</span> <span class="special">}</span>
+
+            <span class="identifier">ios_flags_saver</span> <span class="identifier">savef</span><span class="special">(</span><span class="identifier">os</span><span class="special">);</span>
+            <span class="identifier">ios_precision_saver</span> <span class="identifier">savep</span><span class="special">(</span><span class="identifier">os</span><span class="special">);</span>
+            <span class="identifier">ios_fill_saver</span> <span class="identifier">savefill</span><span class="special">(</span><span class="identifier">os</span><span class="special">);</span>
+
+            <span class="keyword">int</span> <span class="identifier">precision</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+            <span class="keyword">bool</span> <span class="identifier">pad_space</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+            <span class="keyword">bool</span> <span class="identifier">pad_zero</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+
+            <span class="comment">// parse argument index</span>
+            <span class="keyword">if</span> <span class="special">(*</span><span class="identifier">format</span> <span class="special">!=</span> <span class="char">'0'</span><span class="special">)</span> <span class="special">{</span>
+                <span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">parse_int</span><span class="special">(</span><span class="identifier">format</span><span class="special">);</span>
+                <span class="keyword">if</span> <span class="special">(</span><span class="identifier">i</span> <span class="special">!=</span> <span class="number">0</span><span class="special">)</span> <span class="special">{</span>
+                    <span class="keyword">if</span><span class="special">(*</span><span class="identifier">format</span> <span class="special">==</span> <span class="char">'$'</span><span class="special">)</span> <span class="special">{</span>
+                        <span class="identifier">idx</span> <span class="special">=</span> <span class="identifier">i</span> <span class="special">-</span> <span class="number">1</span><span class="special">;</span>
+                        <span class="identifier">has_indexed</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+                        <span class="special">++</span><span class="identifier">format</span><span class="special">;</span>
+                    <span class="special">}</span> <span class="keyword">else</span> <span class="special">{</span>
+                        <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setw</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+                        <span class="identifier">has_positional</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+                        <span class="keyword">goto</span> <span class="identifier">parse_precision</span><span class="special">;</span>
+                    <span class="special">}</span>
+                <span class="special">}</span> <span class="keyword">else</span> <span class="special">{</span>
+                    <span class="identifier">has_positional</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+                <span class="special">}</span>
+            <span class="special">}</span> <span class="keyword">else</span> <span class="special">{</span>
+                <span class="identifier">has_positional</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+            <span class="special">}</span>
+
+            <span class="comment">// Parse format modifiers</span>
+            <span class="keyword">while</span><span class="special">((</span><span class="identifier">ch</span> <span class="special">=</span> <span class="special">*</span><span class="identifier">format</span><span class="special">))</span> <span class="special">{</span>
+                <span class="keyword">switch</span><span class="special">(</span><span class="identifier">ch</span><span class="special">)</span> <span class="special">{</span>
+                <span class="keyword">case</span> <span class="char">'-'</span><span class="special">:</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">left</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+                <span class="keyword">case</span> <span class="char">'+'</span><span class="special">:</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">showpos</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+                <span class="keyword">case</span> <span class="char">'0'</span><span class="special">:</span> <span class="identifier">pad_zero</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+                <span class="keyword">case</span> <span class="char">' '</span><span class="special">:</span> <span class="identifier">pad_space</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+                <span class="keyword">case</span> <span class="char">'#'</span><span class="special">:</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">showpoint</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">showbase</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+                <span class="keyword">default</span><span class="special">:</span> <span class="keyword">goto</span> <span class="identifier">parse_width</span><span class="special">;</span>
+                <span class="special">}</span>
+                <span class="special">++</span><span class="identifier">format</span><span class="special">;</span>
+            <span class="special">}</span>
+
+        <span class="identifier">parse_width</span><span class="special">:</span>
+            <span class="keyword">int</span> <span class="identifier">width</span><span class="special">;</span>
+            <span class="keyword">if</span> <span class="special">(*</span><span class="identifier">format</span> <span class="special">==</span> <span class="char">'*'</span><span class="special">)</span> <span class="special">{</span>
+                <span class="special">++</span><span class="identifier">format</span><span class="special">;</span>
+                <span class="identifier">width</span> <span class="special">=</span> <span class="identifier">any_cast</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">args</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="identifier">idx</span><span class="special">++));</span>
+            <span class="special">}</span> <span class="keyword">else</span> <span class="special">{</span>
+                <span class="identifier">width</span> <span class="special">=</span> <span class="identifier">parse_int</span><span class="special">(</span><span class="identifier">format</span><span class="special">);</span>
+            <span class="special">}</span>
+            <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setw</span><span class="special">(</span><span class="identifier">width</span><span class="special">);</span>
+
+        <span class="identifier">parse_precision</span><span class="special">:</span>
+            <span class="keyword">if</span> <span class="special">(*</span><span class="identifier">format</span> <span class="special">==</span> <span class="char">'.'</span><span class="special">)</span> <span class="special">{</span>
+                <span class="special">++</span><span class="identifier">format</span><span class="special">;</span>
+                <span class="keyword">if</span> <span class="special">(*</span><span class="identifier">format</span> <span class="special">==</span> <span class="char">'*'</span><span class="special">)</span> <span class="special">{</span>
+                    <span class="special">++</span><span class="identifier">format</span><span class="special">;</span>
+                    <span class="identifier">precision</span> <span class="special">=</span> <span class="identifier">any_cast</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">args</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="identifier">idx</span><span class="special">++));</span>
+                <span class="special">}</span> <span class="keyword">else</span> <span class="special">{</span>
+                    <span class="identifier">precision</span> <span class="special">=</span> <span class="identifier">parse_int</span><span class="special">(</span><span class="identifier">format</span><span class="special">);</span>
+                <span class="special">}</span>
+                <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="identifier">precision</span><span class="special">);</span>
+            <span class="special">}</span>
+
+            <span class="comment">// parse (and ignore) the type modifier</span>
+            <span class="keyword">switch</span><span class="special">(*</span><span class="identifier">format</span><span class="special">)</span> <span class="special">{</span>
+            <span class="keyword">case</span> <span class="char">'h'</span><span class="special">:</span> <span class="special">++</span><span class="identifier">format</span><span class="special">;</span> <span class="keyword">if</span><span class="special">(*</span><span class="identifier">format</span> <span class="special">==</span> <span class="char">'h'</span><span class="special">)</span> <span class="special">++</span><span class="identifier">format</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">case</span> <span class="char">'l'</span><span class="special">:</span> <span class="special">++</span><span class="identifier">format</span><span class="special">;</span> <span class="keyword">if</span><span class="special">(*</span><span class="identifier">format</span> <span class="special">==</span> <span class="char">'l'</span><span class="special">)</span> <span class="special">++</span><span class="identifier">format</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">case</span> <span class="char">'j'</span><span class="special">:</span>
+            <span class="keyword">case</span> <span class="char">'L'</span><span class="special">:</span>
+            <span class="keyword">case</span> <span class="char">'q'</span><span class="special">:</span>
+            <span class="keyword">case</span> <span class="char">'t'</span><span class="special">:</span>
+            <span class="keyword">case</span> <span class="char">'z'</span><span class="special">:</span>
+                <span class="special">++</span><span class="identifier">format</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="special">}</span>
+
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">truncate</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+
+            <span class="comment">// parse the format code</span>
+            <span class="keyword">switch</span><span class="special">(*</span><span class="identifier">format</span><span class="special">++)</span> <span class="special">{</span>
+            <span class="keyword">case</span> <span class="char">'d'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'i'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'u'</span><span class="special">:</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">dec</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">case</span> <span class="char">'o'</span><span class="special">:</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">oct</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">case</span> <span class="char">'p'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'x'</span><span class="special">:</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">hex</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">case</span> <span class="char">'X'</span><span class="special">:</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">uppercase</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">hex</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">case</span> <span class="char">'f'</span><span class="special">:</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">fixed</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">case</span> <span class="char">'e'</span><span class="special">:</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">scientific</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">case</span> <span class="char">'E'</span><span class="special">:</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">uppercase</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">scientific</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">case</span> <span class="char">'g'</span><span class="special">:</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">case</span> <span class="char">'G'</span><span class="special">:</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">uppercase</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">case</span> <span class="char">'c'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'C'</span><span class="special">:</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">case</span> <span class="char">'s'</span><span class="special">:</span> <span class="keyword">case</span> <span class="char">'S'</span><span class="special">:</span> <span class="identifier">truncate</span> <span class="special">=</span> <span class="identifier">precision</span><span class="special">;</span> <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="number">6</span><span class="special">);</span> <span class="keyword">break</span><span class="special">;</span>
+            <span class="keyword">default</span><span class="special">:</span> <span class="identifier">assert</span><span class="special">(!</span><span class="string">"Bad format string"</span><span class="special">);</span>
+            <span class="special">}</span>
+
+            <span class="keyword">if</span> <span class="special">(</span><span class="identifier">pad_zero</span> <span class="special">&amp;&amp;</span> <span class="special">!(</span><span class="identifier">os</span><span class="special">.</span><span class="identifier">flags</span><span class="special">()</span> <span class="special">&amp;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">left</span><span class="special">))</span> <span class="special">{</span>
+                <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setfill</span><span class="special">(</span><span class="char">'0'</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">internal</span><span class="special">;</span>
+                <span class="identifier">pad_space</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+            <span class="special">}</span>
+
+            <span class="keyword">if</span> <span class="special">(</span><span class="identifier">truncate</span> <span class="special">!=</span> <span class="number">0</span> <span class="special">||</span> <span class="identifier">pad_space</span><span class="special">)</span> <span class="special">{</span>
+                <span class="comment">// These can't be handled by std::setw.  Write to a stringstream and</span>
+                <span class="comment">// pad/truncate manually.</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostringstream</span> <span class="identifier">oss</span><span class="special">;</span>
+                <span class="identifier">oss</span><span class="special">.</span><span class="identifier">copyfmt</span><span class="special">(</span><span class="identifier">os</span><span class="special">);</span>
+                <span class="identifier">oss</span> <span class="special">&lt;&lt;</span> <span class="identifier">args</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="identifier">idx</span><span class="special">++);</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">data</span> <span class="special">=</span> <span class="identifier">oss</span><span class="special">.</span><span class="identifier">str</span><span class="special">();</span>
+
+                <span class="keyword">if</span> <span class="special">(</span><span class="identifier">pad_space</span><span class="special">)</span> <span class="special">{</span>
+                    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">data</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span> <span class="special">||</span> <span class="special">(</span><span class="identifier">data</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">!=</span> <span class="char">'+'</span> <span class="special">&amp;&amp;</span> <span class="identifier">data</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">!=</span> <span class="char">'-'</span> <span class="special">&amp;&amp;</span> <span class="identifier">data</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">!=</span> <span class="char">' '</span><span class="special">))</span> <span class="special">{</span>
+                        <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="char">' '</span><span class="special">;</span>
+                    <span class="special">}</span>
+                <span class="special">}</span>
+                <span class="keyword">if</span> <span class="special">(</span><span class="identifier">truncate</span> <span class="special">!=</span> <span class="number">0</span> <span class="special">&amp;&amp;</span> <span class="identifier">data</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">&gt;</span> <span class="identifier">truncate</span><span class="special">)</span> <span class="special">{</span>
+                    <span class="identifier">data</span><span class="special">.</span><span class="identifier">resize</span><span class="special">(</span><span class="identifier">truncate</span><span class="special">);</span>
+                <span class="special">}</span>
+                <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">data</span><span class="special">;</span>
+            <span class="special">}</span> <span class="keyword">else</span> <span class="special">{</span>
+                <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">args</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="identifier">idx</span><span class="special">++);</span>
+            <span class="special">}</span>
+
+            <span class="comment">// we can't have both positional and indexed arguments in</span>
+            <span class="comment">// the format string.</span>
+            <span class="identifier">assert</span><span class="special">(</span><span class="identifier">has_positional</span> <span class="special">^</span> <span class="identifier">has_indexed</span><span class="special">);</span>
+
+        <span class="special">}</span> <span class="keyword">else</span> <span class="special">{</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">ch</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span> <span class="special">{</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="string">"int: %d\n"</span><span class="special">,</span> <span class="number">10</span><span class="special">);</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="string">"int: %0#8X\n"</span><span class="special">,</span> <span class="number">0xA56E</span><span class="special">);</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="string">"double: %g\n"</span><span class="special">,</span> <span class="number">3.14159265358979323846</span><span class="special">);</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="string">"double: %f\n"</span><span class="special">,</span> <span class="number">3.14159265358979323846</span><span class="special">);</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="string">"double: %+20.9e\n"</span><span class="special">,</span> <span class="number">3.14159265358979323846</span><span class="special">);</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="string">"double: %0+20.9g\n"</span><span class="special">,</span> <span class="number">3.14159265358979323846</span><span class="special">);</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="string">"double: %*.*g\n"</span><span class="special">,</span> <span class="number">20</span><span class="special">,</span> <span class="number">5</span><span class="special">,</span> <span class="number">3.14159265358979323846</span><span class="special">);</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="string">"string: %.10s\n"</span><span class="special">,</span> <span class="string">"Hello World!"</span><span class="special">);</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="string">"double: %2$*.*g int: %1$d\n"</span><span class="special">,</span> <span class="number">10</span><span class="special">,</span> <span class="number">20</span><span class="special">,</span> <span class="number">5</span><span class="special">,</span> <span class="number">3.14159265358979323846</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typeerasure.examples.multifunction"></a><a class="link" href="examples.html#boost_typeerasure.examples.multifunction" title="Boost.Function with multiple signatures">Boost.Function
+      with multiple signatures</a>
+</h3></div></div></div>
+<p>
+        (For the source of this example see <a href="../../../libs/type_erasure/example/multifunction.cpp" target="_top">multifunction.cpp</a>)
+      </p>
+<p>
+        This example implements an extension of Boost.Function that supports multiple
+        signatures.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          This example uses C++11 features. You'll need a recent compiler for it
+          to work.
+        </p></td></tr>
+</table></div>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_erasure</span><span class="special">/</span><span class="identifier">any</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_erasure</span><span class="special">/</span><span class="identifier">builtin</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_erasure</span><span class="special">/</span><span class="identifier">callable</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">mpl</span><span class="special">/</span><span class="identifier">vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">variant</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">algorithm</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">mpl</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_erasure</span><span class="special">;</span>
+<span class="keyword">namespace</span> <span class="identifier">phoenix</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">;</span>
+
+<span class="comment">// First of all we'll declare the multifunction template.</span>
+<span class="comment">// multifunction is like Boost.Function but instead of</span>
+<span class="comment">// taking one signature, it takes any number of them.</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">...</span> <span class="identifier">Sig</span><span class="special">&gt;</span>
+<span class="keyword">using</span> <span class="identifier">multifunction</span> <span class="special">=</span>
+    <span class="identifier">any</span><span class="special">&lt;</span>
+        <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+            <span class="identifier">copy_constructible</span><span class="special">&lt;&gt;,</span>
+            <span class="identifier">typeid_</span><span class="special">&lt;&gt;,</span>
+            <span class="identifier">relaxed</span><span class="special">,</span>
+            <span class="identifier">callable</span><span class="special">&lt;</span><span class="identifier">Sig</span><span class="special">&gt;...</span>
+        <span class="special">&gt;</span>
+    <span class="special">&gt;;</span>
+
+<span class="comment">// Let's use multifunction to process a variant.  We'll start</span>
+<span class="comment">// by defining a simple recursive variant to use.</span>
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_recursive_variant</span><span class="special">&lt;</span>
+    <span class="keyword">int</span><span class="special">,</span>
+    <span class="keyword">double</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_variant_</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">variant_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">variant_type</span><span class="special">&gt;</span> <span class="identifier">vector_type</span><span class="special">;</span>
+
+<span class="comment">// Now we'll define a multifunction that can operate</span>
+<span class="comment">// on the leaf nodes of the variant.</span>
+<span class="keyword">typedef</span> <span class="identifier">multifunction</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">(</span><span class="keyword">int</span><span class="special">),</span> <span class="keyword">void</span><span class="special">(</span><span class="keyword">double</span><span class="special">),</span> <span class="keyword">void</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">)&gt;</span> <span class="identifier">function_type</span><span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">variant_handler</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">void</span> <span class="identifier">handle</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">variant_type</span><span class="special">&amp;</span> <span class="identifier">arg</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">apply_visitor</span><span class="special">(</span><span class="identifier">impl</span><span class="special">,</span> <span class="identifier">arg</span><span class="special">);</span>
+    <span class="special">}</span>
+    <span class="keyword">void</span> <span class="identifier">set_handler</span><span class="special">(</span><span class="identifier">function_type</span> <span class="identifier">f</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">impl</span><span class="special">.</span><span class="identifier">f</span> <span class="special">=</span> <span class="identifier">f</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="comment">// A class that works with boost::apply_visitor</span>
+    <span class="keyword">struct</span> <span class="identifier">dispatcher</span> <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">static_visitor</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="comment">// used for the leaves</span>
+        <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">t</span><span class="special">)</span> <span class="special">{</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">t</span><span class="special">);</span> <span class="special">}</span>
+        <span class="comment">// For a vector, we recursively operate on the elements</span>
+        <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="identifier">vector_type</span><span class="special">&amp;</span> <span class="identifier">v</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">boost</span><span class="special">::</span><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">v</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">apply_visitor</span><span class="special">(*</span><span class="keyword">this</span><span class="special">));</span>
+        <span class="special">}</span>
+        <span class="identifier">function_type</span> <span class="identifier">f</span><span class="special">;</span>
+    <span class="special">};</span>
+    <span class="identifier">dispatcher</span> <span class="identifier">impl</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span> <span class="special">{</span>
+    <span class="identifier">variant_handler</span> <span class="identifier">x</span><span class="special">;</span>
+    <span class="identifier">x</span><span class="special">.</span><span class="identifier">set_handler</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">val</span><span class="special">(</span><span class="string">"Value: "</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">placeholders</span><span class="special">::</span><span class="identifier">_1</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">);</span>
+
+    <span class="identifier">x</span><span class="special">.</span><span class="identifier">handle</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+    <span class="identifier">x</span><span class="special">.</span><span class="identifier">handle</span><span class="special">(</span><span class="number">2.718</span><span class="special">);</span>
+    <span class="identifier">x</span><span class="special">.</span><span class="identifier">handle</span><span class="special">(</span><span class="string">"The quick brown fox jumps over the lazy dog."</span><span class="special">);</span>
+    <span class="identifier">x</span><span class="special">.</span><span class="identifier">handle</span><span class="special">(</span><span class="identifier">vector_type</span><span class="special">{</span> <span class="number">1.618</span><span class="special">,</span> <span class="string">"Gallia est omnis divisa in partes tres"</span><span class="special">,</span> <span class="number">42</span> <span class="special">});</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="any.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_typeerasure.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="conceptdef.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

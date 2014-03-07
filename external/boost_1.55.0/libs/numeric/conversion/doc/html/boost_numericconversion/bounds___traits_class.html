@@ -1,0 +1,140 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>bounds&lt;&gt; traits class</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_numericconversion.bounds___traits_class"></a><a class="link" href="bounds___traits_class.html" title="bounds&lt;&gt; traits class">bounds&lt;&gt;
+    traits class</a>
+</h2></div></div></div>
+    
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.bounds___traits_class.introduction"></a><a class="link" href="bounds___traits_class.html#boost_numericconversion.bounds___traits_class.introduction" title="Introduction">Introduction</a>
+</h3></div></div></div>
+      
+      <p>
+        To determine the ranges of numeric types with <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span></code>
+        [18.2.1], different syntax have to be used depending on numeric type. Specifically,
+        <code class="computeroutput"><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">min</span><span class="special">()</span></code> for
+        integral types returns the minimum finite value, whereas for floating point
+        types it returns the minimum positive normalized value. The difference in
+        semantics makes client code unnecessarily complex and error prone.
+      </p>
+      <p>
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">bounds</span><span class="special">&lt;&gt;</span></code>
+        provides a consistent interface for retrieving the maximum finite value,
+        the minimum finite value and the minimum positive normalized value (0 for
+        integral types) for numeric types. The selection of implementation is performed
+        at compile time, so there is no runtime overhead.
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.bounds___traits_class.traits_class_bounds_n_"></a><a class="link" href="bounds___traits_class.html#boost_numericconversion.bounds___traits_class.traits_class_bounds_n_" title="traits class bounds&lt;N&gt;">traits
+      class bounds&lt;N&gt;</a>
+</h3></div></div></div>
+      
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">bounds</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="identifier">N</span> <span class="identifier">lowest</span>  <span class="special">()</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">implementation_defined</span><span class="special">;</span> <span class="special">}</span>
+    <span class="keyword">static</span> <span class="identifier">N</span> <span class="identifier">highest</span> <span class="special">()</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">implementation_defined</span><span class="special">;</span> <span class="special">}</span>
+    <span class="keyword">static</span> <span class="identifier">N</span> <span class="identifier">smallest</span><span class="special">()</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">implementation_defined</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+      <h5>
+<a name="boost_numericconversion.bounds___traits_class.traits_class_bounds_n_.h0"></a>
+        <span><a name="boost_numericconversion.bounds___traits_class.traits_class_bounds_n_.members"></a></span><a class="link" href="bounds___traits_class.html#boost_numericconversion.bounds___traits_class.traits_class_bounds_n_.members">Members</a>
+      </h5>
+      <div class="blockquote"><blockquote class="blockquote">
+        <p>
+          <code class="computeroutput"><span class="identifier">lowest</span><span class="special">()</span></code>
+        </p>
+      </blockquote></div>
+      <p>
+        Returns the minimum finite value, equivalent to <code class="computeroutput"><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">min</span><span class="special">()</span></code> when
+        <code class="computeroutput"><span class="identifier">T</span></code> is an integral type, and
+        to <code class="computeroutput"><span class="special">-</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">max</span><span class="special">()</span></code> when
+        <code class="computeroutput"><span class="identifier">T</span></code> is a floating point type.
+      </p>
+      <div class="blockquote"><blockquote class="blockquote">
+        <p>
+          <code class="computeroutput"><span class="identifier">highest</span><span class="special">()</span></code>
+        </p>
+      </blockquote></div>
+      <p>
+        Returns the maximum finite value, equivalent to <code class="computeroutput"><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">max</span><span class="special">()</span></code>.
+      </p>
+      <div class="blockquote"><blockquote class="blockquote">
+        <p>
+          <code class="computeroutput"><span class="identifier">smallest</span><span class="special">()</span></code>
+        </p>
+      </blockquote></div>
+      <p>
+        Returns the smallest positive normalized value for floating point types with
+        denormalization, or returns 0 for integral types.
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.bounds___traits_class.examples"></a><a class="link" href="bounds___traits_class.html#boost_numericconversion.bounds___traits_class.examples" title="Examples">Examples</a>
+</h3></div></div></div>
+      
+      <p>
+        The following example demonstrates the use of <code class="computeroutput"><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">bounds</span><span class="special">&lt;&gt;</span></code> and the equivalent code using <code class="computeroutput"><span class="identifier">numeric_limits</span></code>:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">numeric</span><span class="special">/</span><span class="identifier">conversion</span><span class="special">/</span><span class="identifier">bounds</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">limits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span> <span class="special">{</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"numeric::bounds versus numeric_limits example.\n"</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"The maximum value for float:\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">bounds</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;::</span><span class="identifier">highest</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;::</span><span class="identifier">max</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"The minimum value for float:\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">bounds</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;::</span><span class="identifier">lowest</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="special">-</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;::</span><span class="identifier">max</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"The smallest positive value for float:\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">bounds</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;::</span><span class="identifier">smallest</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;::</span><span class="identifier">min</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+    </div>
+  </div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct at</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp" title="Header &lt;boost/xpressive/regex_actions.hpp&gt;">
+<link rel="prev" href="../regex_id_filter_predicate.html" title="Struct template regex_id_filter_predicate">
+<link rel="next" href="at/result.html" title="Struct template result">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../regex_id_filter_predicate.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="at/result.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.xpressive.op.at"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct at</span></h2>
+<p>boost::xpressive::op::at &#8212; <code class="computeroutput">at</code> is a PolymorphicFunctionObject for indexing into a sequence </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp" title="Header &lt;boost/xpressive/regex_actions.hpp&gt;">boost/xpressive/regex_actions.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="at.html" title="Struct at">at</a> <span class="special">{</span>
+  <span class="comment">// member classes/structs/unions</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Sig<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="at/result.html" title="Struct template result">result</a> <span class="special">{</span>
+  <span class="special">}</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> This<span class="special">,</span> <span class="keyword">typename</span> Cont<span class="special">,</span> <span class="keyword">typename</span> Idx<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="at/result_This_C_idp163424520.html" title="Struct template result&lt;This(Cont &amp;, Idx)&gt;">result</a><span class="special">&lt;</span><span class="identifier">This</span><span class="special">(</span><span class="identifier">Cont</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Idx</span><span class="special">)</span><span class="special">&gt;</span> <span class="special">{</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <span class="identifier">Cont</span><span class="special">::</span><span class="identifier">reference</span> <a class="link" href="at/result_This_C_idp163424520.html#boost.xpressive.op.at.result_This(C_idp163424520.type"><span class="identifier">type</span></a><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> This<span class="special">,</span> <span class="keyword">typename</span> Cont<span class="special">,</span> <span class="keyword">typename</span> Idx<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="at/result_This_C_idp163426360.html" title="Struct template result&lt;This(Cont const &amp;, Idx)&gt;">result</a><span class="special">&lt;</span><span class="identifier">This</span><span class="special">(</span><span class="identifier">Cont</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Idx</span><span class="special">)</span><span class="special">&gt;</span> <span class="special">{</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <span class="identifier">Cont</span><span class="special">::</span><span class="identifier">const_reference</span> <a class="link" href="at/result_This_C_idp163426360.html#boost.xpressive.op.at.result_This(C_idp163426360.type"><span class="identifier">type</span></a><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> This<span class="special">,</span> <span class="keyword">typename</span> Cont<span class="special">,</span> <span class="keyword">typename</span> Idx<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="at/result_This_C_idp163428232.html" title="Struct template result&lt;This(Cont, Idx)&gt;">result</a><span class="special">&lt;</span><span class="identifier">This</span><span class="special">(</span><span class="identifier">Cont</span><span class="special">,</span> <span class="identifier">Idx</span><span class="special">)</span><span class="special">&gt;</span> <span class="special">{</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <span class="identifier">Cont</span><span class="special">::</span><span class="identifier">const_reference</span> <a class="link" href="at/result_This_C_idp163428232.html#boost.xpressive.op.at.result_This(C_idp163428232.type"><span class="identifier">type</span></a><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="at.html#idp163430088-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Cont<span class="special">,</span> <span class="keyword">typename</span> Idx<span class="special">&gt;</span> 
+    <span class="identifier">Cont</span><span class="special">::</span><span class="identifier">reference</span> <a class="link" href="at.html#idp163430296-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">Cont</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Idx</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Cont<span class="special">,</span> <span class="keyword">typename</span> Idx<span class="special">&gt;</span> 
+    <span class="identifier">Cont</span><span class="special">::</span><span class="identifier">const_reference</span> <a class="link" href="at.html#idp163433512-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">Cont</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Idx</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp254273624"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp254273832"></a><h3>
+<a name="idp163430088-bb"></a><code class="computeroutput">at</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Cont<span class="special">,</span> <span class="keyword">typename</span> Idx<span class="special">&gt;</span> 
+  <span class="identifier">Cont</span><span class="special">::</span><span class="identifier">reference</span> <a name="idp163430296-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">Cont</span> <span class="special">&amp;</span> c<span class="special">,</span> <span class="identifier">Idx</span> idx<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">c</code></span></p></td>
+<td><p>The RandomAccessSequence to index into </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">idx</code></span></p></td>
+<td><p>The index </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">Cont</code> is a model of RandomAccessSequence </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">c[idx]</code> </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Cont<span class="special">,</span> <span class="keyword">typename</span> Idx<span class="special">&gt;</span> 
+  <span class="identifier">Cont</span><span class="special">::</span><span class="identifier">const_reference</span> <a name="idp163433512-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">Cont</span> <span class="keyword">const</span> <span class="special">&amp;</span> c<span class="special">,</span> <span class="identifier">Idx</span> idx<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../regex_id_filter_predicate.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="at/result.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

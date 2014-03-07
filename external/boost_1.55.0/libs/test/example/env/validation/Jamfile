@@ -1,0 +1,20 @@
+#  (C) Copyright Gennadiy Rozental 2001-2006.
+#  Use, modification, and distribution are subject to the 
+#  Boost Software License, Version 1.0. (See accompanying file 
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org/libs/test for the library home page.
+
+subproject libs/test/example/env/validation ;
+
+DEPENDS test : all ;
+
+rule boost-runtime-param-example ( example-name )
+{
+    exe $(example-name) : $(example-name).cpp
+                        : <sysinclude>$(BOOST_ROOT) 
+                          <stlport-iostream>on 
+                          <borland><*><cxxflags>-w-8080 ;
+}
+
+boost-runtime-param-example need_typed_access ; 

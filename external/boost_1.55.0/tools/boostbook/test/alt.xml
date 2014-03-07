@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+Copyright Daniel James 2009
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+  
+<!--
+  xmllint:
+
+  XML_CATALOG_FILES=../../../bin.v2/boostbook_catalog.xml xmllint -noout -valid alt.xml
+
+-->
+
+<library name="Example" id="test.alt" dirname="test/alt">
+  <libraryinfo>
+    <author>
+      <firstname>Daniel</firstname>
+      <surname>James</surname>
+    </author>
+    <librarypurpose>Fictional example</librarypurpose>
+  </libraryinfo>
+  
+  <title>Fictional example library, for testing</title>
+  
+  <section id="test.alt.tests">
+    <title>Alt Tests</title>
+  
+    <para><headername alt="example.hpp">Example header</headername></para>
+    <para>Example header: <headername>example.hpp</headername></para>
+    
+    <para><macroname alt="EXAMPLE">Example macro</macroname></para>
+    <para>Example macro: <macroname>EXAMPLE</macroname></para>
+  </section>
+  
+  <library-reference>
+    <header name="example.hpp">
+      <macro name="EXAMPLE" kind="functionlike">
+        <purpose>Example macro</purpose>
+      </macro>
+    </header>
+  </library-reference>
+</library>

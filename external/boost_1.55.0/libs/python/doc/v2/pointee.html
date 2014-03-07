@@ -1,0 +1,119 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+    <meta name="generator" content="HTML Tidy, see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/pointee.hpp&gt;</title>
+
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+          "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/pointee.hpp&gt;</h2>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a>
+
+      <dt><a href="#classes">Classes</a>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#pointee-spec">Class Template<code>pointee</code></a>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#pointee-spec-synopsis">Class Template
+              <code>pointee</code> synopsis</a>
+            </dl>
+        </dl>
+
+      <dt><a href="#examples">Example</a>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code>&lt;boost/python/pointee.hpp&gt;</code> introduces a
+    traits <a
+    href="../../../mpl/doc/refmanual/metafunction.html">metafunction</a>
+    template <code>pointee&lt;T&gt;</code> that can be used to extract the &quot;pointed-to&quot; type from the type of a pointer or smart pointer.
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="pointee-spec"></a>Class Template <code>pointee&lt;class T&gt;</code></h3>
+
+    <p><code>pointee&lt;T&gt;</code> is used by the <code><a
+    href="class.html#class_-spec">class_</a>&lt;...&gt;</code>
+    template to deduce the type being held when a pointer or smart
+    pointer type is used as its <code>HeldType</code> argument.
+
+    <h4><a name="pointee-spec-synopsis"></a>Class Template
+    <code>pointee</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+   template &lt;class T&gt; struct pointee
+   {
+      typedef T::element_type type;
+   };
+
+   // specialization for pointers
+   template &lt;T&gt; struct pointee&lt;T*&gt;
+   {
+      typedef T type;
+   };
+}
+</pre>
+
+
+    <h2><a name="examples"></a>Example</h2>
+
+Given a 3rd-party smart pointer type
+<code>smart_pointer&lt;T&gt;</code>, one might partially specialize
+<code>pointee&lt;smart_pointer&ltT&gt; &gt;</code> so that it can be
+used as the <code>HeldType</code> for a class wrapper:
+
+<pre>
+#include &lt;boost/python/pointee.hpp&gt;
+#include &lt;boost/python/class.hpp&gt;
+#include &lt;third_party_lib.hpp&gt;
+
+namespace boost { namespace python
+{
+  template &lt;class T&gt; struct pointee&ltsmart_pointer&lt;T&gt; &gt;
+  {
+     typedef T type;
+  };
+}}
+
+BOOST_PYTHON_MODULE(pointee_demo)
+{
+   class_&lt;third_party_class, smart_pointer&lt;third_party_class&gt; &gt;(&quot;third_party_class&quot;)
+      .def(...)
+      ...
+      ;
+}
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+
+
+    <p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave
+    Abrahams</a> 2002. </i>   Distributed
+  under the Boost Software License, Version 1.0. (See accompanying file
+  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)</p>
+
+

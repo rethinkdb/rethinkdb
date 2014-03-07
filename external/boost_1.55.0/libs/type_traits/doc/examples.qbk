@@ -1,0 +1,237 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:examples Examples]
+
+[section:copy An Optimized Version of std::copy]
+
+Demonstrates a version of `std::copy` that uses `__has_trivial_assign` to
+determine whether to use `memcpy` to optimise the copy operation 
+(see [@../../examples/copy_example.cpp copy_example.cpp]):
+
+   //
+   // opt::copy
+   // same semantics as std::copy
+   // calls memcpy where appropriate.
+   //
+
+   namespace detail{
+
+   template<typename I1, typename I2, bool b>
+   I2 copy_imp(I1 first, I1 last, I2 out, const boost::__integral_constant<bool, b>&)
+   {
+      while(first != last)
+      {
+         *out = *first;
+         ++out;
+         ++first;
+      }
+      return out;
+   }
+
+   template<typename T>
+   T* copy_imp(const T* first, const T* last, T* out, const boost::__true_type&)
+   {
+      memmove(out, first, (last-first)*sizeof(T));
+      return out+(last-first);
+   }
+
+
+   }
+
+   template<typename I1, typename I2>
+   inline I2 copy(I1 first, I1 last, I2 out)
+   {
+      //
+      // We can copy with memcpy if T has a trivial assignment operator,
+      // and if the iterator arguments are actually pointers (this last
+      // requirement we detect with overload resolution):
+      //
+      typedef typename std::iterator_traits<I1>::value_type value_type;
+      return detail::copy_imp(first, last, out, boost::__has_trivial_assign<value_type>());
+   }
+
+
+[endsect]
+
+[section:fill An Optimised Version of std::fill]
+
+Demonstrates a version of `std::fill` that uses `__has_trivial_assign` to
+determine whether to use `memset` to optimise the fill operation 
+(see [@../../examples/fill_example.cpp fill_example.cpp]):
+
+   //
+   // fill
+   // same as std::fill, but uses memset where appropriate
+   //
+   namespace detail{
+
+   template <typename I, typename T, bool b>
+   void do_fill(I first, I last, const T& val, const boost::__integral_constant<bool, b>&)
+   {
+      while(first != last)
+      {
+         *first = val;
+         ++first;
+      }
+   }
+
+   template <typename T>
+   void do_fill(T* first, T* last, const T& val, const boost::__true_type&)
+   {
+      std::memset(first, val, last-first);
+   }
+
+   }
+
+   template <class I, class T>
+   inline void fill(I first, I last, const T& val)
+   {
+      //
+      // We can do an optimised fill if T has a trivial assignment 
+      // operator and if it's size is one:
+      //
+      typedef boost::__integral_constant<bool, 
+         ::boost::__has_trivial_assign<T>::value && (sizeof(T) == 1)> truth_type;
+      detail::do_fill(first, last, val, truth_type());
+   }
+
+
+[endsect]
+
+[section:destruct An Example that Omits Destructor Calls For Types with Trivial Destructors]
+
+Demonstrates a simple algorithm that uses `__has_trivial_destruct` to
+determine whether to destructors need to be called 
+(see [@../../examples/trivial_destructor_example.cpp trivial_destructor_example.cpp]):
+
+   //
+   // algorithm destroy_array:
+   // The reverse of std::unitialized_copy, takes a block of
+   // initialized memory and calls destructors on all objects therein.
+   //
+
+   namespace detail{
+
+   template <class T>
+   void do_destroy_array(T* first, T* last, const boost::__false_type&)
+   {
+      while(first != last)
+      {
+         first->~T();
+         ++first;
+      }
+   }
+
+   template <class T>
+   inline void do_destroy_array(T* first, T* last, const boost::__true_type&)
+   {
+   }
+
+   } // namespace detail
+
+   template <class T>
+   inline void destroy_array(T* p1, T* p2)
+   {
+      detail::do_destroy_array(p1, p2, ::boost::__has_trivial_destructor<T>());
+   }
+
+
+[endsect]
+
+[section:iter An improved Version of std::iter_swap]
+
+Demonstrates a version of `std::iter_swap` that use type traits to
+determine whether an it's arguments are proxy iterators or not,
+if they're not then it just does a `std::swap` of it's dereferenced 
+arguments (the
+same as `std::iter_swap` does), however if they are proxy iterators
+then takes special care over the swap to ensure that the algorithm
+works correctly for both proxy iterators, and even iterators of
+different types 
+(see [@../../examples/iter_swap_example.cpp iter_swap_example.cpp]):
+
+   //
+   // iter_swap:
+   // tests whether iterator is a proxy iterator or not, and
+   // uses optimal form accordingly:
+   //
+   namespace detail{
+
+   template <typename I>
+   static void do_swap(I one, I two, const boost::__false_type&)
+   {
+      typedef typename std::iterator_traits<I>::value_type v_t;
+      v_t v = *one;
+      *one = *two;
+      *two = v;
+   }
+   template <typename I>
+   static void do_swap(I one, I two, const boost::__true_type&)
+   {
+      using std::swap;
+      swap(*one, *two);
+   }
+
+   }
+
+   template <typename I1, typename I2>
+   inline void iter_swap(I1 one, I2 two)
+   {
+      //
+      // See is both arguments are non-proxying iterators, 
+      // and if both iterator the same type:
+      //
+      typedef typename std::iterator_traits<I1>::reference r1_t;
+      typedef typename std::iterator_traits<I2>::reference r2_t;
+
+      typedef boost::__integral_constant<bool,
+         ::boost::__is_reference<r1_t>::value
+         && ::boost::__is_reference<r2_t>::value
+         && ::boost::__is_same<r1_t, r2_t>::value> truth_type;
+
+      detail::do_swap(one, two, truth_type());
+   }
+
+
+[endsect]
+
+[section:to_double Convert Numeric Types and Enums to double]
+
+Demonstrates a conversion of
+[@../../../../libs/numeric/conversion/doc/html/boost_numericconversion/definitions.html#boost_numericconversion.definitions.numeric_types
+Numeric Types]
+and enum types to double:
+
+    template<class T>
+    inline double to_double(T const& value)
+    {
+        typedef typename boost::promote<T>::type promoted;
+        return boost::numeric::converter<double,promoted>::convert(value);
+    }
+
+[endsect]
+
+[section:improved_min Improving std::min with common_type]
+
+An improved `std::min` function could be written like this:
+
+   template <class T, class U>
+   typename __common_type<T, U>::type min(T t, U u)
+   {
+      return t < u ? t : u;
+   }
+
+And now expressions such as:
+
+   min(1, 2.0)
+
+will actually compile and return the correct type!
+
+[endsect]
+[endsect]
+

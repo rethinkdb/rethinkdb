@@ -1,0 +1,602 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Triangular Matrix</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Triangular Matrix</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="triangular_matrix"></a>Triangular Matrix</h2>
+<h4>Description</h4>
+<p>The templated class <code>triangular_matrix&lt;T, F1, F2,
+A&gt;</code> is the base container adaptor for triangular matrices.
+For a <em>(n x n</em> )-dimensional lower triangular matrix and
+<em>0 &lt;= i &lt; n</em>,<em>0 &lt;= j &lt; n</em> holds
+<em>t</em><sub><em>i, j</em></sub> <em>= 0</em> , if <em>i &gt;
+j</em>. If furthermore holds t<sub><em>i, i</em></sub><em>= 1</em>
+the matrix is called unit lower triangular. For a <em>(n x n</em>
+)-dimensional lower triangular matrix and <em>0 &lt;= i &lt;
+n</em>,<em>0 &lt;= j &lt; n</em> holds <em>t</em><sub><em>i,
+j</em></sub> <em>= 0</em> , if <em>i &lt; j</em>. If furthermore
+holds t<sub><em>i, i</em></sub><em>= 1</em> the matrix is called
+unit lower triangular. The storage of triangular matrices is
+packed.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/triangular.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    triangular_matrix&lt;double, lower&gt; ml (3, 3);
+    for (unsigned i = 0; i &lt; ml.size1 (); ++ i)
+        for (unsigned j = 0; j &lt;= i; ++ j)
+            ml (i, j) = 3 * i + j;
+    std::cout &lt;&lt; ml &lt;&lt; std::endl;
+    triangular_matrix&lt;double, upper&gt; mu (3, 3);
+    for (unsigned i = 0; i &lt; mu.size1 (); ++ i)
+        for (unsigned j = i; j &lt; mu.size2 (); ++ j)
+            mu (i, j) = 3 * i + j;
+    std::cout &lt;&lt; mu &lt;&lt; std::endl;
+}
+</pre>
+<p>Please read the <a href="samples/ex_triangular.cpp">full triangular example</a> for more details.</p>
+
+<h4>Definition</h4>
+<p>Defined in the header triangular.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the matrix.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>F1</code></td>
+<td>Functor describing the type of the triangular matrix. <a href=
+"#triangular_matrix_1">[1]</a></td>
+<td><code>lower</code></td>
+</tr>
+<tr>
+<td><code>F2</code></td>
+<td>Functor describing the storage organization. <a href=
+"#triangular_matrix_2">[2]</a></td>
+<td><code>row_major</code></td>
+</tr>
+<tr>
+<td><code>A</code></td>
+<td>The type of the adapted array. <a href=
+"#triangular_matrix_3">[3]</a></td>
+<td><code>unbounded_array&lt;T&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="container_concept.htm#matrix">Matrix</a> .</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"container_concept.htm#matrix">Matrix</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_container&lt;triangular_matrix&lt;T, F1, F2, A&gt;
+&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>triangular_matrix ()</code></td>
+<td>Allocates an uninitialized <code>triangular_matrix</code> that
+holds zero rows of zero elements.</td>
+</tr>
+<tr>
+<td><code>triangular_matrix (size_type size1, size_type
+size2)</code></td>
+<td>Allocates an uninitialized <code>triangular_matrix</code> that
+holds <code>size1</code> rows of <code>size2</code> elements.</td>
+</tr>
+<tr>
+<td><code>triangular_matrix (const triangular_matrix
+&amp;m)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_matrix (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended copy constructor.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size1, size_type size2, bool
+preserve = true)</code></td>
+<td>Reallocates a <code>triangular_matrix</code> to hold
+<code>size1</code> rows of <code>size2</code> elements. The
+existing elements of the <code>triangular_matrix</code> are
+preseved when specified.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns a <code>const</code> reference of the <code>j</code>
+-th element in the <code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i, size_type
+j)</code></td>
+<td>Returns a reference of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>triangular_matrix &amp;operator = (const
+triangular_matrix &amp;m)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>triangular_matrix &amp;assign_temporary
+(triangular_matrix &amp;m)</code></td>
+<td>Assigns a temporary. May change the triangular matrix
+<code>m</code>.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_matrix &amp;operator = (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_matrix &amp;assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a matrix expression to the triangular matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_matrix &amp;operator += (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Adds the matrix expression to
+the triangular matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_matrix &amp;plus_assign (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Adds a matrix expression to the triangular matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_matrix &amp;operator -= (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the matrix expression
+from the triangular matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_matrix &amp;minus_assign (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Subtracts a matrix expression from the triangular matrix. Left
+and right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+triangular_matrix &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the triangular
+matrix with a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+triangular_matrix &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the triangular matrix
+through a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (triangular_matrix &amp;m)</code></td>
+<td>Swaps the contents of the triangular matrices.</td>
+</tr>
+<tr>
+<td><code>void insert (size_type i, size_type j, const_reference
+t)</code></td>
+<td>Inserts the value <code>t</code> at the <code>j</code>-th
+element of the <code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>void erase (size_type i, size_type j)</code></td>
+<td>Erases the value at the <code>j</code>-th elemenst of the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>void clear ()</code></td>
+<td>Clears the matrix.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 begin1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the beginning of
+the <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 end1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the end of the
+<code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 begin2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the beginning of
+the <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 end2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the end of the
+<code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rbegin1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the
+beginning of the reversed <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rend1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the end of
+the reversed <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rbegin2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the
+beginning of the reversed <code>triangular_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rend2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the end of
+the reversed <code>triangular_matrix</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notes</h4>
+<p><a name="triangular_matrix_1">[1]</a>
+Supported parameters for the type of the triangular matrix are
+<code>lower</code> , <code>unit_lower</code>, <code>upper</code>
+and <code>unit_upper</code> .</p>
+<p><a name="triangular_matrix_2">[2]</a>
+Supported parameters for the storage organization are
+<code>row_major</code> and <code>column_major</code>.</p>
+<p><a name="triangular_matrix_3">[3]</a>
+Supported parameters for the adapted array are
+<code>unbounded_array&lt;T&gt;</code> ,
+<code>bounded_array&lt;T&gt;</code> and
+<code>std::vector&lt;T&gt;</code> .</p>
+<h2><a name="triangular_adaptor"></a>Triangular Adaptor</h2>
+<h4>Description</h4>
+<p>The templated class <code>triangular_adaptor&lt;M, F&gt;</code>
+is a triangular matrix adaptor for other matrices.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/triangular.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    triangular_adaptor&lt;matrix&lt;double&gt;, lower&gt; tal (m);
+    for (unsigned i = 0; i &lt; tal.size1 (); ++ i)
+        for (unsigned j = 0; j &lt;= i; ++ j)
+            tal (i, j) = 3 * i + j;
+    std::cout &lt;&lt; tal &lt;&lt; std::endl;
+    triangular_adaptor&lt;matrix&lt;double&gt;, upper&gt; tau (m);
+    for (unsigned i = 0; i &lt; tau.size1 (); ++ i)
+        for (unsigned j = i; j &lt; tau.size2 (); ++ j)
+            tau (i, j) = 3 * i + j;
+    std::cout &lt;&lt; tau &lt;&lt; std::endl;
+}
+</pre>
+<p>Please read the <a href="samples/ex_triangular.cpp">full triangular example</a> for more details.</p>
+
+<h4>Definition</h4>
+<p>Defined in the header triangular.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>The type of the adapted matrix.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>Functor describing the type of the triangular adaptor. <a href=
+"#triangular_adaptor_1">[1]</a></td>
+<td><code>lower</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_expression&lt;triangular_adaptor&lt;M, F&gt;
+&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>triangular_adaptor (matrix_type &amp;data)</code></td>
+<td>Constructs a <code>triangular_adaptor</code> of a matrix.</td>
+</tr>
+<tr>
+<td><code>triangular_adaptor (const triangular_adaptor
+&amp;m)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_adaptor (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended copy constructor.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns a <code>const</code> reference of the <code>j</code>
+-th element in the <code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i, size_type
+j)</code></td>
+<td>Returns a reference of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>triangular_adaptor &amp;operator = (const
+triangular_adaptor &amp;m)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>triangular_adaptor &amp;assign_temporary
+(triangular_adaptor &amp;m)</code></td>
+<td>Assigns a temporary. May change the triangular adaptor
+<code>m</code>.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_adaptor &amp;operator = (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_adaptor &amp;assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a matrix expression to the triangular adaptor. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_adaptor &amp;operator += (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Adds the matrix expression to
+the triangular adaptor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_adaptor &amp;plus_assign (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Adds a matrix expression to the triangular adaptor. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_adaptor &amp;operator -= (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the matrix expression
+from the triangular adaptor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+triangular_adaptor &amp;minus_assign (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Subtracts a matrix expression from the triangular adaptor. Left
+and right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+triangular_adaptor &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the triangular
+adaptor with a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+triangular_adaptor &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the triangular adaptor
+through a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (triangular_adaptor &amp;m)</code></td>
+<td>Swaps the contents of the triangular adaptors.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 begin1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the beginning of
+the <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 end1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the end of the
+<code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 begin2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the beginning of
+the <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 end2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the end of the
+<code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rbegin1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the
+beginning of the reversed <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rend1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the end of
+the reversed <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rbegin2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the
+beginning of the reversed <code>triangular_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rend2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the end of
+the reversed <code>triangular_adaptor</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notes</h4>
+<p><a name="triangular_adaptor_1">[1]</a>
+Supported parameters for the type of the triangular adaptor are
+<code>lower</code> , <code>unit_lower</code>, <code>upper</code>
+and <code>unit_upper</code> .</p>
+<hr />
+<p>Copyright (&copy;) 2000-2002 Joerg Walter, Mathias Koch<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

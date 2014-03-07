@@ -1,0 +1,290 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/cs.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/cs.xml
+ */
+cs{
+    ExemplarCharacters{
+        "[a á b c č d ď e é ě f g h {ch} i í j k l m n ň o ó p q r ř s š t ť u ú ů v "
+        "w x y ý z ž]"
+    }
+    ExemplarCharactersIndex{"[A B C Č D E F G H {CH} I J K L M N O P Q R Ř S Š T U V W X Y Z Ž]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00 ¤"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0 %"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{","}
+                exponential{"E"}
+                group{" "}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.49.93"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "dop.",
+                "odp.",
+            }
+            DateTimePatterns{
+                "H:mm:ss zzzz",
+                "H:mm:ss z",
+                "H:mm:ss",
+                "H:mm",
+                "EEEE, d. MMMM y",
+                "d. MMMM y",
+                "d.M.yyyy",
+                "d.M.yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                EEEd{"EEE, d."}
+                H{"H"}
+                Hm{"H:mm"}
+                Hms{"H:mm:ss"}
+                MEd{"E, d.M"}
+                MMMEd{"E, d. MMM"}
+                MMMd{"d. MMM"}
+                Md{"d.M"}
+                d{"d."}
+                yM{"M.y"}
+                yMEd{"EEE, d.M.y"}
+                yMMM{"LLL y"}
+                yMMMEd{"EEE, d. MMM y"}
+                yMd{"d.M.y"}
+                yQ{"Q yyyy"}
+                yQQQ{"QQQ y"}
+                yyQ{"Q yy"}
+                yyyy{"y"}
+                yyyyM{"M.yyyy"}
+                yyyyMMMM{"LLLL y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "ne",
+                        "po",
+                        "út",
+                        "st",
+                        "čt",
+                        "pá",
+                        "so",
+                    }
+                    wide{
+                        "neděle",
+                        "pondělí",
+                        "úterý",
+                        "středa",
+                        "čtvrtek",
+                        "pátek",
+                        "sobota",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "N",
+                        "P",
+                        "Ú",
+                        "S",
+                        "Č",
+                        "P",
+                        "S",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "př.Kr.",
+                    "po Kr.",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "ledna",
+                        "února",
+                        "března",
+                        "dubna",
+                        "května",
+                        "června",
+                        "července",
+                        "srpna",
+                        "září",
+                        "října",
+                        "listopadu",
+                        "prosince",
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        "1.",
+                        "2.",
+                        "3.",
+                        "4.",
+                        "5.",
+                        "6.",
+                        "7.",
+                        "8.",
+                        "9.",
+                        "10.",
+                        "11.",
+                        "12.",
+                    }
+                    narrow{
+                        "l",
+                        "ú",
+                        "b",
+                        "d",
+                        "k",
+                        "č",
+                        "č",
+                        "s",
+                        "z",
+                        "ř",
+                        "l",
+                        "p",
+                    }
+                    wide{
+                        "leden",
+                        "únor",
+                        "březen",
+                        "duben",
+                        "květen",
+                        "červen",
+                        "červenec",
+                        "srpen",
+                        "září",
+                        "říjen",
+                        "listopad",
+                        "prosinec",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    wide{
+                        "1. čtvrtletí",
+                        "2. čtvrtletí",
+                        "3. čtvrtletí",
+                        "4. čtvrtletí",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"‘"}
+        alternateQuotationStart{"‚"}
+        quotationEnd{"“"}
+        quotationStart{"„"}
+    }
+    listPattern{
+        standard{
+            2{"{0} a {1}"}
+            end{"{0} a {1}"}
+        }
+    }
+    measurementSystemNames{
+        US{"USA"}
+        metric{"Metrický"}
+    }
+    units{
+        day{
+            few{"{0} dny"}
+            one{"{0} den"}
+            other{"{0} dní"}
+        }
+        hour{
+            few{"{0} hodiny"}
+            one{"{0} hodina"}
+            other{"{0} hodin"}
+        }
+        minute{
+            few{"{0} minuty"}
+            one{"{0} minuta"}
+            other{"{0} minut"}
+        }
+        month{
+            few{"{0} měsíce"}
+            one{"{0} měsíc"}
+            other{"{0} měsíců"}
+        }
+        second{
+            few{"{0} sekundy"}
+            one{"{0} sekunda"}
+            other{"{0} sekund"}
+        }
+        week{
+            few{"{0} týdny"}
+            one{"{0} týden"}
+            other{"{0} týdnů"}
+        }
+        year{
+            few{"{0} roky"}
+            one{"{0} rok"}
+            other{"{0} let"}
+        }
+    }
+    unitsShort{
+        day{
+            few{"{0} dny"}
+            one{"{0} den"}
+            other{"{0} dní"}
+        }
+        hour{
+            few{"{0} hod."}
+            one{"{0} hod."}
+            other{"{0} hod."}
+        }
+        minute{
+            few{"{0} min."}
+            one{"{0} min."}
+            other{"{0} min."}
+        }
+        month{
+            few{"{0} měs."}
+            one{"{0} měs."}
+            other{"{0} měs."}
+        }
+        second{
+            few{"{0} sek."}
+            one{"{0} sek."}
+            other{"{0} sek."}
+        }
+        week{
+            few{"{0} týd."}
+            one{"{0} týd."}
+            other{"{0} týd."}
+        }
+        year{
+            few{"{0} roky"}
+            one{"{0} rok"}
+            other{"{0} let"}
+        }
+    }
+}

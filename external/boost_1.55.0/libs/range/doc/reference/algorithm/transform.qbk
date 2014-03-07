@@ -1,0 +1,88 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:transform transform]
+
+[heading Prototype]
+
+``
+template<
+    class SinglePassRange1,
+    class OutputIterator,
+    class UnaryOperation
+>
+OutputIterator transform(const SinglePassRange1& rng,
+                         OutputIterator out,
+                         UnaryOperation fun);
+
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class OutputIterator,
+    class BinaryOperation
+>
+OutputIterator transform(const SinglePassRange1& rng1,
+                         const SinglePassRange2& rng2,
+                         OutputIterator out,
+                         BinaryOperation fun);
+``
+
+[heading Description]
+
+[*UnaryOperation version:]
+
+`transform` assigns the value `y` to each element `[out, out + distance(rng)), y = fun(x)` where `x` is the corresponding value to `y` in `rng1`. The return value is `out + distance(rng)`.
+
+[*BinaryOperation version:]
+
+`transform` assigns the value `z` to each element `[out, out + min(distance(rng1), distance(rng2))), z = fun(x,y)` where `x` is the corresponding value in `rng1` and `y` is the corresponding value in `rng2`. This version of `transform` stops upon reaching either the end of `rng1`, or the end of `rng2`. Hence there isn't a requirement for `distance(rng1) == distance(rng2)` since there is a safe guaranteed behaviour, unlike with the iterator counterpart in the standard library.
+
+The return value is `out + min(distance(rng1), distance(rng2))`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/transform.hpp`
+
+[heading Requirements]
+
+[*For the unary versions of transform:]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `OutputIterator` is a model of the `OutputIteratorConcept`.
+* `UnaryOperation` is a model of the `UnaryFunctionConcept`.
+* `SinglePassRange1`'s value type must be convertible to `UnaryFunction`'s argument type.
+* `UnaryFunction`'s result type must be convertible to a type in `OutputIterator`'s set of value types.
+
+[*For the binary versions of transform:]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+* `OutputIterator` is a model of the `OutputIteratorConcept`.
+* `BinaryOperation` is a model of the `BinaryFunctionConcept`.
+* `SinglePassRange1`'s value type must be convertible to `BinaryFunction`'s first argument type.
+* `SinglePassRange2`'s value type must be convertible to `BinaryFunction`'s second argument type.
+* `BinaryOperation`'s result type must be convertible to a type in `OutputIterator`'s set of value types.
+
+[heading Precondition:]
+
+[*For the unary version of transform:]
+
+* `out` is not an iterator within the range `[begin(rng1) + 1, end(rng1))`.
+* `[out, out + distance(rng1))` is a valid range.
+
+[*For the binary version of transform:]
+
+* `out` is not an iterator within the range `[begin(rng1) + 1, end(rng1))`.
+* `out` is not an iterator within the range `[begin(rng2) + 1, end(rng2))`.
+* `[out, out + min(distance(rng1), distance(rng2)))` is a valid range.
+
+
+[heading Complexity]
+
+Linear. The operation is applied exactly `distance(rng1)` for the unary version and `min(distance(rng1), distance(rng2))` for the binary version.
+
+[endsect]
+
+

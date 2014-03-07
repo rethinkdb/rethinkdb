@@ -1,0 +1,39 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:replace_copy_if replace_copy_if]
+
+[heading Prototype]
+
+``
+template<class ForwardRange, class OutputIterator, class UnaryPredicate, class Value>
+OutputIterator replace_copy_if(const ForwardRange& rng, OutputIterator out,
+                               UnaryPredicate pred, const Value& with_what);
+``
+
+[heading Description]
+
+`replace_copy_if` copy every element `x` in `rng` such that the corresponding element in the output range `y` is `pred(x) ? with_what : x`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/replace_copy_if.hpp`
+
+[heading Requirements]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+* `Value` is convertible to `ForwardRange`'s value type.
+* `Value` is a model of the `AssignableConcept`.
+* `OutputIterator` is a model of the `OutputIteratorConcept`.
+* `UnaryPredicate` is a model of the `UnaryPredicateConcept`.
+
+[heading Complexity]
+
+Linear. `replace_copy_if` performs exactly `distance(rng)` evaluations of `pred`.
+
+[endsect]
+
+

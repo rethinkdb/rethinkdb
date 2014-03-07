@@ -1,0 +1,14 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Latin_Jamo.txt
+# Generated from CLDR 
+#
+::[[:script=Latin:][:M:]-];
+::NFD;
+::Lower;
+::Latin-ConjoiningJamo;
+::[[:script=Latin:][:M:]] NFC;

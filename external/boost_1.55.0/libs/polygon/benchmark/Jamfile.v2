@@ -1,0 +1,42 @@
+#          Copyright Andrii Sydorchuk 2010-2012.
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+# Path constants required by the benchmarks.
+path-constant GMP_ROOT : /home/slevin/Workspace/Libraries/gmp ;
+path-constant MPFR_ROOT : /home/slevin/Workspace/Libraries/mpfr ;
+path-constant CGAL_ROOT : /home/slevin/Workspace/Libraries/cgal ;
+path-constant SHULL_ROOT : /home/slevin/Workspace/Libraries/s_hull ;
+
+project voronoi-benchmark
+    :
+    requirements
+        <include>$(CGAL_ROOT)/include
+        <include>$(SHULL_ROOT)/include
+        <toolset>gcc:<library>$(GMP_ROOT)/lib/libgmp.so
+        <toolset>gcc:<library>$(MPFR_ROOT)/lib/libmpfr.so
+        <toolset>gcc:<library>$(CGAL_ROOT)/lib/libCGAL.so
+        <toolset>gcc:<library>$(CGAL_ROOT)/lib/libCGAL_Core.so
+        <toolset>gcc:<library>$(SHULL_ROOT)/s_hull.so
+        <toolset>gcc:<library>$(BOOST_ROOT)/libs/timer/build//boost_timer
+        <toolset>gcc:<library>$(BOOST_ROOT)/libs/thread/build//boost_thread
+        <toolset>gcc:<library>$(BOOST_ROOT)/libs/test/build//boost_unit_test_framework
+    ;
+
+alias "benchmark-general"
+    :
+        [ run voronoi_benchmark.cpp ]
+    ;
+
+alias "benchmark-points"
+    :
+        [ run voronoi_benchmark_points.cpp ]
+    ;
+
+alias "benchmark-segments"
+    :
+        [ run voronoi_benchmark_segments.cpp ]
+    ;

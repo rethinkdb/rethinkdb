@@ -1,0 +1,64 @@
+<html>
+<head>
+	<title>BOOST_PP_NOR</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_NOR</b> macro expands to the logical <i>NOR</i> of its operands.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_NOR</b>(<i>p</i>, <i>q</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>p</dt>
+			<dd>
+				The left operand of the operation.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+			<dt>q</dt>
+			<dd>
+				The right operand of the operation.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			If both <i>p</i> and <i>q</i> are both <i>0</i>, this macro expands to <i>1</i>.&nbsp;
+			Otherwise, it expands to <i>0</i>.
+		</div>
+		<div>
+			This macro performs a boolean conversion on each operand before performing the logical <i>NOR</i> operation.&nbsp;
+			If that conversion is not necessary, use <b>BOOST_PP_BITNOR</b> instead.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="bitnor.html">BOOST_PP_BITNOR</a></li>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/logical/nor.html">&lt;boost/preprocessor/logical/nor.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/logical/nor.html">boost/preprocessor/logical/nor.hpp</a>&gt;
+
+<a href="nor.html">BOOST_PP_NOR</a>(4, 0) // expands to 0
+<a href="nor.html">BOOST_PP_NOR</a>(0, 0) // expands to 1
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

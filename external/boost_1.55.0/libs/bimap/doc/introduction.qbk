@@ -1,0 +1,99 @@
+[/license
+
+Boost.Bimap
+
+Copyright (c) 2006-2007 Matias Capeletto
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+
+[/ QuickBook Document version 1.4 ]
+
+[section Introduction]
+
+[heading How to use this document]
+
+This documentation contains a large amount of information. Whereas it
+may be worth reading it all, this documentation is intended for
+programmers with various motives:
+
+[variablelist
+[[I have to finished this today, I just want a bidirectional map!][
+If your boss will kill you if the project is not finished by the end of
+the day, just read the [link boost_bimap.one_minute_tutorial One-minute tutorial].
+If you have a background in STL, you can be testing a bimap within ten minutes.
+]]
+[[I am a serious programmer and want to learn Boost.Bimap][
+Boost.Bimap has a lot to offer if you are prepared to spend some time
+reading this documentation. You will need to read [link boost_bimap.the_tutorial The tutorial]
+and skim through some of the [link boost_bimap.examples Examples].
+The best way to read this documentation is in the order given here.
+Just click on the arrow at the right bottom corner as you finish each page.
+You may skip the reference section, and return to it later to look up a function
+signature or to find a specific metafunction.
+]]
+[[I just love C++, I want to see the inner workings of Boost.Bimap.][
+If you are a library developer, this documentation is the best place to
+learn how Boost.Bimap is implemented. It is strongly recommended that
+you first learn to use the library as if you were the second type of
+programmer above. This library was developed in the Google SoC 2006, and
+the mentor and student generated a great deal of documentation in the
+building process. The rationale section is very large and contains a lot
+of information. There is a history section for those who might find it
+useful. Finally, in the reference section, each entity of the library is
+documented and its source code is presented.
+]]
+]
+
+[note
+If anything in the documentation is unclear, please email me at ['matias
+{dot} capeletto {at} gmail {dot} com], telling me which of the three
+types of programmer above you are and which section needs improvement.
+Please use the following notation for the subject: ['\[boost\]\[bimap\] Your
+problem] as this will help me to identify it more easily. If appropriate,
+I will act on your advice to improve the documentation. Thanks and enjoy!
+]
+
+[important
+If you should find a bug or would like to see an additional feature in
+the library, please use the standard Boost methods of dealing with this
+kind of issue rather than emailing me directly. Boost has a very good
+system to [@http://www.boost.org/more/bugs.htm track bugs] and
+[@http://www.boost.org/more/requesting_new_features.htm features requests],
+and using it is the best way of dealing with them as soon as possible.
+]
+
+[heading Navigation]
+
+Used in combination with the configured browser key (usually Alt), the
+following keys act as handy shortcuts for common navigation tasks.
+
+* [*General]
+
+    * [^[*p]] - Previous page
+    * [^[*n]] - Next page
+    * [^[*h]] - home
+    * [^[*u]] - Up
+
+* [*Main TOC]
+
+    * [^[*i]] - Introduction
+    * [^[*o]] - One minute tutorial
+    * [^[*t]] - The tutorial
+    * [^[*b]] - Bimap and Boost
+    * [^[*r]] - Reference
+    * [^[*c]] - Compiler specifics
+    * [^[*v]] - Performance
+    * [^[*e]] - Examples
+    * [^[*s]] - Test Suite
+    * [^[*f]] - Future work
+    * [^[*m]] - Release notes
+    * [^[*w]] - Rationale
+    * [^[*y]] - History
+    * [^[*a]] - Acknowledgements
+
+[endsect]

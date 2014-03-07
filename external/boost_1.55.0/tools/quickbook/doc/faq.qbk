@@ -1,0 +1,55 @@
+[/
+    Copyright 2002,2004,2006 Joel de Guzman, Eric Niebler
+    Copyright 2010-2011 Daniel James
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[chapter Frequently Asked Questions
+    [quickbook 1.6]
+    [compatibility-mode 1.5]
+    [id quickbook.faq]
+    [source-mode teletype]
+]
+
+[heading Can I use QuickBook for non-Boost documentation?]
+
+QuickBook can be used for non-Boost documentation with a little extra work.
+
+[:['Faq contributed by Michael Marcin]]
+
+When building HTML documentation with BoostBook a Boost C++ Libraries header
+is added to the files. When using QuickBook to document projects outside of
+Boost this is not desirable. This behavior can be overridden at the BoostBook
+level by specifying some XSLT options. When using Boost Build version 2 (BBv2)
+this can be achieved by adding parameters to the BoostBook target declaration.
+
+For example:
+[pre
+using quickbook ;
+
+xml my_doc : my_doc.qbk ;
+
+boostbook standalone
+    :
+        my_doc
+    :
+        <xsl:param>boost.image.src\=images/my_project_logo.png
+        <xsl:param>boost.image.alt\="\\"My Project\\""
+        <xsl:param>boost.image.w=100
+        <xsl:param>boost.image.h=50
+        <xsl:param>nav.layout=none
+    ;
+]
+
+[heading Is there an easy way to convert BoostBook docs to QuickBook?]
+
+There's a stylesheet that allows Boostbook generated HTML to be viewed
+as quickbook source, see
+[@http://svn.boost.org/trac/boost/wiki/QuickbookSourceStylesheetProject],
+so it's then just a cut and paste job to convert the BoostBook to
+QuickBook (which IMO is a whole lot easier to edit and maintain).
+
+--John Maddock

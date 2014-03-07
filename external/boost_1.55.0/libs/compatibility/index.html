@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+
+  <title>Boost.Compatibilty library</title>
+</head>
+
+<body>
+  <div>
+    <img src="../../boost.png" alt="boost.png (6897 bytes)" align="middle"
+    width="277" height="86">
+    <hr>
+
+    <h1>Boost.Compatibilty library</h1>
+
+    <p>This library provides workarounds which allow the other Boost
+    libraries to be used on otherwise non-conforming platforms. We hope that
+    it will be possible to remove this library at some time in the future as
+    standard library suppliers become more conforming.</p>
+
+    <h2>Missing C++ standard library CXX headers (e.g &lt;cstdio&gt;)
+    workaround</h2>
+
+    <p>The Python script: <tt><a href=
+    "generate_cpp_c_headers.py">generate_cpp_c_headers.py</a></tt> creates a
+    full set of C++ C header files (e.g. &lt;cstdio&gt;) that are missing on
+    some platforms. The header files created by this script reside in the
+    directory <tt><a href=
+    "../../boost/compatibility/cpp_c_headers/">boost/compatibility/cpp_c_headers</a></tt>.
+    To use the header files, add this directory to the include file search
+    path. For example:</p>
+    <pre>
+cxx -I/usr/local/boost/boost/compatibility/cpp_c_headers ...
+</pre>
+
+    <p>Supported platforms are:</p>
+
+    <ul>
+      <li>Compaq Alpha, RedHat 6.2 Linux, Compaq C++ V6.3 (cxx)</li>
+
+      <li>Compaq Alpha, Tru64 Unix V5.0, Compaq C++ V6.2 (cxx)</li>
+
+      <li>Silicon Graphics, IRIX 6.5, MIPSpro Compilers: Version 7.3.1.1m
+      (CC)</li>
+    </ul>
+
+    <p>There are more powerful alternatives to using the Boost.Compatibility
+    library CXX headers, e.g. <a href="http://stlport.sourceforge.net">STLport</a>
+    or <a href=
+    "http://www.fnal.gov/docs/working-groups/fpcltf/Pkg/ISOcxx/doc/0ISOcxx.html">
+    ISOCXX</a>. However, in contrast to these alternatives, the
+    <tt>generate_cpp_c_headers.py</tt> script is very light-weight (less than
+    100 non-comment lines of Python code), much less ambitious, significantly
+    easier to maintain and therefore more suitable as an interim
+    workaround.</p>
+
+    <p>Contributed by Ralf W. Grosse-Kunstleve.</p>
+
+    <h2>Missing C++ standard library &lt;limits&gt; header workaround
+    <a href="../../boost/limits.hpp">boost/limits.hpp</a></h2>
+
+    <p>Several Boost libraries require the standard library's &lt;limits&gt;
+    header, yet this header is not always supplied by non-conforming
+    compilers and libraries.&nbsp; Header <a href=
+    "../../boost/limits.hpp">boost/limits.hpp</a> simply includes the
+    standard library &lt;limits&gt; header if available, otherwise includes
+    <a href=
+    "../../boost/detail/limits.hpp">boost/detail/limits.hpp</a>.&nbsp;
+    BOOST_NO_LIMITS from <a href="../config/config.htm">boost/config.hpp</a>
+    is used to determine &lt;limits&gt; availability.</p>
+
+    <p>Note also the test program <a href=
+    "../config/test/limits_test.cpp">limits_test.cpp</a></p>
+
+    <p>Contributed by Jens Maurer.</p>
+
+    <p>&nbsp;<br clear="all"></p>
+    <hr>
+
+    <p><a href="http://validator.w3.org/check?uri=referer"><img border="0"
+    src="../../doc/images/valid-html401.png" alt=
+    "Valid HTML 4.01 Transitional" height="31" width="88"></a></p>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->01 December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38508" --></p>
+
+    <p><i>&copy; Copyright Ralf W. Grosse-Kunstleve 2001</i></p>
+
+    <p><i>Distributed under the Boost Software License, Version 1.0. (See
+    accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+    copy at <a href=
+    "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+  </div>
+</body>
+</html>

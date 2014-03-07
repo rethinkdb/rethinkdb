@@ -1,0 +1,133 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>PrimitiveParser</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../parser_concepts.html" title="Parser Concepts">
+<link rel="prev" href="parser.html" title="Parser">
+<link rel="next" href="unaryparser.html" title="UnaryParser">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="parser.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../parser_concepts.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="unaryparser.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.parser_concepts.primitiveparser"></a><a class="link" href="primitiveparser.html" title="PrimitiveParser">PrimitiveParser</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.parser_concepts.primitiveparser.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.parser_concepts.primitiveparser.description"></a></span><a class="link" href="primitiveparser.html#spirit.qi.reference.parser_concepts.primitiveparser.description">Description</a>
+          </h6>
+<p>
+            <span class="emphasis"><em>PrimitiveParser</em></span> is the most basic building block
+            that the client uses to build more complex parsers.
+          </p>
+<h6>
+<a name="spirit.qi.reference.parser_concepts.primitiveparser.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.parser_concepts.primitiveparser.refinement_of"></a></span><a class="link" href="primitiveparser.html#spirit.qi.reference.parser_concepts.primitiveparser.refinement_of">Refinement
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="parser.html" title="Parser"><code class="computeroutput"><span class="identifier">Parser</span></code></a>
+            </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.parser_concepts.primitiveparser.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.parser_concepts.primitiveparser.pre_skip"></a></span><a class="link" href="primitiveparser.html#spirit.qi.reference.parser_concepts.primitiveparser.pre_skip">Pre-skip</a>
+          </h6>
+<p>
+            Upon entry to the <code class="computeroutput"><span class="identifier">parse</span></code>
+            member function, a PrimitiveParser is required to do a pre-skip. Leading
+            <code class="computeroutput"><span class="identifier">skip</span></code> characters/tokens
+            will be skipped prior to parsing. Only PrimitiveParsers are required
+            to perform this pre-skip. This is typically carried out through a call
+            to <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">skip_over</span></code>:
+          </p>
+<pre class="programlisting"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">skip_over</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span> <span class="identifier">l</span><span class="special">,</span> <span class="identifier">skip</span><span class="special">);</span>
+</pre>
+<h6>
+<a name="spirit.qi.reference.parser_concepts.primitiveparser.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.parser_concepts.primitiveparser.type_expressions"></a></span><a class="link" href="primitiveparser.html#spirit.qi.reference.parser_concepts.primitiveparser.type_expressions">Type
+            Expressions</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_primitive_parser</span><span class="special">&lt;</span><span class="identifier">P</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Metafunction that evaluates to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+                      if a certain type, <code class="computeroutput"><span class="identifier">P</span></code>,
+                      is a PrimitiveParser, <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>
+                      otherwise (See <a href="../../../../../../../../libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+                      Boolean Constant</a>).
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.parser_concepts.primitiveparser.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.parser_concepts.primitiveparser.models"></a></span><a class="link" href="primitiveparser.html#spirit.qi.reference.parser_concepts.primitiveparser.models">Models</a>
+          </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <a class="link" href="../auxiliary/attr.html" title="Attribute Parser (attr)"><code class="computeroutput"><span class="identifier">attr</span><span class="special">(</span><span class="identifier">attrib</span><span class="special">)</span></code></a>
+              </li>
+<li class="listitem">
+                <a class="link" href="../auxiliary/eoi.html" title="End of Input Parser (eoi)"><code class="computeroutput"><span class="identifier">eoi</span></code></a>
+              </li>
+<li class="listitem">
+                <a class="link" href="../auxiliary/eol.html" title="End of Line Parser (eol)"><code class="computeroutput"><span class="identifier">eol</span></code></a>
+              </li>
+<li class="listitem">
+                <a class="link" href="../auxiliary/eps.html" title="Epsilon Parser (eps)"><code class="computeroutput"><span class="identifier">eps</span></code></a>
+              </li>
+<li class="listitem">
+                <a class="link" href="../string/symbols.html" title="Symbols Parser (symbols)"><code class="computeroutput"><span class="identifier">symbols</span><span class="special">&lt;&gt;</span></code></a>
+              </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="parser.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../parser_concepts.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="unaryparser.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

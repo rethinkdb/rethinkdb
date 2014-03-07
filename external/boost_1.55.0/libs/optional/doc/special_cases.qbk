@@ -1,0 +1,372 @@
+
+[section Optional references]
+
+This library allows the template parameter `T` to be of reference type:
+`T&`, and to some extent, `T const&`.
+
+However, since references are not real objects some restrictions apply and
+some operations are not available in this case:
+
+* Converting constructors
+* Converting assignment
+* InPlace construction
+* InPlace assignment
+* Value-access via pointer
+
+Also, even though `optional<T&>` treats it wrapped pseudo-object much as
+a real value, a true real reference is stored so aliasing will ocurr:
+
+* Copies of `optional<T&>` will copy the references but all these references
+will nonetheless reefer to the same object.
+* Value-access will actually provide access to the referenced object
+rather than the reference itself.
+
+[endsect]
+
+[section Rebinding semantics for assignment of optional references]
+
+If you assign to an ['uninitialized ] `optional<T&>` the effect is to bind (for
+the first time) to the object. Clearly, there is no other choice.
+
+    int x = 1 ;
+    int& rx = x ;
+    optional<int&> ora ;
+    optional<int&> orb(x) ;
+    ora = orb ; // now 'ora' is bound to 'x' through 'rx'
+    *ora = 2 ; // Changes value of 'x' through 'ora'
+    assert(x==2); 
+
+If you assign to a bare C++ reference, the assignment is forwarded to the
+referenced object; it's value changes but the reference is never rebound.
+
+    int a = 1 ;
+    int& ra = a ;
+    int b = 2 ;
+    int& rb = b ;
+    ra = rb ; // Changes the value of 'a' to 'b'
+    assert(a==b);
+    b = 3 ;
+    assert(ra!=b); // 'ra' is not rebound to 'b'
+
+Now, if you assign to an ['initialized ] `optional<T&>`, the effect is to
+[*rebind] to the new object instead of assigning the referee. This is unlike
+bare C++ references.
+
+    int a = 1 ;
+    int b = 2 ;
+    int& ra = a ;
+    int& rb = b ;
+    optional<int&> ora(ra) ;
+    optional<int&> orb(rb) ;
+    ora = orb ; // 'ora' is rebound to 'b'
+    *ora = 3 ; // Changes value of 'b' (not 'a')
+    assert(a==1); 
+    assert(b==3); 
+
+[heading Rationale]
+
+Rebinding semantics for the assignment of ['initialized ] `optional` references has
+been chosen to provide [*consistency among initialization states] even at the
+expense of lack of consistency with the semantics of bare C++ references.
+It is true that `optional<U>` strives to behave as much as possible as `U`
+does whenever it is initialized; but in the case when `U` is `T&`, doing so would
+result in inconsistent behavior w.r.t to the lvalue initialization state.
+
+Imagine `optional<T&>` forwarding assignment to the referenced object (thus
+changing the referenced object value but not rebinding), and consider the
+following code:
+
+    optional<int&> a = get();
+    int x = 1 ;
+    int& rx = x ;
+    optional<int&> b(rx);
+    a = b ;
+
+What does the assignment do?
+
+If `a` is ['uninitialized], the answer is clear: it binds to `x` (we now have
+another reference to `x`).
+But what if `a` is already ['initialized]? it would change the value of the
+referenced object (whatever that is); which is inconsistent with the other
+possible case.
+
+If `optional<T&>` would assign just like `T&` does, you would never be able to
+use Optional's assignment without explicitly handling the previous
+initialization state unless your code is capable of functioning whether
+after the assignment, `a` aliases the same object as `b` or not.
+
+That is, you would have to discriminate in order to be consistency.
+
+If in your code rebinding to another object is not an option, then is very
+likely that binding for the fist time isn't either. In such case, assignment
+to an ['uninitialized ] `optional<T&>` shall be prohibited. It is quite possible
+that in such scenario the precondition that the lvalue must be already
+initialized exist. If it doesn't, then binding for the first time is OK
+while rebinding is not which is IMO very unlikely.
+In such scenario, you can assign the value itself directly, as in:
+
+    assert(!!opt);
+    *opt=value;
+
+[endsect]
+
+[section In-Place Factories]
+
+One of the typical problems with wrappers and containers is that their
+interfaces usually provide an operation to initialize or assign the
+contained object as a copy of some other object. This not only requires the
+underlying type to be __COPY_CONSTRUCTIBLE__, but also requires the existence of
+a fully constructed object, often temporary, just to follow the copy from:
+
+    struct X
+    {
+        X ( int, std:::string ) ;
+    } ;
+
+    class W
+    {
+        X wrapped_ ;
+
+        public:
+
+        W ( X const& x ) : wrapped_(x) {}
+    } ;
+
+    void foo()
+    {
+        // Temporary object created.
+        W ( X(123,"hello") ) ;
+    }
+
+A solution to this problem is to support direct construction of the
+contained object right in the container's storage.
+In this scheme, the user only needs to supply the arguments to the
+constructor to use in the wrapped object construction.
+
+    class W
+    {
+        X wrapped_ ;
+
+        public:
+
+        W ( X const& x ) : wrapped_(x) {}
+        W ( int a0, std::string a1) : wrapped_(a0,a1) {}
+    } ;
+
+    void foo()
+    {
+        // Wrapped object constructed in-place
+        // No temporary created.
+        W (123,"hello") ;
+    }
+
+A limitation of this method is that it doesn't scale well to wrapped
+objects with multiple constructors nor to generic code were the constructor
+overloads are unknown.
+
+The solution presented in this library is the family of [*InPlaceFactories]
+and [*TypedInPlaceFactories].
+These factories are a family of classes which encapsulate an increasing
+number of arbitrary constructor parameters and supply a method to construct
+an object of a given type using those parameters at an address specified by
+the user via placement new.
+
+For example, one member of this family looks like:
+
+    template<class T,class A0, class A1>
+    class TypedInPlaceFactory2
+    {
+        A0 m_a0 ; A1 m_a1 ;
+
+        public:
+
+        TypedInPlaceFactory2( A0 const& a0, A1 const& a1 ) : m_a0(a0), m_a1(a1) {}
+
+        void construct ( void* p ) { new (p) T(m_a0,m_a1) ; }
+     } ;
+
+A wrapper class aware of this can use it as:
+
+    class W
+    {
+        X wrapped_ ;
+
+        public:
+
+        W ( X const& x ) : wrapped_(x) {}
+        W ( TypedInPlaceFactory2 const& fac ) { fac.construct(&wrapped_) ; }
+    } ;
+
+    void foo()
+    {
+        // Wrapped object constructed in-place via a TypedInPlaceFactory.
+        // No temporary created.
+        W ( TypedInPlaceFactory2<X,int,std::string>(123,"hello")) ;
+    }
+
+The factories are divided in two groups:
+
+* [_TypedInPlaceFactories]: those which take the target type as a primary
+template parameter.
+* [_InPlaceFactories]: those with a template `construct(void*)` member
+function taking the target type.
+
+Within each group, all the family members differ only in the number of
+parameters allowed.
+
+This library provides an overloaded set of helper template functions to
+construct these factories without requiring unnecessary template parameters:
+
+    template<class A0,...,class AN>
+    InPlaceFactoryN <A0,...,AN> in_place ( A0 const& a0, ..., AN const& aN) ;
+
+    template<class T,class A0,...,class AN>
+    TypedInPlaceFactoryN <T,A0,...,AN> in_place ( T const& a0, A0 const& a0, ..., AN const& aN) ;
+
+In-place factories can be used generically by the wrapper and user as follows:
+
+    class W
+    {
+        X wrapped_ ;
+
+        public:
+
+        W ( X const& x ) : wrapped_(x) {}
+
+        template< class InPlaceFactory >
+        W ( InPlaceFactory const& fac ) { fac.template <X>construct(&wrapped_) ; }
+
+    } ;
+
+    void foo()
+    {
+        // Wrapped object constructed in-place via a InPlaceFactory.
+        // No temporary created.
+        W ( in_place(123,"hello") ) ;
+    }
+
+The factories are implemented in the headers: __IN_PLACE_FACTORY_HPP__ and __TYPED_IN_PLACE_FACTORY_HPP__
+
+[endsect]
+
+[section A note about optional<bool>]
+
+`optional<bool>` should be used with special caution and consideration.
+
+First, it is functionally similar to a tristate boolean (false,maybe,true)
+—such as __BOOST_TRIBOOL__— except that in a tristate boolean, the maybe state
+[_represents a valid value], unlike the corresponding state of an uninitialized
+`optional<bool>`.
+It should be carefully considered if an `optional<bool>` instead of a `tribool`
+is really needed.
+
+Second, `optional<>` provides an implicit conversion to `bool`. This
+conversion refers to the initialization state and not to the contained value.
+Using `optional<bool>` can lead to subtle errors due to the implicit `bool`
+conversion:
+
+    void foo ( bool v ) ;
+    void bar()
+    {
+        optional<bool> v = try();
+
+        // The following intended to pass the value of 'v' to foo():
+        foo(v);
+        // But instead, the initialization state is passed
+        // due to a typo: it should have been foo(*v).
+    }
+
+The only implicit conversion is to `bool`, and it is safe in the sense that
+typical integral promotions don't apply (i.e. if `foo()` takes an `int`
+instead, it won't compile).
+
+[endsect]
+
+[section Exception Safety Guarantees]
+
+Because of the current implementation (see [link boost_optional.implementation_notes Implementation Notes]), all of the assignment methods:
+
+* `optional<T>::operator= ( optional<T> const& )`
+* `optional<T>::operator= ( T const& )`
+* `template<class U> optional<T>::operator= ( optional<U> const& )`
+* `template<class InPlaceFactory> optional<T>::operator= ( InPlaceFactory const& )`
+* `template<class TypedInPlaceFactory> optional<T>::operator= ( TypedInPlaceFactory const& ) `
+* `optional<T>:::reset ( T const&)`
+
+Can only ['guarantee] the [_basic exception safety]: The lvalue optional is
+left [_uninitialized] if an exception is thrown (any previous value is ['first]
+destroyed using `T::~T()`)
+
+On the other hand, the ['uninitializing] methods:
+
+* `optional<T>::operator= ( detail::none_t )`
+* `optional<T>::reset()`
+
+Provide the no-throw guarantee (assuming a no-throw `T::~T()`)
+
+However, since `optional<>` itself doesn't throw any exceptions, the only
+source for exceptions here are `T`'s constructor, so if you know the exception
+guarantees for `T::T ( T const& )`, you know that `optional`'s assignment and
+reset has the same guarantees.
+
+    //
+    // Case 1: Exception thrown during assignment.
+    //
+    T v0(123);
+    optional<T> opt0(v0);
+    try
+    {
+        T v1(456);
+        optional<T> opt1(v1);
+        opt0 = opt1 ;
+
+        // If no exception was thrown, assignment succeeded.
+        assert( *opt0 == v1 ) ;
+    }
+    catch(...)
+    {
+        // If any exception was thrown, 'opt0' is reset to uninitialized.
+        assert( !opt0 ) ;
+    }
+
+    //
+    // Case 2: Exception thrown during reset(v)
+    //
+    T v0(123);
+    optional<T> opt(v0);
+    try
+    {
+        T v1(456);
+        opt.reset ( v1 ) ;
+
+        // If no exception was thrown, reset succeeded.
+        assert( *opt == v1 ) ;
+    }
+    catch(...)
+    {
+        // If any exception was thrown, 'opt' is reset to uninitialized.
+        assert( !opt ) ;
+    }
+
+[heading Swap]
+
+`void swap( optional<T>&, optional<T>& )` has the same exception guarantee
+as `swap(T&,T&)` when both optionals are initialized.
+If only one of the optionals is initialized, it gives the same ['basic]
+exception guarantee as `optional<T>::reset( T const& )` (since
+`optional<T>::reset()` doesn't throw).
+If none of the optionals is initialized, it has no-throw guarantee
+since it is a no-op.
+
+[endsect]
+
+[section Type requirements]
+
+In general, `T` must be __COPY_CONSTRUCTIBLE__ and have a no-throw destructor.
+The copy-constructible requirement is not needed if [*InPlaceFactories] are used.
+
+`T` [_is not] required to be __SGI_DEFAULT_CONSTRUCTIBLE__.
+
+[endsect]
+
+

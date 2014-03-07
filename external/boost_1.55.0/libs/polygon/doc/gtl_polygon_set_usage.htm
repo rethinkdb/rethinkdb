@@ -1,0 +1,85 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Polygon Set Usage</title>
+</head>
+
+<body>
+
+<p><font face="Courier New">/*<br>
+Copyright 2008 Intel Corporation<br>
+<br>
+Use, modification and distribution are subject to the Boost Software License,<br>
+Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at<br>
+http://www.boost.org/LICENSE_1_0.txt).<br>
+*/<br>
+#include &lt;boost/polygon/polygon.hpp&gt;<br>
+#include &lt;cassert&gt;<br>
+namespace gtl = boost::polygon;<br>
+using namespace boost::polygon::operators;<br><br>
+int main() {<br>&nbsp; &nbsp; 
+//lets declare ourselves a polygon set<br>&nbsp; &nbsp; 
+using namespace gtl; //because of operators<br>&nbsp; &nbsp; 
+typedef std::vector&lt;polygon_data&lt;int&gt; &gt; PolygonSet;<br>&nbsp; &nbsp; 
+PolygonSet ps;<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+//lets put some data in<br>&nbsp; &nbsp; 
+ps += rectangle_data&lt;int&gt;(0, 0, 10, 10);<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+//now lets do something interesting<br>&nbsp; &nbsp; 
+PolygonSet ps2;<br>&nbsp; &nbsp; 
+ps2 += rectangle_data&lt;int&gt;(5, 5, 15, 15);<br>&nbsp; &nbsp; 
+PolygonSet ps3;<br>&nbsp; &nbsp; 
+assign(ps3, ps * ps2); //woah, I just felt the room flex around me<br>&nbsp; &nbsp; 
+PolygonSet ps4;<br>&nbsp; &nbsp; 
+ps4 += ps + ps2;<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+//assert that area of result is equal to sum of areas<br>&nbsp; &nbsp; 
+//of input geometry minus the area of overlap between inputs<br>&nbsp; &nbsp; 
+assert(area(ps4) == area(ps) + area(ps2) - area(ps3));<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+//I don't even see the code anymore, all<br>&nbsp; &nbsp; 
+//I see is bounding box...interval...triangle<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+//lets try that again in slow motion shall we?<br>&nbsp;&nbsp;&nbsp; 
+assert(equivalence((ps + ps2) - (ps * ps2), ps ^ ps2));<br>
+<br>
+&nbsp;&nbsp;&nbsp; //hmm, subtracting the intersection from the union<br>
+&nbsp;&nbsp;&nbsp; //is equivalent to the xor, all this in one line of code,<br>
+&nbsp;&nbsp;&nbsp; //now we're programming in bullet time<br>
+&nbsp;&nbsp;&nbsp; //(by the way, xor is implemented as one pass, not 
+composition)&nbsp; <br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+//just for fun<br>&nbsp; &nbsp; 
+rectangle_data&lt;int&gt; rect;<br>&nbsp; &nbsp; 
+assert(extents(rect, ps ^ ps2));<br>&nbsp; &nbsp; 
+assert(area(rect) == 225);<br>&nbsp; &nbsp; 
+assert(area(rect ^ (ps ^ ps2)) == area(rect) - area(ps ^ ps2)); <br>&nbsp; &nbsp; 
+return 0;<br>}<br>&nbsp; &nbsp; 
+<br>//Now you know how to use the polygon set concept with library polygons<br>&nbsp; &nbsp; 
+&nbsp;</font></p>
+
+
+<table class="docinfo" rules="none" frame="void" id="table1">
+	<colgroup>
+		<col class="docinfo-name"><col class="docinfo-content">
+	</colgroup>
+	<tbody vAlign="top">
+		<tr>
+			<th class="docinfo-name">Copyright:</th>
+			<td>Copyright © Intel Corporation 2008-2010.</td>
+		</tr>
+		<tr class="field">
+			<th class="docinfo-name">License:</th>
+			<td class="field-body">Distributed under the Boost Software License, 
+			Version 1.0. (See accompanying file <tt class="literal">
+			<span class="pre">LICENSE_1_0.txt</span></tt> or copy at
+			<a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+			http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+		</tr>
+</table>
+
+</body>
+
+</html>

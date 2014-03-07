@@ -1,0 +1,64 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Generic fixture model</title>
+<link rel="stylesheet" href="../../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../../index.html" title="Boost Test Library">
+<link rel="up" href="../fixture.html" title="Fixtures or let me repeat myself">
+<link rel="prev" href="../fixture.html" title="Fixtures or let me repeat myself">
+<link rel="next" href="per-test-case.html" title="Per test case fixture">
+<script language="JavaScript1.2" src="../../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../../utf.html">The Unit Test Framework</a> &gt; <a href="../../user-guide.html">User's guide</a><a href="../../testing-tools.html">
+      &gt;
+      </a><a href="../fixture.html">Fixtures</a><a href="../test-output.html">
+      &gt;
+      </a><b>Generic model</b>
+</td>
+<td><div class="spirit-nav">
+<a href="../fixture.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="per-test-case.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.fixture.model"></a>Generic fixture model</h5></div></div></div>
+<p class="first-line-indented">
+   The <acronym class="acronym">UTF</acronym> defines the generic fixture model as follows:
+  </p>
+<pre class="programlisting">struct &lt;fixture-name&gt;{
+   &lt;fixture-name&gt;(); // setup function
+   ~&lt;fixture-name&gt;(); // teardown function
+};</pre>
+<p class="first-line-indented">
+   In other words a fixture is expected to be implemented as a class where the class constructor serves as a setup
+   method and class destructor serves as teardown method. The <acronym class="acronym">UTF</acronym> opted to avoid explicit names in fixture
+   interface for setup and teardown methods, since is considered most natural in C++ for tasks similar to RAII and
+   coincides with the pure C++ solution discusses earlier.
+  </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../../doc/html/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+    The above interface prevents you to report errors in the teardown procedure using an exception. It does make
+    sense though: if somehow more than one fixture is assigned to a test unit, you want all teardown procedures to
+    run,  even if some may experience problems.
+   </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../fixture.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../fixture.html"><img src="../../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="per-test-case.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

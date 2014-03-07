@@ -1,0 +1,236 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Controlled Stepper</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="error_stepper.html" title="Error Stepper">
+<link rel="next" href="dense_output_stepper.html" title="Dense Output Stepper">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="error_stepper.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="dense_output_stepper.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.concepts.controlled_stepper"></a><a class="link" href="controlled_stepper.html" title="Controlled Stepper">Controlled
+      Stepper</a>
+</h3></div></div></div>
+<p>
+        This concept specifies the interface a controlled stepper has to fulfill
+        to be used within <a class="link" href="../odeint_in_detail/integrate_functions.html" title="Integrate functions">integrate
+        functions</a>.
+      </p>
+<h5>
+<a name="boost_numeric_odeint.concepts.controlled_stepper.h0"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.controlled_stepper.description"></a></span><a class="link" href="controlled_stepper.html#boost_numeric_odeint.concepts.controlled_stepper.description">Description</a>
+      </h5>
+<p>
+        A controlled stepper following this Controlled Stepper concept provides the
+        possibility to perform one step of the solution <span class="emphasis"><em>x(t)</em></span>
+        of an ODE with step-size <span class="emphasis"><em>dt</em></span> to obtain <span class="emphasis"><em>x(t+dt)</em></span>
+        with a given step-size <span class="emphasis"><em>dt</em></span>. Depending on an error estimate
+        of the solution the step might be rejected and a smaller step-size is suggested.
+      </p>
+<h5>
+<a name="boost_numeric_odeint.concepts.controlled_stepper.h1"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.controlled_stepper.associated_types"></a></span><a class="link" href="controlled_stepper.html#boost_numeric_odeint.concepts.controlled_stepper.associated_types">Associated
+        types</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <p><span class="bold"><strong>state_type</strong></span></p>
+<p><code class="computeroutput"><span class="identifier">Stepper</span><span class="special">::</span><span class="identifier">state_type</span></code></p>
+<p>The
+            type characterizing the state of the ODE, hence <span class="emphasis"><em>x</em></span>.</p>
+          </li>
+<li class="listitem">
+            <p><span class="bold"><strong>deriv_type</strong></span></p>
+<p><code class="computeroutput"><span class="identifier">Stepper</span><span class="special">::</span><span class="identifier">deriv_type</span></code></p>
+<p>The
+            type characterizing the derivative of the ODE, hence <span class="emphasis"><em>d x/dt</em></span>.</p>
+          </li>
+<li class="listitem">
+            <p><span class="bold"><strong>time_type</strong></span></p>
+<p><code class="computeroutput"><span class="identifier">Stepper</span><span class="special">::</span><span class="identifier">time_type</span></code></p>
+<p>The
+            type characterizing the dependent variable of the ODE, hence the time
+            <span class="emphasis"><em>t</em></span>.</p>
+          </li>
+<li class="listitem">
+            <p><span class="bold"><strong>value_type</strong></span></p>
+<p><code class="computeroutput"><span class="identifier">Stepper</span><span class="special">::</span><span class="identifier">value_type</span></code></p>
+<p>The
+            numerical data type which is used within the stepper, something like
+            <code class="computeroutput"><span class="keyword">float</span></code>, <code class="computeroutput"><span class="keyword">double</span></code>,
+            <code class="computeroutput"><span class="identifier">complex</span><span class="special">&amp;</span><span class="identifier">lt</span><span class="special">;</span> <span class="keyword">double</span> <span class="special">&amp;</span><span class="identifier">gt</span><span class="special">;</span></code>.</p>
+          </li>
+<li class="listitem">
+            <p><span class="bold"><strong>stepper_category</strong></span></p>
+<p><code class="computeroutput"><span class="identifier">Stepper</span><span class="special">::</span><span class="identifier">stepper_category</span></code></p>
+<p>A
+            tag type characterizing the category of the stepper. This type must be
+            convertible to <code class="computeroutput"><span class="identifier">controlled_stepper_tag</span></code>.</p>
+          </li>
+</ul></div>
+<h5>
+<a name="boost_numeric_odeint.concepts.controlled_stepper.h2"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.controlled_stepper.notation"></a></span><a class="link" href="controlled_stepper.html#boost_numeric_odeint.concepts.controlled_stepper.notation">Notation</a>
+      </h5>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">ControlledStepper</span></code></span></dt>
+<dd><p>
+              A type that is a model of Controlled Stepper
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">State</span></code></span></dt>
+<dd><p>
+              A type representing the state <span class="emphasis"><em>x</em></span> of the ODE
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Time</span></code></span></dt>
+<dd><p>
+              A type representing the time <span class="emphasis"><em>t</em></span> of the ODE
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">stepper</span></code></span></dt>
+<dd><p>
+              An object of type <code class="computeroutput"><span class="identifier">ControlledStepper</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">x</span></code></span></dt>
+<dd><p>
+              Object of type <code class="computeroutput"><span class="identifier">State</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">t</span></code>, <code class="computeroutput"><span class="identifier">dt</span></code></span></dt>
+<dd><p>
+              Objects of type <code class="computeroutput"><span class="identifier">Time</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">sys</span></code></span></dt>
+<dd><p>
+              An object defining the ODE, should be a model of <a class="link" href="system.html" title="System">System</a>,
+              <a class="link" href="symplectic_system.html" title="Symplectic System">Symplectic
+              System</a>, <a class="link" href="simple_symplectic_system.html" title="Simple Symplectic System">Simple
+              Symplectic System</a> or <a class="link" href="implicit_system.html" title="Implicit System">Implicit
+              System</a>.
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="boost_numeric_odeint.concepts.controlled_stepper.h3"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.controlled_stepper.valid_expressions"></a></span><a class="link" href="controlled_stepper.html#boost_numeric_odeint.concepts.controlled_stepper.valid_expressions">Valid
+        Expressions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Type
+                </p>
+              </th>
+<th>
+                <p>
+                  Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  Do step
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">stepper</span><span class="special">.</span><span class="identifier">try_step</span><span class="special">(</span> <span class="identifier">sys</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="identifier">t</span> <span class="special">,</span> <span class="identifier">dt</span> <span class="special">)</span></pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">controlled_step_result</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Tries one step of step size <code class="computeroutput"><span class="identifier">dt</span></code>.
+                  If the step was successful, <code class="computeroutput"><span class="identifier">success</span></code>
+                  is returned, the resulting state is written to <code class="computeroutput"><span class="identifier">x</span></code>,
+                  the new time is stored in <code class="computeroutput"><span class="identifier">t</span></code>
+                  and <code class="computeroutput"><span class="identifier">dt</span></code> now contains
+                  a new (possibly larger) step-size for the next step. If the error
+                  was too big, <code class="computeroutput"><span class="identifier">rejected</span></code>
+                  is returned and the results are neglected - <code class="computeroutput"><span class="identifier">x</span></code>
+                  and <code class="computeroutput"><span class="identifier">t</span></code> are unchanged
+                  and <code class="computeroutput"><span class="identifier">dt</span></code> now contains
+                  a reduced step-size to be used for the next try.
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+<h5>
+<a name="boost_numeric_odeint.concepts.controlled_stepper.h4"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.controlled_stepper.models"></a></span><a class="link" href="controlled_stepper.html#boost_numeric_odeint.concepts.controlled_stepper.models">Models</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">controlled_error_stepper</span><span class="special">&lt;</span> <span class="identifier">runge_kutta_cash_karp54</span>
+            <span class="special">&gt;</span></code>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">controlled_error_stepper_fsal</span><span class="special">&lt;</span> <span class="identifier">runge_kutta_dopri5</span>
+            <span class="special">&gt;</span></code>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">controlled_error_stepper</span><span class="special">&lt;</span> <span class="identifier">runge_kutta_fehlberg78</span>
+            <span class="special">&gt;</span></code>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">rosenbrock4_controller</span></code>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">bulirsch_stoer</span></code>
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="error_stepper.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="dense_output_stepper.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

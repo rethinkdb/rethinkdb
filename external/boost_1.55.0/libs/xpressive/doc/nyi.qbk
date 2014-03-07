@@ -1,0 +1,28 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Appendix 2: Not Yet Implemented]
+
+The following features are planned for xpressive 2.X:
+
+* `syntax_option_type::collate`
+* Collation sequences such as [^'''[.a.]''']
+* Equivalence classes like [^'''[=a=]''']
+* Control of nested results generation with `syntax_option_type::nosubs`,
+  and a `nosubs()` modifier for static xpressive.
+
+Here are some wish-list features. You or your company should
+consider hiring me to implement them!
+
+* Optimized DFA back-end for simple, fast regexing.
+* Different regex compiler front ends for basic, extended, awk, grep
+  and egrep regex syntax.
+* Fine-grained control over the dynamic regex syntax
+* Optional integration with ICU for full Unicode support.
+* Improved localization support, possibly as a custom facet for `std::locale`.
+
+[endsect]

@@ -1,0 +1,921 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/operators.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/operators.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#self_t-spec">Class
+          <code>self_ns::self_t</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#self_t-spec-synopsis">Class <code>self_t</code>
+              synopsis</a></dt>
+
+              <dt><a href="#self_t-spec-inplace">Class <code>self_t</code>
+              inplace operators</a></dt>
+
+              <dt><a href="#self_t-spec-comparisons">Class
+              <code>self_t</code> comparison functions</a></dt>
+
+              <dt><a href="#self_t-spec-ops">Class <code>self_t</code>
+              non-member operations</a></dt>
+
+              <dt><a href="#self_t-spec-value-unary-ops">Class
+              <code>self_t</code> unary operations</a></dt>
+
+              <dt><a href="#self_t-spec-value-ops">Class
+              <code>self_t</code> value operations</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#other-spec">Class template
+          <code>other</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#other-spec-synopsis">Class <code>other</code>
+              synopsis</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#operator_-spec">Class template
+          <code>operator_</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#operator_-spec-synopsis">Class
+              <code>operator_</code> synopsis</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#objects">Objects</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#self-spec">self</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Examples</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code>&lt;boost/python/operators.hpp&gt;</code> provides types and
+    functions for automatically generating Python <a href=
+    "http://www.python.org/doc/ref/specialnames.html">special methods</a>
+    from the corresponding C++ constructs. Most of these constructs are
+    operator expressions, hence the name. To use the facility, substitute the
+    <code><a href="#self-spec">self</a></code> object for an object of the
+    class type being wrapped in the expression to be exposed, and pass the
+    result to <a href=
+    "class.html#class_-spec-modifiers">class_&lt;&gt;::def()</a>. Much of
+    what is exposed in this header should be considered part of the
+    implementation, so is not documented in detail here.</p>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="self_t-spec"></a>Class <code>self_ns::self_t</code></h3>
+
+    <p><code>self_ns::self_t</code> is the actual type of the <a href=
+    "#self-spec"><code>self</code></a> object. The library isolates
+    <code>self_t</code> in its own namespace, <code>self_ns</code>, in order
+    to prevent the generalized operator templates which operate on it from
+    being found by argument-dependent lookup in other contexts. This should
+    be considered an implementation detail, since users should never have to
+    mention <code>self_t</code> directly.</p>
+
+    <h4><a name="self_t-spec-synopsis"></a>Class <code>self_ns::self_t</code>
+    synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace self_ns {
+{
+   <i>unspecified-type-declaration</i> self_t;
+
+   // inplace operators
+   template &lt;class T&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator+=(self_t, T);
+   template &lt;class T&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator-=(self_t, T);
+   template &lt;class T&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator*=(self_t, T);
+   template &lt;class T&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator/=(self_t, T);
+   template &lt;class T&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator%=(self_t, T);
+   template &lt;class T&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator&gt;&gt;=(self_t, T);
+   template &lt;class T&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator&lt;&lt;=(self_t, T);
+   template &lt;class T&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator&amp;=(self_t, T);
+   template &lt;class T&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator^=(self_t, T);
+   template &lt;class T&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator|=(self_t, T);
+
+   // comparisons
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator==(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator!=(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator&lt;(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator&gt;(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator&lt;=(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator&gt;=(L const&amp;, R const&amp;);
+
+   // non-member operations
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator+(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator-(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator*(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator/(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator%(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator&gt;&gt;(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator&lt;&lt;(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator&amp;(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator^(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator|(L const&amp;, R const&amp;);
+   template &lt;class L, class R&gt; <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; pow(L const&amp;, R const&amp;);
+
+   // unary operations
+   <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator-(self_t);
+   <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator+(self_t);
+   <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator~(self_t);
+   <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; operator!(self_t);
+
+   // value operations
+   <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; int_(self_t);
+   <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; long_(self_t);
+   <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; float_(self_t);
+   <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; complex_(self_t);
+   <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; str(self_t);
+
+   <a href=
+"#operator_-spec">operator_</a>&lt;<i>unspecified</i>&gt; repr(self_t);
+
+}}};
+</pre>
+    The tables below describe the methods generated when the results of the
+    expressions described are passed as arguments to <a href=
+    "class.html#class_-spec-modifiers">class_&lt;&gt;::def()</a>.
+    <code><b>x</b></code> is an object of the class type being wrapped. 
+
+    <h4><a name="self_t-spec-inplace"></a>Class <code>self_t</code> inplace
+    operators</h4>
+    In the table below, If <code><b>r</b></code> is an object of type
+    <code><a href="#other-spec">other</a>&lt;T&gt;</code>,
+    <code><b>y</b></code> is an object of type <code>T</code>; otherwise,
+    <code><b>y</b></code> is an object of the same type as
+    <code><b>r</b></code>. 
+
+    <table border="1" summary="self_t inplace operators">
+      <tr>
+        <th>C++ Expression</th>
+
+        <th>Python Method Name</th>
+
+        <th>C++ Implementation</th>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;+=&nbsp;r</code></td>
+
+        <td><code>__iadd__</code></td>
+
+        <td><code>x&nbsp;+=&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;-=&nbsp;r</code></td>
+
+        <td><code>__isub__</code></td>
+
+        <td><code>x&nbsp;-=&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;*=&nbsp;r</code></td>
+
+        <td><code>__imul__</code></td>
+
+        <td><code>x&nbsp;*=&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;/=&nbsp;r</code></td>
+
+        <td><code>__idiv__</code></td>
+
+        <td><code>x&nbsp;/=&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;%=&nbsp;r</code></td>
+
+        <td><code>__imod__</code></td>
+
+        <td><code>x&nbsp;%=&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;&gt;&gt;=&nbsp;r</code></td>
+
+        <td><code>__irshift__</code></td>
+
+        <td><code>x&nbsp;&gt;&gt;=&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;&lt;&lt;=&nbsp;r</code></td>
+
+        <td><code>__ilshift__</code></td>
+
+        <td><code>x&nbsp;&lt;&lt;=&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;&amp;=&nbsp;r</code></td>
+
+        <td><code>__iand__</code></td>
+
+        <td><code>x&nbsp;&amp;=&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;^=&nbsp;r</code></td>
+
+        <td><code>__ixor__</code></td>
+
+        <td><code>x&nbsp;^=&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;|=&nbsp;r</code></td>
+
+        <td><code>__ior__</code></td>
+
+        <td><code>x&nbsp;|=&nbsp;y</code></td>
+      </tr>
+    </table>
+
+    <h4><a name="self_t-spec-comparisons"></a>Class <code>self_t</code>
+    comparison functions</h4>
+    In the tables below, if <code><b>r</b></code> is of type <code><a href=
+    "#self_t-spec">self_t</a></code>, <code><b>y</b></code> is an object of
+    the same type as <code>x</code>; <br>
+     if <code><b>l</b></code> or <code><b>r</b></code> is an object of type
+    <code><a href="#other-spec">other</a>&lt;T&gt;</code>,
+    <code><b>y</b></code> is an object of type <code>T</code>; <br>
+     otherwise, <code><b>y</b></code> is an object of the same type as
+    <code><b>l</b></code> or <code><b>r</b></code>.<br>
+     <code><b>l</b></code> is never of type <code><a href=
+    "#self_t-spec">self_t</a></code>. 
+
+    <p>The column of <b>Python Expressions</b> illustrates the expressions
+    that will be supported in Python for objects convertible to the types of
+    <code>x</code> and <code>y</code>. The secondary operation arises due to
+    Python's <a href=
+    "http://www.python.org/doc/ref/customization.html#l2h-89">reflection
+    rules</a> for rich comparison operators, and are only used when the
+    corresponding operation is not defined as a method of the <code>y</code>
+    object.</p>
+
+    <table border="1" summary="self_t comparison functions">
+      <tr>
+        <th>C++ Expression</th>
+
+        <th>Python Method Name</th>
+
+        <th>C++ Implementation</th>
+
+        <th>Python Expressions<br>
+         (primary, secondary)</th>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;==&nbsp;r</code></td>
+
+        <td><code>__eq__</code></td>
+
+        <td><code>x&nbsp;==&nbsp;y</code></td>
+
+        <td><code>x&nbsp;==&nbsp;y, y&nbsp;==&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;==&nbsp;self</code></td>
+
+        <td><code>__eq__</code></td>
+
+        <td><code>y&nbsp;==&nbsp;x</code></td>
+
+        <td><code>y&nbsp;==&nbsp;x, x&nbsp;==&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;!=&nbsp;r</code></td>
+
+        <td><code>__ne__</code></td>
+
+        <td><code>x&nbsp;!=&nbsp;y</code></td>
+
+        <td><code>x&nbsp;!=&nbsp;y, y&nbsp;!=&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;!=&nbsp;self</code></td>
+
+        <td><code>__ne__</code></td>
+
+        <td><code>y&nbsp;!=&nbsp;x</code></td>
+
+        <td><code>y&nbsp;!=&nbsp;x, x&nbsp;!=&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;&lt;&nbsp;r</code></td>
+
+        <td><code>__lt__</code></td>
+
+        <td><code>x&nbsp;&lt;&nbsp;y</code></td>
+
+        <td><code>x&nbsp;&lt;&nbsp;y, y&nbsp;&gt;&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;&lt;&nbsp;self</code></td>
+
+        <td><code>__gt__</code></td>
+
+        <td><code>y&nbsp;&lt;&nbsp;x</code></td>
+
+        <td><code>y&nbsp;&gt;&nbsp;x, x&nbsp;&lt;&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;&gt;&nbsp;r</code></td>
+
+        <td><code>__gt__</code></td>
+
+        <td><code>x&nbsp;&gt;&nbsp;y</code></td>
+
+        <td><code>x&nbsp;&gt;&nbsp;y, y&nbsp;&lt;&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;&gt;&nbsp;self</code></td>
+
+        <td><code>__lt__</code></td>
+
+        <td><code>y&nbsp;&gt;&nbsp;x</code></td>
+
+        <td><code>y&nbsp;&lt;&nbsp;x, x&nbsp;&gt;&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;&lt;=&nbsp;r</code></td>
+
+        <td><code>__le__</code></td>
+
+        <td><code>x&nbsp;&lt;=&nbsp;y</code></td>
+
+        <td><code>x&nbsp;&lt;=&nbsp;y, y&nbsp;&gt;=&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;&lt;=&nbsp;self</code></td>
+
+        <td><code>__ge__</code></td>
+
+        <td><code>y&nbsp;&lt;=&nbsp;x</code></td>
+
+        <td><code>y&nbsp;&gt;=&nbsp;x, x&nbsp;&lt;=&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;&gt;=&nbsp;r</code></td>
+
+        <td><code>__ge__</code></td>
+
+        <td><code>x&nbsp;&gt;=&nbsp;y</code></td>
+
+        <td><code>x&nbsp;&gt;=&nbsp;y, y&nbsp;&lt;=&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;&gt;=&nbsp;self</code></td>
+
+        <td><code>__le__</code></td>
+
+        <td><code>y&nbsp;&gt;=&nbsp;x</code></td>
+
+        <td><code>y&nbsp;&lt;=&nbsp;x, x&nbsp;&gt;=&nbsp;y</code></td>
+      </tr>
+    </table>
+
+    <h4><a name="self_t-spec-ops"></a>Class <code>self_t</code> non-member
+    operations</h4>
+    The operations whose names begin with "<code>__r</code>" below will only
+    be called if the left-hand operand does not already support the given
+    operation, as described <a href=
+    "http://www.python.org/doc/current/ref/numeric-types.html#l2h-152">here</a>.
+    
+
+    <table border="1" summary="self_t non-member operations">
+      <tr>
+        <th>C++ Expression</th>
+
+        <th>Python Method Name</th>
+
+        <th>C++ Implementation</th>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;+&nbsp;r</code></td>
+
+        <td><code>__add__</code></td>
+
+        <td><code>x&nbsp;+&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;+&nbsp;self</code></td>
+
+        <td><code>__radd__</code></td>
+
+        <td><code>y&nbsp;+&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;-&nbsp;r</code></td>
+
+        <td><code>__sub__</code></td>
+
+        <td><code>x&nbsp;-&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;-&nbsp;self</code></td>
+
+        <td><code>__rsub__</code></td>
+
+        <td><code>y&nbsp;-&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;*&nbsp;r</code></td>
+
+        <td><code>__mul__</code></td>
+
+        <td><code>x&nbsp;*&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;*&nbsp;self</code></td>
+
+        <td><code>__rmul__</code></td>
+
+        <td><code>y&nbsp;*&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;/&nbsp;r</code></td>
+
+        <td><code>__div__</code></td>
+
+        <td><code>x&nbsp;/&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;/&nbsp;self</code></td>
+
+        <td><code>__rdiv__</code></td>
+
+        <td><code>y&nbsp;/&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;%&nbsp;r</code></td>
+
+        <td><code>__mod__</code></td>
+
+        <td><code>x&nbsp;%&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;%&nbsp;self</code></td>
+
+        <td><code>__rmod__</code></td>
+
+        <td><code>y&nbsp;%&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;&gt;&gt;&nbsp;r</code></td>
+
+        <td><code>__rshift__</code></td>
+
+        <td><code>x&nbsp;&gt;&gt;&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;&gt;&gt;&nbsp;self</code></td>
+
+        <td><code>__rrshift__</code></td>
+
+        <td><code>y&nbsp;&gt;&gt;&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;&lt;&lt;&nbsp;r</code></td>
+
+        <td><code>__lshift__</code></td>
+
+        <td><code>x&nbsp;&lt;&lt;&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;&lt;&lt;&nbsp;self</code></td>
+
+        <td><code>__rlshift__</code></td>
+
+        <td><code>y&nbsp;&lt;&lt;&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;&amp;&nbsp;r</code></td>
+
+        <td><code>__and__</code></td>
+
+        <td><code>x&nbsp;&amp;&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;&amp;&nbsp;self</code></td>
+
+        <td><code>__rand__</code></td>
+
+        <td><code>y&nbsp;&amp;&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;^&nbsp;r</code></td>
+
+        <td><code>__xor__</code></td>
+
+        <td><code>x&nbsp;^&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;^&nbsp;self</code></td>
+
+        <td><code>__rxor__</code></td>
+
+        <td><code>y&nbsp;^&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>self&nbsp;|&nbsp;r</code></td>
+
+        <td><code>__or__</code></td>
+
+        <td><code>x&nbsp;|&nbsp;y</code></td>
+      </tr>
+
+      <tr>
+        <td><code>l&nbsp;|&nbsp;self</code></td>
+
+        <td><code>__ror__</code></td>
+
+        <td><code>y&nbsp;|&nbsp;x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>pow(self,&nbsp;r)</code></td>
+
+        <td><code>__pow__</code></td>
+
+        <td><code>pow(x,&nbsp;y)</code></td>
+      </tr>
+
+      <tr>
+        <td><code>pow(l,&nbsp;self)</code></td>
+
+        <td><code>__rpow__</code></td>
+
+        <td><code>pow(y,&nbsp;x)</code></td>
+      </tr>
+    </table>
+
+    <h4><a name="self_t-spec-value-unary-ops"></a>Class <code>self_t</code> unary
+    operations</h4>
+
+    <table border="1" summary="self_t unary operations">
+      <tr>
+        <th>C++ Expression</th>
+
+        <th>Python Method Name</th>
+
+        <th>C++ Implementation</th>
+      </tr>
+
+      <tr>
+        <td><code>-self</code></td>
+
+        <td><code>__neg__</code></td>
+
+        <td><code>-x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>+self</code></td>
+
+        <td><code>__pos__</code></td>
+
+        <td><code>+x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>~self</code></td>
+
+        <td><code>__invert__</code></td>
+
+        <td><code>~x</code></td>
+      </tr>
+
+      <tr>
+        <td><code>not self</code><br><i>or</i><br><code>!self</code></td>
+
+        <td><code>__nonzero__</code></td>
+
+        <td><code>!!x</code></td>
+      </tr>
+    </table>
+
+    <h4><a name="self_t-spec-value-ops"></a>Class <code>self_t</code> value
+    operations</h4>
+
+    <table border="1" summary="self_t value operations">
+      <tr>
+        <th>C++ Expression</th>
+
+        <th>Python Method Name</th>
+
+        <th>C++ Implementation</th>
+      </tr>
+
+      <tr>
+        <td><code>int_(self)</code></td>
+
+        <td><code>__int__</code></td>
+
+        <td><code>long(x)</code></td>
+      </tr>
+
+      <tr>
+        <td><code>long_</code></td>
+
+        <td><code>__long__</code></td>
+
+        <td><code>PyLong_FromLong(x)</code></td>
+      </tr>
+
+      <tr>
+        <td><code>float_</code></td>
+
+        <td><code>__float__</code></td>
+
+        <td><code>double(x)</code></td>
+      </tr>
+
+      <tr>
+        <td><code>complex_</code></td>
+
+        <td><code>__complex__</code></td>
+
+        <td><code>std::complex&lt;double&gt;(x)</code></td>
+      </tr>
+
+      <tr>
+        <td><code>str</code></td>
+
+        <td><code>__str__</code></td>
+
+        <td><code><a href=
+        "../../../conversion/lexical_cast.htm#lexical_cast">lexical_cast</a>&lt;std::string&gt;(x)</code></td>
+      </tr>
+
+      <tr>
+        <td><code>repr</code></td>
+
+        <td><code>__repr__</code></td>
+
+        <td><code><a href=
+        "../../../conversion/lexical_cast.htm#lexical_cast">lexical_cast</a>&lt;std::string&gt;(x)</code></td>
+      </tr>
+    </table>
+
+    <h3><a name="other-spec"></a>Class Template <code>other</code></h3>
+
+    <p>Instances of <code>other&lt;T&gt;</code> can be used in operator
+    expressions with <a href="#self-spec">self</a>; the result is equivalent
+    to the same expression with a <code>T</code> object in place of
+    <code>other&lt;T&gt;</code>. Use <code>other&lt;T&gt;</code> to prevent
+    construction of a <code>T</code> object in case it is heavyweight, when
+    no constructor is available, or simply for clarity.</p>
+
+    <h4><a name="other-spec-synopsis"></a>Class Template other synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  template &lt;class T&gt;
+  struct other
+  {
+  };
+}}
+</pre>
+    <!-- -->
+
+    <h3><a name="operator_-spec"></a>Class Template
+    <code>detail::operator_</code></h3>
+
+    <p>Instantiations of <code>detail::operator_&lt;&gt;</code> are used as
+    the return type of operator expressions involving <code><a href=
+    "#self-spec">self</a></code>. This should be considered an implementation
+    detail and is only documented here as a way of showing how the result of
+    <code>self</code>-expressions match calls to <a href=
+    "class.html#class_-spec-modifiers">class_&lt;&gt;::def()</a>.</p>
+
+    <h4><a name="operator_-spec-synopsis"></a>Class Template
+    <code>detail::operator_</code> synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace detail
+{
+  template &lt;<i>unspecified</i>&gt;
+  struct operator_
+  {
+  };
+}}}
+</pre>
+
+    <h2><a name="objects"></a>Objects</h2>
+
+    <p><a name="self-spec"><code>self</code></a></p>
+<pre>
+namespace boost { namespace python
+{
+  using self_ns::self;
+}}
+</pre>
+
+    <h2><a name="examples"></a>Example</h2>
+<pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/class.hpp&gt;
+#include &lt;boost/python/operators.hpp&gt;
+#include &lt;boost/operators.hpp&gt;
+
+struct number
+   : boost::<a href=
+"../../../utility/operators.htm#grpd_oprs">integer_arithmetic</a>&lt;number&gt;
+{
+    explicit number(long x_) : x(x_) {}
+    operator long() const { return x; }
+
+    template &lt;class T&gt;
+    number&amp; operator+=(T const&amp; rhs)
+    { x += rhs; return *this; }
+
+    template &lt;class T&gt;
+    number&amp; operator-=(T const&amp; rhs)
+    { x -= rhs; return *this; }
+    
+    template &lt;class T&gt;
+    number&amp; operator*=(T const&amp; rhs)
+    { x *= rhs; return *this; }
+    
+    template &lt;class T&gt;
+    number&amp; operator/=(T const&amp; rhs)
+    { x /= rhs; return *this; }
+    
+    template &lt;class T&gt;
+    number&amp; operator%=(T const&amp; rhs)
+    { x %= rhs; return *this; }
+
+   long x;
+};
+
+using namespace boost::python;
+BOOST_PYTHON_MODULE(demo)
+{
+   class_&lt;number&gt;("number", init&lt;long&gt;())
+      // interoperate with self
+      .def(self += self)
+      .def(self + self)
+      .def(self -= self)
+      .def(self - self)
+      .def(self *= self)
+      .def(self * self)
+      .def(self /= self)
+      .def(self / self)
+      .def(self %= self)
+      .def(self % self)
+
+      // Convert to Python int
+      .def(int_(self))
+
+      // interoperate with long
+      .def(self += long())
+      .def(self + long())
+      .def(long() + self)
+      .def(self -= long())
+      .def(self - long())
+      .def(long() - self)
+      .def(self *= long())
+      .def(self * long())
+      .def(long() * self)
+      .def(self /= long())
+      .def(self / long())
+      .def(long() / self)
+      .def(self %= long())
+      .def(self % long())
+      .def(long() % self)
+      ;
+}
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  5 October, 2004
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

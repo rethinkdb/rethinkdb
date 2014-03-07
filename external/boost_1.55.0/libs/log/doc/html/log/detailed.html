@@ -1,0 +1,518 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Detailed features description</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="prev" href="tutorial/wide_char.html" title="Wide character logging">
+<link rel="next" href="detailed/sources.html" title="Logging sources">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tutorial/wide_char.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="detailed/sources.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="log.detailed"></a><a class="link" href="detailed.html" title="Detailed features description">Detailed features description</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="detailed.html#log.detailed.core">Core facilities</a></span></dt>
+<dt><span class="section"><a href="detailed/sources.html">Logging sources</a></span></dt>
+<dt><span class="section"><a href="detailed/sink_frontends.html">Sink frontends</a></span></dt>
+<dt><span class="section"><a href="detailed/sink_backends.html">Sink backends</a></span></dt>
+<dt><span class="section"><a href="detailed/expressions.html">Lambda expressions</a></span></dt>
+<dt><span class="section"><a href="detailed/attributes.html">Attributes</a></span></dt>
+<dt><span class="section"><a href="detailed/utilities.html">Utilities</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.detailed.core"></a><a class="link" href="detailed.html#log.detailed.core" title="Core facilities">Core facilities</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="detailed.html#log.detailed.core.record">Logging records</a></span></dt>
+<dt><span class="section"><a href="detailed.html#log.detailed.core.core">Logging core</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.core.record"></a><a class="link" href="detailed.html#log.detailed.core.record" title="Logging records">Logging records</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../core_components.html#header.boost.log.core.record_hpp" title="Header &lt;boost/log/core/record.hpp&gt;">boost/log/core/record.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          All the information that the logging library processes is packed into a
+          single object of type <code class="computeroutput"><a class="link" href="../boost/log/record.html" title="Class record">record</a></code>.
+          All attached data, including the message text, is represented as named
+          attribute values that can be fetched and processed by filters, formatters
+          and sinks. Particular attribute values can be accessed in different ways,
+          here are a few quick examples:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              Through <a class="link" href="detailed/attributes.html#log.detailed.attributes.related_components.value_processing" title="Attribute value extraction and visitation">value
+              visitation and extraction</a>.
+            </li></ul></div>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">enum</span> <span class="identifier">severity_level</span> <span class="special">{</span> <span class="special">...</span> <span class="special">};</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">&lt;&lt;</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span><span class="special">&amp;</span> <span class="identifier">strm</span><span class="special">,</span> <span class="identifier">severity_level</span> <span class="identifier">level</span><span class="special">);</span>
+
+<span class="keyword">struct</span> <span class="identifier">print_visitor</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">void</span> <span class="identifier">result_type</span><span class="special">;</span>
+    <span class="identifier">result_type</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span><span class="identifier">severity_level</span> <span class="identifier">level</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">level</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">};</span>
+<span class="special">};</span>
+
+<span class="comment">// Prints severity level through visitation API</span>
+<span class="keyword">void</span> <span class="identifier">print_severity_visitation</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">visit</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;(</span><span class="string">"Severity"</span><span class="special">,</span> <span class="identifier">rec</span><span class="special">,</span> <span class="identifier">print_visitor</span><span class="special">());</span>
+<span class="special">}</span>
+
+<span class="comment">// Prints severity level through extraction API</span>
+<span class="keyword">void</span> <span class="identifier">print_severity_extraction</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">value_ref</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;</span> <span class="identifier">level</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">extract</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;(</span><span class="string">"Severity"</span><span class="special">,</span> <span class="identifier">rec</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">level</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              By searching the <a class="link" href="detailed/attributes.html#log.detailed.attributes.related_components.attribute_value_set" title="Attribute value set">set
+              of attribute values</a> accessible with the <code class="computeroutput"><span class="identifier">attribute_values</span></code>
+              method of the record.
+            </li></ul></div>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Prints severity level by searching the attribute values</span>
+<span class="keyword">void</span> <span class="identifier">print_severity_lookup</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute_value_set</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">values</span> <span class="special">=</span> <span class="identifier">rec</span><span class="special">.</span><span class="identifier">attribute_values</span><span class="special">();</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute_value_set</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">values</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="string">"Severity"</span><span class="special">);</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">values</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+    <span class="special">{</span>
+        <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute_value</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">value</span> <span class="special">=</span> <span class="identifier">it</span><span class="special">-&gt;</span><span class="identifier">second</span><span class="special">;</span>
+
+        <span class="comment">// A single attribute value can also be visited or extracted</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">value</span><span class="special">.</span><span class="identifier">extract</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              By applying the subscript operator with the attribute keyword. This
+              is actually a convenience wrapper around the value extraction API.
+            </li></ul></div>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">severity</span><span class="special">,</span> <span class="string">"Severity"</span><span class="special">,</span> <span class="identifier">severity_level</span><span class="special">)</span>
+
+<span class="comment">// Prints severity level by using the subscript operator</span>
+<span class="keyword">void</span> <span class="identifier">print_severity_subscript</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// Use the attribute keyword to communicate the name and type of the value</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">value_ref</span><span class="special">&lt;</span> <span class="identifier">severity_level</span><span class="special">,</span> <span class="identifier">tag</span><span class="special">::</span><span class="identifier">severity</span> <span class="special">&gt;</span> <span class="identifier">level</span> <span class="special">=</span> <span class="identifier">rec</span><span class="special">[</span><span class="identifier">severity</span><span class="special">];</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">level</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Log records cannot be copied, only moved. A record can be default-constructed
+          in which case it is in an empty state; such records are mostly unusable
+          and should not be passed to the library for processing. Non-empty log records
+          can only be created by the <a class="link" href="detailed.html#log.detailed.core.core" title="Logging core">logging
+          core</a> as a result of successful filtering. The non-empty record contains
+          attribute values acquired from attributes. More attribute values can be
+          added to the non-empty record after filtering. The added values will not
+          affect filtering results but can still be used by formatters and sinks.
+        </p>
+<p>
+          In multithreaded environments, after being constructed a non-empty log
+          record is considered to be tied to the current thread as it may refer to
+          some thread-specific resources. For example, the record may contain an
+          attribute value which refers to the named scope list which is stored on
+          the stack. For this reason log records must not be passed between different
+          threads.
+        </p>
+<h6>
+<a name="log.detailed.core.record.h0"></a>
+          <span class="phrase"><a name="log.detailed.core.record.record_views"></a></span><a class="link" href="detailed.html#log.detailed.core.record.record_views">Record
+          views</a>
+        </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../core_components.html#header.boost.log.core.record_view_hpp" title="Header &lt;boost/log/core/record_view.hpp&gt;">boost/log/core/record_view.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          While records are used for filling the information, the library uses another
+          type to actually process it. Record views provide a similar interface to
+          records with a few notable distinctions:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Record views are immutable. This prevents formatters and sinks from
+              modifying the record while it is being processed.
+            </li>
+<li class="listitem">
+              Record views are copyable. Since its contents are constant, the copy
+              operation is shallow and therefore cheap.
+            </li>
+</ul></div>
+<p>
+          The library will automatically create a record view from the record by
+          calling the <code class="computeroutput"><span class="identifier">lock</span></code> method.
+          The call will also make sure the resulting view is not attached to the
+          current thread if a sink is asynchronous. The <code class="computeroutput"><span class="identifier">lock</span></code>
+          call is a one time operation; the record is left in the empty state afterwards.
+          All APIs for interacting with attribute values described for log records
+          are also applicable to record views and can be used in custom formatters
+          and sinks.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.core.core"></a><a class="link" href="detailed.html#log.detailed.core.core" title="Logging core">Logging core</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="detailed.html#log.detailed.core.core.attribute_sets">Attribute
+          sets</a></span></dt>
+<dt><span class="section"><a href="detailed.html#log.detailed.core.core.filtering">Global filtering</a></span></dt>
+<dt><span class="section"><a href="detailed.html#log.detailed.core.core.sinks">Sink management</a></span></dt>
+<dt><span class="section"><a href="detailed.html#log.detailed.core.core.exception_handling">Exception
+          handling</a></span></dt>
+<dt><span class="section"><a href="detailed.html#log.detailed.core.core.record_feeding">Feeding log
+          records</a></span></dt>
+</dl></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../core_components.html#header.boost.log.core.core_hpp" title="Header &lt;boost/log/core/core.hpp&gt;">boost/log/core/core.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          The logging core is a central hub that provides the following facilities:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Maintains global and thread-specific attribute sets.
+            </li>
+<li class="listitem">
+              Performs global filtering of log records.
+            </li>
+<li class="listitem">
+              Dispatches log records between sinks by applying sink-specific filters.
+            </li>
+<li class="listitem">
+              Provides a global hook for exception handlers.
+            </li>
+<li class="listitem">
+              Provides an entry point for log sources to put log records to.
+            </li>
+<li class="listitem">
+              Provides the <code class="computeroutput"><span class="identifier">flush</span></code>
+              method that can be used to enforce the synchronized state for all log
+              sinks.
+            </li>
+</ul></div>
+<p>
+          The logging core is an application-wide singleton, thus every logging source
+          has access to it. The core instance is accessible with the static method
+          <code class="computeroutput"><span class="identifier">get</span></code>.
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">foo</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="comment">// ...</span>
+<span class="special">}</span>
+</pre>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.core.core.attribute_sets"></a><a class="link" href="detailed.html#log.detailed.core.core.attribute_sets" title="Attribute sets">Attribute
+          sets</a>
+</h5></div></div></div>
+<p>
+            In order to add or remove global or thread-specific attributes to the
+            core there are corresponding methods: <code class="computeroutput"><span class="identifier">add_global_attribute</span></code>,
+            <code class="computeroutput"><span class="identifier">remove_global_attribute</span></code>,
+            <code class="computeroutput"><span class="identifier">add_thread_attribute</span></code>
+            and <code class="computeroutput"><span class="identifier">remove_thread_attribute</span></code>.
+            Attribute sets provide interface similar to <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span></code>,
+            so the <code class="computeroutput"><span class="identifier">add_</span><span class="special">*</span></code>
+            methods accept an attribute name string (key) and a pointer to the attribute
+            (mapped value) and return a pair of iterator and boolean value, like
+            <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span> <span class="special">...</span> <span class="special">&gt;::</span><span class="identifier">insert</span></code> does. The <code class="computeroutput"><span class="identifier">remove_</span><span class="special">*</span></code> methods accept an iterator to a previously
+            added attribute.
+          </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">foo</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="comment">// Add a global attribute</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> <span class="identifier">res</span> <span class="special">=</span>
+        <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_global_attribute</span><span class="special">(</span><span class="string">"LineID"</span><span class="special">,</span> <span class="identifier">attrs</span><span class="special">::</span><span class="identifier">counter</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;());</span>
+
+    <span class="comment">// ...</span>
+
+    <span class="comment">// Remove the added attribute</span>
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">remove_global_attribute</span><span class="special">(</span><span class="identifier">res</span><span class="special">.</span><span class="identifier">first</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              It must be said that all methods of logging core are thread-safe in
+              multithreaded environments. However, that may not be true for other
+              components, such as iterators or attribute sets.
+            </p></td></tr>
+</table></div>
+<p>
+            It is possible to acquire a copy of the whole attribute set (global or
+            thread-specific) or install it into the core. Methods <code class="computeroutput"><span class="identifier">get_global_attributes</span></code>,
+            <code class="computeroutput"><span class="identifier">set_global_attributes</span></code>,
+            <code class="computeroutput"><span class="identifier">get_thread_attributes</span></code>
+            and <code class="computeroutput"><span class="identifier">set_thread_attributes</span></code>
+            serve this purpose.
+          </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              After installing a whole attribute set into the core, all iterators
+              that were previously returned by the corresponding <code class="computeroutput"><span class="identifier">add_</span><span class="special">*</span></code> methods are invalidated. In particular,
+              it affects <a class="link" href="detailed/attributes.html#log.detailed.attributes.related_components.scoped_attributes" title="Scoped attributes">scoped
+              attributes</a>, so the user must be careful when to switch attribute
+              sets.
+            </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.core.core.filtering"></a><a class="link" href="detailed.html#log.detailed.core.core.filtering" title="Global filtering">Global filtering</a>
+</h5></div></div></div>
+<p>
+            Global filtering is handled by the filter function object, which can
+            be provided with the <code class="computeroutput"><span class="identifier">set_filter</span></code>
+            method. More on creating filters appears in <a class="link" href="detailed/expressions.html#log.detailed.expressions.predicates" title="Predicate expressions">this
+            section</a>. Here it will suffice to say that the filter accepts a
+            set of attribute values and returns a boolean value that tells whether
+            a log record with these attribute values passed filtering or not. The
+            global filter is applied to every log record made throughout the application,
+            so it can be used to wipe out excessive log records quickly.
+          </p>
+<p>
+            The global filter can be removed by the <code class="computeroutput"><span class="identifier">reset_filter</span></code>
+            method. When there is no filter set in the core it is assumed that no
+            records are filtered away. This is the default after initial construction
+            of the logging core.
+          </p>
+<pre class="programlisting"><span class="keyword">enum</span> <span class="identifier">severity_level</span>
+<span class="special">{</span>
+    <span class="identifier">normal</span><span class="special">,</span>
+    <span class="identifier">warning</span><span class="special">,</span>
+    <span class="identifier">error</span><span class="special">,</span>
+    <span class="identifier">critical</span>
+<span class="special">};</span>
+
+<span class="keyword">void</span> <span class="identifier">foo</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="comment">// Set a global filter so that only error messages are logged</span>
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">set_filter</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;(</span><span class="string">"Severity"</span><span class="special">)</span> <span class="special">&gt;=</span> <span class="identifier">error</span><span class="special">);</span>
+
+    <span class="comment">// ...</span>
+<span class="special">}</span>
+</pre>
+<p>
+            The core also provides another way to disable logging. By calling the
+            <code class="computeroutput"><span class="identifier">set_logging_enabled</span></code> with
+            a boolean argument one may completely disable or re-enable logging, including
+            applying filtering. Disabling logging with this method may be more beneficial
+            in terms of application performance than setting a global filter that
+            always fails.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.core.core.sinks"></a><a class="link" href="detailed.html#log.detailed.core.core.sinks" title="Sink management">Sink management</a>
+</h5></div></div></div>
+<p>
+            After global filtering is applied, log sinks step into action. In order
+            to add and remove sinks the core provides <code class="computeroutput"><span class="identifier">add_sink</span></code>
+            and <code class="computeroutput"><span class="identifier">remove_sink</span></code> methods.
+            Both these methods accept a pointer to the sink. The <code class="computeroutput"><span class="identifier">add_sink</span></code>
+            will add the sink to the core if it's not added already. The <code class="computeroutput"><span class="identifier">remove_sink</span></code> method will seek for the
+            provided sink in an internal list of previously added sinks and remove
+            the sink if it finds it. The order in which the core processes sinks
+            internally is unspecified.
+          </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">foo</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="comment">// Set a sink that will write log records to the console</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_ostream_backend</span> <span class="special">&gt;</span> <span class="identifier">backend</span> <span class="special">=</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_ostream_backend</span> <span class="special">&gt;();</span>
+    <span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">add_stream</span><span class="special">(</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&gt;(&amp;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">clog</span><span class="special">,</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">empty_deleter</span><span class="special">()));</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">unlocked_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_ostream_backend</span> <span class="special">&gt;</span> <span class="identifier">sink_t</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sink_t</span> <span class="special">&gt;</span> <span class="identifier">sink</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">sink_t</span> <span class="special">&gt;(</span><span class="identifier">backend</span><span class="special">);</span>
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+
+    <span class="comment">// ...</span>
+
+    <span class="comment">// Remove the sink</span>
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">remove_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+            You can read more on the design of sinks in the following sections:
+            <a class="link" href="detailed/sink_frontends.html" title="Sink frontends">Sink Frontends</a> and
+            <a class="link" href="detailed/sink_backends.html" title="Sink backends">Sink Backends</a>.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.core.core.exception_handling"></a><a class="link" href="detailed.html#log.detailed.core.core.exception_handling" title="Exception handling">Exception
+          handling</a>
+</h5></div></div></div>
+<p>
+            The core provides a way to set up centralized exception handling. If
+            an exception takes place during filtering or processing in one of the
+            added sinks, the core will invoke an exception handler if one was installed
+            with the <code class="computeroutput"><span class="identifier">set_exception_handler</span></code>
+            method. An exception handler is a nullary function object that is invoked
+            from within a <code class="computeroutput"><span class="keyword">catch</span></code> clause.
+            The library provides <a class="link" href="detailed/utilities.html#log.detailed.utilities.exception_handlers" title="Exception handlers">tools</a>
+            to simplify exception handlers construction.
+          </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The exception handler in the logging core is global and thus is intended
+              to perform some common actions on errors. Logging sinks and sources
+              also provide exception handling facilities (see <a class="link" href="detailed/sink_frontends.html#log.detailed.sink_frontends.basic_services.exception_handling" title="Exception handling">here</a>
+              and <a class="link" href="detailed/sources.html#log.detailed.sources.exception_handling" title="Loggers with exception handling support">here</a>),
+              which can be used to do a finer grained error processing.
+            </p></td></tr>
+</table></div>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">my_handler</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">void</span> <span class="identifier">result_type</span><span class="special">;</span>
+
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"std::runtime_error: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">e</span><span class="special">.</span><span class="identifier">what</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">logic_error</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"std::logic_error: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">e</span><span class="special">.</span><span class="identifier">what</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="keyword">throw</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">void</span> <span class="identifier">init_exception_handler</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Setup a global exception handler that will call my_handler::operator()</span>
+    <span class="comment">// for the specified exception types</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">()-&gt;</span><span class="identifier">set_exception_handler</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">make_exception_handler</span><span class="special">&lt;</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span><span class="special">,</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">logic_error</span>
+    <span class="special">&gt;(</span><span class="identifier">my_handler</span><span class="special">()));</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.core.core.record_feeding"></a><a class="link" href="detailed.html#log.detailed.core.core.record_feeding" title="Feeding log records">Feeding log
+          records</a>
+</h5></div></div></div>
+<p>
+            One of the most important functions of the logging core is providing
+            an entry point for all logging sources to feed log records into. This
+            is done with the <code class="computeroutput"><span class="identifier">open_record</span></code>
+            and <code class="computeroutput"><span class="identifier">push_record</span></code> methods.
+          </p>
+<p>
+            The first method is used to initiate the record logging process. It accepts
+            the source-specific set of attributes. The method constructs a common
+            set of attribute values of the three sets of attributes (global, thread-specific
+            and source-specific) and applies filtering. If the filtering succeeded,
+            i.e. at least one sink accepts a record with these attribute values,
+            the method returns a non-empty <a class="link" href="detailed.html#log.detailed.core.record" title="Logging records">record
+            object</a>, which can be used to fill in the log record message. If
+            the filtering failed, an empty record object is returned.
+          </p>
+<p>
+            When the log source is ready to complete the logging procedure, it has
+            to call the <code class="computeroutput"><span class="identifier">push_record</span></code>
+            method with the record returned by the <code class="computeroutput"><span class="identifier">open_record</span></code>
+            method. Note that one should not call <code class="computeroutput"><span class="identifier">push_record</span></code>
+            with an empty record. The record should be passed as rvalue reference.
+            During the call the record view will be constructed from the record.
+            The view will then be passed on to the sinks that accepted it during
+            filtering. This may involve record formatting and further processing,
+            like storing it into a file or sending it over the network. After that
+            the record object can be destroyed.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">logging_function</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute_set</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">attrs</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="comment">// Attempt to open a log record</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">record</span> <span class="identifier">rec</span> <span class="special">=</span> <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">open_record</span><span class="special">(</span><span class="identifier">attrs</span><span class="special">);</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">rec</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="comment">// Ok, the record is accepted. Compose the message now.</span>
+        <span class="identifier">logging</span><span class="special">::</span><span class="identifier">record_ostream</span> <span class="identifier">strm</span><span class="special">(</span><span class="identifier">rec</span><span class="special">);</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="string">"Hello, World!"</span><span class="special">;</span>
+        <span class="identifier">strm</span><span class="special">.</span><span class="identifier">flush</span><span class="special">();</span>
+
+        <span class="comment">// Deliver the record to the sinks.</span>
+        <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">push_record</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="identifier">rec</span><span class="special">));</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            All this logic is usually hidden in the loggers and macros provided by
+            the library. However, this may be useful for those developing new log
+            sources.
+          </p>
+</div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tutorial/wide_char.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="detailed/sources.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

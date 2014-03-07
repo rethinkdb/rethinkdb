@@ -1,0 +1,50 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/chr.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/chr.xml
+ */
+chr{
+    Keys{
+        calendar{"ᏅᏙ ᏗᏎᏗ"}
+        currency{"ᎠᏕᎳ"}
+    }
+    Languages{
+        cay{"ᎦᏳᎦ"}
+        cho{"ᎠᏣᏗ"}
+        chr{"ᏣᎳᎩ"}
+        de{"ᎠᏂᏓᏥ"}
+        en{"ᎩᎵᏏ"}
+        es{"ᏍᏆᏂ"}
+        fr{"ᎦᎸᏥ"}
+        it{"ᎬᏩᎵᏲᏥᎢ"}
+        ja{"ᏣᏩᏂᏏ"}
+        moh{"ᎼᎻᎦ"}
+        mus{"ᎠᎫᏌ"}
+        pt{"ᏉᏧᎦᎵ"}
+        ru{"ᏲᏂᎢ"}
+        see{"ᏏᏂᎦ"}
+        und{"ᏄᏬᎵᏍᏛᎾ ᎦᏬᏂᎯᏍᏗ"}
+        zh{"ᏓᎶᏂᎨ"}
+    }
+    Scripts{
+        Arab{"ᎡᎳᏈᎩ"}
+        Cher{"ᏣᎳᎩ"}
+        Cyrl{"ᏲᏂᎢ ᏗᎪᏪᎵ"}
+        Hans{"ᎠᎯᏗᎨ ᏓᎶᏂᎨ"}
+        Hant{"ᎤᏦᏍᏗ ᏓᎶᏂᎨ"}
+        Latn{"ᎳᏗᎾ"}
+        Zzzz{"ᏄᏬᎵᏍᏛᎾ ᎠᏍᏓᏩᏛᏍᏙᏗ"}
+    }
+    Types{
+        calendar{
+            gregorian{"ᏅᏙ ᏗᏎᏗ"}
+        }
+    }
+    Version{"2.0.46.34"}
+}

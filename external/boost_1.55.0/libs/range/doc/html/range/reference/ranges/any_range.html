@@ -1,0 +1,177 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>any_range</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../ranges.html" title="Provided Ranges">
+<link rel="prev" href="../ranges.html" title="Provided Ranges">
+<link rel="next" href="counting_range.html" title="counting_range">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../ranges.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ranges.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="counting_range.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_ranges_any_range">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="range.reference.ranges.any_range"></a><a class="link" href="any_range.html" title="any_range">any_range</a>
+</h4></div></div></div>
+<h6>
+<a name="range.reference.ranges.any_range.h0"></a>
+          <span><a name="range.reference.ranges.any_range.description"></a></span><a class="link" href="any_range.html#range.reference.ranges.any_range.description">Description</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="identifier">any_range</span></code> is a range that
+          has the type information erased hence a <code class="computeroutput"><span class="identifier">any_range</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">forward_pass_traversal_tag</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span>
+          <span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span><span class="special">&gt;</span></code>
+          can be used to represent a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>, a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code> or many other types.
+        </p>
+<p>
+          The <a href="http://www.artima.com/cppsource/type_erasure.html" target="_top">type
+          erasure article</a> covers the motivation and goals of type erasure
+          in this context. Clearly my implementation is building upon a lot of prior
+          art created by others. Thomas Becker's <code class="computeroutput"><span class="identifier">any_iterator</span></code>
+          was a strong influence. Adobe also have an <code class="computeroutput"><span class="identifier">any_iterator</span></code>
+          implementation, but this has very tight coupling to other parts of the
+          library that precluded it from use in Boost.Range. Early development versions
+          of this Range Adaptor directly used Thomas Becker's any_iterator implementation.
+          Subsequently I discovered that the heap allocations of this and many other
+          implementations cause poor speed performance particularly at the tails
+          of the distribution. To solve this required a new design that incorporated
+          the embedded buffer optimization.
+        </p>
+<p>
+          Despite the underlying <code class="computeroutput"><span class="identifier">any_iterator</span></code>
+          being the fastest available implementation, the performance overhead of
+          <code class="computeroutput"><span class="identifier">any_range</span></code> is still appreciable
+          due to the cost of virtual function calls required to implement <code class="computeroutput"><span class="identifier">increment</span></code>, <code class="computeroutput"><span class="identifier">decrement</span></code>,
+          <code class="computeroutput"><span class="identifier">advance</span></code>, <code class="computeroutput"><span class="identifier">equal</span></code> etc. Frequently a better design
+          choice is to convert to a canonical form.
+        </p>
+<p>
+          Please see the <a class="link" href="../adaptors/reference/type_erased.html" title="type_erased">type_erased</a>
+          for a Range Adaptor that returns <code class="computeroutput"><span class="identifier">any_range</span></code>
+          instances.
+        </p>
+<h6>
+<a name="range.reference.ranges.any_range.h1"></a>
+          <span><a name="range.reference.ranges.any_range.synopsis"></a></span><a class="link" href="any_range.html#range.reference.ranges.any_range.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">class</span> <span class="identifier">Value</span>
+  <span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Traversal</span>
+  <span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Reference</span>
+  <span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Difference</span>
+  <span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Buffer</span> <span class="special">=</span> <span class="identifier">any_iterator_default_buffer</span>
+<span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">any_range</span>
+    <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">iterator_range</span><span class="special">&lt;</span>
+        <span class="identifier">range_detail</span><span class="special">::</span><span class="identifier">any_iterator</span><span class="special">&lt;</span>
+            <span class="identifier">Value</span>
+          <span class="special">,</span> <span class="identifier">Traversal</span>
+          <span class="special">,</span> <span class="identifier">Reference</span>
+          <span class="special">,</span> <span class="identifier">Difference</span>
+          <span class="special">,</span> <span class="identifier">Buffer</span>
+        <span class="special">&gt;</span>
+    <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">range_detail</span><span class="special">::</span><span class="identifier">any_iterator</span><span class="special">&lt;</span>
+        <span class="identifier">Value</span>
+      <span class="special">,</span> <span class="identifier">Traversal</span>
+      <span class="special">,</span> <span class="identifier">Reference</span>
+      <span class="special">,</span> <span class="identifier">Difference</span>
+      <span class="special">,</span> <span class="identifier">Buffer</span>
+    <span class="special">&gt;</span> <span class="identifier">any_iterator_type</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">iterator_range</span><span class="special">&lt;</span><span class="identifier">any_iterator_type</span><span class="special">&gt;</span> <span class="identifier">base_type</span><span class="special">;</span>
+
+    <span class="keyword">struct</span> <span class="identifier">enabler</span> <span class="special">{};</span>
+    <span class="keyword">struct</span> <span class="identifier">disabler</span> <span class="special">{};</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">typedef</span> <span class="identifier">any_iterator_type</span> <span class="identifier">iterator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">any_iterator_type</span> <span class="identifier">const_iterator</span><span class="special">;</span>
+
+    <span class="identifier">any_range</span><span class="special">()</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+
+    <span class="identifier">any_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">any_range</span><span class="special">&amp;</span> <span class="identifier">other</span><span class="special">)</span>
+        <span class="special">:</span> <span class="identifier">base_type</span><span class="special">(</span><span class="identifier">other</span><span class="special">)</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">WrappedRange</span><span class="special">&gt;</span>
+    <span class="identifier">any_range</span><span class="special">(</span><span class="identifier">WrappedRange</span><span class="special">&amp;</span> <span class="identifier">wrapped_range</span><span class="special">)</span>
+    <span class="special">:</span> <span class="identifier">base_type</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">wrapped_range</span><span class="special">),</span>
+                <span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">wrapped_range</span><span class="special">))</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">WrappedRange</span><span class="special">&gt;</span>
+    <span class="identifier">any_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">WrappedRange</span><span class="special">&amp;</span> <span class="identifier">wrapped_range</span><span class="special">)</span>
+    <span class="special">:</span> <span class="identifier">base_type</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">wrapped_range</span><span class="special">),</span>
+                <span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">wrapped_range</span><span class="special">))</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span>
+        <span class="keyword">class</span> <span class="identifier">OtherValue</span>
+      <span class="special">,</span> <span class="keyword">class</span> <span class="identifier">OtherTraversal</span>
+      <span class="special">,</span> <span class="keyword">class</span> <span class="identifier">OtherReference</span>
+      <span class="special">,</span> <span class="keyword">class</span> <span class="identifier">OtherDifference</span>
+    <span class="special">&gt;</span>
+    <span class="identifier">any_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">any_range</span><span class="special">&lt;</span>
+                        <span class="identifier">OtherValue</span>
+                      <span class="special">,</span> <span class="identifier">OtherTraversal</span>
+                      <span class="special">,</span> <span class="identifier">OtherReference</span>
+                      <span class="special">,</span> <span class="identifier">OtherDifference</span>
+                      <span class="special">,</span> <span class="identifier">Buffer</span>
+                    <span class="special">&gt;&amp;</span> <span class="identifier">other</span><span class="special">)</span>
+    <span class="special">:</span> <span class="identifier">base_type</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">other</span><span class="special">),</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">other</span><span class="special">))</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+    <span class="identifier">any_range</span><span class="special">(</span><span class="identifier">Iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span><span class="special">)</span>
+        <span class="special">:</span> <span class="identifier">base_type</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">)</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="range.reference.ranges.any_range.h2"></a>
+          <span><a name="range.reference.ranges.any_range.definition"></a></span><a class="link" href="any_range.html#range.reference.ranges.any_range.definition">Definition</a>
+        </h6>
+<p>
+          Defined in header file <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">any_range</span><span class="special">.</span><span class="identifier">hpp</span></code>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../ranges.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ranges.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="counting_range.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,10 @@
+[article Include Id Test
+[quickbook 1.6]
+]
+
+[include:a include-id-inc1.quickbook]
+[include:b include-id-inc1.quickbook]
+[include:c include-id-inc2.quickbook]
+[include:d include-id-inc2.quickbook]
+[include:e include-id-inc3.quickbook]
+[include:f include-id-inc3.quickbook]

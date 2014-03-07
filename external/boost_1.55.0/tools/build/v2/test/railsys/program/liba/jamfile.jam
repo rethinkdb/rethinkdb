@@ -1,0 +1,14 @@
+#  Copyright (c) 2003 Institute of Transport, 
+#             Railway Construction and Operation, 
+#             University of Hanover, Germany
+#  Copyright (c) 2006 Jürgen Hunold
+#
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+
+project liba ;
+
+lib liba : test ../include/test_a.h ;
+
+obj test : test_a.cpp : <optimization>off ;

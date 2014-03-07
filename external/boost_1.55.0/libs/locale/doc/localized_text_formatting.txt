@@ -1,0 +1,168 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page localized_text_formatting Localized Text Formatting
+
+The \c iostream manipulators are very useful, but when we create a messages for the user, sometimes we need something
+like good old \c printf or \c boost::format.
+
+Unfortunately \c boost::format has several limitations in context of localization:
+
+-#  It renders all parameters using global locale rather than target \c ostream locale. For example:
+    \n
+    \code
+    std::locale::global(std::locale("en_US.UTF-8"));
+    output.imbue(std::locale("de_DE.UTF-8"))
+    output << boost::format("%1%") % 1234.345;
+    \endcode
+    \n
+    This would write "1,234.235" to output, instead of the "1.234,234" that is expected for "de_DE" locale
+-#  It knows nothing about the new Boost.Locale manipulators.
+-#  The \c printf-like syntax is very limited for formatting complex localized data, not allowing
+    the formatting of dates, times, or currencies
+
+Thus a new class, boost::locale::format, was introduced. For example:
+
+\code
+    wcout << wformat(L"Today {1,date} I would meet {2} at home") % time(0) % name <<endl;
+\endcode
+
+Each format specifier is enclosed within \c {} brackets, is separated with a comma "," and
+may have an additional option after an equals symbol '='. This option may be simple ASCII text or single-quoted localized text.
+If a single-quote should be inserted within the text, it may be represented with a pair of single-quote characters.
+
+Here is an example of a format string:
+
+\verbatim
+    "Ms. {1} had arrived at {2,ftime='%I o''clock'} at home. The exact time is {2,time=full}"
+\endverbatim
+
+The syntax is described by following grammar:
+
+\verbatim
+    format : '{' parameters '}'
+    parameters: parameter | parameter ',' parameters;
+    parameter : key ["=" value] ;
+    key : [0-9a-zA-Z<>]+ ;
+    value : ascii-string-excluding-"}"-and="," | local-string ; 
+    local-string : quoted-text | quoted-text local-string;
+    quoted-text : '[^']*' ;
+\endverbatim
+
+
+You can include literal '{' and '}' by inserting double "{{" or "}}"
+to the text.
+
+\code
+cout << format(translate("Unexpected `{{' in line {1} in file {2}")) % pos % file;
+\endcode
+
+Would display something like
+
+\verbatim
+Unexpected `{' in line 5 in file source.cpp
+\endverbatim
+
+The following format key-value pairs are supported:
+
+-   <tt>[0-9]+</tt> -- digits, the index of the formatted parameter -- required.
+-   \c num or \c number -- format a number. Options are:
+    \n
+    -   \c hex -- display in hexadecimal format
+    -   \c oct -- display in octal format
+    -   \c sci or \c scientific -- display in scientific format
+    -   \c fix or \c fixed -- display in fixed format
+    \n
+    For example, \c number=sci
+-   \c cur or \c currency -- format currency. Options are:
+    \n
+    -   \c iso -- display using ISO currency symbol.
+    -   \c nat or \c national -- display using national currency symbol.
+    \n
+-   \c per or \c percent -- format a percentage value.
+-   \c date, \c time, \c datetime or \c dt -- format a date, a time, or a date and time. Options are:
+    \n
+    -   \c s or \c short -- display in short format.
+    -   \c m or \c medium -- display in medium format.
+    -   \c l or \c long -- display in long format.
+    -   \c f or \c full -- display in full format.
+-   \c ftime with string (quoted) parameter -- display as with \c strftime. See \c as::ftime manipulator.
+-   \c spell or \c spellout -- spell the number.
+-   \c ord or \c ordinal -- format an ordinal number (1st, 2nd... etc)
+-   \c left or \c < -- align-left.
+-   \c right or \c > -- align-right.
+-   \c width or \c w -- set field width (requires parameter).
+-   \c precision or \c p -- set precision (requires parameter).
+-   \c locale -- with parameter -- switch locales for the current operation. This command generates a locale
+    with formatting facets, giving more fine grained control of formatting. For example:
+    \n
+    \code
+    cout << format("This article was published at {1,date=l} (Gregorian) {1,locale=he_IL@calendar=hebrew,date=l} (Hebrew)") % date;
+    \endcode
+-   \c timezone or \c tz -- the name of the timezone to display the time in. For example:\n
+    \code
+    cout << format("Time is: Local {1,time}, ({1,time,tz=EET} Eastern European Time)") % date;
+    \endcode
+-   \c local - display the time in local time
+-   \c gmt - display the time in UTC time scale
+    \code
+    cout << format("Local time is: {1,time,local}, universal time is {1,time,gmt}") % time;
+    \endcode
+
+The constructor for the \ref boost::locale::format "format" class can take an object of type \ref boost::locale::message "message", simplifying integration with message translation code.
+
+For example:
+
+\code
+    cout<< format(translate("Adding {1} to {2}, we get {3}")) % a % b % (a+b) << endl;
+\endcode
+
+A formatted string can be fetched directly by using the \ref boost::locale::format::str() "str(std::locale const &loc=std::locale())" member function. For example:
+
+\code
+    std::wstring de = (wformat(translate("Adding {1} to {2}, we get {3}")) % a % b % (a+b)).str(de_locale);
+    std::wstring fr = (wformat(translate("Adding {1} to {2}, we get {3}")) % a % b % (a+b)).str(fr_locale);
+\endcode
+
+
+\note  There is one significant difference between \c boost::format and \c boost::locale::format: Boost.Locale's format converts its
+parameters only when written to an \c ostream or when the `str()` member function is called. It only saves references to the objects that
+can be written to a stream.
+
+This is generally not a problem when all operations are done in one statement, such as:
+
+\code
+    cout << format("Adding {1} to {2}, we get {3}") % a % b % (a+b);
+\endcode
+
+Because the temporary value of \c (a+b) exists until the formatted data is actually written to the stream. But following code is wrong:
+
+\code
+    format fmt("Adding {1} to {2}, we get {3}");
+    fmt % a;
+    fmt % b;
+    fmt % (a+b);
+    cout << fmt;
+\endcode
+
+Because the temporary value of \c (a+b) no longer exists when \c fmt is written to the stream. A correct solution would be:
+
+\code
+    format fmt("Adding {1} to {2}, we get {3}");
+    fmt % a;
+    fmt % b;
+    int a_plus_b = a+b;
+    fmt % a_plus_b;
+    cout << fmt;
+\endcode
+
+*/
+
+

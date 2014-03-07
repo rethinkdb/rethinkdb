@@ -1,0 +1,580 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta name="GENERATOR" content="Quanta Plus" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Types Overview</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Overview of Matrix- and Vector-Types </h1>
+<div class="toc" id="toc"></div>
+
+<dl>
+<dt>Contents:</dt>
+<dd><a href="#vectors">Vectors</a></dd>
+<dd><a href="#vector_proxies">Vector Proxies</a></dd>
+<dd><a href="#matrices">Matrices</a></dd>
+<dd><a href="#matrix_proxies">Matrix Proxies</a></dd>
+<dd><a href="#storage_layout">Special Storage Layouts</a></dd>
+</dl>
+
+
+<h2>Notation</h2>
+
+<table style="border: none;" summary="notation">
+<tr><td><code>T</code></td> 
+<td>is the data type. For general linear algebra operations this will be a real type e.g. <code>double</code>, ...</td></tr>
+<tr><td><code>F</code></td> 
+<td>is the orientation type (functor), either
+<code>row_major</code> or <code>column_major</code></td></tr>
+<tr><td><code>A, IA, TA</code></td> <td>is an array storage type, e.g. <code>std::vector,
+bounded_array, unbounded_array, ...</code></td></tr>
+<tr><td><code>TRI</code></td> 
+<td>is a triangular functor: <code>lower,
+unit_lower, strict_lower, upper, unit_upper,
+strict_upper</code></td></tr>
+<tr><td><code>M, N</code></td> 
+<td>are unsigned integer sizes 
+(<code>std::size_t</code>)</td></tr>
+<tr><td><code>IB</code></td> 
+<td>is an index base
+(<code>std::size_t</code>)</td></tr>
+<tr><td><code>VEC</code></td> 
+<td>is any vector type</td></tr>
+<tr><td><code>MAT</code> </td>
+<td>is any matrix type</td></tr>
+<tr><td><code>[...]</code></td> 
+<td>denote optional arguments - for more details
+look at the section "storage layout".</td></tr>
+</table>
+
+<h2><a id="vectors">Vectors</a></h2>
+<table border="1" summary="vector types">
+<thead>
+<tr>
+<th width="30%">Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>vector&lt;T [, A]&gt;<br />&nbsp;&nbsp; v(size);</code></td>
+<td>a dense vector of values of type <code>T</code> of variable
+size. A storage type <code>A</code> can be specified
+which defaults to <code>unbounded_array</code>.
+Elements are constructed by <code>A</code>, which need not initialise their value.</td>
+
+</tr>
+<tr>
+<td><code>bounded_vector&lt;T, N&gt;<br />&nbsp;&nbsp; v;</code></td>
+<td>a dense vector of values of type <code>T</code> of variable size but with maximum
+<code>N</code>. The default constructor creates <code>v</code>
+with size <code>N</code>.
+Elements are constructed by the storage type <code>bounded_array</code>, which need not initialise their value.</td>
+</tr>
+<tr>
+<td><code>c_vector&lt;T, M&gt;<br />&nbsp;&nbsp; v(size);</code></td>
+<td>a dense vector of values of type <code>T</code> with the given size.
+The data is stored as an ordinary C++ array <code>T
+data_[M]</code></td>
+</tr>
+<tr>
+<td><code>zero_vector&lt;T&gt;<br />&nbsp;&nbsp; v(size);</code></td>
+<td>the zero vector of type <code>T</code> with the given
+size.</td>
+</tr>
+<tr>
+<td><code>unit_vector&lt;T&gt;<br />&nbsp;&nbsp; v(size,&nbsp;index);</code></td>
+<td>the unit vector of type <code>T</code> with the given size. The
+vector is zero other then a single specified element.
+<br/><code>index</code> should be less than <code>size</code>.</td>
+</tr>
+<tr>
+<td><code>mapped_vector&lt;T [, S]&gt;<br />&nbsp;&nbsp; v(size);</code></td>
+<td>a sparse vector of values of type <code>T</code> of variable
+size. The sparse storage type <code>S</code> can be <code>std::map&lt;size_t,
+T&gt;</code> or <code>map_array&lt;size_t, T&gt;</code>.</td>
+</tr>
+<tr>
+<td><code>compressed_vector&lt;T [,IB, IA, TA]&gt;<br />&nbsp;&nbsp; v(size);</code></td>
+<td>a sparse vector of values of type <code>T</code> of variable
+size. The non zero values are stored as two seperate arrays - an
+index array and a value array. The index array is always sorted and
+there is at most one entry for each index.</td>
+</tr>
+<tr>
+<td><code>coordinate_vector&lt;T [,IB, IA, TA]&gt;<br />&nbsp;&nbsp; v(size);</code></td>
+<td>a sparse vector of values of type <code>T</code> of variable
+size. The non zero values are stored as two seperate arrays - an
+index array and a value array. The arrays may be out of order with
+multiple entries for each vector element. If there are multiple
+values for the same index the sum of these values is the real
+value.</td>
+</tr>
+</tbody>
+</table>
+<p><em>Note:</em> the default types are defined in
+<code>boost/numeric/ublas/fwd.hpp</code>.</p>
+
+<h2><a id="vector_proxies">Vector Proxies</a></h2>
+
+<table border="1" summary="vector proxies">
+<thead>
+<tr>
+<th width="30%">Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>vector_range&lt;VEC&gt;<br />&nbsp;&nbsp; vr(v, range);</code></td>
+<td>a vector referencing a continuous subvector of elements of
+vector <code>v</code> containing all elements specified by
+<code>range</code>.</td>
+</tr>
+<tr>
+<td><code>vector_slice&lt;VEC&gt;<br />&nbsp;&nbsp; vs(v, slice);</code></td>
+<td>a vector referencing a non continuous subvector of elements of
+vector <code>v</code> containing all elements specified by
+<code>slice</code>.</td>
+</tr>
+<tr>
+<td><code>matrix_row&lt;MAT&gt;<br />&nbsp;&nbsp; vr(m, index);</code></td>
+<td>a vector referencing the <code>index</code>-th row of matrix
+<code>m</code></td>
+</tr>
+<tr>
+<td><code>matrix_column&lt;MAT&gt;<br />&nbsp;&nbsp; vc(m, index);</code></td>
+<td>a vector referencing the <code>index</code>-th column of matrix
+<code>m</code></td>
+</tr>
+</tbody>
+</table>
+
+<h2><a id="matrices">Matrices</a></h2>
+
+<table border="1" summary="matrix types">
+<thead>
+<tr>
+<th width="30%">Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matrix&lt;T [, F, A]&gt;<br />&nbsp;&nbsp; m(size1, size2);</code></td>
+<td>a dense matrix of values of type <code>T</code> of variable
+size.  A storage type <code>A</code> can be specified
+which defaults to <code>unbounded_array</code>.
+The orientation functor <code>F</code> defaults to
+<code>row_major</code>.
+Elements are constructed by <code>A</code>, which need not initialise their value.</td>
+</tr>
+<tr>
+<td><code>bounded_matrix&lt;T, M, N [, F]&gt;<br />&nbsp;&nbsp; m;</code></td>
+<td>a dense matrix of type <code>T</code> with variable size with maximum <code>M</code>-by-<code>N</code>. The orientation functor <code>F</code>
+defaults to <code>row_major</code>. The default constructor creates
+<code>m</code> with size <code>M</code>-by-<code>N</code>.
+Elements are constructed by the storage type <code>bounded_array</code>, which need not initialise their value.</td>
+</tr>
+<tr>
+<td><code>c_matrix&lt;T, M, N&gt;<br />&nbsp;&nbsp; m(size1, size2);</code></td>
+<td>a dense matrix of values of type <code>T</code> with the given size.
+The data is stored as an ordinary C++ array <code>T
+data_[N][M]</code></td>
+</tr>
+<tr>
+<td><code>vector_of_vector&lt;T [, F, A]&gt;<br />&nbsp;&nbsp; m(size1,
+size2);</code></td>
+<td>a dense matrix of values of type <code>T</code> with the given size.
+The data is stored as a vector of vectors. The orientation
+<code>F</code> defaults to <code>row_major</code>. The storage
+type <code>S</code> defaults to
+<code>unbounded_array&lt;unbounded_array&lt;T&gt;&nbsp;&gt;</code></td>
+</tr>
+<tr>
+<td><code>zero_matrix&lt;T&gt;<br />&nbsp;&nbsp; m(size1, size2);</code></td>
+<td>a zero matrix of type <code>T</code> with the given size.</td>
+</tr>
+<tr>
+<td><code>identity_matrix&lt;T&gt;<br />&nbsp;&nbsp; m(size1, size2);</code></td>
+<td>an identity matrix of type <code>T</code> with the given size.
+The values are <code>v(i,j) = (i==j)?T(1):T()</code>.</td>
+</tr>
+<tr>
+<td><code>scalar_matrix&lt;T&gt;<br />&nbsp;&nbsp; m(size1, size2,
+value);</code></td>
+<td>a matrix of type <code>T</code> with the given size that has the
+value <code>value</code> everywhere.</td>
+</tr>
+<tr>
+<td><code>triangular_matrix&lt;T [, TRI, F, A]&gt;<br />&nbsp;&nbsp;
+m(size);</code></td>
+<td>a triangular matrix of values of type <code>T</code> of
+variable size. Only the nonzero elements are stored in the given
+order <code>F</code>. ("triangular packed storage") The triangular
+type <code>F</code> defaults to <code>lower</code>, the orientation
+type <code>F</code> defaults to <code>row_major</code>.</td>
+</tr>
+<tr>
+<td><code>banded_matrix&lt;T [, F, A]&gt;<br />&nbsp;&nbsp; m(size1, size2, n_lower,
+n_upper);</code></td>
+<td>a banded matrix of values of type <code>T</code> of variable
+size with <code>n_lower</code> sub diagonals and
+<code>n_upper</code> super diagonals. Only the nonzero elements are
+stored in the given order <code>F</code>. ("packed storage")</td>
+</tr>
+<tr>
+<td><code>symmetric_matrix&lt;T [, TRI, F, A]&gt;<br />&nbsp;&nbsp;
+m(size);</code></td>
+<td>a symmetric matrix of values of type <code>T</code> of
+variable size. Only the given triangular matrix is stored in the
+given order <code>F</code>.</td>
+</tr>
+<tr>
+<td><code>hermitian_matrix&lt;T [, TRI, F, A]&gt;<br />&nbsp;&nbsp;
+m(size);</code></td>
+<td>a hermitian matrix of values of type <code>T</code> of
+variable size. Only the given triangular matrix is stored using
+the order <code>F</code>.</td>
+</tr>
+<tr>
+<td><code>mapped_matrix&lt;T, [F, S]&gt;<br />&nbsp;&nbsp; m(size1, size2 [,
+non_zeros]);</code></td>
+<td>a sparse matrix of values of type <code>T</code> of variable
+size. The sparse storage type <code>S</code> can be either <code>std::map&lt;size_t,
+std::map&lt;size_t, T&gt;&nbsp;&gt;</code> or
+<code>map_array&lt;size_t, map_array&lt;size_t,
+T&gt;&nbsp;&gt;</code>.</td>
+</tr>
+<tr>
+<td><code>sparse_vector_of_sparse_vector&lt;T, [F, C]&gt;<br />&nbsp;&nbsp; m(size1,
+size2 [, non_zeros]);</code></td>
+<td>a sparse matrix of values of type <code>T</code> of variable
+size.</td>
+</tr>
+<tr>
+<td><code>compressed_matrix&lt;T, [F, IB, IA, TA]&gt;<br />&nbsp;&nbsp; m(size1,
+size2 [, non_zeros]);</code></td>
+<td>a sparse matrix of values of type <code>T</code> of variable
+size. The values are stored in compressed row/column storage.</td>
+</tr>
+<tr>
+<td><code>coordinate_matrix&lt;T, [F, IB, IA, TA]&gt;<br />&nbsp;&nbsp; m(size1,
+size2 [, non_zeros]);</code></td>
+<td>a sparse matrix of values of type <code>T</code> of variable
+size. The values are stored in 3 parallel array as triples (i, j,
+value). More than one value for each pair of indices is possible,
+the real value is the sum of all.</td>
+</tr>
+<tr>
+<td><code>generalized_vector_of_vector&lt;T, F, A&gt;<br />&nbsp;&nbsp; m(size1,
+size2 [, non_zeros]);</code></td>
+<td>a sparse matrix of values of type <code>T</code> of variable
+size. The values are stored as a vector of sparse vectors, e.g.
+<code>generalized_vector_of_vector&lt;double, row_major,
+unbounded_array&lt;coordinate_vector&lt;double&gt;&nbsp;&gt;&nbsp;&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p><em>Note:</em> the default types are defined in
+<code>boost/numeric/ublas/fwd.hpp</code>.</p>
+
+<h2><a id="matrix_proxies">Matrix Proxies</a></h2>
+
+<table border="1" summary="matrix proxies">
+<thead>
+<tr>
+<th width="30%">Definition</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>triangular_adaptor&lt;MAT, TRI&gt;<br />&nbsp;&nbsp; ta(m);</code></td>
+<td>a triangular matrix referencing a selection of elements of the
+matrix <code>m</code>.</td>
+</tr>
+<tr>
+<td><code>symmetric_adaptor&lt;MAT, TRI&gt;<br />&nbsp;&nbsp; sa(m);</code></td>
+<td>a symmetric matrix referencing a selection of elements of the
+matrix <code>m</code>.</td>
+</tr>
+<tr>
+<td><code>hermitian_adaptor&lt;MAT, TRI&gt;<br />&nbsp;&nbsp; ha(m);</code></td>
+<td>a hermitian matrix referencing a selection of elements of the
+matrix <code>m</code>.</td>
+</tr>
+<tr>
+<td><code>banded_adaptor&lt;MAT&gt;<br />&nbsp;&nbsp; ba(m, n_lower,
+n_upper);</code></td>
+<td>a banded matrix referencing a selection of elements of the
+matrix <code>m</code>.</td>
+</tr>
+<tr>
+<td><code>matrix_range&lt;MAT, TRI&gt;<br />&nbsp;&nbsp; mr(m, range1,
+range2);</code></td>
+<td>a matrix referencing a submatrix of elements in the matrix
+<code>m</code>.</td>
+</tr>
+<tr>
+<td><code>matrix_slice&lt;MAT, TRI&gt;<br />&nbsp;&nbsp; ms(m, slice1,
+slice2);</code></td>
+<td>a matrix referencing a non continues submatrix of elements in
+the matrix <code>m</code>.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+<h2><a id="storage_layout">Special Storage Layouts</a></h2>
+
+
+<p>The library supports conventional dense, packed and basic sparse
+vector and matrix storage layouts. The description of the most
+common constructions of vectors and matrices comes next.</p>
+
+<table border="1" summary="storage layouts">
+<tbody>
+<tr>
+<th width="30%">Construction</th>
+<th>Comment</th>
+</tr>
+<tr>
+<td><code>vector&lt;T,<br />
+&nbsp;std::vector&lt;T&gt; &gt;<br />
+&nbsp;&nbsp;v (size)</code></td>
+<td>a dense vector, storage is provided by a standard
+vector.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>vector&lt;T,<br />
+&nbsp;unbounded_array&lt;T&gt; &gt;<br />
+&nbsp;&nbsp;v (size)</code></td>
+<td>a dense vector, storage is provided by a heap-based
+array.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>vector&lt;T,<br />
+&nbsp;bounded_array&lt;T, N&gt; &gt;<br />
+&nbsp;&nbsp;v (size)</code></td>
+<td>a dense vector, storage is provided by a stack-based
+array.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>mapped_vector&lt;T,<br />
+&nbsp;std::map&lt;std::size_t, T&gt; &gt;<br />
+&nbsp;&nbsp;v (size, non_zeros)</code></td>
+<td>a sparse vector, storage is provided by a standard
+map.</td>
+</tr>
+<tr>
+<td><code>mapped_vector&lt;T,<br />
+&nbsp;map_array&lt;std::size_t, T&gt; &gt;<br />
+&nbsp;&nbsp;v (size, non_zeros)</code></td>
+<td>a sparse vector, storage is provided by a map
+array.</td>
+</tr>
+<tr>
+<td><code>matrix&lt;T,<br />
+&nbsp;row_major,<br />
+&nbsp;std::vector&lt;T&gt; &gt;<br />
+&nbsp;&nbsp;m (size1, size2)</code></td>
+<td>a dense matrix, orientation is row major, storage is
+provided by a standard vector.</td>
+</tr>
+<tr>
+<td><code>matrix&lt;T,<br />
+&nbsp;column_major,<br />
+&nbsp;std::vector&lt;T&gt; &gt;<br />
+&nbsp;&nbsp;m (size1, size2)</code></td>
+<td>a dense matrix, orientation is column major, storage
+is provided by a standard vector.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>matrix&lt;T,<br />
+&nbsp;row_major,<br />
+&nbsp;unbounded_array&lt;T&gt; &gt;<br />
+&nbsp;&nbsp;m (size1, size2)</code></td>
+<td>a dense matrix, orientation is row major, storage is
+provided by a heap-based array.</td>
+</tr>
+<tr>
+<td><code>matrix&lt;T,<br />
+&nbsp;column_major,<br />
+&nbsp;unbounded_array&lt;T&gt; &gt;<br />
+&nbsp;&nbsp;m (size1, size2)</code></td>
+<td>a dense matrix, orientation is column major, storage
+is provided by a heap-based array.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>matrix&lt;T,<br />
+&nbsp;row_major,<br />
+&nbsp;bounded_array&lt;T, N1 * N2&gt; &gt;<br />
+&nbsp;&nbsp;m (size1, size2)</code></td>
+<td>a dense matrix, orientation is row major, storage is
+provided by a stack-based array.</td>
+</tr>
+<tr>
+<td><code>matrix&lt;T,<br />
+&nbsp;column_major,<br />
+&nbsp;bounded_array&lt;T, N1 * N2&gt; &gt;<br />
+&nbsp;&nbsp;m (size1, size2)</code></td>
+<td>a dense matrix, orientation is column major, storage
+is provided by a stack-based array.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>triangular_matrix&lt;T,<br />
+&nbsp;row_major, F, A&gt;<br />
+&nbsp;&nbsp;m (size)</code></td>
+<td>a packed triangular matrix, orientation is row
+major.</td>
+</tr>
+<tr>
+<td><code>triangular_matrix&lt;T,<br />
+&nbsp;column_major, F, A&gt;<br />
+&nbsp;&nbsp;m (size)</code></td>
+<td>a packed triangular matrix, orientation is column
+major.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>banded_matrix&lt;T,<br />
+&nbsp;row_major, A&gt;<br />
+&nbsp;&nbsp;m (size1, size2, lower, upper)</code></td>
+<td>a packed banded matrix, orientation is row
+major.</td>
+</tr>
+<tr>
+<td><code>banded_matrix&lt;T,<br />
+&nbsp;column_major, A&gt;<br />
+&nbsp;&nbsp;m (size1, size2, lower, upper)</code></td>
+<td>a packed banded matrix, orientation is column
+major.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>symmetric_matrix&lt;T,<br />
+&nbsp;row_major, F, A&gt;<br />
+&nbsp;&nbsp;m (size)</code></td>
+<td>a packed symmetric matrix, orientation is row
+major.</td>
+</tr>
+<tr>
+<td><code>symmetric_matrix&lt;T,<br />
+&nbsp;column_major, F, A&gt;<br />
+&nbsp;&nbsp;m (size)</code></td>
+<td>a packed symmetric matrix, orientation is column
+major.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>hermitian_matrix&lt;T,<br />
+&nbsp;row_major, F, A&gt;<br />
+&nbsp;&nbsp;m (size)</code></td>
+<td>a packed hermitian matrix, orientation is row
+major.</td>
+</tr>
+<tr>
+<td><code>hermitian_matrix&lt;T,<br />
+&nbsp;column_major, F, A&gt;<br />
+&nbsp;&nbsp;m (size)</code></td>
+<td>a packed hermitian matrix, orientation is column
+major.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>mapped_matrix&lt;T,<br />
+&nbsp;row_major,<br />
+&nbsp;std::map&lt;std::size_t, T&gt; &gt;<br />
+&nbsp;&nbsp;m (size1, size2, non_zeros)</code></td>
+<td>a sparse matrix, orientation is row major, storage
+is provided by a standard map.</td>
+</tr>
+<tr>
+<td><code>mapped_matrix&lt;T,<br />
+&nbsp;column_major,<br />
+&nbsp;std::map&lt;std::size_t, T&gt; &gt;<br />
+&nbsp;&nbsp;m (size1, size2, non_zeros)</code></td>
+<td>a sparse matrix, orientation is column major,
+storage is provided by a standard map.</td>
+</tr>
+<tr>
+<td><code>mapped_matrix&lt;T,<br />
+&nbsp;row_major,<br />
+&nbsp;map_array&lt;std::size_t, T&gt; &gt;<br />
+&nbsp;&nbsp;m (size1, size2, non_zeros)</code></td>
+<td>a sparse matrix, orientation is row major, storage
+is provided by a map array.</td>
+</tr>
+<tr>
+<td><code>mapped_matrix&lt;T,<br />
+&nbsp;column_major,<br />
+&nbsp;map_array&lt;std::size_t, T&gt; &gt;<br />
+&nbsp;&nbsp;m (size1, size2, non_zeros)</code></td>
+<td>a sparse matrix, orientation is column major,
+storage is provided by a map array.</td>
+</tr>
+<tr>
+<td><code>compressed_matrix&lt;T,<br />
+&nbsp;row_major&gt;<br />
+&nbsp;&nbsp;m (size1, size2, non_zeros)</code></td>
+<td>a compressed matrix, orientation is row major.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>compressed_matrix&lt;T,<br />
+&nbsp;column_major&gt;<br />
+&nbsp;&nbsp;m (size1, size2, non_zeros)</code></td>
+<td>a compressed matrix, orientation is column
+major.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>coordinate_matrix&lt;T,<br />
+&nbsp;row_major&gt;<br />
+&nbsp;&nbsp;m (size1, size2, non_zeros)</code></td>
+<td>a coordinate matrix, orientation is row major.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+<tr>
+<td><code>coordinate_matrix&lt;T,<br />
+&nbsp;column_major&gt;<br />
+&nbsp;&nbsp;m (size1, size2, non_zeros)</code></td>
+<td>a coordinate matrix, orientation is column
+major.<br />
+The storage layout usually is BLAS compliant.</td>
+</tr>
+</tbody>
+</table>
+
+<hr />
+<p>Copyright (&copy;) 2000-2004 Joerg Walter, Mathias Koch, Gunter
+Winkler, Michael Stevens<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

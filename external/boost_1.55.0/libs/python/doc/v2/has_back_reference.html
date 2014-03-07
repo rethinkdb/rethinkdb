@@ -1,0 +1,225 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/has_back_reference.hpp&gt;</title>
+
+    <style type="text/css">
+ p.c3 {font-style: italic}
+ h2.c2 {text-align: center}
+ h1.c1 {text-align: center}
+            </style>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 class="c1"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 class="c2">Header
+          &lt;boost/python/has_back_reference.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#has_back_reference-spec">Class template
+          <code>has_back_reference</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#has_back_reference-spec-synopsis">Class template
+              <code>has_back_reference</code> synopsis</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#examples">Example(s)</a></dt>
+        </dl>
+      </dd>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code>&lt;boost/python/has_back_reference.hpp&gt;</code> defines the
+    predicate metafunction <code>has_back_reference&lt;&gt;</code>, which can
+    be specialized by the user to indicate that a wrapped class instance
+    holds a <code>PyObject*</code> corresponding to a Python object.</p>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="has_back_reference-spec"></a>Class template
+    <code>has_back_reference</code></h3>
+
+    <p>A unary metafunction whose <code>value</code> is true iff its argument
+    is a <code>pointer_wrapper&lt;&gt;</code>.</p>
+
+    <h4><a name="has_back_reference-spec-synopsis"></a>Class template
+    <code>has_back_reference</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+    template&lt;class WrappedClass&gt; class has_back_reference
+    { 
+        typedef mpl::false_ type;
+    };
+}}
+</pre>
+    <p>A "<a href="../../../mpl/doc/refmanual/metafunction.html">
+    metafunction</a>" that is inspected by Boost.Python to determine how 
+    wrapped classes can be constructed.</p>
+
+    <dl class="traits-semantics">
+      <dt><code>type::value</code> is an integral constant convertible to bool
+      of unspecified type.</dt>
+
+      <dt>Specializations may substitute a <code>true</code>-valued integral constant wrapper for 
+      <code>type</code> iff for each invocation of
+      <code>class_&lt;WrappedClass&gt;::def(init&lt;</code>
+      <i>type-sequence...</i><code>&gt;())</code> and the implicitly wrapped
+      copy constructor (unless it is <a href="class.html#class_-spec">
+      noncopyable</a>), there exists a corresponding constructor 
+      <code>WrappedClass::WrappedClass(PyObject*,&nbsp;</code>
+      <i>type-sequence...</i><code>)</code>. If such a specialization exists,
+      the <code>WrappedClass</code> constructors will be called with a "back
+      reference" pointer to the corresponding Python object whenever they are
+      invoked from Python. The easiest way to provide this nested <code>
+type
+</code>
+ is to 
+      derive the specialization from <code>mpl::true_</code>.
+      </dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+
+    <h3>C++ module definition</h3>
+<pre>
+#include &lt;boost/python/class.hpp&gt;
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/has_back_reference.hpp&gt;
+#include &lt;boost/python/handle.hpp&gt;
+#include &lt;boost/shared_ptr.hpp&gt;
+
+using namespace boost::python;
+using boost::shared_ptr;
+
+struct X
+{
+    X(PyObject* self) : m_self(self), m_x(0) {}
+    X(PyObject* self, int x) : m_self(self), m_x(x) {}
+    X(PyObject* self, X const& other) : m_self(self), m_x(other.m_x) {}
+    
+    handle&lt;&gt; self() { return handle&lt;&gt;(borrowed(m_self)); }
+    int get() { return m_x; }
+    void set(int x) { m_x = x; }
+
+    PyObject* m_self;
+    int m_x;
+};
+
+// specialize has_back_reference for X
+namespace boost { namespace python
+{
+  template &lt;&gt;
+  struct has_back_reference&lt;X&gt;
+    : mpl::true_
+  {};
+}}
+
+struct Y
+{
+    Y() : m_x(0) {}
+    Y(int x) : m_x(x) {}
+    int get() { return m_x; }
+    void set(int x) { m_x = x; }
+
+    int m_x;
+};
+
+shared_ptr&lt;Y&gt; 
+Y_self(shared_ptr&lt;Y&gt; self) { return self; }
+
+BOOST_PYTHON_MODULE(back_references)
+{
+    class_&lt;X&gt;("X")
+       .def(init&lt;int&gt;())
+       .def("self", &amp;X::self)
+       .def("get", &amp;X::get)
+       .def("set", &amp;X::set)
+       ;
+
+    class_&lt;Y, shared_ptr&lt;Y&gt; &gt;("Y")
+       .def(init&lt;int&gt;())
+       .def("get", &amp;Y::get)
+       .def("set", &amp;Y::set)
+       .def("self", Y_self)
+       ;
+}
+</pre>
+    The following Python session illustrates that <code>x.self()</code>
+    returns the same Python object on which it is invoked, while
+    <code>y.self()</code> must create a new Python object which refers to the
+    same Y instance. 
+
+    <h3>Python code</h3>
+<pre>
+&gt;&gt;&gt; from back_references import *
+&gt;&gt;&gt; x = X(1)
+&gt;&gt;&gt; x2 = x.self()
+&gt;&gt;&gt; x2 is x
+<b>1</b>
+&gt;&gt;&gt; (x.get(), x2.get())
+(1, 1)
+&gt;&gt;&gt; x.set(10)
+&gt;&gt;&gt; (x.get(), x2.get())
+(10, 10)
+&gt;&gt;&gt;
+&gt;&gt;&gt;
+&gt;&gt;&gt; y = Y(2)
+&gt;&gt;&gt; y2 = y.self()
+&gt;&gt;&gt; y2 is y
+<b>0</b>
+&gt;&gt;&gt; (y.get(), y2.get())
+(2, 2)
+&gt;&gt;&gt; y.set(20)
+&gt;&gt;&gt; (y.get(), y2.get())
+(20, 20)
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  18 July, 2004
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p class="c3">&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002
+.</p>
+  </body>
+</html>
+

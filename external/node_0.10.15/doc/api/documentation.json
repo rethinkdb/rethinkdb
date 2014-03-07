@@ -1,0 +1,28 @@
+{
+  "source": "doc/api/documentation.markdown",
+  "miscs": [
+    {
+      "textRaw": "About this Documentation",
+      "name": "About this Documentation",
+      "type": "misc",
+      "desc": "<p>The goal of this documentation is to comprehensively explain the Node.js\nAPI, both from a reference as well as a conceptual point of view.  Each\nsection describes a built-in module or high-level concept.\n\n</p>\n<p>Where appropriate, property types, method arguments, and the arguments\nprovided to event handlers are detailed in a list underneath the topic\nheading.\n\n</p>\n<p>Every <code>.html</code> document has a corresponding <code>.json</code> document presenting\nthe same information in a structured manner.  This feature is\nexperimental, and added for the benefit of IDEs and other utilities that\nwish to do programmatic things with the documentation.\n\n</p>\n<p>Every <code>.html</code> and <code>.json</code> file is generated based on the corresponding\n<code>.markdown</code> file in the <code>doc/api/</code> folder in node&#39;s source tree.  The\ndocumentation is generated using the <code>tools/doc/generate.js</code> program.\nThe HTML template is located at <code>doc/template.html</code>.\n\n</p>\n",
+      "miscs": [
+        {
+          "textRaw": "Stability Index",
+          "name": "Stability Index",
+          "type": "misc",
+          "desc": "<p>Throughout the documentation, you will see indications of a section&#39;s\nstability.  The Node.js API is still somewhat changing, and as it\nmatures, certain parts are more reliable than others.  Some are so\nproven, and so relied upon, that they are unlikely to ever change at\nall.  Others are brand new and experimental, or known to be hazardous\nand in the process of being redesigned.\n\n</p>\n<p>The stability indices are as follows:\n\n</p>\n<pre><code>Stability: 0 - Deprecated\nThis feature is known to be problematic, and changes are\nplanned.  Do not rely on it.  Use of the feature may cause warnings.  Backwards\ncompatibility should not be expected.</code></pre>\n<pre><code>Stability: 1 - Experimental\nThis feature was introduced recently, and may change\nor be removed in future versions.  Please try it out and provide feedback.\nIf it addresses a use-case that is important to you, tell the node core team.</code></pre>\n<pre><code>Stability: 2 - Unstable\nThe API is in the process of settling, but has not yet had\nsufficient real-world testing to be considered stable. Backwards-compatibility\nwill be maintained if reasonable.</code></pre>\n<pre><code>Stability: 3 - Stable\nThe API has proven satisfactory, but cleanup in the underlying\ncode may cause minor changes.  Backwards-compatibility is guaranteed.</code></pre>\n<pre><code>Stability: 4 - API Frozen\nThis API has been tested extensively in production and is\nunlikely to ever have to change.</code></pre>\n<pre><code>Stability: 5 - Locked\nUnless serious bugs are found, this code will not ever\nchange.  Please do not suggest changes in this area; they will be refused.</code></pre>\n"
+        },
+        {
+          "textRaw": "JSON Output",
+          "name": "json_output",
+          "stability": 1,
+          "stabilityText": "Experimental",
+          "desc": "<p>Every HTML file in the markdown has a corresponding JSON file with the\nsame data.\n\n</p>\n<p>This feature is new as of node v0.6.12.  It is experimental.\n</p>\n",
+          "type": "misc",
+          "displayName": "JSON Output"
+        }
+      ]
+    }
+  ]
+}

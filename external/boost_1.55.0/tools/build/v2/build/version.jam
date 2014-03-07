@@ -1,0 +1,165 @@
+# Copyright 2002, 2003, 2004, 2006 Vladimir Prus
+# Copyright 2008, 2012 Jurko Gospodnetic
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+import numbers ;
+
+
+.major = "2011" ;
+.minor = "12" ;
+
+
+rule boost-build ( )
+{
+    return "$(.major).$(.minor)-svn" ;
+}
+
+
+rule print ( )
+{
+    if [ verify-engine-version ]
+    {        
+        ECHO "Boost.Build" [ boost-build ] ;
+    }    
+}
+
+
+rule verify-engine-version ( )
+{
+    local v = [ modules.peek : JAM_VERSION ] ;
+    
+    if $(v[1]) != $(.major) || $(v[2]) != $(.minor)
+    {
+        local argv = [ modules.peek : ARGV ] ;
+        local e = $(argv[1]) ;
+        local l = [ modules.binding version ] ;
+        l = $(l:D) ;
+        l = $(l:D) ;
+        ECHO "warning: mismatched versions of Boost.Build engine and core" ;
+        ECHO "warning: Boost.Build engine ($(e)) is $(v:J=.)" ;
+        ECHO "warning: Boost.Build core (at $(l)) is" [ boost-build ] ;
+    }
+    else
+    {
+        return true ;
+    }    
+}
+
+
+# Utility rule for testing whether all elements in a sequence are equal to 0.
+#
+local rule is-all-zeroes ( sequence * )
+{
+    local result = "true" ;
+    for local e in $(sequence)
+    {
+        if $(e) != "0"
+        {
+            result = "" ;
+        }
+    }
+    return $(result) ;
+}
+
+
+# Returns "true" if the first version is less than the second one.
+#
+rule version-less ( lhs + : rhs + )
+{
+    numbers.check $(lhs) ;
+    numbers.check $(rhs) ;
+
+    local done ;
+    local result ;
+
+    while ! $(done) && $(lhs) && $(rhs)
+    {
+        if [ numbers.less $(lhs[1]) $(rhs[1]) ]
+        {
+            done = "true" ;
+            result = "true" ;
+        }
+        else if [ numbers.less $(rhs[1]) $(lhs[1])  ]
+        {
+            done = "true" ;
+        }
+        else
+        {
+            lhs = $(lhs[2-]) ;
+            rhs = $(rhs[2-]) ;
+        }
+    }
+    if ( ! $(done) && ! $(lhs) && ! [ is-all-zeroes $(rhs) ] )
+    {
+        result = "true" ;
+    }
+    
+    return $(result) ;
+}
+
+
+# Returns "true" if the current JAM version version is at least the given
+# version.
+#
+rule check-jam-version ( version + )
+{
+    local version-tag = $(version:J=.) ;
+    if ! $(version-tag)
+    {
+        import errors ;
+        errors.error Invalid version specifier: : $(version:E="(undefined)") ;
+    }
+
+    if ! $(.jam-version-check.$(version-tag))-is-defined
+    {
+        local jam-version = [ modules.peek : JAM_VERSION ] ;
+        if ! $(jam-version)
+        {
+            import errors ;
+            errors.error "Unable to deduce Boost Jam version. Your Boost Jam"
+                "installation is most likely terribly outdated." ;
+        }
+        .jam-version-check.$(version-tag) = "true" ;
+        if [ version-less [ modules.peek : JAM_VERSION ] : $(version) ]
+        {
+            .jam-version-check.$(version-tag) = "" ;
+        }
+    }
+    return $(.jam-version-check.$(version-tag)) ;
+}
+
+
+rule __test__ ( )
+{
+    import assert ;
+    
+    local jam-version = [ modules.peek : JAM_VERSION ] ;
+    local future-version = $(jam-version) ;
+    future-version += "1" ;
+
+    assert.true  check-jam-version $(jam-version)    ;
+    assert.false check-jam-version $(future-version) ;
+
+    assert.true  version-less  0          :  1          ;
+    assert.false version-less  0          :  0          ;
+    assert.true  version-less  1          :  2          ;
+    assert.false version-less  1          :  1          ;
+    assert.false version-less  2          :  1          ;
+    assert.true  version-less  3 1 20     :  3 4 10     ;
+    assert.false version-less  3 1 10     :  3 1 10     ;
+    assert.false version-less  3 4 10     :  3 1 20     ;
+    assert.true  version-less  3 1 20 5 1 :  3 4 10     ;
+    assert.false version-less  3 1 10 5 1 :  3 1 10     ;
+    assert.false version-less  3 4 10 5 1 :  3 1 20     ;
+    assert.true  version-less  3 1 20     :  3 4 10 5 1 ;
+    assert.true  version-less  3 1 10     :  3 1 10 5 1 ;
+    assert.false version-less  3 4 10     :  3 1 20 5 1 ;
+    assert.false version-less  3 1 10     :  3 1 10 0 0 ;
+    assert.false version-less  3 1 10 0 0 :  3 1 10     ;
+    assert.false version-less  3 1 10 0   :  3 1 10 0 0 ;
+    assert.false version-less  3 1 10 0   : 03 1 10 0 0 ;
+    assert.false version-less 03 1 10 0   :  3 1 10 0 0 ;
+
+    # TODO: Add tests for invalid input data being sent to version-less.
+}

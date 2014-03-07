@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2002-2006 Pavol Droba.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="string_algo.rationale" last-revision="$Date: 2008-02-27 12:00:24 -0800 (Wed, 27 Feb 2008) $">
+    <title>Rationale</title>
+
+    <using-namespace name="boost"/>
+    <using-namespace name="boost::algorithm"/>
+    
+   <section it="string_algo.locale">
+        <title>Locales</title>
+
+        <para>
+            Locales have a very close relation to string processing. They contain information about
+            the character sets and are used, for example, to change the case of characters and 
+            to classify the characters. 
+        </para>
+        <para>
+            C++ allows to work with multiple different instances of locales at once. If an algorithm
+            manipulates some data in a way that requires the usage of locales, there must be a way
+            to specify them. However, one instance of locales is sufficient for most of the applications,
+            and for a user it could be very tedious to specify which locales to use at every place 
+            where it is needed. 
+        </para> 
+        <para>
+            Fortunately, the C++ standard allows to specify the <emphasis>global</emphasis> locales (using static member
+            function <code>std:locale::global()</code>). When instantiating an
+            <code>std::locale</code> class without explicit information, the instance will 
+            be initialized with the <emphasis>global</emphasis> locale. This implies, that if an algorithm needs a locale,
+            it should have an <code>std::locale</code> parameter defaulting to  <code>std::locale()</code>.
+            If a user needs to specify locales explicitly, she can do so. Otherwise the <emphasis>global</emphasis>
+            locales are used.
+        </para>
+    </section>
+    <section id="string_algo.regex">
+        <title>Regular Expressions</title>
+
+        <para>
+            Regular expressions are an essential part of text processing. For this reason, the library 
+            also provides regex variants of some algorithms. The library does not attempt to replace
+            <libraryname>Boost.Regex</libraryname>; it merely wraps its functionality in a new interface.
+            As a part of this library, regex algorithms integrate smoothly with other components, which 
+            brings additional value.
+        </para>
+    </section>
+</section>

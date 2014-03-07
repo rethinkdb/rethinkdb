@@ -1,0 +1,292 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>The Execution Monitor reference</title>
+<link rel="stylesheet" href="../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Boost Test Library">
+<link rel="up" href="../execution-monitor.html" title="Part I. Boost Test Library: The Execution Monitor">
+<link rel="prev" href="user-guide.html" title="The Execution Monitor user's guide">
+<link rel="next" href="../prg-exec-monitor.html" title="Part II. Boost Test Library: The Program Execution Monitor">
+<script language="JavaScript1.2" src="../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../execution-monitor.html">The Execution Monitor</a><a href="../prg-exec-monitor.html">
+      &gt;
+      </a><b>Reference</b>
+</td>
+<td><div class="spirit-nav">
+<a href="user-guide.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="../prg-exec-monitor.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="execution-monitor.reference"></a>The Execution Monitor reference</h3></div></div></div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.test.execution_monitor.hpp"></a>Header &lt;<a href="../../../../../boost/test/execution_monitor.hpp" target="_top">boost/test/execution_monitor.hpp</a>&gt;</h4></div></div></div>
+<pre class="synopsis"><span class="bold"><strong>namespace</strong></span> boost {
+  <span class="bold"><strong>class</strong></span> <a class="link" href="reference.html#boost.execution_monitor" title="Class execution_monitor">execution_monitor</a>;
+  <span class="bold"><strong>class</strong></span> <a class="link" href="reference.html#boost.execution_exception" title="Class execution_exception">execution_exception</a>;
+  <span class="bold"><strong>class</strong></span> <a class="link" href="reference.html#boost.execution_aborted" title="Class execution_aborted">execution_aborted</a>;
+  <span class="bold"><strong>class</strong></span> <a class="link" href="reference.html#boost.system_error" title="Class system_error">system_error</a>;
+}</pre>
+<div class="refentry" lang="en">
+<a name="boost.execution_monitor"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class execution_monitor</span></h2>
+<p>boost::execution_monitor &#8212; 
+      uniformly detects and reports the occurrence of several types of signals and exceptions, reducing various errors
+      to a uniform <a class="link" href="reference.html#boost.execution_exception" title="Class execution_exception">execution_exception</a> that is returned to a caller
+     </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis">
+<span class="bold"><strong>class</strong></span> <a class="link" href="reference.html#boost.execution_monitor" title="Class execution_monitor">execution_monitor</a> {
+<span class="bold"><strong>public</strong></span>:
+  <span class="emphasis"><em>// <a class="link" href="reference.html#boost.execution_monitorconstruct-copy-destruct">construct/copy/destruct</a></em></span>
+  <a class="link" href="reference.html#id270337-bb">execution_monitor</a>();
+
+  <span class="emphasis"><em>// <a class="link" href="reference.html#id270356-bb">execution</a></em></span>
+  <span class="type"><span class="bold"><strong>int</strong></span></span> <a class="link" href="reference.html#id270361-bb">execute</a>(unit_test::callback0&lt;<span class="bold"><strong>int</strong></span>&gt; <span class="bold"><strong>const</strong></span>&amp;);
+
+  <span class="emphasis"><em>// <a class="link" href="reference.html#id270422-bb">registration</a></em></span>
+  <span class="bold"><strong>template</strong></span>&lt;<span class="bold"><strong>typename</strong></span> Exception, <span class="bold"><strong>typename</strong></span> ExceptionTranslator&gt; 
+    <span class="type"><span class="bold"><strong>void</strong></span></span> <a class="link" href="reference.html#id270427-bb">register_exception_translator</a>(ExceptionTranslator <span class="bold"><strong>const</strong></span>&amp;, 
+                                       boost::type&lt;Exception&gt;* = 0);
+  <span class="type">unit_test::readwrite_property&lt;<span class="bold"><strong>bool</strong></span>&gt;</span> p_catch_system_errors;
+  <span class="type">unit_test::readwrite_property&lt;<span class="bold"><strong>bool</strong></span>&gt;</span> p_auto_start_dbg;
+  <span class="type">unit_test::readwrite_property&lt;<span class="bold"><strong>int</strong></span>&gt;</span> p_timeout;
+  <span class="type">unit_test::readwrite_property&lt;<span class="bold"><strong>int</strong></span>&gt;</span> p_use_alt_stack;
+  <span class="type">unit_test::readwrite_property&lt;<span class="bold"><strong>bool</strong></span>&gt;</span> p_detect_fp_exceptions;
+};</pre></div>
+<div class="refsect1" lang="en">
+<a name="id587156"></a><h2>Description</h2>
+<div class="refsect2" lang="en">
+<a name="id587160"></a><h3>
+<a name="boost.execution_monitorconstruct-copy-destruct"></a><code class="computeroutput">execution_monitor</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol type="1"><li>
+<pre class="literallayout"><a name="id270337-bb"></a>execution_monitor();</pre>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Nothing.</td>
+</tr>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>Constructs <a class="link" href="reference.html#boost.execution_monitor" title="Class execution_monitor">execution_monitor</a> object.</td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2" lang="en">
+<a name="id587233"></a><h3>
+<a name="id270356-bb"></a><code class="computeroutput">execution_monitor</code> execution</h3>
+<div class="orderedlist"><ol type="1"><li>
+<pre class="literallayout"><span class="type"><span class="bold"><strong>int</strong></span></span> <a name="id270361-bb"></a>execute(unit_test::callback0&lt;<span class="bold"><strong>int</strong></span>&gt; <span class="bold"><strong>const</strong></span>&amp; F);</pre>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">F</code></span></p></td>
+<td></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>Value returned by monitored function F call.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>
+         <a class="link" href="reference.html#boost.execution_exception" title="Class execution_exception">execution_exception</a> on detected uncaught C++ exception, a hardware or software signal,
+         trap, or other monitored function F premature failure.
+        </td>
+</tr>
+<tr>
+<td><p><span class="term">Notes:</span></p></td>
+<td>method execute doesn't consider it an error for F to return a non-zero value</td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2" lang="en">
+<a name="id587350"></a><h3>
+<a name="id270422-bb"></a><code class="computeroutput">execution_monitor</code> registration</h3>
+<div class="orderedlist"><ol type="1"><li>
+<pre class="literallayout"><span class="bold"><strong>template</strong></span>&lt;<span class="bold"><strong>typename</strong></span> Exception, <span class="bold"><strong>typename</strong></span> ExceptionTranslator&gt; 
+  <span class="type"><span class="bold"><strong>void</strong></span></span> <a name="id270427-bb"></a>register_exception_translator(ExceptionTranslator <span class="bold"><strong>const</strong></span>&amp; tr, 
+                                     boost::type&lt;Exception&gt;* dummy = 0);</pre>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Nothing.</td>
+</tr>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>
+         Registers translator function tr for an exception of type Exception. Translators get chained, so you can 
+         register as many as you want. The Exception type needs to be specified explicitly as the member function 
+         template argument. The translator function gets called when an exception of type Exception is thrown from 
+         within the monitored function. The translator receives a thrown exception object as its first argument. 
+         Result value of translator is ignored and no exception is reported if this function exits normally. But you 
+         can always rethrow the exception or throw a different one.
+        </td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<div class="refentry" lang="en">
+<a name="boost.execution_exception"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class execution_exception</span></h2>
+<p>boost::execution_exception &#8212; 
+       uniformly reports monitored function execution problems
+     </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis">
+<span class="bold"><strong>class</strong></span> <a class="link" href="reference.html#boost.execution_exception" title="Class execution_exception">execution_exception</a> {
+<span class="bold"><strong>public</strong></span>:
+  <span class="bold"><strong>enum</strong></span> <a class="link" href="reference.html#boost.execution_exception.error_code" title="Type error_code">error_code</a>;
+};</pre></div>
+<div class="refsect1" lang="en">
+<a name="id630857"></a><h2>Description</h2>
+<p class="first-line-indented">
+       The class execution_exception is an exception used by the Execution Monitor to report problems detected during 
+       a monitored function execution. It intentionally does not allocate any memory so as to be safe for use when 
+       there is a lack of memory.
+      </p>
+<div class="refentry" lang="en">
+<a name="boost.execution_exception.error_code"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Type error_code</span></h2>
+<p>boost::execution_exception::error_code</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis">
+<span class="bold"><strong>enum</strong></span> error_code { no_error, user_error, cpp_exception_error, system_error, 
+                  timeout_error, user_fatal_error, system_fatal_error };</pre></div>
+<div class="refsect1" lang="en">
+<a name="id630905"></a><h2>Description</h2>
+<p class="first-line-indented">
+        These values are sometimes used as program return codes. The particular values have been chosen to avoid
+        conflicts with commonly used program return codes: values &lt; 100 are often user assigned, values &gt; 255 are
+        sometimes used to report system errors. Gaps in values allow for orderly expansion.
+       </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../doc/html/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+         Only uncaught C++ exceptions are treated as errors. If the application catches a C++ exception, it will never
+         reach the <a class="link" href="reference.html#boost.execution_monitor" title="Class execution_monitor">execution_monitor</a>.
+        </p></td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../doc/html/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+         The system errors include <acronym class="acronym">UNIX</acronym> signals and Windows structured exceptions. They are often
+         initiated by hardware traps.
+        </p></td></tr>
+</table></div>
+<p class="first-line-indented">
+        The implementation decides what a fatal_system_exception is and what is just a system_exception. Fatal errors
+        are so likely to have corrupted machine state (like a stack overflow or addressing exception) that it is
+        unreasonable to continue execution.
+       </p>
+</div>
+</div>
+</div>
+</div>
+<div class="refentry" lang="en">
+<a name="boost.execution_aborted"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class execution_aborted</span></h2>
+<p>boost::execution_aborted &#8212; 
+      This is a trivial default constructible class. Use it to report graceful abortion of a monitored function 
+      execution.
+     </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis">
+<span class="bold"><strong>class</strong></span> <a class="link" href="reference.html#boost.execution_aborted" title="Class execution_aborted">execution_aborted</a> {
+};</pre></div>
+</div>
+<div class="refentry" lang="en">
+<a name="boost.system_error"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class system_error</span></h2>
+<p>boost::system_error &#8212; 
+      This is a default constructible class. Use it to report failure in system call invocation.
+     </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis">
+<span class="bold"><strong>class</strong></span> <a class="link" href="reference.html#boost.system_error" title="Class system_error">system_error</a> {
+<span class="bold"><strong>public</strong></span>:
+  <span class="emphasis"><em>// <a class="link" href="reference.html#boost.system_errorconstruct-copy-destruct">construct/copy/destruct</a></em></span>
+  <a class="link" href="reference.html#id270669-bb">system_error</a>();
+  <span class="type">unit_test::readonly_property&lt;<span class="bold"><strong>long</strong></span>&gt;</span> p_errno;
+};</pre></div>
+<div class="refsect1" lang="en">
+<a name="id630949"></a><h2>Description</h2>
+<div class="refsect2" lang="en">
+<a name="id630953"></a><h3>
+<a name="boost.system_errorconstruct-copy-destruct"></a><code class="computeroutput">system_error</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol type="1"><li>
+<pre class="literallayout"><a name="id270669-bb"></a>system_error();</pre>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Nothing.</td>
+</tr>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>Constructs <a class="link" href="reference.html#boost.system_error" title="Class system_error">system_error</a> object.</td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="user-guide.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../execution-monitor.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="../prg-exec-monitor.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

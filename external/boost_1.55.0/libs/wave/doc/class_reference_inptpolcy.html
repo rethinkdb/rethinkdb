@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>The Input Policy</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="theme/style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" cellspacing="2" background="theme/bkd2.gif">
+  <tr> 
+    <td width="21"> <h1></h1></td>
+    <td width="885"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">The 
+      Input Policy</font></b></font></td>
+    <td width="96"><a href="http://www.boost.org"><img src="theme/wave.gif" width="93" height="68" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="class_reference_context.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="class_reference_ctxpolicy.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+
+<blockquote> 
+  <p><a href="class_reference_inptpolcy.html#introduction">Introduction</a><br>
+    <a href="class_reference_inptpolcy.html#header_synopsis">Header 'wave/cpp_iteration_context.hpp' 
+    synopsis</a><br>
+    <a href="class_reference_inptpolcy.html#template_parameters">Template parameters</a><br>
+    <a href="class_reference_inptpolcy.html#member_functions">Member functions</a></p>
+</blockquote>
+<h2><b><a name="introduction"></a>Introduction</b></h2>
+<p>The input policy type may be specified as a template parameter to the <tt>wave::context</tt> 
+  object and is used for customizing the way, how an included file is to be represented 
+  by a pair of iterators pointing to the beginning and the end of the resulting 
+  input sequence. If this template parameter is not given while instantiating 
+  the context object, it defaults to the <tt>iteration_context_policies::load_file_to_string</tt> 
+  type. </p>
+<h2><b><a name="header_synopsis"></a>Header <a href="http://svn.boost.org/trac/boost/browser/trunk/boost/wave/util/iteration_context.hpp">wave/iteration_context.hpp</a> 
+  synopsis</b></h2>
+<p>The following code listing does not show the required interface only, but for 
+  brevity reasons the whole implementation of an input policy, which loads the 
+  given file into a string variable and exposes the begin() and end() iterators 
+  of this string to the <tt>Wave</tt> library.</p>
+<pre><span class="keyword">namespace</span> boost {
+<span class="keyword">namespace</span> wave {
+<span class="keyword">namespace</span> iteration_context_policies {
+
+    <span class="keyword">struct</span> load_file_to_string {
+    
+        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> IterContext&gt;
+        <span class="keyword">class</span> inner {
+        
+        <span class="keyword">public</span>:
+            <span class="comment">// expose the begin and end iterators for the</span>
+            <span class="comment">// included file</span>
+            <span class="keyword">template</span> &lt;typename Position&gt;
+            <span class="keyword">static</span> 
+            <span class="keyword">void</span> <a href="class_reference_inptpolcy.html#init_iterators">init_iterators</a>(IterContext&iter_ctx, 
+                Position const &act_pos)
+            {
+                <span class="keyword">typedef typename</span> IterContext::iterator_type iterator_type;
+                
+                <span class="keyword">std::ifstream</span> instream(iter_ctx.filename.c_str());
+                if (!instream.is_open()) {
+                    CPP_THROW(preprocess_exception, bad_include_file, 
+                        iter_ctx.filename, act_pos);
+                }
+                
+                iter_ctx.instring = <span class="keyword">std::string</span>(
+                    <span class="keyword">std::istreambuf_iterator</span><char>&lt;char&gt;(instream.rdbuf()),
+                    <span class="keyword">std::istreambuf_iterator</span><char>&lt;char&gt;());
+
+                iter_ctx.first = iterator_type(iter_ctx.instring.begin(), 
+                    iter_ctx.instring.end(), 
+                    PositionT(iter_ctx.filename));
+                iter_ctx.last = iterator_type();
+            }
+
+        <span class="keyword">private</span>:
+            <span class="keyword">std::string</span> instring;
+        };
+    };
+
+}   <span class="comment">// namespace iteration_context_policies</span>
+}   <span class="comment">// namespace wave </span>
+}   <span class="comment">// namespace boost </span>  </pre>
+<p>As you can see, an <tt>input_policy</tt> for the <tt>wave::context</tt> object 
+  should implement one function only, the init_iterators function. The policy 
+  shown is implemented with the help of an embedded class to avoid the need for 
+  template template parameters, which aren't implemented by all systems today. 
+  This embedded class should have the name <tt>inner</tt>.</p>
+<h3><a name="template_parameters"></a>Template Parameters</h3>
+<p>The <tt>inner</tt> class is instantiated with one template parameter, the iteration 
+  context type, from which the policy is a part of. The iterator type <tt>iterator_type</tt> 
+  which is used to access the underlying input stream has to be derived through 
+  a typedef as shown. The iterator pair to initialize (which is accessible as 
+  <tt>iter_ctx.first</tt> and <tt>iter_ctx.last</tt>) has to initialized from 
+  an abritrary iterator type, representing the actual input stream.</p>
+<h3><a name="member_functions"></a>Member Functions</h3>
+<p><a name="init_iterators"></a><b>init_iterators</b></p>
+<pre>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Position&gt;
+    <span class="keyword">static void</span> init_iterators(
+        IterContext iter_ctx, 
+        Position const &act_pos);</pre>
+
+    <p>directive was found in the input token stream. The main rationale for this 
+    function is to initialize the pair of iterators <tt>iter_ctx.first</tt> and 
+    <tt>iter_ctx.last</tt>, which are to be used to access the input stream corresponding 
+  to the include file to be inserted from inside the preprocessing engine.</p>
+</blockquote>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="class_reference_context.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="class_reference_ctxpolicy.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2011 Hartmut Kaiser<br>
+  <br>
+  <font size="2">Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<span class="updated"></span>
+<p class="copyright"><span class="updated">Last updated: 
+  <!-- #BeginDate format:fcAm1m -->Sunday, October 12, 2008  20:14<!-- #EndDate -->
+  </span></p>
+</body>
+</html>

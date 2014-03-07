@@ -1,0 +1,4 @@
+The file "poorly_formed_zonespec.csv" is only used for testing.
+
+This file has the wrong number of fields in it and should not be used for
+any other prupose.

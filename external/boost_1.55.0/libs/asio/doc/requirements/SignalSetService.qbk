@@ -1,0 +1,91 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:SignalSetService Signal set service requirements]
+
+A signal set service must meet the requirements for an [link
+boost_asio.reference.IoObjectService I/O object service], as well as the
+additional requirements listed below.
+
+In the table below, `X` denotes a signal set service class, `a` denotes a value
+of type `X`, `b` denotes a value of type `X::implementation_type`, `ec` denotes
+a value of type `error_code`, `n` denotes a value of type `int`, and `sh`
+denotes a value meeting [link boost_asio.reference.SignalHandler `SignalHandler`]
+requirements.
+
+[table SignalSetService requirements
+  [[expression] [return type] [assertion/note\npre/post-condition]]
+  [
+    [`a.construct(b);`]
+    []
+    [
+      From [link boost_asio.reference.IoObjectService IoObjectService]
+      requirements.\n
+    ]
+  ]
+  [
+    [`a.destroy(b);`]
+    []
+    [
+      From [link boost_asio.reference.IoObjectService IoObjectService]
+      requirements. Implicitly clears the registered signals as if by calling
+      `a.clear(b, ec)`, then implicitly cancels outstanding asynchronous
+      operations as if by calling `a.cancel(b, ec)`.
+    ]
+  ]
+  [
+    [``
+      a.add(b, n, ec);
+    ``]
+    [`error_code`]
+    [
+    ]
+  ]
+  [
+    [``
+      a.remove(b, n, ec);
+    ``]
+    [`error_code`]
+    [
+    ]
+  ]
+  [
+    [``
+      a.clear(b, ec);
+    ``]
+    [`error_code`]
+    [
+    ]
+  ]
+  [
+    [``
+      a.cancel(b, ec);
+    ``]
+    [`error_code`]
+    [
+    ]
+  ]
+  [
+    [`a.async_wait(b, sh);`]
+    [`void`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Initiates an asynchronous operation to wait for the delivery of one of the
+      signals registered for the signal set `b`. The operation is performed via
+      the `io_service` object `a.get_io_service()` and behaves according to
+      [link boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      If the operation completes successfully, the `SignalHandler` object
+      `sh` is invoked with the number identifying the delivered signal. Otherwise
+      it is invoked with `0`.
+    ]
+  ]
+]
+
+[endsect]

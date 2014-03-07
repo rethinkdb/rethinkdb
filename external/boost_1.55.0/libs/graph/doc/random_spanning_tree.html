@@ -1,0 +1,160 @@
+<HTML>
+<!--
+     Copyright 2010 The Trustees of Indiana University.
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+     
+      Authors: Jeremiah Willcock
+               Jeremy Siek (due to adaptation from depth_first_search.html)
+               Andrew Lumsdaine
+  -->
+<Head>
+<Title>Boost Graph Library: Random Spanning Tree</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<TT>random_spanning_tree</TT>
+</H1>
+
+<P>
+<PRE>
+<i>// named parameter version</i>
+template &lt;class Graph, class Gen, class class P, class T, class R&gt;
+void random_spanning_tree(Graph&amp; G,
+  Gen&amp; gen,
+  const bgl_named_params&lt;P, T, R&gt;&amp; params);
+
+<i>// non-named parameter versions</i>
+template &lt;class Graph, class Gen, class PredMap, class WeightMap, class ColorMap&gt;
+void random_spanning_tree(const Graph&amp; g, Gen&amp; gen, vertex_descriptor root,
+  PredMap pred, WeightMap weight, ColorMap color);
+</PRE>
+
+<p>
+The <tt>random_spanning_tree()</tt> function generates a random spanning tree
+on a directed or undirected graph.  The algorithm used is Wilson's algorithm (<a
+href="bibliography.html#wilson96generating">73</a>, based on <!-- (FIXME: add
+documentation for loop_erased_random_walk()) <a
+href="loop_erased_random_walk.html"> -->loop-erased random walks<!-- </a> -->.  There must
+be a path from every non-root vertex of the graph to the root;
+the algorithm typically enters an infinite loop when
+given a graph that does not satisfy this property, but may also throw the
+exception <tt>loop_erased_random_walk_stuck</tt> if the search reaches a vertex
+with no outgoing edges.  Both weighted and unweighted versions of
+<tt>random_spanning_tree()</tt> are
+implemented.  In the unweighted version, all spanning trees are equally likely.
+In the weighted version, the probability of a particular spanning tree being
+selected is the product of its edge weights.
+In the non-named-parameter
+version of the algorithm, the unweighted version can be selected by passing an
+object of type <tt>static_property_map&lt;double&gt;</tt> as the weight map.
+In the named-parameter version, leaving off the <tt>weight_map</tt> parameter
+has the same effect.
+</p>
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/random_spanning_tree.hpp"><TT>boost/graph/random_spanning_tree.hpp</TT></a>
+
+<h3>Parameters</h3>
+
+IN: <tt>const Graph&amp; g</tt>
+<blockquote>
+  An undirected graph. The graph type must
+  be a model of <a href="./IncidenceGraph.html">Incidence Graph</a>
+  and <a href="./VertexListGraph.html">Vertex List Graph</a>.<br>
+</blockquote>
+
+IN: <tt>Gen&amp; gen</tt>
+<blockquote>
+  A random number generator. The generator type must
+  be a model of <a
+  href="../../../doc/html/boost_random/reference.html#boost_random.reference.concepts.uniform_random_number_generator">Uniform
+  Random Number Generator</a> or a pointer or reference to such a type.<br>
+</blockquote>
+
+
+<h3>Named Parameters</h3>
+
+IN: <tt>root_vertex(vertex_descriptor root)</tt>
+<blockquote>
+  This parameter, whose type must be the vertex descriptor type of
+  <tt>Graph</tt>, gives the root of the tree to be generated.  The default is
+  <tt>*vertices(g).first</tt>.<br>
+</blockquote>
+
+UTIL: <tt>color_map(ColorMap color)</tt>
+<blockquote>
+  This is used by the algorithm to keep track of its progress through
+  the graph. The type <tt>ColorMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a> and its key type must be the graph's vertex
+  descriptor type and the value type of the color map must model
+  <a href="./ColorValue.html">ColorValue</a>.<br>
+  <b>Default:</b> a <tt>two_bit_color_map</tt> of size
+  <tt>num_vertices(g)</tt> and using the <tt>i_map</tt> for the index
+  map.<br>
+</blockquote>
+
+IN: <tt>vertex_index_map(VertexIndexMap i_map)</tt>
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+  num_vertices(g))</tt>. This parameter is only necessary when the
+  default color property map is used. The type <tt>VertexIndexMap</tt>
+  must be a model of <a
+  href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+  Map</a>. The value type of the map must be an integer type. The
+  vertex descriptor type of the graph needs to be usable as the key
+  type of the map.<br>
+</blockquote>
+
+OUT: <tt>predecessor_map(PredMap pred)</tt>
+<blockquote>
+  This map, on output, will contain the predecessor of each vertex in the graph
+  in the spanning tree.  The value
+  <tt>graph_traits&lt;Graph&gt;::null_vertex()</tt> will be used as the
+  predecessor of the root of the tree.  The type <tt>PredMap</tt> must be a
+  model of
+  <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write Property
+  Map</a>. The key and value types of the map must both be the graph's vertex type.<br>
+</blockquote>
+
+IN: <tt>weight_map(WeightMap weight)</tt>
+<blockquote>
+  This map contains the weight of each edge in the graph.  The probability of
+  any given spanning tree being produced as the result of the algorithm is
+  proportional to the product of its edge weights.  If the weight map is
+  omitted, a default that gives an equal weight to each edge will be used; a
+  faster algorithm that relies on constant weights will also be invoked.
+  The type <tt>WeightMap</tt> must be a
+  model of
+  <a
+  href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+  Map</a>. The key type of the map must be the graph's edge type, and the value
+  type must be a real number type (such as <tt>double</tt>).<br>
+</blockquote>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

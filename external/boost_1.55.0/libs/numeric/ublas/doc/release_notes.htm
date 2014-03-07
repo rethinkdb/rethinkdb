@@ -1,0 +1,101 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content="HTML Tidy for Linux (vers 6 November 2007), see www.w3.org" />
+<!-- tidy options: -w 120 -asxhtml -clean - - vertical-space yes -f index.htm.err -m index.htm -->
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Boost Basic Linear Algebra - Release Notes</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" alt="logo"/>Boost Basic Linear Algebra - Release Notes</h1>
+
+<div class="navigation">
+<a href="index.htm">back to uBLAS home</a>
+</div>
+<div class="toc" id="toc"></div>
+
+<h2>Release 1.52.0</h2>
+
+<h3>improvements</h3>
+
+<ul>
+<li><a href="https://svn.boost.org/trac/boost/ticket/4024">[4024]</a> improve performance of inplace_solve</li>
+<li><a href="https://svn.boost.org/trac/boost/ticket/6511">[6511]</a> Division by scalar should use enable_if&lt;&gt;</li>
+<li><a href="https://svn.boost.org/trac/boost/ticket/7297">[7297]</a> Make the free functions 'num_columns' and 'num_rows' support the uBLAS traits system and better work with expression types</li>
+</ul>
+
+<h3>bug fixes</h3>
+
+<ul>
+<li><a href="https://svn.boost.org/trac/boost/ticket/7296">[7296]</a> fixes and improvements to test utility functions</li>
+<li><a href="https://svn.boost.org/trac/boost/ticket/7363">[7363]</a> fixed coordinate_matrix::sort() for gcc 4.7 and others</li>
+</ul>
+
+<h2>Release 1.43.0</h2>
+
+<h3>bug fixes</h3>
+
+<ul>
+<li><a href="https://svn.boost.org/trac/boost/ticket/3968">[3968]</a> fixed coordinate_matrix sort problem on MSVC10
+</li>
+<li><a href="https://svn.boost.org/trac/boost/ticket/3539">[3539]</a>
+	changed computation of <code>norm_inf</code> for complex types to match
+	mathematical definition. <br />
+	<b>Note:</b> This might cause a performance drop
+	because now <code>std::abs(z)</code> is called for each vector element.
+	The old implementation used <code>std::max(std::abs(real(z)),std::abs(imag(z))</code>.
+	Further <code>norm_inf</code> and <code>norm_1</code> will now return
+	the same values for complex vector.
+</li>
+<li><a href="https://svn.boost.org/trac/boost/ticket/3501">[3501]</a> Moved free functions in <code>concepts.hpp</code> into anonymous namespace.
+</li>
+</ul>
+
+<h2>Release 1.41.1</h2>
+
+<h3>new features</h3>
+
+<ul>
+<li>Move semantics of vector/matrix container assignments have been
+implemented. They can be enabled by setting
+BOOST_UBLAS_MOVE_SEMANTICS. More details are on the <a
+href="options.htm">preprocessor options page</a>.
+</li>
+<li>Introduce new free functions. See <a href="https://svn.boost.org/trac/boost/ticket/3449" target="_blank">[3449]</a>, 
+the new tests in <tt>libs/numeric/ublas/test</tt> and the inline documentation of the files in <tt>boost/numeric/ublas/operation/</tt>.
+</li>
+</ul>
+
+<h3>bug fixes</h3>
+
+<ul>
+<li><a href="https://svn.boost.org/trac/boost/ticket/3293">[3293]</a> Fix resizing problem in <code>identity_matrix</code>
+</li>
+<li><a href="https://svn.boost.org/trac/boost/ticket/3499">[3499]</a> Add DefaultConstructible to concept checks
+</li>
+</ul>
+
+<h2>Release 1.40.0 and before</h2>
+<ul>
+<li>Release notes were not available in this form.</li>
+</ul>
+
+<hr />
+<p>Copyright (&copy;) 2000-2009 Joerg Walter, Mathias Koch, Gunter Winkler<br />
+   Use, modification and distribution are subject to the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<!-- Created: Sun Sep 13 00:57:13 CEST 2009 -->
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+  </body>
+</html>

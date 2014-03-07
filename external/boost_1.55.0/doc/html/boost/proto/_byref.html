@@ -1,0 +1,131 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct _byref</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.transform.arg_hpp" title="Header &lt;boost/proto/transform/arg.hpp&gt;">
+<link rel="prev" href="_void/impl.html" title="Struct template impl">
+<link rel="next" href="_byref/result_This_T__idp68391688.html" title="Struct template result&lt;This(T &amp;)&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="_void/impl.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.transform.arg_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="_byref/result_This_T__idp68391688.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto._byref"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct _byref</span></h2>
+<p>boost::proto::_byref &#8212; A unary callable <a class="link" href="../../PolymorphicFunctionObject.html" title="Concept PolymorphicFunctionObject">PolymorphicFunctionObject</a> that wraps its argument
+          in a <code class="computeroutput">boost::reference_wrapper&lt;&gt;</code>.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.transform.arg_hpp" title="Header &lt;boost/proto/transform/arg.hpp&gt;">boost/proto/transform/arg.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="_byref.html" title="Struct _byref">_byref</a> <span class="special">:</span> <span class="keyword"></span> <a class="link" href="callable.html" title="Struct callable">proto::callable</a> <span class="special">{</span>
+  <span class="comment">// member classes/structs/unions</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> This<span class="special">,</span> <span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="_byref/result_This_T__idp68391688.html" title="Struct template result&lt;This(T &amp;)&gt;">result</a><span class="special">&lt;</span><span class="identifier">This</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">&gt;</span> <span class="special">{</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">reference_wrapper</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="keyword">const</span> <a class="link" href="_byref/result_This_T__idp68391688.html#boost.proto._byref.result_This(T__idp68391688.type"><span class="identifier">type</span></a><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> This<span class="special">,</span> <span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="_byref/result_This_T__idp68393864.html" title="Struct template result&lt;This(T)&gt;">result</a><span class="special">&lt;</span><span class="identifier">This</span><span class="special">(</span><span class="identifier">T</span><span class="special">)</span><span class="special">&gt;</span> <span class="special">{</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">reference_wrapper</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="keyword">const</span>  <span class="special">&gt;</span> <span class="keyword">const</span> <a class="link" href="_byref/result_This_T__idp68393864.html#boost.proto._byref.result_This(T)_idp68393864.type"><span class="identifier">type</span></a><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="_byref.html#idp68396040-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">reference_wrapper</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="keyword">const</span> <a class="link" href="_byref.html#idp68396328-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">reference_wrapper</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&gt;</span> <span class="keyword">const</span> <a class="link" href="_byref.html#idp68400744-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp185476792"></a><h2>Description</h2>
+<p>
+            Example:
+            </p>
+<pre class="programlisting"><a class="link" href="terminal.html" title="Struct template terminal">proto::terminal</a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="identifier">i</span> <span class="special">=</span> <span class="special">{</span><span class="number">42</span><span class="special">}</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">reference_wrapper</span><span class="special">&lt;</span><a class="link" href="terminal.html" title="Struct template terminal">proto::terminal</a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">&gt;</span> <span class="identifier">j</span>
+  <span class="special">=</span> <a class="link" href="when.html" title="Struct template when">proto::when</a><span class="special">&lt;</span><a class="link" href="_.html" title="Struct _">proto::_</a><span class="special">,</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">_byref</span><span class="special">(</span><span class="identifier">_</span><span class="special">)</span><span class="special">&gt;</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span><span class="special">;</span>
+<span class="identifier">assert</span><span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">addressof</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span> <span class="special">==</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">addressof</span><span class="special">(</span><span class="identifier">j</span><span class="special">.</span><span class="identifier">get</span><span class="special">(</span><span class="special">)</span><span class="special">)</span> <span class="special">)</span><span class="special">;</span></pre>
+<p>
+          </p>
+<div class="refsect2">
+<a name="idp185495256"></a><h3>
+<a name="idp68396040-bb"></a><code class="computeroutput">_byref</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">reference_wrapper</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="keyword">const</span> <a name="idp68396328-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span> t<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+                Wrap the parameter <code class="computeroutput">t</code> in a
+                <code class="computeroutput">boost::reference_wrapper&lt;&gt;</code>
+              </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The object to wrap </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>
+                <code class="computeroutput">boost::ref(t)</code>
+              </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">reference_wrapper</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&gt;</span> <span class="keyword">const</span> <a name="idp68400744-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> t<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="_void/impl.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.transform.arg_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="_byref/result_This_T__idp68391688.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

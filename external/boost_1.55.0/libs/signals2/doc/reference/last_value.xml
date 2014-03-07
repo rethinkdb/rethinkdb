@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<header name="boost/signals2/last_value.hpp" last-revision="$Date: 2007-03-06 16:51:55 -0500 (Tue, 06 Mar 2007) $">
+  <namespace name="boost">
+    <namespace name="signals2">
+      <class name="last_value">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+
+        <purpose>Evaluate an <conceptname>InputIterator</conceptname> sequence and return the
+        last value in the sequence.</purpose>
+
+        <description>
+          <para>
+            The <code>last_value</code> class was the default <code>Combiner</code> template parameter
+            type for signals in the original Signals library.
+            Signals2 uses <classname>optional_last_value</classname> as the default, which
+            does not throw.
+          </para>
+        </description>
+
+        <typedef name="result_type"><type>T</type></typedef>
+
+        <method-group name="invocation">
+          <method name="operator()" cv="const">
+            <template>
+              <template-type-parameter name="InputIterator"/>
+            </template>
+            <type>result_type</type>
+            <parameter name="first">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+            <parameter name="last">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+
+            <effects><para>Attempts to dereference every iterator in the sequence <computeroutput>[first, last)</computeroutput>.
+              </para></effects>
+            <returns><para>The result of the last successful iterator dereference.</para></returns>
+            <throws><para><classname>no_slots_error</classname> if no iterators were successfully dereferenced,
+            unless the template type of <code>last_value</code> is <code>void</code>.</para></throws>
+          </method>
+        </method-group>
+      </class>
+
+      <class-specialization name="last_value">
+        <template/>
+        <specialization>
+          <template-arg>void</template-arg>
+        </specialization>
+
+        <purpose>Evaluate an InputIterator sequence.</purpose>
+
+        <typedef name="result_type">
+          <type>void</type>
+        </typedef>
+
+        <method-group name="invocation">
+          <method name="operator()" cv="const">
+            <template>
+              <template-type-parameter name="InputIterator"/>
+            </template>
+            <type>result_type</type>
+            <parameter name="first">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+            <parameter name="last">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+
+            <effects><para>Attempts to dereference every iterator in the sequence <computeroutput>[first, last)</computeroutput>.
+              </para></effects>
+            <throws>
+              <para>Unlike the non-void versions of <code>last_value</code>, the void specialization does not throw.</para>
+            </throws>
+          </method>
+        </method-group>
+      </class-specialization>
+
+      <class name="no_slots_error">
+        <inherit access="public"><classname>std::exception</classname></inherit>
+        <purpose>Indicates a combiner was unable to synthesize a return value.</purpose>
+        <description>The <code>no_slots_error</code> exception may be thrown by <classname>signals2::last_value</classname>
+          when it is run but unable to obtain any results from its input iterators.
+        </description>
+        <method name="what" cv="const" specifiers="virtual">
+          <type>const char * </type>
+        </method>
+      </class>
+    </namespace>
+  </namespace>
+</header>

@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Class Template chain</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Function Template <CODE>invert</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    The class template <CODE>inverse</CODE> is an adapter which transforms an <A HREF='../concepts/input_filter.html'>InputFilter</A> into an <A HREF='../concepts/output_filter.html'>OutputFilter</A> or <I>vice versa</I>. The function template <CODE>invert</CODE> is an <A HREF='http://www.boost.org/more/generic_programming.html#object_generator' TARGET='_top'>object generator</A> which when passed a Filter returns a instance of an appropriate specialization of <CODE>inverse</CODE>.
+</P>
+
+<P>Given an <A HREF='../concepts/input_filter.html'>InputFilter</A> <CODE>f</CODE>, the inverse of <CODE>f</CODE> is <A HREF='../concepts/multi_character.html'>Multi-Character</A> <A HREF='../concepts/output_filter.html'>OutputFilter</A> whose member function <CODE>write</CODE> is implemented as follows. Given a <A HREF='../concepts/sink.html'>Sink</A> <CODE>snk</CODE> and a character buffer <CODE>s</CODE> of length <CODE>n</CODE>, we
+</P>
+<UL>
+    <LI>construct a <A HREF='../concepts/source.html'>Source</A> based on the buffer <CODE>s</CODE> and <A HREF='compose.html'><CODE>compose</CODE></A> it with <CODE>f</CODE> to form a Source, then
+    <LI>repeatedly read sequences of characters from the composite Source and write them to <CODE>snk</CODE> until the buffer <CODE>s</CODE> is exhausted.
+</UL>
+
+<P>Similarly, given an <A HREF='../concepts/output_filter.html'>OutputFilter</A> <CODE>f</CODE>, the inverse of <CODE>f</CODE> is <A HREF='../concepts/multi_character.html'>Multi-Character</A> <A HREF='../concepts/input_filter.html'>InputFilter</A> whose member function <CODE>read</CODE> is implemented as follows. Given a <A HREF='../concepts/source.html'>Source</A> <CODE>src</CODE> and a character buffer <CODE>s</CODE> of length <CODE>n</CODE>, we
+</P>
+<UL>
+    <LI>construct a <A HREF='../concepts/sink.html'>Sink</A> based on the buffer <CODE>s</CODE> and <A HREF='compose.html'><CODE>compose</CODE></A> it with <CODE>f</CODE> to form a Sink, then
+    <LI>repeatedly read sequences of characters from <CODE>src</CODE> and write them to the composite Sink until the buffer <CODE>s</CODE> is full.
+</UL>
+
+<P>
+    The <A HREF='../guide/modes.html'>mode</A> of a specialization of <CODE>inverse</CODE> is equal to <A HREF='../guide/modes.html#output'>output</A> if the mode of the underlying filter refines input, and to <A HREF='../guide/modes.html#input'>input</A> otherwise.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/invert.hpp"><CODE>&lt;boost/iostreams/invert.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="synopsis"></A>
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#inverse_template_params">Filter</A>&gt;
+<SPAN CLASS='keyword'>class</SPAN> <A CLASS='documented' HREF='#inverse'>inverse</A> {
+<SPAN CLASS='keyword'>public:</SPAN>
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>typename</SPAN> <A CLASS='documented' HREF='../guide/traits.html#char_type_of_ref'>char_type_of</A>&lt;Filter&gt;::type  char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='omitted'>see above</SPAN>                            mode;
+
+    <A CLASS='documented' HREF='#inverse_ctor'>inverse</A>(<SPAN CLASS='keyword'>const</SPAN> Filter&amp; filter);
+
+    <SPAN CLASS='comment'>// Filter member functions</SPAN>
+};
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#invert_template_params">Filter</A>&gt;
+<A CLASS='documented' HREF='#inverse'>inverse</A>&lt;Filter&gt; <A CLASS='documented' HREF='#invert'>invert</A>(<SPAN CLASS='keyword'>const</SPAN> Filter&amp; filter);
+
+} } // End namespace boost::io</PRE>
+
+<A NAME="inverse"></A>
+<H2>Class Template <CODE>inverse</CODE></H2>
+
+<A NAME="inverse_template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>Filter</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of <A HREF='../concepts/filter.html'>Filter</A></TD>
+    </TR>
+</TABLE>
+
+<A NAME="inverse_ctor"></A>
+<H4><CODE>inverse::inverse</CODE></H4>
+
+<PRE CLASS="broken_ie">    inverse(<SPAN CLASS='keyword'>const</SPAN> Filter&amp; filter);</PRE>
+
+<P>
+    Constructs an instance of <CODE>inverse</CODE> based on the given filter.
+</P>
+
+<A NAME="invert"></A>
+<H2>Function Template <CODE>invert</CODE></H2>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Filter&gt;
+inverse&lt;Filter&gt; invert(<SPAN CLASS='keyword'>const</SPAN> Filter&amp; filter);</PRE>
+
+<A NAME="invert_template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>Filter</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of <A HREF='../concepts/filter.html'>Filter</A></TD>
+    </TR>
+</TABLE>
+
+<P>
+    Constructs an instance of an appropriate specialization of <CODE>inverse</CODE> based on the given filter.
+</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

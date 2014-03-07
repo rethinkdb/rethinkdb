@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: BOOST_MPL_AUX_LAMBDA_SUPPORT</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./broken-compiler-workarounds.html" class="navigation-link">Prev</a>&nbsp;<a href="./terminology.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./broken-compiler-workarounds.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./macros.html" class="navigation-link">Macros</a> / <a href="./broken-compiler-workarounds.html" class="navigation-link">Broken Compiler Workarounds</a> / <a href="./aux-lambda-support.html" class="navigation-link">BOOST_MPL_AUX_LAMBDA_SUPPORT</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="boost-mpl-aux-lambda-support">
+<h1><a class="toc-backref" href="./broken-compiler-workarounds.html#id1609">BOOST_MPL_AUX_LAMBDA_SUPPORT</a></h1>
+<div class="section" id="id1384">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+#define <a href="./aux-lambda-support.html" class="identifier">BOOST_MPL_AUX_LAMBDA_SUPPORT</a>(arity, fun, params) \
+    <em>unspecified token sequence</em> \
+/**/
+</pre>
+</div>
+<div class="section" id="id1385">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Enables metafunction <tt class="literal"><span class="pre">fun</span></tt> for the use in <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a>s on
+compilers that don't support partial template specialization or/and
+template template parameters. Expands to nothing on conforming compilers.</p>
+</div>
+<div class="section" id="id1386">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/aux_/lambda_support.hpp" class="header">boost/mpl/aux_/lambda_support.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1387">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="15%" />
+<col width="32%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">arity</span></tt></td>
+<td>An integral constant</td>
+<td>The metafunction's arity, i.e. the number of its
+template parameters, including the defaults.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">fun</span></tt></td>
+<td>A legal identifier token</td>
+<td>The metafunction's name.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">params</span></tt></td>
+<td>A <a class="reference external" href="http://www.boost.org/libs/preprocessor/doc/data/tuples.html" target="_top">PP-tuple</a></td>
+<td>A tuple of the metafunction's parameter names, in
+their original order, including the defaults.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1388">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any integral constant <tt class="literal"><span class="pre">n</span></tt>, a <a class="reference internal" href="./metafunction.html">Metafunction</a> <tt class="literal"><span class="pre">fun</span></tt>, and arbitrary types <tt class="literal"><span class="pre">A1</span></tt>,... <tt class="literal"><span class="pre">An</span></tt>:</p>
+<pre class="literal-block">
+template&lt; typename A1,<em>...</em> typename A<em>n</em> &gt; struct fun
+{
+    // <em>...</em>
+
+    <a href="./aux-lambda-support.html" class="identifier">BOOST_MPL_AUX_LAMBDA_SUPPORT</a>(n, fun, (A1,<em>...</em>A<em>n</em>))
+};
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body">Appears in <tt class="literal"><span class="pre">fun</span></tt>'s scope, immediately followed by the scope-closing
+bracket (<tt class="literal"><span class="pre">}</span></tt>).</td>
+</tr>
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body">None.</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body">Expands to nothing and has no effect on conforming compilers. On compilers that
+don't support partial template specialization or/and template template parameters
+expands to an unspecified token sequence enabling <tt class="literal"><span class="pre">fun</span></tt> to participate in
+<a class="reference internal" href="./lambda-expression.html">Lambda Expression</a>s with the semantics described in this manual.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1389">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+template&lt; typename T, typename U = int &gt; struct f
+{
+    typedef T type[sizeof(U)];
+
+    <a href="./aux-lambda-support.html" class="identifier">BOOST_MPL_AUX_LAMBDA_SUPPORT</a>(2, f, (T,U))
+};
+
+typedef <a href="./apply.html" class="identifier">apply</a><tt class="literal"><span class="pre">1</span></tt>&lt; f&lt;char,<a href="./placeholders.html" class="identifier">_1</a>&gt;,long &gt;::type r;
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; r, char[sizeof(long)] > ));
+</pre>
+</div>
+<div class="section" id="id1390">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./macros.html">Macros</a>, <a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a></p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./broken-compiler-workarounds.html" class="navigation-link">Prev</a>&nbsp;<a href="./terminology.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./broken-compiler-workarounds.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

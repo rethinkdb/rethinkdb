@@ -1,0 +1,91 @@
+<!--
+//
+// Boost.Pointer Container
+//
+//  Copyright Thorsten Ottosen 2003-2005. Use, modification and
+//  distribution is subject to the Boost Software License, Version
+//  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+// For more information, see http://www.boost.org/libs/ptr_container/
+//
+-->
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<section id="ptr_container.intro" last-revision="$Date: 2008-02-07 00:44:10 -0800 (Thu, 07 Feb 2008) $">
+	<title>Introduction</title>
+
+	<para>
+            This library provides standard-like containers that are suitable
+                     for storing pointers to both polymorphic and non-polymorphic objects.
+                     For each of the standard containers there is a pointer container 
+                     equivalent that takes ownership of the stored pointers in an exception 
+                     safe manner. In this respect it is intended to solve 
+                     the so-called <emphasis>polymorphic class problem.    </emphasis> 
+	</para>
+	<para>
+         The main advantages are 
+          <itemizedlist> 
+               <listitem> Exception-safe and fool proof pointer storage and manipulation.</listitem>.
+               <listitem> Exception-guarantees are generally much better than with standard containers (at least the strong guarantee</listitem>
+               <listitem> Notational convinience compared to the use of containers of smart pointers.</listitem>
+               <listitem> Iterators are automatically indirected so the comparison operations can be kept
+                                on object basis instead of making/adding pointer based variants.</listitem>
+               <listitem> No memory-overhead as containers of smart_pointers can have.</listitem>
+               <listitem> Faster than using containers of smart pointers.</listitem>
+               <listitem> Provides an elegant solution to <code> vector< vector<T> > </code> performance
+                               problems; simply use  <code>ptr_vector< vector<T> ></code></listtem>
+	</para>
+	<para>		
+         Below is given some example that show how the usage compares to a container of smart pointers:
+        <programlisting>
+    using namespace boost;
+    using namespace std;
+                       
+    class Poly
+    {
+    public:
+        virtual ~Poly() {}
+        void foo() { doFoo(); }
+    private:    
+        virtual void doFoo() 
+        {
+            int i;
+            ++i;
+        }
+    };
+                                                             
+    //
+    // one doesn't need to introduce new names or live with long ones
+    //                                                         
+    typedef shared_ptr<Poly> PolyPtr;
+    
+    //
+    // one doesn't need to write this anymore
+    //                   
+    struct PolyPtrOps 
+    {
+      void operator()( const PolyPtr & a )
+        { a->foo(); }
+    };
+    
+    int main()
+    {
+        enum { size = 2000000 };
+        vector<PolyPtr>    svec   
+        ptr_vector<Poly>   pvec;
+        
+        for( int i = 0; i < size; ++i ) 
+        {
+            svec.push_back( PolyPtr( new Poly ) ); 
+            pvec.push_back( new Poly );  // no extra syntax      
+        }
+                       
+        for_each( svec.begin(), svec.end(), PolyPtrOps() );
+
+        for_each( pvec.begin(), pvec.end(), mem_fun_ref( &Poly::foo ) );
+     }
+         </programlisting>                     
+	</para>
+</section>

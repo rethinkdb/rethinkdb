@@ -1,0 +1,43 @@
+[/============================================================================
+  Boost.Geometry Index
+
+  Copyright (c) 2011-2012 Adam Wulkiewicz.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[/library Geometry Index
+    [quickbook 1.5]
+    [authors [Wulkiewicz, Adam]]
+    [copyright 2011-2013 Adam Wulkiewicz]
+    [purpose Documentation of Boost.Geometry Index library]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [id geometry]
+    [category geometry]
+/]
+
+[def __boost_geometry_index__ Boost.Geometry.Index]
+
+[def __rtree__ R-tree]
+
+[def __value__ Value]
+[def __parameters__ Parameters]
+[def __allocator__ Allocator]
+[def __indexable__ Indexable]
+
+[include imports.qbk]
+
+[include introduction.qbk]
+
+[/include rtree.qbk]
+[include rtree/quickstart.qbk]
+[include rtree/creation.qbk]
+[include rtree/query.qbk]
+[include rtree/examples.qbk]
+[/include rtree/experimental.qbk]

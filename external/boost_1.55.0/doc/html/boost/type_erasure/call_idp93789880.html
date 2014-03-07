@@ -1,0 +1,87 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function call</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.call_hpp" title="Header &lt;boost/type_erasure/call.hpp&gt;">
+<link rel="prev" href="typeid_.html" title="Struct template typeid_">
+<link rel="next" href="callable.html" title="Struct template callable">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="typeid_.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.call_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="callable.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.type_erasure.call_idp93789880"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function call</span></h2>
+<p>boost::type_erasure::call</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.call_hpp" title="Header &lt;boost/type_erasure/call.hpp&gt;">boost/type_erasure/call.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept<span class="special">,</span> <span class="keyword">typename</span> Op<span class="special">,</span> <span class="keyword">class</span><span class="special">...</span> U<span class="special">&gt;</span> 
+  <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="identifier">call</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a><span class="special">&lt;</span> <span class="identifier">Concept</span> <span class="special">&gt;</span> <span class="special">&amp;</span> binding<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Op</span> <span class="special">&amp;</span><span class="special">,</span> 
+                   <span class="identifier">U</span> <span class="special">&amp;&amp;</span><span class="special">...</span> args<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Op<span class="special">,</span> <span class="keyword">class</span><span class="special">...</span> U<span class="special">&gt;</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="identifier">call</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Op</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">U</span> <span class="special">&amp;&amp;</span><span class="special">...</span> args<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp228602552"></a><h2>Description</h2>
+<p>Dispatches a type erased function.</p>
+<p><code class="computeroutput">Op</code> must be a primitive concept which is present in <code class="computeroutput">Concept</code>. Its signature determines how the arguments of  <code class="computeroutput"><a class="link" href="call_idp93789880.html" title="Function call">call</a></code> are handled. If the argument is a <code class="computeroutput"><a class="link" href="placeholder.html" title="Struct placeholder">placeholder</a></code>,  <code class="computeroutput"><a class="link" href="call_idp93789880.html" title="Function call">call</a></code> expects an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code> using that <code class="computeroutput"><a class="link" href="placeholder.html" title="Struct placeholder">placeholder</a></code>. This <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code> is unwrapped by <code class="computeroutput"><a class="link" href="call_idp93789880.html" title="Function call">call</a></code>. The type that it stores must be the same type specified by <code class="computeroutput">binding</code>. Any arguments that are not placeholders in the signature of <code class="computeroutput">Op</code> are passed through unchanged.</p>
+<p>If <code class="computeroutput">binding</code> is not specified, it will be deduced from the arguments. Naturally this requires at least one argument to be an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code>. In this case, all <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code> arguments must have the same <code class="computeroutput"><a class="link" href="binding.html" title="Class template binding">binding</a></code>.</p>
+<p>
+
+Example:</p>
+<pre class="programlisting">* typedef mpl::vector&lt;
+*   copy_constructible&lt;_b&gt;,
+*   addable&lt;_a, int, _b&gt; &gt; concept;
+* any&lt;concept, _a&gt; a = ...;
+* any&lt;concept, _b&gt; b(call(addable&lt;_a, int, _b&gt;(), a, 10));
+* 
+</pre>
+<p>The signature of <code class="computeroutput"><a class="link" href="addable.html" title="Struct template addable">addable</a></code> is <code class="computeroutput">_b(const _a&amp;, const int&amp;)</code> </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The result of the operation. If the result type of the signature of <code class="computeroutput">Op</code> is a placeholder, the result will be converted to the appropriate <a class="link" href="any.html" title="Class template any">any</a> type.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>
+<a class="link" href="../bad_function_call.html" title="Class bad_function_call">bad_function_call</a> if <a class="link" href="relaxed.html" title="Struct relaxed">relaxed</a> is in <code class="computeroutput">Concept</code> and there is a type mismatch.</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="typeid_.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.call_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="callable.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

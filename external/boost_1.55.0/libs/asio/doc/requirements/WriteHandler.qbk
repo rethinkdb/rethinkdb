@@ -1,0 +1,54 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:WriteHandler Write handler requirements]
+
+A write handler must meet the requirements for a [link
+boost_asio.reference.Handler handler]. A value `h` of a write handler class
+should work correctly in the expression `h(ec, s)`, where `ec` is an lvalue of
+type `const error_code` and `s` is an lvalue of type `const size_t`.
+
+[heading Examples]
+
+A free function as a write handler:
+
+  void write_handler(
+      const boost::system::error_code& ec,
+      std::size_t bytes_transferred)
+  {
+    ...
+  }
+
+A write handler function object:
+
+  struct write_handler
+  {
+    ...
+    void operator()(
+        const boost::system::error_code& ec,
+        std::size_t bytes_transferred)
+    {
+      ...
+    }
+    ...
+  };
+
+A non-static class member function adapted to a write handler using `bind()`:
+
+  void my_class::write_handler(
+      const boost::system::error_code& ec,
+      std::size_t bytes_transferred)
+  {
+    ...
+  }
+  ...
+  socket.async_write(...,
+      boost::bind(&my_class::write_handler,
+        this, boost::asio::placeholders::error,
+        boost::asio::placeholders::bytes_transferred));
+
+[endsect]

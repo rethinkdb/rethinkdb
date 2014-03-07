@@ -1,0 +1,68 @@
+#  (c) Copyright Juergen Hunold 2008
+#  Use, modification, and distribution are subject to the
+#  Boost Software License, Version 1.0. (See accompanying file
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import qt5 ;
+import testing ;
+import cast ;
+
+path-constant CWD : . ;
+
+
+if [ qt5.initialized ]
+{
+    use-project /boost : ../../../../.. ;
+
+    project qttest
+      : requirements
+          <library>/boost/test//boost_unit_test_framework
+      ;
+
+    alias qt-tests :
+      # Check for explicit libraries, <use>/qt should not link any lib
+      [ link-fail qtcorefail.cpp : <use>/qt ]
+
+      [ run qtcore.cpp /qt5//QtCore ]
+      [ run qtsql.cpp  /qt5//QtSql  ]
+      [ run qtxml.cpp  /qt5//QtXml  ]
+      [ run qtnetwork.cpp /qt5//QtNetwork ]
+      [ run qtscript.cpp  /qt5//QtScript  ]
+      [ run qtscripttools.cpp  /qt5//QtScriptTools  ]
+      [ run qtxmlpatterns.cpp  /qt5//QtXmlPatterns  ]
+
+      # ToDo: runable example code
+      [ link qtsvg.cpp /qt5//QtSvg ]
+      [ link qtwidgets.cpp /qt5//QtWidgets ]
+
+      # Multimedia toolkits.
+      [ link qtwebkit.cpp /qt5//QtWebKit ]
+      [ link qtwebkitwidgets.cpp /qt5//QtWebKitWidgets ]
+      [ link qtmultimedia.cpp /qt5//QtMultimedia ]
+
+      # QtQuick version1
+      [ link qtdeclarative.cpp /qt5//QtDeclarative ]
+
+      # QtQuick version2
+      [ run qtquick.cpp /qt5//QtQuick : : $(CWD)/qtquick.qml ]
+
+      # Help systems.
+      [ link qthelp.cpp      /qt5//QtHelp ]
+
+      # Testing using QtTest. Simple sample
+      # ToDo: better support for "automoc" aka '#include "qttest.moc"'
+      [ run qttest.cpp [ cast _ moccable5-cpp : qttest.cpp ] /qt5//QtTest : : : <define>TEST_MOCK ]
+
+      # Test moc rule
+      [ run mock.cpp mock.h /qt5//QtCore : : : <define>TEST_MOCK ]
+
+      # Test resource compiler
+      [ run rcc.cpp rcc.qrc /qt//QtCore : : : <rccflags>"-compress 9 -threshold 10" ]
+
+   : # requirements
+   : # default-build
+   : # usage-requirements
+   ;
+}
+
+

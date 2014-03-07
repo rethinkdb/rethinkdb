@@ -1,0 +1,122 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2001
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Monoid</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="concept:Monoid"></A>
+Monoid
+</H1>
+
+A <i>Monoid</i> is a concept that describes a simple kind of algebraic
+system. A <b>monoid</b> consists of a set of elements <i>S</i>, a
+binary operation, and an identity element. The C++ representation of a
+monoid consists of a function object that implements the binary
+operation, a set of objects that represent the elements of <i>S</i>,
+and an object that represents the identity element.
+
+
+<H3>Refinement of</H3>
+
+The element type must be a model of <a
+href="../../utility/Assignable.html">Assignable</a> and <a
+href="../../utility/CopyConstructible.html">CopyConstructible</a>.
+The function object type must be a model of <a
+href="http://www.sgi.com/tech/stl/BinaryFunction.html">BinaryFunction</a>.
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>X</tt></TD>
+<TD>Is the element type of the Monoid.</TD>
+</TR>
+
+<TR>
+<TD><tt>a, b</tt></TD>
+<TD>are objects of type <tt>X</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>op</tt></TD>
+<TD>Is the function object implementing the Monoid operation.</TD>
+</TR>
+
+<TR>
+<TD><tt>i</tt></TD>
+<TD>is an object of type <tt>X</tt> and is the identity element
+for the Monoid.</TD>
+</TR>
+
+
+</table>
+
+<h3>Valid Expressions</h3>
+
+<Table border>
+
+<tr>
+<td><a name="sec:source"><TT>op(a,&nbsp;b)</TT></a></TD>
+<TD>See below for semantics.<br>
+Return type: <TT>X</TT>
+</TD>
+</TR>
+
+<tr>
+<TD><TT>a&nbsp;==&nbsp;b</TT></TD>
+<TD>Returns true if <tt>a</tt> and <tt>b</tt> represent
+     the same element of <i>S</i>.<br>
+Return type: <TT>bool</TT>
+</TD>
+</TR>
+
+<tr>
+<TD><TT>a&nbsp;!=&nbsp;b</TT></TD>
+<TD>Returns true if <tt>a</tt> and <tt>b</tt> represent
+     different elements of <i>S</i>.<br>
+Return type: <TT>bool</TT>
+</TD>
+</TR>
+
+</TABLE>
+
+<P>
+
+<H3>Invariants</H3>
+
+<UL>
+  <li>Closure<br>
+     The result of <tt>op(a, b)</tt> is also an element of <i>S</i>.
+  <li>Associativity<br>
+     <tt>op(op(a, b), c) == op(a, op(b, c))</tt>
+  <li>Definition of Identity Element<br>
+       <tt>op(a, i) == a</tt>
+</UL>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

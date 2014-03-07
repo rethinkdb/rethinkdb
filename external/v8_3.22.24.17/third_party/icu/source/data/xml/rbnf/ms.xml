@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+ Copyright (c) 2010 International Business Machines Corporation and others. All rights reserved.
+-->
+<!DOCTYPE ldml SYSTEM "http://www.unicode.org/repos/cldr/trunk/common/dtd/ldml.dtd">
+<ldml>
+    <identity>
+        <version number="$Revision: 1.1 $"/>
+        <generation date="$Date: 2009/03/24 17:40:10 $"/>
+        <language type="ms"/>
+    </identity>
+</ldml>

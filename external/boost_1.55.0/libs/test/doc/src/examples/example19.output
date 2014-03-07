@@ -1,0 +1,5 @@
+> example
+Running 2 test cases...                                                         
+test.cpp(17): error in "test_case1": check i == 1 failed
+
+*** 1 failure detected in test suite "example"

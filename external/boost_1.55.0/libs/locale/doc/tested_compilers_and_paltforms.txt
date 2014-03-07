@@ -1,0 +1,50 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+
+/*!
+\page tested_compilers_and_paltforms Tested Compilers and Platforms
+
+Following compilers are tested and known to work with Boost.Locale
+
+- GCC 3.4 to 4.6
+- Microsoft Visual Studio 2005 to 2010
+- Intel 10 to 12
+- Clang 2.8
+- Path Scale 4
+- Visual Age 10.1
+
+Following operating systems are tested with Boost.Locale
+
+- Linux
+- Windows
+- FreeBSD
+- Solaris
+- Darwin
+- Cygwin
+- AIX
+
+\section tested_compilers_and_paltforms_issues Known Issues
+
+-   Path Scale and MSVC 9 with STLPort has some test faults
+    regarding invalid UTF-8 sequences in wide file I/O.
+-   The native iconv library on AIX platform does not support
+    required character encodings, thus either ICU or GNU iconv
+    library should be used.
+-   Mingw/GCC version 4.5 and above is required to support shared
+    builds of Boost.Locale - versions that allow dynamic link
+    with libstdc++ and libgcc. There is no problems with Cygwin's
+    gcc-4.3 that provides shared versions of runtime libraries.
+-   In some cases the build system fails to link with iconv library
+    on Darwin system, in such cases explicit path to the
+    location of iconv library should be given using -sICONV_PATH
+    build option.
+
+*/
+

@@ -1,0 +1,206 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Adding new predefs</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Predef 1.0">
+<link rel="up" href="../index.html" title="Predef 1.0">
+<link rel="prev" href="using_the_predefs.html" title="Using the predefs">
+<link rel="next" href="reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<div class="spirit-nav">
+<a accesskey="p" href="using_the_predefs.html"><img src="../images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="predef.adding_new_predefs"></a><a class="link" href="adding_new_predefs.html" title="Adding new predefs">Adding new predefs</a>
+</h2></div></div></div>
+<p>
+      We know that a library like this one will be an eternal work-in-progress. And
+      as such we expect, and look forward to, others contributing corrections and
+      additions to the predefs. With that in mind we need to keep a consistent way
+      of defining the new predefs. Hence all current, and future, predefs follow
+      the same structure and requirements.
+    </p>
+<h4>
+<a name="predef.adding_new_predefs.h0"></a>
+      <span class="phrase"><a name="predef.adding_new_predefs.requirements_of_the_header"></a></span><a class="link" href="adding_new_predefs.html#predef.adding_new_predefs.requirements_of_the_header">Requirements
+      of the header</a>
+    </h4>
+<p>
+      All predefs need to follow a set of requirements:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          The headers must use the Boost Software License.
+        </li>
+<li class="listitem">
+          The predef must, by default, be defined as <code class="computeroutput"><span class="identifier">BOOST_VERSION_NUMBER</span><span class="special">(</span><span class="number">0</span><span class="special">,</span><span class="number">0</span><span class="special">,</span><span class="number">0</span><span class="special">)</span></code>.
+        </li>
+<li class="listitem">
+          The predef must be redefined to a non-zero value once detected.
+        </li>
+<li class="listitem">
+          The predef must, by default, be defined to <code class="computeroutput"><span class="identifier">BOOST_VERSION_NUMBER</span><span class="special">(</span><span class="number">0</span><span class="special">,</span><span class="number">0</span><span class="special">,</span><span class="number">1</span><span class="special">)</span></code> when the predef is detected.
+        </li>
+<li class="listitem">
+          If possible, the predef will be defined as the version number detected.
+        </li>
+<li class="listitem">
+          The predef must define <code class="computeroutput"><span class="special">*</span><span class="identifier">_AVAILABLE</span></code>
+          macros.
+        </li>
+<li class="listitem">
+          The predef must define a symbolic constant string name macro.
+        </li>
+<li class="listitem">
+          The predef must declare itself, after being defined, for the testing system.
+        </li>
+</ul></div>
+<p>
+      And there are some extra guidelines that predef headers should follow:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          The detection should avoid including extra headers that might otherwise
+          not be included by default.
+        </li>
+<li class="listitem">
+          If the detection must include a header, prefer guarding it within the detection
+          if possible.
+        </li>
+<li class="listitem">
+          If the detection must include headers unconditionally, and has a choice
+          of headers to include, prefer the ones with the least impact. I.e. include
+          the one with the minimal set of definitions and other dependencies.
+        </li>
+</ul></div>
+<h4>
+<a name="predef.adding_new_predefs.h1"></a>
+      <span class="phrase"><a name="predef.adding_new_predefs.structure_of_the_header"></a></span><a class="link" href="adding_new_predefs.html#predef.adding_new_predefs.structure_of_the_header">Structure
+      of the header</a>
+    </h4>
+<p>
+      For general consistency it's suggested that new predef headers follow the structure
+      below, as current predef headers do. First we have the copyright and license
+      statement, followed by the include guard:
+    </p>
+<pre class="programlisting"><span class="comment">/*
+Copyright Jane Doe YYYY
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+*/</span>
+
+<span class="preprocessor">#ifndef</span> <span class="identifier">BOOST_PREDEF_category_tag_H</span>
+<span class="preprocessor">#define</span> <span class="identifier">BOOST_PREDEF_category_tag_H</span>
+</pre>
+<p>
+      Depending on how you are defining the predef you will at minimum have to include
+      the <code class="computeroutput"><span class="identifier">version_number</span><span class="special">.</span><span class="identifier">h</span></code> header. But you might also want to include
+      the <code class="computeroutput"><span class="identifier">make</span><span class="special">.</span><span class="identifier">h</span></code> header for the version number decomposing
+      utility macros:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">predef</span><span class="special">/</span><span class="identifier">version_number</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">predef</span><span class="special">/</span><span class="identifier">make</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+</pre>
+<p>
+      The Predef library uses Quickbook for documentation and for the individual
+      predefs to appear in the reference section we add in-code documentation followed
+      by the zero-value default definition of the predef macro. We strongly recommend
+      this particular placement of the documentation and default definition because
+      some development environments automatically interpret this and provide in-line
+      help for the macro. In particular this works for the popular Eclipse IDE:
+    </p>
+<pre class="programlisting"><span class="comment">/*`
+[heading `BOOST_category_tag`]
+
+Documentation about what is detected.
+*/</span>
+
+<span class="preprocessor">#define</span> <span class="identifier">BOOST_category_tag</span> <span class="identifier">BOOST_VERSION_NUMBER</span><span class="special">(</span><span class="number">0</span><span class="special">,</span><span class="number">0</span><span class="special">,</span><span class="number">0</span><span class="special">)</span>
+</pre>
+<p>
+      Next is the detection and definition of the particular predef. The structure
+      for this is to do a single overall check (<code class="computeroutput"><span class="identifier">condition_a</span></code>)
+      and place further version detection inside this. The first action inside the
+      overall check is to "<code class="computeroutput"><span class="preprocessor">#undef</span>
+      <span class="identifier">BOOST_category_tag</span></code>" which undefines
+      the zero-value default. The rest is up to the you how to do the checks for
+      defining the version. But at minimum it must "<code class="computeroutput"><span class="preprocessor">#define</span>
+      <span class="identifier">BOOST_category_tag</span> <span class="identifier">BOOST_VERSION_NUMBER</span><span class="special">(</span><span class="number">0</span><span class="special">,</span><span class="number">0</span><span class="special">,</span><span class="number">1</span><span class="special">)</span></code>" as the fallback to minimally indicate
+      that the predef was detected:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#if</span> <span class="special">(</span><span class="identifier">condition_a</span><span class="special">)</span>
+<span class="preprocessor">#   undef</span> <span class="identifier">BOOST_category_tag</span>
+<span class="preprocessor">#   if</span> <span class="special">(</span><span class="identifier">condition_b</span><span class="special">)</span>
+<span class="preprocessor">#        define</span> <span class="identifier">BOOST_category_tag</span> <span class="identifier">BOOST_VERSION_NUMBER</span><span class="special">(</span><span class="identifier">major</span><span class="special">,</span><span class="identifier">minor</span><span class="special">,</span><span class="identifier">patch</span><span class="special">)</span>
+<span class="preprocessor">#    else</span>
+<span class="preprocessor">#        define</span> <span class="identifier">BOOST_category_tag</span> <span class="identifier">BOOST_VERSION_NUMBER</span><span class="special">(</span><span class="number">0</span><span class="special">,</span><span class="number">0</span><span class="special">,</span><span class="number">1</span><span class="special">)</span>
+<span class="preprocessor">#    endif</span>
+<span class="preprocessor">#endif</span>
+</pre>
+<p>
+      We also need to provide the <code class="computeroutput"><span class="special">*</span><span class="identifier">_AVAILABLE</span></code> versions of the predef. And for
+      convenience we also want to provide a <code class="computeroutput"><span class="special">*</span><span class="identifier">_NAME</span></code> macro:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#if</span> <span class="identifier">BOOST_category_tag</span>
+<span class="preprocessor">#   define</span> <span class="identifier">BOOST_category_tag_AVAILABLE</span>
+<span class="preprocessor">#endif</span>
+
+<span class="preprocessor">#define</span> <span class="identifier">BOOST_catagory_tag_NAME</span> <span class="string">"Name"</span>
+</pre>
+<p>
+      The testing of the predef macros is automated to generate checks for all the
+      defined predefs, whether detected or not. To do this we need to declare the
+      predef to the test system. This declaration is empty for regular use. And during
+      the test programs they expand out specially to create informational output:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">predef</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">test</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+<span class="identifier">BOOST_PREDEF_DECLARE_TEST</span><span class="special">(</span><span class="identifier">BOOST_category_tag</span><span class="special">,</span><span class="identifier">BOOST_category_tag_NAME</span><span class="special">)</span>
+</pre>
+<p>
+      And, of course, we last need to close out the include guard:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#endif</span>
+</pre>
+<h4>
+<a name="predef.adding_new_predefs.h2"></a>
+      <span class="phrase"><a name="predef.adding_new_predefs.using_utility_pattern_macros"></a></span><a class="link" href="adding_new_predefs.html#predef.adding_new_predefs.using_utility_pattern_macros">Using utility
+      pattern macros</a>
+    </h4>
+<p>
+      By including:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">predef</span><span class="special">/</span><span class="identifier">make</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+</pre>
+<p>
+      One will get a set of utility macros to decompose common version macros as
+      defined by compilers. For example the EDG compiler uses a simple 3-digit version
+      macro (M,N,P). It can be decomposed and defined as:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_CCOMP_EDG</span> <span class="identifier">BOOST_PREDEF_MAKE_N_N_N</span><span class="special">(</span><span class="identifier">__EDG_VERSION__</span><span class="special">)</span>
+</pre>
+<p>
+      The decomposition macros are split into three types: decimal decomposition,
+      hexadecimal decomposition, and date decomposition. They follow the format of
+      using "N" for decimal, "F" for hexadecimal, and "Y",
+      "M", "D" for dates.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Rene Rivera<br>Copyright &#169; 2008-2013 Redshift Software Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_the_predefs.html"><img src="../images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

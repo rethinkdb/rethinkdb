@@ -1,0 +1,248 @@
+<HTML>
+
+<!--   Copyright (c) Jeremy Siek 2000
+  
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+
+<Head> 
+<Title>Boost Graph Library: Cuthill-Mckee Ordering</Title>
+</Head>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>
+<img src="figs/python.gif" alt="(Python)"/>
+<TT>cuthill_mckee_ordering</TT>
+</H1>
+
+
+<P>
+<DIV ALIGN="LEFT">
+<TABLE CELLPADDING=3 border>
+<TR><TH ALIGN="LEFT"><B>Graphs:</B></TH>
+<TD ALIGN="LEFT">undirected</TD>
+</TR>
+<TR><TH ALIGN="LEFT"><B>Properties:</B></TH>
+<TD ALIGN="LEFT">color, degree</TD>
+</TR>
+<TR><TH ALIGN="LEFT"><B>Complexity:</B></TH>
+<TD ALIGN="LEFT">time: <i>O(m log(m)|V|)</i> where <i>m = max { degree(v) | v in V }</i> </TD>
+</TR>
+</TABLE>
+</DIV>
+
+
+<pre>
+  (1)
+  template &lt;class IncidenceGraph, class OutputIterator,
+            class ColorMap, class DegreeMap&gt;
+  OutputIterator
+  cuthill_mckee_ordering(const IncidenceGraph&amp; g,
+                         typename graph_traits&lt;IncidenceGraph&gt;::vertex_descriptor s,
+                         OutputIterator inverse_permutation, 
+                         ColorMap color, DegreeMap degree)
+
+  (2)
+  template &lt;class VertexListGraph, class OutputIterator&gt;
+  OutputIterator
+  cuthill_mckee_ordering(const VertexListGraph&amp; g, OutputIterator inverse_permutation); 
+
+  template &lt;class VertexListGraph, class OutputIterator, class VertexIndexMap&gt;
+  OutputIterator
+  cuthill_mckee_ordering(const VertexListGraph&amp; g, OutputIterator inverse_permutation, 
+                         VertexIndexMap index_map); 
+ 
+  template &lt;class VertexListGraph, class OutputIterator, 
+            class ColorMap, class DegreeMap&gt;
+  OutputIterator
+  cuthill_mckee_ordering(const VertexListGraph&amp; g, OutputIterator inverse_permutation, 
+                         ColorMap color, DegreeMap degree)
+                         
+  (3)
+  template &lt;class IncidenceGraph, class OutputIterator,
+            class ColorMap, class DegreeMap&gt;
+  OutputIterator
+  cuthill_mckee_ordering(const IncidenceGraph&amp; g,
+    			 std::deque&lt; typename
+			 graph_traits&lt;IncidenceGraph&gt;::vertex_descriptor &gt; vertex_queue,
+                         OutputIterator inverse_permutation, 
+                         ColorMap color, DegreeMap degree)
+</pre>
+
+The goal of the Cuthill-Mckee (and reverse Cuthill-Mckee) ordering
+algorithm[<A
+HREF="bibliography.html#george81:__sparse_pos_def">14</A>, <A
+HREF="bibliography.html#cuthill69:reducing_bandwith">43</A>, <a
+href="bibliography.html#liu75:anal_cm_rcm">44</a>, <a
+href="bibliography.html#george71:fem">45</a> ] is to reduce the <a
+href="./bandwidth.html">bandwidth</a> of a graph by reordering the
+indices assigned to each vertex.  The Cuthill-Mckee ordering algorithm
+works by a local minimization of the i-th bandwidths. The vertices are
+basically assigned a breadth-first search order, except that at each
+step, the adjacent vertices are placed in the queue in order of
+increasing degree.
+
+<p>
+Version 1 of the algorithm lets the user choose the ``starting
+vertex'', version 2 finds a good starting vertex using the
+pseudo-peripheral pair heuristic (among each component), while version 3 
+contains the starting nodes for each vertex in the deque.  The choice of the 
+``starting vertex'' can have a significant effect on the quality of the 
+ordering.  For versions 2 and 3, <tt>find_starting_vertex</tt> will be called 
+for each component in the graph, increasing run time significantly.
+</p>
+
+<p>
+The output of the algorithm are the vertices in the new ordering.
+Depending on what kind of output iterator you use, you can get either
+the Cuthill-Mckee ordering or the reverse Cuthill-McKee ordering.  For
+example, if you store the output into a vector using the vector's
+reverse iterator, then you get the reverse Cuthill-McKee ordering.
+</p>
+
+<pre>
+  std::vector&lt;vertex_descriptor&gt; inv_perm(num_vertices(G));
+  cuthill_mckee_ordering(G, inv_perm.rbegin(), ...);
+</pre>
+
+<p>
+Either way, storing the output into a vector gives you the
+permutation from the new ordering to the old ordering.
+</p>
+
+<pre>
+  inv_perm[new_index[u]] == u
+</pre>
+
+<p>
+Often times, it is the opposite permutation that you want, the
+permutation from the old index to the new index. This can easily be
+computed in the following way.
+</p>
+
+<pre>
+  for (size_type i = 0; i != inv_perm.size(); ++i)
+    perm[old_index[inv_perm[i]]] = i;
+</pre>
+
+
+
+<h3>Parameters</h3>
+
+For version 1:
+
+<ul>
+
+<li> <tt>IncidenceGraph&amp; g</tt> &nbsp;(IN) <br> 
+  An undirected graph. The graph's type must be a model of <a
+  href="./IncidenceGraph.html">IncidenceGraph</a>.<br>
+  <b>Python</b>: The parameter is named <tt>graph</tt>.
+
+<li> <tt>vertex_descriptor s</tt> &nbsp(IN) <br>
+  The starting vertex.<br>
+  <b>Python</b>: Unsupported parameter.
+
+<li> <tt>OutputIterator inverse_permutation</tt> &nbsp(OUT) <br> 
+  The new vertex ordering. The vertices are written to the <a
+  href="http://www.sgi.com/tech/stl/OutputIterator.html">output
+  iterator</a> in their new order.<br>
+  <b>Python</b>: This parameter is unused in Python. The new vertex
+  ordering is returned as a Python <tt>list</tt>.
+  
+<li> <tt>ColorMap color_map</tt> &nbsp(WORK) <br>
+  Used internally to keep track of the progress of the algorithm
+  (to avoid visiting the same vertex twice).<br>
+  <b>Python</b>: Unsupported parameter.
+
+<li> <tt>DegreeMap degree_map</tt> &nbsp(IN) <br>
+  This must map vertices to their degree.<br>
+  <b>Python</b>: Unsupported parameter.
+</ul>
+
+
+For version 2:
+
+<ul>
+
+<li> <tt>VertexListGraph&amp; g</tt> &nbsp;(IN) <br> 
+  An undirected graph. The graph's type must be a model of <a
+                                                              href="./VertexListGraph.html">VertexListGraph</a> and <a href="./IncidenceGraph.html">IncidenceGraph</a>.<br>
+  <b>Python</b>: The parameter is named <tt>graph</tt>.
+
+<li> <tt><a href="http://www.sgi.com/tech/stl/OutputIterator.html">
+  OutputIterator</a> inverse_permutation</tt> &nbsp(OUT) <br> 
+  The new vertex ordering. The vertices are written to the
+  output iterator in their new order.<br>
+  <b>Python</b>: This parameter is unused in Python. The new vertex
+  ordering is returned as a Python <tt>list</tt>.
+
+<li> <tt>ColorMap color_map</tt> &nbsp(WORK) <br>
+  Used internally to keep track of the progress of the algorithm
+  (to avoid visiting the same vertex twice).<br>
+  <b>Python</b>: Unsupported parameter.
+
+<li> <tt>DegreeMap degree_map</tt> &nbsp(IN) <br>
+  This must map vertices to their degree.<br>
+  <b>Python</b>: Unsupported parameter.
+</ul>
+
+
+For version 3:
+
+<ul>
+
+<li> <tt>IncidenceGraph&amp; g</tt> &nbsp;(IN) <br> 
+  An undirected graph. The graph's type must be a model of <a
+  href="./IncidenceGraph.html">IncidenceGraph</a>.<br>
+  <b>Python</b>: The parameter is named <tt>graph</tt>.
+
+<li> <tt> std::deque&lt; typename graph_traits&lt;Graph&gt;::vertex_descriptor &gt; vertex_queue </tt> &nbsp(IN) <br>
+  The deque containing the starting vertices for each component.<br>
+  <b>Python</b>: Unsupported parameter.
+
+<li> <tt>OutputIterator inverse_permutation</tt> &nbsp(OUT) <br> 
+  The new vertex ordering. The vertices are written to the <a
+  href="http://www.sgi.com/tech/stl/OutputIterator.html">output
+  iterator</a> in their new order.<br>
+  <b>Python</b>: This parameter is unused in Python. The new vertex
+  ordering is returned as a Python <tt>list</tt>.
+  
+<li> <tt>ColorMap color_map</tt> &nbsp(WORK) <br>
+  Used internally to keep track of the progress of the algorithm
+  (to avoid visiting the same vertex twice).<br>
+  <b>Python</b>: Unsupported parameter.
+
+<li> <tt>DegreeMap degree_map</tt> &nbsp(IN) <br>
+  This must map vertices to their degree.<br>
+  <b>Python</b>: Unsupported parameter.
+</ul>
+
+
+
+<h3>Example</h3>
+
+See <a
+href="../example/cuthill_mckee_ordering.cpp"><tt>example/cuthill_mckee_ordering.cpp</tt></a>.
+
+<h3>See Also</h3>
+
+<a href="./bandwidth.html">bandwidth</tt></a>,
+and <tt>degree_property_map</tt> in <tt>boost/graph/properties.hpp</tt>.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

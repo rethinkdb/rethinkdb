@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<header name="boost/signals2/connection.hpp" last-revision="$Date: 2007-03-06 16:51:55 -0500 (Tue, 06 Mar 2007) $">
+  <namespace name="boost">
+    <namespace name="signals2">
+      <class name="connection">
+        <!-- Models LessThanComparable and EqualityComparable -->
+        <purpose>Query/disconnect a signal-slot connection.</purpose>
+
+        <description>
+          <para>The <classname>signals2::connection</classname> class represents
+          a connection between a Signal and a Slot. It is a
+          lightweight object that has the ability to query whether the
+          signal and slot are currently connected, and to disconnect
+          the signal and slot. It is always safe to query or
+          disconnect a connection.</para>
+          <section>
+            <title>Thread Safety</title>
+            <para>The methods of the <code>connection</code> class are thread-safe with the exception
+              of <methodname>swap</methodname> and the assignment operator.  A <code>connection</code> object
+              should not be accessed concurrently when either of these operations is in progress.
+              However, it is always safe to access a different <code>connection</code> object
+              in another thread, even if the two <code>connection</code> objects are copies
+              of each other which refer to the same underlying connection.
+            </para>
+          </section>
+        </description>
+
+        <constructor>
+          <effects><para>Sets the currently represented connection to the
+          NULL connection.</para></effects>
+          <postconditions><para><computeroutput>!this-><methodname>connected</methodname>()</computeroutput>.</para></postconditions>
+          <throws><para>Will not throw.</para></throws>
+        </constructor>
+
+        <constructor>
+          <parameter name="other">
+            <paramtype>const <classname alt="signals2::connection">connection</classname>&amp;</paramtype>
+          </parameter>
+
+          <effects><para><computeroutput>this</computeroutput> references
+          the connection referenced by
+          <computeroutput>other</computeroutput>.</para></effects>
+
+          <throws><para>Will not throw.</para></throws>
+        </constructor>
+
+        <copy-assignment>
+          <parameter name="other">
+            <paramtype>const <classname alt="signals2::connection">connection</classname>&amp;</paramtype>
+          </parameter>
+
+          <effects><para><computeroutput>this</computeroutput> references
+          the connection referenced by
+          <computeroutput>other</computeroutput>.</para></effects>
+
+          <throws><para>Will not throw.</para></throws>
+        </copy-assignment>
+
+        <method-group name="connection management">
+          <method name="disconnect" cv="const">
+             <type>void</type>
+             <effects><para>If
+             <computeroutput>this-&gt;<methodname>connected</methodname>()</computeroutput>,
+             disconnects the signal and slot referenced by this;
+             otherwise, this operation is a no-op.</para></effects>
+
+             <postconditions><para><computeroutput>!this-&gt;<methodname>connected</methodname>()</computeroutput>.</para></postconditions>
+          </method>
+
+          <method name="connected" cv="const">
+            <type>bool</type>
+            <returns><para><computeroutput>true</computeroutput> if this
+            references a non-NULL connection that is still active
+            (connected), and <computeroutput>false</computeroutput>
+            otherwise.</para></returns>
+            <throws><para>Will not throw.</para></throws>
+          </method>
+        </method-group>
+
+        <method-group name="blocking">
+          <method name="blocked" cv="const">
+            <type>bool</type>
+            <description>
+              <para>
+                Queries if the connection is blocked.  A connection may be blocked by creating a
+                <classname>boost::signals2::shared_connection_block</classname> object.
+              </para>
+            </description>
+            <returns><para><code>true</code> if the associated slot is either disconnected or blocked, <code>false</code> otherwise.</para></returns>
+            <throws><para>Will not throw.</para></throws>
+          </method>
+        </method-group>
+
+        <method-group name="modifiers">
+          <method name="swap">
+            <type>void</type>
+            <parameter name="other">
+              <paramtype><classname alt="signals2::connection">connection</classname>&amp;</paramtype>
+            </parameter>
+            <effects><para>Swaps the connections referenced in
+            <computeroutput>this</computeroutput> and
+            <computeroutput>other</computeroutput>.</para></effects>
+
+            <throws><para>Will not throw.</para></throws>
+          </method>
+        </method-group>
+
+        <method-group name="comparisons">
+          <method name="operator==" cv="const">
+            <type>bool</type>
+            <parameter name="other">
+              <paramtype>const <classname alt="signals2::connection">connection</classname>&amp;</paramtype>
+            </parameter>
+
+            <returns><para><computeroutput>true</computeroutput> if
+            <computeroutput>this</computeroutput> and
+            <computeroutput>other</computeroutput> reference the same
+            connection or both reference the NULL connection, and
+            <computeroutput>false</computeroutput>
+            otherwise.</para></returns>
+
+            <throws><para>Will not throw.</para></throws>
+          </method>
+
+          <method name="operator!=" cv="const">
+            <type>bool</type>
+            <parameter name="other">
+              <paramtype>const <classname alt="signals2::connection">connection</classname>&amp;</paramtype>
+            </parameter>
+
+            <returns><para><computeroutput>!(*this == other)</computeroutput></para></returns>
+
+            <throws><para>Will not throw.</para></throws>
+          </method>
+
+          <method name="operator&lt;" cv="const">
+            <type>bool</type>
+            <parameter name="other">
+              <paramtype>const <classname alt="signals2::connection">connection</classname>&amp;</paramtype>
+            </parameter>
+
+            <returns><para><computeroutput>true</computeroutput> if the
+            connection referenced by
+            <computeroutput>this</computeroutput> precedes the
+            connection referenced by
+            <computeroutput>other</computeroutput> based on some
+            unspecified ordering, and
+            <computeroutput>false</computeroutput>
+            otherwise.</para></returns>
+
+            <throws><para>Will not throw.</para></throws>
+          </method>
+        </method-group>
+
+        <free-function-group name="specialized algorithms">
+          <function name="swap">
+            <type>void</type>
+            <parameter name="x">
+              <paramtype><classname alt="signals2::connection">connection</classname>&amp;</paramtype>
+            </parameter>
+            <parameter name="y">
+              <paramtype><classname alt="signals2::connection">connection</classname>&amp;</paramtype>
+            </parameter>
+
+            <effects><para><computeroutput>x.swap(y)</computeroutput></para></effects>
+            <throws><para>Will not throw.</para></throws>
+          </function>
+        </free-function-group>
+      </class>
+
+      <class name="scoped_connection">
+        <inherit access="public">
+          <type><classname alt="signals2::connection">connection</classname></type>
+        </inherit>
+        <purpose>Limits a signal-slot connection lifetime to a particular scope.</purpose>
+
+        <access name="public">
+          <constructor>
+            <postconditions>
+              <para><code><methodname alt="connection::connected">connected</methodname>() == false </code></para>
+            </postconditions>
+            <description>
+              <para>Default constructs an empty scoped_connection.</para>
+            </description>
+
+            <throws><para>Will not throw.</para></throws>
+          </constructor>
+          <constructor>
+            <parameter name="other">
+              <paramtype>const <classname alt="signals2::connection">connection</classname>&amp;</paramtype>
+            </parameter>
+
+            <effects><para><computeroutput>this</computeroutput> references
+              the connection referenced by
+              <computeroutput>other</computeroutput>.</para></effects>
+
+            <postconditions>
+              <para><code><methodname alt="connection::connected">connected</methodname>() == other.connected()</code></para>
+            </postconditions>
+
+            <throws><para>Will not throw.</para></throws>
+          </constructor>
+
+          <destructor>
+            <effects><para>If
+            <computeroutput>this-&gt;<methodname alt="connection::connected">connected</methodname>()</computeroutput>,
+            disconnects the signal-slot connection.</para></effects>
+          </destructor>
+          <method-group name="public methods">
+            <method name="operator=">
+              <type>scoped_connection &amp;</type>
+              <parameter name="rhs">
+                <paramtype>const connection &amp;</paramtype>
+              </parameter>
+              <effects>
+                <para><computeroutput>this</computeroutput> references
+                  the connection referenced by
+                  <computeroutput>rhs</computeroutput>.  If <code>this</code> already references another
+                  connection, the old connection will be disconnected first.
+                </para>
+              </effects>
+              <postconditions>
+                <para><code><methodname alt="connection::connected">connected</methodname>() == rhs.connected()</code></para>
+              </postconditions>
+            </method>
+            <method name="release">
+              <type><classname alt="signals2::connection">connection</classname></type>
+              <effects>
+                <para>
+                  Releases the connection so it will not be disconnected by the <code>scoped_connection</code>
+                  when it is destroyed or reassigned.  The <code>scoped_connection</code> is reset to
+                  the NULL connection after this call completes.
+                </para>
+              </effects>
+              <postconditions>
+                <para><code><methodname alt="connection::connected">connected</methodname>() == false</code></para>
+              </postconditions>
+              <returns>
+                <para>A <classname alt="signals2::connection">connection</classname> object referencing the connection which was
+                  released by the <code>scoped_connection</code>.
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </access>
+        <access name="private">
+          <constructor>
+            <parameter name="other">
+              <paramtype>const <classname alt="signals2::scoped_connection">scoped_connection</classname>&amp;</paramtype>
+            </parameter>
+            <description>
+              <para>The scoped_connection class is not copyable.  It may only be constructed from a <classname alt="signals2::connection">connection</classname> object.</para>
+            </description>
+          </constructor>
+          <copy-assignment>
+            <parameter name="rhs">
+              <paramtype>const <classname alt="signals2::scoped_connection">scoped_connection</classname>&amp;</paramtype>
+            </parameter>
+            <description>
+              <para>The scoped_connection class is not copyable.  It may only be assigned from a <classname alt="signals2::connection">connection</classname> object.</para>
+            </description>
+          </copy-assignment>
+        </access>
+        <description>
+          <para>A <classname alt="signals2::connection">connection</classname> which automatically disconnects on destruction.</para>
+          <section>
+            <title>Thread Safety</title>
+            <para>The methods of the <code>scoped_connection</code> class (including those
+              inherited from its base <code>connection</code> class) are thread-safe with the exception
+              of <methodname>signals2::connection::swap</methodname>, <methodname>release</methodname>, and
+              the assignment operator.  A <code>scoped_connection</code> object
+              should not be accessed concurrently when any of these operations is in progress.
+              However, it is always safe to access a different <code>connection</code> object
+              in another thread, even if it references the same underlying signal-slot connection.
+            </para>
+          </section>
+        </description>
+      </class>
+    </namespace>
+  </namespace>
+</header>

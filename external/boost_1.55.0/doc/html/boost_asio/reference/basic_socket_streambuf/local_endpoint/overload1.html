@@ -1,0 +1,84 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>basic_socket_streambuf::local_endpoint (1 of 2 overloads)</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../local_endpoint.html" title="basic_socket_streambuf::local_endpoint">
+<link rel="prev" href="../local_endpoint.html" title="basic_socket_streambuf::local_endpoint">
+<link rel="next" href="overload2.html" title="basic_socket_streambuf::local_endpoint (2 of 2 overloads)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../local_endpoint.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../local_endpoint.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../boost_asio.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="overload2.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_asio.reference.basic_socket_streambuf.local_endpoint.overload1"></a><a class="link" href="overload1.html" title="basic_socket_streambuf::local_endpoint (1 of 2 overloads)">basic_socket_streambuf::local_endpoint
+          (1 of 2 overloads)</a>
+</h5></div></div></div>
+<p>
+            <span class="emphasis"><em>Inherited from basic_socket.</em></span>
+          </p>
+<p>
+            Get the local endpoint of the socket.
+          </p>
+<pre class="programlisting"><span class="identifier">endpoint_type</span> <span class="identifier">local_endpoint</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+            This function is used to obtain the locally bound endpoint of the socket.
+          </p>
+<h6>
+<a name="boost_asio.reference.basic_socket_streambuf.local_endpoint.overload1.h0"></a>
+            <span class="phrase"><a name="boost_asio.reference.basic_socket_streambuf.local_endpoint.overload1.return_value"></a></span><a class="link" href="overload1.html#boost_asio.reference.basic_socket_streambuf.local_endpoint.overload1.return_value">Return
+            Value</a>
+          </h6>
+<p>
+            An object that represents the local endpoint of the socket.
+          </p>
+<h6>
+<a name="boost_asio.reference.basic_socket_streambuf.local_endpoint.overload1.h1"></a>
+            <span class="phrase"><a name="boost_asio.reference.basic_socket_streambuf.local_endpoint.overload1.exceptions"></a></span><a class="link" href="overload1.html#boost_asio.reference.basic_socket_streambuf.local_endpoint.overload1.exceptions">Exceptions</a>
+          </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">boost::system::system_error</span></dt>
+<dd><p>
+                  Thrown on failure.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="boost_asio.reference.basic_socket_streambuf.local_endpoint.overload1.h2"></a>
+            <span class="phrase"><a name="boost_asio.reference.basic_socket_streambuf.local_endpoint.overload1.example"></a></span><a class="link" href="overload1.html#boost_asio.reference.basic_socket_streambuf.local_endpoint.overload1.example">Example</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">);</span>
+<span class="special">...</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">endpoint</span> <span class="identifier">endpoint</span> <span class="special">=</span> <span class="identifier">socket</span><span class="special">.</span><span class="identifier">local_endpoint</span><span class="special">();</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../local_endpoint.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../local_endpoint.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../boost_asio.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="overload2.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

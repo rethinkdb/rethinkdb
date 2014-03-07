@@ -1,0 +1,82 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class ptime</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.posix_time.ptime_hpp" title="Header &lt;boost/date_time/posix_time/ptime.hpp&gt;">
+<link rel="prev" href="operator_idp20360216.html" title="Function template operator&gt;&gt;">
+<link rel="next" href="duration_from_string.html" title="Function duration_from_string">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="operator_idp20360216.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.posix_time.ptime_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="duration_from_string.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.posix_time.ptime"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class ptime</span></h2>
+<p>boost::posix_time::ptime &#8212; Time type with no timezone or other adjustments. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.posix_time.ptime_hpp" title="Header &lt;boost/date_time/posix_time/ptime.hpp&gt;">boost/date_time/posix_time/ptime.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="ptime.html" title="Class ptime">ptime</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">base_time</span><span class="special">&lt;</span> <span class="identifier">ptime</span><span class="special">,</span> <span class="identifier">posix_time_system</span> <span class="special">&gt;</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">posix_time_system</span>                    <a name="boost.posix_time.ptime.time_system_type"></a><span class="identifier">time_system_type</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">time_system_type</span><span class="special">::</span><span class="identifier">time_rep_type</span>      <a name="boost.posix_time.ptime.time_rep_type"></a><span class="identifier">time_rep_type</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">time_system_type</span><span class="special">::</span><span class="identifier">time_duration_type</span> <a name="boost.posix_time.ptime.time_duration_type"></a><span class="identifier">time_duration_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <a class="link" href="ptime.html" title="Class ptime">ptime</a>                                <a name="boost.posix_time.ptime.time_type"></a><span class="identifier">time_type</span><span class="special">;</span>         
+
+  <span class="comment">// <a class="link" href="ptime.html#boost.posix_time.ptimeconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="ptime.html#idp52640280-bb"><span class="identifier">ptime</span></a><span class="special">(</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">date</span><span class="special">,</span> <span class="identifier">time_duration_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="ptime.html#idp20257288-bb"><span class="identifier">ptime</span></a><span class="special">(</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">date</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="ptime.html#idp52604600-bb"><span class="identifier">ptime</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_rep_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="ptime.html#idp35025384-bb"><span class="identifier">ptime</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">special_values</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="ptime.html#idp21308664-bb"><span class="identifier">ptime</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp94096744"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp94096952"></a><h3>
+<a name="boost.posix_time.ptimeconstruct-copy-destruct"></a><code class="computeroutput">ptime</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp52640280-bb"></a><span class="identifier">ptime</span><span class="special">(</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">date</span> d<span class="special">,</span> <span class="identifier">time_duration_type</span> td<span class="special">)</span><span class="special">;</span></pre>Construct with date and offset in day. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp20257288-bb"></a><span class="identifier">ptime</span><span class="special">(</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">date</span> d<span class="special">)</span><span class="special">;</span></pre>Construct a time at start of the given day (midnight) </li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp52604600-bb"></a><span class="identifier">ptime</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_rep_type</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>Copy from time_rep. </li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp35025384-bb"></a><span class="identifier">ptime</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">special_values</span> sv<span class="special">)</span><span class="special">;</span></pre>Construct from special value. </li>
+<li class="listitem"><pre class="literallayout"><a name="idp21308664-bb"></a><span class="identifier">ptime</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="operator_idp20360216.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.posix_time.ptime_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="duration_from_string.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

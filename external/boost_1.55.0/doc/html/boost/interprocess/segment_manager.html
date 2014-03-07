@@ -1,0 +1,272 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template segment_manager</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp" title="Header &lt;boost/interprocess/interprocess_fwd.hpp&gt;">
+<link rel="prev" href="unordered_map_index.html" title="Class template unordered_map_index">
+<link rel="next" href="basic_managed__idp27919256.html" title="Class template basic_managed_external_buffer">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="unordered_map_index.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_managed__idp27919256.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.segment_manager"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template segment_manager</span></h2>
+<p>boost::interprocess::segment_manager</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp" title="Header &lt;boost/interprocess/interprocess_fwd.hpp&gt;">boost/interprocess/interprocess_fwd.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharType<span class="special">,</span> <span class="keyword">typename</span> MemoryAlgorithm<span class="special">,</span> 
+         <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IndexConfig</span> <span class="special">&gt;</span> <span class="keyword">class</span> IndexType<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="segment_manager.html" title="Class template segment_manager">segment_manager</a> <span class="special">:</span>
+  <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">segment_manager_base</span><span class="special">&lt;</span> <span class="identifier">MemoryAlgorithm</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="segment_manager.html#boost.interprocess.segment_managerconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="segment_manager.html#idp27912792-bb"><span class="identifier">segment_manager</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="segment_manager.html#idp27856920-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <a class="link" href="segment_manager.html#idp27857128-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharType</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <a class="link" href="segment_manager.html#idp27858712-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <a class="link" href="segment_manager.html#idp27860344-bb"><span class="identifier">find_no_lock</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharType</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <a class="link" href="segment_manager.html#idp27861976-bb"><span class="identifier">find_no_lock</span></a><span class="special">(</span><span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="identifier">construct_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="segment_manager.html#idp27863656-bb"><span class="identifier">construct</span></a><span class="special">(</span><span class="identifier">char_ptr_holder_t</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <span class="identifier">construct_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="segment_manager.html#idp27865144-bb"><span class="identifier">find_or_construct</span></a><span class="special">(</span><span class="identifier">char_ptr_holder_t</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <span class="identifier">construct_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="segment_manager.html#idp27866664-bb"><span class="identifier">construct</span></a><span class="special">(</span><span class="identifier">char_ptr_holder_t</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">nothrow_t</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <span class="identifier">construct_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+    <a class="link" href="segment_manager.html#idp27868488-bb"><span class="identifier">find_or_construct</span></a><span class="special">(</span><span class="identifier">char_ptr_holder_t</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">nothrow_t</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <span class="identifier">construct_iter_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="segment_manager.html#idp27870344-bb"><span class="identifier">construct_it</span></a><span class="special">(</span><span class="identifier">char_ptr_holder_t</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <span class="identifier">construct_iter_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="segment_manager.html#idp27871784-bb"><span class="identifier">find_or_construct_it</span></a><span class="special">(</span><span class="identifier">char_ptr_holder_t</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <span class="identifier">construct_iter_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+    <a class="link" href="segment_manager.html#idp27889576-bb"><span class="identifier">construct_it</span></a><span class="special">(</span><span class="identifier">char_ptr_holder_t</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">nothrow_t</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <span class="identifier">construct_iter_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+    <a class="link" href="segment_manager.html#idp27891416-bb"><span class="identifier">find_or_construct_it</span></a><span class="special">(</span><span class="identifier">char_ptr_holder_t</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">nothrow_t</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Func<span class="special">&gt;</span> <span class="special">*</span><span class="keyword">void</span> <a class="link" href="segment_manager.html#idp27893288-bb"><span class="identifier">atomic_func</span></a><span class="special">(</span><span class="identifier">Func</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Func<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="segment_manager.html#idp27895256-bb"><span class="identifier">try_atomic_func</span></a><span class="special">(</span><span class="identifier">Func</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="segment_manager.html#idp27897000-bb"><span class="identifier">destroy</span></a><span class="special">(</span><span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="segment_manager.html#idp27898568-bb"><span class="identifier">destroy</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharType</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="segment_manager.html#idp27900088-bb"><span class="identifier">destroy_ptr</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="segment_manager.html#idp27901576-bb"><span class="identifier">reserve_named_objects</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="segment_manager.html#idp27903112-bb"><span class="identifier">reserve_unique_objects</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="segment_manager.html#idp27904648-bb"><span class="identifier">shrink_to_fit_indexes</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="segment_manager.html#idp27905432-bb"><span class="identifier">get_num_named_objects</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="segment_manager.html#idp27906168-bb"><span class="identifier">get_num_unique_objects</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_named_iterator</span> <a class="link" href="segment_manager.html#idp27906904-bb"><span class="identifier">named_begin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_named_iterator</span> <a class="link" href="segment_manager.html#idp27907704-bb"><span class="identifier">named_end</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_unique_iterator</span> <a class="link" href="segment_manager.html#idp27908504-bb"><span class="identifier">unique_begin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_unique_iterator</span> <a class="link" href="segment_manager.html#idp27909304-bb"><span class="identifier">unique_end</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="segment_manager.html#idp27910104-bb"><span class="identifier">get_allocator</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <a class="link" href="deleter.html" title="Class template deleter">deleter</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="segment_manager.html#idp27911448-bb"><span class="identifier">get_deleter</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="segment_manager.html#idp27913656-bb">public static functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">CharType</span> <span class="special">*</span> <a class="link" href="segment_manager.html#idp27913864-bb"><span class="identifier">get_instance_name</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">size_type</span> <a class="link" href="segment_manager.html#idp27915416-bb"><span class="identifier">get_instance_length</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">instance_type</span> <a class="link" href="segment_manager.html#idp27916968-bb"><span class="identifier">get_instance_type</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">size_type</span> <a class="link" href="segment_manager.html#idp27918520-bb"><span class="identifier">get_min_size</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp114546408"></a><h2>Description</h2>
+<p>This object is placed in the beginning of memory segment and implements the allocation (named or anonymous) of portions of the segment. This object contains two indexes that maintain an association between a name and a portion of the segment.</p>
+<p>The first index contains the mappings for normal named objects using the char type specified in the template parameter.</p>
+<p>The second index contains the association for unique instances. The key will be the const char * returned from type_info.name() function for the unique type to be constructed.</p>
+<p>segment_manager&lt;CharType, MemoryAlgorithm, IndexType&gt; inherits publicly from segment_manager_base&lt;MemoryAlgorithm&gt; and inherits from it many public functions related to anonymous object and raw memory allocation. See <a class="link" href="segment_manager_base.html" title="Class template segment_manager_base">segment_manager_base</a> reference to know about those functions. </p>
+<div class="refsect2">
+<a name="idp114548760"></a><h3>
+<a name="boost.interprocess.segment_managerconstruct-copy-destruct"></a><code class="computeroutput">segment_manager</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp27912792-bb"></a><span class="identifier">segment_manager</span><span class="special">(</span><span class="identifier">size_type</span> segment_size<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor of the segment manager "size" is the size of the memory segment where the segment manager is being constructed. Can throw </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp114552600"></a><h3>
+<a name="idp27856920-bb"></a><code class="computeroutput">segment_manager</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <a name="idp27857128-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharType</span> <span class="special">*</span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Tries to find a previous named allocation. Returns the address and the object count. On failure the first member of the returned pair is 0. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <a name="idp27858712-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="emphasis"><em><span class="identifier">unspecified</span></em></span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Tries to find a previous unique allocation. Returns the address and the object count. On failure the first member of the returned pair is 0. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <a name="idp27860344-bb"></a><span class="identifier">find_no_lock</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharType</span> <span class="special">*</span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Tries to find a previous named allocation. Returns the address and the object count. On failure the first member of the returned pair is 0. This search is not mutex-protected! </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <a name="idp27861976-bb"></a><span class="identifier">find_no_lock</span><span class="special">(</span><span class="emphasis"><em><span class="identifier">unspecified</span></em></span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Tries to find a previous unique allocation. Returns the address and the object count. On failure the first member of the returned pair is 0. This search is not mutex-protected! </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="identifier">construct_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="idp27863656-bb"></a><span class="identifier">construct</span><span class="special">(</span><span class="identifier">char_ptr_holder_t</span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns throwing "construct" proxy object </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="identifier">construct_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="idp27865144-bb"></a><span class="identifier">find_or_construct</span><span class="special">(</span><span class="identifier">char_ptr_holder_t</span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns throwing "search or construct" proxy object </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="identifier">construct_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="idp27866664-bb"></a><span class="identifier">construct</span><span class="special">(</span><span class="identifier">char_ptr_holder_t</span> name<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">nothrow_t</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns no throwing "construct" proxy object </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="identifier">construct_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <a name="idp27868488-bb"></a><span class="identifier">find_or_construct</span><span class="special">(</span><span class="identifier">char_ptr_holder_t</span> name<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">nothrow_t</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns no throwing "search or construct" proxy object </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="identifier">construct_iter_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="idp27870344-bb"></a><span class="identifier">construct_it</span><span class="special">(</span><span class="identifier">char_ptr_holder_t</span> name<span class="special">)</span><span class="special">;</span></pre>Returns throwing "construct from iterators" proxy object. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="identifier">construct_iter_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="idp27871784-bb"></a><span class="identifier">find_or_construct_it</span><span class="special">(</span><span class="identifier">char_ptr_holder_t</span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns throwing "search or construct from iterators" proxy object </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="identifier">construct_iter_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <a name="idp27889576-bb"></a><span class="identifier">construct_it</span><span class="special">(</span><span class="identifier">char_ptr_holder_t</span> name<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">nothrow_t</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns no throwing "construct from iterators" proxy object </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="identifier">construct_iter_proxy</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <a name="idp27891416-bb"></a><span class="identifier">find_or_construct_it</span><span class="special">(</span><span class="identifier">char_ptr_holder_t</span> name<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">nothrow_t</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns no throwing "search or construct from iterators" proxy object </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Func<span class="special">&gt;</span> <span class="special">*</span><span class="keyword">void</span> <a name="idp27893288-bb"></a><span class="identifier">atomic_func</span><span class="special">(</span><span class="identifier">Func</span> <span class="special">&amp;</span> f<span class="special">)</span><span class="special">;</span></pre>
+<p>Calls object function blocking recursive <code class="computeroutput"><a class="link" href="interprocess_mutex.html" title="Class interprocess_mutex">interprocess_mutex</a></code> and guarantees that no new named_alloc or destroy will be executed by any process while executing the object function call </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Func<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp27895256-bb"></a><span class="identifier">try_atomic_func</span><span class="special">(</span><span class="identifier">Func</span> <span class="special">&amp;</span> f<span class="special">)</span><span class="special">;</span></pre>
+<p>Tries to calls a functor guaranteeing that no new construction, search or destruction will be executed by any process while executing the object function call. If the atomic function can't be immediatelly executed because the internal mutex is already locked, returns false. If the functor throws, this function throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp27897000-bb"></a><span class="identifier">destroy</span><span class="special">(</span><span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destroys a previously created unique instance. Returns false if the object was not present. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp27898568-bb"></a><span class="identifier">destroy</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharType</span> <span class="special">*</span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Destroys the named object with the given name. Returns false if that object can't be found. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp27900088-bb"></a><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p>Destroys an anonymous, unique or named object using it's address </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27901576-bb"></a><span class="identifier">reserve_named_objects</span><span class="special">(</span><span class="identifier">size_type</span> num<span class="special">)</span><span class="special">;</span></pre>
+<p>Preallocates needed index resources to optimize the creation of "num" named objects in the managed memory segment. Can throw <code class="computeroutput"><a class="link" href="bad_alloc.html" title="Class bad_alloc">boost::interprocess::bad_alloc</a></code> if there is no enough memory. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27903112-bb"></a><span class="identifier">reserve_unique_objects</span><span class="special">(</span><span class="identifier">size_type</span> num<span class="special">)</span><span class="special">;</span></pre>
+<p>Preallocates needed index resources to optimize the creation of "num" unique objects in the managed memory segment. Can throw <code class="computeroutput"><a class="link" href="bad_alloc.html" title="Class bad_alloc">boost::interprocess::bad_alloc</a></code> if there is no enough memory. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27904648-bb"></a><span class="identifier">shrink_to_fit_indexes</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Calls shrink_to_fit in both named and unique object indexes to try to free unused memory from those indexes. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp27905432-bb"></a><span class="identifier">get_num_named_objects</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns the number of named objects stored in the segment. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp27906168-bb"></a><span class="identifier">get_num_unique_objects</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns the number of unique objects stored in the segment. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_named_iterator</span> <a name="idp27906904-bb"></a><span class="identifier">named_begin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a constant iterator to the beginning of the information about the named allocations performed in this segment manager </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_named_iterator</span> <a name="idp27907704-bb"></a><span class="identifier">named_end</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a constant iterator to the end of the information about the named allocations performed in this segment manager </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_unique_iterator</span> <a name="idp27908504-bb"></a><span class="identifier">unique_begin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a constant iterator to the beginning of the information about the unique allocations performed in this segment manager </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_unique_iterator</span> <a name="idp27909304-bb"></a><span class="identifier">unique_end</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a constant iterator to the end of the information about the unique allocations performed in this segment manager </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="idp27910104-bb"></a><span class="identifier">get_allocator</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns an instance of the default allocator for type T initialized that allocates memory from this segment manager. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <a class="link" href="deleter.html" title="Class template deleter">deleter</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="idp27911448-bb"></a><span class="identifier">get_deleter</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns an instance of the default allocator for type T initialized that allocates memory from this segment manager. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp114684184"></a><h3>
+<a name="idp27913656-bb"></a><code class="computeroutput">segment_manager</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">CharType</span> <span class="special">*</span> <a name="idp27913864-bb"></a><span class="identifier">get_instance_name</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span> ptr<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns the name of an object created with construct/find_or_construct functions. Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">size_type</span> <a name="idp27915416-bb"></a><span class="identifier">get_instance_length</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span> ptr<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns the length of an object created with construct/find_or_construct functions. Does not throw. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">instance_type</span> <a name="idp27916968-bb"></a><span class="identifier">get_instance_type</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span> ptr<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns is the the name of an object created with construct/find_or_construct functions. Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">size_type</span> <a name="idp27918520-bb"></a><span class="identifier">get_min_size</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Obtains the minimum size needed by the segment manager </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="unordered_map_index.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_managed__idp27919256.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template non_coherent_weighted_tail_mean_impl</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../../accumulators/reference.html#header.boost.accumulators.statistics_fwd_hpp" title="Header &lt;boost/accumulators/statistics_fwd.hpp&gt;">
+<link rel="prev" href="weighted_sum_kahan_impl.html" title="Struct template weighted_sum_kahan_impl">
+<link rel="next" href="weighted_tail__idp34023128.html" title="Struct template weighted_tail_quantile_impl">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="weighted_sum_kahan_impl.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../accumulators/reference.html#header.boost.accumulators.statistics_fwd_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="weighted_tail__idp34023128.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.accumulators.impl.non_coherent_w_idp34004824"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template non_coherent_weighted_tail_mean_impl</span></h2>
+<p>boost::accumulators::impl::non_coherent_weighted_tail_mean_impl &#8212; Estimation of the (non-coherent) weighted tail mean based on order statistics (for both left and right tails) </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../accumulators/reference.html#header.boost.accumulators.statistics_fwd_hpp" title="Header &lt;boost/accumulators/statistics_fwd.hpp&gt;">boost/accumulators/statistics_fwd.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Sample<span class="special">,</span> <span class="keyword">typename</span> Weight<span class="special">,</span> <span class="keyword">typename</span> LeftRight<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="non_coherent_w_idp34004824.html" title="Struct template non_coherent_weighted_tail_mean_impl">non_coherent_weighted_tail_mean_impl</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">accumulator_base</span> <span class="special">{</span>
+  <span class="comment">// <a class="link" href="non_coherent_w_idp34004824.html#boost.accumulators.impl.non_coherent_w_idp34004824construct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="non_coherent_w_idp34004824.html#idp34022728-bb"><span class="identifier">non_coherent_weighted_tail_mean_impl</span></a><span class="special">(</span><span class="identifier">dont_care</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="non_coherent_w_idp34004824.html#idp34021304-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Args<span class="special">&gt;</span> <span class="identifier">result_type</span> <a class="link" href="non_coherent_w_idp34004824.html#idp34021512-bb"><span class="identifier">result</span></a><span class="special">(</span><span class="identifier">Args</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp58547240"></a><h2>Description</h2>
+<p>An estimation of the non-coherent, weighted tail mean <span class="inlinemediaobject"><img src="../../../images/accumulators//form_55.png"></span> is given by the weighted mean of the</p>
+<div class="equation">
+<a name="idp58548968"></a><p class="title"><b>Equation&#160;1.30.&#160;</b></p>
+<div class="equation-contents"><div class="mediaobject" align="center"><img src="../../../images/accumulators//form_84.png" align="middle"></div></div>
+</div>
+<p><br class="equation-break"></p>
+<p>smallest samples (left tail) or the weighted mean of the</p>
+<div class="equation">
+<a name="idp58550728"></a><p class="title"><b>Equation&#160;1.31.&#160;</b></p>
+<div class="equation-contents"><div class="mediaobject" align="center"><img src="../../../images/accumulators//form_85.png" align="middle"></div></div>
+</div>
+<p><br class="equation-break"></p>
+<p>largest samples (right tail) above a quantile <span class="inlinemediaobject"><img src="../../../images/accumulators//form_86.png"></span> of level <span class="inlinemediaobject"><img src="../../../images/accumulators//form_45.png"></span>, <span class="inlinemediaobject"><img src="../../../images/accumulators//form_60.png"></span> being the total number of sample and <span class="inlinemediaobject"><img src="../../../images/accumulators//form_82.png"></span> the sum of all <span class="inlinemediaobject"><img src="../../../images/accumulators//form_60.png"></span> weights:</p>
+<div class="equation">
+<a name="idp58558504"></a><p class="title"><b>Equation&#160;1.32.&#160;</b></p>
+<div class="equation-contents"><div class="mediaobject" align="center"><img src="../../../images/accumulators//form_87.png" align="middle"></div></div>
+</div>
+<p><br class="equation-break"></p>
+<div class="equation">
+<a name="idp58560104"></a><p class="title"><b>Equation&#160;1.33.&#160;</b></p>
+<div class="equation-contents"><div class="mediaobject" align="center"><img src="../../../images/accumulators//form_88.png" align="middle"></div></div>
+</div>
+<p><br class="equation-break"></p>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp58561736"></a><h3>
+<a name="boost.accumulators.impl.non_coherent_w_idp34004824construct-copy-destruct"></a><code class="computeroutput">non_coherent_weighted_tail_mean_impl</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><a name="idp34022728-bb"></a><span class="identifier">non_coherent_weighted_tail_mean_impl</span><span class="special">(</span><span class="identifier">dont_care</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp58565032"></a><h3>
+<a name="idp34021304-bb"></a><code class="computeroutput">non_coherent_weighted_tail_mean_impl</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Args<span class="special">&gt;</span> <span class="identifier">result_type</span> <a name="idp34021512-bb"></a><span class="identifier">result</span><span class="special">(</span><span class="identifier">Args</span> <span class="keyword">const</span> <span class="special">&amp;</span> args<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005, 2006 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="weighted_sum_kahan_impl.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../accumulators/reference.html#header.boost.accumulators.statistics_fwd_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="weighted_tail__idp34023128.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

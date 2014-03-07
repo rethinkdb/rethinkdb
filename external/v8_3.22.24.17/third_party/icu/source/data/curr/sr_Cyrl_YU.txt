@@ -1,0 +1,12 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/sr_Cyrl_YU.xml
+// *
+// ***************************************************************************
+sr_Cyrl_YU{
+    "%%ALIAS"{"sr_Cyrl_RS"}
+    Version{"2.0.41.23"}
+}

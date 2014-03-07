@@ -1,0 +1,106 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Linkage Options</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Boost.Regex">
+<link rel="up" href="../configuration.html" title="Configuration">
+<link rel="prev" href="locale.html" title="Locale and traits class selection">
+<link rel="next" href="algorithm.html" title="Algorithm Selection">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="locale.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../configuration.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="algorithm.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_configuration_linkage">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_regex.configuration.linkage"></a><a class="link" href="linkage.html" title="Linkage Options">Linkage Options</a>
+</h3></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  macro
+                </p>
+              </th>
+<th>
+                <p>
+                  description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  BOOST_REGEX_DYN_LINK
+                </p>
+              </td>
+<td>
+                <p>
+                  For Microsoft and Borland C++ builds, this tells Boost.Regex that
+                  it should link to the dll build of the Boost.Regex. By default
+                  boost.regex will link to its static library build, even if the
+                  dynamic C runtime library is in use.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  BOOST_REGEX_NO_LIB
+                </p>
+              </td>
+<td>
+                <p>
+                  For Microsoft and Borland C++ builds, this tells Boost.Regex that
+                  it should not automatically select the library to link to.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  BOOST_REGEX_NO_FASTCALL
+                </p>
+              </td>
+<td>
+                <p>
+                  For Microsoft builds, this tells Boost.Regex to use the <code class="computeroutput"><span class="identifier">__cdecl</span></code> calling convention rather
+                  than <code class="computeroutput"><span class="identifier">__fastcall</span></code>.
+                  Useful if you want to use the same library from both managed and
+                  unmanaged code.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="locale.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../configuration.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="algorithm.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

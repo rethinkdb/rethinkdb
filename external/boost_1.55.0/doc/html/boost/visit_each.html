@@ -1,0 +1,101 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function template visit_each</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../signals/reference.html#header.boost.visit_each_hpp" title="Header &lt;boost/visit_each.hpp&gt;">
+<link rel="prev" href="signals/scoped_connection.html" title="Class scoped_connection">
+<link rel="next" href="last_value.html" title="Class template last_value">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="signals/scoped_connection.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals/reference.html#header.boost.visit_each_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="last_value.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.visit_each"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function template visit_each</span></h2>
+<p>boost::visit_each &#8212; Allow limited exploration of class members.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../signals/reference.html#header.boost.visit_each_hpp" title="Header &lt;boost/visit_each.hpp&gt;">boost/visit_each.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Visitor<span class="special">,</span> <span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <span class="identifier">visit_each</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Visitor</span><span class="special">&amp;</span> visitor<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> t<span class="special">,</span> <span class="keyword">int</span><span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp204604152"></a><h2>Description</h2>
+<p>The <code class="computeroutput"><a class="link" href="visit_each.html" title="Function template visit_each">visit_each</a></code> mechanism
+        allows a visitor to be applied to every subobject in a given
+        object. It is used by the Signals library to discover
+        <code class="computeroutput"><a class="link" href="signals/trackable.html" title="Class trackable">signals::trackable</a></code> objects within a
+        function object, but other uses may surface if used
+        universally (e.g., conservative garbage collection). To fit
+        within the <code class="computeroutput"><a class="link" href="visit_each.html" title="Function template visit_each">visit_each</a></code> framework,
+        a <code class="computeroutput"><a class="link" href="visit_each.html" title="Function template visit_each">visit_each</a></code> overload must be
+        supplied for each object type. </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>
+<p><code class="computeroutput">visitor(t)</code>, and for
+      every subobject <code class="computeroutput">x</code> of
+      <code class="computeroutput">t</code>: 
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>If <code class="computeroutput">x</code> is a reference, <code class="computeroutput">visit_each(visitor, ref(x), 0)</code></p></li>
+<li class="listitem"><p>Otherwise, <code class="computeroutput">visit_each(visitor, x, 0)</code></p></li>
+</ul></div>
+<p>
+      </p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Notes:</span></p></td>
+<td>
+<p>The third parameter is
+      <code class="computeroutput">long</code> for the fallback version
+      of <a class="link" href="visit_each.html" title="Function template visit_each">visit_each</a> and the argument
+      supplied to this third paramter must always be 0. The third
+      parameter is an artifact of the widespread lack of proper
+      function template ordering, and will be removed in the future.</p>
+<p>Library authors will be expected to add additional
+      overloads that specialize the T argument for their classes, so
+      that subobjects can be visited.</p>
+<p>Calls to visit_each are required to be unqualified, to
+      enable argument-dependent lookup.</p>
+</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="signals/scoped_connection.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals/reference.html#header.boost.visit_each_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="last_value.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,60 @@
+[article Boost.Config
+    [quickbook 1.4]
+    [authors [Beman Dawes, Vesa Karvonen, John Maddock] ]
+    [copyright 2001-2007 Beman Dawes, Vesa Karvonen, John Maddock]
+    [category broken compiler workarounds]
+    [id config]
+    [dirname config]
+    [purpose
+        Helps boost library developers adapt to compiler idiosyncrasies; not intended for library users.
+    ]
+    [source-mode c++]
+    [license
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+[@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+
+[/ Cited Boost resources ]
+
+[def __BOOST_REGRESSION_TEST_DRIVER__ [@../../../../tools/regression/doc/index.html boost regression test driver]]
+[def __BOOST_CONFIG_HEADER__ [@../../../../boost/config.hpp <boost/config.hpp>]]
+[def __BOOST_CONFIG_USER_HEADER__ [@../../../../boost/config/user.hpp <boost/config/user.hpp>]]
+[def __BOOST_CONFIG_SUFFIX_HEADER__ [@../../../../boost/config/user.hpp <boost/config/suffix.hpp>]]
+[def __BOOST_CONFIG_DIR__ ['<boost-root>]`/boost/config/`]
+
+
+[/ Other web resources ]
+
+[def __STL_PORT__ [@http://stlport.sourceforge.net STLport]]
+[def __BOOST_TRACKER__ [@https://svn.boost.org/trac/boost/newticket Trac]]
+[def __CORE_LANGUAGE_DR337__ [@http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#337 Core Language DR337]]
+[def __PRINCIPLES_AND_PATTERNS_ARTICLE__ [@http://www.objectmentor.com/resources/articles/Principles_and_Patterns.pdf following article]]
+
+
+[/ Icons ]
+
+[def __NOTE__ [$images/note.png]]
+[def __ALERT__ [$images/caution.png]]
+[def __DETAIL__ [$images/note.png]]
+[def __TIP__ [$images/tip.png]]
+[def __QUESTION_MARK__ [$images/question.png]]
+[def __SPACE__ [$images/space.png]]
+[def __GO_TO__ [$images/callouts/R.png]]
+
+
+[/ Document files ]
+
+
+[include configuring_boost.qbk]
+[include macro_reference.qbk]
+[include guidelines.qbk]
+[include rationale.qbk]
+[include acknowledgements.qbk]
+
+
+
+
+

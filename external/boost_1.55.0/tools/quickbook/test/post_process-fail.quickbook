@@ -1,0 +1,3 @@
+[article Fail post process due to invalid embedded xml [quickbook 1.4] ]
+
+Invalid xml follows: '''<!--quickbook-escape-postfix--><>'''

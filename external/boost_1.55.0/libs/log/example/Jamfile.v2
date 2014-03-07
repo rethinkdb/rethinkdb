@@ -1,0 +1,23 @@
+#
+#          Copyright Andrey Semashev 2007 - 2013.
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+#
+
+build-project ./advanced_usage ;
+build-project ./async_log ;
+build-project ./bounded_async_log ;
+build-project ./basic_usage ;
+build-project ./event_log ;
+build-project ./multiple_files ;
+build-project ./multiple_threads ;
+build-project ./rotating_file ;
+build-project ./settings_file ;
+build-project ./settings_file_formatter_factory ;
+build-project ./syslog ;
+build-project ./native_syslog ;
+build-project ./wide_char ;
+build-project ./keywords ;
+build-project ./trivial ;
+build-project ./doc ;

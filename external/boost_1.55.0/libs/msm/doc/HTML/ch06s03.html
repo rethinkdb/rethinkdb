@@ -1,0 +1,23 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Generated state ids</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="ch06.html" title="Chapter&nbsp;6.&nbsp;Internals"><link rel="prev" href="ch06s02.html" title="Frontend / Backend interface"><link rel="next" href="ch06s04.html" title="Metaprogramming tools"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center"> Generated state ids </th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch06s02.html">Prev</a>&nbsp;</td><th width="60%" align="center">Chapter&nbsp;6.&nbsp;Internals</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch06s04.html">Next</a></td></tr></table><hr></div><div class="sect1" title="Generated state ids"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d0e3254"></a><span class="command"><strong><a name="internals-state-id"></a></strong></span> Generated state ids </h2></div></div></div><p>Normally, one does not need to know the ids are generated for all the states
+                    of a state machine, unless for debugging purposes, like the pstate function does
+                    in the tutorials in order to display the name of the current state. This section
+                    will show how to automatically display typeid-generated names, but these are not
+                    very readable on all platforms, so it can help to know how the ids are
+                    generated. The ids are generated using the transition table, from the &#8220;Start&#8221;
+                    column up to down, then from the &#8220;Next&#8221; column, up to down, as shown in the next
+                    image: </p><p><span class="inlinemediaobject"><img src="../images/AnnexA.jpg" width="90%"></span></p><p>Stopped will get id 0, Open id 1, ErrorMode id 6 and SleepMode (seen only in
+                    the &#8220;Next&#8221; column) id 7. If you have some implicitly created states, like
+                    transition-less initial states or states created using the explicit_creation
+                    typedef, these will be added as a source at the end of the transition table. If
+                    you have submachine states, a row will be added for them at the end of the
+                    table, after the automatically or explicitly created states, which can change
+                    their id. The next help you will need for debugging would be to call the
+                    current_state method of the state_machine class, then the display_type helper to
+                    generate a readable name from the id. If you do not want to go through the
+                    transition table to fill an array of names, the library provides another helper,
+                    fill_state_names, which, given an array of sufficient size (please see next
+                    section to know how many states are defined in the state machine), will fill it
+                    with typeid-generated names. </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch06s02.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="ch06.html">Up</a></td><td width="40%" align="right">&nbsp;<a accesskey="n" href="ch06s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Frontend / Backend
+                    interface&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;Metaprogramming tools</td></tr></table></div></body></html>

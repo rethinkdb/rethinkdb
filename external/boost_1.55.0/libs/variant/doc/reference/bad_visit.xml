@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/variant/bad_visit.hpp">
+  <namespace name="boost">
+
+    <class name="bad_visit">
+      <inherit access="public">
+        <classname>std::exception</classname>
+      </inherit>
+
+      <purpose>
+        <simpara>The exception thrown in the event of a visitor
+          unable to handle the visited value.</simpara>
+      </purpose>
+
+      <method name="what" specifiers="virtual" cv="const">
+        <type>const char *</type>
+      </method>
+    </class>
+
+  </namespace>
+</header>

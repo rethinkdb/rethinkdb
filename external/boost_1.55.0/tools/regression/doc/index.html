@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Language" content="en-us" />
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
+  <link rel="stylesheet" type="text/css" href=
+  "../../../doc/src/boostbook.css" />
+
+  <title>Regression Test Reporting Tools</title>
+</head>
+
+<body>
+  <h1><img src="../../../boost.png" alt="boost.png (6897 bytes)" align=
+  "center" width="277" height="86" /> Regression Test Reporting Tools</h1>
+
+  <p>Boost regression testing uses <a href=
+  "../../build/index.html">Boost.Build</a> to run the actual builds and
+  tests. A separate set of tools is used to generate the actual status
+  reports.</p>
+
+  <ul>
+    <li><a href=
+    "http://beta.boost.org/development/running_regression_tests.html">Instructions</a>
+    for running the regression tests as part of the published regression
+    tests are available at the Boost web site.</li>
+
+    <li><a href="../src/process_jam_log.cpp">process_jam_log.cpp</a> -
+    Processes the bjam outputs, creating a file named test_log.xml for each
+    test encountered.</li>
+
+    <li><a href="../src/compiler_status.cpp">compiler_status.cpp</a> -
+    Generates HTML status tables from test_log.xml and other files.</li>
+
+    <li><a href="../build/Jamroot.jam">Jamroot.jam</a> - Builds process_jam_log
+    and compiler_status executables.</li>
+
+    <li><a href="library_status.html">Library Status</a> - Runs test programs
+    for one or all boost libraries on your local installation and generates
+    complete tables to show which combinations of libraries, compilers,
+    compiler settings pass and fail at your local installation.</li>
+  </ul>
+  <hr />
+
+  <p>Revised $Date: 2010-06-26 05:30:09 -0700 (Sat, 26 Jun 2010) $</p>
+
+  <p>Copyright Beman Dawes 2003.</p>
+
+  <p>Copyright Rene Rivera 2007.</p>
+
+  <p>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</p>
+</body>
+</html>

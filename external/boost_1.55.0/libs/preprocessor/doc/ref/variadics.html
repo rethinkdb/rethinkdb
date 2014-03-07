@@ -1,0 +1,30 @@
+<html>
+<head>
+  <title>BOOST_PP_VARIADICS</title>
+  <link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+<div style="margin-left: 0px;"> The <b>BOOST_PP_VARIADICS </b>macro specifies whether variadic macro support exists.<br>
+</div>
+<h4>Usage</h4>
+<div class="code"><b>BOOST_PP_VARIADICS</b><br>
+</div><b>Remarks</b>
+<div> The macro is an <i>object-like</i> macro. It is used in internal
+code to check for the presence of variadic macro support. It can be
+used by the end-user for the same purpose. The macro equals 1 if
+variadic macros are supported and 0 if they are not. </div><b>Requirements</b>
+<div> <b>Header:</b> &nbsp;<a href="../headers/config/variadics.html">&lt;boost/preprocessor/config/variadics.hpp&gt;</a>
+</div>
+<h4>Sample Code</h4>
+<div>
+<pre>#include &lt;<a href="../headers/config/variadics.html">boost/preprocessor/config/variadics.hpp</a>&gt;<br><br>#if <a href="variadics.html">BOOST_PP_VARIADICS</a><br>#define SOME_MACRO(...) // replacement list<br>#else<br>#define SOME_MACRO(param1,param2) // replacement list<br>#endif<br></pre>
+</div>
+<hr size="1">
+<div style="margin-left: 0px;"> <i></i><i>© Copyright Edward Diener 2011</i> </div>
+<div style="margin-left: 0px;">
+<p><small>Distributed under the Boost Software License, Version 1.0.
+(See accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+</div>
+</body>
+</html>

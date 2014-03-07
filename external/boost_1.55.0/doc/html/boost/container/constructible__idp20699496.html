@@ -1,0 +1,62 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template constructible_with_allocator_suffix</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_container_header_reference.html#header.boost.container.scoped_allocator_hpp" title="Header &lt;boost/container/scoped_allocator.hpp&gt;">
+<link rel="prev" href="default_init.html" title="Global default_init">
+<link rel="next" href="constructible__idp20704664.html" title="Struct template constructible_with_allocator_prefix">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="default_init.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_container_header_reference.html#header.boost.container.scoped_allocator_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="constructible__idp20704664.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.container.constructible__idp20699496"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template constructible_with_allocator_suffix</span></h2>
+<p>boost::container::constructible_with_allocator_suffix</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_container_header_reference.html#header.boost.container.scoped_allocator_hpp" title="Header &lt;boost/container/scoped_allocator.hpp&gt;">boost/container/scoped_allocator.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="constructible__idp20699496.html" title="Struct template constructible_with_allocator_suffix">constructible_with_allocator_suffix</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">false_type</span> <span class="special">{</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp79003784"></a><h2>Description</h2>
+<p><span class="bold"><strong>Remark</strong></span>: if a specialization is derived from true_type, indicates that T may be constructed with an allocator as its last constructor argument. Ideally, all constructors of T (including the copy and move constructors) should have a variant that accepts a final argument of allocator_type.</p>
+<p><span class="bold"><strong>Requires</strong></span>: if a specialization is derived from true_type, T must have a nested type, allocator_type and at least one constructor for which allocator_type is the last parameter. If not all constructors of T can be called with a final allocator_type argument, and if T is used in a context where a container must call such a constructor, then the program is ill-formed.</p>
+<p>[Example: template &lt;class T, class Allocator = allocator&lt;T&gt; &gt; class Z { public: typedef Allocator allocator_type;</p>
+<p>// Default constructor with optional allocator suffix Z(const allocator_type&amp; a = allocator_type());</p>
+<p>// Copy constructor and allocator-extended copy constructor Z(const Z&amp; zz); Z(const Z&amp; zz, const allocator_type&amp; a); };</p>
+<p>// Specialize trait for class template Z template &lt;class T, class Allocator = allocator&lt;T&gt; &gt; struct <a class="link" href="constructible__idp20699496.html" title="Struct template constructible_with_allocator_suffix">constructible_with_allocator_suffix</a>&lt;Z&lt;T,Allocator&gt; &gt; : ::boost::true_type { }; <span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span> end example]</p>
+<p><span class="bold"><strong>Note</strong></span>: This trait is a workaround inspired by "N2554: The Scoped Allocator Model (Rev 2)" (Pablo Halpern, 2008-02-29) to backport the scoped allocator model to C++03, as in C++03 there is no mechanism to detect if a type can be constructed from arbitrary arguments. Applications aiming portability with several compilers should always define this trait.</p>
+<p>In conforming C++11 compilers or compilers supporting SFINAE expressions (when BOOST_NO_SFINAE_EXPR is NOT defined), this trait is ignored and C++11 rules will be used to detect if a type should be constructed with suffix or prefix allocator arguments. </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="default_init.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_container_header_reference.html#header.boost.container.scoped_allocator_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="constructible__idp20704664.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

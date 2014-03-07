@@ -1,0 +1,164 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template quantity</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_units/Reference.html#header.boost.units.quantity_hpp" title="Header &lt;boost/units/quantity.hpp&gt;">
+<link rel="prev" href="root_typeof_helper.html" title="Struct template root_typeof_helper">
+<link rel="next" href="quantity_BOOS_idp157082504.html" title="Class template quantity&lt;BOOST_UNITS_DIMENSIONLESS_UNIT(System), Y&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="root_typeof_helper.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_units/Reference.html#header.boost.units.quantity_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="quantity_BOOS_idp157082504.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.units.quantity"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template quantity</span></h2>
+<p>boost::units::quantity &#8212; class declaration </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_units/Reference.html#header.boost.units.quantity_hpp" title="Header &lt;boost/units/quantity.hpp&gt;">boost/units/quantity.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit<span class="special">,</span> <span class="keyword">typename</span> Y <span class="special">=</span> <span class="keyword">double</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit</span><span class="special">,</span> <span class="identifier">Y</span> <span class="special">&gt;</span> <a name="boost.units.quantity.this_type"></a><span class="identifier">this_type</span><span class="special">;</span> 
+  <span class="keyword">typedef</span> <span class="identifier">Y</span>                   <a name="boost.units.quantity.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">Unit</span>                <a name="boost.units.quantity.unit_type"></a><span class="identifier">unit_type</span><span class="special">;</span> 
+
+  <span class="comment">// <a class="link" href="quantity.html#boost.units.quantityconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="quantity.html#idp157067320-bb"><span class="identifier">quantity</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="quantity.html#idp157067384-bb"><span class="identifier">quantity</span></a><span class="special">(</span><span class="identifier">unspecified_null_pointer_constant_type</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="quantity.html#idp157067816-bb"><span class="identifier">quantity</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+    <a class="link" href="quantity.html#idp157068776-bb"><span class="identifier">quantity</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+    <span class="keyword">explicit</span> <a class="link" href="quantity.html#idp157070584-bb"><span class="identifier">quantity</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+    <span class="keyword">explicit</span> <a class="link" href="quantity.html#idp157073928-bb"><span class="identifier">quantity</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+    <a class="link" href="quantity.html#idp157076152-bb"><span class="identifier">quantity</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="quantity.html#idp157081624-bb"><span class="identifier">quantity</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">int</span><span class="special">)</span><span class="special">;</span>
+  quantity&amp; <a class="link" href="quantity.html#idp157068232-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> YY<span class="special">&gt;</span> quantity&amp; <a class="link" href="quantity.html#idp157072536-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+    quantity&amp; <a class="link" href="quantity.html#idp157078264-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="quantity.html#idp157055880-bb">private member functions</a></span>
+   <a class="link" href="quantity.html#idp157056088-bb"><span class="identifier">BOOST_MPL_ASSERT_NOT</span></a><span class="special">(</span><span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="quantity.html#idp157056888-bb">public member functions</a></span>
+  <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <a class="link" href="quantity.html#idp157057096-bb"><span class="identifier">value</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+    <span class="identifier">this_type</span> <span class="special">&amp;</span> <a class="link" href="quantity.html#idp157058056-bb"><span class="keyword">operator</span><span class="special">+=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+    <span class="identifier">this_type</span> <span class="special">&amp;</span> <a class="link" href="quantity.html#idp157060024-bb"><span class="keyword">operator</span><span class="special">-=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+    <span class="identifier">this_type</span> <span class="special">&amp;</span> <a class="link" href="quantity.html#idp157061736-bb"><span class="keyword">operator</span><span class="special">*=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+    <span class="identifier">this_type</span> <span class="special">&amp;</span> <a class="link" href="quantity.html#idp157063448-bb"><span class="keyword">operator</span><span class="special">/=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">this_type</span> <span class="special">&amp;</span> <a class="link" href="quantity.html#idp157065432-bb"><span class="keyword">operator</span><span class="special">*=</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">this_type</span> <span class="special">&amp;</span> <a class="link" href="quantity.html#idp157066504-bb"><span class="keyword">operator</span><span class="special">/=</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="quantity.html#idp157079960-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">this_type</span> <a class="link" href="quantity.html#idp157080168-bb"><span class="identifier">from_value</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp237847736"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp237847944"></a><h3>
+<a name="boost.units.quantityconstruct-copy-destruct"></a><code class="computeroutput">quantity</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><a name="idp157067320-bb"></a><span class="identifier">quantity</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp157067384-bb"></a><span class="identifier">quantity</span><span class="special">(</span><span class="identifier">unspecified_null_pointer_constant_type</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp157067816-bb"></a><span class="identifier">quantity</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+  <a name="idp157068776-bb"></a><span class="identifier">quantity</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span> source<span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>implicit conversion between value types is allowed if allowed for value types themselves </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+  <span class="keyword">explicit</span> <a name="idp157070584-bb"></a><span class="identifier">quantity</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span> source<span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>implicit conversion between value types is not allowed if not allowed for value types themselves </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+  <span class="keyword">explicit</span> <a name="idp157073928-bb"></a><span class="identifier">quantity</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span> source<span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>explicit conversion between different unit systems is allowed if implicit conversion is disallowed </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+  <a name="idp157076152-bb"></a><span class="identifier">quantity</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span> source<span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>implicit conversion between different unit systems is allowed if each fundamental dimension is implicitly convertible </li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">explicit</span> <a name="idp157081624-bb"></a><span class="identifier">quantity</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> val<span class="special">,</span> <span class="keyword">int</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">quantity&amp; <a name="idp157068232-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> YY<span class="special">&gt;</span> quantity&amp; <a name="idp157072536-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre>implicit assignment between value types is allowed if allowed for value types themselves </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+  quantity&amp; <a name="idp157078264-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre>implicit assignment between different unit systems is allowed if each fundamental dimension is implicitly convertible </li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp237905592"></a><h3>
+<a name="idp157055880-bb"></a><code class="computeroutput">quantity</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"> <a name="idp157056088-bb"></a><span class="identifier">BOOST_MPL_ASSERT_NOT</span><span class="special">(</span><span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp237908824"></a><h3>
+<a name="idp157056888-bb"></a><code class="computeroutput">quantity</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <a name="idp157057096-bb"></a><span class="identifier">value</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>constant accessor to value <p>can add a quantity of the same type if add_typeof_helper&lt;value_type,value_type&gt;::type is convertible to value_type </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+  <span class="identifier">this_type</span> <span class="special">&amp;</span> <a name="idp157058056-bb"></a><span class="keyword">operator</span><span class="special">+=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre>can subtract a quantity of the same type if subtract_typeof_helper&lt;value_type,value_type&gt;::type is convertible to value_type </li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+  <span class="identifier">this_type</span> <span class="special">&amp;</span> <a name="idp157060024-bb"></a><span class="keyword">operator</span><span class="special">-=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+  <span class="identifier">this_type</span> <span class="special">&amp;</span> <a name="idp157061736-bb"></a><span class="keyword">operator</span><span class="special">*=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit2<span class="special">,</span> <span class="keyword">typename</span> YY<span class="special">&gt;</span> 
+  <span class="identifier">this_type</span> <span class="special">&amp;</span> <a name="idp157063448-bb"></a><span class="keyword">operator</span><span class="special">/=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="quantity.html" title="Class template quantity">quantity</a><span class="special">&lt;</span> <span class="identifier">Unit2</span><span class="special">,</span> <span class="identifier">YY</span> <span class="special">&gt;</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre>can multiply a quantity by a scalar value_type if multiply_typeof_helper&lt;value_type,value_type&gt;::type is convertible to value_type </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">this_type</span> <span class="special">&amp;</span> <a name="idp157065432-bb"></a><span class="keyword">operator</span><span class="special">*=</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre>can divide a quantity by a scalar value_type if divide_typeof_helper&lt;value_type,value_type&gt;::type is convertible to value_type </li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">this_type</span> <span class="special">&amp;</span> <a name="idp157066504-bb"></a><span class="keyword">operator</span><span class="special">/=</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp237950168"></a><h3>
+<a name="idp157079960-bb"></a><code class="computeroutput">quantity</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">this_type</span> <a name="idp157080168-bb"></a><span class="identifier">from_value</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> val<span class="special">)</span><span class="special">;</span></pre>Construct quantity directly from <code class="computeroutput">value_type</code> (potentially dangerous). </li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp237955160"></a><h3>Specializations</h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><a class="link" href="quantity_BOOS_idp157082504.html" title="Class template quantity&lt;BOOST_UNITS_DIMENSIONLESS_UNIT(System), Y&gt;">Class template quantity&lt;BOOST_UNITS_DIMENSIONLESS_UNIT(System), Y&gt;</a></p></li></ul></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2008 Matthias Christian Schabel<br>Copyright &#169; 2007-2010 Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="root_typeof_helper.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_units/Reference.html#header.boost.units.quantity_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="quantity_BOOS_idp157082504.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

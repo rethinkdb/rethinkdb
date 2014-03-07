@@ -1,0 +1,103 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Rationale</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../overview.html" title="Overview">
+<link rel="prev" href="../overview.html" title="Overview">
+<link rel="next" href="core.html" title="Core Concepts and Functionality">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../overview.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../overview.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="core.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.overview.rationale"></a><a class="link" href="rationale.html" title="Rationale">Rationale</a>
+</h3></div></div></div>
+<p>
+        Most programs interact with the outside world in some way, whether it be
+        via a file, a network, a serial cable, or the console. Sometimes, as is the
+        case with networking, individual I/O operations can take a long time to complete.
+        This poses particular challenges to application development.
+      </p>
+<p>
+        Boost.Asio provides the tools to manage these long running operations, without
+        requiring programs to use concurrency models based on threads and explicit
+        locking.
+      </p>
+<p>
+        The Boost.Asio library is intended for programmers using C++ for systems
+        programming, where access to operating system functionality such as networking
+        is often required. In particular, Boost.Asio addresses the following goals:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong>Portability.</strong></span> The library should support
+            a range of commonly used operating systems, and provide consistent behaviour
+            across these operating systems.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Scalability.</strong></span> The library should facilitate
+            the development of network applications that scale to thousands of concurrent
+            connections. The library implementation for each operating system should
+            use the mechanism that best enables this scalability.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Efficiency.</strong></span> The library should support
+            techniques such as scatter-gather I/O, and allow programs to minimise
+            data copying.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Model concepts from established APIs, such as BSD
+            sockets.</strong></span> The BSD socket API is widely implemented and understood,
+            and is covered in much literature. Other programming languages often
+            use a similar interface for networking APIs. As far as is reasonable,
+            Boost.Asio should leverage existing practice.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Ease of use.</strong></span> The library should provide
+            a lower entry barrier for new users by taking a toolkit, rather than
+            framework, approach. That is, it should try to minimise the up-front
+            investment in time to just learning a few basic rules and guidelines.
+            After that, a library user should only need to understand the specific
+            functions that are being used.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Basis for further abstraction.</strong></span> The library
+            should permit the development of other libraries that provide higher
+            levels of abstraction. For example, implementations of commonly used
+            protocols such as HTTP.
+          </li>
+</ul></div>
+<p>
+        Although Boost.Asio started life focused primarily on networking, its concepts
+        of asynchronous I/O have been extended to include other operating system
+        resources such as serial ports, file descriptors, and so on.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../overview.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../overview.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="core.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

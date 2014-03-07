@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<section last-revision="$Date: 2013-06-20 14:18:17 -0700 (Thu, 20 Jun 2013) $">
+  <title>Frequently Asked Questions</title>
+  
+  <qandaset>
+    <qandaentry>
+      <question>
+        <para>Is Boost.Signals being actively maintained?</para>
+      </question>
+      <answer>
+        <para>No. Please migrate to <ulink url="http://www.boost.org/doc/html/signals2.html">Boost.Signals2</ulink>.
+        There is a 
+        <ulink url="http://www.boost.org/doc/html/signals2/api_changes.html#signals2.porting">porting guide</ulink>
+        in the Signals2 documentation.</para>
+      </answer>
+    </qandaentry>
+    <qandaentry>
+      <question>
+        <para>Don't noncopyable signal semantics mean that a class
+        with a signal member will be noncopyable as well?</para>
+      </question>
+      <answer>
+        <para>No. The compiler will not be able to generate a copy
+        constructor or copy assignment operator for your class if it
+        has a signal as a member, but you are free to write your own
+        copy constructor and/or copy assignment operator. Just don't
+        try to copy the signal.</para>
+      </answer>
+    </qandaentry>
+    <qandaentry>
+      <question>
+        <para>Is Boost.Signals thread-safe?</para>
+      </question>
+      <answer>
+        <para>No. Using Boost.Signals in a multithreaded concept is
+        very dangerous, and it is very likely that the results will be
+        less than satisfying. Boost.Signals will support thread safety
+        in the future.</para>
+      </answer>
+    </qandaentry>
+    <qandaentry>
+      <question>
+        <para>How do I get Boost.Signals to work with Qt?</para>
+      </question>
+      <answer>
+        <para>When building with Qt, the Moc keywords
+        <code>signals</code> and <code>slots</code> are defined using
+        preprocessor macros, causing programs using Boost.Signals and
+        Qt together to fail to compile.</para>
+
+        <para><emphasis>For Qt 4.1 and later</emphasis>, This behavior
+        can be turned off in Qt on a per-project or per-file basis
+        with the <code>no_keywords</code> option.  This works with
+        out-of-the-box builds of Boost and Qt. You do not need to
+        re-configure, re-build, or duplicate existing libraries. For a
+        project where you want to use both Boost.Signals and Qt
+        Signals and Slots, the relevant part of your .pro file might
+        look like this:</para>
+
+        <programlisting>
+CONFIG      += no_keywords # so Qt won't #define any non-all-caps `keywords'
+INCLUDEPATH += . /usr/local/include/boost-1_33_1/
+macx:LIBS   += /usr/local/lib/libboost_signals-1_33_1.a  # ...your exact paths may vary
+</programlisting>
+
+        <para>Now you can mix Boost.Signals and Qt Signals and Slots
+        in the same files, and even within the same class or function.
+        You will have to use the upper-case versions of Qt macros in
+        your own code.  See the article <ulink
+        url="http://scottcollins.net/articles/a-deeper-look-at-signals-and-slots.html">A
+        Deeper Look at Signals and Slots</ulink> [off-site] for more
+        complete examples and a survey of the strengths of the two
+        systems.</para>
+
+        <para><emphasis>Older versions of Qt</emphasis> did not
+        provide a reliable mechanism for avoiding these unfriendly,
+        all lower-case `keyword'-like macros.  Although this is a
+        problem with Qt and not Boost.Signals, a user can use the two
+        systems together with a little extra effort. There are two
+        ways to do this:</para>
+
+        <para>The first way involves defining
+        the <code>BOOST_SIGNALS_NAMESPACE</code> 
+        macro to some other identifier (e.g., <code>signalslib</code>)
+        when building and using the Boost.Signals library. Then the
+        namespace of the Boost.Signals library will be
+        <code>boost::BOOST_SIGNALS_NAMESPACE</code> instead of
+        <code>boost::signals</code>. To retain the original namespace
+        name in translation units that do not interact with Qt, you
+        can use a namespace alias:</para>
+
+        <programlisting>
+  namespace boost {
+    namespace signals = BOOST_SIGNALS_NAMESPACE;
+  }
+</programlisting>
+
+        <para>The second way, provided by Frank Hess and improved by
+        Niels Dekker, involves 
+        creating a header <code>signalslib.hpp</code> that contains
+          the following code:</para>
+
+        <programlisting>#ifndef SIGNALSLIB_HPP_INCLUDED
+#define SIGNALSLIB_HPP_INCLUDED 
+
+#if defined(signals) &amp;&amp; defined(QOBJECTDEFS_H) &amp;&amp; \
+  !defined(QT_MOC_CPP)
+#  undef signals
+#  define signals signals
+#endif
+
+#include &lt;boost/signal.hpp&gt;
+namespace boost
+{
+  namespace signalslib = signals;
+}
+
+#if defined(signals) &amp;&amp; defined(QOBJECTDEFS_H) &amp;&amp; \
+  !defined(QT_MOC_CPP)
+#  undef signals
+// Restore the macro definition of "signals", as it was
+// defined by Qt's &lt;qobjectdefs.h&gt;.
+#  define signals protected
+#endif
+
+#endif</programlisting>
+
+        <para>Use this header to include the Boost library, then refer
+          to it in the namespace <code>boost::signalslib</code>. This
+          option is often
+        preferable to the first option because it can be used without
+        recompiling the Signals library binary. </para>
+      </answer>
+    </qandaentry>
+  </qandaset>
+</section>

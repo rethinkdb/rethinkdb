@@ -1,0 +1,200 @@
+[/
+  (C) Copyright 2007-8 Anthony Williams.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section Thread Local Storage]
+
+[heading Synopsis]
+
+Thread local storage allows multi-threaded applications to have a separate instance of a given data item for each thread. Where a
+single-threaded application would use static or global data, this could lead to contention, deadlock or data corruption in a
+multi-threaded application. One example is the C `errno` variable, used for storing the error code related to functions from the
+Standard C library. It is common practice (and required by POSIX) for compilers that support multi-threaded applications to provide
+a separate instance of `errno` for each thread, in order to avoid different threads competing to read or update the value.
+
+Though compilers often provide this facility in the form of extensions to the declaration syntax (such as `__declspec(thread)` or
+`__thread` annotations on `static` or namespace-scope variable declarations), such support is non-portable, and is often limited in
+some way, such as only supporting POD types.
+
+[heading Portable thread-local storage with `boost::thread_specific_ptr`]
+
+`boost::thread_specific_ptr` provides a portable mechanism for thread-local storage that works on all compilers supported by
+__boost_thread__. Each instance of `boost::thread_specific_ptr` represents a pointer to an object (such as `errno`) where each
+thread must have a distinct value. The value for the current thread can be obtained using the `get()` member function, or by using
+the `*` and `->` pointer deference operators. Initially the pointer has a value of `NULL` in each thread, but the value for the
+current thread can be set using the `reset()` member function.
+
+If the value of the pointer for the current thread is changed using `reset()`, then the previous value is destroyed by calling the
+cleanup routine. Alternatively, the stored value can be reset to `NULL` and the prior value returned by calling the `release()`
+member function, allowing the application to take back responsibility for destroying the object.
+
+[heading Cleanup at thread exit]
+
+When a thread exits, the objects associated with each `boost::thread_specific_ptr` instance are destroyed. By default, the object
+pointed to by a pointer `p` is destroyed by invoking `delete p`, but this can be overridden for a specific instance of
+`boost::thread_specific_ptr` by providing a cleanup routine to the constructor. In this case, the object is destroyed by invoking
+`func(p)` where `func` is the cleanup routine supplied to the constructor. The cleanup functions are called in an unspecified
+order. If a cleanup routine sets the value of associated with an instance of `boost::thread_specific_ptr` that has already been
+cleaned up, that value is added to the cleanup list. Cleanup finishes when there are no outstanding instances of
+`boost::thread_specific_ptr` with values.
+
+Note: on some platforms, cleanup of thread-specific data is not
+performed for threads created with the platform's native API. On those
+platforms such cleanup is only done for threads that are started with
+`boost::thread` unless `boost::on_thread_exit()` is called manually
+from that thread.
+
+[heading Rationale about the nature of the key]
+
+Boost.Thread uses the address of the `thread_specific_ptr` instance as key of the thread specific pointers. This avoids to create/destroy a key which will need a lock to protect from race conditions. This has a little performance liability, as the access must be done using an associative container.
+
+[section:thread_specific_ptr Class `thread_specific_ptr`]
+
+  //  #include <boost/thread/tss.hpp>
+
+  namespace boost
+  {
+    template <typename T>
+    class thread_specific_ptr
+    {
+    public:
+        thread_specific_ptr();
+        explicit thread_specific_ptr(void (*cleanup_function)(T*));
+        ~thread_specific_ptr();
+
+        T* get() const;
+        T* operator->() const;
+        T& operator*() const;
+
+        T* release();
+        void reset(T* new_value=0);
+    };
+  }
+
+[section:default_constructor `thread_specific_ptr();`]
+
+[variablelist
+
+[[Requires:] [`delete this->get()` is well-formed.]]
+
+[[Effects:] [Construct a `thread_specific_ptr` object for storing a pointer to an object of type `T` specific to each thread. The
+default `delete`-based cleanup function will be used to destroy any thread-local objects when `reset()` is called, or the thread
+exits.]]
+
+[[Throws:] [`boost::thread_resource_error` if an error occurs.]]
+
+]
+
+[endsect]
+
+[section:constructor_with_custom_cleanup `explicit thread_specific_ptr(void (*cleanup_function)(T*));`]
+
+[variablelist
+
+[[Requires:] [`cleanup_function(this->get())` does not throw any exceptions.]]
+
+[[Effects:] [Construct a `thread_specific_ptr` object for storing a pointer to an object of type `T` specific to each thread. The
+supplied `cleanup_function` will be used to destroy any thread-local objects when `reset()` is called, or the thread exits.]]
+
+[[Throws:] [`boost::thread_resource_error` if an error occurs.]]
+
+]
+
+[endsect]
+
+[section:destructor `~thread_specific_ptr();`]
+
+[variablelist
+
+[[Requires:] [All the thread specific instances associated to this thread_specific_ptr (except maybe the one associated to this thread) must be null.]]
+
+[[Effects:] [Calls `this->reset()` to clean up the associated value for the current thread, and destroys `*this`.]]
+
+[[Throws:] [Nothing.]]
+
+[[Remarks:] [The requirement is due to the fact that in order to delete all these instances, the implementation should be forced to maintain a list of all the threads having an associated specific ptr, which is against the goal of thread specific data.]]
+
+]
+
+[note Care needs to be taken to ensure that any threads still running after an instance of `boost::thread_specific_ptr` has been
+destroyed do not call any member functions on that instance.]
+
+[endsect]
+
+[section:get `T* get() const;`]
+
+[variablelist
+
+[[Returns:] [The pointer associated with the current thread.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[note The initial value associated with an instance of `boost::thread_specific_ptr` is `NULL` for each thread.]
+
+[endsect]
+
+[section:operator_arrow `T* operator->() const;`]
+
+[variablelist
+
+[[Returns:] [`this->get()`]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[section:operator_star `T& operator*() const;`]
+
+[variablelist
+
+[[Requires:] [`this->get` is not `NULL`.]]
+
+[[Returns:] [`*(this->get())`]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[section:reset `void reset(T* new_value=0);`]
+
+[variablelist
+
+[[Effects:] [If `this->get()!=new_value` and `this->get()` is non-`NULL`, invoke `delete this->get()` or
+`cleanup_function(this->get())` as appropriate. Store `new_value` as the pointer associated with the current thread.]]
+
+[[Postcondition:] [`this->get()==new_value`]]
+
+[[Throws:] [`boost::thread_resource_error` if an error occurs.]]
+
+]
+
+[endsect]
+
+[section:release `T* release();`]
+
+[variablelist
+
+[[Effects:] [Return `this->get()` and store `NULL` as the pointer associated with the current thread without invoking the cleanup
+function.]]
+
+[[Postcondition:] [`this->get()==0`]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+
+[endsect]
+
+[endsect]

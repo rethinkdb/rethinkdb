@@ -1,0 +1,281 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;18.&#160;Boost.Lockfree</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="boost_lexical_cast/performance.html" title="Performance">
+<link rel="next" href="lockfree/examples.html" title="Examples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_lexical_cast/performance.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lockfree/examples.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="lockfree"></a>Chapter&#160;18.&#160;Boost.Lockfree</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Tim</span> <span class="surname">Blechmann</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2008-2011 Tim
+      Blechmann</p></div>
+<div><div class="legalnotice">
+<a name="lockfree.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="lockfree.html#lockfree.introduction___motivation">Introduction &amp;
+    Motivation</a></span></dt>
+<dt><span class="section"><a href="lockfree/examples.html">Examples</a></span></dt>
+<dt><span class="section"><a href="lockfree/rationale.html">Rationale</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="lockfree/rationale.html#lockfree.rationale.data_structures">Data Structures</a></span></dt>
+<dt><span class="section"><a href="lockfree/rationale.html#lockfree.rationale.memory_management">Memory Management</a></span></dt>
+<dt><span class="section"><a href="lockfree/rationale.html#lockfree.rationale.aba_prevention">ABA Prevention</a></span></dt>
+<dt><span class="section"><a href="lockfree/rationale.html#lockfree.rationale.interprocess_support">Interprocess
+      Support</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="lockfree/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="lockfree/reference.html#header.boost.lockfree.policies_hpp">Header &lt;boost/lockfree/policies.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="lockfree/reference.html#header.boost.lockfree.queue_hpp">Header &lt;boost/lockfree/queue.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="lockfree/reference.html#header.boost.lockfree.spsc_queue_hpp">Header &lt;boost/lockfree/spsc_queue.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="lockfree/reference.html#header.boost.lockfree.stack_hpp">Header &lt;boost/lockfree/stack.hpp&gt;</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="lockfree/appendices.html">Appendices</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="lockfree/appendices.html#lockfree.appendices.supported_platforms___compilers">Supported
+      Platforms &amp; Compilers</a></span></dt>
+<dt><span class="section"><a href="lockfree/appendices.html#lockfree.appendices.future_developments">Future Developments</a></span></dt>
+<dt><span class="section"><a href="lockfree/appendices.html#lockfree.appendices.references">References</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="lockfree.introduction___motivation"></a><a class="link" href="lockfree.html#lockfree.introduction___motivation" title="Introduction &amp; Motivation">Introduction &amp;
+    Motivation</a>
+</h2></div></div></div>
+<h3>
+<a name="lockfree.introduction___motivation.h0"></a>
+      <span class="phrase"><a name="lockfree.introduction___motivation.introduction__amp__terminology"></a></span><a class="link" href="lockfree.html#lockfree.introduction___motivation.introduction__amp__terminology">Introduction
+      &amp; Terminology</a>
+    </h3>
+<p>
+      The term <span class="bold"><strong>non-blocking</strong></span> denotes concurrent data
+      structures, which do not use traditional synchronization primitives like guards
+      to ensure thread-safety. Maurice Herlihy and Nir Shavit (compare <a href="http://books.google.com/books?id=pFSwuqtJgxYC" target="_top">"The
+      Art of Multiprocessor Programming"</a>) distinguish between 3 types
+      of non-blocking data structures, each having different properties:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          data structures are <span class="bold"><strong>wait-free</strong></span>, if every
+          concurrent operation is guaranteed to be finished in a finite number of
+          steps. It is therefore possible to give worst-case guarantees for the number
+          of operations.
+        </li>
+<li class="listitem">
+          data structures are <span class="bold"><strong>lock-free</strong></span>, if some
+          concurrent operations are guaranteed to be finished in a finite number
+          of steps. While it is in theory possible that some operations never make
+          any progress, it is very unlikely to happen in practical applications.
+        </li>
+<li class="listitem">
+          data structures are <span class="bold"><strong>obstruction-free</strong></span>,
+          if a concurrent operation is guaranteed to be finished in a finite number
+          of steps, unless another concurrent operation interferes.
+        </li>
+</ul></div>
+<p>
+      Some data structures can only be implemented in a lock-free manner, if they
+      are used under certain restrictions. The relevant aspects for the implementation
+      of <code class="literal">boost.lockfree</code> are the number of producer and consumer
+      threads. <span class="bold"><strong>Single-producer</strong></span> (<span class="bold"><strong>sp</strong></span>)
+      or <span class="bold"><strong>multiple producer</strong></span> (<span class="bold"><strong>mp</strong></span>)
+      means that only a single thread or multiple concurrent threads are allowed
+      to add data to a data structure. <span class="bold"><strong>Single-consumer</strong></span>
+      (<span class="bold"><strong>sc</strong></span>) or <span class="bold"><strong>Multiple-consumer</strong></span>
+      (<span class="bold"><strong>mc</strong></span>) denote the equivalent for the removal
+      of data from the data structure.
+    </p>
+<h3>
+<a name="lockfree.introduction___motivation.h1"></a>
+      <span class="phrase"><a name="lockfree.introduction___motivation.properties_of_non_blocking_data_structures"></a></span><a class="link" href="lockfree.html#lockfree.introduction___motivation.properties_of_non_blocking_data_structures">Properties
+      of Non-Blocking Data Structures</a>
+    </h3>
+<p>
+      Non-blocking data structures do not rely on locks and mutexes to ensure thread-safety.
+      The synchronization is done completely in user-space without any direct interaction
+      with the operating system <a href="#ftn.lockfree.introduction___motivation.f0" class="footnote" name="lockfree.introduction___motivation.f0"><sup class="footnote">[4]</sup></a>. This implies that they are not prone to issues like priority inversion
+      (a low-priority thread needs to wait for a high-priority thread).
+    </p>
+<p>
+      Instead of relying on guards, non-blocking data structures require <span class="bold"><strong>atomic operations</strong></span> (specific CPU instructions executed
+      without interruption). This means that any thread either sees the state before
+      or after the operation, but no intermediate state can be observed. Not all
+      hardware supports the same set of atomic instructions. If it is not available
+      in hardware, it can be emulated in software using guards. However this has
+      the obvious drawback of losing the lock-free property.
+    </p>
+<h3>
+<a name="lockfree.introduction___motivation.h2"></a>
+      <span class="phrase"><a name="lockfree.introduction___motivation.performance_of_non_blocking_data_structures"></a></span><a class="link" href="lockfree.html#lockfree.introduction___motivation.performance_of_non_blocking_data_structures">Performance
+      of Non-Blocking Data Structures</a>
+    </h3>
+<p>
+      When discussing the performance of non-blocking data structures, one has to
+      distinguish between <span class="bold"><strong>amortized</strong></span> and <span class="bold"><strong>worst-case</strong></span> costs. The definition of 'lock-free' and
+      'wait-free' only mention the upper bound of an operation. Therefore lock-free
+      data structures are not necessarily the best choice for every use case. In
+      order to maximise the throughput of an application one should consider high-performance
+      concurrent data structures <a href="#ftn.lockfree.introduction___motivation.f1" class="footnote" name="lockfree.introduction___motivation.f1"><sup class="footnote">[5]</sup></a>.
+    </p>
+<p>
+      Lock-free data structures will be a better choice in order to optimize the
+      latency of a system or to avoid priority inversion, which may be necessary
+      in real-time applications. In general we advise to consider if lock-free data
+      structures are necessary or if concurrent data structures are sufficient. In
+      any case we advice to perform benchmarks with different data structures for
+      a specific workload.
+    </p>
+<h3>
+<a name="lockfree.introduction___motivation.h3"></a>
+      <span class="phrase"><a name="lockfree.introduction___motivation.sources_of_blocking_behavior"></a></span><a class="link" href="lockfree.html#lockfree.introduction___motivation.sources_of_blocking_behavior">Sources
+      of Blocking Behavior</a>
+    </h3>
+<p>
+      Apart from locks and mutexes (which we are not using in <code class="literal">boost.lockfree</code>
+      anyway), there are three other aspects, that could violate lock-freedom:
+    </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Atomic Operations</span></dt>
+<dd><p>
+            Some architectures do not provide the necessary atomic operations in
+            natively in hardware. If this is not the case, they are emulated in software
+            using spinlocks, which by itself is blocking.
+          </p></dd>
+<dt><span class="term">Memory Allocations</span></dt>
+<dd><p>
+            Allocating memory from the operating system is not lock-free. This makes
+            it impossible to implement true dynamically-sized non-blocking data structures.
+            The node-based data structures of <code class="literal">boost.lockfree</code> use
+            a memory pool to allocate the internal nodes. If this memory pool is
+            exhausted, memory for new nodes has to be allocated from the operating
+            system. However all data structures of <code class="literal">boost.lockfree</code>
+            can be configured to avoid memory allocations (instead the specific calls
+            will fail). This is especially useful for real-time systems that require
+            lock-free memory allocations.
+          </p></dd>
+<dt><span class="term">Exception Handling</span></dt>
+<dd><p>
+            The C++ exception handling does not give any guarantees about its real-time
+            behavior. We therefore do not encourage the use of exceptions and exception
+            handling in lock-free code.
+          </p></dd>
+</dl>
+</div>
+<h3>
+<a name="lockfree.introduction___motivation.h4"></a>
+      <span class="phrase"><a name="lockfree.introduction___motivation.data_structures"></a></span><a class="link" href="lockfree.html#lockfree.introduction___motivation.data_structures">Data
+      Structures</a>
+    </h3>
+<p>
+      <code class="literal">boost.lockfree</code> implements three lock-free data structures:
+    </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput">boost::lockfree::queue</code></span></dt>
+<dd><p>
+            a lock-free multi-produced/multi-consumer queue
+          </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="boost/lockfree/stack.html" title="Class template stack">boost::lockfree::stack</a></code></span></dt>
+<dd><p>
+            a lock-free multi-produced/multi-consumer stack
+          </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="boost/lockfree/spsc_queue.html" title="Class template spsc_queue">boost::lockfree::spsc_queue</a></code></span></dt>
+<dd><p>
+            a wait-free single-producer/single-consumer queue (commonly known as
+            ringbuffer)
+          </p></dd>
+</dl>
+</div>
+<h4>
+<a name="lockfree.introduction___motivation.h5"></a>
+      <span class="phrase"><a name="lockfree.introduction___motivation.data_structure_configuration"></a></span><a class="link" href="lockfree.html#lockfree.introduction___motivation.data_structure_configuration">Data
+      Structure Configuration</a>
+    </h4>
+<p>
+      The data structures can be configured with <a href="../../libs/parameter/doc/html/index.html" target="_top">Boost.Parameter</a>-style
+      templates:
+    </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><a class="link" href="boost/lockfree/fixed_sized.html" title="Struct template fixed_sized">boost::lockfree::fixed_sized</a></code></span></dt>
+<dd><p>
+            Configures the data structure as <span class="bold"><strong>fixed sized</strong></span>.
+            The internal nodes are stored inside an array and they are addressed
+            by array indexing. This limits the possible size of the queue to the
+            number of elements that can be addressed by the index type (usually 2**16-2),
+            but on platforms that lack double-width compare-and-exchange instructions,
+            this is the best way to achieve lock-freedom.
+          </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="boost/lockfree/capacity.html" title="Struct template capacity">boost::lockfree::capacity</a></code></span></dt>
+<dd><p>
+            Sets the <span class="bold"><strong>capacity</strong></span> of a data structure
+            at compile-time. This implies that a data structure is fixed-sized.
+          </p></dd>
+<dt><span class="term"><code class="computeroutput"><a class="link" href="boost/lockfree/allocator.html" title="Struct template allocator">boost::lockfree::allocator</a></code></span></dt>
+<dd><p>
+            Defines the allocator. <code class="literal">boost.lockfree</code> supports stateful
+            allocator and is compatible with <a href="../../libs/interprocess/index.html" target="_top">Boost.Interprocess</a>
+            allocators.
+          </p></dd>
+</dl>
+</div>
+</div>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.lockfree.introduction___motivation.f0" class="footnote"><p><a href="#lockfree.introduction___motivation.f0" class="para"><sup class="para">[4] </sup></a>
+        Spinlocks do not directly interact with the operating system either. However
+        it is possible that the owning thread is preempted by the operating system,
+        which violates the lock-free property.
+      </p></div>
+<div id="ftn.lockfree.introduction___motivation.f1" class="footnote"><p><a href="#lockfree.introduction___motivation.f1" class="para"><sup class="para">[5] </sup></a>
+        <a href="http://threadingbuildingblocks.org/" target="_top">Intel's Thread Building
+        Blocks library</a> provides many efficient concurrent data structures,
+        which are not necessarily lock-free.
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:53:36 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_lexical_cast/performance.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lockfree/examples.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

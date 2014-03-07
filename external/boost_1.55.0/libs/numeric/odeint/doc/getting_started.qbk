@@ -1,0 +1,143 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+
+[section Getting started]
+
+[section Overview]
+
+[caution Boost.Numeric.Odeint is not an official boost library!]
+
+odeint is a library for solving  initial value problems (IVP) of ordinary
+differential equations. Mathematically, these problems are formulated as
+follows: 
+
+['x'(t) = f(x,t)], ['x(0) = x0].
+
+['x] and ['f] can be vectors and the solution is some function ['x(t)] fulfilling both equations above. In the following we will refer to ['x'(t)] also `dxdt` which is also our notation for the derivative in the source code.
+
+Ordinary differential equations occur nearly everywhere in natural sciences. For example, the whole Newtonian mechanics are described by second order differential equations. Be sure, you will find them in every discipline. They also occur if partial differential equations (PDEs) are discretized. Then, a system of coupled ordinary differential occurs, sometimes also referred as lattices ODEs.
+
+Numerical approximations for the solution ['x(t)] are calculated iteratively. The easiest algorithm is the Euler scheme, where starting at ['x(0)] one finds ['x(dt) = x(0) + dt f(x(0),0)]. Now one can use ['x(dt)] and obtain ['x(2dt)] in a similar way and so on. The Euler method is of order 1, that means the error at each step is ['~ dt[super 2]]. This is, of course, not very satisfying, which is why the Euler method is rarely used for real life problems and serves just as illustrative example. 
+
+The main focus of odeint is to provide numerical methods implemented in a way where the algorithm is completely independent on the data structure used to represent the state /x/.
+In doing so, odeint is applicable for a broad variety of situations and it can be used with many other libraries. Besides the usual case where the state is defined as a `std::vector` or a `boost::array`, we provide native support for the following libraries:
+
+* __ublas
+* __thrust, making odeint naturally running on CUDA devices
+* gsl_vector for compatibility with the many numerical function in the GSL
+* __boost_range
+* __boost_fusion (the state type can be a fusion vector)
+* __boost_units
+* __intel_mkl for maximum performance
+* __vexcl for OpenCL
+* __boost_graph (still experimentally)
+
+In odeint, the following algorithms are implemented:
+
+[include stepper_table.qbk]
+
+[endsect]
+
+
+
+[section Usage, Compilation, Headers]
+
+odeint is a header-only library, no linking against pre-compiled code is required. It can be included by
+
+``
+#include <boost/numeric/odeint.hpp>
+``
+
+which includes all headers of the library. All functions and classes from odeint live in the namespace
+
+``
+ using namespace boost::numeric::odeint;
+``
+
+It is also possible to include only parts of the library. This is the recommended way since it saves a lot of compilation time.
+
+* `#include <boost/numeric/odeint/stepper/XYZ.hpp>` - the include path for all steppers, XYZ is a placeholder for a stepper.
+* `#include <boost/numeric/odeint/algebra/XYZ.hpp>` - all algebras.
+* `#include <boost/numeric/odeint/util/XYZ.hpp>` - the utility functions like `is_resizeable`, `same_size`, or `resize`.
+* `#include <boost/numeric/odeint/integrate/XYZ.hpp>` - the integrate routines.
+* `#include <boost/numeric/odeint/iterator/XYZ.hpp>` - the range and iterator functions.
+* `#include <boost/numeric/odeint/external/XYZ.hpp>` - any binders to external libraries.
+
+
+
+[endsect]
+
+[section Short Example]
+
+Imaging, you want to numerically integrate a harmonic oscillator with
+friction. The equations of motion are given by ['x'' = -x + __gamma x']. 
+Odeint only deals with first order ODEs that have no higher derivatives than
+x' involved. However, any higher order ODE can be transformed to a system of
+first order ODEs by introducing the new variables ['q=x] and ['p=x'] such that ['w=(q,p)]. To apply numerical integration one first has to design the right hand side of the equation ['w' = f(w) = (p,-q+__gamma p)]:
+
+[import ../examples/harmonic_oscillator.cpp]
+[rhs_function]
+
+Here we chose `vector<double>` as the state type, but others are also
+possible, for example `boost::array<double,2>`. odeint is designed in such a
+way that you can easily use your own state types. Next, the ODE is defined
+which is in this case a simple function calculating ['f(x)]. The parameter
+signature of this function is crucial: the integration methods will always
+call them in the form `f(x, dxdt, t)` (there are exceptions for some special routines). So, even if there is no explicit time dependence, one has to define `t` as a function parameter.
+
+Now, we have to define the initial state from which the integration should start:
+
+[state_initialization]
+
+For the integration itself we'll use the `integrate` function, which is a  convenient way to get quick results. It is based on the error-controlled `runge_kutta54_cash_karp` stepper (5th order) and uses adaptive step-size.
+
+[integration]
+
+The integrate function expects as parameters the rhs of the ode as defined
+above, the initial state `x`, the start-and end-time of the integration as
+well as the initial time step=size. Note, that `integrate` uses an adaptive step-size during
+the integration steps so the time points will not be equally spaced. The
+integration returns the number of steps that were applied and updates x which
+is set to the approximate solution of the ODE at the end of integration.
+
+It is also possible to represent the ode system as a class. The
+rhs must then be implemented as a functor - a class with an overloaded function call operator:
+
+[rhs_class]
+
+which can be used via
+
+[integration_class]
+
+In order to observe the solution
+during the integration steps all you have to do is
+to provide a reasonable observer. An example is
+
+[integrate_observer]
+
+which stores the intermediate steps in a container. 
+Note, the argument structure of the ()-operator: odeint calls the observer
+exactly in this way, providing the current state and time. Now, you only have
+to pass this container to the integration function:
+
+[integrate_observ]
+
+That is all. You can use functional libraries like __boost_lambda or __boost_phoenix to ease the creation of observer functions.
+
+The full cpp file for this example can be found here: [github_link libs/numeric/odeint/examples/harmonic_oscillator.cpp harmonic_oscillator.cpp]
+
+
+
+[endsect]
+
+[endsect]

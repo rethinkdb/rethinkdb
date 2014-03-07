@@ -1,0 +1,585 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Root Finding Without Derivatives: Bisection, Bracket and TOMS748</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Math Toolkit">
+<link rel="up" href="../internals1.html" title="Utilities &amp; internals">
+<link rel="prev" href="roots.html" title="Root Finding With Derivatives: Newton-Raphson, Halley &amp; Schroeder">
+<link rel="next" href="minima.html" title="Locating Function Minima: Brent's algorithm">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="roots.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../internals1.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="minima.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="math_toolkit.internals1.roots2"></a><a class="link" href="roots2.html" title="Root Finding Without Derivatives: Bisection, Bracket and TOMS748">Root Finding Without
+      Derivatives: Bisection, Bracket and TOMS748</a>
+</h3></div></div></div>
+<h5>
+<a name="math_toolkit.internals1.roots2.h0"></a>
+        <span class="phrase"><a name="math_toolkit.internals1.roots2.synopsis"></a></span><a class="link" href="roots2.html#math_toolkit.internals1.roots2.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">tools</span><span class="special">/</span><span class="identifier">roots</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">math</span><span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">tools</span><span class="special">{</span>
+<span class="comment">// Bisection</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">bisect</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="identifier">T</span> <span class="identifier">min</span><span class="special">,</span>
+      <span class="identifier">T</span> <span class="identifier">max</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">bisect</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="identifier">T</span> <span class="identifier">min</span><span class="special">,</span>
+      <span class="identifier">T</span> <span class="identifier">max</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">bisect</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="identifier">T</span> <span class="identifier">min</span><span class="special">,</span>
+      <span class="identifier">T</span> <span class="identifier">max</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">,</span>
+      <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+     <span class="comment">// Bracket and Solve Root</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">bracket_and_solve_root</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">guess</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">factor</span><span class="special">,</span>
+      <span class="keyword">bool</span> <span class="identifier">rising</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">bracket_and_solve_root</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">guess</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">factor</span><span class="special">,</span>
+      <span class="keyword">bool</span> <span class="identifier">rising</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">,</span>
+      <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+ <span class="comment">// TOMS 748 algorithm</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">toms748_solve</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">toms748_solve</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">,</span>
+      <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">toms748_solve</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">fa</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">fb</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">toms748_solve</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">fa</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">fb</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">,</span>
+      <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="comment">// Termination conditions:</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">eps_tolerance</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">equal_floor</span><span class="special">;</span>
+<span class="keyword">struct</span> <span class="identifier">equal_ceil</span><span class="special">;</span>
+<span class="keyword">struct</span> <span class="identifier">equal_nearest_integer</span><span class="special">;</span>
+
+<span class="special">}}}</span> <span class="comment">// namespaces</span>
+</pre>
+<h5>
+<a name="math_toolkit.internals1.roots2.h1"></a>
+        <span class="phrase"><a name="math_toolkit.internals1.roots2.description"></a></span><a class="link" href="roots2.html#math_toolkit.internals1.roots2.description">Description</a>
+      </h5>
+<p>
+        These functions solve the root of some function <span class="emphasis"><em>f(x)</em></span>
+        <span class="emphasis"><em>without the need for any derivatives of <span class="emphasis"><em>f(x)</em></span></em></span>.
+      </p>
+<p>
+        The <code class="computeroutput"><span class="identifier">bracket_and_solve_root</span></code>
+        functions use TOMS Algorithm 748 that is asymptotically the most efficient
+        known, and have been shown to be optimal for a certain classes of smooth
+        functions. Variants with and without __policies are provided.
+      </p>
+<p>
+        Alternatively, there is a simple bisection routine which can be useful in
+        its own right in some situations, or alternatively for narrowing down the
+        range containing the root, prior to calling a more advanced algorithm.
+      </p>
+<p>
+        All the algorithms in this section reduce the diameter of the enclosing interval
+        with the same asymptotic efficiency with which they locate the root. This
+        is in contrast to the derivative based methods which may <span class="emphasis"><em>never</em></span>
+        significantly reduce the enclosing interval, even though they rapidly approach
+        the root. This is also in contrast to some other derivative-free methods
+        (for example the methods of <a href="http://en.wikipedia.org/wiki/Brent%27s_method" target="_top">Brent
+        or Dekker)</a> which only reduce the enclosing interval on the final
+        step. Therefore these methods return a std::pair containing the enclosing
+        interval found, and accept a function object specifying the termination condition.
+        Three function objects are provided for ready-made termination conditions:
+        <span class="emphasis"><em>eps_tolerance</em></span> causes termination when the relative error
+        in the enclosing interval is below a certain threshold, while <span class="emphasis"><em>equal_floor</em></span>
+        and <span class="emphasis"><em>equal_ceil</em></span> are useful for certain statistical applications
+        where the result is known to be an integer. Other user-defined termination
+        conditions are likely to be used only rarely, but may be useful in some specific
+        circumstances.
+      </p>
+<h4>
+<a name="math_toolkit.internals1.roots2.h2"></a>
+        <span class="phrase"><a name="math_toolkit.internals1.roots2.bisection"></a></span><a class="link" href="roots2.html#math_toolkit.internals1.roots2.bisection">Bisection</a>
+      </h4>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">bisect</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="identifier">T</span> <span class="identifier">min</span><span class="special">,</span>
+      <span class="identifier">T</span> <span class="identifier">max</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">bisect</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="identifier">T</span> <span class="identifier">min</span><span class="special">,</span>
+      <span class="identifier">T</span> <span class="identifier">max</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">bisect</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="identifier">T</span> <span class="identifier">min</span><span class="special">,</span>
+      <span class="identifier">T</span> <span class="identifier">max</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">,</span>
+      <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        These functions locate the root using bisection: function arguments are:
+      </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">f</span></dt>
+<dd><p>
+              A unary functor which is the function whose root is to be found.
+            </p></dd>
+<dt><span class="term">min</span></dt>
+<dd><p>
+              The left bracket of the interval known to contain the root.
+            </p></dd>
+<dt><span class="term">max</span></dt>
+<dd><p>
+              The right bracket of the interval known to contain the root. It is
+              a precondition that <span class="emphasis"><em>min &lt; max</em></span> and <span class="emphasis"><em>f(min)*f(max)
+              &lt;= 0</em></span>, the function signals evaluation error if these
+              preconditions are violated. The action taken is controlled by the evaluation
+              error policy. A best guess may be returned, perhaps significantly wrong.
+            </p></dd>
+<dt><span class="term">tol</span></dt>
+<dd><p>
+              A binary functor that specifies the termination condition: the function
+              will return the current brackets enclosing the root when <span class="emphasis"><em>tol(min,max)</em></span>
+              becomes true.
+            </p></dd>
+<dt><span class="term">max_iter</span></dt>
+<dd><p>
+              The maximum number of invocations of <span class="emphasis"><em>f(x)</em></span> to make
+              while searching for the root.
+            </p></dd>
+</dl>
+</div>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<p>
+        Returns: a pair of values <span class="emphasis"><em>r</em></span> that bracket the root so
+        that:
+      </p>
+<pre class="programlisting"><span class="identifier">f</span><span class="special">(</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">first</span><span class="special">)</span> <span class="special">*</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">second</span><span class="special">)</span> <span class="special">&lt;=</span> <span class="number">0</span>
+</pre>
+<p>
+        and either
+      </p>
+<pre class="programlisting"><span class="identifier">tol</span><span class="special">(</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">second</span><span class="special">)</span> <span class="special">==</span> <span class="keyword">true</span>
+</pre>
+<p>
+        or
+      </p>
+<pre class="programlisting"><span class="identifier">max_iter</span> <span class="special">&gt;=</span> <span class="identifier">m</span>
+</pre>
+<p>
+        where <span class="emphasis"><em>m</em></span> is the initial value of <span class="emphasis"><em>max_iter</em></span>
+        passed to the function.
+      </p>
+<p>
+        In other words, it's up to the caller to verify whether termination occurred
+        as a result of exceeding <span class="emphasis"><em>max_iter</em></span> function invocations
+        (easily done by checking the updated value of <span class="emphasis"><em>max_iter</em></span>
+        when the function returns), rather than because the termination condition
+        <span class="emphasis"><em>tol</em></span> was satisfied.
+      </p>
+<h4>
+<a name="math_toolkit.internals1.roots2.h3"></a>
+        <span class="phrase"><a name="math_toolkit.internals1.roots2.bracket_and_solve"></a></span><a class="link" href="roots2.html#math_toolkit.internals1.roots2.bracket_and_solve">Bracket
+        and solve</a>
+      </h4>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">bracket_and_solve_root</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">guess</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">factor</span><span class="special">,</span>
+      <span class="keyword">bool</span> <span class="identifier">rising</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">bracket_and_solve_root</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">guess</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">factor</span><span class="special">,</span>
+      <span class="keyword">bool</span> <span class="identifier">rising</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">,</span>
+      <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        This is a convenience function that calls <span class="emphasis"><em>toms748_solve</em></span>
+        internally to find the root of <span class="emphasis"><em>f(x)</em></span>. It's usable only
+        when <span class="emphasis"><em>f(x)</em></span> is a monotonic function, and the location
+        of the root is known approximately, and in particular it is known whether
+        the root is occurs for positive or negative <span class="emphasis"><em>x</em></span>. The parameters
+        are:
+      </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">f</span></dt>
+<dd><p>
+              A unary functor that is the function whose root is to be solved. f(x)
+              must be uniformly increasing or decreasing on <span class="emphasis"><em>x</em></span>.
+            </p></dd>
+<dt><span class="term">guess</span></dt>
+<dd><p>
+              An initial approximation to the root
+            </p></dd>
+<dt><span class="term">factor</span></dt>
+<dd><p>
+              A scaling factor that is used to bracket the root: the value <span class="emphasis"><em>guess</em></span>
+              is multiplied (or divided as appropriate) by <span class="emphasis"><em>factor</em></span>
+              until two values are found that bracket the root. A value such as 2
+              is a typical choice for <span class="emphasis"><em>factor</em></span>.
+            </p></dd>
+<dt><span class="term">rising</span></dt>
+<dd><p>
+              Set to <span class="emphasis"><em>true</em></span> if <span class="emphasis"><em>f(x)</em></span> is rising
+              on <span class="emphasis"><em>x</em></span> and <span class="emphasis"><em>false</em></span> if <span class="emphasis"><em>f(x)</em></span>
+              is falling on <span class="emphasis"><em>x</em></span>. This value is used along with
+              the result of <span class="emphasis"><em>f(guess)</em></span> to determine if <span class="emphasis"><em>guess</em></span>
+              is above or below the root.
+            </p></dd>
+<dt><span class="term">tol</span></dt>
+<dd><p>
+              A binary functor that determines the termination condition for the
+              search for the root. <span class="emphasis"><em>tol</em></span> is passed the current
+              brackets at each step, when it returns true then the current brackets
+              are returned as the result.
+            </p></dd>
+<dt><span class="term">max_iter</span></dt>
+<dd><p>
+              The maximum number of function invocations to perform in the search
+              for the root.
+            </p></dd>
+</dl>
+</div>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<p>
+        Returns: a pair of values <span class="emphasis"><em>r</em></span> that bracket the root so
+        that:
+      </p>
+<pre class="programlisting"><span class="identifier">f</span><span class="special">(</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">first</span><span class="special">)</span> <span class="special">*</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">second</span><span class="special">)</span> <span class="special">&lt;=</span> <span class="number">0</span>
+</pre>
+<p>
+        and either
+      </p>
+<pre class="programlisting"><span class="identifier">tol</span><span class="special">(</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">second</span><span class="special">)</span> <span class="special">==</span> <span class="keyword">true</span>
+</pre>
+<p>
+        or
+      </p>
+<pre class="programlisting"><span class="identifier">max_iter</span> <span class="special">&gt;=</span> <span class="identifier">m</span>
+</pre>
+<p>
+        where <span class="emphasis"><em>m</em></span> is the initial value of <span class="emphasis"><em>max_iter</em></span>
+        passed to the function.
+      </p>
+<p>
+        In other words, it's up to the caller to verify whether termination occurred
+        as a result of exceeding <span class="emphasis"><em>max_iter</em></span> function invocations
+        (easily done by checking the value of <span class="emphasis"><em>max_iter</em></span> when
+        the function returns), rather than because the termination condition <span class="emphasis"><em>tol</em></span>
+        was satisfied.
+      </p>
+<h4>
+<a name="math_toolkit.internals1.roots2.h4"></a>
+        <span class="phrase"><a name="math_toolkit.internals1.roots2.algorithm_toms_748_alefeld_potra"></a></span><a class="link" href="roots2.html#math_toolkit.internals1.roots2.algorithm_toms_748_alefeld_potra">Algorithm
+        TOMS 748: Alefeld, Potra and Shi: Enclosing zeros of continuous functions</a>
+      </h4>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">toms748_solve</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">toms748_solve</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">,</span>
+      <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">toms748_solve</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">fa</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">fb</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tol</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+   <span class="identifier">toms748_solve</span><span class="special">(</span>
+      <span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">fa</span><span class="special">,</span>
+      <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">fb</span><span class="special">,</span>
+      <span class="identifier">Tol</span> <span class="identifier">tol</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">,</span>
+      <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        These two functions implement TOMS Algorithm 748: it uses a mixture of cubic,
+        quadratic and linear (secant) interpolation to locate the root of <span class="emphasis"><em>f(x)</em></span>.
+        The two functions differ only by whether values for <span class="emphasis"><em>f(a)</em></span>
+        and <span class="emphasis"><em>f(b)</em></span> are already available. The toms748_solve parameters
+        are:
+      </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">f</span></dt>
+<dd><p>
+              A unary functor that is the function whose root is to be solved. f(x)
+              need not be uniformly increasing or decreasing on <span class="emphasis"><em>x</em></span>
+              and may have multiple roots.
+            </p></dd>
+<dt><span class="term">a</span></dt>
+<dd><p>
+              The lower bound for the initial bracket of the root.
+            </p></dd>
+<dt><span class="term">b</span></dt>
+<dd><p>
+              The upper bound for the initial bracket of the root. It is a precondition
+              that <span class="emphasis"><em>a &lt; b</em></span> and that <span class="emphasis"><em>a</em></span>
+              and <span class="emphasis"><em>b</em></span> bracket the root to find so that <span class="emphasis"><em>f(a)*f(b)
+              &lt; 0</em></span>.
+            </p></dd>
+<dt><span class="term">fa</span></dt>
+<dd><p>
+              Optional: the value of <span class="emphasis"><em>f(a)</em></span>.
+            </p></dd>
+<dt><span class="term">fb</span></dt>
+<dd><p>
+              Optional: the value of <span class="emphasis"><em>f(b)</em></span>.
+            </p></dd>
+<dt><span class="term">tol</span></dt>
+<dd><p>
+              A binary functor that determines the termination condition for the
+              search for the root. <span class="emphasis"><em>tol</em></span> is passed the current
+              brackets at each step, when it returns true, then the current brackets
+              are returned as the result.
+            </p></dd>
+<dt><span class="term">max_iter</span></dt>
+<dd><p>
+              The maximum number of function invocations to perform in the search
+              for the root. On exit <span class="emphasis"><em>max_iter</em></span> is set to actual
+              number of function invocations used.
+            </p></dd>
+</dl>
+</div>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<p>
+        toms748_solve returns: a pair of values <span class="emphasis"><em>r</em></span> that bracket
+        the root so that: f(r.first) * f(r.second) &lt;= 0 and either tol(r.first,
+        r.second) == true or max_iter &gt;= m where <span class="emphasis"><em>m</em></span> is the
+        initial value of <span class="emphasis"><em>max_iter</em></span> passed to the function.
+      </p>
+<p>
+        In other words, it's up to the caller to verify whether termination occurred
+        as a result of exceeding <span class="emphasis"><em>max_iter</em></span> function invocations
+        (easily done by checking the updated value of <span class="emphasis"><em>max_iter</em></span>
+        against its previous value passed as parameter), rather than because the
+        termination condition <span class="emphasis"><em>tol</em></span> was satisfied.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">eps_tolerance</span>
+<span class="special">{</span>
+   <span class="identifier">eps_tolerance</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">bits</span><span class="special">);</span>
+   <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        <code class="computeroutput"><span class="identifier">eps_tolerance</span></code> is the usual
+        termination condition used with these root finding functions. Its operator()
+        will return true when the relative distance between <span class="emphasis"><em>a</em></span>
+        and <span class="emphasis"><em>b</em></span> is less than twice the machine epsilon for T,
+        or 2<sup>1-bits</sup>, whichever is the larger. In other words, you set <span class="emphasis"><em>bits</em></span>
+        to the number of bits of precision you want in the result. The minimal tolerance
+        of twice the machine epsilon of T is required to ensure that we get back
+        a bracketing interval: since this must clearly be at least 1 epsilon in size.
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">equal_floor</span>
+<span class="special">{</span>
+   <span class="identifier">equal_floor</span><span class="special">();</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        This termination condition is used when you want to find an integer result
+        that is the <span class="emphasis"><em>floor</em></span> of the true root. It will terminate
+        as soon as both ends of the interval have the same <span class="emphasis"><em>floor</em></span>.
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">equal_ceil</span>
+<span class="special">{</span>
+   <span class="identifier">equal_ceil</span><span class="special">();</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        This termination condition is used when you want to find an integer result
+        that is the <span class="emphasis"><em>ceil</em></span> of the true root. It will terminate
+        as soon as both ends of the interval have the same <span class="emphasis"><em>ceil</em></span>.
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">equal_nearest_integer</span>
+<span class="special">{</span>
+   <span class="identifier">equal_nearest_integer</span><span class="special">();</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        This termination condition is used when you want to find an integer result
+        that is the <span class="emphasis"><em>closest</em></span> to the true root. It will terminate
+        as soon as both ends of the interval round to the same nearest integer.
+      </p>
+<h5>
+<a name="math_toolkit.internals1.roots2.h5"></a>
+        <span class="phrase"><a name="math_toolkit.internals1.roots2.implementation"></a></span><a class="link" href="roots2.html#math_toolkit.internals1.roots2.implementation">Implementation</a>
+      </h5>
+<p>
+        The implementation of the bisection algorithm is extremely straightforward
+        and not detailed here. <a href="http://portal.acm.org/citation.cfm?id=210111" target="_top">TOMS
+        Algorithm 748: enclosing zeros of continuous functions</a> is described
+        in detail in:
+      </p>
+<p>
+        <span class="emphasis"><em>Algorithm 748: Enclosing Zeros of Continuous Functions, G. E. Alefeld,
+        F. A. Potra and Yixun Shi, ACM Transactions on Mathematica1 Software, Vol.
+        21. No. 3. September 1995. Pages 327-344.</em></span>
+      </p>
+<p>
+        The implementation here is a faithful translation of this paper into C++.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="roots.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../internals1.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="minima.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

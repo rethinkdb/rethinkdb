@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Boost: Swap Documentation</title>
+   </head>
+  <body>
+    <!-- Page header -->
+    <h2>
+    <img src="../../boost.png" alt="C++ Boost" align="middle" width="277" height="86"/>
+      Header &lt;<a href="../../boost/swap.hpp">boost/swap.hpp</a>&gt;
+    </h2>
+
+    <h1>Swap</h1>
+    
+    <p>
+      <tt>template&lt;class T&gt; void swap(T&amp; <em>left</em>, T&amp; <em>right</em>);</tt>
+    </p>
+     
+    <!-- Introduction -->
+    <p>
+      The template function <tt>boost::swap</tt> allows the values of two variables to be swapped, using argument dependent lookup to select a specialized swap function if available. If no specialized swap function is available, <tt>std::swap</tt> is used.
+    </p>
+    
+    <!-- Rationale -->
+    <h2>Rationale</h2>
+    <p>
+      The generic <tt>std::swap</tt> function requires that the elements to be swapped are assignable and copy constructible. It is usually implemented using one copy construction and two assignments - this is often both unnecessarily restrictive and unnecessarily slow. In addition, where the generic swap implementation provides only the basic guarantee, specialized swap functions are often able to provide the no-throw exception guarantee (and it is considered best practice to do so where possible<sup><a href="#ref1">1</a></sup>).</p>
+    <p>
+      The alternative to using argument dependent lookup in this situation is to provide a template specialization of <tt>std::swap</tt> for every type that requires a specialized swap. Although this is legal C++, no Boost libraries use this method, whereas many Boost libraries provide specialized swap functions in their own namespaces.
+    </p>
+    <p>
+      <tt>boost::swap</tt> also supports swapping built-in arrays. Note that <tt>std::swap</tt> originally did not do so, but a request to add an overload of <tt>std::swap</tt> for built-in arrays has been accepted by the C++ Standards Committee<sup><a href="#ref2">2</a></sup>.
+    </p>
+    
+    <!-- Exception Safety -->
+    <h2>Exception Safety</h2>
+    <p>
+      <tt>boost::swap</tt> provides the same exception guarantee as the underlying swap function used, with one exception; for an array of type <tt>T[n]</tt>, where <tt>n > 1</tt> and the underlying swap function for <tt>T</tt> provides the strong exception guarantee, <tt>boost::swap</tt> provides only the basic exception guarantee.
+    </p>
+    
+    <!-- Requirements -->
+    <h2>Requirements</h2>
+    <p>Either:</p>
+    <ul>      
+      <li>T must be assignable</li>
+      <li>T must be copy constructible</li>
+    </ul>
+    <p>Or:</p>
+    <ul>
+      <li>A function with the signature <tt>swap(T&amp;,T&amp;)</tt> is available via argument dependent lookup</li>
+    </ul>
+    <p>Or:</p>
+    <ul>
+      <li>A template specialization of <tt>std::swap</tt> exists for T</li>
+    </ul>
+    <p>Or:</p>
+    <ul>
+      <li>T is a built-in array of swappable elements</li>
+    </ul>
+
+    
+    <!-- Portability -->
+    <h2>Portability</h2>
+    <p>
+      Several older compilers do not support argument dependent lookup &#x2012; on these compilers <tt>boost::swap</tt> will call <tt>std::swap</tt>, ignoring any specialized swap functions that could be found as a result of argument dependent lookup.
+    </p>
+    
+    <!-- Credits -->
+    <h2>Credits</h2>
+    <ul>
+      <li>
+        <em>Niels Dekker</em> - for implementing and documenting support for built-in arrays
+      </li>
+      <li>
+        <em><a href="mailto:Joseph.Gauterin@googlemail.com">Joseph Gauterin</a></em> - for the initial idea, implementation, tests, and documentation
+      </li>
+      <li>
+        <em>Steven Watanabe</em> - for the idea to make <tt>boost::swap</tt> less specialized than <tt>std::swap</tt>, thereby allowing the function to have the name 'swap' without introducing ambiguity
+      </li>      
+    </ul>
+
+    <!-- References -->
+    <hr/>
+    <p><sup><a id="ref1"/>[1]</sup>Scott Meyers, Effective C++ Third Edition, Item 25: "Consider support for a non-throwing swap"</p>
+    <p><sup><a id="ref2"/>[2]</sup><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-defects.html#809">LWG Defect Report 809 (std::swap should be overloaded for array types)</a></p>
+
+    <!-- Copyright info -->    
+    <hr/>
+    <p>Revised: 08 September 2009</p>
+    <p>
+      Copyright 2007 - 2009 Joseph Gauterin. Use, modification, and distribution are subject to the Boost Software License, Version 1.0.
+      (See accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or a copy at &lt;<a href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>&gt;.)
+    </p>
+    
+  </body>
+</html>

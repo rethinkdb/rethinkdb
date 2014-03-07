@@ -1,0 +1,131 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Rationale</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../lockfree.html" title="Chapter&#160;18.&#160;Boost.Lockfree">
+<link rel="prev" href="examples.html" title="Examples">
+<link rel="next" href="reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="examples.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lockfree.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="lockfree.rationale"></a><a class="link" href="rationale.html" title="Rationale">Rationale</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="rationale.html#lockfree.rationale.data_structures">Data Structures</a></span></dt>
+<dt><span class="section"><a href="rationale.html#lockfree.rationale.memory_management">Memory Management</a></span></dt>
+<dt><span class="section"><a href="rationale.html#lockfree.rationale.aba_prevention">ABA Prevention</a></span></dt>
+<dt><span class="section"><a href="rationale.html#lockfree.rationale.interprocess_support">Interprocess
+      Support</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lockfree.rationale.data_structures"></a><a class="link" href="rationale.html#lockfree.rationale.data_structures" title="Data Structures">Data Structures</a>
+</h3></div></div></div>
+<p>
+        The implementations are implementations of well-known data structures. The
+        queue is based on <a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.37.3574" target="_top">Simple,
+        Fast, and Practical Non-Blocking and Blocking Concurrent Queue Algorithms
+        by Michael Scott and Maged Michael</a>, the stack is based on <a href="http://books.google.com/books?id=YQg3HAAACAAJ" target="_top">Systems programming:
+        coping with parallelism by R. K. Treiber</a> and the spsc_queue is considered
+        as 'folklore' and is implemented in several open-source projects including
+        the linux kernel. All data structures are discussed in detail in <a href="http://books.google.com/books?id=pFSwuqtJgxYC" target="_top">"The
+        Art of Multiprocessor Programming" by Herlihy &amp; Shavit</a>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lockfree.rationale.memory_management"></a><a class="link" href="rationale.html#lockfree.rationale.memory_management" title="Memory Management">Memory Management</a>
+</h3></div></div></div>
+<p>
+        The lock-free <code class="computeroutput">boost::lockfree::queue</code>
+        and <code class="computeroutput"><a class="link" href="../boost/lockfree/stack.html" title="Class template stack">boost::lockfree::stack</a></code>
+        classes are node-based data structures, based on a linked list. Memory management
+        of lock-free data structures is a non-trivial problem, because we need to
+        avoid that one thread frees an internal node, while another thread still
+        uses it. <code class="literal">boost.lockfree</code> uses a simple approach not returning
+        any memory to the operating system. Instead they maintain a <span class="bold"><strong>free-list</strong></span>
+        in order to reuse them later. This is done for two reasons: first, depending
+        on the implementation of the memory allocator freeing the memory may block
+        (so the implementation would not be lock-free anymore), and second, most
+        memory reclamation algorithms are patented.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lockfree.rationale.aba_prevention"></a><a class="link" href="rationale.html#lockfree.rationale.aba_prevention" title="ABA Prevention">ABA Prevention</a>
+</h3></div></div></div>
+<p>
+        The ABA problem is a common problem when implementing lock-free data structures.
+        The problem occurs when updating an atomic variable using a <code class="literal">compare_exchange</code>
+        operation: if the value A was read, thread 1 changes it to say C and tries
+        to update the variable, it uses <code class="literal">compare_exchange</code> to write
+        C, only if the current value is A. This might be a problem if in the meanwhile
+        thread 2 changes the value from A to B and back to A, because thread 1 does
+        not observe the change of the state. The common way to avoid the ABA problem
+        is to associate a version counter with the value and change both atomically.
+      </p>
+<p>
+        <code class="literal">boost.lockfree</code> uses a <code class="literal">tagged_ptr</code> helper
+        class which associates a pointer with an integer tag. This usually requires
+        a double-width <code class="literal">compare_exchange</code>, which is not available
+        on all platforms. IA32 did not provide the <code class="literal">cmpxchg8b</code> opcode
+        before the pentium processor and it is also lacking on many RISC architectures
+        like PPC. Early X86-64 processors also did not provide a <code class="literal">cmpxchg16b</code>
+        instruction. On 64bit platforms one can work around this issue, because often
+        not the full 64bit address space is used. On X86_64 for example, only 48bit
+        are used for the address, so we can use the remaining 16bit for the ABA prevention
+        tag. For details please consult the implementation of the <code class="literal">boost::lockfree::detail::tagged_ptr</code>
+        class.
+      </p>
+<p>
+        For lock-free operations on 32bit platforms without double-width <code class="literal">compare_exchange</code>,
+        we support a third approach: by using a fixed-sized array to store the internal
+        nodes we can avoid the use of 32bit pointers, but instead 16bit indices into
+        the array are sufficient. However this is only possible for fixed-sized data
+        structures, that have an upper bound of internal nodes.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lockfree.rationale.interprocess_support"></a><a class="link" href="rationale.html#lockfree.rationale.interprocess_support" title="Interprocess Support">Interprocess
+      Support</a>
+</h3></div></div></div>
+<p>
+        The <code class="literal">boost.lockfree</code> data structures have basic support
+        for <a href="../../../libs/interprocess/index.html" target="_top">Boost.Interprocess</a>.
+        The only problem is the blocking emulation of lock-free atomics, which in
+        the current implementation is not guaranteed to be interprocess-safe.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008-2011 Tim
+      Blechmann<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="examples.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lockfree.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

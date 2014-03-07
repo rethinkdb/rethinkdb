@@ -1,0 +1,779 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>equals</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../algorithms.html" title="Algorithms">
+<link rel="prev" href="envelope/return_envelope.html" title="return_envelope">
+<link rel="next" href="expand.html" title="expand">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="envelope/return_envelope.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../algorithms.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="expand.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.algorithms.equals"></a><a class="link" href="equals.html" title="equals">equals</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp54816616"></a>
+Checks if a geometry are spatially equal.
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.equals.h0"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.equals.description"></a></span><a class="link" href="equals.html#geometry.reference.algorithms.equals.description">Description</a>
+        </h6>
+<p>
+          The free function equals checks if the first geometry is spatially equal
+          the second geometry. Spatially equal means that the same point set is included.
+          A box can therefore be spatially equal to a ring or a polygon, or a linestring
+          can be spatially equal to a multi-linestring or a segment. This only works
+          theoretically, not all combinations are implemented yet.
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.equals.h1"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.equals.synopsis"></a></span><a class="link" href="equals.html#geometry.reference.algorithms.equals.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Geometry2</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">equals</span><span class="special">(</span><span class="identifier">Geometry1</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry1</span><span class="special">,</span> <span class="identifier">Geometry2</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry2</span><span class="special">)</span></pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.equals.h2"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.equals.parameters"></a></span><a class="link" href="equals.html#geometry.reference.algorithms.equals.parameters">Parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Concept
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Geometry1 const &amp;
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Any type fulfilling a Geometry Concept
+                  </p>
+                </td>
+<td>
+                  <p>
+                    geometry1
+                  </p>
+                </td>
+<td>
+                  <p>
+                    A model of the specified concept
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Geometry2 const &amp;
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Any type fulfilling a Geometry Concept
+                  </p>
+                </td>
+<td>
+                  <p>
+                    geometry2
+                  </p>
+                </td>
+<td>
+                  <p>
+                    A model of the specified concept
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.equals.h3"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.equals.returns"></a></span><a class="link" href="equals.html#geometry.reference.algorithms.equals.returns">Returns</a>
+        </h6>
+<p>
+          Returns true if two geometries are spatially equal
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.equals.h4"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.equals.header"></a></span><a class="link" href="equals.html#geometry.reference.algorithms.equals.header">Header</a>
+        </h6>
+<p>
+          Either
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<p>
+          Or
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">equals</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.equals.h5"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.equals.conformance"></a></span><a class="link" href="equals.html#geometry.reference.algorithms.equals.conformance">Conformance</a>
+        </h6>
+<p>
+          The function equals implements function Equals from the <a href="http://www.opengeospatial.org/standards/sfa" target="_top">OGC
+          Simple Feature Specification</a>.
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.equals.h6"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.equals.supported_geometries"></a></span><a class="link" href="equals.html#geometry.reference.algorithms.equals.supported_geometries">Supported
+          geometries</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                </th>
+<th>
+                  <p>
+                    Point
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Segment
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Box
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Linestring
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Ring
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Polygon
+                  </p>
+                </th>
+<th>
+                  <p>
+                    MultiPoint
+                  </p>
+                </th>
+<th>
+                  <p>
+                    MultiLinestring
+                  </p>
+                </th>
+<th>
+                  <p>
+                    MultiPolygon
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Point
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Segment
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Box
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Linestring
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Ring
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Polygon
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    MultiPoint
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    MultiLinestring
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    MultiPolygon
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/nyi.png" alt="nyi"></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.equals.h7"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.equals.complexity"></a></span><a class="link" href="equals.html#geometry.reference.algorithms.equals.complexity">Complexity</a>
+        </h6>
+<p>
+          Linear
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.equals.h8"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.equals.example"></a></span><a class="link" href="equals.html#geometry.reference.algorithms.equals.example">Example</a>
+        </h6>
+<p>
+          Shows the predicate equals, which returns true if two geometries are spatially
+          equal
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">polygon</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">boost_tuple</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_GEOMETRY_REGISTER_BOOST_TUPLE_CS</span><span class="special">(</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">)</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">assign</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">assign</span><span class="special">::</span><span class="identifier">tuple_list_of</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">point</span><span class="special">;</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">polygon</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">&gt;</span> <span class="identifier">poly1</span><span class="special">,</span> <span class="identifier">poly2</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">exterior_ring</span><span class="special">(</span><span class="identifier">poly1</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">tuple_list_of</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">)(</span><span class="number">0</span><span class="special">,</span> <span class="number">5</span><span class="special">)(</span><span class="number">5</span><span class="special">,</span> <span class="number">5</span><span class="special">)(</span><span class="number">5</span><span class="special">,</span> <span class="number">0</span><span class="special">)(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">exterior_ring</span><span class="special">(</span><span class="identifier">poly2</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">tuple_list_of</span><span class="special">(</span><span class="number">5</span><span class="special">,</span> <span class="number">0</span><span class="special">)(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">)(</span><span class="number">0</span><span class="special">,</span> <span class="number">5</span><span class="special">)(</span><span class="number">5</span><span class="special">,</span> <span class="number">5</span><span class="special">)(</span><span class="number">5</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+        <span class="special">&lt;&lt;</span> <span class="string">"polygons are spatially "</span>
+        <span class="special">&lt;&lt;</span> <span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">equals</span><span class="special">(</span><span class="identifier">poly1</span><span class="special">,</span> <span class="identifier">poly2</span><span class="special">)</span> <span class="special">?</span> <span class="string">"equal"</span> <span class="special">:</span> <span class="string">"not equal"</span><span class="special">)</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">box</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">&gt;</span> <span class="identifier">box</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">assign_values</span><span class="special">(</span><span class="identifier">box</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">5</span><span class="special">,</span> <span class="number">5</span><span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+        <span class="special">&lt;&lt;</span> <span class="string">"polygon and box are spatially "</span>
+        <span class="special">&lt;&lt;</span> <span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">equals</span><span class="special">(</span><span class="identifier">box</span><span class="special">,</span> <span class="identifier">poly2</span><span class="special">)</span> <span class="special">?</span> <span class="string">"equal"</span> <span class="special">:</span> <span class="string">"not equal"</span><span class="special">)</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Output:
+        </p>
+<pre class="programlisting">polygons are spatially equal
+polygon and box are spatially equal
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="envelope/return_envelope.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../algorithms.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="expand.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

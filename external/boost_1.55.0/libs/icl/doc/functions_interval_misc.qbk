@@ -1,0 +1,48 @@
+[/
+    Copyright (c) 2008-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Miscellaneous Interval Functions ===================================================================]
+[section Miscellaneous Interval Functions]
+
+
+[table
+[[T]                                       [__ch_dsc_itv__] [__ch_cnt_itv__] [__ch_ro_itv__] [__ch_lo_itv__]  [__ch_cl_itv__] [__ch_op_itv__]      ]
+[[Interval bounds]                                     [dynamic]  [dynamic]    [static]     [static]     [static]    [static]    ]
+[[Form]                                                [ ]        [ ]          [asymmetric] [asymmetric] [symmetric] [symmetric] ]
+
+[[['*Miscellaneous*]]                                  [ ]        [ ]          [ ]          [ ]          [ ]         [ ]         ]
+[[`bool touches(const T&, const T&)`]                  [1]        [1]          [1]          [1]          [1]         [1]         ]
+[[`T inner_complement(const T&, const T&)`]            [1]        [1]          [1]          [1]          [1]         [1]         ]
+[[`difference_type distance(const T&, const T&)`]      [1]        [1]          [1]          [1]          [1]         [1]         ]
+
+]
+
+
+[table
+
+[[['*Miscellaneous Interval Functions*]]               [Description]         ]
+[[`bool touches(const T&, const T&)`]                  [`touches(x,y)` Between the disjoint intervals `x` and `y` are no elements. ] ]
+[[`T inner_complement(const T&, const T&)`]            [`z = inner_complement(x,y)` `z` is the interval between `x` and `y`] ]
+[[`difference_type distance(const T&, const T&)`]      [`d = distance(x,y)` If the domain type of the interval has a difference_type, 
+                                                         `d` is the distance between `x` and `y`.]         ]
+
+]
+
+
+['*Back to section . . .*]
+[table
+[]
+[[[link additional_interval_functions ['*Additional interval functions*]] ]]
+[[[link function_synopsis_table ['*Function Synopsis*]]          ]]
+[[[link boost_icl.interface ['*Interface*]]                      ]]
+]
+
+[endsect][/ Miscellaneous Interval Functions]
+
+

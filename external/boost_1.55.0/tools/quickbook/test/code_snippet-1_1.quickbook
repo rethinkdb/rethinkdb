@@ -1,0 +1,12 @@
+[article Code Snippets
+]
+
+[section A code snippet]
+
+Code snippets inlined in text, as in `namespace quickbook { static const int
+value = 0; }`, should be properly formatted and not glued to the surrounding
+text.
+
+There shoud be no spacees around (`this`), and spaces around `this` code.
+
+[endsect]

@@ -1,0 +1,12 @@
+#~ Copyright 2005 Rene Rivera.
+#~ Distributed under the Boost Software License, Version 1.0.
+#~ (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# Automatic configuration for VisualStudio toolset. To use, just import this module.
+
+import toolset : using ;
+
+ECHO "warning: msvc-config.jam is deprecated. Use 'using msvc : all ;' instead." ;
+
+using msvc : all ;
+

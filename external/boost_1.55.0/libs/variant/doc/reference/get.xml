@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/variant/get.hpp">
+  <namespace name="boost">
+
+    <class name="bad_get">
+      <inherit access="public">
+        <classname>std::exception</classname>
+      </inherit>
+
+      <purpose>
+        <simpara>The exception thrown in	the	event	of a failed application of
+        <code><functionname>boost::get</functionname></code> on	the given
+        operand value.</simpara>
+      </purpose>
+
+      <method	name="what"	specifiers="virtual" cv="const">
+        <type>const	char *</type>
+      </method>
+    </class>
+
+    <overloaded-function name="get">
+      <signature>
+        <template>
+          <template-type-parameter name="U"/>
+          <template-type-parameter name="T1"/>
+          <template-type-parameter name="T2"/>
+          <template-varargs/>
+          <template-type-parameter name="TN"/>
+        </template>
+
+        <type>U *</type>
+
+        <parameter name="operand">
+          <paramtype><classname>variant</classname>&lt;T1, T2, ..., TN&gt; *</paramtype>
+        </parameter>
+      </signature>
+
+      <signature>
+        <template>
+          <template-type-parameter name="U"/>
+          <template-type-parameter name="T1"/>
+          <template-type-parameter name="T2"/>
+          <template-varargs/>
+          <template-type-parameter name="TN"/>
+        </template>
+
+        <type>const U *</type>
+
+        <parameter name="operand">
+          <paramtype>const <classname>variant</classname>&lt;T1, T2, ..., TN&gt; *</paramtype>
+        </parameter>
+      </signature>
+      
+      <signature>
+        <template>
+          <template-type-parameter name="U"/>
+          <template-type-parameter name="T1"/>
+          <template-type-parameter name="T2"/>
+          <template-varargs/>
+          <template-type-parameter name="TN"/>
+        </template>
+
+        <type>U &amp;</type>
+
+        <parameter name="operand">
+          <paramtype><classname>variant</classname>&lt;T1, T2, ..., TN&gt; &amp;</paramtype>
+        </parameter>
+      </signature>
+
+      <signature>
+        <template>
+          <template-type-parameter name="U"/>
+          <template-type-parameter name="T1"/>
+          <template-type-parameter name="T2"/>
+          <template-varargs/>
+          <template-type-parameter name="TN"/>
+        </template>
+
+        <type>const U &amp;</type>
+
+        <parameter name="operand">
+          <paramtype>const <classname>variant</classname>&lt;T1, T2, ..., TN&gt; &amp;</paramtype>
+        </parameter>
+      </signature>
+
+      <purpose>
+        <simpara>Retrieves a value of a specified type from a given
+          <code><classname>variant</classname></code>.</simpara>
+      </purpose>
+
+      <description>
+        <simpara>The <code>get</code> function allows run-time checked,
+          type-safe retrieval of the content of the given
+          <code><classname>variant</classname></code>. The function succeeds
+          only if the content is of the specified type <code>U</code>, with
+          failure indicated as described below.</simpara>
+        <simpara><emphasis role="bold">Warning</emphasis>: After either
+          <code>operand</code> or its content is destroyed (e.g., when the
+          given <code><classname>variant</classname></code> is assigned a
+          value of different type), the returned reference is invalidated.
+          Thus, significant care and caution must be extended when handling
+          the returned reference.</simpara>
+      </description>
+
+      <notes>
+        <simpara>As part of its guarantee of type-safety, <code>get</code>
+        enforces <code>const</code>-correctness. Thus, the specified type
+        <code>U</code> must be <code>const</code>-qualified whenever
+        <code>operand</code> or its content is likewise
+        <code>const</code>-qualified. The converse, however, is not required:
+        that is, the specified type <code>U</code> may be
+        <code>const</code>-qualified even when <code>operand</code> and its
+        content are not.</simpara>
+      </notes>
+
+      <returns>
+        <simpara>If passed a pointer, <code>get</code> returns a pointer to
+        the value content if it is of the specified type <code>U</code>;
+        otherwise, a null pointer is returned. If passed a reference,
+        <code>get</code> returns a reference to the value content if it is of
+        the specified type <code>U</code>; otherwise, an exception is thrown
+        (see below).</simpara>
+      </returns>
+
+      <throws>
+        <simpara>Overloads taking a
+        <code><classname>variant</classname></code> pointer will not
+        throw; the overloads taking a
+        <code><classname>variant</classname></code> reference throw
+        <code><classname>bad_get</classname></code> if the content is not of
+        the specified type <code>U</code>.</simpara>
+      </throws>
+
+      <rationale>
+        <simpara>While visitation via
+        <code><functionname>apply_visitor</functionname></code>
+        is generally preferred due to its greater safety, <code>get</code> may
+        may be more convenient in some cases due to its straightforward
+        usage.</simpara>
+      </rationale>
+    </overloaded-function>
+
+  </namespace>
+</header>

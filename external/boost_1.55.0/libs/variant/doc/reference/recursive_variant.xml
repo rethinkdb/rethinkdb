@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/variant/recursive_variant.hpp">
+  <namespace name="boost">
+
+    <typedef name="recursive_variant_">
+      <type><emphasis>unspecified</emphasis></type>
+    </typedef>
+
+    <class name="make_recursive_variant">
+      <purpose>Simplifies declaration of recursive <code>variant</code> types.</purpose>
+
+      <template>
+        <template-type-parameter name="T1"/>
+        <template-type-parameter name="T2">
+          <default><emphasis>unspecified</emphasis></default>
+        </template-type-parameter>
+        <template-varargs/>
+        <template-type-parameter name="TN">
+          <default><emphasis>unspecified</emphasis></default>
+        </template-type-parameter>
+      </template>
+
+      <description>
+        <para><code>type</code> has behavior equivalent in every respect to
+          some <code>variant&lt; U1, U2, ..., UN &gt;</code>, where each type
+          <code>U<emphasis>i</emphasis></code> is the result of the
+          corresponding type <code>T<emphasis>i</emphasis></code> undergone a
+          transformation function. The following pseudo-code specifies the
+          behavior of this transformation (call it <code>substitute</code>):
+
+          <itemizedlist>
+            <listitem>If <code>T<emphasis>i</emphasis></code> is
+              <code>boost::recursive_variant_</code> then:
+              <code>variant&lt; U1, U2, ..., UN &gt;</code>;</listitem>
+            <listitem>Else if <code>T<emphasis>i</emphasis></code> is of the
+              form <code>X *</code> then:
+              <code>substitute(X) *</code>;</listitem>
+            <listitem>Else if <code>T<emphasis>i</emphasis></code> is of the
+              form <code>X &amp;</code> then:
+              <code>substitute(X) &amp;</code>;</listitem>
+            <listitem>Else if <code>T<emphasis>i</emphasis></code> is of the
+              form <code>R (*)( X1, X2, ..., XN )</code> then:
+              <code>substitute(R) (*)( substitute(X1), substitute(X2), ..., substitute(XN) )</code>;</listitem>
+            <listitem>Else if <code>T<emphasis>i</emphasis></code> is of the
+              form <code>F &lt; X1, X2, ..., XN &gt;</code> then:
+              <code>F&lt; substitute(X1), substitute(X2), ..., substitute(XN) &gt;</code>;</listitem>
+            <listitem>Else: <code>T<emphasis>i</emphasis></code>.</listitem>
+          </itemizedlist>
+        </para>
+
+        <para>Note that cv-qualifiers are preserved and that the actual
+          process is generally a bit more complicated. However, the above does
+          convey the essential idea as well as describe the extent of the
+          substititions.</para>
+
+        <para>Use of <code>make_recursive_variant</code> is demonstrated in
+          <xref linkend="variant.tutorial.recursive.recursive-variant"/>.</para>
+
+        <para><emphasis role="bold">Portability</emphasis>: Due to standard
+          conformance issues in several compilers,
+          <code>make_recursive_variant</code> is not universally supported. On
+          these compilers the library indicates its lack of support via the
+          definition of the preprocessor symbol
+          <code><macroname>BOOST_VARIANT_NO_FULL_RECURSIVE_VARIANT_SUPPORT</macroname></code>.</para>
+      </description>
+
+      <typedef name="type">
+        <type><classname>boost::variant</classname>&lt; <emphasis>unspecified</emphasis> &gt;</type>
+      </typedef>
+
+    </class>
+    
+    <class name="make_recursive_variant_over">
+      <purpose>
+        <simpara>Exposes a recursive <code>variant</code> whose bounded types
+          are the elements of the given type sequence.</simpara>
+      </purpose>
+
+      <template>
+        <template-type-parameter name="Sequence"/>
+      </template>
+
+      <typedef name="type">
+        <type>variant&lt; <emphasis>unspecified</emphasis> &gt;</type>
+      </typedef>
+
+      <description>
+        <simpara><code>type</code> has behavior equivalent in every respect to
+          <code><classname>make_recursive_variant</classname>&lt; Sequence[0], Sequence[1], ... &gt;::type</code>
+          (where <code>Sequence[<emphasis>i</emphasis>]</code> denotes the
+          <emphasis>i</emphasis>-th element of <code>Sequence</code>), except
+          that no upper limit is imposed on the number of types.</simpara>
+
+        <simpara><emphasis role="bold">Notes</emphasis>:</simpara>
+        <itemizedlist>
+          <listitem><code>Sequence</code> must meet the requirements of
+            <libraryname>MPL</libraryname>'s <emphasis>Sequence</emphasis>
+            concept.</listitem>
+          <listitem>Due to standard conformance problems in several compilers,
+            <code>make_recursive_variant_over</code> may not be supported on
+            your compiler. See
+            <code><macroname>BOOST_VARIANT_NO_TYPE_SEQUENCE_SUPPORT</macroname></code>
+            for more information.</listitem>
+        </itemizedlist>
+      </description>
+    </class>
+
+  </namespace>
+</header>

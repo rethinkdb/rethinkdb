@@ -1,0 +1,160 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Concept Definitions</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_typeerasure.html" title="Chapter&#160;34.&#160;Boost.TypeErasure">
+<link rel="prev" href="examples.html" title="Examples">
+<link rel="next" href="predef.html" title="Predefined Concepts">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="examples.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_typeerasure.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="predef.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_typeerasure.conceptdef"></a><a class="link" href="conceptdef.html" title="Concept Definitions">Concept Definitions</a>
+</h2></div></div></div>
+<p>
+      A Concept defines a set of constraints on the types that are stored in an
+      <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code>.
+    </p>
+<p>
+      There are three kinds of concepts.
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          The library defines a number of <a class="link" href="predef.html" title="Predefined Concepts">predefined
+          concepts</a>. Most of these are equivalent to user-defined concepts,
+          but a few require special handling.
+        </li>
+<li class="listitem">
+          Users can define their own primitive concepts as described below. The macros
+          <code class="computeroutput"><a class="link" href="../BOOST_TYPE_ERASURE_MEMBER.html" title="Macro BOOST_TYPE_ERASURE_MEMBER">BOOST_TYPE_ERASURE_MEMBER</a></code>
+          and <code class="computeroutput"><a class="link" href="../BOOST_TYPE_ERASURE_FREE.html" title="Macro BOOST_TYPE_ERASURE_FREE">BOOST_TYPE_ERASURE_FREE</a></code>
+          define concepts of this form.
+        </li>
+<li class="listitem">
+          Any MPL Forward Sequence whose elements are concepts is also a concept.
+          This allows concepts to be composed easily.
+        </li>
+</ol></div>
+<p>
+      Each primitive concept defines a single function. A primitive concept must
+      be a specialization of a class template, with a static member function called
+      <code class="computeroutput"><span class="identifier">apply</span></code>, which will be executed
+      when the function is dispatched by <code class="computeroutput"><a class="link" href="../boost/type_erasure/call_idp93789880.html" title="Function call">call</a></code>.
+      The template can only take template type parameters. non-type template parameters
+      and template template parameters are not allowed.
+    </p>
+<p>
+      The template parameters of the concept may involve placeholders. The following
+      are considered.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Each template argument may be a cv and/or reference qualified placeholder
+          type.
+        </li>
+<li class="listitem">
+          If a template argument is a function type, its arguments and return type
+          may be cv/reference qualified placeholders.
+        </li>
+</ul></div>
+<p>
+      Any other placeholders are ignored.
+    </p>
+<p>
+      A concept is instantiated by constructing an <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code>
+      from a raw value or by constructing a <code class="computeroutput"><a class="link" href="../boost/type_erasure/binding.html" title="Class template binding">binding</a></code>.
+      When a concept is instantiated with a specific set of type bindings, each placeholder
+      is bound to a cv-unqualified non-reference type. After replacing each placeholder
+      in the template argument list with the type that it binds to, the following
+      must hold.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          The number of arguments of apply in the bound concept must be the same
+          as the number of arguments in the unbound concept.
+        </li>
+<li class="listitem">
+          The arguments and return type of apply in the bound concept can be derived
+          from the corresponding arguments and the return type in the unbound concept
+          as follows: If the argument in the unbound concept is a placeholder with
+          optional cv and reference qualifiers, then the argument in the bound concept
+          can be found by replacing the placeholder. Otherwise, the argument in the
+          unbound concept must be the same as the argument in the bound concept.
+        </li>
+</ul></div>
+<pre class="programlisting"><span class="comment">// Correct.</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span> <span class="special">=</span> <span class="identifier">_self</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">foo1</span> <span class="special">{</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">apply</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">t</span><span class="special">)</span> <span class="special">{</span> <span class="identifier">t</span><span class="special">.</span><span class="identifier">foo</span><span class="special">();</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">// Wrong.  The signature of apply is different from the</span>
+<span class="comment">// primary template</span>
+<span class="keyword">template</span><span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">foo1</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">{</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">apply</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">);</span>
+<span class="special">};</span>
+
+<span class="comment">// Wrong.  A concept must be a template</span>
+<span class="keyword">struct</span> <span class="identifier">foo2</span> <span class="special">{</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">apply</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">_self</span><span class="special">&amp;);</span>
+<span class="special">};</span>
+
+<span class="comment">// Wrong. apply must be static</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span> <span class="special">=</span> <span class="identifier">_self</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">foo3</span> <span class="special">{</span>
+  <span class="keyword">void</span> <span class="identifier">apply</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;);</span>
+<span class="special">};</span>
+
+<span class="comment">// Wrong.  apply cannot be overloaded</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span> <span class="special">=</span> <span class="identifier">_self</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">foo3</span> <span class="special">{</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">apply</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;);</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">apply</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;);</span>
+<span class="special">};</span>
+
+<span class="comment">// Wrong.  Only top level placeholders are detected</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">foo4</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">foo4</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">{</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">apply</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;);</span>
+<span class="special">};</span>
+
+<span class="comment">// Wrong.  Template template parameters are not allowed.</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">foo5</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">apply</span><span class="special">(</span><span class="identifier">T</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;&amp;);</span>
+<span class="special">};</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="examples.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_typeerasure.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="predef.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

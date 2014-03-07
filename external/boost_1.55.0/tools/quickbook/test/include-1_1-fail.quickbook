@@ -1,0 +1,8 @@
+[article Expect xinclude Fail
+]
+
+[section Failure]
+
+[include this-is-not-a-file.qbk]
+
+[endsect]

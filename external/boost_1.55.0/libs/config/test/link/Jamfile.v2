@@ -1,0 +1,19 @@
+# copyright John Maddock 2003
+# Use, modification and distribution are subject to the 
+# Boost Software License, Version 1.0. (See accompanying file 
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+lib link_test : link_test.cpp 
+    : <link>shared <runtime-link>shared 
+      # This is needed to make the test work, I'm unsure if this
+      # should be set globally.
+      <define>BOOST_DYN_LINK=1
+      # Override <threading>multi inherited from parent.
+      <threading>single
+    : 
+        debug release
+    ;
+
+run main.cpp link_test : : : <define>BOOST_DYN_LINK=1 <define>BOOST_CONFIG_NO_LIB <link>shared <runtime-link>shared <threading>single : link_test_test ;
+
+

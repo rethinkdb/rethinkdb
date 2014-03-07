@@ -1,0 +1,9 @@
+out_edges(0): (0,1) (0,2)
+in_edges(0): (1,0) (2,0)
+in a directed graph is (u,v) == (v,u) ? 0
+weight[(u,v)] = 1.2
+weight[(v,u)] = 2.4
+in an undirected graph is (u,v) == (v,u) ? 1
+weight[(u,v)] = 3.1
+weight[(v,u)] = 3.1
+the edges incident to v: (0,1)

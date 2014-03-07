@@ -1,0 +1,264 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>assign_points</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../assign.html" title="assign">
+<link rel="prev" href="assign_inverse.html" title="assign_inverse">
+<link rel="next" href="assign_values_3_2_coordinate_values.html" title="assign_values (2 coordinate values)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="assign_inverse.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../assign.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="assign_values_3_2_coordinate_values.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.algorithms.assign.assign_points"></a><a class="link" href="assign_points.html" title="assign_points">assign_points</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp52245832"></a>
+Assign a range of points to a linestring, ring or polygon.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.assign.assign_points.h0"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.assign.assign_points.synopsis"></a></span><a class="link" href="assign_points.html#geometry.reference.algorithms.assign.assign_points.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Range</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">assign_points</span><span class="special">(</span><span class="identifier">Geometry</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">,</span> <span class="identifier">Range</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">range</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.assign.assign_points.h1"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.assign.assign_points.parameters"></a></span><a class="link" href="assign_points.html#geometry.reference.algorithms.assign.assign_points.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Concept
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Geometry &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Geometry Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Range const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Range Concept where it range_value type
+                      fulfills the Point Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      range
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A range containg points fulfilling range and point concepts
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.assign.assign_points.h2"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.assign.assign_points.header"></a></span><a class="link" href="assign_points.html#geometry.reference.algorithms.assign.assign_points.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">assign</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.assign.assign_points.h3"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.assign.assign_points.notes"></a></span><a class="link" href="assign_points.html#geometry.reference.algorithms.assign.assign_points.notes">Notes</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              Assign automatically clears the geometry before assigning (use append
+              if you don't want that)
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.assign.assign_points.h4"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.assign.assign_points.example"></a></span><a class="link" href="assign_points.html#geometry.reference.algorithms.assign.assign_points.example">Example</a>
+          </h6>
+<p>
+            Shows usage of Boost.Geometry's assign, Boost.Assign, and Boost.Range
+            to assign ranges of a linestring
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">linestring</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">boost_tuple</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">assign</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">boost_range</span><span class="special">/</span><span class="identifier">filtered</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_GEOMETRY_REGISTER_BOOST_TUPLE_CS</span><span class="special">(</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">)</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">x_between</span>
+<span class="special">{</span>
+    <span class="identifier">x_between</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T</span> <span class="identifier">b</span><span class="special">)</span>
+        <span class="special">:</span> <span class="identifier">fa</span><span class="special">(</span><span class="identifier">a</span><span class="special">),</span> <span class="identifier">fb</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span>
+    <span class="special">{}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P</span><span class="special">&gt;</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">P</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">p</span><span class="special">)</span> <span class="special">&gt;=</span> <span class="identifier">fa</span>
+            <span class="special">&amp;&amp;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">p</span><span class="special">)</span> <span class="special">&lt;=</span> <span class="identifier">fb</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="keyword">private</span> <span class="special">:</span>
+    <span class="identifier">T</span> <span class="identifier">fa</span><span class="special">,</span> <span class="identifier">fb</span><span class="special">;</span>
+<span class="special">};</span>
+
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">assign</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">linestring</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">ls</span><span class="special">;</span>
+
+    <span class="identifier">ls</span> <span class="identifier">line1</span><span class="special">,</span> <span class="identifier">line2</span><span class="special">,</span> <span class="identifier">line3</span><span class="special">;</span>
+
+    <span class="identifier">line1</span> <span class="special">=</span> <span class="identifier">tuple_list_of</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">)(</span><span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">)(</span><span class="number">4</span><span class="special">,</span> <span class="number">0</span><span class="special">)(</span><span class="number">6</span><span class="special">,</span> <span class="number">3</span><span class="special">)(</span><span class="number">8</span><span class="special">,</span> <span class="number">0</span><span class="special">)(</span><span class="number">10</span><span class="special">,</span> <span class="number">3</span><span class="special">)(</span><span class="number">12</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span> <a class="co" name="geometry.reference.algorithms.assign.assign_points.c0" href="assign_points.html#geometry.reference.algorithms.assign.assign_points.c1"><img src="../../../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">assign_points</span><span class="special">(</span><span class="identifier">line2</span><span class="special">,</span> <span class="identifier">tuple_list_of</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">)(</span><span class="number">2</span><span class="special">,</span> <span class="number">2</span><span class="special">)(</span><span class="number">4</span><span class="special">,</span> <span class="number">0</span><span class="special">)(</span><span class="number">6</span><span class="special">,</span> <span class="number">2</span><span class="special">)(</span><span class="number">8</span><span class="special">,</span> <span class="number">0</span><span class="special">));</span> <a class="co" name="geometry.reference.algorithms.assign.assign_points.c2" href="assign_points.html#geometry.reference.algorithms.assign.assign_points.c3"><img src="../../../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">assign_points</span><span class="special">(</span><span class="identifier">line3</span><span class="special">,</span> <span class="identifier">line1</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">filtered</span><span class="special">(</span><span class="identifier">x_between</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="number">4</span><span class="special">,</span> <span class="number">8</span><span class="special">)));</span> <a class="co" name="geometry.reference.algorithms.assign.assign_points.c4" href="assign_points.html#geometry.reference.algorithms.assign.assign_points.c5"><img src="../../../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"line 1: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">dsv</span><span class="special">(</span><span class="identifier">line1</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"line 2: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">dsv</span><span class="special">(</span><span class="identifier">line2</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"line 3: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">dsv</span><span class="special">(</span><span class="identifier">line3</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="geometry.reference.algorithms.assign.assign_points.c1"></a><a href="#geometry.reference.algorithms.assign.assign_points.c0"><img src="../../../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+                tuple_list_of is part of Boost.Assign and can be used for Boost.Geometry
+                if points are tuples
+              </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="geometry.reference.algorithms.assign.assign_points.c3"></a><a href="#geometry.reference.algorithms.assign.assign_points.c2"><img src="../../../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+                tuple_list_of delivers a range and can therefore be used in boost::geometry::assign
+              </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="geometry.reference.algorithms.assign.assign_points.c5"></a><a href="#geometry.reference.algorithms.assign.assign_points.c4"><img src="../../../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+                Boost.Range adaptors can also be used in boost::geometry::assign
+              </p></td>
+</tr>
+</table></div>
+<p>
+            Output:
+          </p>
+<pre class="programlisting">line 1: ((0, 0), (2, 3), (4, 0), (6, 3), (8, 0), (10, 3), (12, 0))
+line 2: ((0, 0), (2, 2), (4, 0), (6, 2), (8, 0))
+line 3: ((4, 0), (6, 3), (8, 0))
+</pre>
+<h6>
+<a name="geometry.reference.algorithms.assign.assign_points.h5"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.assign.assign_points.see_also"></a></span><a class="link" href="assign_points.html#geometry.reference.algorithms.assign.assign_points.see_also">See
+            also</a>
+          </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <a class="link" href="../append.html" title="append">append</a>
+              </li></ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="assign_inverse.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../assign.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="assign_values_3_2_coordinate_values.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

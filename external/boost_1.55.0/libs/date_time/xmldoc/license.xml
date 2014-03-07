@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Copyright (c) 2001-2006 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.license">
+  <title>Boost Date-Time Library License</title>
+  <bridgehead renderas="sect2">Boost Date-Time Library License</bridgehead>
+  <!--
+  <ulink url="../../../index.htm">
+    <imagedata align="left" 
+               format="GIF" 
+	       fileref="../../../boost.png" 
+	       alt="C++ Boost" />
+	   </ulink>-->
+  <!--hr /-->
+  <para>
+    The following is the overall license for the boost date_time
+    library. This notice is found in all source files related to the
+    library.
+  </para>
+  <para>
+    Copyright &#169; 2002 CrystalClear Software, Inc.
+  </para>
+  <para>
+    Permission to use, copy, modify, distribute and sell this software
+    and its documentation for any purpose is hereby granted without
+    fee, provided that the above copyright notice appear in all copies
+    and that both that copyright notice and this permission notice
+    appear in supporting documentation. CrystalClear Software makes no
+    representations about the suitability of this software for any
+    purpose. It is provided "as is" without express or implied
+    warranty.
+  </para>
+  <!--hr / -->
+  <ulink url="mailto:jeff@crystalclearsoftware.com">Jeff Garland</ulink>
+  &#169; 2000-2002
+</section>

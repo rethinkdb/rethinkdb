@@ -1,0 +1,99 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Step 8: Iterate - to refine your index</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Boost.AutoIndex">
+<link rel="up" href="../tut.html" title="Getting Started and Tutorial">
+<link rel="prev" href="build_docs.html" title="Step 7: Build the Docs">
+<link rel="next" href="../script_ref.html" title="Script File (.idx) Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="build_docs.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../script_ref.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_autoindex.tut.refine"></a><a class="link" href="refine.html" title="Step 8: Iterate - to refine your index">Step 8: Iterate - to refine
+      your index</a>
+</h3></div></div></div>
+<p>
+        Creating a good index is an iterative process, often the first step is just
+        to add a header scanning rule to the script file and then generate the documentation
+        and see:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            What's missing.
+          </li>
+<li class="listitem">
+            What's been included that shouldn't be.
+          </li>
+<li class="listitem">
+            What's been included under a poor name.
+          </li>
+</ul></div>
+<p>
+        Further rules can then be added to the script to handle these cases and the
+        next iteration examined, and so on.
+      </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          If you don't understand why a particular term is (or is not) present in
+          the index, try adding a <span class="emphasis"><em>!debug regular-expression</em></span>
+          directive to the <a class="link" href="../script_ref.html" title="Script File (.idx) Reference">script file</a>.
+        </p></td></tr>
+</table></div>
+<a name="boost_autoindex.tut.refine.restricting_which_sections_are_indexed_for_a_particular_term"></a><h5>
+<a name="boost_autoindex.tut.refine.restricting_which_sections_are_indexed_for_a_particular_term-heading"></a>
+        <a class="link" href="refine.html#boost_autoindex.tut.refine.restricting_which_sections_are_indexed_for_a_particular_term">Restricting
+        which Sections are indexed for a particular term</a>
+      </h5>
+<p>
+        You can restrict which sections are indexed for a particular term. So assuming
+        that the docbook document has the usual hierarchical names for section ID's
+        (as Quickbook generates, for example), you can easily place a constraint
+        on which sections are examined for a particular term.
+      </p>
+<p>
+        For example, if you want to index occurrences of Lord Kelvin's name, but
+        only in the introduction section, you might then add:
+      </p>
+<pre class="programlisting"><span class="identifier">Kelvin</span> <span class="string">""</span> <span class="string">".*introduction.*"</span>
+</pre>
+<p>
+        to the script file, assuming that the section ID of the intro is "some_library_or_chapter_name.introduction".
+      </p>
+<p>
+        This would avoid an index entry every time 'Kelvin' is found, something the
+        user is unlikely to find helpful.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008, 2011 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="build_docs.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../script_ref.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

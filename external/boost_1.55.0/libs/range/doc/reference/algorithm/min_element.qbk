@@ -1,0 +1,86 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:min_element min_element]
+
+[heading Prototype]
+
+``
+template<class ForwardRange>
+typename range_iterator<ForwardRange>::type
+min_element(ForwardRange& rng);
+
+template<class ForwardRange>
+typename range_iterator<const ForwardRange>::type
+min_element(const ForwardRange& rng);
+
+template<class ForwardRange, class BinaryPredicate>
+typename range_iterator<ForwardRange>::type
+min_element(ForwardRange& rng, BinaryPredicate pred);
+
+template<class ForwardRange, class BinaryPredicate>
+typename range_iterator<const ForwardRange>::type
+min_element(const ForwardRange& rng, BinaryPredicate pred);
+
+
+template<
+    range_return_value re,
+    class ForwardRange
+    >
+typename range_return<ForwardRange, re>::type
+min_element(ForwardRange& rng);
+
+template<
+    range_return_value_re,
+    class ForwardRange
+    >
+typename range_return<const ForwardRange, re>::type
+min_element(const ForwardRange& rng);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class BinaryPredicate
+    >
+typename range_return<ForwardRange, re>::type
+min_element(ForwardRange& rng, BinaryPredicate pred);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class BinaryPredicate
+    >
+typename range_return<const ForwardRange, re>::type
+min_element(const ForwardRange& rng, BinaryPredicate pred);
+``
+
+[heading Description]
+
+The versions of `min_element` that return an iterator, return the iterator to the minimum value as determined by using `operator<` if a predicate is not supplied. Otherwise the predicate `pred` is used to determine the minimum value. The versions of `min_element` that return a `range_return`, defines `found` in the same manner as the returned iterator described above.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/min_element.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange`'s value type is a model of the `LessThanComparableConcept`.
+
+[*For the predicate versions:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `BinaryPredicate` is a model of the `BinaryPredicateConcept`.
+* `ForwardRange`'s value type is convertible to both of `BinaryPredicate`'s argument types.
+
+[heading Complexity]
+
+Linear. Zero comparisons if `empty(rng)`, otherwise `distance(rng) - 1` comparisons.
+
+[endsect]
+
+

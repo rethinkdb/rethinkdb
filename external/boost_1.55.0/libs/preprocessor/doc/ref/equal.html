@@ -1,0 +1,64 @@
+<html>
+<head>
+	<title>BOOST_PP_EQUAL</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_EQUAL</b> macro compares two values for equality.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_EQUAL</b>(<i>x</i>, <i>y</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>x</dt>
+			<dd>
+				The left operand of the comparison.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+			<dt>y</dt>
+			<dd>
+				The right operand of the comparison.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			If <i>x</i> is equal to <i>y</i>, this macro expands to <i>1</i>.&nbsp;
+			Otherwise, it expands to <i>0</i>.
+		</div>
+		<div>
+			Previously, this macro could not be used inside <b>BOOST_PP_WHILE</b>.&nbsp;
+			There is no longer any such restriction because this macro no longer uses <b>BOOST_PP_WHILE</b>.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="equal_d.html">BOOST_PP_EQUAL_D</a></li>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/comparison/equal.html">&lt;boost/preprocessor/comparison/equal.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/comparison/equal.html">boost/preprocessor/comparison/equal.hpp</a>&gt;
+
+<a href="equal.html">BOOST_PP_EQUAL</a>(4, 3) // expands to 0
+<a href="equal.html">BOOST_PP_EQUAL</a>(5, 5) // expands to 1
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Manually registered test case template</title>
+<link rel="stylesheet" href="../../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../../index.html" title="Boost Test Library">
+<link rel="up" href="test-case-template.html" title="Test case template">
+<link rel="prev" href="test-case-template.html" title="Test case template">
+<link rel="next" href="auto-test-case-template.html" title="Test case template with automated registration">
+<script language="JavaScript1.2" src="../../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../../utf.html">The Unit Test Framework</a> &gt; <a href="../../user-guide.html">User's guide</a><a href="../../testing-tools.html">
+      &gt;
+      </a><a href="../test-organization.html">Test organization</a><a href="../fixture.html">
+      &gt;
+      </a><a href="test-case-template.html">Test case template</a><a href="test-suite.html">
+      &gt;
+      </a><b>Manual registration</b>
+</td>
+<td><div class="spirit-nav">
+<a href="test-case-template.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="auto-test-case-template.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-organization.manual-test-case-template"></a>Manually registered test case template</h6></div></div></div>
+<p class="first-line-indented">
+    One way to perform the same set of checks for a component instantiated with different template parameters is
+    illustrated in the following example:
+   </p>
+<pre class="programlisting">template &lt;typename T&gt;
+void single_test()
+{
+    BOOST_CHECK( /* test assertion */ );
+}
+
+void combined_test()
+{
+    single_test&lt;int&gt;();
+    single_test&lt;float&gt;();
+    single_test&lt;unsigned char&gt;();
+}
+</pre>
+<p class="first-line-indented">
+    There several problems/inconveniencies with above approach, including:
+    </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc"><li>
+<p>
+      Fatal error in one of the invocation will stop whole test case and will skip invocations with different types
+      </p>
+<p>
+      You need to repeat function invocation manually for all the parameters you are interested in
+      </p>
+<p>
+      You need two functions to implement the test
+      </p>
+</li></ul></div>
+<p class="first-line-indented">
+    Ideally the test case template would be based on nullary function template (like single_test above).
+    Unfortunately function templates are neither addressable nor can be used as template parameters. To alleviate
+    the issue the manually registered test case template facility consists of two co-working macros:
+    BOOST_TEST_CASE_TEMPLATE_FUNCTION and BOOST_TEST_CASE_TEMPLATE. Former is used to define the test case
+    template body, later - to create and register test cases based on it.
+   </p>
+<p class="first-line-indented">
+    The macro BOOST_TEST_CASE_TEMPLATE_FUNCTION requires two arguments: the name of the test case template and the
+    name of the format type parameter:
+   </p>
+<pre class="inline-synopsis">
+<a name="BOOST_TEST_CASE_TEMPLATE_FUNCTION"></a>BOOST_TEST_CASE_TEMPLATE_FUNCTION(<span class="emphasis"><em>test_case_name</em></span>, <span class="emphasis"><em>type_name</em></span>)</pre>
+<pre class="programlisting">BOOST_TEST_CASE_TEMPLATE_FUNCTION( test_case_name, type_name )
+{
+  // test case template body
+}
+</pre>
+<p class="first-line-indented">
+    The macro BOOST_TEST_CASE_TEMPLATE_FUNCTION is intended to be used in place of nullary function template
+    signature:
+   </p>
+<pre class="programlisting">template&lt;typename type_name&gt;
+void
+test_case_name()
+{
+  // test case template body
+}
+</pre>
+<p class="first-line-indented">
+    The only difference is that the BOOST_TEST_CASE_TEMPLATE_FUNCTION makes the test case template name usable in
+    the template argument list.
+   </p>
+<p class="first-line-indented">
+    BOOST_TEST_CASE_TEMPLATE requires two arguments: the name of the test case template and Boost.MPL compatible
+    collection of types to instantiate it with. The names passed to both macros should be the same.
+   </p>
+<pre class="inline-synopsis">
+<a name="BOOST_TEST_CASE_TEMPLATE"></a>BOOST_TEST_CASE_TEMPLATE(<span class="emphasis"><em>test_case_name</em></span>, <span class="emphasis"><em>collection_of_types</em></span>)</pre>
+<p class="first-line-indented">
+    BOOST_TEST_CASE_TEMPLATE creates an instance of the test case generator. When passed to the method
+    test_suite::add, the generator produces a separate sub test case for each type in the supplied collection of
+    types and registers it immediately in the test suite. Each test case is based on the test case template body
+    instantiated with a particular test type.
+   </p>
+<p class="first-line-indented">
+    Sub test case names are deduced from the macro argument test_case_name. If you prefer to assign different test
+    case names, you need to use the underlying make_test_case interface instead. Both test cases creation and
+    registration is performed in the test module initialization function.
+   </p>
+<p class="first-line-indented">
+    The test case template facility is preferable to the approach in example above, since execution of each sub
+    test case is guarded and counted separately. It produces a better test log/results report (in example above in
+    case of failure you can't say which type is at fault) and allows you to test all types even if one of
+    them causes termination of the sub test case.
+   </p>
+<div class="example">
+<a name="utf.user-guide.test-organization.manual-test-case-template.example09"></a><p class="title"><b>Example 13. Manually registered test case template</b></p>
+<div class="example-contents">
+<pre class="programlisting">#include &lt;boost/test/included/unit_test.hpp&gt;
+#include &lt;boost/test/test_case_template.hpp&gt;
+#include &lt;boost/mpl/list.hpp&gt;
+using namespace boost::unit_test;
+
+//____________________________________________________________________________//
+
+BOOST_TEST_CASE_TEMPLATE_FUNCTION( my_test, T )
+{
+    BOOST_CHECK_EQUAL( sizeof(T), 4 );
+}
+
+//____________________________________________________________________________//
+
+test_suite*
+init_unit_test_suite( int argc, char* argv[] )
+{
+    typedef boost::mpl::list&lt;int,long,unsigned char&gt; test_types;
+
+    framework::master_test_suite().
+        add( BOOST_TEST_CASE_TEMPLATE( my_test, test_types ) );
+
+    return 0;
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example09.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id650562" onclick="toggle_element( 'example09-output', 'id650562', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example09-output">&gt; example
+Running 3 test cases...
+test.cpp(10): error in "my_test&lt;unsigned char&gt;": check sizeof(T) == 4 failed [1 != 4]
+
+*** 1 failure detected in test suite "Master Test Suite"
+</pre>
+</div>
+</div>
+<br class="example-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="test-case-template.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="test-case-template.html"><img src="../../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="auto-test-case-template.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

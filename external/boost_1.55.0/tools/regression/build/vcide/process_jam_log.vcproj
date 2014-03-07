@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="7.10"
+	Name="process_jam_log"
+	ProjectGUID="{9A751791-929F-496A-8DE7-B61020619BFA}"
+	RootNamespace="process_jam_log"
+	Keyword="MakeFileProj">
+	<Platforms>
+		<Platform
+			Name="Win32"/>
+	</Platforms>
+	<Configurations>
+		<Configuration
+			Name="Debug|Win32"
+			OutputDirectory="Debug"
+			IntermediateDirectory="Debug"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="cd ..\..\..\..\tools\regression\build
+..\..\jam\src\bin.ntx86\bjam.exe process_jam_log variant=debug
+"
+				ReBuildCommandLine="cd ..\..\..\..\tools\regression\build
+call bjam --v2 msvc-7.1 debug clean
+call bjam --v2 msvc-7.1 debug"
+				CleanCommandLine="cd ..\..\..\..\tools\regression\build
+call bjam --v2 msvc-7.1 debug clean
+"
+				Output="../../../../bin.v2/tools/regression/build/msvc-7.1/debug/link-static/process_jam_log.exe"/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="Release"
+			IntermediateDirectory="Release"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="cd ..
+..\..\jam\src\bin.ntx86\bjam process_jam_log variant=release link=static"
+				ReBuildCommandLine="cd ..
+..\..\jam\src\bin.ntx86\bjam -a process_jam_log variant=release link=static"
+				CleanCommandLine="cd ..
+..\..\jam\src\bin.ntx86\bjam clean"
+				Output="..\..\..\..\bin.v2\tools\regression\build\msvc-7.1\release\link-static\process_jam_log.exe"/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+		<Filter
+			Name="Source Files"
+			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
+		</Filter>
+		<Filter
+			Name="Header Files"
+			Filter="h;hpp;hxx;hm;inl;inc;xsd"
+			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
+		</Filter>
+		<Filter
+			Name="Resource Files"
+			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
+			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}">
+		</Filter>
+		<File
+			RelativePath=".\readme.txt">
+		</File>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

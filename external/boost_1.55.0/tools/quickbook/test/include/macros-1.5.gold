@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="macros_test_1_5" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Macros Test 1.5</title>
+  <para>
+    Foo:macros-inc1.quickbook
+  </para>
+  <para>
+    Defined conditional phrase.
+  </para>
+  <itemizedlist>
+    <listitem>
+      <simpara>
+        __foo__
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        Defined template:macros-1.5.quickbook
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        __defined_macro__
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        [not_defined_template]
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        <emphasis role="underline">_not_defined_macro__</emphasis>
+      </simpara>
+    </listitem>
+  </itemizedlist>
+</article>

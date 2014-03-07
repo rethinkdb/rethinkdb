@@ -1,0 +1,103 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Macro BOOST_TYPE_ERASURE_MEMBER</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="boost_typeerasure/reference.html#header.boost.type_erasure.member_hpp" title="Header &lt;boost/type_erasure/member.hpp&gt;">
+<link rel="prev" href="boost/type_erasure/random_access_iterator.html" title="Struct template random_access_iterator">
+<link rel="next" href="boost/type_erasure/incrementable.html" title="Struct template incrementable">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/type_erasure/random_access_iterator.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="boost_typeerasure/reference.html#header.boost.type_erasure.member_hpp"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost/type_erasure/incrementable.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="BOOST_TYPE_ERASURE_MEMBER"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Macro BOOST_TYPE_ERASURE_MEMBER</span></h2>
+<p>BOOST_TYPE_ERASURE_MEMBER &#8212; Defines a primitive concept for a member function. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="boost_typeerasure/reference.html#header.boost.type_erasure.member_hpp" title="Header &lt;boost/type_erasure/member.hpp&gt;">boost/type_erasure/member.hpp</a>&gt;
+
+</span>BOOST_TYPE_ERASURE_MEMBER(qualified_name, member, N)</pre></div>
+<div class="refsect1">
+<a name="idp229085416"></a><h2>Description</h2>
+<p>
+The declaration of the concept is </p>
+<pre class="programlisting"><span class="special">*</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Sig</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span> <span class="special">=</span> <span class="identifier">_self</span><span class="special">&gt;</span>
+<span class="special">*</span> <span class="keyword">struct</span> <span class="special">::</span><span class="identifier">namespace1</span><span class="special">::</span><span class="identifier">namespace2</span><span class="special">::</span><span class="special">...</span><span class="special">::</span><span class="identifier">concept_name</span><span class="special">;</span>
+<span class="special">*</span> 
+</pre>
+<p> where Sig is a function type giving the signature of the member function, and T is the object type. T may be const-qualified for const member functions.</p>
+<p>This macro can only be used in the global namespace.</p>
+<p>Example:</p>
+<pre class="programlisting"><span class="special">*</span> <span class="identifier">BOOST_TYPE_ERASURE_MEMBER</span><span class="special">(</span><span class="special">(</span><span class="identifier">boost</span><span class="special">)</span><span class="special">(</span><span class="identifier">has_push_back</span><span class="special">)</span><span class="special">,</span> <span class="identifier">push_back</span><span class="special">,</span> <span class="number">1</span><span class="special">)</span>
+<span class="special">*</span> <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_push_back</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">(</span><span class="keyword">int</span><span class="special">)</span><span class="special">,</span> <span class="identifier">_self</span><span class="special">&gt;</span> <span class="identifier">push_back_concept</span><span class="special">;</span>
+<span class="special">*</span> 
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>In C++11 the argument N is ignored and may be omitted. BOOST_TYPE_ERASURE_MEMBER will always define a variadic concept. </p></td></tr>
+</table></div>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">N</code></span></p></td>
+<td><p>is the number of arguments of the function.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">member</code></span></p></td>
+<td><p>is the name of the member function. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">qualified_name</code></span></p></td>
+<td><p>should be a preprocessor sequence of the form (namespace1)(namespace2)...(concept_name). </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/type_erasure/random_access_iterator.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="boost_typeerasure/reference.html#header.boost.type_erasure.member_hpp"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost/type_erasure/incrementable.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

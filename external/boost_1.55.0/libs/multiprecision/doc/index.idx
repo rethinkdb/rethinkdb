@@ -1,0 +1,18 @@
+#  Copyright 2011 John Maddock. Distributed under the Boost
+#  Software License, Version 1.0. (See accompanying file
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+# Rewrite the class scanner to accept declarations, not just definitions, 
+# as the docs don't include full definitions.
+#
+!define-scanner class_name "^[[:space:]]*(template[[:space:]]*<[^;:{]+>[[:space:]]*)?(class|struct)[[:space:]]*(\<\w+\>([[:blank:]]*\([^)]*\))?[[:space:]]*)*(\<\w*\>)[[:space:]]*(<[^;:{]+>)?[[:space:]]*(\{|:[^;\{()]*\{)" "(?:class|struct)[^;{]+\\<\5\\>\\s*[;{]" \5
+
+!scan-path boost/multiprecision .*\.hpp true
+
+
+
+
+
+
+
+

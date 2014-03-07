@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE part PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<part xmlns:xi="http://www.w3.org/2001/XInclude"
+      id="bbv2" last-revision="$Date: 2011-01-25 10:06:12 -0800 (Tue, 25 Jan 2011) $">
+  <partinfo>
+    <copyright>
+      <year>2006</year>
+      <year>2007</year>
+      <year>2008</year>
+      <year>2009</year>
+      <holder>Vladimir Prus</holder>
+    </copyright>
+
+    <legalnotice>
+      <para>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <filename>LICENSE_1_0.txt</filename> or copy at 
+      <ulink
+      url="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</ulink>)
+      </para>
+    </legalnotice>  
+  </partinfo>
+
+  <title>Boost.Build V2 User Manual</title>
+
+  <!-- Chapters -->
+  <xi:include href="howto.xml"/>
+  <xi:include href="install.xml"/>
+  <xi:include href="tutorial.xml"/>
+  <xi:include href="overview.xml"/>
+  <xi:include href="tasks.xml"/>
+  <xi:include href="reference.xml"/>
+  <xi:include href="extending.xml"/>
+  <xi:include href="faq.xml"/>
+
+  <!-- Appendicies -->
+<!--  <xi:include href="architecture.xml"/> -->
+
+</part>

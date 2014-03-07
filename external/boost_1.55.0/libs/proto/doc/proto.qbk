@@ -1,0 +1,306 @@
+
+[library Boost.Proto
+    [quickbook 1.3]
+    [authors [Niebler, Eric]]
+    [copyright 2008 Eric Niebler]
+    [category template]
+    [id proto]
+    [dirname proto]
+    [purpose
+        Generic expression template, grammar and
+        tree-transformation framework.
+    ]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[/ QuickBook Document version 1.3 ]
+
+[/  Images   ]
+
+[def __note__               [$images/note.png]]
+[def __alert__              [$images/caution.png]]
+[def __detail__             [$images/note.png]]
+[def __tip__                [$images/tip.png]]
+
+[/  Links   ]
+
+[def _PETE_                 
+  [@http://acts.nersc.gov/formertools/pete/index.html PETE]]
+[def _spirit_fx_            
+  [@http://spirit.sourceforge.net Spirit Parser Framework]]
+[def _spirit_               
+  [@http://spirit.sourceforge.net Spirit]]
+[def _xpressive_            
+  [@../../libs/xpressive/index.html Boost.Xpressive]]
+[def _typeof_               
+  [@../../libs/typeof/index.html Boost.Typeof]]
+[def _expr_                 
+  [classref  boost::proto::expr `proto::expr<>`]]
+[def _basic_expr_                 
+  [classref  boost::proto::basic_expr `proto::basic_expr<>`]]
+[def _deep_copy_            
+  [funcref   boost::proto::deep_copy `proto::deep_copy()`]]
+[def _domain_              
+  [classref  boost::proto::domain `proto::domain<>`]]
+[def _default_domain_              
+  [classref  boost::proto::default_domain `proto::default_domain`]]
+[def _extends_              
+  [classref  boost::proto::extends `proto::extends<>`]]
+[def _external_transform_              
+  [classref  boost::proto::external_transform `proto::external_transform`]]
+[def _external_transforms_              
+  [classref  boost::proto::external_transforms `proto::external_transforms<>`]]
+[def _as_expr_              
+  [funcref   boost::proto::as_expr `proto::as_expr()`]]
+[def _as_child_             
+  [funcref   boost::proto::as_child `proto::as_child()`]]
+[def _make_expr_            
+  [funcref   boost::proto::make_expr `proto::make_expr()`]]
+[def _unpack_expr_          
+  [funcref   boost::proto::unpack_expr `proto::unpack_expr()`]]
+[def _display_expr_          
+  [funcref   boost::proto::display_expr `proto::display_expr()`]]
+[def _matches_              
+  [classref  boost::proto::matches `proto::matches<>`]]
+[def _or_                   
+  [classref  boost::proto::or_ `proto::or_<>`]]
+[def _and_                  
+  [classref  boost::proto::and_ `proto::and_<>`]]
+[def _if_                   
+  [classref  boost::proto::if_ `proto::if_<>`]]
+[def _not_                  
+  [classref  boost::proto::not_ `proto::not_<>`]]
+[def _switch_                  
+  [classref  boost::proto::switch_ `proto::switch_<>`]]
+[def _exact_                
+  [classref  boost::proto::exact `proto::exact<>`]]
+[def _convertible_to_       
+  [classref  boost::proto::convertible_to `proto::convertible_to<>`]]
+[def _is_expr_              
+  [classref  boost::proto::is_expr `proto::is_expr<>`]]
+[def _tag_of_               
+  [classref  boost::proto::tag_of `proto::tag_of<>`]]
+[def _arity_of_               
+  [classref  boost::proto::arity_of `proto::arity_of<>`]]
+[def _child_                
+  [funcref   boost::proto::child `proto::child()`]]
+[def _child_c_              
+  [funcref   boost::proto::child_c `proto::child_c()`]]
+[def _eval_                 
+  [funcref   boost::proto::eval `proto::eval()`]]
+[def _left_                 
+  [funcref   boost::proto::left `proto::left()`]]
+[def _right_                
+  [funcref   boost::proto::right `proto::right()`]]
+[def _value_                
+  [funcref   boost::proto::value `proto::value()`]]
+[def _terminal_             
+  [classref  boost::proto::terminal `proto::terminal<>`]]
+[def _unary_plus_
+  [classref  boost::proto::unary_plus `proto::unary_plus<>`]]
+[def _plus_
+  [classref  boost::proto::plus `proto::plus<>`]]
+[def _function_             
+  [classref  boost::proto::function `proto::function<>`]]
+[def _unary_expr_           
+  [classref  boost::proto::unary_expr `proto::unary_expr<>`]]
+[def _binary_expr_          
+  [classref  boost::proto::binary_expr `proto::binary_expr<>`]]
+[def _nary_expr_          
+  [classref  boost::proto::nary_expr `proto::nary_expr<>`]]
+[def _literal_              
+  [classref  boost::proto::literal `proto::literal<>`]]
+[def _lit_                  
+  [funcref   boost::proto::lit `proto::lit()`]]
+[def _vararg_               
+  [classref  boost::proto::vararg `proto::vararg<>`]]
+[def _default_context_      
+  [classref  boost::proto::context::default_context `proto::default_context`]]
+[def _callable_context_     
+  [classref  boost::proto::context::callable_context `proto::callable_context<>`]]
+[def _null_context_         
+  [classref  boost::proto::context::null_context `proto::null_context<>`]]
+[def _when_                 
+  [classref  boost::proto::when `proto::when<>`]]
+[def _call_                 
+  [classref  boost::proto::call `proto::call<>`]]
+[def _make_                 
+  [classref  boost::proto::make `proto::make<>`]]
+[def _flatten_              
+  [funcref   boost::proto::flatten `proto::flatten()`]]
+[def _value_pt_ 
+  [classref boost::proto::_value `proto::_value`]]
+[def _child_c_pt_ 
+  [classref boost::proto::_child_c `proto::_child_c<>`]]
+[def _child_pt_ 
+  [classref boost::proto::_child `proto::_child`]]
+[def _left_pt_
+  [classref boost::proto::_left `proto::_left`]]
+[def _right_pt_
+  [classref boost::proto::_right `proto::_right`]]
+[def _wild_ 
+  [classref boost::proto::_ `proto::_`]]
+[def _expr_pt_ 
+  [classref boost::proto::_expr `proto::_expr`]]
+[def _state_pt_ 
+  [classref boost::proto::_state `proto::_state`]]
+[def _data_pt_ 
+  [classref boost::proto::_data `proto::_data`]]
+[def _call_pt_ 
+  [classref boost::proto::call `proto::call<>`]]
+[def _make_pt_ 
+  [classref boost::proto::make `proto::make<>`]]
+[def _default_pt_ 
+  [classref boost::proto::_default `proto::_default<>`]]
+[def _fold_pt_ 
+  [classref boost::proto::fold `proto::fold<>`]]
+[def _fold_tree_pt_ 
+  [classref boost::proto::fold_tree `proto::fold_tree<>`]]
+[def _reverse_fold_pt_ 
+  [classref boost::proto::reverse_fold `proto::reverse_fold<>`]]
+[def _reverse_fold_tree_pt_ 
+  [classref boost::proto::reverse_fold_tree `proto::reverse_fold_tree<>`]]
+[def _generator_ 
+  [classref boost::proto::generator `proto::generator<>`]]
+[def _pod_generator_ 
+  [classref boost::proto::pod_generator `proto::pod_generator<>`]]
+[def _deduce_domain_ 
+  [classref boost::proto::deduce_domain `proto::deduce_domain`]]
+[def _lazy_pt_ 
+  [classref boost::proto::lazy `proto::lazy<>`]]
+[def _pack_ 
+  [classref boost::proto::pack `proto::pack`]]
+[def _SYB_ 
+  [link boost_proto.users_guide.resources.SYB ["Scrap Your Boilerplate]]]
+[def _result_of_value_
+  [classref boost::proto::result_of::value `proto::result_of::value<>`]]
+[def _result_of_child_c_
+  [classref boost::proto::result_of::child_c `proto::result_of::child_c<>`]]
+[def _result_of_child_
+  [classref boost::proto::result_of::child `proto::result_of::child<>`]]
+[def _result_of_left_
+  [classref boost::proto::result_of::left `proto::result_of::left<>`]]
+[def _result_of_right_
+  [classref boost::proto::result_of::right `proto::result_of::right<>`]]
+[def _MAX_ARITY_
+  [^[macroref BOOST_PROTO_MAX_ARITY]]]
+[def _MAX_LOGICAL_ARITY_
+  [^[macroref BOOST_PROTO_MAX_LOGICAL_ARITY]]]
+[def _MAX_FUNCTION_CALL_ARITY_
+  [^[macroref BOOST_PROTO_MAX_FUNCTION_CALL_ARITY]]]
+[def _BASIC_EXTENDS_
+  [^[macroref BOOST_PROTO_BASIC_EXTENDS]()]]
+[def _EXTENDS_
+  [^[macroref BOOST_PROTO_EXTENDS]()]]
+[def _EXTENDS_ASSIGN_
+  [^[macroref BOOST_PROTO_EXTENDS_ASSIGN]()]]
+[def _EXTENDS_SUBSCRIPT_
+  [^[macroref BOOST_PROTO_EXTENDS_SUBSCRIPT]()]]
+[def _EXTENDS_FUNCTION_
+  [^[macroref BOOST_PROTO_EXTENDS_FUNCTION]()]]
+[def _DEFINE_OPERATORS_
+  [^[macroref BOOST_PROTO_DEFINE_OPERATORS]()]]
+[def _AUTO_
+  [^[macroref BOOST_PROTO_AUTO]()]]
+[def _REPEAT_
+  [^[macroref BOOST_PROTO_REPEAT]()]]
+[def _REPEAT_FROM_TO_
+  [^[macroref BOOST_PROTO_REPEAT_FROM_TO]()]]
+[def _REPEAT_EX_
+  [^[macroref BOOST_PROTO_REPEAT_EX]()]]
+[def _REPEAT_FROM_TO_EX_
+  [^[macroref BOOST_PROTO_REPEAT_FROM_TO_EX]()]]
+[def _LOCAL_ITERATE_
+  [^[macroref BOOST_PROTO_LOCAL_ITERATE]()]]
+[def _BOOST_PROTO_typename_A_
+  [^[macroref BOOST_PROTO_typename_A]()]]
+[def _BOOST_PROTO_A_
+  [^[macroref BOOST_PROTO_A]()]]
+[def _BOOST_PROTO_A_const_
+  [^[macroref BOOST_PROTO_A_const]()]]
+[def _BOOST_PROTO_A_ref_
+  [^[macroref BOOST_PROTO_A_ref]()]]
+[def _BOOST_PROTO_A_const_ref_
+  [^[macroref BOOST_PROTO_A_const_ref]()]]
+[def _BOOST_PROTO_A_ref_a_
+  [^[macroref BOOST_PROTO_A_ref_a]()]]
+[def _BOOST_PROTO_A_const_ref_a_
+  [^[macroref BOOST_PROTO_A_const_ref_a]()]]
+[def _BOOST_PROTO_a_
+  [^[macroref BOOST_PROTO_a]()]]
+[def _BOOST_PROTO_ref_a_
+  [^[macroref BOOST_PROTO_ref_a]()]]
+
+[include preface.qbk]
+
+[/===============================]
+[section:users_guide Users' Guide]
+[/===============================]
+
+[/===========================================================]
+[heading Compilers, Compiler Construction Toolkits, and Proto]
+[/===========================================================]
+
+Most compilers have front ends and back ends. The front end parses the text of an input program into some intermediate form like an abstract syntax tree, and the back end takes the intermediate form and generates an executable from it.
+
+A library built with Proto is essentially a compiler for an embedded domain-specific language (EDSL). It also has a front end, an intermediate form, and a back end. The front end is comprised of the symbols (a.k.a., terminals), members, operators and functions that make up the user-visible aspects of the EDSL. The back end is made of evaluation contexts and transforms that give meaning and behavior to the expression templates generated by the front end. In between is the intermediate form: the expression template itself, which is an abstract syntax tree in a very real sense.
+
+To build a library with Proto, you will first decide what your interface will be; that is, you'll design a programming language for your domain and build the front end with tools provided by Proto. Then you'll design the back end by writing evaluation contexts and/or transforms that accept expression templates and do interesting things with them.
+
+This users' guide is organized as follows. After a [link boost_proto.users_guide.getting_started Getting Started guide], we'll cover the tools Proto provides for defining and manipulating the three major parts of a compiler:
+
+[variablelist
+  [[[link boost_proto.users_guide.front_end Front Ends]]
+   [How to define the aspects of your EDSL with which your users will interact directly.]]
+  [[[link boost_proto.users_guide.intermediate_form Intermediate Form]]
+   [What Proto expression templates look like, how to discover their structure and access their constituents.]]
+  [[[link boost_proto.users_guide.back_end Back Ends]]
+   [How to define evaluation contexts and transforms that make expression templates do interesting things.]]
+]
+
+After that, you may be interested in seeing some [link boost_proto.users_guide.examples Examples] to get a better idea of how the pieces all fit together.
+
+[include getting_started.qbk]
+
+[include front_end.qbk]
+
+[include intermediate_form.qbk]
+
+[include back_end.qbk]
+
+[include examples.qbk]
+
+[include resources.qbk]
+
+[include glossary.qbk]
+
+[endsect]
+
+[xinclude reference.xml]
+
+[/=================]
+[section Appendices]
+[/=================]
+
+[include release_notes.qbk]
+
+[include history.qbk]
+
+[include rationale.qbk]
+
+[include implementation.qbk]
+
+[include acknowledgements.qbk]
+
+[endsect]

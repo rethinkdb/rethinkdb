@@ -1,0 +1,288 @@
+<html>
+<head>
+<title>The Scanner and Parsing</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> 
+      <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>The Scanner and Parsing</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="directives.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="grammar.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>The <b>scanner</b>'s task is to feed the sequential input data stream to the 
+  parser. The scanner extracts data from the input, parceling, potentially modifying 
+  or filtering, and then finally relegating the result to individual parser elements 
+  on demand until the input is exhausted. The scanner is composed of two STL conforming 
+  forward iterators, first and last, where first is held by reference and last, 
+  by value. The first iterator is held by reference to allow it to be re-positioned. 
+  The following diagram illustrates what's happening:</p>
+<table width="62%" border="0" align="center">
+  <tr>
+    <td><img src="theme/scanner1.png"></td>
+  </tr>
+</table>
+<p>The scanner manages various aspects of the parsing process through a set of 
+  policies. There are three sets of policies that govern:</p>
+<blockquote>
+  <p><img src="theme/bullet.gif" width="12" height="12"> Iteration and filtering<br>
+    <img src="theme/bullet.gif" width="12" height="12"> Recognition and matching<br>
+    <img src="theme/bullet.gif" width="12" height="12"> Handling semantic actions</p>
+</blockquote>
+<p>These policies are mostly hidden from view and users generally need not know 
+  about them. Advanced users might however provide their own policies that override 
+  the ones that are already in place to fine tune the parsing process 
+  to fit their own needs. We shall see how this can be done. This will be covered 
+  in further detail later.</p>
+<p>The <tt>scanner</tt> is a template class expecting two parameters: <tt>IteratorT</tt>, 
+  the iterator type and <tt>PoliciesT</tt>, its set of policies. <tt>IteratorT</tt> 
+  defaults to <tt>char const*</tt> while <tt>PoliciesT</tt> defaults to <tt>scanner_policies&lt;&gt;</tt>, 
+  a predefined set of scanner policies that we can use straight out of the box.</p>
+<pre><code><font color="#000000"><span class=keyword>    template</span><span class=special>&lt;
+        </span><span class=keyword>typename </span><span class=identifier>IteratorT  </span><span class=special>= </span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*,
+        </span><span class=keyword>typename </span><span class=identifier>PoliciesT  </span><span class=special>= </span><span class=identifier>scanner_policies</span><span class=special>&lt;&gt; </span><span class=special>&gt;
+    </span><span class=keyword>class </span><span class=identifier>scanner</span><span class=special>;</span></font></code></pre>
+<p>Spirit uses the same iterator concepts and interface formally defined by the 
+  C++ Standard Template Library (STL). We can use iterators supplied by STL's 
+  containers (e.g. <tt>list</tt>, <tt>vector</tt>, <tt>string</tt>, etc.) as is, 
+  or perhaps write our own. Iterators can be as simple as a pointer (e.g. <tt>char 
+  const<span class="operators">*</span></tt>). At the other end of the spectrum, 
+  iterators can be quite complex; for instance, an iterator adapter that wraps 
+  a lexer such as LEX.</p>
+<h2>The Free Parse Functions</h2>
+<p>The framework provides a couple of free functions to make parsing a snap. These 
+  parser functions have two forms. The first form works on the <b>character level</b>. 
+  The second works on the <b>phrase level</b> and asks for a <b>skip parser</b>.</p>
+<p>The <b>skip parser</b> is just about any parser primitive or composite. Its 
+  purpose is to move the scanner's <tt>first</tt> iterator to valid tokens by 
+  skipping white spaces. In C for instance, the tab <tt class="quotes">'\t'</tt>, 
+  the newline <tt class="quotes">'\n'</tt>, return <tt><span class="quotes">'\r'</span></tt>, 
+  space <tt class="quotes">' '</tt> and characters inside comments <tt class="quotes">/*...*/</tt> 
+  are considered as white spaces.</p>
+<p><b>Character level parsing</b></p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>IteratorT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>DerivedT</span><span class=special>&gt;
+    </span><span class=identifier>parse_info</span><span class=special>&lt;</span><span class=identifier>IteratorT</span><span class=special>&gt;
+    </span><span class=identifier>parse
+    </span><span class=special>(
+        </span><span class=identifier>IteratorT </span><span class=keyword>const</span><span class=special>&        </span><span class=identifier>first</span><span class=special>,
+        </span><span class=identifier>IteratorT </span><span class=keyword>const</span><span class=special>&        </span><span class=identifier>last</span><span class=special>,
+        </span><span class=identifier>parser</span><span class=special>&lt;</span><span class=identifier>DerivedT</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>& </span><span class=identifier>p
+    </span><span class=special>);</span></font></code></pre>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>CharT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>DerivedT</span><span class=special>&gt;
+    </span><span class=identifier>parse_info</span><span class=special>&lt;</span><span class=identifier>CharT </span><span class=keyword>const</span><span class=special>*&gt;
+    </span><span class=identifier>parse
+    </span><span class=special>(
+        </span><span class=identifier>CharT </span><span class=keyword>const</span><span class=special>*            </span><span class=identifier>str</span><span class=special>,
+        </span><span class=identifier>parser</span><span class=special>&lt;</span><span class=identifier>DerivedT</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>& </span><span class=identifier>p
+    </span><span class=special>);</span></font></code></pre>
+<p>There are two variants. The first variant accepts a <tt>first</tt>, <tt>last</tt> 
+  iterator pair like you do STL algorithms. The second variant accepts a null 
+  terminated string. The last argument is a parser <tt>p</tt> which will be used 
+  to parse the input.</p>
+<p><b>Phrase level parsing</b></p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>IteratorT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>ParserT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>SkipT</span><span class=special>&gt;
+    </span><span class=identifier>parse_info</span><span class=special>&lt;</span><span class=identifier>IteratorT</span><span class=special>&gt;
+    </span><span class=identifier>parse
+    </span><span class=special>(
+        </span><span class=identifier>IteratorT </span><span class=keyword>const</span><span class=special>&        </span><span class=identifier>first</span><span class=special>,
+        </span><span class=identifier>IteratorT </span><span class=keyword>const</span><span class=special>&        </span><span class=identifier>last</span><span class=special>,
+        </span><span class=identifier>parser</span><span class=special>&lt;</span><span class=identifier>ParserT</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>&  </span><span class=identifier>p</span><span class=special>,
+        </span><span class=identifier>parser</span><span class=special>&lt;</span><span class=identifier>SkipT</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>&    </span><span class=identifier>skip
+    </span><span class=special>);</span></font></code></pre>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>CharT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>ParserT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>SkipT</span><span class=special>&gt;
+    </span><span class=identifier>parse_info</span><span class=special>&lt;</span><span class=identifier>CharT </span><span class=keyword>const</span><span class=special>*&gt;
+    </span><span class=identifier>parse
+    </span><span class=special>(
+        </span><span class=identifier>CharT </span><span class=keyword>const</span><span class=special>*            </span><span class=identifier>str</span><span class=special>,
+        </span><span class=identifier>parser</span><span class=special>&lt;</span><span class=identifier>ParserT</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>&  </span><span class=identifier>p</span><span class=special>,
+        </span><span class=identifier>parser</span><span class=special>&lt;</span><span class=identifier>SkipT</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>&    </span><span class=identifier>skip
+    </span><span class=special>);</span></font></code></pre>
+<p>Like above, there are two variants. The first variant accepts a <tt>first</tt>, 
+  <tt>last</tt> iterator pair like you do STL algorithms. The second variant accepts 
+  a null terminated string. The argument <tt>p</tt> is the parser which will be 
+  used to parse the input. The last argument <tt>skip</tt> is the skip parser.</p>
+<p><b>The parse_info structure</b></p>
+<p>The functions above return a <tt>parse_info</tt> structure parameterized by 
+  the iterator type passed in. The parse_info struct has these members:</p>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td colspan="2" class="table_title"><b>parse_info</b></td>
+  </tr>
+  <tr> 
+    <td width="14%" class="table_cells"><b>stop</b></td>
+    <td width="86%" class="table_cells">Points to the final parse position (i.e 
+      The parser recognized and processed the input up to this point)</td>
+  </tr>
+  <tr> 
+    <td width="14%" class="table_cells"><b>hit</b></td>
+    <td width="86%" class="table_cells">True if parsing is successful. This may 
+      be full: the parser consumed all the input, or partial: the parser consumed 
+      only a portion of the input.</td>
+  </tr>
+  <tr> 
+    <td width="14%" class="table_cells"><b>full</b></td>
+    <td width="86%" class="table_cells">True when we have a full match (i.e The 
+      parser consumed all the input).</td>
+  </tr>
+  <tr> 
+    <td width="14%" class="table_cells"><b>length</b></td>
+    <td width="86%" class="table_cells">The number of characters consumed by the 
+      parser. This is valid only if we have a successful match (either partial 
+      or full). </td>
+  </tr>
+</table>
+<h2><a name="phrase_scanner_t" id="phrase_scanner_t"></a><img src="theme/lens.gif" width="15" height="16"> 
+  The phrase_scanner_t and wide_phrase_scanner_t</h2>
+<p>For convenience, Spirit declares these typedefs:</p>
+<pre>
+    <span class="keyword">typedef</span> scanner<span class="special">&lt;</span><span class="keyword">char const</span><span class="special">*,</span> unspecified<span class="special">&gt;</span> phrase_scanner_t<span class="special">;</span>
+    <span class="keyword">typedef</span> scanner<span class="special">&lt;</span><span class="keyword">wchar_t const</span><span class="special">*,</span> <span class="identifier">unspecified</span><span class="special">&gt;</span> wide_phrase_scanner_t<span class="special">;</span>
+</pre>
+<p>These are the exact scanner types used by Spirit on calls to the parse function 
+  passing in a <tt>char const*</tt> (C string) or a <tt>wchar_t const*</tt> (wide 
+  string) as the first parameter and a <tt>space_p</tt> as skip-parser (the third 
+  parameter). For instance, we can use these typedefs to declare some rules. Example:</p>
+<pre>    rule<span class="special">&lt;</span>phrase_scanner_t<span class="special">&gt; </span><span class="identifier">my_rule</span><span class="special">;
+    </span><span class="identifier">parse</span><span class="special">(</span><span class="string">&quot;abrakadabra&quot;</span><span class="special">, </span><span class="identifier">my_rule</span><span class="special">,</span> <span class="identifier">space_p</span><span class="special">);</span></pre>
+<h2><img src="theme/lens.gif" width="15" height="16"> Direct parsing with Iterators</h2>
+<p>The free parse functions make it easy for us. By using them, we need not bother 
+  with the scanner intricacies. The free parse functions hide the dirty details. 
+  However, sometime in the future, we will need to get under the hood. It's nice 
+  that we know what we are dealing with when that need comes. We will need to 
+  go low-level and call the parser's parse member function directly. </p>
+<p>If we wish to work on the <b>character level</b>, the procedure is quite simple:</p>
+<pre><span class=identifier>    </span><span class=identifier>scanner</span><span class=special>&lt;</span><span class=identifier>IteratorT</span><span class=special>&gt; </span><span class=identifier>scan</span><span class=special>(</span><span class=identifier>first</span><span class=special>, </span><span class=identifier>last</span><span class=special>);
+
+    </span><span class=keyword>if </span><span class=special>(</span><span class=identifier>p</span><span class=special>.</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>))
+    </span><span class=special>{
+        </span><span class=comment>//  Parsed successfully. If first == last, then we have
+        //  a full parse, the parser recognized the input in whole.
+    </span><span class=special>}
+    </span><span class=keyword>else
+    </span><span class=special>{
+        </span><span class=comment>//  Parsing failure. The parser failed to recognize the input
+    </span><span class=special>}</span></pre>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/alert.gif" width="16" height="16"> <strong>The 
+      scanner position on an unsucessful match</strong><br> <br>
+      On a successful match, the input is advanced accordingly. But what happens 
+      on an unsuccessful match? Be warned. It might be intuitive to think that 
+      the scanner position is reset to its initial position prior to parsing. 
+      No, the position is not reset. On an unsuccessful match, the position of 
+      the scanner is <strong>undefined</strong>! Usually, it is positioned at 
+      the farthest point where the error was found somewhere down the recursive 
+      descent. If this behavior is not desired, you may need to position the scanner 
+      yourself. The <a href="numerics.html#scanner_save">example in the numerics 
+      chapter</a> illustrates how the scanner position can be saved and later 
+      restored.</td>
+  </tr>
+</table>
+<p>Where <tt>p</tt> is the parser we want to use, and <tt>first</tt>/<tt>last</tt> 
+  are the iterator pairs referring to the input. We just create a scanner given 
+  the iterators. The scanner type we will use here uses the default <tt>scanner_policies&lt;&gt;</tt>.</p>
+<p>The situation is a bit more complex when we wish to work on the <b>phrase level</b>:</p>
+<pre><span class=special>    </span><span class=keyword>typedef </span><span class=identifier>skip_parser_iteration_policy</span><span class=special>&lt;</span><span class=identifier>SkipT</span><span class=special>&gt; </span><span class=identifier>iter_policy_t</span><span class=special>;
+    </span><span class=keyword>typedef </span><span class=identifier>scanner_policies</span><span class=special>&lt;</span><span class=identifier>iter_policy_t</span><span class=special>&gt; </span><span class=identifier>scanner_policies_t</span><span class=special>;
+    </span><span class=keyword>typedef </span><span class=identifier>scanner</span><span class=special>&lt;</span><span class=identifier>IteratorT</span><span class=special>, </span><span class=identifier>scanner_policies_t</span><span class=special>&gt; </span><span class=identifier>scanner_t</span><span class=special>;
+
+</span><span class=special>    </span><span class=identifier>iter_policy_t </span><span class=identifier>iter_policy</span><span class=special>(</span><span class=identifier>skip</span><span class=special>);
+    </span><span class=identifier>scanner_policies_t </span><span class=identifier>policies</span><span class=special>(</span><span class=identifier>iter_policy</span><span class=special>);
+    </span><span class=identifier>scanner_t </span><span class=identifier>scan</span><span class=special>(</span><span class=identifier>first</span><span class=special>, </span><span class=identifier>last</span><span class=special>, </span><span class=identifier>policies</span><span class=special>);
+</span>
+    <span class=keyword>if </span><span class=special>(</span><span class=identifier>p</span><span class=special>.</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>))
+    </span><span class=special>{
+        </span><span class=comment>//  Parsed successfully. If first == last, then we have
+        //  a full parse, the parser recognized the input in whole.
+    </span><span class=special>}
+    </span><span class=keyword>else
+    </span><span class=special>{
+        </span><span class=comment>//  Parsing failure. The parser failed to recognize the input
+    </span><span class=special>}</span></pre>
+<p>Where <tt>SkipT</tt> is the type of the skip-parser, <tt>skip</tt>. Again, 
+  <tt>p</tt> is the parser we want to use, and <tt>first</tt>/<tt>last</tt> are 
+  the iterator pairs referring to the input. Given a skip-parser type <tt>SkipT</tt>, 
+  <span class=identifier><tt>skip_parser_iteration_policy</tt></span> creates 
+  a scanner iteration policy that skips over portions that are recognized by the 
+  skip-parser. This may then be used to create a scanner. The <tt>scanner_policies</tt> 
+  class wraps all scanner related policies including the iteration policies.</p>
+<h2><a name="lexeme_scanner"></a>lexeme_scanner</h2>
+<p>When switching from phrase level to character level parsing, the <tt>lexeme_d</tt> 
+  (see <a href="directives.html">directives.html</a>) does its magic by disabling 
+  the skipping of white spaces. This is done by tweaking the <a href="scanner.html">scanner</a>. 
+  However, when we do this, all parsers inside the lexeme gets a transformed scanner 
+  type. This should not be a problem in most cases. However, when rules are called 
+  inside the <tt>lexeme_d</tt>, the compiler will choke if the rule does not have 
+  the proper scanner type. If a rule must be used inside a <tt>lexeme_d</tt>, 
+  the rule's type must be:</p>
+<pre>    <span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>lexeme_scanner</span><span class="special">&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class="identifier">type</span><span class=special>&gt; </span>r<span class=special>;</span></pre>
+<p>where <span class=identifier><tt>ScannerT</tt></span> is the actual type of 
+  the scanner used. Take note that <tt>lexeme_scanner</tt> will only work for phrase level scanners. </p>
+<h2><a name="as_lower_scanner"></a>as_lower_scanner</h2>
+<p>Similarly, the <tt>as_lower_d</tt> does its work by filtering and converting 
+  all characters received from the scanner to lower case. This is also done by 
+  tweaking the <a href="scanner.html">scanner</a>. Then again, all parsers inside 
+  the <tt>as_lower_d</tt> gets a transformed scanner type. If a rule must be used 
+  inside a <tt>as_lower_d</tt>, the rule's type must be:</p>
+<pre>    <span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>as_lower_scanner</span><span class="special">&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class="identifier">type</span><span class=special>&gt; </span>r<span class=special>;</span></pre>
+<p>where <span class=identifier><tt>ScannerT</tt></span> is the actual type of 
+  the scanner used. </p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/bulb.gif" width="13" height="18"> See 
+      the techniques section for an <a href="techniques.html#multiple_scanner_support">example</a> 
+      of a <a href="grammar.html">grammar</a> using a <a href="rule.html#multiple_scanner_support">multiple 
+      scanner enabled rule</a>, <a href="scanner.html#lexeme_scanner">lexeme_scanner</a> 
+      and <a href="scanner.html#as_lower_scanner">as_lower_scanner.</a></td>
+  </tr>
+</table>
+<h3><a name="no_actions_scanner"></a>no_actions_scanner</h3>
+<p>Again, <tt>no_actions_d</tt> directive tweaks the scanner to disable firing 
+  semantic actions. Like before, all parsers inside the <tt>no_actions_d</tt> 
+  gets a transformed scanner type. If a rule must be used inside a <tt>no_actions_d</tt>, 
+  the rule's type must be:</p>
+<pre>    <span class=identifier>rule</span><span class=special>&lt;</span>no_actions_scanner<span class="special">&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class="identifier">type</span><span class=special>&gt; </span>r<span class=special>;</span></pre>
+<p>where <tt>ScannerT</tt> is the actual type of the scanner used. <span class=special></span></p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/note.gif" width="16" height="16"> Be 
+      sure to add &quot;<tt>typename</tt>&quot; before <tt><span class=identifier><tt>lexeme_scanner</tt>, 
+      <tt>as_lower_scanner</tt></span></tt> and <tt>no_actions_scanner</tt> when 
+      these are used inside a template class or function.</td>
+  </tr>
+</table>
+<p><img src="theme/lens.gif" width="15" height="16"> See <a href="../example/fundamental/no_actions.cpp">no_actions.cpp</a>. This is part of the Spirit distribution.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="directives.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="grammar.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+</body>
+</html>

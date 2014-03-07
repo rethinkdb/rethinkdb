@@ -1,0 +1,303 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Context</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Context">
+<link rel="up" href="../index.html" title="Context">
+<link rel="prev" href="requirements.html" title="Requirements">
+<link rel="next" href="context/boost_fcontext.html" title="Struct fcontext_t and related functions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="requirements.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="context/boost_fcontext.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="context.context"></a><a class="link" href="context.html" title="Context">Context</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="context/boost_fcontext.html">Struct <code class="computeroutput"><span class="identifier">fcontext_t</span></code> and related functions</a></span></dt></dl></div>
+<p>
+      Each instance of <span class="emphasis"><em>fcontext_t</em></span> represents a context (CPU
+      registers and stack space). Together with its related functions <span class="emphasis"><em>jump_fcontext()</em></span>
+      and <span class="emphasis"><em>make_fcontext()</em></span> it provides a execution control transfer
+      mechanism similar interface like <a href="http://www.kernel.org/doc/man-pages/online/pages/man2/getcontext.2.html" target="_top">ucontext_t</a>.
+      <span class="emphasis"><em>fcontext_t</em></span> and its functions are located in <span class="emphasis"><em>boost::context</em></span>
+      and the functions are declared as extern "C".
+    </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        If <span class="emphasis"><em>fcontext_t</em></span> is used in a multi threaded application,
+        it can migrated between threads, but must not reference <span class="emphasis"><em>thread-local
+        storage</em></span>.
+      </p></td></tr>
+</table></div>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        The low level API is the part to port to new platforms.
+      </p></td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        If <span class="emphasis"><em>fiber-local storage</em></span> is used on Windows, the user
+        is responsible for calling <span class="emphasis"><em>::FlsAlloc()</em></span>, <span class="emphasis"><em>::FlsFree()</em></span>.
+      </p></td></tr>
+</table></div>
+<h4>
+<a name="context.context.h0"></a>
+      <span class="phrase"><a name="context.context.executing_a_context"></a></span><a class="link" href="context.html#context.context.executing_a_context">Executing
+      a context</a>
+    </h4>
+<p>
+      A new context supposed to execute a <span class="emphasis"><em>context-function</em></span> (returning
+      void and accepting intptr_t as argument) will be created on top of the stack
+      (at 16 byte boundary) by function <span class="emphasis"><em>make_fcontext()</em></span>.
+    </p>
+<pre class="programlisting"><span class="comment">// context-function</span>
+<span class="keyword">void</span> <span class="identifier">f</span><span class="special">(</span> <span class="identifier">intptr</span><span class="special">);</span>
+
+<span class="comment">// creates and manages a protected stack (with guard page)</span>
+<span class="identifier">ctx</span><span class="special">::</span><span class="identifier">guarded_stack_allocator</span> <span class="identifier">alloc</span><span class="special">;</span>
+<span class="keyword">void</span> <span class="special">*</span> <span class="identifier">sp</span><span class="special">(</span> <span class="identifier">alloc</span><span class="special">.</span><span class="identifier">allocate</span><span class="special">(</span><span class="identifier">ctx</span><span class="special">::</span><span class="identifier">minimum_stacksize</span><span class="special">()));</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">(</span> <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">guarded_stack_allocator</span><span class="special">::</span><span class="identifier">minimum_stacksize</span><span class="special">());</span>
+
+<span class="comment">// context fc uses f() as context function</span>
+<span class="comment">// fcontext_t is placed on top of context stack</span>
+<span class="comment">// a pointer to fcontext_t is returned</span>
+<span class="identifier">fcontext_t</span>  <span class="special">*</span> <span class="identifier">fc</span><span class="special">(</span> <span class="identifier">make_fcontext</span><span class="special">(</span> <span class="identifier">sp</span><span class="special">,</span> <span class="identifier">size</span><span class="special">,</span> <span class="identifier">f</span><span class="special">));</span>
+</pre>
+<p>
+      Calling <span class="emphasis"><em>jump_fcontext()</em></span> invokes the <span class="emphasis"><em>context-function</em></span>
+      in a newly created context complete with registers, flags, stack and instruction
+      pointers. When control should be returned to the original calling context,
+      call <span class="emphasis"><em>jump_fcontext()</em></span>. The current context information
+      (registers, flags, and stack and instruction pointers) is saved and the original
+      context information is restored. Calling <span class="emphasis"><em>jump_fcontext()</em></span>
+      again resumes execution in the second context after saving the new state of
+      the original context.
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">ctx</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">context</span><span class="special">;</span>
+
+<span class="identifier">ctx</span><span class="special">::</span><span class="identifier">fcontext_t</span> <span class="identifier">fcm</span><span class="special">,</span> <span class="special">*</span> <span class="identifier">fc1</span><span class="special">,</span> <span class="special">*</span> <span class="identifier">fc2</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">f1</span><span class="special">(</span> <span class="identifier">intptr_t</span><span class="special">)</span>
+<span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"f1: entered"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"f1: call jump_fcontext( fc1, fc2, 0)"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="identifier">fc1</span><span class="special">,</span> <span class="identifier">fc2</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"f1: return"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="identifier">fc1</span><span class="special">,</span> <span class="special">&amp;</span> <span class="identifier">fcm</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">f2</span><span class="special">(</span> <span class="identifier">intptr_t</span><span class="special">)</span>
+<span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"f2: entered"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"f2: call jump_fcontext( fc2, fc1, 0)"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="identifier">fc2</span><span class="special">,</span> <span class="identifier">fc1</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>
+        <span class="identifier">BOOST_ASSERT</span><span class="special">(</span> <span class="keyword">false</span> <span class="special">&amp;&amp;</span> <span class="special">!</span> <span class="string">"f2: never returns"</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span> <span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+        <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">guarded_stack_allocator</span> <span class="identifier">alloc</span><span class="special">;</span>
+        <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">sp1</span><span class="special">(</span> <span class="identifier">alloc</span><span class="special">.</span><span class="identifier">allocate</span><span class="special">(</span><span class="identifier">ctx</span><span class="special">::</span><span class="identifier">minimum_stacksize</span><span class="special">()));</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">(</span> <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">guarded_stack_allocator</span><span class="special">::</span><span class="identifier">minimum_stacksize</span><span class="special">());</span>
+
+        <span class="identifier">fc1</span> <span class="special">=</span> <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">make_fcontext</span><span class="special">(</span> <span class="identifier">sp1</span><span class="special">,</span> <span class="identifier">size</span><span class="special">,</span> <span class="identifier">f1</span><span class="special">);</span>
+        <span class="identifier">fc2</span> <span class="special">=</span> <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">make_fcontext</span><span class="special">(</span> <span class="identifier">sp2</span><span class="special">,</span> <span class="identifier">size</span><span class="special">,</span> <span class="identifier">f2</span><span class="special">);</span>
+
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"main: call jump_fcontext( &amp; fcm, fc1, 0)"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="special">&amp;</span> <span class="identifier">fcm</span><span class="special">,</span> <span class="identifier">fc1</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>
+
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"main: done"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+        <span class="keyword">return</span> <span class="identifier">EXIT_SUCCESS</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="identifier">output</span><span class="special">:</span>
+    <span class="identifier">main</span><span class="special">:</span> <span class="identifier">call</span> <span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="special">&amp;</span> <span class="identifier">fcm</span><span class="special">,</span> <span class="special">&amp;</span> <span class="identifier">fc1</span><span class="special">,</span> <span class="number">0</span><span class="special">)</span>
+    <span class="identifier">f1</span><span class="special">:</span> <span class="identifier">entered</span>
+    <span class="identifier">f1</span><span class="special">:</span> <span class="identifier">call</span> <span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="special">&amp;</span> <span class="identifier">fc1</span><span class="special">,</span> <span class="special">&amp;</span> <span class="identifier">fc2</span><span class="special">,</span> <span class="number">0</span><span class="special">)</span>
+    <span class="identifier">f2</span><span class="special">:</span> <span class="identifier">entered</span>
+    <span class="identifier">f2</span><span class="special">:</span> <span class="identifier">call</span> <span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="special">&amp;</span> <span class="identifier">fc2</span><span class="special">,</span> <span class="special">&amp;</span> <span class="identifier">fc1</span><span class="special">,</span> <span class="number">0</span><span class="special">)</span>
+    <span class="identifier">f1</span><span class="special">:</span> <span class="keyword">return</span>
+    <span class="identifier">main</span><span class="special">:</span> <span class="identifier">done</span>
+</pre>
+<p>
+      First call of <span class="emphasis"><em>jump_fcontext()</em></span> enters the <span class="emphasis"><em>context-function</em></span>
+      <code class="computeroutput"><span class="identifier">f1</span><span class="special">()</span></code>
+      by starting context fc1 (context fcm saves the registers of <code class="computeroutput"><span class="identifier">main</span><span class="special">()</span></code>). For jumping between context's fc1 and fc2
+      <code class="computeroutput"><span class="identifier">jump_fcontext</span><span class="special">()</span></code>
+      is called. Because context fcm is chained to fc1, <code class="computeroutput"><span class="identifier">main</span><span class="special">()</span></code> is entered (returning from <span class="emphasis"><em>jump_fcontext()</em></span>)
+      after context fc1 becomes complete (return from <code class="computeroutput"><span class="identifier">f1</span><span class="special">()</span></code>).
+    </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Calling <span class="emphasis"><em>jump_fcontext()</em></span> to the same context from inside
+        the same context results in undefined behaviour.
+      </p></td></tr>
+</table></div>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        The size of the stack is required to be larger than the size of fcontext_t.
+      </p></td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        In contrast to threads, which are preemtive, <span class="emphasis"><em>fcontext_t</em></span>
+        switches are cooperative (programmer controls when switch will happen). The
+        kernel is not involved in the context switches.
+      </p></td></tr>
+</table></div>
+<h4>
+<a name="context.context.h1"></a>
+      <span class="phrase"><a name="context.context.transfer_of_data"></a></span><a class="link" href="context.html#context.context.transfer_of_data">Transfer
+      of data</a>
+    </h4>
+<p>
+      The third argument passed to <span class="emphasis"><em>jump_fcontext()</em></span>, in one context,
+      is passed as the first argument of the <span class="emphasis"><em>context-function</em></span>
+      if the context is started for the first time. In all following invocations
+      of <span class="emphasis"><em>jump_fcontext()</em></span> the intptr_t passed to <span class="emphasis"><em>jump_fcontext()</em></span>,
+      in one context, is returned by <span class="emphasis"><em>jump_fcontext()</em></span> in the
+      other context.
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">ctx</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">context</span><span class="special">;</span>
+
+<span class="identifier">ctx</span><span class="special">::</span><span class="identifier">fcontext_t</span> <span class="identifier">fcm</span><span class="special">,</span> <span class="special">*</span> <span class="identifier">fc</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">&gt;</span>   <span class="identifier">pair_t</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">f</span><span class="special">(</span> <span class="identifier">intptr_t</span> <span class="identifier">param</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">pair_t</span> <span class="special">*</span> <span class="identifier">p</span> <span class="special">=</span> <span class="special">(</span> <span class="identifier">pair_t</span> <span class="special">*)</span> <span class="identifier">param</span><span class="special">;</span>
+
+    <span class="identifier">p</span> <span class="special">=</span> <span class="special">(</span> <span class="identifier">pair_t</span> <span class="special">*)</span> <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="identifier">fc</span><span class="special">,</span> <span class="special">&amp;</span> <span class="identifier">fcm</span><span class="special">,</span> <span class="special">(</span> <span class="identifier">intptr_t</span><span class="special">)</span> <span class="special">(</span> <span class="identifier">p</span><span class="special">-&gt;</span><span class="identifier">first</span> <span class="special">+</span> <span class="identifier">p</span><span class="special">-&gt;</span><span class="identifier">second</span><span class="special">)</span> <span class="special">);</span>
+
+    <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="identifier">fc</span><span class="special">,</span> <span class="special">&amp;</span> <span class="identifier">fcm</span><span class="special">,</span> <span class="special">(</span> <span class="identifier">intptr_t</span><span class="special">)</span> <span class="special">(</span> <span class="identifier">p</span><span class="special">-&gt;</span><span class="identifier">first</span> <span class="special">+</span> <span class="identifier">p</span><span class="special">-&gt;</span><span class="identifier">second</span><span class="special">)</span> <span class="special">);</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span> <span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">guarded_stack_allocator</span> <span class="identifier">alloc</span><span class="special">;</span>
+    <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">sp</span><span class="special">(</span> <span class="identifier">alloc</span><span class="special">.</span><span class="identifier">allocate</span><span class="special">(</span><span class="identifier">ctx</span><span class="special">::</span><span class="identifier">minimum_stacksize</span><span class="special">()));</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">(</span> <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">guarded_stack_allocator</span><span class="special">::</span><span class="identifier">minimum_stacksize</span><span class="special">());</span>
+
+    <span class="identifier">pair_t</span> <span class="identifier">p</span><span class="special">(</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">make_pair</span><span class="special">(</span> <span class="number">2</span><span class="special">,</span> <span class="number">7</span><span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">fc</span> <span class="special">=</span> <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">make_fcontext</span><span class="special">(</span> <span class="identifier">sp</span><span class="special">,</span> <span class="identifier">size</span><span class="special">,</span> <span class="identifier">f</span><span class="special">);</span>
+
+    <span class="keyword">int</span> <span class="identifier">res</span> <span class="special">=</span> <span class="special">(</span> <span class="keyword">int</span><span class="special">)</span> <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="special">&amp;</span> <span class="identifier">fcm</span><span class="special">,</span> <span class="identifier">fc</span><span class="special">,</span> <span class="special">(</span> <span class="identifier">intptr_t</span><span class="special">)</span> <span class="special">&amp;</span> <span class="identifier">p</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">first</span> <span class="special">&lt;&lt;</span> <span class="string">" + "</span> <span class="special">&lt;&lt;</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">second</span> <span class="special">&lt;&lt;</span> <span class="string">" == "</span> <span class="special">&lt;&lt;</span> <span class="identifier">res</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">p</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">make_pair</span><span class="special">(</span> <span class="number">5</span><span class="special">,</span> <span class="number">6</span><span class="special">);</span>
+    <span class="identifier">res</span> <span class="special">=</span> <span class="special">(</span> <span class="keyword">int</span><span class="special">)</span> <span class="identifier">ctx</span><span class="special">::</span><span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="special">&amp;</span> <span class="identifier">fcm</span><span class="special">,</span> <span class="identifier">fc</span><span class="special">,</span> <span class="special">(</span> <span class="identifier">intptr_t</span><span class="special">)</span> <span class="special">&amp;</span> <span class="identifier">p</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">first</span> <span class="special">&lt;&lt;</span> <span class="string">" + "</span> <span class="special">&lt;&lt;</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">second</span> <span class="special">&lt;&lt;</span> <span class="string">" == "</span> <span class="special">&lt;&lt;</span> <span class="identifier">res</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"main: done"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="identifier">EXIT_SUCCESS</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="identifier">output</span><span class="special">:</span>
+    <span class="number">2</span> <span class="special">+</span> <span class="number">7</span> <span class="special">==</span> <span class="number">9</span>
+    <span class="number">5</span> <span class="special">+</span> <span class="number">6</span> <span class="special">==</span> <span class="number">11</span>
+    <span class="identifier">main</span><span class="special">:</span> <span class="identifier">done</span>
+</pre>
+<h4>
+<a name="context.context.h2"></a>
+      <span class="phrase"><a name="context.context.exceptions_in__emphasis_context_function__emphasis_"></a></span><a class="link" href="context.html#context.context.exceptions_in__emphasis_context_function__emphasis_">Exceptions
+      in <span class="emphasis"><em>context-function</em></span></a>
+    </h4>
+<p>
+      If the <span class="emphasis"><em>context-function</em></span> emits an exception, the behaviour
+      is undefined.
+    </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        <span class="emphasis"><em>context-function</em></span> should wrap the code in a try/catch
+        block.
+      </p></td></tr>
+</table></div>
+<h4>
+<a name="context.context.h3"></a>
+      <span class="phrase"><a name="context.context.preserving_floating_point_registers"></a></span><a class="link" href="context.html#context.context.preserving_floating_point_registers">Preserving
+      floating point registers</a>
+    </h4>
+<p>
+      Preserving the floating point registers increases the cycle count for a context
+      switch (see performance tests). The fourth argument of <span class="emphasis"><em>jump_fcontext()</em></span>
+      controls if fpu registers should be preserved by the context jump.
+    </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        The use of the fpu controlling argument of <span class="emphasis"><em>jump_fcontext()</em></span>
+        must be consistent in the application. Otherwise the behaviour is undefined.
+      </p></td></tr>
+</table></div>
+<h4>
+<a name="context.context.h4"></a>
+      <span class="phrase"><a name="context.context.stack_unwinding"></a></span><a class="link" href="context.html#context.context.stack_unwinding">Stack
+      unwinding</a>
+    </h4>
+<p>
+      Sometimes it is necessary to unwind the stack of an unfinished context to destroy
+      local stack variables so they can release allocated resources (RAII pattern).
+      The user is responsible for this task.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009 Oliver Kowalke<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="requirements.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="context/boost_fcontext.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

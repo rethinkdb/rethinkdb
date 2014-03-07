@@ -1,0 +1,232 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Tokenizing Input Data</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../abstracts.html" title="Abstracts">
+<link rel="prev" href="lexer_primitives/lexer_token_values.html" title="About Tokens and Token Values">
+<link rel="next" href="lexer_semantic_actions.html" title="Lexer Semantic Actions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lexer_primitives/lexer_token_values.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../abstracts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lexer_semantic_actions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.lex.abstracts.lexer_tokenizing"></a><a class="link" href="lexer_tokenizing.html" title="Tokenizing Input Data">Tokenizing Input
+        Data</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit.lex.abstracts.lexer_tokenizing.h0"></a>
+          <span class="phrase"><a name="spirit.lex.abstracts.lexer_tokenizing.the_tokenize_function"></a></span><a class="link" href="lexer_tokenizing.html#spirit.lex.abstracts.lexer_tokenizing.the_tokenize_function">The
+          tokenize function</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><span class="identifier">tokenize</span><span class="special">()</span></code>
+          function is a helper function simplifying the usage of a lexer in a stand
+          alone fashion. For instance, you may have a stand alone lexer where all
+          that functional requirements are implemented inside lexer semantic actions.
+          A good example for this is the <a href="../../../../../example/lex/word_count_lexer.cpp" target="_top">word_count_lexer</a>
+          described in more detail in the section <a class="link" href="../tutorials/lexer_quickstart2.html" title="Quickstart 2 - A better word counter using Spirit.Lex">Lex
+          Quickstart 2 - A better word counter using <span class="emphasis"><em>Spirit.Lex</em></span></a>.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">word_count_tokens</span> <span class="special">:</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;</span><span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">word_count_tokens</span><span class="special">()</span>
+      <span class="special">:</span> <span class="identifier">c</span><span class="special">(</span><span class="number">0</span><span class="special">),</span> <span class="identifier">w</span><span class="special">(</span><span class="number">0</span><span class="special">),</span> <span class="identifier">l</span><span class="special">(</span><span class="number">0</span><span class="special">)</span>
+      <span class="special">,</span> <span class="identifier">word</span><span class="special">(</span><span class="string">"[^ \t\n]+"</span><span class="special">)</span>     <span class="comment">// define tokens</span>
+      <span class="special">,</span> <span class="identifier">eol</span><span class="special">(</span><span class="string">"\n"</span><span class="special">)</span>
+      <span class="special">,</span> <span class="identifier">any</span><span class="special">(</span><span class="string">"."</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">_start</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">_end</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">ref</span><span class="special">;</span>
+
+        <span class="comment">// associate tokens with the lexer</span>
+        <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">self</span>
+            <span class="special">=</span>   <span class="identifier">word</span>  <span class="special">[++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">w</span><span class="special">),</span> <span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">_start</span><span class="special">,</span> <span class="identifier">_end</span><span class="special">)]</span>
+            <span class="special">|</span>   <span class="identifier">eol</span>   <span class="special">[++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">),</span> <span class="special">++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">l</span><span class="special">)]</span>
+            <span class="special">|</span>   <span class="identifier">any</span>   <span class="special">[++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">)]</span>
+            <span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">w</span><span class="special">,</span> <span class="identifier">l</span><span class="special">;</span>
+    <span class="identifier">lex</span><span class="special">::</span><span class="identifier">token_def</span><span class="special">&lt;&gt;</span> <span class="identifier">word</span><span class="special">,</span> <span class="identifier">eol</span><span class="special">,</span> <span class="identifier">any</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          The construct used to tokenize the given input, while discarding all generated
+          tokens is a common application of the lexer. For this reason <span class="emphasis"><em>Spirit.Lex</em></span>
+          exposes an API function <code class="computeroutput"><span class="identifier">tokenize</span><span class="special">()</span></code> minimizing the code required:
+        </p>
+<pre class="programlisting"><span class="comment">// Read input from the given file</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span> <span class="special">(</span><span class="identifier">read_from_file</span><span class="special">(</span><span class="number">1</span> <span class="special">==</span> <span class="identifier">argc</span> <span class="special">?</span> <span class="string">"word_count.input"</span> <span class="special">:</span> <span class="identifier">argv</span><span class="special">[</span><span class="number">1</span><span class="special">]));</span>
+
+<span class="identifier">word_count_tokens</span><span class="special">&lt;</span><span class="identifier">lexer_type</span><span class="special">&gt;</span> <span class="identifier">word_count_lexer</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">first</span> <span class="special">=</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+
+<span class="comment">// Tokenize all the input, while discarding all generated tokens</span>
+<span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">tokenize</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">word_count_lexer</span><span class="special">);</span>
+</pre>
+<p>
+          This code is completely equivalent to the more verbose version as shown
+          in the section <a class="link" href="../tutorials/lexer_quickstart2.html" title="Quickstart 2 - A better word counter using Spirit.Lex">Lex
+          Quickstart 2 - A better word counter using <span class="emphasis"><em>Spirit.Lex</em></span></a>.
+          The function <code class="computeroutput"><span class="identifier">tokenize</span><span class="special">()</span></code>
+          will return either if the end of the input has been reached (in this case
+          the return value will be <code class="computeroutput"><span class="keyword">true</span></code>),
+          or if the lexer couldn't match any of the token definitions in the input
+          (in this case the return value will be <code class="computeroutput"><span class="keyword">false</span></code>
+          and the iterator <code class="computeroutput"><span class="identifier">first</span></code>
+          will point to the first not matched character in the input sequence).
+        </p>
+<p>
+          The prototype of this function is:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">tokenize</span><span class="special">(</span><span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">Lexer</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lex</span>
+  <span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Lexer</span><span class="special">::</span><span class="identifier">char_type</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">initial_state</span> <span class="special">=</span> <span class="number">0</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b>where:</b></p>
+<dl class="variablelist">
+<dt><span class="term">Iterator&amp; first</span></dt>
+<dd><p>
+                The beginning of the input sequence to tokenize. The value of this
+                iterator will be updated by the lexer, pointing to the first not
+                matched character of the input after the function returns.
+              </p></dd>
+<dt><span class="term">Iterator last</span></dt>
+<dd><p>
+                The end of the input sequence to tokenize.
+              </p></dd>
+<dt><span class="term">Lexer const&amp; lex</span></dt>
+<dd><p>
+                The lexer instance to use for tokenization.
+              </p></dd>
+<dt><span class="term">Lexer::char_type const* initial_state</span></dt>
+<dd><p>
+                This optional parameter can be used to specify the initial lexer
+                state for tokenization.
+              </p></dd>
+</dl>
+</div>
+<p>
+          A second overload of the <code class="computeroutput"><span class="identifier">tokenize</span><span class="special">()</span></code> function allows specifying of any arbitrary
+          function or function object to be called for each of the generated tokens.
+          For some applications this is very useful, as it might avoid having lexer
+          semantic actions. For an example of how to use this function, please have
+          a look at <a href="../../../../../example/lex/word_count_lexer.cpp" target="_top">word_count_functor.cpp</a>:
+        </p>
+<p>
+          The main function simply loads the given file into memory (as a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>), instantiates an instance of
+          the token definition template using the correct iterator type (<code class="computeroutput"><span class="identifier">word_count_tokens</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*&gt;</span></code>), and finally calls <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">tokenize</span></code>, passing an instance of the
+          counter function object. The return value of <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">tokenize</span><span class="special">()</span></code> will be <code class="computeroutput"><span class="keyword">true</span></code>
+          if the whole input sequence has been successfully tokenized, and <code class="computeroutput"><span class="keyword">false</span></code> otherwise.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="comment">// these variables are used to count characters, words and lines</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">c</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">w</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">l</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+
+    <span class="comment">// read input from the given file</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span> <span class="special">(</span><span class="identifier">read_from_file</span><span class="special">(</span><span class="number">1</span> <span class="special">==</span> <span class="identifier">argc</span> <span class="special">?</span> <span class="string">"word_count.input"</span> <span class="special">:</span> <span class="identifier">argv</span><span class="special">[</span><span class="number">1</span><span class="special">]));</span>
+
+    <span class="comment">// create the token definition instance needed to invoke the lexical analyzer</span>
+    <span class="identifier">word_count_tokens</span><span class="special">&lt;</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">word_count_functor</span><span class="special">;</span>
+
+    <span class="comment">// tokenize the given string, the bound functor gets invoked for each of </span>
+    <span class="comment">// the matched tokens</span>
+    <span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">first</span> <span class="special">=</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">();</span>
+    <span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">last</span> <span class="special">=</span> <span class="special">&amp;</span><span class="identifier">first</span><span class="special">[</span><span class="identifier">str</span><span class="special">.</span><span class="identifier">size</span><span class="special">()];</span>
+    <span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">tokenize</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">word_count_functor</span><span class="special">,</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(</span><span class="identifier">counter</span><span class="special">(),</span> <span class="identifier">_1</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">),</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">w</span><span class="special">),</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">l</span><span class="special">)));</span>
+
+    <span class="comment">// print results</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">r</span><span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"lines: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">l</span> <span class="special">&lt;&lt;</span> <span class="string">", words: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">w</span>
+                  <span class="special">&lt;&lt;</span> <span class="string">", characters: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">c</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">else</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">rest</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">);</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Lexical analysis failed\n"</span> <span class="special">&lt;&lt;</span> <span class="string">"stopped at: \""</span>
+                  <span class="special">&lt;&lt;</span> <span class="identifier">rest</span> <span class="special">&lt;&lt;</span> <span class="string">"\"\n"</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Here is the prototype of this <code class="computeroutput"><span class="identifier">tokenize</span><span class="special">()</span></code> function overload:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Lexer</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">tokenize</span><span class="special">(</span><span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">Lexer</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lex</span><span class="special">,</span> <span class="identifier">F</span> <span class="identifier">f</span>
+  <span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Lexer</span><span class="special">::</span><span class="identifier">char_type</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">initial_state</span> <span class="special">=</span> <span class="number">0</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b>where:</b></p>
+<dl class="variablelist">
+<dt><span class="term">Iterator&amp; first</span></dt>
+<dd><p>
+                The beginning of the input sequence to tokenize. The value of this
+                iterator will be updated by the lexer, pointing to the first not
+                matched character of the input after the function returns.
+              </p></dd>
+<dt><span class="term">Iterator last</span></dt>
+<dd><p>
+                The end of the input sequence to tokenize.
+              </p></dd>
+<dt><span class="term">Lexer const&amp; lex</span></dt>
+<dd><p>
+                The lexer instance to use for tokenization.
+              </p></dd>
+<dt><span class="term">F f</span></dt>
+<dd><p>
+                A function or function object to be called for each matched token.
+                This function is expected to have the prototype: <code class="computeroutput"><span class="keyword">bool</span>
+                <span class="identifier">f</span><span class="special">(</span><span class="identifier">Lexer</span><span class="special">::</span><span class="identifier">token_type</span><span class="special">);</span></code>.
+                The <code class="computeroutput"><span class="identifier">tokenize</span><span class="special">()</span></code>
+                function will return immediately if <code class="computeroutput"><span class="identifier">F</span></code>
+                returns `false.
+              </p></dd>
+<dt><span class="term">Lexer::char_type const* initial_state</span></dt>
+<dd><p>
+                This optional parameter can be used to specify the initial lexer
+                state for tokenization.
+              </p></dd>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lexer_primitives/lexer_token_values.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../abstracts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lexer_semantic_actions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

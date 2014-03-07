@@ -1,0 +1,78 @@
+<html>
+<head>
+	<title>BOOST_PP_LIST_TRANSFORM</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_LIST_TRANSFORM</b> macro transforms each element in a <i>list</i> according to a supplied transformation.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_LIST_TRANSFORM</b>(<i>op</i>, <i>data</i>, <i>list</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>op</dt>
+			<dd>
+				A ternary predicate of the form <i>op</i>(<i>d</i>, <i>data</i>, <i>elem</i>).&nbsp;
+				This transformation is expanded by <b>BOOST_PP_LIST_TRANSFORM</b> for each element in <i>list</i> with the next available <b>BOOST_PP_WHILE</b> iteration,
+				the auxiliary <i>data</i>, and the current element in <i>list</i>.&nbsp;
+			</dd>
+			<dt>data</dt>
+			<dd>
+				Auxiliary data passed to <i>pred</i>.
+			</dd>
+			<dt>list</dt>
+			<dd>
+				The <i>list</i> to be transformed.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro expands <i>op</i> for each element in <i>list</i>.&nbsp;
+			It builds a new <i>list</i> out of the results of each call.&nbsp;
+			If, for example, <i>list</i> is (<i>a</i>, (<i>b</i>, (<i>c</i>, <b>BOOST_PP_NIL</b>))),
+			this macro expands to...
+			<div>
+				(<i>op</i>(<i>d</i>, <i>data</i>, <i>a</i>), (<i>op</i>(<i>d</i>, <i>data</i>, <i>b</i>), (<i>op</i>(<i>d</i>, <i>data</i>, <i>c</i>), <b>BOOST_PP_NIL</b>)))
+			</div>
+		</div>
+		<div>
+			Previously, this macro could not be used inside <b>BOOST_PP_WHILE</b>.&nbsp;
+			There is no longer any such restriction.&nbsp;
+			It is more efficient, however, to use <b>BOOST_PP_LIST_TRANSFORM_D</b> in such a situation.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="list_transform_d.html">BOOST_PP_LIST_TRANSFORM_D</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/list/transform.html">&lt;boost/preprocessor/list/transform.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/arithmetic/dec.html">boost/preprocessor/arithmetic/dec.hpp</a>&gt;
+#include &lt;<a href="../headers/list/transform.html">boost/preprocessor/list/transform.hpp</a>&gt;
+
+#define LIST (1, (3, (2, (5, <a href="nil.html">BOOST_PP_NIL</a>))))
+
+#define OP(d, data, elem) <a href="dec.html">BOOST_PP_DEC</a>(elem)
+
+<a href="list_transform.html">BOOST_PP_LIST_TRANSFORM</a>(OP, 3, LIST)
+   // expands to (0, (2, (1, (4, <a href="nil.html">BOOST_PP_NIL</a>))))
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

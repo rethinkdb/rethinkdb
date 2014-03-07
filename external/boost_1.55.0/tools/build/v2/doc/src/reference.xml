@@ -1,0 +1,2623 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd"
+[
+<!ENTITY toolset_ops "<optional><replaceable>version</replaceable></optional> : <optional><replaceable>c++-compile-command</replaceable></optional> : <optional><replaceable>compiler options</replaceable></optional>">
+<!ENTITY option_list_intro "<para>The following options can be provided, using <literal>&lt;<replaceable>option-name</replaceable>&gt;<replaceable>option-value</replaceable></literal> syntax:</para>">
+<!ENTITY using_repeation "<para>This statement may be repeated several times, if you want to configure several versions of the compiler.</para>">
+]>
+
+<chapter id="bbv2.reference"
+         xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Reference</title>
+
+  <section id="bbv2.reference.general">
+    <title>General information</title>
+
+    <section id="bbv2.reference.init">
+      <title>Initialization</title>
+
+      <para>bjam's first job upon startup is to load the Jam code that
+        implements the build system. To do this, it searches for a file
+        called <filename>boost-build.jam</filename>, first in the invocation directory, then
+        in its parent and so forth up to the filesystem root, and finally
+        in the directories specified by the environment variable
+        BOOST_BUILD_PATH. When found, the file is interpreted, and should
+        specify the build system location by calling the boost-build
+        rule:</para>
+
+<programlisting>
+rule boost-build ( location ? )
+</programlisting>
+
+      <para>
+        If location is a relative path, it is treated as relative to
+        the directory of <filename>boost-build.jam</filename>. The directory specified by
+        that location and the directories in BOOST_BUILD_PATH are then searched for
+        a file called <filename>bootstrap.jam</filename>, which is expected to
+        bootstrap the build system. This arrangement allows the build
+        system to work without any command-line or environment variable
+        settings. For example, if the build system files were located in a
+        directory "build-system/" at your project root, you might place a
+        <filename>boost-build.jam</filename> at the project root containing:
+
+<programlisting>
+boost-build build-system ;
+</programlisting>
+
+        In this case, running <command>b2</command> anywhere in the project tree will
+        automatically find the build system.</para>
+
+      <para>The default <filename>bootstrap.jam</filename>, after loading some standard
+        definitions, loads two <filename>site-config.jam</filename> and <filename>user-config.jam</filename>.</para>
+
+    </section>
+
+  </section>
+
+  <section id="bbv2.reference.rules">
+    <title>Builtin rules</title>
+
+    <para>This section contains the list of all rules that
+    can be used in Jamfile&#x2014;both rules that define new
+    targets and auxiliary rules.</para>
+
+    <variablelist>
+      <varlistentry>
+        <term><literal>exe</literal></term>
+
+        <listitem><para>Creates an executable file. See
+        <xref linkend="bbv2.tasks.programs"/>.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>lib</literal></term>
+
+        <listitem><para>Creates an library file. See
+        <xref linkend="bbv2.tasks.libraries"/>.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>install</literal></term>
+
+        <listitem><para>Installs built targets and other files. See
+        <xref linkend="bbv2.tasks.installing"/>.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>alias</literal></term>
+
+        <listitem><para>Creates an alias for other targets. See
+        <xref linkend="bbv2.tasks.alias"/>.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>unit-test</literal></term>
+
+        <listitem><para>Creates an executable that will be automatically run. See
+        <xref linkend="bbv2.builtins.testing"/>.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>compile</literal></term>
+        <term><literal>compile-fail</literal></term>
+        <term><literal>link</literal></term>
+        <term><literal>link-fail</literal></term>
+        <term><literal>run</literal></term>
+        <term><literal>run-fail</literal></term>
+
+        <listitem><para>Specialized rules for testing. See
+        <xref linkend="bbv2.builtins.testing"/>.</para></listitem>
+      </varlistentry>
+
+
+      <varlistentry>
+        <term><literal>obj</literal></term>
+
+        <listitem><para>Creates an object file. Useful when a single source
+        file must be compiled with special properties.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>preprocessed</literal></term>
+        <indexterm><primary>preprocessed</primary></indexterm>
+
+        <listitem><para>Creates an preprocessed source file. The arguments follow the
+        <link linkend="bbv2.main-target-rule-syntax">common syntax</link>.</para></listitem>
+      </varlistentry>
+
+      <varlistentry id="bbv2.reference.rules.glob">
+        <term><literal>glob</literal></term>
+
+        <listitem><para>The <code>glob</code> rule takes a list shell pattern
+        and returns the list of files in the project's source directory that
+        match the pattern. For example:
+        <programlisting>
+lib tools : [ glob *.cpp ] ;
+        </programlisting>
+        It is possible to also pass a second argument&#x2014;the list of
+        exclude patterns. The result will then include the list of
+        files patching any of include patterns, and not matching any
+        of the exclude patterns. For example:
+        <programlisting>
+lib tools : [ glob *.cpp : file_to_exclude.cpp bad*.cpp ] ;
+        </programlisting>
+        </para></listitem>
+      </varlistentry>
+
+      <varlistentry id="bbv2.reference.glob-tree">
+        <indexterm><primary>glob-tree</primary></indexterm>
+        <term><literal>glob-tree</literal></term>
+
+        <listitem><para>The <code>glob-tree</code> is similar to the
+        <code>glob</code> except that it operates recursively from
+        the directory of the containing Jamfile. For example:
+        <programlisting>
+ECHO [ glob-tree *.cpp : .svn ] ;
+        </programlisting>
+        will print the names of all C++ files in your project. The
+        <literal>.svn</literal> exclude pattern prevents the
+        <code>glob-tree</code> rule from entering administrative
+        directories of the Subversion version control system.
+        </para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>project</literal></term>
+
+        <listitem><para>Declares project id and attributes, including
+        project requirements. See <xref linkend="bbv2.overview.projects"/>.
+        </para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>use-project</literal></term>
+
+        <listitem><para>Assigns a symbolic project ID to a project at
+        a given path. This rule must be better documented!
+        </para></listitem>
+      </varlistentry>
+
+      <varlistentry id="bbv2.reference.rules.explicit">
+        <term><literal>explicit</literal></term>
+
+        <listitem><para>The <literal>explicit</literal> rule takes a single
+        parameter&#x2014;a list of target names. The named targets will
+        be marked explicit, and will be built only if they are explicitly
+        requested on the command line, or if their dependents are built.
+        Compare this to ordinary targets, that are built implicitly when
+        their containing project is built.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>always</literal></term>
+        <indexterm><primary>always building a metatarget</primary></indexterm>
+
+        <listitem><para>The <literal>always</literal> funciton takes a single
+        parameter&#x2014;a list of metatarget names. The top-level targets produced
+        by the named metatargets will be always considered out of date. Consider this example:
+        </para>
+<programlisting>
+exe hello : hello.cpp ;
+exe bye : bye.cpp ;
+always hello ;
+</programlisting>
+        <para>If a build of <filename>hello</filename> is requested, then the binary will
+        always be relinked. The object files will not be recompiled, though. Note that if
+        a build of <filename>hello</filename> is not requested, for example you specify just
+        <filename>bye</filename> on the command line, <filename>hello</filename> will not
+        be relinked.</para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>constant</literal></term>
+
+        <listitem><para>Sets project-wide constant. Takes two
+        parameters: variable name and a value and makes the specified
+        variable name accessible in this Jamfile and any child Jamfiles.
+        For example:
+        <programlisting>
+constant VERSION : 1.34.0 ;
+        </programlisting>
+        </para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>path-constant</literal></term>
+
+        <listitem><para>Same as <literal>constant</literal> except that
+        the value is treated as path relative to Jamfile location. For example,
+        if <command>b2</command> is invoked in the current directory,
+        and Jamfile in <filename>helper</filename> subdirectory has:
+        <programlisting>
+path-constant DATA : data/a.txt ;
+        </programlisting>
+        then the variable <varname>DATA</varname> will be set to
+        <literal>helper/data/a.txt</literal>, and if <command>b2</command>
+        is invoked from the <filename>helper</filename> directory, then
+        the variable <varname>DATA</varname> will be set to
+        <literal>data/a.txt</literal>.
+        </para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>build-project</literal></term>
+
+        <listitem><para>Cause some other project to be built. This rule
+        takes a single parameter&#x2014;a directory name relative to
+        the containing Jamfile. When the containing Jamfile is built,
+        the project located at that directory will be built as well.
+        At the moment, the parameter to this rule should be a directory
+        name. Project ID or general target references are not allowed.
+        </para></listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>test-suite</literal></term>
+
+        <listitem><para>This rule is deprecated and equivalent to
+        <code>alias</code>.</para></listitem>
+      </varlistentry>
+
+    </variablelist>
+
+  </section>
+
+  <section id="bbv2.overview.builtins.features">
+    <title>Builtin features</title>
+
+    <para>This section documents the features that are built-in into
+    Boost.Build. For features with a fixed set of values, that set is
+    provided, with the default value listed first.</para>
+
+    <indexterm><primary>features</primary><secondary>builtin</secondary></indexterm>
+
+    <variablelist>
+      <varlistentry><term><literal>variant</literal></term>
+        <indexterm><primary>variant</primary></indexterm>
+
+        <listitem>
+          <para>
+            A feature combining several low-level features, making it easy to
+            request common build configurations.
+          </para>
+
+          <para>
+            <emphasis role="bold">Allowed values:</emphasis>
+            <literal>debug</literal>, <literal>release</literal>,
+            <literal>profile</literal>.
+          </para>
+
+          <para>
+            The value <literal>debug</literal> expands to
+          </para>
+
+<programlisting>
+&lt;optimization&gt;off &lt;debug-symbols&gt;on &lt;inlining&gt;off &lt;runtime-debugging&gt;on
+</programlisting>
+
+          <para>
+            The value <literal>release</literal> expands to
+          </para>
+
+<programlisting>
+&lt;optimization&gt;speed &lt;debug-symbols&gt;off &lt;inlining&gt;full &lt;runtime-debugging&gt;off
+</programlisting>
+
+          <para>
+            The value <literal>profile</literal> expands to the same as
+            <literal>release</literal>, plus:
+          </para>
+
+<programlisting>
+&lt;profiling&gt;on &lt;debug-symbols&gt;on
+</programlisting>
+
+          <para>
+            Users can define their own build variants using the
+            <code>variant</code> rule from the <code>common</code> module.
+          </para>
+
+          <para>
+            <emphasis role="bold">Note:</emphasis> Runtime debugging is on in
+            debug builds to suit the expectations of people used to various
+            IDEs.
+            <!-- Define "runtime debugging". Why will those people expect it to
+            be on in debug builds? -->
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry id="bbv2.overview.builtins.features.link">
+        <term><literal>link</literal></term>
+        <indexterm><primary>link</primary></indexterm>
+
+        <listitem>
+
+          <para><emphasis role="bold">Allowed values:</emphasis> <literal>shared</literal>,
+            <literal>static</literal></para>
+
+          <simpara>
+            A feature controling how libraries are built.
+          </simpara>
+
+        </listitem>
+      </varlistentry>
+
+      <varlistentry id="bbv2.overview.builtins.features.runtime-link">
+        <indexterm><primary>runtime linking</primary></indexterm>
+        <term><literal>runtime-link</literal></term>
+
+        <listitem>
+          <para><emphasis role="bold">Allowed values:</emphasis> <literal>shared</literal>,
+            <literal>static</literal></para>
+
+          <simpara>
+            Controls if a static or shared C/C++ runtime should be used. There
+            are some restrictions how this feature can be used, for example
+            on some compilers an application using static runtime should
+            not use shared libraries at all, and on some compilers,
+            mixing static and shared runtime requires extreme care.  Check
+            your compiler documentation for more details.
+          </simpara>
+
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>threading</literal></term>
+        <indexterm><primary>threading</primary></indexterm>
+
+        <listitem>
+
+          <para><emphasis role="bold">Allowed values:</emphasis> <literal>single</literal>,
+            <literal>multi</literal></para>
+
+          <simpara>
+            Controls if the project should be built in multi-threaded mode.  This feature does not
+            necessary change code generation in the compiler, but it causes the compiler to link
+            to additional or different runtime libraries, and define additional preprocessor 
+            symbols (for example, <code>_MT</code> on Windows and <code>_REENTRANT</code> on Linux). 
+            How those symbols affect the compiled code depends on the code itself.
+          </simpara>
+
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>source</literal></term>
+        <indexterm><primary>source</primary></indexterm>
+
+        <listitem>
+          <simpara>
+            The <code>&lt;source&gt;X</code> feature has the same effect on
+            building a target as putting X in the list of sources. It is useful
+            when you want to add the same source to all targets in the project
+            (you can put &lt;source&gt; in requirements) or to conditionally
+            include a source (using conditional requirements, see <xref linkend=
+            "bbv2.tutorial.conditions"/>). See also the <code>&lt;library&gt;
+            </code> feature.
+          </simpara>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>library</literal></term>
+        <indexterm><primary>library</primary></indexterm>
+
+        <listitem>
+          <simpara>
+            This feature is almost equivalent to the <code>&lt;source&gt;</code>
+            feature, except that it takes effect only for linking. When you want
+            to link all targets in a Jamfile to certain library, the
+            <code>&lt;library&gt;</code> feature is preferred over
+            <code>&lt;source&gt;X</code>&mdash;the latter will add the library to
+            all targets, even those that have nothing to do with libraries.
+          </simpara>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry><term><anchor id="bbv2.builtin.features.dependency"/>
+          <literal>dependency</literal></term>
+          <indexterm><primary>dependency</primary></indexterm>
+
+        <listitem>
+          <simpara>
+            Introduces a dependency on the target named by the value of this
+            feature (so it will be brought up-to-date whenever the target being
+            declared is). The dependency is not used in any other way.
+
+            <!--
+            ====================================================================
+            An example and a motivation is needed here. Below is some commented
+            out content that used to be here but did not make any sense and
+            seems to have been left unfinished in some previous revision. Should
+            be fixed and this whole feature should be retested and fixed as
+            needed.
+            ====================================================================
+            For example, in application with plugins, the plugins are not used
+            when linking the application, application might have a dependency on
+            its plugins, even though
+
+            and
+            adds its usage requirements to the build properties
+            of the target being declared.
+
+            The primary use case is when you want
+            the usage requirements (such as <code>#include</code> paths) of some
+            library to be applied, but do not want to link to it.
+
+            It is hard to picture why anyone would want to do that. Please flesh
+            out this motivation.
+            ====================================================================
+            -->
+          </simpara>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry><term><anchor id="bbv2.builtin.features.implicit-dependency"/>
+        <literal>implicit-dependency</literal></term>
+        <indexterm><primary>implicit-dependency</primary></indexterm>
+
+        <listitem>
+          <simpara>
+            Indicates that the target named by the value of this feature
+            may produce files that are included by the sources of the
+            target being declared.  See <xref linkend="bbv2.reference.generated_headers"/>
+            for more information.
+          </simpara>
+        </listitem>
+      </varlistentry>
+
+
+      <varlistentry><term><anchor id="bbv2.builtin.features.use"/>
+          <literal>use</literal></term>
+          <indexterm><primary>use</primary></indexterm>
+
+        <listitem>
+          <simpara>
+            Introduces a dependency on the target named by the value of this
+            feature (so it will be brought up-to-date whenever the target being
+            declared is), and adds its usage requirements to the build
+            properties
+            <!-- Do you really mean "to the requirements?" -->
+            of the target being declared. The dependency is not used in any
+            other way. The primary use case is when you want the usage
+            requirements (such as <code>#include</code> paths) of some library
+            to be applied, but do not want to link to it.
+            <!-- It is hard to picture why anyone would want to do that. Please
+            flesh out this motivation. -->
+          </simpara>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><anchor id="bbv2.reference.features.dll-path"/>
+        <literal>dll-path</literal></term>
+        <indexterm><primary>dll-path</primary></indexterm>
+
+        <listitem>
+          <simpara>
+            Specify an additional directory where the system should
+            look for shared libraries when the executable or shared
+            library is run. This feature only affects Unix
+            compilers. Plase see <xref linkend="bbv2.faq.dll-path"/>
+            in <xref linkend="bbv2.faq"/> for details.
+          </simpara>
+        </listitem></varlistentry>
+
+      <varlistentry>
+        <term><literal>hardcode-dll-paths</literal></term>
+        <indexterm><primary>hardcode-dll-paths</primary></indexterm>
+
+        <listitem>
+          <simpara>
+            Controls automatic generation of dll-path properties.
+          </simpara>
+
+          <para><emphasis role="bold">Allowed values:</emphasis>
+            <literal>true</literal>, <literal>false</literal>.  This property is
+            specific to Unix systems. If an executable is built with
+            <code>&lt;hardcode-dll-paths&gt;true</code>, the generated binary
+            will contain the list of all the paths to the used shared libraries.
+            As the result, the executable can be run without changing system
+            paths to shared libraries or installing the libraries to system
+            paths. This <!-- you need an antecedent.  This _what_? --> is very
+            convenient during development. Plase see the <link linkend=
+            "bbv2.faq.dll-path">FAQ entry</link> for details. Note that on Mac
+            OSX, the paths are unconditionally hardcoded by the linker, and it
+            is not possible to disable that behaviour.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>cflags</literal></term>
+        <term><literal>cxxflags</literal></term>
+        <term><literal>linkflags</literal></term>
+
+        <listitem>
+          <simpara>
+            The value of those features is passed without modification to the
+            corresponding tools. For <code>cflags</code> that is both the C and
+            C++ compilers, for <code>cxxflags</code> that is the C++ compiler
+            and for <code>linkflags</code> that is the linker. The features are
+            handy when you are trying to do something special that cannot be
+            achieved by a higher-level feature in Boost.Build.
+          </simpara>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>include</literal></term>
+        <indexterm><primary>include</primary></indexterm>
+
+        <listitem>
+          <simpara>
+            Specifies an additional include path that is to be passed to C and
+            C++ compilers.
+          </simpara>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><literal>define</literal></term>
+        <indexterm><primary>define</primary></indexterm>
+
+        <listitem>
+          <simpara>
+            Specifies an preprocessor symbol that should be defined on the command
+            line. You may either specify just the symbol, which will be defined
+            without any value, or both the symbol and the value, separated by
+            equal sign.
+          </simpara>
+        </listitem>
+      </varlistentry>
+
+
+      <varlistentry><term><literal>warnings</literal></term>
+        <listitem>
+          <simpara>
+            The <code>&lt;warnings&gt;</code> feature controls the warning level
+            of compilers. It has the following values:
+            <itemizedlist>
+              <listitem><para><code>off</code> - disables all warnings.</para></listitem>
+              <listitem><para><code>on</code> - enables default warning level for the tool.</para></listitem>
+              <listitem><para><code>all</code> - enables all warnings.</para></listitem>
+            </itemizedlist>
+            Default value is <code>all</code>.
+          </simpara>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry><term><literal>warnings-as-errors</literal></term>
+        <listitem>
+          <simpara>
+            The <code>&lt;warnings-as-errors&gt;</code> makes it possible to
+            treat warnings as errors and abort compilation on a warning. The
+            value <code>on</code> enables this behaviour. The default value is
+            <code>off</code>.
+          </simpara>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry><term><literal>build</literal></term>
+
+        <listitem>
+          <para><emphasis role="bold">Allowed values:</emphasis> <literal>no</literal></para>
+
+          <para>
+            The <code>build</code> feature is used to conditionally disable
+            build of a target. If <code>&lt;build&gt;no</code> is in properties
+            when building a target, build of that target is skipped. Combined
+            with conditional requirements this allows you to skip building some
+            target in configurations where the build is known to fail.
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry><term><anchor id="bbv2.builtin.features.tag"/><literal>tag</literal></term>
+
+        <listitem><para>The <literal>tag</literal> feature is used to customize
+        the name of the generated files. The value should have the form:
+<programlisting>@<replaceable>rulename</replaceable></programlisting> where
+        <replaceable>rulename</replaceable> should be a name of a rule with the
+        following signature:
+<programlisting>rule tag ( name : type ? : property-set )</programlisting>
+        The rule will be called for each target with the default name computed
+        by Boost.Build, the type of the target, and property set. The rule can
+        either return a string that must be used as the name of the target, or
+        an empty string, in which case the default name will be used.
+        </para>
+
+        <para>Most typical use of the <literal>tag</literal> feature is to
+        encode build properties, or library version in library target names. You
+        should take care to return non-empty string from the tag rule only for
+        types you care about &#x2014; otherwise, you might end up modifying
+        names of object files, generated header file and other targets for which
+        changing names does not make sense.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry><term><literal>debug-symbols</literal></term>
+
+        <listitem>
+          <para><emphasis role="bold">Allowed values:</emphasis> <literal>on</literal>, <literal>off</literal>.</para>
+
+          <para>The <literal>debug-symbols</literal> feature specifies if
+          produced object files, executables and libraries should include
+          debug information.
+          Typically, the value of this feature is implicitly set by the
+          <literal>variant</literal> feature, but it can be explicitly
+          specified by the user. The most common usage is to build
+          release variant with debugging information.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry><term><literal>target-os</literal></term>
+        <listitem>
+
+          <anchor id="bbv2.reference.features.target-os"/>
+
+          <para>
+            The operating system for which the code is to be generated. The
+            compiler you used should be the compiler for that operating
+            system. This option causes Boost.Build to use naming conventions
+            suitable for that operating system, and adjust build process
+            accordingly. For example, with gcc, it controls if import
+            libraries are produced for shared libraries or not.                       
+          </para>
+
+          <para>The complete list of possible values for this feature is: 
+            aix, bsd, cygwin, darwin, freebsd, hpux, iphone, linux, netbsd,
+            openbsd, osf, qnx, qnxnto, sgi, solaris, unix, unixware, windows.
+          </para>
+
+          <para>See <xref linkend="bbv2.tasks.crosscompile"/> for details of
+          crosscompilation</para>
+
+        </listitem>
+      </varlistentry>
+
+
+      <varlistentry><term><literal>architecture</literal></term>
+        <listitem>
+
+          <para>The <literal>architecture</literal> features specifies
+          the general processor familty to generate code for.</para>
+
+        </listitem>
+      </varlistentry>
+
+      <varlistentry><term><literal>instruction-set</literal></term>
+        <indexterm><primary>instruction-set</primary></indexterm>
+        <listitem>
+          <para>
+            <emphasis role="bold">Allowed values:</emphasis> depend on the used
+            toolset.
+          </para>
+
+          <para>The <literal>instruction-set</literal> specifies for which
+          specific instruction set the code should be generated.  The
+          code in general might not run on processors with older/different
+          instruction sets.</para>
+
+          <para>While Boost.Build allows a large set of possible values
+          for this features, whether a given value works depends on which
+          compiler you use. Please see
+          <xref linkend="bbv2.reference.tools.compilers"/> for details.
+          </para>
+
+        </listitem>
+      </varlistentry>
+
+      <varlistentry><term><literal>address-model</literal></term>
+        <indexterm><primary>64-bit compilation</primary></indexterm>
+        <listitem>
+          <para><emphasis role="bold">Allowed values:</emphasis> <literal>32</literal>, <literal>64</literal>.</para>
+
+          <para>The <literal>address-model</literal> specifies if 32-bit or
+          64-bit code should be generated by the compiler. Whether this feature
+          works depends on the used compiler, its version, how the compiler is
+          configured, and the values of the <literal>architecture</literal>
+          <literal>instruction-set</literal>
+          features. Please see <xref linkend="bbv2.reference.tools.compilers"/>
+          for details.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry><term><literal>c++-template-depth</literal></term>
+        <listitem>
+          <para>
+            <emphasis role="bold">Allowed values:</emphasis> Any positive
+            integer.
+          </para>
+
+          <para>
+            This feature allows configuring a C++ compiler with the maximal
+            template instantiation depth parameter. Specific toolsets may or may
+            not provide support for this feature depending on whether their
+            compilers provide a corresponding command-line option.
+          </para>
+
+          <para>
+            <emphasis role="bold">Note:</emphasis> Due to some internal details
+            in the current Boost Build implementation it is not possible to have
+            features whose valid values are all positive integer. As a
+            workaround a large set of allowed values has been defined for this
+            feature and, if a different one is needed, user can easily add it by
+            calling the feature.extend rule.
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry><term><literal>embed-manifest</literal></term>
+        <listitem>
+
+          <indexterm><primary>manifest file</primary><secondary>embedding</secondary></indexterm>
+          <indexterm><primary>embed-manifest</primary></indexterm>
+
+          <para>
+            <emphasis role="bold">Allowed values:</emphasis> on, off.
+          </para>
+
+          <para>This feature is specific to the msvc toolset (see
+          <xref linkend="bbv2.reference.tools.compiler.msvc"/>),
+          and controls whether the manifest files should be embedded inside
+          executables and shared libraries, or placed alongside them.  This
+          feature corresponds to the IDE option found in the project settings dialog,
+          under <menuchoice><guimenu>Configuration Properties</guimenu> 
+            <guisubmenu>Manifest Tool</guisubmenu>
+            <guisubmenu>Input and Output</guisubmenu>
+            <guimenuitem>Embed manifest</guimenuitem> </menuchoice>.
+          </para>
+
+        </listitem>
+      </varlistentry>
+
+
+    </variablelist>
+  </section>
+
+    <section id="bbv2.reference.tools">
+      <title>Builtin tools</title>
+
+      <para>Boost.Build comes with support for a large number of C++ compilers,
+      and other tools. This section documents how to use those tools.</para>
+
+      <para>Before using any tool, you must declare your intention, and possibly
+      specify additional information about the tool's configuration. This is
+      done by calling the <code>using</code> rule, typically in your
+      <filename>user-config.jam</filename>, for example:</para>
+<programlisting>
+using gcc ;
+</programlisting>
+    <para>additional parameters can be passed just like for other rules, for example:</para>
+<programlisting>
+using gcc : 4.0 : g++-4.0 ;
+</programlisting>
+      
+
+
+      <para>The options that can be passed to each tool are documented in the
+      subsequent sections.</para>
+
+      <section id="bbv2.reference.tools.compilers">
+
+        <title>C++ Compilers</title>
+
+        <para>This section lists all Boost.Build modules that support C++
+          compilers and documents how each one can be initialized.  The name
+          of support module for compiler is also the value for
+          the <code>toolset</code> feature that can be used to explicitly
+          request that compiler. </para>
+
+        <section id="bbv2.reference.tools.compiler.gcc">
+
+          <title>GNU C++</title>
+
+          <para>The <code>gcc</code> module supports the
+          <ulink url="http://gcc.gnu.org">GNU C++ compiler</ulink>
+          on Linux, a number of Unix-like system including SunOS and on Windows 
+          (either <ulink url="http://www.cygwin.com">Cygwin</ulink> or 
+          <ulink url="http://www.mingw.org">MinGW</ulink>). On Mac OSX, it is recommended
+          to use system gcc, see <xref linkend="bbv2.reference.tools.compiler.darwin"/>.
+          </para>
+
+          <para>The <code>gcc</code> module is initialized using the following
+          syntax:</para>
+          <programlisting>
+using gcc : &toolset_ops; ;</programlisting>
+
+          &using_repeation;
+
+          <!-- FIXME: mention everywhere what is the semantic
+          of version is -->
+
+          <para>
+          If the version is not explicitly specified, it will be
+          automatically detected by running the compiler with the <code>-v</code>
+          option. If the command is not specified, the <command>g++</command>
+          binary will be searched in <envar>PATH</envar>.</para>
+
+          &option_list_intro;
+          <variablelist>
+
+            <xi:include href="fragments.xml" xpointer="xpointer(id('common_options')/*)"
+                        parse="xml"/>
+
+            <xi:include href="fragments.xml" xpointer="xpointer(id('root_option')/*)"
+                        parse="xml"/>
+
+            <varlistentry>
+              <term><literal>rc</literal></term>
+
+              <listitem>
+                <para>Specifies the resource compiler command
+                that will be used with the version of gcc that is being
+                configured. This setting makes sense only for Windows and only
+                if you plan to use resource files. By
+                default <command>windres</command> will be used.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><literal>rc-type</literal></term>
+
+              <listitem>
+                <para>Specifies the type of resource compiler. The value can
+                be either <code>windres</code> for msvc resource compiler,
+                or <code>rc</code> for borland's resource compiler.</para>
+              </listitem>
+            </varlistentry>
+
+          </variablelist>
+
+          <indexterm><primary>64-bit compilation</primary>
+          <secondary>gcc</secondary></indexterm>
+
+          In order to compile 64-bit applications, you have to specify
+          <code>address-model=64</code>, and the <code>instruction-set</code>
+          feature should refer to a 64 bit processor. Currently, those
+          include <literal>nocona</literal>, <literal>opteron</literal>,
+          <literal>athlon64</literal> and <literal>athlon-fx</literal>.
+
+        </section>
+
+        <section id="bbv2.reference.tools.compiler.darwin">
+
+          <title>Apple Darwin gcc</title>
+
+          <para>The <code>darwin</code> module supports the version of gcc that is
+          modified and provided by Apple. The configuration is essentially identical
+          to that of the gcc module.
+          </para>
+
+          <para>
+          <indexterm><primary>fat binaries</primary></indexterm>
+          The darwin toolset can generate so called "fat"
+          binaries&#x2014;binaries that can run support more than one
+          architecture, or address mode. To build a binary that can run both
+          on Intel and PowerPC processors, specify
+          <code>architecture=combined</code>. To build a binary that can run
+          both in 32-bit and 64-bit modes, specify
+          <code>address-model=32_64</code>. If you specify both of those
+          properties, a "4-way" fat binary will be generated.
+          </para>
+
+        </section>
+
+        <section id="bbv2.reference.tools.compiler.msvc">
+
+          <title>Microsoft Visual C++</title>
+
+          <para>The <code>msvc</code> module supports the
+          <ulink url="http://msdn.microsoft.com/visualc/">Microsoft Visual
+          C++</ulink> command-line tools on Microsoft Windows. The supported
+          products and versions of command line tools are listed below:</para>
+          <itemizedlist>
+            <listitem><para>Visual Studio 2010&#x2014;10.0</para></listitem>
+            <listitem><para>Visual Studio 2008&#x2014;9.0</para></listitem>
+            <listitem><para>Visual Studio 2005&#x2014;8.0</para></listitem>
+            <listitem><para>Visual Studio .NET 2003&#x2014;7.1</para></listitem>
+            <listitem><para>Visual Studio .NET&#x2014;7.0</para></listitem>
+            <listitem><para>Visual Studio 6.0, Service Pack 5&#x2014;6.5</para></listitem>
+          </itemizedlist>
+
+          <para>The <code>msvc</code> module is initialized using the following
+          syntax:</para>
+          <programlisting>
+using msvc : &toolset_ops; ;
+          </programlisting>
+          &using_repeation;
+          <para>If the version is not explicitly specified, the most recent
+          version found in the registry will be used instead. If the special
+          value <code>all</code> is passed as the version, all versions found in
+          the registry will be configured. If a version is specified, but the
+          command is not, the compiler binary will be searched in standard
+          installation paths for that version, followed by <envar>PATH</envar>.
+          </para>
+
+          <para>The compiler command should be specified using forward slashes,
+          and quoted.</para>
+
+          &option_list_intro;
+          <variablelist>
+
+            <xi:include href="fragments.xml" xpointer="xpointer(id('common_options')/*)"
+                        parse="xml"/>
+
+            <varlistentry>
+              <term><literal>assembler</literal></term>
+
+              <listitem><para>The command that compiles assembler sources. If
+              not specified, <command>ml</command> will be used. The command
+              will be invoked after the setup script was executed and adjusted
+              the <envar>PATH</envar> variable.</para></listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><literal>compiler</literal></term>
+
+              <listitem><para>The command that compiles C and C++ sources. If
+              not specified, <command>cl</command> will be used. The command
+              will be invoked after the setup script was executed and adjusted
+              the <envar>PATH</envar> variable.</para></listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><literal>compiler-filter</literal></term>
+
+              <listitem><para>Command through which to pipe the output of
+              running the compiler. For example to pass the output to STLfilt.
+              </para></listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><literal>idl-compiler</literal></term>
+
+              <listitem><para>The command that compiles Microsoft COM interface
+              definition files. If not specified, <command>midl</command> will
+              be used. The command will be invoked after the setup script was
+              executed and adjusted the <envar>PATH</envar> variable.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><literal>linker</literal></term>
+
+              <listitem><para>The command that links executables and dynamic
+              libraries. If not specified, <command>link</command> will be used.
+              The command will be invoked after the setup script was executed
+              and adjusted the <envar>PATH</envar> variable.</para></listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><literal>mc-compiler</literal></term>
+
+              <listitem><para>The command that compiles Microsoft message
+              catalog files. If not specified, <command>mc</command> will be
+              used. The command will be invoked after the setup script was
+              executed and adjusted the <envar>PATH</envar> variable.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><literal>resource-compiler</literal></term>
+
+              <listitem><para>The command that compiles resource files. If not
+              specified, <command>rc</command> will be used. The command will be
+              invoked after the setup script was executed and adjusted the
+              <envar>PATH</envar> variable.</para></listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><literal>setup</literal></term>
+
+              <listitem><para>The filename of the global environment setup
+              script to run before invoking any of the tools defined in this
+              toolset. Will not be used in case a target platform specific
+              script has been explicitly specified for the current target
+              platform. Used setup script will be passed the target platform
+              identifier (x86, x86_amd64, x86_ia64, amd64 or ia64) as a
+              arameter. If not specified a default script is chosen based on the
+              used compiler binary, e.g. <command>vcvars32.bat</command> or
+              <command>vsvars32.bat</command>.</para></listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><literal>setup-amd64</literal></term>
+              <term><literal>setup-i386</literal></term>
+              <term><literal>setup-ia64</literal></term>
+
+              <listitem><para>The filename of the target platform specific
+              environment setup script to run before invoking any of the tools
+              defined in this toolset. If not specified the global environment
+              setup script is used.</para></listitem>
+            </varlistentry>
+        </variablelist>
+
+          <section id="v2.reference.tools.compiler.msvc.64">
+            <title>64-bit support</title>
+
+            <indexterm><primary>64-bit compilation</primary>
+            <secondary>Microsoft Visual Studio</secondary></indexterm>
+
+            <para>Starting with version 8.0, Microsoft Visual Studio can
+            generate binaries for 64-bit processor, both 64-bit flavours of x86
+            (codenamed AMD64/EM64T), and Itanium (codenamed IA64). In addition,
+            compilers that are itself run in 64-bit mode, for better
+            performance, are provided. The complete list of compiler
+            configurations are as follows (we abbreviate AMD64/EM64T to just
+            AMD64):</para>
+
+            <itemizedlist>
+              <listitem><para>32-bit x86 host, 32-bit x86 target</para>
+              </listitem>
+              <listitem><para>32-bit x86 host, 64-bit AMD64 target</para>
+              </listitem>
+              <listitem><para>32-bit x86 host, 64-bit IA64 target</para>
+              </listitem>
+              <listitem><para>64-bit AMD64 host, 64-bit AMD64 target</para>
+              </listitem>
+              <listitem><para>64-bit IA64 host, 64-bit IA64 target</para>
+              </listitem>
+            </itemizedlist>
+            <para>
+            The 32-bit host compilers can be always used, even on 64-bit
+            Windows. On the contrary, 64-bit host compilers require both 64-bit
+            host processor and 64-bit Windows, but can be faster. By default,
+            only 32-bit host, 32-bit target compiler is installed, and
+            additional compilers need to be installed explicitly.
+            </para>
+
+            <para>To use 64-bit compilation you should:</para>
+            <orderedlist>
+              <listitem><para>Configure you compiler as usual. If you provide a
+              path to the compiler explicitly, provide the path to the 32-bit
+              compiler. If you try to specify the path to any of 64-bit
+              compilers, configuration will not work.</para></listitem>
+
+              <listitem><para>When compiling, use <code>address-model=64</code>,
+              to generate AMD64 code.</para></listitem>
+
+              <listitem><para>To generate IA64 code, use
+              <code>architecture=ia64</code></para></listitem>
+            </orderedlist>
+
+            <para>The (AMD64 host, AMD64 target) compiler will be used
+            automatically when you are generating AMD64 code and are running
+            64-bit Windows on AMD64. The (IA64 host, IA64 target) compiler will
+            never be used, since nobody has an IA64 machine to test.</para>
+
+            <para>It is believed that AMD64 and EM64T targets are essentially
+            compatible. The compiler options <code>/favor:AMD64</code> and
+            <code>/favor:EM64T</code>, which are accepted only by AMD64
+            targeting compilers, cause the generated code to be tuned to a
+            specific flavor of 64-bit x86. Boost.Build will make use of those
+            options depending on the value of the<code>instruction-set</code>
+            feature.</para>
+          </section>
+        </section>
+
+        <section id="bbv2.reference.tools.compiler.intel">
+
+          <title>Intel C++</title>
+
+          <para>The <code>intel-linux</code> and <code>intel-win</code> modules
+          support the Intel C++ command-line compiler&#x2014;the <ulink url=
+          "http://www.intel.com/software/products/compilers/clin/index.htm">Linux</ulink>
+          and <ulink url=
+          "http://www.intel.com/cd/software/products/asmo-na/eng/compilers/284527.htm">
+          Windows</ulink> versions respectively.</para>
+
+          <para>The module is initialized using the following syntax:</para>
+          <programlisting>
+using intel-linux : &toolset_ops; ;</programlisting>
+          <para>or</para>
+          <programlisting>
+using intel-win : &toolset_ops; ;</programlisting>
+          <para>respectively.</para>
+
+          &using_repeation;
+
+          <para>
+          If compiler command is not specified, then Boost.Build will
+          look in <envar>PATH</envar> for an executable <command>icpc</command>
+          (on Linux), or <command>icc.exe</command> (on Windows).
+          </para>
+
+          &option_list_intro;
+          <variablelist>
+
+            <xi:include href="fragments.xml" xpointer="xpointer(id('common_options')/*)"
+                        parse="xml"/>
+
+          </variablelist>
+
+          <para>The Linux version supports the following additional options:</para>
+          <variablelist>
+
+            <xi:include href="fragments.xml" xpointer="xpointer(id('root_option')/*)"
+                        parse="xml"/>
+
+          </variablelist>
+
+          <!-- the compatibility option appears to be messed up -->
+
+        </section>
+
+        <section id="bbv2.reference.tools.compiler.acc">
+
+          <title>HP aC++ compiler</title>
+
+          <para>The <code>acc</code> module supports the
+<ulink url="http://h21007.www2.hp.com/dspp/tech/tech_TechSoftwareDetailPage_IDX/1,1703,1740,00.html">HP aC++ compiler</ulink>
+          for the HP-UX operating system.</para>
+
+          <para>The module is initialized using the following
+          syntax:</para>
+          <programlisting>
+using acc : &toolset_ops; ;</programlisting>
+
+          &using_repeation;
+
+
+          <para>
+            If the command is not specified, the <command>aCC</command>
+          binary will be searched in <envar>PATH</envar>.</para>
+
+          &option_list_intro;
+          <variablelist>
+            <xi:include href="fragments.xml" xpointer="xpointer(id('common_options')/*)"
+                        parse="xml"/>
+          </variablelist>
+
+        </section>
+
+        <section id="bbv2.reference.tools.compiler.borland">
+
+          <title>Borland C++ Compiler</title>
+
+          <para>The <code>borland</code> module supports the command line
+          C++ compiler included in
+          <ulink url="http://www.borland.com/us/products/cbuilder/index.html">C++ Builder 2006</ulink>
+          product and earlier version of it, running on Microsoft Windows.</para>
+
+          <para>The supported products are listed below. The version reported
+          by the command lines tools is also listed for reference.:</para>
+          <itemizedlist>
+            <listitem><para>C++ Builder 2006&#x2014;5.8.2</para></listitem>
+            <listitem><para>CBuilderX&#x2014;5.6.5, 5.6.4 (depending on release)</para></listitem>
+            <listitem><para>CBuilder6&#x2014;5.6.4</para></listitem>
+            <listitem><para>Free command line tools&#x2014;5.5.1</para></listitem>
+          </itemizedlist>
+
+          <para>The module is initialized using the following syntax:</para>
+          <programlisting>
+using borland : &toolset_ops; ;</programlisting>
+
+          &using_repeation;
+
+          <para>If the command is not specified, Boost.Build will search for
+          a binary named <command>bcc32</command> in <envar>PATH</envar>.</para>
+
+          &option_list_intro;
+          <variablelist>
+            <xi:include href="fragments.xml" xpointer="xpointer(id('common_options')/*)"
+                        parse="xml"/>
+          </variablelist>
+
+        </section>
+
+        <section id="bbv2.reference.tools.compiler.como">
+
+          <title>Comeau C/C++ Compiler</title>
+
+          <para>The <code>como-linux</code> and the <code>como-win</code>
+          modules supports the
+          <ulink url="http://www.comeaucomputing.com/">Comeau C/C++ Compiler</ulink>
+          on Linux and Windows respectively.</para>
+
+          <para>The module is initialized using the following syntax:</para>
+          <programlisting>
+using como-linux : &toolset_ops; ;</programlisting>
+
+          &using_repeation;
+
+          <para>If the command is not specified, Boost.Build will search for
+          a binary named <command>como</command> in
+          <envar>PATH</envar>.</para>
+
+          &option_list_intro;
+          <variablelist>
+            <xi:include href="fragments.xml" xpointer="xpointer(id('common_options')/*)"
+                        parse="xml"/>
+          </variablelist>
+
+          <para>Before using the Windows version of the compiler, you need to
+          setup necessary environment variables per compiler's documentation. In
+          particular, the <envar>COMO_XXX_INCLUDE</envar> variable should be
+          set, where <envar>XXX</envar> corresponds to the used backend C
+          compiler.</para>
+        </section>
+
+        <section id="bbv2.reference.tools.compiler.cw">
+
+          <title>Code Warrior</title>
+
+          <para>The <code>cw</code> module support CodeWarrior compiler,
+          originally produced by Metrowerks and presently developed by
+          Freescale. Boost.Build supports only the versions of the compiler that
+          target x86 processors. All such versions were released by Metrowerks
+          before aquisition and are not sold any longer. The last version known
+          to work is 9.4.</para>
+
+          <para>The module is initialized using the following syntax:</para>
+          <programlisting>
+using cw : &toolset_ops; ;</programlisting>
+
+          &using_repeation;
+
+          <para>If the command is not specified, Boost.Build will search for a
+          binary named <command>mwcc</command> in default installation paths and
+          in <envar>PATH</envar>.</para>
+
+          &option_list_intro;
+          <variablelist>
+
+            <xi:include href="fragments.xml" xpointer="xpointer(id('common_options')/*)"
+                        parse="xml"/>
+
+            <xi:include href="fragments.xml" xpointer="xpointer(id('root_option')/*)"
+                        parse="xml"/>
+
+            <varlistentry>
+              <term><literal>setup</literal></term>
+
+              <listitem><para>The command that sets up environment variables
+              prior to invoking the compiler. If not specified,
+              <command>cwenv.bat</command> alongside the compiler binary
+              will be used.</para>
+              </listitem>
+            </varlistentry>
+
+
+            <varlistentry>
+              <term><literal>compiler</literal></term>
+
+              <listitem><para>The command that compiles C and C++ sources.
+              If not specified, <command>mwcc</command> will be used. The
+              command will be invoked after the setup script was
+              executed and adjusted the <envar>PATH</envar> variable.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><literal>linker</literal></term>
+
+              <listitem><para>The command that links executables and dynamic
+              libraries.
+              If not specified, <command>mwld</command> will be used. The
+              command will be invoked after the setup script was
+              executed and adjusted the <envar>PATH</envar> variable.</para>
+              </listitem>
+            </varlistentry>
+
+          </variablelist>
+
+        </section>
+
+        <section id="bbv2.reference.tools.compiler.dmc">
+
+          <title>Digital Mars C/C++ Compiler</title>
+
+          <para>The <code>dmc</code> module supports the
+          <ulink url="http://www.digitalmars.com/">Digital Mars C++ compiler.</ulink>
+          </para>
+
+          <para>The module is initialized using the following syntax:</para>
+          <programlisting>
+using dmc : &toolset_ops; ;</programlisting>
+
+          &using_repeation;
+
+          <para>If the command is not specified, Boost.Build will search for
+          a binary named <command>dmc</command> in
+          <envar>PATH</envar>.</para>
+
+          &option_list_intro;
+          <variablelist>
+            <xi:include href="fragments.xml" xpointer="xpointer(id('common_options')/*)"
+                        parse="xml"/>
+          </variablelist>
+
+        </section>
+
+        <section id="bbv2.reference.tools.compiler.hp_cxx">
+
+          <title>HP C++ Compiler for Tru64 Unix</title>
+
+          <para>The <code>hp_cxx</code> modules supports the
+          <ulink url="http://h30097.www3.hp.com/cplus/?jumpid=reg_R1002_USEN">
+            HP C++ Compiler</ulink> for Tru64 Unix.</para>
+
+          <para>The module is initialized using the following syntax:</para>
+          <programlisting>
+using hp_cxx : &toolset_ops; ;</programlisting>
+
+          &using_repeation;
+
+          <para>If the command is not specified, Boost.Build will search for
+          a binary named <command>hp_cxx</command> in <envar>PATH</envar>.</para>
+
+          &option_list_intro;
+          <variablelist>
+            <xi:include href="fragments.xml" xpointer="xpointer(id('common_options')/*)"
+                        parse="xml"/>
+          </variablelist>
+
+        </section>
+
+        <section id="bbv2.reference.tools.compiler.sun">
+
+          <title>Sun Studio</title>
+
+          <para>The <code>sun</code> module supports the
+          <ulink url="http://developers.sun.com/sunstudio/index.jsp">
+          Sun Studio</ulink> C++ compilers for the Solaris OS.</para>
+
+          <para>The module is initialized using the following syntax:</para>
+          <programlisting>
+using sun : &toolset_ops; ;</programlisting>
+
+          &using_repeation;
+
+          <para>If the command is not specified, Boost.Build will search for
+          a binary named <command>CC</command>
+          in <filename>/opt/SUNWspro/bin</filename> and in
+          <envar>PATH</envar>.</para>
+
+          <para>When using this compiler on complex C++ code, such as the
+          <ulink url="http://boost.org">Boost C++ library</ulink>, it is
+          recommended to specify the following options when intializing the
+          <code>sun</code> module:
+          <screen>
+-library=stlport4 -features=tmplife -features=tmplrefstatic
+          </screen> See the <ulink url="http://blogs.sun.com/sga/entry/command_line_options">
+          Sun C++ Frontend Tales</ulink> for details.</para>
+
+          &option_list_intro;
+          <variablelist>
+            <xi:include href="fragments.xml" xpointer="xpointer(id('common_options')/*)"
+                        parse="xml"/>
+          </variablelist>
+
+          <indexterm><primary>64-bit compilation</primary>
+          <secondary>Sun Studio</secondary></indexterm>
+          Starting with Sun Studio 12, you can create 64-bit applications
+          by using the <code>address-model=64</code> property.
+
+        </section>
+
+        <section id="bbv2.reference.tools.compiler.vacpp">
+
+          <title>IBM Visual Age</title>
+          <para>The <code>vacpp</code> module supports the
+          <ulink url="http://www.ibm.com/software/ad/vacpp">IBM Visual
+          Age</ulink> C++ Compiler, for the AIX operating system. Versions
+          7.1 and 8.0 are known to work.</para>
+
+          <para>The module is initialized using the following
+          syntax:</para>
+          <programlisting>
+using vacpp ;</programlisting>
+
+          <para>The module does not accept any initialization options. The
+          compiler should be installed in the <filename>/usr/vacpp/bin</filename>
+          directory.</para>
+
+          <para>Later versions of Visual Age are known as XL C/C++. They
+          were not tested with the the <code>vacpp</code> module.</para>
+
+        </section>
+
+      </section>
+
+      <section>
+        <title>Third-party libraries</title>
+
+        <para>Boost.Build provides special support for some
+        third-party C++ libraries, documented below.</para>
+
+        <section id="bbv2.reference.tools.libraries.stlport">
+          <title>STLport library</title>
+          <indexterm><primary>STLport</primary></indexterm>
+
+          <para>The <ulink url="http://stlport.org">STLport</ulink> library
+          is an alternative implementation of C++ runtime library. Boost.Build
+          supports using that library on Windows platfrom.  Linux is
+          hampered by different naming of libraries in each STLport
+          version and is not officially supported.</para>
+
+          <para>Before using STLport, you need to configure it in
+          <filename>user-config.jam</filename> using the following syntax:
+          </para>
+          <programlisting>
+using stlport : <optional><replaceable>version</replaceable></optional> : <replaceable>header-path</replaceable> : <optional><replaceable>library-path</replaceable></optional> ;
+</programlisting>
+          <para>
+          Where <replaceable>version</replaceable> is the version of
+          STLport, for example <literal>5.1.4</literal>,
+          <replaceable>headers</replaceable> is the location where
+          STLport headers can be found, and <replaceable>libraries</replaceable>
+          is the location where STLport libraries can be found.
+          The version should always be provided, and the library path should
+          be provided if you're using STLport's implementation of
+          iostreams. Note that STLport 5.* always uses its own iostream
+          implementation, so the library path is required.
+          </para>
+
+          <para>When STLport is configured, you can build with STLport by
+          requesting <literal>stdlib=stlport</literal> on the command line.
+          </para>
+
+        </section>
+
+        <section id="bbv2.reference.tools.libraries.zlib">
+          <title>zlib</title>
+          <indexterm><primary>zlib</primary></indexterm>
+
+          <para>Provides support for the
+          <ulink url="http://www.zlib.net">zlib</ulink> library.  zlib
+          can be configured either to use precompiled binaries or to
+          build the library from source.</para>
+
+          <para>zlib can be initialized using the following syntax</para>
+          <programlisting>
+using zlib : <optional><replaceable>version</replaceable></optional> : <optional><replaceable>options</replaceable></optional> : <optional><replaceable>condition</replaceable></optional> : <optional><replaceable>is-default</replaceable></optional> ;
+          </programlisting>
+          <para>Options for using a prebuilt library:</para>
+          <variablelist>
+            <varlistentry>
+              <term><literal>search</literal></term>
+              <listitem>
+                <para>The directory containing the zlib binaries.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term><literal>name</literal></term>
+              <listitem>
+                <para>Overrides the default library name.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term><literal>include</literal></term>
+              <listitem>
+                <para>The directory containing the zlib headers.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+          <para>If none of these options is specified, then the environmental
+          variables ZLIB_LIBRARY_PATH, ZLIB_NAME, and ZLIB_INCLUDE will be
+          used instead.</para>
+          <para>Options for building zlib from source:</para>
+          <variablelist>
+            <varlistentry>
+              <term><literal>source</literal></term>
+              <listitem>
+                <para>The zlib source directory.  Defaults to the
+                environmental variable ZLIB_SOURCE.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term><literal>tag</literal></term>
+              <listitem>
+                <para>Sets the <link linkend="bbv2.builtin.features.tag">tag</link>
+                property to adjust the file name of the library.  Ignored
+                when using precompiled binaries.</para>
+              </listitem>
+            </varlistentry>
+            <varlistentry>
+              <term><literal>build-name</literal></term>
+              <listitem>
+                <para>The base name to use for the compiled library.
+                Ignored when using precompiled binaries.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+          <para>Examples:</para>
+          <programlisting>
+# Find zlib in the default system location
+using zlib ;
+# Build zlib from source
+using zlib : 1.2.7 : &lt;source&gt;/home/steven/zlib-1.2.7 ;
+# Find zlib in /usr/local
+using zlib : 1.2.7 : &lt;include&gt;/usr/local/include &lt;search&gt;/usr/local/lib ;
+# Build zlib from source for msvc and find
+# prebuilt binaries for gcc.
+using zlib : 1.2.7 : &lt;source&gt;C:/Devel/src/zlib-1.2.7 : &lt;toolset&gt;msvc ;
+using zlib : 1.2.7 : : &lt;toolset&gt;gcc ;
+</programlisting>
+        </section>
+
+      </section>
+
+      <section>
+        <title>Documentation tools</title>
+
+        <para>Boost.Build support for the Boost documentation tools is
+        documented below.
+        </para>
+
+        <section id="bbv2.reference.tools.doc.xsltproc">
+          <title>xsltproc</title>
+          <indexterm><primary>xsltproc</primary></indexterm>
+
+          <para>To use xsltproc, you first need to configure it using the following syntax:</para>
+          <programlisting>
+using xsltproc : <optional><replaceable>xsltproc</replaceable></optional> ;
+</programlisting>
+          <para>
+          Where <replaceable>xsltproc</replaceable> is the xsltproc executable.
+          If <replaceable>xsltproc</replaceable> is not specified, and the
+          variable XSLTPROC is set, the value of XSLTPROC will be used.
+          Otherwise, xsltproc will be searched for in PATH.
+          </para>
+
+          
+          &option_list_intro;
+          <variablelist>
+
+            <varlistentry>
+              <indexterm><primary>xsl:param</primary></indexterm>
+              <term><literal>xsl:param</literal></term>
+              <listitem>
+                <para>Values should have the form
+                <replaceable>name</replaceable>=<replaceable>value</replaceable></para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <indexterm><primary>xsl:path</primary></indexterm>
+              <term><literal>xsl:path</literal></term>
+              <listitem>
+                <para>Sets an additional search path for xi:include elements.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <indexterm><primary>catalog</primary></indexterm>
+              <term><literal>catalog</literal></term>
+              <listitem>
+                <para>A catalog file used to rewrite remote URL's to a local copy.</para>
+              </listitem>
+            </varlistentry>
+
+          </variablelist>
+
+          <para>The xsltproc module provides the following rules.  Note that
+          these operate on jam targets and are intended to be used by another
+          toolset, such as boostbook, rather than directly by users.
+          </para>
+          <variablelist>
+
+            <varlistentry>
+              <indexterm><primary>xslt</primary></indexterm>
+              <term><literal>xslt</literal></term>
+              <listitem>
+                <programlisting>
+rule xslt ( target : source stylesheet : properties * )
+</programlisting>
+                <para>Runs xsltproc to create a single output file.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <indexterm><primary>xslt-dir</primary></indexterm>
+              <term><literal>xslt-dir</literal></term>
+              <listitem>
+                <programlisting>
+rule xslt-dir ( target : source stylesheet : properties * : dirname )
+</programlisting>
+                <para>Runs xsltproc to create multiple outputs in a directory.
+                <literal>dirname</literal> is unused, but exists for
+                historical reasons.  The output directory is determined from the
+                target.
+                </para>
+              </listitem>
+            </varlistentry>
+
+          </variablelist>
+
+        </section>
+
+        <section id="bbv2.reference.tools.doc.boostbook">
+          <title>boostbook</title>
+          <indexterm><primary>boostbook</primary><secondary>module</secondary></indexterm>
+
+          <para>To use boostbook, you first need to configure it using the following syntax:</para>
+          <programlisting>
+using boostbook : <optional><replaceable>docbook-xsl-dir</replaceable></optional> : <optional><replaceable>docbook-dtd-dir</replaceable></optional> : <optional><replaceable>boostbook-dir</replaceable></optional> ;
+</programlisting>
+          <para>
+          <replaceable>docbook-xsl-dir</replaceable> is the DocBook XSL stylesheet
+          directory. If not provided, we use DOCBOOK_XSL_DIR from the environment
+          (if available) or look in standard locations.  Otherwise, we let the
+          XML processor load the stylesheets remotely.
+          </para>
+
+          <para>
+          <replaceable>docbook-dtd-dir</replaceable> is the DocBook DTD directory.
+          If not provided, we use DOCBOOK_DTD_DIR From the environment (if
+          available) or look in standard locations.  Otherwise, we let the XML
+          processor load the DTD remotely.
+          </para>
+
+          <para>
+          <replaceable>boostbook-dir</replaceable> is the BoostBook directory
+          with the DTD and XSL subdirs.
+          </para>
+
+          <para>The boostbook module depends on xsltproc.  For pdf or ps output,
+          it also depends on fop.
+          </para>
+          
+          &option_list_intro;
+          <variablelist>
+
+            <varlistentry>
+              <indexterm><primary>format</primary></indexterm>
+              <indexterm><primary>html</primary></indexterm>
+              <indexterm><primary>xhtml</primary></indexterm>
+              <indexterm><primary>htmlhelp</primary></indexterm>
+              <indexterm><primary>onehtml</primary></indexterm>
+              <indexterm><primary>man</primary></indexterm>
+              <indexterm><primary>pdf</primary></indexterm>
+              <indexterm><primary>ps</primary></indexterm>
+              <indexterm><primary>docbook</primary></indexterm>
+              <indexterm><primary>fo</primary></indexterm>
+              <indexterm><primary>tests</primary></indexterm>
+              <term><literal>format</literal></term>
+              <listitem>
+                <para>
+                  <emphasis role="bold">Allowed values:</emphasis>
+                  <literal>html</literal>, <literal>xhtml</literal>,
+                  <literal>htmlhelp</literal>, <literal>onehtml</literal>,
+                  <literal>man</literal>, <literal>pdf</literal>,
+                  <literal>ps</literal>, <literal>docbook</literal>,
+                  <literal>fo</literal>, <literal>tests</literal>.
+                </para>
+
+
+                <para>The <literal>format</literal> feature determines the type
+                of output produced by the boostbook rule.</para>
+              </listitem>
+            </varlistentry>
+
+          </variablelist>
+
+          <para>The boostbook module defines a rule for creating a target
+          following the common syntax.</para>
+
+          <variablelist>
+
+            <varlistentry>
+              <indexterm><primary>boostbook</primary><secondary>rule</secondary></indexterm>
+              <term><literal>boostbook</literal></term>
+              <listitem>
+                <programlisting>
+rule boostbook ( target-name : sources * : requirements * : default-build * )
+</programlisting>
+                <para>Creates a boostbook target.</para>
+              </listitem>
+            </varlistentry>
+
+          </variablelist>
+
+        </section>
+
+        <section id="bbv2.reference.tools.doc.doxygen">
+          <title>doxygen</title>
+          <indexterm><primary>doxygen</primary></indexterm>
+
+          <para>To use doxygen, you first need to configure it using the following syntax:</para>
+          <programlisting>
+using doxygen : <optional><replaceable>name</replaceable></optional> ;
+</programlisting>
+          <para>
+          <replaceable>name</replaceable> is the doxygen command.
+          If it is not specified, it will be found in the PATH.
+          </para>
+
+          <para>The doxygen module depends on the boostbook module when
+          generating BoostBook XML.
+          </para>
+
+          &option_list_intro;
+          <variablelist>
+
+            <varlistentry>
+              <indexterm><primary>doxygen:param</primary></indexterm>
+              <term><literal>doxygen:param</literal></term>
+              <listitem>
+                <para>All the values of <literal>doxygen:param</literal>
+                 are added to the doxyfile.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <indexterm><primary>prefix</primary></indexterm>
+              <term><literal>prefix</literal></term>
+              <listitem>
+                <para>Specifies the common prefix of all headers
+                when generating BoostBook XML.  Everything before
+                this will be stripped off.
+                </para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <indexterm><primary>reftitle</primary></indexterm>
+              <term><literal>reftitle</literal></term>
+              <listitem>
+                <para>Specifies the title of the library-reference section,
+                when generating BoostBook XML.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <indexterm><primary>doxygen:xml-imagedir</primary></indexterm>
+              <term><literal>doxygen:xml-imagedir</literal></term>
+              <listitem>
+                <para>When generating BoostBook XML, specifies the
+                directory in which to place the images generated
+                from LaTex formulae.</para>
+                <warning><para>The path is interpreted relative to the
+                current working directory, not relative to the Jamfile.
+                This is necessary to match the behavior of BoostBook.
+                </para></warning>
+              </listitem>
+            </varlistentry>
+
+          </variablelist>
+
+          <para>The doxygen module defines a rule for creating a target
+          following the common syntax.</para>
+
+          <variablelist>
+
+            <varlistentry>
+              <indexterm><primary>doxygen</primary><secondary>rule</secondary></indexterm>
+              <term><literal>doxygen</literal></term>
+              <listitem>
+                <programlisting>
+rule doxygen ( target : sources * : requirements * : default-build * : usage-requirements * )
+</programlisting>
+                <para>Creates a doxygen target.  If the target name
+                ends with .html, then this will generate an html
+                directory.  Otherwise it will generate BoostBook XML.
+                </para>
+              </listitem>
+            </varlistentry>
+
+          </variablelist>
+
+        </section>
+
+        <section id="bbv2.reference.tools.doc.quickbook">
+          <title>quickbook</title>
+          <indexterm><primary>quickbook</primary></indexterm>
+
+          <para>The quickbook module provides a generator to convert from
+          Quickbook to BoostBook XML.</para>
+
+          <para>To use quickbook, you first need to configure it using the following syntax:</para>
+          <programlisting>
+using quickbook : <optional><replaceable>command</replaceable></optional> ;
+</programlisting>
+          <para>
+          <replaceable>command</replaceable> is the quickbook executable.
+          If it is not specified, Boost.Build will compile it from source.
+          If it is unable to find the source it will search for a quickbook
+          executable in PATH.
+          </para>
+
+        </section>
+
+        <section id="bbv2.reference.tools.doc.fop">
+          <title>fop</title>
+          <indexterm><primary>fop</primary></indexterm>
+
+          <para>The fop module provides generators to convert from
+          XSL formatting objects to Postscript and PDF.</para>
+
+          <para>To use fop, you first need to configure it using the following syntax:</para>
+          <programlisting>
+using fop : <optional><replaceable>fop-command</replaceable></optional> : <optional><replaceable>java-home</replaceable></optional> : <optional><replaceable>java</replaceable></optional> ;
+</programlisting>
+          <para>
+          <replaceable>fop-command</replaceable> is the command to run fop.
+          If it is not specified, Boost.Build will search for it in PATH and
+          FOP_HOME.
+          </para>
+          <para>
+          Either <replaceable>java-home</replaceable> or
+          <replaceable>java</replaceable>
+          can be used to specify where to find java.
+          </para>
+
+        </section>
+
+      </section>
+
+    </section>
+
+  <section id="bbv2.reference.modules">
+    <title>Builtin modules</title>
+
+    <para>
+      This section describes the modules that are provided
+      by Boost.Build.  The import rule allows rules from
+      one module to be used in another module or Jamfile.
+    </para>
+    
+    <section id="bbv2.reference.modules.modules">
+      <title>modules</title>
+      <indexterm><primary>modules</primary></indexterm>
+
+      <para>
+        The <code>modules</code> module defines basic functionality
+        for handling modules.
+      </para>
+
+      <para>
+        A module defines a number of rules that can be used in other
+        modules.  Modules can contain code at the top level to initialize
+        the module.  This code is executed the first time the
+        module is loaded.
+        <note>
+          <para>
+            A Jamfile is a special kind of module which is managed by
+            the build system.  Although they cannot be loaded directly
+            by users, the other features of modules are still useful
+            for Jamfiles.
+          </para>
+        </note>
+      </para>
+
+      <para>
+        Each module has its own namespaces for variables and rules.  If two
+        modules A and B both use a variable named X, each one gets its own
+        copy of X.  They won't interfere with each other in any way.
+        Similarly, importing rules into one module has no effect on any other
+        module.
+      </para>
+
+      <para>
+        Every module has two special variables.
+        <code>$(__file__)</code> contains the name of the file that
+        the module was loaded from and <code>$(__name__)</code>
+        contains the name of the module.
+        <note><para><code>$(__file__)</code> does not contain
+        the full path to the file.  If you need this, use
+        <code>modules.binding</code>.</para></note>
+      </para>
+      
+      <orderedlist>
+
+        <listitem id="bbv2.reference.modules.modules.binding">
+          <indexterm zone="bbv2.reference.modules.modules.binding"><primary>binding</primary></indexterm>
+          <code language="jam">rule binding ( module-name )</code>
+          <para>Returns the filesystem binding of the given module.</para>
+          <para>For example, a module can get its own location with:
+          <programlisting language="jam">me = [ modules.binding $(__name__) ] ;</programlisting>
+          </para>
+        </listitem>
+
+        <listitem id="bbv2.reference.modules.modules.poke">
+          <indexterm zone="bbv2.reference.modules.modules.poke"><primary>poke</primary></indexterm>
+          <code language="jam">rule poke ( module-name ? : variables + : value * )</code>
+          <para>Sets the module-local value of a variable.</para>
+          <para>For example, to set a variable in the global module:
+          <programlisting language="jam">modules.poke : ZLIB_INCLUDE : /usr/local/include ;</programlisting>
+          </para>
+        </listitem>
+
+        <listitem id="bbv2.reference.modules.modules.peek">
+          <indexterm zone="bbv2.reference.modules.modules.peek"><primary>peek</primary></indexterm>
+          <code language="jam">rule peek ( module-name ? : variables + )</code>
+          <para>Returns the module-local value of a variable.</para>
+          <para>
+            For example, to read a variable from the global module:
+            <programlisting language="jam">local ZLIB_INCLUDE = [ modules.peek : ZLIB_INCLUDE ] ;</programlisting>
+          </para>
+        </listitem>
+
+        <listitem id="bbv2.reference.modules.modules.call-in">
+          <indexterm zone="bbv2.reference.modules.modules.call-in"><primary>call-in</primary></indexterm>
+          <code language="jam">rule call-in ( module-name ? : rule-name args * : * ) </code>
+          <para>Call the given rule locally in the given module. Use
+          this for rules accepting rule names as arguments, so that
+          the passed rule may be invoked in the context of the rule's
+          caller (for example, if the rule accesses module globals or
+          is a local rule).
+          <note><para>rules called this way may accept at most
+          8 parameters.</para></note></para>
+          <para>Example:
+<programlisting language="jam">
+rule filter ( f : values * )
+{
+    local m = [ CALLER_MODULE ] ;
+    local result ;
+    for v in $(values)
+    {
+        if [ modules.call-in $(m) : $(f) $(v) ]
+        {
+            result += $(v) ;
+        }
+    }
+    return result ;
+}
+</programlisting>
+          </para>
+        </listitem>
+
+        <listitem id="bbv2.reference.modules.modules.load">
+          <indexterm zone="bbv2.reference.modules.modules.load"><primary>load</primary></indexterm>
+          <code language="jam">rule load ( module-name : filename ? : search * )</code>
+          <para>Load the indicated module if it is not already loaded.</para>
+          <variablelist>
+            <varlistentry>
+              <term><literal>module-name</literal></term>
+              <listitem><para>Name of module to load.</para></listitem>
+            </varlistentry>
+          </variablelist>
+          <variablelist>
+            <varlistentry>
+              <term><literal>filename</literal></term>
+              <listitem><para>(partial) path to file; Defaults to <code>$(module-name).jam</code></para></listitem>
+            </varlistentry>
+          </variablelist>
+          <variablelist>
+            <varlistentry>
+              <term><literal>search</literal></term>
+              <listitem><para>Directories in which to search for filename.
+                  Defaults to <code>$(BOOST_BUILD_PATH)</code>.</para></listitem>
+            </varlistentry>
+          </variablelist>
+        </listitem>
+
+        <listitem id="bbv2.reference.modules.modules.import">
+          <indexterm zone="bbv2.reference.modules.modules.import"><primary>import</primary></indexterm>
+          <code language="jam">rule import ( module-names + : rules-opt * : rename-opt * )</code>
+          <para>Load the indicated module and import rule names into the
+          current module. Any members of <code>rules-opt</code> will be
+          available without qualification in the caller's module. Any
+          members of <code>rename-opt</code> will be taken as the names
+          of the rules in the caller's module, in place of the names they
+          have in the imported module.  If <code>rules-opt = '*'</code>,
+          all rules from the indicated module are imported into the
+          caller's module. If <code>rename-opt</code> is supplied, it must have the
+          same number of elements as <code>rules-opt</code>.</para>
+          <note><para>The <literal>import</literal> rule is available
+          without qualification in all modules.</para></note>
+          <para>Examples:
+<programlisting language="jam">
+import path ;
+import path : * ;
+import path : join ;
+import path : native make : native-path make-path ;
+</programlisting>
+          </para>
+        </listitem>
+
+        <listitem id="bbv2.reference.modules.modules.clone-rules">
+          <indexterm zone="bbv2.reference.modules.modules.clone-rules"><primary>clone-rules</primary></indexterm>
+          <code language="jam">rule clone-rules ( source-module target-module )</code>
+          <para>Define exported copies in <code>$(target-module)</code>
+          of all rules exported from <code>$(source-module)</code>. Also
+          make them available in the global module with qualification,
+          so that it is just as though the rules were defined originally
+          in <code>$(target-module)</code>.</para>
+        </listitem>
+
+      </orderedlist>
+
+    </section>
+
+    <xi:include href="path.xml"/>
+    <xi:include href="type.xml"/>
+  
+  </section>
+
+  <section id="bbv2.reference.class">
+    <title>Builtin classes</title>
+    <xi:include href="abstract-target.xml"/>
+    <xi:include href="project-target.xml"/>
+    <xi:include href="main-target.xml"/>
+    <xi:include href="basic-target.xml"/>
+    <xi:include href="typed-target.xml"/>
+    <xi:include href="property-set.xml"/>
+  </section>
+
+  <section id="bbv2.reference.buildprocess">
+    <title>Build process</title>
+
+    <para>The general overview of the build process was given in the
+      <link linkend="bbv2.overview.build_process">user documentation</link>.
+      This section provides additional details, and some specific rules.
+    </para>
+
+    <para>To recap, building a target with specific properties includes the
+      following steps:
+      <orderedlist>
+
+        <listitem><para>applying default build,</para></listitem>
+
+        <listitem><para>selecting the main target alternative to use,
+          </para></listitem>
+
+        <listitem><para>determining "common" properties,</para></listitem>
+
+        <listitem><para>building targets referred by the sources list and
+            dependency properties,</para></listitem>
+
+        <listitem><para>adding the usage requirements produces when building
+            dependencies to the "common" properties,</para></listitem>
+
+        <listitem><para>building the target using generators,</para></listitem>
+
+        <listitem><para>computing the usage requirements to be returned.</para></listitem>
+
+      </orderedlist>
+    </para>
+
+    <section id="bbv2.reference.buildprocess.alternatives">
+      <title>Alternative selection</title>
+
+      <para>When there are several alternatives, one of them must be
+        selected. The process is as follows:</para>
+
+      <orderedlist>
+        <listitem>
+          <simpara>
+            For each alternative <emphasis>condition</emphasis> is defined as
+            the set of base properties in requirements. [Note: it might be
+            better to specify the condition explicitly, as in conditional
+            requirements].
+          </simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>
+            An alternative is viable only if all properties in condition
+            are present in build request.
+          </simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>
+            If there's one viable alternative, it's choosen. Otherwise,
+            an attempt is made to find one best alternative. An alternative
+            a is better than another alternative b, iff the set of properties
+            in b's condition is a strict subset of the set of properities of
+            'a's condition. If there's one viable alternative, which is
+            better than all others, it's selected. Otherwise, an error is
+            reported.
+          </simpara>
+        </listitem>
+      </orderedlist>
+
+    </section>
+
+    <section id="bbv2.reference.buildprocess.common">
+      <title>Determining common properties</title>
+
+      <para>The "common" properties is a somewhat artificial term. Those are
+        the intermediate property set from which both the build request for
+        dependencies and properties for building the target are derived.
+      </para>
+
+      <para>Since default build and alternatives are already handled, we have
+        only two inputs: build requests and requirements. Here are the rules
+        about common properties.
+      </para>
+
+      <orderedlist>
+        <listitem><para>Non-free feature can have only one
+            value</para></listitem>
+
+        <listitem><para>A non-conditional property in requirement in always
+            present in common properties.</para></listitem>
+
+        <listitem><para>A property in build request is present in
+            common properties, unless (2) tells otherwise.</para></listitem>
+
+        <listitem><para>If either build request, or requirements (non-conditional
+            or conditional) include an expandable property (either composite,
+            or property with specified subfeature value), the behaviour is
+            equivalent to explicitly adding all expanded properties to build
+            request or requirements.</para></listitem>
+
+        <listitem><para>If requirements include a conditional property, and
+            condiiton of this property is true in context of common
+            properties, then the conditional property should be in common
+            properties as well.</para></listitem>
+
+        <listitem><para>If no value for a feature is given by other rules
+            here, it has default value in common properties.</para></listitem>
+      </orderedlist>
+
+      <para>Those rules are declarative, they don't specify how to compute the
+        common properties. However, they provide enough information for the
+        user. The important point is the handling of conditional
+        requirements. The condition can be satisfied either by property in
+        build request, by non-conditional requirements, or even by another
+        conditional property. For example, the following example works as
+        expected:
+<programlisting>
+exe a : a.cpp
+      : &lt;toolset&gt;gcc:&lt;variant&gt;release
+        &lt;variant&gt;release:&lt;define&gt;FOO ;
+</programlisting>
+      </para>
+
+    </section>
+    
+    <section id="bbv2.reference.buildprocess.targetpath">
+      <title>Target Paths</title>
+      <indexterm><primary>path</primary><secondary>for targets</secondary></indexterm>
+
+      <para>Several factors determine the location of a concrete
+      file target.  All files in a project are built under
+      the directory bin unless this is overriden by the build-dir project
+      attribute.  Under bin is a path that depends on the properties
+      used to build each target.  This path is uniquely determined by
+      all non-free, non-incidental properties.  For example,
+      given a property set containing:
+      <code>&lt;toolset&gt;gcc &lt;toolset-gcc:version&gt;4.6.1 &lt;variant&gt;debug
+      &lt;warnings&gt;all &lt;define&gt;_DEBUG &lt;include&gt;/usr/local/include
+      &lt;link&gt;static</code>,
+      the path will be gcc-4.6.1/debug/link-static.  &lt;warnings&gt; is an
+      incidental feature and &lt;define&gt; and &lt;include&gt; are
+      free features, so they do not affect the path.</para>
+      
+      <para>Sometimes the paths produced by Boost.Build can become excessively
+      long.  There are a couple of command line options that can help with this.
+      --abbreviate-paths reduces each element to no more than five characters.
+      For example, link-static becomes lnk-sttc.  The --hash option reduces the
+      path to a single directory using an MD5 hash.</para>
+      
+      <para>There are two features that affect the build
+      directory.  The &lt;location&gt; feature completely
+      overrides the default build directory.  For example,
+      <programlisting>exe a : a.cpp : &lt;location&gt;. ;</programlisting>
+      builds all the files produced by <code>a</code>
+      in the directory of the Jamfile.  This is generally
+      discouraged, as it precludes variant builds.</para>
+    
+      <para>The &lt;location-prefix&gt; feature adds a
+      prefix to the path, under the project's build
+      directory.  For example,
+      <programlisting>exe a : a.cpp : &lt;location-prefix&gt;subdir ;</programlisting>
+      will create the files for <code>a</code> in bin/subdir/gcc-4.6.1/debug</para>
+    
+    </section>
+
+  </section>
+
+
+
+  <section id="bbv2.reference.definitions">
+
+    <title>Definitions</title>
+
+    <section id="bbv2.reference.features">
+      <title>Features and properties</title>
+
+      <para>A <emphasis>feature</emphasis> is a normalized (toolset-independent)
+        aspect of a build configuration, such as whether inlining is
+        enabled. Feature names may not contain the '<literal>&gt;</literal>'
+        character.</para>
+
+  <!--
+    And what about dash?
+  -->
+
+      <para>Each feature in a build configuration has one or more
+        associated <emphasis>value</emphasis>s. Feature values for non-free features
+        may not contain the '<literal>&lt;</literal>', '<literal>:</literal>', or
+        '<literal>=</literal>' characters. Feature values for free features may not
+        contain the '<literal>&lt;</literal>' character.</para>
+
+      <para>A <emphasis>property</emphasis> is a (feature,value) pair, expressed as
+        &lt;feature&gt;value.</para>
+
+      <para>A <emphasis>subfeature</emphasis> is a feature that only exists in the
+        presence of its parent feature, and whose identity can be derived
+        (in the context of its parent) from its value. A subfeature's
+        parent can never be another subfeature. Thus, features and their
+        subfeatures form a two-level hierarchy.</para>
+
+      <para>A <emphasis>value-string</emphasis> for a feature <emphasis role="bold">F</emphasis> is a string of
+        the form
+        <literal>value-subvalue1-subvalue2</literal>...<literal>-subvalueN</literal>, where
+        <literal>value</literal> is a legal value for <emphasis role="bold">F</emphasis> and
+        <literal>subvalue1</literal>...<literal>subvalueN</literal> are legal values of some
+        of <emphasis role="bold">F</emphasis>'s subfeatures. For example, the properties
+        <literal>&lt;toolset&gt;gcc &lt;toolset-version&gt;3.0.1</literal> can be
+        expressed more conscisely using a value-string, as
+        <literal>&lt;toolset&gt;gcc-3.0.1</literal>.</para>
+
+      <para>A <emphasis>property set</emphasis> is a set of properties (i.e. a
+        collection without duplicates), for instance:
+        <literal>&lt;toolset&gt;gcc &lt;runtime-link&gt;static</literal>.</para>
+
+      <para>A <emphasis>property path</emphasis> is a property set whose elements have
+        been joined into a single string separated by slashes. A property
+        path representation of the previous example would be
+        <literal>&lt;toolset&gt;gcc/&lt;runtime-link&gt;static</literal>.</para>
+
+      <para>A <emphasis>build specification</emphasis> is a property set that fully
+        describes the set of features used to build a target.</para>
+
+      <section id="bbv2.reference.features.validity">
+        <title>Property Validity</title>
+
+        <para>
+          For <link linkend=
+            "bbv2.reference.features.attributes.free">free</link>
+            features, all values are valid. For all other features,
+          the valid values are explicitly specified, and the build
+          system will report an error for the use of an invalid
+          feature-value. Subproperty validity may be restricted so
+          that certain values are valid only in the presence of
+          certain other subproperties. For example, it is possible
+          to specify that the <code>&lt;gcc-target&gt;mingw</code>
+          property is only valid in the presence of
+          <code>&lt;gcc-version&gt;2.95.2</code>.
+        </para>
+
+      </section>
+      <section id="bbv2.reference.features.attributes">
+        <title>Feature Attributes</title>
+
+        <para>Each feature has a collection of zero or more of the following
+          attributes. Feature attributes are low-level descriptions of how the
+          build system should interpret a feature's values when they appear in
+          a build request. We also refer to the attributes of properties, so
+          that an <emphasis>incidental</emphasis> property, for example, is
+          one whose feature has the <emphasis>incidental</emphasis>
+          attribute.</para>
+
+        <itemizedlist>
+          <listitem>
+            <para><emphasis>incidental</emphasis></para>
+
+            <para>Incidental features are assumed not to affect build
+              products at all. As a consequence, the build system may use
+              the same file for targets whose build specification differs
+              only in incidental features. A feature that controls a
+              compiler's warning level is one example of a likely
+              incidental feature.</para>
+
+            <para>Non-incidental features are assumed to affect build
+              products, so the files for targets whose build specification
+              differs in non-incidental features are placed in different
+              directories as described in <xref linkend="bbv2.reference.buildprocess.targetpath"/>.
+            </para>
+          </listitem>
+
+          <listitem>
+            <para>
+              <anchor id="bbv2.reference.features.attributes.propagated"/>
+              <emphasis>propagated</emphasis>
+            </para>
+
+            <para>Features of this kind are
+              propagated to dependencies. That is, if a <link linkend=
+                "bbv2.overview.targets.main">main target</link> is built using a
+              propagated
+              property, the build systems attempts to use the same property
+              when building any of its dependencies as part of that main
+              target. For instance, when an optimized exectuable is
+              requested, one usually wants it to be linked with optimized
+              libraries. Thus, the <literal>&lt;optimization&gt;</literal> feature is
+              propagated.</para>
+          </listitem>
+
+          <listitem>
+            <para>
+              <anchor id="bbv2.reference.features.attributes.free"/>
+              <emphasis>free</emphasis>
+            </para>
+
+            <para>Most features have a finite set of allowed values, and can
+              only take on a single value from that set in a given build
+              specification. Free features, on the other hand, can have
+              several values at a time and each value can be an arbitrary
+              string. For example, it is possible to have several
+              preprocessor symbols defined simultaneously:</para>
+
+<programlisting>
+&lt;define&gt;NDEBUG=1 &lt;define&gt;HAS_CONFIG_H=1
+</programlisting>
+
+          </listitem>
+
+          <listitem>
+            <para><emphasis>optional</emphasis></para>
+
+            <para>An optional feature is a feature that is not required to
+              appear in a build specification. Every non-optional non-free
+              feature has a default value that is used when a value for
+              the feature is not otherwise specified, either in a target's
+              requirements or in the user's build request. [A feature's
+              default value is given by the first value listed in the
+              feature's declaration. -- move this elsewhere - dwa]</para>
+          </listitem>
+
+          <listitem>
+            <para><emphasis>symmetric</emphasis></para>
+
+            <para>Normally a feature only generates a subvariant directory
+              when its value differs from its default value,
+              leading to an assymmetric subvariant directory structure for
+              certain values of the feature. A symmetric feature
+              always generates a corresponding
+              subvariant directory.</para>
+          </listitem>
+
+          <listitem>
+            <para><emphasis>path</emphasis></para>
+
+            <para>The value of a path feature specifies a path. The path is
+              treated as relative to the directory of Jamfile where path
+              feature is used and is translated appropriately by the build
+              system when the build is invoked from a different
+              directory</para>
+          </listitem>
+
+          <listitem>
+            <para><emphasis>implicit</emphasis></para>
+
+            <para>Values of implicit features alone identify the feature.
+              For example, a user is not required to write
+              "&lt;toolset&gt;gcc", but can simply write "gcc". Implicit
+              feature names also don't appear in variant paths, although
+              the values do. Thus: bin/gcc/... as opposed to
+              bin/toolset-gcc/.... There should typically be only a few
+              such features, to avoid possible name clashes.</para>
+          </listitem>
+
+          <listitem>
+            <para><emphasis>composite</emphasis></para>
+
+            <para>Composite features actually correspond to groups of
+              properties. For example, a build variant is a composite
+              feature. When generating targets from a set of build
+              properties, composite features are recursively expanded and
+              <emphasis>added</emphasis> to the build property set, so rules can find
+              them if necessary. Non-composite non-free features override
+              components of composite features in a build property set.</para>
+          </listitem>
+
+          <listitem>
+            <para><emphasis>dependency</emphasis></para>
+
+            <para>The value of a dependency feature is a target reference.
+              When used for building of a main target, the value of
+              dependency feature is treated as additional dependency.</para>
+
+            <para>For example, dependency features allow to state that
+              library A depends on library B. As the result, whenever an
+              application will link to A, it will also link to B.
+              Specifying B as dependency of A is different from adding B to
+              the sources of A. <!-- Need to clarify this. --></para>
+          </listitem>
+        </itemizedlist>
+
+        <para>Features that are neither free nor incidental are called
+          <emphasis>base</emphasis> features.</para>
+
+
+      </section>
+      <section id="bbv2.reference.features.declaration">
+        <title>Feature Declaration</title>
+
+        <para>The low-level feature declaration interface is the
+          <literal>feature</literal> rule from the
+          <literal>feature</literal> module:
+
+<programlisting>
+rule feature ( name : allowed-values * : attributes * )
+</programlisting>
+
+          A feature's allowed-values may be extended with the
+          <code>feature.extend</code> rule.
+        </para>
+
+      </section>
+    </section>
+
+    <section id="bbv2.reference.variants.proprefine">
+      <title>Property refinement</title>
+
+      <para>When a target with certain properties is requested, and that
+        target requires some set of properties, it is needed to find the
+        set of properties to use for building. This process is called
+        <emphasis>property refinement</emphasis> and is performed by these rules</para>
+
+      <orderedlist>
+
+        <listitem>
+          <simpara>
+            Each property in the required set is added to the original
+            property set
+          </simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>
+            If the original property set includes property with a different
+            value of non free feature, that property is removed.
+          </simpara>
+        </listitem>
+      </orderedlist>
+    </section>
+
+    <section id="bbv2.reference.variants.propcond">
+      <title>Conditional properties</title>
+
+      <para>Sometime it's desirable to apply certain requirements only for
+        a specific combination of other properties. For example, one of
+        compilers that you use issues a pointless warning that you want to
+        suppress by passing a command line option to it. You would not
+        want to pass that option to other compilers. Conditional
+        properties allow you to do just that. Their syntax is:</para>
+
+      <programlisting>
+        property ( "," property ) * ":" property
+      </programlisting>
+
+      <para>
+        For example, the problem above would be solved by:
+
+<programlisting>
+exe hello : hello.cpp : &lt;toolset&gt;yfc:&lt;cxxflags&gt;-disable-pointless-warning ;
+</programlisting>
+      </para>
+
+      <para>The syntax also allows several properties in the condition, for
+        example:
+<programlisting>
+exe hello : hello.cpp : &lt;os&gt;NT,&lt;toolset&gt;gcc:&lt;link&gt;static ;
+</programlisting>
+      </para>
+
+    </section>
+
+    <section id="bbv2.reference.ids">
+      <title>Target identifiers and references</title>
+
+      <para><emphasis>Target identifier</emphasis> is used to denote a
+        target. The syntax is:</para>
+
+<programlisting>
+target-id -&gt; (project-id | target-name | file-name )
+              | (project-id | directory-name) "//" target-name
+project-id -&gt; path
+target-name -&gt; path
+file-name -&gt; path
+directory-name -&gt; path
+</programlisting>
+
+      <para>
+        This grammar allows some elements to be recognized as either
+
+        <itemizedlist>
+          <listitem>
+            <simpara>
+              project id (at this point, all project ids start with slash).
+            </simpara>
+          </listitem>
+
+          <listitem>
+            <simpara>
+              name of target declared in current Jamfile (note that target
+              names may include slash).
+            </simpara>
+          </listitem>
+
+          <listitem>
+            <simpara>
+              a regular file, denoted by absolute name or name relative to
+              project's sources location.
+            </simpara>
+          </listitem>
+        </itemizedlist>
+
+        To determine the real meaning a check is made if project-id
+        by the specified name exists, and then if main target of that
+        name exists. For example, valid target ids might be:
+
+<screen>
+a                                    -- target in current project
+lib/b.cpp                            -- regular file
+/boost/thread                        -- project "/boost/thread"
+/home/ghost/build/lr_library//parser -- target in specific project
+</screen>
+
+      </para>
+
+      <para><emphasis role="bold">Rationale:</emphasis>Target is separated from project by special
+        separator (not just slash), because:</para>
+
+      <itemizedlist>
+        <listitem>
+          <simpara>
+            It emphasises that projects and targets are different things.
+          </simpara>
+        </listitem>
+
+        <listitem>
+          <simpara>
+            It allows to have main target names with slashes.
+
+            <!-- The motivation for which is:
+
+            So, to summarize:
+
+            1. The project that extract tarfile may extract all possible kinds
+            of targets, and it's reasonable to use them directly from other
+            project.
+
+            2. The rule for unpacking tar is inplemented in terms of
+            "patch-file", for maintainability, and therefore, must use main
+            target name that contains slashes?
+
+            3. Using sub-Jamfile in "foo" to declare extracted file "foo/b" is
+            not an option, because you should not change existing tree
+
+            That makes good rationale for why main target must contain names.
+            -->
+          </simpara>
+        </listitem>
+      </itemizedlist>
+
+      <para id="bbv2.reference.targets.references">
+        <emphasis>Target reference</emphasis> is used to
+        specify a source target, and may additionally specify desired
+        properties for that target. It has this syntax:</para>
+
+<programlisting>
+target-reference -&gt; target-id [ "/" requested-properties ]
+requested-properties -&gt; property-path
+</programlisting>
+
+      <para>
+        For example,
+
+        <programlisting>
+          exe compiler : compiler.cpp libs/cmdline/&lt;optimization&gt;space ;
+        </programlisting>
+
+        would cause the version of <literal>cmdline</literal> library,
+        optimized for space, to be linked in even if the
+        <literal>compiler</literal> executable is build with optimization for
+        speed.
+      </para>
+    </section>
+
+  </section>
+
+</chapter>
+
+<!--
+     Local Variables:
+     mode: nxml
+     sgml-indent-data: t
+     sgml-parent-document: ("userman.xml" "chapter")
+     sgml-set-face: t
+     End:
+-->

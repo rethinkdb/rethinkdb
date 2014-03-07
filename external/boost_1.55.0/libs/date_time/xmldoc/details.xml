@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2004 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.details" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Details</title>
+
+  <xi:include href="calculations.xml" />
+  <xi:include href="design_goals.xml" />
+  <xi:include href="tradeoffs.xml" />
+  <xi:include href="terminology.xml" />
+  <xi:include href="references.xml" />
+  <xi:include href="buildinfo.xml" />
+  <xi:include href="tests.xml" />
+  <xi:include href="changes.xml" />
+  <xi:include href="acknowledgements.xml" />
+</section>

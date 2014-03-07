@@ -1,0 +1,536 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Example source code: Adapting a legacy geometry object model</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../examples.html" title="Examples">
+<link rel="prev" href="example__adapting_a_legacy_geometry_object_model.html" title="Example: Adapting a legacy geometry object model">
+<link rel="next" href="../release_notes.html" title="Release Notes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="example__adapting_a_legacy_geometry_object_model.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../release_notes.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model"></a><a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html" title="Example source code: Adapting a legacy geometry object model">Example
+      source code: Adapting a legacy geometry object model</a>
+</h3></div></div></div>
+<h3>
+<a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.h0"></a>
+        <span class="phrase"><a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.adaption_of_qpoint"></a></span><a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.adaption_of_qpoint">Adaption
+        of QPoint</a>
+      </h3>
+<a name="adaption_of_qpoint_source_code"></a><pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">geometry</span>
+    <span class="special">{</span>
+        <span class="keyword">namespace</span> <span class="identifier">traits</span>
+        <span class="special">{</span>
+            <span class="comment">// Adapt QPoint to Boost.Geometry</span>
+
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">&gt;</span>
+            <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">point_tag</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">coordinate_type</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">&gt;</span>
+            <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">QPoint</span><span class="special">::</span><span class="keyword">double</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">coordinate_system</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">&gt;</span>
+            <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">dimension</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">int_</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;</span> <span class="special">{};</span>
+
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+            <span class="keyword">struct</span> <span class="identifier">access</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">,</span> <span class="number">0</span><span class="special">&gt;</span>
+            <span class="special">{</span>
+                <span class="keyword">static</span> <span class="identifier">QPoint</span><span class="special">::</span><span class="keyword">double</span> <span class="identifier">get</span><span class="special">(</span><span class="identifier">QPoint</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">)</span>
+                <span class="special">{</span>
+                    <span class="keyword">return</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">x</span><span class="special">;</span>
+                <span class="special">}</span>
+
+                <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">set</span><span class="special">(</span><span class="identifier">QPoint</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">QPoint</span><span class="special">::</span><span class="keyword">double</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">value</span><span class="special">)</span>
+                <span class="special">{</span>
+                    <span class="identifier">p</span><span class="special">.</span><span class="identifier">x</span> <span class="special">=</span> <span class="identifier">value</span><span class="special">;</span>
+                <span class="special">}</span>
+            <span class="special">};</span>
+
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+            <span class="keyword">struct</span> <span class="identifier">access</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">,</span> <span class="number">1</span><span class="special">&gt;</span>
+            <span class="special">{</span>
+                <span class="keyword">static</span> <span class="identifier">QPoint</span><span class="special">::</span><span class="keyword">double</span> <span class="identifier">get</span><span class="special">(</span><span class="identifier">QPoint</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">)</span>
+                <span class="special">{</span>
+                    <span class="keyword">return</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">y</span><span class="special">;</span>
+                <span class="special">}</span>
+
+                <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">set</span><span class="special">(</span><span class="identifier">QPoint</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">QPoint</span><span class="special">::</span><span class="keyword">double</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">value</span><span class="special">)</span>
+                <span class="special">{</span>
+                    <span class="identifier">p</span><span class="special">.</span><span class="identifier">y</span> <span class="special">=</span> <span class="identifier">value</span><span class="special">;</span>
+                <span class="special">}</span>
+            <span class="special">};</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+<span class="special">}</span> <span class="comment">// namespace boost::geometry::traits</span>
+</pre>
+<h3>
+<a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.h1"></a>
+        <span class="phrase"><a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.adaption_of_qlinestring"></a></span><a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.adaption_of_qlinestring">Adaption
+        of QLineString</a>
+      </h3>
+<a name="adaption_of_qlinestring_source_code"></a><pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">geometry</span>
+    <span class="special">{</span>
+        <span class="keyword">namespace</span> <span class="identifier">traits</span>
+        <span class="special">{</span>
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+            <span class="keyword">struct</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">QLineString</span><span class="special">&gt;</span>
+            <span class="special">{</span>
+                <span class="keyword">typedef</span> <span class="identifier">linestring_tag</span> <span class="identifier">type</span><span class="special">;</span>
+            <span class="special">};</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+<span class="special">}</span> <span class="comment">// namespace boost::geometry::traits</span>
+</pre>
+<h4>
+<a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.h2"></a>
+        <span class="phrase"><a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.boost_range_for_qlinestring"></a></span><a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.boost_range_for_qlinestring">Boost.Range
+        for QLineString</a>
+      </h4>
+<a name="adaption_of_qlinestring_range_source_code"></a><pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">QLineString</span><span class="special">&gt;</span>
+    <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">*&gt;::</span><span class="identifier">iterator</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">range_const_iterator</span><span class="special">&lt;</span><span class="identifier">QLineString</span><span class="special">&gt;</span>
+    <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">*&gt;::</span><span class="identifier">const_iterator</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+<span class="special">}</span>
+
+<span class="keyword">inline</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">*&gt;::</span><span class="identifier">iterator</span>
+<span class="identifier">range_begin</span><span class="special">(</span><span class="identifier">QLineString</span><span class="special">&amp;</span> <span class="identifier">qls</span><span class="special">)</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">qls</span><span class="special">.</span><span class="identifier">points</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();}</span>
+
+<span class="keyword">inline</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">*&gt;::</span><span class="identifier">iterator</span>
+<span class="identifier">range_end</span><span class="special">(</span><span class="identifier">QLineString</span><span class="special">&amp;</span> <span class="identifier">qls</span><span class="special">)</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">qls</span><span class="special">.</span><span class="identifier">points</span><span class="special">.</span><span class="identifier">end</span><span class="special">();}</span>
+
+<span class="keyword">inline</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">*&gt;::</span><span class="identifier">const_iterator</span>
+<span class="identifier">range_begin</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">QLineString</span><span class="special">&amp;</span> <span class="identifier">qls</span><span class="special">)</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">qls</span><span class="special">.</span><span class="identifier">points</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();}</span>
+
+<span class="keyword">inline</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">*&gt;::</span><span class="identifier">const_iterator</span>
+<span class="identifier">range_end</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">QLineString</span><span class="special">&amp;</span> <span class="identifier">qls</span><span class="special">)</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">qls</span><span class="special">.</span><span class="identifier">points</span><span class="special">.</span><span class="identifier">end</span><span class="special">();}</span>
+</pre>
+<h3>
+<a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.h3"></a>
+        <span class="phrase"><a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.adaption_of_qring"></a></span><a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.adaption_of_qring">Adaption
+        of QRing</a>
+      </h3>
+<a name="adaption_of_qring_source_code"></a><pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">geometry</span>
+    <span class="special">{</span>
+        <span class="keyword">namespace</span> <span class="identifier">traits</span>
+        <span class="special">{</span>
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+            <span class="keyword">struct</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">QRing</span><span class="special">&gt;</span>
+            <span class="special">{</span>
+                <span class="keyword">typedef</span> <span class="identifier">ring_tag</span> <span class="identifier">type</span><span class="special">;</span>
+            <span class="special">};</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+<span class="special">}</span> <span class="comment">// namespace boost::geometry::traits</span>
+</pre>
+<h4>
+<a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.h4"></a>
+        <span class="phrase"><a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.boost_iterator_for_qring"></a></span><a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.boost_iterator_for_qring">Boost.Iterator
+        for QRing</a>
+      </h4>
+<a name="adaption_of_qring_iterator_source_code"></a><pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">iterator</span><span class="special">/</span><span class="identifier">iterator_facade</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">/* Custom iterator type that flattens a 2D array into a 1D array */</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">I</span><span class="special">,</span> <span class="comment">// Line iterator type</span>
+          <span class="keyword">class</span> <span class="identifier">R</span>  <span class="comment">// Point reference type</span>
+         <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">RingIteratorImpl</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_facade</span><span class="special">&lt;</span>
+        <span class="identifier">RingIteratorImpl</span><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span><span class="identifier">R</span><span class="special">&gt;,</span> <span class="identifier">R</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">random_access_iterator_tag</span><span class="special">,</span> <span class="identifier">R</span><span class="special">&gt;</span> <span class="comment">//new traversal tag boost::random_access_traversal_tag</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">RingIteratorImpl</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">pointIndex_</span><span class="special">(</span><span class="number">0</span><span class="special">)</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+
+    <span class="keyword">explicit</span> <span class="identifier">RingIteratorImpl</span><span class="special">(</span><span class="identifier">I</span> <span class="identifier">lineStringIterCurrent</span><span class="special">)</span>
+    <span class="special">:</span>   <span class="identifier">lineStringIterCurrent_</span><span class="special">(</span><span class="identifier">lineStringIterCurrent</span><span class="special">),</span> <span class="identifier">pointIndex_</span><span class="special">(</span><span class="number">0</span><span class="special">)</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">OtherI</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">OtherR</span><span class="special">&gt;</span>
+    <span class="identifier">RingIteratorImpl</span><span class="special">(</span><span class="identifier">RingIteratorImpl</span><span class="special">&lt;</span><span class="identifier">OtherI</span><span class="special">,</span> <span class="identifier">OtherR</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="special">:</span>
+        <span class="identifier">lineStringIterCurrent_</span><span class="special">(</span><span class="identifier">other</span><span class="special">.</span><span class="identifier">getLineStrIt</span><span class="special">()),</span> <span class="identifier">pointIndex_</span><span class="special">(</span><span class="identifier">other</span><span class="special">.</span><span class="identifier">getPointIdx</span><span class="special">())</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+
+    <span class="identifier">I</span> <span class="identifier">getLineStrIt</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">lineStringIterCurrent_</span><span class="special">;}</span>
+
+    <span class="keyword">bool</span> <span class="identifier">isEmpty</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">isEmpty</span><span class="special">;}</span>
+    <span class="identifier">size_t</span> <span class="identifier">getPointIdx</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">pointIndex_</span><span class="special">;}</span>
+
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_facade</span><span class="special">&lt;</span><span class="identifier">RingIteratorImpl</span><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span><span class="identifier">R</span><span class="special">&gt;,</span> <span class="identifier">R</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">random_access_iterator_tag</span><span class="special">,</span> <span class="identifier">R</span><span class="special">&gt;::</span><span class="identifier">difference_type</span> <span class="identifier">difference_type</span><span class="special">;</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="keyword">friend</span> <span class="keyword">class</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_core_access</span><span class="special">;</span>
+
+    <span class="keyword">void</span> <span class="identifier">increment</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="special">++</span><span class="identifier">pointIndex_</span><span class="special">;</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">pointIndex_</span> <span class="special">&gt;=</span> <span class="special">(*</span><span class="identifier">lineStringIterCurrent_</span><span class="special">)-&gt;</span><span class="identifier">points</span><span class="special">.</span><span class="identifier">size</span><span class="special">())</span>
+        <span class="special">{</span>
+            <span class="special">++</span><span class="identifier">lineStringIterCurrent_</span><span class="special">;</span>
+            <span class="identifier">pointIndex_</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">decrement</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">pointIndex_</span><span class="special">&gt;</span><span class="number">0</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="special">--</span><span class="identifier">pointIndex_</span><span class="special">;</span>
+        <span class="special">}</span>
+        <span class="keyword">else</span>
+        <span class="special">{</span>
+            <span class="special">--</span><span class="identifier">lineStringIterCurrent_</span><span class="special">;</span>
+            <span class="identifier">pointIndex_</span> <span class="special">=</span> <span class="special">(*</span><span class="identifier">lineStringIterCurrent_</span><span class="special">)-&gt;</span><span class="identifier">points</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">advance</span><span class="special">(</span><span class="identifier">difference_type</span> <span class="identifier">n</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">difference_type</span> <span class="identifier">counter</span> <span class="special">=</span> <span class="identifier">n</span><span class="special">;</span>
+
+        <span class="identifier">difference_type</span> <span class="identifier">maxPointIndex</span><span class="special">,</span> <span class="identifier">remainderPointIndex</span><span class="special">;</span>
+
+        <span class="keyword">while</span><span class="special">(</span><span class="identifier">counter</span><span class="special">&gt;</span><span class="number">0</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">maxPointIndex</span> <span class="special">=</span> <span class="special">(*</span><span class="identifier">lineStringIterCurrent_</span><span class="special">)-&gt;</span><span class="identifier">points</span><span class="special">.</span><span class="identifier">size</span><span class="special">(),</span>
+            <span class="identifier">remainderPointIndex</span> <span class="special">=</span> <span class="identifier">maxPointIndex</span> <span class="special">-</span> <span class="identifier">pointIndex_</span><span class="special">;</span>
+
+            <span class="keyword">if</span><span class="special">(</span><span class="identifier">counter</span><span class="special">&gt;</span><span class="identifier">remainderPointIndex</span><span class="special">)</span>
+            <span class="special">{</span>
+                <span class="identifier">counter</span> <span class="special">-=</span> <span class="identifier">remainderPointIndex</span><span class="special">;</span>
+                <span class="special">++</span><span class="identifier">lineStringIterCurrent_</span><span class="special">;</span>
+            <span class="special">}</span>
+            <span class="keyword">else</span> <span class="comment">// (counter&lt;=remainderPointIndex)</span>
+            <span class="special">{</span>
+                <span class="identifier">counter</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+                <span class="identifier">pointIndex_</span> <span class="special">=</span> <span class="identifier">remainderPointIndex</span><span class="special">;</span>
+            <span class="special">}</span>
+        <span class="special">}</span>
+
+    <span class="special">}</span>
+
+    <span class="identifier">difference_type</span> <span class="identifier">distance_to</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">RingIteratorImpl</span><span class="special">&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">I</span> <span class="identifier">currentLineStringIter</span> <span class="special">=</span> <span class="identifier">getLineStrIt</span><span class="special">();</span>
+        <span class="identifier">I</span> <span class="identifier">otherLineStringIter</span> <span class="special">=</span> <span class="identifier">other</span><span class="special">.</span><span class="identifier">getLineStrIt</span><span class="special">();</span>
+
+        <span class="identifier">difference_type</span> <span class="identifier">count</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+        <span class="identifier">difference_type</span> <span class="identifier">distance_to_other</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">distance</span><span class="special">(</span><span class="identifier">currentLineStringIter</span><span class="special">,</span> <span class="identifier">otherLineStringIter</span><span class="special">);</span>
+
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">distance_to_other</span> <span class="special">&lt;</span> <span class="number">0</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">count</span> <span class="special">+=</span> <span class="identifier">pointIndex_</span><span class="special">;</span>
+
+            <span class="keyword">while</span><span class="special">(</span><span class="identifier">distance_to_other</span> <span class="special">&lt;</span> <span class="number">0</span><span class="special">)</span>
+            <span class="special">{</span>
+            <span class="identifier">QLineString</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">ls</span> <span class="special">=</span> <span class="special">*</span><span class="identifier">otherLineStringIter</span><span class="special">;</span>
+            <span class="identifier">count</span> <span class="special">-=</span> <span class="identifier">ls</span><span class="special">-&gt;</span><span class="identifier">points</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span>
+
+            <span class="special">++</span><span class="identifier">otherLineStringIter</span><span class="special">;</span>
+            <span class="special">++</span><span class="identifier">distance_to_other</span><span class="special">;</span>
+            <span class="special">}</span>
+
+            <span class="identifier">assert</span><span class="special">(</span><span class="identifier">otherLineStringIter</span><span class="special">==</span><span class="identifier">currentLineStringIter</span><span class="special">);</span>
+        <span class="special">}</span>
+        <span class="keyword">else</span> <span class="keyword">if</span><span class="special">(</span><span class="identifier">distance_to_other</span> <span class="special">&gt;</span> <span class="number">0</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">count</span> <span class="special">-=</span> <span class="identifier">pointIndex_</span><span class="special">;</span>
+
+            <span class="keyword">while</span><span class="special">(</span><span class="identifier">distance_to_other</span> <span class="special">&lt;</span> <span class="number">0</span><span class="special">)</span>
+            <span class="special">{</span>
+            <span class="identifier">QLineString</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">ls</span> <span class="special">=</span> <span class="special">*</span><span class="identifier">currentLineStringIter</span><span class="special">;</span>
+            <span class="identifier">count</span> <span class="special">+=</span> <span class="identifier">ls</span><span class="special">-&gt;</span><span class="identifier">points</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span>
+
+            <span class="special">++</span><span class="identifier">currentLineStringIter</span><span class="special">;</span>
+            <span class="special">--</span><span class="identifier">distance_to_other</span><span class="special">;</span>
+            <span class="special">}</span>
+
+            <span class="identifier">assert</span><span class="special">(</span><span class="identifier">otherLineStringIter</span><span class="special">==</span><span class="identifier">currentLineStringIter</span><span class="special">);</span>
+        <span class="special">}</span>
+        <span class="keyword">else</span>
+        <span class="special">{</span>
+            <span class="identifier">count</span> <span class="special">=</span> <span class="identifier">pointIndex_</span> <span class="special">-</span> <span class="identifier">other</span><span class="special">.</span><span class="identifier">getPointIdx</span><span class="special">();</span>
+        <span class="special">}</span>
+
+        <span class="keyword">return</span> <span class="identifier">count</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">bool</span> <span class="identifier">equal</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">RingIteratorImpl</span><span class="special">&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="special">(</span><span class="identifier">lineStringIterCurrent_</span> <span class="special">==</span> <span class="identifier">other</span><span class="special">.</span><span class="identifier">getLineStrIt</span><span class="special">())</span> <span class="special">&amp;&amp;</span>
+               <span class="special">(</span><span class="identifier">pointIndex_</span> <span class="special">==</span> <span class="identifier">other</span><span class="special">.</span><span class="identifier">getPointIdx</span><span class="special">());</span>
+    <span class="special">}</span>
+
+    <span class="identifier">R</span> <span class="identifier">dereference</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="special">*(*</span><span class="identifier">lineStringIterCurrent_</span><span class="special">)-&gt;</span><span class="identifier">points</span><span class="special">[</span><span class="identifier">pointIndex_</span><span class="special">];}</span>
+
+
+    <span class="identifier">I</span> <span class="identifier">lineStringIterCurrent_</span><span class="special">;</span>
+
+    <span class="keyword">bool</span> <span class="identifier">empty</span><span class="special">;</span>
+    <span class="identifier">size_t</span> <span class="identifier">pointIndex_</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<h4>
+<a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.h5"></a>
+        <span class="phrase"><a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.boost_range_for_qring"></a></span><a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.boost_range_for_qring">Boost.Range
+        for QRing</a>
+      </h4>
+<a name="adaption_of_qring_range_source_code"></a><pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">RingIteratorImpl</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QLineString</span><span class="special">*&gt;::</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">QPoint</span><span class="special">&gt;</span> <span class="identifier">RingIterator</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">RingIteratorImpl</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QLineString</span><span class="special">*&gt;::</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">QPoint</span><span class="special">&gt;</span> <span class="identifier">ConstRingIterator</span><span class="special">;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+    <span class="comment">// Specialize metafunctions. We must include the range.hpp header.</span>
+    <span class="comment">// We must open the 'boost' namespace.</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">QRing</span><span class="special">&gt;</span>
+    <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">RingIterator</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">range_const_iterator</span><span class="special">&lt;</span><span class="identifier">QRing</span><span class="special">&gt;</span>
+    <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">ConstRingIterator</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+
+<span class="special">}</span> <span class="comment">// namespace 'boost'</span>
+
+
+<span class="comment">// The required Range functions. These should be defined in the same namespace</span>
+<span class="comment">// as Ring.</span>
+
+<span class="keyword">inline</span> <span class="identifier">RingIterator</span> <span class="identifier">range_begin</span><span class="special">(</span><span class="identifier">QRing</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">)</span>
+<span class="special">{</span><span class="keyword">return</span> <span class="identifier">RingIterator</span><span class="special">(</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">lines</span><span class="special">.</span><span class="identifier">begin</span><span class="special">());}</span>
+
+<span class="keyword">inline</span> <span class="identifier">ConstRingIterator</span> <span class="identifier">range_begin</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">QRing</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">)</span>
+<span class="special">{</span><span class="keyword">return</span> <span class="identifier">ConstRingIterator</span><span class="special">(</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">lines</span><span class="special">.</span><span class="identifier">begin</span><span class="special">());}</span>
+
+<span class="keyword">inline</span> <span class="identifier">RingIterator</span> <span class="identifier">range_end</span><span class="special">(</span><span class="identifier">QRing</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">)</span>
+<span class="special">{</span><span class="keyword">return</span> <span class="identifier">RingIterator</span><span class="special">(</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">lines</span><span class="special">.</span><span class="identifier">end</span><span class="special">());}</span>
+
+<span class="keyword">inline</span> <span class="identifier">ConstRingIterator</span> <span class="identifier">range_end</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">QRing</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">)</span>
+<span class="special">{</span><span class="keyword">return</span> <span class="identifier">ConstRingIterator</span><span class="special">(</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">lines</span><span class="special">.</span><span class="identifier">end</span><span class="special">());}</span>
+</pre>
+<h3>
+<a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.h6"></a>
+        <span class="phrase"><a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.adaption_of_qpolygon"></a></span><a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.adaption_of_qpolygon">Adaption
+        of QPolygon</a>
+      </h3>
+<a name="adaption_of_qpolygon_source_code"></a><pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">geometry</span> <span class="special">{</span>
+        <span class="keyword">namespace</span> <span class="identifier">traits</span> <span class="special">{</span>
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">QPolygon</span><span class="special">&gt;</span> <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">polygon_tag</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">ring_const_type</span><span class="special">&lt;</span><span class="identifier">QPolygon</span><span class="special">&gt;</span> <span class="special">{</span> <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">QRing</span><span class="special">&amp;</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">ring_mutable_type</span><span class="special">&lt;</span><span class="identifier">QPolygon</span><span class="special">&gt;</span> <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">QRing</span><span class="special">&amp;</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">interior_const_type</span><span class="special">&lt;</span><span class="identifier">QPolygon</span><span class="special">&gt;</span> <span class="special">{</span> <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">CustomPolygonRingRange</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">interior_mutable_type</span><span class="special">&lt;</span><span class="identifier">QPolygon</span><span class="special">&gt;</span> <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">CustomPolygonRingRange</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">exterior_ring</span><span class="special">&lt;</span><span class="identifier">QPolygon</span><span class="special">&gt;</span>
+            <span class="special">{</span>
+                <span class="keyword">static</span> <span class="identifier">QRing</span><span class="special">&amp;</span> <span class="identifier">get</span><span class="special">(</span><span class="identifier">QPolygon</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">)</span>
+                <span class="special">{</span>
+                    <span class="keyword">return</span> <span class="special">(*</span><span class="identifier">p</span><span class="special">.</span><span class="identifier">exterior</span><span class="special">);</span>
+                <span class="special">}</span>
+                <span class="keyword">static</span> <span class="identifier">QRing</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">get</span><span class="special">(</span><span class="identifier">QPolygon</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">)</span>
+                <span class="special">{</span>
+                    <span class="keyword">return</span> <span class="special">(*</span><span class="identifier">p</span><span class="special">.</span><span class="identifier">exterior</span><span class="special">);</span>
+                <span class="special">}</span>
+            <span class="special">};</span>
+
+            <span class="keyword">template</span><span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">interior_rings</span><span class="special">&lt;</span><span class="identifier">QPolygon</span><span class="special">&gt;</span>
+            <span class="special">{</span>
+                <span class="keyword">static</span> <span class="identifier">CustomPolygonRingRange</span> <span class="identifier">get</span><span class="special">(</span><span class="identifier">QPolygon</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">)</span>
+                <span class="special">{</span>
+                    <span class="keyword">return</span> <span class="identifier">CustomPolygonRingRange</span><span class="special">(</span><span class="identifier">PolygonRingIterator</span><span class="special">(</span><span class="identifier">p</span><span class="special">.</span><span class="identifier">interiors</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">PolygonRingIterator</span><span class="special">(</span><span class="identifier">p</span><span class="special">.</span><span class="identifier">interiors</span><span class="special">.</span><span class="identifier">end</span><span class="special">()));</span>
+                <span class="special">}</span>
+                <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">CustomPolygonRingRange</span> <span class="identifier">get</span><span class="special">(</span><span class="identifier">QPolygon</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">)</span>
+                <span class="special">{</span>
+                    <span class="keyword">return</span> <span class="identifier">CustomPolygonRingRange</span><span class="special">(</span><span class="identifier">ConstPolygonRingIterator</span><span class="special">(</span><span class="identifier">p</span><span class="special">.</span><span class="identifier">interiors</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">ConstPolygonRingIterator</span><span class="special">(</span><span class="identifier">p</span><span class="special">.</span><span class="identifier">interiors</span><span class="special">.</span><span class="identifier">end</span><span class="special">()));</span>
+                <span class="special">}</span>
+            <span class="special">};</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+<span class="special">}</span> <span class="comment">// namespace boost::geometry::traits</span>
+</pre>
+<h4>
+<a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.h7"></a>
+        <span class="phrase"><a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.boost_iterator_for_qrings_in_qpolygon"></a></span><a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.boost_iterator_for_qrings_in_qpolygon">Boost.Iterator
+        for QRings in QPolygon</a>
+      </h4>
+<a name="adaption_of_qpolygon_iterator_source_code"></a><pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">I</span><span class="special">,</span> <span class="comment">// Line iterator type</span>
+          <span class="keyword">class</span> <span class="identifier">R</span>  <span class="comment">// Point reference type</span>
+         <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">PolyRingIterator</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_facade</span><span class="special">&lt;</span>
+        <span class="identifier">PolyRingIterator</span><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span><span class="identifier">R</span><span class="special">&gt;,</span> <span class="identifier">R</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">random_access_iterator_tag</span><span class="special">,</span> <span class="identifier">R</span><span class="special">&gt;</span> <span class="comment">//new traversal tag</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">PolyRingIterator</span><span class="special">()</span> <span class="special">{}</span>
+
+    <span class="keyword">explicit</span> <span class="identifier">PolyRingIterator</span><span class="special">(</span><span class="identifier">I</span> <span class="identifier">ringIter</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">_ringIter</span><span class="special">(</span><span class="identifier">ringIter</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">OtherI</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">OtherR</span><span class="special">&gt;</span>
+    <span class="identifier">PolyRingIterator</span><span class="special">(</span><span class="identifier">PolyRingIterator</span><span class="special">&lt;</span><span class="identifier">OtherI</span><span class="special">,</span> <span class="identifier">OtherR</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="special">:</span>
+        <span class="identifier">_ringIter</span><span class="special">(</span><span class="identifier">other</span><span class="special">.</span><span class="identifier">getRingIter</span><span class="special">())</span> <span class="special">{}</span>
+
+    <span class="identifier">I</span> <span class="identifier">getRingIter</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">_ringIter</span><span class="special">;}</span>
+
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_facade</span><span class="special">&lt;</span><span class="identifier">PolyRingIterator</span><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span><span class="identifier">R</span><span class="special">&gt;,</span> <span class="identifier">R</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">random_access_iterator_tag</span><span class="special">,</span> <span class="identifier">R</span><span class="special">&gt;::</span><span class="identifier">difference_type</span> <span class="identifier">difference_type</span><span class="special">;</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="keyword">friend</span> <span class="keyword">class</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_core_access</span><span class="special">;</span>
+
+    <span class="keyword">void</span> <span class="identifier">increment</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="special">++</span><span class="identifier">_ringIter</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">decrement</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="special">--</span><span class="identifier">_ringIter</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">advance</span><span class="special">(</span><span class="identifier">difference_type</span> <span class="identifier">n</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">advance</span><span class="special">(</span><span class="identifier">_ringIter</span><span class="special">,</span><span class="identifier">n</span><span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="identifier">difference_type</span> <span class="identifier">distance_to</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">PolyRingIterator</span><span class="special">&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">distance</span><span class="special">(</span><span class="identifier">_ringIter</span><span class="special">,</span> <span class="identifier">other</span><span class="special">.</span><span class="identifier">getRingIter</span><span class="special">());</span>
+    <span class="special">}</span>
+
+    <span class="keyword">bool</span> <span class="identifier">equal</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">PolyRingIterator</span><span class="special">&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">_ringIter</span> <span class="special">==</span> <span class="identifier">other</span><span class="special">.</span><span class="identifier">getRingIter</span><span class="special">();</span>
+    <span class="special">}</span>
+
+    <span class="identifier">R</span> <span class="identifier">dereference</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="special">*(*</span><span class="identifier">_ringIter</span><span class="special">);}</span>
+
+    <span class="identifier">I</span> <span class="identifier">_ringIter</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<h4>
+<a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.h8"></a>
+        <span class="phrase"><a name="geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.boost_range_for_polygonringiterator"></a></span><a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#geometry.examples.example_source_code__adapting_a_legacy_geometry_object_model.boost_range_for_polygonringiterator">Boost.Range
+        for PolygonRingIterator</a>
+      </h4>
+<a name="adaption_of_qpolygon_range_source_code"></a><pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">PolyRingIterator</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QRing</span><span class="special">*&gt;::</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">QRing</span><span class="special">&gt;</span> <span class="identifier">PolygonRingIterator</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">PolyRingIterator</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QRing</span><span class="special">*&gt;::</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">QRing</span><span class="special">&gt;</span> <span class="identifier">ConstPolygonRingIterator</span><span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">CustomPolygonRingRange</span>
+<span class="special">{</span>
+    <span class="identifier">PolygonRingIterator</span> <span class="identifier">_begin</span><span class="special">;</span>
+    <span class="identifier">PolygonRingIterator</span> <span class="identifier">_end</span><span class="special">;</span>
+
+    <span class="keyword">bool</span> <span class="identifier">isIterSet</span><span class="special">;</span>
+
+    <span class="identifier">ConstPolygonRingIterator</span> <span class="identifier">_cbegin</span><span class="special">;</span>
+    <span class="identifier">ConstPolygonRingIterator</span> <span class="identifier">_cend</span><span class="special">;</span>
+
+    <span class="keyword">bool</span> <span class="identifier">isCIterSet</span><span class="special">;</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+
+    <span class="identifier">CustomPolygonRingRange</span><span class="special">(</span><span class="identifier">PolygonRingIterator</span> <span class="identifier">begin</span><span class="special">,</span> <span class="identifier">PolygonRingIterator</span> <span class="identifier">end</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">_begin</span><span class="special">(</span><span class="identifier">begin</span><span class="special">),</span> <span class="identifier">_end</span><span class="special">(</span><span class="identifier">end</span><span class="special">),</span> <span class="identifier">isIterSet</span><span class="special">(</span><span class="keyword">true</span><span class="special">)</span> <span class="special">{}</span>
+    <span class="identifier">CustomPolygonRingRange</span><span class="special">(</span><span class="identifier">ConstPolygonRingIterator</span> <span class="identifier">begin</span><span class="special">,</span> <span class="identifier">ConstPolygonRingIterator</span> <span class="identifier">end</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">_cbegin</span><span class="special">(</span><span class="identifier">begin</span><span class="special">),</span> <span class="identifier">_cend</span><span class="special">(</span><span class="identifier">end</span><span class="special">),</span> <span class="identifier">isCIterSet</span><span class="special">(</span><span class="keyword">true</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="identifier">PolygonRingIterator</span> <span class="identifier">begin</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">assert</span><span class="special">(</span><span class="identifier">isIterSet</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="identifier">_begin</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">ConstPolygonRingIterator</span> <span class="identifier">cbegin</span><span class="special">()</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">assert</span><span class="special">(</span><span class="identifier">isCIterSet</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="identifier">_cbegin</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">PolygonRingIterator</span> <span class="identifier">end</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">assert</span><span class="special">(</span><span class="identifier">isIterSet</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="identifier">_end</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">ConstPolygonRingIterator</span> <span class="identifier">cend</span><span class="special">()</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">assert</span><span class="special">(</span><span class="identifier">isCIterSet</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="identifier">_cend</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+    <span class="comment">// Specialize metafunctions. We must include the range.hpp header.</span>
+    <span class="comment">// We must open the 'boost' namespace.</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">CustomPolygonRingRange</span><span class="special">&gt;</span> <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">PolygonRingIterator</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">range_const_iterator</span><span class="special">&lt;</span><span class="identifier">CustomPolygonRingRange</span><span class="special">&gt;</span> <span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">ConstPolygonRingIterator</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+
+<span class="special">}</span> <span class="comment">// namespace 'boost'</span>
+
+
+<span class="comment">// The required Range functions. These should be defined in the same namespace</span>
+<span class="comment">// as Ring.</span>
+
+<span class="keyword">inline</span> <span class="identifier">PolygonRingIterator</span> <span class="identifier">range_begin</span><span class="special">(</span><span class="identifier">CustomPolygonRingRange</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">)</span>
+    <span class="special">{</span><span class="keyword">return</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();}</span>
+
+<span class="keyword">inline</span> <span class="identifier">ConstPolygonRingIterator</span> <span class="identifier">range_begin</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CustomPolygonRingRange</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">)</span>
+    <span class="special">{</span><span class="keyword">return</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">cbegin</span><span class="special">();}</span>
+
+<span class="keyword">inline</span> <span class="identifier">PolygonRingIterator</span> <span class="identifier">range_end</span><span class="special">(</span><span class="identifier">CustomPolygonRingRange</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">)</span>
+    <span class="special">{</span><span class="keyword">return</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">end</span><span class="special">();}</span>
+
+<span class="keyword">inline</span> <span class="identifier">ConstPolygonRingIterator</span> <span class="identifier">range_end</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CustomPolygonRingRange</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">)</span>
+    <span class="special">{</span><span class="keyword">return</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">cend</span><span class="special">();}</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="example__adapting_a_legacy_geometry_object_model.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../release_notes.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

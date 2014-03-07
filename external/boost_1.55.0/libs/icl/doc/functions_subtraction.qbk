@@ -1,0 +1,202 @@
+[/
+    Copyright (c) 2008-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Subtraction ============================================================]
+[section Subtraction]
+
+[section Synopsis]
+
+[table
+[[Subtraction]                        [__ch_itvs__][__ch_itv_sets__][__ch_itv_maps__][__ch_ele_sets__][__ch_ele_maps__]]
+[[`T& T::subtract(const P&)`]                     [ ]     [__ei]    [__bp]   [ ]     [__b]  ]
+[[`T& subtract(T&, const P&)`]                    [ ]     [__ei]    [__bp]   [__e]   [__b]  ]
+
+[[`T& operator -=(T&, const P&)`]                 [ ]    [__eiS][__eiS __bpM][__es]  [__bm] ]
+[[`T  operator - (T, const P&)`]                  [ ]    [__eiS][__eiS __bpM][__es]  [__bm] ]
+
+[[`T left_subtract(T, const T&)`]                 [1]       [ ]      [ ]     [ ]      [ ]   ]
+[[`T right_subtract(T, const T&)`]                [1]       [ ]      [ ]     [ ]      [ ]   ]
+]
+
+Functions and operators that implement ['*Subtraction*] on *icl* objects
+are given in the table above.
+
+[table
+[[]      [Description of Subtraction]]
+[[`Sets`][Subtraction on Sets implements ['*set difference*]]]
+[[`Maps`][Subtraction on Maps implements a ['*map difference*] function similar to /set difference/.
+          If, on subtraction of an element value pair `(k,v)` it's key `k` is in the map 
+          already, the subtraction function is propagated to the associated value.
+          On the associated value an aggregation is performed, that reverses 
+          the effect of the corresponding addition function.
+        
+          Find more on 
+          [link boost_icl.concepts.aggrovering ['subtractability of maps]]
+          and related 
+          [link boost_icl.semantics.maps ['semantic issues]] 
+          following the links. 
+        
+         ]]
+]
+
+[endsect][/ Synopsis]
+
+
+
+[section Functions][/ Subtraction]
+
+The admissible combinations of types for subtraction functions 
+can be summarized in the 
+['*overload table*] below:
+
+``
+// overload table for              T\P| e i b p  
+T& T::subtract(const P&)           ---+--------
+T& subtract(T&, const P&)           s | s
+                                    m |     m
+                                    S | S S      
+                                    M |     M M  
+``
+
+The next table contains complexity characteristics for `subtract`.
+
+[table Time Complexity for function subtract on icl containers
+[[`T& T::subtract(const P&)`\n
+  `T& subtract(T&, const P&)`] [__ch_dom_t__][__ch_itv_t__][__ch_dom_mp_t__][__ch_itv_mp_t__]]
+[[__icl_set__]                 [__Olgn__]   []            []           []          ]
+[[__icl_map__]                 [__Olgn__]   []            [__Olgn__]   []          ]
+[[__itv_sets__]                [__Olgn__]   [__a_Olgn__]  []           []          ]
+[[__itv_maps__]                [__Olgn__]   [__On__]      [__Olgn__]   [__On__]    ]
+]
+
+[endsect][/ Member function Subtraction]
+
+
+[section Inplace operators][/ Subtraction]
+
+As presented in the overload tables for `operator -=`
+more type combinations are provided for subtraction than for
+addition. 
+
+``
+// overload tables for             element containers:     interval containers:  
+T& operator -= (T&, const P&)      -= | e b s m            -= | e i b p S M    
+                                   ---+--------            ---+------------    
+                                   s  | s   s              S  | S S     S       
+                                   m  | m m m m            M  | M M M M M M    
+``
+
+Subtraction provides the /reverse/ operation
+of an addition for these overloads,
+
+``
+// Reverse addition                -= | e b s m            -= | e i b p S M 
+                                   ---+--------            ---+------------ 
+                                   s  | s   s              S  | S S     S   
+                                   m  |   m   m            M  |     M M   M 
+``
+
+[*and] you can erase parts of __icl_maps__ or __itv_maps__ 
+using
+/key values/, /intervals/ or /element or interval sets/
+using these overloads:
+
+``
+// Erasure by key objects          -= | e b s m            -= | e i b p S M  
+                                   ---+--------            ---+------------  
+                                   s  | s   s              S  | S S     S    
+                                   m  | m   m              M  | M M     M    
+``
+
+On Sets both function groups fall together
+as ['*set difference*].
+
+Complexity characteristics for inplace subtraction operations are 
+given by the next tables where 
+``
+n = iterative_size(y);
+m = iterative_size(x); //if P is a container type
+``
+
+[table Time Complexity for inplace Subtraction on element containers
+[[`T& operator -= (T&, const P&)`][__ch_dom_t__][__ch_dom_mp_t__][__ch_icl_set__][__ch_icl_map__]]
+[[__icl_set__]                    [__Olgn__]    []               [__Omlgn__]     []              ]
+[[__icl_map__]                    [__Olgn__]    [__Olgn__]       [__Omlgn__]     [__Omlgn__]     ]
+]
+
+
+[table Time Complexity for inplace Subtraction on interval containers
+[[`T& operator -= (T&, const P&)`][__ch_dom_t__][__ch_itv_t__][__ch_dom_mp_t__][__ch_itv_mp_t__][__ch_itv_sets__][__ch_itv_maps__]]
+[[interval_sets]                  [__Olgn__]    [__a_Olgn__]  []               []               [__Omlgnpm__]    []               ]
+[[interval_maps]                  [__Olgn__]    [__a_Olgn__]  [__Olgn__]       [__On__]         [__Omlgnpm__]    [__Omlgnpm__]    ]
+]
+
+[endsect][/ Inplace operators Subtraction]
+
+
+[section Infix operators][/-Subtraction]
+
+The admissible overloads for the infix 
+/subtraction/ `operator -` 
+which is a non commutative 
+operation 
+is given by the next overload table.
+
+``
+// overload tables for         -  | e b s m      -  | e i b p S M   
+T operator - (T, const P&)     ---+--------      ---+------------   
+                               s  | s   s        S  | S S     S     
+                               m  | m m m m      M  | M M M M M M   
+``
+[endsect][/- Infix operator Subtraction]
+
+
+[section Subtraction on Intervals]
+
+[table
+[[['*Subtraction*]]                                   [Types] [Description]                                        ]
+
+[[`T left_subtract(T right, const T& left_minuend)`]  [__i]   
+    [subtract `left_minuend` from the interval `right` on it's left side. 
+``
+right_over = left_subtract(right, left_minuend);
+...      d) : right
+... c)      : left_minuend
+     [c  d) : right_over
+``
+    ] ]
+[[`T right_subtract(T left, const T& right_minuend)`] [__i]   
+    [subtract `right_minuend` from the interval `left` on it's right side.
+``
+left_over = right_subtract(left, right_minuend);
+[a      ...  : left
+     [b ...  : right_minuend
+[a  b)       : left_over
+``
+    ] ]
+]
+
+[endsect][/ Subtraction on Intervals]
+
+
+['*See also . . .*]
+[table
+[]
+[[[link boost_icl.function_reference.addition ['*Addition*]]         ]]
+[[[link boost_icl.function_reference.erasure  ['*Erasure*]]          ]]
+]
+['*Back to section . . .*]
+[table
+[]
+[[[link function_synopsis_table ['*Function Synopsis*]]    ]]
+[[[link boost_icl.interface ['*Interface*]]                ]]
+]
+
+[endsect][/ Subtraction]
+

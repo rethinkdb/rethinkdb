@@ -1,0 +1,2142 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Container]
+
+Fusion provides a few predefined sequences out of the box. These
+/containers/ actually hold heterogenously typed data; unlike
+__views__. These containers are more or less counterparts of those in __stl__.
+
+[heading Header]
+
+    #include <boost/fusion/container.hpp>
+    #include <boost/fusion/include/container.hpp>
+
+[section vector]
+
+[heading Description]
+
+`vector` is a __random_access_sequence__ of heterogenous typed data
+structured as a simple `struct` where each element is held as a member
+variable. `vector` is the simplest of the Fusion sequence container (a
+vector with N elements is just a struct with N members), and in many
+cases the most efficient.
+
+[heading Header]
+
+    #include <boost/fusion/container/vector.hpp>
+    #include <boost/fusion/include/vector.hpp>
+    #include <boost/fusion/container/vector/vector_fwd.hpp>
+    #include <boost/fusion/include/vector_fwd.hpp>
+
+    // numbered forms
+    #include <boost/fusion/container/vector/vector10.hpp>
+    #include <boost/fusion/include/vector10.hpp>
+    #include <boost/fusion/container/vector/vector20.hpp>
+    #include <boost/fusion/include/vector20.hpp>
+    #include <boost/fusion/container/vector/vector30.hpp>
+    #include <boost/fusion/include/vector30.hpp>
+    #include <boost/fusion/container/vector/vector40.hpp>
+    #include <boost/fusion/include/vector40.hpp>
+    #include <boost/fusion/container/vector/vector50.hpp>
+    #include <boost/fusion/include/vector50.hpp>
+
+[heading Synopsis]
+
+[*Numbered forms]
+
+    struct vector0;
+
+    template <typename T0>
+    struct vector1;
+
+    template <typename T0, typename T1>
+    struct vector2;
+
+    template <typename T0, typename T1, typename T2>
+    struct vector3;
+
+    ...
+
+    template <typename T0, typename T1, typename T2..., typename TN>
+    struct vectorN;
+
+[*Variadic form]
+
+    template <
+        typename T0 = __unspecified__
+      , typename T1 = __unspecified__
+      , typename T2 = __unspecified__
+        ...
+      , typename TN = __unspecified__
+    >
+    struct vector;
+
+The numbered form accepts the exact number of elements. Example:
+
+    vector3<int, char, double>
+
+The variadic form accepts `0` to `FUSION_MAX_VECTOR_SIZE` elements, where
+`FUSION_MAX_VECTOR_SIZE` is a user definable predefined maximum that
+defaults to `10`. Example:
+
+    vector<int, char, double>
+
+You may define the preprocessor constant `FUSION_MAX_VECTOR_SIZE` before
+including any Fusion header to change the default. Example:
+
+    #define FUSION_MAX_VECTOR_SIZE 20
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`T0`...`TN`]          [Element types]             [__unspecified__]]
+]
+
+[heading Model of]
+
+* __random_access_sequence__
+
+[variablelist Notation
+    [[`v`]              [Instance of `vector`]]
+    [[`V`]              [A `vector` type]]
+    [[`e0`...`en`]      [Heterogeneous values]]
+    [[`s`]              [A __forward_sequence__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __random_access_sequence__.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`V()`]                [Creates a vector with default constructed elements.]]
+    [[`V(e0, e1,... en)`]   [Creates a vector with elements `e0`...`en`.]]
+    [[`V(s)`]               [Copy constructs a vector from a __forward_sequence__, `s`.]]
+    [[`v = s`]              [Assigns to a vector, `v`, from a __forward_sequence__, `s`.]]
+]
+
+[heading Example]
+
+    vector<int, float> v(12, 5.5f);
+    std::cout << __at_c__<0>(v) << std::endl;
+    std::cout << __at_c__<1>(v) << std::endl;
+
+[endsect]
+
+[section cons]
+
+[heading Description]
+
+`cons` is a simple __forward_sequence__. It is a lisp style recursive list
+structure where `car` is the /head/ and `cdr` is the /tail/: usually
+another cons structure or `nil`: the empty list. Fusion's __list__ is built
+on top of this more primitive data structure. It is more efficient than
+__vector__ when the target sequence is constructed piecemeal (a data at a
+time). The runtime cost of access to each element is peculiarly constant
+(see __recursive_inline__).
+
+[heading Header]
+
+    #include <boost/fusion/container/list/cons.hpp>
+    #include <boost/fusion/include/cons.hpp>
+
+[heading Synopsis]
+
+    template <typename Car, typename Cdr = nil>
+    struct cons;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Car`]                [Head type]                 [ ]]
+    [[`Cdr`]                [Tail type]                 [`nil`]]
+]
+
+[heading Model of]
+
+* __forward_sequence__
+
+[variablelist Notation
+    [[`nil`]            [An empty `cons`]]
+    [[`C`]              [A `cons` type]]
+    [[`l`, `l2`]        [Instances of `cons`]]
+    [[`car`]            [An arbitrary data]]
+    [[`cdr`]            [Another `cons` list]]
+    [[`s`]              [A __forward_sequence__]]
+    [[`N`]              [An __mpl_integral_constant__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __forward_sequence__.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`nil()`]              [Creates an empty list.]]
+    [[`C()`]                [Creates a cons with default constructed elements.]]
+    [[`C(car)`]             [Creates a cons with `car` head and default constructed tail.]]
+    [[`C(car, cdr)`]        [Creates a cons with `car` head and `cdr` tail.]]
+    [[`C(s)`]               [Copy constructs a cons from a __forward_sequence__, `s`.]]
+    [[`l = s`]              [Assigns to a cons, `l`, from a __forward_sequence__, `s`.]]
+    [[`__at__<N>(l)`]           [The Nth element from the beginning of the sequence; see __at__.]]
+]
+
+[blurb __note__ `__at__<N>(l)` is provided for convenience and compatibility
+with the original __tuple__ library, despite `cons` being a
+__forward_sequence__ only (`at` is supposed to be a
+__random_access_sequence__ requirement). The runtime complexity of __at__ is
+constant (see __recursive_inline__).]
+
+[heading Example]
+
+    cons<int, cons<float> > l(12, cons<float>(5.5f));
+    std::cout << __at_c__<0>(l) << std::endl;
+    std::cout << __at_c__<1>(l) << std::endl;
+
+[endsect]
+
+[section list]
+
+[heading Description]
+
+`list` is a __forward_sequence__ of heterogenous typed data built on top of
+__cons__. It is more efficient than __vector__ when the target sequence is
+constructed piecemeal (a data at a time). The runtime cost of access to
+each element is peculiarly constant (see __recursive_inline__).
+
+[heading Header]
+
+    #include <boost/fusion/container/list.hpp>
+    #include <boost/fusion/include/list.hpp>
+    #include <boost/fusion/container/list/list_fwd.hpp>
+    #include <boost/fusion/include/list_fwd.hpp>
+
+[heading Synopsis]
+
+    template <
+        typename T0 = __unspecified__
+      , typename T1 = __unspecified__
+      , typename T2 = __unspecified__
+        ...
+      , typename TN = __unspecified__
+    >
+    struct list;
+
+The variadic class interface accepts `0` to `FUSION_MAX_LIST_SIZE`
+elements, where `FUSION_MAX_LIST_SIZE` is a user definable predefined
+maximum that defaults to `10`. Example:
+
+    list<int, char, double>
+
+You may define the preprocessor constant `FUSION_MAX_LIST_SIZE` before
+including any Fusion header to change the default. Example:
+
+    #define FUSION_MAX_LIST_SIZE 20
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`T0`...`TN`]          [Element types]             [__unspecified__]]
+]
+
+[heading Model of]
+
+* __forward_sequence__
+
+[variablelist Notation
+    [[`L`]              [A `list` type]]
+    [[`l`]              [An instance of `list`]]
+    [[`e0`...`en`]      [Heterogeneous values]]
+    [[`s`]              [A __forward_sequence__]]
+    [[`N`]              [An __mpl_integral_constant__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __forward_sequence__.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`L()`]                [Creates a list with default constructed elements.]]
+    [[`L(e0, e1,... en)`]   [Creates a list with elements `e0`...`en`.]]
+    [[`L(s)`]               [Copy constructs a list from a __forward_sequence__, `s`.]]
+    [[`l = s`]              [Assigns to a list, `l`, from a __forward_sequence__, `s`.]]
+    [[`__at__<N>(l)`]           [The Nth element from the beginning of the sequence; see __at__.]]
+]
+
+[blurb __note__ `__at__<n>(l)` is provided for convenience and compatibility
+with the original __tuple__ library, despite `list` being a
+__forward_sequence__ only (__at__ is supposed to be a
+__random_access_sequence__ requirement). The runtime complexity of __at__ is
+constant (see __recursive_inline__).]
+
+[heading Example]
+
+    list<int, float> l(12, 5.5f);
+    std::cout << __at_c__<0>(l) << std::endl;
+    std::cout << __at_c__<1>(l) << std::endl;
+
+[endsect]
+
+[section deque]
+
+[heading Description]
+
+`deque` is a simple __bidirectional_sequence__ that supports
+constant-time insertion and removal of elements at both ends. Like the
+__list__ and __cons__, `deque` is more efficient than __vector__
+(especially at compile time) when the target sequence is constructed
+piecemeal (a data at a time, e.g. when constructing expression
+templates). Like the __list__ and __cons__, runtime cost of access to
+each element is peculiarly constant (see __recursive_inline__).
+
+Element insertion and removal are done by special `deque` helper classes
+__front_extended_deque__ and __back_extended_deque__.
+
+[heading Header]
+
+    #include <boost/fusion/container/deque.hpp>
+    #include <boost/fusion/include/deque.hpp>
+    #include <boost/fusion/container/list/deque_fwd.hpp>
+    #include <boost/fusion/include/deque_fwd.hpp>
+
+[heading Synopsis]
+
+    template <typename ...Elements>
+    struct deque;
+
+For C++11 compilers, the variadic class interface has no upper bound.
+
+For C++03 compilers, the variadic class interface accepts `0` to
+`FUSION_MAX_DEQUE_SIZE` elements, where `FUSION_MAX_DEQUE_SIZE` is a
+user definable predefined maximum that defaults to `10`. Example:
+
+    deque<int, char, double>
+
+You may define the preprocessor constant `FUSION_MAX_DEQUE_SIZE` before
+including any Fusion header to change the default. Example:
+
+    #define FUSION_MAX_DEQUE_SIZE 20
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Elements`]           [Element types]             [ ]]
+]
+
+[heading Model of]
+
+* __bidirectional_sequence__
+
+[variablelist Notation
+    [[`D`]              [A `deque` type]]
+    [[`d`, `d2`]        [Instances of `deque`]]
+    [[`e0`...`en`]      [Heterogeneous values]]
+    [[`s`]              [A __forward_sequence__]]
+    [[`N`]              [An __mpl_integral_constant__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __bidirectional_sequence__.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`D()`]                [Creates a deque with default constructed elements.]]
+    [[`D(e0, e1,... en)`]   [Creates a deque with elements `e0`...`en`.]]
+    [[`D(s)`]               [Copy constructs a deque from a __forward_sequence__, `s`.]]
+    [[`d = s`]              [Assigns to a deque, `d`, from a __forward_sequence__, `s`.]]
+    [[`__at__<N>(d)`]       [The Nth element from the beginning of the sequence; see __at__.]]
+]
+
+[blurb __note__ `__at__<N>(d)` is provided for convenience, despite
+`deque` being a __bidirectional_sequence__ only (`at` is supposed to be
+a __random_access_sequence__ requirement). The runtime complexity of
+__at__ is constant (see __recursive_inline__). `deque` element access
+utilizes operator overloading with argument dependent lookup (ADL) of
+the proper element getter function given a static constant index
+parameter. Interestingly, with modern C++ compilers, this lookup is very
+fast and rivals recursive template instantiations in compile time-speed,
+so much so that `deque` relies on ADL for all element access (indexing)
+as well as iteration.]
+
+[heading Example]
+
+    deque<int, float> d(12, 5.5f);
+    std::cout << __at_c__<0>(d) << std::endl;
+    std::cout << __at_c__<1>(d) << std::endl;
+
+[endsect]
+
+[section front_extended_deque]
+
+[heading Description]
+
+`front_extended_deque` allows a __deque__ to be front extended. It shares
+the same properties as the __deque__.
+
+[heading Header]
+
+    See __deque__
+
+[heading Synopsis]
+
+    template <typename Deque, typename T>
+    struct front_extended_deque;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Deque`]              [Deque type]                [ ]]
+    [[`T`]                  [Element type]              [ ]]
+]
+
+[blurb __note__ `Deque` can be a __deque__, a __front_extended_deque__ or a
+__back_extended_deque__]
+
+[heading Model of]
+
+* __bidirectional_sequence__
+
+[variablelist Notation
+    [[`D`]              [A `front_extended_deque` type]]
+    [[`e`]              [Heterogeneous value]]
+    [[`N`]              [An __mpl_integral_constant__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __bidirectional_sequence__.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`D(d, e)`]            [Extend `d` prepending `e` to its front.]]
+    [[`__at__<N>(d)`]       [The Nth element from the beginning of the sequence; see __at__.]]
+]
+
+[blurb __note__ See __deque__ for further details.]
+
+[heading Example]
+
+    typedef deque<int, float> initial_deque;
+    initial_deque d(12, 5.5f);
+    front_extended_deque<initial_deque, int> d2(d, 999);
+    std::cout << __at_c__<0>(d2) << std::endl;
+    std::cout << __at_c__<1>(d2) << std::endl;
+    std::cout << __at_c__<2>(d2) << std::endl;
+
+[endsect]
+
+[section back_extended_deque]
+
+[heading Description]
+
+`back_extended_deque` allows a __deque__ to be back extended. It shares
+the same properties as the __deque__.
+
+[heading Header]
+
+    See __deque__
+
+[heading Synopsis]
+
+    template <typename Deque, typename T>
+    struct back_extended_deque;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Deque`]              [Deque type]                [ ]]
+    [[`T`]                  [Element type]              [ ]]
+]
+
+[blurb __note__ `Deque` can be a __deque__, a __back_extended_deque__ or a
+__back_extended_deque__]
+
+[heading Model of]
+
+* __bidirectional_sequence__
+
+[variablelist Notation
+    [[`D`]              [A `back_extended_deque` type]]
+    [[`e`]              [Heterogeneous value]]
+    [[`N`]              [An __mpl_integral_constant__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __bidirectional_sequence__.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`D(d, e)`]            [Extend `d` prepending `e` to its back.]]
+    [[`__at__<N>(d)`]       [The Nth element from the beginning of the sequence; see __at__.]]
+]
+
+[blurb __note__ See __deque__ for further details.]
+
+[heading Example]
+
+    typedef deque<int, float> initial_deque;
+    initial_deque d(12, 5.5f);
+    back_extended_deque<initial_deque, int> d2(d, 999);
+    std::cout << __at_c__<0>(d2) << std::endl;
+    std::cout << __at_c__<1>(d2) << std::endl;
+    std::cout << __at_c__<2>(d2) << std::endl;
+
+[endsect]
+
+[section set]
+
+[heading Description]
+
+set is an __associative_sequence__ of heteregenous typed data elements.
+Type identity is used to impose an equivalence relation on keys. The
+element's type is its key. A set may contain at most one element for each
+key. Membership testing and element key lookup has constant runtime
+complexity (see __overloaded_functions__).
+
+[heading Header]
+
+    #include <boost/fusion/container/set.hpp>
+    #include <boost/fusion/include/set.hpp>
+    #include <boost/fusion/container/set/set_fwd.hpp>
+    #include <boost/fusion/include/set_fwd.hpp>
+
+[heading Synopsis]
+
+    template <
+        typename T0 = __unspecified__
+      , typename T1 = __unspecified__
+      , typename T2 = __unspecified__
+        ...
+      , typename TN = __unspecified__
+    >
+    struct set;
+
+The variadic class interface accepts `0` to `FUSION_MAX_SET_SIZE` elements,
+where `FUSION_MAX_SET_SIZE` is a user definable predefined maximum that
+defaults to `10`. Example:
+
+    set<int, char, double>
+
+You may define the preprocessor constant `FUSION_MAX_SET_SIZE` before
+including any Fusion header to change the default. Example:
+
+    #define FUSION_MAX_SET_SIZE 20
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`T0`...`TN`]          [Element types]             [__unspecified__]]
+]
+
+[heading Model of]
+
+* __associative_sequence__
+* __forward_sequence__
+
+[variablelist Notation
+    [[`S`]              [A `set` type]]
+    [[`s`]              [An instance of `set`]]
+    [[`e0`...`en`]      [Heterogeneous values]]
+    [[`fs`]             [A __forward_sequence__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __random_access_sequence__ and __associative_sequence__.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`S()`]                [Creates a set with default constructed elements.]]
+    [[`S(e0, e1,... en)`]   [Creates a set with elements `e0`...`en`.]]
+    [[`S(fs)`]              [Copy constructs a set from a __forward_sequence__ `fs`.]]
+    [[`s = fs`]             [Assigns to a set, `s`, from a __forward_sequence__ `fs`.]]
+]
+
+[heading Example]
+
+    typedef set<int, float> S;
+    S s(12, 5.5f);
+    std::cout << __at_key__<int>(s) << std::endl;
+    std::cout << __at_key__<float>(s) << std::endl;
+    std::cout << __result_of_has_key__<S, double>::value << std::endl;
+
+[endsect]
+
+[section map]
+
+[heading Description]
+
+map is an __associative_sequence__ of heteregenous typed data elements.
+Each element is a key/data pair (see __fusion_pair__) where the key has no
+data (type only). Type identity is used to impose an equivalence relation
+on keys. A map may contain at most one element for each key. Membership
+testing and element key lookup has constant runtime complexity (see
+__overloaded_functions__).
+
+[heading Header]
+
+    #include <boost/fusion/container/map.hpp>
+    #include <boost/fusion/include/map.hpp>
+    #include <boost/fusion/container/map/map_fwd.hpp>
+    #include <boost/fusion/include/map_fwd.hpp>
+
+[heading Synopsis]
+
+    template <
+        typename T0 = __unspecified__
+      , typename T1 = __unspecified__
+      , typename T2 = __unspecified__
+        ...
+      , typename TN = __unspecified__
+    >
+    struct map;
+
+The variadic class interface accepts `0` to `FUSION_MAX_MAP_SIZE` elements,
+where `FUSION_MAX_MAP_SIZE` is a user definable predefined maximum that
+defaults to `10`. Example:
+
+    map<__pair__<int, char>, __pair__<char, char>, __pair__<double, char> >
+
+You may define the preprocessor constant `FUSION_MAX_MAP_SIZE` before
+including any Fusion header to change the default. Example:
+
+    #define FUSION_MAX_MAP_SIZE 20
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`T0`...`TN`]          [Element types]             [__unspecified__]]
+]
+
+[heading Model of]
+
+* __associative_sequence__
+* __forward_sequence__
+
+[variablelist Notation
+    [[`M`]              [A `map` type]]
+    [[`m`]              [An instance of `map`]]
+    [[`e0`...`en`]      [Heterogeneous key/value pairs (see __fusion_pair__)]]
+    [[`s`]              [A __forward_sequence__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __random_access_sequence__ and __associative_sequence__.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`M()`]                [Creates a map with default constructed elements.]]
+    [[`M(e0, e1,... en)`]   [Creates a map with element pairs `e0`...`en`.]]
+    [[`M(s)`]               [Copy constructs a map from a __forward_sequence__ `s`.]]
+    [[`m = s`]              [Assigns to a map, `m`, from a __forward_sequence__ `s`.]]
+]
+
+[heading Example]
+
+    typedef map<
+        __pair__<int, char>
+      , __pair__<double, std::string> >
+    map_type;
+
+    map_type m(
+        __fusion_make_pair__<int>('X')
+      , __fusion_make_pair__<double>("Men"));
+
+    std::cout << __at_key__<int>(m) << std::endl;
+    std::cout << __at_key__<double>(m) << std::endl;
+
+[endsect]
+
+[section Generation]
+
+These are the functions that you can use to generate various forms of
+__containers__ from elemental values.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation.hpp>
+    #include <boost/fusion/include/generation.hpp>
+
+[section Functions]
+
+[section make_list]
+
+[heading Description]
+
+Create a __list__ from one or more values.
+
+[heading Synopsis]
+
+    template <typename T0, typename T1,... typename TN>
+    typename __result_of_make_list__<T0, T1,... TN>::type
+    make_list(T0 const& x0, T1 const& x1... TN const& xN);
+
+The variadic function accepts `0` to `FUSION_MAX_LIST_SIZE` elements, where
+`FUSION_MAX_LIST_SIZE` is a user definable predefined maximum that defaults
+to `10`. You may define the preprocessor constant `FUSION_MAX_LIST_SIZE`
+before including any Fusion header to change the default. Example:
+
+    #define FUSION_MAX_LIST_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]                   [Description]]
+    [[`x0, x1,... xN`]  [Instances of `T0, T1,... TN`]  [The arguments to `make_list`]]
+]
+
+[heading Expression Semantics]
+
+    make_list(x0, x1,... xN);
+
+[*Return type]: __result_of_make_list__`<T0, T1,... TN>::type`
+
+[*Semantics]: Create a __list__ from `x0, x1,... xN`.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/make_list.hpp>
+    #include <boost/fusion/include/make_list.hpp>
+
+[heading Example]
+
+    make_list(123, "hello", 12.5)
+
+[heading See also]
+
+__note_boost_ref__
+
+[endsect]
+
+[section make_cons]
+
+[heading Description]
+
+Create a __cons__ from `car` (/head/) and optional `cdr` (/tail/).
+
+[heading Synopsis]
+
+    template <typename Car>
+    typename __result_of_make_cons__<Car>::type
+    make_cons(Car const& car);
+
+    template <typename Car, typename Cdr>
+    typename __result_of_make_cons__<Car, Cdr>::type
+    make_cons(Car const& car, Cdr const& cdr);
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]                   [Description]]
+    [[`car`]            [Instance of `Car`]             [The list's head]]
+    [[`cdr`]            [Instance of `Cdr`]             [The list's tail (optional)]]
+]
+
+[heading Expression Semantics]
+
+    make_cons(car, cdr);
+
+[*Return type]: __result_of_make_cons__`<Car, Cdr>::type` or
+__result_of_make_cons__`<Car>::type`
+
+[*Semantics]: Create a __cons__ from `car` (/head/) and optional `cdr` (/tail/).
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/make_cons.hpp>
+    #include <boost/fusion/include/make_cons.hpp>
+
+[heading Example]
+
+    make_cons('x', make_cons(123))
+
+[heading See also]
+
+__note_boost_ref__
+
+[endsect]
+
+[section make_vector]
+
+[heading Description]
+
+Create a __vector__ from one or more values.
+
+[heading Synopsis]
+
+    template <typename T0, typename T1,... typename TN>
+    typename __result_of_make_vector__<T0, T1,... TN>::type
+    make_vector(T0 const& x0, T1 const& x1... TN const& xN);
+
+The variadic function accepts `0` to `FUSION_MAX_VECTOR_SIZE` elements,
+where `FUSION_MAX_VECTOR_SIZE` is a user definable predefined maximum that
+defaults to `10`. You may define the preprocessor constant
+`FUSION_MAX_VECTOR_SIZE` before including any Fusion header to change the
+default. Example:
+
+    #define FUSION_MAX_VECTOR_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]                   [Description]]
+    [[`x0, x1,... xN`]  [Instances of `T0, T1,... TN`]  [The arguments to `make_vector`]]
+]
+
+[heading Expression Semantics]
+
+    make_vector(x0, x1,... xN);
+
+[*Return type]: __result_of_make_vector__`<T0, T1,... TN>::type`
+
+[*Semantics]: Create a __vector__ from `x0, x1,... xN`.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/make_vector.hpp>
+    #include <boost/fusion/include/make_vector.hpp>
+
+[heading Example]
+
+    make_vector(123, "hello", 12.5)
+
+[heading See also]
+
+__note_boost_ref__
+
+[endsect]
+
+[section make_deque]
+
+[heading Description]
+
+Create a __deque__ from one or more values.
+
+[heading Synopsis]
+
+    template <typename ...Elements>
+    typename __result_of_make_deque__<Elements...>::type
+    make_deque(Elements const&... elements);
+
+For C++11 compilers, the variadic function interface has no upper bound.
+
+For C++11 compilers, the variadic function accepts `0` to
+`FUSION_MAX_DEQUE_SIZE` elements, where `FUSION_MAX_DEQUE_SIZE` is a
+user definable predefined maximum that defaults to `10`. You may define
+the preprocessor constant `FUSION_MAX_DEQUE_SIZE` before including any
+Fusion header to change the default. Example:
+
+    #define FUSION_MAX_DEQUE_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]            [Description]               [Description]]
+    [[`elements`]           [Instances of `Elements`]   [The arguments to `make_deque`]]
+]
+
+[heading Expression Semantics]
+
+    make_deque(elements...);
+
+[*Return type]: __result_of_make_deque__`<Elements...>::type`
+
+[*Semantics]: Create a __deque__ from `elements...`.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/make_deque.hpp>
+    #include <boost/fusion/include/make_deque.hpp>
+
+[heading Example]
+
+    make_deque(123, "hello", 12.5)
+
+[heading See also]
+
+__note_boost_ref__
+
+[endsect]
+
+[section make_set]
+
+[heading Description]
+
+Create a __set__ from one or more values.
+
+[heading Synopsis]
+
+    template <typename T0, typename T1,... typename TN>
+    typename __result_of_make_set__<T0, T1,... TN>::type
+    make_set(T0 const& x0, T1 const& x1... TN const& xN);
+
+The variadic function accepts `0` to `FUSION_MAX_SET_SIZE` elements,
+where `FUSION_MAX_SET_SIZE` is a user definable predefined maximum that
+defaults to `10`. You may define the preprocessor constant
+`FUSION_MAX_SET_SIZE` before including any Fusion header to change the
+default. Example:
+
+    #define FUSION_MAX_SET_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]                   [Description]]
+    [[`x0, x1,... xN`]  [Instances of `T0, T1,... TN`]  [The arguments to `make_set`]]
+]
+
+[heading Expression Semantics]
+
+    make_set(x0, x1,... xN);
+
+[*Return type]: __result_of_make_set__`<T0, T1,... TN>::type`
+
+[*Semantics]: Create a __set__ from `x0, x1,... xN`.
+
+[*Precondition]: There may be no duplicate key types.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/make_set.hpp>
+    #include <boost/fusion/include/make_set.hpp>
+
+[heading Example]
+
+    make_set(123, "hello", 12.5)
+
+[heading See also]
+
+__note_boost_ref__
+
+[endsect]
+
+[section make_map]
+
+[heading Description]
+
+Create a __map__ from one or more key/data pairs.
+
+[heading Synopsis]
+
+    template <
+        typename K0, typename K1,... typename KN
+      , typename T0, typename T1,... typename TN>
+    typename __result_of_make_map__<K0, K0,... KN, T0, T1,... TN>::type
+    make_map(T0 const& x0, T1 const& x1... TN const& xN);
+    
+The variadic function accepts `0` to `FUSION_MAX_MAP_SIZE` elements,
+where `FUSION_MAX_MAP_SIZE` is a user definable predefined maximum that
+defaults to `10`. You may define the preprocessor constant
+`FUSION_MAX_MAP_SIZE` before including any Fusion header to change the
+default. Example:
+
+    #define FUSION_MAX_MAP_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]                   [Description]]
+    [[`K0, K1,... KN`]  [The key types]                 [Keys associated with `x0, x1,... xN`]]
+    [[`x0, x1,... xN`]  [Instances of `T0, T1,... TN`]  [The arguments to `make_map`]]
+]
+
+[heading Expression Semantics]
+
+    make_map<K0, K1,... KN>(x0, x1,... xN);
+
+[*Return type]: __result_of_make_map__`<K0, K0,... KN, T0, T1,... TN>::type`
+
+[*Semantics]: Create a __map__ from `K0, K1,... KN` keys and
+`x0, x1,... xN` data.
+
+[*Precondition]: There may be no duplicate key types.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/make_map.hpp>
+    #include <boost/fusion/include/make_map.hpp>
+
+[heading Example]
+
+    make_map<int, double>('X', "Men")
+
+[heading See also]
+
+__note_boost_ref__, __fusion_pair__
+
+[endsect]
+
+[section Tiers]
+
+Tiers are sequences, where all elements are non-const reference types. They
+are constructed with a call to a couple of /tie/ function templates. The
+succeeding sections document the various /tier/ flavors.
+
+* __list_tie__
+* __vector_tie__
+* __map_tie__
+* __deque_tie__
+
+Example:
+
+    int i; char c; double d;
+      ...
+    __vector_tie__(i, c, a);
+
+The __vector_tie__ function creates a __vector__ of type
+`__vector__<int&, char&, double&>`. The same result could be achieved with the call
+__make_vector__(__boost_ref_call__(i), __boost_ref_call__(c), __boost_ref_call__(a))
+[footnote see __boost_ref__ for details about `ref`].
+
+A /tie/ can be used to 'unpack' another tuple into variables. E.g.:
+
+    int i; char c; double d;
+    __vector_tie__(i, c, d) = __make_vector__(1,'a', 5.5);
+    std::cout << i << " " <<  c << " " << d;
+
+This code prints 1 a 5.5 to the standard output stream. A sequence
+unpacking operation like this is found for example in ML and Python. It is
+convenient when calling functions which return sequences.
+
+[heading Ignore]
+
+There is also an object called /ignore/ which allows you to ignore an
+element assigned by a sequence. The idea is that a function may return a
+sequence, only part of which you are interested in. For example:
+
+    char c;
+    __vector_tie__(ignore, c) = __make_vector__(1, 'a');
+
+[endsect]
+
+[section list_tie]
+
+[heading Description]
+
+Constructs a tie using a __list__ sequence.
+
+[heading Synopsis]
+
+    template <typename T0, typename T1,... typename TN>
+    __list__<T0&, T1&,... TN&>
+    list_tie(T0& x0, T1& x1... TN& xN);
+
+The variadic function accepts `0` to `FUSION_MAX_LIST_SIZE` elements, where
+`FUSION_MAX_LIST_SIZE` is a user definable predefined maximum that defaults
+to `10`. You may define the preprocessor constant `FUSION_MAX_LIST_SIZE`
+before including any Fusion header to change the default. Example:
+
+    #define FUSION_MAX_LIST_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]                       [Description]]
+    [[`x0, x1,... xN`]  [Instances of `T0, T1,... TN`]      [The arguments to `list_tie`]]
+]
+
+[heading Expression Semantics]
+
+    list_tie(x0, x1,... xN);
+
+[*Return type]: __list__<T0&, T1&,... TN&>
+
+[*Semantics]: Create a __list__ of references from `x0, x1,... xN`.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/list_tie.hpp>
+    #include <boost/fusion/include/list_tie.hpp>
+
+[heading Example]
+
+    int i = 123;
+    double d = 123.456;
+    list_tie(i, d)
+
+[endsect]
+
+[section vector_tie]
+
+[heading Description]
+
+Constructs a tie using a __vector__ sequence.
+
+[heading Synopsis]
+
+    template <typename T0, typename T1,... typename TN>
+    __vector__<T0&, T1&,... TN&>
+    vector_tie(T0& x0, T1& x1... TN& xN);
+
+The variadic function accepts `0` to `FUSION_MAX_VECTOR_SIZE` elements,
+where `FUSION_MAX_VECTOR_SIZE` is a user definable predefined maximum that
+defaults to `10`. You may define the preprocessor constant
+`FUSION_MAX_VECTOR_SIZE` before including any Fusion header to change the
+default. Example:
+
+    #define FUSION_MAX_VECTOR_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]                       [Description]]
+    [[`x0, x1,... xN`]  [Instances of `T0, T1,... TN`]      [The arguments to `vector_tie`]]
+]
+
+[heading Expression Semantics]
+
+    vector_tie(x0, x1,... xN);
+
+[*Return type]: __vector__<T0&, T1&,... TN&>
+
+[*Semantics]: Create a __vector__ of references from `x0, x1,... xN`.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/vector_tie.hpp>
+    #include <boost/fusion/include/vector_tie.hpp>
+
+[heading Example]
+
+    int i = 123;
+    double d = 123.456;
+    vector_tie(i, d)
+
+[endsect]
+
+[section map_tie]
+
+[heading Description]
+
+Constructs a tie using a __map__ sequence.
+
+[heading Synopsis]
+
+    template <typename K0, typename K1,... typename KN, typename D0, typename D1,... typename DN>
+    __map__<__pair__<K0, D0&>, __pair__<K1, D1&>,... __pair__<KN, DN&> >
+    map_tie(D0& d0, D1& d1... DN& dN);
+
+The variadic function accepts `0` to `FUSION_MAX_MAP_SIZE` elements,
+where `FUSION_MAX_MAP_SIZE` is a user definable predefined maximum that
+defaults to `10`, and a corresponding number of key types.
+You may define the preprocessor constant  `FUSION_MAX_MAP_SIZE` before
+including any Fusion header to change the default. Example:
+
+    #define FUSION_MAX_MAP_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]                       [Description]]
+    [[`K0, K1,... KN`]  [Any type][The key types associated with each of the `x1,x2,...,xN` values]]
+    [[`x0, x1,... xN`]  [Instances of `T0, T1,... TN`]                      [The arguments to `map_tie`]]
+]
+
+[heading Expression Semantics]
+
+    map_tie<K0, K1,... KN>(x0, x1,... xN);
+
+[*Return type]: __map__<__pair__<K0, D0&>, __pair__<K1, D1&>,... __pair__<KN, DN&> >
+
+[*Semantics]: Create a __map__ of references from `x0, x1,... xN` with keys `K0, K1,... KN`
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/map_tie.hpp>
+    #include <boost/fusion/include/map_tie.hpp>
+
+[heading Example]
+
+    struct int_key;
+    struct double_key;
+    ...
+    int i = 123;
+    double d = 123.456;
+    map_tie<int_key, double_key>(i, d)
+
+[endsect]
+
+[section deque_tie]
+
+[heading Description]
+
+Constructs a tie using a __deque__ sequence.
+
+[heading Synopsis]
+
+    template <typename ...Elements>
+    __deque__<Elements&...>
+    deque_tie(Elements&... elements);
+
+For C++11 compilers, the variadic function interface has no upper bound.
+
+For C++03 compilers, the variadic function accepts `0` to
+`FUSION_MAX_DEQUE_SIZE` elements, where `FUSION_MAX_DEQUE_SIZE` is a
+user definable predefined maximum that defaults to `10`. You may define
+the preprocessor constant `FUSION_MAX_DEQUE_SIZE` before including any
+Fusion header to change the default. Example:
+
+    #define FUSION_MAX_DEQUE_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]            [Description]               [Description]]
+    [[`elements`]           [Instances of `Elements`]   [The arguments to `deque_tie`]]
+]
+
+[heading Expression Semantics]
+
+    deque_tie(elements...);
+
+[*Return type]: __deque__<Elements&...>
+
+[*Semantics]: Create a __deque__ of references from `elements...`.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/deque_tie.hpp>
+    #include <boost/fusion/include/deque_tie.hpp>
+
+[heading Example]
+
+    int i = 123;
+    double d = 123.456;
+    deque_tie(i, d)
+
+[endsect]
+
+[endsect]
+
+[section MetaFunctions]
+
+[section make_list]
+
+[heading Description]
+
+Returns the result type of __make_list__.
+
+[heading Synopsis]
+
+    template <typename T0, typename T1,... typename TN>
+    struct make_list;
+
+The variadic function accepts `0` to `FUSION_MAX_LIST_SIZE` elements, where
+`FUSION_MAX_LIST_SIZE` is a user definable predefined maximum that defaults
+to `10`. You may define the preprocessor constant `FUSION_MAX_LIST_SIZE`
+before including any Fusion header to change the default. Example:
+
+    #define FUSION_MAX_LIST_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]       [Description]]
+    [[`T0, T1,... TN`]  [Any type]          [Template arguments to `make_list`]]
+]
+
+[heading Expression Semantics]
+
+    result_of::make_list<T0, T1,... TN>::type
+
+[*Return type]: A __list__ with elements of types converted following the
+rules for __element_conversion__.
+
+[*Semantics]: Create a __list__ from `T0, T1,... TN`.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/make_list.hpp>
+    #include <boost/fusion/include/make_list.hpp>
+
+[heading Example]
+
+    result_of::make_list<int, const char(&)[7], double>::type
+
+[endsect]
+
+[section make_cons]
+
+[heading Description]
+
+Returns the result type of __make_cons__.
+
+[heading Synopsis]
+
+    template <typename Car, typename Cdr = nil>
+    struct make_cons;
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]               [Description]]
+    [[`Car`]            [Any type]                  [The list's head type]]
+    [[`Cdr`]            [A `cons`]                  [The list's tail type (optional)]]
+]
+
+[heading Expression Semantics]
+
+    result_of::make_cons<Car, Cdr>::type
+
+[*Return type]: A __cons__ with head element, `Car`, of type converted
+following the rules for __element_conversion__, and tail, `Cdr`.
+
+[*Semantics]: Create a __cons__ from `Car` (/head/) and optional `Cdr` (/tail/).
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/make_cons.hpp>
+    #include <boost/fusion/include/make_cons.hpp>
+
+[heading Example]
+
+    result_of::make_cons<char, result_of::make_cons<int>::type>::type
+
+[endsect]
+
+[section make_vector]
+
+[heading Description]
+
+Returns the result type of __make_vector__.
+
+[heading Synopsis]
+
+    template <typename T0, typename T1,... typename TN>
+    struct make_vector;
+
+The variadic function accepts `0` to `FUSION_MAX_VECTOR_SIZE` elements,
+where `FUSION_MAX_VECTOR_SIZE` is a user definable predefined maximum that
+defaults to `10`. You may define the preprocessor constant
+`FUSION_MAX_VECTOR_SIZE` before including any Fusion header to change the
+default. Example:
+
+    #define FUSION_MAX_VECTOR_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]       [Description]]
+    [[`T0, T1,... TN`]  [Any type]          [Template arguments to `make_vector`]]
+]
+
+[heading Expression Semantics]
+
+    result_of::make_vector<T0, T1,... TN>::type
+
+[*Return type]: A __vector__ with elements of types converted following the
+rules for __element_conversion__.
+
+[*Semantics]: Create a __vector__ from `T0, T1,... TN`.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/make_list.hpp>
+    #include <boost/fusion/include/make_list.hpp>
+
+[heading Example]
+
+    result_of::make_vector<int, const char(&)[7], double>::type
+
+[endsect]
+
+[section make_deque]
+
+[heading Description]
+
+Returns the result type of __make_deque__.
+
+[heading Synopsis]
+
+    template <typename ...Elements>
+    struct make_deque;
+
+For C++11 compilers, the variadic template interface has no upper bound.
+
+For C++03 The variadic function accepts `0` to `FUSION_MAX_DEQUE_SIZE`
+elements, where `FUSION_MAX_DEQUE_SIZE` is a user definable predefined
+maximum that defaults to `10`. You may define the preprocessor constant
+`FUSION_MAX_DEQUE_SIZE` before including any Fusion header to change the
+default. Example:
+
+    #define FUSION_MAX_DEQUE_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]               [Description]]
+    [[`Elements`]       [Variadic template types]   [Template arguments to `make_deque`]]
+]
+
+[heading Expression Semantics]
+
+    result_of::make_deque<Elements...>::type
+
+[*Return type]: A __deque__ with elements of types converted following the
+rules for __element_conversion__.
+
+[*Semantics]: Create a __deque__ from `Elements...`.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/make_deque.hpp>
+    #include <boost/fusion/include/make_deque.hpp>
+
+[heading Example]
+
+    result_of::make_deque<int, const char(&)[7], double>::type
+
+[endsect]
+
+[section make_set]
+
+[heading Description]
+
+Returns the result type of __make_set__.
+
+[heading Synopsis]
+
+    template <typename T0, typename T1,... typename TN>
+    struct make_set;
+
+The variadic function accepts `0` to `FUSION_MAX_SET_SIZE` elements,
+where `FUSION_MAX_SET_SIZE` is a user definable predefined maximum that
+defaults to `10`. You may define the preprocessor constant
+`FUSION_MAX_SET_SIZE` before including any Fusion header to change the
+default. Example:
+
+    #define FUSION_MAX_SET_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]       [Description]]
+    [[`T0, T1,... TN`]  [Any type]          [The arguments to `make_set`]]
+]
+
+[heading Expression Semantics]
+
+    result_of::make_set<T0, T1,... TN>::type
+
+[*Return type]: A __set__ with elements of types converted following the
+rules for __element_conversion__.
+
+[*Semantics]: Create a __set__ from `T0, T1,... TN`.
+
+[*Precondition]: There may be no duplicate key types.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/make_set.hpp>
+    #include <boost/fusion/include/make_set.hpp>
+
+[heading Example]
+
+    result_of::make_set<int, char, double>::type
+
+[endsect]
+
+[section make_map]
+
+[heading Description]
+
+Returns the result type of __make_map__.
+
+[heading Synopsis]
+
+    template <
+        typename K0, typename K1,... typename KN
+      , typename T0, typename T1,... typename TN>
+    struct make_map;
+
+The variadic function accepts `0` to `FUSION_MAX_MAP_SIZE` elements,
+where `FUSION_MAX_MAP_SIZE` is a user definable predefined maximum that
+defaults to `10`. You may define the preprocessor constant
+`FUSION_MAX_MAP_SIZE` before including any Fusion header to change the
+default. Example:
+
+    #define FUSION_MAX_MAP_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]           [Description]]
+    [[`K0, K1,... KN`]  [Any type]              [Keys associated with `T0, T1,... TN`]]
+    [[`T0, T1,... TN`]  [Any type]              [Data associated with keys `K0, K1,... KN`]]
+]
+
+[heading Expression Semantics]
+
+    resulf_of::make_map<K0, K1,... KN, T0, T1,... TN>::type;
+
+[*Return type]: __result_of_make_map__`<K0, K0,... KN, T0, T1,... TN>::type`
+
+[*Semantics]: A __map__ with __fusion_pair__ elements where the
+`second_type` is converted following the rules for __element_conversion__.
+
+[*Precondition]: There may be no duplicate key types.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/make_map.hpp>
+    #include <boost/fusion/include/make_map.hpp>
+
+[heading Example]
+
+    result_of::make_map<int, double, char, double>::type
+
+[heading See also]
+
+__fusion_pair__
+
+[endsect]
+
+[section list_tie]
+
+[heading Description]
+
+Returns the result type of __list_tie__.
+
+[heading Synopsis]
+
+    template <typename T0, typename T1,... typename TN>
+    struct list_tie;
+
+The variadic function accepts `0` to `FUSION_MAX_LIST_SIZE` elements, where
+`FUSION_MAX_LIST_SIZE` is a user definable predefined maximum that defaults
+to `10`. You may define the preprocessor constant `FUSION_MAX_LIST_SIZE`
+before including any Fusion header to change the default. Example:
+
+    #define FUSION_MAX_LIST_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]       [Description]]
+    [[`T0, T1,... TN`]  [Any type]          [The arguments to `list_tie`]]
+]
+
+[heading Expression Semantics]
+
+    result_of::list_tie<T0, T1,... TN>::type;
+
+[*Return type]: __list__<T0&, T1&,... TN&>
+
+[*Semantics]: Create a __list__ of references from `T0, T1,... TN`.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/list_tie.hpp>
+    #include <boost/fusion/include/list_tie.hpp>
+
+[heading Example]
+
+    result_of::list_tie<int, double>::type
+
+[endsect]
+
+[section vector_tie]
+
+[heading Description]
+
+Returns the result type of __vector_tie__.
+
+[heading Synopsis]
+
+    template <typename T0, typename T1,... typename TN>
+    struct vector_tie;
+
+The variadic function accepts `0` to `FUSION_MAX_VECTOR_SIZE` elements,
+where `FUSION_MAX_VECTOR_SIZE` is a user definable predefined maximum that
+defaults to `10`. You may define the preprocessor constant
+`FUSION_MAX_VECTOR_SIZE` before including any Fusion header to change the
+default. Example:
+
+    #define FUSION_MAX_VECTOR_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]       [Description]]
+    [[`T0, T1,... TN`]  [Any type]          [The arguments to `vector_tie`]]
+]
+
+[heading Expression Semantics]
+
+    result_of::vector_tie<T0, T1,... TN>::type;
+
+[*Return type]: __vector__<T0&, T1&,... TN&>
+
+[*Semantics]: Create a __vector__ of references from `T0, T1,... TN`.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/vector_tie.hpp>
+    #include <boost/fusion/include/vector_tie.hpp>
+
+[heading Example]
+
+    result_of::vector_tie<int, double>::type
+
+[endsect]
+
+[section deque_tie]
+
+[heading Description]
+
+Returns the result type of __deque_tie__.
+
+[heading Synopsis]
+
+    template <typename ...Elements>
+    struct deque_tie;
+
+For C++11 compilers, the variadic template interface has no upper bound.
+
+For C++03 compilers, the variadic function accepts `0` to
+`FUSION_MAX_DEQUE_SIZE` elements, where `FUSION_MAX_DEQUE_SIZE` is a
+user definable predefined maximum that defaults to `10`. You may define
+the preprocessor constant `FUSION_MAX_DEQUE_SIZE` before including any
+Fusion header to change the default. Example:
+
+    #define FUSION_MAX_DEQUE_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]               [Description]]
+    [[`Elements`]       [Variadic template types]   [Template arguments to `deque_tie`]]
+]
+
+[heading Expression Semantics]
+
+    result_of::deque_tie<Elements...>::type;
+
+[*Return type]: __deque__<Elements&...>
+
+[*Semantics]: Create a __deque__ of references from `Elements...`.
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/deque_tie.hpp>
+    #include <boost/fusion/include/deque_tie.hpp>
+
+[heading Example]
+
+    result_of::deque_tie<int, double>::type
+
+[endsect]
+
+[section map_tie]
+
+[heading Description]
+
+Returns the result type of __map_tie__.
+
+[heading Synopsis]
+
+    template <typename K0, typename K1,... typename KN, typename D0, typename D1,... typename DN>
+    struct map_tie;
+
+The variadic function accepts `0` to `FUSION_MAX_MAP_SIZE` elements,
+where `FUSION_MAX_MAP_SIZE` is a user definable predefined maximum that
+defaults to `10`. You may define the preprocessor constant
+`FUSION_MAX_MAP_SIZE` before including any Fusion header to change the
+default. Example:
+
+    #define FUSION_MAX_MAP_SIZE 20
+
+[heading Parameters]
+
+[table
+    [[Parameter]        [Requirement]       [Description]]
+    [[`K0, K1,... KN`]  [Any type]          [The key types for `map_tie`]]
+    [[`D0, D1,... DN`]  [Any type]          [The arguments types for `map_tie`]]
+]
+
+[heading Expression Semantics]
+
+    result_of::map_tie<K0, K1,... KN, D0, D1,... DN>::type;
+
+[*Return type]: __map__<__pair__<K0, D0&>, __pair__<K1, D1&>,... __pair__<KN, DN&> >
+
+[*Semantics]: Create a __map__ of references from `D0, D1,... DN` with keys `K0, K1,... KN`
+
+[heading Header]
+
+    #include <boost/fusion/container/generation/map_tie.hpp>
+    #include <boost/fusion/include/map_tie.hpp>
+
+[heading Example]
+
+    struct int_key;
+    struct double_key;
+    ...
+    result_of::map_tie<int_key, double_key, int, double>::type
+
+[endsect]
+
+[endsect]
+
+[endsect]
+
+[section Conversion]
+
+All fusion sequences can be converted to one of the __containers__ types
+using one of these conversion functions.
+
+[heading Header]
+
+    #include <boost/fusion/include/convert.hpp>
+
+[section Functions]
+
+[section as_list]
+
+[heading Description]
+
+Convert a fusion sequence to a __list__.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    typename result_of::as_list<Sequence>::type
+    as_list(Sequence& seq);
+
+    template <typename Sequence>
+    typename result_of::as_list<Sequence const>::type
+    as_list(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]               [Description]]
+    [[`seq`]        [An instance of Sequence]   [The sequence to convert.]]
+]
+
+[heading Expression Semantics]
+
+    as_list(seq);
+
+[*Return type]: __result_of_as_list__`<Sequence>::type`
+
+[*Semantics]: Convert a fusion sequence, `seq`, to a __list__.
+
+[heading Header]
+
+    #include <boost/fusion/container/list/convert.hpp>
+    #include <boost/fusion/include/as_list.hpp>
+
+[heading Example]
+
+    as_list(__make_vector__('x', 123, "hello"))
+
+[endsect]
+
+[section as_vector]
+
+[heading Description]
+
+Convert a fusion sequence to a __vector__.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    typename result_of::as_vector<Sequence>::type
+    as_vector(Sequence& seq);
+
+    template <typename Sequence>
+    typename result_of::as_vector<Sequence const>::type
+    as_vector(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]               [Description]]
+    [[`seq`]        [An instance of Sequence]   [The sequence to convert.]]
+]
+
+[heading Expression Semantics]
+
+    as_vector(seq);
+
+[*Return type]: __result_of_as_vector__`<Sequence>::type`
+
+[*Semantics]: Convert a fusion sequence, `seq`, to a __vector__.
+
+[heading Header]
+
+    #include <boost/fusion/container/vector/convert.hpp>
+    #include <boost/fusion/include/as_vector.hpp>
+
+[heading Example]
+
+    as_vector(__make_list__('x', 123, "hello"))
+
+[endsect]
+
+[section as_deque]
+
+[heading Description]
+
+Convert a fusion sequence to a __deque__.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    typename result_of::as_deque<Sequence>::type
+    as_deque(Sequence& seq);
+
+    template <typename Sequence>
+    typename result_of::as_deque<Sequence const>::type
+    as_deque(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]               [Description]]
+    [[`seq`]        [An instance of Sequence]   [The sequence to convert.]]
+]
+
+[heading Expression Semantics]
+
+    as_deque(seq);
+
+[*Return type]: __result_of_as_deque__`<Sequence>::type`
+
+[*Semantics]: Convert a fusion sequence, `seq`, to a __deque__.
+
+[heading Header]
+
+    #include <boost/fusion/container/deque/convert.hpp>
+    #include <boost/fusion/include/as_deque.hpp>
+
+[heading Example]
+
+    as_deque(__make_vector__('x', 123, "hello"))
+
+[endsect]
+
+[section as_set]
+
+[heading Description]
+
+Convert a fusion sequence to a __set__.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    typename result_of::as_set<Sequence>::type
+    as_set(Sequence& seq);
+
+    template <typename Sequence>
+    typename result_of::as_set<Sequence const>::type
+    as_set(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]               [Description]]
+    [[`seq`]        [An instance of Sequence]   [The sequence to convert.]]
+]
+
+[heading Expression Semantics]
+
+    as_set(seq);
+
+[*Return type]: __result_of_as_set__`<Sequence>::type`
+
+[*Semantics]: Convert a fusion sequence, `seq`, to a __set__.
+
+[*Precondition]: There may be no duplicate key types.
+
+[heading Header]
+
+    #include <boost/fusion/container/set/convert.hpp>
+    #include <boost/fusion/include/as_set.hpp>
+
+[heading Example]
+
+    as_set(__make_vector__('x', 123, "hello"))
+
+[endsect]
+
+[section as_map]
+
+[heading Description]
+
+Convert a fusion sequence to a __map__.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    typename result_of::as_map<Sequence>::type
+    as_map(Sequence& seq);
+
+    template <typename Sequence>
+    typename result_of::as_map<Sequence const>::type
+    as_map(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]               [Description]]
+    [[`seq`]        [An instance of Sequence]   [The sequence to convert.]]
+]
+
+[heading Expression Semantics]
+
+    as_map(seq);
+
+[*Return type]: __result_of_as_map__`<Sequence>::type`
+
+[*Semantics]: Convert a fusion sequence, `seq`, to a __map__.
+
+[*Precondition]: The elements of the sequence are assumed to be
+__fusion_pair__s. There may be no duplicate __fusion_pair__ key types.
+
+[heading Header]
+
+    #include <boost/fusion/container/map/convert.hpp>
+    #include <boost/fusion/include/as_map.hpp>
+
+[heading Example]
+
+    as_map(__make_vector__(
+        __fusion_make_pair__<int>('X')
+      , __fusion_make_pair__<double>("Men")))
+
+[endsect]
+
+[endsect]
+
+[section Metafunctions]
+
+[section as_list]
+
+[heading Description]
+
+Returns the result type of __as_list__.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    struct as_list;
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]               [Description]]
+    [[`Sequence`]   [A fusion __sequence__]     [The sequence type to convert.]]
+]
+
+[heading Expression Semantics]
+
+    result_of::as_list<Sequence>::type;
+
+[*Return type]: A __list__ with same elements as the input sequence,
+`Sequence`.
+
+[*Semantics]: Convert a fusion sequence, `Sequence`, to a __list__.
+
+[heading Header]
+
+    #include <boost/fusion/container/list/convert.hpp>
+    #include <boost/fusion/include/as_list.hpp>
+
+[heading Example]
+
+    result_of::as_list<__vector__<char, int> >::type
+
+[endsect]
+
+[section as_vector]
+
+[heading Description]
+
+Returns the result type of __as_vector__.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    struct as_vector;
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]               [Description]]
+    [[`Sequence`]   [A fusion __sequence__]     [The sequence to convert.]]
+]
+
+[heading Expression Semantics]
+
+    result_of::as_vector<Sequence>::type;
+
+[*Return type]: A __vector__ with same elements as the input sequence,
+`Sequence`.
+
+[*Semantics]: Convert a fusion sequence, `Sequence`, to a __vector__.
+
+[heading Header]
+
+    #include <boost/fusion/container/vector/convert.hpp>
+    #include <boost/fusion/include/as_vector.hpp>
+
+[heading Example]
+
+    result_of::as_vector<__list__<char, int> >::type
+
+[endsect]
+
+[section as_deque]
+
+[heading Description]
+
+Returns the result type of __as_deque__.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    struct as_deque;
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]               [Description]]
+    [[`Sequence`]   [A fusion __sequence__]     [The sequence type to convert.]]
+]
+
+[heading Expression Semantics]
+
+    result_of::as_deque<Sequence>::type;
+
+[*Return type]: A __deque__ with same elements as the input sequence,
+`Sequence`.
+
+[*Semantics]: Convert a fusion sequence, `Sequence`, to a __deque__.
+
+[heading Header]
+
+    #include <boost/fusion/container/deque/convert.hpp>
+    #include <boost/fusion/include/as_deque.hpp>
+
+[heading Example]
+
+    result_of::as_deque<__vector__<char, int> >::type
+
+[endsect]
+
+[section as_set]
+
+[heading Description]
+
+Returns the result type of __as_set__.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    struct as_set;
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]               [Description]]
+    [[`Sequence`]   [A fusion __sequence__]     [The sequence to convert.]]
+]
+
+[heading Expression Semantics]
+
+    result_of::as_set<Sequence>::type;
+
+[*Return type]: A __set__ with same elements as the input sequence,
+`Sequence`.
+
+[*Semantics]: Convert a fusion sequence, `Sequence`, to a __set__.
+
+[*Precondition]: There may be no duplicate key types.
+
+[heading Header]
+
+    #include <boost/fusion/container/set/convert.hpp>
+    #include <boost/fusion/include/as_set.hpp>
+
+[heading Example]
+
+    result_of::as_set<__vector__<char, int> >::type
+
+[endsect]
+
+[section as_map]
+
+[heading Description]
+
+Returns the result type of __as_map__.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    struct as_map;
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]               [Description]]
+    [[`Sequence`]   [A fusion __sequence__]     [The sequence to convert.]]
+]
+
+[heading Expression Semantics]
+
+    result_of::as_map<Sequence>::type;
+
+[*Return type]: A __map__ with same elements as the input sequence,
+`Sequence`.
+
+[*Semantics]: Convert a fusion sequence, `Sequence`, to a __map__.
+
+[*Precondition]: The elements of the sequence are assumed to be
+__fusion_pair__s. There may be no duplicate __fusion_pair__ key types.
+
+[heading Header]
+
+    #include <boost/fusion/container/map/convert.hpp>
+    #include <boost/fusion/include/as_map.hpp>
+
+[heading Example]
+
+    result_of::as_map<__vector__<
+        __fusion_pair__<int, char>
+      , __fusion_pair__<double, std::string> > >::type
+
+[endsect]
+
+[endsect]
+
+[endsect]
+
+[endsect]

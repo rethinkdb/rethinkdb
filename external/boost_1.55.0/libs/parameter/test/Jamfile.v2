@@ -1,0 +1,36 @@
+# Copyright David Abrahams, Daniel Wallin 2006. Distributed under the
+# Boost Software License, Version 1.0. (See accompanying file
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Boost Parameter Library test Jamfile
+
+import python ;
+
+project boost/parameter
+  : default-build <warnings>off
+  ;
+  
+test-suite "parameter"
+  :  [ run basics.cpp ]
+     [ run sfinae.cpp ]
+     [ run macros.cpp ]
+     [ run earwicker.cpp ]
+     [ run tutorial.cpp ]
+     [ run singular.cpp ]
+     [ run mpl.cpp ]
+     [ run preprocessor.cpp ]
+     [ run preprocessor_deduced.cpp ]
+     [ run efficiency.cpp : : : : : <variant>release ]
+     [ run maybe.cpp ]
+     [ run deduced.cpp ]
+     [ run optional_deduced_sfinae.cpp ]
+     [ run deduced_dependent_predicate.cpp ]
+     [ run normalized_argument_types.cpp ]
+     [ compile ntp.cpp ]
+     [ compile unwrap_cv_reference.cpp ]
+     [ compile-fail duplicates.cpp ]
+     [ compile-fail deduced_unmatched_arg.cpp ]
+     [ compile compose.cpp ]
+     [ bpl-test python_test ]
+  ;
+

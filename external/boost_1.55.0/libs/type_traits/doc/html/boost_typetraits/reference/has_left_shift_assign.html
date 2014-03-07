@@ -1,0 +1,191 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>has_left_shift_assign</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="up" href="../reference.html" title="Alphabetical Reference">
+<link rel="prev" href="has_left_shift.html" title="has_left_shift">
+<link rel="next" href="has_less.html" title="has_less">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="has_left_shift.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="has_less.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typetraits.reference.has_left_shift_assign"></a><a class="link" href="has_left_shift_assign.html" title="has_left_shift_assign">has_left_shift_assign</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Lhs</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Rhs</span><span class="special">=</span><span class="identifier">Lhs</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Ret</span><span class="special">=</span><span class="identifier">dont_care</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">has_left_shift_assign</span> <span class="special">:</span> <span class="keyword">public</span> <em class="replaceable"><code><a class="link" href="integral_constant.html" title="integral_constant">true_type</a>-or-<a class="link" href="integral_constant.html" title="integral_constant">false_type</a></code></em> <span class="special">{};</span>
+</pre>
+<p>
+        <span class="bold"><strong>Inherits:</strong></span> If (i) <code class="computeroutput"><span class="identifier">lhs</span></code>
+        of type <code class="computeroutput"><span class="identifier">Lhs</span></code> and <code class="computeroutput"><span class="identifier">rhs</span></code> of type <code class="computeroutput"><span class="identifier">Rhs</span></code>
+        can be used in expression <code class="computeroutput"><span class="identifier">lhs</span><span class="special">&lt;&lt;=</span><span class="identifier">rhs</span></code>,
+        and (ii) <code class="computeroutput"><span class="identifier">Ret</span><span class="special">=</span><span class="identifier">dont_care</span></code> or the result of expression
+        <code class="computeroutput"><span class="identifier">lhs</span><span class="special">&lt;&lt;=</span><span class="identifier">rhs</span></code> is convertible to <code class="computeroutput"><span class="identifier">Ret</span></code>
+        then inherits from <a class="link" href="integral_constant.html" title="integral_constant">true_type</a>,
+        otherwise inherits from <a class="link" href="integral_constant.html" title="integral_constant">false_type</a>.
+      </p>
+<p>
+        The default behaviour (<code class="computeroutput"><span class="identifier">Ret</span><span class="special">=</span><span class="identifier">dont_care</span></code>)
+        is to not check for the return value of binary <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;=</span></code>. If <code class="computeroutput"><span class="identifier">Ret</span></code>
+        is different from the default <code class="computeroutput"><span class="identifier">dont_care</span></code>
+        type, the return value is checked to be convertible to <code class="computeroutput"><span class="identifier">Ret</span></code>.
+        Convertible to <code class="computeroutput"><span class="identifier">Ret</span></code> means
+        that the return value of the operator can be used as argument to a function
+        expecting <code class="computeroutput"><span class="identifier">Ret</span></code>:
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">Ret</span><span class="special">);</span>
+<span class="identifier">Lhs</span> <span class="identifier">lhs</span><span class="special">;</span>
+<span class="identifier">Rhs</span> <span class="identifier">rhs</span><span class="special">;</span>
+<span class="identifier">f</span><span class="special">(</span><span class="identifier">lhs</span><span class="special">&lt;&lt;=</span><span class="identifier">rhs</span><span class="special">);</span> <span class="comment">// is valid if has_left_shift_assign&lt;Lhs, Rhs, Ret&gt;::value==true</span>
+</pre>
+<p>
+        If <code class="computeroutput"><span class="identifier">Ret</span><span class="special">=</span><span class="keyword">void</span></code>, the return type is checked to be exactly
+        <code class="computeroutput"><span class="keyword">void</span></code>.
+      </p>
+<p>
+        <span class="bold"><strong>Header:</strong></span> <code class="computeroutput"><span class="preprocessor">#include</span>
+        <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">has_left_shift_assign</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        or <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">has_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        or <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+      </p>
+<p>
+        <span class="bold"><strong>Examples:</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="identifier">Ret</span><span class="special">&gt;::</span><span class="identifier">value_type</span></code> is the type <code class="computeroutput"><span class="keyword">bool</span></code>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="identifier">Ret</span><span class="special">&gt;::</span><span class="identifier">value</span></code> is a <code class="computeroutput"><span class="keyword">bool</span></code>
+          integral constant expression.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">value</span></code> is a <code class="computeroutput"><span class="keyword">bool</span></code>
+          integral constant expression that evaluates to <code class="computeroutput"><span class="keyword">true</span></code>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span><span class="keyword">long</span><span class="special">&gt;</span></code>
+          inherits from <code class="computeroutput"><a class="link" href="integral_constant.html" title="integral_constant">true_type</a></code>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span></code>
+          inherits from <code class="computeroutput"><a class="link" href="integral_constant.html" title="integral_constant">true_type</a></code>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span></code>
+          inherits from <code class="computeroutput"><a class="link" href="integral_constant.html" title="integral_constant">false_type</a></code>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">&gt;</span></code>
+          inherits from <code class="computeroutput"><a class="link" href="integral_constant.html" title="integral_constant">false_type</a></code>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span></code> inherits from <code class="computeroutput"><a class="link" href="integral_constant.html" title="integral_constant">false_type</a></code>.
+        </p></blockquote></div>
+<p>
+        <span class="bold"><strong>See also:</strong></span> <a class="link" href="../category/value_traits/operators.html" title="Operator Type Traits">Operator
+        Type Traits</a>
+      </p>
+<p>
+        <span class="bold"><strong>Limitation:</strong></span>
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">
+            Requires a compiler with working SFINAE.
+          </li></ul></div>
+<p>
+        <span class="bold"><strong>Known issues:</strong></span>
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            This trait cannot detect whether binary <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;=</span></code> is public or not: if <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;=</span></code>
+            is defined as a private member of <code class="computeroutput"><span class="identifier">Lhs</span></code>
+            then instantiating <code class="computeroutput"><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">&gt;</span></code> will produce a compiler error. For
+            this reason <code class="computeroutput"><span class="identifier">has_left_shift_assign</span></code>
+            cannot be used to determine whether a type has a public <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;=</span></code>
+            or not.
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">A</span> <span class="special">{</span> <span class="keyword">private</span><span class="special">:</span> <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">&lt;&lt;=(</span><span class="keyword">const</span> <span class="identifier">A</span><span class="special">&amp;);</span> <span class="special">};</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// error: A::operator&lt;&lt;=(const A&amp;) is private</span>
+</pre>
+          </li>
+<li class="listitem">
+            There is an issue if the operator exists only for type <code class="computeroutput"><span class="identifier">A</span></code> and <code class="computeroutput"><span class="identifier">B</span></code>
+            is convertible to <code class="computeroutput"><span class="identifier">A</span></code>.
+            In this case, the compiler will report an ambiguous overload.
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">A</span> <span class="special">{</span> <span class="special">};</span>
+<span class="keyword">void</span> <span class="keyword">operator</span><span class="special">&lt;&lt;=(</span><span class="keyword">const</span> <span class="identifier">A</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">A</span><span class="special">&amp;);</span>
+<span class="keyword">struct</span> <span class="identifier">B</span> <span class="special">{</span> <span class="keyword">operator</span> <span class="identifier">A</span><span class="special">();</span> <span class="special">};</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// this is fine</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// error: ambiguous overload</span>
+</pre>
+          </li>
+<li class="listitem">
+            There is an issue when applying this trait to template classes. If <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;=</span></code>
+            is defined but does not bind for a given template type, it is still detected
+            by the trait which returns <code class="computeroutput"><span class="keyword">true</span></code>
+            instead of <code class="computeroutput"><span class="keyword">false</span></code>. Example:
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">has_left_shift_assign</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">contains</span> <span class="special">{</span> <span class="identifier">T</span> <span class="identifier">data</span><span class="special">;</span> <span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&lt;&lt;=(</span><span class="keyword">const</span> <span class="identifier">contains</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="identifier">lhs</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">contains</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span>
+	<span class="keyword">return</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">lhs</span><span class="special">.</span><span class="identifier">data</span><span class="special">,</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">data</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="keyword">class</span> <span class="identifier">bad</span> <span class="special">{</span> <span class="special">};</span>
+<span class="keyword">class</span> <span class="identifier">good</span> <span class="special">{</span> <span class="special">};</span>
+<span class="keyword">bool</span> <span class="identifier">f</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">good</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">good</span><span class="special">&amp;)</span> <span class="special">{</span> <span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span> <span class="special">{</span>
+	<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">boolalpha</span><span class="special">;</span>
+	<span class="comment">// works fine for contains&lt;good&gt;</span>
+	<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span> <span class="identifier">contains</span><span class="special">&lt;</span> <span class="identifier">good</span> <span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">&lt;&lt;</span><span class="char">'\n'</span><span class="special">;</span> <span class="comment">// true</span>
+	<span class="identifier">contains</span><span class="special">&lt;</span><span class="identifier">good</span><span class="special">&gt;</span> <span class="identifier">g</span><span class="special">;</span>
+	<span class="identifier">g</span><span class="special">&lt;&lt;=</span><span class="identifier">g</span><span class="special">;</span> <span class="comment">// ok</span>
+	<span class="comment">// does not work for contains&lt;bad&gt;</span>
+	<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_left_shift_assign</span><span class="special">&lt;</span> <span class="identifier">contains</span><span class="special">&lt;</span> <span class="identifier">bad</span> <span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">&lt;&lt;</span><span class="char">'\n'</span><span class="special">;</span> <span class="comment">// true, should be false</span>
+	<span class="identifier">contains</span><span class="special">&lt;</span><span class="identifier">bad</span><span class="special">&gt;</span> <span class="identifier">b</span><span class="special">;</span>
+	<span class="identifier">b</span><span class="special">&lt;&lt;=</span><span class="identifier">b</span><span class="special">;</span> <span class="comment">// compile time error</span>
+	<span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="keyword">volatile</span></code> qualifier is not
+            properly handled and would lead to undefined behavior
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000, 2011 Adobe Systems Inc, David Abrahams,
+      Frederic Bron, Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant,
+      Jesse Jones, Mat Marcus, Itay Maman, John Maddock, Alexander Nasonov, Thorsten
+      Ottosen, Roman Perepelitsa, Robert Ramey, Jeremy Siek, Robert Stewart and Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="has_left_shift.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="has_less.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

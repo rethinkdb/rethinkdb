@@ -1,0 +1,134 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template basic_direct_mapping</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../sinks.html#header.boost.log.sinks.attribute_mapping_hpp" title="Header &lt;boost/log/sinks/attribute_mapping.hpp&gt;">
+<link rel="prev" href="basic_mapping.html" title="Struct template basic_mapping">
+<link rel="next" href="basic_custom_mapping.html" title="Class template basic_custom_mapping">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_mapping.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.attribute_mapping_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_custom_mapping.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.sinks.basic_direct_mapping"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template basic_direct_mapping</span></h2>
+<p>boost::log::sinks::basic_direct_mapping &#8212; Straightforward mapping. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../sinks.html#header.boost.log.sinks.attribute_mapping_hpp" title="Header &lt;boost/log/sinks/attribute_mapping.hpp&gt;">boost/log/sinks/attribute_mapping.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> MappedT<span class="special">,</span> <span class="keyword">typename</span> AttributeValueT <span class="special">=</span> <span class="keyword">int</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="basic_direct_mapping.html" title="Class template basic_direct_mapping">basic_direct_mapping</a> <span class="special">:</span>
+  <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">log</span><span class="special">::</span><span class="identifier">sinks</span><span class="special">::</span><span class="identifier">basic_mapping</span><span class="special">&lt;</span> <span class="identifier">MappedT</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">AttributeValueT</span>        <a name="boost.log.sinks.basic_direct_mapping.attribute_value_type"></a><span class="identifier">attribute_value_type</span><span class="special">;</span>  <span class="comment">// Attribute contained value type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">mapped_type</span> <a name="boost.log.sinks.basic_direct_mapping.mapped_type"></a><span class="identifier">mapped_type</span><span class="special">;</span>           <span class="comment">// Mapped value type. </span>
+
+  <span class="comment">// <a class="link" href="basic_direct_mapping.html#boost.log.sinks.basic_direct_mappingconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="basic_direct_mapping.html#idp27089784-bb"><span class="identifier">basic_direct_mapping</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">mapped_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="basic_direct_mapping.html#idp27087928-bb">public member functions</a></span>
+  <span class="identifier">mapped_type</span> <a class="link" href="basic_direct_mapping.html#idp27088136-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp63765064"></a><h2>Description</h2>
+<p>This type of mapping assumes that attribute with a particular name always provides values that map directly onto the native values. The mapping simply returns the extracted attribute value converted to the native value. </p>
+<div class="refsect2">
+<a name="idp63765624"></a><h3>
+<a name="boost.log.sinks.basic_direct_mappingconstruct-copy-destruct"></a><code class="computeroutput">basic_direct_mapping</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp27089784-bb"></a><span class="identifier">basic_direct_mapping</span><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span> name<span class="special">,</span> 
+                              <span class="identifier">mapped_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> default_value<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">default_value</code></span></p></td>
+<td><p>The default native value that is returned if the attribute value is not found </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">name</code></span></p></td>
+<td><p>Attribute name </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp63773800"></a><h3>
+<a name="idp27087928-bb"></a><code class="computeroutput">basic_direct_mapping</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">mapped_type</span> <a name="idp27088136-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span> rec<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Extraction operator</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">rec</code></span></p></td>
+<td><p>A log record to extract value from </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>An extracted attribute value </p></td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_mapping.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.attribute_mapping_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_custom_mapping.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

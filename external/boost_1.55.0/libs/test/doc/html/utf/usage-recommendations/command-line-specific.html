@@ -1,0 +1,91 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Command line usage recommendations</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../usage-recommendations.html" title="The unit test framework usage recommendations">
+<link rel="prev" href="dot-net-specific.html" title="Microsoft Visual Studio .NET usage recommendations">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../usage-recommendations.html">Usage recommendations</a> &gt; <b>Command-line (non-GUI) users specific</b>
+</td>
+<td><div class="spirit-nav"><a href="dot-net-specific.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a></div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.usage-recommendations.command-line-specific"></a>Command line usage recommendations</h4></div></div></div>
+<div class="qandaset">
+<dl>
+<dt> <a href="command-line-specific.html#id663841">
+      If you got fatal exception somewhere within test case, make program generate coredump by adding extra command 
+      line argument
+     </a>
+</dt>
+<dt> <a href="command-line-specific.html#id663872">
+      How to use test module build with Boost.Test framework under management of automated regression test facilities?
+     </a>
+</dt>
+</dl>
+<table border="0" summary="Q and A Set">
+<col align="left" width="1%">
+<tbody>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id663841"></a><a name="id663843"></a>
+</td>
+<td align="left" valign="top"><b><p>
+      If you got fatal exception somewhere within test case, make program generate coredump by adding extra command 
+      line argument
+     </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+      If you got "memory access violation" message (or any other message indication fatal or system error) when you 
+      run you test, to get more information about the error location add --catch_system_errors=no to the test run 
+      command line. Now run the test again and it will create a coredump you could analyze using you preferable 
+      debugger. Or run it under debugger in a first place and it will break at the point of failure.
+     </p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id663872"></a><a name="id663874"></a>
+</td>
+<td align="left" valign="top"><b><p>
+      How to use test module build with Boost.Test framework under management of automated regression test facilities?
+     </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+      My first recommendation is to make sure that the test framework catches all fatal errors by adding argument
+      --catch_system_error=yes to all test modules invocations. Otherwise test program may produce unwanted 
+      dialogs (depends on compiler and OS) that will halt you regression tests run. The second recommendation is to 
+      suppress result report output by adding --report_level=no argument and test log output by adding 
+      --log_level=nothing argument, so that test module won't produce undesirable output no one is going to look at 
+      anyway. I recommend relying only on result code that will be consistent for all test programs. An 
+      alternative to my second recommendation is direct both log and report to separate file you could analyze 
+      later on. Moreover you can  make Boost.Test to produce them in XML format using output_format=XML and use some 
+      automated tool that will format this information as you like.
+     </p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="dot-net-specific.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../usage-recommendations.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a>
+</div>
+</body>
+</html>

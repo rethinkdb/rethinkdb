@@ -1,0 +1,232 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ha.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ha.xml
+ */
+ha{
+    Currencies{
+        AED{
+            "AED",
+            "Kuɗin Haɗaɗɗiyar Daular Larabawa",
+        }
+        AOA{
+            "Kz",
+            "Kuɗin Angola",
+        }
+        AUD{
+            "AU$",
+            "Dalar Ostareliya",
+        }
+        BHD{
+            "BD",
+            "Kuɗin Baharan",
+        }
+        BIF{
+            "FBu",
+            "Kuɗin Burundi",
+        }
+        BWP{
+            "BWP",
+            "Kuɗin Baswana",
+        }
+        CAD{
+            "CA$",
+            "Dalar Kanada",
+        }
+        CDF{
+            "CDF",
+            "Kuɗin Kongo",
+        }
+        CHF{
+            "CHF",
+            "Kuɗin Suwizalan",
+        }
+        CNY{
+            "CN¥",
+            "Kuɗin Caina/Sin",
+        }
+        CVE{
+            "CV$",
+            "Kuɗin  Tsibiran Kap Barde",
+        }
+        DJF{
+            "Fdj",
+            "Kuɗin Jibuti",
+        }
+        DZD{
+            "DA",
+            "Kuɗin Aljeriya",
+        }
+        EGP{
+            "EGP",
+            "Fam kin Masar",
+        }
+        ERN{
+            "Nfk",
+            "Kuɗin Eritireya",
+        }
+        ETB{
+            "Br",
+            "Kuɗin Habasha",
+        }
+        EUR{
+            "€",
+            "Yuro",
+        }
+        GBP{
+            "£",
+            "Fam kin Ingila",
+        }
+        GHC{
+            "₵",
+            "Cedi",
+        }
+        GMD{
+            "GMD",
+            "Kuɗin Gambiya",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Kuɗin Gini",
+        }
+        INR{
+            "Rs",
+            "Kuɗin Indiya",
+        }
+        JPY{
+            "JP¥",
+            "Kuɗin Japan",
+        }
+        KES{
+            "Ksh",
+            "Sulen Kenya",
+        }
+        KMF{
+            "CF",
+            "Kuɗin Kwamoras",
+        }
+        LRD{
+            "L$",
+            "Dalar Laberiya",
+        }
+        LSL{
+            "LSL",
+            "Kuɗin Lesoto",
+        }
+        LYD{
+            "LD",
+            "Kuɗin Libiya",
+        }
+        MAD{
+            "MAD",
+            "Kuɗin Maroko",
+        }
+        MGA{
+            "MGA",
+            "Kuɗin Madagaskar",
+        }
+        MRO{
+            "UM",
+            "Kuɗin Moritaniya",
+        }
+        MUR{
+            "MURs",
+            "Kuɗin Moritus",
+        }
+        MWK{
+            "MWK",
+            "Kuɗin Malawi",
+        }
+        MZM{
+            "Mt",
+            "Kuɗin Mozambik",
+        }
+        NAD{
+            "N$",
+            "Dalar Namibiya",
+        }
+        NGN{
+            "₦",
+            "Naira",
+        }
+        RWF{
+            "RWF",
+            "Kuɗin Ruwanda",
+        }
+        SAR{
+            "SR",
+            "Riyal",
+        }
+        SCR{
+            "SRe",
+            "Kuɗin Saishal",
+        }
+        SDG{
+            "SDG",
+            "Fam kin Sudan",
+        }
+        SHP{
+            "SH£",
+            "Fam kin San Helena",
+        }
+        SLL{
+            "Le",
+            "Kuɗin Salewo",
+        }
+        SOS{
+            "Ssh",
+            "Sulen Somaliya",
+        }
+        STD{
+            "Db",
+            "Kuɗin Sawo Tome da Paransip",
+        }
+        SZL{
+            "SZL",
+            "Kuɗin Lilangeni",
+        }
+        TND{
+            "DT",
+            "Kuɗin Tunisiya",
+        }
+        TZS{
+            "TSh",
+            "Sulen Tanzaniya",
+        }
+        UGX{
+            "USh",
+            "Sule Yuganda",
+        }
+        USD{
+            "US$",
+            "Dalar Amurka",
+        }
+        XAF{
+            "FCFA",
+            "Kuɗin Sefa na Afirka Ta Tsakiya",
+        }
+        XOF{
+            "CFA",
+            "Kuɗin Sefa na Afirka Ta Yamma",
+        }
+        ZAR{
+            "R",
+            "Kuɗin Afirka Ta Kudu",
+        }
+        ZMK{
+            "ZK",
+            "Kuɗin Zambiya",
+        }
+        ZWD{
+            "Z$",
+            "Dalar zimbabuwe",
+        }
+    }
+    Version{"2.0.47.68"}
+}

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL PageRank</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-pagerank">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> PageRank</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+namespace graph {
+  template&lt;typename Graph, typename RankMap, typename Done&gt;
+  inline void
+  page_rank(const Graph&amp; g, RankMap rank_map, Done done,
+            typename property_traits&lt;RankMap&gt;::value_type damping = 0.85);
+
+  template&lt;typename Graph, typename RankMap&gt;
+  inline void
+  page_rank(const Graph&amp; g, RankMap rank_map);
+}
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">page_rank</span></tt> algorithm computes the ranking of vertices in a
+graph, based on the connectivity of a directed graph <a class="citation-reference" href="#pbmw98" id="id1">[PBMW98]</a>. The
+idea of PageRank is based on a random model of a Web surfer, who
+starts a random web page and then either follows a link from that web
+page (choosing from the links randomly) or jumps to a completely
+different web page (not necessarily linked from the current
+page). The PageRank of each page is the probability of the random web
+surfer visiting that page.</p>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id2">Where Defined</a></li>
+<li><a class="reference internal" href="#parameters" id="id3">Parameters</a></li>
+<li><a class="reference internal" href="#complexity" id="id4">Complexity</a><ul>
+<li><a class="reference internal" href="#bibliography" id="id5">Bibliography</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id2">Where Defined</a></h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/distributed/page_rank.hpp</span></tt>&gt;</p>
+<p>also accessible from</p>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/page_rank.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="parameters">
+<h1><a class="toc-backref" href="#id3">Parameters</a></h1>
+<dl class="docutils">
+<dt>IN: <tt class="docutils literal"><span class="pre">Graph&amp;</span> <span class="pre">g</span></tt></dt>
+<dd>The graph type must be a model of <a class="reference external" href="DistributedVertexListGraph.html">Distributed Vertex List Graph</a> and
+<a class="reference external" href="DistributedEdgeListGraph.html">Distributed Edge List Graph</a>. The graph must be directed.</dd>
+<dt>OUT: <tt class="docutils literal"><span class="pre">RankMap</span> <span class="pre">rank</span></tt></dt>
+<dd>Stores the rank of each vertex. The type <tt class="docutils literal"><span class="pre">RankMap</span></tt> must model the
+<a class="reference external" href="http://www.boost.org/libs/property_map/ReadWritePropertyMap.html">Read/Write Property Map</a> concept and must be a <a class="reference external" href="distributed_property_map.html">distributed
+property map</a>. Its key type must be the vertex descriptor of the
+graph type and its value type must be a floating-point or rational
+type.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">Done</span> <span class="pre">done</span></tt></dt>
+<dd><p class="first">A function object that determines when the PageRank algorithm
+should complete. It will be passed two parameters, the rank map and
+a reference to the graph, and should return <tt class="docutils literal"><span class="pre">true</span></tt> when the
+algorithm should terminate.</p>
+<p class="last"><strong>Default</strong>: <tt class="docutils literal"><span class="pre">graph::n_iterations(20)</span></tt></p>
+</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">typename</span> <span class="pre">property_traits&lt;RankMap&gt;::value_type</span> <span class="pre">damping</span></tt></dt>
+<dd><p class="first">The damping factor is the probability that the Web surfer will
+select an outgoing link from the current page instead of jumping to
+a random page.</p>
+<p class="last"><strong>Default</strong>: 0.85</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="complexity">
+<h1><a class="toc-backref" href="#id4">Complexity</a></h1>
+<p>Each iteration of PageRank requires <em>O((V + E)/p)</em> time on <em>p</em>
+processors and performs <em>O(V)</em> communication. The number of
+iterations is dependent on the input to the algorithm.</p>
+<div class="section" id="bibliography">
+<h2><a class="toc-backref" href="#id5">Bibliography</a></h2>
+<table class="docutils citation" frame="void" id="pbmw98" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[PBMW98]</a></td><td>Lawrence Page, Sergey Brin, Rajeev Motwani, and Terry
+Winograd. The PageRank Citation Ranking: Bringing Order to the
+Web. Technical report, Stanford Digital Library Technologies Project,
+November 1998.</td></tr>
+</tbody>
+</table>
+<hr class="docutils" />
+<p>Copyright (C) 2005 The Trustees of Indiana University.</p>
+<p>Authors: Douglas Gregor and Andrew Lumsdaine</p>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

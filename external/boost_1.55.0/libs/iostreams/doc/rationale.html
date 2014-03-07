@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Rationale</TITLE>
+    <LINK REL="stylesheet" HREF="../../../boost.css">
+    <LINK REL="stylesheet" HREF="theme/iostreams.css">
+    <STYLE>
+        OL OL { list-style-type:lower-alpha }
+    </STYLE>
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Rationale</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H3>Contents</H3>
+
+<DL CLASS="page-index">
+  <DT><A href="#goals">Design Goals</A>
+    <DL CLASS="page-index">
+      <DT><A href="#simplicity">Simplicity</A></DT>
+      <DT><A href="#flexibility">Flexibility</A></DT>
+      <DT><A href="#efficiency">Efficiency</A></DT>
+      <DT><A href="#interoperability">Interoperability</A></DT>
+    </DL>
+  </DT>
+  <DT><A href="#decisions">Design Decisions</A>
+    <DL CLASS="page-index">
+      <DT><A href="#generic">Generic Design</A></DT>
+      <DT><A href="#modes">Modes</A></DT>
+      <DT><A href="#lifetime">Lifetime Management</A></DT>
+      <DT><A href="#chain">Chain Interface</A></DT>
+      <DT><A href="#asynchronous">Asynchronous and Non-Blocking I/O</A></DT>
+    </DL>
+  </DT>
+</DL>
+
+<HR>
+
+<A NAME="goals"></A>
+<H2>Design Goals</H2>
+
+<P>Four criteria shaped the design of Boost.Iostreams:<P>
+
+<OL>
+    <LI><B>Simplicity: </B>The library should be easy to learn, use and extend. 
+    <LI><B>Flexibility:</B> The library should be flexible enough to produce streams and stream buffers with almost any desired characteristics. 
+    <LI><B>Efficiency:</B> Streams and stream buffers produced using the library should be as efficient as hand-written components, in most cases.
+    <LI><B>Interoperability:</B> The library should fit easily within the framework of the C++ standard library. In particular,
+    <OL>
+        <LI>The components used to construct streams and stream buffers &#8212; <A HREF="concepts/source.html">Source</A>, <A HREF="concepts/sink.html">Sinks</A>, <A HREF="concepts/input_filter.html">InputFilters</A> and <A HREF="concepts/output_filter.html">OutputFilters</A> &#8212; should not requirer a richer interface than standard library streams and stream buffers.
+        <LI>Streams and stream buffers constructed using the library should not require a richer interface than standard library streams and stream buffers.
+    </OL>
+</OL>
+
+<P>
+    Essentially, 4a says that standard library streams and stream buffers should be usable wherever Source and Sinks are usable, while 4b says that says that streams and stream buffers should be usable wherever standard library streams and stream buffers are usable. Both guidelines aim to make it easy to integrate Boost.Iostreams into existing code.
+</P>
+
+<A NAME="simplicity"></A>
+<H3>Simplicity</H3>
+
+<P>
+    Many users have reported that the library is easy to learn and use. It has also proved to be relatively easy to extend. The need for flexibility and efficiency has complicated the design, however. A good example is the large number of <A HREF="guide/modes.html">modes</A> required to represent the full range of streams and stream buffers. Another example is the need optimize the treatment of <A HREF="concepts/device.html">Devices</A> representing in-memory character sequences, such as <A HREF="classes/mapped_file.html">memory-mapped files</A>; this led to the introduction of <A HREF="concepts/direct.html">Direct</A> Devices, which are somewhat harder to use than other Devices.
+</P>
+
+<A NAME="flexibility"></A>
+<H3>Flexibility</H3>
+
+<P>
+    Although Boost.Iostreams is extremely flexible, it has some limitations. For example, it is not possible to customize the buffering strategy used by <A HREF="guide/generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A>: the user must either choose the default buffering strategy or request unbuffered i/o. Giving the user complete control over the buffering strategy would substantially complicated the library interface and implementation.
+</P>
+
+<A NAME="efficiency"></A>
+<H3>Efficiency</H3>
+
+<P>
+    Preliminary measurements indicate that the streams and stream buffers constructed using Boost.Iostreams perform comparably to hand-written components. Further measurements &#8212; and appropriate adjustments to the library implementation  &#8212; must await the establishment of a comprehensive set of benchmarks. 
+</P>
+
+<A NAME="interoperability"></A>
+<H3>Interoperability</H3>
+
+<P>
+    Standard library streams and stream buffers can currently be used wherever a Device is allowed; this will change, however, when more support for <A HREF="guide/asynchronous.html">asynchronous and non-blocking i/o</A> is added, since streams and stream buffers are unable to distinguish between temporary and permanent failures to satsify a read or write request. Furthermore, streams and stream buffers defined using Boost.Iostreams can be used wherever a standard library stream or stream buffer is required, but only after the stream or stream buffer has been properly initialized. For example, a user of a <A HREF="classes/filtering_stream.html"><CODE>filtering_stream</CODE></A> must push a sequence of Filters and a Device onto the underlying <A HREF="classes/chain.html">filter chain</A> before the <CODE>filtering_stream</CODE> can be used by existing code.  This limitation is unavoidable, however, as all streams and stream buffers require some specialized initialization, including <CODE>std::fstream</CODE> and <CODE>std::stringstream</CODE>.
+</P>
+
+<A NAME="decisions"></A>
+<H2>Design Decisions</H2>
+
+<A NAME="generic"></A>
+<H3>Generic Design</H3>
+
+<P>
+     The benefits of generic design are well-known. For example,
+</P>
+<UL>
+    <LI>Existing components &#8212; such as streams, stream buffers and iterators &#8212; can be integrated easily into the library.
+    <LI>The library can be easily extended to handle new Filter and Device concepts.
+    <LI>The internals of the library, such as the implementation of <A HREF="classes/chain.html">filter chains</A> as lists of stream buffers, can be redesigned without affecting user code. 
+</UL>
+<P>
+     One typical benefit of generic design that is neglible in the present case is the performance gain that comes when virtual function calls are replaced by inline code: because <CODE>std::basic_streambuf</CODE> uses virtual functions as customization points, the library cannot resonably expect to eliminate virtual function calls. The cost of these calls, however, is largely mitigated by buffering.
+</P>
+
+<A NAME="modes"></A>
+<H3>Modes</H3>
+
+<P>
+    The number of supported <A HREF="guide/modes.html">modes</A> adds adds greatly to the complexity of the library. Unfortunately, all the modes seem to be necessary to satisfy the flexibility criterion. The examples <A HREF="guide/modes.html#definitions">here</A> indicate that all but one of the modes have important use cases. The exception is <A HREF="guide/modes.html#bidirectional_seekable">bidirectional seekable</A>; this mode, however, is essentially free once the others are implemented.
+</P>
+
+<P>
+    I/o libraries tend to handle this situation in one of two ways:
+</P>
+<UL>
+    <LI>They support only <A HREF="guide/modes.html#input">input</A> and <A HREF="guide/modes.html#output">output</A>, or
+    <LI>They support additional modes but allow components with different modes to be mixed freely. To avoid runtime failures, users must study the documentation for individual components to determine whether they are compatible.
+</UL>
+
+<P>
+    The second alternative is clearly unacceptable. The first alternative is attractive for its simplicity, but leaves out crucial use cases. Boost.Iostreams tries to achieve the best of both worlds by recommending that new users ignore all modes but <A HREF="guide/modes.html#input">input</A> and <A HREF="guide/modes.html#output">output</A>.
+</P>
+
+<A NAME="lifetime"></A>
+<H3>Lifetime Management</H3>
+
+<P>
+    <A HREF="concepts/filter.html">Filters</A> and <A HREF="concepts/device.html">Devices</A> must either be <A HREF="../../../doc/html/CopyConstructible.html" TARGET="_top">CopyConstructible</A> or be passed to streams and stream buffers using <A HREF="../../../doc/html/ref.html"><CODE>boost::ref</CODE></A>. This requirement can complicate the design of Filters and Devices, since some components that could otherwise be non-copyable must use reference counting. The template <A HREF="classes/file.html#file"><CODE>basic_file</CODE></A> is a good illustration. A pre-release version of Boost.Iostreams allowed dynamically allocated Filters and Devices to be passed to streams and stream buffers as pointers that would become owned by the Iostreams library at the user's option. This design was rejected for two reasons: it was not exception safe, and it required an extra function parameter to indicate whether an object was to become owned by the library.
+</P>
+
+<A NAME="chain"></A>
+<H3>Chain Interface</H3>
+
+<P>
+    Some pre-release versions of Boost.Iostreams provided <A HREF="classes/chain.html">filter chains</A> with a rich interface that allowed chains to be disconnected and reattached at arbitrary positions, much like <CODE>std::list</CODE>. This functionality was removed to make the library easier to learn; if users find a need for it, it can easily be restored.
+</P>
+
+<A NAME="asynchronous"></A>
+<H3>Asynchronous and Non-Blocking I/O</H3>
+
+<P>
+    The <A HREF="concepts/filter.html">Filter</A> concepts provided by Boost.Iostreams have been designed to accommodate <A HREF="guide/asynchronous.html">asynchronous and non-blocking i/o</A>. The <A HREF="concepts/device.html">Device</A> concepts can accommodate non-blocking i/o, but support for asynchronous i/o will require the introdocution of new Device concepts. This limited support has been added for forward compatibility: when additional concepts and components are introduced, users should not have to redesign their existing components. Furthermore, if asynchronous and non-blocking i/o turns out not to be sufficiently useful, the internal library support can be removed without affecting existing interfaces.
+</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+
+</BODY>

@@ -1,0 +1,284 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Floating Point Real World Tests</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../perf.html" title="Performance Comparison">
+<link rel="prev" href="overhead.html" title="The Overhead in the Number Class Wrapper">
+<link rel="next" href="int_real_world.html" title="Integer Real World Tests">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overhead.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../perf.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="int_real_world.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.perf.realworld"></a><a class="link" href="realworld.html" title="Floating Point Real World Tests">Floating Point Real
+      World Tests</a>
+</h3></div></div></div>
+<p>
+        These tests test the total time taken to execute all of Boost.Math's test
+        cases for these functions. In each case the best performing library gets
+        a relative score of 1, with the total execution time given in brackets. The
+        first three libraries listed are the various floating point types provided
+        by this library, while for comparison, two popular C++ front-ends to <a href="http://www.mpfr.org" target="_top">MPFR</a> ( <a href="http://math.berkeley.edu/~wilken/code/gmpfrxx/" target="_top">mpfr_class</a>
+        and <a href="http://www.holoborodko.com/pavel/mpfr/" target="_top">mpreal</a>) are
+        also shown.
+      </p>
+<div class="table">
+<a name="boost_multiprecision.perf.realworld.bessel_function_performance"></a><p class="title"><b>Table&#160;1.8.&#160;Bessel Function Performance</b></p>
+<div class="table-contents"><table class="table" summary="Bessel Function Performance">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Library
+                </p>
+              </th>
+<th>
+                <p>
+                  50 Decimal Digits
+                </p>
+              </th>
+<th>
+                <p>
+                  100 Decimal Digits
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  mpfr_float
+                </p>
+              </td>
+<td>
+                <p>
+                  1.2 (5.78s)
+                </p>
+              </td>
+<td>
+                <p>
+                  1.2 (9.56s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  static_mpfr_float
+                </p>
+              </td>
+<td>
+                <p>
+                  1.1 (5.47s)
+                </p>
+              </td>
+<td>
+                <p>
+                  1.1 (9.09s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  mpf_float
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="bold"><strong>1.0</strong></span> (4.82s)
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="bold"><strong>1.0</strong></span>(8.07s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  cpp_dec_float
+                </p>
+              </td>
+<td>
+                <p>
+                  1.8 (8.54s)
+                </p>
+              </td>
+<td>
+                <p>
+                  2.6 (20.66s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://math.berkeley.edu/~wilken/code/gmpfrxx/" target="_top">mpfr_class</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  1.3 (6.28s)
+                </p>
+              </td>
+<td>
+                <p>
+                  1.2(10.06s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.holoborodko.com/pavel/mpfr/" target="_top">mpreal</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  2.0 (9.54s)
+                </p>
+              </td>
+<td>
+                <p>
+                  1.7 (14.08s)
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_multiprecision.perf.realworld.non_central_t_distribution_performance"></a><p class="title"><b>Table&#160;1.9.&#160;Non-Central T Distribution Performance</b></p>
+<div class="table-contents"><table class="table" summary="Non-Central T Distribution Performance">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Library
+                </p>
+              </th>
+<th>
+                <p>
+                  50 Decimal Digits
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  mpfr_float
+                </p>
+              </td>
+<td>
+                <p>
+                  1.3 (263.27s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  static_mpfr_float
+                </p>
+              </td>
+<td>
+                <p>
+                  1.2 (232.88s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  mpf_float
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="bold"><strong>1.0</strong></span> (195.73s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  cpp_dec_float
+                </p>
+              </td>
+<td>
+                <p>
+                  1.9 (366.38s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://math.berkeley.edu/~wilken/code/gmpfrxx/" target="_top">mpfr_class</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  1.5 (286.94s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.holoborodko.com/pavel/mpfr/" target="_top">mpreal</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  2.0 (388.70s)
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        Test code was compiled with Microsoft Visual Studio 2010 with all optimisations
+        turned on (/Ox), and used MPIR-2.3.0 and <a href="http://www.mpfr.org" target="_top">MPFR</a>-3.0.0.
+        The tests were run on 32-bit Windows Vista machine.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overhead.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../perf.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="int_real_world.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

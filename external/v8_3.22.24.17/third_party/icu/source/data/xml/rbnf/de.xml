@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+ Copyright (c) 2010 International Business Machines Corporation and others. All rights reserved.
+-->
+<!DOCTYPE ldml SYSTEM "http://www.unicode.org/repos/cldr/trunk/common/dtd/ldml.dtd">
+<ldml>
+	<identity>
+
+		<version number="$Revision: 1.4 $"/>
+		<generation date="$Date: 2008/12/08 18:18:44 $"/>
+		<language type="de"/>
+	</identity>
+    <rbnf>
+        <rulesetGrouping type="SpelloutRules">
+            <ruleset type="lenient-parse" access="private">
+                <rbnfrule value="0">&amp;ue=ü&amp;ae=ä&amp;oe=ö&amp;[last primary ignorable ] ←← ' ' ←← ',' ←← '-' ←← '­';</rbnfrule>
+            </ruleset>
+        </rulesetGrouping>
+ 
+   </rbnf>
+</ldml>

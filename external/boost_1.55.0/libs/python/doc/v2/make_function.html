@@ -1,0 +1,207 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/make_function.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header
+          &lt;boost/python/make_function.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#make_function-spec">make_function</a></dt>
+
+          <dt><a href="#make_constructor-spec">make_constructor</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code><a href="#make_function-spec">make_function</a>()</code> and
+    <code><a href="#make_constructor-spec">make_constructor</a>()</code> are
+    the functions used internally by <code><a href=
+    "def.html#def-spec">def</a>()</code> and <code>class_&lt;&gt;::<a href=
+    "class.html#class_-spec-modifiers">def</a>()</code> to produce Python
+    callable objects which wrap C++ functions and member functions.</p>
+
+    <h2><a name="functions"></a>Functions</h2>
+<pre>
+<a name="make_function-spec">template &lt;class F&gt;</a>
+<a href="object.html#object-spec">object</a> make_function(F f)
+
+template &lt;class F, class Policies&gt;
+<a href=
+"object.html#object-spec">object</a> make_function(F f, Policies const&amp; policies)
+
+template &lt;class F, class Policies, class KeywordsOrSignature&gt;
+<a href=
+"object.html#object-spec">object</a> make_function(F f, Policies const&amp; policies, KeywordsOrSignature const&amp; ks)
+
+template &lt;class F, class Policies, class Keywords, class Signature&gt;
+<a href=
+"object.html#object-spec">object</a> make_function(F f, Policies const&amp; policies, Keywords const&amp; kw, Signature const&amp; sig)
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>F</code> is a function pointer or member
+      function pointer type. If <code>policies</code> are supplied, it must
+      be a model of <a href="CallPolicies.html">CallPolicies</a>. If
+      <code>kewords</code> are supplied, it must be the result of a <a href=
+      "args.html#keyword-expression"><em>keyword-expression</em></a>
+      specifying no more arguments than the <a href=
+      "definitions.html#arity">arity</a> of <code>f</code>.</dt>
+
+      <dt><b>Effects:</b> Creates a Python callable object which, when called
+      from Python, converts its arguments to C++ and calls <code>f</code>. If
+      <code>F</code> is a pointer-to-member-function type, the target
+      object of the function call (<code>*this</code>) will be taken
+      from the first Python argument, and subsequent Python arguments
+      will be used as the arguments
+      to <code>f</code>. <ul>
+<li>        If <code>policies</code> are supplied, it
+      will be applied to the function as described <a href=
+      "CallPolicies.html">here</a>.
+<li>If <code>keywords</code> are
+      supplied, the keywords will be applied in order to the final
+      arguments of the resulting function.
+<li>If <code>Signature</code>
+      is supplied, it should be an instance of an <a
+      href="../../../mpl/doc/refmanual/front-extensible-sequence.html">MPL front-extensible
+      sequence</a> representing the function's return type followed by
+      its argument types.  Pass a <code>Signature</code> when wrapping
+      function object types whose signatures can't be deduced, or when
+      you wish to override the types which will be passed to the
+      wrapped function.
+</ul></dt>
+
+      <dt><b>Returns:</b> An instance of <a href=
+      "object.html#object-spec">object</a> which holds the new Python
+      callable object.</dt>
+
+      <dt><b>Caveats:</b> An argument of pointer type may
+      be <code>0</code> if <code>None</code> is passed from Python.
+      An argument type which is a constant reference may refer to a
+      temporary which was created from the Python object for just the
+      duration of the call to the wrapped function, for example
+      a <code>std::vector</code> conjured up by the conversion process
+      from a Python list.  Use a non-<code>const</code> reference
+      argument when a persistent lvalue is required.
+    </dl>
+
+<pre>
+<a name="make_constructor-spec">template &lt;class F&gt;</a>
+<a href="object.html#object-spec">object</a> make_constructor(F f)
+
+template &lt;class F, class Policies&gt;
+<a href=
+"object.html#object-spec">object</a> make_constructor(F f, Policies const&amp; policies)
+
+template &lt;class F, class Policies, class KeywordsOrSignature&gt;
+<a href=
+"object.html#object-spec">object</a> make_constructor(F f, Policies const&amp; policies, KeywordsOrSignature const&amp; ks)
+
+template &lt;class F, class Policies, class Keywords, class Signature&gt;
+<a href=
+"object.html#object-spec">object</a> make_constructor(F f, Policies const&amp; policies, Keywords const&amp; kw, Signature const&amp; sig)
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>F</code> is a
+      function pointer type. If <code>policies</code> are supplied, it must
+      be a model of <a href="CallPolicies.html">CallPolicies</a>. If
+      <code>kewords</code> are supplied, it must be the result of a <a href=
+      "args.html#keyword-expression"><em>keyword-expression</em></a>
+      specifying no more arguments than the <a href=
+      "definitions.html#arity">arity</a> of <code>f</code>.</dt>
+
+      <dt><b>Effects:</b> Creates a Python callable object which, when called
+      from Python, converts its arguments to C++ and calls <code>f</code>.</dt>
+
+      <dt><b>Returns:</b> An instance of <a href=
+      "object.html#object-spec">object</a> which holds the new Python
+      callable object.</dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+
+    <p>C++ function exposed below returns a callable object wrapping one of
+    two functions.</p>
+<pre>
+#include &lt;boost/python/make_function.hpp&gt;
+#include &lt;boost/python/module.hpp&gt;
+
+char const* foo() { return "foo"; }
+char const* bar() { return "bar"; }
+
+using namespace boost::python;
+object choose_function(bool selector)
+{
+    if (selector)
+        return boost::python::make_function(foo);
+    else
+        return boost::python::make_function(bar);
+}
+
+BOOST_PYTHON_MODULE(make_function_test)
+{
+    def("choose_function", choose_function);
+}
+</pre>
+    It can be used this way in Python:
+<pre>
+&gt;&gt;&gt; from make_function_test import *
+&gt;&gt;&gt; f = choose_function(1)
+&gt;&gt;&gt; g = choose_function(0)
+&gt;&gt;&gt; f()
+'foo'
+&gt;&gt;&gt; g()
+'bar'
+</pre>
+
+    <p>
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

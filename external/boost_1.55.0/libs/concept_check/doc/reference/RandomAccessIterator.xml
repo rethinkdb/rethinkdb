@@ -1,0 +1,313 @@
+<?xml version="1.0"?>
+<concept name="RandomAccessIterator" category="Iterator"><!--
+Based on concepts from the SGI Standard Template Library documentation:
+Copyright (c) 1996-1999
+Silicon Graphics Computer Systems, Inc.
+
+Copyright (c) 1994
+Hewlett-Packard Company
+--><!--
+Copyright 2000-2001 University of Notre Dame du Lac.
+Copyright 2001-2002 Indiana University.
+Some concepts based on versions from the MTL draft manual and Boost Graph
+and Property Map documentation:
+Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+-->
+  <param name="Iter" role="iterator-type"/>
+
+  <use-header name="iterator"/>
+
+  <models-sentence>The iterator type <arg num="1"/> must be a model of <self/>.</models-sentence>
+
+  <description>
+  <para>A random access iterator is an iterator that can read through
+  a sequence of values.  It can move in either direction through the
+  sequence (by any amount in constant time), and can be either mutable
+  (data pointed to by it can be changed) or not mutable.</para>
+
+  <para>An iterator represents a position in a sequence.  Therefore,
+  the iterator can point into the sequence (returning a value when
+  dereferenced and being incrementable), or be off-the-end (and not
+  dereferenceable or incrementable).</para>
+  </description>
+
+  <associated-type name="value_type">
+    <get-member-type name="value_type">
+      <apply-template name="std::iterator_traits">
+	<type name="Iter"/>
+      </apply-template>
+    </get-member-type>
+    <description><simpara>The value type of the iterator</simpara></description>
+  </associated-type>
+
+  <refines const="no" concept="BidirectionalIterator"/>
+  <refines const="no" concept="LessThanComparable"/>
+
+  <notation variables="i j">
+    <sample-value>
+      <type name="Iter"/>
+    </sample-value>
+  </notation>
+
+  <associated-type name="category">
+    <get-member-type name="iterator_category">
+      <apply-template name="std::iterator_traits">
+	<type name="Iter"/>
+      </apply-template>
+    </get-member-type>
+    <description><simpara>The category of the iterator</simpara></description>
+  </associated-type>
+
+  <associated-type name="difference_type">
+    <get-member-type name="difference_type">
+      <apply-template name="std::iterator_traits">
+	<type name="Iter"/>
+      </apply-template>
+    </get-member-type>
+    <description><simpara>The difference type of the iterator (measure of the number
+    of steps between two iterators)</simpara></description>
+  </associated-type>
+
+  <notation variables="x">
+    <sample-value>
+      <type name="value_type"/>
+    </sample-value>
+  </notation>
+
+  <notation variables="n">
+    <sample-value>
+      <type name="difference_type"/>
+    </sample-value>
+  </notation>
+
+  <notation variables="int_off">
+    <sample-value>
+      <type name="int"/>
+    </sample-value>
+  </notation>
+
+  <valid-type-expression name="Category tag">
+    <description/>
+    <type name="category"/>
+    <return-type>
+      <derived-from testable="yes">
+	<type name="std::random_access_iterator_tag"/>
+      </derived-from>
+    </return-type>
+  </valid-type-expression>
+
+  <valid-expression name="Motion">
+    <add-assign>
+      <sample-value><reference-to><type name="Iter"/></reference-to></sample-value>
+      <sample-value><type name="difference_type"/></sample-value>
+    </add-assign>
+    <return-type>
+      <require-same-type testable="yes">
+	<reference-to><type name="Iter"/></reference-to>
+      </require-same-type>
+    </return-type>
+    <semantics>Equivalent to applying <code>i++</code> <code>n</code> times
+    if <code>n</code> is positive, applying <code>i--</code>
+    <code>-n</code> times if <code>n</code> is negative, and to a null
+    operation if <code>n</code> is zero.</semantics>
+  </valid-expression>
+
+  <valid-expression name="Motion (with integer offset)">
+    <add-assign>
+      <sample-value><reference-to><type name="Iter"/></reference-to></sample-value>
+      <sample-value><type name="int"/></sample-value>
+    </add-assign>
+    <return-type>
+      <require-same-type testable="yes">
+	<reference-to><type name="Iter"/></reference-to>
+      </require-same-type>
+    </return-type>
+    <semantics>Equivalent to applying <code>i++</code> <code>n</code> times
+    if <code>n</code> is positive, applying <code>i--</code>
+    <code>-n</code> times if <code>n</code> is negative, and to a null
+    operation if <code>n</code> is zero.</semantics>
+  </valid-expression>
+
+  <valid-expression name="Subtractive motion">
+    <subtract-assign>
+      <sample-value><reference-to><type name="Iter"/></reference-to></sample-value>
+      <sample-value><type name="difference_type"/></sample-value>
+    </subtract-assign>
+    <return-type>
+      <require-same-type testable="yes">
+	<reference-to><type name="Iter"/></reference-to>
+      </require-same-type>
+    </return-type>
+    <semantics>Equivalent to <code>i+=(-n)</code></semantics>
+  </valid-expression>
+
+  <valid-expression name="Subtractive motion (with integer offset)">
+    <subtract-assign>
+      <sample-value><reference-to><type name="Iter"/></reference-to></sample-value>
+      <sample-value><type name="int"/></sample-value>
+    </subtract-assign>
+    <return-type>
+      <require-same-type testable="yes">
+	<reference-to><type name="Iter"/></reference-to>
+      </require-same-type>
+    </return-type>
+    <semantics>Equivalent to <code>i+=(-n)</code></semantics>
+  </valid-expression>
+
+  <valid-expression name="Addition">
+    <add>
+      <sample-value><type name="Iter"/></sample-value>
+      <sample-value><type name="difference_type"/></sample-value>
+    </add>
+    <return-type>
+      <require-same-type testable="yes"><type name="Iter"/></require-same-type>
+    </return-type>
+    <semantics>Equivalent to <code>{Iter j = i; j += n; return j;}</code></semantics>
+  </valid-expression>
+
+  <valid-expression name="Addition with integer">
+    <add>
+      <sample-value><type name="Iter"/></sample-value>
+      <sample-value><type name="int"/></sample-value>
+    </add>
+    <return-type>
+      <require-same-type testable="yes"><type name="Iter"/></require-same-type>
+    </return-type>
+    <semantics>Equivalent to <code>{Iter j = i; j += n; return j;}</code></semantics>
+  </valid-expression>
+
+  <valid-expression name="Addition (count first)">
+    <add>
+      <sample-value><type name="difference_type"/></sample-value>
+      <sample-value><type name="Iter"/></sample-value>
+    </add>
+    <return-type>
+      <require-same-type testable="yes"><type name="Iter"/></require-same-type>
+    </return-type>
+    <semantics>Equivalent to <code>i + n</code></semantics>
+  </valid-expression>
+
+  <valid-expression name="Addition with integer (count first)">
+    <add>
+      <sample-value><type name="int"/></sample-value>
+      <sample-value><type name="Iter"/></sample-value>
+    </add>
+    <return-type>
+      <require-same-type testable="yes"><type name="Iter"/></require-same-type>
+    </return-type>
+    <semantics>Equivalent to <code>i + n</code></semantics>
+  </valid-expression>
+
+  <valid-expression name="Subtraction">
+    <subtract>
+      <sample-value><type name="Iter"/></sample-value>
+      <sample-value><type name="difference_type"/></sample-value>
+    </subtract>
+    <return-type>
+      <require-same-type testable="yes"><type name="Iter"/></require-same-type>
+    </return-type>
+    <semantics>Equivalent to <code>i + (-n)</code></semantics>
+  </valid-expression>
+
+  <valid-expression name="Subtraction with integer">
+    <subtract>
+      <sample-value><type name="Iter"/></sample-value>
+      <sample-value><type name="int"/></sample-value>
+    </subtract>
+    <return-type>
+      <require-same-type testable="yes"><type name="Iter"/></require-same-type>
+    </return-type>
+    <semantics>Equivalent to <code>i + (-n)</code></semantics>
+  </valid-expression>
+
+  <valid-expression name="Distance">
+    <subtract>
+      <sample-value><type name="Iter"/></sample-value>
+      <sample-value><type name="Iter"/></sample-value>
+    </subtract>
+    <return-type>
+      <require-same-type testable="yes"><type name="difference_type"/></require-same-type>
+    </return-type>
+    <semantics>The number of times <code>i</code> must be incremented (or
+    decremented if the result is negative) to reach <code>j</code>.  Not
+    defined if <code>j</code> is not reachable from
+    <code>i</code>.</semantics>
+  </valid-expression>
+
+  <valid-expression name="Element access">
+    <subscript>
+      <sample-value><type name="Iter"/></sample-value>
+      <sample-value><type name="difference_type"/></sample-value>
+    </subscript>
+    <return-type>
+      <require-same-type testable="yes">
+	<const-if-not-mutable>
+	  <reference-to>
+	    <type name="value_type"/>
+	  </reference-to>
+	</const-if-not-mutable>
+      </require-same-type>
+    </return-type>
+    <semantics>Equivalent to <code>*(i + n)</code></semantics>
+  </valid-expression>
+
+  <valid-expression name="Element access with integer index">
+    <subscript>
+      <sample-value><type name="Iter"/></sample-value>
+      <sample-value><type name="int"/></sample-value>
+    </subscript>
+    <return-type>
+      <require-same-type testable="yes">
+	<const-if-not-mutable>
+	  <reference-to>
+	    <type name="value_type"/>
+	  </reference-to>
+	</const-if-not-mutable>
+      </require-same-type>
+    </return-type>
+    <semantics>Equivalent to <code>*(i + n)</code></semantics>
+  </valid-expression>
+
+  <complexity>
+  All iterator operations must take amortized constant time.
+  </complexity>
+
+  <example-model>
+    <pointer-to>
+      <type name="T"/>
+    </pointer-to>
+  </example-model>
+
+  <example-model>
+    <get-member-type name="iterator">
+      <apply-template name="std::vector">
+	<type name="T"/>
+      </apply-template>
+    </get-member-type>
+  </example-model>
+
+  <example-model>
+    <get-member-type name="const_iterator">
+      <apply-template name="std::vector">
+	<type name="T"/>
+      </apply-template>
+    </get-member-type>
+  </example-model>
+
+  <example-model>
+    <get-member-type name="iterator">
+      <apply-template name="std::deque">
+	<type name="T"/>
+      </apply-template>
+    </get-member-type>
+  </example-model>
+
+  <example-model>
+    <get-member-type name="const_iterator">
+      <apply-template name="std::deque">
+	<type name="T"/>
+      </apply-template>
+    </get-member-type>
+  </example-model>
+
+</concept>

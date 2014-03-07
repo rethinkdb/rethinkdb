@@ -1,0 +1,69 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template binder3rd&lt;FunT &amp;, ThirdArgT&gt;</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../utilities.html#header.boost.log.utility.functional.bind_hpp" title="Header &lt;boost/log/utility/functional/bind.hpp&gt;">
+<link rel="prev" href="binder3rd.html" title="Struct template binder3rd">
+<link rel="next" href="bind1st_idp28083272.html" title="Function template bind1st">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="binder3rd.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../utilities.html#header.boost.log.utility.functional.bind_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bind1st_idp28083272.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.binder3rd_FunT_idp28078680"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template binder3rd&lt;FunT &amp;, ThirdArgT&gt;</span></h2>
+<p>boost::log::binder3rd&lt;FunT &amp;, ThirdArgT&gt; &#8212; Third argument binder. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../utilities.html#header.boost.log.utility.functional.bind_hpp" title="Header &lt;boost/log/utility/functional/bind.hpp&gt;">boost/log/utility/functional/bind.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">,</span> <span class="keyword">typename</span> ThirdArgT<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="binder3rd_FunT_idp28078680.html" title="Struct template binder3rd&lt;FunT &amp;, ThirdArgT&gt;">binder3rd</a><span class="special">&lt;</span><span class="identifier">FunT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">ThirdArgT</span><span class="special">&gt;</span> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">remove_cv</span><span class="special">&lt;</span> <span class="identifier">FunT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">::</span><span class="identifier">result_type</span> <a name="boost.log.binder3rd_FunT_idp28078680.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="binder3rd_FunT_idp28078680.html#boost.log.binder3rd_FunT_idp28078680construct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="binder3rd_FunT_idp28078680.html#idp28082472-bb"><span class="identifier">binder3rd</span></a><span class="special">(</span><span class="identifier">FunT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="binder3rd_FunT_idp28078680.html#idp28080440-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T0<span class="special">,</span> <span class="keyword">typename</span> T1<span class="special">&gt;</span> 
+    <span class="identifier">result_type</span> <a class="link" href="binder3rd_FunT_idp28078680.html#idp28080648-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">T0</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">T1</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp67590120"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp67590328"></a><h3>
+<a name="boost.log.binder3rd_FunT_idp28078680construct-copy-destruct"></a><code class="computeroutput">binder3rd</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><a name="idp28082472-bb"></a><span class="identifier">binder3rd</span><span class="special">(</span><span class="identifier">FunT</span> <span class="special">&amp;</span> fun<span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> arg<span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp67594712"></a><h3>
+<a name="idp28080440-bb"></a><code class="computeroutput">binder3rd</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T0<span class="special">,</span> <span class="keyword">typename</span> T1<span class="special">&gt;</span> 
+  <span class="identifier">result_type</span> <a name="idp28080648-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">T0</span> <span class="keyword">const</span> <span class="special">&amp;</span> arg0<span class="special">,</span> <span class="identifier">T1</span> <span class="keyword">const</span> <span class="special">&amp;</span> arg1<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="binder3rd.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../utilities.html#header.boost.log.utility.functional.bind_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bind1st_idp28083272.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,5 @@
+> example
+Running 1 test case...
+test.cpp(10): error in "test": exception thrown by throw my_exception()
+
+*** 1 failure detected in test suite "example"

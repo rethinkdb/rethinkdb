@@ -1,0 +1,66 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{D789450C-31D8-4EB4-85FE-E9EE077173F0}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "icu", "icu.vcproj", "{8C27D792-2648-4F5E-9ED0-374276327308}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "icudt_build", "icudt_build.vcproj", "{A0D94973-D355-47A5-A1E2-3456F321F010}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8D551497-F923-4813-93F3-5978B848ED99} = {8D551497-F923-4813-93F3-5978B848ED99}
+		{A784BDA5-4F0F-4137-829C-B835B5DA18B8} = {A784BDA5-4F0F-4137-829C-B835B5DA18B8}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "icupkg", "icupkg.vcproj", "{8D551497-F923-4813-93F3-5978B848ED99}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DE98BCE1-9C31-44D4-B1BA-256E5285AB03} = {DE98BCE1-9C31-44D4-B1BA-256E5285AB03}
+		{8C27D792-2648-4F5E-9ED0-374276327308} = {8C27D792-2648-4F5E-9ED0-374276327308}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "toolutil", "toolutil.vcproj", "{DE98BCE1-9C31-44D4-B1BA-256E5285AB03}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8C27D792-2648-4F5E-9ED0-374276327308} = {8C27D792-2648-4F5E-9ED0-374276327308}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pkgdata", "pkgdata.vcproj", "{A784BDA5-4F0F-4137-829C-B835B5DA18B8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DE98BCE1-9C31-44D4-B1BA-256E5285AB03} = {DE98BCE1-9C31-44D4-B1BA-256E5285AB03}
+		{8C27D792-2648-4F5E-9ED0-374276327308} = {8C27D792-2648-4F5E-9ED0-374276327308}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8C27D792-2648-4F5E-9ED0-374276327308}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8C27D792-2648-4F5E-9ED0-374276327308}.Debug|Win32.Build.0 = Debug|Win32
+		{8C27D792-2648-4F5E-9ED0-374276327308}.Release|Win32.ActiveCfg = Release|Win32
+		{8C27D792-2648-4F5E-9ED0-374276327308}.Release|Win32.Build.0 = Release|Win32
+		{A0D94973-D355-47A5-A1E2-3456F321F010}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A0D94973-D355-47A5-A1E2-3456F321F010}.Debug|Win32.Build.0 = Debug|Win32
+		{A0D94973-D355-47A5-A1E2-3456F321F010}.Release|Win32.ActiveCfg = Release|Win32
+		{A0D94973-D355-47A5-A1E2-3456F321F010}.Release|Win32.Build.0 = Release|Win32
+		{8D551497-F923-4813-93F3-5978B848ED99}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8D551497-F923-4813-93F3-5978B848ED99}.Debug|Win32.Build.0 = Debug|Win32
+		{8D551497-F923-4813-93F3-5978B848ED99}.Release|Win32.ActiveCfg = Release|Win32
+		{8D551497-F923-4813-93F3-5978B848ED99}.Release|Win32.Build.0 = Release|Win32
+		{DE98BCE1-9C31-44D4-B1BA-256E5285AB03}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DE98BCE1-9C31-44D4-B1BA-256E5285AB03}.Debug|Win32.Build.0 = Debug|Win32
+		{DE98BCE1-9C31-44D4-B1BA-256E5285AB03}.Release|Win32.ActiveCfg = Release|Win32
+		{DE98BCE1-9C31-44D4-B1BA-256E5285AB03}.Release|Win32.Build.0 = Release|Win32
+		{A784BDA5-4F0F-4137-829C-B835B5DA18B8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A784BDA5-4F0F-4137-829C-B835B5DA18B8}.Debug|Win32.Build.0 = Debug|Win32
+		{A784BDA5-4F0F-4137-829C-B835B5DA18B8}.Release|Win32.ActiveCfg = Release|Win32
+		{A784BDA5-4F0F-4137-829C-B835B5DA18B8}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8D551497-F923-4813-93F3-5978B848ED99} = {D789450C-31D8-4EB4-85FE-E9EE077173F0}
+		{DE98BCE1-9C31-44D4-B1BA-256E5285AB03} = {D789450C-31D8-4EB4-85FE-E9EE077173F0}
+		{A784BDA5-4F0F-4137-829C-B835B5DA18B8} = {D789450C-31D8-4EB4-85FE-E9EE077173F0}
+	EndGlobalSection
+EndGlobal

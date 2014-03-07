@@ -1,0 +1,242 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <meta content=
+    "HTML Tidy for Windows (vers 1st February 2003), see www.w3.org"
+          name="generator">
+    <title>
+      Introduction
+    </title>
+    <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+    <link rel="stylesheet" href="theme/style.css" type="text/css">
+  </head>
+  <body>
+    <table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+      <tr>
+        <td width="10" height="49"></td>
+        <td width="85%" height="49">
+          <font size="6" face=
+          "Verdana, Arial, Helvetica, sans-serif"><b>Introduction</b></font>
+        </td>
+        <td width="112" height="49">
+          <a href="http://spirit.sf.net"><img src="theme/spirit.gif"
+               width="112" height="48" align="right" border="0"></a>
+        </td>
+      </tr>
+    </table><br>
+    <table border="0">
+      <tr>
+        <td width="10"></td>
+        <td width="30">
+          <a href="../index.html"><img src="theme/u_arr.gif" border="0"></a>
+        </td>
+        <td width="30">
+          <a href="preface.html"><img src="theme/l_arr.gif" width="20"
+               height="19" border="0"></a>
+        </td>
+        <td width="30">
+          <a href="quick_start.html"><img src="theme/r_arr.gif" border="0"></a>
+        </td>
+      </tr>
+    </table>
+    <p>
+      Spirit is an object-oriented recursive-descent parser generator framework
+      implemented using template meta-programming techniques. Expression
+      templates allow us to approximate the syntax of Extended Backus-Normal
+      Form (EBNF) completely in C++.
+    </p>
+    <p>
+      The Spirit framework enables a target grammar to be written exclusively
+      in C++. Inline EBNF grammar specifications can mix freely with other C++
+      code and, thanks to the generative power of C++ templates, are
+      immediately executable. In retrospect, conventional compiler-compilers or
+      parser-generators have to perform an additional translation step from the
+      source EBNF code to C or C++ code.
+    </p>
+    <p>
+      A simple EBNF grammar snippet:
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><code><font color="#000000"><span class="identifier">group      </span> <span class="special">::=</span> <span class="literal">'('</span> <span class="identifier">expression</span> <span class="literal">')'
+</span>    <span class="identifier">factor     </span> <span class=
+"special">::=</span> <span class="identifier">integer</span> <span class=
+"special">|</span> <span class="identifier">group
+</span>    <span class="identifier">term       </span> <span class=
+"special">::=</span> <span class="identifier">factor</span> <span class=
+"special">((</span><span class="literal">'*'</span> <span class=
+"identifier">factor</span><span class="special">)</span> <span class=
+"special">|</span> <span class="special">(</span><span class=
+"literal">'/'</span> <span class="identifier">factor</span><span class=
+"special">))*
+</span>    <span class="identifier">expression </span> <span class=
+"special">::=</span> <span class="identifier">term</span> <span class=
+"special">((</span><span class="literal">'+'</span> <span class=
+"identifier">term</span><span class="special">)</span> <span class=
+"special">|</span> <span class="special">(</span><span class=
+"literal">'-'</span> <span class="identifier">term</span><span class=
+"special">))*</span></font></code></pre>
+    <p>
+      is approximated using Spirit's facilities as seen in this code snippet:
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><code><font color="#000000"><span class=
+"identifier">group      </span> <span class=
+      "special">=</span> <span class="literal">'('</span> <span class=
+      "special">&gt;&gt;</span> <span class=
+      "identifier">expression</span> <span class=
+      "special">&gt;&gt;</span> <span class="literal">')'</span><span class=
+      "special">;
+</span>    <span class="identifier">factor     </span> <span class=
+"special">=</span> <span class="identifier">integer</span> <span class=
+"special">|</span> <span class="identifier">group</span><span class="special">;
+</span>    <span class="identifier">term       </span> <span class=
+"special">=</span> <span class="identifier">factor</span> <span class=
+"special">&gt;&gt;</span> <span class="special">*((</span><span class=
+"literal">'*'</span> <span class="special">&gt;&gt;</span> <span class=
+"identifier">factor</span><span class="special">)</span> <span class=
+"special">|</span> <span class="special">(</span><span class=
+"literal">'/'</span> <span class="special">&gt;&gt;</span> <span class=
+"identifier">factor</span><span class="special">));
+</span>    <span class="identifier">expression </span> <span class=
+"special">=</span> <span class="identifier">term</span> <span class=
+"special">&gt;&gt;</span> <span class="special">*((</span><span class=
+"literal">'+'</span> <span class="special">&gt;&gt;</span> <span class=
+"identifier">term</span><span class="special">)</span> <span class=
+"special">|</span> <span class="special">(</span><span class=
+"literal">'-'</span> <span class="special">&gt;&gt;</span> <span class=
+"identifier">term</span><span class="special">));</span></font></code>
+</pre>
+<p>
+      Through the magic of expression templates, this is perfectly valid and
+      executable C++ code. The production rule <tt>expression</tt> is in fact
+      an object that has a member function parse that does the work given a
+      source code written in the grammar that we have just declared. Yes, it's
+      a calculator. We shall simplify for now by skipping the type declarations
+      and the definition of the rule <tt>integer</tt> invoked by
+      <tt>factor</tt>. The production rule <tt>expression</tt> in our grammar
+      specification, traditionally called the start symbol, can recognize
+      inputs such as:
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><span class="number">12345
+</span><code><font color="#000000">    </font></code><span class="special">-</span><span class="number">12345
+</span><code><font color="#000000">    </font></code><span class="special">+</span><span class="number">12345
+</span><code><font color="#000000">    </font></code><span class="number">1</span> <span class=
+"special">+</span> <span class="number">2
+</span><code><font color="#000000">    </font></code><span class="number">1</span> <span class=
+"special">*</span> <span class="number">2
+</span><code><font color="#000000">    </font></code><span class="number">1</span><span class=
+     "special">/</span><span class="number">2</span> <span class=
+     "special">+</span> <span class="number">3</span><span class=
+     "special">/</span><span class="number">4
+</span><code><font color="#000000">    </font></code><span class="number">1</span> <span class=
+"special">+</span> <span class="number">2</span> <span class=
+"special">+</span> <span class="number">3</span> <span class=
+"special">+</span> <span class="number">4
+</span><code><font color="#000000">    </font></code><span class="number">1</span> <span class=
+"special">*</span> <span class="number">2</span> <span class=
+"special">*</span> <span class="number">3</span> <span class=
+"special">*</span> <span class="number">4
+</span><code><font color="#000000">    </font></code><span class="special">(</span><span class=
+     "number">1</span> <span class="special">+</span> <span class=
+     "number">2</span><span class="special">)</span> <span class=
+     "special">*</span> <span class="special">(</span><span class=
+     "number">3</span> <span class="special">+</span> <span class=
+     "number">4</span><span class="special">)
+</span><code><font color="#000000">    </font></code><span class="special">(-</span><span class=
+"number">1</span> <span class="special">+</span> <span class=
+"number">2</span><span class="special">)</span> <span class=
+"special">*</span> <span class="special">(</span><span class=
+"number">3</span> <span class="special">+</span> <span class=
+"special">-</span><span class="number">4</span><span class="special">)
+</span><code><font color="#000000">    </font></code><span class="number">1</span> <span class=
+"special">+</span> <span class="special">((</span><span class=
+"number">6</span> <span class="special">*</span> <span class=
+"number">200</span><span class="special">)</span> <span class=
+"special">-</span> <span class="number">20</span><span class=
+"special">)</span> <span class="special">/</span> <span class="number">6
+</span><code><font color="#000000">    </font></code><span class="special">(</span><span class=
+     "number">1</span> <span class="special">+</span> <span class=
+     "special">(</span><span class="number">2</span> <span class=
+     "special">+</span> <span class="special">(</span><span class=
+     "number">3</span> <span class="special">+</span> <span class=
+     "special">(</span><span class="number">4</span> <span class=
+     "special">+</span> <span class="number">5</span><span class=
+     "special">))))</span>
+</pre>
+<p>
+      Certainly we have done some modifications to the original EBNF syntax.
+      This is done to conform to C++ syntax rules. Most notably we see the
+      abundance of shift <tt>&gt;&gt;</tt> operators. Since there are no
+      'empty' operators in C++, it is simply not possible to write something
+      like:
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><span class=
+     "identifier">a</span> <span class="identifier">b</span>
+</pre>
+<p>
+      as seen in math syntax, for example, to mean multiplication or, in our
+      case, as seen in EBNF syntax to mean sequencing (b should follow a). The
+      framework uses the shift <tt class="operators">&gt;&gt;</tt> operator
+      instead for this purpose. We take the <tt class="operators">&gt;&gt;</tt>
+      operator, with arrows pointing to the right, to mean "is followed by".
+      Thus we write:
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><span class=
+"identifier">a</span> <span class="special">&gt;&gt;</span> <span class=
+"identifier">b</span>
+</pre>
+<p>
+      The alternative operator <tt class="operators">|</tt> and the parentheses
+      <tt class="operators">()</tt> remain as is. The assignment operator
+      <tt class="operators">=</tt> is used in place of EBNF's <tt class=
+      "operators">::=</tt>. Last but not least, the Kleene star <tt class=
+      "operators">*</tt> which used to be a postfix operator in EBNF becomes a
+      prefix. Instead of:
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><span class="identifier">a</span><span class=
+     "special">*</span> <span class="comment">//... in EBNF syntax,</span>
+</pre>
+<p>
+      we write:
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><span class="special">*</span><span class=
+     "identifier">a</span> <span class="comment">//... in Spirit.</span>
+</pre>
+<p>
+      since there are no postfix stars, "<tt class="operators">*</tt>", in
+      C/C++. Finally, we terminate each rule with the ubiquitous semi-colon,
+      "<tt>;</tt>".
+    </p>
+    <table border="0">
+      <tr>
+        <td width="10"></td>
+        <td width="30">
+          <a href="../index.html"><img src="theme/u_arr.gif" border="0"></a>
+        </td>
+        <td width="30">
+          <a href="preface.html"><img src="theme/l_arr.gif" width="20"
+               height="19" border="0"></a>
+        </td>
+        <td width="30">
+          <a href="quick_start.html"><img src="theme/r_arr.gif" border="0"></a>
+        </td>
+      </tr>
+    </table><br>
+    <hr size="1">
+    <p class="copyright">
+      Copyright &copy; 1998-2003 Joel de Guzman<br>
+      <br>
+       <font size="2">Use, modification and distribution is subject to the
+      Boost Software License, Version 1.0. (See accompanying file
+      LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)</font>
+    </p>
+    <p>&nbsp;
+      
+    </p>
+  </body>
+</html>

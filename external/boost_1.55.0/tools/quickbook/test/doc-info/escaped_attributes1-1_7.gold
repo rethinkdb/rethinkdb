@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library id="escaped_name" name="Escaped name" dirname="escaped_name" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <libraryinfo>
+    <copyright>
+      <year>1325</year> <holder>John Doe</holder>
+    </copyright>
+    <librarycategory name="category:test"></librarycategory> <author>
+    <firstname>John</firstname>
+    <surname>Doe</surname>
+    <email>john.doe@example.com</email>
+</author>
+  </libraryinfo>
+  <title>Escaped name</title>
+</library>

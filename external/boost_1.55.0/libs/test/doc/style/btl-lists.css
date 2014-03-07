@@ -1,0 +1,25 @@
+/* Copyright Gennadiy Rozental 2001-2007. 
+ * Distributed under the Boost Software License, Version 1.0. 
+ * (See accompanying file LICENSE_1_0.txt or copy at www.boost.org/LICENSE_1_0.txt)
+ */
+
+DIV.itemizedlist ul li
+{
+   margin-top: 0.5em;
+}
+
+DIV.files-list ul
+{
+   list-style-type: none;
+}
+
+DIV.files-list ul li p
+{
+   margin: 0;
+   padding: 0;
+}
+
+div.variablelist dl dt
+{
+    float: none;
+}

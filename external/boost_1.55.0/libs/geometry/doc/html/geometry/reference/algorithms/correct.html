@@ -1,0 +1,431 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>correct</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../algorithms.html" title="Algorithms">
+<link rel="prev" href="convex_hull.html" title="convex_hull">
+<link rel="next" href="covered_by.html" title="covered_by">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="convex_hull.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../algorithms.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="covered_by.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.algorithms.correct"></a><a class="link" href="correct.html" title="correct">correct</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp53651784"></a>
+Corrects a geometry.
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.correct.h0"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.correct.description"></a></span><a class="link" href="correct.html#geometry.reference.algorithms.correct.description">Description</a>
+        </h6>
+<p>
+          Corrects a geometry: all rings which are wrongly oriented with respect
+          to their expected orientation are reversed. To all rings which do not have
+          a closing point and are typed as they should have one, the first point
+          is appended. Also boxes can be corrected.
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.correct.h1"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.correct.synopsis"></a></span><a class="link" href="correct.html#geometry.reference.algorithms.correct.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">correct</span><span class="special">(</span><span class="identifier">Geometry</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">)</span></pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.correct.h2"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.correct.parameters"></a></span><a class="link" href="correct.html#geometry.reference.algorithms.correct.parameters">Parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Concept
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    Geometry &amp;
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Any type fulfilling a Geometry Concept
+                  </p>
+                </td>
+<td>
+                  <p>
+                    geometry
+                  </p>
+                </td>
+<td>
+                  <p>
+                    A model of the specified concept which will be corrected if necessary
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.correct.h3"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.correct.header"></a></span><a class="link" href="correct.html#geometry.reference.algorithms.correct.header">Header</a>
+        </h6>
+<p>
+          Either
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<p>
+          Or
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">correct</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.correct.h4"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.correct.conformance"></a></span><a class="link" href="correct.html#geometry.reference.algorithms.correct.conformance">Conformance</a>
+        </h6>
+<p>
+          The function correct is not defined by OGC.
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.correct.h5"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.correct.supported_geometries"></a></span><a class="link" href="correct.html#geometry.reference.algorithms.correct.supported_geometries">Supported
+          geometries</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Geometry
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Status
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Point
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Segment
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Box
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Linestring
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Ring
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Polygon
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    MultiPoint
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    MultiLinestring
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    MultiPolygon
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="inlinemediaobject"><img src="../../../img/ok.png" alt="ok"></span>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.correct.h6"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.correct.behavior"></a></span><a class="link" href="correct.html#geometry.reference.algorithms.correct.behavior">Behavior</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Case
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Behavior
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Ring
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Ring is corrected
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Polygon
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Polygon is corrected
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Multi Polygon
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Multi Polygon is corrected
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Box
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Box is corrected with respect to minimal and maximal corners
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Other geometries
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Nothing happens, geometry is unchanged
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.correct.h7"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.correct.complexity"></a></span><a class="link" href="correct.html#geometry.reference.algorithms.correct.complexity">Complexity</a>
+        </h6>
+<p>
+          Linear
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.correct.h8"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.correct.example"></a></span><a class="link" href="correct.html#geometry.reference.algorithms.correct.example">Example</a>
+        </h6>
+<p>
+          Shows how to correct a polygon with respect to its orientation and closure
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">polygon</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">boost_tuple</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_GEOMETRY_REGISTER_BOOST_TUPLE_CS</span><span class="special">(</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">)</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">assign</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">assign</span><span class="special">::</span><span class="identifier">tuple_list_of</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">polygon</span>
+        <span class="special">&lt;</span>
+            <span class="identifier">boost</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span>
+        <span class="special">&gt;</span> <span class="identifier">clockwise_closed_polygon</span><span class="special">;</span>
+
+    <span class="identifier">clockwise_closed_polygon</span> <span class="identifier">cwcp</span><span class="special">;</span>
+
+    <span class="comment">// Fill it counterclockwise (so wrongly), forgetting the closing point</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">exterior_ring</span><span class="special">(</span><span class="identifier">cwcp</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">tuple_list_of</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">)(</span><span class="number">10</span><span class="special">,</span> <span class="number">10</span><span class="special">)(</span><span class="number">0</span><span class="special">,</span> <span class="number">9</span><span class="special">);</span>
+
+    <span class="comment">// Add a counterclockwise closed inner ring (this is correct)</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">interior_rings</span><span class="special">(</span><span class="identifier">cwcp</span><span class="special">).</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">tuple_list_of</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">)(</span><span class="number">4</span><span class="special">,</span> <span class="number">6</span><span class="special">)(</span><span class="number">2</span><span class="special">,</span> <span class="number">8</span><span class="special">)(</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">));</span>
+
+    <span class="comment">// Its area should be negative (because of wrong orientation)</span>
+    <span class="comment">//     and wrong (because of omitted closing point)</span>
+    <span class="keyword">double</span> <span class="identifier">area_before</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">area</span><span class="special">(</span><span class="identifier">cwcp</span><span class="special">);</span>
+
+    <span class="comment">// Correct it!</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">correct</span><span class="special">(</span><span class="identifier">cwcp</span><span class="special">);</span>
+
+    <span class="comment">// Check its new area</span>
+    <span class="keyword">double</span> <span class="identifier">area_after</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">area</span><span class="special">(</span><span class="identifier">cwcp</span><span class="special">);</span>
+
+    <span class="comment">// And output it</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">dsv</span><span class="special">(</span><span class="identifier">cwcp</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">area_before</span> <span class="special">&lt;&lt;</span> <span class="string">" -&gt; "</span> <span class="special">&lt;&lt;</span> <span class="identifier">area_after</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Output:
+        </p>
+<pre class="programlisting">(((0, 0), (0, 9), (10, 10), (0, 0)), ((1, 2), (4, 6), (2, 8), (1, 2)))
+-7 -&gt; 38
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="convex_hull.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../algorithms.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="covered_by.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

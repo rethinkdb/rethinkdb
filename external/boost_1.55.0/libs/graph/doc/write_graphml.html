@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Boost write_graphml</title>
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-write-graphml">
+<h1 class="title"><a class="reference external" href="../../../index.htm"><img align="middle" alt="Boost" class="align-middle" src="../../../boost.png" /></a> <tt class="docutils literal"><span class="pre">write_graphml</span></tt></h1>
+
+<!-- Copyright (C) 2006  Tiago de Paula Peixoto <tiago@forked.de>
+
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+Authors: Tiago de Paula Peixoto -->
+<pre class="literal-block">
+template&lt;typename Graph&gt;
+void
+write_graphml(std::ostream&amp; out, const Graph&amp; g, const dynamic_properties&amp; dp,
+              bool ordered_vertices=false);
+
+template&lt;typename Graph, typename VertexIndexMap&gt;
+void
+write_graphml(std::ostream&amp; out, const Graph&amp; g, VertexIndexMap vertex_index,
+              const dynamic_properties&amp; dp, bool ordered_vertices=false);
+</pre>
+<p>This is to write a BGL graph object into an output stream in the
+<a class="reference external" href="http://graphml.graphdrawing.org/">GraphML</a> format.  Both overloads of <tt class="docutils literal"><span class="pre">write_graphml</span></tt> will emit all of
+the properties stored in the <a class="reference external" href="../../property_map/doc/dynamic_property_map.html">dynamic_properties</a> object, thereby
+retaining the properties that have been read in through the dual
+function <a class="reference external" href="read_graphml.html">read_graphml</a>. The second overload must be used when the
+graph doesn't have an internal vertex index map, which must then be
+supplied with the appropriate parameter.</p>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id2">Where Defined</a></li>
+<li><a class="reference internal" href="#parameters" id="id3">Parameters</a></li>
+<li><a class="reference internal" href="#example" id="id4">Example</a></li>
+<li><a class="reference internal" href="#see-also" id="id5">See Also</a></li>
+<li><a class="reference internal" href="#notes" id="id6">Notes</a></li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id2">Where Defined</a></h1>
+<p><tt class="docutils literal"><span class="pre">&lt;boost/graph/graphml.hpp&gt;</span></tt></p>
+</div>
+<div class="section" id="parameters">
+<h1><a class="toc-backref" href="#id3">Parameters</a></h1>
+<dl class="docutils">
+<dt>OUT: <tt class="docutils literal"><span class="pre">std::ostream&amp;</span> <span class="pre">out</span></tt></dt>
+<dd>A standard <tt class="docutils literal"><span class="pre">std::ostream</span></tt> object.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">VertexListGraph&amp;</span> <span class="pre">g</span></tt></dt>
+<dd>A directed or undirected graph.  The
+graph's type must be a model of <a class="reference external" href="VertexListGraph.html">VertexListGraph</a>. If the graph
+doesn't have an internal <tt class="docutils literal"><span class="pre">vertex_index</span></tt> property map, one
+must be supplied with the vertex_index parameter.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">VertexIndexMap</span> <span class="pre">vertex_index</span></tt></dt>
+<dd>A vertex property map containing the indexes in the range
+[0,num_vertices(g)].</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">dynamic_properties&amp;</span> <span class="pre">dp</span></tt></dt>
+<dd>Contains all of the vertex, edge, and graph properties that should be
+emitted by the GraphML writer.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">bool</span> <span class="pre">ordered_vertices</span></tt></dt>
+<dd>This tells whether or not the order of the vertices from vertices(g)
+matches the order of the indexes. If <tt class="docutils literal"><span class="pre">true</span></tt>, the <tt class="docutils literal"><span class="pre">parse.nodeids</span></tt>
+graph attribute will be set to <tt class="docutils literal"><span class="pre">canonical</span></tt>. Otherwise it will be
+set to <tt class="docutils literal"><span class="pre">free</span></tt>.</dd>
+</dl>
+</div>
+<div class="section" id="example">
+<h1><a class="toc-backref" href="#id4">Example</a></h1>
+<p>This example demonstrates using BGL-GraphML interface to write
+a BGL graph into a GraphML format file.</p>
+<pre class="literal-block">
+enum files_e { dax_h, yow_h, boz_h, zow_h, foo_cpp,
+               foo_o, bar_cpp, bar_o, libfoobar_a,
+               zig_cpp, zig_o, zag_cpp, zag_o,
+               libzigzag_a, killerapp, N };
+const char* name[] = { &quot;dax.h&quot;, &quot;yow.h&quot;, &quot;boz.h&quot;, &quot;zow.h&quot;, &quot;foo.cpp&quot;,
+                       &quot;foo.o&quot;, &quot;bar.cpp&quot;, &quot;bar.o&quot;, &quot;libfoobar.a&quot;,
+                       &quot;zig.cpp&quot;, &quot;zig.o&quot;, &quot;zag.cpp&quot;, &quot;zag.o&quot;,
+                       &quot;libzigzag.a&quot;, &quot;killerapp&quot; };
+
+int main(int,char*[])
+{
+    typedef pair&lt;int,int&gt; Edge;
+    Edge used_by[] = {
+        Edge(dax_h, foo_cpp), Edge(dax_h, bar_cpp), Edge(dax_h, yow_h),
+        Edge(yow_h, bar_cpp), Edge(yow_h, zag_cpp),
+        Edge(boz_h, bar_cpp), Edge(boz_h, zig_cpp), Edge(boz_h, zag_cpp),
+        Edge(zow_h, foo_cpp),
+        Edge(foo_cpp, foo_o),
+        Edge(foo_o, libfoobar_a),
+        Edge(bar_cpp, bar_o),
+        Edge(bar_o, libfoobar_a),
+        Edge(libfoobar_a, libzigzag_a),
+        Edge(zig_cpp, zig_o),
+        Edge(zig_o, libzigzag_a),
+        Edge(zag_cpp, zag_o),
+        Edge(zag_o, libzigzag_a),
+        Edge(libzigzag_a, killerapp)
+     };
+
+    const int nedges = sizeof(used_by)/sizeof(Edge);
+
+    typedef adjacency_list&lt; vecS, vecS, directedS,
+        property&lt; vertex_color_t, string &gt;,
+        property&lt; edge_weight_t, int &gt;
+        &gt; Graph;
+    Graph g(used_by, used_by + nedges, N);
+
+    graph_traits&lt;Graph&gt;::vertex_iterator v, v_end;
+    for (tie(v,v_end) = vertices(g); v != v_end; ++v)
+        put(vertex_color_t(), g, *v, name[*v]);
+
+    graph_traits&lt;Graph&gt;::edge_iterator e, e_end;
+    for (tie(e,e_end) = edges(g); e != e_end; ++e)
+        put(edge_weight_t(), g, *e, 3);
+
+    dynamic_properties dp;
+    dp.property(&quot;name&quot;, get(vertex_color_t(), g));
+    dp.property(&quot;weight&quot;, get(edge_weight_t(), g));
+
+    write_graphml(std::cout, g, dp, true);
+ }
+</pre>
+<p>The output will be:</p>
+<pre class="literal-block">
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;graphml xmlns=&quot;http://graphml.graphdrawing.org/xmlns/graphml&quot;  xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xsi:schemaLocation=&quot;http://graphml.graphdrawing.org/xmlns/graphml http://graphml.graphdrawing.org/xmlns/graphml/graphml-attributes-1.0rc.xsd&quot;&gt;
+  &lt;key id=&quot;key0&quot; for=&quot;node&quot; attr.name=&quot;name&quot; attr.type=&quot;string&quot; /&gt;
+  &lt;key id=&quot;key1&quot; for=&quot;edge&quot; attr.name=&quot;weight&quot; attr.type=&quot;int&quot; /&gt;
+  &lt;graph id=&quot;G&quot; edgedefault=&quot;directed&quot; parse.nodeids=&quot;canonical&quot; parse.edgeids=&quot;canonical&quot; parse.order=&quot;nodesfirst&quot;&gt;
+    &lt;node id=&quot;n0&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;dax.h&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n1&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;yow.h&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n2&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;boz.h&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n3&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;zow.h&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n4&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;foo.cpp&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n5&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;foo.o&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n6&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;bar.cpp&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n7&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;bar.o&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n8&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;libfoobar.a&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n9&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;zig.cpp&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n10&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;zig.o&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n11&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;zag.cpp&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n12&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;zag.o&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n13&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;libzigzag.a&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;node id=&quot;n14&quot;&gt;
+      &lt;data key=&quot;key0&quot;&gt;killerapp&lt;/data&gt;
+    &lt;/node&gt;
+    &lt;edge id=&quot;e0&quot; source=&quot;n0&quot; target=&quot;n4&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e1&quot; source=&quot;n0&quot; target=&quot;n6&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e2&quot; source=&quot;n0&quot; target=&quot;n1&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e3&quot; source=&quot;n1&quot; target=&quot;n6&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e4&quot; source=&quot;n1&quot; target=&quot;n11&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e5&quot; source=&quot;n2&quot; target=&quot;n6&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e6&quot; source=&quot;n2&quot; target=&quot;n9&quot;&gt;
+       &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e7&quot; source=&quot;n2&quot; target=&quot;n11&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e8&quot; source=&quot;n3&quot; target=&quot;n4&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e9&quot; source=&quot;n4&quot; target=&quot;n5&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e10&quot; source=&quot;n5&quot; target=&quot;n8&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e11&quot; source=&quot;n6&quot; target=&quot;n7&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e12&quot; source=&quot;n7&quot; target=&quot;n8&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e13&quot; source=&quot;n8&quot; target=&quot;n13&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e14&quot; source=&quot;n9&quot; target=&quot;n10&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e15&quot; source=&quot;n10&quot; target=&quot;n13&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e16&quot; source=&quot;n11&quot; target=&quot;n12&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e17&quot; source=&quot;n12&quot; target=&quot;n13&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+    &lt;edge id=&quot;e18&quot; source=&quot;n13&quot; target=&quot;n14&quot;&gt;
+      &lt;data key=&quot;key1&quot;&gt;3&lt;/data&gt;
+    &lt;/edge&gt;
+  &lt;/graph&gt;
+&lt;/graphml&gt;
+</pre>
+</div>
+<div class="section" id="see-also">
+<h1><a class="toc-backref" href="#id5">See Also</a></h1>
+<p>_read_graphml</p>
+</div>
+<div class="section" id="notes">
+<h1><a class="toc-backref" href="#id6">Notes</a></h1>
+<blockquote>
+<ul class="simple">
+<li>Note that you can use GraphML file write facilities without linking
+against the <tt class="docutils literal"><span class="pre">boost_graph</span></tt> library.</li>
+</ul>
+</blockquote>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-06-12 00:41 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+[article Indented code blocks
+    [quickbook 1.5]
+    [source-mode teletype]
+]
+
+In a paragraph.
+    Still in a paragraph.
+
+    In a code block.
+
+Back in a paragraph.
+
+    Code block line 1.
+ Code block line 2.
+        Code block line 3.
+
+Paragraph.
+
+    Code block with no trailing blank lines.
+Paragraph.
+
+[heading Code blocks separated by comment]
+
+    First code block.
+[/ Comment]
+    Second code block.
+    [/ Comment in second code block]
+    Still second code block.
+    [/ Comment trailing second code block]

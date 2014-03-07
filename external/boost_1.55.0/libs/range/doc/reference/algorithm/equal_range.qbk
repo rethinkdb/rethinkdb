@@ -1,0 +1,83 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:equal_range equal_range]
+
+[heading Prototype]
+
+``
+template<
+    class ForwardRange,
+    class Value
+    >
+std::pair<typename range_iterator<ForwardRange>::type,
+          typename range_iterator<ForwardRange>::type>
+equal_range(ForwardRange& rng, const Value& val);
+
+template<
+    class ForwardRange,
+    class Value
+    >
+std::pair<typename range_iterator<const ForwardRange>::type,
+          typename range_iterator<const ForwardRange>::type>
+equal_range(const ForwardRange& rng, const Value& val);
+
+template<
+    class ForwardRange,
+    class Value,
+    class SortPredicate
+    >
+std::pair<typename range_iterator<ForwardRange>::type,
+          typename range_iterator<ForwardRange>::type>
+equal_range(ForwardRange& rng, const Value& val, SortPredicate pred);
+
+template<
+    class ForwardRange,
+    class Value,
+    class SortPredicate
+    >
+std::pair<typename range_iterator<const ForwardRange>::type,
+          typename range_iterator<const ForwardRange>::type>
+equal_range(const ForwardRange& rng, const Value& val, SortPredicate pred);                      
+ ``
+
+[heading Description]
+
+`equal_range` returns a range in the form of a pair of iterators where all of the elements are equal to `val`. If no values are found that are equal to `val`, then an empty range is returned, hence `result.first == result.second`. For the non-predicate versions of `equal_range`  the equality of elements is determined by `operator<`.
+For the predicate versions of `equal_range` the equality of elements is determined by `pred`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/equal_range.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `Value` is a model of the `LessThanComparableConcept`.
+* The ordering of objects of type `Value` is a [*/strict weak ordering/], as defined in the `LessThanComparableConcept` requirements.
+* `ForwardRange`'s value type is the same type as `Value`.
+
+[*For the predicate versions:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `SortPredicate` is a model of the `StrictWeakOrderingConcept`.
+* `ForwardRange`'s value type is the same as `Value`.
+* `ForwardRange`'s value type is convertible to both of `SortPredicate`'s argument types.
+
+[heading Precondition:]
+
+For the non-predicate versions: `rng` is ordered in ascending order according to `operator<`.
+
+For the predicate versions: `rng` is ordered in ascending order according to `pred`.
+
+[heading Complexity]
+
+For random-access ranges, the complexity is `O(log N)`, otherwise the complexity is `O(N)`. 
+
+[endsect]
+
+

@@ -1,0 +1,13 @@
+C = Class('smart_ptr::C', 'smart_ptr.h')
+use_shared_ptr(C)
+
+D = Class('smart_ptr::D', 'smart_ptr.h')
+use_auto_ptr(D)
+
+A = Class('smart_ptr::A', 'smart_ptr.h')
+use_shared_ptr(A)
+
+Function('smart_ptr::NewC', 'smart_ptr.h')
+Function('smart_ptr::NewD', 'smart_ptr.h')
+Function('smart_ptr::NewA', 'smart_ptr.h')
+Function('smart_ptr::GetA', 'smart_ptr.h')

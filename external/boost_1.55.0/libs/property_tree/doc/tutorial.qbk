@@ -1,0 +1,117 @@
+[/
+ / Copyright (c) 2008 Marcin Kalicinski (kalita <at> poczta dot onet dot pl)
+ / Copyright (c) 2009 Sebastian Redl (sebastian dot redl <at> getdesigned dot at)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+[section:tutorial Five Minute Tutorial]
+This tutorial uses XML. Note that the library is not specifically bound to XML,
+and any other supported format (such as INI or JSON) could be used instead.
+XML was chosen because the author thinks that  wide range of people is familiar
+with it.
+
+Suppose we are writing a logging system for some application, and need to read
+log configuration from a file when the program starts. The file with the log
+configuration looks like this:
+
+[pre
+<debug>
+    <filename>debug.log</filename>
+    <modules>
+        <module>Finance</module>
+        <module>Admin</module>
+        <module>HR</module>
+    </modules>
+    <level>2</level>
+</debug>
+]
+
+It contains the log filename, a list of modules where logging is enabled, and
+the debug level value. To store the logging configuration in the program we
+created a debug_settings structure:
+
+   struct debug_settings
+   {
+       std::string m_file;          // log filename
+       int m_level;                 // debug level
+       std::set<string> m_modules;  // modules where logging is enabled
+       void load(const std::string &filename);
+       void save(const std::string &filename);
+   };
+
+All that needs to be done now is to write implementations of load() and save()
+member functions. Let's first deal with load(). It contains just 7 lines of
+code, although it does all the necessary things, including error reporting:
+
+    #include <boost/property_tree/ptree.hpp>
+    #include <boost/property_tree/xml_parser.hpp>
+
+    // Loads debug_settings structure from the specified XML file
+    void debug_settings::load(const std::string &filename)
+    {
+        // Create an empty property tree object
+        using boost::property_tree::__ptree__;
+        __ptree__ pt;
+
+        // Load the XML file into the property tree. If reading fails
+        // (cannot open file, parse error), an exception is thrown.
+        __read_xml__(filename, pt);
+
+        // Get the filename and store it in the m_file variable.
+        // Note that we construct the path to the value by separating
+        // the individual keys with dots. If dots appear in the keys,
+        // a path type with a different separator can be used.
+        // If the debug.filename key is not found, an exception is thrown.
+        m_file = pt.__ptree_get__<std::string>("debug.filename");
+
+        // Get the debug level and store it in the m_level variable.
+        // This is another version of the get method: if the value is
+        // not found, the default value (specified by the second
+        // parameter) is returned instead. The type of the value
+        // extracted is determined by the type of the second parameter,
+        // so we can simply write get(...) instead of get<int>(...).
+        m_level = pt.__ptree_get__("debug.level", 0);
+
+        // Iterate over the debug.modules section and store all found
+        // modules in the m_modules set. The get_child() function
+        // returns a reference to the child at the specified path; if
+        // there is no such child, it throws. Property tree iterators
+        // are models of BidirectionalIterator.
+        BOOST_FOREACH(__ptree__::__ptree_value_type__ &v,
+                pt.__ptree_get_child__("debug.modules"))
+            m_modules.__ptree_insert__(v.second.data());
+    }
+
+Now the save() function. It is also 7 lines of code:
+
+   // Saves the debug_settings structure to the specified XML file
+   void debug_settings::save(const std::string &filename)
+   {
+      // Create an empty property tree object
+      using boost::property_tree::__ptree__;
+      __ptree__ pt;
+   
+      // Put log filename in property tree
+      pt.__ptree_put__("debug.filename", m_file);
+   
+      // Put debug level in property tree
+      pt.__ptree_put__("debug.level", m_level);
+   
+      // Iterate over the modules in the set and put them in the
+      // property tree. Note that the put function places the new
+      // key at the end of the list of keys. This is fine most of
+      // the time. If you want to place an item at some other place
+      // (i.e. at the front or somewhere in the middle), this can
+      // be achieved using a combination of the insert and put_own
+      // functions.
+      BOOST_FOREACH(const std::string &name, m_modules)
+         pt.__ptree_add__("debug.modules.module", name);
+
+      // Write the property tree to the XML file.
+      __write_xml__(filename, pt);
+   }
+
+The full program [@boost:/libs/property_tree/examples/debug_settings.cpp debug_settings.cpp] is
+included in the examples directory.
+[endsect] [/tutorial]

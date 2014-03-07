@@ -1,0 +1,172 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Obtaining iterators from values</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../intrusive.html" title="Chapter&#160;15.&#160;Boost.Intrusive">
+<link rel="prev" href="using_smart_pointers.html" title="Using smart pointers with Boost.Intrusive containers">
+<link rel="next" href="any_hooks.html" title="Any Hooks: A single hook for any Intrusive container">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_smart_pointers.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="any_hooks.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.obtaining_iterators_from_values"></a><a class="link" href="obtaining_iterators_from_values.html" title="Obtaining iterators from values">Obtaining iterators
+    from values</a>
+</h2></div></div></div>
+<p>
+      <span class="bold"><strong>Boost.Intrusive</strong></span> offers another useful feature
+      that's not present in STL containers: it's possible to obtain an iterator to
+      a value from the value itself. This feature is implemented in <span class="bold"><strong>Boost.Intrusive</strong></span>
+      containers by a function called <code class="computeroutput"><span class="identifier">iterator_to</span></code>:
+    </p>
+<pre class="programlisting"><span class="identifier">iterator</span> <span class="identifier">iterator_to</span><span class="special">(</span><span class="identifier">reference</span> <span class="identifier">value</span><span class="special">);</span>
+<span class="identifier">const_iterator</span> <span class="identifier">iterator_to</span><span class="special">(</span><span class="identifier">const_reference</span> <span class="identifier">value</span><span class="special">);</span>
+</pre>
+<p>
+      For <span class="bold"><strong>Boost.Intrusive</strong></span> containers that have local
+      iterators, like unordered associative containers, we can also obtain local
+      iterators:
+    </p>
+<pre class="programlisting"><span class="identifier">local_iterator</span> <span class="identifier">local_iterator_to</span><span class="special">(</span><span class="identifier">reference</span> <span class="identifier">value</span><span class="special">);</span>
+<span class="identifier">const_local_iterator</span> <span class="identifier">local_iterator_to</span><span class="special">(</span><span class="identifier">const_reference</span> <span class="identifier">value</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+      For most <span class="bold"><strong>Boost.Intrusive</strong></span> containers (<code class="computeroutput"><a class="link" href="../boost/intrusive/list.html" title="Class template list">list</a></code>, <code class="computeroutput"><a class="link" href="../boost/intrusive/slist.html" title="Class template slist">slist</a></code>,
+      <code class="computeroutput"><a class="link" href="../boost/intrusive/set.html" title="Class template set">set</a></code>, <code class="computeroutput"><a class="link" href="../boost/intrusive/multiset.html" title="Class template multiset">multiset</a></code>)
+      we have an alternative static <code class="computeroutput"><span class="identifier">s_iterator_to</span></code>
+      function.
+    </p>
+<p>
+      For unordered associative containers (<code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set.html" title="Class template unordered_set">unordered_set</a></code>,
+      <code class="computeroutput"><a class="link" href="../boost/intrusive/multiset.html" title="Class template multiset">multiset</a></code>), <code class="computeroutput"><span class="identifier">iterator_to</span></code> has no static alternative function.
+      On the other hand, <code class="computeroutput"><span class="identifier">local_iterator_to</span></code>
+      functions have their <code class="computeroutput"><span class="identifier">s_local_iterator_to</span></code>
+      static alternatives.
+    </p>
+<p>
+      Alternative static functions are available under certain circumstances explained
+      in the <a class="link" href="value_traits.html#intrusive.value_traits.stateful_value_traits" title="Stateful value traits">Stateful
+      value traits</a> section; if the programmer uses hooks provided by <span class="bold"><strong>Boost.Intrusive</strong></span>, those functions will be available.
+    </p>
+<p>
+      Let's see a small function that shows the use of <code class="computeroutput"><span class="identifier">iterator_to</span></code>
+      and <code class="computeroutput"><span class="identifier">local_iterator_to</span></code>:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">unordered_set</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">functional</span><span class="special">/</span><span class="identifier">hash</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">intrusive_data</span>
+<span class="special">{</span>
+   <span class="keyword">int</span> <span class="identifier">data_id_</span><span class="special">;</span>
+   <span class="keyword">public</span><span class="special">:</span>
+
+   <span class="keyword">void</span> <span class="identifier">set</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">id</span><span class="special">)</span>  <span class="special">{</span>  <span class="identifier">data_id_</span> <span class="special">=</span> <span class="identifier">id</span><span class="special">;</span>    <span class="special">}</span>
+
+   <span class="comment">//This class can be inserted in an intrusive list</span>
+   <span class="identifier">list_member_hook</span><span class="special">&lt;&gt;</span>   <span class="identifier">list_hook_</span><span class="special">;</span>
+
+   <span class="comment">//This class can be inserted in an intrusive unordered_set</span>
+   <span class="identifier">unordered_set_member_hook</span><span class="special">&lt;&gt;</span>   <span class="identifier">unordered_set_hook_</span><span class="special">;</span>
+
+   <span class="comment">//Comparison operators</span>
+   <span class="keyword">friend</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="keyword">const</span> <span class="identifier">intrusive_data</span> <span class="special">&amp;</span><span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">intrusive_data</span> <span class="special">&amp;</span><span class="identifier">b</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">data_id_</span> <span class="special">==</span> <span class="identifier">b</span><span class="special">.</span><span class="identifier">data_id_</span><span class="special">;</span> <span class="special">}</span>
+
+   <span class="keyword">friend</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!=(</span><span class="keyword">const</span> <span class="identifier">intrusive_data</span> <span class="special">&amp;</span><span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">intrusive_data</span> <span class="special">&amp;</span><span class="identifier">b</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">data_id_</span> <span class="special">!=</span> <span class="identifier">b</span><span class="special">.</span><span class="identifier">data_id_</span><span class="special">;</span> <span class="special">}</span>
+
+   <span class="comment">//The hash function</span>
+   <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">hash_value</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">intrusive_data</span> <span class="special">&amp;</span><span class="identifier">i</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">hash</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;()(</span><span class="identifier">i</span><span class="special">.</span><span class="identifier">data_id_</span><span class="special">);</span>  <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">//Definition of the intrusive list that will hold intrusive_data</span>
+<span class="keyword">typedef</span> <span class="identifier">member_hook</span><span class="special">&lt;</span><span class="identifier">intrusive_data</span><span class="special">,</span> <span class="identifier">list_member_hook</span><span class="special">&lt;&gt;</span>
+        <span class="special">,</span> <span class="special">&amp;</span><span class="identifier">intrusive_data</span><span class="special">::</span><span class="identifier">list_hook_</span><span class="special">&gt;</span> <span class="identifier">MemberListOption</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">intrusive_data</span><span class="special">,</span> <span class="identifier">MemberListOption</span><span class="special">&gt;</span> <span class="identifier">list_t</span><span class="special">;</span>
+
+<span class="comment">//Definition of the intrusive unordered_set that will hold intrusive_data</span>
+<span class="keyword">typedef</span> <span class="identifier">member_hook</span>
+      <span class="special">&lt;</span> <span class="identifier">intrusive_data</span><span class="special">,</span> <span class="identifier">unordered_set_member_hook</span><span class="special">&lt;&gt;</span>
+      <span class="special">,</span> <span class="special">&amp;</span><span class="identifier">intrusive_data</span><span class="special">::</span><span class="identifier">unordered_set_hook_</span><span class="special">&gt;</span> <span class="identifier">MemberUsetOption</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">::</span><span class="identifier">unordered_set</span>
+   <span class="special">&lt;</span> <span class="identifier">intrusive_data</span><span class="special">,</span> <span class="identifier">MemberUsetOption</span><span class="special">&gt;</span> <span class="identifier">unordered_set_t</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">//Create MaxElem objects</span>
+   <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">MaxElem</span> <span class="special">=</span> <span class="number">100</span><span class="special">;</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">intrusive_data</span><span class="special">&gt;</span> <span class="identifier">nodes</span><span class="special">(</span><span class="identifier">MaxElem</span><span class="special">);</span>
+
+   <span class="comment">//Declare the intrusive containers</span>
+   <span class="identifier">list_t</span>     <span class="identifier">list</span><span class="special">;</span>
+   <span class="identifier">unordered_set_t</span><span class="special">::</span><span class="identifier">bucket_type</span> <span class="identifier">buckets</span><span class="special">[</span><span class="identifier">MaxElem</span><span class="special">];</span>
+   <span class="identifier">unordered_set_t</span>  <span class="identifier">unordered_set</span>
+      <span class="special">(</span><span class="identifier">unordered_set_t</span><span class="special">::</span><span class="identifier">bucket_traits</span><span class="special">(</span><span class="identifier">buckets</span><span class="special">,</span> <span class="identifier">MaxElem</span><span class="special">));</span>
+
+   <span class="comment">//Initialize all the nodes</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">MaxElem</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span> <span class="identifier">nodes</span><span class="special">[</span><span class="identifier">i</span><span class="special">].</span><span class="identifier">set</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+
+   <span class="comment">//Now insert them in both intrusive containers</span>
+   <span class="identifier">list</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">nodes</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">nodes</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+   <span class="identifier">unordered_set</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">nodes</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">nodes</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+
+   <span class="comment">//Now check the iterator_to function</span>
+   <span class="identifier">list_t</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">list_it</span><span class="special">(</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">begin</span><span class="special">());</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">MaxElem</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">,</span> <span class="special">++</span><span class="identifier">list_it</span><span class="special">)</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">iterator_to</span><span class="special">(</span><span class="identifier">nodes</span><span class="special">[</span><span class="identifier">i</span><span class="special">])</span>       <span class="special">!=</span> <span class="identifier">list_it</span> <span class="special">||</span>
+         <span class="identifier">list_t</span><span class="special">::</span><span class="identifier">s_iterator_to</span><span class="special">(</span><span class="identifier">nodes</span><span class="special">[</span><span class="identifier">i</span><span class="special">])</span>  <span class="special">!=</span> <span class="identifier">list_it</span><span class="special">)</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+
+   <span class="comment">//Now check unordered_set::s_iterator_to (which is a member function)</span>
+   <span class="comment">//and unordered_set::s_local_iterator_to (which is an static member function)</span>
+   <span class="identifier">unordered_set_t</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">unordered_set_it</span><span class="special">(</span><span class="identifier">unordered_set</span><span class="special">.</span><span class="identifier">begin</span><span class="special">());</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">MaxElem</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+      <span class="identifier">unordered_set_it</span> <span class="special">=</span> <span class="identifier">unordered_set</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="identifier">nodes</span><span class="special">[</span><span class="identifier">i</span><span class="special">]);</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">unordered_set</span><span class="special">.</span><span class="identifier">iterator_to</span><span class="special">(</span><span class="identifier">nodes</span><span class="special">[</span><span class="identifier">i</span><span class="special">])</span> <span class="special">!=</span> <span class="identifier">unordered_set_it</span><span class="special">)</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+      <span class="keyword">if</span><span class="special">(*</span><span class="identifier">unordered_set</span><span class="special">.</span><span class="identifier">local_iterator_to</span><span class="special">(</span><span class="identifier">nodes</span><span class="special">[</span><span class="identifier">i</span><span class="special">])</span>      <span class="special">!=</span> <span class="special">*</span><span class="identifier">unordered_set_it</span> <span class="special">||</span>
+         <span class="special">*</span><span class="identifier">unordered_set_t</span><span class="special">::</span><span class="identifier">s_local_iterator_to</span><span class="special">(</span><span class="identifier">nodes</span><span class="special">[</span><span class="identifier">i</span><span class="special">])</span> <span class="special">!=</span> <span class="special">*</span><span class="identifier">unordered_set_it</span> <span class="special">)</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+   <span class="special">}</span>
+
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_smart_pointers.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="any_hooks.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

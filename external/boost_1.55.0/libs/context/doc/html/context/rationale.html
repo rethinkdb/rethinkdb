@@ -1,0 +1,105 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Rationale</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Context">
+<link rel="up" href="../index.html" title="Context">
+<link rel="prev" href="performance.html" title="Performance">
+<link rel="next" href="rationale/other_apis_.html" title="Other APIs">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="performance.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rationale/other_apis_.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="context.rationale"></a><a class="link" href="rationale.html" title="Rationale">Rationale</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="rationale/other_apis_.html">Other APIs </a></span></dt>
+<dt><span class="section"><a href="rationale/x86_and_floating_point_env.html">x86 and
+      floating-point env</a></span></dt>
+</dl></div>
+<h4>
+<a name="context.rationale.h0"></a>
+      <span class="phrase"><a name="context.rationale.no_inline_assembler"></a></span><a class="link" href="rationale.html#context.rationale.no_inline_assembler">No
+      inline-assembler</a>
+    </h4>
+<p>
+      Some newer compiler (for instance MSVC 10 for x86_64 and itanium) do not support
+      inline assembler. <a href="#ftn.context.rationale.f0" class="footnote" name="context.rationale.f0"><sup class="footnote">[1]</sup></a>. Inlined assembler generates code bloating which his not welcome
+      on embedded systems.
+    </p>
+<h4>
+<a name="context.rationale.h1"></a>
+      <span class="phrase"><a name="context.rationale.fcontext_t"></a></span><a class="link" href="rationale.html#context.rationale.fcontext_t">fcontext_t</a>
+    </h4>
+<p>
+      <span class="bold"><strong>Boost.Context</strong></span> provides the low level API fcontext_t
+      which is implemented in assembler to provide context swapping operations. fcontext_t
+      is the part to port to new platforms.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Context switches do not preserve the signal mask on UNIX systems.
+      </p></td></tr>
+</table></div>
+<p>
+      Because the assembler code uses the byte layout of <span class="emphasis"><em>fcontext_t</em></span>
+      to access its members <span class="emphasis"><em>fcontext_t</em></span> must be a POD. This requires
+      that <span class="emphasis"><em>fcontext_t</em></span> has only a default constructor, no visibility
+      keywords (e.g. private, public, protected), no virtual methods and all members
+      and base classes are PODs too.
+    </p>
+<h4>
+<a name="context.rationale.h2"></a>
+      <span class="phrase"><a name="context.rationale.protecting_the_stack"></a></span><a class="link" href="rationale.html#context.rationale.protecting_the_stack">Protecting
+      the stack</a>
+    </h4>
+<p>
+      Because the stack's size is fixed -- there is no support for split stacks yet
+      -- it is important to protect against exceeding the stack's bounds. Otherwise,
+      in the best case, overrunning the stack's memory will result in a segmentation
+      fault or access violation and, in the worst case, the application's memory
+      will be overwritten. <code class="computeroutput"><span class="identifier">stack_allocator</span></code>
+      appends a guard page to the stack to help detect overruns. The guard page consumes
+      no physical memory, but generates a segmentation fault or access violation
+      on access to the virtual memory addresses within it.
+    </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.context.rationale.f0" class="footnote"><p><a href="#context.rationale.f0" class="para"><sup class="para">[1] </sup></a>
+        <a href="http://msdn.microsoft.com/en-us/library/4ks26t93.aspx" target="_top">MSDN article
+        'Inline Assembler'</a>
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009 Oliver Kowalke<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="performance.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rationale/other_apis_.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

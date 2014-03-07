@@ -1,0 +1,675 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+  == Copyright 2002 The Trustees of Indiana University.
+
+  == Use, modification and distribution is subject to the Boost Software 
+  == License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  == http://www.boost.org/LICENSE_1_0.txt)
+
+  ==  Boost.MultiArray Library
+  ==  Authors: Ronald Garcia
+  ==           Jeremy Siek
+  ==           Andrew Lumsdaine
+  ==  See http://www.boost.org/libs/multi_array for documentation.
+  -->
+<head>
+  <title>The Boost Multidimensional Array Library (Boost.MultiArray)</title>
+</head>
+
+<body>
+
+<h1>
+   <img src="../../../boost.png" alt="boost logo"
+    width="277" align="middle" height="86">
+   <br>The Boost Multidimensional Array Library 
+   <br>(Boost.MultiArray)
+</h1>
+
+<h2>Synopsis</h2>
+
+<p>
+The Boost Multidimensional Array Library provides a class template for
+multidimensional arrays, as well as  semantically equivalent
+adaptors for arrays of contiguous data. The classes in this library
+implement a common interface, formalized as a generic programming
+concept. The interface design is in line with the precedent set by the
+C++ Standard Library containers.  Boost MultiArray is a more efficient
+and convenient way to express N-dimensional arrays than existing
+alternatives (especially the
+<tt>std::vector&lt;std::vector&lt;...&gt;&gt;</tt> formulation 
+of N-dimensional arrays).  The arrays provided by the library may be
+accessed using the familiar syntax of native C++ arrays.  Additional
+features, such as resizing, reshaping, and creating views are
+available (and described below).  
+
+
+<h2>Table of Contents</h2>
+
+<ol>
+      <li><a href="#sec_introduction">Introduction</a>
+
+      <li><a href="#sec_example">Short Example</a>
+
+      <li><a href="#sec_components">MultiArray Components</a>
+
+      <li><a href="#sec_assignment">Construction and Assignment</a>
+
+      <li><a href="#sec_generators">Array View and Subarray Type Generators</a>
+
+      <li><a href="#sec_dimensions">Specifying Array Dimensions</a>
+
+      <li><a href="#sec_access">Accessing Elements</a>
+
+      <li><a href="#sec_views">Creating Views</a>
+
+      <li><a href="#sec_storage">Storage Ordering</a>
+
+      <li><a href="#sec_base">Setting the Array Base</a>
+
+      <li><a href="#sec_reshape">Changing an Array's Shape</a>
+
+      <li><a href="#sec_resize">Resizing an Array</a>
+
+      <li><a href="#sec_concepts">MultiArray Concept</a>
+
+      <li><a href="#sec_testcases">Test Cases</a>
+
+      <li><a href="#sec_related">Related Work</a>
+      <li><a href="#sec_credits">Credits</a>
+</ol>  
+
+
+<a name="sec_introduction"></a>
+<h2>Introduction</h2>
+
+<p>
+The C++ standard library provides several generic containers, but it
+does not provide any multidimensional array types.  The
+<tt>std::vector</tt> class template can be used to implement
+N-dimensional arrays, for example expressing a 2-dimensional array of
+<tt>double</tt> elements using the type
+<tt>std::vector&lt;std::vector&lt;double&gt;&gt;</tt>, but the
+resulting interface is unwieldy and the memory overhead can be quite
+high. Native C++ arrays (i.e. <tt>int arr[2][2][2];</tt>) do not
+immediately interoperate well with the C++ Standard Library, and they
+also lose information at function call boundaries (specifically the
+extent of the last dimension).  Finally, a dynamically allocated
+contiguous block of elements can be treated as an array, though this
+method requires manual bookkeeping that is error prone and obfuscates
+the intent of the programmer.
+</p>
+
+<p>
+The Boost MultiArray library enhances the C++ standard containers with
+versatile multi-dimensional array abstractions. It includes a general
+array class template and native array adaptors that support idiomatic
+array operations and interoperate with C++ Standard Library containers
+and algorithms.  The arrays share a common interface, expressed as a
+generic programming in terms of which generic array algorithms can be
+implemented.
+</p>
+
+<p>
+This document is meant to provide an introductory tutorial and user's
+guide for the most basic and common usage patterns of MultiArray
+components.  The <a href="./reference.html">reference manual</a>
+provides more complete and formal documentation of library features.
+</p>
+
+<a name="sec_example"></a>
+<h2>Short Example</h2>
+What follows is a brief example of the use of <tt>multi_array</tt>:
+
+<blockquote>
+<pre>
+#include "boost/multi_array.hpp"
+#include &lt;cassert&gt;
+
+int 
+main () {
+  // Create a 3D array that is 3 x 4 x 2
+  typedef boost::multi_array&lt;double, 3&gt; array_type;
+  typedef array_type::index index;
+  array_type A(boost::extents[3][4][2]);
+
+  // Assign values to the elements
+  int values = 0;
+  for(index i = 0; i != 3; ++i) 
+    for(index j = 0; j != 4; ++j)
+      for(index k = 0; k != 2; ++k)
+        A[i][j][k] = values++;
+
+  // Verify values
+  int verify = 0;
+  for(index i = 0; i != 3; ++i) 
+    for(index j = 0; j != 4; ++j)
+      for(index k = 0; k != 2; ++k)
+        assert(A[i][j][k] == verify++);
+
+  return 0;
+}
+</pre>
+</blockquote>
+
+<a name="sec_components"></a>
+<h2>MultiArray Components</h2>
+
+Boost.MultiArray's implementation (boost/multi_array.hpp) provides three user-level class templates:
+
+<ol>
+      <li><a href="./reference.html#multi_array"><tt>multi_array</tt></a>, 
+
+      <li><a href="./reference.html#multi_array_ref"><tt>multi_array_ref</tt></a>, and 
+
+      <li><a href="./reference.html#const_multi_array_ref"><tt>const_multi_array_ref</tt></a>  
+</ol>
+
+<tt>multi_array</tt> is a container template.  When instantiated, it
+allocates space for the number of elements corresponding to the
+dimensions specified at construction time.  A <tt>multi_array</tt> may
+also be default constructed and resized as needed.
+
+<p>
+<tt>multi_array_ref</tt> adapts an existing array of data to provide
+the <tt>multi_array</tt> interface. <tt>multi_array_ref</tt> does not own the
+data passed to it.
+
+<p>
+<tt>const_multi_array_ref</tt> is similar to <tt>multi_array_ref</tt>
+but guarantees that the contents of the array are immutable. It can
+thus wrap pointers of type <i>T const*</i>. 
+
+<p>
+The three components exhibit very similar behavior.  Aside from
+constructor parameters, <tt>multi_array</tt> and
+<tt>multi_array_ref</tt> export the same interface.
+<tt>const_multi_array_ref</tt> provides only the constness-preserving
+portions of the <tt>multi_array_ref</tt> interface.
+
+<a name="sec_assignment"></a>
+<h2>Construction and Assignment</h2>
+<p>Each of the array types - 
+<a href="./reference.html#multi_array"><tt>multi_array</tt></a>, 
+<a href="./reference.html#multi_array_ref"><tt>multi_array_ref</tt></a>, and
+<a href="./reference.html#const_multi_array_ref"><tt>const_multi_array_ref</tt></a> - 
+provides a specialized set of constructors.  For further information,
+consult their reference pages.
+
+<p>All of the non-const array types in this library provide assignment 
+operators<tt>operator=()</tt>. Each of the array types <tt>multi_array</tt>,
+      <tt>multi_array_ref</tt>, <tt>subarray</tt>, and
+      <tt>array_view</tt> can be assigned from any 
+of the others, so long as their shapes match. The 
+      const variants, <tt>const_multi_array_ref</tt>, 
+<tt>const_subarray</tt>, and <tt>const_array_view</tt>, can be the
+      source of a copy to an array with matching shape.
+Assignment results in a deep (element by element) copy of the data 
+contained within an array.  
+
+<a name="sec_generators"></a>
+<h2>Array View and Subarray Type Generators</h2>
+In some situations, the use of nested generators for array_view and
+subarray types is inconvenient.  For example, inside a
+function template parameterized upon array type, the extra
+"template" keywords can be obfuscating. More likely though, some
+compilers cannot handle templates nested within template parameters.
+For this reason the type generators, <tt>subarray_gen</tt>,
+<tt>const_subarray_gen</tt>, <tt>array_view_gen</tt>, and
+<tt>const_array_view_gen</tt> are provided. Thus, the two typedefs 
+in the following example result in the same type:
+<blockquote>
+<pre>
+template &lt;typename Array&gt;
+void my_function() {
+  typedef typename Array::template array_view&lt;3&gt;::type view1_t;
+  typedef typename boost::array_view_gen&lt;Array,3&gt;::type view2_t;
+  // ...
+}
+</pre>
+</blockquote>
+
+<a name="sec_dimensions"></a>
+<h2>Specifying Array Dimensions</h2>
+When creating most of the Boost.MultiArray components, it is necessary
+to specify both the number of dimensions and the extent of each
+(<tt>boost::multi_array</tt> also provides a default constructor).
+Though the number of dimensions is always specified as a template
+parameter, two separate mechanisms have been provided to specify the
+extent of each.
+<p>The first method involves passing a 
+<a href="../../utility/Collection.html">
+Collection</a> of extents to a
+constructor, most commonly a <tt>boost::array</tt>.  The constructor
+will retrieve the beginning iterator from the container and retrieve N 
+elements, corresponding to extents for the N dimensions.  This is
+useful for writing dimension-independent code.
+<h3>Example</h3>
+<blockquote>
+<pre>
+  typedef boost::multi_array&lt;double, 3&gt; array_type;
+  boost::array&lt;array_type::index, 3&gt; shape = {{ 3, 4, 2 }};
+  array_type A(shape);
+</pre>
+</blockquote>
+
+<p>The second method involves passing the constructor an <tt>extent_gen</tt>
+object, specifying the matrix dimensions. The <tt>extent_gen</tt> type
+  is defined in the <tt>multi_array_types</tt> namespace and as a
+  member of every array type, but by default, the library constructs a
+global <tt>extent_gen</tt> object <tt>boost::extents</tt>.  In case of
+concern about memory used by these objects, defining 
+<tt>BOOST_MULTI_ARRAY_NO_GENERATORS</tt> before including the library
+header inhibits its construction.
+
+<h3>Example</h3>
+<blockquote>
+<pre>
+  typedef boost::multi_array&lt;double, 3&gt; array_type;
+  array_type A(boost::extents[3][4][2]);
+</pre>
+</blockquote>
+
+<a name="sec_access"></a>
+<h2>Accessing Elements</h2>
+The Boost.MultiArray components provide two ways of accessing
+specific elements within a container.  The first uses the traditional
+C array notation, provided by <tt>operator[]</tt>.
+<h3>Example</h3>
+<blockquote>
+<pre>
+  typedef boost::multi_array&lt;double, 3&gt; array_type;
+  array_type A(boost::extents[3][4][2]);
+  A[0][0][0] = 3.14;
+  assert(A[0][0][0] == 3.14);
+</pre>
+</blockquote>
+
+<p> The second method involves passing a
+<a href="../../utility/Collection.html">
+Collection</a> of indices to <tt>operator()</tt>.  N indices will be retrieved
+from the Collection for the N dimensions of the container.
+<h3>Example</h3>
+<blockquote>
+<pre>
+  typedef boost::multi_array&lt;double, 3&gt; array_type;
+  array_type A(boost::extents[3][4][2]);
+  boost::array&lt;array_type::index,3&gt; idx = {{0,0,0}};
+  A(idx) = 3.14;
+  assert(A(idx) == 3.14);
+</pre>
+</blockquote>
+This can be useful for writing dimension-independent code, and under
+some compilers may yield higher performance than <tt>operator[].</tt>
+
+<p>
+By default, both of the above element access methods perform range
+checking.  If a supplied index is out of the range defined for an
+array, an assertion will abort the program.  To disable range
+checking (for performance reasons in production releases), define
+the <tt>BOOST_DISABLE_ASSERTS</tt> preprocessor macro prior to
+including multi_array.hpp in your application.
+
+<a name="sec_views"></a>
+<h2>Creating Views</h2>
+Boost.MultiArray provides the facilities for creating a sub-view of an 
+already existing array component.  It allows you to create a sub-view that
+retains the same number of dimensions as the original array or one
+that has less dimensions than the original as well.
+
+<p>Sub-view creation occurs by placing a call to operator[], passing
+it an <tt>index_gen</tt> type.  The <tt>index_gen</tt> is populated by
+passing <tt>index_range</tt> objects to its <tt>operator[]</tt>.
+The <tt>index_range</tt> and <tt>index_gen</tt> types are defined in
+the <tt>multi_array_types</tt> namespace and as nested members of
+every array type.  Similar to <tt>boost::extents</tt>, the library by
+default constructs the object <tt>boost::indices</tt>.  You can
+suppress this object by
+defining <tt>BOOST_MULTI_ARRAY_NO_GENERATORS</tt> before including the
+library header. A simple sub-view creation example follows.
+
+<h3>Example</h3>
+<blockquote>
+<pre>
+  // myarray = 2 x 3 x 4
+
+  //
+  // array_view dims: [base,bound) (dimension striding default = 1)
+  // dim 0: [0,2) 
+  // dim 1: [1,3) 
+  // dim 2: [0,4) (strided by 2), 
+  // 
+
+  typedef boost::multi_array_types::index_range range;
+  // OR typedef array_type::index_range range;
+  array_type::array_view&lt;3&gt;::type myview =
+    myarray[ boost::indices[range(0,2)][range(1,3)][range(0,4,2)] ];
+
+  for (array_type::index i = 0; i != 2; ++i)
+    for (array_type::index j = 0; j != 2; ++j)
+      for (array_type::index k = 0; k != 2; ++k) 
+	assert(myview[i][j][k] == myarray[i][j+1][k*2]);
+</pre>
+</blockquote>
+
+
+<p>By passing an integral value to the index_gen, one may create a
+subview with fewer dimensions than the original array component (also
+called slicing).
+<h3>Example</h3>
+<blockquote>
+<pre>
+  // myarray = 2 x 3 x 4
+
+  //
+  // array_view dims:
+  // [base,stride,bound)
+  // [0,1,2), 1, [0,2,4) 
+  // 
+
+  typedef boost::multi_array_types::index_range range;
+  array_type::index_gen indices;
+  array_type::array_view&lt;2&gt;::type myview =
+    myarray[ indices[range(0,2)][1][range(0,4,2)] ];
+
+  for (array_type::index i = 0; i != 2; ++i)
+    for (array_type::index j = 0; j != 2; ++j)
+	assert(myview[i][j] == myarray[i][1][j*2]);
+</pre>
+</blockquote>
+
+<h3>More on <tt>index_range</tt></h3>
+The <tt>index_range</tt> type provides several methods of specifying
+ranges for subview generation.  Here are a few range instantiations
+that specify the same range.
+<h3>Example</h3>
+<blockquote>
+<pre>
+  // [base,stride,bound)
+  // [0,2,4) 
+
+  typedef boost::multi_array_types::index_range range;
+  range a_range;
+  a_range = range(0,4,2);
+  a_range = range().start(0).finish(4).stride(2);
+  a_range = range().start(0).stride(2).finish(4);
+  a_range = 0 &lt;= range().stride(2) &lt; 4;
+  a_range = 0 &lt;= range().stride(2) &lt;= 3;
+</pre>
+</blockquote>
+
+An <tt>index_range</tt> object passed to a slicing operation will
+inherit its start and/or finish value from the array being sliced if
+you do not supply one.  This conveniently prevents you from having to
+know the bounds of the array dimension in certain cases. For example,
+the default-constructed range will take the full extent of the
+dimension it is used to specify.
+
+<h3>Example</h3>
+<blockquote>
+<pre>
+  typedef boost::multi_array_types::index_range range;
+  range a_range;
+
+  // All elements in this dimension
+  a_range = range(); 
+
+  // indices i where 3 &lt;= i
+  a_range = range().start(3) 
+  a_range = 3 &lt;= range();
+  a_range = 2 &lt; range();
+
+  // indices i where i &lt; 7
+  a_range = range().finish(7)
+  a_range = range() &lt; 7;
+  a_range = range() &lt;= 6;
+</pre>
+</blockquote>
+
+The following example slicing operations exhibit some of the
+alternatives shown above
+<blockquote>
+<pre>
+    // take all of dimension 1
+    // take i &lt; 5 for dimension 2
+    // take 4 &lt;= j &lt;= 7 for dimension 3 with stride 2
+    myarray[ boost::indices[range()][range() &lt; 5 ][4 &lt;= range().stride(2) &lt;= 7] ];
+</pre>
+</blockquote>
+
+<a name="sec_storage"></a>
+<h2>Storage Ordering</h2>
+Each array class provides constructors that accept a storage ordering 
+parameter. This is most
+useful when interfacing with legacy codes that require an ordering
+different from standard C, such as FORTRAN. The possibilities are 
+<tt>c_storage_order</tt>, <tt>fortran_storage_order</tt>, and 
+<tt>general_storage_order</tt>. 
+
+<p><tt>c_storage_order</tt>, which is the default, will store elements
+in memory in the same order as a C array would, that is, the
+dimensions are stored from last to first.
+
+<p><tt>fortran_storage_order</tt> will store elements in memory in the same order
+as FORTRAN would: from the first dimension to
+the last. Note that with use of this parameter, the array
+indices will remain zero-based.
+<h3>Example</h3>
+<blockquote>
+<pre>
+  typedef boost::multi_array&lt;double,3&gt; array_type;
+  array_type A(boost::extents[3][4][2],boost::fortran_storage_order()); 
+  call_fortran_function(A.data());
+</pre>
+</blockquote>
+
+<p><tt>general_storage_order</tt> allows one to customize both the order in
+which dimensions are stored in memory and whether dimensions are
+stored in ascending or descending order.
+<h3>Example</h3>
+<blockquote>
+<pre>
+  typedef boost::general_storage_order&lt;3&gt; storage;
+  typedef boost::multi_array&lt;int,3&gt; array_type;
+ 
+  // Store last dimension, then first, then middle
+  array_type::size_type ordering[] = {2,0,1};
+
+  // Store the first dimension(dimension 0) in descending order 
+  bool ascending[] = {false,true,true};
+
+  array_type A(extents[3][4][2],storage(ordering,ascending)); 
+</pre>
+</blockquote>
+
+
+<a name="sec_base"></a>
+<h2>Setting The Array Base</h2>
+In some situations, it may be inconvenient or awkward to use an 
+array that is zero-based.
+the Boost.MultiArray components provide two facilities for changing the
+bases of an array.  One may specify a pair of range values, with
+the <tt>extent_range</tt> type, to
+the <tt>extent_gen</tt> constructor in order to set the base value. 
+
+<h3>Example</h3>
+<blockquote>
+<pre>
+  typedef boost::multi_array&lt;double, 3&gt; array_type;
+  typedef boost::multi_array_types::extent_range range;
+  // OR typedef array_type::extent_range range;
+
+  array_type::extent_gen extents;
+ 
+  // dimension 0: 0-based
+  // dimension 1: 1-based
+  // dimension 2: -1 - based
+  array_type A(extents[2][range(1,4)][range(-1,3)]);
+</pre>
+</blockquote>
+
+<p>
+An alternative is to first construct the array normally then 
+reset the bases.  To set all bases to the same value, use the
+<tt>reindex</tt> member function, passing it a single new index value.
+<h3>Example</h3>
+<blockquote>
+<pre>
+  typedef boost::multi_array&lt;double, 3&gt; array_type;
+
+  array_type::extent_gen extents;
+ 
+  array_type A(extents[2][3][4]);
+  // change to 1-based
+  A.reindex(1)
+</pre>
+</blockquote>
+
+<p>
+An alternative is to set each base separately using the
+<tt>reindex</tt> member function, passing it a Collection of index bases.
+<h3>Example</h3>
+<blockquote>
+<pre>
+  typedef boost::multi_array&lt;double, 3&gt; array_type;
+
+  array_type::extent_gen extents;
+ 
+  // dimension 0: 0-based
+  // dimension 1: 1-based
+  // dimension 2: (-1)-based
+  array_type A(extents[2][3][4]);
+  boost::array&lt;array_type::index,ndims&gt; bases = {{0, 1, -1}};       
+  A.reindex(bases);
+</pre>
+</blockquote>
+
+
+<a name="sec_reshape"></a>
+<h2>Changing an Array's Shape</h2>
+The Boost.MultiArray arrays provide a reshape operation.  While the
+number of dimensions must remain the same, the shape of the array may 
+change so long as the total number of 
+elements contained remains the same.
+<h3>Example</h3>
+<blockquote>
+<pre>
+  typedef boost::multi_array&lt;double, 3&gt; array_type;
+
+  array_type::extent_gen extents;
+  array_type A(extents[2][3][4]);
+  boost::array&lt;array_type::index,ndims&gt; dims = {{4, 3, 2}};       
+  A.reshape(dims);
+</pre>
+</blockquote>
+
+<p>
+Note that reshaping an array does not affect the indexing.
+
+<a name="sec_resize"></a>
+<h2>Resizing an Array</h2>
+
+The <tt>boost::multi_array</tt> class provides an element-preserving
+resize operation.  The number of dimensions must remain the same, but
+the extent of each dimension may be increased and decreased as
+desired.  When an array is made strictly larger, the existing elements
+will be preserved by copying them into the new underlying memory and
+subsequently destructing the elements in the old underlying memory.
+Any new elements in the array are default constructed.  However, if
+the new array size shrinks some of the dimensions, some elements will
+no longer be available.
+
+<h3>Example</h3>
+<blockquote>
+<pre>
+  typedef boost::multi_array&lt;int, 3&gt; array_type;
+
+  array_type::extent_gen extents;
+  array_type A(extents[3][3][3]);
+  A[0][0][0] = 4;
+  A[2][2][2] = 5;
+  A.resize(extents[2][3][4]);
+  assert(A[0][0][0] == 4);
+  // A[2][2][2] is no longer valid.
+</pre>
+</blockquote>
+
+
+<a name="sec_concepts"></a>
+<h2>MultiArray Concept</h2>
+Boost.MultiArray defines and uses the 
+<a href="./reference.html#MultiArray">MultiArray</a>
+concept.  It specifies an interface for N-dimensional containers.
+
+<a name="sec_testcases"></a>
+<h2>Test Cases</h2>
+Boost.MultiArray comes with a suite of test cases meant to exercise
+the features and semantics of the library.  A description of the test
+cases can be found <a href="./test_cases.html">here</a>.
+
+<a name="sec_related"></a>
+<h2>Related Work</h2>
+
+<a href="../../array/index.html">boost::array</a>
+ and <a href="http://www.sgi.com/tech/stl/Vector.html">std::vector</a> are
+    one-dimensional containers of user data.  Both manage their own
+    memory. <tt>std::valarray</tt> is a low-level 
+    C++ Standard Library component
+    meant to provide portable high performance for numerical applications.
+<a href="http://www.oonumerics.org/blitz/">Blitz++</a> is 
+    an array library developed by Todd
+    Veldhuizen. It uses
+    advanced C++ techniques to provide near-Fortran performance for
+    array-based numerical applications.
+    <b>array_traits</b> is a beta library, formerly distributed with
+    Boost, that provides a means to create iterators over native C++
+    arrays.
+
+This library is analogous to 
+<a href="../../array/index.html">boost::array</a> in that it augments C style N-dimensional
+arrays, as <tt>boost::array</tt> does for C one-dimensional arrays.
+
+
+<a name="sec_credits"></a>
+<h2>Credits</h2>
+<ul>
+      
+      <li><a href="mailto:garcia@osl.iu.edu">Ronald Garcia</a> 
+      is the primary author of the library.
+
+      <li><a href="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>
+      helped with the library and provided a sounding board for ideas,
+       advice, and assistance porting to Microsoft Visual C++.
+
+      <li><a href="mailto:gbavestrelli@yahoo.com">Giovanni Bavestrelli</a>
+      provided an early implementation of an
+      N-dimensional array which inspired feedback from the 
+      <a href="http://www.boost.org/">Boost</a> mailing list
+      members. Some design decisions in this work were based upon this
+      implementation and the comments it elicited.
+
+      <li><a href="mailto:tveldhui@acm.org">Todd Veldhuizen</a> wrote
+      <a href="http://oonumerics.org/blitz/">Blitz++</a>, which
+      inspired some aspects of this design. In addition, he supplied 
+      feedback on the design and implementation of the library. 
+
+      <li><a href="mailto:jewillco@osl.iu.edu">Jeremiah Willcock</a>
+      provided feedback on the implementation and design of the
+      library and some suggestions for features.
+
+      <li><a href="mailto:bdawes@acm.org">Beman Dawes</a>
+      helped immensely with porting the library to Microsoft Windows
+      compilers.
+</ul>
+
+<hr>
+
+<address>
+<a href="mailto:garcia@.cs.indiana.edu">Ronald Garcia</a>
+</address>
+<!-- Created: Fri Jun 29 10:53:07 EST 2001 -->
+<!-- hhmts start -->Last modified: Tue Feb  7 17:15:50 EST 2006 <!-- hhmts end -->
+
+</body>
+</html>

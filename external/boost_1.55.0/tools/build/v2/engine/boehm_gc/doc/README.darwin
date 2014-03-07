@@ -1,0 +1,142 @@
+Darwin/MacOSX Support - December 16, 2003
+=========================================
+
+Important Usage Notes
+=====================
+
+GC_init() MUST be called before calling any other GC functions. This 
+is necessary to properly register segments in dynamic libraries. This
+call is required even if you code does not use dynamic libraries as the
+dyld code handles registering all data segments.
+
+When your use of the garbage collector is confined to dylibs and you
+cannot call GC_init() before your libraries' static initializers have
+run and perhaps called GC_malloc(), create an initialization routine
+for each library to call GC_init():
+
+#include <gc/gc.h>
+extern "C" void my_library_init() { GC_init(); }
+
+Compile this code into a my_library_init.o, and link it into your
+dylib. When you link the dylib, pass the -init argument with
+_my_library_init (e.g. gcc -dynamiclib -o my_library.dylib a.o b.o c.o
+my_library_init.o -init _my_library_init). This causes
+my_library_init() to be called before any static initializers, and
+will initialize the garbage collector properly. 
+
+Note: It doesn't hurt to call GC_init() more than once, so it's best,
+if you have an application or set of libraries that all use the
+garbage collector, to create an initialization routine for each of
+them that calls GC_init(). Better safe than sorry. 
+
+The incremental collector is still a bit flaky on darwin. It seems to 
+work reliably with workarounds for a few possible bugs in place however
+these workaround may not work correctly in all cases. There may also
+be additional problems that I have not found. 
+
+Thread-local GC allocation will not work with threads that are not
+created using the GC-provided override of pthread_create(). Threads
+created without the GC-provided pthread_create() do not have the
+necessary data structures in the GC to store this data. 
+
+
+Implementation Information
+==========================
+Darwin/MacOSX support is nearly complete. Thread support is reliable on 
+Darwin 6.x (MacOSX 10.2) and there have been reports of success on older
+Darwin versions (MacOSX 10.1). Shared library support had also been
+added and the gc can be run from a shared library. There is currently only
+support for Darwin/PPC although adding x86 support should be trivial.
+
+Thread support is implemented in terms of mach thread_suspend and
+thread_resume calls. These provide a very clean interface to thread
+suspension. This implementation doesn't rely on pthread_kill so the
+code works on Darwin < 6.0 (MacOSX 10.1). All the code to stop and
+start the world is located in darwin_stop_world.c.
+
+Since not all uses of the GC enable clients to override pthread_create()
+before threads have been created, the code for stopping the world has
+been rewritten to look for threads using Mach kernel calls. Each
+thread identified in this way is suspended and resumed as above. In
+addition, since Mach kernel threads do not contain pointers to their
+stacks, a stack-walking function has been written to find the stack
+limits. Given an initial stack pointer (for the current thread, a
+pointer to a stack-allocated local variable will do; for a non-active
+thread, we grab the value of register 1 (on PowerPC)), it
+will walk the PPC Mach-O-ABI compliant stack chain until it reaches the
+top of the stack. This appears to work correctly for GCC-compiled C,
+C++, Objective-C, and Objective-C++ code, as well as for Java
+programs that use JNI. If you run code that does not follow the stack
+layout or stack pointer conventions laid out in the PPC Mach-O ABI,
+then this will likely crash the garbage collector. 
+
+The original incremental collector support unfortunatelly no longer works
+on recent Darwin versions. It also relied on some undocumented kernel
+structures. Mach, however, does have a very clean interface to exception
+handing. The current implementation uses Mach's exception handling. 
+
+Much thanks goes to Andrew Stone, Dietmar Planitzer, Andrew Begel, 
+Jeff Sturm, and Jesse Rosenstock for all their work on the 
+Darwin/OS X port.
+
+-Brian Alliet
+brian@brianweb.net
+
+gc_cpp.h usage
+==============
+
+Replacement of operator new and delete is apparently not supported with
+dynamic libraries.  This means that applications using gc_cpp.h
+(including the built-in test) will probably not work correctly with
+the collector in a dynamic library, unless special care is taken.
+
+See
+http://article.gmane.org/gmane.comp.programming.garbage-collection.boehmgc/1421
+for some details.
+
+- Hans Boehm (based on information from Andrew Begel)
+
+
+Older Information (Most of this no longer applies to the current code)
+======================================================================
+
+While the GC should work on MacOS X Server, MacOS X and Darwin, I only tested
+it on MacOS X Server.
+I've added a PPC assembly version of GC_push_regs(), thus the setjmp() hack is
+no longer necessary. Incremental collection is supported via mprotect/signal.
+The current solution isn't really optimal because the signal handler must decode
+the faulting PPC machine instruction in order to find the correct heap address.
+Further, it must poke around in the register state which the kernel saved away
+in some obscure register state structure before it calls the signal handler -
+needless to say the layout of this structure is no where documented.
+Threads and dynamic libraries are not yet supported (adding dynamic library
+support via the low-level dyld API shouldn't be that hard).
+
+The original MacOS X port was brought to you by Andrew Stone.
+
+
+June, 1 2000
+
+Dietmar Planitzer
+dave.pl@ping.at
+
+Note from Andrew Begel:
+
+One more fix to enable gc.a to link successfully into a shared library for
+MacOS X. You have to add -fno-common to the CFLAGS in the Makefile. MacOSX
+disallows common symbols in anything that eventually finds its way into a
+shared library. (I don't completely understand why, but -fno-common seems to
+work and doesn't mess up the garbage collector's functionality).
+
+Feb 26, 2003
+
+Jeff Sturm and Jesse Rosenstock provided a patch that adds thread support.
+GC_MACOSX_THREADS should be defined in the build and in clients.  Real
+dynamic library support is still missing, i.e. dynamic library data segments
+are still not scanned.  Code that stores pointers to the garbage collected
+heap in statically allocated variables should not reside in a dynamic
+library.  This still doesn't appear to be 100% reliable.  
+
+Mar 10, 2003
+Brian Alliet contributed dynamic library support for MacOSX.  It could also
+use more testing.

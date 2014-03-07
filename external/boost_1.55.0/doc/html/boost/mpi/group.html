@@ -1,0 +1,261 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class group</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../mpi/reference.html#header.boost.mpi.group_hpp" title="Header &lt;boost/mpi/group.hpp&gt;">
+<link rel="prev" href="../graph_traits_m_idp94977384.html" title="Struct graph_traits&lt;mpi::graph_communicator&gt;">
+<link rel="next" href="operator___idp94903560.html" title="Function operator==">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../graph_traits_m_idp94977384.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.group_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="operator___idp94903560.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.mpi.group"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class group</span></h2>
+<p>boost::mpi::group &#8212; A <code class="computeroutput">group</code> is a representation of a subset of the processes within a <code class="computeroutput">communicator</code>. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../mpi/reference.html#header.boost.mpi.group_hpp" title="Header &lt;boost/mpi/group.hpp&gt;">boost/mpi/group.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="group.html" title="Class group">group</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="group.html#boost.mpi.groupconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="group.html#idp94910904-bb"><span class="identifier">group</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="group.html#idp94911128-bb"><span class="identifier">group</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MPI_Group</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="group.html#idp94931288-bb">public member functions</a></span>
+  <span class="identifier">optional</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;</span> <a class="link" href="group.html#idp94931496-bb"><span class="identifier">rank</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="group.html#idp94933096-bb"><span class="identifier">size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../InputIterator.html" title="Concept InputIterator">InputIterator</a><span class="special">,</span> <span class="keyword">typename</span> <a class="link" href="../../OutputIterator.html" title="Concept OutputIterator">OutputIterator</a><span class="special">&gt;</span> 
+    <span class="identifier">OutputIterator</span> 
+    <a class="link" href="group.html#idp94934584-bb"><span class="identifier">translate_ranks</span></a><span class="special">(</span><span class="identifier">InputIterator</span><span class="special">,</span> <span class="identifier">InputIterator</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="group.html" title="Class group">group</a> <span class="special">&amp;</span><span class="special">,</span> 
+                    <span class="identifier">OutputIterator</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="group.html#idp94926200-bb"><span class="keyword">operator</span> <span class="keyword">bool</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="group.html#idp94927320-bb"><span class="keyword">operator</span> <span class="identifier">MPI_Group</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../InputIterator.html" title="Concept InputIterator">InputIterator</a><span class="special">&gt;</span> <a class="link" href="group.html" title="Class group">group</a> <a class="link" href="group.html#idp94916968-bb"><span class="identifier">include</span></a><span class="special">(</span><span class="identifier">InputIterator</span><span class="special">,</span> <span class="identifier">InputIterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../InputIterator.html" title="Concept InputIterator">InputIterator</a><span class="special">&gt;</span> <a class="link" href="group.html" title="Class group">group</a> <a class="link" href="group.html#idp94915384-bb"><span class="identifier">exclude</span></a><span class="special">(</span><span class="identifier">InputIterator</span><span class="special">,</span> <span class="identifier">InputIterator</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp161861272"></a><h2>Description</h2>
+<p>The <code class="computeroutput">group</code> class allows one to create arbitrary subsets of the processes within a communicator. One can compute the union, intersection, or difference of two groups, or create new groups by specifically including or excluding certain processes. Given a group, one can create a new communicator containing only the processes in that group. </p>
+<div class="refsect2">
+<a name="idp161862296"></a><h3>
+<a name="boost.mpi.groupconstruct-copy-destruct"></a><code class="computeroutput">group</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp94910904-bb"></a><span class="identifier">group</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Constructs an empty group. </li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp94911128-bb"></a><span class="identifier">group</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MPI_Group</span> <span class="special">&amp;</span> in_group<span class="special">,</span> <span class="keyword">bool</span> adopt<span class="special">)</span><span class="special">;</span></pre>Constructs a group from an <code class="computeroutput">MPI_Group</code>. <p>This routine allows one to construct a Boost.MPI <code class="computeroutput">group</code> from a C <code class="computeroutput">MPI_Group</code>. The <code class="computeroutput">group</code> object can (optionally) adopt the <code class="computeroutput">MPI_Group</code>, after which point the <code class="computeroutput">group</code> object becomes responsible for freeing the <code class="computeroutput">MPI_Group</code> when the last copy of <code class="computeroutput">group</code> disappears.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">adopt</code></span></p></td>
+<td><p>Whether the <code class="computeroutput">group</code> should adopt the <code class="computeroutput">MPI_Group</code>. When true, the <code class="computeroutput">group</code> object (or one of its copies) will free the group (via <code class="computeroutput">MPI_Comm_free</code>) when the last copy is destroyed. Otherwise, the user is responsible for calling <code class="computeroutput">MPI_Group_free</code>. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">in_group</code></span></p></td>
+<td><p>The <code class="computeroutput">MPI_Group</code> used to construct this <code class="computeroutput">group</code>.</p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp161876872"></a><h3>
+<a name="idp94931288-bb"></a><code class="computeroutput">group</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">optional</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;</span> <a name="idp94931496-bb"></a><span class="identifier">rank</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Determine the rank of the calling process in the group. <p>This routine is equivalent to <code class="computeroutput">MPI_Group_rank</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The rank of the calling process in the group, which will be a value in [0, size()). If the calling process is not in the group, returns an empty value. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp94933096-bb"></a><span class="identifier">size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Determine the number of processes in the group. <p>This routine is equivalent to <code class="computeroutput">MPI_Group_size</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The number of processes in the group. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../InputIterator.html" title="Concept InputIterator">InputIterator</a><span class="special">,</span> <span class="keyword">typename</span> <a class="link" href="../../OutputIterator.html" title="Concept OutputIterator">OutputIterator</a><span class="special">&gt;</span> 
+  <span class="identifier">OutputIterator</span> 
+  <a name="idp94934584-bb"></a><span class="identifier">translate_ranks</span><span class="special">(</span><span class="identifier">InputIterator</span> first<span class="special">,</span> <span class="identifier">InputIterator</span> last<span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="group.html" title="Class group">group</a> <span class="special">&amp;</span> to_group<span class="special">,</span> <span class="identifier">OutputIterator</span> out<span class="special">)</span><span class="special">;</span></pre>Translates the ranks from one group into the ranks of the same processes in another group. <p>This routine translates each of the integer rank values in the iterator range <code class="computeroutput"></code>[first, last) from the current group into rank values of the corresponding processes in <code class="computeroutput">to_group</code>. The corresponding rank values are written via the output iterator <code class="computeroutput">out</code>. When there is no correspondence between a rank in the current group and a rank in <code class="computeroutput">to_group</code>, the value <code class="computeroutput">MPI_UNDEFINED</code> is written to the output iterator.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">first</code></span></p></td>
+<td><p>Beginning of the iterator range of ranks in the current group.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">last</code></span></p></td>
+<td><p>Past the end of the iterator range of ranks in the current group.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">out</code></span></p></td>
+<td><p>The output iterator to which the translated ranks will be written.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">to_group</code></span></p></td>
+<td><p>The group that we are translating ranks to.</p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>the output iterator, which points one step past the last rank written. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp94926200-bb"></a><span class="keyword">operator</span> <span class="keyword">bool</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Determines whether the group is non-empty. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>True if the group is not empty, false if it is empty. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp94927320-bb"></a><span class="keyword">operator</span> <span class="identifier">MPI_Group</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Retrieves the underlying <code class="computeroutput">MPI_Group</code> associated with this group. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The <code class="computeroutput">MPI_Group</code> handle manipulated by this object. If this object represents the empty group, returns <code class="computeroutput">MPI_GROUP_EMPTY</code>. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../InputIterator.html" title="Concept InputIterator">InputIterator</a><span class="special">&gt;</span> 
+  <a class="link" href="group.html" title="Class group">group</a> <a name="idp94916968-bb"></a><span class="identifier">include</span><span class="special">(</span><span class="identifier">InputIterator</span> first<span class="special">,</span> <span class="identifier">InputIterator</span> last<span class="special">)</span><span class="special">;</span></pre>Creates a new group including a subset of the processes in the current group. <p>This routine creates a new <code class="computeroutput">group</code> which includes only those processes in the current group that are listed in the integer iterator range <code class="computeroutput"></code>[first, last). Equivalent to <code class="computeroutput">MPI_Group_incl</code>.</p>
+<p><code class="computeroutput">first</code> The beginning of the iterator range of ranks to include.</p>
+<p><code class="computeroutput">last</code> Past the end of the iterator range of ranks to include.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A new group containing those processes with ranks <code class="computeroutput"></code>[first, last) in the current group. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../InputIterator.html" title="Concept InputIterator">InputIterator</a><span class="special">&gt;</span> 
+  <a class="link" href="group.html" title="Class group">group</a> <a name="idp94915384-bb"></a><span class="identifier">exclude</span><span class="special">(</span><span class="identifier">InputIterator</span> first<span class="special">,</span> <span class="identifier">InputIterator</span> last<span class="special">)</span><span class="special">;</span></pre>Creates a new group from all of the processes in the current group, exluding a specific subset of the processes. <p>This routine creates a new <code class="computeroutput">group</code> which includes all of the processes in the current group except those whose ranks are listed in the integer iterator range <code class="computeroutput"></code>[first, last). Equivalent to <code class="computeroutput">MPI_Group_excl</code>.</p>
+<p><code class="computeroutput">first</code> The beginning of the iterator range of ranks to exclude.</p>
+<p><code class="computeroutput">last</code> Past the end of the iterator range of ranks to exclude.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A new group containing all of the processes in the current group except those processes with ranks <code class="computeroutput"></code>[first, last) in the current group. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../graph_traits_m_idp94977384.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.group_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="operator___idp94903560.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

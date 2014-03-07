@@ -1,0 +1,2812 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Reference</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../bbv2.html" title="Chapter&#160;43.&#160;Boost.Build V2 User Manual">
+<link rel="prev" href="tasks.html" title="Common tasks">
+<link rel="next" href="extender.html" title="Extender Manual">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tasks.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bbv2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="extender.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="bbv2.reference"></a>Reference</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#bbv2.reference.general">General information</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.rules">Builtin rules</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.overview.builtins.features">Builtin features</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools">Builtin tools</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.modules">Builtin modules</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.class">Builtin classes</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.buildprocess">Build process</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.definitions">Definitions</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.reference.general"></a>General information</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="reference.html#bbv2.reference.init">Initialization</a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.init"></a>Initialization</h4></div></div></div>
+<p>bjam's first job upon startup is to load the Jam code that
+        implements the build system. To do this, it searches for a file
+        called <code class="filename">boost-build.jam</code>, first in the invocation directory, then
+        in its parent and so forth up to the filesystem root, and finally
+        in the directories specified by the environment variable
+        BOOST_BUILD_PATH. When found, the file is interpreted, and should
+        specify the build system location by calling the boost-build
+        rule:</p>
+<pre class="programlisting">
+rule boost-build ( location ? )
+</pre>
+<p>
+        If location is a relative path, it is treated as relative to
+        the directory of <code class="filename">boost-build.jam</code>. The directory specified by
+        that location and the directories in BOOST_BUILD_PATH are then searched for
+        a file called <code class="filename">bootstrap.jam</code>, which is expected to
+        bootstrap the build system. This arrangement allows the build
+        system to work without any command-line or environment variable
+        settings. For example, if the build system files were located in a
+        directory "build-system/" at your project root, you might place a
+        <code class="filename">boost-build.jam</code> at the project root containing:
+
+</p>
+<pre class="programlisting">
+boost-build build-system ;
+</pre>
+<p>
+
+        In this case, running <span class="command"><strong>b2</strong></span> anywhere in the project tree will
+        automatically find the build system.</p>
+<p>The default <code class="filename">bootstrap.jam</code>, after loading some standard
+        definitions, loads two <code class="filename">site-config.jam</code> and <code class="filename">user-config.jam</code>.</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.reference.rules"></a>Builtin rules</h3></div></div></div>
+<p>This section contains the list of all rules that
+    can be used in Jamfile&#8212;both rules that define new
+    targets and auxiliary rules.</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">exe</code></span></dt>
+<dd><p>Creates an executable file. See
+        <a class="xref" href="tasks.html#bbv2.tasks.programs" title="Programs">the section called &#8220;Programs&#8221;</a>.</p></dd>
+<dt><span class="term"><code class="literal">lib</code></span></dt>
+<dd><p>Creates an library file. See
+        <a class="xref" href="tasks.html#bbv2.tasks.libraries" title="Libraries">the section called &#8220;Libraries&#8221;</a>.</p></dd>
+<dt><span class="term"><code class="literal">install</code></span></dt>
+<dd><p>Installs built targets and other files. See
+        <a class="xref" href="tasks.html#bbv2.tasks.installing" title="Installing">the section called &#8220;Installing&#8221;</a>.</p></dd>
+<dt><span class="term"><code class="literal">alias</code></span></dt>
+<dd><p>Creates an alias for other targets. See
+        <a class="xref" href="tasks.html#bbv2.tasks.alias" title="Alias">the section called &#8220;Alias&#8221;</a>.</p></dd>
+<dt><span class="term"><code class="literal">unit-test</code></span></dt>
+<dd><p>Creates an executable that will be automatically run. See
+        <a class="xref" href="tasks.html#bbv2.builtins.testing" title="Testing">the section called &#8220;Testing&#8221;</a>.</p></dd>
+<dt>
+<span class="term"><code class="literal">compile</code>, </span><span class="term"><code class="literal">compile-fail</code>, </span><span class="term"><code class="literal">link</code>, </span><span class="term"><code class="literal">link-fail</code>, </span><span class="term"><code class="literal">run</code>, </span><span class="term"><code class="literal">run-fail</code></span>
+</dt>
+<dd><p>Specialized rules for testing. See
+        <a class="xref" href="tasks.html#bbv2.builtins.testing" title="Testing">the section called &#8220;Testing&#8221;</a>.</p></dd>
+<dt><span class="term"><code class="literal">obj</code></span></dt>
+<dd><p>Creates an object file. Useful when a single source
+        file must be compiled with special properties.</p></dd>
+<dt><span class="term"><code class="literal">preprocessed</code></span></dt>
+<dd><p>Creates an preprocessed source file. The arguments follow the
+        <a class="link" href="overview.html#bbv2.main-target-rule-syntax">common syntax</a>.</p></dd>
+<dt>
+<a name="bbv2.reference.rules.glob"></a><span class="term"><code class="literal">glob</code></span>
+</dt>
+<dd>
+<p>The <code class="computeroutput">glob</code> rule takes a list shell pattern
+        and returns the list of files in the project's source directory that
+        match the pattern. For example:
+        </p>
+<pre class="programlisting">
+lib tools : [ glob *.cpp ] ;
+        </pre>
+<p>
+        It is possible to also pass a second argument&#8212;the list of
+        exclude patterns. The result will then include the list of
+        files patching any of include patterns, and not matching any
+        of the exclude patterns. For example:
+        </p>
+<pre class="programlisting">
+lib tools : [ glob *.cpp : file_to_exclude.cpp bad*.cpp ] ;
+        </pre>
+<p>
+        </p>
+</dd>
+<dt>
+<a name="bbv2.reference.glob-tree"></a><span class="term"><code class="literal">glob-tree</code></span>
+</dt>
+<dd>
+<p>The <code class="computeroutput">glob-tree</code> is similar to the
+        <code class="computeroutput">glob</code> except that it operates recursively from
+        the directory of the containing Jamfile. For example:
+        </p>
+<pre class="programlisting">
+ECHO [ glob-tree *.cpp : .svn ] ;
+        </pre>
+<p>
+        will print the names of all C++ files in your project. The
+        <code class="literal">.svn</code> exclude pattern prevents the
+        <code class="computeroutput">glob-tree</code> rule from entering administrative
+        directories of the Subversion version control system.
+        </p>
+</dd>
+<dt><span class="term"><code class="literal">project</code></span></dt>
+<dd><p>Declares project id and attributes, including
+        project requirements. See <a class="xref" href="overview.html#bbv2.overview.projects" title="Projects">the section called &#8220;Projects&#8221;</a>.
+        </p></dd>
+<dt><span class="term"><code class="literal">use-project</code></span></dt>
+<dd><p>Assigns a symbolic project ID to a project at
+        a given path. This rule must be better documented!
+        </p></dd>
+<dt>
+<a name="bbv2.reference.rules.explicit"></a><span class="term"><code class="literal">explicit</code></span>
+</dt>
+<dd><p>The <code class="literal">explicit</code> rule takes a single
+        parameter&#8212;a list of target names. The named targets will
+        be marked explicit, and will be built only if they are explicitly
+        requested on the command line, or if their dependents are built.
+        Compare this to ordinary targets, that are built implicitly when
+        their containing project is built.</p></dd>
+<dt><span class="term"><code class="literal">always</code></span></dt>
+<dd>
+<p>The <code class="literal">always</code> funciton takes a single
+        parameter&#8212;a list of metatarget names. The top-level targets produced
+        by the named metatargets will be always considered out of date. Consider this example:
+        </p>
+<pre class="programlisting">
+exe hello : hello.cpp ;
+exe bye : bye.cpp ;
+always hello ;
+</pre>
+<p>If a build of <code class="filename">hello</code> is requested, then the binary will
+        always be relinked. The object files will not be recompiled, though. Note that if
+        a build of <code class="filename">hello</code> is not requested, for example you specify just
+        <code class="filename">bye</code> on the command line, <code class="filename">hello</code> will not
+        be relinked.</p>
+</dd>
+<dt><span class="term"><code class="literal">constant</code></span></dt>
+<dd>
+<p>Sets project-wide constant. Takes two
+        parameters: variable name and a value and makes the specified
+        variable name accessible in this Jamfile and any child Jamfiles.
+        For example:
+        </p>
+<pre class="programlisting">
+constant VERSION : 1.34.0 ;
+        </pre>
+<p>
+        </p>
+</dd>
+<dt><span class="term"><code class="literal">path-constant</code></span></dt>
+<dd>
+<p>Same as <code class="literal">constant</code> except that
+        the value is treated as path relative to Jamfile location. For example,
+        if <span class="command"><strong>b2</strong></span> is invoked in the current directory,
+        and Jamfile in <code class="filename">helper</code> subdirectory has:
+        </p>
+<pre class="programlisting">
+path-constant DATA : data/a.txt ;
+        </pre>
+<p>
+        then the variable <code class="varname">DATA</code> will be set to
+        <code class="literal">helper/data/a.txt</code>, and if <span class="command"><strong>b2</strong></span>
+        is invoked from the <code class="filename">helper</code> directory, then
+        the variable <code class="varname">DATA</code> will be set to
+        <code class="literal">data/a.txt</code>.
+        </p>
+</dd>
+<dt><span class="term"><code class="literal">build-project</code></span></dt>
+<dd><p>Cause some other project to be built. This rule
+        takes a single parameter&#8212;a directory name relative to
+        the containing Jamfile. When the containing Jamfile is built,
+        the project located at that directory will be built as well.
+        At the moment, the parameter to this rule should be a directory
+        name. Project ID or general target references are not allowed.
+        </p></dd>
+<dt><span class="term"><code class="literal">test-suite</code></span></dt>
+<dd><p>This rule is deprecated and equivalent to
+        <code class="computeroutput">alias</code>.</p></dd>
+</dl></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.overview.builtins.features"></a>Builtin features</h3></div></div></div>
+<p>This section documents the features that are built-in into
+    Boost.Build. For features with a fixed set of values, that set is
+    provided, with the default value listed first.</p>
+<a class="indexterm" name="idp262220168"></a><div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">variant</code></span></dt>
+<dd>
+<p>
+            A feature combining several low-level features, making it easy to
+            request common build configurations.
+          </p>
+<p>
+            <span class="bold"><strong>Allowed values:</strong></span>
+            <code class="literal">debug</code>, <code class="literal">release</code>,
+            <code class="literal">profile</code>.
+          </p>
+<p>
+            The value <code class="literal">debug</code> expands to
+          </p>
+<pre class="programlisting">
+&lt;optimization&gt;off &lt;debug-symbols&gt;on &lt;inlining&gt;off &lt;runtime-debugging&gt;on
+</pre>
+<p>
+            The value <code class="literal">release</code> expands to
+          </p>
+<pre class="programlisting">
+&lt;optimization&gt;speed &lt;debug-symbols&gt;off &lt;inlining&gt;full &lt;runtime-debugging&gt;off
+</pre>
+<p>
+            The value <code class="literal">profile</code> expands to the same as
+            <code class="literal">release</code>, plus:
+          </p>
+<pre class="programlisting">
+&lt;profiling&gt;on &lt;debug-symbols&gt;on
+</pre>
+<p>
+            Users can define their own build variants using the
+            <code class="computeroutput">variant</code> rule from the <code class="computeroutput">common</code> module.
+          </p>
+<p>
+            <span class="bold"><strong>Note:</strong></span> Runtime debugging is on in
+            debug builds to suit the expectations of people used to various
+            IDEs.
+            
+          </p>
+</dd>
+<dt>
+<a name="bbv2.overview.builtins.features.link"></a><span class="term"><code class="literal">link</code></span>
+</dt>
+<dd>
+<p><span class="bold"><strong>Allowed values:</strong></span> <code class="literal">shared</code>,
+            <code class="literal">static</code></p>
+<p class="simpara">
+            A feature controling how libraries are built.
+          </p>
+</dd>
+<dt>
+<a name="bbv2.overview.builtins.features.runtime-link"></a><span class="term"><code class="literal">runtime-link</code></span>
+</dt>
+<dd>
+<p><span class="bold"><strong>Allowed values:</strong></span> <code class="literal">shared</code>,
+            <code class="literal">static</code></p>
+<p class="simpara">
+            Controls if a static or shared C/C++ runtime should be used. There
+            are some restrictions how this feature can be used, for example
+            on some compilers an application using static runtime should
+            not use shared libraries at all, and on some compilers,
+            mixing static and shared runtime requires extreme care.  Check
+            your compiler documentation for more details.
+          </p>
+</dd>
+<dt><span class="term"><code class="literal">threading</code></span></dt>
+<dd>
+<p><span class="bold"><strong>Allowed values:</strong></span> <code class="literal">single</code>,
+            <code class="literal">multi</code></p>
+<p class="simpara">
+            Controls if the project should be built in multi-threaded mode.  This feature does not
+            necessary change code generation in the compiler, but it causes the compiler to link
+            to additional or different runtime libraries, and define additional preprocessor 
+            symbols (for example, <code class="computeroutput">_MT</code> on Windows and <code class="computeroutput">_REENTRANT</code> on Linux). 
+            How those symbols affect the compiled code depends on the code itself.
+          </p>
+</dd>
+<dt><span class="term"><code class="literal">source</code></span></dt>
+<dd>
+            The <code class="computeroutput">&lt;source&gt;X</code> feature has the same effect on
+            building a target as putting X in the list of sources. It is useful
+            when you want to add the same source to all targets in the project
+            (you can put &lt;source&gt; in requirements) or to conditionally
+            include a source (using conditional requirements, see <a class="xref" href="tutorial.html#bbv2.tutorial.conditions" title="Conditions and alternatives">the section called &#8220;Conditions and alternatives&#8221;</a>). See also the <code class="computeroutput">&lt;library&gt;
+            </code> feature.
+          </dd>
+<dt><span class="term"><code class="literal">library</code></span></dt>
+<dd>
+            This feature is almost equivalent to the <code class="computeroutput">&lt;source&gt;</code>
+            feature, except that it takes effect only for linking. When you want
+            to link all targets in a Jamfile to certain library, the
+            <code class="computeroutput">&lt;library&gt;</code> feature is preferred over
+            <code class="computeroutput">&lt;source&gt;X</code>&#8212;the latter will add the library to
+            all targets, even those that have nothing to do with libraries.
+          </dd>
+<dt><span class="term"><a name="bbv2.builtin.features.dependency"></a>
+          <code class="literal">dependency</code></span></dt>
+<dd>
+            Introduces a dependency on the target named by the value of this
+            feature (so it will be brought up-to-date whenever the target being
+            declared is). The dependency is not used in any other way.
+
+            
+          </dd>
+<dt><span class="term"><a name="bbv2.builtin.features.implicit-dependency"></a>
+        <code class="literal">implicit-dependency</code></span></dt>
+<dd>
+            Indicates that the target named by the value of this feature
+            may produce files that are included by the sources of the
+            target being declared.  See <a class="xref" href="tasks.html#bbv2.reference.generated_headers" title="Generated headers">the section called &#8220;Generated headers&#8221;</a>
+            for more information.
+          </dd>
+<dt><span class="term"><a name="bbv2.builtin.features.use"></a>
+          <code class="literal">use</code></span></dt>
+<dd>
+            Introduces a dependency on the target named by the value of this
+            feature (so it will be brought up-to-date whenever the target being
+            declared is), and adds its usage requirements to the build
+            properties
+            
+            of the target being declared. The dependency is not used in any
+            other way. The primary use case is when you want the usage
+            requirements (such as <code class="computeroutput">#include</code> paths) of some library
+            to be applied, but do not want to link to it.
+            
+          </dd>
+<dt><span class="term"><a name="bbv2.reference.features.dll-path"></a>
+        <code class="literal">dll-path</code></span></dt>
+<dd>
+            Specify an additional directory where the system should
+            look for shared libraries when the executable or shared
+            library is run. This feature only affects Unix
+            compilers. Plase see <a class="xref" href="faq.html#bbv2.faq.dll-path" title="Why are the dll-path and hardcode-dll-paths properties useful?">the section called &#8220;
+      Why are the <code class="literal">dll-path</code> and <code class="literal">hardcode-dll-paths
+      </code> properties useful?
+    &#8221;</a>
+            in <a class="xref" href="faq.html" title="Frequently Asked Questions">the section called &#8220;Frequently Asked Questions&#8221;</a> for details.
+          </dd>
+<dt><span class="term"><code class="literal">hardcode-dll-paths</code></span></dt>
+<dd>
+<p class="simpara">
+            Controls automatic generation of dll-path properties.
+          </p>
+<p><span class="bold"><strong>Allowed values:</strong></span>
+            <code class="literal">true</code>, <code class="literal">false</code>.  This property is
+            specific to Unix systems. If an executable is built with
+            <code class="computeroutput">&lt;hardcode-dll-paths&gt;true</code>, the generated binary
+            will contain the list of all the paths to the used shared libraries.
+            As the result, the executable can be run without changing system
+            paths to shared libraries or installing the libraries to system
+            paths. This  is very
+            convenient during development. Plase see the <a class="link" href="faq.html#bbv2.faq.dll-path" title="Why are the dll-path and hardcode-dll-paths properties useful?">FAQ entry</a> for details. Note that on Mac
+            OSX, the paths are unconditionally hardcoded by the linker, and it
+            is not possible to disable that behaviour.</p>
+</dd>
+<dt>
+<span class="term"><code class="literal">cflags</code>, </span><span class="term"><code class="literal">cxxflags</code>, </span><span class="term"><code class="literal">linkflags</code></span>
+</dt>
+<dd>
+            The value of those features is passed without modification to the
+            corresponding tools. For <code class="computeroutput">cflags</code> that is both the C and
+            C++ compilers, for <code class="computeroutput">cxxflags</code> that is the C++ compiler
+            and for <code class="computeroutput">linkflags</code> that is the linker. The features are
+            handy when you are trying to do something special that cannot be
+            achieved by a higher-level feature in Boost.Build.
+          </dd>
+<dt><span class="term"><code class="literal">include</code></span></dt>
+<dd>
+            Specifies an additional include path that is to be passed to C and
+            C++ compilers.
+          </dd>
+<dt><span class="term"><code class="literal">define</code></span></dt>
+<dd>
+            Specifies an preprocessor symbol that should be defined on the command
+            line. You may either specify just the symbol, which will be defined
+            without any value, or both the symbol and the value, separated by
+            equal sign.
+          </dd>
+<dt><span class="term"><code class="literal">warnings</code></span></dt>
+<dd>
+            The <code class="computeroutput">&lt;warnings&gt;</code> feature controls the warning level
+            of compilers. It has the following values:
+            <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><code class="computeroutput">off</code> - disables all warnings.</p></li>
+<li class="listitem"><p><code class="computeroutput">on</code> - enables default warning level for the tool.</p></li>
+<li class="listitem"><p><code class="computeroutput">all</code> - enables all warnings.</p></li>
+</ul></div>
+            Default value is <code class="computeroutput">all</code>.
+          </dd>
+<dt><span class="term"><code class="literal">warnings-as-errors</code></span></dt>
+<dd>
+            The <code class="computeroutput">&lt;warnings-as-errors&gt;</code> makes it possible to
+            treat warnings as errors and abort compilation on a warning. The
+            value <code class="computeroutput">on</code> enables this behaviour. The default value is
+            <code class="computeroutput">off</code>.
+          </dd>
+<dt><span class="term"><code class="literal">build</code></span></dt>
+<dd>
+<p><span class="bold"><strong>Allowed values:</strong></span> <code class="literal">no</code></p>
+<p>
+            The <code class="computeroutput">build</code> feature is used to conditionally disable
+            build of a target. If <code class="computeroutput">&lt;build&gt;no</code> is in properties
+            when building a target, build of that target is skipped. Combined
+            with conditional requirements this allows you to skip building some
+            target in configurations where the build is known to fail.
+          </p>
+</dd>
+<dt><span class="term"><a name="bbv2.builtin.features.tag"></a><code class="literal">tag</code></span></dt>
+<dd>
+<p>The <code class="literal">tag</code> feature is used to customize
+        the name of the generated files. The value should have the form:
+</p>
+<pre class="programlisting">@<em class="replaceable"><code>rulename</code></em></pre>
+<p> where
+        <em class="replaceable"><code>rulename</code></em> should be a name of a rule with the
+        following signature:
+</p>
+<pre class="programlisting">rule tag ( name : type ? : property-set )</pre>
+<p>
+        The rule will be called for each target with the default name computed
+        by Boost.Build, the type of the target, and property set. The rule can
+        either return a string that must be used as the name of the target, or
+        an empty string, in which case the default name will be used.
+        </p>
+<p>Most typical use of the <code class="literal">tag</code> feature is to
+        encode build properties, or library version in library target names. You
+        should take care to return non-empty string from the tag rule only for
+        types you care about &#8212; otherwise, you might end up modifying
+        names of object files, generated header file and other targets for which
+        changing names does not make sense.</p>
+</dd>
+<dt><span class="term"><code class="literal">debug-symbols</code></span></dt>
+<dd>
+<p><span class="bold"><strong>Allowed values:</strong></span> <code class="literal">on</code>, <code class="literal">off</code>.</p>
+<p>The <code class="literal">debug-symbols</code> feature specifies if
+          produced object files, executables and libraries should include
+          debug information.
+          Typically, the value of this feature is implicitly set by the
+          <code class="literal">variant</code> feature, but it can be explicitly
+          specified by the user. The most common usage is to build
+          release variant with debugging information.</p>
+</dd>
+<dt><span class="term"><code class="literal">target-os</code></span></dt>
+<dd>
+<a name="bbv2.reference.features.target-os"></a><p>
+            The operating system for which the code is to be generated. The
+            compiler you used should be the compiler for that operating
+            system. This option causes Boost.Build to use naming conventions
+            suitable for that operating system, and adjust build process
+            accordingly. For example, with gcc, it controls if import
+            libraries are produced for shared libraries or not.                       
+          </p>
+<p>The complete list of possible values for this feature is: 
+            aix, bsd, cygwin, darwin, freebsd, hpux, iphone, linux, netbsd,
+            openbsd, osf, qnx, qnxnto, sgi, solaris, unix, unixware, windows.
+          </p>
+<p>See <a class="xref" href="tasks.html#bbv2.tasks.crosscompile" title="Cross-compilation">the section called &#8220;Cross-compilation&#8221;</a> for details of
+          crosscompilation</p>
+</dd>
+<dt><span class="term"><code class="literal">architecture</code></span></dt>
+<dd><p>The <code class="literal">architecture</code> features specifies
+          the general processor familty to generate code for.</p></dd>
+<dt><span class="term"><code class="literal">instruction-set</code></span></dt>
+<dd>
+<p>
+            <span class="bold"><strong>Allowed values:</strong></span> depend on the used
+            toolset.
+          </p>
+<p>The <code class="literal">instruction-set</code> specifies for which
+          specific instruction set the code should be generated.  The
+          code in general might not run on processors with older/different
+          instruction sets.</p>
+<p>While Boost.Build allows a large set of possible values
+          for this features, whether a given value works depends on which
+          compiler you use. Please see
+          <a class="xref" href="reference.html#bbv2.reference.tools.compilers" title="C++ Compilers">the section called &#8220;C++ Compilers&#8221;</a> for details.
+          </p>
+</dd>
+<dt><span class="term"><code class="literal">address-model</code></span></dt>
+<dd>
+<p><span class="bold"><strong>Allowed values:</strong></span> <code class="literal">32</code>, <code class="literal">64</code>.</p>
+<p>The <code class="literal">address-model</code> specifies if 32-bit or
+          64-bit code should be generated by the compiler. Whether this feature
+          works depends on the used compiler, its version, how the compiler is
+          configured, and the values of the <code class="literal">architecture</code>
+          <code class="literal">instruction-set</code>
+          features. Please see <a class="xref" href="reference.html#bbv2.reference.tools.compilers" title="C++ Compilers">the section called &#8220;C++ Compilers&#8221;</a>
+          for details.</p>
+</dd>
+<dt><span class="term"><code class="literal">c++-template-depth</code></span></dt>
+<dd>
+<p>
+            <span class="bold"><strong>Allowed values:</strong></span> Any positive
+            integer.
+          </p>
+<p>
+            This feature allows configuring a C++ compiler with the maximal
+            template instantiation depth parameter. Specific toolsets may or may
+            not provide support for this feature depending on whether their
+            compilers provide a corresponding command-line option.
+          </p>
+<p>
+            <span class="bold"><strong>Note:</strong></span> Due to some internal details
+            in the current Boost Build implementation it is not possible to have
+            features whose valid values are all positive integer. As a
+            workaround a large set of allowed values has been defined for this
+            feature and, if a different one is needed, user can easily add it by
+            calling the feature.extend rule.
+          </p>
+</dd>
+<dt><span class="term"><code class="literal">embed-manifest</code></span></dt>
+<dd>
+<a class="indexterm" name="idp262294120"></a><a class="indexterm" name="idp262294664"></a><p>
+            <span class="bold"><strong>Allowed values:</strong></span> on, off.
+          </p>
+<p>This feature is specific to the msvc toolset (see
+          <a class="xref" href="reference.html#bbv2.reference.tools.compiler.msvc" title="Microsoft Visual C++">the section called &#8220;Microsoft Visual C++&#8221;</a>),
+          and controls whether the manifest files should be embedded inside
+          executables and shared libraries, or placed alongside them.  This
+          feature corresponds to the IDE option found in the project settings dialog,
+          under <span class="guimenu">Configuration Properties</span> &#8594; <span class="guisubmenu">Manifest Tool</span> &#8594; <span class="guisubmenu">Input and Output</span> &#8594; <span class="guimenuitem">Embed manifest</span>.
+          </p>
+</dd>
+</dl></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.reference.tools"></a>Builtin tools</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compilers">C++ Compilers</a></span></dt>
+<dt><span class="section"><a href="reference.html#idp262455160">Third-party libraries</a></span></dt>
+<dt><span class="section"><a href="reference.html#idp262474760">Documentation tools</a></span></dt>
+</dl></div>
+<p>Boost.Build comes with support for a large number of C++ compilers,
+      and other tools. This section documents how to use those tools.</p>
+<p>Before using any tool, you must declare your intention, and possibly
+      specify additional information about the tool's configuration. This is
+      done by calling the <code class="computeroutput">using</code> rule, typically in your
+      <code class="filename">user-config.jam</code>, for example:</p>
+<pre class="programlisting">
+using gcc ;
+</pre>
+<p>additional parameters can be passed just like for other rules, for example:</p>
+<pre class="programlisting">
+using gcc : 4.0 : g++-4.0 ;
+</pre>
+<p>The options that can be passed to each tool are documented in the
+      subsequent sections.</p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.tools.compilers"></a>C++ Compilers</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compiler.gcc">GNU C++</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compiler.darwin">Apple Darwin gcc</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compiler.msvc">Microsoft Visual C++</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compiler.intel">Intel C++</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compiler.acc">HP aC++ compiler</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compiler.borland">Borland C++ Compiler</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compiler.como">Comeau C/C++ Compiler</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compiler.cw">Code Warrior</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compiler.dmc">Digital Mars C/C++ Compiler</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compiler.hp_cxx">HP C++ Compiler for Tru64 Unix</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compiler.sun">Sun Studio</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.compiler.vacpp">IBM Visual Age</a></span></dt>
+</dl></div>
+<p>This section lists all Boost.Build modules that support C++
+          compilers and documents how each one can be initialized.  The name
+          of support module for compiler is also the value for
+          the <code class="computeroutput">toolset</code> feature that can be used to explicitly
+          request that compiler. </p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.compiler.gcc"></a>GNU C++</h5></div></div></div>
+<p>The <code class="computeroutput">gcc</code> module supports the
+          <a href="http://gcc.gnu.org" target="_top">GNU C++ compiler</a>
+          on Linux, a number of Unix-like system including SunOS and on Windows 
+          (either <a href="http://www.cygwin.com" target="_top">Cygwin</a> or 
+          <a href="http://www.mingw.org" target="_top">MinGW</a>). On Mac OSX, it is recommended
+          to use system gcc, see <a class="xref" href="reference.html#bbv2.reference.tools.compiler.darwin" title="Apple Darwin gcc">the section called &#8220;Apple Darwin gcc&#8221;</a>.
+          </p>
+<p>The <code class="computeroutput">gcc</code> module is initialized using the following
+          syntax:</p>
+<pre class="programlisting">
+using gcc : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : [<span class="optional"><em class="replaceable"><code>c++-compile-command</code></em></span>] : [<span class="optional"><em class="replaceable"><code>compiler options</code></em></span>] ;</pre>
+<p>This statement may be repeated several times, if you want to configure several versions of the compiler.</p>
+<p>
+          If the version is not explicitly specified, it will be
+          automatically detected by running the compiler with the <code class="computeroutput">-v</code>
+          option. If the command is not specified, the <span class="command"><strong>g++</strong></span>
+          binary will be searched in <code class="envar">PATH</code>.</p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">cflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C sources.</p></dd>
+<dt><span class="term"><code class="literal">cxxflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">compileflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling both C and C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">linkflags</code></span></dt>
+<dd><p>Specifies additional command line options that will be
+      passed to the linker.</p></dd>
+<dt><span class="term"><code class="literal">root</code></span></dt>
+<dd><p>Specifies root directory of the compiler installation.
+      This option is necessary only if it is not possible to detect this
+      information from the compiler command&#8212;for example if the specified
+      compiler command is a user script.</p></dd>
+<dt><span class="term"><code class="literal">rc</code></span></dt>
+<dd><p>Specifies the resource compiler command
+                that will be used with the version of gcc that is being
+                configured. This setting makes sense only for Windows and only
+                if you plan to use resource files. By
+                default <span class="command"><strong>windres</strong></span> will be used.</p></dd>
+<dt><span class="term"><code class="literal">rc-type</code></span></dt>
+<dd><p>Specifies the type of resource compiler. The value can
+                be either <code class="computeroutput">windres</code> for msvc resource compiler,
+                or <code class="computeroutput">rc</code> for borland's resource compiler.</p></dd>
+</dl></div>
+<a class="indexterm" name="idp262319464"></a>
+
+          In order to compile 64-bit applications, you have to specify
+          <code class="computeroutput">address-model=64</code>, and the <code class="computeroutput">instruction-set</code>
+          feature should refer to a 64 bit processor. Currently, those
+          include <code class="literal">nocona</code>, <code class="literal">opteron</code>,
+          <code class="literal">athlon64</code> and <code class="literal">athlon-fx</code>.
+
+        </div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.compiler.darwin"></a>Apple Darwin gcc</h5></div></div></div>
+<p>The <code class="computeroutput">darwin</code> module supports the version of gcc that is
+          modified and provided by Apple. The configuration is essentially identical
+          to that of the gcc module.
+          </p>
+<p>
+          <a class="indexterm" name="idp262323704"></a>
+          The darwin toolset can generate so called "fat"
+          binaries&#8212;binaries that can run support more than one
+          architecture, or address mode. To build a binary that can run both
+          on Intel and PowerPC processors, specify
+          <code class="computeroutput">architecture=combined</code>. To build a binary that can run
+          both in 32-bit and 64-bit modes, specify
+          <code class="computeroutput">address-model=32_64</code>. If you specify both of those
+          properties, a "4-way" fat binary will be generated.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.compiler.msvc"></a>Microsoft Visual C++</h5></div></div></div>
+<p>The <code class="computeroutput">msvc</code> module supports the
+          <a href="http://msdn.microsoft.com/visualc/" target="_top">Microsoft Visual
+          C++</a> command-line tools on Microsoft Windows. The supported
+          products and versions of command line tools are listed below:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>Visual Studio 2010&#8212;10.0</p></li>
+<li class="listitem"><p>Visual Studio 2008&#8212;9.0</p></li>
+<li class="listitem"><p>Visual Studio 2005&#8212;8.0</p></li>
+<li class="listitem"><p>Visual Studio .NET 2003&#8212;7.1</p></li>
+<li class="listitem"><p>Visual Studio .NET&#8212;7.0</p></li>
+<li class="listitem"><p>Visual Studio 6.0, Service Pack 5&#8212;6.5</p></li>
+</ul></div>
+<p>The <code class="computeroutput">msvc</code> module is initialized using the following
+          syntax:</p>
+<pre class="programlisting">
+using msvc : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : [<span class="optional"><em class="replaceable"><code>c++-compile-command</code></em></span>] : [<span class="optional"><em class="replaceable"><code>compiler options</code></em></span>] ;
+          </pre>
+<p>This statement may be repeated several times, if you want to configure several versions of the compiler.</p>
+<p>If the version is not explicitly specified, the most recent
+          version found in the registry will be used instead. If the special
+          value <code class="computeroutput">all</code> is passed as the version, all versions found in
+          the registry will be configured. If a version is specified, but the
+          command is not, the compiler binary will be searched in standard
+          installation paths for that version, followed by <code class="envar">PATH</code>.
+          </p>
+<p>The compiler command should be specified using forward slashes,
+          and quoted.</p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">cflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C sources.</p></dd>
+<dt><span class="term"><code class="literal">cxxflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">compileflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling both C and C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">linkflags</code></span></dt>
+<dd><p>Specifies additional command line options that will be
+      passed to the linker.</p></dd>
+<dt><span class="term"><code class="literal">assembler</code></span></dt>
+<dd><p>The command that compiles assembler sources. If
+              not specified, <span class="command"><strong>ml</strong></span> will be used. The command
+              will be invoked after the setup script was executed and adjusted
+              the <code class="envar">PATH</code> variable.</p></dd>
+<dt><span class="term"><code class="literal">compiler</code></span></dt>
+<dd><p>The command that compiles C and C++ sources. If
+              not specified, <span class="command"><strong>cl</strong></span> will be used. The command
+              will be invoked after the setup script was executed and adjusted
+              the <code class="envar">PATH</code> variable.</p></dd>
+<dt><span class="term"><code class="literal">compiler-filter</code></span></dt>
+<dd><p>Command through which to pipe the output of
+              running the compiler. For example to pass the output to STLfilt.
+              </p></dd>
+<dt><span class="term"><code class="literal">idl-compiler</code></span></dt>
+<dd><p>The command that compiles Microsoft COM interface
+              definition files. If not specified, <span class="command"><strong>midl</strong></span> will
+              be used. The command will be invoked after the setup script was
+              executed and adjusted the <code class="envar">PATH</code> variable.</p></dd>
+<dt><span class="term"><code class="literal">linker</code></span></dt>
+<dd><p>The command that links executables and dynamic
+              libraries. If not specified, <span class="command"><strong>link</strong></span> will be used.
+              The command will be invoked after the setup script was executed
+              and adjusted the <code class="envar">PATH</code> variable.</p></dd>
+<dt><span class="term"><code class="literal">mc-compiler</code></span></dt>
+<dd><p>The command that compiles Microsoft message
+              catalog files. If not specified, <span class="command"><strong>mc</strong></span> will be
+              used. The command will be invoked after the setup script was
+              executed and adjusted the <code class="envar">PATH</code> variable.</p></dd>
+<dt><span class="term"><code class="literal">resource-compiler</code></span></dt>
+<dd><p>The command that compiles resource files. If not
+              specified, <span class="command"><strong>rc</strong></span> will be used. The command will be
+              invoked after the setup script was executed and adjusted the
+              <code class="envar">PATH</code> variable.</p></dd>
+<dt><span class="term"><code class="literal">setup</code></span></dt>
+<dd><p>The filename of the global environment setup
+              script to run before invoking any of the tools defined in this
+              toolset. Will not be used in case a target platform specific
+              script has been explicitly specified for the current target
+              platform. Used setup script will be passed the target platform
+              identifier (x86, x86_amd64, x86_ia64, amd64 or ia64) as a
+              arameter. If not specified a default script is chosen based on the
+              used compiler binary, e.g. <span class="command"><strong>vcvars32.bat</strong></span> or
+              <span class="command"><strong>vsvars32.bat</strong></span>.</p></dd>
+<dt>
+<span class="term"><code class="literal">setup-amd64</code>, </span><span class="term"><code class="literal">setup-i386</code>, </span><span class="term"><code class="literal">setup-ia64</code></span>
+</dt>
+<dd><p>The filename of the target platform specific
+              environment setup script to run before invoking any of the tools
+              defined in this toolset. If not specified the global environment
+              setup script is used.</p></dd>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="v2.reference.tools.compiler.msvc.64"></a>64-bit support</h6></div></div></div>
+<a class="indexterm" name="idp262352328"></a><p>Starting with version 8.0, Microsoft Visual Studio can
+            generate binaries for 64-bit processor, both 64-bit flavours of x86
+            (codenamed AMD64/EM64T), and Itanium (codenamed IA64). In addition,
+            compilers that are itself run in 64-bit mode, for better
+            performance, are provided. The complete list of compiler
+            configurations are as follows (we abbreviate AMD64/EM64T to just
+            AMD64):</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>32-bit x86 host, 32-bit x86 target</p></li>
+<li class="listitem"><p>32-bit x86 host, 64-bit AMD64 target</p></li>
+<li class="listitem"><p>32-bit x86 host, 64-bit IA64 target</p></li>
+<li class="listitem"><p>64-bit AMD64 host, 64-bit AMD64 target</p></li>
+<li class="listitem"><p>64-bit IA64 host, 64-bit IA64 target</p></li>
+</ul></div>
+<p>
+            The 32-bit host compilers can be always used, even on 64-bit
+            Windows. On the contrary, 64-bit host compilers require both 64-bit
+            host processor and 64-bit Windows, but can be faster. By default,
+            only 32-bit host, 32-bit target compiler is installed, and
+            additional compilers need to be installed explicitly.
+            </p>
+<p>To use 64-bit compilation you should:</p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><p>Configure you compiler as usual. If you provide a
+              path to the compiler explicitly, provide the path to the 32-bit
+              compiler. If you try to specify the path to any of 64-bit
+              compilers, configuration will not work.</p></li>
+<li class="listitem"><p>When compiling, use <code class="computeroutput">address-model=64</code>,
+              to generate AMD64 code.</p></li>
+<li class="listitem"><p>To generate IA64 code, use
+              <code class="computeroutput">architecture=ia64</code></p></li>
+</ol></div>
+<p>The (AMD64 host, AMD64 target) compiler will be used
+            automatically when you are generating AMD64 code and are running
+            64-bit Windows on AMD64. The (IA64 host, IA64 target) compiler will
+            never be used, since nobody has an IA64 machine to test.</p>
+<p>It is believed that AMD64 and EM64T targets are essentially
+            compatible. The compiler options <code class="computeroutput">/favor:AMD64</code> and
+            <code class="computeroutput">/favor:EM64T</code>, which are accepted only by AMD64
+            targeting compilers, cause the generated code to be tuned to a
+            specific flavor of 64-bit x86. Boost.Build will make use of those
+            options depending on the value of the<code class="computeroutput">instruction-set</code>
+            feature.</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.compiler.intel"></a>Intel C++</h5></div></div></div>
+<p>The <code class="computeroutput">intel-linux</code> and <code class="computeroutput">intel-win</code> modules
+          support the Intel C++ command-line compiler&#8212;the <a href="http://www.intel.com/software/products/compilers/clin/index.htm" target="_top">Linux</a>
+          and <a href="http://www.intel.com/cd/software/products/asmo-na/eng/compilers/284527.htm" target="_top">
+          Windows</a> versions respectively.</p>
+<p>The module is initialized using the following syntax:</p>
+<pre class="programlisting">
+using intel-linux : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : [<span class="optional"><em class="replaceable"><code>c++-compile-command</code></em></span>] : [<span class="optional"><em class="replaceable"><code>compiler options</code></em></span>] ;</pre>
+<p>or</p>
+<pre class="programlisting">
+using intel-win : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : [<span class="optional"><em class="replaceable"><code>c++-compile-command</code></em></span>] : [<span class="optional"><em class="replaceable"><code>compiler options</code></em></span>] ;</pre>
+<p>respectively.</p>
+<p>This statement may be repeated several times, if you want to configure several versions of the compiler.</p>
+<p>
+          If compiler command is not specified, then Boost.Build will
+          look in <code class="envar">PATH</code> for an executable <span class="command"><strong>icpc</strong></span>
+          (on Linux), or <span class="command"><strong>icc.exe</strong></span> (on Windows).
+          </p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">cflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C sources.</p></dd>
+<dt><span class="term"><code class="literal">cxxflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">compileflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling both C and C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">linkflags</code></span></dt>
+<dd><p>Specifies additional command line options that will be
+      passed to the linker.</p></dd>
+</dl></div>
+<p>The Linux version supports the following additional options:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">root</code></span></dt>
+<dd><p>Specifies root directory of the compiler installation.
+      This option is necessary only if it is not possible to detect this
+      information from the compiler command&#8212;for example if the specified
+      compiler command is a user script.</p></dd>
+</dl></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.compiler.acc"></a>HP aC++ compiler</h5></div></div></div>
+<p>The <code class="computeroutput">acc</code> module supports the
+<a href="http://h21007.www2.hp.com/dspp/tech/tech_TechSoftwareDetailPage_IDX/1,1703,1740,00.html" target="_top">HP aC++ compiler</a>
+          for the HP-UX operating system.</p>
+<p>The module is initialized using the following
+          syntax:</p>
+<pre class="programlisting">
+using acc : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : [<span class="optional"><em class="replaceable"><code>c++-compile-command</code></em></span>] : [<span class="optional"><em class="replaceable"><code>compiler options</code></em></span>] ;</pre>
+<p>This statement may be repeated several times, if you want to configure several versions of the compiler.</p>
+<p>
+            If the command is not specified, the <span class="command"><strong>aCC</strong></span>
+          binary will be searched in <code class="envar">PATH</code>.</p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">cflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C sources.</p></dd>
+<dt><span class="term"><code class="literal">cxxflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">compileflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling both C and C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">linkflags</code></span></dt>
+<dd><p>Specifies additional command line options that will be
+      passed to the linker.</p></dd>
+</dl></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.compiler.borland"></a>Borland C++ Compiler</h5></div></div></div>
+<p>The <code class="computeroutput">borland</code> module supports the command line
+          C++ compiler included in
+          <a href="http://www.borland.com/us/products/cbuilder/index.html" target="_top">C++ Builder 2006</a>
+          product and earlier version of it, running on Microsoft Windows.</p>
+<p>The supported products are listed below. The version reported
+          by the command lines tools is also listed for reference.:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>C++ Builder 2006&#8212;5.8.2</p></li>
+<li class="listitem"><p>CBuilderX&#8212;5.6.5, 5.6.4 (depending on release)</p></li>
+<li class="listitem"><p>CBuilder6&#8212;5.6.4</p></li>
+<li class="listitem"><p>Free command line tools&#8212;5.5.1</p></li>
+</ul></div>
+<p>The module is initialized using the following syntax:</p>
+<pre class="programlisting">
+using borland : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : [<span class="optional"><em class="replaceable"><code>c++-compile-command</code></em></span>] : [<span class="optional"><em class="replaceable"><code>compiler options</code></em></span>] ;</pre>
+<p>This statement may be repeated several times, if you want to configure several versions of the compiler.</p>
+<p>If the command is not specified, Boost.Build will search for
+          a binary named <span class="command"><strong>bcc32</strong></span> in <code class="envar">PATH</code>.</p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">cflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C sources.</p></dd>
+<dt><span class="term"><code class="literal">cxxflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">compileflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling both C and C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">linkflags</code></span></dt>
+<dd><p>Specifies additional command line options that will be
+      passed to the linker.</p></dd>
+</dl></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.compiler.como"></a>Comeau C/C++ Compiler</h5></div></div></div>
+<p>The <code class="computeroutput">como-linux</code> and the <code class="computeroutput">como-win</code>
+          modules supports the
+          <a href="http://www.comeaucomputing.com/" target="_top">Comeau C/C++ Compiler</a>
+          on Linux and Windows respectively.</p>
+<p>The module is initialized using the following syntax:</p>
+<pre class="programlisting">
+using como-linux : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : [<span class="optional"><em class="replaceable"><code>c++-compile-command</code></em></span>] : [<span class="optional"><em class="replaceable"><code>compiler options</code></em></span>] ;</pre>
+<p>This statement may be repeated several times, if you want to configure several versions of the compiler.</p>
+<p>If the command is not specified, Boost.Build will search for
+          a binary named <span class="command"><strong>como</strong></span> in
+          <code class="envar">PATH</code>.</p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">cflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C sources.</p></dd>
+<dt><span class="term"><code class="literal">cxxflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">compileflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling both C and C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">linkflags</code></span></dt>
+<dd><p>Specifies additional command line options that will be
+      passed to the linker.</p></dd>
+</dl></div>
+<p>Before using the Windows version of the compiler, you need to
+          setup necessary environment variables per compiler's documentation. In
+          particular, the <code class="envar">COMO_XXX_INCLUDE</code> variable should be
+          set, where <code class="envar">XXX</code> corresponds to the used backend C
+          compiler.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.compiler.cw"></a>Code Warrior</h5></div></div></div>
+<p>The <code class="computeroutput">cw</code> module support CodeWarrior compiler,
+          originally produced by Metrowerks and presently developed by
+          Freescale. Boost.Build supports only the versions of the compiler that
+          target x86 processors. All such versions were released by Metrowerks
+          before aquisition and are not sold any longer. The last version known
+          to work is 9.4.</p>
+<p>The module is initialized using the following syntax:</p>
+<pre class="programlisting">
+using cw : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : [<span class="optional"><em class="replaceable"><code>c++-compile-command</code></em></span>] : [<span class="optional"><em class="replaceable"><code>compiler options</code></em></span>] ;</pre>
+<p>This statement may be repeated several times, if you want to configure several versions of the compiler.</p>
+<p>If the command is not specified, Boost.Build will search for a
+          binary named <span class="command"><strong>mwcc</strong></span> in default installation paths and
+          in <code class="envar">PATH</code>.</p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">cflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C sources.</p></dd>
+<dt><span class="term"><code class="literal">cxxflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">compileflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling both C and C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">linkflags</code></span></dt>
+<dd><p>Specifies additional command line options that will be
+      passed to the linker.</p></dd>
+<dt><span class="term"><code class="literal">root</code></span></dt>
+<dd><p>Specifies root directory of the compiler installation.
+      This option is necessary only if it is not possible to detect this
+      information from the compiler command&#8212;for example if the specified
+      compiler command is a user script.</p></dd>
+<dt><span class="term"><code class="literal">setup</code></span></dt>
+<dd><p>The command that sets up environment variables
+              prior to invoking the compiler. If not specified,
+              <span class="command"><strong>cwenv.bat</strong></span> alongside the compiler binary
+              will be used.</p></dd>
+<dt><span class="term"><code class="literal">compiler</code></span></dt>
+<dd><p>The command that compiles C and C++ sources.
+              If not specified, <span class="command"><strong>mwcc</strong></span> will be used. The
+              command will be invoked after the setup script was
+              executed and adjusted the <code class="envar">PATH</code> variable.</p></dd>
+<dt><span class="term"><code class="literal">linker</code></span></dt>
+<dd><p>The command that links executables and dynamic
+              libraries.
+              If not specified, <span class="command"><strong>mwld</strong></span> will be used. The
+              command will be invoked after the setup script was
+              executed and adjusted the <code class="envar">PATH</code> variable.</p></dd>
+</dl></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.compiler.dmc"></a>Digital Mars C/C++ Compiler</h5></div></div></div>
+<p>The <code class="computeroutput">dmc</code> module supports the
+          <a href="http://www.digitalmars.com/" target="_top">Digital Mars C++ compiler.</a>
+          </p>
+<p>The module is initialized using the following syntax:</p>
+<pre class="programlisting">
+using dmc : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : [<span class="optional"><em class="replaceable"><code>c++-compile-command</code></em></span>] : [<span class="optional"><em class="replaceable"><code>compiler options</code></em></span>] ;</pre>
+<p>This statement may be repeated several times, if you want to configure several versions of the compiler.</p>
+<p>If the command is not specified, Boost.Build will search for
+          a binary named <span class="command"><strong>dmc</strong></span> in
+          <code class="envar">PATH</code>.</p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">cflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C sources.</p></dd>
+<dt><span class="term"><code class="literal">cxxflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">compileflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling both C and C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">linkflags</code></span></dt>
+<dd><p>Specifies additional command line options that will be
+      passed to the linker.</p></dd>
+</dl></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.compiler.hp_cxx"></a>HP C++ Compiler for Tru64 Unix</h5></div></div></div>
+<p>The <code class="computeroutput">hp_cxx</code> modules supports the
+          <a href="http://h30097.www3.hp.com/cplus/?jumpid=reg_R1002_USEN" target="_top">
+            HP C++ Compiler</a> for Tru64 Unix.</p>
+<p>The module is initialized using the following syntax:</p>
+<pre class="programlisting">
+using hp_cxx : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : [<span class="optional"><em class="replaceable"><code>c++-compile-command</code></em></span>] : [<span class="optional"><em class="replaceable"><code>compiler options</code></em></span>] ;</pre>
+<p>This statement may be repeated several times, if you want to configure several versions of the compiler.</p>
+<p>If the command is not specified, Boost.Build will search for
+          a binary named <span class="command"><strong>hp_cxx</strong></span> in <code class="envar">PATH</code>.</p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">cflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C sources.</p></dd>
+<dt><span class="term"><code class="literal">cxxflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">compileflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling both C and C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">linkflags</code></span></dt>
+<dd><p>Specifies additional command line options that will be
+      passed to the linker.</p></dd>
+</dl></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.compiler.sun"></a>Sun Studio</h5></div></div></div>
+<p>The <code class="computeroutput">sun</code> module supports the
+          <a href="http://developers.sun.com/sunstudio/index.jsp" target="_top">
+          Sun Studio</a> C++ compilers for the Solaris OS.</p>
+<p>The module is initialized using the following syntax:</p>
+<pre class="programlisting">
+using sun : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : [<span class="optional"><em class="replaceable"><code>c++-compile-command</code></em></span>] : [<span class="optional"><em class="replaceable"><code>compiler options</code></em></span>] ;</pre>
+<p>This statement may be repeated several times, if you want to configure several versions of the compiler.</p>
+<p>If the command is not specified, Boost.Build will search for
+          a binary named <span class="command"><strong>CC</strong></span>
+          in <code class="filename">/opt/SUNWspro/bin</code> and in
+          <code class="envar">PATH</code>.</p>
+<p>When using this compiler on complex C++ code, such as the
+          <a href="http://boost.org" target="_top">Boost C++ library</a>, it is
+          recommended to specify the following options when intializing the
+          <code class="computeroutput">sun</code> module:
+          </p>
+<pre class="screen">
+-library=stlport4 -features=tmplife -features=tmplrefstatic
+          </pre>
+<p> See the <a href="http://blogs.sun.com/sga/entry/command_line_options" target="_top">
+          Sun C++ Frontend Tales</a> for details.</p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">cflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C sources.</p></dd>
+<dt><span class="term"><code class="literal">cxxflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">compileflags</code></span></dt>
+<dd><p>Specifies additional compiler flags that will be used when
+      compiling both C and C++ sources.</p></dd>
+<dt><span class="term"><code class="literal">linkflags</code></span></dt>
+<dd><p>Specifies additional command line options that will be
+      passed to the linker.</p></dd>
+</dl></div>
+<a class="indexterm" name="idp262450232"></a>
+          Starting with Sun Studio 12, you can create 64-bit applications
+          by using the <code class="computeroutput">address-model=64</code> property.
+
+        </div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.compiler.vacpp"></a>IBM Visual Age</h5></div></div></div>
+<p>The <code class="computeroutput">vacpp</code> module supports the
+          <a href="http://www.ibm.com/software/ad/vacpp" target="_top">IBM Visual
+          Age</a> C++ Compiler, for the AIX operating system. Versions
+          7.1 and 8.0 are known to work.</p>
+<p>The module is initialized using the following
+          syntax:</p>
+<pre class="programlisting">
+using vacpp ;</pre>
+<p>The module does not accept any initialization options. The
+          compiler should be installed in the <code class="filename">/usr/vacpp/bin</code>
+          directory.</p>
+<p>Later versions of Visual Age are known as XL C/C++. They
+          were not tested with the the <code class="computeroutput">vacpp</code> module.</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp262455160"></a>Third-party libraries</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.libraries.stlport">STLport library</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.libraries.zlib">zlib</a></span></dt>
+</dl></div>
+<p>Boost.Build provides special support for some
+        third-party C++ libraries, documented below.</p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.libraries.stlport"></a>STLport library</h5></div></div></div>
+<a class="indexterm" name="idp262456504"></a><p>The <a href="http://stlport.org" target="_top">STLport</a> library
+          is an alternative implementation of C++ runtime library. Boost.Build
+          supports using that library on Windows platfrom.  Linux is
+          hampered by different naming of libraries in each STLport
+          version and is not officially supported.</p>
+<p>Before using STLport, you need to configure it in
+          <code class="filename">user-config.jam</code> using the following syntax:
+          </p>
+<pre class="programlisting">
+using stlport : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : <em class="replaceable"><code>header-path</code></em> : [<span class="optional"><em class="replaceable"><code>library-path</code></em></span>] ;
+</pre>
+<p>
+          Where <em class="replaceable"><code>version</code></em> is the version of
+          STLport, for example <code class="literal">5.1.4</code>,
+          <em class="replaceable"><code>headers</code></em> is the location where
+          STLport headers can be found, and <em class="replaceable"><code>libraries</code></em>
+          is the location where STLport libraries can be found.
+          The version should always be provided, and the library path should
+          be provided if you're using STLport's implementation of
+          iostreams. Note that STLport 5.* always uses its own iostream
+          implementation, so the library path is required.
+          </p>
+<p>When STLport is configured, you can build with STLport by
+          requesting <code class="literal">stdlib=stlport</code> on the command line.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.libraries.zlib"></a>zlib</h5></div></div></div>
+<a class="indexterm" name="idp262462520"></a><p>Provides support for the
+          <a href="http://www.zlib.net" target="_top">zlib</a> library.  zlib
+          can be configured either to use precompiled binaries or to
+          build the library from source.</p>
+<p>zlib can be initialized using the following syntax</p>
+<pre class="programlisting">
+using zlib : [<span class="optional"><em class="replaceable"><code>version</code></em></span>] : [<span class="optional"><em class="replaceable"><code>options</code></em></span>] : [<span class="optional"><em class="replaceable"><code>condition</code></em></span>] : [<span class="optional"><em class="replaceable"><code>is-default</code></em></span>] ;
+          </pre>
+<p>Options for using a prebuilt library:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">search</code></span></dt>
+<dd><p>The directory containing the zlib binaries.</p></dd>
+<dt><span class="term"><code class="literal">name</code></span></dt>
+<dd><p>Overrides the default library name.</p></dd>
+<dt><span class="term"><code class="literal">include</code></span></dt>
+<dd><p>The directory containing the zlib headers.</p></dd>
+</dl></div>
+<p>If none of these options is specified, then the environmental
+          variables ZLIB_LIBRARY_PATH, ZLIB_NAME, and ZLIB_INCLUDE will be
+          used instead.</p>
+<p>Options for building zlib from source:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">source</code></span></dt>
+<dd><p>The zlib source directory.  Defaults to the
+                environmental variable ZLIB_SOURCE.</p></dd>
+<dt><span class="term"><code class="literal">tag</code></span></dt>
+<dd><p>Sets the <a class="link" href="reference.html#bbv2.builtin.features.tag">tag</a>
+                property to adjust the file name of the library.  Ignored
+                when using precompiled binaries.</p></dd>
+<dt><span class="term"><code class="literal">build-name</code></span></dt>
+<dd><p>The base name to use for the compiled library.
+                Ignored when using precompiled binaries.</p></dd>
+</dl></div>
+<p>Examples:</p>
+<pre class="programlisting">
+# Find zlib in the default system location
+using zlib ;
+# Build zlib from source
+using zlib : 1.2.7 : &lt;source&gt;/home/steven/zlib-1.2.7 ;
+# Find zlib in /usr/local
+using zlib : 1.2.7 : &lt;include&gt;/usr/local/include &lt;search&gt;/usr/local/lib ;
+# Build zlib from source for msvc and find
+# prebuilt binaries for gcc.
+using zlib : 1.2.7 : &lt;source&gt;C:/Devel/src/zlib-1.2.7 : &lt;toolset&gt;msvc ;
+using zlib : 1.2.7 : : &lt;toolset&gt;gcc ;
+</pre>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp262474760"></a>Documentation tools</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.doc.xsltproc">xsltproc</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.doc.boostbook">boostbook</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.doc.doxygen">doxygen</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.doc.quickbook">quickbook</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.tools.doc.fop">fop</a></span></dt>
+</dl></div>
+<p>Boost.Build support for the Boost documentation tools is
+        documented below.
+        </p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.doc.xsltproc"></a>xsltproc</h5></div></div></div>
+<a class="indexterm" name="idp262475800"></a><p>To use xsltproc, you first need to configure it using the following syntax:</p>
+<pre class="programlisting">
+using xsltproc : [<span class="optional"><em class="replaceable"><code>xsltproc</code></em></span>] ;
+</pre>
+<p>
+          Where <em class="replaceable"><code>xsltproc</code></em> is the xsltproc executable.
+          If <em class="replaceable"><code>xsltproc</code></em> is not specified, and the
+          variable XSLTPROC is set, the value of XSLTPROC will be used.
+          Otherwise, xsltproc will be searched for in PATH.
+          </p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">xsl:param</code></span></dt>
+<dd><p>Values should have the form
+                <em class="replaceable"><code>name</code></em>=<em class="replaceable"><code>value</code></em></p></dd>
+<dt><span class="term"><code class="literal">xsl:path</code></span></dt>
+<dd><p>Sets an additional search path for xi:include elements.</p></dd>
+<dt><span class="term"><code class="literal">catalog</code></span></dt>
+<dd><p>A catalog file used to rewrite remote URL's to a local copy.</p></dd>
+</dl></div>
+<p>The xsltproc module provides the following rules.  Note that
+          these operate on jam targets and are intended to be used by another
+          toolset, such as boostbook, rather than directly by users.
+          </p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">xslt</code></span></dt>
+<dd>
+<pre class="programlisting">
+rule xslt ( target : source stylesheet : properties * )
+</pre>
+<p>Runs xsltproc to create a single output file.</p>
+</dd>
+<dt><span class="term"><code class="literal">xslt-dir</code></span></dt>
+<dd>
+<pre class="programlisting">
+rule xslt-dir ( target : source stylesheet : properties * : dirname )
+</pre>
+<p>Runs xsltproc to create multiple outputs in a directory.
+                <code class="literal">dirname</code> is unused, but exists for
+                historical reasons.  The output directory is determined from the
+                target.
+                </p>
+</dd>
+</dl></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.doc.boostbook"></a>boostbook</h5></div></div></div>
+<a class="indexterm" name="idp262489256"></a><p>To use boostbook, you first need to configure it using the following syntax:</p>
+<pre class="programlisting">
+using boostbook : [<span class="optional"><em class="replaceable"><code>docbook-xsl-dir</code></em></span>] : [<span class="optional"><em class="replaceable"><code>docbook-dtd-dir</code></em></span>] : [<span class="optional"><em class="replaceable"><code>boostbook-dir</code></em></span>] ;
+</pre>
+<p>
+          <em class="replaceable"><code>docbook-xsl-dir</code></em> is the DocBook XSL stylesheet
+          directory. If not provided, we use DOCBOOK_XSL_DIR from the environment
+          (if available) or look in standard locations.  Otherwise, we let the
+          XML processor load the stylesheets remotely.
+          </p>
+<p>
+          <em class="replaceable"><code>docbook-dtd-dir</code></em> is the DocBook DTD directory.
+          If not provided, we use DOCBOOK_DTD_DIR From the environment (if
+          available) or look in standard locations.  Otherwise, we let the XML
+          processor load the DTD remotely.
+          </p>
+<p>
+          <em class="replaceable"><code>boostbook-dir</code></em> is the BoostBook directory
+          with the DTD and XSL subdirs.
+          </p>
+<p>The boostbook module depends on xsltproc.  For pdf or ps output,
+          it also depends on fop.
+          </p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">format</code></span></dt>
+<dd>
+<p>
+                  <span class="bold"><strong>Allowed values:</strong></span>
+                  <code class="literal">html</code>, <code class="literal">xhtml</code>,
+                  <code class="literal">htmlhelp</code>, <code class="literal">onehtml</code>,
+                  <code class="literal">man</code>, <code class="literal">pdf</code>,
+                  <code class="literal">ps</code>, <code class="literal">docbook</code>,
+                  <code class="literal">fo</code>, <code class="literal">tests</code>.
+                </p>
+<p>The <code class="literal">format</code> feature determines the type
+                of output produced by the boostbook rule.</p>
+</dd>
+</dl></div>
+<p>The boostbook module defines a rule for creating a target
+          following the common syntax.</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">boostbook</code></span></dt>
+<dd>
+<pre class="programlisting">
+rule boostbook ( target-name : sources * : requirements * : default-build * )
+</pre>
+<p>Creates a boostbook target.</p>
+</dd>
+</dl></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.doc.doxygen"></a>doxygen</h5></div></div></div>
+<a class="indexterm" name="idp262507416"></a><p>To use doxygen, you first need to configure it using the following syntax:</p>
+<pre class="programlisting">
+using doxygen : [<span class="optional"><em class="replaceable"><code>name</code></em></span>] ;
+</pre>
+<p>
+          <em class="replaceable"><code>name</code></em> is the doxygen command.
+          If it is not specified, it will be found in the PATH.
+          </p>
+<p>The doxygen module depends on the boostbook module when
+          generating BoostBook XML.
+          </p>
+<p>The following options can be provided, using <code class="literal">&lt;<em class="replaceable"><code>option-name</code></em>&gt;<em class="replaceable"><code>option-value</code></em></code> syntax:</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">doxygen:param</code></span></dt>
+<dd><p>All the values of <code class="literal">doxygen:param</code>
+                 are added to the doxyfile.</p></dd>
+<dt><span class="term"><code class="literal">prefix</code></span></dt>
+<dd><p>Specifies the common prefix of all headers
+                when generating BoostBook XML.  Everything before
+                this will be stripped off.
+                </p></dd>
+<dt><span class="term"><code class="literal">reftitle</code></span></dt>
+<dd><p>Specifies the title of the library-reference section,
+                when generating BoostBook XML.</p></dd>
+<dt><span class="term"><code class="literal">doxygen:xml-imagedir</code></span></dt>
+<dd>
+<p>When generating BoostBook XML, specifies the
+                directory in which to place the images generated
+                from LaTex formulae.</p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>The path is interpreted relative to the
+                current working directory, not relative to the Jamfile.
+                This is necessary to match the behavior of BoostBook.
+                </p></td></tr>
+</table></div>
+</dd>
+</dl></div>
+<p>The doxygen module defines a rule for creating a target
+          following the common syntax.</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">doxygen</code></span></dt>
+<dd>
+<pre class="programlisting">
+rule doxygen ( target : sources * : requirements * : default-build * : usage-requirements * )
+</pre>
+<p>Creates a doxygen target.  If the target name
+                ends with .html, then this will generate an html
+                directory.  Otherwise it will generate BoostBook XML.
+                </p>
+</dd>
+</dl></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.doc.quickbook"></a>quickbook</h5></div></div></div>
+<a class="indexterm" name="idp262520840"></a><p>The quickbook module provides a generator to convert from
+          Quickbook to BoostBook XML.</p>
+<p>To use quickbook, you first need to configure it using the following syntax:</p>
+<pre class="programlisting">
+using quickbook : [<span class="optional"><em class="replaceable"><code>command</code></em></span>] ;
+</pre>
+<p>
+          <em class="replaceable"><code>command</code></em> is the quickbook executable.
+          If it is not specified, Boost.Build will compile it from source.
+          If it is unable to find the source it will search for a quickbook
+          executable in PATH.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.tools.doc.fop"></a>fop</h5></div></div></div>
+<a class="indexterm" name="idp262523688"></a><p>The fop module provides generators to convert from
+          XSL formatting objects to Postscript and PDF.</p>
+<p>To use fop, you first need to configure it using the following syntax:</p>
+<pre class="programlisting">
+using fop : [<span class="optional"><em class="replaceable"><code>fop-command</code></em></span>] : [<span class="optional"><em class="replaceable"><code>java-home</code></em></span>] : [<span class="optional"><em class="replaceable"><code>java</code></em></span>] ;
+</pre>
+<p>
+          <em class="replaceable"><code>fop-command</code></em> is the command to run fop.
+          If it is not specified, Boost.Build will search for it in PATH and
+          FOP_HOME.
+          </p>
+<p>
+          Either <em class="replaceable"><code>java-home</code></em> or
+          <em class="replaceable"><code>java</code></em>
+          can be used to specify where to find java.
+          </p>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.reference.modules"></a>Builtin modules</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#bbv2.reference.modules.modules">modules</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.modules.path">path</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.modules.type">type</a></span></dt>
+</dl></div>
+<p>
+      This section describes the modules that are provided
+      by Boost.Build.  The import rule allows rules from
+      one module to be used in another module or Jamfile.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.modules.modules"></a>modules</h4></div></div></div>
+<a class="indexterm" name="idp262528840"></a><p>
+        The <code class="computeroutput">modules</code> module defines basic functionality
+        for handling modules.
+      </p>
+<p>
+        A module defines a number of rules that can be used in other
+        modules.  Modules can contain code at the top level to initialize
+        the module.  This code is executed the first time the
+        module is loaded.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            A Jamfile is a special kind of module which is managed by
+            the build system.  Although they cannot be loaded directly
+            by users, the other features of modules are still useful
+            for Jamfiles.
+          </p></td></tr>
+</table></div>
+<p>
+      </p>
+<p>
+        Each module has its own namespaces for variables and rules.  If two
+        modules A and B both use a variable named X, each one gets its own
+        copy of X.  They won't interfere with each other in any way.
+        Similarly, importing rules into one module has no effect on any other
+        module.
+      </p>
+<p>
+        Every module has two special variables.
+        <code class="computeroutput">$(__file__)</code> contains the name of the file that
+        the module was loaded from and <code class="computeroutput">$(__name__)</code>
+        contains the name of the module.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p><code class="computeroutput">$(__file__)</code> does not contain
+        the full path to the file.  If you need this, use
+        <code class="computeroutput">modules.binding</code>.</p></td></tr>
+</table></div>
+<p>
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<a name="bbv2.reference.modules.modules.binding"></a><a class="indexterm" name="idp262534312"></a><code class="computeroutput"><span class="keyword">rule</span> binding <span class="special">(</span> module-name <span class="special">)</span></code><p>Returns the filesystem binding of the given module.</p>
+<p>For example, a module can get its own location with:
+          </p>
+<pre class="programlisting">me <span class="special">=</span> <span class="special">[</span> modules.binding $(__name__) <span class="special">]</span> <span class="special">;</span></pre>
+<p>
+          </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.modules.poke"></a><a class="indexterm" name="idp262538808"></a><code class="computeroutput"><span class="keyword">rule</span> poke <span class="special">(</span> module-name ? <span class="special">:</span> variables + <span class="special">:</span> value * <span class="special">)</span></code><p>Sets the module-local value of a variable.</p>
+<p>For example, to set a variable in the global module:
+          </p>
+<pre class="programlisting">modules.poke <span class="special">:</span> ZLIB_INCLUDE <span class="special">:</span> /usr/local/include <span class="special">;</span></pre>
+<p>
+          </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.modules.peek"></a><a class="indexterm" name="idp262543672"></a><code class="computeroutput"><span class="keyword">rule</span> peek <span class="special">(</span> module-name ? <span class="special">:</span> variables + <span class="special">)</span></code><p>Returns the module-local value of a variable.</p>
+<p>
+            For example, to read a variable from the global module:
+            </p>
+<pre class="programlisting"><span class="keyword">local</span> ZLIB_INCLUDE <span class="special">=</span> <span class="special">[</span> modules.peek <span class="special">:</span> ZLIB_INCLUDE <span class="special">]</span> <span class="special">;</span></pre>
+<p>
+          </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.modules.call-in"></a><a class="indexterm" name="idp262549128"></a><code class="computeroutput"><span class="keyword">rule</span> call-in <span class="special">(</span> module-name ? <span class="special">:</span> rule-name args * <span class="special">:</span> * <span class="special">)</span> </code><p>Call the given rule locally in the given module. Use
+          this for rules accepting rule names as arguments, so that
+          the passed rule may be invoked in the context of the rule's
+          caller (for example, if the rule accesses module globals or
+          is a local rule).
+          </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>rules called this way may accept at most
+          8 parameters.</p></td></tr>
+</table></div>
+<p>Example:
+</p>
+<pre class="programlisting">
+<span class="keyword">rule</span> filter <span class="special">(</span> f <span class="special">:</span> values * <span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">local</span> m <span class="special">=</span> <span class="special">[</span> CALLER_MODULE <span class="special">]</span> <span class="special">;</span>
+    <span class="keyword">local</span> result <span class="special">;</span>
+    <span class="keyword">for</span> v <span class="keyword">in</span> $(values)
+    <span class="special">{</span>
+        <span class="keyword">if</span> <span class="special">[</span> modules.call-in $(m) <span class="special">:</span> $(f) $(v) <span class="special">]</span>
+        <span class="special">{</span>
+            result <span class="special">+=</span> $(v) <span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+    <span class="keyword">return</span> result <span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.modules.load"></a><a class="indexterm" name="idp262562536"></a><code class="computeroutput"><span class="keyword">rule</span> load <span class="special">(</span> module-name <span class="special">:</span> filename ? <span class="special">:</span> search * <span class="special">)</span></code><p>Load the indicated module if it is not already loaded.</p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">module-name</code></span></dt>
+<dd><p>Name of module to load.</p></dd>
+</dl></div>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">filename</code></span></dt>
+<dd><p>(partial) path to file; Defaults to <code class="computeroutput">$(module-name).jam</code></p></dd>
+</dl></div>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">search</code></span></dt>
+<dd><p>Directories in which to search for filename.
+                  Defaults to <code class="computeroutput">$(BOOST_BUILD_PATH)</code>.</p></dd>
+</dl></div>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.modules.import"></a><a class="indexterm" name="idp262569800"></a><code class="computeroutput"><span class="keyword">rule</span> import <span class="special">(</span> module-names + <span class="special">:</span> rules-opt * <span class="special">:</span> rename-opt * <span class="special">)</span></code><p>Load the indicated module and import rule names into the
+          current module. Any members of <code class="computeroutput">rules-opt</code> will be
+          available without qualification in the caller's module. Any
+          members of <code class="computeroutput">rename-opt</code> will be taken as the names
+          of the rules in the caller's module, in place of the names they
+          have in the imported module.  If <code class="computeroutput">rules-opt = '*'</code>,
+          all rules from the indicated module are imported into the
+          caller's module. If <code class="computeroutput">rename-opt</code> is supplied, it must have the
+          same number of elements as <code class="computeroutput">rules-opt</code>.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>The <code class="literal">import</code> rule is available
+          without qualification in all modules.</p></td></tr>
+</table></div>
+<p>Examples:
+</p>
+<pre class="programlisting">
+import path <span class="special">;</span>
+import path <span class="special">:</span> * <span class="special">;</span>
+import path <span class="special">:</span> join <span class="special">;</span>
+import path <span class="special">:</span> native make <span class="special">:</span> native-path make-path <span class="special">;</span>
+</pre>
+<p>
+          </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.modules.clone-rules"></a><a class="indexterm" name="idp262579224"></a><code class="computeroutput"><span class="keyword">rule</span> clone-rules <span class="special">(</span> source-module target-module <span class="special">)</span></code><p>Define exported copies in <code class="computeroutput">$(target-module)</code>
+          of all rules exported from <code class="computeroutput">$(source-module)</code>. Also
+          make them available in the global module with qualification,
+          so that it is just as though the rules were defined originally
+          in <code class="computeroutput">$(target-module)</code>.</p>
+</li>
+</ol></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.modules.path"></a>path</h4></div></div></div>
+<a class="indexterm" name="idp262583416"></a><p>
+    Performs various path manipulations. Paths are always in a 'normalized'
+    representation. In it, a path may be either:
+    
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><code class="computeroutput">'.'</code>, or</p></li>
+<li class="listitem"><p>
+          <code class="computeroutput">['/'] [ ( '..' '/' )* (token '/')* token ]</code>
+        </p></li>
+</ul></div>
+<p>
+    
+    In plain english, a path can be rooted, <code class="computeroutput">'..'</code>
+    elements are allowed only at the beginning, and it never
+    ends in slash, except for the path consisting of slash only.
+  </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<a name="bbv2.reference.modules.path.make"></a><a class="indexterm" name="idp262587304"></a><code class="computeroutput"><span class="keyword">rule</span> make <span class="special">(</span> native <span class="special">)</span></code><p>Converts the native path into normalized form.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.native"></a><a class="indexterm" name="idp262590296"></a><code class="computeroutput"><span class="keyword">rule</span> native <span class="special">(</span> path <span class="special">)</span></code><p>Builds the native representation of the path.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.is-rooted"></a><a class="indexterm" name="idp262593016"></a><code class="computeroutput"><span class="keyword">rule</span> is-rooted <span class="special">(</span> path <span class="special">)</span></code><p>Tests if a path is rooted.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.has-parent"></a><a class="indexterm" name="idp262595720"></a><code class="computeroutput"><span class="keyword">rule</span> has-parent <span class="special">(</span> path <span class="special">)</span></code><p>Tests if a path has a parent.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.basename"></a><a class="indexterm" name="idp262598456"></a><code class="computeroutput"><span class="keyword">rule</span> basename <span class="special">(</span> path <span class="special">)</span></code><p>Returns the path without any directory components.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.parent"></a><a class="indexterm" name="idp262601256"></a><code class="computeroutput"><span class="keyword">rule</span> parent <span class="special">(</span> path <span class="special">)</span></code><p>Returns the parent directory of the path. If no parent exists, an error is issued.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.reverse"></a><a class="indexterm" name="idp262604056"></a><code class="computeroutput"><span class="keyword">rule</span> reverse <span class="special">(</span> path <span class="special">)</span></code><p>
+        Returns <code class="computeroutput">path2</code> such that
+        <code class="computeroutput"><span class="special">[</span> join path path2 <span class="special">]</span> <span class="special">=</span> "."</code>.
+        The path may not contain <code class="computeroutput">".."</code>
+        element or be rooted.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.join"></a><a class="indexterm" name="idp262608824"></a><code class="computeroutput"><span class="keyword">rule</span> join <span class="special">(</span> elements + <span class="special">)</span></code><p>
+        Concatenates the passed path elements. Generates an error if any
+        element other than the first one is rooted. Skips any empty or
+        undefined path elements.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.root"></a><a class="indexterm" name="idp262611688"></a><code class="computeroutput"><span class="keyword">rule</span> root <span class="special">(</span> path root <span class="special">)</span></code><p>
+        If <code class="computeroutput">path</code> is relative, it is rooted at
+        <code class="computeroutput">root</code>. Otherwise, it is unchanged.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.pwd"></a><a class="indexterm" name="idp262615160"></a><code class="computeroutput"><span class="keyword">rule</span> pwd <span class="special">(</span> <span class="special">)</span></code><p>Returns the current working directory.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.glob"></a><a class="indexterm" name="idp262617928"></a><code class="computeroutput"><span class="keyword">rule</span> glob <span class="special">(</span> dirs * <span class="special">:</span> patterns + <span class="special">:</span> exclude-patterns * <span class="special">)</span></code><p>
+        Returns the list of files matching the given pattern in the specified
+        directory. Both directories and patterns are supplied as portable paths. Each
+        pattern should be a non-absolute path, and can't contain "." or ".." elements.
+        Each slash separated element of a pattern can contain the following special
+        characters:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>'?' matches any character</p></li>
+<li class="listitem"><p>'*' matches an arbitrary number of characters</p></li>
+</ul></div>
+<p>
+        A file $(d)/e1/e2/e3 (where 'd' is in $(dirs)) matches the pattern p1/p2/p3 if and
+        only if e1 matches p1, e2 matches p2 and so on.
+        
+        For example:
+</p>
+<pre class="programlisting">
+<span class="special">[</span> glob . <span class="special">:</span> *.cpp <span class="special">]</span>
+<span class="special">[</span> glob . <span class="special">:</span> */build/Jamfile <span class="special">]</span>
+</pre>
+<p>
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.glob-tree"></a><a class="indexterm" name="idp262625272"></a><code class="computeroutput"><span class="keyword">rule</span> glob-tree <span class="special">(</span> roots * <span class="special">:</span> patterns + <span class="special">:</span> exclude-patterns * <span class="special">)</span></code><p>
+        Recursive version of <a class="link" href="reference.html#bbv2.reference.modules.path.glob">glob</a>.
+        Builds the glob of files while also searching in
+        the subdirectories of the given roots. An optional set of exclusion patterns
+        will filter out the matching entries from the result. The exclusions also
+        apply to the subdirectory scanning, such that directories that match the
+        exclusion patterns will not be searched.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.exists"></a><a class="indexterm" name="idp262629560"></a><code class="computeroutput"><span class="keyword">rule</span> exists <span class="special">(</span> file <span class="special">)</span></code><p>Returns true if the specified file exists.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.all-parents"></a><a class="indexterm" name="idp262632312"></a><code class="computeroutput"><span class="keyword">rule</span> all-parents <span class="special">(</span> path <span class="special">:</span> upper_limit ? <span class="special">:</span> cwd ? <span class="special">)</span></code><p>
+        Find out the absolute name of path and return the list of all the parents,
+        starting with the immediate one. Parents are returned as relative names. If
+        <code class="computeroutput">upper_limit</code> is specified, directories above it
+        will be pruned.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.glob-in-parents"></a><a class="indexterm" name="idp262636328"></a><code class="computeroutput"><span class="keyword">rule</span> glob-in-parents <span class="special">(</span> dir <span class="special">:</span> patterns + <span class="special">:</span> upper-limit ? <span class="special">)</span></code><p>
+        Search for <code class="computeroutput">patterns</code> in parent directories
+        of <code class="computeroutput">dir</code>, up to and including
+        <code class="computeroutput">upper_limit</code>, if it is specified, or
+        till the filesystem root otherwise.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.relative"></a><a class="indexterm" name="idp262640936"></a><code class="computeroutput"><span class="keyword">rule</span> relative <span class="special">(</span> child parent <span class="special">:</span> no-error ? <span class="special">)</span></code><p>
+        Assuming <code class="computeroutput">child</code> is a subdirectory of
+        <code class="computeroutput">parent</code>, return the relative path from
+        <code class="computeroutput">parent</code> to <code class="computeroutput">child</code>.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.relative-to"></a><a class="indexterm" name="idp262645496"></a><code class="computeroutput"><span class="keyword">rule</span> relative-to <span class="special">(</span> path1 path2 <span class="special">)</span></code><p>Returns the minimal path to path2 that is relative path1.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.programs-path"></a><a class="indexterm" name="idp262648296"></a><code class="computeroutput"><span class="keyword">rule</span> programs-path <span class="special">(</span> <span class="special">)</span></code><p>
+        Returns the list of paths which are used by the operating system for
+        looking up programs.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.path.mkdirs"></a><a class="indexterm" name="idp262651112"></a><code class="computeroutput"><span class="keyword">rule</span> makedirs <span class="special">(</span> path <span class="special">)</span></code><p>
+        Creates a directory and all parent directories that do not
+        already exist.
+      </p>
+</li>
+</ol></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.modules.type"></a>type</h4></div></div></div>
+<a class="indexterm" name="idp262654216"></a><p>
+    Deals with target type declaration and defines target class which supports
+    typed targets.
+  </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<a name="bbv2.reference.modules.type.register"></a><a class="indexterm" name="idp262656056"></a><code class="computeroutput"><span class="keyword">rule</span> register <span class="special">(</span> type <span class="special">:</span> suffixes * <span class="special">:</span> base-type ? <span class="special">)</span></code><p>
+        Registers a target type, possible derived from a
+        <code class="computeroutput">base-type</code>.  Providing a list
+        of suffixes here is a shortcut for separately calling the
+        <a class="link" href="reference.html#bbv2.reference.modules.type.register-suffixes">register-suffixes</a>
+        rule with the given suffixes and the
+        <a class="link" href="reference.html#bbv2.reference.modules.type.set-generated-target-suffix">set-generated-target-suffix</a>
+        rule with the first given suffix.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.register-suffixes"></a><a class="indexterm" name="idp262661368"></a><code class="computeroutput"><span class="keyword">rule</span> register-suffixes <span class="special">(</span> suffixes + <span class="special">:</span> type <span class="special">)</span></code><p>
+        Specifies that files with suffix from <code class="computeroutput">suffixes</code>
+        be recognized as targets of  type <code class="computeroutput">type</code>.
+        Issues an error if a different type is already specified for any
+        of the suffixes.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.registered"></a><a class="indexterm" name="idp262665256"></a><code class="computeroutput"><span class="keyword">rule</span> registered <span class="special">(</span> type <span class="special">)</span></code><p>Returns true iff type has been registered.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.validate"></a><a class="indexterm" name="idp262668040"></a><code class="computeroutput"><span class="keyword">rule</span> validate <span class="special">(</span> type <span class="special">)</span></code><p>Issues an error if <code class="computeroutput">type</code> is unknown.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.set-scanner"></a><a class="indexterm" name="idp262671160"></a><code class="computeroutput"><span class="keyword">rule</span> set-scanner <span class="special">(</span> type <span class="special">:</span> scanner <span class="special">)</span></code><p>Sets a scanner class that will be used for this type.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.get-scanner"></a><a class="indexterm" name="idp262674264"></a><code class="computeroutput"><span class="keyword">rule</span> get-scanner <span class="special">(</span> type <span class="special">:</span> property-set <span class="special">)</span></code><p>
+        Returns a scanner instance appropriate to <code class="computeroutput">type</code>
+        and <code class="computeroutput">property-set</code>.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.base"></a><a class="indexterm" name="idp262678104"></a><code class="computeroutput"><span class="keyword">rule</span> base <span class="special">(</span> type <span class="special">)</span></code><p>
+        Returns a base type for the given type or nothing in case the given
+        type is not derived.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.all-bases"></a><a class="indexterm" name="idp262680968"></a><code class="computeroutput"><span class="keyword">rule</span> all-bases <span class="special">(</span> type <span class="special">)</span></code><p>
+        Returns the given type and all of its base types in order of
+        their distance from type.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.all-derived"></a><a class="indexterm" name="idp262683816"></a><code class="computeroutput"><span class="keyword">rule</span> all-derived <span class="special">(</span> type <span class="special">)</span></code><p>
+        Returns the given type and all of its derived types in order
+        of their distance from type.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.is-derived"></a><a class="indexterm" name="idp262686648"></a><code class="computeroutput"><span class="keyword">rule</span> is-derived <span class="special">(</span> type base <span class="special">)</span></code><p>
+        Returns true if <code class="computeroutput">type</code> is equal to
+        <code class="computeroutput">base</code> or has <code class="computeroutput">base</code>
+        as its direct or indirect base.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.set-generated-target-suffix"></a><a class="indexterm" name="idp262690472"></a><code class="computeroutput"><span class="keyword">rule</span> set-generated-target-suffix <span class="special">(</span> type <span class="special">:</span> properties * <span class="special">:</span> suffix <span class="special">)</span></code><p>
+        Sets a file suffix to be used when generating a target of <code class="computeroutput">type</code> with the
+        specified properties. Can be called with no properties if no suffix has
+        already been specified for the <code class="computeroutput">type</code>. The <code class="computeroutput">suffix</code> parameter can be an empty
+        string (<code class="computeroutput">""</code>) to indicate that no suffix should be used.
+      </p>
+<p>
+        Note that this does not cause files with <code class="computeroutput">suffix</code>
+        to be automatically recognized as being of <code class="computeroutput">type</code>.
+        Two different types can use the same suffix for their generated files
+        but only one type can be auto-detected for a file with that suffix.
+        User should explicitly specify which one using the
+        <a class="link" href="reference.html#bbv2.reference.modules.type.register-suffixes">register-suffixes</a>
+        rule.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.change-generated-target-suffix"></a><a class="indexterm" name="idp262697320"></a><code class="computeroutput"><span class="keyword">rule</span> change-generated-target-suffix <span class="special">(</span> type <span class="special">:</span> properties * <span class="special">:</span> suffix <span class="special">)</span></code><p>
+        Change the suffix previously registered for this type/properties
+        combination. If suffix is not yet specified, sets it.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.generated-target-suffix"></a><a class="indexterm" name="idp262700952"></a><code class="computeroutput"><span class="keyword">rule</span> generated-target-suffix <span class="special">(</span> type <span class="special">:</span> property-set <span class="special">)</span></code><p>
+        Returns the suffix used when generating a file of
+        <code class="computeroutput">type</code> with the given properties.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.set-generated-target-prefix"></a><a class="indexterm" name="idp262704584"></a><code class="computeroutput"><span class="keyword">rule</span> set-generated-target-prefix <span class="special">(</span> type <span class="special">:</span> properties * <span class="special">:</span> prefix <span class="special">)</span></code><p>
+        Sets a target prefix that should be used when generating targets of
+        <code class="computeroutput">type</code> with the specified properties. Can
+        be called with empty properties if no prefix for
+        <code class="computeroutput">type</code> has been specified yet.
+      </p>
+<p>
+        The <code class="computeroutput">prefix</code> parameter can be empty string
+        (<code class="computeroutput">""</code>) to indicate that no prefix
+        should be used.
+      </p>
+<p>
+        Usage example: library names use the <code class="computeroutput">"lib"</code>
+        prefix on unix.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.change-generated-target-prefix"></a><a class="indexterm" name="idp262710520"></a><code class="computeroutput"><span class="keyword">rule</span> change-generated-target-prefix <span class="special">(</span> type <span class="special">:</span> properties * <span class="special">:</span> prefix <span class="special">)</span></code><p>
+        Change the prefix previously registered for this type/properties
+        combination. If prefix is not yet specified, sets it.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.generated-target-prefix"></a><a class="indexterm" name="idp262714152"></a><code class="computeroutput"><span class="keyword">rule</span> generated-target-prefix <span class="special">(</span> type <span class="special">:</span> property-set <span class="special">)</span></code><p>
+        Returns the prefix used when generating a file of
+        <code class="computeroutput">type</code> with the given properties.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.modules.type.type"></a><a class="indexterm" name="idp262717800"></a><code class="computeroutput"><span class="keyword">rule</span> type <span class="special">(</span> filename <span class="special">)</span></code><p>
+        Returns file type given its name. If there are several
+        dots in filename, tries each suffix. E.g. for name of
+        "file.so.1.2" suffixes "2", "1", and "so" will be tried.
+      </p>
+</li>
+</ol></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.reference.class"></a>Builtin classes</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#bbv2.reference.class.abstract-target">Class abstract-target</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.class.project-target">Class project-target</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.class.main-target">Class main-target</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.class.basic-target">Class basic-target</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.class.typed-target">Class typed-target</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.class.property-set">Class property-set</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.class.abstract-target"></a>Class abstract-target</h4></div></div></div>
+<a class="indexterm" name="idp262721944"></a><p>
+    Base class for all abstract targets.
+  </p>
+<pre class="programlisting">
+<span class="keyword">class</span> abstract-target <span class="special">{</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.__init__">__init__</a> <span class="special">(</span> name <span class="special">:</span> project <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.name">name</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.project">project</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.location">location</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.full-name">full-name</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.__init__">generate</a> <span class="special">(</span> property-set <span class="special">)</span>
+<span class="special">}</span>
+</pre>
+<p>
+    Classes derived from <a class="link" href="reference.html#bbv2.reference.class.abstract-target" title="Class abstract-target">abstract-target</a>:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><a class="link" href="reference.html#bbv2.reference.class.project-target" title="Class project-target">project-target</a></li>
+<li class="listitem"><a class="link" href="reference.html#bbv2.reference.class.main-target" title="Class main-target">main-target</a></li>
+<li class="listitem"><a class="link" href="reference.html#bbv2.reference.class.project-target" title="Class project-target">basic-target</a></li>
+</ul></div>
+<p>
+  </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<a name="bbv2.reference.class.abstract-target.__init__"></a><code class="computeroutput"><span class="keyword">rule</span> __init__ <span class="special">(</span> name <span class="special">:</span> project <span class="special">)</span></code><p>
+        </p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">name</code></span></dt>
+<dd><p>The name of the target in the Jamfile.</p></dd>
+<dt><span class="term"><code class="literal">project</code></span></dt>
+<dd><p>The <a class="link" href="reference.html#bbv2.reference.class.project-target" title="Class project-target">project</a> to which this target belongs.</p></dd>
+</dl></div>
+<p>
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.abstract-target.name"></a><a class="indexterm" name="idp262742168"></a><code class="computeroutput"><span class="keyword">rule</span> name <span class="special">(</span> <span class="special">)</span></code><p>Returns the name of this target.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.abstract-target.project"></a><a class="indexterm" name="idp262745048"></a><code class="computeroutput"><span class="keyword">rule</span> project <span class="special">(</span> <span class="special">)</span></code><p>Returns the <a class="link" href="reference.html#bbv2.reference.class.project-target" title="Class project-target">project</a> for this target.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.abstract-target.location"></a><a class="indexterm" name="idp262748360"></a><code class="computeroutput"><span class="keyword">rule</span> location <span class="special">(</span> <span class="special">)</span></code><p>Returns the location where the target was declared.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.abstract-target.full-name"></a><a class="indexterm" name="idp262751224"></a><code class="computeroutput"><span class="keyword">rule</span> full-name <span class="special">(</span> <span class="special">)</span></code><p>Returns a user-readable name for this target.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.abstract-target.generate"></a><a class="indexterm" name="idp262770392"></a><code class="computeroutput"><span class="keyword">rule</span> generate <span class="special">(</span> property-set <span class="special">)</span></code><p>
+        Generates virtual targets for this abstract target using the specified
+        properties, unless a different value of some feature is required by the
+        target.  This is an abstract method which must be overriden by derived
+        classes.
+      </p>
+<p>
+        On success, returns:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">a property-set with the usage requirements to be applied to dependents</li>
+<li class="listitem">a list of produced virtual targets, which may be empty.</li>
+</ul></div>
+<p>
+        If <code class="computeroutput">property-set</code> is empty, performs the
+        default build of this target, in a way specific to the derived class.
+      </p>
+</li>
+</ol></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.class.project-target"></a>Class project-target</h4></div></div></div>
+<a class="indexterm" name="idp262775320"></a><pre class="programlisting">
+<span class="keyword">class</span> project-target <span class="special">:</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target" title="Class abstract-target">abstract-target</a> <span class="special">{</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.project-target.generate">generate</a> <span class="special">(</span> property-set <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.project-target.build-dir">build-dir</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.project-target.main-target">main-target</a> <span class="special">(</span> name <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.project-target.has-main-target">has-main-target</a> <span class="special">(</span> name <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.project-target.find">find</a> <span class="special">(</span> id <span class="special">:</span> no-error ? <span class="special">)</span>
+
+    <span class="comment"># Methods inherited from </span><a class="link" href="reference.html#bbv2.reference.class.abstract-target" title="Class abstract-target">abstract-target</a>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.name">name</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.project">project</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.location">location</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.full-name">full-name</a> <span class="special">(</span> <span class="special">)</span>
+<span class="special">}</span>
+</pre>
+<p>
+    This class has the following responsibilities:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          Maintaining a list of main targets in this project and building them.
+        </p></li></ul></div>
+<p>
+  </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<a name="bbv2.reference.class.project-target.generate"></a><a class="indexterm" name="idp262794232"></a><code class="computeroutput"><span class="keyword">rule</span> generate <span class="special">(</span> property-set <span class="special">)</span></code><p>
+        Overrides
+        <a class="link" href="reference.html#bbv2.reference.class.abstract-target.generate">abstract-target.generate</a>.
+
+        Generates virtual targets for all the targets contained in this project.
+      </p>
+<p>
+        On success, returns:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">a property-set with the usage requirements to be applied to dependents</li>
+<li class="listitem">a list of produced virtual targets, which may be empty.</li>
+</ul></div>
+<p>
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.project-target.build-dir"></a><a class="indexterm" name="idp262798648"></a><code class="computeroutput"><span class="keyword">rule</span> build-dir <span class="special">(</span> <span class="special">)</span></code><p>
+        Returns the root build directory of the project.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.project-target.main-target"></a><a class="indexterm" name="idp262801576"></a><code class="computeroutput"><span class="keyword">rule</span> main-target <span class="special">(</span> name <span class="special">)</span></code><p>
+        Returns a <a class="link" href="reference.html#bbv2.reference.class.main-target" title="Class main-target">main-target</a>
+        class instance corresponding to <code class="literal">name</code>.
+        Can only be called after the project has been fully loaded.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.project-target.has-main-target"></a><a class="indexterm" name="idp262805384"></a><code class="computeroutput"><span class="keyword">rule</span> has-main-target <span class="special">(</span> name <span class="special">)</span></code><p>
+        Returns whether a <a class="link" href="reference.html#bbv2.reference.class.main-target" title="Class main-target">main-target</a>
+        with the specified name exists.
+        Can only be called after the project has been fully loaded.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.project-target.find"></a><a class="indexterm" name="idp262808968"></a><code class="computeroutput"><span class="keyword">rule</span> find <span class="special">(</span> id <span class="special">:</span> no-error ? <span class="special">)</span></code><p>
+        Find and return the target with the specified id, treated relative to
+        self. Id may specify either a target or a file name with the target taking
+        priority. May report an error or return nothing if the target is not found
+        depending on the <code class="literal">no-error</code> parameter.
+      </p>
+</li>
+</ol></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.class.main-target"></a>Class main-target</h4></div></div></div>
+<a class="indexterm" name="idp262813160"></a><pre class="programlisting">
+<span class="keyword">class</span> main-target <span class="special">:</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target" title="Class abstract-target">abstract-target</a> <span class="special">{</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.main-target.generate">generate</a> <span class="special">(</span> property-set <span class="special">)</span>
+
+    <span class="comment"># Methods inherited from </span><a class="link" href="reference.html#bbv2.reference.class.abstract-target" title="Class abstract-target">abstract-target</a>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.name">name</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.project">project</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.location">location</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.full-name">full-name</a> <span class="special">(</span> <span class="special">)</span>
+<span class="special">}</span>
+</pre>
+<p>
+    A <a class="link" href="reference.html#bbv2.reference.class.main-target" title="Class main-target">main-target</a>
+    represents a named top-level target in a Jamfile.
+  </p>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<a name="bbv2.reference.class.main-target.generate"></a><a class="indexterm" name="idp262825368"></a><code class="computeroutput"><span class="keyword">rule</span> generate <span class="special">(</span> property-set <span class="special">)</span></code><p>
+        Overrides
+        <a class="link" href="reference.html#bbv2.reference.class.abstract-target.generate">abstract-target.generate</a>.
+        
+        Select an alternative for this main target, by finding all alternatives
+        whose requirements are satisfied by <code class="literal">property-set</code> and
+        picking the one with the longest requirements set. Returns the result
+        of calling <a class="link" href="reference.html#bbv2.reference.class.basic-target.generate">generate</a>
+        on that alternative.
+      </p>
+<p>
+        On success, returns:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">a property-set with the usage requirements to be applied to dependents</li>
+<li class="listitem">a list of produced virtual targets, which may be empty.</li>
+</ul></div>
+<p>
+      </p>
+</li></ol></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.class.basic-target"></a>Class basic-target</h4></div></div></div>
+<a class="indexterm" name="idp262831288"></a><pre class="programlisting">
+<span class="keyword">class</span> basic-target <span class="special">:</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target" title="Class abstract-target">abstract-target</a> <span class="special">{</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.basic-target.__init__">__init__</a> <span class="special">(</span> name <span class="special">:</span> project <span class="special">:</span> sources * <span class="special">:</span> requirements * <span class="special">:</span> default-build * <span class="special">:</span> usage-requirements * <span class="special">)</span>  
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.basic-target.generate">generate</a> <span class="special">(</span> property-set <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.basic-target.construct">construct</a> <span class="special">(</span> name <span class="special">:</span> source-targets * <span class="special">:</span> property-set <span class="special">)</span>
+
+    <span class="comment"># Methods inherited from </span><a class="link" href="reference.html#bbv2.reference.class.abstract-target" title="Class abstract-target">abstract-target</a>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.name">name</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.project">project</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.location">location</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.full-name">full-name</a> <span class="special">(</span> <span class="special">)</span>
+<span class="special">}</span>
+</pre>
+<p>
+    Implements the most standard way of constructing main target alternative from
+    sources. Allows sources to be either files or other main targets and handles
+    generation of those dependency targets. 
+    
+  </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<a name="bbv2.reference.class.basic-target.__init__"></a><code class="computeroutput"><span class="keyword">rule</span> __init__ <span class="special">(</span> name <span class="special">:</span> project <span class="special">:</span> sources * <span class="special">:</span> requirements * <span class="special">:</span> default-build * <span class="special">:</span> usage-requirements * <span class="special">)</span></code><p>
+        </p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">name</code></span></dt>
+<dd><p>The name of the target</p></dd>
+<dt><span class="term"><code class="literal">project</code></span></dt>
+<dd><p>
+                The <a class="link" href="reference.html#bbv2.reference.class.project-target" title="Class project-target">project</a>
+                in which the target is declared.
+              </p></dd>
+</dl></div>
+<p>
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.basic-target.generate"></a><a class="indexterm" name="idp262854712"></a><code class="computeroutput"><span class="keyword">rule</span> generate <span class="special">(</span> property-set <span class="special">)</span></code><p>
+        Overrides
+        <a class="link" href="reference.html#bbv2.reference.class.abstract-target.generate">abstract-target.generate</a>.
+
+        Determines final build properties, generates sources, and calls
+        <a class="link" href="reference.html#bbv2.reference.class.basic-target.construct">construct</a>.
+        This method should not be overridden.
+      </p>
+<p>
+        On success, returns:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">a property-set with the usage requirements to be applied to dependents</li>
+<li class="listitem">a list of produced virtual targets, which may be empty.</li>
+</ul></div>
+<p>
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.basic-target.construct"></a><a class="indexterm" name="idp262859672"></a><code class="computeroutput"><span class="keyword">rule</span> construct <span class="special">(</span> name <span class="special">:</span> source-targets * <span class="special">:</span> property-set <span class="special">)</span></code><p>
+        Constructs virtual targets for this abstract target. Returns a
+        usage-requirements property-set and a list of virtual
+        targets. Should be overriden in derived classes.
+      </p>
+</li>
+</ol></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.class.typed-target"></a>Class typed-target</h4></div></div></div>
+<a class="indexterm" name="idp262863816"></a><pre class="programlisting">
+<span class="keyword">class</span> typed-target <span class="special">:</span> <a class="link" href="reference.html#bbv2.reference.class.basic-target" title="Class basic-target">basic-target</a> <span class="special">{</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.typed-target.__init__">__init__</a> <span class="special">(</span> name <span class="special">:</span> project <span class="special">:</span> type <span class="special">:</span> sources * <span class="special">:</span> requirements * <span class="special">:</span> default-build * <span class="special">:</span> usage-requirements * <span class="special">)</span> 
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.typed-target.type">type</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.typed-target.construct">construct</a> <span class="special">(</span> name <span class="special">:</span> source-targets * <span class="special">:</span> property-set <span class="special">)</span>
+
+    <span class="comment"># Methods inherited from </span><a class="link" href="reference.html#bbv2.reference.class.abstract-target" title="Class abstract-target">abstract-target</a>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.name">name</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.project">project</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.location">location</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.abstract-target.full-name">full-name</a> <span class="special">(</span> <span class="special">)</span>
+    
+    <span class="comment"># Methods inherited from </span><a class="link" href="reference.html#bbv2.reference.class.basic-target" title="Class basic-target">basic-target</a>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.basic-target.generate">generate</a> <span class="special">(</span> property-set <span class="special">)</span>
+  <span class="special">}</span>
+</pre>
+<p>
+    <a class="link" href="reference.html#bbv2.reference.class.typed-target" title="Class typed-target">typed-target</a>
+    is the most common kind of target alternative.  Rules for creating
+    typed targets are defined automatically for each type.
+  </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<a name="bbv2.reference.class.typed-target.__init__"></a><code class="computeroutput"><span class="keyword">rule</span> __init__ <span class="special">(</span> name <span class="special">:</span> project <span class="special">:</span> type <span class="special">:</span> sources * <span class="special">:</span> requirements * <span class="special">:</span> default-build * <span class="special">:</span> usage-requirements * <span class="special">)</span></code><p>
+        </p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term"><code class="literal">name</code></span></dt>
+<dd><p>The name of the target</p></dd>
+<dt><span class="term"><code class="literal">project</code></span></dt>
+<dd><p>
+                The <a class="link" href="reference.html#bbv2.reference.class.project-target" title="Class project-target">project</a>
+                in which the target is declared.
+              </p></dd>
+<dt><span class="term"><code class="literal">type</code></span></dt>
+<dd><p>
+                The <a class="link" href="reference.html#bbv2.reference.modules.type" title="type">type</a>
+                of the target.
+              </p></dd>
+</dl></div>
+<p>
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.typed-target.type"></a><a class="indexterm" name="idp262892296"></a><code class="computeroutput"><span class="keyword">rule</span> type <span class="special">(</span> <span class="special">)</span></code><p>
+        Returns the <a class="link" href="reference.html#bbv2.reference.modules.type" title="type">type</a>
+        of the target.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.typed-target.construct"></a><a class="indexterm" name="idp262895640"></a><code class="computeroutput"><span class="keyword">rule</span> construct <span class="special">(</span> name <span class="special">:</span> source-targets * <span class="special">:</span> property-set <span class="special">)</span></code><p>
+        Implements <a class="link" href="reference.html#bbv2.reference.class.basic-target.construct">
+        basic-target.construct</a>.  Attempts to create a target of
+        the correct type using generators appropriate for the given
+        <a class="link" href="reference.html#bbv2.reference.class.property-set" title="Class property-set">property-set</a>.
+        Returns a <a class="link" href="reference.html#bbv2.reference.class.property-set" title="Class property-set">
+        property-set</a> containing the usage requirements
+        and a list of virtual targets.
+        
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This function is invoked automatically by
+            <a class="link" href="reference.html#bbv2.reference.class.basic-target.generate">basic-target.generate</a>
+            and should not be called directly by users.
+          </p></td></tr>
+</table></div>
+<p>
+      </p>
+</li>
+</ol></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.class.property-set"></a>Class property-set</h4></div></div></div>
+<a class="indexterm" name="idp262902360"></a><p>Class for storing a set of properties.</p>
+<pre class="programlisting">
+<span class="keyword">class</span> property-set <span class="special">{</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.property-set.raw">raw</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.property-set.str">str</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.property-set.propagated">propagated</a> <span class="special">(</span> <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.property-set.add">add</a> <span class="special">(</span> ps <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.property-set.add-raw">add-raw</a> <span class="special">(</span> properties * <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.property-set.refine">refine</a> <span class="special">(</span> ps <span class="special">)</span>
+    <span class="keyword">rule</span> <a class="link" href="reference.html#bbv2.reference.class.property-set.get">get</a> <span class="special">(</span> feature <span class="special">)</span>
+<span class="special">}</span>
+</pre>
+<p>
+    There is 1&lt;-&gt;1 correspondence between identity and value. No two instances
+    of the class are equal. To maintain this property, the 'property-set.create'
+    rule should be used to create new instances. Instances are immutable.
+  </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<a name="bbv2.reference.class.property-set.raw"></a><a class="indexterm" name="idp262916104"></a><code class="computeroutput"><span class="keyword">rule</span> raw <span class="special">(</span> <span class="special">)</span></code><p>Returns a Jam list of the stored properties.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.property-set.str"></a><a class="indexterm" name="idp262918952"></a><code class="computeroutput"><span class="keyword">rule</span> str <span class="special">(</span> <span class="special">)</span></code><p>Returns the string repesentation of the stored properties.</p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.property-set.propagated"></a><a class="indexterm" name="idp262921848"></a><code class="computeroutput"><span class="keyword">rule</span> propagated <span class="special">(</span> <span class="special">)</span></code><p>
+        Returns a <a class="link" href="reference.html#bbv2.reference.class.property-set" title="Class property-set">property-set</a>
+        containing all the <a class="link" href="reference.html#bbv2.reference.features.attributes.propagated">propagated</a>
+        properties in this <a class="link" href="reference.html#bbv2.reference.class.property-set" title="Class property-set">property-set</a>.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.property-set.add"></a><a class="indexterm" name="idp262926200"></a><code class="computeroutput"><span class="keyword">rule</span> add <span class="special">(</span> ps <span class="special">)</span></code><p>
+        Returns a new <a class="link" href="reference.html#bbv2.reference.class.property-set" title="Class property-set">
+        property-set</a> containing the union of the properties
+        in this <a class="link" href="reference.html#bbv2.reference.class.property-set" title="Class property-set">
+        property-set</a> and in <code class="literal">ps</code>.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            If <code class="literal">ps</code> contains non-free properties
+            that should override the values in this object, use
+            <a class="link" href="reference.html#bbv2.reference.class.property-set.refine">
+            refine</a> instead.
+          </p></td></tr>
+</table></div>
+<p>
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.property-set.add-raw"></a><a class="indexterm" name="idp262931816"></a><code class="computeroutput"><span class="keyword">rule</span> add-raw <span class="special">(</span> properties * <span class="special">)</span></code><p>
+        Link <a class="link" href="reference.html#bbv2.reference.class.property-set.add">
+        add</a>, except that it takes a list of properties
+        instead of a <a class="link" href="reference.html#bbv2.reference.class.property-set" title="Class property-set">
+        property-set</a>.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.property-set.refine"></a><a class="indexterm" name="idp262935704"></a><code class="computeroutput"><span class="keyword">rule</span> refine <span class="special">(</span> ps <span class="special">)</span></code><p>
+        Refines properties by overriding any non-free and non-conditional
+        properties for which a different value is specified in
+        <code class="literal">ps</code>. Returns the resulting
+        <a class="link" href="reference.html#bbv2.reference.class.property-set" title="Class property-set">property-set</a>.
+      </p>
+</li>
+<li class="listitem">
+<a name="bbv2.reference.class.property-set.get"></a><a class="indexterm" name="idp262939576"></a><code class="computeroutput"><span class="keyword">rule</span> get <span class="special">(</span> feature <span class="special">)</span></code><p>
+        Returns all the values of <code class="literal">feature</code>.
+      </p>
+</li>
+</ol></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.reference.buildprocess"></a>Build process</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#bbv2.reference.buildprocess.alternatives">Alternative selection</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.buildprocess.common">Determining common properties</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.buildprocess.targetpath">Target Paths</a></span></dt>
+</dl></div>
+<p>The general overview of the build process was given in the
+      <a class="link" href="overview.html#bbv2.overview.build_process" title="The Build Process">user documentation</a>.
+      This section provides additional details, and some specific rules.
+    </p>
+<p>To recap, building a target with specific properties includes the
+      following steps:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><p>applying default build,</p></li>
+<li class="listitem"><p>selecting the main target alternative to use,
+          </p></li>
+<li class="listitem"><p>determining "common" properties,</p></li>
+<li class="listitem"><p>building targets referred by the sources list and
+            dependency properties,</p></li>
+<li class="listitem"><p>adding the usage requirements produces when building
+            dependencies to the "common" properties,</p></li>
+<li class="listitem"><p>building the target using generators,</p></li>
+<li class="listitem"><p>computing the usage requirements to be returned.</p></li>
+</ol></div>
+<p>
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.buildprocess.alternatives"></a>Alternative selection</h4></div></div></div>
+<p>When there are several alternatives, one of them must be
+        selected. The process is as follows:</p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            For each alternative <span class="emphasis"><em>condition</em></span> is defined as
+            the set of base properties in requirements. [Note: it might be
+            better to specify the condition explicitly, as in conditional
+            requirements].
+          </li>
+<li class="listitem">
+            An alternative is viable only if all properties in condition
+            are present in build request.
+          </li>
+<li class="listitem">
+            If there's one viable alternative, it's choosen. Otherwise,
+            an attempt is made to find one best alternative. An alternative
+            a is better than another alternative b, iff the set of properties
+            in b's condition is a strict subset of the set of properities of
+            'a's condition. If there's one viable alternative, which is
+            better than all others, it's selected. Otherwise, an error is
+            reported.
+          </li>
+</ol></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.buildprocess.common"></a>Determining common properties</h4></div></div></div>
+<p>The "common" properties is a somewhat artificial term. Those are
+        the intermediate property set from which both the build request for
+        dependencies and properties for building the target are derived.
+      </p>
+<p>Since default build and alternatives are already handled, we have
+        only two inputs: build requests and requirements. Here are the rules
+        about common properties.
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><p>Non-free feature can have only one
+            value</p></li>
+<li class="listitem"><p>A non-conditional property in requirement in always
+            present in common properties.</p></li>
+<li class="listitem"><p>A property in build request is present in
+            common properties, unless (2) tells otherwise.</p></li>
+<li class="listitem"><p>If either build request, or requirements (non-conditional
+            or conditional) include an expandable property (either composite,
+            or property with specified subfeature value), the behaviour is
+            equivalent to explicitly adding all expanded properties to build
+            request or requirements.</p></li>
+<li class="listitem"><p>If requirements include a conditional property, and
+            condiiton of this property is true in context of common
+            properties, then the conditional property should be in common
+            properties as well.</p></li>
+<li class="listitem"><p>If no value for a feature is given by other rules
+            here, it has default value in common properties.</p></li>
+</ol></div>
+<p>Those rules are declarative, they don't specify how to compute the
+        common properties. However, they provide enough information for the
+        user. The important point is the handling of conditional
+        requirements. The condition can be satisfied either by property in
+        build request, by non-conditional requirements, or even by another
+        conditional property. For example, the following example works as
+        expected:
+</p>
+<pre class="programlisting">
+exe a : a.cpp
+      : &lt;toolset&gt;gcc:&lt;variant&gt;release
+        &lt;variant&gt;release:&lt;define&gt;FOO ;
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.buildprocess.targetpath"></a>Target Paths</h4></div></div></div>
+<a class="indexterm" name="idp262956360"></a><p>Several factors determine the location of a concrete
+      file target.  All files in a project are built under
+      the directory bin unless this is overriden by the build-dir project
+      attribute.  Under bin is a path that depends on the properties
+      used to build each target.  This path is uniquely determined by
+      all non-free, non-incidental properties.  For example,
+      given a property set containing:
+      <code class="computeroutput">&lt;toolset&gt;gcc &lt;toolset-gcc:version&gt;4.6.1 &lt;variant&gt;debug
+      &lt;warnings&gt;all &lt;define&gt;_DEBUG &lt;include&gt;/usr/local/include
+      &lt;link&gt;static</code>,
+      the path will be gcc-4.6.1/debug/link-static.  &lt;warnings&gt; is an
+      incidental feature and &lt;define&gt; and &lt;include&gt; are
+      free features, so they do not affect the path.</p>
+<p>Sometimes the paths produced by Boost.Build can become excessively
+      long.  There are a couple of command line options that can help with this.
+      --abbreviate-paths reduces each element to no more than five characters.
+      For example, link-static becomes lnk-sttc.  The --hash option reduces the
+      path to a single directory using an MD5 hash.</p>
+<p>There are two features that affect the build
+      directory.  The &lt;location&gt; feature completely
+      overrides the default build directory.  For example,
+      </p>
+<pre class="programlisting">exe a : a.cpp : &lt;location&gt;. ;</pre>
+<p>
+      builds all the files produced by <code class="computeroutput">a</code>
+      in the directory of the Jamfile.  This is generally
+      discouraged, as it precludes variant builds.</p>
+<p>The &lt;location-prefix&gt; feature adds a
+      prefix to the path, under the project's build
+      directory.  For example,
+      </p>
+<pre class="programlisting">exe a : a.cpp : &lt;location-prefix&gt;subdir ;</pre>
+<p>
+      will create the files for <code class="computeroutput">a</code> in bin/subdir/gcc-4.6.1/debug</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.reference.definitions"></a>Definitions</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#bbv2.reference.features">Features and properties</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.variants.proprefine">Property refinement</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.variants.propcond">Conditional properties</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.ids">Target identifiers and references</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.features"></a>Features and properties</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#bbv2.reference.features.validity">Property Validity</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.features.attributes">Feature Attributes</a></span></dt>
+<dt><span class="section"><a href="reference.html#bbv2.reference.features.declaration">Feature Declaration</a></span></dt>
+</dl></div>
+<p>A <span class="emphasis"><em>feature</em></span> is a normalized (toolset-independent)
+        aspect of a build configuration, such as whether inlining is
+        enabled. Feature names may not contain the '<code class="literal">&gt;</code>'
+        character.</p>
+<p>Each feature in a build configuration has one or more
+        associated <span class="emphasis"><em>value</em></span>s. Feature values for non-free features
+        may not contain the '<code class="literal">&lt;</code>', '<code class="literal">:</code>', or
+        '<code class="literal">=</code>' characters. Feature values for free features may not
+        contain the '<code class="literal">&lt;</code>' character.</p>
+<p>A <span class="emphasis"><em>property</em></span> is a (feature,value) pair, expressed as
+        &lt;feature&gt;value.</p>
+<p>A <span class="emphasis"><em>subfeature</em></span> is a feature that only exists in the
+        presence of its parent feature, and whose identity can be derived
+        (in the context of its parent) from its value. A subfeature's
+        parent can never be another subfeature. Thus, features and their
+        subfeatures form a two-level hierarchy.</p>
+<p>A <span class="emphasis"><em>value-string</em></span> for a feature <span class="bold"><strong>F</strong></span> is a string of
+        the form
+        <code class="literal">value-subvalue1-subvalue2</code>...<code class="literal">-subvalueN</code>, where
+        <code class="literal">value</code> is a legal value for <span class="bold"><strong>F</strong></span> and
+        <code class="literal">subvalue1</code>...<code class="literal">subvalueN</code> are legal values of some
+        of <span class="bold"><strong>F</strong></span>'s subfeatures. For example, the properties
+        <code class="literal">&lt;toolset&gt;gcc &lt;toolset-version&gt;3.0.1</code> can be
+        expressed more conscisely using a value-string, as
+        <code class="literal">&lt;toolset&gt;gcc-3.0.1</code>.</p>
+<p>A <span class="emphasis"><em>property set</em></span> is a set of properties (i.e. a
+        collection without duplicates), for instance:
+        <code class="literal">&lt;toolset&gt;gcc &lt;runtime-link&gt;static</code>.</p>
+<p>A <span class="emphasis"><em>property path</em></span> is a property set whose elements have
+        been joined into a single string separated by slashes. A property
+        path representation of the previous example would be
+        <code class="literal">&lt;toolset&gt;gcc/&lt;runtime-link&gt;static</code>.</p>
+<p>A <span class="emphasis"><em>build specification</em></span> is a property set that fully
+        describes the set of features used to build a target.</p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.features.validity"></a>Property Validity</h5></div></div></div>
+<p>
+          For <a class="link" href="reference.html#bbv2.reference.features.attributes.free">free</a>
+            features, all values are valid. For all other features,
+          the valid values are explicitly specified, and the build
+          system will report an error for the use of an invalid
+          feature-value. Subproperty validity may be restricted so
+          that certain values are valid only in the presence of
+          certain other subproperties. For example, it is possible
+          to specify that the <code class="computeroutput">&lt;gcc-target&gt;mingw</code>
+          property is only valid in the presence of
+          <code class="computeroutput">&lt;gcc-version&gt;2.95.2</code>.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.features.attributes"></a>Feature Attributes</h5></div></div></div>
+<p>Each feature has a collection of zero or more of the following
+          attributes. Feature attributes are low-level descriptions of how the
+          build system should interpret a feature's values when they appear in
+          a build request. We also refer to the attributes of properties, so
+          that an <span class="emphasis"><em>incidental</em></span> property, for example, is
+          one whose feature has the <span class="emphasis"><em>incidental</em></span>
+          attribute.</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p><span class="emphasis"><em>incidental</em></span></p>
+<p>Incidental features are assumed not to affect build
+              products at all. As a consequence, the build system may use
+              the same file for targets whose build specification differs
+              only in incidental features. A feature that controls a
+              compiler's warning level is one example of a likely
+              incidental feature.</p>
+<p>Non-incidental features are assumed to affect build
+              products, so the files for targets whose build specification
+              differs in non-incidental features are placed in different
+              directories as described in <a class="xref" href="reference.html#bbv2.reference.buildprocess.targetpath" title="Target Paths">the section called &#8220;Target Paths&#8221;</a>.
+            </p>
+</li>
+<li class="listitem">
+<p>
+              <a name="bbv2.reference.features.attributes.propagated"></a>
+              <span class="emphasis"><em>propagated</em></span>
+            </p>
+<p>Features of this kind are
+              propagated to dependencies. That is, if a <a class="link" href="overview.html#bbv2.overview.targets.main">main target</a> is built using a
+              propagated
+              property, the build systems attempts to use the same property
+              when building any of its dependencies as part of that main
+              target. For instance, when an optimized exectuable is
+              requested, one usually wants it to be linked with optimized
+              libraries. Thus, the <code class="literal">&lt;optimization&gt;</code> feature is
+              propagated.</p>
+</li>
+<li class="listitem">
+<p>
+              <a name="bbv2.reference.features.attributes.free"></a>
+              <span class="emphasis"><em>free</em></span>
+            </p>
+<p>Most features have a finite set of allowed values, and can
+              only take on a single value from that set in a given build
+              specification. Free features, on the other hand, can have
+              several values at a time and each value can be an arbitrary
+              string. For example, it is possible to have several
+              preprocessor symbols defined simultaneously:</p>
+<pre class="programlisting">
+&lt;define&gt;NDEBUG=1 &lt;define&gt;HAS_CONFIG_H=1
+</pre>
+</li>
+<li class="listitem">
+<p><span class="emphasis"><em>optional</em></span></p>
+<p>An optional feature is a feature that is not required to
+              appear in a build specification. Every non-optional non-free
+              feature has a default value that is used when a value for
+              the feature is not otherwise specified, either in a target's
+              requirements or in the user's build request. [A feature's
+              default value is given by the first value listed in the
+              feature's declaration. -- move this elsewhere - dwa]</p>
+</li>
+<li class="listitem">
+<p><span class="emphasis"><em>symmetric</em></span></p>
+<p>Normally a feature only generates a subvariant directory
+              when its value differs from its default value,
+              leading to an assymmetric subvariant directory structure for
+              certain values of the feature. A symmetric feature
+              always generates a corresponding
+              subvariant directory.</p>
+</li>
+<li class="listitem">
+<p><span class="emphasis"><em>path</em></span></p>
+<p>The value of a path feature specifies a path. The path is
+              treated as relative to the directory of Jamfile where path
+              feature is used and is translated appropriately by the build
+              system when the build is invoked from a different
+              directory</p>
+</li>
+<li class="listitem">
+<p><span class="emphasis"><em>implicit</em></span></p>
+<p>Values of implicit features alone identify the feature.
+              For example, a user is not required to write
+              "&lt;toolset&gt;gcc", but can simply write "gcc". Implicit
+              feature names also don't appear in variant paths, although
+              the values do. Thus: bin/gcc/... as opposed to
+              bin/toolset-gcc/.... There should typically be only a few
+              such features, to avoid possible name clashes.</p>
+</li>
+<li class="listitem">
+<p><span class="emphasis"><em>composite</em></span></p>
+<p>Composite features actually correspond to groups of
+              properties. For example, a build variant is a composite
+              feature. When generating targets from a set of build
+              properties, composite features are recursively expanded and
+              <span class="emphasis"><em>added</em></span> to the build property set, so rules can find
+              them if necessary. Non-composite non-free features override
+              components of composite features in a build property set.</p>
+</li>
+<li class="listitem">
+<p><span class="emphasis"><em>dependency</em></span></p>
+<p>The value of a dependency feature is a target reference.
+              When used for building of a main target, the value of
+              dependency feature is treated as additional dependency.</p>
+<p>For example, dependency features allow to state that
+              library A depends on library B. As the result, whenever an
+              application will link to A, it will also link to B.
+              Specifying B as dependency of A is different from adding B to
+              the sources of A. </p>
+</li>
+</ul></div>
+<p>Features that are neither free nor incidental are called
+          <span class="emphasis"><em>base</em></span> features.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="bbv2.reference.features.declaration"></a>Feature Declaration</h5></div></div></div>
+<p>The low-level feature declaration interface is the
+          <code class="literal">feature</code> rule from the
+          <code class="literal">feature</code> module:
+
+</p>
+<pre class="programlisting">
+rule feature ( name : allowed-values * : attributes * )
+</pre>
+<p>
+
+          A feature's allowed-values may be extended with the
+          <code class="computeroutput">feature.extend</code> rule.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.variants.proprefine"></a>Property refinement</h4></div></div></div>
+<p>When a target with certain properties is requested, and that
+        target requires some set of properties, it is needed to find the
+        set of properties to use for building. This process is called
+        <span class="emphasis"><em>property refinement</em></span> and is performed by these rules</p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Each property in the required set is added to the original
+            property set
+          </li>
+<li class="listitem">
+            If the original property set includes property with a different
+            value of non free feature, that property is removed.
+          </li>
+</ol></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.variants.propcond"></a>Conditional properties</h4></div></div></div>
+<p>Sometime it's desirable to apply certain requirements only for
+        a specific combination of other properties. For example, one of
+        compilers that you use issues a pointless warning that you want to
+        suppress by passing a command line option to it. You would not
+        want to pass that option to other compilers. Conditional
+        properties allow you to do just that. Their syntax is:</p>
+<pre class="programlisting">
+        property ( "," property ) * ":" property
+      </pre>
+<p>
+        For example, the problem above would be solved by:
+
+</p>
+<pre class="programlisting">
+exe hello : hello.cpp : &lt;toolset&gt;yfc:&lt;cxxflags&gt;-disable-pointless-warning ;
+</pre>
+<p>
+      </p>
+<p>The syntax also allows several properties in the condition, for
+        example:
+</p>
+<pre class="programlisting">
+exe hello : hello.cpp : &lt;os&gt;NT,&lt;toolset&gt;gcc:&lt;link&gt;static ;
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.reference.ids"></a>Target identifiers and references</h4></div></div></div>
+<p><span class="emphasis"><em>Target identifier</em></span> is used to denote a
+        target. The syntax is:</p>
+<pre class="programlisting">
+target-id -&gt; (project-id | target-name | file-name )
+              | (project-id | directory-name) "//" target-name
+project-id -&gt; path
+target-name -&gt; path
+file-name -&gt; path
+directory-name -&gt; path
+</pre>
+<p>
+        This grammar allows some elements to be recognized as either
+
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              project id (at this point, all project ids start with slash).
+            </li>
+<li class="listitem">
+              name of target declared in current Jamfile (note that target
+              names may include slash).
+            </li>
+<li class="listitem">
+              a regular file, denoted by absolute name or name relative to
+              project's sources location.
+            </li>
+</ul></div>
+<p>
+
+        To determine the real meaning a check is made if project-id
+        by the specified name exists, and then if main target of that
+        name exists. For example, valid target ids might be:
+
+</p>
+<pre class="screen">
+a                                    -- target in current project
+lib/b.cpp                            -- regular file
+/boost/thread                        -- project "/boost/thread"
+/home/ghost/build/lr_library//parser -- target in specific project
+</pre>
+<p>
+
+      </p>
+<p><span class="bold"><strong>Rationale:</strong></span>Target is separated from project by special
+        separator (not just slash), because:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            It emphasises that projects and targets are different things.
+          </li>
+<li class="listitem">
+            It allows to have main target names with slashes.
+
+            
+          </li>
+</ul></div>
+<p><a name="bbv2.reference.targets.references"></a>
+        <span class="emphasis"><em>Target reference</em></span> is used to
+        specify a source target, and may additionally specify desired
+        properties for that target. It has this syntax:</p>
+<pre class="programlisting">
+target-reference -&gt; target-id [ "/" requested-properties ]
+requested-properties -&gt; property-path
+</pre>
+<p>
+        For example,
+
+        </p>
+<pre class="programlisting">
+          exe compiler : compiler.cpp libs/cmdline/&lt;optimization&gt;space ;
+        </pre>
+<p>
+
+        would cause the version of <code class="literal">cmdline</code> library,
+        optimized for space, to be linked in even if the
+        <code class="literal">compiler</code> executable is build with optimization for
+        speed.
+      </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2009 Vladimir Prus<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tasks.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bbv2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="extender.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

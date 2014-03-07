@@ -1,0 +1,118 @@
+# Copyright Vladimir Prus 2004.
+# Copyright Toon Knapen 2004.
+# Copyright Boris Gubenko 2007.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt
+# or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#
+# Boost.Build V2 toolset for the HP aC++ compiler.
+#
+
+import toolset : flags ;
+import feature ;
+import generators ;
+import common ;
+
+feature.extend toolset : acc ;
+toolset.inherit acc : unix ;
+generators.override builtin.lib-generator : acc.prebuilt ;
+generators.override acc.searched-lib-generator : searched-lib-generator ;
+
+# Configures the acc toolset.
+rule init ( version ? : user-provided-command * : options * )
+{
+    local condition = [ common.check-init-parameters acc
+        : version $(version) ] ;
+
+    local command = [ common.get-invocation-command acc : aCC
+        : $(user-provided-command) ] ;
+
+    common.handle-options acc : $(condition) : $(command) : $(options) ;
+}
+
+
+# Declare generators
+generators.register-c-compiler acc.compile.c : C : OBJ : <toolset>acc ;
+generators.register-c-compiler acc.compile.c++ : CPP : OBJ : <toolset>acc ;
+
+# Declare flags.
+flags acc CFLAGS <optimization>off : ;
+flags acc CFLAGS <optimization>speed : -O3 ;
+flags acc CFLAGS <optimization>space : -O2 ;
+
+flags acc CFLAGS <inlining>off : +d ;
+flags acc CFLAGS <inlining>on : ;
+flags acc CFLAGS <inlining>full : ;
+
+flags acc C++FLAGS <exception-handling>off : ;
+flags acc C++FLAGS <exception-handling>on : ;
+
+flags acc C++FLAGS <rtti>off : ;
+flags acc C++FLAGS <rtti>on : ;
+
+# We want the full path to the sources in the debug symbols because otherwise
+# the debugger won't find the sources when we use boost.build.
+flags acc CFLAGS <debug-symbols>on : -g ;
+flags acc LINKFLAGS <debug-symbols>on : -g ;
+flags acc LINKFLAGS <debug-symbols>off : -s ;
+
+# V2 does not have <shared-linkable>, not sure what this meant in V1.
+# flags acc CFLAGS <shared-linkable>true : +Z ;
+
+flags acc CFLAGS <profiling>on : -pg ;
+flags acc LINKFLAGS <profiling>on : -pg ;
+
+flags acc CFLAGS <address-model>64 : +DD64 ;
+flags acc LINKFLAGS <address-model>64 : +DD64 ;
+
+# It is unknown if there's separate option for rpath used only
+# at link time, similar to -rpath-link in GNU. We'll use -L.
+flags acc RPATH_LINK : <xdll-path> ;
+
+flags acc CFLAGS <cflags> ;
+flags acc C++FLAGS <cxxflags> ;
+flags acc DEFINES <define> ;
+flags acc UNDEFS <undef> ;
+flags acc HDRS <include> ;
+flags acc STDHDRS <sysinclude> ;
+flags acc LINKFLAGS <linkflags> ;
+flags acc ARFLAGS <arflags> ;
+
+flags acc LIBPATH <library-path> ;
+flags acc NEEDLIBS <library-file> ;
+flags acc FINDLIBS <find-shared-library> ;
+flags acc FINDLIBS <find-static-library> ;
+
+# Select the compiler name according to the threading model.
+flags acc CFLAGS <threading>multi : -mt   ;
+flags acc LINKFLAGS <threading>multi : -mt ;
+
+flags acc.compile.c++ TEMPLATE_DEPTH <c++-template-depth> ;
+
+
+actions acc.link bind NEEDLIBS
+{
+    $(CONFIG_COMMAND) -AA $(LINKFLAGS) -o "$(<[1])" -L"$(RPATH_LINK)" -L$(LIBPATH) -L$(STDLIBPATH) "$(>)" "$(NEEDLIBS)" "$(NEEDLIBS)" -l$(FINDLIBS) $(OPTIONS)
+}
+
+SPACE = " " ;
+actions acc.link.dll bind NEEDLIBS
+{
+    $(CONFIG_COMMAND) -AA -b $(LINKFLAGS) -o "$(<[1])" -L"$(RPATH_LINK)" -Wl,+h$(<[-1]:D=) -L$(LIBPATH) -L$(STDLIBPATH) "$(>)" "$(NEEDLIBS)" "$(NEEDLIBS)" -l$(FINDLIBS) $(OPTIONS)
+}
+
+actions acc.compile.c
+{
+    cc -c -I$(BOOST_ROOT) -U$(UNDEFS) -D$(DEFINES) $(CFLAGS) -I"$(HDRS)" -I"$(STDHDRS)" -o "$(<)" "$(>)" $(OPTIONS)
+}
+
+actions acc.compile.c++
+{
+    $(CONFIG_COMMAND) -AA -c -Wc,--pending_instantiations=$(TEMPLATE_DEPTH) -I$(BOOST_ROOT) -U$(UNDEFS) -D$(DEFINES) $(CFLAGS) $(C++FLAGS) -I"$(HDRS)" -I"$(STDHDRS)" -o "$(<)" "$(>)" $(OPTIONS)
+}
+
+actions updated together piecemeal acc.archive
+{
+    ar ru$(ARFLAGS:E="") "$(<)" "$(>)"
+}

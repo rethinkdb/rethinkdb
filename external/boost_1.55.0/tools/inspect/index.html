@@ -1,0 +1,58 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="en-us">
+<meta name="GENERATOR" content="Microsoft FrontPage 5.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Inspect Tool</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h1>
+<img src="../../boost.png" alt="boost.png (6897 bytes)" align="center" width="277" height="86">Inspect 
+Tool</h1>
+<p>It is not uncommon for various common errors or
+<a href="http://www.boost.org/more/lib_guide.htm">guideline violations</a> to creep into the 
+Boost libraries. The <i>inspect</i> program detects and reports several common 
+problems. It can be used to scan a proposed Boost submission to identify various 
+failures.</p>
+<p>The <i>inspect</i> program is written in C++ to limit tool chain 
+dependencies, and should be portable to any system.</p>
+<p>The program is run in the directory to be scanned for errors. Sub-directories 
+are also included in the scan.</p>
+<p>If the first program argument is <code>-cvs</code>, only files and 
+directories in the CVS tree of the current directory are scanned. Otherwise all 
+files and sub-directories are included in the scan.</p>
+<p>If the first program argument is <code>-help</code>, a usage message is 
+displayed, showing all available program options.</p>
+<p>The program sources include:</p>
+<ul>
+  <li><a href="inspector.hpp">inspect.hpp</a> and <a href="inspect.cpp">
+  inspect.cpp</a></li>
+  <li><a href="link_check.hpp">link_check.hpp</a> and <a href="link_check.cpp">
+  link_check.cpp</a></li>
+  <li><a href="path_name_check.hpp">path_name_check.hpp</a> and
+  <a href="path_name_check.cpp">path_name_check.cpp</a></li>
+  <li><a href="tab_check.hpp">tab_check.hpp</a> and <a href="tab_check.cpp">
+  tab_check.cpp</a></li>
+</ul>
+<p>A <a href="build/Jamfile.v2">Jamfile</a> is provided to build the program 
+using Boost.Build.</p>
+<p>A Microsoft Visual Studio solution file is provided to aid maintenance. See
+<a href="build/msvc/readme.txt">readme.txt</a> 
+before using it.</p>
+<hr>
+<p>Revised
+<!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->29 June, 2008<!--webbot bot="Timestamp" endspan i-checksum="19976" --></p>
+
+<p>© Copyright Beman Dawes, 2003</p>
+<p> Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+www.boost.org/LICENSE_1_0.txt</a>)</p>
+
+</body>
+
+</html>

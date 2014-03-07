@@ -1,0 +1,147 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Boost.Functional/OverloadedFunction 1.0.0</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.Functional/OverloadedFunction 1.0.0">
+<link rel="next" href="boost_functional_overloadedfunction/getting_started.html" title="Getting Started">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_functional_overloadedfunction/getting_started.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="boost_functional_overloadedfunction"></a>Chapter&#160;1.&#160;Boost.Functional/OverloadedFunction 1.0.0</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Lorenzo</span> <span class="surname">Caminiti <code class="email">&lt;<a class="email" href="mailto:lorcaminiti@gmail.com">lorcaminiti@gmail.com</a>&gt;</code></span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2011, 2012 Lorenzo Caminiti</p></div>
+<div><div class="legalnotice">
+<a name="boost_functional_overloadedfunction.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="index.html#boost_functional_overloadedfunction.introduction">Introduction</a></span></dt>
+<dt><span class="section"><a href="boost_functional_overloadedfunction/getting_started.html">Getting
+    Started</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_functional_overloadedfunction/getting_started.html#boost_functional_overloadedfunction.getting_started.compilers_and_platforms">Compilers
+      and Platforms</a></span></dt>
+<dt><span class="section"><a href="boost_functional_overloadedfunction/getting_started.html#boost_functional_overloadedfunction.getting_started.installation">Installation</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_functional_overloadedfunction/tutorial.html">Tutorial</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_functional_overloadedfunction/tutorial.html#boost_functional_overloadedfunction.tutorial.overloading">Overloading</a></span></dt>
+<dt><span class="section"><a href="boost_functional_overloadedfunction/tutorial.html#boost_functional_overloadedfunction.tutorial.without_function_types">Without
+      Function Types</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="reference.html#header.boost.functional.overloaded_function_hpp">Header &lt;boost/functional/overloaded_function.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.functional.overloaded_function.config_hpp">Header &lt;boost/functional/overloaded_function/config.hpp&gt;</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_functional_overloadedfunction/acknowledgments.html">Acknowledgments</a></span></dt>
+</dl>
+</div>
+<p>
+    This library allows to overload different functions into a single function object.
+  </p>
+<div class="section boost_functional_overloadedfunction_introduction">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_functional_overloadedfunction.introduction"></a><a class="link" href="index.html#boost_functional_overloadedfunction.introduction" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<p>
+      Consider the following functions which have distinct signatures:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">identity_s</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="comment">// Function (as pointer).</span>
+    <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">x</span><span class="special">;</span> <span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">identity_i_impl</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">x</span><span class="special">)</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">x</span><span class="special">;</span> <span class="special">}</span>
+<span class="keyword">int</span> <span class="special">(&amp;</span><span class="identifier">identity_i</span><span class="special">)(</span><span class="keyword">int</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">identity_i_impl</span><span class="special">;</span> <span class="comment">// Function reference.</span>
+
+<span class="keyword">double</span> <span class="identifier">identity_d_impl</span><span class="special">(</span><span class="keyword">double</span> <span class="identifier">x</span><span class="special">)</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">x</span><span class="special">;</span> <span class="special">}</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">function</span><span class="special">&lt;</span><span class="keyword">double</span> <span class="special">(</span><span class="keyword">double</span><span class="special">)&gt;</span> <span class="identifier">identity_d</span> <span class="special">=</span> <span class="identifier">identity_d_impl</span><span class="special">;</span> <span class="comment">// Functor.</span>
+</pre>
+<p>
+    </p>
+<p>
+      Instead of calling them using their separate names (here <code class="computeroutput"><span class="identifier">BOOST_TEST</span></code>
+      is equivalent to <code class="computeroutput"><span class="identifier">assert</span></code>):
+      <sup>[<a name="boost_functional_overloadedfunction.introduction.f0" href="#ftn.boost_functional_overloadedfunction.introduction.f0" class="footnote">1</a>]</sup>
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity_s</span><span class="special">(</span><span class="string">"abc"</span><span class="special">)</span> <span class="special">==</span> <span class="string">"abc"</span><span class="special">);</span>
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity_i</span><span class="special">(</span><span class="number">123</span><span class="special">)</span> <span class="special">==</span> <span class="number">123</span><span class="special">);</span>
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity_d</span><span class="special">(</span><span class="number">1.23</span><span class="special">)</span> <span class="special">==</span> <span class="number">1.23</span><span class="special">);</span>
+</pre>
+<p>
+    </p>
+<p>
+      It is possible to use this library to create a single <a href="http://en.wikipedia.org/wiki/Function_overloading" target="_top">overloaded</a>
+      function object (or <a href="http://en.wikipedia.org/wiki/Functor" target="_top">functor</a>)
+      named <code class="computeroutput"><span class="identifier">identity</span></code> that aggregates
+      together the calls to the specific functions (see also <a href="../../test/functor.cpp" target="_top"><code class="literal">functor.cpp</code></a>
+      and <a href="../../test/identity.hpp" target="_top"><code class="literal">identity.hpp</code></a>):
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">overloaded_function</span><span class="special">&lt;</span>
+      <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;)</span>
+    <span class="special">,</span> <span class="keyword">int</span> <span class="special">(</span><span class="keyword">int</span><span class="special">)</span>
+    <span class="special">,</span> <span class="keyword">double</span> <span class="special">(</span><span class="keyword">double</span><span class="special">)</span>
+<span class="special">&gt;</span> <span class="identifier">identity</span><span class="special">(</span><span class="identifier">identity_s</span><span class="special">,</span> <span class="identifier">identity_i</span><span class="special">,</span> <span class="identifier">identity_d</span><span class="special">);</span>
+
+<span class="comment">// All calls via single `identity` function.</span>
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity</span><span class="special">(</span><span class="string">"abc"</span><span class="special">)</span> <span class="special">==</span> <span class="string">"abc"</span><span class="special">);</span>
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity</span><span class="special">(</span><span class="number">123</span><span class="special">)</span> <span class="special">==</span> <span class="number">123</span><span class="special">);</span>
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity</span><span class="special">(</span><span class="number">1.23</span><span class="special">)</span> <span class="special">==</span> <span class="number">1.23</span><span class="special">);</span>
+</pre>
+<p>
+    </p>
+<p>
+      Note how the functions are called via a single overloaded function object
+      <code class="computeroutput"><span class="identifier">identity</span></code> instead of using their
+      different names <code class="computeroutput"><span class="identifier">identity_s</span></code>,
+      <code class="computeroutput"><span class="identifier">identity_i</span></code>, and <code class="computeroutput"><span class="identifier">identity_d</span></code>.
+    </p>
+</div>
+<div class="footnotes">
+<br><hr width="100" align="left">
+<div class="footnote"><p><sup>[<a id="ftn.boost_functional_overloadedfunction.introduction.f0" href="#boost_functional_overloadedfunction.introduction.f0" class="para">1</a>] </sup>
+        In most of the examples presented in this documentation, the Boost.Detail/LightweightTest
+        (<code class="literal">boost/detail/lightweight_test.hpp</code>) macro <code class="computeroutput"><span class="identifier">BOOST_TEST</span></code> is used to check correctness
+        conditions (conceptually similar to <code class="computeroutput"><span class="identifier">assert</span></code>).
+        A failure of the checked condition does not abort the execution of the program,
+        it will instead make <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">report_errors</span></code>
+        return a non-zero program exit code. Using Boost.Detail/LightweightTest allows
+        to add the examples to the library regression tests so to make sure that
+        they always compile and run correctly.
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: April 28, 2012 at 02:19:13 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_functional_overloadedfunction/getting_started.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

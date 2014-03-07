@@ -1,0 +1,171 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Customization of Spirit's Attribute Handling</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../advanced.html" title="Advanced">
+<link rel="prev" href="indepth/parsers_indepth.html" title="Parsers in Depth">
+<link rel="next" href="customize/is_container.html" title="Determine if a Type Should be Treated as a Container (Qi and Karma)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="indepth/parsers_indepth.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../advanced.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="customize/is_container.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.advanced.customize"></a><a class="link" href="customize.html" title="Customization of Spirit's Attribute Handling">Customization of Spirit's
+      Attribute Handling</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="customize/is_container.html">Determine if
+        a Type Should be Treated as a Container (Qi and Karma)</a></span></dt>
+<dt><span class="section"><a href="customize/is_string.html">Determine if a
+        Type Should be Treated as a String (Qi and Karma)</a></span></dt>
+<dt><span class="section"><a href="customize/handles_container.html">Determine
+        Whether a Component Handles Container Attributes (Qi and Karma)</a></span></dt>
+<dt><span class="section"><a href="customize/transform.html">Transform an Attribute
+        to a Different Type (Qi and Karma)</a></span></dt>
+<dt><span class="section"><a href="customize/assign_to.html">Store a Parsed
+        Attribute Value (Qi)</a></span></dt>
+<dt><span class="section"><a href="customize/store_value.html">Store Parsed
+        Attribute Values into a Container (Qi)</a></span></dt>
+<dt><span class="section"><a href="customize/clear_value.html">Re-Initialize
+        an Attribute Value before Parsing (Qi)</a></span></dt>
+<dt><span class="section"><a href="customize/extract_from.html">Extract an
+        Attribute Value to Generate Output (Karma)</a></span></dt>
+<dt><span class="section"><a href="customize/extract_from_container.html">Extract
+        From a Container Attribute Value to Generate Output (Karma)</a></span></dt>
+<dt><span class="section"><a href="customize/iterate.html">Extract Attribute
+        Values to Generate Output from a Container (Karma)</a></span></dt>
+<dt><span class="section"><a href="customize/string_traits.html">Extract a
+        C-Style String to Generate Output from a String Type (Karma)</a></span></dt>
+<dt><span class="section"><a href="customize/attribute_as.html">Atomically
+        Extract an Attribute Value from a Container (Karma)</a></span></dt>
+<dt><span class="section"><a href="customize/auto.html">Create Components from
+        Attributes (Qi and Karma)</a></span></dt>
+</dl></div>
+<h5>
+<a name="spirit.advanced.customize.h0"></a>
+        <span class="phrase"><a name="spirit.advanced.customize.why_do_we_need_attribute_customization_points"></a></span><a class="link" href="customize.html#spirit.advanced.customize.why_do_we_need_attribute_customization_points">Why
+        do we need Attribute Customization Points</a>
+      </h5>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Before you read on please be aware that the interfaces described in this
+          section are not finalized and may change in the future without attempting
+          to be backwards compatible. We document the customization point interfaces
+          anyways as we think they are important. Understanding customization points
+          helps understanding Spirit. Additionally they prove to be powerful tools
+          enabling full integration of the user's data structures with <span class="emphasis"><em>Qi's</em></span>
+          parsers and <span class="emphasis"><em>Karma's</em></span> generators.
+        </p></td></tr>
+</table></div>
+<p>
+        <a href="http://boost-spirit.com" target="_top">Spirit</a> has been written with
+        extensibility in mind. It provides many different attribute customization
+        points allowing to integrate custom data types with the process of parsing
+        in <span class="emphasis"><em>Spirit.Qi</em></span> or output generation with <span class="emphasis"><em>Spirit.Karma</em></span>.
+        All attribute customization points are exposed using a similar technique:
+        full or partial template specialization. <a href="http://boost-spirit.com" target="_top">Spirit</a>
+        generally implements the main template, providing a default implementation.
+        You as the user have to provide a partial or full specialization of this
+        template for the data types you want to integrate with the library. In fact,
+        the library uses these customization points itself for instance to handle
+        the magic of the <code class="computeroutput"><span class="identifier">unused_type</span></code>
+        attribute type.
+      </p>
+<p>
+        Here is an example showing the <a class="link" href="customize/store_value/container_value.html" title="Determine the Type to be Stored in a Container (Qi)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">container_value</span></code></a> customization point
+        used by different parsers (such as <a class="link" href="../qi/reference/operator/kleene.html" title="Kleene Parser (*a)">Kleene</a>,
+        <a class="link" href="../qi/reference/operator/plus.html" title="Plus Parser (+a)">Plus</a>, etc.) to find
+        the attribute type to be stored in a supplied STL container:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Container</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Enable</span><span class="comment">/* = void*/</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">container_value</span>
+  <span class="special">:</span> <span class="identifier">detail</span><span class="special">::</span><span class="identifier">remove_value_const</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Container</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">&gt;</span>
+<span class="special">{};</span>
+</pre>
+<p>
+      </p>
+<p>
+        This template is instantiated by the library at the appropriate places while
+        using the supplied container type as the template argument. The embedded
+        <code class="computeroutput"><span class="identifier">type</span></code> is used as the attribute
+        type while parsing the elements to be store in that container.
+      </p>
+<p>
+        The following example shows the predefined specialization for <code class="computeroutput"><span class="identifier">unused_type</span></code>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">container_value</span><span class="special">&lt;</span><span class="identifier">unused_type</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">unused_type</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        which defines its embedded <code class="computeroutput"><span class="identifier">type</span></code>
+        to be <code class="computeroutput"><span class="identifier">unused_type</span></code> as well,
+        this way propagating the 'don't care' attribute status to the embedded parser.
+      </p>
+<p>
+        All attribute customization points follow the same scheme. The last template
+        parameter is always <code class="computeroutput"><span class="keyword">typename</span> <span class="identifier">Enable</span> <span class="special">=</span> <span class="keyword">void</span></code> allowing to apply SFINAE for fine grained
+        control over the template specialization process. But most of the time you
+        can safely forget about its existence.
+      </p>
+<p>
+        The following sections will describe all customization points, together with
+        a description which needs to be specialized for what purpose.
+      </p>
+<h5>
+<a name="spirit.advanced.customize.h1"></a>
+        <span class="phrase"><a name="spirit.advanced.customize.the_usage_of_customization_points"></a></span><a class="link" href="customize.html#spirit.advanced.customize.the_usage_of_customization_points">The
+        Usage of Customization Points</a>
+      </h5>
+<p>
+        The different customizations points are used by different parts of the library.
+        Part of the customizations points are used by both, <span class="emphasis"><em>Spirit.Qi</em></span>
+        and <span class="emphasis"><em>Spirit.Karma</em></span>, whereas others are specialized to
+        be applied for one of the sub-libraries only. We will explain when a specific
+        customization point needs to be implemented and, equally important, which
+        customization points need to be implemented at the same time. Often it is
+        not sufficient to provide a specialization for one single customization point
+        only, in this case you as the user have to provide all necessary customizations
+        for your data type you want to integrate with the library.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="indepth/parsers_indepth.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../advanced.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="customize/is_container.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,153 @@
+{
+  "source": "doc/api/path.markdown",
+  "modules": [
+    {
+      "textRaw": "Path",
+      "name": "path",
+      "stability": 3,
+      "stabilityText": "Stable",
+      "desc": "<p>This module contains utilities for handling and transforming file\npaths.  Almost all these methods perform only string transformations.\nThe file system is not consulted to check whether paths are valid.\n\n</p>\n<p>Use <code>require(&#39;path&#39;)</code> to use this module.  The following methods are provided:\n\n</p>\n",
+      "methods": [
+        {
+          "textRaw": "path.normalize(p)",
+          "type": "method",
+          "name": "normalize",
+          "desc": "<p>Normalize a string path, taking care of <code>&#39;..&#39;</code> and <code>&#39;.&#39;</code> parts.\n\n</p>\n<p>When multiple slashes are found, they&#39;re replaced by a single one;\nwhen the path contains a trailing slash, it is preserved.\nOn Windows backslashes are used.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>path.normalize(&#39;/foo/bar//baz/asdf/quux/..&#39;)\n// returns\n&#39;/foo/bar/baz/asdf&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "p"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "path.join([path1], [path2], [...])",
+          "type": "method",
+          "name": "join",
+          "desc": "<p>Join all arguments together and normalize the resulting path.\n\n</p>\n<p>Arguments must be strings.  In v0.8, non-string arguments were\nsilently ignored.  In v0.10 and up, an exception is thrown.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>path.join(&#39;/foo&#39;, &#39;bar&#39;, &#39;baz/asdf&#39;, &#39;quux&#39;, &#39;..&#39;)\n// returns\n&#39;/foo/bar/baz/asdf&#39;\n\npath.join(&#39;foo&#39;, {}, &#39;bar&#39;)\n// throws exception\nTypeError: Arguments to path.join must be strings</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "path1",
+                  "optional": true
+                },
+                {
+                  "name": "path2",
+                  "optional": true
+                },
+                {
+                  "name": "...",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "path.resolve([from ...], to)",
+          "type": "method",
+          "name": "resolve",
+          "desc": "<p>Resolves <code>to</code> to an absolute path.\n\n</p>\n<p>If <code>to</code> isn&#39;t already absolute <code>from</code> arguments are prepended in right to left\norder, until an absolute path is found. If after using all <code>from</code> paths still\nno absolute path is found, the current working directory is used as well. The\nresulting path is normalized, and trailing slashes are removed unless the path\ngets resolved to the root directory. Non-string arguments are ignored.\n\n</p>\n<p>Another way to think of it is as a sequence of <code>cd</code> commands in a shell.\n\n</p>\n<pre><code>path.resolve(&#39;foo/bar&#39;, &#39;/tmp/file/&#39;, &#39;..&#39;, &#39;a/../subfile&#39;)</code></pre>\n<p>Is similar to:\n\n</p>\n<pre><code>cd foo/bar\ncd /tmp/file/\ncd ..\ncd a/../subfile\npwd</code></pre>\n<p>The difference is that the different paths don&#39;t need to exist and may also be\nfiles.\n\n</p>\n<p>Examples:\n\n</p>\n<pre><code>path.resolve(&#39;/foo/bar&#39;, &#39;./baz&#39;)\n// returns\n&#39;/foo/bar/baz&#39;\n\npath.resolve(&#39;/foo/bar&#39;, &#39;/tmp/file/&#39;)\n// returns\n&#39;/tmp/file&#39;\n\npath.resolve(&#39;wwwroot&#39;, &#39;static_files/png/&#39;, &#39;../gif/image.gif&#39;)\n// if currently in /home/myself/node, it returns\n&#39;/home/myself/node/wwwroot/static_files/gif/image.gif&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "from ...",
+                  "optional": true
+                },
+                {
+                  "name": "to"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "path.relative(from, to)",
+          "type": "method",
+          "name": "relative",
+          "desc": "<p>Solve the relative path from <code>from</code> to <code>to</code>.\n\n</p>\n<p>At times we have two absolute paths, and we need to derive the relative\npath from one to the other.  This is actually the reverse transform of\n<code>path.resolve</code>, which means we see that:\n\n</p>\n<pre><code>path.resolve(from, path.relative(from, to)) == path.resolve(to)</code></pre>\n<p>Examples:\n\n</p>\n<pre><code>path.relative(&#39;C:\\\\orandea\\\\test\\\\aaa&#39;, &#39;C:\\\\orandea\\\\impl\\\\bbb&#39;)\n// returns\n&#39;..\\\\..\\\\impl\\\\bbb&#39;\n\npath.relative(&#39;/data/orandea/test/aaa&#39;, &#39;/data/orandea/impl/bbb&#39;)\n// returns\n&#39;../../impl/bbb&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "from"
+                },
+                {
+                  "name": "to"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "path.dirname(p)",
+          "type": "method",
+          "name": "dirname",
+          "desc": "<p>Return the directory name of a path.  Similar to the Unix <code>dirname</code> command.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>path.dirname(&#39;/foo/bar/baz/asdf/quux&#39;)\n// returns\n&#39;/foo/bar/baz/asdf&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "p"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "path.basename(p, [ext])",
+          "type": "method",
+          "name": "basename",
+          "desc": "<p>Return the last portion of a path.  Similar to the Unix <code>basename</code> command.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>path.basename(&#39;/foo/bar/baz/asdf/quux.html&#39;)\n// returns\n&#39;quux.html&#39;\n\npath.basename(&#39;/foo/bar/baz/asdf/quux.html&#39;, &#39;.html&#39;)\n// returns\n&#39;quux&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "p"
+                },
+                {
+                  "name": "ext",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "path.extname(p)",
+          "type": "method",
+          "name": "extname",
+          "desc": "<p>Return the extension of the path, from the last &#39;.&#39; to end of string\nin the last portion of the path.  If there is no &#39;.&#39; in the last portion\nof the path or the first character of it is &#39;.&#39;, then it returns\nan empty string.  Examples:\n\n</p>\n<pre><code>path.extname(&#39;index.html&#39;)\n// returns\n&#39;.html&#39;\n\npath.extname(&#39;index.&#39;)\n// returns\n&#39;.&#39;\n\npath.extname(&#39;index&#39;)\n// returns\n&#39;&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "p"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "textRaw": "path.sep",
+          "name": "sep",
+          "desc": "<p>The platform-specific file separator. <code>&#39;\\\\&#39;</code> or <code>&#39;/&#39;</code>.\n\n</p>\n<p>An example on *nix:\n\n</p>\n<pre><code>&#39;foo/bar/baz&#39;.split(path.sep)\n// returns\n[&#39;foo&#39;, &#39;bar&#39;, &#39;baz&#39;]</code></pre>\n<p>An example on Windows:\n\n</p>\n<pre><code>&#39;foo\\\\bar\\\\baz&#39;.split(path.sep)\n// returns\n[&#39;foo&#39;, &#39;bar&#39;, &#39;baz&#39;]</code></pre>\n"
+        },
+        {
+          "textRaw": "path.delimiter",
+          "name": "delimiter",
+          "desc": "<p>The platform-specific path delimiter, <code>;</code> or <code>&#39;:&#39;</code>.\n\n</p>\n<p>An example on *nix:\n\n</p>\n<pre><code>console.log(process.env.PATH)\n// &#39;/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin&#39;\n\nprocess.env.PATH.split(path.delimiter)\n// returns\n[&#39;/usr/bin&#39;, &#39;/bin&#39;, &#39;/usr/sbin&#39;, &#39;/sbin&#39;, &#39;/usr/local/bin&#39;]</code></pre>\n<p>An example on Windows:\n\n</p>\n<pre><code>console.log(process.env.PATH)\n// &#39;C:\\Windows\\system32;C:\\Windows;C:\\Program Files\\nodejs\\&#39;\n\nprocess.env.PATH.split(path.delimiter)\n// returns\n[&#39;C:\\Windows\\system32&#39;, &#39;C:\\Windows&#39;, &#39;C:\\Program Files\\nodejs\\&#39;]</code></pre>\n"
+        }
+      ],
+      "type": "module",
+      "displayName": "Path"
+    }
+  ]
+}

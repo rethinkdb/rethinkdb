@@ -1,0 +1,138 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:StreamHandleService Stream handle service requirements]
+
+A stream handle service must meet the requirements for a [link
+boost_asio.reference.HandleService handle service], as well as the additional
+requirements listed below.
+
+In the table below, `X` denotes a stream handle service class, `a` denotes
+a value of type `X`, `b` denotes a value of type `X::implementation_type`, `ec`
+denotes a value of type `error_code`, `mb` denotes a value satisfying [link
+boost_asio.reference.MutableBufferSequence mutable buffer sequence] requirements,
+`rh` denotes a value meeting [link boost_asio.reference.ReadHandler `ReadHandler`]
+requirements, `cb` denotes a value satisfying [link
+boost_asio.reference.ConstBufferSequence constant buffer sequence] requirements, and
+`wh` denotes a value meeting [link boost_asio.reference.WriteHandler `WriteHandler`]
+requirements.
+
+[table StreamHandleService requirements
+  [[expression] [return type] [assertion/note\npre/post-condition]]
+  [
+    [`a.read_some(b, mb, ec);`]
+    [`size_t`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Reads one or more bytes of data from a handle `b`.\n
+      \n
+      The mutable buffer sequence `mb` specifies memory where the data should
+      be placed. The operation shall always fill a buffer in the sequence
+      completely before proceeding to the next.\n
+      \n
+      If successful, returns the number of bytes read. Otherwise returns `0`.
+      If the total size of all buffers in the sequence `mb` is `0`, the
+      function shall return `0` immediately.\n
+      \n
+      If the operation completes due to graceful connection closure by the
+      peer, the operation shall fail with `error::eof`.
+    ]
+  ]
+  [
+    [`a.async_read_some(b, mb, rh);`]
+    [`void`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Initiates an asynchronous operation to read one or more bytes of data
+      from a handle `b`. The operation is performed via the
+      `io_service` object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      The mutable buffer sequence `mb` specifies memory where the data should
+      be placed. The operation shall always fill a buffer in the sequence
+      completely before proceeding to the next.\n
+      \n
+      The implementation shall maintain one or more copies of `mb` until such
+      time as the read operation no longer requires access to the memory
+      specified by the buffers in the sequence. The program must ensure the
+      memory is valid until:\n
+      \n
+      [mdash] the last copy of `mb` is destroyed, or\n
+      \n
+      [mdash] the handler for the asynchronous operation is invoked,\n
+      \n
+      whichever comes first. If the total size of all buffers in the sequence
+      `mb` is `0`, the asynchronous read operation shall complete immediately
+      and pass `0` as the argument to the handler that specifies the number of
+      bytes read.\n
+      \n
+      If the operation completes due to graceful connection closure by the
+      peer, the operation shall fail with `error::eof`.\n
+      \n
+      If the operation completes successfully, the `ReadHandler` object
+      `rh` is invoked with the number of bytes transferred. Otherwise it is
+      invoked with `0`.
+    ]
+  ]
+  [
+    [`a.write_some(b, cb, ec);`]
+    [`size_t`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Writes one or more bytes of data to a handle `b`.\n
+      \n
+      The constant buffer sequence `cb` specifies memory where the data to be
+      written is located. The operation shall always write a buffer in the
+      sequence completely before proceeding to the next.\n
+      \n
+      If successful, returns the number of bytes written. Otherwise returns `0`.
+      If the total size of all buffers in the sequence `cb` is `0`, the
+      function shall return `0` immediately.
+    ]
+  ]
+  [
+    [`a.async_write_some(b, cb, wh);`]
+    [`void`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Initiates an asynchronous operation to write one or more bytes of data to
+      a handle `b`. The operation is performed via the `io_service`
+      object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      The constant buffer sequence `cb` specifies memory where the data to be
+      written is located. The operation shall always write a buffer in the
+      sequence completely before proceeding to the next.\n
+      \n
+      The implementation shall maintain one or more copies of `cb` until such
+      time as the write operation no longer requires access to the memory
+      specified by the buffers in the sequence. The program must ensure the
+      memory is valid until:\n
+      \n
+      [mdash] the last copy of `cb` is destroyed, or\n
+      \n
+      [mdash] the handler for the asynchronous operation is invoked,\n
+      \n
+      whichever comes first. If the total size of all buffers in the sequence
+      `cb` is `0`, the asynchronous operation shall complete immediately and
+      pass `0` as the argument to the handler that specifies the number of
+      bytes read.\n
+      \n
+      If the operation completes successfully, the `WriteHandler` object `wh`
+      is invoked with the number of bytes transferred. Otherwise it is invoked
+      with `0`.
+    ]
+  ]
+]
+
+[endsect]

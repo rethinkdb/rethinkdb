@@ -1,0 +1,850 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:sub_match sub_match]
+
+   #include <boost/regex.hpp>
+
+Regular expressions are different from many simple pattern-matching algorithms in 
+that as well as finding an overall match they can also produce sub-expression 
+matches: each sub-expression being delimited in the pattern by a pair of 
+parenthesis (...). There has to be some method for reporting sub-expression 
+matches back to the user: this is achieved this by defining a class 
+[match_results] that acts as an indexed collection of sub-expression matches, 
+each sub-expression match being contained in an object of type [sub_match].
+
+Objects of type [sub_match] may only be obtained by subscripting an object of 
+type [match_results].
+
+Objects of type [sub_match] may be compared to objects of type `std::basic_string`, 
+or `const charT*` or `const charT`.
+
+Objects of type [sub_match] may be added to objects of type `std::basic_string`, or 
+`const charT*` or `const charT`, to produce a new `std::basic_string` object.
+
+When the marked sub-expression denoted by an object of type [sub_match] 
+participated in a regular expression match then member /matched/ evaluates 
+to /true/, and members /first/ and /second/ denote the range of characters 
+\[first,second) which formed that match. Otherwise /matched/ is /false/, and 
+members /first/ and /second/ contained undefined values.
+
+When the marked sub-expression denoted by an object of type 
+[sub_match] was repeated, then the [sub_match] object represents 
+the match obtained by the /last/ repeat.  The complete set of all the 
+captures obtained for all the repeats, may be accessed via the 
+captures() member function (Note: this has serious performance implications, 
+you have to explicitly enable this feature).
+
+If an object of type [sub_match] represents sub-expression 0 - that is to 
+say the whole match - then member /matched/ is always /true/, unless a 
+[link boost_regex.partial_matches partial match] was obtained as a result of the flag 
+`match_partial` being passed to a regular expression algorithm, in which 
+case member /matched/ is /false/, and members /first/ and /second/ represent 
+the character range that formed the partial match.
+
+   namespace boost{
+
+   template <class BidirectionalIterator>
+   class sub_match;
+
+   typedef sub_match<const char*>                    csub_match;
+   typedef sub_match<const wchar_t*>                 wcsub_match;
+   typedef sub_match<std::string::const_iterator>    ssub_match;
+   typedef sub_match<std::wstring::const_iterator>   wssub_match;
+
+   template <class BidirectionalIterator>
+   class sub_match : public std::pair<BidirectionalIterator, BidirectionalIterator>
+   {
+   public:
+      typedef typename iterator_traits<BidirectionalIterator>::value_type       ``[link boost_regex.sub_match.value_type value_type]``;
+      typedef typename iterator_traits<BidirectionalIterator>::difference_type  ``[link boost_regex.sub_match.diff_type difference_type]``;
+      typedef          BidirectionalIterator                                    ``[link boost_regex.sub_match.it_type iterator]``;
+
+      bool ``[link boost_regex.sub_match.matched matched]``;
+
+      difference_type ``[link boost_regex.sub_match.length length]``()const;
+      ``[link boost_regex.sub_match.cast operator basic_string<value_type>]``()const;
+      basic_string<value_type> ``[link boost_regex.sub_match.str str]``()const;
+
+      int ``[link boost_regex.sub_match.compare1 compare]``(const sub_match& s)const;
+      int ``[link boost_regex.sub_match.compare2 compare]``(const basic_string<value_type>& s)const;
+      int ``[link boost_regex.sub_match.compare3 compare]``(const value_type* s)const;
+   #ifdef BOOST_REGEX_MATCH_EXTRA
+      typedef implementation-private ``[link boost_regex.sub_match.cap_seq_type capture_sequence_type]``;
+      const capture_sequence_type& ``[link boost_regex.sub_match.captures captures]``()const;
+   #endif
+   };
+   //
+   // comparisons to another sub_match:
+   //
+   template <class BidirectionalIterator>
+   bool ``[link boost_regex.sub_match.op_compare1 operator ==]`` (const sub_match<BidirectionalIterator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator>
+   bool ``[link boost_regex.sub_match.op_compare2 operator !=]`` (const sub_match<BidirectionalIterator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator>
+   bool ``[link boost_regex.sub_match.op_compare3 operator <]`` (const sub_match<BidirectionalIterator>& lhs,
+                  const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator>
+   bool ``[link boost_regex.sub_match.op_compare4 operator <=]`` (const sub_match<BidirectionalIterator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator>
+   bool ``[link boost_regex.sub_match.op_compare5 operator >=]`` (const sub_match<BidirectionalIterator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator>
+   bool ``[link boost_regex.sub_match.op_compare6 operator >]`` (const sub_match<BidirectionalIterator>& lhs,
+                  const sub_match<BidirectionalIterator>& rhs);
+
+
+   //
+   // comparisons to a basic_string:
+   //
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool ``[link boost_regex.sub_match.op_compare7 operator ==]`` (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool ``[link boost_regex.sub_match.op_compare8 operator != ]``(const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool ``[link boost_regex.sub_match.op_compare9 operator <]`` (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool ``[link boost_regex.sub_match.op_compare10 operator >]`` (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool ``[link boost_regex.sub_match.op_compare11 operator >= ]``(const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool ``[link boost_regex.sub_match.op_compare12 operator <= ]``(const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool ``[link boost_regex.sub_match.op_compare13 operator == ]``(const sub_match<BidirectionalIterator>& lhs,
+                     const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool ``[link boost_regex.sub_match.op_compare14 operator != ]``(const sub_match<BidirectionalIterator>& lhs,
+                     const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool ``[link boost_regex.sub_match.op_compare15 operator < ]``(const sub_match<BidirectionalIterator>& lhs,
+                  const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                          traits, 
+                                          Allocator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool ``[link boost_regex.sub_match.op_compare16 operator > ]``(const sub_match<BidirectionalIterator>& lhs,
+                  const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                          traits, 
+                                          Allocator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool ``[link boost_regex.sub_match.op_compare17 operator >= ]``(const sub_match<BidirectionalIterator>& lhs,
+                     const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                          traits, 
+                                          Allocator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool ``[link boost_regex.sub_match.op_compare18 operator <= ]``(const sub_match<BidirectionalIterator>& lhs,
+                     const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& rhs);
+
+   //
+   // comparisons to a pointer to a character array:
+   //
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare19 operator == ]``(typename iterator_traits<BidirectionalIterator>::value_type const* lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare20 operator != ]``(typename iterator_traits<BidirectionalIterator>::value_type const* lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare21 operator < ]``(typename iterator_traits<BidirectionalIterator>::value_type const* lhs, 
+                  const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare22 operator > ]``(typename iterator_traits<BidirectionalIterator>::value_type const* lhs, 
+                  const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare23 operator >= ]``(typename iterator_traits<BidirectionalIterator>::value_type const* lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare24 operator <= ]``(typename iterator_traits<BidirectionalIterator>::value_type const* lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare25 operator == ]``(const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare26 operator != ]``(const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare27 operator < ]``(const sub_match<BidirectionalIterator>& lhs, 
+                  typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare28 operator > ]``(const sub_match<BidirectionalIterator>& lhs, 
+                  typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare29 operator >= ]``(const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare30 operator <= ]``(const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+
+   //
+   // comparisons to a single character:
+   //
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare31 operator == ]``(typename iterator_traits<BidirectionalIterator>::value_type const& lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare32 operator != ]``(typename iterator_traits<BidirectionalIterator>::value_type const& lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare33 operator < ]``(typename iterator_traits<BidirectionalIterator>::value_type const& lhs, 
+                  const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare34 operator > ]``(typename iterator_traits<BidirectionalIterator>::value_type const& lhs, 
+                  const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare35 operator >= ]``(typename iterator_traits<BidirectionalIterator>::value_type const& lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare36 operator <= ]``(typename iterator_traits<BidirectionalIterator>::value_type const& lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare37 operator == ]``(const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare38 operator != ]``(const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare39 operator < ]``(const sub_match<BidirectionalIterator>& lhs, 
+                  typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare40 operator > ]``(const sub_match<BidirectionalIterator>& lhs, 
+                  typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare41 operator >= ]``(const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+   template <class BidirectionalIterator> 
+   bool ``[link boost_regex.sub_match.op_compare42 operator <= ]``(const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+   // 
+   // addition operators: 
+   //
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type, traits, Allocator> 
+      ``[link boost_regex.sub_match.op_add1 operator + ]``(const std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type, 
+                                          traits, 
+                                          Allocator>& s, 
+                  const sub_match<BidirectionalIterator>& m); 
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type, traits, Allocator>
+      ``[link boost_regex.sub_match.op_add2 operator + ]``(const sub_match<BidirectionalIterator>& m, 
+                  const std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type, 
+                                          traits, 
+                                          Allocator>& s); 
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      ``[link boost_regex.sub_match.op_add3 operator + ]``(typename iterator_traits<BidirectionalIterator>::value_type const* s, 
+                  const sub_match<BidirectionalIterator>& m); 
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      ``[link boost_regex.sub_match.op_add4 operator + ]``(const sub_match<BidirectionalIterator>& m, 
+                  typename iterator_traits<BidirectionalIterator>::value_type const * s);
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      ``[link boost_regex.sub_match.op_add5 operator + ]``(typename iterator_traits<BidirectionalIterator>::value_type const& s, 
+                  const sub_match<BidirectionalIterator>& m); 
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      ``[link boost_regex.sub_match.op_add6 operator + ]``(const sub_match<BidirectionalIterator>& m, 
+                  typename iterator_traits<BidirectionalIterator>::value_type const& s); 
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      ``[link boost_regex.sub_match.op_add7 operator + ]``(const sub_match<BidirectionalIterator>& m1,
+                  const sub_match<BidirectionalIterator>& m2);
+
+   //
+   // stream inserter:
+   //
+   template <class charT, class traits, class BidirectionalIterator>
+   basic_ostream<charT, traits>&
+      ``[link boost_regex.sub_match.op_stream operator << ]``(basic_ostream<charT, traits>& os,
+                  const sub_match<BidirectionalIterator>& m);
+
+   } // namespace boost
+
+[h4 Description]
+
+[h5 Members]
+
+[#boost_regex.sub_match.value_type]
+
+   typedef typename std::iterator_traits<iterator>::value_type value_type;
+
+The type pointed to by the iterators.
+
+[#boost_regex.sub_match.diff_type]
+
+   typedef typename std::iterator_traits<iterator>::difference_type difference_type;
+
+A type that represents the difference between two iterators.
+
+[#boost_regex.sub_match.it_type]
+
+   typedef BidirectionalIterator iterator;
+
+The iterator type.
+
+[#boost_regex.sub_match.first]
+
+   iterator first
+
+An iterator denoting the position of the start of the match.
+
+[#boost_regex.sub_match.second]
+
+   iterator second
+
+An iterator denoting the position of the end of the match.
+
+[#boost_regex.sub_match.matched]
+
+   bool matched
+
+A Boolean value denoting whether this sub-expression participated in the match.
+
+[#boost_regex.sub_match.length]
+
+   static difference_type length();
+
+[*Effects]: returns the length of this matched sub-expression, or 0 
+if this sub-expression was not matched: `matched ? distance(first, second) : 0)`.
+
+[#boost_regex.sub_match.cast]
+
+   operator basic_string<value_type>()const;
+
+[*Effects]: converts `*this` into a string: returns 
+`(matched ? basic_string<value_type>(first, second) : basic_string<value_type>())`.
+
+[#boost_regex.sub_match.str]
+
+   basic_string<value_type> str()const;
+
+[*Effects]: returns a string representation of `*this`:  
+`(matched ? basic_string<value_type>(first, second) : basic_string<value_type>())`.
+
+[#boost_regex.sub_match.compare1]
+
+   int compare(const sub_match& s)const;
+
+[*Effects]: performs a lexical comparison to /s/: returns `str().compare(s.str())`.
+
+[#boost_regex.sub_match.compare2]
+
+   int compare(const basic_string<value_type>& s)const;
+
+[*Effects]: compares `*this` to the string /s/: returns `str().compare(s)`.
+
+[#boost_regex.sub_match.compare3]
+
+   int compare(const value_type* s)const;
+
+[*Effects]: compares `*this` to the null-terminated string /s/: returns `str().compare(s)`.
+
+[#boost_regex.sub_match.cap_seq_type]
+
+   typedef implementation-private capture_sequence_type;
+
+Defines an implementation-specific type that satisfies the requirements of 
+a standard library Sequence (21.1.1 including the optional Table 68 operations), 
+whose value_type is a `sub_match<BidirectionalIterator>`. This type 
+happens to be `std::vector<sub_match<BidirectionalIterator> >`, but you 
+shouldn't actually rely on that.
+
+[#boost_regex.sub_match.captures]
+
+   const capture_sequence_type& captures()const; 
+
+[*Effects]: returns a sequence containing all the captures obtained for this 
+sub-expression.
+
+[*Preconditions]: the library must be built and used with 
+BOOST_REGEX_MATCH_EXTRA defined, and you must pass the flag `match_extra` 
+to the regex matching functions ([regex_match], [regex_search], 
+[regex_iterator] or [regex_token_iterator]) in order for this member 
+#function to be defined and return useful information.
+
+[*Rationale]: Enabling this feature has several consequences:
+
+* sub_match occupies more memory resulting in complex expressions running out of memory or stack space more quickly during matching.
+* The matching algorithms are less efficient at handling some features (independent sub-expressions for example), even when match_extra is not used.
+* The matching algorithms are much less efficient (i.e. slower), when match_extra is used.  Mostly this is down to the extra memory allocations that have to take place.
+
+[h5 sub_match non-member operators]
+
+[#boost_regex.sub_match.op_compare1]
+
+   template <class BidirectionalIterator>
+   bool operator == (const sub_match<BidirectionalIterator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+
+[*Effects]: returns `lhs.compare(rhs) == 0`.
+
+[#boost_regex.sub_match.op_compare2]
+
+   template <class BidirectionalIterator>
+   bool operator != (const sub_match<BidirectionalIterator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+
+[*Effects]: returns `lhs.compare(rhs) != 0`.
+
+[#boost_regex.sub_match.op_compare3]
+
+   template <class BidirectionalIterator>
+   bool operator < (const sub_match<BidirectionalIterator>& lhs,
+                  const sub_match<BidirectionalIterator>& rhs);
+
+[*Effects]: returns `lhs.compare(rhs) < 0`.
+
+[#boost_regex.sub_match.op_compare4]
+
+   template <class BidirectionalIterator>
+   bool operator <= (const sub_match<BidirectionalIterator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+
+[*Effects]: returns `lhs.compare(rhs) <= 0`.
+
+[#boost_regex.sub_match.op_compare5]
+
+   template <class BidirectionalIterator>
+   bool operator >= (const sub_match<BidirectionalIterator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+
+[*Effects]: returns `lhs.compare(rhs) >= 0`.
+
+[#boost_regex.sub_match.op_compare6]
+
+   template <class BidirectionalIterator>
+   bool operator > (const sub_match<BidirectionalIterator>& lhs,
+                  const sub_match<BidirectionalIterator>& rhs);
+
+[*Effects]: returns `lhs.compare(rhs) > 0`.
+
+[#boost_regex.sub_match.op_compare7]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator == (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                                             traits,
+                                                             Allocator>& lhs, 
+                     const sub_match<BidirectionalIterator>& rhs);
+
+[*Effects]: returns `lhs == rhs.str()`.
+
+[#boost_regex.sub_match.op_compare8]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator != (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                                             traits, 
+                                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+
+[*Effects]: returns `lhs != rhs.str()`.
+
+[#boost_regex.sub_match.op_compare9]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator < (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                            traits, 
+                                            Allocator>& lhs,
+                    const sub_match<BidirectionalIterator>& rhs);
+
+[*Effects]: returns `lhs < rhs.str()`.
+
+[#boost_regex.sub_match.op_compare10]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator > (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                                            traits, 
+                                                            Allocator>& lhs,
+                    const sub_match<BidirectionalIterator>& rhs);
+
+[*Effects]: returns `lhs > rhs.str()`.
+
+[#boost_regex.sub_match.op_compare11]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator >= (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+
+[*Effects]: returns `lhs >= rhs.str()`.
+
+[#boost_regex.sub_match.op_compare12]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator <= (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+
+[*Effects]: returns `lhs <= rhs.str()`.
+
+[#boost_regex.sub_match.op_compare13]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator == (const sub_match<BidirectionalIterator>& lhs,
+                     const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& rhs);
+
+[*Effects]: returns `lhs.str() == rhs`.
+
+[#boost_regex.sub_match.op_compare14]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator != (const sub_match<BidirectionalIterator>& lhs,
+                     const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& rhs);
+
+[*Effects]: returns `lhs.str() != rhs`.
+
+[#boost_regex.sub_match.op_compare15]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator < (const sub_match<BidirectionalIterator>& lhs,
+                  const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                          traits, 
+                                          Allocator>& rhs);
+
+[*Effects]: returns `lhs.str() < rhs`.
+
+[#boost_regex.sub_match.op_compare16]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator > (const sub_match<BidirectionalIterator>& lhs,
+                    const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                            traits, 
+                                            Allocator>& rhs);
+
+[*Effects]: returns `lhs.str() > rhs`.
+
+[#boost_regex.sub_match.op_compare17]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator >= (const sub_match<BidirectionalIterator>& lhs,
+                     const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& rhs);
+
+[*Effects]: returns `lhs.str() >= rhs`.
+
+[#boost_regex.sub_match.op_compare18]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator <= (const sub_match<BidirectionalIterator>& lhs,
+                     const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& rhs);
+
+[*Effects]: returns `lhs.str() <= rhs`.
+
+[#boost_regex.sub_match.op_compare19]
+
+   template <class BidirectionalIterator> 
+   bool operator == (typename iterator_traits<BidirectionalIterator>::value_type const* lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+
+[*Effects]: returns `lhs == rhs.str()`.
+
+[#boost_regex.sub_match.op_compare20]
+
+   template <class BidirectionalIterator> 
+   bool operator != (typename iterator_traits<BidirectionalIterator>::value_type const* lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+
+[*Effects]: returns `lhs != rhs.str()`.
+
+[#boost_regex.sub_match.op_compare21]
+
+   template <class BidirectionalIterator> 
+   bool operator < (typename iterator_traits<BidirectionalIterator>::value_type const* lhs, 
+                  const sub_match<BidirectionalIterator>& rhs); 
+
+[*Effects]: returns `lhs < rhs.str()`.
+
+[#boost_regex.sub_match.op_compare22]
+
+   template <class BidirectionalIterator> 
+   bool operator > (typename iterator_traits<BidirectionalIterator>::value_type const* lhs, 
+                  const sub_match<BidirectionalIterator>& rhs); 
+
+[*Effects]: returns `lhs > rhs.str()`.
+
+[#boost_regex.sub_match.op_compare23]
+
+   template <class BidirectionalIterator> 
+   bool operator >= (typename iterator_traits<BidirectionalIterator>::value_type const* lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+
+[*Effects]: returns `lhs >= rhs.str()`.
+
+[#boost_regex.sub_match.op_compare24]
+
+   template <class BidirectionalIterator> 
+   bool operator <= (typename iterator_traits<BidirectionalIterator>::value_type const* lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+
+[*Effects]: returns `lhs <= rhs.str()`.
+
+[#boost_regex.sub_match.op_compare25]
+
+   template <class BidirectionalIterator> 
+   bool operator == (const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+
+[*Effects]: returns `lhs.str() == rhs`.
+
+[#boost_regex.sub_match.op_compare26]
+
+   template <class BidirectionalIterator> 
+   bool operator != (const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+
+[*Effects]: returns `lhs.str() != rhs`.
+
+[#boost_regex.sub_match.op_compare27]
+
+   template <class BidirectionalIterator> 
+   bool operator < (const sub_match<BidirectionalIterator>& lhs, 
+                  typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+
+[*Effects]: returns `lhs.str() < rhs`.
+
+[#boost_regex.sub_match.op_compare28]
+
+   template <class BidirectionalIterator> 
+   bool operator > (const sub_match<BidirectionalIterator>& lhs, 
+                  typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+
+[*Effects]: returns `lhs.str() > rhs`.
+
+[#boost_regex.sub_match.op_compare29]
+
+   template <class BidirectionalIterator> 
+   bool operator >= (const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+
+[*Effects]: returns `lhs.str() >= rhs`.
+
+[#boost_regex.sub_match.op_compare30]
+
+   template <class BidirectionalIterator> 
+   bool operator <= (const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+
+[*Effects]: returns `lhs.str() <= rhs`.
+
+[#boost_regex.sub_match.op_compare31]
+
+   template <class BidirectionalIterator> 
+   bool operator == (typename iterator_traits<BidirectionalIterator>::value_type const& lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+
+[*Effects]: returns `lhs == rhs.str()`.
+
+[#boost_regex.sub_match.op_compare32]
+
+   template <class BidirectionalIterator> 
+   bool operator != (typename iterator_traits<BidirectionalIterator>::value_type const& lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+
+[*Effects]: returns `lhs != rhs.str()`.
+
+[#boost_regex.sub_match.op_compare33]
+
+   template <class BidirectionalIterator> 
+   bool operator < (typename iterator_traits<BidirectionalIterator>::value_type const& lhs, 
+                  const sub_match<BidirectionalIterator>& rhs); 
+
+[*Effects]: returns `lhs < rhs.str()`.
+
+[#boost_regex.sub_match.op_compare34]
+
+   template <class BidirectionalIterator> 
+   bool operator > (typename iterator_traits<BidirectionalIterator>::value_type const& lhs, 
+                  const sub_match<BidirectionalIterator>& rhs); 
+
+[*Effects]: returns `lhs > rhs.str()`.
+
+[#boost_regex.sub_match.op_compare35]
+
+   template <class BidirectionalIterator> 
+   bool operator >= (typename iterator_traits<BidirectionalIterator>::value_type const& lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+
+[*Effects]: returns `lhs >= rhs.str()`.
+
+[#boost_regex.sub_match.op_compare36]
+
+   template <class BidirectionalIterator> 
+   bool operator <= (typename iterator_traits<BidirectionalIterator>::value_type const& lhs, 
+                     const sub_match<BidirectionalIterator>& rhs); 
+
+[*Effects]: returns `lhs <= rhs.str()`.
+
+[#boost_regex.sub_match.op_compare37]
+
+   template <class BidirectionalIterator> 
+   bool operator == (const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+
+[*Effects]: returns `lhs.str() == rhs`.
+
+[#boost_regex.sub_match.op_compare38]
+
+   template <class BidirectionalIterator> 
+   bool operator != (const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+
+[*Effects]: returns `lhs.str() != rhs`.
+
+[#boost_regex.sub_match.op_compare39]
+
+   template <class BidirectionalIterator> 
+   bool operator < (const sub_match<BidirectionalIterator>& lhs, 
+                  typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+
+[*Effects]: returns `lhs.str() < rhs`.
+
+[#boost_regex.sub_match.op_compare40]
+
+   template <class BidirectionalIterator> 
+   bool operator > (const sub_match<BidirectionalIterator>& lhs, 
+                  typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+
+[*Effects]: returns `lhs.str() > rhs`.
+
+[#boost_regex.sub_match.op_compare41]
+
+   template <class BidirectionalIterator> 
+   bool operator >= (const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+
+[*Effects]: returns `lhs.str() >= rhs`.
+
+[#boost_regex.sub_match.op_compare42]
+
+   template <class BidirectionalIterator> 
+   bool operator <= (const sub_match<BidirectionalIterator>& lhs, 
+                     typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+
+[*Effects]: returns `lhs.str() <= rhs`.
+
+The addition operators for [sub_match] allow you to add a [sub_match] 
+to any type to which you can add a `std::string` and obtain a new 
+string as the result.
+
+[#boost_regex.sub_match.op_add1]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type, traits, Allocator> 
+      operator + (const std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type, 
+                                          traits, 
+                                          Allocator>& s, 
+                  const sub_match<BidirectionalIterator>& m); 
+
+[*Effects]: returns `s + m.str()`.
+
+[#boost_regex.sub_match.op_add2]
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type, traits, Allocator>
+      operator + (const sub_match<BidirectionalIterator>& m, 
+                  const std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type, 
+                                          traits, 
+                                          Allocator>& s); 
+
+[*Effects]: returns `m.str() + s`.
+
+[#boost_regex.sub_match.op_add3]
+
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      operator + (typename iterator_traits<BidirectionalIterator>::value_type const* s, 
+                  const sub_match<BidirectionalIterator>& m); 
+
+[*Effects]: returns `s + m.str()`.
+
+[#boost_regex.sub_match.op_add4]
+
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      operator + (const sub_match<BidirectionalIterator>& m, 
+                  typename iterator_traits<BidirectionalIterator>::value_type const * s);
+
+[*Effects]: returns `m.str() + s`.
+
+[#boost_regex.sub_match.op_add5]
+
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      operator + (typename iterator_traits<BidirectionalIterator>::value_type const& s, 
+                  const sub_match<BidirectionalIterator>& m); 
+
+[*Effects]: returns `s + m.str()`.
+
+[#boost_regex.sub_match.op_add6]
+
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      operator + (const sub_match<BidirectionalIterator>& m, 
+                  typename iterator_traits<BidirectionalIterator>::value_type const& s); 
+
+[*Effects]: returns `m.str() + s`.
+
+[#boost_regex.sub_match.op_add7]
+
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      operator + (const sub_match<BidirectionalIterator>& m1,
+                  const sub_match<BidirectionalIterator>& m2);
+
+[*Effects]: returns `m1.str() + m2.str()`.
+
+[h5 Stream inserter]
+
+[#boost_regex.sub_match.op_stream]
+
+   template <class charT, class traits, class BidirectionalIterator>
+   basic_ostream<charT, traits>&
+      operator << (basic_ostream<charT, traits>& os
+                  const sub_match<BidirectionalIterator>& m);
+
+[*Effects]: returns `(os << m.str())`. 
+     
+[endsect]
+

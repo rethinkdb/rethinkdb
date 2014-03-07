@@ -1,0 +1,417 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Release notes</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+<link rel="start" href="index.html">
+<link rel="prev" href="future_work.html">
+<link rel="up" href="index.html">
+<link rel="next" href="acknowledgements.html">
+</head>
+
+<body>
+<h1><img src="../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Release notes</h1>
+
+<div class="prev_link"><a href="future_work.html"><img src="prev.gif" alt="future work" border="0"><br>
+Future work
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="acknowledgements.html"><img src="next.gif" alt="acknowledgements" border="0"><br>
+Acknowledgements
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#boost_1_55">Boost 1.55 release</a></li>
+  <li><a href="#boost_1_54">Boost 1.54 release</a></li>
+  <li><a href="#boost_1_49">Boost 1.49 release</a></li>
+  <li><a href="#boost_1_48">Boost 1.48 release</a></li>
+  <li><a href="#boost_1_47">Boost 1.47 release</a></li>
+  <li><a href="#boost_1_44">Boost 1.44 release</a></li>
+  <li><a href="#boost_1_43">Boost 1.43 release</a></li>
+  <li><a href="#boost_1_42">Boost 1.42 release</a></li>
+  <li><a href="#boost_1_41">Boost 1.41 release</a></li>
+  <li><a href="#boost_1_38">Boost 1.38 release</a></li>
+  <li><a href="#boost_1_37">Boost 1.37 release</a></li>
+  <li><a href="#boost_1_36">Boost 1.36 release</a></li>
+  <li><a href="#boost_1_35">Boost 1.35 release</a></li>
+  <li><a href="#boost_1_34">Boost 1.34 release</a></li>
+  <li><a href="#boost_1_33_1">Boost 1.33.1 release</a></li>
+  <li><a href="#boost_1_33">Boost 1.33 release</a></li>
+</ul>
+
+<h2><a name="boost_1_55">Boost 1.55 release</a></h2>
+
+<p>
+<ul>
+  <li>Boost.MultiIndex has been brought to a higher level of compliance
+  with C++11.
+  <ul>
+      <li><code>multi_index_container</code> is now efficiently movable.</li>
+      <li>Initializer lists supported.</li>
+      <li>Emplace functions provided.</li>
+      <li>Non-copyable elements (such as <code>std::unique_ptr&lt;T&gt;</code>) supported. This includes
+        insertion of a range [<code>first</code>,<code>last</code>) where the iterators point to a type that is
+        convertible to that of the element: no copy construction happens in the process.
+      </li>
+      <li>Random access indices provide <code>shrink_to_fit()</code>.</li>
+  </ul>
+  Refer to the <a href="compiler_specifics.html">compiler specifics</a> section for limitations
+  on pre-C++11 compilers.
+  </li>
+  <li>The following classes are deprecated:
+  <ul>
+    <li><a href="reference/key_extraction.html#member_offset"><code>member_offset</code></a>,</li>
+    <li><a href="reference/key_extraction.html#const_mem_fun_explicit"><code>const_mem_fun_explicit</code></a>,</li>
+    <li><a href="reference/key_extraction.html#const_mem_fun_explicit"><code>mem_fun_explicit</code></a>,</li>
+    <li><a href="reference/key_extraction.html#composite_key_result_equal_to"><code>composite_key_result_equal_to</code></a>,</li>
+    <li><a href="reference/key_extraction.html#composite_key_result_less"><code>composite_key_result_less</code></a>,</li>
+    <li><a href="reference/key_extraction.html#composite_key_result_greater"><code>composite_key_result_greater</code></a>,</li>
+    <li><a href="reference/key_extraction.html#composite_key_result_hash"><code>composite_key_result_hash</code></a>.</li>
+  </ul>
+  </li>
+  <li>Maintenance fixes.</li>
+</ul>
+</p>
+<h2><a name="boost_1_54">Boost 1.54 release</a></h2>
+
+<p>
+<ul>
+  <li>Suppressed some potential warnings described in
+    tickets <a href="https://svn.boost.org/trac/boost/ticket/8034">#8034</a> and <a href="https://svn.boost.org/trac/boost/ticket/8129">#8129</a>.
+  </li>
+  <li>Maintenance fixes.</li>
+</ul>
+</p>
+
+<h2><a name="boost_1_49">Boost 1.49 release</a></h2>
+
+<p>
+<ul>
+  <li>Suppressed a potential narrow conversion warning described in
+    ticket <a href="https://svn.boost.org/trac/boost/ticket/3365">#3365</a>.
+  </li>
+</ul>
+</p>
+
+<h2><a name="boost_1_48">Boost 1.48 release</a></h2>
+
+<p>
+<ul>
+  <li>Fixed a compatibility problem with
+    <a href="../../../doc/html/foreach.html">Boost.Foreach</a>
+    (ticket <a href="https://svn.boost.org/trac/boost/ticket/5741">#5741</a>).
+  </li>
+</ul>
+</p>
+
+<h2><a name="boost_1_47">Boost 1.47 release</a></h2>
+
+<p>
+<ul>
+  <li>Fixed an ADL problem in
+    <a href="reference/key_extraction.html#composite_key_compare"><code>composite_key_compare</code></a>
+    related with <a href="../../../doc/html/ref.html">Boost.Ref</a>.
+  </li>
+  <li>Maintenance fixes.</li>
+</ul>
+</p>
+
+<h2><a name="boost_1_44">Boost 1.44 release</a></h2>
+
+<p>
+<ul>
+  <li>
+    Fixed a bug preventing the use of <code>modify_key</code> with
+    rollback in <a href="reference/ord_indices.html#modify_key">ordered</a> and
+    <a href="reference/hash_indices.html#modify_key">hashed</a> indices when
+    <code>Modifier</code> and <code>Rollback</code> are different types
+    (ticket <a href="https://svn.boost.org/trac/boost/ticket/4130">#4130</a>).
+  </li>
+</ul>
+</p>
+
+<h2><a name="boost_1_43">Boost 1.43 release</a></h2>
+
+<p>
+<ul>
+  <li>
+    <a href="../../serialization/doc/serialization.html#constructors">Serialization
+    of non default constructible values</a> is now properly supported
+    through user-provided facilities <code>save_construct_data</code> and
+    <code>load_construct_data</code>.
+    <code>multi_index_container</code> serialization
+    <a href="../../serialization/doc/tutorial.html#versioning">class version</a> has been
+    bumped from 1 to 2.
+  </li>
+</ul>
+</p>
+
+<h2><a name="boost_1_42">Boost 1.42 release</a></h2>
+
+<p>
+<ul>
+  <li>Maintenance fixes.</li>
+</ul>
+</p>
+
+<h2><a name="boost_1_41">Boost 1.41 release</a></h2>
+<p>
+<ul>
+  <li>Serialization now uses the portable
+  <a href="../../serialization/doc/wrappers.html#collection_size_type"><code>collection_size_type</code></a>
+  type instead of the original <code>std::size_t</code> (ticket
+  <a href="https://svn.boost.org/trac/boost/ticket/3365">#3365</a>).
+  <code>multi_index_container</code> serialization
+  <a href="../../serialization/doc/tutorial.html#versioning">class version</a> has been
+  bumped from 0 to 1.
+  </li>
+  <li>Fixed a concurrency bug in the implementation of
+    <a href="tutorial/debug.html#safe_mode">safe mode</a>
+    (ticket <a href="https://svn.boost.org/trac/boost/ticket/3462">#3462</a>).
+  </li>
+</ul>
+</p>
+
+<h2><a name="boost_1_38">Boost 1.38 release</a></h2>
+
+<p>
+<ul>
+  <li>These constructs are deprecated:
+    <ul>
+      <li><code>nth_index_iterator&lt;MultiIndexContainer,N&gt;::type</code>,</li>
+      <li><code>multi_index_container&lt;...&gt;::nth_index_iterator&lt;N&gt;::type</code>,</li>
+      <li><code>nth_index_const_iterator&lt;MultiIndexContainer,N&gt;::type</code>,</li>
+      <li><code>multi_index_container&lt;...&gt;::nth_index_const_iterator&lt;N&gt;::type</code>,</li>
+      <li><code>index_iterator&lt;MultiIndexContainer,Tag&gt;::type</code>,</li>
+      <li><code>multi_index_container&lt;...&gt;::index_iterator&lt;Tag&gt;::type</code>,</li>
+      <li><code>index_const_iterator&lt;MultiIndexContainer,Tag&gt;::type</code>,</li>
+      <li><code>multi_index_container&lt;...&gt;::index_const_iterator&lt;Tag&gt;::type</code>.</li>
+    </ul>
+    Use the following instead:
+    <ul>
+      <li><code>nth_index&lt;MultiIndexContainer,N&gt;::type::iterator</code>,</li>
+      <li><code>multi_index_container&lt;...&gt;::nth_index&lt;N&gt;::type::iterator</code>,</li>
+      <li><code>nth_index&lt;MultiIndexContainer,N&gt;::type::const_iterator</code>,</li>
+      <li><code>multi_index_container&lt;...&gt;::nth_index&lt;N&gt;::type::const_iterator</code>,</li>
+      <li><code>index&lt;MultiIndexContainer,Tag&gt;::type::iterator</code>,</li>
+      <li><code>multi_index_container&lt;...&gt;::index&lt;Tag&gt;::type::iterator</code>,</li>
+      <li><code>index&lt;MultiIndexContainer,Tag&gt;::type::const_iterator</code>,</li>
+      <li><code>multi_index_container&lt;...&gt;::index&lt;Tag&gt;::type::const_iterator</code>.</li>
+    </ul>
+  </li>
+  <li>Maintenance fixes.</li>
+</ul>
+</p>
+
+<h2><a name="boost_1_37">Boost 1.37 release</a></h2>
+
+<p>
+<ul>
+  <li>Maintenance fixes.</li>
+</ul>
+</p>
+
+<h2><a name="boost_1_36">Boost 1.36 release</a></h2>
+
+<p>
+<ul>
+  <li><a name="stable_update">On prior versions of the library, the <a href="tutorial/indices.html#hash_updating">update
+  member functions</a> of hashed indices could alter the position of an element even if the
+  associated key did not change with the update. This is legal but probably unexpected behavior.
+  The functions have been rewritten to provide the additional guarantee that elements with
+  unmodified key will not change position in hashed indices, just as always was the case with
+  ordered indices. These guarantees are now documented in the reference.</a></li>
+  <li>Added the constructor <code>multi_index_container::multi_index_container(const allocator_type&amp;)</code>
+  to mimic the equivalent interface in STL sequence containers.
+  <li>Maintenance fixes.</li>
+</ul>
+</p>
+
+<h2><a name="boost_1_35">Boost 1.35 release</a></h2>
+
+<p>
+<ul>
+  <li>New <a href="tutorial/key_extraction.html#global_fun"><code>global_fun</code></a>
+    predefined key extractor.
+  </li>
+  <li>Added <a href="tutorial/indices.html#iterator_to"><code>iterator_to</code></a>
+    facility.
+  </li>
+  <li>Included <a href="tutorial/creation.html#special_allocator">support for
+    non-standard allocators</a> such as those of
+    <a href="../../interprocess/index.html">Boost.Interprocess</a>, which makes
+    <code>multi_index_container</code>s placeable in shared memory.
+  </li>
+  <li>New versions of <code>modify</code> and <code>modify_key</code> with
+   rollback, as described in the
+   <a href="tutorial/basics.html#ord_updating">tutorial</a>.
+  </li>
+  <li>Indices provide the new <code>cbegin</code>, <code>cend</code> and,
+    when applicable, <code>crbegin</code> and <code>crend</code>
+    member functions, in accordance with the latest drafts of the next
+    revision of the C++ standard.
+  </li>
+  <li>Hinted insertion in ordered indices fully conforms to the resolutions of
+    C++ Standard Library
+    <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-defects.html#233">Defect
+    Report 233</a>. The new requirement that the point of insertion
+    be always as close as possible to the hint induces a different behavior than
+    exhibited in former releases of Boost.MultiIndex, which can potentially cause
+    backwards compatibility problems; in any case, the likelihood of these
+    compatibility issues arising in a real scenario is very low.
+  </li>
+  <li>Sequenced and random access indices now follow the requirements of the
+    C++ standard for sequence containers with respect to the operations
+    <code>assign(f,l)</code> and <code>insert(p,f,l)</code> (23.1.1/9): if
+    <code>f</code> and <code>l</code> are of the same integral type, the
+    iterator-based overloads of these member functions are avoided:
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span><span class=identifier>indexed_by</span><span class=special>&lt;</span><span class=identifier>sequenced</span><span class=special>&lt;&gt;</span> <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>sequenced_container</span><span class=special>;</span>
+
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>list</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span>      <span class=identifier>l</span><span class=special>(...);</span>
+<span class=identifier>sequenced_container</span> <span class=identifier>c</span><span class=special>;</span>
+
+<span class=comment>// iterator-based overload of assign</span>
+<span class=identifier>c</span><span class=special>.</span><span class=identifier>assign</span><span class=special>(</span><span class=identifier>l</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>l</span><span class=special>.</span><span class=identifier>end</span><span class=special>());</span> 
+
+<span class=comment>// The following is equivalent to
+//   c.assign(
+//      static_cast&lt;sequenced_container::size_type&gt;(10),100);
+// that is, &quot;10&quot; and &quot;100&quot; are not taken to be iterators as
+// in the previous expression.</span>
+<span class=identifier>c</span><span class=special>.</span><span class=identifier>assign</span><span class=special>(</span><span class=number>10</span><span class=special>,</span><span class=number>100</span><span class=special>);</span>
+</pre></blockquote>
+  </li>
+  <li>The performance of ordered indices <code>range</code> and
+    <code>equal_range</code> has been improved.
+  </li>
+  <li>Maintenance fixes.</li>
+</ul>
+</p>
+
+<h2><a name="boost_1_34">Boost 1.34 release</a></h2>
+
+<p>
+<ul>
+  <li>Added <a href="tutorial/indices.html#rnd_indices">random access
+    indices</a>.
+  </li>
+  <li>Non key-based indices provide new
+    <a href="tutorial/indices.html#rearrange">rearrange facilities</a>
+    allowing for interaction with external mutating algorithms.
+  </li>
+  <li>All predefined Boost.MultiIndex key extractors
+    instantiated for a given type <code>T</code> can handle objects of types
+    derived from or convertible to <code>T</code> (and
+    <a href="reference/key_extraction.html#chained_pointers">chained pointers</a>
+    to those). Previously, only objects of the exact type specified (along with
+    <code>reference_wrapper</code>s and chained pointers to them) were accepted.
+  </li>
+  <li><a href="reference/key_extraction.html#composite_key_compare"><code>composite_key_compare</code></a>
+    and related classes accept operands not included in tuples as if they were passed
+    in a tuple of length 1; this allows the user to omit tuple enclosing in
+    lookup operations involving composite keys when only the first key is provided.
+  </li>
+  <li>The core algorithms of ordered indices have been optimized, yielding
+    an estimated reduction of about 5% in insertion times.
+  </li>
+  <li>Size of ordered indices node headers have been reduced by 25% on
+    most platforms, using a well known
+    <a href="tutorial/indices.html#ordered_node_compression">optimization
+    technique</a>.
+  </li>
+  <li>The tutorial has been restructured, new examples added.</li>
+  <li>Maintenance fixes.</li>
+</ul>
+</p>
+
+<h2><a name="boost_1_33_1">Boost 1.33.1 release</a></h2>
+
+<p>
+<ul>
+  <li>For ordered and hashed indices, <code>erase(it)</code> and
+    <code>erase(first,last)</code> now return an iterator to the element
+    following those being deleted (previously nothing was returned), in
+    accordance with the C++ Standard Library
+    <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-defects.html#130">Defect
+    Report 130</a> and issue 6.19 of TR1
+    <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1837.pdf">Issues
+    List</a>.
+  </li>
+  <li>Boost.MultiIndex offers the usual guarantees with respect to
+    multithreading code provided by most STL implementations:
+    <ol>
+      <li>Concurrent access to different containers is safe.</li>
+      <li>Concurrent read-only access to the same container is safe.</li>
+    </ol>
+    In previous versions of the library, the latter guarantee was not properly
+    maintained if the <a href="tutorial/debug.html#safe_mode">safe
+    mode</a> was set. This problem has been fixed now. 
+  </li>
+  <li>Maintenance fixes.</li>
+</ul>
+</p>
+
+<h2><a name="boost_1_33">Boost 1.33 release</a></h2>
+
+<p>
+<ul>
+  <li>Added <a href="tutorial/indices.html#hashed_indices">hashed indices</a>,
+    whose interface is based on the specification for unordered associative
+    containers by the C++ Standard Library Technical Report (TR1).
+  </li>
+  <li>Added <a href="tutorial/creation.html#serialization">serialization support</a>
+    for <a href="../../serialization/index.html">Boost.Serialization</a>.
+  </li>
+  <li>Destruction of <code>multi_index_container</code>s and <code>clear</code>
+    memfuns now perform faster.
+  </li>
+  <li>Internal changes aimed at reducing the length of symbol names generated
+    by the compiler; cuts of up to a 50% can be achieved with respect to the
+    Boost 1.32 release. This results in much shorter and more readable error
+    messages and has also a beneficial impact on compilers with strict limits on
+    symbol name lengths. Additionally, a section on further
+    <a href="compiler_specifics.html#symbol_reduction">reduction of symbol name
+    lengths</a> has been added.
+  </li>
+  <li>Restructured some parts of the documentation, new examples.</li>
+  <li>Maintenance fixes.</li>
+</ul>
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="future_work.html"><img src="prev.gif" alt="future work" border="0"><br>
+Future work
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="acknowledgements.html"><img src="next.gif" alt="acknowledgements" border="0"><br>
+Acknowledgements
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised July 9st 2013</p>
+
+<p>&copy; Copyright 2003-2013 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

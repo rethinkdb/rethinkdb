@@ -1,0 +1,26 @@
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
+<section id="header.example_hpp"><title>Header &lt;<ulink url="../../example.hpp">example.hpp</ulink>&gt;</title><para>
+    Fake reference documentation, so that the syntax highlighter will kick in.
+  </para><synopsis xmlns:xi="http://www.w3.org/2001/XInclude">
+
+<link linkend="foo">foo</link></synopsis>
+  
+
+  <refentry xmlns:xi="http://www.w3.org/2001/XInclude" id="foo"><refmeta><refentrytitle>Macro foo</refentrytitle><manvolnum>3</manvolnum></refmeta><refnamediv><refname>foo</refname><refpurpose/></refnamediv><refsynopsisdiv><synopsis><phrase role="comment">// In header: &lt;<link linkend="header.example_hpp">example.hpp</link>&gt;
+
+</phrase>foo</synopsis></refsynopsisdiv><refsect1><title>Description</title>
+      <programlisting><phrase role="comment">/* C style comment */</phrase></programlisting>
+      <programlisting><phrase role="comment">/* Broken C style comment</phrase></programlisting>
+      <programlisting>
+<phrase role="comment">/* Multi-line
+ *comment
+ */</phrase></programlisting>
+      <programlisting><phrase role="comment">/*/ Tricky comment */</phrase></programlisting>
+      <programlisting><phrase role="comment">/**/</phrase></programlisting>
+      <programlisting><phrase role="comment">/***/</phrase></programlisting>
+      <programlisting><phrase role="comment">// Single line comment</phrase></programlisting>
+      <programlisting><phrase role="comment">// Single line comment</phrase>
+</programlisting>
+    </refsect1></refentry>
+
+</section>

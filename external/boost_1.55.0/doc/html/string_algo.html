@@ -1,0 +1,175 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;30.&#160;Boost String Algorithms Library</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="boost_staticassert/test.html" title="Test Programs">
+<link rel="next" href="string_algo/release_notes.html" title="Release Notes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_staticassert/test.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="string_algo/release_notes.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="string_algo"></a>Chapter&#160;30.&#160;Boost String Algorithms Library</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Pavol</span> <span class="surname">Droba</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2002-2004 Pavol Droba</p></div>
+<div><div class="legalnotice">
+<a name="idp206780472"></a><p>Use, modification and distribution is subject to the Boost
+                Software License, Version 1.0. (See accompanying file
+                <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+            </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="string_algo.html#string_algo.intro">Introduction</a></span></dt>
+<dt><span class="section"><a href="string_algo/release_notes.html">Release Notes</a></span></dt>
+<dt><span class="section"><a href="string_algo/usage.html">Usage</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="string_algo/usage.html#idp206801352">First Example</a></span></dt>
+<dt><span class="section"><a href="string_algo/usage.html#idp206813144">Case conversion</a></span></dt>
+<dt><span class="section"><a href="string_algo/usage.html#idp206817064">Predicates and Classification</a></span></dt>
+<dt><span class="section"><a href="string_algo/usage.html#idp206822440">Trimming</a></span></dt>
+<dt><span class="section"><a href="string_algo/usage.html#idp206826200">Find algorithms</a></span></dt>
+<dt><span class="section"><a href="string_algo/usage.html#idp206833528">Replace Algorithms</a></span></dt>
+<dt><span class="section"><a href="string_algo/usage.html#idp206841224">Find Iterator</a></span></dt>
+<dt><span class="section"><a href="string_algo/usage.html#idp206847064">Split</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="string_algo/quickref.html">Quick Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="string_algo/quickref.html#idp206855960">Algorithms</a></span></dt>
+<dt><span class="section"><a href="string_algo/quickref.html#idp206980792">Finders and Formatters</a></span></dt>
+<dt><span class="section"><a href="string_algo/quickref.html#idp207004056">Iterators</a></span></dt>
+<dt><span class="section"><a href="string_algo/quickref.html#idp207009464">Classification</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="string_algo/design.html">Design Topics</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="string_algo/design.html#string_algo.string">String Representation</a></span></dt>
+<dt><span class="section"><a href="string_algo/design.html#string_algo.sequence_traits">Sequence Traits</a></span></dt>
+<dt><span class="section"><a href="string_algo/design.html#string_algo.find">Find Algorithms</a></span></dt>
+<dt><span class="section"><a href="string_algo/design.html#string_algo.replace">Replace Algorithms</a></span></dt>
+<dt><span class="section"><a href="string_algo/design.html#string_algo.split">Find Iterators &amp; Split Algorithms</a></span></dt>
+<dt><span class="section"><a href="string_algo/design.html#string_algo.exception">Exception Safety</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="string_algo/concept.html">Concepts</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="string_algo/concept.html#idp207064472">Definitions</a></span></dt>
+<dt><span class="section"><a href="string_algo/concept.html#string_algo.finder_concept">Finder Concept</a></span></dt>
+<dt><span class="section"><a href="string_algo/concept.html#string_algo.formatter_concept">Formatter concept</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="string_algo/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string_hpp">Header &lt;boost/algorithm/string.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.case_conv_hpp">Header &lt;boost/algorithm/string/case_conv.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.classification_hpp">Header &lt;boost/algorithm/string/classification.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.compare_hpp">Header &lt;boost/algorithm/string/compare.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.concept_hpp">Header &lt;boost/algorithm/string/concept.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.constants_hpp">Header &lt;boost/algorithm/string/constants.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.erase_hpp">Header &lt;boost/algorithm/string/erase.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.find_hpp">Header &lt;boost/algorithm/string/find.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.find_format_hpp">Header &lt;boost/algorithm/string/find_format.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.find_iterator_hpp">Header &lt;boost/algorithm/string/find_iterator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.finder_hpp">Header &lt;boost/algorithm/string/finder.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.formatter_hpp">Header &lt;boost/algorithm/string/formatter.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.iter_find_hpp">Header &lt;boost/algorithm/string/iter_find.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.join_hpp">Header &lt;boost/algorithm/string/join.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.predicate_hpp">Header &lt;boost/algorithm/string/predicate.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.regex_hpp">Header &lt;boost/algorithm/string/regex.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.regex_find_format_hpp">Header &lt;boost/algorithm/string/regex_find_format.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.replace_hpp">Header &lt;boost/algorithm/string/replace.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.sequence_traits_hpp">Header &lt;boost/algorithm/string/sequence_traits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.split_hpp">Header &lt;boost/algorithm/string/split.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.std_containers_traits_hpp">Header &lt;boost/algorithm/string/std_containers_traits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.trim_hpp">Header &lt;boost/algorithm/string/trim.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string.trim_all_hpp">Header &lt;boost/algorithm/string/trim_all.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="string_algo/reference.html#header.boost.algorithm.string_regex_hpp">Header &lt;boost/algorithm/string_regex.hpp&gt;</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="string_algo/rationale.html">Rationale</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="string_algo/rationale.html#idp211221352">Locales</a></span></dt>
+<dt><span class="section"><a href="string_algo/rationale.html#string_algo.regex">Regular Expressions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="string_algo/env.html">Environment</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="string_algo/env.html#idp211227848">Build</a></span></dt>
+<dt><span class="section"><a href="string_algo/env.html#idp211229448">Examples</a></span></dt>
+<dt><span class="section"><a href="string_algo/env.html#idp211230424">Tests</a></span></dt>
+<dt><span class="section"><a href="string_algo/env.html#idp211231320">Portability</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="string_algo/credits.html">Credits</a></span></dt>
+<dd><dl><dt><span class="section"><a href="string_algo/credits.html#string_algo.ack">Acknowledgments</a></span></dt></dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="string_algo.intro"></a>Introduction</h2></div></div></div>
+<p>
+        The String Algorithm Library provides a generic implementation of
+        string-related algorithms which are missing in STL. It is an extension
+        to the algorithms library of STL and it includes trimming, case conversion, 
+        predicates and find/replace functions. All of them come in different variants 
+        so it is easier to choose the best fit for a particular need.
+    </p>
+<p>
+        The implementation is not restricted to work with a particular container 
+        (like <code class="computeroutput">std::basic_string</code>), rather it is as generic as
+        possible. This generalization is not compromising the performance since
+        algorithms are using container specific features when it means a performance
+        gain.
+    </p>
+<p>
+        <span class="bold"><strong>
+            Important note: In this documentation we use term <span class="emphasis"><em>string</em></span> to 
+            designate a sequence of <span class="emphasis"><em>characters</em></span> stored in an arbitrary container.
+            A <span class="emphasis"><em>string</em></span> is not restricted to <code class="computeroutput">std::basic_string</code> and 
+            <span class="emphasis"><em>character</em></span> does not have to be <code class="computeroutput">char</code> or <code class="computeroutput">wchar_t</code>,
+            although these are most common candidates.
+        </strong></span>
+        Consult the <a class="link" href="string_algo/design.html" title="Design Topics">design chapter</a> to see precise specification of
+        supported string types.
+    </p>
+<p>      
+        The library interface functions and classes are defined in namespace <code class="computeroutput">boost::algorithm</code>, and
+        they are lifted into namespace <code class="computeroutput">boost</code> via using declaration.
+    </p>
+<p>
+        The documentation is divided into several sections. For a quick start read the 
+        <a class="link" href="string_algo/usage.html" title="Usage">Usage</a> section followed by 
+        <a class="link" href="string_algo/quickref.html" title="Quick Reference">Quick Reference</a>. 
+        <a class="link" href="string_algo/design.html" title="Design Topics">The Design Topics</a>,
+        <a class="link" href="string_algo/concept.html" title="Concepts">Concepts</a> and <a class="link" href="string_algo/rationale.html" title="Rationale">Rationale</a>
+        provide some explanation about the library design and structure an explain how it should be used.
+        See the <a class="link" href="string_algo/reference.html" title="Reference">Reference</a> for the complete list of provided utilities
+        and algorithms. Functions and classes in the reference are organized by the headers in which they are defined.
+        The reference contains links to the detailed description for every entity in the library.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: July 10, 2010 at 21:29:03 +0100</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_staticassert/test.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="string_algo/release_notes.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

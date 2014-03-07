@@ -1,0 +1,127 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/nn.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/nn.xml
+ */
+nn{
+    Version{"2.0.50.94"}
+    zoneStrings{
+        "America:Belem"{
+            ec{"Belém"}
+        }
+        "America:Cancun"{
+            ec{"Cancún"}
+        }
+        "America:Godthab"{
+            ec{"Godthåb"}
+        }
+        "America:Mexico_City"{
+            ec{"Mexico by"}
+        }
+        "America:North_Dakota:Center"{
+            ec{"Center, Nord-Dakota"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"Sørpolen"}
+        }
+        "Asia:Tashkent"{
+            ec{"Tasjkent"}
+        }
+        "Asia:Ulaanbaatar"{
+            ec{"Ulan Bator"}
+        }
+        "Atlantic:Azores"{
+            ec{"Azorane"}
+        }
+        "Atlantic:Canary"{
+            ec{"Kanariøyane"}
+        }
+        "Etc:Unknown"{
+            ec{"ukjend"}
+        }
+        "Europe:Lisbon"{
+            ec{"Lisboa"}
+        }
+        "Europe:Moscow"{
+            ec{"Moskva"}
+        }
+        "Pacific:Easter"{
+            ec{"Påskeøya"}
+        }
+        "meta:Africa_Central"{
+            ls{"sentralafrikansk tid"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"austafrikansk tid"}
+        }
+        "meta:Africa_Southern"{
+            lg{"sørafrikansk tid"}
+            ls{"sørafrikansk standardtid"}
+        }
+        "meta:Africa_Western"{
+            ld{"vestafrikansk sommartid"}
+            ls{"vestafrikansk tid"}
+        }
+        "meta:America_Central"{
+            ld{"Central Daylight Time"}
+            lg{"Central Time"}
+            ls{"Central Standard Time"}
+        }
+        "meta:Armenia"{
+            sd{"AMST (Armenia)"}
+            ss{"AMT (Armenia)"}
+        }
+        "meta:Australia_Central"{
+            ld{"sentralaustralsk sommartid"}
+            lg{"sentralaustralsk tid"}
+            ls{"sentralaustralsk standardtid"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"vest-sentralaustralsk sommartid"}
+            lg{"vest-sentralaustralsk tid"}
+            ls{"vest-sentralaustralsk standardtid"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"austaustralsk sommartid"}
+            lg{"austaustralsk tid"}
+            ls{"austaustralsk standardtid"}
+        }
+        "meta:Australia_Western"{
+            ld{"vestaustralsk sommartid"}
+            lg{"vestaustralsk tid"}
+            ls{"vestaustralsk standardtid"}
+        }
+        "meta:China"{
+            sd{"CDT (Kina)"}
+            sg{"CT (Kina)"}
+            ss{"CST (Kina)"}
+        }
+        "meta:Europe_Central"{
+            ld{"sentraleuropeisk sommartid"}
+            ls{"sentraleuropeisk tid"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"austeuropeisk sommartid"}
+            ls{"austeuropeisk tid"}
+        }
+        "meta:Europe_Western"{
+            ld{"vesteuropeisk sommartid"}
+            ls{"vesteuropeisk tid"}
+        }
+        "meta:GMT"{
+            ls{"Greenwich middeltid"}
+        }
+        "meta:Israel"{
+            ss{"IST (Israel)"}
+        }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;-HH:mm"}
+    }
+}

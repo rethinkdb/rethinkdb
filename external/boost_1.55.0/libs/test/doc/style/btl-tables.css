@@ -1,0 +1,82 @@
+/* Copyright Gennadiy Rozental 2001-2007. 
+ * Distributed under the Boost Software License, Version 1.0. 
+ * (See accompanying file LICENSE_1_0.txt or copy at www.boost.org/LICENSE_1_0.txt)
+ */
+
+div.qandaset table tr.answer td
+{
+    padding-top:    0.5em;
+    padding-bottom: 1.5em;
+    padding-left:   0em;
+    padding-right:  0em;
+}
+
+TABLE.table
+{
+    width: 92%;
+    margin-left:    4%;
+    margin-right:   4%;
+    border-collapse: collapse;
+    border:         2px black solid; 
+}
+
+TABLE.table TBODY TD
+{
+    background:     #F0F0F0;
+    border:         1px solid black;
+    color:          black;
+    text-align:     left;
+    padding:        0.5em 0.5em 0.5em 0.5em;
+}
+
+TABLE.table THEAD TH
+{
+    background:     #B4B4CA;
+    border:         1px solid black;
+    color:          white;
+    font-weight:    bold;
+    font-size:      12pt;
+    text-align:     center;
+    padding:        0.5em 0.5em 0.5em 0.5em;
+}
+
+DIV.table P.title
+{
+    margin-left: 4%;
+    padding-right: 0.5em; 
+    padding-left: 0.5em;
+    font-size: 120%;
+}
+
+DIV.equation TABLE.table
+{
+    width: 92%;
+    margin-left:    4%;
+    margin-right:   4%;
+    border:         0; 
+}
+
+DIV.equation TABLE.table TBODY TD
+{
+    background:     white;
+    border:         none;
+    color:          black;
+    text-align:     left;
+    padding:        0.5em 0.5em 0.5em 0.5em;
+}
+
+DIV.equation TABLE.table TBODY TD.index
+{
+    width:          10%
+}
+
+
+TABLE.inline-reference TR TD.content DIV.entry
+{
+    display:          none;
+}
+
+TABLE.inline-reference TR TD.index
+{
+    font:             85%;
+}

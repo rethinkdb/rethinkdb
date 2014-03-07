@@ -1,0 +1,197 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Part III. Boost Test Library: The minimal testing facility</title>
+<link rel="stylesheet" href="../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="index.html" title="Boost Test Library">
+<link rel="up" href="index.html" title="Boost Test Library">
+<link rel="prev" href="prg-exec-monitor/compilation.html" title="The Program Execution Monitor compilation">
+<link rel="next" href="utf.html" title="Part IV. Boost Test Library: The Unit Test Framework">
+<script language="JavaScript1.2" src="../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <b>Minimal testing facility</b>
+</td>
+<td><div class="spirit-nav">
+<a href="prg-exec-monitor/compilation.html"><img src="../../../../doc/html/images/prev.png" alt="Prev"></a><a href="utf.html"><img src="../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="part" lang="en">
+<div class="titlepage"><div><div><h1 class="title">
+<a name="minimal"></a>Part III. Boost Test Library: The minimal testing facility</h1></div></div></div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="minimal.intro"></a>Introduction</h3></div></div></div>
+<p class="first-line-indented">
+   <em class="firstterm">Boost.Test minimal testing facility</em> provides the functionality previously implemented by the 
+   original version of Boost.Test. As the name suggest, it provides only minimal basic facilities for test creation. It 
+   have no configuration parameters (either command line arguments or environment variables) and it supplies 
+   a limited set of <a class="link" href="minimal.html#minimal.tools" title="Provided testing tools">testing tools</a> which behaves similarly to ones defined amount 
+   the Unit Test Framework <a class="link" href="utf/testing-tools.html" title="The UTF testing tools or tester's toolbox for all occasions">Testing tools</a>. The minimal testing facility supplies its own function 
+   main() (so can not be used for multi unit testing) and will execute the test program in a monitored environment.
+  </p>
+<p class="first-line-indented">
+   As it follows from the name this component provides only minimal set of the testing capabilities and as a general 
+   rule the Unit Test Framework should be preferred. In a majority of the cases it provides you with much wider set of 
+   testing tools (and other goods), while still being as easy to set up.
+  </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="minimal.usage"></a>Usage</h3></div></div></div>
+<p class="first-line-indented">
+   The only change (other then including <a href="../../../../boost/test/minimal.hpp" target="_top">
+   <code class="filename">boost/test/minimal.hpp</code></a>) you need to make, to integrate your test module with minimal testing facility is 
+   the signature of your function main(). It should look like this:
+  </p>
+<pre class="programlisting">int test_main( int argc, char* argv[] )
+{
+  ...
+}</pre>
+<p class="first-line-indented">
+   Once you apply the change test automatically starts running in monitored environment. Also you can start using 
+   <a class="link" href="minimal.html#minimal.tools" title="Provided testing tools">testing tools</a> provided by the minimal testing facility and get uniform errors reporting.
+  </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="minimal.example"></a>Example</h3></div></div></div>
+<p class="first-line-indented">
+    Following example illustrates different approaches you can employ to detect and report errors using different 
+    testing tools
+  </p>
+<div class="example">
+<a name="minimal.example.example27"></a><p class="title"><b>Example 4. Minimal testing facility application</b></p>
+<div class="example-contents">
+<div class="programlistingco">
+<pre class="programlisting">#include &lt;boost/test/minimal.hpp&gt;
+
+//____________________________________________________________________________//
+
+int add( int i, int j ) { return i+j; }
+
+//____________________________________________________________________________//
+
+int test_main( int, char *[] )             // note the name!
+{
+    // six ways to detect and report the same error:
+    BOOST_CHECK( add( 2,2 ) == 4 );        // #1 continues on error
+    BOOST_REQUIRE( add( 2,2 ) == 4 );      // #2 throws on error
+    if( add( 2,2 ) != 4 )
+        BOOST_ERROR( "Ouch..." );          // #3 continues on error
+    if( add( 2,2 ) != 4 )
+        BOOST_FAIL( "Ouch..." );           // #4 throws on error
+    if( add( 2,2 ) != 4 ) throw "Oops..."; // #5 throws on error
+
+    return add( 2, 2 ) == 4 ? 0 : 1;       // #6 returns error code
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../src/examples/example27.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id643534" onclick="toggle_element( 'example27-annot', 'id643534', 'Show annotations', 'Hide annotations' ); return false;">Show annotations</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id643550" onclick="toggle_element( 'example27-output', 'id643550', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<div class="example-annot" id="example27-annot"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="snippet18.ann-1"></a>(1)</p></td>
+<td valign="top" align="left"><p class="first-line-indented">
+      This approach uses the BOOST_CHECK tool, which displays an error message on std::cout that includes the 
+      expression that failed, the source file name, and the source file line number. It also increments the error count. 
+      At program termination, the error count will be displayed automatically by the minimal testing facility.
+     </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="snippet18.ann-2"></a>(2)</p></td>
+<td valign="top" align="left"><p class="first-line-indented">
+      This approach using the BOOST_REQUIRE tool, is similar to #1, except that after displaying the error, an 
+      exception is thrown, to be caught by the minimal testing facility. This approach is suitable when writing an explicit test program,
+      and the error would be so severe as to make further testing impractical. BOOST_REQUIRE differs from the C++ 
+      Standard Library's assert() macro in that it is always generated, and channels error detection into the uniform
+      reporting procedure.
+     </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="snippet18.ann-3"></a>(3)</p></td>
+<td valign="top" align="left"><p class="first-line-indented">
+      This approach is similar to #1, except that the error detection is coded separately. This is most useful when 
+      the specific condition being tested is not indicative of the reason for failure.
+     </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="snippet18.ann-4"></a>(4)</p></td>
+<td valign="top" align="left"><p class="first-line-indented">
+      This approach is similar to #2, except that the error detection is coded separately. This is most useful when 
+      the specific condition being tested is not indicative of the reason for failure.
+     </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="snippet18.ann-5"></a>(5)</p></td>
+<td valign="top" align="left"><p class="first-line-indented">
+      This approach throws an exception, which will be caught and reported by the minimal testing facility. This approach is suitable
+      for both production and test code, in libraries or not. The error message displayed when  the exception is
+      caught  will be most meaningful if the exception is derived from <code class="computeroutput">std::exception </code>, or is a
+      char* or <code class="computeroutput">std::string</code>.
+     </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="snippet18.ann-6"></a>(6)</p></td>
+<td valign="top" align="left"><p class="first-line-indented">
+      This approach uses the BOOST_CHECK_MESSAGE tool, is similar to approach #1, except that similar to the approach #3
+      displays an alternative error message specified as a second argument.
+     </p></td>
+</tr>
+</table></div>
+</div>
+<pre class="example-output" id="example27-output">
+**** no errors detected
+</pre>
+</div>
+</div>
+<br class="example-break">
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="minimal.tools"></a>Provided testing tools</h3></div></div></div>
+<p class="first-line-indented">
+   The minimal testing facility supplies following four tools:
+  </p>
+<pre class="inline-synopsis">
+BOOST_CHECK(<span class="emphasis"><em>predicate</em></span>)
+BOOST_REQUIRE(<span class="emphasis"><em>predicate</em></span>)
+BOOST_ERROR(<span class="emphasis"><em>message</em></span>)
+BOOST_FAIL(<span class="emphasis"><em>message</em></span>)</pre>
+<p class="first-line-indented">
+   Their behavior is modeled after the <a class="link" href="utf/testing-tools/reference.html" title="The UTF testing tools reference">similarly named tools</a> 
+   implemented by the Unit Test Framework.
+  </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="minimal.impl"></a>Implementation</h3></div></div></div>
+<p class="first-line-indented">
+   The minimal testing facility is implemented inline in one header <a href="../../../../boost/test/minimal.hpp" target="_top">
+   <code class="filename">boost/test/minimal.hpp</code></a>. There are no special compilation instructions for this component.
+  </p>
+<p class="first-line-indented">
+   There is a single unit test program that validates minimal testing facility functionality: minimal_test 
+  </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised:  ,  at  </small></p></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="prg-exec-monitor/compilation.html"><img src="../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="index.html"><img src="../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="utf.html"><img src="../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

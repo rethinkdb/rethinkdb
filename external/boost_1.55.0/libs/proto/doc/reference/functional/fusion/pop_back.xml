@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/functional/fusion/pop_back.hpp">
+  <para>Includes Proto callable <computeroutput><classname>boost::proto::functional::pop_back</classname></computeroutput>.</para>
+
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="functional">
+
+        <!-- proto::functional::pop_back -->
+        <struct name="pop_back">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+            <computeroutput>fusion::pop_back()</computeroutput> algorithm on its argument.</purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+              <computeroutput>fusion::pop_back()</computeroutput> algorithm on its argument.
+            </para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Seq"/>
+            </template>
+            <specialization>
+              <template-arg>This(Seq)</template-arg>
+            </specialization>
+            <inherit>
+              <type>result&lt; This(Seq const &amp;) &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Seq"/>
+            </template>
+            <specialization>
+              <template-arg>This(Seq &amp;)</template-arg>
+            </specialization>
+            <inherit>
+              <type>fusion::result_of::pop_back&lt; Seq &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename fusion::result_of::pop_back&lt; Seq &gt;::type</type>
+              <template>
+                <template-type-parameter name="Seq"/>
+              </template>
+              <parameter name="seq">
+                <paramtype>Seq &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para><computeroutput>fusion::pop_back(seq)</computeroutput></para>
+              </returns>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename fusion::result_of::pop_back&lt; Seq const &gt;::type</type>
+              <template>
+                <template-type-parameter name="Seq"/>
+              </template>
+              <parameter name="seq">
+                <paramtype>Seq const &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para><computeroutput>fusion::pop_back(seq)</computeroutput></para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+
+      </namespace>
+    </namespace>
+  </namespace>
+</header>

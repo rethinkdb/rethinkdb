@@ -1,0 +1,163 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+
+  <title>Generator Iterator Adaptor Documentation</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+  <img src="../../boost.png" alt="boost.png (6897 bytes)" align="middle"
+  width="277" height="86">
+
+  <h1>Generator Iterator Adaptor</h1>
+
+  <p>Defined in header <a href=
+  "../../boost/generator_iterator.hpp">boost/generator_iterator.hpp</a></p>
+
+  <p>The generator iterator adaptor makes it easier to create custom input
+  iterators from 0-ary functions and function objects. The adaptor takes a
+  <a href="http://www.sgi.com/tech/stl/Generator.html">Generator</a> and
+  creates a model of <a href=
+  "http://www.sgi.com/tech/stl/InputIterator.html">Input Iterator</a>. Each
+  increment retrieves an item from the generator and makes it available to be
+  retrieved by dereferencing. The motivation for this iterator is that some
+  concepts can be more naturally expressed as a generator, while most STL
+  algorithms expect an iterator. An example is the <a href=
+  "../random/index.html">Random Number</a> library.</p>
+
+  <h2>Synopsis</h2>
+
+  <blockquote>
+    <pre>
+namespace boost {
+  template &lt;class Generator&gt;
+  class generator_iterator_policies;
+
+  template &lt;class Generator&gt;
+  class generator_iterator_generator;
+
+  template &lt;class Generator&gt;
+  typename generator_iterator_generator&lt;Generator&gt;::type
+  make_generator_iterator(Generator &amp; gen);
+}
+</pre>
+  </blockquote>
+  <hr>
+
+  <h2>The Generator Iterator Generator Class</h2>
+
+  <p>The class generator_iterator_generator is a helper class whose purpose
+  is to construct a generator iterator type. The template parameter for this
+  class is the Generator function object type that is being wrapped. The
+  generator iterator adaptor only holds a reference (or pointer) to the
+  function object, therefore the function object must outlive the generator
+  iterator adaptor constructed from it.</p>
+  <pre>
+template &lt;class Generator&gt;
+class generator_iterator_generator
+{
+public:
+  typedef <i>unspecified</i> type; // the resulting generator iterator type 
+}
+</pre>
+
+  <h3>Template Parameters</h3>
+
+  <table border summary="">
+    <tr>
+      <th>Parameter</th>
+
+      <th>Description</th>
+    </tr>
+
+    <tr>
+      <td><tt><a href=
+      "http://www.sgi.com/tech/stl/Generator.html">Generator</a></tt></td>
+
+      <td>The generator (0-ary function object) type being wrapped. The
+      return type of the function must be defined as
+      <tt>Generator::result_type</tt>. The function object must be a model of
+      <a href=
+      "http://www.sgi.com/tech/stl/Generator.html">Generator</a>.</td>
+    </tr>
+  </table>
+
+  <h3>Concept Model</h3>
+
+  <p>The generator iterator class is a model of <a href=
+  "http://www.sgi.com/tech/stl/InputIterator.html">Input Iterator</a>.</p>
+
+  <h3>Members</h3>
+
+  <p>The generator iterator implements the member functions and operators
+  required of the <a href=
+  "http://www.sgi.com/tech/stl/InputIterator.html">Input Iterator</a>
+  concept.<br></p>
+  <hr>
+
+  <h2><a name="make_generator_iterator" id="make_generator_iterator">The
+  Generator Iterator Object Generator</a></h2>
+
+  <p>The <tt>make_generator_iterator()</tt> function provides a convenient
+  way to create generator iterator objects. The function saves the user the
+  trouble of explicitly writing out the iterator types.</p>
+
+  <blockquote>
+    <pre>
+template &lt;class Generator&gt;
+typename generator_iterator_generator&lt;Generator&gt;::type
+make_generator_iterator(Generator &amp; gen);
+</pre>
+  </blockquote>
+  <hr>
+
+  <h3>Example</h3>
+
+  <p>The following program shows how <code>generator_iterator</code>
+  transforms a generator into an input iterator.</p>
+
+  <blockquote>
+    <pre>
+#include &lt;iostream&gt;
+#include &lt;boost/generator_iterator.hpp&gt;
+
+class my_generator
+{
+public:
+  typedef int result_type;
+  my_generator() : state(0) { }
+  int operator()() { return ++state; }
+private:
+  int state;
+};
+
+int main()
+{
+  my_generator gen;
+  boost::generator_iterator_generator&lt;my_generator&gt;::type it = boost::make_generator_iterator(gen);
+  for(int i = 0; i &lt; 10; ++i, ++it)
+    std::cout &lt;&lt; *it &lt;&lt; std::endl;
+}
+</pre>
+  </blockquote>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->05 December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38516" --></p>
+
+  <p><i>Copyright &copy; 2001 <a href=
+  "http://www.boost.org/people/jens_maurer.htm">Jens Maurer</a></i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

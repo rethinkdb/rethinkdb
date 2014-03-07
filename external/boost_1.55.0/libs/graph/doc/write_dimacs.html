@@ -1,0 +1,104 @@
+<HTML>
+
+<!--
+//  Copyright (c) 2006, Stephan Diederich
+//
+//  This code may be used under either of the following two licences:
+//
+//    Permission is hereby granted, free of charge, to any person
+//    obtaining a copy of this software and associated documentation
+//    files (the "Software"), to deal in the Software without
+//    restriction, including without limitation the rights to use,
+//    copy, modify, merge, publish, distribute, sublicense, and/or
+//    sell copies of the Software, and to permit persons to whom the
+//    Software is furnished to do so, subject to the following
+//    conditions:
+//
+//    The above copyright notice and this permission notice shall be
+//    included in all copies or substantial portions of the Software.
+//
+//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+//    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+//    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+//    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+//    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+//    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+//    OTHER DEALINGS IN THE SOFTWARE. OF SUCH DAMAGE.
+//
+//  Or:
+//
+//    Distributed under the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE_1_0.txt or copy at
+//    http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<Head>
+<Title>Boost Graph Library: write_dimacs_max_flow</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+<BR Clear>
+
+<H1><A NAME="sec:write_dimacs_max_flow">
+<TT>write_dimacs_max_flow</TT>
+</H1>
+
+
+<pre>
+//outputs a graph with including edge_capacity properties to an std::ostream
+template &lt; typename Graph, typename CapacityMap, typename IndexMap &gt;
+void write_dimacs_max_flow(Graph& g,
+                         CapacityMap capacity, 
+                         IndexMap idx,
+                         typename graph_traits<Graph>::vertex_descriptor& src,
+                         typename graph_traits<Graph>::vertex_descriptor& sink,
+                         std::ostream& out)
+
+</pre>
+
+<p>
+This method writes a BGL graph object as an max-flow problem into an output stream in extended dimacs format (see <a href="http://www.avglab.com/andrew/CATS/maxflow_formats.htm"><TT>Goldbergs site</TT></a> for more information).
+The output can be read in again using the <a href="../../../boost/graph/read_dimacs.hpp"><TT>boost/graph/read_dimacs.hpp</TT></a> method. 
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/write_dimacs.hpp"><TT>boost/graph/write_dimacs.hpp</TT></a>
+
+<h3>Parameters</h3>
+ IN: <tt>Graph&amp; g</tt>
+<blockquote>
+  A directed or undirected graph.  The graph's type must be a model of
+  <a href="./VertexListGraph.html">VertexListGraph</a> and <a href="./EdgeListGraph.html">EdgeListGraph</a>, as num_vertices(Graph) and num_edges(Graph) is used inside. <a href="#1">[1]</a>
+</blockquote>  
+
+ IN: <tt>CapacityMap capacity</tt>
+<blockquote>
+ A property map that models <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a> whose key type is the edge descriptor of the graph and whose value type can be written to a stream. <br>
+</blockquote>  
+
+ IN: <tt>IndexMap epw</tt>
+<blockquote>
+ A property map that models <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a> whose key type is the vertex descriptor of the graph and whose value type can be written to a stream. <br>
+</blockquote>
+  
+ OUT: <tt>std::ostream&amp; out</tt>
+<blockquote>
+  A standard <tt>std::ostream</tt> object.
+</blockquote>  
+
+<H3>
+Example 
+</H3>
+A short <a href="../example/read_write_dimacs-eg.cpp">example</a> which uses read_dimacs and write_dimacs is located in the examples directory.
+
+<h3>See Also</h3>
+
+<a href="./read_dimacs.html"><tt>read_dimacs</tt></a>
+
+<h3>Notes</h3>
+<a name="1">[1]</a> As num_edges() and num_vertices() is used inside which returns values for the unfiltered graph (instead of the filtered), this method cannot be used with a <a href="./filtered_graph.html">filtered_graph</a>See <a href="./filtered_graph.html#2">filtered_graph Note [2]</a> for the reason.
+</BODY>
+</HTML> 

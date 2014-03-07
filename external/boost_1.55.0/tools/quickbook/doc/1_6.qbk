@@ -1,0 +1,287 @@
+[/
+    Copyright 2002,2004,2006 Joel de Guzman, Eric Niebler
+    Copyright 2010-2013 Daniel James
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section:1_6 Quickbook 1.6]
+
+Upgrading a document from an earlier version of quickbook shouldn't be too
+hard. The first thing to do is update the version in the docinfo block.
+For example, if you were updating the Xpressive documentation, the existing
+docinfo block looks like:
+
+    [library Boost.Xpressive
+        [quickbook 1.3]
+        ...
+    ]
+
+Change this to:
+
+    [library Boost.Xpressive
+        [quickbook 1.6]
+        [compatibility-mode 1.3]
+        ...
+    ]
+
+The =compatibility-mode= tag ensures that automatically generated links
+won't change. It might turn out that it isn't required, but in Xpressive's
+case if it isn't included it will break a lot of links.
+
+Then try building it. You might need to fix some stray square brackets. The
+new version has a stricter parser which will have an error for brackets
+which don't pair up. They might be there by mistake, in which case they
+should probably be deleted, or if they're intentional escaped. For example,
+to write out the half-open range \[a,b), use: `\[a,b)`.
+
+Next, you might need to reconsider how templates and macros are defined.
+If you `include` a file to use its templates, you'll now need to `import` it
+instead as templates are now scoped by included files. Also, if you define
+templates and macros in your main quickbook file, you might want to put them
+into a separate file and `import` that, which allows the main documentation
+files to concentrate on the structure and contents of the document, making them
+easier to read.
+
+Now that headings can have ids, it can be a good idea to add ids to existing
+headings. This means that the headings will have more predictable ids which
+don't change when the text of the heading changes. In order to preserve
+links you can use the existing generated id as the heading.
+
+[section:docinfo Includes with docinfo]
+
+In quickbook 1.5 if you include a file which starts with a docinfo block, it's
+ignored and the file is expanded in place. In quickbook 1.6 it's treated as a
+document nested in the current position. So if it has an 'article' docinfo block,
+boostbook 'article' tags are used.
+
+It also mostly generates the same markup as if the file was converted separately -
+so for example, the same ids are generated, the document is processed using the
+language version specified in the docinfo block. If no language is specified it
+uses the default (1.1) not the version of the document that included it. This
+might seem surprising, but is requried so that quickbook will convert it the same
+way as if it was converted separately.
+
+So for the most part, includes with a docinfo are like an `xinclude`, apart from
+a couple of differences. Templates and macros defined in the parent document are
+used in the included document, and the id generator rewrites ids that clash
+between multiple documents.
+
+If an included document doesn't have a docinfo block, it's just included as
+before.
+
+[endsect] [/docinfo]
+
+[section:doc_info_macros Macros in docinfo block]
+
+You can now expand macros in text fields in the docinfo block. In the top
+docinfo block only the predefined macros are available, but in nested documents
+macros defined in the parent document are also available.
+
+There's a small bug here - this leaks into older versions for the `license`
+and `purpose` fields, but since only the predefined macros are available, it's
+unlikely to break any existing documents. So I'd rather not complicate the code
+further by fixing that.
+
+[endsect]
+
+[section:scope Scoping templates and macros]
+
+A long standing quickbook bug is that macros are scoped by file, but templates
+aren't. So you can define templates in a separate file and include them, but not
+macros. This has been fixed so that templates defined in one file won't 'leak'
+into another.
+
+But this means there's no way to define templates in a separate file - a useful
+feature. To do this the `import` element has been adapted to also support
+quickbook files. If a quickbook file is imported, the templates and macros
+defined in it are added to the current scope, but nothing else contained in that
+file is used. This could be used to create template and macro library files.
+This matches the existing semantics of importing code snippets.
+
+When importing templates, they're bound to the language version of the file
+they were defined in. This means that if you import them into a file with
+a different version it won't change the way they're interpreted. Although,
+as we'll see [link compatibility later], the generated boostbook is slightly
+different.
+
+[endsect] [/scope]
+
+[section:include Including C++ and python files]
+
+As `import` now supports quickbook files, `include` also supports source files.
+It includes any quickbook contained in comments outside of code snippets.
+Code snippets in the file are available to be expanded within the file but
+are scoped to the file. In exactly the same manner as when templates and macros
+are scoped in an included quickbook file.
+
+[endsect] [/include]
+
+[section:ids Id Generation]
+
+Id generation in quickbook 1.5 is a bit buggy, but that can't be fixed without a
+version switch as it will break existing documents. For example in quickbook 1.5
+when you include a quickbook file, it stops using the explicit id from the
+documentation info and generates a new id from the document title to use instead.
+
+The id generator in quickbook 1.6 has been improved in some other ways to. When
+generating ids from section titles, table titles etc. it always uses the
+quickbook source rather than the generated boostbook to generate the id. It then
+cleans up the id slightly, trimming leading and trailing underscores and replacing
+multiple underscores with a single underscore. Then if the newly generated part
+of the id is longer than 32 characters it truncates it.
+
+While the new id generator generally creates better ids, it's more likely to
+generate duplicates so quickbook needs to handle duplicates better. When there
+are multiple identical ids, quickbook chooses one to use based on a priority
+list - anchors are preferred, then explicit document and section ids, then other
+explicit ids, followed by the generated ids. Then any other explicit ids in the
+document have numbers added to avoid duplicates - first the explicit ids in the
+order they appear and then the generated ids. A generated id which accidentally
+clashes with an explicit id should never change the explicit id.
+
+Older language versions still generate the same ids they always have, with the
+exception of duplicate ids which are handled using the new mechanism - this
+is not a breaking change since duplicate ids can't be linked to.
+
+[endsect] [/ids]
+
+[#compatibility]
+[section:compatibility Compatibility Mode]
+
+As mentioned before, changing the id generator will break links in documents
+written using an old language version. So to ease the transition a
+'compatibility mode' is used, this just requires an extra attribute in the
+docinfo, for example if you're converting a 1.5 document to 1.6:
+
+    [article Document
+    [quickbook 1.6]
+    [compatibility-mode 1.5]
+    ]
+
+This means the document will be parsed as 1.6, using all the new features, but
+ids (and possibly other markup) will generated as they were for a 1.5 document.
+
+Compatibility mode is also implicitly used when generating templates written
+in a different language version to the current document. So the template is
+parsed in the version it was written for, but generates boostbook that's
+compatible with the current document.
+
+[endsect] [/compatibility]
+
+[section:version Version info outside of document info block]
+
+Can now use `quickbook` and `compatibility-mode` tags at the beginning of the
+file. Either before or without a document info block. This is useful for
+files just containing templates, which don't really need a document info
+block.
+
+If you don't specify `compatibility-mode`, the behaviour depends on whether or
+not you have a docinfo block. If you do it uses the file's quickbook version,
+if you don't it inherits the parent's compatibility mode even if you specify
+a quickbook version. This is the right thing to do - mixing compatibility modes
+within documents is problematic. It might actually be a mistake to allow them
+to specified outside docinfo blocks.
+
+This change is also backdated to older versions. So when including from an
+older version, the included file's version can be set (older versions
+ignore document info in included files).
+
+[endsect]
+
+[section:heading_ids Explicit Heading Ids]
+
+Headings can now be given explicit ids:
+
+    [heading:id A heading with an explicit id]
+
+[endsect] [/heading_ids]
+
+[section:escapes Punctuation changes]
+
+In 1.6, quickbook is more consistent about how it parses punctuation.
+Escapes are now supported in links, anchors, table titles, image
+attributes etc. The flip side of this is that quickbook is now stricter
+about unescaped brackets. They can still be used, but need to match up,
+otherwise there's an error.
+
+Since quickbook now matches up square brackets it will fix some
+mis-parses. For example `[*[bold]]` used to parse as [*\[bold]\] - note
+that the closing square bracket isn't bold, now it parses as
+[*\[bold\]]. In this case it's just a subtle visual difference, but it
+could cause odd problems, for example when nested in a table cell.
+
+[endsect] [/escapes]
+
+[section:table Table Titles]
+
+Table titles are now parsed as phrases, so some markup is allowd:
+
+    [table [*bold title]]
+
+Which is an empty table with a bold title. The title is no longer ended
+by a newline, but by either a closing square bracket, or two opening
+square brackets - which you get at the start of the table cells, so
+this now works:
+
+    [table Simple[[heading 1][heading 2]][[cell 1][cell 2]]]
+
+[endsect] [/table]
+
+[section:xmlbase XML base]
+
+A problem when using `xi:include` tags in escaped boostbook is that you
+typically don't know which directory the boostbook file will be in, so
+it's impossible to use relative links. This can be fixed by adding an
+`xml:base` attribute to the document tag. To do this use the new
+`xmlbase` attribute in your document's docinfo block. For example to
+make escaped `xi:include`s be relative to the directory of the file:
+
+    [library Library documentation
+    [quickbook 1.6]
+    [xmlbase .]
+    ]
+
+Any paths in `xinclude` elements will be rewritten accordingly. Note that
+most documents won't need this, and probably shouldn't use it. Only use it
+if you're totally sure that you will need it.
+
+[endsect] [/xmlbase]
+
+[section:template_parser Improved template parser]
+
+There's a new parser for template declarations and parameters which does
+a better job of understanding escaped and bracketed text. Unfortunately
+it does not understand element names so there are some cases where it
+could go wrong. For example:
+
+    [template doesnt_work[]
+    [ordered_list
+        [`code phrase`]
+    ]
+    ]
+
+In this case it will think the `[\`` is a template call and give a parse
+error. To work around this put an escaped space before the code phrase:
+
+    [template works[]
+    [ordered_list
+        [\ `code phrase`]
+    ]
+    ]
+
+[endsect]
+
+[section:elements New Elements]
+
+New elements added in quickbook 1.6:
+
+* [link quickbook.ref.block `block`]
+* [link quickbook.ref.list_tags `ordered_list` and `itemized_list`]
+* [link quickbook.ref.role `role`]
+
+[endsect] [/ elements]
+
+[endsect] [/ Quickbok 1.6]

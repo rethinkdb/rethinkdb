@@ -1,0 +1,386 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Linux/x86 (vers 1st September 2004), see www.w3.org">
+  <meta http-equiv="Content-Type" content=
+  "text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../boost.css">
+
+  <title>Boost.Python -
+  &lt;boost/python/docstring_options.hpp&gt;</title>
+</head>
+
+<body>
+  <table border="0" cellpadding="7" cellspacing="0" width="100%"
+  summary="header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../../index.htm"><img height="86" width=
+        "277" alt="C++ Boost" src="../../../../boost.png" border=
+        "0"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center"><a href=
+        "../index.html">Boost.Python</a></h1>
+
+        <h2 align="center">Header
+        &lt;boost/python/docstring_options.hpp&gt;</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <h2>Contents</h2>
+
+  <dl class="page-index">
+    <dt><a href="#introduction">Introduction</a></dt>
+
+    <dt><a href="#classes">Classes</a></dt>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#docstring_options-spec">Class
+        <code>docstring_options</code></a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#docstring_options-spec-synopsis">Class
+            <code>docstring_options</code> synopsis</a></dt>
+
+            <dt><a href="#docstring_options-spec-ctors">Class
+            <code>docstring_options</code> constructors</a></dt>
+
+            <dt><a href="#docstring_options-spec-dtors">Class
+            <code>docstring_options</code> destructors</a></dt>
+
+            <dt><a href="#docstring_options-spec-modifiers">Class
+            <code>docstring_options</code> modifiers</a></dt>
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+
+    <dt><a href="#examples">Examples</a></dt>
+  </dl>
+  <hr>
+
+  <h2><a name="introduction" id=
+  "introduction"></a>Introduction</h2>
+
+  <p>Boost.Python supports user-defined docstrings with automatic
+  appending of C++ signatures. These features are enabled by
+  default. The <code>class docstring_options</code> is available to
+  selectively suppress the user-defined docstrings, signatures, or
+  both.</p>
+
+  <h2><a name="classes" id="classes"></a>Classes</h2>
+
+  <h3><a name="docstring_options-spec" id=
+  "docstring_options-spec"></a>Class
+  <code>docstring_options</code></h3>
+
+  <p>Controls the appearance of docstrings of wrapped functions and
+  member functions for the life-time of the instance. The instances
+  are noncopyable to eliminate the possibility of surprising side
+  effects.</p>
+
+  <h4><a name="docstring_options-spec-synopsis" id=
+  "docstring_options-spec-synopsis"></a>Class
+  <code>docstring_options</code> synopsis</h4>
+  <pre>
+namespace boost { namespace python {
+
+    class docstring_options : boost::noncopyable
+    {
+      public:
+          docstring_options(bool show_all=true);
+
+          docstring_options(bool show_user_defined, bool show_signatures);
+
+          docstring_options(bool show_user_defined, bool show_py_signatures, bool show_cpp_signatures);
+
+          ~docstring_options();
+
+          void
+          disable_user_defined();
+
+          void
+          enable_user_defined();
+
+          void
+          disable_signatures();
+
+          void
+          enable_signatures();
+
+          void
+          disable_py_signatures();
+
+          void
+          enable_py_signatures();
+
+          void
+          disable_cpp_signatures();
+
+          void
+          enable_cpp_signatures();
+
+          void
+          disable_all();
+
+          void
+          enable_all();
+    };
+
+}}
+</pre>
+
+  <h4><a name="docstring_options-spec-ctors" id=
+  "docstring_options-spec-ctors"></a>Class
+  <code>docstring_options</code> constructors</h4>
+  <pre>
+docstring_options(bool show_all=true);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Effects:</b> Constructs a <code>docstring_options</code>
+    object which controls the appearance of function and
+    member-function docstrings defined in the code that follows. If
+    <code>show_all</code> is <code>true</code>, both the
+    user-defined docstrings and the automatically generated Python and C++
+    signatures are shown. If <code>show_all</code> is
+    <code>false</code> the <code>__doc__</code> attributes are
+    <code>None</code>.</dt>
+  </dl>
+  <pre>
+docstring_options(bool show_user_defined, bool show_signatures);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Effects:</b> Constructs a <code>docstring_options</code>
+    object which controls the appearance of function and
+    member-function docstrings defined in the code that follows.
+    Iff <code>show_user_defined</code> is <code>true</code>, the
+    user-defined docstrings are shown. Iff
+    <code>show_signatures</code> is <code>true</code>, Python and C++
+    signatures are automatically added. If both
+    <code>show_user_defined</code> and <code>show_signatures</code>
+    are <code>false</code>, the <code>__doc__</code> attributes are
+    <code>None</code>.</dt>
+  </dl>
+  <pre>
+docstring_options(bool show_user_defined, bool show_py_signatures, bool show_cpp_signatures);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Effects:</b> Constructs a <code>docstring_options</code>
+    object which controls the appearance of function and
+    member-function docstrings defined in the code that follows.
+    Iff <code>show_user_defined</code> is <code>true</code>, the
+    user-defined docstrings are shown. Iff
+    <code>show_py_signatures</code> is <code>true</code>, Python 
+    signatures are automatically added. Iff 
+    <code>show_cpp_signatures</code> is <code>true</code>, C++ 
+    signatures are automatically added. If all parameters are
+    <code>false</code>, the <code>__doc__</code> attributes are
+    <code>None</code>.</dt>
+  </dl>
+
+  <h4><a name="docstring_options-spec-dtors" id=
+  "docstring_options-spec-dtors"></a>Class
+  <code>docstring_options</code> destructors</h4>
+  <pre>
+~docstring_options();
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Effects:</b> Restores the previous state of the
+    docstring options. In particular, if
+    <code>docstring_options</code> instances are in nested C++
+    scopes the settings effective in the enclosing scope are
+    restored. If the last <code>docstring_options</code> instance
+    goes out of scope the default "all on" settings are
+    restored.</dt>
+  </dl>
+
+  <h4><a name="docstring_options-spec-modifiers" id=
+  "docstring_options-spec-modifiers"></a>Class
+  <code>docstring_options</code> modifier functions</h4>
+  <pre>
+void disable_user_defined();
+void enable_user_defined();
+void disable_signatures();
+void enable_signatures();
+void disable_py_signatures();
+void enable_py_signatures();
+void disable_cpp_signatures();
+void enable_cpp_signatures();
+void disable_all();
+void enable_all();
+</pre>
+
+  <dl class="function-semantics">
+    <dt>These member functions dynamically change the appearance of
+    docstrings in the code that follows. The
+    <code>*_user_defined()</code> and <code>*_signatures()</code>
+    member functions are provided for fine-grained control. The
+    <code>*_all()</code> member functions are convenient shortcuts
+    to manipulate all settings simultaneously.</dt>
+  </dl>
+
+  <h2><a name="examples" id="examples"></a>Examples</h2>
+
+  <h4>Docstring options defined at compile time</h4>
+  <pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/def.hpp&gt;
+#include &lt;boost/python/docstring_options.hpp&gt;
+
+void foo() {}
+
+BOOST_PYTHON_MODULE(demo)
+{
+    using namespace boost::python;
+    docstring_options doc_options(DEMO_DOCSTRING_SHOW_ALL);
+    def("foo", foo, "foo doc");
+}
+</pre>If compiled with <code>-DDEMO_DOCSTRING_SHOW_ALL=true</code>:
+  <pre>
+&gt;&gt;&gt; import demo
+&gt;&gt;&gt; print demo.foo.__doc__
+foo() -&gt; None : foo doc
+C++ signature:
+    foo(void) -&gt; void
+</pre>If compiled with
+<code>-DDEMO_DOCSTRING_SHOW_ALL=false</code>:
+  <pre>
+&gt;&gt;&gt; import demo
+&gt;&gt;&gt; print demo.foo.__doc__
+None
+</pre>
+
+  <h4>Selective suppressions</h4>
+  <pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/def.hpp&gt;
+#include &lt;boost/python/args.hpp&gt;
+#include &lt;boost/python/docstring_options.hpp&gt;
+
+int foo1(int i) { return i; }
+int foo2(long l) { return static_cast&lt;int&gt;(l); }
+int foo3(float f) { return static_cast&lt;int&gt;(f); }
+int foo4(double d) { return static_cast&lt;int&gt;(d); }
+
+BOOST_PYTHON_MODULE(demo)
+{
+    using namespace boost::python;
+    docstring_options doc_options;
+    def("foo1", foo1, arg("i"), "foo1 doc");
+    doc_options.disable_user_defined();
+    def("foo2", foo2, arg("l"), "foo2 doc");
+    doc_options.disable_signatures();
+    def("foo3", foo3, arg("f"), "foo3 doc");
+    doc_options.enable_user_defined();
+    def("foo4", foo4, arg("d"), "foo4 doc");
+    doc_options.enable_py_signatures();
+    def("foo5", foo4, arg("d"), "foo5 doc");
+    doc_options.disable_py_signatures();
+    doc_options.enable_cpp_signatures();
+    def("foo6", foo4, arg("d"), "foo6 doc");
+}
+</pre>Python code:
+  <pre>
+&gt;&gt;&gt; import demo
+&gt;&gt;&gt; print demo.foo1.__doc__
+foo1( (int)i) -&gt; int : foo1 doc
+C++ signature:
+    foo1(int i) -&gt; int
+&gt;&gt;&gt; print demo.foo2.__doc__
+foo2( (int)l) -&gt; int : 
+C++ signature:
+    foo2(long l) -&gt; int
+&gt;&gt;&gt; print demo.foo3.__doc__
+None
+&gt;&gt;&gt; print demo.foo4.__doc__
+foo4 doc
+&gt;&gt;&gt; print demo.foo5.__doc__
+foo5( (float)d) -&gt; int : foo5 doc
+&gt;&gt;&gt; print demo.foo6.__doc__
+foo6 doc
+C++ signature:
+    foo6(double d) -&gt; int
+</pre>
+
+  <h4>Wrapping from multiple C++ scopes</h4>
+  <pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/def.hpp&gt;
+#include &lt;boost/python/args.hpp&gt;
+#include &lt;boost/python/docstring_options.hpp&gt;
+
+int foo1(int i) { return i; }
+int foo2(long l) { return static_cast&lt;int&gt;(l); }
+
+int bar1(int i) { return i; }
+int bar2(long l) { return static_cast&lt;int&gt;(l); }
+
+namespace {
+
+    void wrap_foos()
+    {
+        using namespace boost::python;
+        // no docstring_options here
+        //   -&gt; settings from outer C++ scope are in effect
+        def("foo1", foo1, arg("i"), "foo1 doc");
+        def("foo2", foo2, arg("l"), "foo2 doc");
+    }
+
+    void wrap_bars()
+    {
+        using namespace boost::python;
+        bool show_user_defined = true;
+        bool show_signatures = false;
+        docstring_options doc_options(show_user_defined, show_signatures);
+        def("bar1", bar1, arg("i"), "bar1 doc");
+        def("bar2", bar2, arg("l"), "bar2 doc");
+    }
+}
+
+BOOST_PYTHON_MODULE(demo)
+{
+    boost::python::docstring_options doc_options(false);
+    wrap_foos();
+    wrap_bars();
+}
+</pre>Python code:
+  <pre>
+&gt;&gt;&gt; import demo
+&gt;&gt;&gt; print demo.foo1.__doc__
+None
+&gt;&gt;&gt; print demo.foo2.__doc__
+None
+&gt;&gt;&gt; print demo.bar1.__doc__
+bar1 doc
+&gt;&gt;&gt; print demo.bar2.__doc__
+bar2 doc
+</pre>
+
+  <h4>See also: <code>boost/libs/python/test/docstring.cpp</code>
+  and <code>docstring.py</code></h4>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+   16 January, 2006 
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" --></p>
+
+  <p><i>&copy; Copyright <a href=
+  "http://www.boost.org/people/ralf_w_grosse_kunstleve.htm">Ralf W.
+  Grosse-Kunstleve</a> 2006.</i></p>
+</body>
+</html>

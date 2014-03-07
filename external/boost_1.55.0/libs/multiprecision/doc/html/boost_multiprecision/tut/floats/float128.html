@@ -1,0 +1,163 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>float128</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../floats.html" title="Floating Point Numbers">
+<link rel="prev" href="mpfr_float.html" title="mpfr_float">
+<link rel="next" href="fp_eg.html" title="Examples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="mpfr_float.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../floats.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="fp_eg.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_multiprecision.tut.floats.float128"></a><a class="link" href="float128.html" title="float128">float128</a>
+</h4></div></div></div>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">float128</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">multiprecision</span><span class="special">{</span>
+
+<span class="keyword">class</span> <span class="identifier">float128_backend</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">float128_backend</span><span class="special">,</span> <span class="identifier">et_off</span><span class="special">&gt;</span>    <span class="identifier">float128</span><span class="special">;</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">float128</span></code> number type
+          is a very thin wrapper around GCC's <code class="computeroutput"><a class="link" href="float128.html" title="float128">float128</a></code>
+          or Intel's <code class="computeroutput"><span class="identifier">_Quad</span></code> data types
+          and provides an real-number type that is a drop-in replacement for the
+          native C++ floating-point types, but with a 113 bit mantissa, and compatible
+          with FORTRAN's 128-bit QUAD real.
+        </p>
+<p>
+          All the usual standard library and <code class="computeroutput"><span class="identifier">numeric_limits</span></code>
+          support are available, performance should be equivalent to the underlying
+          native types: for example the LINPACK benchmarks for GCC's <code class="computeroutput"><a class="link" href="float128.html" title="float128">float128</a></code>
+          and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">::</span><span class="identifier">float128</span></code> both achieved 5.6 MFLOPS<a href="#ftn.boost_multiprecision.tut.floats.float128.f0" class="footnote" name="boost_multiprecision.tut.floats.float128.f0"><sup class="footnote">[3]</sup></a>.
+        </p>
+<p>
+          As well as the usual conversions from arithmetic and string types, instances
+          of <code class="computeroutput"><span class="identifier">float128</span></code> are copy constructible
+          and assignable from GCC's <code class="computeroutput"><a class="link" href="float128.html" title="float128">float128</a></code>
+          and Intel's <code class="computeroutput"><span class="identifier">_Quad</span></code> data
+          types.
+        </p>
+<p>
+          It's also possible to access the underlying <code class="computeroutput"><a class="link" href="float128.html" title="float128">float128</a></code>
+          or <code class="computeroutput"><span class="identifier">_Quad</span></code> type via the
+          <code class="computeroutput"><span class="identifier">data</span><span class="special">()</span></code>
+          member function of <code class="computeroutput"><span class="identifier">float128_backend</span></code>.
+        </p>
+<p>
+          Things you should know when using this type:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Default constructed <code class="computeroutput"><span class="identifier">float128</span></code>s
+              have the value zero.
+            </li>
+<li class="listitem">
+              This backend supports rvalue-references and is move-aware, making instantiations
+              of <code class="computeroutput"><span class="identifier">number</span></code> on this backend
+              move aware.
+            </li>
+<li class="listitem">
+              It is not possible to round-trip objects of this type to and from a
+              string and get back exactly the same value when compiled with Intel's
+              C++ compiler and using <code class="computeroutput"><span class="identifier">_Quad</span></code>
+              as the underlying type: this is a current limitation of our code. Round
+              tripping when using <code class="computeroutput"><a class="link" href="float128.html" title="float128">float128</a></code>
+              as the underlying type is possible (both for GCC and Intel).
+            </li>
+<li class="listitem">
+              Conversion from a string results in a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+              being thrown if the string can not be interpreted as a valid floating
+              point number.
+            </li>
+<li class="listitem">
+              Division by zero results in an infinity being produced.
+            </li>
+<li class="listitem">
+              Type <code class="computeroutput"><span class="identifier">float128</span></code> can be
+              used as a literal type (constexpr support).
+            </li>
+<li class="listitem">
+              When using the Intel compiler, the underlying type defaults to <code class="computeroutput"><a class="link" href="float128.html" title="float128">float128</a></code>
+              if it's available and <code class="computeroutput"><span class="identifier">_Quad</span></code>
+              if not. You can override the default by defining either <code class="computeroutput"><span class="identifier">BOOST_MP_USE_FLOAT128</span></code> or <code class="computeroutput"><span class="identifier">BOOST_MP_USE_QUAD</span></code>.
+            </li>
+<li class="listitem">
+              When the underlying type is Intel's <code class="computeroutput"><span class="identifier">_Quad</span></code>
+              type, the code must be compiled with the compiler option <code class="computeroutput"><span class="special">-</span><span class="identifier">Qoption</span><span class="special">,</span><span class="identifier">cpp</span><span class="special">,--</span><span class="identifier">extended_float_type</span></code>.
+            </li>
+</ul></div>
+<h6>
+<a name="boost_multiprecision.tut.floats.float128.h0"></a>
+          <span class="phrase"><a name="boost_multiprecision.tut.floats.float128.float128_example_"></a></span><a class="link" href="float128.html#boost_multiprecision.tut.floats.float128.float128_example_">float128
+          example:</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">float128</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">;</span>
+
+<span class="comment">// Operations at 128-bit precision and full numeric_limits support:</span>
+<span class="identifier">float128</span> <span class="identifier">b</span> <span class="special">=</span> <span class="number">2</span><span class="special">;</span>
+<span class="comment">// There are 113-bits of precision:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">float128</span><span class="special">&gt;::</span><span class="identifier">digits</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">// Or 34 decimal places:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">float128</span><span class="special">&gt;::</span><span class="identifier">digits10</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">// We can use any C++ std lib function, lets print all the digits as well:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">float128</span><span class="special">&gt;::</span><span class="identifier">max_digits10</span><span class="special">)</span>
+   <span class="special">&lt;&lt;</span> <span class="identifier">log</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// print log(2) = 0.693147180559945309417232121458176575</span>
+<span class="comment">// We can also use any function from Boost.Math:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">// And since we have an extended exponent range we can generate some really large </span>
+<span class="comment">// numbers here (4.02387260077093773543702433923004111e+2564):</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">float128</span><span class="special">(</span><span class="number">1000</span><span class="special">))</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">//</span>
+<span class="comment">// We can declare constants using GCC or Intel's native types, and the Q suffix,</span>
+<span class="comment">// these can be declared constexpr if required:</span>
+
+<span class="keyword">constexpr</span> <span class="identifier">float128</span> <span class="identifier">pi</span> <span class="special">=</span> <span class="number">3.1415926535897932384626433832795028841971693993751058</span><span class="identifier">Q</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.boost_multiprecision.tut.floats.float128.f0" class="footnote"><p><a href="#boost_multiprecision.tut.floats.float128.f0" class="para"><sup class="para">[3] </sup></a>
+            On 64-bit Ubuntu 11.10, GCC-4.8.0, Intel Core 2 Duo T5800.
+          </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="mpfr_float.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../floats.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="fp_eg.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

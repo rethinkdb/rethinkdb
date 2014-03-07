@@ -1,0 +1,204 @@
+<HTML>
+<!--
+     Copyright (c) Matyas Egyhazy 2008
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Metric Traveling Salesperson Approximation</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b"
+        ALINK="#ff0000">
+<IMG SRC="../../../boost.png"
+     ALT="C++ Boost" width="277" height="86">
+
+<BR Clear>
+
+
+
+<H1><A NAME="sec:metric_tsp_approx"></A>
+<TT>metric_tsp_approx</TT>
+</H1>
+
+<P>
+<PRE>
+template &lt;typename VertexListGraph,
+          typename WeightMap,
+          typename VertexIndexMap,
+          typename TSPVertexVisitor&gt;
+void metric_tsp_approx_from_vertex(
+        const VertexListGraph&amp; g,
+        typename graph_traits&lt;VertexListGraph&gt;::vertex_descriptor start,
+        WeightMap weightmap,
+        VertexIndexMap indexmap,
+        TSPVertexVisitor vis)
+
+<i>// Overloads</i>
+template&lt;typename VertexListGraph, typename OutputIterator&gt;
+void metric_tsp_approx_tour(VertexListGraph&amp; g, OutputIterator o)
+
+template&lt;typename VertexListGraph, typename WeightMap, typename OutputIterator&gt;
+void metric_tsp_approx_tour(VertexListGraph&amp; g, WeightMap w,
+    OutputIterator o)
+
+template&lt;typename VertexListGraph, typename OutputIterator&gt;
+void metric_tsp_approx_tour_from_vertex(VertexListGraph&amp; g,
+    typename graph_traits&lt;VertexListGraph&gt;::vertex_descriptor start,
+    OutputIterator o)
+
+template&lt;typename VertexListGraph, typename WeightMap,
+    typename OutputIterator&gt;
+void metric_tsp_approx_tour_from_vertex(VertexListGraph&amp; g,
+    typename graph_traits&lt;VertexListGraph&gt;::vertex_descriptor start,
+    WeightMap w, OutputIterator o)
+
+<i>// visitor versions</i>
+template&lt;typename VertexListGraph, typename TSPVertexVisitor&gt;
+void metric_tsp_approx(VertexListGraph&amp; g, TSPVertexVisitor vis)
+
+template&lt;typename VertexListGraph, typename Weightmap,
+    typename VertexIndexMap, typename TSPVertexVisitor&gt;
+void metric_tsp_approx(VertexListGraph&amp; g, Weightmap w,
+    TSPVertexVisitor vis)
+
+template&lt;typename VertexListGraph, typename WeightMap,
+    typename VertexIndexMap, typename TSPVertexVisitor&gt;
+void metric_tsp_approx(VertexListGraph&amp; g, WeightMap w, VertexIndexMap id,
+    TSPVertexVisitor vis)
+
+template&lt;typename VertexListGraph, typename WeightMap,
+    typename TSPVertexVisitor&gt;
+void metric_tsp_approx_from_vertex(VertexListGraph&amp; g,
+    typename graph_traits&lt;VertexListGraph&gt;::vertex_descriptor start,
+    WeightMap w, TSPVertexVisitor vis)
+
+</PRE>
+
+<P>
+This is a traveling salesperson heuristic for generating a tour of vertices
+for a fully connected undirected graph with weighted edges that obey the triangle inequality.
+The current implementation is based off of the algorithm presented in <i>Introduction to Algorithms</i>
+on page 1029.  This implementation generates solutions that are twice as long as the optimal tour in the worst case.
+The pseudo-code is listed below.
+</p>
+
+<table>
+<tr>
+<td valign="top">
+<pre>
+TSP-APPROX(<i>G</i>, <i>w</i>)
+  select a vertex <i>r</i> <i>in</i> <i>V[G]</i>
+  compute a minimum spanning tree <i>T</i> for <i>G</i> from root <i>r</i>
+    using PRIM-MST(<i>G</i>, <i>r</i>, <i>w</i>)
+  let <i>L</i> be the list of vertices visited in a preorder traversal of <i>T</i>
+  <b>return</b> (the Hamiltonian cycle <i>H</i> that visites the vertices in the order <i>L</i>)
+</pre>
+</td>
+</tr>
+</table>
+
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/metric_tsp_approx.hpp"><TT>boost/graph/metric_tsp_approx.hpp</TT></a>
+
+<P>
+
+<h3>Parameters</h3>
+
+IN: <tt>const Graph&amp; g</tt>
+<blockquote>
+  An undirected graph. The type <tt>Graph</tt> must be a
+  model of <a href="./VertexListGraph.html">Vertex List Graph</a>
+  and <a href="./IncidenceGraph.html">Incidence Graph</a> <a href="#2">[2]</a>.<br>
+</blockquote>
+
+IN: <tt>vertex_descriptor start</tt>
+<blockquote>
+  The vertex that will be the start (and end) of the tour.<br>
+  <b>Default:</b> <tt>*vertices(g).first</tt>
+</blockquote>
+
+IN: <tt>WeightMap weightmap</tt>
+<blockquote>
+  The weight of each edge in the graph.
+  The type <tt>WeightMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The edge descriptor type of
+  the graph needs to be usable as the key type for the weight
+  map.<br>
+  <b>Default:</b>  <tt>get(edge_weight, g)</tt><br>
+</blockquote>
+
+IN: <tt>VertexIndexMap indexmap</tt>
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+    num_vertices(g))</tt>. This is necessary for efficient updates of the
+  heap data structure when an edge is relaxed.  The type
+  <tt>VertexIndexMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The value type of the map must be an
+  integer type. The vertex descriptor type of the graph needs to be
+  usable as the key type of the map.<br>
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+   <br>
+</blockquote>
+
+OUT: <tt>OutputIterator o</tt>
+<blockquote>
+  The OutputIterator holds the vertices of the tour.
+  The type <tt>OutputIterator</tt> must be a model of the
+  OutputIterator concept.
+</blockquote>
+
+OUT: <tt>TSPTourVisitor vis</tt>
+<blockquote>
+  Use this to specify actions that you would like to happen
+  when the algorithm visits a vertex of the tour.
+  The type <tt>TSPTourVisitor</tt> must be a model of the <a href="./TSPTourVisitor.html">TSP Tour Visitor</a>
+  concept.
+  The visitor object is passed by value <a
+  href="#1">[1]</a>.<br>
+</blockquote>
+
+<H3>Complexity</H3>
+
+<P>
+The time complexity is <i>O(E log V)</i>.
+
+<P>
+
+<H3>Example</H3>
+
+<P>
+The file <a
+href="../test/metric_tsp_approx.cpp"><TT>test/metric_tsp_approx.cpp</TT></a>
+contains an example of using this TSP approximation algorithm.
+
+
+<h3>Notes</h3>
+
+<p><a name="1">[1]</a>
+  Since the visitor parameter is passed by value, if your visitor
+  contains state then any changes to the state during the algorithm
+  will be made to a copy of the visitor object, not the visitor object
+  passed in. Therefore you may want the visitor to hold this state by
+  pointer or reference.
+</p>
+<p><a name="2">[2]</a>
+  Passing an <tt>adjacency_list</tt> with a vertex <em>not</em> set selected by
+  <tt>vecS</tt> will result in <i>O(n<sup>2</sup>)</i> performance.
+</p>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2008</TD><TD>
+Matyas Egyhazy
+</TD></TR></TABLE>
+
+</BODY>
+</HTML>

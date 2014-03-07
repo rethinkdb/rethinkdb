@@ -1,0 +1,204 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../../../../boost.css">
+
+  <title>Comparisons</title>
+</head>
+
+<body>
+  <h1>Comparisons</h1>
+
+  <p>As was said before, the definition of the comparison operators induces a
+  slight problem. There are many ways to define them, depending of the return
+  type or the expected order. It is the reason why the meaning of the
+  operators is not fixed once and for all.</p>
+
+  <p>The way the operators are defined could have been influenced by a
+  policy, as it is already the case for the rounding and the checking.
+  However, comparisons are more an external property of the the class rather
+  than an internal one. They are meant to be locally modified, independantly
+  of the type of the intervals.</p>
+
+  <p>The operators <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>,
+  <code>&gt;=</code>, <code>==</code>, <code>!=</code> are defined each time;
+  and like the arithmetic operators they can take an argument of the base
+  type. However, due to technical limitations, this base type can only be the
+  second argument; so the operators are unfortunately not fully symmetric.
+  The return type is not always <code>bool</code>, since some interesting
+  results can be achieved by using a tri-state return type. So here is the
+  common signatures of the operators:</p>
+  <pre>
+template&lt;class T, class Policies1, class Policies2&gt;
+return_type operator== (const interval&lt;T, Policies1&gt;&amp;, const interval&lt;T, Policies2&gt;&amp;);
+
+template&lt;class T, class Policies&gt;
+return_type operator== (const interval&lt;T, Policies&gt;&amp;, const T&amp;);
+</pre>
+
+  <h2>vided comparisons</h2>
+
+  <h3>Default comparison</h3>
+
+  <p>If nothing is specified, the meaning of the comparison operators are an
+  extension of the operator on the base type. More precisely, if one of the
+  argument is invalid or empty, an exception is thrown. If the arguments are
+  valid, the following rules are applied to determine the result of
+  [<i>a</i>,<i>b</i>] <code>op</code> [<i>c</i>,<i>d</i>] (just consider
+  <i>c</i> <code>==</code> <i>d</i> if the second argument is of type
+  <code>T</code>):</p>
+
+  <ul>
+    <li>if &forall; <i>x</i> &isin; [<i>a</i>,<i>b</i>] &forall; <i>y</i>
+    &isin; [<i>c</i>,<i>d</i>] <code>(</code><i>x</i> <code>op</code>
+    y<code>)</code>, then <code>true</code></li>
+
+    <li>if &forall; <i>x</i> &isin; [<i>a</i>,<i>b</i>] &forall; <i>y</i>
+    &isin; [<i>c</i>,<i>d</i>] <code>!(</code><i>x</i> <code>op</code>
+    y<code>)</code>, then <code>false</code></li>
+
+    <li>otherwise throw an exception.</li>
+  </ul>
+
+  <p>This comparison allows to replace base types by interval types without
+  changing the meaning of a program. Indeed, if no exception is thrown, the
+  result is the same as before; and if an exception is thrown, the previous
+  comparison was unsure and should have been rewritten.</p>
+
+  <h3>Other comparisons</h3>
+
+  <p>The other comparisons are selected by using a namespace. These
+  namespaces are located under
+  <code>boost::numeric::interval_lib::compare</code> and are invoked by:</p>
+  <pre>
+using namespace boost::numeric::interval_lib::compare::the_comparison_to_select;
+</pre>
+
+  <p>After this line, the default meaning of the operators will have been
+  replaced by the meaning located in the namespace. Please note that because
+  of C++ lookup rules, it is not possible to use two namespaces one after
+  another and they must be used in different block hierarchies. Otherwise the
+  compiler will complain about ambiguous operators. To summarize:</p>
+  <pre>
+// example 1: BAD
+using namespace compare1;
+...
+using namespace compare2;
+...
+
+// example 2: GOOD
+{ using namespace compare1;
+  ...                       }
+{ using namespace compare2;
+  ...                       }
+
+// example 3: BAD
+using namespace compare1;
+...
+{ using namespace compare2;
+  ...                       }
+</pre>
+
+  <p>Now comes the list of the provided comparisons. They all are located in
+  their respective header files under
+  <code>&lt;boost/numeric/interval/compare/...&gt;</code>. And as for the
+  default comparison, the operators will generally complain by throwing an
+  exception if feed by invalid values.</p>
+
+  <ul>
+    <li><code>certain</code>: this comparison is equivalent to the default
+    scheme with the exceptional case mapped to <code>false</code>. So these
+    operators answer <code>true</code> only when the comparison is verified
+    for all pairs of elements.</li>
+
+    <li><code>possible</code>: this time, the exceptional case is mapped to
+    <code>true</code>. The operators answer <code>true</code> as soon as the
+    comparison is verified for a pair of elements.<br></li>
+
+    <li><code>lexicographic</code>: the lexicographic order (the lower bounds
+    are first compared, and if it is not enough to know the result, the upper
+    bounds are then compared). This order does not have a meaning in interval
+    arithmetic. However, since it is the natural total order on pair of
+    (totally ordered) numbers, it may be handy in some cases.</li>
+
+    <li><code>set</code>: the set inclusion partial order. This time, an
+    empty interval is not considered to be invalid (but an invalid number is
+    still invalid). <code>&lt;=</code> and <code>&lt;</code> are the subset
+    and proper subset relations; and <code>&gt;=</code> and <code>&gt;</code>
+    are the superset and proper superset relations.</li>
+
+    <li><code>tribool</code>: this comparison relies on the Boost tristate
+    boolean library and changes the default operators so that an explicit
+    indeterminate value is returned in the third case instead of throwing an
+    exception.</li>
+  </ul>
+
+  <h3>Exception</h3>
+  <pre>
+namespace boost {
+namespace numeric {
+namespace interval_lib {
+
+class comparison_error: std::runtime_error; // "boost::interval: uncertain comparison"
+
+} // namespace interval_lib
+} // namespace numeric
+} // namespace boost
+</pre>
+
+  <h2>Explicit comparison functions</h2>
+
+  <p>In some situation, you may want to perform direct comparisons on the
+  bounds and avoid the indeterminate case that appears with default
+  operators. Some functions are provided for this purpose. They expect their
+  arguments to be valid and return a result after only one comparison. Their
+  names are composed by <code>cer</code> (for "certain", if the default
+  comparison is true, the result is true) or <code>pos</code> (for
+  "possible", if the default comparison is false, the result is false)
+  followed by <code>lt</code>, <code>le</code>, <code>gt</code>,
+  <code>ge</code>, <code>eq</code> or <code>ne</code>. They are located in
+  <code>&lt;boost/numeric/interval/compare/explicit.hpp&gt;</code>. Each of
+  these functions takes two parameters and returns a boolean; the parameters
+  are expected to be valid, undefined behavior may result otherwise. For
+  example, the definition of the "certainly less than" comparison is:</p>
+  <pre>
+namespace boost {
+namespace numeric {
+namespace interval_lib {
+
+template&lt;class T, class Policies1, class Policies2&gt;
+bool cerlt(const interval&lt;T, Policies1&gt;&amp; x, const interval&lt;T, Policies2&gt;&amp; y);
+
+template&lt;class T, class Policies&gt;
+bool cerlt(const interval&lt;T, Policies&gt;&amp; x, const T&amp; y);
+
+template&lt;class T, class Policies&gt;
+bool cerlt(const T&amp; x, const interval&lt;T, Policies&gt;&amp; y);
+
+} // namespace interval_lib
+} // namespace numeric
+} // namespace boost
+</pre>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%Y-%m-%d" startspan -->2006-12-24<!--webbot bot="Timestamp" endspan i-checksum="12172" --></p>
+
+  <p><i>Copyright &copy; 2002 Guillaume Melquiond, Sylvain Pion, Herv&eacute;
+  Br&ouml;nnimann, Polytechnic University<br>
+  Copyright &copy; 2003 Guillaume Melquiond</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+  or copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

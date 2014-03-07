@@ -1,0 +1,203 @@
+<?xml version="1.0"?>
+<concept name="OutputIterator" category="Iterator"><!--
+Based on concepts from the SGI Standard Template Library documentation:
+Copyright (c) 1996-1999
+Silicon Graphics Computer Systems, Inc.
+
+Copyright (c) 1994
+Hewlett-Packard Company
+--><!--
+Copyright 2000-2001 University of Notre Dame du Lac.
+Copyright 2001-2002 Indiana University.
+Some concepts based on versions from the MTL draft manual and Boost Graph
+and Property Map documentation:
+Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+-->
+  <param name="Iter" role="iterator-type"/>
+  <param name="ValueType" role="value-type"/>
+
+  <use-header name="iterator"/>
+
+  <models-sentence>The iterator type <arg num="1"/> (with value type <arg num="2"/>) must be a model of <self/>.</models-sentence>
+
+  <description>
+  <para>An output iterator is an iterator that can write a sequence of
+  values.  It is single-pass (old values of the iterator cannot be
+  re-used), and write-only.</para>
+
+  <para>An output iterator represents a position in a (possibly infinite)
+  sequence.  Therefore, the iterator can point into the sequence (returning
+  a value when dereferenced and being incrementable), or be off-the-end
+  (and not dereferenceable or incrementable).</para>
+  </description>
+
+  <models const="no" testable="yes" concept="Assignable">
+    <type name="Iter"/>
+  </models>
+
+  <models const="no" testable="yes" concept="Assignable">
+    <type name="ValueType"/>
+  </models>
+
+  <models const="no" testable="yes" concept="DefaultConstructible">
+    <type name="Iter"/>
+  </models>
+
+  <models const="no" testable="yes" concept="EqualityComparable">
+    <type name="Iter"/>
+  </models>
+
+  <associated-type name="value_type">
+    <get-member-type name="value_type">
+      <apply-template name="std::iterator_traits">
+	<type name="Iter"/>
+      </apply-template>
+    </get-member-type>
+    <description><simpara>The stated value type of the iterator (should be
+    <code>void</code> for an output iterator that does not model some other
+    iterator concept).</simpara></description>
+  </associated-type>
+
+  <associated-type name="difference_type">
+    <get-member-type name="difference_type">
+      <apply-template name="std::iterator_traits">
+	<type name="Iter"/>
+      </apply-template>
+    </get-member-type>
+    <description><simpara>The difference type of the iterator</simpara></description>
+  </associated-type>
+
+  <associated-type name="category">
+    <get-member-type name="iterator_category">
+      <apply-template name="std::iterator_traits">
+	<type name="Iter"/>
+      </apply-template>
+    </get-member-type>
+    <description><simpara>The category of the iterator</simpara></description>
+  </associated-type>
+
+  <notation variables="i j">
+    <sample-value>
+      <type name="Iter"/>
+    </sample-value>
+  </notation>
+
+  <notation variables="x">
+    <sample-value>
+      <type name="ValueType"/>
+    </sample-value>
+  </notation>
+
+  <valid-type-expression name="Category tag">
+    <description/>
+    <type name="category"/>
+    <return-type>
+      <derived-from testable="yes">
+	<type name="std::output_iterator_tag"/>
+      </derived-from>
+      <models-as-first-arg const="no" testable="yes" concept="DefaultConstructible"/>
+      <models-as-first-arg const="no" testable="yes" concept="CopyConstructible"/>
+    </return-type>
+  </valid-type-expression>
+
+  <valid-type-expression name="Difference type properties">
+    <description/>
+    <type name="difference_type"/>
+    <return-type>
+      <models-as-first-arg const="no" testable="yes" concept="SignedInteger"/>
+    </return-type>
+  </valid-type-expression>
+
+  <valid-expression name="Dereference">
+    <dereference>
+      <sample-value><type name="Iter"/></sample-value>
+    </dereference>
+    <return-type/>
+    <precondition><code>i</code> is incrementable (not
+    off-the-end)</precondition>
+  </valid-expression>
+
+  <valid-expression name="Dereference and assign">
+    <assign>
+      <dereference>
+	<sample-value><type name="Iter"/></sample-value>
+      </dereference>
+      <sample-value><const><reference-to><type name="ValueType"/></reference-to></const></sample-value>
+    </assign>
+    <return-type/>
+    <precondition><code>i</code> is incrementable (not
+    off-the-end)</precondition>
+    <postcondition><code>*i</code> may not be written to again until it has
+    been incremented.</postcondition>
+  </valid-expression>
+
+  <valid-expression name="Preincrement">
+    <preincrement>
+      <sample-value><reference-to><type name="Iter"/></reference-to></sample-value>
+    </preincrement>
+    <return-type>
+      <require-same-type testable="yes">
+	<reference-to><type name="Iter"/></reference-to>
+      </require-same-type>
+    </return-type>
+    <precondition><code>i</code> is incrementable (not
+    off-the-end)</precondition>
+  </valid-expression>
+
+  <valid-expression name="Postincrement">
+    <postincrement>
+      <sample-value><reference-to><type name="Iter"/></reference-to></sample-value>
+    </postincrement>
+    <return-type/>
+    <precondition><code>i</code> is incrementable (not
+    off-the-end)</precondition>
+    <semantics>Equivalent to <code>(void)(++i)</code></semantics>
+    <postcondition><code>i</code> is dereferenceable or
+    off-the-end</postcondition>
+  </valid-expression>
+
+  <valid-expression name="Postincrement, dereference, and assign">
+    <assign>
+      <dereference>
+	<postincrement>
+	  <sample-value><reference-to><type name="Iter"/></reference-to></sample-value>
+	</postincrement>
+      </dereference>
+      <sample-value><const><reference-to><type name="ValueType"/></reference-to></const></sample-value>
+    </assign>
+    <return-type/>
+    <precondition><code>i</code> is incrementable (not
+    off-the-end)</precondition>
+    <semantics>Equivalent to <code>{*i = t; ++i;}</code></semantics>
+    <postcondition><code>i</code> is dereferenceable or
+    off-the-end</postcondition>
+  </valid-expression>
+
+  <complexity>
+  All iterator operations must take amortized constant time.
+  </complexity>
+
+  <example-model>
+    <type name="std::ostream_iterator"/>
+    <type name="..."/>
+  </example-model>
+
+  <example-model>
+    <type name="std::insert_iterator"/>
+    <type name="..."/>
+  </example-model>
+
+  <example-model>
+    <type name="std::front_insert_iterator"/>
+    <type name="..."/>
+  </example-model>
+
+  <example-model>
+    <type name="std::back_insert_iterator"/>
+    <type name="..."/>
+  </example-model>
+
+  <see-also concept="InputIterator"/>
+  <see-also concept="ForwardIterator"/>
+
+</concept>

@@ -1,0 +1,491 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Auto Parser</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="action.html" title="Semantic Actions with Parsers">
+<link rel="next" href="auxiliary.html" title="Auxiliary Parsers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="action.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="auxiliary.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.reference.auto"></a><a class="link" href="auto.html" title="Auto Parser">Auto Parser</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit.qi.reference.auto.h0"></a>
+          <span class="phrase"><a name="spirit.qi.reference.auto.description"></a></span><a class="link" href="auto.html#spirit.qi.reference.auto.description">Description</a>
+        </h6>
+<p>
+          This module includes the description of the <code class="computeroutput"><span class="identifier">auto_</span></code>
+          parser. This parser can be used to automatically create a parser based
+          on the supplied attribute type.
+        </p>
+<h6>
+<a name="spirit.qi.reference.auto.h1"></a>
+          <span class="phrase"><a name="spirit.qi.reference.auto.header"></a></span><a class="link" href="auto.html#spirit.qi.reference.auto.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/auto.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_auto</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Also, see <a class="link" href="../../structure/include.html" title="Include">Include Structure</a>.
+        </p>
+<h6>
+<a name="spirit.qi.reference.auto.h2"></a>
+          <span class="phrase"><a name="spirit.qi.reference.auto.namespace"></a></span><a class="link" href="auto.html#spirit.qi.reference.auto.namespace">Namespace</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                  <p>
+                    Name
+                  </p>
+                </th></tr></thead>
+<tbody><tr><td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">auto_</span> <span class="comment">// alias:
+                    boost::spirit::qi::auto_</span></code>
+                  </p>
+                </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.auto.h3"></a>
+          <span class="phrase"><a name="spirit.qi.reference.auto.model_of"></a></span><a class="link" href="auto.html#spirit.qi.reference.auto.model_of">Model
+          of</a>
+        </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            <a class="link" href="parser_concepts/primitiveparser.html" title="PrimitiveParser"><code class="computeroutput"><span class="identifier">PrimitiveParser</span></code></a>
+          </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.auto.h4"></a>
+          <span class="phrase"><a name="spirit.qi.reference.auto.expression_semantics"></a></span><a class="link" href="auto.html#spirit.qi.reference.auto.expression_semantics">Expression
+          Semantics</a>
+        </h6>
+<p>
+          Semantics of an expression is defined only where it differs from, or is
+          not defined in <a class="link" href="../../karma/reference/generator_concepts/primitivegenerator.html" title="PrimitiveGenerator"><code class="computeroutput"><span class="identifier">PrimitiveGenerator</span></code></a>.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">auto_</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Create a parser instance compatible with the supplied attribute
+                    type and use it for input matching.
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.auto.h5"></a>
+          <span class="phrase"><a name="spirit.qi.reference.auto.additional_requirements"></a></span><a class="link" href="auto.html#spirit.qi.reference.auto.additional_requirements">Additional
+          Requirements</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><span class="identifier">auto_</span></code> parsers can be
+          used to match input for any data type for which a mapping to a parser type
+          is defined (the meta function <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">create_parser_exists</span></code>
+          returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>). The following table outlines
+          the predefined mapping rules from the attribute type to the parser type.
+          These rules are applied recursively to create the parser type which can
+          be used to match input for the given attribute type.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Attribute type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Parser type
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">char</span></code>, <code class="computeroutput"><span class="keyword">wchar_t</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">standard</span><span class="special">::</span><span class="identifier">char_</span></code>, <code class="computeroutput"><span class="identifier">standard_wide</span><span class="special">::</span><span class="identifier">char_</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">short</span></code>, <code class="computeroutput"><span class="keyword">int</span></code>, <code class="computeroutput"><span class="keyword">long</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">short_</span></code>, <code class="computeroutput"><span class="identifier">int_</span></code>, <code class="computeroutput"><span class="identifier">long_</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">short</span></code>,
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span></code>,
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">ushort_</span></code>, <code class="computeroutput"><span class="identifier">uint_</span></code>, <code class="computeroutput"><span class="identifier">ulong_</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">float</span></code>, <code class="computeroutput"><span class="keyword">double</span></code>, <code class="computeroutput"><span class="keyword">long</span>
+                    <span class="keyword">double</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">float_</span></code>, <code class="computeroutput"><span class="identifier">double_</span></code>, <code class="computeroutput"><span class="identifier">long_double</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">long</span></code>,
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span>
+                    <span class="keyword">long</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">long_long</span></code>, <code class="computeroutput"><span class="identifier">ulong_long</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">bool</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">bool_</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Any (STL) container
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Kleene Star (unary <code class="computeroutput"><span class="char">'*'</span></code>)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Any Fusion sequence
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Sequence operator (<code class="computeroutput"><span class="char">'&gt;&gt;'</span></code>)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">optional</span><span class="special">&lt;&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Optional operator (unary <code class="computeroutput"><span class="char">'-'</span></code>)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variant</span><span class="special">&lt;&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Alternative operator (<code class="computeroutput"><span class="char">'|'</span></code>)
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          It is possible to add support for any custom data type by implementing
+          a specialization of the customization point <a class="link" href="../../advanced/customize/auto/create_parser.html" title="Define a Custom Attribute Mapping for a Parser"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">create_parser</span></code></a>. This customization
+          can be used also to redefined any of the predefined mappings.
+        </p>
+<h6>
+<a name="spirit.qi.reference.auto.h6"></a>
+          <span class="phrase"><a name="spirit.qi.reference.auto.attributes"></a></span><a class="link" href="auto.html#spirit.qi.reference.auto.attributes">Attributes</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Attribute
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">auto_</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">hold_any</span></code>
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The attribute type <code class="computeroutput"><span class="identifier">hold_any</span></code>
+            exposed by the <code class="computeroutput"><span class="identifier">auto_</span></code>
+            parser is semantically and syntactically equivalent to the type implemented
+            by <a href="../../../../../../../libs/any/index.html" target="_top">Boost.Any</a>. It has
+            been added to <span class="emphasis"><em>Spirit</em></span> as it has better a performance
+            and a smaller footprint if compared to <a href="../../../../../../../libs/any/index.html" target="_top">Boost.Any</a>.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.auto.h7"></a>
+          <span class="phrase"><a name="spirit.qi.reference.auto.complexity"></a></span><a class="link" href="auto.html#spirit.qi.reference.auto.complexity">Complexity</a>
+        </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            The complexity of the <code class="computeroutput"><span class="identifier">auto_</span></code>
+            parser depends on the supplied attribute type. Each attribute type results
+            in a different parser type to be instantiated which defines the overall
+            complexity.
+          </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.auto.h8"></a>
+          <span class="phrase"><a name="spirit.qi.reference.auto.example"></a></span><a class="link" href="auto.html#spirit.qi.reference.auto.example">Example</a>
+        </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The test harness for the example(s) below is presented in the <a class="link" href="basics.html#spirit.qi.reference.basics.examples">Basics
+            Examples</a> section.
+          </p></td></tr>
+</table></div>
+<p>
+          Some includes:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">support_utree</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">adapt_struct</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">assert</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstdlib</span><span class="special">&gt;</span>
+</pre>
+<p>
+        </p>
+<p>
+          Some using declarations:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">auto_</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          And a class definition used in the examples:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// a simple complex number representation z = a + bi</span>
+<span class="keyword">struct</span> <span class="identifier">complex</span>
+<span class="special">{</span>
+    <span class="identifier">complex</span> <span class="special">(</span><span class="keyword">double</span> <span class="identifier">a</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">,</span> <span class="keyword">double</span> <span class="identifier">b</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">)</span>
+      <span class="special">:</span> <span class="identifier">a</span><span class="special">(</span><span class="identifier">a</span><span class="special">),</span> <span class="identifier">b</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span>
+    <span class="special">{}</span>
+
+    <span class="keyword">double</span> <span class="identifier">a</span><span class="special">;</span>
+    <span class="keyword">double</span> <span class="identifier">b</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          The following construct is required to allow the <code class="computeroutput"><span class="identifier">complex</span></code>
+          data structure to be utilized as a <a href="../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+          sequence. This is required as we will emit output for this data structure
+          with a <span class="emphasis"><em>Spirit.Qi</em></span> sequence: <code class="computeroutput"><span class="char">'{'</span>
+          <span class="special">&gt;&gt;</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="char">'}'</span></code>.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_FUSION_ADAPT_STRUCT</span><span class="special">(</span>
+    <span class="identifier">complex</span><span class="special">,</span>
+    <span class="special">(</span><span class="keyword">double</span><span class="special">,</span> <span class="identifier">a</span><span class="special">)</span>
+    <span class="special">(</span><span class="keyword">double</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span>
+<span class="special">)</span>
+</pre>
+<p>
+        </p>
+<p>
+          We add a specialization for the create_parser customization point defining
+          a custom output format for the complex type. Generally, any specialization
+          for create_parser is expected to return the proto expression to be used
+          to match input for the type the customization point has been specialized
+          for.
+        </p>
+<p>
+          We need to utilize <code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">deep_copy</span></code>
+          as the expression contains literals (the <code class="computeroutput"><span class="char">'{'</span></code>,
+          <code class="computeroutput"><span class="char">','</span></code>, and <code class="computeroutput"><span class="char">'}'</span></code>)
+          which normally get embedded in the proto expression by reference only.
+          The deep copy converts the proto tree to hold this by value. The deep copy
+          operation can be left out for simpler proto expressions (not containing
+          references to temporaries). Alternatively you could use the <code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">make_expr</span></code> facility to build the required
+          proto expression.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">spirit</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">traits</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">create_parser</span><span class="special">&lt;</span><span class="identifier">complex</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">deep_copy</span><span class="special">&lt;</span>
+            <span class="identifier">BOOST_TYPEOF</span><span class="special">(</span><span class="char">'{'</span> <span class="special">&gt;&gt;</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="char">'}'</span><span class="special">)</span>
+        <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+
+        <span class="keyword">static</span> <span class="identifier">type</span> <span class="identifier">call</span><span class="special">()</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">deep_copy</span><span class="special">(</span>
+                <span class="char">'{'</span> <span class="special">&gt;&gt;</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="char">'}'</span><span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+<span class="special">}}}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Some usage examples of <code class="computeroutput"><span class="identifier">auto_</span></code>
+          parsers:
+        </p>
+<p>
+          Parse a simple integer using the generated parser component <code class="computeroutput"><span class="identifier">int_</span></code>:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="identifier">test_parser_attr</span><span class="special">(</span><span class="string">"123"</span><span class="special">,</span> <span class="identifier">auto_</span><span class="special">,</span> <span class="identifier">i</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>                    <span class="comment">// prints: 123</span>
+</pre>
+<p>
+        </p>
+<p>
+          Parse an instance of the <code class="computeroutput"><span class="identifier">complex</span></code>
+          data type as defined above using the parser as generated by the defined
+          customization point:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">complex</span> <span class="identifier">c</span><span class="special">;</span>
+<span class="identifier">test_parser_attr</span><span class="special">(</span><span class="string">"{1.2,2.4}"</span><span class="special">,</span> <span class="identifier">auto_</span><span class="special">,</span> <span class="identifier">c</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">a</span> <span class="special">&lt;&lt;</span> <span class="string">","</span> <span class="special">&lt;&lt;</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">b</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>    <span class="comment">// prints: 1.2,2.4</span>
+</pre>
+<p>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="action.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="auxiliary.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

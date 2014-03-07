@@ -1,0 +1,118 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Buffer</Title>
+</HEAD>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<h3>Buffer Concept</h3>
+
+A Buffer is something in which items can be put and removed.
+The Buffer <i>concept</i> has very few requirements. It does
+not require any particular ordering of how the items are stored or in
+what order they will appear when removed, however, there is typically
+some sort of ordering policy.
+
+<h3>Notation</h3>
+
+<table>
+<tr> <td> <tt>B</tt> </td>  <td> is a type that models Buffer.       </td></tr>
+<tr> <td> <tt>T</tt> </td>  <td> is the value type of <tt>B</tt>. </td></tr>
+<tr> <td> <tt>t</tt> </td>  <td> is an object of type <tt>T</tt>. </td></tr>
+</table>
+
+
+<h3>Members</h3>
+
+For a type to model the Buffer concept it must have the following members.
+
+<p>
+
+<table border="1">
+
+<tr> <td><b>Member</b></td> <td><b>Description</b></td> </tr>
+
+<tr> <td> <tt>value_type</tt> </td> 
+     <td> The type of object stored in the Buffer. The value type
+          must be <A href="http://www.sgi.com/tech/stl/Assignable.html">Assignable</a>.</td>
+    </tr>
+
+<tr> <td> <tt>size_type</tt>  </td>
+     <td> An unsigned integral type for representing the number of
+          objects in the Buffer.</td>
+    </tr>
+
+<tr> <td> <tt>void push(const T& t)</tt> </td>
+     <td> Inserts <tt>t</tt> into the Buffer. <tt>size()</tt> will be
+          incremented by one.</td>
+     </tr>
+
+<tr> <td> <tt>void pop()</tt> </td>
+     <td> Removes an object from the Buffer. <tt>size()</tt> will be
+          decremented by one. Precondition: <tt>empty()</tt>
+          is <tt>false</tt>. </td>
+     </tr>
+
+<tr> <td> <tt>T& top()</tt> </td>
+     <td> Returns a mutable reference to some object in the Buffer.
+          Precondition: <tt>empty()</tt> is <tt>false</tt>.</td>
+     </tr>
+
+<tr> <td> <tt>const T& top() const</tt> </td>
+     <td> Returns a const reference to some object in the Buffer. 
+          Precondition: <tt>empty()</tt> is <tt>false</tt>.</td>
+     </tr>
+
+<tr> <td> <tt>size_type size() const</tt> </td>
+     <td> Returns the number of objects in the Buffer.
+          Invariant: <tt>size() >= 0</tt>. </td>
+     </tr>
+
+<tr> <td> <tt>bool empty() const</tt> </td>
+     <td> Equivalent to <tt>b.size() == 0</tt>.</td>
+     </tr>
+
+</table>
+
+<h3>Complexity Guarantees</h3>
+
+<UL>
+
+<LI> <tt>push()</tt>, <tt>pop()</tt>, and <tt>size()</tt> must be at
+most linear time complexity in the size of the Generalized Queue.
+
+<LI> <tt>top()</tt> and <tt>empty()</tt> must be amortized constant time.
+
+</UL>
+
+<h3>Models</h3>
+
+<UL>
+<LI><a href="http://www.sgi.com/tech/stl/stack.html"><tt>std::stack</tt></a>
+<LI><a href="../../../boost/pending/mutable_queue.hpp"><tt>boost::mutable_queue</tt></a>
+</UL>
+
+<p>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University and C++ Library & Compiler Group/SGI (<A HREF="mailto:jsiek@engr.sgi.com">jsiek@engr.sgi.com</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 
+

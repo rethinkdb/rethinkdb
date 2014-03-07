@@ -1,0 +1,100 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:action Semantic Actions with Parsers]
+
+[heading Description]
+
+Semantic actions may be attached to any point in the grammar specification. 
+They allow to call a function or function object in order to provide the value 
+to be output by the parser attached to the semantic action.  Semantic 
+actions are associated with a parser using the syntax `p[]`, where `p` is an
+arbitrary parser expression.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/action.hpp>
+    #include <boost/spirit/include/qi_action.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__unary_parser_concept__]
+
+[variablelist Notation
+    [[`a`, `p`][Instances of a parser, `P`]]
+    [[`A`]     [Attribute type exposed by a parser, `a`]]
+    [[`fa`]    [A (semantic action) function with signature `void(Attrib&, Context, bool&)`.
+               The third parameter is a boolean flag that can be set to false to
+               force the parser to fail. Both `Context` and the boolean flag are
+               optional. For more information see below.]]
+    [[`Attrib`][The attribute obtained from the parse.]]
+    [[`Context`]  [The type of the parser execution context. For more 
+                information see below.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __unary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`p[fa]`]          [If `p` is successful, call semantic action, `fa`. The function
+                         or function object `fa` is provided the attribute value
+                         parsed by the parser `p`, plus some more context information
+                         and a mutable bool flag which can be used to fail parsing.]]
+]
+
+The possible signatures for functions to be used as semantic actions are:
+
+    template <typename Attrib>
+    void fa(Attrib& attr);
+
+    template <typename Attrib, typename Context>
+    void fa(Attrib& attr, Context& context);
+
+    template <typename Attrib, typename Context>
+    void fa(Attrib& attr, Context& context, bool& pass);
+
+The function or function object is expected to return the value to generate 
+output from by assigning it to the first parameter, `attr`. Here `Attrib` is 
+the attribute type of the parser attached to the semantic action. 
+
+The type `Context` is the type of the parser execution context. This type is 
+unspecified and depends on the context the parser is invoked in. The value, 
+`context` used by semantic actions written using __phoenix__ to access various 
+context dependent attributes and values. For more information about __phoenix__ 
+placeholder expressions usable in semantic actions see __qi_nonterminal__.
+
+The third parameter, `pass`, can be used by the semantic action to force the 
+associated parser to fail. If pass is set to `false` the action parser 
+will immediately return `false` as well, while not invoking `p` and not 
+generating any output.
+
+[heading Attributes]
+
+[table
+    [[Expression]       [Attribute]]
+    [[`a[fa]`]          [`a: A --> a[fa]: A`]]
+]
+
+[heading Complexity]
+
+The complexity of the action parser is defined by the complexity of the 
+parser the semantic action is attached to and the complexity of the function
+or function object used as the semantic action.
+
+[heading Example]
+
+Examples for semantic actions can be found here: 
+[link spirit.qi.tutorials.semantic_actions.examples_of_semantic_actions Examples of Semantic Actions].
+
+[endsect] [/ Action]
+

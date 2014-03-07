@@ -1,0 +1,52 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[/=======================]
+[section Installing Proto]
+[/=======================]
+
+[/====================]
+[heading Getting Proto]
+[/====================]
+
+You can get Proto
+by downloading Boost (Proto is in version 1.37 and later),
+or by accessing Boost's SVN repository on SourceForge.net. Just go to
+[@http://svn.boost.org/trac/boost/wiki/BoostSubversion]
+and follow the instructions there for anonymous SVN access.
+
+[/==========================]
+[heading Building with Proto]
+[/==========================]
+
+Proto is a header-only template library, which means you don't need to alter
+your build scripts or link to any separate lib file to use it. All you need
+to do is `#include <boost/proto/proto.hpp>`. Or, you might decide to just
+include the core of Proto (`#include <boost/proto/core.hpp>`) and whichever
+contexts and transforms you happen to use.
+
+[/===================]
+[heading Requirements]
+[/===================]
+
+Proto depends on Boost. You must use either Boost version 1.34.1 or higher,
+or the version in SVN trunk.
+
+[/==========================]
+[heading Supported Compilers]
+[/==========================]
+
+Currently, Boost.Proto is known to work on the following compilers:
+
+* Visual C++ 8 and higher
+* GNU C++ 3.4 and higher
+* Intel on Linux 8.1 and higher
+* Intel on Windows 9.1 and higher
+
+[note Please send any questions, comments and bug reports to eric <at> boostpro <dot> com.]
+
+[endsect]

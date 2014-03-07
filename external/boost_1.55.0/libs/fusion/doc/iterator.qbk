@@ -1,0 +1,1081 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Iterator]
+
+Like __mpl__ and __stl__, iterators are a fundamental concept in Fusion.
+As with __mpl__ and __stl__ iterators describe positions, and
+provide access to data within an underlying __sequence__.
+
+[heading Header]
+    #include <boost/fusion/iterator.hpp>
+    #include <boost/fusion/include/iterator.hpp>
+
+[section Concepts]
+
+Fusion iterators are divided into different traversal categories.
+__forward_iterator__ is the most basic concept. __bidirectional_iterator__
+is a refinement of __forward_iterator__. __random_access_iterator__ is a
+refinement of __bidirectional_iterator__. __associative_iterator__ is a
+refinement of __forward_iterator__, __bidirectional_iterator__ or
+__random_access_iterator__.
+
+[section Forward Iterator]
+
+[heading Description]
+A Forward Iterator traverses a __sequence__ allowing movement in only one direction through
+it's elements, one element at a time.
+
+[variablelist Notation
+    [[`i`, `j`]         [Forward Iterators]]
+    [[`I`, `J`]         [Forward Iterator types]]
+    [[`M`]              [An __mpl__ integral constant]]
+    [[`N`]              [An integral constant]]
+]
+
+[heading Expression requirements]
+A type models Forward Iterator if, in addition to being CopyConstructable,
+the following expressions are valid:
+
+[table
+    [[Expression]        [Return type]                [Runtime Complexity]]
+    [[`__next__(i)`]         [__forward_iterator__]       [Constant]]
+    [[`i == j`]          [Convertible to bool]        [Constant]]
+    [[`i != j`]          [Convertible to bool]        [Constant]]
+    [[`__advance_c__<N>(i)`] [__forward_iterator__]       [Constant]]
+    [[`__advance__<M>(i)`] [__forward_iterator__]       [Constant]]
+    [[`__distance__(i, j)`]  [`__result_of_distance__<I, J>::type`][Constant]]
+    [[`__deref__(i)`]        [`__result_of_deref__<I>::type`] [Constant]]
+    [[`*i`]              [`__result_of_deref__<I>::type`] [Constant]]
+]
+
+[heading Meta Expressions]
+[table
+    [[Expression]                       [Compile Time Complexity]]
+    [[`__result_of_next__<I>::type`]            [Amortized constant time]]
+    [[`__result_of_equal_to__<I, J>::type`]      [Amortized constant time]]
+    [[`__result_of_advance_c__<I, N>::type`]     [Linear]]
+    [[`__result_of_advance__<I ,M>::type`]       [Linear]]
+    [[`__result_of_distance__<I ,J>::type`]      [Linear]]
+    [[`__result_of_deref__<I>::type`]       [Amortized constant time]]
+    [[`__result_of_value_of__<I>::type`]    [Amortized constant time]]
+]
+
+[heading Expression Semantics]
+[
+table
+    [[Expression]              [Semantics]]
+    [[`__next__(i)`]               [An iterator to the element following `i`]]
+    [[`i == j`]                [Iterator equality comparison]]
+    [[`i != j`]                [Iterator inequality comparison]]
+    [[`__advance_c__<N>(i)`]       [An iterator n elements after `i` in the sequence]]
+    [[`__advance__<M>(i)`]         [Equivalent to `advance_c<M::value>(i)`]]
+    [[`__distance__(i, j)`]        [The number of elements between `i` and `j`]]
+    [[`__deref__(i)`]    [The element at position`i`]]
+    [[`*i`]          [Equivalent to `deref(i)`]]
+]
+
+[heading Invariants]
+The following invariants always hold:
+
+* `!(i == j) == (i != j)`
+* `__next__(i) == __advance_c__<1>(i)`
+* `__distance__(i, __advance_c__<N>(i)) == N`
+* Using `__next__` to traverse the sequence will never return to a previously seen position
+* `__deref__(i)` is equivalent to `*i`
+* If `i == j` then `*i` is equivalent to `*j`
+
+[heading Models]
+* __std_pair__ iterator
+* __boost_array__ iterator
+* __vector__ iterator
+* __cons__ iterator
+* __list__ iterator
+* __set__ iterator
+* __map__ iterator
+* __single_view__ iterator
+* __filter_view__ iterator
+* __iterator_range__ iterator
+* __joint_view__ iterator
+* __transform_view__ iterator
+* __reverse_view__ iterator
+
+[endsect]
+
+[section Bidirectional Iterator]
+[heading Description]
+A Bidirectional Iterator traverses a __sequence__ allowing movement in either direction one
+element at a time.
+
+[variablelist Notation
+    [[`i`]         [A Bidirectional Iterator]]
+    [[`I`]         [A Bidirectional Iterator type]]
+    [[`M`]         [An __mpl__ integral constant]]
+    [[`N`]         [An integral constant]]
+]
+
+[heading Refinement of]
+__forward_iterator__
+
+[heading Expression requirements]
+In addition to the requirements defined in __forward_iterator__,
+the following expressions must be valid:
+
+[table
+    [[Expression]        [Return type]                [Runtime Complexity]]
+    [[`__next__(i)`]         [__bidirectional_iterator__] [Constant]]
+    [[`__prior__(i)`]        [__bidirectional_iterator__] [Constant]]
+    [[`__advance_c__<N>(i)`] [__bidirectional_iterator__] [Constant]]
+    [[`__advance__<M>(i)`]   [__bidirectional_iterator__] [Constant]]
+]
+
+[heading Meta Expressions]
+[table
+    [[Expression]              [Compile Time Complexity]]
+    [[`__result_of_prior__<I>::type`]  [Amortized constant time]]
+]
+
+[heading Expression Semantics]
+The semantics of an expression are defined only where they differ from, or are not defined
+in __forward_iterator__
+
+[table
+    [[Expression]    [Semantics]]
+    [[`__prior__(i)`]     [An iterator to the element preceding `i`]]
+]
+
+[heading Invariants]
+In addition to the invariants of __forward_iterator__,
+the following invariants always hold:
+
+* `__prior__(__next__(i)) == i && __prior__(__next__(i)) == __next__(__prior__(i))`
+* `__prior__(i) == __advance_c__<-1>(i)`
+* Using `__prior__` to traverse a sequence will never return a previously seen position
+
+[heading Models]
+* __std_pair__ iterator
+* __boost_array__ iterator
+* __vector__ iterator
+* __single_view__ iterator
+* __iterator_range__ (where adapted sequence is a __bidirectional_sequence__)
+* __transform_view__ (where adapted sequence is a __bidirectional_sequence__)
+* __reverse_view__
+
+[endsect]
+
+[section Random Access Iterator]
+[heading Description]
+A Random Access Iterator traverses a __sequence__ moving in either direction,
+permitting efficient arbitrary distance movements back and forward through the
+sequence.
+
+[variablelist Notation
+    [[`i`, `j`]         [Random Access Iterators]]
+    [[`I`, `J`]         [Random Access Iterator types]]
+    [[`M`]              [An __mpl__ integral constant]]
+    [[`N`]              [An integral constant]]
+]
+
+[heading Refinement of]
+__bidirectional_iterator__
+
+[heading Expression requirements]
+In addition to the requirements defined in __bidirectional_iterator__,
+the following expressions must be valid:
+
+[table
+    [[Expression]        [Return type]                [Runtime Complexity]]
+    [[`__next__(i)`]         [__random_access_iterator__]       [Constant]]
+    [[`__prior__(i)`]        [__random_access_iterator__]       [Constant]]
+    [[`__advance_c__<N>(i)`] [__random_access_iterator__]       [Constant]]
+    [[`__advance__<M>(i)`]   [__random_access_iterator__]       [Constant]]
+]
+
+[heading Meta Expressions]
+[table
+    [[Expression]                       [Compile Time Complexity]]
+    [[`__result_of_advance_c__<I, N>::type`]  [Amortized constant time]]
+    [[`__result_of_advance__<I, M>::type`]    [Amortized constant time]]
+    [[`__result_of_distance__<I ,J>::type`]   [Amortized constant time]]
+]
+
+[heading Models]
+* __vector__ iterator
+* __std_pair__ iterator
+* __boost_array__ iterator
+* __single_view__ iterator
+* __iterator_range__ iterator (where adapted sequence is a __random_access_sequence__)
+* __transform_view__ iterator (where adapted sequence is a __random_access_sequence__)
+* __reverse_view__ iterator (where adapted sequence is a __random_access_sequence__)
+
+[endsect]
+
+[section Associative Iterator]
+[heading Description]
+An Associative Iterator provides additional semantics to obtain the properties
+of the element of an associative forward, bidirectional or random access sequence.
+
+[variablelist Notation
+    [[`i`]         [Associative Iterator]]
+    [[`I`]         [Associative Iterator type]]
+]
+
+[heading Refinement of]
+__forward_iterator__, __bidirectional_iterator__ or __random_access_iterator__
+
+[heading Expression requirements]
+In addition to the requirements defined in __forward_iterator__,
+__bidirectional_iterator__ or __random_access_iterator__ the following
+expressions must be valid:
+
+[table
+    [[Expression]        [Return type]                [Runtime Complexity]]
+    [[`__deref_data__(i)`][`__result_of_deref_data__<I>::type`][Constant]]
+]
+
+[heading Meta Expressions]
+[table
+    [[Expression]                       [Compile Time Complexity]]
+    [[`__result_of_key_of__<I>::type`][Amortized constant time]]
+    [[`__result_of_value_of_data__<I>::type`][Amortized constant time]]
+    [[`__result_of_deref_data__<I>::type`][Amortized constant time]]
+]
+
+[heading Models]
+* __map__ iterator
+* __set__ iterator
+* __filter_view__ iterator (where adapted sequence is an __associative_sequence__ and a __forward_sequence__)
+* __iterator_range__ iterator (where adapted iterators are __associative_iterator__\ s)
+* __joint_view__ iterator (where adapted sequences are __associative_sequence__\ s and __forward_sequence__\ s)
+* __reverse_view__ iterator (where adapted sequence is an __associative_sequence__ and a __bidirectional_sequence__)
+
+[endsect]
+
+[endsect]
+
+[section Functions]
+Fusion provides functions for manipulating iterators, analogous to the similar functions
+from the __mpl__ library.
+
+[section deref]
+
+[heading Description]
+Deferences an iterator.
+
+[heading Synopsis]
+    template<
+        typename I
+        >
+    typename __result_of_deref__<I>::type deref(I const& i);
+
+[table Parameters
+    [[Parameter]      [Requirement]    [Description]]
+    [[`i`]            [Model of __forward_iterator__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __deref__(i);
+
+[*Return type]: `__result_of_deref__<I>::type`
+
+[*Semantics]: Dereferences the iterator `i`.
+
+[heading Header]
+    #include <boost/fusion/iterator/deref.hpp>
+    #include <boost/fusion/include/deref.hpp>
+
+[heading Example]
+    typedef __vector__<int,int&> vec;
+
+    int i(0);
+    vec v(1,i);
+    assert(__deref__(__begin__(v)) == 1);
+    assert(__deref__(__next__(__begin__(v))) == 0);
+    assert(&(__deref__(__next__(__begin__(v)))) == &i);
+
+[endsect]
+
+[section next]
+
+[heading Description]
+Moves an iterator 1 position forwards.
+
+[heading Synopsis]
+    template<
+        typename I
+        >
+    typename __result_of_next__<I>::type next(I const& i);
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`i`]          [Model of __forward_iterator__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    next(i);
+
+[*Return type]: A model of the same iterator concept as `i`.
+
+[*Semantics]: Returns an iterator to the next element after `i`.
+
+[heading Header]
+    #include <boost/fusion/iterator/next.hpp>
+    #include <boost/fusion/include/next.hpp>
+
+[heading Example]
+    typedef __vector__<int,int,int> vec;
+
+    vec v(1,2,3);
+    assert(__deref__(__begin__(v)) == 1);
+    assert(__deref__(__next__(__begin__(v))) == 2);
+    assert(__deref__(__next__(__next__(__begin__(v)))) == 3);
+
+[endsect]
+
+[section prior]
+
+[heading Description]
+Moves an iterator 1 position backwards.
+
+[heading Synopsis]
+    template<
+        typename I
+        >
+    typename __result_of_prior__<I>::type prior(I const& i);
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`i`]          [Model of __bidirectional_iterator__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __prior__(i);
+
+[*Return type]: A model of the same iterator concept as `i`.
+
+[*Semantics]: Returns an iterator to the element prior to `i`.
+
+[heading Header]
+    #include <boost/fusion/iterator/prior.hpp>
+    #include <boost/fusion/include/prior.hpp>
+
+[heading Example]
+    typedef __vector__<int,int> vec;
+
+    vec v(1,2);
+    assert(__deref__(__next__(__begin__(v))) == 2);
+    assert(__deref__(__prior__(__next__(__begin__(v)))) == 1);
+
+[endsect]
+
+[section distance]
+
+[heading Description]
+Returns the distance between 2 iterators.
+
+[heading Synopsis]
+    template<
+        typename I,
+        typename J
+        >
+    typename __result_of_distance__<I, J>::type distance(I const& i, J const& j);
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`i`, `j`]          [Models of __forward_iterator__ into the same sequence] [The start and end points of the distance to be measured]]
+]
+
+[heading Expression Semantics]
+    __distance__(i,j);
+
+[*Return type]: `int`
+
+[*Semantics]: Returns the distance between iterators `i` and `j`.
+
+[heading Header]
+    #include <boost/fusion/iterator/distance.hpp>
+    #include <boost/fusion/include/distance.hpp>
+
+[heading Example]
+    typedef __vector__<int,int,int> vec;
+
+    vec v(1,2,3);
+    assert(__distance__(__begin__(v), __next__(__next__(__begin__(v)))) == 2);
+
+[endsect]
+
+[section advance]
+
+[heading Description]
+Moves an iterator by a specified distance.
+
+[heading Synopsis]
+    template<
+        typename I,
+        typename M
+        >
+    typename __result_of_advance__<I, M>::type advance(I const& i);
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`i`]          [Model of __forward_iterator__] [Iterator to move relative to]]
+    [[`N`]          [An __mpl_integral_constant__] [Number of positions to move]]
+]
+
+[heading Expression Semantics]
+    __advance__<M>(i);
+
+[*Return type]: A model of the same iterator concept as `i`.
+
+[*Semantics]: Returns an iterator to the element `M` positions from `i`. If `i` is a __bidirectional_iterator__ then `M` may be negative.
+
+[heading Header]
+    #include <boost/fusion/iterator/advance.hpp>
+    #include <boost/fusion/include/advance.hpp>
+
+[heading Example]
+    typedef __vector__<int,int,int> vec;
+
+    vec v(1,2,3);
+    assert(__deref__(__advance__<mpl::int_<2> >(__begin__(v))) == 3);
+
+[endsect]
+
+[section advance_c]
+
+[heading Description]
+Moves an iterator by a specified distance.
+
+[heading Synopsis]
+    template<
+        typename I,
+        int N
+        >
+    typename __result_of_advance_c__<I, N>::type advance_c(I const& i);
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`i`]          [Model of __forward_iterator__] [Iterator to move relative to]]
+    [[`N`]          [Integer constant] [Number of positions to move]]
+]
+
+[heading Expression Semantics]
+    __advance_c__<N>(i);
+
+[*Return type]: A model of the same iterator concept as `i`.
+
+[*Semantics]: Returns an iterator to the element `N` positions from `i`. If `i` is a __bidirectional_iterator__ then `N` may be negative.
+
+[heading Header]
+    #include <boost/fusion/iterator/advance.hpp>
+    #include <boost/fusion/include/advance.hpp>
+
+[heading Example]
+    typedef __vector__<int,int,int> vec;
+
+    vec v(1,2,3);
+    assert(__deref__(__advance_c__<2>(__begin__(v))) == 3);
+
+[endsect]
+
+[section deref_data]
+
+[heading Description]
+Deferences the data property associated with the element referenced by an associative iterator.
+
+[heading Synopsis]
+    template<
+        typename I
+        >
+    typename __result_of_deref_data__<I>::type deref_data(I const& i);
+
+[table Parameters
+    [[Parameter]      [Requirement]    [Description]]
+    [[`i`]            [Model of __associative_iterator__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __deref_data__(i);
+
+[*Return type]: `__result_of_deref_data__<I>::type`
+
+[*Semantics]: Dereferences the data property associated with the element referenced by an associative iterator `i`.
+
+[heading Header]
+    #include <boost/fusion/iterator/deref_data.hpp>
+    #include <boost/fusion/include/deref_data.hpp>
+
+[heading Example]
+    typedef __map__<__pair__<float,int&> > map;
+
+    int i(0);
+    map m(1.0f,i);
+    assert(__deref_data__(__begin__(m)) == 0);
+    assert(&(__deref_data__(__begin__(m))) == &i);
+
+[endsect]
+
+[endsect]
+
+[section Operator]
+
+Overloaded operators are provided to provide a more natural syntax for dereferencing iterators, and comparing them for equality.
+
+[section:operator_unary_star Operator *]
+
+[heading Description]
+Dereferences an iterator.
+
+[heading Synopsis]
+    template<
+        typename I
+        >
+    typename __result_of_deref__<I>::type operator*(__unspecified__<I> const& i);
+
+[table Parameters
+    [[Parameter]      [Requirement]    [Description]]
+    [[`i`]            [Model of __forward_iterator__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    *i
+
+[*Return type]: Equivalent to the return type of `__deref__(i)`.
+
+[*Semantics]: Equivalent to `__deref__(i)`.
+
+[heading Header]
+    #include <boost/fusion/iterator/deref.hpp>
+    #include <boost/fusion/include/deref.hpp>
+
+[heading Example]
+    typedef __vector__<int,int&> vec;
+
+    int i(0);
+    vec v(1,i);
+    assert(*__begin__(v) == 1);
+    assert(*__next__(__begin__(v)) == 0);
+    assert(&(*__next__(__begin__(v))) == &i);
+
+[endsect]
+
+[section:operator_equality Operator ==]
+
+[heading Description]
+Compares 2 iterators for equality.
+
+[heading Synopsis]
+    template<
+        typename I,
+        typename J
+        >
+    __unspecified__ operator==(I const& i, J const& i);
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`i`, `j`]     [Any fusion iterators] [Operation's arguments]]
+]
+
+[heading Expression Semantics]
+    i == j
+
+[*Return type]: Convertible to `bool`.
+
+[*Semantics]: Equivalent to `__result_of_equal_to__<I,J>::value` where `I` and `J` are the types of `i` and `j` respectively.
+
+[heading Header]
+    #include <boost/fusion/iterator/equal_to.hpp>
+    #include <boost/fusion/include/equal_to.hpp>
+
+[endsect]
+
+[section:operator_inequality Operator !=]
+
+[heading Description]
+Compares 2 iterators for inequality.
+
+[heading Synopsis]
+    template<
+        typename I,
+        typename J
+        >
+    __unspecified__ operator==(I const& i, J const& i);
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`i`, `j`]     [Any fusion iterators] [Operation's arguments]]
+]
+
+[heading Expression Semantics]
+
+[*Return type]: Convertible to `bool`.
+
+[*Semantics]: Equivalent to `!__result_of_equal_to__<I,J>::value` where `I` and `J` are the types of `i` and `j` respectively.
+
+[heading Header]
+    #include <boost/fusion/iterator/equal_to.hpp>
+    #include <boost/fusion/include/equal_to.hpp>
+
+[endsect]
+
+[endsect]
+
+[section Metafunctions]
+
+[section value_of]
+
+[heading Description]
+
+Returns the type stored at the position of an iterator.
+
+[heading Synopsis]
+    template<
+        typename I
+        >
+    struct value_of
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`I`]          [Model of __forward_iterator__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_value_of__<I>::type
+
+[*Return type]: Any type
+
+[*Semantics]: Returns the type stored in a sequence at iterator position `I`.
+
+[heading Header]
+    #include <boost/fusion/iterator/value_of.hpp>
+    #include <boost/fusion/include/value_of.hpp>
+
+[heading Example]
+    typedef __vector__<int,int&,const int&> vec;
+    typedef __result_of_begin__<vec>::type first;
+    typedef __result_of_next__<first>::type second;
+    typedef __result_of_next__<second>::type third;
+
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_value_of__<first>::type, int>));
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_value_of__<second>::type, int&>));
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_value_of__<third>::type, const int&>));
+
+[endsect]
+
+[section deref]
+
+[heading Description]
+Returns the type that will be returned by dereferencing an iterator.
+
+[heading Synposis]
+    template<
+        typename I
+        >
+    struct deref
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter] [Requirement]                   [Description]]
+    [[`I`]       [Model of __forward_iterator__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_deref__<I>::type
+
+[*Return type]: Any type
+
+[*Semantics]: Returns the result of dereferencing an iterator of type `I`.
+
+[heading Header]
+    #include <boost/fusion/iterator/deref.hpp>
+    #include <boost/fusion/include/deref.hpp>
+
+[heading Example]
+    typedef __vector__<int,int&> vec;
+    typedef const vec const_vec;
+    typedef __result_of_begin__<vec>::type first;
+    typedef __result_of_next__<first>::type second;
+
+    typedef __result_of_begin__<const_vec>::type const_first;
+    typedef __result_of_next__<const_first>::type const_second;
+
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_deref__<first>::type, int&>));
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_deref__<second>::type, int&>));
+
+[endsect]
+
+[section next]
+
+[heading Description]
+Returns the type of the next iterator in a sequence.
+
+[heading Synposis]
+    template<
+        typename I
+        >
+    struct next
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`I`]          [Model of __forward_iterator__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_next__<I>::type
+
+[*Return type]: A model of the same iterator concept as `I`.
+
+[*Semantics]: Returns an iterator to the next element in the sequence after `I`.
+
+[heading Header]
+    #include <boost/fusion/iterator/next.hpp>
+    #include <boost/fusion/include/next.hpp>
+
+[heading Example]
+    typedef __vector__<int,double> vec;
+    typedef __result_of_next__<__result_of_begin__<vec>::type>::type second;
+
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_value_of__<second>::type, double>));
+
+[endsect]
+
+[section prior]
+
+[heading Description]
+Returns the type of the previous iterator in a sequence.
+
+[heading Synopsis]
+    template<
+        typename I
+        >
+    struct prior
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`I`]          [Model of __bidirectional_iterator__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_prior__<I>::type
+
+[*Return type]: A model of the same iterator concept as `I`.
+
+[*Semantics]: Returns an iterator to the previous element in the sequence before `I`.
+
+[heading Header]
+    #include <boost/fusion/iterator/prior.hpp>
+    #include <boost/fusion/include/prior.hpp>
+
+[heading Example]
+    typedef __vector__<int,double> vec;
+    typedef __result_of_next__<__result_of_begin__<vec>::type>::type second;
+
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_value_of__<second>::type, double>));
+
+    typedef __result_of_prior__<second>::type first;
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_value_of__<first>::type, int>));
+
+[endsect]
+
+[section equal_to]
+
+[heading Description]
+Returns a true-valued __mpl_integral_constant__ if `I` and `J` are equal.
+
+[heading Synopsis]
+    template<
+        typename I,
+        typename J
+        >
+    struct equal_to
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`I`, `J`]     [Any fusion iterators] [Operation's arguments]]
+]
+
+[heading Expression Semantics]
+    __result_of_equal_to__<I, J>::type
+
+[*Return type]: A model of __mpl_integral_constant__.
+
+[*Semantics]: Returns `boost::mpl::true_` if `I` and `J` are iterators to the same position. Returns `boost::mpl::false_` otherwise.
+
+[heading Header]
+    #include <boost/fusion/iterator/equal_to.hpp>
+    #include <boost/fusion/include/equal_to.hpp>
+
+[heading Example]
+    typedef __vector__<int,double> vec;
+    typedef __result_of_begin__<vec>::type first;
+    typedef __result_of_end__<vec>::type last;
+    BOOST_MPL_ASSERT((__result_of_equal_to__<first, first>));
+    BOOST_MPL_ASSERT_NOT((__result_of_equal_to__<first,last>));
+
+[endsect]
+
+[section distance]
+
+[heading Description]
+Returns the distance between two iterators.
+
+[heading Synopsis]
+    template<
+        typename I,
+        typename J
+        >
+    struct distance
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`I`, `J`]          [Models of __forward_iterator__ into the same sequence] [The start and end points of the distance to be measured]]
+]
+
+[heading Expression Semantics]
+    __result_of_distance__<I, J>::type
+
+[*Return type]: A model of __mpl_integral_constant__.
+
+[*Semantics]: Returns the distance between iterators of types `I` and `J`.
+
+[heading Header]
+    #include <boost/fusion/iterator/distance.hpp>
+    #include <boost/fusion/include/distance.hpp>
+
+[heading Example]
+    typedef __vector__<int,double,char> vec;
+    typedef __result_of_begin__<vec>::type first;
+    typedef __result_of_next__<first>::type second;
+    typedef __result_of_next__<second>::type third;
+    typedef __result_of_distance__<first,third>::type dist;
+
+    BOOST_MPL_ASSERT_RELATION(dist::value, ==, 2);
+
+[endsect]
+
+[section advance]
+
+[heading Description]
+Moves an iterator a specified distance.
+
+[heading Synopsis]
+    template<
+        typename I,
+        typename M
+        >
+    struct advance
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`I`]          [Model of __forward_iterator__] [Iterator to move relative to]]
+    [[`M`]          [Model of __mpl_integral_constant__] [Number of positions to move]]
+]
+
+[heading Expression Semantics]
+    __result_of_advance__<I,M>::type
+
+[*Return type]: A model of the same iterator concept as `I`.
+
+[*Semantics]: Returns an iterator a distance `M` from `I`. If `I` is a __bidirectional_iterator__ then `M` may be negative.
+
+[heading Header]
+    #include <boost/fusion/iterator/advance.hpp>
+    #include <boost/fusion/include/advance.hpp>
+
+[heading Example]
+    typedef __vector__<int,double,char> vec;
+    typedef __result_of_begin__<vec>::type first;
+    typedef __result_of_next__<first>::type second;
+    typedef __result_of_next__<second>::type third;
+
+    BOOST_MPL_ASSERT((__result_of_equal_to__<__result_of_advance__<first, boost::mpl::int_<2> >::type, third>));
+
+[endsect]
+
+[section advance_c]
+
+[heading Description]
+Moves an iterator by a specified distance.
+
+[heading Synopsis]
+    template<
+        typename I,
+        int N
+        >
+    struct advance_c
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`I`]          [Model of __forward_iterator__] [Iterator to move relative to]]
+    [[`N`]          [Integer constant] [Number of positions to move]]
+]
+
+[heading Expression Semantics]
+    __result_of_advance_c__<I, N>::type
+
+[*Return type]: A model of the same iterator concept as `I`.
+
+[*Semantics]: Returns an iterator a distance `N` from `I`. If `I` is a __bidirectional_iterator__ then `N` may be negative. Equivalent to `__result_of_advance__<I, boost::mpl::int_<N> >::type`.
+
+[heading Header]
+    #include <boost/fusion/iterator/advance.hpp>
+    #include <boost/fusion/include/advance.hpp>
+
+[heading Example]
+    typedef __vector__<int,double,char> vec;
+    typedef __result_of_begin__<vec>::type first;
+    typedef __result_of_next__<first>::type second;
+    typedef __result_of_next__<second>::type third;
+
+    BOOST_MPL_ASSERT((__result_of_equal_to__<__result_of_advance_c__<first, 2>::type, third>));
+
+[endsect]
+
+[section key_of]
+
+[heading Description]
+
+Returns the key type associated with the element referenced by an associative iterator.
+
+[heading Synopsis]
+    template<
+        typename I
+        >
+    struct key_of
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`I`]          [Model of __associative_iterator__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_key_of__<I>::type
+
+[*Return type]: Any type
+
+[*Semantics]: Returns the key type associated with the element referenced by an associative iterator `I`.
+
+[heading Header]
+    #include <boost/fusion/iterator/key_of.hpp>
+    #include <boost/fusion/include/key_of.hpp>
+
+[heading Example]
+    typedef __map__<__pair__<float,int> > vec;
+    typedef __result_of_begin__<vec>::type first;
+	
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_key_of__<first>::type, float>));
+    
+[endsect]
+
+[section value_of_data]
+
+[heading Description]
+
+Returns the type of the data property associated with the element referenced by an associative iterator references.
+
+[heading Synopsis]
+    template<
+        typename I
+        >
+    struct value_of_data
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`I`]          [Model of __associative_iterator__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_value_of_data__<I>::type
+
+[*Return type]: Any type
+
+[*Semantics]: Returns the type of the data property associated with the element referenced by an associative iterator `I`.
+
+[heading Header]
+    #include <boost/fusion/iterator/value_of_data.hpp>
+    #include <boost/fusion/include/value_of_data.hpp>
+
+[heading Example]
+    typedef __map__<__pair__<float,int> > vec;
+    typedef __result_of_begin__<vec>::type first;
+	
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_value_of_data__<first>::type, int>));
+    
+[endsect]
+
+[section deref_data]
+
+[heading Description]
+Returns the type that will be returned by dereferencing the data property referenced by an associative iterator.
+
+[heading Synposis]
+    template<
+        typename I
+        >
+    struct deref_data
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter] [Requirement]                   [Description]]
+    [[`I`]       [Model of __associative_iterator__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_deref_data__<I>::type
+
+[*Return type]: Any type
+
+[*Semantics]: Returns the result of dereferencing the data property referenced by an associative iterator of type `I`.
+
+[heading Header]
+    #include <boosta/fusion/iterator/deref_data.hpp>
+    #include <boost/fusion/include/deref_data.hpp>
+
+[heading Example]
+    typedef __map__<__pair__<float,int> > map;
+    typedef __result_of_begin__<vec>::type first;
+
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_deref_data__<first>::type, int&>));
+
+[endsect]
+
+[endsect]
+
+[endsect]
+

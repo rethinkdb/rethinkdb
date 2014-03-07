@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="test_newlines" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Test newlines</title>
+  <para>
+    Line 1<sbr/> Line 2
+  </para>
+  <blockquote>
+    <para>
+      <quote>It is better to be approximately right than exactly wrong.</quote><sbr/>
+      <emphasis>-- Old adage</emphasis>
+    </para>
+  </blockquote>
+  <para>
+    Line 1<sbr/> Line 2
+  </para>
+  <blockquote>
+    <para>
+      <quote>It is better to be approximately right than exactly wrong.</quote><sbr/>
+      <emphasis>-- Old adage</emphasis>
+    </para>
+  </blockquote>
+</article>

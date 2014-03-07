@@ -1,0 +1,5 @@
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
+<book xmlns:xi="http://www.w3.org/2001/XInclude" id="test" lang="en">
+  <title>Test processing instructions</title>
+  <para><?dbtimestamp format="Y-m-d H:M:S"?></para>
+</book>

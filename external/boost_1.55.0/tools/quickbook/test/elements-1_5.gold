@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="1_5_elements" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>1.5 Elements</title>
+  <para>
+    [ordered_list [item1][item2]]
+  </para>
+  <para>
+    [itemized_list [item1][item2]]
+  </para>
+  <para>
+    [block<simplesect><title>A <emphasis role="bold">simplesect</emphasis>!</title>]
+  </para>
+  <para>
+    [block</simplesect>]
+  </para>
+</article>

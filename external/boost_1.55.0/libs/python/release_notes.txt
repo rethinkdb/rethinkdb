@@ -1,0 +1,223 @@
+.. Copyright David Abrahams 2006. Distributed under the Boost
+.. Software License, Version 1.0. (See accompanying
+.. file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+These are old release notes for Boost.Python v1
+
+2000-11-22 10:00
+    Ullrich fixed bug in operator_dispatcher<op_long>.
+    
+2000-11-21 10:00
+    Changed all class and function names into lower_case.
+    
+    Ullrich updated documentation for operator wrapping.
+    
+2000-11-20 10:00
+    Ullrich renamed ExtensionClass:register_coerce() into 
+    ExtensionClass:def_standard_coerce() and made it public
+    
+    Ullrich improved shared_pod_manager.
+    
+2000-11-17 15:04
+    Changed allocation strategy of shared_pod_manager to make it portable.
+    
+    Added pickling support + tests thanks to "Ralf W. Grosse-Kunstleve"
+    <rwgk@cci.lbl.gov>
+
+    Added a specialization of Callback<const char*> to prevent unsafe usage.
+
+    Fixed Ullrich's operator_dispatcher refcount bug
+
+    Removed const char* return values from virtual functions in tests; that
+    usage was unsafe.
+
+    Ullrich changed Module::add() so that it steals a reference (fix of refcount bug)
+    
+    Ullrich added operator_dispatcher::create() optimization
+    
+    Ullrich changed design and implementation of TypeObjectBase::enable() (to eliminate low-level
+    code) and added shared_pod_manager optimization.
+
+
+2000-11-15 12:01
+    Fixed refcount bugs in operator calls.
+    
+    Added callback_adjust_refcount(PyObject*, Type<T>) to account for different ownership 
+    semantics of Callback's return types and Caller's arguments (which both use from_python())
+    This bug caused refcount errors during operator calls.
+
+    Moved operator_dispatcher into extclass.cpp
+    Gave it shared ownership of the objects it wraps
+
+    Introduced sequence points in extension_class_coerce for exception-safety
+
+    UPPER_CASE_MACRO_NAMES
+
+    MixedCase template type argument names
+
+    Changed internal error reporting to use Python exceptions so we don't force the
+    user to link in iostreams code
+
+    Changed error return value of call_cmp to -1
+
+    Moved unwrap_* functions out of operator_dispatcher. This was transitional: when
+    I realized they didn't need to be declared in extclass.h I moved them out, but
+    now that operator_dispatcher itself is in extclass.cpp they could go back in.
+
+    Numerous formatting tweaks
+
+    Updated the BoundFunction::create() optimization and enabled it so it could actually be used!
+
+2000-11-15 00:26
+
+    Made Ullrich's operators support work with MSVC
+    
+    Cleaned up operators.h such that invalid define_operator<0> is no longer needed.
+    
+    Ullrich created operators.h to support wrapping of C++ operators (including the "__r*__" forms). 
+    He added several auxiliary classes to extclass.h and extclass.cpp (most importantly, 
+    py::detail::operator_dispatcher and py::operators)
+
+2000-11-13 22:29
+
+    removed obsolete ExtensionClassFromPython for good.
+
+    removed unused class ExtensionType forward declaration
+
+2000-11-12 13:08
+
+    Added enum_as_int_converters for easier enum wrapping
+
+    Introduced new conversion namespace macros:
+        PY_BEGIN_CONVERSION_NAMESPACE,
+        PY_END_CONVERSION_NAMESPACE,
+        PY_CONVERSION
+
+    callback.h, gen_callback.py:
+        Added call() function so that a regular python function (as opposed to
+         method or other function-as-attribute) can be called.
+
+         Added newlines for readability.
+
+    class_wrapper.h:
+        Fixed a bug in add(), which allows non-method class attributes
+
+    Ullrich has added def_raw for simple varargs and keyword support.
+
+    Fixed version number check for __MWERKS__
+    
+    Added tests for enums and non-method class attributes
+
+    objects.h/objects.cpp:
+        Added py::String operator*= and operator* for repetition
+
+        Change Dict::items(), keys(), and values() to return a List
+
+        Added template versions of set_item, etc., methods so that users can optionally
+        use C++ types that have to_python() functions as parameters.
+
+        Changed various Ptr by-value parameters to const Ptr&
+
+
+======= Release =======
+2000-11-06 0:22 
+    Lots of documentation updates
+
+    added 4-argument template constructor to py::Tuple
+
+    added "add" member function to ClassWrapper<> to allow arbitrary Python
+    objects to be added to an extension class.
+
+    gen_all.py now generates support for n argument member functions and n+1
+    argument member functions at the suggestion of "Ralf W. Grosse-Kunstleve"
+    <rwgk@cci.lbl.gov>
+
+    Added regression tests and re-ordered declare_base calls to verify that the
+    phantom base class issue is resolved.
+
+2000-11-04 17:35
+
+    Integrated Ullrich Koethe's brilliant from_python_experiment for better
+    error-reporting in many cases.
+
+    extclass.h, gen_extclass.py:
+        removed special-case MSVC code
+        added much commentary
+        removed unused py_copy_to_new_value_holder
+
+    init_function.h, gen_init_function.py:
+        added missing 'template' keyword on type-dependent template member usage
+        removed special-case MSVC code
+        added much commentary
+        
+2000-11-04 0:36
+
+    Removed the need for the phantom base class that screwed up inheritance
+    hierarchies, introduced error-prone ordering dependencies, and complexified
+    logic in many places!
+    
+    extclass.h: Added some explanatory comments, removed wasteful m_self member
+    of HeldInstance
+
+    extclass_demo.cpp: Added #pragmas which allow compilation in ansi strict
+    mode under Metrowerks
+
+    functions.h: Added virtual_function as part of phantom base class removal;
+    expanded commentary
+
+    pyptr.h: Added some missing 'typename's and a GCC workaround fix
+
+    subclass.cpp: Added missing string literal const_cast<>s.
+
+2000-11-03 10:58
+
+    Fix friend function instantiation bug caught by Metrowerks (thanks
+    Metrowerks!)
+
+    Add proof-of-concept for one technique of wrapping function that return a
+    pointer
+
+    Worked around MSVC optimizer bug by writing to_python(double) and
+    to_python(float) out-of-line
+
+2000-11-02 23:25
+
+    Add /Zm200 option to vc6_prj to deal with MSVC resource limitations
+    
+    Remove conflicting /Ot option from vc6_prj release build
+
+======= Release =======
+2000-11-02 17:42
+
+    Added a fix for interactions between default virtual function
+    implementations and declare_base(). You still need to write your
+    declare_base() /after/ all member functions have been def()d for the two
+    classes concerned.  Many, many thanks to Ullrich Koethe
+    <koethe@informatik.uni-hamburg.de> for all his work on this.
+
+    Added missing conversions:
+        to_python(float)
+        from_python(const char* const&)
+        from_python(const double&)
+        from_python(const float&)
+
+    Added a Regression test for a reference-counting bug thanks to Mark Evans
+    (<mark.evans@clarisay.com>)
+
+    const-ify ClassBase::getattr()
+
+    Add repr() function to Class<T>
+
+    Add to_python/from_python conversions for PyPtr<T>
+
+    Standardize set_item/get_item interfaces (instead of proxies) for Dict and List
+
+    Add Reprable<> template to newtypes.h
+
+    Fix a bug wherein the __module__ attribute would be lost for classes that have a
+    default virtual function implementation.
+
+    Remove extra ';' in module.cpp thanks to "Ralf W. Grosse-Kunstleve"
+    <rwgk@cci.lbl.gov>
+
+    Fix a bug in the code of example1.html

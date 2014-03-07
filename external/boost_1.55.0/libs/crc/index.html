@@ -1,0 +1,61 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>Boost CRC Library</title>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="purple" alink="red">
+
+<table border="1" bgcolor="teal" cellpadding="2">
+	<tr>
+		<td bgcolor="white"><img src="../../boost.png"
+			alt="boost.png (6897 bytes)" WIDTH="277"
+			HEIGHT="86"></td>
+		<td><a href="../../index.htm"><font face="Arial"
+			color="white"><big>Home</big></font></a></td>
+		<td><a href="../libraries.htm"><font face="Arial"
+			color="white"><big>Libraries</big></font></a></td>
+		<td><a href="http://www.boost.org/people/people.htm"><font face="Arial"
+			color="white"><big>People</big></font></a></td>
+		<td><a href="http://www.boost.org/more/faq.htm"><font face="Arial"
+			color="white"><big>FAQ</big></font></a></td>
+		<td><a href="../../more/index.htm"><font face="Arial"
+			color="white"><big>More</big></font></a></td>
+	</tr>
+</table>
+
+<h1>CRC Library</h1>
+
+<p>The header <cite>crc.hpp</cite> provides two implementations of CRC
+(cyclic redundancy code) computation objects and two implementations of
+CRC computation functions.  The implementations are template-based.</p>
+
+<p>The first object implementation is for theoretical use.  It can
+process single bits, but is considered slow for practical use.  The
+second object implementation is byte-oriented and uses look-up
+tables for fast operation.  The optimized implementation should
+be suitable for general use.  The first function implementation uses the
+optimized object.  The second function implementation allows the use of
+a CRC that directly follows its data.</p>
+
+<ul>
+	<li><a href="crc.html">Documentation</a> (HTML).</li>
+	<li>Header <cite><a href="../../boost/crc.hpp">crc.hpp</a></cite>.</li>
+	<li>See the <a href="crc.html">documentation</a> for links to sample
+		programs.</li>
+	<li>Submitted by Daryle Walker.</li>
+</ul>
+
+<hr>
+
+<p>Revised: 14 May 2001</p>
+
+<p>Copyright 2001 Daryle Walker.  Use, modification, and distribution
+are subject to the Boost Software License, Version 1.0.  (See accompanying
+file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or a copy at
+&lt;<a href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>&gt;.)</p>
+
+</body>
+</html>

@@ -1,0 +1,40 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+[table Stepper Algorithms
+  [[Algorithm] [Class] [Concept] [System Concept] [Order] [Error Estimation] [Dense Output] [Internal state] [Remarks]]
+  [[Explicit Euler] [`euler`] [__dense_output_stepper] [__system] [1] [No] [Yes] [No] [Very simple, only for demonstrating purpose]]
+  [[Modified Midpoint] [`modified_midpoint`] [__stepper] [__system] [configurable (2)] [No] [No] [No] [Used in Bulirsch-Stoer implementation]]
+  [[Runge-Kutta 4] [`runge_kutta4`] [__stepper] [__system] [4] [No] [No] [No] [The classical Runge-Kutta scheme, good general scheme without error control]]
+  [[Cash-Karp] [`runge_kutta_cash_karp54`] [__error_stepper] [__system] [5] [Yes (4)] [No] [No] [Good general scheme with error estimation, to be used in controlled_error_stepper]]
+  [[Dormand-Prince 5] [`runge_kutta_dopri5`] [__error_stepper] [__system] [5] [Yes (4)] [Yes] [Yes] [Standard method with error control and dense output, to be used in controlled_error_stepper and in dense_output_controlled_explicit_fsal.]]
+  [[Fehlberg 78] [`runge_kutta_fehlberg78`] [__error_stepper] [__system] [8] [Yes (7)] [No] [No] [Good high order method with error estimation, to be used in controlled_error_stepper.]]
+
+  [[Adams Bashforth] [`adams_bashforth`] [__stepper] [__system] [configurable] [No] [No] [Yes] [Multistep method]]
+  [[Adams Moulton] [`adams_moulton`] [__stepper] [__system] [configurable] [No] [No] [Yes] [Multistep method]]
+  [[Adams Bashforth Moulton] [`adams_bashforth_moulton`] [__stepper] [__system] [configurable] [No] [No] [Yes] [Combined multistep method]]
+
+  [[Controlled Runge-Kutta] [`controlled_runge_kutta`] [__controlled_stepper] [__system] [depends] [Yes] [No] [depends] [Error control for __error_stepper. Requires an __error_stepper from above. Order depends on the given ErrorStepper]]
+  [[Dense Output Runge-Kutta] [`dense_output_runge_kutta`] [__dense_output_stepper] [__system] [depends] [No] [Yes] [Yes] [Dense output for __stepper and __error_stepper from above if they provide dense output functionality (like `euler` and `runge_kutta_dopri5`). Order depends on the given stepper.]]
+  
+  [[Bulirsch-Stoer] [`bulirsch_stoer`] [__controlled_stepper] [__system] [variable] [Yes] [No] [No] [Stepper with step size and order control. Very good if high precision is required.]]
+  [[Bulirsch-Stoer Dense Output] [`bulirsch_stoer_dense_out`] [__dense_output_stepper] [__system] [variable] [Yes] [Yes] [No] [Stepper with step size and order control as well as dense output. Very good if high precision and dense output is required.]]
+
+  [[Implicit Euler] [`implicit_euler`] [__stepper] [__implicit_system] [1] [No] [No] [No] [Basic implicit routine. Requires the Jacobian. Works only with __ublas vectors as state types.]]
+  [[Rosenbrock 4] [`rosenbrock4`] [__error_stepper] [__implicit_system] [4] [Yes] [Yes] [No] [Good for stiff systems. Works only with __ublas vectors as state types.]]
+  [[Controlled Rosenbrock 4] [`rosenbrock4_controller`] [__controlled_stepper] [__implicit_system] [4] [Yes] [Yes] [No] [Rosenbrock 4 with error control. Works only with __ublas vectors as state types.]]
+  [[Dense Output Rosenbrock 4] [`rosenbrock4_dense_output`] [__dense_output_stepper] [__implicit_system] [4] [Yes] [Yes] [No] [Controlled Rosenbrock 4 with dense output. Works only with __ublas vectors as state types.]]
+
+  [[Symplectic Euler] [`symplectic_euler`] [__stepper] [__symplectic_system __simple_symplectic_system] [1] [No] [No] [No] [Basic symplectic solver for separable Hamiltonian system]]
+  [[Symplectic RKN McLachlan] [`symplectic_rkn_sb3a_mclachlan`] [__stepper] [__symplectic_system __simple_symplectic_system] [4] [No] [No] [No] [Symplectic solver for separable Hamiltonian system with 6 stages and order 4.]]
+  [[Symplectic RKN McLachlan] [`symplectic_rkn_sb3a_m4_mclachlan`] [__stepper] [__symplectic_system __simple_symplectic_system] [4] [No] [No] [No] [Symplectic solver with 5 stages and order 4, can be used with arbitrary precision types.]]
+]

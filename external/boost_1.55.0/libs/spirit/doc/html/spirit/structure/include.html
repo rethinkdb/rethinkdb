@@ -1,0 +1,230 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Include</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../structure.html" title="Structure">
+<link rel="prev" href="../structure.html" title="Structure">
+<link rel="next" href="../abstracts.html" title="Abstracts">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../structure.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../structure.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../abstracts.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.structure.include"></a><a class="link" href="include.html" title="Include">Include</a>
+</h3></div></div></div>
+<p>
+        Spirit is a header file only library. There are no libraries to link to.
+        This section documents the structure of the Spirit headers.
+      </p>
+<p>
+        Spirit contains five sub-libraries plus a 'support' module where common support
+        classes are placed:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Classic
+          </li>
+<li class="listitem">
+            Qi
+          </li>
+<li class="listitem">
+            Karma
+          </li>
+<li class="listitem">
+            Lex
+          </li>
+<li class="listitem">
+            Phoenix
+          </li>
+<li class="listitem">
+            Support
+          </li>
+</ul></div>
+<p>
+        The top Spirit directory is:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_ROOT</span><span class="special">/</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span>
+</pre>
+<p>
+        Currently, the directory contains:
+      </p>
+<pre class="programlisting"><span class="special">[</span><span class="identifier">actor</span><span class="special">]</span>     <span class="special">[</span><span class="identifier">attribute</span><span class="special">]</span>     <span class="special">[</span><span class="identifier">core</span><span class="special">]</span>      <span class="special">[</span><span class="identifier">debug</span><span class="special">]</span>
+<span class="special">[</span><span class="identifier">dynamic</span><span class="special">]</span>   <span class="special">[</span><span class="identifier">error_handling</span><span class="special">][</span><span class="identifier">home</span><span class="special">]</span>      <span class="special">[</span><span class="identifier">include</span><span class="special">]</span>
+<span class="special">[</span><span class="identifier">iterator</span><span class="special">]</span>  <span class="special">[</span><span class="identifier">meta</span><span class="special">]</span>          <span class="special">[</span><span class="identifier">phoenix</span><span class="special">]</span>   <span class="special">[</span><span class="identifier">repository</span><span class="special">]</span>
+<span class="special">[</span><span class="identifier">symbols</span><span class="special">]</span>   <span class="special">[</span><span class="identifier">tree</span><span class="special">]</span>          <span class="special">[</span><span class="identifier">utility</span><span class="special">]</span>
+</pre>
+<p>
+        These include some old v1.8 directories that are now deprecated. These are:
+        actor, attribute, core, debug, dynamic, error_handling, iterator, meta, phoenix,
+        symbols, tree and utility. There is no guarantee that these directories will
+        still be present in future versions of Spirit. We only keep them for backward
+        compatibility. Please be warned.
+      </p>
+<p>
+        Each directory (except include, home, and repository) has a corresponding
+        header file that contains forwarding includes of each relevant include file
+        that the directory contains. For example, there exists a &lt;boost/spirit/actor.hpp&gt;
+        header file which includes all the relevant files from the boost/spirit/actor
+        directory.
+      </p>
+<p>
+        To distinguish between Spirit versions, you can inspect the version file:
+      </p>
+<pre class="programlisting"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">version</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        using the preprocessor define
+      </p>
+<pre class="programlisting"><span class="identifier">SPIRIT_VERSION</span>
+</pre>
+<p>
+        It is a hex number where the first two digits determine the major version
+        while the last two digits determine the minor version. For example:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">SPIRIT_VERSION</span> <span class="number">0x2010</span> <span class="comment">// version 2.1</span>
+</pre>
+<p>
+        The include directory at:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_ROOT</span><span class="special">/</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span>
+</pre>
+<p>
+        is a special flat directory that contains all the Spirit headers. To accommodate
+        the flat structure, the headers are prefixed with the sub-library name:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            classic_
+          </li>
+<li class="listitem">
+            karma_
+          </li>
+<li class="listitem">
+            lex_
+          </li>
+<li class="listitem">
+            phoenix1_
+          </li>
+<li class="listitem">
+            phoenix_
+          </li>
+<li class="listitem">
+            qi_
+          </li>
+<li class="listitem">
+            support_
+          </li>
+</ul></div>
+<p>
+        For example, if you used to include &lt;boost/spirit/actor.hpp&gt;, which
+        is now a deprecated header, you should instead include &lt;boost/spirit/include/classic_actor.hpp&gt;
+      </p>
+<p>
+        If you want to simply include the main sub-library name, then you can include:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            &lt;boost/spirit/include/classic.hpp&gt;
+          </li>
+<li class="listitem">
+            &lt;boost/spirit/include/karma.hpp&gt;
+          </li>
+<li class="listitem">
+            &lt;boost/spirit/include/lex.hpp&gt;
+          </li>
+<li class="listitem">
+            &lt;boost/spirit/include/phoenix1.hpp&gt;
+          </li>
+<li class="listitem">
+            &lt;boost/spirit/include/phoenix.hpp&gt;
+          </li>
+<li class="listitem">
+            &lt;boost/spirit/include/qi.hpp&gt;
+          </li>
+<li class="listitem">
+            &lt;boost/spirit/include/support.hpp&gt;
+          </li>
+</ul></div>
+<p>
+        The home directory:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_ROOT</span><span class="special">/</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span>
+</pre>
+<p>
+        is the <span class="emphasis"><em>real</em></span> home of Spirit. It is the place where the
+        various sub-libraries actually exist. The home directory contains:
+      </p>
+<pre class="programlisting"><span class="special">[</span><span class="identifier">classic</span><span class="special">]</span>   <span class="special">[</span><span class="identifier">karma</span><span class="special">]</span>     <span class="special">[</span><span class="identifier">lex</span><span class="special">]</span>
+<span class="special">[</span><span class="identifier">phoenix</span><span class="special">]</span>   <span class="special">[</span><span class="identifier">qi</span><span class="special">]</span>        <span class="special">[</span><span class="identifier">support</span><span class="special">]</span>
+</pre>
+<p>
+        As usual, these directories have their corresponding include files:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            &lt;boost/spirit/home/classic.hpp&gt;
+          </li>
+<li class="listitem">
+            &lt;boost/spirit/home/karma.hpp&gt;
+          </li>
+<li class="listitem">
+            &lt;boost/spirit/home/lex.hpp&gt;
+          </li>
+<li class="listitem">
+            &lt;boost/spirit/home/phoenix.hpp&gt;
+          </li>
+<li class="listitem">
+            &lt;boost/spirit/home/qi.hpp&gt;
+          </li>
+<li class="listitem">
+            &lt;boost/spirit/home/support.hpp&gt;
+          </li>
+</ul></div>
+<p>
+        The various sub-libraries include files can be found in each sub-directory
+        containing the particular sub-library. The include structure of a sub-library
+        is covered in its documentation. For consistency, each library follows the
+        same scheme as above.
+      </p>
+<p>
+        To keep it simple, you should use the flat include directory at boost/spirit/include.
+      </p>
+<p>
+        For some additional information about the rationale you might want to have
+        a look at the FAQ entry <a class="link" href="../faq.html#spirit.faq.i_m_very_confused_about_the_header_hell_in_my_boost_spirit_directory__what_s_all_this_about_">Header
+        Hell</a>.
+      </p>
+<p>
+        The subdirectory <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">repository</span></code> does not belong to the main
+        Spirit distribution. For more information please refer to: <a class="link" href="../repository.html" title="Spirit Repository">Spirit
+        Repository</a>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../structure.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../structure.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../abstracts.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

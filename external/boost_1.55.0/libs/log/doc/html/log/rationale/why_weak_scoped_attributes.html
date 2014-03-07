@@ -1,0 +1,114 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Why scoped attributes don't override existing attributes?</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../rationale.html" title="Rationale and FAQ">
+<link rel="prev" href="../rationale.html" title="Rationale and FAQ">
+<link rel="next" href="why_weak_record_ordering.html" title="Why log records are weakly ordered in a multithreaded application?">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../rationale.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="why_weak_record_ordering.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.rationale.why_weak_scoped_attributes"></a><a class="link" href="why_weak_scoped_attributes.html" title="Why scoped attributes don't override existing attributes?">Why scoped
+      attributes don't override existing attributes?</a>
+</h3></div></div></div>
+<p>
+        Initially scoped attributes were able to override other attributes with the
+        same name if they were already registered by the time when a scoped attribute
+        encountered. This allowed some interesting use cases like this:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_LOG_DECLARE_GLOBAL_LOGGER</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">,</span> <span class="identifier">src</span><span class="special">::</span><span class="identifier">logger_mt</span><span class="special">)</span>
+
+<span class="keyword">void</span> <span class="identifier">foo</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// This scoped attribute would temporarily replace the existing tag</span>
+    <span class="identifier">BOOST_LOG_SCOPED_THREAD_TAG</span><span class="special">(</span><span class="string">"Section"</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="string">"In foo"</span><span class="special">);</span>
+
+    <span class="comment">// This log record will have a "Section" attribute with value "In foo"</span>
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">get_my_logger</span><span class="special">())</span> <span class="special">&lt;&lt;</span> <span class="string">"We're in foo section"</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*[])</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_LOG_SCOPED_THREAD_TAG</span><span class="special">(</span><span class="string">"Section"</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="string">"In main"</span><span class="special">);</span>
+
+    <span class="comment">// This log record will have a "Section" attribute with value "In main"</span>
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">get_my_logger</span><span class="special">())</span> <span class="special">&lt;&lt;</span> <span class="string">"We're in main section"</span><span class="special">;</span>
+
+    <span class="identifier">foo</span><span class="special">();</span>
+
+    <span class="comment">// This log record will have a "Section" attribute with value "In main" again</span>
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">get_my_logger</span><span class="special">())</span> <span class="special">&lt;&lt;</span> <span class="string">"We're in main section again"</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        However, this feature introduced a number of safety problems, including thread
+        safety issues, that could be difficult to track down. For example, it was
+        no longer safe to use logger-wide scoped attributes on the same logger from
+        different threads, because the resulting attribute would be undefined:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_LOG_DECLARE_GLOBAL_LOGGER</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">,</span> <span class="identifier">src</span><span class="special">::</span><span class="identifier">logger_mt</span><span class="special">)</span>
+
+<span class="keyword">void</span> <span class="identifier">thread1</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_LOG_SCOPED_LOGGER_TAG</span><span class="special">(</span><span class="identifier">get_my_logger</span><span class="special">(),</span> <span class="string">"Tag"</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="string">"thread1"</span><span class="special">);</span>
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">get_my_logger</span><span class="special">())</span> <span class="special">&lt;&lt;</span> <span class="string">"We're in thread1"</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">thread2</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_LOG_SCOPED_LOGGER_TAG</span><span class="special">(</span><span class="identifier">get_my_logger</span><span class="special">(),</span> <span class="string">"Tag"</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="number">10</span><span class="special">);</span>
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">get_my_logger</span><span class="special">())</span> <span class="special">&lt;&lt;</span> <span class="string">"We're in thread2"</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*[])</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_LOG_SCOPED_LOGGER_TAG</span><span class="special">(</span><span class="identifier">get_my_logger</span><span class="special">(),</span> <span class="string">"Tag"</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="special">-</span><span class="number">2.2</span><span class="special">);</span>
+
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">get_my_logger</span><span class="special">())</span> <span class="special">&lt;&lt;</span> <span class="string">"We're in main"</span><span class="special">;</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span> <span class="identifier">t1</span><span class="special">(&amp;</span><span class="identifier">thread1</span><span class="special">);</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span> <span class="identifier">t2</span><span class="special">(&amp;</span><span class="identifier">thread2</span><span class="special">);</span>
+
+    <span class="identifier">t1</span><span class="special">.</span><span class="identifier">join</span><span class="special">();</span>
+    <span class="identifier">t2</span><span class="special">.</span><span class="identifier">join</span><span class="special">();</span>
+
+    <span class="comment">// Which "Tag" is registered here?</span>
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">get_my_logger</span><span class="special">())</span> <span class="special">&lt;&lt;</span> <span class="string">"We're in main again"</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        There were other issues, like having an attribute set iterator that points
+        to one attribute object, then suddenly without seemingly modifying it it
+        becomes pointing to a different attribute object (of, possibly, a different
+        type). Such behavior could lead to tricky failures that would be difficult
+        to investigate. Therefore this feature was eventually dropped, which simplified
+        the scoped attributes implementation significantly.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../rationale.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="why_weak_record_ordering.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

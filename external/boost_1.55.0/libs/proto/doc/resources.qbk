@@ -1,0 +1,45 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[/=========================================]
+[section:resources Background and Resources]
+[/=========================================]
+
+Proto was initially developed as part of _xpressive_ to simplify the job of 
+transforming an expression template into an executable finite state machine capable 
+of matching a regular expression. Since then, Proto has found application in the 
+redesigned and improved Spirit-2 and the related Karma library. As a result of 
+these efforts, Proto evolved into a generic and abstract grammar and tree 
+transformation framework applicable in a wide variety of EDSL scenarios.
+
+The grammar and tree transformation framework is modeled on Spirit's grammar and 
+semantic action framework. The expression tree data structure is similar to Fusion 
+data structures in many respects, and is interoperable with Fusion's iterators and 
+algorithms.
+
+The syntax for the grammar-matching features of `proto::matches<>` is inspired by 
+MPL's lambda expressions.
+
+The idea for using function types for Proto's composite transforms is inspired by Aleksey Gurtovoy's
+[@http://lists.boost.org/Archives/boost/2002/11/39718.php "round" lambda] notation.
+
+[/=================]
+[heading References]
+[/=================]
+
+[:[#boost_proto.users_guide.resources.SYB]Ren, D. and Erwig, M. 2006. A generic recursion toolbox for Haskell or: scrap your boilerplate systematically. In ['Proceedings of the 2006 ACM SIGPLAN Workshop on Haskell] (Portland, Oregon, USA, September 17 - 17, 2006). Haskell '06. ACM, New York, NY, 13-24. DOI=[@http://doi.acm.org/10.1145/1159842.1159845]]
+
+[/======================]
+[heading Further Reading]
+[/======================]
+
+A technical paper about an earlier version of Proto was accepted into the
+[@http://lcsd.cs.tamu.edu/2007/ ACM SIGPLAN Symposium on Library-Centric Software 
+Design LCSD'07], and can be found at [@http://lcsd.cs.tamu.edu/2007/final/1/1_Paper.pdf].
+The tree transforms described in that paper differ from what exists today.
+
+[endsect]

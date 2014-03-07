@@ -1,0 +1,405 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Tutorial - Techniques</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="debug.html">
+<link rel="up" href="index.html">
+<link rel="next" href="../reference/index.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Tutorial: Techniques</h1>
+
+<div class="prev_link"><a href="debug.html"><img src="../prev.gif" alt="debugging support" border="0"><br>
+Debugging support
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="next_link"><a href="../reference/index.html"><img src="../next.gif" alt="Boost.MultiIndex reference" border="0"><br>
+Boost.MultiIndex reference
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#emulate_std_containers">Emulating standard containers with
+    <code>multi_index_container</code></a>
+    <ul>
+      <li><a href="#emulate_assoc_containers">Emulation of associative
+       containers</a></li>
+      <li><a href="#emulate_std_list">Emulation of <code>std::list</code></a></li>
+    </ul>
+  </li>
+  <li><a href="#metaprogrammming">Metaprogramming and <code>multi_index_container</code></a>
+    <ul>
+      <li><a href="#mpl_analysis">MPL analysis</a></li>
+      <li><a href="#mpl_synthesis">MPL synthesis</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h2><a name="emulate_std_containers">Emulating standard containers with
+  <code>multi_index_container</code></a></h2>
+
+<h3><a name="emulate_assoc_containers">Emulation of associative
+containers</a></h3>
+
+<p>
+Academic movitations aside, there is a practical interest in emulating standard
+associative containers by means of <code>multi_index_container</code>, namely to take
+advantage of extended functionalities provided by <code>multi_index_container</code> for
+lookup, range querying and updating.
+</p>
+
+<p>
+In order to emulate a <code>std::set</code> one can follow the substitution
+rule:
+</p>
+
+<blockquote><pre>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>set</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>,</span><span class=identifier>Compare</span><span class=special>,</span><span class=identifier>Allocator</span><span class=special>&gt;</span> <span class=special>-&gt;</span>
+  <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+    <span class=identifier>Key</span><span class=special>,</span>
+    <span class=identifier>indexed_by</span><span class=special>&lt;</span><span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>&gt;,</span><span class=identifier>Compare</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>Allocator</span>
+  <span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+In the default case where <code>Compare=std::less&lt;Key></code> and
+<code>Allocator=std::allocator&lt;Key></code>, the substitution rule is
+simplified as
+</p>
+
+<blockquote><pre>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>set</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>&gt;</span> <span class=special>-&gt;</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+The substitution of <code>multi_index_container</code> for <code>std::set</code> keeps
+the whole set of functionality provided by <code>std::set</code>, so in
+principle it is a drop-in replacement needing no further adjustments.
+</p>
+
+<p>
+<code>std::multiset</code> can be emulated in a similar manner, according to the
+following rule:
+</p>
+
+<blockquote><pre>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>multiset</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>,</span><span class=identifier>Compare</span><span class=special>,</span><span class=identifier>Allocator</span><span class=special>&gt;</span> <span class=special>-&gt;</span>
+  <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+    <span class=identifier>Key</span><span class=special>,</span>
+    <span class=identifier>indexed_by</span><span class=special>&lt;</span><span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>&gt;,</span><span class=identifier>Compare</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>Allocator</span>
+  <span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+When default values are taken into consideration, the rule takes the form
+</p>
+
+<blockquote><pre>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>multiset</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>&gt;</span> <span class=special>-&gt;</span>
+  <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+    <span class=identifier>Key</span><span class=special>,</span>
+    <span class=identifier>indexed_by</span><span class=special>&lt;</span><span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+The emulation of <code>std::multiset</code>s with <code>multi_index_container</code>
+results in a slight difference with respect to the interface offered: the member
+function <code>insert(const value_type&amp;)</code> does not return an
+<code>iterator</code> as in <code>std::multiset</code>s, but rather a
+<code>std::pair&lt;iterator,bool></code> in the spirit of <code>std::set</code>s.
+In this particular case, however, the <code>bool</code> member of the returned
+pair is always <code>true</code>.
+</p>
+
+<p>
+The case of <code>std::map</code>s and <code>std::multimap</code>s does not lend
+itself to such a direct emulation by means of <code>multi_index_container</code>. The main
+problem lies in the fact that elements of a <code>multi_index_container</code> are treated
+as constant, while the <code>std::map</code> and <code>std::multimap</code> handle
+objects of type <code>std::pair&lt;const Key,T></code>, thus allowing for free
+modification of the value part. To overcome this difficulty we need to create an ad
+hoc pair class: 
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span> <span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T1</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>T2</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>mutable_pair</span>
+<span class=special>{</span>
+  <span class=keyword>typedef</span> <span class=identifier>T1</span> <span class=identifier>first_type</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier>T2</span> <span class=identifier>second_type</span><span class=special>;</span>
+
+  <span class=identifier>mutable_pair</span><span class=special>():</span><span class=identifier>first</span><span class=special>(</span><span class=identifier>T1</span><span class=special>()),</span><span class=identifier>second</span><span class=special>(</span><span class=identifier>T2</span><span class=special>()){}</span>
+  <span class=identifier>mutable_pair</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>T1</span><span class=special>&amp;</span> <span class=identifier>f</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>T2</span><span class=special>&amp;</span> <span class=identifier>s</span><span class=special>):</span><span class=identifier>first</span><span class=special>(</span><span class=identifier>f</span><span class=special>),</span><span class=identifier>second</span><span class=special>(</span><span class=identifier>s</span><span class=special>){}</span>
+  <span class=identifier>mutable_pair</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>T1</span><span class=special>,</span><span class=identifier>T2</span><span class=special>&gt;&amp;</span> <span class=identifier>p</span><span class=special>):</span><span class=identifier>first</span><span class=special>(</span><span class=identifier>p</span><span class=special>.</span><span class=identifier>first</span><span class=special>),</span><span class=identifier>second</span><span class=special>(</span><span class=identifier>p</span><span class=special>.</span><span class=identifier>second</span><span class=special>){}</span>
+
+  <span class=identifier>T1</span>         <span class=identifier>first</span><span class=special>;</span>
+  <span class=keyword>mutable</span> <span class=identifier>T2</span> <span class=identifier>second</span><span class=special>;</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+and so the substitution rules are:
+</p>
+
+<blockquote><pre>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>map</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>,</span><span class=identifier>T</span><span class=special>,</span><span class=identifier>Compare</span><span class=special>,</span><span class=identifier>Allocator</span><span class=special>&gt;</span> <span class=special>-&gt;</span>
+  <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+    <span class=identifier>Element</span><span class=special>,</span>
+    <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+      <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>Element</span><span class=special>,</span><span class=identifier>Key</span><span class=special>,&amp;</span><span class=identifier>Element</span><span class=special>::</span><span class=identifier>first</span><span class=special>&gt;,</span><span class=identifier>Compare</span><span class=special>&gt;</span>
+    <span class=special>&gt;,</span>
+    <span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>::</span><span class=keyword>template</span> <span class=identifier>rebind</span><span class=special>&lt;</span><span class=identifier>Element</span><span class=special>&gt;::</span><span class=identifier>other</span>
+  <span class=special>&gt;</span>
+
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>multimap</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>,</span><span class=identifier>T</span><span class=special>,</span><span class=identifier>Compare</span><span class=special>,</span><span class=identifier>Allocator</span><span class=special>&gt;</span> <span class=special>-&gt;</span>
+  <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+    <span class=identifier>Element</span><span class=special>,</span>
+    <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+      <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>Element</span><span class=special>,</span><span class=identifier>Key</span><span class=special>,&amp;</span><span class=identifier>Element</span><span class=special>::</span><span class=identifier>first</span><span class=special>&gt;,</span><span class=identifier>Compare</span><span class=special>&gt;</span>
+    <span class=special>&gt;,</span>
+    <span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>::</span><span class=keyword>template</span> <span class=identifier>rebind</span><span class=special>&lt;</span><span class=identifier>Element</span><span class=special>&gt;::</span><span class=identifier>other</span>
+  <span class=special>&gt;</span>
+
+(<span class=identifier>with</span> <span class=identifier>Element</span><span class=special>=</span><span class=identifier>mutable_pair</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>,</span><span class=identifier>T</span><span class=special>&gt;</span>)
+</pre></blockquote>
+
+<p>
+If default values are considered, the rules take the form:
+</p>
+
+<blockquote><pre>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>map</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>,</span><span class=identifier>T</span><span class=special>&gt;</span> <span class=special>-&gt;</span>
+  <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+    <span class=identifier>Element</span><span class=special>,
+    </span><span class=identifier>indexed_by</span><span class=special>&lt;</span><span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>Element</span><span class=special>,</span><span class=identifier>Key</span><span class=special>,&amp;</span><span class=identifier>Element</span><span class=special>::</span><span class=identifier>first</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>multimap</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>,</span><span class=identifier>T</span><span class=special>&gt;</span> <span class=special>-&gt;</span>
+  <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+    <span class=identifier>Element</span><span class=special>,
+    </span><span class=identifier>indexed_by</span><span class=special>&lt;</span><span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>Element</span><span class=special>,</span><span class=identifier>Key</span><span class=special>,&amp;</span><span class=identifier>Element</span><span class=special>::</span><span class=identifier>first</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+
+(<span class=identifier>with</span> <span class=identifier>Element</span><span class=special>=</span><span class=identifier>mutable_pair</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>,</span><span class=identifier>T</span><span class=special>&gt;</span>)
+</pre></blockquote>
+
+<p>
+Unlike as with standard sets, the interface of these <code>multi_index_container</code>-emulated
+maps does not exactly conform to that of <code>std::map</code>s and
+<code>std::multimap</code>s. The most obvious difference is the lack of
+<code>operator []</code>, either in read or write mode; this, however, can be
+emulated with appropriate use of <code>find</code> and <code>insert</code>.
+</p>
+
+<p>
+These emulations of standard associative containers with <code>multi_index_container</code>
+are comparable to the original constructs in terms of space and time efficiency.
+See the <a href="../performance.html">performance section</a> for further details.
+</p>
+
+<h3><a name="emulate_std_list">Emulation of <code>std::list</code></a></h3>
+
+<p>
+Unlike the case of associative containers, emulating <code>std::list</code>
+in Boost.MultiIndex does not add any significant functionality, so the following
+is presented merely for completeness sake.
+</p>
+
+<p>
+Much as with standard maps, the main difficulty to overcome when emulating
+<code>std::list</code> derives from the constant nature of elements of a
+<code>multi_index_container</code>. Again, some sort of adaption class is needed, like
+for instance the following:
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span> <span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>mutable_value</span>
+<span class=special>{</span>
+  <span class=identifier>mutable_value</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>T</span><span class=special>&amp;</span> <span class=identifier>t</span><span class=special>):</span><span class=identifier>t</span><span class=special>(</span><span class=identifier>t</span><span class=special>){}</span>
+  <span class=keyword>operator</span> <span class=identifier>T</span><span class=special>&amp;()</span><span class=keyword>const</span><span class=special>{</span><span class=keyword>return</span> <span class=identifier>t</span><span class=special>;}</span>
+
+<span class=keyword>private</span><span class=special>:</span>
+  <span class=keyword>mutable</span> <span class=identifier>T</span> <span class=identifier>t</span><span class=special>;</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+which allows us to use the substitution rule:
+</p>
+
+<blockquote><pre>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>list</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>,</span><span class=identifier>Allocator</span><span class=special>&gt;</span> <span class=special>-&gt;</span>
+  <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+    <span class=identifier>Element</span><span class=special>,</span>
+    <span class=identifier>indexed_by</span><span class=special>&lt;</span><span class=identifier>sequenced</span><span class=special>&lt;&gt;</span> <span class=special>&gt;,</span>
+    <span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>::</span><span class=keyword>template</span> <span class=identifier>rebind</span><span class=special>&lt;</span><span class=identifier>Element</span><span class=special>&gt;::</span><span class=identifier>other</span>
+  <span class=special>&gt;</span>
+
+(<span class=identifier>with</span> <span class=identifier>Element</span><span class=special>=</span><span class=identifier>mutable_value</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>&gt;</span>)
+</pre></blockquote>
+
+<p>
+or, if the default value <code>Allocator=std::allocator&lt;T></code> is used:
+</p>
+
+<blockquote><pre>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>list</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>&gt;</span> <span class=special>-&gt;</span>
+  <span class=identifier>multi_index_container</span><span class=special>&lt;</span><span class=identifier>mutable_value</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>&gt;,</span><span class=identifier>indexed_by</span><span class=special>&lt;</span><span class=identifier>sequenced</span><span class=special>&lt;&gt;</span> <span class=special>&gt;</span> <span class=special>&gt;</span>
+</pre></blockquote>
+
+<h2><a name="metaprogrammming">Metaprogramming and <code>multi_index_container</code></a></h2>
+
+<p>
+Boost.MultiIndex provides a number of facilities intended to allow the analysis and
+synthesis of <code>multi_index_container</code> instantiations by
+<a href="../../../../libs/mpl/doc/index.html">MPL</a> metaprograms.
+</p>
+
+<h3><a name="mpl_analysis">MPL analysis</a></h3>
+
+<p>
+Given a <code>multi_index_container</code> instantiation, the following nested types are
+provided for compile-time inspection of the various types occurring in the
+definition of the <code>multi_index_container</code>:
+<ul>
+  <li><code>index_specifier_type_list</code>,</li>
+  <li><code>index_type_list</code>,</li>
+  <li><code>iterator_type_list</code>,</li>
+  <li><code>const_iterator_type_list</code>.</li>
+</ul>
+Each of these types is an MPL sequence with as many elements as indices
+comprise the <code>multi_index_container</code>: for instance, the <code>n</code>-th
+element of <code>iterator_type_list</code> is the same as
+<code>nth_index&lt;n>::type::iterator</code>.
+</p>
+
+<p>
+A subtle but important distinction exists between
+<code>index_specifier_type_list</code> and <code>index_type_list</code>:
+the former typelist holds the index <i>specifiers</i>
+with which the <code>multi_index_container</code> instantiation was defined,
+while the latter gives access to the actual implementation classes
+corresponding to each specifier. An example will help to clarify
+this distinction. Given the instantiation:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>sequenced</span><span class=special>&lt;&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>indexed_t</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+<code>indexed_t::index_specifier_type_list</code> is a type list with
+elements
+</p>
+
+<blockquote><pre>
+<span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+<span class=identifier>sequenced</span><span class=special>&lt;&gt;</span>
+</pre></blockquote>
+
+<p>
+while <code>indexed_t::index_type_list</code> holds the types
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>::</span><span class=identifier>nth_type</span><span class=special>&lt;</span><span class=number>0</span><span class=special>&gt;::</span><span class=identifier>type</span>
+<span class=identifier>multi_index_container</span><span class=special>::</span><span class=identifier>nth_type</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;::</span><span class=identifier>type</span>
+</pre></blockquote>
+
+<p>
+so the typelists are radically different. Check the
+<a href="../reference/multi_index_container.html#types">reference</a>
+for the exact MPL sequence concepts modeled by these type lists.
+</p>
+
+<h3><a name="mpl_synthesis">MPL synthesis</a></h3>
+
+<p>
+Although typically indices are specified by means of the
+<code>indexed_by</code> construct, actually any MPL sequence of
+index specifiers can be provided instead:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>mpl</span><span class=special>::</span><span class=identifier>vector</span><span class=special>&lt;</span><span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span><span class=identifier>sequenced</span><span class=special>&lt;&gt;</span> <span class=special>&gt;</span> <span class=identifier>index_list_t</span><span class=special>;</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>index_list_t</span>
+<span class=special>&gt;</span> <span class=identifier>indexed_t</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+This possibility enables the synthesis of instantiations of
+<code>multi_index_container</code> through MPL metaprograms, as the following
+example shows:
+</p>
+
+<blockquote><pre>
+<span class=comment>// original multi_index_container instantiation</span>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>                                <span class=identifier>indexed_t1</span><span class=special>;</span>
+
+<span class=comment>// we take its index list and add an index</span>
+<span class=keyword>typedef</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>push_front</span><span class=special>&lt;</span>
+  <span class=identifier>indexed_t1</span><span class=special>::</span><span class=identifier>index_specifier_type_list</span><span class=special>,</span>
+  <span class=identifier>sequenced</span><span class=special>&lt;&gt;</span>
+<span class=special>&gt;::</span><span class=identifier>type</span>                          <span class=identifier>index_list_t</span><span class=special>;</span>
+
+<span class=comment>// augmented multi_index_container</span>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>index_list_t</span>
+<span class=special>&gt;</span>                                <span class=identifier>indexed_t2</span><span class=special>;</span>
+</pre></blockquote>
+
+<hr>
+
+<div class="prev_link"><a href="debug.html"><img src="../prev.gif" alt="debugging support" border="0"><br>
+Debugging support
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="next_link"><a href="../reference/index.html"><img src="../next.gif" alt="Boost.MultiIndex reference" border="0"><br>
+Boost.MultiIndex reference
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised November 7th 2008</p>
+
+<p>&copy; Copyright 2003-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

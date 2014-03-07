@@ -1,0 +1,720 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>User's Guide</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../ratio.html" title="Chapter&#160;25.&#160;Boost.Ratio 2.0.0">
+<link rel="prev" href="../ratio.html" title="Chapter&#160;25.&#160;Boost.Ratio 2.0.0">
+<link rel="next" href="reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../ratio.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ratio.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="ratio.users_guide"></a><a class="link" href="users_guide.html" title="User's Guide">User's Guide</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="users_guide.html#ratio.users_guide.getting_started">Getting Started</a></span></dt>
+<dt><span class="section"><a href="users_guide.html#ratio.users_guide.tutorial">Tutorial</a></span></dt>
+<dt><span class="section"><a href="users_guide.html#ratio.users_guide.Examples">Example</a></span></dt>
+<dt><span class="section"><a href="users_guide.html#ratio.users_guide.ext_references">External Resources</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="ratio.users_guide.getting_started"></a><a class="link" href="users_guide.html#ratio.users_guide.getting_started" title="Getting Started">Getting Started</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="users_guide.html#ratio.users_guide.getting_started.install">Installing
+        Ratio</a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="ratio.users_guide.getting_started.install"></a><a class="link" href="users_guide.html#ratio.users_guide.getting_started.install" title="Installing Ratio">Installing
+        Ratio</a>
+</h4></div></div></div>
+<h6>
+<a name="ratio.users_guide.getting_started.install.h0"></a>
+          <span class="phrase"><a name="ratio.users_guide.getting_started.install.getting_boost_ratio_"></a></span><a class="link" href="users_guide.html#ratio.users_guide.getting_started.install.getting_boost_ratio_">Getting
+          Boost.Ratio </a>
+        </h6>
+<p>
+          Boost.Ratio is in the latest Boost release in the folder <code class="computeroutput"><span class="special">/</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">ratio</span></code>.
+          Documentation, tests and examples folder are at <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">libs</span><span class="special">/</span><span class="identifier">ratio</span><span class="special">/</span></code>.
+        </p>
+<p>
+          You can also access the latest (unstable?) state from the <a href="http://svn.boost.org/svn/boost/trunk" target="_top">Boost
+          trunk</a> directories <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">ratio</span></code>
+          and <code class="computeroutput"><span class="identifier">libs</span><span class="special">/</span><span class="identifier">ratio</span></code>.
+        </p>
+<p>
+          Just go to <a href="http://svn.boost.org/trac/boost/wiki/BoostSubversion" target="_top">the
+          wiki</a> and follow the instructions there for anonymous SVN access.
+        </p>
+<h6>
+<a name="ratio.users_guide.getting_started.install.h1"></a>
+          <span class="phrase"><a name="ratio.users_guide.getting_started.install.where_to_install_boost_ratio__"></a></span><a class="link" href="users_guide.html#ratio.users_guide.getting_started.install.where_to_install_boost_ratio__">Where
+          to install Boost.Ratio? </a>
+        </h6>
+<p>
+          The simple way is to decompress (or checkout from SVN) the files in your
+          BOOST_ROOT directory.
+        </p>
+<h6>
+<a name="ratio.users_guide.getting_started.install.h2"></a>
+          <span class="phrase"><a name="ratio.users_guide.getting_started.install.building_boost_ratio_"></a></span><a class="link" href="users_guide.html#ratio.users_guide.getting_started.install.building_boost_ratio_">Building
+          Boost.Ratio </a>
+        </h6>
+<p>
+          <span class="bold"><strong>Boost.Ratio</strong></span> is a header only library,
+          so no need to compile anything, you just need to <code class="computeroutput"><span class="identifier">include</span>
+          <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">ratio</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>.
+        </p>
+<h6>
+<a name="ratio.users_guide.getting_started.install.h3"></a>
+          <span class="phrase"><a name="ratio.users_guide.getting_started.install.requirements"></a></span><a class="link" href="users_guide.html#ratio.users_guide.getting_started.install.requirements">Requirements</a>
+        </h6>
+<p>
+          <span class="bold"><strong>Boost.Ratio</strong></span> depends on some Boost libraries.
+          For these specific parts you must use either Boost version 1.39.0 or later
+          (even older versions may work).
+        </p>
+<p>
+          In particular, <span class="bold"><strong>Boost.Ratio</strong></span> depends on:
+        </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><a href="http://www.boost.org/libs/config" target="_top"><span class="bold"><strong>Boost.Config</strong></span></a></span></dt>
+<dd><p>
+                for configuration purposes, ...
+              </p></dd>
+<dt><span class="term"><a href="http://www.boost.org/libs/integer" target="_top"><span class="bold"><strong>Boost.Integer</strong></span></a></span></dt>
+<dd><p>
+                for cstdint conformance, and integer traits ...
+              </p></dd>
+<dt><span class="term"><a href="http://www.boost.org/libs/mpl" target="_top"><span class="bold"><strong>Boost.MPL</strong></span></a></span></dt>
+<dd><p>
+                for MPL Assert and bool, logical ...
+              </p></dd>
+<dt><span class="term"><a href="http://www.boost.org/libs/static_assert" target="_top"><span class="bold"><strong>Boost.StaticAssert</strong></span></a></span></dt>
+<dd><p>
+                for STATIC_ASSERT, ...
+              </p></dd>
+<dt><span class="term"><a href="http://www.boost.org/libs/type_traits" target="_top"><span class="bold"><strong>Boost.TypeTraits</strong></span></a></span></dt>
+<dd><p>
+                for is_base, is_convertible ...
+              </p></dd>
+<dt><span class="term"><a href="http://www.boost.org/libs/utility" target="_top"><span class="bold"><strong>Boost.Utility/EnableIf</strong></span></a></span></dt>
+<dd><p>
+                for enable_if, ...
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="ratio.users_guide.getting_started.install.h4"></a>
+          <span class="phrase"><a name="ratio.users_guide.getting_started.install.building_an_executable_that_uses__emphasis_role__bold__boost_ratio__emphasis__"></a></span><a class="link" href="users_guide.html#ratio.users_guide.getting_started.install.building_an_executable_that_uses__emphasis_role__bold__boost_ratio__emphasis__">Building
+          an executable that uses <span class="bold"><strong>Boost.Ratio</strong></span> </a>
+        </h6>
+<p>
+          No link is needed.
+        </p>
+<h6>
+<a name="ratio.users_guide.getting_started.install.h5"></a>
+          <span class="phrase"><a name="ratio.users_guide.getting_started.install.exception_safety_"></a></span><a class="link" href="users_guide.html#ratio.users_guide.getting_started.install.exception_safety_">Exception
+          safety </a>
+        </h6>
+<p>
+          All functions in the library are exception-neutral, providing the strong
+          exception safety guarantee.
+        </p>
+<h6>
+<a name="ratio.users_guide.getting_started.install.h6"></a>
+          <span class="phrase"><a name="ratio.users_guide.getting_started.install.thread_safety_"></a></span><a class="link" href="users_guide.html#ratio.users_guide.getting_started.install.thread_safety_">Thread
+          safety </a>
+        </h6>
+<p>
+          All functions in the library are thread-unsafe except when noted explicitly.
+        </p>
+<h6>
+<a name="ratio.users_guide.getting_started.install.h7"></a>
+          <span class="phrase"><a name="ratio.users_guide.getting_started.install.tested_compilers_"></a></span><a class="link" href="users_guide.html#ratio.users_guide.getting_started.install.tested_compilers_">Tested
+          compilers </a>
+        </h6>
+<p>
+          <span class="bold"><strong>Boost.Ratio</strong></span> should work with an C++03
+          conforming compiler. The current version has been tested on:
+        </p>
+<p>
+          Windows with
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              MSVC 10.0
+            </li>
+<li class="listitem">
+              MSVC 9.0 Express
+            </li>
+<li class="listitem">
+              MSVC 8.0
+            </li>
+</ul></div>
+<p>
+          Cygwin 1.5 with
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              GCC 3.4.4
+            </li></ul></div>
+<p>
+          Cygwin 1.7 with
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              GCC 4.3.4
+            </li></ul></div>
+<p>
+          MinGW with
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              GCC 4.4.0
+            </li>
+<li class="listitem">
+              GCC 4.5.0
+            </li>
+<li class="listitem">
+              GCC 4.5.0 -std=c++0x
+            </li>
+<li class="listitem">
+              GCC 4.6.0
+            </li>
+<li class="listitem">
+              GCC 4.6.0 -std=c++0x
+            </li>
+</ul></div>
+<p>
+          Ubuntu 10.10
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              GCC 4.4.5
+            </li>
+<li class="listitem">
+              GCC 4.4.5 -std=c++0x
+            </li>
+<li class="listitem">
+              GCC 4.5.1
+            </li>
+<li class="listitem">
+              GCC 4.5.1 -std=c++0x
+            </li>
+<li class="listitem">
+              clang 2.8
+            </li>
+</ul></div>
+<p>
+          Initial versions were tested on:
+        </p>
+<p>
+          MacOS with GCC 4.2.4
+        </p>
+<p>
+          Ubuntu Linux with GCC 4.2.4
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Please let us know how this works on other platforms/compilers.
+          </p></td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Please send any questions, comments and bug reports to boost &lt;at&gt;
+            lists &lt;dot&gt; boost &lt;dot&gt; org.
+          </p></td></tr>
+</table></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="ratio.users_guide.tutorial"></a><a class="link" href="users_guide.html#ratio.users_guide.tutorial" title="Tutorial">Tutorial</a>
+</h3></div></div></div>
+<h5>
+<a name="ratio.users_guide.tutorial.h0"></a>
+        <span class="phrase"><a name="ratio.users_guide.tutorial.ratio"></a></span><a class="link" href="users_guide.html#ratio.users_guide.tutorial.ratio">Ratio</a>
+      </h5>
+<p>
+        <a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a>
+        is a general purpose utility inspired by Walter Brown allowing one to easily
+        and safely compute rational values at compile-time. The <a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a> class catches all errors (such
+        as divide by zero and overflow) at compile time. It is used in the duration
+        and <code class="computeroutput"><span class="identifier">time_point</span></code> classes to
+        efficiently create units of time. It can also be used in other "quantity"
+        libraries or anywhere there is a rational constant which is known at compile-time.
+        The use of this utility can greatly reduce the chances of run-time overflow
+        because the <a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a> (and any ratios resulting
+        from <a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a>
+        arithmetic) are always reduced to the lowest terms.
+      </p>
+<p>
+        <a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a>
+        is a template taking two <code class="computeroutput"><span class="identifier">intmax_ts</span></code>,
+        with the second defaulted to 1. In addition to copy constructors and assignment,
+        it only has two public members, both of which are <code class="computeroutput"><span class="keyword">static</span>
+        <span class="keyword">const</span> <span class="identifier">intmax_t</span></code>.
+        One is the numerator of the <a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a> and the other is the denominator.
+        The <a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a>
+        is always normalized such that it is expressed in lowest terms, and the denominator
+        is always positive. When the numerator is 0, the denominator is always 1.
+      </p>
+<p>
+        <span class="bold"><strong>Example:</strong></span>
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">5</span><span class="special">,</span> <span class="number">3</span><span class="special">&gt;</span>   <span class="identifier">five_thirds</span><span class="special">;</span>
+<span class="comment">// five_thirds::num == 5, five_thirds::den == 3</span>
+
+<span class="keyword">typedef</span> <a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">25</span><span class="special">,</span> <span class="number">15</span><span class="special">&gt;</span> <span class="identifier">also_five_thirds</span><span class="special">;</span>
+<span class="comment">// also_five_thirds::num == 5, also_five_thirds::den == 3</span>
+
+<span class="keyword">typedef</span> <span class="identifier">ratio_divide</span><span class="special">&lt;</span><span class="identifier">five_thirds</span><span class="special">,</span> <span class="identifier">also_five_thirds</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">one</span><span class="special">;</span>
+<span class="comment">// one::num == 1, one::den == 1</span>
+</pre>
+<p>
+        This facility also includes convenience typedefs for the SI prefixes <a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio_si_typedefs" title="SI typedefs"><code class="computeroutput"><span class="identifier">atto</span></code></a>
+        through <a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio_si_typedefs" title="SI typedefs"><code class="computeroutput"><span class="identifier">exa</span></code></a> corresponding to their internationally
+        recognized definitions (in terms of <a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a>). This is a tremendous syntactic
+        convenience. It will prevent errors in specifying constants as one no longer
+        has to double count the number of zeros when trying to write millions or
+        billions.
+      </p>
+<p>
+        <span class="bold"><strong>Example:</strong></span>
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">ratio_multiply</span><span class="special">&lt;</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">5</span><span class="special">&gt;,</span> <span class="identifier">giga</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">_5giga</span><span class="special">;</span>
+<span class="comment">// _5giga::num == 5000000000, _5giga::den == 1</span>
+
+<span class="keyword">typedef</span> <span class="identifier">ratio_multiply</span><span class="special">&lt;</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">5</span><span class="special">&gt;,</span> <span class="identifier">nano</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">_5nano</span><span class="special">;</span>
+<span class="comment">// _5nano::num == 1, _5nano::den == 200000000</span>
+</pre>
+<h5>
+<a name="ratio.users_guide.tutorial.h1"></a>
+        <span class="phrase"><a name="ratio.users_guide.tutorial.ratio_i_o"></a></span><a class="link" href="users_guide.html#ratio.users_guide.tutorial.ratio_i_o">Ratio
+        I/O</a>
+      </h5>
+<p>
+        For each <code class="computeroutput"><span class="identifier">ratio</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">,</span> <span class="identifier">D</span><span class="special">&gt;</span></code> there exists a <code class="computeroutput"><span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">ratio</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">,</span>
+        <span class="identifier">D</span><span class="special">&gt;,</span>
+        <span class="identifier">CharT</span><span class="special">&gt;</span></code>
+        for which you can query two strings: <code class="computeroutput"><span class="identifier">symbol</span></code>
+        and <code class="computeroutput"><span class="identifier">prefix</span></code>. For those <code class="computeroutput"><span class="identifier">ratio</span></code>'s that correspond to an <a href="http://en.wikipedia.org/wiki/SI_prefix#List_of_SI_prefixes" target="_top">SI
+        prefix</a> prefix corresponds to the internationally recognized prefix,
+        stored as a <code class="computeroutput"><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">&gt;</span></code>. For example <code class="computeroutput"><span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">mega</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">prefix</span><span class="special">()</span></code>
+        returns <code class="computeroutput"><span class="identifier">string</span><span class="special">(</span><span class="string">"mega"</span><span class="special">)</span></code>.
+        For those <code class="computeroutput"><span class="identifier">ratio</span></code>s that correspond
+        to an <a href="http://en.wikipedia.org/wiki/SI_prefix#List_of_SI_prefixes" target="_top">SI
+        prefix</a> <code class="computeroutput"><span class="identifier">symbol</span></code> corresponds
+        to the internationally recognized symbol, stored as a <code class="computeroutput"><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">&gt;</span></code>. For example, <code class="computeroutput"><span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">mega</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">symbol</span><span class="special">()</span></code>
+        returns <code class="computeroutput"><span class="identifier">string</span><span class="special">(</span><span class="string">"M"</span><span class="special">)</span></code>.
+        For all other <code class="computeroutput"><span class="identifier">ratio</span></code>s, both
+        <code class="computeroutput"><span class="identifier">prefix</span><span class="special">()</span></code>
+        and <code class="computeroutput"><span class="identifier">symbol</span><span class="special">()</span></code>
+        return a <code class="computeroutput"><span class="identifier">basic_string</span></code> containing
+        "[<code class="computeroutput"><span class="identifier">ratio</span><span class="special">::</span><span class="identifier">num</span><span class="special">/</span><span class="identifier">ratio</span><span class="special">::</span><span class="identifier">den</span></code>]".
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">ratio</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">,</span> <span class="identifier">D</span><span class="special">&gt;,</span> <span class="identifier">CharT</span><span class="special">&gt;</span></code> is only defined for four character types:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <code class="computeroutput"><span class="keyword">char</span></code>: UTF-8
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="keyword">char16_t</span></code>: UTF-16
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="keyword">char32_t</span></code>: UTF-32
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="keyword">wchar_t</span></code>: UTF-16 (if wchar_t
+            is 16 bits) or UTF-32
+          </li>
+</ul></div>
+<p>
+        When the character is char, UTF-8 will be used to encode the names. When
+        the character is <code class="computeroutput"><span class="keyword">char16_t</span></code>, UTF-16
+        will be used to encode the names. When the character is <code class="computeroutput"><span class="keyword">char32_t</span></code>,
+        UTF-32 will be used to encode the names. When the character is <code class="computeroutput"><span class="keyword">wchar_t</span></code>, the encoding will be UTF-16 if <code class="computeroutput"><span class="keyword">wchar_t</span></code> is 16 bits, and otherwise UTF-32.
+      </p>
+<p>
+        The <code class="computeroutput"><span class="identifier">symbol</span></code> (Greek mu or &#956;)
+        for micro is defined by <a href="http://www.unicode.org/charts/PDF/U0080.pdf" target="_top">Unicode</a>
+        to be U+00B5.
+      </p>
+<p>
+        <span class="bold"><strong>Examples:</strong></span>
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">ratio</span><span class="special">/</span><span class="identifier">ratio_io</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">;</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"ratio_string&lt;deca, char&gt;::prefix() = "</span>
+         <span class="special">&lt;&lt;</span>  <span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">deca</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">prefix</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"ratio_string&lt;deca, char&gt;::symbol() = "</span>
+         <span class="special">&lt;&lt;</span>  <span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">deca</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">symbol</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"ratio_string&lt;giga, char&gt;::prefix() = "</span>
+         <span class="special">&lt;&lt;</span>  <span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">giga</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">prefix</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"ratio_string&lt;giga, char&gt;::symbol() = "</span>
+         <span class="special">&lt;&lt;</span>  <span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">giga</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">symbol</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"ratio_string&lt;ratio&lt;4, 6&gt;, char&gt;::prefix() = "</span>
+         <span class="special">&lt;&lt;</span>  <span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">ratio</span><span class="special">&lt;</span><span class="number">4</span><span class="special">,</span> <span class="number">6</span><span class="special">&gt;,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">prefix</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"ratio_string&lt;ratio&lt;4, 6&gt;, char&gt;::symbol() = "</span>
+         <span class="special">&lt;&lt;</span>  <span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">ratio</span><span class="special">&lt;</span><span class="number">4</span><span class="special">,</span> <span class="number">6</span><span class="special">&gt;,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">symbol</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        The output will be
+      </p>
+<pre class="programlisting"><span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">deca</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">prefix</span><span class="special">()</span> <span class="special">=</span> <span class="identifier">deca</span>
+<span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">deca</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">symbol</span><span class="special">()</span> <span class="special">=</span> <span class="identifier">da</span>
+<span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">giga</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">prefix</span><span class="special">()</span> <span class="special">=</span> <span class="identifier">giga</span>
+<span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">giga</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">symbol</span><span class="special">()</span> <span class="special">=</span> <span class="identifier">G</span>
+<span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">ratio</span><span class="special">&lt;</span><span class="number">4</span><span class="special">,</span> <span class="number">6</span><span class="special">&gt;,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">prefix</span><span class="special">()</span> <span class="special">=</span> <span class="special">[</span><span class="number">2</span><span class="special">/</span><span class="number">3</span><span class="special">]</span>
+<span class="identifier">ratio_string</span><span class="special">&lt;</span><span class="identifier">ratio</span><span class="special">&lt;</span><span class="number">4</span><span class="special">,</span> <span class="number">6</span><span class="special">&gt;,</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">symbol</span><span class="special">()</span> <span class="special">=</span> <span class="special">[</span><span class="number">2</span><span class="special">/</span><span class="number">3</span><span class="special">]</span>
+</pre>
+<h5>
+<a name="ratio.users_guide.tutorial.h2"></a>
+        <span class="phrase"><a name="ratio.users_guide.tutorial.ratio_mpl_numeric_metafunctions"></a></span><a class="link" href="users_guide.html#ratio.users_guide.tutorial.ratio_mpl_numeric_metafunctions">Ratio
+        MPL Numeric Metafunctions</a>
+      </h5>
+<p>
+        With the view of the _ratio class as a <a class="link" href="reference.html#ratio.reference.mpl.rational_constant" title="Rational Constant Concept">Rational
+        Constant</a> we can mix _ratio&lt;&gt; and <span class="bold"><strong>Boost.MPL</strong></span>
+        Integral Constants in the same expression, as in
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">times</span><span class="special">&lt;</span><span class="identifier">int_</span><span class="special">&lt;</span><span class="number">5</span><span class="special">&gt;,</span> <span class="identifier">giga</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">_5giga</span><span class="special">;</span>
+<span class="comment">// _5giga::num == 5000000000, _5giga::den == 1</span>
+
+<span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">times</span><span class="special">&lt;</span><span class="identifier">int_</span><span class="special">&lt;</span><span class="number">5</span><span class="special">&gt;,</span> <span class="identifier">nano</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">_5nano</span><span class="special">;</span>
+<span class="comment">// _5nano::num == 1, _5nano::den == 200000000</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="ratio.users_guide.Examples"></a><a class="link" href="users_guide.html#ratio.users_guide.Examples" title="Example">Example</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="users_guide.html#ratio.users_guide.Examples.si_units">SI units</a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="ratio.users_guide.Examples.si_units"></a><a class="link" href="users_guide.html#ratio.users_guide.Examples.si_units" title="SI units">SI units</a>
+</h4></div></div></div>
+<p>
+          This example illustrates the use of type-safe physics code interoperating
+          with <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">chrono</span><span class="special">::</span><span class="identifier">duration</span></code> types, taking advantage of the
+          <span class="bold"><strong>Boost.Ratio</strong></span> infrastructure and design
+          philosophy.
+        </p>
+<p>
+          Let's start by defining a <code class="computeroutput"><span class="identifier">length</span></code>
+          class template that mimics <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">chrono</span><span class="special">::</span><span class="identifier">duration</span></code>,
+          which represents a time duration in various units, but restricts the representation
+          to <code class="computeroutput"><span class="keyword">double</span></code> and uses <span class="bold"><strong>Boost.Ratio</strong></span> for length unit conversions:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Ratio</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">length</span> <span class="special">{</span>
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="keyword">double</span> <span class="identifier">len_</span><span class="special">;</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">typedef</span> <span class="identifier">Ratio</span> <span class="identifier">ratio</span><span class="special">;</span>
+    <span class="identifier">length</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">len_</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">{}</span>
+    <span class="identifier">length</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">double</span><span class="special">&amp;</span> <span class="identifier">len</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">len_</span><span class="special">(</span><span class="identifier">len</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">R</span><span class="special">&gt;</span>
+    <span class="identifier">length</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">length</span><span class="special">&lt;</span><span class="identifier">R</span><span class="special">&gt;&amp;</span> <span class="identifier">d</span><span class="special">)</span>
+            <span class="special">:</span> <span class="identifier">len_</span><span class="special">(</span><span class="identifier">d</span><span class="special">.</span><span class="identifier">count</span><span class="special">()</span> <span class="special">*</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_divide</span><span class="special">&lt;</span><span class="identifier">Ratio</span><span class="special">,</span> <span class="identifier">R</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">::</span><span class="identifier">den</span> <span class="special">/</span>
+                               <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_divide</span><span class="special">&lt;</span><span class="identifier">Ratio</span><span class="special">,</span> <span class="identifier">R</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">::</span><span class="identifier">num</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">double</span> <span class="identifier">count</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">len_</span><span class="special">;}</span>
+
+    <span class="identifier">length</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">+=(</span><span class="keyword">const</span> <span class="identifier">length</span><span class="special">&amp;</span> <span class="identifier">d</span><span class="special">)</span> <span class="special">{</span><span class="identifier">len_</span> <span class="special">+=</span> <span class="identifier">d</span><span class="special">.</span><span class="identifier">count</span><span class="special">();</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+    <span class="identifier">length</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">-=(</span><span class="keyword">const</span> <span class="identifier">length</span><span class="special">&amp;</span> <span class="identifier">d</span><span class="special">)</span> <span class="special">{</span><span class="identifier">len_</span> <span class="special">-=</span> <span class="identifier">d</span><span class="special">.</span><span class="identifier">count</span><span class="special">();</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+
+    <span class="identifier">length</span> <span class="keyword">operator</span><span class="special">+()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+    <span class="identifier">length</span> <span class="keyword">operator</span><span class="special">-()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">length</span><span class="special">(-</span><span class="identifier">len_</span><span class="special">);}</span>
+
+    <span class="identifier">length</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">*=(</span><span class="keyword">double</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span><span class="identifier">len_</span> <span class="special">*=</span> <span class="identifier">rhs</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+    <span class="identifier">length</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">/=(</span><span class="keyword">double</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span><span class="identifier">len_</span> <span class="special">/=</span> <span class="identifier">rhs</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+<span class="special">};</span>
+</pre>
+<p>
+          Here's a small sampling of length units:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">length</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span> <span class="special">&gt;</span>          <span class="identifier">meter</span><span class="special">;</span>        <span class="comment">// set meter as "unity"</span>
+<span class="keyword">typedef</span> <span class="identifier">length</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio_si_typedefs" title="SI typedefs"><code class="computeroutput"><span class="identifier">centi</span></code></a><span class="special">&gt;</span>              <span class="identifier">centimeter</span><span class="special">;</span>   <span class="comment">// 1/100 meter</span>
+<span class="keyword">typedef</span> <span class="identifier">length</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio_si_typedefs" title="SI typedefs"><code class="computeroutput"><span class="identifier">kilo</span></code></a><span class="special">&gt;</span>               <span class="identifier">kilometer</span><span class="special">;</span>    <span class="comment">// 1000  meters</span>
+<span class="keyword">typedef</span> <span class="identifier">length</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">254</span><span class="special">,</span> <span class="number">10000</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">inch</span><span class="special">;</span>         <span class="comment">// 254/10000 meters</span>
+</pre>
+<p>
+          Note that since <code class="computeroutput"><span class="identifier">length</span></code>'s
+          template parameter is actually a generic ratio type, so we can use boost::ratio
+          allowing for more complex length units:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">length</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_multiply</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">12</span><span class="special">&gt;,</span> <span class="identifier">inch</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;</span>   <span class="identifier">foot</span><span class="special">;</span>  <span class="comment">// 12 inchs</span>
+<span class="keyword">typedef</span> <span class="identifier">length</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_multiply</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">5280</span><span class="special">&gt;,</span> <span class="identifier">foot</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;</span> <span class="identifier">mile</span><span class="special">;</span>  <span class="comment">// 5280 feet</span>
+</pre>
+<p>
+          Now we need a floating point-based definition of seconds:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">chrono</span><span class="special">::</span><span class="identifier">duration</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">seconds</span><span class="special">;</span>                         <span class="comment">// unity</span>
+</pre>
+<p>
+          We can even support sub-nanosecond durations:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">chrono</span><span class="special">::</span><span class="identifier">duration</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span>  <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio_si_typedefs" title="SI typedefs"><code class="computeroutput"><span class="identifier">pico</span></code></a><span class="special">&gt;</span> <span class="identifier">picosecond</span><span class="special">;</span>  <span class="comment">// 10^-12 seconds</span>
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">chrono</span><span class="special">::</span><span class="identifier">duration</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio_si_typedefs" title="SI typedefs"><code class="computeroutput"><span class="identifier">femto</span></code></a><span class="special">&gt;</span> <span class="identifier">femtosecond</span><span class="special">;</span> <span class="comment">// 10^-15 seconds</span>
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">chrono</span><span class="special">::</span><span class="identifier">duration</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span>  <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio_si_typedefs" title="SI typedefs"><code class="computeroutput"><span class="identifier">atto</span></code></a><span class="special">&gt;</span> <span class="identifier">attosecond</span><span class="special">;</span>  <span class="comment">// 10^-18 seconds</span>
+</pre>
+<p>
+          Finally, we can write a proof-of-concept of an SI units library, hard-wired
+          for meters and floating point seconds, though it will accept other units:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">R1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">R2</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">quantity</span>
+<span class="special">{</span>
+    <span class="keyword">double</span> <span class="identifier">q_</span><span class="special">;</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">typedef</span> <span class="identifier">R1</span> <span class="identifier">time_dim</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">R2</span> <span class="identifier">distance_dim</span><span class="special">;</span>
+    <span class="identifier">quantity</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">q_</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">double</span> <span class="identifier">get</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">q_</span><span class="special">;}</span>
+    <span class="keyword">void</span> <span class="identifier">set</span><span class="special">(</span><span class="keyword">double</span> <span class="identifier">q</span><span class="special">)</span> <span class="special">{</span><span class="identifier">q_</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">;}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">class</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;,</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">double</span> <span class="identifier">q_</span><span class="special">;</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">quantity</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">q_</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">{}</span>
+    <span class="identifier">quantity</span><span class="special">(</span><span class="identifier">seconds</span> <span class="identifier">d</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">q_</span><span class="special">(</span><span class="identifier">d</span><span class="special">.</span><span class="identifier">count</span><span class="special">())</span> <span class="special">{}</span>  <span class="comment">// note:  only User1::seconds needed here</span>
+
+    <span class="keyword">double</span> <span class="identifier">get</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">q_</span><span class="special">;}</span>
+    <span class="keyword">void</span> <span class="identifier">set</span><span class="special">(</span><span class="keyword">double</span> <span class="identifier">q</span><span class="special">)</span> <span class="special">{</span><span class="identifier">q_</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">;}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">class</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;,</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">double</span> <span class="identifier">q_</span><span class="special">;</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">quantity</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">q_</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">{}</span>
+    <span class="identifier">quantity</span><span class="special">(</span><span class="identifier">meter</span> <span class="identifier">d</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">q_</span><span class="special">(</span><span class="identifier">d</span><span class="special">.</span><span class="identifier">count</span><span class="special">())</span> <span class="special">{}</span>  <span class="comment">// note:  only User1::meter needed here</span>
+
+    <span class="keyword">double</span> <span class="identifier">get</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">q_</span><span class="special">;}</span>
+    <span class="keyword">void</span> <span class="identifier">set</span><span class="special">(</span><span class="keyword">double</span> <span class="identifier">q</span><span class="special">)</span> <span class="special">{</span><span class="identifier">q_</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">;}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">class</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;,</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">double</span> <span class="identifier">q_</span><span class="special">;</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">quantity</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">q_</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">{}</span>
+    <span class="identifier">quantity</span><span class="special">(</span><span class="keyword">double</span> <span class="identifier">d</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">q_</span><span class="special">(</span><span class="identifier">d</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">double</span> <span class="identifier">get</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">q_</span><span class="special">;}</span>
+    <span class="keyword">void</span> <span class="identifier">set</span><span class="special">(</span><span class="keyword">double</span> <span class="identifier">q</span><span class="special">)</span> <span class="special">{</span><span class="identifier">q_</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">;}</span>
+<span class="special">};</span>
+</pre>
+<p>
+          That allows us to create some useful SI-based unit types:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;,</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;</span>  <span class="identifier">Scalar</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;,</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;</span>  <span class="identifier">Time</span><span class="special">;</span>         <span class="comment">// second</span>
+<span class="keyword">typedef</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;,</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span> <span class="special">&gt;</span>  <span class="identifier">Distance</span><span class="special">;</span>     <span class="comment">// meter</span>
+<span class="keyword">typedef</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;-</span><span class="number">1</span><span class="special">&gt;,</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">Speed</span><span class="special">;</span>        <span class="comment">// meter/second</span>
+<span class="keyword">typedef</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;-</span><span class="number">2</span><span class="special">&gt;,</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">Acceleration</span><span class="special">;</span> <span class="comment">// meter/second^2</span>
+</pre>
+<p>
+          To make quantity useful, we need to be able to do arithmetic:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">R1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">R2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">R3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">R4</span><span class="special">&gt;</span>
+<span class="identifier">quantity</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_subtract</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R3</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+         <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_subtract</span><span class="special">&lt;</span><span class="identifier">R2</span><span class="special">,</span> <span class="identifier">R4</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;</span>
+<span class="keyword">operator</span><span class="special">/(</span><span class="keyword">const</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R2</span><span class="special">&gt;&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">R3</span><span class="special">,</span> <span class="identifier">R4</span><span class="special">&gt;&amp;</span> <span class="identifier">y</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_subtract</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R3</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+                    <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_subtract</span><span class="special">&lt;</span><span class="identifier">R2</span><span class="special">,</span> <span class="identifier">R4</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;</span> <span class="identifier">R</span><span class="special">;</span>
+    <span class="identifier">R</span> <span class="identifier">r</span><span class="special">;</span>
+    <span class="identifier">r</span><span class="special">.</span><span class="identifier">set</span><span class="special">(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">/</span> <span class="identifier">y</span><span class="special">.</span><span class="identifier">get</span><span class="special">());</span>
+    <span class="keyword">return</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">R1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">R2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">R3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">R4</span><span class="special">&gt;</span>
+<span class="identifier">quantity</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_add</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R3</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+         <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_add</span><span class="special">&lt;</span><span class="identifier">R2</span><span class="special">,</span> <span class="identifier">R4</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;</span>
+<span class="keyword">operator</span><span class="special">*(</span><span class="keyword">const</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R2</span><span class="special">&gt;&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">R3</span><span class="special">,</span> <span class="identifier">R4</span><span class="special">&gt;&amp;</span> <span class="identifier">y</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_add</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R3</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+                    <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_add</span><span class="special">&lt;</span><span class="identifier">R2</span><span class="special">,</span> <span class="identifier">R4</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;</span> <span class="identifier">R</span><span class="special">;</span>
+    <span class="identifier">R</span> <span class="identifier">r</span><span class="special">;</span>
+    <span class="identifier">r</span><span class="special">.</span><span class="identifier">set</span><span class="special">(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">*</span> <span class="identifier">y</span><span class="special">.</span><span class="identifier">get</span><span class="special">());</span>
+    <span class="keyword">return</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">R1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">R2</span><span class="special">&gt;</span>
+<span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R2</span><span class="special">&gt;</span>
+<span class="keyword">operator</span><span class="special">+(</span><span class="keyword">const</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R2</span><span class="special">&gt;&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R2</span><span class="special">&gt;&amp;</span> <span class="identifier">y</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R2</span><span class="special">&gt;</span> <span class="identifier">R</span><span class="special">;</span>
+    <span class="identifier">R</span> <span class="identifier">r</span><span class="special">;</span>
+    <span class="identifier">r</span><span class="special">.</span><span class="identifier">set</span><span class="special">(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">+</span> <span class="identifier">y</span><span class="special">.</span><span class="identifier">get</span><span class="special">());</span>
+    <span class="keyword">return</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">R1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">R2</span><span class="special">&gt;</span>
+<span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R2</span><span class="special">&gt;</span>
+<span class="keyword">operator</span><span class="special">-(</span><span class="keyword">const</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R2</span><span class="special">&gt;&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R2</span><span class="special">&gt;&amp;</span> <span class="identifier">y</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R2</span><span class="special">&gt;</span> <span class="identifier">R</span><span class="special">;</span>
+    <span class="identifier">R</span> <span class="identifier">r</span><span class="special">;</span>
+    <span class="identifier">r</span><span class="special">.</span><span class="identifier">set</span><span class="special">(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">-</span> <span class="identifier">y</span><span class="special">.</span><span class="identifier">get</span><span class="special">());</span>
+    <span class="keyword">return</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          With all of the foregoing scaffolding, we can now write an exemplar of
+          a type-safe physics function:
+        </p>
+<pre class="programlisting"><span class="identifier">Distance</span>
+<span class="identifier">compute_distance</span><span class="special">(</span><span class="identifier">Speed</span> <span class="identifier">v0</span><span class="special">,</span> <span class="identifier">Time</span> <span class="identifier">t</span><span class="special">,</span> <span class="identifier">Acceleration</span> <span class="identifier">a</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">v0</span> <span class="special">*</span> <span class="identifier">t</span> <span class="special">+</span> <span class="identifier">Scalar</span><span class="special">(.</span><span class="number">5</span><span class="special">)</span> <span class="special">*</span> <span class="identifier">a</span> <span class="special">*</span> <span class="identifier">t</span> <span class="special">*</span> <span class="identifier">t</span><span class="special">;</span>  <span class="comment">// if a units mistake is made here it won't compile</span>
+<span class="special">}</span>
+</pre>
+<p>
+          Finally, we can exercise what we've created, even using custom time durations
+          (<code class="computeroutput"><span class="identifier">User1</span><span class="special">::</span><span class="identifier">seconds</span></code>) as well as Boost time durations
+          (<code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">chrono</span><span class="special">::</span><span class="identifier">hours</span></code>). The input can be in arbitrary,
+          though type-safe, units, the output is always in SI units. (A complete
+          Units library would support other units, of course.)
+        </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">8</span><span class="special">,</span> <span class="identifier">BOOST_INTMAX_C</span><span class="special">(</span><span class="number">0</span><span class="identifier">x7FFFFFFFD</span><span class="special">)&gt;</span> <span class="identifier">R1</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">3</span><span class="special">,</span> <span class="identifier">BOOST_INTMAX_C</span><span class="special">(</span><span class="number">0</span><span class="identifier">x7FFFFFFFD</span><span class="special">)&gt;</span> <span class="identifier">R2</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_subtract</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;,</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+                             <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_subtract</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;,</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="special">&gt;</span> <span class="identifier">RR</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio_subtract</span><span class="special">&lt;</span><span class="identifier">R1</span><span class="special">,</span> <span class="identifier">R2</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">RS</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">RS</span><span class="special">::</span><span class="identifier">num</span> <span class="special">&lt;&lt;</span> <span class="char">'/'</span> <span class="special">&lt;&lt;</span> <span class="identifier">RS</span><span class="special">::</span><span class="identifier">den</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"*************\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"* testUser1 *\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"*************\n"</span><span class="special">;</span>
+    <span class="identifier">User1</span><span class="special">::</span><span class="identifier">Distance</span> <span class="identifier">d</span><span class="special">(</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">mile</span><span class="special">(</span><span class="number">110</span><span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">User1</span><span class="special">::</span><span class="identifier">Time</span> <span class="identifier">t</span><span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">chrono</span><span class="special">::</span><code class="computeroutput"><span class="identifier">hours</span></code><span class="special">(</span><span class="number">2</span><span class="special">)</span> <span class="special">);</span>
+
+    <span class="identifier">RR</span> <span class="identifier">r</span><span class="special">=</span><span class="identifier">d</span> <span class="special">/</span> <span class="identifier">t</span><span class="special">;</span>
+    <span class="comment">//r.set(d.get() / t.get());</span>
+
+    <span class="identifier">User1</span><span class="special">::</span><span class="identifier">Speed</span> <span class="identifier">rc</span><span class="special">=</span> <span class="identifier">r</span><span class="special">;</span>
+
+    <span class="identifier">User1</span><span class="special">::</span><span class="identifier">Speed</span> <span class="identifier">s</span> <span class="special">=</span> <span class="identifier">d</span> <span class="special">/</span> <span class="identifier">t</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Speed = "</span> <span class="special">&lt;&lt;</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" meters/sec\n"</span><span class="special">;</span>
+    <span class="identifier">User1</span><span class="special">::</span><span class="identifier">Acceleration</span> <span class="identifier">a</span> <span class="special">=</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">Distance</span><span class="special">(</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">foot</span><span class="special">(</span><span class="number">32.2</span><span class="special">)</span> <span class="special">)</span> <span class="special">/</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">Time</span><span class="special">()</span> <span class="special">/</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">Time</span><span class="special">();</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Acceleration = "</span> <span class="special">&lt;&lt;</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" meters/sec^2\n"</span><span class="special">;</span>
+    <span class="identifier">User1</span><span class="special">::</span><span class="identifier">Distance</span> <span class="identifier">df</span> <span class="special">=</span> <span class="identifier">compute_distance</span><span class="special">(</span><span class="identifier">s</span><span class="special">,</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">Time</span><span class="special">(</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">seconds</span><span class="special">(</span><span class="number">0.5</span><span class="special">)</span> <span class="special">),</span> <span class="identifier">a</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Distance = "</span> <span class="special">&lt;&lt;</span> <span class="identifier">df</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" meters\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"There are "</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">mile</span><span class="special">::</span><span class="identifier">ratio</span><span class="special">::</span><span class="identifier">den</span> <span class="special">&lt;&lt;</span> <span class="char">'/'</span> <span class="special">&lt;&lt;</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">mile</span><span class="special">::</span><span class="identifier">ratio</span><span class="special">::</span><span class="identifier">num</span> <span class="special">&lt;&lt;</span> <span class="string">" miles/meter"</span><span class="special">;</span>
+    <span class="identifier">User1</span><span class="special">::</span><span class="identifier">meter</span> <span class="identifier">mt</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+    <span class="identifier">User1</span><span class="special">::</span><span class="identifier">mile</span> <span class="identifier">mi</span> <span class="special">=</span> <span class="identifier">mt</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">" which is approximately "</span> <span class="special">&lt;&lt;</span> <span class="identifier">mi</span><span class="special">.</span><span class="identifier">count</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"There are "</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">mile</span><span class="special">::</span><span class="identifier">ratio</span><span class="special">::</span><span class="identifier">num</span> <span class="special">&lt;&lt;</span> <span class="char">'/'</span> <span class="special">&lt;&lt;</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">mile</span><span class="special">::</span><span class="identifier">ratio</span><span class="special">::</span><span class="identifier">den</span> <span class="special">&lt;&lt;</span> <span class="string">" meters/mile"</span><span class="special">;</span>
+    <span class="identifier">mi</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+    <span class="identifier">mt</span> <span class="special">=</span> <span class="identifier">mi</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">" which is approximately "</span> <span class="special">&lt;&lt;</span> <span class="identifier">mt</span><span class="special">.</span><span class="identifier">count</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+    <span class="identifier">User1</span><span class="special">::</span><span class="identifier">attosecond</span> <span class="identifier">as</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+    <span class="identifier">User1</span><span class="special">::</span><span class="identifier">seconds</span> <span class="identifier">sec</span> <span class="special">=</span> <span class="identifier">as</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"1 attosecond is "</span> <span class="special">&lt;&lt;</span> <span class="identifier">sec</span><span class="special">.</span><span class="identifier">count</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" seconds\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"sec = as;  // compiles\n"</span><span class="special">;</span>
+    <span class="identifier">sec</span> <span class="special">=</span> <span class="identifier">User1</span><span class="special">::</span><span class="identifier">seconds</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+    <span class="identifier">as</span> <span class="special">=</span> <span class="identifier">sec</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"1 second is "</span> <span class="special">&lt;&lt;</span> <span class="identifier">as</span><span class="special">.</span><span class="identifier">count</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" attoseconds\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"as = sec;  // compiles\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          <span class="emphasis"><em>See the source file <a href="../../../example/si_physics.cpp" target="_top">example/si_physics.cpp</a></em></span>
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="ratio.users_guide.ext_references"></a><a class="link" href="users_guide.html#ratio.users_guide.ext_references" title="External Resources">External Resources</a>
+</h3></div></div></div>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><a href="http://www.open-std.org/jtc1/sc22/wg21" target="_top"><span class="bold"><strong>C++
+          Standards Committee's current Working Paper</strong></span></a></span></dt>
+<dd><p>
+              The most authoritative reference material for the library is the C++
+              Standards Committee's current Working Paper (WP). 20.6 Compile-time
+              rational arithmetic "ratio"
+            </p></dd>
+<dt><span class="term"><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2661.htm" target="_top"><span class="bold"><strong>N2661 - A Foundation to Sleep On</strong></span></a></span></dt>
+<dd><p>
+              From Howard E. Hinnant, Walter E. Brown, Jeff Garland and Marc Paterno.
+              Is very informative and provides motivation for key design decisions
+            </p></dd>
+<dt><span class="term"><a href="http://lwg.github.com/issues/lwg-defects.html#1281" target="_top"><span class="bold"><strong>LWG 1281. CopyConstruction and Assignment between ratios having
+          the same normalized form</strong></span></a></span></dt>
+<dd><p>
+              From Vicente Juan Botet Escriba.
+            </p></dd>
+</dl>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Howard Hinnant<br>Copyright &#169; 2006, 2008 Beman Dawes<br>Copyright &#169; 2009-2012 Vicente
+      J. Botet Escriba<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../ratio.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ratio.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

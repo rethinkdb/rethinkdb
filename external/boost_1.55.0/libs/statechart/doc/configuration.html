@@ -1,0 +1,169 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+  <link rel="stylesheet" type="text/css" href="../../../boost.css">
+
+  <title>The Boost Statechart Library - Configuration</title>
+</head>
+
+<body link="#0000FF" vlink="#800080">
+  <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+  "header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../index.htm"><img alt="C++ Boost" src=
+        "../../../boost.png" border="0" width="277" height="86"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center">The Boost Statechart Library</h1>
+
+        <h2 align="center">Configuration</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <dl class="page-index">
+    <dt><a href="#GeneralConfiguration">General configuration</a></dt>
+
+    <dd><a href="#Introduction">Introduction</a></dd>
+
+    <dd><a href="#DebugModeCompilationOptions">Debug mode compilation
+    options</a></dd>
+
+    <dd><a href="#ReleaseModeCompilationOptions">Release mode compilation
+    options</a></dd>
+
+    <dd><a href="#ApplicationDefinedMacros">Application Defined
+    Macros</a></dd>
+  </dl>
+
+  <h1><a id="GeneralConfiguration" name="GeneralConfiguration">General
+  configuration</a></h1>
+
+  <h2><a id="Introduction" name="Introduction">Introduction</a></h2>
+
+  <p>The library uses several configuration macros in <a href=
+  "../../../libs/config/config.htm">&lt;boost/config.hpp&gt;</a>, as well as
+  two configuration macros meant to be supplied by the application. Moreover,
+  two commonly available compiler options also have an impact on the
+  available features.</p>
+
+  <h2><a id="DebugModeCompilationOptions" name=
+  "DebugModeCompilationOptions">Debug mode compilation options</a></h2>
+
+  <ul>
+    <li>C++ RTTI must be turned on (used by various asserts)</li>
+
+    <li>C++ exception handling can be turned on or off. When turned off,
+    obviously the library's <a href="tutorial.html#ExceptionHandling">error
+    handling support</a> is no longer available</li>
+  </ul>
+
+  <h2><a id="ReleaseModeCompilationOptions" name=
+  "ReleaseModeCompilationOptions">Release mode compilation options</a></h2>
+
+  <ul>
+    <li>C++ RTTI can be turned on or off. When turned off, the use of
+    <code><a href="reference.html#state_cast">state_cast&lt;&gt;()</a></code>
+    leads to a compile time error (<code><a href=
+    "reference.html#state_downcast">state_downcast&lt;&gt;()</a></code> is
+    still available). Moreover, <code>BOOST_STATECHART_USE_NATIVE_RTTI</code>
+    must not be defined simultaneously</li>
+
+    <li>C++ exception handling can be turned on or off. When turned off,
+    obviously the library's <a href="tutorial.html#ExceptionHandling">error
+    handling support</a> is no longer available</li>
+  </ul>
+
+  <h2><a id="ApplicationDefinedMacros" name=
+  "ApplicationDefinedMacros">Application Defined Macros</a></h2>
+
+  <p>The following macros may be defined by an application using the
+  library:</p>
+
+  <table summary="application defined macros" width="100%" cellpadding="2"
+  border="3">
+    <tr>
+      <td width="226"><b>Macro</b></td>
+
+      <td width="893"><b>Meaning</b></td>
+    </tr>
+
+    <tr>
+      <td width="226"><code>BOOST_STATECHART_USE_NATIVE_RTTI</code></td>
+
+      <td width="893">
+        When defined, the library no longer uses its own speed-optimized RTTI
+        implementation. Instead, native C++ RTTI is employed (see <a href=
+        "performance.html#RttiCustomization">RTTI customization</a> in the
+        performance document for more information). This has the following
+        effects:
+
+        <ul>
+          <li><code>state_machine::state_base_type</code> becomes a
+          polymorphic type. That is, when <code>typeid</code> is applied to a
+          <code>state_machine::state_base_type</code> reference, the result
+          refers to a <code>type_info</code> object representing the the type
+          of the most derived state type</li>
+
+          <li><a href="tutorial.html#CustomStateTypeInformation">Custom state
+          type information</a> is no longer available</li>
+
+          <li>All states need to store one pointer less, leading to a
+          best-case state machine memory footprint reduction of about
+          15%</li>
+
+          <li>Under most circumstances, dispatch speed degrades. This is
+          because native C++ RTTI values are retrieved through an additional
+          indirection on almost all platforms. See <a href=
+          "performance.html#SpeedVersusScalabilityTradeoffs">Speed versus
+          scalability tradeoffs</a> in the performance document for
+          timings</li>
+        </ul>
+      </td>
+    </tr>
+
+    <tr>
+      <td width="226">
+      <code>BOOST_STATECHART_RELAX_TRANSITION_CONTEXT</code></td>
+
+      <td width="893">When defined, the sequence of actions that are called
+      during a transition is relaxed. That is, its is no longer necessary
+      that all states up to the innermost common context are exited before
+      the transition action is called (as mandated by the UML standard).
+      Instead, the transition action can be a member of either the transition
+      source or any direct or indirect outer context and is called as soon as
+      all possibly active inner states have been exited. Then all remaining
+      active states up to the innermost common context are exited before
+      entering all states down to the transition destination</td>
+    </tr>
+  </table>
+
+  <p>Both macros need to be consistently defined or undefined for all
+  translation units that are later linked into the same executable. Not doing
+  so will inevitably lead to ODR violations. Depending on compiler and linker
+  technology such violations may or may not manifest themselves in link-time
+  errors.</p>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 05 January, 2008</p>
+
+  <p><i>Copyright &copy; 2003-2008 <a href="contact.html">Andreas Huber
+  D&ouml;nni</a></i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

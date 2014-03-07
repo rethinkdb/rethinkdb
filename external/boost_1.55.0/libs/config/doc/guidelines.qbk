@@ -1,0 +1,219 @@
+[/
+    Boost.Config
+
+    Copyright (c) 2001 Beman Dawes
+    Copyright (c) 2001 Vesa Karvonen
+    Copyright (c) 2001 John Maddock
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+
+[section Guidelines for Boost Authors]
+
+The __BOOST_CONFIG_HEADER__ header is used to pass configuration information
+to other boost files, allowing them to cope with platform dependencies such
+as arithmetic byte ordering, compiler pragmas, or compiler shortcomings.
+Without such configuration information, many current compilers would not work
+with the Boost libraries.
+
+Centralizing configuration information in this header reduces the number of
+files that must be modified when porting libraries to new platforms, or when
+compilers are updated. Ideally, no other files would have to be modified when
+porting to a new platform.
+
+Configuration headers are controversial because some view them as condoning
+broken compilers and encouraging non-standard subsets. Adding settings for
+additional platforms and maintaining existing settings can also be a problem.
+In other words, configuration headers are a necessary evil rather than a
+desirable feature. The boost config.hpp policy is designed to minimize the
+problems and maximize the benefits of a configuration header.
+
+Note that:
+
+* Boost library implementers are not required to "`#include <boost/config.hpp>`",
+and are not required in any way to support compilers that do not comply
+with the C++ Standard (ISO/IEC 14882). 
+* If a library implementer wishes to support some non-conforming compiler,
+or to support some platform specific feature, "`#include <boost/config.hpp>`"
+is the preferred way to obtain configuration information not available from
+the standard headers such as `<climits>`, etc.
+* If configuration information can be deduced from standard headers such as
+`<climits>`, use those standard headers rather than `<boost/config.hpp>`.
+* Boost files that use macros defined in `<boost/config.hpp>` should have
+sensible, standard conforming, default behavior if the macro is not defined.
+This means that the starting point for porting `<boost/config.hpp>` to a new
+platform is simply to define nothing at all specific to that platform. In
+the rare case where there is no sensible default behavior, an #error message
+should describe the problem.
+* If a Boost library implementer wants something added to `config.hpp`, post
+a request on the Boost mailing list. There is no guarantee such a request
+will be honored; the intent is to limit the complexity of config.hpp.
+* The intent is to support only compilers which appear on their way to
+becoming C++ Standard compliant, and only recent releases of those compilers
+at that.
+* The intent is not to disable mainstream features now well-supported by the
+majority of compilers, such as namespaces, exceptions, RTTI, or templates.
+
+
+[section:warnings Disabling Compiler Warnings]
+
+The header `<boost/config/warning_disable.hpp>` can be used to disable
+certain compiler warnings that are hard or impossible to otherwise remove.
+
+Note that:
+
+* This header [*['should never be included by another Boost header]], it should
+only ever be used by a library source file or a test case.
+* The header should be included [*['before you include any other header]].
+* This header only disables warnings that are hard or impossible to otherwise
+ deal with, and which are typically emitted by one compiler only, or
+ in one compilers own standard library headers.
+ 
+Currently it disables the following warnings:
+
+[table
+[[Compiler][Warning]]
+[[Visual C++ 8 and later][[@http://msdn2.microsoft.com/en-us/library/ttcz0bys(VS.80).aspx C4996]: Error 'function': was declared deprecated]]
+[[Intel C++][Warning 1786: relates to the use of "deprecated" standard 
+   library functions rather like C4996 in Visual C++.]]
+]
+
+[endsect]
+
+
+[section Adding New Defect Macros]
+
+When you need to add a new defect macro - either to fix a problem with an
+existing library, or when adding a new library - distil the issue down to
+a simple test case; often, at this point other (possibly better) workarounds
+may become apparent. Secondly always post the test case code to the boost
+mailing list and invite comments; remember that C++ is complex and that
+sometimes what may appear a defect, may in fact turn out to be a problem
+with the authors understanding of the standard.
+
+When you name the macro, follow the `BOOST_NO_`['SOMETHING] naming
+convention, so that it's obvious that this is a macro reporting a defect.
+
+Finally, add the test program to the regression tests. You will need to
+place the test case in a `.ipp` file with the following comments near the top:
+
+    //  MACRO:         BOOST_NO_FOO
+    //  TITLE:         foo
+    //  DESCRIPTION:   If the compiler fails to support foo
+
+These comments are processed by the autoconf script, so make sure the format
+follows the one given. The file should be named "`boost_no_foo.ipp`", where foo
+is the defect description - try and keep the file name under the Mac 30 character
+filename limit though. You will also need to provide a function prototype
+"`int test()`" that is declared in a namespace with the same name as the macro,
+but in all lower case, and which returns zero on success:
+
+
+    namespace boost_no_foo {
+    int test()
+    {
+        // test code goes here:
+        //
+        return 0;
+    }
+
+    }
+
+Once the test code is in place in libs/config/test, updating the configuration
+test system proceeds as:
+
+* cd into `libs/config/tools` and run `bjam`. This generates the `.cpp`
+file test cases from the `.ipp` file, updates the 
+libs/config/test/all/Jamfile.v2, `config_test.cpp` and `config_info.cpp`.[br][br]
+
+* cd into `libs/config/test/all` and run `bjam `['MACRONAME` compiler-list`], where
+['MACRONAME] is the name of the new macro, and ['`compiler-list`] is a space separated list of
+compilers to test with.[br][br]
+The xxx_pass_test and the xxx_fail_test [*should both report `**passed**`].[br][br]
+If ['MACRONAME] is not defined when it should be defined, xxx_pass_test will not report `**passed**`.
+If ['MACRONAME] is defined when it should not be defined, xxx_fail_test will not report `**passed**`.[br][br] 
+
+* cd into `libs/config/test` and run `bjam config_info config_test `['`compiler-list`].
+`config_info` should build and run cleanly for all the compilers in ['`compiler-list`]
+while `config_test` should fail for those that have the defect, and pass for those
+that do not.
+
+Then you should:
+
+* Define the defect macro in those config headers that require it.
+* Document the macro in this documentation (please do not forget this step!!)
+* Commit everything.
+* Keep an eye on the regression tests for new failures in Boost.Config caused by
+the addition.
+* Start using the macro.
+
+[endsect]
+
+[section Adding New Feature Test Macros]
+
+When you need to add a macro that describes a feature that the standard does
+not require, follow the convention for adding a new defect macro (above), but
+call the macro `BOOST_HAS_FOO`, and name the test file "`boost_has_foo.ipp`".
+Try not to add feature test macros unnecessarily, if there is a platform
+specific macro that can already be used (for example `_WIN32`, `__BEOS__`, or
+`__linux`) to identify the feature then use that. Try to keep the macro to a
+feature group, or header name, rather than one specific API (for example
+`BOOST_HAS_NL_TYPES_H` rather than `BOOST_HAS_CATOPEN`). If the macro
+describes a POSIX feature group, then add boilerplate code to
+__BOOST_CONFIG_SUFFIX_HEADER__ to auto-detect the feature where possible
+(if you are wondering why we can't use POSIX feature test macro directly,
+remember that many of these features can be added by third party libraries,
+and are not therefore identified inside `<unistd.h>`).
+
+[endsect]
+
+[section Modifying the Boost Configuration Headers]
+
+The aim of boost's configuration setup is that the configuration headers should
+be relatively stable - a boost user should not have to recompile their code
+just because the configuration for some compiler that they're not interested
+in has changed. Separating the configuration into separate compiler/standard
+library/platform sections provides for part of this stability, but boost
+authors require some amount of restraint as well, in particular:
+
+__BOOST_CONFIG_HEADER__ should never change, don't alter this file.
+
+__BOOST_CONFIG_USER_HEADER__ is included by default, don't add extra code to
+this file unless you have to. If you do, please remember to update
+[@../../tools/configure.in libs/config/tools/configure.in] as well.
+
+__BOOST_CONFIG_SUFFIX_HEADER__ is always included so be careful about
+modifying this file as it breaks dependencies for everyone. This file should
+include only "boilerplate" configuration code, and generally should change
+only when new macros are added.
+
+[@../../../../boost/config/select_compiler_config.hpp <boost/config/select_compiler_config.hpp>],
+[@../../../../boost/config/select_platform_config.hpp <boost/config/select_platform_config.hpp>] and
+[@../../../../boost/config/select_stdlib_config.hpp <boost/config/select_stdlib_config.hpp>]
+are included by default and should change only if support for a new
+compiler/standard library/platform is added.
+
+The compiler/platform/standard library selection code is set up so that unknown
+platforms are ignored and assumed to be fully standards compliant - this gives
+unknown platforms a "sporting chance" of working "as is" even without running
+the configure script.
+
+When adding or modifying the individual mini-configs, assume that future, as
+yet unreleased versions of compilers, have all the defects of the current
+version. Although this is perhaps unnecessarily pessimistic, it cuts down on
+the maintenance of these files, and experience suggests that pessimism is
+better placed than optimism here!
+
+[endsect]
+
+[endsect]
+
+
+
+
+
+

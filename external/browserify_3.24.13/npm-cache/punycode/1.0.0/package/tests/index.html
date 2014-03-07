@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Punycode.js test suite</title>
+		<link rel="stylesheet" href="../vendor/qunit/qunit/qunit.css">
+	</head>
+	<body>
+		<h1 id="qunit-header">Punycode.js test suite</h1>
+		<h2 id="qunit-banner"></h2>
+		<div id="qunit-testrunner-toolbar"></div>
+		<h2 id="qunit-userAgent"></h2>
+		<ol id="qunit-tests"></ol>
+		<script src="../vendor/qunit/qunit/qunit.js"></script>
+		<script src="../punycode.js"></script>
+		<script src="../vendor/requirejs/require.js"></script>
+		<script>
+			var punycode2;
+			if (/[?&]norequire=true(?:&|$)/.test(location.search)) {
+				require = define = null;
+				document.write('<script src="tests.js"><\/script>');
+			} else {
+				require({
+					'baseUrl': '../vendor/requirejs/',
+					'urlArgs': 't=' + (+new Date),
+					'paths': {
+						'punycode': '../../punycode'
+					}
+				},
+				['punycode'], function(punycode) {
+					punycode2 = punycode;
+					require(['tests.js']);
+				});
+			}
+		</script>
+	</body>
+</html>

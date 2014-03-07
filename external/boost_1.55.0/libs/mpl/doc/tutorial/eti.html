@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: ETI</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./incomplete-support-for.html" class="navigation-link">Prev</a>&nbsp;<a href="./resources.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./incomplete-support-for.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./portability.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./technical-details.html" class="navigation-link">Technical Details</a> / <a href="./portability.html" class="navigation-link">Portability</a> / <a href="./eti.html" class="navigation-link">ETI</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="eti">
+<h1><a class="toc-backref" href="./portability.html#id76" name="eti">ETI</a></h1>
+<p>In context of C++ template problems, ETI is an abbreviation for &quot;Early
+Template Instantiation&quot; — a Microsoft Visual C++ - specific issue that 
+has been a barrier to any serious work with templates on this platform until 
+Microsoft developers fixed it in Visual C++ 7.1 (2003 .NET). Although the
+problem is relatively easy to work around if the right techniques 
+are applied systematically through the codebase, the approach is definitely
+tedious and time-consuming. So, if one day you discover that you are spending 
+too much time dealing with the issue, consider upgrading to the
+newer version of the compiler. In fact, seriously consider it regardless.
+The benefits of saved time, money and frustration are well worth the price.</p>
+<div class="section" id="eti-the-problem">
+<h2><a name="eti-the-problem">The Problem</a></h2>
+<p>Here is a short demonstration of the issue with MSVC 6.x:</p>
+<pre class="literal-block">
+template&lt; typename F, typename T &gt; struct apply1
+{
+    typedef typename F::template apply&lt;T&gt;::type type;
+};
+</pre>
+<p>Trying to compiling this innocent-looking code, we get:</p>
+<pre class="literal-block">
+portability.cpp(4) : error C2903: 'apply' : symbol is neither a class template 
+            nor a function template
+        portability.cpp(5) : see reference to class template instantiation 
+            'apply1&lt;F,T&gt;' being compiled
+portability.cpp(4) : error C2143: syntax error : missing ',' before '&lt;'
+        portability.cpp(5) : see reference to class template instantiation 
+            'apply1&lt;F,T&gt;' being compiled
+portability.cpp(4) : error C2059: syntax error : '&lt;'
+        portability.cpp(5) : see reference to class template instantiation 
+            'apply1&lt;F,T&gt;' being compiled
+</pre>
+<p>The &quot;symbol is neither a class template nor a function template&quot; part of the 
+diagnostics is actually often an indication of ETI-related problems. Another 
+typical error message usually says something about nested type such-and-such 
+not being a member of a global namespace.</p>
+<p>Both cases are two sides of the same compiler bug, which we call
+&quot;Early template instantiation&quot;: the compiler, for internal
+purposes, in order to process class template definitions,
+instantiates class templates with dummy template parameters
+(<tt class="literal"><span class="pre">int</span></tt>'s). That can happen both during parsing of template
+definitions (and such errors are most easy to identify and fix —
+the template definition itself just doesn't compile; the example
+above falls into this category), or later during template
+instantiation, and these one are hard to detect — the bug will
+only be triggered in some particular context.</p>
+<!-- namespace-scope: nested templates are immune? -->
+<p>ETI is always performed during parsing of the namespace-scope
+template definition, which basically means that any template
+definition that is rendered invalid by substituting its template
+parameters by <tt class="literal"><span class="pre">int</span></tt>s might not compile, as it happened with our
+example:</p>
+<pre class="literal-block">
+template&lt; typename F, typename T &gt; struct apply1
+{
+    // typedef typename F::template apply&lt;T&gt;::type type;
+    // ETI generates this: 
+    typedef typename int::template apply&lt;int&gt;::type type;
+};
+</pre>
+<p>If you compile this, you'll get <em>exactly</em> the same diagnostics as we've just seen.</p>
+<p>Note that we've said &quot;might not compile&quot;, because... well, the short answer is, 
+&quot;it depends&quot;. We haven't analyzed things to the point that we could tell you the 
+exact condition when ETI leads to an error and when it doesn't, but
+that's not very important anyway — if it's an error, you just fix it (we'll show you how
+in a second), and if it's not, then you leave things as is. If one day the 
+potential issue turns into a real one, then you apply the workaround we are about
+to give you.</p>
+</div>
+<div class="section" id="eti-the-symptoms">
+<h2><a name="eti-the-symptoms">The Symptoms</a></h2>
+<p>We've already looked at the typical diagnostics, so we won't repeat
+ourselves.  Instead we'll
+just mention that many MSVC's INTERNAL COMPILER ERRORs (ICEs) are, in fact, caused
+by an ETI-related problem somewhere deep down the instantiation stack.</p>
+</div>
+<div class="section" id="eti-the-solution">
+<h2><a name="eti-the-solution">The Solution</a></h2>
+<p>There is no way we can change the compiler's behavior in this case, so what we have
+to do is to adjust to it and still make our templates do what we want. Surprisingly,
+in most cases it's quite simple to achieve:</p>
+<pre class="literal-block">
+// potentially unsafe
+template&lt; typename F &gt; struct apply0
+{
+    typedef typename F::type type;
+};
+
+// now ETI-safe
+template&lt;&gt; struct apply0&lt;int&gt;
+{
+    typedef int type;
+};
+</pre>
+<p>Since the original template could have never been instantiated with <tt class="literal"><span class="pre">int</span></tt>,
+providing a stub <tt class="literal"><span class="pre">int</span></tt> specialization is completely innocent.</p>
+<!-- Looks like you're missing lots of stuff, like ETI_BASE - - no? -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./incomplete-support-for.html" class="navigation-link">Prev</a>&nbsp;<a href="./resources.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./incomplete-support-for.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./portability.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

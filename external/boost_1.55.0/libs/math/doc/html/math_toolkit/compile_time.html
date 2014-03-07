@@ -1,0 +1,105 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Compile time GCD and LCM determination</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Math Toolkit">
+<link rel="up" href="../gcd_lcm.html" title="Chapter&#160;10.&#160;Integer Utilities (Greatest Common Divisor and Least Common Multiple)">
+<link rel="prev" href="run_time.html" title="Run-time GCD &amp; LCM Determination">
+<link rel="next" href="gcd_header.html" title="Header &lt;boost/math/common_factor.hpp&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="run_time.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../gcd_lcm.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="gcd_header.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="math_toolkit.compile_time"></a><a class="link" href="compile_time.html" title="Compile time GCD and LCM determination">Compile time GCD and LCM determination</a>
+</h2></div></div></div>
+<p>
+      <span class="bold"><strong>Header: </strong></span> <a href="../../../../../boost/math/common_factor_ct.hpp" target="_top">&lt;boost/math/common_factor_ct.hpp&gt;</a>
+    </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">static_gcd_type</span><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="identifier">static_gcd_type</span> <span class="identifier">Value1</span><span class="special">,</span> <span class="identifier">static_gcd_type</span> <span class="identifier">Value2</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">static_gcd</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">static_gcd_type</span><span class="special">,</span> <span class="identifier">implementation_defined</span><span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="identifier">static_gcd_type</span> <span class="identifier">Value1</span><span class="special">,</span> <span class="identifier">static_gcd_type</span> <span class="identifier">Value2</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">static_lcm</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">static_gcd_type</span><span class="special">,</span> <span class="identifier">implementation_defined</span><span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="special">};</span>
+</pre>
+<p>
+      The type <code class="computeroutput"><span class="identifier">static_gcd_type</span></code> is
+      the widest unsigned-integer-type that is supported for use in integral-constant-expressions
+      by the compiler. Usually this the same type as <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span></code>,
+      but may fall back to being <code class="computeroutput"><span class="keyword">unsigned</span>
+      <span class="keyword">long</span></code> for some older compilers.
+    </p>
+<p>
+      The boost::math::static_gcd and boost::math::static_lcm class templates take
+      two value-based template parameters of the <span class="emphasis"><em>static_gcd_type</em></span>
+      type and inherit from the type <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span></code>. Inherited from the base class,
+      they have a member <span class="emphasis"><em>value</em></span> that is the greatest common factor
+      or least common multiple, respectively, of the template arguments. A compile-time
+      error will occur if the least common multiple is beyond the range of <code class="computeroutput"><span class="identifier">static_gcd_type</span></code>.
+    </p>
+<h4>
+<a name="math_toolkit.compile_time.h0"></a>
+      <span class="phrase"><a name="math_toolkit.compile_time.example"></a></span><a class="link" href="compile_time.html#math_toolkit.compile_time.example">Example</a>
+    </h4>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">common_factor</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">algorithm</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">;</span>
+   <span class="keyword">using</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+   <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"The GCD and LCM of 6 and 15 are "</span>
+   <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">gcd</span><span class="special">(</span><span class="number">6</span><span class="special">,</span> <span class="number">15</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">" and "</span>
+   <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">lcm</span><span class="special">(</span><span class="number">6</span><span class="special">,</span> <span class="number">15</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">", respectively."</span>
+   <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+   <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"The GCD and LCM of 8 and 9 are "</span>
+   <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">static_gcd</span><span class="special">&lt;</span><span class="number">8</span><span class="special">,</span> <span class="number">9</span><span class="special">&gt;::</span><span class="identifier">value</span>
+   <span class="special">&lt;&lt;</span> <span class="string">" and "</span>
+   <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">static_lcm</span><span class="special">&lt;</span><span class="number">8</span><span class="special">,</span> <span class="number">9</span><span class="special">&gt;::</span><span class="identifier">value</span>
+   <span class="special">&lt;&lt;</span> <span class="string">", respectively."</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+   <span class="keyword">int</span>  <span class="identifier">a</span><span class="special">[]</span> <span class="special">=</span> <span class="special">{</span> <span class="number">4</span><span class="special">,</span> <span class="number">5</span><span class="special">,</span> <span class="number">6</span> <span class="special">},</span> <span class="identifier">b</span><span class="special">[]</span> <span class="special">=</span> <span class="special">{</span> <span class="number">7</span><span class="special">,</span> <span class="number">8</span><span class="special">,</span> <span class="number">9</span> <span class="special">},</span> <span class="identifier">c</span><span class="special">[</span><span class="number">3</span><span class="special">];</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">transform</span><span class="special">(</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">a</span> <span class="special">+</span> <span class="number">3</span><span class="special">,</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">gcd_evaluator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;()</span> <span class="special">);</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">c</span> <span class="special">+</span> <span class="number">3</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream_iterator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">cout</span><span class="special">,</span> <span class="string">" "</span><span class="special">)</span> <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="run_time.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../gcd_lcm.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="gcd_header.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

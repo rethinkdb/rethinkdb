@@ -1,0 +1,61 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ee.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ee.xml
+ */
+ee{
+    Languages{
+        ak{"Ɛblugbe"}
+        am{"Amharikigbe"}
+        ar{"Arabikigbe"}
+        be{"Belarusangbe"}
+        bg{"Bulgarigbe"}
+        bn{"Bengaligbe"}
+        cs{"Tsɛkigbe"}
+        de{"Geremaniagbe"}
+        ee{"Eʋegbe"}
+        el{"Greekigbe"}
+        en{"Yevugbe"}
+        es{"Spanisigbe"}
+        fa{"Persiagbe"}
+        fr{"Frentsigbe"}
+        ha{"Hausagbe"}
+        hi{"Hindigbe"}
+        hu{"Hungarigbe"}
+        id{"Indonesigbe"}
+        ig{"Igbogbe"}
+        it{"Italigbe"}
+        ja{"Gyapanesigbe"}
+        jv{"Gyavanesigbe"}
+        km{"Sentral Khmergbe"}
+        ko{"Koreagbe"}
+        ms{"Malayigbe"}
+        my{"Burmesigbe"}
+        ne{"Nepaligbe"}
+        nl{"Dutsigbe"}
+        pa{"Pungyibigbe"}
+        pl{"Polishigbe"}
+        pt{"Portuguesigbe"}
+        ro{"Romanigbe"}
+        ru{"Russiagbe"}
+        rw{"Rwandagbe"}
+        so{"Somaligbe"}
+        sv{"Swedisigbe"}
+        ta{"Tamiligbe"}
+        th{"Thaigbe"}
+        tr{"Turkisigbe"}
+        uk{"Ukranigbe"}
+        ur{"Urdugbe"}
+        vi{"Vietnamegbe"}
+        yo{"Yorubagbe"}
+        zh{"Tsanisigbe"}
+        zu{"Zulugbe"}
+    }
+    Version{"2.0.50.66"}
+}

@@ -1,0 +1,26 @@
+
+import "class" : new ;
+import common ;
+
+rule generate-example ( project name : property-set : sources * )
+{
+    local result ;
+    for local s in $(sources)
+    {
+        #local source-name = [ $(s).name ] ;
+        #local source-action = [ $(s).action ] ;
+        #local source-properties = [ $(source-action).properties ] ;
+
+        # Create a new action, that takes the source target and runs the
+        # 'common.copy' command on it.
+        local a = [ new non-scanning-action $(s) : common.copy : $(property-set)
+            ] ;
+
+        # Create a target to represent the action result. Uses the target name
+        # passed here via the 'name' parameter and the same type and project as
+        # the source.
+        result += [ new file-target $(name) : [ $(s).type ] : $(project) : $(a)
+            ] ;
+    }
+    return $(result) ;
+}

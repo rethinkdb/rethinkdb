@@ -1,0 +1,104 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Adapted</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="prev" href="view/repetitive_view.html" title="repetitive_view">
+<link rel="next" href="adapted/array.html" title="Array">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="view/repetitive_view.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="adapted/array.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="fusion.adapted"></a><a class="link" href="adapted.html" title="Adapted">Adapted</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="adapted/array.html">Array</a></span></dt>
+<dt><span class="section"><a href="adapted/std__pair.html">std::pair</a></span></dt>
+<dt><span class="section"><a href="adapted/mpl_sequence.html">mpl sequence</a></span></dt>
+<dt><span class="section"><a href="adapted/boost__array.html">boost::array</a></span></dt>
+<dt><span class="section"><a href="adapted/boost__tuple.html">boost::tuple</a></span></dt>
+<dt><span class="section"><a href="adapted/adapt_struct.html">BOOST_FUSION_ADAPT_STRUCT</a></span></dt>
+<dt><span class="section"><a href="adapted/adapt_tpl_struct.html">BOOST_FUSION_ADAPT_TPL_STRUCT</a></span></dt>
+<dt><span class="section"><a href="adapted/adapt_struct_named.html">BOOST_FUSION_ADAPT_STRUCT_NAMED</a></span></dt>
+<dt><span class="section"><a href="adapted/adapt_assoc.html">BOOST_FUSION_ADAPT_ASSOC_STRUCT</a></span></dt>
+<dt><span class="section"><a href="adapted/adapt_assoc_tpl_struct.html">BOOST_FUSION_ADAPT_ASSOC_TPL_STRUCT</a></span></dt>
+<dt><span class="section"><a href="adapted/adapt_assoc_struct_named.html">BOOST_FUSION_ADAPT_ASSOC_STRUCT_NAMED</a></span></dt>
+<dt><span class="section"><a href="adapted/adapt_adt.html">BOOST_FUSION_ADAPT_ADT</a></span></dt>
+<dt><span class="section"><a href="adapted/adapt_tpl_adt.html">BOOST_FUSION_ADAPT_TPL_ADT</a></span></dt>
+<dt><span class="section"><a href="adapted/adapt_assoc_adt.html">BOOST_FUSION_ADAPT_ASSOC_ADT</a></span></dt>
+<dt><span class="section"><a href="adapted/adapt_assoc_tpl_adt.html">BOOST_FUSION_ADAPT_ASSOC_TPL_ADT</a></span></dt>
+<dt><span class="section"><a href="adapted/define_struct.html">BOOST_FUSION_DEFINE_STRUCT</a></span></dt>
+<dt><span class="section"><a href="adapted/define_tpl_struct.html">BOOST_FUSION_DEFINE_TPL_STRUCT</a></span></dt>
+<dt><span class="section"><a href="adapted/define_struct_inline.html">BOOST_FUSION_DEFINE_STRUCT_INLINE</a></span></dt>
+<dt><span class="section"><a href="adapted/define_tpl_struct_inline.html">BOOST_FUSION_DEFINE_TPL_STRUCT_INLINE</a></span></dt>
+<dt><span class="section"><a href="adapted/define_assoc_struct.html">BOOST_FUSION_DEFINE_ASSOC_STRUCT</a></span></dt>
+<dt><span class="section"><a href="adapted/define_assoc_tpl_struct.html">BOOST_FUSION_DEFINE_ASSOC_TPL_STRUCT</a></span></dt>
+</dl></div>
+<p>
+      Fusion provides a couple of adapters for other sequences such as arrays, <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>,
+      <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a> sequences,
+      and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code>. These adapters are written using Fusion's
+      non-intrusive <a class="link" href="extension.html" title="Extension">Extension</a> mechanism.
+      If you wish to use these sequences with fusion, simply include the necessary
+      files and they will be regarded as first-class, fully conforming fusion sequences.
+    </p>
+<p>
+      Fusion also provides various schemes to make it easy for the user to adapt
+      various data structures, non-intrusively, as full fledged Fusion sequences.
+    </p>
+<h4>
+<a name="fusion.adapted.h0"></a>
+      <span class="phrase"><a name="fusion.adapted.header"></a></span><a class="link" href="adapted.html#fusion.adapted.header">Header</a>
+    </h4>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      Fusion sequences may also be adapted as fully conforming <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+      sequences (see <a class="link" href="sequence/intrinsic.html" title="Intrinsic">Intrinsics</a>).
+      That way, we can have 2-way adaptation to and from <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+      and Fusion. To make Fusion sequences fully conforming <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+      sequences, include:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">mpl</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      If you want bi-directional adaptation to and from <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+      and Fusion, simply include:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">mpl</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      The header includes all the necessary headers.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="view/repetitive_view.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="adapted/array.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

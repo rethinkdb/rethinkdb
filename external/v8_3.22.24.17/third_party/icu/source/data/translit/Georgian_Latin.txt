@@ -1,0 +1,44 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Georgian_Latin.txt
+# Generated from CLDR 
+#
+წ ↔ tsʼ ;
+კ ↔ kʼ ;
+პ ↔ pʼ ;
+ჟ ↔ zh ;
+ტ ↔ tʼ ;
+ღ ↔ gh ;
+ყ ↔ qʼ ;
+შ ↔ sh ;
+ჭ ↔ chʼ ;
+ჩ ↔ ch ;
+ც ↔ ts ;
+ძ ↔ dz ;
+ხ ↔ kh ;
+ჳ ↔ ŭi ;
+ა ↔ a ;
+ბ ↔ b ;
+გ ↔ g ;
+დ ↔ d ;
+ე ↔ e ;
+ვ ↔ v ;
+ზ ↔ z ;
+თ ↔ t ;
+ი ↔ i ;
+ლ ↔ l ;
+მ ↔ m ;
+ნ ↔ n ;
+ო ↔ o ;
+რ ↔ r ;
+ს ↔ s ;
+უ ↔ u ;
+ფ ↔ p ;
+ქ ↔ k ;
+ჯ ↔ j ;
+ჰ ↔ h ;
+ჴ ↔ q ;

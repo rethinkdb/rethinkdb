@@ -1,0 +1,797 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"><html><head><!-- saved from url=(0022)http://internet.e-mail --><title>Improved Iterator Categories and Requirements</title>
+<meta content="text/html; charset=windows-1252" http-equiv="Content-Type">
+<meta content="Microsoft FrontPage 5.0" name="GENERATOR"></head>
+<body bgcolor="#ffffff">
+<p align="right">
+<table border="0">
+  <tbody>
+  <tr>
+    <td width="125">
+      <p align="right">Document number: </p></td>
+    <td width="190">
+      <p>J16/01-0011 = WG21 N1297 </p></td></tr>
+  <tr>
+    <td width="125">
+      <p align="right">Date: </p></td>
+    <td width="190">
+      <p>March 21, 2001 </p></td></tr>
+  <tr>
+    <td width="125">
+      <p align="right">Author: </p></td>
+    <td width="190">
+      <p>Jeremy Siek, <br>University of Notre Dame </p></td></tr>
+  <tr>
+    <td width="125">
+      <p></p></td>
+    <td width="190">
+      <p><a href="mailto:jsiek@lsc.nd.edu">jsiek@lsc.nd.edu</a> 
+  </p></td></tr></tbody></table></p>
+<h1>
+<center>Improved Iterator Categories and Requirements</center></h1>
+<h2>Introduction</h2>The standard iterator categories and requirements are 
+flawed because they use a single hierarchy of requirements to address two 
+orthogonal issues: <b><i>iterator traversal</i></b> and <b><i>dereference return 
+type</i></b>. The current iterator requirement hierarchy is mainly geared 
+towards iterator traversal (hence the category names), while requirements that 
+address dereference return type sneak in at various places. The following table 
+gives a summary of the current dereference return type requirements in the 
+iterator categories. 
+<p>
+</p><center>
+<a name="table:1">
+  <b>Table 1.</b> Summary of current dereference return type 
+  requirements.</a><table border="1">
+  <tbody>
+  <tr>
+    <td>Output Iterator</td>
+    <td><tt>*i = a</tt> </td></tr>
+  <tr>
+    <td>Input Iterator</td>
+    <td><tt>*i</tt> is convertible to <tt>T</tt></td></tr>
+  <tr>
+    <td>Forward Iterator</td>
+    <td><tt>*i</tt> is <tt>T&amp;</tt> (or <tt>const T&amp;</tt> once <a href="http://anubis.dkuug.dk/JTC1/SC22/WG21/docs/lwg-active.html#200">issue 
+      200</a> is resolved)</td></tr>
+  <tr>
+    <td>Random Access Iterator</td>
+    <td><tt>i[n]</tt> is convertible to <tt>T</tt> (which is odd because the 
+      operational semantics say <tt>i[n]</tt> is equivalent to <tt>*(i + n)</tt> 
+      which would have a return type of <tt>T&amp;</tt>) </td></tr></tbody></table></center>
+<h2>Examples of useful iterators that do not ``fit''</h2>
+<p>Because of the mixing of iterator traversal and dereference return type, many 
+useful iterators can not be appropriately categorized. For example, 
+<tt>vector&lt;bool&gt;::iterator</tt> is almost a random access iterator, but 
+the return type is not <tt>bool&amp;</tt> (see <a href="http://anubis.dkuug.dk/JTC1/SC22/WG21/docs/lwg-active.html#96">issue 
+96</a> and Herb Sutter's paper J16/99-0008 = WG21 N1185). Therefore, the 
+iterators only meet the requirements of input iterator and output iterator. This 
+is so nonintuitive that at least one implementation erroneously assigns 
+<tt>random_access_iterator_tag</tt> as its <tt>iterator_category</tt>. Also, 
+<tt>vector&lt;bool&gt;</tt> is not the only example of useful iterators that do 
+not return true references: there is the often cited example of disk-based 
+collections. 
+</p><p>Another example is a counting iterator, an iterator the returns a sequence of 
+integers when incremented and dereferenced (see <a href="http://www.boost.org/libs/iterator/doc/counting_iterator.html"><tt>boost::counting_iterator</tt></a>). 
+There are two ways to implement this iterator, 1) make the <tt>reference</tt> 
+type be a true reference (a reference to an integer data member of the counting 
+iterator) or 2) make the <tt>reference</tt> type be the same as the 
+<tt>value_type</tt>. Option 1) runs into the problems discussed in <a href="http://anubis.dkuug.dk/JTC1/SC22/WG21/docs/lwg-active.html#198">Issue 
+198</a>, the reference will not be valid after the iterator is destroyed. Option 
+2) is therefore a better choice, but then we have a counting iterator that 
+cannot be a random access iterator. 
+</p><p>Yet another example is a transform iterator, an iterator adaptor that applies 
+a unary function object to the dereference value of the wrapped iterator (see <a href="http://www.boost.org/libs/iterator/doc/transform_iterator.html"><tt>boost::transform_iterator</tt></a>). 
+For unary functions such as <tt>std::times</tt> the return type of 
+<tt>operator*</tt> clearly needs to be the <tt>result_type</tt> of the function 
+object, which is typically not a reference. However, with the current iterator 
+requirements, if you wrap <tt>int*</tt> with a transform iterator, you do not 
+get a random access iterator as expected, but an input iterator. 
+</p><p>A fourth example is found in the vertex and edge iterators of the <a href="http://www.boost.org/libs/graph/doc/table_of_contents.html">Boost Graph 
+Library</a>. These iterators return vertex and edge descriptors, which are 
+lightweight handles created on-the-fly. They must be returned by-value. As a 
+result, their current standard iterator category is 
+<tt>std::input_iterator_tag</tt>, which means that, strictly speaking, you could 
+not use these iterators with algorithms like <tt>std::min_element()</tt>. As a 
+temporary solution, we introduced the concept <a href="http://www.boost.org/libs/utility/MultiPassInputIterator.html">Multi-Pass 
+Input Iterator</a> to describe the vertex and edge descriptors, but as the 
+design notes for concept suggest, a better solution is needed. 
+</p><p>In short, there are many useful iterators that do not fit into the current 
+standard iterator categories. As a result, the following bad things happen: 
+</p><ul>
+  <li>Iterators are often miss-categorized. 
+  </li><li>Algorithm requirements are more strict than necessary, because they can 
+  not separate out the need for random-access from the need for a true reference 
+  return type. </li></ul>
+<h2>Proposal for new iterator categories and requirements</h2>The iterator 
+requirements should be separated into two hierarchies. One set of concepts 
+handles the return type semantics: 
+<ul>
+  <li><a href="#concept_ReadableIterator">Readable 
+  Iterator</a>  
+  </li><li><a href="#concept_WritableIterator">Writable 
+  Iterator</a>  
+  </li><li><a href="#concept_SwappableIterator">Swappable 
+  Iterator</a>  
+  </li><li><a href="#concept_ConstantLvalueIterator">Constant 
+  Lvalue Iterator</a>  
+  </li><li><a href="#concept_MutableLvalueIterator">Mutable 
+  Lvalue Iterator</a> </li></ul>The other set of concepts handles iterator 
+traversal: 
+<ul>
+  <li><a href="#concept_ForwardTraversalIterator">Forward 
+  Traversal Iterator</a>  
+  </li><li><a href="#concept_BidirectionalTraversalIterator">Bidirectional 
+  Traversal Iterator</a>  
+  </li><li><a href="#concept_RandomAccessTraversalIterator">Random 
+  Access Traversal Iterator</a> </li></ul>The current Input Iterator and Output 
+Iterator requirements will continue to be used as is. Note that Input Iterator 
+implies Readable Iterator and Output Iterator implies Writable Iterator. 
+<p>Note: we considered defining a Single-Pass Iterator, which could be combined 
+with Readable or Writable Iterator to replace the Input and Output Iterator 
+requirements. We rejected this idea because there are several differences 
+between Input and Output Iterators that make it hard to merge them: Input 
+Iterator requires Equality Comparable while Output Iterator does not and Input 
+Iterator requires Assignable while Output Iterator does not. 
+</p><h3>New categories and traits classes</h3>Each of the new iterator requirements 
+will need a category tag. <pre>namespace std {
+
+  // Return Type Categories
+  struct readable_iterator_tag { };
+  struct writable_iterator_tag { };
+  struct swappable_iterator_tag { };
+  struct mutable_lvalue_iterator_tag : virtual public writable_iterator_tag,
+    virtual public readable_iterator_tag { };
+  struct constant_lvalue_iterator_tag : public readable_iterator_tag { };
+
+  // Traversal Categories
+  struct forward_traversal_tag { };
+  struct bidirectional_traversal_tag : public forward_traversal_tag { };
+  struct random_access_traversal_tag : public bidirectional_traversal_tag { };
+
+}
+</pre>And there will need to be a way to access these category tags using a 
+traits mechanism. Adding new typedefs to <tt>std::iterator_traits</tt> is not an 
+acceptable solution because that would break every existing iterator. Instead, 
+we propose two new traits classes. It is important that these traits classes are 
+<b>backward compatible</b>, that is, they should work with any iterator for 
+which there is a valid definition of <tt>std::iterator_traits</tt>. This can be 
+accomplished by making the default behavior of the traits classes map the 
+<tt>iterator_category</tt> of the iterator to the appropriate return or 
+traversal category. For new iterators, either specializations of these traits 
+classes can be defined, or the iterator can provide nested typedefs, and inherit 
+from <tt>new_iterator_base</tt> (which is just a signal to the traits class that 
+it is a new iterator). As with <tt>std::iterator_traits</tt>, specializations 
+for <tt>T*</tt> are provided. <pre>namespace std {
+
+  struct new_iterator_base { };
+
+  template &lt;typename Iterator&gt;
+  struct return_category
+  {
+    <b><i>// Pseudo-code</i></b>
+    if (Iterator inherits from new_iterator_base) {
+      typedef typename Iterator::return_category type;
+    } else {
+      typedef std::iterator_traits&lt;Iterator&gt; OldTraits;
+      typedef typename OldTraits::iterator_category Cat;
+      if (Cat inherits from std::forward_iterator_tag)
+	if (is-const(T))
+	  typedef boost::constant_lvalue_iterator_tag type;
+	else
+	  typedef boost::mutable_lvalue_iterator_tag type;
+      else if (Cat inherits from std::input_iterator_tag)
+	typedef boost::readable_iterator_tag type;
+      else if (Cat inherits from std::output_iterator_tag)
+	typedef boost::writable_iterator_tag type;
+    }
+  };
+
+  template &lt;typename T&gt;
+  struct return_category&lt;T*&gt;
+  {
+    <b><i>// Pseudo-code</i></b>
+    if (is-const(T))
+      typedef boost::constant_lvalue_iterator_tag type;
+    else
+      typedef boost::mutable_lvalue_iterator_tag type;
+  };
+
+  template &lt;typename Iterator&gt;
+  struct traversal_category
+  {
+    <b><i>// Pseudo-code</i></b>
+    if (Iterator inherits from new_iterator_base) {
+      typedef typename Iterator::traversal_category type;
+    } else {
+      typedef std::iterator_traits&lt;Iterator&gt; OldTraits;
+      typedef typename OldTraits::iterator_category Cat;
+
+      if (Cat inherits from std::random_access_iterator_tag)
+	typedef boost::random_access_traversal_tag type;
+      else if (Cat inherits from std::bidirectional_iterator_tag)
+	typedef boost::bidirectional_traversal_tag type;
+      else if (Cat inherits from std::forward_iterator_tag)
+	typedef boost::forward_traversal_tag type;
+    }
+  };
+
+  template &lt;typename T&gt;
+  struct traversal_category&lt;T*&gt;
+  {
+    typedef boost::random_access_traversal_tag type;
+  };
+
+}
+</pre>
+<h2>Impact on the Standard Algorithms</h2>Many of the standard algorithms place 
+more requirements than necessary on their iterator parameters due to the 
+coarseness of the current iterator categories. By using the new iterator 
+categories a better fit can be achieved, thereby increasing the reusability of 
+the algorithms. These changes will not affect user-code, though they will 
+require changes by standard implementers: dispatching should be based on the new 
+categories, and in places return values may need to be handled more carefully. 
+In particular, uses of <tt>std::swap()</tt> will need to be replaced with 
+<tt>std::iter_swap()</tt>, and <tt>std::iter_swap()</tt> will need to call 
+<tt>std::swap()</tt>. 
+<p>
+</p><center>
+<a name="table:2">
+  <b>Table 2.</b> Requirement changes for standard 
+  algorithms.</a><table border="1">
+  <tbody>
+  <tr>
+    <th>Algorithm</th>
+    <th>Requirement Change</th></tr>
+  <tr>
+    <td>find_end</td>
+    <td rowspan="12">Forward Iterator<br>-&gt; Forward Traversal Iterator and 
+      Readable Iterator </td></tr>
+  <tr>
+    <td>find_first_of</td></tr>
+  <tr>
+    <td>adjacent_find</td></tr>
+  <tr>
+    <td>search</td></tr>
+  <tr>
+    <td>search_n</td></tr>
+  <tr>
+    <td>rotate_copy</td></tr>
+  <tr>
+    <td>lower_bound</td></tr>
+  <tr>
+    <td>upper_bound</td></tr>
+  <tr>
+    <td>equal_range</td></tr>
+  <tr>
+    <td>binary_search</td></tr>
+  <tr>
+    <td>min_element</td></tr>
+  <tr>
+    <td>max_element</td></tr>
+  <tr>
+    <td>iter_swap</td>
+    <td>Forward Iterator<br>-&gt; Swappable Iterator </td></tr>
+  <tr>
+    <td>fill</td>
+    <td rowspan="2">Forward Iterator<br>-&gt; Forward Traversal Iterator and 
+      Writable Iterator </td></tr>
+  <tr>
+    <td>generate</td></tr>
+  <tr>
+    <td>swap_ranges</td>
+    <td rowspan="2">Forward Iterator<br>-&gt; Forward Traversal Iterator and 
+      Swappable Iterator </td></tr>
+  <tr>
+    <td>rotate</td></tr>
+  <tr>
+    <td>replace</td>
+    <td rowspan="5">Forward Iterator<br>-&gt; Forward Traversal Iterator 
+      and<br>Readable Iterator and Writable Iterator </td>
+  </tr><tr>
+    <td>replace_if</td></tr>
+  <tr>
+    <td>remove</td></tr>
+  <tr>
+    <td>remove_if</td></tr>
+  <tr>
+    <td>unique</td></tr>
+  <tr>
+    <td>reverse</td>
+    <td rowspan="2">Bidirectional Iterator<br>-&gt; Bidirectional Traversal 
+      Iterator and Swappable Iterator </td></tr>
+  <tr>
+    <td>partition</td></tr>
+  <tr>
+    <td>copy_backwards</td>
+    <td>Bidirectional Iterator<br>-&gt; Bidirectional Traversal Iterator and 
+      Readable Iterator<br>Bidirectional Iterator<br>-&gt; Bidirectional 
+      Traversal Iterator and Writable Iterator </td></tr>
+  <tr>
+    <td>next_permutation</td>
+    <td rowspan="2">Bidirectional Iterator<br>-&gt; Bidirectional Traversal 
+      Iterator and <br>Swappable Iterator and Readable Iterator </td>
+  </tr><tr>
+    <td>prev_permutation</td></tr>
+  <tr>
+    <td>stable_partition</td>
+    <td rowspan="2">Bidirectional Iterator<br>-&gt; Bidirectional Traversal 
+      Iterator and <br>Readable Iterator and Writable Iterator </td>
+  </tr><tr>
+    <td>inplace_merge</td></tr>
+  <tr>
+    <td>reverse_copy</td>
+    <td>Bidirectional Iterator<br>-&gt; Bidirectional Traversal Iterator and 
+      Readable Iterator </td></tr>
+  <tr>
+    <td>random_shuffle</td>
+    <td rowspan="9">Random Access Iterator<br>-&gt; Random Access Traversal 
+      Iterator and Swappable Iterator </td></tr>
+  <tr>
+    <td>sort</td></tr>
+  <tr>
+    <td>stable_sort</td></tr>
+  <tr>
+    <td>partial_sort</td></tr>
+  <tr>
+    <td>nth_element</td></tr>
+  <tr>
+    <td>push_heap</td></tr>
+  <tr>
+    <td>pop_heap</td></tr>
+  <tr>
+    <td>make_heap</td></tr>
+  <tr>
+    <td>sort_heap</td></tr></tbody></table></center>
+<h2>The New Iterator Requirements</h2>
+<h3>Notation</h3>
+<table>
+  <tbody>
+  <tr>
+    <td><tt>X</tt></td>
+    <td>The iterator type.</td></tr>
+  <tr>
+    <td><tt>T</tt></td>
+    <td>The value type of <tt>X</tt>, i.e., 
+      <tt>std::iterator_traits&lt;X&gt;::value_type</tt>.</td></tr>
+  <tr>
+    <td><tt>x</tt>, <tt>y</tt></td>
+    <td>An object of type <tt>X</tt>.</td></tr>
+  <tr>
+    <td><tt>t</tt></td>
+    <td>An object of type <tt>T</tt>.</td></tr></tbody></table>
+<p>
+</p><hr>
+<!--------------------------------------------------------------------------->
+<h3><a name="concept_ReadableIterator"></a>Readable Iterator </h3>A Readable 
+Iterator is an iterator that dereferences to produce an rvalue that is 
+convertible to the <tt>value_type</tt> of the iterator. 
+<h3>Associated Types</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <td>Value type</td>
+    <td><tt>std::iterator_traits&lt;X&gt;::value_type</tt></td>
+    <td>The type of the objects pointed to by the iterator.</td></tr>
+  <tr>
+    <td>Reference type</td>
+    <td><tt>std::iterator_traits&lt;X&gt;::reference</tt></td>
+    <td>The return type of dereferencing the iterator. This type must be 
+      convertible to <tt>T</tt>. </td></tr>
+  <tr>
+    <td>Return Category</td>
+    <td><tt>std::return_category&lt;X&gt;::type</tt></td>
+    <td>A type convertible to <tt>std::readable_iterator_tag</tt> 
+  </td></tr></tbody></table>
+<h3>Refinement of</h3><a href="http://www.boost.org/libs/utility/CopyConstructible.html">Copy 
+Constructible</a> 
+<h3>Valid expressions</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <th>Name</th>
+    <th>Expression</th>
+    <th>Type requirements</th>
+    <th>Return type</th></tr>
+  <tr>
+    <td>Dereference</td>
+    <td><tt>*x</tt></td>
+    <td> </td>
+    <td><tt>std::iterator_traits&lt;X&gt;::reference</tt></td></tr>
+  <tr>
+    <td>Member access</td>
+    <td><tt>x-&gt;m</tt></td>
+    <td><tt>T</tt> is a type with a member named <tt>m</tt>.</td>
+    <td>If <tt>m</tt> is a data member, the type of <tt>m</tt>. If <tt>m</tt> 
+      is a member function, the return type of <tt>m</tt>. </td></tr></tbody></table>
+<p>
+</p><hr>
+<!--------------------------------------------------------------------------->
+<h3><a name="concept_WritableIterator"></a>Writable Iterator </h3>A Writable 
+Iterator is an iterator that can be used to store a value using the 
+dereference-assignment expression. 
+<h3>Definitions</h3>If <tt>x</tt> is an Writable Iterator of type <tt>X</tt>, 
+then the expression <tt>*x = a;</tt> stores the value <tt>a</tt> into 
+<tt>x</tt>. Note that <tt>operator=</tt>, like other C++ functions, may be 
+overloaded; it may, in fact, even be a template function. In general, then, 
+<tt>a</tt> may be any of several different types. A type <tt>A</tt> belongs to 
+the <i>set of value types</i> of <tt>X</tt> if, for an object <tt>a</tt> of type 
+<tt>A</tt>, <tt>*x = a;</tt> is well-defined and does not require performing any 
+non-trivial conversions on <tt>a</tt>. 
+<h3>Associated Types</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <td>Return Category</td>
+    <td><tt>std::return_category&lt;X&gt;::type</tt></td>
+    <td>A type convertible to <tt>std::writable_iterator_tag</tt> 
+  </td></tr></tbody></table>
+<h3>Refinement of</h3><a href="http://www.boost.org/libs/utility/CopyConstructible.html">Copy 
+Constructible</a> 
+<h3>Valid expressions</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <th>Name</th>
+    <th>Expression</th>
+    <th>Return type</th></tr>
+  <tr>
+    <td>Dereference assignment</td>
+    <td><tt>*x = a</tt></td>
+    <td>unspecified</td></tr></tbody></table>
+<p>
+</p><hr>
+<!--------------------------------------------------------------------------->
+<h3><a name="concept_SwappableIterator"></a>Swappable Iterator </h3>A Swappable 
+Iterator is an iterator whose dereferenced values can be swapped. 
+<p>Note: the requirements for Swappable Iterator are dependent on the issues 
+surrounding <tt>std::swap()</tt> being resolved. Here we assume that the issue 
+will be resolved by allowing the overload of <tt>std::swap()</tt> for 
+user-defined types. 
+</p><p>Note: Readable Iterator and Writable Iterator combined implies Swappable 
+Iterator because of the fully templated <tt>std::swap()</tt>. However, Swappable 
+Iterator does not imply Readable Iterator nor Writable Iterator. 
+</p><h3>Associated Types</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <td>Return Category</td>
+    <td><tt>std::return_category&lt;X&gt;::type</tt></td>
+    <td>A type convertible to <tt>std::swappable_iterator_tag</tt> 
+  </td></tr></tbody></table>
+<h3>Valid expressions</h3>Of the two valid expressions listed below, only one 
+<b>OR</b> the other is required. If <tt>std::iter_swap()</tt> is overloaded for 
+<tt>X</tt> then <tt>std::swap()</tt> is not required. If 
+<tt>std::iter_swap()</tt> is not overloaded for <tt>X</tt> then the default 
+(fully templated) version is used, which will call <tt>std::swap()</tt> (this 
+means changing the current requirements for <tt>std::iter_swap()</tt>). 
+<p>
+<table border="1">
+  <tbody>
+  <tr>
+    <th>Name</th>
+    <th>Expression</th>
+    <th>Return type</th></tr>
+  <tr>
+    <td>Iterator Swap</td>
+    <td><tt>std::iter_swap(x, y)</tt></td>
+    <td>void</td></tr>
+  <tr>
+    <td>Dereference and Swap</td>
+    <td><tt>std::swap(*x, *y)</tt></td>
+    <td>void</td></tr></tbody></table>
+</p><p>
+</p><hr>
+<!--------------------------------------------------------------------------->
+<h3><a name="concept_ConstantLvalueIterator"></a>Constant Lvalue Iterator </h3>A 
+Constant Lvalue Iterator is an iterator that dereferences to produce a const 
+reference to the pointed-to object, i.e., the associated <tt>reference</tt> type 
+is <tt>const T&amp;</tt>. Changing the value of or destroying an iterator that 
+models Constant Lvalue Iterator does not invalidate pointers and references 
+previously obtained from that iterator. 
+<h3>Refinement of</h3><a href="#concept_ReadableIterator">Readable 
+Iterator</a> 
+<h3>Associated Types</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <td>Reference type</td>
+    <td><tt>std::iterator_traits&lt;X&gt;::reference</tt></td>
+    <td>The return type of dereferencing the iterator, which must be <tt>const 
+      T&amp;</tt>. </td></tr><!--  I don't think this is needed
+
+  <tr>
+
+    <td>Pointer type</td>
+
+    <td><tt>std::iterator_traits&lt;X&gt;::pointer</tt></td>
+
+    <td>
+
+     The pointer to the value type, which must be <tt>const T*</tt>.
+
+    </td>
+
+  </tr>
+
+-->
+  <tr>
+    <td>Return Category</td>
+    <td><tt>std::return_category&lt;X&gt;::type</tt></td>
+    <td>A type convertible to <tt>std::constant_lvalue_iterator_tag</tt> 
+  </td></tr></tbody></table><!-- these are not necessary now that we use reference as operator* return type
+
+<h3>Valid expressions</h3>
+
+
+
+<Table border>
+
+<tr><TH>Name</TH><TH>Expression</TH><TH>Type requirements</TH><TH>Return type</TH></tr>
+
+<tr>
+
+ <td>Dereference</td>
+
+ <td><tt>*x</tt></td>
+
+ <td>&nbsp;</td>
+
+ <td><tt>std::iterator_traits&lt;X&gt;::reference</tt></td>
+
+</tr>
+
+<tr>
+
+ <td>Member access</td>
+
+ <td><tt>x-&gt;m</tt></td>
+
+ <td><tt>T</tt> is a type with a member named <tt>m</tt>.</td>
+
+ <td>
+
+ &nbsp;
+
+ </td>
+
+</tr>
+
+</table>
+
+
+
+-->
+<p>
+</p><hr>
+<!--------------------------------------------------------------------------->
+<h3><a name="concept_MutableLvalueIterator"></a>Mutable Lvalue Iterator </h3>A 
+Mutable Lvalue Iterator is an iterator that dereferences to produce a reference 
+to the pointed-to object. The associated <tt>reference</tt> type is 
+<tt>T&amp;</tt>. Changing the value of or destroying an iterator that models 
+Mutable Lvalue Iterator does not invalidate pointers and references previously 
+obtained from that iterator. 
+<h3>Refinement of</h3><a href="#concept_ReadableIterator">Readable 
+Iterator</a>, <a href="#concept_WritableIterator">Writable 
+Iterator</a>, and <a href="#concept_SwappableIterator">Swappable 
+Iterator</a>. 
+<h3>Associated Types</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <td>Reference type</td>
+    <td><tt>std::iterator_traits&lt;X&gt;::reference</tt></td>
+    <td>The return type of dereferencing the iterator, which must be 
+      <tt>T&amp;</tt>.</td></tr><!-- I don't think this is necessary
+
+  <tr>
+
+    <td>Pointer type</td>
+
+    <td><tt>std::iterator_traits&lt;X&gt;::pointer</tt></td>
+
+    <td>
+
+     The pointer to the value type, which is <tt>T*</tt>.
+
+    </td>
+
+  </tr>
+
+-->
+  <tr>
+    <td>Return Category</td>
+    <td><tt>std::return_category&lt;X&gt;::type</tt></td>
+    <td>A type convertible to <tt>std::mutable_lvalue_iterator_tag</tt> 
+  </td></tr></tbody></table><!-- no longer needed since the return type is specified as reference in the readable iterator
+
+<h3>Valid expressions</h3>
+
+
+
+<Table border>
+
+<tr><TH>Name</TH><TH>Expression</TH><TH>Type requirements</TH><TH>Return type</TH></tr>
+
+<tr>
+
+ <td>Dereference</td>
+
+ <td><tt>*x</tt></td>
+
+ <td>&nbsp;</td>
+
+ <td><tt>std::iterator_traits&lt;X&gt;::reference</tt></td>
+
+</tr>
+
+<tr>
+
+ <td>Member access</td>
+
+ <td><tt>x-&gt;m</tt></td>
+
+ <td><tt>T</tt> is a type with a member named <tt>m</tt>.</td>
+
+ <td>
+
+ &nbsp;
+
+ </td>
+
+</tr>
+
+</table>
+
+
+
+-->
+<p>
+</p><hr>
+<!--------------------------------------------------------------------------->
+<h3><a name="concept_ForwardTraversalIterator"></a>Forward Traversal Iterator 
+</h3>The Forward Iterator is an iterator that can be incremented. Also, it is 
+permissible to make multiple passes through the iterator's range. 
+<h3>Refinement of</h3><a href="http://www.boost.org/libs/utility/CopyConstructible.html">Copy 
+Constructible</a>, <a href="http://www.boost.org/libs/utility/Assignable.html">Assignable</a>, <a href="http://www.sgi.com/tech/stl/DefaultConstructible.html">Default 
+Constructible</a>, and <a href="http://www.sgi.com/tech/stl/EqualityComparable.html">Equality 
+Comparable</a> 
+<h3>Associated types</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <td>Difference Type</td>
+    <td><tt>std::iterator_traits&lt;X&gt;::difference_type</tt></td>
+    <td>A signed integral type used for representing distances between 
+      iterators that point into the same range. </td></tr>
+  <tr>
+    <td>Traversal Category</td>
+    <td><tt>std::traversal_category&lt;X&gt;::type</tt></td>
+    <td>A type convertible to <tt>std::forward_traversal_tag</tt> 
+  </td></tr></tbody></table>
+<h3>Valid expressions</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <th>Name</th>
+    <th>Expression</th>
+    <th>Type requirements</th>
+    <th>Return type</th></tr>
+  <tr>
+    <td>Preincrement</td>
+    <td><tt>++i</tt></td>
+    <td> </td>
+    <td><tt>X&amp;</tt></td></tr>
+  <tr>
+    <td>Postincrement</td>
+    <td><tt>i++</tt></td>
+    <td> </td>
+    <td>convertible to <tt>const X&amp;</tt></td></tr></tbody></table>
+<p>
+</p><hr>
+<!--------------------------------------------------------------------------->
+<h3><a name="concept_BidirectionalTraversalIterator"></a>Bidirectional Traversal 
+Iterator </h3>An iterator that can be incremented and decremented. 
+<h3>Refinement of</h3><a href="#concept_ForwardTraversalIterator">Forward 
+Traversal Iterator</a> 
+<h3>Associated types</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <td>Traversal Category</td>
+    <td><tt>std::traversal_category&lt;X&gt;::type</tt></td>
+    <td>A type convertible to <tt>std::bidirectional_traversal_tag</tt> 
+  </td></tr></tbody></table>
+<h3>Valid expressions</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <th>Name</th>
+    <th>Expression</th>
+    <th>Type requirements</th>
+    <th>Return type</th></tr>
+  <tr>
+    <td>Predecrement</td>
+    <td><tt>--i</tt></td>
+    <td> </td>
+    <td><tt>X&amp;</tt></td></tr>
+  <tr>
+    <td>Postdecrement</td>
+    <td><tt>i--</tt></td>
+    <td> </td>
+    <td>convertible to <tt>const X&amp;</tt></td></tr></tbody></table>
+<p>
+</p><hr>
+<!--------------------------------------------------------------------------->
+<h3><a name="concept_RandomAccessTraversalIterator"></a>Random Access Traversal 
+Iterator </h3>An iterator that provides constant-time methods for moving forward 
+and backward in arbitrary-sized steps. 
+<h3>Refinement of</h3><a href="#concept_BidirectionalTraversalIterator">Bidirectional 
+Traversal Iterator</a> and <a href="http://www.sgi.com/tech/stl/LessThanComparable.html">Less Than 
+Comparable</a> where <tt>&lt;</tt> is a total ordering 
+<h3>Associated types</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <td>Traversal Category</td>
+    <td><tt>std::traversal_category&lt;X&gt;::type</tt></td>
+    <td>A type convertible to <tt>std::random_access_traversal_tag</tt> 
+  </td></tr></tbody></table>
+<h3>Valid expressions</h3>
+<table border="1">
+  <tbody>
+  <tr>
+    <th>Name</th>
+    <th>Expression</th>
+    <th>Type requirements</th>
+    <th>Return type</th></tr>
+  <tr>
+    <td>Iterator addition</td>
+    <td><tt>i += n</tt></td>
+    <td> </td>
+    <td><tt>X&amp;</tt></td></tr>
+  <tr>
+    <td>Iterator addition</td>
+    <td><tt>i + n</tt> or <tt>n + i</tt></td>
+    <td> </td>
+    <td><tt>X</tt></td></tr>
+  <tr>
+    <td>Iterator subtraction</td>
+    <td><tt>i -= n</tt></td>
+    <td> </td>
+    <td><tt>X&amp;</tt></td></tr>
+  <tr>
+    <td>Iterator subtraction</td>
+    <td><tt>i - n</tt></td>
+    <td> </td>
+    <td><tt>X</tt></td></tr>
+  <tr>
+    <td>Difference</td>
+    <td><tt>i - j</tt></td>
+    <td> </td>
+    <td><tt>std::iterator_traits&lt;X&gt;::difference_type</tt></td></tr>
+  <tr>
+    <td>Element operator</td>
+    <td><tt>i[n]</tt></td>
+    <td><tt>X</tt> must also be a model of <a href="#concept_ReadableIterator">Readable 
+      Iterator</a>. </td>
+    <td><tt>std::iterator_traits&lt;X&gt;::reference</tt></td></tr>
+  <tr>
+    <td>Element assignment</td>
+    <td><tt>i[n] = t</tt></td>
+    <td><tt>X</tt> must also be a model of <a href="#concept_WritableIterator">Writable 
+      Iterator</a>.</td>
+    <td>unspecified</td></tr></tbody></table>
+<p>
+</p><hr>
+<!--  LocalWords:  HTML BGCOLOR FFFFFF TR TD Siek HREF mailto jsiek
+
+ --><!--  LocalWords:  lsc edu tt const href http anubis dkuug dk JTC SC WG docs lt
+
+ --><!--  LocalWords:  lwg html bool gt Sutter's htm Lvalue namespace std struct
+
+ --><!--  LocalWords:  lvalue typename OldTraits reusability min iter prev inplace
+
+ --><!--  LocalWords:  rvalue templated Preincrement Postincrement Predecrement
+
+ --><!--  LocalWords:  Postdecrement
+
+ --></body></html>

@@ -1,0 +1,129 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Structure]
+
+[section Include]
+
+Spirit is a header file only library. There are no libraries to link to.
+This section documents the structure of the Spirit headers.
+
+Spirit contains five sub-libraries plus a 'support' module where common
+support classes are placed:
+
+* Classic
+* Qi
+* Karma
+* Lex
+* Phoenix
+* Support
+
+The top Spirit directory is:
+
+    BOOST_ROOT/boost/spirit
+
+Currently, the directory contains:
+
+    [actor]     [attribute]     [core]      [debug]
+    [dynamic]   [error_handling][home]      [include]
+    [iterator]  [meta]          [phoenix]   [repository]
+    [symbols]   [tree]          [utility]
+
+These include some old v1.8 directories that are now deprecated. These
+are: actor, attribute, core, debug, dynamic, error_handling, iterator,
+meta, phoenix, symbols, tree and utility. There is no guarantee that these
+directories will still be present in future versions of Spirit. We only
+keep them for backward compatibility. Please be warned.
+
+Each directory (except include, home, and repository) has a corresponding
+header file that contains forwarding includes of each relevant include file
+that the directory contains. For example, there exists a
+<boost/spirit/actor.hpp> header file which includes all the relevant files
+from the boost/spirit/actor directory.
+
+To distinguish between Spirit versions, you can inspect the version file:
+
+    <boost/spirit/version.hpp>
+
+using the preprocessor define
+
+    SPIRIT_VERSION
+
+It is a hex number where the first two digits determine the major version while
+the last two digits determine the minor version. For example:
+
+    #define SPIRIT_VERSION 0x2010 // version 2.1
+
+The include directory at:
+
+    BOOST_ROOT/boost/spirit/include
+
+is a special flat directory that contains all the Spirit headers. To
+accommodate the flat structure, the headers are prefixed with the
+sub-library name:
+
+* classic_
+* karma_
+* lex_
+* phoenix1_
+* phoenix_
+* qi_
+* support_
+
+For example, if you used to include <boost/spirit/actor.hpp>,
+which is now a deprecated header, you should instead include
+<boost/spirit/include/classic_actor.hpp>
+
+If you want to simply include the main sub-library name, then you can
+include:
+
+* <boost/spirit/include/classic.hpp>
+* <boost/spirit/include/karma.hpp>
+* <boost/spirit/include/lex.hpp>
+* <boost/spirit/include/phoenix1.hpp>
+* <boost/spirit/include/phoenix.hpp>
+* <boost/spirit/include/qi.hpp>
+* <boost/spirit/include/support.hpp>
+
+The home directory:
+
+    BOOST_ROOT/boost/spirit/home
+
+is the /real/ home of Spirit. It is the place where the various sub-libraries
+actually exist. The home directory contains:
+
+    [classic]   [karma]     [lex]
+    [phoenix]   [qi]        [support]
+
+As usual, these directories have their corresponding include files:
+
+* <boost/spirit/home/classic.hpp>
+* <boost/spirit/home/karma.hpp>
+* <boost/spirit/home/lex.hpp>
+* <boost/spirit/home/phoenix.hpp>
+* <boost/spirit/home/qi.hpp>
+* <boost/spirit/home/support.hpp>
+
+The various sub-libraries include files can be found in each
+sub-directory containing the particular sub-library. The include
+structure of a sub-library is covered in its documentation. For
+consistency, each library follows the same scheme as above.
+
+To keep it simple, you should use the flat include directory at
+boost/spirit/include.
+
+For some additional information about the rationale you might want to have a 
+look at the FAQ entry __include_structure_faq__.
+
+The subdirectory `boost/spirit/repository` does not belong to the main Spirit
+distribution. For more information please refer to: 
+[link spirit.repository Spirit Repository].
+
+[endsect] [/Include]
+
+[endsect]

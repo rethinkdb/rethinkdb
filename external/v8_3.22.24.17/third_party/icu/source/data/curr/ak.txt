@@ -1,0 +1,232 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ak.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ak.xml
+ */
+ak{
+    Currencies{
+        AED{
+            "AED",
+            "Ɛmirete Arab Nkabɔmu Deram",
+        }
+        AOA{
+            "Kz",
+            "Angola Kwanza",
+        }
+        AUD{
+            "AU$",
+            "Ɔstrelia Dɔla",
+        }
+        BHD{
+            "BD",
+            "Baren Dina",
+        }
+        BIF{
+            "FBu",
+            "Burundi Frank",
+        }
+        BWP{
+            "BWP",
+            "Botswana Pula",
+        }
+        CAD{
+            "CA$",
+            "Kanada Dɔla",
+        }
+        CDF{
+            "CDF",
+            "Kongo Frank",
+        }
+        CHF{
+            "CHF",
+            "Sweden Frank",
+        }
+        CNY{
+            "CN¥",
+            "Yuan",
+        }
+        CVE{
+            "CV$",
+            "Ɛskudo",
+        }
+        DJF{
+            "Fdj",
+            "Gyebuti Frank",
+        }
+        DZD{
+            "DA",
+            "Ɔlgyeria Dina",
+        }
+        EGP{
+            "EGP",
+            "Egypt Pɔn",
+        }
+        ERN{
+            "Nfk",
+            "Ɛretereya Nakfa",
+        }
+        ETB{
+            "Br",
+            "Itiopia Bir",
+        }
+        EUR{
+            "€",
+            "Iro",
+        }
+        GBP{
+            "£",
+            "Breten Pɔn",
+        }
+        GHC{
+            "₵",
+            "Ghana Sidi",
+        }
+        GMD{
+            "GMD",
+            "Gambia Dalasi",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Gini Frank",
+        }
+        INR{
+            "Rs",
+            "India Rupi",
+        }
+        JPY{
+            "JP¥",
+            "Gyapan Yɛn",
+        }
+        KES{
+            "Ksh",
+            "Kenya Hyelen",
+        }
+        KMF{
+            "CF",
+            "Komoro Frank",
+        }
+        LRD{
+            "L$",
+            "Laeberia Dɔla",
+        }
+        LSL{
+            "LSL",
+            "Lesoto Loti",
+        }
+        LYD{
+            "LD",
+            "Libya Dina",
+        }
+        MAD{
+            "MAD",
+            "Moroko Diram",
+        }
+        MGA{
+            "MGA",
+            "Madagasi Frank",
+        }
+        MRO{
+            "UM",
+            "Mɔretenia Ouguiya",
+        }
+        MUR{
+            "MURs",
+            "Mɔrehyeɔs Rupi",
+        }
+        MWK{
+            "MWK",
+            "Malawi Kwacha",
+        }
+        MZM{
+            "Mt",
+            "Mozambik Metical",
+        }
+        NAD{
+            "N$",
+            "Namibia Dɔla",
+        }
+        NGN{
+            "₦",
+            "Naegyeria Naira",
+        }
+        RWF{
+            "RWF",
+            "Rewanda Frank",
+        }
+        SAR{
+            "SR",
+            "Saudi Riyal",
+        }
+        SCR{
+            "SRe",
+            "Seyhyɛls Rupi",
+        }
+        SDG{
+            "SDG",
+            "Sudan Dina",
+        }
+        SDP{
+            "SDP" /** ===  */,
+            "Sudan Pɔn",
+        }
+        SHP{
+            "SH£",
+            "St Helena Pɔn",
+        }
+        SLL{
+            "Le",
+            "Leone",
+        }
+        SOS{
+            "Ssh",
+            "Somailia Hyelen",
+        }
+        STD{
+            "Db",
+            "Sao Tome ne Principe Dobra",
+        }
+        SZL{
+            "SZL",
+            "Lilangeni",
+        }
+        TND{
+            "DT",
+            "Tunisia Dina",
+        }
+        TZS{
+            "TSh",
+            "Tanzania Hyelen",
+        }
+        UGX{
+            "USh",
+            "Uganda Hyelen",
+        }
+        USD{
+            "US$",
+            "Amɛrika Dɔla",
+        }
+        XAF{
+            "FCFA",
+            "Sefa",
+        }
+        ZAR{
+            "R",
+            "Afrika Anaafo Rand",
+        }
+        ZMK{
+            "ZK",
+            "Zambia Kwacha",
+        }
+        ZWD{
+            "Z$",
+            "Zimbabwe Dɔla",
+        }
+    }
+    Version{"2.0.47.53"}
+}

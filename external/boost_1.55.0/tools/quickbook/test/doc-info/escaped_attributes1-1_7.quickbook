@@ -1,0 +1,11 @@
+[library Escaped name
+[quickbook 1.7]
+[copyright 1325 John Doe]
+'''<author>
+    <firstname>John</firstname>
+    <surname>Doe</surname>
+    <email>john.doe@example.com</email>
+</author>'''
+[category test]
+]
+

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="include_in_section_1_6" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Include in section 1.6</title>
+  <section id="include_in_section_1_6.container">
+    <title><link linkend="include_in_section_1_6.container">Container</link></title>
+    <article id="include_in_section_include_1" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+    xmlns:xi="http://www.w3.org/2001/XInclude">
+      <title>Include in section include 1</title>
+      <bridgehead renderas="sect1" id="include_in_section_include_1.h0">
+        <phrase id="include_in_section_include_1.test1"/><link linkend="include_in_section_include_1.test1">Test1</link>
+      </bridgehead>
+      <section id="include_in_section_include_1.inner">
+        <title><link linkend="include_in_section_include_1.inner"></link></title>
+        <bridgehead renderas="sect1" id="include_in_section_include_1.inner.h0">
+          <phrase id="include_in_section_include_1.inner.test2"/><link linkend="include_in_section_include_1.inner.test2">Test2</link>
+        </bridgehead>
+        <bridgehead renderas="sect3" id="include_in_section_include_1.inner.h1">
+          <phrase id="include_in_section_include_1.inner.simple_include"/><link linkend="include_in_section_include_1.inner.simple_include">Simple
+          include</link>
+        </bridgehead>
+      </section>
+    </article>
+    <article id="section_include" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+    xmlns:xi="http://www.w3.org/2001/XInclude">
+      <title>Include in section include 2</title>
+      <bridgehead renderas="sect1" id="section_include.h0">
+        <phrase id="section_include.test1"/><link linkend="section_include.test1">Test1</link>
+      </bridgehead>
+      <section id="section_include.inner">
+        <title><link linkend="section_include.inner"></link></title>
+        <bridgehead renderas="sect1" id="section_include.inner.h0">
+          <phrase id="section_include.inner.test2"/><link linkend="section_include.inner.test2">Test2</link>
+        </bridgehead>
+        <bridgehead renderas="sect3" id="section_include.inner.h1">
+          <phrase id="section_include.inner.simple_include"/><link linkend="section_include.inner.simple_include">Simple
+          include</link>
+        </bridgehead>
+      </section>
+    </article>
+  </section>
+  <article id="include_in_section_include_1_0" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>Include in section include 1</title>
+    <bridgehead renderas="sect1" id="include_in_section_include_1_0.h0">
+      <phrase id="include_in_section_include_1_0.test1"/><link linkend="include_in_section_include_1_0.test1">Test1</link>
+    </bridgehead>
+    <section id="include_in_section_include_1_0.inner">
+      <title><link linkend="include_in_section_include_1_0.inner"></link></title>
+      <bridgehead renderas="sect1" id="include_in_section_include_1_0.inner.h0">
+        <phrase id="include_in_section_include_1_0.inner.test2"/><link linkend="include_in_section_include_1_0.inner.test2">Test2</link>
+      </bridgehead>
+      <bridgehead renderas="sect3" id="include_in_section_include_1_0.inner.h1">
+        <phrase id="include_in_section_include_1_0.inner.simple_include"/><link linkend="include_in_section_include_1_0.inner.simple_include">Simple
+        include</link>
+      </bridgehead>
+    </section>
+  </article>
+  <article id="section_include0" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>Include in section include 2</title>
+    <bridgehead renderas="sect1" id="section_include0.h0">
+      <phrase id="section_include0.test1"/><link linkend="section_include0.test1">Test1</link>
+    </bridgehead>
+    <section id="section_include0.inner">
+      <title><link linkend="section_include0.inner"></link></title>
+      <bridgehead renderas="sect1" id="section_include0.inner.h0">
+        <phrase id="section_include0.inner.test2"/><link linkend="section_include0.inner.test2">Test2</link>
+      </bridgehead>
+      <bridgehead renderas="sect3" id="section_include0.inner.h1">
+        <phrase id="section_include0.inner.simple_include"/><link linkend="section_include0.inner.simple_include">Simple
+        include</link>
+      </bridgehead>
+    </section>
+  </article>
+  <section id="include_in_section_1_6.container2">
+    <title><link linkend="include_in_section_1_6.container2">Container2</link></title>
+    <article id="include_in_section_include_1_1" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+    xmlns:xi="http://www.w3.org/2001/XInclude">
+      <title>Include in section include 1</title>
+      <bridgehead renderas="sect1" id="include_in_section_include_1_1.h0">
+        <phrase id="include_in_section_include_1_1.test1"/><link linkend="include_in_section_include_1_1.test1">Test1</link>
+      </bridgehead>
+      <section id="include_in_section_include_1_1.inner">
+        <title><link linkend="include_in_section_include_1_1.inner"></link></title>
+        <bridgehead renderas="sect1" id="include_in_section_include_1_1.inner.h0">
+          <phrase id="include_in_section_include_1_1.inner.test2"/><link linkend="include_in_section_include_1_1.inner.test2">Test2</link>
+        </bridgehead>
+        <bridgehead renderas="sect3" id="include_in_section_include_1_1.inner.h1">
+          <phrase id="include_in_section_include_1_1.inner.simple_include"/><link
+          linkend="include_in_section_include_1_1.inner.simple_include">Simple include</link>
+        </bridgehead>
+      </section>
+    </article>
+    <article id="section_include1" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+    xmlns:xi="http://www.w3.org/2001/XInclude">
+      <title>Include in section include 2</title>
+      <bridgehead renderas="sect1" id="section_include1.h0">
+        <phrase id="section_include1.test1"/><link linkend="section_include1.test1">Test1</link>
+      </bridgehead>
+      <section id="section_include1.inner">
+        <title><link linkend="section_include1.inner"></link></title>
+        <bridgehead renderas="sect1" id="section_include1.inner.h0">
+          <phrase id="section_include1.inner.test2"/><link linkend="section_include1.inner.test2">Test2</link>
+        </bridgehead>
+        <bridgehead renderas="sect3" id="section_include1.inner.h1">
+          <phrase id="section_include1.inner.simple_include"/><link linkend="section_include1.inner.simple_include">Simple
+          include</link>
+        </bridgehead>
+      </section>
+    </article>
+  </section>
+</article>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="7.10"
+	Name="compiler_status"
+	ProjectGUID="{81F22EF9-A1B8-46CB-9C2D-56FD4327B942}"
+	Keyword="MakeFileProj">
+	<Platforms>
+		<Platform
+			Name="Win32"/>
+	</Platforms>
+	<Configurations>
+		<Configuration
+			Name="Debug|Win32"
+			OutputDirectory="Debug"
+			IntermediateDirectory="Debug"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="cd ..\..\..\..\tools\regression\build
+..\..\jam\src\bin.ntx86\bjam.exe compiler_status.exe variant=debug"
+				ReBuildCommandLine="cd ..\..\..\..\tools\regression\build
+...\..\jam\src\bin.ntx86\bjam.exe -a compiler_status.exe variant=debug"
+				CleanCommandLine="cd ..\..\..\..\tools\regression\build
+call bjam --v2 msvc-7.1 debug clean
+"
+				Output="compiler_status.exe"/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="Release"
+			IntermediateDirectory="Release"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="cd ..
+..\..\jam\src\bin.ntx86\bjam compiler_status variant=release link=static"
+				ReBuildCommandLine="cd ..
+..\..\jam\src\bin.ntx86\bjam -a compiler_status variant=release link=static"
+				CleanCommandLine="cd ..
+..\..\jam\src\bin.ntx86\bjam clean"
+				Output="..\..\..\..\bin.v2\tools\regression\build\msvc-7.1\release\link-static\compiler_status.exe"/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+		<Filter
+			Name="Source Files"
+			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
+			<File
+				RelativePath="..\..\compiler_status.cpp">
+			</File>
+		</Filter>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

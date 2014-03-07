@@ -1,0 +1,307 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:regex_iterator regex_iterator]
+
+The iterator type [regex_iterator] will enumerate all of the regular expression 
+matches found in some sequence: dereferencing a [regex_iterator] yields a 
+reference to a [match_results] object.
+
+   template <class BidirectionalIterator, 
+            class charT = iterator_traits<BidirectionalIterator>::value_type,
+            class traits = regex_traits<charT> >
+   class regex_iterator 
+   {
+   public:
+      typedef          basic_regex<charT, traits>                              regex_type;
+      typedef          match_results<BidirectionalIterator>                    value_type;
+      typedef typename iterator_traits<BidirectionalIterator>::difference_type difference_type;
+      typedef          const value_type*                                       pointer;
+      typedef          const value_type&                                       reference;
+      typedef          std::forward_iterator_tag                               iterator_category;
+      
+      ``[link boost_regex.regex_iterator.construct1 regex_iterator]``();
+      ``[link boost_regex.regex_iterator.construct2 regex_iterator]``(BidirectionalIterator a, BidirectionalIterator b, 
+                     const regex_type& re, 
+                     match_flag_type m = match_default);
+      ``[link boost_regex.regex_iterator.construct3 regex_iterator]``(const regex_iterator&);
+      regex_iterator& ``[link boost_regex.regex_iterator.assign operator=(]``const regex_iterator&);
+      bool ``[link boost_regex.regex_iterator.op_eq operator==]``(const regex_iterator&)const;
+      bool ``[link boost_regex.regex_iterator.op_ne operator!=]``(const regex_iterator&)const;
+      const value_type& ``[link boost_regex.regex_iterator.op_deref operator*]``()const;
+      const value_type* ``[link boost_regex.regex_iterator.op_arrow operator->]``()const;
+      regex_iterator& ``[link boost_regex.regex_iterator.op_inc operator++]``();
+      regex_iterator ``[link boost_regex.regex_iterator.op_inc2 operator++]``(int);
+   };
+
+   typedef regex_iterator<const char*>                  cregex_iterator; 
+   typedef regex_iterator<std::string::const_iterator>  sregex_iterator; 
+   
+   #ifndef  BOOST_NO_WREGEX
+   typedef regex_iterator<const wchar_t*>               wcregex_iterator; 
+   typedef regex_iterator<std::wstring::const_iterator> wsregex_iterator; 
+   #endif 
+   
+   template <class charT, class traits> regex_iterator<const charT*, charT, traits> 
+      ``[link boost_regex.regex_iterator.make make_regex_iterator]``(const charT* p, const basic_regex<charT, traits>& e, 
+                          regex_constants::match_flag_type m = regex_constants::match_default); 
+                          
+   template <class charT, class traits, class ST, class SA> 
+      regex_iterator<typename std::basic_string<charT, ST, SA>::const_iterator, charT, traits> 
+         ``[link boost_regex.regex_iterator.make make_regex_iterator]``(const std::basic_string<charT, ST, SA>& p, 
+                             const basic_regex<charT, traits>& e, 
+                             regex_constants::match_flag_type m = regex_constants::match_default);
+
+
+[h4 Description]
+
+A [regex_iterator] is constructed from a pair of iterators, and enumerates 
+all occurrences of a regular expression within that iterator range.
+
+[#boost_regex.regex_iterator.construct1]
+
+   regex_iterator();
+
+[*Effects]: constructs an end of sequence [regex_iterator].
+
+[#boost_regex.regex_iterator.construct2]
+
+   regex_iterator(BidirectionalIterator a, BidirectionalIterator b, 
+                  const regex_type& re, 
+                  match_flag_type m = match_default);
+
+[*Effects]: constructs a [regex_iterator] that will enumerate all occurrences of 
+the expression /re/, within the sequence \[a,b), and found using [match_flag_type] /m/.  
+The object /re/ must exist for the lifetime of the [regex_iterator].
+
+[*Throws]: `std::runtime_error` if the complexity of matching the expression 
+against an N character string begins to exceed O(N[super 2]), or if the program 
+runs out of stack space while matching the expression (if Boost.Regex is 
+configured in recursive mode), or if the matcher exhausts its permitted 
+memory allocation (if Boost.Regex is configured in non-recursive mode).
+
+[#boost_regex.regex_iterator.construct3]
+
+   regex_iterator(const regex_iterator& that);
+
+[*Effects]: constructs a copy of `that`.
+
+[*Postconditions]: `*this == that`.
+
+
+[#boost_regex.regex_iterator.assign]
+
+   regex_iterator& operator=(const regex_iterator&);
+
+[*Effects]: sets `*this` equal to those in `that`.
+
+[*Postconditions]: *this == that.
+
+
+[#boost_regex.regex_iterator.op_eq]
+
+   bool operator==(const regex_iterator& that)const;
+
+[*Effects]: returns true if *this is equal to that.
+
+
+[#boost_regex.regex_iterator.op_ne]
+
+   bool operator!=(const regex_iterator&)const;
+
+[*Effects]: returns `!(*this == that)`.
+
+
+[#boost_regex.regex_iterator.op_deref]
+
+   const value_type& operator*()const;
+
+[*Effects]: dereferencing a [regex_iterator] object it yields a const reference 
+to a [match_results] object, whose members are set as follows:
+
+[table
+[[Element][Value]]
+[[`(*it).size()`][`re.mark_count()`]]
+[[`(*it).empty()`][`false`]]
+[[`(*it).prefix().first`][The end of the last match found, or the start 
+   of the underlying sequence if this is the first match enumerated]]
+[[`(*it).prefix().last`][The same as the start of the match found:
+      `(*it)[0].first`]]
+[[`(*it).prefix().matched`][True if the prefix did not match an empty string:
+      `(*it).prefix().first != (*it).prefix().second`]]
+[[`(*it).suffix().first`][The same as the end of the match found:
+      `(*it)[0].second`]]
+[[`(*it).suffix().last`][The end of the underlying sequence.]]
+[[`(*it).suffix().matched`][True if the suffix did not match an empty string:
+      `(*it).suffix().first != (*it).suffix().second`]]
+[[`(*it)[0].first`][The start of the sequence of characters that matched the regular expression]]
+[[`(*it)[0].second`][The end of the sequence of characters that matched the regular expression]]
+[[`(*it)[0].matched`][true if a full match was found, and false if it was a partial match (found as a result of the match_partial flag being set).]]
+[[`(*it)[n].first`][For all integers `n < (*it).size()`, the start of the sequence 
+         that matched sub-expression /n/. Alternatively, if sub-expression /n/ 
+         did not participate in the match, then last.]]
+[[`(*it)[n].second`][For all integers `n < (*it).size()`, the end of the sequence 
+      that matched sub-expression /n/. Alternatively, if sub-expression /n/ did 
+      not participate in the match, then last.]]
+[[`(*it)[n].matched`][For all integers `n < (*it).size()`, true if sub-expression /n/ 
+      participated in the match, false otherwise.]]
+[[`(*it).position(n)`][For all integers `n < (*it).size()`, then the distance from 
+      the start of the underlying sequence to the start of sub-expression match /n/.]]
+]
+
+
+[#boost_regex.regex_iterator.op_arrow]
+
+   const value_type* operator->()const;
+
+[*Effects]: returns `&(*this)`.
+
+
+[#boost_regex.regex_iterator.op_inc]
+
+   regex_iterator& operator++();
+
+[*Effects]: moves the iterator to the next match in the underlying sequence, or 
+the end of sequence iterator if none if found.  When the last match found 
+matched a zero length string, then the [regex_iterator] will find the next match as 
+follows: if there exists a non-zero length match that starts at the same 
+location as the last one, then returns it, otherwise starts looking for the 
+next (possibly zero length) match from one position to the right of the last match.
+
+[*Throws]: `std::runtime_error` if the complexity of matching the expression 
+against an N character string begins to exceed O(N[super 2]), or if the 
+program runs out of stack space while matching the expression (if Boost.Regex is 
+configured in recursive mode), or if the matcher exhausts its permitted 
+memory allocation (if Boost.Regex is configured in non-recursive mode).
+
+[*Returns]: *this.
+
+
+[#boost_regex.regex_iterator.op_inc2]
+
+   regex_iterator operator++(int);
+
+[*Effects]: constructs a copy result of `*this`, then calls `++(*this)`.
+
+[*Returns]: result.
+
+[#boost_regex.regex_iterator.make]
+
+   template <class charT, class traits> 
+   regex_iterator<const charT*, charT, traits>
+      make_regex_iterator(const charT* p, const basic_regex<charT, traits>& e, 
+                        regex_constants::match_flag_type m = regex_constants::match_default); 
+                       
+   template <class charT, class traits, class ST, class SA> 
+   regex_iterator<typename std::basic_string<charT, ST, SA>::const_iterator, charT, traits> 
+      make_regex_iterator(const std::basic_string<charT, ST, SA>& p, 
+                        const basic_regex<charT, traits>& e, 
+                        regex_constants::match_flag_type m = regex_constants::match_default);
+
+[*Effects]: returns an iterator that enumerates all occurences of expression /e/ 
+in text /p/ using [match_flag_type] /m/.
+
+[h4 Examples]
+
+The following example takes a C++ source file and builds up an index of class 
+names, and the location of that class in the file.
+
+   #include <string>
+   #include <map>
+   #include <fstream>
+   #include <iostream>
+   #include <boost/regex.hpp>
+
+   using namespace std;
+
+   // purpose:
+   // takes the contents of a file in the form of a string
+   // and searches for all the C++ class definitions, storing
+   // their locations in a map of strings/int's
+
+   typedef std::map<std::string, std::string::difference_type, std::less<std::string> > map_type;
+
+   const char* re = 
+      // possibly leading whitespace:   
+      "^[[:space:]]*" 
+      // possible template declaration:
+      "(template[[:space:]]*<[^;:{]+>[[:space:]]*)?"
+      // class or struct:
+      "(class|struct)[[:space:]]*" 
+      // leading declspec macros etc:
+      "("
+         "\\<\\w+\\>"
+         "("
+            "[[:blank:]]*\\([^)]*\\)"
+         ")?"
+         "[[:space:]]*"
+      ")*" 
+      // the class name
+      "(\\<\\w*\\>)[[:space:]]*" 
+      // template specialisation parameters
+      "(<[^;:{]+>)?[[:space:]]*"
+      // terminate in { or :
+      "(\\{|:[^;\\{()]*\\{)";
+
+
+   boost::regex expression(re);
+   map_type class_index;
+
+   bool regex_callback(const boost::match_results<std::string::const_iterator>& what)
+   {
+      // what[0] contains the whole string
+      // what[5] contains the class name.
+      // what[6] contains the template specialisation if any.
+      // add class name and position to map:
+      class_index[what[5].str() + what[6].str()] = what.position(5);
+      return true;
+   }
+
+   void load_file(std::string& s, std::istream& is)
+   {
+      s.erase();
+      s.reserve(is.rdbuf()->in_avail());
+      char c;
+      while(is.get(c))
+      {
+         if(s.capacity() == s.size())
+            s.reserve(s.capacity() * 3);
+         s.append(1, c);
+      }
+   }
+
+   int main(int argc, const char** argv)
+   {
+      std::string text;
+      for(int i = 1; i < argc; ++i)
+      {
+         cout << "Processing file " << argv[i] << endl;
+         std::ifstream fs(argv[i]);
+         load_file(text, fs);
+         // construct our iterators:
+         boost::sregex_iterator m1(text.begin(), text.end(), expression);
+         boost::sregex_iterator m2;
+         std::for_each(m1, m2, &regex_callback);
+         // copy results:
+         cout << class_index.size() << " matches found" << endl;
+         map_type::iterator c, d;
+         c = class_index.begin();
+         d = class_index.end();
+         while(c != d)
+         {
+            cout << "class \"" << (*c).first << "\" found at index: " << (*c).second << endl;
+            ++c;
+         }
+         class_index.erase(class_index.begin(), class_index.end());
+      }
+      return 0;
+   }
+
+
+[endsect]
+

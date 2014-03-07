@@ -1,0 +1,13 @@
+[heading Supported geometries]
+[table
+[[ ][Point][Segment][Box][Linestring][Ring][Polygon][MultiPoint][MultiLinestring][MultiPolygon]]
+[[Point][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/ok.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ]]
+[[Segment][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/ok.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ]]
+[[Box][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/ok.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ]]
+[[Linestring][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ]]
+[[Ring][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ]]
+[[Polygon][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ]]
+[[MultiPoint][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ]]
+[[MultiLinestring][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ]]
+[[MultiPolygon][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ][ [$img/nyi.png] ]]
+]

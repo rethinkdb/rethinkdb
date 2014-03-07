@@ -1,0 +1,46 @@
+<html>
+<head>
+	<title>BOOST_PP_RELATIVE_FINISH</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+	
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_RELATIVE_FINISH</b> macro expands to the upper bound of a <i>file-iteration</i> depth relative to the current depth.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_RELATIVE_FINISH</b>(<i>i</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>i</dt>
+			<dd>
+				The relative depth of the frame whose upper bound is to be retreived.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_ITERATION_DEPTH</b>() - <i>1</i>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro is only valid when a <i>file-iteration</i> is in progress.
+		</div>
+		<div>
+			The argument <i>i</i> is interpreted as the number of frames <i>outward</i> from the current frame.
+		</div>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/iteration/iterate.html">&lt;boost/preprocessor/iteration/iterate.hpp&gt;</a>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

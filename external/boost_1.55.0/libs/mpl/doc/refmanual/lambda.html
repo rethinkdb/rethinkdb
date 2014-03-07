@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: lambda</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./placeholders.html" class="navigation-link">Prev</a>&nbsp;<a href="./bind.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./placeholders.html" class="navigation-link">Back</a>&nbsp;<a href="./bind.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./composition-and-argument-binding.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./composition-and-argument-binding.html" class="navigation-link">Composition and Argument Binding</a> / <a href="./lambda.html" class="navigation-link">lambda</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="lambda">
+<h1><a class="toc-backref" href="./composition-and-argument-binding.html#id1530">lambda</a></h1>
+<div class="section" id="id922">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename X
+    , typename Tag = <em>unspecified</em>
+    &gt;
+struct <a href="./lambda.html" class="identifier">lambda</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id923">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>If <tt class="literal"><span class="pre">X</span></tt> is a <a class="reference internal" href="./placeholder-expression.html">Placeholder Expression</a>, transforms <tt class="literal"><span class="pre">X</span></tt> into a corresponding
+<a class="reference internal" href="./metafunction-class.html">Metafunction Class</a>, otherwise <tt class="literal"><span class="pre">X</span></tt> is returned unchanged.</p>
+</div>
+<div class="section" id="id924">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/lambda.hpp" class="header">boost/mpl/lambda.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id925">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="18%" />
+<col width="27%" />
+<col width="55%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">X</span></tt></td>
+<td>Any type</td>
+<td>An expression to transform.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">Tag</span></tt></td>
+<td>Any type</td>
+<td>A tag determining transform semantics.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id926">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For arbitrary types <tt class="literal"><span class="pre">x</span></tt> and <tt class="literal"><span class="pre">tag</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./lambda.html" class="identifier">lambda</a>&lt;x&gt;::type f;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./metafunction-class.html">Metafunction Class</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">If <tt class="literal"><span class="pre">x</span></tt> is a <a class="reference internal" href="./placeholder-expression.html">Placeholder Expression</a> in a general form <tt class="literal"><span class="pre">X&lt;a1,...an&gt;</span></tt>, where
+<tt class="literal"><span class="pre">X</span></tt> is a class template and <tt class="literal"><span class="pre">a1</span></tt>,... <tt class="literal"><span class="pre">an</span></tt> are arbitrary types, equivalent
+to</p>
+<pre class="literal-block">
+typedef <a href="./protect.html" class="identifier">protect</a>&lt; <a href="./bind.html" class="identifier">bind</a>&lt;
+      <a href="./quote.html" class="identifier">quote</a><em>n</em>&lt;X&gt;
+    , <a href="./lambda.html" class="identifier">lambda</a>&lt;a1&gt;::type,<em>...</em> <a href="./lambda.html" class="identifier">lambda</a>&lt;a<em>n</em>&gt;::type
+    &gt; &gt; f;
+</pre>
+<p class="last">otherwise, <tt class="literal"><span class="pre">f</span></tt> is identical to <tt class="literal"><span class="pre">x</span></tt>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<pre class="literal-block">
+typedef <a href="./lambda.html" class="identifier">lambda</a>&lt;x,tag&gt;::type f;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./metafunction-class.html">Metafunction Class</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">If <tt class="literal"><span class="pre">x</span></tt> is a <a class="reference internal" href="./placeholder-expression.html">Placeholder Expression</a> in a general form <tt class="literal"><span class="pre">X&lt;a1,...an&gt;</span></tt>, where
+<tt class="literal"><span class="pre">X</span></tt> is a class template and <tt class="literal"><span class="pre">a1</span></tt>,... <tt class="literal"><span class="pre">an</span></tt> are arbitrary types, equivalent
+to</p>
+<pre class="literal-block">
+typedef <a href="./protect.html" class="identifier">protect</a>&lt; <a href="./bind.html" class="identifier">bind</a>&lt;
+      <a href="./quote.html" class="identifier">quote</a><em>n</em>&lt;X,tag&gt;
+    , <a href="./lambda.html" class="identifier">lambda</a>&lt;a1,tag&gt;::type,<em>...</em> <a href="./lambda.html" class="identifier">lambda</a>&lt;a<em>n</em>,tag&gt;::type
+    &gt; &gt; f;
+</pre>
+<p class="last">otherwise, <tt class="literal"><span class="pre">f</span></tt> is identical to <tt class="literal"><span class="pre">x</span></tt>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id927">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+template&lt; typename N1, typename N2 &gt; struct int_plus
+    : <a href="./int.html" class="identifier">int_</a>&lt;( N1::value + N2::value )&gt;
+{
+};
+
+typedef <a href="./lambda.html" class="identifier">lambda</a>&lt; int_plus&lt;<a href="./placeholders.html" class="identifier">_1</a>, <a href="./int.html" class="identifier">int_</a>&lt;42&gt; &gt; &gt;::type f1;
+typedef <a href="./bind.html" class="identifier">bind</a>&lt; <a href="./quote.html" class="identifier">quote</a><tt class="literal"><span class="pre">2</span></tt>&lt;int_plus&gt;, <a href="./placeholders.html" class="identifier">_1</a>, <a href="./int.html" class="identifier">int_</a>&lt;42&gt; &gt; f2;
+
+typedef f1::<a href="./apply.html" class="identifier">apply</a>&lt;42&gt;::type r1;
+typedef f2::<a href="./apply.html" class="identifier">apply</a>&lt;42&gt;::type r2;
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( r1::value, ==, 84 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( r2::value, ==, 84 );
+</pre>
+</div>
+<div class="section" id="id928">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./composition-and-argument-binding.html">Composition and Argument Binding</a>, <a class="reference internal" href="./invocation.html">invocation</a>, <a class="reference internal" href="./placeholders.html">Placeholders</a>, <a class="reference internal" href="./bind.html">bind</a>, <a class="reference internal" href="./quote.html">quote</a>, <a class="reference internal" href="./protect.html">protect</a>, <a class="reference internal" href="./apply.html">apply</a></p>
+<!-- Metafunctions/Composition and Argument Binding//bind |30 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./placeholders.html" class="navigation-link">Prev</a>&nbsp;<a href="./bind.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./placeholders.html" class="navigation-link">Back</a>&nbsp;<a href="./bind.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./composition-and-argument-binding.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

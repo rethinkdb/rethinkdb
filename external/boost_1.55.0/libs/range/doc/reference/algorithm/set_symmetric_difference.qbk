@@ -1,0 +1,83 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:set_symmetric_difference set_symmetric_difference]
+
+[heading Prototype]
+
+``
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class OutputIterator
+    >
+OutputIterator
+set_symmetric_difference(const SinglePassRange1& rng1,
+                         const SinglePassRange2& rng2,
+                         OutputIterator          out);
+
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class OutputIterator,
+    class BinaryPredicate
+    >
+OutputIterator
+set_symmetric_difference(const SinglePassRange1& rng1,
+                         const SinglePassRange2& rng2,
+                         OutputIterator          out,
+                         BinaryPredicate         pred);    
+``
+
+[heading Description]
+
+`set_symmetric_difference` constructs a sorted range that is the set symmetric difference of the sorted ranges `rng1` and `rng2`. The return value is the end of the output range.
+
+The ordering relationship is determined by using `operator<` in the non-predicate versions, and by evaluating `pred` in the predicate versions. 
+ 
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/set_algorithm.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions:]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+* `OutputIterator` is a model of the `OutputIteratorConcept`.
+* `SinglePassRange1` and `SinglePassRange2` have the same value type.
+* `SinglePassRange1`'s value type is a model of the `LessThanComparableConcept`.
+* `SinglePassRange2`'s value type is a model of the `LessThanComparableConcept`.
+* The ordering of objects of type `SinglePassRange1`'s value type is a [*/strict weak ordering/], as defined in the `LessThanComparableConcept` requirements.
+* The ordering of objects of type `SinglePassRange2`'s value type is a [*/strict weak ordering/], as defined in the `LessThanComparableConcept` requirements.
+
+[*For the predicate versions:]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+* `OutputIterator` is a model of the `OutputIteratorConcept`.
+* `SinglePassRange1` and `SinglePassRange2` have the same value type.
+* `BinaryPredicate` is a model of the `StrictWeakOrderingConcept`.
+* `SinglePassRange1`'s value type is convertible to `BinaryPredicate`'s first argument type.
+* `SinglePassRange2`'s value type is convertible to `BinaryPredicate`'s second argument types.
+
+[heading Precondition:]
+
+[*For the non-predicate versions:]
+
+`rng1` and `rng2` are sorted in ascending order according to `operator<`.
+
+[*For the predicate versions:]
+
+`rng1` and `rng2` are sorted in ascending order according to `pred`.
+
+[heading Complexity]
+
+Linear. `O(N)`, where `N` is `distance(rng1) + distance(rng2)`.
+
+[endsect]
+
+

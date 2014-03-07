@@ -1,0 +1,315 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2011 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/windowsZones.xml
+// *
+// ***************************************************************************
+windowsZones:table(nofallback){
+    mapTimezones{
+        AUS Central Standard Time{
+            001{"Australia/Darwin"}
+        }
+        AUS Eastern Standard Time{
+            001{"Australia/Sydney"}
+        }
+        Afghanistan Standard Time{
+            001{"Asia/Kabul"}
+        }
+        Alaskan Standard Time{
+            001{"America/Anchorage"}
+        }
+        Arab Standard Time{
+            001{"Asia/Riyadh"}
+        }
+        Arabian Standard Time{
+            001{"Asia/Dubai"}
+        }
+        Arabic Standard Time{
+            001{"Asia/Baghdad"}
+        }
+        Argentina Standard Time{
+            001{"America/Buenos_Aires"}
+        }
+        Armenian Standard Time{
+            001{"Asia/Yerevan"}
+        }
+        Atlantic Standard Time{
+            001{"America/Halifax"}
+        }
+        Azerbaijan Standard Time{
+            001{"Asia/Baku"}
+        }
+        Azores Standard Time{
+            001{"Atlantic/Azores"}
+        }
+        Bangladesh Standard Time{
+            001{"Asia/Dhaka"}
+        }
+        Canada Central Standard Time{
+            001{"America/Regina"}
+        }
+        Cape Verde Standard Time{
+            001{"Atlantic/Cape_Verde"}
+        }
+        Caucasus Standard Time{
+            001{"Asia/Yerevan"}
+        }
+        Cen. Australia Standard Time{
+            001{"Australia/Adelaide"}
+        }
+        Central America Standard Time{
+            001{"America/Guatemala"}
+        }
+        Central Asia Standard Time{
+            001{"Asia/Almaty"}
+        }
+        Central Brazilian Standard Time{
+            001{"America/Cuiaba"}
+        }
+        Central Europe Standard Time{
+            001{"Europe/Budapest"}
+        }
+        Central European Standard Time{
+            001{"Europe/Warsaw"}
+        }
+        Central Pacific Standard Time{
+            001{"Pacific/Guadalcanal"}
+        }
+        Central Standard Time{
+            001{"America/Chicago"}
+        }
+        Central Standard Time (Mexico){
+            001{"America/Mexico_City"}
+        }
+        China Standard Time{
+            001{"Asia/Shanghai"}
+        }
+        Dateline Standard Time{
+            001{"Etc/GMT+12"}
+        }
+        E. Africa Standard Time{
+            001{"Africa/Nairobi"}
+        }
+        E. Australia Standard Time{
+            001{"Australia/Brisbane"}
+        }
+        E. Europe Standard Time{
+            001{"Europe/Minsk"}
+        }
+        E. South America Standard Time{
+            001{"America/Sao_Paulo"}
+        }
+        Eastern Standard Time{
+            001{"America/New_York"}
+        }
+        Egypt Standard Time{
+            001{"Africa/Cairo"}
+        }
+        Ekaterinburg Standard Time{
+            001{"Asia/Yekaterinburg"}
+        }
+        FLE Standard Time{
+            001{"Europe/Kiev"}
+        }
+        Fiji Standard Time{
+            001{"Pacific/Fiji"}
+        }
+        GMT Standard Time{
+            001{"Europe/London"}
+        }
+        GTB Standard Time{
+            001{"Europe/Istanbul"}
+        }
+        Georgian Standard Time{
+            001{"Asia/Tbilisi"}
+        }
+        Greenland Standard Time{
+            001{"America/Godthab"}
+        }
+        Greenwich Standard Time{
+            001{"Atlantic/Reykjavik"}
+        }
+        Hawaiian Standard Time{
+            001{"Pacific/Honolulu"}
+        }
+        India Standard Time{
+            001{"Asia/Calcutta"}
+        }
+        Iran Standard Time{
+            001{"Asia/Tehran"}
+        }
+        Israel Standard Time{
+            001{"Asia/Jerusalem"}
+        }
+        Jordan Standard Time{
+            001{"Asia/Amman"}
+        }
+        Kamchatka Standard Time{
+            001{"Asia/Kamchatka"}
+        }
+        Korea Standard Time{
+            001{"Asia/Seoul"}
+        }
+        Magadan Standard Time{
+            001{"Asia/Magadan"}
+        }
+        Mauritius Standard Time{
+            001{"Indian/Mauritius"}
+        }
+        Mexico Standard Time{
+            001{"America/Mexico_City"}
+        }
+        Mexico Standard Time 2{
+            001{"America/Chihuahua"}
+        }
+        Mid-Atlantic Standard Time{
+            001{"Etc/GMT+2"}
+        }
+        Middle East Standard Time{
+            001{"Asia/Beirut"}
+        }
+        Montevideo Standard Time{
+            001{"America/Montevideo"}
+        }
+        Morocco Standard Time{
+            001{"Africa/Casablanca"}
+        }
+        Mountain Standard Time{
+            001{"America/Denver"}
+        }
+        Mountain Standard Time (Mexico){
+            001{"America/Chihuahua"}
+        }
+        Myanmar Standard Time{
+            001{"Asia/Rangoon"}
+        }
+        N. Central Asia Standard Time{
+            001{"Asia/Novosibirsk"}
+        }
+        Namibia Standard Time{
+            001{"Africa/Windhoek"}
+        }
+        Nepal Standard Time{
+            001{"Asia/Katmandu"}
+        }
+        New Zealand Standard Time{
+            001{"Pacific/Auckland"}
+        }
+        Newfoundland Standard Time{
+            001{"America/St_Johns"}
+        }
+        North Asia East Standard Time{
+            001{"Asia/Irkutsk"}
+        }
+        North Asia Standard Time{
+            001{"Asia/Krasnoyarsk"}
+        }
+        Pacific SA Standard Time{
+            001{"America/Santiago"}
+        }
+        Pacific Standard Time{
+            001{"America/Los_Angeles"}
+        }
+        Pacific Standard Time (Mexico){
+            001{"America/Santa_Isabel"}
+        }
+        Pakistan Standard Time{
+            001{"Asia/Karachi"}
+        }
+        Paraguay Standard Time{
+            001{"America/Asuncion"}
+        }
+        Romance Standard Time{
+            001{"Europe/Paris"}
+        }
+        Russian Standard Time{
+            001{"Europe/Moscow"}
+        }
+        SA Eastern Standard Time{
+            001{"America/Cayenne"}
+        }
+        SA Pacific Standard Time{
+            001{"America/Bogota"}
+        }
+        SA Western Standard Time{
+            001{"America/La_Paz"}
+        }
+        SE Asia Standard Time{
+            001{"Asia/Bangkok"}
+        }
+        Samoa Standard Time{
+            001{"Pacific/Apia"}
+        }
+        Singapore Standard Time{
+            001{"Asia/Singapore"}
+        }
+        South Africa Standard Time{
+            001{"Africa/Johannesburg"}
+        }
+        Sri Lanka Standard Time{
+            001{"Asia/Colombo"}
+        }
+        Syria Standard Time{
+            001{"Asia/Damascus"}
+        }
+        Taipei Standard Time{
+            001{"Asia/Taipei"}
+        }
+        Tasmania Standard Time{
+            001{"Australia/Hobart"}
+        }
+        Tokyo Standard Time{
+            001{"Asia/Tokyo"}
+        }
+        Tonga Standard Time{
+            001{"Pacific/Tongatapu"}
+        }
+        US Eastern Standard Time{
+            001{"America/Indianapolis"}
+        }
+        US Mountain Standard Time{
+            001{"America/Phoenix"}
+        }
+        UTC{
+            001{"Etc/GMT"}
+        }
+        UTC+12{
+            001{"Etc/GMT-12"}
+        }
+        UTC-02{
+            001{"Etc/GMT+2"}
+        }
+        UTC-11{
+            001{"Etc/GMT+11"}
+        }
+        Ulaanbaatar Standard Time{
+            001{"Asia/Ulaanbaatar"}
+        }
+        Venezuela Standard Time{
+            001{"America/Caracas"}
+        }
+        Vladivostok Standard Time{
+            001{"Asia/Vladivostok"}
+        }
+        W. Australia Standard Time{
+            001{"Australia/Perth"}
+        }
+        W. Central Africa Standard Time{
+            001{"Africa/Lagos"}
+        }
+        W. Europe Standard Time{
+            001{"Europe/Berlin"}
+        }
+        West Asia Standard Time{
+            001{"Asia/Tashkent"}
+        }
+        West Pacific Standard Time{
+            001{"Pacific/Port_Moresby"}
+        }
+        Yakutsk Standard Time{
+            001{"Asia/Yakutsk"}
+        }
+    }
+}

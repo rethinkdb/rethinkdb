@@ -1,0 +1,437 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Employee - Parsing into structs</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="roman_numerals.html" title="Roman Numerals">
+<link rel="next" href="mini_xml___asts_.html" title="Mini XML - ASTs!">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="roman_numerals.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mini_xml___asts_.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.tutorials.employee___parsing_into_structs"></a><a class="link" href="employee___parsing_into_structs.html" title="Employee - Parsing into structs">Employee
+        - Parsing into structs</a>
+</h4></div></div></div>
+<p>
+          It's a common question in the <a href="http://www.nabble.com/The-Spirit-Parser-Library-f3430.html" target="_top">Spirit
+          General List</a>: How do I parse and place the results into a C++ struct?
+          Of course, at this point, you already know various ways to do it, using
+          semantic actions. There are many ways to skin a cat. Spirit2, being fully
+          attributed, makes it even easier. The next example demonstrates some features
+          of Spirit2 that make this easy. In the process, you'll learn about:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              More about attributes
+            </li>
+<li class="listitem">
+              Auto rules
+            </li>
+<li class="listitem">
+              Some more built-in parsers
+            </li>
+<li class="listitem">
+              Directives
+            </li>
+</ul></div>
+<p>
+          First, let's create a struct representing an employee:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">employee</span>
+<span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">age</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">surname</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">forename</span><span class="special">;</span>
+    <span class="keyword">double</span> <span class="identifier">salary</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          Then, we need to tell <a href="../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+          about our employee struct to make it a first-class fusion citizen that
+          the grammar can utilize. If you don't know fusion yet, it is a <a href="http://www.boost.org/" target="_top">Boost</a>
+          library for working with heterogeneous collections of data, commonly referred
+          to as tuples. Spirit uses fusion extensively as part of its infrastructure.
+        </p>
+<p>
+          In fusion's view, a struct is just a form of a tuple. You can adapt any
+          struct to be a fully conforming fusion tuple:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_FUSION_ADAPT_STRUCT</span><span class="special">(</span>
+    <span class="identifier">client</span><span class="special">::</span><span class="identifier">employee</span><span class="special">,</span>
+    <span class="special">(</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">age</span><span class="special">)</span>
+    <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">surname</span><span class="special">)</span>
+    <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">forename</span><span class="special">)</span>
+    <span class="special">(</span><span class="keyword">double</span><span class="special">,</span> <span class="identifier">salary</span><span class="special">)</span>
+<span class="special">)</span>
+</pre>
+<p>
+        </p>
+<p>
+          Now we'll write a parser for our employee. Inputs will be of the form:
+        </p>
+<pre class="programlisting"><span class="identifier">employee</span><span class="special">{</span> <span class="identifier">age</span><span class="special">,</span> <span class="string">"surname"</span><span class="special">,</span> <span class="string">"forename"</span><span class="special">,</span> <span class="identifier">salary</span> <span class="special">}</span>
+</pre>
+<p>
+          Here goes:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">employee_parser</span> <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">employee</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">employee_parser</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">employee_parser</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">start</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">int_</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">lexeme</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+
+        <span class="identifier">quoted_string</span> <span class="special">%=</span> <span class="identifier">lexeme</span><span class="special">[</span><span class="char">'"'</span> <span class="special">&gt;&gt;</span> <span class="special">+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'"'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="char">'"'</span><span class="special">];</span>
+
+        <span class="identifier">start</span> <span class="special">%=</span>
+            <span class="identifier">lit</span><span class="special">(</span><span class="string">"employee"</span><span class="special">)</span>
+            <span class="special">&gt;&gt;</span> <span class="char">'{'</span>
+            <span class="special">&gt;&gt;</span>  <span class="identifier">int_</span> <span class="special">&gt;&gt;</span> <span class="char">','</span>
+            <span class="special">&gt;&gt;</span>  <span class="identifier">quoted_string</span> <span class="special">&gt;&gt;</span> <span class="char">','</span>
+            <span class="special">&gt;&gt;</span>  <span class="identifier">quoted_string</span> <span class="special">&gt;&gt;</span> <span class="char">','</span>
+            <span class="special">&gt;&gt;</span>  <span class="identifier">double_</span>
+            <span class="special">&gt;&gt;</span>  <span class="char">'}'</span>
+            <span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">quoted_string</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">employee</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">start</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          The full cpp file for this example can be found here: <a href="../../../../../example/qi/employee.cpp" target="_top">../../example/qi/employee.cpp</a>
+        </p>
+<p>
+          Let's walk through this one step at a time (not necessarily from top to
+          bottom).
+        </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">employee_parser</span> <span class="special">:</span> <span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">employee</span><span class="special">(),</span> <span class="identifier">space_type</span><span class="special">&gt;</span>
+</pre>
+<p>
+          <code class="computeroutput"><span class="identifier">employee_parser</span></code> is a grammar.
+          Like before, we make it a template so that we can reuse it for different
+          iterator types. The grammar's signature is:
+        </p>
+<pre class="programlisting"><span class="identifier">employee</span><span class="special">()</span>
+</pre>
+<p>
+          meaning, the parser generates employee structs. <code class="computeroutput"><span class="identifier">employee_parser</span></code>
+          skips white spaces using <code class="computeroutput"><span class="identifier">space_type</span></code>
+          as its skip parser.
+        </p>
+<pre class="programlisting"><span class="identifier">employee_parser</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">employee_parser</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">start</span><span class="special">)</span>
+</pre>
+<p>
+          Initializes the base class.
+        </p>
+<pre class="programlisting"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(),</span> <span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">quoted_string</span><span class="special">;</span>
+<span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">employee</span><span class="special">(),</span> <span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">start</span><span class="special">;</span>
+</pre>
+<p>
+          Declares two rules: <code class="computeroutput"><span class="identifier">quoted_string</span></code>
+          and <code class="computeroutput"><span class="identifier">start</span></code>. <code class="computeroutput"><span class="identifier">start</span></code> has the same template parameters
+          as the grammar itself. <code class="computeroutput"><span class="identifier">quoted_string</span></code>
+          has a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> attribute.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.employee___parsing_into_structs.h0"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.employee___parsing_into_structs.lexeme"></a></span><a class="link" href="employee___parsing_into_structs.html#spirit.qi.tutorials.employee___parsing_into_structs.lexeme">Lexeme</a>
+        </h6>
+<pre class="programlisting"><span class="identifier">lexeme</span><span class="special">[</span><span class="char">'"'</span> <span class="special">&gt;&gt;</span> <span class="special">+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'"'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="char">'"'</span><span class="special">];</span>
+</pre>
+<p>
+          <code class="computeroutput"><span class="identifier">lexeme</span></code> inhibits space skipping
+          from the open brace to the closing brace. The expression parses quoted
+          strings.
+        </p>
+<pre class="programlisting"><span class="special">+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'"'</span><span class="special">)</span>
+</pre>
+<p>
+          parses one or more chars, except the double quote. It stops when it sees
+          a double quote.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.employee___parsing_into_structs.h1"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.employee___parsing_into_structs.difference"></a></span><a class="link" href="employee___parsing_into_structs.html#spirit.qi.tutorials.employee___parsing_into_structs.difference">Difference</a>
+        </h6>
+<p>
+          The expression:
+        </p>
+<pre class="programlisting"><span class="identifier">a</span> <span class="special">-</span> <span class="identifier">b</span>
+</pre>
+<p>
+          parses <code class="computeroutput"><span class="identifier">a</span></code> but not <code class="computeroutput"><span class="identifier">b</span></code>. Its attribute is just <code class="computeroutput"><span class="identifier">A</span></code>; the attribute of <code class="computeroutput"><span class="identifier">a</span></code>.
+          <code class="computeroutput"><span class="identifier">b</span></code>'s attribute is ignored.
+          Hence, the attribute of:
+        </p>
+<pre class="programlisting"><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'"'</span>
+</pre>
+<p>
+          is just <code class="computeroutput"><span class="keyword">char</span></code>.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.employee___parsing_into_structs.h2"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.employee___parsing_into_structs.plus"></a></span><a class="link" href="employee___parsing_into_structs.html#spirit.qi.tutorials.employee___parsing_into_structs.plus">Plus</a>
+        </h6>
+<pre class="programlisting"><span class="special">+</span><span class="identifier">a</span>
+</pre>
+<p>
+          is similar to Kleene star. Rather than match everything, <code class="computeroutput"><span class="special">+</span><span class="identifier">a</span></code> matches
+          one or more. Like it's related function, the Kleene star, its attribute
+          is a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+          where <code class="computeroutput"><span class="identifier">A</span></code> is the attribute
+          of <code class="computeroutput"><span class="identifier">a</span></code>. So, putting all these
+          together, the attribute of
+        </p>
+<pre class="programlisting"><span class="special">+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'"'</span><span class="special">)</span>
+</pre>
+<p>
+          is then:
+        </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="spirit.qi.tutorials.employee___parsing_into_structs.h3"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.employee___parsing_into_structs.sequence_attribute"></a></span><a class="link" href="employee___parsing_into_structs.html#spirit.qi.tutorials.employee___parsing_into_structs.sequence_attribute">Sequence
+          Attribute</a>
+        </h6>
+<p>
+          Now what's the attribute of
+        </p>
+<pre class="programlisting"><span class="char">'"'</span> <span class="special">&gt;&gt;</span> <span class="special">+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'"'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="char">'"'</span>
+</pre>
+<p>
+          ?
+        </p>
+<p>
+          Well, typically, the attribute of:
+        </p>
+<pre class="programlisting"><span class="identifier">a</span> <span class="special">&gt;&gt;</span> <span class="identifier">b</span> <span class="special">&gt;&gt;</span> <span class="identifier">c</span>
+</pre>
+<p>
+          is:
+        </p>
+<pre class="programlisting"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">,</span> <span class="identifier">C</span><span class="special">&gt;</span>
+</pre>
+<p>
+          where <code class="computeroutput"><span class="identifier">A</span></code> is the attribute
+          of <code class="computeroutput"><span class="identifier">a</span></code>, <code class="computeroutput"><span class="identifier">B</span></code>
+          is the attribute of <code class="computeroutput"><span class="identifier">b</span></code> and
+          <code class="computeroutput"><span class="identifier">C</span></code> is the attribute of
+          <code class="computeroutput"><span class="identifier">c</span></code>. What is <code class="computeroutput"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">vector</span></code>? - a tuple.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            If you don't know what I am talking about, see: <a href="http://tinyurl.com/6xun4j" target="_top">Fusion
+            Vector</a>. It might be a good idea to have a look into <a href="../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+            at this point. You'll definitely see more of it in the coming pages.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.tutorials.employee___parsing_into_structs.h4"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.employee___parsing_into_structs.attribute_collapsing"></a></span><a class="link" href="employee___parsing_into_structs.html#spirit.qi.tutorials.employee___parsing_into_structs.attribute_collapsing">Attribute
+          Collapsing</a>
+        </h6>
+<p>
+          Some parsers, especially those very little literal parsers you see, like
+          <code class="computeroutput"><span class="char">'"'</span></code>, do not have attributes.
+        </p>
+<p>
+          Nodes without attributes are disregarded. In a sequence, like above, all
+          nodes with no attributes are filtered out of the <code class="computeroutput"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">vector</span></code>.
+          So, since <code class="computeroutput"><span class="char">'"'</span></code> has no attribute,
+          and <code class="computeroutput"><span class="special">+(</span><span class="identifier">char_</span>
+          <span class="special">-</span> <span class="char">'"'</span><span class="special">)</span></code> has a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span></code> attribute, the whole expression's attribute
+          should have been:
+        </p>
+<pre class="programlisting"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+</pre>
+<p>
+          But wait, there's one more collapsing rule: If the attribute is followed
+          by a single element <code class="computeroutput"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">vector</span></code>,
+          The element is stripped naked from its container. To make a long story
+          short, the attribute of the expression:
+        </p>
+<pre class="programlisting"><span class="char">'"'</span> <span class="special">&gt;&gt;</span> <span class="special">+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'"'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="char">'"'</span>
+</pre>
+<p>
+          is:
+        </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="spirit.qi.tutorials.employee___parsing_into_structs.h5"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.employee___parsing_into_structs.auto_rules"></a></span><a class="link" href="employee___parsing_into_structs.html#spirit.qi.tutorials.employee___parsing_into_structs.auto_rules">Auto
+          Rules</a>
+        </h6>
+<p>
+          It is typical to see rules like:
+        </p>
+<pre class="programlisting"><span class="identifier">r</span> <span class="special">=</span> <span class="identifier">p</span><span class="special">[</span><span class="identifier">_val</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">];</span>
+</pre>
+<p>
+          If you have a rule definition such as the above, where the attribute of
+          the RHS (right hand side) of the rule is compatible with the attribute
+          of the LHS (left hand side), then you can rewrite it as:
+        </p>
+<pre class="programlisting"><span class="identifier">r</span> <span class="special">%=</span> <span class="identifier">p</span><span class="special">;</span>
+</pre>
+<p>
+          The attribute of <code class="computeroutput"><span class="identifier">p</span></code> automatically
+          uses the attribute of <code class="computeroutput"><span class="identifier">r</span></code>.
+        </p>
+<p>
+          So, going back to our <code class="computeroutput"><span class="identifier">quoted_string</span></code>
+          rule:
+        </p>
+<pre class="programlisting"><span class="identifier">quoted_string</span> <span class="special">%=</span> <span class="identifier">lexeme</span><span class="special">[</span><span class="char">'"'</span> <span class="special">&gt;&gt;</span> <span class="special">+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'"'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="char">'"'</span><span class="special">];</span>
+</pre>
+<p>
+          is a simplified version of:
+        </p>
+<pre class="programlisting"><span class="identifier">quoted_string</span> <span class="special">=</span> <span class="identifier">lexeme</span><span class="special">[</span><span class="char">'"'</span> <span class="special">&gt;&gt;</span> <span class="special">+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'"'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="char">'"'</span><span class="special">][</span><span class="identifier">_val</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">];</span>
+</pre>
+<p>
+          The attribute of the <code class="computeroutput"><span class="identifier">quoted_string</span></code>
+          rule: <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> <span class="bold"><strong>is compatible</strong></span>
+          with the attribute of the RHS: <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span></code>. The RHS extracts the parsed attribute
+          directly into the rule's attribute, in-situ.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            <code class="computeroutput"><span class="identifier">r</span> <span class="special">%=</span>
+            <span class="identifier">p</span></code> and <code class="computeroutput"><span class="identifier">r</span>
+            <span class="special">=</span> <span class="identifier">p</span></code>
+            are equivalent if there are no semantic actions associated with <code class="computeroutput"><span class="identifier">p</span></code>.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.tutorials.employee___parsing_into_structs.h6"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.employee___parsing_into_structs.finally"></a></span><a class="link" href="employee___parsing_into_structs.html#spirit.qi.tutorials.employee___parsing_into_structs.finally">Finally</a>
+        </h6>
+<p>
+          We're down to one rule, the start rule:
+        </p>
+<pre class="programlisting"><span class="identifier">start</span> <span class="special">%=</span>
+    <span class="identifier">lit</span><span class="special">(</span><span class="string">"employee"</span><span class="special">)</span>
+    <span class="special">&gt;&gt;</span> <span class="char">'{'</span>
+    <span class="special">&gt;&gt;</span>  <span class="identifier">int_</span> <span class="special">&gt;&gt;</span> <span class="char">','</span>
+    <span class="special">&gt;&gt;</span>  <span class="identifier">quoted_string</span> <span class="special">&gt;&gt;</span> <span class="char">','</span>
+    <span class="special">&gt;&gt;</span>  <span class="identifier">quoted_string</span> <span class="special">&gt;&gt;</span> <span class="char">','</span>
+    <span class="special">&gt;&gt;</span>  <span class="identifier">double_</span>
+    <span class="special">&gt;&gt;</span>  <span class="char">'}'</span>
+    <span class="special">;</span>
+</pre>
+<p>
+          Applying our collapsing rules above, the RHS has an attribute of:
+        </p>
+<pre class="programlisting"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span>
+</pre>
+<p>
+          These nodes do not have an attribute:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="string">"employee"</span><span class="special">)</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="char">'{'</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="char">','</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="char">'}'</span></code>
+            </li>
+</ul></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            In case you are wondering, <code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="string">"employee"</span><span class="special">)</span></code> is the same as "employee".
+            We had to wrap it inside <code class="computeroutput"><span class="identifier">lit</span></code>
+            because immediately after it is <code class="computeroutput"><span class="special">&gt;&gt;</span>
+            <span class="char">'{'</span></code>. You can't right-shift a <code class="computeroutput"><span class="keyword">char</span><span class="special">[]</span></code>
+            and a <code class="computeroutput"><span class="keyword">char</span></code> - you know, C++
+            syntax rules.
+          </p></td></tr>
+</table></div>
+<p>
+          Recall that the attribute of <code class="computeroutput"><span class="identifier">start</span></code>
+          is the <code class="computeroutput"><span class="identifier">employee</span></code> struct:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">employee</span>
+<span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">age</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">surname</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">forename</span><span class="special">;</span>
+    <span class="keyword">double</span> <span class="identifier">salary</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          Now everything is clear, right? The <code class="computeroutput"><span class="keyword">struct</span>
+          <span class="identifier">employee</span></code> <span class="bold"><strong>IS</strong></span>
+          compatible with <code class="computeroutput"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span></code>. So, the RHS of <code class="computeroutput"><span class="identifier">start</span></code>
+          uses start's attribute (a <code class="computeroutput"><span class="keyword">struct</span>
+          <span class="identifier">employee</span></code>) in-situ when it does
+          its work.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="roman_numerals.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mini_xml___asts_.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

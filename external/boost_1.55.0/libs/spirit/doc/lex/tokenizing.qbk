@@ -1,0 +1,94 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lexer_tokenizing Tokenizing Input Data]
+
+[heading The tokenize function]
+
+The `tokenize()` function is a helper function simplifying the usage of a lexer
+in a stand alone fashion. For instance, you may have a stand alone lexer where all 
+that functional requirements are implemented inside lexer semantic actions. 
+A good example for this is the [@../../example/lex/word_count_lexer.cpp word_count_lexer]
+described in more detail in the section __sec_lex_quickstart_2__. 
+
+[wcl_token_definition]
+
+The construct used to tokenize the given input, while discarding all generated 
+tokens is a common application of the lexer. For this reason __lex__ exposes an
+API function `tokenize()` minimizing the code required:
+
+    // Read input from the given file
+    std::string str (read_from_file(1 == argc ? "word_count.input" : argv[1]));
+
+    word_count_tokens<lexer_type> word_count_lexer;
+    std::string::iterator first = str.begin();
+
+    // Tokenize all the input, while discarding all generated tokens
+    bool r = tokenize(first, str.end(), word_count_lexer);
+
+This code is completely equivalent to the more verbose version as shown in the
+section __sec_lex_quickstart_2__. The function `tokenize()` will return either
+if the end of the input has been reached (in this case the return value will 
+be `true`), or if the lexer couldn't match any of the token definitions in the 
+input (in this case the return value will be `false` and the iterator `first`
+will point to the first not matched character in the input sequence).
+
+The prototype of this function is:
+
+    template <typename Iterator, typename Lexer>
+    bool tokenize(Iterator& first, Iterator last, Lexer const& lex
+      , typename Lexer::char_type const* initial_state = 0);
+
+[variablelist where:
+    [[Iterator& first]      [The beginning of the input sequence to tokenize. The
+                             value of this iterator will be updated by the 
+                             lexer, pointing to the first not matched
+                             character of the input after the function 
+                             returns.]]
+    [[Iterator last]        [The end of the input sequence to tokenize.]]
+    [[Lexer const& lex]     [The lexer instance to use for tokenization.]]
+    [[Lexer::char_type const* initial_state]
+                            [This optional parameter can be used to specify 
+                             the initial lexer state for tokenization.]]
+]
+
+A second overload of the `tokenize()` function allows specifying of any arbitrary 
+function or function object to be called for each of the generated tokens. For 
+some applications this is very useful, as it might avoid having lexer semantic 
+actions. For an example of how to use this function, please have a look at 
+[@../../example/lex/word_count_lexer.cpp word_count_functor.cpp]:
+
+[wcf_main]
+
+Here is the prototype of this `tokenize()` function overload:
+
+    template <typename Iterator, typename Lexer, typename F>
+    bool tokenize(Iterator& first, Iterator last, Lexer const& lex, F f
+      , typename Lexer::char_type const* initial_state = 0);
+
+[variablelist where:
+    [[Iterator& first]      [The beginning of the input sequence to tokenize. The
+                             value of this iterator will be updated by the 
+                             lexer, pointing to the first not matched
+                             character of the input after the function 
+                             returns.]]
+    [[Iterator last]        [The end of the input sequence to tokenize.]]
+    [[Lexer const& lex]     [The lexer instance to use for tokenization.]]
+    [[F f]                  [A function or function object to be called for 
+                             each matched token. This function is expected to 
+                             have the prototype: `bool f(Lexer::token_type);`.
+                             The `tokenize()` function will return immediately if 
+                             `F` returns `false.]]
+    [[Lexer::char_type const* initial_state]
+                            [This optional parameter can be used to specify 
+                             the initial lexer state for tokenization.]]
+]
+
+[/heading The generate_static_dfa function]
+
+[endsect]

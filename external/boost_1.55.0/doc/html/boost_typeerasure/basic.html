@@ -1,0 +1,203 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Basic Usage</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_typeerasure.html" title="Chapter&#160;34.&#160;Boost.TypeErasure">
+<link rel="prev" href="reading.html" title="How to read this documentation">
+<link rel="next" href="composing_concepts.html" title="Composing Concepts">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reading.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_typeerasure.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="composing_concepts.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_typeerasure.basic"></a><a class="link" href="basic.html" title="Basic Usage">Basic Usage</a>
+</h2></div></div></div>
+<p>
+      (For the source of the examples in this section see <a href="../../../libs/type_erasure/example/basic.cpp" target="_top">basic.cpp</a>)
+    </p>
+<p>
+      The main class in the library is <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code>.
+      An <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code> can store objects
+      that meet whatever requirements we specify. These requirements are passed to
+      <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code> as an MPL sequence.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        The MPL sequence combines multiple concepts. In the rare case when we only
+        want a single concept, it doesn't need to be wrapped in an MPL sequence.
+      </p></td></tr>
+</table></div>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">copy_constructible</span><span class="special">&lt;&gt;,</span> <span class="identifier">typeid_</span><span class="special">&lt;&gt;,</span> <span class="identifier">relaxed</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">x</span><span class="special">(</span><span class="number">10</span><span class="special">);</span>
+<span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">any_cast</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">x</span><span class="special">);</span> <span class="comment">// i == 10</span>
+</pre>
+<p>
+    </p>
+<p>
+      <code class="computeroutput"><a class="link" href="../boost/type_erasure/copy_constructible.html" title="Struct template copy_constructible">copy_constructible</a></code>
+      is a builtin concept that allows us to copy and destroy the object. <code class="computeroutput"><a class="link" href="../boost/type_erasure/typeid_.html" title="Struct template typeid_">typeid_</a></code> provides run-time type
+      information so that we can use <code class="computeroutput"><a class="link" href="../boost/type_erasure/any_cast_idp21896760.html" title="Function any_cast">any_cast</a></code>.
+      <code class="computeroutput"><a class="link" href="../boost/type_erasure/relaxed.html" title="Struct relaxed">relaxed</a></code> enables various
+      useful defaults. Without <code class="computeroutput"><a class="link" href="../boost/type_erasure/relaxed.html" title="Struct relaxed">relaxed</a></code>,
+      <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code> supports <span class="emphasis"><em>exactly</em></span>
+      what you specify and nothing else. In particular, it allows default construction
+      and assignment of <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code>.
+    </p>
+<p>
+      Now, this example doesn't do very much. <code class="computeroutput"><span class="identifier">x</span></code>
+      is approximately equivalent to a <a href="../../../libs/any/index.html" target="_top">boost::any</a>.
+      We can make it more interesting by adding some operators, such as <code class="computeroutput"><span class="keyword">operator</span><span class="special">++</span></code> and
+      <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></code>.
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">any</span><span class="special">&lt;</span>
+    <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+        <span class="identifier">copy_constructible</span><span class="special">&lt;&gt;,</span>
+        <span class="identifier">typeid_</span><span class="special">&lt;&gt;,</span>
+        <span class="identifier">incrementable</span><span class="special">&lt;&gt;,</span>
+        <span class="identifier">ostreamable</span><span class="special">&lt;&gt;</span>
+    <span class="special">&gt;</span>
+<span class="special">&gt;</span> <span class="identifier">x</span><span class="special">(</span><span class="number">10</span><span class="special">);</span>
+<span class="special">++</span><span class="identifier">x</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">x</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// prints 11</span>
+</pre>
+<p>
+    </p>
+<p>
+      The library provides concepts for most C++ operators, but this obviously won't
+      cover all use cases; we often need to define our own requirements. Let's take
+      the <code class="computeroutput"><span class="identifier">push_back</span></code> member, defined
+      by several STL containers.
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_TYPE_ERASURE_MEMBER</span><span class="special">((</span><span class="identifier">has_push_back</span><span class="special">),</span> <span class="identifier">push_back</span><span class="special">,</span> <span class="number">1</span><span class="special">)</span>
+
+<span class="keyword">void</span> <span class="identifier">append_many</span><span class="special">(</span><span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">has_push_back</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">(</span><span class="keyword">int</span><span class="special">)&gt;,</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="identifier">container</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">10</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+        <span class="identifier">container</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      We use the macro <code class="computeroutput"><a class="link" href="../BOOST_TYPE_ERASURE_MEMBER.html" title="Macro BOOST_TYPE_ERASURE_MEMBER">BOOST_TYPE_ERASURE_MEMBER</a></code>
+      to define a concept called <code class="computeroutput"><span class="identifier">has_push_back</span></code>.
+      The second parameter is the name of the member function and the last macro
+      parameter indicates the number of arguments which is <code class="computeroutput"><span class="number">1</span></code>
+      since <code class="computeroutput"><span class="identifier">push_back</span></code> is unary. When
+      we use <code class="computeroutput"><span class="identifier">has_push_back</span></code>, we have
+      to tell it the signature of the function, <code class="computeroutput"><span class="keyword">void</span><span class="special">(</span><span class="keyword">int</span><span class="special">)</span></code>.
+      This means that the type we store in the any has to have a member that looks
+      like:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">push_back</span><span class="special">(</span><span class="keyword">int</span><span class="special">);</span>
+</pre>
+<p>
+    </p>
+<p>
+      Thus, we could call <code class="computeroutput"><span class="identifier">append_many</span></code>
+      with <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>, <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>,
+      or <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">long</span><span class="special">&gt;</span></code> (because
+      <code class="computeroutput"><span class="keyword">int</span></code> is convertible to <code class="computeroutput"><span class="keyword">long</span></code>), but not <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span></code> or <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>.
+    </p>
+<p>
+      Also, note that <code class="computeroutput"><span class="identifier">append_many</span></code>
+      has to operate directly on its argument. It cannot make a copy. To handle this
+      we use <code class="computeroutput"><span class="identifier">_self</span><span class="special">&amp;</span></code>
+      as the second argument of <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code>.
+      <code class="computeroutput"><span class="identifier">_self</span></code> is a <code class="computeroutput"><a class="link" href="../boost/type_erasure/placeholder.html" title="Struct placeholder">placeholder</a></code>.
+      By using <code class="computeroutput"><span class="identifier">_self</span><span class="special">&amp;</span></code>,
+      we indicate that the <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code>
+      stores a reference to an external object instead of allocating its own object.
+    </p>
+<p>
+      There's actually another <code class="computeroutput"><a class="link" href="../boost/type_erasure/placeholder.html" title="Struct placeholder">placeholder</a></code>
+      here. The second parameter of <code class="computeroutput"><span class="identifier">has_push_back</span></code>
+      defaults to <code class="computeroutput"><span class="identifier">_self</span></code>. If we wanted
+      to define a const member function, we would have to change it to <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">_self</span></code>,
+      as shown below.
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_TYPE_ERASURE_MEMBER</span><span class="special">((</span><span class="identifier">has_empty</span><span class="special">),</span> <span class="identifier">empty</span><span class="special">,</span> <span class="number">0</span><span class="special">)</span>
+<span class="keyword">bool</span> <span class="identifier">is_empty</span><span class="special">(</span><span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">has_empty</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">(),</span> <span class="keyword">const</span> <span class="identifier">_self</span><span class="special">&gt;,</span> <span class="keyword">const</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="identifier">x</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">empty</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      For free functions, we can use the macro <code class="computeroutput"><a class="link" href="../BOOST_TYPE_ERASURE_FREE.html" title="Macro BOOST_TYPE_ERASURE_FREE">BOOST_TYPE_ERASURE_FREE</a></code>.
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_TYPE_ERASURE_FREE</span><span class="special">((</span><span class="identifier">has_getline</span><span class="special">),</span> <span class="identifier">getline</span><span class="special">,</span> <span class="number">2</span><span class="special">)</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">read_lines</span><span class="special">(</span><span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">has_getline</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">(</span><span class="identifier">_self</span><span class="special">&amp;,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;)&gt;,</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="identifier">stream</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">result</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">tmp</span><span class="special">;</span>
+    <span class="keyword">while</span><span class="special">(</span><span class="identifier">getline</span><span class="special">(</span><span class="identifier">stream</span><span class="special">,</span> <span class="identifier">tmp</span><span class="special">))</span>
+        <span class="identifier">result</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">tmp</span><span class="special">);</span>
+    <span class="keyword">return</span> <span class="identifier">result</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      The use of <code class="computeroutput"><span class="identifier">has_getline</span></code> is very
+      similar to <code class="computeroutput"><span class="identifier">has_push_back</span></code> above.
+      The difference is that the placeholder <code class="computeroutput"><span class="identifier">_self</span></code>
+      is passed in the function signature instead of as a separate argument.
+    </p>
+<p>
+      The <code class="computeroutput"><a class="link" href="../boost/type_erasure/placeholder.html" title="Struct placeholder">placeholder</a></code>
+      doesn't have to be the first argument. We could just as easily make it the
+      second argument.
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">read_line</span><span class="special">(</span><span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">has_getline</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream</span><span class="special">&amp;,</span> <span class="identifier">_self</span><span class="special">&amp;)&gt;,</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="identifier">str</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">getline</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cin</span><span class="special">,</span> <span class="identifier">str</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reading.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_typeerasure.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="composing_concepts.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

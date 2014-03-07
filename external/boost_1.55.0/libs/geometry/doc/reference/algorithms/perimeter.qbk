@@ -1,0 +1,31 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __this_function__ perimeter]
+
+[heading_conformance_no_ogc __this_function__]
+[note PostGIS contains an algorithm with the same name and the 
+  same functionality.
+  See the [@http://www.postgis.org/docs/ST_Perimeter.html PostGIS documentation]. 
+]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__0dim__][Returns zero]]
+[[__1dim__][Returns zero]]
+[[__2dim__][Returns the perimeter]]
+]
+
+
+[heading Complexity]
+Linear

@@ -1,0 +1,175 @@
+#~ Copyright Rene Rivera 2008
+#~ Distributed under the Boost Software License, Version 1.0.
+#~ (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+project preprocessor_tests : requirements <warnings>on
+                                          <toolset>gcc-4.3.0:<warnings>all
+                                          <toolset>gcc-4.3.0:<cxxflags>-Wno-variadic-macros
+                                          <toolset>gcc-4.4.0:<warnings>all
+                                          <toolset>gcc-4.4.0:<cxxflags>-Wno-variadic-macros 
+                                          <toolset>gcc-4.5.0:<warnings>all
+                                          <toolset>gcc-4.5.0:<cxxflags>-Wno-variadic-macros
+                                          <toolset>gcc-4.5.0:<linkflags>"-Wl,--enable-auto-import"
+                                          <toolset>gcc-4.5.2:<warnings>all
+                                          <toolset>gcc-4.5.2:<cxxflags>-Wno-variadic-macros
+                                          <toolset>msvc:<warnings>all
+                                          ;
+
+test-suite preprocessor
+   :   
+        [ compile arithmetic.cpp ]
+        [ compile array.cpp ]
+        [ compile comparison.cpp ]
+        [ compile control.cpp ]
+        [ compile debug.cpp ]
+        [ compile facilities.cpp ]
+        [ compile iteration.cpp ]
+        [ compile list.cpp ]
+        [ compile logical.cpp ]
+        [ compile repetition.cpp ]
+        [ compile selection.cpp ]
+        [ compile seq.cpp ]
+        [ compile slot.cpp ]
+        [ compile tuple.cpp ]
+        [ compile variadic.cpp ]
+  ;
+
+test-suite preprocessor_nvm
+   :   
+        [ compile arithmetic.cpp : <define>BOOST_PP_VARIADICS=0 : arithmetic_nvm ]
+        [ compile array.cpp : <define>BOOST_PP_VARIADICS=0 : array_nvm ]
+        [ compile comparison.cpp : <define>BOOST_PP_VARIADICS=0 : comparison_nvm ]
+        [ compile control.cpp : <define>BOOST_PP_VARIADICS=0 : control_nvm ]
+        [ compile debug.cpp : <define>BOOST_PP_VARIADICS=0 : debug_nvm ]
+        [ compile facilities.cpp : <define>BOOST_PP_VARIADICS=0 : facilities_nvm ]
+        [ compile iteration.cpp : <define>BOOST_PP_VARIADICS=0 : iteration_nvm ]
+        [ compile list.cpp : <define>BOOST_PP_VARIADICS=0 : list_nvm ]
+        [ compile logical.cpp : <define>BOOST_PP_VARIADICS=0 : logical_nvm ]
+        [ compile repetition.cpp : <define>BOOST_PP_VARIADICS=0 : repetition_nvm ]
+        [ compile selection.cpp : <define>BOOST_PP_VARIADICS=0 : selection_nvm ]
+        [ compile seq.cpp : <define>BOOST_PP_VARIADICS=0 : seq_nvm ]
+        [ compile slot.cpp : <define>BOOST_PP_VARIADICS=0 : slot_nvm ]
+        [ compile tuple.cpp : <define>BOOST_PP_VARIADICS=0 : tuple_nvm ]
+  ;
+
+test-suite preprocessor_c
+   :   
+        [ compile arithmetic.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : arithmetic_c 
+        ]
+        [ compile array.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : array_c 
+        ]
+        [ compile comparison.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : comparison_c 
+        ]
+        [ compile control.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : control_c 
+        ]
+        [ compile debug.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : debug_c 
+        ]
+        [ compile facilities.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : facilities_c 
+        ]
+        [ compile list.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : list_c 
+        ]
+        [ compile logical.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : logical_c 
+        ]
+        [ compile selection.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : selection_c 
+        ]
+        [ compile seq.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : seq_c 
+        ]
+        [ compile slot.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : slot_c 
+        ]
+        [ compile tuple.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : tuple_c 
+        ]
+        [ compile variadic.c 
+          : <toolset>gcc:<cflags>-std=c99
+          : variadic_c 
+        ]
+  ;
+
+test-suite preprocessor_c_nvm
+   :   
+        [ compile arithmetic.c 
+          : <define>BOOST_PP_VARIADICS=0
+            <toolset>gcc:<cflags>-std=c99
+          : arithmetic_c_nvm 
+        ]
+        [ compile array.c 
+          : <define>BOOST_PP_VARIADICS=0
+            <toolset>gcc:<cflags>-std=c99
+          : array_c_nvm 
+        ]
+        [ compile comparison.c 
+          : <define>BOOST_PP_VARIADICS=0
+            <toolset>gcc:<cflags>-std=c99
+          : comparison_c_nvm 
+        ]
+        [ compile control.c 
+          : <define>BOOST_PP_VARIADICS=0
+            <toolset>gcc:<cflags>-std=c99
+          : control_c_nvm 
+        ]
+        [ compile debug.c 
+          : <define>BOOST_PP_VARIADICS=0
+            <toolset>gcc:<cflags>-std=c99
+          : debug_c_nvm 
+        ]
+        [ compile facilities.c 
+          : <define>BOOST_PP_VARIADICS=0
+            <toolset>gcc:<cflags>-std=c99
+          : facilities_c_nvm 
+        ]
+        [ compile list.c 
+          : <define>BOOST_PP_VARIADICS=0
+            <toolset>gcc:<cflags>-std=c99
+          : list_c_nvm 
+        ]
+        [ compile logical.c 
+          : <define>BOOST_PP_VARIADICS=0
+            <toolset>gcc:<cflags>-std=c99
+          : logical_c_nvm 
+        ]
+        [ compile selection.c 
+          : <define>BOOST_PP_VARIADICS=0
+            <toolset>gcc:<cflags>-std=c99
+          : selection_c_nvm 
+        ]
+        [ compile seq.c 
+          : <define>BOOST_PP_VARIADICS=0
+            <toolset>gcc:<cflags>-std=c99
+          : seq_c_nvm 
+        ]
+        [ compile slot.c 
+          : <define>BOOST_PP_VARIADICS=0
+            <toolset>gcc:<cflags>-std=c99
+          : slot_c_nvm 
+        ]
+        [ compile tuple.c 
+          : <define>BOOST_PP_VARIADICS=0
+            <toolset>gcc:<cflags>-std=c99
+          : tuple_c_nvm 
+        ]
+  ;

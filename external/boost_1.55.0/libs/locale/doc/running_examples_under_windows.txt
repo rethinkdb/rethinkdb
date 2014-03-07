@@ -1,0 +1,36 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page running_examples_under_windows Running Examples under Microsoft Windows
+
+All of the examples that come with Boost.Locale are designed for UTF-8 and it is
+the default encoding used by Boost.Locale.
+
+However, the default narrow encoding under Microsoft Windows is not UTF-8 and 
+the output of the applications would not be displayed correctly in the console.
+
+So in order to use UTF-8 encoding under the Windows console and see the output correctly, do the following:
+
+-# Open a \c cmd window
+-# Change the default font to a TrueType font: go to properties-\>font (right click on title-bar-\>properties-\>font) and
+change the font to a TrueType font like Lucida Console
+-# Change the default codepage to 65001 (UTF-8) by running <tt>chcp 65001</tt>
+
+Now all of the examples should display UTF-8 characters correctly (if the font supports them).
+
+<b>Note for Visual Studio users:</b> Microsoft Visual Studio assumes that all source files are encoded using an "ANSI" codepage
+like 1252. However all examples use UTF-8 encoding by default, so wide character examples would
+not work under MSVC as-is. In order to force it to treat source files as UTF-8 you need to
+convert the files to UTF-8 with BOM, which can be done easily by re-saving them from Notepad,
+which adds a BOM to UTF-8 files by default.
+
+
+*/
+

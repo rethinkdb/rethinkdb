@@ -1,0 +1,150 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../modules.html" title="Modules">
+<link rel="prev" href="core/nothing.html" title="Nothing">
+<link rel="next" href="function/adapting_functions.html" title="Adapting Functions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="core/nothing.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../modules.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="function/adapting_functions.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.modules.function"></a><a class="link" href="function.html" title="Function">Function</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="function/adapting_functions.html">Adapting
+        Functions</a></span></dt></dl></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">function</span></code> class template
+        provides a mechanism for implementing lazily evaluated functions. Syntactically,
+        a lazy function looks like an ordinary C/C++ function. The function call
+        looks familiar and feels the same as ordinary C++ functions. However, unlike
+        ordinary functions, the actual function execution is deferred.
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">function</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Unlike ordinary function pointers or functor objects that need to be explicitly
+        bound through the bind function (see <a class="link" href="bind.html" title="Bind">Bind</a>),
+        the argument types of these functions are automatically lazily bound.
+      </p>
+<p>
+        In order to create a lazy function, we need to implement a model of the
+        <a href="http://www.boost.org/doc/libs/release/libs/fusion/doc/html/fusion/functional/concepts/poly.html" target="_top">Polymorphic
+        Function Object</a> concept. For a function that takes <code class="computeroutput"><span class="identifier">N</span></code> arguments, a model of <a href="http://www.boost.org/doc/libs/release/libs/fusion/doc/html/fusion/functional/concepts/poly.html" target="_top">Polymorphic
+        Function Object</a> must provide:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            An <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>
+            that takes <code class="computeroutput"><span class="identifier">N</span></code> arguments,
+            and implements the function logic. This is also true for ordinary function
+            pointers.
+          </li>
+<li class="listitem">
+            A nested metafunction <code class="computeroutput"><span class="identifier">result</span><span class="special">&lt;</span><span class="identifier">Signature</span><span class="special">&gt;</span></code> or nested typedef <code class="computeroutput"><span class="identifier">result_type</span></code>,
+            following the <a href="http://www.boost.org/doc/libs/release/libs/utility/utility.htm#result_of" target="_top">Boost.Result
+            Of</a> Protocol
+          </li>
+</ul></div>
+<p>
+        For example, the following type implements the FunctionEval concept, in order
+        to provide a lazy factorial function:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">factorial_impl</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Sig</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">result</span><span class="special">;</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">This</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Arg</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">result</span><span class="special">&lt;</span><span class="identifier">This</span><span class="special">(</span><span class="identifier">Arg</span> <span class="keyword">const</span> <span class="special">&amp;)&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">Arg</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Arg</span><span class="special">&gt;</span>
+    <span class="identifier">Arg</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Arg</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="special">(</span><span class="identifier">n</span> <span class="special">&lt;=</span> <span class="number">0</span><span class="special">)</span> <span class="special">?</span> <span class="number">1</span> <span class="special">:</span> <span class="identifier">n</span> <span class="special">*</span> <span class="special">(*</span><span class="keyword">this</span><span class="special">)(</span><span class="identifier">n</span><span class="special">-</span><span class="number">1</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        (See <a href="../../../../example/factorial.cpp" target="_top">factorial.cpp</a>)
+      </p>
+<p>
+        Having implemented the <code class="computeroutput"><span class="identifier">factorial_impl</span></code>
+        type, we can declare and instantiate a lazy <code class="computeroutput"><span class="identifier">factorial</span></code>
+        function this way:
+      </p>
+<pre class="programlisting"><span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">factorial_impl</span><span class="special">&gt;</span> <span class="identifier">factorial</span><span class="special">;</span>
+</pre>
+<p>
+        Invoking a lazy function such as <code class="computeroutput"><span class="identifier">factorial</span></code>
+        does not immediately execute the function object <code class="computeroutput"><span class="identifier">factorial_impl</span></code>.
+        Instead, an <a class="link" href="../actor.html" title="Actor">actor</a> object is created
+        and returned to the caller. Example:
+      </p>
+<pre class="programlisting"><span class="identifier">factorial</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">)</span>
+</pre>
+<p>
+        does nothing more than return an actor. A second function call will invoke
+        the actual factorial function. Example:
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">factorial</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">)(</span><span class="number">4</span><span class="special">);</span>
+</pre>
+<p>
+        will print out "24".
+      </p>
+<p>
+        Take note that in certain cases (e.g. for function objects with state), an
+        instance of the model of <a href="http://www.boost.org/doc/libs/release/libs/fusion/doc/html/fusion/functional/concepts/poly.html" target="_top">Polymorphic
+        Function Object</a> may be passed on to the constructor. Example:
+      </p>
+<pre class="programlisting"><span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">factorial_impl</span><span class="special">&gt;</span> <span class="identifier">factorial</span><span class="special">(</span><span class="identifier">ftor</span><span class="special">);</span>
+</pre>
+<p>
+        where ftor is an instance of factorial_impl (this is not necessary in this
+        case as <code class="computeroutput"><span class="identifier">factorial_impl</span></code> does
+        not require any state).
+      </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Take care though when using function objects with state because they are
+          often copied repeatedly, and state may change in one of the copies, rather
+          than the original.
+        </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="core/nothing.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../modules.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="function/adapting_functions.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

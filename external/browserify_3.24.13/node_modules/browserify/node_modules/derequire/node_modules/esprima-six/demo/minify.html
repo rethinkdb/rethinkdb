@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Esprima: Code Minify Demo</title>
+<script src="../test/3rdparty/platform.js"></script>
+<script src="../test/3rdparty/escodegen.js"></script>
+<script src="checkenv.js"></script>
+<script src="minify.js"></script>
+<script src="../esprima.js"></script>
+<script src="../assets/codemirror/codemirror.js"></script>
+<script src="../assets/codemirror/javascript.js"></script>
+<link rel="stylesheet" type="text/css" href="../assets/codemirror/codemirror.css"/>
+<link rel="stylesheet" type="text/css" href="../assets/style.css"/>
+<style>
+.CodeMirror-scroll {
+    height: 300px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="topbar">
+<ul class="nav">
+<li><a href="../index.html">&larr; Home</a></li>
+<li><a href="http://github.com/ariya/esprima">Code</a></li>
+<li><a href="../doc/index.html">Documentation</a></li>
+<li><a href="http://issues.esprima.org">Issues</a></li>
+</ul>
+</div>
+
+<h1>Minify <small>compacts everything</small></h1>
+
+<p>Type ECMAScript code in the editor. Press <b>Minify</b> button to shorten the code
+using <a href="https://github.com/Constellation/escodegen">Escodegen project</a>.</p>
+
+<div><textarea id="code" autofocus="autofocus" cols="70" rows="25" spellcheck="false">
+function bubbleSort    (list) {
+var items = list.slice(0), swapped =false,
+        p,   q;
+   for ( p= 1;p &lt;   items.length; ++p) {
+       for (q=0; q &lt; items.length -    p; ++q) {
+        if (items[q + 1  ] &lt; items[q]) {
+            swapped =true;
+        let temp = items[q];
+         items[q] = items[ q+1]; items[q+1] = temp;
+            }
+      }
+        if (!swapped)
+        break;
+    }
+       return items;
+}
+</textarea></div>
+
+<p><input type="button" value="Minify" id="minify"></p>
+
+<p id="codemirror" align="right"><small>The above code editor is based on <a href="http://codemirror.net" target="_blank">CodeMirror</a>.</small></p>
+
+<p id="error"></p>
+
+<p style="margin-top: 50px;" id="version"></p>
+
+<div class="footer"><strong>Esprima</strong> is created by
+<a href="http://ariya.ofilabs.com/about" target="_blank">Ariya Hidayat</a>. Follow <a href="http://twitter.com/ariyahidayat">@ariyahidayat</a> on Twitter.
+</div>
+
+<div id="testbox" style="visibility: hidden;"><textarea id="test"></textarea></div>
+</div>
+</body>
+</html>

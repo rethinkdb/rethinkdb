@@ -1,0 +1,104 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Syntax Diagram]
+
+In the next section, we will deal with Parsing Expression Grammars
+(PEG) [footnote Bryan Ford: Parsing Expression Grammars: A Recognition-Based 
+Syntactic Foundation, [@http://pdos.csail.mit.edu/~baford/packrat/popl04/]], 
+a variant of Extended Backus-Naur Form (EBNF) [footnote Richard E. Pattis: EBNF: 
+A Notation to Describe Syntax, [@http://www.cs.cmu.edu/~pattis/misc/ebnf.pdf]]
+with a different interpretation. It is easier to understand PEG using Syntax 
+Diagrams. Syntax diagrams represent a grammar graphically. It was used extensively
+by Niklaus Wirth [footnote Niklaus Wirth: The Programming Language
+Pascal. (July 1973)] in the "Pascal User Manual". Syntax Diagrams are
+easily understandable by programmers due to their similarity to flow
+charts. The isomorphism of the diagrams and functions make them ideal for
+representing __rd__ parsers which are essentially mutually recursive
+functions.
+
+Historically, Parsing Expression Grammars have been used for describing grammars
+for parsers only (hence the name). In __spirit__ we use a very similar notation 
+for output generation as well. Almost all the concepts described here are 
+equally applicable both to __qi__ parsers and to __karma__ generators.
+
+[heading Elements]
+
+All diagrams have one entry and one exit point. Arrows connect all possible
+paths through the grammar from the entry point to the exit point.
+
+[:__sd_start_stop__]
+
+Terminals are represented by round boxes. Terminals are atomic and
+usually represent plain characters, strings or tokens.
+
+[:__sd_terminals__]
+
+Non-terminals are represented by boxes. Diagrams are modularized using
+named non-terminals. A complex diagram can be broken down into a set of
+non-terminals. Non-terminals also allow recursion (i.e. a non-terminal
+can call itself).
+
+[:__sd_non_terminals__]
+
+[heading Constructs]
+
+The most basic composition is the Sequence. B follows A:
+
+[:__sd_sequence__]
+
+The ordered choice henceforth we will call /alternatives/. In PEG,
+ordered choice and alternatives are not quite the same. PEG allows
+ambiguity of choice where one or more branches can succeed. In PEG, in
+case of ambiguity, the first one always wins.
+
+[:__sd_choice__]
+
+The optional (zero-or-one):
+
+[:__sd_optional__]
+
+Now, the loops. We have the zero-or-more and one-or-more:
+
+[:__sd_kleene__]
+[:__sd_plus__]
+
+Take note that, as in PEG, these loops behave greedily. If there is
+another 'A' just before the end-point, it will always fail because the
+preceding loop has already exhausted all 'A's and there is nothing more
+left. This is a crucial difference between PEG and general Context Free
+Grammars (CFGs). This behavior is quite obvious with syntax diagrams as
+they resemble flow-charts.
+
+[heading Predicates]
+
+Now, the following are Syntax Diagram versions of PEG predicates. These
+are not traditionally found in Syntax Diagrams. These are special
+extensions we invented to closely follow PEGs.
+
+First, we introduce a new element, the Predicate:
+
+[:__sd_predicate__]
+
+This is similar to the conditionals in flow charts where the 'No' branch
+is absent and always signals a failed parse.
+
+We have two versions of the predicate, the /And-Predicate/ and the
+/Not-Predicate/:
+
+[:__sd_and_predicate__]
+[:__sd_not_predicate__]
+
+The /And-Predicate/ tries the predicate, P, and succeeds if P succeeds,
+or otherwise fail. The opposite is true with the /Not-Predicate/. It
+tries the predicate, P, and fails if P succeeds, or otherwise succeeds.
+Both versions do a look-ahead but do not consume any input regardless if
+P succeeds or not.
+
+[endsect]
+
+

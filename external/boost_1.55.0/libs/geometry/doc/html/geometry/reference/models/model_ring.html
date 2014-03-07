@@ -1,0 +1,269 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>model::ring</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../models.html" title="Models">
+<link rel="prev" href="model_box.html" title="model::box">
+<link rel="next" href="model_segment.html" title="model::segment">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="model_box.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../models.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="model_segment.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.models.model_ring"></a><a class="link" href="model_ring.html" title="model::ring">model::ring</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp60129048"></a><a class="indexterm" name="idp60129336"></a>
+A ring (aka linear ring) is a closed line which should not be selfintersecting.
+        </p>
+<h6>
+<a name="geometry.reference.models.model_ring.h0"></a>
+          <span class="phrase"><a name="geometry.reference.models.model_ring.model_of"></a></span><a class="link" href="model_ring.html#geometry.reference.models.model_ring.model_of">Model
+          of</a>
+        </h6>
+<p>
+          <a class="link" href="../concepts/concept_ring.html" title="Ring Concept">Ring Concept</a>
+        </p>
+<h6>
+<a name="geometry.reference.models.model_ring.h1"></a>
+          <span class="phrase"><a name="geometry.reference.models.model_ring.synopsis"></a></span><a class="link" href="model_ring.html#geometry.reference.models.model_ring.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Point</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">ClockWise</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">Closed</span><span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span><span class="special">,</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">Container</span><span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">model</span><span class="special">::</span><span class="identifier">ring</span>
+      <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">Container</span><span class="special">&lt;</span> <span class="identifier">Point</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&lt;</span> <span class="identifier">Point</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+  <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.models.model_ring.h2"></a>
+          <span class="phrase"><a name="geometry.reference.models.model_ring.template_parameter_s_"></a></span><a class="link" href="model_ring.html#geometry.reference.models.model_ring.template_parameter_s_">Template
+          parameter(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    typename Point
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    point type
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    bool ClockWise
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true for clockwise direction, false for CounterClockWise direction
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    bool Closed
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true for closed polygons (last point == first point), false open
+                    points
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    template&lt; typename, typename &gt; class Container
+                  </p>
+                </td>
+<td>
+                  <p>
+                    std::vector
+                  </p>
+                </td>
+<td>
+                  <p>
+                    container type, for example std::vector, std::deque
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    template&lt; typename &gt; class Allocator
+                  </p>
+                </td>
+<td>
+                  <p>
+                    std::allocator
+                  </p>
+                </td>
+<td>
+                  <p>
+                    container-allocator-type
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.models.model_ring.h3"></a>
+          <span class="phrase"><a name="geometry.reference.models.model_ring.constructor_s_"></a></span><a class="link" href="model_ring.html#geometry.reference.models.model_ring.constructor_s_">Constructor(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Parameters
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">ring</span><span class="special">()</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Default constructor, creating an empty ring.
+                  </p>
+                </td>
+<td>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="identifier">ring</span><span class="special">(</span><span class="identifier">Iterator</span> <span class="identifier">begin</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">end</span><span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Constructor with begin and end, filling the ring.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>Iterator</strong></span>: <span class="emphasis"><em>begin</em></span>:
+                  </p>
+                  <p>
+                    <span class="bold"><strong>Iterator</strong></span>: <span class="emphasis"><em>end</em></span>:
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.models.model_ring.h4"></a>
+          <span class="phrase"><a name="geometry.reference.models.model_ring.header"></a></span><a class="link" href="model_ring.html#geometry.reference.models.model_ring.header">Header</a>
+        </h6>
+<p>
+          Either
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<p>
+          Or
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">ring</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="model_box.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../models.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="model_segment.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,277 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;29.&#160;Boost.StaticAssert</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="signals2/tests.html" title="Testsuite">
+<link rel="next" href="boost_staticassert/how.html" title="How it works">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="signals2/tests.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost_staticassert/how.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="boost_staticassert"></a>Chapter&#160;29.&#160;Boost.StaticAssert</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">John</span> <span class="surname">Maddock</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Steve</span> <span class="surname">Cleary</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2000, 2005 Steve Cleary and John Maddock</p></div>
+<div><div class="legalnotice">
+<a name="boost_staticassert.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="boost_staticassert.html#boost_staticassert.intro">Overview and Tutorial</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_staticassert.html#boost_staticassert.namespace">Use at namespace scope.</a></span></dt>
+<dt><span class="section"><a href="boost_staticassert.html#boost_staticassert.function">Use at function scope</a></span></dt>
+<dt><span class="section"><a href="boost_staticassert.html#boost_staticassert.class">Use at class scope</a></span></dt>
+<dt><span class="section"><a href="boost_staticassert.html#boost_staticassert.templates">Use in templates</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_staticassert/how.html">How it works</a></span></dt>
+<dt><span class="section"><a href="boost_staticassert/test.html">Test Programs</a></span></dt>
+</dl>
+</div>
+<p>
+    This manual is also available in <a href="http://sourceforge.net/projects/boost/files/boost-docs/" target="_top">printer
+    friendly PDF format</a>.
+  </p>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_staticassert.intro"></a>Overview and Tutorial</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="boost_staticassert.html#boost_staticassert.namespace">Use at namespace scope.</a></span></dt>
+<dt><span class="section"><a href="boost_staticassert.html#boost_staticassert.function">Use at function scope</a></span></dt>
+<dt><span class="section"><a href="boost_staticassert.html#boost_staticassert.class">Use at class scope</a></span></dt>
+<dt><span class="section"><a href="boost_staticassert.html#boost_staticassert.templates">Use in templates</a></span></dt>
+</dl></div>
+<p>
+      The header <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="keyword">static_assert</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+      supplies two macros:
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span>
+<span class="identifier">BOOST_STATIC_ASSERT_MSG</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">msg</span><span class="special">)</span>
+</pre>
+<p>
+      Both generate a compile time error message if the integral-constant-expression
+      <code class="computeroutput"><span class="identifier">x</span></code> is not true. In other words,
+      they are the compile time equivalent of the assert macro; this is sometimes
+      known as a "compile-time-assertion", but will be called a "static
+      assertion" throughout these docs. Note that if the condition is <code class="computeroutput"><span class="keyword">true</span></code>, then the macros will generate neither
+      code nor data - and the macros can also be used at either namespace, class
+      or function scope. When used in a template, the static assertion will be evaluated
+      at the time the template is instantiated; this is particularly useful for validating
+      template parameters.
+    </p>
+<p>
+      If the C++0x <code class="computeroutput"><span class="keyword">static_assert</span></code> feature
+      is available, both macros will use it. For <code class="computeroutput"><span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>,
+      the error message will be a stringized version of <code class="computeroutput"><span class="identifier">x</span></code>.
+      For <code class="computeroutput"><span class="identifier">BOOST_STATIC_ASSERT_MSG</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span>
+      <span class="identifier">msg</span><span class="special">)</span></code>,
+      the error message will be the <code class="computeroutput"><span class="identifier">msg</span></code>
+      string.
+    </p>
+<p>
+      If the C++0x <code class="computeroutput"><span class="keyword">static_assert</span></code> feature
+      is not available, <code class="computeroutput"><span class="identifier">BOOST_STATIC_ASSERT_MSG</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span>
+      <span class="identifier">msg</span><span class="special">)</span></code>
+      will be treated as <code class="computeroutput"><span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>.
+    </p>
+<p>
+      The material that follows assumes the C++0x <code class="computeroutput"><span class="keyword">static_assert</span></code>
+      feature is not available.
+    </p>
+<p>
+      One of the aims of <code class="computeroutput"><span class="identifier">BOOST_STATIC_ASSERT</span></code>
+      is to generate readable error messages. These immediately tell the user that
+      a library is being used in a manner that is not supported. While error messages
+      obviously differ from compiler to compiler, but you should see something like:
+    </p>
+<pre class="programlisting"><span class="identifier">Illegal</span> <span class="identifier">use</span> <span class="identifier">of</span> <span class="identifier">STATIC_ASSERTION_FAILURE</span><span class="special">&lt;</span><span class="keyword">false</span><span class="special">&gt;</span>
+</pre>
+<p>
+      Which is intended to at least catch the eye!
+    </p>
+<p>
+      You can use <code class="computeroutput"><span class="identifier">BOOST_STATIC_ASSERT</span></code>
+      at any place where you can place a declaration, that is at class, function
+      or namespace scope, this is illustrated by the following examples:
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_staticassert.namespace"></a>Use at namespace scope.</h3></div></div></div>
+<p>
+        The macro can be used at namespace scope, if there is some requirement must
+        always be true; generally this means some platform specific requirement.
+        Suppose we require that <code class="computeroutput"><span class="keyword">int</span></code>
+        be at least a 32-bit integral type, and that <code class="computeroutput"><span class="keyword">wchar_t</span></code>
+        be an unsigned type. We can verify this at compile time as follows:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">climits</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cwchar</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">limits</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="keyword">static_assert</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">my_conditions</span> <span class="special">{</span>
+
+   <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">digits</span> <span class="special">&gt;=</span> <span class="number">32</span><span class="special">);</span>
+   <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">(</span><span class="identifier">WCHAR_MIN</span> <span class="special">&gt;=</span> <span class="number">0</span><span class="special">);</span>
+
+<span class="special">}</span> <span class="comment">// namespace my_conditions</span>
+</pre>
+<p>
+        The use of the namespace my_conditions here requires some comment. The macro
+        <code class="computeroutput"><span class="identifier">BOOST_STATIC_ASSERT</span></code> works
+        by generating an typedef declaration, and since the typedef must have a name,
+        the macro generates one automatically by mangling a stub name with the value
+        of <code class="computeroutput"><span class="identifier">__LINE__</span></code>. When <code class="computeroutput"><span class="identifier">BOOST_STATIC_ASSERT</span></code> is used at either class
+        or function scope then each use of <code class="computeroutput"><span class="identifier">BOOST_STATIC_ASSERT</span></code>
+        is guaranteed to produce a name unique to that scope (provided you only use
+        the macro once on each line). However when used in a header at namespace
+        scope, that namespace can be continued over multiple headers, each of which
+        may have their own static assertions, and on the "same" lines,
+        thereby generating duplicate declarations. In theory the compiler should
+        silently ignore duplicate typedef declarations, however many do not do so
+        (and even if they do they are entitled to emit warnings in such cases). To
+        avoid potential problems, if you use <code class="computeroutput"><span class="identifier">BOOST_STATIC_ASSERT</span></code>
+        in a header and at namespace scope, then enclose them in a namespace unique
+        to that header.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_staticassert.function"></a>Use at function scope</h3></div></div></div>
+<p>
+        The macro is typically used at function scope inside template functions,
+        when the template arguments need checking. Imagine that we have an iterator-based
+        algorithm that requires random access iterators. If the algorithm is instantiated
+        with iterators that do not meet our requirements then an error will be generated
+        eventually, but this may be nested deep inside several templates, making
+        it hard for the user to determine what went wrong. One option is to add a
+        static assertion at the top level of the template, in that case if the condition
+        is not met, then an error will be generated in a way that makes it reasonably
+        obvious to the user that the template is being misused.
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="keyword">static_assert</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">RandomAccessIterator</span> <span class="special">&gt;</span>
+<span class="identifier">RandomAccessIterator</span> <span class="identifier">foo</span><span class="special">(</span><span class="identifier">RandomAccessIterator</span> <span class="identifier">from</span><span class="special">,</span>
+                         <span class="identifier">RandomAccessIterator</span> <span class="identifier">to</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="comment">// this template can only be used with</span>
+   <span class="comment">// random access iterators...</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">iterator_traits</span><span class="special">&lt;</span>
+         <span class="identifier">RandomAccessIterator</span> <span class="special">&gt;::</span><span class="identifier">iterator_category</span> <span class="identifier">cat</span><span class="special">;</span>
+   <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">(</span>
+      <span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_convertible</span><span class="special">&lt;</span>
+         <span class="identifier">cat</span><span class="special">,</span>
+         <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">random_access_iterator_tag</span><span class="special">&amp;&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+   <span class="comment">//</span>
+   <span class="comment">// detail goes here...</span>
+   <span class="keyword">return</span> <span class="identifier">from</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        A couple of footnotes are in order here: the extra set of parenthesis around
+        the assert, is to prevent the comma inside the <code class="computeroutput"><span class="identifier">is_convertible</span></code>
+        template being interpreted by the preprocessor as a macro argument separator;
+        the target type for <code class="computeroutput"><span class="identifier">is_convertible</span></code>
+        is a reference type, as some compilers have problems using <code class="computeroutput"><span class="identifier">is_convertible</span></code> when the conversion is via
+        a user defined constructor (in any case there is no guarantee that the iterator
+        tag classes are copy-constructible).
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_staticassert.class"></a>Use at class scope</h3></div></div></div>
+<p>
+        The macro is typically used inside classes that are templates. Suppose we
+        have a template-class that requires an unsigned integral type with at least
+        16-bits of precision as a template argument, we can achieve this using something
+        like this:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">limits</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="keyword">static_assert</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">UnsignedInt</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">myclass</span>
+<span class="special">{</span>
+<span class="keyword">private</span><span class="special">:</span>
+   <span class="identifier">BOOST_STATIC_ASSERT_MSG</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">UnsignedInt</span><span class="special">&gt;::</span><span class="identifier">is_specialized</span><span class="special">,</span> <span class="string">"myclass can only be specialized for types with numeric_limits support."</span><span class="special">);</span>
+   <span class="identifier">BOOST_STATIC_ASSERT_MSG</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">UnsignedInt</span><span class="special">&gt;::</span><span class="identifier">digits</span> <span class="special">&gt;=</span> <span class="number">16</span><span class="special">,</span> <span class="string">"Template argument UnsignedInt must have at least 16 bits precision."</span><span class="special">)</span>
+   <span class="identifier">BOOST_STATIC_ASSERT_MSG</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">UnsignedInt</span><span class="special">&gt;::</span><span class="identifier">is_integer</span><span class="special">,</span> <span class="string">"Template argument UnsignedInt must be an integer."</span><span class="special">);</span>
+   <span class="identifier">BOOST_STATIC_ASSERT_MSG</span><span class="special">(!</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">UnsignedInt</span><span class="special">&gt;::</span><span class="identifier">is_signed</span><span class="special">,</span> <span class="string">"Template argument UnsignedInt must not be signed."</span><span class="special">);</span>
+<span class="keyword">public</span><span class="special">:</span>
+   <span class="comment">/* details here */</span>
+<span class="special">};</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_staticassert.templates"></a>Use in templates</h3></div></div></div>
+<p>
+        Normally static assertions when used inside a class or function template,
+        will not be instantiated until the template in which it is used is instantiated.
+        However, there is one potential problem to watch out for: if the static assertion
+        is not dependent upon one or more template parameters, then the compiler
+        is permitted to evaluate the static assertion at the point it is first seen,
+        irrespective of whether the template is ever instantiated, for example:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">must_not_be_instantiated</span>
+<span class="special">{</span>
+   <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">(</span><span class="keyword">false</span><span class="special">);</span>
+<span class="special">};</span>
+</pre>
+<p>
+        Will produce a compiler error with some compilers (for example Intel 8.1
+        or gcc 3.4), regardless of whether the template is ever instantiated. A workaround
+        in cases like this is to force the assertion to be dependent upon a template
+        parameter:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">must_not_be_instantiated</span>
+<span class="special">{</span>
+   <span class="comment">// this will be triggered if this type is instantiated</span>
+   <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">(</span><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">T</span><span class="special">)</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+<span class="special">};</span>
+</pre>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: March 19, 2013 at 18:10:39 +0000</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="signals2/tests.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost_staticassert/how.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

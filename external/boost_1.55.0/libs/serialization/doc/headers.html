@@ -1,0 +1,447 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Code Structure</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Code Structure</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+
+<dl class="page-index">
+  <dt><a href="#userincludes">Files Included by User Programs</a>
+  <dl class="page-index">
+    <dt><a href="#archiveimplementations">Archive Implementations</a>
+    <dt><a href="#serializationdeclarations">Serialization Declarations</a>
+    <dt><a href="#serializationimplementations">Serialization Implementations</a>
+  </dl>
+  <dt><a href="#libraryimplementation">Files Which Implement the Library</a>
+  <dl class="page-index">
+    <dt><a href="#archivedevelopment">Archive Development</a>
+    <dt><a href="#archiveinternals">Archive Internals</a>
+    <dt><a href="#codemodules">Archive Library Code Modules</a>
+    <dt><a href="#dataflowiterators">Dataflow Iterators</a>
+  </dl>
+</dl>
+
+This library includes a large number of files. The are organized and classified
+according to purpose listed in the above index. 
+<p>
+<code style="white-space: normal">namespace</code> of a classes and templates is syncronized
+with the directory in which the file is found.  For example, the class declaration
+<pre><code>
+boost::archive::text_oarchive
+</code></pre>
+is included with the following declaration
+<pre><code>
+#include &lt;boost/archive/text_oarchive.hpp&gt;
+</code></pre>
+
+<a name="userincludes">
+<h3>Files Included by User Programs</h3>
+Using this library entails including headers listed in this section.
+It should not be necessary to explictly include any other header files.
+
+<a name="archiveimplementations">
+<h4>Archive Implementations</h4>
+These header files contain declarations used to save and restore data to each type
+of archive. Include the archives according to the facilities the code module requires.
+
+<dl>
+
+<dt><a target="archive_exception" href="../../../boost/archive/archive_exception.hpp">
+boost/archive/archive_exception.hpp
+</a>
+<dd>Exceptions which might be invoked by the library.</dd>
+
+<dt><a target="binary_iarchive" href="../../../boost/archive/binary_iarchive.hpp">
+boost/archive/binary_iarchive.hpp
+</a>
+<dd>native binary input archive used for loading.</dd>
+
+<dt><a target="binary_oarchive" href="../../../boost/archive/binary_oarchive.hpp">
+boost/archive/binary_oarchive.hpp
+</a>
+<dd>native binary output archive used for saving.</dd>
+
+<dt><a target="text_iarchive" href="../../../boost/archive/text_iarchive.hpp">
+boost/archive/text_iarchive.hpp
+</a>
+<dd>text input archive used for loading.</dd>
+
+<dt><a target="text_oarchive" href="../../../boost/archive/text_oarchive.hpp">
+boost/archive/text_oarchive.hpp
+</a>
+<dd>text output archive used for saving.</dd>
+
+<dt><a target="text_wiarchive" href="../../../boost/archive/text_wiarchive.hpp">
+boost/archive/text_wiarchive.hpp
+</a>
+<dd>wide character text input archive used forloading.</dd>
+
+<dt><a target="text_woarchive" href="../../../boost/archive/text_woarchive.hpp">
+boost/archive/text_woarchive.hpp
+</a>
+<dd>wide character text input archive used for saving.</dd>
+
+<dt><a target="xml_iarchive" href="../../../boost/archive/xml_iarchive.hpp">
+boost/archive/xml_iarchive.hpp
+</a>
+<dd>xml input archive used for loading.</dd>
+
+<dt><a target="text_oarchive" href="../../../boost/archive/xml_oarchive.hpp">
+boost/archive/xml_oarchive.hpp
+</a>
+<dd>xml output archive used for saving.</dd>
+
+<dt><a target="text_wiarchive" href="../../../boost/archive/xml_wiarchive.hpp">
+boost/archive/xml_wiarchive.hpp
+</a>
+<dd>wide character xml input archive used for loading.</dd>
+
+<dt><a target="text_woarchive" href="../../../boost/archive/xml_woarchive.hpp">
+boost/archive/xml_woarchive.hpp
+</a>
+<dd>wide character xml output archive used for saving.</dd>
+
+</dl>
+
+<a name="serializationdeclarations">
+<h4>Serialization Declarations</h4>
+To specify how a type is serialized, one codes templates for serialization functions.
+In the simplest cases, this does not require the inclusion of any header files for this purpose.
+In most cases one or more of the following header files will have to be included in order
+to complete or refine the description of the serializaition implementation for a given class.
+
+<dl>
+
+<dt><a target="base_object" href="../../../boost/serialization/base_object.hpp">
+boost/serialization/base_object.hpp
+</a>
+<dd>For serialization of base classes.</dd>
+
+<dt><a target="nvp" href="../../../boost/serialization/nvp.hpp">
+boost/serialization/nvp.hpp
+</a>
+<dd>To associate a name tag with a serializable object.  This is necessary to
+properly render an xml archive which includes the object name.</dd>
+
+<dt><a target="split_free" href="../../../boost/serialization/split_free.hpp">
+boost/serialization/split_free.hpp
+</a>
+<dd>To divide implementation of <em>non-intrusive</em> serialization into separate
+save and load functions.</dd>
+
+<dt><a target="split_member" href="../../../boost/serialization/split_member.hpp">
+boost/serialization/split_member.hpp
+</a>
+<dd>To divide implementation of <em>intrusive</em> serialization into separate
+save and load functions.</dd>
+
+<dt><a target="export" href="../../../boost/serialization/export.hpp">
+boost/serialization/export.hpp
+</a>
+<dd>For serialization of pointers to derived classes via key export.</dd>
+
+<dt><a target="assume_abstract" href="../../../boost/serialization/assume_abstract.hpp">
+boost/serialization/assume_abstract.hpp
+</a>
+<dd>This is just a thin wrapper which permits one to explicitly specify that a 
+particular type is an abstract base class.  It is necessary to use this
+for compilers which don't support the boost type traits implementation of
+is_abstact.
+</dd>
+
+</dl>
+
+This group will be required less frequently.  The are used to override aspects of
+the default implementation of the serialization process for specified types.
+
+<dl>
+
+<dt><a target="version" href="../../../boost/serialization/version.hpp">
+boost/serialization/version.hpp
+</a>
+<dd>To override the default version index (0) assigned to a class.</dd>
+
+<dt><a target="level" href="../../../boost/serialization/level.hpp">
+boost/serialization/level.hpp
+</a>
+<dd>To override the default implementaton level trait for a type.</dd>
+
+<dt><a target="tracking" href="../../../boost/serialization/tracking.hpp">
+boost/serialization/tracking.hpp
+</a>
+<dd>To override the default tracking trait for a type.</dd>
+
+<dt><a target="type_info_implementation" href="../../../boost/serialization/type_info_implementation.hpp">
+boost/serialization/type_info_implementation.hpp
+</a>
+<dd>By default, the library uses RTTI, to identify types at runtime. In some cases, E.G.
+such as a platform which doesn't implement RTTI, this header can be included to permit
+the override of the default runtime type identification system.</dd>
+
+</dl>
+
+<a name="serializationimplementations">
+<h4>Serialization Implementations</h4>
+This group of headers includes templates which implement serialization for Standard
+Library or Boost Library templates.  Any program which uses these templates can
+invoke serialization of objects of these types just by including the corresponding header.
+<p>
+By convention' these header files are named:
+
+boost/serialization/xxx.hpp
+
+where xxx is the name of the header file which contains the type to be serialized.
+For example, the declaration
+<pre><code>
+#include &lt;boost/serialization/list.hpp&gt;
+</code></pre>
+
+includes the code to implement serialization of the STL
+<code style="white-space: normal">std::list</code> type. While
+
+<pre><code>
+#include &lt;boost/serialization/shared_ptr.hpp&gt;
+</code></pre>
+
+includes code to implement serialization of the BOOST <code style="white-space: normal">boost::shared_ptr</code> type.
+
+Note that including the serialization header for a type automatically includes the 
+appropriate header of the type to be serialized.
+
+As of this writing, the library includes templates of all STL library templates as well
+as templates for <code style="white-space: normal">boost::optional</code>, 
+<code style="white-space: normal">boost::shared_ptr</code>, and 
+<code style="white-space: normal">boost::scoped_ptr</code>.  
+Presumably, this list will expand with the passage of time.
+
+<a name="libraryimplementation">
+<h3>Files Which Implement the Library</h3>
+
+<a name="archivedevelopment">
+<h4>Archive Development</h4>
+These header files contain declarations for basic types used to create
+concrete archive types that are made available to users above. Users wishing
+to make their own type of archive may want to examine these headers to
+see how the archives included with the libary have been constructed.
+
+<dl>
+
+<dt><a target="basic_archive" href="../../../boost/archive/basic_archive.hpp">
+boost/archive/basic_archive.hpp
+</a>
+</dt>
+<dd>
+This file includes declarations for certain types that have to be accounted
+for in all archive implementations.  The serialization system relies on 
+certain special types such as <code style="white-space: normal">class_id_type</code> and others to 
+record information in archives that is required to reconstruct the original
+data structure.  These are handled exactly as any other serializable type.
+That is, the can be handled as simple primitives such as they are in simple
+text files, or with special code as they are in xml archives.
+</dd>
+
+<dt><a target="basic_text_oprimitive" href="../../../boost/archive/basic_text_oprimitive.hpp">
+boost/archive/basic_text_oprimitive.hpp
+</a>
+<dt><a target="basic_text_iprimitive" href="../../../boost/archive/basic_text_iprimitive.hpp">
+boost/archive/basic_text_iprimitive.hpp
+</a>
+</dt>
+<dd>
+Implementation of serialization of primitive types in terms of an character
+or wide character text streams. This is used in the implementation of text and
+xml archives.  Presumably this would be useful for implementations of other variations
+of text archives such as user friendly text or windows ini files.
+</dd>
+
+<dt><a target="basic_binary_oprimitive" href="../../../boost/archive/basic_binary_oprimitive.hpp">
+boost/archive/basic_binary_oprimitive.hpp
+</a>
+<dt><a target="basic_binary_iprimitive" href="../../../boost/archive/basic_binary_iprimitive.hpp">
+boost/archive/basic_binary_iprimitive.hpp
+</a>
+</dt>
+<dd>
+Implementation of serialization of primitive types in terms of an character
+or wide character binary streams. 
+</dd>
+
+<dt><a target="basic_binary_oarchive" href="../../../boost/archive/basic_binary_oarchive.hpp">
+boost/archive/basic_binary_oarchive.hpp
+</a>
+<dt><a target="basic_binary_iarchive" href="../../../boost/archive/basic_binary_iarchive.hpp">
+boost/archive/basic_binary_iarchive.hpp
+</a>
+<dd>
+Implementation of serialization of all types in terms of an character
+or wide character binary streams.  This is factored out separately from the
+implementation of binary primitives above.  This may facilitate the creation of
+other types of binary archives in the future. It also preserves analogy and symetry with
+the rest of the library which aids in understanding.
+</dd>
+<dt><a target="basic_text_oarchive" href="../../../boost/archive/basic_text_oarchive.hpp">
+boost/archive/basic_text_oarchive.hpp
+</a>
+<dt><a target="basic_te't_iarchive" href="../../../boost/archive/basic_text_iarchive.hpp">
+boost/archive/basic_text_iarchive.hpp
+</a>
+</dt>
+<dt><a target="basic_xml_oarchive" href="../../../boost/archive/basic_xml_oarchive.hpp">
+boost/archive/basic_xml_oarchive.hpp
+</a>
+<dt><a target="basic_xml_iarchive" href="../../../boost/archive/basic_xml_iarchive.hpp">
+boost/archive/basic_xml_iarchive.hpp
+</a>
+</dt>
+<dd>
+Implementation of serialization of all types in terms of an character
+or wide character text streams. These classes specify archive type specific
+behavior on a type by type basis.  For example, <code style="white-space: normal">basic_xml_oarchive.hpp</code>
+includes code to guarentee that any object not attached to a name will 
+trap during compile time. On the other hand, <code style="white-space: normal">basic_text_oarchive.hpp</code>
+contains code to strip out and ingore any names attached to objects.
+<p>
+<dt><a target="common_iarchive" href="../../../boost/archive/detail/common_iarchive.hpp">
+boost/archive/detail/common_iarchive.hpp
+</a>
+<dt><a target="common_oarchive" href="../../../boost/archive/detail/common_oarchive.hpp">
+boost/archive/detail/common_oarchive.hpp
+</a>
+<dd>
+All archive implementations are derived from these header files.  They provide
+the interface to the internal implementation details of the library.
+</dd>
+
+</dl>
+
+<a name="archiveinternals">
+<h4>Archive Internals</h4>
+ 
+The interface (see <a target="detail" href="archives.html">Archive Concepts</a>) 
+and implementation are factored out into separate classes to minimize code duplication.
+
+These files are found in the directory
+<a target="boost_archive_detail" href="../../../boost/archive/detail">boost/archive/detail</a>.  
+These are included as necessary by the archive class implemenations listed above.
+This has the unfortunate side effect of making the implementation less transparent.
+of the library in order to implement either a class serialization or a new
+archive type. Users should never find it necessary to change these files.
+<p>
+The following discussion is based on the
+<a target="class_diagram" href="class_diagram.html">class diagram</a>.
+<p>
+<dt><a target="interface_iarchive" href="../../../boost/archive/detail/interface_iarchive.hpp">
+boost/archive/detail/interface_iarchive.hpp</a>
+<dt><a target="interface_iarchive" href="../../../boost/archive/detail/interface_iarchive.hpp">
+boost/archive/detail/interface_iarchive.hpp</a>
+<dd>
+Here are the declarations and definitions which for the 
+<a href="archives.html">archive_concept</a>. This class redirects calls to the 
+archive interface to a function named <code>save_override</code> in the most derived
+archive class. 
+</dd>
+<code>save_override</code> is declared and implemented in each class in
+the archive hierarchy.
+
+<pre><code>
+template<class T>
+void save_override(T & t, BOOST_PFTO int){
+    // All for otherwise unhandled types are forwarded to the base class.
+    // This emulates behavior for function overloading.
+    this->base::save_override(t, 0);
+}
+void save_override(const some_type & t, int){
+    // any special handling for some type
+    // this will usually entail forwarding some other operation
+    // in the most derived class.
+    this->This()->...
+    // or in one of its parents basic_text_oprimitive
+    this->This()->save(static_cast&lt;int&gt;(t));
+}
+... // other special type handling
+</code></pre>
+
+Note the usage of
+<a target="detail" href="implementation.html#functiontemplateordering">Partial Function Template Ordering</a>
+to permit the correct save implementation to be selected.  
+</dd>
+
+<a name="codemodules">
+<h4>Archive Library Code Modules</h4>
+Parts of the library are implemented as library code. All of this code is to be found in
+<a target="src" href="../../../libs/serialization/src">libs/serialization/src</a>. 
+in the form of *.cpp.  The directory
+<a target="src" href="../../../boost/archive/impl">boost/archive/impl</a>
+contains *.ipp files which implement templates. These templates are instantiated
+only by archive implementation so are generally not included in user code modules.
+<p>
+The trade offs related to library implementation via pre-compiled code and templated
+headers are well known.  This library uses both.  It uses templated headers
+to generate code to serialize user and primitive types and it uses pre-compiled
+library code for that part of the code which only depends upon the archive type.
+Building of the library generates and compiles code for all archives implemented.
+
+<ul>
+  <li>Serialization of user and primitive types runs a top speed. This is a noticiable
+  difference with a previous version of the library which did not use templates for archives.
+  <li>Library implementation code that never changes need only be compiled once
+  rather than each time a user's program is recompiled.  This can save much
+  development time.
+  <li>Headers which solely related to implementation need only be included
+  in the library code modules. This prevents a user program from accidently 
+  depending on an implementation feature of the serialization library.
+  <li>In building the library I came to the conclusions that there can arise
+  situations regarding static code/data instantiation that could not be 
+  satisfactorily addressed without a code module.  Unfortunately, I've forgotten
+  the circumstances which led me to this conclusion.
+</ul>	
+An example of this is the usage of the spirit library in the library.
+It takes a long time to compile and includes lots of other files. Having this
+only in the library is much more convenient that having to include in every
+program which uses xml serialization.
+
+<a name="dataflowiterators">
+<h4>Dataflow Iterators</h4>
+In the course of developing this library, it became convenient to make a set
+of composable iterator adaptors for handling archive text.  Applications include
+escaping and unescaping xml text, implementi'g to/from base64 conversion among
+others.
+<p>
+This is a ripe topic in itself. Its touched upon by the 
+<a href="../../../libs/iterator/doc/index.html">boost iterator</a> libraries, 
+<a href="http://www.zib.de/weiser/vtl/index.html">View Template Library</a>, and others. 
+<p>
+The code for these iterators is really independent of this library.  But since it
+hasn't been and probably won't be reviewed outside of this context. I've left in a directory 
+local to the serialization library:
+<a target="archiveiterators" href="../../../boost/archive/iterators">boost/archive/iterators</a>.
+These iterators are described in 
+<a href="dataflow.html">Dataflow Iterators</a>.
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

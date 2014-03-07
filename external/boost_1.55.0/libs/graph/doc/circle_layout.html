@@ -1,0 +1,51 @@
+<html><!--
+     Copyright (c) 2004 Trustees of Indiana University
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Function template circle_graph_layout</title></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><table cellpadding="2" width="100%"><td valign="top"><img src="../../../boost.png" alt="boost.png (6897 bytes)" width="277" height="86"></td><td align="center"><a href="../../../index.htm">Home</a></td><td align="center"><a href="../../libraries.htm">Libraries</a></td><td align="center"><a href="http://www.boost.org/people/people.htm">People</a></td><td align="center"><a href="http://www.boost.org/more/faq.htm">FAQ</a></td><td align="center"><a href="../../../more/index.htm">More</a></td></table><hr><div class="refentry" lang="en"><a name="id103562-bb"></a><div class="titlepage"><div></div><div></div></div><div class="refnamediv"><h2><img src="figs/python.gif" alt="(Python)"/><span class="refentrytitle">Function template circle_graph_layout</span></h2><p>boost::circle_graph_layout &#8212; Layout the graph with the vertices at the points of a regular n-polygon. </p></div><h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2><div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis">
+<span class="bold"><b>template</b></span>&lt;<span class="bold"><b>typename</b></span> VertexListGraph, <span class="bold"><b>typename</b></span> PositionMap, <span class="bold"><b>typename</b></span> Radius&gt; 
+  <span class="type"><span class="bold"><b>void</b></span></span> circle_graph_layout(<span class="bold"><b>const</b></span> VertexListGraph &amp; g, PositionMap position, 
+                           Radius radius);</pre></div><div class="refsect1" lang="en"><a name="id821794"></a><h2>Where Defined</h2><a href="../../../boost/graph/circle_layout.hpp">boost/graph/circle_layout.hpp</a><h2>Description</h2><p>The distance from the center of the polygon to each point is determined by the <tt class="computeroutput">radius</tt>  parameter. The <tt class="computeroutput">position</tt>  parameter must be an Lvalue Property Map whose value type is a class type containing <tt class="computeroutput">x</tt>  and <tt class="computeroutput">y</tt>  members that will be set to the <tt class="computeroutput">x</tt>  and <tt class="computeroutput">y</tt>  coordinates. 
+
+          <h2>Parameters</h2>
+IN: <tt>const VertexListGraph&amp; g</tt>
+<blockquote>
+  The graph object on which the algorithm will be applied.  The type
+  <tt>VertexListGraph</tt> must be a model of <a
+  href="VertexListGraph.html">Vertex List Graph</a>.<br>
+<b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+
+OUT: <tt>PositionMap position</tt>
+<blockquote>
+  This property map is used to store the position of each vertex.  The
+  type <tt>PositionMap</tt> must be a model of <a
+  href="../../property_map/doc/WritablePropertyMap.html">Writable Property
+  Map</a>, with the graph's edge descriptor type as its key type. The
+  value type of this property map should be assignable from the
+  type <tt>Radius</tt>. <br>
+
+  <b>Python</b>: The position map must be a <tt>vertex_point2d_map</tt> for
+  the graph.<br>
+  <b>Python default</b>: <tt>graph.get_vertex_point2d_map("position")</tt>
+</blockquote>
+
+IN: <tt>Radius radius</tt>
+<blockquote>
+  This is the radius of the circle on which points will be layed
+  out. It must be compatible with <tt>double</tt>.<br>
+</blockquote>
+
+</p></div></div><table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr><td align="left"></td><td align="right"><small></small></td></tr></table><hr>
+
+                           <TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2004</TD><TD>
+<A HREF="http://www.boost.org/people/doug_gregor.html">Douglas Gregor</A>, Indiana University (dgregor -at- cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (lums -at- osl.iu.edu)
+</TD></TR></TABLE>
+                           </body></html>

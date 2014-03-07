@@ -1,0 +1,124 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="../../../../boost.css">
+<title>Boost.Python - ResultConverter Concept</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+      <h2 align="center">ResultConverter Concept</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="page-index"> 
+  <dt><a href="#introduction">Introduction</a></dt>
+  <dt><a href="#concept-requirements">Concept Requirements</a></dt>
+  <dd>
+    <dl class="page-index"> 
+      <dt><a href="#ResultConverter-concept">ResultConverter Concept</a></dt>
+      <dt><a href="#ResultConverterGenerator-concept">ResultConverterGenerator Concept</a></dt>
+    </dl>
+  </dd>
+</dl>
+
+<h2><a name="introduction"></a>Introduction</h2>
+
+<p>A ResultConverter for a type <code>T</code> is a type whose
+instances can be used to convert C++ return values of type
+<code>T</code> <code>to_python</code>. A ResultConverterGenerator is
+an MPL unary metafunction class which, given the return type of a C++
+function, returns a ResultConverter for that type. ResultConverters in
+Boost.Python generally inspect library's registry of converters to
+find a suitable converter, but converters which don't use the registry
+are also possible.
+
+<h2><a name="concept-requirements"></a>Concept Requirements</h2>
+<h3><a name="ResultConverter-concept"></a>ResultConverter Concept</h3>
+
+<p>In the table below, <code><b>C</b></code> denotes a ResultConverter
+type for a type <b><code>R</code></b> , <code><b>c</b></code> denotes
+an object of type <code><b>C</b></code> , and <code><b>r</b></code>
+denotes an object of type <code><b>R</b></code>.
+
+<table summary="ResultConverter expressions" border="1" cellpadding="5">
+
+  <tr> 
+    <td><b>Expression</b></td>
+    <td><b>Type</b></td>
+    <td><b>Semantics</b></td>
+  </tr>
+
+  <tr> 
+    <td valign="top"><code>C c;</code></td>
+    <td>
+    <td>Constructs a <code>C</code> object.
+  </tr>
+
+  <tr> 
+    <td valign="top"><code>c.convertible()</code></td>
+    <td>convertible to <code>bool</code></td>
+    <td><code>false</code> iff no conversion from any <code>R</code> value
+    to a Python object is possible.</td>
+  </tr>
+
+  <tr> 
+    <td valign="top"><code>c(r)</code></td>
+    <td>convertible to <code>PyObject*</code></td>
+    <td>A pointer to a Python object corresponding to <code>r</code>,
+    or <code>0</code> iff <code>r</code> could not be converted
+    <code>to_python</code>, in which case <a
+    href="http://www.python.org/doc/current/api/exceptionHandling.html#l2h-71">PyErr_Occurred</a>
+    should return non-zero.</td>
+  </tr>
+  <tr> 
+    <td valign="top"><code>c.get_pytype()</code></td>
+    <td><code>PyTypeObject const*</code></td>
+    <td>A pointer to a Python Type object corresponding to result of the conversion,
+    or <code>0</code>. Used for documentation generation. If <code>0</code> is returned
+    the generated type in the documentation will be <b>object</b> .</td>
+  </tr>
+</table>
+
+<h3><a name="ResultConverterGenerator-concept"></a>ResultConverterGenerator Concept</h3>
+<p>In the table below, <code><b>G</b></code> denotes a
+ResultConverterGenerator type and <code><b>R</b></code> denotes a possible
+C++ function return type.
+
+<table summary="ResultConverterGenerator expressions" border="1" cellpadding="5">
+  <tr> 
+    <td><b>Expression</b></td>
+    <td><b>Requirements</b></td>
+  </tr>
+  <tr> 
+    <td valign="top"><code>G::apply&lt;R&gt;::type</code></td>
+    <td>A ResultConverter type for <code>R</code>.</td>
+</table>
+
+<hr>
+<p>Revised 
+  <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  09 May, 2002    <!--Luann's birthday! -->
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+</p>
+    <p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave
+    Abrahams</a> 2002. </i>
+
+<p>Permission to copy, use, modify, sell
+ and distribute this software is granted provided this copyright notice appears
+ in all copies. This software is provided "as is" without express or implied
+ warranty, and with no claim as to its suitability for any purpose.
+</body>
+</html>

@@ -1,0 +1,117 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Property</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H2><A NAME="concept:PropertyTag"></A>
+PropertyTag
+</H2>
+
+A Property Tag is a type used to name or identify properties that are
+attached to the vertices and edges of a graph. A Property type is not
+the type of the actual property values. Objects of the Property type
+are not used except to carry the type information which specifies the
+property. See the section about <A
+href="using_adjacency_list.html#sec:custom-edge-properties"> Custom
+Edge Properties</a> for a description of how to define your own
+property tags.
+
+
+<h3>Associated Types</h3>
+
+<table border>
+
+<tr>
+<td>Property Kind </td>
+<td><TT>property_kind&lt;PropertyTag&gt;::type</TT> </td>
+<td>
+
+This specifies whether the property is a <a
+name="VertexPropertyTag"><b>Vertex Property Tag</b></a>
+(<tt>vertex_property_tag</tt>), an <a
+name="EdgePropertyTag"><b>Edge Property Tag</b></a> (<tt>edge_property_tag</tt>), or
+a <a name="GraphPropertyTag"><b>Graph Property Tag</b></a> which is attached to the
+graph object itself (<tt>graph_property_tag</tt>). The tags are
+defined in <a
+href="../../../boost/graph/properties.hpp"><tt>boost/graph/properties.hpp</tt></a>. The <tt>property_kind</tt> traits class is defined in <a href="../../../boost/pending/property.hpp"><tt>boost/pending/property.hpp</tt></a>.
+
+</td>
+</tr>
+
+<tr>
+<td>Property ID Number </td>
+<td><TT>property_num&lt;PropertyTag&gt;::value</TT> </td>
+<td>
+This is needed as a workaround when using compilers that do not
+support partial specialization (and hence prevent us from using
+<tt>boost::is_same</tt> to detect if two property tags are the same).
+The <tt>property_num</tt> traits class is defined in <a
+href="../../../boost/pending/property.hpp"><tt>boost/pending/property.hpp</tt></a>.
+</td>
+</tr>
+
+</table>
+
+<h3>Refinement of</h3>
+
+<a
+href="http://www.sgi.com/tech/stl/DefaultConstructible.html">Default Constructible</a> 
+
+
+<h3>Models</h3>
+
+The following models of the Property Tag concept are defined
+in <a
+href="../../../boost/graph/properties.hpp"><tt>boost/graph/properties.hpp</tt></a>.
+
+<ul>
+  <li><tt>vertex_index_t</tt></li>
+  <li><tt>edge_index_t</tt></li>
+  <li><tt>graph_name_t</tt></li>
+  <li><tt>vertex_name_t</tt></li>
+  <li><tt>edge_name_t</tt></li>
+  <li><tt>edge_weight_t</tt></li>
+  <li><tt>vertex_distance_t</tt></li>
+  <li><tt>vertex_color_t</tt></li>
+  <li><tt>vertex_degree_t</tt></li>
+  <li><tt>vertex_out_degree_t</tt></li>
+  <li><tt>vertex_in_degree_t</tt></li>
+  <li><tt>vertex_discover_time_t</tt></li>
+  <li><tt>vertex_finish_time_t</tt></li>
+</ul>
+
+<h3>See Also</h3>
+
+<a href="./PropertyGraph.html">PropertyGraph</a>
+and
+<a href="../../property_map/doc/property_map.html">Property Map Concepts</a>
+
+<h3>Notes</h3>
+
+On compilers that do not support partial specialization, each Property
+type is also required to specialize
+<tt>property_num&lt;PropertyTag&gt;</tt> to contain an enum named
+<tt>value</tt> which uniquely identifies the property type.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

@@ -1,0 +1,16 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Hiragana_Latin.txt
+# Generated from CLDR 
+#
+:: [ぁ-ゔ\u3099ゝ-ゞガギグゲゴザジズゼゾダヂヅデドバビブベボヴヷ-ヺーヾ] ;
+:: NFD ;
+:: Hiragana-Katakana;
+:: Katakana-Latin;
+:: NFC ;
+:: (Lower) ;
+:: ([',.A-Za-z~À-ÖØ-öø-ďĒ-ĥĨ-İĴ-ķĹ-ľŃ-ňŌ-őŔ-ťŨ-žƠ-ơƯ-ưǍ-ǜǞ-ǣǦ-ǭǰǴ-ǵǸ-țȞ-ȟȦ-ȳ\u0304Ӣ-ӣӮ-ӯḀ-ẙẠ-ỹᾱᾹῑῙῡῩK-Å]) ;

@@ -1,0 +1,255 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Quantities</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_units.html" title="Chapter&#160;36.&#160;Boost.Units 1.1.0">
+<link rel="prev" href="Units.html" title="Units">
+<link rel="next" href="Examples.html" title="Examples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="Units.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_units.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="Examples.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_units.Quantities"></a><a class="link" href="Quantities.html" title="Quantities">Quantities</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="Quantities.html#boost_units.Quantities.Heterogeneous_Operators">Heterogeneous
+      Operators</a></span></dt>
+<dt><span class="section"><a href="Quantities.html#boost_units.Quantities.Conversions">Conversions</a></span></dt>
+<dt><span class="section"><a href="Quantities.html#boost_units.Quantities.Quantity_Construction_and_Conversion">Construction
+      and Conversion of Quantities</a></span></dt>
+</dl></div>
+<p>
+      A <span class="bold"><strong>quantity</strong></span> is defined as a value of an arbitrary
+      value type that is associated with a specific unit. For example, while meter
+      is a unit, 3.0 meters is a quantity. Quantities obey two separate algebras:
+      the native algebra for their value type, and the dimensional analysis algebra
+      for the associated unit. In addition, algebraic operations are defined between
+      units and quantities to simplify the definition of quantities; it is effectively
+      equivalent to algebra with a unit-valued quantity.
+    </p>
+<p>
+      Quantities are implemented by the <span class="underline"><code class="computeroutput"><a class="link" href="../boost/units/quantity.html" title="Class template quantity">quantity</a></code></span>
+      template class defined in <code class="computeroutput"><a class="link" href="Reference.html#header.boost.units.quantity_hpp" title="Header &lt;boost/units/quantity.hpp&gt;">boost/units/quantity.hpp</a></code>
+      :
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Unit</span><span class="special">,</span><span class="keyword">class</span> <span class="identifier">Y</span> <span class="special">=</span> <span class="keyword">double</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">quantity</span><span class="special">;</span>
+</pre>
+<p>
+      This class is templated on both unit type (<code class="computeroutput"><span class="identifier">Unit</span></code>)
+      and value type (<code class="computeroutput"><span class="identifier">Y</span></code>), with the
+      latter defaulting to double-precision floating point if not otherwise specified.
+      The value type must have a normal copy constructor and copy assignment operator.
+      Operators +, -, *, and / are provided for algebraic operations between scalars
+      and units, scalars and quantities, units and quantities, and between quantities.
+      In addition, integral and rational powers and roots can be computed using the
+      <span class="underline"><code class="computeroutput"><a class="link" href="../boost/units/pow_idp156633096.html" title="Function template pow">pow</a></code></span>&lt;R&gt;
+      and <span class="underline"><code class="computeroutput"><a class="link" href="Reference.html#boost.units.root_idp157048760">root</a></code></span>&lt;R&gt;
+      functions. Finally, the standard set of boolean comparison operators ( <code class="computeroutput"><span class="special">==,</span> <span class="special">!=,</span> <span class="special">&lt;,</span>
+      <span class="special">&lt;=,</span> <span class="special">&gt;,</span>
+      <span class="keyword">and</span> <span class="special">&gt;=</span></code>
+      ) are provided to allow comparison of quantities from the same unit system.
+      All operators simply delegate to the corresponding operator of the value type
+      if the units permit.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_units.Quantities.Heterogeneous_Operators"></a><a class="link" href="Quantities.html#boost_units.Quantities.Heterogeneous_Operators" title="Heterogeneous Operators">Heterogeneous
+      Operators</a>
+</h3></div></div></div>
+<p>
+        For most common value types, the result type of arithmetic operators is the
+        same as the value type itself. For example, the sum of two double precision
+        floating point numbers is another double precision floating point number.
+        However, there are instances where this is not the case. A simple example
+        is given by the <a href="http://en.wikipedia.org/wiki/Natural_number" target="_top">natural
+        numbers</a> where the operator arithmetic obeys the following rules (using
+        the standard notation for <a href="http://en.wikipedia.org/wiki/Number" target="_top">number
+        systems</a>):
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="inlinemediaobject"><img src="../../../libs/units/images/form_12.png" alt="form_12"></span>
+          </li>
+<li class="listitem">
+            <span class="inlinemediaobject"><img src="../../../libs/units/images/form_13.png" alt="form_13"></span>
+          </li>
+<li class="listitem">
+            <span class="inlinemediaobject"><img src="../../../libs/units/images/form_14.png" alt="form_14"></span>
+          </li>
+<li class="listitem">
+            <span class="inlinemediaobject"><img src="../../../libs/units/images/form_15.png" alt="form_15"></span>
+          </li>
+</ul></div>
+<p>
+        This library is designed to support arbitrary value type algebra for addition,
+        subtraction, multiplication, division, and rational powers and roots. It
+        uses Boost.Typeof to deduce the result of these operators. For compilers
+        that support <code class="computeroutput"><span class="identifier">typeof</span></code>, the
+        appropriate value type will be automatically deduced. For compilers that
+        do not provide language support for <code class="computeroutput"><span class="identifier">typeof</span></code>
+        it is necessary to register all the types used. For the case of natural numbers,
+        this would amount to something like the following:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">natural</span><span class="special">);</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">integer</span><span class="special">);</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">rational</span><span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_units.Quantities.Conversions"></a><a class="link" href="Quantities.html#boost_units.Quantities.Conversions" title="Conversions">Conversions</a>
+</h3></div></div></div>
+<p>
+        Conversion is only meaningful for quantities as it implies the presence of
+        at least a multiplicative scale factor and, possibly, and affine linear offset.
+        Macros for simplifying the definition of conversions between units can be
+        found in <code class="computeroutput"><a class="link" href="Reference.html#header.boost.units.conversion_hpp" title="Header &lt;boost/units/conversion.hpp&gt;">boost/units/conversion.hpp</a></code>
+        and <code class="computeroutput"><a class="link" href="Reference.html#header.boost.units.absolute_hpp" title="Header &lt;boost/units/absolute.hpp&gt;">boost/units/absolute.hpp</a></code>
+        (for affine conversions with offsets).
+      </p>
+<p>
+        The macro <span class="underline"><code class="computeroutput"><a class="link" href="../BOOST_UNITS_DEFINE_CONVERSION_FACTOR.html" title="Macro BOOST_UNITS_DEFINE_CONVERSION_FACTOR">BOOST_UNITS_DEFINE_CONVERSION_FACTOR</a></code></span>
+        specifies a scale factor for conversion from the first unit type to the second.
+        The first argument must be a <span class="underline"><code class="computeroutput"><a class="link" href="../boost/units/base_unit.html" title="Class template base_unit">base_unit</a></code></span>.
+        The second argument can be either a <span class="underline"><code class="computeroutput"><a class="link" href="../boost/units/base_unit.html" title="Class template base_unit">base_unit</a></code></span> or a <span class="underline"><code class="computeroutput"><a class="link" href="../boost/units/unit.html" title="Class template unit">unit</a></code></span>.
+      </p>
+<p>
+        Let's declare a simple base unit:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">foot_base_unit</span> <span class="special">:</span> <span class="identifier">base_unit</span><span class="special">&lt;</span><span class="identifier">foot_base_unit</span><span class="special">,</span> <span class="identifier">length_dimension</span><span class="special">,</span> <span class="number">10</span><span class="special">&gt;</span> <span class="special">{</span> <span class="special">};</span>
+</pre>
+<p>
+        Now, we want to be able to convert feet to meters and vice versa. The foot
+        is defined as exactly 0.3048 meters, so we can write the following
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_UNITS_DEFINE_CONVERSION_FACTOR</span><span class="special">(</span><span class="identifier">foot_base_unit</span><span class="special">,</span> <span class="identifier">meter_base_unit</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="number">0.3048</span><span class="special">);</span>
+</pre>
+<p>
+        Alternately, we could use the SI length <code class="computeroutput"><span class="keyword">typedef</span></code>:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_UNITS_DEFINE_CONVERSION_FACTOR</span><span class="special">(</span><span class="identifier">foot_base_unit</span><span class="special">,</span> <span class="identifier">SI</span><span class="special">::</span><span class="identifier">length</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="number">0.3048</span><span class="special">);</span>
+</pre>
+<p>
+        Since the SI unit of length is the meter, these two definitions are equivalent.
+        If these conversions have been defined, then converting between scaled forms
+        of these units will also automatically work.
+      </p>
+<p>
+        The macro <span class="underline"><code class="computeroutput"><a class="link" href="../BOOST_UNITS_DEFAULT_CONVERSION.html" title="Macro BOOST_UNITS_DEFAULT_CONVERSION">BOOST_UNITS_DEFAULT_CONVERSION</a></code></span>
+        specifies a conversion that will be applied to a base unit when no direct
+        conversion is possible. This can be used to make arbitrary conversions work
+        with a single specialization:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">my_unit_tag</span> <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">units</span><span class="special">::</span><span class="identifier">base_unit</span><span class="special">&lt;</span><span class="identifier">my_unit_tag</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">units</span><span class="special">::</span><span class="identifier">force_type</span><span class="special">,</span> <span class="number">1</span><span class="special">&gt;</span> <span class="special">{};</span>
+<span class="comment">// define the conversion factor</span>
+<span class="identifier">BOOST_UNITS_DEFINE_CONVERSION_FACTOR</span><span class="special">(</span><span class="identifier">my_unit_tag</span><span class="special">,</span> <span class="identifier">SI</span><span class="special">::</span><span class="identifier">force</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="number">3.14159265358979323846</span><span class="special">);</span>
+<span class="comment">// make conversion to SI the default.</span>
+<span class="identifier">BOOST_UNITS_DEFAULT_CONVERSION</span><span class="special">(</span><span class="identifier">my_unit_tag</span><span class="special">,</span> <span class="identifier">SI</span><span class="special">::</span><span class="identifier">force</span><span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_units.Quantities.Quantity_Construction_and_Conversion"></a><a class="link" href="Quantities.html#boost_units.Quantities.Quantity_Construction_and_Conversion" title="Construction and Conversion of Quantities">Construction
+      and Conversion of Quantities</a>
+</h3></div></div></div>
+<p>
+        This library is designed to emphasize safety above convenience when performing
+        operations with dimensioned quantities. Specifically, construction of quantities
+        is required to fully specify both value and unit. Direct construction from
+        a scalar value is prohibited (though the static member function <span class="underline"><code class="computeroutput"><a class="link" href="../boost/units/quantity.html#idp157080168-bb">from_value</a></code></span>
+        is provided to enable this functionality where it is necessary. In addition,
+        a <span class="underline"><code class="computeroutput"><a class="link" href="Reference.html#boost.units.quantity_cast_idp157127640">quantity_cast</a></code></span>
+        to a reference allows direct access to the underlying value of a <span class="underline"><code class="computeroutput"><a class="link" href="../boost/units/quantity.html" title="Class template quantity">quantity</a></code></span>
+        variable. An explicit constructor is provided to enable conversion between
+        dimensionally compatible quantities in different unit systems. Implicit conversions
+        between unit systems are allowed only when the reduced units are identical,
+        allowing, for example, trivial conversions between equivalent units in different
+        systems (such as SI seconds and CGS seconds) while simultaneously enabling
+        unintentional unit system mismatches to be caught at compile time and preventing
+        potential loss of precision and performance overhead from unintended conversions.
+        Assignment follows the same rules. An exception is made for quantities for
+        which the unit reduces to dimensionless; in this case, implicit conversion
+        to the underlying value type is allowed via class template specialization.
+        Quantities of different value types are implicitly convertible only if the
+        value types are themselves implicitly convertible. The <span class="underline"><code class="computeroutput"><a class="link" href="../boost/units/quantity.html" title="Class template quantity">quantity</a></code></span> class also defines
+        a <code class="computeroutput"><span class="identifier">value</span><span class="special">()</span></code>
+        member for directly accessing the underlying value.
+      </p>
+<p>
+        To summarize, conversions are allowed under the following conditions :
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            implicit conversion of <code class="computeroutput"><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">Unit</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span></code> to <code class="computeroutput"><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">Unit</span><span class="special">,</span><span class="identifier">Z</span><span class="special">&gt;</span></code> is allowed if <code class="computeroutput"><span class="identifier">Y</span></code>
+            and <code class="computeroutput"><span class="identifier">Z</span></code> are implicitly
+            convertible.
+          </li>
+<li class="listitem">
+            assignment between <code class="computeroutput"><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">Unit</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span></code> and <code class="computeroutput"><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">Unit</span><span class="special">,</span><span class="identifier">Z</span><span class="special">&gt;</span></code> is allowed if <code class="computeroutput"><span class="identifier">Y</span></code>
+            and <code class="computeroutput"><span class="identifier">Z</span></code> are implicitly
+            convertible.
+          </li>
+<li class="listitem">
+            explicit conversion between <code class="computeroutput"><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">Unit1</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span></code> and <code class="computeroutput"><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">Unit2</span><span class="special">,</span><span class="identifier">Z</span><span class="special">&gt;</span></code> is allowed if <code class="computeroutput"><span class="identifier">Unit1</span></code>
+            and <code class="computeroutput"><span class="identifier">Unit2</span></code> have the same
+            dimensions and if <code class="computeroutput"><span class="identifier">Y</span></code> and
+            <code class="computeroutput"><span class="identifier">Z</span></code> are implicitly convertible.
+          </li>
+<li class="listitem">
+            implicit conversion between <code class="computeroutput"><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">Unit1</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span></code> and <code class="computeroutput"><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">Unit2</span><span class="special">,</span><span class="identifier">Z</span><span class="special">&gt;</span></code> is allowed if <code class="computeroutput"><span class="identifier">Unit1</span></code>
+            reduces to exactly the same combination of base units as <code class="computeroutput"><span class="identifier">Unit2</span></code> and if <code class="computeroutput"><span class="identifier">Y</span></code>
+            and <code class="computeroutput"><span class="identifier">Z</span></code> are convertible.
+          </li>
+<li class="listitem">
+            assignment between <code class="computeroutput"><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">Unit1</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span></code> and <code class="computeroutput"><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">Unit2</span><span class="special">,</span><span class="identifier">Z</span><span class="special">&gt;</span></code> is allowed under the same conditions
+            as implicit conversion.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">Unit</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span></code>
+            can be directly constructed from a value of type <code class="computeroutput"><span class="identifier">Y</span></code>
+            using the static member function <span class="underline"><code class="computeroutput"><a class="link" href="../boost/units/quantity.html#idp157080168-bb">from_value</a></code></span>.
+            Doing so, naturally, bypasses any type-checking of the newly assigned
+            value, so this method should be used only when absolutely necessary.
+          </li>
+</ul></div>
+<p>
+        Of course, any time implicit conversion is allowed, an explicit conversion
+        is also legal.
+      </p>
+<p>
+        Because dimensionless quantities have no associated units, they behave as
+        normal scalars, and allow implicit conversion to and from the underlying
+        value type or types that are convertible to/from that value type.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2008 Matthias Christian Schabel<br>Copyright &#169; 2007-2010 Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="Units.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_units.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="Examples.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

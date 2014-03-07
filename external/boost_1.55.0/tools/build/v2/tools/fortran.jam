@@ -1,0 +1,55 @@
+# Copyright (C) 2004 Toon Knapen
+#
+#  Use, modification and distribution is subject to the Boost Software
+#  License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+#
+# This file contains common settings for all fortran tools
+#
+
+import "class" : new ;
+import feature : feature ;
+
+import type ;
+import generators ;
+import common ;
+
+type.register FORTRAN : f F for f77 ;
+type.register FORTRAN90 : f90 F90 ;
+
+feature fortran : : free ;
+feature fortran90 : : free ;
+
+class fortran-compiling-generator : generator
+{
+    rule __init__ ( id : source-types + : target-types + : requirements * : optional-properties * )
+    {
+        generator.__init__ $(id) : $(source-types) : $(target-types) : $(requirements) : $(optional-properties) ;
+    }
+}
+
+rule register-fortran-compiler ( id : source-types + : target-types + : requirements * : optional-properties * )
+{
+    local g = [ new fortran-compiling-generator $(id) : $(source-types) : $(target-types) : $(requirements) : $(optional-properties) ] ;
+    generators.register $(g) ;
+}
+
+class fortran90-compiling-generator : generator
+{
+    rule __init__ ( id : source-types + : target-types + : requirements * : optional-properties * )
+    {
+        generator.__init__ $(id) : $(source-types) : $(target-types) : $(requirements) : $(optional-properties) ;
+    }
+}
+
+rule register-fortran90-compiler ( id : source-types + : target-types + : requirements * : optional-properties * )
+{
+    local g = [ new fortran90-compiling-generator $(id) : $(source-types) : $(target-types) : $(requirements) : $(optional-properties) ] ;
+    generators.register $(g) ;
+}
+
+# FIXME: this is ugly, should find a better way (we'd want client code to
+# register all generators as "generator.some-rule", not with "some-module.some-rule".)
+IMPORT $(__name__) : register-fortran-compiler : : generators.register-fortran-compiler ;
+IMPORT $(__name__) : register-fortran90-compiler : : generators.register-fortran90-compiler ;

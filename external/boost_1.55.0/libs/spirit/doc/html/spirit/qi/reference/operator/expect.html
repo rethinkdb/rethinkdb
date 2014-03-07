@@ -1,0 +1,283 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Expectation Parser (a &gt; b)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../operator.html" title="Parser Operators">
+<link rel="prev" href="difference.html" title="Difference Parser (a - b)">
+<link rel="next" href="kleene.html" title="Kleene Parser (*a)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="difference.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../operator.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="kleene.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.operator.expect"></a><a class="link" href="expect.html" title="Expectation Parser (a &gt; b)">Expectation
+          Parser (<code class="computeroutput"><span class="identifier">a</span> <span class="special">&gt;</span>
+          <span class="identifier">b</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.operator.expect.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.expect.description"></a></span><a class="link" href="expect.html#spirit.qi.reference.operator.expect.description">Description</a>
+          </h6>
+<p>
+            There are occasions in which it is expected that the input must match
+            a particular parser or the input is invalid. Such cases generally arise
+            after matching a portion of a grammar, such that the context is fully
+            known. In such a situation, failure to match should result in an exception.
+            For example, when parsing an e-mail address, after matching a name and
+            "@" there must be a domain name or the address is invalid.
+          </p>
+<p>
+            The expectation operator (&gt;) requires that the following parser match
+            the input or an exception is emitted. Using on_error(), that exception
+            can be handled by calling a handler with the context at which the parsing
+            failed can be reported.
+          </p>
+<p>
+            By contrast, the follows operator (&gt;&gt;) does not require that the
+            following parser match the input, which allows for backtracking or simply
+            returning false from the parse() function with no exceptions.
+          </p>
+<p>
+            Like the <a class="link" href="sequence.html" title="Sequence Parser (a &gt;&gt; b)">Sequence</a>,
+            the expectation operator, <code class="computeroutput"><span class="identifier">a</span>
+            <span class="special">&gt;</span> <span class="identifier">b</span></code>,
+            parses two or more operands (<code class="computeroutput"><span class="identifier">a</span></code>,
+            <code class="computeroutput"><span class="identifier">b</span></code>, ... etc.), in sequence:
+          </p>
+<pre class="programlisting"><span class="identifier">a</span> <span class="special">&gt;</span> <span class="identifier">b</span> <span class="special">&gt;</span> <span class="special">...</span>
+</pre>
+<p>
+            However, while the plain <a class="link" href="sequence.html" title="Sequence Parser (a &gt;&gt; b)">Sequence</a>
+            simply returns a no-match (returns <code class="computeroutput"><span class="keyword">false</span></code>)
+            when one of the elements fail, the expectation: <code class="computeroutput"><span class="special">&gt;</span></code>
+            operator throws an <a class="link" href="expect.html#spirit.qi.reference.operator.expect.expectation_failure"><code class="computeroutput"><span class="identifier">expectation_failure</span></code></a><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">Iter</span><span class="special">&gt;</span></code> when the second or succeeding operands
+            (all operands except the first) fail to match.
+          </p>
+<h6>
+<a name="spirit.qi.reference.operator.expect.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.expect.header"></a></span><a class="link" href="expect.html#spirit.qi.reference.operator.expect.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/operator/expect.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_expect</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.operator.expect.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.expect.model_of"></a></span><a class="link" href="expect.html#spirit.qi.reference.operator.expect.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../parser_concepts/naryparser.html" title="NaryParser"><code class="computeroutput"><span class="identifier">NaryParser</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code>, <code class="computeroutput"><span class="identifier">b</span></code></span></dt>
+<dd><p>
+                  A <a class="link" href="../parser_concepts/parser.html" title="Parser"><code class="computeroutput"><span class="identifier">Parser</span></code></a>
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Iter</span></code></span></dt>
+<dd><p>
+                  A <a href="http://www.sgi.com/tech/stl/ForwardIterator.html" target="_top"><code class="computeroutput"><span class="identifier">ForwardIterator</span></code></a> type
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.operator.expect.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.expect.expectation_failure"></a></span><a class="link" href="expect.html#spirit.qi.reference.operator.expect.expectation_failure">Expectation
+            Failure</a>
+          </h6>
+<p>
+            When any operand, except the first, fail to match an <code class="computeroutput"><span class="identifier">expectation_failure</span><span class="special">&lt;</span><span class="identifier">Iter</span><span class="special">&gt;</span></code> is thrown:
+          </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iter</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">expectation_failure</span> <span class="special">:</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span>
+<span class="special">{</span>
+    <span class="identifier">Iter</span> <span class="identifier">first</span><span class="special">;</span>           <span class="comment">// [first, last) iterator pointing</span>
+    <span class="identifier">Iter</span> <span class="identifier">last</span><span class="special">;</span>            <span class="comment">// to the error position in the input.</span>
+    <code class="computeroutput"><span class="identifier">info</span></code> <span class="identifier">what_</span><span class="special">;</span>       <span class="comment">// Information about the nature of the error.</span>
+<span class="special">};</span>
+</pre>
+<h6>
+<a name="spirit.qi.reference.operator.expect.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.expect.expression_semantics"></a></span><a class="link" href="expect.html#spirit.qi.reference.operator.expect.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../parser_concepts/naryparser.html" title="NaryParser"><code class="computeroutput"><span class="identifier">NaryParser</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">a</span> <span class="special">&gt;</span>
+                      <span class="identifier">b</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Match <code class="computeroutput"><span class="identifier">a</span></code> followed
+                      by <code class="computeroutput"><span class="identifier">b</span></code>. If <code class="computeroutput"><span class="identifier">a</span></code> fails, no-match. If <code class="computeroutput"><span class="identifier">b</span></code> fails, throw an <code class="computeroutput"><span class="identifier">expectation_failure</span><span class="special">&lt;</span><span class="identifier">Iter</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.operator.expect.h5"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.expect.attributes"></a></span><a class="link" href="expect.html#spirit.qi.reference.operator.expect.attributes">Attributes</a>
+          </h6>
+<p>
+            See <a class="link" href="../../quick_reference/compound_attribute_rules.html#spirit.qi.quick_reference.compound_attribute_rules.notation">Compound
+            Attribute Notation</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">a</span> <span class="special">&gt;</span>
+                      <span class="identifier">b</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">B</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">tuple</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">B</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">B</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">Unused</span>
+
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&gt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.operator.expect.h6"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.expect.complexity"></a></span><a class="link" href="expect.html#spirit.qi.reference.operator.expect.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The overall complexity of the expectation parser is defined by the
+              sum of the complexities of its elements. The complexity of the expectation
+              operator itself is O(N), where N is the number of elements in the sequence.
+            </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.operator.expect.h7"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.expect.example"></a></span><a class="link" href="expect.html#spirit.qi.reference.operator.expect.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.qi.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">expectation_failure</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            The code below uses an expectation operator to throw an <a class="link" href="expect.html#spirit.qi.reference.operator.expect.expectation_failure"><code class="computeroutput"><span class="identifier">expectation_failure</span></code></a> with a deliberate
+            parsing error when <code class="computeroutput"><span class="string">"o"</span></code>
+            is expected and <code class="computeroutput"><span class="string">"i"</span></code>
+            is what is found in the input. The <code class="computeroutput"><span class="keyword">catch</span></code>
+            block prints the information related to the error. Note: This is low
+            level code that demonstrates the <span class="emphasis"><em>bare-metal</em></span>. Typically,
+            you use an Error Handler to deal with the error.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">try</span>
+<span class="special">{</span>
+    <span class="identifier">test_parser</span><span class="special">(</span><span class="string">"xi"</span><span class="special">,</span> <span class="identifier">char_</span><span class="special">(</span><span class="char">'x'</span><span class="special">)</span> <span class="special">&gt;</span> <span class="identifier">char_</span><span class="special">(</span><span class="char">'o'</span><span class="special">));</span> <span class="comment">// should throw an exception</span>
+<span class="special">}</span>
+<span class="keyword">catch</span> <span class="special">(</span><span class="identifier">expectation_failure</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"expected: "</span><span class="special">;</span> <span class="identifier">print_info</span><span class="special">(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">what_</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"got: \""</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">last</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="char">'"'</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            The code above will print:
+          </p>
+<pre class="programlisting">expected: tag: literal-char, value: o
+got: "i"
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="difference.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../operator.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="kleene.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,36 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+[section Binding member functions]
+
+[import ../examples/bind_member_functions.cpp]
+
+Binding member functions to a function objects suitable for odeint system function is not easy, at least in C++03. The usual way of using __boost_bind does not work because of the forwarding problem. odeint provides two `do_step` method which only differ in the const specifiers of the arguments and __boost_bind binders only provide the specializations up to two argument which is not enough for odeint.
+
+But one can easily implement the according binders themself:
+
+[ode_wrapper]
+
+One can use this binder as follows
+
+[bind_member_function]
+
+[section Binding member functions in C++11]
+
+[import ../examples/bind_member_functions_cpp11.cpp]
+In C++11 one can use `std::bind` and one does not need to implement the bind themself:
+
+[bind_member_function_cpp11]
+
+[endsect]
+
+[endsect]

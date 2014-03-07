@@ -1,0 +1,20 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/kok.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/kok.xml
+ */
+kok{
+    Version{"2.0.47.68"}
+    zoneStrings{
+        "meta:India"{
+            cu:int{1}
+            ls{"भारतीय समय"}
+        }
+    }
+}

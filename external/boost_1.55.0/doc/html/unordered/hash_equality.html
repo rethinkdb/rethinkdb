@@ -1,0 +1,259 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Equality Predicates and Hash Functions</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../unordered.html" title="Chapter&#160;37.&#160;Boost.Unordered">
+<link rel="prev" href="buckets.html" title="The Data Structure">
+<link rel="next" href="comparison.html" title="Comparison with Associative Containers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="buckets.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../unordered.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="comparison.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="unordered.hash_equality"></a><a class="link" href="hash_equality.html" title="Equality Predicates and Hash Functions">Equality Predicates and Hash Functions</a>
+</h2></div></div></div>
+<p>
+      While the associative containers use an ordering relation to specify how the
+      elements are stored, the unordered associative containers use an equality predicate
+      and a hash function. For example, <code class="computeroutput"><a class="link" href="../boost/unordered_map.html" title="Class template unordered_map">boost::unordered_map</a></code>
+      is declared as:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span>
+    <span class="keyword">class</span> <span class="identifier">Key</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Mapped</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">Hash</span> <span class="special">=</span> <code class="computeroutput"><a class="link" href="../boost/hash.html" title="Struct template hash">boost::hash</a></code><span class="special">&lt;</span><span class="identifier">Key</span><span class="special">&gt;,</span>
+    <span class="keyword">class</span> <span class="identifier">Pred</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">equal_to</span><span class="special">&lt;</span><span class="identifier">Key</span><span class="special">&gt;,</span>
+    <span class="keyword">class</span> <span class="identifier">Alloc</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">Key</span> <span class="keyword">const</span><span class="special">,</span> <span class="identifier">Mapped</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <code class="computeroutput"><a class="link" href="../boost/unordered_map.html" title="Class template unordered_map">unordered_map</a></code><span class="special">;</span>
+</pre>
+<p>
+      The hash function comes first as you might want to change the hash function
+      but not the equality predicate. For example, if you wanted to use the <a href="http://www.isthe.com/chongo/tech/comp/fnv/" target="_top">FNV-1 hash</a> you could
+      write:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unordered_map</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">hash</span><span class="special">::</span><span class="identifier">fnv_1</span><span class="special">&gt;</span>
+    <span class="identifier">dictionary</span><span class="special">;</span>
+</pre>
+<p>
+    </p>
+<p>
+      There is an <a href="../../../libs/unordered/examples/fnv1.hpp" target="_top">implementation
+      of FNV-1</a> in the examples directory.
+    </p>
+<p>
+      If you wish to use a different equality function, you will also need to use
+      a matching hash function. For example, to implement a case insensitive dictionary
+      you need to define a case insensitive equality predicate and hash function:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">iequal_to</span>
+    <span class="special">:</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">binary_function</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">y</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">algorithm</span><span class="special">::</span><span class="identifier">iequals</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span><span class="special">());</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">struct</span> <span class="identifier">ihash</span>
+    <span class="special">:</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">unary_function</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">seed</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span> <span class="identifier">locale</span><span class="special">;</span>
+
+        <span class="keyword">for</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+            <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">boost</span><span class="special">::</span><span class="identifier">hash_combine</span><span class="special">(</span><span class="identifier">seed</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">toupper</span><span class="special">(*</span><span class="identifier">it</span><span class="special">,</span> <span class="identifier">locale</span><span class="special">));</span>
+        <span class="special">}</span>
+
+        <span class="keyword">return</span> <span class="identifier">seed</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+    </p>
+<p>
+      Which you can then use in a case insensitive dictionary:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unordered_map</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">ihash</span><span class="special">,</span> <span class="identifier">iequal_to</span><span class="special">&gt;</span>
+    <span class="identifier">idictionary</span><span class="special">;</span>
+</pre>
+<p>
+    </p>
+<p>
+      This is a simplified version of the example at <a href="../../../libs/unordered/examples/case_insensitive.hpp" target="_top">/libs/unordered/examples/case_insensitive.hpp</a>
+      which supports other locales and string types.
+    </p>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../doc/src/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Be careful when using the equality (<code class="computeroutput"><span class="special">==</span></code>)
+        operator with custom equality predicates, especially if you're using a function
+        pointer. If you compare two containers with different equality predicates
+        then the result is undefined. For most stateless function objects this is
+        impossible - since you can only compare objects with the same equality predicate
+        you know the equality predicates must be equal. But if you're using function
+        pointers or a stateful equality predicate (e.g. boost::function) then you
+        can get into trouble.
+      </p></td></tr>
+</table></div>
+<h3>
+<a name="unordered.hash_equality.h0"></a>
+      <span class="phrase"><a name="unordered.hash_equality.custom_types"></a></span><a class="link" href="hash_equality.html#unordered.hash_equality.custom_types">Custom
+      Types</a>
+    </h3>
+<p>
+      Similarly, a custom hash function can be used for custom types:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">point</span> <span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">x</span><span class="special">;</span>
+    <span class="keyword">int</span> <span class="identifier">y</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="identifier">point</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p1</span><span class="special">,</span> <span class="identifier">point</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p2</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">p1</span><span class="special">.</span><span class="identifier">x</span> <span class="special">==</span> <span class="identifier">p2</span><span class="special">.</span><span class="identifier">x</span> <span class="special">&amp;&amp;</span> <span class="identifier">p1</span><span class="special">.</span><span class="identifier">y</span> <span class="special">==</span> <span class="identifier">p2</span><span class="special">.</span><span class="identifier">y</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">struct</span> <span class="identifier">point_hash</span>
+    <span class="special">:</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">unary_function</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">point</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">seed</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">hash_combine</span><span class="special">(</span><span class="identifier">seed</span><span class="special">,</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">x</span><span class="special">);</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">hash_combine</span><span class="special">(</span><span class="identifier">seed</span><span class="special">,</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">y</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="identifier">seed</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">unordered_multiset</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">,</span> <span class="identifier">point_hash</span><span class="special">&gt;</span> <span class="identifier">points</span><span class="special">;</span>
+</pre>
+<p>
+    </p>
+<p>
+      Since the default hash function is <a class="link" href="../hash.html" title="Chapter&#160;12.&#160;Boost.Functional/Hash">Boost.Hash</a>,
+      we can <a class="link" href="../hash/custom.html" title="Extending boost::hash for a custom data type">extend it to support the type</a> so
+      that the hash function doesn't need to be explicitly given:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">point</span> <span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">x</span><span class="special">;</span>
+    <span class="keyword">int</span> <span class="identifier">y</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="identifier">point</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p1</span><span class="special">,</span> <span class="identifier">point</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p2</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">p1</span><span class="special">.</span><span class="identifier">x</span> <span class="special">==</span> <span class="identifier">p2</span><span class="special">.</span><span class="identifier">x</span> <span class="special">&amp;&amp;</span> <span class="identifier">p1</span><span class="special">.</span><span class="identifier">y</span> <span class="special">==</span> <span class="identifier">p2</span><span class="special">.</span><span class="identifier">y</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">hash_value</span><span class="special">(</span><span class="identifier">point</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">seed</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">hash_combine</span><span class="special">(</span><span class="identifier">seed</span><span class="special">,</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">x</span><span class="special">);</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">hash_combine</span><span class="special">(</span><span class="identifier">seed</span><span class="special">,</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">y</span><span class="special">);</span>
+    <span class="keyword">return</span> <span class="identifier">seed</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// Now the default function objects work.</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">unordered_multiset</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">&gt;</span> <span class="identifier">points</span><span class="special">;</span>
+</pre>
+<p>
+    </p>
+<p>
+      See the <a class="link" href="../hash/custom.html" title="Extending boost::hash for a custom data type">Boost.Hash documentation</a> for more
+      detail on how to do this. Remember that it relies on extensions to the draft
+      standard - so it won't work for other implementations of the unordered associative
+      containers, you'll need to explicitly use Boost.Hash.
+    </p>
+<div class="table">
+<a name="unordered.hash_equality.access_methods"></a><p class="title"><b>Table&#160;37.3.&#160;Methods for accessing the hash and equality functions.</b></p>
+<div class="table-contents"><table class="table" summary="Methods for accessing the hash and equality functions.">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Method
+              </p>
+            </th>
+<th>
+              <p>
+                Description
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">hasher</span> <span class="identifier">hash_function</span><span class="special">()</span> <span class="keyword">const</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Returns the container's hash function.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">key_equal</span> <span class="identifier">key_eq</span><span class="special">()</span> <span class="keyword">const</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Returns the container's key equality function.
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003, 2004 Jeremy B. Maitin-Shepard<br>Copyright &#169; 2005-2008 Daniel
+      James<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="buckets.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../unordered.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="comparison.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

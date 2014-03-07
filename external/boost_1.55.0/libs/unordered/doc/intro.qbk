@@ -1,0 +1,101 @@
+[/ Copyright 2006-2008 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[def __hash-table__ [@http://en.wikipedia.org/wiki/Hash_table
+    hash table]]
+[def __hash-function__ [@http://en.wikipedia.org/wiki/Hash_function
+    hash function]]
+
+[section:intro Introduction]
+
+For accessing data based on key lookup, the C++ standard library offers `std::set`,
+`std::map`, `std::multiset` and `std::multimap`. These are generally
+implemented using balanced binary trees so that lookup time has
+logarithmic complexity. That is generally okay, but in many cases a
+__hash-table__ can perform better, as accessing data has constant complexity,
+on average. The worst case complexity is linear, but that occurs rarely and
+with some care, can be avoided.
+
+Also, the existing containers require a 'less than' comparison object
+to order their elements. For some data types this is impossible to implement
+or isn't practical. In contrast, a hash table only needs an equality function
+and a hash function for the key.
+
+With this in mind, unordered associative containers were added to the C++
+standard. This is an implementation of the containers described in C++11,
+with some [link unordered.compliance deviations from the standard] in
+order to work with non-C++11 compilers and libraries.
+
+`unordered_set` and `unordered_multiset` are defined in the header
+<[headerref boost/unordered_set.hpp]>
+
+    namespace boost {
+        template <
+            class Key,
+            class Hash = ``[classref boost::hash]``<Key>, 
+            class Pred = std::equal_to<Key>, 
+            class Alloc = std::allocator<Key> > 
+        class ``[classref boost::unordered_set unordered_set]``;
+
+        template<
+            class Key,
+            class Hash = ``[classref boost::hash]``<Key>, 
+            class Pred = std::equal_to<Key>, 
+            class Alloc = std::allocator<Key> > 
+        class ``[classref boost::unordered_multiset unordered_multiset]``;
+    }
+
+`unordered_map` and `unordered_multimap` are defined in the header
+<[headerref boost/unordered_map.hpp]>
+
+    namespace boost {
+        template <
+            class Key, class Mapped,
+            class Hash = ``[classref boost::hash]``<Key>,
+            class Pred = std::equal_to<Key>,
+            class Alloc = std::allocator<Key> >
+        class ``[classref boost::unordered_map unordered_map]``;
+
+        template<
+            class Key, class Mapped,
+            class Hash = ``[classref boost::hash]``<Key>,
+            class Pred = std::equal_to<Key>,
+            class Alloc = std::allocator<Key> >
+        class ``[classref boost::unordered_multimap unordered_multimap]``;
+    }
+
+When using Boost.TR1, these classes are included from `<unordered_set>` and
+`<unordered_map>`, with the classes added to the `std::tr1` namespace.
+
+The containers are used in a similar manner to the normal associative
+containers:
+
+[import src_code/intro.cpp]
+[intro_example1_2]
+
+But since the elements aren't ordered, the output of:
+
+[intro_example1_3]
+
+can be in any order. For example, it might be:
+
+    two,2
+    one,1
+    three,3
+
+To store an object in an unordered associative container requires both an
+key equality function and a hash function. The default function objects in
+the standard containers support a few basic types including integer types,
+floating point types, pointer types, and the standard strings. Since
+Boost.Unordered uses [classref boost::hash] it also supports some other types,
+including standard containers. To use any types not supported by these methods
+you have to [link hash.custom extend Boost.Hash to support the type] or use
+your own custom equality predicates and hash functions. See the
+[link unordered.hash_equality Equality Predicates and Hash Functions] section
+for more details.
+
+There are other differences, which are listed in the
+[link unordered.comparison Comparison with Associative Containers] section.
+
+[endsect]

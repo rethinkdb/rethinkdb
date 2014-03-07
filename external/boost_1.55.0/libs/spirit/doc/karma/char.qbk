@@ -1,0 +1,491 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:char Char Generators]
+
+This module includes different character oriented generators allowing to output
+single characters. Currently, it includes literal chars (e.g. `'x'`, `L'x'`), 
+`char_` (single characters, ranges and character sets) and the encoding 
+specific character classifiers (`alnum`, `alpha`, `digit`, `xdigit`, etc.). 
+
+[heading Module Header]
+
+    // forwards to <boost/spirit/home/karma/char.hpp>
+    #include <boost/spirit/include/karma_char.hpp>
+
+Also, see __include_structure__.
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:char_generator Character Generators (`char_`, `lit`)]
+
+[heading Description]
+
+The character generators described in this section are:
+
+The `char_` generator emits single characters. The `char_` generator has an
+associated __karma_char_encoding_namespace__. This is needed when doing basic
+operations such as forcing lower or upper case and dealing with
+character ranges.
+
+There are various forms of `char_`. 
+
+[heading char_]
+
+The no argument form of `char_` emits any character in the associated
+__karma_char_encoding_namespace__.
+
+    char_               // emits any character as supplied by the attribute
+
+[heading char_(ch)]
+
+The single argument form of `char_` (with a character argument) emits
+the supplied character. 
+
+    char_('x')          // emits 'x'
+    char_(L'x')         // emits L'x'
+    char_(x)            // emits x (a char)
+
+[heading char_(first, last)]
+
+`char_` with two arguments, emits any character from a range of characters as 
+supplied by the attribute.
+
+    char_('a','z')      // alphabetic characters
+    char_(L'0',L'9')    // digits
+
+A range of characters is created from a low-high character pair. Such a
+generator emits a single character that is in the range, including both
+endpoints. Note, the first character must be /before/ the second,
+according to the underlying __karma_char_encoding_namespace__.
+
+Character mapping is inherently platform dependent. It is not guaranteed
+in the standard for example that `'A' < 'Z'`, that is why in Spirit2, we
+purposely attach a specific __karma_char_encoding_namespace__ (such as ASCII,
+ISO-8859-1) to the `char_` generator to eliminate such ambiguities.
+
+[note *Sparse bit vectors*
+
+To accommodate 16/32 and 64 bit characters, the char-set statically
+switches from a `std::bitset` implementation when the character type is
+not greater than 8 bits, to a sparse bit/boolean set which uses a sorted
+vector of disjoint ranges (`range_run`). The set is constructed from
+ranges such that adjacent or overlapping ranges are coalesced.
+
+`range_runs` are very space-economical in situations where there are lots
+of ranges and a few individual disjoint values. Searching is O(log n)
+where n is the number of ranges.]
+
+[heading char_(def)]
+
+Lastly, when given a string (a plain C string, a `std::basic_string`,
+etc.), the string is regarded as a char-set definition string following
+a syntax that resembles posix style regular expression character sets
+(except that double quotes delimit the set elements instead of square
+brackets and there is no special negation ^ character). Examples:
+
+    char_("a-zA-Z")     // alphabetic characters
+    char_("0-9a-fA-F")  // hexadecimal characters
+    char_("actgACTG")   // DNA identifiers
+    char_("\x7f\x7e")   // Hexadecimal 0x7F and 0x7E
+
+These generators emit any character from a range of characters as 
+supplied by the attribute.
+
+[heading lit(ch)]
+
+`lit`, when passed a single character, behaves like the single argument
+`char_` except that `lit` does not consume an attribute. A plain
+`char` or `wchar_t` is equivalent to a `lit`.
+
+[note `lit` is reused by the [karma_string String Generators], the
+      char generators, and the Numeric Generators (see [signed_int signed integer], 
+      [unsigned_int unsigned integer], and [real_number real number] generators). In 
+      general, a char generator is created when you pass in a
+      character, a string generator is created when you pass in a string, and a 
+      numeric generator is created when you use a numeric literal. The
+      exception is when you pass a single element literal string, e.g.
+      `lit("x")`. In this case, we optimize this to create a char generator
+      instead of a string generator.] 
+
+Examples:
+
+    'x'
+    lit('x')
+    lit(L'x')
+    lit(c)      // c is a char
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/char/char.hpp>
+    #include <boost/spirit/include/karma_char_.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::lit // alias: boost::spirit::karma::lit` ]]
+    [[`ns::char_`]]
+]
+
+In the table above, `ns` represents a __karma_char_encoding_namespace__. 
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[variablelist Notation
+    [[`ch`, `ch1`, `ch2`]
+                  [Character-class specific character (See __char_class_types__),
+                   or a __karma_lazy_argument__ that evaluates to a 
+                   character-class specific character value]]
+    [[`cs`]       [Character-set specifier string (See 
+                   __char_class_types__), or a __karma_lazy_argument__ that 
+                   evaluates to a character-set specifier string, or a 
+                   pointer/reference to a null-terminated array of characters.
+                   This string specifies a char-set definition string following 
+                   a syntax that resembles posix style regular expression character 
+                   sets (except the square brackets and the negation `^` character).]]
+    [[`ns`]       [A __karma_char_encoding_namespace__.]]
+    [[`cg`]       [A char generator, a char range generator, or a char set generator.]]]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]           [Description]]
+    [[`ch`]                 [Generate the character literal `ch`. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`lit(ch)`]            [Generate the character literal `ch`. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`ns::char_`]          [Generate the character provided by a mandatory 
+                             attribute interpreted in the character set defined 
+                             by `ns`. This generator never fails (unless the 
+                             underlying output stream reports an error).]]
+    [[`ns::char_(ch)`]      [Generate the character `ch` as provided by the 
+                             immediate literal value the generator is initialized 
+                             from. If this generator has an associated attribute 
+                             it succeeds only as long as the attribute is equal 
+                             to the immediate literal (unless the underlying 
+                             output stream reports an error). Otherwise this 
+                             generator fails and does not generate any output.]]
+    [[`ns::char_("c")`]     [Generate the character `c` as provided by the 
+                             immediate literal value the generator is initialized 
+                             from. If this generator has an associated attribute 
+                             it succeeds only as long as the attribute is equal 
+                             to the immediate literal (unless the underlying 
+                             output stream reports an error). Otherwise this 
+                             generator fails and does not generate any output.]]
+    [[`ns::char_(ch1, ch2)`][Generate the character provided by a mandatory 
+                             attribute interpreted in the character set defined 
+                             by `ns`. The generator succeeds as long as the 
+                             attribute belongs to the character range `[ch1, ch2]` 
+                             (unless the underlying output stream reports an 
+                             error). Otherwise this generator fails and does not 
+                             generate any output.]]
+    [[`ns::char_(cs)`]      [Generate the character provided by a mandatory 
+                             attribute interpreted in the character set defined 
+                             by `ns`. The generator succeeds as long as the 
+                             attribute belongs to the character set `cs` 
+                             (unless the underlying output stream reports an 
+                             error). Otherwise this generator fails and does not 
+                             generate any output.]]
+    [[`~cg`]                [Negate `cg`. The result is a negated char generator 
+                             that inverts the test condition of the character
+                             generator it is attached to.]]
+]
+
+A character `ch` is assumed to belong to the character range defined by
+`ns::char_(ch1, ch2)` if its character value (binary representation) 
+interpreted in the character set defined by `ns` is not smaller than the 
+character value of `ch1` and not larger then the character value of `ch2` (i.e. 
+`ch1 <= ch <= ch2`).
+
+The `charset` parameter passed to `ns::char_(charset)` must be a string
+containing more than one character. Every single character in this string is 
+assumed to belong to the character set defined by this expression. An exception 
+to this is the `'-'` character which has a special meaning if it is not 
+specified as the first and not the last character in `charset`. If the `'-'` 
+is used in between to characters it is interpreted as spanning a character 
+range. A character `ch` is considered to belong to the defined character set 
+`charset` if it matches one of the characters as specified by the string 
+parameter described above. For example
+
+[table
+    [[Example]              [Description]]
+    [[`char_("abc")`]       ['a', 'b', and 'c']]
+    [[`char_("a-z")`]       [all characters (and including) from 'a' to 'z']]
+    [[`char_("a-zA-Z")`]    [all characters (and including) from 'a' to 'z' and 'A' and 'Z']]
+    [[`char_("-1-9")`]      ['-' and all characters (and including) from '1' to '9']]
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]           [Attribute]]
+    [[`ch`]                 [__unused__]]
+    [[`lit(ch)`]            [__unused__]]
+    [[`ns::char_`]          [`Ch`, attribute is mandatory (otherwise compilation 
+                             will fail). `Ch` is the character type of the 
+                             __karma_char_encoding_namespace__, `ns`.]]
+    [[`ns::char_(ch)`]      [`Ch`, attribute is optional, if it is supplied, the 
+                             generator compares the attribute with `ch` and 
+                             succeeds only if both are equal, failing otherwise.
+                             `Ch` is the character type of the 
+                             __karma_char_encoding_namespace__, `ns`.]]
+    [[`ns::char_("c")`]     [`Ch`, attribute is optional, if it is supplied, the 
+                             generator compares the attribute with `c` and 
+                             succeeds only if both are equal, failing otherwise.
+                             `Ch` is the character type of the 
+                             __karma_char_encoding_namespace__, `ns`.]]
+    [[`ns::char_(ch1, ch2)`][`Ch`, attribute is mandatory (otherwise compilation 
+                             will fail), the generator succeeds if the attribute 
+                             belongs to the character range `[ch1, ch2]` 
+                             interpreted in the character set defined by `ns`.
+                             `Ch` is the character type of the 
+                             __karma_char_encoding_namespace__, `ns`.]]
+    [[`ns::char_(cs)`]      [`Ch`, attribute is mandatory (otherwise compilation 
+                             will fail), the generator succeeds if the attribute 
+                             belongs to the character set `cs`, interpreted 
+                             in the character set defined by `ns`.
+                             `Ch` is the character type of the 
+                             __karma_char_encoding_namespace__, `ns`.]]
+    [[`~cg`]                [Attribute of `cg`]]
+]
+
+[note  In addition to their usual attribute of type `Ch` all listed generators 
+       accept an instance of a `boost::optional<Ch>` as well. If the 
+       `boost::optional<>` is initialized (holds a value) the generators behave 
+       as if their attribute was an instance of `Ch` and emit the value stored
+       in the `boost::optional<>`. Otherwise the generators will fail.]
+
+[heading Complexity]
+
+[:O(1)]
+
+The complexity of `ch`, `lit(ch)`, `ns::char_`, `ns::char_(ch)`, and 
+`ns::char_("c")` is constant as all generators emit exactly one character per 
+invocation.
+
+The character range generator (`ns::char_(ch1, ch2)`) additionally requires 
+constant lookup time for the verification whether the attribute belongs to
+the character range.
+
+The character set generator (`ns::char_(cs)`) additionally requires 
+O(log N) lookup time for the verification whether the attribute belongs to
+the character set, where N is the number of characters in the character set.
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_char]
+
+Basic usage of `char_` generators:
+
+[reference_karma_char]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:char_class Character Classification Generators (`alnum`, `digit`, etc.)]
+
+[heading Description]
+
+The library has the full repertoire of single character generators for
+character classification. This includes the usual `alnum`, `alpha`,
+`digit`, `xdigit`, etc. generators. These generators have an associated
+__karma_char_encoding_namespace__. This is needed when doing basic operations
+such as forcing lower or upper case. 
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/char/char_class.hpp>
+    #include <boost/spirit/include/karma_char_class.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`ns::alnum`]]
+    [[`ns::alpha`]]
+    [[`ns::blank`]]
+    [[`ns::cntrl`]]
+    [[`ns::digit`]]
+    [[`ns::graph`]]
+    [[`ns::lower`]]
+    [[`ns::print`]]
+    [[`ns::punct`]]
+    [[`ns::space`]]
+    [[`ns::upper`]]
+    [[`ns::xdigit`]]
+]
+
+In the table above, `ns` represents a __karma_char_encoding_namespace__ used by the 
+corresponding character class generator. All listed generators have a mandatory 
+attribute `Ch` and will not compile if no attribute is associated.
+
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[variablelist Notation
+    [[`ns`]       [A __karma_char_encoding_namespace__.]]]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`ns::alnum`]      [If the mandatory attribute satisfies the concept of 
+                         `std::isalnum` in the __karma_char_encoding_namespace__
+                         the generator succeeds after emitting 
+                         its attribute (unless the underlying output stream 
+                         reports an error). This generator fails otherwise 
+                         while not generating anything.]]
+    [[`ns::alpha`]      [If the mandatory attribute satisfies the concept of 
+                         `std::isalpha` in the __karma_char_encoding_namespace__
+                         the generator succeeds after emitting 
+                         its attribute (unless the underlying output stream 
+                         reports an error). This generator fails otherwise 
+                         while not generating anything.]]
+    [[`ns::blank`]      [If the mandatory attribute satisfies the concept of 
+                         `std::isblank` in the __karma_char_encoding_namespace__
+                         the generator succeeds after emitting 
+                         its attribute (unless the underlying output stream 
+                         reports an error). This generator fails otherwise 
+                         while not generating anything.]]
+    [[`ns::cntrl`]      [If the mandatory attribute satisfies the concept of 
+                         `std::iscntrl` in the __karma_char_encoding_namespace__
+                         the generator succeeds after emitting 
+                         its attribute (unless the underlying output stream 
+                         reports an error). This generator fails otherwise 
+                         while not generating anything.]]
+    [[`ns::digit`]      [If the mandatory attribute satisfies the concept of 
+                         `std::isdigit` in the __karma_char_encoding_namespace__
+                         the generator succeeds after emitting 
+                         its attribute (unless the underlying output stream 
+                         reports an error). This generator fails otherwise 
+                         while not generating anything.]]
+    [[`ns::graph`]      [If the mandatory attribute satisfies the concept of 
+                         `std::isgraph` in the __karma_char_encoding_namespace__
+                         the generator succeeds after emitting 
+                         its attribute (unless the underlying output stream 
+                         reports an error). This generator fails otherwise 
+                         while not generating anything.]]
+    [[`ns::print`]      [If the mandatory attribute satisfies the concept of 
+                         `std::isprint` in the __karma_char_encoding_namespace__
+                         the generator succeeds after emitting 
+                         its attribute (unless the underlying output stream 
+                         reports an error). This generator fails otherwise 
+                         while not generating anything.]]
+    [[`ns::punct`]      [If the mandatory attribute satisfies the concept of 
+                         `std::ispunct` in the __karma_char_encoding_namespace__
+                         the generator succeeds after emitting 
+                         its attribute (unless the underlying output stream 
+                         reports an error). This generator fails otherwise 
+                         while not generating anything.]]
+    [[`ns::xdigit`]      [If the mandatory attribute satisfies the concept of 
+                         `std::isxdigit` in the __karma_char_encoding_namespace__
+                         the generator succeeds after emitting 
+                         its attribute (unless the underlying output stream 
+                         reports an error). This generator fails otherwise 
+                         while not generating anything.]]
+    [[`ns::lower`]      [If the mandatory attribute satisfies the concept of 
+                         `std::islower` in the __karma_char_encoding_namespace__
+                         the generator succeeds after emitting 
+                         its attribute (unless the underlying output stream 
+                         reports an error). This generator fails otherwise 
+                         while not generating anything.]]
+    [[`ns::upper`]      [If the mandatory attribute satisfies the concept of 
+                         `std::isupper` in the __karma_char_encoding_namespace__
+                         the generator succeeds after emitting 
+                         its attribute (unless the underlying output stream 
+                         reports an error). This generator fails otherwise 
+                         while not generating anything.]]
+    [[`ns::space`]      [If the optional attribute satisfies the concept of 
+                         `std::isspace` in the __karma_char_encoding_namespace__
+                         the generator succeeds after emitting 
+                         its attribute (unless the underlying output stream 
+                         reports an error). This generator fails otherwise 
+                         while not generating anything.If no attribute is 
+                         supplied this generator emits a single space 
+                         character in the character set defined by `ns`.]]
+]
+
+Possible values for `ns` are described in the section __karma_char_encoding_namespace__.
+
+[note   The generators `alpha` and `alnum` might seem to behave unexpected if 
+        used inside a `lower[]` or `upper[]` directive. Both directives 
+        additionally apply the semantics of `std::islower` or `std::isupper`
+        to the respective character class. Some examples:
+``
+    std::string s;
+    std::back_insert_iterator<std::string> out(s);
+    generate(out, lower[alpha], 'a');               // succeeds emitting 'a'
+    generate(out, lower[alpha], 'A');               // fails 
+``
+        The generator directive `upper[]` behaves correspondingly.
+]
+
+[heading Attributes]
+
+[:All listed character class generators can take any attribute `Ch`. All 
+  character class generators (except `space`) require an attribute and will
+  fail compiling otherwise.]
+
+[note  In addition to their usual attribute of type `Ch` all listed generators 
+       accept an instance of a `boost::optional<Ch>` as well. If the 
+       `boost::optional<>` is initialized (holds a value) the generators behave 
+       as if their attribute was an instance of `Ch` and emit the value stored
+       in the `boost::optional<>`. Otherwise the generators will fail.]
+
+[heading Complexity]
+
+[:O(1)]
+
+The complexity is constant as the generators emit not more than one character 
+per invocation.
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_char_class]
+
+Basic usage of an `alpha` generator:
+
+[reference_karma_char_class]
+
+[endsect]
+
+[endsect]

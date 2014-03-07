@@ -1,0 +1,46 @@
+[article List Test
+[quickbook 1.6]
+]
+
+Markup in list:
+
+*   [table [[Heading]][[Cell]]]
+*   [heading The heading for a list item]
+
+    The content of the list item.
+
+[section Paragraphs in list items]
+
+* A1
+
+  A2
+
+* B1
+  * C1
+
+   C2
+
+  B2
+
+* D1
+    * E1
+
+     E2
+
+    E3
+
+   D2
+
+[endsect]
+
+[section Indented code blocks in lists]
+
+* A
+
+    B
+  C
+* D
+
+    E
+* F
+[endsect]

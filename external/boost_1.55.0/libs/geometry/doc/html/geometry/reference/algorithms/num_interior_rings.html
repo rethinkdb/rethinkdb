@@ -1,0 +1,270 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>num_interior_rings</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../algorithms.html" title="Algorithms">
+<link rel="prev" href="num_geometries.html" title="num_geometries">
+<link rel="next" href="num_points.html" title="num_points">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="num_geometries.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../algorithms.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="num_points.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.algorithms.num_interior_rings"></a><a class="link" href="num_interior_rings.html" title="num_interior_rings">num_interior_rings</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp56175144"></a>
+Calculates the number of interior rings of a geometry.
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.num_interior_rings.h0"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.num_interior_rings.description"></a></span><a class="link" href="num_interior_rings.html#geometry.reference.algorithms.num_interior_rings.description">Description</a>
+        </h6>
+<p>
+          The free function num_interior_rings calculates the number of interior
+          rings of a geometry.
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.num_interior_rings.h1"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.num_interior_rings.synopsis"></a></span><a class="link" href="num_interior_rings.html#geometry.reference.algorithms.num_interior_rings.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">num_interior_rings</span><span class="special">(</span><span class="identifier">Geometry</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">)</span></pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.num_interior_rings.h2"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.num_interior_rings.parameters"></a></span><a class="link" href="num_interior_rings.html#geometry.reference.algorithms.num_interior_rings.parameters">Parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Concept
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    Geometry const &amp;
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Any type fulfilling a Geometry Concept
+                  </p>
+                </td>
+<td>
+                  <p>
+                    geometry
+                  </p>
+                </td>
+<td>
+                  <p>
+                    A model of the specified concept
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.num_interior_rings.h3"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.num_interior_rings.returns"></a></span><a class="link" href="num_interior_rings.html#geometry.reference.algorithms.num_interior_rings.returns">Returns</a>
+        </h6>
+<p>
+          The calculated number of interior rings
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.num_interior_rings.h4"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.num_interior_rings.header"></a></span><a class="link" href="num_interior_rings.html#geometry.reference.algorithms.num_interior_rings.header">Header</a>
+        </h6>
+<p>
+          Either
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<p>
+          Or
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">num_interior_rings</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.num_interior_rings.h5"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.num_interior_rings.conformance"></a></span><a class="link" href="num_interior_rings.html#geometry.reference.algorithms.num_interior_rings.conformance">Conformance</a>
+        </h6>
+<p>
+          The function num_interior_ring implements function NumInteriorRing from
+          the <a href="http://www.opengeospatial.org/standards/sfa" target="_top">OGC Simple
+          Feature Specification</a>.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Boost.Geometry adds an "s"
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.num_interior_rings.h6"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.num_interior_rings.behavior"></a></span><a class="link" href="num_interior_rings.html#geometry.reference.algorithms.num_interior_rings.behavior">Behavior</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Case
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Behavior
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Polygon
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the number of its interior rings
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Multi Polygon
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the number of the interior rings of all polygons
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Other geometries
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns 0
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.num_interior_rings.h7"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.num_interior_rings.complexity"></a></span><a class="link" href="num_interior_rings.html#geometry.reference.algorithms.num_interior_rings.complexity">Complexity</a>
+        </h6>
+<p>
+          Constant
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.num_interior_rings.h8"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.num_interior_rings.examples"></a></span><a class="link" href="num_interior_rings.html#geometry.reference.algorithms.num_interior_rings.examples">Examples</a>
+        </h6>
+<p>
+          Get the number of interior rings in a multi-polygon
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point_xy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">polygon</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">multi</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">multi_polygon</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">io</span><span class="special">/</span><span class="identifier">wkt</span><span class="special">/</span><span class="identifier">wkt</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">multi</span><span class="special">/</span><span class="identifier">io</span><span class="special">/</span><span class="identifier">wkt</span><span class="special">/</span><span class="identifier">wkt</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">multi_polygon</span>
+        <span class="special">&lt;</span>
+            <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">polygon</span>
+                <span class="special">&lt;</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">d2</span><span class="special">::</span><span class="identifier">point_xy</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span>
+                <span class="special">&gt;</span>
+        <span class="special">&gt;</span> <span class="identifier">mp</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">read_wkt</span><span class="special">(</span><span class="string">"MULTIPOLYGON(((0 0,0 10,10 0,0 0),(1 1,1 9,9 1,1 1)),((10 10,10 7,7 10,10 10)))"</span><span class="special">,</span> <span class="identifier">mp</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Number of interior rings: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">num_interior_rings</span><span class="special">(</span><span class="identifier">mp</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Output:
+        </p>
+<pre class="programlisting">Number of interior rings: 1
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="num_geometries.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../algorithms.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="num_points.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

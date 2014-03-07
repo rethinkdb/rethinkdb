@@ -1,0 +1,322 @@
+[/
+              Copyright Andrey Semashev 2007 - 2013.
+     Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+              http://www.boost.org/LICENSE_1_0.txt)
+
+    This document is a part of Boost.Log library documentation.
+/]
+
+[section:sink_backends Sink backends]
+
+[section:text_ostream Text stream backend]
+
+    #include <``[boost_log_sinks_text_ostream_backend_hpp]``>
+
+The text output stream sink backend is the most generic backend provided by the library out of the box. The backend is implemented in the [class_sinks_basic_text_ostream_backend] class template (`text_ostream_backend` and `wtext_ostream_backend` convenience typedefs provided for narrow and wide character support). It supports formatting log records into strings and putting into one or several streams. Each attached stream gets the same result of formatting, so if you need to format log records differently for different streams, you will need to create several sinks - each with its own formatter.
+
+The backend also provides a feature that may come useful when debugging your application. With the `auto_flush` method one can tell the sink to automatically flush the buffers of all attached streams after each log record is written. This will, of course, degrade logging performance, but in case of an application crash there is a good chance that last log records will not be lost.
+
+[example_sinks_ostream]
+
+[endsect]
+
+[section:text_file Text file backend]
+
+    #include <``[boost_log_sinks_text_file_backend_hpp]``>
+
+Although it is possible to write logs into files with the [link log.detailed.sink_backends.text_ostream text stream backend] the library also offers a special sink backend with an extended set of features suitable for file-based logging. The features include:
+
+* Log file rotation based on file size and/or time
+* Flexible log file naming
+* Placing the rotated files into a special location in the file system
+* Deleting the oldest files in order to free more space on the file system
+
+The backend is called [class_sinks_text_file_backend].
+
+[warning This sink uses __boost_filesystem__ internally, which may cause problems on process termination. See [link log.rationale.why_crash_on_term here] for more details.]
+
+[heading File rotation]
+
+File rotation is implemented by the sink backend itself. The file name pattern and rotation thresholds can be specified when the [class_sinks_text_file_backend] backend is constructed.
+
+[example_sinks_file]
+
+[note The file size at rotation can be imprecise. The implementation counts the number of characters written to the file, but the underlying API can introduce additional auxiliary data, which would increase the log file's actual size on disk. For instance, it is well known that Windows and DOS operating systems have a special treatment with regard to new-line characters. Each new-line character is written as a two byte sequence 0x0D 0x0A instead of a single 0x0A. Other platform-specific character translations are also known.]
+
+The time-based rotation is not limited by only time points. There are following options available out of the box:
+
+# Time point rotations: [class_file_rotation_at_time_point] class. This kind of rotation takes place whenever the specified time point is reached. The following variants are available:
+
+    * Every day rotation, at the specified time. This is what was presented in the code snippet above:
+    ``
+        sinks::file::rotation_at_time_point(12, 0, 0)
+    ``
+
+    * Rotation on the specified day of every week, at the specified time. For instance, this will make file rotation to happen every Tuesday, at midnight:
+    ``
+        sinks::file::rotation_at_time_point(date_time::Tuesday, 0, 0, 0)
+    ``
+    in case of midnight, the time can be omitted:
+    ``
+        sinks::file::rotation_at_time_point(date_time::Tuesday)
+    ``
+
+    * Rotation on the specified day of each month, at the specified time. For example, this is how to rotate files on the 1-st of every month:
+    ``
+        sinks::file::rotation_at_time_point(gregorian::greg_day(1), 0, 0, 0)
+    ``
+    like with weekdays, midnight is implied:
+    ``
+        sinks::file::rotation_at_time_point(gregorian::greg_day(1))
+    ``
+
+# Time interval rotations: [class_file_rotation_at_time_interval] class. With this predicate the rotation is not bound to any time points and happens as soon as the specified time interval since the previous rotation elapses. This is how to make rotations every hour:
+``
+    sinks::file::rotation_at_time_interval(posix_time::hours(1))
+``
+
+If none of the above applies, one can specify his own predicate for time-based rotation. The predicate should take no arguments and return `bool` (the `true` value indicates that the rotation should take place). The predicate will be called for every log record being written to the file.
+
+    bool is_it_time_to_rotate();
+
+    void init_logging()
+    {
+        // ...
+
+        boost::shared_ptr< sinks::text_file_backend > backend =
+            boost::make_shared< sinks::text_file_backend >(
+                keywords::file_name = "file_%5N.log",
+                keywords::time_based_rotation = &is_it_time_to_rotate
+            );
+
+        // ...
+    }
+
+[note The log file rotation takes place on an attempt to write a new log record to the file. Thus the time-based rotation is not a strict threshold, either. The rotation will take place as soon as the library detects that the rotation should have happened.]
+
+The file name pattern may contain a number of wildcards, like the one you can see in the example above. Supported placeholders are:
+
+* Current date and time components. The placeholders conform to the ones specified by __boost_date_time__ library.
+* File counter (`%N`) with an optional width specification in the `printf`-like format. The file counter will always be decimal, zero filled to the specified width.
+* A percent sign (`%%`).
+
+A few quick examples:
+
+[table
+    [[Template]                            [Expands to]]
+    [[file\_%N.log]                        [file\_1.log, file\_2.log...]]
+    [[file\_%3N.log]                       [file\_001.log, file\_002.log...]]
+    [[file\_%Y%m%d.log]                    [file\_20080705.log, file\_20080706.log...]]
+    [[file\_%Y-%m-%d\_%H-%M-%S.%N.log]     [file\_2008-07-05\_13-44-23.1.log, file\_2008-07-06\_16-00-10.2.log...]]
+]
+
+[important Although all __boost_date_time__ format specifiers will work, there are restrictions on some of them, if you intend to scan for old log files. This functionality is discussed in the next section.]
+
+The sink backend allows hooking into the file rotation process in order to perform pre- and post-rotation actions. This can be useful to maintain log file validity by writing headers and footers. For example, this is how we could modify the `init_logging` function in order to write logs into XML files:
+
+[example_sinks_xml_file]
+
+[@boost:/libs/log/example/doc/sinks_xml_file.cpp See the complete code].
+
+Finally, the sink backend also supports the auto-flush feature, like the [link log.detailed.sink_backends.text_ostream text stream backend] does.
+
+[heading Managing rotated files]
+
+After being closed, the rotated files can be collected. In order to do so one has to set up a file collector by specifying the target directory where to collect the rotated files and, optionally, size thresholds. For example, we can modify the `init_logging` function to place rotated files into a distinct directory and limit total size of the files. Let's assume the following function is called by `init_logging` with the constructed sink:
+
+[example_sinks_xml_file_collecting]
+
+The `max_size` and `min_free_space` parameters are optional, the corresponding threshold will not be taken into account if the parameter is not specified.
+
+One can create multiple file sink backends that collect files into the same target directory. In this case the most strict thresholds are combined for this target directory. The files from this directory will be erased without regard for which sink backend wrote it, i.e. in the strict chronological order.
+
+[warning The collector does not resolve log file name clashes between different sink backends, so if the clash occurs the behavior is undefined, in general. Depending on the circumstances, the files may overwrite each other or the operation may fail entirely.]
+
+The file collector provides another useful feature. Suppose you ran your application 5 times and you have 5 log files in the "logs" directory. The file sink backend and file collector provide a `scan_for_files` method that searches the target directory for these files and takes them into account. So, if it comes to deleting files, these files are not forgotten. What's more, if the file name pattern in the backend involves a file counter, scanning for older files allows updating the counter to the most recent value. Here is the final version of our `init_logging` function:
+
+[example_sinks_xml_file_final]
+
+There are two methods of file scanning: the scan that involves file name matching with the file name pattern (the default) and the scan that assumes that all files in the target directory are log files. The former applies certain restrictions on the placeholders that can be used within the file name pattern, in particular only file counter placeholder and these placeholders of __boost_date_time__ are supported: `%y`, `%Y`, `%m`, `%d`, `%H`, `%M`, `%S`, `%f`. The latter scanning method, in its turn, has its own drawback: it does not allow updating the file counter in the backend. It is also considered to be more dangerous as it may result in unintended file deletion, so be cautious. The all-files scanning method can be enabled by passing it as an additional parameter to the `scan_for_files` call:
+
+    // Look for all files in the target directory
+    backend->scan_for_files(sinks::file::scan_all);
+
+[endsect]
+
+[section:text_multifile Text multi-file backend]
+
+    #include <``[boost_log_sinks_text_multifile_backend_hpp]``>
+
+While the text stream and file backends are aimed to store all log records into a single file/stream, this backend serves a different purpose. Assume we have a banking request processing application and we want logs related to every single request to be placed into a separate file. If we can associate some attribute with the request identity then the [class_sinks_text_multifile_backend] backend is the way to go.
+
+[example_sinks_multifile]
+
+You can see we used a regular [link log.detailed.expressions.formatters formatter] in order to specify file naming pattern. Now, every log record with a distinct value of the "RequestID" attribute will be stored in a separate file, no matter how many different requests are being processed by the application concurrently. You can also find the [@boost:/libs/log/example/multiple_files/main.cpp `multiple_files`] example in the library distribution, which shows a similar technique to separate logs generated by different threads of the application.
+
+If using formatters is not appropriate for some reason, you can provide your own file name composer. The composer is a mere function object that accepts a log record as a single argument and returns a value of the `text_multifile_backend::path_type` type.
+
+[note The multi-file backend has no knowledge of whether a particular file is going to be used or not. That is, if a log record has been written into file A, the library cannot tell whether there will be more records that fit into the file A or not. This makes it impossible to implement file rotation and removing unused files to free space on the file system. The user will have to implement such functionality himself.]
+
+[endsect]
+
+[section:syslog Syslog backend]
+
+    #include <``[boost_log_sinks_syslog_backend_hpp]``>
+
+The syslog backend, as comes from its name, provides support for the syslog API that is available on virtually any UNIX-like platform. On Windows there exists at least [@http://syslog-win32.sourceforge.net one] public implementation of the syslog client API. However, in order to provide maximum flexibility and better portability the library offers built-in support for the syslog protocol described in [@http://tools.ietf.org/html/rfc3164 RFC 3164]. Thus on Windows only the built-in implementation is supported, while on UNIX-like systems both built-in and system API based implementations are supported.
+
+The backend is implemented in the [class_sinks_syslog_backend] class. The backend supports formatting log records, and therefore requires thread synchronization in the frontend. The backend also supports severity level translation from the application-specific values to the syslog-defined values. This is achieved with an additional function object, level mapper, that receives a set of attribute values of each log record and returns the appropriate syslog level value. This value is used by the backend to construct the final priority value of the syslog record. The other component of the syslog priority value, the facility, is constant for each backend object and can be specified in the backend constructor arguments.
+
+Level mappers can be written by library users to translate the application log levels to the syslog levels in the best way. However, the library provides two mappers that would fit this need in obvious cases. The [class_syslog_direct_severity_mapping] class template provides a way to directly map values of some integral attribute to syslog levels, without any value conversion. The [class_syslog_custom_severity_mapping] class template adds some flexibility and allows to map arbitrary values of some attribute to syslog levels.
+
+Anyway, one example is better than a thousand words.
+
+[example_sinks_syslog]
+
+Please note that all syslog constants, as well as level extractors, are declared within a nested namespace `syslog`. The library will not accept (and does not declare in the backend interface) native syslog constants, which are macros, actually.
+
+Also note that the backend will default to the built-in implementation and `user` logging facility, if the corresponding constructor parameters are not specified.
+
+[tip The `set_target_address` method will also accept DNS names, which it will resolve to the actual IP address. This feature, however, is not available in single threaded builds.]
+
+[endsect]
+
+[section:debugger Windows debugger output backend]
+
+    #include <``[boost_log_sinks_debug_output_backend_hpp]``>
+
+Windows API has an interesting feature: a process, being run under a debugger, is able to emit messages that will be intercepted and displayed in the debugger window. For example, if an application is run under the Visual Studio IDE it is able to write debug messages to the IDE window. The [class_sinks_basic_debug_output_backend] backend provides a simple way of emitting such messages. Additionally, in order to optimize application performance, a [link log.detailed.expressions.predicates.is_debugger_present special filter] is available that checks whether the application is being run under a debugger. Like many other sink backends, this backend also supports setting a formatter in order to compose the message text.
+
+The usage is quite simple and straightforward:
+
+[example_sinks_debugger]
+
+Note that the sink backend is templated on the character type. This type defines the Windows API version that is used to emit messages. Also, `debug_output_backend` and `wdebug_output_backend` convenience typedefs are provided.
+
+[endsect]
+
+[section:event_log Windows event log backends]
+
+    #include <``[boost/log/sinks/event_log_backend.hpp]``>
+
+Windows operating system provides a special API for publishing events related to application execution. A wide range of applications, including Windows components, use this facility to provide the user with all essential information about computer health in a single place - an event log. There can be more than one event log. However, typically all user-space applications use the common Application log. Records from different applications or their parts can be selected from the log by a record source name. Event logs can be read with a standard utility, an Event Viewer, that comes with Windows.
+
+Although it looks very tempting, the API is quite complicated and intrusive, which makes it difficult to support. The application is required to provide a dynamic library with special resources that describe all events the application supports. This library must be registered in the Windows registry, which pins its location in the file system. The Event Viewer uses this registration to find the resources and compose and display messages. The positive feature of this approach is that since event resources can describe events differently for different languages, it allows the application to support event internationalization in a quite transparent manner: the application simply provides event identifiers and non-localizable event parameters to the API, and it does the rest of the work.
+
+In order to support both the simplistic approach "it just works" and the more elaborate event composition, including internationalization support, the library provides two sink backends that work with event log API.
+
+[heading Simple event log backend]
+
+The [class_sinks_basic_simple_event_log_backend] backend is intended to encapsulate as much of the event log API as possible, leaving interface and usage model very similar to other sink backends. It contains all resources that are needed for the Event Viewer to function properly, and registers the Boost.Log library in the Windows registry in order to populate itself as the container of these resources.
+
+[important The library must be built as a dynamic library in order to use this backend flawlessly. Otherwise event description resources are not linked into the executable, and the Event Viewer is not able to display events properly.]
+
+The only thing user has to do to add Windows event log support to his application is to provide event source and log names (which are optional and can be automatically suggested by the library), set up an appropriate filter, formatter and event severity mapping.
+
+[example_sinks_simple_event_log]
+
+Having done that, all logging records that pass to the sink will be formatted the same way they are in the other sinks. The formatted message will be displayed in the Event Viewer as the event description.
+
+[heading Advanced event log backend]
+
+The [class_sinks_basic_event_log_backend] allows more detailed control over the logging API, but requires considerably more scaffolding during initialization and usage.
+
+First, the user has to build his own library with the event resources (the process is described in [@http://msdn.microsoft.com/en-us/library/aa363681(VS.85).aspx MSDN]). As a part of this process one has to create a message file that describes all events. For the sake of example, let's assume the following contents were used as the message file:
+
+[teletype]
+
+    ; /* --------------------------------------------------------
+    ; HEADER SECTION
+    ; */
+    SeverityNames=(Debug=0x0:MY_SEVERITY_DEBUG
+                Info=0x1:MY_SEVERITY_INFO
+                Warning=0x2:MY_SEVERITY_WARNING
+                Error=0x3:MY_SEVERITY_ERROR
+                )
+
+    ; /* --------------------------------------------------------
+    ; MESSAGE DEFINITION SECTION
+    ; */
+
+    MessageIdTypedef=WORD
+
+    MessageId=0x1
+    SymbolicName=MY_CATEGORY_1
+    Language=English
+    Category 1
+    .
+
+    MessageId=0x2
+    SymbolicName=MY_CATEGORY_2
+    Language=English
+    Category 2
+    .
+
+    MessageId=0x3
+    SymbolicName=MY_CATEGORY_3
+    Language=English
+    Category 3
+    .
+
+    MessageIdTypedef=DWORD
+
+    MessageId=0x100
+    Severity=Warning
+    Facility=Application
+    SymbolicName=LOW_DISK_SPACE_MSG
+    Language=English
+    The drive %1 has low free disk space. At least %2 Mb of free space is recommended.
+    .
+
+    MessageId=0x101
+    Severity=Error
+    Facility=Application
+    SymbolicName=DEVICE_INACCESSIBLE_MSG
+    Language=English
+    The drive %1 is not accessible.
+    .
+
+    MessageId=0x102
+    Severity=Info
+    Facility=Application
+    SymbolicName=SUCCEEDED_MSG
+    Language=English
+    Operation finished successfully in %1 seconds.
+    .
+
+[c++]
+
+After compiling the resource library, the path to this library must be provided to the sink backend constructor, among other parameters used with the simple backend. The path may contain placeholders that will be expanded with the appropriate environment variables.
+
+[example_sinks_event_log_create_backend]
+
+Like the simple backend, [class_sinks_basic_event_log_backend] will register itself in the Windows registry, which will enable the Event Viewer to display the emitted events.
+
+Next, the user will have to provide the mapping between the application logging attributes and event identifiers. These identifiers were provided in the message compiler output as a result of compiling the message file. One can use [class_event_log_basic_event_composer] and one of the event ID mappings, like in the following example:
+
+[example_sinks_event_log_event_composer]
+
+As you can see, one can use regular [link log.detailed.expressions.formatters formatters] to specify which attributes will be inserted instead of placeholders in the final event message. Aside from that, one can specify mappings of attribute values to event types and categories. Suppose our application has the following severity levels:
+
+[example_sinks_event_log_severity]
+
+Then these levels can be mapped onto the values in the message description file:
+
+[example_sinks_event_log_mappings]
+
+[tip As of Windows NT 6 (Vista, Server 2008) it is not needed to specify event type mappings. This information is available in the message definition resources and need not be duplicated in the API call.]
+
+Now that initialization is done, the sink can be registered into the core.
+
+[example_sinks_event_log_register_sink]
+
+In order to emit events it is convenient to create a set of functions that will accept all needed parameters for the corresponding events and announce that the event has occurred.
+
+[example_sinks_event_log_facilities]
+
+Now you are able to call these helper functions to emit events. The complete code from this section is available in the [@boost:/libs/log/example/event_log/main.cpp `event_log`] example in the library distribution.
+
+[endsect]
+
+[endsect]

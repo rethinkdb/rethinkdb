@@ -1,0 +1,149 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:partial_matches Partial Matches]
+
+The [match_flag_type] `match_partial` can be passed to the following algorithms: 
+[regex_match], [regex_search], and [regex_grep], and used with the 
+iterator [regex_iterator]. When used it indicates that partial as 
+well as full matches should be found. A partial match is one that 
+matched one or more characters at the end of the text input, but 
+did not match all of the regular expression (although it may have done 
+so had more input been available). Partial matches are typically used 
+when either validating data input (checking each character as it is 
+entered on the keyboard), or when searching texts that are either too long 
+to load into memory (or even into a memory mapped file), or are of 
+indeterminate length (for example the source may be a socket or similar). 
+Partial and full matches can be differentiated as shown in the following 
+table (the variable M represents an instance of [match_results] as filled in 
+by [regex_match], [regex_search] or [regex_grep]):
+
+[table
+[[ ][Result][M\[0\].matched][M\[0\].first][M\[0\].second]]
+[[No match][False][Undefined][Undefined][Undefined]]
+[[Partial match][True][False][Start of partial match.][End of partial match (end of text).]]
+[[Full match][True][True][Start of full match.][End of full match.]]
+]
+
+Be aware that using partial matches can sometimes result in somewhat 
+imperfect behavior:
+
+* There are some expressions, such as ".\*abc" that will always produce a partial match.  This problem can be reduced by careful construction of the regular expressions used, or by setting flags like match_not_dot_newline so that expressions like .\* can't match past line boundaries.
+* Boost.Regex currently prefers leftmost matches to full matches, so for example matching "abc|b" against "ab" produces a partial match against the "ab" rather than a full match against "b".  It's more efficient to work this way, but may not be the behavior you want in all situations.
+
+The following example tests to see whether the text could be a valid 
+credit card number, as the user presses a key, the character entered 
+would be added to the string being built up, and passed to `is_possible_card_number`. 
+If this returns true then the text could be a valid card number, so the 
+user interface's OK button would be enabled. If it returns false, then 
+this is not yet a valid card number, but could be with more input, so 
+the user interface would disable the OK button. Finally, if the procedure 
+throws an exception the input could never become a valid number, and the 
+inputted character must be discarded, and a suitable error indication 
+displayed to the user.
+
+   #include <string>
+   #include <iostream>
+   #include <boost/regex.hpp>
+
+   boost::regex e("(\\d{3,4})[- ]?(\\d{4})[- ]?(\\d{4})[- ]?(\\d{4})");
+
+   bool is_possible_card_number(const std::string& input)
+   {
+      //
+      // return false for partial match, true for full match, or throw for
+      // impossible match based on what we have so far...
+      boost::match_results<std::string::const_iterator> what;
+      if(0 == boost::regex_match(input, what, e, boost::match_default | boost::match_partial))
+      {
+         // the input so far could not possibly be valid so reject it:
+         throw std::runtime_error(
+            "Invalid data entered - this could not possibly be a valid card number");
+      }
+      // OK so far so good, but have we finished?
+      if(what[0].matched)
+      {
+         // excellent, we have a result:
+         return true;
+      }
+      // what we have so far is only a partial match...
+      return false;
+   }
+
+In the following example, text input is taken from a stream containing an 
+unknown amount of text; this example simply counts the number of html tags 
+encountered in the stream. The text is loaded into a buffer and searched a 
+part at a time, if a partial match was encountered, then the partial match 
+gets searched a second time as the start of the next batch of text:
+
+   #include <iostream>
+   #include <fstream>
+   #include <sstream>
+   #include <string>
+   #include <boost/regex.hpp>
+
+   // match some kind of html tag:
+   boost::regex e("<[^>]*>");
+   // count how many:
+   unsigned int tags = 0;
+
+   void search(std::istream& is)
+   {
+      // buffer we'll be searching in:
+      char buf[4096];
+      // saved position of end of partial match:
+      const char* next_pos = buf + sizeof(buf);
+      // flag to indicate whether there is more input to come:
+      bool have_more = true;
+
+      while(have_more)
+      {
+         // how much do we copy forward from last try:
+         unsigned leftover = (buf + sizeof(buf)) - next_pos;
+         // and how much is left to fill:
+         unsigned size = next_pos - buf;
+         // copy forward whatever we have left:
+         std::memmove(buf, next_pos, leftover);
+         // fill the rest from the stream:
+         is.read(buf + leftover, size);
+         unsigned read = is.gcount();
+         // check to see if we've run out of text:
+         have_more = read == size;
+         // reset next_pos:
+         next_pos = buf + sizeof(buf);
+         // and then iterate:
+         boost::cregex_iterator a(
+            buf, 
+            buf + read + leftover, 
+            e, 
+            boost::match_default | boost::match_partial); 
+         boost::cregex_iterator b;
+
+         while(a != b)
+         {
+            if((*a)[0].matched == false)
+            {
+               // Partial match, save position and break:
+               next_pos = (*a)[0].first;
+               break;
+            }
+            else
+            {
+               // full match:
+               ++tags;
+            }
+            
+            // move to next match:
+            ++a;
+         }
+      }
+   }
+
+[endsect]
+
+
+

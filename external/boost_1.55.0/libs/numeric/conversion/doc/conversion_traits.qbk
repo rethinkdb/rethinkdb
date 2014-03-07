@@ -1,0 +1,272 @@
+[/
+    Boost.Optional
+
+    Copyright (c) 2003-2007 Fernando Luis Cacciola Carballal
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section conversion_traits<> traits class]
+
+[section Types]
+
+[section enumeration int_float_mixture_enum]
+
+    namespace boost { namespace numeric {
+
+        enum int_float_mixture_enum
+        {
+           integral_to_integral
+          ,integral_to_float
+          ,float_to_integral
+          ,float_to_float
+        } ;
+
+    } } // namespace boost::numeric
+
+[endsect]
+
+[section enumeration sign_mixture_enum]
+
+    namespace boost { namespace numeric {
+
+    enum sign_mixture_enum
+    {
+       unsigned_to_unsigned
+      ,signed_to_signed
+      ,signed_to_unsigned
+      ,unsigned_to_signed
+    } ;
+
+    } } // namespace boost::numeric
+
+[endsect]
+
+[section enumeration udt_builtin_mixture_enum]
+
+    namespace boost { namespace numeric {
+
+        enum udt_builtin_mixture_enum
+        {
+           builtin_to_builtin
+          ,builtin_to_udt
+          ,udt_to_builtin
+          ,udt_to_udt
+        } ;
+
+    } } // namespace boost::numeric
+
+[endsect]
+
+[section template class int_float_mixture<>]
+
+    namespace boost { namespace numeric {
+
+        template <class T, class S>
+        struct int_float_mixture : mpl::integral_c<int_float_mixture_enum, impl-def-value> {} ;
+
+    } } // namespace boost::numeric
+
+Classifying `S` and `T` as either integral or float, this __MPL_INTEGRAL_CONSTANT__
+indicates the combination of these attributes.
+
+Its `::value` is of enumeration type
+[link boost_numericconversion.conversion_traits___traits_class.types.enumeration_int_float_mixture_enum `boost::numeric::int_float_mixture_enum`]
+
+[endsect]
+
+[section template class sign_mixture<>]
+
+    namespace boost { namespace numeric {
+
+        template <class T, class S>
+        struct sign_mixture : mpl::integral_c<sign_mixture_enum, impl-def-value> {} ;
+
+    } } // namespace boost::numeric
+
+Classifying `S` and `T` as either signed or unsigned, this __MPL_INTEGRAL_CONSTANT__
+indicates the combination of these attributes.
+
+Its `::value` is of enumeration type
+[link boost_numericconversion.conversion_traits___traits_class.types.enumeration_sign_mixture_enum `boost::numeric::sign_mixture_enum`]
+
+[endsect]
+
+[section template class udt_builtin_mixture<>]
+
+    namespace boost { namespace numeric {
+
+        template <class T, class S>
+        struct udt_builtin_mixture : mpl::integral_c<udt_builtin__mixture_enum, impl-def-value> {} ;
+
+    } } // namespace boost::numeric
+
+Classifying `S` and `T` as either user-defined or builtin, this __MPL_INTEGRAL_CONSTANT__
+indicates the combination of these attributes.
+
+Its `::value` is of enumeration type
+[link boost_numericconversion.conversion_traits___traits_class.types.enumeration_udt_builtin_mixture_enum `boost::numeric::udt_builtin_mixture_enum`]
+
+[endsect]
+
+[section template class is_subranged<>]
+
+    namespace boost { namespace numeric {
+
+        template <class T, class S>
+        struct is_subranged : mpl::bool_<impl-def-value> {} ;
+
+    } } // namespace boost::numeric
+
+Indicates if the range of the target type `T` is a subset of the range of the source
+type `S`. That is: if there are some source values which fall out of the
+Target type's range.
+
+It is a boolean __MPL_INTEGRAL_CONSTANT__.
+
+It does not indicate if a particular conversion is effectively out of range;
+it indicates that some conversion might be out of range because not all the
+source values are representable as Target type.
+
+[endsect]
+
+[section template class conversion_traits<>]
+
+    namespace boost { namespace numeric {
+
+        template <class T, class S>
+        struct conversion_traits
+        {
+            mpl::integral_c<int_float_mixture_enum  , ...> int_float_mixture ;
+            mpl::integral_c<sign_mixture_enum       , ...> sign_mixture;
+            mpl::integral_c<udt_builtin_mixture_enum, ...> udt_builtin_mixture ;
+
+            mpl::bool_<...> subranged ;
+            mpl::bool_<...> trivial ;
+
+            typedef T target_type   ;
+            typedef S source_type   ;
+            typedef ... argument_type ;
+            typedef ... result_type   ;
+            typedef ... supertype     ;
+            typedef ... subtype       ;
+        } ;
+
+    } } // namespace numeric, namespace boost
+
+
+This traits class indicates some properties of a ['numeric conversion] direction:
+from a source type `S` to a target type `T`. It does not indicate the properties
+of a ['specific] conversion, but of the conversion direction. See
+[link boost_numericconversion.definitions.subranged_conversion_direction__subtype_and_supertype Definitions] for details.
+
+The traits class provides the following __MPL_INTEGRAL_CONSTANT__\s of enumeration
+type. They express the combination of certain attributes of the Source and
+Target types (thus they are call mixture):
+
+[table
+[[       ][        ]]
+[[[*int_float_mixture   ]][
+Same as given by the traits class
+[link boost_numericconversion.conversion_traits___traits_class.types.template_class_int_float_mixture__ int_float_mixture]
+]]
+[[[*sign_mixture        ]][
+Same as given by the traits class
+[link boost_numericconversion.conversion_traits___traits_class.types.template_class_sign_mixture__ sign_mixture]
+]]
+[[[*udt_builtin_mixture ]]
+[Same as given by the traits class
+[link boost_numericconversion.conversion_traits___traits_class.types.template_class_udt_builtin_mixture__ udt_builtin_mixture]
+]]
+]
+
+The traits class provides the following __MPL_INTEGRAL_CONSTANT__\s of boolean type
+which indicates indirectly the relation between the Source and Target ranges
+(see [link boost_numericconversion.definitions.range_and_precision Definitions] for details).
+
+[table
+[[       ][        ]]
+[[subranged ][
+Same as given by [link boost_numericconversion.conversion_traits___traits_class.types.template_class_is_subranged__ is_subranged]
+]]
+[[trivial][
+Indicates if both Source and Target, [_without cv-qualifications], are the same type.
+
+Its `::value` is of boolean type.
+]]
+]
+
+The traits class provides the following types. They are the Source and Target types classified
+and qualified for different purposes.
+
+
+[table
+[[            ][         ]]
+[[[*target_type]][
+The template parameter `T` without cv-qualifications
+]]
+[[[*source_type]][
+The template parameter `S` without cv-qualifications
+]]
+[[[*argument_type]][
+This type is either source_type or `source_type const&`.
+
+It represents the optimal argument type for the
+[link boost_numericconversion.converter___function_object converter] member functions.
+
+If S is a built-in type, this is `source_type`, otherwise, this is `source_type const&`.
+]]
+[[[*result_type]][
+This type is either target_type or target_type const&
+
+It represents the return type of the 
+[link boost_numericconversion.converter___function_object converter] member functions.
+
+If `T==S`, it is `target_type const&`, otherwise, it is `target_type`.
+]]
+[[[*supertype]][
+If the conversion is subranged, it is `source_type`, otherwise, it is `target_type`
+]]
+[[[*subtype]][
+If the conversion is subranged, it is `target_type`, otherwise, it is `source_type`
+]]
+]
+
+[endsect]
+
+[endsect]
+
+[section Examples]
+
+    #include <cassert>
+    #include <typeinfo>
+    #include <boost/numeric/conversion/conversion_traits.hpp>
+
+    int main()
+    {
+
+        // A trivial conversion.
+        typedef boost::numeric::conversion_traits<short,short> Short2Short_Traits ;
+        assert ( Short2Short_Traits::trivial::value ) ;
+
+        // A subranged conversion.
+        typedef boost::numeric::conversion_traits<double,unsigned int> UInt2Double_Traits ;
+        assert (  UInt2Double_Traits::int_float_mixture::value == boost::numeric::integral_to_float ) ;
+        assert (  UInt2Double_Traits::sign_mixture::value == boost::numeric::unsigned_to_signed ) ;
+        assert ( !UInt2Double_Traits::subranged::value ) ;
+        assert ( typeid(UInt2Double_Traits::supertype) == typeid(double) ) ;
+        assert ( typeid(UInt2Double_Traits::subtype) == typeid(unsigned int) ) ;
+
+        // A doubly subranged conversion.
+        assert ( (boost::numeric::conversion_traits<short, unsigned short>::subranged::value) );
+        assert ( (boost::numeric::conversion_traits<unsigned short, short>::subranged::value) );
+
+        return 0;
+    }
+
+[endsect]
+
+[endsect]
+

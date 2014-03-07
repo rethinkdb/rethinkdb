@@ -1,0 +1,111 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Segment Concept</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="concept_ring.html" title="Ring Concept">
+<link rel="next" href="../constants.html" title="Constants">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="concept_ring.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../constants.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.concepts.concept_segment"></a><a class="link" href="concept_segment.html" title="Segment Concept">Segment
+        Concept</a>
+</h4></div></div></div>
+<h6>
+<a name="geometry.reference.concepts.concept_segment.h0"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_segment.description"></a></span><a class="link" href="concept_segment.html#geometry.reference.concepts.concept_segment.description">Description</a>
+        </h6>
+<p>
+          The Segment Concept describes the requirements for a segment type. All
+          algorithms in Boost.Geometry will check any geometry arguments against
+          the concept requirements.
+        </p>
+<h6>
+<a name="geometry.reference.concepts.concept_segment.h1"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_segment.concept_definition"></a></span><a class="link" href="concept_segment.html#geometry.reference.concepts.concept_segment.concept_definition">Concept
+          Definition</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              there must be a specialization of <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">tag</span></code>
+              defining <code class="computeroutput"><span class="identifier">segment_tag</span></code>
+              as type
+            </li>
+<li class="listitem">
+              there must be a specialization of <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">point_type</span></code>
+              to define the underlying point type (even if it does not consist of
+              points, it should define this type, to indicate the points it can work
+              with)
+            </li>
+<li class="listitem">
+              there must be a specialization of <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">indexed_access</span></code>,
+              per index and per dimension, with two functions:
+              <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                    <code class="computeroutput"><span class="identifier">get</span></code> to get a
+                    coordinate value
+                  </li>
+<li class="listitem">
+                    <code class="computeroutput"><span class="identifier">set</span></code> to set a
+                    coordinate value (this one is not checked for ConstSegment)
+                  </li>
+</ul></div>
+            </li>
+</ul></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The segment concept is similar to the box concept, defining using another
+            tag. However, the box concept assumes the index as <code class="computeroutput"><span class="identifier">min_corner</span></code>,
+            <code class="computeroutput"><span class="identifier">max_corner</span></code>, while for
+            the segment concept, there is no assumption.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="geometry.reference.concepts.concept_segment.h2"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_segment.available_models"></a></span><a class="link" href="concept_segment.html#geometry.reference.concepts.concept_segment.available_models">Available
+          Models</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <a class="link" href="../models/model_segment.html" title="model::segment">model::segment</a>
+            </li>
+<li class="listitem">
+              <a class="link" href="../models/model_referring_segment.html" title="model::referring_segment">referring
+              segment</a>
+            </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="concept_ring.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../constants.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

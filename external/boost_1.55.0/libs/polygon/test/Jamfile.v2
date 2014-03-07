@@ -1,0 +1,38 @@
+# test/Jamfile.v2 controls building of Polygon Library unit tests
+#
+# Copyright (c) 2010 Intel Corporation
+#
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+project polygon-test
+    :
+    requirements
+        <include>.
+        <toolset>msvc:<asynch-exceptions>on
+        <library>/boost/test//boost_unit_test_framework
+    ;
+
+test-suite polygon-unit
+    :
+        [ run polygon_point_test.cpp ]
+        [ run polygon_segment_test.cpp ]
+        [ run polygon_interval_test.cpp ]
+        [ run gtl_boost_unit_test.cpp ]
+    ;
+
+test-suite voronoi-unit
+    :
+        [ run voronoi_builder_test.cpp ]
+        [ run voronoi_ctypes_test.cpp ]
+        [ run voronoi_diagram_test.cpp ]
+        [ run voronoi_geometry_type_test.cpp ]
+        [ run voronoi_predicates_test.cpp ]
+        [ run voronoi_robust_fpt_test.cpp ]
+        [ run voronoi_structures_test.cpp ]
+    ;
+
+

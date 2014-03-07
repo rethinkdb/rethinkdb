@@ -1,0 +1,618 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section View]
+
+Views are sequences that do not actually contain data, but instead impart
+an alternative presentation over the data from one or more underlying
+sequences. Views are proxies. They provide an efficient yet purely
+functional way to work on potentially expensive sequence operations. Views
+are inherently lazy. Their elements are only computed on demand only when
+the elements of the underlying sequence(s) are actually accessed. Views'
+lazy nature make them very cheap to copy and be passed around by value.
+
+[heading Header]
+
+    #include <boost/fusion/view.hpp>
+    #include <boost/fusion/include/view.hpp>
+
+[section single_view]
+
+`single_view` is a view into a value as a single element sequence.
+
+[heading Header]
+
+    #include <boost/fusion/view/single_view.hpp>
+    #include <boost/fusion/include/single_view.hpp>
+
+[heading Synopsis]
+
+    template <typename T>
+    struct single_view;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`T`]                  [Any type]                  []]
+]
+
+[heading Model of]
+
+* __random_access_sequence__
+
+[variablelist Notation
+    [[`S`]              [A `single_view` type]]
+    [[`s`, `s2`]        [Instances of `single_view`]]
+    [[`x`]              [An instance of `T`]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __random_access_sequence__.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`S(x)`]               [Creates a `single_view` from `x`.]]
+    [[`S(s)`]               [Copy constructs a `single_view` from another `single_view`, `s`.]]
+    [[`s = s2`]             [Assigns to a `single_view`, `s`, from another `single_view`, `s2`.]]
+]
+
+[heading Example]
+
+    single_view<int> view(3);
+    std::cout << view << std::endl;
+
+[endsect]
+
+[section filter_view]
+
+[heading Description]
+
+`filter_view` is a view into a subset of its underlying sequence's elements
+satisfying a given predicate (an __mpl__ metafunction). The `filter_view`
+presents only those elements for which its predicate evaluates to
+`mpl::true_`.
+
+[heading Header]
+
+    #include <boost/fusion/view/filter_view.hpp>
+    #include <boost/fusion/include/filter_view.hpp>
+
+[heading Synopsis]
+
+    template <typename Sequence, typename Pred>
+    struct filter_view;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Sequence`]           [A __forward_sequence__]    []]
+    [[`Pred`]               [Unary Metafunction
+                             returning an `mpl::bool_`] []]
+]
+
+[heading Model of]
+
+* __forward_sequence__
+* __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[variablelist Notation
+    [[`F`]              [A `filter_view` type]]
+    [[`f`, `f2`]        [Instances of `filter_view`]]
+    [[`s`]              [A __forward_sequence__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in the implemented models.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`F(s)`]               [Creates a `filter_view` given a sequence, `s`.]]
+    [[`F(f)`]               [Copy constructs a `filter_view` from another `filter_view`, `f`.]]
+    [[`f = f2`]             [Assigns to a `filter_view`, `f`, from another `filter_view`, `f2`.]]
+]
+
+[heading Example]
+
+    using boost::mpl::_;
+    using boost::mpl::not_;
+    using boost::is_class;
+
+    typedef __vector__<std::string, char, long, bool, double> vector_type;
+
+    vector_type v("a-string", '@', 987654, true, 6.6);
+    filter_view<vector_type const, not_<is_class<_> > > view(v);
+    std::cout << view << std::endl;
+
+[endsect]
+
+[section iterator_range]
+
+[heading Description]
+
+`iterator_range` presents a sub-range of its underlying sequence delimited
+by a pair of iterators.
+
+[heading Header]
+
+    #include <boost/fusion/view/iterator_range.hpp>
+    #include <boost/fusion/include/iterator_range.hpp>
+
+[heading Synopsis]
+
+    template <typename First, typename Last>
+    struct iterator_range;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`First`]              [A fusion __iterator__]     []]
+    [[`Last`]               [A fusion __iterator__]     []]
+]
+
+[heading Model of]
+
+* __forward_sequence__, __bidirectional_sequence__ or
+__random_access_sequence__ depending on the traversal characteristics (see
+__traversal_concept__) of its underlying sequence.
+* __associative_sequence__ if `First` and `Last` implement the __associative_iterator__ model.
+
+[variablelist Notation
+    [[`IR`]             [An `iterator_range` type]]
+    [[`f`]              [An instance of `First`]]
+    [[`l`]              [An instance of `Last`]]
+    [[`ir`, `ir2`]      [Instances of `iterator_range`]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in the implemented models.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`IR(f, l)`]           [Creates an `iterator_range` given iterators, `f` and `l`.]]
+    [[`IR(ir)`]             [Copy constructs an `iterator_range` from another `iterator_range`, `ir`.]]
+    [[`ir = ir2`]           [Assigns to a `iterator_range`, `ir`, from another `iterator_range`, `ir2`.]]
+]
+
+[heading Example]
+
+    char const* s = "Ruby";
+    typedef __vector__<int, char, double, char const*> vector_type;
+    vector_type vec(1, 'x', 3.3, s);
+
+    typedef __result_of_begin__<vector_type>::type A;
+    typedef __result_of_end__<vector_type>::type B;
+    typedef __result_of_next__<A>::type C;
+    typedef __result_of_prior__<B>::type D;
+
+    C c(vec);
+    D d(vec);
+
+    iterator_range<C, D> range(c, d);
+    std::cout << range << std::endl;
+
+[endsect]
+
+[section joint_view]
+
+[heading Description]
+
+`joint_view` presents a view which is a concatenation of two sequences.
+
+[heading Header]
+
+    #include <boost/fusion/view/joint_view.hpp>
+    #include <boost/fusion/include/joint_view.hpp>
+
+[heading Synopsis]
+
+    template <typename Sequence1, typename Sequence2>
+    struct joint_view;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                   [Default]]
+    [[`Sequence1`]          [A __forward_sequence__]        []]
+    [[`Sequence2`]          [A __forward_sequence__]        []]
+]
+
+[heading Model of]
+
+* __forward_sequence__
+* __associative_sequence__ if `Sequence1` and `Sequence2` implement the __associative_sequence__ model.
+
+[variablelist Notation
+    [[`JV`]             [A `joint_view` type]]
+    [[`s1`]             [An instance of `Sequence1`]]
+    [[`s2`]             [An instance of `Sequence2`]]
+    [[`jv`, `jv2`]      [Instances of `joint_view`]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in the implemented models.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`JV(s1, s2)`]         [Creates a `joint_view` given sequences, `s1` and `s2`.]]
+    [[`JV(jv)`]             [Copy constructs a `joint_view` from another `joint_view`, `jv`.]]
+    [[`jv = jv2`]           [Assigns to a `joint_view`, `jv`, from another `joint_view`, `jv2`.]]
+]
+
+[heading Example]
+
+    __vector__<int, char> v1(3, 'x');
+    __vector__<std::string, int> v2("hello", 123);
+    joint_view<
+        __vector__<int, char>
+      , __vector__<std::string, int>
+    > view(v1, v2);
+    std::cout << view << std::endl;
+
+[endsect]
+
+[section zip_view]
+
+[heading Description]
+
+`zip_view` presents a view which iterates over a collection of __sequence__(s) in parallel. A `zip_view`
+is constructed from a __sequence__ of references to the component __sequence__s.
+
+[heading Header]
+
+    #include <boost/fusion/view/zip_view.hpp>
+    #include <boost/fusion/include/zip_view.hpp>
+
+[heading Synopsis]
+
+    template <typename Sequences>
+    struct zip_view;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                   [Default]]
+    [[`Sequences`]          [A __forward_sequence__ of references to other Fusion __sequence__s]        []]
+]
+
+[heading Model of]
+
+* __forward_sequence__, __bidirectional_sequence__ or
+__random_access_sequence__ depending on the traversal characteristics (see
+__traversal_concept__) of its underlying sequence.
+
+[variablelist Notation
+    [[`ZV`]             [A `zip_view` type]]
+    [[`s`]             [An instance of `Sequences`]]
+    [[`zv1`, `zv2`]             [Instances of `ZV`]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __forward_sequence__.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`ZV(s)`]              [Creates a `zip_view` given a sequence of references to the component __sequence__s.]]
+    [[`ZV(zv1)`]             [Copy constructs a `zip_view` from another `zip_view`, `zv`.]]
+    [[`zv1 = zv2`]           [Assigns to a `zip_view`, `zv`, from another `zip_view`, `zv2`.]]
+]
+
+[heading Example]
+    typedef __vector__<int,int> vec1;
+    typedef __vector__<char,char> vec2;
+    vec1 v1(1,2);
+    vec2 v2('a','b');
+    typedef __vector__<vec1&, vec2&> sequences;
+    std::cout << zip_view<sequences>(sequences(v1, v2)) << std::endl; // ((1 a) (2 b))
+
+[endsect]
+
+[section transform_view]
+
+The unary version of `transform_view` presents a view of its underlying
+sequence given a unary function object or function pointer. The binary
+version of `transform_view` presents a view of 2 underlying sequences,
+given a binary function object or function pointer. The `transform_view`
+inherits the traversal characteristics (see __traversal_concept__)  of
+its underlying sequence or sequences.
+
+[heading Header]
+
+    #include <boost/fusion/view/transform_view.hpp>
+    #include <boost/fusion/include/transform_view.hpp>
+
+[heading Synopsis]
+
+[*Unary Version]
+
+    template <typename Sequence, typename F1>
+    struct transform_view;
+
+[*Binary Version]
+
+    template <typename Sequence1, typename Sequence2, typename F2>
+    struct transform_view;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                           [Default]]
+    [[`Sequence`]           [A __forward_sequence__]                []]
+    [[`Sequence1`]          [A __forward_sequence__]                []]
+    [[`Sequence2`]          [A __forward_sequence__]                []]
+    [[`F1`]                  [A unary function object or function pointer. `__boost_result_of_call__<F1(E)>::type` is the return type of an instance of `F1` when called with a value of each element type `E` in the input sequence.]                   []]
+    [[`F2`]                  [A binary function object or function pointer. `__boost_result_of_call__<F2(E1, E2)>::type` is the return type of an instance of `F2` when called with a value of each corresponding pair of element type `E1` and `E2` in the input sequences.]                   []]
+]
+
+[heading Model of]
+
+* __forward_sequence__, __bidirectional_sequence__ or
+__random_access_sequence__ depending on the traversal characteristics (see
+__traversal_concept__) of its underlying sequence.
+
+[variablelist Notation
+    [[`TV`]             [A `transform_view` type]]
+    [[`BTV`]            [A binary `transform_view` type]]
+    [[`UTV`]            [A unary `transform_view` type]]
+    [[`f1`]              [An instance of `F1`]]
+    [[`f2`]              [An instance of `F2`]]
+    [[`s`]              [An instance of `Sequence`]]
+    [[`s1`]             [An instance of `Sequence1`]]
+    [[`s2`]             [An instance of `Sequence2`]]
+    [[`tv`, `tv2`]      [Instances of `transform_view`]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __forward_sequence__, __bidirectional_sequence__ or
+__random_access_sequence__ depending on the traversal characteristics (see
+__traversal_concept__) of its underlying sequence or sequences.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`UTV(s, f1)`]          [Creates a unary `transform_view` given sequence,
+                             `s` and unary function object or function pointer, `f1`.]]
+    [[`BTV(s1, s2, f2)`]     [Creates a binary `transform_view` given sequences, `s1` and `s2`
+                             and binary function object or function pointer, `f2`.]]
+    [[`TV(tv)`]             [Copy constructs a `transform_view` from another `transform_view`, `tv`.]]
+    [[`tv = tv2`]           [Assigns to a `transform_view`, `tv`, from another `transform_view`, `tv2`.]]
+]
+
+[heading Example]
+
+    struct square
+    {
+        template<typename Sig>
+        struct result;
+
+        template<typename U>
+        struct result<square(U)>
+        : remove_reference<U>
+        {};
+
+        template <typename T>
+        T operator()(T x) const
+        {
+            return x * x;
+        }
+    };
+
+    typedef __vector__<int, short, double> vector_type;
+    vector_type vec(2, 5, 3.3);
+
+    transform_view<vector_type, square> transform(vec, square());
+    std::cout << transform << std::endl;
+
+[endsect]
+
+[section reverse_view]
+
+`reverse_view` presents a reversed view of underlying sequence. The first
+element will be its last and the last element will be its first.
+
+[heading Header]
+
+    #include <boost/fusion/view/reverse_view.hpp>
+    #include <boost/fusion/include/reverse_view.hpp>
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    struct reverse_view;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                           [Default]]
+    [[`Sequence`]           [A __bidirectional_sequence__]          []]
+]
+
+[heading Model of]
+
+* A model of __bidirectional_sequence__ if `Sequence` is a __bidirectional_sequence__
+else, __random_access_sequence__ if `Sequence` is a __random_access_sequence__.
+* __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[variablelist Notation
+    [[`RV`]             [A `reverse_view` type]]
+    [[`s`]              [An instance of `Sequence`]]
+    [[`rv`, `rv2`]      [Instances of `reverse_view`]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in the implemented models.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`RV(s)`]              [Creates a unary `reverse_view` given sequence, `s`.]]
+    [[`RV(rv)`]             [Copy constructs a `reverse_view` from another `reverse_view`, `rv`.]]
+    [[`rv = rv2`]           [Assigns to a `reverse_view`, `rv`, from another `reverse_view`, `rv2`.]]
+]
+
+[heading Example]
+
+    typedef __vector__<int, short, double> vector_type;
+    vector_type vec(2, 5, 3.3);
+
+    reverse_view<vector_type> reverse(vec);
+    std::cout << reverse << std::endl;
+
+[endsect]
+
+[section nview]
+
+[heading Description]
+
+`nview` presents a view which iterates over a given __sequence__ in a specified order. 
+An `nview` is constructed from an arbitrary __sequence__ and a list of indicies specifying
+the elements to iterate over.
+
+[heading Header]
+
+    #include <boost/fusion/view/nview.hpp>
+    #include <boost/fusion/include/nview.hpp>
+
+[heading Synopsis]
+
+    template <typename Sequence, typename Indicies>
+    struct nview;
+
+    template <typename Sequence, int I1, int I2 = -1, ...>
+    typename result_of::nview<Sequence, I1, I2, ...>::type
+    as_nview(Sequence& s);
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                   [Default]]
+    [[`Sequence`]           [An arbitrary Fusion __forward_sequence__]
+                                                            []]
+    [[`Indicies`]           [A `mpl::vector_c<int, ...>` holding the indicies defining 
+                             the required iteration order.] []]
+    [[`I1`, `I2`, `I3`...]  [A list of integers specifying the required 
+                             iteration order.]              [`INT_MAX` for `I2`, `I3`...]]
+]
+
+[heading Model of]
+
+* __random_access_sequence__ (see __traversal_concept__) 
+
+[variablelist Notation
+    [[`NV`]            [A `nview` type]]
+    [[`s`]             [An instance of `Sequences`]]
+    [[`nv1`, `nv2`]    [Instances of `NV`]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __random_access_sequence__.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`NV(s)`]              [Creates an `nview` given a sequence and a list of indicies.]]
+    [[`NV(nv1)`]            [Copy constructs an `nview` from another `nview`, `nv1`.]]
+    [[`nv1 = nv2`]          [Assigns to an `nview`, `nv1`, from another `nview`, `nv2`.]]
+]
+
+The `nview` internally stores a Fusion __vector__ of references to the elements
+of the original Fusion __sequence__
+
+[heading Example]
+    typedef __vector__<int, char, double> vec;
+    typedef mpl::vector_c<int, 2, 1, 0, 2, 0> indicies;
+
+    vec v1(1, 'c', 2.0);
+
+    std::cout << nview<vec, indicies>(v1) << std::endl; // (2.0 c 1 2.0 1)
+    std::cout << as_nview<2, 1, 1, 0>(v1) << std::endl; // (2.0 c c 1)
+
+[endsect]
+
+
+[section repetitive_view]
+
+[heading Description]
+
+`repetitive_view` presents a view which iterates over a given
+__sequence__ repeatedly.  Because a `repetitive_view`
+has infinite length, it can only be used when some external
+condition determines the end.  Thus, initializing a fixed
+length sequence with a `repetitive_view` is okay, but
+printing a `repetitive_view` to `std::cout` is not.
+
+[heading Header]
+
+    #include <boost/fusion/view/repetitive_view.hpp>
+    #include <boost/fusion/include/repetitive_view.hpp>
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    struct repetitive_view;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                   [Default]]
+    [[`Sequence`]           [An arbitrary Fusion __forward_sequence__]
+                                                            []]
+]
+
+[variablelist Notation
+    [[`RV`]            [A `repetitive_view` type]]
+    [[`s`]             [An instance of `Sequences`]]
+    [[`rv`, `rv1`, `rv2`]    [Instances of `RV`]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]           [Return Type]          [Semantics]]
+    [[`RV(s)`]              []                     [Creates an `repetitive_view` given the underlying sequence.]]
+    [[`RV(rv1)`]            []                     [Copy constructs an `repetitive_view` from another `repetitive_view`, `rv1`.]]
+    [[`rv1 = rv2`]          []                     [Assigns to a `repetitive_view`, `rv1`, from another `repetitive_view`, `rv2`.]]
+    [[`__begin__(rv)`]      [__forward_iterator__] []]
+    [[`__end__(rv)`]       [__forward_iterator__] [Creates an unreachable iterator (since the sequnce is infinite)]]
+]
+
+[heading Result Type Expressions]
+
+[table
+    [[Expression]]
+    [[`__result_of_begin__<RV>::type`]]
+    [[`__result_of_end__<RV>::type`]]
+]
+
+[heading Example]
+    typedef __vector__<int, char, double> vec1;
+    typedef __vector__<int, char, double, int, char> vec2;
+
+    vec1 v1(1, 'c', 2.0);
+    vec2 v2(repetitive_view<vec1>(v1));
+
+    std::cout << v2 << std::endl; // 1, 'c', 2.0, 1, 'c'
+
+[endsect]
+
+[endsect]

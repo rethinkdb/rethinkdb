@@ -1,0 +1,591 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Special Considerations</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Special Considerations</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="page-index">
+  <dt><a href="#objecttracking">Object Tracking</a>
+  <dt><a href="#classinfo">Class Information</a>
+  <dt><a href="#portability">Archive Portability</a>
+  <dl class="page-index">
+    <dt><a href="#numerics">Numerics</a>
+    <dt><a href="#traits">Traits</a>
+  </dl>
+  <dt><a href="#binary_archives">Binary Archives</a>
+  <dt><a href="#xml_archives">XML Archives</a>
+  <dt><a href="#export">Exporting Class Serialization</a>
+  <dt><a href="#static_libraries">Static Libraries and Serialization</a>
+  <dt><a href="#dlls">DLLS - Serialization and Runtime Linking</a>
+  <dt><a href="#plugins">Plugins</a>
+  <dt><a href="#multi_threading">Multi-Threading</a>
+  <dt><a href="#optimizations">Optimizations</a>
+  <dt><a href="exceptions.html">Archive Exceptions</a>
+  <dt><a href="exception_safety.html">Exception Safety</a>
+</dl>
+
+<h3><a name="objecttracking">Object Tracking</a></h3>
+Depending on how the class is used and other factors, serialized objects
+may be tracked by memory address.  This prevents the same object from being
+written to or read from an archive multiple times. These stored addresses
+can also be used to delete objects created during a loading process
+that has been interrupted by throwing of an exception.  
+<p>
+This could cause problems in 
+progams where the copies of different objects are saved from the same address.
+<pre><code>
+template&lt;class Archive&gt;
+void save(boost::basic_oarchive  &amp; ar, const unsigned int version) const
+{
+    for(int i = 0; i &lt; 10; ++i){
+        A x = a[i];
+        ar &lt;&lt; x;
+    }
+}
+</code></pre>
+In this case, the data to be saved exists on the stack.  Each iteration
+of the loop updates the value on the stack.  So although the data changes
+each iteration, the address of the data doesn't.  If a[i] is an array of
+objects being tracked by memory address, the library will skip storing
+objects after the first as it will be assumed that objects at the same address
+are really the same object.
+<p>
+To help detect such cases, output archive operators expect to be passed
+<code style="white-space: normal">const</code> reference arguments.
+<p>
+Given this, the above code will invoke a compile time assertion.
+The obvious fix in this example is to use
+<pre><code>
+template&lt;class Archive&gt;
+void save(boost::basic_oarchive &amp; ar, const unsigned int version) const
+{
+    for(int i = 0; i &lt; 10; ++i){
+        ar &lt;&lt; a[i];
+    }
+}
+</code></pre>
+which will compile and run without problem.  
+The usage of <code style="white-space: normal">const</code> by the output archive operators
+will ensure that the process of serialization doesn't
+change the state of the objects being serialized.  An attempt to do this
+would constitute augmentation of the concept of saving of state with
+some sort of non-obvious side effect. This would almost surely be a mistake 
+and a likely source of very subtle bugs.
+<p>
+Unfortunately, implementation issues currently prevent the detection of this kind of
+error when the data item is wrapped as a name-value pair.
+<p>
+A similar problem can occur when different objects are loaded to and address
+which is different from the final location:
+<pre><code>
+template&lt;class Archive&gt;
+void load(boost::basic_oarchive  &amp; ar, const unsigned int version) const
+{
+    for(int i = 0; i &lt; 10; ++i){
+        A x;
+        ar &gt;&gt; x;
+        std::m_set.insert(x);
+    }
+}
+</code></pre>
+In this case, the address of <code>x</code> is the one that is tracked rather than
+the address of the new item added to the set.  Left unaddressed
+this will break the features that depend on tracking such as loading object through a pointer.
+Subtle bugs will be introduced into the program.  This can be
+addressed by altering the above code thusly:
+
+<pre><code>
+template&lt;class Archive&gt;
+void load(boost::basic_iarchive  &amp; ar, const unsigned int version) const
+{
+    for(int i = 0; i &lt; 10; ++i){
+        A x;
+        ar &gt;&gt; x;
+        std::pair&lt;std::set::const_iterator, bool&gt; result;
+        result = std::m_set.insert(x);
+        ar.reset_object_address(& (*result.first), &x);
+    }
+}
+</code></pre>
+This will adjust the tracking information to reflect the final resting place of 
+the moved variable and thereby rectify the above problem.
+<p>
+If it is known a priori that no pointer
+values are duplicated, overhead associated with object tracking can
+be eliminated by setting the object tracking class serialization trait
+appropriately.
+<p>
+By default, data types designated primitive by 
+<a target="detail" href="traits.html#level">Implementation Level</a>
+class serialization trait are never tracked. If it is desired to
+track a shared primitive object through a pointer (e.g. a
+<code style="white-space: normal">long</code> used as a reference count), It should be wrapped
+in a class/struct so that it is an identifiable type.
+The alternative of changing the implementation level of a <code style="white-space: normal">long</code>
+would affect all <code style="white-space: normal">long</code>s serialized in the whole
+program - probably not what one would intend.
+<p>
+It is possible that we may want to track addresses even though
+the object is never serialized through a pointer.  For example,
+a virtual base class need be saved/loaded only once.  By setting
+this serialization trait to <code style="white-space: normal">track_always</code>, we can suppress 
+redundant save/load operations.
+<pre><code>
+BOOST_CLASS_TRACKING(my_virtual_base_class, boost::serialization::track_always)
+</code></pre>
+
+<h3><a name="classinfo">Class Information</a></h3>
+By default, for each class serialized, class information is written to the archive.
+This information includes version number, implementation level and tracking
+behavior.  This is necessary so that the archive can be correctly
+deserialized even if a subsequent version of the program changes
+some of the current trait values for a class.  The space overhead for
+this data is minimal.  There is a little bit of runtime overhead
+since each class has to be checked to see if it has already had its
+class information included in the archive.  In some cases, even this
+might be considered too much.  This extra overhead can be eliminated
+by setting the 
+<a target="detail" href="traits.html#level">implementation level</a>
+class trait to: <code style="white-space: normal">boost::serialization::object_serializable</code>. 
+<p>
+<i>Turning off tracking and class information serialization will result
+in pure template inline code that in principle could be optimised down
+to a simple stream write/read.</i>  Elimination of all serialization overhead
+in this manner comes at a cost.  Once archives are released to users, the
+class serialization traits cannot be changed without invalidating the old
+archives.  Including the class information in the archive assures us
+that they will be readable in the future even if the class definition
+is revised.  A light weight structure such as display pixel might be
+declared in a header like this:
+
+<pre><code>
+#include &lt;boost/serialization/serialization.hpp&gt;
+#include &lt;boost/serialization/level.hpp&gt;
+#include &lt;boost/serialization/tracking.hpp&gt;
+
+// a pixel is a light weight struct which is used in great numbers.
+struct pixel
+{
+    unsigned char red, green, blue;
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp; ar, const unsigned int /* version */){
+        ar &lt;&lt; red &lt;&lt; green &lt;&lt; blue;
+    }
+};
+
+// elminate serialization overhead at the cost of
+// never being able to increase the version.
+BOOST_CLASS_IMPLEMENTATION(pixel, boost::serialization::object_serializable);
+
+// eliminate object tracking (even if serialized through a pointer)
+// at the risk of a programming error creating duplicate objects.
+BOOST_CLASS_TRACKING(pixel, boost::serialization::track_never)
+</code></pre>
+
+<h3><a name="portability">Archive Portability</a></h3>
+Several archive classes create their data in the form of text or portable a binary format.  
+It should be possible to save such an of such a class on one platform and load it on another.  
+This is subject to a couple of conditions.
+<h4><a name="numerics">Numerics</a></h4>
+The architecture of the machine reading the archive must be able hold the data
+saved.  For example, the gcc compiler reserves 4 bytes to store a variable of type
+<code style="white-space: normal">wchar_t</code> while other compilers reserve only 2 bytes.  
+So its possible that   a value could be written that couldn't be represented by the loading program.  This is a
+fairly obvious situation and easily handled by using the numeric types in
+<a target="cstding" href="../../../boost/cstdint.hpp">&lt;boost/cstdint.hpp&gt;</a>
+<P>
+A special integral type is <code>std::size_t</code> which is a typedef
+of an integral types guaranteed to be large enough
+to hold the size of any collection, but its actual size can differ depending
+on the platform. The 
+<a href="wrappers.html#collection_size_type"><code>collection_size_type</code></a>
+wrapper exists to enable a portable serialization of collection sizes by an archive.
+Recommended choices for a portable serialization of collection sizes are to 
+use either 64-bit or variable length integer representation.
+
+
+<h4><a name="traits">Traits</a></h4>
+Another potential problem is illustrated by the following example:
+<pre><code>
+template&lt;class T&gt;
+struct my_wrapper {
+    template&lt;class Archive&gt;
+    Archive & serialize ...
+};
+
+...
+
+class my_class {
+    wchar_t a;
+    short unsigned b;
+    template&lt;class Archive&gt;
+    Archive & serialize(Archive & ar, unsigned int version){
+        ar & my_wrapper(a);
+        ar & my_wrapper(b);
+    }
+};
+</code></pre>
+If <code style="white-space: normal">my_wrapper</code> uses default serialization
+traits there could be a problem.  With the default traits, each time a new type is
+added to the archive, bookkeeping information is added. So in this example, the
+archive would include such bookkeeping information for 
+<code style="white-space: normal">my_wrapper&lt;wchar_t&gt;</code> and for
+<code style="white-space: normal">my_wrapper&lt;short_unsigned&gt;</code>.
+Or would it?  What about compilers that treat 
+<code style="white-space: normal">wchar_t</code> as a
+synonym for <code style="white-space: normal">unsigned short</code>?
+In this case there is only one distinct type - not two.  If archives are passed between
+programs with compilers that differ in their treatment 
+of <code style="white-space: normal">wchar_t</code> the load operation will fail
+in a catastrophic way.
+<p>
+One remedy for this is to assign serialization traits to the template
+<code style="white-space: normal">my_template</code> such that class
+information for instantiations of this template is never serialized.  This 
+process is described <a target="detail" href="traits.html#templates">above</a> and
+has been used for <a target="detail" href="wrappers.html#nvp"><strong>Name-Value Pairs</strong></a>.
+Wrappers would typically be assigned such traits.
+<p>
+Another way to avoid this problem is to assign serialization traits
+to all specializations of the template <code style="white-space: normal">my_wrapper</code>
+for all primitive types so that class information is never saved.  This is what has
+been done for our implementation of serializations for STL collections.
+
+<h3><a name="binary_archives">Binary Archives</a></h3>
+Standard stream i/o on some systems will expand linefeed characters to carriage-return/linefeed 
+on output. This creates a problem for binary archives.  The easiest way to handle this is to 
+open streams for binary archives in "binary mode" by using the flag 
+<code style="white-space: normal">ios::binary</code>.  If this is not done, the archive generated
+will be unreadable.
+<p>
+Unfortunately, no way has been found to detect this error before loading the archive.  Debug builds
+will assert when this is detected so that may be helpful in catching this error.
+
+<h3><a name="xml_archives">XML Archives</a></h3>
+XML archives present a somewhat special case. 
+XML format has a nested structure that maps well to the "recursive class member visitor" pattern 
+used by the serialization system. However, XML differs from other formats in that it 
+requires a name for each data member. Our goal is to add this information to the 
+class serialization specification while still permiting the the serialization code to be 
+used with any archive. This is achived by requiring that all data serialized to an XML archive
+be serialized as a <a target="detail" href="wrappers.html#nvp">name-value pair</a>.
+The first member is the name to be used as the XML tag for the
+data item while the second is a reference to the data item itself. Any attempt to serialize data
+not wrapped in a in a <a target="detail" href="wrappers.html#nvp">name-value pair</a> will
+be trapped at compile time. The system is implemented in such a way that for other archive classes,
+just the value portion of the data is serialized. The name portion is discarded during compilation.
+So by always using <a target="detail" href="wrappers.html#nvp">name-value pairs</a>, it will
+be guarenteed that all data can be serialized to all archive classes with maximum efficiency.
+
+<h3><a name="export">Exporting Class Serialization</a></h3>
+<a target="detail" href="traits.html#export">Elsewhere</a> in this manual, we have described 
+<code style="white-space: normal">BOOST_CLASS_EXPORT</code>. 
+Export implies two things:
+<ul>
+<li>Instantiates code which is not otherwise referred to.
+<li>Associates an external identifier with the class to be serialized.
+The fact that the class isn't explicitly referred to implies this
+requirement.
+</ul>
+In C++, usage of code not explicitly referred to is implemented via
+virtual functions.  Hence, the need for export is implied by the 
+usage of a derived class that is manipulated via a pointer or
+reference to it's base class.
+
+<p>
+<code style="white-space: normal">BOOST_CLASS_EXPORT</code> in the same
+source module that includes any of the archive class headers will
+instantiate code required to serialize polymorphic pointers of
+the indicated type to the all those archive classes. If no
+archive class headers are included, then no code will be instantiated.
+
+<p>
+Note that the implemenation of this functionality requires
+that the <code style="white-space: normal">BOOST_CLASS_EXPORT</code>
+macro appear <b>after</b> and the inclusion of any archive
+class headers for which code is to be instantiated.
+So, code that uses <code style="white-space: normal">BOOST_CLASS_EXPORT</code>
+will look like the following:
+<pre><code>
+#include &lt;boost/archive/text_oarchive.hpp&gt;
+#include &lt;boost/archive/text_oarchive.hpp&gt;
+... // other archives
+
+#include "a.hpp" // header declaration for class a
+BOOST_CLASS_EXPORT(a)
+... // other class headers and exports
+</code></pre>
+This will be true regardless of whether the is part
+of a stand alone executable, a static library or
+a dyanmic or shared library.  
+<p>
+Including
+<code style="white-space: normal">BOOST_CLASS_EXPORT</code>
+in the "a.hpp" header itself as one would do with
+other serialization traits will make it difficult
+or impossible to follow the rule above regarding
+inclusion of archive headers before
+<code style="white-space: normal">BOOST_CLASS_EXPORT</code>
+is invoked. This can best be addressed by using
+<code style="white-space: normal">BOOST_CLASS_EXPORT_KEY</code>
+in the header declarations and
+<code style="white-space: normal">BOOST_CLASS_EXPORT_IMPLEMENT</code>
+in the class definition file.
+
+<p>
+This system has certain implications for placing code in static or shared
+libraries.  Placing <code style="white-space: normal">BOOST_CLASS_EXPORT</code>
+in library code will have no effect unless archive class headers are
+also included.  So when building a library, one should include all headers
+for all the archive classes which he anticipates using. Alternatively,
+one can include headers for just the
+<a href="archive_reference.html#polymorphic">Polymoprhic Archives</a>.
+
+<p>
+Strictly speaking, export should not be necessary if all pointer serialization
+occurs through the most derived class.  However, in order to detect
+what would be catastophic error, the library traps ALL serializations through
+a pointer to a polymorphic which are not exported or otherwise registered.
+So, in practice, be prepared to register or export all classes with one
+or more virtual functions which are serialized through a pointer. 
+
+<p>
+Note that the implementation of this functionality depends upon vendor
+specific extensions to the C++ language.  So, there is no guarenteed portability
+of programs which use this facility.  However, all C++ compilers which
+are tested with boost provide the required extensions.  The library
+includes the extra declarations required by each of these compilers.
+It's reasonable to expect that future C++ compilers will support
+these extensions or something equivalent.
+
+<h3><a name="static_libraries">Static Libraries and Serialization</a></h3>
+Code for serialization of data types can be saved in libraries
+just as it can for the rest of the type implementation.
+This works well, and can save huge amount of compilation time.
+<ul>
+<li>Only compile serialization definitions in the library.
+<li>Explicitly instantiate serialization code for ALL
+archive classes you intend to use in the library.
+<li>For exported types, only use <code style="white-space: normal">BOOST_CLASS_EXPORT_KEY</code>
+in headers.
+<li>For exported types, only use <code style="white-space: normal">BOOST_CLASS_EXPORT_IMPLEMENT</code>
+in definitions compiled in the library.  For any particular type,
+there should be only one file which contains
+<code style="white-space: normal">BOOST_CLASS_EXPORT_IMPLEMENT</code>
+for that type.  This ensures that only one copy
+of serialization code will exist within the program.  It avoids
+wasted space and the possibility of having different
+versions of the serialization code in the same program.
+Including
+<code style="white-space: normal">BOOST_CLASS_EXPORT_IMPLEMENT</code>
+in multiple files could result in a failure
+to link due to duplicated symbols or the throwing
+of a runtime exception.
+<li> Code for serialization should be only in the library,
+<li>Familiarize yourself with the <b>PIMPL</b> idiom.
+</ul>
+This is illustrated by
+<a href = "../example/demo_pimpl.cpp" target="demo_pimpl">
+<code style="white-space: normal">demo_pimpl.cpp</code>
+</a>,
+<a href = "../example/demo_pimpl_A.cpp" target="demo_pimpl">
+<code style="white-space: normal">demo_pimpl_A.cpp</code>
+</a>
+and
+<a href = "../example/demo_pimpl_A.hpp" target="demo_pimpl">
+<code style="white-space: normal">demo_pimpl_A.hpp</code>
+</a>
+where implementation of serializaton is in a static library 
+completely separate from the main program.
+
+<h3><a name="dlls">DLLS - Serialization and Runtime Linking</a></h3>
+Serialization code can be placed in libraries to be linked at runtime.  That is,
+code can be placed in DLLS(Windows) Shared Libraries(*nix), or static libraries
+as well as the main executable.  The best technique is the
+same as that described above for libraries.  The serialization
+library test suite includes the following programs
+to illustrate how this works:
+<p>
+
+<a href = "../test/test_dll_simple.cpp" target="test_dll_simple">
+<code style="white-space: normal">test_dll_simple</code>
+</a>,
+and
+<a href = "../test/dll_a.cpp" target="dll_a">
+<code style="white-space: normal">dll_a.cpp</code>
+</a>
+where implementation of serializaton is also completely separate
+from the main program but the code is loaded at runtime.  In this
+example, this code is loaded automatically when the program which
+uses it starts up, but it could just as well be loaded and unloaded 
+with an OS dependent API call.
+<p>
+Also included are
+<a href = "../test/test_dll_exported.cpp" target="test_dll_exported">
+<code style="white-space: normal">test_dll_exported.cpp</code>
+</a>,
+and
+<a href = "../test/polymorphic_derived2.cpp" target="polymorphic_derived2">
+<code style="white-space: normal">polymorphic_derived2.cpp</code>
+</a>
+which are similar to the above but include tests of the export
+and no_rtti facilities in the context of DLLS.
+<p>
+For best results, write your code to conform to the following
+guidelines:
+<ul>
+  <li>Don't include <code>inline</code> code in classes used in DLLS.
+This will generate duplicate code in the DLLS and mainline. This
+needlessly duplicates code.  Worse, it makes is possible for 
+different versions of the same code exist simultaneously.  This
+type of error turns out to be excruciatingly difficult to debug.
+Finally, it opens the possibility that module being referred to
+might be explictly unloaded which would (hopefully) result in
+a runtime error. This is another bug that is not always 
+reproducible or easy to find. For class member templates use something like
+
+<pre><code>
+template&lt;class Archive&gt;
+void serialize(Archive & ar, const unsigned int version);
+</code></pre>
+in the header, and
+
+<pre><code>
+template&lt;class Archive&gt;
+void myclass::serialize(Archive & ar, const unsigned int version){
+	...
+}
+
+BOOST_EXPORT_CLASS_IMPLEMENT(my_class)
+
+#include &lt;boost/archive/text_oarchive&gt;
+#include &lt;boost/archive/text_iarchive&lt;
+template myclass::serialize(boost::archive::text_oarchive & ar, const unsigned int version);
+template myclass::serialize(boost::archive::text_iarchive & ar, const unsigned int version);
+... // repeat for each archive class to be used.
+</code></pre>
+in the implementation file.  This will result in generation of all code
+required in only one place.  The library does not detect this type of error for you.
+  <li>If DLLS are to be loaded an unloaded explicitly (e.g. using <code>dlopen</code> in *nix or 
+<code>LoadLibrary</code> in Windows).  Try to arrange that they are unloaded in the reverse
+sequence.  This should guarentee that problems are avoided even if the
+above guidline hasn't been followed.
+
+</ul>
+
+<h3><a name="plugins">Plugins</a></h3>
+In order to implement the library, various facilities for runtime
+manipulation of types are runtime were required.  These
+are <a target="detail" href="extended_type_info.html"><code>extended_type_info</code></a>
+for associating classes with external identifying strings (<b>GUID</b>)
+and <a target="detail" href="void_cast.html"><code>void_cast</code></a>
+for casting between pointers of related types.
+
+To complete the functionality of 
+<a target="detail" href="extended_type_info.html"><code>extended_type_info</code></a>
+the ability to construct and destroy corresponding types has been
+added.  In order to use this functionality, one must specify
+how each type is created.  This should be done at the time
+a class is exported.  So, a more complete example of the code above would be:
+
+<pre><code>
+#include &lt;boost/archive/text_oarchive.hpp&gt;
+#include &lt;boost/archive/text_oarchive.hpp&gt;
+... // other archives
+
+#include "a.hpp" // header declaration for class a
+
+// this class has a default constructor
+BOOST_SERIALIZATION_FACTORY_0(a)
+// as well as one that takes one integer argument
+BOOST_SERIALIZATION_FACTORY_1(a, int)
+
+// specify the GUID for this class
+BOOST_CLASS_EXPORT(a)
+... // other class headers and exports
+</code></pre>
+
+With this in place, one can construct, serialize and destroy
+about which only is know the <b>GUID</b> and a base class.
+
+
+<h3><a name="multi_threading">Multi-Threading</a></h3>
+The fundamental purpose of serialization would conflict with multiple 
+thread concurrently writing/reading from/to a single open archive instance.
+The library implementation presumes that the application avoids such an situtation.
+<p>
+However, Writing/Reading different archives simultaneously
+in different tasks is permitted as each archive instance is (almost) 
+completely independent from any other archive instance.  The only shared 
+information are some type tables which have been implemented using a 
+lock-free thread-safe 
+<a target="detail" href="singleton.html">
+<code style="white-space: normal">singleton</code>
+</a>
+described elsewhere in this documentation.
+<p>
+This singleton implementation guarentees that all of this shared
+information is initialized when the code module which contains
+them is loaded.  The serialization library takes care to
+ensure that these data structures are not subsequently
+modified. The only time there could be a problem would
+be if code is loaded/unloaded while another task is
+serializing data.  This could only occur for types whose 
+serialization is implemented in a dynamically loaded/unload DLL
+or shared library.  So if the following is avoided:
+<ul>
+    <li>Accessing the same archive instance from different tasks.
+    <li>Loading/Unloading DLLS or shared libraries while any archive
+    instances are open.
+</ul>
+The library should be thread safe.
+
+<h3><a name="optimizations">Optimizations</a></h3>
+In performance critical applications that serialize large sets of contiguous data of homogeneous
+types one wants to avoid the overhead of serializing each element individually, which is
+the motivation for the <a href="wrappers.html#arrays"><code>array</code></a>
+wrapper.
+
+Serialization functions for data types containing contiguous arrays of homogeneous
+types, such as for <code>std::vector</code>, <code>std::valarray</code> or  
+<code>boost::multiarray</code> should serialize them using an
+<a href="wrappers.html#arrays"><code>array</code></a> wrapper to make use of 
+these optimizations.
+
+Archive types that can provide optimized serialization for contiguous arrays of 
+homogeneous types should implement these by overloading the serialization of
+the  <a href="wrappers.html#arrays"><code>array</code></a> wrapper, as is done
+for the binary archives.
+
+
+<h3><a href="exceptions.html">Archive Exceptions</a></h3>
+<h3><a href="exception_safety.html">Exception Safety</a></h3>
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

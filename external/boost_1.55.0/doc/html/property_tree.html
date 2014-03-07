@@ -1,0 +1,122 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;22.&#160;Boost.PropertyTree</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="BOOST_PROGRAM_OPTIONS_VERSION.html" title="Macro BOOST_PROGRAM_OPTIONS_VERSION">
+<link rel="next" href="boost_propertytree/tutorial.html" title="Five Minute Tutorial">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_PROGRAM_OPTIONS_VERSION.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost_propertytree/tutorial.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="property_tree"></a>Chapter&#160;22.&#160;Boost.PropertyTree</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Marcin</span> <span class="surname">Kalicinski</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2008 Marcin Kalicinski</p></div>
+<div><div class="legalnotice">
+<a name="property_tree.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="property_tree.html#boost_propertytree.intro">What is Property Tree?</a></span></dt>
+<dt><span class="section"><a href="boost_propertytree/tutorial.html">Five Minute Tutorial</a></span></dt>
+<dt><span class="section"><a href="boost_propertytree/container.html">Property Tree as a Container</a></span></dt>
+<dt><span class="section"><a href="boost_propertytree/synopsis.html">Property Tree Synopsis</a></span></dt>
+<dt><span class="section"><a href="boost_propertytree/parsers.html">How to Populate a Property
+    Tree</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_propertytree/parsers.html#boost_propertytree.parsers.xml_parser">XML Parser</a></span></dt>
+<dt><span class="section"><a href="boost_propertytree/parsers.html#boost_propertytree.parsers.json_parser">JSON Parser</a></span></dt>
+<dt><span class="section"><a href="boost_propertytree/parsers.html#boost_propertytree.parsers.ini_parser">INI Parser</a></span></dt>
+<dt><span class="section"><a href="boost_propertytree/parsers.html#boost_propertytree.parsers.info_parser">INFO Parser</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_propertytree/accessing.html">How to Access Data in a Property
+    Tree</a></span></dt>
+<dt><span class="section"><a href="property_tree/appendices.html">Appendices</a></span></dt>
+<dt><span class="section"><a href="property_tree/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="property_tree/reference.html#header.boost.property_tree.exceptions_hpp">Header &lt;boost/property_tree/exceptions.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="property_tree/reference.html#header.boost.property_tree.id_translator_hpp">Header &lt;boost/property_tree/id_translator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="property_tree/reference.html#header.boost.property_tree.info_parser_hpp">Header &lt;boost/property_tree/info_parser.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="property_tree/reference.html#header.boost.property_tree.ini_parser_hpp">Header &lt;boost/property_tree/ini_parser.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="property_tree/reference.html#header.boost.property_tree.json_parser_hpp">Header &lt;boost/property_tree/json_parser.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="property_tree/reference.html#header.boost.property_tree.ptree_hpp">Header &lt;boost/property_tree/ptree.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="property_tree/reference.html#header.boost.property_tree.ptree_fwd_hpp">Header &lt;boost/property_tree/ptree_fwd.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="property_tree/reference.html#header.boost.property_tree.ptree_serialization_hpp">Header &lt;boost/property_tree/ptree_serialization.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="property_tree/reference.html#header.boost.property_tree.stream_translator_hpp">Header &lt;boost/property_tree/stream_translator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="property_tree/reference.html#header.boost.property_tree.string_path_hpp">Header &lt;boost/property_tree/string_path.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="property_tree/reference.html#header.boost.property_tree.xml_parser_hpp">Header &lt;boost/property_tree/xml_parser.hpp&gt;</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_propertytree.intro"></a><a class="link" href="property_tree.html#boost_propertytree.intro" title="What is Property Tree?">What is Property Tree?</a>
+</h2></div></div></div>
+<p>
+      The Property Tree library provides a data structure that stores an arbitrarily
+      deeply nested tree of values, indexed at each level by some key. Each node
+      of the tree stores its own value, plus an ordered list of its subnodes and
+      their keys. The tree allows easy access to any of its nodes by means of a path,
+      which is a concatenation of multiple keys.
+    </p>
+<p>
+      In addition, the library provides parsers and generators for a number of data
+      formats that can be represented by such a tree, including XML, INI, and JSON.
+    </p>
+<p>
+      Property trees are versatile data structures, but are particularly suited for
+      holding configuration data. The tree provides its own, tree-specific interface,
+      and each node is also an STL-compatible Sequence for its child nodes.
+    </p>
+<p>
+      Conceptually, then, a node can be thought of as the following structure:
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">ptree</span>
+<span class="special">{</span>
+   <span class="identifier">data_type</span> <span class="identifier">data</span><span class="special">;</span>                         <span class="comment">// data associated with the node</span>
+   <span class="identifier">list</span><span class="special">&lt;</span> <span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">key_type</span><span class="special">,</span> <span class="identifier">ptree</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">children</span><span class="special">;</span> <span class="comment">// ordered list of named children</span>
+<span class="special">};</span>
+</pre>
+<p>
+      Both key_type and data_type are configurable, but will usually be std::string.
+    </p>
+<p>
+      Many software projects develop a similar tool at some point of their lifetime,
+      and property tree originated the same way. We hope the library can save many
+      from reinventing the wheel.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:53:56 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_PROGRAM_OPTIONS_VERSION.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost_propertytree/tutorial.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

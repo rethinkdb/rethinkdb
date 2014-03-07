@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Tags reference</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="key_value.html">
+<link rel="up" href="index.html">
+<link rel="next" href="factories.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight
+Tags reference</h1>
+
+<div class="prev_link"><a href="key_value.html"><img src="../prev.gif" alt="key-value flyweights" border="0"><br>
+Key-value flyweights
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="next_link"><a href="factories.html"><img src="../next.gif" alt="factories" border="0"><br>
+Factories
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#tag">Tags</a></li>
+  <li><a href="#tag_synopsis">Header
+    <code>"boost/flyweight/tag.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#tag_construct">Class template <code>tag</code></a></li>
+    </ul>    
+  </li>
+</ul>
+
+<h2><a name="tag">Tags</a></h2>
+
+<p>
+A <i>tag</i> is a type of the form
+<a href="#tag_construct"><code>tag&lt;T&gt;</code></a> for some arbitrary
+<code>T</code>.
+In the context of Boost.Flyweight, tags are syntactic artifacts used
+to differentiate instantiations of the class template
+<a href="flyweight.html#flyweight"><code>flyweight</code></a> which would
+otherwise be identical. Tagging a <code>flyweight</code> instantiation with
+a tag type local to a given context ensures that the global resources
+of that instantiation (for instance, the associated
+<a href="factories.html#factory">factory class</a>) will not be unintentionally
+shared by other areas of the program.
+</p>
+
+<h2><a name="tag_synopsis">Header
+<a href="../../../../boost/flyweight/tag.hpp"><code>"boost/flyweight/tag.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>tag</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<h3><a name="tag_construct">Class template <code>tag</code></a></h3>
+
+<p>
+For any type <code>T</code>, <code>tag&lt;T&gt;</code> is a suitable
+<a href="#tag">tag</a> for use in instantiations of
+<a href="flyweight.html#flyweight"><code>flyweight</code></a>.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="key_value.html"><img src="../prev.gif" alt="key-value flyweights" border="0"><br>
+Key-value flyweights
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="next_link"><a href="factories.html"><img src="../next.gif" alt="factories" border="0"><br>
+Factories
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised August 11th 2008</p>
+
+<p>&copy; Copyright 2006-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

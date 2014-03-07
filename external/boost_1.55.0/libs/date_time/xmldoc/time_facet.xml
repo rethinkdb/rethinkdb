@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.time_facet">
+  <title>Time Facet</title>
+
+  <link linkend="time_facet_intro">Introduction</link> -
+  <link linkend="time_facet_constr">Construction</link> -
+  <link linkend="time_facet_accessors">Accessors</link>
+
+  <anchor id="time_facet_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>The <code>boost::date_time::time_facet</code> is an extension of the <code>boost::date_time::date_facet</code>. The time_facet is typedef'ed in the <code>posix_time</code> namespace as <code>time_facet</code> and <code>wtime_facet</code>. It is typedef'd in the <code>local_time</code> namespace as <code>local_time_facet</code> and <code>wlocal_time_facet</code>.
+  </para>
+
+  <anchor id="time_facet_constr" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry>Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>time_facet()</screen></entry>
+            <entry>Default constructor</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>time_facet(...)
+  Parameters:
+    char_type* format
+    period_formatter_type
+    special_values_formatter_type
+    date_gen_formatter_type</screen></entry>
+            <entry>Format given will be used for time output. The remaining parameters are formatter objects. Further details on these objects can be found <link linkend="date_time.io_objects">here</link>. This constructor also provides default arguments for all parameters except the format. Therefore, <code>time_facet("%H:%M:S %m %d %Y")</code> will work.</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="time_facet_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <para>
+    The time_facet inherits all the public date_facet methods. Therefore, the date_facet methods are not listed here. Instead, they can be found by following <link linkend="date_time.date_facet">this</link> link.
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>void time_duration_format(...)
+  Parameter:
+    char_type*</screen></entry>
+            <entry>Sets the time_duration format. The time_duration format has the ability to display the sign of the duration. The <code>'%+'</code> flag will always display the sign. The <code>'%-'</code> will only display if the sign is negative. Currently the '-' and '+' characters are used to denote the sign.</entry>
+          </row>
+          <row>
+            <entry><screen>f->time_duration_format("%+%H:%M");
+// hours and minutes only w/ sign always displayed
+time_duration td1(3, 15, 56);
+time_duration td2(-12, 25, 32);
+ss &lt;&lt; td1; // "+03:15:56"
+ss &lt;&lt; td2; // "-12:25:56"
+            </screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void set_iso_format()</screen></entry>
+            <entry>Sets the date and time format to ISO.</entry>
+          </row>
+          <row>
+            <entry><screen>f->set_iso_format();
+// "%Y%m%dT%H%M%S%F%q"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void set_iso_extended_format()</screen></entry>
+            <entry>Sets the date and time format to ISO Extended</entry>
+          </row>
+          <row>
+            <entry><screen>f->set_iso_extended_format();
+// "%Y-%m-%d %H:%M:%S%F%Q"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(...)
+  Common parameters for all 
+  'put' functions:
+    OutItrT 
+    ios_base
+    char_type
+  Unique parameter for 'put' funcs:
+    posix_time object</screen></entry>
+            <entry>There are 3 put functions in the time_facet. The common parameters are: an iterator pointing to the next item in the stream, an ios_base object, and the fill character. Each unique posix_time object has it's own put function. Each unique put function is described below.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., ptime)</screen></entry>
+            <entry>Puts a ptime object into the stream using the format set by <code>format(...)</code> or the default.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., time_duration)</screen></entry>
+            <entry>Puts a time_duration object into the stream using the format set by <code>time_duration_format(...)</code> or the default.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., time_period)</screen></entry>
+            <entry>Puts a time_period into the stream. The format of the dates and times will use the format set by <code>format(..)</code> or the default date/time format. The type of period (open or closed range) and the delimiters used are those used by the period_formatter.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+</section>
+
+

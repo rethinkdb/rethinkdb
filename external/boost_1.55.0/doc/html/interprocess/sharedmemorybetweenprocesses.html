@@ -1,0 +1,1344 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Sharing memory between processes</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../interprocess.html" title="Chapter&#160;14.&#160;Boost.Interprocess">
+<link rel="prev" href="some_basic_explanations.html" title="Some basic explanations">
+<link rel="next" href="offset_ptr.html" title="Mapping Address Independent Pointer: offset_ptr">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="some_basic_explanations.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="offset_ptr.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="interprocess.sharedmemorybetweenprocesses"></a><a class="link" href="sharedmemorybetweenprocesses.html" title="Sharing memory between processes">Sharing memory
+    between processes</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory">Shared
+      memory</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file">Memory
+      Mapped Files</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region">More
+      About Mapped Regions</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations">Limitations
+      When Constructing Objects In Mapped Regions</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.sharedmemory"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory" title="Shared memory">Shared
+      memory</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_what_is">What
+        is shared memory?</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_steps">Creating
+        memory segments that can be shared between processes</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_header">Header</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_creating_shared_memory_segments">Creating
+        shared memory segments</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_mapping_shared_memory_segments">Mapping
+        Shared Memory Segments</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_a_simple_example">A
+        Simple Example</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.emulation">Emulation
+        for systems without shared memory objects</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.removing">Removing
+        shared memory</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.anonymous_shared_memory">Anonymous
+        shared memory for UNIX systems</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.windows_shared_memory">Native
+        windows shared memory</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.xsi_shared_memory">XSI
+        shared memory</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_what_is"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_what_is" title="What is shared memory?">What
+        is shared memory?</a>
+</h4></div></div></div>
+<p>
+          Shared memory is the fastest interprocess communication mechanism. The
+          operating system maps a memory segment in the address space of several
+          processes, so that several processes can read and write in that memory
+          segment without calling operating system functions. However, we need some
+          kind of synchronization between processes that read and write shared memory.
+        </p>
+<p>
+          Consider what happens when a server process wants to send an HTML file
+          to a client process that resides in the same machine using network mechanisms:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              The server must read the file to memory and pass it to the network
+              functions, that copy that memory to the OS's internal memory.
+            </li>
+<li class="listitem">
+              The client uses the network functions to copy the data from the OS's
+              internal memory to its own memory.
+            </li>
+</ul></div>
+<p>
+          As we can see, there are two copies, one from memory to the network and
+          another one from the network to memory. And those copies are made using
+          operating system calls that normally are expensive. Shared memory avoids
+          this overhead, but we need to synchronize both processes:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              The server maps a shared memory in its address space and also gets
+              access to a synchronization mechanism. The server obtains exclusive
+              access to the memory using the synchronization mechanism and copies
+              the file to memory.
+            </li>
+<li class="listitem">
+              The client maps the shared memory in its address space. Waits until
+              the server releases the exclusive access and uses the data.
+            </li>
+</ul></div>
+<p>
+          Using shared memory, we can avoid two data copies, but we have to synchronize
+          the access to the shared memory segment.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_steps"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_steps" title="Creating memory segments that can be shared between processes">Creating
+        memory segments that can be shared between processes</a>
+</h4></div></div></div>
+<p>
+          To use shared memory, we have to perform 2 basic steps:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Request to the operating system a memory segment that can be shared
+              between processes. The user can create/destroy/open this memory using
+              a <span class="bold"><strong>shared memory object</strong></span>: <span class="emphasis"><em>An
+              object that represents memory that can be mapped concurrently into
+              the address space of more than one process.</em></span>.
+            </li>
+<li class="listitem">
+              Associate a part of that memory or the whole memory with the address
+              space of the calling process. The operating system looks for a big
+              enough memory address range in the calling process' address space and
+              marks that address range as an special range. Changes in that address
+              range are automatically seen by other process that also have mapped
+              the same shared memory object.
+            </li>
+</ul></div>
+<p>
+          Once the two steps have been successfully completed, the process can start
+          writing to and reading from the address space to send to and receive data
+          from other processes. Now, let's see how can we do this using <span class="bold"><strong>Boost.Interprocess</strong></span>:
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_header"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_header" title="Header">Header</a>
+</h4></div></div></div>
+<p>
+          To manage shared memory, you just need to include the following header:
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">shared_memory_object</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_creating_shared_memory_segments"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_creating_shared_memory_segments" title="Creating shared memory segments">Creating
+        shared memory segments</a>
+</h4></div></div></div>
+<p>
+          As we've mentioned we have to use the <code class="computeroutput"><span class="identifier">shared_memory_object</span></code>
+          class to create, open and destroy shared memory segments that can be mapped
+          by several processes. We can specify the access mode of that shared memory
+          object (read only or read-write), just as if it was a file:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              Create a shared memory segment. Throws if already created:
+            </li></ul></div>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+<span class="identifier">shared_memory_object</span> <span class="identifier">shm_obj</span>
+   <span class="special">(</span><span class="identifier">create_only</span>                  <span class="comment">//only create</span>
+   <span class="special">,</span><span class="string">"shared_memory"</span>              <span class="comment">//name</span>
+   <span class="special">,</span><span class="identifier">read_write</span>                   <span class="comment">//read-write mode</span>
+   <span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              To open or create a shared memory segment:
+            </li></ul></div>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+<span class="identifier">shared_memory_object</span> <span class="identifier">shm_obj</span>
+   <span class="special">(</span><span class="identifier">open_or_create</span>               <span class="comment">//open or create</span>
+   <span class="special">,</span><span class="string">"shared_memory"</span>              <span class="comment">//name</span>
+   <span class="special">,</span><span class="identifier">read_only</span>                    <span class="comment">//read-only mode</span>
+   <span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              To only open a shared memory segment. Throws if does not exist:
+            </li></ul></div>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+<span class="identifier">shared_memory_object</span> <span class="identifier">shm_obj</span>
+   <span class="special">(</span><span class="identifier">open_only</span>                    <span class="comment">//only open</span>
+   <span class="special">,</span><span class="string">"shared_memory"</span>              <span class="comment">//name</span>
+   <span class="special">,</span><span class="identifier">read_write</span>                   <span class="comment">//read-write mode</span>
+   <span class="special">);</span>
+</pre>
+<p>
+          When a shared memory object is created, its size is 0. To set the size
+          of the shared memory, the user must use the <code class="computeroutput"><span class="identifier">truncate</span></code>
+          function call, in a shared memory that has been opened with read-write
+          attributes:
+        </p>
+<pre class="programlisting"><span class="identifier">shm_obj</span><span class="special">.</span><span class="identifier">truncate</span><span class="special">(</span><span class="number">10000</span><span class="special">);</span>
+</pre>
+<p>
+          As shared memory has kernel or filesystem persistence, the user must explicitly
+          destroy it. The <code class="computeroutput"><span class="identifier">remove</span></code>
+          operation might fail returning false if the shared memory does not exist,
+          the file is open or the file is still memory mapped by other processes:
+        </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+<span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"shared_memory"</span><span class="special">);</span>
+</pre>
+<p>
+          For more details regarding <code class="computeroutput"><span class="identifier">shared_memory_object</span></code>
+          see the <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_memory_object.html" title="Class shared_memory_object">boost::interprocess::shared_memory_object</a></code>
+          class reference.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_mapping_shared_memory_segments"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_mapping_shared_memory_segments" title="Mapping Shared Memory Segments">Mapping
+        Shared Memory Segments</a>
+</h4></div></div></div>
+<p>
+          Once created or opened, a process just has to map the shared memory object
+          in the process' address space. The user can map the whole shared memory
+          or just part of it. The mapping process is done using the <code class="computeroutput"><span class="identifier">mapped_region</span></code> class. The class represents
+          a memory region that has been mapped from a shared memory or from other
+          devices that have also mapping capabilities (for example, files). A <code class="computeroutput"><span class="identifier">mapped_region</span></code> can be created from any
+          <code class="computeroutput"><span class="identifier">memory_mappable</span></code> object
+          and as you might imagine, <code class="computeroutput"><span class="identifier">shared_memory_object</span></code>
+          is a <code class="computeroutput"><span class="identifier">memory_mappable</span></code> object:
+        </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">ShmSize</span> <span class="special">=</span> <span class="special">...</span>
+
+<span class="comment">//Map the second half of the memory</span>
+<span class="identifier">mapped_region</span> <span class="identifier">region</span>
+   <span class="special">(</span> <span class="identifier">shm</span>                      <span class="comment">//Memory-mappable object</span>
+   <span class="special">,</span> <span class="identifier">read_write</span>               <span class="comment">//Access mode</span>
+   <span class="special">,</span> <span class="identifier">ShmSize</span><span class="special">/</span><span class="number">2</span>                <span class="comment">//Offset from the beginning of shm</span>
+   <span class="special">,</span> <span class="identifier">ShmSize</span><span class="special">-</span><span class="identifier">ShmSize</span><span class="special">/</span><span class="number">2</span>        <span class="comment">//Length of the region</span>
+   <span class="special">);</span>
+
+<span class="comment">//Get the address of the region</span>
+<span class="identifier">region</span><span class="special">.</span><span class="identifier">get_address</span><span class="special">();</span>
+
+<span class="comment">//Get the size of the region</span>
+<span class="identifier">region</span><span class="special">.</span><span class="identifier">get_size</span><span class="special">();</span>
+</pre>
+<p>
+          The user can specify the offset from the mappable object where the mapped
+          region should start and the size of the mapped region. If no offset or
+          size is specified, the whole mappable object (in this case, shared memory)
+          is mapped. If the offset is specified, but not the size, the mapped region
+          covers from the offset until the end of the mappable object.
+        </p>
+<p>
+          For more details regarding <code class="computeroutput"><span class="identifier">mapped_region</span></code>
+          see the <code class="computeroutput"><a class="link" href="../boost/interprocess/mapped_region.html" title="Global mapped_region">boost::interprocess::mapped_region</a></code>
+          class reference.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_a_simple_example"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.shared_memory_a_simple_example" title="A Simple Example">A
+        Simple Example</a>
+</h4></div></div></div>
+<p>
+          Let's see a simple example of shared memory use. A server process creates
+          a shared memory object, maps it and initializes all the bytes to a value.
+          After that, a client process opens the shared memory, maps it, and checks
+          that the data is correctly initialized:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">shared_memory_object</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">mapped_region</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstring</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstdlib</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+   <span class="keyword">if</span><span class="special">(</span><span class="identifier">argc</span> <span class="special">==</span> <span class="number">1</span><span class="special">){</span>  <span class="comment">//Parent process</span>
+      <span class="comment">//Remove shared memory on construction and destruction</span>
+      <span class="keyword">struct</span> <span class="identifier">shm_remove</span>
+      <span class="special">{</span>
+         <span class="identifier">shm_remove</span><span class="special">()</span> <span class="special">{</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+         <span class="special">~</span><span class="identifier">shm_remove</span><span class="special">(){</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">}</span> <span class="identifier">remover</span><span class="special">;</span>
+
+      <span class="comment">//Create a shared memory object.</span>
+      <span class="identifier">shared_memory_object</span> <span class="identifier">shm</span> <span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">,</span> <span class="identifier">read_write</span><span class="special">);</span>
+
+      <span class="comment">//Set size</span>
+      <span class="identifier">shm</span><span class="special">.</span><span class="identifier">truncate</span><span class="special">(</span><span class="number">1000</span><span class="special">);</span>
+
+      <span class="comment">//Map the whole shared memory in this process</span>
+      <span class="identifier">mapped_region</span> <span class="identifier">region</span><span class="special">(</span><span class="identifier">shm</span><span class="special">,</span> <span class="identifier">read_write</span><span class="special">);</span>
+
+      <span class="comment">//Write all the memory to 1</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">memset</span><span class="special">(</span><span class="identifier">region</span><span class="special">.</span><span class="identifier">get_address</span><span class="special">(),</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">region</span><span class="special">.</span><span class="identifier">get_size</span><span class="special">());</span>
+
+      <span class="comment">//Launch child process</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">s</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="number">0</span><span class="special">]);</span> <span class="identifier">s</span> <span class="special">+=</span> <span class="string">" child "</span><span class="special">;</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="number">0</span> <span class="special">!=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">system</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">()))</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="keyword">else</span><span class="special">{</span>
+      <span class="comment">//Open already created shared memory object.</span>
+      <span class="identifier">shared_memory_object</span> <span class="identifier">shm</span> <span class="special">(</span><span class="identifier">open_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">,</span> <span class="identifier">read_only</span><span class="special">);</span>
+
+      <span class="comment">//Map the whole shared memory in this process</span>
+      <span class="identifier">mapped_region</span> <span class="identifier">region</span><span class="special">(</span><span class="identifier">shm</span><span class="special">,</span> <span class="identifier">read_only</span><span class="special">);</span>
+
+      <span class="comment">//Check that memory was initialized to 1</span>
+      <span class="keyword">char</span> <span class="special">*</span><span class="identifier">mem</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">*&gt;(</span><span class="identifier">region</span><span class="special">.</span><span class="identifier">get_address</span><span class="special">());</span>
+      <span class="keyword">for</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">region</span><span class="special">.</span><span class="identifier">get_size</span><span class="special">();</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+         <span class="keyword">if</span><span class="special">(*</span><span class="identifier">mem</span><span class="special">++</span> <span class="special">!=</span> <span class="number">1</span><span class="special">)</span>
+            <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>   <span class="comment">//Error checking memory</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.sharedmemory.emulation"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.emulation" title="Emulation for systems without shared memory objects">Emulation
+        for systems without shared memory objects</a>
+</h4></div></div></div>
+<p>
+          <span class="bold"><strong>Boost.Interprocess</strong></span> provides portable shared
+          memory in terms of POSIX semantics. Some operating systems don't support
+          shared memory as defined by POSIX:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Windows operating systems provide shared memory using memory backed
+              by the paging file but the lifetime semantics are different from the
+              ones defined by POSIX (see <a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.windows_shared_memory" title="Native windows shared memory">Native
+              windows shared memory</a> section for more information).
+            </li>
+<li class="listitem">
+              Some UNIX systems don't fully support POSIX shared memory objects at
+              all.
+            </li>
+</ul></div>
+<p>
+          In those platforms, shared memory is emulated with mapped files created
+          in a "boost_interprocess" folder created in a temporary files
+          directory. In Windows platforms, if "Common AppData" key is present
+          in the registry, "boost_interprocess" folder is created in that
+          directory (in XP usually "C:\Documents and Settings\All Users\Application
+          Data" and in Vista "C:\ProgramData"). For Windows platforms
+          without that registry key and Unix systems, shared memory is created in
+          the system temporary files directory ("/tmp" or similar).
+        </p>
+<p>
+          Because of this emulation, shared memory has filesystem lifetime in some
+          of those systems.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.sharedmemory.removing"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.removing" title="Removing shared memory">Removing
+        shared memory</a>
+</h4></div></div></div>
+<p>
+          <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_memory_object.html" title="Class shared_memory_object">shared_memory_object</a></code>
+          provides a static <code class="computeroutput"><span class="identifier">remove</span></code>
+          function to remove a shared memory objects.
+        </p>
+<p>
+          This function <span class="bold"><strong>can</strong></span> fail if the shared memory
+          objects does not exist or it's opened by another process. Note that this
+          function is similar to the standard C <code class="computeroutput"><span class="keyword">int</span>
+          <span class="identifier">remove</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">path</span><span class="special">)</span></code> function. In UNIX systems, <code class="computeroutput"><span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span></code> calls <code class="computeroutput"><span class="identifier">shm_unlink</span></code>:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              The function will remove the name of the shared memory object named
+              by the string pointed to by name.
+            </li>
+<li class="listitem">
+              If one or more references to the shared memory object exist when is
+              unlinked, the name will be removed before the function returns, but
+              the removal of the memory object contents will be postponed until all
+              open and map references to the shared memory object have been removed.
+            </li>
+<li class="listitem">
+              Even if the object continues to exist after the last function call,
+              reuse of the name will subsequently cause the creation of a <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_memory_object.html" title="Class shared_memory_object">boost::interprocess::shared_memory_object</a></code>
+              instance to behave as if no shared memory object of this name exists
+              (that is, trying to open an object with that name will fail and an
+              object of the same name can be created again).
+            </li>
+</ul></div>
+<p>
+          In Windows operating systems, current version supports an usually acceptable
+          emulation of the UNIX unlink behaviour: the file is renamed with a random
+          name and marked as <span class="emphasis"><em>to be deleted when the last open handle is
+          closed</em></span>.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.sharedmemory.anonymous_shared_memory"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.anonymous_shared_memory" title="Anonymous shared memory for UNIX systems">Anonymous
+        shared memory for UNIX systems</a>
+</h4></div></div></div>
+<p>
+          Creating a shared memory segment and mapping it can be a bit tedious when
+          several processes are involved. When processes are related via <code class="computeroutput"><span class="identifier">fork</span><span class="special">()</span></code>
+          operating system call in UNIX systems a simpler method is available using
+          anonymous shared memory.
+        </p>
+<p>
+          This feature has been implemented in UNIX systems mapping the device <code class="computeroutput"><span class="special">\</span><span class="identifier">dev</span><span class="special">\</span><span class="identifier">zero</span></code>
+          or just using the <code class="computeroutput"><span class="identifier">MAP_ANONYMOUS</span></code>
+          in a POSIX conformant <code class="computeroutput"><span class="identifier">mmap</span></code>
+          system call.
+        </p>
+<p>
+          This feature is wrapped in <span class="bold"><strong>Boost.Interprocess</strong></span>
+          using the <code class="computeroutput"><span class="identifier">anonymous_shared_memory</span><span class="special">()</span></code> function, which returns a <code class="computeroutput"><span class="identifier">mapped_region</span></code> object holding an anonymous
+          shared memory segment that can be shared by related processes.
+        </p>
+<p>
+          Here is an example:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">anonymous_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">mapped_region</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstring</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span> <span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+   <span class="keyword">try</span><span class="special">{</span>
+      <span class="comment">//Create an anonymous shared memory segment with size 1000</span>
+      <span class="identifier">mapped_region</span> <span class="identifier">region</span><span class="special">(</span><span class="identifier">anonymous_shared_memory</span><span class="special">(</span><span class="number">1000</span><span class="special">));</span>
+
+      <span class="comment">//Write all the memory to 1</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">memset</span><span class="special">(</span><span class="identifier">region</span><span class="special">.</span><span class="identifier">get_address</span><span class="special">(),</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">region</span><span class="special">.</span><span class="identifier">get_size</span><span class="special">());</span>
+
+      <span class="comment">//The segment is unmapped when "region" goes out of scope</span>
+   <span class="special">}</span>
+   <span class="keyword">catch</span><span class="special">(</span><span class="identifier">interprocess_exception</span> <span class="special">&amp;</span><span class="identifier">ex</span><span class="special">){</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">ex</span><span class="special">.</span><span class="identifier">what</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+      <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Once the segment is created, a <code class="computeroutput"><span class="identifier">fork</span><span class="special">()</span></code> call can be used so that <code class="computeroutput"><span class="identifier">region</span></code> is used to communicate two related
+          processes.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.sharedmemory.windows_shared_memory"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.windows_shared_memory" title="Native windows shared memory">Native
+        windows shared memory</a>
+</h4></div></div></div>
+<p>
+          Windows operating system also offers shared memory, but the lifetime of
+          this shared memory is very different to kernel or filesystem lifetime.
+          The shared memory is created backed by the pagefile and it's automatically
+          destroyed when the last process attached to the shared memory is destroyed.
+        </p>
+<p>
+          Because of this reason, there is no effective way to simulate kernel or
+          filesystem persistence using native windows shared memory and <span class="bold"><strong>Boost.Interprocess</strong></span> emulates shared memory using
+          memory mapped files. This assures portability between POSIX and Windows
+          operating systems.
+        </p>
+<p>
+          However, accessing native windows shared memory is a common request of
+          <span class="bold"><strong>Boost.Interprocess</strong></span> users because they
+          want to access to shared memory created with other process that don't use
+          <span class="bold"><strong>Boost.Interprocess</strong></span>. In order to manage
+          the native windows shared memory <span class="bold"><strong>Boost.Interprocess</strong></span>
+          offers the <code class="computeroutput"><a class="link" href="../boost/interprocess/windows_shared_memory.html" title="Class windows_shared_memory">windows_shared_memory</a></code>
+          class.
+        </p>
+<p>
+          Windows shared memory creation is a bit different from portable shared
+          memory creation: the size of the segment must be specified when creating
+          the object and can't be specified through <code class="computeroutput"><span class="identifier">truncate</span></code>
+          like with the shared memory object. Take in care that when the last process
+          attached to a shared memory is destroyed <span class="bold"><strong>the shared
+          memory is destroyed</strong></span> so there is <span class="bold"><strong>no persistency</strong></span>
+          with native windows shared memory.
+        </p>
+<p>
+          Sharing memory between services and user applications is also different.
+          To share memory between services and user applications the name of the
+          shared memory must start with the global namespace prefix <code class="computeroutput"><span class="string">"Global\\"</span></code>. This global namespace
+          enables processes on multiple client sessions to communicate with a service
+          application. The server component can create the shared memory in the global
+          namespace. Then a client session can use the "Global" prefix
+          to open that memory.
+        </p>
+<p>
+          The creation of a shared memory object in the global namespace from a session
+          other than session zero is a privileged operation.
+        </p>
+<p>
+          Let's repeat the same example presented for the portable shared memory
+          object: A server process creates a shared memory object, maps it and initializes
+          all the bytes to a value. After that, a client process opens the shared
+          memory, maps it, and checks that the data is correctly initialized. Take
+          in care that <span class="bold"><strong>if the server exits before the client
+          connects to the shared memory the client connection will fail</strong></span>,
+          because the shared memory segment is destroyed when no proces is attached
+          to the memory.
+        </p>
+<p>
+          This is the server process:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">windows_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">mapped_region</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstring</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstdlib</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+   <span class="keyword">if</span><span class="special">(</span><span class="identifier">argc</span> <span class="special">==</span> <span class="number">1</span><span class="special">){</span>  <span class="comment">//Parent process</span>
+      <span class="comment">//Create a native windows shared memory object.</span>
+      <span class="identifier">windows_shared_memory</span> <span class="identifier">shm</span> <span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">,</span> <span class="identifier">read_write</span><span class="special">,</span> <span class="number">1000</span><span class="special">);</span>
+
+      <span class="comment">//Map the whole shared memory in this process</span>
+      <span class="identifier">mapped_region</span> <span class="identifier">region</span><span class="special">(</span><span class="identifier">shm</span><span class="special">,</span> <span class="identifier">read_write</span><span class="special">);</span>
+
+      <span class="comment">//Write all the memory to 1</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">memset</span><span class="special">(</span><span class="identifier">region</span><span class="special">.</span><span class="identifier">get_address</span><span class="special">(),</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">region</span><span class="special">.</span><span class="identifier">get_size</span><span class="special">());</span>
+
+      <span class="comment">//Launch child process</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">s</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="number">0</span><span class="special">]);</span> <span class="identifier">s</span> <span class="special">+=</span> <span class="string">" child "</span><span class="special">;</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="number">0</span> <span class="special">!=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">system</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">()))</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+      <span class="comment">//windows_shared_memory is destroyed when the last attached process dies...</span>
+   <span class="special">}</span>
+   <span class="keyword">else</span><span class="special">{</span>
+      <span class="comment">//Open already created shared memory object.</span>
+      <span class="identifier">windows_shared_memory</span> <span class="identifier">shm</span> <span class="special">(</span><span class="identifier">open_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">,</span> <span class="identifier">read_only</span><span class="special">);</span>
+
+      <span class="comment">//Map the whole shared memory in this process</span>
+      <span class="identifier">mapped_region</span> <span class="identifier">region</span><span class="special">(</span><span class="identifier">shm</span><span class="special">,</span> <span class="identifier">read_only</span><span class="special">);</span>
+
+      <span class="comment">//Check that memory was initialized to 1</span>
+      <span class="keyword">char</span> <span class="special">*</span><span class="identifier">mem</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">*&gt;(</span><span class="identifier">region</span><span class="special">.</span><span class="identifier">get_address</span><span class="special">());</span>
+      <span class="keyword">for</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">region</span><span class="special">.</span><span class="identifier">get_size</span><span class="special">();</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+         <span class="keyword">if</span><span class="special">(*</span><span class="identifier">mem</span><span class="special">++</span> <span class="special">!=</span> <span class="number">1</span><span class="special">)</span>
+            <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>   <span class="comment">//Error checking memory</span>
+      <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          As we can see, native windows shared memory needs synchronization to make
+          sure that the shared memory won't be destroyed before the client is launched.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.sharedmemory.xsi_shared_memory"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory.xsi_shared_memory" title="XSI shared memory">XSI
+        shared memory</a>
+</h4></div></div></div>
+<p>
+          In many UNIX systems, the OS offers another shared memory memory mechanism,
+          XSI (X/Open System Interfaces) shared memory segments, also known as "System
+          V" shared memory. This shared memory mechanism is quite popular and
+          portable, and it's not based in file-mapping semantics, but it uses special
+          functions (<code class="computeroutput"><span class="identifier">shmget</span></code>, <code class="computeroutput"><span class="identifier">shmat</span></code>, <code class="computeroutput"><span class="identifier">shmdt</span></code>,
+          <code class="computeroutput"><span class="identifier">shmctl</span></code>...).
+        </p>
+<p>
+          Unlike POSIX shared memory segments, XSI shared memory segments are not
+          identified by names but by 'keys' usually created with <code class="computeroutput"><span class="identifier">ftok</span></code>.
+          XSI shared memory segments have kernel lifetime and must be explicitly
+          removed. XSI shared memory does not support copy-on-write and partial shared
+          memory mapping but it supports anonymous shared memory.
+        </p>
+<p>
+          <span class="bold"><strong>Boost.Interprocess</strong></span> offers simple (<code class="computeroutput"><a class="link" href="../boost/interprocess/xsi_shared_memory.html" title="Class xsi_shared_memory">xsi_shared_memory</a></code>)
+          and managed (<code class="computeroutput"><a class="link" href="indexes_reference.html#boost.interprocess.managed_xsi_shared_memory">managed_xsi_shared_memory</a></code>)
+          shared memory classes to ease the use of XSI shared memory. It also wraps
+          key creation with the simple <code class="computeroutput"><a class="link" href="../boost/interprocess/xsi_key.html" title="Class xsi_key">xsi_key</a></code>
+          class.
+        </p>
+<p>
+          Let's repeat the same example presented for the portable shared memory
+          object: A server process creates a shared memory object, maps it and initializes
+          all the bytes to a value. After that, a client process opens the shared
+          memory, maps it, and checks that the data is correctly initialized.
+        </p>
+<p>
+          This is the server process:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">xsi_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">mapped_region</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstring</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstdlib</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">remove_old_shared_memory</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">xsi_key</span> <span class="special">&amp;</span><span class="identifier">key</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="keyword">try</span><span class="special">{</span>
+      <span class="identifier">xsi_shared_memory</span> <span class="identifier">xsi</span><span class="special">(</span><span class="identifier">open_only</span><span class="special">,</span> <span class="identifier">key</span><span class="special">);</span>
+      <span class="identifier">xsi_shared_memory</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="identifier">xsi</span><span class="special">.</span><span class="identifier">get_shmid</span><span class="special">());</span>
+   <span class="special">}</span>
+   <span class="keyword">catch</span><span class="special">(</span><span class="identifier">interprocess_exception</span> <span class="special">&amp;</span><span class="identifier">e</span><span class="special">){</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">e</span><span class="special">.</span><span class="identifier">get_error_code</span><span class="special">()</span> <span class="special">!=</span> <span class="identifier">not_found_error</span><span class="special">)</span>
+         <span class="keyword">throw</span><span class="special">;</span>
+   <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+   <span class="keyword">if</span><span class="special">(</span><span class="identifier">argc</span> <span class="special">==</span> <span class="number">1</span><span class="special">){</span>  <span class="comment">//Parent process</span>
+      <span class="comment">//Build XSI key (ftok based)</span>
+      <span class="identifier">xsi_key</span> <span class="identifier">key</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="number">0</span><span class="special">],</span> <span class="number">1</span><span class="special">);</span>
+
+      <span class="identifier">remove_old_shared_memory</span><span class="special">(</span><span class="identifier">key</span><span class="special">);</span>
+
+      <span class="comment">//Create a shared memory object.</span>
+      <span class="identifier">xsi_shared_memory</span> <span class="identifier">shm</span> <span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span> <span class="identifier">key</span><span class="special">,</span> <span class="number">1000</span><span class="special">);</span>
+
+      <span class="comment">//Remove shared memory on destruction</span>
+      <span class="keyword">struct</span> <span class="identifier">shm_remove</span>
+      <span class="special">{</span>
+         <span class="keyword">int</span> <span class="identifier">shmid_</span><span class="special">;</span>
+         <span class="identifier">shm_remove</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">shmid</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">shmid_</span><span class="special">(</span><span class="identifier">shmid</span><span class="special">){}</span>
+         <span class="special">~</span><span class="identifier">shm_remove</span><span class="special">(){</span> <span class="identifier">xsi_shared_memory</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="identifier">shmid_</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">}</span> <span class="identifier">remover</span><span class="special">(</span><span class="identifier">shm</span><span class="special">.</span><span class="identifier">get_shmid</span><span class="special">());</span>
+
+      <span class="comment">//Map the whole shared memory in this process</span>
+      <span class="identifier">mapped_region</span> <span class="identifier">region</span><span class="special">(</span><span class="identifier">shm</span><span class="special">,</span> <span class="identifier">read_write</span><span class="special">);</span>
+
+      <span class="comment">//Write all the memory to 1</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">memset</span><span class="special">(</span><span class="identifier">region</span><span class="special">.</span><span class="identifier">get_address</span><span class="special">(),</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">region</span><span class="special">.</span><span class="identifier">get_size</span><span class="special">());</span>
+
+      <span class="comment">//Launch child process</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">s</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="number">0</span><span class="special">]);</span> <span class="identifier">s</span> <span class="special">+=</span> <span class="string">" child "</span><span class="special">;</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="number">0</span> <span class="special">!=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">system</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">()))</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="keyword">else</span><span class="special">{</span>
+      <span class="comment">//Build XSI key (ftok based)</span>
+      <span class="identifier">xsi_key</span> <span class="identifier">key</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="number">0</span><span class="special">],</span> <span class="number">1</span><span class="special">);</span>
+
+      <span class="comment">//Create a shared memory object.</span>
+      <span class="identifier">xsi_shared_memory</span> <span class="identifier">shm</span> <span class="special">(</span><span class="identifier">open_only</span><span class="special">,</span> <span class="identifier">key</span><span class="special">);</span>
+
+      <span class="comment">//Map the whole shared memory in this process</span>
+      <span class="identifier">mapped_region</span> <span class="identifier">region</span><span class="special">(</span><span class="identifier">shm</span><span class="special">,</span> <span class="identifier">read_only</span><span class="special">);</span>
+
+      <span class="comment">//Check that memory was initialized to 1</span>
+      <span class="keyword">char</span> <span class="special">*</span><span class="identifier">mem</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">*&gt;(</span><span class="identifier">region</span><span class="special">.</span><span class="identifier">get_address</span><span class="special">());</span>
+      <span class="keyword">for</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">region</span><span class="special">.</span><span class="identifier">get_size</span><span class="special">();</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+         <span class="keyword">if</span><span class="special">(*</span><span class="identifier">mem</span><span class="special">++</span> <span class="special">!=</span> <span class="number">1</span><span class="special">)</span>
+            <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>   <span class="comment">//Error checking memory</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_file"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file" title="Memory Mapped Files">Memory
+      Mapped Files</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_what_is">What
+        is a memory mapped file?</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_steps">Using
+        mapped files</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_header">Header</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_creating_file">Creating
+        a file mapping</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_mapping_regions">Mapping
+        File's Contents In Memory</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_a_simple_example">A
+        Simple Example</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_what_is"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_what_is" title="What is a memory mapped file?">What
+        is a memory mapped file?</a>
+</h4></div></div></div>
+<p>
+          File mapping is the association of a file's contents with a portion of
+          the address space of a process. The system creates a file mapping to associate
+          the file and the address space of the process. A mapped region is the portion
+          of address space that the process uses to access the file's contents. A
+          single file mapping can have several mapped regions, so that the user can
+          associate parts of the file with the address space of the process without
+          mapping the entire file in the address space, since the file can be bigger
+          than the whole address space of the process (a 9GB DVD image file in a
+          usual 32 bit systems). Processes read from and write to the file using
+          pointers, just like with dynamic memory. File mapping has the following
+          advantages:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Uniform resource use. Files and memory can be treated using the same
+              functions.
+            </li>
+<li class="listitem">
+              Automatic file data synchronization and cache from the OS.
+            </li>
+<li class="listitem">
+              Reuse of C++ utilities (STL containers, algorithms) in files.
+            </li>
+<li class="listitem">
+              Shared memory between two or more applications.
+            </li>
+<li class="listitem">
+              Allows efficient work with a large files, without mapping the whole
+              file into memory
+            </li>
+<li class="listitem">
+              If several processes use the same file mapping to create mapped regions
+              of a file, each process' views contain identical copies of the file
+              on disk.
+            </li>
+</ul></div>
+<p>
+          File mapping is not only used for interprocess communication, it can be
+          used also to simplify file usage, so the user does not need to use file-management
+          functions to write the file. The user just writes data to the process memory,
+          and the operating systems dumps the data to the file.
+        </p>
+<p>
+          When two processes map the same file in memory, the memory that one process
+          writes is seen by another process, so memory mapped files can be used as
+          an interprocess communication mechanism. We can say that memory-mapped
+          files offer the same interprocess communication services as shared memory
+          with the addition of filesystem persistence. However, as the operating
+          system has to synchronize the file contents with the memory contents, memory-mapped
+          files are not as fast as shared memory.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_steps"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_steps" title="Using mapped files">Using
+        mapped files</a>
+</h4></div></div></div>
+<p>
+          To use memory-mapped files, we have to perform 2 basic steps:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Create a mappable object that represent an already created file of
+              the filesystem. This object will be used to create multiple mapped
+              regions of the the file.
+            </li>
+<li class="listitem">
+              Associate the whole file or parts of the file with the address space
+              of the calling process. The operating system looks for a big enough
+              memory address range in the calling process' address space and marks
+              that address range as an special range. Changes in that address range
+              are automatically seen by other process that also have mapped the same
+              file and those changes are also transferred to the disk automatically.
+            </li>
+</ul></div>
+<p>
+          Once the two steps have been successfully completed, the process can start
+          writing to and reading from the address space to send to and receive data
+          from other processes and synchronize the file's contents with the changes
+          made to the mapped region. Now, let's see how can we do this using <span class="bold"><strong>Boost.Interprocess</strong></span>:
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_header"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_header" title="Header">Header</a>
+</h4></div></div></div>
+<p>
+          To manage mapped files, you just need to include the following header:
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">file_mapping</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_creating_file"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_creating_file" title="Creating a file mapping">Creating
+        a file mapping</a>
+</h4></div></div></div>
+<p>
+          First, we have to link a file's contents with the process' address space.
+          To do this, we have to create a mappable object that represents that file.
+          This is achieved in <span class="bold"><strong>Boost.Interprocess</strong></span>
+          creating a <code class="computeroutput"><span class="identifier">file_mapping</span></code>
+          object:
+        </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+<span class="identifier">file_mapping</span> <span class="identifier">m_file</span>
+   <span class="special">(</span><span class="string">"/usr/home/file"</span>       <span class="comment">//filename</span>
+   <span class="special">,</span><span class="identifier">read_write</span>             <span class="comment">//read-write mode</span>
+   <span class="special">);</span>
+</pre>
+<p>
+          Now we can use the newly created object to create mapped regions. For more
+          details regarding this class see the <code class="computeroutput"><a class="link" href="../boost/interprocess/file_mapping.html" title="Class file_mapping">boost::interprocess::file_mapping</a></code>
+          class reference.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_mapping_regions"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_mapping_regions" title="Mapping File's Contents In Memory">Mapping
+        File's Contents In Memory</a>
+</h4></div></div></div>
+<p>
+          After creating a file mapping, a process just has to map the shared memory
+          in the process' address space. The user can map the whole shared memory
+          or just part of it. The mapping process is done using the <code class="computeroutput"><span class="identifier">mapped_region</span></code> class. as we have said
+          before The class represents a memory region that has been mapped from a
+          shared memory or from other devices that have also mapping capabilities:
+        </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">FileSize</span> <span class="special">=</span> <span class="special">...</span>
+
+<span class="comment">//Map the second half of the file</span>
+<span class="identifier">mapped_region</span> <span class="identifier">region</span>
+   <span class="special">(</span> <span class="identifier">m_file</span>                   <span class="comment">//Memory-mappable object</span>
+   <span class="special">,</span> <span class="identifier">read_write</span>               <span class="comment">//Access mode</span>
+   <span class="special">,</span> <span class="identifier">FileSize</span><span class="special">/</span><span class="number">2</span>               <span class="comment">//Offset from the beginning of shm</span>
+   <span class="special">,</span> <span class="identifier">FileSize</span><span class="special">-</span><span class="identifier">FileSize</span><span class="special">/</span><span class="number">2</span>      <span class="comment">//Length of the region</span>
+   <span class="special">);</span>
+
+<span class="comment">//Get the address of the region</span>
+<span class="identifier">region</span><span class="special">.</span><span class="identifier">get_address</span><span class="special">();</span>
+
+<span class="comment">//Get the size of the region</span>
+<span class="identifier">region</span><span class="special">.</span><span class="identifier">get_size</span><span class="special">();</span>
+</pre>
+<p>
+          The user can specify the offset from the file where the mapped region should
+          start and the size of the mapped region. If no offset or size is specified,
+          the whole file is mapped. If the offset is specified, but not the size,
+          the mapped region covers from the offset until the end of the file.
+        </p>
+<p>
+          If several processes map the same file, and a process modifies a memory
+          range from a mapped region that is also mapped by other process, the changes
+          are inmedially visible to other processes. However, the file contents on
+          disk are not updated immediately, since that would hurt performance (writing
+          to disk is several times slower than writing to memory). If the user wants
+          to make sure that file's contents have been updated, it can flush a range
+          from the view to disk. When the function returns, the flushing process
+          has startd but there is not guarantee that all data has been written to
+          disk:
+        </p>
+<pre class="programlisting"><span class="comment">//Flush the whole region</span>
+<span class="identifier">region</span><span class="special">.</span><span class="identifier">flush</span><span class="special">();</span>
+
+<span class="comment">//Flush from an offset until the end of the region</span>
+<span class="identifier">region</span><span class="special">.</span><span class="identifier">flush</span><span class="special">(</span><span class="identifier">offset</span><span class="special">);</span>
+
+<span class="comment">//Flush a memory range starting on an offset</span>
+<span class="identifier">region</span><span class="special">.</span><span class="identifier">flush</span><span class="special">(</span><span class="identifier">offset</span><span class="special">,</span> <span class="identifier">size</span><span class="special">);</span>
+</pre>
+<p>
+          Remember that the offset is <span class="bold"><strong>not</strong></span> an offset
+          on the file, but an offset in the mapped region. If a region covers the
+          second half of a file and flushes the whole region, only the half of the
+          file is guaranteed to have been flushed.
+        </p>
+<p>
+          For more details regarding <code class="computeroutput"><span class="identifier">mapped_region</span></code>
+          see the <code class="computeroutput"><a class="link" href="../boost/interprocess/mapped_region.html" title="Global mapped_region">boost::interprocess::mapped_region</a></code>
+          class reference.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_a_simple_example"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file.mapped_file_a_simple_example" title="A Simple Example">A
+        Simple Example</a>
+</h4></div></div></div>
+<p>
+          Let's reproduce the same example described in the shared memory section,
+          using memory mapped files. A server process creates a shared memory segment,
+          maps it and initializes all the bytes to a value. After that, a client
+          process opens the shared memory, maps it, and checks that the data is correctly
+          initialized::
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">file_mapping</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">mapped_region</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">fstream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstring</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstddef</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstdlib</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+   <span class="comment">//Define file names</span>
+   <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">FileName</span>  <span class="special">=</span> <span class="string">"file.bin"</span><span class="special">;</span>
+   <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">FileSize</span> <span class="special">=</span> <span class="number">10000</span><span class="special">;</span>
+
+   <span class="keyword">if</span><span class="special">(</span><span class="identifier">argc</span> <span class="special">==</span> <span class="number">1</span><span class="special">){</span> <span class="comment">//Parent process executes this</span>
+      <span class="special">{</span>  <span class="comment">//Create a file</span>
+         <span class="identifier">file_mapping</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="identifier">FileName</span><span class="special">);</span>
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">filebuf</span> <span class="identifier">fbuf</span><span class="special">;</span>
+         <span class="identifier">fbuf</span><span class="special">.</span><span class="identifier">open</span><span class="special">(</span><span class="identifier">FileName</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">in</span> <span class="special">|</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">out</span>
+                              <span class="special">|</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">trunc</span> <span class="special">|</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">binary</span><span class="special">);</span>
+         <span class="comment">//Set the size</span>
+         <span class="identifier">fbuf</span><span class="special">.</span><span class="identifier">pubseekoff</span><span class="special">(</span><span class="identifier">FileSize</span><span class="special">-</span><span class="number">1</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">beg</span><span class="special">);</span>
+         <span class="identifier">fbuf</span><span class="special">.</span><span class="identifier">sputc</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+      <span class="special">}</span>
+
+      <span class="comment">//Remove on exit</span>
+      <span class="keyword">struct</span> <span class="identifier">file_remove</span>
+      <span class="special">{</span>
+         <span class="identifier">file_remove</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">FileName</span><span class="special">)</span>
+            <span class="special">:</span> <span class="identifier">FileName_</span><span class="special">(</span><span class="identifier">FileName</span><span class="special">)</span> <span class="special">{}</span>
+         <span class="special">~</span><span class="identifier">file_remove</span><span class="special">(){</span> <span class="identifier">file_mapping</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="identifier">FileName_</span><span class="special">);</span> <span class="special">}</span>
+         <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">FileName_</span><span class="special">;</span>
+      <span class="special">}</span> <span class="identifier">remover</span><span class="special">(</span><span class="identifier">FileName</span><span class="special">);</span>
+
+      <span class="comment">//Create a file mapping</span>
+      <span class="identifier">file_mapping</span> <span class="identifier">m_file</span><span class="special">(</span><span class="identifier">FileName</span><span class="special">,</span> <span class="identifier">read_write</span><span class="special">);</span>
+
+      <span class="comment">//Map the whole file with read-write permissions in this process</span>
+      <span class="identifier">mapped_region</span> <span class="identifier">region</span><span class="special">(</span><span class="identifier">m_file</span><span class="special">,</span> <span class="identifier">read_write</span><span class="special">);</span>
+
+      <span class="comment">//Get the address of the mapped region</span>
+      <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">addr</span>       <span class="special">=</span> <span class="identifier">region</span><span class="special">.</span><span class="identifier">get_address</span><span class="special">();</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span>  <span class="special">=</span> <span class="identifier">region</span><span class="special">.</span><span class="identifier">get_size</span><span class="special">();</span>
+
+      <span class="comment">//Write all the memory to 1</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">memset</span><span class="special">(</span><span class="identifier">addr</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">size</span><span class="special">);</span>
+
+      <span class="comment">//Launch child process</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">s</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="number">0</span><span class="special">]);</span> <span class="identifier">s</span> <span class="special">+=</span> <span class="string">" child "</span><span class="special">;</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="number">0</span> <span class="special">!=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">system</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">()))</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="keyword">else</span><span class="special">{</span>  <span class="comment">//Child process executes this</span>
+      <span class="special">{</span>  <span class="comment">//Open the file mapping and map it as read-only</span>
+         <span class="identifier">file_mapping</span> <span class="identifier">m_file</span><span class="special">(</span><span class="identifier">FileName</span><span class="special">,</span> <span class="identifier">read_only</span><span class="special">);</span>
+
+         <span class="identifier">mapped_region</span> <span class="identifier">region</span><span class="special">(</span><span class="identifier">m_file</span><span class="special">,</span> <span class="identifier">read_only</span><span class="special">);</span>
+
+         <span class="comment">//Get the address of the mapped region</span>
+         <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">addr</span>       <span class="special">=</span> <span class="identifier">region</span><span class="special">.</span><span class="identifier">get_address</span><span class="special">();</span>
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span>  <span class="special">=</span> <span class="identifier">region</span><span class="special">.</span><span class="identifier">get_size</span><span class="special">();</span>
+
+         <span class="comment">//Check that memory was initialized to 1</span>
+         <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">mem</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">*&gt;(</span><span class="identifier">addr</span><span class="special">);</span>
+         <span class="keyword">for</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">size</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+            <span class="keyword">if</span><span class="special">(*</span><span class="identifier">mem</span><span class="special">++</span> <span class="special">!=</span> <span class="number">1</span><span class="special">)</span>
+               <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>   <span class="comment">//Error checking memory</span>
+      <span class="special">}</span>
+      <span class="special">{</span>  <span class="comment">//Now test it reading the file</span>
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">filebuf</span> <span class="identifier">fbuf</span><span class="special">;</span>
+         <span class="identifier">fbuf</span><span class="special">.</span><span class="identifier">open</span><span class="special">(</span><span class="identifier">FileName</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">in</span> <span class="special">|</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">binary</span><span class="special">);</span>
+
+         <span class="comment">//Read it to memory</span>
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">vect</span><span class="special">(</span><span class="identifier">FileSize</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>
+         <span class="identifier">fbuf</span><span class="special">.</span><span class="identifier">sgetn</span><span class="special">(&amp;</span><span class="identifier">vect</span><span class="special">[</span><span class="number">0</span><span class="special">],</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">streamsize</span><span class="special">(</span><span class="identifier">vect</span><span class="special">.</span><span class="identifier">size</span><span class="special">()));</span>
+
+         <span class="comment">//Check that memory was initialized to 1</span>
+         <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">mem</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">*&gt;(&amp;</span><span class="identifier">vect</span><span class="special">[</span><span class="number">0</span><span class="special">]);</span>
+         <span class="keyword">for</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">FileSize</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+            <span class="keyword">if</span><span class="special">(*</span><span class="identifier">mem</span><span class="special">++</span> <span class="special">!=</span> <span class="number">1</span><span class="special">)</span>
+               <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>   <span class="comment">//Error checking memory</span>
+      <span class="special">}</span>
+   <span class="special">}</span>
+
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_region"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region" title="More About Mapped Regions">More
+      About Mapped Regions</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region.mapped_region_one_class">One
+        Class To Rule Them All</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region.mapped_region_address_mapping">Mapping
+        Address In Several Processes</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region.mapped_region_fixed_address_mapping">Fixed
+        Address Mapping</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region.mapped_region_mapping_problems">Mapping
+        Offset And Address Limitations</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_region.mapped_region_one_class"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region.mapped_region_one_class" title="One Class To Rule Them All">One
+        Class To Rule Them All</a>
+</h4></div></div></div>
+<p>
+          As we have seen, both <code class="computeroutput"><span class="identifier">shared_memory_object</span></code>
+          and <code class="computeroutput"><span class="identifier">file_mapping</span></code> objects
+          can be used to create <code class="computeroutput"><span class="identifier">mapped_region</span></code>
+          objects. A mapped region created from a shared memory object or a file
+          mapping are the same class and this has many advantages.
+        </p>
+<p>
+          One can, for example, mix in STL containers mapped regions from shared
+          memory and memory mapped files. Libraries that only depend on mapped regions
+          can be used to work with shared memory or memory mapped files without recompiling
+          them.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_region.mapped_region_address_mapping"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region.mapped_region_address_mapping" title="Mapping Address In Several Processes">Mapping
+        Address In Several Processes</a>
+</h4></div></div></div>
+<p>
+          In the example we have seen, the file or shared memory contents are mapped
+          to the address space of the process, but the address was chosen by the
+          operating system.
+        </p>
+<p>
+          If several processes map the same file/shared memory, the mapping address
+          will be surely different in each process. Since each process might have
+          used its address space in a different way (allocation of more or less dynamic
+          memory, for example), there is no guarantee that the file/shared memory
+          is going to be mapped in the same address.
+        </p>
+<p>
+          If two processes map the same object in different addresses, this invalidates
+          the use of pointers in that memory, since the pointer (which is an absolute
+          address) would only make sense for the process that wrote it. The solution
+          for this is to use offsets (distance) between objects instead of pointers:
+          If two objects are placed in the same shared memory segment by one process,
+          <span class="bold"><strong>the address of each object will be different</strong></span>
+          in another process but <span class="bold"><strong>the distance between them
+          (in bytes) will be the same</strong></span>.
+        </p>
+<p>
+          So the first advice when mapping shared memory and memory mapped files
+          is to avoid using raw pointers, unless you know what you are doing. Use
+          offsets between data or relative pointers to obtain pointer functionality
+          when an object placed in a mapped region wants to point to an object placed
+          in the same mapped region. <span class="bold"><strong>Boost.Interprocess</strong></span>
+          offers a smart pointer called <code class="computeroutput"><a class="link" href="../boost/interprocess/offset_ptr.html" title="Class template offset_ptr">boost::interprocess::offset_ptr</a></code>
+          that can be safely placed in shared memory and that can be used to point
+          to another object placed in the same shared memory / memory mapped file.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_region.mapped_region_fixed_address_mapping"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region.mapped_region_fixed_address_mapping" title="Fixed Address Mapping">Fixed
+        Address Mapping</a>
+</h4></div></div></div>
+<p>
+          The use of relative pointers is less efficient than using raw pointers,
+          so if a user can succeed mapping the same file or shared memory object
+          in the same address in two processes, using raw pointers can be a good
+          idea.
+        </p>
+<p>
+          To map an object in a fixed address, the user can specify that address
+          in the <code class="computeroutput"><span class="identifier">mapped</span> <span class="identifier">region</span></code>'s
+          constructor:
+        </p>
+<pre class="programlisting"><span class="identifier">mapped_region</span> <span class="identifier">region</span> <span class="special">(</span> <span class="identifier">shm</span>                         <span class="comment">//Map shared memory</span>
+                     <span class="special">,</span> <span class="identifier">read_write</span>                  <span class="comment">//Map it as read-write</span>
+                     <span class="special">,</span> <span class="number">0</span>                           <span class="comment">//Map from offset 0</span>
+                     <span class="special">,</span> <span class="number">0</span>                           <span class="comment">//Map until the end</span>
+                     <span class="special">,</span> <span class="special">(</span><span class="keyword">void</span><span class="special">*)</span><span class="number">0x3F000000</span>           <span class="comment">//Map it exactly there</span>
+                     <span class="special">);</span>
+</pre>
+<p>
+          However, the user can't map the region in any address, even if the address
+          is not being used. The offset parameter that marks the start of the mapping
+          region is also limited. These limitations are explained in the next section.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_region.mapped_region_mapping_problems"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region.mapped_region_mapping_problems" title="Mapping Offset And Address Limitations">Mapping
+        Offset And Address Limitations</a>
+</h4></div></div></div>
+<p>
+          As mentioned, the user can't map the memory mappable object at any address
+          and it can specify the offset of the mappable object that is equivalent
+          to the start of the mapping region to an arbitrary value. Most operating
+          systems limit the mapping address and the offset of the mappable object
+          to a multiple of a value called <span class="bold"><strong>page size</strong></span>.
+          This is due to the fact that the <span class="bold"><strong>operating system
+          performs mapping operations over whole pages</strong></span>.
+        </p>
+<p>
+          If fixed mapping address is used, <span class="emphasis"><em>offset</em></span> and <span class="emphasis"><em>address</em></span>
+          parameters should be multiples of that value. This value is, typically,
+          4KB or 8KB for 32 bit operating systems.
+        </p>
+<pre class="programlisting"><span class="comment">//These might fail because the offset is not a multiple of the page size</span>
+<span class="comment">//and we are using fixed address mapping</span>
+<span class="identifier">mapped_region</span> <span class="identifier">region1</span><span class="special">(</span> <span class="identifier">shm</span>                   <span class="comment">//Map shared memory</span>
+                     <span class="special">,</span> <span class="identifier">read_write</span>            <span class="comment">//Map it as read-write</span>
+                     <span class="special">,</span> <span class="number">1</span>                     <span class="comment">//Map from offset 1</span>
+                     <span class="special">,</span> <span class="number">1</span>                     <span class="comment">//Map 1 byte</span>
+                     <span class="special">,</span> <span class="special">(</span><span class="keyword">void</span><span class="special">*)</span><span class="number">0x3F000000</span>     <span class="comment">//Aligned mapping address</span>
+                     <span class="special">);</span>
+
+<span class="comment">//These might fail because the address is not a multiple of the page size</span>
+<span class="identifier">mapped_region</span> <span class="identifier">region2</span><span class="special">(</span> <span class="identifier">shm</span>                   <span class="comment">//Map shared memory</span>
+                     <span class="special">,</span> <span class="identifier">read_write</span>            <span class="comment">//Map it as read-write</span>
+                     <span class="special">,</span> <span class="number">0</span>                     <span class="comment">//Map from offset 0</span>
+                     <span class="special">,</span> <span class="number">1</span>                     <span class="comment">//Map 1 byte</span>
+                     <span class="special">,</span> <span class="special">(</span><span class="keyword">void</span><span class="special">*)</span><span class="number">0x3F000001</span>     <span class="comment">//Not aligned mapping address</span>
+                     <span class="special">);</span>
+</pre>
+<p>
+          Since the operating system performs mapping operations over whole pages,
+          specifying a mapping <span class="emphasis"><em>size</em></span> or <span class="emphasis"><em>offset</em></span>
+          that are not multiple of the page size will waste more resources than necessary.
+          If the user specifies the following 1 byte mapping:
+        </p>
+<pre class="programlisting"><span class="comment">//Map one byte of the shared memory object.</span>
+<span class="comment">//A whole memory page will be used for this.</span>
+<span class="identifier">mapped_region</span> <span class="identifier">region</span> <span class="special">(</span> <span class="identifier">shm</span>                    <span class="comment">//Map shared memory</span>
+                     <span class="special">,</span> <span class="identifier">read_write</span>             <span class="comment">//Map it as read-write</span>
+                     <span class="special">,</span> <span class="number">0</span>                      <span class="comment">//Map from offset 0</span>
+                     <span class="special">,</span> <span class="number">1</span>                      <span class="comment">//Map 1 byte</span>
+                     <span class="special">);</span>
+</pre>
+<p>
+          The operating system will reserve a whole page that will not be reused
+          by any other mapping so we are going to waste <span class="bold"><strong>(page
+          size - 1)</strong></span> bytes. If we want to use efficiently operating system
+          resources, we should create regions whose size is a multiple of <span class="bold"><strong>page size</strong></span> bytes. If the user specifies the following
+          two mapped regions for a file with which has <code class="computeroutput"><span class="number">2</span><span class="special">*</span><span class="identifier">page_size</span></code>
+          bytes:
+        </p>
+<pre class="programlisting"><span class="comment">//Map the first quarter of the file</span>
+<span class="comment">//This will use a whole page</span>
+<span class="identifier">mapped_region</span> <span class="identifier">region1</span><span class="special">(</span> <span class="identifier">shm</span>                <span class="comment">//Map shared memory</span>
+                     <span class="special">,</span> <span class="identifier">read_write</span>         <span class="comment">//Map it as read-write</span>
+                     <span class="special">,</span> <span class="number">0</span>                  <span class="comment">//Map from offset 0</span>
+                     <span class="special">,</span> <span class="identifier">page_size</span><span class="special">/</span><span class="number">2</span>        <span class="comment">//Map page_size/2 bytes</span>
+                     <span class="special">);</span>
+
+<span class="comment">//Map the rest of the file</span>
+<span class="comment">//This will use a 2 pages</span>
+<span class="identifier">mapped_region</span> <span class="identifier">region2</span><span class="special">(</span> <span class="identifier">shm</span>                <span class="comment">//Map shared memory</span>
+                     <span class="special">,</span> <span class="identifier">read_write</span>         <span class="comment">//Map it as read-write</span>
+                     <span class="special">,</span> <span class="identifier">page_size</span><span class="special">/</span><span class="number">2</span>        <span class="comment">//Map from offset 0</span>
+                     <span class="special">,</span> <span class="number">3</span><span class="special">*</span><span class="identifier">page_size</span><span class="special">/</span><span class="number">2</span>      <span class="comment">//Map the rest of the shared memory</span>
+                     <span class="special">);</span>
+</pre>
+<p>
+          In this example, a half of the page is wasted in the first mapping and
+          another half is wasted in the second because the offset is not a multiple
+          of the page size. The mapping with the minimum resource usage would be
+          to map whole pages:
+        </p>
+<pre class="programlisting"><span class="comment">//Map the whole first half: uses 1 page</span>
+<span class="identifier">mapped_region</span> <span class="identifier">region1</span><span class="special">(</span> <span class="identifier">shm</span>                <span class="comment">//Map shared memory</span>
+                     <span class="special">,</span> <span class="identifier">read_write</span>         <span class="comment">//Map it as read-write</span>
+                     <span class="special">,</span> <span class="number">0</span>                  <span class="comment">//Map from offset 0</span>
+                     <span class="special">,</span> <span class="identifier">page_size</span>          <span class="comment">//Map a full page_size</span>
+                     <span class="special">);</span>
+
+<span class="comment">//Map the second half: uses 1 page</span>
+<span class="identifier">mapped_region</span> <span class="identifier">region2</span><span class="special">(</span> <span class="identifier">shm</span>                <span class="comment">//Map shared memory</span>
+                     <span class="special">,</span> <span class="identifier">read_write</span>         <span class="comment">//Map it as read-write</span>
+                     <span class="special">,</span> <span class="identifier">page_size</span>          <span class="comment">//Map from offset 0</span>
+                     <span class="special">,</span> <span class="identifier">page_size</span>          <span class="comment">//Map the rest</span>
+                     <span class="special">);</span>
+</pre>
+<p>
+          How can we obtain the <span class="bold"><strong>page size</strong></span>? The
+          <code class="computeroutput"><span class="identifier">mapped_region</span></code> class has
+          a static function that returns that value:
+        </p>
+<pre class="programlisting"><span class="comment">//Obtain the page size of the system</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">page_size</span> <span class="special">=</span> <span class="identifier">mapped_region</span><span class="special">::</span><span class="identifier">get_page_size</span><span class="special">();</span>
+</pre>
+<p>
+          The operating system might also limit the number of mapped memory regions
+          per process or per system.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations" title="Limitations When Constructing Objects In Mapped Regions">Limitations
+      When Constructing Objects In Mapped Regions</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations.offset_pointer">Offset
+        pointers instead of raw pointers</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations.references_forbidden">References
+        forbidden</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations.virtuality_limitation">Virtuality
+        forbidden</a></span></dt>
+<dt><span class="section"><a href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations.statics_warning">Be
+        careful with static class members</a></span></dt>
+</dl></div>
+<p>
+        When two processes create a mapped region of the same mappable object, two
+        processes can communicate writing and reading that memory. A process could
+        construct a C++ object in that memory so that the second process can use
+        it. However, a mapped region shared by multiple processes, can't hold any
+        C++ object, because not every class is ready to be a process-shared object,
+        specially, if the mapped region is mapped in different address in each process.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations.offset_pointer"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations.offset_pointer" title="Offset pointers instead of raw pointers">Offset
+        pointers instead of raw pointers</a>
+</h4></div></div></div>
+<p>
+          When placing objects in a mapped region and mapping that region in different
+          address in every process, raw pointers are a problem since they are only
+          valid for the process that placed them there. To solve this, <span class="bold"><strong>Boost.Interprocess</strong></span> offers a special smart pointer
+          that can be used instead of a raw pointer. So user classes containing raw
+          pointers (or Boost smart pointers, that internally own a raw pointer) can't
+          be safely placed in a process shared mapped region. These pointers must
+          be replaced with offset pointers, and these pointers must point only to
+          objects placed in the same mapped region if you want to use these shared
+          objects from different processes.
+        </p>
+<p>
+          Of course, a pointer placed in a mapped region shared between processes
+          should only point to an object of that mapped region. Otherwise, the pointer
+          would point to an address that it's only valid one process and other processes
+          may crash when accessing to that address.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations.references_forbidden"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations.references_forbidden" title="References forbidden">References
+        forbidden</a>
+</h4></div></div></div>
+<p>
+          References suffer from the same problem as pointers (mainly because they
+          are implemented as pointers). However, it is not possible to create a fully
+          workable smart reference currently in C++ (for example, <code class="computeroutput"><span class="keyword">operator</span>
+          <span class="special">.()</span></code> can't be overloaded). Because
+          of this, if the user wants to put an object in shared memory, the object
+          can't have any (smart or not) reference as a member.
+        </p>
+<p>
+          References will only work if the mapped region is mapped in the same base
+          address in all processes sharing a memory segment. Like pointers, a reference
+          placed in a mapped region should only point to an object of that mapped
+          region.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations.virtuality_limitation"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations.virtuality_limitation" title="Virtuality forbidden">Virtuality
+        forbidden</a>
+</h4></div></div></div>
+<p>
+          The virtual table pointer and the virtual table are in the address space
+          of the process that constructs the object, so if we place a class with
+          a virtual function or virtual base class, the virtual pointer placed in
+          shared memory will be invalid for other processes and they will crash.
+        </p>
+<p>
+          This problem is very difficult to solve, since each process needs a different
+          virtual table pointer and the object that contains that pointer is shared
+          across many processes. Even if we map the mapped region in the same address
+          in every process, the virtual table can be in a different address in every
+          process. To enable virtual functions for objects shared between processes,
+          deep compiler changes are needed and virtual functions would suffer a performance
+          hit. That's why <span class="bold"><strong>Boost.Interprocess</strong></span> does
+          not have any plan to support virtual function and virtual inheritance in
+          mapped regions shared between processes.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations.statics_warning"></a><a class="link" href="sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations.statics_warning" title="Be careful with static class members">Be
+        careful with static class members</a>
+</h4></div></div></div>
+<p>
+          Static members of classes are global objects shared by all instances of
+          the class. Because of this, static members are implemented as global variables
+          in processes.
+        </p>
+<p>
+          When constructing a class with static members, each process has its own
+          copy of the static member, so updating a static member in one process does
+          not change the value of the static member the another process. So be careful
+          with these classes. Static members are not dangerous if they are just constant
+          variables initialized when the process starts, but they don't change at
+          all (for example, when used like enums) and their value is the same for
+          all processes.
+        </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="some_basic_explanations.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="offset_ptr.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

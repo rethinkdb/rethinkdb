@@ -1,0 +1,591 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Traits Class Requirements</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Boost.Regex">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="charT_concept.html" title="charT Requirements">
+<link rel="next" href="iterator_concepts.html" title="Iterator Requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="charT_concept.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="iterator_concepts.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_concepts_traits_concept">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_regex.ref.concepts.traits_concept"></a><a class="link" href="traits_concept.html" title="Traits Class Requirements">Traits Class
+        Requirements</a>
+</h4></div></div></div>
+<p>
+          There are two sets of requirements for the <code class="computeroutput"><span class="identifier">traits</span></code>
+          template argument to <a class="link" href="../basic_regex.html" title="basic_regex"><code class="computeroutput"><span class="identifier">basic_regex</span></code></a>: a mininal interface
+          (which is part of the regex standardization proposal), and an optional
+          Boost-specific enhanced interface.
+        </p>
+<h5>
+<a name="boost_regex.ref.concepts.traits_concept.h0"></a>
+          <span class="phrase"><a name="boost_regex.ref.concepts.traits_concept.minimal_requirements_"></a></span><a class="link" href="traits_concept.html#boost_regex.ref.concepts.traits_concept.minimal_requirements_">Minimal
+          requirements.</a>
+        </h5>
+<p>
+          In the following table <code class="computeroutput"><span class="identifier">X</span></code>
+          denotes a traits class defining types and functions for the character container
+          type <code class="computeroutput"><span class="identifier">charT</span></code>; <span class="emphasis"><em>u</em></span>
+          is an object of type <code class="computeroutput"><span class="identifier">X</span></code>;
+          <span class="emphasis"><em>v</em></span> is an object of type <code class="computeroutput"><span class="keyword">const</span>
+          <span class="identifier">X</span></code>; <span class="emphasis"><em>p</em></span> is
+          a value of type <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span></code>; <span class="emphasis"><em>I1</em></span> and <span class="emphasis"><em>I2</em></span>
+          are Input Iterators; <span class="emphasis"><em>c</em></span> is a value of type <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">charT</span></code>;
+          <span class="emphasis"><em>s</em></span> is an object of type <code class="computeroutput"><span class="identifier">X</span><span class="special">::</span><span class="identifier">string_type</span></code>;
+          <span class="emphasis"><em>cs</em></span> is an object of type <code class="computeroutput"><span class="keyword">const</span>
+          <span class="identifier">X</span><span class="special">::</span><span class="identifier">string_type</span></code>; <span class="emphasis"><em>b</em></span> is
+          a value of type <code class="computeroutput"><span class="keyword">bool</span></code>; <span class="emphasis"><em>I</em></span>
+          is a value of type <code class="computeroutput"><span class="keyword">int</span></code>; <span class="emphasis"><em>F1</em></span>
+          and <span class="emphasis"><em>F2</em></span> are values of type <code class="computeroutput"><span class="keyword">const</span>
+          <span class="identifier">charT</span><span class="special">*</span></code>;
+          and <span class="emphasis"><em>loc</em></span> is an object of type <code class="computeroutput"><span class="identifier">X</span><span class="special">::</span><span class="identifier">locale_type</span></code>.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Return type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Assertion / Note Pre / Post condition
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    X::char_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    charT
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The character container type used in the implementation of class
+                    template basic_regex.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    X::size_type
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    An unsigned integer type, capable of holding the length of a
+                    null-terminated string of charT's.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    X::string_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    std::basic_string&lt;charT&gt; or std::vector&lt;charT&gt;
+                  </p>
+                </td>
+<td>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    X::locale_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Implementation defined
+                  </p>
+                </td>
+<td>
+                  <p>
+                    A copy constructible type that represents the locale used by
+                    the traits class.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    X::char_class_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Implementation defined
+                  </p>
+                </td>
+<td>
+                  <p>
+                    A bitmask type representing a particular character classification.
+                    Multiple values of this type can be bitwise-or'ed together to
+                    obtain a new valid value.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    X::length(p)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    X::size_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Yields the smallest i such that p[i] == 0. Complexity is linear
+                    in i.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.translate(c)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    X::char_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns a character such that for any character d that is to
+                    be considered equivalent to c then v.translate(c) == v.translate(d).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.translate_nocase(c)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    X::char_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    For all characters C that are to be considered equivalent to
+                    c when comparisons are to be performed without regard to case,
+                    then v.translate_nocase(c) == v.translate_nocase(C).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.transform(F1, F2)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    X::string_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns a sort key for the character sequence designated by the
+                    iterator range [F1, F2) such that if the character sequence [G1,
+                    G2) sorts before the character sequence [H1, H2) then v.transform(G1,
+                    G2) &lt; v.transform(H1, H2).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.transform_primary(F1, F2)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    X::string_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns a sort key for the character sequence designated by the
+                    iterator range [F1, F2) such that if the character sequence [G1,
+                    G2) sorts before the character sequence [H1, H2) when character
+                    case is not considered then v.transform_primary(G1, G2) &lt;
+                    v.transform_primary(H1, H2).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.lookup_classname(F1, F2)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    X::char_class_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Converts the character sequence designated by the iterator range
+                    [F1,F2) into a bitmask type that can subsequently be passed to
+                    isctype. Values returned from lookup_classname can be safely
+                    bitwise or'ed together. Returns 0 if the character sequence is
+                    not the name of a character class recognized by X. The value
+                    returned shall be independent of the case of the characters in
+                    the sequence.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.lookup_collatename(F1, F2)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    X::string_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns a sequence of characters that represents the collating
+                    element consisting of the character sequence designated by the
+                    iterator range [F1, F2). Returns an empty string if the character
+                    sequence is not a valid collating element.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.isctype(c, v.lookup_classname (F1, F2))
+                  </p>
+                </td>
+<td>
+                  <p>
+                    bool
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns true if character c is a member of the character class
+                    designated by the iterator range [F1, F2), false otherwise.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.value(c, I)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    int
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the value represented by the digit c in base I if the
+                    character c is a valid digit in base I; otherwise returns -1.
+                    [Note: the value of I will only be 8, 10, or 16. -end note]
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    u.imbue(loc)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    X::locale_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Imbues u with the locale loc, returns the previous locale used
+                    by u if any.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.getloc()
+                  </p>
+                </td>
+<td>
+                  <p>
+                    X::locale_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the current locale used by v if any.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_regex.ref.concepts.traits_concept.h1"></a>
+          <span class="phrase"><a name="boost_regex.ref.concepts.traits_concept.additional_optional_requirements"></a></span><a class="link" href="traits_concept.html#boost_regex.ref.concepts.traits_concept.additional_optional_requirements">Additional
+          Optional Requirements</a>
+        </h5>
+<p>
+          The following additional requirements are strictly optional, however in
+          order for <a class="link" href="../basic_regex.html" title="basic_regex"><code class="computeroutput"><span class="identifier">basic_regex</span></code></a>
+          to take advantage of these additional interfaces, all of the following
+          requirements must be met; <a class="link" href="../basic_regex.html" title="basic_regex"><code class="computeroutput"><span class="identifier">basic_regex</span></code></a> will detect the presence
+          or absense of the member <code class="computeroutput"><span class="identifier">boost_extensions_tag</span></code>
+          and configure itself appropriately.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Result
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Assertion / Note Pre / Post condition
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    X::boost_extensions_tag
+                  </p>
+                </td>
+<td>
+                  <p>
+                    An unspecified type.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    When present, all of the extensions listed in this table must
+                    be present.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.syntax_type(c)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    regex_constants::syntax_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns a symbolic value of type regex_constants::syntax_type
+                    that signifies the meaning of character c within the regular
+                    expression grammar.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.escape_syntax_type(c)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    regex_constants::escape_syntax_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns a symbolic value of type regex_constants::escape_syntax_type,
+                    that signifies the meaning of character c within the regular
+                    expression grammar, when c has been preceded by an escape character.
+                    Precondition: if b is the character preceding c in the expression
+                    being parsed then: <code class="computeroutput"><span class="identifier">v</span><span class="special">.</span><span class="identifier">syntax_type</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span> <span class="special">==</span>
+                    <span class="identifier">syntax_escape</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.translate(c, b)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    X::char_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns a character d such that: for any character d that is
+                    to be considered equivalent to c then <code class="computeroutput"><span class="identifier">v</span><span class="special">.</span><span class="identifier">translate</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span><span class="keyword">false</span><span class="special">)==</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">translate</span><span class="special">(</span><span class="identifier">d</span><span class="special">,</span><span class="keyword">false</span><span class="special">)</span></code>. Likewise for all characters
+                    C that are to be considered equivalent to c when comparisons
+                    are to be performed without regard to case, then <code class="computeroutput"><span class="identifier">v</span><span class="special">.</span><span class="identifier">translate</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span><span class="keyword">true</span><span class="special">)==</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">translate</span><span class="special">(</span><span class="identifier">C</span><span class="special">,</span><span class="keyword">true</span><span class="special">)</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.toi(I1, I2, i)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    An integer type capable of holding either a charT or an int.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Behaves as follows: if <code class="computeroutput"><span class="identifier">p</span>
+                    <span class="special">==</span> <span class="identifier">q</span></code>
+                    or if <code class="computeroutput"><span class="special">*</span><span class="identifier">p</span></code>
+                    is not a digit character then returns -1. Otherwise performs
+                    formatted numeric input on the sequence [p,q) and returns the
+                    result as an int. Postcondition: either p == q or *p is a non-digit
+                    character.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.error_string(I)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    std::string
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns a human readable error string for the error condition
+                    i, where i is one of the values enumerated by type regex_constants::error_type.
+                    If the value <span class="emphasis"><em>I</em></span> is not recognized then returns
+                    the string "Unknown error" or a localized equivalent.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.tolower(c)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    X::char_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Converts c to lower case, used for Perl-style \l and \L formating
+                    operations.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    v.toupper(c)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    X::char_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Converts c to upper case, used for Perl-style \u and \U formating
+                    operations.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="charT_concept.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="iterator_concepts.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

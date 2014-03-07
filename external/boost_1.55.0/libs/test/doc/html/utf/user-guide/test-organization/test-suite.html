@@ -1,0 +1,93 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Test suite</title>
+<link rel="stylesheet" href="../../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../../index.html" title="Boost Test Library">
+<link rel="up" href="../test-organization.html" title="Test organization or the house that Jack built">
+<link rel="prev" href="auto-test-case-template.html" title="Test case template with automated registration">
+<link rel="next" href="manual-test-suite.html" title="Manually registered test suites">
+<script language="JavaScript1.2" src="../../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../../utf.html">The Unit Test Framework</a> &gt; <a href="../../user-guide.html">User's guide</a><a href="../../testing-tools.html">
+      &gt;
+      </a><a href="../test-organization.html">Test organization</a><a href="../fixture.html">
+      &gt;
+      </a><b>Test suite</b><a href="expected-failures.html">
+      &gt;
+      </a>
+</td>
+<td><div class="spirit-nav">
+<a href="auto-test-case-template.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="manual-test-suite.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.test-organization.test-suite"></a>Test suite</h5></div></div></div>
+<p class="first-line-indented">
+   If you consider test cases as leaves on the test tree, the test suite can be considered as branch and the master
+   test suite as a trunk. Unlike real trees though, our tree in many cases consists only of leaves attached
+   directly to the trunk. This is common for all test cases to reside directly in the master test suite. If you do
+   want to construct a hierarchical test suite structure the <acronym class="acronym">UTF</acronym> provides both manual and automated
+   test suite creation and registration facilities:
+  </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>
+     <a class="link" href="manual-test-suite.html" title="Manually registered test suites">Manually registered test suite</a>
+    </li>
+<li>
+    <a class="link" href="auto-test-suite.html" title="Test suites with automated registration">Test suite with automated registration</a>
+    </li>
+</ul></div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-organization.test-suite-registration-interface"></a>Test unit registration interface</h6></div></div></div>
+<p class="first-line-indented">
+    The <acronym class="acronym">UTF</acronym> models the notion of test case container - test suite - using class boost::unit_test::test_suite. For
+    complete class interface reference check advanced section of this documentation. Here you should only be
+    interested in a single test unit registration interface:
+   </p>
+<pre class="programlisting">void test_suite::add( test_unit* tc, counter_t expected_failures = 0, int timeout = 0 );</pre>
+<p class="first-line-indented">
+    The first parameter is a pointer to a newly created test unit. The second optional parameter -
+    expected_failures  - defines the number of test assertions that are expected to fail within the test unit. By
+    default no errors are  expected.
+   </p>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../../../../../doc/html/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+     Be careful when supplying a number of expected failures for test suites. By default the <acronym class="acronym">UTF</acronym> calculates the
+     number of expected failures in test suite as the sum of appropriate values in all test units that constitute
+     it. And it rarely makes sense to change this.
+    </p></td></tr>
+</table></div>
+<p class="first-line-indented">
+    The third optional parameter - timeout - defines the timeout value for the test unit. As of now the <acronym class="acronym">UTF</acronym>
+    isn't able to set a timeout for the test suite execution, so this parameter makes sense only for test case
+    registration. By default no timeout is set. See the method
+    <code class="computeroutput"><a class="link" href="../../../execution-monitor/reference.html#id270361-bb">boost::execution_monitor::execute</a></code> for more details about the timeout value.
+   </p>
+<p class="first-line-indented">
+    To register group of test units in one function call the boost::unit_test::test_suite provides another add
+    interface covered in the advanced section of this documentation.
+   </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="auto-test-case-template.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../test-organization.html"><img src="../../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="manual-test-suite.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

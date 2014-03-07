@@ -1,0 +1,43 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+
+[section Implicit System]
+
+[heading Description]
+
+This concept describes how to define a ODE that can be solved by an implicit routine.
+Implicit routines need not only the function /f(x,t)/ but also the Jacobian /df/dx = A(x,t)/.
+/A/ is a matrix and implicit routines need to solve the linear problem /Ax = b/.
+In odeint this is implemented with use of __ublas, therefore, the ['state_type] implicit routines is ['ublas::vector] and the matrix is defined as ['ublas::matrix].
+
+[heading Notation]
+
+[variablelist
+  [[`System`] [A type that is a model of `Implicit System`]]
+  [[`Time`] [A type representing the time of the ODE]]
+  [[`sys`] [An object of type `System`]]
+  [[`x`] [Object of type ublas::vector]]
+  [[`dxdt`] [Object of type ublas::vector]]
+  [[`jacobi`] [Object of type ublas::matrix]]
+  [[`t`] [Object of type `Time`]]
+]
+
+[heading Valid Expressions]
+
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Calculate ['dx/dt := f(x,t)]] [`sys.first( x , dxdt , t )`] [`void`] [Calculates `f(x,t)`, the result is stored into dxdt] ]
+  [[Calculate ['A := df/dx (x,t)]] [`sys.second( x , jacobi , t )`] [`void`] [Calculates the Jacobian of /f/ at /x/,/t/, the result is stored into `jacobi`] ]
+]
+
+[endsect]

@@ -1,0 +1,206 @@
+.. -*- mode: rst -*-
+
+====================================
+ Boost.Python_ TODO list |(logo)|__
+====================================
+
+.. |(logo)| image:: ../../boost.png
+   :alt: Boost
+   :class: boost-logo
+
+__ ../../index.htm
+
+.. _`Boost.Python`: index.html
+
+:copyright: Copyright David Abrahams 2003. Use, modification, and
+    distribution are subject to the Boost Software License, Version
+    1.0. (See accompanying file `LICENSE_1_0.txt`_ or copy at
+    http://www.boost.org/LICENSE_1_0.txt) 
+
+.. contents:: Outline
+
+.. _`LICENSE_1_0.txt`: ../../LICENSE_1_0.txt
+
+Class Support
+=============
+
+Base Class for Virtual Function Callback Wrappers
+-------------------------------------------------
+
+* http://aspn.activestate.com/ASPN/Mail/Message/c++-sig/1456023
+  (bottom of message)
+
+* http://mail.python.org/pipermail/c++-sig/2003-August/005297.html
+  (search for ``VirtualDispatcher``) describes how callback classes
+  can swap ownership relationship with their Python wrappers.
+
+* http://aspn.activestate.com/ASPN/Mail/Message/c++-sig/1860301
+  describes how this can also be used to considerably simplify
+  callback classes, solve some "dangling reference" problems, and
+  optimize the calling of non-overridden virtual functions.
+
+Miscellaneous
+=============
+
+Support for Enums with Duplicate Values
+---------------------------------------
+
+  Scott Snyder provided a patch; Dave was dissatisfied for some
+  reason, but maybe it should just be applied if no further action
+  occurs http://aspn.activestate.com/ASPN/Mail/Message/1824616.
+
+
+Functions
+=========
+
+Wrapping Function Objects
+--------------------------
+
+  It should be possible to wrap classes which support ``operator()``
+  as Python methods.
+
+  http://mail.python.org/pipermail/c++-sig/2003-August/005184.html
+
+
+"Best Match" Overload Resolution
+--------------------------------
+
+  Overload resolution currently depends on the order in which ``def``
+  calls are made (preferring later overloads).  This should be
+  changed so that the best-matching overload is always selected.
+  This may await Langbinding_ integration, since the technology is
+  already in Luabind_.
+
+  .. _Luabind: http://luabind.sf.net
+
+Type Converters
+===============
+
+Lvalue conversions from non-const ``PyTypeObject*``\ s
+------------------------------------------------------
+
+  http://aspn.activestate.com/ASPN/Mail/Message/C++-sig/1662717
+
+Converter Scoping
+-----------------
+
+  http://article.gmane.org/gmane.comp.python.c++/2044
+
+  If this gets done at all, it is going to happen in conjunction
+  with `Luabind integration`__.
+
+  __ Langbinding_
+
+
+``boost::tuple``
+----------------
+
+  Conversions to and from Python would be nice.  See
+  http://news.gmane.org/find-root.php?message_id=%3cuvewak97m.fsf%40boost%2dconsulting.com%3e
+
+``FILE*`` conversions
+---------------------
+
+  http://aspn.activestate.com/ASPN/Mail/Message/1411366
+
+``void*`` conversions
+---------------------
+
+  Pointers to *cv* ``void`` should be able to be passed and
+  returned as opaque values.
+
+Post-Call Actions
+-----------------
+
+  From-Python converters should be passed an extra reference to a
+  chain of post-call actions in the Policies object, where they can
+  register an additional action.  See the end of
+  http://aspn.activestate.com/ASPN/Mail/Message/C++-sig/1755435
+
+``PyUnicode`` Support
+---------------------
+
+  Review and possibly incorporate changes from `Lijun Qin`_ at
+  http://aspn.activestate.com/ASPN/Mail/Message/C++-sig/1771145
+
+  .. _`Lijun Qin`: mailto:qinlj-at-solidshare.com
+
+Ownership Metadata
+------------------
+
+  In the thread at
+  http://aspn.activestate.com/ASPN/Mail/Message/c++-sig/1860301,
+  Niall Douglas describes an idea for solving some "false"
+  dangling pointer/reference return errors by attaching data about
+  objects which lets the framework determine that the reference
+  count on an object doesn't tell us anything about the lifetime
+  of its data.
+
+Documentation
+=============
+
+Builtin Converters
+------------------
+
+  Builtin correspondences between builtiin Python types and C++
+  types need to be documented
+
+Internals
+---------
+
+  The structure of the framework needs to get documented; `Brett
+  Calcott`_ has promised to turn `this document`__ into something fit
+  for users
+
+  __ doc/internals.html
+
+  .. _`Brett Calcott`: mailto:brett.calcott-at-paradise.net.nz
+
+
+Large Scale
+===========
+
+Full Threading Support
+----------------------
+
+  Various people have proposed patches to improve threading support
+  in Boost.Python: see the thread at
+  http://aspn.activestate.com/ASPN/Mail/Message/1826544 and
+  http://aspn.activestate.com/ASPN/Mail/Message/1865842 for some
+  examples.  The only problem is that these are incomplete
+  solutions and verifying that we *do* have a complete solution is
+  going to take some time and attention.
+
+Langbinding
+-----------
+
+  This project to generalizes Boost.Python to work for other
+  languages, initially Lua.  See discussions at
+  http://lists.sourceforge.net/lists/listinfo/boost-langbinding
+
+Refactoring and Reorganization
+------------------------------
+
+  http://aspn.activestate.com/ASPN/Mail/Message/c++-sig/1673338
+
+NumArray Support Enhancements
+-----------------------------
+
+  Consider integrating the enhancements described in
+  http://aspn.activestate.com/ASPN/Mail/Message/C++-sig/1757092
+
+``PyFinalize`` Safety
+---------------------
+
+  Currently Boost.Python has several global (or function-static)
+  objects whose existence keeps reference counts from dropping to
+  zero until the Boost.Python shared object is unloaded.  This can
+  cause a crash because when the reference counts *do* go to zero,
+  there's no interpreter.  In order to make it safe to call
+  ``PyFinalize()`` we must register an ``atexit`` routine which
+  destroys these objects and releases all Python reference counts
+  so that Python can clean them up while there's still an
+  interpreter.  `Dirk Gerrits`_ has promised to do this job.
+
+  .. _`Dirk Gerrits`: mailto:dirk-at-gerrits.homeip.net
+

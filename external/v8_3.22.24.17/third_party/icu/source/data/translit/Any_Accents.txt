@@ -1,0 +1,53 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Any_Accents.txt
+# Generated from CLDR 
+#
+:: NFD (NFC) ;
+$pre = \← ;
+$post = \→ ;
+$pre \` $post ↔ \u0300 ; # COMBINING GRAVE ACCENT
+$pre \' $post ↔ \u0301 ; # COMBINING ACUTE ACCENT
+$pre \^ $post ↔ \u0302 ; # COMBINING CIRCUMFLEX ACCENT
+$pre \~ $post ↔ \u0303 ; # COMBINING TILDE
+$pre \- $post ↔ \u0304 ; # COMBINING MACRON
+$pre \" $post ↔ \u0308 ; # COMBINING DIAERESIS
+$pre \* $post ↔ \u030A ; # COMBINING RING ABOVE
+$pre \, $post ↔ \u0327 ; # COMBINING CEDILLA
+$pre '/' $post ↔ \u0338 ; # COMBINING LONG SOLIDUS OVERLAY
+$pre \. $post ↔ \u0323 ; # COMBINING DOT BELOW
+$pre AE $post ↔ Æ ; # LATIN CAPITAL LETTER AE
+$pre ae $post ↔ æ ; # LATIN SMALL LETTER AE
+$pre D $post ↔ Ð ; # LATIN CAPITAL LETTER ETH
+$pre d $post ↔ ð ; # LATIN SMALL LETTER ETH
+$pre O'/' $post ↔ Ø ; # LATIN CAPITAL LETTER O WITH STROKE
+$pre o'/' $post ↔ ø ; # LATIN SMALL LETTER O WITH STROKE
+$pre TH $post ↔ Þ ; # LATIN CAPITAL LETTER THORN
+$pre th $post ↔ þ ; # LATIN SMALL LETTER THORN
+$pre OE $post ↔ Œ ; # LATIN CAPITAL LIGATURE OE
+$pre oe $post ↔ œ ; # LATIN SMALL LIGATURE OE
+$pre ss $post ↔ ß ; # LATIN SMALL LETTER SHARP S
+$pre NG $post ↔ Ŋ ; # LATIN CAPITAL LETTER ENG
+$pre ng $post ↔ ŋ ; # LATIN SMALL LETTER ENG
+$pre T $post ↔ Θ ; # THETA
+$pre t $post ↔ θ ; # THETA
+$pre SH $post ↔ Ʃ ; # LATIN CAPITAL LETTER ESH
+$pre sh $post ↔ ʃ ; # LATIN SMALL LETTER ESH
+$pre ZH $post ↔ Ʒ ; # LATIN CAPITAL LETTER EZH
+$pre zh $post ↔ ʒ ; # LATIN SMALL LETTER EZH
+$pre U $post ↔ Ʊ ; # LATIN CAPITAL LETTER UPSILON
+$pre u $post ↔ ʊ ; # LATIN SMALL LETTER UPSILON
+$pre A $post ↔ Ə ; # LATIN CAPITAL LETTER SCHWA
+$pre a $post ↔ ə ; # LATIN SMALL LETTER SCHWA
+$pre O $post ↔ Ɔ ; # LATIN CAPITAL LETTER OPEN O
+$pre o $post ↔ ɔ ; # LATIN SMALL LETTER OPEN O
+$pre E $post ↔ Ɛ ; # LATIN CAPITAL LETTER OPEN E
+$pre e $post ↔ ɛ ; # LATIN SMALL LETTER OPEN E
+$pre '?' $post ↔ ʔ ; # LATIN LETTER GLOTTAL STOP
+$pre i $post ↔ ɪ ; # LATIN LETTER SMALL CAPITAL I
+$pre v $post ↔ ʌ ; # LATIN SMALL LETTER TURNED V
+:: NFC (NFD) ;

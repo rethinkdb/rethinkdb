@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.local_time.tz_database">
+  <title>Time Zone Database</title>
+
+  <link linkend="tz_database_intro">Introduction</link> --
+  <link linkend="tz_database_header">Header</link> --
+  <link linkend="tz_database_constr">Construction</link> --
+  <link linkend="tz_database_accessors">Accessors</link> --
+  <link linkend="tz_database_datafile">Data File Details</link>
+
+  <anchor id="tz_database_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    The local_time system depends on the ability to store time zone information. Our Time Zone Database (tz_database) is a means of permanently storing that data. The specifications for many time zones (377 at this time) are provided. These specifications are based on data found in the <ulink url="http://www.twinsun.com/tz/tz-link.htm">zoneinfo datebase</ulink>. The specifications are stored in the file:<screen>libs/date_time/data/date_time_zonespec.csv</screen>. While this file already contains specifications for many time zones, it's real intent is for the user to modify it by adding (or removing) time zones to fit their application. See <link linkend="tz_database_datafile">Data File Details</link> to learn how this is accomplished.
+  </para>
+
+  <anchor id="tz_database_header" />
+  <bridgehead renderas="sect3">Header</bridgehead>
+  <para>
+    The inclusion of a single header will bring in all boost::local_time types, functions, and IO operators.
+    <programlisting>#include "boost/date_time/local_time/local_time.hpp"
+    </programlisting>
+  </para>
+
+  <anchor id="tz_database_constr" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <para>
+    The only constructor takes no arguments and creates an empty database. It is up to the user to populate the database. This is typically achieved by loading the desired datafile, but can also be accomplished by means of the <code>add_record(...)</code> function (see the <link linkend="tz_database_accessors">Accessors table</link>). A <code>local_time::data_not_accessible</code> exception will be thrown if given zonespec file cannot be found. <code>local_time::bad_field_count</code> exception will be thrown if the number of fields in given zonespec file is incorrect.
+  </para>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>tz_database()</screen></entry>
+            <entry>Constructor creates an empty database.</entry>
+          </row>
+          <row>
+            <entry><screen>tz_database tz_db;</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>bool load_from_file(std::string)</screen></entry>
+            <entry>Parameter is path to a time zone spec csv file (see <link linkend="tz_database_datafile">Data File Details</link> for details on the contents of this file). This function populates the database with time zone records found in the zone spec file. A <code>local_time::data_not_accessible</code> exception will be thrown if given zonespec file cannot be found. <code>local_time::bad_field_count</code> exception will be thrown if the number of fields in given zonespec file is incorrect.</entry>
+          </row>
+          <row>
+            <entry><screen>tz_database tz_db;
+tz_db.load_from_file("./date_time_zonespec.csv");</screen>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="tz_database_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+            <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>bool tz_db.add_record(std::string id, 
+                      <link linkend="date_time.local_time.custom_time_zone_ptr">time_zone_ptr</link> tz);</screen></entry>
+            <entry>Adds a time_zone, or a posix_time_zone, to the database. ID is the region name for this zone (Ex: "America/Phoenix").</entry>
+          </row>
+          <row>
+            <entry><screen>time_zone_ptr zone(
+  new posix_time_zone("PST-8PDT,M4.1.0,M10.1.0")
+);
+std::string id("America/West_Coast");
+tz_db.add_record(id, zone);</screen>
+            </entry>
+          </row>
+            
+          <row>
+            <entry valign="top" morerows="1"><screen>time_zone_ptr 
+  tz_db.time_zone_from_region(string id);</screen></entry>
+            <entry>Returns a time_zone, via a time_zone_ptr, that matches the region listed in the data file. A null pointer is returned if no match is found.
+            </entry>
+          </row>
+          <row>
+            <entry><screen>time_zone_ptr nyc =
+  tz_db.time_zone_from_region("America/New_York");</screen>
+            </entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>vector&lt;string&gt; tz_db.region_list();</screen></entry>
+            <entry>Returns a vector of strings that holds all the region ID strings from the database.</entry>
+          </row>
+          <row>
+            <entry><screen>std::vector&lt;std::string&gt; regions;
+regions = tz_db.region_list();</screen>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="tz_database_datafile" />
+  <bridgehead renderas="sect3">Data File Details</bridgehead>
+  <link linkend="tz_database_fields">Field Description/Details</link>
+  <para>
+    The csv file containing the zone_specs used by the boost::local_time::tz_database is intended to be customized by the library user. When customizing this file (or creating your own) the file must follow a specific format.
+  </para>
+  <para>
+    This first line is expected to contain column headings and is therefore
+not processed by the tz_database.
+  </para>
+  <para>
+    Each record (line) must have eleven fields. Some of those fields can be empty. Every field (even empty ones) must be enclosed in double-quotes.
+    <literallayout>
+      Ex:
+      "America/Phoenix" &lt;- string enclosed in quotes
+      ""                &lt;- empty field
+    </literallayout>
+  </para>
+  <para>
+    Some fields represent a length of time. The format of these fields must be:
+    <literallayout>
+      "{+|-}hh:mm[:ss]" &lt;- length-of-time format
+    </literallayout>
+    Where the plus or minus is mandatory and the seconds are optional.
+  </para>
+  <para>
+    Since some time zones do not use daylight savings it is not always necessary for every field in a zone_spec to contain a value. All zone_specs must have at least ID and GMT offset. Zones that use daylight savings must have all fields filled except: STD ABBR, STD NAME, DST NAME. You should take note that DST ABBR is mandatory for zones that use daylight savings (see field descriptions for further details).
+  </para>
+
+  <anchor id="tz_database_fields" />
+  <bridgehead renderas="sect3">Field Description/Details</bridgehead>
+  <para>
+    <itemizedlist>
+      <listitem>
+        ID
+        <para>
+          Contains the identifying string for the zone_spec. Any string will do as long as it's unique. No two ID's can be the same.
+        </para>
+      </listitem>
+      <listitem>
+        STD ABBR
+      </listitem>
+      <listitem>
+        STD NAME
+      </listitem>
+      <listitem>
+        DST ABBR
+      </listitem>
+      <listitem>
+        DST NAME
+        <para>
+          These four are all the names and abbreviations used by the time zone being described. While any string will do in these fields, care should be taken. These fields hold the strings that will be used in the output of many of the local_time classes.
+        </para>
+      </listitem>
+      <listitem>
+        GMT offset
+        <para>
+          This is the number of hours added to utc to get the local time before any daylight savings adjustments are made. Some examples are: America/New_York offset -5 hours, and Africa/Cairo offset +2 hours. The format must follow the length-of-time format described above.
+        </para>
+      </listitem>
+      <listitem>
+        DST adjustment
+        <para>
+          The amount of time added to gmt_offset when daylight savings is in effect. The format must follow the length-of-time format described above.
+        </para>
+        <para>
+          NOTE: more rule capabilities are needed - this portion of the tz_database is incomplete
+        </para>
+      </listitem>
+      <listitem>
+        DST Start Date rule
+        <para>
+          This is a specially formatted string that describes the day of year in which the transition take place. It holds three fields of it's own, separated by semicolons.
+          <orderedlist>
+            <listitem>
+              The first field indicates the "nth" weekday of the month. The possible values are: 1 (first), 2 (second), 3 (third), 4 (fourth), 5 (fifth), and -1 (last).
+            </listitem>
+            <listitem>
+              The second field indicates the day-of-week from 0-6 (Sun=0).
+            </listitem>
+            <listitem>
+              The third field indicates the month from 1-12 (Jan=1).
+            </listitem>
+          </orderedlist>
+          Examples are: "-1;5;9"="Last Friday of September", "2;1;3"="Second Monday of March"
+        </para>
+      </listitem>
+      <listitem>
+        Start time
+        <para>
+          Start time is the number of hours past midnight, on the day of the start transition, the transition takes place. More simply put, the time of day the transition is made (in 24 hours format). The format must follow the length-of-time format described above with the exception that it must always be positive.
+        </para>
+      </listitem>
+      <listitem>
+        DST End date rule
+        <para>
+          See DST Start date rule. The difference here is this is the day daylight savings ends (transition to STD).
+        </para>
+      </listitem>
+      <listitem>
+        End time
+        <para>
+          Same as Start time.
+        </para>
+      </listitem>
+    </itemizedlist>
+  </para>
+
+</section>

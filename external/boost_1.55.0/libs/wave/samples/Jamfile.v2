@@ -1,0 +1,21 @@
+# Copyright Vladimir Prus 2004.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt
+# or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+project 
+    : requirements <hardcode-dll-paths>true
+    ;
+
+build-project advanced_hooks/build ;
+build-project cpp_tokens/build ;
+build-project lexed_tokens/build ;
+build-project list_includes/build ;
+build-project quick_start/build ;
+build-project waveidl/build ;
+build-project hannibal/build ;
+build-project real_positions/build ;
+build-project token_statistics/build ;
+build-project preprocess_pragma_output/build ;
+build-project custom_directives/build ;
+build-project emit_custom_line_directives/build ;

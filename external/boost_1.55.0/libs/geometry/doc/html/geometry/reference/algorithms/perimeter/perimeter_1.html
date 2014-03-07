@@ -1,0 +1,229 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>perimeter</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../perimeter.html" title="perimeter">
+<link rel="prev" href="../perimeter.html" title="perimeter">
+<link rel="next" href="perimeter_2_with_strategy.html" title="perimeter (with strategy)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../perimeter.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../perimeter.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="perimeter_2_with_strategy.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.algorithms.perimeter.perimeter_1"></a><a class="link" href="perimeter_1.html" title="perimeter">perimeter</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp56401416"></a>
+Calculates the perimeter of a geometry.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.perimeter.perimeter_1.h0"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.perimeter.perimeter_1.description"></a></span><a class="link" href="perimeter_1.html#geometry.reference.algorithms.perimeter.perimeter_1.description">Description</a>
+          </h6>
+<p>
+            The function perimeter returns the perimeter of a geometry, using the
+            default distance-calculation-strategy
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.perimeter.perimeter_1.h1"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.perimeter.perimeter_1.synopsis"></a></span><a class="link" href="perimeter_1.html#geometry.reference.algorithms.perimeter.perimeter_1.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">&gt;</span>
+<span class="identifier">default_length_result</span><span class="special">&lt;</span><span class="identifier">Geometry</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">perimeter</span><span class="special">(</span><span class="identifier">Geometry</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.perimeter.perimeter_1.h2"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.perimeter.perimeter_1.parameters"></a></span><a class="link" href="perimeter_1.html#geometry.reference.algorithms.perimeter.perimeter_1.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Concept
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      Geometry const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Geometry Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.perimeter.perimeter_1.h3"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.perimeter.perimeter_1.returns"></a></span><a class="link" href="perimeter_1.html#geometry.reference.algorithms.perimeter.perimeter_1.returns">Returns</a>
+          </h6>
+<p>
+            The calculated perimeter
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.perimeter.perimeter_1.h4"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.perimeter.perimeter_1.header"></a></span><a class="link" href="perimeter_1.html#geometry.reference.algorithms.perimeter.perimeter_1.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">perimeter</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.perimeter.perimeter_1.h5"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.perimeter.perimeter_1.conformance"></a></span><a class="link" href="perimeter_1.html#geometry.reference.algorithms.perimeter.perimeter_1.conformance">Conformance</a>
+          </h6>
+<p>
+            The function perimeter is not defined by OGC.
+          </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              PostGIS contains an algorithm with the same name and the same functionality.
+              See the <a href="http://www.postgis.org/docs/ST_Perimeter.html" target="_top">PostGIS
+              documentation</a>.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.perimeter.perimeter_1.h6"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.perimeter.perimeter_1.behavior"></a></span><a class="link" href="perimeter_1.html#geometry.reference.algorithms.perimeter.perimeter_1.behavior">Behavior</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Case
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Behavior
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      pointlike (e.g. point)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns zero
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      linear (e.g. linestring)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns zero
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      areal (e.g. polygon)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns the perimeter
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.perimeter.perimeter_1.h7"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.perimeter.perimeter_1.complexity"></a></span><a class="link" href="perimeter_1.html#geometry.reference.algorithms.perimeter.perimeter_1.complexity">Complexity</a>
+          </h6>
+<p>
+            Linear
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../perimeter.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../perimeter.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="perimeter_2_with_strategy.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

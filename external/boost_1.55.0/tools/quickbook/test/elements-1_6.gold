@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="1_6_elements" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>1.6 Elements</title>
+  <orderedlist>
+    <listitem>
+      <simpara>
+        item1
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        item2
+      </simpara>
+    </listitem>
+  </orderedlist>
+  <itemizedlist>
+    <listitem>
+      <simpara>
+        item1
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        item2
+      </simpara>
+    </listitem>
+  </itemizedlist>
+  <orderedlist>
+    <listitem>
+      <simpara>
+        Check that <emphasis role="bold">bold text</emphasis> isn't confused with
+        a list.
+      </simpara>
+    </listitem>
+  </orderedlist>
+  <simplesect><title>A <emphasis role="bold">simplesect</emphasis>!</title></simplesect>
+
+</article>

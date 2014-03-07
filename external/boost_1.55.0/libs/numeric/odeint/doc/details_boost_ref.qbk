@@ -1,0 +1,35 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section Using boost::ref]
+
+In odeint all system functions and observers are passed by value. For example, if you call a `do_step` method of a particular stepper or the integration functions, your system and your stepper will be passed by value:
+
+[c++]
+``
+rk4.do_step( sys , x , t , dt );   // pass sys by value
+``
+
+This behavior is suitable for most systems, especially if your system does not contain any data or only a few parameters. However, in some cases you might contain some large amount of data with you system function and passing them by value is not desired since the data would be copied.
+
+In such cases you can easily use `boost::ref` (and its relative `boost::cref`)
+which passes its argument by reference (or constant reference). odeint will
+unpack the arguments and no copying at all of your system object will take place:
+
+``
+rk4.do_step( boost::ref( sys ) , x , t , dt );   // pass sys as references
+``
+
+The same mechanism can be used for the observers in the integrate functions.
+
+[tip If you are using C++11 you can also use `std::ref` and `std::cref`]
+
+[endsect]

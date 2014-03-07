@@ -1,0 +1,102 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Type error_type</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../../xpressive/reference.html#header.boost.xpressive.regex_constants_hpp" title="Header &lt;boost/xpressive/regex_constants.hpp&gt;">
+<link rel="prev" href="match_flag_type.html" title="Type match_flag_type">
+<link rel="next" href="../regex_error.html" title="Struct regex_error">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="match_flag_type.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../xpressive/reference.html#header.boost.xpressive.regex_constants_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../regex_error.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.xpressive.regex_constants.error_type"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Type error_type</span></h2>
+<p>boost::xpressive::regex_constants::error_type</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../xpressive/reference.html#header.boost.xpressive.regex_constants_hpp" title="Header &lt;boost/xpressive/regex_constants.hpp&gt;">boost/xpressive/regex_constants.hpp</a>&gt;
+
+</span>
+
+<span class="keyword">enum</span> <span class="identifier">error_type</span> <span class="special">{</span> <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_collate">error_collate</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_ctype">error_ctype</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_escape">error_escape</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_subreg">error_subreg</a>, 
+                  <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_brack">error_brack</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_paren">error_paren</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_brace">error_brace</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_badbrace">error_badbrace</a>, 
+                  <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_range">error_range</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_space">error_space</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_badrepeat">error_badrepeat</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_complexity">error_complexity</a>, 
+                  <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_stack">error_stack</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_badref">error_badref</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_badmark">error_badmark</a>, 
+                  <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_badlookbehind">error_badlookbehind</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_badrule">error_badrule</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_badarg">error_badarg</a>, 
+                  <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_badattr">error_badattr</a>, <a class="link" href="error_type.html#boost.xpressive.regex_constants.error_type.error_internal">error_internal</a> <span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp256786344"></a><h2>Description</h2>
+<p>Error codes used by the <a class="link" href="../regex_error.html" title="Struct regex_error">regex_error</a> type </p>
+<div class="variablelist"><dl class="variablelist compact">
+<dt><span class="term"><code class="computeroutput">error_collate</code><a name="boost.xpressive.regex_constants.error_type.error_collate"></a></span></dt>
+<dd><p>The expression contained an invalid collating element name. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_ctype</code><a name="boost.xpressive.regex_constants.error_type.error_ctype"></a></span></dt>
+<dd><p>The expression contained an invalid character class name. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_escape</code><a name="boost.xpressive.regex_constants.error_type.error_escape"></a></span></dt>
+<dd><p>The expression contained an invalid escaped character, or a trailing escape. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_subreg</code><a name="boost.xpressive.regex_constants.error_type.error_subreg"></a></span></dt>
+<dd><p>The expression contained an invalid back-reference. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_brack</code><a name="boost.xpressive.regex_constants.error_type.error_brack"></a></span></dt>
+<dd><p>The expression contained mismatched [ and ]. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_paren</code><a name="boost.xpressive.regex_constants.error_type.error_paren"></a></span></dt>
+<dd><p>The expression contained mismatched ( and ). </p></dd>
+<dt><span class="term"><code class="computeroutput">error_brace</code><a name="boost.xpressive.regex_constants.error_type.error_brace"></a></span></dt>
+<dd><p>The expression contained mismatched { and }. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_badbrace</code><a name="boost.xpressive.regex_constants.error_type.error_badbrace"></a></span></dt>
+<dd><p>The expression contained an invalid range in a {} expression. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_range</code><a name="boost.xpressive.regex_constants.error_type.error_range"></a></span></dt>
+<dd><p>The expression contained an invalid character range, for example [b-a]. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_space</code><a name="boost.xpressive.regex_constants.error_type.error_space"></a></span></dt>
+<dd><p>There was insufficient memory to convert the expression into a finite state machine. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_badrepeat</code><a name="boost.xpressive.regex_constants.error_type.error_badrepeat"></a></span></dt>
+<dd><p>One of *?+{ was not preceded by a valid regular expression. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_complexity</code><a name="boost.xpressive.regex_constants.error_type.error_complexity"></a></span></dt>
+<dd><p>The complexity of an attempted match against a regular expression exceeded a pre-set level. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_stack</code><a name="boost.xpressive.regex_constants.error_type.error_stack"></a></span></dt>
+<dd><p>There was insufficient memory to determine whether the regular expression could match the specified character sequence. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_badref</code><a name="boost.xpressive.regex_constants.error_type.error_badref"></a></span></dt>
+<dd><p>An nested regex is uninitialized. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_badmark</code><a name="boost.xpressive.regex_constants.error_type.error_badmark"></a></span></dt>
+<dd><p>An invalid use of a named capture. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_badlookbehind</code><a name="boost.xpressive.regex_constants.error_type.error_badlookbehind"></a></span></dt>
+<dd><p>An attempt to create a variable-width look-behind assertion was detected. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_badrule</code><a name="boost.xpressive.regex_constants.error_type.error_badrule"></a></span></dt>
+<dd><p>An invalid use of a rule was detected. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_badarg</code><a name="boost.xpressive.regex_constants.error_type.error_badarg"></a></span></dt>
+<dd><p>An argument to an action was unbound. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_badattr</code><a name="boost.xpressive.regex_constants.error_type.error_badattr"></a></span></dt>
+<dd><p>Tried to read from an uninitialized attribute. </p></dd>
+<dt><span class="term"><code class="computeroutput">error_internal</code><a name="boost.xpressive.regex_constants.error_type.error_internal"></a></span></dt>
+<dd><p>An internal error has occurred. </p></dd>
+</dl></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="match_flag_type.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../xpressive/reference.html#header.boost.xpressive.regex_constants_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../regex_error.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

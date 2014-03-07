@@ -1,0 +1,128 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:examples Test and Example Programs]
+
+[h4 Test Programs]
+
+[*regress:]
+
+A regression test application that gives the matching/searching algorithms a 
+full workout. The presence of this program is your guarantee that the 
+library will behave as claimed - at least as far as those items tested 
+are concerned - if anyone spots anything that isn't being tested I'd be 
+glad to hear about it.
+
+Files:
+
+* [@../../test/regress/main.cpp main.cpp]
+* [@../../test/regress/basic_tests.cpp basic_tests.cpp]
+* [@../../test/regress/test_alt.cpp test_alt.cpp]
+* [@../../test/regress/test_anchors.cpp test_anchors.cpp]
+* [@../../test/regress/test_asserts.cpp test_asserts.cpp]
+* [@../../test/regress/test_backrefs.cpp test_backrefs.cpp]
+* [@../../test/regress/test_deprecated.cpp test_deprecated.cpp]
+* [@../../test/regress/test_emacs.cpp test_emacs.cpp]
+* [@../../test/regress/test_escapes.cpp test_escapes.cpp]
+* [@../../test/regress/test_grep.cpp test_grep.cpp]
+* [@../../test/regress/test_icu.cpp test_icu.cpp]
+* [@../../test/regress/test_locale.cpp test_locale.cpp]
+* [@../../test/regress/test_mfc.cpp test_mfc.cpp]
+* [@../../test/regress/test_non_greedy_repeats.cpp test_non_greedy_repeats.cpp]
+* [@../../test/regress/test_operators.cpp test_operators.cpp]
+* [@../../test/regress/test_overloads.cpp test_overloads.cpp]
+* [@../../test/regress/test_perl_ex.cpp test_perl_ex.cpp]
+* [@../../test/regress/test_replace.cpp test_replace.cpp]
+* [@../../test/regress/test_sets.cpp test_sets.cpp]
+* [@../../test/regress/test_simple_repeats.cpp test_simple_repeats.cpp]
+* [@../../test/regress/test_tricky_cases.cpp test_tricky_cases.cpp]
+* [@../../test/regress/test_unicode.cpp test_unicode.cpp]
+
+[*bad_expression_test:]
+
+Verifies that "bad" regular expressions don't cause the matcher to go into 
+infinite loops, but to throw an exception instead.
+
+Files: [@../../test/pathology/bad_expression_test.cpp bad_expression_test.cpp].
+
+[*recursion_test:]
+
+Verifies that the matcher can't overrun the stack (no matter what the expression).
+
+Files: [@../../test/pathology/recursion_test.cpp recursion_test.cpp].
+
+[*concepts:]
+
+Verifies that the library meets all documented concepts (a compile only test).
+
+Files: [@../../test/concepts/concept_check.cpp concept_check.cpp].
+
+[*captures_test:]
+
+Test code for captures.
+
+Files: [@../../test/captures/captures_test.cpp captures_test.cpp].
+
+[h4 Example programs]
+
+[*grep]
+
+A simple grep implementation, run with the -h command line option to find out its usage.
+
+Files: [@../../example/grep/grep.cpp grep.cpp]
+
+[*timer.exe]
+
+A simple interactive expression matching application, the results of all 
+matches are timed, allowing the programmer to optimize their regular expressions 
+where performance is critical.
+
+Files: [@../../example/timer/regex_timer.cpp regex_timer.cpp].
+
+[h4 Code snippets]
+
+The snippets examples contain the code examples used in the documentation:
+
+[@../../example/snippets/captures_example.cpp captures_example.cpp]: Demonstrates the use of captures.
+
+[@../../example/snippets/credit_card_example.cpp credit_card_example.cpp]: Credit card number formatting code.
+
+[@../../example/snippets/partial_regex_grep.cpp partial_regex_grep.cpp]: Search example using partial matches.
+
+[@../../example/snippets/partial_regex_match.cpp partial_regex_match.cpp]: regex_match example using partial matches.
+
+[@../../example/snippets/regex_iterator_example.cpp regex_iterator_example.cpp]: Iterating through a series of matches.
+
+[@../../example/snippets/regex_match_example.cpp regex_match_example.cpp]: ftp based regex_match example.
+
+[@../../example/snippets/regex_merge_example.cpp regex_merge_example.cpp]: regex_merge example: converts a C++ file to syntax highlighted HTML.
+
+[@../../example/snippets/regex_replace_example.cpp regex_replace_example.cpp]: regex_replace example: converts a C++ file to syntax highlighted HTML
+
+[@../../example/snippets/regex_search_example.cpp regex_search_example.cpp]: regex_search example: searches a cpp file for class definitions.
+
+[@../../example/snippets/regex_token_iterator_eg_1.cpp regex_token_iterator_eg_1.cpp]: split a string into a series of tokens.
+
+[@../../example/snippets/regex_token_iterator_eg_2.cpp regex_token_iterator_eg_2.cpp]: enumerate the linked URL's in a HTML file.
+
+The following are deprecated:
+
+[@../../example/snippets/regex_grep_example_1.cpp regex_grep_example_1.cpp]: regex_grep example 1: searches a cpp file for class definitions.
+
+[@../../example/snippets/regex_grep_example_2.cpp regex_grep_example_2.cpp]: regex_grep example 2: searches a cpp file for class definitions, using a global callback function.
+
+[@../../example/snippets/regex_grep_example_3.cpp regex_grep_example_3.cpp]: regex_grep example 2: searches a cpp file for class definitions, using a bound member function callback.
+
+[@../../example/snippets/regex_grep_example_4.cpp regex_grep_example_4.cpp]: regex_grep example 2: searches a cpp file for class definitions, using a C++ Builder closure as a callback.
+
+[@../../example/snippets/regex_split_example_1.cpp regex_split_example_1.cpp]: regex_split example: split a string into tokens.
+
+[@../../example/snippets/regex_split_example_2.cpp regex_split_example_2.cpp] : regex_split example: spit out linked URL's.
+
+[endsect]
+

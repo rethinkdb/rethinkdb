@@ -1,0 +1,304 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Qi advance Parser</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit Repository 0.2">
+<link rel="up" href="../primitive.html" title="Qi Parser Primitives">
+<link rel="prev" href="../primitive.html" title="Qi Parser Primitives">
+<link rel="next" href="flush_multi_pass.html" title="Qi flush_multi_pass parser">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../primitive.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../primitive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="flush_multi_pass.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit_repository.qi_components.primitive.advance"></a><a class="link" href="advance.html" title="Qi advance Parser">Qi
+        advance Parser</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit_repository.qi_components.primitive.advance.h0"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.advance.description"></a></span><a class="link" href="advance.html#spirit_repository.qi_components.primitive.advance.description">Description</a>
+        </h6>
+<p>
+          The <span class="emphasis"><em>Spirit.Qi</em></span> <code class="computeroutput"><span class="identifier">advance</span></code>
+          is a primitive parser component allowing the parser to skip (advance) through
+          a specified number of iterations without performing unnecessary work:
+        </p>
+<pre class="programlisting"><span class="identifier">advance</span><span class="special">(</span><span class="identifier">distance</span><span class="special">)</span>
+</pre>
+<p>
+          The most obvious existing alternative to this, the <code class="computeroutput"><span class="identifier">repeat</span></code>
+          directive, will cause the parser to advance one iterator at a time while
+          usually performing operations at each step. In some cases that work is
+          unnecessary, as in the case where large binary objects are being parsed.
+          Take, for example, the following binary data:
+        </p>
+<pre class="programlisting">00 00 00 01 77 fc b4 51 0a b3 b7 ... 1e 60 70 b6 00 00 01 00
+</pre>
+<p>
+          If the first 4 bytes are a little-endian 32-bit integer describing the
+          length of the subsequent data, but the data itself is not relevant to parsing,
+          then the repeat directive would cause all of the subsequent 16 MB of data
+          to be consumed one byte at a time while generating page faults or other
+          superfluous I/O. If the value is large, as it is in this case, the parser
+          becomes very slow.
+        </p>
+<pre class="programlisting"><span class="identifier">little_dword</span><span class="special">[</span><span class="identifier">_a</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="identifier">repeat</span><span class="special">(</span><span class="identifier">_a</span><span class="special">)[</span><span class="identifier">byte_</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="identifier">little_dword</span><span class="special">...</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">advance</span></code> parser component
+          solves this problem by performing as little work as possible to advance
+          the parser's iterator, and will optimize for the case of random-access
+          iterators by advancing directly to the desired relative iterator position.
+        </p>
+<pre class="programlisting"><span class="identifier">little_dword</span><span class="special">[</span><span class="identifier">_a</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="identifier">advance</span><span class="special">(</span><span class="identifier">_a</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="identifier">little_dword</span><span class="special">...</span>
+</pre>
+<h6>
+<a name="spirit_repository.qi_components.primitive.advance.h1"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.advance.header"></a></span><a class="link" href="advance.html#spirit_repository.qi_components.primitive.advance.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/repository/home/qi/primitive/advance.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">repository</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_advance</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="spirit_repository.qi_components.primitive.advance.h2"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.advance.synopsis"></a></span><a class="link" href="advance.html#spirit_repository.qi_components.primitive.advance.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><span class="identifier">advance</span><span class="special">(</span><span class="identifier">distance</span><span class="special">)</span>
+</pre>
+<h6>
+<a name="spirit_repository.qi_components.primitive.advance.h3"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.advance.parameters"></a></span><a class="link" href="advance.html#spirit_repository.qi_components.primitive.advance.parameters">Parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    'distance'
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The distance that the iterator shall be advanced
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit_repository.qi_components.primitive.advance.h4"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.advance.attribute"></a></span><a class="link" href="advance.html#spirit_repository.qi_components.primitive.advance.attribute">Attribute</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><span class="identifier">advance</span></code> component exposes
+          no attribute (the exposed attribute type is <code class="computeroutput"><span class="identifier">unused_type</span></code>):
+        </p>
+<pre class="programlisting"><span class="identifier">advance</span> <span class="special">--&gt;</span> <span class="identifier">unused</span>
+</pre>
+<h6>
+<a name="spirit_repository.qi_components.primitive.advance.h5"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.advance.example"></a></span><a class="link" href="advance.html#spirit_repository.qi_components.primitive.advance.example">Example</a>
+        </h6>
+<p>
+          The following example shows simple use cases of the <code class="computeroutput"><span class="identifier">advance</span></code>
+          component. We will illustrate its usage by generating parsers for some
+          binary data (for the full example code see <a href="../../../../../example/qi/advance.cpp" target="_top">advance.cpp</a>)
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.primitive.advance.h6"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.advance.prerequisites"></a></span><a class="link" href="advance.html#spirit_repository.qi_components.primitive.advance.prerequisites">Prerequisites</a>
+        </h6>
+<p>
+          In addition to the main header file needed to include the core components
+          implemented in <span class="emphasis"><em>Spirit.Qi</em></span> we add the header file needed
+          for the new <code class="computeroutput"><span class="identifier">advance</span></code> component.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">repository</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_advance</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        </p>
+<p>
+          In order to make the examples below more readable we introduce or use the
+          following namespaces.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">qi</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">repository</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">advance</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.primitive.advance.h7"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.advance.setting_up_the_grammar"></a></span><a class="link" href="advance.html#spirit_repository.qi_components.primitive.advance.setting_up_the_grammar">Setting
+          up the Grammar</a>
+        </h6>
+<p>
+          This is a very simple grammar that recognizes several fields of a binary
+          stream of data. There are two fields explicitly delimited by a field indicating
+          the number of bytes that are spanned. They are separated by a literal string.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">advance_grammar</span> <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">locals</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">advance_grammar</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">advance_grammar</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">start</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">byte_</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">eoi</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">labels</span><span class="special">;</span>
+
+        <span class="identifier">start</span>
+            <span class="special">=</span>  <span class="identifier">byte_</span>  <span class="special">[</span><span class="identifier">_a</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">]</span>
+            <span class="special">&gt;&gt;</span> <span class="identifier">advance</span><span class="special">(</span><span class="identifier">_a</span><span class="special">)</span>
+            <span class="special">&gt;&gt;</span> <span class="string">"boost"</span>
+            <span class="special">&gt;&gt;</span> <span class="identifier">byte_</span>  <span class="special">[</span><span class="identifier">_a</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">]</span>
+            <span class="special">&gt;&gt;</span> <span class="special">(</span><span class="identifier">advance</span><span class="special">(</span><span class="identifier">_a</span><span class="special">)</span> <span class="special">|</span> <span class="string">"qi"</span><span class="special">)</span> <span class="comment">// note alternative when advance fails</span>
+            <span class="special">&gt;&gt;</span> <span class="identifier">eoi</span>
+            <span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">locals</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">start</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          Note that the second binary field may either contain the number of specified
+          bytes, or the word "qi". If the <code class="computeroutput"><span class="identifier">advance</span></code>
+          parser component fails to advance the specified number of bytes before
+          reaching the end of input, it will fail and the parser will attempt to
+          descend into alternatives.
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.primitive.advance.h8"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.advance.parsing_a_correctly_delimited_string_of_data"></a></span><a class="link" href="advance.html#spirit_repository.qi_components.primitive.advance.parsing_a_correctly_delimited_string_of_data">Parsing
+          a Correctly-delimited String of Data</a>
+        </h6>
+<p>
+          The data below is correctly delimited and will thus result in a valid parse.
+          Note that both random-access and bidirectional iterators are used here.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">unsigned</span> <span class="keyword">char</span> <span class="keyword">const</span> <span class="identifier">alt1</span><span class="special">[]</span> <span class="special">=</span>
+<span class="special">{</span>
+    <span class="number">5</span><span class="special">,</span>                         <span class="comment">// number of bytes to advance</span>
+    <span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="number">4</span><span class="special">,</span> <span class="number">5</span><span class="special">,</span>             <span class="comment">// data to advance through</span>
+    <span class="char">'b'</span><span class="special">,</span> <span class="char">'o'</span><span class="special">,</span> <span class="char">'o'</span><span class="special">,</span> <span class="char">'s'</span><span class="special">,</span> <span class="char">'t'</span><span class="special">,</span>   <span class="comment">// word to parse</span>
+    <span class="number">2</span><span class="special">,</span>                         <span class="comment">// number of bytes to advance</span>
+    <span class="number">11</span><span class="special">,</span> <span class="number">12</span>                     <span class="comment">// more data to advance through</span>
+    <span class="comment">// eoi</span>
+<span class="special">};</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="identifier">alt1_string</span><span class="special">(</span><span class="identifier">alt1</span><span class="special">,</span> <span class="identifier">alt1</span> <span class="special">+</span> <span class="keyword">sizeof</span> <span class="identifier">alt1</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">alt1_list</span><span class="special">(</span><span class="identifier">alt1</span><span class="special">,</span> <span class="identifier">alt1</span> <span class="special">+</span> <span class="keyword">sizeof</span> <span class="identifier">alt1</span><span class="special">);</span>
+
+<span class="identifier">result</span> <span class="special">=</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">alt1_string</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">alt1_string</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span>
+        <span class="special">,</span> <span class="identifier">client</span><span class="special">::</span><span class="identifier">advance_grammar</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">const_iterator</span><span class="special">&gt;())</span>
+    <span class="special">?</span> <span class="string">"succeeded"</span> <span class="special">:</span> <span class="string">"failed"</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Parsing alt1 using random access iterator "</span> <span class="special">&lt;&lt;</span> <span class="identifier">result</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+<span class="identifier">result</span> <span class="special">=</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">alt1_list</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">alt1_list</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span>
+        <span class="special">,</span> <span class="identifier">client</span><span class="special">::</span><span class="identifier">advance_grammar</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span><span class="special">&gt;())</span>
+    <span class="special">?</span> <span class="string">"succeeded"</span> <span class="special">:</span> <span class="string">"failed"</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Parsing alt1 using bidirectional iterator "</span> <span class="special">&lt;&lt;</span> <span class="identifier">result</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.primitive.advance.h9"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.advance.parsing_the_alternative_representation"></a></span><a class="link" href="advance.html#spirit_repository.qi_components.primitive.advance.parsing_the_alternative_representation">Parsing
+          the Alternative Representation</a>
+        </h6>
+<p>
+          The data below is not correctly delimited, but will correctly parse because
+          the alternative word "qi" is available.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">unsigned</span> <span class="keyword">char</span> <span class="keyword">const</span> <span class="identifier">alt2</span><span class="special">[]</span> <span class="special">=</span>
+<span class="special">{</span>
+    <span class="number">2</span><span class="special">,</span>                         <span class="comment">// number of bytes to advance</span>
+    <span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span>                      <span class="comment">// data to advance through</span>
+    <span class="char">'b'</span><span class="special">,</span> <span class="char">'o'</span><span class="special">,</span> <span class="char">'o'</span><span class="special">,</span> <span class="char">'s'</span><span class="special">,</span> <span class="char">'t'</span><span class="special">,</span>   <span class="comment">// word to parse</span>
+    <span class="number">4</span><span class="special">,</span>                         <span class="comment">// number of bytes to advance</span>
+    <span class="char">'q'</span><span class="special">,</span> <span class="char">'i'</span>                   <span class="comment">// alternative (advance won't work)</span>
+    <span class="comment">// eoi</span>
+<span class="special">};</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="identifier">alt2_string</span><span class="special">(</span><span class="identifier">alt2</span><span class="special">,</span> <span class="identifier">alt2</span> <span class="special">+</span> <span class="keyword">sizeof</span> <span class="identifier">alt2</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">alt2_list</span><span class="special">(</span><span class="identifier">alt2</span><span class="special">,</span> <span class="identifier">alt2</span> <span class="special">+</span> <span class="keyword">sizeof</span> <span class="identifier">alt2</span><span class="special">);</span>
+
+<span class="identifier">result</span> <span class="special">=</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">alt2_string</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">alt2_string</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span>
+        <span class="special">,</span> <span class="identifier">client</span><span class="special">::</span><span class="identifier">advance_grammar</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">const_iterator</span><span class="special">&gt;())</span>
+    <span class="special">?</span> <span class="string">"succeeded"</span> <span class="special">:</span> <span class="string">"failed"</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Parsing alt2 using random access iterator "</span> <span class="special">&lt;&lt;</span> <span class="identifier">result</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+<span class="identifier">result</span> <span class="special">=</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">alt2_list</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">alt2_list</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span>
+        <span class="special">,</span> <span class="identifier">client</span><span class="special">::</span><span class="identifier">advance_grammar</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span><span class="special">&gt;())</span>
+    <span class="special">?</span> <span class="string">"succeeded"</span> <span class="special">:</span> <span class="string">"failed"</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Parsing alt2 using bidirectional iterator "</span> <span class="special">&lt;&lt;</span> <span class="identifier">result</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.primitive.advance.h10"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.advance.notes"></a></span><a class="link" href="advance.html#spirit_repository.qi_components.primitive.advance.notes">Notes</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><span class="identifier">advance</span></code> parser component
+          will fail unconditionally on negative values. It will never attempt to
+          advance the iterator in the reverse direction.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../primitive.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../primitive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="flush_multi_pass.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

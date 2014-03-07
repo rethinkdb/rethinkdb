@@ -1,0 +1,90 @@
+#==============================================================================
+#   Copyright (c) 2002 Joel de Guzman
+#   http://spirit.sourceforge.net/
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+#
+#  Phoenix examples boost-jam file
+#  Joel de Guzman [Sept 27, 2002]
+#
+
+subproject libs/spirit/phoenix/example ;
+
+SPIRIT_HEADER_INCLUDE ?= ../../../.. ;
+
+spirit-header-include = <sysinclude>$(SPIRIT_HEADER_INCLUDE) ;
+
+if $(SPIRIT_BOOST_HEADER_INCLUDE)
+{
+    spirit-header-include += <sysinclude>$(SPIRIT_BOOST_HEADER_INCLUDE) ;
+}
+
+#unit-test sample1
+#    : fundamental/sample1.cpp
+#    : $(spirit-header-include)
+#    :
+#    ;
+
+unit-test sample2
+    : fundamental/sample2.cpp
+    : $(spirit-header-include)
+    :
+    ;
+
+unit-test sample3
+    : fundamental/sample3.cpp
+    : $(spirit-header-include)
+    :
+    ;
+
+unit-test sample4
+    : fundamental/sample4.cpp
+    : $(spirit-header-include)
+    :
+    ;
+
+unit-test sample5
+    : fundamental/sample5.cpp
+    : $(spirit-header-include)
+    :
+    ;
+
+unit-test sample6
+    : fundamental/sample6.cpp
+    : $(spirit-header-include)
+    :
+    ;
+
+unit-test sample7
+    : fundamental/sample7.cpp
+    : $(spirit-header-include)
+    :
+    ;
+
+unit-test sample8
+    : fundamental/sample8.cpp
+    : $(spirit-header-include)
+    :
+    ;
+
+unit-test sample9
+    : fundamental/sample9.cpp
+    : $(spirit-header-include)
+    :
+    ;
+
+unit-test sample10
+    : fundamental/sample10.cpp
+    : $(spirit-header-include)
+    :
+    ;
+
+unit-test closures
+    : fundamental/closures.cpp
+    : $(spirit-header-include)
+    :
+    ;
+

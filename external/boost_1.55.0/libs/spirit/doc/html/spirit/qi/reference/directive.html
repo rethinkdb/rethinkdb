@@ -1,0 +1,85 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Parser Directives</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="char/char_class.html" title="Character Classification Parsers (alnum, digit, etc.)">
+<link rel="next" href="directive/lexeme.html" title="Parser Directive Inhibiting Skipping (lexeme[])">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="char/char_class.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="directive/lexeme.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.reference.directive"></a><a class="link" href="directive.html" title="Parser Directives">Parser Directives</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="directive/lexeme.html">Parser Directive
+          Inhibiting Skipping (<code class="computeroutput"><span class="identifier">lexeme</span><span class="special">[]</span></code>)</a></span></dt>
+<dt><span class="section"><a href="directive/no_skip.html">Parser Directive
+          Inhibiting Skipping Without Pre-skip (<code class="computeroutput"><span class="identifier">no_skip</span><span class="special">[]</span></code>)</a></span></dt>
+<dt><span class="section"><a href="directive/no_case.html">Parser Directive
+          Inhibiting Case Sensitivity (<code class="computeroutput"><span class="identifier">no_case</span><span class="special">[]</span></code>)</a></span></dt>
+<dt><span class="section"><a href="directive/omit.html">Parser Directive
+          Ignoring Attribute (<code class="computeroutput"><span class="identifier">omit</span><span class="special">[]</span></code>)</a></span></dt>
+<dt><span class="section"><a href="directive/raw.html">Directive for
+          Transduction Parsing (<code class="computeroutput"><span class="identifier">raw</span><span class="special">[]</span></code>)</a></span></dt>
+<dt><span class="section"><a href="directive/repeat.html">Repetition
+          Parser Directive (<code class="computeroutput"><span class="identifier">repeat</span><span class="special">[]</span></code>)</a></span></dt>
+<dt><span class="section"><a href="directive/matches.html">Directive
+          Testing if Parser Succeeded (<code class="computeroutput"><span class="identifier">matches</span><span class="special">[]</span></code>)</a></span></dt>
+<dt><span class="section"><a href="directive/skip.html">Parser Directive
+          Re-Establishing Skipping (<code class="computeroutput"><span class="identifier">skip</span><span class="special">[]</span></code>)</a></span></dt>
+<dt><span class="section"><a href="directive/hold.html">Parser Directive
+          for Attribute Commit/Rollback (<code class="computeroutput"><span class="identifier">hold</span><span class="special">[]</span></code>)</a></span></dt>
+<dt><span class="section"><a href="directive/as.html">Parser Directives
+          Forcing Atomic Assignment (<code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;,</span> <span class="identifier">as_string</span><span class="special">[],</span> <span class="identifier">as_wstring</span><span class="special">[]</span></code>)</a></span></dt>
+</dl></div>
+<p>
+          This module includes different directives usable to augment and parameterize
+          other parsers. It includes the <code class="computeroutput"><span class="identifier">no_case</span></code>,
+          <code class="computeroutput"><span class="identifier">lexeme</span></code>, <code class="computeroutput"><span class="identifier">omit</span></code>,
+          <code class="computeroutput"><span class="identifier">raw</span></code>, <code class="computeroutput"><span class="identifier">repeat</span></code>,
+          <code class="computeroutput"><span class="identifier">matches</span></code>, <code class="computeroutput"><span class="identifier">no_skip</span></code>, <code class="computeroutput"><span class="identifier">skip</span></code>,
+          <code class="computeroutput"><span class="identifier">hold</span></code>, <code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>, <code class="computeroutput"><span class="identifier">as_string</span></code>
+          and <code class="computeroutput"><span class="identifier">as_wstring</span></code> directives.
+        </p>
+<h6>
+<a name="spirit.qi.reference.directive.h0"></a>
+          <span class="phrase"><a name="spirit.qi.reference.directive.module_header"></a></span><a class="link" href="directive.html#spirit.qi.reference.directive.module_header">Module
+          Header</a>
+        </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/directive.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_directive</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Also, see <a class="link" href="../../structure/include.html" title="Include">Include Structure</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="char/char_class.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="directive/lexeme.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

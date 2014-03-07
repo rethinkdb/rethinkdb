@@ -1,0 +1,128 @@
+[article Inspect
+    [quickbook 1.3]
+    [authors [Dawes, Beman], [Prota, Gennaro], [Rivera, Rene]]
+    [copyright 2003 2006 Beman Dawes, Rene Rivera]
+    [category tool-build]
+    [id inspect]
+    [dirname inspect]
+    [purpose
+        The inspect program detects and reports several common errors and
+        Boost guideline violations.
+    ]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[/ QuickBook Document version 1.3 ]
+
+[/ Shortcuts ]
+
+[def :version: 3.1.14]
+
+[/ Images ]
+
+[def :NOTE:                 [$images/note.png]]
+[def :ALERT:                [$images/caution.png]]
+[def :DETAIL:               [$images/note.png]]
+[def :TIP:                  [$images/tip.png]]
+
+[/ Links ]
+
+[def :Boost:                [@http://www.boost.org Boost]]
+
+[section:intro Introduction]
+
+It is not uncommon for various common errors or [@http://www.boost.org/more/lib_guide.htm guideline violations] to creep into the Boost libraries. The inspect program detects and reports several common problems. It can be used to scan a proposed Boost submission to identify various failures.
+
+The inspect program is written in C++ to limit tool chain dependencies, and should be portable to any system.
+
+[endsect]
+
+[section:usage Using Inspect]
+
+The program is run in the directory to be scanned for errors. Sub-directories are also included in the scan. For best results in the generated reports one should run inspect from the Boost root directory. The program generates, by default, an HTML report with summaries and per library details of the infractions.
+
+If the first program argument is -help, a usage message is displayed, showing all available program options:
+
+[pre
+Usage: inspect \[-cvs\] \[-text\] \[-brief\] \[options...\]
+
+ Options:
+  -license
+  -copyright
+  -crlf
+  -end
+  -link
+  -path_name
+  -tab
+  -ascii
+  -apple_macro
+  -assert_macro
+  -minmax
+  -unnamed
+ default is all checks on; otherwise options specify desired checks
+]
+
+[section:options Options]
+
+There are two types of options allowed, ones that control general operation and kind of output produced, and the ones that indicate the checks to perform.
+
+[variablelist
+
+  [ [[^-cvs]]
+    [Only files and directories in the CVS tree of the current directory are scanned. Otherwise all files and sub-directories are included in the scan.] ]
+
+  [ [[^-text]]
+    [Generate plain text report instead of the default HTML.] ]
+
+  [ [[^-brief]]
+    [The default report style can be rather verobse. This generates a more condesed report, for example suitable to send as an email.] ]
+
+  [ [[^-license]]
+    [Checks for presense of approved license text.] ]
+
+  [ [[^-copyright]]
+    [Checks that files are copyright assigned to someone.] ]
+
+  [ [[^-crlf]]
+    [Checks that files use consistent EOL chanracters.] ]
+
+  [ [[^-end]]
+    [Checks that files end with a newline character.] ]
+
+  [ [[^-link]]
+    [Checks the validity of URIs in HTML files.] ]
+
+  [ [[^-path_name]]
+    [Checks for long names, and a variety of other file name problems that inhibit portability of files.] ]
+
+  [ [[^-tab]]
+    [Checks for files with tab characters.] ]
+
+  [ [[^-ascii]]
+    [Checks for files with non-ASCII characters.] ]
+
+  [ [[^-apple_macro]]
+    [Checks for conflicts with to Apple's unfortunately named debugging macros.] ]
+
+  [ [[^-assert_macro]]
+    [Checks for presence of C-style assert macros (instead of BOOST_ASSERT).] ]
+
+  [ [[^-minmax]]
+    [Checks for violations of the Boost min/max quidelines.] ]
+
+  [ [[^-unnamed]]
+    [Checks for unnamed namespace in C++ header files.] ]
+
+]
+
+[endsect]
+
+[endsect]
+
+[section:checks Checks]
+
+[endsect]

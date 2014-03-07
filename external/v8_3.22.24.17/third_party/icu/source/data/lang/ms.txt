@@ -1,0 +1,293 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2011 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ms.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ms.xml
+ */
+ms{
+    Keys{
+        calendar{"Kalendar"}
+        collation{"Kolasi"}
+        currency{"Mata wang"}
+        numbers{"Nombor"}
+        x{"Penggunaan Peribadi"}
+    }
+    Languages{
+        ab{"Abkhazia"}
+        af{"Afrikaans"}
+        am{"Amharic"}
+        ar{"Arab"}
+        as{"Assam"}
+        ay{"Aymara"}
+        az{"Azerbaijan"}
+        be{"Belarus"}
+        bg{"Bulgaria"}
+        bn{"Benggala"}
+        bo{"Tibet"}
+        bs{"Bosnia"}
+        ca{"Catalonia"}
+        cs{"Czech"}
+        cy{"Wales"}
+        da{"Denmark"}
+        de{"Jerman"}
+        de_AT{"Jerman Austria"}
+        de_CH{"Jerman Halus Switzerland"}
+        dv{"Divehi"}
+        dz{"Dzongkha"}
+        efi{"Efik"}
+        el{"Greek"}
+        en{"Inggeris"}
+        en_AU{"Inggeris Australia"}
+        en_CA{"Inggeris Kanada"}
+        en_GB{"Inggeris British"}
+        en_US{"Bahasa Inggeris AS"}
+        eo{"Esperanto"}
+        es{"Sepanyol"}
+        es_419{"Sepanyol Amerika Latin"}
+        es_ES{"Sepanyol Iberia"}
+        et{"Estonia"}
+        eu{"Basque"}
+        fa{"Parsi"}
+        fi{"Finland"}
+        fil{"Filipina"}
+        fj{"Fiji"}
+        fo{"Faroe"}
+        fr{"Perancis"}
+        fr_CA{"Perancis Kanada"}
+        fr_CH{"Perancis Switzerland"}
+        fy{"Frisian"}
+        ga{"Ireland"}
+        gd{"Scots Gaelic"}
+        gl{"Galicia"}
+        gn{"Guarani"}
+        gsw{"Jerman Switzerland"}
+        gu{"Gujerat"}
+        ha{"Hausa"}
+        haw{"Hawaii"}
+        he{"Ibrani"}
+        hi{"Hindi"}
+        hr{"Croat"}
+        ht{"Haiti"}
+        hu{"Hungary"}
+        hy{"Armenia"}
+        id{"Indonesia"}
+        ig{"Igbo"}
+        is{"Iceland"}
+        it{"Itali"}
+        ja{"Jepun"}
+        jv{"Jawa"}
+        ka{"Georgia"}
+        kk{"Kazakhstan"}
+        km{"Khmer"}
+        kn{"Kannada"}
+        ko{"Korea"}
+        ks{"Kashmiri"}
+        ku{"Kurdish"}
+        ky{"Kirghiz"}
+        la{"Latin"}
+        lb{"Luxembourg"}
+        ln{"Lingala"}
+        lo{"Laos"}
+        lt{"Lithuania"}
+        lv{"Latvia"}
+        mg{"Malagasy"}
+        mi{"Maori"}
+        mk{"Macedonia"}
+        ml{"Malayalam"}
+        mn{"Mongolia"}
+        mr{"Marathi"}
+        ms{"Bahasa Melayu"}
+        mt{"Malta"}
+        my{"Burma"}
+        nb{"Bokmål Norway"}
+        nd{"Ndebele Utara"}
+        ne{"Nepal"}
+        nl{"Belanda"}
+        nl_BE{"Flemish"}
+        nn{"Nynorsk Norway"}
+        nso{"Sotho Utara"}
+        ny{"Nyanja"}
+        or{"Oriya"}
+        os{"Ossete"}
+        pa{"Punjabi"}
+        pl{"Poland"}
+        ps{"Pashto"}
+        pt{"Portugis"}
+        pt_BR{"Portugis Brazil"}
+        pt_PT{"Portugis Iberia"}
+        qu{"Quechua"}
+        rm{"Romansh"}
+        rn{"Rundi"}
+        ro{"Romania"}
+        ru{"Rusia"}
+        rw{"Kinyarwanda"}
+        sa{"Sanskrit"}
+        sd{"Sindhi"}
+        se{"Sami Utara"}
+        sg{"Sango"}
+        sh{"SerboCroatia"}
+        si{"Sinhala"}
+        sk{"Slovak"}
+        sl{"Slovenia"}
+        sm{"Samoa"}
+        sn{"Shona"}
+        so{"Somali"}
+        sq{"Albania"}
+        sr{"Serbia"}
+        ss{"Swati"}
+        st{"Sotho Selatan"}
+        su{"Sunda"}
+        sv{"Sweden"}
+        sw{"Swahili"}
+        ta{"Tamil"}
+        te{"Telugu"}
+        tet{"Tetum"}
+        tg{"Tajik"}
+        th{"Thai"}
+        ti{"Tigrinya"}
+        tk{"Turkmen"}
+        tn{"Tswana"}
+        to{"Tonga"}
+        tpi{"Tok Pisin"}
+        tr{"Turki"}
+        ts{"Tsonga"}
+        tt{"Tatar"}
+        ty{"Tahiti"}
+        ug{"Uighur"}
+        uk{"Ukraine"}
+        und{"Bahasa Tidak Diketahui"}
+        ur{"Urdu"}
+        uz{"Uzbekistan"}
+        ve{"Venda"}
+        vi{"Vietnam"}
+        wo{"Wolof"}
+        xh{"Xhosa"}
+        yo{"Yoruba"}
+        zh{"Cina"}
+        zh_Hans{"Cina Ringkas"}
+        zh_Hant{"Cina Tradisional"}
+        zu{"Zulu"}
+        zxx{"Tidak kandungan linguistik"}
+    }
+    LanguagesShort{
+        az{"Azeri"}
+    }
+    Scripts{
+        Arab{"Arab"}
+        Armn{"Armenia"}
+        Beng{"Bengali"}
+        Bopo{"Bopomofo"}
+        Brai{"Braille"}
+        Cyrl{"Cyril"}
+        Deva{"Devanagari"}
+        Ethi{"Ethiopia"}
+        Geor{"Georgia"}
+        Grek{"Greek"}
+        Gujr{"Gujarat"}
+        Guru{"Gurmukhi"}
+        Hang{"Hangul"}
+        Hani{"Han"}
+        Hans{"Ringkas"}
+        Hant{"Tradisional"}
+        Hebr{"Ibrani"}
+        Hira{"Hiragana"}
+        Jpan{"Jepun"}
+        Kana{"Katakana"}
+        Khmr{"Khmer"}
+        Knda{"Kannada"}
+        Kore{"Korea"}
+        Laoo{"Lao"}
+        Latn{"Latin"}
+        Mlym{"Malayalam"}
+        Mong{"Mongolia"}
+        Mymr{"Myammar"}
+        Orya{"Oriya"}
+        Sinh{"Sinhala"}
+        Taml{"Tamil"}
+        Telu{"Telugu"}
+        Thaa{"Thaana"}
+        Thai{"Thai"}
+        Tibt{"Tibet"}
+        Zsym{"Simbol"}
+        Zxxx{"Tidak ditulis"}
+        Zyyy{"Biasa"}
+        Zzzz{"Skrip Tidak Diketahui"}
+    }
+    Types{
+        calendar{
+            buddhist{"Kalendar Buddha"}
+            chinese{"Kalendar Cina"}
+            coptic{"Kalendar Qibti"}
+            ethiopic{"Kalendar Ethiopia"}
+            ethiopic-amete-alem{"Kalendar Amete Alem Ethiopia"}
+            gregorian{"Kalendar Gregory"}
+            hebrew{"Kalendar Ibrani"}
+            indian{"Kalendar Kebangsaan India"}
+            islamic{"Kalendar Islam"}
+            islamic-civil{"Kalendar Sivil Islam"}
+            japanese{"Kalendar Jepun"}
+            persian{"Kalendar Parsi"}
+            roc{"Kalendar Minguo"}
+        }
+        collation{
+            big5han{"Aturan Isih Cina Tradisional - Big5"}
+            dictionary{"Aturan Isih Kamus"}
+            direct{"Aturan Isih Langsung"}
+            ducet{"Aturan Isih Unikod Lalai"}
+            gb2312han{"Aturan Isih Bahasa Cina Ringkas - GB2312"}
+            phonebook{"Aturan Isih Buku Telefon"}
+            pinyin{"Aturan Isih Pinyin"}
+            reformed{"Aturan Isih Pembaharuan"}
+            search{"Carian Tujuan Umum"}
+            stroke{"Aturan Isih Coretan"}
+            traditional{"Aturan Isih Tradisional"}
+            unihan{"Aturan Isih Coretan Radikal"}
+        }
+        numbers{
+            arab{"Digit Indi-Arab"}
+            arabext{"Digit Indi Arab Lanjutan"}
+            armn{"Angka Armenia"}
+            armnlow{"Angka Kecil Armenia"}
+            beng{"Digit Bengali"}
+            deva{"Digit Devanagari"}
+            ethi{"Angka Ethiopia"}
+            fullwide{"Digit Lebar Penuh"}
+            geor{"Angka Georgia"}
+            grek{"Angka Greek"}
+            greklow{"Angka Huruf Kecil Greek"}
+            gujr{"Digit Gujarat"}
+            guru{"Digit Gurmukhi"}
+            hanidec{"Angka Perpuluhan Cina"}
+            hans{"Angka Cina Ringkas"}
+            hansfin{"Angka Kewangan Cina Ringkas"}
+            hant{"Angka Cina Tradisional"}
+            hantfin{"Angka Kewangan Cina Tradisional"}
+            hebr{"Angka Ibrani"}
+            jpan{"Angka Jepun"}
+            jpanfin{"Angka Kewangan Jepun"}
+            khmr{"Digit Khmer"}
+            knda{"Digit Kannada"}
+            laoo{"Digit Lao"}
+            latn{"Digit Barat"}
+            mlym{"Digit Malayalam"}
+            mong{"Digit Mongolia"}
+            mymr{"Digit Myammar"}
+            orya{"Digit Oriya"}
+            roman{"Angka Roman"}
+            romanlow{"Angka Huruf Kecil Roman"}
+            taml{"Angka Tamil"}
+            telu{"Digit Telugu"}
+            thai{"Digit Thai"}
+            tibt{"Digit Tibet"}
+        }
+    }
+    Version{"2.0.59.53"}
+    localeDisplayPattern{
+        separator{","}
+    }
+}

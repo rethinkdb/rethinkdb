@@ -1,0 +1,134 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Boost.Tuple</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../adapted.html" title="Adapted models">
+<link rel="prev" href="boost_fusion.html" title="Boost.Fusion">
+<link rel="next" href="boost_polygon.html" title="Boost.Polygon">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_fusion.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../adapted.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost_polygon.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.adapted.boost_tuple"></a><a class="link" href="boost_tuple.html" title="Boost.Tuple">Boost.Tuple</a>
+</h4></div></div></div>
+<p>
+          Boost.Tuple tuples with arithmetic elements can be used as points within
+          Boost.Geometry
+        </p>
+<h6>
+<a name="geometry.reference.adapted.boost_tuple.h0"></a>
+          <span class="phrase"><a name="geometry.reference.adapted.boost_tuple.description"></a></span><a class="link" href="boost_tuple.html#geometry.reference.adapted.boost_tuple.description">Description</a>
+        </h6>
+<p>
+          Boost.Tuple fixed sized collections, such as boost::tuple&lt;double, double&gt;,
+          are (optionally) adapted to the Boost.Geometry point concept.
+        </p>
+<p>
+          Boost.Tuple pairs or triples might have mutually different types, such
+          as a boost::tuple&lt;float, double&gt;. Boost.Geometry reports the first
+          type as its <a class="link" href="../core/coordinate_type.html" title="coordinate_type">coordinate_type</a>.
+        </p>
+<p>
+          Boost.Geometry supports Boost.Tuple pairs, triples, quadruples, etc up
+          to tuples with 10 elements (though most algorithms do not support so many
+          dimensions).
+        </p>
+<p>
+          A tuple can be the point type used by the models linestring, polygon, segment,
+          box, and ring
+        </p>
+<h6>
+<a name="geometry.reference.adapted.boost_tuple.h1"></a>
+          <span class="phrase"><a name="geometry.reference.adapted.boost_tuple.model_of"></a></span><a class="link" href="boost_tuple.html#geometry.reference.adapted.boost_tuple.model_of">Model
+          of</a>
+        </h6>
+<p>
+          <a class="link" href="../concepts/concept_point.html" title="Point Concept">Point Concept</a>
+        </p>
+<h6>
+<a name="geometry.reference.adapted.boost_tuple.h2"></a>
+          <span class="phrase"><a name="geometry.reference.adapted.boost_tuple.header"></a></span><a class="link" href="boost_tuple.html#geometry.reference.adapted.boost_tuple.header">Header</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">boost_tuple</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<p>
+          The standard header <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          does not include this header.
+        </p>
+<h6>
+<a name="geometry.reference.adapted.boost_tuple.h3"></a>
+          <span class="phrase"><a name="geometry.reference.adapted.boost_tuple.example"></a></span><a class="link" href="boost_tuple.html#geometry.reference.adapted.boost_tuple.example">Example</a>
+        </h6>
+<p>
+          Shows how to use Boost.Tuple points in Boost.Geometry
+        </p>
+<p>
+          Working with Boost.Tuples in Boost.Geometry is straightforward and shown
+          in various other examples as well.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">polygon</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">boost_tuple</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_GEOMETRY_REGISTER_BOOST_TUPLE_CS</span><span class="special">(</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">)</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">polygon</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">poly</span><span class="special">;</span>
+    <span class="identifier">poly</span><span class="special">.</span><span class="identifier">outer</span><span class="special">().</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span><span class="number">1.0</span><span class="special">,</span> <span class="number">2.0</span><span class="special">));</span>
+    <span class="identifier">poly</span><span class="special">.</span><span class="identifier">outer</span><span class="special">().</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span><span class="number">6.0</span><span class="special">,</span> <span class="number">4.0</span><span class="special">));</span>
+    <span class="identifier">poly</span><span class="special">.</span><span class="identifier">outer</span><span class="special">().</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span><span class="number">5.0</span><span class="special">,</span> <span class="number">1.0</span><span class="special">));</span>
+    <span class="identifier">poly</span><span class="special">.</span><span class="identifier">outer</span><span class="special">().</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span><span class="number">1.0</span><span class="special">,</span> <span class="number">2.0</span><span class="special">));</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Area: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">area</span><span class="special">(</span><span class="identifier">poly</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Contains (1.5, 2.5): "</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">boolalpha</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">within</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span><span class="number">1.5</span><span class="special">,</span> <span class="number">2.5</span><span class="special">),</span> <span class="identifier">poly</span><span class="special">)</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Output:
+        </p>
+<pre class="programlisting">Area: 6.5
+Contains (1.5, 2.5): false
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_fusion.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../adapted.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost_polygon.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

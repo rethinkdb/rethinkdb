@@ -1,0 +1,514 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>basic_serial_port</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="basic_seq_packet_socket/shutdown_type.html" title="basic_seq_packet_socket::shutdown_type">
+<link rel="next" href="basic_serial_port/assign.html" title="basic_serial_port::assign">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_seq_packet_socket/shutdown_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_serial_port/assign.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.basic_serial_port"></a><a class="link" href="basic_serial_port.html" title="basic_serial_port">basic_serial_port</a>
+</h3></div></div></div>
+<p>
+        Provides serial port functionality.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="SerialPortService.html" title="Serial port service requirements">SerialPortService</a> <span class="special">=</span> <span class="identifier">serial_port_service</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">basic_serial_port</span> <span class="special">:</span>
+  <span class="keyword">public</span> <span class="identifier">basic_io_object</span><span class="special">&lt;</span> <span class="identifier">SerialPortService</span> <span class="special">&gt;,</span>
+  <span class="keyword">public</span> <span class="identifier">serial_port_base</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.basic_serial_port.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.basic_serial_port.types"></a></span><a class="link" href="basic_serial_port.html#boost_asio.reference.basic_serial_port.types">Types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/implementation_type.html" title="basic_serial_port::implementation_type"><span class="bold"><strong>implementation_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The underlying implementation type of I/O object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/lowest_layer_type.html" title="basic_serial_port::lowest_layer_type"><span class="bold"><strong>lowest_layer_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  A basic_serial_port is always the lowest layer.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/native_handle_type.html" title="basic_serial_port::native_handle_type"><span class="bold"><strong>native_handle_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The native representation of a serial port.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/native_type.html" title="basic_serial_port::native_type"><span class="bold"><strong>native_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use native_handle_type.) The native representation
+                  of a serial port.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/service_type.html" title="basic_serial_port::service_type"><span class="bold"><strong>service_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of the service that will be used to provide I/O operations.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.basic_serial_port.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.basic_serial_port.member_functions"></a></span><a class="link" href="basic_serial_port.html#boost_asio.reference.basic_serial_port.member_functions">Member
+        Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/assign.html" title="basic_serial_port::assign"><span class="bold"><strong>assign</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Assign an existing native serial port to the serial port.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/async_read_some.html" title="basic_serial_port::async_read_some"><span class="bold"><strong>async_read_some</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Start an asynchronous read.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/async_write_some.html" title="basic_serial_port::async_write_some"><span class="bold"><strong>async_write_some</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Start an asynchronous write.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/basic_serial_port.html" title="basic_serial_port::basic_serial_port"><span class="bold"><strong>basic_serial_port</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Construct a basic_serial_port without opening it.
+                </p>
+                <p>
+                  Construct and open a basic_serial_port.
+                </p>
+                <p>
+                  Construct a basic_serial_port on an existing native serial port.
+                </p>
+                <p>
+                  Move-construct a basic_serial_port from another.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/cancel.html" title="basic_serial_port::cancel"><span class="bold"><strong>cancel</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Cancel all asynchronous operations associated with the serial port.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/close.html" title="basic_serial_port::close"><span class="bold"><strong>close</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Close the serial port.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/get_io_service.html" title="basic_serial_port::get_io_service"><span class="bold"><strong>get_io_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the io_service associated with the object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/get_option.html" title="basic_serial_port::get_option"><span class="bold"><strong>get_option</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get an option from the serial port.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/is_open.html" title="basic_serial_port::is_open"><span class="bold"><strong>is_open</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Determine whether the serial port is open.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/lowest_layer.html" title="basic_serial_port::lowest_layer"><span class="bold"><strong>lowest_layer</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get a reference to the lowest layer.
+                </p>
+                <p>
+                  Get a const reference to the lowest layer.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/native.html" title="basic_serial_port::native"><span class="bold"><strong>native</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use native_handle().) Get the native serial port representation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/native_handle.html" title="basic_serial_port::native_handle"><span class="bold"><strong>native_handle</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the native serial port representation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/open.html" title="basic_serial_port::open"><span class="bold"><strong>open</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Open the serial port using the specified device name.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/operator_eq_.html" title="basic_serial_port::operator="><span class="bold"><strong>operator=</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Move-assign a basic_serial_port from another.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/read_some.html" title="basic_serial_port::read_some"><span class="bold"><strong>read_some</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Read some data from the serial port.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/send_break.html" title="basic_serial_port::send_break"><span class="bold"><strong>send_break</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Send a break sequence to the serial port.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/set_option.html" title="basic_serial_port::set_option"><span class="bold"><strong>set_option</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Set an option on the serial port.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/write_some.html" title="basic_serial_port::write_some"><span class="bold"><strong>write_some</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Write some data to the serial port.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.basic_serial_port.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.basic_serial_port.protected_member_functions"></a></span><a class="link" href="basic_serial_port.html#boost_asio.reference.basic_serial_port.protected_member_functions">Protected
+        Member Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/get_implementation.html" title="basic_serial_port::get_implementation"><span class="bold"><strong>get_implementation</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the underlying implementation of the I/O object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/get_service.html" title="basic_serial_port::get_service"><span class="bold"><strong>get_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the service associated with the I/O object.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.basic_serial_port.h3"></a>
+        <span class="phrase"><a name="boost_asio.reference.basic_serial_port.protected_data_members"></a></span><a class="link" href="basic_serial_port.html#boost_asio.reference.basic_serial_port.protected_data_members">Protected
+        Data Members</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/implementation.html" title="basic_serial_port::implementation"><span class="bold"><strong>implementation</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use get_implementation().) The underlying implementation
+                  of the I/O object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_serial_port/service.html" title="basic_serial_port::service"><span class="bold"><strong>service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use get_service().) The service associated with the
+                  I/O object.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        The <a class="link" href="basic_serial_port.html" title="basic_serial_port"><code class="computeroutput"><span class="identifier">basic_serial_port</span></code></a> class template
+        provides functionality that is common to all serial ports.
+      </p>
+<h5>
+<a name="boost_asio.reference.basic_serial_port.h4"></a>
+        <span class="phrase"><a name="boost_asio.reference.basic_serial_port.thread_safety"></a></span><a class="link" href="basic_serial_port.html#boost_asio.reference.basic_serial_port.thread_safety">Thread Safety</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Distinct</em></span> <span class="emphasis"><em>objects:</em></span> Safe.
+      </p>
+<p>
+        <span class="emphasis"><em>Shared</em></span> <span class="emphasis"><em>objects:</em></span> Unsafe.
+      </p>
+<h5>
+<a name="boost_asio.reference.basic_serial_port.h5"></a>
+        <span class="phrase"><a name="boost_asio.reference.basic_serial_port.requirements"></a></span><a class="link" href="basic_serial_port.html#boost_asio.reference.basic_serial_port.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/basic_serial_port.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_seq_packet_socket/shutdown_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_serial_port/assign.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

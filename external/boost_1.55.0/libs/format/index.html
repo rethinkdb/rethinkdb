@@ -1,0 +1,132 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+
+  <title>The Boost Format library</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+  <table border="1" bgcolor="#007F7F" cellpadding="2" summary="">
+    <tr>
+      <td bgcolor="#FFFFFF"><img src="../../boost.png" alt=
+      "boost.png (6897 bytes)" width="277" height="86"></td>
+
+      <td><a href="../../index.htm"><font face="Arial" color=
+      "#FFFFFF"><big>Home</big></font></a></td>
+
+      <td><a href="../libraries.htm"><font face="Arial" color=
+      "#FFFFFF"><big>Libraries</big></font></a></td>
+
+      <td><a href="http://www.boost.org/people/people.htm"><font face="Arial" color=
+      "#FFFFFF"><big>People</big></font></a></td>
+
+      <td><a href="http://www.boost.org/more/faq.htm"><font face="Arial" color=
+      "#FFFFFF"><big>FAQ</big></font></a></td>
+
+      <td><a href="../../more/index.htm"><font face="Arial" color=
+      "#FFFFFF"><big>More</big></font></a></td>
+    </tr>
+  </table>
+
+  <h1>Boost Format library</h1>
+
+  <p>The format library provides a class for formatting arguments according
+  to a format-string, as does printf, but with two major differences
+  :<br></p>
+
+  <ul>
+    <li>format sends the arguments to an internal stream, and so is entirely
+    type-safe and naturally supports all user-defined types.</li>
+
+    <li>The ellipsis (...) can not be used correctly in the strongly typed
+    context of format, and thus the function call with arbitrary arguments is
+    replaced by successive calls to an <i>argument feeding</i>
+    <b>operator%</b></li>
+  </ul>
+
+  <p><br>
+  You can find more Details in :</p>
+
+  <ul>
+    <li><a href="doc/format.html">Documentation</a> (HTML).</li>
+
+    <li>Headers
+
+      <ul>
+        <li><a href="../../boost/format.hpp">format.hpp</a> : user
+        frontend.</li>
+
+        <li><a href="../../boost/format/format_fwd.hpp">format_fwd.hpp</a> :
+        user forward declarations.</li>
+
+        <li><a href=
+        "../../boost/format/format_class.hpp">format_class.hpp</a> : the
+        class interface</li>
+
+        <li><a href=
+        "../../boost/format/format_implementation.hpp">format_implementation.hpp</a>:
+        implementation of the member functions</li>
+
+        <li><a href="../../boost/format/feed_args.hpp">feed_args.hpp</a> :
+        argument feeding helper functions</li>
+
+        <li><a href="../../boost/format/free_funcs.hpp">free_funcs.hpp</a> :
+        free functions definitions</li>
+
+        <li><a href="../../boost/format/parsing.hpp">parsing.hpp</a> : code
+        for parsing format-strings</li>
+
+        <li><a href="../../boost/format/group.hpp">group.hpp</a> : auxiliary
+        struct used to group arguments and manipulators</li>
+
+        <li><a href="../../boost/format/exceptions.hpp">exceptions.hpp</a> :
+        exceptions used by the library</li>
+
+        <li><a href="../../boost/format/internals.hpp">internals.hpp</a> :
+        auxiliary structs stream_format_state and format_item</li>
+      </ul>
+    </li>
+
+    <li>Sample programs
+
+      <ul>
+        <li>The program <a href=
+        "./example/sample_formats.cpp">sample_formats.cpp</a> demonstrates
+        simple uses of <b>format</b>.</li>
+
+        <li><a href=
+        "./example/sample_new_features.cpp">sample_new_features.cpp</a>
+        illustrates the few formatting features that were added to printf's
+        syntax such as simple positional directives, centered alignment, and
+        'tabulations'.</li>
+
+        <li><a href="./example/sample_advanced.cpp">sample_advanced.cpp</a>
+        demonstrates uses of advanced features, like reusing, and modifying,
+        format objects, etc..</li>
+
+        <li>And <a href=
+        "./example/sample_userType.cpp">sample_userType.cpp</a> shows the
+        behaviour of the <b>format</b> library on user-defined types.</li>
+      </ul>
+    </li>
+  </ul>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->02 December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38510" --></p>
+
+  <p><i>Copyright &copy; 2003 Samuel Krempp</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

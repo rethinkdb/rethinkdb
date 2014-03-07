@@ -1,0 +1,23 @@
+>example --report_level=detailed
+Running 3 test cases...
+test.cpp(8): error in "test_case1": some error 1
+test.cpp(23): error in "test_case2": some error 2
+
+Test suite "example" failed with:
+  1 assertion out of 3 passed
+  2 assertions out of 3 failed
+  1 test case out of 3 passed
+  2 test cases out of 3 failed
+
+  Test suite "test_suite" failed with:
+    2 assertions out of 2 failed
+    2 test cases out of 2 failed
+
+    Test case "test_case1" failed with:
+      1 assertion out of 1 failed
+
+    Test case "test_case2" failed with:
+      1 assertion out of 1 failed
+
+  Test case "test_case_on_file_scope" passed with:
+    1 assertion out of 1 passed

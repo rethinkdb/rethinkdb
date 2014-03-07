@@ -1,0 +1,291 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/vi.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/vi.xml
+ */
+vi{
+    Currencies{
+        AED{
+            "AED",
+            "Điram UAE",
+        }
+        BGN{
+            "BGN",
+            "Lép Bungari",
+        }
+        BRL{
+            "R$",
+            "BRL",
+        }
+        CHF{
+            "CHF",
+            "Franc Thụy sĩ",
+        }
+        CNY{
+            "CN¥",
+            "CNY",
+        }
+        EEK{
+            "Ekr",
+            "Crun Extônia",
+        }
+        EUR{
+            "€",
+            "Euro",
+        }
+        FJD{
+            "FJ$",
+            "Đô-la Fi-ji",
+        }
+        FRF{
+            "₣",
+            "Franc Pháp",
+        }
+        GBP{
+            "£",
+            "Bảng Anh",
+        }
+        GEL{
+            "GEL",
+            "Lari Georgia",
+        }
+        GHC{
+            "₵",
+            "Cedi Ghana (1979-2007)",
+        }
+        GHS{
+            "GH₵",
+            "Cedi Ghana",
+        }
+        GIP{
+            "GI£",
+            "Pao Gibraltar",
+        }
+        GNF{
+            "FG",
+            "Franc Guinea",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Syli Guinea",
+        }
+        GRD{
+            "₯",
+            "Drachma Hy Lạp",
+        }
+        GTQ{
+            "GTQ",
+            "Quetzal Guatemala",
+        }
+        GWP{
+            "GWP" /** ===  */,
+            "Peso Guinea-Bissau",
+        }
+        GYD{
+            "GY$",
+            "Đô-la Guyana",
+        }
+        HKD{
+            "HK$",
+            "Đô-la Hồng Kông",
+        }
+        HNL{
+            "HNL",
+            "Honduras Lempira",
+        }
+        HTG{
+            "HTG",
+            "Gourde Haiti",
+        }
+        HUF{
+            "Ft",
+            "Phôrin Hungari",
+        }
+        IDR{
+            "Rp",
+            "Rupia Inđônêxia",
+        }
+        IEP{
+            "IR£",
+            "Pao Ai-len",
+        }
+        ILP{
+            "I£",
+            "Pao Ixraen",
+        }
+        ILS{
+            "₪",
+            "Sêken Ixraen",
+        }
+        INR{
+            "Rs",
+            "Rupi Ấn Độ",
+        }
+        IQD{
+            "IQD",
+            "Dinar I-rắc",
+        }
+        IRR{
+            "IRR",
+            "Rial I-ran",
+        }
+        ITL{
+            "IT₤",
+            "Lia Ý",
+        }
+        JMD{
+            "J$",
+            "Đô la Jamaica",
+        }
+        JOD{
+            "JD",
+            "Dinar Jordan",
+        }
+        JPY{
+            "JP¥",
+            "Yên Nhật",
+        }
+        KES{
+            "Ksh",
+            "Si-ling Kê-ny-a",
+        }
+        KRW{
+            "₩",
+            "Won Hàn Quốc",
+        }
+        KZT{
+            "KZT",
+            "Kazakhstan Tenge",
+        }
+        LTL{
+            "Lt",
+            "Litat Lituani",
+        }
+        MAD{
+            "MAD",
+            "Điaham Marốc",
+        }
+        MTL{
+            "Lm",
+            "Lia xứ Man-tơ",
+        }
+        MXN{
+            "MX$",
+            "Peso Mêhicô",
+        }
+        MYR{
+            "RM",
+            "Rinhgit Malaixia",
+        }
+        NOK{
+            "Nkr",
+            "Curon Na Uy",
+        }
+        NZD{
+            "NZ$",
+            "Đô-la New Zealand",
+        }
+        PEN{
+            "S/.",
+            "Nuevo Sol Pêru",
+        }
+        PHP{
+            "₱",
+            "Peso Philíppin",
+        }
+        PKR{
+            "PKRs",
+            "Rupi Pakistan",
+        }
+        PLN{
+            "zł",
+            "Zloty Ba Lan",
+        }
+        RON{
+            "RON",
+            "Lây Rumani",
+        }
+        RSD{
+            "din.",
+            "Đina Xéc-bi",
+        }
+        RUB{
+            "RUB",
+            "Rúp Nga",
+        }
+        SAR{
+            "SR",
+            "Rian Ả rập Xêút",
+        }
+        SEK{
+            "Skr",
+            "Cua-ron Thuỵ Điển",
+        }
+        SGD{
+            "S$",
+            "Đô-la Singapore",
+        }
+        SIT{
+            "SIT" /** ===  */,
+            "Tôla Xlôvênia",
+        }
+        SKK{
+            "Sk",
+            "Cuaron Xlôvác",
+        }
+        THB{
+            "฿",
+            "Bạt Thái Lan",
+        }
+        TRL{
+            "TRL",
+            "Lia Thổ Nhĩ Kỳ",
+        }
+        TRY{
+            "TL",
+            "Lia Thổ Nhĩ Kỳ Mới",
+        }
+        TWD{
+            "NT$",
+            "Đô-la Đài Loan",
+        }
+        UAH{
+            "₴",
+            "Rúp U-crai-na",
+        }
+        USD{
+            "US$",
+            "Đô-la Mỹ",
+        }
+        VEB{
+            "VEB" /** ===  */,
+            "Bôliva Vênêduêla",
+        }
+        VND{
+            "₫",
+            "đồng",
+        }
+        XAU{
+            "XAU",
+            "Vàng",
+        }
+        XXX{
+            "XXX",
+            "Tiền tệ chưa biết hoặc không hợp lệ",
+        }
+        ZAR{
+            "R",
+            "Ran Nam Phi",
+        }
+    }
+    CurrencyUnitPatterns{
+        other{"{0} {1}"}
+    }
+    Version{"2.0.50.96"}
+}

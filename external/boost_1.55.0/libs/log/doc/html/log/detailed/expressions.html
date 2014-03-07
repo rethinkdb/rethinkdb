@@ -1,0 +1,1981 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Lambda expressions</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../detailed.html" title="Detailed features description">
+<link rel="prev" href="sink_backends.html" title="Sink backends">
+<link rel="next" href="attributes.html" title="Attributes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sink_backends.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../detailed.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="attributes.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.detailed.expressions"></a><a class="link" href="expressions.html" title="Lambda expressions">Lambda expressions</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.attr">Generic attribute placeholder</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.attr_keywords">Defining attribute
+        keywords</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.record">Record placeholder</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.message">Message text placeholders</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.predicates">Predicate expressions</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.formatters">Formatting expressions</a></span></dt>
+</dl></div>
+<p>
+        As it was pointed out in <a class="link" href="../tutorial.html" title="Tutorial">tutorial</a>, filters
+        and formatters can be specified as Lambda expressions with placeholders for
+        attribute values. This section will describe the placeholders that can be
+        used to build more complex Lambda expressions.
+      </p>
+<p>
+        There is also a way to specify the filter in the form of a string template.
+        This can be useful for initialization from the application settings. This
+        part of the library is described <a class="link" href="utilities.html#log.detailed.utilities.setup.filter_formatter" title="Filter and formatter parsers">here</a>.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.expressions.attr"></a><a class="link" href="expressions.html#log.detailed.expressions.attr" title="Generic attribute placeholder">Generic attribute placeholder</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.attr.fallback_policies">Customizing
+          fallback policy</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.attr.tags">Attribute tags
+          and custom formatting operators</a></span></dt>
+</dl></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.attr_fwd_hpp" title="Header &lt;boost/log/expressions/attr_fwd.hpp&gt;">boost/log/expressions/attr_fwd.hpp</a></code><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.attr_hpp" title="Header &lt;boost/log/expressions/attr.hpp&gt;">boost/log/expressions/attr.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          The <code class="computeroutput"><a class="link" href="../../boost/log/expressions/attr_idp25033160.html" title="Function template attr">attr</a></code>
+          placeholder represents an attribute value in template expressions. Given
+          the record view or a set of attribute values, the placeholder will attempt
+          to extract the specified attribute value from the argument upon invocation.
+          This can be roughly described with the following pseudo-code:
+        </p>
+<pre class="programlisting"><span class="identifier">logging</span><span class="special">::</span><span class="identifier">value_ref</span><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">TagT</span> <span class="special">&gt;</span> <span class="identifier">val</span> <span class="special">=</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">TagT</span> <span class="special">&gt;(</span><span class="identifier">name</span><span class="special">)(</span><span class="identifier">rec</span><span class="special">);</span>
+</pre>
+<p>
+          where <code class="computeroutput"><span class="identifier">val</span></code> is the <a class="link" href="utilities.html#log.detailed.utilities.value_ref" title="Value reference wrapper">reference</a> to the extracted
+          value, <code class="computeroutput"><span class="identifier">name</span></code> and <code class="computeroutput"><span class="identifier">T</span></code> are the attribute value <a class="link" href="attributes.html#log.detailed.attributes.related_components.attribute_name" title="Attribute names">name</a>
+          and type, <code class="computeroutput"><span class="identifier">TagT</span></code> is an optional
+          tag (we'll return to it in a moment) and <code class="computeroutput"><span class="identifier">rec</span></code>
+          is the log <a class="link" href="../detailed.html#log.detailed.core.record" title="Logging records">record view</a>
+          or <a class="link" href="attributes.html#log.detailed.attributes.related_components.attribute_value_set" title="Attribute value set">attribute
+          value set</a>. <code class="computeroutput"><span class="identifier">T</span></code> can
+          be a <a href="http://www.boost.org/doc/libs/release/libs/mpl/doc/index.html" target="_top">Boost.MPL</a>
+          type sequence with possible expected types of the value; the extraction
+          will succeed if the type of the value matches one of the types in the sequence.
+        </p>
+<p>
+          The <code class="computeroutput"><span class="identifier">attr</span></code> placeholder can
+          be used in <a href="http://www.boost.org/doc/libs/release/libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+          expressions, including the <code class="computeroutput"><span class="identifier">bind</span></code>
+          expression.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">bool</span> <span class="identifier">my_filter</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">value_ref</span><span class="special">&lt;</span> <span class="identifier">severity_level</span><span class="special">,</span> <span class="identifier">tag</span><span class="special">::</span><span class="identifier">severity</span> <span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">level</span><span class="special">,</span>
+               <span class="identifier">logging</span><span class="special">::</span><span class="identifier">value_ref</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">tag</span><span class="special">::</span><span class="identifier">tag_attr</span> <span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">tag</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">level</span> <span class="special">&gt;=</span> <span class="identifier">warning</span> <span class="special">||</span> <span class="identifier">tag</span> <span class="special">==</span> <span class="string">"IMPORTANT_MESSAGE"</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">init</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// ...</span>
+
+    <span class="keyword">namespace</span> <span class="identifier">phoenix</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">;</span>
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span><span class="special">(</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">my_filter</span><span class="special">,</span> <span class="identifier">severity</span><span class="special">.</span><span class="identifier">or_none</span><span class="special">(),</span> <span class="identifier">tag_attr</span><span class="special">.</span><span class="identifier">or_none</span><span class="special">()));</span>
+
+    <span class="comment">// ...</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          The placeholder can be used both in filters and formatters:
+        </p>
+<pre class="programlisting"><span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"Severity"</span><span class="special">)</span> <span class="special">&gt;=</span> <span class="number">5</span> <span class="special">&amp;&amp;</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="string">"Channel"</span><span class="special">)</span> <span class="special">==</span> <span class="string">"net"</span>
+<span class="special">);</span>
+
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"Severity"</span><span class="special">)</span>
+        <span class="special">&lt;&lt;</span> <span class="string">" ["</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="string">"Channel"</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"] "</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span>
+<span class="special">);</span>
+</pre>
+<p>
+          The call to <code class="computeroutput"><span class="identifier">set_filter</span></code>
+          registers a composite filter that consists of two elementary subfilters:
+          the first one checks the severity level, and the second checks the channel
+          name. The call to <code class="computeroutput"><span class="identifier">set_formatter</span></code>
+          installs a formatter that composes a string containing the severity level
+          and the channel name along with the message text.
+        </p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.expressions.attr.fallback_policies"></a><a class="link" href="expressions.html#log.detailed.expressions.attr.fallback_policies" title="Customizing fallback policy">Customizing
+          fallback policy</a>
+</h5></div></div></div>
+<p>
+            By default, when the requested attribute value is not found in the record,
+            <code class="computeroutput"><span class="identifier">attr</span></code> will return an empty
+            reference. In case of filters, this will result in <code class="computeroutput"><span class="keyword">false</span></code>
+            in any ordering expressions, and in case of formatters the output from
+            the placeholder will be empty. This behavior can be changed:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                To throw an exception (<code class="computeroutput"><a class="link" href="../../boost/log/missing_value.html" title="Class missing_value">missing_value</a></code>
+                or <code class="computeroutput"><a class="link" href="../../boost/log/invalid_type.html" title="Class invalid_type">invalid_type</a></code>,
+                depending on the reason of the failure). Add the <code class="computeroutput"><span class="identifier">or_throw</span></code>
+                modifier:
+              </li></ul></div>
+<pre class="programlisting"><span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"Severity"</span><span class="special">).</span><span class="identifier">or_throw</span><span class="special">()</span> <span class="special">&gt;=</span> <span class="number">5</span> <span class="special">&amp;&amp;</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="string">"Channel"</span><span class="special">).</span><span class="identifier">or_throw</span><span class="special">()</span> <span class="special">==</span> <span class="string">"net"</span>
+<span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                To use a default value instead. Add the <code class="computeroutput"><span class="identifier">or_default</span></code>
+                modifier with the desired default value:
+              </li></ul></div>
+<pre class="programlisting"><span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"Severity"</span><span class="special">).</span><span class="identifier">or_default</span><span class="special">(</span><span class="number">0</span><span class="special">)</span> <span class="special">&gt;=</span> <span class="number">5</span> <span class="special">&amp;&amp;</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="string">"Channel"</span><span class="special">).</span><span class="identifier">or_default</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">"general"</span><span class="special">))</span> <span class="special">==</span> <span class="string">"net"</span>
+<span class="special">);</span>
+</pre>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              You can also use the <a class="link" href="expressions.html#log.detailed.expressions.predicates.has_attr" title="Attribute presence filter"><code class="computeroutput"><span class="identifier">has_attr</span></code></a> predicate to implement
+              filters and formatters conditional on the attribute value presence.
+            </p></td></tr>
+</table></div>
+<p>
+            The default behavior is also accessible through the <code class="computeroutput"><span class="identifier">or_none</span></code>
+            modifier. The modified placeholders can be used in filters and formatters
+            just the same way as the unmodified ones.
+          </p>
+<p>
+            In <code class="computeroutput"><span class="identifier">bind</span></code> expressions,
+            the bound function object will still receive the <a class="link" href="utilities.html#log.detailed.utilities.value_ref" title="Value reference wrapper"><code class="computeroutput"><span class="identifier">value_ref</span></code></a>-wrapped values in
+            place of the modified <code class="computeroutput"><span class="identifier">attr</span></code>
+            placeholder. Even though both <code class="computeroutput"><span class="identifier">or_throw</span></code>
+            and <code class="computeroutput"><span class="identifier">or_default</span></code> modifiers
+            guarantee that the bound function will receive a filled reference, <a class="link" href="utilities.html#log.detailed.utilities.value_ref" title="Value reference wrapper"><code class="computeroutput"><span class="identifier">value_ref</span></code></a>
+            is still needed if the value type is specified as a type sequence. Also,
+            the reference wrapper may contain a tag type which may be useful for
+            formatting customization.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.expressions.attr.tags"></a><a class="link" href="expressions.html#log.detailed.expressions.attr.tags" title="Attribute tags and custom formatting operators">Attribute tags
+          and custom formatting operators</a>
+</h5></div></div></div>
+<p>
+            The <code class="computeroutput"><span class="identifier">TagT</span></code> type in the
+            <a class="link" href="expressions.html#log.detailed.expressions.attr" title="Generic attribute placeholder">abstract description</a>
+            of <code class="computeroutput"><span class="identifier">attr</span></code> above is optional
+            and by default is <code class="computeroutput"><span class="keyword">void</span></code>.
+            This is an attribute tag which can be used to customize the output formatters
+            produce for different attributes. This tag is forwarded to the <a class="link" href="utilities.html#log.detailed.utilities.manipulators.to_log" title="Customized logging manipulator"><code class="computeroutput"><span class="identifier">to_log</span></code></a>
+            manipulator when the extracted attribute value is put to a stream (this
+            behavior is warranted by <a class="link" href="utilities.html#log.detailed.utilities.value_ref" title="Value reference wrapper"><code class="computeroutput"><span class="identifier">value_ref</span></code></a> implementation). Here's
+            a quick example:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// We define our own severity levels</span>
+<span class="keyword">enum</span> <span class="identifier">severity_level</span>
+<span class="special">{</span>
+    <span class="identifier">normal</span><span class="special">,</span>
+    <span class="identifier">notification</span><span class="special">,</span>
+    <span class="identifier">warning</span><span class="special">,</span>
+    <span class="identifier">error</span><span class="special">,</span>
+    <span class="identifier">critical</span>
+<span class="special">};</span>
+
+<span class="comment">// The operator is used for regular stream formatting</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">&lt;&lt;</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span><span class="special">&amp;</span> <span class="identifier">strm</span><span class="special">,</span> <span class="identifier">severity_level</span> <span class="identifier">level</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">strings</span><span class="special">[]</span> <span class="special">=</span>
+    <span class="special">{</span>
+        <span class="string">"normal"</span><span class="special">,</span>
+        <span class="string">"notification"</span><span class="special">,</span>
+        <span class="string">"warning"</span><span class="special">,</span>
+        <span class="string">"error"</span><span class="special">,</span>
+        <span class="string">"critical"</span>
+    <span class="special">};</span>
+
+    <span class="keyword">if</span> <span class="special">(</span><span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="special">&gt;(</span><span class="identifier">level</span><span class="special">)</span> <span class="special">&lt;</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">strings</span><span class="special">)</span> <span class="special">/</span> <span class="keyword">sizeof</span><span class="special">(*</span><span class="identifier">strings</span><span class="special">))</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="identifier">strings</span><span class="special">[</span><span class="identifier">level</span><span class="special">];</span>
+    <span class="keyword">else</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="identifier">level</span><span class="special">);</span>
+
+    <span class="keyword">return</span> <span class="identifier">strm</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// Attribute value tag type</span>
+<span class="keyword">struct</span> <span class="identifier">severity_tag</span><span class="special">;</span>
+
+<span class="comment">// The operator is used when putting the severity level to log</span>
+<span class="identifier">logging</span><span class="special">::</span><span class="identifier">formatting_ostream</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">&lt;&lt;</span>
+<span class="special">(</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">formatting_ostream</span><span class="special">&amp;</span> <span class="identifier">strm</span><span class="special">,</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">to_log_manip</span><span class="special">&lt;</span> <span class="identifier">severity_level</span><span class="special">,</span> <span class="identifier">severity_tag</span> <span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">manip</span>
+<span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">strings</span><span class="special">[]</span> <span class="special">=</span>
+    <span class="special">{</span>
+        <span class="string">"NORM"</span><span class="special">,</span>
+        <span class="string">"NTFY"</span><span class="special">,</span>
+        <span class="string">"WARN"</span><span class="special">,</span>
+        <span class="string">"ERRR"</span><span class="special">,</span>
+        <span class="string">"CRIT"</span>
+    <span class="special">};</span>
+
+    <span class="identifier">severity_level</span> <span class="identifier">level</span> <span class="special">=</span> <span class="identifier">manip</span><span class="special">.</span><span class="identifier">get</span><span class="special">();</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="special">&gt;(</span><span class="identifier">level</span><span class="special">)</span> <span class="special">&lt;</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">strings</span><span class="special">)</span> <span class="special">/</span> <span class="keyword">sizeof</span><span class="special">(*</span><span class="identifier">strings</span><span class="special">))</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="identifier">strings</span><span class="special">[</span><span class="identifier">level</span><span class="special">];</span>
+    <span class="keyword">else</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="identifier">level</span><span class="special">);</span>
+
+    <span class="keyword">return</span> <span class="identifier">strm</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">init</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_console_log</span>
+    <span class="special">(</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">clog</span><span class="special">,</span>
+        <span class="comment">// This makes the sink to write log records that look like this:</span>
+        <span class="comment">// 1: &lt;NORM&gt; A normal severity message</span>
+        <span class="comment">// 2: &lt;ERRR&gt; An error severity message</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">format</span> <span class="special">=</span>
+        <span class="special">(</span>
+            <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"LineID"</span><span class="special">)</span>
+                <span class="special">&lt;&lt;</span> <span class="string">": &lt;"</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">severity_level</span><span class="special">,</span> <span class="identifier">severity_tag</span> <span class="special">&gt;(</span><span class="string">"Severity"</span><span class="special">)</span>
+                <span class="special">&lt;&lt;</span> <span class="string">"&gt; "</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span>
+        <span class="special">)</span>
+    <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            <a href="../../../../../../libs/log/example/doc/expressions_attr_fmt_tag.cpp" target="_top">See
+            the complete code</a>.
+          </p>
+<p>
+            Here we specify a different formatting operator for the severity level
+            wrapped in the <a class="link" href="utilities.html#log.detailed.utilities.manipulators.to_log" title="Customized logging manipulator"><code class="computeroutput"><span class="identifier">to_log_manip</span></code></a> manipulator marked
+            with the tag <code class="computeroutput"><span class="identifier">severity_tag</span></code>.
+            This operator will be called when log records are formatted while the
+            regular <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></code>
+            will be used in other contexts.
+          </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.expressions.attr_keywords"></a><a class="link" href="expressions.html#log.detailed.expressions.attr_keywords" title="Defining attribute keywords">Defining attribute
+        keywords</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.keyword_fwd_hpp" title="Header &lt;boost/log/expressions/keyword_fwd.hpp&gt;">boost/log/expressions/keyword_fwd.hpp</a></code><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.keyword_hpp" title="Header &lt;boost/log/expressions/keyword.hpp&gt;">boost/log/expressions/keyword.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          Attribute keywords can be used as replacements for the <a class="link" href="expressions.html#log.detailed.expressions.attr" title="Generic attribute placeholder"><code class="computeroutput"><span class="identifier">attr</span></code></a> placeholders in filters and
+          formatters while providing a more concise and less error prone syntax.
+          An attribute keyword can be declared with the <code class="computeroutput"><a class="link" href="../../BOOST_LOG_ATTRIBUTE_KEYWORD.html" title="Macro BOOST_LOG_ATTRIBUTE_KEYWORD">BOOST_LOG_ATTRIBUTE_KEYWORD</a></code>
+          macro:
+        </p>
+<pre class="programlisting"><span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">keyword</span><span class="special">,</span> <span class="string">"Keyword"</span><span class="special">,</span> <span class="identifier">type</span><span class="special">)</span>
+</pre>
+<p>
+          Here the macro declares a keyword <code class="computeroutput"><span class="identifier">keyword</span></code>
+          for an attribute named "Keyword" with the value type of <code class="computeroutput"><span class="identifier">type</span></code>. Additionally, the macro defines
+          an attribute tag type <code class="computeroutput"><span class="identifier">keyword</span></code>
+          within the <code class="computeroutput"><span class="identifier">tag</span></code> namespace.
+          We can rewrite the previous example in the following way:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// We define our own severity levels</span>
+<span class="keyword">enum</span> <span class="identifier">severity_level</span>
+<span class="special">{</span>
+    <span class="identifier">normal</span><span class="special">,</span>
+    <span class="identifier">notification</span><span class="special">,</span>
+    <span class="identifier">warning</span><span class="special">,</span>
+    <span class="identifier">error</span><span class="special">,</span>
+    <span class="identifier">critical</span>
+<span class="special">};</span>
+
+<span class="comment">// Define the attribute keywords</span>
+<span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">line_id</span><span class="special">,</span> <span class="string">"LineID"</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">)</span>
+<span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">severity</span><span class="special">,</span> <span class="string">"Severity"</span><span class="special">,</span> <span class="identifier">severity_level</span><span class="special">)</span>
+
+<span class="comment">// The operator is used for regular stream formatting</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">&lt;&lt;</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span><span class="special">&amp;</span> <span class="identifier">strm</span><span class="special">,</span> <span class="identifier">severity_level</span> <span class="identifier">level</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">strings</span><span class="special">[]</span> <span class="special">=</span>
+    <span class="special">{</span>
+        <span class="string">"normal"</span><span class="special">,</span>
+        <span class="string">"notification"</span><span class="special">,</span>
+        <span class="string">"warning"</span><span class="special">,</span>
+        <span class="string">"error"</span><span class="special">,</span>
+        <span class="string">"critical"</span>
+    <span class="special">};</span>
+
+    <span class="keyword">if</span> <span class="special">(</span><span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="special">&gt;(</span><span class="identifier">level</span><span class="special">)</span> <span class="special">&lt;</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">strings</span><span class="special">)</span> <span class="special">/</span> <span class="keyword">sizeof</span><span class="special">(*</span><span class="identifier">strings</span><span class="special">))</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="identifier">strings</span><span class="special">[</span><span class="identifier">level</span><span class="special">];</span>
+    <span class="keyword">else</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="identifier">level</span><span class="special">);</span>
+
+    <span class="keyword">return</span> <span class="identifier">strm</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// The operator is used when putting the severity level to log</span>
+<span class="identifier">logging</span><span class="special">::</span><span class="identifier">formatting_ostream</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">&lt;&lt;</span>
+<span class="special">(</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">formatting_ostream</span><span class="special">&amp;</span> <span class="identifier">strm</span><span class="special">,</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">to_log_manip</span><span class="special">&lt;</span> <span class="identifier">severity_level</span><span class="special">,</span> <span class="identifier">tag</span><span class="special">::</span><span class="identifier">severity</span> <span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">manip</span>
+<span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">strings</span><span class="special">[]</span> <span class="special">=</span>
+    <span class="special">{</span>
+        <span class="string">"NORM"</span><span class="special">,</span>
+        <span class="string">"NTFY"</span><span class="special">,</span>
+        <span class="string">"WARN"</span><span class="special">,</span>
+        <span class="string">"ERRR"</span><span class="special">,</span>
+        <span class="string">"CRIT"</span>
+    <span class="special">};</span>
+
+    <span class="identifier">severity_level</span> <span class="identifier">level</span> <span class="special">=</span> <span class="identifier">manip</span><span class="special">.</span><span class="identifier">get</span><span class="special">();</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="special">&gt;(</span><span class="identifier">level</span><span class="special">)</span> <span class="special">&lt;</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">strings</span><span class="special">)</span> <span class="special">/</span> <span class="keyword">sizeof</span><span class="special">(*</span><span class="identifier">strings</span><span class="special">))</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="identifier">strings</span><span class="special">[</span><span class="identifier">level</span><span class="special">];</span>
+    <span class="keyword">else</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="identifier">level</span><span class="special">);</span>
+
+    <span class="keyword">return</span> <span class="identifier">strm</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">init</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_console_log</span>
+    <span class="special">(</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">clog</span><span class="special">,</span>
+        <span class="comment">// This makes the sink to write log records that look like this:</span>
+        <span class="comment">// 1: &lt;NORM&gt; A normal severity message</span>
+        <span class="comment">// 2: &lt;ERRR&gt; An error severity message</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">format</span> <span class="special">=</span>
+        <span class="special">(</span>
+            <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">line_id</span>
+                <span class="special">&lt;&lt;</span> <span class="string">": &lt;"</span> <span class="special">&lt;&lt;</span> <span class="identifier">severity</span>
+                <span class="special">&lt;&lt;</span> <span class="string">"&gt; "</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span>
+        <span class="special">)</span>
+    <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Attribute keywords behave the same way as the <a class="link" href="expressions.html#log.detailed.expressions.attr" title="Generic attribute placeholder"><code class="computeroutput"><span class="identifier">attr</span></code></a> placeholders and can be used
+          both in filters and formatters. The <code class="computeroutput"><span class="identifier">or_throw</span></code>
+          and <code class="computeroutput"><span class="identifier">or_default</span></code> modifiers
+          are also supported.
+        </p>
+<p>
+          Keywords can also be used in attribute value lookup expressions in log
+          records and attribute value sets:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">print_severity</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record_view</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">value_ref</span><span class="special">&lt;</span> <span class="identifier">severity_level</span><span class="special">,</span> <span class="identifier">tag</span><span class="special">::</span><span class="identifier">severity</span> <span class="special">&gt;</span> <span class="identifier">level</span> <span class="special">=</span> <span class="identifier">rec</span><span class="special">[</span><span class="identifier">severity</span><span class="special">];</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">level</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.expressions.record"></a><a class="link" href="expressions.html#log.detailed.expressions.record" title="Record placeholder">Record placeholder</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.record_hpp" title="Header &lt;boost/log/expressions/record.hpp&gt;">boost/log/expressions/record.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">record</span></code> placeholder
+          can be used in <code class="computeroutput"><span class="identifier">bind</span></code> expressions
+          to pass the whole log <a class="link" href="../detailed.html#log.detailed.core.record" title="Logging records">record view</a>
+          to the bound function object.
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">my_formatter</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">formatting_ostream</span><span class="special">&amp;</span> <span class="identifier">strm</span><span class="special">,</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">record_view</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// ...</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">phoenix</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">;</span>
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span><span class="special">(</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">my_formatter</span><span class="special">,</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span><span class="special">,</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">record</span><span class="special">));</span>
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            In case of filters, the placeholder will correspond to the <a class="link" href="attributes.html#log.detailed.attributes.related_components.attribute_value_set" title="Attribute value set">set
+            of attribute values</a> rather than the log record itself. This is
+            because the record is not constructed yet at the point of filtering,
+            and filters only operate on the set of attribute values.
+          </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.expressions.message"></a><a class="link" href="expressions.html#log.detailed.expressions.message" title="Message text placeholders">Message text placeholders</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.message_hpp" title="Header &lt;boost/log/expressions/message.hpp&gt;">boost/log/expressions/message.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          Log records typically contain a special attribute "Message" with
+          the value of one of the string types (more specifically, an <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span></code> specialization). This attribute
+          contains the text of the log message that is constructed at the point of
+          the record creation. This attribute is only constructed after filtering,
+          so filters cannot use it. There are several keywords to access this attribute
+          value:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">smessage</span></code> - the attribute
+              value is expected to be an <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">wmessage</span></code> - the attribute
+              value is expected to be an <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">wstring</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">message</span></code> - the attribute
+              value is expected to be an <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>
+              or <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">wstring</span></code>
+            </li>
+</ul></div>
+<p>
+          The <code class="computeroutput"><span class="identifier">message</span></code> keyword has
+          to dispatch between different string types, so it is slightly less efficient
+          than the other two keywords. If the application is able to guarantee the
+          fixed character type of log messages, it is advised to use the corresponding
+          keyword for better performance.
+        </p>
+<pre class="programlisting"><span class="comment">// Sets up a formatter that will ignore all attributes and only print log record text</span>
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">message</span><span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.expressions.predicates"></a><a class="link" href="expressions.html#log.detailed.expressions.predicates" title="Predicate expressions">Predicate expressions</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.predicates.has_attr">Attribute
+          presence filter</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.predicates.is_in_range">Range
+          checking filter</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.predicates.simple_string_matching">Simple
+          string matching filters</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.predicates.advanced_string_matching">Advanced
+          string matching filter</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.predicates.channel_severity_filter">Severity
+          threshold per channel filter</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.predicates.is_debugger_present">Debugger
+          presence filter</a></span></dt>
+</dl></div>
+<p>
+          This section describes several expressions that can be used as predicates
+          in the filtering expressions.
+        </p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.expressions.predicates.has_attr"></a><a class="link" href="expressions.html#log.detailed.expressions.predicates.has_attr" title="Attribute presence filter">Attribute
+          presence filter</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.predicates.has_attr_hpp" title="Header &lt;boost/log/expressions/predicates/has_attr.hpp&gt;">boost/log/expressions/predicates/has_attr.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            The filter <code class="computeroutput"><a class="link" href="../../boost/log/expressions/has_attr_idp26689640.html" title="Function template has_attr">has_attr</a></code> checks if an
+            attribute value with the specified name and, optionally, type is attached
+            to a log record. If no type specified to the filter, the filter returns
+            <code class="computeroutput"><span class="keyword">true</span></code> if any value with the
+            specified name is found. If an MPL-compatible type sequence in specified
+            as a value type, the filter returns <code class="computeroutput"><span class="keyword">true</span></code>
+            if a value with the specified name and one of the specified types is
+            found.
+          </p>
+<p>
+            This filter is usually used in conjunction with <a class="link" href="expressions.html#log.detailed.expressions.formatters.conditional" title="Conditional formatters">conditional
+            formatters</a>, but it also can be used as a quick filter based on
+            the log record structure. For example, one can use this filter to extract
+            statistic records and route them to a specific sink.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Declare attribute keywords</span>
+<span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">stat_stream</span><span class="special">,</span> <span class="string">"StatisticStream"</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">)</span>
+<span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">change</span><span class="special">,</span> <span class="string">"Change"</span><span class="special">,</span> <span class="keyword">int</span><span class="special">)</span>
+
+<span class="comment">// A simple sink backend to accumulate statistic information</span>
+<span class="keyword">class</span> <span class="identifier">my_stat_accumulator</span> <span class="special">:</span>
+    <span class="keyword">public</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">basic_sink_backend</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronized_feeding</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="comment">// A map of accumulated statistic values,</span>
+    <span class="comment">// ordered by the statistic information stream name</span>
+    <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">&gt;</span> <span class="identifier">stat_info_map</span><span class="special">;</span>
+    <span class="identifier">stat_info_map</span> <span class="identifier">m_stat_info</span><span class="special">;</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// Destructor</span>
+    <span class="special">~</span><span class="identifier">my_stat_accumulator</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="comment">// Display the accumulated data</span>
+        <span class="identifier">stat_info_map</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">m_stat_info</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">end</span> <span class="special">=</span> <span class="identifier">m_stat_info</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+        <span class="keyword">for</span> <span class="special">(;</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">end</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Statistic stream: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">it</span><span class="special">-&gt;</span><span class="identifier">first</span>
+                <span class="special">&lt;&lt;</span> <span class="string">", accumulated value: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">it</span><span class="special">-&gt;</span><span class="identifier">second</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+        <span class="special">}</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">.</span><span class="identifier">flush</span><span class="special">();</span>
+    <span class="special">}</span>
+
+    <span class="comment">// The method is called for every log record being put into the sink backend</span>
+    <span class="keyword">void</span> <span class="identifier">consume</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record_view</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="comment">// First, acquire statistic information stream name</span>
+        <span class="identifier">logging</span><span class="special">::</span><span class="identifier">value_ref</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">tag</span><span class="special">::</span><span class="identifier">stat_stream</span> <span class="special">&gt;</span> <span class="identifier">name</span> <span class="special">=</span> <span class="identifier">rec</span><span class="special">[</span><span class="identifier">stat_stream</span><span class="special">];</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">name</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="comment">// Next, get the statistic value change</span>
+            <span class="identifier">logging</span><span class="special">::</span><span class="identifier">value_ref</span><span class="special">&lt;</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">tag</span><span class="special">::</span><span class="identifier">change</span> <span class="special">&gt;</span> <span class="identifier">change_amount</span> <span class="special">=</span> <span class="identifier">rec</span><span class="special">[</span><span class="identifier">change</span><span class="special">];</span>
+            <span class="keyword">if</span> <span class="special">(</span><span class="identifier">change_amount</span><span class="special">)</span>
+            <span class="special">{</span>
+                <span class="comment">// Accumulate the statistic data</span>
+                <span class="identifier">m_stat_info</span><span class="special">[</span><span class="identifier">name</span><span class="special">.</span><span class="identifier">get</span><span class="special">()]</span> <span class="special">+=</span> <span class="identifier">change_amount</span><span class="special">.</span><span class="identifier">get</span><span class="special">();</span>
+            <span class="special">}</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">// The function registers two sinks - one for statistic information,</span>
+<span class="comment">// and another one for other records</span>
+<span class="keyword">void</span> <span class="identifier">init</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="comment">// Create a backend and attach a stream to it</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_ostream_backend</span> <span class="special">&gt;</span> <span class="identifier">backend</span> <span class="special">=</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_ostream_backend</span> <span class="special">&gt;();</span>
+    <span class="identifier">backend</span><span class="special">-&gt;</span><span class="identifier">add_stream</span><span class="special">(</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&gt;(</span><span class="keyword">new</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ofstream</span><span class="special">(</span><span class="string">"test.log"</span><span class="special">)));</span>
+
+    <span class="comment">// Create a frontend and setup filtering</span>
+    <span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_ostream_backend</span> <span class="special">&gt;</span> <span class="identifier">log_sink_type</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">log_sink_type</span> <span class="special">&gt;</span> <span class="identifier">log_sink</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">log_sink_type</span><span class="special">(</span><span class="identifier">backend</span><span class="special">));</span>
+    <span class="comment">// All records that don't have a "StatisticStream" attribute attached</span>
+    <span class="comment">// will go to the "test.log" file</span>
+    <span class="identifier">log_sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span><span class="special">(!</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">has_attr</span><span class="special">(</span><span class="identifier">stat_stream</span><span class="special">));</span>
+
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">log_sink</span><span class="special">);</span>
+
+    <span class="comment">// Create another sink that will receive all statistic data</span>
+    <span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">my_stat_accumulator</span> <span class="special">&gt;</span> <span class="identifier">stat_sink_type</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">stat_sink_type</span> <span class="special">&gt;</span> <span class="identifier">stat_sink</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">stat_sink_type</span><span class="special">());</span>
+    <span class="comment">// All records with a "StatisticStream" string attribute attached</span>
+    <span class="comment">// will go to the my_stat_accumulator sink</span>
+    <span class="identifier">stat_sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">has_attr</span><span class="special">(</span><span class="identifier">stat_stream</span><span class="special">));</span>
+
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">stat_sink</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="comment">// This simple macro will simplify putting statistic data into a logger</span>
+<span class="preprocessor">#define</span> <span class="identifier">PUT_STAT</span><span class="special">(</span><span class="identifier">lg</span><span class="special">,</span> <span class="identifier">stat_stream_name</span><span class="special">,</span> <span class="identifier">change</span><span class="special">)\</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="keyword">true</span><span class="special">)</span> <span class="special">{\</span>
+        <span class="identifier">BOOST_LOG_SCOPED_LOGGER_TAG</span><span class="special">(</span><span class="identifier">lg</span><span class="special">,</span> <span class="string">"StatisticStream"</span><span class="special">,</span> <span class="identifier">stat_stream_name</span><span class="special">);\</span>
+        <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">lg</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"Change"</span><span class="special">,</span> <span class="special">(</span><span class="keyword">int</span><span class="special">)(</span><span class="identifier">change</span><span class="special">));\</span>
+    <span class="special">}</span> <span class="keyword">else</span> <span class="special">((</span><span class="keyword">void</span><span class="special">)</span><span class="number">0</span><span class="special">)</span>
+
+<span class="keyword">void</span> <span class="identifier">logging_function</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">src</span><span class="special">::</span><span class="identifier">logger</span> <span class="identifier">lg</span><span class="special">;</span>
+
+    <span class="comment">// Put a regular log record, it will go to the "test.log" file</span>
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">lg</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"A regular log record"</span><span class="special">;</span>
+
+    <span class="comment">// Put some statistic data</span>
+    <span class="identifier">PUT_STAT</span><span class="special">(</span><span class="identifier">lg</span><span class="special">,</span> <span class="string">"StreamOne"</span><span class="special">,</span> <span class="number">10</span><span class="special">);</span>
+    <span class="identifier">PUT_STAT</span><span class="special">(</span><span class="identifier">lg</span><span class="special">,</span> <span class="string">"StreamTwo"</span><span class="special">,</span> <span class="number">20</span><span class="special">);</span>
+    <span class="identifier">PUT_STAT</span><span class="special">(</span><span class="identifier">lg</span><span class="special">,</span> <span class="string">"StreamOne"</span><span class="special">,</span> <span class="special">-</span><span class="number">5</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            <a href="../../../../../../libs/log/example/doc/expressions_has_attr_stat_accum.cpp" target="_top">See
+            the complete code</a>.
+          </p>
+<p>
+            In this example, log records emitted with the <code class="computeroutput"><span class="identifier">PUT_STAT</span></code>
+            macro will be directed to the <code class="computeroutput"><span class="identifier">my_stat_accumulator</span></code>
+            sink backend, which will accumulate the changes passed in the "Change"
+            attribute values. All other records (even those made through the same
+            logger) will be passed to the filter sink. This is achieved with the
+            mutually exclusive filters set for the two sinks.
+          </p>
+<p>
+            Please note that in the example above we extended the library in two
+            ways: we defined a new sink backend <code class="computeroutput"><span class="identifier">my_stat_accumulator</span></code>
+            and a new macro <code class="computeroutput"><span class="identifier">PUT_STAT</span></code>.
+            Also note that <code class="computeroutput"><span class="identifier">has_attr</span></code>
+            can accept attribute keywords to identify the attribute to check.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.expressions.predicates.is_in_range"></a><a class="link" href="expressions.html#log.detailed.expressions.predicates.is_in_range" title="Range checking filter">Range
+          checking filter</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.predicates.is_in_range_hpp" title="Header &lt;boost/log/expressions/predicates/is_in_range.hpp&gt;">boost/log/expressions/predicates/is_in_range.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            The <code class="computeroutput"><a class="link" href="../../boost/log/expressions/is_in_range_idp26697112.html" title="Function template is_in_range">is_in_range</a></code> predicate
+            checks that the attribute value fits in the half-open range (i.e. it
+            returns <code class="computeroutput"><span class="keyword">true</span></code> if the attribute
+            value <code class="computeroutput"><span class="identifier">x</span></code> satisfies the
+            following condition: <code class="computeroutput"><span class="identifier">left</span> <span class="special">&lt;=</span> <span class="identifier">x</span> <span class="special">&lt;</span> <span class="identifier">right</span></code>).
+            For example:
+          </p>
+<pre class="programlisting"><span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span>
+<span class="special">(</span>
+    <span class="comment">// drops all records that have level below 3 or greater than 4</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">is_in_range</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"Severity"</span><span class="special">),</span> <span class="number">3</span><span class="special">,</span> <span class="number">5</span><span class="special">)</span>
+<span class="special">);</span>
+</pre>
+<p>
+            The attribute can also be identified by an attribute keyword or name
+            and type:
+          </p>
+<pre class="programlisting"><span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">is_in_range</span><span class="special">(</span><span class="identifier">severity</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="number">5</span><span class="special">)</span>
+<span class="special">);</span>
+
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">is_in_range</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"Severity"</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="number">5</span><span class="special">)</span>
+<span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.expressions.predicates.simple_string_matching"></a><a class="link" href="expressions.html#log.detailed.expressions.predicates.simple_string_matching" title="Simple string matching filters">Simple
+          string matching filters</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.predicates.begins_with_hpp" title="Header &lt;boost/log/expressions/predicates/begins_with.hpp&gt;">boost/log/expressions/predicates/begins_with.hpp</a></code><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.predicates.ends_with_hpp" title="Header &lt;boost/log/expressions/predicates/ends_with.hpp&gt;">boost/log/expressions/predicates/ends_with.hpp</a></code><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.predicates.contains_hpp" title="Header &lt;boost/log/expressions/predicates/contains.hpp&gt;">boost/log/expressions/predicates/contains.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            Predicates <code class="computeroutput"><a class="link" href="../../boost/log/expressions/begins_with_idp26536808.html" title="Function template begins_with">begins_with</a></code>, <code class="computeroutput"><a class="link" href="../../boost/log/expressions/ends_with_idp26667128.html" title="Function template ends_with">ends_with</a></code>
+            and <code class="computeroutput"><a class="link" href="../../boost/log/expressions/contains_idp26656520.html" title="Function template contains">contains</a></code> provide an
+            easy way of matching string attribute values. As follows from their names,
+            the functions construct filters that return <code class="computeroutput"><span class="keyword">true</span></code>
+            if an attribute value begins with, ends with or contains the specified
+            substring, respectively. The string comparison is case sensitive.
+          </p>
+<pre class="programlisting"><span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span>
+<span class="special">(</span>
+    <span class="comment">// selects only records that are related to Russian web domains</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">ends_with</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="string">"Domain"</span><span class="special">),</span> <span class="string">".ru"</span><span class="special">)</span>
+<span class="special">);</span>
+</pre>
+<p>
+            The attribute can also be identified by an attribute keyword or name
+            and type.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.expressions.predicates.advanced_string_matching"></a><a class="link" href="expressions.html#log.detailed.expressions.predicates.advanced_string_matching" title="Advanced string matching filter">Advanced
+          string matching filter</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.predicates.matches_hpp" title="Header &lt;boost/log/expressions/predicates/matches.hpp&gt;">boost/log/expressions/predicates/matches.hpp</a></code><span class="special">&gt;</span>
+
+<span class="comment">// Supporting headers</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../other_libraries_support_layer.html#header.boost.log.support.regex_hpp" title="Header &lt;boost/log/support/regex.hpp&gt;">boost/log/support/regex.hpp</a></code><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../other_libraries_support_layer.html#header.boost.log.support.xpressive_hpp" title="Header &lt;boost/log/support/xpressive.hpp&gt;">boost/log/support/xpressive.hpp</a></code><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../other_libraries_support_layer.html#header.boost.log.support.spirit_qi_hpp" title="Header &lt;boost/log/support/spirit_qi.hpp&gt;">boost/log/support/spirit_qi.hpp</a></code><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../other_libraries_support_layer.html#header.boost.log.support.spirit_classic_hpp" title="Header &lt;boost/log/support/spirit_classic.hpp&gt;">boost/log/support/spirit_classic.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            The <code class="computeroutput"><a class="link" href="../../boost/log/expressions/matches_idp26709608.html" title="Function template matches">matches</a></code> function creates
+            a filter that apples a regular expression or a parser to a string attribute
+            value. The regular expression can be provided by <a href="http://www.boost.org/doc/libs/release/libs/regex/index.html" target="_top">Boost.Regex</a>
+            or <a href="http://www.boost.org/doc/libs/release/doc/html/xpressive.html" target="_top">Boost.Xpressive</a>.
+            Parsers from <a href="http://www.boost.org/doc/libs/release/libs/spirit/classic/index.html" target="_top">Boost.Spirit</a>
+            and <a href="http://www.boost.org/doc/libs/release/libs/spirit/doc/html/index.html" target="_top">Boost.Spirit2</a>
+            are also supported. The filter returns <code class="computeroutput"><span class="keyword">true</span></code>
+            if the regular expression matches or the parser successfully parses the
+            attribute value.
+          </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              In order to use this predicate, a corresponding supporting header should
+              also be included.
+            </p></td></tr>
+</table></div>
+<pre class="programlisting"><span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">matches</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="string">"Domain"</span><span class="special">),</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span><span class="special">(</span><span class="string">"www\\..*\\.ru"</span><span class="special">))</span>
+<span class="special">);</span>
+</pre>
+<p>
+            The attribute can also be identified by an attribute keyword or name
+            and type.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.expressions.predicates.channel_severity_filter"></a><a class="link" href="expressions.html#log.detailed.expressions.predicates.channel_severity_filter" title="Severity threshold per channel filter">Severity
+          threshold per channel filter</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.predicates.channel_severity_filter_hpp" title="Header &lt;boost/log/expressions/predicates/channel_severity_filter.hpp&gt;">boost/log/expressions/predicates/channel_severity_filter.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            This filter is aimed for a specific but commonly encountered use case.
+            The <code class="computeroutput"><a class="link" href="../../boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter">channel_severity_filter</a></code>
+            function creates a predicate that will check log record severity levels
+            against a threshold. The predicate allows setting different thresholds
+            for different channels. The mapping between channel names and severity
+            thresholds can be filled in <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span></code>
+            style by using the subscript operator or by calling <code class="computeroutput"><span class="identifier">add</span></code>
+            method on the filter itself (the <code class="computeroutput"><a class="link" href="../../boost/log/expressions/channel_severi_idp26569656.html" title="Class template channel_severity_filter_actor">channel_severity_filter_actor</a></code>
+            instance). Let's see an example:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// We define our own severity levels</span>
+<span class="keyword">enum</span> <span class="identifier">severity_level</span>
+<span class="special">{</span>
+    <span class="identifier">normal</span><span class="special">,</span>
+    <span class="identifier">notification</span><span class="special">,</span>
+    <span class="identifier">warning</span><span class="special">,</span>
+    <span class="identifier">error</span><span class="special">,</span>
+    <span class="identifier">critical</span>
+<span class="special">};</span>
+
+<span class="comment">// Define the attribute keywords</span>
+<span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">line_id</span><span class="special">,</span> <span class="string">"LineID"</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">)</span>
+<span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">severity</span><span class="special">,</span> <span class="string">"Severity"</span><span class="special">,</span> <span class="identifier">severity_level</span><span class="special">)</span>
+<span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">channel</span><span class="special">,</span> <span class="string">"Channel"</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">)</span>
+
+
+<span class="keyword">void</span> <span class="identifier">init</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Create a minimal severity table filter</span>
+    <span class="keyword">typedef</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">severity_level</span> <span class="special">&gt;</span> <span class="identifier">min_severity_filter</span><span class="special">;</span>
+    <span class="identifier">min_severity_filter</span> <span class="identifier">min_severity</span> <span class="special">=</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">channel_severity_filter</span><span class="special">(</span><span class="identifier">channel</span><span class="special">,</span> <span class="identifier">severity</span><span class="special">);</span>
+
+    <span class="comment">// Set up the minimum severity levels for different channels</span>
+    <span class="identifier">min_severity</span><span class="special">[</span><span class="string">"general"</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">notification</span><span class="special">;</span>
+    <span class="identifier">min_severity</span><span class="special">[</span><span class="string">"network"</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">warning</span><span class="special">;</span>
+    <span class="identifier">min_severity</span><span class="special">[</span><span class="string">"gui"</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">error</span><span class="special">;</span>
+
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_console_log</span>
+    <span class="special">(</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">clog</span><span class="special">,</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">filter</span> <span class="special">=</span> <span class="identifier">min_severity</span> <span class="special">||</span> <span class="identifier">severity</span> <span class="special">&gt;=</span> <span class="identifier">critical</span><span class="special">,</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">format</span> <span class="special">=</span>
+        <span class="special">(</span>
+            <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">line_id</span>
+                <span class="special">&lt;&lt;</span> <span class="string">": &lt;"</span> <span class="special">&lt;&lt;</span> <span class="identifier">severity</span>
+                <span class="special">&lt;&lt;</span> <span class="string">"&gt; ["</span> <span class="special">&lt;&lt;</span> <span class="identifier">channel</span> <span class="special">&lt;&lt;</span> <span class="string">"] "</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span>
+        <span class="special">)</span>
+    <span class="special">);</span>
+<span class="special">}</span>
+
+<span class="comment">// Define our logger type</span>
+<span class="keyword">typedef</span> <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_channel_logger</span><span class="special">&lt;</span> <span class="identifier">severity_level</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;</span> <span class="identifier">logger_type</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">test_logging</span><span class="special">(</span><span class="identifier">logger_type</span><span class="special">&amp;</span> <span class="identifier">lg</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">channel_name</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_LOG_CHANNEL_SEV</span><span class="special">(</span><span class="identifier">lg</span><span class="special">,</span> <span class="identifier">channel_name</span><span class="special">,</span> <span class="identifier">normal</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"A normal severity level message"</span><span class="special">;</span>
+    <span class="identifier">BOOST_LOG_CHANNEL_SEV</span><span class="special">(</span><span class="identifier">lg</span><span class="special">,</span> <span class="identifier">channel_name</span><span class="special">,</span> <span class="identifier">notification</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"A notification severity level message"</span><span class="special">;</span>
+    <span class="identifier">BOOST_LOG_CHANNEL_SEV</span><span class="special">(</span><span class="identifier">lg</span><span class="special">,</span> <span class="identifier">channel_name</span><span class="special">,</span> <span class="identifier">warning</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"A warning severity level message"</span><span class="special">;</span>
+    <span class="identifier">BOOST_LOG_CHANNEL_SEV</span><span class="special">(</span><span class="identifier">lg</span><span class="special">,</span> <span class="identifier">channel_name</span><span class="special">,</span> <span class="identifier">error</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"An error severity level message"</span><span class="special">;</span>
+    <span class="identifier">BOOST_LOG_CHANNEL_SEV</span><span class="special">(</span><span class="identifier">lg</span><span class="special">,</span> <span class="identifier">channel_name</span><span class="special">,</span> <span class="identifier">critical</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"A critical severity level message"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            <a href="../../../../../../libs/log/example/doc/expressions_channel_severity_filter.cpp" target="_top">See
+            the complete code</a>.
+          </p>
+<p>
+            The filter for the console sink is composed from the <code class="computeroutput"><a class="link" href="../../boost/log/expressions/channel_severi_idp26569656.html" title="Class template channel_severity_filter_actor">channel_severity_filter_actor</a></code>
+            filter and a general severity level check. This general check will be
+            used when log records do not have a channel attribute or the channel
+            name is not one of those specified in <code class="computeroutput"><a class="link" href="../../boost/log/expressions/channel_severi_idp26569656.html" title="Class template channel_severity_filter_actor">channel_severity_filter_actor</a></code>
+            initialization. It should be noted that it is possible to set the default
+            result of the threshold filter that will be used in this case; the default
+            result can be set by the <code class="computeroutput"><span class="identifier">set_default</span></code>
+            method. The <code class="computeroutput"><a class="link" href="../../boost/log/expressions/channel_severi_idp26569656.html" title="Class template channel_severity_filter_actor">channel_severity_filter_actor</a></code>
+            filter is set up to limit record severity levels for channels "general",
+            "network" and "gui" - all records in these channels
+            with levels below the specified thresholds will not pass the filter and
+            will be ignored.
+          </p>
+<p>
+            The threshold filter is implemented as an equivalent to <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span></code> over the channels, which means
+            that the channel value type must support partial ordering. Obviously,
+            the severity level type must also support ordering to be able to be compared
+            against thresholds. By default the predicate will use <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span></code>
+            equivalent for channel name ordering and <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">greater_equal</span></code>
+            equivalent to compare severity levels. It is possible to customize the
+            ordering predicates. Consult the reference of the <code class="computeroutput"><a class="link" href="../../boost/log/expressions/channel_severi_idp26569656.html" title="Class template channel_severity_filter_actor">channel_severity_filter_actor</a></code>
+            class and <code class="computeroutput"><a class="link" href="../../boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter">channel_severity_filter</a></code>
+            generator to see the relevant template parameters.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.expressions.predicates.is_debugger_present"></a><a class="link" href="expressions.html#log.detailed.expressions.predicates.is_debugger_present" title="Debugger presence filter">Debugger
+          presence filter</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.predicates.is_debugger_present_hpp" title="Header &lt;boost/log/expressions/predicates/is_debugger_present.hpp&gt;">boost/log/expressions/predicates/is_debugger_present.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            This filter is implemented for Windows only. The <code class="computeroutput"><span class="identifier">is_debugger_present</span></code>
+            filter returns <code class="computeroutput"><span class="keyword">true</span></code> if the
+            application is run under a debugger and <code class="computeroutput"><span class="keyword">false</span></code>
+            otherwise. It does not use any attribute values from the log record.
+            This predicate is typically used with the <a class="link" href="sink_backends.html#log.detailed.sink_backends.debugger" title="Windows debugger output backend">debugger
+            output</a> sink.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Complete sink type</span>
+<span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">debug_output_backend</span> <span class="special">&gt;</span> <span class="identifier">sink_t</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">init_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="comment">// Create the sink. The backend requires synchronization in the frontend.</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sink_t</span> <span class="special">&gt;</span> <span class="identifier">sink</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">sink_t</span><span class="special">());</span>
+
+    <span class="comment">// Set the special filter to the frontend</span>
+    <span class="comment">// in order to skip the sink when no debugger is available</span>
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_filter</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">is_debugger_present</span><span class="special">());</span>
+
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            <a href="../../../../../../libs/log/example/doc/sinks_debugger.cpp" target="_top">See the complete
+            code</a>.
+          </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.expressions.formatters"></a><a class="link" href="expressions.html#log.detailed.expressions.formatters" title="Formatting expressions">Formatting expressions</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.formatters.date_time">Date
+          and time formatter</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.formatters.named_scope">Named
+          scope formatter</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.formatters.conditional">Conditional
+          formatters</a></span></dt>
+<dt><span class="section"><a href="expressions.html#log.detailed.expressions.formatters.decorators">Character
+          decorators</a></span></dt>
+</dl></div>
+<p>
+          As was noted in the <a class="link" href="../tutorial/formatters.html" title="Log record formatting">tutorial</a>,
+          the library provides several ways of expressing formatters, most notable
+          being with a stream-style syntax and <a href="http://www.boost.org/doc/libs/release/libs/format/index.html" target="_top">Boost.Format</a>-style
+          expression. Which of the two formats is chosen is determined by the appropriate
+          anchor expression. To use stream-style syntax one should begin the formatter
+          definition with the <code class="computeroutput"><span class="identifier">stream</span></code>
+          keyword, like that:
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.formatters.stream_hpp" title="Header &lt;boost/log/expressions/formatters/stream.hpp&gt;">boost/log/expressions/formatters/stream.hpp</a></code><span class="special">&gt;</span>
+
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr1</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr2</span> <span class="special">&lt;&lt;</span> <span class="special">...</span> <span class="special">&lt;&lt;</span> <span class="identifier">exprN</span><span class="special">);</span>
+</pre>
+<p>
+          Here expressions <code class="computeroutput"><span class="identifier">expr1</span></code>
+          through <code class="computeroutput"><span class="identifier">exprN</span></code> may be either
+          manipulators, described in this section, or other expressions resulting
+          in an object that supports putting into an STL-stream.
+        </p>
+<p>
+          To use <a href="http://www.boost.org/doc/libs/release/libs/format/index.html" target="_top">Boost.Format</a>-style
+          syntax one should use <code class="computeroutput"><span class="identifier">format</span></code>
+          construct:
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.formatters.format_hpp" title="Header &lt;boost/log/expressions/formatters/format.hpp&gt;">boost/log/expressions/formatters/format.hpp</a></code><span class="special">&gt;</span>
+
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">format</span><span class="special">(</span><span class="string">"format string"</span><span class="special">)</span> <span class="special">%</span> <span class="identifier">expr1</span> <span class="special">%</span> <span class="identifier">expr2</span> <span class="special">%</span> <span class="special">...</span> <span class="special">%</span> <span class="identifier">exprN</span><span class="special">);</span>
+</pre>
+<p>
+          The format string passed to the <code class="computeroutput"><span class="identifier">format</span></code>
+          keyword should contain positional placeholders for the appropriate expressions.
+          In the case of wide-character logging the format string should be wide.
+          Expressions <code class="computeroutput"><span class="identifier">expr1</span></code> through
+          <code class="computeroutput"><span class="identifier">exprN</span></code> have the same meaning
+          as in stream-like variant. It should be noted though that using stream-like
+          syntax usually results in a faster formatter than the one constructed with
+          the <code class="computeroutput"><span class="identifier">format</span></code> keyword.
+        </p>
+<p>
+          Another useful way of expressing formatters is by using string templates.
+          This part of the library is described in <a class="link" href="utilities.html#log.detailed.utilities.setup.filter_formatter" title="Filter and formatter parsers">this</a>
+          section and is mostly intended to support initialization from the application
+          settings.
+        </p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.expressions.formatters.date_time"></a><a class="link" href="expressions.html#log.detailed.expressions.formatters.date_time" title="Date and time formatter">Date
+          and time formatter</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.formatters.date_time_hpp" title="Header &lt;boost/log/expressions/formatters/date_time.hpp&gt;">boost/log/expressions/formatters/date_time.hpp</a></code><span class="special">&gt;</span>
+
+<span class="comment">// Supporting headers</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../other_libraries_support_layer.html#header.boost.log.support.date_time_hpp" title="Header &lt;boost/log/support/date_time.hpp&gt;">boost/log/support/date_time.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            The library provides the <code class="computeroutput"><a class="link" href="../../boost/log/expressions/format_date_ti_idp26375288.html" title="Function template format_date_time">format_date_time</a></code> formatter
+            dedicated to date and time-related attribute value types. The function
+            accepts the attribute value name and the format string compatible with
+            <a href="http://www.boost.org/doc/libs/release/doc/html/date_time.html" target="_top">Boost.DateTime</a>.
+          </p>
+<pre class="programlisting"><span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format_date_time</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&gt;(</span><span class="string">"TimeStamp"</span><span class="special">,</span> <span class="string">"%Y-%m-%d %H:%M:%S"</span><span class="special">)</span>
+<span class="special">);</span>
+</pre>
+<p>
+            The attribute value can alternatively be identified with the <a class="link" href="expressions.html#log.detailed.expressions.attr" title="Generic attribute placeholder"><code class="computeroutput"><span class="identifier">attr</span></code></a> placeholder or the <a class="link" href="expressions.html#log.detailed.expressions.attr_keywords" title="Defining attribute keywords">attribute keyword</a>.
+          </p>
+<p>
+            The following placeholders are supported in the format string:
+          </p>
+<div class="table">
+<a name="log.detailed.expressions.formatters.date_time.date_format_placeholders"></a><p class="title"><b>Table&#160;1.2.&#160;Date format placeholders</b></p>
+<div class="table-contents"><table class="table" summary="Date format placeholders">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Placeholder
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Meaning
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Example
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      %a
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Abbreviated weekday name
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "Mon" =&gt; Monday
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %A
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Long weekday name
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "Monday"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %b
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Abbreviated month name
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "Feb" =&gt; February
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %B
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Long month name
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "February"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %d
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Numeric day of month with leading zero
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "01"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %e
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Numeric day of month with leading space
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      " 1"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %m
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Numeric month, 01-12
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "01"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %w
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Numeric day of week, 1-7
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "1"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %y
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Short year
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "12" =&gt; 2012
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %Y
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Long year
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "2012"
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="log.detailed.expressions.formatters.date_time.time_format_placeholders"></a><p class="title"><b>Table&#160;1.3.&#160;Time format placeholders</b></p>
+<div class="table-contents"><table class="table" summary="Time format placeholders">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Placeholder
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Meaning
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Example
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      %f
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Fractional seconds with leading zeros
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "000231"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %H, %O
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Hours in 24 hour clock or hours in time duration types with
+                      leading zero if less than 10
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "07"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %I
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Hours in 12 hour clock with leading zero if less than 10
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "07"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %k
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Hours in 24 hour clock or hours in time duration types with
+                      leading space if less than 10
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      " 7"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %l
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Hours in 12 hour clock with leading space if less than 10
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      " 7"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %M
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Minutes
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "32"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %p
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      AM/PM mark, uppercase
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "AM"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %P
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      AM/PM mark, lowercase
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "am"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %q
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      ISO time zone
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "-0700" =&gt; Mountain Standard Time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %Q
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Extended ISO time zone
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "-05:00" =&gt; Eastern Standard Time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %S
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Seconds
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "26"
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="log.detailed.expressions.formatters.date_time.miscellaneous_placeholders"></a><p class="title"><b>Table&#160;1.4.&#160;Miscellaneous placeholders</b></p>
+<div class="table-contents"><table class="table" summary="Miscellaneous placeholders">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Placeholder
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Meaning
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Example
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      %-
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Negative sign in case of time duration, if the duration is
+                      less than zero
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "-"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %+
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Sign of time duration, even if positive
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "+"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %%
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      An escaped percent sign
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "%"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %T
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Extended ISO time, equivalent to "%H:%M:%S"
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "07:32:26"
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+            Note that in order to use this formatter you will also have to include
+            a supporting header. When <code class="computeroutput"><a class="link" href="../../other_libraries_support_layer.html#header.boost.log.support.date_time_hpp" title="Header &lt;boost/log/support/date_time.hpp&gt;">boost/log/support/date_time.hpp</a></code>
+            is included, the formatter supports the following types of <a href="http://www.boost.org/doc/libs/release/doc/html/date_time.html" target="_top">Boost.DateTime</a>:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                Date and time types: <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span></code>
+                and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">local_time</span><span class="special">::</span><span class="identifier">local_date_time</span></code>.
+              </li>
+<li class="listitem">
+                Gregorian date type: <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">date</span></code>.
+              </li>
+<li class="listitem">
+                Time duration types: <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">time_duration</span></code>
+                as well as all the specialized time units such as <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">seconds</span></code>,
+                including subsecond units.
+              </li>
+<li class="listitem">
+                Date duration types: <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">date_duration</span></code>.
+              </li>
+</ul></div>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              <a href="http://www.boost.org/doc/libs/release/doc/html/date_time.html" target="_top">Boost.DateTime</a>
+              already provides formatting functionality implemented as a number of
+              locale facets. This functionality can be used instead of this formatter,
+              although the formatter is expected to provide better performance.
+            </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.expressions.formatters.named_scope"></a><a class="link" href="expressions.html#log.detailed.expressions.formatters.named_scope" title="Named scope formatter">Named
+          scope formatter</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.formatters.named_scope_hpp" title="Header &lt;boost/log/expressions/formatters/named_scope.hpp&gt;">boost/log/expressions/formatters/named_scope.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            The formatter <code class="computeroutput"><a class="link" href="../../boost/log/expressions/format_named_s_idp26437496.html" title="Function template format_named_scope">format_named_scope</a></code> is
+            intended to add support for flexible formatting of the <a class="link" href="attributes.html#log.detailed.attributes.named_scope" title="Named scopes">named
+            scope</a> attribute values. The basic usage is quite straightforward
+            and its result is similar to what <a class="link" href="expressions.html#log.detailed.expressions.attr" title="Generic attribute placeholder"><code class="computeroutput"><span class="identifier">attr</span></code></a> provides:
+          </p>
+<pre class="programlisting"><span class="comment">// Puts the scope stack from outer ones towards inner ones: outer scope -&gt; inner scope</span>
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format_named_scope</span><span class="special">(</span><span class="string">"Scopes"</span><span class="special">,</span> <span class="string">"%n"</span><span class="special">));</span>
+</pre>
+<p>
+            The first argument names the attribute and the second is the format string.
+            The string can contain the following placeholders:
+          </p>
+<div class="table">
+<a name="log.detailed.expressions.formatters.named_scope.named_scope_format_placeholders"></a><p class="title"><b>Table&#160;1.5.&#160;Named scope format placeholders</b></p>
+<div class="table-contents"><table class="table" summary="Named scope format placeholders">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Placeholder
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Meaning
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Example
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      %n
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Scope name
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "void foo()"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %f
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Source file name of the scope
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "foo.cpp"
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      %l
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Line number in the source file
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      "45"
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+            While the format string describes the presentation of each named scope
+            in the list, the following named arguments allow to customize the list
+            traversal and formatting:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">format</span></code>. The named
+                scope format string, as described above. This parameter is used to
+                specify the format when other named parameters are used.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">iteration</span></code>. The argument
+                describes the direction of iteration through scopes. Can have values
+                <code class="computeroutput"><span class="identifier">forward</span></code> (default)
+                or <code class="computeroutput"><span class="identifier">reverse</span></code>.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">delimiter</span></code>. The argument
+                can be used to specify the delimiters between scopes. The default
+                delimiter depends on the <code class="computeroutput"><span class="identifier">iteration</span></code>
+                argument. If <code class="computeroutput"><span class="identifier">iteration</span>
+                <span class="special">==</span> <span class="identifier">forward</span></code>
+                the default <code class="computeroutput"><span class="identifier">delimiter</span></code>
+                will be "-&gt;", otherwise it will be "&lt;-".
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">depth</span></code>. The argument
+                can be used to limit the number of scopes to put to log. The formatter
+                will print <code class="computeroutput"><span class="identifier">depth</span></code>
+                innermost scopes and, if there are more scopes left, append an ellipsis
+                to the written sequence. By default the formatter will write all
+                scope names.
+              </li>
+</ul></div>
+<p>
+            Here are a few usage examples:
+          </p>
+<pre class="programlisting"><span class="comment">// Puts the scope stack in reverse order:</span>
+<span class="comment">// inner scope (file:line) &lt;- outer scope (file:line)</span>
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format_named_scope</span><span class="special">(</span>
+            <span class="string">"Scopes"</span><span class="special">,</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">format</span> <span class="special">=</span> <span class="string">"%n (%f:%l)"</span><span class="special">,</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">iteration</span> <span class="special">=</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">reverse</span><span class="special">)</span>
+<span class="special">);</span>
+
+<span class="comment">// Puts the scope stack in reverse order with a custom delimiter:</span>
+<span class="comment">// inner scope | outer scope</span>
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format_named_scope</span><span class="special">(</span>
+            <span class="string">"Scopes"</span><span class="special">,</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">format</span> <span class="special">=</span> <span class="string">"%n"</span><span class="special">,</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">iteration</span> <span class="special">=</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">reverse</span><span class="special">,</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">delimiter</span> <span class="special">=</span> <span class="string">" | "</span><span class="special">)</span>
+<span class="special">);</span>
+
+<span class="comment">// Puts the scope stack in forward order, no more than 2 inner scopes:</span>
+<span class="comment">// ... -&gt; outer scope -&gt; inner scope</span>
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format_named_scope</span><span class="special">(</span>
+            <span class="string">"Scopes"</span><span class="special">,</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">format</span> <span class="special">=</span> <span class="string">"%n"</span><span class="special">,</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">iteration</span> <span class="special">=</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">forward</span><span class="special">,</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">depth</span> <span class="special">=</span> <span class="number">2</span><span class="special">)</span>
+<span class="special">);</span>
+
+<span class="comment">// Puts the scope stack in reverse order, no more than 2 inner scopes:</span>
+<span class="comment">// inner scope &lt;- outer scope &lt;- ...</span>
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format_named_scope</span><span class="special">(</span>
+            <span class="string">"Scopes"</span><span class="special">,</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">format</span> <span class="special">=</span> <span class="string">"%n"</span><span class="special">,</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">iteration</span> <span class="special">=</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">reverse</span><span class="special">,</span>
+            <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">depth</span> <span class="special">=</span> <span class="number">2</span><span class="special">)</span>
+<span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.expressions.formatters.conditional"></a><a class="link" href="expressions.html#log.detailed.expressions.formatters.conditional" title="Conditional formatters">Conditional
+          formatters</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.formatters.if_hpp" title="Header &lt;boost/log/expressions/formatters/if.hpp&gt;">boost/log/expressions/formatters/if.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            There are cases when one would want to check some condition about the
+            log record and format it depending on that condition. One example of
+            such a need is formatting an attribute value depending on its runtime
+            type. The general syntax of the conditional formatter is as follows:
+          </p>
+<pre class="programlisting"><span class="identifier">expr</span><span class="special">::</span><span class="identifier">if_</span> <span class="special">(</span><span class="identifier">filter</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">true_formatter</span>
+<span class="special">]</span>
+<span class="special">.</span><span class="identifier">else_</span>
+<span class="special">[</span>
+    <span class="identifier">false_formatter</span>
+<span class="special">]</span>
+</pre>
+<p>
+            Those familiar with <a href="http://www.boost.org/doc/libs/release/libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+            lambda expressions will find this syntax quite familiar. The <code class="computeroutput"><span class="identifier">filter</span></code> argument is a filter that is
+            applied to the record being formatted. If it returns <code class="computeroutput"><span class="keyword">true</span></code>,
+            the <code class="computeroutput"><span class="identifier">true_formatter</span></code> is
+            executed, otherwise <code class="computeroutput"><span class="identifier">false_formatter</span></code>
+            is executed. The <code class="computeroutput"><span class="identifier">else_</span></code>
+            section with <code class="computeroutput"><span class="identifier">false_formatter</span></code>
+            is optional. If it is omitted and <code class="computeroutput"><span class="identifier">filter</span></code>
+            yields <code class="computeroutput"><span class="keyword">false</span></code>, no formatter
+            is executed. Here is an example:
+          </p>
+<pre class="programlisting"><span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+        <span class="comment">// First, put the current time</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format_date_time</span><span class="special">(</span><span class="string">"TimeStamp"</span><span class="special">,</span> <span class="string">"%Y-%m-%d %H:%M:%S.%f"</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">if_</span> <span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">has_attr</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"ID"</span><span class="special">))</span>
+           <span class="special">[</span>
+               <span class="comment">// if "ID" is present then put it to the record</span>
+               <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"ID"</span><span class="special">)</span>
+           <span class="special">]</span>
+           <span class="special">.</span><span class="identifier">else_</span>
+           <span class="special">[</span>
+               <span class="comment">// otherwise put a missing marker</span>
+               <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="string">"--"</span>
+           <span class="special">]</span>
+        <span class="comment">// and after that goes the log record text</span>
+        <span class="special">&lt;&lt;</span> <span class="string">" "</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">message</span>
+<span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="log.detailed.expressions.formatters.decorators"></a><a class="link" href="expressions.html#log.detailed.expressions.formatters.decorators" title="Character decorators">Character
+          decorators</a>
+</h5></div></div></div>
+<p>
+            There are times when one would like to additionally post-process the
+            composed string before passing it to the sink backend. For example, in
+            order to store log into an XML file the formatted log record should be
+            checked for special characters that have a special meaning in XML documents.
+            This is where decorators step in.
+          </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              Unlike most other formatters, decorators are dependent on the character
+              type of the formatted output and this type cannot be deduced from the
+              decorated formatter. By default, the character type is assumed to be
+              <code class="computeroutput"><span class="keyword">char</span></code>. If the formatter
+              is used to compose a wide-character string, prepend the decorator name
+              with the <code class="computeroutput"><span class="identifier">w</span></code> letter (e.g.
+              use <code class="computeroutput"><span class="identifier">wxml_decor</span></code> instead
+              of <code class="computeroutput"><span class="identifier">xml_decor</span></code>). Also,
+              for each decorator there is a generator function that accepts the character
+              type as a template parameter; the function is named similarly to the
+              decorator prepended with the <code class="computeroutput"><span class="identifier">make_</span></code>
+              prefix (e.g. <code class="computeroutput"><span class="identifier">make_xml_decor</span></code>).
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="log.detailed.expressions.formatters.decorators.h0"></a>
+            <span class="phrase"><a name="log.detailed.expressions.formatters.decorators.xml_character_decorator"></a></span><a class="link" href="expressions.html#log.detailed.expressions.formatters.decorators.xml_character_decorator">XML
+            character decorator</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.formatters.xml_decorator_hpp" title="Header &lt;boost/log/expressions/formatters/xml_decorator.hpp&gt;">boost/log/expressions/formatters/xml_decorator.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            This decorator replaces XML special characters (&amp;, &lt;, &gt; and
+            ') with the corresponding tokens (<code class="computeroutput"><span class="special">&amp;</span><span class="identifier">amp</span><span class="special">;</span></code>,
+            <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">lt</span><span class="special">;</span></code>, <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">gt</span><span class="special">;</span></code>
+            and <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">apos</span><span class="special">;</span></code>, correspondingly). The usage is as follows:
+          </p>
+<pre class="programlisting"><span class="identifier">xml_sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="comment">// Apply the decoration to the whole formatted record</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">xml_decor</span>
+    <span class="special">[</span>
+        <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">message</span>
+    <span class="special">]</span>
+<span class="special">);</span>
+</pre>
+<p>
+            Since character decorators are yet another kind of formatters, it's fine
+            to use them in other contexts where formatters are appropriate. For example,
+            this is also a valid example:
+          </p>
+<pre class="programlisting"><span class="identifier">xml_sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format</span><span class="special">(</span><span class="string">"&lt;message&gt;%1%: %2%&lt;/message&gt;"</span><span class="special">)</span>
+        <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"LineID"</span><span class="special">)</span>
+        <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">xml_decor</span><span class="special">[</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">message</span> <span class="special">];</span> <span class="comment">// Only decorate the message text</span>
+<span class="special">);</span>
+</pre>
+<p>
+            There is an example of the library set up for logging into an XML file,
+            see <a href="../../../../../../libs/log/example/doc/sinks_xml_file.cpp" target="_top">here</a>.
+          </p>
+<h6>
+<a name="log.detailed.expressions.formatters.decorators.h1"></a>
+            <span class="phrase"><a name="log.detailed.expressions.formatters.decorators.csv_character_decorator"></a></span><a class="link" href="expressions.html#log.detailed.expressions.formatters.decorators.csv_character_decorator">CSV
+            character decorator</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.formatters.csv_decorator_hpp" title="Header &lt;boost/log/expressions/formatters/csv_decorator.hpp&gt;">boost/log/expressions/formatters/csv_decorator.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            This decorator allows to ensure that the resulting string conforms to
+            the <a href="http://en.wikipedia.org/wiki/Comma-separated_values" target="_top">CSV</a>
+            format requirements. In particular, it duplicates the quote characters
+            in the formatted string.
+          </p>
+<pre class="programlisting"><span class="identifier">csv_sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"LineID"</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">","</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">csv_decor</span><span class="special">[</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="string">"Tag"</span><span class="special">)</span> <span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">","</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">csv_decor</span><span class="special">[</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">message</span> <span class="special">]</span>
+<span class="special">);</span>
+</pre>
+<h6>
+<a name="log.detailed.expressions.formatters.decorators.h2"></a>
+            <span class="phrase"><a name="log.detailed.expressions.formatters.decorators.c_style_character_decorators"></a></span><a class="link" href="expressions.html#log.detailed.expressions.formatters.decorators.c_style_character_decorators">C-style
+            character decorators</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.formatters.c_decorator_hpp" title="Header &lt;boost/log/expressions/formatters/c_decorator.hpp&gt;">boost/log/expressions/formatters/c_decorator.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            The header defines two character decorators: <code class="computeroutput"><span class="identifier">c_decor</span></code>
+            and <code class="computeroutput"><span class="identifier">c_ascii_decor</span></code>. The
+            first one replaces the following characters with their escaped counterparts:
+            \ (backslash, 0x5c), \a (bell character, 0x07), \b (backspace, 0x08),
+            \f (formfeed, 0x0c), \n (newline, 0x0a), \r (carriage return, 0x0d),
+            \t (horizontal tabulation, 0x09), \v (vertical tabulation, 0x0b), ' (apostroph,
+            0x27), " (quote, 0x22), ? (question mark, 0x3f). The <code class="computeroutput"><span class="identifier">c_ascii_decor</span></code> decorator does the same
+            but also replaces all other non-printable and non-ASCII characters with
+            escaped hexadecimal character codes in C notation (e.g. "\x8c").
+            The usage is similar to other character decorators:
+          </p>
+<pre class="programlisting"><span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"LineID"</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">": ["</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">c_decor</span><span class="special">[</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="string">"Tag"</span><span class="special">)</span> <span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">"] "</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">c_ascii_decor</span><span class="special">[</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">message</span> <span class="special">]</span>
+<span class="special">);</span>
+</pre>
+<h6>
+<a name="log.detailed.expressions.formatters.decorators.h3"></a>
+            <span class="phrase"><a name="log.detailed.expressions.formatters.decorators.general_character_decorator"></a></span><a class="link" href="expressions.html#log.detailed.expressions.formatters.decorators.general_character_decorator">General
+            character decorator</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../expressions.html#header.boost.log.expressions.formatters.char_decorator_hpp" title="Header &lt;boost/log/expressions/formatters/char_decorator.hpp&gt;">boost/log/expressions/formatters/char_decorator.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+            This decorator allows the user to define his own character replacement
+            mapping in one of the two forms. The first form is a range of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>s of strings (which can be C-style
+            strings or ranges of characters, including <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>s).
+            The strings in the <code class="computeroutput"><span class="identifier">first</span></code>
+            elements of pairs will be replaced with the <code class="computeroutput"><span class="identifier">second</span></code>
+            elements of the corresponding pair.
+          </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="special">&gt;,</span> <span class="number">3</span> <span class="special">&gt;</span> <span class="identifier">shell_escapes</span> <span class="special">=</span>
+<span class="special">{</span>
+    <span class="special">{</span> <span class="string">"\""</span><span class="special">,</span> <span class="string">"\\\""</span> <span class="special">},</span>
+    <span class="special">{</span> <span class="string">"'"</span><span class="special">,</span>  <span class="string">"\\'"</span> <span class="special">},</span>
+    <span class="special">{</span> <span class="string">"$"</span><span class="special">,</span>  <span class="string">"\\$"</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">char_decor</span><span class="special">(</span><span class="identifier">shell_escapes</span><span class="special">)</span>
+    <span class="special">[</span>
+        <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">message</span>
+    <span class="special">]</span>
+<span class="special">);</span>
+</pre>
+<p>
+            The second form is two same-sized sequences of strings; the first containing
+            the search patterns and the second - the corresponding replacements.
+          </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*,</span> <span class="number">3</span> <span class="special">&gt;</span> <span class="identifier">shell_patterns</span> <span class="special">=</span>
+<span class="special">{</span>
+    <span class="string">"\""</span><span class="special">,</span> <span class="string">"'"</span><span class="special">,</span> <span class="string">"$"</span>
+<span class="special">};</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*,</span> <span class="number">3</span> <span class="special">&gt;</span> <span class="identifier">shell_replacements</span> <span class="special">=</span>
+<span class="special">{</span>
+    <span class="string">"\\\""</span><span class="special">,</span> <span class="string">"\\'"</span><span class="special">,</span> <span class="string">"\\$"</span>
+<span class="special">};</span>
+
+<span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+<span class="special">(</span>
+    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">char_decor</span><span class="special">(</span><span class="identifier">shell_patterns</span><span class="special">,</span> <span class="identifier">shell_replacements</span><span class="special">)</span>
+    <span class="special">[</span>
+        <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">message</span>
+    <span class="special">]</span>
+<span class="special">);</span>
+</pre>
+<p>
+            In both cases the patterns are not interpreted and are sought in the
+            formatted characters in the original form.
+          </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sink_backends.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../detailed.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="attributes.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

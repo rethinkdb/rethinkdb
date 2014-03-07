@@ -1,0 +1,123 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:ssl SSL]
+
+Boost.Asio contains classes and class templates for basic SSL support. These classes
+allow encrypted communication to be layered on top of an existing stream, such
+as a TCP socket.
+
+Before creating an encrypted stream, an application must construct an SSL
+context object. This object is used to set SSL options such as verification
+mode, certificate files, and so on. As an illustration, client-side
+initialisation may look something like:
+
+  ssl::context ctx(ssl::context::sslv23);
+  ctx.set_verify_mode(ssl::verify_peer);
+  ctx.load_verify_file("ca.pem");
+
+To use SSL with a TCP socket, one may write:
+
+  ssl::stream<ip::tcp::socket> ssl_sock(my_io_service, ctx);
+
+To perform socket-specific operations, such as establishing an outbound
+connection or accepting an incoming one, the underlying socket must first be
+obtained using the `ssl::stream` template's [link
+boost_asio.reference.ssl__stream.lowest_layer `lowest_layer()`] member function:
+
+  ip::tcp::socket::lowest_layer_type& sock = ssl_sock.lowest_layer();
+  sock.connect(my_endpoint);
+
+In some use cases the underlying stream object will need to have a longer
+lifetime than the SSL stream, in which case the template parameter should be a
+reference to the stream type:
+
+  ip::tcp::socket sock(my_io_service);
+  ssl::stream<ip::tcp::socket&> ssl_sock(sock, ctx);
+
+SSL handshaking must be performed prior to transmitting or receiving data over
+an encrypted connection. This is accomplished using the `ssl::stream`
+template's [link boost_asio.reference.ssl__stream.handshake handshake()] or [link
+boost_asio.reference.ssl__stream.async_handshake async_handshake()] member functions.
+
+Once connected, SSL stream objects are used as synchronous or asynchronous read
+and write streams. This means the objects can be used with any of the [link
+boost_asio.reference.read read()], [link boost_asio.reference.async_read async_read()],
+[link boost_asio.reference.write write()], [link boost_asio.reference.async_write
+async_write()], [link boost_asio.reference.read_until read_until()] or [link
+boost_asio.reference.async_read_until async_read_until()] free functions.
+
+[heading Certificate Verification]
+
+Boost.Asio provides various methods for configuring the way SSL certificates are
+verified:
+
+* [link boost_asio.reference.ssl__context.set_default_verify_paths ssl::context::set_default_verify_paths()]
+* [link boost_asio.reference.ssl__context.set_verify_mode ssl::context::set_verify_mode()]
+* [link boost_asio.reference.ssl__context.set_verify_callback ssl::context::set_verify_callback()]
+* [link boost_asio.reference.ssl__context.load_verify_file ssl::context::load_verify_file()]
+* [link boost_asio.reference.ssl__stream.set_verify_mode ssl::stream::set_verify_mode()]
+* [link boost_asio.reference.ssl__stream.set_verify_callback ssl::stream::set_verify_callback()]
+
+To simplify use cases where certificates are verified according to the rules in
+RFC 2818 (certificate verification for HTTPS), Boost.Asio provides a reusable
+verification callback as a function object:
+
+* [link boost_asio.reference.ssl__rfc2818_verification ssl::rfc2818_verification]
+
+The following example shows verification of a remote host's certificate
+according to the rules used by HTTPS:
+
+  using boost::asio::ip::tcp;
+  namespace ssl = boost::asio::ssl;
+  typedef ssl::stream<tcp::socket> ssl_socket;
+
+  // Create a context that uses the default paths for
+  // finding CA certificates.
+  ssl::context ctx(ssl::context::sslv23);
+  ctx.set_default_verify_paths();
+
+  // Open a socket and connect it to the remote host.
+  boost::asio::io_service io_service;
+  ssl_socket sock(io_service, ctx);
+  tcp::resolver resolver(io_service);
+  tcp::resolver::query query("host.name", "https");
+  boost::asio::connect(sock.lowest_layer(), resolver.resolve(query));
+  sock.lowest_layer().set_option(tcp::no_delay(true));
+
+  // Perform SSL handshake and verify the remote host's
+  // certificate.
+  sock.set_verify_mode(ssl::verify_peer);
+  sock.set_verify_callback(ssl::rfc2818_verification("host.name"));
+  sock.handshake(ssl_socket::client);
+
+  // ... read and write as normal ...
+
+[heading SSL and Threads]
+
+SSL stream objects perform no locking of their own. Therefore, it is essential
+that all asynchronous SSL operations are performed in an implicit or explicit
+[link boost_asio.overview.core.strands strand]. Note that this means that no
+synchronisation is required (and so no locking overhead is incurred) in single
+threaded programs.
+ 
+[heading See Also]
+
+[link boost_asio.reference.ssl__context ssl::context],
+[link boost_asio.reference.ssl__rfc2818_verification ssl::rfc2818_verification],
+[link boost_asio.reference.ssl__stream ssl::stream],
+[link boost_asio.examples.cpp03_examples.ssl SSL example].
+
+[heading Notes]
+
+[@http://www.openssl.org OpenSSL] is required to make use of Boost.Asio's SSL
+support. When an application needs to use OpenSSL functionality that is not
+wrapped by Boost.Asio, the underlying OpenSSL types may be obtained by calling [link
+boost_asio.reference.ssl__context.native_handle `ssl::context::native_handle()`] or
+[link boost_asio.reference.ssl__stream.native_handle `ssl::stream::native_handle()`].
+
+[endsect]

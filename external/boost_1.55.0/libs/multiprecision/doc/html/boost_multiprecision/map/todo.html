@@ -1,0 +1,235 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>TODO</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../map.html" title="Roadmap">
+<link rel="prev" href="hist.html" title="History">
+<link rel="next" href="faq.html" title="FAQ">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="hist.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../map.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="faq.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.map.todo"></a><a class="link" href="todo.html" title="TODO">TODO</a>
+</h3></div></div></div>
+<p>
+        More a list of what <span class="emphasis"><em>could</em></span> be done, rather than what
+        <span class="emphasis"><em>should</em></span> be done (which may be a much smaller list!).
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Add back-end support for libdecNumber.
+          </li>
+<li class="listitem">
+            Add an adaptor back-end for complex number types.
+          </li>
+<li class="listitem">
+            Add a back-end for MPFR interval arithmetic.
+          </li>
+<li class="listitem">
+            Add better multiplication routines (Karatsuba, FFT etc) to cpp_int_backend.
+          </li>
+<li class="listitem">
+            Add assembly level routines to cpp_int_backend.
+          </li>
+<li class="listitem">
+            Add an all C++ Boost licensed binary floating point type.
+          </li>
+<li class="listitem">
+            Can ring types (exact floating point types) be supported? The answer
+            should be yes, but someone needs to write it, the hard part is IO and
+            binary-decimal conversion.
+          </li>
+<li class="listitem">
+            Should there be a choice of rounding mode (probably MPFR specific)?
+          </li>
+<li class="listitem">
+            We can reuse temporaries in multiple subtrees (temporary caching).
+          </li>
+<li class="listitem">
+            cpp_dec_float should round to nearest.
+          </li>
+<li class="listitem">
+            A 2's complement fixed precision int that uses exactly N bits and no
+            more.
+          </li>
+</ul></div>
+<p>
+        Things requested in review:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The performances of mp_number&lt;a_trivial_adaptor&lt;float&gt;, false&gt;respect
+            to float and mp_number&lt;a_trivial_adaptor&lt;int&gt;, false&gt; and
+            int should be given to show the cost of using the generic interface (Mostly
+            done, just need to update docs to the latest results).
+          </li>
+<li class="listitem">
+            Should we provide min/max overloads for expression templates? (Not done
+            - we can't overload functions declared in the std namespace :-( ).
+          </li>
+<li class="listitem">
+            The rounding applied when converting must be documented (Done).
+          </li>
+<li class="listitem">
+            Document why we don't abstract out addition/multiplication algorithms
+            etc. (done - FAQ)
+          </li>
+<li class="listitem">
+            Document why we don't use proto (compile times) (Done).
+          </li>
+<li class="listitem">
+            We can reuse temporaries in multiple subtrees (temporary caching) Moved
+            to TODO list.
+          </li>
+<li class="listitem">
+            Emphasise in the docs that ET's may reorder operations (done 2012/10/31).
+          </li>
+<li class="listitem">
+            Document what happens to small fixed precision cpp_int's (done 2012/10/31).
+          </li>
+<li class="listitem">
+            The use of bool in template parameters could be improved by the use of
+            an enum class which will be more explicit. E.g <code class="computeroutput"><span class="keyword">enum</span>
+            <span class="keyword">class</span> <span class="identifier">expression_template</span>
+            <span class="special">{</span><span class="identifier">disabled</span><span class="special">,</span> <span class="identifier">enabled</span><span class="special">};</span> <span class="keyword">enum</span> <span class="keyword">class</span> <span class="identifier">sign</span>
+            <span class="special">{</span><span class="keyword">unsigned</span><span class="special">,</span> <span class="keyword">signed</span><span class="special">};</span></code> (Partly done 2012/09/15, done 2012/10/31).
+          </li>
+<li class="listitem">
+            Each back-end should document the requirements it satisfies (not currently
+            scheduled for inclusion: it's deliberately an implementation detail,
+            and "optional" requirements are optimisations which can't be
+            detected by the user). Not done: this is an implementation detail, the
+            exact list of requirements satisfied is purely an optimization, not something
+            the user can detect.
+          </li>
+<li class="listitem">
+            A backend for an overflow aware integers (done 2012/10/31).
+          </li>
+<li class="listitem">
+            IIUC convert_to is used to emulate in c++98 compilers C++11 explicit
+            conversions. Could the explicit conversion operator be added on compilers
+            supporting it? (Done 2012/09/15).
+          </li>
+<li class="listitem">
+            The front-end should make the differences between implicit and explicit
+            construction (Done 2012/09/15).
+          </li>
+<li class="listitem">
+            The tutorial should add more examples concerning implicit or explicit
+            conversions. (Done 2012/09/15).
+          </li>
+<li class="listitem">
+            The documentation must explain how move semantics helps in this domain
+            and what the backend needs to do to profit from this optimization. (Done
+            2012/09/15).
+          </li>
+<li class="listitem">
+            The documentation should contain Throws specification on the mp_number
+            and backend requirements operations. (Done 2012/09/15).
+          </li>
+<li class="listitem">
+            The library interface should use the noexcept (BOOST_NOEXCEPT, ...) facilities
+            (Done 2012/09/15).
+          </li>
+<li class="listitem">
+            It is unfortunate that the generic mp_number front end can not make use
+            constexpr as not all the backends can ensure this (done - we can go quite
+            a way).
+          </li>
+<li class="listitem">
+            literals: The library doesn't provide some kind of literals. I think
+            that the mp_number class should provide a way to create literals if the
+            backend is able to. (Done 2012/09/15).
+          </li>
+<li class="listitem">
+            The ExpresionTemplate parameter could be defaulted to a traits class
+            for more sensible defaults (done 2012/09/20).
+          </li>
+<li class="listitem">
+            In a = exp1 op exp2 where a occurs inside one of exp1 or exp2 then we
+            can optimise and eliminate one more temporary (done 2012/09/20).
+          </li>
+</ul></div>
+<h5>
+<a name="boost_multiprecision.map.todo.h0"></a>
+        <span class="phrase"><a name="boost_multiprecision.map.todo.pre_review_comments"></a></span><a class="link" href="todo.html#boost_multiprecision.map.todo.pre_review_comments">Pre-Review
+        Comments</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Make fixed precision orthogonal to Allocator type in cpp_int. Possible
+            solution - add an additional MaxBits template argument that defaults
+            to 0 (meaning keep going till no more space/memory). Done.
+          </li>
+<li class="listitem">
+            Can ring types (exact floating point types) be supported? The answer
+            should be yes, but someone needs to write it (Moved to TODO list).
+          </li>
+<li class="listitem">
+            Should there be a choice of rounding mode (probably MPFR specific)? Moved
+            to TODO list.
+          </li>
+<li class="listitem">
+            Make the exponent type for cpp_dec_float a template parameter, maybe
+            include support for big-integer exponents. Open question - what should
+            be the default - int32_t or int64_t? (done 2012/09/06)
+          </li>
+<li class="listitem">
+            Document the size requirements of fixed precision ints (done 2012/09/15).
+          </li>
+<li class="listitem">
+            Document std lib function accuracy (done 2012/09/15).
+          </li>
+<li class="listitem">
+            Be a bit clearer on the effects of sign-magnitude representation of cpp_int
+            - min == -max etc - done.
+          </li>
+<li class="listitem">
+            Document cpp_dec_float precision, rounding, and exponent size (done 2012/09/06).
+          </li>
+<li class="listitem">
+            Can we be clearer in the docs that mixed arithmetic doesn't work (no
+            longer applicable as of 2012/09/06)?
+          </li>
+<li class="listitem">
+            Document round functions behaviour better (they behave as in C++11) (added
+            note 2012/09/06).
+          </li>
+<li class="listitem">
+            Document limits on size of cpp_dec_float (done 2012/09/06).
+          </li>
+<li class="listitem">
+            Add support for fused multiply add (and subtract). GMP mpz_t could use
+            this (done 2012/09/20).
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="hist.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../map.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="faq.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

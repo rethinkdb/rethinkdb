@@ -1,0 +1,234 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;41.&#160;Quickbook 1.6</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="tools.html" title="Part&#160;II.&#160;Boost Tools">
+<link rel="prev" href="boostbook/dtd/rationale.html" title="BoostBook element rationale">
+<link rel="next" href="quickbook/change_log.html" title="Change Log">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boostbook/dtd/rationale.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="tools.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="quickbook/change_log.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="quickbook"></a>Chapter&#160;41.&#160;Quickbook 1.6</h2></div>
+<div><div class="authorgroup">
+<div class="author"><h3 class="author">
+<span class="firstname">Joel</span> <span class="surname">de Guzman</span>
+</h3></div>
+<div class="author"><h3 class="author">
+<span class="firstname">Eric</span> <span class="surname">Niebler</span>
+</h3></div>
+</div></div>
+<div><p class="copyright">Copyright &#169; 2002, 2004, 2006 Joel de Guzman,
+      Eric Niebler</p></div>
+<div><p class="copyright">Copyright &#169; 2010, 2011 Daniel James</p></div>
+<div><div class="legalnotice">
+<a name="quickbook.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="quickbook.html#quickbook.intro">Introduction</a></span></dt>
+<dt><span class="section"><a href="quickbook/change_log.html">Change Log</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax.html">Syntax Summary</a></span></dt>
+<dd><dl><dt><span class="section"><a href="quickbook/syntax.html#quickbook.syntax.comments">Comments</a></span></dt></dl></dd>
+<dt><span class="section"><a href="quickbook/syntax/structure.html">Document Structure</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="quickbook/syntax/structure.html#quickbook.syntax.structure.docinfo">Document
+      Info</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/structure.html#quickbook.syntax.structure.section">Sections</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html">Phrase Level Elements</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.font_styles">Font
+      Styles</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.replaceable">Replaceable</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.quotations">Quotations</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.simple_formatting">Simple
+      formatting</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.role">Role</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.inline_code">Inline
+      code</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.code_blocks">Code
+      blocks</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.source_mode">Source
+      Mode</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.line_break">line-break</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.anchors">Anchors</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.links">Links</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.anchor_links">Anchor
+      links</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.refentry_links">refentry
+      links</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.code_links">Code
+      Links</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.escape">Escape</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.single_char_escape">Single
+      char escape</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.unicode_escape">Unicode
+      escape</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.images">Images</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.footnotes">Footnotes</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.macro_expansion">Macro
+      Expansion</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.template_expansion">Template
+      Expansion</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/phrase.html#quickbook.syntax.phrase.cond">Conditional
+      Generation</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="quickbook/syntax/block.html">Block Level Elements</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.xinclude">xinclude</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.paragraphs">Paragraphs</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.lists">Lists</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.code">Code</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.escape_back">Escaping
+      Back To QuickBook</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.preformatted">Preformatted</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.blockquote">Blockquote</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.admonitions">Admonitions</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.headings">Headings</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.generic_heading">Generic
+      Heading</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.macros">Macros</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.predefined_macros">Predefined
+      Macros</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.templates">Templates</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.blurbs">Blurbs</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.tables">Tables</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.variable_lists">Variable
+      Lists</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.include">Include</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.import">Import</a></span></dt>
+<dt><span class="section"><a href="quickbook/syntax/block.html#quickbook.syntax.block.block">Plain
+      blocks</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="quickbook/versions.html">Language Versions</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="quickbook/versions.html#quickbook.versions.stable">Stable Versions</a></span></dt>
+<dt><span class="section"><a href="quickbook/versions.html#language_versions.1_6">Quickbook 1.6</a></span></dt>
+<dt><span class="section"><a href="quickbook/versions.html#language_versions.1_7">Quickbook 1.7</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="quickbook/install.html">Installation and configuration</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="quickbook/install.html#quickbook.install.macosx">Mac OS X</a></span></dt>
+<dt><span class="section"><a href="quickbook/install.html#quickbook.install.windows">Windows 2000, XP, 2003, Vista,
+      7</a></span></dt>
+<dt><span class="section"><a href="quickbook/install.html#quickbook.install.linux">Debian, Ubuntu</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="quickbook/editors.html">Editor Support</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="quickbook/editors.html#quickbook.editors.scite">Scintilla Text Editor</a></span></dt>
+<dt><span class="section"><a href="quickbook/editors.html#editor_support.kde_support">KDE Support</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="quickbook/faq.html">Frequently Asked Questions</a></span></dt>
+<dt><span class="section"><a href="quickbook/ref.html">Quick Reference</a></span></dt>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="quickbook.intro"></a>Introduction</h2></div></div></div>
+<div class="blockquote"><blockquote class="blockquote">
+<p>
+        <span class="bold"><strong><span class="emphasis"><em><span class="quote">&#8220;<span class="quote">Why program by hand in five days what
+        you can spend five years of your life automating?</span>&#8221;</span></em></span></strong></span>
+      </p>
+<p>
+        -- Terrence Parr, author ANTLR/PCCTS
+      </p>
+</blockquote></div>
+<p>
+      Well, QuickBook started as a weekend hack. It was originally intended to be
+      a sample application using <a href="http://spirit.sourceforge.net" target="_top">Spirit</a>.
+      What is it? What you are viewing now, this documentation, is autogenerated
+      by QuickBook. These files were generated from one master:
+    </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        <a href="../../tools/quickbook/doc/quickbook.qbk" target="_top">quickbook.qbk</a>
+      </p></blockquote></div>
+<p>
+      Originally named QuickDoc, this funky tool that never dies, evolved into a
+      funkier tool thanks to Eric Niebler who resurrected the project making it generate
+      <a href="http://www.boost.org/doc/html/boostbook.html" target="_top">BoostBook</a>
+      instead of HTML. The <a href="http://www.boost.org/doc/html/boostbook.html" target="_top">BoostBook</a>
+      documentation format is an extension of <a href="http://www.docbook.org/" target="_top">DocBook</a>,
+      an SGML or XML based format for describing documentation.
+    </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        You don't need to know anything about <a href="http://www.boost.org/doc/html/boostbook.html" target="_top">BoostBook</a>
+        or <a href="http://www.docbook.org/" target="_top">DocBook</a> to use QuickBook.
+        A basic understanding of <a href="http://www.docbook.org/" target="_top">DocBook</a>
+        might help, but shouldn't be necessary. For really advanced stuff you will
+        need to know <a href="http://www.docbook.org/" target="_top">DocBook</a>, but you
+        can ignore it at first, and maybe continue to do so.
+      </p></td></tr>
+</table></div>
+<p>
+      QuickBook is a WikiWiki style documentation tool geared towards C++ documentation
+      using simple rules and markup for simple formatting tasks. QuickBook extends
+      the WikiWiki concept. Like the WikiWiki, QuickBook documents are simple text
+      files. A single QuickBook document can generate a fully linked set of nice
+      HTML and PostScript/PDF documents complete with images and syntax- colorized
+      source code.
+    </p>
+<p>
+      Features include:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          generate <a href="http://www.boost.org/doc/html/boostbook.html" target="_top">BoostBook</a>
+          xml, to generate HTML, PostScript and PDF
+        </li>
+<li class="listitem">
+          simple markup to link to Doxygen-generated entities
+        </li>
+<li class="listitem">
+          macro system for simple text substitution
+        </li>
+<li class="listitem">
+          simple markup for italics, bold, preformatted, blurbs, code samples, tables,
+          URLs, anchors, images, etc.
+        </li>
+<li class="listitem">
+          automatic syntax coloring of code samples
+        </li>
+<li class="listitem">
+          CSS support
+        </li>
+</ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boostbook/dtd/rationale.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="tools.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="quickbook/change_log.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

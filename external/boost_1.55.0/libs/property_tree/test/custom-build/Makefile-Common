@@ -1,0 +1,80 @@
+CCINCLUDE=-I../../../../../boost -I../../../..
+
+all: test
+
+-include Makefile
+
+test: build
+	./ptree_dbg.exe 
+	./ptree_rel.exe
+	./cmdline_dbg.exe 
+	./cmdline_rel.exe
+	./ini_dbg.exe 
+	./ini_rel.exe
+	./info_dbg.exe 
+	./info_rel.exe
+	./json_dbg.exe 
+	./json_rel.exe
+	./xml_dbg.exe 
+	./xml_rel.exe
+	./multi_module_dbg.exe 
+	./multi_module_rel.exe
+	./example_custom_data_type_dbg.exe 
+	./example_custom_data_type_rel.exe 
+	./example_debug_settings_dbg.exe 
+	./example_debug_settings_rel.exe 
+	./example_empty_ptree_trick_dbg.exe 
+	./example_empty_ptree_trick_rel.exe 
+	./example_info_grammar_spirit_dbg.exe 
+	./example_info_grammar_spirit_rel.exe 
+
+build: debug release
+
+debug: ptree_dbg.exe cmdline_dbg.exe ini_dbg.exe info_dbg.exe json_dbg.exe xml_dbg.exe multi_module_dbg.exe example_custom_data_type_dbg.exe example_debug_settings_dbg.exe example_empty_ptree_trick_dbg.exe example_info_grammar_spirit_dbg.exe
+
+release: ptree_rel.exe cmdline_rel.exe ini_rel.exe info_rel.exe json_rel.exe xml_rel.exe multi_module_rel.exe example_custom_data_type_rel.exe example_debug_settings_rel.exe example_empty_ptree_trick_rel.exe example_info_grammar_spirit_rel.exe
+
+ptree_dbg.exe: ../test_property_tree.cpp
+	$(CC) $(CFLAGSDBG) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+ptree_rel.exe: ../test_property_tree.cpp
+	$(CC) $(CFLAGSREL) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+cmdline_dbg.exe: ../test_cmdline_parser.cpp
+	$(CC) $(CFLAGSDBG) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+cmdline_rel.exe: ../test_cmdline_parser.cpp
+	$(CC) $(CFLAGSREL) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+ini_dbg.exe: ../test_ini_parser.cpp
+	$(CC) $(CFLAGSDBG) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+ini_rel.exe: ../test_ini_parser.cpp
+	$(CC) $(CFLAGSREL) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+info_dbg.exe: ../test_info_parser.cpp
+	$(CC) $(CFLAGSDBG) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+info_rel.exe: ../test_info_parser.cpp
+	$(CC) $(CFLAGSREL) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+json_dbg.exe: ../test_json_parser.cpp
+	$(CC) $(CFLAGSDBG) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+json_rel.exe: ../test_json_parser.cpp
+	$(CC) $(CFLAGSREL) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+xml_dbg.exe: ../test_xml_parser_spirit.cpp
+	$(CC) $(CFLAGSDBG) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+xml_rel.exe: ../test_xml_parser_spirit.cpp
+	$(CC) $(CFLAGSREL) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+multi_module_dbg.exe: ../test_multi_module1.cpp ../test_multi_module2.cpp
+	$(CC) $(CFLAGSDBG) $(CCINCLUDE) $(EXTINCLUDE) $? -o $@ $(EXTLIBS) 
+multi_module_rel.exe: ../test_multi_module1.cpp ../test_multi_module2.cpp
+	$(CC) $(CFLAGSREL) $(CCINCLUDE) $(EXTINCLUDE) $? -o $@ $(EXTLIBS) 
+example_custom_data_type_dbg.exe: ../../examples/custom_data_type.cpp
+	$(CC) $(CFLAGSDBG) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+example_custom_data_type_rel.exe: ../../examples/custom_data_type.cpp
+	$(CC) $(CFLAGSREL) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+example_debug_settings_dbg.exe: ../../examples/debug_settings.cpp
+	$(CC) $(CFLAGSDBG) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+example_debug_settings_rel.exe: ../../examples/debug_settings.cpp
+	$(CC) $(CFLAGSREL) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+example_empty_ptree_trick_dbg.exe: ../../examples/empty_ptree_trick.cpp
+	$(CC) $(CFLAGSDBG) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+example_empty_ptree_trick_rel.exe: ../../examples/empty_ptree_trick.cpp
+	$(CC) $(CFLAGSREL) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+example_info_grammar_spirit_dbg.exe: ../../examples/info_grammar_spirit.cpp
+	$(CC) $(CFLAGSDBG) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 
+example_info_grammar_spirit_rel.exe: ../../examples/info_grammar_spirit.cpp
+	$(CC) $(CFLAGSREL) $(CCINCLUDE) $(EXTINCLUDE) $< -o $@ $(EXTLIBS) 

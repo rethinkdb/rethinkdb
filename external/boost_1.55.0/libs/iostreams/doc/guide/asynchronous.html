@@ -1,0 +1,80 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Pipelines</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">User's Guide</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+     <A HREF='code_conversion.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='guide.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='lifetimes.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<H2>3.6 Asynchronous and Non-Blocking I/O</H2>
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#devices">Devices</A></DT>
+  <DT><A href="#filters">Filters</A></DT>
+  <DT><A href="#streams">Streams and Stream Buffers</A></DT>
+</DL>
+
+<HR STYLE="margin-top:1em">
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The <A HREF="../concepts/filter.html">Filter</A> and <A HREF="../concepts/device.html">Device</A> concepts provided by Boost.Iostreams have been designed to allow a future version of Boost.Iostreams to support asynchronous and non-blocking i/o. This has been accomplished by providing the functions <A HREF="../functions/get.html"><CODE>get</CODE></A>, <A HREF="../functions/read.html"><CODE>read</CODE></A>, <A HREF="../functions/put.html"><CODE>put</CODE></A> and <A HREF="../functions/write.html"><CODE>write</CODE></A> with a way to indicate that fewer characters than requested have been produced or consumed, despite the fact that the end of stream has not been reached and no error has occurred. We'll call such an indication a <SPAN CLASS='term'>temporary failure notification</SPAN>.
+    
+    The main challenge was presented by the function <A HREF="../functions/get.html"><CODE>get</CODE></A>: to allow <CODE>get</CODE> to indicate that input is temporarily unavailable, it was necessary to introduce the class template <A HREF="../classes/char_traits.html"><CODE>boost::iostreams::char_traits</CODE></A>, a replacement for <CODE>std::char_traits</CODE> having an additional member function <A HREF="../classes/char_traits.html#would_block"><CODE>would_block</CODE></A>.
+</P>
+<P>For full details, see the definitions of the <A HREF="../concepts/filter.html">Filter</A> and <A HREF="../concepts/device.html">Device</A> concepts.</P>
+
+<A NAME="devices"></A>
+<H2>Devices</H2>
+
+<P>
+    The current Device concepts can handle non-blocking i/o but not asynchronous i/o; additional Device concepts will be required for full support of asynchronous i/o. This is to be expected, since synchronous and asynychronous Devices operate very differently. <I>See</I> <A HREF="../concepts/blocking.html">Blocking</A>.
+</P>
+
+<A NAME="filters"></A>
+<H2>Filters</H2>
+
+<P>
+    Filters are allowed to propagate temporary failure notifications: if a downstream Device consumes or produces fewer characters than requested by a Filter, and if as a result the Filter is not able to satisfy a read or write request, the Filter may return a value indicating that input or output is temporarily unavailable. It is hoped that this ability will suffice to allow the current Filter concepts to be used with both aynchronous and non-blocking i/o. However, in order to be useful with blocking i/o as well, a Filter must never return a temporary failure notification unless it has received a such notification from a downstream Device. This requirement is summarized by stating that Filters must be <SPAN CLASS='term'>blocking-preserving</SPAN>. <I>See</I> <A HREF="../concepts/blocking.html">Blocking</A>.
+</P>
+
+<A NAME="streams"></A>
+<H2>Streams and Stream Buffers</H2>
+
+<P>
+    Although the Boost.Iostreams Filter and Device concepts can accommodate non-blocking i/o, the C++ standard library stream and stream buffer interfaces cannot, since they lack a means to distinguish between temporary and permanent failures to satisfy a read or write request. As a result, non-blocking Devices do not work properly with the templates <A HREF="generic_streams.html#stream"><CODE>stream</CODE></A>, <A HREF="generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A>, <A HREF="../classes/filtering_stream.html"><CODE>filtering_stream</CODE></A> and <A HREF="../classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A>.  
+</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

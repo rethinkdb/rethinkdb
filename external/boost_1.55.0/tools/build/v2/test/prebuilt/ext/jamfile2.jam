@@ -1,0 +1,39 @@
+
+import os ;
+
+local dll-suffix = so ;
+local prefix = "" ;
+if [ os.name ] in CYGWIN NT
+{
+   if [ MATCH ^(gcc) : $toolset ]
+   {
+      dll-suffix = dll ;
+   }
+   else
+   {
+      dll-suffix = lib ;
+   }
+}
+else
+{
+   prefix = "lib" ;      
+}
+if [ MATCH ^(darwin) : $toolset ]
+{
+   dll-suffix = dylib ;
+}
+
+project ext ;
+
+lib a : 
+    : <file>debug/$(prefix)a.$(dll-suffix) <variant>debug
+    :
+    : <include>debug
+    ;
+    
+lib a :
+    : <file>release/$(prefix)a.$(dll-suffix) <variant>release
+    :
+    : <include>release
+    ;
+    

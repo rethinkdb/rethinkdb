@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Tutorial</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Tutorial</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='container_device.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='filter_usage.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<A NAME="filter_overview"></A>
+<H2>2.2.1. Overview: InputFilters, OutputFilters and Filter Helpers</H2>
+
+<P>Filters are used to modify character sequences. For example, you might use a filter to replace all instances of one word with another, to convert all alphabetic characters to lower case or to encrypt a document. Sometimes the filter is a mere observer; in this case the filtered character sequence if the same as the unfiltered sequence. For example, you might use a filter to count the number of occurrences of a given word.</P>
+
+
+<A NAME="input_filters_and_output_filters"></A>
+<H4>InputFilters and OutputFilters</H4>
+
+<P>The Iostreams library supports two basic categories of Filters, <A HREF="../concepts/input_filter.html">InputFilters</A> and <A HREF="../concepts/output_filter.html">OutputFilters</A>. InputFilters represent a &#8220;pull&#8221; model of filtering: a source of unfiltered data is provided &#8212; represented as a <A HREF="../concepts/source.html">Source</A> &#8212; and the Filter is expected to generate a certain number of characters of the filtered sequence. The filtered sequence is generated incrementally, meaning that to filter a given character sequence the Filter typically must be invoked several times. <A HREF="../concepts/output_filter.html">OutputFilters</A> represent a &#8220;push&#8221; model of filtering: a sequence of unfiltered characters and a <A HREF="../concepts/sink.html">Sink</A> are provided, and the Filter is expected to filter the characters and write them to the Sink. Like InputFilters, OutputFilters also process data incrementally.</P>
+
+<P>The simplest InputFilters and OutputFilters process characters one at a time. This type of Filter is easy to write, but is less efficient than Filters that process several characters at a time. Filters which process several characters at a time are called <A HREF="../concepts/multi_character.html">Multi-Character</A> filters.</P>
+
+<A NAME="filter_helpers"></A>
+<H4>Filter Helpers</H4>
+
+<P>The Iostreams library provides several utilities to make Filter writing easier:</P>
+<UL>
+    <LI>
+        <A HREF="../classes/aggregate.html"><CODE>aggregate_filter</CODE></A> allows a programmer to define a Filter by reading unfiltered data from one <CODE>std::vector</CODE> and writing filtered data to another <CODE>std::vector</CODE>.
+    </LI>
+    <LI>
+        <A HREF="../classes/stdio_filter.html"><CODE>stdio_filter</CODE></A> allows a programmer to define a Filter by reading unfiltered data from standard input and writing filtered data to standard output.
+    </LI>
+    <LI>
+        <A HREF="../classes/symmetric_filter.html"><CODE>symmetric_filter</CODE></A> allows a programmer to define a Filter by reading unfiltered data from one array and writing filtered data to another array.
+    </LI>
+    <LI>
+        <A HREF="finite_state_filters.html"><CODE>finite_state_filter</CODE></A> allows a programmer to define a Filter as a finite state machine. This component is included with the example filters; it is not currently an official part of the library.
+    </LI>
+</UL>
+
+<A NAME="selecting_a_filter"></A>
+<H4>Selecting a Filter Concept</H4>
+
+<P>
+    Suppose you need to write a Filter to perform a given filtering task. How do you decide whether to write an <A HREF="../concepts/input_filter.html">InputFilter</A> or <A HREF="../concepts/output_filter.html">OutputFilter</A>, or to use one of the Filter helpers? The first two Filter helpers mentioned above, <A HREF="../classes/aggregate.html"><CODE>aggregate_filter</CODE></A> and <A HREF="../classes/stdio_filter.html"><CODE>stdio_filter</CODE></A>, have high-memory usage and only work with character sequences that have a well-defined end. They allow filtering algorithms to be expressed in a very straightforward way, however, and so provide a good introduction to filtering. The third Filter helper, <A HREF="../classes/symmetric_filter.html"><CODE>symmetric_filter</CODE></A>, is useful for defining filter based on C-language API such as zlib, libbz2 or OpenSSL. If none of the Filter helpers are appropriate, you should generally write an InputFilter if you plan to use the filter for reading and an OutputFilter if you plan to use it for writing. In some cases, however, it is much easier to express an algorithm as an InputFilter than as an OutputFilter, or <I>vice versa</I>. In such cases, you can write the filter whichever way is easier, and use the class template <A HREF="../functions/invert.html#inverse"><CODE>inverse</CODE></A> or the function template <A HREF="../functions/invert.html"><CODE>invert</CODE></A> to turn an InputFilter into an OutputFilter or <I>vice versa</I>.
+</P>
+
+<P>
+In all but the last of the filtering examples below, I will first show how to implement an algorithm using <CODE>stdio_filter</CODE> before implementing it from scratch as an InputFilter or OutputFilter.
+</P>
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='container_device.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='filter_usage.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Use, modification, and distribution are subject to the Boost Software License, Version 2.0. (See accompanying file <A HREF="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+
+</BODY>

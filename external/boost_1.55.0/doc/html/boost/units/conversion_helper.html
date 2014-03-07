@@ -1,0 +1,79 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template conversion_helper</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_units/Reference.html#header.boost.units.conversion_hpp" title="Header &lt;boost/units/conversion.hpp&gt;">
+<link rel="prev" href="../../BOOST_UNITS_CHECK_HOMOGENEOUS_UNITS.html" title="Macro BOOST_UNITS_CHECK_HOMOGENEOUS_UNITS">
+<link rel="next" href="../../BOOST_UNITS_DEFINE_CONVERSION_FACTOR.html" title="Macro BOOST_UNITS_DEFINE_CONVERSION_FACTOR">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../BOOST_UNITS_CHECK_HOMOGENEOUS_UNITS.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_units/Reference.html#header.boost.units.conversion_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../BOOST_UNITS_DEFINE_CONVERSION_FACTOR.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.units.conversion_helper"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template conversion_helper</span></h2>
+<p>boost::units::conversion_helper</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_units/Reference.html#header.boost.units.conversion_hpp" title="Header &lt;boost/units/conversion.hpp&gt;">boost/units/conversion.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> From<span class="special">,</span> <span class="keyword">typename</span> To<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="conversion_helper.html" title="Struct template conversion_helper">conversion_helper</a> <span class="special">{</span>
+
+  <span class="comment">// <a class="link" href="conversion_helper.html#idp156681656-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">To</span> <a class="link" href="conversion_helper.html#idp156681864-bb"><span class="identifier">convert</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">From</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp234464520"></a><h2>Description</h2>
+<p>Template for defining conversions between quantities. This template should be specialized for every quantity that allows conversions. For example, if you have a two units called pair and dozen you would write </p>
+<pre class="programlisting"><span class="special">*</span>  <span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+<span class="special">*</span>  <span class="keyword">namespace</span> <span class="identifier">units</span> <span class="special">{</span>
+<span class="special">*</span>  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T0</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T1</span><span class="special">&gt;</span>
+<span class="special">*</span>  <span class="keyword">struct</span> <span class="identifier">conversion_helper</span><span class="special">&lt;</span><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">dozen</span><span class="special">,</span> <span class="identifier">T0</span><span class="special">&gt;</span><span class="special">,</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">pair</span><span class="special">,</span> <span class="identifier">T1</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">*</span>  <span class="special">{</span>
+<span class="special">*</span>      <span class="keyword">static</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">pair</span><span class="special">,</span> <span class="identifier">T1</span><span class="special">&gt;</span> <span class="identifier">convert</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">dozen</span><span class="special">,</span> <span class="identifier">T0</span><span class="special">&gt;</span><span class="special">&amp;</span> <span class="identifier">source</span><span class="special">)</span>
+<span class="special">*</span>      <span class="special">{</span>
+<span class="special">*</span>          <span class="keyword">return</span><span class="special">(</span><span class="identifier">quantity</span><span class="special">&lt;</span><span class="identifier">pair</span><span class="special">,</span> <span class="identifier">T1</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">from_value</span><span class="special">(</span><span class="number">6</span> <span class="special">*</span> <span class="identifier">source</span><span class="special">.</span><span class="identifier">value</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+<span class="special">*</span>      <span class="special">}</span>
+<span class="special">*</span>  <span class="special">}</span><span class="special">;</span>
+<span class="special">*</span>  <span class="special">}</span>
+<span class="special">*</span>  <span class="special">}</span>
+<span class="special">*</span>  
+</pre>
+<p>In most cases, the predefined specializations for <code class="computeroutput">unit</code> and <code class="computeroutput">absolute</code> should be sufficient, so users should rarely need to use this. </p>
+<div class="refsect2">
+<a name="idp234493160"></a><h3>
+<a name="idp156681656-bb"></a><code class="computeroutput">conversion_helper</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">To</span> <a name="idp156681864-bb"></a><span class="identifier">convert</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">From</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2008 Matthias Christian Schabel<br>Copyright &#169; 2007-2010 Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../BOOST_UNITS_CHECK_HOMOGENEOUS_UNITS.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_units/Reference.html#header.boost.units.conversion_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../BOOST_UNITS_DEFINE_CONVERSION_FACTOR.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

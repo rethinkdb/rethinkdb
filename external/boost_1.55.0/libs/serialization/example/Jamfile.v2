@@ -1,0 +1,57 @@
+# Boost serialization Library Build Jamfile
+#  (C) Copyright Robert Ramey 2002-2004.
+#  Use, modification, and distribution are subject to the
+#  Boost Software License, Version 1.0. (See accompanying file
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org/libs/serialization for the library home page.
+
+project libs/serialization/example
+    : id serialization_example
+    : requirements <library>../build//boost_serialization
+    ;
+
+rule demo_bsl_run ( demo-name : othersources * : requirements * )
+{
+    return [ run
+        # sources
+            $(demo-name).cpp 
+            $(othersources).cpp
+        : # command
+        : # input files
+        : # requirements
+            # toolset suppress-warnings
+            <toolset>gcc:<cxxflags>"-Wno-non-virtual-dtor -Wno-ctor-dtor-privacy"
+            <toolset>msvc-8.0:<cxxflags>"-wd4996"
+            <toolset>borland:<cxxflags>"-w-8080 -w-8071 -w-8057 -w-8062 -w-8008 -w-0018 -w-8066"
+            # toolset optimizations
+            <toolset>gcc:<cxxflags>"-ftemplate-depth-255"
+            <toolset>msvc:<cxxflags>"-Gy"
+            # toolset shared library support
+            <toolset>como,<runtime-link>shared:<build>no
+            <toolset>msvc,<stdlib>stlport,<runtime-link>shared:<build>no
+            <toolset>cw,<runtime-link>static:<build>no
+            $(requirements)
+         : # test name
+            $(demo-name)
+       ]
+    ;
+}
+
+test-suite "demo-suite" :
+    # demos
+    [ demo_bsl_run demo ]
+    [ demo_bsl_run demo_auto_ptr ]
+    [ demo_bsl_run demo_exception ]
+    [ demo_bsl_run demo_log : log_archive ]
+    [ demo_bsl_run demo_pimpl : demo_pimpl_A ]
+    [ demo_bsl_run demo_polymorphic : demo_polymorphic_A ]
+    [ demo_bsl_run demo_portable_archive : portable_binary_iarchive portable_binary_oarchive ]
+    [ demo_bsl_run demo_shared_ptr ]
+    [ demo_bsl_run demo_simple_log ]
+    [ demo_bsl_run demo_trivial_archive ]
+    [ demo_bsl_run demo_xml ]
+    [ demo_bsl_run demo_xml_save ]
+    [ demo_bsl_run demo_xml_load : : <dependency>demo_xml_save ]
+;
+

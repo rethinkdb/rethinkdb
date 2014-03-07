@@ -1,0 +1,50 @@
+{
+  "source": "doc/api/string_decoder.markdown",
+  "modules": [
+    {
+      "textRaw": "StringDecoder",
+      "name": "stringdecoder",
+      "stability": 3,
+      "stabilityText": "Stable",
+      "desc": "<p>To use this module, do <code>require(&#39;string_decoder&#39;)</code>. StringDecoder decodes a\nbuffer to a string. It is a simple interface to <code>buffer.toString()</code> but provides\nadditional support for utf8.\n\n</p>\n<pre><code>var StringDecoder = require(&#39;string_decoder&#39;).StringDecoder;\nvar decoder = new StringDecoder(&#39;utf8&#39;);\n\nvar cent = new Buffer([0xC2, 0xA2]);\nconsole.log(decoder.write(cent));\n\nvar euro = new Buffer([0xE2, 0x82, 0xAC]);\nconsole.log(decoder.write(euro));</code></pre>\n",
+      "classes": [
+        {
+          "textRaw": "Class: StringDecoder",
+          "type": "class",
+          "name": "StringDecoder",
+          "desc": "<p>Accepts a single argument, <code>encoding</code> which defaults to <code>utf8</code>.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "decoder.write(buffer)",
+              "type": "method",
+              "name": "write",
+              "desc": "<p>Returns a decoded string.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "buffer"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "decoder.end()",
+              "type": "method",
+              "name": "end",
+              "desc": "<p>Returns any trailing bytes that were left in the buffer.\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "type": "module",
+      "displayName": "StringDecoder"
+    }
+  ]
+}

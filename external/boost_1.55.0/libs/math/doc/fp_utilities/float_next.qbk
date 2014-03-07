@@ -1,0 +1,207 @@
+[section:next_float Floating-Point Representation Distance (ULP), 
+   and Finding Adjacent Floating-Point Values]
+   
+[@http://en.wikipedia.org/wiki/Unit_in_the_last_place Unit of Least Precision or Unit in the Last Place]
+is the gap between two different, but as close as possible, floating-point numbers.
+
+Most decimal values, for example 0.1, cannot be exactly represented as floating-point values,
+but will be stored as the
+[@http://en.wikipedia.org/wiki/Floating_point#Representable_numbers.2C_conversion_and_rounding
+closest representable floating-point].
+
+Functions are provided for finding adjacent greater and lesser floating-point values,
+and estimating the number of gaps between any two floating-point values.
+
+The floating-point type FPT must have has a fixed number of bits in the representation.
+The number of bits may set at runtime, but must be the same for all numbers.
+For example, __NTL_quad_float type (fixed 128-bit representation)
+or __NTL_RR type (arbitrary but fixed decimal digits, default 150)
+but *not* a type that extends the representation to provide an exact representation
+for any number, for example [@http://keithbriggs.info/xrc.html XRC eXact Real in C].
+
+[section:nextafter Finding the Next Representable Value in a Specific Direction (nextafter)]
+   
+[h4 Synopsis]
+
+``
+#include <boost/math/special_functions/next.hpp>
+``
+ 
+  namespace boost{ namespace math{
+   
+  template <class FPT>
+  FPT nextafter(FPT val, FPT direction);
+   
+  }} // namespaces
+
+[h4 Description - nextafter]
+
+This is an implementation of the `nextafter` function included in the C99 standard.
+(It is also effectively an implementation of the C99 'nexttoward' legacy function
+which differs only having a long double direction,
+and can generally serve in its place if required). 
+
+[note The C99 functions must use suffixes f and l to distinguish float and long double versions.
+C++ uses the template mechanism instead.]
+
+Returns the next representable value after /x/ in the direction of /y/.  If
+`x == y` then returns /x/.  If /x/ is non-finite then returns the result of
+a __domain_error.  If there is no such value in the direction of /y/ then
+returns an __overflow_error.
+
+[warning The template parameter FTP must be a floating-point type. 
+An integer type, for example, will produce an unhelpful error message.]
+
+[tip Nearly always, you just want the next or prior representable value,
+so instead use `float_next` or `float_prior` below.] 
+
+[h4 Examples - nextafter]
+
+The two representations using a 32-bit float either side of unity are:
+``
+The nearest (exact) representation of 1.F is      1.00000000
+nextafter(1.F, 999) is                            1.00000012
+nextafter(1/f, -999) is                           0.99999994
+
+The nearest (not exact) representation of 0.1F is 0.100000001
+nextafter(0.1F, 10) is                            0.100000009
+nextafter(0.1F, 10) is                            0.099999994
+``
+
+[endsect]
+
+[section:float_next Finding the Next Greater Representable Value (float_next)]
+   
+[h4 Synopsis]
+
+``
+#include <boost/math/special_functions/next.hpp>
+``
+
+   namespace boost{ namespace math{
+   
+   template <class FPT>
+   FPT float_next(FPT val);
+   
+   }} // namespaces
+
+[h4 Description - float_next]
+
+Returns the next representable value which is greater than /x/.  
+If /x/ is non-finite then returns the result of
+a __domain_error.  If there is no such value greater than /x/ then
+returns an __overflow_error.
+
+Has the same effect as
+
+  nextafter(val, (std::numeric_limits<FPT>::max)());
+
+[endsect] [/section:float_next Finding the Next Greater Representable Value (float_prior)]
+
+[section:float_prior Finding the Next Smaller Representable Value (float_prior)]
+   
+[h4 Synopsis]
+
+``
+#include <boost/math/special_functions/next.hpp>
+``
+
+   namespace boost{ namespace math{
+   
+   template <class FPT>
+   FPT float_prior(FPT val);
+   
+   }} // namespaces
+   
+  
+[h4 Description - float_prior]
+
+Returns the next representable value which is less than /x/.  
+If /x/ is non-finite then returns the result of
+a __domain_error.  If there is no such value less than /x/ then
+returns an __overflow_error.
+
+Has the same effect as
+
+  nextafter(val, -(std::numeric_limits<FPT>::max)());  // Note most negative value -max.
+
+[endsect] [/section:float_prior Finding the Next Smaller Representable Value (float_prior)]
+
+[section:float_distance Calculating the Representation Distance
+   Between Two Floating Point Values (ULP) float_distance]
+   
+Function float_distance finds the number of gaps/bits/ULP between any two floating-point values.
+If the significands of floating-point numbers are viewed as integers,
+then their difference is the number of ULP/gaps/bits different.
+   
+[h4 Synopsis]
+
+``
+#include <boost/math/special_functions/next.hpp>
+``
+
+   namespace boost{ namespace math{
+   
+   template <class FPT>
+   FPT float_distance(FPT a, FPT b);
+   
+   }} // namespaces
+
+[h4 Description - float_distance]
+
+Returns the distance between /a/ and /b/: the result is always
+a signed integer value (stored in floating-point type FPT)
+representing the number of distinct representations between /a/ and /b/.
+
+Note that
+
+* `float_distance(a, a)` always returns 0.
+* `float_distance(float_next(a), a)` always returns -1.
+* `float_distance(float_prior(a), a)` always returns 1.
+
+The function `float_distance` is equivalent to calculating the number
+of ULP (Units in the Last Place) between /a/ and /b/ except that it 
+returns a signed value indicating whether `a > b` or not.
+
+If the distance is too great then it may not be able
+to be represented as an exact integer by type FPT,
+but in practice this is unlikely to be a issue.
+
+[endsect] [/section:float_distance Calculating the Representation Distance
+   Between Two Floating Point Values (ULP) float_distance]
+
+[section:float_advance Advancing a Floating Point Value by a Specific
+Representation Distance (ULP) float_advance]
+   
+Function float_advance advances a floating point number by a specified number
+of ULP.
+   
+[h4 Synopsis]
+
+``
+#include <boost/math/special_functions/next.hpp>
+``
+
+   namespace boost{ namespace math{
+   
+   template <class FPT>
+   FPT float_advance(FPT val, int distance);
+   
+   }} // namespaces
+
+[h4 Description - float_advance]
+
+Returns a floating point number /r/ such that `float_distance(val, r) == distance`.
+
+[endsect] [/section:float_advance]
+
+[endsect] [/ section:next_float Floating-Point Representation Distance (ULP), 
+   and Finding Adjacent Floating-Point Values]
+
+[/ 
+  Copyright 2008 John Maddock and Paul A. Bristow.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+

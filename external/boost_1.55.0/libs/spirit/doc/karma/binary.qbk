@@ -1,0 +1,508 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:binary Binary Generators]
+
+This module includes different generators allowing to output binary data. 
+It includes generators for default, little, and big endian binary output and 
+a `pad` generator allowing to control padding of the generated output 
+stream.
+
+[heading Module Header]
+
+    // forwards to <boost/spirit/home/karma/binary.hpp>
+    #include <boost/spirit/include/karma_binary.hpp>
+
+Also, see __include_structure__.
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:binary_native Binary Native Endianness Generators]
+
+[heading Description]
+
+The binary native endianness generators described in this section are used to
+emit binary byte streams laid out conforming to the native endianness (byte 
+order) of the target architecture.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/binary.hpp>
+    #include <boost/spirit/include/karma_binary.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::byte_ // alias: boost::spirit::karma::byte_` ]]
+    [[`boost::spirit::word  // alias: boost::spirit::karma::word` ]]
+    [[`boost::spirit::dword // alias: boost::spirit::karma::dword` ]]
+    [[`boost::spirit::qword // alias: boost::spirit::karma::qword` ]]
+    [[`boost::spirit::bin_float // alias: boost::spirit::karma::bin_float` ]]
+    [[`boost::spirit::bin_double // alias: boost::spirit::karma::bin_double` ]]
+]
+
+[note   The generators `qword` and `qword(qw)` are only available on 
+        platforms where the preprocessor constant `BOOST_HAS_LONG_LONG` is 
+        defined (i.e. on platforms having native support for `unsigned long long` 
+        (64 bit) integer types).]
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[variablelist Notation
+    [[`b`]    [A single byte (8 bit binary value) or a __karma_lazy_argument__ 
+               that evaluates to a single byte]]
+    [[`w`]    [A 16 bit binary value or a __karma_lazy_argument__ that 
+               evaluates to a 16 bit binary value. This value is always 
+               interpreted using native endianness.]]
+    [[`dw`]   [A 32 bit binary value or a __karma_lazy_argument__ that 
+               evaluates to a 32 bit binary value. This value is always 
+               interpreted using native endianness.]]
+    [[`qw`]   [A 64 bit binary value or a __karma_lazy_argument__ that 
+               evaluates to a 64 bit binary value. This value is always 
+               interpreted using native endianness.]]
+    [[`f`]    [A float binary value or a __karma_lazy_argument__ that 
+               evaluates to a float binary value. This value is always 
+               interpreted using native endianness.]]
+    [[`d`]    [A double binary value or a __karma_lazy_argument__ that 
+               evaluates to a double binary value. This value is always 
+               interpreted using native endianness.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]           [Description]]
+    [[`byte_`]              [Output the binary representation of the least 
+                             significant byte of the mandatory attribute. This 
+                             generator never fails (unless the underlying 
+                             output stream reports an error).]]
+    [[`word`]               [Output the binary representation of the least
+                             significant 16 bits of the mandatory attribute
+                             in native endian representation. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`dword`]              [Output the binary representation of the least
+                             significant 32 bits of the mandatory attribute
+                             in native endian representation. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`qword`]              [Output the binary representation of the least
+                             significant 64 bits of the mandatory attribute
+                             in native endian representation. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`bin_float`]          [Output the binary representation of the mandatory
+                             float attribute in native endian representation.
+                             This generator never fails (unless the underlying
+                             output stream reports an error).]]
+    [[`bin_double`]         [Output the binary representation of the mandatory
+                             double attribute in native endian representation.
+                             This generator never fails (unless the underlying
+                             output stream reports an error).]]
+    [[`byte_(b)`]           [Output the binary representation of the least 
+                             significant byte of the immediate parameter. This 
+                             generator never fails (unless the underlying 
+                             output stream reports an error).]]
+    [[`word(w)`]            [Output the binary representation of the least
+                             significant 16 bits of the immediate parameter
+                             in native endian representation. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`dword(dw)`]          [Output the binary representation of the least
+                             significant 32 bits of the immediate parameter
+                             in native endian representation. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`qword(qw)`]          [Output the binary representation of the least
+                             significant 64 bits of the immediate parameter
+                             in native endian representation. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`bin_float(f)`]       [Output the binary representation of the immediate
+                             float parameter in native endian representation.
+                             This generator never fails (unless the underlying
+                             output stream reports an error).]]
+    [[`bin_double(d)`]      [Output the binary representation of the immediate
+                             double parameter in native endian representation.
+                             This generator never fails (unless the underlying
+                             output stream reports an error).]]
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]           [Attribute]]
+    [[`byte_`]              [`boost::uint_least8_t`, attribute is mandatory 
+                             (otherwise compilation will fail)]]
+    [[`word`]               [`boost::uint_least16_t`, attribute is mandatory 
+                             (otherwise compilation will fail)]]
+    [[`dword`]              [`boost::uint_least32_t`, attribute is mandatory 
+                             (otherwise compilation will fail)]]
+    [[`qword`]              [`boost::uint_least64_t`, attribute is mandatory 
+                             (otherwise compilation will fail)]]
+    [[`bin_float`]          [`float`, attribute is mandatory 
+                             (otherwise compilation will fail)]]
+    [[`bin_double`]         [`double`, attribute is mandatory 
+                             (otherwise compilation will fail)]]
+    [[`byte_(b)`]           [__unused__]]
+    [[`word(w)`]            [__unused__]]
+    [[`dword(dw)`]          [__unused__]]
+    [[`qword(qw)`]          [__unused__]]
+    [[`bin_float(f)`]       [__unused__]]
+    [[`bin_double(d)`]      [__unused__]]
+]
+
+[note  In addition to their usual attribute of type `Attrib` all listed generators 
+       accept an instance of a `boost::optional<Attrib>` as well. If the 
+       `boost::optional<>` is initialized (holds a value) the generators behave 
+       as if their attribute was an instance of `Attrib` and emit the value stored
+       in the `boost::optional<>`. Otherwise the generators will fail.]
+
+[heading Complexity]
+
+[:O(N), where N is the number of bytes emitted by the binary generator]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_native_binary]
+
+Basic usage of the native binary generators with some results for little endian 
+platforms:
+
+[reference_karma_native_binary_little]
+
+Basic usage of the native binary generators with some results for big endian 
+platforms:
+
+[reference_karma_native_binary_big]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:binary_little Binary Little Endianness Generators]
+
+[heading Description]
+
+The little native endianness generators described in this section are used to
+emit binary byte streams laid out conforming to the little endianness byte 
+order.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/binary.hpp>
+    #include <boost/spirit/include/karma_binary.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::little_word  // alias: boost::spirit::karma::little_word` ]]
+    [[`boost::spirit::little_dword // alias: boost::spirit::karma::little_dword` ]]
+    [[`boost::spirit::little_qword // alias: boost::spirit::karma::little_qword` ]]
+    [[`boost::spirit::little_bin_float // alias: boost::spirit::karma::little_bin_float` ]]
+    [[`boost::spirit::little_bin_double // alias: boost::spirit::karma::little_bin_double` ]]
+]
+
+[note   The generators `little_qword` and `little_qword(qw)` are only available on 
+        platforms where the preprocessor constant `BOOST_HAS_LONG_LONG` is 
+        defined (i.e. on platforms having native support for `unsigned long long` 
+        (64 bit) integer types).]
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[variablelist Notation
+    [[`w`]    [A 16 bit binary value or a __karma_lazy_argument__ that 
+               evaluates to a 16 bit binary value. This value is always 
+               interpreted using native endianness.]]
+    [[`dw`]   [A 32 bit binary value or a __karma_lazy_argument__ that 
+               evaluates to a 32 bit binary value. This value is always 
+               interpreted using native endianness.]]
+    [[`qw`]   [A 64 bit binary value or a __karma_lazy_argument__ that 
+               evaluates to a 64 bit binary value. This value is always 
+               interpreted using native endianness.]]
+    [[`f`]    [A float binary value or a __karma_lazy_argument__ that 
+               evaluates to a float binary value. This value is always 
+               interpreted using native endianness.]]
+    [[`d`]    [A double binary value or a __karma_lazy_argument__ that 
+               evaluates to a double binary value. This value is always 
+               interpreted using native endianness.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]               [Description]]
+    [[`little_word`]            [Output the binary representation of the least
+                                 significant 16 bits of the mandatory attribute
+                                 in little endian representation. This generator 
+                                 never fails (unless the underlying output stream 
+                                 reports an error).]]
+    [[`little_dword`]           [Output the binary representation of the least
+                                 significant 32 bits of the mandatory attribute
+                                 in little endian representation. This generator 
+                                 never fails (unless the underlying output stream 
+                                 reports an error).]]
+    [[`little_qword`]           [Output the binary representation of the least
+                                 significant 64 bits of the mandatory attribute
+                                 in little endian representation. This generator 
+                                 never fails (unless the underlying output stream 
+                                 reports an error).]]
+    [[`little_bin_float`]       [Output the binary representation of the mandatory
+                                 float attribute in little endian representation.
+                                 This generator never fails (unless the underlying
+                                 output stream reports an error).]]
+    [[`little_bin_double`]      [Output the binary representation of the mandatory
+                                 double attribute in little endian representation.
+                                 This generator never fails (unless the underlying
+                                 output stream reports an error).]]
+    [[`little_word(w)`]         [Output the binary representation of the least
+                                 significant 16 bits of the immediate parameter
+                                 in little endian representation. This generator 
+                                 never fails (unless the underlying output stream 
+                                 reports an error).]]
+    [[`little_dword(dw)`]       [Output the binary representation of the least
+                                 significant 32 bits of the immediate parameter
+                                 in little endian representation. This generator 
+                                 never fails (unless the underlying output stream 
+                                 reports an error).]]
+    [[`little_qword(qw)`]       [Output the binary representation of the least
+                                 significant 64 bits of the immediate parameter
+                                 in little endian representation. This generator 
+                                 never fails (unless the underlying output stream 
+                                 reports an error).]]
+    [[`little_bin_float(f)`]    [Output the binary representation of the immediate
+                                 float parameter in little endian representation.
+                                 This generator never fails (unless the underlying
+                                 output stream reports an error).]]
+    [[`little_bin_double(d)`]   [Output the binary representation of the immediate
+                                 double parameter in little endian representation.
+                                 This generator never fails (unless the underlying
+                                 output stream reports an error).]]
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]               [Attribute]]
+    [[`little_word`]            [`boost::uint_least16_t`, attribute is mandatory 
+                                 (otherwise compilation will fail)]]
+    [[`little_dword`]           [`boost::uint_least32_t`, attribute is mandatory 
+                                 (otherwise compilation will fail)]]
+    [[`little_qword`]           [`boost::uint_least64_t`, attribute is mandatory 
+                                 (otherwise compilation will fail)]]
+    [[`little_bin_float`]       [`float`, attribute is mandatory 
+                                 (otherwise compilation will fail)]]
+    [[`little_bin_double`]      [`double`, attribute is mandatory 
+                                 (otherwise compilation will fail)]]
+    [[`little_word(w)`]         [__unused__]]
+    [[`little_dword(dw)`]       [__unused__]]
+    [[`little_qword(qw)`]       [__unused__]]
+    [[`little_bin_float(f)`]    [__unused__]]
+    [[`little_bin_double(d)`]   [__unused__]]
+]
+
+[heading Complexity]
+
+[:O(N), where N is the number of bytes emitted by the binary generator]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_little_binary]
+
+Basic usage of the little binary generators:
+
+[reference_karma_little_binary]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:binary_big Binary Big Endianness Generators]
+
+[heading Description]
+
+The big native endianness generators described in this section are used to
+emit binary byte streams laid out conforming to the big endianness byte 
+order.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/binary.hpp>
+    #include <boost/spirit/include/karma_binary.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::big_word  // alias: boost::spirit::karma::big_word` ]]
+    [[`boost::spirit::big_dword // alias: boost::spirit::karma::big_dword` ]]
+    [[`boost::spirit::big_qword // alias: boost::spirit::karma::big_qword` ]]
+    [[`boost::spirit::big_bin_float // alias: boost::spirit::karma::big_bin_float` ]]
+    [[`boost::spirit::big_bin_double // alias: boost::spirit::karma::big_bin_double` ]]
+]
+
+[note   The generators `big_qword` and `big_qword(qw)` are only available on 
+        platforms where the preprocessor constant `BOOST_HAS_LONG_LONG` is 
+        defined (i.e. on platforms having native support for `unsigned long long` 
+        (64 bit) integer types).]
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[variablelist Notation
+    [[`w`]    [A 16 bit binary value or a __karma_lazy_argument__ that 
+               evaluates to a 16 bit binary value. This value is always 
+               interpreted using native endianness.]]
+    [[`dw`]   [A 32 bit binary value or a __karma_lazy_argument__ that 
+               evaluates to a 32 bit binary value. This value is always 
+               interpreted using native endianness.]]
+    [[`qw`]   [A 64 bit binary value or a __karma_lazy_argument__ that 
+               evaluates to a 64 bit binary value. This value is always 
+               interpreted using native endianness.]]
+    [[`f`]    [A float binary value or a __karma_lazy_argument__ that 
+               evaluates to a float binary value. This value is always 
+               interpreted using native endianness.]]
+    [[`d`]    [A double binary value or a __karma_lazy_argument__ that 
+               evaluates to a double binary value. This value is always 
+               interpreted using native endianness.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]           [Description]]
+    [[`big_word`]           [Output the binary representation of the least
+                             significant 16 bits of the mandatory attribute
+                             in big endian representation. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`big_dword`]          [Output the binary representation of the least
+                             significant 32 bits of the mandatory attribute
+                             in big endian representation. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`big_qword`]          [Output the binary representation of the least
+                             significant 64 bits of the mandatory attribute
+                             in big endian representation. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`big_bin_float`]      [Output the binary representation of the mandatory
+                             float attribute in big endian representation.
+                             This generator never fails (unless the underlying
+                             output stream reports an error).]]
+    [[`big_bin_double`]     [Output the binary representation of the mandatory
+                             double attribute in big endian representation.
+                             This generator never fails (unless the underlying
+                             output stream reports an error).]]
+    [[`big_word(w)`]        [Output the binary representation of the least
+                             significant 16 bits of the immediate parameter
+                             in big endian representation. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`big_dword(dw)`]      [Output the binary representation of the least
+                             significant 32 bits of the immediate parameter
+                             in big endian representation. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`big_qword(qw)`]      [Output the binary representation of the least
+                             significant 64 bits of the immediate parameter
+                             in big endian representation. This generator 
+                             never fails (unless the underlying output stream 
+                             reports an error).]]
+    [[`big_bin_float(f)`]   [Output the binary representation of the immediate
+                             float parameter in big endian representation.
+                             This generator never fails (unless the underlying
+                             output stream reports an error).]]
+    [[`big_bin_double(d)`]  [Output the binary representation of the immediate
+                             double parameter in big endian representation.
+                             This generator never fails (unless the underlying
+                             output stream reports an error).]]
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]           [Attribute]]
+    [[`big_word`]           [`boost::uint_least16_t`, attribute is mandatory 
+                             (otherwise compilation will fail)]]
+    [[`big_dword`]          [`boost::uint_least32_t`, attribute is mandatory 
+                             (otherwise compilation will fail)]]
+    [[`big_qword`]          [`boost::uint_least64_t`, attribute is mandatory 
+                             (otherwise compilation will fail)]]
+    [[`big_bin_float`]      [`float`, attribute is mandatory 
+                             (otherwise compilation will fail)]]
+    [[`big_bin_double`]     [`double`, attribute is mandatory 
+                             (otherwise compilation will fail)]]
+    [[`big_word(w)`]        [__unused__]]
+    [[`big_dword(dw)`]      [__unused__]]
+    [[`big_qword(qw)`]      [__unused__]]
+    [[`big_bin_float(f)`]   [__unused__]]
+    [[`big_bin_double(d)`]  [__unused__]]
+]
+
+[heading Complexity]
+
+[:O(N), where N is the number of bytes emitted by the binary generator]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_big_binary]
+
+Basic usage of the big binary generators:
+
+[reference_karma_big_binary]
+
+[endsect]
+
+[endsect]

@@ -1,0 +1,172 @@
+# ScriptExtensions-6.0.0.txt
+# Date: 2010-08-30, 01:48:36 GMT [MD]
+#
+# Unicode Character Database
+# Copyright (c) 1991-2010 Unicode, Inc.
+# For terms of use, see http://www.unicode.org/terms_of_use.html
+# For documentation, see http://www.unicode.org/reports/tr44/
+#
+# The Script Extensions contain data about characters that belong to multiple scripts.
+# This data is provisional, and expected to change over time, as more information becomes available.
+# The script values are space-delimited short values, such as Hang for Hangul.
+# For more information, see UAX #24: http://www.unicode.org/reports/tr24/.
+
+# ================================================
+
+# Property:	Script_Extensions
+
+# ================================================
+
+# Script_Extensions=Arab Syrc
+
+0640          ; Arab Syrc # Lm       ARABIC TATWEEL
+064B..0655    ; Arab Syrc # Mn  [11] ARABIC FATHATAN..ARABIC HAMZA BELOW
+0670          ; Arab Syrc # Mn       ARABIC LETTER SUPERSCRIPT ALEF
+
+# Total code points: 13
+
+# ================================================
+
+# Script_Extensions=Arab Thaa
+
+0660..0669    ; Arab Thaa # Nd  [10] ARABIC-INDIC DIGIT ZERO..ARABIC-INDIC DIGIT NINE
+FDF2          ; Arab Thaa # Lo       ARABIC LIGATURE ALLAH ISOLATED FORM
+FDFD          ; Arab Thaa # So       ARABIC LIGATURE BISMILLAH AR-RAHMAN AR-RAHEEM
+
+# Total code points: 12
+
+# ================================================
+
+# Script_Extensions=Armn Geor
+
+0589          ; Armn Geor # Po       ARMENIAN FULL STOP
+
+# Total code points: 1
+
+# ================================================
+
+# Script_Extensions=Bopo Hani
+
+302A..302D    ; Bopo Hani # Mn   [4] IDEOGRAPHIC LEVEL TONE MARK..IDEOGRAPHIC ENTERING TONE MARK
+
+# Total code points: 4
+
+# ================================================
+
+# Script_Extensions=Hira Kana
+
+3031..3035    ; Hira Kana # Lm   [5] VERTICAL KANA REPEAT MARK..VERTICAL KANA REPEAT MARK LOWER HALF
+3099..309A    ; Hira Kana # Mn   [2] COMBINING KATAKANA-HIRAGANA VOICED SOUND MARK..COMBINING KATAKANA-HIRAGANA SEMI-VOICED SOUND MARK
+309B..309C    ; Hira Kana # Sk   [2] KATAKANA-HIRAGANA VOICED SOUND MARK..KATAKANA-HIRAGANA SEMI-VOICED SOUND MARK
+30A0          ; Hira Kana # Pd       KATAKANA-HIRAGANA DOUBLE HYPHEN
+30FC          ; Hira Kana # Lm       KATAKANA-HIRAGANA PROLONGED SOUND MARK
+FF70          ; Hira Kana # Lm       HALFWIDTH KATAKANA-HIRAGANA PROLONGED SOUND MARK
+FF9E..FF9F    ; Hira Kana # Lm   [2] HALFWIDTH KATAKANA VOICED SOUND MARK..HALFWIDTH KATAKANA SEMI-VOICED SOUND MARK
+
+# Total code points: 14
+
+# ================================================
+
+# Script_Extensions=Mong Phag
+
+1802..1803    ; Mong Phag # Po   [2] MONGOLIAN COMMA..MONGOLIAN FULL STOP
+1805          ; Mong Phag # Po       MONGOLIAN FOUR DOTS
+
+# Total code points: 3
+
+# ================================================
+
+# Script_Extensions=Arab Syrc Thaa
+
+060C          ; Arab Syrc Thaa # Po       ARABIC COMMA
+061B          ; Arab Syrc Thaa # Po       ARABIC SEMICOLON
+061F          ; Arab Syrc Thaa # Po       ARABIC QUESTION MARK
+
+# Total code points: 3
+
+# ================================================
+
+# Script_Extensions=Hani Hira Kana
+
+3006          ; Hani Hira Kana # Lo       IDEOGRAPHIC CLOSING MARK
+303C          ; Hani Hira Kana # Lo       MASU MARK
+303D          ; Hani Hira Kana # Po       PART ALTERNATION MARK
+3190..3191    ; Hani Hira Kana # So   [2] IDEOGRAPHIC ANNOTATION LINKING MARK..IDEOGRAPHIC ANNOTATION REVERSE MARK
+3192..3195    ; Hani Hira Kana # No   [4] IDEOGRAPHIC ANNOTATION ONE MARK..IDEOGRAPHIC ANNOTATION FOUR MARK
+3196..319F    ; Hani Hira Kana # So  [10] IDEOGRAPHIC ANNOTATION TOP MARK..IDEOGRAPHIC ANNOTATION MAN MARK
+
+# Total code points: 19
+
+# ================================================
+
+# Script_Extensions=Beng Deva Guru Orya
+
+0964..0965    ; Beng Deva Guru Orya # Po   [2] DEVANAGARI DANDA..DEVANAGARI DOUBLE DANDA
+
+# Total code points: 2
+
+# ================================================
+
+# Script_Extensions=Buhd Hano Tagb Tglg
+
+1735..1736    ; Buhd Hano Tagb Tglg # Po   [2] PHILIPPINE SINGLE PUNCTUATION..PHILIPPINE DOUBLE PUNCTUATION
+
+# Total code points: 2
+
+# ================================================
+
+# Script_Extensions=Bopo Hang Hani Hira Kana
+
+3003          ; Bopo Hang Hani Hira Kana # Po       DITTO MARK
+3013          ; Bopo Hang Hani Hira Kana # So       GETA MARK
+301C          ; Bopo Hang Hani Hira Kana # Pd       WAVE DASH
+301D          ; Bopo Hang Hani Hira Kana # Ps       REVERSED DOUBLE PRIME QUOTATION MARK
+301E..301F    ; Bopo Hang Hani Hira Kana # Pe   [2] DOUBLE PRIME QUOTATION MARK..LOW DOUBLE PRIME QUOTATION MARK
+3030          ; Bopo Hang Hani Hira Kana # Pd       WAVY DASH
+3037          ; Bopo Hang Hani Hira Kana # So       IDEOGRAPHIC TELEGRAPH LINE FEED SEPARATOR SYMBOL
+303E..303F    ; Bopo Hang Hani Hira Kana # So   [2] IDEOGRAPHIC VARIATION INDICATOR..IDEOGRAPHIC HALF FILL SPACE
+31C0..31E3    ; Bopo Hang Hani Hira Kana # So  [36] CJK STROKE T..CJK STROKE Q
+3220..3229    ; Bopo Hang Hani Hira Kana # No  [10] PARENTHESIZED IDEOGRAPH ONE..PARENTHESIZED IDEOGRAPH TEN
+322A..3243    ; Bopo Hang Hani Hira Kana # So  [26] PARENTHESIZED IDEOGRAPH MOON..PARENTHESIZED IDEOGRAPH REACH
+3280..3289    ; Bopo Hang Hani Hira Kana # No  [10] CIRCLED IDEOGRAPH ONE..CIRCLED IDEOGRAPH TEN
+328A..32B0    ; Bopo Hang Hani Hira Kana # So  [39] CIRCLED IDEOGRAPH MOON..CIRCLED IDEOGRAPH NIGHT
+32C0..32CB    ; Bopo Hang Hani Hira Kana # So  [12] IDEOGRAPHIC TELEGRAPH SYMBOL FOR JANUARY..IDEOGRAPHIC TELEGRAPH SYMBOL FOR DECEMBER
+3358..3370    ; Bopo Hang Hani Hira Kana # So  [25] IDEOGRAPHIC TELEGRAPH SYMBOL FOR HOUR ZERO..IDEOGRAPHIC TELEGRAPH SYMBOL FOR HOUR TWENTY-FOUR
+337B..337F    ; Bopo Hang Hani Hira Kana # So   [5] SQUARE ERA NAME HEISEI..SQUARE CORPORATION
+33E0..33FE    ; Bopo Hang Hani Hira Kana # So  [31] IDEOGRAPHIC TELEGRAPH SYMBOL FOR DAY ONE..IDEOGRAPHIC TELEGRAPH SYMBOL FOR DAY THIRTY-ONE
+FE45..FE46    ; Bopo Hang Hani Hira Kana # Po   [2] SESAME DOT..WHITE SESAME DOT
+
+# Total code points: 206
+
+# ================================================
+
+# Script_Extensions=Bopo Hang Hani Hira Kana Yiii
+
+3001..3002    ; Bopo Hang Hani Hira Kana Yiii # Po   [2] IDEOGRAPHIC COMMA..IDEOGRAPHIC FULL STOP
+3008          ; Bopo Hang Hani Hira Kana Yiii # Ps       LEFT ANGLE BRACKET
+3009          ; Bopo Hang Hani Hira Kana Yiii # Pe       RIGHT ANGLE BRACKET
+300A          ; Bopo Hang Hani Hira Kana Yiii # Ps       LEFT DOUBLE ANGLE BRACKET
+300B          ; Bopo Hang Hani Hira Kana Yiii # Pe       RIGHT DOUBLE ANGLE BRACKET
+300C          ; Bopo Hang Hani Hira Kana Yiii # Ps       LEFT CORNER BRACKET
+300D          ; Bopo Hang Hani Hira Kana Yiii # Pe       RIGHT CORNER BRACKET
+300E          ; Bopo Hang Hani Hira Kana Yiii # Ps       LEFT WHITE CORNER BRACKET
+300F          ; Bopo Hang Hani Hira Kana Yiii # Pe       RIGHT WHITE CORNER BRACKET
+3010          ; Bopo Hang Hani Hira Kana Yiii # Ps       LEFT BLACK LENTICULAR BRACKET
+3011          ; Bopo Hang Hani Hira Kana Yiii # Pe       RIGHT BLACK LENTICULAR BRACKET
+3014          ; Bopo Hang Hani Hira Kana Yiii # Ps       LEFT TORTOISE SHELL BRACKET
+3015          ; Bopo Hang Hani Hira Kana Yiii # Pe       RIGHT TORTOISE SHELL BRACKET
+3016          ; Bopo Hang Hani Hira Kana Yiii # Ps       LEFT WHITE LENTICULAR BRACKET
+3017          ; Bopo Hang Hani Hira Kana Yiii # Pe       RIGHT WHITE LENTICULAR BRACKET
+3018          ; Bopo Hang Hani Hira Kana Yiii # Ps       LEFT WHITE TORTOISE SHELL BRACKET
+3019          ; Bopo Hang Hani Hira Kana Yiii # Pe       RIGHT WHITE TORTOISE SHELL BRACKET
+301A          ; Bopo Hang Hani Hira Kana Yiii # Ps       LEFT WHITE SQUARE BRACKET
+301B          ; Bopo Hang Hani Hira Kana Yiii # Pe       RIGHT WHITE SQUARE BRACKET
+30FB          ; Bopo Hang Hani Hira Kana Yiii # Po       KATAKANA MIDDLE DOT
+FF61          ; Bopo Hang Hani Hira Kana Yiii # Po       HALFWIDTH IDEOGRAPHIC FULL STOP
+FF62          ; Bopo Hang Hani Hira Kana Yiii # Ps       HALFWIDTH LEFT CORNER BRACKET
+FF63          ; Bopo Hang Hani Hira Kana Yiii # Pe       HALFWIDTH RIGHT CORNER BRACKET
+FF64..FF65    ; Bopo Hang Hani Hira Kana Yiii # Po   [2] HALFWIDTH IDEOGRAPHIC COMMA..HALFWIDTH KATAKANA MIDDLE DOT
+
+# Total code points: 26
+
+# EOF

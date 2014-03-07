@@ -1,0 +1,115 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Porting</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../atomic.html" title="Chapter&#160;4.&#160;Boost.Atomic">
+<link rel="prev" href="limitations.html" title="Limitations">
+<link rel="next" href="../chrono.html" title="Chapter&#160;5.&#160;Boost.Chrono 2.0.2">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="limitations.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../atomic.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../chrono.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="atomic.porting"></a><a class="link" href="porting.html" title="Porting">Porting</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="porting.html#atomic.porting.unit_tests">Unit tests</a></span></dt>
+<dt><span class="section"><a href="porting.html#atomic.porting.tested_compilers">Tested compilers</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="atomic.porting.unit_tests"></a><a class="link" href="porting.html#atomic.porting.unit_tests" title="Unit tests">Unit tests</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Atomic</strong></span> provides a unit test suite
+        to verify that the implementation behaves as expected:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong>fallback_api.cpp</strong></span> verifies that the fallback-to-locking
+            aspect of <span class="bold"><strong>Boost.Atomic</strong></span> compiles and
+            has correct value semantics.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>native_api.cpp</strong></span> verifies that all atomic
+            operations have correct value semantics (e.g. "fetch_add" really
+            adds the desired value, returning the previous). It is a rough "smoke-test"
+            to help weed out the most obvious mistakes (for example width overflow,
+            signed/unsigned extension, ...).
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>lockfree.cpp</strong></span> verifies that the <span class="bold"><strong>BOOST_ATOMIC_*_LOCKFREE</strong></span> macros are set properly
+            according to the expectations for a given platform, and that they match
+            up with the <span class="bold"><strong>is_lock_free</strong></span> member functions
+            of the <span class="bold"><strong>atomic</strong></span> object instances.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>atomicity.cpp</strong></span> lets two threads race
+            against each other modifying a shared variable, verifying that the operations
+            behave atomic as appropriate. By nature, this test is necessarily stochastic,
+            and the test self-calibrates to yield 99% confidence that a positive
+            result indicates absence of an error. This test is very useful on uni-processor
+            systems with preemption already.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>ordering.cpp</strong></span> lets two threads race against
+            each other accessing multiple shared variables, verifying that the operations
+            exhibit the expected ordering behavior. By nature, this test is necessarily
+            stochastic, and the test attempts to self-calibrate to yield 99% confidence
+            that a positive result indicates absence of an error. This only works
+            on true multi-processor (or multi-core) systems. It does not yield any
+            result on uni-processor systems or emulators (due to there being no observable
+            reordering even the order=relaxed case) and will report that fact.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="atomic.porting.tested_compilers"></a><a class="link" href="porting.html#atomic.porting.tested_compilers" title="Tested compilers">Tested compilers</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Atomic</strong></span> has been tested on and is known
+        to work on the following compilers/platforms:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            gcc 4.x: i386, x86_64, ppc32, ppc64, armv5, armv6, alpha
+          </li>
+<li class="listitem">
+            Visual Studio Express 2008/Windows XP, i386
+          </li>
+</ul></div>
+<p>
+        If you have an unsupported platform, contact me and I will work to add support
+        for it.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011 Helge Bahmann<br>Copyright &#169; 2012 Tim Blechmann<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="limitations.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../atomic.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../chrono.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

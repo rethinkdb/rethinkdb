@@ -1,0 +1,56 @@
+[/
+    Copyright 2002,2004,2006 Joel de Guzman, Eric Niebler
+    Copyright 2010-2011 Daniel James
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[chapter Editor Support
+    [quickbook 1.6]
+    [compatibility-mode 1.5]
+    [id quickbook.editors]
+    [source-mode teletype]
+]
+
+Editing quickbook files is usually done with text editors both simple and
+powerful. The following sections list the settings for some editors which can
+help make editing quickbook files a bit easier.
+
+[note You may submit your settings, tips, and suggestions to the
+authors, or through the [@https://lists.sourceforge.net/lists/listinfo/boost-
+docs Boost Docs mailing list].]
+
+[section:scite Scintilla Text Editor]
+
+[:['Section contributed by Dean Michael Berris]]
+
+The Scintilla Text Editor (SciTE) is a free source code editor for Win32 and X.
+It uses the SCIntilla source code editing component.
+
+[tip SciTE can be downloaded from [@http://www.scintilla.org/SciTE.html]]
+
+You can use the following settings to highlight quickbook tags when
+editing quickbook files.
+
+```
+qbk=*.qbk
+lexer.*.qbk=props
+use.tabs.$(qbk)=0
+tab.size.$(qbk)=4
+indent.size.$(qbk)=4
+style.props.32=$(font.base)
+comment.stream.start.props=[/
+comment.stream.end.props=]
+comment.box.start.props=[/
+comment.box.middle.props=
+comment.box.end.props=]
+```
+
+[note Thanks to Rene Rivera for the above SciTE settings.]
+
+[endsect] [/scite]
+
+[/ KDE support (Kate, KWrite, Konqueror, KDevelop) ]
+[include ../extra/katepart/katepart.qbk]

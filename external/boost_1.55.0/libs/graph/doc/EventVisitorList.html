@@ -1,0 +1,127 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: EventVisitorList</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>EventVisitorList Concept</H1>
+
+An EventVisitorList is either an <a
+href="./EventVisitor.html">EventVisitor</a>, or a list of
+EventVisitors combined using <tt>std::pair</tt>. Each graph algorithm
+defines visitor adaptors that convert an EventVisitorList into the
+particular kind of visitor needed by the algorithm.
+
+In the following example we will show how to combine event visitors
+into a list using <tt>std::pair</tt> and how to use an algorithm's
+visitor adaptor class.
+
+<p>
+Suppose we would like to print out the parenthesis
+structure of the discover/finish times of vertices in a <a
+href="./graph_theory_review.html#sec:dfs-algorithm">depth-first
+search</a>. We can use the BGL algorithm <a
+href="./depth_first_search.html"><tt>depth_first_search()</tt></a> and
+two event visitors to accomplish this. The complete source code for
+the following example is in <a href="../example/dfs_parenthesis.cpp">
+<tt>examples/dfs_parenthesis.cpp</tt></a>. First we define the two
+event visitors. We use <tt>on_discover_vertex</tt> and
+<tt>on_finish_vertex</tt> as the event points, selected from the list
+of event points specified in <a
+href="./DFSVisitor.html">DFSVisitor</a>.
+
+<pre>
+struct open_paren : public base_visitor&lt;open_paren&gt; {
+  typedef on_discover_vertex event_filter;
+  template &lt;class Vertex, class Graph&gt;
+  void operator()(Vertex v, Graph& G) {
+    std::cout &lt;&lt; "(" &lt;&lt; v;
+  }
+};
+struct close_paren : public base_visitor&lt;close_paren&gt; {
+  typedef on_finish_vertex event_filter;
+  template &lt;class Vertex, class Graph&gt;
+  void operator()(Vertex v, Graph& G) {
+    std::cout &lt;&lt; v &lt;&lt; ")";
+  }
+};
+</pre>
+
+Next we create two event visitor objects and make an EventVisitorList
+out of them using a <tt>std::pair</tt> which created by
+<tt>std::make_pair</tt>.
+
+<pre>
+std::make_pair(open_paren(), close_paren())
+</pre>
+
+Next we want to pass this list into <tt>depth_first_search()</tt>, but
+<tt>depth_first_search()</tt> is expecting a <a
+href="./DFSVisitor.html">DFSVisitor</a>, not a EventVisitorList.  We
+therefore use the <a
+href="./dfs_visitor.html"><tt>dfs_visitor</tt></a> adaptor which turns
+an EventVisitor list into a DFSVisitor. Like all of the visitor
+adaptors, <tt>dfs_visitor</tt> has a creation function called
+<tt>make_dfs_visitor()</tt>.
+
+<pre>
+make_dfs_visitor(std::make_pair(open_paren(), close_paren()))
+</pre>
+
+Now we can pass the resulting visitor object into
+<tt>depth_first_search()</tt> as follows.
+
+<pre>
+  // graph object G is created ...
+
+  std::vector&lt;default_color_type&gt; color(num_vertices(G));
+
+  depth_first_search(G, make_dfs_visitor(std::make_pair(open_paren(), close_paren())),
+                     color.begin());
+</pre>
+
+For creating a list of more than two event visitors, you can nest calls to
+<tt>std::make_pair</tt> in the following way:
+
+<pre>
+std::make_pair(<i>visitor1</i>,
+  std::make_pair(<i>visitor2</i>,
+    ...
+    std::make_pair(<i>visitorN-1</i>, <i>visitorN</i>)...));
+</pre>
+
+
+
+<h3>See Also</h3>
+
+<a href="./EventVisitor.html">EventVisitor</a>,
+<a href="./visitor_concepts.html">Visitor concepts</a>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

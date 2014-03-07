@@ -1,0 +1,24 @@
+[/ 
+  Copyright 2010 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[/===================================================================]
+[section:conditional conditional]
+[/===================================================================]
+
+
+__header ` #include <boost/type_traits/conditional.hpp>` or ` #include <boost/type_traits.hpp>`
+
+    namespace boost {
+      template <bool B, class T, class U>  struct __conditional;
+    }
+
+If B is true, the member typedef type shall equal T. If B is false, the member typedef type shall equal U.
+
+This trait is really just an alias for `boost::mpl::if_c`.
+
+[endsect]
+

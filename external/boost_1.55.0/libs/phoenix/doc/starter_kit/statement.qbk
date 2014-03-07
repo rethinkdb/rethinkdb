@@ -1,0 +1,34 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Lazy Statements]
+
+Lazy statements? Sure. There are lazy versions of the C++ statements we all know
+and love. For example:
+
+    if_(arg1 > 5)
+    [
+        std::cout << arg1
+    ]
+
+Say, for example, we wish to print all the elements that are greater than 5
+(separated by a comma) in a vector. Here's how we write it:
+
+    std::for_each(v.begin(), v.end(),
+        if_(arg1 > 5)
+        [
+            std::cout << arg1 << ", "
+        ]
+    );
+
+(See [@../../example/if.cpp if.cpp])
+
+[blurb __tip__ Learn more about statements [link phoenix.modules.statement here.]]
+
+[endsect]

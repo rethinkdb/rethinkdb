@@ -1,0 +1,703 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Containers with custom ValueTraits</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../intrusive.html" title="Chapter&#160;15.&#160;Boost.Intrusive">
+<link rel="prev" href="node_algorithms.html" title="Node algorithms with custom NodeTraits">
+<link rel="next" href="thread_safety.html" title="Thread safety guarantees">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="node_algorithms.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="thread_safety.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.value_traits"></a><a class="link" href="value_traits.html" title="Containers with custom ValueTraits">Containers with custom ValueTraits</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="value_traits.html#intrusive.value_traits.value_traits_interface">ValueTraits
+      interface</a></span></dt>
+<dt><span class="section"><a href="value_traits.html#intrusive.value_traits.value_traits_example">Custom ValueTraits
+      example</a></span></dt>
+<dt><span class="section"><a href="value_traits.html#intrusive.value_traits.reusing_node_algorithms">Reusing
+      node algorithms for different values</a></span></dt>
+<dt><span class="section"><a href="value_traits.html#intrusive.value_traits.simplifying_value_traits">Simplifying
+      value traits definition</a></span></dt>
+<dt><span class="section"><a href="value_traits.html#intrusive.value_traits.stateful_value_traits">Stateful
+      value traits</a></span></dt>
+</dl></div>
+<p>
+      As explained in the <a class="link" href="concepts.html" title="Concepts explained">Concepts</a> section,
+      <span class="bold"><strong>Boost.Intrusive</strong></span> containers need a <code class="computeroutput"><span class="identifier">ValueTraits</span></code> class to perform transformations
+      between nodes and user values. <code class="computeroutput"><span class="identifier">ValueTraits</span></code>
+      can be explicitly configured (using the <code class="computeroutput"><span class="identifier">value_traits</span><span class="special">&lt;&gt;</span></code> option) or implicitly configured (using
+      hooks and their <code class="computeroutput"><span class="identifier">base_hook</span><span class="special">&lt;&gt;</span></code>/<code class="computeroutput"><span class="identifier">member_hook</span><span class="special">&lt;&gt;</span></code>
+      options). <code class="computeroutput"><span class="identifier">ValueTraits</span></code> contains
+      all the information to glue the <code class="computeroutput"><span class="identifier">value_type</span></code>
+      of the containers and the node to be used in node algorithms, since these types
+      can be different. Apart from this, <code class="computeroutput"><span class="identifier">ValueTraits</span></code>
+      also stores information about the link policy of the values to be inserted.
+    </p>
+<p>
+      Instead of using <span class="bold"><strong>Boost.Intrusive</strong></span> predefined
+      hooks a user might want to develop customized containers, for example, using
+      nodes that are optimized for a specific application or that are compatible
+      with a legacy ABI. A user might want to have only two additional pointers in
+      his class and insert the class in a doubly linked list sometimes and in a singly
+      linked list in other situations. You can't achieve this using <span class="bold"><strong>Boost.Intrusive</strong></span>
+      predefined hooks. Now, instead of using <code class="computeroutput"><span class="identifier">base_hook</span><span class="special">&lt;...&gt;</span></code> or <code class="computeroutput"><span class="identifier">member_hook</span><span class="special">&lt;...&gt;</span></code> options the user will specify the
+      <code class="computeroutput"><span class="identifier">value_traits</span><span class="special">&lt;...&gt;</span></code>
+      options. Let's see how we can do this:
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.value_traits.value_traits_interface"></a><a class="link" href="value_traits.html#intrusive.value_traits.value_traits_interface" title="ValueTraits interface">ValueTraits
+      interface</a>
+</h3></div></div></div>
+<p>
+        <code class="computeroutput"><span class="identifier">ValueTraits</span></code> has the following
+        interface:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">pointer_traits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">link_mode</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">struct</span> <span class="identifier">my_value_traits</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span>                                    <span class="identifier">node_traits</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span>                                    <span class="identifier">value_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node_ptr</span>                                     <span class="identifier">node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">const_node_ptr</span>                               <span class="identifier">const_node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">::</span><span class="identifier">pointer_traits</span><span class="special">&lt;</span><span class="identifier">node_ptr</span><span class="special">&gt;::</span><span class="identifier">rebind_traits</span>
+      <span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">::</span><span class="identifier">pointer</span>                                    <span class="identifier">pointer</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">::</span><span class="identifier">pointer_traits</span><span class="special">&lt;</span><span class="identifier">node_ptr</span><span class="special">&gt;::</span><span class="identifier">rebind_traits</span>
+      <span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">::</span><span class="identifier">pointer</span>                              <span class="identifier">const_pointer</span><span class="special">;</span>
+
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">link_mode_type</span> <span class="identifier">link_mode</span> <span class="special">=</span> <span class="identifier">some_linking_policy</span><span class="special">;</span>
+
+   <span class="keyword">static</span> <span class="identifier">node_ptr</span>       <span class="identifier">to_node_ptr</span>    <span class="special">(</span><span class="identifier">value_type</span> <span class="special">&amp;</span><span class="identifier">value</span><span class="special">);</span>
+   <span class="keyword">static</span> <span class="identifier">const_node_ptr</span> <span class="identifier">to_node_ptr</span>    <span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span><span class="identifier">value</span><span class="special">);</span>
+   <span class="keyword">static</span> <span class="identifier">pointer</span>        <span class="identifier">to_value_ptr</span>   <span class="special">(</span><span class="identifier">node_ptr</span> <span class="identifier">n</span><span class="special">);</span>
+   <span class="keyword">static</span> <span class="identifier">const_pointer</span>  <span class="identifier">to_value_ptr</span>   <span class="special">(</span><span class="identifier">const_node_ptr</span> <span class="identifier">n</span><span class="special">);</span>
+<span class="special">};</span>
+</pre>
+<p>
+        Let's explain each type and function:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong><span class="emphasis"><em>node_traits</em></span></strong></span>: The
+            node configuration that is needed by node algorithms. These node traits
+            and algorithms are described in the previous chapter: <a class="link" href="node_algorithms.html" title="Node algorithms with custom NodeTraits">Node
+            Algorithms</a>.
+            <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                  If my_value_traits is meant to be used with <code class="computeroutput"><a class="link" href="../boost/intrusive/slist.html" title="Class template slist">slist</a></code>,
+                  <code class="computeroutput"><span class="identifier">node_traits</span></code> should
+                  follow the interface needed by <code class="computeroutput"><a class="link" href="../boost/intrusive/circular_slist_algorithms.html" title="Class template circular_slist_algorithms">circular_slist_algorithms</a></code>.
+                </li>
+<li class="listitem">
+                  If my_value_traits is meant to be used with <code class="computeroutput"><a class="link" href="../boost/intrusive/list.html" title="Class template list">list</a></code>,
+                  <code class="computeroutput"><span class="identifier">node_traits</span></code> should
+                  follow the interface needed by <code class="computeroutput"><a class="link" href="../boost/intrusive/circular_list_algorithms.html" title="Class template circular_list_algorithms">circular_list_algorithms</a></code>.
+                </li>
+<li class="listitem">
+                  If my_value_traits is meant to be used with <code class="computeroutput"><a class="link" href="../boost/intrusive/set.html" title="Class template set">set</a></code>/<code class="computeroutput"><a class="link" href="../boost/intrusive/multiset.html" title="Class template multiset">multiset</a></code>, <code class="computeroutput"><span class="identifier">node_traits</span></code> should follow the
+                  interface needed by <code class="computeroutput"><a class="link" href="../boost/intrusive/rbtree_algorithms.html" title="Class template rbtree_algorithms">rbtree_algorithms</a></code>.
+                </li>
+<li class="listitem">
+                  If my_value_traits is meant to be used with <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set.html" title="Class template unordered_set">unordered_set</a></code>/
+                  <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>,
+                  <code class="computeroutput"><span class="identifier">node_traits</span></code> should
+                  follow the interface needed by <code class="computeroutput"><a class="link" href="../boost/intrusive/circular_slist_algorithms.html" title="Class template circular_slist_algorithms">circular_slist_algorithms</a></code>.
+                </li>
+</ul></div>
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><span class="emphasis"><em>node_ptr</em></span></strong></span>: A typedef
+            for <code class="computeroutput"><span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node_ptr</span></code>.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><span class="emphasis"><em>const_node_ptr</em></span></strong></span>:
+            A typedef for <code class="computeroutput"><span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">const_node_ptr</span></code>.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><span class="emphasis"><em>value_type</em></span></strong></span>: The
+            type that the user wants to insert in the container. This type can be
+            the same as <code class="computeroutput"><span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node</span></code>
+            but it can be different (for example, <code class="computeroutput"><span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node</span></code>
+            can be a member type of <code class="computeroutput"><span class="identifier">value_type</span></code>).
+            If <code class="computeroutput"><span class="identifier">value_type</span></code> and <code class="computeroutput"><span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node</span></code> are the same type, the <code class="computeroutput"><span class="identifier">to_node_ptr</span></code> and <code class="computeroutput"><span class="identifier">to_value_ptr</span></code>
+            functions are trivial.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><span class="emphasis"><em>pointer</em></span></strong></span>: The type
+            of a pointer to a <code class="computeroutput"><span class="identifier">value_type</span></code>.
+            It must be the same pointer type as <code class="computeroutput"><span class="identifier">node_ptr</span></code>:
+            If <code class="computeroutput"><span class="identifier">node_ptr</span></code> is <code class="computeroutput"><span class="identifier">node</span><span class="special">*</span></code>,
+            <code class="computeroutput"><span class="identifier">pointer</span></code> must be <code class="computeroutput"><span class="identifier">value_type</span><span class="special">*</span></code>.
+            If <code class="computeroutput"><span class="identifier">node_ptr</span></code> is <code class="computeroutput"><span class="identifier">smart_ptr</span><span class="special">&lt;</span><span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node</span><span class="special">&gt;</span></code>,
+            <code class="computeroutput"><span class="identifier">pointer</span></code> must be <code class="computeroutput"><span class="identifier">smart_ptr</span><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;</span></code>.
+            This can be generically achieved using <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">::</span><span class="identifier">pointer_traits</span></code>
+            (portable implementation of C++11 <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pointer_traits</span></code>)
+            or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">pointer_to_other</span></code> utility from <span class="bold"><strong>Boost SmartPointers</strong></span> defined in <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">pointer_to_other</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><span class="emphasis"><em>const_pointer</em></span></strong></span>:
+            The type of a pointer to a <code class="computeroutput"><span class="keyword">const</span>
+            <span class="identifier">value_type</span></code>. It must be the
+            same pointer type as <code class="computeroutput"><span class="identifier">node_ptr</span></code>:
+            If <code class="computeroutput"><span class="identifier">node_ptr</span></code> is <code class="computeroutput"><span class="identifier">node</span><span class="special">*</span></code>,
+            <code class="computeroutput"><span class="identifier">const_pointer</span></code> must be
+            <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">*</span></code>. If <code class="computeroutput"><span class="identifier">node_ptr</span></code>
+            is <code class="computeroutput"><span class="identifier">smart_ptr</span><span class="special">&lt;</span><span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node</span><span class="special">&gt;</span></code>,
+            <code class="computeroutput"><span class="identifier">const_pointer</span></code> must be
+            <code class="computeroutput"><span class="identifier">smart_ptr</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">&gt;</span></code>.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><span class="emphasis"><em>link_mode</em></span></strong></span>: Indicates
+            that <code class="computeroutput"><span class="identifier">value_traits</span></code> needs
+            some additional work or checks from the container. The types are enumerations
+            defined in the <code class="computeroutput"><span class="identifier">link_mode</span><span class="special">.</span><span class="identifier">hpp</span></code>
+            header. These are the possible types:
+            <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                  <span class="bold"><strong><code class="computeroutput"><span class="identifier">normal_link</span></code></strong></span>:
+                  If this linking policy is specified in a <code class="computeroutput"><span class="identifier">ValueTraits</span></code>
+                  class as the link mode, containers configured with such <code class="computeroutput"><span class="identifier">ValueTraits</span></code> won't set the hooks
+                  of the erased values to a default state. Containers also won't
+                  check that the hooks of the new values are default initialized.
+                </li>
+<li class="listitem">
+                  <span class="bold"><strong><code class="computeroutput"><span class="identifier">safe_link</span></code></strong></span>:
+                  If this linking policy is specified as the link mode in a <code class="computeroutput"><span class="identifier">ValueTraits</span></code> class, containers
+                  configured with this <code class="computeroutput"><span class="identifier">ValueTraits</span></code>
+                  will set the hooks of the erased values to a default state. Containers
+                  also will check that the hooks of the new values are default initialized.
+                </li>
+<li class="listitem">
+                  <span class="bold"><strong><code class="computeroutput"><span class="identifier">auto_unlink</span></code></strong></span>:
+                  Same as "safe_link" but containers with constant-time
+                  size features won't be compatible with <code class="computeroutput"><span class="identifier">ValueTraits</span></code>
+                  configured with this policy. Containers also know that a value
+                  can be silently erased from the container without using any function
+                  provided by the containers.
+                </li>
+</ul></div>
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><span class="emphasis"><em>static node_ptr to_node_ptr (value_type
+            &amp;value)</em></span></strong></span> and <span class="bold"><strong><span class="emphasis"><em>static
+            const_node_ptr to_node_ptr (const value_type &amp;value)</em></span></strong></span>:
+            These functions take a reference to a value_type and return a pointer
+            to the node to be used with node algorithms.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><span class="emphasis"><em>static pointer to_value_ptr (node_ptr
+            n)</em></span></strong></span> and <span class="bold"><strong><span class="emphasis"><em>static const_pointer
+            to_value_ptr (const_node_ptr n)</em></span></strong></span>: These functions
+            take a pointer to a node and return a pointer to the value that contains
+            the node.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.value_traits.value_traits_example"></a><a class="link" href="value_traits.html#intrusive.value_traits.value_traits_example" title="Custom ValueTraits example">Custom ValueTraits
+      example</a>
+</h3></div></div></div>
+<p>
+        Let's define our own <code class="computeroutput"><span class="identifier">value_traits</span></code>
+        class to be able to use <span class="bold"><strong>Boost.Intrusive</strong></span>
+        containers with an old C structure whose definition can't be changed. That
+        legacy type has two pointers that can be used to build singly and doubly
+        linked lists: in singly linked lists we only need a pointer, whereas in doubly
+        linked lists, we need two pointers. Since we only have two pointers, we can't
+        insert the object in both a singly and a doubly linked list at the same time.
+        This is the definition of the old node:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">link_mode</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">slist</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="comment">//This node is the legacy type we can't modify and we want to insert in</span>
+<span class="comment">//intrusive list and slist containers using only two pointers, since</span>
+<span class="comment">//we know the object will never be at the same time in both lists.</span>
+<span class="keyword">struct</span> <span class="identifier">legacy_value</span>
+<span class="special">{</span>
+   <span class="identifier">legacy_value</span> <span class="special">*</span><span class="identifier">prev_</span><span class="special">;</span>
+   <span class="identifier">legacy_value</span> <span class="special">*</span><span class="identifier">next_</span><span class="special">;</span>
+   <span class="keyword">int</span> <span class="identifier">id_</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        Now we have to define a NodeTraits class that will implement the functions/typedefs
+        that will make the legacy node compatible with <span class="bold"><strong>Boost.Intrusive</strong></span>
+        algorithms. After that, we'll define a ValueTraits class that will configure
+        <span class="bold"><strong>Boost.Intrusive</strong></span> containers:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">//Define our own NodeTraits that will configure singly and doubly linked</span>
+<span class="comment">//list algorithms. Note that this node traits is compatible with</span>
+<span class="comment">//circular_slist_algorithms and circular_list_algorithms.</span>
+
+<span class="keyword">namespace</span> <span class="identifier">bi</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">legacy_node_traits</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">legacy_value</span>                            <span class="identifier">node</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">legacy_value</span> <span class="special">*</span>                          <span class="identifier">node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">legacy_value</span> <span class="special">*</span>                    <span class="identifier">const_node_ptr</span><span class="special">;</span>
+
+   <span class="keyword">static</span> <span class="identifier">node</span> <span class="special">*</span><span class="identifier">get_next</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node</span> <span class="special">*</span><span class="identifier">n</span><span class="special">)</span>            <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">n</span><span class="special">-&gt;</span><span class="identifier">next_</span><span class="special">;</span>  <span class="special">}</span>
+   <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">set_next</span><span class="special">(</span><span class="identifier">node</span> <span class="special">*</span><span class="identifier">n</span><span class="special">,</span> <span class="identifier">node</span> <span class="special">*</span><span class="identifier">next</span><span class="special">)</span>       <span class="special">{</span>  <span class="identifier">n</span><span class="special">-&gt;</span><span class="identifier">next_</span> <span class="special">=</span> <span class="identifier">next</span><span class="special">;</span>  <span class="special">}</span>
+   <span class="keyword">static</span> <span class="identifier">node</span> <span class="special">*</span><span class="identifier">get_previous</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node</span> <span class="special">*</span><span class="identifier">n</span><span class="special">)</span>        <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">n</span><span class="special">-&gt;</span><span class="identifier">prev_</span><span class="special">;</span>  <span class="special">}</span>
+   <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">set_previous</span><span class="special">(</span><span class="identifier">node</span> <span class="special">*</span><span class="identifier">n</span><span class="special">,</span> <span class="identifier">node</span> <span class="special">*</span><span class="identifier">prev</span><span class="special">)</span>   <span class="special">{</span>  <span class="identifier">n</span><span class="special">-&gt;</span><span class="identifier">prev_</span> <span class="special">=</span> <span class="identifier">prev</span><span class="special">;</span>  <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">//This ValueTraits will configure list and slist. In this case,</span>
+<span class="comment">//legacy_node_traits::node is the same as the</span>
+<span class="comment">//legacy_value_traits::value_type so to_node_ptr/to_value_ptr</span>
+<span class="comment">//functions are trivial.</span>
+<span class="keyword">struct</span> <span class="identifier">legacy_value_traits</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">legacy_node_traits</span>                                  <span class="identifier">node_traits</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node_ptr</span>                               <span class="identifier">node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">const_node_ptr</span>                         <span class="identifier">const_node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">legacy_value</span>                                        <span class="identifier">value_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">legacy_value</span> <span class="special">*</span>                                      <span class="identifier">pointer</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">legacy_value</span> <span class="special">*</span>                                <span class="identifier">const_pointer</span><span class="special">;</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">bi</span><span class="special">::</span><span class="identifier">link_mode_type</span> <span class="identifier">link_mode</span> <span class="special">=</span> <span class="identifier">bi</span><span class="special">::</span><span class="identifier">normal_link</span><span class="special">;</span>
+   <span class="keyword">static</span> <span class="identifier">node_ptr</span> <span class="identifier">to_node_ptr</span> <span class="special">(</span><span class="identifier">value_type</span> <span class="special">&amp;</span><span class="identifier">value</span><span class="special">)</span>             <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">node_ptr</span><span class="special">(&amp;</span><span class="identifier">value</span><span class="special">);</span> <span class="special">}</span>
+   <span class="keyword">static</span> <span class="identifier">const_node_ptr</span> <span class="identifier">to_node_ptr</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span><span class="identifier">value</span><span class="special">)</span> <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">const_node_ptr</span><span class="special">(&amp;</span><span class="identifier">value</span><span class="special">);</span> <span class="special">}</span>
+   <span class="keyword">static</span> <span class="identifier">pointer</span> <span class="identifier">to_value_ptr</span><span class="special">(</span><span class="identifier">node_ptr</span> <span class="identifier">n</span><span class="special">)</span>                     <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">pointer</span><span class="special">(</span><span class="identifier">n</span><span class="special">);</span> <span class="special">}</span>
+   <span class="keyword">static</span> <span class="identifier">const_pointer</span> <span class="identifier">to_value_ptr</span><span class="special">(</span><span class="identifier">const_node_ptr</span> <span class="identifier">n</span><span class="special">)</span>         <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">const_pointer</span><span class="special">(</span><span class="identifier">n</span><span class="special">);</span> <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        Defining a value traits class that simply defines <code class="computeroutput"><span class="identifier">value_type</span></code>
+        as <code class="computeroutput"><span class="identifier">legacy_node_traits</span><span class="special">::</span><span class="identifier">node</span></code> is a common approach when defining
+        customized intrusive containers, so <span class="bold"><strong>Boost.Intrusive</strong></span>
+        offers a templatized <code class="computeroutput"><a class="link" href="../boost/intrusive/trivial_value_traits.html" title="Struct template trivial_value_traits">trivial_value_traits</a></code>
+        class that does exactly what we want:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">trivial_value_traits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">//Now we can define legacy_value_traits just with a single line</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">trivial_value_traits</span><span class="special">&lt;</span><span class="identifier">legacy_node_traits</span><span class="special">,</span> <span class="identifier">normal_link</span><span class="special">&gt;</span> <span class="identifier">legacy_value_traits</span><span class="special">;</span>
+</pre>
+<p>
+        Now we can just define the containers that will store the legacy abi objects
+        and write a little test:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">//Now define an intrusive list and slist that will store legacy_value objects</span>
+<span class="keyword">typedef</span> <span class="identifier">bi</span><span class="special">::</span><span class="identifier">value_traits</span><span class="special">&lt;</span><span class="identifier">legacy_value_traits</span><span class="special">&gt;</span>      <span class="identifier">ValueTraitsOption</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">bi</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">legacy_value</span><span class="special">,</span> <span class="identifier">ValueTraitsOption</span><span class="special">&gt;</span>  <span class="identifier">LegacyAbiList</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">bi</span><span class="special">::</span><span class="identifier">slist</span><span class="special">&lt;</span><span class="identifier">legacy_value</span><span class="special">,</span> <span class="identifier">ValueTraitsOption</span><span class="special">&gt;</span> <span class="identifier">LegacyAbiSlist</span><span class="special">;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">List</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">test_list</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">legacy_value</span><span class="special">&gt;</span> <span class="identifier">Vect</span><span class="special">;</span>
+
+   <span class="comment">//Create legacy_value objects, with a different internal number</span>
+   <span class="identifier">Vect</span> <span class="identifier">legacy_vector</span><span class="special">;</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">100</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+      <span class="identifier">legacy_value</span> <span class="identifier">value</span><span class="special">;</span>     <span class="identifier">value</span><span class="special">.</span><span class="identifier">id_</span> <span class="special">=</span> <span class="identifier">i</span><span class="special">;</span>    <span class="identifier">legacy_vector</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">value</span><span class="special">);</span>
+   <span class="special">}</span>
+
+   <span class="comment">//Create the list with the objects</span>
+   <span class="identifier">List</span> <span class="identifier">mylist</span><span class="special">(</span><span class="identifier">legacy_vector</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">legacy_vector</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+
+   <span class="comment">//Now test both lists</span>
+   <span class="keyword">typename</span> <span class="identifier">List</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">bit</span><span class="special">(</span><span class="identifier">mylist</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">bitend</span><span class="special">(</span><span class="identifier">mylist</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+   <span class="keyword">typename</span> <span class="identifier">Vect</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">it</span><span class="special">(</span><span class="identifier">legacy_vector</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">itend</span><span class="special">(</span><span class="identifier">legacy_vector</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+
+   <span class="comment">//Test the objects inserted in our list</span>
+   <span class="keyword">for</span><span class="special">(;</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">itend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">,</span> <span class="special">++</span><span class="identifier">bit</span><span class="special">)</span>
+      <span class="keyword">if</span><span class="special">(&amp;*</span><span class="identifier">bit</span> <span class="special">!=</span> <span class="special">&amp;*</span><span class="identifier">it</span><span class="special">)</span> <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+   <span class="keyword">return</span> <span class="keyword">true</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">return</span> <span class="identifier">test_list</span><span class="special">&lt;</span><span class="identifier">LegacyAbiList</span><span class="special">&gt;()</span> <span class="special">&amp;&amp;</span> <span class="identifier">test_list</span><span class="special">&lt;</span><span class="identifier">LegacyAbiSlist</span><span class="special">&gt;()</span> <span class="special">?</span> <span class="number">0</span> <span class="special">:</span> <span class="number">1</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        As seen, several key elements of <span class="bold"><strong>Boost.Intrusive</strong></span>
+        can be reused with custom user types, if the user does not want to use the
+        provided <span class="bold"><strong>Boost.Intrusive</strong></span> facilities.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.value_traits.reusing_node_algorithms"></a><a class="link" href="value_traits.html#intrusive.value_traits.reusing_node_algorithms" title="Reusing node algorithms for different values">Reusing
+      node algorithms for different values</a>
+</h3></div></div></div>
+<p>
+        In the previous example, <code class="computeroutput"><span class="identifier">legacy_node_traits</span><span class="special">::</span><span class="identifier">node</span></code>
+        type and <code class="computeroutput"><span class="identifier">legacy_value_traits</span><span class="special">::</span><span class="identifier">value_type</span></code>
+        are the same type, but this is not necessary. It's possible to have several
+        <code class="computeroutput"><span class="identifier">ValueTraits</span></code> defining the
+        same <code class="computeroutput"><span class="identifier">node_traits</span></code> type (and
+        thus, the same <code class="computeroutput"><span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node</span></code>).
+        This reduces the number of node algorithm instantiations, but now <code class="computeroutput"><span class="identifier">ValueTraits</span><span class="special">::</span><span class="identifier">to_node_ptr</span></code> and <code class="computeroutput"><span class="identifier">ValueTraits</span><span class="special">::</span><span class="identifier">to_value_ptr</span></code>
+        functions need to offer conversions between both types. Let's see a small
+        example:
+      </p>
+<p>
+        First, we'll define the node to be used in the algorithms. For a linked list,
+        we just need a node that stores two pointers:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">link_mode</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="comment">//This is the node that will be used with algorithms.</span>
+<span class="keyword">struct</span> <span class="identifier">simple_node</span>
+<span class="special">{</span>
+   <span class="identifier">simple_node</span> <span class="special">*</span><span class="identifier">prev_</span><span class="special">;</span>
+   <span class="identifier">simple_node</span> <span class="special">*</span><span class="identifier">next_</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        Now we'll define two different types that will be inserted in intrusive lists
+        and a templatized <code class="computeroutput"><span class="identifier">ValueTraits</span></code>
+        that will work for both types:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">base_1</span><span class="special">{};</span>
+<span class="keyword">class</span> <span class="identifier">base_2</span><span class="special">{};</span>
+
+<span class="keyword">struct</span> <span class="identifier">value_1</span> <span class="special">:</span>  <span class="keyword">public</span> <span class="identifier">base_1</span><span class="special">,</span> <span class="keyword">public</span> <span class="identifier">simple_node</span>
+<span class="special">{</span>  <span class="keyword">int</span>   <span class="identifier">id_</span><span class="special">;</span>  <span class="special">};</span>
+
+<span class="keyword">struct</span> <span class="identifier">value_2</span> <span class="special">:</span>  <span class="keyword">public</span> <span class="identifier">base_1</span><span class="special">,</span> <span class="keyword">public</span> <span class="identifier">base_2</span><span class="special">,</span> <span class="keyword">public</span> <span class="identifier">simple_node</span>
+<span class="special">{</span>  <span class="keyword">float</span> <span class="identifier">id_</span><span class="special">;</span>  <span class="special">};</span>
+
+<span class="comment">//Define the node traits. A single node_traits will be enough.</span>
+<span class="keyword">struct</span> <span class="identifier">simple_node_traits</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">simple_node</span>                             <span class="identifier">node</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">node</span> <span class="special">*</span>                                  <span class="identifier">node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">node</span> <span class="special">*</span>                            <span class="identifier">const_node_ptr</span><span class="special">;</span>
+   <span class="keyword">static</span> <span class="identifier">node</span> <span class="special">*</span><span class="identifier">get_next</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node</span> <span class="special">*</span><span class="identifier">n</span><span class="special">)</span>            <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">n</span><span class="special">-&gt;</span><span class="identifier">next_</span><span class="special">;</span>  <span class="special">}</span>
+   <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">set_next</span><span class="special">(</span><span class="identifier">node</span> <span class="special">*</span><span class="identifier">n</span><span class="special">,</span> <span class="identifier">node</span> <span class="special">*</span><span class="identifier">next</span><span class="special">)</span>       <span class="special">{</span>  <span class="identifier">n</span><span class="special">-&gt;</span><span class="identifier">next_</span> <span class="special">=</span> <span class="identifier">next</span><span class="special">;</span>  <span class="special">}</span>
+   <span class="keyword">static</span> <span class="identifier">node</span> <span class="special">*</span><span class="identifier">get_previous</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node</span> <span class="special">*</span><span class="identifier">n</span><span class="special">)</span>        <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">n</span><span class="special">-&gt;</span><span class="identifier">prev_</span><span class="special">;</span>  <span class="special">}</span>
+   <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">set_previous</span><span class="special">(</span><span class="identifier">node</span> <span class="special">*</span><span class="identifier">n</span><span class="special">,</span> <span class="identifier">node</span> <span class="special">*</span><span class="identifier">prev</span><span class="special">)</span>   <span class="special">{</span>  <span class="identifier">n</span><span class="special">-&gt;</span><span class="identifier">prev_</span> <span class="special">=</span> <span class="identifier">prev</span><span class="special">;</span>  <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">//A templatized value traits for value_1 and value_2</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ValueType</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">simple_value_traits</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">simple_node_traits</span>                                  <span class="identifier">node_traits</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node_ptr</span>                               <span class="identifier">node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">const_node_ptr</span>                         <span class="identifier">const_node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">ValueType</span>                                           <span class="identifier">value_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">ValueType</span> <span class="special">*</span>                                         <span class="identifier">pointer</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">ValueType</span> <span class="special">*</span>                                   <span class="identifier">const_pointer</span><span class="special">;</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">::</span><span class="identifier">link_mode_type</span> <span class="identifier">link_mode</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">::</span><span class="identifier">normal_link</span><span class="special">;</span>
+   <span class="keyword">static</span> <span class="identifier">node_ptr</span> <span class="identifier">to_node_ptr</span> <span class="special">(</span><span class="identifier">value_type</span> <span class="special">&amp;</span><span class="identifier">value</span><span class="special">)</span>             <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">node_ptr</span><span class="special">(&amp;</span><span class="identifier">value</span><span class="special">);</span> <span class="special">}</span>
+   <span class="keyword">static</span> <span class="identifier">const_node_ptr</span> <span class="identifier">to_node_ptr</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span><span class="identifier">value</span><span class="special">)</span> <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">const_node_ptr</span><span class="special">(&amp;</span><span class="identifier">value</span><span class="special">);</span> <span class="special">}</span>
+   <span class="keyword">static</span> <span class="identifier">pointer</span> <span class="identifier">to_value_ptr</span><span class="special">(</span><span class="identifier">node_ptr</span> <span class="identifier">n</span><span class="special">)</span>                     <span class="special">{</span>  <span class="keyword">return</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">*&gt;(</span><span class="identifier">n</span><span class="special">);</span> <span class="special">}</span>
+   <span class="keyword">static</span> <span class="identifier">const_pointer</span> <span class="identifier">to_value_ptr</span><span class="special">(</span><span class="identifier">const_node_ptr</span> <span class="identifier">n</span><span class="special">)</span>         <span class="special">{</span>  <span class="keyword">return</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">*&gt;(</span><span class="identifier">n</span><span class="special">);</span> <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        Now define two containers. Both containers will instantiate the same list
+        algorithms (<code class="computeroutput"><span class="identifier">circular_list_algorithms</span><span class="special">&lt;</span><span class="identifier">simple_node_traits</span><span class="special">&gt;</span></code>), due to the fact that the value traits
+        used to define the containers provide the same <code class="computeroutput"><span class="identifier">node_traits</span></code>
+        type:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">//Now define two intrusive lists. Both lists will use the same algorithms:</span>
+<span class="comment">// circular_list_algorithms&lt;simple_node_traits&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span> <span class="special">&lt;</span><span class="identifier">value_1</span><span class="special">,</span> <span class="identifier">value_traits</span><span class="special">&lt;</span><span class="identifier">simple_value_traits</span><span class="special">&lt;</span><span class="identifier">value_1</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">Value1List</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span> <span class="special">&lt;</span><span class="identifier">value_2</span><span class="special">,</span> <span class="identifier">value_traits</span><span class="special">&lt;</span><span class="identifier">simple_value_traits</span><span class="special">&lt;</span><span class="identifier">value_2</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">Value2List</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        All <span class="bold"><strong>Boost.Intrusive</strong></span> containers using predefined
+        hooks use this technique to minimize code size: all possible <code class="computeroutput"><a class="link" href="../boost/intrusive/list.html" title="Class template list">list</a></code>
+        containers created with predefined hooks that define the same <code class="computeroutput"><span class="identifier">VoidPointer</span></code> type share the same list algorithms.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.value_traits.simplifying_value_traits"></a><a class="link" href="value_traits.html#intrusive.value_traits.simplifying_value_traits" title="Simplifying value traits definition">Simplifying
+      value traits definition</a>
+</h3></div></div></div>
+<p>
+        The previous example can be further simplified using the <code class="computeroutput"><a class="link" href="../boost/intrusive/derivation_value_traits.html" title="Struct template derivation_value_traits">derivation_value_traits</a></code>
+        class to define a value traits class with a value that stores the <code class="computeroutput"><span class="identifier">simple_node</span></code> as a base class:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">derivation_value_traits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">//value_1, value_2, simple_node and simple_node_traits are defined</span>
+<span class="comment">//as in the previous example...</span>
+<span class="comment">//...</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="comment">//Now define the needed value traits using</span>
+<span class="keyword">typedef</span> <span class="identifier">derivation_value_traits</span><span class="special">&lt;</span><span class="identifier">value_1</span><span class="special">,</span> <span class="identifier">simple_node_traits</span><span class="special">,</span> <span class="identifier">normal_link</span><span class="special">&gt;</span> <span class="identifier">ValueTraits1</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">derivation_value_traits</span><span class="special">&lt;</span><span class="identifier">value_2</span><span class="special">,</span> <span class="identifier">simple_node_traits</span><span class="special">,</span> <span class="identifier">normal_link</span><span class="special">&gt;</span> <span class="identifier">ValueTraits2</span><span class="special">;</span>
+
+<span class="comment">//Now define the containers</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span> <span class="special">&lt;</span><span class="identifier">value1</span><span class="special">,</span> <span class="identifier">value_traits</span><span class="special">&lt;</span><span class="identifier">ValueTraits1</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">Value1List</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span> <span class="special">&lt;</span><span class="identifier">value2</span><span class="special">,</span> <span class="identifier">value_traits</span><span class="special">&lt;</span><span class="identifier">ValueTraits2</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">Value2List</span><span class="special">;</span>
+</pre>
+<p>
+        We can even choose to store <code class="computeroutput"><span class="identifier">simple_node</span></code>
+        as a member of <code class="computeroutput"><span class="identifier">value_1</span></code> and
+        <code class="computeroutput"><span class="identifier">value_2</span></code> classes and use
+        <code class="computeroutput"><a class="link" href="../boost/intrusive/member_value_traits.html" title="Struct template member_value_traits">member_value_traits</a></code>
+        to define the needed value traits classes:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">base_1</span><span class="special">{};</span>
+<span class="keyword">class</span> <span class="identifier">base_2</span><span class="special">{};</span>
+
+<span class="keyword">struct</span> <span class="identifier">value_1</span> <span class="special">:</span>  <span class="keyword">public</span> <span class="identifier">base_1</span><span class="special">,</span> <span class="keyword">public</span> <span class="identifier">simple_node</span>
+<span class="special">{</span>
+   <span class="keyword">int</span>   <span class="identifier">id_</span><span class="special">;</span>
+   <span class="identifier">simple_node</span> <span class="identifier">node_</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">struct</span> <span class="identifier">value_2</span> <span class="special">:</span>  <span class="keyword">public</span> <span class="identifier">base_1</span><span class="special">,</span> <span class="keyword">public</span> <span class="identifier">base_2</span><span class="special">,</span> <span class="keyword">public</span> <span class="identifier">simple_node</span>
+<span class="special">{</span>
+   <span class="identifier">simple_node</span> <span class="identifier">node_</span><span class="special">;</span>
+   <span class="keyword">float</span> <span class="identifier">id_</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">member_value_traits</span>
+   <span class="special">&lt;</span><span class="identifier">value_1</span><span class="special">,</span> <span class="identifier">simple_node_traits</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">value_1</span><span class="special">::</span><span class="identifier">node_</span><span class="special">,</span> <span class="identifier">normal_link</span><span class="special">&gt;</span> <span class="identifier">ValueTraits1</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">member_value_traits</span>
+<span class="special">&lt;</span><span class="identifier">value_2</span><span class="special">,</span> <span class="identifier">simple_node_traits</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">value_2</span><span class="special">::</span><span class="identifier">node_</span><span class="special">,</span> <span class="identifier">normal_link</span><span class="special">&gt;</span> <span class="identifier">ValueTraits2</span><span class="special">;</span>
+
+<span class="comment">//Now define two intrusive lists. Both lists will use the same algorithms:</span>
+<span class="comment">// circular_list_algorithms&lt;simple_node_traits&gt;</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span> <span class="special">&lt;</span><span class="identifier">value_1</span><span class="special">,</span> <span class="identifier">value_traits</span><span class="special">&lt;</span><span class="identifier">ValueTraits1</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">Value1List</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span> <span class="special">&lt;</span><span class="identifier">value_2</span><span class="special">,</span> <span class="identifier">value_traits</span><span class="special">&lt;</span><span class="identifier">ValueTraits2</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">Value2List</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.value_traits.stateful_value_traits"></a><a class="link" href="value_traits.html#intrusive.value_traits.stateful_value_traits" title="Stateful value traits">Stateful
+      value traits</a>
+</h3></div></div></div>
+<p>
+        Until now all shown custom value traits are stateless, that is, <span class="bold"><strong>the transformation between nodes and values is implemented in
+        terms of static functions</strong></span>. It's possible to use <span class="bold"><strong>stateful</strong></span>
+        value traits so that we can separate nodes and values and <span class="bold"><strong>avoid
+        modifying types to insert nodes</strong></span>. <span class="bold"><strong>Boost.Intrusive</strong></span>
+        differentiates between stateful and stateless value traits by checking if
+        all Node &lt;-&gt; Value transformation functions are static or not (except
+        for Visual 7.1, since overloaded static function detection is not possible,
+        in this case the implementation checks if the class is empty):
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            If all Node &lt;-&gt; Value transformation functions are static , a
+            <span class="bold"><strong>stateless</strong></span> value traits is assumed. transformations
+            must be static functions.
+          </li>
+<li class="listitem">
+            Otherwise a <span class="bold"><strong>stateful</strong></span> value traits is
+            assumed.
+          </li>
+</ul></div>
+<p>
+        Using stateful value traits it's possible to create containers of non-copyable/movable
+        objects <span class="bold"><strong>without modifying</strong></span> the definition
+        of the class to be inserted. This interesting property is achieved without
+        using global variables (stateless value traits could use global variables
+        to achieve the same goal), so:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong>Thread-safety guarantees</strong></span>: Better thread-safety
+            guarantees can be achieved with stateful value traits, since accessing
+            global resources might require synchronization primitives that can be
+            avoided when using internal state.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Flexibility</strong></span>: A stateful value traits
+            type can be configured at run-time.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Run-time polymorphism</strong></span>: A value traits
+            might implement node &lt;-&gt; value transformations as virtual functions.
+            A single container type could be configured at run-time to use different
+            node &lt;-&gt; value relationships.
+          </li>
+</ul></div>
+<p>
+        Stateful value traits have many advantages but also some downsides:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong>Performance</strong></span>: Value traits operations
+            should be very efficient since they are basic operations used by containers.
+            <span class="bold"><strong>A heavy node &lt;-&gt; value transformation will
+            hurt intrusive containers' performance</strong></span>.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Exception guarantees</strong></span>: The stateful ValueTraits
+            must maintain no-throw guarantees, otherwise, the container invariants
+            won't be preserved.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Static functions</strong></span>: Some static functions
+            offered by intrusive containers are not available because node &lt;-&gt;
+            value transformations are not static.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Bigger iterators</strong></span>: The size of some iterators
+            is increased because the iterator needs to store a pointer to the stateful
+            value traits to implement node to value transformations (e.g. <code class="computeroutput"><span class="keyword">operator</span><span class="special">*()</span></code>
+            and <code class="computeroutput"><span class="keyword">operator</span><span class="special">-&gt;()</span></code>).
+          </li>
+</ul></div>
+<p>
+        An easy and useful example of stateful value traits is when an array of values
+        can be indirectly introduced in a list guaranteeing no additional allocation
+        apart from the initial resource reservation:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="comment">//This type is not modifiable so we can't store hooks or custom nodes</span>
+<span class="keyword">typedef</span> <span class="keyword">int</span> <span class="identifier">identifier_t</span><span class="special">;</span>
+
+<span class="comment">//This value traits will associate elements from an array of identifiers with</span>
+<span class="comment">//elements of an array of nodes. The element i of the value array will use the</span>
+<span class="comment">//node i of the node array:</span>
+<span class="keyword">struct</span> <span class="identifier">stateful_value_traits</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">list_node_traits</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">*&gt;</span>           <span class="identifier">node_traits</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node</span>                 <span class="identifier">node</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">node</span> <span class="special">*</span>                            <span class="identifier">node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">node</span> <span class="special">*</span>                      <span class="identifier">const_node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">identifier_t</span>                      <span class="identifier">value_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">identifier_t</span> <span class="special">*</span>                    <span class="identifier">pointer</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">identifier_t</span> <span class="special">*</span>              <span class="identifier">const_pointer</span><span class="special">;</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">link_mode_type</span> <span class="identifier">link_mode</span> <span class="special">=</span>   <span class="identifier">normal_link</span><span class="special">;</span>
+
+   <span class="identifier">stateful_value_traits</span><span class="special">(</span><span class="identifier">pointer</span> <span class="identifier">ids</span><span class="special">,</span> <span class="identifier">node_ptr</span> <span class="identifier">node_array</span><span class="special">)</span>
+      <span class="special">:</span>  <span class="identifier">ids_</span><span class="special">(</span><span class="identifier">ids</span><span class="special">),</span>  <span class="identifier">nodes_</span><span class="special">(</span><span class="identifier">node_array</span><span class="special">)</span>
+   <span class="special">{}</span>
+
+   <span class="comment">///Note: non static functions!</span>
+   <span class="identifier">node_ptr</span> <span class="identifier">to_node_ptr</span> <span class="special">(</span><span class="identifier">value_type</span> <span class="special">&amp;</span><span class="identifier">value</span><span class="special">)</span>
+      <span class="special">{</span>  <span class="keyword">return</span> <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">nodes_</span> <span class="special">+</span> <span class="special">(&amp;</span><span class="identifier">value</span> <span class="special">-</span> <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">ids_</span><span class="special">);</span> <span class="special">}</span>
+   <span class="identifier">const_node_ptr</span> <span class="identifier">to_node_ptr</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span><span class="identifier">value</span><span class="special">)</span> <span class="keyword">const</span>
+      <span class="special">{</span>  <span class="keyword">return</span> <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">nodes_</span> <span class="special">+</span> <span class="special">(&amp;</span><span class="identifier">value</span> <span class="special">-</span> <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">ids_</span><span class="special">);</span> <span class="special">}</span>
+   <span class="identifier">pointer</span> <span class="identifier">to_value_ptr</span><span class="special">(</span><span class="identifier">node_ptr</span> <span class="identifier">n</span><span class="special">)</span>
+      <span class="special">{</span>  <span class="keyword">return</span> <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">ids_</span> <span class="special">+</span> <span class="special">(</span><span class="identifier">n</span> <span class="special">-</span> <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">nodes_</span><span class="special">);</span> <span class="special">}</span>
+   <span class="identifier">const_pointer</span> <span class="identifier">to_value_ptr</span><span class="special">(</span><span class="identifier">const_node_ptr</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span>
+      <span class="special">{</span>  <span class="keyword">return</span> <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">ids_</span> <span class="special">+</span> <span class="special">(</span><span class="identifier">n</span> <span class="special">-</span> <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">nodes_</span><span class="special">);</span> <span class="special">}</span>
+
+   <span class="keyword">private</span><span class="special">:</span>
+   <span class="identifier">pointer</span>  <span class="identifier">ids_</span><span class="special">;</span>
+   <span class="identifier">node_ptr</span> <span class="identifier">nodes_</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">NumElements</span> <span class="special">=</span> <span class="number">100</span><span class="special">;</span>
+
+   <span class="comment">//This is an array of ids that we want to "store"</span>
+   <span class="identifier">identifier_t</span>                  <span class="identifier">ids</span>   <span class="special">[</span><span class="identifier">NumElements</span><span class="special">];</span>
+
+   <span class="comment">//This is an array of nodes that is necessary to form the linked list</span>
+   <span class="identifier">list_node_traits</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">*&gt;::</span><span class="identifier">node</span> <span class="identifier">nodes</span> <span class="special">[</span><span class="identifier">NumElements</span><span class="special">];</span>
+
+   <span class="comment">//Initialize id objects, each one with a different number</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">NumElements</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>   <span class="identifier">ids</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">i</span><span class="special">;</span>
+
+   <span class="comment">//Define a list that will "link" identifiers using external nodes</span>
+   <span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">identifier_t</span><span class="special">,</span> <span class="identifier">value_traits</span><span class="special">&lt;</span><span class="identifier">stateful_value_traits</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">List</span><span class="special">;</span>
+
+   <span class="comment">//This list will store ids without modifying identifier_t instances</span>
+   <span class="comment">//Stateful value traits must be explicitly passed in the constructor.</span>
+   <span class="identifier">List</span>  <span class="identifier">my_list</span> <span class="special">(</span><span class="identifier">stateful_value_traits</span> <span class="special">(</span><span class="identifier">ids</span><span class="special">,</span> <span class="identifier">nodes</span><span class="special">));</span>
+
+   <span class="comment">//Insert ids in reverse order in the list</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="identifier">identifier_t</span> <span class="special">*</span> <span class="identifier">it</span><span class="special">(&amp;</span><span class="identifier">ids</span><span class="special">[</span><span class="number">0</span><span class="special">]),</span> <span class="special">*</span><span class="identifier">itend</span><span class="special">(&amp;</span><span class="identifier">ids</span><span class="special">[</span><span class="identifier">NumElements</span><span class="special">]);</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">itend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+      <span class="identifier">my_list</span><span class="special">.</span><span class="identifier">push_front</span><span class="special">(*</span><span class="identifier">it</span><span class="special">);</span>
+
+   <span class="comment">//Now test lists</span>
+   <span class="identifier">List</span><span class="special">::</span><span class="identifier">const_iterator</span>   <span class="identifier">list_it</span> <span class="special">(</span><span class="identifier">my_list</span><span class="special">.</span><span class="identifier">cbegin</span><span class="special">());</span>
+   <span class="identifier">identifier_t</span> <span class="special">*</span><span class="identifier">it_val</span><span class="special">(&amp;</span><span class="identifier">ids</span><span class="special">[</span><span class="identifier">NumElements</span><span class="special">-</span><span class="number">1</span><span class="special">]),</span> <span class="special">*</span><span class="identifier">it_rbeg_val</span><span class="special">(&amp;</span><span class="identifier">ids</span><span class="special">[</span><span class="number">0</span><span class="special">]-</span><span class="number">1</span><span class="special">);</span>
+
+   <span class="comment">//Test the objects inserted in the base hook list</span>
+   <span class="keyword">for</span><span class="special">(;</span> <span class="identifier">it_val</span> <span class="special">!=</span> <span class="identifier">it_rbeg_val</span><span class="special">;</span> <span class="special">--</span><span class="identifier">it_val</span><span class="special">,</span> <span class="special">++</span><span class="identifier">list_it</span><span class="special">)</span>
+      <span class="keyword">if</span><span class="special">(&amp;*</span><span class="identifier">list_it</span>  <span class="special">!=</span> <span class="special">&amp;*</span><span class="identifier">it_val</span><span class="special">)</span>   <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="node_algorithms.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="thread_safety.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

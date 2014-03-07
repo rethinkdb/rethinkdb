@@ -1,0 +1,117 @@
+# Copyright 2003 Dave Abrahams
+# Copyright 2003 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import modules ;
+import numbers ;
+
+
+# The pattern that indirect rules must match: module%rule
+.pattern = ^([^%]*)%([^%]+)$ ;
+
+
+#
+# Type checking rules.
+#
+local rule indirect-rule ( x )
+{
+    if ! [ MATCH $(.pattern) : $(x) ]
+    {
+        return "expected a string of the form module%rule, but got \""$(x)"\" for argument" ;
+    }
+}
+
+
+# Make an indirect rule which calls the given rule. If context is supplied it is
+# expected to be the module in which to invoke the rule by the 'call' rule
+# below. Otherwise, the rule will be invoked in the module of this rule's
+# caller.
+#
+rule make ( rulename bound-args * : context ? )
+{
+    context ?= [ CALLER_MODULE ] ;
+    context ?= "" ;
+    return $(context)%$(rulename) $(bound-args) ;
+}
+
+
+# Make an indirect rule which calls the given rule. 'rulename' may be a
+# qualified rule; if so it is returned unchanged. Otherwise, if frames is not
+# supplied, the result will be invoked (by 'call', below) in the module of the
+# caller. Otherwise, frames > 1 specifies additional call frames to back up in
+# order to find the module context.
+#
+rule make-qualified ( rulename bound-args * : frames ? )
+{
+    if [ MATCH $(.pattern) : $(rulename) ]
+    {
+        return $(rulename) $(bound-args) ;
+    }
+    else
+    {
+        frames ?= 1 ;
+        # If the rule name includes a Jamfile module, grab it.
+        local module-context = [ MATCH ^(Jamfile<[^>]*>)\\..* : $(rulename) ] ;
+
+        if ! $(module-context)
+        {
+            # Take the first dot-separated element as module name. This disallows
+            # module names with dots, but allows rule names with dots.
+            module-context = [ MATCH ^([^.]*)\\..* : $(rulename) ] ;
+        }
+        module-context ?= [ CALLER_MODULE $(frames) ] ;
+        return [ make $(rulename) $(bound-args) : $(module-context) ] ;
+    }
+}
+
+
+# Returns the module name in which the given indirect rule will be invoked.
+#
+rule get-module ( [indirect-rule] x )
+{
+    local m = [ MATCH $(.pattern) : $(x) ] ;
+    if ! $(m[1])
+    {
+        m = ;
+    }
+    return $(m[1]) ;
+}
+
+
+# Returns the rulename that will be called when x is invoked.
+#
+rule get-rule ( [indirect-rule] x )
+{
+    local m = [ MATCH $(.pattern) : $(x) ] ;
+    return $(m[2]) ;
+}
+
+
+# Invoke the given indirect-rule.
+#
+rule call ( [indirect-rule] r args * : * )
+{
+    return [ modules.call-in [ get-module $(r) ] : [ get-rule $(r) ] $(args) :
+        $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) : $(10) : $(11) :
+        $(12) : $(13) : $(14) : $(15) : $(16) : $(17) : $(18) : $(19) ] ;
+}
+
+
+rule __test__
+{
+    import assert ;
+
+    rule foo-barr! ( x )
+    {
+        assert.equal $(x) : x ;
+    }
+
+    assert.equal [ get-rule [ make foo-barr! ] ] : foo-barr! ;
+    assert.equal [ get-module [ make foo-barr! ] ] : [ CALLER_MODULE ] ;
+
+    call [ make foo-barr! ] x ;
+    call [ make foo-barr! x ] ;
+    call [ make foo-barr! : [ CALLER_MODULE ] ] x ;
+}

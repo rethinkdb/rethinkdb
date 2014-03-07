@@ -1,0 +1,81 @@
+
+# Copyright 2005-2012 Daniel James.
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+project hash-tests
+    : requirements
+        <warnings>all
+        <toolset>intel:<warnings>on
+        #<toolset>intel:<cxxflags>-strict-ansi
+        <toolset>gcc:<cxxflags>"-pedantic -Wstrict-aliasing -fstrict-aliasing -Wextra -Wsign-promo -Wunused-parameter -Wconversion -Wfloat-equal -Wshadow"
+        <toolset>darwin:<cxxflags>"-pedantic -Wstrict-aliasing -fstrict-aliasing -Wextra -Wsign-promo -Wunused-parameter -Wconversion -Wfloat-equal -Wshadow"
+        #<toolset>msvc:<warnings-as-errors>on
+        #<toolset>gcc:<warnings-as-errors>on
+        #<toolset>darwin:<warnings-as-errors>on
+    ;
+
+test-suite functional/hash
+    :
+        [ run hash_fwd_test_1.cpp ]
+        [ run hash_fwd_test_2.cpp ]
+        [ run hash_number_test.cpp ]
+        [ run hash_enum_test.cpp ]
+        [ run hash_pointer_test.cpp ]
+        [ run hash_function_pointer_test.cpp ]
+        [ run hash_float_test.cpp ]
+        [ run hash_long_double_test.cpp ]
+        [ run hash_string_test.cpp ]
+        [ run hash_range_test.cpp ]
+        [ run hash_custom_test.cpp ]
+        [ run hash_global_namespace_test.cpp ]
+        [ run hash_friend_test.cpp ]
+        [ run hash_built_in_array_test.cpp ]
+        [ run hash_value_array_test.cpp ]
+        [ run hash_vector_test.cpp ]
+        [ run hash_list_test.cpp ]
+        [ run hash_deque_test.cpp ]
+        [ run hash_set_test.cpp ]
+        [ run hash_map_test.cpp ]
+        [ run hash_complex_test.cpp ]
+        [ run hash_type_index_test.cpp ]
+        [ run hash_std_array_test.cpp ]
+        [ run hash_std_tuple_test.cpp ]
+        [ run hash_std_smart_ptr_test.cpp ]
+        [ run link_test.cpp link_test_2.cpp ]
+        [ run link_ext_test.cpp link_no_ext_test.cpp ]
+        [ run extensions_hpp_test.cpp ]
+        [ compile-fail hash_no_ext_fail_test.cpp ]
+        [ compile-fail namespace_fail_test.cpp ]
+        [ run implicit_test.cpp ]
+        [ run hash_no_ext_macro_1.cpp ]
+        [ run hash_no_ext_macro_2.cpp ]
+    ;
+
+test-suite functional/hash_no_ext
+    :
+        [ run hash_number_test.cpp : : : <define>BOOST_HASH_NO_EXTENSIONS : no_ext_number_test ]
+        [ run hash_pointer_test.cpp : : : <define>BOOST_HASH_NO_EXTENSIONS : no_ext_pointer_test ]
+        [ run hash_function_pointer_test.cpp : : : <define>BOOST_HASH_NO_EXTENSIONS : no_ext_function_pointer_test ]
+        [ run hash_float_test.cpp : : : <define>BOOST_HASH_NO_EXTENSIONS : no_ext_float_test ]
+        [ run hash_long_double_test.cpp : : : <define>BOOST_HASH_NO_EXTENSIONS : no_ext_long_double_test ]
+        [ run hash_string_test.cpp : : : <define>BOOST_HASH_NO_EXTENSIONS : no_ext_string_test ]
+        [ run link_test.cpp link_test_2.cpp : : : <define>BOOST_HASH_NO_EXTENSIONS : no_ext_link_test ]
+    ;
+
+# Tests to see if the floating point hash is using the binary hash.
+# Not run normally because on some platforms these should fail.
+test-suite functional/hash_no_generic_float
+    :
+        [ run hash_float_test.cpp
+            : : : <define>BOOST_HASH_DETAIL_TEST_WITHOUT_GENERIC
+            : hash_float_test_no_generic ]
+        [ run hash_long_double_test.cpp
+            : : : <define>BOOST_HASH_DETAIL_TEST_WITHOUT_GENERIC
+            : hash_long_double_test_no_generic ]
+    ;
+explicit functional/hash_no_generic_float ;
+
+build-project ../examples ;

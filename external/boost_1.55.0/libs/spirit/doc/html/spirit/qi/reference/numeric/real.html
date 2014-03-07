@@ -1,0 +1,1183 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Real Number Parsers (float_, double_, etc.)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../numeric.html" title="Numeric Parsers">
+<link rel="prev" href="int.html" title="Signed Integer Parsers (int_, etc.)">
+<link rel="next" href="boolean.html" title="Boolean Parser (bool_)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="int.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../numeric.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boolean.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.numeric.real"></a><a class="link" href="real.html" title="Real Number Parsers (float_, double_, etc.)">Real Number Parsers
+          (<code class="computeroutput"><span class="identifier">float_</span></code>, <code class="computeroutput"><span class="identifier">double_</span></code>, etc.)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real.description"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real.description">Description</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">real_parser</span></code> can parse
+            real numbers of arbitrary length and size limited by its template parameter,
+            <code class="computeroutput"><span class="identifier">T</span></code>. The numeric base type
+            <code class="computeroutput"><span class="identifier">T</span></code> can be a user defined
+            numeric type such as fixed_point (fixed point reals) and bignum (unlimited
+            precision numbers) as long as the type follows certain expression requirements
+            (documented below).
+          </p>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real.header"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/numeric/real.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_real</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real.namespace"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lit</span> <span class="comment">// alias:
+                      boost::spirit::qi::lit</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">float_</span> <span class="comment">//
+                      alias: boost::spirit::qi::float_</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">double_</span> <span class="comment">//
+                      alias: boost::spirit::qi::double_</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">long_double</span> <span class="comment">//
+                      alias: boost::spirit::qi::long_double</span></code>
+                    </p>
+                  </td></tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              <code class="computeroutput"><span class="identifier">lit</span></code> is reused by the
+              <a class="link" href="../char/char.html" title="Character Parser (char_, lit)">Character Parsers</a>,
+              and the Numeric Parsers. In general, a char parser is created when
+              you pass in a character, and a numeric parser is created when you use
+              a numeric literal.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real.synopsis"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">RealPolicies</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">real_parser</span><span class="special">;</span>
+</pre>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real.template_parameters"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real.template_parameters">Template
+            parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Default
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">T</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The numeric base type of the numeric parser.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      none
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">RealPolicies</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Policies control the parser's behavior.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">real_policies</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h5"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real.model_of"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../parser_concepts/primitiveparser.html" title="PrimitiveParser"><code class="computeroutput"><span class="identifier">PrimitiveParser</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">n</span></code></span></dt>
+<dd><p>
+                  An object of <code class="computeroutput"><span class="identifier">T</span></code>,
+                  the numeric base type.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">num</span></code></span></dt>
+<dd><p>
+                  Numeric literal, any real value, or a <a class="link" href="../basics.html#spirit.qi.reference.basics.lazy_argument">Lazy
+                  Argument</a> that evaluates to a real value.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">RP</span></code></span></dt>
+<dd><p>
+                  A <code class="computeroutput"><span class="identifier">RealPolicies</span></code>
+                  (type).
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">exp</span></code></span></dt>
+<dd><p>
+                  A <code class="computeroutput"><span class="keyword">int</span></code> exponent.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">b</span></code></span></dt>
+<dd><p>
+                  A <code class="computeroutput"><span class="keyword">bool</span></code> flag.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">f</span></code>, <code class="computeroutput"><span class="identifier">l</span></code></span></dt>
+<dd><p>
+                  <a href="http://www.sgi.com/tech/stl/ForwardIterator.html" target="_top"><code class="computeroutput"><span class="identifier">ForwardIterator</span></code></a>. first/last
+                  iterator pair.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h6"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real.expression_semantics"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../parser_concepts/primitiveparser.html" title="PrimitiveParser"><code class="computeroutput"><span class="identifier">PrimitiveParser</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">float_</span>
+<span class="identifier">double_</span>
+<span class="identifier">long_double</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a real using the default policies (<code class="computeroutput"><span class="identifier">real_policies</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">float_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">double_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">long_double</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Match the literal <code class="computeroutput"><span class="identifier">num</span></code>
+                      using the default policies (<code class="computeroutput"><span class="identifier">real_policies</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>). The parser will fail
+                      if the parsed value is not equal to the specified value.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">real_parser</span><span class="special">&lt;</span>
+    <span class="identifier">T</span><span class="special">,</span> <span class="identifier">RealPolicies</span>
+<span class="special">&gt;()</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a real of type <code class="computeroutput"><span class="identifier">T</span></code>
+                      using <code class="computeroutput"><span class="identifier">RealPolicies</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">real_parser</span><span class="special">&lt;</span>
+    <span class="identifier">T</span><span class="special">,</span> <span class="identifier">RealPolicies</span>
+<span class="special">&gt;()(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Match the literal <code class="computeroutput"><span class="identifier">num</span></code>
+                      of type <code class="computeroutput"><span class="identifier">T</span></code> using
+                      <code class="computeroutput"><span class="identifier">RealPolicies</span></code>.
+                      The parser will fail if the parsed value is not equal to the
+                      specified value.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h7"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real.attributes"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real.attributes">Attributes</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">unused</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">float_</span>
+<span class="identifier">float_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">float</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">double_</span>
+<span class="identifier">double_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">double</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">long_double</span>
+<span class="identifier">long_double</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">real_parser</span><span class="special">&lt;</span>
+    <span class="identifier">T</span><span class="special">,</span> <span class="identifier">RealPolicies</span>
+<span class="special">&gt;()</span>
+<span class="identifier">real_parser</span><span class="special">&lt;</span>
+    <span class="identifier">T</span><span class="special">,</span> <span class="identifier">RealPolicies</span>
+<span class="special">&gt;()(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">T</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h8"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real.complexity"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              O(N), where N is the number of characters (including the digits, exponent,
+              sign, etc.) being parsed.
+            </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h9"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real.minimum_expression_requirements_for__code__phrase_role__identifier__t__phrase___code_"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real.minimum_expression_requirements_for__code__phrase_role__identifier__t__phrase___code_">Minimum
+            Expression Requirements for <code class="computeroutput"><span class="identifier">T</span></code></a>
+          </h6>
+<p>
+            The numeric base type, <code class="computeroutput"><span class="identifier">T</span></code>,
+            the minimum expression requirements listed below must be valid. Take
+            note that additional requirements may be imposed by custom policies.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">T</span><span class="special">()</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Default construct.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">T</span><span class="special">(</span><span class="number">0</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Construct from an <code class="computeroutput"><span class="keyword">int</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">n</span> <span class="special">+</span>
+                      <span class="identifier">n</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Addition.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">n</span> <span class="special">-</span>
+                      <span class="identifier">n</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Subtraction.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">n</span> <span class="special">*</span>
+                      <span class="identifier">n</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Multiplication.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">is_bounded</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">true</span></code> or <code class="computeroutput"><span class="keyword">false</span></code> if <code class="computeroutput"><span class="identifier">T</span></code>
+                      bounded.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">digits</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Maximum Digits for <code class="computeroutput"><span class="identifier">T</span></code>,
+                      radix digits. Required only if <code class="computeroutput"><span class="identifier">T</span></code>
+                      is bounded.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">digits10</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Maximum Digits for <code class="computeroutput"><span class="identifier">T</span></code>,
+                      base 10. Required only if <code class="computeroutput"><span class="identifier">T</span></code>
+                      is bounded.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">max</span><span class="special">()</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Maximum value for <code class="computeroutput"><span class="identifier">T</span></code>.
+                      Required only if <code class="computeroutput"><span class="identifier">T</span></code>
+                      is bounded.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">min</span><span class="special">()</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Minimum value for <code class="computeroutput"><span class="identifier">T</span></code>.
+                      Required only if <code class="computeroutput"><span class="identifier">T</span></code>
+                      is bounded.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">traits</span><span class="special">::</span><span class="identifier">scale</span><span class="special">(</span><span class="identifier">exp</span><span class="special">,</span>
+                      <span class="identifier">n</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Multiply <code class="computeroutput"><span class="identifier">n</span></code>
+                      by <code class="computeroutput"><span class="number">10</span><span class="special">^</span><span class="identifier">exp</span></code>. Default implementation
+                      is provided for <code class="computeroutput"><span class="keyword">float</span></code>,
+                      <code class="computeroutput"><span class="keyword">double</span></code> and <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">traits</span><span class="special">::</span><span class="identifier">negate</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                      <span class="identifier">n</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Negate <code class="computeroutput"><span class="identifier">n</span></code> if
+                      <code class="computeroutput"><span class="identifier">b</span></code> is <code class="computeroutput"><span class="keyword">true</span></code>. Default implementation
+                      is provided for <code class="computeroutput"><span class="keyword">float</span></code>,
+                      <code class="computeroutput"><span class="keyword">double</span></code> and <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_equal_to_one</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Return <code class="computeroutput"><span class="keyword">true</span></code> if
+                      <code class="computeroutput"><span class="identifier">n</span></code> is equal
+                      to <code class="computeroutput"><span class="number">1.0</span></code>. Default
+                      implementation is provided for <code class="computeroutput"><span class="keyword">float</span></code>,
+                      <code class="computeroutput"><span class="keyword">double</span></code> and <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code>.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The additional spirit real number traits above are provided to allow
+              custom implementations to implement efficient real number parsers.
+              For example, for certain custom real numbers, scaling to a base 10
+              exponent is a very cheap operation.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h10"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real._code__phrase_role__identifier__realpolicies__phrase___code_"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real._code__phrase_role__identifier__realpolicies__phrase___code_"><code class="computeroutput"><span class="identifier">RealPolicies</span></code></a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">RealPolicies</span></code> template
+            parameter is a class that groups all the policies that control the parser's
+            behavior. Policies control the real number parsers' behavior.
+          </p>
+<p>
+            The default is <code class="computeroutput"><span class="identifier">real_policies</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>. The default is provided to take
+            care of the most common case (there are many ways to represent, and hence
+            parse, real numbers). In most cases, the default policies are sufficient
+            and can be used straight out of the box. They are designed to parse C/C++
+            style floating point numbers of the form <code class="computeroutput"><span class="identifier">nnn</span><span class="special">.</span><span class="identifier">fff</span><span class="special">.</span><span class="identifier">Eeee</span></code>
+            where <code class="computeroutput"><span class="identifier">nnn</span></code> is the whole
+            number part, <code class="computeroutput"><span class="identifier">fff</span></code> is the
+            fractional part, <code class="computeroutput"><span class="identifier">E</span></code> is
+            <code class="computeroutput"><span class="char">'e'</span></code> or <code class="computeroutput"><span class="char">'E'</span></code>
+            and <code class="computeroutput"><span class="identifier">eee</span></code> is the exponent
+            optionally preceded by <code class="computeroutput"><span class="char">'-'</span></code>
+            or <code class="computeroutput"><span class="char">'+'</span></code> with the additional
+            detection of NaN and Inf as mandated by the C99 Standard and proposed
+            for inclusion into the C++0x Standard: nan, nan(...), inf and infinity
+            (the matching is case-insensitive). This corresponds to the following
+            grammar:
+          </p>
+<pre class="programlisting"><span class="identifier">sign</span>
+    <span class="special">=</span>   <span class="identifier">lit</span><span class="special">(</span><span class="char">'+'</span><span class="special">)</span> <span class="special">|</span> <span class="char">'-'</span>
+    <span class="special">;</span>
+
+<span class="identifier">nan</span>
+    <span class="special">=</span>   <span class="special">-</span><span class="identifier">lit</span><span class="special">(</span><span class="string">"1.0#"</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="identifier">no_case</span><span class="special">[</span><span class="string">"nan"</span><span class="special">]</span>
+        <span class="special">&gt;&gt;</span> <span class="special">-(</span><span class="char">'('</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">')'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="char">')'</span><span class="special">)</span>
+    <span class="special">;</span>
+
+<span class="identifier">inf</span>
+    <span class="special">=</span>   <span class="identifier">no_case</span><span class="special">[</span><span class="identifier">lit</span><span class="special">(</span><span class="string">"inf"</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">-</span><span class="identifier">lit</span><span class="special">(</span><span class="string">"inity"</span><span class="special">)]</span>
+    <span class="special">;</span>
+
+<span class="identifier">floating_literal</span>
+    <span class="special">=</span>   <span class="special">-</span><span class="identifier">sign</span> <span class="special">&gt;&gt;</span>
+        <span class="special">(</span>       <span class="identifier">nan</span>
+            <span class="special">|</span>   <span class="identifier">inf</span>
+            <span class="special">|</span>   <span class="identifier">fractional_constant</span> <span class="special">&gt;&gt;</span> <span class="special">!</span><span class="identifier">exponent_part</span>
+            <span class="special">|</span>  <span class="special">+</span><span class="identifier">digit</span> <span class="special">&gt;&gt;</span> <span class="identifier">exponent_part</span>
+        <span class="special">)</span>
+    <span class="special">;</span>
+
+<span class="identifier">fractional_constant</span>
+    <span class="special">=</span>  <span class="special">*</span><span class="identifier">digit</span> <span class="special">&gt;&gt;</span> <span class="char">'.'</span> <span class="special">&gt;&gt;</span> <span class="special">+</span><span class="identifier">digit</span>
+    <span class="special">|</span>  <span class="special">+</span><span class="identifier">digit</span> <span class="special">&gt;&gt;</span> <span class="special">-</span><span class="identifier">lit</span><span class="special">(</span><span class="char">'.'</span><span class="special">)</span>
+    <span class="special">;</span>
+
+<span class="identifier">exponent_part</span>
+    <span class="special">=</span>   <span class="special">(</span><span class="identifier">lit</span><span class="special">(</span><span class="char">'e'</span><span class="special">)</span> <span class="special">|</span> <span class="char">'E'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">-</span><span class="identifier">sign</span> <span class="special">&gt;&gt;</span> <span class="special">+</span><span class="identifier">digit</span>
+    <span class="special">;</span>
+</pre>
+<p>
+            There are four <code class="computeroutput"><span class="identifier">RealPolicies</span></code>
+            predefined for immediate use:
+          </p>
+<div class="table">
+<a name="spirit.qi.reference.numeric.real.predefined_policies"></a><p class="title"><b>Table&#160;4.&#160;Predefined Policies</b></p>
+<div class="table-contents"><table class="table" summary="Predefined Policies">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Policies
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ureal_policies</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Without sign.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">real_policies</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      With sign.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">strict_ureal_policies</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Without sign, dot required.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">strict_real_policies</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      With sign, dot required.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              Integers are considered a subset of real numbers, so for instance,
+              <code class="computeroutput"><span class="identifier">double_</span></code> recognizes
+              integer numbers (without a dot) just as well. To avoid this ambiguity,
+              <code class="computeroutput"><span class="identifier">strict_ureal_policies</span></code>
+              and <code class="computeroutput"><span class="identifier">strict_real_policies</span></code>
+              require a dot to be present for a number to be considered a successful
+              match.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h11"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real._code__phrase_role__identifier__realpolicies__phrase___code__expression_requirements"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real._code__phrase_role__identifier__realpolicies__phrase___code__expression_requirements"><code class="computeroutput"><span class="identifier">RealPolicies</span></code> Expression Requirements</a>
+          </h6>
+<p>
+            For models of <code class="computeroutput"><span class="identifier">RealPolicies</span></code>
+            the following expressions must be valid:
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">RP</span><span class="special">::</span><span class="identifier">allow_leading_dot</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Allow leading dot.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">RP</span><span class="special">::</span><span class="identifier">allow_trailing_dot</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Allow trailing dot.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">RP</span><span class="special">::</span><span class="identifier">expect_dot</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Require a dot.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">RP</span><span class="special">::</span><span class="identifier">parse_sign</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span>
+                      <span class="identifier">l</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse the prefix sign (e.g. '-'). Return <code class="computeroutput"><span class="keyword">true</span></code>
+                      if successful, otherwise <code class="computeroutput"><span class="keyword">false</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">RP</span><span class="special">::</span><span class="identifier">parse_n</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span>
+                      <span class="identifier">l</span><span class="special">,</span>
+                      <span class="identifier">n</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse the integer at the left of the decimal point. Return
+                      <code class="computeroutput"><span class="keyword">true</span></code> if successful,
+                      otherwise <code class="computeroutput"><span class="keyword">false</span></code>.
+                      If successful, place the result into <code class="computeroutput"><span class="identifier">n</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">RP</span><span class="special">::</span><span class="identifier">parse_dot</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span>
+                      <span class="identifier">l</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse the decimal point. Return <code class="computeroutput"><span class="keyword">true</span></code>
+                      if successful, otherwise <code class="computeroutput"><span class="keyword">false</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">RP</span><span class="special">::</span><span class="identifier">parse_frac_n</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span>
+                      <span class="identifier">l</span><span class="special">,</span>
+                      <span class="identifier">n</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse the fraction after the decimal point. Return <code class="computeroutput"><span class="keyword">true</span></code> if successful, otherwise
+                      <code class="computeroutput"><span class="keyword">false</span></code>. If successful,
+                      place the result into <code class="computeroutput"><span class="identifier">n</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">RP</span><span class="special">::</span><span class="identifier">parse_exp</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span>
+                      <span class="identifier">l</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse the exponent prefix (e.g. 'e'). Return <code class="computeroutput"><span class="keyword">true</span></code> if successful, otherwise
+                      <code class="computeroutput"><span class="keyword">false</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">RP</span><span class="special">::</span><span class="identifier">parse_exp_n</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span>
+                      <span class="identifier">l</span><span class="special">,</span>
+                      <span class="identifier">n</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse the actual exponent. Return <code class="computeroutput"><span class="keyword">true</span></code>
+                      if successful, otherwise <code class="computeroutput"><span class="keyword">false</span></code>.
+                      If successful, place the result into <code class="computeroutput"><span class="identifier">n</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">RP</span><span class="special">::</span><span class="identifier">parse_nan</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span>
+                      <span class="identifier">l</span><span class="special">,</span>
+                      <span class="identifier">n</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a NaN. Return <code class="computeroutput"><span class="keyword">true</span></code>
+                      if successful, otherwise <code class="computeroutput"><span class="keyword">false</span></code>.
+                      If successful, place the result into <code class="computeroutput"><span class="identifier">n</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">RP</span><span class="special">::</span><span class="identifier">parse_inf</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span>
+                      <span class="identifier">l</span><span class="special">,</span>
+                      <span class="identifier">n</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an Inf. Return <code class="computeroutput"><span class="keyword">true</span></code>
+                      if successful, otherwise <code class="computeroutput"><span class="keyword">false</span></code>.
+                      If successful, place the result into <code class="computeroutput"><span class="identifier">n</span></code>.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+            The <code class="computeroutput"><span class="identifier">parse_nan</span></code> and <code class="computeroutput"><span class="identifier">parse_inf</span></code> functions get called whenever:
+          </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              a number to parse does not start with a digit (after having successfully
+              parsed an optional sign)
+            </p></blockquote></div>
+<p>
+            or
+          </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              after a real number of the value 1 (having no exponential part and
+              a fractional part value of 0) has been parsed.
+            </p></blockquote></div>
+<p>
+            The first call recognizes representations of NaN or Inf starting with
+            a non-digit character (such as NaN, Inf, QNaN etc.). The second call
+            recognizes representation formats starting with a <code class="computeroutput"><span class="number">1.0</span></code>
+            (such as <code class="computeroutput"><span class="string">"1.0#NAN"</span></code>
+            or <code class="computeroutput"><span class="string">"1.0#INF"</span></code> etc.).
+          </p>
+<p>
+            The functions should return true if a Nan or Inf has been found. In this
+            case the attribute <code class="computeroutput"><span class="identifier">n</span></code>
+            should be set to the matched value (NaN or Inf). The optional sign will
+            be automatically applied afterwards.
+          </p>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h12"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real._code__phrase_role__identifier__realpolicies__phrase___code__specializations"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real._code__phrase_role__identifier__realpolicies__phrase___code__specializations"><code class="computeroutput"><span class="identifier">RealPolicies</span></code> Specializations</a>
+          </h6>
+<p>
+            The easiest way to implement a proper real parsing policy is to derive
+            a new type from the the type <code class="computeroutput"><span class="identifier">real_policies</span></code>
+            while overriding the aspects of the parsing which need to be changed.
+            For example, here's the implementation of the predefined <code class="computeroutput"><span class="identifier">strict_real_policies</span></code>:
+          </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">strict_real_policies</span> <span class="special">:</span> <span class="identifier">real_policies</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="keyword">bool</span> <span class="keyword">const</span> <span class="identifier">expect_dot</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<h6>
+<a name="spirit.qi.reference.numeric.real.h13"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.real.example"></a></span><a class="link" href="real.html#spirit.qi.reference.numeric.real.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.qi.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">val</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">real_parser</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Basic real number parsing:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// double</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"+12345e6"</span><span class="special">,</span> <span class="identifier">double_</span><span class="special">);</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"-12345e6"</span><span class="special">,</span> <span class="identifier">double_</span><span class="special">);</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"+12345e6"</span><span class="special">,</span> <span class="identifier">double_</span><span class="special">(</span><span class="number">12345e6</span><span class="special">));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"-12345e6"</span><span class="special">,</span> <span class="identifier">double_</span><span class="special">(-</span><span class="number">123456e6</span><span class="special">));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"+12345e6"</span><span class="special">,</span> <span class="identifier">double_</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="number">12345e6</span><span class="special">)));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"-12345e6"</span><span class="special">,</span> <span class="identifier">double_</span><span class="special">(</span><span class="identifier">val</span><span class="special">(-</span><span class="number">123456e6</span><span class="special">)));</span>
+
+<span class="comment">// literals</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"+12345e6"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="number">12345e6</span><span class="special">));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"-12345e6"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(-</span><span class="number">123456e6</span><span class="special">));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"+12345e6"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="number">12345e6</span><span class="special">)));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"-12345e6"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="identifier">val</span><span class="special">(-</span><span class="number">123456e6</span><span class="special">)));</span>
+</pre>
+<p>
+          </p>
+<p>
+            A custom real number policy:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">///////////////////////////////////////////////////////////////////////////////</span>
+<span class="comment">//  These policies can be used to parse thousand separated</span>
+<span class="comment">//  numbers with at most 2 decimal digits after the decimal</span>
+<span class="comment">//  point. e.g. 123,456,789.01</span>
+<span class="comment">///////////////////////////////////////////////////////////////////////////////</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">ts_real_policies</span> <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">ureal_policies</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="comment">//  2 decimal places Max</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attribute</span><span class="special">&gt;</span>
+    <span class="keyword">static</span> <span class="keyword">bool</span>
+    <span class="identifier">parse_frac_n</span><span class="special">(</span><span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">Attribute</span><span class="special">&amp;</span> <span class="identifier">attr</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span>
+            <span class="identifier">extract_uint</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="number">10</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="keyword">true</span><span class="special">&gt;::</span><span class="identifier">call</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">attr</span><span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="comment">//  No exponent</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+    <span class="keyword">static</span> <span class="keyword">bool</span>
+    <span class="identifier">parse_exp</span><span class="special">(</span><span class="identifier">Iterator</span><span class="special">&amp;,</span> <span class="identifier">Iterator</span> <span class="keyword">const</span><span class="special">&amp;)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="comment">//  No exponent</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attribute</span><span class="special">&gt;</span>
+    <span class="keyword">static</span> <span class="keyword">bool</span>
+    <span class="identifier">parse_exp_n</span><span class="special">(</span><span class="identifier">Iterator</span><span class="special">&amp;,</span> <span class="identifier">Iterator</span> <span class="keyword">const</span><span class="special">&amp;,</span> <span class="identifier">Attribute</span><span class="special">&amp;)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="comment">//  Thousands separated numbers</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attribute</span><span class="special">&gt;</span>
+    <span class="keyword">static</span> <span class="keyword">bool</span>
+    <span class="identifier">parse_n</span><span class="special">(</span><span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">Attribute</span><span class="special">&amp;</span> <span class="identifier">attr</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">uint_parser</span><span class="special">;</span>
+        <span class="keyword">namespace</span> <span class="identifier">qi</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">;</span>
+
+        <span class="identifier">uint_parser</span><span class="special">&lt;</span><span class="keyword">unsigned</span><span class="special">,</span> <span class="number">10</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">3</span><span class="special">&gt;</span> <span class="identifier">uint3</span><span class="special">;</span>
+        <span class="identifier">uint_parser</span><span class="special">&lt;</span><span class="keyword">unsigned</span><span class="special">,</span> <span class="number">10</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="number">3</span><span class="special">&gt;</span> <span class="identifier">uint3_3</span><span class="special">;</span>
+
+        <span class="identifier">T</span> <span class="identifier">result</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">uint3</span><span class="special">,</span> <span class="identifier">result</span><span class="special">))</span>
+        <span class="special">{</span>
+            <span class="keyword">bool</span> <span class="identifier">hit</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+            <span class="identifier">T</span> <span class="identifier">n</span><span class="special">;</span>
+            <span class="identifier">Iterator</span> <span class="identifier">save</span> <span class="special">=</span> <span class="identifier">first</span><span class="special">;</span>
+
+            <span class="keyword">while</span> <span class="special">(</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="char">','</span><span class="special">)</span> <span class="special">&amp;&amp;</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">uint3_3</span><span class="special">,</span> <span class="identifier">n</span><span class="special">))</span>
+            <span class="special">{</span>
+                <span class="identifier">result</span> <span class="special">=</span> <span class="identifier">result</span> <span class="special">*</span> <span class="number">1000</span> <span class="special">+</span> <span class="identifier">n</span><span class="special">;</span>
+                <span class="identifier">save</span> <span class="special">=</span> <span class="identifier">first</span><span class="special">;</span>
+                <span class="identifier">hit</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+            <span class="special">}</span>
+
+            <span class="identifier">first</span> <span class="special">=</span> <span class="identifier">save</span><span class="special">;</span>
+            <span class="keyword">if</span> <span class="special">(</span><span class="identifier">hit</span><span class="special">)</span>
+                <span class="identifier">attr</span> <span class="special">=</span> <span class="identifier">result</span><span class="special">;</span>
+            <span class="keyword">return</span> <span class="identifier">hit</span><span class="special">;</span>
+        <span class="special">}</span>
+        <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+          </p>
+<p>
+            And its use:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">real_parser</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="identifier">ts_real_policies</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">ts_real</span><span class="special">;</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"123,456,789.01"</span><span class="special">,</span> <span class="identifier">ts_real</span><span class="special">);</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"123,456,789.01"</span><span class="special">,</span> <span class="identifier">ts_real</span><span class="special">(</span><span class="number">123456789.01</span><span class="special">));</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="int.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../numeric.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boolean.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

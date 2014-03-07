@@ -1,0 +1,12 @@
+rule failure
+   {
+   }
+
+actions failure
+   {
+   dir _
+   if errorlevel 1 exit %errorlevel%
+   echo a
+   }
+
+failure f ;

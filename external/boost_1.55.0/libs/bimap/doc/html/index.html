@@ -1,0 +1,158 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Boost.Bimap</title>
+<link rel="stylesheet" href="boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="next" href="boost_bimap/introduction.html" title="Introduction">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_bimap/introduction.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="bimap"></a>Chapter&#160;1.&#160;Boost.Bimap</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Matias</span> <span class="surname">Capeletto</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2006-2012 Matias Capeletto</p></div>
+<div><div class="legalnotice">
+<a name="bimap.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="index.html#bimap.preface">Preface</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/introduction.html">Introduction</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/one_minute_tutorial.html">One minute tutorial</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/the_tutorial.html">The tutorial</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_bimap/the_tutorial.html#boost_bimap.the_tutorial.roadmap">Roadmap</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/the_tutorial/discovering_the_bimap_framework.html">Discovering
+      the bimap framework</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/the_tutorial/controlling_collection_types.html">Controlling
+      collection types</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/the_tutorial/the_collection_of_relations_type.html">The
+      collection of relations type</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/the_tutorial/differences_with_standard_maps.html">Differences
+      with standard maps</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/the_tutorial/useful_functions.html">Useful functions</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/the_tutorial/bimaps_with_user_defined_names.html">Bimaps
+      with user defined names</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/the_tutorial/unconstrained_sets.html">Unconstrained
+      Sets</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/the_tutorial/additional_information.html">Additional
+      information</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/the_tutorial/complete_instantiation_scheme.html">Complete
+      instantiation scheme</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_bimap/bimap_and_boost.html">Bimap and Boost</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_bimap/bimap_and_boost.html#boost_bimap.bimap_and_boost.bimap_and_multiindex">Bimap
+      and MultiIndex</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/bimap_and_boost/boost_libraries_that_work_well_with_boost_bimap.html">Boost
+      Libraries that work well with Boost.Bimap</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/bimap_and_boost/dependencies.html">Dependencies</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_bimap/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_bimap/reference.html#boost_bimap.reference.headers">Headers</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/reference/bimap_reference.html">Bimap Reference</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/reference/set_of_reference.html">set_of Reference</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/reference/unordered_set_of_reference.html">unordered_set_of
+      Reference</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/reference/list_of_reference.html">list_of Reference</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/reference/vector_of_reference.html">vector_of
+      Reference</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/reference/unconstrained_set_of_reference.html">unconstrained_set_of
+      Reference</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_bimap/compiler_specifics.html">Compiler specifics</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/performance.html">Performance</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/examples.html">Examples</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_bimap/examples.html#boost_bimap.examples.examples_list">Examples list</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/examples/simple_bimap.html">Simple Bimap</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/examples/mighty_bimap.html">Mighty Bimap</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/examples/multiindex_to_bimap_path___bidirectional_map.html">MultiIndex
+      to Bimap Path - Bidirectional Map</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/examples/multiindex_to_bimap_path___hashed_indices.html">MultiIndex
+      to Bimap Path - Hashed indices</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_bimap/test_suite.html">Test suite</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/future_work.html">Future work</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/release_notes.html">Release notes</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/rationale.html">Rationale</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_bimap/rationale.html#boost_bimap.rationale.general_design">General Design</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/rationale/additional_features.html">Additional
+      Features</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/rationale/code.html">Code</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/rationale/the_student_and_the_mentor.html">The
+      student and the mentor</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_bimap/history.html">History</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_bimap/history.html#boost_bimap.history.the_long_path_from_code_project_to_boost">The
+      long path from Code Project to Boost</a></span></dt>
+<dt><span class="section"><a href="boost_bimap/history/multiindex_and_bimap.html">MultiIndex
+      and Bimap</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_bimap/acknowledgements.html">Acknowledgements</a></span></dt>
+</dl>
+</div>
+<div class="section bimap_preface">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="bimap.preface"></a><a class="link" href="index.html#bimap.preface" title="Preface">Preface</a>
+</h2></div></div></div>
+<h4>
+<a name="bimap.preface.h0"></a>
+      <span class="phrase"><a name="bimap.preface.description"></a></span><a class="link" href="index.html#bimap.preface.description">Description</a>
+    </h4>
+<p>
+      <span class="inlinemediaobject"><img src="images/bimap/boost.bimap.logo.png" alt="boost.bimap.logo"></span>
+    </p>
+<p>
+      Boost.Bimap is a bidirectional maps library for C++. With Boost.Bimap you can
+      create associative containers in which both types can be used as key. A <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span></code> can be thought of as a combination of a
+      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&gt;</span></code>
+      and a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="identifier">Y</span><span class="special">,</span><span class="identifier">X</span><span class="special">&gt;</span></code>.
+      The learning curve of bimap is almost flat if you know how to use standard
+      containers. A great deal of effort has been put into mapping the naming scheme
+      of the STL in Boost.Bimap. The library is designed to match the common STL
+      containers.
+    </p>
+<h4>
+<a name="bimap.preface.h1"></a>
+      <span class="phrase"><a name="bimap.preface.influences_and_related_work"></a></span><a class="link" href="index.html#bimap.preface.influences_and_related_work">Influences
+      and Related Work</a>
+    </h4>
+<p>
+      The design of Boost.Bimap interface follows the standard template library.
+      It has been strongly influenced by Joaquin Lopez Mu&#241;oz's Boost.MultiIndex
+      library (the heart of bimaps) and codeproject::bimap library.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: December 10, 2012 at 13:07:47 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_bimap/introduction.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

@@ -1,0 +1,19 @@
+[article 1.5 Templates
+[quickbook 1.5]
+]
+
+[template section_1_5[]
+[section In a 1.5 template]
+Some text
+[endsect]
+]
+
+[section 1.5 Document]
+[section_1_1]
+[section_1_4]
+[section_1_5]
+[endsect]
+
+[/ Odd test for calling 1.4 -> 1.5 -> 1.4 template]
+
+[template skip_1_5_2[a] [skip_1_5_3]]

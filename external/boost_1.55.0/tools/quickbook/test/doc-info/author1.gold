@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE appendix PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<appendix id="document_information_4" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Document Information 4</title>
+  <appendixinfo>
+    <authorgroup>
+    <author>
+      <firstname>Joe</firstname> <surname>Blow</surname>
+    </author>
+    </authorgroup>
+  </appendixinfo>
+</appendix>

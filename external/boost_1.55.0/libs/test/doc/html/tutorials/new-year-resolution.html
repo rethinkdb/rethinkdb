@@ -1,0 +1,206 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Test driven development or "getting started" for TDD followers</title>
+<link rel="stylesheet" href="../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Boost Test Library">
+<link rel="up" href="../utf/tutorials.html" title="The unit test framework tutorials">
+<link rel="prev" href="hello-the-testing-world.html" title="Hello the testing world or beginner's introduction into testing using the Unit Test Framework">
+<link rel="next" href="../utf/compilation.html" title="The UTF compilation variants and procedures">
+<script language="JavaScript1.2" src="../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../utf.html">The Unit Test Framework</a> &gt; <a href="../utf/tutorials.html">Tutorials</a><a href="../utf/compilation.html">
+      &gt;
+      </a><b>Boost.Test driven development</b>
+</td>
+<td><div class="spirit-nav">
+<a href="hello-the-testing-world.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="../utf/compilation.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="tutorial.new-year-resolution"></a>Boost.Test driven development  or "getting started" for TDD followers</h4></div></div></div>
+<p class="first-line-indented">
+  Today is a momentous day - first day of new year. Today I am going to start a new life. I am going to stop eating a 
+  greasy food, start attending a fitness club and  today I am going to test programs I am writing. I can start 
+  right after the last line of a program is completed or, even better, I can write tests while I am coding. And maybe 
+  next time I will write tests before the coding, during the design stage. I have read a lot of literature on how to 
+  write the tests, I have the unit test framework in hand and an idea of new class. So let's get started.
+ </p>
+<p class="first-line-indented">
+  Let say I want to encapsulate an unchangeable C character buffer with a length into the simple class 
+  <code class="computeroutput">const_string</code>. Rationale: a string class that does not allocate a memory and provide a convenient 
+  read-only access to the preallocated character buffer. I will probably want <code class="computeroutput">const_string</code> to have an 
+  interface similar to the class std::string. What will I do first? In my new life I will start with writing a test 
+  module for future class <code class="computeroutput">const_string</code>. It will look like this:
+ </p>
+<pre class="programlisting">#define BOOST_TEST_MODULE const_string test
+#include &lt;boost/test/unit_test.hpp&gt;
+
+// EOF
+</pre>
+<p class="first-line-indented">
+  Now I can compile it and link with the unit test framework. Done! I have a working test program. It is empty, so 
+  when I run the program it produces following output:
+ </p>
+<pre class="screen">*** No errors detected</pre>
+<p class="first-line-indented">
+  Well, now it could be a good time to start a work on <code class="computeroutput">const_string</code>. First thing I imagine would be good 
+  to have is a constructors and trivial access methods. So my class initial version looks like this:
+ </p>
+<p>const_string.hpp:</p>
+<pre class="programlisting">class const_string {
+public:
+    // Constructors
+    const_string();
+    const_string( std::string const&amp; s )
+    const_string( char const* s );
+    const_string( char const* s, size_t length );
+    const_string( char const* begin, char const* end );
+
+    // Access methods
+    char const* data() const;
+    size_t      length() const;
+    bool        is_empty() const;
+
+    ...
+};
+</pre>
+<p class="first-line-indented">
+  Now I am able to write a first test case - constructors testing - and add it to a test suite. My test program became 
+  to look like this:
+ </p>
+<p>const_string_test.cpp:</p>
+<pre class="programlisting">#define BOOST_TEST_MODULE const_string test
+#include &lt;boost/test/unit_test.hpp&gt;
+
+BOOST_AUTO_EST_CASE( constructors_test )
+{
+     const_string cs0( "" );                                                 // 1 //
+     BOOST_CHECK_EQUAL( cs0.length(), (size_t)0 );
+     BOOST_CHECK( cs0.is_empty() );
+
+     const_string cs01( NULL );                                              // 2 //
+     BOOST_CHECK_EQUAL( cs01.length(), (size_t)0 );
+     BOOST_CHECK( cs01.is_empty() );
+
+     const_string cs1( "test_string" );                                      // 3 //
+     BOOST_CHECK_EQUAL( std::strcmp( cs1.data(), "test_string" ), 0 );
+     BOOST_CHECK_EQUAL( cs1.length(), std::strlen("test_string") );
+
+     std::string s( "test_string" );                                         // 4 //
+     const_string cs2( s );
+     BOOST_CHECK_EQUAL( std::strcmp( cs2.data(), "test_string" ), 0 );
+
+     const_string cs3( cs1 );                                                // 5 //
+     BOOST_CHECK_EQUAL( std::strcmp( cs1.data(), "test_string" ), 0 );
+
+     const_string cs4( "test_string", 4 );                                   // 6 //
+     BOOST_CHECK_EQUAL( std::strncmp( cs4.data(), "test", cs4.length() ), 0 );
+
+     const_string cs5( s.data(), s.data() + s.length() );                    // 7 //
+     BOOST_CHECK_EQUAL( std::strncmp( cs5.data(), "test_string", cs5.length() ), 0 );
+
+     const_string cs_array[] = { "str1", "str2" };                           // 8 //
+     BOOST_CHECK_EQUAL( cs_array[0], "str1" );
+     BOOST_CHECK_EQUAL( cs_array[1], "str2" );
+}
+
+// EOF
+</pre>
+<p class="first-line-indented">
+  The constructors_test test case is intended to check a simple feature of the class <code class="computeroutput">const_string</code>: an 
+  ability to construct itself properly based on different arguments. To test this feature I am using such 
+  characteristics of constructed object as a data it contains and a length. The specification of the class 
+  <code class="computeroutput">const_string</code> does not contain any expected failures, so, though the constructor can fail if I would 
+  pass a  pointer to an invalid memory, error check control is not performed (can't require what was not promised 
+  :-)). But for any valid input it should work. So I am trying to check a construction for an empty string (1), a NULL 
+  string (2) a regular C string(3), an STL string(4), a copy construction(5) and so on. Well, after fixing all the 
+  errors in the implementation (do you write programs without errors from scratch?) I am able to pass this test case 
+  and the unit test framework gives me the following report:
+ </p>
+<pre class="screen">Running 1 test case 
+  
+*** No errors detected</pre>
+<p class="first-line-indented">
+  Encouraged I am moving on and adding more access methods:
+ </p>
+<p>const_string.hpp:</p>
+<pre class="programlisting">class const_string {
+public:
+    ...
+    char operator[]( size_t index ) const;
+    char at( size_t index ) const;
+    ...
+};
+</pre>
+<p class="first-line-indented">
+  I added the new feature - I need a new test case to check it. As a result my test suite became to look like this:
+ </p>
+<p>const_string_test.cpp:</p>
+<pre class="programlisting">#define BOOST_TEST_MODULE const_string test
+#include &lt;boost/test/unit_test.hpp&gt;
+
+BOOST_AUTO_EST_CASE( constructors_test )
+{
+    ...
+}
+
+BOOST_AUTO_EST_CASE( data_access_test )
+{
+    const_string cs1( "test_string" );                                 // 1 //
+    BOOST_CHECK_EQUAL( cs1[(size_t)0], 't' );
+    BOOST_CHECK_EQUAL( cs1[(size_t)4], '_' );
+    BOOST_CHECK_EQUAL( cs1[cs1.length()-1], 'g' );
+
+    BOOST_CHECK_EQUAL( cs1[(size_t)0], cs1.at( 0 ) );                  // 2 //
+    BOOST_CHECK_EQUAL( cs1[(size_t)2], cs1.at( 5 ) );
+    BOOST_CHECK_EQUAL( cs1.at( cs1.length() - 1 ), 'g' );
+
+    BOOST_CHECK_THROW( cs1.at( cs1.length() ), std::out_of_range );    // 3 //
+}
+
+// EOF
+</pre>
+<p class="first-line-indented">
+  In the data_access_test test case I am trying to check the class <code class="computeroutput">const_string</code> character access 
+  correctness. While tests (1) checks valid access using <code class="computeroutput">const_string</code>::operator[] and test (2) checks 
+  valid access using method <code class="computeroutput">const_string</code>::at(), there is one more thing to test. The specification of the 
+  method <code class="computeroutput">const_string</code>::at() contains validation for the out of bound access. That was test (3) is 
+  intended to do: check that the validation is working. A testing of a validation and error handling code is an 
+  important part of a unit testing and should not be left for a production stage. The data_access_test test case 
+  passed and I am ready for the next step.
+ </p>
+<p class="first-line-indented">
+  Continuing my effort I am able to complete class <code class="computeroutput">const_string</code> (see 
+  <a href="../../src/snippet/const_string.hpp" target="_top">Listing 1</a>) and testing module for it (see 
+  <a href="../../src/snippet/const_string_test.cpp" target="_top">Listing 2</a>) that is checking all features that are presented 
+  in the class <code class="computeroutput">const_string</code> specification.
+ </p>
+<p class="first-line-indented">
+  Well, I am step closer to fulfilling my new year resolution (we should see about this fitness club sometime next
+  ). What about you? Your testing habits could be a little different. You could start with a class/library 
+  development and then at some point start writing test cases on feature basis. Or you can, given a detailed 
+  specification for the future product, including expected interfaces, immediately start with writing all test cases 
+  (or it could be a different person, while you working on implementation at the same time). In any case you should not 
+  have any problems to use facilities provided by the Boost.Test unit test framework and, let me hope, be able to 
+  write a stable, bulletproof code. And what is even more important is your confidence in an ability to make changes 
+  of any complexity without involving a lengthy regression testing of your whole product. Your test module and the 
+  unit test framework will stay behind your back to help you with any occasional errors.
+ </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="hello-the-testing-world.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../utf/tutorials.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="../utf/compilation.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

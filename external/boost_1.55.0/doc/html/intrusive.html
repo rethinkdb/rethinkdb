@@ -1,0 +1,387 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;15.&#160;Boost.Intrusive</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="boost/interprocess/xsi_shared_memory.html" title="Class xsi_shared_memory">
+<link rel="next" href="intrusive/intrusive_vs_nontrusive.html" title="Intrusive and non-intrusive containers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/interprocess/xsi_shared_memory.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="intrusive/intrusive_vs_nontrusive.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="intrusive"></a>Chapter&#160;15.&#160;Boost.Intrusive</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Olaf</span> <span class="surname">Krzikalla</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Ion</span> <span class="surname">Gaztanaga</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2005 Olaf Krzikalla</p></div>
+<div><p class="copyright">Copyright &#169; 2006-2013 Ion Gaztanaga</p></div>
+<div><div class="legalnotice">
+<a name="intrusive.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="intrusive.html#intrusive.introduction">Introduction</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive.html#intrusive.introduction.introduction_presenting">Presenting
+      Boost.Intrusive</a></span></dt>
+<dt><span class="section"><a href="intrusive.html#intrusive.introduction.introduction_building_intrusive">Building
+      Boost.Intrusive</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/intrusive_vs_nontrusive.html">Intrusive and non-intrusive
+    containers</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/intrusive_vs_nontrusive.html#intrusive.intrusive_vs_nontrusive.differences_intrusive_vs_nontrusive">Differences
+      between intrusive and non-intrusive containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/intrusive_vs_nontrusive.html#intrusive.intrusive_vs_nontrusive.properties_of_intrusive">Properties
+      of Boost.Intrusive containers</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/usage.html">How to use Boost.Intrusive</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/usage.html#intrusive.usage.usage_base_hook">Using base hooks</a></span></dt>
+<dt><span class="section"><a href="intrusive/usage.html#intrusive.usage.usage_member_hook">Using member hooks</a></span></dt>
+<dt><span class="section"><a href="intrusive/usage.html#intrusive.usage.usage_both_hooks">Using both hooks</a></span></dt>
+<dt><span class="section"><a href="intrusive/usage.html#intrusive.usage.usage_lifetime">Object lifetime</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/usage_when.html">When to use?</a></span></dt>
+<dt><span class="section"><a href="intrusive/concepts_summary.html">Concept summary</a></span></dt>
+<dt><span class="section"><a href="intrusive/presenting_containers.html">Presenting Boost.Intrusive
+    containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/safe_hook.html">Safe hooks</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/safe_hook.html#intrusive.safe_hook.features">Features of the safe mode</a></span></dt>
+<dt><span class="section"><a href="intrusive/safe_hook.html#intrusive.safe_hook.configuring">Configuring safe-mode
+      assertions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/auto_unlink_hooks.html">Auto-unlink hooks</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/auto_unlink_hooks.html#intrusive.auto_unlink_hooks.auto_unlink_hooks_what">What's
+      an auto-unlink hook?</a></span></dt>
+<dt><span class="section"><a href="intrusive/auto_unlink_hooks.html#intrusive.auto_unlink_hooks.auto_unlink_hooks_example">Auto-unlink
+      hook example</a></span></dt>
+<dt><span class="section"><a href="intrusive/auto_unlink_hooks.html#intrusive.auto_unlink_hooks.auto_unlink_and_constant_time">Auto-unlink
+      hooks and containers with constant-time <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code></a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/slist.html">Intrusive singly linked list: slist</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/slist.html#intrusive.slist.slist_hooks">slist hooks</a></span></dt>
+<dt><span class="section"><a href="intrusive/slist.html#intrusive.slist.slist_container">slist container</a></span></dt>
+<dt><span class="section"><a href="intrusive/slist.html#intrusive.slist.slist_example">Example</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/list.html">Intrusive doubly linked list: list</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/list.html#intrusive.list.list_hooks">list hooks</a></span></dt>
+<dt><span class="section"><a href="intrusive/list.html#intrusive.list.list_container">list container</a></span></dt>
+<dt><span class="section"><a href="intrusive/list.html#intrusive.list.list_example">Example</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/set_multiset.html">Intrusive associative containers:
+    set, multiset, rbtree</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/set_multiset.html#intrusive.set_multiset.set_multiset_hooks">set, multiset
+      and rbtree hooks</a></span></dt>
+<dt><span class="section"><a href="intrusive/set_multiset.html#intrusive.set_multiset.set_multiset_containers">set,
+      multiset and rbtree containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/set_multiset.html#intrusive.set_multiset.set_multiset_example">Example</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/unordered_set_unordered_multiset.html">Semi-Intrusive
+    unordered associative containers: unordered_set, unordered_multiset</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_performance">unordered_set
+      and unordered_multiset performance notes</a></span></dt>
+<dt><span class="section"><a href="intrusive/unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_hooks">unordered_set
+      and unordered_multiset hooks</a></span></dt>
+<dt><span class="section"><a href="intrusive/unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_containers">unordered_set
+      and unordered_multiset containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_example">Example</a></span></dt>
+<dt><span class="section"><a href="intrusive/unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.custom_bucket_traits">Custom
+      bucket traits</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/splay_set_multiset.html">Intrusive splay tree based
+    associative containers: splay_set, splay_multiset and , splay_tree</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/splay_set_multiset.html#intrusive.splay_set_multiset.splay_set_multiset_disadvantages">Advantages
+      and disadvantages of splay tree based containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/splay_set_multiset.html#intrusive.splay_set_multiset.splay_set_multiset_hooks">splay_set,
+      splay_multiset and splaytree hooks</a></span></dt>
+<dt><span class="section"><a href="intrusive/splay_set_multiset.html#intrusive.splay_set_multiset.set_multiset_containers">splay_set,
+      splay_multiset and splaytree containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/splay_set_multiset.html#intrusive.splay_set_multiset.splay_set_bst_hook">Splay
+      trees with BST hooks</a></span></dt>
+<dt><span class="section"><a href="intrusive/splay_set_multiset.html#intrusive.splay_set_multiset.splay_set_multiset_example">Example</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/avl_set_multiset.html">Intrusive avl tree based associative
+    containers: avl_set, avl_multiset and avltree</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/avl_set_multiset.html#intrusive.avl_set_multiset.avl_set_multiset_hooks">avl_set,
+      avl_multiset and avltree hooks</a></span></dt>
+<dt><span class="section"><a href="intrusive/avl_set_multiset.html#intrusive.avl_set_multiset.set_multiset_containers">avl_set,
+      avl_multiset and avltree containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/avl_set_multiset.html#intrusive.avl_set_multiset.avl_set_multiset_example">Example</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/sg_set_multiset.html">Intrusive scapegoat tree based
+    associative containers: sg_set, sg_multiset and sgtree</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/sg_set_multiset.html#intrusive.sg_set_multiset.sg_set_multiset_hooks">Using
+      binary search tree hooks: bs_set_base_hook and bs_set_member_hook</a></span></dt>
+<dt><span class="section"><a href="intrusive/sg_set_multiset.html#intrusive.sg_set_multiset.sg_set_multiset_containers">sg_set,
+      sg_multiset and sgtree containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/sg_set_multiset.html#intrusive.sg_set_multiset.sg_set_multiset_example">Example</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/treap_set_multiset.html">Intrusive treap based associative
+    containers: treap_set, treap_multiset and treap</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/treap_set_multiset.html#intrusive.treap_set_multiset.treap_set_multiset_hooks">Using
+      binary search tree hooks: bs_set_base_hook and bs_set_member_hook</a></span></dt>
+<dt><span class="section"><a href="intrusive/treap_set_multiset.html#intrusive.treap_set_multiset.treap_set_multiset_containers">treap_set,
+      treap_multiset and treap containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/treap_set_multiset.html#intrusive.treap_set_multiset.treap_set_exceptions">Exception
+      safety of treap-based intrusive containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/treap_set_multiset.html#intrusive.treap_set_multiset.treap_set_multiset_example">Example</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/advanced_lookups_insertions.html">Advanced lookup
+    and insertion functions for associative containers</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/advanced_lookups_insertions.html#intrusive.advanced_lookups_insertions.advanced_lookups">Advanced
+      lookups</a></span></dt>
+<dt><span class="section"><a href="intrusive/advanced_lookups_insertions.html#intrusive.advanced_lookups_insertions.advanced_insertions">Advanced
+      insertions</a></span></dt>
+<dt><span class="section"><a href="intrusive/advanced_lookups_insertions.html#intrusive.advanced_lookups_insertions.positional_insertions">Positional
+      insertions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/erasing_and_disposing.html">Erasing and disposing
+    values from Boost.Intrusive containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/clone_from.html">Cloning Boost.Intrusive containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/function_hooks.html">Using function hooks</a></span></dt>
+<dt><span class="section"><a href="intrusive/recursive.html">Recursive Boost.Intrusive containers</a></span></dt>
+<dt><span class="section"><a href="intrusive/using_smart_pointers.html">Using smart pointers with
+    Boost.Intrusive containers</a></span></dt>
+<dd><dl><dt><span class="section"><a href="intrusive/using_smart_pointers.html#intrusive.using_smart_pointers.smart_pointers_requirements">Requirements
+      for smart pointers compatible with Boost.Intrusive</a></span></dt></dl></dd>
+<dt><span class="section"><a href="intrusive/obtaining_iterators_from_values.html">Obtaining iterators
+    from values</a></span></dt>
+<dt><span class="section"><a href="intrusive/any_hooks.html">Any Hooks: A single hook for any Intrusive
+    container</a></span></dt>
+<dt><span class="section"><a href="intrusive/concepts.html">Concepts explained</a></span></dt>
+<dt><span class="section"><a href="intrusive/node_algorithms.html">Node algorithms with custom
+    NodeTraits</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/node_algorithms.html#intrusive.node_algorithms.circular_slist_algorithms">Intrusive
+      singly linked list algorithms</a></span></dt>
+<dt><span class="section"><a href="intrusive/node_algorithms.html#intrusive.node_algorithms.circular_list_algorithms">Intrusive
+      doubly linked list algorithms</a></span></dt>
+<dt><span class="section"><a href="intrusive/node_algorithms.html#intrusive.node_algorithms.rbtree_algorithms">Intrusive
+      red-black tree algorithms</a></span></dt>
+<dt><span class="section"><a href="intrusive/node_algorithms.html#intrusive.node_algorithms.splaytree_algorithms">Intrusive
+      splay tree algorithms</a></span></dt>
+<dt><span class="section"><a href="intrusive/node_algorithms.html#intrusive.node_algorithms.avltree_algorithms">Intrusive
+      avl tree algorithms</a></span></dt>
+<dt><span class="section"><a href="intrusive/node_algorithms.html#intrusive.node_algorithms.treap_algorithms">Intrusive
+      treap algorithms</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/value_traits.html">Containers with custom ValueTraits</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/value_traits.html#intrusive.value_traits.value_traits_interface">ValueTraits
+      interface</a></span></dt>
+<dt><span class="section"><a href="intrusive/value_traits.html#intrusive.value_traits.value_traits_example">Custom ValueTraits
+      example</a></span></dt>
+<dt><span class="section"><a href="intrusive/value_traits.html#intrusive.value_traits.reusing_node_algorithms">Reusing
+      node algorithms for different values</a></span></dt>
+<dt><span class="section"><a href="intrusive/value_traits.html#intrusive.value_traits.simplifying_value_traits">Simplifying
+      value traits definition</a></span></dt>
+<dt><span class="section"><a href="intrusive/value_traits.html#intrusive.value_traits.stateful_value_traits">Stateful
+      value traits</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/thread_safety.html">Thread safety guarantees</a></span></dt>
+<dt><span class="section"><a href="intrusive/scary_iterators.html">Scary Iterators</a></span></dt>
+<dt><span class="section"><a href="intrusive/equal_range_stability.html">Stability and insertion
+    with hint in ordered associative containers with equivalent keys</a></span></dt>
+<dt><span class="section"><a href="intrusive/obtaining_same_type_reducing_space.html">Obtaining
+    the same types and reducing symbol length</a></span></dt>
+<dt><span class="section"><a href="intrusive/design_notes.html">Design Notes</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/design_notes.html#intrusive.design_notes.performance_sensitive">Boost.Intrusive
+      in performance sensitive environments</a></span></dt>
+<dt><span class="section"><a href="intrusive/design_notes.html#intrusive.design_notes.space_constrained">Boost.Intrusive
+      in space constrained environments</a></span></dt>
+<dt><span class="section"><a href="intrusive/design_notes.html#intrusive.design_notes.basic_building_block">Boost.Intrusive
+      as a basic building block</a></span></dt>
+<dt><span class="section"><a href="intrusive/design_notes.html#intrusive.design_notes.extending_intrusive">Extending
+      Boost.Intrusive</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/performance.html">Performance</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/performance.html#intrusive.performance.performance_results_push_back">Back
+      insertion and destruction</a></span></dt>
+<dt><span class="section"><a href="intrusive/performance.html#intrusive.performance.performance_results_reversing">Reversing</a></span></dt>
+<dt><span class="section"><a href="intrusive/performance.html#intrusive.performance.performance_results_sorting">Sorting</a></span></dt>
+<dt><span class="section"><a href="intrusive/performance.html#intrusive.performance.performance_results_write_access">Write
+      access</a></span></dt>
+<dt><span class="section"><a href="intrusive/performance.html#intrusive.performance.performance_results_conclusions">Conclusions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/release_notes.html">Release Notes</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_55_00">Boost
+      1.55 Release</a></span></dt>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_54_00">Boost
+      1.54 Release</a></span></dt>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_53_00">Boost
+      1.53 Release</a></span></dt>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_51_00">Boost
+      1.51 Release</a></span></dt>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_49_00">Boost
+      1.49 Release</a></span></dt>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_48_00">Boost
+      1.48 Release</a></span></dt>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_46_00">Boost
+      1.46 Release</a></span></dt>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_45_00">Boost
+      1.45 Release</a></span></dt>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_40_00">Boost
+      1.40 Release</a></span></dt>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_39_00">Boost
+      1.39 Release</a></span></dt>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_38_00">Boost
+      1.38 Release</a></span></dt>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_37_00">Boost
+      1.37 Release</a></span></dt>
+<dt><span class="section"><a href="intrusive/release_notes.html#intrusive.release_notes.release_notes_boost_1_36_00">Boost
+      1.36 Release</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/tested_compilers.html">Tested compilers</a></span></dt>
+<dt><span class="section"><a href="intrusive/references.html">References</a></span></dt>
+<dt><span class="section"><a href="intrusive/acknowledgements.html">Acknowledgements</a></span></dt>
+<dt><span class="section"><a href="intrusive/index.html">Indexes</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/index.html#idp125307240">Class Index</a></span></dt>
+<dt><span class="section"><a href="intrusive/index.html#idp125485240">Typedef Index</a></span></dt>
+<dt><span class="section"><a href="intrusive/index.html#idp125995720">Function Index</a></span></dt>
+<dt><span class="section"><a href="intrusive/index.html#idp127079944">Macro Index</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="intrusive/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.any_hook_hpp">Header &lt;boost/intrusive/any_hook.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.avl_set_hpp">Header &lt;boost/intrusive/avl_set.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.avl_set_hook_hpp">Header &lt;boost/intrusive/avl_set_hook.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.avltree_hpp">Header &lt;boost/intrusive/avltree.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.avltree_algorithms_hpp">Header &lt;boost/intrusive/avltree_algorithms.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.bs_set_hpp">Header &lt;boost/intrusive/bs_set.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.bs_set_hook_hpp">Header &lt;boost/intrusive/bs_set_hook.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.bstree_hpp">Header &lt;boost/intrusive/bstree.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.bstree_algorithms_hpp">Header &lt;boost/intrusive/bstree_algorithms.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.circular_list_algorithms_hpp">Header &lt;boost/intrusive/circular_list_algorithms.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.circular_slist_algorithms_hpp">Header &lt;boost/intrusive/circular_slist_algorithms.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.derivation_value_traits_hpp">Header &lt;boost/intrusive/derivation_value_traits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.hashtable_hpp">Header &lt;boost/intrusive/hashtable.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.linear_slist_algorithms_hpp">Header &lt;boost/intrusive/linear_slist_algorithms.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.link_mode_hpp">Header &lt;boost/intrusive/link_mode.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.list_hpp">Header &lt;boost/intrusive/list.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.list_hook_hpp">Header &lt;boost/intrusive/list_hook.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.member_value_traits_hpp">Header &lt;boost/intrusive/member_value_traits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.options_hpp">Header &lt;boost/intrusive/options.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.parent_from_member_hpp">Header &lt;boost/intrusive/parent_from_member.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.pointer_plus_bits_hpp">Header &lt;boost/intrusive/pointer_plus_bits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.pointer_traits_hpp">Header &lt;boost/intrusive/pointer_traits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.priority_compare_hpp">Header &lt;boost/intrusive/priority_compare.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.rbtree_hpp">Header &lt;boost/intrusive/rbtree.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.rbtree_algorithms_hpp">Header &lt;boost/intrusive/rbtree_algorithms.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.set_hpp">Header &lt;boost/intrusive/set.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.set_hook_hpp">Header &lt;boost/intrusive/set_hook.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.sg_set_hpp">Header &lt;boost/intrusive/sg_set.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.sgtree_hpp">Header &lt;boost/intrusive/sgtree.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.sgtree_algorithms_hpp">Header &lt;boost/intrusive/sgtree_algorithms.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.slist_hpp">Header &lt;boost/intrusive/slist.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.slist_hook_hpp">Header &lt;boost/intrusive/slist_hook.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.splay_set_hpp">Header &lt;boost/intrusive/splay_set.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.splay_set_hook_hpp">Header &lt;boost/intrusive/splay_set_hook.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.splaytree_hpp">Header &lt;boost/intrusive/splaytree.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.splaytree_algorithms_hpp">Header &lt;boost/intrusive/splaytree_algorithms.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.treap_hpp">Header &lt;boost/intrusive/treap.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.treap_algorithms_hpp">Header &lt;boost/intrusive/treap_algorithms.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.treap_set_hpp">Header &lt;boost/intrusive/treap_set.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.trivial_value_traits_hpp">Header &lt;boost/intrusive/trivial_value_traits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.unordered_set_hpp">Header &lt;boost/intrusive/unordered_set.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="intrusive/reference.html#header.boost.intrusive.unordered_set_hook_hpp">Header &lt;boost/intrusive/unordered_set_hook.hpp&gt;</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.introduction"></a><a class="link" href="intrusive.html#intrusive.introduction" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="intrusive.html#intrusive.introduction.introduction_presenting">Presenting
+      Boost.Intrusive</a></span></dt>
+<dt><span class="section"><a href="intrusive.html#intrusive.introduction.introduction_building_intrusive">Building
+      Boost.Intrusive</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.introduction.introduction_presenting"></a><a class="link" href="intrusive.html#intrusive.introduction.introduction_presenting" title="Presenting Boost.Intrusive">Presenting
+      Boost.Intrusive</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Intrusive</strong></span> is a library presenting
+        some intrusive containers to the world of C++. Intrusive containers are special
+        containers that offer <a class="link" href="intrusive/performance.html" title="Performance">better performance</a>
+        and exception safety guarantees than non-intrusive containers (like STL containers).
+      </p>
+<p>
+        The performance benefits of intrusive containers makes them ideal as a building
+        block to efficiently construct complex containers like multi-index containers
+        or to design high performance code like memory allocation algorithms.
+      </p>
+<p>
+        While intrusive containers were and are widely used in C, they became more
+        and more forgotten in C++ due to the presence of the standard containers
+        which don't support intrusive techniques.<span class="bold"><strong>Boost.Intrusive</strong></span>
+        wants to push intrusive containers usage encapsulating the implementation
+        in STL-like interfaces. Hence anyone familiar with standard containers can
+        easily use <span class="bold"><strong>Boost.Intrusive</strong></span>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.introduction.introduction_building_intrusive"></a><a class="link" href="intrusive.html#intrusive.introduction.introduction_building_intrusive" title="Building Boost.Intrusive">Building
+      Boost.Intrusive</a>
+</h3></div></div></div>
+<p>
+        There is no need to compile anything to use <span class="bold"><strong>Boost.Intrusive</strong></span>,
+        since it's a header only library. Just include your Boost header directory
+        in your compiler include path.
+      </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:51:43 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/interprocess/xsi_shared_memory.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="intrusive/intrusive_vs_nontrusive.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

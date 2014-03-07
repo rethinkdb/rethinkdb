@@ -1,0 +1,386 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Understanding Marked Sub-Expressions and Captures</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Boost.Regex">
+<link rel="up" href="../index.html" title="Boost.Regex">
+<link rel="prev" href="unicode.html" title="Unicode and Boost.Regex">
+<link rel="next" href="partial_matches.html" title="Partial Matches">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="unicode.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="partial_matches.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_captures">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_regex.captures"></a><a class="link" href="captures.html" title="Understanding Marked Sub-Expressions and Captures">Understanding Marked Sub-Expressions
+    and Captures</a>
+</h2></div></div></div>
+<p>
+      Captures are the iterator ranges that are "captured" by marked sub-expressions
+      as a regular expression gets matched. Each marked sub-expression can result
+      in more than one capture, if it is matched more than once. This document explains
+      how captures and marked sub-expressions in Boost.Regex are represented and
+      accessed.
+    </p>
+<h5>
+<a name="boost_regex.captures.h0"></a>
+      <span class="phrase"><a name="boost_regex.captures.marked_sub_expressions"></a></span><a class="link" href="captures.html#boost_regex.captures.marked_sub_expressions">Marked
+      sub-expressions</a>
+    </h5>
+<p>
+      Every time a Perl regular expression contains a parenthesis group <code class="computeroutput"><span class="special">()</span></code>, it spits out an extra field, known as a
+      marked sub-expression, for example the expression:
+    </p>
+<pre class="programlisting">(\w+)\W+(\w+)</pre>
+<p>
+      Has two marked sub-expressions (known as $1 and $2 respectively), in addition
+      the complete match is known as $&amp;, everything before the first match as
+      $`, and everything after the match as $'. So if the above expression is searched
+      for within <code class="computeroutput"><span class="string">"@abc def--"</span></code>,
+      then we obtain:
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Sub-expression
+              </p>
+            </th>
+<th>
+              <p>
+                Text found
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                $`
+              </p>
+            </td>
+<td>
+              <p>
+                "@"
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                $&amp;
+              </p>
+            </td>
+<td>
+              <p>
+                "abc def"
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                $1
+              </p>
+            </td>
+<td>
+              <p>
+                "abc"
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                $2
+              </p>
+            </td>
+<td>
+              <p>
+                "def"
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                $'
+              </p>
+            </td>
+<td>
+              <p>
+                "--"
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+      In Boost.Regex all these are accessible via the <a class="link" href="ref/match_results.html" title="match_results"><code class="computeroutput"><span class="identifier">match_results</span></code></a> class that gets filled
+      in when calling one of the regular expression matching algorithms ( <a class="link" href="ref/regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a>, <a class="link" href="ref/regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a>, or <a class="link" href="ref/regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a>). So given:
+    </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">IteratorType</span><span class="special">&gt;</span> <span class="identifier">m</span><span class="special">;</span>
+</pre>
+<p>
+      The Perl and Boost.Regex equivalents are as follows:
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Perl
+              </p>
+            </th>
+<th>
+              <p>
+                Boost.Regex
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                $`
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">prefix</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                $&amp;
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">m</span><span class="special">[</span><span class="number">0</span><span class="special">]</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                $n
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">m</span><span class="special">[</span><span class="identifier">n</span><span class="special">]</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                $'
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">suffix</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+      In Boost.Regex each sub-expression match is represented by a <a class="link" href="ref/sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a> object, this is basically
+      just a pair of iterators denoting the start and end position of the sub-expression
+      match, but there are some additional operators provided so that objects of
+      type <a class="link" href="ref/sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a>
+      behave a lot like a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span></code>: for example they are implicitly
+      convertible to a <code class="computeroutput"><span class="identifier">basic_string</span></code>,
+      they can be compared to a string, added to a string, or streamed out to an
+      output stream.
+    </p>
+<h5>
+<a name="boost_regex.captures.h1"></a>
+      <span class="phrase"><a name="boost_regex.captures.unmatched_sub_expressions"></a></span><a class="link" href="captures.html#boost_regex.captures.unmatched_sub_expressions">Unmatched
+      Sub-Expressions</a>
+    </h5>
+<p>
+      When a regular expression match is found there is no need for all of the marked
+      sub-expressions to have participated in the match, for example the expression:
+    </p>
+<pre class="programlisting">(abc)|(def)</pre>
+<p>
+      can match either $1 or $2, but never both at the same time. In Boost.Regex
+      you can determine which sub-expressions matched by accessing the <code class="computeroutput"><span class="identifier">sub_match</span><span class="special">::</span><span class="identifier">matched</span></code> data member.
+    </p>
+<h5>
+<a name="boost_regex.captures.h2"></a>
+      <span class="phrase"><a name="boost_regex.captures.repeated_captures"></a></span><a class="link" href="captures.html#boost_regex.captures.repeated_captures">Repeated
+      Captures</a>
+    </h5>
+<p>
+      When a marked sub-expression is repeated, then the sub-expression gets "captured"
+      multiple times, however normally only the final capture is available, for example
+      if
+    </p>
+<pre class="programlisting">(?:(\w+)\W+)+</pre>
+<p>
+      is matched against
+    </p>
+<pre class="programlisting">one fine day</pre>
+<p>
+      Then $1 will contain the string "day", and all the previous captures
+      will have been forgotten.
+    </p>
+<p>
+      However, Boost.Regex has an experimental feature that allows all the capture
+      information to be retained - this is accessed either via the <code class="computeroutput"><span class="identifier">match_results</span><span class="special">::</span><span class="identifier">captures</span></code> member function or the <code class="computeroutput"><span class="identifier">sub_match</span><span class="special">::</span><span class="identifier">captures</span></code> member function. These functions
+      return a container that contains a sequence of all the captures obtained during
+      the regular expression matching. The following example program shows how this
+      information may be used:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="keyword">void</span> <span class="identifier">print_captures</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">regx</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">text</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span> <span class="identifier">e</span><span class="special">(</span><span class="identifier">regx</span><span class="special">);</span>
+   <span class="identifier">boost</span><span class="special">::</span><span class="identifier">smatch</span> <span class="identifier">what</span><span class="special">;</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Expression:  \""</span> <span class="special">&lt;&lt;</span> <span class="identifier">regx</span> <span class="special">&lt;&lt;</span> <span class="string">"\"\n"</span><span class="special">;</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Text:        \""</span> <span class="special">&lt;&lt;</span> <span class="identifier">text</span> <span class="special">&lt;&lt;</span> <span class="string">"\"\n"</span><span class="special">;</span>
+   <span class="keyword">if</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex_match</span><span class="special">(</span><span class="identifier">text</span><span class="special">,</span> <span class="identifier">what</span><span class="special">,</span> <span class="identifier">e</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_extra</span><span class="special">))</span>
+   <span class="special">{</span>
+      <span class="keyword">unsigned</span> <span class="identifier">i</span><span class="special">,</span> <span class="identifier">j</span><span class="special">;</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"** Match found **\n   Sub-Expressions:\n"</span><span class="special">;</span>
+      <span class="keyword">for</span><span class="special">(</span><span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">what</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"      $"</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="string">" = \""</span> <span class="special">&lt;&lt;</span> <span class="identifier">what</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">"\"\n"</span><span class="special">;</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"   Captures:\n"</span><span class="special">;</span>
+      <span class="keyword">for</span><span class="special">(</span><span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">what</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+      <span class="special">{</span>
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"      $"</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="string">" = {"</span><span class="special">;</span>
+         <span class="keyword">for</span><span class="special">(</span><span class="identifier">j</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">j</span> <span class="special">&lt;</span> <span class="identifier">what</span><span class="special">.</span><span class="identifier">captures</span><span class="special">(</span><span class="identifier">i</span><span class="special">).</span><span class="identifier">size</span><span class="special">();</span> <span class="special">++</span><span class="identifier">j</span><span class="special">)</span>
+         <span class="special">{</span>
+            <span class="keyword">if</span><span class="special">(</span><span class="identifier">j</span><span class="special">)</span>
+               <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">", "</span><span class="special">;</span>
+            <span class="keyword">else</span>
+               <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span><span class="special">;</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"\""</span> <span class="special">&lt;&lt;</span> <span class="identifier">what</span><span class="special">.</span><span class="identifier">captures</span><span class="special">(</span><span class="identifier">i</span><span class="special">)[</span><span class="identifier">j</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">"\""</span><span class="special">;</span>
+         <span class="special">}</span>
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">" }\n"</span><span class="special">;</span>
+      <span class="special">}</span>
+   <span class="special">}</span>
+   <span class="keyword">else</span>
+   <span class="special">{</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"** No Match found **\n"</span><span class="special">;</span>
+   <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="special">[])</span>
+<span class="special">{</span>
+   <span class="identifier">print_captures</span><span class="special">(</span><span class="string">"(([[:lower:]]+)|([[:upper:]]+))+"</span><span class="special">,</span> <span class="string">"aBBcccDDDDDeeeeeeee"</span><span class="special">);</span>
+   <span class="identifier">print_captures</span><span class="special">(</span><span class="string">"(.*)bar|(.*)bah"</span><span class="special">,</span> <span class="string">"abcbar"</span><span class="special">);</span>
+   <span class="identifier">print_captures</span><span class="special">(</span><span class="string">"(.*)bar|(.*)bah"</span><span class="special">,</span> <span class="string">"abcbah"</span><span class="special">);</span>
+   <span class="identifier">print_captures</span><span class="special">(</span><span class="string">"^(?:(\\w+)|(?&gt;\\W+))*$"</span><span class="special">,</span>
+      <span class="string">"now is the time for all good men to come to the aid of the party"</span><span class="special">);</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      Which produces the following output:
+    </p>
+<pre class="programlisting">Expression:  "(([[:lower:]]+)|([[:upper:]]+))+"
+Text:        "aBBcccDDDDDeeeeeeee"
+** Match found **
+   Sub-Expressions:
+      $0 = "aBBcccDDDDDeeeeeeee"
+      $1 = "eeeeeeee"
+      $2 = "eeeeeeee"
+      $3 = "DDDDD"
+   Captures:
+      $0 = { "aBBcccDDDDDeeeeeeee" }
+      $1 = { "a", "BB", "ccc", "DDDDD", "eeeeeeee" }
+      $2 = { "a", "ccc", "eeeeeeee" }
+      $3 = { "BB", "DDDDD" }
+Expression:  "(.*)bar|(.*)bah"
+Text:        "abcbar"
+** Match found **
+   Sub-Expressions:
+      $0 = "abcbar"
+      $1 = "abc"
+      $2 = ""
+   Captures:
+      $0 = { "abcbar" }
+      $1 = { "abc" }
+      $2 = { }
+Expression:  "(.*)bar|(.*)bah"
+Text:        "abcbah"
+** Match found **
+   Sub-Expressions:
+      $0 = "abcbah"
+      $1 = ""
+      $2 = "abc"
+   Captures:
+      $0 = { "abcbah" }
+      $1 = { }
+      $2 = { "abc" }
+Expression:  "^(?:(\w+)|(?&gt;\W+))*$"
+Text:        "now is the time for all good men to come to the aid of the party"
+** Match found **
+   Sub-Expressions:
+      $0 = "now is the time for all good men to come to the aid of the party"
+      $1 = "party"
+   Captures:
+      $0 = { "now is the time for all good men to come to the aid of the party" }
+      $1 = { "now", "is", "the", "time", "for", "all", "good", "men", "to",
+         "come", "to", "the", "aid", "of", "the", "party" }
+</pre>
+<p>
+      Unfortunately enabling this feature has an impact on performance (even if you
+      don't use it), and a much bigger impact if you do use it, therefore to use
+      this feature you need to:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Define BOOST_REGEX_MATCH_EXTRA for all translation units including the
+          library source (the best way to do this is to uncomment this define in
+          boost/regex/user.hpp and then rebuild everything.
+        </li>
+<li class="listitem">
+          Pass the match_extra flag to the particular algorithms where you actually
+          need the captures information (regex_search, regex_match, or regex_iterator).
+        </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="unicode.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="partial_matches.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

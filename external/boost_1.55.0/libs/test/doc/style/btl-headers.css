@@ -1,0 +1,113 @@
+/* Copyright Gennadiy Rozental 2001-2007. 
+ * Distributed under the Boost Software License, Version 1.0. 
+ * (See accompanying file LICENSE_1_0.txt or copy at www.boost.org/LICENSE_1_0.txt)
+ */
+
+H1
+{
+    font-size:      200%;
+    color:          #00008B;
+    text-align:     center;
+    clear:          left;
+    font-family:    times;
+}
+
+DIV.article H2.title
+{
+    color:          #4466A9;
+    font-size:      175%;
+    font-style:     normal;
+    text-align:     left;
+    font-family:    times;
+}
+
+DIV.chapter H2.title
+{
+    color:          #4466A9;
+    font-size:      175%;
+    font-style:     normal;
+    text-align:     left;
+    font-family:    times;
+}
+DIV.section H2.title
+{
+    color:          #4466A9;
+    font-size:      175%;
+    font-style:     normal;
+    text-align:     left;
+    font-family:    times;
+}
+
+DIV.section H3.title
+{
+    color:          #4466A9;
+    font-size:      175%;
+    font-style:     normal;
+    text-align:     left;
+    font-family:    times;
+}
+
+DIV.section H4.title
+{
+    color:          #4466A9;
+    font-size:      175%;
+    font-style:     normal;
+    text-align:     left;
+    font-family:    times;
+}
+
+DIV.section H5.title
+{
+    color:          #4466A9;
+    font-size:      175%;
+    font-style:     normal;
+    text-align:     left;
+    font-family:    times;
+}
+
+DIV.section H6.title
+{
+    color:          #4466A9;
+    font-size:      175%;
+    font-style:     normal;
+    text-align:     left;
+    font-family:    times;
+}
+
+DIV.chapter DIV.section H2.title
+{
+    color:          black;
+    font-size:      160%;
+    font-family:    times;
+}
+
+DIV.section DIV.section H3.title
+{
+    color:          black;
+    font-size:      140%;
+    font-family:    times;
+}
+
+DIV.section DIV.section H4.title
+{
+    color:          black;
+    font-size:      140%;
+    font-style:     italic;
+    font-family:    times;
+}
+
+DIV.section DIV.section H5.title
+{
+    color:          black;
+    font-size:      140%;
+    font-style:     italic;
+    font-family:    times;
+}
+
+DIV.section DIV.section H6.title
+{
+    color:          black;
+    font-size:      140%;
+    font-style:     italic;
+    font-family:    times;
+}

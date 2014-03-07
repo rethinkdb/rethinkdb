@@ -1,0 +1,299 @@
+{
+  "source": "doc/api/globals.markdown",
+  "globals": [
+    {
+      "textRaw": "global",
+      "name": "global",
+      "type": "global",
+      "desc": "<p>In browsers, the top-level scope is the global scope. That means that in\nbrowsers if you&#39;re in the global scope <code>var something</code> will define a global\nvariable. In Node this is different. The top-level scope is not the global\nscope; <code>var something</code> inside a Node module will be local to that module.\n\n</p>\n"
+    },
+    {
+      "textRaw": "process",
+      "name": "process",
+      "type": "global",
+      "desc": "<p>The process object. See the [process object][] section.\n\n</p>\n"
+    },
+    {
+      "textRaw": "console",
+      "name": "console",
+      "type": "global",
+      "desc": "<p>Used to print to stdout and stderr. See the [console][] section.\n\n</p>\n"
+    },
+    {
+      "textRaw": "Class: Buffer",
+      "type": "global",
+      "name": "Buffer",
+      "desc": "<p>Used to handle binary data. See the [buffer section][]\n\n</p>\n"
+    },
+    {
+      "textRaw": "clearInterval(t)",
+      "type": "global",
+      "name": "clearInterval",
+      "desc": "<p>Stop a timer that was previously created with <code>setInterval()</code>. The callback\nwill not execute.\n\n</p>\n<p>The timer functions are global variables. See the [timers][] section.\n\n</p>\n"
+    }
+  ],
+  "vars": [
+    {
+      "textRaw": "require()",
+      "type": "var",
+      "name": "require",
+      "desc": "<p>To require modules. See the [Modules][] section.  <code>require</code> isn&#39;t actually a\nglobal but rather local to each module.\n\n</p>\n",
+      "methods": [
+        {
+          "textRaw": "require.resolve()",
+          "type": "method",
+          "name": "resolve",
+          "desc": "<p>Use the internal <code>require()</code> machinery to look up the location of a module,\nbut rather than loading the module, just return the resolved filename.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "textRaw": "`cache` {Object} ",
+          "name": "cache",
+          "desc": "<p>Modules are cached in this object when they are required. By deleting a key\nvalue from this object, the next <code>require</code> will reload the module.\n\n</p>\n"
+        },
+        {
+          "textRaw": "`extensions` {Object} ",
+          "name": "extensions",
+          "stability": 0,
+          "stabilityText": "Deprecated",
+          "desc": "<p>Instruct <code>require</code> on how to handle certain file extensions.\n\n</p>\n<p>Process files with the extension <code>.sjs</code> as <code>.js</code>:\n\n</p>\n<pre><code>require.extensions[&#39;.sjs&#39;] = require.extensions[&#39;.js&#39;];</code></pre>\n<p><strong>Deprecated</strong>  In the past, this list has been used to load\nnon-JavaScript modules into Node by compiling them on-demand.\nHowever, in practice, there are much better ways to do this, such as\nloading modules via some other Node program, or compiling them to\nJavaScript ahead of time.\n\n</p>\n<p>Since the Module system is locked, this feature will probably never go\naway.  However, it may have subtle bugs and complexities that are best\nleft untouched.\n\n</p>\n"
+        }
+      ]
+    },
+    {
+      "textRaw": "__filename",
+      "name": "__filename",
+      "type": "var",
+      "desc": "<p>The filename of the code being executed.  This is the resolved absolute path\nof this code file.  For a main program this is not necessarily the same\nfilename used in the command line.  The value inside a module is the path\nto that module file.\n\n</p>\n<p>Example: running <code>node example.js</code> from <code>/Users/mjr</code>\n\n</p>\n<pre><code>console.log(__filename);\n// /Users/mjr/example.js</code></pre>\n<p><code>__filename</code> isn&#39;t actually a global but rather local to each module.\n\n</p>\n"
+    },
+    {
+      "textRaw": "__dirname",
+      "name": "__dirname",
+      "type": "var",
+      "desc": "<p>The name of the directory that the currently executing script resides in.\n\n</p>\n<p>Example: running <code>node example.js</code> from <code>/Users/mjr</code>\n\n</p>\n<pre><code>console.log(__dirname);\n// /Users/mjr</code></pre>\n<p><code>__dirname</code> isn&#39;t actually a global but rather local to each module.\n\n\n</p>\n"
+    },
+    {
+      "textRaw": "module",
+      "name": "module",
+      "type": "var",
+      "desc": "<p>A reference to the current module. In particular\n<code>module.exports</code> is the same as the <code>exports</code> object.\n<code>module</code> isn&#39;t actually a global but rather local to each module.\n\n</p>\n<p>See the [module system documentation][] for more information.\n\n</p>\n"
+    },
+    {
+      "textRaw": "exports",
+      "name": "exports",
+      "type": "var",
+      "desc": "<p>A reference to the <code>module.exports</code> object which is shared between all\ninstances of the current module and made accessible through <code>require()</code>.\nSee [module system documentation][] for details on when to use <code>exports</code> and\nwhen to use <code>module.exports</code>.\n<code>exports</code> isn&#39;t actually a global but rather local to each module.\n\n</p>\n<p>See the [module system documentation][] for more information.\n\n</p>\n<p>See the [module section][] for more information.\n\n</p>\n"
+    }
+  ],
+  "methods": [
+    {
+      "textRaw": "setTimeout(cb, ms)",
+      "type": "method",
+      "name": "setTimeout",
+      "desc": "<p>Run callback <code>cb</code> after <em>at least</em> <code>ms</code> milliseconds. The actual delay depends\non external factors like OS timer granularity and system load.\n\n</p>\n<p>The timeout must be in the range of 1-2,147,483,647 inclusive. If the value is\noutside that range, it&#39;s changed to 1 millisecond. Broadly speaking, a timer\ncannot span more than 24.8 days.\n\n</p>\n<p>Returns an opaque value that represents the timer.\n\n</p>\n",
+      "signatures": [
+        {
+          "params": [
+            {
+              "name": "cb"
+            },
+            {
+              "name": "ms"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "textRaw": "clearTimeout(t)",
+      "type": "method",
+      "name": "clearTimeout",
+      "desc": "<p>Stop a timer that was previously created with <code>setTimeout()</code>. The callback will\nnot execute.\n\n</p>\n",
+      "signatures": [
+        {
+          "params": [
+            {
+              "name": "t"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "textRaw": "setInterval(cb, ms)",
+      "type": "method",
+      "name": "setInterval",
+      "desc": "<p>Run callback <code>cb</code> repeatedly every <code>ms</code> milliseconds. Note that the actual\ninterval may vary, depending on external factors like OS timer granularity and\nsystem load. It&#39;s never less than <code>ms</code> but it may be longer.\n\n</p>\n<p>The interval must be in the range of 1-2,147,483,647 inclusive. If the value is\noutside that range, it&#39;s changed to 1 millisecond. Broadly speaking, a timer\ncannot span more than 24.8 days.\n\n</p>\n<p>Returns an opaque value that represents the timer.\n\n</p>\n",
+      "signatures": [
+        {
+          "params": [
+            {
+              "name": "cb"
+            },
+            {
+              "name": "ms"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "miscs": [
+    {
+      "textRaw": "Global Objects",
+      "name": "Global Objects",
+      "type": "misc",
+      "desc": "<p>These objects are available in all modules. Some of these objects aren&#39;t\nactually in the global scope but in the module scope - this will be noted.\n\n</p>\n",
+      "globals": [
+        {
+          "textRaw": "global",
+          "name": "global",
+          "type": "global",
+          "desc": "<p>In browsers, the top-level scope is the global scope. That means that in\nbrowsers if you&#39;re in the global scope <code>var something</code> will define a global\nvariable. In Node this is different. The top-level scope is not the global\nscope; <code>var something</code> inside a Node module will be local to that module.\n\n</p>\n"
+        },
+        {
+          "textRaw": "process",
+          "name": "process",
+          "type": "global",
+          "desc": "<p>The process object. See the [process object][] section.\n\n</p>\n"
+        },
+        {
+          "textRaw": "console",
+          "name": "console",
+          "type": "global",
+          "desc": "<p>Used to print to stdout and stderr. See the [console][] section.\n\n</p>\n"
+        },
+        {
+          "textRaw": "Class: Buffer",
+          "type": "global",
+          "name": "Buffer",
+          "desc": "<p>Used to handle binary data. See the [buffer section][]\n\n</p>\n"
+        },
+        {
+          "textRaw": "clearInterval(t)",
+          "type": "global",
+          "name": "clearInterval",
+          "desc": "<p>Stop a timer that was previously created with <code>setInterval()</code>. The callback\nwill not execute.\n\n</p>\n<p>The timer functions are global variables. See the [timers][] section.\n\n</p>\n"
+        }
+      ],
+      "vars": [
+        {
+          "textRaw": "require()",
+          "type": "var",
+          "name": "require",
+          "desc": "<p>To require modules. See the [Modules][] section.  <code>require</code> isn&#39;t actually a\nglobal but rather local to each module.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "require.resolve()",
+              "type": "method",
+              "name": "resolve",
+              "desc": "<p>Use the internal <code>require()</code> machinery to look up the location of a module,\nbut rather than loading the module, just return the resolved filename.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            }
+          ],
+          "properties": [
+            {
+              "textRaw": "`cache` {Object} ",
+              "name": "cache",
+              "desc": "<p>Modules are cached in this object when they are required. By deleting a key\nvalue from this object, the next <code>require</code> will reload the module.\n\n</p>\n"
+            },
+            {
+              "textRaw": "`extensions` {Object} ",
+              "name": "extensions",
+              "stability": 0,
+              "stabilityText": "Deprecated",
+              "desc": "<p>Instruct <code>require</code> on how to handle certain file extensions.\n\n</p>\n<p>Process files with the extension <code>.sjs</code> as <code>.js</code>:\n\n</p>\n<pre><code>require.extensions[&#39;.sjs&#39;] = require.extensions[&#39;.js&#39;];</code></pre>\n<p><strong>Deprecated</strong>  In the past, this list has been used to load\nnon-JavaScript modules into Node by compiling them on-demand.\nHowever, in practice, there are much better ways to do this, such as\nloading modules via some other Node program, or compiling them to\nJavaScript ahead of time.\n\n</p>\n<p>Since the Module system is locked, this feature will probably never go\naway.  However, it may have subtle bugs and complexities that are best\nleft untouched.\n\n</p>\n"
+            }
+          ]
+        },
+        {
+          "textRaw": "__filename",
+          "name": "__filename",
+          "type": "var",
+          "desc": "<p>The filename of the code being executed.  This is the resolved absolute path\nof this code file.  For a main program this is not necessarily the same\nfilename used in the command line.  The value inside a module is the path\nto that module file.\n\n</p>\n<p>Example: running <code>node example.js</code> from <code>/Users/mjr</code>\n\n</p>\n<pre><code>console.log(__filename);\n// /Users/mjr/example.js</code></pre>\n<p><code>__filename</code> isn&#39;t actually a global but rather local to each module.\n\n</p>\n"
+        },
+        {
+          "textRaw": "__dirname",
+          "name": "__dirname",
+          "type": "var",
+          "desc": "<p>The name of the directory that the currently executing script resides in.\n\n</p>\n<p>Example: running <code>node example.js</code> from <code>/Users/mjr</code>\n\n</p>\n<pre><code>console.log(__dirname);\n// /Users/mjr</code></pre>\n<p><code>__dirname</code> isn&#39;t actually a global but rather local to each module.\n\n\n</p>\n"
+        },
+        {
+          "textRaw": "module",
+          "name": "module",
+          "type": "var",
+          "desc": "<p>A reference to the current module. In particular\n<code>module.exports</code> is the same as the <code>exports</code> object.\n<code>module</code> isn&#39;t actually a global but rather local to each module.\n\n</p>\n<p>See the [module system documentation][] for more information.\n\n</p>\n"
+        },
+        {
+          "textRaw": "exports",
+          "name": "exports",
+          "type": "var",
+          "desc": "<p>A reference to the <code>module.exports</code> object which is shared between all\ninstances of the current module and made accessible through <code>require()</code>.\nSee [module system documentation][] for details on when to use <code>exports</code> and\nwhen to use <code>module.exports</code>.\n<code>exports</code> isn&#39;t actually a global but rather local to each module.\n\n</p>\n<p>See the [module system documentation][] for more information.\n\n</p>\n<p>See the [module section][] for more information.\n\n</p>\n"
+        }
+      ],
+      "methods": [
+        {
+          "textRaw": "setTimeout(cb, ms)",
+          "type": "method",
+          "name": "setTimeout",
+          "desc": "<p>Run callback <code>cb</code> after <em>at least</em> <code>ms</code> milliseconds. The actual delay depends\non external factors like OS timer granularity and system load.\n\n</p>\n<p>The timeout must be in the range of 1-2,147,483,647 inclusive. If the value is\noutside that range, it&#39;s changed to 1 millisecond. Broadly speaking, a timer\ncannot span more than 24.8 days.\n\n</p>\n<p>Returns an opaque value that represents the timer.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "cb"
+                },
+                {
+                  "name": "ms"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "clearTimeout(t)",
+          "type": "method",
+          "name": "clearTimeout",
+          "desc": "<p>Stop a timer that was previously created with <code>setTimeout()</code>. The callback will\nnot execute.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "t"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "setInterval(cb, ms)",
+          "type": "method",
+          "name": "setInterval",
+          "desc": "<p>Run callback <code>cb</code> repeatedly every <code>ms</code> milliseconds. Note that the actual\ninterval may vary, depending on external factors like OS timer granularity and\nsystem load. It&#39;s never less than <code>ms</code> but it may be longer.\n\n</p>\n<p>The interval must be in the range of 1-2,147,483,647 inclusive. If the value is\noutside that range, it&#39;s changed to 1 millisecond. Broadly speaking, a timer\ncannot span more than 24.8 days.\n\n</p>\n<p>Returns an opaque value that represents the timer.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "cb"
+                },
+                {
+                  "name": "ms"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,217 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - Configuration</title>
+  </head>
+
+  <body link="#0000ff" vlink="#800080">
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Configuration</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#app-defined">Application Defined Macros</a></dt>
+
+      <dt><a href="#lib-defined-impl">Library Defined Implementation
+      Macros</a></dt>
+    </dl>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><b>Boost.Python</b> uses several configuration macros in <a href=
+    "http://www.boost.org/libs/config/config.htm">&lt;boost/config.hpp&gt;</a>,
+    as well as configuration macros meant to be supplied by the application.
+    These macros are documented here.</p>
+
+    <h2><a name="app-defined"></a>Application Defined Macros</h2>
+
+    <p>These are the macros that may be defined by an application using
+    <b>Boost.Python</b>. Note that if you extend a strict interpretation of
+    the C++ standard to cover dynamic libraries, using different values of
+    these macros when compiling different libraries (including extension
+    modules and the <b>Boost.Python</b> library itself) is a violation of the
+    <a href="definitions.html#ODR">ODR</a>. However, we know of no C++
+    implementations on which this particular violation is detectable or
+    causes any problems.</p>
+
+    <table summary="application defined macros" width="100%" cellpadding=
+    "10">
+      <tr>
+        <th align="left"><b>Macro</b></th>
+
+        <th><b>Default</b></th>
+
+        <th align="left"><b>Meaning</b></th>
+      </tr>
+
+      <tr>
+        <td valign="top"><code>BOOST_PYTHON_MAX_ARITY</code></td>
+
+        <td valign="top" align="center">15</td>
+
+        <td valign="top">The maximum <a href=
+        "definitions.html#arity">arity</a> of any function, member function,
+        or constructor to be wrapped, invocation of a <b>Boost.Python</b>
+        function wich is specified as taking arguments
+        <code>x1,&nbsp;x2,</code>...<code>X</code><i>n</i>. This includes, in
+        particular, callback mechanisms such as <code><a href=
+        "object.html#object-spec">object</a>::operator()(</code>...<code>)</code>
+        or <code><a href=
+        "call_method.html#call_method-spec">call_method</a>&lt;R&gt;(</code>...
+        <code>)</code>.</td>
+      </tr>
+
+      <tr>
+        <td valign="top"><code>BOOST_PYTHON_MAX_BASES</code></td>
+
+        <td valign="top" align="center">10</td>
+
+        <td valign="top">The maximum number of template arguments to the
+        <code><a href=
+        "class.html#bases-spec">bases</a>&lt;</code>...<code>&gt;</code>
+        class template, which is used to specify the bases of a wrapped C++
+        class..</td>
+      </tr>
+
+      <tr>
+        <td valign="top"><code>BOOST_PYTHON_STATIC_MODULE</code></td>
+
+        <td valign="top" align="center"><i>not&nbsp;defined</i></td>
+
+        <td valign="top">If defined, prevents your module initialization
+        function from being treated as an exported symbol on platforms which
+        support that distinction in-code</td>
+      </tr>
+
+      <tr>
+        <td valign="top"><code>BOOST_PYTHON_ENABLE_CDECL</code></td>
+
+        <td valign="top" align="center"><i>not&nbsp;defined</i></td>
+
+        <td valign="top">If defined, allows functions using the <code>__cdecl
+        </code> calling convention to be wrapped.</td>
+      </tr>
+
+      <tr>
+        <td valign="top"><code>BOOST_PYTHON_ENABLE_STDCALL</code></td>
+
+        <td valign="top" align="center"><i>not&nbsp;defined</i></td>
+
+        <td valign="top">If defined, allows functions using the <code>__stdcall
+        </code> calling convention to be wrapped.</td>
+      </tr>
+
+      <tr>
+        <td valign="top"><code>BOOST_PYTHON_ENABLE_FASTCALL</code></td>
+
+        <td valign="top" align="center"><i>not&nbsp;defined</i></td>
+
+        <td valign="top">If defined, allows functions using the <code>__fastcall
+        </code> calling convention to be wrapped.</td>
+      </tr>
+    </table>
+
+    <h2><a name="lib-defined-impl"></a>Library Defined Implementation
+    Macros</h2>
+
+    <p>These macros are defined by <b>Boost.Python</b> and are implementation
+    details of interest only to implementors and those porting to new
+    platforms.</p>
+
+    <table summary="library defined implementation macros" width="100%"
+    cellpadding="10">
+      <tr>
+        <th align="left"><b>Macro</b></th>
+
+        <th><b>Default</b></th>
+
+        <th align="left"><b>Meaning</b></th>
+      </tr>
+
+      <tr>
+        <td valign="top"><code>BOOST_PYTHON_TYPE_ID_NAME</code></td>
+
+        <td valign="top" align="center"><i>not&nbsp;defined</i></td>
+
+        <td valign="top">If defined, this indicates that the type_info
+        comparison across shared library boundaries does not work on this
+        platform. In other words, if shared-lib-1 passes
+        <code>typeid(T)</code> to a function in shared-lib-2 which compares
+        it to <code>typeid(T)</code>, that comparison may return
+        <code>false</code>. If this macro is #defined, Boost.Python uses and
+        compares <code>typeid(T).name()</code> instead of using and comparing
+        the <code>std::type_info</code> objects directly.</td>
+      </tr>
+      <tr>
+        <td valign="top"><code>BOOST_PYTHON_NO_PY_SIGNATURES</code></td>
+
+        <td valign="top" align="center"><i>not&nbsp;defined</i></td>
+
+        <td valign="top">If defined for a module no pythonic signatures are generated 
+        for the docstrings of the module functions, and no python type is associated with any
+        of the converters registered by the module. This also reduces the binary size of the 
+        module by about 14% (gcc compiled).<br>
+        If defined for the boost_python runtime library, the default for the 
+        <code>docstring_options.enable_py_signatures()</code> is set to <code>false</code>.
+        </td>
+
+      </tr>
+      <tr>
+        <td valign="top"><code>BOOST_PYTHON_SUPPORTS_PY_SIGNATURES</code></td>
+
+        <td valign="top" align="center"><i>defined if <code>BOOST_PYTHON_NO_PY_SIGNATURES</code> is undefined</i></td>
+
+        <td valign="top">This macro is defined to enable a smooth transition from older Boost.Python versions
+        which do not support pythonic signatures. For example usage see 
+        <a href="pytype_function.html#examples">here</a>.
+        </td>
+
+      </tr>
+      <tr>
+        <td valign="top"><code>BOOST_PYTHON_PY_SIGNATURES_PROPER_INIT_SELF_TYPE</code></td>
+
+        <td valign="top" align="center"><i>not&nbsp;defined</i></td>
+
+        <td valign="top">If defined the python type of <code>__init__</code> method "self" parameters
+        is properly generated, otherwise <code><b>object</b></code> is used. It is undefined
+        by default because it increases the binary size of the module by about 14% (gcc compiled).</td>
+
+      </tr>
+    </table>
+    <hr>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+     7 January, 2003 
+    <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

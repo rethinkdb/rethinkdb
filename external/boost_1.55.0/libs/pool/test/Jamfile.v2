@@ -1,0 +1,72 @@
+#~ Copyright Rene Rivera 2008
+#~ Distributed under the Boost Software License, Version 1.0.
+#~ (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+
+project
+    :   requirements
+        <library>/boost/test//boost_test_exec_monitor/<link>static
+        <include>../../..
+        <define>BOOST_ALL_NO_LIB=1
+        <warnings>all
+        <toolset>gcc:<cxxflags>-Wextra
+        <toolset>gcc:<cxxflags>-Wshadow
+        <toolset>gcc:<warnings-as-errors>on
+        <toolset>gcc:<cxxflags>-Wno-long-long
+        <toolset>pathscale:<cxxflags>-Wno-long-long
+        <toolset>gcc:<cxxflags>-Wcast-align
+        <toolset>msvc:<warnings-as-errors>on
+    ;
+
+import testing ;
+
+run valgrind_config_check.cpp : : : <testing.launcher>"valgrind --error-exitcode=1" ;
+explicit valgrind_config_check ;
+
+test-suite pool :
+    [ run test_simple_seg_storage.cpp ]
+    [ run test_pool_alloc.cpp ]
+    [ run pool_msvc_compiler_bug_test.cpp ]
+    [ run test_msvc_mem_leak_detect.cpp ]
+    [ run test_bug_3349.cpp ]
+    [ run test_bug_4960.cpp ]
+    [ run test_bug_1252.cpp ]
+    [ run test_bug_2696.cpp ]
+    [ run test_bug_5526.cpp ]
+    [ run test_threading.cpp : : : <threading>multi <library>/boost/thread//boost_thread <toolset>gcc:<cxxflags>-Wno-attributes <toolset>gcc:<cxxflags>-Wno-missing-field-initializers ]
+    [ run  ../example/time_pool_alloc.cpp ]
+    [ compile test_poisoned_macros.cpp ]
+
+#
+# The following tests test Boost.Pool's code with valgrind only if it's available:
+#
+    [ run test_simple_seg_storage.cpp  : : : [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1" : <build>no ] : test_simple_seg_storage_valgrind ]
+    [ run test_pool_alloc.cpp  : : : [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1" : <build>no  ] : test_pool_alloc_valgrind ]
+    [ run pool_msvc_compiler_bug_test.cpp  : : : [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no ] : pool_msvc_compiler_bug_test_valgrind ]
+    [ run test_msvc_mem_leak_detect.cpp  : : : [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1" : <build>no  ] : test_msvc_mem_leak_detect_valgrind ]
+    [ run test_bug_3349.cpp  : : : [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1" : <build>no  ] : test_bug_3349_valgrind ]
+    [ run test_bug_4960.cpp  : : : [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1" : <build>no  ] : test_bug_4960_valgrind ]
+    [ run test_bug_1252.cpp  : : : [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1" : <build>no  ] : test_bug_1252_valgrind ]
+    [ run test_bug_2696.cpp  : : : [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1" : <build>no  ] : test_bug_2696_valgrind ]
+    [ run test_bug_5526.cpp  : : : [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1" : <build>no  ] : test_bug_5526_valgrind ]
+    [ run test_threading.cpp  : : : <threading>multi <library>/boost/thread//boost_thread <toolset>gcc:<cxxflags>-Wno-attributes <toolset>gcc:<cxxflags>-Wno-missing-field-initializers [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1" : <build>no  ] : test_threading_valgrind ]
+
+#
+# The following tests test Boost.Pool's code with valgrind if it's available, and in any case with BOOST_POOL_VALGRIND defined
+# which has the effect of disabling any actual memory pooling:
+#
+    [ run test_simple_seg_storage.cpp  : : : <define>BOOST_POOL_VALGRIND=1 [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no ] : test_simple_seg_storage_valgrind_2 ]
+    [ run test_pool_alloc.cpp  : : : <define>BOOST_POOL_VALGRIND=1 [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no  ] : test_pool_alloc_valgrind_2 ]
+    [ run pool_msvc_compiler_bug_test.cpp  : : : <define>BOOST_POOL_VALGRIND=1 [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no ] : pool_msvc_compiler_bug_test_valgrind_2 ]
+    [ run test_msvc_mem_leak_detect.cpp  : : : <define>BOOST_POOL_VALGRIND=1 [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no ] : test_msvc_mem_leak_detect_valgrind_2 ]
+    [ run test_bug_3349.cpp  : : : <define>BOOST_POOL_VALGRIND=1 [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no ] : test_bug_3349_valgrind_2 ]
+    [ run test_bug_4960.cpp  : : : <define>BOOST_POOL_VALGRIND=1 [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no ] : test_bug_4960_valgrind_2 ]
+    [ run test_bug_1252.cpp  : : : <define>BOOST_POOL_VALGRIND=1 [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no ] : test_bug_1252_valgrind_2 ]
+    [ run test_bug_2696.cpp  : : : <define>BOOST_POOL_VALGRIND=1 [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no ] : test_bug_2696_valgrind_2 ]
+    [ run test_bug_5526.cpp  : : : <define>BOOST_POOL_VALGRIND=1 [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no ] : test_bug_5526_valgrind_2 ]
+    [ run test_threading.cpp  : : : <threading>multi <library>/boost/thread//boost_thread <define>BOOST_POOL_VALGRIND=1 <toolset>gcc:<cxxflags>-Wno-attributes <toolset>gcc:<cxxflags>-Wno-missing-field-initializers [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no ] : test_threading_valgrind_2 ]
+    [ run-fail test_valgrind_fail_1.cpp  : : : <define>BOOST_POOL_VALGRIND=1 [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no ] ]
+    [ run-fail test_valgrind_fail_2.cpp  : : : <define>BOOST_POOL_VALGRIND=1 [ check-target-builds valgrind_config_check : <testing.launcher>"valgrind --error-exitcode=1"  : <build>no ] ]
+    ;
+
+

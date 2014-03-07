@@ -1,0 +1,57 @@
+# Copyright David Abrahams 2003.
+
+# Distributed under the Boost Software License, Version 1.0.
+# See http://www.boost.org/LICENSE_1_0.txt
+
+# For more information, see http://www.boost.org/
+
+# bring in rules for testing
+import testing ;
+
+alias unit_test_framework
+    : # sources
+        /boost//unit_test_framework
+    ;        
+
+# Please keep the tests ordered by filename
+test-suite utility
+    :
+        [ run ../addressof_fn_test.cpp ]
+        [ run ../addressof_test.cpp ]
+        [ run ../addressof_test2.cpp ]
+        [ run ../assert_test.cpp ]
+        [ run ../base_from_member_test.cpp ]
+        [ run ../binary_search_test.cpp ]
+        [ run ../binary_test.cpp ]
+        [ run ../call_traits_test.cpp : -u ]
+        [ compile-fail ../checked_delete_test.cpp ]
+        [ run ../compressed_pair_test.cpp ../../test/build//boost_test_exec_monitor/<link>static : -u ]
+        [ run ../current_function_test.cpp : : : <test-info>always_show_run_output ]
+        [ run ../iterators_test.cpp ../../test/build//boost_test_exec_monitor/<link>static ]
+        [ run next_prior_test.cpp ../../test/build//boost_test_exec_monitor/<link>static ]
+        [ compile-fail ../noncopyable_test.cpp ]
+        [ run ../numeric_traits_test.cpp ]
+        [ run ../operators_test.cpp ../../test/build//boost_test_exec_monitor/<link>static ]
+        [ compile ../ref_ct_test.cpp  ]
+        [ run ../ref_test.cpp ../../test/build//boost_test_exec_monitor/<link>static ]
+        [ compile result_of_test.cpp ]
+        [ run ../shared_iterator_test.cpp ]
+        [ run string_ref_test1.cpp unit_test_framework ]
+        [ run string_ref_test2.cpp unit_test_framework ]
+        [ run string_ref_test_io.cpp unit_test_framework ]
+        [ run ../value_init_test.cpp ]
+        [ run ../value_init_workaround_test.cpp ]
+        [ run ../initialized_test.cpp ]
+        [ compile-fail ../value_init_test_fail1.cpp ]
+        [ compile-fail ../value_init_test_fail2.cpp ]
+        [ compile-fail ../value_init_test_fail3.cpp ]
+        [ compile-fail ../initialized_test_fail1.cpp ]
+        [ compile-fail ../initialized_test_fail2.cpp ]
+        [ run ../verify_test.cpp ]
+        [ run explicit_operator_bool.cpp ]
+        [ compile-fail explicit_operator_bool_compile_fail_conv_int.cpp ]
+        [ compile-fail explicit_operator_bool_compile_fail_conv_pvoid.cpp ]
+        [ compile-fail explicit_operator_bool_compile_fail_delete.cpp ]
+        [ compile-fail explicit_operator_bool_compile_fail_shift.cpp ]
+    ;
+

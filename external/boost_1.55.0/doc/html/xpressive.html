@@ -1,0 +1,199 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;39.&#160;Boost.Xpressive</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="variant/refs.html" title="References">
+<link rel="next" href="xpressive/user_s_guide.html" title="User's Guide">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="variant/refs.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="xpressive/user_s_guide.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="xpressive"></a>Chapter&#160;39.&#160;Boost.Xpressive</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Eric</span> <span class="surname">Niebler</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2007 Eric Niebler</p></div>
+<div><div class="legalnotice">
+<a name="xpressive.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="xpressive.html#boost_xpressive.preface">Preface</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html">User's Guide</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.introduction">Introduction</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.installing_xpressive">Installing
+      xpressive</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.quick_start">Quick Start</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#xpressive.user_s_guide.creating_a_regex_object">Creating
+      a Regex Object</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.matching_and_searching">Matching
+      and Searching</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.accessing_results">Accessing
+      Results</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.string_substitutions">String
+      Substitutions</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.string_splitting_and_tokenization">String
+      Splitting and Tokenization</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.named_captures">Named Captures</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.grammars_and_nested_matches">Grammars
+      and Nested Matches</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.semantic_actions_and_user_defined_assertions">Semantic
+      Actions and User-Defined Assertions</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.symbol_tables_and_attributes">Symbol
+      Tables and Attributes</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.localization_and_regex_traits">Localization
+      and Regex Traits</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.tips_n_tricks">Tips 'N Tricks</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.concepts">Concepts</a></span></dt>
+<dt><span class="section"><a href="xpressive/user_s_guide.html#boost_xpressive.user_s_guide.examples">Examples</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="xpressive/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.basic_regex_hpp">Header &lt;boost/xpressive/basic_regex.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.match_results_hpp">Header &lt;boost/xpressive/match_results.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.regex_actions_hpp">Header &lt;boost/xpressive/regex_actions.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.regex_algorithms_hpp">Header &lt;boost/xpressive/regex_algorithms.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.regex_compiler_hpp">Header &lt;boost/xpressive/regex_compiler.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.regex_constants_hpp">Header &lt;boost/xpressive/regex_constants.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.regex_error_hpp">Header &lt;boost/xpressive/regex_error.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.regex_iterator_hpp">Header &lt;boost/xpressive/regex_iterator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.regex_primitives_hpp">Header &lt;boost/xpressive/regex_primitives.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.regex_token_iterator_hpp">Header &lt;boost/xpressive/regex_token_iterator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.regex_traits_hpp">Header &lt;boost/xpressive/regex_traits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.sub_match_hpp">Header &lt;boost/xpressive/sub_match.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.traits.c_regex_traits_hpp">Header &lt;boost/xpressive/traits/c_regex_traits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.traits.cpp_regex_traits_hpp">Header &lt;boost/xpressive/traits/cpp_regex_traits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.traits.null_regex_traits_hpp">Header &lt;boost/xpressive/traits/null_regex_traits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.xpressive_hpp">Header &lt;boost/xpressive/xpressive.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.xpressive_dynamic_hpp">Header &lt;boost/xpressive/xpressive_dynamic.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.xpressive_fwd_hpp">Header &lt;boost/xpressive/xpressive_fwd.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.xpressive_static_hpp">Header &lt;boost/xpressive/xpressive_static.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="xpressive/reference.html#header.boost.xpressive.xpressive_typeof_hpp">Header &lt;boost/xpressive/xpressive_typeof.hpp&gt;</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_xpressive/acknowledgments.html">Acknowledgments</a></span></dt>
+<dt><span class="section"><a href="xpressive/appendices.html">Appendices</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="xpressive/appendices.html#boost_xpressive.appendices.appendix_1__history">Appendix
+      1: History</a></span></dt>
+<dt><span class="section"><a href="xpressive/appendices.html#boost_xpressive.appendices.appendix_2__not_yet_implemented">Appendix
+      2: Not Yet Implemented</a></span></dt>
+<dt><span class="section"><a href="xpressive/appendices.html#boost_xpressive.appendices.appendix_3__differences_from_boost_regex">Appendix
+      3: Differences from Boost.Regex</a></span></dt>
+<dt><span class="section"><a href="xpressive/appendices.html#boost_xpressive.appendices.perf">Appendix 4: Performance
+      Comparison</a></span></dt>
+<dt><span class="section"><a href="xpressive/appendices.html#xpressive.appendices.appendix_5__implementation_notes">Appendix
+      5: Implementation Notes</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_xpressive.preface"></a><a class="link" href="xpressive.html#boost_xpressive.preface" title="Preface">Preface</a>
+</h2></div></div></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        <span class="emphasis"><em>Wife:</em></span> New Shimmer is a floor wax!<br> <span class="emphasis"><em>Husband:</em></span>
+        No, new Shimmer is a dessert topping!<br> <span class="emphasis"><em>Wife:</em></span> It's
+        a floor wax!<br> <span class="emphasis"><em>Husband:</em></span> It's a dessert topping!<br>
+        <span class="emphasis"><em>Wife:</em></span> It's a floor wax, I'm telling you!<br> <span class="emphasis"><em>Husband:</em></span>
+        It's a dessert topping, you cow!<br> <span class="emphasis"><em>Announcer:</em></span> Hey,
+        hey, hey, calm down, you two. New Shimmer is both a floor wax <span class="emphasis"><em>and</em></span>
+        a dessert topping!
+      </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        <span class="bold"><strong><span class="emphasis"><em>-- Saturday Night Live</em></span></strong></span>
+      </p></blockquote></div>
+<h3>
+<a name="boost_xpressive.preface.h0"></a>
+      <span class="phrase"><a name="boost_xpressive.preface.description"></a></span><a class="link" href="xpressive.html#boost_xpressive.preface.description">Description</a>
+    </h3>
+<p>
+      xpressive is an advanced, object-oriented regular expression template library
+      for C++. Regular expressions can be written as strings that are parsed at run-time,
+      or as expression templates that are parsed at compile-time. Regular expressions
+      can refer to each other and to themselves recursively, allowing you to build
+      arbitrarily complicated grammars out of them.
+    </p>
+<h3>
+<a name="boost_xpressive.preface.h1"></a>
+      <span class="phrase"><a name="boost_xpressive.preface.motivation"></a></span><a class="link" href="xpressive.html#boost_xpressive.preface.motivation">Motivation</a>
+    </h3>
+<p>
+      If you need to manipulate text in C++, you have typically had two disjoint
+      options: a regular expression engine or a parser generator. Regular expression
+      engines (like <a href="../../libs/regex" target="_top">Boost.Regex</a>) are powerful
+      and flexible; patterns are represented as strings which can be specified at
+      runtime. However, that means that syntax errors are likewise not detected until
+      runtime. Also, regular expressions are ill-suited to advanced text processing
+      tasks such as matching balanced, nested tags. Those tasks have traditionally
+      been handled by parser generators (like the <a href="http://spirit.sourceforge.net" target="_top">Spirit
+      Parser Framework</a>). These beasts are more powerful but less flexible.
+      They generally don't allow you to arbitrarily modify your grammar rules on
+      the fly. In addition, they don't have the exhaustive backtracking semantics
+      of regular expressions, which can make it more challenging to author some types
+      of patterns.
+    </p>
+<p>
+      xpressive brings these two approaches seamlessly together and occupies a unique
+      niche in the world of C++ text processing. With xpressive, you can choose to
+      use it much as you would use <a href="../../libs/regex" target="_top">Boost.Regex</a>,
+      representing regular expressions as strings. Or you can use it as you would
+      use <a href="http://spirit.sourceforge.net" target="_top">Spirit</a>, writing your
+      regexes as C++ expressions, enjoying all the benefits of an embedded language
+      dedicated to text manipulation. What's more, you can mix the two to get the
+      benefits of both, writing regular expression <span class="emphasis"><em>grammars</em></span>
+      in which some of the regular expressions are statically bound -- hard-coded
+      and syntax-checked by the compiler -- and others are dynamically bound and
+      specified at runtime. These regular expressions can refer to each other recursively,
+      matching patterns in strings that ordinary regular expressions cannot.
+    </p>
+<h3>
+<a name="boost_xpressive.preface.h2"></a>
+      <span class="phrase"><a name="boost_xpressive.preface.influences_and_related_work"></a></span><a class="link" href="xpressive.html#boost_xpressive.preface.influences_and_related_work">Influences
+      and Related Work</a>
+    </h3>
+<p>
+      The design of xpressive's interface has been strongly influenced by John Maddock's
+      <a href="../../libs/regex" target="_top">Boost.Regex</a> library and his <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1429.htm" target="_top">proposal</a>
+      to add regular expressions to the Standard Library. I also drew a great deal
+      of inspiration from Joel de Guzman's <a href="http://spirit.sourceforge.net" target="_top">Spirit
+      Parser Framework</a>, which served as the model for static xpressive. Other
+      sources of inspiration are the <a href="http://www.perl.com/pub/a/2002/06/04/apo5.html" target="_top">Perl
+      6</a> redesign and <a href="http://research.microsoft.com/projects/greta" target="_top">GRETA</a>.
+      (You can read a summary of the changes Perl 6 will bring to regex culture
+      <a href="http://dev.perl.org/perl6/doc/design/syn/S05.html" target="_top">here</a>.)
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:55:46 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="variant/refs.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="xpressive/user_s_guide.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

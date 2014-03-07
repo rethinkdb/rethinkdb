@@ -1,0 +1,83 @@
+#//
+#// Boost.Pointer Container
+#//
+#//  Copyright Thorsten Ottosen 2003-2005. Use, modification and
+#//  distribution is subject to the Boost Software License, Version
+#//  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#//  http://www.boost.org/LICENSE_1_0.txt)
+#//
+#// For more information, see http://www.boost.org/libs/ptr_container/
+#//
+
+1. use splice() to speed up transfer for list
+
+5. small usage exmaple with each class
+
+10. update tutorial to show boost::assign link + auto_ptr
+
+
+11. should find_key() be added to ptr_map?
+
+
+
+13. transfer for set/map may need to
+be revisted (rg. !from.empty() precondition)
+
+
+15. Some of the headlines are too  big...
+
+
+18. range-based sort() needs to be provided for list. use stable_sort for this purpose.
+
+
+19. use flat_set,flat_map internally when certain situations arise, eg. when the size of the objects
+    is small, eg. 4bytes (does this affect key=string?
+
+
+
+21. map::at() should throw bad_index
+
+auto_type skal være converter-bar til std::auto_ptr<U>, if the deleter is
+trivial (heap_clone_allocator)
+
+(Spørg Thomas Witt om denne ændring can komme med...kan ikke ødelægge existerende kode, som
+vill have kaldt .release()) Kræve en hel del ambiguity resolution pga auto_ptr augument er
+templates og ikke non-templates! Desuden kan vi ikke bruge non-template argument, da alle
+converterings operatorer for auto_ptr tager en & argument og ikke en by-value!!! måske
+skal der blot et hack til, hvor vi tilføjer en ny ukenkt klasse og overloader kun for 
+den, og så laver en implicit konvertering til denne i static_move_ptr
+
+The easiert implementation would be to detect its presence in the
+body of the range based overloads and then dispatch to that implementation.
+
+
+22. hvor gode er kompilere til at optimere release() for en auto_ptr. Hvordan med move_ptr
+and auto_ptr interaction? Contracts må kunne fortælle kompileren at den skal
+genere optimeret kode
+
+template< class T >
+class auto_ptr
+{
+   T* get() const;
+
+   //
+   // this expresses that the constructor is a no-op if
+   // the condition is true. This might be useful in many other 
+   // context
+   //
+   ~auto_ptr()
+     precondition { if( get() == 0 ) return; }
+
+   T* release()
+    postcondition { get() == 0; }
+}
+
+...
+
+std::auto_ptr<T> p( new T );
+foo( p.release() );
+// don't generate destructor
+
+Does raw_storage iterator have an impact on in-place consrtcution
+
+

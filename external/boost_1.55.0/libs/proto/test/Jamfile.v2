@@ -1,0 +1,50 @@
+# (C) Copyright 2004: Eric Niebler
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# bring in rules for testing
+import testing ;
+
+project
+    : requirements
+        <toolset>intel:<debug-symbols>off
+        <toolset>msvc-7.1:<debug-symbols>off
+        <toolset>msvc-8.0:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>msvc-8.0:<define>_CRT_SECURE_NO_DEPRECATE
+        <toolset>msvc-9.0:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>msvc-10.0:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>msvc-11.0:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>msvc-11.0:<define>_SCL_SECURE_NO_WARNINGS
+        <toolset>gcc:<cxxflags>-ftemplate-depth-1024
+        <library>/boost/test//boost_unit_test_framework
+        <link>static
+#        <define>BOOST_PROTO_DONT_USE_PREPROCESSED_FILES
+    ;
+
+test-suite "proto"
+    :
+        [ run calculator.cpp ]
+        [ run constrained_ops.cpp ]
+        [ run cpp-next_bug.cpp ]
+        [ run deep_copy.cpp ]
+        [ run display_expr.cpp ]
+        [ run deduce_domain.cpp ]
+        [ run env_var.cpp ]
+        [ run examples.cpp ]
+        [ run external_transforms.cpp ]
+        [ run lambda.cpp ]
+        [ run make_expr.cpp ]
+        [ run matches.cpp ]
+        [ run flatten.cpp ]
+        [ run switch.cpp ]
+        [ run toy_spirit.cpp ]
+        [ run toy_spirit2.cpp ]
+        [ run make.cpp ]
+        [ run mem_ptr.cpp : : : <toolset>msvc:<cxxflags>/wd4355 ]
+        [ run mpl.cpp ]
+        [ run noinvoke.cpp ]
+        [ run pack_expansion.cpp ]
+        [ run protect.cpp ]
+        [ compile bug2407.cpp ]
+    ;
+

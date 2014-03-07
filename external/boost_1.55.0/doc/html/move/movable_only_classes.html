@@ -1,0 +1,131 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Movable but Non-Copyable Types</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../move.html" title="Chapter&#160;19.&#160;Boost.Move">
+<link rel="prev" href="composition_inheritance.html" title="Composition or inheritance">
+<link rel="next" href="move_and_containers.html" title="Containers and move semantics">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="composition_inheritance.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../move.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="move_and_containers.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="move.movable_only_classes"></a><a class="link" href="movable_only_classes.html" title="Movable but Non-Copyable Types">Movable but Non-Copyable Types</a>
+</h2></div></div></div>
+<p>
+      Some types are not amenable to copy semantics but can still be made movable.
+      For example:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">unique_ptr</span></code> (non-shared,
+          non-copyable ownership)
+        </li>
+<li class="listitem">
+          A type representing a thread of execution
+        </li>
+<li class="listitem">
+          A type representing a file descriptor
+        </li>
+</ul></div>
+<p>
+      By making such types movable (though still non-copyable) their utility is tremendously
+      increased. Movable but non-copyable types can be returned by value from factory
+      functions:
+    </p>
+<pre class="programlisting"><span class="identifier">file_descriptor</span> <span class="identifier">create_file</span><span class="special">(/*</span> <span class="special">...</span> <span class="special">*/);</span>
+<span class="comment">//...</span>
+<span class="identifier">file_descriptor</span> <span class="identifier">data_file</span><span class="special">;</span>
+<span class="comment">//...</span>
+<span class="identifier">data_file</span> <span class="special">=</span> <span class="identifier">create_file</span><span class="special">(/*</span> <span class="special">...</span> <span class="special">*/);</span>  <span class="comment">// No copies!</span>
+</pre>
+<p>
+      In the above example, the underlying file handle is passed from object to object,
+      as long as the source <code class="computeroutput"><span class="identifier">file_descriptor</span></code>
+      is an rvalue. At all times, there is still only one underlying file handle,
+      and only one <code class="computeroutput"><span class="identifier">file_descriptor</span></code>
+      owns it at a time.
+    </p>
+<p>
+      To write a movable but not copyable type in portable syntax, you need to follow
+      these simple steps:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Put the following macro in the <span class="bold"><strong>private</strong></span>
+          section: <code class="computeroutput"><a class="link" href="../BOOST_MOVABLE_BUT_NOT_COPYABLE.html" title="Macro BOOST_MOVABLE_BUT_NOT_COPYABLE">BOOST_MOVABLE_BUT_NOT_COPYABLE(classname)</a></code>
+        </li>
+<li class="listitem">
+          Write a move constructor and a move assignment taking the parameter as
+          <code class="computeroutput"><a class="link" href="../BOOST_RV_REF.html" title="Macro BOOST_RV_REF">BOOST_RV_REF(classname)</a></code>
+        </li>
+</ul></div>
+<p>
+      Here's the definition of <code class="computeroutput"><span class="identifier">file</span> <span class="identifier">descriptor</span></code> using portable syntax:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">move</span><span class="special">/</span><span class="identifier">utility</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">stdexcept</span><span class="special">&gt;</span>
+
+<span class="keyword">class</span> <span class="identifier">file_descriptor</span>
+<span class="special">{</span>
+   <span class="keyword">int</span> <span class="identifier">os_descr_</span><span class="special">;</span>
+
+   <span class="keyword">private</span><span class="special">:</span>
+   <span class="identifier">BOOST_MOVABLE_BUT_NOT_COPYABLE</span><span class="special">(</span><span class="identifier">file_descriptor</span><span class="special">)</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="keyword">explicit</span> <span class="identifier">file_descriptor</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">filename</span><span class="special">)</span>              <span class="comment">//Constructor</span>
+      <span class="special">:</span> <span class="identifier">os_descr_</span><span class="special">(</span><span class="identifier">operating_system_open_file</span><span class="special">(</span><span class="identifier">filename</span><span class="special">))</span>
+   <span class="special">{</span>  <span class="keyword">if</span><span class="special">(!</span><span class="identifier">os_descr_</span><span class="special">)</span> <span class="keyword">throw</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span><span class="special">(</span><span class="string">"file not found"</span><span class="special">);</span>  <span class="special">}</span>
+
+   <span class="special">~</span><span class="identifier">file_descriptor</span><span class="special">()</span>                                          <span class="comment">//Destructor</span>
+   <span class="special">{</span>  <span class="keyword">if</span><span class="special">(</span><span class="identifier">os_descr_</span><span class="special">)</span>  <span class="identifier">operating_system_close_file</span><span class="special">(</span><span class="identifier">os_descr_</span><span class="special">);</span>  <span class="special">}</span>
+
+   <span class="identifier">file_descriptor</span><span class="special">(</span><span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">file_descriptor</span><span class="special">)</span> <span class="identifier">x</span><span class="special">)</span>            <span class="comment">// Move ctor</span>
+      <span class="special">:</span>  <span class="identifier">os_descr_</span><span class="special">(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">os_descr_</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="identifier">x</span><span class="special">.</span><span class="identifier">os_descr_</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>  <span class="special">}</span>
+
+   <span class="identifier">file_descriptor</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">file_descriptor</span><span class="special">)</span> <span class="identifier">x</span><span class="special">)</span> <span class="comment">// Move assign</span>
+   <span class="special">{</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">os_descr_</span><span class="special">)</span> <span class="identifier">operating_system_close_file</span><span class="special">(</span><span class="identifier">os_descr_</span><span class="special">);</span>
+      <span class="identifier">os_descr_</span>   <span class="special">=</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">os_descr_</span><span class="special">;</span>
+      <span class="identifier">x</span><span class="special">.</span><span class="identifier">os_descr_</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+      <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+   <span class="special">}</span>
+
+   <span class="keyword">bool</span> <span class="identifier">empty</span><span class="special">()</span> <span class="keyword">const</span>   <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">os_descr_</span> <span class="special">==</span> <span class="number">0</span><span class="special">;</span>  <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="composition_inheritance.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../move.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="move_and_containers.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

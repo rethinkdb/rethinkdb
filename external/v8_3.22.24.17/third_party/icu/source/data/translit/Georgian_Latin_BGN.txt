@@ -1,0 +1,45 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Georgian_Latin_BGN.txt
+# Generated from CLDR 
+#
+:: [აბგდევზთიკლმნოპჟრსტუფქღყშჩცძწჭხჯჰ] ;
+:: NFD (NFC) ;
+$wordBoundary =  [^[:L:][:M:][:N:]] ;
+ა → a ; # GEORGIAN LETTER AN
+ბ → b ; # GEORGIAN LETTER BAN
+გ → g ; # GEORGIAN LETTER GAN
+დ → d ; # GEORGIAN LETTER DON
+ე → e ; # GEORGIAN LETTER EN
+ვ → v ; # GEORGIAN LETTER VIN
+ზ → z ; # GEORGIAN LETTER ZEN
+თ → t’ ; # GEORGIAN LETTER TAN
+ი → i ; # GEORGIAN LETTER IN
+კ → k ; # GEORGIAN LETTER KAN
+ლ → l ; # GEORGIAN LETTER LAS
+მ → m ; # GEORGIAN LETTER MAN
+ნ → n ; # GEORGIAN LETTER NAR
+ო → o ; # GEORGIAN LETTER ON
+პ → p ; # GEORGIAN LETTER PAR
+ჟ → zh ; # GEORGIAN LETTER ZHAR
+რ → r ; # GEORGIAN LETTER RAE
+ს → s ; # GEORGIAN LETTER SAN
+ტ → t ; # GEORGIAN LETTER TAR
+უ → u ; # GEORGIAN LETTER UN
+ფ → p’ ; # GEORGIAN LETTER PHAR
+ქ → k’ ; # GEORGIAN LETTER KHAR
+ღ → gh ; # GEORGIAN LETTER GHAN
+ყ → q ; # GEORGIAN LETTER QAR
+შ → sh ; # GEORGIAN LETTER SHIN
+ჩ → ch’ ; # GEORGIAN LETTER CHIN
+ც → ts’ ; # GEORGIAN LETTER CAN
+ძ → dz ; # GEORGIAN LETTER JIL
+წ → ts ; # GEORGIAN LETTER CIL
+ჭ → ch ; # GEORGIAN LETTER CHAR
+ხ → kh ; # GEORGIAN LETTER XAN
+ჯ → j ; # GEORGIAN LETTER JHAN
+ჰ → h ; # GEORGIAN LETTER HAE

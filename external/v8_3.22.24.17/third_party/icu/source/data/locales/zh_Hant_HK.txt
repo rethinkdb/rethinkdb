@@ -1,0 +1,57 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/zh_Hant_HK.xml
+// *
+// ***************************************************************************
+zh_Hant_HK{
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00;(¤#,##0.00)"}
+            }
+        }
+    }
+    Version{"2.0.46.25"}
+    calendar{
+        chinese{
+            availableFormats{
+                yMEd{"y年M月d日，E"}
+            }
+        }
+        gregorian{
+            DateTimeElements:intvector{
+                1,
+                4,
+            }
+            DateTimePatterns{
+                "zzzzah時mm分ss秒",
+                "zah時mm分ss秒",
+                "ahh:mm:ss",
+                "ah:mm",
+                "y年M月d日EEEE",
+                "y年M月d日",
+                "y年M月d日",
+                "yy年M月d日",
+                "{1}{0}",
+                "{1}{0}",
+                "{1}{0}",
+                "{1}{0}",
+                "{1}{0}",
+            }
+        }
+    }
+    measurementSystemNames{
+        metric{"十進制"}
+    }
+    units{
+        hour{
+            other{"{0}時"}
+        }
+        week{
+            other{"{0}星期"}
+        }
+    }
+}

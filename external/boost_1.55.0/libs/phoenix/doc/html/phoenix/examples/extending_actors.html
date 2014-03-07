@@ -1,0 +1,320 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Extending Actors</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../examples.html" title="Advanced Examples">
+<link rel="prev" href="../examples.html" title="Advanced Examples">
+<link rel="next" href="adding_an_expression.html" title="Adding an expression">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../examples.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="adding_an_expression.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.examples.extending_actors"></a><a class="link" href="extending_actors.html" title="Extending Actors">Extending Actors</a>
+</h3></div></div></div>
+<p>
+        <a class="link" href="../inside/actor.html" title="Actors in Detail">Actors</a> are one of the main parts
+        of the library, and one of the many customization points. The default actor
+        implementation provides several operator() overloads which deal with the
+        evaluation of expressions.
+      </p>
+<p>
+        For some use cases this might not be enough. For convenience it is thinkable
+        to provide custom member functions which generate new expressions. An example
+        is the <a class="link" href="../modules/statement/___if_else_____statement.html" title="if_else_ Statement">if_else_
+Statement</a>
+        which provides an additional else member for generating a lazy if-else expression.
+        With this the actual Phoenix expression becomes more expressive.
+      </p>
+<p>
+        Another scenario is to give actors the semantics of a certain well known
+        interface or concept. This tutorial like section will provide information
+        on how to implement a custom actor which is usable as if it were a <a href="http://www.sgi.com/tech/stl/Container.html" target="_top">STL Container</a>.
+      </p>
+<h5>
+<a name="phoenix.examples.extending_actors.h0"></a>
+        <span class="phrase"><a name="phoenix.examples.extending_actors.requirements"></a></span><a class="link" href="extending_actors.html#phoenix.examples.extending_actors.requirements">Requirements</a>
+      </h5>
+<p>
+        Let's repeat what we want to have:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns an iterator pointing to the first element in the container.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns an iterator pointing one past the last element in the container.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns the size of the container, that is, its number of elements.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">max_size</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns the largest size that this container can ever have.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Equivalent to a.size() == 0. (But possibly faster.)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">swap</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Equivalent to swap(a,b)
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        Additionally, we want all the operator() overloads of the regular actor.
+      </p>
+<h5>
+<a name="phoenix.examples.extending_actors.h1"></a>
+        <span class="phrase"><a name="phoenix.examples.extending_actors.defining_the_actor"></a></span><a class="link" href="extending_actors.html#phoenix.examples.extending_actors.defining_the_actor">Defining the
+        actor</a>
+      </h5>
+<p>
+        The first version of our <code class="computeroutput"><span class="identifier">container_actor</span></code>
+        interface will show the general principle. This will be continually extended.
+        For the sake of simplicity, every member function generator will return
+        <a class="link" href="../modules/core/nothing.html" title="Nothing"><code class="computeroutput"><span class="identifier">nothing</span></code></a>
+        at first.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">container_actor</span>
+	<span class="special">:</span> <span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">&gt;</span>
+<span class="special">{</span>
+	<span class="keyword">typedef</span> <span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">&gt;</span> <span class="identifier">base_type</span><span class="special">;</span>
+	<span class="keyword">typedef</span> <span class="identifier">container_actor</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">&gt;</span> <span class="identifier">that_type</span><span class="special">;</span>
+	
+	<span class="identifier">container_actor</span><span class="special">(</span> <span class="identifier">base_type</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">base</span> <span class="special">)</span>
+		<span class="special">:</span> <span class="identifier">base_type</span><span class="special">(</span> <span class="identifier">base</span> <span class="special">)</span> <span class="special">{}</span>
+
+	<span class="identifier">expression</span><span class="special">::</span><span class="identifier">null</span><span class="special">&lt;</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">void_</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">begin</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">nothing</span><span class="special">;</span> <span class="special">}</span>
+	<span class="identifier">expression</span><span class="special">::</span><span class="identifier">null</span><span class="special">&lt;</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">void_</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">end</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">nothing</span><span class="special">;</span> <span class="special">}</span>
+	<span class="identifier">expression</span><span class="special">::</span><span class="identifier">null</span><span class="special">&lt;</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">void_</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">size</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">nothing</span><span class="special">;</span> <span class="special">}</span>
+	<span class="identifier">expression</span><span class="special">::</span><span class="identifier">null</span><span class="special">&lt;</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">void_</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">max_size</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">nothing</span><span class="special">;</span> <span class="special">}</span>
+	<span class="identifier">expression</span><span class="special">::</span><span class="identifier">null</span><span class="special">&lt;</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">void_</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">empty</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">nothing</span><span class="special">;</span> <span class="special">}</span>
+
+	<span class="comment">// Note that swap is the only function needing another container.</span>
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Container</span><span class="special">&gt;</span>
+	<span class="identifier">expression</span><span class="special">::</span><span class="identifier">null</span><span class="special">&lt;</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">void_</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">swap</span><span class="special">(</span> <span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">Container</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="special">)</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">nothing</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<h5>
+<a name="phoenix.examples.extending_actors.h2"></a>
+        <span class="phrase"><a name="phoenix.examples.extending_actors.using_the_actor"></a></span><a class="link" href="extending_actors.html#phoenix.examples.extending_actors.using_the_actor">Using
+        the actor</a>
+      </h5>
+<p>
+        Although the member functions do nothing right now, we want to test if we
+        can use our new actor.
+      </p>
+<p>
+        First, lets create a generator which wraps the <code class="computeroutput"><span class="identifier">container_actor</span></code>
+        around any other expression:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">&gt;</span>
+<span class="identifier">container_actor</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">&gt;</span> <span class="keyword">const</span>
+<span class="identifier">container</span><span class="special">(</span> <span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">expr</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">expr</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Now let's test this:
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">;</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+
+<span class="special">(</span><span class="identifier">container</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">).</span><span class="identifier">size</span><span class="special">())(</span><span class="identifier">v</span><span class="special">);</span>
+</pre>
+<p>
+        Granted, this is not really elegant and not very practical (we could have
+        just used phoenix::begin(v) from the <a class="link" href="../modules/stl/algorithm.html" title="Algorithm">Phoenix
+        algorithm module</a>, but we can do better.
+      </p>
+<p>
+        Let's have an <a class="link" href="../modules/core/arguments.html" title="Arguments">argument placeholder</a>
+        which is usable as if it was a STL container:
+      </p>
+<pre class="programlisting"><span class="identifier">container_actor</span><span class="special">&lt;</span><span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">con1</span><span class="special">;</span>
+<span class="comment">// and so on ...</span>
+</pre>
+<p>
+        The above example can be rewritten as:
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">;</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+
+<span class="special">(</span><span class="identifier">con1</span><span class="special">.</span><span class="identifier">size</span><span class="special">())(</span><span class="identifier">v</span><span class="special">);</span>
+</pre>
+<p>
+        Wow, that was easy!
+      </p>
+<h5>
+<a name="phoenix.examples.extending_actors.h3"></a>
+        <span class="phrase"><a name="phoenix.examples.extending_actors.adding_life_to_the_actor"></a></span><a class="link" href="extending_actors.html#phoenix.examples.extending_actors.adding_life_to_the_actor">Adding
+        life to the actor</a>
+      </h5>
+<p>
+        This one will be even easier!
+      </p>
+<p>
+        First, we define a <a class="link" href="../modules/function.html" title="Function">lazy function</a>
+        which evaluates the expression we want to implement. Following is the implementation
+        of the size function:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">size_impl</span>
+<span class="special">{</span>
+	<span class="comment">// result_of protocol:</span>
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Sig</span><span class="special">&gt;</span>
+	<span class="keyword">struct</span> <span class="identifier">result</span><span class="special">;</span>
+
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">This</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Container</span><span class="special">&gt;</span>
+	<span class="keyword">struct</span> <span class="identifier">result</span><span class="special">&lt;</span><span class="identifier">This</span><span class="special">(</span><span class="identifier">Container</span><span class="special">)&gt;</span>
+	<span class="special">{</span>
+		<span class="comment">// Note, remove reference here, because Container can be anything</span>
+		<span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="identifier">Container</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">container_type</span><span class="special">;</span>
+
+		<span class="comment">// The result will be size_type</span>
+		<span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">container_type</span><span class="special">::</span><span class="identifier">size_type</span> <span class="identifier">type</span><span class="special">;</span>
+	<span class="special">};</span>
+
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Container</span><span class="special">&gt;</span>
+	<span class="keyword">typename</span> <span class="identifier">result</span><span class="special">&lt;</span><span class="identifier">size_impl</span><span class="special">(</span><span class="identifier">Container</span> <span class="keyword">const</span><span class="special">&amp;)&gt;::</span><span class="identifier">type</span>
+	<span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Container</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">container</span><span class="special">)</span> <span class="keyword">const</span>
+	<span class="special">{</span>
+		<span class="keyword">return</span> <span class="identifier">container</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span>
+	<span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        Good, this was the first part. The second part will be to implement the size
+        member function of <code class="computeroutput"><span class="identifier">container_actor</span></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">container_actor</span>
+	<span class="special">:</span> <span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">&gt;</span>
+<span class="special">{</span>
+	<span class="keyword">typedef</span> <span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">&gt;</span> <span class="identifier">base_type</span><span class="special">;</span>
+	<span class="keyword">typedef</span> <span class="identifier">container_actor</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">&gt;</span> <span class="identifier">that_type</span><span class="special">;</span>
+	
+	<span class="identifier">container_actor</span><span class="special">(</span> <span class="identifier">base_type</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">base</span> <span class="special">)</span>
+		<span class="special">:</span> <span class="identifier">base_type</span><span class="special">(</span> <span class="identifier">base</span> <span class="special">)</span> <span class="special">{}</span>
+
+	<span class="keyword">typename</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">size_impl</span><span class="special">,</span> <span class="identifier">that_type</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span>
+	<span class="identifier">size</span><span class="special">()</span> <span class="keyword">const</span>
+	<span class="special">{</span>
+		<span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">size_impl</span><span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">f</span> <span class="special">=</span> <span class="identifier">size_impl</span><span class="special">();</span>
+		<span class="keyword">return</span> <span class="identifier">f</span><span class="special">(*</span><span class="keyword">this</span><span class="special">);</span>
+	<span class="special">}</span>
+
+	<span class="comment">// the rest ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        It is left as an exercise to the user to implement the missing parts by reusing
+        functions from the <a class="link" href="../modules/stl/algorithm.html" title="Algorithm">Phoenix
+        Algorithm Module</a> (the impatient take a look here: <a href="../../../../example/container_actor.cpp" target="_top">container_actor.cpp</a>).
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../examples.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="adding_an_expression.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

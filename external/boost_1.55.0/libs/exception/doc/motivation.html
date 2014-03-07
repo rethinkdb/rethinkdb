@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'
+'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+	<title>Motivation</title>
+	<link href='reno.css' type='text/css' rel='stylesheet'/>
+</head>
+<body>
+<div class="body-0">
+<div class="body-1">
+<div class="body-2">
+<div>
+<div id="boost_logo">
+<a href="http://www.boost.org"><img style="border:0" src="../../../boost.png" alt="Boost" width="277" height="86"/></a>
+</div>
+<h1>Boost Exception</h1>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="RenoIncludeDIV"><div class="RenoAutoDIV"><h3>Motivation</h3>
+</div>
+<p>Traditionally, when using exceptions to report failures, the throw site:</p>
+<div><ul><li>creates an exception object of the appropriate type, and</li>
+<li>stuffs it with data relevant to the detected error.</li>
+</ul></div>
+<p>A higher context in the program contains a catch statement which:</p>
+<div><ul><li>selects failures based on exception types, and</li>
+<li>inspects exception objects for data required to deal with the problem.</li>
+</ul></div>
+<p>The main issue with this "traditional" approach is that often, the data available at the point of the throw is insufficient for the catch site to handle the failure.</p>
+<p>Here is an example of a catch statement:</p>
+<pre>catch( file_read_error &amp; e )
+    {
+    std::cerr &lt;&lt; e.file_name();
+    }</pre>
+<p>And here is a possible matching throw:</p>
+<pre>void
+read_file( FILE * f )
+    {
+    ....
+    size_t nr=fread(buf,1,count,f);
+    if( ferror(f) )
+        throw file_read_error(???);
+    ....
+    }</pre>
+<p>Clearly, the problem is that the handler requires a file name but the read_file function does not have a file name to put in the exception object; all it has is a FILE pointer!</p>
+<p>In an attempt to deal with this problem, we could modify read_file to accept a file name:</p>
+<pre>void
+read_file( FILE * f, char const * name )
+    {
+    ....
+    size_t nr=fread(buf,1,count,f);
+    if( ferror(f) )
+        throw file_read_error(name);
+    ....
+    }</pre>
+<p>This is not a real solution: it simply shifts the burden of supplying a file name to the immediate caller of the read_file function.</p>
+<blockquote><p><i>In general, the data required to handle a given library-emitted exception depends on the program that links to it. Many contexts between the throw and the catch may have relevant information which must be transported to the exception handler.</i></p></blockquote>
+<h3>Exception wrapping</h3>
+<p>The idea of exception wrapping is to catch an exception from a lower level function (such as the read_file function above), and throw a new exception object that contains the original exception (and also carries a file name.) This method seems to be particularly popular with C++ programmers with Java background.</p>
+<p>Exception wrapping leads to the following problems:</p>
+<div><ul><li>To wrap an exception object it must be copied, which may result in slicing.</li>
+<li>Wrapping is practically impossible to use in generic contexts.</li>
+</ul></div>
+<p>The second point is actually special case of violating the exception neutrality principle. Most contexts in a program can not handle exceptions; such contexts should not interfere with the process of exception handling.</p>
+<h3>The boost::exception solution</h3>
+<div><ul><li>Simply derive your exception types from boost::<span class="RenoLink"><a href="exception.html">exception</a></span>.</li>
+<li>Confidently limit the throw site to provide only data that is available naturally.</li>
+<li>Use exception-neutral contexts between the throw and the catch to augment exceptions with more relevant data as they bubble up.</li>
+</ul></div>
+<p>For example, in the throw statement below we only add the errno code, since this is the only failure-relevant information available in this context:</p>
+<pre>struct exception_base: virtual std::exception, virtual boost::<span class="RenoLink"><a href="exception.html">exception</a></span> { };
+struct io_error: virtual exception_base { };
+struct file_read_error: virtual io_error { };
+
+typedef boost::<span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct tag_errno_code,int&gt; errno_code;
+
+void
+read_file( FILE * f )
+    {
+    ....
+    size_t nr=fread(buf,1,count,f);
+    if( ferror(f) )
+        throw file_read_error() <span class="RenoLink"><a href="exception_operator_shl.html">&lt;&lt;</a></span> errno_code(errno);
+    ....
+    }</pre>
+<p>In a higher exception-neutral context, we add the file name to <i>any</i> exception that derives from boost::<span class="RenoLink"><a href="exception.html">exception</a></span>:</p>
+<pre>typedef boost::<span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct tag_file_name,std::string&gt; file_name;
+
+....
+try
+    {
+    if( FILE * fp=fopen("foo.txt","rt") )
+        {
+        shared_ptr&lt;FILE&gt; f(fp,fclose);
+        ....
+        read_file(fp); //throws types deriving from boost::<span class="RenoLink"><a href="exception.html">exception</a></span>
+        do_something();
+        ....
+        }
+    else
+        throw file_open_error() <span class="RenoLink"><a href="exception_operator_shl.html">&lt;&lt;</a></span> errno_code(errno);
+    }
+catch( boost::<span class="RenoLink"><a href="exception.html">exception</a></span> &amp; e )
+    {
+    e <span class="RenoLink"><a href="exception_operator_shl.html">&lt;&lt;</a></span> file_name("foo.txt");
+    throw;
+    }</pre>
+<p>Finally here is how the handler retrieves data from exceptions that derive from boost::<span class="RenoLink"><a href="exception.html">exception</a></span>:</p>
+<pre>catch( io_error &amp; e )
+    {
+    std::cerr &lt;&lt; "I/O Error!\n";
+
+    if( std::string const * fn=<span class="RenoLink"><a href="get_error_info.html">get_error_info</a></span>&lt;file_name&gt;(e) )
+        std::cerr &lt;&lt; "File name: " &lt;&lt; *fn &lt;&lt; "\n";
+
+    if( int const * c=<span class="RenoLink"><a href="get_error_info.html">get_error_info</a></span>&lt;errno_code&gt;(e) )
+        std::cerr &lt;&lt; "OS says: " &lt;&lt; strerror(*c) &lt;&lt; "\n";
+    }</pre>
+<p>In addition, boost::<span class="RenoLink"><a href="diagnostic_information.html">diagnostic_information</a></span> can be used to compose an automatic (if not user-friendly) message that contains all of the <span class="RenoLink"><a href="error_info.html">error_info</a></span> objects added to a boost::<span class="RenoLink"><a href="exception.html">exception</a></span>. This is useful for inclusion in logs and other diagnostic objects.</p>
+</div><div class="RenoAutoDIV"><div class="RenoHR"><hr/></div>
+See also: <span class="RenoPageList"><a href="boost-exception.html">Boost Exception</a>&nbsp;| <a href="exception_types_as_simple_semantic_tags.html">Exception Types as Simple Semantic Tags</a>&nbsp;| <a href="frequently_asked_questions.html">Frequently Asked Questions</a>&nbsp;| <a href="tutorial_enable_error_info.html">Integrating Boost Exception in Existing Exception Class Hierarchies</a></span>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div id="footer">
+<p>
+<a class="logo" href="http://jigsaw.w3.org/css-validator/check/referer"><img class="logo_pic" src="valid-css.png" alt="Valid CSS" height="31" width="88"/></a>
+<a class="logo" href="http://validator.w3.org/check?uri=referer"><img class="logo_pic" src="valid-xhtml.png" alt="Valid XHTML 1.0" height="31" width="88"/></a>
+<small>Copyright (c) 2006-2009 by Emil Dotchevski and Reverge Studios, Inc.<br/>
+Distributed under the <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License, Version 1.0</a>.</small>
+</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

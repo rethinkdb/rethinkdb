@@ -1,0 +1,29 @@
+Rectangle 0 60 24 48 NWELL
+Rectangle 3 57 32 43 PDIFF
+Rectangle 3 57 5 16 NDIFF
+Rectangle 5 7 0 17 POLY
+Rectangle 5 7 22 45 POLY
+Rectangle 17 19 3 45 POLY
+Rectangle 29 31 31 48 POLY
+Rectangle 41 43 3 45 POLY
+Rectangle 53 55 3 45 POLY
+Rectangle 17 19 4 17 GATE
+Rectangle 17 19 31 44 GATE
+Rectangle 53 55 4 17 GATE
+Rectangle 53 55 31 44 GATE
+Rectangle 5 7 0 2 VIA0
+Rectangle 5 7 23 25 VIA0
+Rectangle 17 19 28 30 VIA0
+Rectangle 29 31 46 48 VIA0
+Rectangle 41 43 18 20 VIA0
+Rectangle 53 55 23 25 VIA0
+Rectangle 0 60 0 2 METAL1
+Rectangle 3 57 28 30 METAL1
+Rectangle 0 60 46 48 METAL1
+Rectangle 3 57 18 20 METAL1
+Rectangle 3 57 23 25 METAL1
+Pin 29 31 0 2 METAL1 GND
+Pin 29 31 23 25 METAL1 OUTPUT
+Pin 29 31 28 30 METAL1 INPUT1
+Pin 29 31 46 48 METAL1 VDD
+Pin 29 31 18 20 METAL1 INPUT2

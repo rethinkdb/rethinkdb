@@ -1,0 +1,336 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:syntax_option_type syntax_option_type]
+
+[section:syntax_option_type_synopsis syntax_option_type Synopsis]
+
+Type [syntax_option_type] is an implementation specific bitmask type 
+that controls how a regular expression string is to be interpreted.  
+For convenience note that all the constants listed here, are also 
+duplicated within the scope of class template [basic_regex].
+
+   namespace std{ namespace regex_constants{
+
+   typedef implementation-specific-bitmask-type syntax_option_type;
+
+   // these flags are standardized:
+   static const syntax_option_type normal;
+   static const syntax_option_type ECMAScript = normal;
+   static const syntax_option_type JavaScript = normal;
+   static const syntax_option_type JScript = normal;
+   static const syntax_option_type perl = normal;
+   static const syntax_option_type basic;
+   static const syntax_option_type sed = basic;
+   static const syntax_option_type extended;
+   static const syntax_option_type awk;
+   static const syntax_option_type grep;
+   static const syntax_option_type egrep;
+   static const syntax_option_type icase;
+   static const syntax_option_type nosubs;
+   static const syntax_option_type optimize;
+   static const syntax_option_type collate;
+   
+   // 
+   // The remaining options are specific to Boost.Regex:
+   //
+   
+   // Options common to both Perl and POSIX regular expressions:
+   static const syntax_option_type newline_alt;
+   static const syntax_option_type no_except;
+   static const syntax_option_type  save_subexpression_location;
+   
+   // Perl specific options:
+   static const syntax_option_type no_mod_m;
+   static const syntax_option_type no_mod_s;
+   static const syntax_option_type mod_s;
+   static const syntax_option_type mod_x;
+   static const syntax_option_type no_empty_expressions;
+   
+   // POSIX extended specific options:
+   static const syntax_option_type no_escape_in_lists;
+   static const syntax_option_type no_bk_refs;
+   
+   // POSIX basic specific options:
+   static const syntax_option_type no_escape_in_lists;
+   static const syntax_option_type no_char_classes;
+   static const syntax_option_type no_intervals;
+   static const syntax_option_type bk_plus_qm;
+   static const syntax_option_type bk_vbar;
+
+   } // namespace regex_constants
+   } // namespace std
+
+[endsect]
+
+[section:syntax_option_type_overview Overview of syntax_option_type]
+
+The type [syntax_option_type] is an implementation specific bitmask type 
+(see C++ standard 17.3.2.1.2). Setting its elements has the effects listed 
+in the table below, a valid value of type [syntax_option_type] will always 
+have exactly one of the elements `normal`, `basic`, `extended`, 
+`awk`, `grep`, `egrep`, `sed`, `literal` or `perl` set.
+
+Note that for convenience all the constants listed here are duplicated within 
+the scope of class template [basic_regex], so you can use any of:
+
+   boost::regex_constants::constant_name
+
+or
+
+   boost::regex::constant_name
+
+or
+
+   boost::wregex::constant_name
+
+in an interchangeable manner.
+
+[endsect]
+
+[section:syntax_option_type_perl Options for Perl Regular Expressions]
+
+One of the following must always be set for perl regular expressions:
+
+[table
+[[Element][Standardized][Effect when set]]
+[[ECMAScript][Yes][Specifies that the grammar recognized by the regular 
+      expression engine uses its normal semantics: that is the same as 
+      that given in the ECMA-262, ECMAScript Language Specification, 
+      Chapter 15 part 10, RegExp (Regular Expression) Objects (FWD.1).
+      
+      This is functionally identical to the 
+      [link boost_regex.syntax.perl_syntax Perl regular expression syntax].
+
+      Boost.Regex also recognizes all of the perl-compatible `(?...)` 
+      extensions in this mode.]]
+[[perl][No][As above.]]
+[[normal][No][As above.]]
+[[JavaScript][No][As above.]]
+[[JScript][No][As above.]]
+]
+
+The following options may also be set when using perl-style regular expressions:
+
+[table
+[[Element][Standardized][Effect when set]]
+[[icase][Yes][Specifies that matching of regular expressions against a 
+      character container sequence shall be performed without regard to case.]]
+[[nosubs][Yes][Specifies that when a regular expression is matched against 
+      a character container sequence, then no sub-expression matches are 
+      to be stored in the supplied [match_results] structure.]]
+[[optimize][Yes][Specifies that the regular expression engine should pay 
+      more attention to the speed with which regular expressions are matched, 
+      and less to the speed with which regular expression objects are 
+      constructed. Otherwise it has no detectable effect on the program output.  
+      This currently has no effect for Boost.Regex.]]
+[[collate][Yes][Specifies that character ranges of the form `[a-b]` should be 
+      locale sensitive.]]
+[[newline_alt][No][Specifies that the \\n character has the same effect as 
+      the alternation operator |.  Allows newline separated lists to be 
+      used as a list of alternatives.]]
+[[no_except][No][Prevents [basic_regex] from throwing an exception when an 
+      invalid expression is encountered.]]
+[[no_mod_m][No][Normally Boost.Regex behaves as if the Perl m-modifier is on: 
+      so the assertions ^ and $ match after and before embedded 
+      newlines respectively, setting this flags is equivalent to prefixing 
+      the expression with (?-m).]]
+[[no_mod_s][No][Normally whether Boost.Regex will match "." against a 
+      newline character is determined by the match flag `match_dot_not_newline`.  
+      Specifying this flag is equivalent to prefixing the expression with `(?-s)` 
+      and therefore causes "." not to match a newline character regardless of 
+      whether `match_not_dot_newline` is set in the match flags.]]
+[[mod_s][No][Normally whether Boost.Regex will match "." against a newline 
+      character is determined by the match flag `match_dot_not_newline`.  
+      Specifying this flag is equivalent to prefixing the expression with `(?s)` 
+      and therefore causes "." to match a newline character regardless of 
+      whether `match_not_dot_newline` is set in the match flags.]]
+[[mod_x][No][Turns on the perl x-modifier: causes unescaped whitespace 
+      in the expression to be ignored.]]
+[[no_empty_expressions][No][When set then empty expressions/alternatives are prohibited.]]
+[[save_subexpression_location][No][When set then the locations of individual
+sub-expressions within the ['original regular expression string] can be accessed
+via the [link boost_regex.basic_regex.subexpression `subexpression()`] member function of `basic_regex`.]]
+]
+
+[endsect]
+
+[section:syntax_option_type_extended Options for POSIX Extended Regular Expressions]
+
+Exactly one of the following must always be set for 
+[link boost_regex.syntax.basic_extended POSIX extended 
+regular expressions]:
+
+[table
+[[Element][Standardized][Effect when set]]
+[[extended][Yes][Specifies that the grammar recognized by the regular 
+      expression engine is the same as that used by POSIX extended regular 
+      expressions in IEEE Std 1003.1-2001, Portable Operating System Interface 
+      (POSIX ), Base Definitions and Headers, Section 9, Regular Expressions (FWD.1). 
+      
+      Refer to the [link boost_regex.syntax.basic_extended POSIX extended 
+      regular expression guide] for more information.
+
+      In addition some perl-style escape sequences are supported 
+      (The POSIX standard specifies that only "special" characters may be 
+      escaped, all other escape sequences result in undefined behavior).]]
+[[egrep][Yes][Specifies that the grammar recognized by the regular expression 
+      engine is the same as that used by POSIX utility grep when given the 
+      -E option in IEEE Std 1003.1-2001, Portable Operating System 
+      Interface (POSIX ), Shells and Utilities, Section 4, Utilities, grep (FWD.1).
+
+      That is to say, the same as [link boost_regex.syntax.basic_extended 
+      POSIX extended syntax], but with the newline character acting as an 
+      alternation character in addition to "|".]]
+[[awk][Yes][Specifies that the grammar recognized by the regular 
+      expression engine is the same as that used by POSIX utility awk 
+      in IEEE Std 1003.1-2001, Portable Operating System Interface (POSIX ), 
+      Shells and Utilities, Section 4, awk (FWD.1).
+
+      That is to say: the same as [link boost_regex.syntax.basic_extended 
+      POSIX extended syntax], but with escape sequences in character 
+      classes permitted.
+
+      In addition some perl-style escape sequences are supported (actually 
+      the awk syntax only requires \\a \\b \\t \\v \\f \\n and \\r to be 
+      recognised, all other Perl-style escape sequences invoke undefined 
+      behavior according to the POSIX standard, but are in fact 
+      recognised by Boost.Regex).]]
+]
+
+The following options may also be set when using POSIX extended regular expressions:
+
+[table
+[[Element][Standardized][Effect when set]]
+[[icase][Yes][Specifies that matching of regular expressions against a 
+      character container sequence shall be performed without regard to case.]]
+[[nosubs][Yes][Specifies that when a regular expression is matched against a 
+      character container sequence, then no sub-expression matches are 
+      to be stored in the supplied [match_results] structure.]]
+[[optimize][Yes][Specifies that the regular expression engine should pay 
+      more attention to the speed with which regular expressions are matched, 
+      and less to the speed with which regular expression objects are 
+      constructed. Otherwise it has no detectable effect on the program output.  
+      This currently has no effect for Boost.Regex.]]
+[[collate][Yes][Specifies that character ranges of the form `[a-b]` should be 
+      locale sensitive.  This bit is on by default for POSIX-Extended 
+      regular expressions, but can be unset to force ranges to be compared 
+      by code point only.]]
+[[newline_alt][No][Specifies that the \\n character has the same effect as 
+      the alternation operator |.  Allows newline separated lists to be used 
+      as a list of alternatives.]]
+[[no_escape_in_lists][No][When set this makes the escape character ordinary 
+      inside lists, so that `[\b]` would match either '\\' or 'b'. This bit 
+      is on by default for POSIX-Extended regular expressions, but can be 
+      unset to force escapes to be recognised inside lists.]]
+[[no_bk_refs][No][When set then backreferences are disabled.  This bit is on 
+      by default for POSIX-Extended regular expressions, but can be unset 
+      to support for backreferences on.]]
+[[no_except][No][Prevents [basic_regex] from throwing an exception when 
+      an invalid expression is encountered.]]
+[[save_subexpression_location][No][When set then the locations of individual
+sub-expressions within the ['original regular expression string] can be accessed
+via the [link boost_regex.basic_regex.subexpression `subexpression()`] member function of `basic_regex`.]]
+]
+
+[endsect]
+[section:syntax_option_type_basic Options for POSIX Basic Regular Expressions]
+
+Exactly one of the following must always be set for POSIX basic regular expressions:
+
+[table
+[[Element][Standardized][Effect When Set]]
+[[basic][Yes][Specifies that the grammar recognized by the regular expression 
+      engine is the same as that used by 
+      [link boost_regex.syntax.basic_syntax POSIX basic regular expressions] in IEEE Std 1003.1-2001, Portable 
+      Operating System Interface (POSIX ), Base Definitions and Headers, 
+      Section 9, Regular Expressions (FWD.1).]]
+[[sed][No][As Above.]]
+[[grep][Yes][Specifies that the grammar recognized by the regular 
+      expression engine is the same as that used by 
+      POSIX utility `grep` in IEEE Std 1003.1-2001, Portable Operating 
+      System Interface (POSIX ), Shells and Utilities, Section 4, 
+      Utilit\ies, grep (FWD.1).
+
+      That is to say, the same as [link boost_regex.syntax.basic_syntax 
+      POSIX basic syntax], but with the newline character acting as an 
+      alternation character; the expression is treated as a newline 
+      separated list of alternatives.]]
+[[emacs][No][Specifies that the grammar recognised is the superset of the 
+      [link boost_regex.syntax.basic_syntax POSIX-Basic syntax] used by 
+      the emacs program.]]
+]
+
+The following options may also be set when using POSIX basic regular expressions:
+
+[table
+[[Element][Standardized][Effect when set]]
+[[icase][Yes][Specifies that matching of regular expressions against a 
+      character container sequence shall be performed without regard to case.]]
+[[nosubs][Yes][Specifies that when a regular expression is matched against 
+      a character container sequence, then no sub-expression matches are 
+      to be stored in the supplied [match_results] structure.]]
+[[optimize][Yes][Specifies that the regular expression engine should pay 
+      more attention to the speed with which regular expressions are 
+      matched, and less to the speed with which regular expression objects 
+      are constructed. Otherwise it has no detectable effect on the program output.  
+      This currently has no effect for Boost.Regex.]]
+[[collate][Yes][Specifies that character ranges of the form `[a-b]` should 
+      be locale sensitive.  This bit is on by default for 
+      [link boost_regex.syntax.basic_syntax POSIX-Basic regular expressions], 
+      but can be unset to force ranges to be compared by code point only.]]
+[[newline_alt][No][Specifies that the \\n character has the same effect as the 
+      alternation operator |.  Allows newline separated lists to be used 
+      as a list of alternatives.  This bit is already set, if you use the 
+      `grep` option.]]
+[[no_char_classes][No][When set then character classes such as `[[:alnum:]]` 
+      are not allowed.]]
+[[no_escape_in_lists][No][When set this makes the escape character ordinary 
+      inside lists, so that `[\b]` would match either '\\' or 'b'. This bit 
+      is on by default for [link boost_regex.syntax.basic_syntax POSIX-basic 
+      regular expressions], but can be unset to force escapes to be recognised 
+      inside lists.]]
+[[no_intervals][No][When set then bounded repeats such as a{2,3} are not permitted.]]
+[[bk_plus_qm][No][When set then `\?` acts as a zero-or-one repeat operator, 
+      and `\+` acts as a one-or-more repeat operator.]]
+[[bk_vbar][No][When set then `\|` acts as the alternation operator.]]
+[[no_except][No][Prevents [basic_regex] from throwing an exception when an 
+      invalid expression is encountered.]]
+[[save_subexpression_location][No][When set then the locations of individual
+sub-expressions within the ['original regular expression string] can be accessed
+via the [link boost_regex.basic_regex.subexpression `subexpression()`] member function of `basic_regex`.]]
+]
+
+[endsect]
+
+[section:syntax_option_type_literal Options for Literal Strings]
+
+The following must always be set to interpret the expression as a string literal:
+
+[table
+[[Element][Standardized][Effect when set]]
+[[literal][Yes][Treat the string as a literal (no special characters).]]
+]
+
+The following options may also be combined with the literal flag:
+
+[table
+[[Element][Standardized][Effect when set]]
+[[icase][Yes][Specifies that matching of regular expressions against a 
+      character container sequence shall be performed without regard to case.]]
+[[optimize][Yes][Specifies that the regular expression engine should pay 
+      more attention to the speed with which regular expressions are matched, 
+      and less to the speed with which regular expression objects are constructed. 
+      Otherwise it has no detectable effect on the program output.  This 
+      currently has no effect for Boost.Regex.]]
+]
+
+[endsect]
+
+[endsect]
+

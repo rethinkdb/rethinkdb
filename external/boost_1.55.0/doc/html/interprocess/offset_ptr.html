@@ -1,0 +1,162 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Mapping Address Independent Pointer: offset_ptr</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../interprocess.html" title="Chapter&#160;14.&#160;Boost.Interprocess">
+<link rel="prev" href="sharedmemorybetweenprocesses.html" title="Sharing memory between processes">
+<link rel="next" href="synchronization_mechanisms.html" title="Synchronization mechanisms">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sharedmemorybetweenprocesses.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="synchronization_mechanisms.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="interprocess.offset_ptr"></a><a class="link" href="offset_ptr.html" title="Mapping Address Independent Pointer: offset_ptr">Mapping Address Independent Pointer:
+    offset_ptr</a>
+</h2></div></div></div>
+<p>
+      When creating shared memory and memory mapped files to communicate two processes
+      the memory segment can be mapped in a different address in each process:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">shared_memory_object</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">// ...</span>
+
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="comment">//Open a shared memory segment</span>
+<span class="identifier">shared_memory_object</span> <span class="identifier">shm_obj</span>
+   <span class="special">(</span><span class="identifier">open_only</span>                    <span class="comment">//open or create</span>
+   <span class="special">,</span><span class="string">"shared_memory"</span>              <span class="comment">//name</span>
+   <span class="special">,</span><span class="identifier">read_only</span>   <span class="comment">//read-only mode</span>
+   <span class="special">);</span>
+
+<span class="comment">//Map the whole shared memory</span>
+<span class="identifier">mapped_region</span> <span class="identifier">region</span>
+   <span class="special">(</span> <span class="identifier">shm</span>                         <span class="comment">//Memory-mappable object</span>
+   <span class="special">,</span> <span class="identifier">read_write</span>                  <span class="comment">//Access mode</span>
+   <span class="special">);</span>
+
+<span class="comment">//This address can be different in each process</span>
+<span class="keyword">void</span> <span class="special">*</span><span class="identifier">addr</span> <span class="special">=</span> <span class="identifier">region</span><span class="special">.</span><span class="identifier">get_address</span><span class="special">();</span>
+</pre>
+<p>
+      This makes the creation of complex objects in mapped regions difficult: a C++
+      class instance placed in a mapped region might have a pointer pointing to another
+      object also placed in the mapped region. Since the pointer stores an absolute
+      address, that address is only valid for the process that placed the object
+      there unless all processes map the mapped region in the same address.
+    </p>
+<p>
+      To be able to simulate pointers in mapped regions, users must use <span class="bold"><strong>offsets</strong></span> (distance between objects) instead of absolute
+      addresses. The offset between two objects in a mapped region is the same for
+      any process that maps the mapped region, even if that region is placed in different
+      base addresses. To facilitate the use of offsets, <span class="bold"><strong>Boost.Interprocess</strong></span>
+      offers <code class="computeroutput"><a class="link" href="../boost/interprocess/offset_ptr.html" title="Class template offset_ptr">offset_ptr</a></code>.
+    </p>
+<p>
+      <code class="computeroutput"><a class="link" href="../boost/interprocess/offset_ptr.html" title="Class template offset_ptr">offset_ptr</a></code> wraps
+      all the background operations needed to offer a pointer-like interface. The
+      class interface is inspired in Boost Smart Pointers and this smart pointer
+      stores the offset (distance in bytes) between the pointee's address and it's
+      own <code class="computeroutput"><span class="keyword">this</span></code> pointer. Imagine a structure
+      in a common 32 bit processor:
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">structure</span>
+<span class="special">{</span>
+   <span class="keyword">int</span>               <span class="identifier">integer1</span><span class="special">;</span>   <span class="comment">//The compiler places this at offset 0 in the structure</span>
+   <span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span>   <span class="identifier">ptr</span><span class="special">;</span>        <span class="comment">//The compiler places this at offset 4 in the structure</span>
+   <span class="keyword">int</span>               <span class="identifier">integer2</span><span class="special">;</span>   <span class="comment">//The compiler places this at offset 8 in the structure</span>
+<span class="special">};</span>
+
+<span class="comment">//...</span>
+
+<span class="identifier">structure</span> <span class="identifier">s</span><span class="special">;</span>
+
+<span class="comment">//Assign the address of "integer1" to "ptr".</span>
+<span class="comment">//"ptr" will store internally "-4":</span>
+<span class="comment">//    (char*)&amp;s.integer1 - (char*)&amp;s.ptr;</span>
+<span class="identifier">s</span><span class="special">.</span><span class="identifier">ptr</span> <span class="special">=</span> <span class="special">&amp;</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">integer1</span><span class="special">;</span>
+
+<span class="comment">//Assign the address of "integer2" to "ptr".</span>
+<span class="comment">//"ptr" will store internally "4":</span>
+<span class="comment">//    (char*)&amp;s.integer2 - (char*)&amp;s.ptr;</span>
+<span class="identifier">s</span><span class="special">.</span><span class="identifier">ptr</span> <span class="special">=</span> <span class="special">&amp;</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">integer2</span><span class="special">;</span>
+</pre>
+<p>
+      One of the big problems of <code class="computeroutput"><span class="identifier">offset_ptr</span></code>
+      is the representation of the null pointer. The null pointer can't be safely
+      represented like an offset, since the absolute address 0 is always outside
+      of the mapped region. Due to the fact that the segment can be mapped in a different
+      base address in each process the distance between the address 0 and <code class="computeroutput"><span class="identifier">offset_ptr</span></code> is different for every process.
+    </p>
+<p>
+      Some implementations choose the offset 0 (that is, an <code class="computeroutput"><span class="identifier">offset_ptr</span></code>
+      pointing to itself) as the null pointer pointer representation but this is
+      not valid for many use cases since many times structures like linked lists
+      or nodes from STL containers point to themselves (the end node in an empty
+      container, for example) and 0 offset value is needed. An alternative is to
+      store, in addition to the offset, a boolean to indicate if the pointer is null.
+      However, this increments the size of the pointer and hurts performance.
+    </p>
+<p>
+      In consequence, <code class="computeroutput"><a class="link" href="../boost/interprocess/offset_ptr.html" title="Class template offset_ptr">offset_ptr</a></code>
+      defines offset 1 as the null pointer, meaning that this class <span class="bold"><strong>can't</strong></span>
+      point to the byte after its own <span class="emphasis"><em>this</em></span> pointer:
+    </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">ptr</span><span class="special">;</span>
+
+<span class="comment">//Pointing to the next byte of it's own address</span>
+<span class="comment">//marks the smart pointer as null.</span>
+<span class="identifier">ptr</span> <span class="special">=</span> <span class="special">(</span><span class="keyword">char</span><span class="special">*)&amp;</span><span class="identifier">ptr</span> <span class="special">+</span> <span class="number">1</span><span class="special">;</span>
+
+<span class="comment">//ptr is equal to null</span>
+<span class="identifier">assert</span><span class="special">(!</span><span class="identifier">ptr</span><span class="special">);</span>
+
+<span class="comment">//This is the same as assigning the null value...</span>
+<span class="identifier">ptr</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+
+<span class="comment">//ptr is also equal to null</span>
+<span class="identifier">assert</span><span class="special">(!</span><span class="identifier">ptr</span><span class="special">);</span>
+</pre>
+<p>
+      In practice, this limitation is not important, since a user almost never wants
+      to point to this address.
+    </p>
+<p>
+      <code class="computeroutput"><a class="link" href="../boost/interprocess/offset_ptr.html" title="Class template offset_ptr">offset_ptr</a></code> offers
+      all pointer-like operations and random_access_iterator typedefs, so it can
+      be used in STL algorithms requiring random access iterators and detected via
+      traits. For more information about the members and operations of the class,
+      see <code class="computeroutput"><a class="link" href="../boost/interprocess/offset_ptr.html" title="Class template offset_ptr">offset_ptr reference</a></code>.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sharedmemorybetweenprocesses.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="synchronization_mechanisms.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

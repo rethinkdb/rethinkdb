@@ -1,0 +1,457 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ca.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ca.xml
+ */
+ca{
+    AuxExemplarCharacters{"[á ă â å ä ã ā æ ĕ ê ë ē ì ĭ î ī ñ º ŏ ô ö ø ō œ ù ŭ û ū ÿ]"}
+    ExemplarCharacters{"[a à b c ç d e é è f g h i í ï j k l ŀ m n o ó ò p q r s t u ú ü v w x y z]"}
+    ExemplarCharactersCurrency{"[a b c č d e f g h i j k l ł m n o º p q r s t u v w x y z]"}
+    ExemplarCharactersIndex{"[A B C D E F G H I J K L M N O P Q R S T U V W X Y Z]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00 ¤"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0%"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{","}
+                exponential{"E"}
+                group{"."}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.50.94"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "a.m.",
+                "p.m.",
+            }
+            DateTimePatterns{
+                "H:mm:ss zzzz",
+                "H:mm:ss z",
+                "H:mm:ss",
+                "H:mm",
+                "EEEE d MMMM 'de' y",
+                "d MMMM 'de' y",
+                "dd/MM/yyyy",
+                "dd/MM/yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                EEEd{"EEE d"}
+                H{"H"}
+                Hm{"H:mm"}
+                Hms{"H:mm:ss"}
+                M{"L"}
+                MEd{"E d/M"}
+                MMM{"LLL"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"E d MMMM"}
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                Md{"d/M"}
+                d{"d"}
+                hm{"h:mm a"}
+                hms{"h:mm:ss a"}
+                mmss{"mm:ss"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M/yyyy"}
+                yMEd{"E d/M/yyyy"}
+                yMMM{"LLL y"}
+                yMMMEd{"EEE d MMM y"}
+                yMMMM{"LLLL 'del' y"}
+                yQ{"Q yyyy"}
+                yQQQ{"QQQ y"}
+                yyQ{"Q yy"}
+                yyyyMM{"MM/yyyy"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "dg.",
+                        "dl.",
+                        "dt.",
+                        "dc.",
+                        "dj.",
+                        "dv.",
+                        "ds.",
+                    }
+                    wide{
+                        "diumenge",
+                        "dilluns",
+                        "dimarts",
+                        "dimecres",
+                        "dijous",
+                        "divendres",
+                        "dissabte",
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        "dg",
+                        "dl",
+                        "dt",
+                        "dc",
+                        "dj",
+                        "dv",
+                        "ds",
+                    }
+                    narrow{
+                        "g",
+                        "l",
+                        "t",
+                        "c",
+                        "j",
+                        "v",
+                        "s",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "aC",
+                    "dC",
+                }
+            }
+            fields{
+                day{
+                    dn{"dia"}
+                    relative{
+                        "-1"{"ahir"}
+                        "-2"{"abans d'ahir"}
+                        "-3"{"fa tres dies"}
+                        "0"{"avui"}
+                        "1"{"demà"}
+                        "2"{"demà passat"}
+                        "3"{"d'aquí a tres dies"}
+                    }
+                }
+                dayperiod{
+                    dn{"a.m./p.m."}
+                }
+                era{
+                    dn{"era"}
+                }
+                hour{
+                    dn{"hora"}
+                }
+                minute{
+                    dn{"minut"}
+                }
+                month{
+                    dn{"mes"}
+                }
+                second{
+                    dn{"segon"}
+                }
+                week{
+                    dn{"setmana"}
+                }
+                weekday{
+                    dn{"dia de la setmana"}
+                }
+                year{
+                    dn{"any"}
+                }
+                zone{
+                    dn{"zona"}
+                }
+            }
+            intervalFormats{
+                H{
+                    H{"H-H"}
+                    a{"HH-HH"}
+                }
+                Hm{
+                    H{"HH:mm-HH:mm"}
+                    a{"HH:mm-HH:mm"}
+                    m{"HH:mm-HH:mm"}
+                }
+                Hmv{
+                    H{"HH:mm-HH:mm v"}
+                    a{"HH:mm-HH:mm v"}
+                    m{"HH:mm-HH:mm v"}
+                }
+                Hv{
+                    H{"H-H v"}
+                    a{"HH-HH v"}
+                }
+                M{
+                    M{"M-M"}
+                }
+                MEd{
+                    M{"E dd/MM - E dd/MM"}
+                    d{"E dd/MM - E dd/MM"}
+                }
+                MMM{
+                    M{"LLL-LLL"}
+                }
+                MMMEd{
+                    M{"E d MMM - E d MMM"}
+                    d{"E d - E d MMM"}
+                }
+                MMMM{
+                    M{"LLLL-LLLL"}
+                }
+                MMMd{
+                    M{"d MMM - d MMM"}
+                    d{"d-d MMM"}
+                }
+                Md{
+                    M{"dd/MM - dd/MM"}
+                    d{"dd/MM - dd/MM"}
+                }
+                d{
+                    d{"d-d"}
+                }
+                fallback{"{0} - {1}"}
+                h{
+                    a{"h a - h a"}
+                    h{"h-h a"}
+                }
+                hm{
+                    a{"h:mm a -h:mm a"}
+                    h{"h:mm-h:mm a"}
+                    m{"h:mm-h:mm a"}
+                }
+                hmv{
+                    a{"h:mm a - h:mm a v"}
+                    h{"h:mm-h:mm a v"}
+                    m{"h:mm-h:mm a v"}
+                }
+                hv{
+                    a{"h a - h a v"}
+                    h{"h-h a v"}
+                }
+                y{
+                    y{"y-y"}
+                }
+                yM{
+                    M{"MM/yy - MM/yy"}
+                    y{"MM/yy - MM/yy"}
+                }
+                yMEd{
+                    M{"E dd/MM/yy - E dd/MM/yy"}
+                    d{"E dd/MM/yy - E dd/MM/yy"}
+                    y{"E dd/MM/yy - E dd/MM/yy"}
+                }
+                yMMM{
+                    M{"LLL-LLL 'de' y"}
+                    y{"LLL 'de' y - LLL 'de' y"}
+                }
+                yMMMEd{
+                    M{"E d MMM - E d MMM 'de' y"}
+                    d{"E d - E d MMM 'de' y"}
+                    y{"E d MMM 'de' y - E d MMM 'de' y"}
+                }
+                yMMMM{
+                    M{"LLLL-LLLL 'de' y"}
+                    y{"LLLL 'de' y - LLLL 'de' y"}
+                }
+                yMMMd{
+                    M{"d MMM - d MMM 'de' y"}
+                    d{"d-d MMM 'de' y"}
+                    y{"d MMM 'de' y - d MMM 'de' y"}
+                }
+                yMd{
+                    M{"dd/MM/yy - dd/MM/yy"}
+                    d{"dd/MM/yy - dd/MM/yy"}
+                    y{"dd/MM/yy - dd/MM/yy"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "de gen.",
+                        "de febr.",
+                        "de març",
+                        "d’abr.",
+                        "de maig",
+                        "de juny",
+                        "de jul.",
+                        "d’ag.",
+                        "de set.",
+                        "d’oct.",
+                        "de nov.",
+                        "de des.",
+                    }
+                    wide{
+                        "de gener",
+                        "de febrer",
+                        "de març",
+                        "d’abril",
+                        "de maig",
+                        "de juny",
+                        "de juliol",
+                        "d’agost",
+                        "de setembre",
+                        "d’octubre",
+                        "de novembre",
+                        "de desembre",
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        "gen.",
+                        "febr.",
+                        "març",
+                        "abr.",
+                        "maig",
+                        "juny",
+                        "jul.",
+                        "ag.",
+                        "set.",
+                        "oct.",
+                        "nov.",
+                        "des.",
+                    }
+                    narrow{
+                        "g",
+                        "f",
+                        "m",
+                        "a",
+                        "m",
+                        "j",
+                        "j",
+                        "a",
+                        "s",
+                        "o",
+                        "n",
+                        "d",
+                    }
+                    wide{
+                        "gener",
+                        "febrer",
+                        "març",
+                        "abril",
+                        "maig",
+                        "juny",
+                        "juliol",
+                        "agost",
+                        "setembre",
+                        "octubre",
+                        "novembre",
+                        "desembre",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "1T",
+                        "2T",
+                        "3T",
+                        "4T",
+                    }
+                    wide{
+                        "1r trimestre",
+                        "2n trimestre",
+                        "3r trimestre",
+                        "4t trimestre",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"’"}
+        quotationStart{"‘"}
+    }
+    listPattern{
+        standard{
+            2{"{0} i {1}"}
+            end{"{0} i {1}"}
+        }
+    }
+    measurementSystemNames{
+        US{"imperial"}
+        metric{"mètric"}
+    }
+    units{
+        day{
+            one{"{0} dia"}
+            other{"{0} dies"}
+        }
+        hour{
+            one{"{0} hora"}
+            other{"{0} hores"}
+        }
+        minute{
+            one{"{0} minut"}
+            other{"{0} minuts"}
+        }
+        month{
+            one{"{0} mes"}
+            other{"{0} mesos"}
+        }
+        second{
+            one{"{0} segon"}
+            other{"{0} segons"}
+        }
+        week{
+            one{"{0} setmana"}
+            other{"{0} setmanes"}
+        }
+        year{
+            one{"{0} any"}
+            other{"{0} anys"}
+        }
+    }
+    unitsShort{
+        day{
+            one{"{0} dia"}
+            other{"{0} dies"}
+        }
+        hour{
+            one{"{0} h"}
+            other{"{0} h"}
+        }
+        minute{
+            one{"{0} m"}
+            other{"{0} m"}
+        }
+        month{
+            one{"{0} mes"}
+            other{"{0} mesos"}
+        }
+        second{
+            one{"{0} s"}
+            other{"{0} s"}
+        }
+        week{
+            one{"{0} setmana"}
+            other{"{0} setmanes"}
+        }
+        year{
+            one{"{0} any"}
+            other{"{0} anys"}
+        }
+    }
+}

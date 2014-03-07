@@ -1,0 +1,461 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+ xmlns:v="urn:schemas-microsoft-com:vml"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:(null)1="http://www.w3.org/TR/REC-html40" lang="en">
+<head>
+<!--
+    Copyright 2009-2010 Intel Corporation
+    license banner
+-->
+  <title>Boost Polygon Library: Polygon 45 With Holes Concept</title>
+  <meta http-equiv="content-type" content="text/html;charset=ISO-8859-1" />
+<!-- <link type="text/css" rel="stylesheet" href="adobe_source.css"> -->
+</head>
+<body>
+<table style="margin: 0pt; padding: 0pt; width: 100%;" border="0"
+ cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top">
+      <div style="padding: 5px;" align="center"> <img
+ src="images/boost.png" border="0" height="86" width="277" /><a
+ title="www.boost.org home page" href="http://www.boost.org/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      <div style="margin: 5px;">
+      <h3 class="navbar">Contents</h3>
+      <ul>
+        <li><a href="index.htm">Boost.Polygon Main Page</a></li>
+        <li><a href="gtl_design_overview.htm">Design Overview</a></li>
+        <li><a href="gtl_isotropy.htm">Isotropy</a></li>
+        <li><a href="gtl_coordinate_concept.htm">Coordinate Concept</a></li>
+        <li><a href="gtl_interval_concept.htm">Interval Concept</a></li>
+        <li><a href="gtl_point_concept.htm">Point Concept</a></li>
+        <li><a href="gtl_segment_concept.htm">Segment Concept</a></li>
+        <li><a href="gtl_rectangle_concept.htm">Rectangle Concept</a></li>
+        <li><a href="gtl_polygon_90_concept.htm">Polygon 90 Concept</a></li>
+        <li><a href="gtl_polygon_90_with_holes_concept.htm">Polygon 90
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_45_concept.htm">Polygon 45 Concept</a></li>
+        <li>Polygon 45 With Holes Concept</li>
+        <li><a href="gtl_polygon_concept.htm">Polygon Concept</a></li>
+        <li><a href="gtl_polygon_with_holes_concept.htm">Polygon With
+Holes Concept</a></li>
+        <li><a href="gtl_polygon_90_set_concept.htm">Polygon 90 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_45_set_concept.htm">Polygon 45 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_set_concept.htm">Polygon Set Concept</a></li>
+        <li><a href="gtl_connectivity_extraction_90.htm">Connectivity
+Extraction 90</a></li>
+        <li><a href="gtl_connectivity_extraction_45.htm">Connectivity
+Extraction 45</a></li>
+        <li><a href="gtl_connectivity_extraction.htm">Connectivity
+Extraction</a></li>
+        <li><a href="gtl_property_merge_90.htm">Property Merge 90</a></li>
+        <li><a href="gtl_property_merge_45.htm">Property Merge 45</a></li>
+        <li><a href="gtl_property_merge.htm">Property Merge</a></li>
+        <li><a href="voronoi_main.htm">Voronoi Main Page<br />
+          </a></li>
+        <li><a href="voronoi_benchmark.htm">Voronoi Benchmark</a><br />
+        </li>
+        <li><a href="voronoi_builder.htm">Voronoi Builder</a></li>
+        <li><a href="voronoi_diagram.htm">Voronoi Diagram</a></li>
+      </ul>
+      <h3 class="navbar">Other Resources</h3>
+      <ul>
+        <li><a href="GTL_boostcon2009.pdf">GTL Boostcon 2009 Paper</a></li>
+        <li><a href="GTL_boostcon_draft03.pdf">GTL Boostcon 2009
+Presentation</a></li>
+        <li><a href="analysis.htm">Performance Analysis</a></li>
+        <li><a href="gtl_tutorial.htm">Layout Versus Schematic Tutorial</a></li>
+        <li><a href="gtl_minkowski_tutorial.htm">Minkowski Sum Tutorial</a></li>
+        <li><a href="voronoi_basic_tutorial.htm">Voronoi Basic Tutorial</a></li>
+        <li><a href="voronoi_advanced_tutorial.htm">Voronoi Advanced
+Tutorial</a></li>
+      </ul>
+      </div>
+      <h3 class="navbar">Polygon Sponsor</h3>
+      <div style="padding: 5px;" align="center"> <img
+ src="images/intlogo.gif" border="0" height="51" width="127" /><a
+ title="www.adobe.com home page" href="http://www.adobe.com/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      </td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+<!-- End Header --><br />
+      <p>
+      </p>
+      <h1>Polygon 45 With Holes Concept</h1>
+      <p> </p>
+      <p>The polygon_45_with_holes concept tag is <font
+ face="Courier New">
+polygon_45_with_holes_concept</font></p>
+      <p> To register a user defined type as a model of <font
+ face="Times New Roman">polygon_45_with_holes </font>concept,
+specialize the geometry concept meta-function for that type.&nbsp; In
+the example below CPolygon45WithHoles is registered as a model of
+polygon<font face="Times New Roman">_45_with_holes&nbsp;</font> concept.</p>
+      <p> <font face="Courier New">template &lt;&gt;<br />
+struct geometry_concept&lt;CPolygon45WithHoles&gt; { typedef
+polygon_45_with_holes_concept type; };</font></p>
+      <p> <font face="Times New Roman">The semantic of a
+polygon_45_with_holes is a polygon_45 that it can provide iterators
+over holes that are also polygon_45.&nbsp; A mutable
+polygon_45_with_holes must also be able to set its geometry based on an
+interator range over polygon_45 holes.&nbsp; There is no convention of
+winding of holes enforced within the library. </font></p>
+      <p> <font face="Times New Roman">Below is shown the default
+polygon with holes traits.&nbsp; Specialization of these traits is
+required for types that don't conform to the default behavior.</font></p>
+      <p><font face="Courier New">template &lt;typename T, typename
+enable = void&gt;<br />
+struct polygon_with_holes_traits {<br />
+&nbsp;&nbsp;&nbsp;&nbsp; typedef typename T::iterator_holes_type
+iterator_holes_type;<br />
+&nbsp;&nbsp;&nbsp;&nbsp; typedef typename T::hole_type hole_type;<br />
+&nbsp;&nbsp;&nbsp;&nbsp; static inline iterator_holes_type
+begin_holes(const T&amp; t) {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return
+t.begin_holes();<br />
+&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+&nbsp;&nbsp;&nbsp;&nbsp; static inline iterator_holes_type
+end_holes(const T&amp; t) {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return
+t.end_holes();<br />
+&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+&nbsp;&nbsp;&nbsp;&nbsp; static inline unsigned int size_holes(const
+T&amp; t) {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return
+t.size_holes();<br />
+&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+};</font></p>
+      <p><font face="Courier New">template &lt;typename T, typename
+enable = void&gt;<br />
+struct polygon_with_holes_mutable_traits {<br />
+&nbsp;&nbsp;&nbsp;&nbsp; template &lt;typename iT&gt;<br />
+&nbsp;&nbsp;&nbsp;&nbsp; static inline T&amp; set_holes(T&amp; t, iT
+inputBegin, iT inputEnd) {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+t.set_holes(inputBegin, inputEnd);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return t;<br />
+&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+};</font></p>
+      <p>An object that is a model of <font face="Courier New">
+polygon_45_with_holes_concept</font> can be viewed as a model of any of
+its refinements if it is determined at runtime to conform to the
+restriction of those concepts.&nbsp; This concept casting is
+accomplished through the
+      <font face="Courier New">view_as&lt;&gt;()</font> function.</p>
+      <p><font face="Courier New">view_as&lt;rectangle_concept&gt;(polygon_45_with_holes_object)</font><br />
+      <font face="Courier New">view_as&lt;polygon_90_concept&gt;(polygon_45_with_holes_object)</font><br />
+      <font face="Courier New">view_as&lt;polygon_90_with_holes_concept&gt;(polygon_45_with_holes_object)</font><br />
+      <font face="Courier New">view_as&lt;polygon_45_concept&gt;(polygon_45_with_holes_object)</font></p>
+      <p>The return value of <font face="Courier New">view_as&lt;&gt;()</font>
+can be passed into any interface that expects an object of the
+conceptual type specified in its template parameter. </p>
+      <h2>Functions</h2>
+      <table id="table1" border="1" width="100%">
+        <tbody>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+point_iterator_type <b>begin_points</b>(const T&amp; polygon)</font></td>
+            <td><font face="Times New Roman">Expects a model of
+polygon_45_with_holes.&nbsp; Returns the begin iterator over the range
+of points that correspond to vertices of the polygon.</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+point_iterator_type <b>end_points</b>(const T&amp; polygon)</font></td>
+            <td><font face="Times New Roman">Expects a model of
+polygon_45_with_holes.&nbsp; Returns the end iterator over the range of
+points that correspond to vertices of the polygon.</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+hole_iterator_type <b>begin_holes</b>(const T&amp; polygon)</font></td>
+            <td><font face="Times New Roman">Expects a model of
+polygon_45_with_holes.&nbsp; Returns the begin iterator over the range
+of coordinates that correspond to horizontal and vertical edges.</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+hole_iterator_type <b>end_holes</b>(const T&amp; polygon)</font></td>
+            <td><font face="Times New Roman">Expects a model of
+polygon_45_with_holes.&nbsp; Returns the end iterator over the range of
+coordinates that correspond to horizontal and vertical edges.</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T, typename iterator&gt;<br />
+void <b>set_points</b>(T&amp; polygon, iterator b, iterator e)</font></td>
+            <td><font face="Times New Roman">Expects a model of
+polygon_45_with_holes.&nbsp;&nbsp; Sets the polygon to the point data
+range [b,e) that corresponds to vertices of a polygon.&nbsp; </font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T, typename iterator&gt;<br />
+void <b>set_holes</b>(T&amp; polygon, iterator b, iterator e)</font></td>
+            <td><font face="Times New Roman">Expects a model of
+polygon_45_with_holes.&nbsp;&nbsp; Sets the polygon holes to the hole
+data range [b,e)</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+unsigned int <b>size</b>(const T&amp; polygon)</font></td>
+            <td><font face="Times New Roman">Returns the number of
+edges in the outer shell of the polygon_45_with_holes.&nbsp; Does not
+include sizes of the holes.</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>assign</b>(T1&amp; left, const T2&amp; right)</font></td>
+            <td>Copies data from right object that models
+polygon_45_with_holes or one of its refinements into left object that
+models polygon_45_with_holes.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T, typename point_type&gt;<br />
+bool <b>contains</b>(const T&amp;, const point_type&amp; point, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+bool consider_touch=true)</font></td>
+            <td>Given an object that models polygon_45_with_holes and
+an object that models point, returns true if the polygon shell contains
+the point and one of its holes does not contain the point.&nbsp; If the
+consider_touch flag is true will return true if the point lies along
+the boundary of the polygon or one of its holes.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">// get the center
+coordinate<br />
+template &lt;typename T, typename point_type&gt;<br />
+void <b>center</b>(point_type&amp; p, const T&amp; polygon)</font></td>
+            <td>Sets object that models point to the center point of
+the bounding box of an object that models polygon_45_with_holes.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T, typename rectangle_type&gt;<br />
+bool <b>extents</b>(rectangle_type&amp; bbox, const T&amp; polygon)</font></td>
+            <td>Sets object that models rectangle to the bounding box
+of an object that models polygon_45_with_holes and returns true.&nbsp;
+Returns false and leaves bbox unchanged if polygon is empty.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+manhattan_area_type <b>area</b>(const T&amp; polygon)</font></td>
+            <td>Returns the area of an object that models
+polygon_45_with_holes including subtracting the area of its holes from
+the area of the outer shell polygon.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+direction_1d <b>winding</b>(const T&amp; polygon)</font></td>
+            <td>Returns the winding direction of an object that models
+polygon_45_with_holes, LOW == CLOCKWISE, HIGH = COUNTERCLOCKWISE.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+coordinate_difference <b>perimeter</b>(const T&amp; polygon)</font></td>
+            <td>Returns the perimeter length of an object that models
+polygon_45, including the perimeters of the holes.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T, typename transform_type&gt;<br />
+T&amp; <b>transform</b>(T&amp; polygon, const transform_type&amp;)</font></td>
+            <td>Applies transform() on the vertices of polygon and sets
+the polygon to that described by the result of transforming its
+vertices.&nbsp; Also applies transform() on the holes of the polygon.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>scale_up</b>(T&amp; polygon, unsigned_area_type factor)</font></td>
+            <td>Scales up outer shell and holes of an object that
+models polygon_45 by unsigned factor.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>scale_down</b>(T&amp; polygon, unsigned_area_type factor)</font></td>
+            <td>Scales down outer shell and holes of an object that
+models polygon_45 by unsigned factor.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T, scaling_type&gt;<br />
+T&amp; <b>scale</b>(T&amp; rectangle, double scaling) </font></td>
+            <td>Scales outer shell and holes of an object that models
+polygon_45 by floating point factor.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>move</b>(T&amp; polygon, orientation_2d,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; coordinate_difference
+displacement)</font></td>
+            <td>Adds displacement value to coordinate indicated by
+orientation_2d of vertices of an object that models polygon_45 .</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename polygon_type, typename point_type&gt;<br />
+polygon_type&amp; <b>convolve</b>(polygon_type&amp; polygon,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+const point_type&amp; point)</font></td>
+            <td>Convolves coordinate values of point with the outer
+shell and holes of an object that models polygon_45_with_holes.</td>
+          </tr>
+        </tbody>
+      </table>
+      <h1>Polygon 45 With Holes Data</h1>
+      <p> </p>
+      <p>The library provides a model of polygon 45 with holes concept
+declared
+      <font face="Courier New">template&lt;typename T&gt;
+polygon_45_with_holes_data </font>where T is the coordinate type.</p>
+      <p>This data type is used internally when a 45 degree polygon
+with holes is needed and is available to the library user who finds it
+convenient to use a library polygon data type instead of providing
+their own.&nbsp; The data type is implemented to be convenient to use
+with the library traits.</p>
+      <h2>Members</h2>
+      <table id="table2" border="1" width="100%">
+        <tbody>
+          <tr>
+            <td width="586"><b><font face="Courier New">geometry_type</font></b></td>
+            <td><font face="Times New Roman">polygon_45_with_holes_concept</font></td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">coordinate_type</font></b></td>
+            <td><font face="Times New Roman">T</font></td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">iterator_type</font></b></td>
+            <td>Iterator over vertices point_data&lt;T&gt; vertices of
+polygon</td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">iterator_holes_type</font></b></td>
+            <td><font face="Times New Roman">Iterator over hole
+polygons of type polygon_45_data&lt;T&gt;.</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b>polygon_45_with_holes_data</b>()</font></td>
+            <td><font face="Times New Roman">Default constructs the </font>polygon.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b>polygon_45_with_holes_data</b>(const
+polygon_45_with_holes_data&amp; that)</font></td>
+            <td><font face="Times New Roman">Copy construct</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">polygon_45_with_holes_data&amp;
+            <b> <br />
+operator=</b>(const polygon_45_with_holes_data&amp; that)</font></td>
+            <td>Assignment operator.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T2&gt;<b> </b> polygon_45_with_holes_data&amp;<b>&nbsp; <br />
+operator=</b>(const T2&amp; that) const</font></td>
+            <td>Assign from an object that is a model of polygon 45
+with holes.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">iterator_type <b>begin</b>()
+const</font></td>
+            <td>Get the begin iterator over vertices of the polygon.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">iterator_type <b>end</b>()
+const</font></td>
+            <td>Get the end iterator over vertices of the polygon.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">iterator_hole_type
+            <b>begin_holes</b>() const</font></td>
+            <td>Get the begin compact iterator over non-redundant
+coordinates of the polygon.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">iterator_hole_type
+            <b>end_holes</b>() const</font></td>
+            <td>Get the end compact iterator over non-redundant
+coordinates of the polygon.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">std::size_t <b>size</b>()
+const</font></td>
+            <td>Get the number of elements in the sequence stored to
+the polygon, usually equal to the number of edges of the polygon.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">std::size_t <b>size_holes</b>()
+const</font></td>
+            <td>Get the number of holes in the polygon</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename iT&gt;<b>&nbsp; <br />
+            </b>void <b>set</b>(iT begin_points, iT end_points)</font></td>
+            <td>Sets the polygon to the iterator range of points.&nbsp;
+No check is performed to ensure the points describe a 45 degree figure.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename iT&gt;<b>&nbsp; <br />
+            </b>void <b>set_holes</b>(iT begin_holes, iT end_choless)</font></td>
+            <td>Sets the polygon holes the iterator range of hole
+polygons.&nbsp; These polygons in the input range may be either
+polygon_45_data or polygon_45_with_holes_data or any type that provides
+begin and end member functions to iterate over point_data&lt;T&gt;.</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top"> &nbsp;</td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+      <table class="docinfo" id="table3" frame="void" rules="none">
+        <colgroup> <col class="docinfo-name" /><col
+ class="docinfo-content" /> </colgroup> <tbody valign="top">
+          <tr>
+            <th class="docinfo-name">Copyright:</th>
+            <td>Copyright © Intel Corporation 2008-2010.</td>
+          </tr>
+          <tr class="field">
+            <th class="docinfo-name">License:</th>
+            <td class="field-body">Distributed under the Boost Software
+License, Version 1.0. (See accompanying file <tt class="literal"> <span
+ class="pre">LICENSE_1_0.txt</span></tt> or copy at <a
+ class="reference" target="_top"
+ href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>

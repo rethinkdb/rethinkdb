@@ -1,0 +1,768 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE boostbook PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<boostbook id="boost" xmlns:xi="http://www.w3.org/2001/XInclude"
+           last-revision="$Date: 2013-10-08 14:01:18 -0700 (Tue, 08 Oct 2013) $">
+  <title>The Boost C++ Libraries BoostBook Documentation Subset</title>
+
+  <preface id="about">
+    <title>What's Included in This Document</title>
+
+    <para>This document represents only a subset of the full Boost
+    documentation: that part which is generated from BoostBook or
+    QuickBook sources.  Eventually all Boost libraries may use these
+    formats, but in the meantime, much of Boost's documentation is not
+    available here.  Please
+    see <ulink
+    url="http://www.boost.org/libs">http://www.boost.org/libs</ulink>
+    for complete documentation.
+    </para>
+
+    <para>
+      Documentation for some of the libraries described in this document is
+      available in alternative formats:
+       <itemizedlist>
+         <listitem>
+           <simpara><link linkend="boost">HTML</link></simpara>
+         </listitem>
+       </itemizedlist>
+       <itemizedlist>
+         <listitem>
+           <simpara><ulink url="http://sourceforge.net/projects/boost/files/boost-docs/">PDF</ulink></simpara>
+         </listitem>
+       </itemizedlist>
+    </para>
+
+  </preface>
+
+  <part id="libraries">
+    <title>The Boost C++ Libraries (BoostBook Subset)</title>
+
+    <xi:include href="accumulators.xml"/>
+
+    <xi:include href="../../libs/any/doc/any.xml"/>
+    <xi:include href="../../libs/array/doc/array.xml"/>
+
+   <library name="Asio" dirname="asio" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Christopher</firstname>
+         <surname>Kohlhoff</surname>
+       </author>
+
+       <librarypurpose>Portable networking and other low-level I/O, including sockets, timers, hostname resolution, socket iostreams, serial ports, file descriptors and Windows HANDLEs</librarypurpose>
+       <librarycategory name="category:io"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="atomic.xml"/>
+
+   <library name="Bind" dirname="bind" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Peter</firstname>
+         <surname>Dimov</surname>
+       </author>
+       <librarypurpose>Generalized binders for function/object/pointers and member functions</librarypurpose>
+       <librarycategory name="category:higher-order"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Mem_fn" dirname="bind" html-only="1" 
+            url="../../libs/bind/mem_fn.html">
+     <libraryinfo>
+       <author>
+         <firstname>Peter</firstname>
+         <surname>Dimov</surname>
+       </author>
+       <librarypurpose>Generalized binders for member functions</librarypurpose>
+       <librarycategory name="category:higher-order"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Call Traits" dirname="call_traits" html-only="1"
+            url="../../libs/utility/call_traits.htm">
+     <libraryinfo>
+       <author>
+         <firstname>John</firstname>
+         <surname>Maddock</surname>
+       </author>
+       <author>
+         <firstname>Howard</firstname>
+         <surname>Hinnant</surname>
+       </author>
+       <librarypurpose>Defines types for passing parameters</librarypurpose>
+       <librarycategory name="category:generic"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="chrono.xml"/>
+
+   <xi:include href="circular_buffer.auto_index.docbook"/>
+
+   <library name="Compatibility" dirname="compatibility" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Ralf</firstname>
+         <surname>Grosse-Kunstleve</surname>
+       </author>
+       <author>
+         <firstname>Jens</firstname>
+         <surname>Maurer</surname>
+       </author>
+       <librarypurpose>Help for non-conforming standard libraries</librarypurpose>
+       <librarycategory name="category:broken"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Compose" dirname="compose" html-only="1"
+            url="../../libs/compose/index.htm">
+     <libraryinfo>
+       <author>
+         <firstname>Nicolai</firstname>
+         <surname>Josuttis</surname>
+       </author>
+    
+       <librarypurpose>Functional composition adapters for the STL</librarypurpose>
+       <librarycategory name="category:higher-order"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Compressed Pair" dirname="compressed_pair" html-only="1"
+            url="../../libs/utility/compressed_pair.htm">
+     <libraryinfo>
+       <author>
+         <firstname>John</firstname>
+         <surname>Maddock</surname>
+       </author>
+       <author>
+         <firstname>Howard</firstname>
+         <surname>Hinnant</surname>
+       </author>
+       <librarypurpose>Empty member optimization</librarypurpose>
+       <librarycategory name="category:data-structures"/>
+       <librarycategory name="category:misc"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Concept Check" dirname="concept_check">
+     <libraryinfo>
+       <author>
+         <firstname>Jeremy</firstname>
+         <surname>Siek</surname>
+       </author>
+       <librarypurpose>Tools for generic programming</librarypurpose>
+       <librarycategory name="category:generic"/>
+       <librarycategory name="category:testing"/>
+     </libraryinfo>
+     <title>Boost.Concept_Check</title>
+     <xi:include href="../../libs/concept_check/doc/reference/concepts.xml"/>
+   </library>
+
+   <library name="Config" dirname="config" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>John</firstname>
+         <surname>Maddock</surname>
+       </author>
+       <author>
+         <firstname>Beman</firstname>
+         <surname>Dawes</surname>
+       </author>
+       <author>
+         <firstname>Vesa</firstname>
+         <surname>Karvonen</surname>
+       </author>
+
+       <librarypurpose>Helps boost library developers adapt to compiler idiosyncrasies; not intended for library users</librarypurpose>
+       <librarycategory name="category:broken"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="container.auto_index.docbook"/>
+
+   <library name="Conversion" dirname="conversion" html-only="1"
+            url="../../libs/conversion/index.html">
+     <libraryinfo>
+       <author>
+         <firstname>Dave</firstname>
+         <surname>Abrahams</surname>
+       </author>
+       <author>
+         <firstname>Kevlin</firstname>
+         <surname>Henney</surname>
+       </author>
+
+       <librarypurpose>Numeric, polymorphic, and lexical casts</librarypurpose>
+       <librarycategory name="category:misc"/>
+     </libraryinfo>
+   </library>
+
+   <library name="CRC" dirname="crc" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Daryle</firstname>
+         <surname>Walker</surname>
+       </author>
+
+       <librarypurpose>Cyclic Redundancy Code</librarypurpose>
+       <librarycategory name="category:misc"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="../../libs/date_time/xmldoc/date_time.xml"/>
+
+   <library name="Dynamic Bitset" dirname="dynamic_bitset" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Jeremy</firstname>
+         <surname>Siek</surname>
+       </author>
+       <author>
+         <firstname>Chuck</firstname>
+         <surname>Allison</surname>
+       </author>
+       <librarypurpose>A runtime sized version of <code>std::bitset</code></librarypurpose>
+       <librarycategory name="category:containers"/> 
+     </libraryinfo>
+   </library>
+   
+   <library name="Format" dirname="format" html-only="1"
+            url="../../libs/format/index.html">
+     <libraryinfo>
+       <author>
+         <firstname>Samuel</firstname>
+         <surname>Krempp</surname>
+       </author>
+
+       <librarypurpose>Type-safe 'printf-like' format operations</librarypurpose>
+       <librarycategory name="category:string-text"/>
+       <librarycategory name="category:io"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Filesystem" dirname="filesystem" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Beman</firstname>
+         <surname>Dawes</surname>
+       </author>
+
+       <librarypurpose>Portable paths, iteration over directories, and other useful filesystem operations</librarypurpose>
+       <librarycategory name="category:misc"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="foreach.xml"/>
+
+   <xi:include href="../../libs/function/doc/function.xml"/>
+
+   <library name="Functional" dirname="functional" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Mark</firstname>
+         <surname>Rodgers</surname>
+       </author>
+       <librarypurpose>Enhanced function object adaptors</librarypurpose>
+       <librarycategory name="category:higher-order"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="hash.xml"/>
+
+   <library name="Graph" dirname="graph" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Jeremy</firstname>
+         <surname>Siek</surname>
+       </author>
+       <author>
+         <firstname>University of Notre Dame</firstname>
+         <surname>Team</surname>
+       </author>
+       <librarypurpose>Generic graph components and algorithms</librarypurpose>
+       <librarycategory name="category:containers"/>
+       <librarycategory name="category:iterators"/>
+       <librarycategory name="category:algorithms"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="heap.xml"/>
+
+   <library name="Integer" dirname="integer" html-only="1"
+            url="../../libs/integer/index.html">
+     <libraryinfo>
+       <author>
+         <firstname>various</firstname>
+         <surname>authors</surname>
+       </author>
+
+       <librarypurpose>Headers to ease dealing with integral types</librarypurpose>
+       <librarycategory name="category:math"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="interprocess.auto_index.docbook"/>
+
+   <library name="Interval" dirname="numeric/interval" html-only="1"
+            url="../../libs/numeric/interval/doc/index.html">
+     <libraryinfo>
+       <author>
+         <firstname>Guillaume</firstname>
+         <surname>Melquiond</surname>
+       </author>
+       <author>
+         <firstname>Herv&eacute;</firstname>
+         <surname>Br&ouml;nnimann</surname>
+       </author>
+       <author>
+         <firstname>Sylvain</firstname>
+         <surname>Pion</surname>
+       </author>
+
+       <librarypurpose>Extends the usual arithmetic functions to mathematical intervals</librarypurpose>
+       <librarycategory name="category:math"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="intrusive.auto_index.docbook"/>
+
+   <library name="I/O State Savers" dirname="io" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Daryle</firstname>
+         <surname>Walker</surname>
+       </author>
+
+       <librarypurpose>Save I/O state to prevent jumbled data</librarypurpose>
+       <librarycategory name="category:io"/>
+     </libraryinfo>
+   </library>
+ 
+   <library name="Iterator Adaptors" dirname="utility" html-only="1"
+            url="../../libs/utility/iterator_adaptors.htm">
+     <libraryinfo>
+       <author>
+         <firstname>Dave</firstname>
+         <surname>Abrahams</surname>
+       </author>
+       <author>
+         <firstname>Jeremy</firstname>
+         <surname>Siek</surname>
+       </author>
+       <author>
+         <firstname>John</firstname>
+         <surname>Potter</surname>
+       </author>
+
+       <librarypurpose>Adapt a base type into a standard conforming iterator</librarypurpose>
+       <librarycategory name="category:iterators"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="../../libs/lambda/doc/lambda.xml"/>
+
+   <xi:include href="lexical_cast.xml"/>
+
+   <xi:include href="lockfree.xml"/>
+
+   <library name="Math" dirname="math" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>various</firstname>
+         <surname>authors</surname>
+       </author>
+
+       <librarypurpose>Several contributions in the domain of mathematics</librarypurpose>
+       <librarycategory name="category:math"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Math/Common Factor" dirname="math/common_factor" html-only="1"
+            url="../../libs/math/doc/common_factor.html">
+     <libraryinfo>
+       <author>
+         <firstname>Daryle</firstname>
+         <surname>Walker</surname>
+       </author>
+
+       <librarypurpose>Greatest common divisor and least common multiple</librarypurpose>
+       <librarycategory name="category:math"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Math/Octonion" dirname="math/octonion" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Hubert</firstname>
+         <surname>Holin</surname>
+       </author>
+
+       <librarypurpose>Octonions</librarypurpose>
+       <librarycategory name="category:math"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Math/Quaternion" dirname="math/quaternion" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Hubert</firstname>
+         <surname>Holin</surname>
+       </author>
+
+       <librarypurpose>Quaternions</librarypurpose>
+       <librarycategory name="category:math"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Math/Special Functions" dirname="math/special_functions" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Hubert</firstname>
+         <surname>Holin</surname>
+       </author>
+
+       <librarypurpose>Mathematical special functions such as atanh, sinc, and sinhc</librarypurpose>
+       <librarycategory name="category:math"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="move.xml"/>
+
+   <library name="MPL" dirname="mpl" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Aleksey</firstname>
+         <surname>Gurtovoy</surname>
+       </author>
+
+       <librarypurpose>Template metaprogramming framework of compile-time algorithms, sequences and metafunction classes</librarypurpose>
+       <librarycategory name="category:template"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Multi Array" dirname="multi_array" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Ron</firstname>
+         <surname>Garcia</surname>
+       </author>
+
+       <librarypurpose>Multidimensional containers and adaptors for arrays of contiguous data</librarypurpose>
+       <librarycategory name="category:math"/>
+       <librarycategory name="category:containers"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Operators" dirname="utility" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Dave</firstname>
+         <surname>Abrahams</surname>
+       </author>
+       <author>
+         <firstname>Jeremy</firstname>
+         <surname>Siek</surname>
+       </author>
+
+       <librarypurpose>Templates ease arithmetic classes and iterators</librarypurpose>
+       <librarycategory name="category:generic"/>
+       <librarycategory name="category:iterators"/>
+       <librarycategory name="category:math"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Optional" dirname="optional" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Fernando</firstname>
+         <surname>Cacciola</surname>
+       </author>
+
+       <librarypurpose>Discriminated-union wrapper for optional values</librarypurpose>
+       <librarycategory name="category:misc"/>
+       <librarycategory name="category:data-structures"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="mpi.xml"/>
+
+   <library name="Pool" dirname="pool" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Steve</firstname>
+         <surname>Cleary</surname>
+       </author>
+
+       <librarypurpose>Memory pool management</librarypurpose>
+       <librarycategory name="category:memory"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Preprocessor" dirname="preprocessor" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Vesa</firstname>
+         <surname>Karvonen</surname>
+       </author>
+       <author>
+         <firstname>Paul</firstname>
+         <surname>Mensonides</surname>
+       </author>
+
+       <librarypurpose>Preprocessor metaprogramming tools including repetition and recursion</librarypurpose>
+       <librarycategory name="category:preprocessor"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="../../libs/program_options/doc/program_options.xml"/>
+
+   <library name="Property Map" dirname="property_map" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Jeremy</firstname>
+         <surname>Siek</surname>
+       </author>
+       <librarypurpose>Concepts defining interfaces which map key objects to value objects</librarypurpose>
+       <librarycategory name="category:containers"/>
+       <librarycategory name="category:generic"/>
+     </libraryinfo>
+   </library>
+   
+   <xi:include href="property_tree.xml"/>
+
+   <xi:include href="proto.xml"/>
+
+   <library name="Python" dirname="python" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Dave</firstname>
+         <surname>Abrahams</surname>
+       </author>
+       <librarypurpose>Reflects C++ classes and functions into <ulink url="http://www.python.org">Python</ulink></librarypurpose>
+       <librarycategory name="category:lang"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="random.xml"/>
+
+   <xi:include href="ratio.xml"/>
+
+   <library name="Rational" dirname="rational" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Paul</firstname>
+         <surname>Moore</surname>
+       </author>
+       <librarypurpose>A rational number class</librarypurpose>
+       <librarycategory name="category:math"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="../../libs/bind/doc/ref.xml"/>
+
+   <library name="Regex" dirname="regex" html-only="1"
+            url="../../libs/regex/index.html">
+     <libraryinfo>
+       <author>
+         <firstname>John</firstname>
+         <surname>Maddock</surname>
+       </author>
+       <librarypurpose>Regular expression library</librarypurpose>
+       <librarycategory name="category:string-text"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Serialization" dirname="serialization" html-only="1"
+            url="../../libs/serialization/index.html">
+     <libraryinfo>
+       <author>
+         <firstname>Robert</firstname>
+         <surname>Ramey</surname>
+       </author>
+       <librarypurpose>Serialization of C++ objects for persistence and marshalling</librarypurpose>
+       <librarycategory name="category:io"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="../../libs/signals/doc/signals.xml"/>
+   
+   <xi:include href="../../libs/signals2/doc/signals.xml"/>
+
+   <library name="Smart Pointer" dirname="smart_ptr" html-only="1"
+            url="../../libs/smart_ptr/index.html">
+     <libraryinfo>
+       <author>
+         <firstname>Greg</firstname>
+         <surname>Colvin</surname>
+       </author>
+       <author>
+         <firstname>Beman</firstname>
+         <surname>Dawes</surname>
+       </author>
+       <author>
+         <firstname>Peter</firstname>
+         <surname>Dimov</surname>
+       </author>
+       <author>
+         <firstname>Darin</firstname>
+         <surname>Adler</surname>
+       </author>
+       <librarypurpose>Six smart pointer class templates</librarypurpose>
+       <librarycategory name="category:memory"/>
+     </libraryinfo>
+   </library>  
+
+   <library name="Spirit" dirname="spirit" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Joel</firstname>
+         <surname>de Guzman</surname>
+       </author>
+       <author>
+         <firstname>team</firstname>
+       </author>
+
+       <librarypurpose>LL parser framework represents parsers directly as EBNF grammars in inlined C++</librarypurpose>
+       <librarycategory name="category:text"/>
+       <librarycategory name="category:parsing"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="static_assert.xml"/>
+
+   <xi:include href="../../libs/algorithm/string/doc/string_algo.xml"/>
+
+   <library name="Test" dirname="test" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Gennadiy</firstname>
+         <surname>Rozental</surname>
+       </author>
+       <librarypurpose>Support for simple program testing, full unit testing, and for program execution monitoring</librarypurpose>
+       <librarycategory name="category:testing"/>
+     </libraryinfo>
+   </library>
+   
+   <xi:include href="thread.xml"/>
+
+   <library name="Timer" dirname="timer" html-only="1" 
+            url="../../libs/timer/index.html">
+     <libraryinfo>
+       <author>
+         <firstname>Beman</firstname>
+         <surname>Dawes</surname>
+       </author>
+       <librarypurpose>Event timer, progress timer, and progress display classes</librarypurpose>
+       <librarycategory name="category:misc"/>
+     </libraryinfo>
+   </library>
+
+   <library name="Tokenizer" dirname="tokenizer" html-only="1"
+            url="../../libs/tokenizer/index.html">
+     <libraryinfo>
+       <author>
+         <firstname>John</firstname>
+         <surname>Bandela</surname>
+       </author>
+       <librarypurpose>Break of a string or other character sequence into a series of tokens</librarypurpose>
+       <librarycategory name="category:string-text"/>
+       <librarycategory name="category:iterators"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="tr1.xml"/>
+   <xi:include href="../../libs/logic/doc/tribool.boostbook"/>
+
+   <library name="Tuple" dirname="tuple" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Jaakko</firstname>
+         <surname>J&auml;rvi</surname>
+       </author>
+       <librarypurpose>Ease definition of functions returning multiple values, and more</librarypurpose>
+       <librarycategory name="category:data-structures"/>
+     </libraryinfo>
+   </library>
+    
+   <xi:include href="type_erasure.xml"/>
+
+   <library name="Type Traits" dirname="type_traits" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>John</firstname>
+         <surname>Maddock</surname>
+       </author>
+       <librarypurpose>Meta-programming support library.</librarypurpose>
+       <librarycategory name="category:generic"/>
+     </libraryinfo>
+   </library>
+ 
+   <xi:include href="typeof.xml"/>
+
+   <library name="uBLAS" dirname="numeric/ublas" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Joerg</firstname>
+         <surname>Walter</surname>
+       </author>
+       <author>
+         <firstname>Mathias</firstname>
+         <surname>Koch</surname>
+       </author>
+       <librarypurpose>Basic linear algebra for dense, packed and sparse matrices</librarypurpose>
+       <librarycategory name="category:math"/>
+     </libraryinfo>
+   </library>
+
+   <xi:include href="units.xml"/>
+
+   <xi:include href="unordered.xml"/>
+
+   <library name="Utility" dirname="utility" html-only="1">
+     <libraryinfo>
+       <author>
+         <firstname>Dave</firstname>
+         <surname>Abrahams</surname>
+       </author>
+       <author>
+         <firstname>others</firstname>
+       </author>
+
+       <librarypurpose>Class noncopyable  plus <functionname>checked_delete</functionname>, <functionname>checked_array_delete</functionname>, <functionname>next</functionname>,  <functionname>prior</functionname>  function templates, plus base-from-member idiom</librarypurpose>
+       <librarycategory name="category:misc"/>
+       <librarycategory name="category:memory"/>
+       <librarycategory name="category:algorithms"/>
+     </libraryinfo>
+   </library>
+   <xi:include href="../../libs/variant/doc/variant.xml"/>
+
+   <xi:include href="xpressive.xml"/>
+
+  </part>
+
+  <part id="tools">
+    <title>Boost Tools</title>
+    <partintro>
+      <para>
+        Boost developers, testers, and maintainers have developed various programs to 
+        help with the administration of the Boost Libraries. Like everything else about 
+        Boost, these tools are available in source form, and are part of the regular 
+        Boost distribution.
+      </para>
+      <para>
+        Users may find these tools useful when porting Boost libraries to a new platform, 
+        or for use with their own applications.
+      </para>
+    </partintro>
+    <xi:include href="../../tools/boostbook/doc/boostbook.xml"/>
+    <xi:include href="quickbook.xml"/>
+    <xi:include href="jam_docs.xml"/>
+    <xi:include href="../../tools/build/v2/doc/src/userman.xml"/>
+  </part>
+</boostbook>
+
+
+
+
+

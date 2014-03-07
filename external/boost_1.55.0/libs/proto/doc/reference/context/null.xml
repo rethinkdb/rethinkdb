@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/context/null.hpp">
+  <para>
+    Definintion of
+    <computeroutput><classname alt="boost::proto::context::null_context">proto::context::null_context&lt;&gt;</classname></computeroutput>,
+    an evaluation context for
+    <computeroutput><functionname alt="boost::proto::eval">proto::eval()</functionname></computeroutput>
+    that simply evaluates each child expression, doesn't combine the results at all, and returns void.
+  </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="context">
+        <struct name="null_eval">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="Context"/>
+          </template>
+          <typedef name="result_type">
+            <type>void</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>void</type>
+              <parameter name="expr">
+                <paramtype>Expr &amp;</paramtype>
+              </parameter>
+              <parameter name="context">
+                <paramtype>Context &amp;</paramtype>
+              </parameter>
+              <description>
+                <para>
+                  For <computeroutput>N</computeroutput> in <computeroutput>[0,Expr arity)</computeroutput>,
+                  evaluate:
+                  <programlisting><functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;N&gt;(expr), context)</programlisting>
+                </para>
+              </description>
+            </method>
+          </method-group>
+        </struct>
+
+        <struct name="null_context">
+          <purpose>An evaluation context for <functionname alt="proto::eval">proto::eval()</functionname> that simply evaluates
+              each child expression, doesn't combine the results at all, and returns void.</purpose>
+          <struct name="eval">
+            <template>
+              <template-type-parameter name="Expr"/>
+              <template-type-parameter name="ThisContext">
+                <default>null_context const</default>
+              </template-type-parameter>
+            </template>
+            <inherit><classname>proto::context::null_eval</classname>&lt; Expr, ThisContext &gt;</inherit>
+          </struct>
+        </struct>
+      </namespace>
+    </namespace>
+  </namespace>
+</header>

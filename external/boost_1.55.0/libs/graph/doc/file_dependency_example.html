@@ -1,0 +1,363 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>File Dependency Example</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H1><A NAME="sec:file-depend-eg"></A>
+File Dependency Example
+</H1>
+
+<P>
+One of the most common uses of the graph abstraction in computer
+science is to track dependencies. An example of dependency tracking
+that we deal with on a day to day basis is the compilation
+dependencies for files in programs that we write. These dependencies
+are used inside programs such as <TT>make</TT> or in an IDE such as
+Visual C++ to minimize the number of files that must be recompiled
+after some changes have been made.
+
+<P>
+<A HREF="#fig:file-dep">Figure 1</A> shows a graph that has a vertex
+for each source file, object file, and library that is used in the
+<TT>killerapp</TT> program. The edges in the graph show which files
+are used in creating other files. The choice of which direction to
+point the arrows is somewhat arbitrary. As long as we are consistent
+in remembering that the arrows mean ``used by'' then things will work
+out. The opposite direction would mean ``depends on''.
+
+<P>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:file-dep"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 1:</STRONG>
+A graph representing file dependencies.</CAPTION>
+<TR><TD><IMG SRC="./figs/file_dep.gif" width="331" height="351"></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+<P>
+A compilation system such as <TT>make</TT> has to be able to answer a
+number of questions:
+
+<P>
+
+<OL>
+<LI>If we need to compile (or recompile) all of the files, what order
+   should that be done it?
+</LI>
+<LI>What files can be compiled in parallel?
+</LI>
+<LI>If a file is changed, which files must be recompiled?
+</LI>
+<LI>Are there any cycles in the dependencies? (which means the user
+  has made a mistake and an error should be emitted)
+</LI>
+</OL>
+
+<P>
+In the following examples we will formulate each of these questions in
+terms of the dependency graph, and then find a graph algorithm to
+provide the solution. The graph in <A HREF="#fig:file-dep">Figure
+1</A> will be used in all of the following examples. The source code
+for this example can be found in the file <a
+href="../example/file_dependencies.cpp"><TT>examples/file_dependencies.cpp</TT></a>.
+
+<P>
+
+<H2>Graph Setup</H2>
+
+<P>
+Here we show the construction of the graph.  First, these are the required
+header files:
+
+<P>
+<PRE>
+#include &lt;iostream&gt; // std::cout
+#include &lt;utility&gt; // std::pair
+#include &lt;boost/graph/graph_traits.hpp&gt;
+#include &lt;boost/graph/adjacency_list.hpp&gt;
+#include &lt;boost/graph/topological_sort.hpp&gt;
+</PRE>
+
+<P>
+For simplicity we have
+constructed the graph &quot;by-hand&quot;. A compilation system such
+as <TT>make</TT> would instead parse a <TT>Makefile</TT> to get the
+list of files and to set-up the dependencies. We use the
+<TT>adjacency_list</TT> class to represent the graph. The
+<TT>vecS</TT> selector means that a <TT>std::vector</TT> will be used
+to represent each edge-list, which provides efficient traversal. The
+<TT>bidirectionalS</TT> selector means we want a directed graph with access to both the edges outgoing from each vertex and the edges incoming to each vertex, and the
+<TT>color_property</TT> attaches a color property to each vertex of the
+graph. The color property will be used in several of the algorithms in
+the following sections.
+
+<P>
+<PRE>
+  enum files_e { dax_h, yow_h, boz_h, zow_h, foo_cpp, 
+                 foo_o, bar_cpp, bar_o, libfoobar_a,
+                 zig_cpp, zig_o, zag_cpp, zag_o, 
+                 libzigzag_a, killerapp, N };
+  const char* name[] = { "dax.h", "yow.h", "boz.h", "zow.h", "foo.cpp",
+                         "foo.o", "bar.cpp", "bar.o", "libfoobar.a",
+                         "zig.cpp", "zig.o", "zag.cpp", "zag.o",
+                         "libzigzag.a", "killerapp" };
+
+  typedef std::pair&lt;int, int&gt; Edge;
+  Edge used_by[] = {
+    Edge(dax_h, foo_cpp), Edge(dax_h, bar_cpp), Edge(dax_h, yow_h),
+    Edge(yow_h, bar_cpp), Edge(yow_h, zag_cpp),
+    Edge(boz_h, bar_cpp), Edge(boz_h, zig_cpp), Edge(boz_h, zag_cpp),
+    Edge(zow_h, foo_cpp), 
+    Edge(foo_cpp, foo_o),
+    Edge(foo_o, libfoobar_a),
+    Edge(bar_cpp, bar_o),
+    Edge(bar_o, libfoobar_a),
+    Edge(libfoobar_a, libzigzag_a),
+    Edge(zig_cpp, zig_o),
+    Edge(zig_o, libzigzag_a),
+    Edge(zag_cpp, zag_o),
+    Edge(zag_o, libzigzag_a),
+    Edge(libzigzag_a, killerapp)
+  };
+
+  using namespace boost;
+  typedef adjacency_list&lt;vecS, vecS, bidirectionalS, 
+      property&lt;vertex_color_t, default_color_type&gt;
+    &gt; Graph;
+  Graph g(used_by, used_by + sizeof(used_by) / sizeof(Edge), N);
+  typedef graph_traits&lt;Graph&gt;::vertex_descriptor Vertex;
+</PRE>
+
+<P>
+
+<H2>Compilation Order (All Files)</H2>
+
+<P>
+On the first invocation of <TT>make</TT> for a particular project, all
+of the files must be compiled. Given the dependencies between the
+various files, what is the correct order in which to compile and link
+them? First we need to formulate this in terms of a graph. Finding a
+compilation order is the same as ordering the vertices in the graph.
+The constraint on the ordering is the file dependencies which we have
+represented as edges. So if there is an edge <i>(u,v)</i> in the graph
+then <i>v</i> better not come before <i>u</i> in the ordering. It
+turns out that this kind of constrained ordering is called a
+<I>topological sort</I>. Therefore, answering the question of
+compilation order is as easy as calling the BGL algorithm <a
+href="./topological_sort.html"><TT>topological_sort()</TT></a>. The
+traditional form of the output for topological sort is a linked-list
+of the sorted vertices.  The BGL algorithm instead puts the sorted
+vertices into any <a
+href="http://www.sgi.com/tech/stl/OutputIterator.html">OutputIterator</a>,
+which allows for much more flexibility.  Here we use the
+<TT>std::front_insert_iterator</TT> to create an output iterator that
+inserts the vertices on the front of a linked list.  Other possible
+options are writing the output to a file or inserting into a different
+STL or custom-made container.
+
+<P>
+<PRE>
+  typedef std::list&lt;Vertex&gt; MakeOrder;
+  MakeOrder make_order;
+  boost::topological_sort(g, std::front_inserter(make_order));
+    
+  std::cout &lt;&lt; "make ordering: ";
+  for (MakeOrder::iterator i = make_order.begin();
+       i != make_order.end(); ++i)
+    std::cout &lt;&lt; name[*i] &lt;&lt; " ";
+  std::cout &lt;&lt; std::endl;
+</PRE>
+The output of this is:
+<PRE>
+  make ordering: zow.h boz.h zig.cpp zig.o dax.h yow.h zag.cpp \
+  zag.o bar.cpp bar.o foo.cpp foo.o libfoobar.a libzigzag.a killerapp
+</PRE>
+
+<P>
+
+<H2><A NAME="sec:parallel-compilation"></A>
+Parallel Compilation
+</H2>
+
+<P>
+Another question the compilation system might need to answer is: what
+files can be compiled simultaneously? This would allow the system to
+spawn threads and utilize multiple processors to speed up the build.
+This question can also be put in a slightly different way: what is the
+earliest time that a file can be built assuming that an unlimited
+number of files can be built at the same time? The main criteria for
+when a file can be built is that all of the files it depends on must
+already be built. To simplify things for this example, we'll assume
+that each file takes 1 time unit to build (even header files). For
+parallel compilation, we can build all of the files corresponding to
+vertices with no dependencies, e.g., those that have
+an <i>in-degree</i> of 0, in the first step. For all other files, the
+main observation for determining the ``time slot'' for a file is that
+the time slot must be one more than the maximum time-slot of the files
+it depends on.
+
+<P>We start by creating a vector <code>time</code> that will store the
+  time step at which each file can be built. We initialize every value
+  with time step zero.</p>
+
+<P>
+<PRE>
+  std::vector&lt;int&gt; time(N, 0);
+</PRE>
+
+<p>Now, we want to visit the vertices against in topological order,
+  from those files that need to be built first until those that need
+  to be built last. However, instead of printing out the order
+  immediately, we will compute the time step in which each file should
+  be built based on the time steps of the files it depends on. We
+  only need to consider those files whose in-degree is greater than
+  zero.</p>
+
+<pre>
+    for (i = make_order.begin(); i != make_order.end(); ++i) {    
+      if (in_degree (*i, g) &gt; 0) {
+        Graph::in_edge_iterator j, j_end;
+        int maxdist = 0;
+        for (tie(j, j_end) = in_edges(*i, g); j != j_end; ++j)
+          maxdist = std::max(time[source(*j, g)], maxdist);
+        time[*i]=maxdist+1;
+      }
+    }
+</pre>
+
+<P>
+Last, we output the time-slot that we've calculated for each vertex.
+
+<P>
+<PRE>
+  std::cout &lt;&lt; "parallel make ordering, " &lt;&lt; std::endl
+       &lt;&lt; "  vertices with same group number" &lt;&lt; std::endl
+       &lt;&lt; "  can be made in parallel" &lt;&lt; std::endl &lt;&lt; std::endl;
+  for (boost::tie(i, iend) = vertices(g); i != iend; ++i)
+    std::cout &lt;&lt; "time_slot[" &lt;&lt; name[*i] &lt;&lt; "] = " &lt;&lt; time[*i] &lt;&lt; std::endl;
+</PRE>
+The output is:
+<PRE>
+  parallel make ordering, 
+    vertices with same group number 
+    can be made in parallel
+  time_slot[dax.h] = 0
+  time_slot[yow.h] = 1
+  time_slot[boz.h] = 0
+  time_slot[zow.h] = 0
+  time_slot[foo.cpp] = 1
+  time_slot[foo.o] = 2
+  time_slot[bar.cpp] = 2
+  time_slot[bar.o] = 3
+  time_slot[libfoobar.a] = 4
+  time_slot[zig.cpp] = 1
+  time_slot[zig.o] = 2
+  time_slot[zag.cpp] = 2
+  time_slot[zag.o] = 3
+  time_slot[libzigzag.a] = 5
+  time_slot[killerapp] = 6
+</PRE>
+
+<P>
+
+<H2><A NAME="SECTION001014000000000000000"></A>
+<A NAME="sec:cycles"></A>
+<BR>
+Cyclic Dependencies
+</H2>
+
+<P>
+Another question the compilation system needs to be able to answer is
+whether there are any cycles in the dependencies. If there are cycles,
+the system will need to report an error to the user so that the cycles
+can be removed. One easy way to detect a cycle is to run a <a
+href="./depth_first_search.html">depth-first search</a>, and if the
+search runs into an already discovered vertex (of the current search
+tree), then there is a cycle. The BGL graph search algorithms (which
+includes 
+<TT>depth_first_search()</TT>) are all extensible via the
+<I>visitor</I> mechanism. A visitor is similar to a function object,
+but it has several methods instead of just the one
+<TT>operator()</TT>.  The visitor's methods are called at certain
+points within the algorithm, thereby giving the user a way to extend
+the functionality of the graph search algorithms. See Section <A
+HREF="visitor_concepts.html">Visitor Concepts</A>
+for a detailed description of visitors.
+
+<P>
+We will create a visitor class and fill in the <TT>back_edge()</TT>
+method, which is the <a href="./DFSVisitor.html">DFSVisitor</a> method
+that is called when DFS explores an edge to an already discovered
+vertex. A call to this method indicates the existence of a
+cycle. Inheriting from <TT>dfs_visitor&lt;&gt;</TT> 
+provides the visitor with empty versions of the other visitor methods.
+Once our visitor is created, we can construct and object and pass it
+to the BGL algorithm.  Visitor objects are passed by value inside of
+the BGL algorithms, so the <TT>has_cycle</TT> flag is stored by
+reference in this visitor.
+
+<P>
+<PRE>
+  struct cycle_detector : public dfs_visitor&lt;&gt;
+  {
+    cycle_detector( bool&amp; has_cycle) 
+      : _has_cycle(has_cycle) { }
+
+    template &lt;class Edge, class Graph&gt;
+    void back_edge(Edge, Graph&amp;) {
+      _has_cycle = true;
+    }
+  protected:
+    bool&amp; _has_cycle;
+  };
+</PRE>
+
+<P>
+We can now invoke the BGL <TT>depth_first_search()</TT>
+algorithm and pass in the cycle detector visitor.
+
+<P>
+<PRE>
+  bool has_cycle = false;
+  cycle_detector vis(has_cycle);
+  boost::depth_first_search(g, visitor(vis));
+  std::cout &lt;&lt; "The graph has a cycle? " &lt;&lt; has_cycle &lt;&lt; std::endl;
+</PRE>
+
+<P>
+The graph in <A HREF="#fig:file-dep">Figure 1</A> (ignoring the dotted
+line) did not have any cycles, but if we add a dependency between
+<TT>bar.cpp</TT> and <TT>dax.h</TT> there there will be. Such a
+dependency would be flagged as a user error.
+
+<P>
+<PRE>
+  add_edge(bar_cpp, dax_h, g);
+</PRE>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

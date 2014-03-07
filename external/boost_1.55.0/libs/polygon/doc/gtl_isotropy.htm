@@ -1,0 +1,565 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+ xmlns:v="urn:schemas-microsoft-com:vml"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:(null)1="http://www.w3.org/TR/REC-html40" lang="en">
+<head>
+<!--
+    Copyright 2009-2010 Intel Corporation
+    license banner
+-->
+  <title>Boost Polygon Library: Isotropy</title>
+  <meta http-equiv="content-type" content="text/html;charset=ISO-8859-1" />
+<!-- <link type="text/css" rel="stylesheet" href="adobe_source.css"> -->
+</head>
+<body>
+<table style="margin: 0pt; padding: 0pt; width: 100%;" border="0"
+ cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top">
+      <div style="padding: 5px;" align="center"> <img
+ src="images/boost.png" border="0" height="86" width="277" /><a
+ title="www.boost.org home page" href="http://www.boost.org/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      <div style="margin: 5px;">
+      <h3 class="navbar">Contents</h3>
+      <ul>
+        <li><a href="index.htm">Boost.Polygon Main Page</a></li>
+        <li><a href="gtl_design_overview.htm">Design Overview</a></li>
+        <li>Isotropy</li>
+        <li><a href="gtl_coordinate_concept.htm">Coordinate Concept</a></li>
+        <li><a href="gtl_interval_concept.htm">Interval Concept</a></li>
+        <li><a href="gtl_point_concept.htm">Point Concept</a></li>
+        <li><a href="gtl_segment_concept.htm">Segment Concept</a></li>
+        <li><a href="gtl_rectangle_concept.htm">Rectangle Concept</a></li>
+        <li><a href="gtl_polygon_90_concept.htm">Polygon 90 Concept</a></li>
+        <li><a href="gtl_polygon_90_with_holes_concept.htm">Polygon 90
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_45_concept.htm">Polygon 45 Concept</a></li>
+        <li><a href="gtl_polygon_45_with_holes_concept.htm">Polygon 45
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_concept.htm">Polygon Concept</a></li>
+        <li><a href="gtl_polygon_with_holes_concept.htm">Polygon With
+Holes Concept</a></li>
+        <li><a href="gtl_polygon_90_set_concept.htm">Polygon 90 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_45_set_concept.htm">Polygon 45 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_set_concept.htm">Polygon Set Concept</a></li>
+        <li><a href="gtl_connectivity_extraction_90.htm">Connectivity
+Extraction 90</a></li>
+        <li><a href="gtl_connectivity_extraction_45.htm">Connectivity
+Extraction 45</a></li>
+        <li><a href="gtl_connectivity_extraction.htm">Connectivity
+Extraction</a></li>
+        <li><a href="gtl_property_merge_90.htm">Property Merge 90</a></li>
+        <li><a href="gtl_property_merge_45.htm">Property Merge 45</a></li>
+        <li><a href="gtl_property_merge.htm">Property Merge</a></li>
+        <li><a href="voronoi_main.htm">Voronoi Main Page<br />
+          </a></li>
+        <li><a href="voronoi_benchmark.htm">Voronoi Benchmark</a><br />
+        </li>
+        <li><a href="voronoi_builder.htm">Voronoi Builder</a></li>
+        <li><a href="voronoi_diagram.htm">Voronoi Diagram</a></li>
+      </ul>
+      <h3 class="navbar">Other Resources</h3>
+      <ul>
+        <li><a href="GTL_boostcon2009.pdf">GTL Boostcon 2009 Paper</a></li>
+        <li><a href="GTL_boostcon_draft03.pdf">GTL Boostcon 2009
+Presentation</a></li>
+        <li><a href="analysis.htm">Performance Analysis</a></li>
+        <li><a href="gtl_tutorial.htm">Layout Versus Schematic Tutorial</a></li>
+        <li><a href="gtl_minkowski_tutorial.htm">Minkowski Sum Tutorial</a></li>
+        <li><a href="voronoi_basic_tutorial.htm">Voronoi Basic Tutorial</a></li>
+        <li><a href="voronoi_advanced_tutorial.htm">Voronoi Advanced
+Tutorial</a></li>
+      </ul>
+      </div>
+      <h3 class="navbar">Polygon Sponsor</h3>
+      <div style="padding: 5px;" align="center"> <img
+ src="images/intlogo.gif" border="0" height="51" width="127" /><a
+ title="www.adobe.com home page" href="http://www.adobe.com/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      </td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+<!-- End Header --><br />
+      <p>
+      </p>
+      <h1>Isotropy</h1>
+      <p> </p>
+      <p align="left">What is isotropy?</p>
+      <p:colorscheme
+ colors="#ffffff,#000000,#808080,#000000,#bbe0e3,#333399,#009999,#99cc00">
+      </p:colorscheme>
+      <div class="O" style="text-align: center;" v:shape="_x0000_s1026">
+      <p style="text-align: left;"> <span style="">Isotropy -
+Function: <i>adjective</i> Etymology: International Scientific
+Vocabulary<br />
+      <b>:</b> exhibiting properties (as velocity of light
+transmission) with the same values when measured along axes in all
+directions &lt;an <i>isotropic</i> crystal&gt;</span></p>
+      </div>
+      <p align="left">In computational geometry things are often
+symmetric and invariant to direction and orientation.&nbsp; This
+invariance to direction is called isotropy.&nbsp; In such situations it
+is convenient to parameterize direction or orientation and write code
+that is invariant to the direction or orientation in which it is
+applied.&nbsp; To do this effectively we provide an internally
+consistent set of isotropic data types to represent program data that
+describes orientations and directions.&nbsp; These data types are:</p>
+      <ul>
+        <li>direction_1d - has one of the following 2 states: LOW, HIGH
+        </li>
+        <li>orientation_2d - has one of the following 2 states:
+HORIZONTAL, VERTICAL</li>
+        <li>direction_2d - has one of the following 4 states: WEST,
+EAST, SOUTH, NORTH</li>
+        <li>orientation_3d - has one of the following 3 states:
+HORIZONTAL, VERTICAL, PROXIMAL</li>
+        <li>direction_3d - has one of the following 6 states: WEST,
+EAST, SOUTH, NORTH, DOWN, UP</li>
+      </ul>
+      <p align="left">The isotropic types create a system and interact
+with each other in various ways, such as casting.&nbsp; Together they
+create a language for describing isotropic situations
+programmatically.&nbsp; For instance, to get the positive direction_2d
+from an orientation_2d you would call a member function of
+orientation_2d and pass a direction_1d:</p>
+      <p align="left"><font face="Courier New">orientation_2d orient =
+HORIZONTAL;<br />
+direction_2d dir = orient.get_direction(direction_1d(HIGH));<br />
+assert(dir == EAST);</font></p>
+      <p align="left">The motivation for providing isotropic data types
+is to encourage programming at a higher level of abstraction where
+program behavior is controlled by program data passed into function
+calls rather than flow control syntax.&nbsp; Isotropic programming
+style is particularly applicable to working with points, intervals and
+rectangles.&nbsp; Often times the implementation of such logic is
+identical when implemented for the x or y coordinates, except that the
+names of functions and data members are changed in a mechanical way
+leading to code duplication and bloat that results in copy-paste
+programming errors and maintenance problems where changes made to a
+given code block relating to x coordiantes are not duplicated to the
+code block that refers to y.&nbsp; Isotropy therefore represents an
+opportunity to refactor and improve the quality of low level geometry
+code especially in regard to inter-relating coordinates, points,
+intervals and rectangles.</p>
+      <h2>direction_1d</h2>
+      <p> </p>
+      <p align="left">The direction_1d data type has two possible
+states.&nbsp; These are the positive and negative directions on a
+continuum such as the number line.&nbsp;&nbsp; These states can be
+described by one of several direction_1d_enum values:&nbsp; We make
+clockwise and counterclockwise winding orientation of polygons a
+direction 1d value instead of providing a separate winding_orientation
+data type.&nbsp; This is because winding orientation can be thought of
+as positive and negative directions in a 1d (although cyclic)
+space.&nbsp; We assign counterclockwise to be the positive direction of
+travel in the 1d cyclic space to conform with the mathematical
+convention frequently described as the "right hand rule" which assigns
+positive normal value to counterclockwise and negative normal value to
+clockwise as well as the common convention that counterclockwise
+polygon winding corresponds to positive polygonal regions where as
+clockwise polygon winding corresponds to hole (negative) polygonal
+regions.</p>
+      <p align="left"><font face="Courier New">enum direction_1d_enum
+{LOW = 0, HIGH = 1,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+LEFT = 0, RIGHT = 1,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+CLOCKWISE = 0, COUNTERCLOCKWISE = 1,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+REVERSE = 0, FORWARD = 1,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+NEGATIVE = 0, POSITIVE = 1 };</font></p>
+      <h2>Member Functions</h2>
+      <table id="table1" border="1" width="100%">
+        <tbody>
+          <tr>
+            <td width="586"><font face="Courier New"><b>direction_1d</b>(direction_1d_enum
+val = LOW)</font></td>
+            <td>Constructor defaults to LOW. </td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">direction_1d</font></b><font
+ face="Courier New">(const direction_1d&amp; that)</font></td>
+            <td>Copy construct.</td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">direction_1d</font></b><font
+ face="Courier New">(const direction_2d&amp; that)</font></td>
+            <td>Down cast direction_2d, extracting out whether positive
+or negative</td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">direction_1d</font></b><font
+ face="Courier New">(const direction_3d&amp; that)</font></td>
+            <td>Down cast direction_3d, extracting out whether positive
+or negative</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_1d&amp; <b>operator=</b>(const
+direction_1d dir)</font></td>
+            <td>Assignment</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_1d&amp; <b>operator==</b>(const
+direction_1d dir) const</font></td>
+            <td>Equivalence</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_1d&amp; <b>operator!=</b>(const
+direction_1d dir) const</font></td>
+            <td>Inequivalence</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">unsigned int <b>to_int</b>()
+const</font></td>
+            <td>Convert to the integer enum value of current state to
+use as index.&nbsp; Auto-cast to int is disallowed for type safety
+reasons.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_1d&amp; <b>backward</b>()</font></td>
+            <td>Inverts direction.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">int <b>get_sign</b>()
+const</font></td>
+            <td>Returns positive 1 if positive direction and negative
+one if negative direction.</td>
+          </tr>
+        </tbody>
+      </table>
+      <h2>orientation_2d</h2>
+      <p> </p>
+      <p align="left">The orientation_2d data type has two possible
+states.&nbsp; These are the horizontal and vertical axis of a 2d
+Cartesian coordinate system.&nbsp;&nbsp; These states can be described
+by one of the two orientation_2d_enum values:</p>
+      <p align="left"><font face="Courier New">enum orientation_2d_enum
+{ HORIZONTAL = 0, VERTICAL = 1 };</font></p>
+      <h2>Member Functions</h2>
+      <table id="table2" border="1" width="100%">
+        <tbody>
+          <tr>
+            <td width="586"><b><font face="Courier New">orientation_2</font></b><font
+ face="Courier New"><b>d</b>(orientation_2d_enum val = HORIZONTAL)</font></td>
+            <td>Constructor defaults to HORIZONTAL. </td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">orientation_2</font></b><font
+ face="Courier New"><b>d</b>(const orientation_2d&amp; that)</font></td>
+            <td>Copy construct.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">explicit </font><b>
+            <font face="Courier New">orientation_2</font></b><font
+ face="Courier New"><b>d</b>(const direction_2d&amp; that)</font></td>
+            <td>Down cast direction_2d, extracting out whether
+horizontal or vertical direction type</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">orientation_2d&amp;
+            <b>operator=</b>(const orientation_2d o)</font></td>
+            <td>Assignment</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">orientation_2d&amp;
+            <b>operator==</b>(const orientation_2d o) const</font></td>
+            <td>Equivalence</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">orientation_2d&amp;
+            <b>operator!=</b>(const orientation_2d o) const</font></td>
+            <td>Inequivalence</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">unsigned int <b>to_int</b>()
+const</font></td>
+            <td>Convert to the integer enum value of current state to
+use as index.&nbsp; Auto-cast to int is disallowed for type safety
+reasons</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">orientation_2d&amp;
+            <b>turn_90</b>()</font></td>
+            <td>Change to orthogonal orientation</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">int <b>get_perpendicular</b>()
+const</font></td>
+            <td>Returns orthogonal orientation</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">int <b>get_direction</b>(direction_1d
+dir) const</font></td>
+            <td>Returns the positive or negative direction_2d depending
+on the value of dir</td>
+          </tr>
+        </tbody>
+      </table>
+      <h2>direction_2d</h2>
+      <p> </p>
+      <p align="left">The direction_2d data type has four possible
+states.&nbsp; These are the cardinal directions of the 2D Cartesian
+coordinate system.&nbsp;&nbsp; These states can be described by one of
+several direction_2d_enum values:</p>
+      <p align="left"><font face="Courier New">enum direction_2d_enum {
+WEST = 0, EAST = 1, SOUTH = 2, NORTH = 3 };</font></p>
+      <h2>Member Functions</h2>
+      <table id="table3" border="1" width="100%">
+        <tbody>
+          <tr>
+            <td width="586"><font face="Courier New"><b>direction_2d</b>(direction_2d_enum
+val = WEST)</font></td>
+            <td>Constructor defaults to WEST. </td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">direction_2d</font></b><font
+ face="Courier New">(const direction_2d&amp; that)</font></td>
+            <td>Copy construct.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_1d&amp; <b>operator=</b>(const
+direction_2d dir)</font></td>
+            <td>Assignment</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_1d&amp; <b>operator==</b>(const
+direction_2d dir) const</font></td>
+            <td>Equivalence</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_1d&amp; <b>operator!=</b>(const
+direction_2d dir) const</font></td>
+            <td>Inequivalence</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">unsigned int <b>to_int</b>()
+const</font></td>
+            <td>Convert to the integer enum value of current state to
+use as index.&nbsp; Auto-cast to int is disallowed for type safety
+reasons.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_2d&amp; <b>backward</b>()</font></td>
+            <td>Inverts direction.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_2d&amp; <b>turn</b>(direction_1d
+dir)</font></td>
+            <td>Changes to direction_2d to the left if dir is LOW, to
+the right if dir is HIGH</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_2d&amp; <b>left</b>()</font></td>
+            <td>Changes to the direction_2d to the left</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_2d&amp; <b>right</b>()</font></td>
+            <td>Changes to the direction_2d to the right</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">int <b>is_positive</b>()
+const</font></td>
+            <td>Returns true if EAST or NORTH</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">int <b>is_negative</b>()
+const</font></td>
+            <td>Returns true if WEST or SOUTH</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">int <b>get_sign</b>()
+const</font></td>
+            <td>Returns positive 1 if positive direction and negative
+one if negative direction.</td>
+          </tr>
+        </tbody>
+      </table>
+      <h2>orientation_3d</h2>
+      <p> </p>
+      <p align="left">The orientation_3d data type has three possible
+states.&nbsp; These are the horizontal, vertical and proximal (x, y, z)
+axis of a 3d Cartesian coordinate system.&nbsp;&nbsp; These states can
+be described by one of the orientation_2d_enum values or by the
+orientation_3d_enum value:</p>
+      <p align="left"><font face="Courier New">enum orientation_3d_enum
+{ PROXIMAL = 2 };</font></p>
+      <h2>Member Functions</h2>
+      <table id="table6" border="1" width="100%">
+        <tbody>
+          <tr>
+            <td width="586"><b><font face="Courier New">orientation_3</font></b><font
+ face="Courier New"><b>d</b>(orientation_2d_enum val = HORIZONTAL)</font></td>
+            <td>Constructor defaults to HORIZONTAL. </td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">orientation_3</font></b><font
+ face="Courier New"><b>d</b>(const orientation_3d&amp; that)</font></td>
+            <td>Copy construct.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">explicit </font><b>
+            <font face="Courier New">orientation_3</font></b><font
+ face="Courier New"><b>d</b>(const direction_2d&amp; that)</font></td>
+            <td>Extract out the orientation of the direction</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">explicit </font><b>
+            <font face="Courier New">orientation_3</font></b><font
+ face="Courier New"><b>d</b>(const direction_3d&amp; that)</font></td>
+            <td>Extract out the orientation of the direction</td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">orientation_3</font></b><font
+ face="Courier New"><b>d</b>(const orientation_2d&amp; that)</font></td>
+            <td>Up cast orientation_2d to orientation_3d.</td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">orientation_3</font></b><font
+ face="Courier New"><b>d</b>(const orientation_3d_enum&amp; that)</font></td>
+            <td>Construct from constant value</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">orientation_3d&amp;
+            <b>operator=</b>(const orientation_3d o)</font></td>
+            <td>Assignment</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">orientation_3d&amp;
+            <b>operator==</b>(const orientation_3d o) const</font></td>
+            <td>Equivalence</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">orientation_3d&amp;
+            <b>operator!=</b>(const orientation_3d o) const</font></td>
+            <td>Inequivalence</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">unsigned int <b>to_int</b>()
+const</font></td>
+            <td>Convert to the integer enum value of current state to
+use as index.&nbsp; Auto-cast to int is disallowed for type safety
+reasons</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">int <b>get_direction</b>(direction_1d
+dir) const</font></td>
+            <td>Returns the positive or negative direction_2d depending
+on the value of dir</td>
+          </tr>
+        </tbody>
+      </table>
+      <h2>direction_3d</h2>
+      <p> </p>
+      <p align="left">The direction_3d data type has six possible
+states.&nbsp; These are the cardinal directions of the 3D Cartesian
+coordinate system.&nbsp;&nbsp; These states can be described by one of
+the direction_2d_enum values or the direction_3d_enum values:</p>
+      <p align="left"><font face="Courier New">enum direction_3d_enum {
+DOWN = 4, UP = 5 };</font></p>
+      <h2>Member Functions</h2>
+      <table id="table5" border="1" width="100%">
+        <tbody>
+          <tr>
+            <td width="586"><font face="Courier New"><b>direction_3d</b>(direction_2d_enum
+val = WEST)</font></td>
+            <td>Constructor defaults to LOW. </td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">direction_3d</font></b><font
+ face="Courier New">(direction_3d_enum that)</font></td>
+            <td>Construct from constant value</td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">direction_3d</font></b><font
+ face="Courier New">(const direction_3d&amp; that)</font></td>
+            <td>Copy construct</td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">direction_3d</font></b><font
+ face="Courier New">(direction_2d that)</font></td>
+            <td>Up cast direction_2d to direction_3d</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_3d&amp; <b>operator=</b>(const
+direction_3d dir)</font></td>
+            <td>Assignment</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_3d&amp; <b>operator==</b>(const
+direction_3d dir) const</font></td>
+            <td>Equivalence</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_2d&amp; <b>operator!=</b>(const
+direction_3d dir) const</font></td>
+            <td>Inequivalence</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">unsigned int <b>to_int</b>()
+const</font></td>
+            <td>Convert to the integer enum value of current state to
+use as index.&nbsp; Auto-cast to int is disallowed for type safety
+reasons.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">direction_1d&amp; <b>backward</b>()</font></td>
+            <td>Inverts direction.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">int <b>is_positive</b>()
+const</font></td>
+            <td>Returns true if direction is EAST, NORTH or UP.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">int <b>is_negative</b>()
+const</font></td>
+            <td>Returns true if direction is WEST, SOUTH or DOWN</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">int <b>get_sign</b>()
+const</font></td>
+            <td>Returns positive 1 if positive direction and negative
+one if negative direction.</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top"> &nbsp;</td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+      <table class="docinfo" id="table7" frame="void" rules="none">
+        <colgroup> <col class="docinfo-name" /><col
+ class="docinfo-content" /> </colgroup> <tbody valign="top">
+          <tr>
+            <th class="docinfo-name">Copyright:</th>
+            <td>Copyright © Intel Corporation 2008-2010.</td>
+          </tr>
+          <tr class="field">
+            <th class="docinfo-name">License:</th>
+            <td class="field-body">Distributed under the Boost Software
+License, Version 1.0. (See accompanying file <tt class="literal"> <span
+ class="pre">LICENSE_1_0.txt</span></tt> or copy at <a
+ class="reference" target="_top"
+ href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>

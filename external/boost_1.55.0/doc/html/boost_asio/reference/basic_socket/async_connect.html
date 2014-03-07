@@ -1,0 +1,113 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>basic_socket::async_connect</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../basic_socket.html" title="basic_socket">
+<link rel="prev" href="assign/overload2.html" title="basic_socket::assign (2 of 2 overloads)">
+<link rel="next" href="at_mark.html" title="basic_socket::at_mark">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="assign/overload2.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../basic_socket.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="at_mark.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.reference.basic_socket.async_connect"></a><a class="link" href="async_connect.html" title="basic_socket::async_connect">basic_socket::async_connect</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp67016440"></a> 
+Start an asynchronous connect.
+        </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="../ConnectHandler.html" title="Connect handler requirements">ConnectHandler</a><span class="special">&gt;</span>
+<a class="link" href="../asynchronous_operations.html#boost_asio.reference.asynchronous_operations.return_type_of_an_initiating_function"><span class="emphasis"><em>void-or-deduced</em></span></a> <span class="identifier">async_connect</span><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">endpoint_type</span> <span class="special">&amp;</span> <span class="identifier">peer_endpoint</span><span class="special">,</span>
+    <span class="identifier">ConnectHandler</span> <span class="identifier">handler</span><span class="special">);</span>
+</pre>
+<p>
+          This function is used to asynchronously connect a socket to the specified
+          remote endpoint. The function call always returns immediately.
+        </p>
+<p>
+          The socket is automatically opened if it is not already open. If the connect
+          fails, and the socket was automatically opened, the socket is not returned
+          to the closed state.
+        </p>
+<h6>
+<a name="boost_asio.reference.basic_socket.async_connect.h0"></a>
+          <span class="phrase"><a name="boost_asio.reference.basic_socket.async_connect.parameters"></a></span><a class="link" href="async_connect.html#boost_asio.reference.basic_socket.async_connect.parameters">Parameters</a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">peer_endpoint</span></dt>
+<dd><p>
+                The remote endpoint to which the socket will be connected. Copies
+                will be made of the endpoint object as required.
+              </p></dd>
+<dt><span class="term">handler</span></dt>
+<dd>
+<p>
+                The handler to be called when the connection operation completes.
+                Copies will be made of the handler as required. The function signature
+                of the handler must be:
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">handler</span><span class="special">(</span>
+  <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">error</span> <span class="comment">// Result of operation</span>
+<span class="special">);</span>
+</pre>
+<p>
+                Regardless of whether the asynchronous operation completes immediately
+                or not, the handler will not be invoked from within this function.
+                Invocation of the handler will be performed in a manner equivalent
+                to using <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">post</span><span class="special">()</span></code>.
+              </p>
+</dd>
+</dl>
+</div>
+<h6>
+<a name="boost_asio.reference.basic_socket.async_connect.h1"></a>
+          <span class="phrase"><a name="boost_asio.reference.basic_socket.async_connect.example"></a></span><a class="link" href="async_connect.html#boost_asio.reference.basic_socket.async_connect.example">Example</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">connect_handler</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">error</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">error</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="comment">// Connect succeeded.</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="special">...</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">);</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">endpoint</span> <span class="identifier">endpoint</span><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">address</span><span class="special">::</span><span class="identifier">from_string</span><span class="special">(</span><span class="string">"1.2.3.4"</span><span class="special">),</span> <span class="number">12345</span><span class="special">);</span>
+<span class="identifier">socket</span><span class="special">.</span><span class="identifier">async_connect</span><span class="special">(</span><span class="identifier">endpoint</span><span class="special">,</span> <span class="identifier">connect_handler</span><span class="special">);</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="assign/overload2.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../basic_socket.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="at_mark.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

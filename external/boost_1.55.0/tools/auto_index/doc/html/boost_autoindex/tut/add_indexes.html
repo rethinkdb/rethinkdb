@@ -1,0 +1,173 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Step 3: Add indexes to your documentation</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Boost.AutoIndex">
+<link rel="up" href="../tut.html" title="Getting Started and Tutorial">
+<link rel="prev" href="configure/optional.html" title="Making AutoIndex optional">
+<link rel="next" href="script.html" title="Step 4: Create the .idx script file - to control what to terms to index">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="configure/optional.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="script.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_autoindex.tut.add_indexes"></a><a class="link" href="add_indexes.html" title="Step 3: Add indexes to your documentation">Step 3: Add indexes
+      to your documentation</a>
+</h3></div></div></div>
+<p>
+        To add a single "include everything" index to a BoostBook/Docbook
+        document, (perhaps generated using Quickbook, and perhaps also using Doxygen
+        reference section), add <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">index</span><span class="special">/&gt;</span></code>
+        at the location where you want the index to appear. The index will be rendered
+        as a separate section called "Index" when the documentation is
+        built.
+      </p>
+<p>
+        To add multiple indexes, then give each one a title and set its <code class="computeroutput"><span class="identifier">type</span></code> attribute to specify which terms will
+        be included, for example to place the <span class="emphasis"><em>function</em></span>, <span class="emphasis"><em>class</em></span>,
+        <span class="emphasis"><em>macro</em></span> or <span class="emphasis"><em>typedef</em></span> names indexed
+        by <span class="emphasis"><em>AutoIndex</em></span> in separate indexes along with a main "include
+        everything" index as well, one could add:
+      </p>
+<pre class="programlisting">&lt;index type="class_name"&gt;
+&lt;title&gt;Class Index&lt;/title&gt;
+&lt;/index&gt;
+
+&lt;index type="typedef_name"&gt;
+&lt;title&gt;Typedef Index&lt;/title&gt;
+&lt;/index&gt;
+
+&lt;index type="function_name"&gt;
+&lt;title&gt;Function Index&lt;/title&gt;
+&lt;/index&gt;
+
+&lt;index type="macro_name"&gt;
+&lt;title&gt;Macro Index&lt;/title&gt;
+&lt;/index&gt;
+
+&lt;index/&gt;
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Multiple indexes like this only work correctly if you tell the XSL stylesheets
+          to honor the "type" attribute on each index as by default . You
+          can turn the feature on by adding <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">xsl</span><span class="special">:</span><span class="identifier">param</span><span class="special">&gt;</span><span class="identifier">index</span><span class="special">.</span><span class="identifier">on</span><span class="special">.</span><span class="identifier">type</span><span class="special">=</span><span class="number">1</span></code> to your
+          projects requirements in the Jamfile.
+        </p></td></tr>
+</table></div>
+<p>
+        In Quickbook, you add the same markup but enclose it between two triple-tick
+        ''' escapes, thus
+      </p>
+<pre class="programlisting">'''&lt;index/&gt;''' </pre>
+<p>
+        Or more easily via the helper file auto_index_helpers.qbk, so that given:
+      </p>
+<pre class="programlisting">[include auto_index_helpers.qbk]</pre>
+<p>
+        one can simply write:
+      </p>
+<pre class="programlisting">[named_index class_name Class Index]
+[named_index function_name Function Index]
+[named_index typedef_name Typedef Index]
+[named_index macro_name Macro Index]
+[index]
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          AutoIndex knows nothing of the XML <code class="computeroutput"><span class="identifier">xinclude</span></code>
+          element, so if you're writing raw Docbook XML then you may want to run
+          this through an XSL processor to flatten everything to one XML file before
+          passing to AutoIndex. If you're using Boostbook or quickbook though, this
+          all happens for you anyway, and AutoIndex will index the whole document
+          including any sections included with <code class="computeroutput"><span class="identifier">xinclude</span></code>.
+        </p></td></tr>
+</table></div>
+<p>
+        If you are using AutoIndex's internal index generation on
+      </p>
+<pre class="programlisting">&lt;auto-index-internal&gt;on
+</pre>
+<p>
+        (usually recommended for HTML output, but <span class="emphasis"><em>not</em></span> the default)
+        then you can also decide what kind of XML wrapper the generated index is
+        placed in. By default this is a <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">section</span><span class="special">&gt;...&lt;/</span><span class="identifier">section</span><span class="special">&gt;</span></code>
+        XML block (this replaces the original <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">index</span><span class="special">&gt;...&lt;/</span><span class="identifier">index</span><span class="special">&gt;</span></code>
+        block). However, depending upon the structure of the document and whether
+        or not you want the index on a separate page - or else on the front page
+        after the TOC - you may want to place the index inside a different type of
+        XML block. For example if your document uses <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">chapter</span><span class="special">&gt;</span></code>
+        top level content rather than <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">section</span><span class="special">&gt;</span></code>s
+        then it may be preferable to place the index in a <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">chapter</span><span class="special">&gt;</span></code>
+        or <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">appendix</span><span class="special">&gt;</span></code> block. You can also place the index inside
+        an <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">index</span><span class="special">&gt;</span></code> block if you prefer, in which case the
+        index does not appear in on a page of its own, but after the TOC in the HTML
+        output.
+      </p>
+<p>
+        You control the type of XML block used by setting the <code class="literal">&lt;auto-index-type&gt;element-name</code>
+        attribute in the Jamfile, or via the <code class="computeroutput"><span class="identifier">index</span><span class="special">-</span><span class="identifier">type</span><span class="special">=</span><span class="identifier">element</span><span class="special">-</span><span class="identifier">name</span></code> command line option to AutoIndex itself.
+        For example, to place the index in an appendix, your Jamfile might look like:
+      </p>
+<pre class="programlisting">using quickbook ;
+using auto-index ;
+
+xml mylibrary : mylibary.qbk ;
+boostbook standalone
+    :
+        mylibrary
+    :
+        # auto-indexing is on:
+        &lt;auto-index&gt;on  
+        
+        # PDFs rely on the XSL stylesheets to generate the index:
+        &lt;format&gt;pdf:&lt;auto-index-internal&gt;off  
+        
+        # HTML output uses auto-index to generate the index:
+        &lt;format&gt;html:&lt;auto-index-internal&gt;on
+        
+        # Name of script file to use:
+        &lt;auto-index-script&gt;index.idx
+        
+        # Set the XML wrapper for HML Indexes to "appendix":
+        &lt;format&gt;html:&lt;auto-index-type&gt;appendix
+        
+        # Turn on multiple index support:
+        &lt;xsl:param&gt;index.on.type=1
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008, 2011 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="configure/optional.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="script.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

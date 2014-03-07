@@ -1,0 +1,49 @@
+[/
+    Copyright (c) 2008-2009 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Range ===================================================================]
+[section Range]
+
+[table
+[[['*Range*]]                 [__ch_itvs__][__ch_itv_sets__][__ch_itv_maps__][condition]   ]
+[[`interval<domain_type> hull(const T&)`] [      ]  [__O1__] [__O1__][]          ]
+[[`domain_type T::lower()const`]          [__O1__]  [__O1__] [__O1__][]          ]
+[[`domain_type T::upper()const`]          [__O1__]  [__O1__] [__O1__][]          ]
+[[`domain_type T::first()const`]          [__O1__]  [__O1__] [__O1__][`!is_continuous<domain_type>::value`]]
+[[`domain_type T::last()const`]           [__O1__]  [__O1__] [__O1__][`!is_continuous<domain_type>::value`]]
+]
+
+The table above shows the availability of functions 
+`hull`, `lower`, `upper`, `first` and `last` on intervals 
+and interval containers that are all of ['*constant time complexity*].
+Find the functions description and some simple properties below.
+
+[table
+[[['*Range*]]                               [Types] [Description]                                        ]
+[[`interval<domain_type> hull(const T&)`] [__S __M] [`hull(x)` returns the smallest interval that contains all intervals of an interval container `x`.] ]
+[[`domain_type T::lower()const`]       [__i __S __M][`x.lower()` returns the lower bound of an interval or interval container `x`.]  ]
+[[`domain_type T::upper()const`]       [__i __S __M][`x.upper()` returns the upper bound of an interval or interval container `x`.]         ]
+[[`domain_type T::first()const`]       [__i __S __M][`x.first()` returns the first element of an interval or interval container `x`. 
+                                                     `T::first()` is defined for a non continuous `domain_type` only.] ]
+[[`domain_type T::last()const`]        [__i __S __M][`x.last()` returns the last element of an interval or interval container `x`. 
+                                                     `T::last()` is defined for a non continuous `domain_type` only.] ]                                                                                                     
+]
+
+``
+// for interval_containers x:
+hull(x).lower() == x.lower()
+hull(x).upper() == x.upper()
+hull(x).first() == x.first()
+hull(x).last()  == x.last()
+``
+
+
+[endsect][/ Range]
+
+

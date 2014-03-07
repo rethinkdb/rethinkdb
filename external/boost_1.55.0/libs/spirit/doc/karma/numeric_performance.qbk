@@ -1,0 +1,169 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:numeric_performance Performance of Numeric Generators]
+
+[section:int_performance Comparing the performance of a single int_ generator]
+
+These performance measurements are centered around default formatting of a 
+single `int` integer number using different libraries and methods. 
+The overall execution times for those examples are compared below. We compare
+using `sprintf`, C++ iostreams, __boost_format__, and __karma__.
+
+For the full source code of the performance test please see here:
+[@../../optimization/karma/int_generator.cpp int_generator.cpp]. All the 
+measurements have been done by executing `1e7` iterations for each 
+formatting type (NUMITERATIONS is set to `1e7` in the code shown below).
+
+[import ../../optimization/karma/int_generator.cpp]
+
+Code used to measure the performance for `ltoa`:
+
+[karma_int_performance_ltoa]
+
+Code used to measure the performance for standard C++ iostreams:
+
+[karma_int_performance_iostreams]
+
+Code used to measure the performance for __boost_format__:
+
+[karma_int_performance_format]
+
+Code used to measure the performance for __karma__ using a plain character buffer:
+
+[karma_int_performance_plain]
+
+The following table shows the overall performance results collected 
+while using different compilers. All times are in seconds measured for `1e7`
+iterations (platform: Windows7, Intel Core Duo(tm) Processor, 2.8GHz, 4GByte RAM). 
+For a more readable comparison of the results see this 
+[link spirit.karma.int_performance figure].
+
+[table Performance comparison for a single int (all times in [s], `1e7` iterations)
+    [[Library]              [gcc 4.4.0 (32 bit)] [VC++ 10 (32 bit)] [Intel 11.1 (32 bit)] [gcc 4.4.0 (64 bit)] [VC++ 10 (64 bit)] [Intel 11.1 (64 bit)]]
+    [[ltoa]                 [1.542]              [0.895]            [0.884]               [1.163]              [1.099]            [0.906]]
+    [[iostreams]            [6.548]              [13.727]           [11.898]              [3.464]              [8.316]            [8.115]]
+    [[__boost_format__]     [16.998]             [21.813]           [20.477]              [17.464]             [14.662]           [13.646]]
+    [[__karma__ int_]       [1.421]              [0.744]            [0.697]               [1.072]              [0.953]            [0.606]]
+]
+
+[fig int_performance.png..Performance comparison for a single int..spirit.karma.int_performance]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:double_performance Comparing the performance of a single double_ generator]
+
+These performance measurements are centered around default formatting of a 
+single `double` floating point number using different libraries and methods. 
+The overall execution times for those examples are compared below. We compare
+using `sprintf`, C++ iostreams, __boost_format__, and __karma__.
+
+For the full source code of the performance test please see here:
+[@../../optimization/karma/double_performance.cpp double_performance.cpp]. All the 
+measurements have been done by executing `1e6` iterations for each 
+formatting type (NUMITERATIONS is set to `1e6` in the code shown below).
+
+[import ../../optimization/karma/double_performance.cpp]
+
+Code used to measure the performance for `sprintf`:
+
+[karma_double_performance_printf]
+
+Code used to measure the performance for standard C++ iostreams:
+
+[karma_double_performance_iostreams]
+
+Code used to measure the performance for __boost_format__:
+
+[karma_double_performance_format]
+
+The following code shows the common definitions used by all __karma__ performance
+measurements as listed below:
+
+[karma_double_performance_definitions]
+
+Code used to measure the performance for __karma__ using a plain character buffer:
+
+[karma_double_performance_plain]
+
+The following table shows the overall performance results collected 
+while using different compilers. All times are in seconds measured for `1e6`
+iterations (platform: Windows7, Intel Core Duo(tm) Processor, 2.8GHz, 4GByte RAM). 
+For a more readable comparison of the results see this 
+[link spirit.karma.double_performance figure].
+
+[table Performance comparison for a single double (all times in [s], `1e6` iterations)
+    [[Library]              [gcc 4.4.0 (32 bit)] [VC++ 10 (32 bit)] [Intel 11.1 (32 bit)] [gcc 4.4.0 (64 bit)] [VC++ 10 (64 bit)] [Intel 11.1 (64 bit)]]
+    [[sprintf]              [0.755]              [0.965]            [0.880]               [0.713]              [0.807]            [0.694]]
+    [[iostreams]            [2.316]              [2.624]            [1.964]               [1.634]              [1.468]            [1.354]]
+    [[__boost_format__]     [3.188]              [3.737]            [2.878]               [3.217]              [2.672]            [2.011]]
+    [[__karma__ double_]    [0.813]              [0.561]            [0.368]               [0.426]              [0.260]            [0.218]]
+]
+
+[fig double_performance.png..Performance comparison for a single double..spirit.karma.double_performance]
+
+[endsect]
+
+[////////////////////////////////////////////////////////////////////////////]
+[section:format_performance Comparing the performance of a sequence of several generators]
+
+These performance measurements are centered around formatting of a sequence of
+different items, including 2 `double` floating point numbers using different 
+libraries and methods. The overall execution times for those examples are 
+compared below. We compare using `sprintf`, C++ iostreams, __boost_format__, 
+and __karma__.
+
+For the full source code of the performance test please see here:
+[@../../optimization/karma/format_performance.cpp format_performance.cpp]. All the 
+measurements have been done by doing `1e6` iterations for each formatting 
+type (NUMITERATIONS is set to `1e6`).
+
+[import ../../optimization/karma/format_performance.cpp]
+
+Code used to measure the performance for sprintf:
+
+[karma_format_performance_printf]
+
+Code used to measure the performance for standard iostreams:
+
+[karma_format_performance_iostreams]
+
+Code used to measure the performance for __boost_format__:
+
+[karma_format_performance_format]
+
+The following code shows the common definitions used by all __karma__ 
+performance measurements as listed below:
+
+[karma_format_performance_definitions]
+
+Code used to measure the performance for __karma__ using a plain character 
+buffer:
+
+[karma_format_performance_plain]
+
+The following table shows the overall performance results collected 
+while using different compilers. All times are in seconds measured for `1e6`
+iterations (platform: Windows7, Intel Core Duo(tm) Processor, 2.8GHz, 4GByte RAM). 
+For a more readable comparison of the results see this 
+[link spirit.karma.format_performance figure].
+
+[table Performance comparison for a sequence of several items (all times in [s], `1e6` iterations)
+    [[Library]              [gcc 4.4.0 (32 bit)] [VC++ 10 (32 bit)] [Intel 11.1 (32 bit)] [gcc 4.4.0 (64 bit)] [VC++ 10 (64 bit)] [Intel 11.1 (64 bit)]]
+    [[sprintf]              [1.725]              [1.892]            [1.903]               [1.469]              [1.608]            [1.493]]
+    [[iostreams]            [4.827]              [5.287]            [4.444]               [3.112]              [3.319]            [2.877]]
+    [[__boost_format__]     [5.881]              [7.089]            [5.801]               [5.455]              [5.254]            [4.164]]
+    [[__karma__]            [1.942]              [1.242]            [0.999]               [1.334]              [0.758]            [0.686]]
+]
+
+[fig format_performance.png..Performance comparison for a sequence of several items..spirit.karma.format_performance]
+
+[endsect]
+
+[endsect]

@@ -1,0 +1,193 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template date_generator_formatter</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.date_generator_formatter_hpp" title="Header &lt;boost/date_time/date_generator_formatter.hpp&gt;">
+<link rel="prev" href="ostream_date_formatter.html" title="Class template ostream_date_formatter">
+<link rel="next" href="date_generator_parser.html" title="Class template date_generator_parser">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ostream_date_formatter.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.date_generator_formatter_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="date_generator_parser.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.date_generator_formatter"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template date_generator_formatter</span></h2>
+<p>boost::date_time::date_generator_formatter &#8212; Formats date_generators for output. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.date_generator_formatter_hpp" title="Header &lt;boost/date_time/date_generator_formatter.hpp&gt;">boost/date_time/date_generator_formatter.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> date_type<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">,</span> 
+         <span class="keyword">typename</span> OutItrT <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostreambuf_iterator</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">char_traits</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="date_generator_formatter.html" title="Class template date_generator_formatter">date_generator_formatter</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <a class="link" href="partial_date.html" title="Class template partial_date">partial_date</a><span class="special">&lt;</span> <span class="identifier">date_type</span> <span class="special">&gt;</span>        <a name="boost.date_time.date_generator_formatter.partial_date_type"></a><span class="identifier">partial_date_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <a class="link" href="nth_kday_of_month.html" title="Class template nth_kday_of_month">nth_kday_of_month</a><span class="special">&lt;</span> <span class="identifier">date_type</span> <span class="special">&gt;</span>   <a name="boost.date_time.date_generator_formatter.nth_kday_type"></a><span class="identifier">nth_kday_type</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <a class="link" href="first_kday_of_month.html" title="Class template first_kday_of_month">first_kday_of_month</a><span class="special">&lt;</span> <span class="identifier">date_type</span> <span class="special">&gt;</span> <a name="boost.date_time.date_generator_formatter.first_kday_type"></a><span class="identifier">first_kday_type</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <a class="link" href="last_kday_of_month.html" title="Class template last_kday_of_month">last_kday_of_month</a><span class="special">&lt;</span> <span class="identifier">date_type</span> <span class="special">&gt;</span>  <a name="boost.date_time.date_generator_formatter.last_kday_type"></a><span class="identifier">last_kday_type</span><span class="special">;</span>   
+  <span class="keyword">typedef</span> <a class="link" href="first_kday_after.html" title="Class template first_kday_after">first_kday_after</a><span class="special">&lt;</span> <span class="identifier">date_type</span> <span class="special">&gt;</span>    <a name="boost.date_time.date_generator_formatter.kday_after_type"></a><span class="identifier">kday_after_type</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <a class="link" href="first_kday_before.html" title="Class template first_kday_before">first_kday_before</a><span class="special">&lt;</span> <span class="identifier">date_type</span> <span class="special">&gt;</span>   <a name="boost.date_time.date_generator_formatter.kday_before_type"></a><span class="identifier">kday_before_type</span><span class="special">;</span> 
+  <span class="keyword">typedef</span> <span class="identifier">CharT</span>                            <a name="boost.date_time.date_generator_formatter.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">char_type</span> <span class="special">&gt;</span>   <a name="boost.date_time.date_generator_formatter.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">string_type</span> <span class="special">&gt;</span>       <a name="boost.date_time.date_generator_formatter.collection_type"></a><span class="identifier">collection_type</span><span class="special">;</span>  
+
+  <span class="keyword">enum</span> <a name="boost.date_time.date_generator_formatter.phrase_elements"></a>phrase_elements <span class="special">{</span> first = =0, second, third, fourth, fifth, last, 
+                         before, after, of, number_of_phrase_elements <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatterconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="date_generator_formatter.html#idp54528008-bb"><span class="identifier">date_generator_formatter</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="date_generator_formatter.html#idp54528232-bb"><span class="identifier">date_generator_formatter</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+                           <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+                           <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+                           <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+                           <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="date_generator_formatter.html#idp19873912-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="date_generator_formatter.html#idp19874120-bb"><span class="identifier">elements</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">collection_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">phrase_elements</span> <span class="special">=</span> <span class="identifier">first</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> facet_type<span class="special">&gt;</span> 
+    <span class="identifier">OutItrT</span> <a class="link" href="date_generator_formatter.html#idp53164392-bb"><span class="identifier">put_partial_date</span></a><span class="special">(</span><span class="identifier">OutItrT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> 
+                             <span class="keyword">const</span> <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatter.partial_date_type">partial_date_type</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">facet_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> facet_type<span class="special">&gt;</span> 
+    <span class="identifier">OutItrT</span> <a class="link" href="date_generator_formatter.html#idp35553320-bb"><span class="identifier">put_nth_kday</span></a><span class="special">(</span><span class="identifier">OutItrT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> 
+                         <span class="keyword">const</span> <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatter.nth_kday_type">nth_kday_type</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">facet_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> facet_type<span class="special">&gt;</span> 
+    <span class="identifier">OutItrT</span> <a class="link" href="date_generator_formatter.html#idp20153240-bb"><span class="identifier">put_first_kday</span></a><span class="special">(</span><span class="identifier">OutItrT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> 
+                           <span class="keyword">const</span> <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatter.first_kday_type">first_kday_type</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">facet_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> facet_type<span class="special">&gt;</span> 
+    <span class="identifier">OutItrT</span> <a class="link" href="date_generator_formatter.html#idp20982904-bb"><span class="identifier">put_last_kday</span></a><span class="special">(</span><span class="identifier">OutItrT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> 
+                          <span class="keyword">const</span> <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatter.last_kday_type">last_kday_type</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">facet_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> facet_type<span class="special">&gt;</span> 
+    <span class="identifier">OutItrT</span> <a class="link" href="date_generator_formatter.html#idp20414712-bb"><span class="identifier">put_kday_before</span></a><span class="special">(</span><span class="identifier">OutItrT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> 
+                            <span class="keyword">const</span> <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatter.kday_before_type">kday_before_type</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">facet_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> facet_type<span class="special">&gt;</span> 
+    <span class="identifier">OutItrT</span> <a class="link" href="date_generator_formatter.html#idp36236168-bb"><span class="identifier">put_kday_after</span></a><span class="special">(</span><span class="identifier">OutItrT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> 
+                           <span class="keyword">const</span> <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatter.kday_after_type">kday_after_type</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">facet_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="date_generator_formatter.html#idp19415624-bb">private member functions</a></span>
+  <span class="identifier">OutItrT</span> <a class="link" href="date_generator_formatter.html#idp19415832-bb"><span class="identifier">put_string</span></a><span class="special">(</span><span class="identifier">OutItrT</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">first_string</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">second_string</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">third_string</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">fourth_string</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">fifth_string</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">last_string</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">before_string</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">after_string</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">of_string</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp84899704"></a><h2>Description</h2>
+<p>Formatting of date_generators follows specific orders for the various types of date_generators.</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><a class="link" href="partial_date.html" title="Class template partial_date">partial_date</a> =&gt; "dd Month"</p></li>
+<li class="listitem"><p>nth_day_of_the_week_in_month =&gt; "nth weekday of month"</p></li>
+<li class="listitem"><p>first_day_of_the_week_in_month =&gt; "first weekday of month"</p></li>
+<li class="listitem"><p>last_day_of_the_week_in_month =&gt; "last weekday of month"</p></li>
+<li class="listitem"><p>first_day_of_the_week_after =&gt; "weekday after"</p></li>
+<li class="listitem"><p>first_day_of_the_week_before =&gt; "weekday before" While the order of the elements in these phrases cannot be changed, the elements themselves can be. Weekday and Month get their formats and names from the <a class="link" href="date_facet.html" title="Class template date_facet">date_facet</a>. The remaining elements are stored in the <a class="link" href="date_generator_formatter.html" title="Class template date_generator_formatter">date_generator_formatter</a> and can be customized upon construction or via a member function. The default elements are those shown in the examples above. </p></li>
+</ul></div>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp84903800"></a><h3>
+<a name="boost.date_time.date_generator_formatterconstruct-copy-destruct"></a><code class="computeroutput">date_generator_formatter</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp54528008-bb"></a><span class="identifier">date_generator_formatter</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Default format elements used. </li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp54528232-bb"></a><span class="identifier">date_generator_formatter</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> first_str<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> second_str<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> third_str<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> fourth_str<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> fifth_str<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> last_str<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> before_str<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> after_str<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> of_str<span class="special">)</span><span class="special">;</span></pre>Constructor that allows for a custom set of phrase elements. </li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp84920520"></a><h3>
+<a name="idp19873912-bb"></a><code class="computeroutput">date_generator_formatter</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp19874120-bb"></a><span class="identifier">elements</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">collection_type</span> <span class="special">&amp;</span> new_strings<span class="special">,</span> 
+              <span class="identifier">phrase_elements</span> beg_pos <span class="special">=</span> <span class="identifier">first</span><span class="special">)</span><span class="special">;</span></pre>Replace the set of phrase elements with those contained in new_strings. <p>The order of the strings in the given collection is important. They must follow:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>first, second, third, fourth, fifth, last, before, after, of.</p></li></ul></div>
+<p>
+</p>
+<p>It is not necessary to send in a complete set if only a few elements are to be replaced as long as the correct beg_pos is used.</p>
+<p>Ex: To keep the default first through fifth elements, but replace the rest with a collection of:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>"final", "prior", "following", "in". The beg_pos of date_generator_formatter::last would be used. </p></li></ul></div>
+<p>
+</p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> facet_type<span class="special">&gt;</span> 
+  <span class="identifier">OutItrT</span> <a name="idp53164392-bb"></a><span class="identifier">put_partial_date</span><span class="special">(</span><span class="identifier">OutItrT</span> next<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span> a_ios<span class="special">,</span> <span class="identifier">CharT</span> a_fill<span class="special">,</span> 
+                           <span class="keyword">const</span> <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatter.partial_date_type">partial_date_type</a> <span class="special">&amp;</span> pd<span class="special">,</span> 
+                           <span class="keyword">const</span> <span class="identifier">facet_type</span> <span class="special">&amp;</span> facet<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Put a <code class="computeroutput"><a class="link" href="partial_date.html" title="Class template partial_date">partial_date</a></code> =&gt; "dd Month". </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> facet_type<span class="special">&gt;</span> 
+  <span class="identifier">OutItrT</span> <a name="idp35553320-bb"></a><span class="identifier">put_nth_kday</span><span class="special">(</span><span class="identifier">OutItrT</span> next<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span> a_ios<span class="special">,</span> <span class="identifier">CharT</span> a_fill<span class="special">,</span> 
+                       <span class="keyword">const</span> <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatter.nth_kday_type">nth_kday_type</a> <span class="special">&amp;</span> nkd<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">facet_type</span> <span class="special">&amp;</span> facet<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Put an nth_day_of_the_week_in_month =&gt; "nth weekday of month". </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> facet_type<span class="special">&gt;</span> 
+  <span class="identifier">OutItrT</span> <a name="idp20153240-bb"></a><span class="identifier">put_first_kday</span><span class="special">(</span><span class="identifier">OutItrT</span> next<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span> a_ios<span class="special">,</span> <span class="identifier">CharT</span> a_fill<span class="special">,</span> 
+                         <span class="keyword">const</span> <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatter.first_kday_type">first_kday_type</a> <span class="special">&amp;</span> fkd<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">facet_type</span> <span class="special">&amp;</span> facet<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Put a first_day_of_the_week_in_month =&gt; "first weekday of month". </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> facet_type<span class="special">&gt;</span> 
+  <span class="identifier">OutItrT</span> <a name="idp20982904-bb"></a><span class="identifier">put_last_kday</span><span class="special">(</span><span class="identifier">OutItrT</span> next<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span> a_ios<span class="special">,</span> <span class="identifier">CharT</span> a_fill<span class="special">,</span> 
+                        <span class="keyword">const</span> <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatter.last_kday_type">last_kday_type</a> <span class="special">&amp;</span> lkd<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">facet_type</span> <span class="special">&amp;</span> facet<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Put a last_day_of_the_week_in_month =&gt; "last weekday of month". </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> facet_type<span class="special">&gt;</span> 
+  <span class="identifier">OutItrT</span> <a name="idp20414712-bb"></a><span class="identifier">put_kday_before</span><span class="special">(</span><span class="identifier">OutItrT</span> next<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span> a_ios<span class="special">,</span> <span class="identifier">CharT</span> a_fill<span class="special">,</span> 
+                          <span class="keyword">const</span> <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatter.kday_before_type">kday_before_type</a> <span class="special">&amp;</span> fkb<span class="special">,</span> 
+                          <span class="keyword">const</span> <span class="identifier">facet_type</span> <span class="special">&amp;</span> facet<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Put a first_day_of_the_week_before =&gt; "weekday before". </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> facet_type<span class="special">&gt;</span> 
+  <span class="identifier">OutItrT</span> <a name="idp36236168-bb"></a><span class="identifier">put_kday_after</span><span class="special">(</span><span class="identifier">OutItrT</span> next<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span> <span class="special">&amp;</span> a_ios<span class="special">,</span> <span class="identifier">CharT</span> a_fill<span class="special">,</span> 
+                         <span class="keyword">const</span> <a class="link" href="date_generator_formatter.html#boost.date_time.date_generator_formatter.kday_after_type">kday_after_type</a> <span class="special">&amp;</span> fka<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">facet_type</span> <span class="special">&amp;</span> facet<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Put a first_day_of_the_week_after =&gt; "weekday after". </li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp84983672"></a><h3>
+<a name="idp19415624-bb"></a><code class="computeroutput">date_generator_formatter</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">OutItrT</span> <a name="idp19415832-bb"></a><span class="identifier">put_string</span><span class="special">(</span><span class="identifier">OutItrT</span> next<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> str<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>helper function to put the various member string into stream </li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ostream_date_formatter.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.date_generator_formatter_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="date_generator_parser.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

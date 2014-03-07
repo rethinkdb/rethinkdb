@@ -1,0 +1,163 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>interior_type</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../core.html" title="Core Metafunctions">
+<link rel="prev" href="dimension.html" title="dimension">
+<link rel="next" href="is_radian.html" title="is_radian">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="dimension.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_radian.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.core.interior_type"></a><a class="link" href="interior_type.html" title="interior_type">interior_type</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp58712104"></a>
+Metafunction defining <span class="bold"><strong>type</strong></span> as the interior_type
+          (container type of inner rings) of the specified geometry type.
+        </p>
+<h6>
+<a name="geometry.reference.core.interior_type.h0"></a>
+          <span class="phrase"><a name="geometry.reference.core.interior_type.description"></a></span><a class="link" href="interior_type.html#geometry.reference.core.interior_type.description">Description</a>
+        </h6>
+<p>
+          Interior rings should be organized as a container (std::vector, std::deque,
+          boost::array) with Boost.Range support. This metafunction defines the type
+          of the container.
+        </p>
+<h6>
+<a name="geometry.reference.core.interior_type.h1"></a>
+          <span class="phrase"><a name="geometry.reference.core.interior_type.synopsis"></a></span><a class="link" href="interior_type.html#geometry.reference.core.interior_type.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">interior_type</span>
+<span class="special">{</span>
+  <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.core.interior_type.h2"></a>
+          <span class="phrase"><a name="geometry.reference.core.interior_type.template_parameter_s_"></a></span><a class="link" href="interior_type.html#geometry.reference.core.interior_type.template_parameter_s_">Template
+          parameter(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    typename Geometry
+                  </p>
+                </td>
+<td>
+                  <p>
+                    A type fullfilling the Polygon or MultiPolygon concept.
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.core.interior_type.h3"></a>
+          <span class="phrase"><a name="geometry.reference.core.interior_type.header"></a></span><a class="link" href="interior_type.html#geometry.reference.core.interior_type.header">Header</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">interior_type</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<h6>
+<a name="geometry.reference.core.interior_type.h4"></a>
+          <span class="phrase"><a name="geometry.reference.core.interior_type.complexity"></a></span><a class="link" href="interior_type.html#geometry.reference.core.interior_type.complexity">Complexity</a>
+        </h6>
+<p>
+          Compile time
+        </p>
+<h6>
+<a name="geometry.reference.core.interior_type.h5"></a>
+          <span class="phrase"><a name="geometry.reference.core.interior_type.example"></a></span><a class="link" href="interior_type.html#geometry.reference.core.interior_type.example">Example</a>
+        </h6>
+<p>
+          Shows how to use the interior_type metafunction
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">typeinfo</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">polygon</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">ring</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">boost_array</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_GEOMETRY_REGISTER_BOOST_ARRAY_CS</span><span class="special">(</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">)</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Define a polygon storing points in a deque and storing interior rings</span>
+    <span class="comment">// in a list (note that std::list is not supported by most algorithms </span>
+    <span class="comment">// because not supporting a random access iterator)</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">polygon</span>
+        <span class="special">&lt;</span>
+            <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="keyword">short</span><span class="special">,</span> <span class="number">3</span><span class="special">&gt;,</span>
+            <span class="keyword">true</span><span class="special">,</span> <span class="keyword">true</span><span class="special">,</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">deque</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span>
+        <span class="special">&gt;</span> <span class="identifier">polygon</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="keyword">typeid</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">interior_type</span><span class="special">&lt;</span><span class="identifier">polygon</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">).</span><span class="identifier">name</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Output (using MSVC) is a long story (part manually replaced with ellipsis):
+        </p>
+<pre class="programlisting">class std::list&lt;class boost::geometry::model::ring&lt;class boost::array&lt;short,3&gt;,1,1,class std::deque,class std::allocator&gt;,class std::allocator&lt;...&gt; &gt; &gt;
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="dimension.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_radian.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

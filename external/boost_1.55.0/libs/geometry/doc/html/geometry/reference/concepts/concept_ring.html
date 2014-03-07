@@ -1,0 +1,138 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Ring Concept</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="concept_box.html" title="Box Concept">
+<link rel="next" href="concept_segment.html" title="Segment Concept">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="concept_box.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concept_segment.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.concepts.concept_ring"></a><a class="link" href="concept_ring.html" title="Ring Concept">Ring Concept</a>
+</h4></div></div></div>
+<h6>
+<a name="geometry.reference.concepts.concept_ring.h0"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_ring.description"></a></span><a class="link" href="concept_ring.html#geometry.reference.concepts.concept_ring.description">Description</a>
+        </h6>
+<p>
+          The Ring Concept describes the requirements for a ring type. All algorithms
+          in Boost.Geometry will check any geometry arguments against the concept
+          requirements.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Also called linear ring, but we explicitly refer to a filled feature
+            here
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="geometry.reference.concepts.concept_ring.h1"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_ring.concept_definition"></a></span><a class="link" href="concept_ring.html#geometry.reference.concepts.concept_ring.concept_definition">Concept
+          Definition</a>
+        </h6>
+<p>
+          The Ring Concept is defined as following:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              there must be a specialization of <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">tag</span></code>
+              defining <code class="computeroutput"><span class="identifier">ring_tag</span></code> as
+              type
+            </li>
+<li class="listitem">
+              it must behave like a Boost.Range Random Access Range
+            </li>
+<li class="listitem">
+              The type defined by the metafunction <code class="computeroutput"><span class="identifier">range_value</span><span class="special">&lt;...&gt;::</span><span class="identifier">type</span></code>
+              must fulfill the <a class="link" href="concept_point.html" title="Point Concept">Point
+              Concept</a>
+            </li>
+<li class="listitem">
+              there might be a specialization of <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">point_order</span></code>
+              defining the order or orientation of its points, <code class="computeroutput"><span class="identifier">clockwise</span></code>
+              or <code class="computeroutput"><span class="identifier">counterclockwise</span></code>
+            </li>
+<li class="listitem">
+              there might be a specialization of <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">closure</span></code>
+              defining the closure, <code class="computeroutput"><span class="identifier">open</span></code>
+              or <code class="computeroutput"><span class="identifier">closed</span></code>
+            </li>
+</ul></div>
+<h6>
+<a name="geometry.reference.concepts.concept_ring.h2"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_ring.rules"></a></span><a class="link" href="concept_ring.html#geometry.reference.concepts.concept_ring.rules">Rules</a>
+        </h6>
+<p>
+          Besides the Concepts, which are checks on compile-time, there are rules
+          that valid rings must fulfill. See the <a class="link" href="concept_polygon.html" title="Polygon Concept">Polygon
+          Concept</a> for more information on the rules a polygon (and also a
+          ring) must fulfill.
+        </p>
+<h6>
+<a name="geometry.reference.concepts.concept_ring.h3"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_ring.available_models"></a></span><a class="link" href="concept_ring.html#geometry.reference.concepts.concept_ring.available_models">Available
+          Models</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <a class="link" href="../models/model_ring.html" title="model::ring">ring</a>
+            </li>
+<li class="listitem">
+              a Boost.Polygon polygon_data (requires <code class="computeroutput"><span class="preprocessor">#include</span>
+              <span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">boost_polygon</span><span class="special">/</span><span class="identifier">ring</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>)
+            </li>
+<li class="listitem">
+              a std::vector (requires <code class="computeroutput"><span class="preprocessor">#include</span>
+              <span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">std_as_ring</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>)
+            </li>
+<li class="listitem">
+              a std::deque (requires <code class="computeroutput"><span class="preprocessor">#include</span>
+              <span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">std_as_ring</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>)
+            </li>
+</ul></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            See also the sample in the <a href="../../../../../../range/doc/html/range/reference/extending/method_2.html" target="_top">Boost.Range
+            documentation</a> showing how a type can be adapted to a Boost.Range
+            to fulfill the concept of a Ring
+          </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="concept_box.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concept_segment.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

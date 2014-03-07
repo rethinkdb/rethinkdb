@@ -1,0 +1,177 @@
+[/
+              Copyright Andrey Semashev 2007 - 2013.
+     Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+              http://www.boost.org/LICENSE_1_0.txt)
+
+    This document is a part of Boost.Log library documentation.
+/]
+
+[section:core Core facilities]
+
+[section:record Logging records]
+
+    #include <``[boost_log_core_record_hpp]``>
+
+All the information that the logging library processes is packed into a single object of type [class_log_record]. All attached data, including the message text, is represented as named attribute values that can be fetched and processed by filters, formatters and sinks. Particular attribute values can be accessed in different ways, here are a few quick examples:
+
+* Through [link log.detailed.attributes.related_components.value_processing value visitation and extraction].
+
+[example_core_record_visitation_extraction]
+
+* By searching the [link log.detailed.attributes.related_components.attribute_value_set set of attribute values] accessible with the `attribute_values` method of the record.
+
+[example_core_record_attr_value_lookup]
+
+* By applying the subscript operator with the attribute keyword. This is actually a convenience wrapper around the value extraction API.
+
+[example_core_record_subscript]
+
+Log records cannot be copied, only moved. A record can be default-constructed in which case it is in an empty state; such records are mostly unusable and should not be passed to the library for processing. Non-empty log records can only be created by the [link log.detailed.core.core logging core] as a result of successful filtering. The non-empty record contains attribute values acquired from attributes. More attribute values can be added to the non-empty record after filtering. The added values will not affect filtering results but can still be used by formatters and sinks.
+
+In multithreaded environments, after being constructed a non-empty log record is considered to be tied to the current thread as it may refer to some thread-specific resources. For example, the record may contain an attribute value which refers to the named scope list which is stored on the stack. For this reason log records must not be passed between different threads.
+
+[heading Record views]
+
+    #include <``[boost_log_core_record_view_hpp]``>
+
+While records are used for filling the information, the library uses another type to actually process it. Record views provide a similar interface to records with a few notable distinctions:
+
+* Record views are immutable. This prevents formatters and sinks from modifying the record while it is being processed.
+* Record views are copyable. Since its contents are constant, the copy operation is shallow and therefore cheap.
+
+The library will automatically create a record view from the record by calling the `lock` method. The call will also make sure the resulting view is not attached to the current thread if a sink is asynchronous. The `lock` call is a one time operation; the record is left in the empty state afterwards. All APIs for interacting with attribute values described for log records are also applicable to record views and can be used in custom formatters and sinks.
+
+[endsect]
+
+[section:core Logging core]
+
+    #include <``[boost_log_core_core_hpp]``>
+
+The logging core is a central hub that provides the following facilities:
+
+* Maintains global and thread-specific attribute sets.
+* Performs global filtering of log records.
+* Dispatches log records between sinks by applying sink-specific filters.
+* Provides a global hook for exception handlers.
+* Provides an entry point for log sources to put log records to.
+* Provides the `flush` method that can be used to enforce the synchronized state for all log sinks.
+
+The logging core is an application-wide singleton, thus every logging source has access to it. The core instance is accessible with the static method `get`.
+
+    void foo()
+    {
+        boost::shared_ptr< logging::core > core = logging::core::get();
+
+        // ...
+    }
+
+[section:attribute_sets Attribute sets]
+
+In order to add or remove global or thread-specific attributes to the core there are corresponding methods: `add_global_attribute`, `remove_global_attribute`, `add_thread_attribute` and `remove_thread_attribute`. Attribute sets provide interface similar to `std::map`, so the `add_*` methods accept an attribute name string (key) and a pointer to the attribute (mapped value) and return a pair of iterator and boolean value, like `std::map< ... >::insert` does. The `remove_*` methods accept an iterator to a previously added attribute.
+
+    void foo()
+    {
+        boost::shared_ptr< logging::core > core = logging::core::get();
+
+        // Add a global attribute
+        std::pair< logging::attribute_set::iterator, bool > res =
+            core->add_global_attribute("LineID", attrs::counter< unsigned int >());
+
+        // ...
+
+        // Remove the added attribute
+        core->remove_global_attribute(res.first);
+    }
+
+[tip It must be said that all methods of logging core are thread-safe in multithreaded environments. However, that may not be true for other components, such as iterators or attribute sets.]
+
+It is possible to acquire a copy of the whole attribute set (global or thread-specific) or install it into the core. Methods `get_global_attributes`, `set_global_attributes`, `get_thread_attributes` and `set_thread_attributes` serve this purpose.
+
+[warning After installing a whole attribute set into the core, all iterators that were previously returned by the corresponding `add_*` methods are invalidated. In particular, it affects [link log.detailed.attributes.related_components.scoped_attributes scoped attributes], so the user must be careful when to switch attribute sets.]
+
+[endsect]
+
+[section:filtering Global filtering]
+
+Global filtering is handled by the filter function object, which can be provided with the `set_filter` method. More on creating filters appears in [link log.detailed.expressions.predicates this section]. Here it will suffice to say that the filter accepts a set of attribute values and returns a boolean value that tells whether a log record with these attribute values passed filtering or not. The global filter is applied to every log record made throughout the application, so it can be used to wipe out excessive log records quickly.
+
+The global filter can be removed by the `reset_filter` method. When there is no filter set in the core it is assumed that no records are filtered away. This is the default after initial construction of the logging core.
+
+    enum severity_level
+    {
+        normal,
+        warning,
+        error,
+        critical
+    };
+
+    void foo()
+    {
+        boost::shared_ptr< logging::core > core = logging::core::get();
+
+        // Set a global filter so that only error messages are logged
+        core->set_filter(expr::attr< severity_level >("Severity") >= error);
+
+        // ...
+    }
+
+The core also provides another way to disable logging. By calling the `set_logging_enabled` with a boolean argument one may completely disable or re-enable logging, including applying filtering. Disabling logging with this method may be more beneficial in terms of application performance than setting a global filter that always fails.
+
+[endsect]
+
+[section:sinks Sink management]
+
+After global filtering is applied, log sinks step into action. In order to add and remove sinks the core provides `add_sink` and `remove_sink` methods. Both these methods accept a pointer to the sink. The `add_sink` will add the sink to the core if it's not added already. The `remove_sink` method will seek for the provided sink in an internal list of previously added sinks and remove the sink if it finds it. The order in which the core processes sinks internally is unspecified.
+
+    void foo()
+    {
+        boost::shared_ptr< logging::core > core = logging::core::get();
+
+        // Set a sink that will write log records to the console
+        boost::shared_ptr< sinks::text_ostream_backend > backend =
+            boost::make_shared< sinks::text_ostream_backend >();
+        backend->add_stream(
+            boost::shared_ptr< std::ostream >(&std::clog, logging::empty_deleter()));
+
+        typedef sinks::unlocked_sink< sinks::text_ostream_backend > sink_t;
+        boost::shared_ptr< sink_t > sink = boost::make_shared< sink_t >(backend);
+        core->add_sink(sink);
+
+        // ...
+
+        // Remove the sink
+        core->remove_sink(sink);
+    }
+
+You can read more on the design of sinks in the following sections: [link log.detailed.sink_frontends Sink Frontends] and [link log.detailed.sink_backends Sink Backends].
+
+[endsect]
+
+[section:exception_handling Exception handling]
+
+The core provides a way to set up centralized exception handling. If an exception takes place during filtering or processing in one of the added sinks, the core will invoke an exception handler if one was installed with the `set_exception_handler` method. An exception handler is a nullary function object that is invoked from within a `catch` clause. The library provides [link log.detailed.utilities.exception_handlers tools] to simplify exception handlers construction.
+
+[tip The exception handler in the logging core is global and thus is intended to perform some common actions on errors. Logging sinks and sources also provide exception handling facilities (see [link log.detailed.sink_frontends.basic_services.exception_handling here] and [link log.detailed.sources.exception_handling here]), which can be used to do a finer grained error processing.]
+
+[example_utility_exception_handler]
+
+[endsect]
+
+[section:record_feeding Feeding log records]
+
+One of the most important functions of the logging core is providing an entry point for all logging sources to feed log records into. This is done with the `open_record` and `push_record` methods.
+
+The first method is used to initiate the record logging process. It accepts the source-specific set of attributes. The method constructs a common set of attribute values of the three sets of attributes (global, thread-specific and source-specific) and applies filtering. If the filtering succeeded, i.e. at least one sink accepts a record with these attribute values, the method returns a non-empty [link log.detailed.core.record record object], which can be used to fill in the log record message. If the filtering failed, an empty record object is returned.
+
+When the log source is ready to complete the logging procedure, it has to call the `push_record` method with the record returned by the `open_record` method. Note that one should not call `push_record` with an empty record. The record should be passed as rvalue reference. During the call the record view will be constructed from the record. The view will then be passed on to the sinks that accepted it during filtering. This may involve record formatting and further processing, like storing it into a file or sending it over the network. After that the record object can be destroyed.
+
+[example_core_core_manual_logging]
+
+All this logic is usually hidden in the loggers and macros provided by the library. However, this may be useful for those developing new log sources.
+
+[endsect]
+
+[endsect]
+
+[endsect]

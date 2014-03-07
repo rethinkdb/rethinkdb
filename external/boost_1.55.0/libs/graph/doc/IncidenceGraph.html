@@ -1,0 +1,202 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>IncidenceGraph</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="concept:IncidenceGraph"></A>
+IncidenceGraph
+</H1>
+
+The IncidenceGraph concept provides an interface for
+efficient access to the out-edges of each vertex in the graph.
+
+
+<H3>Refinement of</H3>
+
+<a href="./Graph.html">Graph</a>
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>G</tt></TD>
+<TD>A type that is a model of IncidenceGraph.</TD>
+</TR>
+
+<TR>
+<TD><tt>g</tt></TD>
+<TD>An object of type <tt>G</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>e</tt></TD>
+<TD>An object of type <tt>boost::graph_traits&lt;G&gt;::edge_descriptor</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>u, v</tt></TD>
+<TD>Are objects of type <tt>boost::graph_traits&lt;G&gt;::vertex_descriptor</tt>.</TD>
+</TR>
+
+</table>
+
+<H3>Associated Types</H3>
+
+<Table border>
+
+<tr>
+<td><tt>boost::graph_traits&lt;G&gt;::traversal_category</tt><br><br>
+ This tag type must be convertible to <tt>incidence_graph_tag</tt>.
+</td>
+</tr>
+
+
+<TR>
+<TD>
+<pre>boost::graph_traits&lt;G&gt;::out_edge_iterator</pre>
+An out-edge iterator for a vertex <i>v</i> provides access to the
+out-edges of the vertex.  As such, the value type of an out-edge
+iterator is the edge descriptor type of its graph. An out-edge
+iterator must meet the requirements of <a
+href="../../utility/MultiPassInputIterator.html">MultiPassInputIterator</a>.
+</TD>
+</TR>
+
+<TR>
+<TD><pre>boost::graph_traits&lt;G&gt;::degree_size_type</pre>
+The unsigned integral type used for representing the number
+out-edges or incident edges of a vertex.
+</TD>
+</TR>
+
+</table>
+
+<h3>Valid Expressions</h3>
+
+<Table border>
+
+<tr>
+<td><a name="sec:source"><TT>source(e,&nbsp;g)</TT></a></TD>
+<TD>Returns the vertex descriptor for <i>u</i> of the edge <i>(u,v)</i> represented by <TT>e</TT>.<br>
+Return type: <TT>vertex_descriptor</TT>
+</TD>
+</TR>
+
+
+<tr>
+<td><a name="sec:target"><TT>target(e,&nbsp;g)</TT></a></TD>
+<TD>Returns the vertex descriptor for <i>v</i> of the edge <i>(u,v)</i> represented by <TT>e</TT>.<br>
+Return type: <TT>vertex_descriptor</TT>
+</td></tr>
+
+<tr>
+<td><a name="sec:out-edges"><TT>out_edges(u,&nbsp;g)</TT></a></TD>
+<TD>Returns an iterator-range providing access to the out-edges (for
+directed graphs) or incident edges (for undirected graphs) of vertex
+<TT>u</TT> in graph <TT>g</TT>.  The source vertex of an edge obtained
+via an out edge iterator is guaranteed (for both directed and
+undirected graphs) to be the vertex <tt>u</tt> used in the call to
+<tt>out_edges(u, g)</tt> and the target vertex must be a vertex
+adjacent to <tt>u</tt>.<a href="#1">[1]</a>
+<br>
+Return type: <TT>std::pair&lt;out_edge_iterator, out_edge_iterator&gt;</TT>
+</TD>
+</tr>
+
+<tr>
+<TD><TT>out_degree(u,&nbsp;g)</TT></TD>
+<TD>Returns the number of out-edges (for directed graphs) or the
+number of incident edges (for undirected graphs) of vertex <TT>u</TT>
+in graph <TT>g</TT>.<br>
+Return type: <TT>degree_size_type</TT>
+</TD>
+</TR>
+
+</TABLE>
+
+<P>
+
+<H3>Complexity guarantees</H3>
+
+<P>
+The <TT>source()</TT>, <TT>target()</TT>, and <TT>out_edges()</TT>
+functions must all be constant time. The <tt>out_degree()</tt>
+function must be linear in the number of out-edges.
+
+<P>
+
+<H3>See Also</H3>
+
+<a href="./graph_concepts.html">Graph concepts</a>
+
+<H3>Notes</H3>
+
+<a name="1">[1]</a> For undirected graphs, the edge <tt>(u,v)</tt> is
+the same as edge <tt>(v,u)</tt>, so without some extra guarantee an
+implementation would be free use any ordering for the pair of vertices
+in an out-edge. For example, if you call <tt>out_edges(u, g)</tt>, and
+<tt>v</tt> is one of the vertices adjacent to <tt>u</tt>, then the
+implementation would be free to return <tt>(v,u)</tt> as an out-edge
+which would be non-intuitive and cause trouble for algorithms.
+Therefore, the extra requirement is added that the out-edge connecting
+<tt>u</tt> and <tt>v</tt> must be given as <tt>(u,v)</tt> and not
+<tt>(v,u)</tt>.
+
+<H3>Concept Checking Class</H3>
+
+<PRE>
+  template &lt;class G&gt;
+  struct IncidenceGraphConcept
+  {
+    typedef typename boost::graph_traits&lt;G&gt;::out_edge_iterator out_edge_iterator;
+    void constraints() {
+      BOOST_CONCEPT_ASSERT(( GraphConcept&lt;G&gt; ));
+      BOOST_CONCEPT_ASSERT(( MultiPassInputIteratorConcept&lt;out_edge_iterator&gt; ));
+
+      p = out_edges(u, g);
+      e = *p.first;
+      u = source(e, g);
+      v = target(e, g);
+    }
+    void const_constraints(const G&amp; g) {
+      p = out_edges(u, g);
+      e = *p.first;
+      u = source(e, g);
+      v = target(e, g);
+    }
+    std::pair&lt;out_edge_iterator, out_edge_iterator&gt; p;
+    typename boost::graph_traits&lt;G&gt;::vertex_descriptor u, v;
+    typename boost::graph_traits&lt;G&gt;::edge_descriptor e;
+    G g;
+  };
+</PRE>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

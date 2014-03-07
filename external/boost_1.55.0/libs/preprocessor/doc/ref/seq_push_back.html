@@ -1,0 +1,76 @@
+<html>
+	<head>
+		<title>BOOST_PP_SEQ_PUSH_BACK</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<div style="margin-left:  0px;">
+			The <b>BOOST_PP_SEQ_PUSH_BACK</b> macro pushes an element onto the end of a <i>seq</i>.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_PUSH_BACK</b>(<i>seq</i>, <i>elem</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> onto which <i>elem</i> is pushed.
+			</dd>
+			<dt>elem</dt>
+			<dd>
+				The element to push onto the end of <i>seq</i>.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			This macro returns <i>seq</i> after appending <i>elem</i>.&nbsp;
+		</div>
+		<div>
+			This macro is an explicit form of directly appending an element.&nbsp; In other 
+			words, <b>BOOST_PP_SEQ_PUSH_BACK</b>(<i>seq</i>, <i>x</i>) is equivalent to <i>seq</i>(<i>x</i>).
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="seq_push_front.html">BOOST_PP_SEQ_PUSH_FRONT</a></li>
+		</ul>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/push_back.html">&lt;boost/preprocessor/seq/push_back.hpp&gt;</a>
+		</div>
+		<h4>
+			Sample Code
+		</h4>
+		<div>
+			<pre>
+#include &lt;<a href="../headers/seq/push_back.html">boost/preprocessor/seq/push_back.hpp</a>&gt;
+
+#define SEQ (a)(b)
+
+<a href="seq_push_back.html">BOOST_PP_SEQ_PUSH_BACK</a>(SEQ, c) // expands to (a)(b)(c)
+</pre>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

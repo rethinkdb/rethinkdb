@@ -1,0 +1,76 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/bcp47/*.xml
+// *
+// ***************************************************************************
+keyTypeData:table(nofallback){
+    keyMap{
+        calendar{"ca"}
+        colalternate{"ka"}
+        colbackwards{"kb"}
+        colcasefirst{"kf"}
+        colcaselevel{"kc"}
+        colhiraganaquaternary{"kh"}
+        collation{"co"}
+        colnormalization{"kk"}
+        colnumeric{"kn"}
+        colstrength{"ks"}
+        currency{"cu"}
+        numbers{"nu"}
+        timezone{"tz"}
+        variabletop{"vt"}
+    }
+    typeAlias{
+        timezone:alias{"/ICUDATA/timezoneTypes/typeAlias/timezone"}
+    }
+    typeMap{
+        calendar{
+            ethiopic-amete-alem{"ethioaa"}
+            gregorian{"gregory"}
+            islamic-civil{"islamicc"}
+        }
+        colalternate{
+            non-ignorable{"noignore"}
+        }
+        colbackwards{
+            no{"false"}
+            yes{"true"}
+        }
+        colcasefirst{
+            no{"false"}
+        }
+        colcaselevel{
+            no{"false"}
+            yes{"true"}
+        }
+        colhiraganaquaternary{
+            no{"false"}
+            yes{"true"}
+        }
+        collation{
+            dictionary{"dict"}
+            gb2312han{"gb2312"}
+            phonebook{"phonebk"}
+            traditional{"trad"}
+        }
+        colnormalization{
+            no{"false"}
+            yes{"true"}
+        }
+        colnumeric{
+            no{"false"}
+            yes{"true"}
+        }
+        colstrength{
+            identical{"identic"}
+            primary{"level1"}
+            quarternary{"level4"}
+            secondary{"level2"}
+            tertiary{"level3"}
+        }
+        timezone:alias{"/ICUDATA/timezoneTypes/typeMap/timezone"}
+    }
+}

@@ -1,0 +1,48 @@
+#!/usr/bin/env b2 -a --verbose-test
+# Copyright Redshift Software, Inc. 2011-2013
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+local predef-include-root ;
+local predef-dependency ;
+
+# When using modular layout, header files are not present in $root/boost
+# unlink links are created, therefore instead of direct dependency on
+# a header, we need to use dependency on metatarget.
+if $(BOOST_PREDEF_ROOT)
+{
+    predef-include-root = $(BOOST_PREDEF_ROOT)/include ;
+    predef-dependency = $(predef-include-root)/boost/predef.h ;
+}
+else if $(BOOST_MODULARLAYOUT)
+{
+    predef-include-root = $(BOOST_ROOT)/include ;
+    predef-dependency = /boost//predef-headers ;
+}
+else
+{
+   predef-include-root = $(BOOST_ROOT) ;
+   predef-dependency = $(predef-include-root)/boost/predef.h ;         
+}
+
+project test
+    :   requirements
+        <include>$(predef-include-root)
+        # Add explicit dependency since we don't have header scanner for
+        # .m and .mm files.
+        <dependency>$(predef-dependency)
+    ;
+
+using testing ;
+
+test-suite predef :
+    [ run info_as_cpp.cpp : : : <test-info>always_show_run_output ]
+    [ run info_as_c.c : : : <test-info>always_show_run_output ]
+    [ run info_as_objcpp.mm : : : <test-info>always_show_run_output ]
+    [ run info_as_objc.m : : : <test-info>always_show_run_output ]
+    [ run version.cpp ]
+    [ run make.cpp ]
+    [ compile macos_endian.c ]
+    [ compile macos_vs_bsd.c ]
+    ;

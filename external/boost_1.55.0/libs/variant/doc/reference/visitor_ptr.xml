@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/variant/visitor_ptr.hpp">
+  <namespace name="boost">
+
+    <class name="visitor_ptr_t">
+      <template>
+        <template-type-parameter name="T"/>
+        <template-type-parameter name="R"/>
+      </template>
+
+      <purpose>Adapts a function pointer for use as a static visitor.</purpose>
+      <description>
+        <simpara>Adapts the function given at construction for use as a
+        <link linkend="variant.concepts.static-visitor">static visitor</link>
+        of type <code>T</code> with result type <code>R</code>.</simpara>
+      </description>
+
+      <inherit access="public"><classname>static_visitor</classname>&lt;R&gt;</inherit>
+
+      <constructor specifiers="explicit">
+        <parameter>
+          <paramtype>R (*)(T)</paramtype>
+        </parameter>
+
+        <effects>
+          <simpara>Constructs the visitor with the given function.</simpara>
+        </effects>
+      </constructor>
+
+      <method-group name="static visitor interfaces">
+        <overloaded-method name="operator()">
+          <signature>
+            <type>R</type>
+
+            <parameter name="operand">
+              <paramtype><emphasis>unspecified-forwarding-type</emphasis></paramtype>
+            </parameter>
+          </signature>
+
+          <signature>
+            <template>
+              <template-type-parameter name="U"/>
+            </template>
+            
+            <type>void</type>
+
+            <parameter>
+              <paramtype>const U&amp;</paramtype>
+            </parameter>
+          </signature>
+
+          <effects>
+            <simpara>If passed a value or reference of type
+              <code>T</code>, it invokes the function given at
+              construction, appropriately forwarding
+              <code>operand</code>.</simpara>
+          </effects>
+          <returns>Returns the result of the function invocation.</returns>
+
+          <throws id="visitor_ptr_t.visit.throws">
+            <simpara>The overload taking a value or reference of type
+              <code>T</code> throws if the invoked function throws.
+              The overload taking all other values <emphasis>always</emphasis>
+              throws <code><classname>bad_visit</classname></code>.</simpara>
+          </throws>
+        </overloaded-method>
+      </method-group>
+    </class>
+
+    <function name="visitor_ptr">
+      <purpose>
+        <simpara>Returns a visitor object that adapts function pointers for
+        use as a static visitor.</simpara>
+      </purpose>
+      <description>
+        <simpara>Constructs and returns a
+        <code><classname>visitor_ptr_t</classname></code> adaptor over the
+        given function.</simpara>
+      </description>
+
+      <template>
+        <template-type-parameter name="R"/>
+        <template-type-parameter name="T"/>
+      </template>
+
+      <type><classname>visitor_ptr_t</classname>&lt;T,R&gt;</type>
+
+      <parameter>
+        <paramtype>R (*)(T)</paramtype>
+      </parameter>
+
+      <returns>
+        <simpara>Returns a <code><classname>visitor_ptr_t</classname></code>
+          visitor object that, when applied, invokes the given
+          function.</simpara>
+      </returns>
+
+      <throws>
+        <simpara>Will not throw. (Note, however, that the returned
+        <classname alt="boost::visitor_ptr_t">visitor object</classname> may
+        throw when applied.)</simpara>
+      </throws>
+    </function>
+
+  </namespace>
+</header>

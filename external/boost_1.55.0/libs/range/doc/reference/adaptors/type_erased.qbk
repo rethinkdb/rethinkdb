@@ -1,0 +1,65 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:type_erased type_erased]
+
+[table
+    [[Syntax] [Code]]
+    [[Pipe] [`rng | boost::adaptors::type_erased<Value, Traversal, Reference, Difference, Buffer>()`]]
+    [[Function] [`boost::adaptors::type_erase(rng, boost::adaptors::type_erased<Value, Traversal, Reference, Difference, Buffer>)`]]
+]
+
+Please note that it is frequently unnecessary to use the `type_erased` adaptor. It is often better to use the implicit conversion to `any_range`.
+
+Let `Rng` be the type of `rng`.
+
+* [*Template parameters:]
+    * `Value` is the `value_type` for the `any_range`. If this is set to boost::use_default, `Value` will be calculated from the
+        range type when the adaptor is applied.
+    * `Traversal` is the tag used to identify the traversal of the resultant range. Frequently it is desirable to set a traversal category lower than the source container or range to maximize the number of ranges that can convert to the `any_range`. If this is left as boost::use_default then `Traversal` will be `typename boost::iterator_traversal<boost::range_iterator<Rng>::type>::type`
+    * `Reference` is the `reference` for the `any_range`. `boost::use_default` will equate to `typename range_reference<Rng>::type`.
+    * `Difference` is the `difference_type` for the any_range. `boost::use_default` will equate to `typename boost::range_difference<Rng>::type`
+    * `Buffer` is the storage used to allocate the underlying iterator wrappers. This can typically be ignored, but is available as a template parameter for customization. Buffer must be a model of the `AnyIteratorBufferConcept`.
+* [*Precondition:]  `Traversal` is one of `{ boost::use_default, boost::single_pass_traversal_tag, boost::forward_traversal_tag, boost::bidirectional_traversal_tag, boost::random_access_traversal_tag }`
+* [*Returns:] The returned value is the same as `typename any_range_type_generator< Rng, Value, Traversal, Reference, Difference, Buffer >` that represents `rng` in a type-erased manner.
+* [*Range Category:] __single_pass_range__
+* [*Returned Range Category:] if `Traversal` was specified as `boost::use_default` then `typename boost::iterator_traversal<boost::range_iterator<Rng>::type>::type`, otherwise `Traversal`.
+
+[heading AnyIteratorBufferConcept]
+``
+class AnyIteratorBufferConcept
+{
+public:
+    AnyIteratorBufferConcept();
+    ~AnyIteratorBufferConcept();
+
+    // bytes is the requested size to allocate. This function
+    // must return a pointer to an adequate area of memory.
+    // throws: bad_alloc
+    //
+    // The buffer will only ever have zero or one
+    // outstanding memory allocations.
+    void* allocate(std::size_t bytes);
+
+    // deallocate this buffer
+    void deallocate();
+};
+``
+
+[section:type_erased_example type-erased example]
+[import ../../../test/adaptor_test/type_erased_example.cpp]
+[type_erased_example]
+[endsect]
+
+This would produce the output:
+``
+1,2,3,4,5,
+6,7,8,9,10,
+11,12,13,14,15,
+11,12,13,14,15,
+``
+[endsect]
+
+

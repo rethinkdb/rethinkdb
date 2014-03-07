@@ -1,0 +1,47 @@
+# Copyright 2002, 2003, 2005 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+
+import gcc ;
+import property ;
+
+rule properties-as-path ( properties * )
+{
+    local r ;
+    for local p in $(properties)
+    {
+	    if $(p:G) != <action>
+	    {
+	        r += $(p) ;
+	    }
+    }
+    return [ property.as-path
+        [ property.remove incidental : $(r) ] ] ;
+}
+
+
+rule yfc-compile ( target : sources * : property-set * )
+{
+    PROPERTIES on $(target) = [ properties-as-path $(property-set) ] ;      
+}
+
+actions yfc-compile
+{
+    echo $(PROPERTIES) > $(<)
+    echo $(>) >> $(<)
+}
+
+rule yfc-link ( target : sources * : property-set * )
+{
+    PROPERTIES on $(target) = [ properties-as-path $(property-set) ] ;
+}
+
+actions yfc-link
+{
+    echo $(PROPERTIES) > $(<)
+    echo $(>) >> $(<)
+}
+
+
+IMPORT $(__name__) : yfc-compile yfc-link : : yfc-compile yfc-link ;

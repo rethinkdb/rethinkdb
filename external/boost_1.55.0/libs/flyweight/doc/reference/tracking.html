@@ -1,0 +1,291 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Tracking policies reference</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="locking.html">
+<link rel="up" href="index.html">
+<link rel="next" href="../performance.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight
+Tracking policies reference</h1>
+
+<div class="prev_link"><a href="locking.html"><img src="../prev.gif" alt="locking policies" border="0"><br>
+Locking policies
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="next_link"><a href="../performance.html"><img src="../next.gif" alt="performance" border="0"><br>
+Performance
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#preliminary">Preliminary concepts</a></li>
+  <li><a href="#tracking">Tracking policies</a></li>
+  <li><a href="#tracking_tag_synopsis">Header
+    <code>"boost/flyweight/tracking_tag.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#is_tracking">Class template <code>is_tracking</code></a></li>
+      <li><a href="#tracking_construct">Class template <code>tracking</code></a></li>
+    </ul>    
+  </li>
+  <li><a href="#refcounted_fwd_synopsis">Header
+    <code>"boost/flyweight/refcounted_fwd.hpp"</code> synopsis</a>
+  </li>
+  <li><a href="#refcounted_synopsis">Header
+    <code>"boost/flyweight/refcounted.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#refcounted">Class <code>refcounted</code></a></li>
+    </ul>    
+  </li>
+  <li><a href="#no_tracking_fwd_synopsis">Header
+    <code>"boost/flyweight/no_tracking_fwd.hpp"</code> synopsis</a>
+  </li>
+  <li><a href="#no_tracking_synopsis">Header
+    <code>"boost/flyweight/no_tracking.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#no_tracking">Class <code>no_tracking</code></a></li>
+    </ul>    
+  </li>
+</ul>
+
+<h2><a name="preliminary">Preliminary concepts</a></h2>
+
+<p>
+A <i>tracking policy helper</i> provides access to some of the functionality
+of a <a href="factories.html#factory">factory</a> so as to be used
+in the implementation of an associated <a href="#tracking"><code>Tracking Policy</code></a>.
+In the following table, <code>TrackingHelper</code> is a tracking policy
+helper associated to a <a href="factories.html#factory">factory</a> type 
+<code>Factory</code> of elements of type <code>Entry</code>, <code>h</code>
+is a value of
+<code>Factory::handle_type</code> associated to a <code>Factory</code> <code>f</code>
+and <code>check</code> is a value of
+a <a href="http://www.sgi.com/tech/stl/Predicate.html"><code>Predicate</code></a>
+type <code>Checker</code> with argument of type <code>Factory::handle_type</code>.
+</p>
+
+<p align="center">
+<table cellspacing="0">
+  <caption><b>Tracking Policy Helper requirements.</b></caption>
+<tr>
+  <th align="center">expression</th>
+  <th align="center">return type</th>
+  <th align="center">assertion/note<br>pre/post-condition</th>
+</tr>
+<tr>
+  <td><code>TrackingHelper::entry(h);</code></td>
+  <td><code>const Entry&amp;</code></td>
+  <td>Returns <code>f.entry(h)</code>.</td>
+</tr>
+<tr class="odd_tr">
+  <td><code>TrackingHelper::erase(h,check);</code></td>
+  <td><code>void</code></td>
+  <td>If <code>check(h)</code>, invokes <code>f.erase(h)</code>.</td>
+</tr>
+</table>
+</p>
+
+<p>
+The execution of <code>TrackingHelper::erase</code> (including the
+invocation of <code>check(h)</code>) is done in a
+synchronized manner so as to prevent any other thread of execution from
+simultaneously accessing the factory's insertion or deletion facilities.
+</p>
+
+<h2><a name="tracking">Tracking policies</a></h2>
+
+<p>
+A <i>tracking policy</i> defines the strategy to be followed by a
+<a href="flyweight.html#flyweight"><code>flyweight</code></a> instantiation when
+all the flyweight objects associated to a given value are destroyed.
+The tracking policy contributes some type information necessary for the
+definition of the <code>flyweight</code> internal
+<a href="factories.html#factory">factory</a>.
+</p>
+
+<p>
+A type <code>Tracking</code> is a tracking policy if:
+<ul>
+  <li>One of the following conditions is satisfied:
+    <ol type="a">
+      <li><a href="#is_tracking"><code>is_tracking&lt;Tracking&gt;::type</code></a> is
+      <a href="../../../mpl/doc/refmanual/bool.html"><code>boost::mpl::true_</code></a>,</li>
+      <li><code>Tracking</code> is of the form
+      <a href="#tracking_construct"><code>tracking&lt;Tracking'&gt;</code></a>.</li>
+    </ol>
+  </li>
+  <li>The expression <code>Tracking::entry_type</code> (or 
+    <code>Tracking'::entry_type</code> if (b) applies) is an 
+    <a href="../../../mpl/doc/refmanual/lambda-expression.html"><code>MPL Lambda
+    Expression</code></a> that resolves, when invoked with different types 
+    (<code>Value</code>,<code>Key</code>) such that <code>Value</code> is
+    <a href="http://www.sgi.com/tech/stl/Assignable.html"><code>Assignable</code></a>
+    and implicitly convertible to <code>const Key&amp;</code>, to an
+    <a href="http://www.sgi.com/tech/stl/Assignable.html"><code>Assignable</code></a>
+    type <code>Entry</code> implicitly convertible to both <code>const Value&amp;</code>
+    and <code>const Key&amp;</code>.
+  </li>
+  <li>The expression <code>Tracking::handle_type</code> (or 
+    <code>Tracking'::handle_type</code> if (b) applies) is an 
+    <a href="../../../mpl/doc/refmanual/lambda-expression.html"><code>MPL Lambda
+    Expression</code></a>; this expression, when invoked with types
+    (<code>InternalHandle</code>,<a href="#preliminary"><code>TrackingHelper</code></a>),
+    with <code>InternalHandle</code> being 
+    <a href="http://www.sgi.com/tech/stl/Assignable.html"><code>Assignable</code></a>
+    and providing the nothrow guarantee for copy and assignment,
+    resolves to an
+    <a href="http://www.sgi.com/tech/stl/Assignable.html"><code>Assignable</code></a>
+    type <code>Handle</code> which also provides the nothrow guarantee for
+    copy and assignment and is constructible from and implicitly
+    convertible to <code>InternalHandle</code>. 
+    <code>TrackingHelper</code> is an incomplete type at the time of
+    invocation of <code>Tracking::handle_type</code>.
+  </li>
+</ul>
+<code>Tracking::handle_type</code> is parameterized by a helper that provides
+access to some of the functionality of the factory associated to the
+tracking policy. This factory's associated entry and handle types are the types
+<code>Entry</code> and <code>Handle</code> defined above, respectively.
+</p>
+
+<h2><a name="tracking_tag_synopsis">Header
+<a href="../../../../boost/flyweight/tracking_tag.hpp"><code>"boost/flyweight/tracking_tag.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>struct</span> <span class=identifier>tracking_marker</span><span class=special>;</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>is_tracking</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>tracking</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<h3><a name="is_tracking">Class template <code>is_tracking</code></a></h3>
+
+<p>
+Unless specialized by the user, <code>is_tracking&lt;T&gt;::type</code> is
+<a href="../../../mpl/doc/refmanual/bool.html"><code>boost::mpl::true_</code></a>
+if <code>T</code> is derived from <code>tracking_marker</code>, and it is
+<a href="../../../mpl/doc/refmanual/bool.html"><code>boost::mpl::false_</code></a>
+otherwise.
+</p>
+
+<h3><a name="tracking_construct">Class template <code>tracking</code></a></h3>
+
+<p>
+<code>tracking&lt;T&gt;</code> is a syntactic construct meant to indicate
+that <code>T</code> is a tracking policy without resorting to the
+mechanisms provided by the <code>is_tracking</code> class template.
+</p>
+
+<h2><a name="refcounted_fwd_synopsis">Header
+<a href="../../../../boost/flyweight/refcounted_fwd.hpp"><code>"boost/flyweight/refcounted_fwd.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>struct</span> <span class=identifier>refcounted</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+<code>refcounted_fwd.hpp</code> forward declares the class
+<a href="#refcounted"><code>refcounted</code></a>.
+</p>
+
+<h2><a name="refcounted_synopsis">Header
+<a href="../../../../boost/flyweight/refcounted.hpp"><code>"boost/flyweight/refcounted.hpp"</code></a> synopsis</a></h2>
+
+<h3><a name="refcounted">Class <code>refcounted</code></a></h3>
+
+<p>
+<a href="#tracking"><code>Tracking Policy</code></a> providing
+<a href="flyweight.html#flyweight"><code>flyweight</code></a>
+instantiations with reference counting semantics: when all the flyweight objects
+associated to a given value are destroyed, the corresponding entry is
+erased from <code>flyweight</code>'s internal
+<a href="factories.html#factory">factory</a>.
+</p>
+
+<h2><a name="no_tracking_fwd_synopsis">Header
+<a href="../../../../boost/flyweight/no_tracking_fwd.hpp"><code>"boost/flyweight/no_tracking_fwd.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>struct</span> <span class=identifier>no_tracking</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+<code>no_tracking_fwd.hpp</code> forward declares the class
+<a href="#no_tracking"><code>no_tracking</code></a>.
+</p>
+
+<h2><a name="no_tracking_synopsis">Header
+<a href="../../../../boost/flyweight/no_tracking.hpp"><code>"boost/flyweight/no_tracking.hpp"</code></a> synopsis</a></h2>
+
+<h3><a name="no_tracking">Class <code>no_tracking</code></a></h3>
+
+<p>
+Null <a href="#tracking"><code>Tracking Policy</code></a>: elements inserted
+into <code>flyweight</code>'s internal <a href="factories.html#factory">factory</a>
+are not erased until program termination.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="locking.html"><img src="../prev.gif" alt="locking policies" border="0"><br>
+Locking policies
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="next_link"><a href="../performance.html"><img src="../next.gif" alt="performance" border="0"><br>
+Performance
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised August 18th 2008</p>
+
+<p>&copy; Copyright 2006-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

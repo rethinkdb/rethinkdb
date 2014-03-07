@@ -1,0 +1,69 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:partial_sort partial_sort]
+
+[heading Prototype]
+
+``
+template<class RandomAccessRange>
+RandomAccessRange& partial_sort(
+    RandomAccessRange& rng,
+    typename range_iterator<RandomAccessRange>::type middle);
+
+template<class RandomAccessRange>
+const RandomAccessRange& partial_sort(
+    const RandomAccessRange& rng,
+    typename range_iterator<const RandomAccessRange>::type middle);
+
+template<class RandomAccessRange>
+RandomAccessRange& partial_sort(
+    RandomAccessRange& rng,
+    typename range_iterator<RandomAccessRange>::type middle,
+    BinaryPredicate sort_pred);
+
+template<class RandomAccessRange>
+const RandomAccessRange& partial_sort(
+    const RandomAccessRange& rng,
+    typename range_iterator<const RandomAccessRange>::type middle,
+    BinaryPredicate sort_pred);
+``
+
+[heading Description]
+
+`partial_sort` rearranges the elements in `rng`. It places the smallest `distance(begin(rng), middle)` elements, sorted in ascending order, into the range `[begin(rng), middle)`. The remaining elements are placed in an unspecified order into `[middle, last)`.
+
+The non-predicative versions of this function specify that one element is less than another by using `operator<()`. The predicate versions use the predicate instead.
+
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/partial_sort.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate version:]
+
+* `RandomAccessRange` is a model of the __random_access_range__ Concept.
+* `RandomAccessRange` is mutable.
+* `RandomAccessRange`'s value type is a model of the `LessThanComparableConcept`.
+* The ordering relation on `RandomAccessRange`'s value type is a [*/strict weak ordering/], as defined in the `LessThanComparableConcept` requirements.
+
+
+[*For the predicate version:]
+
+* `RandomAccessRange` is a model of the __random_access_range__ Concept.
+* `RandomAccessRange` is mutable.
+* `BinaryPredicate` is a model of the `StrictWeakOrderingConcept`.
+* `RandomAccessRange`'s value type is convertible to both of `BinaryPredicate`'s argument types.
+
+
+[heading Complexity]
+
+Approximately `distance(rng) * log(distance(begin(rng), middle))` comparisons.
+
+[endsect]
+
+

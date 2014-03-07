@@ -1,0 +1,213 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Test log output</title>
+<link rel="stylesheet" href="../../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../../index.html" title="Boost Test Library">
+<link rel="up" href="../test-output.html" title="Test Output or let's see what you got for your money">
+<link rel="prev" href="../test-output.html" title="Test Output or let's see what you got for your money">
+<link rel="next" href="BOOST_TEST_MESSAGE.html" title="BOOST_TEST_MESSAGE">
+<script language="JavaScript1.2" src="../../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../../utf.html">The Unit Test Framework</a> &gt; <a href="../../user-guide.html">User's guide</a><a href="../../testing-tools.html">
+      &gt;
+      </a><a href="../test-output.html">Test Output </a><a href="../runtime-config.html">
+      &gt;
+      </a><b>Test log</b><a href="results-report.html">
+      &gt;
+      </a>
+</td>
+<td><div class="spirit-nav">
+<a href="../test-output.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="BOOST_TEST_MESSAGE.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.test-output.log"></a>Test log output</h5></div></div></div>
+<p class="first-line-indented">
+   The test log is produced during the test execution. All entries in the test log are assigned a particular log
+   level. Only the entries with level that exceeds the <em class="firstterm">active log level threshold</em> actually
+   appear in the test log output. Log levels are arranged by the "importance" of the log entries. Here is
+   the list of all levels in order of increasing "importance":
+  </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>
+<p>Success information messages</p>
+<p>
+     This category includes messages that provide information on successfully passed assertions
+    </p>
+</li>
+<li>
+<p>Test tree traversal notifications</p>
+<p>
+     This category includes messages that are produced by the <acronym class="acronym">UTF</acronym> core and indicate which test suites/cases are
+     currently being executed or skipped
+    </p>
+</li>
+<li>
+<p>General information messages</p>
+<p>
+     This category includes general information massages produced in most cases by a test module author using the
+     macro <code class="computeroutput"><a class="link" href="BOOST_TEST_MESSAGE.html#BOOST_TEST_MESSAGE">BOOST_TEST_MESSAGE</a></code>.
+    </p>
+</li>
+<li>
+<p>Warning messages</p>
+<p>
+     This category includes messages produced by failed warning level assertions.
+    </p>
+</li>
+<li>
+<p>Non fatal error messages</p>
+<p>
+     This category includes messages produced by failed check level assertions
+    </p>
+</li>
+<li>
+<p>Uncaught C++ exceptions notifications</p>
+<p>
+     This category includes messages that are produced by the <acronym class="acronym">UTF</acronym> and provide detailed information on the C++
+     exceptions uncaught by the test case body.
+    </p>
+</li>
+<li>
+<p>Non-fatal system error</p>
+<p>
+     This category includes messages that are produced by the <acronym class="acronym">UTF</acronym> itself and provides information about caught
+     non-fatal system error. For example it includes messages produced in the case of test case timeout or if
+     floating  point values calculation errors are caught.
+    </p>
+</li>
+<li>
+<p>Fatal system error</p>
+<p>
+     This category includes messages produced by failed require level assertions and by the <acronym class="acronym">UTF</acronym> itself in case of
+     abnormal test case termination.
+    </p>
+</li>
+</ul></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/html/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+    The active log level works namely as threshold, not as selector. For the given active log level threshold, all
+    test log entries with "importance" higher than threshold are enabled and all test log entries with
+    "importance" below threshold are disabled.
+   </p></td></tr>
+</table></div>
+<p class="first-line-indented">
+   In addition to the levels described above the test log defines two special log levels. The current log level can
+   be set to:
+  </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>
+<p>All messages</p>
+<p>
+     If active log level threshold is set to this value, all test log entries appear in the output. In practice
+     this is equivalent to setting the active log level threshold to "success information messages"
+    </p>
+</li>
+<li>
+<p>Nothing</p>
+<p>
+     If the active log level threshold is set to this value, none of test log entries appear in the output. This log level
+     is used to execute a "silent" test that doesn't produce any test log and only generates a result code indicating whether test failed or passed.
+    </p>
+</li>
+</ul></div>
+<p class="first-line-indented">
+   By default the active log level threshold is set to "non fatal error messages" and the test log output
+   is generated in the human readable format. The active log level threshold and the output format can be configured
+   at runtime during a test module invocation and at compile time from within a test module using the test log
+   public interfaces. For example, for automated test module output processing it might be more convenient to use
+   the XML based format.
+  </p>
+<p class="first-line-indented">
+   In most cases The <acronym class="acronym">UTF</acronym> can't provide an exact location, where system error occurs or uncaught C++ exception
+   is thrown from. To be able to pinpoint it as close as possible the <acronym class="acronym">UTF</acronym> keeps track of checkpoints - the
+   location a test module passed through. A test case entrance and exit points, a test tool invocation point the
+   <acronym class="acronym">UTF</acronym> tracks automatically. Any other checkpoints should be entered by you manually. The test log provides two
+   macros for this purpose: <code class="computeroutput"><a class="link" href="BOOST_TEST_CHECKPOINT.html#BOOST_TEST_CHECKPOINT">BOOST_TEST_CHECKPOINT</a></code> - to specify a "named" checkpoint 
+   and <code class="computeroutput"><a class="link" href="BOOST_TEST_PASSPOINT.html#BOOST_TEST_PASSPOINT">BOOST_TEST_PASSPOINT</a></code> - to specify an "unnamed" checkpoint.
+  </p>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-output.log.testing-tool-args"></a>Logging tool arguments</h6></div></div></div>
+<p class="first-line-indented">
+    Most of the <a class="link" href="../../testing-tools.html" title="The UTF testing tools or tester's toolbox for all occasions">testing tools</a> print values of their arguments to the output
+    stream in some form of log statement. If arguments type does not support <code class="computeroutput">operator&lt;&lt;(std::ostream&amp;,
+    ArgumentType const&amp;)</code> interface you will get a compilation error. You can either implement above
+    interface or prohibit the <a class="link" href="../../testing-tools.html" title="The UTF testing tools or tester's toolbox for all occasions">testing tools</a> from logging argument values for
+    specified type. To do so use following statement on file level before first test case that includes statement
+    failing to compile:
+   </p>
+<pre class="inline-synopsis">
+<a name="BOOST_TEST_DONT_PRINT_LOG_VALUE"></a>BOOST_TEST_DONT_PRINT_LOG_VALUE(<span class="emphasis"><em>ArgumentType</em></span>)</pre>
+<div class="example">
+<a name="utf.user-guide.test-output.log.testing-tool-args.example32"></a><p class="title"><b>Example 26. BOOST_TEST_DONT_PRINT_LOG_VALUE usage</b></p>
+<div class="example-contents">
+<p>
+     Try to comment out BOOST_TEST_DONT_PRINT_LOG_VALUE statement and you end up with compile time error.
+    </p>
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+#include &lt;utility&gt;
+
+//____________________________________________________________________________//
+
+typedef std::pair&lt;int,float&gt; pair_type;
+
+BOOST_TEST_DONT_PRINT_LOG_VALUE( pair_type );
+
+BOOST_AUTO_TEST_CASE( test_list )
+{
+    pair_type p1( 2, 5.5 );
+    pair_type p2( 2, 5.501 );
+
+    BOOST_CHECK_EQUAL( p1, p2 );
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example32.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id653825" onclick="toggle_element( 'example32-output', 'id653825', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example32-output">Running 1 test case...
+test.cpp(16): error in "test_list": check p1 == p2 failed [ != ]
+
+*** 1 failure detected in test suite "example"
+</pre>
+</div>
+</div>
+<br class="example-break">
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-output.log.runtime-config"></a>Runtime configuration</h6></div></div></div>
+<p class="first-line-indented">
+    The active log level threshold can be configured at runtime using the parameter
+    <a class="link" href="../runtime-config/reference.html" title="Runtime parameters reference">log_level</a>. The test log output format can be
+    selected using either parameter <a class="link" href="../runtime-config/reference.html" title="Runtime parameters reference">log_format</a> or the
+    parameter <a class="link" href="../runtime-config/reference.html" title="Runtime parameters reference">output_format</a>.
+   </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../test-output.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../test-output.html"><img src="../../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_TEST_MESSAGE.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

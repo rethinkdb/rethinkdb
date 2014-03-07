@@ -1,0 +1,139 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Additional Features</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../rationale.html" title="Rationale">
+<link rel="prev" href="../rationale.html" title="Rationale">
+<link rel="next" href="code.html" title="Code">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../rationale.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="code.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_rationale_additional_features">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.rationale.additional_features"></a><a class="link" href="additional_features.html" title="Additional Features">Additional
+      Features</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_bimap.rationale.additional_features.h0"></a>
+        <span class="phrase"><a name="boost_bimap.rationale.additional_features.n_1__n_n__hashed_maps"></a></span><a class="link" href="additional_features.html#boost_bimap.rationale.additional_features.n_1__n_n__hashed_maps">N-1,
+        N-N, hashed maps</a>
+      </h5>
+<p>
+        This is a very interesting point of the design. The framework introduced
+        in <span class="emphasis"><em>std::set theory</em></span> permits the management of the different
+        constraints with a very simple and conceptual approach. It is easy both to
+        remember and to learn. The idea here is to allow the user to specify the
+        collection type of each key directly. In order to implement this feature,
+        we have to solve two problems:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The index types of the <code class="computeroutput"><span class="identifier">multi_index_container</span></code>
+            core now depends on the collection type used for each key.
+          </li>
+<li class="listitem">
+            The map views now change their semantics according to the collection
+            type chosen.
+          </li>
+</ul></div>
+<p>
+        Boost.Bimap relies heavily on Boost.MPL to implement all of the metaprogramming
+        necessary to make this framework work. By default, if the user does not specify
+        the kind of the set, a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code> type
+        is used.
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../images/bimap/bimap.structures.png" alt="bimap.structures"></span>
+      </p>
+<h5>
+<a name="boost_bimap.rationale.additional_features.h1"></a>
+        <span class="phrase"><a name="boost_bimap.rationale.additional_features.collection_type_of_relation_constraints"></a></span><a class="link" href="additional_features.html#boost_bimap.rationale.additional_features.collection_type_of_relation_constraints">Collection
+        type of relation constraints</a>
+      </h5>
+<p>
+        The constraints of the bimap set view are another very important feature.
+        In general, Boost.Bimap users will base the set view type on one of the two
+        collection types of their keys. It may be useful however to give this set
+        other constraints or simply to order it differently. By default, Boost.Bimap
+        bases the collection type of relations on the left collection type, but the
+        user may choose between:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            left_based
+          </li>
+<li class="listitem">
+            right_based
+          </li>
+<li class="listitem">
+            set_of_relation&lt;&gt;
+          </li>
+<li class="listitem">
+            multiset_of_relation&lt;&gt;
+          </li>
+<li class="listitem">
+            unordered_set_of_relation&lt;&gt;
+          </li>
+<li class="listitem">
+            unordered_multiset_of_relation&lt;&gt;
+          </li>
+<li class="listitem">
+            list_of
+          </li>
+<li class="listitem">
+            vector_of
+          </li>
+</ul></div>
+<p>
+        In the first two cases, there are only two indices in the <code class="computeroutput"><span class="identifier">multi_index_core</span></code>,
+        and for this reason, these are the preferred options. The implementation
+        uses further metaprogramming to define a new index if necessary.
+      </p>
+<h5>
+<a name="boost_bimap.rationale.additional_features.h2"></a>
+        <span class="phrase"><a name="boost_bimap.rationale.additional_features.tagged"></a></span><a class="link" href="additional_features.html#boost_bimap.rationale.additional_features.tagged">Tagged</a>
+      </h5>
+<p>
+        The idea of using tags instead of the <code class="literal">member_at::side</code>
+        idiom is very appealing since code that uses it is more readable. The only
+        cost is compile time. <span class="emphasis"><em>boost/bimap/tagged</em></span> is the implementation
+        of a non-invasive tagged idiom. The <code class="literal">relation</code> class is
+        built in such a way that even when the user uses tags, the <code class="literal">member_at::side</code>
+        idiom continues to work. This is good since an user can start tagging even
+        before completing the coding of the algorithm, and the untagged code continues
+        to work. The development becomes a little more complicated when user-defined
+        tags are included, but there are many handy metafunctions defined in the
+        <code class="literal">tagged</code> idiom that help to keep things simple enough.
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../images/bimap/tagged.png" alt="tagged"></span>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../rationale.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="code.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

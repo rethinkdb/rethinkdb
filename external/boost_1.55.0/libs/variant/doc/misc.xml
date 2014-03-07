@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<section id="variant.misc">
+  <title>Miscellaneous Notes</title>
+
+<using-namespace name="boost"/>
+
+<section id="variant.versus-any">
+  <title>Boost.Variant vs. Boost.Any</title>
+
+  <para>As a discriminated union container, the Variant library shares many
+    of the same features of the <libraryname>Any</libraryname> library.
+    However, since neither library wholly encapsulates the features of the
+    other, one library cannot be generally recommended for use over the
+    other.</para>
+
+  <para>That said, Boost.Variant has several advantages over Boost.Any,
+    such as:
+
+    <itemizedlist>
+      <listitem>Boost.Variant guarantees the type of its content is one of a
+        finite, user-specified set of types.</listitem>
+      <listitem>Boost.Variant provides <emphasis>compile-time</emphasis>
+        checked visitation of its content. (By contrast, the current version
+        of Boost.Any provides no visitation mechanism at all; but even if it
+        did, it would need to be checked at run-time.)</listitem>
+      <listitem>Boost.Variant enables generic visitation of its content.
+        (Even if Boost.Any did provide a visitation mechanism, it would enable
+        visitation only of explicitly-specified types.)</listitem>
+      <listitem>Boost.Variant offers an efficient, stack-based storage scheme
+        (avoiding the overhead of dynamic allocation).</listitem>
+    </itemizedlist>
+
+  </para>
+
+  <para>Of course, Boost.Any has several advantages over Boost.Variant,
+    such as:
+
+    <itemizedlist>
+      <listitem>Boost.Any, as its name implies, allows virtually any type for
+        its content, providing great flexibility.</listitem>
+      <listitem>Boost.Any provides the no-throw guarantee of exception safety
+        for its swap operation.</listitem>
+      <listitem>Boost.Any makes little use of template metaprogramming
+        techniques (avoiding potentially hard-to-read error messages and
+        significant compile-time processor and memory demands).</listitem>
+    </itemizedlist>
+
+  </para>
+
+</section>
+
+<section>
+  <title>Portability</title>
+
+  <para>The library aims for 100% ANSI/ISO C++ conformance. However, this is
+    strictly impossible due to the inherently non-portable nature of the
+    <libraryname>Type Traits</libraryname> library's
+    <code><classname>type_with_alignment</classname></code> facility. In
+    practice though, no compilers or platforms have been discovered where this
+    reliance on undefined behavior has been an issue.</para>
+
+  <para>Additionally, significant effort has been expended to ensure proper
+    functioning despite various compiler bugs and other conformance problems.
+    To date the library testsuite has
+    been compiled and tested successfully on at least the following compilers
+    for basic and advanced functionality:
+
+    <informaltable>
+      <tgroup cols="5">
+        <thead>
+          <row>
+            <entry></entry>
+            <entry>Basic</entry>
+            <entry>
+              <code>variant&lt;T&amp;&gt;</code>
+            </entry>
+            <entry>
+              <link linkend="variant.tutorial.over-sequence">
+                <code>make_variant_over</code>
+              </link>
+            </entry>
+            <entry>
+              <link linkend="variant.tutorial.recursive.recursive-variant">
+                <code>make_recursive_variant</code>
+              </link>
+            </entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>Borland C++ 5.5.1 and 5.6.4</entry>
+            <entry>X</entry>
+            <entry>X</entry>
+            <entry></entry>
+            <entry></entry>
+          </row>
+          <row>
+            <entry>Comeau C++ 4.3.0</entry>
+            <entry>X</entry>
+            <entry>X</entry>
+            <entry>X</entry>
+            <entry>X</entry>
+          </row>
+          <row>
+            <entry>GNU GCC 3.3.1</entry>
+            <entry>X</entry>
+            <entry>X</entry>
+            <entry>X</entry>
+            <entry>X</entry>
+          </row>
+          <row>
+            <entry>GNU GCC 2.95.3</entry>
+            <entry>X</entry>
+            <entry>X</entry>
+            <entry></entry>
+            <entry>X</entry>
+          </row>
+          <row>
+            <entry>Intel C++ 7.0</entry>
+            <entry>X</entry>
+            <entry></entry>
+            <entry>X</entry>
+            <entry>X</entry>
+          </row>
+          <row>
+            <entry>Metrowerks CodeWarrior 8.3</entry>
+            <entry>X</entry>
+            <entry></entry>
+            <entry>X</entry>
+            <entry>X</entry>
+          </row>
+          <row>
+            <entry>Microsoft Visual C++ 7.1</entry>
+            <entry>X</entry>
+            <entry>X</entry>
+            <entry>X</entry>
+            <entry>X</entry>
+          </row>
+          <row>
+            <entry>Microsoft Visual C++ 6 SP5 and 7</entry>
+            <entry>X</entry>
+            <entry></entry>
+            <entry></entry>
+            <entry></entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+
+  </para>
+
+  <para>Finally, the current state of the testsuite in CVS may be found on the
+    <ulink url="http://boost.sourceforge.net/regression-logs">Test Summary</ulink>
+    page. Please note, however, that this page reports on day-to-day changes
+    to inter-release code found in the Boost CVS and thus likely does not
+    match the state of code found in Boost releases.</para>
+
+</section>
+
+<section id="variant.troubleshooting">
+  <title>Troubleshooting</title>
+
+<para>Due to the heavy use of templates in the implementation of
+  <code>variant</code>, it is not uncommon when compiling to encounter
+  problems related to template instantiaton depth, compiler memory, etc. This
+  section attempts to provide advice to common problems experienced on several
+  popular compilers.</para>
+  
+<para>(This section is still in progress, with additional advice/feedback
+  welcome. Please post to the Boost-Users list with any useful experiences you
+  may have.)</para>
+
+  <section id="variant.troubleshooting.template-depth">
+    <title>&quot;Template instantiation depth exceeds maximum&quot;</title>
+    
+    <section id="variant.troubleshooting.template-depth.gcc">
+      <title>GNU GCC</title>
+      <para>The compiler option
+        <code>-ftemplate-depth-<emphasis>NN</emphasis></code> can increase the
+        maximum allowed instantiation depth. (Try
+        <code>-ftemplate-depth-50</code>.)</para>
+    </section>
+  </section>
+  
+  <section id="variant.troubleshooting.compiler-memory">
+    <title>&quot;Internal heap limit reached&quot;</title>
+    
+    <section id="variant.troubleshooting.compiler-memory.msvc">
+      <title>Microsoft Visual C++</title>
+      <para>The compiler option <code>/Zm<emphasis>NNN</emphasis></code> can
+        increase the memory allocation limit. The <code>NNN</code> is a
+        scaling percentage (i.e., <code>100</code> denotes the default limit).
+        (Try <code>/Zm200</code>.)</para>
+    </section>
+  </section>
+
+</section>
+
+<section id="variant.ack">
+  <title>Acknowledgments</title>
+
+<para>Eric Friedman and Itay Maman designed the initial submission; Eric was
+  the primary implementer.</para>
+
+<para>Eric is also the library maintainer and has expanded upon the initial
+  submission -- adding
+  <code><classname>make_recursive_variant</classname></code>,
+  <code><classname>make_variant_over</classname></code>, support for
+  reference content, etc.</para>
+
+<para>Andrei Alexandrescu's work in
+    [<link linkend="variant.refs.ale01a">Ale01a</link>]
+and
+    [<link linkend="variant.refs.ale02">Ale02</link>]
+inspired the library's design.</para>
+
+<para>Jeff Garland was the formal review manager.</para>
+
+<para>Douglas Gregor,
+Dave Abrahams,
+Anthony Williams,
+Fernando Cacciola,
+Joel de Guzman,
+Dirk Schreib,
+Brad King,
+Giovanni Bajo,
+Eugene Gladyshev,
+and others provided helpful feedback and suggestions to refine the semantics,
+interface, and implementation of the library.</para>
+
+</section>
+
+</section>

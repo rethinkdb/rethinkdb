@@ -1,0 +1,32 @@
+[/
+    Boost.Config
+
+    Copyright (c) 2001 Beman Dawes
+    Copyright (c) 2001 Vesa Karvonen
+    Copyright (c) 2001 John Maddock
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Acknowledgements]
+
+Beman Dawes provided the original `config.hpp` and part of this document.
+
+Vesa Karvonen provided a description of the principles (see
+[link boost_config.rationale rationale]) and put together an early version of
+the current configuration setup.
+
+John Maddock put together the configuration current code, the test
+programs, the configuration script and the reference section of this
+document.
+
+Matias Capeletto converted the docs to quickbook format.
+
+Numerous boost members, past and present, have contributed fixes to boost's
+configuration.
+
+[endsect]
+
+

@@ -1,0 +1,21 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2011-2012 Barend Gehrels, Amsterdam, the Netherlands.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__2dim__][All combinations of: box, ring, polygon, multi_polygon]]
+[[__1dim__ / __2dim__][A combinations of a (multi) linestring with a (multi) polygon
+    results in a collection of linestrings]]
+[[__other__][__nyiversion__]]
+[[__sph__][__nyiversion__]]
+[[Three dimensional][__nyiversion__]]
+]
+

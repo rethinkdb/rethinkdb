@@ -1,0 +1,30 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:faq FAQ]
+
+1. ['[*Why is there no difference between `range_iterator<C>::type`  and `range_const_iterator<C>::type` for `std::pair<iterator, iterator>`?]]
+
+[:In general it is not possible nor desirable to find a corresponding `const_iterator`. When it is possible to come up with one, the client might choose to construct a `std::pair<const_iterator,const_iterator>` object.]
+
+[:Note that an __iterator_range__ is somewhat more convenient than a `pair` and that a __sub_range__ does propagate const-ness.]
+
+2. ['[*Why is there not supplied more types or more functions?]]
+
+[:The library has been kept small because its current interface will serve most purposes. If and when a genuine need arises for more functionality, it can be implemented.]
+
+3. ['[*How should I implement generic algorithms for ranges?]]
+
+[:One should always start with a generic algorithm that takes two iterators (or more) as input. Then use Boost.Range to build handier versions on top of the iterator based algorithm. Please notice that once the range version of the algorithm is done, it makes sense not to expose the iterator version in the public interface.]
+
+4. ['[*Why is there no Incrementable Range concept?]]
+
+[:Even though we speak of incrementable iterators, it would not make much sense for ranges; for example, we cannot determine the size and emptiness of a range since we cannot even compare its iterators.]
+
+[:Note also that incrementable iterators are derived from output iterators and so there exist no output range.]
+
+[endsect]
+
+

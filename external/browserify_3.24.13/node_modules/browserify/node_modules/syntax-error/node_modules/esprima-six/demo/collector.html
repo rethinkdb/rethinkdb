@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Esprima: Regex Collector Demo</title>
+<script src="../test/3rdparty/platform.js"></script>
+<script src="checkenv.js"></script>
+<script src="collector.js"></script>
+<script src="../esprima.js"></script>
+<script src="../assets/codemirror/codemirror.js"></script>
+<script src="../assets/codemirror/javascript.js"></script>
+<link rel="stylesheet" type="text/css" href="../assets/codemirror/codemirror.css"/>
+<link rel="stylesheet" type="text/css" href="../assets/style.css"/>
+</head>
+<body>
+<div class="container">
+
+<div class="topbar">
+<ul class="nav">
+<li><a href="../index.html">&larr; Home</a></li>
+<li><a href="http://github.com/ariya/esprima">Code</a></li>
+<li><a href="../doc/index.html">Documentation</a></li>
+<li><a href="http://issues.esprima.org">Issues</a></li>
+</ul>
+</div>
+
+<h1>Regular Expression Collector <small>uncovers all your secrets</small></h1>
+
+<p><strong>Note</strong>: Only regular expression literals and objects created with <code>RegExp</code> are considered.</p>
+<p>Type ECMAScript code:</p>
+<div><textarea id="code" autofocus="autofocus" cols="70" rows="15" spellcheck="false">
+var letterRE = new RegExp('[a-zA-Z]', 'g'),
+    digitRE = RegExp('[0-9]');
+
+
+// This is from json2.js.
+
+if (/^[\],:{}\s]*$/.test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@')
+    .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']')
+    .replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+}
+</textarea></div>
+<p id="codemirror" align="right"><small>The above code editor is based on <a href="http://codemirror.net" target="_blank">CodeMirror</a>.</small></p>
+
+<p>Using Esprima version <span id="version"></span>.</p>
+
+<div id="result">
+</div>
+
+<div class="footer"><strong>Esprima</strong> is created by
+<a href="http://ariya.ofilabs.com/about" target="_blank">Ariya Hidayat</a>. Follow <a href="http://twitter.com/ariyahidayat">@ariyahidayat</a> on Twitter.
+</div>
+
+<div id="testbox" style="visibility: hidden;"><textarea id="test"></textarea></div>
+</div>
+<script>
+/*jslint sloppy:true browser:true */
+/*global collectRegex:true, CodeMirror:true */
+window.onload = collectRegex;
+
+try {
+    window.checkEnv();
+
+    // This is just testing, to detect whether CodeMirror would fail or not
+    window.editor = CodeMirror.fromTextArea(document.getElementById("test"));
+
+    window.editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+        lineNumbers: true,
+        matchBrackets: true,
+        onChange: collectRegex
+    });
+} catch (e) {
+    // CodeMirror failed to initialize, possible in e.g. old IE.
+    document.getElementById('codemirror').innerHTML = '';
+    document.getElementById('code').onchange = collectRegex;
+    document.getElementById('code').onkeydown = collectRegex;
+} finally {
+    document.getElementById('testbox').parentNode.removeChild(document.getElementById('testbox'));
+}
+</script>
+</body>
+</html>

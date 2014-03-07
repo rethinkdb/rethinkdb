@@ -1,0 +1,48 @@
+# Copyright David Abrahams 2003. Distributed under the Boost
+# Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+test-suite iterator
+  : 
+    # These first two tests will run last, and are expected to fail
+    # for many less-capable compilers.
+  
+    [ compile-fail interoperable_fail.cpp ]
+    # test uses expected success, so that we catch unrelated
+    # compilation problems.
+    [ run is_convertible_fail.cpp ]  
+
+    [ run zip_iterator_test.cpp
+        : : : 
+        
+        # stlport's debug mode generates long symbols which overwhelm
+        # vc6
+        #<msvc-stlport><*><runtime-build>release 
+    ]
+      
+    # These tests should work for just about everything.
+    [ compile is_lvalue_iterator.cpp ]
+    [ compile is_readable_iterator.cpp ]
+    [ compile pointee.cpp ]
+      
+    [ run unit_tests.cpp ]
+    [ run concept_tests.cpp ]
+    [ run iterator_adaptor_cc.cpp ]
+    [ run iterator_adaptor_test.cpp ]
+    [ compile iterator_archetype_cc.cpp ]
+    [ compile-fail iter_archetype_default_ctor.cpp ]
+    [ compile-fail lvalue_concept_fail.cpp ]
+    [ run transform_iterator_test.cpp ]
+    [ run indirect_iterator_test.cpp ]
+    [ compile indirect_iter_member_types.cpp ]
+    [ run filter_iterator_test.cpp ]
+    [ run iterator_facade.cpp ]
+    [ run reverse_iterator_test.cpp ]
+    [ run counting_iterator_test.cpp ]
+    [ run interoperable.cpp ]
+    [ run iterator_traits_test.cpp ]
+    [ run permutation_iterator_test.cpp : : : # <stlport-iostream>on 
+    ]
+    [ run function_input_iterator_test.cpp ]
+      
+;

@@ -1,0 +1,114 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Daytime.5 - A synchronous UDP daytime server</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="tutdaytime4/src.html" title="Source listing for Daytime.4">
+<link rel="next" href="tutdaytime5/src.html" title="Source listing for Daytime.5">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tutdaytime4/src.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutdaytime5/src.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.tutorial.tutdaytime5"></a><a class="link" href="tutdaytime5.html" title="Daytime.5 - A synchronous UDP daytime server">Daytime.5 - A synchronous
+      UDP daytime server</a>
+</h3></div></div></div>
+<p>
+        This tutorial program shows how to use asio to implement a server application
+        with UDP.
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">try</span>
+  <span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span> <span class="identifier">io_service</span><span class="special">;</span>
+</pre>
+<p>
+        Create an <a class="link" href="../reference/ip__udp/socket.html" title="ip::udp::socket">ip::udp::socket</a>
+        object to receive requests on UDP port 13.
+      </p>
+<pre class="programlisting">    <span class="identifier">udp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">,</span> <span class="identifier">udp</span><span class="special">::</span><span class="identifier">endpoint</span><span class="special">(</span><span class="identifier">udp</span><span class="special">::</span><span class="identifier">v4</span><span class="special">(),</span> <span class="number">13</span><span class="special">));</span>
+</pre>
+<p>
+        Wait for a client to initiate contact with us. The remote_endpoint object
+        will be populated by <a class="link" href="../reference/basic_datagram_socket/receive_from.html" title="basic_datagram_socket::receive_from">ip::udp::socket::receive_from()</a>.
+      </p>
+<pre class="programlisting">    <span class="keyword">for</span> <span class="special">(;;)</span>
+    <span class="special">{</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="number">1</span><span class="special">&gt;</span> <span class="identifier">recv_buf</span><span class="special">;</span>
+      <span class="identifier">udp</span><span class="special">::</span><span class="identifier">endpoint</span> <span class="identifier">remote_endpoint</span><span class="special">;</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">error</span><span class="special">;</span>
+      <span class="identifier">socket</span><span class="special">.</span><span class="identifier">receive_from</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">recv_buf</span><span class="special">),</span>
+          <span class="identifier">remote_endpoint</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">error</span><span class="special">);</span>
+
+      <span class="keyword">if</span> <span class="special">(</span><span class="identifier">error</span> <span class="special">&amp;&amp;</span> <span class="identifier">error</span> <span class="special">!=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">error</span><span class="special">::</span><span class="identifier">message_size</span><span class="special">)</span>
+        <span class="keyword">throw</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">system_error</span><span class="special">(</span><span class="identifier">error</span><span class="special">);</span>
+</pre>
+<p>
+        Determine what we are going to send back to the client.
+      </p>
+<pre class="programlisting">      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">message</span> <span class="special">=</span> <span class="identifier">make_daytime_string</span><span class="special">();</span>
+</pre>
+<p>
+        Send the response to the remote_endpoint.
+      </p>
+<pre class="programlisting">      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">ignored_error</span><span class="special">;</span>
+      <span class="identifier">socket</span><span class="special">.</span><span class="identifier">send_to</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">message</span><span class="special">),</span>
+          <span class="identifier">remote_endpoint</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">ignored_error</span><span class="special">);</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+</pre>
+<p>
+        Finally, handle any exceptions.
+      </p>
+<pre class="programlisting">  <span class="keyword">catch</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">exception</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cerr</span> <span class="special">&lt;&lt;</span> <span class="identifier">e</span><span class="special">.</span><span class="identifier">what</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="special">}</span>
+
+  <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        See the <a class="link" href="tutdaytime5/src.html" title="Source listing for Daytime.5">full source listing</a>
+      </p>
+<p>
+        Return to the <a class="link" href="../tutorial.html" title="Tutorial">tutorial index</a>
+      </p>
+<p>
+        Previous: <a class="link" href="tutdaytime4.html" title="Daytime.4 - A synchronous UDP daytime client">Daytime.4 - A synchronous
+        UDP daytime client</a>
+      </p>
+<p>
+        Next: <a class="link" href="tutdaytime6.html" title="Daytime.6 - An asynchronous UDP daytime server">Daytime.6 - An asynchronous
+        UDP daytime server</a>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tutdaytime4/src.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutdaytime5/src.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

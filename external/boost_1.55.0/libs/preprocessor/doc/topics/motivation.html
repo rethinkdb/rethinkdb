@@ -1,0 +1,119 @@
+<html>
+<head>
+	<title>motivation.html</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+<h4>Motivation</h4>
+<div>
+	The C++ function and template parameter lists are special syntactic constructs, and it is impossible to directly
+	manipulate or generate them using C++ constructs.&nbsp;
+	This leads to unnecessary code repetition.
+</div>
+<div>
+	Consider the implementation of the <code>is_function&lt;&gt;</code> metafunction is Boost.&nbsp;
+	The implementation uses an overloaded <code>is_function_tester()</code> function that is used for testing if a type is convertible
+	to a pointer to a function.&nbsp;
+	Because of the special treatment of parameter lists, it is not possible to directly match a function with an arbitrary parameter list.&nbsp;
+	Instead, the <code>is_function_tester()</code> must be overloaded for every distinct number of parameters that is to be supported.&nbsp;
+	For example:
+</div>
+<div class="code"><pre>
+template&lt;class R&gt;
+yes_type is_function_tester(R (*)());
+
+template&lt;class R, class A0&gt;
+yes_type is_function_tester(R (*)(A0));
+
+template&lt;class R, class A0, class A1&gt;
+yes_type is_function_tester(R (*)(A0, A1));
+
+template&lt;class R, class A0, class A1, class A2&gt;
+yes_type is_function_tester(R (*)(A0, A1, A2));
+
+// ...
+</pre></div>
+<div>
+	The need for this kind of repetition occurs particularly frequently while implementing generic components or metaprogramming facilities,
+	but the need also manifests itself in many far simpler situations.
+</div>
+<h4>Typical Solutions</h4>
+<div>
+	Typically the repetition is done manually.&nbsp;
+	Manual code repetition is highly unproductive, but sometimes more readable to the untrained eye.
+</div>
+<div>
+	Another solution is to write an external program for generating the repeated code or use some other extra linguistic means such as a smart editor.&nbsp;
+	Unfortunately, using external code generators has many disadvantages:
+	<ul>
+		<li>Writing the generator takes time.&nbsp; (This could be helped by using a standard generator.)</li>
+		<li>It is no longer productive to manipulate C++ code directly.</li>
+		<li>Invoking the generator may be difficult.</li>
+		<li>Automating the invocation of the generator can be difficult in certain environments.&nbsp; (Automatic invocation is desirable for active libraries.)</li>
+		<li>Porting and distributing the generator may be difficult or simply takes precious time.</li>
+	</ul>
+</div>
+<h4>What about the preprocessor?</h4>
+<div>
+	Because C++ comes with a preprocessor, one would assume that it would support these kinds of needs directly.&nbsp;
+	Using the preprocessor in this case is highly desirable because:
+	<ul>
+		<li>The preprocessor is highly portable.</li>
+		<li>The preprocessor is automatically invoked as part of the compilation process.</li>
+		<li>Preprocessor metacode can be directly embedded into the C++ source code.</li>
+		<li>Compilers generally allow viewing or outputting the preprocessed code, which can be used for debugging or to copy and paste the generated code.</li>
+	</ul>
+</div>
+<div>
+	Most unfortunately, the preprocessor is a very low level preprocessor that specifically does not support repetition or recursive macros.&nbsp;
+	Library support is needed!
+</div>
+<div>
+	<i>For detailed information on the capabilities and limitations of the preprocessor, please refer to the C++ standard <a href="../bibliography.html#std">[Std]</a>.</i>
+</div>
+<h4>The Motivation Example Revisited</h4>
+<div>
+	Using the primitives of the preprocessor library, the <code>is_function_tester()</code>'s could be implemented like this:
+</div>
+<div class="code"><pre>
+#include &lt;boost/preprocessor/arithmetic/inc.hpp&gt;
+#include &lt;boost/preprocessor/punctuation/comma_if.hpp&gt;
+#include &lt;boost/preprocessor/repetition.hpp&gt;
+
+#ifndef MAX_IS_FUNCTION_TESTER_PARAMS
+#define MAX_IS_FUNCTION_TESTER_PARAMS 15
+#endif
+
+#define IS_FUNCTION_TESTER(Z, N, _) \
+   template&lt;class R BOOST_PP_COMMA_IF(N) BOOST_PP_ENUM_PARAMS(N, class A)&gt; \
+   yes_type is_function_tester(R (*)(BOOST_PP_ENUM_PARAMS(N, A))); \
+   /**/
+
+BOOST_PP_REPEAT(BOOST_PP_INC(MAX_IS_FUNCTION_TESTER_PARAMS), IS_FUNCTION_TESTER, _)
+
+#undef IS_FUNCTION_TESTER
+</pre></div>
+<div>
+	In order to change the maximum number of function parameters supported, you now simply change the <code>MAX_IS_FUNCTION_TESTER_PARAMS</code> definition and recompile.
+</div>
+<hr size="1">
+<div style="margin-left: 0px;">
+	<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+</div>
+<div style="margin-left: 0px;">
+Permission to copy, use, modify, sell and distribute this document is granted provided this copyright notice appears in all copies.&nbsp;
+This document is provided "as is" without express or implied warranty and with no claim as to its suitability for any purpose.
+</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Custom Terminals]
+
+Custom Terminals are used in Phoenix to handle special values transparently.
+For example, as Phoenix captures everything by value, we needed to use
+`boost::reference_wrapper` to bring reference semantics into Phoenix.
+
+Custom terminals could be any wrapper class:
+
+    template <typename T>
+    struct is_custom_terminal;
+
+needs to be specialized in order for Phoenix to recognize this wrapper type.
+`default_action` calls `custom_terminal<T>`.
+
+Example:
+
+    // Call out boost::reference_wrapper for special handling
+    template<typename T>
+    struct is_custom_terminal<boost::reference_wrapper<T> >
+      : mpl::true_
+    {};
+
+    // Special handling for boost::reference_wrapper
+    template<typename T>
+    struct custom_terminal<boost::reference_wrapper<T> >
+    {
+        typedef T &result_type;
+
+        template <typename Context>
+        T &operator()(boost::reference_wrapper<T> r, Context &) const
+        {
+            return r;
+        }
+    };
+
+[endsect]
+

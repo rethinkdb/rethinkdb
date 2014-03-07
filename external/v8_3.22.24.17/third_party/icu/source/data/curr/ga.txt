@@ -1,0 +1,988 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ga.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ga.xml
+ */
+ga{
+    Currencies{
+        ADP{
+            "ADP" /** ===  */,
+            "Peseta Andóra",
+        }
+        AED{
+            "AED",
+            "Dirham Aontas na nÉimíríochtaí Arabacha",
+        }
+        AFA{
+            "AFA" /** ===  */,
+            "Afgainí (1927-2002)",
+        }
+        AFN{
+            "Af",
+            "Afgainí",
+        }
+        ALL{
+            "ALL",
+            "Lek Albánach",
+        }
+        AMD{
+            "AMD",
+            "Dram Airméanach",
+        }
+        ANG{
+            "AÍ f.",
+            "Guilder na nAntillí Ísiltíreach",
+        }
+        AOA{
+            "Kz",
+            "Kwanza Angólach",
+        }
+        AOK{
+            "AOK" /** ===  */,
+            "Kwanza Angólach (1977-1990)",
+        }
+        AON{
+            "AON" /** ===  */,
+            "Kwanza Nua Angólach (1990-2000)",
+        }
+        AOR{
+            "AOR" /** ===  */,
+            "Kwanza Reajustado Angólach (1995-1999)",
+        }
+        ARA{
+            "₳",
+            "Austral Airgintíneach",
+        }
+        ARP{
+            "ARP" /** ===  */,
+            "Peso na Airgintíne (1983-1985)",
+        }
+        ARS{
+            "AR$",
+            "Peso na Airgintíne",
+        }
+        ATS{
+            "ATS" /** ===  */,
+            "Scilling Ostarach",
+        }
+        AUD{
+            "AU$",
+            "Dollar Astrálach",
+        }
+        AWG{
+            "Afl.",
+            "Guilder Aruba",
+        }
+        AZM{
+            "AZM",
+            "Manat Asarbaiseánach",
+        }
+        BAD{
+            "BAD" /** ===  */,
+            "Dínear Bhoisnia-Heirseagaivéin",
+        }
+        BAM{
+            "KM",
+            "Marc Inathraithe Bhoisnia-Heirseagaivéin",
+        }
+        BBD{
+            "Bds$",
+            "Dollar Bharbadóis",
+        }
+        BDT{
+            "Tk",
+            "Taka Bhanglaidéiseach",
+        }
+        BEC{
+            "BEC" /** ===  */,
+            "Franc Beilgeach (inathraithe)",
+        }
+        BEF{
+            "BF",
+            "Franc Beilgeach",
+        }
+        BEL{
+            "BEL" /** ===  */,
+            "Franc Beilgeach (airgeadúil)",
+        }
+        BGL{
+            "BGL" /** ===  */,
+            "Lev Bulgárach Crua",
+        }
+        BGN{
+            "BGN",
+            "Lev Nua Bulgárach",
+        }
+        BHD{
+            "BD",
+            "Dínear na Bairéine",
+        }
+        BIF{
+            "FBu",
+            "Franc na Burúine",
+        }
+        BMD{
+            "BD$",
+            "Dollar Bheirmiúda",
+        }
+        BND{
+            "BN$",
+            "Dollar Bhrúiné",
+        }
+        BOB{
+            "Bs",
+            "Boliviano",
+        }
+        BOP{
+            "$b.",
+            "Peso na Bolaive",
+        }
+        BOV{
+            "BOV" /** ===  */,
+            "Mvdol Bolavach",
+        }
+        BRB{
+            "BRB" /** ===  */,
+            "Cruzeiro Novo Brasaíleach (1967-1986)",
+        }
+        BRC{
+            "BRC" /** ===  */,
+            "Cruzado Brasaíleach",
+        }
+        BRE{
+            "BRE" /** ===  */,
+            "Cruzeiro Brasaíleach (1990-1993)",
+        }
+        BRL{
+            "R$",
+            "Real Brasaíleach",
+        }
+        BRN{
+            "BRN" /** ===  */,
+            "Cruzado Novo Brasaíleach",
+        }
+        BRR{
+            "BRR" /** ===  */,
+            "Cruzeiro Brasaíleach",
+        }
+        BSD{
+            "BS$",
+            "Dollar na mBahámaí",
+        }
+        BTN{
+            "Nu.",
+            "Ngultrum Bútánach",
+        }
+        BUK{
+            "BUK" /** ===  */,
+            "Kyat Burmach",
+        }
+        BWP{
+            "BWP",
+            "Pula Botsuánach",
+        }
+        BYB{
+            "BYB" /** ===  */,
+            "Rúbal Nua Béalarúiseach (1994-1999)",
+        }
+        BYR{
+            "BYR",
+            "Rúbal Béalarúiseach",
+        }
+        BZD{
+            "BZ$",
+            "Dollar na Beilíse",
+        }
+        CAD{
+            "CA$",
+            "Dollar Ceanada",
+        }
+        CDF{
+            "CDF",
+            "Franc Congolais an Chongó",
+        }
+        CHF{
+            "CHF",
+            "Franc na hEilvéise",
+        }
+        CLF{
+            "CLF" /** ===  */,
+            "Unidades de Fomento na Sile",
+        }
+        CLP{
+            "CL$",
+            "Peso na Sile",
+        }
+        CNY{
+            "CN¥",
+            "Yuan Renminbi Síneach",
+        }
+        COP{
+            "CO$",
+            "Peso na Colóime",
+        }
+        CRC{
+            "₡",
+            "Colon Chósta Ríce",
+        }
+        CSK{
+            "CSK" /** ===  */,
+            "Koruna Crua na Seicslóvaice",
+        }
+        CUP{
+            "CU$",
+            "Peso Cúba",
+        }
+        CVE{
+            "CV$",
+            "Escudo na Rinne Verde",
+        }
+        CYP{
+            "CY£",
+            "Punt na Cipire",
+        }
+        CZK{
+            "Kč",
+            "Koruna Phoblacht na Seice",
+        }
+        DDM{
+            "DDM" /** ===  */,
+            "Ostmark na hOirGhearmáine",
+        }
+        DEM{
+            "DM",
+            "Deutsche Mark",
+        }
+        DJF{
+            "Fdj",
+            "Franc Djibouti",
+        }
+        DKK{
+            "Dkr",
+            "Krone Danmhargach",
+        }
+        DOP{
+            "RD$",
+            "Peso Doimineacach",
+        }
+        DZD{
+            "DA",
+            "Dínear na hAilgéire",
+        }
+        ECS{
+            "ECS" /** ===  */,
+            "Sucre Eacuadóir",
+        }
+        ECV{
+            "ECV" /** ===  */,
+            "Unidad de Valor Constante (UVC) Eacuadóir",
+        }
+        EEK{
+            "Ekr",
+            "Kroon na hEastóine",
+        }
+        EGP{
+            "EGP",
+            "Punt na hÉigipte",
+        }
+        ESP{
+            "Pts",
+            "Peseta Spáinneach",
+        }
+        ETB{
+            "Br",
+            "Birr na hAetóipe",
+        }
+        EUR{
+            "€",
+            "Euro",
+        }
+        FIM{
+            "mk",
+            "Markka Fionnlannach",
+        }
+        FJD{
+            "FJ$",
+            "Dollar Fhidsí",
+        }
+        FKP{
+            "FK£",
+            "Punt Oileáin Fháclainne",
+        }
+        FRF{
+            "₣",
+            "Franc Francach",
+        }
+        GBP{
+            "£",
+            "Punt Steirling",
+        }
+        GEK{
+            "GEK" /** ===  */,
+            "Kupon Larit na Grúise",
+        }
+        GEL{
+            "GEL",
+            "Lari na Grúise",
+        }
+        GHC{
+            "₵",
+            "Cedi Ghána",
+        }
+        GIP{
+            "GI£",
+            "Punt Ghiobráltair",
+        }
+        GMD{
+            "GMD",
+            "Dalasi Gaimbia",
+        }
+        GNF{
+            "FG",
+            "Franc Guine",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Syli Guine",
+        }
+        GQE{
+            "GQE" /** ===  */,
+            "Ekwele Guineana na Guine Meánchriosaí",
+        }
+        GRD{
+            "₯",
+            "Drachma Gréagach",
+        }
+        GTQ{
+            "GTQ",
+            "Quetzal Guatamala",
+        }
+        GWE{
+            "GWE" /** ===  */,
+            "Escudo na Guine Portaingéalaí",
+        }
+        GWP{
+            "GWP" /** ===  */,
+            "Peso Guine-Bhissau",
+        }
+        GYD{
+            "GY$",
+            "Dollar na Guáine",
+        }
+        HKD{
+            "HK$",
+            "Dollar Hong Cong",
+        }
+        HNL{
+            "HNL",
+            "Lempira Hondúrais",
+        }
+        HRD{
+            "HRD" /** ===  */,
+            "Dínear na Cróite",
+        }
+        HRK{
+            "kn",
+            "Kuna Crótach",
+        }
+        HTG{
+            "HTG",
+            "Gourde Háití",
+        }
+        HUF{
+            "Ft",
+            "Forint Ungárach",
+        }
+        IDR{
+            "Rp",
+            "Rupiah Indinéiseach",
+        }
+        IEP{
+            "IR£",
+            "Punt Éireannach",
+        }
+        ILP{
+            "I£",
+            "Punt Iosraelach",
+        }
+        ILS{
+            "₪",
+            "Sheqel Nua Iosraelach",
+        }
+        INR{
+            "Rs",
+            "Rúipí India",
+        }
+        IQD{
+            "IQD",
+            "Dínear Irácach",
+        }
+        IRR{
+            "IRR",
+            "Rial Iaránach",
+        }
+        ISK{
+            "Ikr",
+            "Krona Íoslannach",
+        }
+        ITL{
+            "IT₤",
+            "Lira Iodálach",
+        }
+        JMD{
+            "J$",
+            "Dollar Iamácach",
+        }
+        JOD{
+            "JD",
+            "Dínear Iordánach",
+        }
+        JPY{
+            "JP¥",
+            "Yen Seapánach",
+        }
+        KES{
+            "Ksh",
+            "Scilling Céiniach",
+        }
+        KGS{
+            "KGS",
+            "Som na Cirgeastáine",
+        }
+        KHR{
+            "KHR",
+            "Riel na Cambóide",
+        }
+        KMF{
+            "CF",
+            "Franc Chomóra",
+        }
+        KPW{
+            "KPW",
+            "Won na Cóiré Thuaidh",
+        }
+        KRW{
+            "₩",
+            "Won na Cóiré Theas",
+        }
+        KWD{
+            "KD",
+            "Dínear Cuátach",
+        }
+        KYD{
+            "KY$",
+            "Dollar Oileáin Cayman",
+        }
+        KZT{
+            "KZT",
+            "Tenge Casacstánach",
+        }
+        LAK{
+            "₭",
+            "Kip Laosach",
+        }
+        LBP{
+            "LB£",
+            "Punt na Liobáine",
+        }
+        LKR{
+            "SLRs",
+            "Rúipí Srí Lanca",
+        }
+        LRD{
+            "L$",
+            "Dollar na Libéire",
+        }
+        LSL{
+            "LSL",
+            "Loti Leosóta",
+        }
+        LTL{
+            "Lt",
+            "Lita Liotuánach",
+        }
+        LTT{
+            "LTT" /** ===  */,
+            "Talonas Liotuánach",
+        }
+        LUF{
+            "LUF" /** ===  */,
+            "Franc Lucsamburg",
+        }
+        LVL{
+            "Ls",
+            "Lats Laitviach",
+        }
+        LVR{
+            "LVR" /** ===  */,
+            "Rúbal Laitviach",
+        }
+        LYD{
+            "LD",
+            "Dínear Libia",
+        }
+        MAD{
+            "MAD",
+            "Dirham Mharacó",
+        }
+        MAF{
+            "MAF" /** ===  */,
+            "Franc Mharacó",
+        }
+        MDL{
+            "MDL",
+            "Leu Moldóvach",
+        }
+        MGA{
+            "MGA",
+            "Ariary Madagascar",
+        }
+        MGF{
+            "MGF" /** ===  */,
+            "Franc Madagascar",
+        }
+        MKD{
+            "MKD",
+            "Denar na Macadóine",
+        }
+        MLF{
+            "MLF" /** ===  */,
+            "Franc Mhailí",
+        }
+        MMK{
+            "MMK",
+            "Kyat Mhaenmar",
+        }
+        MNT{
+            "₮",
+            "Tugrik Mongólach",
+        }
+        MOP{
+            "MOP$",
+            "Pataca Macao",
+        }
+        MRO{
+            "UM",
+            "Ouguiya na Maratáine",
+        }
+        MTL{
+            "Lm",
+            "Lira Maltach",
+        }
+        MTP{
+            "MT£",
+            "Punt Maltach",
+        }
+        MUR{
+            "MURs",
+            "Rúipí Oileán Mhuirís",
+        }
+        MVR{
+            "MVR",
+            "Maldive Islands Rufiyaa",
+        }
+        MWK{
+            "MWK",
+            "Kwacha na Maláive",
+        }
+        MXN{
+            "MX$",
+            "Peso Meicsiceo",
+        }
+        MXP{
+            "MXP" /** ===  */,
+            "Peso Airgid Meicsiceo (1861-1992)",
+        }
+        MXV{
+            "MXV" /** ===  */,
+            "Unidad de Inversion (UDI) Meicsiceo",
+        }
+        MYR{
+            "RM",
+            "Ringgit Malaeisia",
+        }
+        MZE{
+            "MZE" /** ===  */,
+            "Escudo Mósaimbíce",
+        }
+        MZM{
+            "Mt",
+            "Metical Mósaimbíce",
+        }
+        NAD{
+            "N$",
+            "Dollar na Namaibe",
+        }
+        NGN{
+            "₦",
+            "Naira Nígéarach",
+        }
+        NIC{
+            "NIC" /** ===  */,
+            "Cordoba Nicearagua",
+        }
+        NIO{
+            "C$",
+            "Cordoba Oro Nicearagua",
+        }
+        NLG{
+            "fl",
+            "Guilder Ísiltíreach",
+        }
+        NOK{
+            "Nkr",
+            "Krone Ioruach",
+        }
+        NPR{
+            "NPRs",
+            "Rúipí Neipeáil",
+        }
+        NZD{
+            "NZ$",
+            "Dollar na Nua-Shéalainne",
+        }
+        OMR{
+            "OMR",
+            "Rial Omain",
+        }
+        PAB{
+            "B/.",
+            "Balboa Panamach",
+        }
+        PEI{
+            "I/.",
+            "Inti Pheiriú",
+        }
+        PEN{
+            "S/.",
+            "Sol Nuevo Pheiriú",
+        }
+        PES{
+            "PES" /** ===  */,
+            "Sol Pheiriú",
+        }
+        PGK{
+            "PGK",
+            "Kina Nua-Ghuine Phapua",
+        }
+        PHP{
+            "₱",
+            "Peso Filipíneach",
+        }
+        PKR{
+            "PKRs",
+            "Rúipí na Pacastáine",
+        }
+        PLN{
+            "zł",
+            "Zloty Polannach",
+        }
+        PLZ{
+            "PLZ" /** ===  */,
+            "Zloty Polannach (1950-1995)",
+        }
+        PTE{
+            "Esc",
+            "Escudo Portaingélach",
+        }
+        PYG{
+            "₲",
+            "Guarani Pharagua",
+        }
+        QAR{
+            "QR",
+            "Rial Catarach",
+        }
+        ROL{
+            "ROL",
+            "Leu Rómánach",
+        }
+        RUB{
+            "RUB",
+            "Rúbal Rúiseach",
+        }
+        RUR{
+            "RUR" /** ===  */,
+            "Rúbal Rúiseach (1991-1998)",
+        }
+        RWF{
+            "RWF",
+            "Franc Ruanda",
+        }
+        SAR{
+            "SR",
+            "Riyal Sádach",
+        }
+        SBD{
+            "SI$",
+            "Dollar Oileáin Solomon",
+        }
+        SCR{
+            "SRe",
+            "Rúipí na Séiséil",
+        }
+        SDD{
+            "LSd",
+            "Dínear na Súdáine",
+        }
+        SDP{
+            "SDP" /** ===  */,
+            "Punt na Súdáine",
+        }
+        SEK{
+            "Skr",
+            "Krona Sualannach",
+        }
+        SGD{
+            "S$",
+            "Dollar Singeapóir",
+        }
+        SHP{
+            "SH£",
+            "Punt San Héilin",
+        }
+        SIT{
+            "SIT" /** ===  */,
+            "Tolar Slóvénach",
+        }
+        SKK{
+            "Sk",
+            "Koruna na Slóvaice",
+        }
+        SLL{
+            "Le",
+            "Leone Shiarra Leon",
+        }
+        SOS{
+            "Ssh",
+            "Scilling na Sómáile",
+        }
+        SRG{
+            "Sf",
+            "Guilder Shuranaim",
+        }
+        STD{
+            "Db",
+            "Dobra Sao Tome agus Principe",
+        }
+        SUR{
+            "SUR" /** ===  */,
+            "Rúbal Sóvéadach",
+        }
+        SVC{
+            "SV₡",
+            "Colon na Salvadóire",
+        }
+        SYP{
+            "SY£",
+            "Punt Siria",
+        }
+        SZL{
+            "SZL",
+            "Lilangeni na Suasalainne",
+        }
+        THB{
+            "฿",
+            "Baht na Téalainne",
+        }
+        TJR{
+            "TJR" /** ===  */,
+            "Rúbal na Táidsíceastáine",
+        }
+        TJS{
+            "TJS",
+            "Somoni na Táidsíceastáine",
+        }
+        TMM{
+            "TMM",
+            "Manat na An Tuircméanastáine",
+        }
+        TND{
+            "DT",
+            "Dínear na Túinéise",
+        }
+        TOP{
+            "T$",
+            "Paʻanga Tonga",
+        }
+        TPE{
+            "TPE" /** ===  */,
+            "Escudo Tíomóir",
+        }
+        TRL{
+            "TRL",
+            "Lira Turcach",
+        }
+        TTD{
+            "TT$",
+            "Dollar Oileáin na Tríonóide agus Tobága",
+        }
+        TWD{
+            "NT$",
+            "Dollar Nua na Téaváine",
+        }
+        TZS{
+            "TSh",
+            "Scilling na Tansáine",
+        }
+        UAH{
+            "₴",
+            "Hryvnia Úcránach",
+        }
+        UAK{
+            "UAK" /** ===  */,
+            "Karbovanetz Úcránach",
+        }
+        UGS{
+            "UGS" /** ===  */,
+            "Scilling Uganda (1966-1987)",
+        }
+        UGX{
+            "USh",
+            "Scilling Uganda",
+        }
+        USD{
+            "US$",
+            "Dollar S.A.M.",
+        }
+        USN{
+            "USN" /** ===  */,
+            "Dollar S.A.M. (an chéad lá eile)",
+        }
+        USS{
+            "USS" /** ===  */,
+            "Dollar S.A.M. (an la céanna)",
+        }
+        UYP{
+            "UYP" /** ===  */,
+            "Peso Uragua (1975-1993)",
+        }
+        UYU{
+            "$U",
+            "Peso Uruguayo Uragua",
+        }
+        UZS{
+            "UZS",
+            "Sum na hÚisbéiceastáine",
+        }
+        VEB{
+            "VEB" /** ===  */,
+            "Bolivar Veiniséala",
+        }
+        VND{
+            "₫",
+            "Dong Vítneamach",
+        }
+        VUV{
+            "VT",
+            "Vatu Vanuatú",
+        }
+        WST{
+            "WS$",
+            "Tala Samó Thiar",
+        }
+        XAF{
+            "FCFA",
+            "CFA Franc BEAC",
+        }
+        XAU{
+            "XAU",
+            "Ór",
+        }
+        XBA{
+            "XBA",
+            "Aonad Ilchodach Eorpach",
+        }
+        XBB{
+            "XBB",
+            "Aonad Airgeadaíochta Eorpach",
+        }
+        XBC{
+            "XBC",
+            "Aonad Cuntais Eorpach (XBC)",
+        }
+        XBD{
+            "XBD",
+            "Aonad Cuntais Eorpach (XBD)",
+        }
+        XCD{
+            "EC$",
+            "Dollar Oirthear na Cairibe",
+        }
+        XDR{
+            "XDR",
+            "Cearta Speisialta Tarraingthe",
+        }
+        XEU{
+            "XEU" /** ===  */,
+            "Aonad Airgeadra Eorpach",
+        }
+        XFO{
+            "XFO",
+            "Franc Ór Francach",
+        }
+        XFU{
+            "XFU",
+            "UIC-Franc Francach",
+        }
+        XOF{
+            "CFA",
+            "CFA Franc BCEAO",
+        }
+        XPF{
+            "CFPF",
+            "CFP Franc",
+        }
+        YDD{
+            "YDD" /** ===  */,
+            "Dínear Éimin",
+        }
+        YER{
+            "YR",
+            "Rial Éimin",
+        }
+        YUD{
+            "YUD" /** ===  */,
+            "Dínear Crua Iúgslavach",
+        }
+        YUM{
+            "YUM" /** ===  */,
+            "Noviy Dinar Iúgslavach",
+        }
+        YUN{
+            "YUN" /** ===  */,
+            "Dínear Inathraithe Iúgslavach",
+        }
+        ZAL{
+            "ZAL" /** ===  */,
+            "Rand na hAfraice Theas (airgeadúil)",
+        }
+        ZAR{
+            "R",
+            "Rand na hAfraice Theas",
+        }
+        ZMK{
+            "ZK",
+            "Kwacha Saimbiach",
+        }
+        ZRN{
+            "NZ",
+            "Zaire Nua Sáíreach",
+        }
+        ZRZ{
+            "ZRZ",
+            "Zaire Sáíreach",
+        }
+        ZWD{
+            "Z$",
+            "Dollar Siombábach",
+        }
+    }
+    Version{"2.0.47.67"}
+}

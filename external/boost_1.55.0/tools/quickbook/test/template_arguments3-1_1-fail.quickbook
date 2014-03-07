@@ -1,0 +1,6 @@
+[article Expect template to fail because there are not enough arguments on 1.5.
+    [quickbook 1.5]
+]
+
+[template ternary[x y z] {[x]-[y]-[z]}]
+[ternary 1..2 3 4]

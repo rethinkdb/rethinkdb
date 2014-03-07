@@ -1,0 +1,3 @@
+-I bar
+-I biz
+--magic 10

@@ -1,0 +1,109 @@
+
+[article Boost.Regex
+    [quickbook 1.3]
+    [copyright 1998-2010 John Maddock]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [authors [Maddock, John]]
+    [/last-revision $Date: 2011-08-23 01:47:38 -0700 (Tue, 23 Aug 2011) $]
+]
+
+[template super[x]'''<superscript>'''[x]'''</superscript>''']
+[template sub[x]'''<subscript>'''[x]'''</subscript>''']
+
+
+[template tr1[] [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1836.pdf Technical Report on C++ Library Extensions]]
+[template syntax_option_type[] [link boost_regex.ref.syntax_option_type `syntax_option_type`]]
+[template error_type[] [link boost_regex.ref.error_type `error_type`]]
+[template bad_expression[] [link boost_regex.ref.bad_expression `bad_expression`]]
+[template regex_error[] [link boost_regex.ref.bad_expression `regex_error`]]
+[template basic_regex[] [link boost_regex.ref.basic_regex `basic_regex`]]
+[template match_results[] [link boost_regex.ref.match_results `match_results`]]
+[template sub_match[] [link boost_regex.ref.sub_match `sub_match`]]
+[template match_flag_type[] [link boost_regex.ref.match_flag_type `match_flag_type`]]
+[template regex_iterator[] [link boost_regex.ref.regex_iterator `regex_iterator`]]
+[template regex_token_iterator[] [link boost_regex.ref.regex_token_iterator `regex_token_iterator`]]
+[template regex_search[] [link boost_regex.ref.regex_search `regex_search`]]
+[template regex_match[] [link boost_regex.ref.regex_match `regex_match`]]
+[template regex_replace[] [link boost_regex.ref.regex_replace `regex_replace`]]
+[template regex_grep[] [link boost_regex.ref.deprecated_interfaces.regex_grep `regex_grep`]]
+[template regex_split[] [link boost_regex.ref.deprecated_interfaces.regex_split `regex_split`]]
+[template match_results_format[] [link boost_regex.match_results_format `match_results<>::format`]]
+[template perl_format[] [link boost_regex.format.perl_format Perl]]
+[template sed_format[] [link boost_regex.format.sed_format Sed]]
+[template boost_extended_format[] [link boost_regex.format.boost_format_syntax Boost-Extended]]
+
+[/depricated stuff:]
+[template RegEx[] [link boost_regex.ref.deprecated_interfaces.old_regex `RegEx`]]
+[template regcomp[] [link boost_regex.ref.posix.regcomp `regcomp`]]
+[template regexec[] [link boost_regex.ref.posix.regexec `regexec`]]
+[template regerror[] [link boost_regex.ref.posix.regerror `regerror`]]
+[template regfree[] [link boost_regex.ref.posix.regfree `regfree`]]
+
+A printer-friendly 
+[@http://sourceforge.net/projects/boost/files/boost-docs/ 
+PDF version of this manual is also available].
+
+[include configuration.qbk]
+[include install.qbk]
+[include introduction.qbk]
+[include unicode.qbk]
+[include captures.qbk]
+[include partial_matches.qbk]
+
+[include syntax.qbk]
+
+[include format_syntax.qbk]
+
+[section:ref Reference]
+
+[include basic_regex.qbk]
+[include match_result.qbk]
+[include sub_match.qbk]
+[include regex_match.qbk]
+[include regex_search.qbk]
+[include regex_replace.qbk]
+[include regex_iterator.qbk]
+[include regex_token_iterator.qbk]
+[include bad_expression.qbk]
+[include syntax_option_type.qbk]
+[include match_flag_type.qbk]
+[include error_type.qbk]
+[include regex_traits.qbk]
+
+[include non_std_strings.qbk]
+[include posix_api.qbk]
+[include concepts.qbk]
+
+[section Deprecated Interfaces]
+[include regex_format.qbk]
+[include regex_grep.qbk]
+[include regex_split.qbk]
+[include old_regex.qbk]
+[endsect]
+
+[section Internal Details]
+[include unicode_iterators.qbk]
+[endsect]
+
+[endsect]
+
+[section Background Information]
+
+[include headers.qbk]
+[include locale.qbk]
+[include thread_safety.qbk]
+[include examples.qbk]
+[include further_info.qbk]
+[include faq.qbk]
+[include performance.qbk]
+[include standards.qbk]
+[include redistributables.qbk]
+[include acknowledgements.qbk]
+[include history.qbk]
+
+[endsect]
+

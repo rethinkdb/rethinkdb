@@ -1,0 +1,221 @@
+[/
+    Copyright (c) 2008-2009 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Implementation]
+
+The [link boost_icl.interface previous section] gave an overview over the interface
+of the *icl* outlining 
+[link boost_icl.interface.class_templates class templates], 
+[link boost_icl.interface.associated_types associated types]
+and polymorphic 
+[link boost_icl.interface.function_synopsis functions and operators]. 
+In preparation to the 
+[link boost_icl.function_reference next section], 
+that describes the *icl's* polymorphic functions in
+more detail together with ['*complexity characteristics*], 
+this section summarizes some general information on
+implementation and performance.
+
+[h5 STL based implementation]
+
+The *implementation* of the *icl's* containers is based on 
+[*std::set] and [*std::map]. So the underlying data structure of
+interval containers is a red black tree of intervals or
+interval value pairs. 
+The element containers __icl_set__ and __icl_map__ are wrapper
+classes of `std::set` and `std::map`.
+Interval containers are then using __icl_sets__ of intervals
+or __icl_maps__ of interval value pairs as implementing
+containers.
+So all the ['*complexity characteristics*] of icl containers
+are based on and limited by the ['*red-black tree implementation*]
+of the underlying std::AssociativeContainers.
+
+
+[section Iterative size]
+
+Throughout the documentation on complexity, 
+big /O/ expressions like __On__ or __Omlgn__ refer to container sizes
+/n/ and /m/. In this documentation these sizes ['*do not*] denote 
+to the familiar `size` function that returns
+the ['*number of elements*] of a container. Because for an interval container
+``
+interval_set<int> mono;
+mono += interval<int>::closed(1,5); // {[1 ... 5]}
+mono.size()           == 5;         // true, 5 elements
+mono.interval_count() == 1;         // true, only one interval
+``
+
+it's size and the number of contained intervals is usually different.
+To refer uniformly to a /size/ that matters for iteration, which is
+the decisive kind of size concerning algorithmic behavior there is a function
+``
+bool T::iterative_size()const; // Number of entities that can be iterated over.
+``
+for all element and interval containers of the icl. So for
+complexity statements throughout the icl's documentation 
+the sizes will be `iterative_sizes` and big /O/ expressions like
+__Omlgn__ will refer to sizes
+``
+n = y.iterative_size();
+m = x.iterative_size();
+``
+for containers `y` and `x`. 
+Note that ``iterative_size`` refers to the primary entities,
+that we can iterate over. For interval containers these
+are intervals or segments. ``Itervative_size`` never refers
+to element iteration for interval containers. 
+
+[endsect][/ Iterative size]
+
+
+[section Complexity]
+
+[h4 Complexity of element containers]
+
+Since ['element containers] __icl_set__ and __icl_map__ are only extensions of
+stl::set and stl::map, their complexity characteristics are
+accordingly. So their major operations insertion (addition),
+deletion and search are all using logarithmic time. 
+
+[h4 Complexity of interval containers]
+
+The operations on ['interval containers] behave differently
+due to the fact that intervals unlike elements can overlap
+any number of other intervals in a container. As long as
+intervals are relatively small or just singleton, interval
+containers behave like containers of elements.
+For large intervals however time consumption of operations
+on interval containers may be worse, because most or all
+intervals of a container may have to be visited.
+As an example, time complexity of __biLAddition__ on
+interval containers is briefly discussed.
+
+More information on ['*complexity characteristics*] 
+of *icl's* functions is contained in section 
+[link boost_icl.function_reference Function Reference]
+
+
+[h5 Time Complexity of Addition]
+
+The next table
+gives the time complexities for the overloaded 
+`operator +=` on interval containers.
+The instance types of `T` are given as column headers.
+Instances of type parameter `P` are denoted in
+the second column.
+The third column contains the specific kind of complexity statement. 
+If column three is empty ['*worst case*] complexity is given
+in the related row. 
+
+
+[table Time Complexity of Addition:
+[[]                                             [`P`]               [][interval\nset][separate\ninterval\nset][split\ninterval\nset][interval\nmap][split\ninterval\nmap]]
+[/ 1operation                                   2granul.            3case        4itvset       5se_itvset    6sp_itvset    7itv_map      8sp_itvmap]
+[[`T& operator +=(T& object, const P& addend)`] [`T::element_type`] []           [__Olgn__]    [__Olgn__]    [__Olgn__]    [__Olgn__]    [__Olgn__]    ]
+[[]                                             [`T::segment_type`] [best case]  [__Olgn__]    [__Olgn__]    [__Olgn__]    [__Olgn__]    [__Olgn__]    ]
+[[]                                             []                  [worst case] [__On__]      [__On__]      [__On__]      [__On__]      [__On__]      ]
+[[]                                             []                  [amortized]  [__Olgn__]    [__Olgn__]    []            []            []            ]
+[[]                                             [`interval_sets`]   []           [__Omlgnpm__] [__Omlgnpm__] [__Omlgnpm__] [           ] [           ] ]
+[[]                                             [`interval_maps`]   []           [           ] [           ] [           ] [__Omlgnpm__] [__Omlgnpm__] ]
+]
+
+Adding an /element/ or 
+/element value pair/ is always done in /logarithmic time/,
+where /n/ is the number of intervals in the interval container.
+The same row of complexities applies to the insertion
+of a /segment/ (an interval or an interval value pair)
+in the ['*best case*], where the inserted segment does overlap
+with only a ['*small*] number of intervals in the container.
+
+In the ['*worst case*], where the inserted segment overlaps with 
+all intervals in the container, the algorithms
+iterate over all the overlapped segments.
+Using inplace manipulations of segments and
+hinted inserts, it is possible to perform 
+all necessary operations on each iteration step
+in /constant time/. 
+This results in ['*linear worst case time*] complexity for 
+segment addition for all interval containers.
+
+After performing
+a worst case addition  
+for an __itv_set__ or a __sep_itv_sets__ 
+adding an interval that overlaps /n/ 
+intervals, we
+need /n/ non overlapping additions of
+/logarithmic time/ before we can launch 
+another __On__ worst case addition. 
+So we have only a ['*logarithmic amortized
+time*] for the addition of an interval or interval value pair.
+
+For the addition of ['*interval containers*] complexity is __Omlgnpm__.
+So for the ['*worst case*], where the container sizes /n/ and /m/ 
+are equal and both containers cover the same ranges, 
+the complexity of container addition is ['*loglinear*].
+For other cases, that occur frequently in real world applications
+performance can be much better.
+If the added container `operand` is much smaller than 
+`object` and the intervals in `operand` are relatively
+small, performance can be /logarithmic/.
+If /m/ is small compared with /n/ and intervals in `operand`
+are large, performance tends to be /linear/.
+
+[endsect][/ Complexity]
+
+[section Inplace and infix operators]
+
+For the major operations /addition, subtraction, intersection/
+of *icl* containers and for /symmetric difference/
+inplace `operator`s `+= |=, -=, &=` and `^=` 
+are provided.
+
+For every ['*inplace*] operator
+``
+T& operator o= (T& object, const P& operand)
+``
+the *icl* provides corresponding ['*infix*] operators.
+``
+T operator o (T object, const P& operand){ return object o= operand; }
+T operator o (const P& operand, T object){ return object o= operand; }
+``
+
+From this implementation of the infix `operator o` 
+the compiler will hopefully use return value optimization 
+[@http://en.wikipedia.org/wiki/Return_value_optimization (RVO)]
+creating no temporary object and performing one copy of 
+the first argument `object`.
+
+[caution
+Compared to the /inplace/ `operator o=` every use of an 
+/infix/ `operator o` requires ['*one extra copy*] 
+of the first argument `object` that passes a container.]
+
+Use infix operators only, if
+
+* efficiency is not crucial, e.g. the containers copied are small.
+* a concise and short notation is more important than efficiency in your context.
+* you need the result of operator `o=` as a copy anyway.
+
+[h5 Time Complexity of infix `operators o`]
+
+The time complexity of all infix operators of the *icl*
+is biased by the extra copy of the `object` argument.
+So all infix `operators o` are at least 
+/linear/ in `n = object.iterative_size()`.
+Taking this into account, the complexities of all 
+infix operators can be determined
+from the corresponding inplace `operators o=` they depend
+on.
+
+[endsect][/ Inplace and infix operators]
+
+
+
+[endsect][/ Implementation]
+

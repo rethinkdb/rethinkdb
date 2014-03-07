@@ -1,0 +1,1845 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/operators.hpp">
+  <para>Contains all the overloaded operators that make it possible to build Proto expression trees. </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <struct name="is_extension">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><type><classname>is_expr</classname>&lt; T &gt;</type></inherit>
+        <purpose>Boolean metafunction that can be used to enable the operator overloads in the
+        <computeroutput>exops</computeroutput> namespace for the specified non-Proto terminal type.</purpose>
+      </struct>
+      <function name="operator+">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator+">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator*">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator*">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator~">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator~">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator!">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator!">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator++">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator++">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator--">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator--">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator++">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg &amp;</paramtype>
+        </parameter>
+        <parameter name="">
+          <paramtype>int</paramtype>
+        </parameter>
+      </function>
+      <function name="operator++">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg const &amp;</paramtype>
+        </parameter>
+        <parameter name="">
+          <paramtype>int</paramtype>
+        </parameter>
+      </function>
+      <function name="operator--">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg &amp;</paramtype>
+        </parameter>
+        <parameter name="">
+          <paramtype>int</paramtype>
+        </parameter>
+      </function>
+      <function name="operator--">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Arg"/>
+        </template>
+        <parameter name="arg">
+          <paramtype>Arg const &amp;</paramtype>
+        </parameter>
+        <parameter name="">
+          <paramtype>int</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;&lt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;&lt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;&lt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;&lt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;&gt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;&gt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;&gt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;&gt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator*">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator*">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator*">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator*">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator/">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator/">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator/">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator/">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator%">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator%">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator%">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator%">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator+">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator+">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator+">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator+">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator==">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator==">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator==">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator==">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator!=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator!=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator!=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator!=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator||">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator||">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator||">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator||">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;&amp;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;&amp;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;&amp;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;&amp;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator|">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator|">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator|">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator|">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator^">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator^">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator^">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator^">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator,">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator,">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator,">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator,">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-&gt;*">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-&gt;*">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-&gt;*">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-&gt;*">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;&lt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;&lt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;&lt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&lt;&lt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;&gt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;&gt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;&gt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&gt;&gt;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator*=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator*=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator*=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator*=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator/=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator/=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator/=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator/=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator%=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator%=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator%=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator%=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator+=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator+=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator+=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator+=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator-=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator&amp;=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator|=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator|=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator|=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator|=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator^=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator^=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator^=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="operator^=">
+        <type><emphasis>unspecified</emphasis></type>
+        <template>
+          <template-type-parameter name="Left"/>
+          <template-type-parameter name="Right"/>
+        </template>
+        <parameter name="left">
+          <paramtype>Left const &amp;</paramtype>
+        </parameter>
+        <parameter name="right">
+          <paramtype>Right const &amp;</paramtype>
+        </parameter>
+      </function>
+      <function name="if_else">
+        <type>typename <classname>proto::result_of::make_expr</classname>&lt;
+        <classname>proto::tag::if_else_</classname>, 
+        <classname>proto::deduce_domain</classname>,
+        A0 const &amp;, 
+        A1 const &amp;, 
+        A2 const &amp;
+      &gt;::type const</type>
+        <template>
+          <template-type-parameter name="A0"/>
+          <template-type-parameter name="A1"/>
+          <template-type-parameter name="A2"/>
+        </template>
+        <parameter name="a0">
+          <paramtype>A0 const &amp;</paramtype>
+        </parameter>
+        <parameter name="a1">
+          <paramtype>A1 const &amp;</paramtype>
+        </parameter>
+        <parameter name="a2">
+          <paramtype>A2 const &amp;</paramtype>
+        </parameter>
+      </function>
+    </namespace>
+  </namespace>
+  <macro name="BOOST_PROTO_DEFINE_OPERATORS" kind="functionlike">
+    <macro-parameter name="Trait"/>
+    <macro-parameter name="Domain"/>
+    <purpose>Defines a complete set of expression template-building operator overloads for use
+      with non-Proto terminal types.</purpose>
+    <description>
+      <para>
+        With <computeroutput>BOOST_PROTO_DEFINE_OPERATORS()</computeroutput>, it is possible to
+        non-intrusively adapt an existing (non-Proto) type to be a Proto terminal. 
+      </para>
+      <para>
+        <computeroutput>Trait</computeroutput> is the name of a unary Boolean metafunction that returns
+        true for any types you would like to treat as Proto terminals.
+      </para>
+      <para>
+        <computeroutput>Domain</computeroutput> is the name of the Proto domain associated with
+        these new Proto terminals. You may use
+        <computeroutput><classname alt="boost::proto::default_domain">proto::default_domain</classname></computeroutput>
+        for the <computeroutput>Domain</computeroutput> if you do not wish to associate these terminals
+        with any domain.
+      </para>
+      <para>
+        <emphasis role="bold">Example:</emphasis>
+        <programlisting>namespace My {
+  // A non-Proto terminal type
+  struct S {};
+
+  // A unary Boolean metafunction that returns true for type S
+  template&lt;typename T&gt; struct IsS : mpl::false_ {};
+  template&lt;&gt; struct IsS&lt;S&gt; : mpl::true_ {};
+  
+  // Make S a Proto terminal non-intrusively by defining the
+  // appropriate operator overloads. This should be in the same
+  // namespace as S so that these overloads can be found by
+  // argument-dependent lookup
+  <macroname>BOOST_PROTO_DEFINE_OPERATORS</macroname>(IsS, proto::default_domain)
+}
+
+int main() {
+  My::S s1, s2;
+  
+  // OK, this builds a Proto expression template:
+  s1 + s2; 
+}</programlisting>
+      </para>
+    </description>
+  </macro>
+</header>

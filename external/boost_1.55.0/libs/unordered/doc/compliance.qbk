@@ -1,0 +1,112 @@
+[/ Copyright 2011 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[section:compliance C++11 Compliance]
+
+[section:move Move emulation]
+
+Support for move semantics is implemented using Boost.Move. If rvalue
+references are available it will use them, but if not it uses a close,
+but imperfect emulation. On such compilers:
+
+* Non-copyable objects can be stored in the containers.
+  They can be constructed in place using `emplace`, or if they support
+  Boost.Move, moved into place.
+* The containers themselves are not movable.
+* Argument forwarding is not perfect.
+
+[endsect]
+
+[section:allocator_compliance Use of allocators]
+
+C++11 introduced a new allocator system. It's backwards compatible due to
+the lax requirements for allocators in the old standard, but might need
+some changes for allocators which worked with the old versions of the
+unordered containers.
+It uses a traits class, `allocator_traits` to handle the allocator
+adding extra functionality, and making some methods and types optional.
+During development a stable release of
+`allocator_traits` wasn't available so an internal partial implementation
+is always used in this version. Hopefully a future version will use the
+standard implementation where available.
+
+The member functions `construct`, `destroy` and `max_size` are now
+optional, if they're not available a fallback is used.
+A full implementation of `allocator_traits` requires sophisticated
+member function detection so that the fallback is used whenever the
+member function call is not well formed.
+This requires support for SFINAE expressions, which are available on
+GCC from version 4.4 and Clang.
+
+On other compilers, there's just a test to see if the allocator has
+a member, but no check that it can be called. So rather than using a
+fallback there will just be a compile error.
+
+`propagate_on_container_copy_assignment`,
+`propagate_on_container_move_assignment`,
+`propagate_on_container_swap` and
+`select_on_container_copy_construction` are also supported.
+Due to imperfect move emulation, some assignments might check
+`propagate_on_container_copy_assignment` on some compilers and
+`propagate_on_container_move_assignment` on others.
+
+The use of the allocator's construct and destruct methods might be a bit
+surprising.
+Nodes are constructed and destructed using the allocator, but the elements
+are stored in aligned space within the node and constructed and destructed
+by calling the constructor and destructor directly.
+
+In C++11 the allocator's construct function has the signature:
+
+    template <class U, class... Args>
+    void construct(U* p, Args&&... args);
+
+which supports calling `construct` for the contained object, but
+most existing allocators don't support this. If member function detection
+was good enough then with old allocators it would fall back to calling
+the element's constructor directly but in general, detection isn't good
+enough to do this which is why Boost.Unordered just calls the constructor
+directly every time. In most cases this will work okay.
+
+`pointer_traits` aren't used. Instead, pointer types are obtained from
+rebound allocators, this can cause problems if the allocator can't be
+used with incomplete types. If `const_pointer` is not defined in the
+allocator, `boost::pointer_to_other<pointer, const value_type>::type`
+is used to obtain a const pointer.
+
+[endsect]
+
+[section:pairs Pairs]
+
+Since the containers use `std::pair` they're limited to the version
+from the current standard library. But since C++11 `std::pair`'s
+`piecewise_construct` based constructor is very useful, `emplace`
+emulates it with a `piecewise_construct` in the `boost::unordered`
+namespace. So for example, the following will work:
+
+    boost::unordered_multimap<std::string, std::complex> x;
+
+    x.emplace(
+        boost::unordered::piecewise_construct,
+        boost::make_tuple("key"), boost::make_tuple(1, 2));
+
+Older drafts of the standard also supported variadic constructors
+for `std::pair`, where the first argument would be used for the
+first part of the pair, and the remaining for the second part.
+
+[endsect]
+
+[section:misc Miscellaneous]
+
+When swapping, `Pred` and `Hash` are not currently swapped by calling
+`swap`, their copy constructors are used. As a consequence when swapping
+an exception may be throw from their  copy constructor.
+
+Variadic constructor arguments for `emplace` are only used when both
+rvalue references and variadic template parameters are available.
+Otherwise `emplace` can only take up to 10 constructors arguments.
+
+[endsect]
+
+[endsect]

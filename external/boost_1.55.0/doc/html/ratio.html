@@ -1,0 +1,193 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;25.&#160;Boost.Ratio 2.0.0</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="boost_random/history_and_acknowledgements.html" title="History and Acknowledgements">
+<link rel="next" href="ratio/users_guide.html" title="User's Guide">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_random/history_and_acknowledgements.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ratio/users_guide.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="ratio"></a>Chapter&#160;25.&#160;Boost.Ratio 2.0.0</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Howard</span> <span class="surname">Hinnant</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Beman</span> <span class="surname">Dawes</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Vicente J.</span> <span class="surname">Botet Escriba</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2008 Howard Hinnant</p></div>
+<div><p class="copyright">Copyright &#169; 2006, 2008 Beman Dawes</p></div>
+<div><p class="copyright">Copyright &#169; 2009-2012 Vicente
+      J. Botet Escriba</p></div>
+<div><div class="legalnotice">
+<a name="ratio.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="ratio.html#ratio.overview">Overview</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="ratio.html#ratio.overview.motivation">Motivation</a></span></dt>
+<dt><span class="section"><a href="ratio.html#ratio.overview.description">Description</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="ratio/users_guide.html">User's Guide</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="ratio/users_guide.html#ratio.users_guide.getting_started">Getting Started</a></span></dt>
+<dt><span class="section"><a href="ratio/users_guide.html#ratio.users_guide.tutorial">Tutorial</a></span></dt>
+<dt><span class="section"><a href="ratio/users_guide.html#ratio.users_guide.Examples">Example</a></span></dt>
+<dt><span class="section"><a href="ratio/users_guide.html#ratio.users_guide.ext_references">External Resources</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="ratio/reference.html">Reference </a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="ratio/reference.html#ratio.reference.config_hpp">Header <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">ratio</span><span class="special">/</span><span class="identifier">config</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code></a></span></dt>
+<dt><span class="section"><a href="ratio/reference.html#ratio.reference.std">C++0x Recommendation</a></span></dt>
+<dt><span class="section"><a href="ratio/reference.html#ratio.reference.io">Ratio I/O</a></span></dt>
+<dt><span class="section"><a href="ratio/reference.html#ratio.reference.mpl">Rational Constant</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="ratio/appendices.html">Appendices</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="ratio/appendices.html#ratio.appendices.history">Appendix A: History</a></span></dt>
+<dt><span class="section"><a href="ratio/appendices.html#ratio.appendices.rationale">Appendix B: Rationale</a></span></dt>
+<dt><span class="section"><a href="ratio/appendices.html#ratio.appendices.implementation">Appendix C: Implementation
+      Notes</a></span></dt>
+<dt><span class="section"><a href="ratio/appendices.html#ratio.appendices.faq">Appendix D: FAQ</a></span></dt>
+<dt><span class="section"><a href="ratio/appendices.html#ratio.appendices.acknowledgements">Appendix E: Acknowledgements</a></span></dt>
+<dt><span class="section"><a href="ratio/appendices.html#ratio.appendices.tests">Appendix F: Tests</a></span></dt>
+<dt><span class="section"><a href="ratio/appendices.html#ratio.appendices.tickets">Appendix G: Tickets</a></span></dt>
+<dt><span class="section"><a href="ratio/appendices.html#ratio.appendices.todo">Appendix H: Future Plans</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="ratio.overview"></a><a class="link" href="ratio.html#ratio.overview" title="Overview">Overview</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="ratio.html#ratio.overview.motivation">Motivation</a></span></dt>
+<dt><span class="section"><a href="ratio.html#ratio.overview.description">Description</a></span></dt>
+</dl></div>
+<h4>
+<a name="ratio.overview.h0"></a>
+      <span class="phrase"><a name="ratio.overview.how_to_use_this_documentation"></a></span><a class="link" href="ratio.html#ratio.overview.how_to_use_this_documentation">How
+      to Use This Documentation</a>
+    </h4>
+<p>
+      This documentation makes use of the following naming and formatting conventions.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Code is in <code class="computeroutput"><span class="identifier">fixed</span> <span class="identifier">width</span>
+          <span class="identifier">font</span></code> and is syntax-highlighted.
+        </li>
+<li class="listitem">
+          Replaceable text that you will need to supply is in <em class="replaceable"><code>italics</code></em>.
+        </li>
+<li class="listitem">
+          Free functions are rendered in the code font followed by <code class="computeroutput"><span class="special">()</span></code>, as in <code class="computeroutput"><span class="identifier">free_function</span><span class="special">()</span></code>.
+        </li>
+<li class="listitem">
+          If a name refers to a class template, it is specified like this: <code class="computeroutput"><span class="identifier">class_template</span><span class="special">&lt;&gt;</span></code>;
+          that is, it is in code font and its name is followed by <code class="computeroutput"><span class="special">&lt;&gt;</span></code>
+          to indicate that it is a class template.
+        </li>
+<li class="listitem">
+          If a name refers to a function-like macro, it is specified like this:
+          <code class="computeroutput"><span class="identifier">MACRO</span><span class="special">()</span></code>;
+          that is, it is uppercase in code font and its name is followed by <code class="computeroutput"><span class="special">()</span></code> to indicate that it is a function-like
+          macro. Object-like macros appear without the trailing <code class="computeroutput"><span class="special">()</span></code>.
+        </li>
+<li class="listitem">
+          Names that refer to <span class="emphasis"><em>concepts</em></span> in the generic programming
+          sense are specified in CamelCase.
+        </li>
+</ul></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        In addition, notes such as this one specify non-essential information that
+        provides additional background or rationale.
+      </p></td></tr>
+</table></div>
+<p>
+      Finally, you can mentally add the following to any code fragments in this document:
+    </p>
+<pre class="programlisting"><span class="comment">// Include all of Ratio files</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">ratio</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">;</span>
+</pre>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="ratio.overview.motivation"></a><a class="link" href="ratio.html#ratio.overview.motivation" title="Motivation">Motivation</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Ratio</strong></span> aims to implement the compile
+        time ratio facility in C++0x, as proposed in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2661.htm" target="_top"><span class="bold"><strong>N2661 - A Foundation to Sleep On</strong></span></a>. That document
+        provides background and motivation for key design decisions and is the source
+        of a good deal of information in this documentation.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="ratio.overview.description"></a><a class="link" href="ratio.html#ratio.overview.description" title="Description">Description</a>
+</h3></div></div></div>
+<p>
+        The <span class="bold"><strong>Boost.Ratio</strong></span> library provides:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            A class template, <a class="link" href="ratio/reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a>, for specifying compile
+            time rational constants such as 1/3 of a nanosecond or the number of
+            inches per meter. <a class="link" href="ratio/reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a> represents a compile time
+            ratio of compile time constants with support for compile time arithmetic
+            with overflow and division by zero protection.
+          </li>
+<li class="listitem">
+            It provides a textual representation of <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">ratio</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">,</span> <span class="identifier">D</span><span class="special">&gt;</span></code> in the form of a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span></code>
+            which can be useful for I/O.
+          </li>
+<li class="listitem">
+            Some extension related to the <a class="link" href="ratio/reference.html#ratio.reference.mpl.rational_constant" title="Rational Constant Concept">Rational
+            Constant</a> concept enabling the use of <a class="link" href="ratio/reference.html#ratio.reference.std.ratio_hpp.ratio" title="Class Template ratio&lt;&gt;"><code class="computeroutput"><span class="identifier">ratio</span></code></a>&lt;&gt; in the context
+            of <span class="bold"><strong>Boost.MPL</strong></span> numeric metafunctions.
+          </li>
+</ul></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:54:41 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_random/history_and_acknowledgements.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ratio/users_guide.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

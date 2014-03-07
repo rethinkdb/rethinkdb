@@ -1,0 +1,88 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Test Output or let's see what you got for your money</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../user-guide.html" title="Unit Test Framework: User's guide">
+<link rel="prev" href="fixture/global.html" title="Global fixture">
+<link rel="next" href="test-output/test-log.html" title="Test log output">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../user-guide.html">User's guide</a><a href="../testing-tools.html">
+      &gt;
+      </a><b>Test Output </b><a href="runtime-config.html">
+      &gt;
+      </a>
+</td>
+<td><div class="spirit-nav">
+<a href="fixture/global.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="test-output/test-log.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.user-guide.test-output"></a>Test Output  or let's see what you got for your money</h4></div></div></div>
+<p class="first-line-indented">
+  The output produced by a test module is one of the major assets the <acronym class="acronym">UTF</acronym> brings to users. In comparison with any
+  kind of manual/assert based solution the <acronym class="acronym">UTF</acronym> provide following services:
+ </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>
+<p>All test errors are reported uniformly</p>
+<p>
+    The test execution monitor along with standardized output from all included
+    <a class="link" href="../testing-tools.html" title="The UTF testing tools or tester's toolbox for all occasions">testing tools</a> provides uniform reporting for all errors including fatal
+    errors, like memory assess violation and uncaught exceptions.
+   </p>
+</li>
+<li>
+<p>Detailed information on the source of an error</p>
+<p>
+    The <acronym class="acronym">UTF</acronym> test tool's based assertion provides as much information as possible about cause of error,
+    usually  allowing you to deduce what is wrong without entering the debugger or core analysis.
+   </p>
+</li>
+<li>
+<p>
+    Separation of the test errors description (test log) from the results report summary (test results report)
+   </p>
+<p>
+    The information produced during test execution, including all error, warning and info messages from the test
+    tools, executed test units notification constitute the test log. By default all entries in the test log are
+    directed to the standard output. Once testing is completed the <acronym class="acronym">UTF</acronym> may produce a summary test report with
+    different levels of detail. The test report is by default directed to the standard error output.
+   </p>
+</li>
+<li>
+<p>Flexibility in what is shown in the output</p>
+<p>
+    The <acronym class="acronym">UTF</acronym> provides the ability to configure what if shown in both the test log and the test report. The
+    configuration is supported both at runtime, during test module invocation and at compile time from within a
+    test module.
+   </p>
+</li>
+<li>
+<p>Flexibility in how output is formatted</p>
+<p>
+    The <acronym class="acronym">UTF</acronym> provides the ability to configure the format of the test module output. At the moment only 2 formats
+    are supported by the <acronym class="acronym">UTF</acronym> itself, the well defined public interface allows you to customize an output for
+    your purposes almost any way you want.
+   </p>
+</li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fixture/global.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../user-guide.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="test-output/test-log.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

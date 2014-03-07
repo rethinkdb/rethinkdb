@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual C++ Express 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "timer_dll", "timer_dll\timer_dll.vcxproj", "{8A6CF2A1-C5F7-4119-B510-88B98197BCB2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C88697D9-587C-4649-AA39-8819A96A2A12} = {C88697D9-587C-4649-AA39-8819A96A2A12}
+		{443DD1E8-4D52-4323-8280-A2320DF7EF6D} = {443DD1E8-4D52-4323-8280-A2320DF7EF6D}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chrono_dll", "chrono_dll\chrono_dll.vcxproj", "{C88697D9-587C-4649-AA39-8819A96A2A12}"
+	ProjectSection(ProjectDependencies) = postProject
+		{443DD1E8-4D52-4323-8280-A2320DF7EF6D} = {443DD1E8-4D52-4323-8280-A2320DF7EF6D}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "system_dll", "system_dll\system_dll.vcxproj", "{443DD1E8-4D52-4323-8280-A2320DF7EF6D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cpu_timer_test", "cpu_timer_test\cpu_timer_test.vcxproj", "{955C9C33-5364-4F02-9D59-65657E8DFBA9}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8A6CF2A1-C5F7-4119-B510-88B98197BCB2} = {8A6CF2A1-C5F7-4119-B510-88B98197BCB2}
+		{C88697D9-587C-4649-AA39-8819A96A2A12} = {C88697D9-587C-4649-AA39-8819A96A2A12}
+		{443DD1E8-4D52-4323-8280-A2320DF7EF6D} = {443DD1E8-4D52-4323-8280-A2320DF7EF6D}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8A6CF2A1-C5F7-4119-B510-88B98197BCB2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8A6CF2A1-C5F7-4119-B510-88B98197BCB2}.Debug|Win32.Build.0 = Debug|Win32
+		{8A6CF2A1-C5F7-4119-B510-88B98197BCB2}.Release|Win32.ActiveCfg = Release|Win32
+		{8A6CF2A1-C5F7-4119-B510-88B98197BCB2}.Release|Win32.Build.0 = Release|Win32
+		{C88697D9-587C-4649-AA39-8819A96A2A12}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C88697D9-587C-4649-AA39-8819A96A2A12}.Debug|Win32.Build.0 = Debug|Win32
+		{C88697D9-587C-4649-AA39-8819A96A2A12}.Release|Win32.ActiveCfg = Release|Win32
+		{C88697D9-587C-4649-AA39-8819A96A2A12}.Release|Win32.Build.0 = Release|Win32
+		{443DD1E8-4D52-4323-8280-A2320DF7EF6D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{443DD1E8-4D52-4323-8280-A2320DF7EF6D}.Debug|Win32.Build.0 = Debug|Win32
+		{443DD1E8-4D52-4323-8280-A2320DF7EF6D}.Release|Win32.ActiveCfg = Release|Win32
+		{443DD1E8-4D52-4323-8280-A2320DF7EF6D}.Release|Win32.Build.0 = Release|Win32
+		{955C9C33-5364-4F02-9D59-65657E8DFBA9}.Debug|Win32.ActiveCfg = Debug|Win32
+		{955C9C33-5364-4F02-9D59-65657E8DFBA9}.Debug|Win32.Build.0 = Debug|Win32
+		{955C9C33-5364-4F02-9D59-65657E8DFBA9}.Release|Win32.ActiveCfg = Release|Win32
+		{955C9C33-5364-4F02-9D59-65657E8DFBA9}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

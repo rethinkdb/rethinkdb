@@ -1,0 +1,8 @@
+
+project : requirements <library>/boost/test//boost_test_exec_monitor ;
+
+test-suite tuple : 
+    [ run tuple_test_bench.cpp ]
+    [ run io_test.cpp ]
+    [ run another_tuple_test_bench.cpp ]
+    ;

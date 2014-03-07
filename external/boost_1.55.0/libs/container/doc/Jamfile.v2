@@ -1,0 +1,96 @@
+#  Boost.Container library documentation Jamfile  ---------------------------------
+#
+#  Copyright Ion Gaztanaga 2009-2012. Use, modification and
+#  distribution is subject to the Boost Software License, Version
+#  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org for updates, documentation, and revision history.
+
+import doxygen ;
+import quickbook ;
+
+using auto-index ;
+
+path-constant images_location : html ;
+path-constant here : . ;
+
+doxygen autodoc
+   :
+      [ glob ../../../boost/container/*.hpp ]
+   :
+        <doxygen:param>EXTRACT_ALL=NO
+        <doxygen:param>HIDE_UNDOC_MEMBERS=YES
+        <doxygen:param>EXTRACT_PRIVATE=NO
+        <doxygen:param>ENABLE_PREPROCESSING=YES
+        <doxygen:param>EXPAND_ONLY_PREDEF=YES
+        <doxygen:param>MACRO_EXPANSION=YES
+        <doxygen:param>"PREDEFINED=\"insert_const_ref_type= const T&\" \\
+                                   \"BOOST_CONTAINER_DOXYGEN_INVOKED\" \\
+                                   \"BOOST_CONTAINER_IMPDEF(T)=implementation_defined\" \\
+                                   \"BOOST_CONTAINER_SEEDOC(T)=see_documentation\" \\
+                                   \"BOOST_CONTAINER_NOEXCEPT=noexcept\" \\
+                                   \"BOOST_CONTAINER_NOEXCEPT_IF(T)=noexcept(T)\" \\
+                                   \"BOOST_RV_REF(T)=T &&\" \\
+                                   \"BOOST_RV_REF_BEG=\" \\
+                                   \"BOOST_RV_REF_END=&&\" \\
+                                   \"BOOST_COPY_ASSIGN_REF(T)=const T &\" \\
+                                   \"BOOST_FWD_REF(a)=a &&\""
+        <xsl:param>"boost.doxygen.reftitle=Boost.Container Header Reference"
+   ;
+
+xml container : container.qbk
+              :
+                 <include>../../../tools/auto_index/include
+              ;
+
+boostbook standalone
+   :
+      container
+   :
+        <format>html:<xsl:param>boost.root=../../../..
+        <format>html:<xsl:param>boost.libraries=../../../../libs/libraries.htm
+        <format>html:<xsl:param>img.src.path=../../../../doc/html/
+        <format>xhtml:<xsl:param>img.src.path=../../../../doc/html/
+        <xsl:param>generate.section.toc.level=3
+        <xsl:param>chunk.first.sections=1
+        <format>pdf:<xsl:param>img.src.path=$(images_location)/
+        <dependency>autodoc
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/doc/html
+
+        # Build requirements go here:
+       
+        # <auto-index>on (or off) one turns on (or off) indexing:
+        <auto-index>on
+       
+        # Turns on (or off) auto-index-verbose for diagnostic info.
+        # This is highly recommended until you have got all the many details correct!
+        <auto-index-verbose>on
+       
+        # Choose the indexing method (separately for html and PDF) - see manual.
+        # Choose indexing method for PDFs:
+        <format>pdf:<auto-index-internal>off
+       
+        # Choose indexing method for html:
+        <format>html:<auto-index-internal>on
+        <format>docbook:<auto-index-internal>on
+       
+        # Set the name of the script file to use (index.idx is popular):
+        <auto-index-script>$(here)/index.idx
+        # Commands in the script file should all use RELATIVE PATHS
+        # otherwise the script will not be portable to other machines.
+        # Relative paths are normally taken as relative to the location
+        # of the script file, but we can add a prefix to all
+        # those relative paths using the <auto-index-prefix> feature.
+        # The path specified by <auto-index-prefix> may be either relative or
+        # absolute, for example the following will get us up to the boost root
+        # directory for most Boost libraries:
+        <auto-index-prefix>"$(here)/../../.."
+
+        <format>pdf:<xsl:param>admon.graphics.extension=".svg"
+   ;
+
+install pdfinstall : standalone/<format>pdf : <install-type>PDF <location>. <name>container.pdf ;
+explicit pdfinstall ;
+
+

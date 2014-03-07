@@ -1,0 +1,45 @@
+/*
+  Copyright 2005-2006 Redshift Software, Inc.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+*/
+
+/* Heading, title and logo. */
+#heading,
+#boost-common-heading-doc {
+  background: #4F744D url(header-bg.png) repeat-x top left;
+}
+#heading *,
+#boost-common-heading-doc * {
+  color: #FFFFFF;
+}
+#heading .heading-inner,
+#boost-common-heading-doc .heading-inner {
+  background: url(header-fg.png) no-repeat top left;
+  border: none;
+  border-bottom: #000000 solid 1px;
+}
+#boost-common-heading-doc .heading-logo,
+#heading .heading-logo {
+  width: 236px;
+  height: 55px;
+  margin: 18px 0px 0px 24px;
+}
+
+/* Links in the header. */
+#boost-common-heading-doc .heading-quote a,
+#heading .heading-quote a {
+  border-bottom: 1px solid #BBBBBB;
+}
+#boost-common-heading-doc .heading-quote a:hover,
+#heading .heading-quote a:hover {
+  border-bottom: 1px solid #FFFFFF;
+}
+#boost-common-heading-doc .heading-quote a:visited,
+#heading .heading-quote a:visited {
+  border-bottom: 1px dotted #BBBBBB;
+}
+#boost-common-heading-doc .heading-quote a:visited:hover,
+#heading .heading-quote a:visited:hover {
+  border-bottom: 1px dotted #FFFFFF;
+}

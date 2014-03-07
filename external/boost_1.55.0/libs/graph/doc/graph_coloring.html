@@ -1,0 +1,191 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine  2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Graph Coloring Example</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>Graph Coloring</H1>
+
+The graph (or vertex) coloring problem, which involves assigning
+colors to vertices in a graph such that adjacenct vertices have
+distinct colors, arises in a number of scientific and engineering
+applications such as scheduling&nbsp;, register allocation&nbsp;,
+optimization&nbsp; and parallel numerical computation.
+
+<P>
+Mathmatically, a proper vertex coloring of an undirected graph
+<i>G=(V,E)</i> is a map <i>c: V -> S</i> such that <i>c(u) != c(v)</i>
+whenever there exists an edge <i>(u,v)</i> in <i>G</i>. The elements
+of set <i>S</i> are called the available colors. The problem is often
+to determine the minimum cardinality (the number of colors) of
+<i>S</i> for a given graph <i>G</i> or to ask whether it is able to
+color graph <i>G</i> with a certain number of colors. For example, how
+many color do we need to color the United States on a map in such a
+way that adjacent states have different color? A compiler needs to
+decide whether variables and temporaries could be allocated in fixed
+number of registers at some point.  If a target machine has <i>K</i>
+registers, can a particular interference graph be colored with
+<i>K</i> colors? (Each vertex in the interference graph represents a
+temporary value; each edge indicates a pair of temporaries that cannot
+be assigned to the same register.)
+
+<P>
+Another example is in the estimation of sparse Jacobian matrix by
+differences in large scale nonlinear problems in optimization and
+differential equations. Given a nonlinear function <i>F</i>, the
+estimation of Jacobian matrix <i>J</i> can be obtained by estimating
+<i>Jd</i> for suitable choices of vector <i>d</i>. Curtis, Powell and
+Reid&nbsp;[<a href="bibliography.html#curtis74:_jacob">9</a>] observed that a group of columns of <i>J</i> can be
+determined by one evaluation of <i>Jd</i> if no two columns in this
+group have a nonzero in the same row position.  Therefore, a question
+is emerged: what is the number of function evaluations need to compute
+approximate Jacobian matrix?  As a matter of fact this question is the
+same as to compute the minimum numbers of colors for coloring a graph
+if we construct the graph in the following matter: A vertex represents
+a column of <i>J</i> and there is an edge if and only if the two
+column have a nonzero in the same row position.
+
+<P>
+However, coloring a general graph with the minimum number of colors
+(the cardinality of set <i>S</i>) is known to be an NP-complete
+problem&nbsp;[<a
+href="bibliography.html#garey79:computers-and-intractability">30</a>].
+One often relies on heuristics to find a solution. A widely-used
+general greedy based approach is starting from an ordered vertex
+enumeration <i>v<sub>1</sub>, ..., v<sub>n</sub></i> of <i>G</i>, to
+assign <i>v<sub>i</sub></i> to the smallest possible color for
+<i>i</i> from <i>1</i> to <i>n</i>.  In section <a
+href="constructing_algorithms.html">Constructing graph
+algorithms with BGL</a> we have shown how to write this algorithm in
+the generic programming paradigm. However, the ordering of the
+vertices dramatically affects the coloring.  The arbitrary order may
+perform very poorly while another ordering may produces an optimal
+coloring.  Several ordering algorithms have been studied to help the
+greedy coloring heuristics including largest-first ordering,
+smallest-last ordering and incidence degree ordering.
+
+<P>
+In the BGL framework,  the process of constructing/prototyping such a
+ordering is fairly easy because  writing such a ordering  follows the
+algorithm  description   closely.  As  an  example,   we  present  the
+smallest-last ordering algorithm.
+
+<P>
+The basic idea of the smallest-last ordering&nbsp;[<a
+href="bibliography.html#matula72:_graph_theory_computing">29</a>] is
+as follows: Assuming that the vertices <i>v<sub>k+1</sub>, ...,
+v<sub>n</sub></i> have been selected, choose <i>v<sub>k</sub></i> so
+that the degree of <i>v<sub>k</sub></i> in the subgraph induced by
+<i>V - {v<sub>k+1</sub>, ..., v<sub>n</sub>}</i> is minimal.
+
+<P>
+The algorithm uses a bucket sorter for the vertices in the graph where
+bucket is the degree. Two vertex property maps, <TT>degree</TT> and
+<TT>marker</TT>,  are used  in the  algorithm.  The former  is to  store
+degree of  every vertex while the  latter is to mark  whether a vertex
+has been ordered or processed during traversing adjacent vertices. The
+ordering is stored in the <TT>order</TT>. The algorithm is as follows:
+
+<UL>
+<LI>put all vertices in the bucket sorter
+</LI>
+<LI>find the vertex <tt>node</tt> with smallest degree in the bucket sorter
+</LI>
+<LI>number <tt>node</tt> and traverse through its adjacent vertices to
+ update its degree and the position in the bucket sorter.
+</LI>
+<LI>go to the step 2 until all vertices are numbered.
+</LI>
+</UL>
+
+<P>
+<PRE>
+namespace boost {
+  template &lt;class VertexListGraph, class Order, class Degree, 
+            class Marker, class BucketSorter&gt;
+  void 
+  smallest_last_ordering(const VertexListGraph&amp; G, Order order, 
+                         Degree degree, Marker marker, 
+                         BucketSorter&amp; degree_buckets) {
+    typedef typename graph_traits&lt;VertexListGraph&gt; GraphTraits;
+
+    typedef typename GraphTraits::vertex_descriptor Vertex;
+    //typedef typename GraphTraits::size_type size_type;
+    typedef size_t size_type;
+
+    const size_type num = num_vertices(G);
+    
+    typename GraphTraits::vertex_iterator v, vend;
+    for (tie(v, vend) = vertices(G); v != vend; ++v) {
+      put(marker, *v, num);
+      put(degree, *v, out_degree(*v, G));
+      degree_buckets.push(*v);
+    }
+ 
+    size_type minimum_degree = 1;
+    size_type current_order = num - 1;
+    
+    while ( 1 ) {
+      typedef typename BucketSorter::stack MDStack;
+      MDStack minimum_degree_stack = degree_buckets[minimum_degree];
+      while (minimum_degree_stack.empty())
+        minimum_degree_stack = degree_buckets[++minimum_degree];
+      
+      Vertex node = minimum_degree_stack.top();
+      put(order, current_order, node);
+      
+      if ( current_order == 0 ) //find all vertices
+        break;
+      
+      minimum_degree_stack.pop();
+      put(marker, node, 0); //node has been ordered.
+      
+      typename GraphTraits::adjacency_iterator v, vend;
+      for (tie(v,vend) = adjacent_vertices(node, G); v != vend; ++v)
+        
+        if ( get(marker, *v) &gt; current_order ) { //*v is unordered vertex
+          put(marker, *v, current_order);   //mark the columns adjacent to node
+          
+          //It is possible minimum degree goes down
+          //Here we keep tracking it.
+          put(degree, *v, get(degree, *v) - 1); 
+          minimum_degree = std::min(minimum_degree, get(degree, *v)); 
+          
+          //update the position of *v in the bucket sorter
+          degree_buckets.update(*v);
+        }
+
+      current_order--;
+    }
+    //at this point, get(order, i) == vertex(i, g);
+  }
+} // namespace boost
+</PRE>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

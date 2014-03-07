@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>process Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/process.html">
+</head>
+<body class="alt apidoc" id="api-section-process">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="process.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#process_process">process</a><ul>
+<li><a href="#process_event_exit">Event: &#39;exit&#39;</a></li>
+<li><a href="#process_event_uncaughtexception">Event: &#39;uncaughtException&#39;</a></li>
+<li><a href="#process_signal_events">Signal Events</a></li>
+<li><a href="#process_process_stdout">process.stdout</a></li>
+<li><a href="#process_process_stderr">process.stderr</a></li>
+<li><a href="#process_process_stdin">process.stdin</a></li>
+<li><a href="#process_process_argv">process.argv</a></li>
+<li><a href="#process_process_execpath">process.execPath</a></li>
+<li><a href="#process_process_abort">process.abort()</a></li>
+<li><a href="#process_process_chdir_directory">process.chdir(directory)</a></li>
+<li><a href="#process_process_cwd">process.cwd()</a></li>
+<li><a href="#process_process_env">process.env</a></li>
+<li><a href="#process_process_exit_code">process.exit([code])</a></li>
+<li><a href="#process_process_getgid">process.getgid()</a></li>
+<li><a href="#process_process_setgid_id">process.setgid(id)</a></li>
+<li><a href="#process_process_getuid">process.getuid()</a></li>
+<li><a href="#process_process_setuid_id">process.setuid(id)</a></li>
+<li><a href="#process_process_getgroups">process.getgroups()</a></li>
+<li><a href="#process_process_setgroups_groups">process.setgroups(groups)</a></li>
+<li><a href="#process_process_initgroups_user_extra_group">process.initgroups(user, extra_group)</a></li>
+<li><a href="#process_process_version">process.version</a></li>
+<li><a href="#process_process_versions">process.versions</a></li>
+<li><a href="#process_process_config">process.config</a></li>
+<li><a href="#process_process_kill_pid_signal">process.kill(pid, [signal])</a></li>
+<li><a href="#process_process_pid">process.pid</a></li>
+<li><a href="#process_process_title">process.title</a></li>
+<li><a href="#process_process_arch">process.arch</a></li>
+<li><a href="#process_process_platform">process.platform</a></li>
+<li><a href="#process_process_memoryusage">process.memoryUsage()</a></li>
+<li><a href="#process_process_nexttick_callback">process.nextTick(callback)</a></li>
+<li><a href="#process_process_maxtickdepth">process.maxTickDepth</a></li>
+<li><a href="#process_process_umask_mask">process.umask([mask])</a></li>
+<li><a href="#process_process_uptime">process.uptime()</a></li>
+<li><a href="#process_process_hrtime">process.hrtime()</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>process<span><a class="mark" href="#process_process" id="process_process">#</a></span></h1>
+<!-- type=global -->
+
+<p>The <code>process</code> object is a global object and can be accessed from anywhere.
+It is an instance of <a href="events.html#events_class_events_eventemitter">EventEmitter</a>.
+
+
+</p>
+<h2>Event: &#39;exit&#39;<span><a class="mark" href="#process_event_exit" id="process_event_exit">#</a></span></h2>
+<p>Emitted when the process is about to exit.  This is a good hook to perform
+constant time checks of the module&#39;s state (like for unit tests).  The main
+event loop will no longer be run after the &#39;exit&#39; callback finishes, so
+timers may not be scheduled.
+
+</p>
+<p>Example of listening for <code>exit</code>:
+
+</p>
+<pre><code>process.on(&#39;exit&#39;, function() {
+  setTimeout(function() {
+    console.log(&#39;This will not run&#39;);
+  }, 0);
+  console.log(&#39;About to exit.&#39;);
+});</code></pre>
+<h2>Event: &#39;uncaughtException&#39;<span><a class="mark" href="#process_event_uncaughtexception" id="process_event_uncaughtexception">#</a></span></h2>
+<p>Emitted when an exception bubbles all the way back to the event loop. If a
+listener is added for this exception, the default action (which is to print
+a stack trace and exit) will not occur.
+
+</p>
+<p>Example of listening for <code>uncaughtException</code>:
+
+</p>
+<pre><code>process.on(&#39;uncaughtException&#39;, function(err) {
+  console.log(&#39;Caught exception: &#39; + err);
+});
+
+setTimeout(function() {
+  console.log(&#39;This will still run.&#39;);
+}, 500);
+
+// Intentionally cause an exception, but don&#39;t catch it.
+nonexistentFunc();
+console.log(&#39;This will not run.&#39;);</code></pre>
+<p>Note that <code>uncaughtException</code> is a very crude mechanism for exception
+handling and may be removed in the future.
+
+</p>
+<p>Don&#39;t use it, use <a href="domain.html">domains</a> instead. If you do use it, restart
+your application after every unhandled exception!
+
+</p>
+<p>Do <em>not</em> use it as the node.js equivalent of <code>On Error Resume Next</code>. An
+unhandled exception means your application - and by extension node.js itself -
+is in an undefined state. Blindly resuming means <em>anything</em> could happen.
+
+</p>
+<p>Think of resuming as pulling the power cord when you are upgrading your system.
+Nine out of ten times nothing happens - but the 10th time, your system is bust.
+
+</p>
+<p>You have been warned.
+
+</p>
+<h2>Signal Events<span><a class="mark" href="#process_signal_events" id="process_signal_events">#</a></span></h2>
+<!--type=event-->
+<!--name=SIGINT, SIGUSR1, etc.-->
+
+<p>Emitted when the processes receives a signal. See sigaction(2) for a list of
+standard POSIX signal names such as SIGINT, SIGUSR1, etc.
+
+</p>
+<p>Example of listening for <code>SIGINT</code>:
+
+</p>
+<pre><code>// Start reading from stdin so we don&#39;t exit.
+process.stdin.resume();
+
+process.on(&#39;SIGINT&#39;, function() {
+  console.log(&#39;Got SIGINT.  Press Control-D to exit.&#39;);
+});</code></pre>
+<p>An easy way to send the <code>SIGINT</code> signal is with <code>Control-C</code> in most terminal
+programs.
+
+
+</p>
+<h2>process.stdout<span><a class="mark" href="#process_process_stdout" id="process_process_stdout">#</a></span></h2>
+<p>A <code>Writable Stream</code> to <code>stdout</code>.
+
+</p>
+<p>Example: the definition of <code>console.log</code>
+
+</p>
+<pre><code>console.log = function(d) {
+  process.stdout.write(d + &#39;\n&#39;);
+};</code></pre>
+<p><code>process.stderr</code> and <code>process.stdout</code> are unlike other streams in Node in
+that writes to them are usually blocking.  They are blocking in the case
+that they refer to regular files or TTY file descriptors. In the case they
+refer to pipes, they are non-blocking like other streams.
+
+</p>
+<p>To check if Node is being run in a TTY context, read the <code>isTTY</code> property
+on <code>process.stderr</code>, <code>process.stdout</code>, or <code>process.stdin</code>:
+
+</p>
+<pre><code>$ node -p &quot;Boolean(process.stdin.isTTY)&quot;
+true
+$ echo &quot;foo&quot; | node -p &quot;Boolean(process.stdin.isTTY)&quot;
+false
+
+$ node -p &quot;Boolean(process.stdout.isTTY)&quot;
+true
+$ node -p &quot;Boolean(process.stdout.isTTY)&quot; | cat
+false</code></pre>
+<p>See <a href="tty.html#tty_tty">the tty docs</a> for more information.
+
+</p>
+<h2>process.stderr<span><a class="mark" href="#process_process_stderr" id="process_process_stderr">#</a></span></h2>
+<p>A writable stream to stderr.
+
+</p>
+<p><code>process.stderr</code> and <code>process.stdout</code> are unlike other streams in Node in
+that writes to them are usually blocking.  They are blocking in the case
+that they refer to regular files or TTY file descriptors. In the case they
+refer to pipes, they are non-blocking like other streams.
+
+
+</p>
+<h2>process.stdin<span><a class="mark" href="#process_process_stdin" id="process_process_stdin">#</a></span></h2>
+<p>A <code>Readable Stream</code> for stdin. The stdin stream is paused by default, so one
+must call <code>process.stdin.resume()</code> to read from it.
+
+</p>
+<p>Example of opening standard input and listening for both events:
+
+</p>
+<pre><code>process.stdin.resume();
+process.stdin.setEncoding(&#39;utf8&#39;);
+
+process.stdin.on(&#39;data&#39;, function(chunk) {
+  process.stdout.write(&#39;data: &#39; + chunk);
+});
+
+process.stdin.on(&#39;end&#39;, function() {
+  process.stdout.write(&#39;end&#39;);
+});</code></pre>
+<h2>process.argv<span><a class="mark" href="#process_process_argv" id="process_process_argv">#</a></span></h2>
+<p>An array containing the command line arguments.  The first element will be
+&#39;node&#39;, the second element will be the name of the JavaScript file.  The
+next elements will be any additional command line arguments.
+
+</p>
+<pre><code>// print process.argv
+process.argv.forEach(function(val, index, array) {
+  console.log(index + &#39;: &#39; + val);
+});</code></pre>
+<p>This will generate:
+
+</p>
+<pre><code>$ node process-2.js one two=three four
+0: node
+1: /Users/mjr/work/node/process-2.js
+2: one
+3: two=three
+4: four</code></pre>
+<h2>process.execPath<span><a class="mark" href="#process_process_execpath" id="process_process_execpath">#</a></span></h2>
+<p>This is the absolute pathname of the executable that started the process.
+
+</p>
+<p>Example:
+
+</p>
+<pre><code>/usr/local/bin/node</code></pre>
+<h2>process.abort()<span><a class="mark" href="#process_process_abort" id="process_process_abort">#</a></span></h2>
+<p>This causes node to emit an abort. This will cause node to exit and
+generate a core file.
+
+</p>
+<h2>process.chdir(directory)<span><a class="mark" href="#process_process_chdir_directory" id="process_process_chdir_directory">#</a></span></h2>
+<p>Changes the current working directory of the process or throws an exception if that fails.
+
+</p>
+<pre><code>console.log(&#39;Starting directory: &#39; + process.cwd());
+try {
+  process.chdir(&#39;/tmp&#39;);
+  console.log(&#39;New directory: &#39; + process.cwd());
+}
+catch (err) {
+  console.log(&#39;chdir: &#39; + err);
+}</code></pre>
+<h2>process.cwd()<span><a class="mark" href="#process_process_cwd" id="process_process_cwd">#</a></span></h2>
+<p>Returns the current working directory of the process.
+
+</p>
+<pre><code>console.log(&#39;Current directory: &#39; + process.cwd());</code></pre>
+<h2>process.env<span><a class="mark" href="#process_process_env" id="process_process_env">#</a></span></h2>
+<p>An object containing the user environment. See environ(7).
+
+
+</p>
+<h2>process.exit([code])<span><a class="mark" href="#process_process_exit_code" id="process_process_exit_code">#</a></span></h2>
+<p>Ends the process with the specified <code>code</code>.  If omitted, exit uses the
+&#39;success&#39; code <code>0</code>.
+
+</p>
+<p>To exit with a &#39;failure&#39; code:
+
+</p>
+<pre><code>process.exit(1);</code></pre>
+<p>The shell that executed node should see the exit code as 1.
+
+
+</p>
+<h2>process.getgid()<span><a class="mark" href="#process_process_getgid" id="process_process_getgid">#</a></span></h2>
+<p>Note: this function is only available on POSIX platforms (i.e. not Windows)
+
+</p>
+<p>Gets the group identity of the process. (See getgid(2).)
+This is the numerical group id, not the group name.
+
+</p>
+<pre><code>if (process.getgid) {
+  console.log(&#39;Current gid: &#39; + process.getgid());
+}</code></pre>
+<h2>process.setgid(id)<span><a class="mark" href="#process_process_setgid_id" id="process_process_setgid_id">#</a></span></h2>
+<p>Note: this function is only available on POSIX platforms (i.e. not Windows)
+
+</p>
+<p>Sets the group identity of the process. (See setgid(2).)  This accepts either
+a numerical ID or a groupname string. If a groupname is specified, this method
+blocks while resolving it to a numerical ID.
+
+</p>
+<pre><code>if (process.getgid &amp;&amp; process.setgid) {
+  console.log(&#39;Current gid: &#39; + process.getgid());
+  try {
+    process.setgid(501);
+    console.log(&#39;New gid: &#39; + process.getgid());
+  }
+  catch (err) {
+    console.log(&#39;Failed to set gid: &#39; + err);
+  }
+}</code></pre>
+<h2>process.getuid()<span><a class="mark" href="#process_process_getuid" id="process_process_getuid">#</a></span></h2>
+<p>Note: this function is only available on POSIX platforms (i.e. not Windows)
+
+</p>
+<p>Gets the user identity of the process. (See getuid(2).)
+This is the numerical userid, not the username.
+
+</p>
+<pre><code>if (process.getuid) {
+  console.log(&#39;Current uid: &#39; + process.getuid());
+}</code></pre>
+<h2>process.setuid(id)<span><a class="mark" href="#process_process_setuid_id" id="process_process_setuid_id">#</a></span></h2>
+<p>Note: this function is only available on POSIX platforms (i.e. not Windows)
+
+</p>
+<p>Sets the user identity of the process. (See setuid(2).)  This accepts either
+a numerical ID or a username string.  If a username is specified, this method
+blocks while resolving it to a numerical ID.
+
+</p>
+<pre><code>if (process.getuid &amp;&amp; process.setuid) {
+  console.log(&#39;Current uid: &#39; + process.getuid());
+  try {
+    process.setuid(501);
+    console.log(&#39;New uid: &#39; + process.getuid());
+  }
+  catch (err) {
+    console.log(&#39;Failed to set uid: &#39; + err);
+  }
+}</code></pre>
+<h2>process.getgroups()<span><a class="mark" href="#process_process_getgroups" id="process_process_getgroups">#</a></span></h2>
+<p>Note: this function is only available on POSIX platforms (i.e. not Windows)
+
+</p>
+<p>Returns an array with the supplementary group IDs. POSIX leaves it unspecified
+if the effective group ID is included but node.js ensures it always is.
+
+
+</p>
+<h2>process.setgroups(groups)<span><a class="mark" href="#process_process_setgroups_groups" id="process_process_setgroups_groups">#</a></span></h2>
+<p>Note: this function is only available on POSIX platforms (i.e. not Windows)
+
+</p>
+<p>Sets the supplementary group IDs. This is a privileged operation, meaning you
+need to be root or have the CAP_SETGID capability.
+
+</p>
+<p>The list can contain group IDs, group names or both.
+
+
+</p>
+<h2>process.initgroups(user, extra_group)<span><a class="mark" href="#process_process_initgroups_user_extra_group" id="process_process_initgroups_user_extra_group">#</a></span></h2>
+<p>Note: this function is only available on POSIX platforms (i.e. not Windows)
+
+</p>
+<p>Reads /etc/group and initializes the group access list, using all groups of
+which the user is a member. This is a privileged operation, meaning you need
+to be root or have the CAP_SETGID capability.
+
+</p>
+<p><code>user</code> is a user name or user ID. <code>extra_group</code> is a group name or group ID.
+
+</p>
+<p>Some care needs to be taken when dropping privileges. Example:
+
+</p>
+<pre><code>console.log(process.getgroups());         // [ 0 ]
+process.initgroups(&#39;bnoordhuis&#39;, 1000);   // switch user
+console.log(process.getgroups());         // [ 27, 30, 46, 1000, 0 ]
+process.setgid(1000);                     // drop root gid
+console.log(process.getgroups());         // [ 27, 30, 46, 1000 ]</code></pre>
+<h2>process.version<span><a class="mark" href="#process_process_version" id="process_process_version">#</a></span></h2>
+<p>A compiled-in property that exposes <code>NODE_VERSION</code>.
+
+</p>
+<pre><code>console.log(&#39;Version: &#39; + process.version);</code></pre>
+<h2>process.versions<span><a class="mark" href="#process_process_versions" id="process_process_versions">#</a></span></h2>
+<p>A property exposing version strings of node and its dependencies.
+
+</p>
+<pre><code>console.log(process.versions);</code></pre>
+<p>Will print something like:
+
+</p>
+<pre><code>{ http_parser: &#39;1.0&#39;,
+  node: &#39;0.10.4&#39;,
+  v8: &#39;3.14.5.8&#39;,
+  ares: &#39;1.9.0-DEV&#39;,
+  uv: &#39;0.10.3&#39;,
+  zlib: &#39;1.2.3&#39;,
+  modules: &#39;11&#39;,
+  openssl: &#39;1.0.1e&#39; }</code></pre>
+<h2>process.config<span><a class="mark" href="#process_process_config" id="process_process_config">#</a></span></h2>
+<p>An Object containing the JavaScript representation of the configure options
+that were used to compile the current node executable. This is the same as
+the &quot;config.gypi&quot; file that was produced when running the <code>./configure</code> script.
+
+</p>
+<p>An example of the possible output looks like:
+
+</p>
+<pre><code>{ target_defaults:
+   { cflags: [],
+     default_configuration: &#39;Release&#39;,
+     defines: [],
+     include_dirs: [],
+     libraries: [] },
+  variables:
+   { host_arch: &#39;x64&#39;,
+     node_install_npm: &#39;true&#39;,
+     node_prefix: &#39;&#39;,
+     node_shared_cares: &#39;false&#39;,
+     node_shared_http_parser: &#39;false&#39;,
+     node_shared_libuv: &#39;false&#39;,
+     node_shared_v8: &#39;false&#39;,
+     node_shared_zlib: &#39;false&#39;,
+     node_use_dtrace: &#39;false&#39;,
+     node_use_openssl: &#39;true&#39;,
+     node_shared_openssl: &#39;false&#39;,
+     strict_aliasing: &#39;true&#39;,
+     target_arch: &#39;x64&#39;,
+     v8_use_snapshot: &#39;true&#39; } }</code></pre>
+<h2>process.kill(pid, [signal])<span><a class="mark" href="#process_process_kill_pid_signal" id="process_process_kill_pid_signal">#</a></span></h2>
+<p>Send a signal to a process. <code>pid</code> is the process id and <code>signal</code> is the
+string describing the signal to send.  Signal names are strings like
+&#39;SIGINT&#39; or &#39;SIGUSR1&#39;.  If omitted, the signal will be &#39;SIGTERM&#39;.
+See kill(2) for more information.
+
+</p>
+<p>Note that just because the name of this function is <code>process.kill</code>, it is
+really just a signal sender, like the <code>kill</code> system call.  The signal sent
+may do something other than kill the target process.
+
+</p>
+<p>Example of sending a signal to yourself:
+
+</p>
+<pre><code>process.on(&#39;SIGHUP&#39;, function() {
+  console.log(&#39;Got SIGHUP signal.&#39;);
+});
+
+setTimeout(function() {
+  console.log(&#39;Exiting.&#39;);
+  process.exit(0);
+}, 100);
+
+process.kill(process.pid, &#39;SIGHUP&#39;);</code></pre>
+<h2>process.pid<span><a class="mark" href="#process_process_pid" id="process_process_pid">#</a></span></h2>
+<p>The PID of the process.
+
+</p>
+<pre><code>console.log(&#39;This process is pid &#39; + process.pid);</code></pre>
+<h2>process.title<span><a class="mark" href="#process_process_title" id="process_process_title">#</a></span></h2>
+<p>Getter/setter to set what is displayed in &#39;ps&#39;.
+
+</p>
+<p>When used as a setter, the maximum length is platform-specific and probably
+short.
+
+</p>
+<p>On Linux and OS X, it&#39;s limited to the size of the binary name plus the
+length of the command line arguments because it overwrites the argv memory.
+
+</p>
+<p>v0.8 allowed for longer process title strings by also overwriting the environ
+memory but that was potentially insecure/confusing in some (rather obscure)
+cases.
+
+
+</p>
+<h2>process.arch<span><a class="mark" href="#process_process_arch" id="process_process_arch">#</a></span></h2>
+<p>What processor architecture you&#39;re running on: <code>&#39;arm&#39;</code>, <code>&#39;ia32&#39;</code>, or <code>&#39;x64&#39;</code>.
+
+</p>
+<pre><code>console.log(&#39;This processor architecture is &#39; + process.arch);</code></pre>
+<h2>process.platform<span><a class="mark" href="#process_process_platform" id="process_process_platform">#</a></span></h2>
+<p>What platform you&#39;re running on:
+<code>&#39;darwin&#39;</code>, <code>&#39;freebsd&#39;</code>, <code>&#39;linux&#39;</code>, <code>&#39;sunos&#39;</code> or <code>&#39;win32&#39;</code>
+
+</p>
+<pre><code>console.log(&#39;This platform is &#39; + process.platform);</code></pre>
+<h2>process.memoryUsage()<span><a class="mark" href="#process_process_memoryusage" id="process_process_memoryusage">#</a></span></h2>
+<p>Returns an object describing the memory usage of the Node process
+measured in bytes.
+
+</p>
+<pre><code>var util = require(&#39;util&#39;);
+
+console.log(util.inspect(process.memoryUsage()));</code></pre>
+<p>This will generate:
+
+</p>
+<pre><code>{ rss: 4935680,
+  heapTotal: 1826816,
+  heapUsed: 650472 }</code></pre>
+<p><code>heapTotal</code> and <code>heapUsed</code> refer to V8&#39;s memory usage.
+
+
+</p>
+<h2>process.nextTick(callback)<span><a class="mark" href="#process_process_nexttick_callback" id="process_process_nexttick_callback">#</a></span></h2>
+<p>On the next loop around the event loop call this callback.
+This is <em>not</em> a simple alias to <code>setTimeout(fn, 0)</code>, it&#39;s much more
+efficient.  It typically runs before any other I/O events fire, but there
+are some exceptions.  See <code>process.maxTickDepth</code> below.
+
+</p>
+<pre><code>process.nextTick(function() {
+  console.log(&#39;nextTick callback&#39;);
+});</code></pre>
+<p>This is important in developing APIs where you want to give the user the
+chance to assign event handlers after an object has been constructed,
+but before any I/O has occurred.
+
+</p>
+<pre><code>function MyThing(options) {
+  this.setupOptions(options);
+
+  process.nextTick(function() {
+    this.startDoingStuff();
+  }.bind(this));
+}
+
+var thing = new MyThing();
+thing.getReadyForStuff();
+
+// thing.startDoingStuff() gets called now, not before.</code></pre>
+<p>It is very important for APIs to be either 100% synchronous or 100%
+asynchronous.  Consider this example:
+
+</p>
+<pre><code>// WARNING!  DO NOT USE!  BAD UNSAFE HAZARD!
+function maybeSync(arg, cb) {
+  if (arg) {
+    cb();
+    return;
+  }
+
+  fs.stat(&#39;file&#39;, cb);
+}</code></pre>
+<p>This API is hazardous.  If you do this:
+
+</p>
+<pre><code>maybeSync(true, function() {
+  foo();
+});
+bar();</code></pre>
+<p>then it&#39;s not clear whether <code>foo()</code> or <code>bar()</code> will be called first.
+
+</p>
+<p>This approach is much better:
+
+</p>
+<pre><code>function definitelyAsync(arg, cb) {
+  if (arg) {
+    process.nextTick(cb);
+    return;
+  }
+
+  fs.stat(&#39;file&#39;, cb);
+}</code></pre>
+<h2>process.maxTickDepth<span><a class="mark" href="#process_process_maxtickdepth" id="process_process_maxtickdepth">#</a></span></h2>
+<div class="signature"><ul>
+<li><span class="type">Number</span> Default = 1000</li>
+</div></ul>
+<p>Callbacks passed to <code>process.nextTick</code> will <em>usually</em> be called at the
+end of the current flow of execution, and are thus approximately as fast
+as calling a function synchronously.  Left unchecked, this would starve
+the event loop, preventing any I/O from occurring.
+
+</p>
+<p>Consider this code:
+
+</p>
+<pre><code>process.nextTick(function foo() {
+  process.nextTick(foo);
+});</code></pre>
+<p>In order to avoid the situation where Node is blocked by an infinite
+loop of recursive series of nextTick calls, it defers to allow some I/O
+to be done every so often.
+
+</p>
+<p>The <code>process.maxTickDepth</code> value is the maximum depth of
+nextTick-calling nextTick-callbacks that will be evaluated before
+allowing other forms of I/O to occur.
+
+</p>
+<h2>process.umask([mask])<span><a class="mark" href="#process_process_umask_mask" id="process_process_umask_mask">#</a></span></h2>
+<p>Sets or reads the process&#39;s file mode creation mask. Child processes inherit
+the mask from the parent process. Returns the old mask if <code>mask</code> argument is
+given, otherwise returns the current mask.
+
+</p>
+<pre><code>var oldmask, newmask = 0644;
+
+oldmask = process.umask(newmask);
+console.log(&#39;Changed umask from: &#39; + oldmask.toString(8) +
+            &#39; to &#39; + newmask.toString(8));</code></pre>
+<h2>process.uptime()<span><a class="mark" href="#process_process_uptime" id="process_process_uptime">#</a></span></h2>
+<p>Number of seconds Node has been running.
+
+
+</p>
+<h2>process.hrtime()<span><a class="mark" href="#process_process_hrtime" id="process_process_hrtime">#</a></span></h2>
+<p>Returns the current high-resolution real time in a <code>[seconds, nanoseconds]</code>
+tuple Array. It is relative to an arbitrary time in the past. It is not
+related to the time of day and therefore not subject to clock drift. The
+primary use is for measuring performance between intervals.
+
+</p>
+<p>You may pass in the result of a previous call to <code>process.hrtime()</code> to get
+a diff reading, useful for benchmarks and measuring intervals:
+
+</p>
+<pre><code>var time = process.hrtime();
+// [ 1800216, 25 ]
+
+setTimeout(function() {
+  var diff = process.hrtime(time);
+  // [ 1, 552 ]
+
+  console.log(&#39;benchmark took %d nanoseconds&#39;, diff[0] * 1e9 + diff[1]);
+  // benchmark took 1000000527 nanoseconds
+}, 1000);</code></pre>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

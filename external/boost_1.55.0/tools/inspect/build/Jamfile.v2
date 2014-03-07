@@ -1,0 +1,56 @@
+# Inspect Jamfile
+
+# Copyright Vladimir Prus
+
+# Distributed under the Boost Software License, Version 1.0.
+# See http://www.boost.org/LICENSE_1_0.txt
+
+project
+    :
+    requirements
+    :
+    source-location .. 
+    ;
+
+exe inspect
+    :
+    apple_macro_check.cpp
+    ascii_check.cpp
+    assert_macro_check.cpp
+    copyright_check.cpp
+    crlf_check.cpp
+    deprecated_macro_check.cpp
+    end_check.cpp
+    inspect.cpp
+    license_check.cpp
+    link_check.cpp
+    minmax_check.cpp
+    path_name_check.cpp
+    tab_check.cpp
+    unnamed_namespace_check.cpp
+    /boost//filesystem/<link>static
+    /boost//regex/<link>static
+    :
+    :
+    release
+    ;
+
+install dist-bin
+    :
+    inspect
+    :
+    <install-type>EXE
+    <location>../../../dist/bin
+    :
+    release
+    ;
+
+install dist-lib
+    :
+    inspect
+    :
+    <install-type>LIB
+    <location>../../../dist/lib
+    :
+    release
+    ;

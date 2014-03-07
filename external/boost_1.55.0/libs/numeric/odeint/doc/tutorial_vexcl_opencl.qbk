@@ -1,0 +1,46 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+[section Using OpenCL via VexCL]
+
+[import ../examples/vexcl/lorenz_ensemble.cpp]
+
+In the previous section the usage of odeint in combination with __thrust was shown. In this section we show how one can use OpenCL with odeint. The point of odeint is not to implement its own low-level data structures and algorithms, but to use high level libraries doing this task. Here, we will use the __vexcl framework to use OpenCL. __vexcl is a nice library for general computations and it uses heavily expression templates. With the help of __vexcl it is possible to write very compact and expressive application.
+
+[note vexcl needs C++11 features! So you have to compile with C++11 support enabled.]
+
+To use __vexcl one needs to include one additional header which includes the data-types and algorithms from vexcl and the adaption to odeint. Adaption to odeint means here only to adapt the resizing functionality of __vexcl to odeint.
+
+[vexcl_includes]
+
+To demonstrate the use of __vexcl we integrate an ensemble of Lorenz system. The example is very similar to the parameter study of the Lorenz system in the previous section except that we do not compute the Lyapunov exponents. Again, we vary the parameter R of the Lorenz system an solve a whole ensemble of Lorenz systems in parallel (each with a different parameter R). First, we define the state type and a vector type
+
+[vexcl_state_types ]
+
+The `vector_type` is used to represent the parameter R. The `state_type` is a multi-vector of three sub vectors and is used to represent. The first component of this multi-vector represent all `x` components of the Lorenz system, while the second all `y` components and the third all `z` components. The components of this vector can be obtained via
+
+``
+auto &x = X(0);
+auto &y = X(1);
+auto &z = X(2);
+``
+
+As already mentioned __vexcl supports expression templates and we will use them to implement the system function for the Lorenz ensemble:
+
+[vexcl_system]
+
+It's very easy, isn't it? These three little lines do all the computations for you. There is no need to write your own OpenCL kernels. __vexcl does everything for you. Next we have to write the main application. We initialize the vector of parameters (R) and the initial state. Since __vexcl supports odeint we can already use the `vector_space_algebra` in combination with the `default_operations` for the stepper and we are done:
+
+[vexcl_main]
+
+
+[endsect]

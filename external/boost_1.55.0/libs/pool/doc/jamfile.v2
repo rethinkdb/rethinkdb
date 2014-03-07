@@ -1,0 +1,139 @@
+#  Boost.Pool library documentation Jamfile.v2
+#
+#  Copyright Paul A. Bristow 2011. Use, modification and
+#  distribution is subject to the Boost Software License, Version
+#  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org for updates, documentation, and revision history.
+
+path-constant boost-root : [ modules.peek : BOOST ] ;
+path-constant images_location : images ; # location of SVG and PNG images referenced by Quickbook.
+
+import modules ;
+
+using doxygen ;  # Required if you want to use Doxygen.
+using quickbook ;
+
+doxygen autodoc
+   :
+      [ glob ../../../boost/pool/*.hpp ]
+      #[ glob ../../../boost/pool/detail/*.hpp ]
+      #[ glob ../../../boost/pool/detail/*.ipp ] 
+      # Renamed as .inc are not recognised correctly by doxywizard leaving error message.
+      # Warning: include file boost/pool/detail/pool_construct.inc not found, perhaps you forgot to add its directory to INCLUDE_PATH?
+      #  and problem with 'no type' in jamfile.
+      # error: target { ../../../boost/pool/detail/pool_construct.inc. } has no type
+     
+      #[ glob ../../../boost/pool/examples/*.*pp ] # Example source files.
+   :
+			<doxygen:param>WARNINGS=YES # Default NO, but useful to see warnings, especially in a logfile.
+			# It is also wise to to set a warnings logfile like this:
+			<doxygen:param>WARN_LOGFILE=AutoDoxywarnings.log # This may not be empty (usually not a good sign!), depending on options chosen.
+			# Much better to send message to a logfile than the default stderr.
+			# and make sure that there are no Doxygen errors or significant warnings in the log file.
+			<doxygen:param>RECURSIVE=NO # Search recursively down subdirectories.
+         <doxygen:param>EXTRACT_ALL=NO
+			<doxygen:param>HIDE_UNDOC_MEMBERS=YES
+			<doxygen:param>EXTRACT_PRIVATE=NO
+         <doxygen:param>MACRO_EXPANSION=YES
+			<doxygen:param>EXPAND_ONLY_PREDEF=YES
+         <doxygen:param>PREDEFINED="\"BOOST_PREVENT_MACRO_SUBSTITUTION=\" \"BOOST_STATIC_CONSTANT(t,v)=static const t v\" \"BOOST_DOXYGEN=1\""
+			<xsl:param>"boost.doxygen.reftitle=Boost.Pool C++ Reference"
+   ;
+
+xml pool : pool.qbk : <include>$(boost-root)/tools/auto_index/include ;
+
+boostbook standalone
+   :
+      pool
+   :
+   
+      # General settings
+      # =================
+      # Options for html and pdf
+      # ========================
+      # No indent on body text:
+      <xsl:param>body.start.indent=0pt
+      # Margin size:
+      <xsl:param>page.margin.inner=0.5in
+      # Margin size:
+      <xsl:param>page.margin.outer=0.5in
+      # Yes, we want graphics for admonishments:
+      <xsl:param>admon.graphics=1
+      # Path for links to Boost:
+      <xsl:param>boost.root=../../../..
+  
+      # HTML options:
+      # =============
+      # Use graphics icons not text for navigation:
+      <xsl:param>navig.graphics=1
+      # How far down we chunk nested sections, basically all of them:
+      <xsl:param>chunk.section.depth=2
+      # Don't put the first section on the same page as the TOC itself:
+      <xsl:param>chunk.first.sections=1
+      # How far down sections get TOC's
+      <xsl:param>toc.section.depth=4
+      # Max depth in each TOC:
+      <xsl:param>toc.max.depth=2
+      # How far down we go with TOC's
+      <xsl:param>generate.section.toc.level=10
+      # Horizontal ? spacing in table cells.
+      <format>html:<xsl:param>html.cellspacing=3 # pixels
+      # Vertical spacing in table cells.
+      <format>html:<xsl:param>html.cellpadding=5 # pixels
+      <format>html:<xsl:param>boost.max.id.part.length=40
+      <format>html:<xsl:param>img.src.path=../images/
+
+      # PDF Options:
+      # ============
+      # TOC Generation: this is needed for FOP-0.9 and later:
+      <format>pdf:<xsl:param>fop1.extensions=0
+      # Or enable this if you're using XEP:
+      <format>pdf:<xsl:param>xep.extensions=1
+      # TOC generation: this is needed for FOP 0.2, but must not be set to zero for FOP-0.9!
+      <format>pdf:<xsl:param>fop.extensions=0
+      # No indent on body text:
+      <xsl:param>body.start.indent=0pt
+      # Margin size:
+      <xsl:param>page.margin.inner=0.5in
+      # Margin size:
+      <xsl:param>page.margin.outer=0.5in
+		
+      # Yes, we want graphics for admonishments:
+      <xsl:param>admon.graphics=1
+		
+      # Set these one for PDF generation *only*:
+      # default png graphics are awful in PDF form,
+      # better use SVG instead:
+      <format>pdf:<xsl:param>admon.graphics.extension=".svg"
+      #<format>pdf:<xsl:param>admon.graphics.extension=".png" # Only png images are available.
+      <format>pdf:<xsl:param>use.role.for.mediaobject=1 
+      <format>pdf:<xsl:param>preferred.mediaobject.role=print
+      <format>pdf:<xsl:param>img.src.path=$(images_location)/ # graphics (diagrams) for pdf.
+      <format>pdf:<xsl:param>draft.mode="no"
+      <format>pdf:<xsl:param>boost.url.prefix=I:/boost-sandbox/guild/pool/libs/pool/doc/html
+		
+      # <auto-index>on turns on index (or off).
+      <auto-index>on
+      <auto-index-verbose>on
+                
+      # Choose indexing method (separately for html and pdf):
+      <format>html:<auto-index-internal>on  # on (or off) to use internally generated indexes.
+      # <format>html:<xsl:param>generate.index=0 # Don't let the XSL stylesheets generate indexes.
+        
+      <format>pdf:<auto-index-internal>off # on (or off) to use internally generated indexes.
+      # <auto-index-type>index  # Use <index>...</index> as the XML wrapper.
+        
+      <format>pdf:<xsl:param>index.on.type=1 # For the native stylesheets to generate the different indexes.
+      # PDF native index support is probably better for PDFs as then you actually get page numbers.
+
+      <auto-index-script>index.idx # Specifies the name of the script to load. 
+      # <auto-index-prefix>../../../ # Path to /pool so index.idx !scan-path can use boost/ and libs/doc.
+      <auto-index-prefix>../../.. 
+
+      <dependency>autodoc #
+   ;
+
+install pdfinstall : standalone/<format>pdf : <location>. <install-type>PDF <name>pool.pdf ;
+explicit pdfinstall ;

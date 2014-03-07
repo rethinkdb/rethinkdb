@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Distributed queue adaptor</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-distributed-queue-adaptor">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Distributed queue adaptor</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template&lt;typename ProcessGroup, typename Buffer&gt;
+class distributed_queue
+{
+public:
+  typedef ProcessGroup                     process_group_type;
+  typedef Buffer                           buffer_type;
+  typedef typename buffer_type::value_type value_type;
+  typedef typename buffer_type::size_type  size_type;
+
+  explicit
+  distributed_queue(const ProcessGroup&amp; process_group = ProcessGroup(),
+                    const Buffer&amp; buffer = Buffer(),
+                    bool polling = false);
+
+  distributed_queue(const ProcessGroup&amp; process_group, bool polling);
+
+  void push(const value_type&amp; x);
+  void pop();
+  value_type&amp; top();
+  const value_type&amp; top() const;
+  bool empty() const;
+  size_type size() const;
+};
+
+template&lt;typename ProcessGroup, typename Buffer&gt;
+inline distributed_queue&lt;ProcessGroup, Buffer&gt;
+make_distributed_queue(const ProcessGroup&amp; process_group, const Buffer&amp; buffer,
+                       bool polling = false);
+</pre>
+<p>Class template <tt class="docutils literal"><span class="pre">distributed_queue</span></tt> implements a distributed queue
+across a process group. The distributed queue is an adaptor over an
+existing (local) queue, which must model the <a class="reference external" href="http://www.boost.org/libs/graph/doc/Buffer.html">Buffer</a> concept. Each
+process stores a distinct copy of the local queue, from which it draws
+or removes elements via the <tt class="docutils literal"><span class="pre">pop</span></tt> and <tt class="docutils literal"><span class="pre">top</span></tt> members.</p>
+<p>The value type of the local queue must be a model of the
+<a class="reference external" href="GlobalDescriptor.html">Global Descriptor</a> concept. The <tt class="docutils literal"><span class="pre">push</span></tt> operation of the
+distributed queue passes (via a message) the value to its owning
+processor. Thus, the elements within a particular local queue are
+guaranteed to have the process owning that local queue as an owner.</p>
+<p>Synchronization of distributed queues occurs in the <tt class="docutils literal"><span class="pre">empty</span></tt> and
+<tt class="docutils literal"><span class="pre">size</span></tt> functions, which will only return &quot;empty&quot; values (true or 0,
+respectively) when the entire distributed queue is empty. If the local
+queue is empty but the distributed queue is not, the operation will
+block until either condition changes. When the <tt class="docutils literal"><span class="pre">size</span></tt> function of a
+nonempty queue returns, it returns the size of the local queue. These
+semantics were selected so that sequential code that processes
+elements in the queue via the following idiom can be parallelized via
+introduction of a distributed queue:</p>
+<pre class="literal-block">
+distributed_queue&lt;...&gt; Q;
+Q.push(x);
+while (!Q.empty()) {
+  // do something, that may push a value onto Q
+}
+</pre>
+<p>In the parallel version, the initial <tt class="docutils literal"><span class="pre">push</span></tt> operation will place
+the value <tt class="docutils literal"><span class="pre">x</span></tt> onto its owner's queue. All processes will
+synchronize at the call to empty, and only the process owning <tt class="docutils literal"><span class="pre">x</span></tt>
+will be allowed to execute the loop (<tt class="docutils literal"><span class="pre">Q.empty()</span></tt> returns
+false). This iteration may in turn push values onto other remote
+queues, so when that process finishes execution of the loop body
+and all processes synchronize again in <tt class="docutils literal"><span class="pre">empty</span></tt>, more processes
+may have nonempty local queues to execute. Once all local queues
+are empty, <tt class="docutils literal"><span class="pre">Q.empty()</span></tt> returns <tt class="docutils literal"><span class="pre">false</span></tt> for all processes.</p>
+<p>The distributed queue can receive messages at two different times:
+during synchronization and when polling <tt class="docutils literal"><span class="pre">empty</span></tt>. Messages are
+always received during synchronization, to ensure that accurate
+local queue sizes can be determines. However, whether <tt class="docutils literal"><span class="pre">empty</span></tt>
+should poll for messages is specified as an option to the
+constructor. Polling may be desired when the order in which
+elements in the queue are processed is not important, because it
+permits fewer synchronization steps and less communication
+overhead. However, when more strict ordering guarantees are
+required, polling may be semantically incorrect. By disabling
+polling, one ensures that parallel execution using the idiom above
+will not process an element at a later &quot;level&quot; before an earlier
+&quot;level&quot;.</p>
+<p>The distributed queue nearly models the <a class="reference external" href="http://www.boost.org/libs/graph/doc/Buffer.html">Buffer</a>
+concept. However, the <tt class="docutils literal"><span class="pre">push</span></tt> routine does not necessarily
+increase the result of <tt class="docutils literal"><span class="pre">size()</span></tt> by one (although the size of the
+global queue does increase by one).</p>
+<div class="section" id="member-functions">
+<h1>Member Functions</h1>
+<pre class="literal-block">
+explicit
+distributed_queue(const ProcessGroup&amp; process_group = ProcessGroup(),
+                  const Buffer&amp; buffer = Buffer(),
+                  bool polling = false);
+</pre>
+<p>Build a new distributed queue that communicates over the given
+<tt class="docutils literal"><span class="pre">process_group</span></tt>, whose local queue is initialized via <tt class="docutils literal"><span class="pre">buffer</span></tt> and
+which may or may not poll for messages.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+distributed_queue(const ProcessGroup&amp; process_group, bool polling);
+</pre>
+<p>Build a new distributed queue that communicates over the given
+<tt class="docutils literal"><span class="pre">process_group</span></tt>, whose local queue is default-initalized and which
+may or may not poll for messages.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void push(const value_type&amp; x);
+</pre>
+<p>Push an element onto the distributed queue.</p>
+<p>The element will be sent to its owner process to be added to that
+process's local queue. If polling is enabled for this queue and
+the owner process is the current process, the value will be
+immediately pushed onto the local queue.</p>
+<p>Complexity: O(1) messages of size O(<tt class="docutils literal"><span class="pre">sizeof(value_type)</span></tt>) will be
+transmitted.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void pop();
+</pre>
+<p>Pop an element off the local queue. The queue must not be <tt class="docutils literal"><span class="pre">empty()</span></tt>.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+value_type&amp; top();
+const value_type&amp; top();
+</pre>
+<p>Returns the top element in the local queue. The queue must not be
+<tt class="docutils literal"><span class="pre">empty()</span></tt>.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+bool empty() const;
+</pre>
+<p>Determines if the queue is empty.</p>
+<p>When the local queue is nonempty, returns true. If the local queue is
+empty, synchronizes with all other processes in the process group
+until either (1) the local queue is nonempty (returns true) (2) the
+entire distributed queue is empty (returns false).</p>
+<hr class="docutils" />
+<pre class="literal-block">
+size_type size() const;
+</pre>
+<p>Determines the size of the local queue.</p>
+<p>The behavior of this routine is equivalent to the behavior of
+<tt class="docutils literal"><span class="pre">empty</span></tt>, except that when <tt class="docutils literal"><span class="pre">empty</span></tt> returns true this
+function returns the size of the local queue and when <tt class="docutils literal"><span class="pre">empty</span></tt>
+returns false this function returns zero.</p>
+</div>
+<div class="section" id="free-functions">
+<h1>Free Functions</h1>
+<pre class="literal-block">
+template&lt;typename ProcessGroup, typename Buffer&gt;
+inline distributed_queue&lt;ProcessGroup, Buffer&gt;
+make_distributed_queue(const ProcessGroup&amp; process_group, const Buffer&amp; buffer,
+                       bool polling = false);
+</pre>
+<p>Constructs a distributed queue.</p>
+<hr class="docutils" />
+<p>Copyright (C) 2004, 2005 The Trustees of Indiana University.</p>
+<p>Authors: Douglas Gregor and Andrew Lumsdaine</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:22 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

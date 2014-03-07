@@ -1,0 +1,164 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template dense_output_runge_kutta&lt;Stepper, explicit_controlled_stepper_fsal_tag&gt;</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../../../header/boost/numeric/odeint/stepper/dense_output_runge_kutta_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/dense_output_runge_kutta.hpp&gt;">
+<link rel="prev" href="dense_output_r_idp26784696.html" title="Class template dense_output_runge_kutta&lt;Stepper, stepper_tag&gt;">
+<link rel="next" href="../../../header/boost/numeric/odeint/stepper/euler_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/euler.hpp&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="dense_output_r_idp26784696.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/stepper/dense_output_runge_kutta_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../header/boost/numeric/odeint/stepper/euler_hpp.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.numeric.odeint.dense_output_r_idp26819032"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template dense_output_runge_kutta&lt;Stepper, explicit_controlled_stepper_fsal_tag&gt;</span></h2>
+<p>boost::numeric::odeint::dense_output_runge_kutta&lt;Stepper, explicit_controlled_stepper_fsal_tag&gt; &#8212; The class representing dense-output Runge-Kutta steppers with FSAL property. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../header/boost/numeric/odeint/stepper/dense_output_runge_kutta_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/dense_output_runge_kutta.hpp&gt;">boost/numeric/odeint/stepper/dense_output_runge_kutta.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Stepper<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="dense_output_r_idp26819032.html" title="Class template dense_output_runge_kutta&lt;Stepper, explicit_controlled_stepper_fsal_tag&gt;">dense_output_runge_kutta</a><span class="special">&lt;</span><span class="identifier">Stepper</span><span class="special">,</span> <span class="identifier">explicit_controlled_stepper_fsal_tag</span><span class="special">&gt;</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">Stepper</span>                               <a name="boost.numeric.odeint.dense_output_r_idp26819032.controlled_stepper_type"></a><span class="identifier">controlled_stepper_type</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">controlled_stepper_type</span><span class="special">::</span><span class="identifier">stepper_type</span> <a name="boost.numeric.odeint.dense_output_r_idp26819032.stepper_type"></a><span class="identifier">stepper_type</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">state_type</span>              <a name="boost.numeric.odeint.dense_output_r_idp26819032.state_type"></a><span class="identifier">state_type</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">wrapped_state_type</span>      <a name="boost.numeric.odeint.dense_output_r_idp26819032.wrapped_state_type"></a><span class="identifier">wrapped_state_type</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">value_type</span>              <a name="boost.numeric.odeint.dense_output_r_idp26819032.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">deriv_type</span>              <a name="boost.numeric.odeint.dense_output_r_idp26819032.deriv_type"></a><span class="identifier">deriv_type</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">wrapped_deriv_type</span>      <a name="boost.numeric.odeint.dense_output_r_idp26819032.wrapped_deriv_type"></a><span class="identifier">wrapped_deriv_type</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">time_type</span>               <a name="boost.numeric.odeint.dense_output_r_idp26819032.time_type"></a><span class="identifier">time_type</span><span class="special">;</span>                
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">algebra_type</span>            <a name="boost.numeric.odeint.dense_output_r_idp26819032.algebra_type"></a><span class="identifier">algebra_type</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">operations_type</span>         <a name="boost.numeric.odeint.dense_output_r_idp26819032.operations_type"></a><span class="identifier">operations_type</span><span class="special">;</span>          
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">resizer_type</span>            <a name="boost.numeric.odeint.dense_output_r_idp26819032.resizer_type"></a><span class="identifier">resizer_type</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">dense_output_stepper_tag</span>              <a name="boost.numeric.odeint.dense_output_r_idp26819032.stepper_category"></a><span class="identifier">stepper_category</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">dense_output_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">Stepper</span> <span class="special">&gt;</span>   <a name="boost.numeric.odeint.dense_output_r_idp26819032.dense_output_stepper_type"></a><span class="identifier">dense_output_stepper_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="dense_output_r_idp26819032.html#idp26842632-bb">public member functions</a></span>
+   <a class="link" href="dense_output_r_idp26819032.html#idp26842840-bb"><span class="identifier">m_resizer</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26819032.html#idp26843224-bb"><span class="identifier">m_current_state_x1</span></a><span class="special">(</span><span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26819032.html#idp26843960-bb"><span class="identifier">m_x1</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26819032.html#idp26844344-bb"><span class="identifier">m_x2</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26819032.html#idp26844728-bb"><span class="identifier">m_dxdt1</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26819032.html#idp26845112-bb"><span class="identifier">m_dxdt2</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26819032.html#idp26845496-bb"><span class="identifier">m_t</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26819032.html#idp26845880-bb"><span class="identifier">m_t_old</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26819032.html#idp26846264-bb"><span class="identifier">m_dt</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="dense_output_r_idp26819032.html#idp26846648-bb"><span class="identifier">m_is_deriv_initialized</span></a><span class="special">(</span><span class="keyword">false</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateType<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="dense_output_r_idp26819032.html#idp26847384-bb"><span class="identifier">initialize</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">&gt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&gt;</span> <a class="link" href="dense_output_r_idp26819032.html#idp26849288-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateOut<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="dense_output_r_idp26819032.html#idp26850536-bb"><span class="identifier">calc_state</span></a><span class="special">(</span><span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateOut<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="dense_output_r_idp26819032.html#idp26852088-bb"><span class="identifier">calc_state</span></a><span class="special">(</span><span class="identifier">time_type</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="dense_output_r_idp26819032.html#idp26853656-bb"><span class="identifier">resize</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateType<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="dense_output_r_idp26819032.html#idp26854872-bb"><span class="identifier">adjust_size</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateType</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26819032.html#idp26856104-bb"><span class="identifier">current_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">time_type</span> <a class="link" href="dense_output_r_idp26819032.html#idp26856920-bb"><span class="identifier">current_time</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26819032.html#idp26857720-bb"><span class="identifier">previous_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">time_type</span> <a class="link" href="dense_output_r_idp26819032.html#idp26858536-bb"><span class="identifier">previous_time</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">time_type</span> <a class="link" href="dense_output_r_idp26819032.html#idp26859336-bb"><span class="identifier">current_time_step</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="dense_output_r_idp26819032.html#idp26860152-bb">private member functions</a></span>
+  <span class="identifier">state_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26819032.html#idp26860360-bb"><span class="identifier">get_current_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26819032.html#idp26861176-bb"><span class="identifier">get_current_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">state_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26819032.html#idp26862008-bb"><span class="identifier">get_old_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26819032.html#idp26862808-bb"><span class="identifier">get_old_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">deriv_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26819032.html#idp26863624-bb"><span class="identifier">get_current_deriv</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">deriv_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26819032.html#idp26864440-bb"><span class="identifier">get_current_deriv</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">deriv_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26819032.html#idp26865272-bb"><span class="identifier">get_old_deriv</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">deriv_type</span> <span class="special">&amp;</span> <a class="link" href="dense_output_r_idp26819032.html#idp26866072-bb"><span class="identifier">get_old_deriv</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="dense_output_r_idp26819032.html#idp26866888-bb"><span class="identifier">toggle_current_state</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+   <span class="identifier">__pad0__</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp57113208"></a><h2>Description</h2>
+<p>The interface is the same as for <a class="link" href="dense_output_runge_kutta.html" title="Class template dense_output_runge_kutta">dense_output_runge_kutta&lt; Stepper , stepper_tag &gt;</a>. This class provides dense output functionality based on methods with step size controlled</p>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp57114408"></a><h3>Template Parameters</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Stepper</pre>
+<p>The stepper type of the underlying algorithm. </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp57115912"></a><h3>
+<a name="idp26842632-bb"></a><code class="computeroutput">dense_output_runge_kutta</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"> <a name="idp26842840-bb"></a><span class="identifier">m_resizer</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26843224-bb"></a><span class="identifier">m_current_state_x1</span><span class="special">(</span><span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26843960-bb"></a><span class="identifier">m_x1</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26844344-bb"></a><span class="identifier">m_x2</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26844728-bb"></a><span class="identifier">m_dxdt1</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26845112-bb"></a><span class="identifier">m_dxdt2</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26845496-bb"></a><span class="identifier">m_t</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26845880-bb"></a><span class="identifier">m_t_old</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26846264-bb"></a><span class="identifier">m_dt</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp26846648-bb"></a><span class="identifier">m_is_deriv_initialized</span><span class="special">(</span><span class="keyword">false</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateType<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp26847384-bb"></a><span class="identifier">initialize</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateType</span> <span class="special">&amp;</span> x0<span class="special">,</span> <span class="identifier">time_type</span> t0<span class="special">,</span> <span class="identifier">time_type</span> dt0<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">&gt;</span> 
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&gt;</span> <a name="idp26849288-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateOut<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp26850536-bb"></a><span class="identifier">calc_state</span><span class="special">(</span><span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> x<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateOut<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp26852088-bb"></a><span class="identifier">calc_state</span><span class="special">(</span><span class="identifier">time_type</span> t<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> x<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp26853656-bb"></a><span class="identifier">resize</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateType<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp26854872-bb"></a><span class="identifier">adjust_size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateType</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a name="idp26856104-bb"></a><span class="identifier">current_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">time_type</span> <a name="idp26856920-bb"></a><span class="identifier">current_time</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a name="idp26857720-bb"></a><span class="identifier">previous_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">time_type</span> <a name="idp26858536-bb"></a><span class="identifier">previous_time</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">time_type</span> <a name="idp26859336-bb"></a><span class="identifier">current_time_step</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp57181016"></a><h3>
+<a name="idp26860152-bb"></a><code class="computeroutput">dense_output_runge_kutta</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="identifier">state_type</span> <span class="special">&amp;</span> <a name="idp26860360-bb"></a><span class="identifier">get_current_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a name="idp26861176-bb"></a><span class="identifier">get_current_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">state_type</span> <span class="special">&amp;</span> <a name="idp26862008-bb"></a><span class="identifier">get_old_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> <a name="idp26862808-bb"></a><span class="identifier">get_old_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">deriv_type</span> <span class="special">&amp;</span> <a name="idp26863624-bb"></a><span class="identifier">get_current_deriv</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">deriv_type</span> <span class="special">&amp;</span> <a name="idp26864440-bb"></a><span class="identifier">get_current_deriv</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">deriv_type</span> <span class="special">&amp;</span> <a name="idp26865272-bb"></a><span class="identifier">get_old_deriv</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">deriv_type</span> <span class="special">&amp;</span> <a name="idp26866072-bb"></a><span class="identifier">get_old_deriv</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp26866888-bb"></a><span class="identifier">toggle_current_state</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="dense_output_r_idp26784696.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/stepper/dense_output_runge_kutta_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../header/boost/numeric/odeint/stepper/euler_hpp.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

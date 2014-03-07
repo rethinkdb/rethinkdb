@@ -1,0 +1,427 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Options for Perl Regular Expressions</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Boost.Regex">
+<link rel="up" href="../syntax_option_type.html" title="syntax_option_type">
+<link rel="prev" href="syntax_option_type_overview.html" title="Overview of syntax_option_type">
+<link rel="next" href="syntax_option_type_extended.html" title="Options for POSIX Extended Regular Expressions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="syntax_option_type_overview.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../syntax_option_type.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="syntax_option_type_extended.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_syntax_option_type_syntax_option_type_perl">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_regex.ref.syntax_option_type.syntax_option_type_perl"></a><a class="link" href="syntax_option_type_perl.html" title="Options for Perl Regular Expressions">Options
+        for Perl Regular Expressions</a>
+</h4></div></div></div>
+<p>
+          One of the following must always be set for perl regular expressions:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Element
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Standardized
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Effect when set
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    ECMAScript
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Yes
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that the grammar recognized by the regular expression
+                    engine uses its normal semantics: that is the same as that given
+                    in the ECMA-262, ECMAScript Language Specification, Chapter 15
+                    part 10, RegExp (Regular Expression) Objects (FWD.1).
+                  </p>
+                  <p>
+                    This is functionally identical to the <a class="link" href="../../syntax/perl_syntax.html" title="Perl Regular Expression Syntax">Perl
+                    regular expression syntax</a>.
+                  </p>
+                  <p>
+                    Boost.Regex also recognizes all of the perl-compatible <code class="computeroutput"><span class="special">(?...)</span></code> extensions in this mode.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    perl
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    As above.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    normal
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    As above.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    JavaScript
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    As above.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    JScript
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    As above.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          The following options may also be set when using perl-style regular expressions:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Element
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Standardized
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Effect when set
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    icase
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Yes
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that matching of regular expressions against a character
+                    container sequence shall be performed without regard to case.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    nosubs
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Yes
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that when a regular expression is matched against a
+                    character container sequence, then no sub-expression matches
+                    are to be stored in the supplied <a class="link" href="../match_results.html" title="match_results"><code class="computeroutput"><span class="identifier">match_results</span></code></a> structure.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    optimize
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Yes
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that the regular expression engine should pay more
+                    attention to the speed with which regular expressions are matched,
+                    and less to the speed with which regular expression objects are
+                    constructed. Otherwise it has no detectable effect on the program
+                    output. This currently has no effect for Boost.Regex.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    collate
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Yes
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that character ranges of the form <code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">-</span><span class="identifier">b</span><span class="special">]</span></code>
+                    should be locale sensitive.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    newline_alt
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that the \n character has the same effect as the alternation
+                    operator |. Allows newline separated lists to be used as a list
+                    of alternatives.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    no_except
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Prevents <a class="link" href="../basic_regex.html" title="basic_regex"><code class="computeroutput"><span class="identifier">basic_regex</span></code></a> from throwing
+                    an exception when an invalid expression is encountered.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    no_mod_m
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Normally Boost.Regex behaves as if the Perl m-modifier is on:
+                    so the assertions ^ and $ match after and before embedded newlines
+                    respectively, setting this flags is equivalent to prefixing the
+                    expression with (?-m).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    no_mod_s
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Normally whether Boost.Regex will match "." against
+                    a newline character is determined by the match flag <code class="computeroutput"><span class="identifier">match_dot_not_newline</span></code>. Specifying
+                    this flag is equivalent to prefixing the expression with <code class="computeroutput"><span class="special">(?-</span><span class="identifier">s</span><span class="special">)</span></code> and therefore causes "."
+                    not to match a newline character regardless of whether <code class="computeroutput"><span class="identifier">match_not_dot_newline</span></code> is set
+                    in the match flags.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    mod_s
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Normally whether Boost.Regex will match "." against
+                    a newline character is determined by the match flag <code class="computeroutput"><span class="identifier">match_dot_not_newline</span></code>. Specifying
+                    this flag is equivalent to prefixing the expression with <code class="computeroutput"><span class="special">(?</span><span class="identifier">s</span><span class="special">)</span></code> and therefore causes "."
+                    to match a newline character regardless of whether <code class="computeroutput"><span class="identifier">match_not_dot_newline</span></code> is set
+                    in the match flags.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    mod_x
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Turns on the perl x-modifier: causes unescaped whitespace in
+                    the expression to be ignored.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    no_empty_expressions
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    When set then empty expressions/alternatives are prohibited.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    save_subexpression_location
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    When set then the locations of individual sub-expressions within
+                    the <span class="emphasis"><em>original regular expression string</em></span> can
+                    be accessed via the <a class="link" href="../basic_regex.html#boost_regex.basic_regex.subexpression"><code class="computeroutput"><span class="identifier">subexpression</span><span class="special">()</span></code></a>
+                    member function of <code class="computeroutput"><span class="identifier">basic_regex</span></code>.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="syntax_option_type_overview.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../syntax_option_type.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="syntax_option_type_extended.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

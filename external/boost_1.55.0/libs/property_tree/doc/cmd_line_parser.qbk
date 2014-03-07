@@ -1,0 +1,80 @@
+[/
+ / Copyright (c) 2008 Marcin Kalicinski (kalita <at> poczta dot onet dot pl)
+ / Copyright (c) 2009 Sebastian Redl (sebastian dot redl <at> getdesigned dot at)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+[section:cmdline_parser Command Line Parser]
+[def __read_cmdline__ [funcref boost::property_tree::cmdline_parser::read_cmdline read_cmdline]]
+This is a simple parser that converts command line parameters (in form of standard `argc` and `argv` arguments) into a property tree. There is no write function. The parser correctly recognizes simple command line styles, both from Unix and Windows worlds.
+
+During parse, parameters are converted to __ptree__ keys and grouped by their prefix, if any. Grouping means that they are inserted as children of a key representing appropriate group. Prefix is a single character that comes directly after so called "metacharacter", which is usually a dash '-' (on Unix) or a slash '/' (on Windows). For example, parameter [^-I/usr/include/foobar] has prefix [^I] after metacharacter '[^-]'. Parameters that do not start with a metacharacter (e.g. source files given to gcc), are inserted as children of a special, unnamed group. Additionally, data of each group contains value of last parameter assigned to that group. For example, this command line:
+
+[pre myprogram.exe -c -I/usr/include -Lm -I/home/mammamia/stuff foo.c bar.c -g]
+
+will result in the following property tree being created:
+
+ "" bar.c                    ;"unnamed" group
+ {
+    "0" myprogram.exe        ;first argument is name of program
+    "1" foo.c
+    "2" bar.c
+ }
+ c                           ;no data
+ {
+    "0" ""                  ;no value associated with 'c' option
+ }
+ I /home/mammamia/stuff
+ {
+    "0" /usr/include
+    "1" /home/mammamia/stuff
+ }
+ L m
+ {
+    "0" m
+ }
+
+Within each group, parameters are numbered, starting from zero.
+
+Metacharacters can be specified as a parameter to read function. This code will parse command line using both dash and slash as metachatacters:
+
+ __ptree__ pt;
+ __read_cmdline__(argc, argv, "-/", pt);
+
+Once the command line is parsed into a __ptree__, the power of the __ptree_get__, __ptree_get_child__, and __ptree_get_value__ interfaces can be used to conveniently extract the values of options needed. In the simplest case, user only needs to query key with name of option to get its value. For example:
+
+ // default to 0 if -Nxx or /Nxx not specified on command line
+ int n = pt.__ptree_get_defaulted__("N", 0);
+
+or
+
+ // throw if -Nxx or /Nxx not specified on command line
+ int n = pt.__ptree_get__<int>("N");
+
+If there is more than one instance of 'N' in command line, they can be accessed as:
+
+ // Copy values of all -N arguments to vector
+ std::vector<int> vec;
+ BOOST_FOREACH(const __ptree__::__ptree_value_type__ &v, pt.__ptree_get_child__("N", empty_ptree()))
+    vec.push_back(v.second.__ptree_get_value__<int>());
+
+or:
+
+ // Use numbering to access specific instances of parameter -N
+ int first_n = pt.__ptree_get_defaulted__("N.0", default_n_value);
+ int second_n = pt.__ptree_get_defaulted__("N.1", default_n_value);
+ /* ... */
+ int tenth_n = pt.__ptree_get_defaulted__("N.9", default_n_value);
+
+If you want to know how many [^-N]'s were specified:
+
+ // Count -N parameters
+ size_t count = pt.__ptree_get_child__("N", empty_ptree<ptree>()).size();
+
+First argument, `argv[0]`, normally contains path to executable, which is rarely used for arguments parsing. To skip it, invoke the parser like in the following manner:
+
+ // Skip program path
+ __read_cmdline__(argc - 1, argv + 1, "-", pt)
+
+[endsect] [/cmd_line_parser]

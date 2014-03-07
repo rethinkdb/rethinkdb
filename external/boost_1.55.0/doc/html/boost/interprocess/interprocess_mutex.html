@@ -1,0 +1,103 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class interprocess_mutex</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.interprocess_mutex_hpp" title="Header &lt;boost/interprocess/sync/interprocess_mutex.hpp&gt;">
+<link rel="prev" href="interprocess_condition_any.html" title="Class interprocess_condition_any">
+<link rel="next" href="interprocess_r_idp28519592.html" title="Class interprocess_recursive_mutex">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="interprocess_condition_any.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.interprocess_mutex_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interprocess_r_idp28519592.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.interprocess_mutex"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class interprocess_mutex</span></h2>
+<p>boost::interprocess::interprocess_mutex</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.interprocess_mutex_hpp" title="Header &lt;boost/interprocess/sync/interprocess_mutex.hpp&gt;">boost/interprocess/sync/interprocess_mutex.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="interprocess_mutex.html" title="Class interprocess_mutex">interprocess_mutex</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="interprocess_mutex.html#boost.interprocess.interprocess_mutexconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="interprocess_mutex.html#idp28517688-bb"><span class="identifier">interprocess_mutex</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="interprocess_mutex.html#idp28518376-bb"><span class="special">~</span><span class="identifier">interprocess_mutex</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="interprocess_mutex.html#idp28511864-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="interprocess_mutex.html#idp28512072-bb"><span class="identifier">lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="interprocess_mutex.html#idp28513400-bb"><span class="identifier">try_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="interprocess_mutex.html#idp28514744-bb"><span class="identifier">timed_lock</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="interprocess_mutex.html#idp28516536-bb"><span class="identifier">unlock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp118253448"></a><h2>Description</h2>
+<p>Wraps a <a class="link" href="interprocess_mutex.html" title="Class interprocess_mutex">interprocess_mutex</a> that can be placed in shared memory and can be shared between processes. Allows timed lock tries </p>
+<div class="refsect2">
+<a name="idp118254440"></a><h3>
+<a name="boost.interprocess.interprocess_mutexconstruct-copy-destruct"></a><code class="computeroutput">interprocess_mutex</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp28517688-bb"></a><span class="identifier">interprocess_mutex</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor. Throws <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28518376-bb"></a><span class="special">~</span><span class="identifier">interprocess_mutex</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destructor. If any process uses the mutex after the destructor is called the result is undefined. Does not throw. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp118260424"></a><h3>
+<a name="idp28511864-bb"></a><code class="computeroutput">interprocess_mutex</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28512072-bb"></a><span class="identifier">lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread tries to obtain ownership of the mutex, and if another thread has ownership of the mutex, it waits until it can obtain the ownership. If a thread takes ownership of the mutex the mutex must be unlocked by the same mutex. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28513400-bb"></a><span class="identifier">try_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread tries to obtain ownership of the mutex, and if another thread has ownership of the mutex returns immediately. Returns: If the thread acquires ownership of the mutex, returns true, if the another thread has ownership of the mutex, returns false. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28514744-bb"></a><span class="identifier">timed_lock</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span> abs_time<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread will try to obtain exclusive ownership of the mutex if it can do so in until the specified time is reached. If the mutex supports recursive locking, the mutex must be unlocked the same number of times it is locked. Returns: If the thread acquires ownership of the mutex, returns true, if the timeout expires returns false. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28516536-bb"></a><span class="identifier">unlock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread releases the exclusive ownership of the mutex. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="interprocess_condition_any.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.interprocess_mutex_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interprocess_r_idp28519592.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

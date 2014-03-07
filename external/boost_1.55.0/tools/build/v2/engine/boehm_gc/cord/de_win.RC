@@ -1,0 +1,78 @@
+/*
+ * Copyright (c) 1991-1994 by Xerox Corporation.  All rights reserved.
+ *
+ * THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY EXPRESSED
+ * OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
+ *
+ * Permission is hereby granted to copy this garbage collector for any purpose,
+ * provided the above notices are retained on all copies.
+ */
+/* Boehm, May 13, 1994 9:50 am PDT */
+
+#include "windows.h"
+#include "de_cmds.h"
+#include "de_win.h"
+
+
+
+ABOUTBOX DIALOG 19, 21, 163, 47
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About Demonstration Text Editor"
+BEGIN
+	ICON "DE", -1, 8, 8, 13, 13, WS_CHILD | WS_VISIBLE
+	LTEXT "Demonstration Text Editor", -1, 44, 8, 118, 8, WS_CHILD | WS_VISIBLE | WS_GROUP
+	LTEXT "Version 4.1", -1, 44, 16, 60, 8, WS_CHILD | WS_VISIBLE | WS_GROUP
+	PUSHBUTTON "OK", IDOK, 118, 27, 24, 14, WS_CHILD | WS_VISIBLE | WS_TABSTOP
+END
+
+
+DE MENU 
+BEGIN
+	POPUP "&File"
+	BEGIN
+		MENUITEM "&Save\t^W", IDM_FILESAVE
+		MENUITEM "E&xit\t^D", IDM_FILEEXIT
+	END
+
+	POPUP "&Edit"
+	BEGIN
+	    MENUITEM "Page &Down\t^R^N", IDM_EDITPDOWN
+	    MENUITEM "Page &Up\t^R^P", IDM_EDITPUP
+		MENUITEM "U&ndo\t^U", IDM_EDITUNDO
+		MENUITEM "&Locate\t^L ... ^L", IDM_EDITLOCATE
+		MENUITEM "D&own\t^N", IDM_EDITDOWN
+	    MENUITEM "U&p\t^P", IDM_EDITUP
+	    MENUITEM "Le&ft\t^B", IDM_EDITLEFT
+	    MENUITEM "&Right\t^F", IDM_EDITRIGHT
+	    MENUITEM "Delete &Backward\tBS", IDM_EDITBS
+	    MENUITEM "Delete F&orward\tDEL", IDM_EDITDEL
+	    MENUITEM "&Top\t^T", IDM_EDITTOP
+	END
+	
+	POPUP "&Help"
+	BEGIN
+		MENUITEM "&Contents", IDM_HELPCONTENTS
+		MENUITEM "&About...", IDM_HELPABOUT
+	END
+	
+	MENUITEM "Page_&Down", IDM_EDITPDOWN
+	MENUITEM "Page_&Up", IDM_EDITPUP
+END
+
+
+DE ACCELERATORS 
+BEGIN
+    "^R", IDM_EDITREPEAT
+    "^N", IDM_EDITDOWN
+    "^P", IDM_EDITUP
+    "^L", IDM_EDITLOCATE
+    "^B", IDM_EDITLEFT
+    "^F", IDM_EDITRIGHT
+    "^T", IDM_EDITTOP
+	VK_DELETE, IDM_EDITDEL, VIRTKEY
+	VK_BACK, IDM_EDITBS, VIRTKEY
+END
+
+
+DE ICON cord\de_win.ICO
+

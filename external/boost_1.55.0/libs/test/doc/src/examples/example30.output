@@ -1,0 +1,5 @@
+> example
+Running 1 test case...
+test.cpp(13): error in "test_is_even": check is_even( i ) failed for ( 17 )
+
+*** 1 failure detected in test suite "example"

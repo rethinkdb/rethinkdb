@@ -1,0 +1,39 @@
+# Copyright (C) 2004 Toon Knapen
+#
+#  Use, modification and distribution is subject to the Boost Software
+#  License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+#
+# toolset configuration for the IBM Fortran compiler (xlf)
+# 
+
+import toolset : flags ;
+import feature ;
+import fortran ;
+
+rule init ( version ? : command * : options * )
+{
+}
+
+# Declare flags and action for compilation
+flags xlf OPTIONS <optimization>off : -O0 ;
+flags xlf OPTIONS <optimization>speed : -O3 ;
+flags xlf OPTIONS <optimization>space : -Os ;
+
+flags xlf OPTIONS <debug-symbols>on : -g ;
+flags xlf OPTIONS <profiling>on : -pg ;
+
+flags xlf DEFINES <define> ;
+flags xlf INCLUDES <include> ;
+
+rule compile-fortran
+{
+}
+
+actions compile-fortran
+{
+  xlf $(OPTIONS) -I$(INCLUDES) -c -o "$(<)" "$(>)" 
+}
+
+generators.register-fortran-compiler xlf.compile-fortran : FORTRAN : OBJ ; 

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="unclosed_section" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Unclosed section</title>
+  <section id="unclosed_section.unclosed">
+    <title><link linkend="unclosed_section.unclosed">Unclosed Section should be closed
+    with a warning</link></title>
+  </section>
+</article>

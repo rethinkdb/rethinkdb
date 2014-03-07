@@ -1,0 +1,36 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __corrected__ is corrected]
+[def __this_function__ correct]
+
+[heading_conformance_no_ogc __this_function__]
+
+[include generated/correct_status.qbk]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__ring__][__ring__ __corrected__]]
+[[__polygon__][__polygon__ __corrected__]]
+[[__multi_polygon__][__multi_polygon__ __corrected__]]
+[[__box__][__box__ __corrected__ with respect to minimal and maximal corners]]
+[[__other__][__does_nothing__]]
+]
+
+[heading Complexity]
+Linear
+
+[heading Example]
+[correct]
+[correct_output]
+

@@ -1,0 +1,49 @@
+<html>
+<head>
+	<title>BOOST_PP_WSTRINGIZE</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_WSTRINGIZE</b> macro wide stringizes its argument after it has been expanded.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_WSTRINGIZE</b>(<i>text</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>text</dt>
+			<dd>
+				The text to be converted to a wide string literal.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			The preprocessor stringizing operator (<b>#</b>) prevents arguments from expanding.&nbsp;
+			This macro allows its argument to expand before it is stringized.
+		</div>
+<!-- <h4>See Also</h4> -->
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/wstringize.html">&lt;boost/preprocessor/wstringize.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/wstringize.html">boost/preprocessor/wstringize.hpp</a>&gt;
+
+<a href="wstringize.html">BOOST_PP_WSTRINGIZE</a>(some text) // expands to L"some text"
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

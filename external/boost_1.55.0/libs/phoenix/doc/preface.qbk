@@ -1,0 +1,69 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[/section Preface]
+[h1 Preface]
+
+[:['Functional programming is so called because a program consists entirely of
+functions. The main program itself is written as a function which receives the
+program's input as its argument and delivers the program's output as its result.
+Typically the main function is defined in terms of other functions, which in
+turn are defined in terms of still more functions until at the bottom level the
+functions are language primitives.]]
+
+[:*John Hughes*-- /Why Functional Programming Matters/]
+
+[$images/lambda_cpp.png]
+
+[h2 Description]
+
+Phoenix enables Functional Programming (FP) in C++. The design and
+implementation of Phoenix is highly influenced by __fcpp__ by Yannis Smaragdakis
+and Brian McNamara and the __bll__ (Boost Lambda Library) by Jaakko Jaarvi and
+Gary Powell. Phoenix is a blend of FC++ and BLL using the implementation
+techniques used in the __spirit__ inline parser.
+
+Phoenix is a header only library. It is extremely modular by design. One can
+extract and use only a small subset of the full library, literally tearing the
+library into small pieces, without fear that the pieces won't work anymore. The
+library is organized in highly independent modules and layers.
+
+[h2 How to use this manual]
+
+The Phoenix library is organized in logical modules. This documentation
+provides a user's guide and reference for each module in the library. A simple
+and clear code example is worth a hundred lines of documentation; therefore, the
+user's guide is presented with abundant examples annotated and explained in
+step-wise manner. The user's guide is based on examples: lots of them.
+
+As much as possible, forward information (i.e. citing a specific piece of
+information that has not yet been discussed) is avoided in the user's manual
+portion of each module. In many cases, though, it is unavoidable that advanced
+but related topics not be interspersed with the normal flow of discussion. To
+alleviate this problem, topics categorized as "advanced" may be skipped at first
+reading.
+
+Some icons are used to mark certain topics indicative of their relevance. These
+icons precede some text to indicate:
+
+[table Icons
+    [[Icon]         [Name]          [Meaning]]
+    [[__note__]     [Note]          [Information provided is auxiliary but will
+                                     give the reader a deeper insight into a specific
+                                     topic. May be skipped.]]
+    [[__alert__]    [Alert]         [Information provided is of utmost importance.]]
+    [[__tip__]      [Tip]           [A potentially useful and helpful piece of
+                                     information.]]
+]
+
+[blurb __note__ Unless otherwise noted `using namespace boost::phoenix;` is assumed]
+
+[h2 [*/...To Joel's dear daughter, Phoenix/]]
+
+[/endsect]

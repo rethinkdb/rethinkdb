@@ -1,0 +1,126 @@
+# Copyright (C) 2005, 2007  Douglas Gregor <doug.gregor -at- gmail.com>
+# Distributed under the Boost Software License, Version 1.0. 
+# See www.boost.org/LICENSE_1_0.txt
+#
+# This file lists the names and e-mail addresses of the maintainers
+# of each Boost library, and is used by the regression-reporting 
+# scripts to direct e-mail related to those libraries to the 
+# maintainers. When making changes to this file, please be careful
+# to closely follow the format of the library.
+
+accumulators          Eric Niebler <eric -at- boostpro.com>
+algorithm             Marshall Clow <marshall -at- idio.com>
+algorithm/minmax      Herve Bronnimann <hbr -at- poly.edu>
+algorithm/string      Marshall Clow <marshall -at- idio.com>
+any                   Alexander Nasonov <alexander.nasonov -at- gmail.com>
+array                 Marshall Clow <marshall -at- idio.com>
+asio                  Chris Kohlhoff <chris -at- kohlhoff.com>
+assign                Thorsten Ottosen <nesotto -at- cs.auc.dk>
+atomic                Helge Bahmann <hcb -at- chaoticmind.net>, Tim Blechmann <tim -at- klingt.org>
+bimap                 Matias Capeletto <matias.capeletto -at- gmail.com>
+bind                  Peter Dimov <pdimov -at- mmltd.net>
+chrono                Vicente J. Botet Escriba <vicente.botet -at- wanadoo.fr>
+circular_buffer       Jan Gaspar <jano_gaspar -at- yahoo.com>
+concept_check         Jeremy Siek <jeremy.siek -at- gmail.com>
+config                John Maddock <john -at- johnmaddock.co.uk>
+container             Ion Gaztanaga <igaztanaga -at- gmail.com>
+context               Oliver Kowalke <oliver.kowalke -at- gmail.com>
+conversion            Antony Polukhin <antoshkka -at- gmail.com>
+coroutine             Oliver Kowalke <oliver.kowalke -at- gmail.com>
+crc                   Daryle Walker <darylew -at- hotmail.com>
+date_time             Jeff Garland <jeff -at- crystalclearsoftware.com>
+disjoint_sets         Jeremy Siek <jeremy.siek -at- gmail.com>
+dynamic_bitset        Jeremy Siek <jeremy.siek -at- gmail.com>
+exception             Emil Dotchevski <emil -at- revergestudios.com>
+filesystem            Beman Dawes <bdawes -at- acm.org>
+flyweight             Joaquin M Lopez Munoz <joaquin -at- tid.es>
+foreach               Eric Niebler <eric -at- boostpro.com>
+format                Samuel Krempp <krempp -at- crans.ens-cachan.fr>
+function              Douglas Gregor <dgregor -at- cs.indiana.edu>
+function_types        Tobias Schwinger <tschwinger -at- isonews2.com>
+functional
+functional/factory    Tobias Schwinger <tschwinger -at- isonews2.com>
+functional/forward    Tobias Schwinger <tschwinger -at- isonews2.com>
+functional/hash       Daniel James <dnljms -at- gmail.com>
+functional/overloaded_function  Lorenzo Caminiti <lorcaminiti -at- gmail.com>
+fusion                Joel de Guzman <joel -at- boost-consulting.com>, Dan Marsden <danmarsden -at- yahoo.co.uk>, Tobias Schwinger <tschwinger -at- isonews2.com>
+geometry              Barend Gehrels<barend -at- xs4all.nl>, Bruno Lalande <bruno.lalande -at- gmail.com>, Mateusz Loskot <mateusz -at- loskot.net>
+gil                   Christian Henning <chhenning -at- gmail.com>
+graph                 Andrew Sutton <asutton -at- cs.kent.edu>
+heap                  Tim Blechmann <tim -at- klingt.org>
+icl                   Joachim Faulhaber <afojgo -at- gmail.com>
+integer               Daryle Walker <darylew -at- hotmail.com>
+interprocess          Ion Gaztanaga <igaztanaga -at- gmail.com>
+intrusive             Ion Gaztanaga <igaztanaga -at- gmail.com>
+io                    Daryle Walker <darylew -at- hotmail.com>
+iostreams             Jonathan Turkanis <turkanis -at- coderage.com>
+iterator              David Abrahams <dave -at- boost-consulting.com>, Thomas Witt <witt - at - acm.org>, Jeffrey Lee Hellrung Jr. <jeffrey.hellrung -at- gmail.com>
+lambda                Jaakko Jarvi <jarvi -at- cs.tamu.edu>
+lexical_cast          Antony Polukhin <antoshkka -at- gmail.com>
+local_function        Lorenzo Caminiti <lorcaminiti -at- gmail.com>
+locale                Artyom Beilis <artyomtnk -at- yahoo.com>
+lockfree              Tim Blechmann <tim -at- klingt.org>
+log                   Andrey Semashev <andrey.semashev -at- gmail.com>
+logic                 Douglas Gregor <dgregor -at- cs.indiana.edu>
+math                  Hubert Holin <Hubert.Holin -at- meteo.fr>, John Maddock <john -at- johnmaddock.co.uk>
+move                  Ion Gaztanaga <igaztanaga -at- gmail.com>
+mpl                   Aleksey Gurtovoy <agurtovoy -at- meta-comm.com>
+msm                   Christophe Henry <christophe.j.henry -at-  googlemail.com>
+multi_array           Ronald Garcia <garcia -at- osl.iu.edu>
+multi_index           Joaquin M Lopez Munoz <joaquin -at- tid.es>
+multiprecision        John Maddock <john -at- johnmaddock.co.uk>, christopher Kormanyos <e_float -at- yahoo.com>
+numeric/conversion    Fernando Cacciola <fernando_cacciola -at- ciudad.com.ar>, Brandon Kohn <blkohn -at- hotmail.com>
+numeric/interval      Sylvain Pion <Sylvain.Pion -at- sophia.inria.fr>, Herve Bronnimann <hbr -at- poly.edu>, Guillaume Melquiond <guillaume.melquiond -at- ens-lyon.fr>
+numeric/odeint        Karsten Ahnert <karsten.ahnert -at- gmx.de>, Mario Mulansky <mario.mulansky -at- gmx.net>
+numeric/ublas         Michael Stevens <michael -at- michael-stevens.de>
+optional              Fernando Cacciola <fernando_cacciola -at- ciudad.com.ar>
+operators             Daniel Frey <d.frey -at- gmx.de>
+parameter             David Abrahams <dave -at- boost-consulting.com>, Daniel Wallin <daniel -at- boostpro.com>
+phoenix               Joel de Guzman <joel -at- boost-consulting.com>, Thomas Heller <thom.heller -at- gmail.com>
+polygon               Lucanus Simonson <lucanus.j.simonson -at- intel.com>, Andrii Sydorchuk <sydorchuk.andriy -at- gmail.com> 
+pool                  Stephen Cleary <scleary -at- jerviswebb.com>
+predef                Rene Rivera <grafikrobot -at- gmail.com>
+preprocessor          Paul Mensonides <pmenso57 -at- comcast.net>
+program_options       Vladimir Prus <ghost -at- cs.msu.su>
+property_map          Douglas Gregor <dgregor -at- cs.indiana.edu>
+property_tree         Sebastian Redl <sebastian.redl -at- getdesigned.at>
+proto                 Eric Niebler <eric -at- boostpro.com>
+ptr_container         Thorsten Ottosen <nesotto -at- cs.auc.dk>
+python                Ralf Grosse-Kunstleve <rwgrosse-kunstleve -at- lbl.gov>, Ravi Rajagopal <lists_ravi -at- lavabit.com>
+random                Steven Watanabe <watanabesj -at- gmail.com>
+range                 Neil Groves <neilgroves -at- googlemail.com>, Nathan Ridge <zeratul976 -at- hotmail.com>
+ratio                 Vicente J. Botet Escriba <vicente.botet -at- wanadoo.fr>
+rational              Jonathan Turkanis <turkanis -at- coderage.com>
+regex                 John Maddock <john -at- johnmaddock.co.uk>
+scope_exit            Alexander Nasonov <alexander.nasonov -at- gmail.com>, Lorenzo Caminiti <lorcaminiti -at- gmail.com>
+serialization         Robert Ramey <ramey -at- rrsd.com>
+signals               Douglas Gregor <dgregor -at- cs.indiana.edu>
+signals2              Frank Mori Hess <fmhess -at- users.sourceforge.net>
+smart_ptr             Beman Dawes <bdawes -at- acm.org>, Peter Dimov <pdimov -at- mmltd.net>
+spirit                Joel de Guzman <joel -at- boost-consulting.com>, Hartmut Kaiser <hartmut.kaiser -at- gmail.com>
+statechart            Andreas Huber <ahd6974-boostorg -at- yahoo.com>
+static_assert         John Maddock <john -at- johnmaddock.co.uk>
+test                  Gennadiy Rozental <gennadiy.rozental -at- thomson.com>
+thread                Anthony Williams <anthony -at- justsoftwaresolutions.co.uk>, Roland Schwarz <roland.schwarz -at- chello.at>, Vicente J. Botet Escriba <vicente.botet -at- wanadoo.fr>
+timer                 Beman Dawes <bdawes -at- acm.org>
+tokenizer             John R. Bandela <jbandela -at- ufl.edu>
+tr1                   John Maddock <john -at- johnmaddock.co.uk>
+tti                   Edward Diener <eld -at- tropicsoft.com>
+tuple                 Jaakko Jarvi <jarvi -at- cs.tamu.edu>
+type_erasure          Steven Watanabe <steven -at- providere-consulting.com>
+type_traits           John Maddock <john -at- johnmaddock.co.uk>
+typeof                Arkadiy Vertleyb <vertleyb -at- hotmail.com>, Peder Holt <peder.holt -at- gmail.com>
+units                 Matthias Schabel <boost -at- schabel-family.org>, Steven Watanabe <steven -at- providere-consulting.com>
+unordered             Daniel James <dnljms -at- gmail.com>
+utility
+utility/enable_if     Jaakko Jarvi <jarvi -at- cs.tamu.edu>, Jeremiah Willcock <jewillco -at- osl.iu.edu>
+utility/identity_type Lorenzo Caminiti <lorcaminiti -at- gmail.com>
+utility/result_of     Daniel Walker <daniel.j.walker -at- gmail.com>
+utility/swap          Joseph Gauterin <joseph.gauterin -at- googlemail.com>
+uuid                  Andy Tompkins <atompkins -at- fastmail.fm>
+variant               Eric Friedman <ericbrandon -at- gmail.com>
+wave                  Hartmut Kaiser <hartmut.kaiser -at- gmail.com>
+xpressive             Eric Niebler <eric -at- boostpro.com>
+
+
+

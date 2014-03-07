@@ -1,0 +1,100 @@
+digraph g
+{
+  edge
+    [
+      fontname="Helvetica",
+      fontsize=10,
+      labelfontname="Helvetica",
+      labelfontsize=10
+    ];
+
+  node
+    [
+      fontname="Helvetica",
+      fontsize=10,
+      shape=record
+    ];
+
+  initiator
+    [
+      label="Initiator"
+    ];
+
+  async_processor
+    [
+      label="Asynchronous\nOperation Processor"
+    ];
+
+  async_op
+    [
+      label="Asynchronous\nOperation"
+    ];
+
+  completion_queue
+    [
+      label="Completion\nEvent Queue"
+    ];
+
+  async_event_demuxer
+    [
+      label="Asynchronous\nEvent Demultiplexer"
+    ];
+
+  proactor
+    [
+      label="Proactor"
+    ];
+
+  handler
+    [
+      label="Completion\nHandler"
+    ];
+
+  initiator -> async_processor
+    [
+      label="uses",
+      style="dashed"
+    ];
+
+  initiator -> async_op
+    [
+      label="starts",
+      style="dashed"
+    ];
+
+  initiator -> handler
+    [
+      label="creates",
+      style="dashed"
+    ];
+
+  async_processor -> async_op
+    [
+      label="executes",
+      style="dashed"
+    ];
+
+  async_processor -> completion_queue
+    [
+      label="enqueues",
+      style="dashed"
+    ];
+
+  async_op -> handler;
+
+  async_event_demuxer -> completion_queue
+    [
+      label="dequeues",
+      style="dashed"
+    ];
+
+  proactor -> async_event_demuxer
+    [
+    ];
+
+  proactor -> handler
+    [
+      label="demultiplexes\n& dispatches"
+      style="dashed"
+    ];
+}

@@ -1,0 +1,54 @@
+<html>
+<head>
+<title>Scoped Lock</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr>
+    <td width="10">
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Scoped
+      Lock</b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="regular_expression_parser.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="distinct.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<h2>scoped_lock_d</h2>
+<p>The <tt>scoped_lock_d</tt> directive constructs a parser that locks a mutex
+  during the attempt to match the contained parser.</p>
+<p>Syntax:</p>
+<pre>    <span class="identifier">scoped_lock_d</span><span class="special">(</span>mutex<span class="special">&amp;)[</span>body-parser<span class="special">]</span></pre>
+<p>Note, that nesting <tt>scoped_lock_d</tt> directives bears the risk of deadlocks
+  since the order of locking depends on the grammar used and may even depend on
+  the input being parsed. Locking order has to be consistent within an application
+  to ensure deadlock free operation.</p>
+<p></p>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="regular_expression_parser.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="distinct.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003 Martin Wille<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

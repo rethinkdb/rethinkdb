@@ -1,0 +1,64 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Macro BOOST_PROTO_AUTO</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="proto/reference.html#header.boost.proto.proto_typeof_hpp" title="Header &lt;boost/proto/proto_typeof.hpp&gt;">
+<link rel="prev" href="BOOST_PROTO_MAX_FUNCTION_CALL_ARITY.html" title="Macro BOOST_PROTO_MAX_FUNCTION_CALL_ARITY">
+<link rel="next" href="BOOST_PROTO_REPEAT.html" title="Macro BOOST_PROTO_REPEAT">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_PROTO_MAX_FUNCTION_CALL_ARITY.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="proto/reference.html#header.boost.proto.proto_typeof_hpp"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_PROTO_REPEAT.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="BOOST_PROTO_AUTO"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Macro BOOST_PROTO_AUTO</span></h2>
+<p>BOOST_PROTO_AUTO &#8212; For defining a local variable that stores a Proto expression template,
+      deep-copying the expression so there are no dangling references.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="proto/reference.html#header.boost.proto.proto_typeof_hpp" title="Header &lt;boost/proto/proto_typeof.hpp&gt;">boost/proto/proto_typeof.hpp</a>&gt;
+
+</span>BOOST_PROTO_AUTO(Var, Expr)</pre></div>
+<div class="refsect1">
+<a name="idp181483432"></a><h2>Description</h2>
+<p>
+        To define a local variable <code class="computeroutput">ex</code> that stores the expression
+        <code class="computeroutput"><a class="link" href="boost/proto/lit.html" title="Function lit">proto::lit</a>(1) + 2</code>,
+        do the following:</p>
+<pre class="programlisting"><span class="identifier">BOOST_PROTO_AUTO</span><span class="special">(</span> <span class="identifier">ex</span><span class="special">,</span> <a class="link" href="boost/proto/lit.html" title="Function lit">proto::lit</a><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">+</span> <span class="number">2</span> <span class="special">)</span><span class="special">;</span></pre>
+<p>.
+        The above is equivalent to the following:
+        </p>
+<pre class="programlisting"><span class="identifier">BOOST_AUTO</span><span class="special">(</span> <span class="identifier">ex</span><span class="special">,</span> <a class="link" href="boost/proto/deep_copy_idp66228648.html" title="Function template deep_copy">proto::deep_copy</a><span class="special">(</span> <a class="link" href="boost/proto/lit.html" title="Function lit">proto::lit</a><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">+</span> <span class="number">2</span> <span class="special">)</span> <span class="special">)</span><span class="special">;</span></pre>
+<p>
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_PROTO_MAX_FUNCTION_CALL_ARITY.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="proto/reference.html#header.boost.proto.proto_typeof_hpp"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_PROTO_REPEAT.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

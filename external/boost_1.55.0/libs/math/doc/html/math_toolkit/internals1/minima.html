@@ -1,0 +1,122 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Locating Function Minima: Brent's algorithm</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Math Toolkit">
+<link rel="up" href="../internals1.html" title="Utilities &amp; internals">
+<link rel="prev" href="roots2.html" title="Root Finding Without Derivatives: Bisection, Bracket and TOMS748">
+<link rel="next" href="tuples.html" title="Tuples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="roots2.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../internals1.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tuples.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="math_toolkit.internals1.minima"></a><a class="link" href="minima.html" title="Locating Function Minima: Brent's algorithm">Locating Function Minima:
+      Brent's algorithm</a>
+</h3></div></div></div>
+<h5>
+<a name="math_toolkit.internals1.minima.h0"></a>
+        <span class="phrase"><a name="math_toolkit.internals1.minima.synopsis"></a></span><a class="link" href="minima.html#math_toolkit.internals1.minima.synopsis">synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">tools</span><span class="special">/</span><span class="identifier">minima</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">brent_find_minima</span><span class="special">(</span><span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span> <span class="identifier">T</span> <span class="identifier">min</span><span class="special">,</span> <span class="identifier">T</span> <span class="identifier">max</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">bits</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">brent_find_minima</span><span class="special">(</span><span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span> <span class="identifier">T</span> <span class="identifier">min</span><span class="special">,</span> <span class="identifier">T</span> <span class="identifier">max</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">bits</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">&amp;</span> <span class="identifier">max_iter</span><span class="special">);</span>
+</pre>
+<h5>
+<a name="math_toolkit.internals1.minima.h1"></a>
+        <span class="phrase"><a name="math_toolkit.internals1.minima.description"></a></span><a class="link" href="minima.html#math_toolkit.internals1.minima.description">Description</a>
+      </h5>
+<p>
+        These two functions locate the minima of the continuous function <span class="emphasis"><em>f</em></span>
+        using Brent's algorithm. Parameters are:
+      </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">f</span></dt>
+<dd><p>
+              The function to minimise. The function should be smooth over the range
+              [min,max], with no maxima occurring in that interval.
+            </p></dd>
+<dt><span class="term">min</span></dt>
+<dd><p>
+              The lower endpoint of the range in which to search for the minima.
+            </p></dd>
+<dt><span class="term">max</span></dt>
+<dd><p>
+              The upper endpoint of the range in which to search for the minima.
+            </p></dd>
+<dt><span class="term">bits</span></dt>
+<dd><p>
+              The number of bits precision to which the minima should be found. Note
+              that in principle, the minima can not be located to greater accuracy
+              than the square root of machine epsilon (for 64-bit double, sqrt(1e-16)&#8773;1e-8),
+              therefore if <span class="emphasis"><em>bits</em></span> is set to a value greater than
+              one half of the bits in type T, then the value will be ignored.
+            </p></dd>
+<dt><span class="term">max_iter</span></dt>
+<dd><p>
+              The maximum number of iterations to use in the algorithm, if not provided
+              the algorithm will just keep on going until the minima is found.
+            </p></dd>
+</dl>
+</div>
+<p>
+        <span class="bold"><strong>Returns:</strong></span> a pair containing the value of
+        the abscissa at the minima and the value of f(x) at the minima.
+      </p>
+<h5>
+<a name="math_toolkit.internals1.minima.h2"></a>
+        <span class="phrase"><a name="math_toolkit.internals1.minima.implementation"></a></span><a class="link" href="minima.html#math_toolkit.internals1.minima.implementation">Implementation</a>
+      </h5>
+<p>
+        This is a reasonably faithful implementation of Brent's algorithm, refer
+        to:
+      </p>
+<p>
+        Brent, R.P. 1973, Algorithms for Minimization without Derivatives (Englewood
+        Cliffs, NJ: Prentice-Hall), Chapter 5.
+      </p>
+<p>
+        Numerical Recipes in C, The Art of Scientific Computing, Second Edition,
+        William H. Press, Saul A. Teukolsky, William T. Vetterling, and Brian P.
+        Flannery. Cambridge University Press. 1988, 1992.
+      </p>
+<p>
+        An algorithm with guaranteed convergence for finding a zero of a function,
+        R. P. Brent, The Computer Journal, Vol 44, 1971.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="roots2.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../internals1.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tuples.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Parsing Expression Grammar</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../abstracts.html" title="Abstracts">
+<link rel="prev" href="syntax_diagram.html" title="Syntax Diagram">
+<link rel="next" href="attributes.html" title="Attributes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="syntax_diagram.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../abstracts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="attributes.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.abstracts.parsing_expression_grammar"></a><a class="link" href="parsing_expression_grammar.html" title="Parsing Expression Grammar">Parsing
+      Expression Grammar</a>
+</h3></div></div></div>
+<p>
+        Parsing Expression Grammars (PEG) <a href="#ftn.spirit.abstracts.parsing_expression_grammar.f0" class="footnote" name="spirit.abstracts.parsing_expression_grammar.f0"><sup class="footnote">[6]</sup></a> are a derivative of Extended Backus-Naur Form (EBNF) <a href="#ftn.spirit.abstracts.parsing_expression_grammar.f1" class="footnote" name="spirit.abstracts.parsing_expression_grammar.f1"><sup class="footnote">[7]</sup></a> with a different interpretation, designed to represent a recursive
+        descent parser. A PEG can be directly represented as a recursive-descent
+        parser.
+      </p>
+<p>
+        Like EBNF, PEG is a formal grammar for describing a formal language in terms
+        of a set of rules used to recognize strings of this language. Unlike EBNF,
+        PEGs have an exact interpretation. There is only one valid parse tree (see
+        Abstract Syntax Tree) for each PEG grammar.
+      </p>
+<h5>
+<a name="spirit.abstracts.parsing_expression_grammar.h0"></a>
+        <span class="phrase"><a name="spirit.abstracts.parsing_expression_grammar.sequences"></a></span><a class="link" href="parsing_expression_grammar.html#spirit.abstracts.parsing_expression_grammar.sequences">Sequences</a>
+      </h5>
+<p>
+        Sequences are represented by juxtaposition like in EBNF:
+      </p>
+<pre class="programlisting"><span class="identifier">a</span> <span class="identifier">b</span>
+</pre>
+<p>
+        The PEG expression above states that, in order for this to succeed, <code class="computeroutput"><span class="identifier">b</span></code> must follow <code class="computeroutput"><span class="identifier">a</span></code>.
+        Here's the syntax diagram:
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/sequence.png" alt="sequence"></span>
+        </p></blockquote></div>
+<p>
+        Here's a trivial example:
+      </p>
+<pre class="programlisting"><span class="char">'x'</span> <span class="identifier">digit</span>
+</pre>
+<p>
+        which means the character <code class="computeroutput"><span class="identifier">x</span></code>
+        must be followed by a digit.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          In <span class="emphasis"><em>Spirit.Qi</em></span>, we use the <code class="computeroutput"><span class="special">&gt;&gt;</span></code>
+          for sequences since C++ does not allow juxtaposition, while in <span class="emphasis"><em>Spirit.Karma</em></span>
+          we use the <code class="computeroutput"><span class="special">&lt;&lt;</span></code> instead.
+        </p></td></tr>
+</table></div>
+<h5>
+<a name="spirit.abstracts.parsing_expression_grammar.h1"></a>
+        <span class="phrase"><a name="spirit.abstracts.parsing_expression_grammar.alternatives"></a></span><a class="link" href="parsing_expression_grammar.html#spirit.abstracts.parsing_expression_grammar.alternatives">Alternatives</a>
+      </h5>
+<p>
+        Alternatives are represented in PEG using the slash:
+      </p>
+<pre class="programlisting"><span class="identifier">a</span> <span class="special">/</span> <span class="identifier">b</span>
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          In <span class="emphasis"><em>Spirit.Qi</em></span> and <span class="emphasis"><em>Spirit.Karma</em></span>,
+          we use the <code class="computeroutput"><span class="special">|</span></code> for alternatives
+          just as in EBNF.
+        </p></td></tr>
+</table></div>
+<p>
+        Alternatives allow for choices. The expression above reads: try to match
+        <code class="computeroutput"><span class="identifier">a</span></code>. If <code class="computeroutput"><span class="identifier">a</span></code>
+        succeeds, success, if not try to match <code class="computeroutput"><span class="identifier">b</span></code>.
+        This is a bit of a deviation from the usual EBNF interpretation where you
+        simply match <code class="computeroutput"><span class="identifier">a</span></code> <span class="bold"><strong>or</strong></span> <code class="computeroutput"><span class="identifier">b</span></code>.
+        Here's the syntax diagram:
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/alternative.png" alt="alternative"></span>
+        </p></blockquote></div>
+<p>
+        PEGs allow for ambiguity in the alternatives. In the expression above, both
+        <code class="computeroutput"><span class="identifier">a</span></code> or <code class="computeroutput"><span class="identifier">b</span></code>
+        can both match an input string. However, only the first matching alternative
+        is valid. As noted, there can only be one valid parse tree.
+      </p>
+<h5>
+<a name="spirit.abstracts.parsing_expression_grammar.h2"></a>
+        <span class="phrase"><a name="spirit.abstracts.parsing_expression_grammar.loops"></a></span><a class="link" href="parsing_expression_grammar.html#spirit.abstracts.parsing_expression_grammar.loops">Loops</a>
+      </h5>
+<p>
+        Again, like EBNF, PEG uses the regular-expression Kleene star and the plus
+        loops:
+      </p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">*</span>
+<span class="identifier">a</span><span class="special">+</span>
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          <span class="emphasis"><em>Spirit.Qi</em></span> and <span class="emphasis"><em>Spirit.Karma</em></span> use
+          the prefix star and plus since there is no postfix star or plus in C++.
+        </p></td></tr>
+</table></div>
+<p>
+        Here are the syntax diagrams:
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/kleene.png" alt="kleene"></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/plus.png" alt="plus"></span>
+        </p></blockquote></div>
+<p>
+        The first, called the Kleene star, matches zero or more of its subject <code class="computeroutput"><span class="identifier">a</span></code>. The second, plus, matches one ore more
+        of its subject <code class="computeroutput"><span class="identifier">a</span></code>.
+      </p>
+<p>
+        Unlike EBNF, PEGs have greedy loops. It will match as much as it can until
+        its subject fails to match without regard to what follows. The following
+        is a classic example of a fairly common EBNF/regex expression failing to
+        match in PEG:
+      </p>
+<pre class="programlisting"><span class="identifier">alnum</span><span class="special">*</span> <span class="identifier">digit</span>
+</pre>
+<p>
+        In PEG, alnum will eat as much alpha-numeric characters as it can leaving
+        nothing more left behind. Thus, the trailing digit will get nothing. Loops
+        are simply implemented in recursive descent code as for/while loops making
+        them extremely efficient. That is a definite advantage. On the other hand,
+        those who are familiar with EBNF and regex behavior might find the behavior
+        a major gotcha. PEG provides a couple of other mechanisms to circumvent this.
+        We will see more of these other mechanisms shortly.
+      </p>
+<h5>
+<a name="spirit.abstracts.parsing_expression_grammar.h3"></a>
+        <span class="phrase"><a name="spirit.abstracts.parsing_expression_grammar.difference"></a></span><a class="link" href="parsing_expression_grammar.html#spirit.abstracts.parsing_expression_grammar.difference">Difference</a>
+      </h5>
+<p>
+        In some cases, you may want to restrict a certain expression. You can think
+        of a PEG expression as a match for a potentially infinite set of strings.
+        The difference operator allows you to restrict this set:
+      </p>
+<pre class="programlisting"><span class="identifier">a</span> <span class="special">-</span> <span class="identifier">b</span>
+</pre>
+<p>
+        The expression reads: match <code class="computeroutput"><span class="identifier">a</span></code>
+        but not <code class="computeroutput"><span class="identifier">b</span></code>.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          There is no difference operator in <span class="emphasis"><em>Spirit.Karma</em></span>, as
+          the concept does not make sense in the context of output generation.
+        </p></td></tr>
+</table></div>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.spirit.abstracts.parsing_expression_grammar.f0" class="footnote"><p><a href="#spirit.abstracts.parsing_expression_grammar.f0" class="para"><sup class="para">[6] </sup></a>
+          Bryan Ford: Parsing Expression Grammars: A Recognition-Based Syntactic
+          Foundation, <a href="http://pdos.csail.mit.edu/~baford/packrat/popl04/" target="_top">http://pdos.csail.mit.edu/~baford/packrat/popl04/</a>
+        </p></div>
+<div id="ftn.spirit.abstracts.parsing_expression_grammar.f1" class="footnote"><p><a href="#spirit.abstracts.parsing_expression_grammar.f1" class="para"><sup class="para">[7] </sup></a>
+          Richard E. Pattis: EBNF: A Notation to Describe Syntax, <a href="http://www.cs.cmu.edu/~pattis/misc/ebnf.pdf" target="_top">http://www.cs.cmu.edu/~pattis/misc/ebnf.pdf</a>
+        </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="syntax_diagram.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../abstracts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="attributes.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

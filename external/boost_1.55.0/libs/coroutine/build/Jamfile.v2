@@ -1,0 +1,54 @@
+
+#          Copyright Oliver Kowalke 2009.
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+
+import feature ;
+import modules ;
+import toolset ;
+
+feature.feature segmented-stacks : on : optional propagated composite ;
+feature.compose <segmented-stacks>on : <define>BOOST_USE_SEGMENTED_STACKS ;
+
+project boost/coroutine
+    : requirements
+      <library>/boost/context//boost_context
+      <library>/boost/system//boost_system
+      <toolset>gcc-4.7,<segmented-stacks>on:<cxxflags>-fsplit-stack
+      <toolset>gcc-4.7,<segmented-stacks>on:<linkflags>"-static-libgcc"
+      <toolset>gcc-4.8,<segmented-stacks>on:<cxxflags>-fsplit-stack
+      <toolset>gcc-4.8,<segmented-stacks>on:<linkflags>"-static-libgcc"
+      <link>shared:<define>BOOST_COROUTINES_DYN_LINK=1
+      <define>BOOST_COROUTINES_SOURCE
+    : usage-requirements
+      <link>shared:<define>BOOST_COROUTINES_DYN_LINK=1
+    : source-location ../src
+    ;
+
+alias allocator_sources
+    : detail/standard_stack_allocator_windows.cpp
+    : <target-os>windows
+    ;
+
+alias allocator_sources
+    : detail/standard_stack_allocator_posix.cpp
+      detail/segmented_stack_allocator.cpp
+   : <segmented-stacks>on
+    ;
+
+alias allocator_sources
+    : detail/standard_stack_allocator_posix.cpp
+    ;
+
+explicit allocator_sources ;
+
+lib boost_coroutine
+    : allocator_sources
+      detail/coroutine_context.cpp
+      exceptions.cpp
+    : <link>shared:<library>../../context/build//boost_context
+      <link>shared:<library>../../system/build//boost_system
+    ;
+
+boost-install boost_coroutine ;

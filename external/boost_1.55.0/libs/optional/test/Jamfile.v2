@@ -1,0 +1,33 @@
+#  Boost.Optional Library test Jamfile
+#
+#  Copyright (C) 2003, Fernando Luis Cacciola Carballal.
+#
+#  This material is provided "as is", with absolutely no warranty expressed
+#  or implied. Any use is at your own risk.
+#
+#  Permission to use or copy this software for any purpose is hereby granted
+#  without fee, provided the above notices are retained on all copies.
+#  Permission to modify the code and to distribute modified code is granted,
+#  provided the above notices are retained, and a notice that the code was
+#  modified is included with the above copyright notice.
+#
+
+import testing ;
+
+{
+  test-suite optional :
+    [ run optional_test.cpp ]
+    [ run optional_test_tie.cpp ]
+    [ run optional_test_ref.cpp ]
+    [ run optional_test_inplace.cpp ]
+    [ run optional_test_io.cpp ]
+    [ compile-fail optional_test_fail1.cpp ]
+    [ compile-fail optional_test_fail3a.cpp ]
+    [ compile-fail optional_test_fail3b.cpp ]
+    [ compile-fail optional_test_ref_fail1.cpp ]
+    [ compile-fail optional_test_ref_fail3.cpp ]
+    [ compile-fail optional_test_ref_fail4.cpp ]
+    [ compile-fail optional_test_inplace_fail.cpp ]
+    [ compile-fail optional_test_inplace_fail2.cpp ]
+  ;
+}

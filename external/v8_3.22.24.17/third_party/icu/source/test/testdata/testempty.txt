@@ -1,0 +1,10 @@
+//*******************************************************************************
+//*
+//*   Copyright (C) 1998-2000, International Business Machines
+//*   Corporation and others.  All Rights Reserved.
+//*
+//*******************************************************************************
+// empty resource bundle test
+testempty{
+
+}

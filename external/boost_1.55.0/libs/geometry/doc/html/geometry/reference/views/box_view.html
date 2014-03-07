@@ -1,0 +1,262 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>box_view</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../views.html" title="Views">
+<link rel="prev" href="../views.html" title="Views">
+<link rel="next" href="segment_view.html" title="segment_view">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../views.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../views.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="segment_view.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.views.box_view"></a><a class="link" href="box_view.html" title="box_view">box_view</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp63959272"></a>
+Makes a box behave like a ring or a range.
+        </p>
+<h6>
+<a name="geometry.reference.views.box_view.h0"></a>
+          <span class="phrase"><a name="geometry.reference.views.box_view.description"></a></span><a class="link" href="box_view.html#geometry.reference.views.box_view.description">Description</a>
+        </h6>
+<p>
+          Adapts a box to the Boost.Range concept, enabling the user to iterating
+          box corners. The box_view is registered as a Ring Concept
+        </p>
+<h6>
+<a name="geometry.reference.views.box_view.h1"></a>
+          <span class="phrase"><a name="geometry.reference.views.box_view.model_of"></a></span><a class="link" href="box_view.html#geometry.reference.views.box_view.model_of">Model
+          of</a>
+        </h6>
+<p>
+          <a class="link" href="../concepts/concept_ring.html" title="Ring Concept">Ring Concept</a>
+        </p>
+<h6>
+<a name="geometry.reference.views.box_view.h2"></a>
+          <span class="phrase"><a name="geometry.reference.views.box_view.synopsis"></a></span><a class="link" href="box_view.html#geometry.reference.views.box_view.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Box</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">Clockwise</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">box_view</span>
+      <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">detail</span><span class="special">::</span><span class="identifier">points_view</span><span class="special">&lt;</span> <span class="identifier">geometry</span><span class="special">::</span><span class="identifier">point_type</span><span class="special">&lt;</span> <span class="identifier">Box</span> <span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span> <span class="number">5</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+  <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.views.box_view.h3"></a>
+          <span class="phrase"><a name="geometry.reference.views.box_view.template_parameter_s_"></a></span><a class="link" href="box_view.html#geometry.reference.views.box_view.template_parameter_s_">Template
+          parameter(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    typename Box
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    A type fulfilling the Box Concept
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    bool Clockwise
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    If true, walks in clockwise direction, otherwise it walks in
+                    counterclockwise direction
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.views.box_view.h4"></a>
+          <span class="phrase"><a name="geometry.reference.views.box_view.constructor_s_"></a></span><a class="link" href="box_view.html#geometry.reference.views.box_view.constructor_s_">Constructor(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Parameters
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">box_view</span><span class="special">(</span><span class="identifier">Box</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">box</span><span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Constructor accepting the box to adapt.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>Box const &amp;</strong></span>: <span class="emphasis"><em>box</em></span>:
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.views.box_view.h5"></a>
+          <span class="phrase"><a name="geometry.reference.views.box_view.header"></a></span><a class="link" href="box_view.html#geometry.reference.views.box_view.header">Header</a>
+        </h6>
+<p>
+          Either
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<p>
+          Or
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">views</span><span class="special">/</span><span class="identifier">box_view</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<h6>
+<a name="geometry.reference.views.box_view.h6"></a>
+          <span class="phrase"><a name="geometry.reference.views.box_view.complexity"></a></span><a class="link" href="box_view.html#geometry.reference.views.box_view.complexity">Complexity</a>
+        </h6>
+<p>
+          Compile time
+        </p>
+<h6>
+<a name="geometry.reference.views.box_view.h7"></a>
+          <span class="phrase"><a name="geometry.reference.views.box_view.example"></a></span><a class="link" href="box_view.html#geometry.reference.views.box_view.example">Example</a>
+        </h6>
+<p>
+          Shows usage of the Boost.Range compatible view on a box
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">box</span>
+        <span class="special">&lt;</span>
+            <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">point</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">&gt;</span>
+        <span class="special">&gt;</span> <span class="identifier">box_type</span><span class="special">;</span>
+
+    <span class="comment">// Define the Boost.Range compatible type:</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">box_view</span><span class="special">&lt;</span><span class="identifier">box_type</span><span class="special">&gt;</span> <span class="identifier">box_view</span><span class="special">;</span>
+
+    <span class="identifier">box_type</span> <span class="identifier">box</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">assign_values</span><span class="special">(</span><span class="identifier">box</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">4</span><span class="special">,</span> <span class="number">4</span><span class="special">);</span>
+
+    <span class="identifier">box_view</span> <span class="identifier">view</span><span class="special">(</span><span class="identifier">box</span><span class="special">);</span>
+
+    <span class="comment">// Iterating in clockwise direction over the points of this box</span>
+    <span class="keyword">for</span> <span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">box_view</span> <span class="keyword">const</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">view</span><span class="special">);</span>
+        <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">view</span><span class="special">);</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">dsv</span><span class="special">(*</span><span class="identifier">it</span><span class="special">);</span>
+    <span class="special">}</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="comment">// Note that a box_view is tagged as a ring, so supports area etc.</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Area: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">area</span><span class="special">(</span><span class="identifier">view</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Output:
+        </p>
+<pre class="programlisting">(0, 0) (0, 4) (4, 4) (4, 0) (0, 0)
+Area: 16
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../views.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../views.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="segment_view.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

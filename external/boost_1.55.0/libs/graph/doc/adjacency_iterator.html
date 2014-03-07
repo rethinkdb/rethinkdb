@@ -1,0 +1,136 @@
+<html>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>Adjacency Iterator Adaptor Documentation</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+
+<img src="../../../boost.png" alt="boost.png (6897 bytes)"
+align="center" width="277" height="86">
+
+<h1>Adjacency Iterator Adaptor</h1>
+
+Defined in header
+<a href="../../../boost/graph/adjacency_iterator.hpp">boost/graph/adjacency_iterator.hpp</a>
+
+<p>
+The adjacency iterator adaptor transforms an
+<tt>out_edge_iterator</tt> into an adjacency iterator. That is, it
+takes an iterator that traverses over edges, and creates an iterator
+that traverses over the <b><i>target</i></b> vertices of those edges.
+With this adaptor it is trivial to take a graph type that models <a
+href="IncidenceGraph.html">Incidence Graph</a> and add the
+capabilities required of <a href="AdjacencyGraph.html">Adjacency
+Graph</a>.
+
+
+<h2>Synopsis</h2>
+
+<pre>
+namespace boost {
+  template &lt;class Graph, class VertexDescriptor, class OutEdgeIter&gt;
+  class adjacency_iterator_generator {
+  public:
+    typedef <a href="../../iterator/doc/iterator_adaptor.html">iterator_adaptor</a>&lt;...&gt; type;
+  };
+}
+</pre>
+
+<hr>
+
+<h3>Example</h3>
+
+<p>
+The following is an example of how to use the
+<tt>adjacency_iterator_generator</tt> class.
+
+<p>
+<PRE>
+#include &lt;boost/graph/adjacency_iterator.hpp&gt;
+
+class my_graph {
+  // ...
+  typedef ... out_edge_iterator;
+  typedef ... vertex_descriptor;
+  typedef boost::adjacency_iterator_generator&lt;my_graph, vertex_descriptor, out_edge_iterator&gt;::type adjacency_iterator;
+  // ...
+};
+
+</PRE>
+
+<h3>Template Parameters</h3>
+
+<Table border>
+<TR>
+<TH>Parameter</TH><TH>Description</TH>
+</TR>
+
+<TR>
+<TD><tt>Graph</tt></TD>
+<TD>The graph type, which must model <a
+href="./IncidenceGraph.html">Incidence Graph</a>.</TD>
+</TR>
+
+<TR>
+<TD><tt>VertexDescriptor</tt></TD>
+<TD>This must be the same type as
+<tt>graph_traits&lt;Graph&gt;::vertex_descriptor</tt>.  The reason why
+this is a template parameter is that the primary use of
+<tt>adjacency_iterator_generator</tt> is <b><i>inside</i></b> the
+definition of the graph class, and in that context we can not use
+<tt>graph_traits</tt> on the not yet fully defined graph class.<br>
+<b>Default:</b> <tt>graph_traits&lt;Graph&gt;::vertex_descriptor</tt></TD>
+</TR>
+
+<TR>
+<TD><tt>OutEdgeIter</tt></TD>
+<TD>This must be the same type as
+<tt>graph_traits&lt;Graph&gt;::out_edge_iterator</tt>.<br>
+<b>Default:</b> <tt>graph_traits&lt;Graph&gt;::out_edge_iterator
+</TD>
+</TR>
+
+</Table>
+
+<h3>Model of</h3>
+
+The adjacency iterator adaptor (the type
+<tt>adjacency_iterator_generator<...>::type</tt>) is a model of <a
+href="../../utility/MultiPassInputIterator.html">Multi-Pass Input Iterator</a>
+</a>.
+
+
+<h3>Members</h3>
+
+The adjacency iterator type implements the member functions and
+operators required of the <a
+href="http://www.sgi.com/tech/stl/RandomAccessIterator.html">Random Access Iterator</a>
+concept, except that the <tt>reference</tt> type is the same as the <tt>value_type</tt>
+so <tt>operator*()</tt> returns by-value. In addition it has the following constructor:
+
+<pre>
+adjacency_iterator_generator::type(const OutEdgeIter&amp; it, const Graph* g)
+</pre>
+
+<hr>
+<p>Revised <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %b %Y" startspan -->19 Aug 2001<!--webbot bot="Timestamp" endspan i-checksum="14767" --></p>
+<p>© Copyright Jeremy Siek 2000. Permission to copy, use,
+modify, sell and distribute this document is granted provided this copyright
+notice appears in all copies. This document is provided &quot;as is&quot;
+without express or implied warranty, and with no claim as to its suitability for
+any purpose.</p>
+
+</body>
+
+</html>

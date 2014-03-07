@@ -1,0 +1,188 @@
+# Boost serialization Library utility test Jamfile
+
+#  (C) Copyright Robert Ramey 2002-2004.
+#  Use, modification, and distribution are subject to the 
+#  Boost Software License, Version 1.0. (See accompanying file 
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+# the file contains Jam rules which are used in both the normal
+# boost test, as well as the performance test and comprehensive
+# tests.
+
+BOOST_ARCHIVE_LIST = [ modules.peek : BOOST_ARCHIVE_LIST ] ;
+
+# these are used to shorten testing while in development.  It permits
+# testing to be applied to just a particular type of archive
+if ! $(BOOST_ARCHIVE_LIST) {
+    BOOST_ARCHIVE_LIST = 
+        "text_archive.hpp" 
+        "text_warchive.hpp" 
+        "binary_archive.hpp" 
+        "xml_archive.hpp" 
+        "xml_warchive.hpp" 
+    ;
+    # enable the tests which don't depend on a particular archive
+    BOOST_SERIALIZATION_TEST = true ;
+}
+
+rule run-template ( test-name : sources * : requirements * ) {
+    return [
+        run
+            $(sources)
+        : # command
+        : # input files
+        : # requirements
+            # toolset warnings
+            # <toolset>gcc:<cxxflags>"-Wno-non-virtual-dtor -Wno-ctor-dtor-privacy"
+            <toolset>borland:<cxxflags>"-w-8080 -w-8071 -w-8057 -w-8062 -w-8008 -w-0018 -w-8066"
+            <toolset>gcc:<warnings>all # ?
+            <toolset>gcc:<cxxflags>"-Wno-long-long"
+            <toolset>msvc:<warnings>all # == /W4
+            <toolset>msvc:<define>_SCL_SECURE_NO_WARNINGS
+            <toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+            <toolset>msvc:<define>_CRT_SECURE_NO_WARNINGS
+            <toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+            <toolset>msvc:<cxxflags>"-wd4996"
+            # toolset optimizations
+            <toolset>gcc:<cxxflags>"-ftemplate-depth-255"
+            <toolset>msvc:<cxxflags>"-Gy"
+            $(requirements)
+        : # test name
+            $(test-name)
+    ] ;
+}
+
+# Given a name of test, return the 'save' test that must be run
+# before the named test, or empty string if there's no such test.
+rule dependency-save-test ( test )
+{
+    local m = [ MATCH (.*)load(.*) : $(test) ] ;
+    if $(m)
+    {
+        return $(m[1])save$(m[2]) ;
+    }  
+}
+
+# each of the following tests is run with each type of archive
+rule run-invoke ( test-name : sources * : requirements * )
+{
+    local save-test = [ dependency-save-test $(test-name) ] ;
+
+    local tests ;
+    tests += [ 
+        run-template $(test-name)
+        : # sources
+            $(sources)
+            ../build//boost_serialization
+        : # requirements
+            $(requirements)
+            <define>BOOST_LIB_DIAGNOSTIC=1
+            <dependency>$(save-test)
+    ] ;
+    return $(tests) ;
+}
+
+# each of the following tests is run with each type of archive
+rule run-winvoke ( test-name : sources * : requirements * )
+{
+    local save-test = [ dependency-save-test $(test-name) ] ;
+
+    local tests ;
+    tests += [ 
+        run-template $(test-name)
+        : # sources
+            $(sources)
+            ../build//boost_serialization
+            ../build//boost_wserialization
+        : # requirements
+            $(requirements)
+            <define>BOOST_LIB_DIAGNOSTIC=1
+            # both stlport and msvc6 define iswspace
+            <toolset>msvc,<stdlib>stlport:<linkflags>"-force:multiple"
+            <dependency>$(save-test)
+            <dependency>../../config/test/all//BOOST_NO_STD_WSTREAMBUF
+    ] ;
+    return $(tests) ;
+}
+
+# for tests which don't use library code - usually just headers
+rule test-bsl-run-no-lib  ( test-name : sources * : requirements * )
+{
+    local tests ;
+    tests += [ 
+        run-template $(test-name)
+        : # sources
+            $(test-name).cpp $(sources).cpp
+        :
+            $(requirements)
+    ] ;
+    return $(tests) ;
+}
+
+# for tests which are run just once rather than for every archive
+rule test-bsl-run ( test-name : sources * : libs * : requirements * )
+{
+    local tests ;
+    tests +=  [ 
+        run-invoke $(test-name) 
+        : # sources
+            $(test-name).cpp $(sources).cpp $(libs)
+        :
+            $(requirements)
+    ] ;
+    return $(tests) ;
+}
+
+rule test-bsl-run_archive ( test-name : archive-name : sources * : libs * : requirements * ) {
+    local tests ;
+    switch $(archive-name) {
+    case "*_warchive" :
+        tests +=  [
+            run-winvoke $(test-name)_$(archive-name)
+            : 
+                $(sources).cpp $(libs)
+            :
+                <define>BOOST_ARCHIVE_TEST=$(archive-name).hpp
+                $(requirements)
+        ] ;
+    case "*" :
+        tests +=  [
+            run-invoke $(test-name)_$(archive-name)
+            : 
+                $(sources).cpp $(libs)
+            : 
+                <define>BOOST_ARCHIVE_TEST=$(archive-name).hpp
+                $(requirements)
+        ] ;
+    }
+    return $(tests) ;
+}
+
+rule test-bsl-run_files ( test-name : sources * : libs * : requirements * ) {
+    local tests ;
+    for local defn in $(BOOST_ARCHIVE_LIST) {
+        tests += [ 
+            test-bsl-run_archive $(test-name) 
+            : $(defn:LB) 
+            : $(test-name) $(sources) 
+            : $(libs)
+            : $(requirements)
+        ] ;
+    }
+    return $(tests) ;
+}
+    
+rule test-bsl-run_polymorphic_archive ( test-name : sources * ) {
+    local tests ;
+    for local defn in $(BOOST_ARCHIVE_LIST) {
+        tests += [ 
+            test-bsl-run_archive $(test-name)
+            : polymorphic_$(defn:LB)  
+            : $(test-name) $(sources)
+        ] ;
+    }
+    return $(tests) ;
+}
+
+

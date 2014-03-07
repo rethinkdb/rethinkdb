@@ -1,0 +1,67 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct implementation_defined</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../skew_heap.html#idp101673288" title="Description">
+<link rel="prev" href="../skew_heap.html" title="Class template skew_heap">
+<link rel="next" href="../../../heap/acknowledgements.html" title="Acknowledgements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../skew_heap.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../skew_heap.html#idp101673288"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../heap/acknowledgements.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.heap.skew_heap.implementation_defined"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct implementation_defined</span></h2>
+<p>boost::heap::skew_heap::implementation_defined</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../heap/reference.html#header.boost.heap.skew_heap_hpp" title="Header &lt;boost/heap/skew_heap.hpp&gt;">boost/heap/skew_heap.hpp</a>&gt;
+
+</span>
+
+<span class="keyword">struct</span> <a class="link" href="implementation_defined.html" title="Struct implementation_defined">implementation_defined</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">T</span>                               <a name="boost.heap.skew_heap.implementation_defined.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">base_maker</span><span class="special">::</span><span class="identifier">compare_argument</span>    <a name="boost.heap.skew_heap.implementation_defined.value_compare"></a><span class="identifier">value_compare</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">base_maker</span><span class="special">::</span><span class="identifier">allocator_type</span>      <a name="boost.heap.skew_heap.implementation_defined.allocator_type"></a><span class="identifier">allocator_type</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">base_maker</span><span class="special">::</span><span class="identifier">node_type</span>           <a name="boost.heap.skew_heap.implementation_defined.node"></a><span class="identifier">node</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">allocator_type</span><span class="special">::</span><span class="identifier">pointer</span>         <a name="boost.heap.skew_heap.implementation_defined.node_pointer"></a><span class="identifier">node_pointer</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">allocator_type</span><span class="special">::</span><span class="identifier">const_pointer</span>   <a name="boost.heap.skew_heap.implementation_defined.const_node_pointer"></a><span class="identifier">const_node_pointer</span><span class="special">;</span> 
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a name="boost.heap.skew_heap.implementation_defined.value_extractor"></a><span class="identifier">value_extractor</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">node_pointer</span><span class="special">,</span> <span class="number">2</span> <span class="special">&gt;</span> <a name="boost.heap.skew_heap.implementation_defined.child_list_type"></a><span class="identifier">child_list_type</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="identifier">child_list_type</span><span class="special">::</span><span class="identifier">iterator</span>       <a name="boost.heap.skew_heap.implementation_defined.child_list_iterator"></a><span class="identifier">child_list_iterator</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a name="boost.heap.skew_heap.implementation_defined.iterator"></a><span class="identifier">iterator</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">iterator</span>                        <a name="boost.heap.skew_heap.implementation_defined.const_iterator"></a><span class="identifier">const_iterator</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a name="boost.heap.skew_heap.implementation_defined.ordered_iterator"></a><span class="identifier">ordered_iterator</span><span class="special">;</span>   
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a name="boost.heap.skew_heap.implementation_defined.reference"></a><span class="identifier">reference</span><span class="special">;</span>          
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a name="boost.heap.skew_heap.implementation_defined.handle_type"></a><span class="identifier">handle_type</span><span class="special">;</span>        
+<span class="special">}</span><span class="special">;</span></pre></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010, 2011 Tim Blechmann<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../skew_heap.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../skew_heap.html#idp101673288"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../heap/acknowledgements.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

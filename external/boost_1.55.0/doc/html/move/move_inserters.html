@@ -1,0 +1,133 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Move inserters</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../move.html" title="Chapter&#160;19.&#160;Boost.Move">
+<link rel="prev" href="move_iterator.html" title="Move iterators">
+<link rel="next" href="move_algorithms.html" title="Move algorithms">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="move_iterator.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../move.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="move_algorithms.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="move.move_inserters"></a><a class="link" href="move_inserters.html" title="Move inserters">Move inserters</a>
+</h2></div></div></div>
+<p>
+      Similar to standard insert iterators, it's possible to deal with move insertion
+      in the same way as writing into an array. A special kind of iterator adaptors,
+      called move insert iterators, are provided with this library. With regular
+      iterator classes,
+    </p>
+<pre class="programlisting"><span class="keyword">while</span> <span class="special">(</span><span class="identifier">first</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">)</span> <span class="special">*</span><span class="identifier">result</span><span class="special">++</span> <span class="special">=</span> <span class="special">*</span><span class="identifier">first</span><span class="special">++;</span>
+</pre>
+<p>
+      causes a range [first,last) to be copied into a range starting with result.
+      The same code with result being an move insert iterator will move insert corresponding
+      elements into the container. This device allows all of the copying algorithms
+      in the library to work in the move insert mode instead of the regular overwrite
+      mode. This library offers 3 move insert iterators and their helper functions:
+    </p>
+<pre class="programlisting"><span class="comment">// Note: C models Container</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">back_move_insert_iterator</span><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="identifier">back_move_insert_iterator</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;</span> <span class="identifier">back_move_inserter</span><span class="special">(</span><span class="identifier">C</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">front_move_insert_iterator</span><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="identifier">front_move_insert_iterator</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;</span> <span class="identifier">front_move_inserter</span><span class="special">(</span><span class="identifier">C</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">move_insert_iterator</span><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="identifier">move_insert_iterator</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;</span> <span class="identifier">move_inserter</span><span class="special">(</span><span class="identifier">C</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">C</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">it</span><span class="special">);</span>
+</pre>
+<p>
+      A move insert iterator is constructed from a container and possibly one of
+      its iterators pointing to where insertion takes place if it is neither at the
+      beginning nor at the end of the container. Insert iterators satisfy the requirements
+      of output iterators. <code class="computeroutput"><span class="keyword">operator</span><span class="special">*</span></code> returns the move insert iterator itself. The
+      assignment <code class="computeroutput"><span class="keyword">operator</span><span class="special">=(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span></code> is defined on insert iterators to allow writing
+      into them, it inserts x right before where the insert iterator is pointing.
+      In other words, an <code class="computeroutput"><span class="identifier">insert</span> <span class="identifier">iterator</span></code> is like a cursor pointing into the
+      container where the insertion takes place. <code class="computeroutput"><span class="identifier">back_move_iterator</span></code>
+      move inserts elements at the end of a container, <code class="computeroutput"><span class="identifier">front_insert_iterator</span></code>
+      move inserts elements at the beginning of a container, and <code class="computeroutput"><span class="identifier">move_insert_iterator</span></code>
+      move inserts elements where the iterator points to in a container. <code class="computeroutput"><span class="identifier">back_move_inserter</span></code>, <code class="computeroutput"><span class="identifier">front_move_inserter</span></code>,
+      and <code class="computeroutput"><span class="identifier">move_inserter</span></code> are three
+      functions making the insert iterators out of a container. Here's an example
+      of how to use them:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="string">"movable.hpp"</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">algorithm</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">container</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">movable</span><span class="special">&gt;</span> <span class="identifier">list_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">list_t</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">l_iterator</span><span class="special">;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">MoveInsertIterator</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">test_move_inserter</span><span class="special">(</span><span class="identifier">list_t</span> <span class="special">&amp;</span><span class="identifier">l2</span><span class="special">,</span> <span class="identifier">MoveInsertIterator</span> <span class="identifier">mit</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="comment">//Create a list with 10 default constructed objects</span>
+   <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">movable</span><span class="special">&gt;</span> <span class="identifier">l</span><span class="special">(</span><span class="number">10</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(!</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()-&gt;</span><span class="identifier">moved</span><span class="special">());</span>
+   <span class="identifier">l2</span><span class="special">.</span><span class="identifier">clear</span><span class="special">();</span>
+
+   <span class="comment">//Move insert into l2 containers</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">l</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">mit</span><span class="special">);</span>
+
+   <span class="comment">//Check size and status</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">l2</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">l</span><span class="special">.</span><span class="identifier">size</span><span class="special">());</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()-&gt;</span><span class="identifier">moved</span><span class="special">());</span>
+   <span class="identifier">assert</span><span class="special">(!</span><span class="identifier">l2</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()-&gt;</span><span class="identifier">moved</span><span class="special">());</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="identifier">list_t</span> <span class="identifier">l2</span><span class="special">;</span>
+   <span class="identifier">test_move_inserter</span><span class="special">(</span><span class="identifier">l2</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">back_move_inserter</span><span class="special">(</span><span class="identifier">l2</span><span class="special">));</span>
+   <span class="identifier">test_move_inserter</span><span class="special">(</span><span class="identifier">l2</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">front_move_inserter</span><span class="special">(</span><span class="identifier">l2</span><span class="special">));</span>
+   <span class="identifier">test_move_inserter</span><span class="special">(</span><span class="identifier">l2</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">move_inserter</span><span class="special">(</span><span class="identifier">l2</span><span class="special">,</span> <span class="identifier">l2</span><span class="special">.</span><span class="identifier">end</span><span class="special">()));</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="move_iterator.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../move.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="move_algorithms.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

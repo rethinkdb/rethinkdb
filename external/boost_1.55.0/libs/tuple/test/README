@@ -1,0 +1,16 @@
+To compile the 
+
+libs/tuple/test/*.cpp 
+
+files, you need to set include paths
+for boost.
+For example, in libs/tuple/test directory you would type (using g++):
+
+g++ -I../../.. tuple_test_bench.cpp
+
+The following is not true anymore:
+
+  If you want to use tuple_io, you need to compile and link src/tuple.cpp:
+  g++ -I../../.. ../src/tuple.cpp io_test.cpp
+
+Thanks to Hartmut Kaiser's suggestion, the tuple.cpp is not needed anymore.

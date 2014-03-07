@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/functional/range/rend.hpp">
+  <para>Includes Proto callable <code><classname>boost::proto::functional::rend</classname></code>.</para>
+
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="functional">
+
+        <!-- proto::functional::rend -->
+        <struct name="rend">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+            <code>boost::rend()</code> accessor function on its arguments.</purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+              <code>boost::rend()</code> accessor function on its arguments.</para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Range"/>
+            </template>
+            <specialization>
+              <template-arg>This(Range)</template-arg>
+            </specialization>
+            <inherit>
+              <type>boost::range_reverse_iterator&lt;
+      typename boost::remove_reference&lt;Range&gt;::type
+  &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename boost::range_reverse_iterator&lt; Range &gt;::type</type>
+              <template>
+                <template-type-parameter name="Range"/>
+              </template>
+              <parameter name="rng">
+                <paramtype>Range &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para><code>boost::rend(rng)</code></para>
+              </returns>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename boost::range_reverse_iterator&lt; Range const &gt;::type</type>
+              <template>
+                <template-type-parameter name="Range"/>
+              </template>
+              <parameter name="rng">
+                <paramtype>Range const &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para><code>boost::rend(rng)</code></para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+
+      </namespace>
+    </namespace>
+  </namespace>
+</header>

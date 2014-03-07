@@ -1,0 +1,304 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>The Wave Driver</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="theme/style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" cellspacing="2" background="theme/bkd2.gif">
+  <tr> 
+    <td width="21"> <h1></h1></td>
+    <td width="885"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">The 
+      Wave Driver</font></b></font></td>
+    <td width="96"><a href="http://www.boost.org"><img src="theme/wave.gif" width="93" height="68" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="samples.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="tracing_facility.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>There is implemented a driver program for the <tt>Wave</tt> library, which 
+  utilizes nearly all capabilities of the library. It is usable as a preprocessor executable 
+  on top of any other C++ compiler. It outputs the textual representation of the 
+  preprocessed tokens generated from a given input file. This driver program has 
+  the following command line syntax:</p>
+<pre>Usage: wave [options] [@config-file(s)] file:
+ 
+  Options allowed on the command line only:
+    -h [--help]:            print out program usage (this message)
+    -v [--version]:         print the version number
+    -c [--copyright]:       print out the copyright statement
+    --config-file filepath: specify a config file (alternatively: @filepath)
+ 
+  Options allowed additionally in a config file:
+    -o [--output] path:          specify a file [path] to use for output instead of 
+                                 stdout or disable output [-]
+    -E [ --autooutput ]:         output goes into a file named &lt;input_basename&gt;.i
+    -I [--include] path:         specify an additional include directory
+    -S [--sysinclude] syspath:   specify an additional system include directory
+    -F [--forceinclude] file:    force inclusion of the given file
+    -D [--define] macro[=[value]]:    specify a macro to define
+    -P [--predefine] macro[=[value]]: specify a macro to predefine
+    -U [--undefine] macro:       specify a macro to undefine
+    -u [--undefineall]:          undefine all macrodefinitions
+    -n [--nesting] depth:        specify a new maximal include nesting depth
+	
+  Extended options (allowed everywhere)
+    -t [--traceto] arg:          output trace info to a file [arg] or to stderr [-]
+    --timer:                     output overall elapsed computing time
+    --long_long:                 enable long long support if C++ mode
+    --variadics:                 enable variadics and placemarkers in C++ mode
+    --c99:                       enable C99 mode (implies variadics and placemarkers)
+    --c++11                      enable C++11 mode (implies --variadics and --long_long)
+    -l [ --listincludes ] arg:   list included file to a file [arg] or to stdout [-]
+    -m [ --macronames ] arg:     list names of all defined macros to a file [arg] or 
+                                 to stdout [-]
+    -c [ --macrocounts ] arg     list macro invocation counts to a file [arg] or to
+                                 stdout [-]
+    -p [ --preserve ] arg (=0):  preserve whitespace
+                                 0: no whitespace is preserved (default),
+                                 1: begin of line whitespace is preserved,
+                                 2: comments and begin of line whitespace is preserved,
+                                 3: all whitespace is preserved
+    -L [ --line ] arg (=1):      control the generation of #line directives
+                                 0: no #line directives are generated
+                                 1: #line directives will be emitted (default)
+    -x [ --extended ]:           enable the #pragma wave system() directive
+    -G [ --noguard ]:            disable include guard detection
+    -g [ --listguards ]:         list names of files flagged as 'include once' to a
+                                 file [arg] or to stdout [-]
+    -s [ --state ] arg:          load and save state information from/to the given
+                                 file [arg] or 'wave.state' [-] (interactive mode
+                                 only)
+</pre>
+<P dir="ltr">The possible options are straightforward and self explanatory. The 
+  following describes some of these options in more detail. Please note, that 
+  the extended options (--c99 and --variadics) are available only, if the driver 
+  was compiled with the constant <tt>WAVE_SUPPORT_VARIADICS_PLACEMARKERS</tt> 
+  defined. </P>
+<P dir="ltr">-o [--output] path</P>
+<blockquote> 
+  <p dir="ltr">Specify a filename to be used for the generated preprocessed output 
+    stream. If this option is not given, then the standard output is used (stdout). If the filename given equals to <tt>'-'</tt> (without the quotes), no output is generated initially. This is especially useful for syntax checks only or in conjunction with the <span class="preprocessor">#pragma&nbsp;wave&nbsp;option(output:&nbsp;...) </span>directive restricting the generated out to specific parts only (for a description see the section <a href="supported_pragmas.html">Supported Pragma Directives</a>).  </p>
+</blockquote>
+<P dir="ltr">-E [--autooutput]</P>
+<blockquote>
+  <p dir="ltr">The generated output will end up in a file named after the input file basename with the file extension <span class="literal">'.i'</span>, i.e. for an input file <span class="literal">'inputfile.cpp'</span> the output will be written to <span class="literal">'inputfile.i'</span>. This option will not have any effect if there is specified an output file name with a --output option.</p>
+</blockquote>
+<P dir="ltr">-I [--include] option</P>
+<blockquote> 
+  <p dir="ltr">Add the directory dir to the head of the list of directories to be searched for header files. This can be used to override a system 
+    header file, substituting your own version, since these directories are 
+    searched before the system header file directories. However, you should 
+    not use this option to add directories that contain vendor-supplied 
+    system header files (use '-S' for that). If you use more than 
+    one '-I' option, the directories are scanned in left-to-right order, 
+  the standard system directories come after. </p>
+  <p>If a standard system include directory, or a directory specified with 
+    '-S', is also specified with '-I', the '-I' option will be 
+    ignored. The directory will still be searched but as a system 
+    directory at its normal position in the system include chain.  </p>
+</blockquote>
+<p dir="ltr">-I- [--include-] option</p>
+<blockquote> 
+  <p dir="ltr">The <tt>Wave</tt> library maintains two separate search paths 
+    for include files. A search path for user include files and a search path 
+    for system include files, where the user include paths are searched before the system include paths. </p>
+  <p dir="ltr">Any directories specified with '-I' options before 
+    an eventually given '-I-' option are searched only for the case of '#include&nbsp;&quot;file&quot;' 
+    (user include files), they are not searched for '#include&nbsp;&lt;file&gt;' 
+    directives (system include files). If additional directories are specified 
+    with '-I' options after a '-I-' option was given, these directories are searched 
+    for all '#include' directives (ordinarily all '-I' directories are used this way.). </p>
+  <p dir="ltr">In addition, the '-I-' option inhibits the 
+    use of the current directory (where the current input file came from) as the first search directory for '#include &quot;file&quot;' 
+    directives . With '-I.' you can specify searching the directory which was current when the compiler was invoked. That is not exactly the same as what the
+  preprocessor does by default, but it is often satisfactory. </p>
+</blockquote>
+<p dir="ltr">-S [--sysinclude] option</p>
+<blockquote> 
+  <p dir="ltr">Add the given directory to the head of the list of directories 
+    to be searched for system header files. If you use more than one '-S' option, 
+    the directories are scanned in left-to-right order. This option is most useful 
+    in the wave.cfg configuration file to specify, where the system include files 
+    are to be searched.</p>
+</blockquote>
+<p dir="ltr">-F [--forceinclude] option</p>
+<blockquote> 
+  <p dir="ltr">Process the given file as normal input and include all the resulting 
+    output before the processing the regular input file starts. If more than one 
+    such option is given, the files are pre-included in the sequence of its occurance 
+    on the command line.</p>
+</blockquote>
+<p dir="ltr">-D [--define] macro[=definition]<br>-P [--predefine] macro[=definition]</p>
+<blockquote> 
+  <p dir="ltr">This option allows to define ('-D') or predefine ('-P') a macro 
+    from the command line. The string given in conjunction with the '-D' or '-P' 
+    option should conform to the usual syntax MACRO(x)=definition as is described 
+    in more detail <a href="class_reference_context.html#add_macro_definition">here</a>.</p>
+  <p dir="ltr"> The only difference between the '-D' and the '-P' options is, 
+    that the latter predefines a macro such, that it is <b>not</b> undefinable 
+    through an <tt>#undef</tt> directive from inside the preprocessed program.</p>
+</blockquote>
+<p dir="ltr">-U [--undefine] macro </p>
+<blockquote> 
+  <p dir="ltr">This allows to undefine some of the automatically predefined macros 
+    of the <tt>Wave</tt> library (see <a href="predefined_macros.html">Predefined macros</a>). The only exception are 
+    the <code class="keyword">__LINE__</code>, <code class="keyword">__FILE__</code>, 
+    <code class="keyword">__DATE__</code>, <code class="keyword">__TIME__</code>, 
+    <code class="keyword">__STDC__</code> and <code class="keyword">__cplusplus</code> 
+    predefined macros, which are not undefinable. If -U and -D are both specified 
+    for one name, the name is not predefined.</p>
+</blockquote>
+<p dir="ltr">-n [--nesting] depth</p>
+<blockquote> 
+  <p dir="ltr">Specify a new maximal include nesting depth. If the preprocessing 
+    reaches this include file nesting depth, it aborts the preprocessing after 
+    emitting an error message. The default include file nesting depth is 1024.</p>
+</blockquote>
+<p dir="ltr">-t [--traceto] path</p>
+<blockquote> 
+  <p dir="ltr">Enable the tracing facility build into the <tt>Wave</tt> library. 
+    The path specifies the filename to use for the output of the generated trace 
+    log. If the filename given equals to <tt>'-'</tt> (without the quotes), the 
+    trace log is put into the standard error stream (stderr).</p>
+</blockquote>
+<p dir="ltr">--timer</p>
+<blockquote>
+  <p dir="ltr">Enable to track the overall elapsed computing time required for 
+    the given input file. The elapsed time is printed to stdout after the compilation 
+    is completed.</p>
+</blockquote>
+<p dir="ltr">--variadics</p>
+<blockquote> 
+  <p dir="ltr">Enables support for variadics (macros with variable parameter lists), 
+    placemarkers (empty macro arguments) and <tt>operator&nbsp;_Pragma</tt> in 
+    normal C++ mode. This option predefines a special predefined macro <tt>__WAVE_HAS_VARIADICS__</tt>.</p>
+</blockquote>
+<p dir="ltr">--c99</p>
+<blockquote> 
+  <p dir="ltr">Enable the C99 mode. This mode enables certain C99 specific features, such
+    as variadics (macros with variable parameter lists), placemarkers (empty macro 
+    arguments) and <tt>operator&nbsp;_Pragma</tt> support and disables some C++ 
+    specific token types as for instance <tt>'::'</tt>, <tt>'-&gt;*'</tt> and <tt>'-&gt;.'</tt>. 
+    Several predefined macros are different for this mode, for more information 
+    about predefined macros you may look <a href="predefined_macros.html">here</a>. 
+  </p>
+</blockquote>
+<p dir="ltr">--c++11</p>
+<blockquote>
+  <p dir="ltr">Enable the C++11 mode. This mode enables C++11 specific keywords and features, such
+    as variadics (macros with variable parameter lists), placemarkers (empty macro 
+    arguments) and <tt>operator&nbsp;_Pragma</tt> support. 
+    Several predefined macros are different for this mode, for more information 
+    about predefined macros you may look <a href="predefined_macros.html">here</a>. </p>
+</blockquote>
+<p dir="ltr">-l [--listincludes] path</p>
+<blockquote>
+  <p dir="ltr">Enable the output of the names of all opened include files. The path specifies the filename to use for the output of the generated include log. If the filename given equals to <tt>'-'</tt> (without the quotes), the include log is put into the standard output stream (stdout).</p>
+</blockquote>
+<p dir="ltr">-m [--macronames] path</p>
+<blockquote>
+  <p dir="ltr">Enable the output of all defined macros. This includes the macro names, its parameter names (if the macro is a function like macro) and its definition. The path specifies the filename to use for the output of the generated macro list. If the filename given equals to <tt>'-'</tt> (without the quotes), the macro  list is put into the standard output stream (stdout).</p>
+</blockquote>
+<p dir="ltr">-c [--macrocounts] path</p>
+<blockquote>
+  <p dir="ltr">Enable the output of all macro invocation counts. The path specifies the filename to use for the output of the generated list. If the filename given equals to <tt>'-'</tt> (without the quotes), the macro  list is put into the standard output stream (stdout).</p>
+</blockquote>
+<p dir="ltr">-p [--preserve] arg </p>
+<blockquote>
+  <p dir="ltr">Preserve the whitespace from the input stream not located inside of macro definitions. The argument defines the amount of whitespace to be preserved. A value of '0' (zero) skips all whitespace, a value of '1' preserves begin of line whitespace only, a value of '2' preserves all the comments andd all begin of line whitespace, and a value of '3' will preserve all whitespace in the output.</p>
+  <p dir="ltr">The comments located inside macro definitions are skipped even if this option is specified with an argument not '0' (zero) . If this option is not specified on the command line only essential whitespace is preserved (equivalent to '0' as the argument value). </p>
+</blockquote>
+<p dir="ltr">-L [--line]</p>
+<blockquote>
+  <p dir="ltr">Controls whether the <tt>Wave</tt> tool generates <span class="preprocessor">#line</span> directives or not. If the argument is '1' these will be emitted, if the argument value is '0' no <span class="preprocessor">#line</span> directives will be generated. If this option is not specified, <tt>Wave</tt> always will generate <span class="preprocessor">#line</span> directives. </p>
+</blockquote>
+<p dir="ltr">-x [--extended]</p>
+<blockquote>
+  <p dir="ltr">Enable the <span class="preprocessor">#pragma&nbsp;wave&nbsp;system()</span> directive. This directive 
+is now disabled by default because it may cause a potential security threat. The <tt>Wave</tt> driver will issue a remark if this command line argument is not specified and a <span class="preprocessor">#pragma&nbsp;wave&nbsp;system()</span> directive is encountered.</p>
+</blockquote>
+<p dir="ltr">-G [--noguard] </p>
+<blockquote>
+  <p dir="ltr">This option disables the automatic include guard detection normally performed by the Wave library during the processing of included files. For more information about automatic include guard detection please refer to <a href="class_reference_context.html">The Context Object</a> class reference. </p>
+</blockquote>
+<p dir="ltr">-g [--listguards] arg </p>
+<blockquote>
+  <p dir="ltr">This option lists all found include files which either contain a
+  <span class="preprocessor">#pragma once</span> or contain an include guard 
+  into the given file. If the filename given equals to <tt>'-'</tt> (without the quotes), the 
+  guards log is put into the standard output stream (stdout). For more information about automatic include guard detection please refer to <a href="class_reference_context.html">The Context Object</a> class reference. </p>
+</blockquote>
+<p dir="ltr">-s [--state]</p>
+<blockquote>
+  <p dir="ltr">This option tries instructs the <tt>Wave</tt> tool to load the serialized information from the file given as the argument and to save back the internal state information at the end of the session to the same file. When using this option <tt>Wave</tt> loads and saves all defined macros (even the predefined ones) and the information about processed header files tagged with <span class="preprocessor">#pragma once</span> and/or identified to have include guards. </p>
+  <p dir="ltr">Note: This option has effect in interactive mode only. </p>
+</blockquote>
+<p dir="ltr">@ [--config-file] option</p>
+<blockquote> 
+  <p dir="ltr">Some of the possible command line options may be specified inside 
+    of special configuration files. This is very useful, as a shorthand for different 
+    global configurations. A config file may contain additional options (i.e. -I, -S, 
+    -F, -U, -D and -P options), one option per line. Empty lines and lines beginning 
+    with a '#' character are ignored (are treated as a comment lines). Note that 
+    the '#' character is treated as the beginning of a comment only, if it is 
+    the first non-whitespace character on a line. Here is a small sample illustrating the supported configuration file syntax:</p>
+  <pre><span class="comment">    # 
+    # enable variadics et.al. in C++ mode
+    #</span>
+    --variadics
+<span class="comment">    #
+    # enable timer support
+    #
+</span>    --timer
+<span class="comment">    #
+    # emulate gcc V3.3.2
+    #
+</span>    -D__GNUC__=3
+    -D__GNUC_MINOR__=3
+    -D__GNUC_PATCHLEVEL__=2
+    -D__GNUG__
+<span class="comment">    # 
+    # add Boost to the system include search paths
+    #</span>
+    -S/usr/local/boost</pre>  
+  <p dir="ltr"> There is a shorthand for specifying a configuration file on the 
+    command line: simply use the '@' character immediatly before the corresponding 
+    file name.</p>
+  <p dir="ltr"> The options found in a configuration file are interpreted as 
+    if they were place instead of the configuration file option on the command 
+    line.</p>
+</blockquote>
+<p dir="ltr">The <tt>Wave</tt> driver program at startup looks for a configuration 
+  file named 'wave.cfg' in every directory up the file system hierarchy starting 
+  from the directory where the input file is located. The first file found stops 
+  the search. If a file exists it is treated as a normal 
+  configuration file and the specified herein options are interpreted as if they 
+  were given as the first options on the command line. This feature is very useful 
+  for defining a global environment for the <tt>Wave</tt> preprocessor driver.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="samples.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="tracing_facility.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2011 Hartmut Kaiser<br>
+  <br>
+<font size="2">Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<span class="updated"></span>
+<p class="copyright"><span class="updated">Last updated: 
+  <!-- #BeginDate format:fcAm1m -->Sunday, January 9, 2011  16:12<!-- #EndDate -->
+</span></p>
+</body>
+</html>

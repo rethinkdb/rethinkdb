@@ -1,0 +1,522 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/gl.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/gl.xml
+ */
+gl{
+    Currencies{
+        ADP{
+            "ADP" /** ===  */,
+            "peseta andorrana",
+        }
+        ARP{
+            "ARP" /** ===  */,
+            "Peso arxentino (1983-1985)",
+        }
+        ARS{
+            "AR$",
+            "Peso arxentino",
+        }
+        BEC{
+            "BEC" /** ===  */,
+            "Franco belga (convertible)",
+        }
+        BEF{
+            "BF",
+            "Franco belga",
+        }
+        BEL{
+            "BEL" /** ===  */,
+            "Franco belga (financeiro)",
+        }
+        BOB{
+            "Bs",
+            "Boliviano",
+        }
+        BOP{
+            "$b.",
+            "Peso boliviano",
+        }
+        BOV{
+            "BOV" /** ===  */,
+            "MVDOL boliviano",
+        }
+        BRB{
+            "BRB" /** ===  */,
+            "Cruzeiro novo brasileiro (1967-1986)",
+        }
+        BRC{
+            "BRC" /** ===  */,
+            "Cruzado brasileiro",
+        }
+        BRE{
+            "BRE" /** ===  */,
+            "Cruzeiro brasileiro (1990-1993)",
+        }
+        BRL{
+            "R$",
+            "Real brasileiro",
+        }
+        BRN{
+            "BRN" /** ===  */,
+            "Cruzado novo brasileiro",
+        }
+        BRR{
+            "BRR" /** ===  */,
+            "Cruzeiro brasileiro",
+        }
+        CAD{
+            "CA$",
+            "Dólar canadiano",
+        }
+        CHF{
+            "CHF",
+            "Franco suizo",
+        }
+        CLF{
+            "CLF" /** ===  */,
+            "Unidades de fomento chilenas",
+        }
+        CLP{
+            "CL$",
+            "Peso chileno",
+        }
+        CNY{
+            "CN¥",
+            "Iuan renminbi chinés",
+        }
+        COP{
+            "CO$",
+            "Peso colombiano",
+        }
+        CRC{
+            "₡",
+            "Colón costarricense",
+        }
+        CUP{
+            "CU$",
+            "Peso cubano",
+        }
+        DEM{
+            "DM",
+            "Marco alemán",
+        }
+        DKK{
+            "Dkr",
+            "Coroa dinamarquesa",
+        }
+        DOP{
+            "RD$",
+            "Peso dominicano",
+        }
+        ECS{
+            "ECS" /** ===  */,
+            "Sucre ecuatoriano",
+        }
+        ECV{
+            "ECV" /** ===  */,
+            "Unidade de valor constante ecuatoriana",
+        }
+        ESA{
+            "ESA" /** ===  */,
+            "Peseta española (conta A)",
+        }
+        ESB{
+            "ESB" /** ===  */,
+            "Peseta española (conta convertible)",
+        }
+        ESP{
+            "₧",
+            "Peseta española",
+            {
+                /**
+                 * Duplicated from NumberPatterns resource
+                 */
+                "#,##0.00 ¤",
+                ",",
+                ".",
+            }
+        }
+        EUR{
+            "€",
+            "Euro",
+        }
+        FRF{
+            "₣",
+            "Franco francés",
+        }
+        GBP{
+            "£",
+            "Libra esterlina",
+        }
+        GIP{
+            "GI£",
+            "Libra de Xibraltar",
+        }
+        GNF{
+            "FG",
+            "Franco guineano",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Syli guineano",
+        }
+        GQE{
+            "GQE" /** ===  */,
+            "Ekwele guineana",
+        }
+        GRD{
+            "₯",
+            "Dracma grego",
+        }
+        GTQ{
+            "GTQ",
+            "Quetzal guatemalteco",
+        }
+        HNL{
+            "HNL",
+            "Lempira hondureño",
+        }
+        HUF{
+            "Ft",
+            "Florín húngaro",
+        }
+        IEP{
+            "IR£",
+            "Libra irlandesa",
+        }
+        INR{
+            "Rs",
+            "Rupia india",
+        }
+        ISK{
+            "Ikr",
+            "Coroa islandesa",
+        }
+        ITL{
+            "IT₤",
+            "Lira italiana",
+        }
+        JPY{
+            "JP¥",
+            "Ien xaponés",
+        }
+        LUC{
+            "LUC" /** ===  */,
+            "Franco convertible luxemburgués",
+        }
+        LUF{
+            "LUF" /** ===  */,
+            "Franco luxemburgués",
+        }
+        LUL{
+            "LUL" /** ===  */,
+            "Franco financeiro luxemburgués",
+        }
+        MAD{
+            "MAD",
+            "Dirham marroquí",
+        }
+        MAF{
+            "MAF" /** ===  */,
+            "Franco marroquí",
+        }
+        MXN{
+            "MX$",
+            "Peso mexicano",
+        }
+        MXP{
+            "MXP" /** ===  */,
+            "Peso de prata mexicano (1861-1992)",
+        }
+        MXV{
+            "MXV" /** ===  */,
+            "Unidade de inversión mexicana",
+        }
+        NIC{
+            "NIC" /** ===  */,
+            "Córdoba nicaragüense",
+        }
+        NIO{
+            "C$",
+            "Córdoba de ouro nicaragüense",
+        }
+        NLG{
+            "fl",
+            "Florín holandés",
+        }
+        NOK{
+            "Nkr",
+            "Coroa norueguesa",
+        }
+        PAB{
+            "B/.",
+            "Balboa panameño",
+        }
+        PEI{
+            "I/.",
+            "Inti peruano",
+        }
+        PEN{
+            "S/.",
+            "Sol novo peruano",
+        }
+        PES{
+            "PES" /** ===  */,
+            "Sol peruano",
+        }
+        PHP{
+            "₱",
+            "Peso filipino",
+        }
+        PTE{
+            "Esc",
+            "Escudo portugués",
+        }
+        PYG{
+            "₲",
+            "Guaraní paraguaio",
+        }
+        RUB{
+            "RUB",
+            "Rublo ruso",
+        }
+        RUR{
+            "RUR" /** ===  */,
+            "Rublo ruso (1991-1998)",
+        }
+        SEK{
+            "Skr",
+            "Coroa sueca",
+        }
+        SUR{
+            "SUR" /** ===  */,
+            "Rublo soviético",
+        }
+        SVC{
+            "SV₡",
+            "Colón salvadoreño",
+        }
+        USD{
+            "US$",
+            "Dólar estadounidense",
+        }
+        UYI{
+            "UYI" /** ===  */,
+            "Peso en unidades indexadas uruguaio",
+        }
+        UYP{
+            "UYP" /** ===  */,
+            "Peso uruguaio (1975-1993)",
+        }
+        UYU{
+            "$U",
+            "Peso uruguaio",
+        }
+        VEB{
+            "VEB" /** ===  */,
+            "Bolívar venezolano",
+        }
+        VEF{
+            "Bs.F.",
+            "Bolívar forte venezolano",
+        }
+        XAG{
+            "XAG",
+            "Prata",
+        }
+        XAU{
+            "XAU",
+            "Ouro",
+        }
+        XPD{
+            "XPD",
+            "Paladio",
+        }
+        XPT{
+            "XPT",
+            "Platino",
+        }
+        XXX{
+            "XXX",
+            "Unidade monetaria descoñecida ou non válida",
+        }
+        ZAR{
+            "R",
+            "Rand sudafricano",
+        }
+    }
+    CurrencyPlurals{
+        ADP{
+            one{"peseta andorrana"}
+            other{"pesetas andorranas"}
+        }
+        ARP{
+            one{"peso arxentino (ARP)"}
+            other{"pesos arxentinos (ARP)"}
+        }
+        ARS{
+            one{"peso arxentino"}
+            other{"pesos arxentinos"}
+        }
+        BEC{
+            one{"franco belga (convertible)"}
+            other{"francos belgas (convertibles)"}
+        }
+        BEF{
+            one{"franco belga"}
+            other{"francos belgas"}
+        }
+        BEL{
+            one{"franco belga (financeiro)"}
+            other{"francos belgas (financeiros)"}
+        }
+        BOB{
+            one{"boliviano"}
+            other{"bolivianos"}
+        }
+        BOP{
+            one{"peso boliviano"}
+            other{"pesos bolivianos"}
+        }
+        BRB{
+            one{"cruzeiro novo brasileiro"}
+            other{"cruzeiros novos brasileiros"}
+        }
+        BRC{
+            one{"cruzado brasileiro"}
+            other{"cruzados brasileiros"}
+        }
+        BRE{
+            one{"cruzeiro brasileiro (BRE)"}
+            other{"cruzeiros brasileiros (BRE)"}
+        }
+        BRL{
+            one{"real brasileiro"}
+            other{"reais brasileiros"}
+        }
+        BRN{
+            one{"cruzado novo brasileiro"}
+            other{"cruzados novos brasileiros"}
+        }
+        BRR{
+            one{"cruzeiro brasileiro"}
+            other{"cruzeiros brasileiros"}
+        }
+        CLF{
+            one{"unidade de fomento chilena"}
+            other{"unidades de fomento chilenas"}
+        }
+        CLP{
+            one{"peso chileno"}
+            other{"pesos chilenos"}
+        }
+        CNY{
+            one{"iuán chinés"}
+            other{"iuáns chineses"}
+        }
+        COP{
+            one{"peso colombiano"}
+            other{"pesos colombianos"}
+        }
+        CRC{
+            one{"colón costarricense"}
+            other{"colóns costarricenses"}
+        }
+        CUP{
+            one{"peso cubano"}
+            other{"pesos cubanos"}
+        }
+        DEM{
+            one{"marco alemán"}
+            other{"marcos alemáns"}
+        }
+        DOP{
+            one{"peso dominicano"}
+            other{"pesos dominicanos"}
+        }
+        ECS{
+            one{"sucre ecuatoriano"}
+            other{"sucres ecuatorianos"}
+        }
+        ESP{
+            one{"peseta"}
+            other{"pesetas"}
+        }
+        EUR{
+            one{"euro"}
+            other{"euros"}
+        }
+        FRF{
+            one{"franco francés"}
+            other{"francos franceses"}
+        }
+        GBP{
+            one{"libra esterlina"}
+            other{"libras esterlinas"}
+        }
+        GIP{
+            one{"libra xibraltareña"}
+            other{"libras xibraltareñas"}
+        }
+        IEP{
+            one{"libra irlandesa"}
+            other{"libras irlandesas"}
+        }
+        MXN{
+            one{"peso mexicano"}
+            other{"pesos mexicanos"}
+        }
+        PTE{
+            one{"escudo portugués"}
+            other{"escudos portugueses"}
+        }
+        PYG{
+            one{"guaraní do paraguai"}
+            other{"guaranís do paraguai"}
+        }
+        RUB{
+            one{"rublo ruso"}
+            other{"rublos rusos"}
+        }
+        SUR{
+            one{"rublo soviético"}
+            other{"rublos soviéticos"}
+        }
+        SVC{
+            one{"colón salvadoreño"}
+            other{"colóns salvadoreños"}
+        }
+        USD{
+            one{"dólar estadounidense"}
+            other{"dólares estadounidenses"}
+        }
+        UYU{
+            one{"peso uruguaio"}
+            other{"pesos uruguaios"}
+        }
+        VEB{
+            one{"bolívar venezolano"}
+            other{"bolívares venezolanos"}
+        }
+        VEF{
+            one{"bolívar forte venezolano"}
+            other{"bolívares fortes venezolanos"}
+        }
+        XXX{
+            one{"unidade monetaria descoñecida ou non válida"}
+            other{"unidades monetarias descoñecidas ou non válidas"}
+        }
+    }
+    CurrencyUnitPatterns{
+        one{"{0} {1}"}
+        other{"{0} {1}"}
+    }
+    Version{"2.0.47.53"}
+}

@@ -1,0 +1,427 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Boost Basic Linear Algebra</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" alt="logo"/>Basic Linear Algebra Library</h1>
+<div class="toc" id="toc"></div>
+
+<p>uBLAS is a C++ template class library that provides <a href="http://www.netlib.org/blas">BLAS</a> level 1, 2, 3
+functionality for dense, packed and sparse matrices. The design and implementation unify mathematical notation via
+operator overloading and efficient code generation via expression templates.</p>
+
+<h2>Functionality</h2>
+
+<p>uBLAS provides templated C++ classes for dense, unit and sparse vectors, dense, identity, triangular, banded,
+symmetric, hermitian and sparse matrices. Views into vectors and matrices can be constructed via ranges, slices, 
+adaptor classes and indirect arrays. The library covers the usual basic linear algebra operations on vectors and matrices: reductions like
+different norms, addition and subtraction of vectors and matrices and multiplication with a scalar, inner and outer
+products of vectors, matrix vector and matrix matrix products and triangular solver. The glue between containers, views
+and expression templated operations is a mostly <a href="http://www.sgi.com/tech/stl">STL</a> conforming iterator interface.</p>
+<p>Please consult the <a href="release_notes.htm">release notes</a> for details on the latest changes.</p>
+
+<h2>Documentation</h2>
+
+<ul>
+<li><big><a href="overview.htm">Overview</a></big>
+<ul>
+<li><a href="overview.htm#rationale">Rationale</a>
+</li>
+
+<li><a href="overview.htm#functionality">Functionality</a>
+</li>
+
+<li><a href="types_overview.htm">Overview of Matrix- and Vector-Types</a>
+</li>
+
+<li><a href="operations_overview.htm">Overview of Matrix and Vector Operations</a>
+</li>
+
+<li><a href="#further_information">Effective uBLAS and further information</a>
+</li>
+
+<li><a href="options.htm">Macros and Preprocessor Options</a>
+</li>
+</ul>
+</li>
+
+<li><a href="vector.htm">Vector</a>
+<ul>
+<li><a href="vector.htm#vector">Vector</a>
+</li>
+
+<li><a href="vector.htm#unit_vector">Unit Vector</a>
+</li>
+
+<li><a href="vector.htm#zero_vector">Zero Vector</a>
+</li>
+
+<li><a href="vector.htm#scalar_vector">Scalar Vector</a>
+</li>
+</ul>
+</li>
+
+<li><a href="vector_sparse.htm">Sparse Vector</a>
+<ul>
+<li><a href="vector_sparse.htm#mapped_vector">Mapped Vector</a>
+</li>
+
+<li><a href="vector_sparse.htm#compressed_vector">Compressed Vector</a>
+</li>
+
+<li><a href="vector_sparse.htm#coordinate_vector">Coordinate Vector</a>
+</li>
+</ul>
+</li>
+
+<li><a href="vector_proxy.htm">Vector Proxies</a>
+<ul>
+<li><a href="vector_proxy.htm#vector_range">Vector Range</a>
+</li>
+
+<li><a href="vector_proxy.htm#vector_slice">Vector Slice</a>
+</li>
+</ul>
+</li>
+
+<li><a href="vector_expression.htm">Vector Expressions</a>
+<ul>
+<li><a href="vector_expression.htm#vector_expression">Vector Expression</a>
+</li>
+
+<li><a href="vector_expression.htm#vector_references">Vector References</a>
+</li>
+
+<li><a href="vector_expression.htm#vector_operations">Vector Operations</a>
+</li>
+
+<li><a href="vector_expression.htm#vector_reductions">Vector Reductions</a>
+</li>
+</ul>
+</li>
+
+<li><a href="matrix.htm">Matrix</a>
+<ul>
+<li><a href="matrix.htm#matrix">Matrix</a>
+</li>
+
+<li><a href="matrix.htm#identity_matrix">Identity Matrix</a>
+</li>
+
+<li><a href="matrix.htm#zero_matrix">Zero Matrix</a>
+</li>
+
+<li><a href="matrix.htm#scalar_matrix">Scalar Matrix</a>
+</li>
+</ul>
+</li>
+
+<li><a href="triangular.htm">Triangular Matrix</a>
+<ul>
+<li><a href="triangular.htm#triangular_matrix">Triangular Matrix</a>
+</li>
+
+<li><a href="triangular.htm#triangular_adaptor">Triangular Adaptor</a>
+</li>
+</ul>
+</li>
+
+<li><a href="symmetric.htm">Symmetric Matrix</a>
+<ul>
+<li><a href="symmetric.htm#symmetric_matrix">Symmetric Matrix</a>
+</li>
+
+<li><a href="symmetric.htm#symmetric_adaptor">Symmetric Adaptor</a>
+</li>
+</ul>
+</li>
+
+<li><a href="hermitian.htm">Hermitian Matrix</a>
+<ul>
+<li><a href="hermitian.htm#hermitian_matrix">Hermitian Matrix</a>
+</li>
+
+<li><a href="hermitian.htm#hermitian_adaptor">Hermitian Adaptor</a>
+</li>
+</ul>
+</li>
+
+<li><a href="banded.htm">Banded Matrix</a>
+<ul>
+<li><a href="banded.htm#banded_matrix">Banded Matrix</a>
+</li>
+
+<li><a href="banded.htm#banded_adaptor">Banded Adaptor</a>
+</li>
+</ul>
+</li>
+
+<li><a href="matrix_sparse.htm">Sparse Matrix</a>
+<ul>
+<li><a href="matrix_sparse.htm#mapped_matrix">Mapped Matrix</a>
+</li>
+
+<li><a href="matrix_sparse.htm#compressed_matrix">Compressed Matrix</a>
+</li>
+
+<li><a href="matrix_sparse.htm#coordinate_matrix">Coordinate Matrix</a>
+</li>
+</ul>
+</li>
+
+<li><a href="matrix_proxy.htm">Matrix Proxies</a>
+<ul>
+<li><a href="matrix_proxy.htm#matrix_row">Matrix Row</a>
+</li>
+
+<li><a href="matrix_proxy.htm#matrix_column">Matrix Column</a>
+</li>
+
+<li><a href="matrix_proxy.htm#vector_range">Vector Range</a>
+</li>
+
+<li><a href="matrix_proxy.htm#vector_slice">Vector Slice</a>
+</li>
+
+<li><a href="matrix_proxy.htm#matrix_range">Matrix Range</a>
+</li>
+
+<li><a href="matrix_proxy.htm#matrix_slice">Matrix Slice</a>
+</li>
+</ul>
+</li>
+
+<li><a href="matrix_expression.htm">Matrix Expressions</a>
+<ul>
+<li><a href="matrix_expression.htm#matrix_expression">Matrix Expression</a>
+</li>
+
+<li><a href="matrix_expression.htm#matrix_references">Matrix References</a>
+</li>
+
+<li><a href="matrix_expression.htm#matrix_operations">Matrix Operations</a>
+</li>
+
+<li><a href="matrix_expression.htm#matrix_vector_operations">Matrix Vector Operations</a>
+</li>
+
+<li><a href="matrix_expression.htm#matrix_matrix_operations">Matrix Matrix Operations</a>
+</li>
+</ul>
+</li>
+
+<li>Storage and special containers
+
+<ul>
+<li><a href="unbounded_array.htm">Unbounded Array</a>
+</li>
+
+<li><a href="bounded_array.htm">Bounded Array</a>
+</li>
+
+<li><a href="range.htm#range">Range</a>
+</li>
+
+<li><a href="range.htm#slice">Slice</a>
+</li>
+</ul></li>
+
+<li><a href="storage_sparse.htm">Sparse Storage</a>
+<ul>
+<li><a href="storage_sparse.htm#map_std">Default Standard Map</a>
+</li>
+
+<li><a href="storage_sparse.htm#map_array">Map Array</a>
+</li>
+</ul>
+</li>
+
+<li>Operations &amp; Functions
+
+<ul>
+<li><a href="products.htm">Special Products</a>
+</li>
+
+<li><a href="blas.htm">BLAS</a>
+</li>
+</ul></li>
+
+<li>uBLAS Concept definitions
+
+<ul>
+<li><a href="container_concept.htm">Container Concepts</a>
+<ul>
+<li><a href="container_concept.htm#vector">Vector</a>
+</li>
+
+<li><a href="container_concept.htm#matrix">Matrix</a>
+</li>
+</ul>
+</li>
+
+<li><a href="expression_concept.htm">Expression Concepts</a>
+<ul>
+<li><a href="expression_concept.htm#scalar_expression">Scalar Expression</a>
+</li>
+
+<li><a href="expression_concept.htm#vector_expression">Vector Expression</a>
+</li>
+
+<li><a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+</li>
+</ul>
+</li>
+
+<li><a href="storage_concept.htm">Storage Concept</a>
+</li>
+
+<li><a href="iterator_concept.htm">Iterator Concepts</a>
+<ul>
+<li><a href="iterator_concept.htm#indexed_bidirectional_iterator">Indexed Bidirectional Iterator</a>
+</li>
+
+<li><a href="iterator_concept.htm#indexed_random_access_iterator">Indexed Random Access Iterator</a>
+</li>
+
+<li><a href="iterator_concept.htm#indexed_bidirectional_cr_iterator">Indexed Bidirectional Column/Row Iterator</a>
+</li>
+
+<li><a href="iterator_concept.htm#indexed_random_access_cr_iterator">Indexed Random Access Column/Row Iterator</a>
+</li>
+</ul>
+</li>
+</ul></li>
+</ul>
+
+<h2>API Reference Documentation</h2>
+A full Reference documenation is available on <a href="html/index.html">this page</a>.
+
+<h2>Supported Platforms</h2>
+
+<p>The current version of uBLAS expects a modern (ISO standard compliant) compiler. Compilers targeted and tested with
+this release are:</p>
+
+<ul>
+<li>GCC 3.2.3, 3.3.x, 3.4.x, 4.0.x</li>
+
+<li>MSVC 7.1, 8.0</li>
+
+<li>ICC 8.0, 8.1</li>
+
+<li>Visual age 6</li>
+
+<li>Codewarrior 9.4, 9.5</li>
+</ul>
+
+<p>The version of uBLAS in Boost 1.32.0 (and earlier) support many older compilers. If you are using such a compiler
+please use this version of uBLAS. Compilers known to accept this older library are:</p>
+
+<ul>
+<li>MSVC 6.0 with STLPort-4.5.3, 7.0, 7.1</li>
+
+<li>GCC 2.95.x, 3.0.x, 3.1.x, 3.2.x, 3.3.x, 3.4.x</li>
+
+<li>ICC 7.0, 7.1 8.0</li>
+
+<li>Comeau 4.2.x</li>
+
+<li>Codewarrior 8.3</li>
+</ul>
+
+<p>For possible problems please consider to consult the Boost regression tests.</p>
+<a name="further_information" id="further_information"></a>
+<h2>Known limitations:</h2>
+
+<ul type="disc">
+<li>The implementation assumes a linear memory address model.</li>
+
+<li>Tuning was focussed on dense matrices.</li>
+</ul>
+
+<h2>Further Information</h2>
+
+<h3>Project Location and Download</h3>
+
+<p>The latest stable release of uBLAS is part of the <a href="http://www.boost.org">Boost</a> libraries.</p>
+
+<h3>Documentation and Discussion</h3>
+
+<p>Visit the <a href="http://www.crystalclearsoftware.com/cgi-bin/boost_wiki/wiki.pl?Effective_UBLAS">Effective
+uBLAS</a> wiki for up to date information and contributions.</p>
+
+<p>There is also an active uBLAS <a href="http://lists.boost.org/">mailing list</a> where uBLAS specific user and
+development questions are answered.</p>
+
+<h3>uBLAS and Boost Project</h3>
+
+<p>There is also an active uBLAS <a href="http://lists.boost.org/">mailing list</a> where uBLAS specific from the
+latest uBLAS project code. You can <a href="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/boost">view</a> the Boost
+CVS archive directly. You will find the library <a href=
+"http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/boost/boost/boost/numeric/ublas/">here</a>. Documentation and test
+programs reside <a href="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/boost/boost/libs/numeric/ublas/">here</a>.</p>
+
+<h2>Authors and Credits</h2>
+
+<p>uBLAS initially was written by Joerg Walter and Mathias Koch. We would like to thank all, which supported and
+contributed to the development of this library: David Abrahams, Ed Brey, Fernando Cacciola, Juan Jose Gomez Cadenas,
+Beman Dawes, Matt Davies, Bob Fletcher, Kresimir Fresl, Joachim Kessel, Patrick Kowalzick, Toon Knapen, Hendrik Kueck,
+John Maddock, Jens Maurer, Alexei Novakov, Gary Powell, Joachim Pyras, Peter Schmitteckert, Jeremy Siek, Markus Steffl,
+Michael Stevens, Benedikt Weber, Martin Weiser, Gunter Winkler, Marc Zimmermann, David Bellot, Marco Guazzone, Nasos Iliopoulus, the members of <a href="http://www.boost.org">Boost</a> and all others contributors around the world. I promise I will try to add their names to this list.</p>
+
+<h2>Frequently Asked Questions</h2>
+
+<p>Q: Should I use uBLAS for new projects?<br/>
+A: At the time of writing (09/2012) there are a lot of good matrix libraries available, e.g., 
+<a href="http://www.simunova.com" target="_blank">MTL4</a>,
+<a href="http://arma.sourceforge.net" target="_blank">armadillo</a>,
+<a href="http://eigen.tuxfamily.org" target="_blank">eigen</a>. uBLAS offers a stable, well tested set of vector and 
+matrix classes, the typical operations for linear algebra and solvers for triangular systems of equations. uBLAS offers 
+dense, structured and sparse matrices - all using similar interfaces. And finally uBLAS offers good (but not outstanding) 
+performance. On the other side, the last major improvement of uBLAS was in 2008 and no significant change was committed 
+since 2009. So one should ask himself some questions to aid the decision: <i>Availability?</i> uBLAS is part of boost 
+and thus available in many environments. <i>Easy to use?</i> uBLAS is easy to use for simple things, but needs decent
+C++ knowledge when you leave the path. <i>Performance?</i> There are faster alternatives. <i>Cutting edge?</i> uBLAS 
+is more than 10 years old and missed all new stuff from C++11. </p>
+
+<p>Q: I'm running the uBLAS dense vector and matrix benchmarks. Why do I see a significant performance difference
+between the native C and library implementations?<br />
+A: uBLAS distinguishes debug mode (size and type conformance checks enabled, expression templates disabled) and release
+mode (size and type conformance checks disabled, expression templates enabled). Please check, if the preprocessor
+symbol <code>NDEBUG</code> of <code>cassert</code> is defined. <code>NDEBUG</code> enables release mode, which in turn
+uses expression templates. You can optionally define <code>BOOST_UBLAS_NDEBUG</code> to disable all bounds, structure
+and similar checks of uBLAS.</p>
+
+<p>Q: I've written some uBLAS tests, which try to incorrectly assign different matrix types or overrun vector and
+matrix dimensions. Why don't I get a compile time or runtime diagnostic?<br />
+A: uBLAS distinguishes debug mode (size and type conformance checks enabled, expression templates disabled) and release
+mode (size and type conformance checks disabled, expression templates enabled). Please check, if the preprocessor
+symbol <code>NDEBUG</code> of <code>cassert</code> is defined. <code>NDEBUG</code> disables debug mode, which is needed
+to get size and type conformance checks.</p>
+
+<p>Q: I've written some uBLAS benchmarks to measure the performance of matrix chain multiplications like <code>prod (A,
+prod (B, C))</code> and see a significant performance penalty due to the use of expression templates. How can I disable
+expression templates?<br />
+A: You do not need to disable expression templates. Please try reintroducing temporaries using either <code>prod
+(A,</code> <code><em>matrix_type</em></code> <code>(prod (B, C)))</code> or <code>prod (A,
+prod&lt;</code><code><em>matrix_type</em></code> <code>&gt; (B, C))</code>.</p>
+
+<hr />
+
+<p>Copyright (&copy;) 2000-2010 Joerg Walter, Mathias Koch, Gunter Winkler, David Bellot<br />
+Use, modification and distribution are subject to the Boost Software License, Version 1.0. (See accompanying file
+LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>
+).</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

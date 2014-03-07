@@ -1,0 +1,64 @@
+{
+  "name": "clean-css",
+  "version": "2.0.8",
+  "author": "Jakub Pawlowicz <jakub@goalsmashers.com> (http://twitter.com/GoalSmashers)",
+  "description": "A well-tested CSS minifier",
+  "license": "MIT",
+  "keywords": [
+    "css",
+    "minifier"
+  ],
+  "homepage": "https://github.com/GoalSmashers/clean-css",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoalSmashers/clean-css.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GoalSmashers/clean-css/issues"
+  },
+  "bin": {
+    "cleancss": "./bin/cleancss"
+  },
+  "main": "index.js",
+  "files": [
+    "bin",
+    "lib",
+    "History.md",
+    "index.js",
+    "LICENSE"
+  ],
+  "scripts": {
+    "bench": "node ./test/bench.js",
+    "check": "jshint .",
+    "prepublish": "jshint .",
+    "test": "vows"
+  },
+  "dependencies": {
+    "commander": "2.0.x"
+  },
+  "devDependencies": {
+    "jshint": "2.3.x",
+    "vows": "0.7.x"
+  },
+  "jshintConfig": {
+    "browser": false,
+    "camelcase": true,
+    "curly": false,
+    "eqeqeq": false,
+    "eqnull": true,
+    "immed": true,
+    "latedef": true,
+    "multistr": true,
+    "noarg": true,
+    "node": true,
+    "plusplus": false,
+    "quotmark": "single",
+    "strict": false,
+    "trailing": true,
+    "undef": true,
+    "unused": true
+  },
+  "engines": {
+    "node": ">=0.8.0"
+  }
+}

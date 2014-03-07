@@ -1,0 +1,88 @@
+[article Anchor Test
+[quickbook 1.6]
+]
+
+[section Anchors]
+
+[#a1] A paragraph containing several anchors. [#a2] We want to make sure
+they appear in the correct place. [#a3]
+
+[heading This heading shouldn't pick up the previous anchor]
+
+[#a4]
+
+[heading This heading should pick up the previous anchor]
+
+[#a5]
+[heading And this one]
+
+[#a6][heading Also this one]
+
+[#a7][h3 Finally this]
+
+[#a8]
+
+[endsect]
+
+[#a9]
+[section Section Anchor]
+[#a10][section Nested Section]
+[endsect]
+[/ This anchor is invalid, I'm not sure what to do with it]
+[#a11]
+[endsect]
+
+[#a12][?__not_defined__ #a13]
+[section Conditional Section Anchor]
+[endsect]
+
+[section Lists]
+
+[#a14]
+* Item 1
+* Item 2
+* Nested List
+  [#a15]
+  * Nested Item 1
+  * Nested Item 2
+  * [#a16] Nested Item 3
+* Item 3
+
+[endsect]
+
+[section Anchors in templates]
+
+[template anchor1[][#t1]]
+[template para[] Text content]
+
+[anchor1]
+
+Some text.
+
+[#t2]
+
+[para]
+
+[endsect]
+
+[section Anchors in syntax highlighted code]
+
+    int ``[#s1]``main() {}
+
+[endsect]
+
+[section Nested anchors]
+
+[table Table with anchors
+    [[Heading]]
+    [[[#table1]Cell 1]]
+    [[[#table2] Cell 2]]
+    [[Cell 3[#table3]]]
+]
+[endsect]
+
+[section Anchors with escapes]
+
+[#\[oddid\]]
+
+[endsect]

@@ -1,0 +1,100 @@
+[/
+    Boost.Optional
+
+    Copyright (c) 2003-2007 Fernando Luis Cacciola Carballal
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section bounds<> traits class]
+
+[section Introduction]
+
+To determine the ranges of numeric types with `std::numeric_limits` \[18.2.1\],
+different syntax have to be used depending on numeric type. Specifically,
+`numeric_limits<T>::min()` for integral types returns the minimum finite value,
+whereas for floating point types it returns the minimum positive normalized
+value. The difference in semantics makes client code unnecessarily complex
+and error prone.
+
+`boost::numeric::bounds<>` provides a consistent interface for retrieving the
+maximum finite value, the minimum finite value and the minimum positive normalized
+value (0 for integral types) for numeric types. The selection of implementation
+is performed at compile time, so there is no runtime overhead.
+
+[endsect]
+
+[section traits class bounds<N>]
+
+    template<class N>
+    struct bounds
+    {
+        static N lowest  () { return implementation_defined; }
+        static N highest () { return implementation_defined; }
+        static N smallest() { return implementation_defined; }
+    };
+
+[heading Members]
+
+
+[: `lowest()` ]
+
+Returns the minimum finite value, equivalent to `numeric_limits<T>::min()` when `T`
+is an integral type, and to `-numeric_limits<T>::max()` when `T` is a floating point type.
+
+[: `highest()` ]
+
+Returns the maximum finite value, equivalent to `numeric_limits<T>::max()`.
+
+[: `smallest()` ]
+
+Returns the smallest positive normalized value for floating point types with
+denormalization, or returns 0 for integral types.
+
+[endsect]
+
+[section Examples]
+
+The following example demonstrates the use of `numeric::bounds<>` and the
+equivalent code using `numeric_limits`:
+
+    #include <iostream>
+
+    #include <boost/numeric/conversion/bounds.hpp>
+    #include <boost/limits.hpp>
+
+    int main() {
+
+        std::cout << "numeric::bounds versus numeric_limits example.\n";
+
+        std::cout << "The maximum value for float:\n";
+        std::cout << boost::numeric::bounds<float>::highest() << "\n";
+        std::cout << std::numeric_limits<float>::max() << "\n";
+
+        std::cout << "The minimum value for float:\n";
+        std::cout << boost::numeric::bounds<float>::lowest() << "\n";
+        std::cout << -std::numeric_limits<float>::max() << "\n";
+
+        std::cout << "The smallest positive value for float:\n";
+        std::cout << boost::numeric::bounds<float>::smallest() << "\n";
+        std::cout << std::numeric_limits<float>::min() << "\n";
+
+        return 0;
+    }
+
+
+[endsect]
+
+[endsect]
+
+
+
+
+
+
+
+
+
+

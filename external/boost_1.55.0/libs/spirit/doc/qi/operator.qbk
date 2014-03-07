@@ -1,0 +1,890 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section:operator Parser Operators]
+
+Operators are used as a means for object composition and embedding.
+Simple parsers may be composed to form composites through operator
+overloading, crafted to approximate the syntax of __peg__ (PEG). An
+expression such as:
+
+    a | b
+
+yields a new parser type which is a composite of its operands, `a` and
+`b`.
+
+This module includes different parsers which get instantiated if one of
+the overloaded operators is used with more primitive parser constructs.
+It includes Alternative (`|`), And-predicate (unary `&`), Difference
+(`-`), Expect (`>`), Kleene star (unary `*`), Lists (`%`), Not-predicate (`!`),
+Optional (unary `-`), Permutation (`^`), Plus (unary
+`+`), Sequence (`>>`), and Sequential-Or (`||`).
+
+[heading Module Header]
+
+    // forwards to <boost/spirit/home/qi/operator.hpp>
+    #include <boost/spirit/include/qi_operator.hpp>
+
+Also, see __include_structure__.
+
+[/------------------------------------------------------------------------------]
+[section:alternative Alternative Parser (`a | b`)]
+
+[heading Description]
+
+The alternative operator, `a | b`, matches one of two or more operands
+(`a`, `b`, ... etc.):
+
+    a | b | ...
+
+Alternative operands are tried one by one on a first-match-wins basis
+starting from the leftmost operand. After a successfully matched
+alternative is found, the parser concludes its search, essentially
+short-circuiting the search for other potentially viable candidates.
+This short-circuiting implicitly gives the highest priority to the
+leftmost alternative.
+
+Short-circuiting is done in the same manner as C or C++'s logical
+expressions; e.g. `if (x < 3 || y < 2)` where, if `x < 3`, the `y < 2`
+test is not done at all. In addition to providing an implicit priority
+rule for alternatives which is necessary, given its non-deterministic
+nature, short-circuiting improves the execution time. If the order of
+your alternatives is logically irrelevant, strive to put the (expected)
+most common choice first for maximum efficiency.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/alternative.hpp>
+    #include <boost/spirit/include/qi_alternative.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__nary_parser_concept__]
+
+[variablelist Notation
+    [[`a`, `b`]     [A __parser_concept__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __nary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`a | b`]          [Match `a` or `b`.]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`a | b`]
+[``a: A, b: B --> (a | b): variant<A, B>
+a: A, b: Unused --> (a | b): optional<A>
+a: A, b: B, c: Unused --> (a | b | c): optional<variant<A, B> >
+a: Unused, b: B --> (a | b): optional<B>
+a: Unused, b: Unused --> (a | b): Unused
+a: A, b: A --> (a | b): A``]]
+]
+
+[note Alternative parsers do not roll back changes made to the outer attribute
+      because of a failed alternative. If you need to enforce that only the
+      succeeded alternative changes the outer attribute please utilize the
+      directive __qi_hold__`[]`.]
+
+[heading Complexity]
+
+[:The overall complexity of the alternative parser is defined by the sum
+of the complexities of its elements. The complexity of the alternative
+parser itself is O(N), where N is the number of alternatives.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+Some using declarations:
+
+[reference_using_declarations_alternative]
+
+[reference_alternative]
+
+[endsect] [/ Alternative]
+
+[/------------------------------------------------------------------------------]
+[section:and_predicate And-Predicate Parser (`&a`)]
+
+[heading Description]
+
+Syntactic predicates assert a certain conditional syntax to be satisfied
+before evaluating another production. Similar to semantic predicates,
+__qi_eps__, syntactic predicates do not consume any input. The /and-predicate/,
+`&a`, is a positive syntactic predicate that returns a zero
+length match only if its predicate matches.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/and_predicate.hpp>
+    #include <boost/spirit/include/qi_and_predicate.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__unary_parser_concept__]
+
+[variablelist Notation
+    [[`a`]      [A __parser_concept__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __unary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`&a`]             [If the predicate `a` matches, return a zero
+                        length match. Otherwise, fail.]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`&a`]             [__unused_type__]]
+]
+
+[heading Complexity]
+
+[:The complexity is defined by the complexity of the predicate, `a`]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+[reference_and_predicate]
+
+[endsect] [/ And Predicate]
+
+[/------------------------------------------------------------------------------]
+[section:difference Difference Parser (`a - b`)]
+
+[heading Description]
+
+The difference operator, `a - b`, is a binary operator that matches the
+first (LHS) operand but not the second (RHS). [footnote Unlike classic
+Spirit, with Spirit2, the expression will always fail if the RHS is a
+successful match regardless if the RHS matches less characters. For
+example, the rule `lit("policeman") - "police"` will always fail to
+match. Spirit2 does not count the matching chars while parsing and there
+is no reliable and fast way to check if the LHS matches more than the
+RHS.]
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/difference.hpp>
+    #include <boost/spirit/include/qi_difference.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__binary_parser_concept__]
+
+[variablelist Notation
+    [[`a`, `b`]     [A __parser_concept__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __binary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`a - b`]          [Parse `a` but not `b`.]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`a - b`]
+[``a: A, b: B --> (a - b): A
+a: Unused, b: B --> (a - b): Unused``]]
+]
+
+[heading Complexity]
+
+[:The complexity of the difference parser is defined by the sum of the
+complexities of both operands.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+[reference_difference]
+
+[endsect] [/ Difference]
+
+[/------------------------------------------------------------------------------]
+[section:expect Expectation Parser (`a > b`)]
+
+[heading Description]
+
+There are occasions in which it is expected that the input must match a
+particular parser or the input is invalid. Such cases generally arise
+after matching a portion of a grammar, such that the context is fully
+known. In such a situation, failure to match should result in an
+exception. For example, when parsing an e-mail address, after matching a
+name and "@" there must be a domain name or the address is invalid.
+
+The expectation operator (>) requires that the following parser match
+the input or an exception is emitted. Using on_error(), that exception
+can be handled by calling a handler with the context at which the
+parsing failed can be reported.
+
+By contrast, the follows operator (>>) does not require that the
+following parser match the input, which allows for backtracking or
+simply returning false from the parse() function with no exceptions.
+
+Like the __qi_sequence__, the expectation operator, `a > b`, parses two or
+more operands (`a`, `b`, ... etc.), in sequence:
+
+    a > b > ...
+
+However, while the plain __qi_sequence__ simply returns a no-match
+(returns `false`) when one of the elements fail, the expectation: `>`
+operator throws an __qi_expectation_failure__`<Iter>` when the second or
+succeeding operands (all operands except the first) fail to match.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/expect.hpp>
+    #include <boost/spirit/include/qi_expect.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__nary_parser_concept__]
+
+[variablelist Notation
+    [[`a`, `b`]     [A __parser_concept__]]
+    [[`Iter`]       [A __fwditer__ type]]
+]
+
+[heading Expectation Failure]
+
+When any operand, except the first, fail to match an
+`expectation_failure<Iter>` is thrown:
+
+    template <typename Iter>
+    struct expectation_failure : std::runtime_error
+    {
+        Iter first;           // [first, last) iterator pointing
+        Iter last;            // to the error position in the input.
+        __info__ what_;       // Information about the nature of the error.
+    };
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __nary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`a > b`]          [Match `a` followed by `b`. If `a` fails, no-match.
+                        If `b` fails, throw an `expectation_failure<Iter>`]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`a > b`]
+[``a: A, b: B --> (a > b): tuple<A, B>
+a: A, b: Unused --> (a > b): A
+a: Unused, b: B --> (a > b): B
+a: Unused, b: Unused --> (a > b): Unused
+
+a: A, b: A --> (a > b): vector<A>
+a: vector<A>, b: A --> (a > b): vector<A>
+a: A, b: vector<A> --> (a > b): vector<A>
+a: vector<A>, b: vector<A> --> (a > b): vector<A>``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of the expectation parser is defined by the sum
+of the complexities of its elements. The complexity of the expectation
+operator itself is O(N), where N is the number of elements in the
+sequence.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+Some using declarations:
+
+[reference_using_declarations_expect]
+
+[reference_expect]
+
+[endsect] [/ Expectation]
+
+[/------------------------------------------------------------------------------]
+[section:kleene Kleene Parser (`*a`)]
+
+[heading Description]
+
+The kleene operator, `*a`, is a unary operator that matches its operand
+zero or more times.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/kleene.hpp>
+    #include <boost/spirit/include/qi_kleene.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__unary_parser_concept__]
+
+[variablelist Notation
+    [[`a`]      [A __parser_concept__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __unary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`*a`]             [Match `a` zero or more times.]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`*a`]
+[``a: A --> *a: vector<A>
+a: Unused --> *a: Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of the Kleene star is defined by the complexity
+of its subject, `a`, multiplied by the number of repetitions. The
+complexity of the Kleene star itself is O(N), where N is the number
+successful repetitions.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+[reference_kleene]
+
+[endsect] [/ Kleene]
+
+[/------------------------------------------------------------------------------]
+[section:list List Parser (`a % b`)]
+
+[heading Description]
+
+The list operator, `a % b`, is a binary operator that matches a list of
+one or more repetitions of `a` separated by occurrences of `b`. This is
+equivalent to `a >> *(b >> a)`.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/list.hpp>
+    #include <boost/spirit/include/qi_list.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__binary_parser_concept__]
+
+[variablelist Notation
+    [[`a`, `b`]     [A __parser_concept__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __binary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`a % b`]          [Match a list of one or more repetitions of `a`
+                        separated by occurrences of `b`. This is equivalent
+                        to `a >> *(b >> a)`.]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`a % b`]
+[``a: A, b: B --> (a % b): vector<A>
+a: Unused, b: B --> (a % b): Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of the List is defined by the complexity of its
+subject, `a`, multiplied by the number of repetitions. The complexity of
+the List itself is O(N), where N is the number successful repetitions.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+[reference_list]
+
+[endsect] [/ List]
+
+[/------------------------------------------------------------------------------]
+[section:not_predicate Not-Predicate Parser (`!a`)]
+
+[heading Description]
+
+Syntactic predicates assert a certain conditional syntax to be satisfied
+before evaluating another production. Similar to semantic predicates,
+__qi_eps__, syntactic predicates do not consume any input. The /not-predicate/,
+`!a`, is a negative syntactic predicate that returns a zero
+length match only if its predicate fails to match.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/not_predicate.hpp>
+    #include <boost/spirit/include/qi_not_predicate.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__unary_parser_concept__]
+
+[variablelist Notation
+    [[`a`]      [A __parser_concept__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __unary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`!a`]             [If the predicate `a` matches, fail. Otherwise,
+                        return a zero length match.]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`!a`]             [__unused_type__]]
+]
+
+[heading Complexity]
+
+[:The complexity is defined by the complexity of the predicate, `a`]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+[reference_not_predicate]
+
+[endsect] [/ Not Predicate]
+
+[/------------------------------------------------------------------------------]
+[section:optional Optional Parser (`-a`)]
+
+[heading Description]
+
+The optional operator, `-a`, is a unary operator that matches its
+operand zero or one time.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/optional.hpp>
+    #include <boost/spirit/include/qi_optional.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__unary_parser_concept__]
+
+[variablelist Notation
+    [[`a`]      [A __parser_concept__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __unary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`-a`]             [Match `a` zero or one time.]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`-a`]
+[``a: A --> -a: optional<A>
+a: Unused --> -a: Unused``]]
+]
+
+[heading Complexity]
+
+[:The complexity is defined by the complexity of the operand, `a`]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+[reference_optional]
+
+[endsect] [/ Optional]
+
+[/------------------------------------------------------------------------------]
+[section:permutation Permutation Parser (`a ^ b`)]
+
+[heading Description]
+
+The permutation operator, `a ^ b`, matches one or more operands (`a`, `b`,
+... etc.) in any order:
+
+    a ^ b ^ ...
+
+The operands are the elements in the permutation set. Each element in
+the permutation set may occur at most once, but not all elements of the
+given set need to be present. Note that by this definition, the
+permutation operator is not limited to strict permutations.
+
+For example:
+
+     char_('a') ^ 'b' ^ 'c'
+
+matches:
+
+     "a", "ab", "abc", "cba", "bca" ... etc.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/permutation.hpp>
+    #include <boost/spirit/include/qi_permutation.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__nary_parser_concept__]
+
+[variablelist Notation
+    [[`a`, `b`]     [A __parser_concept__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __nary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`a ^ b`]          [Match `a` or `b` in any order. Each operand
+                        may match zero or one time as long as at least
+                        one operand matches.]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`a ^ b`]
+[``a: A, b: B --> (a ^ b): tuple<optional<A>, optional<B> >
+a: A, b: Unused --> (a ^ b): optional<A>
+a: Unused, b: B --> (a ^ b): optional<B>
+a: Unused, b: Unused --> (a ^ b): Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of the permutation parser is defined by the sum
+of the complexities of its elements, s, multiplied by log s. The
+complexity of the permutation parser itself is O(N log N), where N is
+the number of elements.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+Some using declarations:
+
+[reference_using_declarations_permutation]
+
+[reference_permutation]
+
+[endsect] [/ Permutation]
+
+[/------------------------------------------------------------------------------]
+[section:plus Plus Parser (`+a`)]
+
+[heading Description]
+
+The plus operator, `+a`, is a unary operator that matches its operand one
+or more times.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/plus.hpp>
+    #include <boost/spirit/include/qi_plus.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__unary_parser_concept__]
+
+[variablelist Notation
+    [[`a`]      [A __parser_concept__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __unary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`+a`]             [Match `a` one or more times.]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`+a`]
+[``a: A --> +a: vector<A>
+a: Unused --> +a: Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of the Plus is defined by the complexity of its
+subject, `a`, multiplied by the number of repetitions. The complexity of
+the Plus itself is O(N), where N is the number successful repetitions.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+[reference_plus]
+
+[endsect] [/ Plus]
+
+[/------------------------------------------------------------------------------]
+[section:sequence Sequence Parser (`a >> b`)]
+
+[heading Description]
+
+The sequence operator, `a >> b`, parses two or more operands (`a`,
+`b`, ... etc.), in sequence:
+
+    a >> b >> ...
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/sequence.hpp>
+    #include <boost/spirit/include/qi_sequence.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__nary_parser_concept__]
+
+[variablelist Notation
+    [[`a`, `b`]     [A __parser_concept__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __nary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`a >> b`]         [Match `a` followed by `b`.]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`a >> b`]
+[``a: A, b: B --> (a >> b): tuple<A, B>
+a: A, b: Unused --> (a >> b): A
+a: Unused, b: B --> (a >> b): B
+a: Unused, b: Unused --> (a >> b): Unused
+
+a: A, b: A --> (a >> b): vector<A>
+a: vector<A>, b: A --> (a >> b): vector<A>
+a: A, b: vector<A> --> (a >> b): vector<A>
+a: vector<A>, b: vector<A> --> (a >> b): vector<A>``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of the sequence parser is defined by the sum of
+the complexities of its elements. The complexity of the sequence itself
+is O(N), where N is the number of elements in the sequence.]
+
+[heading Example]
+
+Some using declarations:
+
+[reference_using_declarations_sequence]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+[reference_sequence]
+
+[endsect] [/ Sequence]
+
+[/------------------------------------------------------------------------------]
+[section:sequential_or Sequential Or Parser (`a || b`)]
+
+[heading Description]
+
+The sequential-or operator, `a || b`, matches `a` or `b` or `a` followed
+by `b`.  That is, if both `a` and `b` match, it must be in sequence; this
+is equivalent to `a >> -b | b`:
+
+    a || b || ...
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/sequential_or.hpp>
+    #include <boost/spirit/include/qi_sequential_or.hpp>
+
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__nary_parser_concept__]
+
+[variablelist Notation
+    [[`a`, `b`]     [A __parser_concept__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __nary_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`a || b`]         [Match `a` or `b` in sequence. equivalent to `a >> -b | b`]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`a || b`]
+[``a: A, b: B --> (a || b): tuple<optional<A>, optional<B> >
+a: A, b: Unused --> (a || b): optional<A>
+a: Unused, b: B --> (a || b): optional<B>
+a: Unused, b: Unused --> (a || b): Unused
+
+a: A, b: A --> (a || b): vector<optional<A> >``]]
+]
+
+[note The sequential-or parser behaves attribute-wise very similar to the
+      plain sequence parser (`a >> b`) in the sense that it exposes the
+      attributes of its elements separately. For instance, if you attach a
+      semantic action to the whole sequential-or:
+      ``
+          (int_ || int_)[print_pair(_1, _2)]
+      ``
+      the function object `print_pair` would be invoked with the
+      attribute of the first `int_` (`boost::optional<int>`) as its first
+      parameter and the attribute of the second `int_` (`boost::optional<int>`
+      as well) as its second parameter.]
+
+[heading Complexity]
+
+[:The overall complexity of the sequential-or parser is defined by the
+sum of the complexities of its elements. The complexity of the
+sequential-or itself is O(N), where N is the number of elements in the
+sequence.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+Some using declarations:
+
+[reference_using_declarations_sequential_or]
+
+[reference_sequential_or]
+
+[endsect] [/ Sequential Or]
+
+[endsect]

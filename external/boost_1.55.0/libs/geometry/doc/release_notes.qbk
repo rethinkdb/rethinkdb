@@ -1,0 +1,241 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2013 Barend Gehrels, Geodan, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2013 Mateusz Loskot (mateusz@loskot.net)
+  Copyright (c) 2009-2013 Mateusz Lalande, Paris, France.
+  Copyright (c) 2011-2013 Adam Wulkiewicz
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:release_notes Release Notes]
+
+[/=================]
+[heading Boost 1.55]
+[/=================]
+
+[*Additional functionality]
+
+* Added centroid for segment type
+* Added intersects() and disjoints() for Segment-Box and Linestring-Box
+* Added rtree creation using packing algorithm
+* Added contains() and covers() spatial query predicates
+* Added iterative queries
+
+[*Documentation]
+
+[*Bugfixes]
+
+* In some cases .back() or .clear() was called, violating the usage of Concepts. Fixed for the reported cases
+
+[*Solved tickets]
+
+* [@https://svn.boost.org/trac/boost/ticket/6958 6958] Intersection generates self-intersection. Caused by spike, fixed
+* [@https://svn.boost.org/trac/boost/ticket/8364 8364] Invalid input exception, caused by spikes in previous steps, fixed
+* [@https://svn.boost.org/trac/boost/ticket/8365 8365] Invalid input exception, caused by spikes in previous steps, fixed
+* [@https://svn.boost.org/trac/boost/ticket/8969 8969] boost::geometry::model::point single argument constructor should be explicit
+* [@https://svn.boost.org/trac/boost/ticket/8825 8825] Patch adding member variable documentation to doxygen_xml2qbk
+* [@https://svn.boost.org/trac/boost/ticket/8652 8652] Intersection fails for triangle-triangle intersection. Caused by spike, fixed
+* [@https://svn.boost.org/trac/boost/ticket/9047 9047] Boost files that include themselves (strategies/intersection.hpp), fixed
+
+[*Internal changes]
+
+* Distance-strategy TODO
+* Transform-strategy TODO
+* Spikes (could be generated in difference) in integer-based overlays are now avoided during generation
+* Cleanup, removed old MSVC2005 project files, let all tests pass green (also in extensions)
+* R*-tree balancing algorithm optimized
+
+[/=================]
+[heading Boost 1.54]
+[/=================]
+
+[*Additional functionality]
+
+* added Spatial Index, developed for Boost.Geometry by Adam Wulkiewicz. The spatial index was originally started by Federico J. Fernandez during the Google Summer of Code 2008 program, mentored by Hartmut Kaiser.
+* added SVG-output, this was already in extensions for several years
+
+[*Documentation]
+
+* small fixes of missing words
+* fixes in doc of template parameters (convex_hull, exterior_ring, return_buffer)
+
+[*Bugfixes]
+
+* collinear opposite segments did sometimes (in circles) have a robustness issue, fixed
+* fixed insertion of false intersection point (found by buffer)
+* applied patch of Vladimir Petrovic for debugging traversals
+
+
+[*Solved tickets]
+
+* [@https://svn.boost.org/trac/boost/ticket/7462 7462] degenerate union result for float, fixed
+* [@https://svn.boost.org/trac/boost/ticket/7465 7465] wrong construtors access type in scale_transformer class, fixed
+* [@https://svn.boost.org/trac/boost/ticket/7802 7802] cart_intersect.hpp unused parameter warnings, fixed
+* [@https://svn.boost.org/trac/boost/ticket/8254 8254] faulty intersection, fixed
+* [@https://svn.boost.org/trac/boost/ticket/8393 8393] polygon model doesn't adhere to stated Polygon concept rules, doc updated.
+* [@https://svn.boost.org/trac/boost/ticket/8403 8403] silenced compiler warning C4127: conditional expression is constant
+* [@https://svn.boost.org/trac/boost/ticket/8405 8405] silenced compiler warning C4189: '...' : local variable is initialized but not referenced
+
+[*Internal changes]
+
+* Made several algorithms variant-aware (append, area, clear, convert, equals, length, num_points)
+
+
+[/=================]
+[heading Boost 1.53]
+[/=================]
+
+[*Bugfixes]
+
+* avoid generating output polygons with interior rings below minimum size (e.g. one or two points)
+* `geometry::disjoint` for degenerate segments (patched by Karsten Ahnert)
+* problem in `geometry::difference` for missing handling tangency, reported by H2
+* fixed `geometry::for_each` for use with Lambda's
+* fixed `geometry::comparable_distance` point-linestring (and -range, -polygon)
+
+[*Additional functionality]
+
+* combinations for `geometry::disjoint`: point/ring, point/polygon, point/multi_polygon
+* combinations for `geometry::intersects`: point/ring, point/polygon, point/multi_polygon
+
+[*Internal changes]
+
+* updates in specializations/not_implemented for various algorithms (as in an earlier version, these changes are still going on; they take care for simplified structs, better error reporting, and automatized documentation)
+* fixes in unit tests
+
+[/=================]
+[heading Boost 1.51]
+[/=================]
+
+[*Breaking changes]
+
+* points accessed through a pointer (e.g. in a linestring) should now be specialized without the pointer. In previous versions a type `my_point` used like `linestring<my_point*>` had to be specalized like: `template<> struct tag<my_point*>`. Now the library itself removes the pointer before calling the traits class, so now it should be like: `template<> struct tag<my_point>`
+
+[*Bugfixes]
+
+* intersection was sometimes wrong for integer points, fixed
+* documentation, order of parameters in simplify was wrong, fixed
+
+[*Solved tickets]
+
+* [@https://svn.boost.org/trac/boost/ticket/7030 7030] spherical distance, fixed (by patch of Karsten Ahnert)
+
+
+[/=================]
+[heading Boost 1.50]
+[/=================]
+
+[*Bugfixes]
+
+* the return type of comparable projected point strategy for integer points was wrong (integer), fixed
+* several robustness issues in intersection of segments and polygons, fixed
+* invalid intersection output is filtered out
+* disjoint for multi_polygon's might incorrectly return true, fixed
+
+[*Solved tickets]
+
+* [@https://svn.boost.org/trac/boost/ticket/6585 6585] patch for alternative syntax multipoint, applied
+* [@https://svn.boost.org/trac/boost/ticket/6584 6584] patch for bug in distance, applied
+* [@https://svn.boost.org/trac/boost/ticket/5730 5730] same issue as 6584, fixed
+* [@https://svn.boost.org/trac/boost/ticket/6166 6166] patch for missing transformation, applied
+* [@https://svn.boost.org/trac/boost/ticket/6696 6696] invalid intersection output, was (by chance) already fixed in Trunk before reported
+
+[*Additional functionality]
+
+* added algorithm "touches" (OGC SF compliant) for *polygon/*polygon
+
+[/=================]
+[heading Boost 1.49]
+[/=================]
+
+[*Breaking changes]
+
+* point_xy was accidentally included in one of the headerfiles. If the point_xy class is used, it should be included explicitly now.
+
+[*Bugfixes]
+
+* bugfix: distance for multi-geometries ignored specified distance strategy. Fixed
+* bugfix: difference for polygon/multi_polygon (reported 2011/10/24 on GGL-list)
+* bugfix: raise exception for calculation of distances of multi-geometrie(s) where one of them is empty
+* bugfix: multi DSV did not correctly use settings, fixed
+* bugfix: self-intersections could sometimes be missed (introduced in 1.48), fixed
+* bugfix: convex hull crashed on empty range (e.g. empty multi point), fixed
+* bugfix: area/centroid/side/intersection/distance did not work for "int" type filled with large (but not overflowing) integers. Fixed.
+* bugfix: disjoint/intersect did not work for degenerate linestrings. Fixed.
+* bugfix: covered_by did not compile for a ring. Fixed.
+
+[*Solved tickets]
+
+* [@https://svn.boost.org/trac/boost/ticket/6019 6019] convex_hull / area, fixed.
+* [@https://svn.boost.org/trac/boost/ticket/6021 6021] convex_hull / append (multipoint), fixed.
+* [@https://svn.boost.org/trac/boost/ticket/6028 6028] Documentation: closure, fixed.
+* [@https://svn.boost.org/trac/boost/ticket/6178 6178] Missing headerfile, fixed.
+
+[*Additional functionality]
+
+* support for line/polygon intersections and differences
+* support for convert of segment/box of different point types
+* support for append for multi point
+* the scalar function distance now throws an empty_input_exception on empty input
+
+[*Documentation]
+
+* updated support status in several algorithms
+* updated conformance to OGC or std
+* other updates and fixes
+
+[*Internal changes]
+
+* updates in specializations/not_implemented for distance/convert/assign/area/with/covered_by
+* move of wkt/dsv to io folder, making domains redundant
+* warnings: strategy concepts assigned to zero to avoid clang warnings (patched by Vishnu)
+* warnings: there were several unused parameters, for which gcc/clang warned (patched by Christophe)
+
+[/=================]
+[heading Boost 1.48]
+[/=================]
+
+[*Bugfixes]
+
+* Robustness issue, in some circumstances the union failed to output. Fixed.
+* Robustness issue, in some circumstances the calculated intersection point was outside the segment. Fixed.
+* Concept issue, cartesian intersect didn't understand segments other than the provided one. Fixed.
+* Sometimes self-intersections in linestrings were missed. Fixed.
+* The fusion coordinate system was not registered correctly. Fixed.
+
+[*Solved tickets]
+
+* [@https://svn.boost.org/trac/boost/ticket/5726 5726] Segment intersection algorithm still assumes 'first', 'second' members
+* [@https://svn.boost.org/trac/boost/ticket/5744 5744] Mistake in fusion adapt example
+* [@https://svn.boost.org/trac/boost/ticket/5748 5748] Needed to include <boost/foreach.hpp>
+* [@https://svn.boost.org/trac/boost/ticket/5954 5954] distance_pythagoras skips sqrt() step
+
+[*Improvements on algorithms]
+
+* Checking self-intersections is now not done automatically, this can blast performance.
+* Besides that, checking self-intersections is made faster.
+* Intersections now avoid outputting duplicate points. So they output the minimal set.
+
+[*Additional algorithms]
+
+* covered_by: within is defined as "within, not on boundary". covered_by is "within or on boundary"
+
+[*Additional functionality]
+
+* within: strategies can now be specified for within<point, box> and within<box, box>
+* convert: a much broader range of conversions is supported
+* assign: idem, (currently partly) synonym for convert (but reversed arguments)
+
+[*Additional coordinate types]
+
+* Basic (limited) support for Boost.Rational
+         
+[heading Boost 1.47]
+
+Original release         
+
+[endsect]

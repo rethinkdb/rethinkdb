@@ -1,0 +1,502 @@
+//
+// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+
+/**
+\page tutdaytime1 Daytime.1 - A synchronous TCP daytime client
+
+This tutorial program shows how to use asio to implement a client application
+with TCP.
+
+\dontinclude daytime1/client.cpp
+\skip #include
+
+We start by including the necessary header files.
+
+\until asio.hpp
+
+The purpose of this application is to access a daytime service,
+so we need the user to specify the server.
+
+\until }
+
+All programs that use asio need to have at least one boost::asio::io_service
+object.
+
+\until boost::asio::io_service
+
+We need to turn the server name that was specified as a parameter to the
+application, into a TCP endpoint. To do this we use an
+boost::asio::ip::tcp::resolver object.
+
+\until tcp::resolver
+
+A resolver takes a query object and turns it into a list of endpoints. We
+construct a query using the name of the server, specified in <tt>argv[1]</tt>,
+and the name of the service, in this case <tt>"daytime"</tt>.
+
+\until tcp::resolver::query
+
+The list of endpoints is returned using an iterator of type
+boost::asio::ip::tcp::resolver::iterator. (Note that a default constructed
+boost::asio::ip::tcp::resolver::iterator object can be used as an end iterator.)
+
+\until tcp::resolver::iterator
+
+Now we create and connect the socket. The list of endpoints obtained above may
+contain both IPv4 and IPv6 endpoints, so we need to try each of them until we
+find one that works. This keeps the client program independent of a specific IP
+version. The boost::asio::connect() function does this for us automatically.
+
+\until boost::asio::connect
+
+The connection is open. All we need to do now is read the response from the
+daytime service.
+
+We use a <tt>boost::array</tt> to hold the received data. The boost::asio::buffer()
+function automatically determines the size of the array to help prevent buffer
+overruns. Instead of a <tt>boost::array</tt>, we could have used a <tt>char
+[]</tt> or <tt>std::vector</tt>.
+
+\until read_some
+
+When the server closes the connection, the boost::asio::ip::tcp::socket::read_some()
+function will exit with the boost::asio::error::eof error, which is how we know to
+exit the loop.
+
+\until }
+
+Finally, handle any exceptions that may have been thrown.
+
+\until }
+\until }
+
+See the \ref tutdaytime1src "full source listing" \n
+Return to the \ref index "tutorial index" \n
+Next: \ref tutdaytime2
+
+*/
+
+/**
+\page tutdaytime1src Source listing for Daytime.1
+\include daytime1/client.cpp
+Return to \ref tutdaytime1
+*/
+
+/**
+\page tutdaytime2 Daytime.2 - A synchronous TCP daytime server
+
+This tutorial program shows how to use asio to implement a server application
+with TCP.
+
+\dontinclude daytime2/server.cpp
+\skip #include
+
+\until using
+
+We define the function <tt>make_daytime_string()</tt> to create the string to
+be sent back to the client. This function will be reused in all of our daytime
+server applications.
+
+\until boost::asio::io_service
+
+A boost::asio::ip::tcp::acceptor object needs to be created to listen
+for new connections. It is initialised to listen on TCP port 13, for IP version 4.
+
+\until tcp::acceptor
+
+This is an iterative server, which means that it will handle one
+connection at a time. Create a socket that will represent the connection to the
+client, and then wait for a connection.
+
+\until acceptor.accept
+
+A client is accessing our service. Determine the current time
+and transfer this information to the client. 
+
+\until }
+\until }
+
+Finally, handle any exceptions.
+
+\until }
+\until }
+
+See the \ref tutdaytime2src "full source listing" \n
+Return to the \ref index "tutorial index" \n
+Previous: \ref tutdaytime1 \n
+Next: \ref tutdaytime3
+
+*/
+
+/**
+\page tutdaytime2src Source listing for Daytime.2
+\include daytime2/server.cpp
+Return to \ref tutdaytime2
+*/
+
+/**
+\page tutdaytime3 Daytime.3 - An asynchronous TCP daytime server
+
+\section tutdaytime3funcmain The main() function
+
+\dontinclude daytime3/server.cpp
+\skip int main()
+\until try
+\until {
+
+We need to create a server object to accept incoming client connections. The
+boost::asio::io_service object provides I/O services, such as sockets, that the
+server object will use.
+
+\until tcp_server
+
+Run the boost::asio::io_service object so that it will perform asynchronous operations
+on your behalf.
+
+\until return 0;
+\until }
+
+\section tutdaytime3classtcp_server The tcp_server class
+
+\dontinclude daytime3/server.cpp
+\skip class tcp_server
+\until public:
+
+The constructor initialises an acceptor to listen on TCP port 13.
+
+\until private:
+
+The function <tt>start_accept()</tt> creates a socket and initiates an
+asynchronous accept operation to wait for a new connection.
+
+\until }
+
+The function <tt>handle_accept()</tt> is called when the asynchronous accept
+operation initiated by <tt>start_accept()</tt> finishes. It services the client
+request, and then calls <tt>start_accept()</tt> to initiate the next accept
+operation.
+
+\until }
+\until }
+
+\section tutdaytime3classtcp_connection The tcp_connection class
+
+We will use <tt>shared_ptr</tt> and <tt>enable_shared_from_this</tt> because we
+want to keep the <tt>tcp_connection</tt> object alive as long as there is an
+operation that refers to it.
+
+\dontinclude daytime3/server.cpp
+\skip class tcp_connection
+\until shared_ptr
+\until }
+\until }
+
+In the function <tt>start()</tt>, we call boost::asio::async_write() to serve the data
+to the client. Note that we are using boost::asio::async_write(), rather than
+boost::asio::ip::tcp::socket::async_write_some(), to ensure that the entire block of
+data is sent.
+
+\until {
+
+The data to be sent is stored in the class member <tt>message_</tt> as we need
+to keep the data valid until the asynchronous operation is complete.
+
+\until message_
+
+When initiating the asynchronous operation, and if using boost::bind(), you
+must specify only the arguments that match the handler's parameter list. In
+this program, both of the argument placeholders (boost::asio::placeholders::error and
+boost::asio::placeholders::bytes_transferred) could potentially have been removed,
+since they are not being used in <tt>handle_write()</tt>.
+
+\until placeholders::bytes_transferred
+
+Any further actions for this client connection are now the responsibility of
+<tt>handle_write()</tt>.
+
+\until };
+
+\section tutdaytime3remunused Removing unused handler parameters
+
+You may have noticed that the <tt>error</tt>, and <tt>bytes_transferred</tt>
+parameters are not used in the body of the <tt>handle_write()</tt> function. If
+parameters are not needed, it is possible to remove them from the function so
+that it looks like:
+
+\code
+  void handle_write()
+  {
+  }
+\endcode
+
+The boost::asio::async_write() call used to initiate the call can then be changed to
+just:
+
+\code
+  boost::asio::async_write(socket_, boost::asio::buffer(message_),
+      boost::bind(&tcp_connection::handle_write, shared_from_this()));
+\endcode
+
+See the \ref tutdaytime3src "full source listing" \n
+Return to the \ref index "tutorial index" \n
+Previous: \ref tutdaytime2 \n
+Next: \ref tutdaytime4
+
+*/
+
+/**
+\page tutdaytime3src Source listing for Daytime.3
+\include daytime3/server.cpp
+Return to \ref tutdaytime3
+*/
+
+/**
+\page tutdaytime4 Daytime.4 - A synchronous UDP daytime client
+
+This tutorial program shows how to use asio to implement a client application
+with UDP.
+
+\dontinclude daytime4/client.cpp
+\skip #include
+\until using boost::asio::ip::udp;
+
+The start of the application is essentially the same as for the TCP daytime
+client.
+
+\until boost::asio::io_service
+
+We use an boost::asio::ip::udp::resolver object to find the correct remote endpoint to
+use based on the host and service names. The query is restricted to return only
+IPv4 endpoints by the boost::asio::ip::udp::v4() argument.
+
+\until udp::v4
+
+The boost::asio::ip::udp::resolver::resolve() function is guaranteed to return at
+least one endpoint in the list if it does not fail. This means it is safe to
+dereference the return value directly.
+
+\until udp::endpoint
+
+Since UDP is datagram-oriented, we will not be using a stream socket. Create an
+boost::asio::ip::udp::socket and initiate contact with the remote endpoint.
+
+\until receiver_endpoint
+
+Now we need to be ready to accept whatever the server sends back to us. The
+endpoint on our side that receives the server's response will be initialised by
+boost::asio::ip::udp::socket::receive_from(). 
+
+\until }
+
+Finally, handle any exceptions that may have been thrown.
+
+\until }
+\until }
+See the \ref tutdaytime4src "full source listing" \n
+Return to the \ref index "tutorial index" \n
+Previous: \ref tutdaytime3 \n
+Next: \ref tutdaytime5
+
+*/
+
+/**
+\page tutdaytime4src Source listing for Daytime.4
+\include daytime4/client.cpp
+Return to \ref tutdaytime4
+*/
+
+/**
+\page tutdaytime5 Daytime.5 - A synchronous UDP daytime server
+
+This tutorial program shows how to use asio to implement a server application
+with UDP.
+
+\dontinclude daytime5/server.cpp
+\skip int main()
+\until boost::asio::io_service
+
+Create an boost::asio::ip::udp::socket object to receive requests on UDP port 13.
+
+\until udp::socket
+
+Wait for a client to initiate contact with us. The remote_endpoint object will
+be populated by boost::asio::ip::udp::socket::receive_from().
+
+\until throw
+
+Determine what we are going to send back to the client.
+
+\until std::string message
+
+Send the response to the remote_endpoint.
+
+\until }
+\until }
+
+Finally, handle any exceptions.
+
+\until }
+\until }
+
+See the \ref tutdaytime5src "full source listing" \n
+Return to the \ref index "tutorial index" \n
+Previous: \ref tutdaytime4 \n
+Next: \ref tutdaytime6
+
+*/
+
+/**
+\page tutdaytime5src Source listing for Daytime.5
+\include daytime5/server.cpp
+Return to \ref tutdaytime5
+*/
+
+/**
+\page tutdaytime6 Daytime.6 - An asynchronous UDP daytime server
+
+\section tutdaytime6funcmain The main() function
+
+\dontinclude daytime6/server.cpp
+\skip int main()
+\until try
+\until {
+
+Create a server object to accept incoming client requests, and run
+the boost::asio::io_service object.
+
+\until return 0;
+\until }
+
+\section tutdaytime6classudp_server The udp_server class
+
+\dontinclude daytime6/server.cpp
+\skip class udp_server
+\until public:
+
+The constructor initialises a socket to listen on UDP port 13.
+
+\until private:
+\until {
+
+The function boost::asio::ip::udp::socket::async_receive_from() will cause the
+application to listen in the background for a new request. When such a request
+is received, the boost::asio::io_service object will invoke the
+<tt>handle_receive()</tt> function with two arguments: a value of type
+boost::system::error_code indicating whether the operation succeeded or failed, and a
+<tt>size_t</tt> value <tt>bytes_transferred</tt> specifying the number of bytes
+received.
+
+\until }
+
+The function <tt>handle_receive()</tt> will service the client request.
+
+\until {
+
+The <tt>error</tt> parameter contains the result of the asynchronous operation.
+Since we only provide the 1-byte <tt>recv_buffer_</tt> to contain the client's
+request, the boost::asio::io_service object would return an error if the client sent
+anything larger. We can ignore such an error if it comes up.
+
+\until {
+
+Determine what we are going to send.
+
+\until make_daytime_string()
+
+We now call boost::asio::ip::udp::socket::async_send_to() to serve the data to the
+client.
+
+\until boost::asio::placeholders::bytes_transferred
+
+When initiating the asynchronous operation, and if using boost::bind(), you
+must specify only the arguments that match the handler's parameter list. In
+this program, both of the argument placeholders (boost::asio::placeholders::error and
+boost::asio::placeholders::bytes_transferred) could potentially have been removed.
+
+Start listening for the next client request.
+
+\until start_receive
+
+Any further actions for this client request are now the responsibility of
+<tt>handle_send()</tt>.
+
+\until }
+\until }
+
+The function <tt>handle_send()</tt> is invoked after the service request has
+been completed.
+
+\until }
+\until }
+
+See the \ref tutdaytime6src "full source listing" \n
+Return to the \ref index "tutorial index" \n
+Previous: \ref tutdaytime5 \n
+Next: \ref tutdaytime7
+
+*/
+
+/**
+\page tutdaytime6src Source listing for Daytime.6
+\include daytime6/server.cpp
+Return to \ref tutdaytime6
+*/
+
+/**
+\page tutdaytime7 Daytime.7 - A combined TCP/UDP asynchronous server
+
+This tutorial program shows how to combine the two asynchronous servers that we
+have just written, into a single server application.
+
+\section tutdaytime7funcmain The main() function
+
+\dontinclude daytime7/server.cpp
+\skip int main()
+\until boost::asio::io_service
+
+We will begin by creating a server object to accept a TCP client connection.
+
+\until tcp_server
+
+We also need a server object to accept a UDP client request.
+
+\until udp_server
+
+We have created two lots of work for the boost::asio::io_service object to do.
+
+\until return 0;
+\until }
+
+\section tutdaytime7classtcp The tcp_connection and tcp_server classes
+
+The following two classes are taken from \ref tutdaytime3 "Daytime.3".
+
+\dontinclude daytime7/server.cpp
+\skip class tcp_connection
+\until };
+\until };
+
+\section tutdaytime7classudp The udp_server class
+
+Similarly, this next class is taken from the
+\ref tutdaytime6 "previous tutorial step".
+
+\dontinclude daytime7/server.cpp
+\skip class udp_server
+\until };
+
+See the \ref tutdaytime7src "full source listing" \n
+Return to the \ref index "tutorial index" \n
+Previous: \ref tutdaytime6
+
+*/
+
+/**
+\page tutdaytime7src Source listing for Daytime.7
+\include daytime7/server.cpp
+Return to \ref tutdaytime7
+*/

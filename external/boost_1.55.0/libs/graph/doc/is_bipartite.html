@@ -1,0 +1,127 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<!--
+     Authors: Matthias Walter
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<head>
+<title>Boost Graph Library: is_bipartite</title>
+</head>
+<body>
+
+<IMG SRC="../../../boost.png" 
+ALT="C++ Boost" width="277" height="86"> 
+<h1>
+<tt>is_bipartite</tt>
+</h1>
+
+<pre>
+<i>// Version with a colormap to retrieve the bipartition</i>
+template &lt;typename Graph, typename IndexMap, typename PartitionMap&gt;
+bool is_bipartite (const Graph&amp; graph, const IndexMap index_map, PartitionMap partition_map)
+
+template &lt;typename Graph, typename IndexMap&gt;
+bool is_bipartite (const Graph&amp; graph, const IndexMap index_map)
+
+<i>// Version which uses the internal index map</i>
+template &lt;typename Graph&gt;
+bool is_bipartite (const Graph&amp; graph);
+</pre>
+
+<p>
+The <tt>is_bipartite()</tt> functions tests a given graph for
+bipartiteness using a DFS-based coloring approach.
+</p>
+
+<p>
+An undirected graph is bipartite if one can partition its set of vertices
+into two sets "left" and "right", such that each edge goes from either side
+to the other. Obviously, a two-coloring of the graph is exactly the same as
+a two-partition. <tt>is_bipartite()</tt> tests whether such a two-coloring
+is possible and can return it in a given property map.
+</p>
+
+<p>
+The bipartition is recorded in the color map <tt>partition_map</tt>,
+which will contain a two-coloring of the graph, i.e. an assignment of
+<i>black</i> and <i>white</i> to the vertices such that no edge is monochromatic.
+The predicate whether the graph is bipartite is the return value of the function.
+</p>
+
+<h3>Where Defined</h3>
+
+<p>
+<a href="../../../boost/graph/bipartite.hpp"><tt>boost/graph/bipartite.hpp</tt></a>
+</p>
+
+<h3>Parameters</h3>
+
+<p>
+IN: <tt>const Graph&amp; graph</tt>
+</p>
+<blockquote><p>
+An undirected graph. The graph type must be a model of <a
+href="VertexListGraph.html">Vertex List Graph</a> and <a
+href="IncidenceGraph.html">Incidence Graph</a>.<br/>
+</p></blockquote>
+
+<p>
+IN: <tt>const IndexMap index_map</tt>
+</p>
+<blockquote><p>
+This maps each vertex to an integer in the range <tt>[0,
+num_vertices(graph))</tt>. The type <tt>VertexIndexMap</tt>
+must be a model of <a
+href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+Map</a>. The value type of the map must be an integer type. The
+vertex descriptor type of the graph needs to be usable as the key
+type of the map.<br/>
+</p></blockquote>
+
+
+<p>
+OUT: <tt>PartitionMap partition_map</tt>
+</p>
+<blockquote><p>
+The algorithm tests whether the graph is bipartite and assigns each
+vertex either a white or a black color, according to the partition.
+The <tt>PartitionMap</tt> type must be a model of
+<a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+Map</a> and
+<a href="../../property_map/doc/WritablePropertyMap.html">Writable Property
+Map</a> The value type must model <a href="./ColorValue.html">ColorValue</a>.
+</p></blockquote>
+
+
+<h3>Complexity</h3>
+
+<p>
+The time complexity for the algorithm is <i>O(V + E)</i>.
+</p>
+
+<h3>See Also</h3>
+
+<p>
+<a href="./find_odd_cycle.html"><tt>find_odd_cycle()</tt></a>
+</p>
+
+<h3>Example</h3>
+
+<p>
+The file <a href="../example/bipartite_example.cpp"><tt>examples/bipartite.cpp</tt></a>
+contains an example of testing an undirected graph for bipartiteness.
+<br/>
+</p>
+
+<hr/>
+
+<p>
+Copyright &copy; 2010 Matthias Walter
+(<a class="external" href="mailto:xammy@xammy.homelinux.net">xammy@xammy.homelinux.net</a>)
+</p>
+
+</body>
+</html> 

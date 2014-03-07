@@ -1,0 +1,31 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/collation/lt.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/collation/lt.xml
+ */
+lt{
+    Version{"2.0.49.35"}
+    collations{
+        standard{
+            Sequence{
+                "&̀=̇̀"
+                "&́=̇́"
+                "&̃=̇̃"
+                "&A<<ą<<<Ą"
+                "&C<č<<<Č"
+                "&E<<ę<<<Ę<<ė<<<Ė"
+                "&I<<į<<<Į<<y<<<Y"
+                "&S<š<<<Š"
+                "&U<<ų<<<Ų<<ū<<<Ū"
+                "&Z<ž<<<Ž"
+            }
+            Version{"1.9"}
+        }
+    }
+}

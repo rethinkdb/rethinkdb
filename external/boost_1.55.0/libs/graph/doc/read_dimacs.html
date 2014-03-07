@@ -1,0 +1,119 @@
+<HTML>
+<!--
+//  Copyright (c) 2006, Stephan Diederich
+//  Copyright (c) 2010, Trustees of Indiana University
+//
+//  This code may be used under either of the following two licences:
+//
+//    Permission is hereby granted, free of charge, to any person
+//    obtaining a copy of this software and associated documentation
+//    files (the "Software"), to deal in the Software without
+//    restriction, including without limitation the rights to use,
+//    copy, modify, merge, publish, distribute, sublicense, and/or
+//    sell copies of the Software, and to permit persons to whom the
+//    Software is furnished to do so, subject to the following
+//    conditions:
+//
+//    The above copyright notice and this permission notice shall be
+//    included in all copies or substantial portions of the Software.
+//
+//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+//    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+//    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+//    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+//    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+//    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+//    OTHER DEALINGS IN THE SOFTWARE. OF SUCH DAMAGE.
+//
+//  Or:
+//
+//    Distributed under the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE_1_0.txt or copy at
+//    http://www.boost.org/LICENSE_1_0.txt)
+-->
+<Head>
+<Title>Boost Graph Library: read_dimacs_max_flow and read_dimacs_min_cut</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+<BR Clear>
+
+<H1><A NAME="sec:read_dimacs_max_flow">
+<TT>read_dimacs_max_flow</TT>
+</H1>
+
+
+<pre>
+//reads a graph with attached edge_capacity properties from an std::istream
+template &lt;class Graph, class CapacityMap, class ReverseEdgeMap&gt;
+int read_dimacs_max_flow(Graph&amp; g,
+                         CapacityMap capacity, 
+                         ReverseEdgeMap reverse_edge,
+                         typename graph_traits<Graph>::vertex_descriptor&amp; src,
+                         typename graph_traits<Graph>::vertex_descriptor&amp; sink,
+                         std::istream&amp; in=std::cin)
+
+//reads a graph with attached edge_capacity properties from an std::istream
+template &lt;class Graph, class CapacityMap, class ReverseEdgeMap&gt;
+int read_dimacs_min_cut(Graph&amp; g,
+                        CapacityMap capacity, 
+                        ReverseEdgeMap reverse_edge,
+                        std::istream&amp; in=std::cin)
+
+</pre>
+
+<p>
+These functions read a BGL graph object from a max-flow or min-cut problem description in extended dimacs format. (see <a href="http://www.avglab.com/andrew/CATS/maxflow_formats.htm"><TT>Goldberg's site</TT></a> for more information). For each edge found in the 
+file an additional reverse_edge is added and set in the reverse_edge map.  For
+max-flow problems, source and sink vertex descriptors are set according to the
+dimacs file.
+ 
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/read_dimacs.hpp"><TT>boost/graph/read_dimacs.hpp</TT></a>
+
+<h3>Parameters</h3>
+ IN: <tt>Graph&amp; g</tt>
+<blockquote>
+  A directed or undirected graph. The graph's type must be a model of <a href="./IncidenceGraph.html">IncidenceGraph</a>. 
+</blockquote>  
+
+ OUT: <tt>CapacityMap capacity</tt>
+<blockquote>
+ A property map that models <a href="../../property_map/doc/LvaluePropertyMap.html">mutable Lvalue Property Map</a> whose key type is the edge descriptor of the graph. <br>
+</blockquote>  
+
+ OUT: <tt>ReverseEdgeMap reverse_edge</tt>
+<blockquote>
+ A property map that models <a href="../../property_map/doc/LvaluePropertyMap.html">mutable Lvalue Property Map</a> whose key and value type is the edge descriptor of the graph. This map stores the corresponding reverse edge for each each in Graph g.<br>
+</blockquote>  
+  
+ OUT: <tt>vertex_descriptor&amp; src</tt>
+<blockquote>
+ A graph vertex that will be set to the source of a max-flow problem.
+</blockquote>  
+  
+ OUT: <tt>vertex_descriptor&amp; sink</tt>
+<blockquote>
+ A graph vertex that will be set to the sink of a max-flow problem.
+</blockquote>  
+  
+ IN: <tt>std::istream&amp; in</tt>
+<blockquote>
+  A standard <tt>std::istream</tt> object. <br>
+  <b>Default</b>: <tt>std::cin (for backward compatibility)</tt>
+</blockquote>  
+
+<H3>
+Example 
+</H3>
+A short <a href="../example/read_write_dimacs-eg.cpp">example</a> which uses read_dimacs and write_dimacs is located in the examples directory.
+
+<h3>See Also</h3>
+
+<a href="./write_dimacs.html"><tt>write_dimacs</tt></a>
+</BODY>
+</HTML> 

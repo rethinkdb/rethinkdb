@@ -1,0 +1,26 @@
+
+!define-scanner class_name "BOOST_TT_AUX_TYPE_TRAIT_DEF\d\s*\(\s*(\w+)\s*[,)]" "(?:class|struct)[^;{]+\\<\1\\>[^;{]+\\{" \1
+!define-scanner class_name "BOOST_TT_AUX_BOOL_TRAIT_DEF\d\s*\(\s*(\w+)\s*[,)]" "(?:class|struct)[^;{]+\\<\1\\>[^;{]+\\{" \1
+!define-scanner class_name "BOOST_TT_AUX_SIZE_T_TRAIT_DEF\d\s*\(\s*(\w+)\s*[,)]" "(?:class|struct)[^;{]+\\<\1\\>[^;{]+\\{" \1
+
+!define-scanner class_name "^[[:space:]]*(template[[:space:]]*<[^;:{]+>[[:space:]]*)?(class|struct)[[:space:]]*(\<\w+\>([[:blank:]]*\([^)]*\))?[[:space:]]*)*(\<\w*\>)[[:space:]]*(<[^;:{]+>)?[[:space:]]*(\{|:[^;\{()]*\{)" "(?:class|struct)[^;{]+\\<\5\\>[^;{]+\\{" \5
+!define-scanner typedef_name "typedef[^;{}#]+?(\w+)\s*;"  "typedef[^;]+\\<\1\\>\\s*;" "\1"
+!define-scanner "macro_name" "^\s*#\s*define\s+(\w+)" "\\<\1\\>" "\1"
+!define-scanner "function_name" "\w+\s+(\w+)\s*\([^\)]*\)\s*[;{]" "\\<\\w+\\>\\s+\\<\1\\>\\s*\\([^;{]*\\)\\s*[;{]" "\1"
+
+!scan-path boost/type_traits .*\.hpp true
+!scan boost/aligned_storage.hpp
+!scan boost/type_traits.hpp
+
+!exclude type arg1_type arg2_type arg3_type arg4_type arg5_type B D
+!exclude result
+
+!rewrite-name "(?:A|An|The)\s+(.*)" "\1"
+
+"Constrained Index Term" add_const "boost_typetraits\.reference.*" class_name
+"This term should not appear anywhere because of the ID constraint" strlen "(?!boost_typetraits.background).*" function_name
+
+
+type-traits "" ".*.intro" test_index_1
+type-traits "" ".*.background" test_index_2
+

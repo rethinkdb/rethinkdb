@@ -1,0 +1,107 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Custom Memory Allocation</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../core.html" title="Core Concepts and Functionality">
+<link rel="prev" href="line_based.html" title="Line-Based Operations">
+<link rel="next" href="handler_tracking.html" title="Handler Tracking">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="line_based.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="handler_tracking.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.core.allocation"></a><a class="link" href="allocation.html" title="Custom Memory Allocation">Custom Memory
+        Allocation</a>
+</h4></div></div></div>
+<p>
+          Many asynchronous operations need to allocate an object to store state
+          associated with the operation. For example, a Win32 implementation needs
+          <code class="computeroutput"><span class="identifier">OVERLAPPED</span></code>-derived objects
+          to pass to Win32 API functions.
+        </p>
+<p>
+          Furthermore, programs typically contain easily identifiable chains of asynchronous
+          operations. A half duplex protocol implementation (e.g. an HTTP server)
+          would have a single chain of operations per client (receives followed by
+          sends). A full duplex protocol implementation would have two chains executing
+          in parallel. Programs should be able to leverage this knowledge to reuse
+          memory for all asynchronous operations in a chain.
+        </p>
+<p>
+          Given a copy of a user-defined <code class="computeroutput"><span class="identifier">Handler</span></code>
+          object <code class="computeroutput"><span class="identifier">h</span></code>, if the implementation
+          needs to allocate memory associated with that handler it will execute the
+          code:
+        </p>
+<pre class="programlisting"><span class="keyword">void</span><span class="special">*</span> <span class="identifier">pointer</span> <span class="special">=</span> <span class="identifier">asio_handler_allocate</span><span class="special">(</span><span class="identifier">size</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">h</span><span class="special">);</span>
+</pre>
+<p>
+          Similarly, to deallocate the memory it will execute:
+        </p>
+<pre class="programlisting"><span class="identifier">asio_handler_deallocate</span><span class="special">(</span><span class="identifier">pointer</span><span class="special">,</span> <span class="identifier">size</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">h</span><span class="special">);</span>
+</pre>
+<p>
+          These functions are located using argument-dependent lookup. The implementation
+          provides default implementations of the above functions in the <code class="computeroutput"><span class="identifier">asio</span></code> namespace:
+        </p>
+<pre class="programlisting"><span class="keyword">void</span><span class="special">*</span> <span class="identifier">asio_handler_allocate</span><span class="special">(</span><span class="identifier">size_t</span><span class="special">,</span> <span class="special">...);</span>
+<span class="keyword">void</span> <span class="identifier">asio_handler_deallocate</span><span class="special">(</span><span class="keyword">void</span><span class="special">*,</span> <span class="identifier">size_t</span><span class="special">,</span> <span class="special">...);</span>
+</pre>
+<p>
+          which are implemented in terms of <code class="computeroutput"><span class="special">::</span><span class="keyword">operator</span> <span class="keyword">new</span><span class="special">()</span></code> and <code class="computeroutput"><span class="special">::</span><span class="keyword">operator</span> <span class="keyword">delete</span><span class="special">()</span></code> respectively.
+        </p>
+<p>
+          The implementation guarantees that the deallocation will occur before the
+          associated handler is invoked, which means the memory is ready to be reused
+          for any new asynchronous operations started by the handler.
+        </p>
+<p>
+          The custom memory allocation functions may be called from any user-created
+          thread that is calling a library function. The implementation guarantees
+          that, for the asynchronous operations included the library, the implementation
+          will not make concurrent calls to the memory allocation functions for that
+          handler. The implementation will insert appropriate memory barriers to
+          ensure correct memory visibility should allocation functions need to be
+          called from different threads.
+        </p>
+<h6>
+<a name="boost_asio.overview.core.allocation.h0"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.allocation.see_also"></a></span><a class="link" href="allocation.html#boost_asio.overview.core.allocation.see_also">See
+          Also</a>
+        </h6>
+<p>
+          <a class="link" href="../../reference/asio_handler_allocate.html" title="asio_handler_allocate">asio_handler_allocate</a>,
+          <a class="link" href="../../reference/asio_handler_deallocate.html" title="asio_handler_deallocate">asio_handler_deallocate</a>,
+          <a class="link" href="../../examples/cpp03_examples.html#boost_asio.examples.cpp03_examples.allocation">custom memory
+          allocation example (C++03)</a>, <a class="link" href="../../examples/cpp11_examples.html#boost_asio.examples.cpp11_examples.allocation">custom
+          memory allocation example (C++11)</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="line_based.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="handler_tracking.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

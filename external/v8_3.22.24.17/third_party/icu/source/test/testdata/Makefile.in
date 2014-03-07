@@ -1,0 +1,277 @@
+#******************************************************************************
+#
+#   Copyright (C) 1998-2010, International Business Machines
+#   Corporation and others.  All Rights Reserved.
+#
+#******************************************************************************
+## Top-level Makefile.in for ICU
+## Stephen F. Booth
+
+## Source directory information
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+
+top_builddir = ../..
+
+include $(top_builddir)/icudefs.mk
+
+## Build directory information
+subdir = test/testdata
+
+## Files to remove for 'make clean'
+CLEANFILES = *~ 
+
+SUBDIRS = 
+
+-include Makefile.local
+
+## List of phony targets
+.PHONY : all all-local all-recursive install install-local	\
+install-recursive clean clean-local clean-recursive distclean	\
+distclean-local distclean-recursive doc dist dist-local dist-recursive	\
+check check-local check-recursive build-dir testdata.jar xcheck
+
+xcheck: all-local
+
+.NOTPARALLEL: build-dir
+
+## Clear suffix list
+.SUFFIXES :
+
+## List of standard targets
+all: all-local
+install: install-local
+clean: clean-local
+distclean : distclean-local
+dist: dist-local
+check: all check-local
+
+all-local: build-dir build-testdata testdata packagetest
+
+install-local: 
+
+dist-local:
+
+clean-local:
+	test -z "$(CLEANFILES)" || $(RMV) $(CLEANFILES)
+	$(RMV) $(TESTOUTDIR)
+
+distclean-local: clean-local
+	$(RMV) Makefile pkgdata.inc
+
+check-local:
+
+Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
+	cd $(top_builddir) \
+	&& CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+
+pkgdata.inc: pkgdataMakefile
+	$(MAKE) -f pkgdataMakefile
+
+pkgdataMakefile:
+	cd $(top_builddir) \
+	&& CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+
+#########################################################################
+############################## Test ## stuff ############################
+
+# relative lib links from pkgdata are the same as for tmp
+GENRBOPTS=-k
+# use the cross root, in case we are cross compiling. Otherwise it is equal to top_builddir
+TOOLDIR=$(cross_buildroot)/tools
+SRCDATADIR=$(top_srcdir)/data
+UNICODEDATADIR=$(SRCDATADIR)/unidata
+OUTDIR=$(top_builddir)/data/out
+OUTTMPDIR=$(top_builddir)/data/out/tmp
+BUILDDIR=$(OUTDIR)/build/$(ICUDATA_PLATFORM_NAME)
+TESTSRCDATADIR=$(top_srcdir)/test/testdata
+TESTOUTDIR=$(top_builddir)/test/testdata/out
+BUILD_DIRS = $(TESTOUTDIR) $(TESTBUILDDIR) $(TESTOUTDIR)/$(TESTDT)
+GENTEST=$(TOOLDIR)/gentest/gentest$(TOOLEXEEXT)
+
+ifeq ($(PKGDATA_MODE),common)
+ICU_DATA_OPT = -i $(OUTDIR)
+else
+ifeq ($(PKGDATA_MODE),dll)
+ifneq ($(ENABLE_SHARED),YES)
+ICU_DATA_OPT = -i $(BUILDDIR)
+else
+ICU_DATA_OPT =
+endif
+else
+ICU_DATA_OPT = -i $(BUILDDIR)
+endif
+endif
+
+CURDIR:=$(CURR_FULL_DIR)
+# current directory should not be blank
+ifeq ($(CURDIR),)
+CURDIR=.
+endif
+
+PKGDATA = $(TOOLBINDIR)/pkgdata -q -c -s $(CURDIR)/out/build/$(ICUDATA_PLATFORM_NAME)
+PKGDATA_INVOKE:=$(INVOKE) $(PKGDATA_INVOKE_OPTS)
+
+# Contains all 'intermediate' files (and temp files) except for 'unpackaged data' below
+TESTBUILDDIR=$(TESTOUTDIR)/build
+
+# unpackaged files  - live in 'out' so that the path can find them as part of the pkg
+UNPACKAGEDTESTDATA=$(TESTOUTDIR)/$(TESTDT)/nam.typ
+
+# pkg name for testdata
+TESTDATA=testdata
+# prefix for files that are testdata
+TESTDT=$(TESTDATA)
+
+# File definitions 
+TEST_DAT_FILES=$(TESTBUILDDIR)/test.icu
+TEST_SPP_FILES=$(TESTBUILDDIR)/nfscsi.spp $(TESTBUILDDIR)/nfscss.spp $(TESTBUILDDIR)/nfscis.spp $(TESTBUILDDIR)/nfsmxs.spp $(TESTBUILDDIR)/nfsmxp.spp
+
+TEST_UCM_SOURCE= test1.ucm test1bmp.ucm test3.ucm test4.ucm test4x.ucm test5.ucm ibm9027.ucm
+TEST_UCM_FILES=$(TEST_UCM_SOURCE:%=$(TESTSRCDATADIR)/data/%)
+TEST_CNV_FILES=$(TEST_UCM_SOURCE:%.ucm=$(TESTBUILDDIR)/%.cnv)
+
+TEST_NRM_FILES=$(TESTBUILDDIR)/testnorm.nrm
+
+# import the shared .mk file
+include $(TESTSRCDATADIR)/tstfiles.mk
+-include $(TESTSRCDATADIR)/tstlocal.mk
+
+# TEST_RES_SOURCE comes from tstfiles.mk
+TEST_RES = $(TEST_RES_SOURCE) $(TEST_RES_LOCAL) casing.txt mc.txt root.txt sh.txt sh_YU.txt te.txt te_IN.txt te_IN_REVISED.txt testtypes.txt testaliases.txt testempty.txt structLocale.txt idna_rules.txt conversion.txt icuio.txt testtable32.txt
+TEST_RES_FILES=$(TEST_RES:%.txt=$(TESTBUILDDIR)/%.res) $(TESTBUILDDIR)/iscii.res $(TESTBUILDDIR)/old_l_testtypes.res $(TESTBUILDDIR)/old_e_testtypes.res
+
+ALL_TEST_FILES = $(TEST_DAT_FILES) $(TEST_SPP_FILES) $(TEST_BRK_FILES) $(TEST_CNV_FILES) $(TEST_NRM_FILES) $(TEST_RES_FILES) $(TESTOUTDIR)/$(TESTDT)/nam.typ
+
+# list
+
+$(TESTBUILDDIR)/testdata.lst: $(SRCLISTDEPS)
+	@echo "generating $@ (list of data files)"
+	@-$(RMV) $@
+	@for file in $(TEST_RES_FILES:$(TESTBUILDDIR)/%.res=%.res) $(TEST_DAT_FILES:$(TESTBUILDDIR)/%.icu=%.icu) $(TEST_SPP_FILES:$(TESTBUILDDIR)/%.spp=%.spp) $(TEST_CNV_FILES:$(TESTBUILDDIR)/%.cnv=%.cnv) $(TEST_NRM_FILES:$(TESTBUILDDIR)/%.nrm=%.nrm); do \
+	  echo $$file >> $@; \
+	done;
+
+
+build-testdata: build-dir $(ALL_TEST_FILES) $(TESTBUILDDIR)/testdata.lst $(TESTBUILDDIR)/iscii.res
+
+# test.icu
+$(TESTBUILDDIR)/test.icu: $(GENTEST)
+	$(INVOKE) $(GENTEST) -d $(TESTBUILDDIR) 
+
+$(TESTBUILDDIR)/testtable32.txt:  $(GENTEST)
+	$(INVOKE) $(GENTEST) -r -d $(TESTBUILDDIR) 
+
+$(TESTBUILDDIR)/testtable32.res: $(TESTBUILDDIR)/testtable32.txt $(TOOLBINDIR)/genrb$(EXEEXT)
+	$(INVOKE) $(TOOLBINDIR)/genrb $(GENRBOPTS) -s $(TESTBUILDDIR) $(ICU_DATA_OPT) -d $(TESTBUILDDIR) $(<F)
+
+# Targets for nfscsi.spp
+$(TESTBUILDDIR)/nfscsi.spp: $(TOOLBINDIR)/gensprep$(EXEEXT) $(TESTSRCDATADIR)/nfs4_cs_prep_ci.txt
+	@echo Building nfscsi.icu
+	$(INVOKE) $(TOOLBINDIR)/gensprep -s $(TESTSRCDATADIR) $(ICU_DATA_OPT) -d $(TESTBUILDDIR) -b nfscsi -u 3.2.0 nfs4_cs_prep_ci.txt
+
+# Targets for nfscss.spp
+$(TESTBUILDDIR)/nfscss.spp: $(TOOLBINDIR)/gensprep$(EXEEXT) $(TESTSRCDATADIR)/nfs4_cs_prep_cs.txt
+	@echo Building nfscss.icu
+	$(INVOKE) $(TOOLBINDIR)/gensprep -s $(TESTSRCDATADIR) $(ICU_DATA_OPT) -d $(TESTBUILDDIR) -b nfscss -u 3.2.0 nfs4_cs_prep_cs.txt
+
+# Targets for nfscis.spp
+$(TESTBUILDDIR)/nfscis.spp: $(TOOLBINDIR)/gensprep$(EXEEXT) $(TESTSRCDATADIR)/nfs4_cis_prep.txt
+	@echo Building nfscis.spp
+	$(INVOKE) $(TOOLBINDIR)/gensprep -s $(TESTSRCDATADIR) $(ICU_DATA_OPT) -d $(TESTBUILDDIR) -b nfscis -k -n $(UNICODEDATADIR) -u 3.2.0 nfs4_cis_prep.txt
+
+# Targets for nfsmxs.spp
+$(TESTBUILDDIR)/nfsmxs.spp: $(TOOLBINDIR)/gensprep$(EXEEXT) $(TESTSRCDATADIR)/nfs4_mixed_prep_s.txt
+	@echo Building nfsmxs.spp
+	$(INVOKE) $(TOOLBINDIR)/gensprep -s $(TESTSRCDATADIR) $(ICU_DATA_OPT) -d $(TESTBUILDDIR) -b nfsmxs -k -n $(UNICODEDATADIR) -u 3.2.0 nfs4_mixed_prep_s.txt
+
+# Targets for nfsmxp.spp
+$(TESTBUILDDIR)/nfsmxp.spp: $(TOOLBINDIR)/gensprep$(EXEEXT) $(TESTSRCDATADIR)/nfs4_mixed_prep_p.txt
+	@echo Building nfsmxp.spp
+	$(INVOKE) $(TOOLBINDIR)/gensprep -s $(TESTSRCDATADIR) $(ICU_DATA_OPT) -d $(TESTBUILDDIR) -b nfsmxp -k -n $(UNICODEDATADIR) -u 3.2.0 nfs4_mixed_prep_p.txt
+
+$(TESTBUILDDIR)/%.cnv: $(TESTSRCDATADIR)/%.ucm $(TOOLBINDIR)/makeconv$(EXEEXT)
+	$(INVOKE) $(TOOLBINDIR)/makeconv --small -c -d $(TESTBUILDDIR) $(TESTSRCDATADIR)/$(<F)
+
+$(TESTBUILDDIR)/%.nrm: $(TESTSRCDATADIR)/%.txt $(TOOLBINDIR)/gennorm2$(EXEEXT)
+	$(INVOKE) $(TOOLBINDIR)/gennorm2 -s $(TESTSRCDATADIR) $(<F) -o $@
+
+$(TESTBUILDDIR)/%.res: $(TESTSRCDATADIR)/%.txt $(TOOLBINDIR)/genrb$(EXEEXT) $(DAT_FILES)
+	$(INVOKE) $(TOOLBINDIR)/genrb $(GENRBOPTS) -q -s $(TESTSRCDATADIR) $(ICU_DATA_OPT) -d $(TESTBUILDDIR) $(<F)
+
+$(TESTBUILDDIR)/iscii.res:  $(TESTSRCDATADIR)/iscii.bin $(TOOLBINDIR)/genrb$(EXEEXT)
+	@echo Testing genrb -e option
+	@ICU_DATA=$(BUILDDIR) $(INVOKE) $(TOOLBINDIR)/genrb $(GENRBOPTS) -s $(TESTSRCDATADIR) -eISCII,version=0 -d $(TESTBUILDDIR) $(<F) >/dev/null  || ( echo "WARNING: could not open ISCII - it may have been disabled." | tee $@ )
+	@echo Finished testing genrb -e option
+
+################################################################### TYP
+# TYP FILES
+
+$(TESTOUTDIR)/$(TESTDT)/nam.typ: $(TESTBUILDDIR)/te_IN.res
+	cp $< $@
+$(TESTBUILDDIR)/old_l_testtypes.res: $(TESTSRCDATADIR)/old_l_testtypes.res
+	cp $< $@
+$(TESTBUILDDIR)/old_e_testtypes.res: $(TESTSRCDATADIR)/old_e_testtypes.res
+	cp $< $@
+
+testdata: build-dir $(ALL_TEST_FILES) $(UNPACKAGEDTESTDATA)
+
+#$(ALL_TEST_FILES) $(TESTBUILDDIR)/testtable32.txt $(TESTBUILDDIR)/testdata.lst: build-dir
+
+packagetest: build-dir testdata pkgdata.inc $(TESTBUILDDIR)/testdata.lst 
+	$(PKGDATA_INVOKE) $(PKGDATA) -T $(TESTBUILDDIR) -d $(TESTOUTDIR) -s $(TESTBUILDDIR) -p $(TESTDATA) -m common $(TESTBUILDDIR)/testdata.lst
+
+build-dir: $(BUILD_DIRS)
+$(BUILD_DIRS):
+	-$(MKINSTALLDIRS) $(BUILD_DIRS)
+
+# Build the ICU4J testdata.jar.
+# Command line:
+#   (Run this from the output testdata folder which may not be .../source/test/testdata in an out-of-source build.)
+#   ~/svn.icu/trunk/source/test/testdata> make JAR=jar ICU4J_ROOT=~/svn.icu4j/trunk testdata.jar
+# You can omit the ICU4J_ROOT for just building the .jar files without copying them.
+# You can omit the JAR if it's just jar.
+JAR=jar
+
+# Build testdata.jar:
+# - swap the test data
+# - extract all data items
+# - package them into the .jar file
+$(OUTDIR)/icu4j/testdata.jar: build-dir testdata $(TESTOUTDIR)/testdata.dat
+	mkdir -p $(OUTDIR)/icu4j/com/ibm/icu/dev/data/testdata
+	$(INVOKE) $(TOOLBINDIR)/icupkg $(TESTOUTDIR)/testdata.dat -r test.icu -x '*' -tb -d $(OUTDIR)/icu4j/com/ibm/icu/dev/data/testdata
+	$(JAR) cf $(OUTDIR)/icu4j/testdata.jar -C $(OUTDIR)/icu4j com/ibm/icu/dev/data/testdata
+
+
+DEBUGUTILITIESDATA_DIR=main/tests/core/src/com/ibm/icu/dev/test/util
+DEBUGUTILITIESDATA_SRC=DebugUtilitiesData.java
+
+ICU4J_DATA=$(OUTDIR)/icu4j/src/$(DEBUGUTILITIESDATA_SRC) $(OUTDIR)/icu4j/testdata.jar
+
+$(OUTDIR)/icu4j/src/$(DEBUGUTILITIESDATA_SRC): $(GENTEST)
+	mkdir -p $(OUTDIR)/icu4j/src
+	$(INVOKE) $(GENTEST) -j -d $(OUTDIR)/icu4j/src
+
+ifdef ICU4J_ROOT
+
+icu4j-data-install: $(ICU4J_ROOT)/main/shared/data/testdata.jar $(ICU4J_ROOT)/$(DEBUGUTILITIESDATA_DIR)/$(DEBUGUTILITIESDATA_SRC)
+	@echo ICU4J test data installed in $(ICU4J_ROOT)
+
+$(ICU4J_ROOT)/main/shared/data/testdata.jar: $(OUTDIR)/icu4j/testdata.jar
+	mkdir -p $(ICU4J_ROOT)/main/shared/data
+	cp $(OUTDIR)/icu4j/testdata.jar $(ICU4J_ROOT)/main/shared/data
+
+$(ICU4J_ROOT)/$(DEBUGUTILITIESDATA_DIR)/$(DEBUGUTILITIESDATA_SRC): $(OUTDIR)/icu4j/src/$(DEBUGUTILITIESDATA_SRC)
+	mkdir -p $(ICU4J_ROOT)/$(DEBUGUTILITIESDATA_DIR)
+	cp $^ $@
+
+else
+
+icu4j-data-install: $(ICU4J_DATA)
+	@echo ICU4J data was built into $(OUTDIR)/icu4j
+	@echo '** Error:' ICU4J_ROOT was not set, could not install
+	exit 1
+
+endif
+
+icu4j-data: $(ICU4J_DATA)

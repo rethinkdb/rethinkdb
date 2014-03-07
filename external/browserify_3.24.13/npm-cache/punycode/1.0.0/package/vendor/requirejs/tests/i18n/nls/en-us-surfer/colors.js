@@ -1,0 +1,3 @@
+define({
+    red: "red, dude"
+});

@@ -1,0 +1,35 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Compilers corner</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="ch04.html" title="Chapter&nbsp;4.&nbsp; Performance / Compilers"><link rel="prev" href="ch04s04.html" title="Limitations"><link rel="next" href="ch05.html" title="Chapter&nbsp;5.&nbsp;Questions &amp; Answers, tips"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center"> Compilers corner </th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s04.html">Prev</a>&nbsp;</td><th width="60%" align="center">Chapter&nbsp;4.&nbsp; Performance / Compilers</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch05.html">Next</a></td></tr></table><hr></div><div class="sect1" title="Compilers corner"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d0e2870"></a> Compilers corner </h2></div></div></div><p>Compilers are sometimes full of surprises and such strange errors happened in
+                    the course of the development that I wanted to list the most fun for readers&#8217;
+                    entertainment.</p><p><span class="underline">VC8</span>: </p><pre class="programlisting">template &lt;class StateType&gt;
+typename ::boost::enable_if&lt;
+       typename ::boost::mpl::and_&lt;
+                typename ::boost::mpl::not_&lt;
+                    typename has_exit_pseudo_states&lt;StateType&gt;::type
+                &gt;::type,
+                typename ::boost::mpl::not_&lt;
+                    typename is_pseudo_exit&lt;StateType&gt;::type
+                &gt;::type 
+       &gt;::type,
+       BaseState*&gt;::type                   </pre><p>I get the following error:</p><p>error C2770: invalid explicit template argument(s) for '`global
+                    namespace'::boost::enable_if&lt;...&gt;::...' </p><p>If I now remove the first &#8220;::&#8221; in ::boost::mpl , the compiler shuts up. So in
+                    this case, it is not possible to follow Boost&#8217;s guidelines.</p><p><span class="underline">VC9</span>:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>This one is my all times&#8217; favorite. Do you know why the exit
+                                pseudo states are referenced in the transition table with a
+                                &#8220;submachine::exit_pt&#8221; ? Because &#8220;exit&#8221; will crash the compiler.
+                                &#8220;Exit&#8221; is not possible either because it will crash the compiler on
+                                one machine, but not on another (the compiler was installed from the
+                                same disk).</p></li><li class="listitem"><p>Sometimes, removing a policy crashes the compiler, so some
+                                versions are defining a dummy policy called WorkaroundVC9.</p></li><li class="listitem"><p>Typeof: While g++ and VC9 compile &#8220;standard&#8221; state machines in
+                                comparable times, Typeof (while in both ways natively supported)
+                                seems to behave in a quadratic complexity with VC9 and VC10.</p></li><li class="listitem"><p>eUML: in case of a compiler crash, changing the order of state
+                                definitions (first states without entry or exit) sometimes solves
+                                the problem.</p></li></ul></div><p><span class="underline">g++ 4.x</span>: Boring compiler, almost all is
+                    working almost as expected. Being not a language lawyer I am unsure about the
+                    following &#8220;Typeof problem&#8221;. VC9 and g++ disagree on the question if you can
+                    derive from the BOOST_TYPEOF generated type without first defining a typedef. I
+                    will be thankful for an answer on this. I only found two ways to break the compiler:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Add more eUML constructs until something explodes (especially with
+                                g++-4.4) </p></li><li class="listitem"><p>The build_terminate function uses 2 mpl::push_back instead of
+                                mpl::insert_range because g++ would not accept insert_range.</p></li></ul></div><p>You can test your compiler&#8217;s decltype implementation with the <a class="link" href="examples/CompilerStressTestEuml.cpp" target="_top">following stress
+                        test</a> and reactivate the commented-out code until the compiler
+                    crashes.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s04.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right">&nbsp;<a accesskey="n" href="ch05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top"> Limitations &nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;Chapter&nbsp;5.&nbsp;Questions &amp; Answers, tips</td></tr></table></div></body></html>

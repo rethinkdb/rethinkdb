@@ -1,0 +1,167 @@
+<test-log library="" test-name="compile-fail~fail" test-type="" test-program="" target-directory="tools/regression/test/compile-fail~fail.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="fail" timestamp="xxx">
+compile-fail~fail.cpp
+
+    call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  &gt;nul
+cl /Zm800 -nologo @"C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\compile-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\compile-fail~fail.obj.rsp"
+
+</compile>
+</test-log>
+<test-log library="" test-name="compile-fail~pass" test-type="" test-program="" target-directory="tools/regression/test/compile-fail~pass.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+compile-fail~pass.cpp
+compile-fail~pass.cpp(9) : fatal error C1189: #error :  example of a compile failure
+(failed-as-expected) C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\compile-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\compile-fail~pass.obj
+</compile>
+</test-log>
+<test-log library="" test-name="compile~fail" test-type="" test-program="" target-directory="tools/regression/test/compile~fail.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="fail" timestamp="xxx">
+compile~fail.cpp
+compile~fail.cpp(9) : fatal error C1189: #error :  example of a compile failure
+
+    call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  &gt;nul
+cl /Zm800 -nologo @"C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\compile~fail.test\msvc-7.1\debug\link-static\threading-multi\compile~fail.obj.rsp"
+
+</compile>
+</test-log>
+<test-log library="" test-name="compile~pass" test-type="" test-program="" target-directory="tools/regression/test/compile~pass.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+compile~pass.cpp
+</compile>
+</test-log>
+<test-log library="" test-name="compile~warn" test-type="" test-program="" target-directory="tools/regression/test/compile~warn.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+compile~warn.cpp
+compile~warn.cpp(15) : warning C4244: '=' : conversion from 'unsigned long' to 'short', possible loss of data
+c:\users\misha\stuff\boost\head\boost\tools\regression\test\compile~warn.cpp(15) : warning C4700: local variable 'ul' used without having been initialized
+</compile>
+</test-log>
+<test-log library="" test-name="link-fail~fail" test-type="" test-program="" target-directory="tools/regression/test/link-fail~fail.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+link-fail~fail.cpp
+</compile>
+<link result="fail" timestamp="xxx">
+
+        call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  &gt;nul
+link /NOLOGO /INCREMENTAL:NO /DEBUG /subsystem:console /out:"C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe"   @"C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe.rsp"
+        if errorlevel 1 exit %errorlevel%
+        if exist "C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe.manifest" (
+            mt -nologo -manifest "C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe.manifest" "-outputresource:C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link-fail~fail.test\msvc-7.1\debug\link-static\threading-multi\link-fail~fail.exe;1"
+        )
+    
+</link>
+</test-log>
+<test-log library="" test-name="link-fail~pass" test-type="" test-program="" target-directory="tools/regression/test/link-fail~pass.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+link-fail~pass.cpp
+</compile>
+<link result="succeed" timestamp="xxx">
+link-fail~pass.obj : error LNK2019: unresolved external symbol "int __cdecl f(void)" (?f@@YAHXZ) referenced in function _main
+C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\link-fail~pass.exe : fatal error LNK1120: 1 unresolved externals
+(failed-as-expected) C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link-fail~pass.test\msvc-7.1\debug\link-static\threading-multi\link-fail~pass.exe
+</link>
+</test-log>
+<test-log library="" test-name="link~fail" test-type="" test-program="" target-directory="tools/regression/test/link~fail.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+link~fail.cpp
+</compile>
+<link result="fail" timestamp="xxx">
+link~fail.obj : error LNK2019: unresolved external symbol "int __cdecl f(void)" (?f@@YAHXZ) referenced in function _main
+C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe : fatal error LNK1120: 1 unresolved externals
+
+        call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  &gt;nul
+link /NOLOGO /INCREMENTAL:NO /DEBUG /subsystem:console /out:"C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe"   @"C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe.rsp"
+        if errorlevel 1 exit %errorlevel%
+        if exist "C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe.manifest" (
+            mt -nologo -manifest "C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe.manifest" "-outputresource:C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\link~fail.test\msvc-7.1\debug\link-static\threading-multi\link~fail.exe;1"
+        )
+    
+</link>
+</test-log>
+<test-log library="" test-name="link~pass" test-type="" test-program="" target-directory="tools/regression/test/link~pass.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+link~pass.cpp
+</compile>
+<link result="succeed" timestamp="xxx">
+</link>
+</test-log>
+<test-log library="" test-name="run-fail~compile-fail" test-type="" test-program="" target-directory="tools/regression/test/run-fail~compile-fail.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="fail" timestamp="xxx">
+run-fail~compile-fail.cpp
+run-fail~compile-fail.cpp(9) : fatal error C1189: #error :  example of a compile failure
+
+    call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  &gt;nul
+cl /Zm800 -nologo @"C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\general\actual\tools\regression\test\run-fail~compile-fail.test\msvc-7.1\debug\link-static\threading-multi\run-fail~compile-fail.obj.rsp"
+
+</compile>
+</test-log>
+<test-log library="" test-name="run-fail~fail-warn" test-type="" test-program="" target-directory="tools/regression/test/run-fail~fail-warn.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+run-fail~fail-warn.cpp
+run-fail~fail-warn.cpp(13) : warning C4244: '=' : conversion from 'unsigned long' to 'short', possible loss of data
+c:\users\misha\stuff\boost\head\boost\tools\regression\test\run-fail~fail-warn.cpp(13) : warning C4700: local variable 'ul' used without having been initialized
+</compile>
+<link result="succeed" timestamp="xxx"></link>
+<run result="fail" timestamp="xxx">
+</run>
+</test-log>
+<test-log library="" test-name="run-fail~fail" test-type="" test-program="" target-directory="tools/regression/test/run-fail~fail.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+run-fail~fail.cpp
+</compile>
+<link result="succeed" timestamp="xxx"></link>
+<run result="fail" timestamp="xxx">
+</run>
+</test-log>
+<test-log library="" test-name="run-fail~pass" test-type="" test-program="" target-directory="tools/regression/test/run-fail~pass.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+run-fail~pass.cpp
+</compile>
+<link result="succeed" timestamp="xxx"></link>
+<run result="succeed" timestamp="xxx">
+</run>
+</test-log>
+<test-log library="" test-name="run~fail" test-type="" test-program="" target-directory="tools/regression/test/run~fail.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+run~fail.cpp
+</compile>
+<link result="succeed" timestamp="xxx"></link>
+<run result="fail" timestamp="xxx">
+</run>
+</test-log>
+<test-log library="" test-name="run~note" test-type="" test-program="" target-directory="tools/regression/test/run~note.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+run~note.cpp
+</compile>
+<link result="succeed" timestamp="xxx"></link>
+<run result="succeed" timestamp="xxx">
+</run>
+</test-log>
+<test-log library="" test-name="run~pass" test-type="" test-program="" target-directory="tools/regression/test/run~pass.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+run~pass.cpp
+</compile>
+<link result="succeed" timestamp="xxx"></link>
+<run result="succeed" timestamp="xxx">
+</run>
+</test-log>
+<test-log library="" test-name="run~warn-note" test-type="" test-program="" target-directory="tools/regression/test/run~warn-note.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+run~warn-note.cpp
+run~warn-note.cpp(21) : warning C4244: '=' : conversion from 'unsigned long' to 'short', possible loss of data
+c:\users\misha\stuff\boost\head\boost\tools\regression\test\run~warn-note.cpp(21) : warning C4700: local variable 'ul' used without having been initialized
+</compile>
+<link result="succeed" timestamp="xxx"></link>
+<run result="succeed" timestamp="xxx">
+</run>
+</test-log>
+<test-log library="" test-name="run~warn" test-type="" test-program="" target-directory="tools/regression/test/run~warn.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="succeed" timestamp="xxx">
+run~warn.cpp
+run~warn.cpp(15) : warning C4244: '=' : conversion from 'unsigned long' to 'short', possible loss of data
+c:\users\misha\stuff\boost\head\boost\tools\regression\test\run~warn.cpp(15) : warning C4700: local variable 'ul' used without having been initialized
+</compile>
+<link result="succeed" timestamp="xxx"></link>
+<run result="succeed" timestamp="xxx">
+</run>
+</test-log>

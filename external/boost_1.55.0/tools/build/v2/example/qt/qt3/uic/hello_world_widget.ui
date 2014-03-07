@@ -1,0 +1,58 @@
+<!DOCTYPE UI><UI version="3.0" stdsetdef="1">
+<class>HelloWorldWidget</class>
+<comment>
+<!--
+    Copyright Felix E. Klee, 2003
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt
+    or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+</comment>
+<widget class="QWidget">
+    <property name="name">
+        <cstring>HelloWorldWidget</cstring>
+    </property>
+    <property name="geometry">
+        <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>124</width>
+            <height>63</height>
+        </rect>
+    </property>
+    <property name="caption">
+        <string>Hello World!</string>
+    </property>
+    <vbox>
+        <property name="name">
+            <cstring>unnamed</cstring>
+        </property>
+        <property name="margin">
+            <number>11</number>
+        </property>
+        <property name="spacing">
+            <number>6</number>
+        </property>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>TextLabel2</cstring>
+            </property>
+            <property name="text">
+                <string>Hello World!</string>
+            </property>
+            <property name="alignment">
+                <set>AlignCenter</set>
+            </property>
+        </widget>
+        <widget class="QPushButton">
+            <property name="name">
+                <cstring>OkButton</cstring>
+            </property>
+            <property name="text">
+                <string>OK</string>
+            </property>
+        </widget>
+    </vbox>
+</widget>
+<layoutdefaults spacing="6" margin="11"/>
+</UI>

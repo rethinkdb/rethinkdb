@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>Transform Iterator</title>
+<meta name="author" content="David Abrahams, Jeremy Siek, Thomas Witt" />
+<meta name="organization" content="Boost Consulting, Indiana University Open Systems Lab, University of Hanover Institute for Transport Railway Operation and Construction" />
+<meta name="date" content="2006-09-11" />
+<meta name="copyright" content="Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2003." />
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="transform-iterator">
+<h1 class="title">Transform Iterator</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>David Abrahams, Jeremy Siek, Thomas Witt</td></tr>
+<tr><th class="docinfo-name">Contact:</th>
+<td><a class="first reference external" href="mailto:dave&#64;boost-consulting.com">dave&#64;boost-consulting.com</a>, <a class="reference external" href="mailto:jsiek&#64;osl.iu.edu">jsiek&#64;osl.iu.edu</a>, <a class="last reference external" href="mailto:witt&#64;ive.uni-hannover.de">witt&#64;ive.uni-hannover.de</a></td></tr>
+<tr><th class="docinfo-name">Organization:</th>
+<td><a class="first reference external" href="http://www.boost-consulting.com">Boost Consulting</a>, Indiana University <a class="reference external" href="http://www.osl.iu.edu">Open Systems
+Lab</a>, University of Hanover <a class="last reference external" href="http://www.ive.uni-hannover.de">Institute for Transport
+Railway Operation and Construction</a></td></tr>
+<tr><th class="docinfo-name">Date:</th>
+<td>2006-09-11</td></tr>
+<tr><th class="docinfo-name">Copyright:</th>
+<td>Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2003.</td></tr>
+</tbody>
+</table>
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">abstract:</th><td class="field-body"><!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+The transform iterator adapts an iterator by modifying the
+<tt class="docutils literal"><span class="pre">operator*</span></tt> to apply a function object to the result of
+dereferencing the iterator and returning the result.</td>
+</tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#transform-iterator-synopsis" id="id2"><tt class="docutils literal"><span class="pre">transform_iterator</span></tt> synopsis</a></li>
+<li><a class="reference internal" href="#transform-iterator-requirements" id="id3"><tt class="docutils literal"><span class="pre">transform_iterator</span></tt> requirements</a></li>
+<li><a class="reference internal" href="#transform-iterator-models" id="id4"><tt class="docutils literal"><span class="pre">transform_iterator</span></tt> models</a></li>
+<li><a class="reference internal" href="#transform-iterator-operations" id="id5"><tt class="docutils literal"><span class="pre">transform_iterator</span></tt> operations</a></li>
+<li><a class="reference internal" href="#example" id="id6">Example</a></li>
+</ul>
+</div>
+<div class="section" id="transform-iterator-synopsis">
+<h1><a class="toc-backref" href="#id2"><tt class="docutils literal"><span class="pre">transform_iterator</span></tt> synopsis</a></h1>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<!-- Version 1.3 of this document was accepted for TR1 -->
+<pre class="literal-block">
+template &lt;class UnaryFunction,
+          class Iterator,
+          class Reference = use_default,
+          class Value = use_default&gt;
+class transform_iterator
+{
+public:
+  typedef /* see below */ value_type;
+  typedef /* see below */ reference;
+  typedef /* see below */ pointer;
+  typedef iterator_traits&lt;Iterator&gt;::difference_type difference_type;
+  typedef /* see below */ iterator_category;
+
+  transform_iterator();
+  transform_iterator(Iterator const&amp; x, UnaryFunction f);
+
+  template&lt;class F2, class I2, class R2, class V2&gt;
+  transform_iterator(
+        transform_iterator&lt;F2, I2, R2, V2&gt; const&amp; t
+      , typename enable_if_convertible&lt;I2, Iterator&gt;::type* = 0      // exposition only
+      , typename enable_if_convertible&lt;F2, UnaryFunction&gt;::type* = 0 // exposition only
+  );
+  UnaryFunction functor() const;
+  Iterator const&amp; base() const;
+  reference operator*() const;
+  transform_iterator&amp; operator++();
+  transform_iterator&amp; operator--();
+private:
+  Iterator m_iterator; // exposition only
+  UnaryFunction m_f;   // exposition only
+};
+</pre>
+<p>If <tt class="docutils literal"><span class="pre">Reference</span></tt> is <tt class="docutils literal"><span class="pre">use_default</span></tt> then the <tt class="docutils literal"><span class="pre">reference</span></tt> member of
+<tt class="docutils literal"><span class="pre">transform_iterator</span></tt> is
+<tt class="docutils literal"><span class="pre">result_of&lt;const UnaryFunction(iterator_traits&lt;Iterator&gt;::reference)&gt;::type</span></tt>.
+Otherwise, <tt class="docutils literal"><span class="pre">reference</span></tt> is <tt class="docutils literal"><span class="pre">Reference</span></tt>.</p>
+<p>If <tt class="docutils literal"><span class="pre">Value</span></tt> is <tt class="docutils literal"><span class="pre">use_default</span></tt> then the <tt class="docutils literal"><span class="pre">value_type</span></tt> member is
+<tt class="docutils literal"><span class="pre">remove_cv&lt;remove_reference&lt;reference&gt;</span> <span class="pre">&gt;::type</span></tt>.  Otherwise,
+<tt class="docutils literal"><span class="pre">value_type</span></tt> is <tt class="docutils literal"><span class="pre">Value</span></tt>.</p>
+<p>If <tt class="docutils literal"><span class="pre">Iterator</span></tt> models Readable Lvalue Iterator and if <tt class="docutils literal"><span class="pre">Iterator</span></tt>
+models Random Access Traversal Iterator, then <tt class="docutils literal"><span class="pre">iterator_category</span></tt> is
+convertible to <tt class="docutils literal"><span class="pre">random_access_iterator_tag</span></tt>. Otherwise, if
+<tt class="docutils literal"><span class="pre">Iterator</span></tt> models Bidirectional Traversal Iterator, then
+<tt class="docutils literal"><span class="pre">iterator_category</span></tt> is convertible to
+<tt class="docutils literal"><span class="pre">bidirectional_iterator_tag</span></tt>.  Otherwise <tt class="docutils literal"><span class="pre">iterator_category</span></tt> is
+convertible to <tt class="docutils literal"><span class="pre">forward_iterator_tag</span></tt>. If <tt class="docutils literal"><span class="pre">Iterator</span></tt> does not
+model Readable Lvalue Iterator then <tt class="docutils literal"><span class="pre">iterator_category</span></tt> is
+convertible to <tt class="docutils literal"><span class="pre">input_iterator_tag</span></tt>.</p>
+</div>
+<div class="section" id="transform-iterator-requirements">
+<h1><a class="toc-backref" href="#id3"><tt class="docutils literal"><span class="pre">transform_iterator</span></tt> requirements</a></h1>
+<p>The type <tt class="docutils literal"><span class="pre">UnaryFunction</span></tt> must be Assignable, Copy Constructible, and
+the expression <tt class="docutils literal"><span class="pre">f(*i)</span></tt> must be valid where <tt class="docutils literal"><span class="pre">f</span></tt> is a const object of
+type <tt class="docutils literal"><span class="pre">UnaryFunction</span></tt>, <tt class="docutils literal"><span class="pre">i</span></tt> is an object of type <tt class="docutils literal"><span class="pre">Iterator</span></tt>, and
+where the type of <tt class="docutils literal"><span class="pre">f(*i)</span></tt> must be
+<tt class="docutils literal"><span class="pre">result_of&lt;const UnaryFunction(iterator_traits&lt;Iterator&gt;::reference)&gt;::type</span></tt>.</p>
+<p>The argument <tt class="docutils literal"><span class="pre">Iterator</span></tt> shall model Readable Iterator.</p>
+</div>
+<div class="section" id="transform-iterator-models">
+<h1><a class="toc-backref" href="#id4"><tt class="docutils literal"><span class="pre">transform_iterator</span></tt> models</a></h1>
+<p>The resulting <tt class="docutils literal"><span class="pre">transform_iterator</span></tt> models the most refined of the
+following that is also modeled by <tt class="docutils literal"><span class="pre">Iterator</span></tt>.</p>
+<blockquote>
+<ul class="simple">
+<li>Writable Lvalue Iterator if <tt class="docutils literal"><span class="pre">transform_iterator::reference</span></tt> is a non-const reference.</li>
+<li>Readable Lvalue Iterator if <tt class="docutils literal"><span class="pre">transform_iterator::reference</span></tt> is a const reference.</li>
+<li>Readable Iterator otherwise.</li>
+</ul>
+</blockquote>
+<p>The <tt class="docutils literal"><span class="pre">transform_iterator</span></tt> models the most refined standard traversal
+concept that is modeled by the <tt class="docutils literal"><span class="pre">Iterator</span></tt> argument.</p>
+<p>If <tt class="docutils literal"><span class="pre">transform_iterator</span></tt> is a model of Readable Lvalue Iterator then
+it models the following original iterator concepts depending on what
+the <tt class="docutils literal"><span class="pre">Iterator</span></tt> argument models.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="47%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">If <tt class="docutils literal"><span class="pre">Iterator</span></tt> models</th>
+<th class="head">then <tt class="docutils literal"><span class="pre">transform_iterator</span></tt> models</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Single Pass Iterator</td>
+<td>Input Iterator</td>
+</tr>
+<tr><td>Forward Traversal Iterator</td>
+<td>Forward Iterator</td>
+</tr>
+<tr><td>Bidirectional Traversal Iterator</td>
+<td>Bidirectional Iterator</td>
+</tr>
+<tr><td>Random Access Traversal Iterator</td>
+<td>Random Access Iterator</td>
+</tr>
+</tbody>
+</table>
+<p>If <tt class="docutils literal"><span class="pre">transform_iterator</span></tt> models Writable Lvalue Iterator then it is a
+mutable iterator (as defined in the old iterator requirements).</p>
+<p><tt class="docutils literal"><span class="pre">transform_iterator&lt;F1,</span> <span class="pre">X,</span> <span class="pre">R1,</span> <span class="pre">V1&gt;</span></tt> is interoperable with
+<tt class="docutils literal"><span class="pre">transform_iterator&lt;F2,</span> <span class="pre">Y,</span> <span class="pre">R2,</span> <span class="pre">V2&gt;</span></tt> if and only if <tt class="docutils literal"><span class="pre">X</span></tt> is
+interoperable with <tt class="docutils literal"><span class="pre">Y</span></tt>.</p>
+</div>
+<div class="section" id="transform-iterator-operations">
+<h1><a class="toc-backref" href="#id5"><tt class="docutils literal"><span class="pre">transform_iterator</span></tt> operations</a></h1>
+<p>In addition to the operations required by the concepts modeled by
+<tt class="docutils literal"><span class="pre">transform_iterator</span></tt>, <tt class="docutils literal"><span class="pre">transform_iterator</span></tt> provides the following
+operations.</p>
+<p><tt class="docutils literal"><span class="pre">transform_iterator();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">An instance of <tt class="docutils literal"><span class="pre">transform_iterator</span></tt> with <tt class="docutils literal"><span class="pre">m_f</span></tt>
+and <tt class="docutils literal"><span class="pre">m_iterator</span></tt> default constructed.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">transform_iterator(Iterator</span> <span class="pre">const&amp;</span> <span class="pre">x,</span> <span class="pre">UnaryFunction</span> <span class="pre">f);</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">An instance of <tt class="docutils literal"><span class="pre">transform_iterator</span></tt> with <tt class="docutils literal"><span class="pre">m_f</span></tt>
+initialized to <tt class="docutils literal"><span class="pre">f</span></tt> and <tt class="docutils literal"><span class="pre">m_iterator</span></tt> initialized to <tt class="docutils literal"><span class="pre">x</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<pre class="literal-block">
+template&lt;class F2, class I2, class R2, class V2&gt;
+transform_iterator(
+      transform_iterator&lt;F2, I2, R2, V2&gt; const&amp; t
+    , typename enable_if_convertible&lt;I2, Iterator&gt;::type* = 0      // exposition only
+    , typename enable_if_convertible&lt;F2, UnaryFunction&gt;::type* = 0 // exposition only
+);
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">An instance of <tt class="docutils literal"><span class="pre">transform_iterator</span></tt> with <tt class="docutils literal"><span class="pre">m_f</span></tt>
+initialized to <tt class="docutils literal"><span class="pre">t.functor()</span></tt> and <tt class="docutils literal"><span class="pre">m_iterator</span></tt> initialized to
+<tt class="docutils literal"><span class="pre">t.base()</span></tt>.</td>
+</tr>
+<tr class="field"><th class="field-name">Requires:</th><td class="field-body"><tt class="docutils literal"><span class="pre">OtherIterator</span></tt> is implicitly convertible to <tt class="docutils literal"><span class="pre">Iterator</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">UnaryFunction</span> <span class="pre">functor()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">m_f</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">Iterator</span> <span class="pre">const&amp;</span> <span class="pre">base()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">m_iterator</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">reference</span> <span class="pre">operator*()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">m_f(*m_iterator)</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">transform_iterator&amp;</span> <span class="pre">operator++();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body"><tt class="docutils literal"><span class="pre">++m_iterator</span></tt></td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">*this</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">transform_iterator&amp;</span> <span class="pre">operator--();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body"><tt class="docutils literal"><span class="pre">--m_iterator</span></tt></td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">*this</span></tt></td>
+</tr>
+</tbody>
+</table>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template &lt;class UnaryFunction, class Iterator&gt;
+transform_iterator&lt;UnaryFunction, Iterator&gt;
+make_transform_iterator(Iterator it, UnaryFunction fun);
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">An instance of <tt class="docutils literal"><span class="pre">transform_iterator&lt;UnaryFunction,</span> <span class="pre">Iterator&gt;</span></tt> with <tt class="docutils literal"><span class="pre">m_f</span></tt>
+initialized to <tt class="docutils literal"><span class="pre">f</span></tt> and <tt class="docutils literal"><span class="pre">m_iterator</span></tt> initialized to <tt class="docutils literal"><span class="pre">x</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<pre class="literal-block">
+template &lt;class UnaryFunction, class Iterator&gt;
+transform_iterator&lt;UnaryFunction, Iterator&gt;
+make_transform_iterator(Iterator it);
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">An instance of <tt class="docutils literal"><span class="pre">transform_iterator&lt;UnaryFunction,</span> <span class="pre">Iterator&gt;</span></tt> with <tt class="docutils literal"><span class="pre">m_f</span></tt>
+default constructed and <tt class="docutils literal"><span class="pre">m_iterator</span></tt> initialized to <tt class="docutils literal"><span class="pre">x</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+</div>
+<div class="section" id="example">
+<h1><a class="toc-backref" href="#id6">Example</a></h1>
+<p>This is a simple example of using the transform_iterators class to
+generate iterators that multiply (or add to) the value returned by
+dereferencing the iterator. It would be cooler to use lambda library
+in this example.</p>
+<pre class="literal-block">
+int x[] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+const int N = sizeof(x)/sizeof(int);
+
+typedef boost::binder1st&lt; std::multiplies&lt;int&gt; &gt; Function;
+typedef boost::transform_iterator&lt;Function, int*&gt; doubling_iterator;
+
+doubling_iterator i(x, boost::bind1st(std::multiplies&lt;int&gt;(), 2)),
+  i_end(x + N, boost::bind1st(std::multiplies&lt;int&gt;(), 2));
+
+std::cout &lt;&lt; &quot;multiplying the array by 2:&quot; &lt;&lt; std::endl;
+while (i != i_end)
+  std::cout &lt;&lt; *i++ &lt;&lt; &quot; &quot;;
+std::cout &lt;&lt; std::endl;
+
+std::cout &lt;&lt; &quot;adding 4 to each element in the array:&quot; &lt;&lt; std::endl;
+std::copy(boost::make_transform_iterator(x, boost::bind1st(std::plus&lt;int&gt;(), 4)),
+          boost::make_transform_iterator(x + N, boost::bind1st(std::plus&lt;int&gt;(), 4)),
+          std::ostream_iterator&lt;int&gt;(std::cout, &quot; &quot;));
+std::cout &lt;&lt; std::endl;
+</pre>
+<p>The output is:</p>
+<pre class="literal-block">
+multiplying the array by 2:
+2 4 6 8 10 12 14 16
+adding 4 to each element in the array:
+5 6 7 8 9 10 11 12
+</pre>
+<p>The source code for this example can be found <a class="reference external" href="../example/transform_iterator_example.cpp">here</a>.</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="transform_iterator.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

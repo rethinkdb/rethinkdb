@@ -1,0 +1,150 @@
+[/
+          Copyright Oliver Kowalke 2009.
+ Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+          http://www.boost.org/LICENSE_1_0.txt
+]
+
+[section:rationale Rationale]
+
+[heading No inline-assembler]
+
+Some newer compiler (for instance MSVC 10 for x86_64 and itanium) do not
+support inline assembler.
+[footnote [@http://msdn.microsoft.com/en-us/library/4ks26t93.aspx MSDN article
+'Inline Assembler']].
+Inlined assembler generates code bloating which his not welcome on embedded
+systems.
+
+
+[heading fcontext_t]
+
+__boost_context__ provides the low level API fcontext_t which is
+implemented in assembler to provide context swapping operations.
+fcontext_t is the part to port to new platforms.
+
+[note Context switches do not preserve the signal mask on UNIX systems.]
+
+Because the assembler code uses the byte layout of __fcontext__ to access 
+its members __fcontext__ must be a POD. This requires that __fcontext__ has only a
+default constructor, no visibility keywords (e.g. private, public, protected), no
+virtual methods and all members and base classes are PODs too.
+
+
+[heading Protecting the stack]
+
+Because the stack's size is fixed -- there is no support for split stacks yet -- it
+is important to protect against exceeding the stack's bounds. Otherwise, in the
+best case, overrunning the stack's memory will result in a segmentation fault or
+access violation and, in the worst case, the application's memory will be
+overwritten. `stack_allocator` appends a guard page to the stack to help detect
+overruns. The guard page consumes no physical memory, but generates a
+segmentation fault or access violation on access to the virtual memory addresses
+within it.
+
+
+[section Other APIs ]
+
+[heading setjmp()/longjmp()]
+
+C99 defines `setjmp()`/`longjmp()` to provide non-local jumps but it does not
+require that ['longjmp()] preserves the current stack frame. Therefore, jumping
+into a function which was exited via a call to ['longjmp()] is undefined
+[footnote ISO/IEC 9899:1999, 2005, 7.13.2.1:2].
+
+
+[heading ucontext_t]
+
+Since POSIX.1-2003 `ucontext_t` is deprecated and was removed in POSIX.1-2008!
+The function signature of `makecontext()` is:
+
+    void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...);
+
+The third argument of `makecontext()` specifies the number of integer arguments
+that follow which will require function pointer cast if `func` will accept those
+arguments which is undefined in C99
+[footnote ISO/IEC 9899:1999, 2005, J.2].
+
+The arguments in the var-arg list are required to be integers, passing pointers
+in var-arg list is not guaranteed to work, especially it will fail for
+architectures where pointers are larger than integers.
+
+`ucontext_t` preserves signal mask between context switches which involves system
+calls consuming a lot of CPU cycles (ucontext_t is slower by
+perfomance_link[factor 13x] relative to `fcontext_t`).
+
+
+[heading Windows fibers]
+
+A drawback of Windows Fiber API is that `CreateFiber()` does not accept a
+pointer to user allocated stack space preventing the reuse of stacks for other
+context instances. Because the Windows Fiber API requires to call
+`ConvertThreadToFiber()` if `SwitchFiber()` is called for a thread which has not
+been converted to a fiber. For the same reason `ConvertFiberToThread()`
+must be called after return from `SwitchFiber()` if the thread was forced to be
+converted to a fiber before (which is inefficient).
+
+        if ( ! is_a_fiber() )
+        {
+            ConvertThreadToFiber( 0);
+            SwitchToFiber( ctx);
+            ConvertFiberToThread();
+        }
+
+If the condition `_WIN32_WINNT >= _WIN32_WINNT_VISTA` is met function
+`IsThreadAFiber()` is provided in order to detect if the current thread was
+already converted. Unfortunately Windows XP + SP 2/3 defines
+`_WIN32_WINNT >= _WIN32_WINNT_VISTA` without providing `IsThreadAFiber()`.
+
+[endsect]
+
+
+[section x86 and floating-point env]
+
+[heading i386]
+
+"The FpCsr and the MxCsr register must be saved and restored before any call or return
+by any procedure that needs to modify them ..."
+[footnote 'Calling Conventions', Agner Fog].
+
+
+[heading x86_64]
+
+[heading Windows]
+
+MxCsr - "A callee that modifies any of the non-volatile fields within MxCsr must restore
+them before returning to its caller. Furthermore, a caller that has modified any
+of these fields must restore them to their standard values before invoking a callee ..."
+[footnote [@http://http://msdn.microsoft.com/en-us/library/yxty7t75.aspx MSDN article
+'MxCsr']].
+
+FpCsr - "A callee that modifies any of the fields within FpCsr must restore them before
+returning to its caller. Furthermore, a caller that has modified any of these
+fields must restore them to their standard values before invoking a callee ..."
+[footnote [@http://http://msdn.microsoft.com/en-us/library/ms235300.aspx MSDN article
+'FpCsr']].
+
+"The MMX and floating-point stack registers (MM0-MM7/ST0-ST7) are preserved across
+context switches. There is no explicit calling convention for these registers."
+[footnote [@http://msdn.microsoft.com/en-us/library/a32tsf7t%28VS.80%29.aspx MSDN article
+'Legacy Floating-Point Support']].
+
+"The 64-bit Microsoft compiler does not use ST(0)-ST(7)/MM0-MM7".
+[footnote 'Calling Conventions', Agner Fog].
+
+"XMM6-XMM15 must be preserved"
+[footnote [@http://msdn.microsoft.com/en-us/library/9z1stfyw%28v=vs.100%29.aspx MSDN
+article 'Register Usage']]
+
+
+[heading SysV]
+
+"The control bits of the MxCsr register are callee-saved (preserved across calls),
+while the status bits are caller-saved (not preserved). The x87 status word register is
+caller-saved, whereas the x87 control word (FpCsr) is callee-saved."
+[footnote SysV ABI AMD64 Architecture Processor Supplement Draft Version 0.99.4, 3.2.1].
+
+[endsect]
+
+
+[endsect]

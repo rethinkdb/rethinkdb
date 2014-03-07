@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/transform/integral_c.hpp">
+  <para>Contains definition of the integral_c transform and friends.</para>
+  <namespace name="boost">
+    <namespace name="proto">
+
+      <struct name="integral_c">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-nontype-parameter name="I">
+            <type>T</type>
+          </template-nontype-parameter>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; integral_c&lt; T, I &gt; &gt;</inherit>
+        <purpose>A <conceptname>PrimitiveTransform</conceptname> that returns the specified integral constant.</purpose>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><classname>proto::transform_impl</classname>&lt; Expr, State, Data &gt;</inherit>
+          <typedef name="result_type">
+            <type>T</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>T</type>
+              <parameter name="">
+                <paramtype>typename impl::expr_param</paramtype>
+              </parameter>
+              <parameter name="">
+                <paramtype>typename impl::state_param</paramtype>
+              </parameter>
+              <parameter name="">
+                <paramtype>typename impl::data_param</paramtype>
+              </parameter>
+              <returns>
+                <para>
+                  <computeroutput>I</computeroutput>
+                </para>
+              </returns>
+              <throws>
+                <simpara>Will not throw.</simpara>
+              </throws>
+            </method>
+          </method-group>
+        </struct>
+      </struct>
+
+      <struct name="char_">
+        <template>
+          <template-nontype-parameter name="I">
+            <type>char</type>
+          </template-nontype-parameter>
+        </template>
+        <inherit><classname>proto::integral_c</classname>&lt; char, I &gt;</inherit>
+        <purpose>A <conceptname>PrimitiveTransform</conceptname> that returns the specified char.</purpose>
+      </struct>
+
+      <struct name="int_">
+        <template>
+          <template-nontype-parameter name="I">
+            <type>int</type>
+          </template-nontype-parameter>
+        </template>
+        <inherit><classname>proto::integral_c</classname>&lt; int, I &gt;</inherit>
+        <purpose>A <conceptname>PrimitiveTransform</conceptname> that returns the specified int.</purpose>
+      </struct>
+
+      <struct name="long_">
+        <template>
+          <template-nontype-parameter name="I">
+            <type>long</type>
+          </template-nontype-parameter>
+        </template>
+        <inherit><classname>proto::integral_c</classname>&lt; long, I &gt;</inherit>
+        <purpose>A <conceptname>PrimitiveTransform</conceptname> that returns the specified long.</purpose>
+      </struct>
+
+      <struct name="size_t">
+        <template>
+          <template-nontype-parameter name="I">
+            <type>std::size_t</type>
+          </template-nontype-parameter>
+        </template>
+        <inherit><classname>proto::integral_c</classname>&lt; std::size_t, I &gt;</inherit>
+        <purpose>A <conceptname>PrimitiveTransform</conceptname> that returns the specified std::size_t.</purpose>
+      </struct>
+
+    </namespace>
+  </namespace>
+</header>

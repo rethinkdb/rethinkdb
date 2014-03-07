@@ -1,0 +1,173 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+    <meta name="generator" content="HTML Tidy, see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python -
+    &lt;boost/python/default_call_policies.hpp&gt;</title>
+
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+          "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header
+          &lt;boost/python/default_call_policies.hpp&gt;</h2>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#classes">Classes</a>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#default_call_policies-spec">Class
+          <code>default_call_policies</code></a>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#default_call_policies-spec-synopsis">Class
+              <code>default_call_policies</code> synopsis</a>
+
+              <dt><a href="#default_call_policies-spec-statics">Class
+              <code>default_call_policies</code> static functions</a>
+            </dl>
+
+          <dt><a href="#default_result_converter-spec">Class
+          <code>default_result_converter</code></a>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#default_result_converter-spec-synopsis">Class
+              <code>default_result_converter</code> synopsis</a>
+
+              <dt><a href="#default_result_converter-spec-metafunctions">Class
+              <code>default_result_converter</code> metafunctions</a>
+            </dl>
+        </dl>
+
+      <dt><a href="#examples">Example</a>
+    </dl>
+    <hr>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="default_call_policies-spec"></a>Class
+    <code>default_call_policies</code></h3>
+
+    <p><code>default_call_policies</code> is a model of <a href=
+    "CallPolicies.html">CallPolicies</a> with no <code>precall</code> or
+    <code>postcall</code> behavior and a <code>result_converter</code> which
+    handles by-value returns. Wrapped C++ functions and member functions use
+    <code>default_call_policies</code> unless otherwise specified. You may find
+    it convenient to derive new models of <a href=
+    "CallPolicies.html">CallPolicies</a> from
+    <code>default_call_policies</code>.
+
+    <h4><a name="default_call_policies-spec-synopsis"></a>Class
+    <code>default_call_policies</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+    struct default_call_policies
+    {
+        static bool precall(PyObject*);
+        static PyObject* postcall(PyObject*, PyObject* result);
+        typedef <a href=
+"#default_result_converter-spec">default_result_converter</a> result_converter;
+        template &lt;class Sig&gt; struct extract_return_type : mpl::front&lt;Sig&gt;{};
+    };
+}}
+</pre>
+
+    <h4><a name="default_call_policies-spec-statics"></a>Class
+    <code>default_call_policies</code> static functions</h4>
+<pre>
+bool precall(PyObject*);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> <code>true</code>
+
+      <dt><b>Throws:</b> nothing
+    </dl>
+<pre>
+PyObject* postcall(PyObject*, PyObject* result);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> <code>result</code>
+
+      <dt><b>Throws:</b> nothing
+    </dl>
+
+    <h3><a name="default_result_converter-spec"></a>Class
+    <code>default_result_converter</code></h3>
+
+    <p><code>default_result_converter</code> is a model of <a href=
+    "ResultConverter.html#ResultConverterGenerator-concept">ResultConverterGenerator</a> which can be
+    used to wrap C++ functions returning non-pointer types, <code>char
+    const*</code>, and <code>PyObject*</code>, by-value.
+
+    <h4><a name="default_result_converter-spec-synopsis"></a>Class
+    <code>default_result_converter</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+    struct default_result_converter
+    {
+        template &lt;class T&gt; struct apply;
+    };
+}}
+</pre>
+
+    <h4><a name="default_result_converter-spec-metafunctions"></a>Class
+    <code>default_result_converter</code> metafunctions</h4>
+<pre>
+template &lt;class T&gt; struct apply
+</pre>
+
+    <dl class="metafunction-semantics">
+      <dt><b>Requires:</b> <code>T</code> is not a reference type. If
+      <code>T</code> is a pointer type, <code>T</code> is <code>const
+      char*</code> or <code>PyObject*</code>.
+
+      <dt><b>Returns:</b> <code>typedef <a href=
+      "to_python_value.html#to_python_value-spec">to_python_value</a>&lt;T
+      const&amp;&gt; type;</code>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+
+    <p>This example comes from the Boost.Python implementation itself. Because
+    the <a href=
+    "return_value_policy.html#return_value_policy-spec">return_value_policy</a>
+    class template does not implement <code>precall</code> or
+    <code>postcall</code> behavior, its default base class is
+    <code>default_call_policies</code>:
+<pre>
+template &lt;class Handler, class Base = default_call_policies&gt;
+struct return_value_policy : Base
+{
+   typedef Handler result_converter;
+};
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  11 June, 2007
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+
+
+  <p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave
+  Abrahams</a> 2002.</i> Distributed under the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)</p>
+

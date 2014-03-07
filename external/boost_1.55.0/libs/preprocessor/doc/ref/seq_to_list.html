@@ -1,0 +1,34 @@
+<html>
+<head>
+  <title>BOOST_PP_SEQ_TO_LIST</title>
+  <link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+<div style="margin-left: 0px;"> The <b>BOOST_PP_SEQ_TO_LIST</b>
+macro converts a <i>seq</i> to a <i>list</i>. </div>
+<h4>Usage</h4>
+<div class="code"> <b>BOOST_PP_SEQ_TO_LIST</b>(<i>seq</i>)
+</div>
+<h4>Arguments</h4>
+<dl><dt>seq</dt>
+  <dd> The <i>seq</i> to be converted. </dd>
+</dl><b>See Also</b>
+<ul>
+  <li><a href="limit_seq.html">BOOST_PP_LIMIT_SEQ</a></li>
+</ul>
+<h4>Requirements</h4>
+<div> <b>Header:</b> &nbsp;<a href="../headers/seq/to_list.html">&lt;boost/preprocessor/seq/to_list.hpp&gt;</a>
+</div>
+<h4>Sample Code</h4>
+<div>
+<pre>#include &lt;<a href="../headers/seq/to_list.html">boost/preprocessor/seq/to_list.hpp</a>&gt;<br><br><a href="seq_to_list.html">BOOST_PP_SEQ_TO_LIST</a>((x)(y)(z))<br>   // expands to (x, (y, (z, <a href="nil.html">BOOST_PP_NIL</a>)))<br></pre>
+</div>
+<hr size="1">
+<div style="margin-left: 0px;"> <i>© Copyright Edward Diener 2011</i> </div>
+<div style="margin-left: 0px;">
+<p><small>Distributed under the Boost Software License, Version 1.0.
+(See accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+</div>
+</body>
+</html>

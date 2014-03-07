@@ -1,0 +1,177 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class sink</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../sinks.html#header.boost.log.sinks.sink_hpp" title="Header &lt;boost/log/sinks/sink.hpp&gt;">
+<link rel="prev" href="../../../BOOST_LOG_COMBINE_REQUIREMENTS_LIMIT.html" title="Macro BOOST_LOG_COMBINE_REQUIREMENTS_LIMIT">
+<link rel="next" href="synchronous_sink.html" title="Class template synchronous_sink">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../BOOST_LOG_COMBINE_REQUIREMENTS_LIMIT.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.sink_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="synchronous_sink.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.sinks.sink"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class sink</span></h2>
+<p>boost::log::sinks::sink &#8212; A base class for a logging sink frontend. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../sinks.html#header.boost.log.sinks.sink_hpp" title="Header &lt;boost/log/sinks/sink.hpp&gt;">boost/log/sinks/sink.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="sink.html" title="Class sink">sink</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a name="boost.log.sinks.sink.exception_handler_type"></a><span class="identifier">exception_handler_type</span><span class="special">;</span>  <span class="comment">// An exception handler type. </span>
+
+  <span class="comment">// <a class="link" href="sink.html#boost.log.sinks.sinkconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="sink.html#idp27313720-bb"><span class="identifier">sink</span></a><span class="special">(</span><span class="keyword">bool</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="sink.html#idp27314760-bb"><span class="identifier">sink</span></a><span class="special">(</span><a class="link" href="sink.html" title="Class sink">sink</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+  sink&amp; <a class="link" href="sink.html#idp27315432-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="sink.html" title="Class sink">sink</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+  <a class="link" href="sink.html#idp27314472-bb"><span class="special">~</span><span class="identifier">sink</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="sink.html#idp27306312-bb">public member functions</a></span>
+  <span class="keyword">bool</span> <a class="link" href="sink.html#idp27306520-bb"><span class="identifier">will_consume</span></a><span class="special">(</span><span class="identifier">attribute_value_set</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="sink.html#idp27308216-bb"><span class="identifier">consume</span></a><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="sink.html#idp27309640-bb"><span class="identifier">try_consume</span></a><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="sink.html#idp27311912-bb"><span class="identifier">flush</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="sink.html#idp27312840-bb"><span class="identifier">is_cross_thread</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp65103784"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp65103992"></a><h3>
+<a name="boost.log.sinks.sinkconstruct-copy-destruct"></a><code class="computeroutput">sink</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp27313720-bb"></a><span class="identifier">sink</span><span class="special">(</span><span class="keyword">bool</span> cross_thread<span class="special">)</span><span class="special">;</span></pre>
+<p>Default constructor </p>
+</li>
+<li class="listitem"><pre class="literallayout"><a name="idp27314760-bb"></a><span class="identifier">sink</span><span class="special">(</span><a class="link" href="sink.html" title="Class sink">sink</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">sink&amp; <a name="idp27315432-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="sink.html" title="Class sink">sink</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp27314472-bb"></a><span class="special">~</span><span class="identifier">sink</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Virtual destructor </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp65117128"></a><h3>
+<a name="idp27306312-bb"></a><code class="computeroutput">sink</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp27306520-bb"></a><span class="identifier">will_consume</span><span class="special">(</span><span class="identifier">attribute_value_set</span> <span class="keyword">const</span> <span class="special">&amp;</span> attributes<span class="special">)</span><span class="special">;</span></pre>
+<p>The method returns <code class="computeroutput">true</code> if no filter is set or the attribute values pass the filter</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">attributes</code></span></p></td>
+<td><p>A set of attribute values of a logging record </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27308216-bb"></a><span class="identifier">consume</span><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span> rec<span class="special">)</span><span class="special">;</span></pre>
+<p>The method puts logging record to the sink</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">rec</code></span></p></td>
+<td><p>Logging record to consume </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp27309640-bb"></a><span class="identifier">try_consume</span><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span> rec<span class="special">)</span><span class="special">;</span></pre>
+<p>The method attempts to put logging record to the sink. The method may be used by the core in order to determine the most efficient order of sinks to feed records to in case of heavy contention. Sink implementations may implement try/backoff logic in order to improve overall logging throughput.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">rec</code></span></p></td>
+<td><p>Logging record to consume </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code>, if the record was consumed, <code class="computeroutput">false</code>, if not. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27311912-bb"></a><span class="identifier">flush</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method performs flushing of any internal buffers that may hold log records. The method may take considerable time to complete and may block both the calling thread and threads attempting to put new records into the sink while this call is in progress. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp27312840-bb"></a><span class="identifier">is_cross_thread</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method indicates that the sink passes log records between different threads. This information is needed by the logging core to detach log records from all thread-specific resources before passing it to the sink. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../BOOST_LOG_COMBINE_REQUIREMENTS_LIMIT.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.sink_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="synchronous_sink.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

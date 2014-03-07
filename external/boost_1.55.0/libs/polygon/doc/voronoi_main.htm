@@ -1,0 +1,452 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+
+
+
+
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=windows-1252"><title>Voronoi Main</title>
+  
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8"></head><body>
+<table style="margin: 0pt; padding: 0pt; width: 100%;" border="0" cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1" valign="top">
+      <div style="padding: 5px;" align="center"> <img src="images/boost.png" border="0" height="86" width="277"><a title="www.boost.org home page" tabindex="2" style="border: medium none ;" href="http://www.boost.org/"> </a></div>
+      <div style="margin: 5px;">
+      <h3 class="navbar">Contents</h3>
+      <ul>
+        <li><a href="index.htm">Boost.Polygon Main Page</a></li>
+        <li><a href="gtl_design_overview.htm">Design Overview</a></li>
+        <li><a href="gtl_isotropy.htm">Isotropy</a></li>
+        <li><a href="gtl_coordinate_concept.htm">Coordinate Concept</a></li>
+        <li><a href="gtl_interval_concept.htm">Interval Concept</a></li>
+        <li><a href="gtl_point_concept.htm">Point Concept</a></li>
+        <li><a href="gtl_segment_concept.htm">Segment Concept</a></li>
+        <li><a href="gtl_rectangle_concept.htm">Rectangle Concept</a></li>
+        <li><a href="gtl_polygon_90_concept.htm">Polygon 90 Concept</a></li>
+        <li><a href="gtl_polygon_90_with_holes_concept.htm">Polygon 90
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_45_concept.htm">Polygon 45 Concept</a></li>
+        <li><a href="gtl_polygon_45_with_holes_concept.htm">Polygon 45
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_concept.htm">Polygon Concept</a></li>
+        <li><a href="gtl_polygon_with_holes_concept.htm">Polygon With
+Holes Concept</a></li>
+        <li><a href="gtl_polygon_90_set_concept.htm">Polygon 90 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_45_set_concept.htm">Polygon 45 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_set_concept.htm">Polygon Set Concept</a></li>
+        <li><a href="gtl_connectivity_extraction_90.htm">Connectivity
+Extraction 90</a></li>
+        <li><a href="gtl_connectivity_extraction_45.htm">Connectivity
+Extraction 45</a></li>
+        <li><a href="gtl_connectivity_extraction.htm">Connectivity
+Extraction</a></li>
+        <li><a href="gtl_property_merge_90.htm">Property Merge 90</a></li>
+        <li><a href="gtl_property_merge_45.htm">Property Merge 45</a></li>
+        <li><a href="gtl_property_merge.htm">Property Merge</a></li>
+        <li>Voronoi Main Page </li>
+        <li><a href="voronoi_benchmark.htm">Voronoi Benchmark</a></li>
+        <li><a href="voronoi_builder.htm">Voronoi Builder</a> </li>
+        <li><a href="voronoi_diagram.htm">Voronoi Diagram</a></li>
+      </ul>
+      <h3 class="navbar">Other Resources</h3>
+      <ul>
+        <li><a href="GTL_boostcon2009.pdf">GTL Boostcon 2009 Paper</a></li>
+        <li><a href="GTL_boostcon_draft03.pdf">GTL Boostcon 2009
+Presentation</a></li>
+        <li><a href="analysis.htm">Performance Analysis</a></li>
+        <li><a href="gtl_tutorial.htm">Layout Versus Schematic Tutorial</a></li>
+        <li><a href="gtl_minkowski_tutorial.htm">Minkowski Sum Tutorial</a></li>
+        <li><a href="voronoi_basic_tutorial.htm">Voronoi Basic Tutorial</a></li>
+        <li><a href="voronoi_advanced_tutorial.htm">Voronoi Advanced
+Tutorial</a></li>
+      </ul>
+      </div>
+      <h3 class="navbar">Polygon Sponsor</h3>
+      <div style="padding: 5px;" align="center"> <img src="images/intlogo.gif" border="0" height="51" width="127"><a title="www.adobe.com home page" tabindex="2" style="border: medium none ;" href="http://www.adobe.com/"> </a></div>
+      </td>
+      <td style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;" valign="top" width="100%"><!-- End Header --> <br>
+      <h1>THE BOOST.POLYGON VORONOI LIBRARY </h1>
+      <img style="width: 900px; height: 300px;" alt="" src="images/voronoi3.png"><br>
+The Voronoi extension of the Boost.Polygon library provides
+functionality to construct a <a href="voronoi_diagram.htm">Voronoi
+diagram</a>
+of a set of points and linear segments in 2D space with the following
+set of
+limitations:<br>
+      <ul>
+        <li>coordinates of the input points and endpoints of the
+input segments
+should be of the integer type;</li>
+        <li>input segments should not overlap
+except their endpoints.</li>
+      </ul>
+While the first restriction is permanent (it
+allows to give the exact warranties about the output precision and
+algorithm execution flow),
+the second one may be resolved using the Boost.Polygon <a href="gtl_segment_concept.htm">segment utils</a>.
+The strong sides of the
+library and main benefits comparing to the other implementations are
+discussed in the following paragraphs.<br>
+<h2>Fully Functional with Segments</h2>
+There are just a few implementations of the Voronoi diagram
+construction
+algorithm that can
+handle input data sets that contain linear segment, even considering
+the commercial
+libraries.
+Support of the
+segments allows to discretize any input geometry (sampled
+floating-point coordinates can be scaled and snapped to the integer
+grid): circle, ellipse,
+parabola. This functionality allows to compute
+the medial axis transform of the arbitrary set of input geometries,
+with direct applications in the computer vision
+projects.
+      <h2>Robustness and Efficiency</h2>
+Robustness issues can be divided onto the two main categories: memory
+management
+issues and numeric stability issues. The implementation avoids the
+first type of the issues using pure STL data structures, thus there is
+no
+presence of the new operator in the code. The second category of
+the problems is
+resolved using the multiprecision geometric
+predicates.
+Even for the commercial libraries, usage of such predicates
+results in a vast performance slowdown. The Voronoi implementation
+overcomes this by avoiding the multiprecision
+computations in the 95% of the cases and
+uses the efficient, floating-point based predicates. Such preciates
+don't
+produce the correct result always, however the library embeds the
+relative
+error arithmetic apparatus to identify such situations and switch
+to the
+higher precision predicates when appropriate. As the result, the
+implementation has a solid performance comparing to the other known
+libraries (more details in the <a href="voronoi_benchmark.htm">benchmarks</a>).<br>
+      <h2>Precision of the Output Structures </h2>
+The Voronoi implementation guaranties, that the relative error of the
+coordinates of the output
+geometries is at most 64 machine epsilons (6
+bits of mantissa, for the IEEE-754 floating-point type), while on
+average it's slightly lower. This means, that the precision of the
+output
+geometries can be increased simply by using a floating-point type with
+the larger mantissa. The practical point of this statements is
+explained in the following table:<br>
+      <table style="text-align: left; width: 100%;" border="1" cellpadding="2" cellspacing="2">
+        <tbody>
+          <tr>
+            <td style="vertical-align: top;">Output Coordinate Type </td>
+            <td style="vertical-align: top;">Output Coordinate Value </td>
+            <td style="vertical-align: top;">Max Absolute Error </td>
+            <td style="vertical-align: top;">Precise Value Range </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">double (53 bit mantissa) </td>
+            <td style="vertical-align: top;">1 </td>
+            <td style="vertical-align: top;">2<sup>-53</sup> * 2<sup>6</sup>
+= 2<sup>-47</sup></td>
+            <td style="vertical-align: top;">1 ± 2<sup>-47</sup></td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">double (53 bit mantissa) </td>
+            <td style="vertical-align: top;">2<sup>31</sup> </td>
+            <td style="vertical-align: top;">2<sup>-53</sup> * 2<sup>31</sup>
+* 2<sup>6</sup> = 2<sup>-16</sup></td>
+            <td style="vertical-align: top;">2<sup>31</sup> ± 2<sup>-16</sup></td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">long double (64 bit
+mantissa)</td>
+            <td style="vertical-align: top;">1 </td>
+            <td style="vertical-align: top;">2<sup>-64</sup> * 2<sup>6</sup>
+= 2<sup>-58</sup></td>
+            <td style="vertical-align: top;">1 ± 2<sup>-58</sup></td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">long double (64 bit
+mantissa) </td>
+            <td style="vertical-align: top;">2<sup>31</sup></td>
+            <td style="vertical-align: top;">2<sup>-64</sup> * 2<sup>31</sup>
+* 2<sup>6</sup> = 2<sup>-27</sup></td>
+            <td style="vertical-align: top;">2<sup>31</sup> ± 2<sup>-27</sup></td>
+          </tr>
+        </tbody>
+      </table>
+Detailed description of the absolute and relative errors evaluation can
+be found in the article: <a href="http://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html">"What
+Every Computer Scientist Should Know About Floating-Point Arithmetic"</a><a href="http://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html"></a>.<br>
+      <br>
+During the finalization step the implementation unites the Voronoi
+vertices
+whose both
+coordinates are situated within the relative error range equal to 128
+machine epsilons and removes any Voronoi edges between those. This is
+the only case, that might cause differences between the algorithm
+output
+topology and theoretically precise one, and practically means the
+following: for the Voronoi diagram of a set of solid bodies inside the
+Solar System (radius 2<sup>42</sup> metres) and the long double (64 bit
+mantissa) output coordinate type the maximum absolute error within the
+Solar System rectangle will be equal to 2<sup>-64</sup> * 2<sup>42</sup>
+* 2<sup>6</sup> = 2<sup>-18</sup> metres; as the result, vertices with
+both coordinates that are within 2<sup>-18</sup> metres (8
+micrometres or the size of a bacteria) will be considered
+equal and united.<br>
+      <h2>Simple Interface </h2>
+The <a href="../../../boost/polygon/voronoi.hpp">boost/polygon/</a><a href="../../../boost/polygon/voronoi.hpp">voronoi.hpp</a>
+library header defines the following static functions to integrate the
+Voronoi library
+functionality with the Boost.Polygon interfaces:<br>
+      <br>
+      <table style="text-align: left; width: 100%;" border="1" cellpadding="2" cellspacing="2">
+        <tbody>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename Point, typename VB&gt;<br>
+size_t <span style="font-weight: bold;">insert</span>(const Point
+&amp;point, VB *vb) </td>
+            <td>Inserts a point into the Voronoi builder data structure.<br>
+Point type should model the point concept.<br>
+Returns index of the inserted site. </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename PointIterator, typename VB&gt;<br>
+void <span style="font-weight: bold;">insert</span>(PointIterator
+first, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PointIterator last,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; VB
+*vb) </td>
+            <td>Inserts an iterator range of points into the Voronoi
+builder data structure.<br>
+Corresponding point type should model the point concept. </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename Segment, typename VB&gt;<br>
+size_t <span style="font-weight: bold;">insert</span>(const Segment
+&amp;segment, VB *vb) </td>
+            <td>Inserts a segment into the Voronoi builder data
+structure.<br>
+Segment type should model the segment concept.<br>
+Returns index of the inserted site. </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename SegmentIterator, typename VB&gt;<br>
+void <span style="font-weight: bold;">insert</span>(SegmentIterator
+first,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+SegmentIterator last,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; VB
+*vb) </td>
+            <td>Inserts an iterator range of segments into the Voronoi
+builder data structure.<br>
+Corresponding segment type should model the segment concept. </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename PointIterator, typename VD&gt;<br>
+void <span style="font-weight: bold;">construct_voronoi</span>(PointIterator
+first,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PointIterator last,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+VD *vd) </td>
+            <td>Constructs the Voronoi diagram of a set of points.<br>
+Corresponding point type should model the point concept.<br>
+Complexity: O(N * log N), memory usage: O(N), where N is the total number of input points.<br>
+ </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename SegmentIterator, typename VD&gt;<br>
+void <span style="font-weight: bold;">construct_voronoi</span>(SegmentIterator
+first,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+SegmentIterator last,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+VD *vd) </td>
+            <td>Constructs the Voronoi diagram of a set of segments.<br>
+Corresponding segment type should model the segment concept.<br>
+Complexity: O(N * log N), memory usage: O(N), where N is the total number of input segments.<br>
+ </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename PointIterator,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; typename
+SegmentIterator,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; typename VD&gt;<br>
+void <span style="font-weight: bold;">construct_voronoi</span>(PointIterator
+p_first,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PointIterator p_last,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+SegmentIterator s_first,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+SegmentIterator s_last,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+VD *vd) </td>
+            <td>Constructs the Voronoi
+diagram of a set of points and segments.<br>
+Corresponding point type should model the point concept.<br>
+Corresponding segment type should model the segment concept.<br>
+Complexity: O(N* log N), memory usage: O(N), where N is the total number of input points and segments.<br>
+</td>
+          </tr>
+        </tbody>
+      </table>
+      <br>
+The
+following two lines of code construct the Voronoi diagram of a set of
+points (as
+long as the corresponding input geometry type satisfies the
+Boost.Polygon <a href="gtl_design_overview.htm">concept model</a>):<br>
+      <br>
+      <span style="font-family: Courier New,Courier,monospace;">voronoi_diagram&lt;double&gt;
+vd;</span><br style="font-family: Courier New,Courier,monospace;">
+      <span style="font-family: Courier New,Courier,monospace;">construct_voronoi(points.begin(),
+points.end(), &amp;vd);</span><br>
+      <br>
+The library provides the clear interfaces to associate the user data
+with the
+output geometries and efficiently traverse
+the
+Voronoi graph.
+More details on those topics are covered in the <a href="voronoi_basic_tutorial.htm">basic Voronoi tutorial</a>. Advanced
+usage of the library with the configuration of the coordinate
+types is explained in the <a href="voronoi_advanced_tutorial.htm">advanced
+Voronoi tutorial</a>.
+The library allows users to implement their own Voronoi diagram /
+Delaunay triangulation construction routines based on the <a href="voronoi_builder.htm">Voronoi builder API</a>.<br>
+      <h2>No Third Party Dependencies </h2>
+The Voronoi extension of the Boost.Polygon library doesn't depend on
+any 3rd party code
+and contains single dependency on the Boost libraries:
+boost/cstdint.hpp.
+All the required multiprecision types and related functionality are
+encapsulated as
+part of the implementation. The library is fast to compile (3 public
+and 4 private heades), has strong cohesion between its components and
+is clearly modularized from the rest of the Boost.Polygon library, with
+the optional integration through the <a href="../../../boost/polygon/voronoi.hpp">voronoi.hpp</a> header.<br>
+      <h2>Extensible for the User Provided Coordinate Types</h2>
+The implementation is coordinate type agnostic. As long
+as the user provided types satisfy the set of the requirements of the <a href="voronoi_builder.htm">Voronoi builder</a> coordinate type traits,
+no additional
+changes
+are needed
+neither to the algorithm, nor to the implementation of the predicates.
+For example, it's
+possible to
+construct the Voronoi diagram with the 256-bit integer input coordinate
+type
+and
+512-bit output floating-point type without making any changes to the
+library.<br>
+      <h2>Future Development </h2>
+Below one may find the list of the main directions for the future
+development of the library.<br>
+The high-priority tasks that already have the approximate
+implementation plan
+are the following (some of those may be proposed as future GSoC
+projects):<br>
+      <ul>
+        <li>Implement the Delaunay triangulation data structure.<br>
+Note: only data structure needs to be implemented that properly
+processes events provided by the Voronoi builder.</li>
+        <li>Implement the medial axis transform data structure.<br>
+Note: in general case the Voronoi diagram has completely the same
+geometry
+as the medial axis (they are 100% equal), however for many applications
+user is not interested in the Voronoi edges inside the hole regions.
+The main point
+of this data structure is to automatically filter the Voronoi edges
+that
+belong to those areas.</li>
+        <li>The Voronoi
+diagram data structure can be used to find the K nearest neighbors of
+the N
+sites in O(N*K*log(K) + N*log(N)) time. The return value would be a
+list of the k nearest neighbors for each site. </li>
+        <li>Use the r-tree data structure built on top of the
+bounding rectangles around the Voronoi cells to answer the nearest
+neighbor queries in log(N) time, where N is the number of the Voronoi
+cells.<br>
+Note: there should be r-tree data structure available soon as part of
+the Boost libraries.</li>
+        <li>Expose O(N) interface to retrieve the convex hull of a set
+of
+points and segments from the Voronoi builder, once the Voronoi diagram
+is
+constructed.</li>
+        <li>Provide serialization utilities for the Voronoi diagram
+data structure. </li>
+      </ul>
+High-priority tasks to be considered:<br>
+      <ul>
+        <li>Drop the restriction on the non-intersecting input
+geometries.</li>
+        <li>Integrate the Voronoi diagram data structure with the
+BGL (Boost
+Graph Library).</li>
+        <li>Support the other types of distance metrics.</li>
+        <li>Construction of the constrained Delaunay triangulation.</li>
+        <li>Support of the circular input geometries.</li>
+      </ul>
+Based on the community suggestions priorities may be changed.<br>
+      <h2>Theoretical Research </h2>
+The Voronoi library
+was developed as part of the Google Summer of Code 2010. The
+library was actively maintained for the last three years and involved
+the
+strong mathematical research in the field of algorithms, data
+structures,
+relative error arithmetic and numerical robustness. Nowadays one can
+often read a scientific paper, that contains non-practical
+theoretical
+results or implementation with
+benchmarks nobody else can reproduce. The opposite story is with
+the Voronoi library, that contains complete
+implementation of
+the Voronoi diagram construction algorithm and
+benchmarks one may run on
+his/her PC. Upon the community request, more documentation on the
+theoretical aspects of the implementation will be published.
+The
+authors would like to acknowledge the Steven Fortune's article <span style="font-family: Arial,Helvetica,sans-serif;"><span style="font-weight: bold;"></span></span>"<a href="http://dl.acm.org/citation.cfm?id=10549">A Sweepline algorithm
+for Voronoi diagrams</a>", that covers fundamental ideas of the
+current implementation. </td>
+    </tr>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1">&nbsp;</td>
+      <td style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;" valign="top" width="100%">
+      <table class="docinfo" id="table2" frame="void" rules="none">
+        <colgroup> <col class="docinfo-name"><col class="docinfo-content"> </colgroup> <tbody valign="top">
+          <tr>
+            <th class="docinfo-name">Copyright:</th>
+            <td>Copyright © Andrii Sydorchuk 2010-2013.</td>
+          </tr>
+          <tr class="field">
+            <th class="docinfo-name">License:</th>
+            <td class="field-body">Distributed under the Boost Software
+License, Version 1.0. (See accompanying file <tt class="literal"><span class="pre">LICENSE_1_0.txt</span></tt> or copy at <a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+</body></html>

@@ -1,0 +1,43 @@
+
+CLI (part of the Jarakta project)
+http://jakarta.apache.org/commons/cli/index.html
+
+This is Java library. 
+The interface seems to be similiar, except for data storage.
+1. Instead of variables_map, the library can store the data
+as Java system properties.
+2. The class Option, which uses to describe the data, is also
+   used to keep the value. In contract, I keep them in separate
+   place. This facilitate using the same options description
+   for different data sources.
+
+TODO: Need to check that Option.setType method does.
+
+Werken.opt
+http://sourceforge.net/projects/werken-opt/
+
+This is a much simpler library then CLI, which
+somewhat less features.
+
+JArgs
+http://jargs.sourceforge.net/
+
+Another Java library. Has a fixed set of value types it can
+handle.
+
+Options (by Brad Appleton)
+http://www.enteract.com/~bradapp/ftp/src/libs/C++/Options.html
+
+This is very lean library. It does not provide argument validation,
+and the only iterface is iteration over arguments. An interesting
+iterface decision is using chars to identify presense of option's parameters.
+This may be moved to my library (|, :, ?, *, +)
+
+Cmdline (by Brad Appleton)
+http://www.enteract.com/~bradapp/ftp/src/libs/C++/CmdLine.html
+
+This library provides options validation and storage. Unfortunately
+1. Only a fixed set of data types is supported.
+2. It's intrusive -- one has to declare variable of "class ArgChar" or
+something, and then extract data from there.
+

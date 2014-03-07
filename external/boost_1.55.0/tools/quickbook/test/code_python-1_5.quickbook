@@ -1,0 +1,8 @@
+[article Python Code Blocks
+[quickbook 1.5]
+[source-mode python]
+]
+
+    # No escape
+    # Escape: ``*bold*``
+    # Escape: ``_underline_````/italic/``

@@ -1,0 +1,191 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Wide character logging</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="advanced_filtering.html" title="Filtering revisited">
+<link rel="next" href="../detailed.html" title="Detailed features description">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="advanced_filtering.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../detailed.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.tutorial.wide_char"></a><a class="link" href="wide_char.html" title="Wide character logging">Wide character logging</a>
+</h3></div></div></div>
+<p>
+        The library supports logging strings containing national characters. There
+        are basically two ways of doing this. On UNIX-like systems typically some
+        multibyte character encoding (e.g. UTF-8) is used to represent national characters.
+        In this case the library can be used just the way it is used for plain ASCII
+        logging, no additional setup is required.
+      </p>
+<p>
+        On Windows the common practice is to use wide strings to represent national
+        characters. Also, most of the system API is wide character oriented, which
+        requires Windows-specific sinks to also support wide strings. On the other
+        hand, generic sinks, like the <a class="link" href="../detailed/sink_backends.html#log.detailed.sink_backends.text_file" title="Text file backend">text
+        file sink</a>, are byte-oriented (because, well, you store bytes in files,
+        not characters). This forces the library to perform character code conversion
+        when needed by the sink. To set up the library for this one has to imbue
+        the sink with a locale with the appropriate <code class="computeroutput"><span class="identifier">codecvt</span></code>
+        facet. <a href="http://www.boost.org/doc/libs/release/libs/locale/doc/html/index.html" target="_top">Boost.Locale</a>
+        can be used to generate such a locale. Let's see an example:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Declare attribute keywords</span>
+<span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">severity</span><span class="special">,</span> <span class="string">"Severity"</span><span class="special">,</span> <span class="identifier">severity_level</span><span class="special">)</span>
+<span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">timestamp</span><span class="special">,</span> <span class="string">"TimeStamp"</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span><span class="special">)</span>
+
+<span class="keyword">void</span> <span class="identifier">init_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_file_backend</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">sink</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_file_log</span>
+    <span class="special">(</span>
+        <span class="string">"sample.log"</span><span class="special">,</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">format</span> <span class="special">=</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format_date_time</span><span class="special">(</span><span class="identifier">timestamp</span><span class="special">,</span> <span class="string">"%Y-%m-%d, %H:%M:%S.%f"</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="string">" &lt;"</span> <span class="special">&lt;&lt;</span> <span class="identifier">severity</span><span class="special">.</span><span class="identifier">or_default</span><span class="special">(</span><span class="identifier">normal</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="string">"&gt; "</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">message</span>
+    <span class="special">);</span>
+
+    <span class="comment">// The sink will perform character code conversion as needed, according to the locale set with imbue()</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span> <span class="identifier">loc</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">locale</span><span class="special">::</span><span class="identifier">generator</span><span class="special">()(</span><span class="string">"en_US.UTF-8"</span><span class="special">);</span>
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">imbue</span><span class="special">(</span><span class="identifier">loc</span><span class="special">);</span>
+
+    <span class="comment">// Let's add some commonly used attributes, like timestamp and record counter.</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_common_attributes</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        First let's take a look at the formatter we pass in the <code class="computeroutput"><span class="identifier">format</span></code>
+        parameter. We initialize the sink with a narrow-character formatter because
+        the text file sink processes bytes. It is possible to use wide strings in
+        the formatter, but not in format strings, like the one we used with the
+        <code class="computeroutput"><a class="link" href="../../boost/log/expressions/format_date_ti_idp26375288.html" title="Function template format_date_time">format_date_time</a></code> function.
+        Also note that we used <code class="computeroutput"><span class="identifier">message</span></code>
+        keyword to denote the log record messages. This <a class="link" href="../detailed/expressions.html#log.detailed.expressions.message" title="Message text placeholders">placeholder</a>
+        supports both narrow and wide character messages, so the formatter will work
+        with both. As part of the formatting process, the library will convert wide
+        character messages to multibyte encoding using the imbued locale, which we
+        set to UTF-8.
+      </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Attribute values can also contain wide strings. Like log record messages,
+          these strings will be converted with the imbued locale to the target character
+          encoding.
+        </p></td></tr>
+</table></div>
+<p>
+        One thing missing here is our <code class="computeroutput"><span class="identifier">severity_level</span></code>
+        type definition. The type is just an enumeration, but if we want to support
+        its formatting for both narrow and wide character sinks, its streaming operator
+        has to be a template. This may be useful if we create multiple sinks with
+        different character types.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">enum</span> <span class="identifier">severity_level</span>
+<span class="special">{</span>
+    <span class="identifier">normal</span><span class="special">,</span>
+    <span class="identifier">notification</span><span class="special">,</span>
+    <span class="identifier">warning</span><span class="special">,</span>
+    <span class="identifier">error</span><span class="special">,</span>
+    <span class="identifier">critical</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">TraitsT</span> <span class="special">&gt;</span>
+<span class="keyword">inline</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">TraitsT</span> <span class="special">&gt;&amp;</span> <span class="keyword">operator</span><span class="special">&lt;&lt;</span> <span class="special">(</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">TraitsT</span> <span class="special">&gt;&amp;</span> <span class="identifier">strm</span><span class="special">,</span> <span class="identifier">severity_level</span> <span class="identifier">lvl</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="keyword">const</span> <span class="identifier">str</span><span class="special">[]</span> <span class="special">=</span>
+    <span class="special">{</span>
+        <span class="string">"normal"</span><span class="special">,</span>
+        <span class="string">"notification"</span><span class="special">,</span>
+        <span class="string">"warning"</span><span class="special">,</span>
+        <span class="string">"error"</span><span class="special">,</span>
+        <span class="string">"critical"</span>
+    <span class="special">};</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="special">&gt;(</span><span class="identifier">lvl</span><span class="special">)</span> <span class="special">&lt;</span> <span class="special">(</span><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">str</span><span class="special">)</span> <span class="special">/</span> <span class="keyword">sizeof</span><span class="special">(*</span><span class="identifier">str</span><span class="special">)))</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="identifier">str</span><span class="special">[</span><span class="identifier">lvl</span><span class="special">];</span>
+    <span class="keyword">else</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="identifier">lvl</span><span class="special">);</span>
+    <span class="keyword">return</span> <span class="identifier">strm</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        Now we can emit log records. We can use loggers with <code class="computeroutput"><span class="identifier">w</span></code>
+        prefix in their names to compose wide character messages.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">test_narrow_char_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Narrow character logging still works</span>
+    <span class="identifier">src</span><span class="special">::</span><span class="identifier">logger</span> <span class="identifier">lg</span><span class="special">;</span>
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">lg</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Hello, World! This is a narrow character message."</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">test_wide_char_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">src</span><span class="special">::</span><span class="identifier">wlogger</span> <span class="identifier">lg</span><span class="special">;</span>
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">lg</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">L</span><span class="string">"Hello, World! This is a wide character message."</span><span class="special">;</span>
+
+    <span class="comment">// National characters are also supported</span>
+    <span class="keyword">const</span> <span class="keyword">wchar_t</span> <span class="identifier">national_chars</span><span class="special">[]</span> <span class="special">=</span> <span class="special">{</span> <span class="number">0x041f</span><span class="special">,</span> <span class="number">0x0440</span><span class="special">,</span> <span class="number">0x0438</span><span class="special">,</span> <span class="number">0x0432</span><span class="special">,</span> <span class="number">0x0435</span><span class="special">,</span> <span class="number">0x0442</span><span class="special">,</span> <span class="identifier">L</span><span class="char">','</span><span class="special">,</span> <span class="identifier">L</span><span class="char">' '</span><span class="special">,</span> <span class="number">0x043c</span><span class="special">,</span> <span class="number">0x0438</span><span class="special">,</span> <span class="number">0x0440</span><span class="special">,</span> <span class="identifier">L</span><span class="char">'!'</span><span class="special">,</span> <span class="number">0</span> <span class="special">};</span>
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">lg</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">national_chars</span><span class="special">;</span>
+
+    <span class="comment">// Now, let's try logging with severity</span>
+    <span class="identifier">src</span><span class="special">::</span><span class="identifier">wseverity_logger</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;</span> <span class="identifier">slg</span><span class="special">;</span>
+    <span class="identifier">BOOST_LOG_SEV</span><span class="special">(</span><span class="identifier">slg</span><span class="special">,</span> <span class="identifier">normal</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">L</span><span class="string">"A normal severity message, will not pass to the file"</span><span class="special">;</span>
+    <span class="identifier">BOOST_LOG_SEV</span><span class="special">(</span><span class="identifier">slg</span><span class="special">,</span> <span class="identifier">warning</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">L</span><span class="string">"A warning severity message, will pass to the file"</span><span class="special">;</span>
+    <span class="identifier">BOOST_LOG_SEV</span><span class="special">(</span><span class="identifier">slg</span><span class="special">,</span> <span class="identifier">error</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">L</span><span class="string">"An error severity message, will pass to the file"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        As you can see, wide character message composition is similar to narrow logging.
+        Note that you can use both narrow and wide character logging at the same
+        time; all records will be processed by our file sink. The complete code of
+        this example can be found <a href="../../../../../../libs/log/example/wide_char/main.cpp" target="_top">here</a>.
+      </p>
+<p>
+        It must be noted that some sinks (mostly, Windows-specific ones) allow to
+        specify the target character type. When national characters are expected
+        in log records, one should always use <code class="computeroutput"><span class="keyword">wchar_t</span></code>
+        as the target character type in these cases because the sink will use wide
+        character OS API to process log records. In this case all narrow character
+        strings will be widened using the locale imbued into the sink when formatting
+        is performed.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="advanced_filtering.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../detailed.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

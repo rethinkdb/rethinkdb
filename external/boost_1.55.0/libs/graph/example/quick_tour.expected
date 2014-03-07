@@ -1,0 +1,22 @@
+vertices(g) = 0 1 2 3 4 
+edges(g) = (0,1) (0,2) (0,3) (0,4) (2,0) (2,4) (3,0) (3,1) (3,4) (4,0) (4,1) 
+vertex: 0
+	out-edges: (0,1) (0,2) (0,3) (0,4) 
+	in-edges: (2,0) (3,0) (4,0) 
+	adjacent vertices: 1 2 3 4 
+vertex: 1
+	out-edges: 
+	in-edges: (0,1) (3,1) (4,1) 
+	adjacent vertices: 
+vertex: 2
+	out-edges: (2,0) (2,4) 
+	in-edges: (0,2) 
+	adjacent vertices: 0 4 
+vertex: 3
+	out-edges: (3,0) (3,1) (3,4) 
+	in-edges: (0,3) 
+	adjacent vertices: 0 1 4 
+vertex: 4
+	out-edges: (4,0) (4,1) 
+	in-edges: (0,4) (2,4) (3,4) 
+	adjacent vertices: 0 1 

@@ -1,0 +1,184 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Version definition macros</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Predef 1.0">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="other_macros.html" title="Other macros">
+<link rel="next" href="../acknoledgements.html" title="Acknoledgements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<div class="spirit-nav">
+<a accesskey="p" href="other_macros.html"><img src="../../images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../images/home.png" alt="Home"></a><a accesskey="n" href="../acknoledgements.html"><img src="../../images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="predef.reference.version_definition_macros"></a><a class="link" href="version_definition_macros.html" title="Version definition macros">Version definition
+      macros</a>
+</h3></div></div></div>
+<h5>
+<a name="predef.reference.version_definition_macros.h0"></a>
+        <span class="phrase"><a name="predef.reference.version_definition_macros.boost_version_number"></a></span><a class="link" href="version_definition_macros.html#predef.reference.version_definition_macros.boost_version_number"><code class="computeroutput"><span class="identifier">BOOST_VERSION_NUMBER</span></code></a>
+      </h5>
+<pre class="programlisting"><span class="identifier">BOOST_VERSION_NUMBER</span><span class="special">(</span><span class="identifier">major</span><span class="special">,</span><span class="identifier">minor</span><span class="special">,</span><span class="identifier">patch</span><span class="special">)</span>
+</pre>
+<p>
+        Defines standard version numbers, with these properties:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Decimal base whole numbers in the range [0,1000000000). The number range
+            is designed to allow for a (2,2,5) triplet. Which fits within a 32 bit
+            value.
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><span class="identifier">major</span></code> number can
+            be in the [0,99] range.
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><span class="identifier">minor</span></code> number can
+            be in the [0,99] range.
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><span class="identifier">patch</span></code> number can
+            be in the [0,99999] range.
+          </li>
+<li class="listitem">
+            Values can be specified in any base. As the defined value is an constant
+            expression.
+          </li>
+<li class="listitem">
+            Value can be directly used in both preprocessor and compiler expressions
+            for comparison to other similarly defined values.
+          </li>
+<li class="listitem">
+            The implementation enforces the individual ranges for the major, minor,
+            and patch numbers. And values over the ranges are truncated (modulo).
+          </li>
+</ul></div>
+<h5>
+<a name="predef.reference.version_definition_macros.h1"></a>
+        <span class="phrase"><a name="predef.reference.version_definition_macros.boost_predef_make_macros"></a></span><a class="link" href="version_definition_macros.html#predef.reference.version_definition_macros.boost_predef_make_macros"><code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_</span><span class="special">..</span></code>
+        macros</a>
+      </h5>
+<p>
+        These set of macros decompose common vendor version number macros which are
+        composed version, revision, and patch digits. The naming convention indicates:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The base of the specified version number. "<code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_0X</span></code>"
+            for hexadecimal digits, and "<code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10</span></code>"
+            for decimal digits.
+          </li>
+<li class="listitem">
+            The format of the vendor version number. Where "<code class="computeroutput"><span class="identifier">V</span></code>"
+            indicates the version digits, "<code class="computeroutput"><span class="identifier">R</span></code>"
+            indicates the revision digits, "<code class="computeroutput"><span class="identifier">P</span></code>"
+            indicates the patch digits, and "<code class="computeroutput"><span class="number">0</span></code>"
+            indicates an ignored digit.
+          </li>
+</ul></div>
+<p>
+        Macros are:
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_0X_VRP</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_0X_VVRP</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_0X_VRPP</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_0X_VVRR</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_0X_VRRPPPP</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_0X_VVRRP</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_0X_VRRPP000</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VPPP</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VRP</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VRP000</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VRPP</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VRR</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VRRPP</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VRR000</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VV00</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VVRR</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VVRRPP</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VVRR0PP00</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VVRR0PPPP</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_10_VVRR00PP00</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<h5>
+<a name="predef.reference.version_definition_macros.h2"></a>
+        <span class="phrase"><a name="predef.reference.version_definition_macros.boost_predef_make_date_macros"></a></span><a class="link" href="version_definition_macros.html#predef.reference.version_definition_macros.boost_predef_make_date_macros"><code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_</span><span class="special">*..</span></code>
+        date macros</a>
+      </h5>
+<p>
+        Date decomposition macros return a date in the relative to the 1970 Epoch
+        date. If the month is not available, January 1st is used as the month and
+        day. If the day is not available, but the month is, the 1st of the month
+        is used as the day.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_DATE</span><span class="special">(</span><span class="identifier">Y</span><span class="special">,</span><span class="identifier">M</span><span class="special">,</span><span class="identifier">D</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_YYYYMMDD</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_YYYY</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">BOOST_PREDEF_MAKE_YYYYMM</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Rene Rivera<br>Copyright &#169; 2008-2013 Redshift Software Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="other_macros.html"><img src="../../images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../images/home.png" alt="Home"></a><a accesskey="n" href="../acknoledgements.html"><img src="../../images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

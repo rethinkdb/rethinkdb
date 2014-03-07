@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Function Template write</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Function Template <CODE>write</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#example">Example</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The two overloads of the function template <CODE>write</CODE> provide a uniform interface for writing a sequence of characters to a <A HREF="../concepts/source.html">Sink</A> or <A HREF="../concepts/output_filter.html">OutputFilter</A>. 
+    <UL>
+        <LI>The first overload can be used directly in the definitions of new Filter types (<I>see</I> <A HREF="#example">Example</A>), and figures in the specification of the <A HREF="../guide/concepts.html#device_concepts">Device</A> concepts.
+        <LI>The second overload is primarily for internal use by the library.
+    </UL>
+</P>
+
+<A NAME="example"></A>
+<H2>Example</H2>
+
+<P>
+    The following code illustrates the use of the function <CODE>write</CODE> in the definition of an <A HREF="../concepts/output_filter.html">OutputFilter</A> which reverses its controlled sequence.
+</P>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="preprocessor">#include</SPAN> <SPAN CLASS="literal">&lt;algorithm&gt;</SPAN>                      <SPAN CLASS="comment">// reverse</SPAN> 
+    <SPAN CLASS="preprocessor">#include</SPAN> <SPAN CLASS="literal">&lt;vector&gt;</SPAN>
+    <SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>   <SPAN CLASS="comment">// output_filter</SPAN> 
+    <SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// write</SPAN>
+
+    <SPAN CLASS="keyword">using</SPAN> <SPAN CLASS="keyword">namespace</SPAN> std;
+    <SPAN CLASS="keyword">using</SPAN> <SPAN CLASS="keyword">namespace</SPAN> boost::io;
+
+    <SPAN CLASS="keyword">struct</SPAN> reversing_filter : <SPAN CLASS="keyword">public</SPAN> multichar_output_filter {
+        <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+        std::streamsize write(Sink&amp; snk, <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">char</SPAN>* s, streamsize n)
+        {
+            data.insert(data.end(), s, s + n);
+            <SPAN CLASS="keyword">return</SPAN> n;
+        }
+        <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+        <SPAN CLASS="keyword">void</SPAN> close(Sink&amp; snk)
+        {
+            std::reverse(data.begin(), data.end());
+            boost::iostreams::write(&amp;data[0], (streamsize) data.size());
+            data.clear();
+        }
+        std::vector&lt;<SPAN CLASS="keyword">char</SPAN>&gt; data;
+    };</PRE>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><CODE>&lt;boost/iostreams/operations.hpp&gt;</CODE></A></DT>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/write.hpp"><CODE>&lt;boost/iostreams/write.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="description"></A>
+<H4>Description</H4>
+
+<P>Attempts to write a sequence of characters to a given instance of the template parameter <CODE>T</CODE>, returning the number of characters written.</P>
+
+<A NAME="synopsis"></A>
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+              
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">T</A>&gt;     
+std::streamsize 
+<A CLASS="documented" HREF="#write_device">write</A>( T&amp; <A CLASS="documented" HREF="#function_params">t</A>,
+       <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="../guide/traits.html#char_type_of_ref">char_type_of</A>&lt;T&gt;::type* <A CLASS="documented" HREF="#function_params">s</A>, 
+       std::streamsize <A CLASS="documented" HREF="#function_params">n</A> );
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">T</A>, <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Sink</A>&gt;
+std::streamsize 
+<A CLASS="documented" HREF="#write_filter">write</A>( T&amp; <A CLASS="documented" HREF="#function_params">t</A>,
+       Sink&amp; <A CLASS="documented" HREF="#function_params">snk</A>,
+       <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="../guide/traits.html#char_type_of_ref">char_type_of</A>&lt;T&gt;::type* <A CLASS="documented" HREF="#function_params">s</A>, 
+       std::streamsize <A CLASS="documented" HREF="#function_params">n</A> );
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="template_params"></A>
+<H4>Template Parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>T</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>For the first overload, a model of <A HREF="../concepts/sink.html">Sink</A>. For the second overload, a model of <A HREF="../concepts/output_filter.html">OutputFilter</A>.
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Sink</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of <A HREF="../concepts/sink.html">Sink</A> with the same <A HREF="../guide/traits.html#char_type">character type</A> as <CODE>T</CODE> whose <A HREF="../guide/modes.html">mode</A> refines that of <CODE>T</CODE>.
+    </TR>
+</TABLE>
+
+<A NAME="function_params"></A>
+<H4>Function Parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>t</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>An instance of T</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>s</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A buffer containing characters to write</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>n</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The number of characters to write</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>snk</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>An instance of <CODE>Sink</CODE>.
+    </TR>
+</TABLE>
+
+<A NAME="write_device"></A>
+<H4>Semantics &#8212; Device Types</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T&gt;     
+std::streamsize
+write( T&amp; t,
+       <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">typename</SPAN> char_type_of&lt;T&gt;::type* s,
+       std::streamsize n );</PRE>
+
+<P>The semantics of <CODE>write</CODE> depends on the <A HREF="../guide/traits.html#category">category</A> of <CODE>T</CODE> as follows:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=1 CELLPADDING=4>
+    <TR><TH><CODE>category_of&lt;T&gt;::type</CODE></TH><TH>semantics</TH></TR>
+    <TR>
+        <TD VALIGN="top">convertible to <CODE>ostream_tag</CODE></TD>
+        <TD>returns <CODE>t.rdbuf()->sputn(s, n)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">convertible to <CODE>streambuf_tag</CODE> but not to <CODE>ostream_tag</CODE></TD>
+        <TD>returns <CODE>t.sputn(s, n)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">otherwise</TD>
+        <TD>returns <CODE>t.write(s, n)</CODE></TD>
+    </TR>
+</TABLE>
+
+<A NAME="write_filter"></A>
+<H4>Semantics &#8212; Filter Types</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T, <SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+std::streamsize
+write( T&amp; t,
+       Sink&amp; snk,
+       <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">typename</SPAN> char_type_of&lt;T&gt;::type* s,
+       std::streamsize n );</PRE>
+
+<P>The semantics of <CODE>write</CODE> depends on the <A HREF="../guide/traits.html#category">category</A> of <CODE>T</CODE> as follows:</P>
+
+<TABLE STYLE="margin:0,0,2em,2em" BORDER=1 CELLPADDING=4>
+    <TR><TH><CODE>category_of&lt;T&gt;::type</CODE></TH><TH>semantics</TH></TR>
+    <TR>
+        <TD VALIGN="top">convertible to <CODE>multichar_tag</CODE></TD>
+        <TD>returns <CODE>t.write(snk, s, n)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>otherwise</I></TD>
+        <TD>Attempts to write <CODE>n</CODE> characters from <CODE>s</CODE> by invoking <CODE>t.put(snk, s[m])</CODE> for each value <CODE>m</CODE> in the interval <CODE>[0, n)</CODE>, halting if <CODE>put</CODE> returns <CODE>false</CODE>. Returns the number of characters written.</TD>
+    </TR>
+</TABLE>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

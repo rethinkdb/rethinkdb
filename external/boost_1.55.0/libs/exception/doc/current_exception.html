@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'
+'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+	<title>current_exception</title>
+	<link href='reno.css' type='text/css' rel='stylesheet'/>
+</head>
+<body>
+<div class="body-0">
+<div class="body-1">
+<div class="body-2">
+<div>
+<div id="boost_logo">
+<a href="http://www.boost.org"><img style="border:0" src="../../../boost.png" alt="Boost" width="277" height="86"/></a>
+</div>
+<h1>Boost Exception</h1>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="RenoIncludeDIV"><div class="RenoAutoDIV"><h3>current_exception</h3>
+</div>
+<div class="RenoIncludeDIV"><p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_ptr_hpp.html">boost/exception_ptr.hpp</a></span>&gt;</p>
+<pre>namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> <span class="RenoLink">current_exception</span>();</span>
+    }</pre>
+</div><h4>Requirements:</h4>
+<p>The <span class="RenoLink">current_exception</span> function must not be called outside of a catch block.</p>
+<p>In addition, to safely copy an exception from one thread to another, if the exception object is copied by <span class="RenoLink">current_exception</span> or <span class="RenoLink"><a href="copy_exception.html">copy_exception</a></span>, the two copies must not have shared state. Exceptions that have value-type semantics (as well as the boost::<span class="RenoLink"><a href="exception.html">exception</a></span> type itself) satisfy this requirement.</p>
+<h4>Returns:</h4>
+<div><ul><li> An <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> that refers to the currently handled exception or a copy of the currently handled exception.</li>
+<li> If the function needs to allocate memory and the attempt fails, it returns an <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> that refers to an instance of std::bad_alloc.</li>
+</ul></div>
+<h4>Throws:</h4>
+<p>Nothing.</p>
+<h4>Notes:</h4>
+<div><ul><li> It is unspecified whether the return values of two successive calls to <span class="RenoLink">current_exception</span> refer to the same exception object.</li>
+<li> Correct implementation of <span class="RenoLink">current_exception</span> may require compiler support, unless <span class="RenoLink"><a href="enable_current_exception.html">enable_current_exception</a></span> was used at the time the currently handled exception object was passed to throw. Whenever <span class="RenoLink">current_exception</span> fails to properly copy the current exception object, it returns an <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> to an object of type that is as close as possible to the original exception type, using <span class="RenoLink"><a href="unknown_exception.html">unknown_exception</a></span> as a final fallback. All such types derive from boost::<span class="RenoLink"><a href="exception.html">exception</a></span>, and:<div><ul><li> if the original exception object derives from boost::<span class="RenoLink"><a href="exception.html">exception</a></span>, then the boost::<span class="RenoLink"><a href="exception.html">exception</a></span> sub-object of the object referred to by the returned <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> is initialized by the boost::<span class="RenoLink"><a href="exception.html">exception</a></span> copy constructor;</li>
+<li> if available, the exception contains the std::type_info of the original exception object, accessible through <span class="RenoLink"><a href="get_error_info.html">get_error_info</a></span>&lt;<span class="RenoLink"><a href="original_exception_type.html">original_exception_type</a></span>&gt;.</li>
+</ul></div>
+</li>
+</ul></div>
+</div><div class="RenoAutoDIV"><div class="RenoHR"><hr/></div>
+See also: <span class="RenoPageList"><a href="boost-exception.html">Boost Exception</a>&nbsp;| <a href="boost_exception_ptr_hpp.html">boost/exception_ptr.hpp</a>&nbsp;| <a href="copy_exception.html">copy_exception</a>&nbsp;| <a href="enable_current_exception.html">enable_current_exception</a>&nbsp;| <a href="frequently_asked_questions.html">Frequently Asked Questions</a>&nbsp;| <a href="original_exception_type.html">original_exception_type</a>&nbsp;| <a href="unknown_exception.html">unknown_exception</a></span>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div id="footer">
+<p>
+<a class="logo" href="http://jigsaw.w3.org/css-validator/check/referer"><img class="logo_pic" src="valid-css.png" alt="Valid CSS" height="31" width="88"/></a>
+<a class="logo" href="http://validator.w3.org/check?uri=referer"><img class="logo_pic" src="valid-xhtml.png" alt="Valid XHTML 1.0" height="31" width="88"/></a>
+<small>Copyright (c) 2006-2009 by Emil Dotchevski and Reverge Studios, Inc.<br/>
+Distributed under the <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License, Version 1.0</a>.</small>
+</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

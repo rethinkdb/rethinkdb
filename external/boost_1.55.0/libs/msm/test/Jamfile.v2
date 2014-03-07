@@ -1,0 +1,49 @@
+# test/Jamfile.v2 controls building of MSM Library unit tests
+#
+# Copyright (c) 2010 Christophe Henry
+#
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+project msm
+    :
+    requirements
+        <include>.
+       <toolset>gcc:<cxxflags>"-ftemplate-depth-300 -g0"
+       <toolset>darwin:<cxxflags>"-ftemplate-depth-300 -g0"
+       <toolset>intel:<cxxflags>"-g0"
+       <toolset>gcc:<optimization>off
+       <toolset>darwin:<optimization>off
+       <toolset>intel:<optimization>off
+       <library>/boost/test//boost_unit_test_framework/<link>static
+       <library>/boost/serialization//boost_serialization/<link>static
+    ;
+
+test-suite msm-unit-tests
+    :
+    [ run Anonymous.cpp ]
+    [ run AnonymousEuml.cpp ]
+    [ run CompositeEuml.cpp ]
+    [ run CompositeMachine.cpp ]
+    [ run Constructor.cpp ]
+    [ run Entries.cpp ]
+    [ run History.cpp ]
+    [ run OrthogonalDeferred.cpp ]
+    [ run OrthogonalDeferred2.cpp ]
+    [ run OrthogonalDeferredEuml.cpp ]
+    [ run SimpleEuml.cpp ]
+    [ run SimpleEuml2.cpp ]
+    [ run SimpleInternal.cpp ]
+    [ run SimpleInternalEuml.cpp ]
+    [ run SimpleInternalFunctors.cpp ]
+    [ run SimpleMachine.cpp ]
+    [ run SimpleWithFunctors.cpp ]
+    [ run Serialize.cpp ]
+    [ run SerializeWithHistory.cpp ]
+    [ run SerializeSimpleEuml.cpp ]
+    [ run TestConstructor.cpp ]
+    ;
+

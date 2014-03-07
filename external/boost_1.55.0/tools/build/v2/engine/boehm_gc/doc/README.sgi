@@ -1,0 +1,41 @@
+Performance of the incremental collector can be greatly enhanced with
+-DNO_EXECUTE_PERMISSION.
+
+The collector should run with all of the -32, -n32 and -64 ABIs.  Remember to
+define the AS macro in the Makefile to be "as -64", or "as -n32".
+
+If you use -DREDIRECT_MALLOC=GC_malloc with C++ code, your code should make
+at least one explicit call to malloc instead of new to ensure that the proper
+version of malloc is linked in.
+
+Sproc threads are not supported in this version, though there may exist other
+ports.
+
+Pthreads support is provided.  This requires that:
+
+1) You compile the collector with -DGC_IRIX_THREADS specified in the Makefile.
+
+2) You have the latest pthreads patches installed.  
+
+(Though the collector makes only documented pthread calls,
+it relies on signal/threads interactions working just right in ways
+that are not required by the standard.  It is unlikely that this code
+will run on other pthreads platforms.  But please tell me if it does.)
+
+3) Every file that makes thread calls should define IRIX_THREADS and then
+include gc.h.  Gc.h redefines some of the pthread primitives as macros which
+also provide the collector with information it requires.
+
+4) pthread_cond_wait and pthread_cond_timed_wait should be prepared for
+premature wakeups.  (I believe the pthreads and realted standards require this
+anyway.  Irix pthreads often terminate a wait if a signal arrives.
+The garbage collector uses signals to stop threads.)
+
+5) It is expensive to stop a thread waiting in IO at the time the request is
+initiated.  Applications with many such threads may not exhibit acceptable
+performance with the collector.  (Increasing the heap size may help.)
+
+6) The collector should not be compiled with -DREDIRECT_MALLOC.  This
+confuses some library calls made by the pthreads implementation, which
+expect the standard malloc.
+

@@ -1,0 +1,4 @@
+{ "name": "packed-coffee-script",
+  "version": "1.7.1",
+  "dependencies": { "coffee-script": "1.7.1" },
+  "bundleDependencies": [ "coffee-script" ] }

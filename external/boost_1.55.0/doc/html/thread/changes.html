@@ -1,0 +1,1302 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>History</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../thread.html" title="Chapter&#160;31.&#160;Thread 4.2.0">
+<link rel="prev" href="build.html" title="Using and building the library">
+<link rel="next" href="future.html" title="Future">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="build.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../thread.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="future.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="thread.changes"></a><a class="link" href="changes.html" title="History">History</a>
+</h2></div></div></div>
+<h4>
+<a name="thread.changes.h0"></a>
+      <span class="phrase"><a name="thread.changes.version_4_2_0___boost_1_55"></a></span><a class="link" href="changes.html#thread.changes.version_4_2_0___boost_1_55">Version
+      4.2.0 - boost 1.55</a>
+    </h4>
+<p>
+      <span class="bold"><strong>Know Bugs:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/2442" target="_top">#2442</a>
+          Application statically linked with Boost.Thread crashes when Google Desktop
+          is installed (Windows XP)
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/3926" target="_top">#3926</a>
+          thread_specific_ptr + dlopen library causes a SIGSEGV.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4833" target="_top">#4833</a>
+          MinGW/test_tss_lib: Support of automatic tss cleanup for native threading
+          API not available
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6782" target="_top">#6782</a>
+          call_once uses incorrect barrier intrinsic on Visual Studio
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7319" target="_top">#7319</a>
+          Take care of c++std-lib-32966 issue
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8600" target="_top">#8600</a>
+          wait_for_any hangs, if called with multiple copies of shared_future referencing
+          same task
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/9307" target="_top">#9307</a>
+          future::fallback_to assert with ERRORRRRR boost: mutex lock failed in pthread_mutex_lock:
+          Invalid argument
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/9308" target="_top">#9308</a>
+          future::async fails with terminate called throwing an exception when called
+          with a lambda - clang-darwin-asan11
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/9311" target="_top">#9311</a>
+          ex_lambda_future fails on msvc-11.0
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/9310" target="_top">#9310</a>
+          test_4648_lib fails on clang-darwin-asan11
+        </li>
+</ul></div>
+<p>
+      Please take a look at <a href="https://svn.boost.org/trac/boost/query?status=assigned&amp;status=new&amp;status=reopened&amp;component=thread&amp;type=!Feature+Requests&amp;col=id&amp;col=summary&amp;order=id" target="_top">thread
+      trunk regression test</a> to see the current state.
+    </p>
+<p>
+      <span class="bold"><strong>Sever limitations:</strong></span>
+    </p>
+<p>
+      There are some severe bugs that prevent the use of the library on concrete
+      contexts, in particular:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          on thread specific storage that prevent the library to be used with dynamic
+          libraries,
+        </li>
+<li class="listitem">
+          The experimental features of boost::future have some severe holes that
+          make the program crash unexpectedly.
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>New Features:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8519" target="_top">#8519</a>
+          Synchro: Update class barrier with a completion function.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8515" target="_top">#8515</a>
+          Async: Add shared_future::then.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8519" target="_top">#8519</a>
+          Synchro: Update class barrier with a completion function
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8615" target="_top">#8615</a>
+          Async: Replace make_future/make_shared_future by make_ready_future.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8627" target="_top">#8627</a>
+          Async: Add future&lt;&gt;::unwrap and unwrapping constructor.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8677" target="_top">#8677</a>
+          Async: Add future&lt;&gt;::get_or.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8678" target="_top">#8678</a>
+          Async: Add future&lt;&gt;::fallback_to.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8891" target="_top">#8891</a>
+          upgrade_to_unique_lock: missing mutex() function.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8955" target="_top">#8955</a>
+          Request for more efficient way to get exception_ptr from future.
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>Fixed Bugs:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7461" target="_top">#7461</a>
+          detail::win32::ReleaseSemaphore may be called with count_to_release equal
+          to 0 Boost 1.55.0 closed viboes Bugs
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8070" target="_top">#8070</a>
+          prefer GetTickCount64 over GetTickCount
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8768" target="_top">#8768</a>
+          win32 condition_variable::wait_until infinite wait in rare cases.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8817" target="_top">#8817</a>
+          Boost Thread Windows CE _createthreadex handling breaks mingw w64.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8943" target="_top">#8943</a>
+          Failed to compile code using boost::call_once with Intel C++ Composer XE
+          2013 on Windows.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8931" target="_top">#8931</a>
+          Typos in external_locking reference.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/9029" target="_top">#9029</a>
+          Misprint in documentation.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/9037" target="_top">#9037</a>
+          gcc -Wshadow gives warnings in condition_variable{,_fwd}.hpp.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/9041" target="_top">#9041</a>
+          Boost.Thread DSO's may need to link with Boost.Atomic.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/9048" target="_top">#9048</a>
+          boost::scoped_thread useless ctor with variadic template arguments.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/9079" target="_top">#9079</a>
+          Condition variable will wait forever for some timepoint values (Win).
+        </li>
+</ul></div>
+<h4>
+<a name="thread.changes.h1"></a>
+      <span class="phrase"><a name="thread.changes.version_4_1_0___boost_1_54"></a></span><a class="link" href="changes.html#thread.changes.version_4_1_0___boost_1_54">Version
+      4.1.0 - boost 1.54</a>
+    </h4>
+<p>
+      <span class="bold"><strong>New Features:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7285" target="_top">#7285</a>
+          C++11 compliance: Allow to pass movable arguments for call_once.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7445" target="_top">#7445</a>
+          Async: Add future&lt;&gt;.then
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7449" target="_top">#7449</a>
+          Synchro: Add a synchronized value class
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>Fixed Bugs:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4878" target="_top">#4878</a>
+          MinGW 4.5.0 undefined reference to bool interruptible_wait(detail::win32::handle
+          handle_to_wait_for,detail::t imeout target_time).
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4882" target="_top">#4882</a>
+          Win32 shared_mutex does not handle timeouts correctly.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5752" target="_top">#5752</a>
+          boost::call_once() is unreliable on some platforms
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6652" target="_top">#6652</a>
+          Boost.Thread shared_mutex.hpp:50:99: warning: dereferencing type-punned
+          pointer will break strict-aliasing rules <span class="strikethrough">Wstrict-aliasing</span>
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6843" target="_top">#6843</a>
+          [Intel C++] Compile Errors with '#include &lt;atomic&gt;'
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6966" target="_top">#6966</a>
+          future boost::future_category inconsistent dll linkage
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7720" target="_top">#7720</a>
+          exception lock_error while intensive locking/unlocking of mutex
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7755" target="_top">#7755</a>
+          Thread: deadlock with shared_mutex on Windows
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7980" target="_top">#7980</a>
+          Build error: msvc-11.0 and BOOST_THREAD_DONT_USE_DATETIME
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7982" target="_top">#7982</a>
+          pthread_delay_np() parm compile error on AIX
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8027" target="_top">#8027</a>
+          thread library fails to compile with Visual Studio 2003
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8070" target="_top">#8070</a>
+          prefer GetTickCount64 over GetTickCount
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8136" target="_top">#8136</a>
+          boost::this_thread::sleep_for() sleeps longer than it should in Windows
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8212" target="_top">#8212</a>
+          Boost thread compilation error on Solaris 10
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8237" target="_top">#8237</a>
+          fix documentation for 'thread_group'
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8239" target="_top">#8239</a>
+          barrier::wait() not marked as interruption_point
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8323" target="_top">#8323</a>
+          boost::thread::try_join_for/try_join_until may block indefinitely due to
+          a combination of problems in Boost.Thread and Boost.Chrono
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8337" target="_top">#8337</a>
+          The internal representation of "std::string(this-&gt;code()-&gt;message())"
+          escapes, but is destroyed when it exits scope.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8371" target="_top">#8371</a>
+          C++11 once_flag enabled when constexpr is not available
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8422" target="_top">#8422</a>
+          Assertion in win32::WaitForSingleObject()
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8443" target="_top">#8443</a>
+          Header file inclusion order may cause crashes
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8451" target="_top">#8451</a>
+          Missing documented function 'boost::scoped_thread::joinable'
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8458" target="_top">#8458</a>
+          -DBOOST_THREAD_DONT_USE_CHRONO in thread.obj.rsp but not explicitly set
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8530" target="_top">#8530</a>
+          [Coverity] Unused variable thread_handle, uninitialized variable cond_mutex
+          in thread/pthread/thread_data.hpp
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8550" target="_top">#8550</a>
+          static linking of Boost.Thread with an MFC-Dll
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8576" target="_top">#8576</a>
+          "sur parolle" should be "sur parole".
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8596" target="_top">#8596</a>
+          With C++0x enabled, boost::packaged_task stores a reference to function
+          objects, instead of a copy.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8626" target="_top">#8626</a>
+          Reintroduce BOOST_VERIFY on pthread_mutex_destroy return type
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8645" target="_top">#8645</a>
+          Typo in Strict lock definition
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8671" target="_top">#8671</a>
+          promise: set_..._at_thread_exit
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8672" target="_top">#8672</a>
+          future&lt;&gt;::then(void()) doesn't works
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/8674" target="_top">#8674</a>
+          Futures as local named objects can't be returned with implicit move.
+        </li>
+</ul></div>
+<h4>
+<a name="thread.changes.h2"></a>
+      <span class="phrase"><a name="thread.changes.version_4_0_0___boost_1_53"></a></span><a class="link" href="changes.html#thread.changes.version_4_0_0___boost_1_53">Version
+      4.0.0 - boost 1.53</a>
+    </h4>
+<p>
+      <span class="bold"><strong>Deprecated features:</strong></span>
+    </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Deprecated features since boost 1.53 will be available only until boost 1.58.
+      </p></td></tr>
+</table></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          C++11 compliance: packaged_task&lt;R&gt; is deprecated, use instead packaged_task&lt;R()&gt;.
+          See BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK and BOOST_THREAD_DONT_PROVIDE_SIGNATURE_PACKAGED_TASK
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7537" target="_top">#7537</a>
+          deprecate Mutex::scoped_lock and scoped_try_lock and boost::condition
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>New Features:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6270" target="_top">#6270</a>
+          c++11 compliance: Add thread constructor from movable callable and movable
+          arguments Provided when BOOST_THREAD_PROVIDES_VARIADIC_THREAD is defined
+          (Default value from Boost 1.55): See BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+          and BOOST_THREAD_DONT_PROVIDE_VARIADIC_THREAD.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7279" target="_top">#7279</a>
+          C++11 compliance: Add noexcept in system related functions
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7280" target="_top">#7280</a>
+          C++11 compliance: Add promise::...at_thread_exit functions
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7281" target="_top">#7281</a>
+          C++11 compliance: Add ArgTypes to packaged_task template. Provided when
+          BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK is defined (Default value
+          from Boost 1.55). See BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK and
+          BOOST_THREAD_DONT_PROVIDE_SIGNATURE_PACKAGED_TASK.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7282" target="_top">#7282</a>
+          C++11 compliance: Add packaged_task::make_ready_at_thread_exit function
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7285" target="_top">#7285</a>
+          C++11 compliance: Allow to pass movable arguments for call_once
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7412" target="_top">#7412</a>
+          C++11 compliance: Add async from movable callable and movable arguments
+          Provided when BOOST_THREAD_PROVIDES_VARIADIC_THREAD and BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+          are defined (Default value from Boost 1.55): See BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK
+          and BOOST_THREAD_DONT_PROVIDE_SIGNATURE_PACKAGED_TASK, BOOST_THREAD_PROVIDES_VARIADIC_THREAD
+          and BOOST_THREAD_DONT_PROVIDE_VARIADIC_THREAD.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7413" target="_top">#7413</a>
+          C++11 compliance: Add async when the launch policy is deferred.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7414" target="_top">#7414</a>
+          C++11 compliance: future::get post-condition should be valid()==false.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7422" target="_top">#7422</a>
+          Provide a condition variable with zero-overhead performance penality.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7414" target="_top">#7444</a>
+          Async: Add make_future/make_shared_future.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7540" target="_top">#7540</a>
+          Threads: Add a helper class that join a thread on destruction.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7541" target="_top">#7541</a>
+          Threads: Add a thread wrapper class that joins on destruction.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7575" target="_top">#7575</a>
+          C++11 compliance: A future created by async should "join" in
+          the destructor.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7587" target="_top">#7587</a>
+          Synchro: Add strict_lock and nested_strict_lock.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7588" target="_top">#7588</a>
+          Synchro: Split the locks.hpp in several files to limit dependencies.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7590" target="_top">#7590</a>
+          Synchro: Add lockable concept checkers based on Boost.ConceptCheck.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7591" target="_top">#7591</a>
+          Add lockable traits that can be used with enable_if.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7592" target="_top">#7592</a>
+          Synchro: Add a null_mutex that is a no-op and that is a model of UpgardeLockable.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7593" target="_top">#7593</a>
+          Synchro: Add a externally_locked class.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7590" target="_top">#7594</a>
+          Threads: Allow to disable thread interruptions.
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>Fixed Bugs:</strong></span>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5752" target="_top">#5752</a>
+          boost::call_once() is unreliable on some platforms
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7464" target="_top">#7464</a>
+          BOOST_TEST(n_alive == 1); fails due to race condition in a regression test
+          tool.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7657" target="_top">#7657</a>
+          Serious performance and memory consumption hit if condition_variable methods
+          condition notify_one or notify_all is used repeatedly.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7665" target="_top">#7665</a>
+          this_thread::sleep_for no longer uses steady_clock in thread.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7668" target="_top">#7668</a>
+          thread_group::join_all() should check whether its threads are joinable.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7669" target="_top">#7669</a>
+          thread_group::join_all() should catch resource_deadlock_would_occur.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7671" target="_top">#7671</a>
+          Error including boost/thread.hpp header on iOS.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7672" target="_top">#7672</a>
+          lockable_traits.hpp syntax error: "defined" token misspelled.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7798" target="_top">#7798</a>
+          boost::future set_wait_callback thread safety issues.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7808" target="_top">#7808</a>
+          Incorrect description of effects for this_thread::sleep_for and this_thread::sleep_until.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7812" target="_top">#7812</a>
+          Returns: cv_status::no_timeout if the call is returning because the time
+          period specified by rel_time has elapsed, cv_status::timeout otherwise.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7874" target="_top">#7874</a>
+          compile warning: thread.hpp:342: warning: type attributes are honored only
+          at type definition.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7875" target="_top">#7875</a>
+          BOOST_THREAD_THROW_IF_PRECONDITION_NOT_SATISFIED should not be enabled
+          by default.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7882" target="_top">#7882</a>
+          wrong exception text from condition_variable::wait(unique_lock&lt;mutex&gt;&amp;).
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7890" target="_top">#7890</a>
+          thread::do_try_join_until() is missing a return type.
+        </li>
+</ul></div>
+<h4>
+<a name="thread.changes.h3"></a>
+      <span class="phrase"><a name="thread.changes.version_3_1_0___boost_1_52"></a></span><a class="link" href="changes.html#thread.changes.version_3_1_0___boost_1_52">Version
+      3.1.0 - boost 1.52</a>
+    </h4>
+<p>
+      Deprecated Features:
+    </p>
+<p>
+      Deprecated features since boost 1.50 available only until boost 1.55:
+    </p>
+<p>
+      These deprecated features will be provided by default up to boost 1.52. If
+      you don't want to include the deprecated features you could define BOOST_THREAD_DONT_PROVIDE_DEPRECATED_FEATURES_SINCE_V3_0_0.
+      Since 1.53 these features will not be included any more by default. Since this
+      version, if you want to include the deprecated features yet you could define
+      BOOST_THREAD_PROVIDE_DEPRECATED_FEATURES_SINCE_V3_0_0. These deprecated features
+      will be only available until boost 1.55, that is you have yet 1 year to move
+      to the new features.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          Time related functions don't using the Boost.Chrono library, use the chrono
+          overloads instead.
+        </li></ul></div>
+<p>
+      Breaking changes when BOOST_THREAD_VERSION==3 (Default value since Boost 1.53):
+    </p>
+<p>
+      There are some new features which share the same interface but with different
+      behavior. These breaking features are provided by default when BOOST_THREAD_VERSION
+      is 3, but the user can however choose the version 2 behavior by defining the
+      corresponding macro. As for the deprecated features, these broken features
+      will be only available until boost 1.55.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6229" target="_top">#6229</a>
+          Rename the unique_future to future following the c++11.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6266" target="_top">#6266</a>
+          Breaking change: thread destructor should call terminate if joinable.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6269" target="_top">#6269</a>
+          Breaking change: thread move assignment should call terminate if joinable.
+        </li>
+</ul></div>
+<p>
+      New Features:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/2361" target="_top">#2361</a>
+          thread_specific_ptr: document nature of the key, complexity and rationale.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4710" target="_top">#4710</a>
+          C++11 compliance: Missing async().
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7283" target="_top">#7283</a>
+          C++11 compliance: Add notify_all_at_thread_exit.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7345" target="_top">#7345</a>
+          C++11 compliance: Add noexcept to recursive mutex try_lock.
+        </li>
+</ul></div>
+<p>
+      Fixed Bugs:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/2797" target="_top">#2797</a>
+          Two problems with thread_specific_ptr.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5274" target="_top">#5274</a>
+          failed to compile future.hpp with stlport 5.1.5 under msvc8.1, because
+          of undefined class.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5431" target="_top">#5431</a>
+          compile error in Windows CE 6.0(interlocked).
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5696" target="_top">#5696</a>
+          win32 detail::set_tss_data does nothing when tss_cleanup_function is NULL.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6931" target="_top">#6931</a>
+          mutex waits forwever with Intel C++ Compiler XE 12.1.5.344 Build 20120612
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7045" target="_top">#7045</a>
+          Thread library does not automatically compile date_time.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7173" target="_top">#7173</a>
+          wrong function name interrupt_point().
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7200" target="_top">#7200</a>
+          Unable to build boost.thread modularized.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7220" target="_top">#7220</a>
+          gcc 4.6.2 warns about inline+dllimport functions.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7238" target="_top">#7238</a>
+          this_thread::sleep_for() does not respond to interrupt().
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7245" target="_top">#7245</a>
+          Minor typos on documentation related to version 3.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7272" target="_top">#7272</a>
+          win32/thread_primitives.hpp: (Unneccessary) Warning.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7284" target="_top">#7284</a>
+          Clarify that there is no access priority between lock and shared_lock on
+          shared mutex.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7329" target="_top">#7329</a>
+          boost/thread/future.hpp does not compile on HPUX.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7336" target="_top">#7336</a>
+          BOOST_THREAD_DONT_USE_SYSTEM doesn't work.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7329" target="_top">#7349</a>
+          packaged_task holds reference to temporary.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7350" target="_top">#7350</a>
+          allocator_destructor does not destroy object
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7360" target="_top">#7360</a>
+          Memory leak in pthread implementation of boost::thread_specific_ptr
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7370" target="_top">#7370</a>
+          Boost.Thread documentation
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7438" target="_top">#7438</a>
+          Segmentation fault in test_once regression test in group.join_all();
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7461" target="_top">#7461</a>
+          detail::win32::ReleaseSemaphore may be called with count_to_release equal
+          to 0
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7499" target="_top">#7499</a>
+          call_once doesn't call even once
+        </li>
+</ul></div>
+<h4>
+<a name="thread.changes.h4"></a>
+      <span class="phrase"><a name="thread.changes.version_3_0_1___boost_1_51"></a></span><a class="link" href="changes.html#thread.changes.version_3_0_1___boost_1_51">Version
+      3.0.1 - boost 1.51</a>
+    </h4>
+<p>
+      Deprecated Features:
+    </p>
+<p>
+      Deprecated features since boost 1.50 available only until boost 1.55:
+    </p>
+<p>
+      These deprecated features will be provided by default up to boost 1.52. If
+      you don't want to include the deprecated features you could define BOOST_THREAD_DONT_PROVIDE_DEPRECATED_FEATURES_SINCE_V3_0_0.
+      Since 1.53 these features will not be included any more by default. Since this
+      version, if you want to include the deprecated features yet you could define
+      BOOST_THREAD_PROVIDE_DEPRECATED_FEATURES_SINCE_V3_0_0. These deprecated features
+      will be only available until boost 1.55, that is you have 1 year and a half
+      to move to the new features.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          Time related functions don't using the Boost.Chrono library, use the chrono
+          overloads instead.
+        </li></ul></div>
+<p>
+      Breaking changes when BOOST_THREAD_VERSION==3:
+    </p>
+<p>
+      There are some new features which share the same interface but with different
+      behavior. These breaking features are provided by default when BOOST_THREAD_VERSION
+      is 3, but the user can however choose the version 2 behavior by defining the
+      corresponding macro. As for the deprecated features, these broken features
+      will be only available until boost 1.55.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6229" target="_top">#6229</a>
+          Rename the unique_future to future following the c++11.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6266" target="_top">#6266</a>
+          Breaking change: thread destructor should call terminate if joinable.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6269" target="_top">#6269</a>
+          Breaking change: thread move assignment should call terminate if joinable.
+        </li>
+</ul></div>
+<p>
+      Fixed Bugs:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4258" target="_top">#4258</a>
+          Linking with boost thread does not work on mingw/gcc 4.5.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4885" target="_top">#4885</a>
+          Access violation in set_tss_data at process exit due to invalid assumption
+          about TlsAlloc.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6931" target="_top">#6931</a>
+          mutex waits forwever with Intel Compiler and /debug:parallel
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7044" target="_top">#7044</a>
+          boost 1.50.0 header missing.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7052" target="_top">#7052</a>
+          Thread: BOOST_THREAD_PROVIDES_DEPRECATED_FEATURES_SINCE_V3_0_0 only masks
+          thread::operator==, thread::operator!= forward declarations, not definitions.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7066" target="_top">#7066</a>
+          An attempt to fix current_thread_tls_key static initialization order.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7074" target="_top">#7074</a>
+          Multiply defined symbol boost::allocator_arg.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7078" target="_top">#7078</a>
+          Trivial 64-bit warning fix on Windows for thread attribute stack size
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/7089" target="_top">#7089</a>
+          BOOST_THREAD_WAIT_BUG limits functionality without solving anything
+        </li>
+</ul></div>
+<h4>
+<a name="thread.changes.h5"></a>
+      <span class="phrase"><a name="thread.changes.version_3_0_0___boost_1_50"></a></span><a class="link" href="changes.html#thread.changes.version_3_0_0___boost_1_50">Version
+      3.0.0 - boost 1.50</a>
+    </h4>
+<p>
+      Breaking changes when BOOST_THREAD_VERSION==3:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6229" target="_top">#6229</a>
+          Breaking change: Rename the unique_future to future following the c++11.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6266" target="_top">#6266</a>
+          Breaking change: thread destructor should call terminate if joinable.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6269" target="_top">#6269</a>
+          Breaking change: thread move assignment should call terminate if joinable.
+        </li>
+</ul></div>
+<p>
+      New Features:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/1850" target="_top">#1850</a>
+          Request for unlock_guard to compliment lock_guard.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/2637" target="_top">#2637</a>
+          Request for shared_mutex duration timed_lock and timed_lock_shared.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/2741" target="_top">#2741</a>
+          Proposal to manage portable and non portable thread attributes.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/3567" target="_top">#3567</a>
+          Request for shared_lock_guard.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6194" target="_top">#6194</a>
+          Adapt to Boost.Move.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6195" target="_top">#6195</a>
+          c++11 compliance: Provide the standard time related interface using Boost.Chrono.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6217" target="_top">#6217</a>
+          Enhance Boost.Thread shared mutex interface following Howard Hinnant proposal.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6224" target="_top">#6224</a>
+          c++11 compliance: Add the use of standard noexcept on compilers supporting
+          them.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6225" target="_top">#6225</a>
+          Add the use of standard =delete defaulted operations on compilers supporting
+          them.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6226" target="_top">#6226</a>
+          c++11 compliance: Add explicit bool conversion from locks.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6228" target="_top">#6228</a>
+          Add promise constructor with allocator following the standard c++11.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6230" target="_top">#6230</a>
+          c++11 compliance: Follows the exception reporting mechanism as defined
+          in the c++11.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6231" target="_top">#6231</a>
+          Add BasicLockable requirements in the documentation to follow c++11.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6272" target="_top">#6272</a>
+          c++11 compliance: Add thread::id hash specialization.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6273" target="_top">#6273</a>
+          c++11 compliance: Add cv_status enum class and use it on the conditions
+          wait functions.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6342" target="_top">#6342</a>
+          c++11 compliance: Adapt the one_flag to the c++11 interface.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6671" target="_top">#6671</a>
+          upgrade_lock: missing mutex and release functions.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6672" target="_top">#6672</a>
+          upgrade_lock:: missing constructors from time related types.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6675" target="_top">#6675</a>
+          upgrade_lock:: missing non-member swap.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6676" target="_top">#6676</a>
+          lock conversion should be explicit.
+        </li>
+<li class="listitem">
+          Added missing packaged_task::result_type and packaged_task:: constructor
+          with allocator.
+        </li>
+<li class="listitem">
+          Added packaged_task::reset()
+        </li>
+</ul></div>
+<p>
+      Fixed Bugs:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/2380" target="_top">#2380</a>
+          boost::move from lvalue does not work with gcc.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/2430" target="_top">#2430</a>
+          shared_mutex for win32 doesn't have timed_lock_upgrade.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/2575" target="_top">#2575</a>
+          Bug- Boost 1.36.0 on Itanium platform.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/3160" target="_top">#3160</a>
+          Duplicate tutorial code in boost::thread.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4345" target="_top">#4345</a>
+          thread::id and joining problem with cascade of threads.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4521" target="_top">#4521</a>
+          Error using boost::move on packaged_task (MSVC 10).
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4711" target="_top">#4711</a>
+          Must use implementation details to return move-only types.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4921" target="_top">#4921</a>
+          BOOST_THREAD_USE_DLL and BOOST_THREAD_USE_LIB are crucial and need to be
+          documented.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5013" target="_top">#5013</a>
+          documentation: boost::thread: pthreas_exit causes terminate().
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5173" target="_top">#5173</a>
+          boost::this_thread::get_id is very slow.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5351" target="_top">#5351</a>
+          interrupt a future get boost::unknown_exception.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5516" target="_top">#5516</a>
+          Upgrade lock is not acquired when previous upgrade lock releases if another
+          read lock is present.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5990" target="_top">#5990</a>
+          shared_future&lt;T&gt;::get() has wrong return type.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6174" target="_top">#6174</a>
+          packaged_task doesn't correctly handle moving results.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6222" target="_top">#6222</a>
+          Compile error with SunStudio: unique_future move.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6354" target="_top">#6354</a>
+          PGI: Compiler threading support is not turned on.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6673" target="_top">#6673</a>
+          shared_lock: move assign doesn't works with c++11.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6674" target="_top">#6674</a>
+          shared_mutex: try_lock_upgrade_until doesn't works.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6908" target="_top">#6908</a>
+          Compile error due to unprotected definitions of _WIN32_WINNT and WINVER.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6940" target="_top">#6940</a>
+          TIME_UTC is a macro in C11.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6959" target="_top">#6959</a>
+          call of abs is ambiguous.
+        </li>
+<li class="listitem">
+          Fix issue signaled on the ML with task_object(task_object const&amp;) in
+          presence of task_object(task_object &amp;&amp;)
+        </li>
+</ul></div>
+<h4>
+<a name="thread.changes.h6"></a>
+      <span class="phrase"><a name="thread.changes.version_2_1_1___boost_1_49"></a></span><a class="link" href="changes.html#thread.changes.version_2_1_1___boost_1_49">Version
+      2.1.1 - boost 1.49</a>
+    </h4>
+<p>
+      Fixed Bugs:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/2309" target="_top">#2309</a>
+          Lack of g++ symbol visibility support in Boost.Thread.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/2639" target="_top">#2639</a>
+          documentation should be extended(defer_lock, try_to_lock, ...).
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/3639" target="_top">#3639</a>
+          Boost.Thread doesn't build with Sun-5.9 on Linux.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/3762" target="_top">#3762</a>
+          Thread can't be compiled with winscw (Codewarrior by Nokia).
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/3885" target="_top">#3885</a>
+          document about mix usage of boost.thread and native thread api.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/3975" target="_top">#3975</a>
+          Incorrect precondition for promise::set_wait_callback().
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4048" target="_top">#4048</a>
+          thread::id formatting involves locale
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4315" target="_top">#4315</a>
+          gcc 4.4 Warning: inline ... declared as dllimport: attribute ignored.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4480" target="_top">#4480</a>
+          OpenVMS patches for compiler issues workarounds.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/4819" target="_top">#4819</a>
+          boost.thread's documentation misprints.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5423" target="_top">#5423</a>
+          thread issues with C++0x.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5617" target="_top">#5617</a>
+          boost::thread::id copy ctor.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5739" target="_top">#5739</a>
+          set-but-not-used warnings with gcc-4.6.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5826" target="_top">#5826</a>
+          threads.cpp: resource leak on threads creation failure.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5839" target="_top">#5839</a>
+          thread.cpp: ThreadProxy leaks on exceptions.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/5859" target="_top">#5859</a>
+          win32 shared_mutex constructor leaks on exceptions.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6100" target="_top">#6100</a>
+          Compute hardware_concurrency() using get_nprocs() on GLIBC systems.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6168" target="_top">#6168</a>
+          recursive_mutex is using wrong config symbol (possible typo).
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6175" target="_top">#6175</a>
+          Compile error with SunStudio.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6200" target="_top">#6200</a>
+          patch to have condition_variable and mutex error better handle EINTR.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6207" target="_top">#6207</a>
+          shared_lock swap compiler error on clang 3.0 c++11.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6208" target="_top">#6208</a>
+          try_lock_wrapper swap compiler error on clang 3.0 c++11.
+        </li>
+</ul></div>
+<h4>
+<a name="thread.changes.h7"></a>
+      <span class="phrase"><a name="thread.changes.version_2_1_0___changes_since_boost_1_40"></a></span><a class="link" href="changes.html#thread.changes.version_2_1_0___changes_since_boost_1_40">Version 2.1.0
+      - Changes since boost 1.40</a>
+    </h4>
+<p>
+      The 1.41.0 release of Boost adds futures to the thread library. There are also
+      a few minor changes.
+    </p>
+<h4>
+<a name="thread.changes.h8"></a>
+      <span class="phrase"><a name="thread.changes.changes_since_boost_1_35"></a></span><a class="link" href="changes.html#thread.changes.changes_since_boost_1_35">Changes
+      since boost 1.35</a>
+    </h4>
+<p>
+      The 1.36.0 release of Boost includes a few new features in the thread library:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          New generic <a class="link" href="synchronization.html#thread.synchronization.lock_functions.lock_multiple" title="Non-member function lock(Lockable1,Lockable2,...)"><code class="computeroutput"><span class="identifier">lock</span><span class="special">()</span></code></a>
+          and <a class="link" href="synchronization.html#thread.synchronization.lock_functions.try_lock_multiple" title="Non-member function try_lock(Lockable1,Lockable2,...)"><code class="computeroutput"><span class="identifier">try_lock</span><span class="special">()</span></code></a>
+          functions for locking multiple mutexes at once.
+        </li>
+<li class="listitem">
+          Rvalue reference support for move semantics where the compilers supports
+          it.
+        </li>
+<li class="listitem">
+          A few bugs fixed and missing functions added (including the serious win32
+          condition variable bug).
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">scoped_try_lock</span></code> types are
+          now backwards-compatible with Boost 1.34.0 and previous releases.
+        </li>
+<li class="listitem">
+          Support for passing function arguments to the thread function by supplying
+          additional arguments to the <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span></code></a> constructor.
+        </li>
+<li class="listitem">
+          Backwards-compatibility overloads added for <code class="computeroutput"><span class="identifier">timed_lock</span></code>
+          and <code class="computeroutput"><span class="identifier">timed_wait</span></code> functions
+          to allow use of <code class="computeroutput"><span class="identifier">xtime</span></code> for
+          timeouts.
+        </li>
+</ul></div>
+<h4>
+<a name="thread.changes.h9"></a>
+      <span class="phrase"><a name="thread.changes.version_2_0_0___changes_since_boost_1_34"></a></span><a class="link" href="changes.html#thread.changes.version_2_0_0___changes_since_boost_1_34">Version 2.0.0
+      - Changes since boost 1.34</a>
+    </h4>
+<p>
+      Almost every line of code in <span class="bold"><strong>Boost.Thread</strong></span>
+      has been changed since the 1.34 release of boost. However, most of the interface
+      changes have been extensions, so the new code is largely backwards-compatible
+      with the old code. The new features and breaking changes are described below.
+    </p>
+<h4>
+<a name="thread.changes.h10"></a>
+      <span class="phrase"><a name="thread.changes.new_features"></a></span><a class="link" href="changes.html#thread.changes.new_features">New
+      Features</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Instances of <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span></code></a> and of the various lock
+          types are now movable.
+        </li>
+<li class="listitem">
+          Threads can be interrupted at <a class="link" href="thread_management.html#interruption_points"><span class="emphasis"><em>interruption
+          points</em></span></a>.
+        </li>
+<li class="listitem">
+          Condition variables can now be used with any type that implements the
+          <a class="link" href="synchronization.html#thread.synchronization.mutex_concepts.lockable" title="Lockable Concept"><code class="computeroutput"><span class="identifier">Lockable</span></code> concept</a>, through the
+          use of <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">condition_variable_any</span></code> (<code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">condition</span></code> is a <code class="computeroutput"><span class="keyword">typedef</span></code>
+          to <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">condition_variable_any</span></code>, provided for
+          backwards compatibility). <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">condition_variable</span></code>
+          is provided as an optimization, and will only work with <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_lock</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">&gt;</span></code> (<code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">::</span><span class="identifier">scoped_lock</span></code>).
+        </li>
+<li class="listitem">
+          Thread IDs are separated from <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span></code></a>, so a thread can obtain
+          it's own ID (using <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">this_thread</span><span class="special">::</span><span class="identifier">get_id</span><span class="special">()</span></code>), and IDs can be used as keys in associative
+          containers, as they have the full set of comparison operators.
+        </li>
+<li class="listitem">
+          Timeouts are now implemented using the Boost DateTime library, through
+          a typedef <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system_time</span></code> for absolute timeouts, and
+          with support for relative timeouts in many cases. <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">xtime</span></code>
+          is supported for backwards compatibility only.
+        </li>
+<li class="listitem">
+          Locks are implemented as publicly accessible templates <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lock_guard</span></code>,
+          <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_lock</span></code>, <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_lock</span></code>,
+          and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">upgrade_lock</span></code>, which are templated on
+          the type of the mutex. The <a class="link" href="synchronization.html#thread.synchronization.mutex_concepts.lockable" title="Lockable Concept"><code class="computeroutput"><span class="identifier">Lockable</span></code> concept</a> has been extended
+          to include publicly available <a class="link" href="synchronization.html#thread.synchronization.mutex_concepts.basic_lockable.lock" title="m.lock();"><code class="computeroutput"><span class="identifier">lock</span><span class="special">()</span></code></a>
+          and <a class="link" href="synchronization.html#thread.synchronization.mutex_concepts.basic_lockable.unlock" title="m.unlock();"><code class="computeroutput"><span class="identifier">unlock</span><span class="special">()</span></code></a>
+          member functions, which are used by the lock types.
+        </li>
+</ul></div>
+<h4>
+<a name="thread.changes.h11"></a>
+      <span class="phrase"><a name="thread.changes.breaking_changes"></a></span><a class="link" href="changes.html#thread.changes.breaking_changes">Breaking
+      Changes</a>
+    </h4>
+<p>
+      The list below should cover all changes to the public interface which break
+      backwards compatibility.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a class="link" href="synchronization.html#thread.synchronization.mutex_types.try_mutex" title="Typedef try_mutex"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">try_mutex</span></code></a> has been removed, and
+          the functionality subsumed into <a class="link" href="synchronization.html#thread.synchronization.mutex_types.mutex" title="Class mutex"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span></code></a>. <a class="link" href="synchronization.html#thread.synchronization.mutex_types.try_mutex" title="Typedef try_mutex"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">try_mutex</span></code></a> is left as a <code class="computeroutput"><span class="keyword">typedef</span></code>, but is no longer a separate class.
+        </li>
+<li class="listitem">
+          <a class="link" href="synchronization.html#thread.synchronization.mutex_types.recursive_try_mutex" title="Typedef recursive_try_mutex"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_try_mutex</span></code></a> has been removed,
+          and the functionality subsumed into <a class="link" href="synchronization.html#thread.synchronization.mutex_types.recursive_mutex" title="Class recursive_mutex"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_mutex</span></code></a>. <a class="link" href="synchronization.html#thread.synchronization.mutex_types.recursive_try_mutex" title="Typedef recursive_try_mutex"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_try_mutex</span></code></a> is left as
+          a <code class="computeroutput"><span class="keyword">typedef</span></code>, but is no longer
+          a separate class.
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">thread</span><span class="special">::</span><span class="identifier">lock_ops</span></code> has been removed. Code that
+          relies on the <code class="computeroutput"><span class="identifier">lock_ops</span></code>
+          implementation detail will no longer work, as this has been removed, as
+          it is no longer necessary now that mutex types now have public <a class="link" href="synchronization.html#thread.synchronization.mutex_concepts.basic_lockable.lock" title="m.lock();"><code class="computeroutput"><span class="identifier">lock</span><span class="special">()</span></code></a>
+          and <a class="link" href="synchronization.html#thread.synchronization.mutex_concepts.basic_lockable.unlock" title="m.unlock();"><code class="computeroutput"><span class="identifier">unlock</span><span class="special">()</span></code></a>
+          member functions.
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">scoped_lock</span></code> constructors
+          with a second parameter of type <code class="computeroutput"><span class="keyword">bool</span></code>
+          are no longer provided. With previous boost releases,
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">::</span><span class="identifier">scoped_lock</span> <span class="identifier">some_lock</span><span class="special">(</span><span class="identifier">some_mutex</span><span class="special">,</span><span class="keyword">false</span><span class="special">);</span></pre>
+          could be used to create a lock object that was associated with a mutex,
+          but did not lock it on construction. This facility has now been replaced
+          with the constructor that takes a <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">defer_lock_type</span></code>
+          as the second parameter:
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">::</span><span class="identifier">scoped_lock</span> <span class="identifier">some_lock</span><span class="special">(</span><span class="identifier">some_mutex</span><span class="special">,</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">defer_lock</span><span class="special">);</span></pre>
+        </li>
+<li class="listitem">
+          The <code class="computeroutput"><span class="identifier">locked</span><span class="special">()</span></code>
+          member function of the <code class="computeroutput"><span class="identifier">scoped_lock</span></code>
+          types has been renamed to <a class="link" href="synchronization.html#thread.synchronization.locks.unique_lock.owns_lock" title="bool owns_lock() const"><code class="computeroutput"><span class="identifier">owns_lock</span><span class="special">()</span></code></a>.
+        </li>
+<li class="listitem">
+          You can no longer obtain a <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span></code></a> instance representing the
+          current thread: a default-constructed <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span></code></a> object is not associated
+          with any thread. The only use for such a thread object was to support the
+          comparison operators: this functionality has been moved to <a class="link" href="thread_management.html#thread.thread_management.thread.id" title="Class boost::thread::id"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span></code></a>.
+        </li>
+<li class="listitem">
+          The broken <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">read_write_mutex</span></code> has been replaced with
+          <a class="link" href="synchronization.html#thread.synchronization.mutex_types.shared_mutex" title="Class shared_mutex -- C++14"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_mutex</span></code></a>.
+        </li>
+<li class="listitem">
+          <a class="link" href="synchronization.html#thread.synchronization.mutex_types.mutex" title="Class mutex"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span></code></a> is now never recursive.
+          For Boost releases prior to 1.35 <a class="link" href="synchronization.html#thread.synchronization.mutex_types.mutex" title="Class mutex"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span></code></a> was recursive on Windows
+          and not on POSIX platforms.
+        </li>
+<li class="listitem">
+          When using a <a class="link" href="synchronization.html#thread.synchronization.mutex_types.recursive_mutex" title="Class recursive_mutex"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_mutex</span></code></a> with a call to
+          <a class="link" href="synchronization.html#thread.synchronization.condvar_ref.condition_variable_any.wait" title="template&lt;typename lock_type&gt; void wait(lock_type&amp; lock)"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">condition_variable_any</span><span class="special">::</span><span class="identifier">wait</span><span class="special">()</span></code></a>,
+          the mutex is only unlocked one level, and not completely. This prior behaviour
+          was not guaranteed and did not feature in the tests.
+        </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -11 Anthony Williams<br>Copyright &#169; 2011 -13 Vicente J. Botet Escriba<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="build.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../thread.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="future.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Copyright (c) 2002 Douglas Gregor <doug.gregor -at- gmail.com>
+  
+   Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at
+   http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<!DOCTYPE chapter PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<chapter xmlns:xi="http://www.w3.org/2001/XInclude" id="boostbook.together"
+         last-revision="$Date: 2009-04-15 00:37:45 -0700 (Wed, 15 Apr 2009) $">
+  <title>Bringing Together a BoostBook Document</title>
+
+  <section id="boostbook.linking">
+    <title>Linking in BoostBook</title> 
+
+    <para>How one links to another element in BoostBook depends
+    greatly on the nature of the element linked and how the link
+    should appear. There are three general linking elements:
+    &lt;xref&gt;, &lt;link&gt;, and &lt;ulink&gt;. Additionally, there
+    are linking elements for referencing specific types of entities,
+    such as classes (&lt;classname&gt;), functions
+    (&lt;functionname&gt;), or libraries (&lt;libraryname&gt;).</para>
+
+    <para>The &lt;xref&gt; element references elements that have an
+    <code>id</code> attribute and a title. The actual link text is
+    composed from title and type of the element referenced. To link to
+    a particular ID, create an &lt;xref&gt; element with the
+    <code>linkend</code> attribute set to the ID of the intended
+    target. For instance, this section's ID is
+    <code>boostbook.linking</code>, so we create a reference it to
+    with <code>&lt;xref linkend="boostbook.linking"/&gt;</code>, which
+    will look like this in the text: <xref
+    linkend="boostbook.linking"/>.</para>
+
+    <para>The &lt;link&gt; element references an ID in the same way as
+    &lt;xref&gt;, except that &lt;link&gt; does not generate any text
+    for the link, so text must be supplied within the element. For
+    instance, we can again link to this chapter but this time specify
+    our own text with <code>&lt;link
+    linkend="boostbook.linking"&gt;like this&lt;/link&gt;</code>. This
+    markup will result in a link to this chapter that looks <link
+    linkend="boostbook.linking">like this</link>.</para>
+
+    <para>The &lt;ulink&gt; element references a URL that is outside
+    of the DocBook document. The <code>url</code> attribute contains
+    the URL to link to, and the element data provides the link
+    text.For instance, we can link to the the Boost web site with
+    <code>&lt;ulink
+    url="http://www.boost.org"&gt;Boost&lt;/ulink&gt;,</code> which
+    appears in the document like this: <ulink
+    url="http://www.boost.org">Boost</ulink>.</para>
+    
+    <para>In BoostBook, &lt;ulink&gt; supports a custom url schema for
+    linking to files within the boost distribution. This is formed by
+    setting the <code>url</code> attribute to <code>boost:</code>
+    followed by the file's path. For example, we can link to the
+    flyweight library with
+    <code>&lt;ulink
+    url="boost:/libs/flyweight/index.html"&gt;Boost.Flyweight&lt;/ulink&gt;</code>,
+    which will appear like this: <ulink
+    url="boost:/libs/flyweight/index.html">Boost.Flyweight</ulink>.
+    This schema is only supported for BoostBook &lt;ulink&gt; elements.
+    It isn't available for any other elements or in Docbook.</para>
+
+    <para>The &lt;classname&gt;, &lt;functionname&gt;,
+    &lt;methodname&gt;, and &lt;libraryname&gt; link to classes,
+    functions, methods, and libraries, respectively. The text of each
+    element gives both the name of the element to link to and the link
+    text. For instance, we can link to the Function library with
+    <code>&lt;libraryname&gt;Function&lt;/libraryname&gt;</code>,
+    which results in the following:
+    <libraryname>Function</libraryname>. In cases where the displayed
+    text is different from the actual name, the <code>alt</code>
+    attribute can be specified. For instance, the following XML
+    element references the <classname>boost::function</classname>
+    class template but displays the text <classname
+    alt="boost::function">function</classname>: <code>&lt;classname
+    alt="boost::function"&gt;function&lt;/classname&gt;</code>.</para>
+  </section>
+</chapter>

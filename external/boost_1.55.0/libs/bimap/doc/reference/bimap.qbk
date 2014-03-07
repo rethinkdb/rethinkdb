@@ -1,0 +1,523 @@
+[/license
+
+Boost.Bimap
+
+Copyright (c) 2006-2007 Matias Capeletto
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+[/ QuickBook Document version 1.4 ]
+
+[section Bimap Reference]
+
+[section View concepts]
+
+`bimap` instantiations comprise two side views and an view of the relation
+specified at compile time. Each view allows read-write access to the elements contained
+in a definite manner, mathing an STL container signature.
+
+Views are not isolated objects and so cannot be constructed on their
+own; rather they are an integral part of a `bimap`. The name of the view
+class implementation proper is never directly exposed to the user, who
+has access only to the associated view type specifier.
+
+Insertion and deletion of elements are always performed through the
+appropriate interface of any of the three views of the `bimap`; these
+operations do, however, have an impact on all other views as well: for
+instance, insertion through a given view may fail because there exists
+another view that forbids the operation in order to preserve its
+invariant (such as uniqueness of elements). The global operations
+performed jointly in the any view can be reduced to six primitives:
+
+* copying
+* insertion of an element
+* hinted insertion, where a pre-existing element is suggested in order to improve
+the efficiency of the operation
+* deletion of an element
+* replacement of the value of an element, which may trigger the
+rearrangement of this element in one or more views, or may forbid the
+replacement
+* modification of an element, and its subsequent
+rearrangement/banning by the various views
+
+The last two primitives deserve some further explanation: in order to
+guarantee the invariants associated to each view (e.g. some definite
+ordering) elements of a `bimap` are not mutable. To overcome this
+restriction, the views expose member functions for updating and
+modifying, which allows for the mutation of elements in a controlled
+fashion.
+
+[endsect]
+
+[#complexity_signature_explanation]
+
+[section Complexity signature]
+
+Some member functions of a view interface are implemented by global
+primitives from the above list. The complexity of these operations thus
+depends on all views of a given `bimap`, not just the currently used view.
+
+In order to establish complexity estimates, a view is characterised by
+its complexity signature, consisting of the following associated
+functions on the number of elements:
+
+* `c(n)`: copying
+* `i(n)`: insertion
+* `h(n)`: hinted insertion
+* `d(n)`: deletion
+* `r(n)`: replacement
+* `m(n)`: modifying
+
+If the collection type of the relation is `left_based` or `right_based`, and we use
+an `l` subscript to denote the left view and an `r` for the right view, then
+the insertion of an element in such a container is of complexity
+`O(i_l(n)+i_r(n))`, where n is the number of elements. If the collection type of
+relation is not side-based, then there is an additional term to add that
+is contributed by the collection type of relation view. Using `a` to denote the
+above view, the complexity of insertion will now be
+`O(i_l(n)+i_r(n)+i_a(n))`. To abbreviate the notation, we adopt the
+following definitions:
+
+* `C(n) = c_l(n) + c_r(n) [ + c_a(n) ]`
+* `I(n) = i_l(n) + i_r(n) [ + i_a(n) ]`
+* `H(n) = h_l(n) + h_r(n) [ + h_a(n) ]`
+* `D(n) = d_l(n) + d_r(n) [ + d_a(n) ]`
+* `R(n) = r_l(n) + r_r(n) [ + r_a(n) ]`
+* `M(n) = m_l(n) + m_r(n) [ + m_a(n) ]`
+
+[endsect]
+
+[section Set type specification]
+
+Set type specifiers are passed as instantiation arguments to `bimap` and
+provide the information needed to incorporate the corresponding views.
+Currently, Boost.Bimap provides the collection type specifiers. The ['side collection type]
+specifiers define the constraints of the two map views of the
+bimap. The ['collection type of relation] specifier defines the main set view
+constraints. If `left_based` (the default parameter) or `right_based` is
+used, then the collection type of relation will be based on the left or right
+collection type correspondingly.
+
+[table
+[[Side collection type      ][Collection type of relation       ][Include                                 ]]
+[[`set_of`                  ][`set_of_relation`               ][`boost/bimap/set_of.hpp`                ]]
+[[`multiset_of`             ][`multiset_of_relation`          ][`boost/bimap/multiset_of.hpp`           ]]
+[[`unordered_set_of`        ][`unordered_set_of_relation`     ][`boost/bimap/unordered_set_of.hpp`      ]]
+[[`unordered_multiset_of`   ][`unordered_multiset_of_relation`][`boost/bimap/unordered_multiset_of.hpp` ]]
+[[`list_of`                 ][`list_of_relation`              ][`boost/bimap/list_of.hpp`               ]]
+[[`vector_of`               ][`vector_of_relation`            ][`boost/bimap/vector_of.hpp`             ]]
+[[`unconstrained_set_of`    ][`unconstrained_set_of_relation` ][`boost/bimap/unconstrained_set_of.hpp`  ]]
+[[                          ][`left_based`                    ][`boost/bimap/bimap.hpp`                 ]]
+[[                          ][`right_based`                   ][`boost/bimap/bimap.hpp`                 ]]
+]
+
+[endsect]
+
+[section Tags]
+
+Tags are just conventional types used as mnemonics for the types stored
+in a `bimap`. Boost.Bimap uses the tagged idiom to let the user specify
+this tags.
+
+[endsect]
+
+[section Header "boost/bimap/bimap.hpp" synopsis]
+
+    namespace boost {
+    namespace bimaps {
+
+    template< class Type, typename Tag >
+    struct tagged;
+
+    // bimap template class
+
+    template
+    <
+        class LeftCollectionType, class RightCollectionType,
+
+        class AdditionalParameter_1 = detail::not_specified,
+        class AdditionalParameter_2 = detail::not_specified
+    >
+    class bimap ``['- implementation defined { : public SetView } -]``
+    {
+        public:
+
+        // Metadata
+
+        typedef ``['-unspecified-]`` left_tag;
+        typedef ``['-unspecified-]`` left_map;
+
+        typedef ``['-unspecified-]`` right_tag;
+        typedef ``['-unspecified-]`` right_map;
+
+        // Shortcuts
+        // typedef -side-_map::-type- -side-_-type-;
+
+        typedef ``['-unspecified-]`` info_type;
+
+        // Map views
+
+         left_map  left;
+        right_map right;
+
+        // Constructors
+
+        bimap();
+
+        template< class InputIterator >
+        bimap(InputIterator first,InputIterator last);
+
+        bimap(const bimap &);
+
+        bimap& operator=(const bimap& b);
+
+        // Projection of iterators
+
+        template< class IteratorType >
+        left_iterator project_left(IteratorType iter);
+
+        template< class IteratorType >
+        left_const_iterator project_left(IteratorType iter) const;
+
+        template< class IteratorType >
+        right_iterator project_right(IteratorType iter);
+
+        template< class IteratorType >
+        right_const_iterator project_right(IteratorType iter) const;
+
+        template< class IteratorType >
+        iterator project_up(IteratorType iter);
+
+        template< class IteratorType >
+        const_iterator project_up(IteratorType iter) const;
+
+        // Support for tags
+
+        template< class Tag >
+        struct map_by;
+
+        template< class Tag >
+        map_by<Tag>::type by();
+
+        template< class Tag >
+        const map_by<Tag>::type & by() const;
+
+        template< class Tag, class IteratorType >
+        map_by<Tag>::iterator project(IteratorType iter);
+
+        template< class Tag, class IteratorType >
+        map_by<Tag>::const_iterator project(IteratorType iter) const
+
+    };
+
+
+    } // namespace bimap
+    } // namespace boost
+
+
+[/
+    // Metafunctions for a bimap
+
+    template< class Tag, class Bimap > struct value_type_by;
+    template< class Tag, class Bimap > struct key_type_by;
+    template< class Tag, class Bimap > struct data_type_by;
+    template< class Tag, class Bimap > struct iterator_type_by;
+    template< class Tag, class Bimap > struct const_iterator_type_by;
+    template< class Tag, class Bimap > struct reverse_iterator_type_by;
+    template< class Tag, class Bimap > struct const_reverse_iterator_type_by;
+    template< class Tag, class Bimap > struct local_iterator_type_by;
+    template< class Tag, class Bimap > struct const_local_iterator_type_by;
+
+    // Functions for a bimap
+
+    template<class Tag, class Relation>
+    result_of::map_by< Tag, Bimap>::type map_by(Bimap &);
+
+    // Metafunctions for a relation
+
+    template< class Tag, class Relation > struct value_type_of;
+    template< class Tag, class Relation > struct pair_type_by;
+
+    // Functions for a relation
+
+    template<class Tag, class Relation>
+    result_of::get< Tag, Relation>::type get(Relation &r);
+
+    template<class Tag, class Relation>
+    result_of::pair_by< Tag, Relation>::type pair_by(Relation &);
+
+]
+
+[endsect]
+
+[section Class template bimap]
+
+This is the main component of Boost.Bimap.
+
+[section Complexity]
+
+In the descriptions of the operations of `bimap`, we adopt the scheme
+outlined in the complexity signature section.
+
+[endsect]
+
+[section Instantiation types]
+
+`bimap` is instantiated with the following types:
+
+# LeftCollectionType and RightCollectionType are collection type specifications
+optionally tagged, or any type optionally tagged, in which case that
+side acts as a set.
+# AdditionalParameter_{1/2} can be any ordered subset of:
+    * CollectionTypeOfRelation specification
+    * Allocator
+
+[endsect]
+
+[section Nested types]
+
+    left_tag, right_tag
+
+[:  Tags for each side of the bimap. If the user has not specified any tag the
+    tags default to `member_at::left` and `member_at::right`.
+]
+
+    left_key_type, right_key_type
+
+[:  Key type of each side. In a `bimap<A,B> ` `left_key_type` is `A` and
+    `right_key_type` is `B`.
+    If there are tags, it is better to use: `Bimap::map_by<Tag>::key_type`.
+]
+
+    left_data_type, right_data_type
+
+[:  Data type of each side. In a bimap<A,B> left_key_type is B and
+    right_key_type is A.
+    If there are tags, it is better to use: `Bimap::map_by<Tag>::data_type`.
+]
+
+    left_value_type, right_value_type
+
+[:  Value type used for the views.
+    If there are tags, it is better to use: `Bimap::map_by<Tag>::value_type`.
+]
+
+
+    left_iterator, right_iterator
+    left_const_iterator, right_const_iterator
+
+[:  Iterators of the views.
+    If there are tags, it is better to use:
+    `Bimap::map_by<Tag>::iterator` and
+    `Bimap::map_by<Tag>::const_iterator`
+]
+
+
+    left_map, right_map
+
+[:  Map view type of each side.
+    If there are tags, it is better to use:
+    `Bimap::map_by<Tag>::type`.
+]
+
+[endsect]
+
+[section Constructors, copy and assignment]
+
+    bimap();
+
+* [*Effects:] Constructs an empty `bimap`.
+* [*Complexity:] Constant.
+
+    template<typename InputIterator>
+    bimap(InputIterator first,InputIterator last);
+
+* [*Requires: ] `InputIterator` is a model of Input Iterator over elements of
+type `relation` or a type convertible to `relation`. last is reachable from `first`.
+* [*Effects:] Constructs an empty `bimap` and fills it with the elements in the range
+`[first,last)`. Insertion of each element may or may not succeed depending on
+acceptance by the collection types of the `bimap`.
+* [link complexity_signature_explanation
+[*Complexity:]] O(m*H(m)), where m is the number of elements in `[first,last)`.
+
+
+    bimap(const bimap & x);
+
+* [*Effects:] Constructs a copy of x, copying its elements as well as its
+internal objects (key extractors, comparison objects, allocator.)
+* [*Postconditions:] `*this == x`. The order of the views of the `bimap`
+is preserved as well.
+* [*Complexity:] O(x.size()*log(x.size()) + C(x.size()))
+
+
+    ~bimap()
+
+* [*Effects:] Destroys the `bimap` and all the elements contained.
+The order in which the elements are destroyed is not specified.
+* [*Complexity:] O(n).
+
+
+    bimap& operator=(const bimap& x);
+
+* [*Effects:] Replaces the elements and internal objects of the `bimap`
+with copies from x.
+* [*Postconditions:] `*this==x`. The order on the views of the `bimap`
+is preserved as well.
+* [*Returns: ] `*this`.
+* [*Complexity:] O(n + x.size()*log(x.size()) + C(x.size())).
+* [*Exception safety:] Strong, provided the copy and assignment operations
+of the types of `ctor_args_list` do not throw.
+
+[/
+    allocator_type get_allocator() const;
+
+* [*Effects:] Returns a copy of the `allocator_type` object used to construct
+the `bimap`.
+* [*Complexity:] Constant.
+]
+
+[endsect]
+
+[#reference_projection_operations]
+
+[section Projection operations]
+
+Given a `bimap` with views v1 and v2, we say than an v1-iterator
+it1 and an v2-iterator it2 are equivalent if:
+
+* `it1 == i1.end()` AND `it2 == i2.end()`,
+* OR `it1` and `it2` point to the same element.
+
+
+    template< class IteratorType >
+    left_iterator project_left(IteratorType iter);
+
+    template< class IteratorType >
+    left_const_iterator project_left(IteratorType iter) const;
+
+* [*Requires:] `IteratorType` is a bimap view iterator. it is a
+valid iterator of some view of `*this` (i.e. does not refer to some other
+`bimap`.)
+* [*Effects:] Returns a left map view iterator equivalent to `it`.
+* [*Complexity:] Constant.
+* [*Exception safety:] nothrow.
+
+
+    template< class IteratorType >
+    right_iterator project_right(IteratorType iter);
+
+    template< class IteratorType >
+    right_const_iterator project_right(IteratorType iter) const;
+
+* [*Requires:] `IteratorType` is a bimap view iterator. it is a
+valid iterator of some view of `*this` (i.e. does not refer to some other
+`bimap`.)
+* [*Effects:] Returns a right map view iterator equivalent to `it`.
+* [*Complexity:] Constant.
+* [*Exception safety:] nothrow.
+
+
+    template< class IteratorType >
+    iterator project_up(IteratorType iter);
+
+    template< class IteratorType >
+    const_iterator project_up(IteratorType iter) const;
+
+* [*Requires:] `IteratorType` is a bimap view iterator. it is a
+valid iterator of some view of `*this` (i.e. does not refer to some other
+`bimap`.)
+* [*Effects:] Returns a collection of relations view iterator equivalent to `it`.
+* [*Complexity:] Constant.
+* [*Exception safety:] nothrow.
+
+[endsect]
+
+[#reference_support_for_used_defined_names]
+
+[section Support for user defined names]
+
+    template< class Tag >
+    struct map_by;
+
+* `map_by<Tag>::type` yields the type of the map view tagged with `Tag`.
+`map_by<Tag>::`['-type name-] is the same as `map_by<Tag>::type::`['-type name-].
+* [*Requires: ] `Tag` is a valid user defined name of the bimap.
+
+
+    template< class Tag >
+    map_by<Tag>::type by();
+
+    template< class Tag >
+    const map_by<Tag>::type & by() const;
+
+
+* [*Requires: ] `Tag` is a valid user defined name of the bimap.
+* [*Effects:] Returns a reference to the map view tagged with `Tag` held by
+`*this`.
+* [*Complexity:] Constant.
+* [*Exception safety:] nothrow.
+
+
+    template< class Tag, class IteratorType >
+    map_by<Tag>::iterator project(IteratorType iter);
+
+    template< class Tag, class IteratorType >
+    map_by<Tag>::const_iterator project(IteratorType iter) const
+
+* [*Requires: ] `Tag` is a valid user defined name of the bimap. `IteratorType`
+is a bimap view iterator. it is a valid iterator of some view of `*this`
+(i.e. does not refer to some other `bimap`.)
+* [*Effects:] Returns a reference to the map view tagged with `Tag` held by
+`*this`.
+* [*Complexity:] Constant.
+* [*Exception safety:] nothrow.
+
+
+[endsect]
+
+[section Serialization]
+
+A `bimap` can be archived and retrieved by means of __BOOST_SERIALIZATION__.
+Boost.Bimap does not expose a public serialisation interface, as this is
+provided by Boost.Serialization itself. Both regular and XML archives
+are supported.
+
+Each of the set specifications comprising a given `bimap` contributes its
+own preconditions as well as guarantees on the retrieved containers. In describing
+these, the following concepts are used. A type `T` is ['serializable]
+(resp. XML-serializable) if any object of type `T` can be saved to an output
+archive (XML archive) and later retrieved from an input archive (XML archive)
+associated to the same storage. If `x`' of type `T` is loaded from the serialization
+information saved from another object x, we say that x' is a ['restored copy] of x.
+Given a __SGI_BINARY_PREDICATE__ `Pred` over `(T, T)`, and objects `p` and `q` of 
+type `Pred`, we say that `q` is ['serialization-compatible] with `p` if
+
+* `p(x,y) == q(x`'`,y`'`)`
+
+for every `x` and `y` of type `T` and `x`' and `y`' being restored copies of `x`
+and `y`, respectively.
+
+[blurb [*Operation:] saving of a `bimap b` to an output archive
+(XML archive) ar.]
+
+* [*Requires:] Value is serializable (XML-serializable). Additionally, each
+of the views of b can impose other requirements.
+* [*Exception safety:] Strong with respect to `b`. If an exception is thrown, ar
+may be left in an inconsistent state.
+
+[blurb [*Operation:] loading of a `bimap` m' from an input archive
+(XML archive) ar.]
+
+* [*Requires:] Value is serializable (XML-serializable). Additionally, each of
+the views of `b`' can impose other requirements.
+* [*Exception safety:] Basic. If an exception is thrown, ar may be left in an
+inconsistent state.
+
+[endsect]
+[endsect]
+
+[endsect]

@@ -1,0 +1,100 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Bringing Together a BoostBook Document</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boostbook.html" title="Chapter&#160;40.&#160;The BoostBook Documentation Format">
+<link rel="prev" href="documenting.html" title="Documenting libraries">
+<link rel="next" href="../reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="documenting.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boostbook.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boostbook.together"></a>Bringing Together a BoostBook Document</h2></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="together.html#boostbook.linking">Linking in BoostBook</a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boostbook.linking"></a>Linking in BoostBook</h3></div></div></div>
+<p>How one links to another element in BoostBook depends
+    greatly on the nature of the element linked and how the link
+    should appear. There are three general linking elements:
+    &lt;xref&gt;, &lt;link&gt;, and &lt;ulink&gt;. Additionally, there
+    are linking elements for referencing specific types of entities,
+    such as classes (&lt;classname&gt;), functions
+    (&lt;functionname&gt;), or libraries (&lt;libraryname&gt;).</p>
+<p>The &lt;xref&gt; element references elements that have an
+    <code class="computeroutput">id</code> attribute and a title. The actual link text is
+    composed from title and type of the element referenced. To link to
+    a particular ID, create an &lt;xref&gt; element with the
+    <code class="computeroutput">linkend</code> attribute set to the ID of the intended
+    target. For instance, this section's ID is
+    <code class="computeroutput">boostbook.linking</code>, so we create a reference it to
+    with <code class="computeroutput">&lt;xref linkend="boostbook.linking"/&gt;</code>, which
+    will look like this in the text: <a class="xref" href="together.html#boostbook.linking" title="Linking in BoostBook">the section called &#8220;Linking in BoostBook&#8221;</a>.</p>
+<p>The &lt;link&gt; element references an ID in the same way as
+    &lt;xref&gt;, except that &lt;link&gt; does not generate any text
+    for the link, so text must be supplied within the element. For
+    instance, we can again link to this chapter but this time specify
+    our own text with <code class="computeroutput">&lt;link
+    linkend="boostbook.linking"&gt;like this&lt;/link&gt;</code>. This
+    markup will result in a link to this chapter that looks <a class="link" href="together.html#boostbook.linking" title="Linking in BoostBook">like this</a>.</p>
+<p>The &lt;ulink&gt; element references a URL that is outside
+    of the DocBook document. The <code class="computeroutput">url</code> attribute contains
+    the URL to link to, and the element data provides the link
+    text.For instance, we can link to the the Boost web site with
+    <code class="computeroutput">&lt;ulink
+    url="http://www.boost.org"&gt;Boost&lt;/ulink&gt;,</code> which
+    appears in the document like this: <a href="http://www.boost.org" target="_top">Boost</a>.</p>
+<p>In BoostBook, &lt;ulink&gt; supports a custom url schema for
+    linking to files within the boost distribution. This is formed by
+    setting the <code class="computeroutput">url</code> attribute to <code class="computeroutput">boost:</code>
+    followed by the file's path. For example, we can link to the
+    flyweight library with
+    <code class="computeroutput">&lt;ulink
+    url="boost:/libs/flyweight/index.html"&gt;Boost.Flyweight&lt;/ulink&gt;</code>,
+    which will appear like this: <a href="../../../libs/flyweight/index.html" target="_top">Boost.Flyweight</a>.
+    This schema is only supported for BoostBook &lt;ulink&gt; elements.
+    It isn't available for any other elements or in Docbook.</p>
+<p>The &lt;classname&gt;, &lt;functionname&gt;,
+    &lt;methodname&gt;, and &lt;libraryname&gt; link to classes,
+    functions, methods, and libraries, respectively. The text of each
+    element gives both the name of the element to link to and the link
+    text. For instance, we can link to the Function library with
+    <code class="computeroutput">&lt;libraryname&gt;Function&lt;/libraryname&gt;</code>,
+    which results in the following:
+    <a class="link" href="../function.html" title="Chapter&#160;11.&#160;Boost.Function">Function</a>. In cases where the displayed
+    text is different from the actual name, the <code class="computeroutput">alt</code>
+    attribute can be specified. For instance, the following XML
+    element references the <code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">boost::function</a></code>
+    class template but displays the text <code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">function</a></code>: <code class="computeroutput">&lt;classname
+    alt="boost::function"&gt;function&lt;/classname&gt;</code>.</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2005 Douglas Gregor<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file LICENSE_1_0.txt or copy at
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="documenting.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boostbook.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

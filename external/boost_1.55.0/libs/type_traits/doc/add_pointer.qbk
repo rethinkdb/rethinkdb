@@ -1,0 +1,45 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:add_pointer add_pointer]
+
+   template <class T>
+   struct add_pointer
+   {
+      typedef __below type;
+   };
+  
+__type The same type as `remove_reference<T>::type*`.  
+
+The rationale for this template
+is that it produces the same type as `TYPEOF(&t)`, 
+where `t` is an object of type `T`.
+
+__std_ref 8.3.1.
+
+__compat If the compiler does not support partial specialization of class-templates
+then this template will compile, but the member `type` will always be the same as 
+type `T` except where __transform_workaround have been applied.
+
+__header ` #include <boost/type_traits/add_pointer.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[table Examples
+
+[ [Expression] [Result Type]]
+
+[[`add_pointer<int>::type`][`int*`]]
+
+[[`add_pointer<int const&>::type`] [`int const*`]]
+
+[[`add_pointer<int*>::type`] [`int**`]]
+
+[[`add_pointer<int*&>::type`] [`int**`]]
+
+]
+
+[endsect]
+

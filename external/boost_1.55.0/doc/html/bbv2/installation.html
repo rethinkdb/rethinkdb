@@ -1,0 +1,79 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Installation</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../bbv2.html" title="Chapter&#160;43.&#160;Boost.Build V2 User Manual">
+<link rel="prev" href="../bbv2.html" title="Chapter&#160;43.&#160;Boost.Build V2 User Manual">
+<link rel="next" href="tutorial.html" title="Tutorial">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../bbv2.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bbv2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutorial.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="bbv2.installation"></a>Installation</h2></div></div></div>
+<p>
+      To install Boost.Build from an official release or a nightly build, as
+      available on the <a href="http://boost.org/boost-build2" target="_top">official web site</a>,
+      follow these steps:
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          Unpack the release. On the command line, go to the root of the
+          unpacked tree.
+        </li>
+<li class="listitem">
+          Run either <span class="command"><strong>.\bootstrap.bat</strong></span> (on Windows), or
+          <span class="command"><strong>./bootstrap.sh</strong></span> (on other operating systems).
+        </li>
+<li class="listitem">
+          Run 
+          <pre class="screen">./b2 install --prefix=<em class="replaceable"><code>PREFIX</code></em></pre>
+          where <em class="replaceable"><code>PREFIX</code></em> is a directory where you
+          want Boost.Build to be installed.
+        </li>
+<li class="listitem">
+          Optionally, add <code class="filename"><em class="replaceable"><code>PREFIX</code></em>/bin</code>
+          to your <code class="envar">PATH</code> environment variable.
+        </li>
+</ol></div>
+<p>If you are not using a Boost.Build package, but rather the version
+    bundled with the Boost C++ Libraries, the above commands should be run
+    in the <code class="filename">tools/build/v2</code> directory.</p>
+<p>
+      Now that Boost.Build is installed, you can try some of the examples. Copy
+      <code class="filename"><em class="replaceable"><code>PREFIX</code></em>/share/boost-build/examples/hello</code>
+      to a different directory, then change to that directory and run:
+</p>
+<pre class="screen"><code class="filename"><em class="replaceable"><code>PREFIX</code></em>/bin/b2</code></pre>
+<p>
+      A simple executable should be built.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2009 Vladimir Prus<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../bbv2.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bbv2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutorial.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

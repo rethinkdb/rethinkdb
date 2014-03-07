@@ -1,0 +1,113 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/pt_PT.xml
+// *
+// ***************************************************************************
+pt_PT{
+    Keys{
+        calendar{"calendário"}
+        collation{"ordenação"}
+        currency{"moeda"}
+    }
+    Languages{
+        af{"afrikaans"}
+        art{"idioma artifical"}
+        awa{"Awadhi"}
+        bai{"bamileke Languages"}
+        bug{"Buginese"}
+        ce{"chechene"}
+        cel{"idioma céltico"}
+        chn{"jargão chinook"}
+        cpe{"crioulo ou pidgin do inglês"}
+        cpf{"crioulo ou pidgin do francês"}
+        cpp{"crioulo ou pidgin do português"}
+        cs{"checo"}
+        cus{"idioma cuchita"}
+        dra{"idioma dravítico"}
+        dyu{"diula"}
+        egy{"egípcio clássico"}
+        en{"Inglês"}
+        enm{"inglês medieval"}
+        et{"estónio"}
+        fiu{"idioma ugro-finês"}
+        frm{"francês medieval"}
+        frs{"frísio oriental"}
+        gmh{"alemão medieval alto"}
+        grc{"grego clássico"}
+        gsw{"alemão da Suíça"}
+        hsb{"sorbiano superior"}
+        hy{"arménio"}
+        iba{"Iban"}
+        ig{"igbo"}
+        ik{"Inupiaq"}
+        jv{"jv"}
+        khi{"khoisan"}
+        lez{"lezghiano"}
+        mga{"irlandês, medieval (900-1200)"}
+        mk{"macedónio"}
+        nah{"Nauatle"}
+        nds{"baixo alemão"}
+        nic{"nigeriano - cordofano"}
+        non{"norse, old"}
+        oc{"provençal"}
+        os{"ossético"}
+        peo{"persa arcaico (aprox. 600-400 a.C.)"}
+        pl{"polaco"}
+        pra{"idioma prácito"}
+        pro{"provençal, arcaico (até 1500)"}
+        pt_PT{"português europeu"}
+        rom{"romanês"}
+        sai{"idioma indígeno sul-americano"}
+        sal{"salishan languages"}
+        sgn{"linguages de sinais"}
+        ssa{"idioma nilo-sariano"}
+        swb{"língua comoriana"}
+        tai{"idioma tailândes"}
+        tg{"tajique"}
+        to{"tonga"}
+        tog{"toganês"}
+        tyv{"tuviniano"}
+        wen{"idioma sórbio"}
+    }
+    Scripts{
+        Armn{"arménio"}
+        Blis{"símbolos Bliss"}
+        Egyd{"egípcio demótico"}
+        Egyh{"egípcio hierático"}
+        Inds{"indus"}
+        Lina{"linear A"}
+        Linb{"linear B"}
+        Sylo{"siloti nagri"}
+        Tale{"tai le"}
+        Taml{"tamil"}
+        Telu{"telugu"}
+        Xsux{"cuneiforme sumero-acadiano"}
+        Zxxx{"não escrito"}
+        Zzzz{"inválido ou desconhecido"}
+    }
+    Types{
+        collation{
+            direct{"Ordem Directa"}
+            phonebook{"Ordem da Lista Telefónica"}
+        }
+    }
+    Variants{
+        AREVELA{"arménio oriental"}
+        AREVMDA{"arménio ocidental"}
+        BISKE{"dialecto san giorgio/bila"}
+        BOONT{"buntlingue"}
+        LIPAW{"dialecto lipovaz de Resian"}
+        MONOTON{"monotónico"}
+        NEDIS{"dialecto natisone"}
+        NJIVA{"dialecto gniva/njiva"}
+        OSOJS{"dialecto oseacco/osojane"}
+        PINYIN{"Romanização pinyin"}
+        POLYTON{"politónico"}
+        SOLBA{"dialecto stolvizza/solbica"}
+        WADEGILE{"Romanização Wade-Giles"}
+    }
+    Version{"2.0.50.84"}
+}

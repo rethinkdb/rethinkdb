@@ -1,0 +1,659 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Runtime parameters reference</title>
+<link rel="stylesheet" href="../../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../../index.html" title="Boost Test Library">
+<link rel="up" href="../runtime-config.html" title="Runtime configuration or what are the strings I can pull?">
+<link rel="prev" href="run-by-name.html" title="Running specific test units selected by their name">
+<link rel="next" href="../../testing-tools.html" title="The UTF testing tools or tester's toolbox for all occasions">
+<script language="JavaScript1.2" src="../../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../../utf.html">The Unit Test Framework</a> &gt; <a href="../../user-guide.html">User's guide</a><a href="../../testing-tools.html">
+      &gt;
+      </a><a href="../runtime-config.html">Runtime configuration </a> &gt; <b>Parameters reference</b>
+</td>
+<td><div class="spirit-nav">
+<a href="run-by-name.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="../../testing-tools.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.runtime-config.reference"></a>Runtime parameters reference</h5></div></div></div>
+<p class="first-line-indented">
+   Each parameter specification includes: the full parameter name, corresponding environment variable name, command
+   line argument name, acceptable values and a long description. The default value for the parameter is bold in the
+   acceptable values list. All values are case sensitive and are required to exactly match the parameter specification.
+  </p>
+<script language="JavaScript1.2">
+     var id296286;
+   </script><table class="inline-reference"><tr>
+<td class="index" valign="top"><ul>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.auto_start_dbg', id296286 ); return false;">auto_start_dbg</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.build_info', id296286 ); return false;">build_info</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.catch_system_errors', id296286 ); return false;">catch_system_errors</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.detect_memory_leak', id296286 ); return false;">detect_memory_leak</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.detect_fp_exceptions', id296286 ); return false;">detect_fp_exceptions</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.log_format', id296286 ); return false;">log_format</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.log_level', id296286 ); return false;">log_level</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.output_format', id296286 ); return false;">output_format</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.random', id296286 ); return false;">random</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.report_format', id296286 ); return false;">report_format</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.report_level', id296286 ); return false;">report_level</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.result_code', id296286 ); return false;">result_code</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.run_test', id296286 ); return false;">run_test</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.show_progress', id296286 ); return false;">show_progress</a></li>
+<li><a href="#" onclick="id296286 = select_form_page( 'utf.user-guide.runtime-config.parameters.use_alt_stack', id296286 ); return false;">use_alt_stack</a></li>
+</ul></td>
+<td class="content" valign="top">
+<div class="entry" id="utf.user-guide.runtime-config.parameters.auto_start_dbg"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>Automatically attach debugger in case of system failure</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_AUTO_START_DBG</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>auto_start_dbg</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td><span class="bold"><strong>no</strong></span></td></tr>
+<tr><td>yes</td></tr>
+<tr><td>debugger identifier</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      specifies whether Boost.Test should try to attach a debugger in case if fatal system error occurs. If value is "yes"
+      the default debugger configured for the platform is going to be attempted. Alternatively the debugger identified 
+      by the argument value of the parameter is used. For more details on advanced debugger support in Boost.Test check 
+       section dedicated to Boost.Test debug API.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.build_info"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>Print build info</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_BUILD_INFO</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>build_info</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td><span class="bold"><strong>no</strong></span></td></tr>
+<tr><td>yes</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      makes the framework to print build information that include: platform, compiler, STL implementation in use and
+      boost version.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.catch_system_errors"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>Catch system errors</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_CATCH_SYSTEM_ERRORS</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>catch_system_errors</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td><span class="bold"><strong>yes</strong></span></td></tr>
+<tr><td>no</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      value "no" prohibits the framework from catching asynchronous system events. This could be used for test programs
+      executed within GUI or to get a coredump for stack analysis. See usage recommendations page for more details.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.detect_memory_leak"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>Detect memory leaks</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_DETECT_MEMORY_LEAK</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>build_info</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td>0</td></tr>
+<tr><td><span class="bold"><strong>1</strong></span></td></tr>
+<tr><td>integer value &gt; 1</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      positive value tells the framework to detect the memory leaks (if any). Any value greater then 1 in addition
+      is treated as leak allocation number and setup runtime breakpoint. In other words setting this parameter to
+      the positive value N greater than 1 causes the framework to set a breakpoint at Nth memory allocation (don't
+      do that from the command line - only when you are under debugger). Note: if your test program produce memory
+      leaks notifications, they are combined with allocation number values you could use to set a breakpoint.
+      Currently only applies to MS family of compilers.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.detect_fp_exceptions"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>[Do not] trap floating point exceptions</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_DETECT_FP_EXCEPTIONS</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>detect_fp_exceptions</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td><span class="bold"><strong>no</strong></span></td></tr>
+<tr><td>yes</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      enables/disable hardware traps for the floating point exception if they are supported. By default is disabled.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.log_format"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>The log format</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_LOG_FORMAT</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>log_format</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td>
+<span class="bold"><strong>HRF</strong></span> - human readable format</td></tr>
+<tr><td>XML - XML format for automated output processing</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      allows selecting the <acronym class="acronym">UTF</acronym> log format from the list of formats supplied by the framework. To specify custom log
+      format use the <a class="link" href="../test-output/log-ct-config.html#utf.user-guide.test-output.log.ct-config.log-formatter" title="Custom log format support">unit_test_log API</a>.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.log_level"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>The UTF log level</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_LOG_LEVEL</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>log_level</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody>
+<tr>
+<td><p><span class="term">all</span> - </p></td>
+<td>report all log messages including the passed test notification</td>
+</tr>
+<tr>
+<td><p><span class="term">success</span> - </p></td>
+<td>the same as all</td>
+</tr>
+<tr>
+<td><p><span class="term">test_suite</span> - </p></td>
+<td>show test suite messages</td>
+</tr>
+<tr>
+<td><p><span class="term">message</span> - </p></td>
+<td>show user messages</td>
+</tr>
+<tr>
+<td><p><span class="term">warning</span> - </p></td>
+<td>report warnings issued by user</td>
+</tr>
+<tr>
+<td><p><span class="term"><span class="bold"><strong>error</strong></span></span> - </p></td>
+<td>report all error conditions</td>
+</tr>
+<tr>
+<td><p><span class="term">cpp_exception</span> - </p></td>
+<td>report uncaught c++ exception</td>
+</tr>
+<tr>
+<td><p><span class="term">system_error</span> - </p></td>
+<td>report system originated non-fatal errors (for example, timeout or floating point exception)</td>
+</tr>
+<tr>
+<td><p><span class="term">fatal_error</span> - </p></td>
+<td>report only user or system originated fatal errors (for example, memory access violation)</td>
+</tr>
+<tr>
+<td><p><span class="term">nothing</span> - </p></td>
+<td>do not report any information</td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      allows setting the <acronym class="acronym">UTF</acronym> log level in a range from a
+      complete log, when all successful tests are confirmed and  all test suite messages are included, to an empty
+      log when nothing is logged a test output stream.  Note that log levels are accumulating, in other words each
+      log level includes also all the information reported  by less  restrictive ones.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.output_format"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>The output format</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_OUTPUT_FORMAT</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>output_format</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td>
+<span class="bold"><strong>HRF</strong></span> - human readable format</td></tr>
+<tr><td>XML - XML format for automated output processing</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      combines an effect of report_format and log_format parameters. Has higher priority than either one of them if
+      specified.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.random"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>Random seed for random order of test cases</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_RANDOM</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>random</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td><span class="bold"><strong>0</strong></span></td></tr>
+<tr><td>1</td></tr>
+<tr><td>integer value &gt; 1</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      positive value makes the framework to run the test cases in random order. Also if this value is greater than 1,
+      it's used as a random seed. In other case random seed is generated based on current time.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.report_format"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>The report format</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_REPORT_FORMAT</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>report</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td>
+<span class="bold"><strong>HRF</strong></span> - human readable format</td></tr>
+<tr><td>XML - XML format for automated output processing</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      allows selecting the <acronym class="acronym">UTF</acronym> report format from the list of formats supplied by the framework. To
+      specify custom report format use unit_test_report API.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.report_level"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>The results report level</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_LOG_FORMAT</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>log_format</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td>no</td></tr>
+<tr><td><span class="bold"><strong>confirm</strong></span></td></tr>
+<tr><td>short</td></tr>
+<tr><td>detailed</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      allows setting the level of detailization for the testing results report generated by the framework. Use value 
+      "no" to eliminate the results report completely. See the 
+      <a class="xref" href="../test-output/results-report.html" title="Test report output">the section called &#8220;Test report output&#8221;</a> for description of different report formats.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.result_code"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>[Do not] return result code</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_RESULT_CODE</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>result_code</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td><span class="bold"><strong>yes</strong></span></td></tr>
+<tr><td>no</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      value "no" enforces the framework to always return zero result code. This could be used for test programs
+      executed within GUI. See <a class="link" href="../../usage-recommendations/dot-net-specific.html" title="Microsoft Visual Studio .NET usage recommendations">usage recommendations</a>
+      section for more details.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.run_test"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>Test units to run</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TESTS_TO_RUN</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>run_test</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list"><tr><td>
+       <a class="link" href="run-by-name.html" title="Running specific test units selected by their name">specification</a> of test units to run
+      </td></tr></table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      specifies which test units to run.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.show_progress"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>Show progress</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_SHOW_PROGRESS</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>show_progress</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td><span class="bold"><strong>no</strong></span></td></tr>
+<tr><td>yes</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>makes the framework to print progress information.</p></td>
+</tr>
+</table>
+<br>
+</div></div>
+<div class="entry" id="utf.user-guide.runtime-config.parameters.use_alt_stack"><div class="segmentedlist">
+<table class="seglistitem">
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Parameter Name</span></nobr></strong></td>
+<td>: </td>
+<td><span class="emphasis"><em>Use alternative stack</em></span></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Environment variable name</span></nobr></strong></td>
+<td>: </td>
+<td><code class="varname">BOOST_TEST_USE_ALT_STACK</code></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Command line argument name</span></nobr></strong></td>
+<td>: </td>
+<td><em class="parameter"><code>use_alt_stack</code></em></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Acceptable Values</span></nobr></strong></td>
+<td>: </td>
+<td><table class="simplelist" border="0" summary="Simple list">
+<tr><td><span class="bold"><strong>yes</strong></span></td></tr>
+<tr><td>no</td></tr>
+</table></td>
+</tr>
+<tr class="seg">
+<td><strong><nobr><span class="segtitle">Description</span></nobr></strong></td>
+<td>: </td>
+<td><p>
+      specifies whether or not the Boost.Test Execution Monitor should employ an alternative stack for signals 
+      processing on platforms where they are supported.
+     </p></td>
+</tr>
+</table>
+<br>
+</div></div>
+</td>
+</tr></table>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="run-by-name.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../runtime-config.html"><img src="../../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="../../testing-tools.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

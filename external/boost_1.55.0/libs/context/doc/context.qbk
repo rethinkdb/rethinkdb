@@ -1,0 +1,72 @@
+[/
+          Copyright Oliver Kowalke 2009.
+ Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+          http://www.boost.org/LICENSE_1_0.txt
+]
+
+[article Context
+    [quickbook 1.4]
+    [authors [Kowalke, Oliver]]
+    [copyright 2009 Oliver Kowalke]
+    [purpose C++ Library for swiching different user ctx]
+    [category text]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+
+[def __boost_build__ [*Boost.Build]]
+[def __boost_context__ [*Boost.Context]]
+[def __boost_fiber__ [*Boost.Coroutine]]
+[def __boost_task__ [*Boost.Task]]
+
+[template cs_example_link[link_text] [link context.examples.enumerator [link_text]]]
+[template context_link[link_text] [link context.context.context [link_text]]]
+[template stack_link[link_text] [link context.stack [link_text]]]
+[template preformance_link[link_text] [link context.performance [link_text]]]
+
+[def __context_fn__ ['context-function]]
+[def __coroutine__ ['coroutine]]
+[def __coroutines__ ['coroutines]]
+[def __coop_threads__ ['cooperative threads (userland threads)]]
+[def __fls__ ['fiber-local storage]]
+[def __guard_page__ ['guard-page]]
+[def __not_a_context__ ['not-a-context]]
+[def __stack__ [stack_link ['stack]]]
+[def __thread__ ['thread]]
+[def __threads__ ['threads]]
+[def __tls__ ['thread-local storage]]
+[def __stack_allocator__ ['StackAllocator]]
+
+[def __fcontext__ ['fcontext_t]]
+[def __ucontext__ ['ucontext_t]]
+
+[def __fls_alloc__ ['::FlsAlloc()]]
+[def __fls_free__ ['::FlsFree()]]
+
+[def __bad_alloc__ ['std::bad_alloc]]
+[def __fc_base__ ['fc_base]]
+[def __fc_link__ ['fc_link]]
+[def __jump_fcontext__ ['jump_fcontext()]]
+[def __make_fcontext__ ['make_fcontext()]]
+[def __invalid_argument__ ['std::invalid_argument]]
+[def __stack_alloc__ ['allocate()]]
+[def __stack_dealloc__ ['deallocate()]]
+[def __stack_helper__ ['stack_helper]]
+[def __yield__ ['yield]]
+
+[def __context_ns__ ['boost::context]]
+
+[include overview.qbk]
+[include requirements.qbk]
+[include fcontext.qbk]
+[include stack.qbk]
+[include performance.qbk]
+[include rationale.qbk]
+[include reference.qbk]
+[include todo.qbk]
+[include acknowledgements.qbk]

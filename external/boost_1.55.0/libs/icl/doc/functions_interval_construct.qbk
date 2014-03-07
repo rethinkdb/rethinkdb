@@ -1,0 +1,124 @@
+[/
+    Copyright (c) 2008-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Interval Construction ===================================================================]
+[section Interval Construction]
+
+[table
+[[T]                                       [__ch_dsc_itv__] [__ch_cnt_itv__] [__ch_ro_itv__] [__ch_lo_itv__]  [__ch_cl_itv__] [__ch_op_itv__]      ]
+[[Interval bounds]                                     [dynamic]  [dynamic]    [static]     [static]     [static]    [static]    ]
+[[Form]                                                [ ]        [ ]          [asymmetric] [asymmetric] [symmetric] [symmetric] ]
+[[['*Construct*]]                                      [ ]        [ ]          [ ]          [ ]          [ ]         [ ]         ]
+[[`T singleton(const P&)`]                             [__d]      [__c]        [__d]        [__d]        [__d]       [__d]       ]
+[[`T construct(const P&, const P&)`]                   [__d]      [__c]        [__dc]       [__dc]       [__d]       [__d]       ]
+[[``
+T construct(const P&, const P&, 
+            interval_bounds   )
+``]                                                    [__d]      [__c]        [ ]          [ ]          [ ]         [ ]         ]
+[[`T hull(const P&, const P&)`]                        [__d]      [__c]        [__dc]       [__dc]       [__d]       [__d]       ]
+[[`T span(const P&, const P&)`]                        [__d]      [__c]        [__dc]       [__dc]       [__d]       [__d]       ]
+[[`static T right_open(const P&, const P&)`]           [__d]      [__c]        [ ]          [ ]          [ ]         [ ]         ]
+[[`static T left_open(const P&, const P&)`]            [__d]      [__c]        [ ]          [ ]          [ ]         [ ]         ]
+[[`static T closed(const P&, const P&)`]               [__d]      [__c]        [ ]          [ ]          [ ]         [ ]         ]
+[[`static T open(const P&, const P&)`]                 [__d]      [__c]        [ ]          [ ]          [ ]         [ ]         ]
+]
+
+The table above shows the availability of functions, that allow the construction
+of intervals. All interval constructin functins are of ['*constant time and space complexity*].
+
+[table
+[[['*Construct*]]                                      [Description]         ]
+[[`T singleton(const P& value)`]                       [Constructs an interval that contains exactly one element `value`. 
+                                                        For all interval types of the icl sigletons can be constructed
+                                                        for /discrete/ domain types. For continuous domain types, only
+                                                        __ct_itv__ is capable to construct a singleton. ]       ]
+[[`T construct(const P& lower, const P& upper)`]       [Contructs an interval with lower bound `lower` and upper bound `upper` ] ]
+[[``
+T construct(const P& lower, const P& upper,
+            interval_bounds bounds 
+            = interval_bounds::right_open())
+``]  
+                                                       [For dynamically bounded intervals this function constructs an
+                                                        interval with interval bounds specified by the third parameter. ]     ]
+[[`T hull(const P& x1, const P& x2)`]                  [`hull(x1,x2)` constructs the smallest interval that contains both `x1` and `x2`.
+                                                        `x2` may be smaller than `x1`. ]       ]
+[[`T span(const P& x1, const P& x2)`]                  [`span(x1,x2)` constructs the interval `construct(min(x1,x2), max(x1,x2))`.
+                                                        Note the differences between `span`, `hull` and `construct`:
+``
+span<right_open_interval<int> >(2,1)      == [1,2) // does NOT contain 2
+hull<right_open_interval<int> >(2,1)      == [1,3) // contains 2
+construct<right_open_interval<int> >(2,1) == [)    // is empty
+``                                                                   
+                                                                   ]   ]
+[[``
+static T right_open(const P&, const P&)
+static T left_open(const P&, const P&)
+static T closed(const P&, const P&)
+static T open(const P&, const P&)
+``                                       ]             [For dynamically bounded intervals there are for static functions to
+                                                        construct intervals with the four interval bound types:
+``
+discrete_interval<int>      itv1 = discrete_interval<int>::closed(0,42);
+continuous_interval<double> itv2 = continuous_interval<double>::right_open(0.0, 1.0);
+``
+                                                               ]         ]
+[[['*Using the interval default*]]                     [ ]]                                                        
+[[`interval<P>::type`]                                 [There is a library default, for all interval containers of the *icl*.
+                                                        The intension of the library default is to minimize the need for parameter
+                                                        specification, when working with *icl* class templates.
+                                                        We can get the library default interval type as `interval<P>::type`. 
+                                                        The library default uses ['*dynamically bounded intervals*]. You
+                                                        can switch to ['*statically bounded intervals*] by 
+                                                        `#define BOOST_ICL_USE_STATIC_BOUNDED_INTERVALS` prior to icl includes. ]]
+[[``
+static T right_open(const P&, const P&)
+static T left_open(const P&, const P&)
+static T closed(const P&, const P&)
+static T open(const P&, const P&)
+``                                     ]               [For template struct `interval` that always uses the library default
+                                                        the static functions for the four interval bound types are also available. 
+``
+interval<int>::type    itv1 = interval<int>::closed(0,42);
+interval<double>::type itv2 = interval<double>::right_open(0.0, 1.0);
+``
+                                                        This works with the statically bounded intervals as well, 
+                                                        with the restriction that for continuous domain types the 
+                                                        matching function has to be used:
+``
+#define BOOST_ICL_USE_STATIC_BOUNDED_INTERVALS
+. . .
+// library default is the statically bounded right_open_interval
+interval<int>::type    itv1 = interval<int>::closed(0,42); //==[0,43) //ok, bounds are shifted
+interval<double>::type itv2 = interval<double>::right_open(0.0, 1.0); //ok. right_open matches
+interval<double>::type itv3 = interval<double>::closed(0.0, 1.0);     //will NOT compile
+``
+                                                        See also examples 
+                                                        [link boost_icl.examples.dynamic_interval Dynamic intervals] and
+                                                        [link boost_icl.examples.static_interval Static intervals]   
+                                                        ]]
+] 
+
+['*See also . . .*]
+[table
+[]
+[[[link boost_icl.examples.dynamic_interval ['*Example: Dynamically bounded intervals and the library default*]] ]]
+[[[link boost_icl.examples.static_interval  ['*Example: Statically bounded intervals, changing the library default*]] ]]
+]
+
+['*Back to section . . .*]
+[table
+[]
+[[[link additional_interval_functions ['*Additional interval functions*]] ]]
+[[[link function_synopsis_table ['*Function Synopsis*]]          ]]
+[[[link boost_icl.interface ['*Interface*]]                      ]]
+]
+
+[endsect][/ Interval Construction]
+
+

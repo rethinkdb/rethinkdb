@@ -1,0 +1,304 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Warming up</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="quick_start.html" title="Quick Start">
+<link rel="next" href="semantic_actions.html" title="Generator Semantic Actions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="quick_start.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="semantic_actions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.karma.tutorials.warming_up"></a><a class="link" href="warming_up.html" title="Warming up">Warming up</a>
+</h4></div></div></div>
+<p>
+          Learning how to use <span class="emphasis"><em>Spirit.Karma</em></span> is really simple.
+          We will start from trivial examples, ramping up as we go.
+        </p>
+<h6>
+<a name="spirit.karma.tutorials.warming_up.h0"></a>
+          <span class="phrase"><a name="spirit.karma.tutorials.warming_up.trivial_example__1_generating_a_number"></a></span><a class="link" href="warming_up.html#spirit.karma.tutorials.warming_up.trivial_example__1_generating_a_number">Trivial
+          Example #1 Generating a number</a>
+        </h6>
+<p>
+          Let's create a generator that will output a floating-point number:
+        </p>
+<pre class="programlisting"><span class="identifier">double_</span>
+</pre>
+<p>
+          Easy huh? The above code actually instantiates a Spirit floating point
+          generator (a built-in generator). Spirit has many pre-defined generators
+          and consistent naming conventions will help you finding your way through
+          the maze. Especially important to note is that things related to identical
+          entities (as in this case, floating point numbers) are named identically
+          in <span class="emphasis"><em>Spirit.Karma</em></span> and in <span class="emphasis"><em>Spirit.Qi</em></span>.
+          Actually, both libraries are using the very same variable instance to refer
+          to a floating point generator or parser: <code class="computeroutput"><span class="identifier">double_</span></code>.
+        </p>
+<h6>
+<a name="spirit.karma.tutorials.warming_up.h1"></a>
+          <span class="phrase"><a name="spirit.karma.tutorials.warming_up.trivial_example__2_generating_two_numbers"></a></span><a class="link" href="warming_up.html#spirit.karma.tutorials.warming_up.trivial_example__2_generating_two_numbers">Trivial
+          Example #2 Generating two numbers</a>
+        </h6>
+<p>
+          Now, let's create a generator that will output a line consisting of two
+          floating-point numbers.
+        </p>
+<pre class="programlisting"><span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span>
+</pre>
+<p>
+          Here you see the familiar floating-point numeric generator <code class="computeroutput"><span class="identifier">double_</span></code> used twice, once for each number.
+          If you are used to see the <code class="computeroutput"><span class="char">'&gt;&gt;'</span></code>
+          operator for concatenating two parsers in <span class="emphasis"><em>Spirit.Qi</em></span>
+          you might wonder, what's that <code class="computeroutput"><span class="char">'&lt;&lt;'</span></code>
+          operator doing in there? We decided to distinguish generating and parsing
+          of sequences the same way as the std::stream libraries do: we use operator
+          <code class="computeroutput"><span class="char">'&gt;&gt;'</span></code> for input (parsing),
+          and operator <code class="computeroutput"><span class="char">'&lt;&lt;'</span></code> for output
+          (generating). Other than that there is no significant difference. The above
+          program creates a generator from two simpler generators, glueing them together
+          with the sequence operator. The result is a generator that is a composition
+          of smaller generators. Whitespace between numbers can implicitly be inserted
+          depending on how the generator is invoked (see below).
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            When we combine generators, we end up with a "bigger" generator,
+            but it's still a generator. Generators can get bigger and bigger, nesting
+            more and more, but whenever you glue two generators together, you end
+            up with one bigger generator. This is an important concept.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.karma.tutorials.warming_up.h2"></a>
+          <span class="phrase"><a name="spirit.karma.tutorials.warming_up.trivial_example__3_generating_one_or_more_numbers"></a></span><a class="link" href="warming_up.html#spirit.karma.tutorials.warming_up.trivial_example__3_generating_one_or_more_numbers">Trivial
+          Example #3 Generating one or more numbers</a>
+        </h6>
+<p>
+          Now, creating output for two numbers is not too interesting. Let's create
+          a generator that will output zero or more floating-point numbers in a row.
+        </p>
+<pre class="programlisting"><span class="special">*</span><span class="identifier">double_</span>
+</pre>
+<p>
+          This is like a regular-expression Kleene Star. We moved the <code class="computeroutput"><span class="special">*</span></code> to the front for the same reasons we did
+          in <span class="emphasis"><em>Spirit.Qi</em></span>: we must work with the syntax rules of
+          C++. But if you know regular expressions (and for sure you remember those
+          C++ syntax rules) it will start to look very familiar in a matter of a
+          very short time.
+        </p>
+<p>
+          Any expression that evaluates to a generator may be used with the Kleene
+          Star. Keep in mind, though, that due to C++ operator precedence rules you
+          may need to put the expression in parentheses for complex expressions.
+          As above, whitespace can be inserted implicitly in between the generated
+          numbers, if needed.
+        </p>
+<h6>
+<a name="spirit.karma.tutorials.warming_up.h3"></a>
+          <span class="phrase"><a name="spirit.karma.tutorials.warming_up.trivial_example__4_generating_a_comma_delimited_list_of_numbers"></a></span><a class="link" href="warming_up.html#spirit.karma.tutorials.warming_up.trivial_example__4_generating_a_comma_delimited_list_of_numbers">Trivial
+          Example #4 Generating a comma-delimited list of numbers</a>
+        </h6>
+<p>
+          We follow the lead of <span class="emphasis"><em>Spirit.Qi</em></span>'s warming up section
+          and will create a generator that produces a comma-delimited list of numbers.
+        </p>
+<pre class="programlisting"><span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="special">*(</span><span class="identifier">lit</span><span class="special">(</span><span class="char">','</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span><span class="special">)</span>
+</pre>
+<p>
+          Notice <code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="char">','</span><span class="special">)</span></code>. It is
+          a literal character generator that simply generates the comma <code class="computeroutput"><span class="char">','</span></code>. In this case, the Kleene Star is modifying
+          a more complex generator, namely, the one generated by the expression:
+        </p>
+<pre class="programlisting"><span class="special">(</span><span class="identifier">lit</span><span class="special">(</span><span class="char">','</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span><span class="special">)</span>
+</pre>
+<p>
+          Note that this is a case where the parentheses are necessary. The Kleene
+          Star encloses the complete expression above, repeating the whole pattern
+          in the generated output zero or more times.
+        </p>
+<h6>
+<a name="spirit.karma.tutorials.warming_up.h4"></a>
+          <span class="phrase"><a name="spirit.karma.tutorials.warming_up.let_s_generate_"></a></span><a class="link" href="warming_up.html#spirit.karma.tutorials.warming_up.let_s_generate_">Let's
+          Generate!</a>
+        </h6>
+<p>
+          We're done with defining the generator. All that's left is to invoke the
+          generator to do its work. For now, we will use the <code class="computeroutput"><span class="identifier">generate_delimited</span></code>
+          function. One overload of this function accepts four arguments:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              An output iterator accepting the generated characters
+            </li>
+<li class="listitem">
+              The generator expression
+            </li>
+<li class="listitem">
+              Another generator called the delimiting generator
+            </li>
+<li class="listitem">
+              The data to format and output
+            </li>
+</ol></div>
+<p>
+          While comparing this minimal example with an equivalent parser example
+          we notice a significant difference. It is possible (and actually, it makes
+          a lot of sense) to use a parser without creating any internal representation
+          of the parsed input (i.e. without 'producing' any data from the parsed
+          input). Using a parser in this mode checks the provided input against the
+          given parser expression allowing to verify whether the input is parsable.
+          For generators this mode doesn't make any sense. What is output generation
+          without generating any output? So we always will have to supply the data
+          the output should be generated from. In our example we supply a list of
+          <code class="computeroutput"><span class="keyword">double</span></code> numbers as the last
+          parameter to the function <code class="computeroutput"><span class="identifier">generate_delimited</span></code>
+          (see code below).
+        </p>
+<p>
+          In this example, we wish to delimit the generated numbers by spaces. Another
+          generator named <code class="computeroutput"><span class="identifier">space</span></code> is
+          included in Spirit's repertoire of predefined generators. It is a very
+          trivial generator that simply produces spaces. It is the equivalent to
+          writing <code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="char">' '</span><span class="special">)</span></code>, or simply
+          <code class="computeroutput"><span class="char">' '</span></code>. It has been implemented
+          for similarity with the corresponding predefined <code class="computeroutput"><span class="identifier">space</span></code>
+          parser. We will use <code class="computeroutput"><span class="identifier">space</span></code>
+          as our delimiter. The delimiter is the one responsible for inserting characters
+          in between generator elements such as the <code class="computeroutput"><span class="identifier">double_</span></code>
+          and <code class="computeroutput"><span class="identifier">lit</span></code>.
+        </p>
+<p>
+          Ok, so now let's generate (for the complete source code of this example
+          please refer to <a href="../../../../../example/karma/num_list1.cpp" target="_top">num_list1.cpp</a>).
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">OutputIterator</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">generate_numbers</span><span class="special">(</span><span class="identifier">OutputIterator</span><span class="special">&amp;</span> <span class="identifier">sink</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">v</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">karma</span><span class="special">::</span><span class="identifier">generate_delimited</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space</span><span class="special">;</span>
+
+    <span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">generate_delimited</span><span class="special">(</span>
+        <span class="identifier">sink</span><span class="special">,</span>                           <span class="comment">// destination: output iterator</span>
+        <span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="special">*(</span><span class="char">','</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span><span class="special">),</span>   <span class="comment">// the generator</span>
+        <span class="identifier">space</span><span class="special">,</span>                          <span class="comment">// the delimiter-generator</span>
+        <span class="identifier">v</span>                               <span class="comment">// the data to output </span>
+    <span class="special">);</span>
+    <span class="keyword">return</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            You might wonder how a <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span></code>, which is actually a single data
+            structure, can be used as an argument (we call it attribute) to a sequence
+            of generators. This seems to be counter intuitive and doesn't match with
+            your experience of using <code class="computeroutput"><span class="identifier">printf</span></code>,
+            where each formatting placeholder has to be matched with a corresponding
+            argument. Well, we will explain this behavior in more detail later in
+            this tutorial. For now just consider this to be a special case, implemented
+            on purpose to allow more flexible output formatting of STL containers:
+            sequences accept a single container attribute if all elements of this
+            sequence accept attributes compatible with the elements held by this
+            container.
+          </p></td></tr>
+</table></div>
+<p>
+          The generate function returns <code class="computeroutput"><span class="keyword">true</span></code>
+          or <code class="computeroutput"><span class="keyword">false</span></code> depending on the
+          result of the output generation. As outlined in different places of this
+          documentation, a generator may fail for different reasons. One of the possible
+          reasons is an error in the underlying output iterator (memory exhausted
+          or disk full, etc.). Another reason might be that the data doesn't match
+          the requirements of a particular generator.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+            <code class="computeroutput"><span class="keyword">char</span></code> and <code class="computeroutput"><span class="keyword">wchar_t</span></code>
+            operands
+          </p>
+<p>
+            The careful reader may notice that the generator expression has <code class="computeroutput"><span class="char">','</span></code> instead of <code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="char">','</span><span class="special">)</span></code>
+            as the previous examples did. This is ok due to C++ syntax rules of conversion.
+            Spirit provides <code class="computeroutput"><span class="special">&lt;&lt;</span></code>
+            operators that are overloaded to accept a <code class="computeroutput"><span class="keyword">char</span></code>
+            or <code class="computeroutput"><span class="keyword">wchar_t</span></code> argument on its
+            left or right (but not both). An operator may be overloaded if at least
+            one of its parameters is a user-defined type. In this case, the <code class="computeroutput"><span class="identifier">double_</span></code> is the 2nd argument to <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></code>,
+            and so the proper overload of <code class="computeroutput"><span class="special">&lt;&lt;</span></code>
+            is used, converting <code class="computeroutput"><span class="char">','</span></code> into
+            a character literal generator.
+          </p>
+<p>
+            The problem with omitting the <code class="computeroutput"><span class="identifier">lit</span></code>
+            should be obvious: <code class="computeroutput"><span class="char">'a'</span> <span class="special">&lt;&lt;</span>
+            <span class="char">'b'</span></code> is not a spirit generator, it
+            is a numeric expression, left-shifting the ASCII (or another encoding)
+            value of <code class="computeroutput"><span class="char">'a'</span></code> by the ASCII value
+            of <code class="computeroutput"><span class="char">'b'</span></code>. However, both <code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="char">'a'</span><span class="special">)</span> <span class="special">&lt;&lt;</span>
+            <span class="char">'b'</span></code> and <code class="computeroutput"><span class="char">'a'</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">lit</span><span class="special">(</span><span class="char">'b'</span><span class="special">)</span></code>
+            are Spirit sequence generators for the letter <code class="computeroutput"><span class="char">'a'</span></code>
+            followed by <code class="computeroutput"><span class="char">'b'</span></code>. You'll get
+            used to it, sooner or later.
+          </p>
+</td></tr>
+</table></div>
+<p>
+          Note that we inlined the generator directly in the call to <code class="computeroutput"><span class="identifier">generate_delimited</span></code>. Upon calling this
+          function, the expression evaluates into a temporary, unnamed generator
+          which is passed into the <code class="computeroutput"><span class="identifier">generate_delimited</span></code>
+          function, used, and then destroyed.
+        </p>
+<p>
+          Here, we chose to make the generate function generic by making it a template,
+          parameterized by the output iterator type. By doing so, it can put the
+          generated data into any STL conforming output iterator.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="quick_start.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="semantic_actions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

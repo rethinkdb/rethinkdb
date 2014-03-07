@@ -1,0 +1,449 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+
+
+
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=windows-1252"><title>Voronoi Benchmark</title></head><body>
+<table style="margin: 0pt; padding: 0pt; width: 100%;" border="0" cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1" valign="top">
+      <div style="padding: 5px;" align="center"> <img src="images/boost.png" border="0" height="86" width="277"><a title="www.boost.org home page" tabindex="2" style="border: medium none ;" href="http://www.boost.org/"> </a></div>
+      <div style="margin: 5px;">
+      <h3 class="navbar">Contents</h3>
+      <ul>
+        <li><a href="index.htm">Boost.Polygon Main Page</a></li>
+        <li><a href="gtl_design_overview.htm">Design Overview</a></li>
+        <li><a href="gtl_isotropy.htm">Isotropy</a></li>
+        <li><a href="gtl_coordinate_concept.htm">Coordinate Concept</a></li>
+        <li><a href="gtl_interval_concept.htm">Interval Concept</a></li>
+        <li><a href="gtl_point_concept.htm">Point Concept</a></li>
+        <li><a href="gtl_segment_concept.htm">Segment Concept</a></li>
+        <li><a href="gtl_rectangle_concept.htm">Rectangle Concept</a></li>
+        <li><a href="gtl_polygon_90_concept.htm">Polygon 90 Concept</a></li>
+        <li><a href="gtl_polygon_90_with_holes_concept.htm">Polygon 90
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_45_concept.htm">Polygon 45 Concept</a></li>
+        <li><a href="gtl_polygon_45_with_holes_concept.htm">Polygon 45
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_concept.htm">Polygon Concept</a></li>
+        <li><a href="gtl_polygon_with_holes_concept.htm">Polygon With
+Holes Concept</a></li>
+        <li><a href="gtl_polygon_90_set_concept.htm">Polygon 90 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_45_set_concept.htm">Polygon 45 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_set_concept.htm">Polygon Set Concept</a></li>
+        <li><a href="gtl_connectivity_extraction_90.htm">Connectivity
+Extraction 90</a></li>
+        <li><a href="gtl_connectivity_extraction_45.htm">Connectivity
+Extraction 45</a></li>
+        <li><a href="gtl_connectivity_extraction.htm">Connectivity
+Extraction</a></li>
+        <li><a href="gtl_property_merge_90.htm">Property Merge 90</a></li>
+        <li><a href="gtl_property_merge_45.htm">Property Merge 45</a></li>
+        <li><a href="gtl_property_merge.htm">Property Merge</a></li>
+        <li><a href="voronoi_main.htm">Voronoi Main Page<br>
+          </a></li>
+        <li>Voronoi Benchmark<br>
+        </li>
+        <li><a href="voronoi_builder.htm">Voronoi Builder</a></li>
+        <li><a href="voronoi_diagram.htm">Voronoi Diagram</a></li>
+      </ul>
+      <h3 class="navbar">Other Resources</h3>
+      <ul>
+        <li><a href="GTL_boostcon2009.pdf">GTL Boostcon 2009 Paper</a></li>
+        <li><a href="GTL_boostcon_draft03.pdf">GTL Boostcon 2009
+Presentation</a></li>
+        <li><a href="analysis.htm">Performance Analysis</a></li>
+        <li><a href="gtl_tutorial.htm">Layout Versus Schematic Tutorial</a></li>
+        <li><a href="gtl_minkowski_tutorial.htm">Minkowski Sum Tutorial</a></li>
+        <li><a href="voronoi_basic_tutorial.htm">Voronoi Basic Tutorial</a></li>
+        <li><a href="voronoi_advanced_tutorial.htm">Voronoi Advanced
+Tutorial</a></li>
+      </ul>
+      </div>
+      <h3 class="navbar">Polygon Sponsor</h3>
+      <div style="padding: 5px;" align="center"> <img src="images/intlogo.gif" border="0" height="51" width="127"><a title="www.adobe.com home page" tabindex="2" style="border: medium none ;" href="http://www.adobe.com/"> </a></div>
+      </td>
+      <td style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;" valign="top" width="100%"><!-- End Header --> <br>
+      <h1>Voronoi Benchmark</h1>
+      <h2>Benchmark Details</h2>
+From the topological perspective Delaunay triangulation is a dual
+data structure to the Voronoi diagram, thus libraries that provide
+Delaunay triangulation construction routines were also included into
+the benchmark. However, from the computation perspective Voronoi
+diagram contains more information as it embeds information regarding
+the coordinates of the centers of the inscribed circles tangent to the
+three or more input geometries.<br>
+
+
+The benchmark consists of the two parts:<br>
+      <ol>
+<li>construction of the Voronoi diagram / Delaunay triangulation of a set of
+random points uniformly distributed over 32-bit integer grid (<a href="../benchmark/voronoi_benchmark_points.cpp"><span style="text-decoration: underline;">voronoi_benchmark_points.cpp</span></a>)</li><li>construction of the Voronoi diagram / Delaunay triangulation of a set of
+random non-intersecting
+segments uniformly distributed over 32-bit integer grid (<a href="../benchmark/voronoi_benchmark_segments.cpp">voronoi_benchmark_segments.cpp</a>).</li>
+      </ol>
+
+
+
+      <h2>Libraries</h2>
+      <table style="text-align: left; width: 100%;" border="1" cellpadding="2" cellspacing="2">
+        <tbody>
+          <tr>
+            <td style="vertical-align: top;"><span style="font-weight: bold;">Library</span><br>
+            </td>
+            <td style="vertical-align: top; font-weight: bold;">Boost.Polygon<br>
+            </td>
+            <td style="vertical-align: top; font-weight: bold;">CGAL<br>
+            </td>
+            <td style="vertical-align: top; font-weight: bold;">SHull<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">Official page<br>
+            </td>
+            <td style="vertical-align: top;">www.boost.org/libs/polygon&#8206;<br>
+            </td>
+            <td style="vertical-align: top;">http://www.cgal.org<br>
+            </td>
+            <td style="vertical-align: top;">http://www.s-hull.org<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">Algorithm<br>
+            </td>
+            <td style="vertical-align: top;">sweep-line<br>
+            </td>
+            <td style="vertical-align: top;">incremental<br>
+            </td>
+            <td style="vertical-align: top;">sweep-hull<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">Supported input geometries<br>
+            </td>
+            <td style="vertical-align: top;">points and segments<br>
+            </td>
+            <td style="vertical-align: top;">points and segments<br>
+            </td>
+            <td style="vertical-align: top;">points<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">Output data structure<br>
+            </td>
+            <td style="vertical-align: top;">Voronoi diagram<br>
+            </td>
+            <td style="vertical-align: top;">Delaunay triangulation<br>
+            </td>
+            <td style="vertical-align: top;">Delaunay triangulation<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">Complexity<br>
+            </td>
+            <td style="vertical-align: top;">O(N log N)<br>
+            </td>
+            <td style="vertical-align: top;">O(N log N)</td>
+            <td style="vertical-align: top;">O(N log N)</td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">Memory usage<br>
+            </td>
+            <td style="vertical-align: top;">O(N)<br>
+            </td>
+            <td style="vertical-align: top;">O(N)<br>
+            </td>
+            <td style="vertical-align: top;">O(N)<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">Robustness policies<br>
+            </td>
+            <td style="vertical-align: top;">lazy arithmetic, exact predicates, topology analysis<br>
+            </td>
+            <td style="vertical-align: top;">lazy arithmetic, exact predicates, topology analysis<br>
+            </td>
+            <td style="vertical-align: top;">non-robust<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">Output coordinates precision<br>
+            </td>
+            <td style="vertical-align: top;">128 machine epsilon<br>
+            </td>
+            <td style="vertical-align: top;">no output coordinates<br>
+            </td>
+            <td style="vertical-align: top;">no output coordinates<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;">External dependencies<br>
+            </td>
+            <td style="vertical-align: top;">No<br>
+            </td>
+            <td style="vertical-align: top;">Boost, GMP, MPFR<br>
+            </td>
+            <td style="vertical-align: top;">No<br>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <br>
+
+The other known libraries (<a href="https://github.com/aewallin/openvoronoi">OpenVoronoi</a>,
+      <a href="http://www.cs.cmu.edu/%7Equake/triangle.html">Triangle</a>, <a href="http://www.cosy.sbg.ac.at/%7Eheld/projects/vroni/vroni.html">Vroni</a>) will be considered for the inclusion into the benchmark in the future.<br>
+<ul>
+        <ul>
+
+        
+        
+        
+        
+        
+      
+        </ul>
+
+        
+        <ul>
+
+        
+        </ul>
+
+      </ul>
+      <h2>System Configuration<br>
+      </h2>
+
+
+Hardware: Intel i5-7600 2.8 GHz, 16GiB RAM.<br>
+OS: Ubuntu 13.04 64-bit.<br>
+Compiler: GCC 4.7.3.<br>
+Libraries and dependencies: Boost 1.54.0, CGAL-4.3-beta1, GMP 5.1.4, MPFR 3.1.2, S-Hull.<br>
+      <h2>Benchmark Results</h2>
+      <h3>Random Points Benchmark</h3><img style="border: 1px solid ; width: 500px; height: 350px;" alt="Benchmark Points Chart" src="../benchmark/benchmark_results/plots/benchmark_points.png"><br>
+
+      <table style="text-align: left; width: 100%; margin-left: auto; margin-right: auto;" border="1" cellpadding="2" cellspacing="2">
+        <tbody>
+          <tr>
+            <td colspan="2" rowspan="1" style="vertical-align: top; text-align: center;">Test specification<br>
+            </td>
+            <td colspan="6" rowspan="1" style="vertical-align: top; text-align: center;">Average construction
+time (in secs)<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top; text-align: center;">Number
+of Points<br>
+            </td>
+            <td style="vertical-align: top; text-align: center;">Number
+of Runs<br>
+            </td>
+            
+            
+            
+            <td style="vertical-align: top; text-align: center;">Boost
+Linux-64<br>
+            </td>
+            <td style="vertical-align: top; text-align: center;">CGAL
+Linux-64<br>
+            </td>
+            <td style="vertical-align: top; text-align: center;">S-Hull
+Linux-64<br>
+            </td>
+          </tr>
+          
+          <tr>
+            <td style="vertical-align: top; text-align: right;">100<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">10000<br>
+            </td>
+            
+            
+            
+            <td style="vertical-align: top; text-align: right;">0.000206<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">&nbsp;0.000073<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">0.000243<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top; text-align: right;">1000<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">1000<br>
+            </td>
+            
+            
+            
+            <td style="vertical-align: top; text-align: right;">0.002250<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">0.000753<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">0.002184<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top; text-align: right;">10000<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">100<br>
+            </td>
+            
+            
+            
+            <td style="vertical-align: top; text-align: right;">0.024100<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">0.007917<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">0.030552<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top; text-align: right;">100000<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">10<br>
+            </td>
+            
+            
+            
+            <td style="vertical-align: top; text-align: right;">0.292000<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">0.084336<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">0.451913<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top; text-align: right;">1000000<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">1<br>
+            </td>
+            
+            
+            
+            <td style="vertical-align: top; text-align: right;">3.470000<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">0.902300<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">6.603814<br>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <br>
+<h3>Random Segments Benchmark</h3><img style="border: 1px solid ; width: 500px; height: 350px;" alt="Benchmark Segment Chart" src="../benchmark/benchmark_results/plots/benchmark_segments.png"><br>
+
+      <table style="text-align: left; width: 100%;" border="1" cellpadding="2" cellspacing="2">
+        <tbody>
+          <tr>
+            <td colspan="2" rowspan="1" style="vertical-align: top; text-align: center;">Test specification<br>
+            </td>
+            <td colspan="4" rowspan="1" style="vertical-align: top; text-align: center;">Average construction
+time (in secs)</td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top; text-align: center;">Number
+of Segments<br>
+            </td>
+            <td style="vertical-align: top; text-align: center;">Number
+of Runs<br>
+            </td>
+            
+            
+            <td style="vertical-align: top; text-align: center;">Boost
+Linux-64<br>
+            </td>
+            <td style="vertical-align: top; text-align: center;">CGAL
+Linux-64<br>
+            </td>
+          </tr>
+          
+          <tr>
+            <td style="vertical-align: top; text-align: right;">100<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">10000<br>
+            </td>
+            
+            
+            <td style="vertical-align: top; text-align: right;">0.002284<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">0.002985<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top; text-align: right;">1000<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">1000<br>
+            </td>
+            
+            
+            <td style="vertical-align: top; text-align: right;">0.023240<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">0.032180<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top; text-align: right;">10000<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">100<br>
+            </td>
+            
+            
+            <td style="vertical-align: top; text-align: right;">&nbsp;0.237700<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">0.337400<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top; text-align: right;">100000<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">10<br>
+            </td>
+            
+            
+            <td style="vertical-align: top; text-align: right;">2.488000<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">3.633000<br>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top; text-align: right;">1000000<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">1<br>
+            </td>
+            
+            
+            <td style="vertical-align: top; text-align: right;">25.00000<br>
+            </td>
+            <td style="vertical-align: top; text-align: right;">39.090000<br>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <br><span style="font-weight: bold;"></span></td>
+    </tr>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1" valign="top">&nbsp;</td>
+      <td style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;" valign="top" width="100%">
+      <table class="docinfo" id="table2" frame="void" rules="none">
+        <colgroup> <col class="docinfo-name"><col class="docinfo-content"> </colgroup> <tbody valign="top">
+          <tr>
+            <th class="docinfo-name">Copyright:</th>
+            <td>Copyright © Andrii Sydorchuk 2010-2012.</td>
+          </tr>
+          <tr class="field">
+            <th class="docinfo-name">License:</th>
+            <td class="field-body">Distributed under the Boost Software
+License, Version 1.0. (See accompanying file <tt class="literal"><span class="pre">LICENSE_1_0.txt</span></tt> or copy at <a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+</body></html>

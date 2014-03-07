@@ -1,0 +1,326 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Other considerations and tips</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../typeof.html" title="Chapter&#160;35.&#160;Boost.Typeof">
+<link rel="prev" href="refe.html" title="Reference">
+<link rel="next" href="cont.html" title="Contributed By:">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="refe.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../typeof.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="cont.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="typeof.other"></a>Other considerations and tips</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="other.html#typeof.natem">Native typeof support and emulation</a></span></dt>
+<dt><span class="section"><a href="other.html#typeof.parties">The three participating parties</a></span></dt>
+<dt><span class="section"><a href="other.html#typeof.features">Supported features</a></span></dt>
+<dt><span class="section"><a href="other.html#typeof.what">What needs to be registered?</a></span></dt>
+<dt><span class="section"><a href="other.html#typeof.limi">Limitations</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.natem"></a>Native typeof support and emulation</h3></div></div></div>
+<p>
+        Many compilers support typeof already, most noticeable GCC and Metrowerks.
+      </p>
+<p>
+        Igor Chesnokov discovered a method that allows to implement <code class="computeroutput"><span class="identifier">typeof</span></code> on the VC series of compilers. It
+        uses a bug in the Microsoft compiler that allows a nested class of base to
+        be defined in a class derived from base:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">int</span> <span class="identifier">ID</span><span class="special">&gt;</span> <span class="keyword">struct</span> <span class="identifier">typeof_access</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">id2type</span><span class="special">;</span> <span class="comment">//not defined</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">ID</span><span class="special">&gt;</span> <span class="keyword">struct</span> <span class="identifier">typeof_register</span> <span class="special">:</span> <span class="identifier">typeof_access</span>
+<span class="special">{</span>
+    <span class="comment">// define base's nested class here</span>
+    <span class="keyword">struct</span> <span class="identifier">typeof_access</span><span class="special">::</span><span class="identifier">id2type</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">T</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+<span class="special">};</span>
+
+<span class="comment">//Type registration function </span>
+<span class="identifier">typeof_register</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">compile</span><span class="special">-</span><span class="identifier">time</span><span class="special">-</span><span class="identifier">constant</span><span class="special">&gt;</span> <span class="identifier">register_type</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;);</span>
+
+<span class="comment">//Actually register type by instantiating typeof_register for the correct type</span>
+<span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">register_type</span><span class="special">(</span><span class="identifier">some</span><span class="special">-</span><span class="identifier">type</span><span class="special">));</span>
+
+<span class="comment">//Use the base class to access the type.</span>
+<span class="keyword">typedef</span> <span class="identifier">typeof_access</span><span class="special">::</span><span class="identifier">id2type</span><span class="special">::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+</pre>
+<p>
+        Peder Holt adapted this method to VC7.0, where the nested class is a template
+        class that is specialized in the derived class.
+      </p>
+<p>
+        In VC8.0, it seemed that all the bug-featire had been fixed, but Steven Watanabe
+        managed to implement a more rigorous version of the VC7.0 fix that enables
+        'typeof' to be supported 'natively' here as well.
+      </p>
+<p>
+        For many other compilers neither native <code class="computeroutput"><span class="identifier">typeof</span></code>
+        support nor the trick described above is an option. For such compilers the
+        emulation method is the only way of implementing <code class="computeroutput"><span class="identifier">typeof</span></code>.
+      </p>
+<p>
+        According to a rough estimate, at the time of this writing the introduction
+        of the <code class="computeroutput"><span class="identifier">typeof</span></code>, <code class="computeroutput"><span class="keyword">auto</span></code>, etc., into the C++ standard may not
+        happen soon. Even after it's done, some time still has to pass before most
+        compilers implement this feature. But even after that, there always are legacy
+        compilers to support (for example now, in 2005, many people are still using
+        VC6, long after VC7.x, and even VC8.0 beta became available).
+      </p>
+<p>
+        Considering extreme usefulness of the feature right now, it seems to make
+        sense to implement it at the library level.
+      </p>
+<p>
+        The emulation mode seems to be important even if a better option is present
+        on some particular compiler. If a library author wants to develop portable
+        code using <code class="computeroutput"><span class="identifier">typeof</span></code>, she needs
+        to use emulation mode and register her types and templates. Those users who
+        have a better option can still take advantage of it, since the registration
+        macros are defined as no-op on such compilers, while the users for whom emulation
+        is the only option will use it.
+      </p>
+<p>
+        The other consideration applies to the users of VC7.1. Even though the more
+        convenient <code class="computeroutput"><span class="identifier">typeof</span></code> trick is
+        available, the possibility of upgrade to VC8, where emulation remains the
+        only option, should be considered.
+      </p>
+<p>
+        The emulation mode can be forced on the compilers that don't use it by default
+        by defining the <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_COMPLIANT</span></code>
+        symbol:
+      </p>
+<pre class="programlisting"><span class="identifier">g</span><span class="special">++</span> <span class="special">-</span><span class="identifier">D</span> <span class="identifier">BOOST_TYPEOF_COMPLIANT</span> <span class="special">-</span><span class="identifier">I</span> <span class="special">\</span><span class="identifier">boost</span><span class="special">\</span><span class="identifier">boost_1_32_0</span> <span class="identifier">main</span><span class="special">.</span><span class="identifier">cpp</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.parties"></a>The three participating parties</h3></div></div></div>
+<p>
+        The Lambda example from the Motivation section requires the following registration:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="identifier">BOOST_TYPEOF_INCREMENT_REGISTRATION_GROUP</span><span class="special">()</span>
+
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">tuples</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">,</span> <span class="number">2</span><span class="special">);</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">::</span><span class="identifier">lambda_functor</span><span class="special">,</span> <span class="number">1</span><span class="special">);</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">::</span><span class="identifier">lambda_functor_base</span><span class="special">,</span> <span class="number">2</span><span class="special">);</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">::</span><span class="identifier">relational_action</span><span class="special">,</span> <span class="number">1</span><span class="special">);</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">::</span><span class="identifier">logical_action</span><span class="special">,</span> <span class="number">1</span><span class="special">);</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">::</span><span class="identifier">other_action</span><span class="special">,</span> <span class="number">1</span><span class="special">);</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">::</span><span class="identifier">greater_action</span><span class="special">);</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">::</span><span class="identifier">less_action</span><span class="special">);</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">::</span><span class="identifier">and_action</span><span class="special">);</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">::</span><span class="identifier">placeholder</span><span class="special">,</span> <span class="special">(</span><span class="keyword">int</span><span class="special">));</span>
+</pre>
+<p>
+        It may seem that the price for the ability to discover the expression's type
+        is too high: rather large amount of registration is required. However note
+        that all of the above registration is done only once, and after that, any
+        combination of the registered types and templates would be handled. Moreover,
+        this registration is typically done not by the end-user, but rather by a
+        layer on top of some library (in this example -- Boost.Lambda).
+      </p>
+<p>
+        When thinking about this, it's helpful to consider three parties: the typeof
+        facility, the library (probably built on expression templates principle),
+        and the end-user. The typeof facility is responsible for registering fundamental
+        types. The library can register its own types and templates.
+      </p>
+<p>
+        In the best-case scenario, if the expressions always consist of only fundamental
+        types and library-defined types and templates, a library author can achieve
+        the impression that the <code class="computeroutput"><span class="identifier">typeof</span></code>
+        is natively supported for her library. On the other hand, the more often
+        expressions contain user-defined types, the more responsibility is put on
+        the end-user, and therefore the less attractive this approach becomes.
+      </p>
+<p>
+        Thus, the ratio of user-defined types in the expressions should be the main
+        factor to consider when deciding whether or not to apply the typeof facility.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.features"></a>Supported features</h3></div></div></div>
+<p>
+        The Typeof library pre-registers fundamental types. For these types, and
+        for any other types/templates registered by the user library or end-user,
+        any combination of the following is supported:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Pointers;
+          </li>
+<li class="listitem">
+            References (except top-level);
+          </li>
+<li class="listitem">
+            Consts (except top-level);
+          </li>
+<li class="listitem">
+            Volatiles (except top-level);
+          </li>
+<li class="listitem">
+            Arrays;
+          </li>
+<li class="listitem">
+            Functions, function pointers, and references;
+          </li>
+<li class="listitem">
+            Pointers to member functions;
+          </li>
+<li class="listitem">
+            Pointers to data members.
+          </li>
+</ul></div>
+<p>
+        For example the following type:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span><span class="special">&amp;</span> <span class="special">(*)(</span><span class="keyword">const</span> <span class="keyword">volatile</span> <span class="keyword">char</span><span class="special">*,</span> <span class="keyword">double</span><span class="special">[</span><span class="number">5</span><span class="special">],</span> <span class="keyword">void</span><span class="special">(*)(</span><span class="keyword">short</span><span class="special">))</span>
+</pre>
+<p>
+        is supported right away, and something like:
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="special">(</span><span class="identifier">MyClass</span><span class="special">::*)(</span><span class="keyword">int</span> <span class="identifier">MyClass</span><span class="special">::*,</span> <span class="identifier">MyClass</span><span class="special">[</span><span class="number">10</span><span class="special">])</span> <span class="keyword">const</span>
+</pre>
+<p>
+        is supported provided <code class="computeroutput"><span class="identifier">MyClass</span></code>
+        is registered.
+      </p>
+<p>
+        The Typeof Library also provides registration files for most STL classes/templates.
+        These files are located in the std subdirectory, and named after corresponding
+        STL headers. These files are not included by the typeof system and have to
+        be explicitly included by the user, as needed:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">typeof</span><span class="special">/</span><span class="identifier">std</span><span class="special">/</span><span class="identifier">functional</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="identifier">BOOST_AUTO</span><span class="special">(</span><span class="identifier">fun</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">bind2nd</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(),</span> <span class="number">21</span><span class="special">));</span> <span class="comment">//create named function object for future use.</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.what"></a>What needs to be registered?</h3></div></div></div>
+<p>
+        It is possible to take advantage of the compiler when registering types for
+        the Typeof Library. Even though there is currently no direct support for
+        typeof in the language, the compiler is aware of what the type of an expression
+        is, and gives an error if it encounters an expression that has not been handled
+        correctly. In the <code class="computeroutput"><span class="identifier">typeof</span></code>
+        context, this error message will contain clues to what types needs to be
+        registered with the Typeof Library in order for <code class="computeroutput"><span class="identifier">BOOST_TYPEOF</span></code>
+        to work.
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">X</span> <span class="special">{};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A</span><span class="special">,</span><span class="keyword">bool</span> <span class="identifier">B</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">Y</span> <span class="special">{};</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">,</span><span class="identifier">Y</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">true</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">a</span><span class="special">;</span>
+
+<span class="identifier">BOOST_AUTO</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">);</span>
+</pre>
+<p>
+        We get the following error message from VC7.1
+      </p>
+<pre class="programlisting">error C2504: 'boost::type_of::'anonymous-namespace'::encode_type_impl&lt;V,Type_Not_Registered_With_Typeof_System&gt;' : base
+    class undefined
+        with
+        [
+            V=boost::type_of::'anonymous-namespace'::encode_type_impl&lt;boost::mpl::vector0&lt;boost::mpl::na&gt;,std::pair&lt;X,Y&lt;int,true&gt;&gt;&gt;::V0,
+            Type_Not_Registered_With_Typeof_System=X
+        ]
+</pre>
+<p>
+        Inspecting this error message, we see that the compiler complains about
+        <code class="computeroutput"><span class="identifier">X</span></code>
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">X</span><span class="special">);</span> <span class="comment">//register X with the typeof system</span>
+</pre>
+<p>
+        Recompiling, we get a new error message from VC7.1
+      </p>
+<pre class="programlisting">error C2504: 'boost::type_of::'anonymous-namespace'::encode_type_impl&lt;V,Type_Not_Registered_With_Typeof_System&gt;' : base
+    class undefined
+        with
+        [
+            V=boost::type_of::'anonymous-namespace'::encode_type_impl&lt;boost::mpl::vector0&lt;boost::mpl::na&gt;,std::pair&lt;X,Y&lt;int,true&gt;&gt;&gt;::V1,
+            Type_Not_Registered_With_Typeof_System=Y&lt;int,true&gt;
+        ]
+</pre>
+<p>
+        Inspecting this error message, we see that the compiler complains about
+        <code class="computeroutput"><span class="identifier">Y</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">true</span><span class="special">&gt;</span></code>. Since <code class="computeroutput"><span class="identifier">Y</span></code>
+        is a template, and contains integral constants, we need to take more care
+        when registering:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">Y</span><span class="special">,(</span><span class="keyword">typename</span><span class="special">)(</span><span class="keyword">bool</span><span class="special">));</span> <span class="comment">//register template class Y</span>
+</pre>
+<p>
+        It is a good idea to look up the exact definition of <code class="computeroutput"><span class="identifier">Y</span></code>
+        when it contains integral constants. For simple template classes containing
+        only typenames, you can rely solely on the compiler error.
+      </p>
+<p>
+        The above code now compiles.
+      </p>
+<p>
+        This technique can be used to get an overview of which types needs to be
+        registered for a given project in order to support <code class="computeroutput"><span class="identifier">typeof</span></code>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.limi"></a>Limitations</h3></div></div></div>
+<p>
+        Nested template template parameters are not supported, like:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">Tpl</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">A</span><span class="special">;</span> <span class="comment">// can't register!</span>
+</pre>
+<p>
+        Classes and templates nested inside other templates also can't be registered
+        because of the issue of nondeduced context. This limitation is most noticeable
+        with regards to standard iterators in Dinkumware STL, which are implemented
+        as nested classes. Instead, instantiations can be registered:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span><span class="special">)</span>
+</pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004, 2005 Arkadiy Vertleyb, Peder Holt<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="refe.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../typeof.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="cont.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

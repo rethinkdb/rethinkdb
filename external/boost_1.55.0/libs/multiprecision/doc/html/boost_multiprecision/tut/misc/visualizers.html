@@ -1,0 +1,106 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Visual C++ Debugger Visualizers</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../misc.html" title="Miscellaneous Number Types.">
+<link rel="prev" href="debug_adaptor.html" title="debug_adaptor">
+<link rel="next" href="../conversions.html" title="Constructing and Interconverting Between Number Types">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="debug_adaptor.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../misc.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../conversions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_multiprecision.tut.misc.visualizers"></a><a class="link" href="visualizers.html" title="Visual C++ Debugger Visualizers">Visual C++
+        Debugger Visualizers</a>
+</h4></div></div></div>
+<p>
+          Let's face it debugger multiprecision numbers is hard - simply because
+          we can't easily inspect the value of the numbers. Visual C++ provides a
+          partial solution in the shape of "visualizers" which provide
+          improved views of complex data structures, these visualizers need to be
+          added to the <code class="computeroutput"><span class="special">[</span><span class="identifier">Visualizer</span><span class="special">]</span></code> section of <code class="computeroutput"><span class="identifier">autoexp</span><span class="special">.</span><span class="identifier">dat</span></code>
+          located in the <code class="computeroutput"><span class="identifier">Common7</span><span class="special">\</span><span class="identifier">Packages</span><span class="special">\</span><span class="identifier">Debugger</span></code>
+          directory of your Visual Studio installation. The actual visualizer code
+          is in the sandbox <a href="https://svn.boost.org/svn/boost/sandbox/boost_docs/subprojects/DebuggerVisualizers/multiprecision.vis.txt" target="_top">here</a>
+          - just cut and paste the code into your <code class="computeroutput"><span class="identifier">autoexp</span><span class="special">.</span><span class="identifier">dat</span></code>
+          file.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            These visualizers have only been tested with VC10, also given the ability
+            of buggy visualizers to crash your Visual C++ debugger, make sure you
+            back up <code class="computeroutput"><span class="identifier">autoexp</span><span class="special">.</span><span class="identifier">dat</span></code> file before using these!!
+          </p></td></tr>
+</table></div>
+<p>
+          The first visualizer provides improved views of <code class="computeroutput"><span class="identifier">debug_adaptor</span></code>:
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../../../debugger1.png" alt="debugger1"></span>
+        </p>
+<p>
+          The next visualizer provides improved views of cpp_int: small numbers are
+          displayed as actual values, while larger numbers are displayed as an array
+          of hexadecimal parts, with the most significant part first.
+        </p>
+<p>
+          Here's what it looks like for small values:
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../../../debugger4.png" alt="debugger4"></span>
+        </p>
+<p>
+          And for larger values:
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../../../debugger5.png" alt="debugger5"></span>
+        </p>
+<p>
+          There is also a <code class="computeroutput"><span class="special">~</span><span class="identifier">raw</span></code>
+          child member that lets you see the actual members of the class:
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../../../debugger6.png" alt="debugger6"></span>
+        </p>
+<p>
+          The visualizer for <code class="computeroutput"><span class="identifier">cpp_dec_float</span></code>
+          shows the first few digits of the value in the preview field, and the full
+          array of digits when you expand the view. As before the <code class="computeroutput"><span class="special">~</span><span class="identifier">raw</span></code> child gives you access to the actual
+          data members:
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../../../debugger7.png" alt="debugger7"></span>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="debug_adaptor.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../misc.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../conversions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

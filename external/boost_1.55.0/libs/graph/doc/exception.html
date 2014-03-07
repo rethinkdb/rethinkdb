@@ -1,0 +1,46 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2002
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Exceptions</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<h1><a href="../../../boost/graph/exception.hpp"><tt>boost/graph/exception.hpp</tt></a></h1>
+
+<P>
+The BGL defines several exception classes for reporting errors from
+BGL algorithms. Many of the BGL algorithms place certain requirements
+on the input graph. If these requirements are not met then the
+algorithm can not successfully complete, and instead throws the
+appropriate exception.
+</P>
+
+<h3>Synopsis</h3>
+
+<pre>
+  struct <a name="bad_graph">bad_graph</a> : public invalid_argument {
+    bad_graph(const string& what_arg);
+  };
+  struct <a name="not_a_dag">not_a_dag</a> : public bad_graph {
+    not_a_dag();
+  };
+  struct <a name="negative_edge">negative_edge</a> : public bad_graph {
+    negative_edge();
+  };
+  struct <a name="negative_cycle">negative_cycle</a> : public bad_graph {
+    negative_cycle();
+  };
+  struct <a name="not_connected">not_connected</a> : public bad_graph {
+    not_connected();
+  };
+</pre>

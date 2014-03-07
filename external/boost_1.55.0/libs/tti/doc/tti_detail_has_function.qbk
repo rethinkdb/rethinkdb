@@ -1,0 +1,104 @@
+[/ 
+  (C) Copyright Edward Diener 2012
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:tti_detail_has_function Introspecting an inner function]
+
+The TTI macro [macroref BOOST_TTI_HAS_FUNCTION] introspects
+an inner function of a class. The function can be either a member 
+function or a static member function.
+
+BOOST_TTI_HAS_FUNCTION takes a single
+parameter which is the name of an inner function whose existence
+the programmer wants to check. The macro generates a metafunction
+called 'has_function_'name_of_inner_function'. 
+
+The metafunction can be invoked by passing it the enclosing type to introspect and a 
+signature for the function as separate template arguments. The signature for the 
+function consists of a return type, optional parameter types in the form of a boost::mpl 
+forward sequence of types, and an optional Boost FunctionTypes tag type. A 
+typical boost::mpl forward sequence of types is a boost::mpl::vector<>.
+
+The metafunction returns a single type called 'type', which is a 
+boost::mpl::bool_. As a convenience the metafunction 
+returns the value of this type directly as a compile time bool constant 
+called 'value'. This is true or false depending on whether the inner 
+function, of the specified signature, exists or not.
+
+[heading Generating the metafunction]
+
+You generate the metafunction by invoking the macro with the name 
+of an inner function:
+
+  BOOST_TTI_HAS_FUNCTION(AnInnerFunction)
+  
+generates a metafunction called 'has_function_AnInnerFunction' in the current scope.
+
+[heading Invoking the metafunction]
+
+You invoke the metafunction by instantiating the template with an enclosing 
+type to introspect and the signature of the function as a series of template
+parameters.
+
+A return value called 'value' is a compile time bool constant.
+
+  has_function_AnInnerFunction
+    <
+    Enclosing_Type,
+    Function_ReturnType,
+    boost::mpl::vector<Function_ParameterTypes>, // optional, can be any mpl forward sequence
+    boost::function_types::SomeTagType           // optional, can be any FunctionTypes tag type
+    >::value
+
+[heading Examples]
+
+First we generate metafunctions for various inner function names: 
+
+ #include <boost/tti/has_function.hpp>
+ 
+ BOOST_TTI_HAS_FUNCTION(function1)
+ BOOST_TTI_HAS_FUNCTION(function2)
+ BOOST_TTI_HAS_FUNCTION(function3)
+ 
+Next let us create some user-defined types we want to introspect. 
+
+ struct AClass { };
+ struct Top
+   {
+   static int function1();
+   AClass function2(double,short *);
+   };
+ struct Top2
+   {
+   long function2(Top &,int,bool,short,float);
+   static Top * function3(long,int,AClass &);
+   };
+   
+Finally we invoke our metafunction and return our value.
+This all happens at compile time, and can be used by 
+programmers doing compile time template metaprogramming.
+  
+ has_function_function1<Top,int>::value; // true
+ has_function_function1<Top2,int>::value; // false
+ 
+ has_function_function2<Top,AClass,boost::mpl::vector<double,short *> >::value; // true
+ has_function_function2<Top2,AClass,boost::mpl::vector<double,short *> >::value; // false
+ 
+ has_function_function3<Top2,int>::value; // false
+ has_function_function3<Top2,Top *,boost::mpl::vector<long,int,AClass &> >::value; // true;
+   
+[heading Metafunction re-use]
+
+The macro encodes only the name of the function 
+for which we are searching and the fact that we are 
+introspecting for a function within an enclosing type.
+
+Because of this, once we create our metafunction for 
+introspecting a function by name, we can reuse the 
+metafunction for introspecting any enclosing type, having any 
+function, for that name.
+
+[endsect]

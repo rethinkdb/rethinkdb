@@ -1,0 +1,117 @@
+<html>
+<head>
+<title>The Lazy Parsers</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>The 
+      Lazy Parser</b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="dynamic_parsers.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="select_parser.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>Closures are cool. It allows us to inject stack based local variables anywhere 
+  in our parse descent hierarchy. Typically, we store temporary variables, generated 
+  by our semantic actions, in our closure variables, as a means to pass information 
+  up and down the recursive descent.</p>
+<p>Now imagine this... Having in mind that closure variables can be just about 
+  any type, we can store a parser, a rule, or a pointer to a parser or rule, in 
+  a closure variable. <em>Yeah, right, so what?...</em> Ok, hold on... What if 
+  we can use this closure variable to initiate a parse? Think about it for a second. 
+  Suddenly we'll have some powerful dynamic parsers! Suddenly we'll have a full 
+  round trip from to <a href="../phoenix/index.html">Phoenix</a> and Spirit and 
+  back! <a href="../phoenix/index.html">Phoenix</a> semantic actions choose the 
+  right Spirit parser and Spirit parsers choose the right <a href="../phoenix/index.html">Phoenix</a> 
+  semantic action. Oh MAN, what a honky cool idea, I might say!!</p>
+<h2>lazy_p</h2>
+<p>This is the idea behind the <tt>lazy_p</tt> parser. The <tt>lazy_p</tt> syntax 
+  is:</p>
+<pre>    lazy_p<span class="special">(</span>actor<span class="special">)</span></pre>
+<p>where actor is a <a href="../phoenix/index.html">Phoenix</a> expression  that 
+  returns a Spirit parser. This returned parser is used in the parsing process. 
+</p>
+<p>Example: </p>
+<pre>    lazy_p<span class="special">(</span>phoenix<span class="special">::</span>val<span class="special">(</span>int_p<span class="special">))[</span>assign_a<span class="special">(</span>result<span class="special">)]</span>
+</pre>
+<p>Semantic actions attached to the <tt>lazy_p</tt> parser expects the same signature 
+  as that of the returned parser (<tt>int_p</tt>, in our example above).</p>
+<h2>lazy_p example</h2>
+<p>To give you a better glimpse (see the <tt><a href="../example/intermediate/lazy_parser.cpp">lazy_parser.cpp</a></tt>), 
+  say you want to parse inputs such as:</p>
+<pre>    <span class=identifier>dec 
+    </span><span class="special">{</span><span class=identifier><br>        1 2 3<br>        bin 
+        </span><span class="special">{</span><span class=identifier><br>            1 10 11<br>        </span><span class="special">}</span><span class=identifier><br>        4 5 6<br>    </span><span class="special">}</span></pre>
+<p>where <tt>bin {...}</tt> and <tt>dec {...}</tt> specifies the numeric format 
+  (binary or decimal) that we are expecting to read. If we analyze the input, 
+  we want a grammar like:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>base </span><span class="special">=</span><span class=identifier> </span><span class="string">&quot;bin&quot;</span><span class=identifier> </span><span class="special">|</span><span class=identifier> </span><span class="string">&quot;dec&quot;</span><span class="special">;</span><span class=identifier>
+    block </span><span class=special>= </span><span class="identifier">base</span><span class=special> &gt;&gt; </span><span class="literal">'{'</span><span class=special> &gt;&gt; *</span><span class="identifier">block_line</span><span class=special> &gt;&gt; </span><span class="literal">'}'</span><span class=special>;
+    </span>block_line <span class=special>= </span><span class="identifier">number</span><span class=special> | </span><span class=identifier>block</span><span class=special>;</span></font></code></pre>
+<p>We intentionally left out the <code><font color="#000000"><span class="identifier"><tt>number</tt></span></font></code> 
+  rule. The tricky part is that the way <tt>number</tt> rule behaves depends on 
+  the result of the <tt>base</tt> rule. If <tt>base</tt> got a <em>&quot;bin&quot;</em>, 
+  then number should parse binary numbers. If <tt>base</tt> got a <em>&quot;dec&quot;</em>, 
+  then number should parse decimal numbers. Typically we'll have to rewrite our 
+  grammar to accomodate the different parsing behavior:</p>
+<pre><code><font color="#000000"><span class=identifier>    block </span><span class=special>= 
+            </span><span class=identifier>&quot;bin&quot;</span> <span class=special>&gt;&gt; </span><span class="literal">'{'</span><span class=special> &gt;&gt; *</span>bin_line<span class=special> &gt;&gt; </span><span class="literal">'}'</span><span class=special>
+        |   </span><span class=identifier>&quot;dec&quot;</span> <span class=special>&gt;&gt; </span><span class="literal">'{'</span><span class=special> &gt;&gt; *</span>dec_line<span class=special> &gt;&gt; </span><span class="literal">'}'</span><span class=special>
+        ;
+    </span>bin_line <span class=special>= </span><span class="identifier">bin_p</span><span class=special> | </span><span class=identifier>block</span><span class=special>;
+    </span>dec_line <span class=special>= </span><span class="identifier">int_p</span><span class=special> | </span><span class=identifier>block</span><span class=special>;</span></font></code></pre>
+<p>while this is fine, the redundancy makes us want to find a better solution; 
+  after all, we'd want to make full use of Spirit's dynamic parsing capabilities. 
+  Apart from that, there will be cases where the set of parsing behaviors for 
+  our <tt>number</tt> rule is not known when the grammar is written. We'll only 
+  be given a map of string descriptors and corresponding rules [e.g. ((&quot;dec&quot;, 
+  int_p), (&quot;bin&quot;, bin_p) ... etc...)].</p>
+<p>The basic idea is to have a rule for binary and decimal numbers. That's easy 
+  enough to do (see <a href="numerics.html">numerics</a>). When <tt>base</tt> 
+  is being parsed, in your semantic action, store a pointer to the selected base 
+  in a closure variable (e.g. <tt>block.int_rule</tt>). Here's an example:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>base 
+        </span><span class="special">=</span><span class=identifier> str_p</span><span class="special">(</span><span class="string">&quot;bin&quot;</span><span class="special">)[</span><span class=identifier>block.int_rule</span> = <span class="special">&amp;</span>var<span class="special">(</span><span class="identifier">bin_rule</span><span class="special">)] 
+        | </span><span class=identifier>str_p</span><span class="special">(</span><span class="string">&quot;dec&quot;</span><span class="special">)[</span><span class=identifier>block.int_rule</span> = <span class="special">&amp;</span>var<span class="special">(</span><span class="identifier">dec_rule</span><span class="special">)]
+        ;</span></font></code></pre>
+<p>With this setup, your number rule will now look something like:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>number </span><span class="special">=</span><span class=identifier> lazy_p</span><span class="special">(*</span><span class=identifier>block.int_rule</span><span class="special">);</span></font></code></pre>
+<p>The <tt><a href="../example/intermediate/lazy_parser.cpp">lazy_parser.cpp</a></tt> 
+  does it a bit differently, ingeniously using the <a href="symbols.html">symbol 
+  table</a> to dispatch the correct rule, but in essence, both strategies are 
+  similar. This technique, using the symbol table, is detailed in the Techiques section: <a href="techniques.html#nabialek_trick">nabialek_trick</a>. Admitedly, when you add up all the rules, the resulting grammar is 
+  more complex than the hard-coded grammar above. Yet, for more complex grammar 
+  patterns with a lot more rules to choose from, the additional setup is well 
+  worth it.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="dynamic_parsers.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="select_parser.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003 Joel de Guzman<br>
+  Copyright &copy; 2003 Vaclav Vesely<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

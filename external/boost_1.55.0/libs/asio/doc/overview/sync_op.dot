@@ -1,0 +1,67 @@
+digraph g
+{
+  graph
+    [
+      nodesep="0.6"
+    ];
+
+  edge
+    [
+      fontname="Helvetica",
+      fontsize=10,
+      labelfontname="Helvetica",
+      labelfontsize=10
+    ];
+
+  node
+    [
+      fontname="Helvetica",
+      fontsize=10,
+      shape=box
+    ];
+
+  edge
+    [
+      arrowhead="open"
+    ]
+
+  // Program elements.
+  {
+    operating_system [ label="Operating System", shape=ellipse ];
+    io_service [ label="io_service" ];
+    io_object [ label="I/O Object\ne.g. socket" ];
+    your_program [ label="Your Program" ];
+  }
+
+  // Owning relationships.
+  {
+    edge [ arrowtail="diamond" ];
+    your_program:w -> io_object:nw;
+    your_program:se -> io_service:ne;
+  }
+
+  // Non-owning relationships;
+  {
+    io_object:sw -> io_service:w;
+  }
+
+  // Actions.
+  {
+    edge [ style="dashed", color="#808080" ];
+
+    // Forward actions.
+    {
+      your_program:sw -> io_object:n [ label="1" ];
+      io_object:s -> io_service:nw [ label="2" ];
+      io_service:sw -> operating_system:nw [ label="3" ];
+    }
+
+    // Reverse actions.
+    {
+      edge [ arrowhead="none", arrowtail="open" ];
+      io_service:se -> operating_system:ne [ label="4" ];
+      io_object:se -> io_service:n [ label="5" ];
+      your_program:s -> io_object:ne [ label="6" ];
+    }
+  }
+}

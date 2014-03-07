@@ -1,0 +1,238 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+
+\page rationale Design Rationale 
+
+- \ref rationale_why
+- \ref why_icu
+- \ref why_icu_wrapper 
+- \ref why_icu_api_is_hidden
+- \ref why_gnu_gettext 
+- \ref why_posix_names
+- \ref why_linear_chunks
+- \ref why_abstract_api
+- \ref why_no_special_character_type
+
+\section rationale_why Why is it needed?
+
+Why do we need a localization library, when standard C++ facets (should) provide most of the required functionality:
+
+- Case conversion is done using the \c std::ctype facet
+- Collation is supported by \c std::collate and has nice integration with \c std::locale
+- There are \c std::num_put , \c std::num_get , \c std::money_put , \c std::money_get , \c std::time_put and \c std::time_get for numbers,
+    time, and currency formatting and parsing.
+- There is a \c std::messages class that supports localized message formatting.
+
+So why do we need such library if we have all the functionality within the standard library?
+
+Almost every(!) facet has design flaws:
+
+-  \c std::collate supports only one level of collation, not allowing you to choose whether case- or accent-sensitive comparisons
+    should be performed.
+
+-  \c std::ctype, which is responsible for case conversion, assumes that all conversions can be done on a per-character basis. This is
+    probably correct for many languages but it isn't correct in general.
+    \n
+    -# Case conversion may change a string's length. For example, the German word "grüßen" should be converted to "GRÜSSEN" in upper
+    case: the letter "ß" should be converted to "SS", but the \c toupper function works on a single-character basis.
+    -# Case conversion is context-sensitive. For example, the Greek word "ὈΔΥΣΣΕΎΣ" should be converted to "ὀδυσσεύς", where the Greek letter
+    "Σ" is converted to "σ" or to "ς", depending on its position in the word.
+    -# Case conversion cannot assume that a character is a single code point, which is incorrect for both the UTF-8 and UTF-16 encodings,
+       where individual code-points are represented by up to 4 \c char 's or two \c wchar_t 's on the Windows platform. This makes
+       \c std::ctype totally useless with these encodings.
+-   \c std::numpunct and \c std::moneypunct do not specify the code points for digit representation at all,
+    so they cannot format numbers with the digits used under Arabic locales. For example,
+    the number "103" is expected to be displayed as "١٠٣" in the \c ar_EG locale.
+    \n
+    \c std::numpunct and \c std::moneypunct assume that the thousands separator is a single character. This is untrue
+    for the UTF-8 encoding where only Unicode 0-0x7F range can be represented as a single character. As a result, localized numbers can't be
+    represented correctly under locales that use the Unicode "EN SPACE" character for the thousands separator, such as Russian.
+    \n
+    This actually causes real problems under GCC and SunStudio compilers, where formatting numbers under a Russian locale creates invalid 
+    UTF-8 sequences.
+-   \c std::time_put and \c std::time_get have several flaws:
+    -# They assume that the calendar is always Gregorian, by using \c std::tm for time representation, ignoring the fact that in many
+       countries dates may be displayed using different calendars.
+    -# They always use a global time zone, not allowing specification of the time zone for formatting. The standard \c std::tm doesn't
+       even include a timezone field at all.
+    -# \c std::time_get is not symmetric with \c std::time_put, so you cannot parse dates and times created with \c std::time_put .
+       (This issue is addressed in C++0x and some STL implementation like the Apache standard C++ library.)
+-   \c std::messages does not provide support for plural forms, making it impossible to correctly localize such simple strings as
+       "There are X files in the directory".
+
+Also, many features are not really supported by \c std::locale at all: timezones (as mentioned above), text boundary analysis, number
+spelling, and many others. So it is clear that the standard C++ locales are problematic for real-world applications.
+
+\section why_icu Why use an ICU wrapper instead of ICU?
+
+ICU is a very good localization library, but it has several serious flaws:
+
+- It is absolutely unfriendly to C++ developers. It ignores popular C++ idioms (the STL, RTTI, exceptions, etc), instead
+mostly mimicking the Java API.
+- It provides support for only one kind of string, UTF-16, when some users may want other Unicode encodings.
+For example, for XML or HTML processing UTF-8 is much more convenient and UTF-32 easier to use. Also there is no support for
+"narrow" encodings that are still very popular, such as the ISO-8859 encodings.
+
+For example: Boost.Locale provides direct integration with \c iostream allowing a more natural way of data formatting. For example:
+
+\code
+    cout << "You have "<<as::currency << 134.45 << " in your account as of "<<as::datetime << std::time(0) << endl;
+\endcode
+
+\section why_icu_wrapper Why an ICU wrapper and not an implementation-from-scratch?
+
+ICU is one of the best localization/Unicode libraries available. It consists of about half a million lines of well-tested,
+production-proven source code that today provides state-of-the art localization tools.
+
+Reimplementing of even a small part of ICU's abilities is an infeasible project which would require many man-years. So the
+question is not whether we need to reimplement the Unicode and localization algorithms from scratch, but "Do we need a good
+localization library in Boost?"
+
+Thus Boost.Locale wraps ICU with a modern C++ interface, allowing future reimplementation of parts with better alternatives,
+but bringing localization support to Boost today and not in the not-so-near-if-at-all future.
+
+
+\section why_icu_api_is_hidden Why is the ICU API not exposed to the user?
+
+Yes, the entire ICU API is hidden behind opaque pointers and users have no access to it. This is done for several reasons:
+
+- At some point, better localization tools may be accepted by future upcoming C++ standards, so they may not use ICU directly.
+- At some point, it should be possible to switch the underlying localization engine to something else, maybe the native operating
+system API or some other toolkit such as GLib or Qt that provides similar functionality.
+- Not all localization is done within ICU. For example, message formatting uses GNU Gettext message catalogs. In the future more
+functionality may be reimplemented directly in the Boost.Locale library.
+- Boost.Locale was designed with ABI stability in mind, as this library is being developed not only for Boost but also
+for the needs of the <a href="http://cppcms.sourceforge.net/">CppCMS C++ Web framework</a>.
+
+
+\section why_gnu_gettext Why use GNU Gettext catalogs for message formatting?
+
+There are many available localization formats. The most popular so far are OASIS XLIFF, GNU gettext po/mo files, POSIX catalogs, Qt ts/tm files, Java properties, and Windows resources. However, the last three are useful only in their specific areas, and POSIX catalogs are too simple and limited, so there are only two reasonable options:
+
+-# Standard localization format OASIS XLIFF.
+-# GNU Gettext binary catalogs.
+
+The first one generally seems like a more correct localization solution, but it requires XML parsing for loading documents,
+it is very complicated format, and even ICU requires preliminary compilation of it into ICU resource bundles.
+
+On the other hand:
+
+- GNU Gettext binary catalogs have a very simple, robust and yet very useful file format.
+- It is at present the most popular and de-facto standard localization format (at least in the Open Source world).
+- It has very simple and powerful support for plural forms.
+- It uses the original English text as the key, making the process of internationalization much easier because at least
+one basic translation is always available.
+- There are many tools for editing and managing gettext catalogs, such as Poedit, kbabel etc.
+
+So, even though the GNU Gettext mo catalog format is not an officially approved file format:
+
+- It is a de-facto standard and the most popular one.
+- Its implementation is much easier and does not require XML parsing and validation.
+
+
+\note Boost.Locale does not use any of the GNU Gettext code, it just reimplements the tool for reading and using mo-files,
+eliminating the biggest GNU Gettext flaw at present -- thread safety when using multiple locales.
+
+\section why_plain_number Why is a plain number used for the representation of a date-time, instead of a Boost.DateTime date or Boost.DateTime ptime?
+
+There are several reasons:
+
+-#  A Gregorian Date by definition can't be used to represent locale-independent dates, because not all
+    calendars are Gregorian.
+-#  \c ptime -- definitely could be used, but it has several problems:
+    \n   
+    -   It is created in GMT or Local time clock, when `time()` gives a representation that is independent of time zones
+        (usually GMT time), and only later should it be represented in a time zone that the user requests.
+        \n
+        The timezone is not a property of time itself, but it is rather a property of time formatting.
+        \n
+    -   \c ptime already defines \c operator<< and \c operator>> for time formatting and parsing.
+    -   The existing facets for \c ptime formatting and parsing were not designed in a way that the user can override.
+        The major formatting and parsing functions are not virtual. This makes it impossible to reimplement the formatting and
+        parsing functions of \c ptime unless the developers of the Boost.DateTime library decide to change them.
+        \n
+        Also, the facets of \c ptime are not "correctly" designed in terms of division of formatting information and 
+        locale information. Formatting information should be stored within \c std::ios_base and information about
+        locale-specific formatting should be stored in the facet itself.
+        \n
+        The user of the library should not have to create new facets to change simple formatting information like "display only
+        the date" or "display both date and time."
+
+Thus, at this point, \c ptime is not supported for formatting localized dates and times.
+
+\section why_posix_names Why are POSIX locale names used and not something like the BCP-47 IETF language tag?
+
+There are several reasons:
+
+- POSIX locale names have a very important feature: character encoding. When you specify for example fr-FR, you
+do not actually know how the text should be encoded -- UTF-8, ISO-8859-1, ISO-8859-15 or maybe Windows-1252.
+This may vary between different operating systems and depends on the current installation. So it is critical
+to provide all the required information.
+- ICU fully understands POSIX locales and knows how to treat them correctly.
+- They are native locale names for most operating system APIs (with the exception of Windows)
+
+\section why_linear_chunks Why most parts of Boost.Locale work only on linear/contiguous chunks of text
+
+There are two reasons:
+
+- Boost.Locale relies heavily on the third-party APIs like ICU, POSIX or Win32 API, all of them
+  work only on linear chunks of text, so providing non-linear API would just hide the
+  real situation and would not bring real performance advantage.
+- In fact, all known libraries that work with Unicode: ICU, Qt, Glib, Win32 API, POSIX API 
+  and others accept an input as single linear chunk of text and there is a good reason for this:
+  \n
+  -#  Most of supported operations on text like collation, case handling usually work on small
+      chunks of text. For example: you probably would never want to compare two chapters of a book, but rather
+      their titles.
+  -#  We should remember that even very large texts require quite a small amount of memory, for example
+      the entire book "War and Peace" takes only about 3MB of memory.
+   \n
+
+However:
+
+-  There are API's that support stream processing. For example: character set conversion using
+\c std::codecvt API works on streams of any size without problems.
+-  When new API is introduced into Boost.Locale in future, such that it likely works
+   on large chunks of text, will provide an interface for non-linear text handling.
+
+
+\section why_abstract_api Why all Boost.Locale implementation is hidden behind abstract interfaces and does not use template metaprogramming?
+
+There are several major reasons:
+
+- This is how the C++'s \c std::locale class is build. Each feature is represented using a subclass of
+  \c std::locale::facet that provides an abstract API for specific operations it works on, see \ref std_locales.
+- This approach allows to switch underlying API without changing the actual application code even in run-time depending
+  on performance and localization requirements.
+- This approach reduces compilation times significantly. This is very important for library that may be
+  used in almost every part of specific program.
+
+\section why_no_special_character_type Why Boost.Locale does not provide char16_t/char32_t for non-C++0x platforms.
+
+There are several reasons:
+
+- C++0x defines \c char16_t and \c char32_t as distinct types, so substituting is with something like \c uint16_t or \c uint32_t
+  would not work as for example writing \c uint16_t to \c uint32_t stream would write a number to stream.
+- The C++ locales system would work only if standard facets like \c std::num_put are installed into the 
+  existing instance of \c std::locale, however in the many standard C++ libraries these facets are specialized for each
+  specific character that the standard library supports, so an attempt to create a new facet would
+  fail as it is not specialized.
+  
+These are exactly the reasons why Boost.Locale fails with current limited C++0x characters support on GCC-4.5 (the second reason)
+and MSVC-2010 (the first reason)
+
+So basically it is impossible to use non-C++ characters with the C++'s locales framework.
+
+The best and the most portable solution is to use the C++'s \c char type and UTF-8 encodings.
+
+*/
+
+

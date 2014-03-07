@@ -1,0 +1,9 @@
+[article Template should contain balanced sections
+    [quickbook 1.5]
+]
+
+[template end_no_begin[]
+[endsect]
+]
+
+[end_no_begin]

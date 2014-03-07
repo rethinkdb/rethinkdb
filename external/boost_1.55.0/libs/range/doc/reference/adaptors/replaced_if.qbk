@@ -1,0 +1,33 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:replaced_if replaced_if]
+
+[table
+    [[Syntax] [Code]]
+    [[Pipe] [`rng | boost::adaptors::replaced_if(pred, new_value)`]]
+    [[Function] [`boost::adaptors::replace_if(rng, pred, new_value)`]]
+]
+
+* [*Precondition:]
+    * The range `value_type` is convertible to the argument type of `pred`.
+    * `new_value` is convertible to the `value_type` of the range.
+* [*Postconditions:] For all elements `x` in the returned range, the value `x` is equal to the value of `pred(y) ? new_value : y` where `y` is the corresponding element in the original range.
+* [*Range Category:] __forward_range__
+* [*Range Return Type:] `boost::replaced_if_range<typeof(rng)>`
+* [*Returned Range Category:] The range category of `rng`.
+
+[section:replaced_if_example replaced_if example]
+[import ../../../test/adaptor_test/replaced_if_example.cpp]
+[replaced_if_example]
+[endsect]
+
+This would produce the output:
+``
+1,10,3,10,5,10,7,10,9,
+``
+[endsect]
+
+

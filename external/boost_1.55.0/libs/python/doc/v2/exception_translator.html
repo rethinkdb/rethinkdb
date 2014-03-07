@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python -
+    &lt;boost/python/exception_translator.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header
+          &lt;boost/python/exception_translator.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href=
+          "#register_exception_translator-spec">register_exception_translator</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example(s)</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p>As described <a href="errors.html#handle_exception-spec">here</a>, it
+    is important to make sure that exceptions thrown by C++ code do not pass
+    into the Python interpreter core. By default, Boost.Python translates all
+    C++ exceptions thrown by wrapped functions and module init functions into
+    Python, but the default translators are extremely limited: most C++
+    exceptions will appear in Python as a <a href=
+    "http://www.python.org/doc/current/lib/module-exceptions.html">RuntimeError</a>
+    exception whose representation is
+    <code>'Unidentifiable&nbsp;C++&nbsp;Exception'</code>. To produce better
+    error messages, users can register additional exception translators as
+    described below.</p>
+
+    <h2><a name="functions"></a>Functions</h2>
+
+<h3><code><a name="register_exception_translator-spec">register_exception_translator</a></code></h3>
+
+<pre>
+<a name="register_exception_translator-spec">template&lt;class ExceptionType, class Translate&gt;</a>
+void register_exception_translator(Translate translate);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b></dt>
+
+      <dd>
+        <code>Translate</code> is <a href=
+        "../../../utility/CopyConstructible.html">Copyconstructible</a>, and
+        the following code must be well-formed: 
+<pre>
+void f(ExceptionType x) { translate(x); }
+</pre>
+        The expression <code>translate(x)</code> must either throw a C++
+        exception, or a subsequent call to <code><a href=
+        "http://www.python.org/doc/current/api/exceptionHandling.html">PyErr_Occurred</a>()</code>
+        must return 1.
+      </dd>
+
+      <p>
+
+      <dt><b>Effects:</b> Adds a copy of <code>translate</code> to the sequence of
+      exception translators tried when Boost.Python catches an exception that
+      is about to pass into Python's core interpreter. The new translator
+      will get "first shot" at translating all exceptions matching the catch
+      clause shown above. Any subsequently-registered translators will be
+      allowed to translate the exception earlier. A translator which cannot
+      translate a given C++ exception can re-throw it, and it will be handled
+      by a translator which was registered earlier (or by the default
+      translator).</dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+<pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/def.hpp&gt;
+#include &lt;boost/python/exception_translator.hpp&gt;
+#include &lt;exception&gt;
+
+struct my_exception : std::exception
+{
+  char const* what() throw() { return "One of my exceptions"; }
+};
+
+void translate(my_exception const&amp; e)
+{
+    // Use the Python 'C' API to set up an exception object
+    PyErr_SetString(PyExc_RuntimeError, e.what());
+}
+
+void something_which_throws()
+{
+    ...
+    throw my_exception();
+    ...
+}
+
+BOOST_PYTHON_MODULE(exception_translator_ext)
+{
+  using namespace boost::python;
+  register_exception_translator&lt;my_exception&gt;(&amp;translate);
+  
+  def("something_which_throws", something_which_throws);
+}
+</pre>
+    <br>
+     <br>
+     
+    <hr>
+
+    <p>Revised 03 October, 2002</p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

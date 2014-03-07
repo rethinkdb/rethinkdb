@@ -1,0 +1,49 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:acknowledgements Acknowledgements]
+
+The author can be contacted at john - at - johnmaddock.co.uk; the home page for this 
+library is at [@http://www.boost.org www.boost.org].
+
+I am indebted to [@http://www.cs.princeton.edu/~rs/ 
+Robert Sedgewick's "Algorithms in C++"] for forcing me to think 
+about algorithms and their performance, and to the folks at boost for forcing me 
+to think, period.
+
+[@http://www.boost-consulting.com/ Eric Niebler], author of Boost.Expressive and 
+the [@http://research.microsoft.com/projects/greta GRETA regular expression component], 
+has shared several important ideas, in a series of long discussions.
+
+Pete Becker, of [@http://www.versatilecoding.com Roundhouse Consulting, Ltd.], 
+has helped enormously with the standardisation 
+proposal language.
+
+The following people have all contributed useful comments or fixes: Dave Abrahams, 
+Mike Allison, Edan Ayal, Jayashree Balasubramanian, Jan B'''&#xF6;'''lsche, Beman Dawes, 
+Paul Baxter, David Bergman, David Dennerline, Edward Diener, Peter Dimov, 
+Robert Dunn, Fabio Forno, Tobias Gabrielsson, Rob Gillen, Marc Gregoire, Chris Hecker, 
+Nick Hodapp, Jesse Jones, Martin Jost, Boris Krasnovskiy, Jan Hermelink, Max Leung, 
+Wei-hao Lin, Jens Maurer, Richard Peters, Heiko Schmidt, Jason Shirk, Gerald Slacik, 
+Scobie Smith, Mike Smyth, Alexander Sokolovsky, Herv'''&#xE9;''' Poirier, Michael Raykh, 
+Marc Recht, Scott VanCamp, Bruno Voigt, Alexey Voinov, Jerry Waldorf, Rob Ward, 
+Lealon Watts, John Wismar, Thomas Witt and Yuval Yosef. 
+
+If I've missed your name off (I'm sure there are a few, just not who they are...) then 
+please do get in touch.
+
+I am also grateful to the manuals supplied with the Henry Spencer, PCRE, Perl 
+and GNU regular expression libraries - wherever possible I have tried to 
+maintain compatibility with these libraries and with the POSIX standard - 
+the code however is entirely my own, including any bugs! I can absolutely guarantee 
+that I will not fix any bugs I don't know about, so if you have any comments or 
+spot any bugs, please get in touch.
+
+[endsect]
+
+

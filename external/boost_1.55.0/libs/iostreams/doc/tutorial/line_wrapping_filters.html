@@ -1,0 +1,264 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Tutorial</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Tutorial</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='shell_comments_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='tab_expanding_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+
+<A NAME="line_wrapping"></A>
+<H2>2.2.4. Line-Wrapping Filters</H2>
+
+<P>
+    Suppose you want to write a filter which wraps lines of text to ensure that no line exceeds a certain maximum length. For simplicity, let's not bother to wrap lines at word boundaries or to insert hyphens. The basic algorithm is as follows: You examine characters one at a time, fowarding them <I>as-is</I>, keeping track of the current column number. When you encounter a newline character, you forward it and reset the column count. When the column count reaches the maxim value, you insert a newline character before the current character and reset the column count.
+</P>
+
+<P>
+    In the next three sections, I'll express this algorithm as a <A HREF="../classes/stdio_filter.html"><CODE>stdio_filter</CODE></A>, an <A HREF="../concepts/input_filter.html">InputFilter</A> and an <A HREF="../concepts/output_filter.html">OutputFilter</A>. The source code can be found in the header <A HREF="../../example/line_wrapping_filter.hpp"><CODE>&lt;libs/iostreams/example/line_wrapping_filter.hpp&gt;</CODE></A>. These examples were inspired by James Kanze's <CODE>LineWrappingInserter.hh</CODE> (<I>see</I> <A CLASS="bib_ref" HREF="../bibliography.html#kanze">[Kanze]</A>).
+</P>
+
+<A NAME="line_wrapping_stdio_filter"></A>
+<H4><CODE>line_wrapping_stdio_filter</CODE></H4>
+
+<P>You can express a line-wrapping Filter as a <A HREF="../classes/stdio_filter.html"><CODE>stdio_filter</CODE></A> as follows:</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS="literal">&lt;cstdio&gt;</SPAN>    <SPAN CLASS="comment">// EOF</SPAN>
+<SPAN CLASS="preprocessor">#include</SPAN> <SPAN CLASS="literal">&lt;iostream&gt;</SPAN>  <SPAN CLASS="comment">// cin, cout</SPAN>
+<SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/filter/stdio.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/filter/stdio.hpp&gt;</SPAN></A>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> line_wrapping_stdio_filter : <SPAN CLASS="keyword"><SPAN CLASS="keyword"><SPAN CLASS="keyword">public</SPAN></SPAN></SPAN> stdio_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    explicit line_wrapping_stdio_filter(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> line_length = <SPAN CLASS='numeric_literal'>80</SPAN>)
+        : line_length_(line_length), col_no_(<SPAN CLASS='numeric_literal'>0</SPAN>) 
+        { }
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword">void</SPAN> do_filter();
+    <SPAN CLASS="keyword">void</SPAN> do_close();
+    <SPAN CLASS="keyword">void</SPAN> put_char(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c);
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  line_length_;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  col_no_;
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>Let's look first at the definition of the helper function <CODE>put_char</CODE>:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">void</SPAN> put_char(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c)
+    {
+        std::cout.put(c);
+        <SPAN CLASS="keyword">if</SPAN> (c != <SPAN CLASS="literal">'\n'</SPAN>)
+            ++col_no_;
+        <SPAN CLASS="keyword">else</SPAN>
+            col_no_ = <SPAN CLASS='numeric_literal'>0</SPAN>;
+    }</PRE>
+
+
+<P>This function writes the given character to <CODE>std::cout</CODE> and increments the column number, unless the character is a newline, in which case the column number is reset. Using <CODE>put_char</CODE>, you can implement the <CODE>virtual</CODE> function <CODE>do_filter</CODE> as follows:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">void</SPAN> do_filter() 
+    {
+        <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c;
+        <SPAN CLASS="keyword">while</SPAN> ((c = std::cin.get()) != <SPAN CLASS='numeric_literal'>EOF</SPAN>) {
+            <SPAN CLASS="keyword">if</SPAN> (c != <SPAN CLASS="literal">'\n'</SPAN> &amp;&amp; col_no_ &gt;= line_length_)
+                put_char(<SPAN CLASS="literal">'\n'</SPAN>);
+            put_char(c);
+        }
+    }</PRE>
+
+<P>The <CODE>while</CODE> loop simply reads a character from <CODE>std::cin</CODE> and writes it to <CODE>std::cout</CODE>, inserting an extra newline character as needed to prevent the column count from exceeding <CODE>line_length_</CODE>.
+
+<P>Finally, the member function <CODE>do_close</CODE> overrides a <CODE>private</CODE> <CODE>virtual</CODE> function declared in <CODE>stdio_filter</CODE>.</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">void</SPAN> do_close() { col_no_ = <SPAN CLASS='numeric_literal'>0</SPAN>; }</PRE>
+
+<P>Its purpose is to reset the state of the Filter when a stream is closed.</P>
+
+<A NAME="line_wrapping_input_filter"></A>
+<H4><CODE>line_wrapping_input_filter</CODE></H4>
+
+<P>You can express a line-wrapping Filter as an <A HREF="../concepts/input_filter.html">InputFilter</A> as follows:</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/char_traits.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/char_traits.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// EOF, WOULD_BLOCK</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>    <SPAN CLASS="comment">// input_filter</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A>  <SPAN CLASS="comment">// get</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> line_wrapping_input_filter : <SPAN CLASS="keyword"><SPAN CLASS="keyword"><SPAN CLASS="keyword">public</SPAN></SPAN></SPAN> input_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    explicit line_wrapping_input_filter(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> line_length = 80)
+        : line_length_(line_length), col_no_(0), has_next_(<SPAN CLASS="keyword">false</SPAN>)
+        { }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> get(Source&amp; src);
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Sink&amp;);
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> get_char(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c);
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  line_length_;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  col_no_;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  next_;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  has_next_;
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>Let's look first at the helper function <CODE>get_char</CODE>:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> get_char(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c)
+    {
+        <SPAN CLASS="keyword">if</SPAN> (c != <SPAN CLASS="literal">'\n'</SPAN>)
+            ++col_no_;
+        <SPAN CLASS="keyword">else</SPAN>
+            col_no_ = 0;
+        <SPAN CLASS="keyword">return</SPAN> c;
+    }</PRE>
+
+<P>This function updates the column count based on the given character <CODE>c</CODE>, then returns <CODE>c</CODE>. Using <CODE>get_char</CODE>, you can implement <CODE>get</CODE> as follows:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> get(Source&amp; src)
+    {
+        <SPAN CLASS="keyword">if</SPAN> (has_next_) {
+            has_next_ = <SPAN CLASS="keyword">false</SPAN>;
+            <SPAN CLASS="keyword">return</SPAN> get_char(next_);
+        }
+
+        <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c;
+        <SPAN CLASS="keyword">if</SPAN> ((c = iostreams::get(src)) == <SPAN CLASS="numeric_literal">EOF</SPAN> || c == WOULD_BLOCK)
+            <SPAN CLASS="keyword">return</SPAN> c;
+
+        <SPAN CLASS="keyword">if</SPAN> (c != <SPAN CLASS="literal">'\n'</SPAN> &amp;&amp; col_no_ &gt;= line_length_) {
+            next_ = c;
+            has_next_ = <SPAN CLASS="keyword">true</SPAN>;
+            <SPAN CLASS="keyword">return</SPAN> get_char(<SPAN CLASS="literal">'\n'</SPAN>);
+        }
+
+        <SPAN CLASS="keyword">return</SPAN> get_char(c);
+    }</PRE>
+
+<P>
+    An <A HREF="../concepts/input_filter.html">InputFilter</A> which is not a <A HREF="../concepts/multi_character.html">MultiCharacterFilter</A> can only return a single character at a time. Consequently, if you wish to insert a newline before a character <CODE>c</CODE> read from <CODE>src</CODE>, you must store <CODE>c</CODE> and return it the next time <CODE>get</CODE> is called. The member variable <CODE>next_</CODE> is used to store such a character; the member variable <CODE>has_next_</CODE> keeps track of whether such a character is stored.
+</P>
+
+<P>
+    The implementation of <CODE>get</CODE> first checks to see if there is stored character, and returns it if there is. Otherwise, it attemps to read a character from <CODE>src</CODE>. If no character can be read, it returns one of the special values <CODE>EOF</CODE> or <CODE>WOULD_BLOCK</CODE>. Otherwise, it checks whether a newline must be inserted. If so, it stores the current character and returns a newline. Otherwise, it returns the current character.
+</P>
+
+<P>Finally, the member function <CODE>close</CODE> resets the Filter's state:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Sink&amp;)
+    { 
+        col_no_ = 0; 
+        has_next_ = <SPAN CLASS="keyword">false</SPAN>; 
+    }</PRE>
+
+<A NAME="line_wrapping_output_filter"></A>
+<H4><CODE>line_wrapping_output_filter</CODE></H4>
+
+<P>You can express a line-wrapping Filter as an <A HREF="../concepts/output_filter.html">OutputFilter</A> as follows:</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>    <SPAN CLASS="comment">// output_filter</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A>  <SPAN CLASS="comment">// put</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> line_wrapping_output_filter : <SPAN CLASS="keyword"><SPAN CLASS="keyword"><SPAN CLASS="keyword">public</SPAN></SPAN></SPAN> output_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    explicit line_wrapping_output_filter(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> line_length = 80)
+        : line_length_(line_length), col_no_(0) 
+        { }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> put(Sink&amp; dest, <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c);
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Sink&amp;);
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> put_char(Sink&amp; dest, <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c);
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  line_length_;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  col_no_;
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>Let's look first at the helper function <CODE>put_char</CODE>:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> put_char(Sink&amp; dest, <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c)
+    {
+        <SPAN CLASS="keyword">if</SPAN> (!iostreams::put(dest, c))
+            <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS="keyword">false</SPAN>;
+        <SPAN CLASS="keyword">if</SPAN> (c != <SPAN CLASS="literal">'\n'</SPAN>)
+            ++col_no_;
+        <SPAN CLASS="keyword">else</SPAN>
+            col_no_ = 0;
+        <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS="keyword">true</SPAN>;
+    }</PRE>
+
+<P>This function attempts to write the character <CODE>c</CODE> to the given <A HREF="../concepts/sink.html">Sink</A> and updates the column count if successful. Using <CODE>put_char</CODE>, you can implement <CODE>put</CODE> as follows:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> put(Sink&amp; dest, <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c)
+    {
+        <SPAN CLASS="keyword">if</SPAN> (c != <SPAN CLASS="literal">'\n'</SPAN> &amp;&amp; col_no_ &gt;= line_length_ &amp;&amp; !put_char(dest, <SPAN CLASS="literal">'\n'</SPAN>))
+            <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS="keyword">false</SPAN>;
+        <SPAN CLASS="keyword">return</SPAN> put_char(dest, c);
+    }</PRE>
+
+<P>
+    This function first checks the given character and the column count to see whether a newline character must be inserted. If so, it attempts to write a newline using <CODE>put_char</CODE> and returns false if the operation fails. Otherwise, it attempts to write the the given character using <CODE>put_char</CODE>. Note that if a newline is successfully inserted but the attempt to write the given character fails, the column count will be updated to reflect the newline character so that the next attempt to write the given character will not cause a newline to be inserted.
+</P>
+
+<P>Finally, the member function <CODE>close</CODE> resets the Filter's state:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Sink&amp;) { col_no_ = 0; }</PRE>
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='shell_comments_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='tab_expanding_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Use, modification, and distribution are subject to the Boost Software License, Version 2.0. (See accompanying file <A HREF="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+
+</BODY>

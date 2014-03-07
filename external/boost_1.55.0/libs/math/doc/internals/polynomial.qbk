@@ -1,0 +1,94 @@
+[section:polynomials Polynomials]
+
+[h4 Synopsis]
+
+``
+#include <boost/math/tools/polynomial.hpp>
+``
+
+   namespace boost{ namespace math{ namespace tools{
+
+   template <class T>
+   class polynomial
+   {
+   public:
+      // typedefs:
+      typedef typename std::vector<T>::value_type value_type;
+      typedef typename std::vector<T>::size_type  size_type;
+
+      // construct:
+      polynomial(){}
+      template <class U>
+      polynomial(const U* data, unsigned order);
+      template <class U>
+      polynomial(const U& point);
+      
+      // access:
+      size_type size()const;
+      size_type degree()const;
+      value_type& operator[](size_type i);
+      const value_type& operator[](size_type i)const;
+
+      // operators:
+      template <class U>
+      polynomial& operator +=(const U& value);
+      template <class U>
+      polynomial& operator -=(const U& value);
+      template <class U>
+      polynomial& operator *=(const U& value);
+      template <class U>
+      polynomial& operator +=(const polynomial<U>& value);
+      template <class U>
+      polynomial& operator -=(const polynomial<U>& value);
+      template <class U>
+      polynomial& operator *=(const polynomial<U>& value);
+   };
+
+   template <class T>
+   polynomial<T> operator + (const polynomial<T>& a, const polynomial<T>& b);
+   template <class T>
+   polynomial<T> operator - (const polynomial<T>& a, const polynomial<T>& b);
+   template <class T>
+   polynomial<T> operator * (const polynomial<T>& a, const polynomial<T>& b);
+   
+   template <class T, class U>
+   polynomial<T> operator + (const polynomial<T>& a, const U& b);
+   template <class T, class U>
+   polynomial<T> operator - (const polynomial<T>& a, const U& b);
+   template <class T, class U>
+   polynomial<T> operator * (const polynomial<T>& a, const U& b);
+   
+   template <class U, class T>
+   polynomial<T> operator + (const U& a, const polynomial<T>& b);
+   template <class U, class T>
+   polynomial<T> operator - (const U& a, const polynomial<T>& b);
+   template <class U, class T>
+   polynomial<T> operator * (const U& a, const polynomial<T>& b);
+   
+   template <class charT, class traits, class T>
+   std::basic_ostream<charT, traits>& operator << 
+      (std::basic_ostream<charT, traits>& os, const polynomial<T>& poly);
+
+   }}} // namespaces
+
+[h4 Description]
+
+This is a fairly trivial class for polynomial manipulation.
+
+Implementation is currently of the "naive" variety, with O(N^2)
+multiplication for example.  This class should not be used in
+high-performance computing environments: it is intended for the
+simple manipulation of small polynomials, typically generated
+for special function approximation.
+
+Advanced manipulations: the FFT, division, GCD, factorisation etc are
+not currently provided.  Submissions for these are of course welcome :-)
+
+[endsect][/section:polynomials Polynomials]
+
+[/ 
+  Copyright 2006 John Maddock and Paul A. Bristow.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]

@@ -1,0 +1,4411 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function Synopsis</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../interface.html" title="Interface">
+<link rel="prev" href="associated_types.html" title="Associated Types">
+<link rel="next" href="../customization.html" title="Customization">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="associated_types.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interface.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../customization.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_interface_function_synopsis" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.interface.function_synopsis"></a><a class="link" href="function_synopsis.html" title="Function Synopsis">Function Synopsis</a>
+</h3></div></div></div>
+<p>
+        In this section a single <span class="emphasis"><em><span class="bold"><strong>matrix</strong></span></em></span>
+        is given, that shows all <span class="emphasis"><em><span class="bold"><strong>functions</strong></span></em></span>
+        with shared names and identical or analogous semantics and their polymorphical
+        overloads across the class templates of the <span class="bold"><strong>icl</strong></span>.
+        In order to achieve a concise representation, a series of <span class="emphasis"><em><span class="bold"><strong>placeholders</strong></span></em></span> are used throughout the function
+        matrix.
+      </p>
+<p>
+        The <span class="emphasis"><em><span class="bold"><strong>placeholder's</strong></span></em></span> purpose
+        is to express the polymorphic usage of the functions. The <span class="emphasis"><em><span class="bold"><strong>first column</strong></span></em></span> of the function matrix contains
+        the signatures of the functions. Within these signatures <code class="computeroutput"><span class="identifier">T</span></code>
+        denotes a container type and <code class="computeroutput"><span class="identifier">J</span></code>
+        and <code class="computeroutput"><span class="identifier">P</span></code> polymorphic argument
+        and result types.
+      </p>
+<p>
+        Within the body of the matrix, sets of <span class="bold"><strong>boldface</strong></span>
+        placeholders denote the sets of possible instantiations for a polymorphic
+        placeholder <code class="computeroutput"><span class="identifier">P</span></code>. For instance
+        <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a> <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a> <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a> denotes that for the argument type <code class="computeroutput"><span class="identifier">P</span></code>, an element <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>, an interval <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a> or an interval_set <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a> can be instantiated.
+      </p>
+<p>
+        If the polymorphism can not be described in this way, only the <span class="emphasis"><em><span class="bold"><strong>number</strong></span></em></span> of overloaded implementations for
+        the function of that row is shown.
+      </p>
+<a name="element_type"></a><a name="interval_type"></a><a name="itl_set_type"></a><a name="interval_set_types"></a><a name="element_mapping_type"></a><a name="interval_mapping_type"></a><a name="itl_map_type"></a><a name="interval_map_types"></a><a name="discrete_types"></a><a name="continuous_types"></a><div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Placeholder
+              </p>
+              </th>
+<th>
+              <p>
+                Argument types
+              </p>
+              </th>
+<th>
+              <p>
+                Description
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                a container or interval type
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">P</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                polymorphical container argument type
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">J</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                polymorphical iterator type
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">K</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                polymorphical element_iterator type for interval containers
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">V</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                various types <code class="computeroutput"><span class="identifier">V</span></code>,
+                that do dot fall in the categories above
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                1,2,...
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                number of implementations for this function
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                A
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                implementation generated by compilers
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>e</strong></span>
+              </p>
+              </td>
+<td>
+              <p>
+                T::element_type
+              </p>
+              </td>
+<td>
+              <p>
+                the element type of <code class="computeroutput"><a class="link" href="../../boost/icl/interval_set.html" title="Class template interval_set">interval_sets</a></code>
+                or <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">sets</span></code></a>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>i</strong></span>
+              </p>
+              </td>
+<td>
+              <p>
+                T::segment_type
+              </p>
+              </td>
+<td>
+              <p>
+                the segment type of of <code class="computeroutput"><a class="link" href="../../boost/icl/interval_set.html" title="Class template interval_set">interval_sets</a></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>s</strong></span>
+              </p>
+              </td>
+<td>
+              <p>
+                element sets
+              </p>
+              </td>
+<td>
+              <p>
+                <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code> </a> or other models of
+                the icl's set concept
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>S</strong></span>
+              </p>
+              </td>
+<td>
+              <p>
+                interval_sets
+              </p>
+              </td>
+<td>
+              <p>
+                one of the interval set types
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>b</strong></span>
+              </p>
+              </td>
+<td>
+              <p>
+                T::element_type
+              </p>
+              </td>
+<td>
+              <p>
+                type of <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_map's</a></code>
+                or <code class="computeroutput"><a class="link" href="../../boost/icl/map.html" title="Class template map">icl::map's</a></code> element
+                value pairs
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>p</strong></span>
+              </p>
+              </td>
+<td>
+              <p>
+                T::segment_type
+              </p>
+              </td>
+<td>
+              <p>
+                type of <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_map's</a></code>
+                interval value pairs
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>m</strong></span>
+              </p>
+              </td>
+<td>
+              <p>
+                element maps
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/map.html" title="Class template map">icl::map</a></code> icl's map type
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>M</strong></span>
+              </p>
+              </td>
+<td>
+              <p>
+                interval_maps
+              </p>
+              </td>
+<td>
+              <p>
+                one of the interval map types
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>d</strong></span>
+              </p>
+              </td>
+<td>
+              <p>
+                discrete types
+              </p>
+              </td>
+<td>
+              <p>
+                types with a least steppable discrete unit: Integral types, date/time
+                types etc.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="bold"><strong>c</strong></span>
+              </p>
+              </td>
+<td>
+              <p>
+                continuous types
+              </p>
+              </td>
+<td>
+              <p>
+                types with (theoretically) infinitely many elements beween two values.
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<a name="function_synopsis_table"></a><div class="table">
+<a name="id1150015"></a><p class="title"><b>Table&#160;1.13.&#160;Synopsis
+      Functions and Overloads</b></p>
+<div class="table-contents"><table class="table" summary="Synopsis
+      Functions and Overloads">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+            <p>
+              T
+            </p>
+            </th>
+<th>
+            <p>
+              intervals
+            </p>
+            </th>
+<th>
+            <p>
+              interval<br> sets
+            </p>
+            </th>
+<th>
+            <p>
+              interval<br> maps
+            </p>
+            </th>
+<th>
+            <p>
+              element<br> sets
+            </p>
+            </th>
+<th>
+            <p>
+              element<br> maps
+            </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/construct__copy__destruct.html" title="Construct, copy, destruct"><span class="emphasis"><em><span class="bold"><strong>Construct, copy, destruct</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">::</span><span class="identifier">T</span><span class="special">()</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">::</span><span class="identifier">T</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              A
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">T</span><span class="special">::</span><span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              A
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">swap</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/containedness.html" title="Containedness"><span class="emphasis"><em><span class="bold"><strong>Containedness</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              intervals
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> maps
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> maps
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">empty</span><span class="special">()</span><span class="keyword">const</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">is_empty</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">contains</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code><br> <code class="computeroutput"><span class="keyword">bool</span>
+              <span class="identifier">within</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/equivalences_and_orderings.html" title="Equivalences and Orderings"><span class="emphasis"><em><span class="bold"><strong>Equivalences and Orderings</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              intervals
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> maps
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> maps
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span>
+              <span class="special">==</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span>
+              <span class="special">!=</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span>
+              <span class="special">&lt;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span>
+              <span class="special">&gt;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span>
+              <span class="special">&lt;=</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span>
+              <span class="special">&gt;=</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">is_element_equal</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">is_element_less</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">is_element_greater</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">is_distinct_equal</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/size.html" title="Size"><span class="emphasis"><em><span class="bold"><strong>Size</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              intervals
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> maps
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> maps
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">size</span><span class="special">()</span><span class="keyword">const</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">cardinality</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">difference_type</span> <span class="identifier">length</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">iterative_size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">size_type</span> <span class="identifier">interval_count</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/selection.html" title="Selection"><span class="emphasis"><em><span class="bold"><strong>Selection</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">find</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">codomain_type</span><span class="special">&amp;</span>
+              <span class="keyword">operator</span><span class="special">[]</span>
+              <span class="special">(</span><span class="keyword">const</span>
+              <span class="identifier">domain_type</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">codomain_type</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">domain_type</span><span class="special">&amp;)</span><span class="keyword">const</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/range.html" title="Range"><span class="emphasis"><em><span class="bold"><strong>Range</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">interval_type</span> <span class="identifier">hull</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">hull</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">domain_type</span> <span class="identifier">lower</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">domain_type</span> <span class="identifier">upper</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">domain_type</span> <span class="identifier">first</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">domain_type</span> <span class="identifier">last</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/addition.html" title="Addition"><span class="emphasis"><em><span class="bold"><strong>Addition</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              intervals
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> maps
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> maps
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">T</span><span class="special">::</span><span class="identifier">add</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">add</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">T</span><span class="special">::</span><span class="identifier">add</span><span class="special">(</span><span class="identifier">J</span> <span class="identifier">pos</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">add</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="identifier">J</span> <span class="identifier">pos</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="keyword">operator</span> <span class="special">+=(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="keyword">operator</span>
+              <span class="special">+</span> <span class="special">(</span><span class="identifier">T</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code><br> <code class="computeroutput"><span class="identifier">T</span>
+              <span class="keyword">operator</span> <span class="special">+</span>
+              <span class="special">(</span><span class="keyword">const</span>
+              <span class="identifier">P</span><span class="special">&amp;,</span>
+              <span class="identifier">T</span><span class="special">)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="keyword">operator</span> <span class="special">|=(</span>
+              <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="keyword">operator</span>
+              <span class="special">|</span> <span class="special">(</span><span class="identifier">T</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code><br> <code class="computeroutput"><span class="identifier">T</span>
+              <span class="keyword">operator</span> <span class="special">|</span>
+              <span class="special">(</span><span class="keyword">const</span>
+              <span class="identifier">P</span><span class="special">&amp;,</span>
+              <span class="identifier">T</span><span class="special">)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/subtraction.html" title="Subtraction"><span class="emphasis"><em><span class="bold"><strong>Subtraction</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">T</span><span class="special">::</span><span class="identifier">subtract</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">subtract</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="keyword">operator</span> <span class="special">-=(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="keyword">operator</span>
+              <span class="special">-</span> <span class="special">(</span><span class="identifier">T</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">left_subtract</span><span class="special">(</span><span class="identifier">T</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">right_subtract</span><span class="special">(</span><span class="identifier">T</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/insertion.html" title="Insertion"><span class="emphasis"><em><span class="bold"><strong>Insertion</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              intervals
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> maps
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> maps
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">V</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">insert</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">V</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">V</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">J</span> <span class="identifier">pos</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">V</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="identifier">J</span>
+              <span class="identifier">pos</span><span class="special">,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">insert</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">T</span><span class="special">::</span><span class="identifier">set</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">set_at</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/erasure.html" title="Erasure"><span class="emphasis"><em><span class="bold"><strong>Erasure</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">clear</span><span class="special">()</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">clear</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">T</span><span class="special">::</span><span class="identifier">erase</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">erase</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">erase</span><span class="special">(</span><span class="identifier">iterator</span><span class="special">)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">erase</span><span class="special">(</span><span class="identifier">iterator</span><span class="special">,</span><span class="identifier">iterator</span><span class="special">)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/intersection.html" title="Intersection"><span class="emphasis"><em><span class="bold"><strong>Intersection</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              intervals
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> maps
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> maps
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">add_intersection</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="keyword">operator</span> <span class="special">&amp;=(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="keyword">operator</span>
+              <span class="special">&amp;</span> <span class="special">(</span><span class="identifier">T</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code><br> <code class="computeroutput"><span class="identifier">T</span>
+              <span class="keyword">operator</span> <span class="special">&amp;</span>
+              <span class="special">(</span><span class="keyword">const</span>
+              <span class="identifier">P</span><span class="special">&amp;,</span>
+              <span class="identifier">T</span><span class="special">)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">intersects</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code><br> <code class="computeroutput"><span class="keyword">bool</span>
+              <span class="identifier">disjoint</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/symmetric_difference.html" title="Symmetric Difference"><span class="emphasis"><em><span class="bold"><strong>Symmetric difference</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">T</span><span class="special">::</span><span class="identifier">flip</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">flip</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="keyword">operator</span> <span class="special">^=(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="keyword">operator</span>
+              <span class="special">^</span> <span class="special">(</span><span class="identifier">T</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code><br> <code class="computeroutput"><span class="identifier">T</span>
+              <span class="keyword">operator</span> <span class="special">^</span>
+              <span class="special">(</span><span class="keyword">const</span>
+              <span class="identifier">P</span><span class="special">&amp;,</span>
+              <span class="identifier">T</span><span class="special">)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+              <a class="link" href="function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+              <a class="link" href="function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/iterator_related.html" title="Iterator related"><span class="emphasis"><em><span class="bold"><strong>Iteration</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              intervals
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> maps
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> maps
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">begin</span><span class="special">()</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">end</span><span class="special">()</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">rbegin</span><span class="special">()</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">rend</span><span class="special">()</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">lower_bound</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">upper_bound</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">J</span><span class="special">,</span><span class="identifier">J</span><span class="special">&gt;</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">equal_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/element_iteration.html" title="Element iteration"><span class="emphasis"><em><span class="bold"><strong>Element iteration</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              intervals
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> maps
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> maps
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">K</span> <span class="identifier">elements_begin</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">K</span> <span class="identifier">elements_end</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">K</span> <span class="identifier">elements_rbegin</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">K</span> <span class="identifier">elements_rend</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+              2
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/streaming__conversion.html" title="Streaming, conversion"><span class="emphasis"><em><span class="bold"><strong>Streaming, conversion</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              intervals
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> maps
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> maps
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span> <span class="keyword">operator</span>
+              <span class="special">&lt;&lt;</span> <span class="special">(</span><span class="identifier">basic_ostream</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        Many but not all functions of <span class="bold"><strong>icl</strong></span> intervals
+        are listed in the table above. Some specific functions are summarized in
+        the next table. For the group of the constructing functions, placeholders
+        <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+        denote discrete domain types and <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a> denote continuous domain types <code class="computeroutput"><span class="identifier">T</span><span class="special">::</span><span class="identifier">domain_type</span></code>
+        for an interval_type <code class="computeroutput"><span class="identifier">T</span></code> and
+        an argument types <code class="computeroutput"><span class="identifier">P</span></code>.
+      </p>
+<a name="additional_interval_functions"></a><div class="table">
+<a name="id1160963"></a><p class="title"><b>Table&#160;1.14.&#160;Additional
+      interval functions</b></p>
+<div class="table-contents"><table class="table" summary="Additional
+      interval functions">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+            <p>
+              T
+            </p>
+            </th>
+<th>
+            <p>
+              discrete<br> _interval
+            </p>
+            </th>
+<th>
+            <p>
+              continuous<br> _interval
+            </p>
+            </th>
+<th>
+            <p>
+              right_open<br> _interval
+            </p>
+            </th>
+<th>
+            <p>
+              left_open<br> _interval
+            </p>
+            </th>
+<th>
+            <p>
+              closed<br> _interval
+            </p>
+            </th>
+<th>
+            <p>
+              open<br> _interval
+            </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+            <p>
+              Interval bounds
+            </p>
+            </td>
+<td>
+            <p>
+              dynamic
+            </p>
+            </td>
+<td>
+            <p>
+              dynamic
+            </p>
+            </td>
+<td>
+            <p>
+              static
+            </p>
+            </td>
+<td>
+            <p>
+              static
+            </p>
+            </td>
+<td>
+            <p>
+              static
+            </p>
+            </td>
+<td>
+            <p>
+              static
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              Form
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              asymmetric
+            </p>
+            </td>
+<td>
+            <p>
+              asymmetric
+            </p>
+            </td>
+<td>
+            <p>
+              symmetric
+            </p>
+            </td>
+<td>
+            <p>
+              symmetric
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/interval_construction.html" title="Interval Construction"><span class="emphasis"><em><span class="bold"><strong>Construction</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">singleton</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">construct</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">construct</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="identifier">interval_bounds</span><span class="special">)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">hull</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">span</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">static</span> <span class="identifier">T</span>
+              <span class="identifier">right_open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">static</span> <span class="identifier">T</span>
+              <span class="identifier">left_open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">static</span> <span class="identifier">T</span>
+              <span class="identifier">closed</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">static</span> <span class="identifier">T</span>
+              <span class="identifier">open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">P</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/additional_interval_orderings.html" title="Additional Interval Orderings"><span class="emphasis"><em><span class="bold"><strong>Orderings</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">exclusive_less</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">lower_less</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code><br> <code class="computeroutput"><span class="keyword">bool</span>
+              <span class="identifier">lower_equal</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">T</span><span class="special">&amp;)</span></code><br>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">lower_less_equal</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">upper_less</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code><br> <code class="computeroutput"><span class="keyword">bool</span>
+              <span class="identifier">upper_equal</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+              <span class="identifier">T</span><span class="special">&amp;)</span></code><br>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">upper_less_equal</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <a class="link" href="../function_reference/miscellaneous_interval_functions.html" title="Miscellaneous Interval Functions"><span class="emphasis"><em><span class="bold"><strong>Miscellaneous</strong></span></em></span></a>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">touches</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">inner_complement</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">difference_type</span> <span class="identifier">distance</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span>
+              <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+<td>
+            <p>
+              1
+            </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><a name="boost_icl.interface.function_synopsis.element_iterators_for_interval_containers"></a><h5>
+<a name="id1165828"></a>
+        <a class="link" href="function_synopsis.html#boost_icl.interface.function_synopsis.element_iterators_for_interval_containers">Element
+        iterators for interval containers</a>
+      </h5>
+<p>
+        Iterators on <span class="bold"><strong>interval conainers</strong></span> that are
+        refered to in section <span class="emphasis"><em>Iteration</em></span> of the function synopsis
+        table are <span class="emphasis"><em><span class="bold"><strong>segment iterators</strong></span></em></span>.
+        They reveal the more implementation specific aspect, that the fundamental
+        aspect abstracts from. Iteration over segments is fast, compared to an iteration
+        over elements, particularly if intervals are large. But if we want to view
+        our interval containers as containers of elements that are usable with std::algoritms,
+        we need to iterate over elements.
+      </p>
+<p>
+        Iteration over elements . . .
+      </p>
+<div class="itemizedlist"><ul type="disc">
+<li>
+          is possible only for integral or discrete <code class="computeroutput"><span class="identifier">domain_types</span></code>
+</li>
+<li>
+          can be very <span class="emphasis"><em><span class="bold"><strong>slow</strong></span></em></span>
+          if the intervals are very large.
+        </li>
+<li>
+          and is therefore <span class="emphasis"><em><span class="bold"><strong>depreciated</strong></span></em></span>
+</li>
+</ul></div>
+<p>
+        On the other hand, sometimes iteration over interval containers on the element
+        level might be desired, if you have some interface that works for <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">SortedAssociativeContainers</span></code>
+        of elements and you need to quickly use it with an interval container. Accepting
+        the poorer performance might be less bothersome at times than adjusting your
+        whole interface for segment iteration.
+      </p>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../../../../doc/src/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          So we advice you to choose element iteration over interval containers
+          <span class="emphasis"><em><span class="bold"><strong>judiciously</strong></span></em></span>. Do not
+          use element iteration <span class="emphasis"><em><span class="bold"><strong>by default or habitual</strong></span></em></span>.
+          Always try to achieve results using namespace global functions or operators
+          (preferably inplace versions) or iteration over segments first.
+        </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="associated_types.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interface.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../customization.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

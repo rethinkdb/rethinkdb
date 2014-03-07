@@ -1,0 +1,240 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>BinaryGenerator</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../generator_concepts.html" title="Generator Concepts">
+<link rel="prev" href="unarygenerator.html" title="UnaryGenerator">
+<link rel="next" href="narygenerator.html" title="NaryGenerator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="unarygenerator.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../generator_concepts.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="narygenerator.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.reference.generator_concepts.binarygenerator"></a><a class="link" href="binarygenerator.html" title="BinaryGenerator">BinaryGenerator</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.karma.reference.generator_concepts.binarygenerator.h0"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generator_concepts.binarygenerator.description"></a></span><a class="link" href="binarygenerator.html#spirit.karma.reference.generator_concepts.binarygenerator.description">Description</a>
+          </h6>
+<p>
+            <span class="emphasis"><em>BinaryGenerator</em></span> is a composite generator that has
+            a two subjects, <code class="computeroutput"><span class="identifier">left</span></code>
+            and <code class="computeroutput"><span class="identifier">right</span></code>. The BinaryGenerator
+            allows its subjects to be treated in the same way as a single instance
+            of a <a class="link" href="generator.html" title="Generator"><code class="computeroutput"><span class="identifier">Generator</span></code></a> following the Composite
+            Design Pattern.
+          </p>
+<h6>
+<a name="spirit.karma.reference.generator_concepts.binarygenerator.h1"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generator_concepts.binarygenerator.refinement_of"></a></span><a class="link" href="binarygenerator.html#spirit.karma.reference.generator_concepts.binarygenerator.refinement_of">Refinement
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="generator.html" title="Generator"><code class="computeroutput"><span class="identifier">Generator</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">g</span></code></span></dt>
+<dd><p>
+                  A BinaryGenerator.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">G</span></code></span></dt>
+<dd><p>
+                  A BinaryGenerator type.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.karma.reference.generator_concepts.binarygenerator.h2"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generator_concepts.binarygenerator.valid_expressions"></a></span><a class="link" href="binarygenerator.html#spirit.karma.reference.generator_concepts.binarygenerator.valid_expressions">Valid
+            Expressions</a>
+          </h6>
+<p>
+            In addition to the requirements defined in <a class="link" href="generator.html" title="Generator"><code class="computeroutput"><span class="identifier">Generator</span></code></a>, for any BinaryGenerator
+            the following must be met:
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Return type
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">g</span><span class="special">.</span><span class="identifier">left</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Left generator.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <a class="link" href="generator.html" title="Generator"><code class="computeroutput"><span class="identifier">Generator</span></code></a>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">g</span><span class="special">.</span><span class="identifier">right</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Right generator.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <a class="link" href="generator.html" title="Generator"><code class="computeroutput"><span class="identifier">Generator</span></code></a>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.generator_concepts.binarygenerator.h3"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generator_concepts.binarygenerator.type_expressions"></a></span><a class="link" href="binarygenerator.html#spirit.karma.reference.generator_concepts.binarygenerator.type_expressions">Type
+            Expressions</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">G</span><span class="special">::</span><span class="identifier">left_type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The left generator type.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">G</span><span class="special">::</span><span class="identifier">right_type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The right generator type.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_binary_generator</span><span class="special">&lt;</span><span class="identifier">G</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Metafunction that evaluates to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+                      if a certain type, <code class="computeroutput"><span class="identifier">G</span></code>
+                      is a BinaryGenerator, <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>
+                      otherwise (See <a href="../../../../../../../../libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+                      Boolean Constant</a>).
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.generator_concepts.binarygenerator.h4"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generator_concepts.binarygenerator.invariants"></a></span><a class="link" href="binarygenerator.html#spirit.karma.reference.generator_concepts.binarygenerator.invariants">Invariants</a>
+          </h6>
+<p>
+            For any BinaryGenerator, <code class="computeroutput"><span class="identifier">G</span></code>,
+            the following invariants always hold:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_generator</span><span class="special">&lt;</span><span class="identifier">G</span><span class="special">::</span><span class="identifier">left_type</span><span class="special">&gt;::</span><span class="identifier">type</span></code> evaluates to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_generator</span><span class="special">&lt;</span><span class="identifier">G</span><span class="special">::</span><span class="identifier">right_type</span><span class="special">&gt;::</span><span class="identifier">type</span></code> evaluates to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+              </li>
+</ul></div>
+<h6>
+<a name="spirit.karma.reference.generator_concepts.binarygenerator.h5"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generator_concepts.binarygenerator.models"></a></span><a class="link" href="binarygenerator.html#spirit.karma.reference.generator_concepts.binarygenerator.models">Models</a>
+          </h6>
+<p>
+            The following generators conform to this model:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <a class="link" href="../operator/list.html" title="List Generator (a % b)">List (<code class="computeroutput"><span class="special">%</span></code>)</a>.
+              </li></ul></div>
+<p>
+            <span class="bold"><strong>FIXME</strong></span> Add more links to models of BinaryGenerator
+            concept
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="unarygenerator.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../generator_concepts.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="narygenerator.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

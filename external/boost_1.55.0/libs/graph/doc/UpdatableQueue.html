@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!--
+            Copyright Daniel Trebbien 2010.
+ Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or the copy at
+         http://www.boost.org/LICENSE_1_0.txt)
+-->
+<html>
+<head>
+<title>UpdatableQueue</title>
+</head>
+<body> 
+<img src="../../../boost.png"  alt="C++ Boost">
+
+<h2><a name="concept:UpdatableQueue">UpdatableQueue</a></h2>
+
+<p>An <i>UpdatableQueue</i> is a refinement of the <a href="./Buffer.html">Buffer</a> concept that additionally requires that the Buffer be updatable.
+
+<p>Implicit in the definition is an ordering of values. Though access to the order is not required, types that model UpdatableQueue must document how an object of the type orders values so that a program may change the position of a given value in the ordering. For example, an UpdatableQueue may choose to order values by using a property map, and a value <tt>v1</tt> is considered less than a value <tt>v2</tt> if <tt><nobr>get(pm, v1) &lt; get(pm, v2)</nobr></tt>. A program can update the properties of values, thus changing the order of values in the UpdatableQueue, and notify the UpdatableQueue of the specific values that have a different position in the ordering by calling the <tt>update</tt> member of the UpdatableQueue on each.
+
+<p>A program that modifies the order must notify the UpdatableQueue of values that may have different positions in the ordering since they were inserted or last updated.
+
+<h3>Notation</h3>
+
+<table>
+<tr> <td> <tt>Q</tt> </td>  <td> is a type that models UpdatableQueue.       </td></tr>
+<tr> <td> <tt>T</tt> </td>  <td> is the value type of <tt>Q</tt>. </td></tr>
+</table>
+
+
+<h3>Members</h3>
+
+For a type to model the UpdatableQueue concept it must have the following members 
+in addition to the members that are required of types that model <a href="./Buffer.html">Buffer</a>:
+
+<p>
+
+<table border="1">
+
+<tr> <td><b>Member</b></td> <td><b>Description</b></td> </tr>
+
+<tr> <td> <a name="concept:UpdatableQueue:update"><tt>void update(const T& t)</tt></a> </td>
+     <td> Informs the UpdatableQueue that the program has modified the position of <tt>t</tt> in the ordering </td>
+     </tr>
+
+<tr> <td> <tt><i>unspecified-bool-type</i> contains(const T& t) const</tt> </td>
+     <td> Returns whether the queue contains <tt>t</tt> </td>
+     </tr>
+
+</table>
+
+<h3>Concept Checking Class</h3>
+
+<p><a href="../../../boost/graph/buffer_concepts.hpp"><tt>boost/graph/buffer_concepts.hpp</tt></a>
+
+<pre>
+  template &lt;class Q&gt;
+  struct UpdatableQueueConcept
+  {
+    void constraints() {
+      BOOST_CONCEPT_ASSERT(( Buffer&lt;Q&gt; ));
+      
+      q.update(g_ct);
+    }
+    
+    void const_constraints(const Q&amp; cq) {
+      if (cq.contains(g_ct));
+    }
+    
+    static const typename Buffer&lt;Q&gt;::value_type g_ct;
+    Q q;
+  };
+</pre>
+
+<h3>Futher Refinements</h3>
+
+<ul>
+<li><a href="#concept%3AUpdatablePriorityQueue">UpdatablePriorityQueue</a>
+<li><a href="./KeyedUpdatableQueue.html">KeyedUpdatableQueue</a>
+</ul>
+
+<h2><a name="concept:UpdatablePriorityQueue">UpdatablePriorityQueue</a></h2>
+<p>An <i>UpdatablePriorityQueue</i> is a slight refinement of <a href="#concept%3AUpdatableQueue">UpdatableQueue</a>
+that imposes the requirement that a program may not increase the position of a value that is held in the queue. That is,
+if a value <tt>v</tt> had position <i>n</i> in the ordering, a program may update the position of <tt>v</tt> only to 0, 1, ..., <i>n</i>&nbsp;-&nbsp;1, or <i>n</i>, where 0 is the top of the queue.
+
+<p>The behavior when a program attempts to increase a value's position in the ordering is undefined.
+
+<br>
+<hr>
+<table>
+<tr>
+<td>Copyright&nbsp;&copy;&nbsp;2010</td>
+<td>Daniel Trebbien (<a href="mailto:dtrebbien@gmail.com">dtrebbien@gmail.com</a>)
+</td>
+</tr>
+</table>
+
+</body>
+</html>

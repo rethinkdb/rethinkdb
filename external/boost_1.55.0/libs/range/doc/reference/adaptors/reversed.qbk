@@ -1,0 +1,30 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:reversed reversed]
+
+[table
+    [[Syntax] [Code]]
+    [[Pipe] [`rng | boost::adaptors::reversed`]]
+    [[Function] [`boost::adaptors::reverse(rng)`]]
+]
+
+* [*Returns:] A range whose iterators behave as if they were the original iterators wrapped in `reverse_iterator`.
+* [*Range Category:] __bidirectional_range__
+* [*Range Return Type:] `boost::reversed_range<typeof(rng)>`
+* [*Returned Range Category:] The range category of `rng`.
+
+[section:reversed_example reversed example]
+[import ../../../test/adaptor_test/reversed_example.cpp]
+[reversed_example]
+[endsect]
+
+This would produce the output:
+``
+9,8,7,6,5,4,3,2,1,
+``
+[endsect]
+
+

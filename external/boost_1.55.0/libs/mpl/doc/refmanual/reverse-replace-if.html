@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: reverse_replace_if</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./reverse-replace.html" class="navigation-link">Prev</a>&nbsp;<a href="./reverse-remove.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./reverse-replace.html" class="navigation-link">Back</a>&nbsp;<a href="./reverse-remove.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./transformation-algorithms.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./algorithms.html" class="navigation-link">Algorithms</a> / <a href="./transformation-algorithms.html" class="navigation-link">Transformation Algorithms</a> / <a href="./reverse-replace-if.html" class="navigation-link">reverse_replace_if</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="reverse-replace-if">
+<h1><a class="toc-backref" href="./transformation-algorithms.html#id1502">reverse_replace_if</a></h1>
+<div class="section" id="id758">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Sequence
+    , typename Pred
+    , typename In = <em>unspecified</em>
+    &gt;
+struct <a href="./reverse-replace-if.html" class="identifier">reverse_replace_if</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id759">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Returns a reversed copy of the original sequence where every type that satisfies
+the predicate <tt class="literal"><span class="pre">Pred</span></tt> has been replaced with <tt class="literal"><span class="pre">NewType</span></tt>.</p>
+<p>[<em>Note:</em> This wording applies to a no-inserter version(s) of the algorithm. See the
+<cite>Expression semantics</cite> subsection for a precise specification of the algorithm's
+details in all cases — <em>end note</em>]</p>
+</div>
+<div class="section" id="id760">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/replace_if.hpp" class="header">boost/mpl/replace_if.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id761">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./reversible-algorithm.html">Reversible Algorithm</a></p>
+</div>
+<div class="section" id="id762">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="43%" />
+<col width="38%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Sequence</span></tt></td>
+<td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>An original sequence.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">Pred</span></tt></td>
+<td>Unary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a></td>
+<td>A replacement condition.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">NewType</span></tt></td>
+<td>Any type</td>
+<td>A type to replace with.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">In</span></tt></td>
+<td><a class="reference internal" href="./inserter.html">Inserter</a></td>
+<td>An inserter.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id763">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>The semantics of an expression are defined only
+where they differ from, or are not defined in <a class="reference internal" href="./reversible-algorithm.html">Reversible Algorithm</a>.</p>
+<p>For any <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> <tt class="literal"><span class="pre">s</span></tt>, an unary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a> <tt class="literal"><span class="pre">pred</span></tt>,
+an <a class="reference internal" href="./inserter.html">Inserter</a> <tt class="literal"><span class="pre">in</span></tt>, and arbitrary type <tt class="literal"><span class="pre">x</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./reverse-replace-if.html" class="identifier">reverse_replace_if</a>&lt;s,pred,x,in&gt;::type r;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">A type.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="last literal-block">
+typedef <a href="./lambda.html" class="identifier">lambda</a>&lt;pred&gt;::type p;
+typedef <a href="./reverse-transform.html" class="identifier">reverse_transform</a>&lt; s, <a href="./if.html" class="identifier">if_</a>&lt; apply_wrap1&lt;p,<a href="./placeholders.html" class="identifier">_1</a>&gt;,x,<a href="./placeholders.html" class="identifier">_1</a>&gt;, in &gt;::type r;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id764">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Linear. Performs exactly <tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::value</span></tt> applications of <tt class="literal"><span class="pre">pred</span></tt>, and at most
+<tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::value</span></tt> insertions.</p>
+</div>
+<div class="section" id="id765">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,1,4,5,2,7,5,3,5&gt; numbers;
+typedef <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,1,4,0,2,0,0,3,0&gt; expected;
+typedef <a href="./reverse-replace-if.html" class="identifier">reverse_replace_if</a>&lt;
+      numbers
+    , <a href="./greater.html" class="identifier">greater</a>&lt; _, <a href="./int.html" class="identifier">int_</a>&lt;4&gt; &gt;
+    , <a href="./int.html" class="identifier">int_</a>&lt;0&gt;
+    , <a href="./front-inserter.html" class="identifier">front_inserter</a>&lt; <a href="./vector.html" class="identifier">vector</a>&lt;&gt; &gt;
+    &gt;::type result;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./equal.html" class="identifier">equal</a>&lt; result,expected, <a href="./equal-to.html" class="identifier">equal_to</a>&lt;_,_&gt; > ));
+</pre>
+</div>
+<div class="section" id="id766">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./transformation-algorithms.html">Transformation Algorithms</a>, <a class="reference internal" href="./reversible-algorithm.html">Reversible Algorithm</a>, <a class="reference internal" href="./replace-if.html">replace_if</a>, <a class="reference internal" href="./reverse-replace.html">reverse_replace</a>, <a class="reference internal" href="./remove-if.html">remove_if</a>, <a class="reference internal" href="./transform.html">transform</a></p>
+<!-- Algorithms/Transformation Algorithms//reverse_remove |160 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./reverse-replace.html" class="navigation-link">Prev</a>&nbsp;<a href="./reverse-remove.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./reverse-replace.html" class="navigation-link">Back</a>&nbsp;<a href="./reverse-remove.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./transformation-algorithms.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

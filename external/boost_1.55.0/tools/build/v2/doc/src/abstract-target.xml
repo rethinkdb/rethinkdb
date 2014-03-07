@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<section id="bbv2.reference.class.abstract-target">
+
+  <title>Class abstract-target</title>
+  <indexterm>
+    <primary>abstract-target</primary>
+  </indexterm>
+
+  <para>
+    Base class for all abstract targets.
+  </para>
+
+<programlisting language="jam">
+class abstract-target {
+    rule <link linkend="bbv2.reference.class.abstract-target.__init__">__init__</link> ( name : project )
+    rule <link linkend="bbv2.reference.class.abstract-target.name">name</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.project">project</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.location">location</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.full-name">full-name</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.__init__">generate</link> ( property-set )
+}
+</programlisting>
+
+  <para>
+    Classes derived from <link linkend="bbv2.reference.class.abstract-target">abstract-target</link>:
+    <itemizedlist>
+      <listitem>
+        <link linkend="bbv2.reference.class.project-target">project-target</link>
+      </listitem>
+      <listitem>
+        <link linkend="bbv2.reference.class.main-target">main-target</link>
+      </listitem>
+      <listitem>
+        <link linkend="bbv2.reference.class.project-target">basic-target</link>
+      </listitem>
+    </itemizedlist>
+  </para>
+
+  <orderedlist>
+    
+    <listitem id="bbv2.reference.class.abstract-target.__init__">
+      <code language="jam">rule __init__ ( name : project )</code>
+      <para>
+        <variablelist>
+          <varlistentry>
+            <term><literal>name</literal></term>
+            <listitem>
+              <para>The name of the target in the Jamfile.</para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term><literal>project</literal></term>
+            <listitem>
+              <para>The <link linkend="bbv2.reference.class.project-target">project</link> to which this target belongs.</para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.abstract-target.name">
+      <indexterm zone="bbv2.reference.class.abstract-target.name">
+        <primary>name</primary>
+        <secondary>Abstract Target</secondary>
+      </indexterm>
+      <code language="jam">rule name ( )</code>
+      <para>Returns the name of this target.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.abstract-target.project">
+      <indexterm zone="bbv2.reference.class.abstract-target.project">
+        <primary>project</primary>
+        <secondary>Abstract Target</secondary>
+      </indexterm>
+      <code language="jam">rule project ( )</code>
+      <para>Returns the <link linkend="bbv2.reference.class.project-target">project</link> for this target.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.abstract-target.location">
+      <indexterm zone="bbv2.reference.class.abstract-target.location">
+        <primary>location</primary>
+        <secondary>Abstract Target</secondary>
+      </indexterm>
+      <code language="jam">rule location ( )</code>
+      <para>Returns the location where the target was declared.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.abstract-target.full-name">
+      <indexterm zone="bbv2.reference.class.abstract-target.full-name">
+        <primary>full-name</primary>
+        <secondary>Abstract Target</secondary>
+      </indexterm>
+      <code language="jam">rule full-name ( )</code>
+      <para>Returns a user-readable name for this target.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.abstract-target.generate">
+      <indexterm zone="bbv2.reference.class.abstract-target.generate">
+        <primary>generate</primary>
+        <secondary>Abstract Target</secondary>
+      </indexterm>
+      <code language="jam">rule generate ( property-set )</code>
+      <para>
+        Generates virtual targets for this abstract target using the specified
+        properties, unless a different value of some feature is required by the
+        target.  This is an abstract method which must be overriden by derived
+        classes.
+      </para>
+      
+      <para>
+        On success, returns:
+        <itemizedlist>
+          <listitem>a property-set with the usage requirements to be applied to dependents</listitem>
+          <listitem>a list of produced virtual targets, which may be empty.</listitem>
+        </itemizedlist>
+        If <code language="jam">property-set</code> is empty, performs the
+        default build of this target, in a way specific to the derived class.
+      </para>
+    </listitem>
+    
+  </orderedlist>
+  
+</section>

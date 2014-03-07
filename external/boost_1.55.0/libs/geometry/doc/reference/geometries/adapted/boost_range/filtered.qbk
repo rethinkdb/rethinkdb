@@ -1,0 +1,36 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:filtered Boost.Range filtered]
+
+[def __adaptor__ Boost.Range filtered range adaptor]
+
+__adaptor__ is adapted to Boost.Geometry
+
+[heading Description]
+
+__adaptor__ filters a range.
+
+[heading Model of]
+[include adapts_model.qbk]
+
+[heading Header]
+`#include <boost/geometry/geometries/adapted/boost_range/filtered.hpp>`
+
+__not_in_boost_geometry_hpp__
+
+[heading Example]
+[boost_range_filtered]
+[boost_range_filtered_output]
+
+[endsect]
+

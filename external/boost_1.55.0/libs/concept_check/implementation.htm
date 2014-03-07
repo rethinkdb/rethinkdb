@@ -1,0 +1,205 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!-- Copyright (c) Jeremy Siek and Andrew Lumsdaine 2000, David Abrahams 2007 -->
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Linux/x86 (vers 1 September 2005), see www.w3.org" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <link rel="stylesheet" href="../../rst.css" type="text/css" />
+
+  <title>Concept Checking Implementation</title>
+</head>
+
+<body bgcolor="#FFFFFF" link="#0000EE" text="#000000" vlink="#551A8B" alink=
+"#FF0000">
+  <img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86" /><br clear="none" />
+
+  <h2><a name="warning" id="warning"><font color=
+  "red">Warning</font></a></h2>
+
+  <p><font color="red">This documentation is out-of-date; similar but
+  newer implementation techniques are now used.  This documentation
+  also refers to components and protocols in the library's old
+  interace such as <code>BOOST_CLASS_REQUIRES</code>
+  and <code>constraints()</code> functions, which are still supported
+  but deprecated.</font></p>
+
+  <h2><a name="implementation" id="implementation">Implementation</a></h2>
+
+  <p>Ideally we would like to catch, and indicate, the concept violation at
+  the point of instantiation. As mentioned in D&amp;E[<a href=
+  "bibliography.htm#stroustrup94:_design_evolution">2</a>], the error can be
+  caught by exercising all of the requirements needed by the function
+  template. Exactly how the requirements (the valid expressions in
+  particular) are exercised is a tricky issue, since we want the code to be
+  compiled—<i>but not executed</i>. Our approach is to exercise the
+  requirements in a separate function that is assigned to a function pointer.
+  In this case, the compiler will instantiate the function but will not
+  actually invoke it. In addition, an optimizing compiler will remove the
+  pointer assignment as ``dead code'' (though the run-time overhead added by
+  the assignment would be trivial in any case). It might be conceivable for a
+  compiler to skip the semantic analysis and compilation of the constraints
+  function in the first place, which would make our function pointer
+  technique ineffective. However, this is unlikely because removal of
+  unnecessary code and functions is typically done in later stages of a
+  compiler. We have successfully used the function pointer technique with GNU
+  C++, Microsoft Visual C++, and several EDG-based compilers (KAI C++, SGI
+  MIPSpro). The following code shows how this technique can be applied to the
+  <tt>std::stable_sort()</tt> function:</p>
+  <pre>
+  template &lt;class RandomAccessIterator&gt;
+  void stable_sort_constraints(RandomAccessIterator i)
+  {
+    typename std::iterator_traits&lt;RandomAccessIterator&gt;
+      ::difference_type n;
+    i += n;  // exercise the requirements for RandomAccessIterator
+    ...
+  }
+  template &lt;class RandomAccessIterator&gt;
+  void stable_sort(RandomAccessIterator first, RandomAccessIterator last)
+  {
+    typedef void (*fptr_type)(RandomAccessIterator);
+    fptr_type x = &amp;stable_sort_constraints;
+    ...
+  }
+</pre>
+
+  <p>There is often a large set of requirements that need to be checked, and
+  it would be cumbersome for the library implementor to write constraint
+  functions like <tt>stable_sort_constraints()</tt> for every public
+  function. Instead, we group sets of valid expressions together, according
+  to the definitions of the corresponding concepts. For each concept we
+  define a concept checking class template where the template parameter is
+  for the type to be checked. The class contains a <tt>contraints()</tt>
+  member function which exercises all of the valid expressions of the
+  concept. The objects used in the constraints function, such as <tt>n</tt>
+  and <tt>i</tt>, are declared as data members of the concept checking
+  class.</p>
+  <pre>
+  template &lt;class Iter&gt;
+  struct RandomAccessIteratorConcept
+  {
+    void constraints()
+    {
+      i += n;
+      ...
+    }
+    typename std::iterator_traits&lt;RandomAccessIterator&gt;
+      ::difference_type n;
+    Iter i;
+    ...
+  };
+</pre>
+
+  <p>We can still use the function pointer mechanism to cause instantiation
+  of the constraints function, however now it will be a member function
+  pointer. To make it easy for the library implementor to invoke the concept
+  checks, we wrap the member function pointer mechanism in a function named
+  <tt>function_requires()</tt>. The following code snippet shows how to use
+  <tt>function_requires()</tt> to make sure that the iterator is a <a href=
+  "http://www.sgi.com/tech/stl/RandomAccessIterator.html">RandomAccessIterator</a>.</p>
+  <pre>
+  template &lt;class Iter&gt;
+  void stable_sort(Iter first, Iter last)
+  {
+    function_requires&lt; RandomAccessIteratorConcept&lt;Iter&gt; &gt;();
+    ...
+  }
+</pre>
+
+  <p>The definition of the <tt>function_requires()</tt> is as follows. The
+  <tt>Concept</tt> is the concept checking class that has been instantiated
+  with the modeling type. We assign the address of the constraints member
+  function to the function pointer <tt>x</tt>, which causes the instantiation
+  of the constraints function and checking of the concept's valid
+  expressions. We then assign <tt>x</tt> to <tt>x</tt> to avoid unused
+  variable compiler warnings, and wrap everything in a do-while loop to
+  prevent name collisions.</p>
+  <pre>
+  template &lt;class Concept&gt;
+  void function_requires()
+  {
+    void (Concept::*x)() = BOOST_FPTR Concept::constraints;
+    ignore_unused_variable_warning(x);
+  }
+</pre>
+
+  <p>To check the type parameters of class templates, we provide the
+  <tt>BOOST_CLASS_REQUIRE</tt> macro which can be used inside the body of a
+  class definition (whereas <tt>function_requires()</tt> can only be used
+  inside of a function body). This macro declares a nested class template,
+  where the template parameter is a function pointer. We then use the nested
+  class type in a typedef with the function pointer type of the constraint
+  function as the template argument. We use the <tt>type_var</tt> and
+  <tt>concept</tt> names in the nested class and typedef names to help
+  prevent name collisions.</p>
+  <pre>
+#define BOOST_CLASS_REQUIRE(type_var, ns, concept) \
+  typedef void (ns::concept &lt;type_var&gt;::* func##type_var##concept)(); \
+  template &lt;func##type_var##concept _Tp1&gt; \
+  struct concept_checking_##type_var##concept { }; \
+  typedef concept_checking_##type_var##concept&lt; \
+    BOOST_FPTR ns::concept&lt;type_var&gt;::constraints&gt; \
+    concept_checking_typedef_##type_var##concept
+</pre>
+
+  <p>In addition, there are versions of <tt>BOOST_CLASS_REQUIRE</tt> that
+  take more arguments, to handle concepts that include interactions between
+  two or more types. <tt>BOOST_CLASS_REQUIRE</tt> was not used in the
+  implementation of the BCCL concept checks because some compilers do not
+  implement template parameters of function pointer type. 
+  <!-- We decided not to go with this version since it is easier to misuse
+
+To check the type parameters of class templates, we provide the
+<tt>class_requires</tt> class which can be used inside the body of a
+class definition (whereas <tt>function_requires()</tt> can only be
+used inside of a function body).  <tt>class_requires</tt> declares a
+nested class template, where the template parameter is a function
+pointer. We then use the nested class type in a typedef with the
+function pointer type of the constraint function as the template
+argument.
+
+<pre>
+  template &lt;class Concept&gt;
+  class class_requires
+  {
+    typedef void (Concept::* function_pointer)();
+
+    template &lt;function_pointer Fptr&gt;
+    struct dummy_struct { };
+  public:
+    typedef dummy_struct&lt; BOOST_FPTR Concept::constraints &gt; check;
+  };
+</pre>
+
+<tt>class_requires</tt> was not used in the implementation of the
+Boost Concept Checking Library concept checks because several
+compilers do not implement template parameters of function pointer
+type.
+
+--></p>
+
+  <p><a href="./reference.htm">Next: Reference</a><br />
+  <a href="prog_with_concepts.htm">Prev: Programming With
+  Concepts</a><br /></p>
+  <hr />
+
+  <table>
+    <tr valign="top">
+      <td nowrap="nowrap">Copyright &copy; 2000</td>
+
+      <td><a href="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>(<a href=
+      "mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</a>) Andrew
+      Lumsdaine(<a href="mailto:lums@osl.iu.edu">lums@osl.iu.edu</a>),
+        2007 <a href="mailto:dave@boost-consulting.com">David Abrahams</a>.
+    </tr>
+  </table>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Values</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../starter_kit.html" title="Starter Kit">
+<link rel="prev" href="../starter_kit.html" title="Starter Kit">
+<link rel="next" href="references.html" title="References">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../starter_kit.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../starter_kit.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="references.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.starter_kit.values"></a><a class="link" href="values.html" title="Values">Values</a>
+</h3></div></div></div>
+<p>
+        Values are functions! Examples:
+      </p>
+<pre class="programlisting"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span>
+<span class="identifier">val</span><span class="special">(</span><span class="string">"Hello, World"</span><span class="special">)</span>
+</pre>
+<p>
+        The first evaluates to a nullary function (a function taking no arguments)
+        that returns an <code class="computeroutput"><span class="keyword">int</span></code>, <code class="computeroutput"><span class="number">3</span></code>. The second evaluates to a nullary function
+        that returns a <code class="computeroutput"><span class="keyword">char</span> <span class="keyword">const</span><span class="special">(&amp;)[</span><span class="number">13</span><span class="special">]</span></code>, <code class="computeroutput"><span class="string">"Hello,
+        World"</span></code>.
+      </p>
+<h5>
+<a name="phoenix.starter_kit.values.h0"></a>
+        <span class="phrase"><a name="phoenix.starter_kit.values.lazy_evaluation"></a></span><a class="link" href="values.html#phoenix.starter_kit.values.lazy_evaluation">Lazy
+        Evaluation</a>
+      </h5>
+<p>
+        Confused? <code class="computeroutput"><span class="identifier">val</span></code> is a unary
+        function and <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span></code> invokes
+        it, you say? Yes. However, read carefully: <span class="emphasis"><em>"evaluates to a
+        nullary function"</em></span>. <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span></code>
+        evaluates to (returns) a nullary function. Aha! <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span></code>
+        returns a function! So, since <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span></code>
+        returns a function, you can invoke it. Example:
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+        (See <a href="../../../../example/values.cpp" target="_top">values.cpp</a>)
+      </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        <span class="inlinemediaobject"><img src="../../images/tip.png" alt="tip"></span> Learn more about values <a class="link" href="../modules/core/values.html" title="Values">here.</a>
+      </p>
+</div>
+<p>
+        The second function call (the one with no arguments) calls the nullary function
+        which then returns <code class="computeroutput"><span class="number">3</span></code>. The need
+        for a second function call is the reason why the function is said to be
+        <span class="bold"><strong><span class="emphasis"><em>Lazily Evaluated</em></span></strong></span>. The
+        first call doesn't do anything. You need a second call to finally evaluate
+        the thing. The first call lazily evaluates the function; i.e. doesn't do
+        anything and defers the evaluation for later.
+      </p>
+<h5>
+<a name="phoenix.starter_kit.values.h1"></a>
+        <span class="phrase"><a name="phoenix.starter_kit.values.callbacks"></a></span><a class="link" href="values.html#phoenix.starter_kit.values.callbacks">Callbacks</a>
+      </h5>
+<p>
+        It may not be immediately apparent how lazy evaluation can be useful by just
+        looking at the example above. Putting the first and second function call
+        in a single line is really not very useful. However, thinking of <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span></code> as a callback function (and in most cases
+        they are actually used that way), will make it clear. Example:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">print</span><span class="special">(</span><span class="identifier">F</span> <span class="identifier">f</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">f</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span>
+<span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">));</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="string">"Hello World"</span><span class="special">));</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        (See <a href="../../../../example/callback.cpp" target="_top">callback.cpp</a>)
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../starter_kit.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../starter_kit.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="references.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

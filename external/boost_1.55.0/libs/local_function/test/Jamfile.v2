@@ -1,0 +1,51 @@
+
+# Copyright (C) 2009-2012 Lorenzo Caminiti
+# Distributed under the Boost Software License, Version 1.0
+# (see accompanying file LICENSE_1_0.txt or a copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+# Home at http://www.boost.org/libs/local_function
+
+import testing ;
+
+# Sun does not automatically detect type-of emulation mode (force it).
+project : requirements <toolset>sun:<define>BOOST_TYPEOF_EMULATION ;
+
+rule vaseq ( command target )
+{
+    $(command) $(target).cpp ;
+    $(command) $(target)_seq.cpp ;
+    $(command) $(target)_seq_nova.cpp ;
+}
+
+vaseq run add ;
+vaseq run add_classifiers ;
+vaseq run add_default ;
+vaseq run add_except ;
+vaseq run add_inline ;
+vaseq run add_params_only ;
+vaseq run add_template ;
+vaseq run add_this ;
+vaseq run add_typed ;
+vaseq run add_with_default ;
+vaseq run all_decl ;
+vaseq run factorial ;
+vaseq run goto ;
+vaseq compile-fail goto_error ;
+vaseq run macro_commas ;
+vaseq run nesting ;
+vaseq run operator ;
+vaseq compile-fail operator_error ;
+vaseq run overload ;
+vaseq run return_assign ;
+vaseq run return_derivative ;
+vaseq run return_inc ;
+vaseq run return_setget ;
+vaseq run return_this ;
+vaseq run same_line ;
+vaseq run transform ;
+vaseq run typeof ;
+vaseq run typeof_template ;
+
+run ten_void.cpp ;
+run ten_void_nova.cpp ;
+

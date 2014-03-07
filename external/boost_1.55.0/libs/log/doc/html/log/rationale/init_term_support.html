@@ -1,0 +1,68 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Does Boost.Log support logging at process initialization and termination?</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../rationale.html" title="Rationale and FAQ">
+<link rel="prev" href="fork_support.html" title="Does Boost.Log support process forking?">
+<link rel="next" href="why_crash_on_term.html" title="Why my application crashes on process termination when file sinks are used?">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fork_support.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="why_crash_on_term.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.rationale.init_term_support"></a><a class="link" href="init_term_support.html" title="Does Boost.Log support logging at process initialization and termination?">Does Boost.Log support
+      logging at process initialization and termination?</a>
+</h3></div></div></div>
+<p>
+        It should be fine to use logging during the application initialization (i.e.
+        before <code class="computeroutput"><span class="identifier">main</span><span class="special">()</span></code>
+        starts). But there are a number of known problems with Boost.Log that prevent
+        it from being used at process termination (i.e. after the <code class="computeroutput"><span class="identifier">main</span><span class="special">()</span></code> function returns), so the official answer
+        to the second part is no. It may work though, in some very restricted setups,
+        if several rules are followed:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Do not create any objects at process termination, including loggers,
+            attributes or sinks. Try to create and cache the required objects as
+            soon as the application starts (maybe even before <code class="computeroutput"><span class="identifier">main</span><span class="special">()</span></code> starts).
+          </li>
+<li class="listitem">
+            Do not use global loggers at process termination.
+          </li>
+<li class="listitem">
+            Do not call <code class="computeroutput"><span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">()</span></code>
+            at process termination. Get that pointer as early as possible and keep
+            it until the process terminates.
+          </li>
+<li class="listitem">
+            Do not use named scopes in termination code.
+          </li>
+</ul></div>
+<p>
+        These rules don't guarantee that the library will work in termination context
+        but they may help to avoid problems. The library will get improved to support
+        this use case better.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fork_support.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="why_crash_on_term.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

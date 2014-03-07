@@ -1,0 +1,118 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>read_until (2 of 8 overloads)</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../read_until.html" title="read_until">
+<link rel="prev" href="overload1.html" title="read_until (1 of 8 overloads)">
+<link rel="next" href="overload3.html" title="read_until (3 of 8 overloads)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overload1.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../read_until.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="overload3.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.reference.read_until.overload2"></a><a class="link" href="overload2.html" title="read_until (2 of 8 overloads)">read_until
+        (2 of 8 overloads)</a>
+</h4></div></div></div>
+<p>
+          Read data into a streambuf until it contains a specified delimiter.
+        </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="../SyncReadStream.html" title="Buffer-oriented synchronous read stream requirements">SyncReadStream</a><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">read_until</span><span class="special">(</span>
+    <span class="identifier">SyncReadStream</span> <span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">basic_streambuf</span><span class="special">&lt;</span> <span class="identifier">Allocator</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">b</span><span class="special">,</span>
+    <span class="keyword">char</span> <span class="identifier">delim</span><span class="special">,</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="special">&amp;</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+          This function is used to read data into the specified streambuf until the
+          streambuf's get area contains the specified delimiter. The call will block
+          until one of the following conditions is true:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              The get area of the streambuf contains the specified delimiter.
+            </li>
+<li class="listitem">
+              An error occurred.
+            </li>
+</ul></div>
+<p>
+          This operation is implemented in terms of zero or more calls to the stream's
+          read_some function. If the streambuf's get area already contains the delimiter,
+          the function returns immediately.
+        </p>
+<h6>
+<a name="boost_asio.reference.read_until.overload2.h0"></a>
+          <span class="phrase"><a name="boost_asio.reference.read_until.overload2.parameters"></a></span><a class="link" href="overload2.html#boost_asio.reference.read_until.overload2.parameters">Parameters</a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">s</span></dt>
+<dd><p>
+                The stream from which the data is to be read. The type must support
+                the SyncReadStream concept.
+              </p></dd>
+<dt><span class="term">b</span></dt>
+<dd><p>
+                A streambuf object into which the data will be read.
+              </p></dd>
+<dt><span class="term">delim</span></dt>
+<dd><p>
+                The delimiter character.
+              </p></dd>
+<dt><span class="term">ec</span></dt>
+<dd><p>
+                Set to indicate what error occurred, if any.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="boost_asio.reference.read_until.overload2.h1"></a>
+          <span class="phrase"><a name="boost_asio.reference.read_until.overload2.return_value"></a></span><a class="link" href="overload2.html#boost_asio.reference.read_until.overload2.return_value">Return
+          Value</a>
+        </h6>
+<p>
+          The number of bytes in the streambuf's get area up to and including the
+          delimiter. Returns 0 if an error occurred.
+        </p>
+<h6>
+<a name="boost_asio.reference.read_until.overload2.h2"></a>
+          <span class="phrase"><a name="boost_asio.reference.read_until.overload2.remarks"></a></span><a class="link" href="overload2.html#boost_asio.reference.read_until.overload2.remarks">Remarks</a>
+        </h6>
+<p>
+          After a successful read_until operation, the streambuf may contain additional
+          data beyond the delimiter. An application will typically leave that data
+          in the streambuf for a subsequent read_until operation to examine.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overload1.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../read_until.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="overload3.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

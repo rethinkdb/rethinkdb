@@ -1,0 +1,85 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template year_based_generator</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.date_generators_hpp" title="Header &lt;boost/date_time/date_generators.hpp&gt;">
+<link rel="prev" href="date_generator_parser.html" title="Class template date_generator_parser">
+<link rel="next" href="partial_date.html" title="Class template partial_date">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="date_generator_parser.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.date_generators_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="partial_date.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.year_based_generator"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template year_based_generator</span></h2>
+<p>boost::date_time::year_based_generator &#8212; Base class for all generators that take a year and produce a date. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.date_generators_hpp" title="Header &lt;boost/date_time/date_generators.hpp&gt;">boost/date_time/date_generators.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> date_type<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="year_based_generator.html" title="Class template year_based_generator">year_based_generator</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">calendar_type</span> <a name="boost.date_time.year_based_generator.calendar_type"></a><span class="identifier">calendar_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">calendar_type</span><span class="special">::</span><span class="identifier">year_type</span> <a name="boost.date_time.year_based_generator.year_type"></a><span class="identifier">year_type</span><span class="special">;</span>    
+
+  <span class="comment">// <a class="link" href="year_based_generator.html#boost.date_time.year_based_generatorconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="year_based_generator.html#idp21968216-bb"><span class="identifier">year_based_generator</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="year_based_generator.html#idp20652728-bb"><span class="special">~</span><span class="identifier">year_based_generator</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="year_based_generator.html#idp51658408-bb">public member functions</a></span>
+  <span class="identifier">date_type</span> <a class="link" href="year_based_generator.html#idp51658616-bb"><span class="identifier">get_date</span></a><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a class="link" href="year_based_generator.html#idp21967560-bb"><span class="identifier">to_string</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp85309384"></a><h2>Description</h2>
+<p>This class is a base class for polymorphic function objects that take a year and produce a concrete date. 
+</p>
+<div class="refsect2">
+<a name="idp85309832"></a><h3>
+<a name="boost.date_time.year_based_generatorconstruct-copy-destruct"></a><code class="computeroutput">year_based_generator</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><a name="idp21968216-bb"></a><span class="identifier">year_based_generator</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp20652728-bb"></a><span class="special">~</span><span class="identifier">year_based_generator</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp85314856"></a><h3>
+<a name="idp51658408-bb"></a><code class="computeroutput">year_based_generator</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="identifier">date_type</span> <a name="idp51658616-bb"></a><span class="identifier">get_date</span><span class="special">(</span><span class="identifier">year_type</span> y<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a name="idp21967560-bb"></a><span class="identifier">to_string</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns a string for use in a POSIX time_zone string. </li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="date_generator_parser.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.date_generators_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="partial_date.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

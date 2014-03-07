@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/functional/range/size.hpp">
+  <para>Includes Proto callable <code><classname>boost::proto::functional::size</classname></code>.</para>
+
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="functional">
+
+        <!-- proto::functional::size -->
+        <struct name="size">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+            <code>boost::size()</code> function on its arguments.</purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+              <code>boost::size()</code> function on its arguments.</para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Range"/>
+            </template>
+            <specialization>
+              <template-arg>This(Range)</template-arg>
+            </specialization>
+            <inherit>
+              <type>boost::range_size&lt;
+      typename boost::remove_reference&lt;Range&gt;::type
+  &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename boost::range_size&lt; Range const &gt;::type</type>
+              <template>
+                <template-type-parameter name="Range"/>
+              </template>
+              <parameter name="rng">
+                <paramtype>Range const &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para><code>boost::size(rng)</code></para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+
+      </namespace>
+    </namespace>
+  </namespace>
+</header>

@@ -1,0 +1,71 @@
+<html>
+	<head>
+		<title>BOOST_PP_SEQ_REPLACE</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<div style="margin-left:  0px;">
+			The <b>BOOST_PP_SEQ_REPLACE</b> macro replaces an element in a <i>seq</i>.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_RPLACE</b>(<i>seq</i>, <i>i</i>, <i>elem</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> in which an element is to be replaced.
+			</dd>
+			<dt>i</dt>
+			<dd>
+				The zero-based position in <i>seq</i> of the element to be replaced.&nbsp; 
+				Valid values range from <i>0</i> to <b>BOOST_PP_SEQ_SIZE</b>(<i>seq</i>) - <i>1</i>.
+			</dd>
+			<dt>elem</dt>
+			<dd>
+				The element to replace the element at index <i>i</i> within <i>seq</i>.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			This macro returns <i>seq</i> after replacing the element at index <i>i</i> with
+			<i>elem</i>.
+		</div>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/replace.html">&lt;boost/preprocessor/seq/replace.hpp&gt;</a>
+		</div>
+		<h4>
+			Sample Code
+		</h4>
+		<div>
+			<pre>
+#include &lt;<a href="../headers/seq/replace.html">boost/preprocessor/seq/replace.hpp</a>&gt;
+
+#define SEQ (a)(b)(x)(d)
+
+<a href="seq_replace.html">BOOST_PP_SEQ_REPLACE</a>(SEQ, 2, c) // expands to (a)(b)(c)(d)
+</pre>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/signals/trackable.hpp">
+  <namespace name="boost">
+    <namespace name="signals">
+      <class name="trackable">
+        <purpose>Enables safe use of multicast callbacks.</purpose>
+
+        <description>
+          <para>The <code>trackable</code> class provides automatic
+          disconnection of signals and slots when objects bound in
+          slots (via pointer or reference) are destroyed. The
+          <code>trackable</code> class may only be used as a public
+          base class for some other class; when used as such, that
+          class may be bound to function objects used as part of
+          slots. The manner in which a <code>trackable</code> object
+          tracks the set of signal-slot connections it is a part of is
+          unspecified.</para>
+        
+          <para>The actual use of <code>trackable</code> is contingent
+          on the presence of appropriate
+          <functionname>visit_each</functionname> overloads for any
+          type that may contain pointers or references to trackable
+          objects.</para>
+        </description>
+
+        <constructor>
+          <effects><para>Sets the list of connected slots to empty.</para></effects>
+          <throws><para>Will not throw.</para></throws>
+        </constructor>
+
+        <constructor>
+          <parameter name="other">
+            <paramtype>const <classname>trackable</classname>&amp;</paramtype>
+          </parameter>
+
+          <effects><para>Sets the list of connected slots to empty.</para></effects>
+          <throws><para>Will not throw.</para></throws>
+          <rationale><para>Signal-slot connections can only be created via calls to an explicit connect method, and therefore cannot be created here when trackable objects are copied.</para></rationale>
+        </constructor> 
+
+        <destructor>
+          <effects><para>Disconnects all signal/slot connections that
+          contain a pointer or reference to this trackable object that
+          can be found by
+          <functionname>visit_each</functionname>.</para></effects>
+        </destructor>
+
+        <copy-assignment>
+          <parameter name="other">
+            <paramtype>const <classname>trackable</classname>&amp;</paramtype>
+          </parameter>
+
+          <effects><para>Sets the list of connected slots to empty.</para></effects>
+          <returns><para><code>*this</code></para></returns>
+          <throws><para>Will not throw.</para></throws>
+          <rationale><para>Signal-slot connections can only be created via calls to an explicit connect method, and therefore cannot be created here when trackable objects are copied.</para></rationale>
+        </copy-assignment> 
+      </class>
+    </namespace>
+  </namespace>
+</header>

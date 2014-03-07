@@ -1,0 +1,164 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000, Alex Hagen-Zanker (2012)
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Identity Property Map</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H2><A NAME="sec:identity-property-map"></A> </h2>
+
+<PRE>
+boost::typed_identity_property_map&lt;T&gt;
+
+typedef boost::typed_identity_propoperty_map&lt;std::size_t&gt; boost::identity_property_map
+</PRE>
+
+<p>The <code>typed_identity_property_map</code> property map applies the identity function, that is, it just returns a copy of the key object that was input. The key and value types are both the same as the template parameter <code>T</code>. The <code>identity_property_map</code> name is for the common case where the key and value type are <code>std::size_t</code> (this name is deprecated for use within Boost.Graph). </p>
+<p><em>Note:</em> Previously the function <code>get()</code> and <code>operator[]</code> for <code>identity_property_map</code> were overloaded to return a copy of keys of any type, i.e., not just <code>size_t</code>. These overloads are now deprecated, because they did not adhere to the property map concepts.</p>
+
+<H3>Where Defined</H3>
+
+<P>
+        <a href="../../../boost/property_map/property_map.hpp"><TT>boost/property_map/property_map.hpp</TT></a>
+</P>
+        
+<h3>Model of</h3>
+
+<a href="./ReadablePropertyMap.html">Readable Property Map</a>
+
+<h3>Template Parameters</h3>
+<TABLE border>
+        <TR>
+                <th>Parameter</th>
+                <th>Description</th>
+                <th>Default</th>
+        </tr>
+        <TR>
+                <TD><TT>T</TT></TD>
+                <TD>Must be Copy Contructible</TD>
+                <TD>&nbsp;</td>
+        </tr>
+</TABLE>
+<h3>Associated Types</h3>
+
+<table border>
+<tr>
+<th>Type</th><th>Description</th>
+</tr>
+
+<tr>
+<td><tt>
+boost::property_traits&lt;typed_identity_property_map&lt;T&gt; &gt;::value_type
+</tt></td>
+<td>
+This type is <tt>T</tt>. </td>
+</tr>
+
+<tr>
+<td><tt>
+boost::property_traits&lt;typed_identity_property_map&lt;T&gt; &gt;::key_type
+</tt></td>
+<td>
+This type is <tt>T</tt>.</td>
+</tr>
+
+<tr>
+<td><tt>
+boost::property_traits&lt;typed_identity_property_map&lt;T&gt; &gt;::reference
+</tt></td>
+<td>
+This type is <tt>T</tt>..</td>
+</tr>
+
+<tr>
+<td><tt>
+boost::property_traits&lt;typed_identity_property_map&lt;T&gt; &gt;::category
+</tt></td>
+<td>
+This type is <tt>boost::readable_property_map_tag</tt>.
+</td>
+</tr>
+
+</table>
+
+<h3>Member Functions</h3>
+
+<table border>
+<tr>
+<th>Member</th><th>Description</th>
+</tr>
+
+
+<tr>
+<td><tt>
+typed_identity_property_map()
+</tt></td>
+<td>
+Default constructor.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+typed_identity_property_map(const typed_identity_property_map&lt;T&gt;&amp; x)
+</tt></td>
+<td>
+Copy constructor.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+        T operator[](const T&amp; x) const
+</tt></td>
+<td>
+Returns a copy of object <tt>x</tt>.
+</td>
+</tr>
+
+</table>
+
+<h3>Non-Member Functions</h3>
+
+<table border>
+<tr>
+<th>Member</th><th>Description</th>
+</tr>
+
+<tr>
+<td><tt> T get(const typed_identity_property_map&lt;T&gt;&amp; pmap, const T&amp; x)
+</tt></td>
+<td>
+Returns a copy of object <tt>x</tt>.
+</td>
+</tr>
+
+</table>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2012</TD><TD>
+<a HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>,
+Univ.of Notre Dame (<A
+HREF="mailto:jsiek@lsc.nd.edu">jsiek@lsc.nd.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Univ. of Notre Dame (<A HREF="mailto:llee1@lsc.nd.edu">llee1@lsc.nd.edu</A>)<br>
+<A HREF="http://www.lsc.nd.edu/~lums">Andrew Lumsdaine</A>,
+Univ.of Notre Dame (<A
+HREF="mailto:lums@lsc.nd.edu">lums@lsc.nd.edu</A>)<br>
+Alex Hagen-Zanker</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

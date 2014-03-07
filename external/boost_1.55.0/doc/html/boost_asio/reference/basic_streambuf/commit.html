@@ -1,0 +1,77 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>basic_streambuf::commit</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../basic_streambuf.html" title="basic_streambuf">
+<link rel="prev" href="basic_streambuf.html" title="basic_streambuf::basic_streambuf">
+<link rel="next" href="const_buffers_type.html" title="basic_streambuf::const_buffers_type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_streambuf.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../basic_streambuf.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="const_buffers_type.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.reference.basic_streambuf.commit"></a><a class="link" href="commit.html" title="basic_streambuf::commit">basic_streambuf::commit</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp76088088"></a> 
+Move characters from the output sequence to the input
+          sequence.
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">commit</span><span class="special">(</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">n</span><span class="special">);</span>
+</pre>
+<p>
+          Appends <code class="computeroutput"><span class="identifier">n</span></code> characters from
+          the start of the output sequence to the input sequence. The beginning of
+          the output sequence is advanced by <code class="computeroutput"><span class="identifier">n</span></code>
+          characters.
+        </p>
+<p>
+          Requires a preceding call <code class="computeroutput"><span class="identifier">prepare</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+          where <code class="computeroutput"><span class="identifier">x</span> <span class="special">&gt;=</span>
+          <span class="identifier">n</span></code>, and no intervening operations
+          that modify the input or output sequence.
+        </p>
+<h6>
+<a name="boost_asio.reference.basic_streambuf.commit.h0"></a>
+          <span class="phrase"><a name="boost_asio.reference.basic_streambuf.commit.exceptions"></a></span><a class="link" href="commit.html#boost_asio.reference.basic_streambuf.commit.exceptions">Exceptions</a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">std::length_error</span></dt>
+<dd><p>
+                If <code class="computeroutput"><span class="identifier">n</span></code> is greater than
+                the size of the output sequence.
+              </p></dd>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_streambuf.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../basic_streambuf.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="const_buffers_type.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

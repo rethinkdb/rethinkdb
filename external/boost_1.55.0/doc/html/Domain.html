@@ -1,0 +1,217 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Concept Domain</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="proto/reference.html" title="Reference">
+<link rel="prev" href="CallableTransform.html" title="Concept CallableTransform">
+<link rel="next" href="Expr.html" title="Concept Expr">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="CallableTransform.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="proto/reference.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="Expr.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="Domain"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Concept Domain</span></h2>
+<p>Domain</p>
+</div>
+<div class="refsect1">
+<a name="idp188777080"></a><h2>Description</h2>
+<p>
+      A Domain creates an association between expressions and a so-called
+      generator, which is a function that maps an expression in the default
+      domain to an equivalent expression in this Domain. It also associates
+      an expression with a grammar, to which all expressions within this
+      Domain must conform.
+    </p>
+</div>
+<div class="refsect1">
+<a name="idp188777880"></a><h2>Associated types</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p><span class="bold"><strong>proto_grammar</strong></span></p>
+<pre class="literallayout">Domain::proto_grammar</pre>
+<p>
+      </p>
+<p>The grammar to which every expression in this Domain
+        must conform.</p>
+<p>
+    </p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>proto_generator</strong></span></p>
+<pre class="literallayout">Domain::proto_generator</pre>
+<p>
+      </p>
+<p>
+        A Unary Polymorphic Function that accepts expressions in the
+        default domain and emits expressions in this Domain.
+      </p>
+<p>
+    </p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>proto_super_domain</strong></span></p>
+<pre class="literallayout">Domain::proto_super_domain</pre>
+<p>
+      </p>
+<p>
+        The Domain that is a super-domain of this domain, if
+        any such domain exists. If not, it is some unspecified
+        type.
+      </p>
+<p>
+    </p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>result_type</strong></span></p>
+<pre class="literallayout">boost::result_of&lt;Domain(Expr)&gt;::type</pre>
+<p>
+      </p>
+<p>
+        The type of the result of applying
+        <code class="computeroutput">proto_generator</code> to
+        the specified expression type. The result is required to
+        model <a class="link" href="Expr.html" title="Concept Expr">Expr</a>. The domain type
+        associated with <code class="computeroutput">result_type</code>
+        (<code class="computeroutput">result_type::proto_domain</code>)
+        is required to be the same type as this Domain.
+      </p>
+<p>
+    </p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>as_expr_result_type</strong></span></p>
+<pre class="literallayout">Domain::as_expr&lt;Object&gt;::result_type</pre>
+<p>
+      </p>
+<p>
+        The result of converting some type to a Proto expression
+        type in this domain. This is used, for instance, when
+        calculating the type of a variable to hold a Proto
+        expression.
+        <code class="computeroutput">as_expr_result_type</code>
+        models
+        <code class="computeroutput"><a class="link" href="Expr.html" title="Concept Expr">Expr</a></code>.
+      </p>
+<p>
+    </p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>as_child_result_type</strong></span></p>
+<pre class="literallayout">Domain::as_child&lt;Object&gt;::result_type</pre>
+<p>
+      </p>
+<p>
+        The result of converting some type to a Proto expression
+        type in this domain. This is used, for instance, to
+        compute the type of an object suitable for storage
+        as a child in an expression tree.
+        <code class="computeroutput">as_child_result_type</code>
+        models
+        <code class="computeroutput"><a class="link" href="Expr.html" title="Concept Expr">Expr</a></code>.
+      </p>
+<p>
+    </p>
+</li>
+</ul></div>
+</div>
+<div class="refsect1">
+<a name="idp188789416"></a><h2>Notation</h2>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term">Domain</span></dt>
+<dd>A type playing the role of domain-type in the <a class="link" href="Domain.html" title="Concept Domain">Domain</a> concept.</dd>
+<dt><span class="term">Expr</span></dt>
+<dd>A type playing the role of expression-type in the <a class="link" href="Domain.html" title="Concept Domain">Domain</a> concept.</dd>
+<dt><span class="term">Object</span></dt>
+<dd>A type playing the role of object-type in the <a class="link" href="Domain.html" title="Concept Domain">Domain</a> concept.</dd>
+<dt><span class="term"><code class="varname">d</code></span></dt>
+<dd>Object of type Domain</dd>
+<dt><span class="term"><code class="varname">e</code></span></dt>
+<dd>Object of type Expr</dd>
+<dt><span class="term"><code class="varname">o</code></span></dt>
+<dd>Object of type Object</dd>
+</dl></div>
+</div>
+<div class="refsect1">
+<a name="idp188793736"></a><h2>Valid expressions</h2>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type</th>
+<th>Semantics</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><p>Apply Generator</p></td>
+<td><p>d(e)</p></td>
+<td><p><span class="type">result_type</span></p></td>
+<td><p>
+      The result of applying <code class="computeroutput">proto_generator</code>
+      to the specified expression.
+    </p></td>
+</tr>
+<tr>
+<td><p>As Expression</p></td>
+<td><p>Domain::as_expr&lt; Object &gt;()(o)</p></td>
+<td><p><span class="type">as_expr_result_type</span></p></td>
+<td><p>
+      The result of converting some object to a Proto expression
+      in this domain. It returns a Proto expression object that
+      is suitable for storage in a variable. It should return a
+      new object, which may be a copy of the object passed in.
+    </p></td>
+</tr>
+<tr>
+<td><p>As Child</p></td>
+<td><p>Domain::as_child&lt; Object &gt;()(o)</p></td>
+<td><p><span class="type">as_child_result_type</span></p></td>
+<td><p>
+      The result of converting some object to a Proto expression
+      in this domain. It returns an object suitable for storage
+      as a child in an expression tree, which may simply be a
+      reference to the object passed in.
+    </p></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="refsect1">
+<a name="idp188798824"></a><h2>Models</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><span class="simplelist"><span class="type">boost::proto::default_domain</span></span></li></ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="CallableTransform.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="proto/reference.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="Expr.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

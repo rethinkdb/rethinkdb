@@ -1,0 +1,394 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Log record formatting</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="attributes.html" title="Adding more information to log: Attributes">
+<link rel="next" href="advanced_filtering.html" title="Filtering revisited">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="attributes.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="advanced_filtering.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.tutorial.formatters"></a><a class="link" href="formatters.html" title="Log record formatting">Log record formatting</a>
+</h3></div></div></div>
+<p>
+        If you tried running examples from the previous sections, you may have noticed
+        that only log record messages are written to the files. This is the default
+        behavior of the library when no formatter is set. Even if you added attributes
+        to the logging core or a logger, the attribute values will not reach the
+        output unless you specify a formatter that will use these values.
+      </p>
+<p>
+        Returning to one of the examples in previous tutorial sections:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">init</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_file_log</span>
+    <span class="special">(</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">file_name</span> <span class="special">=</span> <span class="string">"sample_%N.log"</span><span class="special">,</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">rotation_size</span> <span class="special">=</span> <span class="number">10</span> <span class="special">*</span> <span class="number">1024</span> <span class="special">*</span> <span class="number">1024</span><span class="special">,</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">time_based_rotation</span> <span class="special">=</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">rotation_at_time_point</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">),</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">format</span> <span class="special">=</span> <span class="string">"[%TimeStamp%]: %Message%"</span>
+    <span class="special">);</span>
+
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">()-&gt;</span><span class="identifier">set_filter</span>
+    <span class="special">(</span>
+        <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">severity</span> <span class="special">&gt;=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">info</span>
+    <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        In the case of the <code class="computeroutput"><span class="identifier">add_file_log</span></code>
+        function, the <code class="computeroutput"><span class="identifier">format</span></code> parameter
+        allows to specify format of the log records. If you prefer to set up sinks
+        manually, sink frontends provide the <code class="computeroutput"><span class="identifier">set_formatter</span></code>
+        member function for this purpose.
+      </p>
+<p>
+        The format can be specified in a number of ways, as described further.
+      </p>
+<h5>
+<a name="log.tutorial.formatters.h0"></a>
+        <span class="phrase"><a name="log.tutorial.formatters.lambda_style_formatters"></a></span><a class="link" href="formatters.html#log.tutorial.formatters.lambda_style_formatters">Lambda-style
+        formatters</a>
+      </h5>
+<p>
+        You can create a formatter with a lambda-style expression like this:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">init</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_file_log</span>
+    <span class="special">(</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">file_name</span> <span class="special">=</span> <span class="string">"sample_%N.log"</span><span class="special">,</span>
+        <span class="comment">// This makes the sink to write log records that look like this:</span>
+        <span class="comment">// 1: &lt;normal&gt; A normal severity message</span>
+        <span class="comment">// 2: &lt;error&gt; An error severity message</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">format</span> <span class="special">=</span>
+        <span class="special">(</span>
+            <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"LineID"</span><span class="special">)</span>
+                <span class="special">&lt;&lt;</span> <span class="string">": &lt;"</span> <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">severity</span>
+                <span class="special">&lt;&lt;</span> <span class="string">"&gt; "</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span>
+        <span class="special">)</span>
+    <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        <a href="../../../../../../libs/log/example/doc/tutorial_fmt_stream.cpp" target="_top">See the
+        complete code</a>.
+      </p>
+<p>
+        Here the <code class="computeroutput"><span class="identifier">stream</span></code> is a placeholder
+        for the stream to format the record in. Other insertion arguments, such as
+        <a class="link" href="../detailed/expressions.html#log.detailed.expressions.attr" title="Generic attribute placeholder"><code class="computeroutput"><span class="identifier">attr</span></code></a>
+        and <a class="link" href="../detailed/expressions.html#log.detailed.expressions.message" title="Message text placeholders"><code class="computeroutput"><span class="identifier">message</span></code></a>,
+        are manipulators that define what should be stored in the stream. We have
+        already seen the <code class="computeroutput"><span class="identifier">severity</span></code>
+        placeholder in filtering expressions, and here it is used in a formatter.
+        This is a nice unification: you can use the same placeholders in both filters
+        and formatters. The <a class="link" href="../detailed/expressions.html#log.detailed.expressions.attr" title="Generic attribute placeholder"><code class="computeroutput"><span class="identifier">attr</span></code></a> placeholder is similar to the
+        <code class="computeroutput"><span class="identifier">severity</span></code> placeholder as it
+        represents the attribute value, too. The difference is that the <code class="computeroutput"><span class="identifier">severity</span></code> placeholder represents the particular
+        attribute with the name "Severity" and type <code class="computeroutput"><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">severity_level</span></code>
+        and <a class="link" href="../detailed/expressions.html#log.detailed.expressions.attr" title="Generic attribute placeholder"><code class="computeroutput"><span class="identifier">attr</span></code></a>
+        can be used to represent any attribute. Otherwise the two placeholders are
+        equivalent. For instance, it is possible to replace <code class="computeroutput"><span class="identifier">severity</span></code>
+        with the following:
+      </p>
+<pre class="programlisting"><span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">severity_level</span> <span class="special">&gt;(</span><span class="string">"Severity"</span><span class="special">)</span>
+</pre>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          As shown in the previous section, it is possible to define placeholders
+          like <code class="computeroutput"><span class="identifier">severity</span></code> for user's
+          attributes. As an additional benefit to the simpler syntax in the template
+          expressions such placeholders allow to concentrate all the information
+          about the attribute (the name and the value type) in the placeholder definition.
+          This makes coding less error-prone (you won't misspell the attribute name
+          or specify incorrect value type) and therefore is the recommended way of
+          defining new attributes and using them in template expressions.
+        </p></td></tr>
+</table></div>
+<p>
+        There are other <a class="link" href="../detailed/expressions.html#log.detailed.expressions.formatters" title="Formatting expressions">formatter
+        manipulators</a> that provide advanced support for date, time and other
+        types. Some manipulators accept additional arguments that customize their
+        behavior. Most of these arguments are named and can be passed in <a href="http://www.boost.org/doc/libs/release/libs/parameter/doc/html/index.html" target="_top">Boost.Parameter</a>
+        style.
+      </p>
+<p>
+        For a change, let's see how it's done when manually initializing sinks:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">init</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_ostream_backend</span> <span class="special">&gt;</span> <span class="identifier">text_sink</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">text_sink</span> <span class="special">&gt;</span> <span class="identifier">sink</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">text_sink</span> <span class="special">&gt;();</span>
+
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">locked_backend</span><span class="special">()-&gt;</span><span class="identifier">add_stream</span><span class="special">(</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ofstream</span> <span class="special">&gt;(</span><span class="string">"sample.log"</span><span class="special">));</span>
+
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+    <span class="special">(</span>
+        <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+               <span class="comment">// line id will be written in hex, 8-digits, zero-filled</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">hex</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setw</span><span class="special">(</span><span class="number">8</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setfill</span><span class="special">(</span><span class="char">'0'</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"LineID"</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="string">": &lt;"</span> <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">severity</span>
+            <span class="special">&lt;&lt;</span> <span class="string">"&gt; "</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span>
+    <span class="special">);</span>
+
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">()-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        <a href="../../../../../../libs/log/example/doc/tutorial_fmt_stream_manual.cpp" target="_top">See
+        the complete code</a>.
+      </p>
+<p>
+        You can see that it is possible to bind format changing manipulators in the
+        expression; these manipulators will affect the subsequent attribute value
+        format when log record is formatted, just like with streams. More manipulators
+        are described in the <a class="link" href="../detailed/expressions.html" title="Lambda expressions">Detailed features
+        description</a> section.
+      </p>
+<h5>
+<a name="log.tutorial.formatters.h1"></a>
+        <span class="phrase"><a name="log.tutorial.formatters.boost_format_style_formatters"></a></span><a class="link" href="formatters.html#log.tutorial.formatters.boost_format_style_formatters">Boost.Format-style
+        formatters</a>
+      </h5>
+<p>
+        As an alternative, you can define formatters with a syntax similar to <a href="http://www.boost.org/doc/libs/release/libs/format/index.html" target="_top">Boost.Format</a>.
+        The same formatter as described above can be written as follows:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">init</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_ostream_backend</span> <span class="special">&gt;</span> <span class="identifier">text_sink</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">text_sink</span> <span class="special">&gt;</span> <span class="identifier">sink</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">text_sink</span> <span class="special">&gt;();</span>
+
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">locked_backend</span><span class="special">()-&gt;</span><span class="identifier">add_stream</span><span class="special">(</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ofstream</span> <span class="special">&gt;(</span><span class="string">"sample.log"</span><span class="special">));</span>
+
+    <span class="comment">// This makes the sink to write log records that look like this:</span>
+    <span class="comment">// 1: &lt;normal&gt; A normal severity message</span>
+    <span class="comment">// 2: &lt;error&gt; An error severity message</span>
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+    <span class="special">(</span>
+        <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format</span><span class="special">(</span><span class="string">"%1%: &lt;%2%&gt; %3%"</span><span class="special">)</span>
+            <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">attr</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"LineID"</span><span class="special">)</span>
+            <span class="special">%</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">severity</span>
+            <span class="special">%</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span>
+    <span class="special">);</span>
+
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">()-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        <a href="../../../../../../libs/log/example/doc/tutorial_fmt_format.cpp" target="_top">See the
+        complete code</a>.
+      </p>
+<p>
+        The <code class="computeroutput"><span class="identifier">format</span></code> placeholder accepts
+        the format string with positional specification of all arguments being formatted.
+        Note that only positional format is currently supported. The same format
+        specification can be used with the <code class="computeroutput"><span class="identifier">add_file_log</span></code>
+        and similar functions.
+      </p>
+<h5>
+<a name="log.tutorial.formatters.h2"></a>
+        <span class="phrase"><a name="log.tutorial.formatters.specialized_formatters"></a></span><a class="link" href="formatters.html#log.tutorial.formatters.specialized_formatters">Specialized
+        formatters</a>
+      </h5>
+<p>
+        The library provides specialized formatters for a number of types, such as
+        date, time and named scope. These formatters provide extended control over
+        the formatted values. For example, it is possible to describe date and time
+        format with a format string compatible with <a href="http://www.boost.org/doc/libs/release/doc/html/date_time.html" target="_top">Boost.DateTime</a>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">init</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_file_log</span>
+    <span class="special">(</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">file_name</span> <span class="special">=</span> <span class="string">"sample_%N.log"</span><span class="special">,</span>
+        <span class="comment">// This makes the sink to write log records that look like this:</span>
+        <span class="comment">// YYYY-MM-DD HH:MI:SS: &lt;normal&gt; A normal severity message</span>
+        <span class="comment">// YYYY-MM-DD HH:MI:SS: &lt;error&gt; An error severity message</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">format</span> <span class="special">=</span>
+        <span class="special">(</span>
+            <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">format_date_time</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&gt;(</span><span class="string">"TimeStamp"</span><span class="special">,</span> <span class="string">"%Y-%m-%d %H:%M:%S"</span><span class="special">)</span>
+                <span class="special">&lt;&lt;</span> <span class="string">": &lt;"</span> <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">severity</span>
+                <span class="special">&lt;&lt;</span> <span class="string">"&gt; "</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span>
+        <span class="special">)</span>
+    <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        <a href="../../../../../../libs/log/example/doc/tutorial_fmt_stream.cpp" target="_top">See the
+        complete code</a>.
+      </p>
+<p>
+        The same formatter can also be used in the context of a <a href="http://www.boost.org/doc/libs/release/libs/format/index.html" target="_top">Boost.Format</a>-style
+        formatter.
+      </p>
+<h5>
+<a name="log.tutorial.formatters.h3"></a>
+        <span class="phrase"><a name="log.tutorial.formatters.string_templates_as_formatters"></a></span><a class="link" href="formatters.html#log.tutorial.formatters.string_templates_as_formatters">String templates
+        as formatters</a>
+      </h5>
+<p>
+        In some contexts textual templates are accepted as formatters. In this case
+        library initialization support code is invoked in order to parse the template
+        and reconstruct the appropriate formatter. There are a number of caveats
+        to keep in mind when using this approach, but here it will suffice to just
+        briefly describe the template format.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">init</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_file_log</span>
+    <span class="special">(</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">file_name</span> <span class="special">=</span> <span class="string">"sample_%N.log"</span><span class="special">,</span>
+        <span class="identifier">keywords</span><span class="special">::</span><span class="identifier">format</span> <span class="special">=</span> <span class="string">"[%TimeStamp%]: %Message%"</span>
+    <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        <a href="../../../../../../libs/log/example/doc/tutorial_fmt_string.cpp" target="_top">See the
+        complete code</a>.
+      </p>
+<p>
+        Here, the <code class="computeroutput"><span class="identifier">format</span></code> parameter
+        accepts such a format template. The template may contain a number of placeholders
+        enclosed with percent signs (<code class="computeroutput"><span class="special">%</span></code>).
+        Each placeholder must contain an attribute value name to insert instead of
+        the placeholder. The <code class="computeroutput"><span class="special">%</span><span class="identifier">Message</span><span class="special">%</span></code> placeholder will be replaced with the logging
+        record message.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Textual format templates are not accepted by sink backends in the <code class="computeroutput"><span class="identifier">set_formatter</span></code> method. In order to parse
+          textual template into a formatter function one has to call <code class="computeroutput"><span class="identifier">parse_formatter</span></code> function. See <a class="link" href="../detailed/utilities.html#log.detailed.utilities.setup.filter_formatter" title="Filter and formatter parsers">here</a>
+          for more details.
+        </p></td></tr>
+</table></div>
+<h5>
+<a name="log.tutorial.formatters.h4"></a>
+        <span class="phrase"><a name="log.tutorial.formatters.custom_formatting_functions"></a></span><a class="link" href="formatters.html#log.tutorial.formatters.custom_formatting_functions">Custom
+        formatting functions</a>
+      </h5>
+<p>
+        You can add a custom formatter to a sink backend that supports formatting.
+        The formatter is actually a function object that supports the following signature:
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record_view</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">,</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">basic_formatting_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;&amp;</span> <span class="identifier">strm</span><span class="special">);</span>
+</pre>
+<p>
+        Here <code class="computeroutput"><span class="identifier">CharT</span></code> is the target
+        character type. The formatter will be invoked whenever a log record view
+        <code class="computeroutput"><span class="identifier">rec</span></code> passes filtering and
+        is to be stored in log.
+      </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Record views are very similar to records. The notable distinction is that
+          the view is immutable and implements shallow copy. Formatters and sinks
+          only operate on record views, which prevents them from modifying the record
+          while it can be still in use by other sinks in other threads.
+        </p></td></tr>
+</table></div>
+<p>
+        The formatted record should be composed by insertion into STL-compatible
+        output stream <code class="computeroutput"><span class="identifier">strm</span></code>. Here's
+        an example of a custom formatter function usage:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">my_formatter</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record_view</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">,</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">formatting_ostream</span><span class="special">&amp;</span> <span class="identifier">strm</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// Get the LineID attribute value and put it into the stream</span>
+    <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">extract</span><span class="special">&lt;</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&gt;(</span><span class="string">"LineID"</span><span class="special">,</span> <span class="identifier">rec</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">": "</span><span class="special">;</span>
+
+    <span class="comment">// The same for the severity level.</span>
+    <span class="comment">// The simplified syntax is possible if attribute keywords are used.</span>
+    <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="string">"&lt;"</span> <span class="special">&lt;&lt;</span> <span class="identifier">rec</span><span class="special">[</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">severity</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">"&gt; "</span><span class="special">;</span>
+
+    <span class="comment">// Finally, put the record message to the stream</span>
+    <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="identifier">rec</span><span class="special">[</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">smessage</span><span class="special">];</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">init</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">text_ostream_backend</span> <span class="special">&gt;</span> <span class="identifier">text_sink</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">text_sink</span> <span class="special">&gt;</span> <span class="identifier">sink</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">text_sink</span> <span class="special">&gt;();</span>
+
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">locked_backend</span><span class="special">()-&gt;</span><span class="identifier">add_stream</span><span class="special">(</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ofstream</span> <span class="special">&gt;(</span><span class="string">"sample.log"</span><span class="special">));</span>
+
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span><span class="special">(&amp;</span><span class="identifier">my_formatter</span><span class="special">);</span>
+
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">()-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        <a href="../../../../../../libs/log/example/doc/tutorial_fmt_custom.cpp" target="_top">See the
+        complete code</a>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="attributes.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="advanced_filtering.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

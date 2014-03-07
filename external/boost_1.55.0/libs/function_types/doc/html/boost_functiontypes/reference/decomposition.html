@@ -1,0 +1,218 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class templates for type decomposition</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.FunctionTypes 2.5">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="classification.html" title="Class templates for type classification">
+<link rel="next" href="synthesis.html" title="Class templates for type synthesis">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="classification.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="synthesis.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_functiontypes.reference.decomposition"></a><a class="link" href="decomposition.html" title="Class templates for type decomposition">Class templates
+      for type decomposition</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="decomposition.html#boost_functiontypes.reference.decomposition.result_type">result_type</a></span></dt>
+<dt><span class="section"><a href="decomposition.html#boost_functiontypes.reference.decomposition.parameter_types">parameter_types</a></span></dt>
+<dt><span class="section"><a href="decomposition.html#boost_functiontypes.reference.decomposition.function_arity">function_arity</a></span></dt>
+<dt><span class="section"><a href="decomposition.html#boost_functiontypes.reference.decomposition.components">components</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.decomposition.result_type"></a><a class="link" href="decomposition.html#boost_functiontypes.reference.decomposition.result_type" title="result_type">result_type</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">result_type</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">result_type</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term"><code class="literal">F</code></span></dt>
+<dd><p>
+                Type to analyze
+              </p></dd>
+<dt><span class="term"><code class="literal">result_type&lt;F&gt;::type</code></span></dt>
+<dd><p>
+                Result type of <code class="literal">F</code>
+              </p></dd>
+</dl>
+</div>
+<p>
+          Extracts the result type of a callable, builtin type.
+        </p>
+<p>
+          If <code class="literal">F</code> is no callable, builtin type, any attempt to access
+          the <code class="literal">type</code> member results in a compile error.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.decomposition.parameter_types"></a><a class="link" href="decomposition.html#boost_functiontypes.reference.decomposition.parameter_types" title="parameter_types">parameter_types</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ClassTransform</span> <span class="special">=</span> <span class="identifier">add_reference</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">parameter_types</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">parameter_types</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term"><code class="literal">F</code></span></dt>
+<dd><p>
+                Type to analyze
+              </p></dd>
+<dt><span class="term"><code class="literal">ClassTransform</code></span></dt>
+<dd><p>
+                <a href="../../../../../mpl/index.html" target="_top">MPL</a> - <a href="../../../../../mpl/doc/refmanual/lambda-expression.html" target="_top">Lambda
+                Expression</a> to transform the class type if <code class="literal">F</code>
+                is a member function pointer
+              </p></dd>
+<dt><span class="term"><code class="literal">parameter_types&lt;F,ClassTransform&gt;</code></span></dt>
+<dd><p>
+                <a href="../../../../../mpl/index.html" target="_top">MPL</a> - <a href="../../../../../mpl/doc/refmanual/front-extensible-sequence.html" target="_top">Front</a>
+                / <a href="../../../../../mpl/doc/refmanual/back-extensible-sequence.html" target="_top">Back
+                </a><a href="../../../../../mpl/doc/refmanual/extensible-sequence.html" target="_top">Extensible
+                </a><a href="../../../../../mpl/doc/refmanual/random-access-sequence.html" target="_top">Random
+                Access Sequence</a> of parameter types
+              </p></dd>
+</dl>
+</div>
+<p>
+          Extracts the parameter types of a callable, builtin type.
+        </p>
+<p>
+          If <code class="literal">F</code> is no callable, builtin type, any attempt to access
+          the sequence results in a compile error.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.decomposition.function_arity"></a><a class="link" href="decomposition.html#boost_functiontypes.reference.decomposition.function_arity" title="function_arity">function_arity</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">function_arity</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">function_arity</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term"><code class="literal">F</code></span></dt>
+<dd><p>
+                Callable builtin type
+              </p></dd>
+<dt><span class="term"><code class="literal">function_arity&lt;F&gt;</code></span></dt>
+<dd><p>
+                Function arity as <a href="../../../../../mpl/index.html" target="_top">MPL</a>
+                - <a href="../../../../../mpl/doc/refmanual/integral-constant.html" target="_top">Integral
+                Constant</a>
+              </p></dd>
+<dt><span class="term"><code class="literal">function_arity&lt;F&gt;::value</code></span></dt>
+<dd><p>
+                Constant value of the function arity
+              </p></dd>
+</dl>
+</div>
+<p>
+          Extracts the function arity, that is the number of parameters. The hidden
+          <code class="literal">this</code> of member function pointers counts, in other words
+          the arity value is always greater than or equal to one if <code class="literal">F</code>
+          is a member function pointer.
+        </p>
+<p>
+          If <code class="literal">F</code> is no callable, builtin type, any attempt to access
+          the value results in a compile error.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.decomposition.components"></a><a class="link" href="decomposition.html#boost_functiontypes.reference.decomposition.components" title="components">components</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ClassTransform</span> <span class="special">=</span> <span class="identifier">add_reference</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">components</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">components</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term"><code class="literal">T</code></span></dt>
+<dd><p>
+                Type to analyze
+              </p></dd>
+<dt><span class="term"><code class="literal">ClassTransform</code></span></dt>
+<dd><p>
+                <a href="../../../../../mpl/index.html" target="_top">MPL</a> - <a href="../../../../../mpl/doc/refmanual/lambda-expression.html" target="_top">Lambda
+                Expression</a> to transform the class type if <code class="literal">T</code>
+                is a member function pointer
+              </p></dd>
+<dt><span class="term"><code class="literal">components&lt;T,ClassTransform&gt;</code></span></dt>
+<dd><p>
+                <a href="../../../../../mpl/index.html" target="_top">MPL</a> - <a href="../../../../../mpl/doc/refmanual/front-extensible-sequence.html" target="_top">Front</a>
+                / <a href="../../../../../mpl/doc/refmanual/back-extensible-sequence.html" target="_top">Back
+                </a><a href="../../../../../mpl/doc/refmanual/extensible-sequence.html" target="_top">Extensible
+                </a><a href="../../../../../mpl/doc/refmanual/random-access-sequence.html" target="_top">Random
+                Access Sequence</a> of all component types and property tag
+              </p></dd>
+<dt><span class="term"><code class="literal">components&lt;T,ClassTransform&gt;::types</code></span></dt>
+<dd><p>
+                Decorated MPL Sequence, exposed for optimization
+              </p></dd>
+</dl>
+</div>
+<p>
+          Extracts all properties of a callable builtin type, that is the result
+          type, followed by the parameter types (including the type of <code class="literal">this</code>
+          for member function pointers).
+        </p>
+<p>
+          If <code class="literal">T</code> is no callable builtin type, the component types
+          are an empty sequence and the Tag's meaning is equivalent to the <code class="literal"><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.null_tag" title="null_tag">null_tag</a></code>.
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004-2007 Tobias
+      Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="classification.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="synthesis.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

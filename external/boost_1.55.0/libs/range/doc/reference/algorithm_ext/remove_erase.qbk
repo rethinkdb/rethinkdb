@@ -1,0 +1,33 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:remove_erase remove_erase]
+
+[heading Prototype]
+
+``
+template<class Container, class Value>
+Container& remove_erase(Container& target,
+                        const Value& value);
+``
+
+[heading Description]
+
+`remove_erase` actually eliminates the elements equal to `value` from the container. This
+is in contrast to the `remove` algorithm which merely rearranges elements.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm_ext/erase.hpp`
+
+[heading Requirements]
+
+# `Container` supports erase of an iterator range.
+
+[heading Complexity]
+
+Linear. Proportional to `distance(target)`s.
+
+[endsect]

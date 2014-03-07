@@ -1,0 +1,129 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/pa_Arab.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/pa_Arab.xml
+ */
+pa_Arab{
+    %%ParentIsRoot:int{1}
+    AuxExemplarCharacters{"[أ ٻ ة ٺ ټ ٽ]"}
+    ExemplarCharacters{
+        "[\u064F ء آ ؤ ئ ا ب پ ت ث ٹ ج چ ح خ د ذ ڈ ر ز ڑ ژ س ش ص ض ط ظ ع غ ف ق ک گ ل "
+        "م ن ں ه ھ ہ و ی ے]"
+    }
+    LocaleScript{
+        "Arab",
+    }
+    NumberElements{
+        default{"arab"}
+    }
+    Version{"2.0.50.30"}
+    calendar{
+        gregorian{
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, dd MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "dd/MM/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                HHmmss{"HH:mm:ss"}
+                Md{"d/M"}
+                mmss{"mm:ss"}
+                yyMMM{"MMM yy"}
+                yyQ{"Q yy"}
+            }
+            dayNames{
+                format{
+                    wide{
+                        "اتوار",
+                        "پیر",
+                        "منگل",
+                        "بُدھ",
+                        "جمعرات",
+                        "جمعہ",
+                        "ہفتہ",
+                    }
+                }
+            }
+            eras{
+                wide{
+                    "ايساپورو",
+                    "سں",
+                }
+            }
+            fields{
+                day{
+                    dn{"دئن"}
+                }
+                hour{
+                    dn{"گھنٹا"}
+                }
+                minute{
+                    dn{"منٹ"}
+                }
+                month{
+                    dn{"مہينا"}
+                }
+                week{
+                    dn{"ہفتہ"}
+                }
+                weekday{
+                    dn{"ہفتے دا دن"}
+                }
+                year{
+                    dn{"ورھا"}
+                }
+                zone{
+                    dn{"ٹپہ"}
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "جنوری",
+                        "فروری",
+                        "مارچ",
+                        "اپریل",
+                        "مئ",
+                        "جون",
+                        "جولائی",
+                        "اگست",
+                        "ستمبر",
+                        "اکتوبر",
+                        "نومبر",
+                        "دسمبر",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    wide{
+                        "چوتھاي پہلاں",
+                        "چوتھاي دوجا",
+                        "چوتھاي تيجا",
+                        "چوتھاي چوتھا",
+                    }
+                }
+            }
+        }
+    }
+    layout{
+        characters{"right-to-left"}
+        lines{"top-to-bottom"}
+    }
+}

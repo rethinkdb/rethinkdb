@@ -1,0 +1,41 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_abstract is_abstract]
+   template <class T>
+   struct is_abstract : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) abstract type then inherits from 
+__true_type, otherwise inherits from __false_type.  
+
+__std_ref 10.3.
+
+__header ` #include <boost/type_traits/is_abstract.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__compat The compiler must support DR337 (as of April 2005: GCC 3.4, VC++ 7.1 (and later),
+ Intel C++ 7 (and later), and Comeau 4.3.2).
+Otherwise behaves the same as __is_polymorphic; 
+this is the "safe fallback position" for which polymorphic types are always 
+regarded as potentially abstract.  The macro BOOST_NO_IS_ABSTRACT is used to 
+signify that the implementation is buggy, users should check for this in their 
+own code if the "safe fallback" is not suitable for their particular use-case.
+
+__examples
+
+[:Given: `class abc{ virtual ~abc() = 0; };` ]
+
+[:`is_abstract<abc>` inherits from `__true_type`.]
+
+[:`is_abstract<abc>::type` is the type `__true_type`.]
+
+[:`is_abstract<abc const>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_abstract<T>::value_type` is the type `bool`.]
+
+[endsect]
+

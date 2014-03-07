@@ -1,0 +1,51 @@
+# Copyright 2010 Tim Blechmann
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import doxygen ;
+import quickbook ;
+
+doxygen autodoc
+    :
+        [ glob ../../../boost/heap/*.hpp ] ../../../boost/heap/detail/mutable_heap.hpp
+    :
+        #<doxygen:param>EXTRACT_ALL=YES
+        <doxygen:param>"PREDEFINED=\"BOOST_DOXYGEN_INVOKED\" \\
+                                   \"BOOST_DEDUCED_TYPENAME=typename\" \\
+                                   "
+        <doxygen:param>HIDE_UNDOC_MEMBERS=YES
+        <doxygen:param>HIDE_UNDOC_CLASSES=YES
+        <doxygen:param>INLINE_INHERITED_MEMB=YES
+        <doxygen:param>EXTRACT_PRIVATE=NO
+        <doxygen:param>ENABLE_PREPROCESSING=YES
+        <doxygen:param>MACRO_EXPANSION=YES
+        <doxygen:param>EXPAND_ONLY_PREDEF=YES
+        <doxygen:param>SEARCH_INCLUDES=YES
+        <doxygen:param>INCLUDE_PATH=$(BOOST_ROOT)
+        <doxygen:param>EXAMPLE_PATH=$(BOOST_ROOT)/libs/heap/examples
+        <doxygen:param>BRIEF_MEMBER_DESC=YES
+        <doxygen:param>REPEAT_BRIEF=YES
+        <doxygen:param>ALWAYS_DETAILED_SEC=YES
+        <doxygen:param>MULTILINE_CPP_IS_BRIEF=YES
+    ;
+
+xml heap : heap.qbk : ;
+
+boostbook standalone
+    : heap
+    : <xsl:param>html.stylesheet=boostbook.css
+      <xsl:param>boost.root=../../../..
+      <xsl:param>boost.libraries=../../../libraries.htm
+      <xsl:param>toc.max.depth=3
+      <xsl:param>toc.section.depth=1
+      <xsl:param>chunk.section.depth=1
+      <dependency>autodoc
+      <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/libs/heap/doc/html
+    ;
+
+install css : [ glob $(BOOST_ROOT)/doc/src/*.css ]
+    : <location>html ;
+install images : [ glob $(BOOST_ROOT)/doc/src/images/*.png ]
+    : <location>html/images ;
+explicit css ;
+explicit images ;

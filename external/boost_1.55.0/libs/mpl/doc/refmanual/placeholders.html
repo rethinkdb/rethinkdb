@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: Placeholders</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./composition-and-argument-binding.html" class="navigation-link">Prev</a>&nbsp;<a href="./lambda.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./lambda.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./composition-and-argument-binding.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./composition-and-argument-binding.html" class="navigation-link">Composition and Argument Binding</a> / <a href="./placeholders.html" class="navigation-link">Placeholders</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="placeholders">
+<h1><a class="toc-backref" href="./composition-and-argument-binding.html#id1529">Placeholders</a></h1>
+<div class="section" id="id909">
+<span id="placeholder"></span><h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+namespace <a href="./placeholders.html" class="identifier">placeholders</a> {
+typedef <em>unspecified</em> _;
+typedef <a href="./arg.html" class="identifier">arg</a>&lt;1&gt;      <a href="./placeholders.html" class="identifier">_1</a>;
+typedef <a href="./arg.html" class="identifier">arg</a>&lt;2&gt;      <a href="./placeholders.html" class="identifier">_2</a>;
+<em>...</em>
+typedef <a href="./arg.html" class="identifier">arg</a>&lt;<em>n</em>&gt;      _<em>n</em>;
+}
+
+using <a href="./placeholders.html" class="identifier">placeholders</a>::_;
+using <a href="./placeholders.html" class="identifier">placeholders</a>::<a href="./placeholders.html" class="identifier">_1</a>;
+using <a href="./placeholders.html" class="identifier">placeholders</a>::<a href="./placeholders.html" class="identifier">_2</a>;
+<em>...</em>
+using <a href="./placeholders.html" class="identifier">placeholders</a>::_<em>n</em>;
+</pre>
+</div>
+<div class="section" id="id910">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>A placeholder in a form <tt class="literal"><span class="pre">_</span></tt><em>n</em> is simply a synonym for the corresponding
+<tt class="literal"><span class="pre"><a href="./arg.html" class="identifier">arg</a>&lt;n&gt;</span></tt> specialization. The unnamed placeholder <tt class="literal"><span class="pre">_</span></tt> (underscore) carries
+<a class="reference internal" href="./bind.html#bind-semantics">special meaning</a> in bind and lambda expressions, and does not have
+defined semantics outside of these contexts.</p>
+<p>Placeholder names can be made available in the user namespace through
+<tt class="literal"><span class="pre">using</span> <span class="pre">namespace</span> <span class="pre">mpl::<a href="./placeholders.html" class="identifier">placeholders</a>;</span></tt> directive.</p>
+</div>
+<div class="section" id="id912">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/placeholders.hpp" class="header">boost/mpl/placeholders.hpp</a>&gt;
+</pre>
+<p>[<em>Note:</em> The include might be omitted when using placeholders to construct a <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a> for passing it to MPL's own algorithm or metafunction: any library
+component that is documented to accept a lambda expression makes the placeholders
+implicitly available for the user code — <em>end note</em>]</p>
+</div>
+<div class="section" id="id913">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<p>None.</p>
+</div>
+<div class="section" id="id914">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any integral constant <tt class="literal"><span class="pre">n</span></tt> in the range [1, <a class="reference internal" href="./limit-metafunction-arity.html">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a>] and
+arbitrary types <tt class="literal"><span class="pre">a1</span></tt>,... <tt class="literal"><span class="pre">an</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./apply-wrap.html" class="identifier">apply_wrap</a><em>n</em>&lt;_<em>n</em>,a1,<em>...</em>a<em>n</em>&gt;::type x;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">A type.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="last literal-block">
+typedef <a href="./apply-wrap.html" class="identifier">apply_wrap</a><em>n</em>&lt; <a href="./arg.html" class="identifier">arg</a>&lt;<em>n</em>&gt;,a1,<em>...</em>a<em>n</em> &gt;::type x;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id915">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./apply-wrap.html" class="identifier">apply_wrap</a><tt class="literal"><span class="pre">5</span></tt>&lt; <a href="./placeholders.html" class="identifier">_1</a>,bool,char,short,int,long &gt;::type t1;
+typedef <a href="./apply-wrap.html" class="identifier">apply_wrap</a><tt class="literal"><span class="pre">5</span></tt>&lt; <a href="./placeholders.html" class="identifier">_3</a>,bool,char,short,int,long &gt;::type t3;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; t1, bool &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; t3, short > ));
+</pre>
+</div>
+<div class="section" id="id916">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./composition-and-argument-binding.html">Composition and Argument Binding</a>, <a class="reference internal" href="./arg.html">arg</a>, <a class="reference internal" href="./lambda.html">lambda</a>, <a class="reference internal" href="./bind.html">bind</a>, <a class="reference internal" href="./apply.html">apply</a>, <a class="reference internal" href="./apply-wrap.html">apply_wrap</a></p>
+<!-- Metafunctions/Composition and Argument Binding//lambda |20 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./composition-and-argument-binding.html" class="navigation-link">Prev</a>&nbsp;<a href="./lambda.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./lambda.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./composition-and-argument-binding.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

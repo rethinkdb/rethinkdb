@@ -1,0 +1,98 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'
+'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+	<title>errinfo_file_name</title>
+	<link href='reno.css' type='text/css' rel='stylesheet'/>
+</head>
+<body>
+<div class="body-0">
+<div class="body-1">
+<div class="body-2">
+<div>
+<div id="boost_logo">
+<a href="http://www.boost.org"><img style="border:0" src="../../../boost.png" alt="Boost" width="277" height="86"/></a>
+</div>
+<h1>Boost Exception</h1>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="RenoIncludeDIV"><div class="RenoAutoDIV"><h3>errinfo_file_name</h3>
+</div>
+<div class="RenoIncludeDIV"><p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_file_name_hpp.html">boost/exception/errinfo_file_name.hpp</a></span>&gt;</p>
+<div class="RenoIncludeDIV"><pre>#include &lt;<span class="RenoLink"><a href="boost_exception_error_info_hpp.html">boost/exception/error_info.hpp</a></span>&gt;
+#include &lt;string&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct errinfo_file_name_,std::string&gt; <span class="RenoLink">errinfo_file_name</span>;</span></span>
+    }</pre>
+</div></div><p>This type is designed to be used as a standard <span class="RenoLink"><a href="error_info.html">error_info</a></span> instance for transporting a relevant file name in exceptions deriving from boost::<span class="RenoLink"><a href="exception.html">exception</a></span>.</p>
+<h3>Example:</h3>
+<div class="RenoIncludeDIV"><pre>#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_api_function_hpp.html">boost/exception/errinfo_api_function.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_at_line_hpp.html">boost/exception/errinfo_at_line.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_errno_hpp.html">boost/exception/errinfo_errno.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_file_handle_hpp.html">boost/exception/errinfo_file_handle.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_file_name_hpp.html">boost/exception/errinfo_file_name.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_file_open_mode_hpp.html">boost/exception/errinfo_file_open_mode.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_info_hpp.html">boost/exception/info.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_throw_exception_hpp.html">boost/throw_exception.hpp</a></span>&gt;
+#include &lt;boost/shared_ptr.hpp&gt;
+#include &lt;boost/weak_ptr.hpp&gt;
+#include &lt;stdio.h&gt;
+#include &lt;errno.h&gt;
+#include &lt;exception&gt;
+
+struct error : virtual std::exception, virtual boost::<span class="RenoLink"><a href="exception.html">exception</a></span> { };
+struct file_error : virtual error { };
+struct file_open_error: virtual file_error { };
+struct file_read_error: virtual file_error { };
+
+boost::shared_ptr&lt;FILE&gt;
+open_file( char const * file, char const * mode )
+    {
+    if( FILE * f=fopen(file,mode) )
+        return boost::shared_ptr&lt;FILE&gt;(f,fclose);
+    else
+        <span class="RenoLink"><a href="BOOST_THROW_EXCEPTION.html">BOOST_THROW_EXCEPTION</a></span>(
+            file_open_error() &lt;&lt;
+            boost::<span class="RenoLink"><a href="errinfo_api_function.html">errinfo_api_function</a></span>("fopen") &lt;&lt;
+            boost::<span class="RenoLink"><a href="errinfo_errno.html">errinfo_errno</a></span>(errno) &lt;&lt;
+            boost::<span class="RenoLink">errinfo_file_name</span>(file) &lt;&lt;
+            boost::<span class="RenoLink"><a href="errinfo_file_open_mode.html">errinfo_file_open_mode</a></span>(mode) );
+    }
+
+size_t
+read_file( boost::shared_ptr&lt;FILE&gt; const &amp; f, void * buf, size_t size )
+    {
+    size_t nr=fread(buf,1,size,f.get());
+    if( ferror(f.get()) )
+        <span class="RenoLink"><a href="BOOST_THROW_EXCEPTION.html">BOOST_THROW_EXCEPTION</a></span>(
+            file_read_error() &lt;&lt;
+            boost::<span class="RenoLink"><a href="errinfo_api_function.html">errinfo_api_function</a></span>("fread") &lt;&lt;
+            boost::<span class="RenoLink"><a href="errinfo_errno.html">errinfo_errno</a></span>(errno) &lt;&lt;
+            boost::<span class="RenoLink"><a href="errinfo_file_handle.html">errinfo_file_handle</a></span>(f) );
+    return nr;
+    }</pre>
+</div></div><div class="RenoAutoDIV"><div class="RenoHR"><hr/></div>
+See also: <span class="RenoPageList"><a href="boost_exception_errinfo_file_name_hpp.html">boost/exception/errinfo_file_name.hpp</a>&nbsp;| <a href="frequently_asked_questions.html">Frequently Asked Questions</a></span>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div id="footer">
+<p>
+<a class="logo" href="http://jigsaw.w3.org/css-validator/check/referer"><img class="logo_pic" src="valid-css.png" alt="Valid CSS" height="31" width="88"/></a>
+<a class="logo" href="http://validator.w3.org/check?uri=referer"><img class="logo_pic" src="valid-xhtml.png" alt="Valid XHTML 1.0" height="31" width="88"/></a>
+<small>Copyright (c) 2006-2009 by Emil Dotchevski and Reverge Studios, Inc.<br/>
+Distributed under the <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License, Version 1.0</a>.</small>
+</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

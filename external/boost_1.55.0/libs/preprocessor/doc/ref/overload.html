@@ -1,0 +1,46 @@
+<html>
+  <head>
+    <title>BOOST_PP_OVERLOAD</title>
+    <link rel="stylesheet" type="text/css" href="../styles.css">
+  </head>
+  <body>
+<div style="margin-left: 0px;"> The <b>BOOST_PP_OVERLOAD</b> variadic macro expands to the name of a non-variadic macro having a given number of parameters.<br>
+ </div>
+<h4>Usage</h4>
+<div class="code"> <b>BOOST_PP_OVERLOAD</b>(<i>prefix</i>,...) <sup>(v)</sup><br>
+ </div>
+<h4>Arguments</h4>
+<dl>
+<dt>prefix<br>
+</dt><dd>
+				The prefix of the non-variadic macro name.
+			</dd><dt>...<br>
+</dt><dd><i>
+				Variadic data</i>. The number of variadic data
+elements, as determined by BOOST_PP_VARIADIC_SIZE, is appended to the
+prefix to form the output non-variadic macro name.<br>
+</dd>
+</dl>
+<h4>Remarks</h4>
+<div> This macro creates a macro name which depends on the number of elements of variadic data. It should be used in the form of <br>
+BOOST_PP_OVERLOAD(MACRO_NAME_,__VA_ARGS__)(__VA_ARGS__) in order to
+call a non-variadic macro taking a given number of variadic data
+elements as non-variadic arguments. In this way one can invoke a
+variadic macro with a variable number of parameters which calls one of
+a series of non-variadic macros doing very similar things.
+</div><b>Requirements</b>
+<div> <b>Header:</b> &nbsp;<a href="../headers/facilities/overload.html">&lt;boost/preprocessor/facilities/overload.hpp&gt;</a>
+</div>
+<h4>Sample Code</h4>
+<div>
+<pre>#include &lt;<a href="../headers/facilities/overload.html">boost/preprocessor/facilities/overload.hpp</a>&gt;<br>#include &lt;<a href="../headers/cat.html">boost/preprocessor/cat.hpp</a>&gt;<br>#include &lt;<a href="../headers/facilities/empty.html">boost/preprocessor/facilities/empty.hpp</a>&gt;<br>#include &lt;<a href="../headers/arithmetic/add.html">boost/preprocessor/arithmetic/add.hpp</a>&gt;<br><br>#define MACRO_1(number) MACRO_2(number,10)<br>#define MACRO_2(number1,number2) <a href="add.html">BOOST_PP_ADD</a>(number1,number2)<br><br>#define MACRO_ADD_NUMBERS(...) <a href="overload.html">BOOST_PP_OVERLOAD</a>(MACRO_,__VA_ARGS__)(__VA_ARGS__)<br><br>// or for Visual C++<br><br>#define MACRO_ADD_NUMBERS(...) \<br>  <a href="cat.html">BOOST_PP_CAT</a>(<a href="overload.html">BOOST_PP_OVERLOAD</a>(MACRO_,__VA_ARGS__)(__VA_ARGS__),<a href="empty.html">BOOST_PP_EMPTY</a>())<br><br>MACRO_ADD_NUMBERS(5) // output is 15<br>MACRO_ADD_NUMBERS(3,6) // output is 9<br></pre>
+</div>
+<hr size="1">
+<div style="margin-left: 0px;"> <i></i><i>© Copyright Edward Diener 2011</i> </div>
+<div style="margin-left: 0px;">
+<p><small>Distributed under the Boost Software License, Version 1.0.
+(See accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+</div>
+  </body>
+</html>

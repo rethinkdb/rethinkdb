@@ -1,0 +1,34 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Acknowledgments]
+
+# Hartmut Kaiser implemented the original lazy casts and constructors based on
+  his original work on Spirit SE "semantic expressions" (the precursor to
+  Phoenix), and guided Phoenix from the initial review of V2 to the release of V3.
+# Eric Niebler did a 2.0 pre-release review and wrote some range related code
+  that Phoenix stole and used in the algorithms. Additionally he played the leading role
+  in inventing the extension mechanism as well as providing early prototypes and helping with
+  Boost.Proto code. DA Proto MAN!
+# Angus Leeming implemented the container functions on Phoenix-1 which I then
+  ported to Phoenix-2.
+# Daniel Wallin helped with the scope module, local variables, let and lambda
+  and the algorithms. I frequently discuss design issues with Daniel on Yahoo Messenger.
+# Jaakko Jarvi. DA Lambda MAN!
+# Dave Abrahams, for his constant presence, wherever, whenever.
+# Aleksey Gurtovoy, DA MPL MAN!
+# Doug Gregor, always a source of inspiration.
+# Dan Marsden, did almost all the work in bringing Phoenix-2 out the door.
+# Thorsten Ottosen; Eric's range_ex code began life as "container_algo" in the
+  old boost sandbox, by Thorsten in 2002-2003.
+# Jeremy Siek, even prior to Thorsten, in 2001, started the "container_algo".
+# Vladimir Prus wrote the mutating algorithms code from the Boost Wiki.
+# Daryle Walker did a 2.0 pre-release review.
+
+[endsect]

@@ -1,0 +1,167 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python -
+    &lt;boost/python/return_value_policy.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header
+          &lt;boost/python/return_value_policy.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#return_value_policy-spec">Class Template
+          <code>return_value_policy</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#return_value_policy-spec-synopsis">Class Template
+              <code>return_value_policy</code> synopsis</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+    <code>return_value_policy</code> instantiations are simply models of <a
+    href="CallPolicies.html">CallPolicies</a> which are composed of a <a
+    href=
+    "ResultConverter.html#ResultConverterGenerator-concept">ResultConverterGenerator</a>
+    and optional <code>Base</code> <a href=
+    "CallPolicies.html">CallPolicies</a>. 
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="return_value_policy-spec"></a>Class template
+    <code>return_value_policy</code></h3>
+
+    <table border="1" summary="return_value_policy template parameters">
+      <caption>
+        <b><code>return_value_policy</code> template parameters</b>
+      </caption>
+
+      <tr>
+        <th>Parameter</th>
+
+        <th>Requirements</th>
+
+        <th>Default</th>
+      </tr>
+
+      <tr>
+        <td><a href=
+        "ResultConverter.html#ResultConverterGenerator-concept">ResultConverterGenerator</a></td>
+
+        <td>A model of <a href=
+        "ResultConverter.html#ResultConverterGenerator-concept">ResultConverterGenerator</a>.</td>
+      </tr>
+
+      <tr>
+        <td><code>Base</code></td>
+
+        <td>A model of <a href="CallPolicies.html">CallPolicies</a></td>
+
+        <td><code><a href=
+        "default_call_policies.html#default_call_policies-spec">default_call_policies</a></code></td>
+      </tr>
+    </table>
+
+    <h4><a name="return_value_policy-spec-synopsis"></a>Class template
+    <code>return_value_policy</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  template &lt;class ResultConverterGenerator, class Base = default_call_policies&gt;
+  struct return_value_policy : Base
+  {
+      typedef ResultConverterGenerator result_converter;
+  };
+}}
+</pre>
+
+    <h2><a name="examples"></a>Example</h2>
+
+    <h3>C++ Module Definition</h3>
+<pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/class.hpp&gt;
+#include &lt;boost/python/copy_const_reference.hpp&gt;
+#include &lt;boost/python/return_value_policy.hpp&gt;
+
+// classes to wrap
+struct Bar { int x; }
+
+struct Foo {
+   Foo(int x) : { b.x = x; }
+   Bar const&amp; get_bar() const { return b; }
+ private:
+   Bar b;
+};
+
+// Wrapper code
+using namespace boost::python;
+BOOST_PYTHON_MODULE(my_module)
+{
+   class_&lt;Bar&gt;("Bar");
+
+   class_&lt;Foo&gt;("Foo", init&lt;int&gt;())
+      .def("get_bar", &amp;Foo::get_bar
+          , return_value_policy&lt;copy_const_reference&gt;())
+      ;
+}
+</pre>
+
+    <h3>Python Code</h3>
+<pre>
+&gt;&gt;&gt; from my_module import *
+&gt;&gt;&gt; f = Foo(3)         # create a Foo object
+&gt;&gt;&gt; b = f.get_bar()    # make a copy of the internal Bar object
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

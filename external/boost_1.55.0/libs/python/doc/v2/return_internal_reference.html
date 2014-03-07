@@ -1,0 +1,230 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python -
+    &lt;boost/python/return_internal_reference.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header
+          &lt;boost/python/return_internal_reference.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#return_internal_reference-spec">Class Template
+          <code>return_internal_reference</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#return_internal_reference-spec-synopsis">Class
+              Template <code>return_internal_reference</code>
+              synopsis</a></dt>
+
+              <dt><a href="#return_internal_reference-spec-statics">Class
+              <code>return_internal_reference</code> static
+              functions</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+    <code>return_internal_reference</code> instantiations are models of <a
+    href="CallPolicies.html">CallPolicies</a> which allow pointers and
+    references to objects held internally by a free or member function
+    argument or from the target of a member function to be returned safely
+    without making a copy of the referent. The default for its first template
+    argument handles the common case where the containing object is the
+    target (<code>*this</code>) of a wrapped member function. 
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="return_internal_reference-spec"></a>Class template
+    <code>return_internal_reference</code></h3>
+
+    <table border="1" summary=
+    "return_internal_reference template parameters">
+      <caption>
+        <b><code>return_internal_reference</code> template parameters</b>
+      </caption>
+
+      <tr>
+        <th>Parameter</th>
+
+        <th>Requirements</th>
+
+        <th>Description</th>
+
+        <th>Default</th>
+      </tr>
+
+      <tr>
+        <td><code>owner_arg</code></td>
+
+        <td>A positive compile-time constant of type
+        <code>std::size_t</code>.</td>
+
+        <td>The index of the parameter which contains the object to which the
+        reference or pointer is being returned. If used to wrap a member
+        function, parameter 1 is the target object (<code>*this</code>). Note
+        that if the target Python object type doesn't support weak
+        references, a Python <code>TypeError</code> exception will be raised
+        when the function being wrapped is called.</td>
+
+        <td>1</td>
+      </tr>
+
+      <tr>
+        <td><code>Base</code></td>
+
+        <td>A model of <a href="CallPolicies.html">CallPolicies</a></td>
+
+        <td>Used for policy composition. Any <code>result_converter</code> it
+        supplies will be overridden by
+        <code>return_internal_reference</code>, but its <code>precall</code>
+        and <code>postcall</code> policies are composed as described here <a
+        href="CallPolicies.html#composition">CallPolicies</a>.</td>
+
+        <td><code><a href=
+        "default_call_policies.html#default_call_policies-spec">default_call_policies</a></code></td>
+      </tr>
+    </table>
+
+    <h4><a name="return_internal_reference-spec-synopsis"></a>Class template
+    <code>return_internal_reference</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+   template &lt;std::size_t owner_arg = 1, class Base = default_call_policies&gt;
+   struct return_internal_reference : Base
+   {
+      static PyObject* postcall(PyObject*, PyObject* result);
+      typedef <a href=
+"reference_existing_object.html#reference_existing_object-spec">reference_existing_object</a> result_converter;
+   };
+}}
+</pre>
+
+    <h4><a name="return_internal_reference-spec-statics"></a>Class
+    <code>return_internal_reference</code> static functions</h4>
+<pre>
+PyObject* postcall(PyObject* args, PyObject* result);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code><a href=
+      "http://www.python.org/doc/2.2/api/tupleObjects.html#l2h-476">PyTuple_Check</a>(args)
+      != 0</code></dt>
+
+      <dt><b>Returns:</b> <code><a href=
+      "with_custodian_and_ward.html#with_custodian_and_ward_postcall-spec-statics">
+      with_custodian_and_ward_postcall::postcall(args,
+      result)</a></code></dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+
+    <h3>C++ module definition</h3>
+<pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/class.hpp&gt;
+#include &lt;boost/python/return_internal_reference.hpp&gt;
+
+class Bar
+{
+ public:
+   Bar(int x) : x(x) {}
+   int get_x() const { return x; }
+   void set_x(int x) { this-&gt;x = x; }
+ private:
+   int x;
+};
+
+class Foo
+{
+ public:
+   Foo(int x) : b(x) {}
+
+   // Returns an internal reference
+   Bar const&amp; get_bar() const { return b; }
+
+ private:
+   Bar b;
+};
+
+using namespace boost::python;
+BOOST_PYTHON_MODULE(internal_refs)
+{
+   class_&lt;Bar&gt;("Bar", init&lt;int&gt;())
+      .def("get_x", &amp;Bar::get_x)
+      .def("set_x", &amp;Bar::set_x)
+      ;
+
+   class_&lt;Foo&gt;("Foo", init&lt;int&gt;())
+      .def("get_bar", &amp;Foo::get_bar
+          , return_internal_reference&lt;&gt;())
+      ;
+}
+</pre>
+
+    <h3>Python code</h3>
+<pre>
+&gt;&gt;&gt; from internal_refs import *
+&gt;&gt;&gt; f = Foo(3)
+&gt;&gt;&gt; b1 = f.get_bar()
+&gt;&gt;&gt; b2 = f.get_bar()
+&gt;&gt;&gt; b1.get_x()
+3
+&gt;&gt;&gt; b2.get_x()
+3
+&gt;&gt;&gt; b1.set_x(42)
+&gt;&gt;&gt; b2.get_x()
+42
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

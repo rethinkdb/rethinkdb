@@ -1,0 +1,182 @@
+
+ Program options post-review development plan.
+
+0. Convert all documentation to BoostBook format
+
+1. (done)
+   Simplify and clarify interface.
+   
+   It turns out that most users are interested in 'variables_map' class, so
+   it must be possible to use it directly, without even knowing about
+   'options_and_arguments'. The proposed interface is:
+
+   options_description desc;
+   ....
+   variables_map vm;
+   load_from_command_line(vm, desc, argc, argv);
+
+2. (done)
+   Better separation of syntaxic and semantic processing, as suggested by
+   Pavol Droba. 
+
+   The problem with current 'option_description' interface is that the
+   'validator' and 'notifier' callbacks are not really usable by ordinary
+   users --- it's extender's interface. The current 'parameter' function uses
+   those callback to provide user-friendly semantic interface, but it's not
+   documented nor completely worked out.
+
+   In the new interface, the second parameter of 'option_description' ctor
+   will have two possibilities: just a string and a pointer to a new class
+   'value_descriptor'. When passed the latter, it will invoke the instance on
+   itself, and then delete the object. A function 'value' will be provided,
+   that will create value specific for a type.
+
+   Example
+       ("magic", value<int>("n", &n)->default_value(10), "magic value").
+
+   The 'value' function will create instances of 'typed_value_descriptor'
+   type, with the following methods:
+       - default_value
+       - interpreter
+       - validator
+       - notifier
+
+   The 'option_description' class we'll have two attributes to support
+   semantic operation: 'generator', which will handle conversion from string
+   into value (including application of default value), and 'notifier'. Similiar
+   to the the current design, those attributes will be set by
+   'value_descriptor' instances.
+   
+   Another function, "bool_switch" will create value descriptor for type bool,
+   with default value of false. The function is needed to avoid special-casing
+   'value' function on bool type, which was considered confusing (Neal D. Becker).
+
+3. (done) Support for positional options. 
+
+   Positional options will be treated uniformly with ordinary ones. User will
+   be able to specify that, for example, third positional option is to be
+   interpreted as option "output-file" with the same value.
+
+   The user interface will be simple: user will provide two instanes of
+   'options_description' to functions which parse command line. For example.
+
+   options_description desc;
+   desc.add_options()
+   ("magic", "n", "magic value")
+   ;
+
+   options_description pdesc;
+   pdesc.add_options()
+   ("output-file", "n", "output file")
+   ("input-files*", value< vector<string> >("n"), "files")
+   ;
+
+   variables_map vm;
+   load_from_command_line(vm, desc, pdesc, argc, argv);
+
+4. (done, except for registry) 
+   Multiple sources improvement.
+ 
+   Need to implement support for registry/environment.
+   Also, must devise a way to handle different naming of option in
+   sources. Lastly, the storing of values into program variables should
+   become part of 'variables_map' interface.
+
+5. Improve documentation.
+
+   Chuck Messenger:
+   "When code is given for an example program, after the code, give examples of
+   using the program, along with the expected output."
+
+   Pavol Droba:
+    "I would prefer a few chapters explaining various components of the
+    library, each followed by a reference."
+
+    Pavel Vozenilek:
+    > Documentation should contain list of compilers the library works on and
+    > also info whether MSVC 6 port is feasible or not.
+    >
+    > The non-Doxygen part of documentation can be also a bit expanded: e.g. I
+    > would welcome some high level overview of the algorithms and structures and
+    > info about expected CPU/memory consumption.
+    >
+    > Also info whether there are any internal limits (like option length) .
+    >
+    > Some examples may be bit more annotated, also contain what is expected
+    > output.
+
+    Syntax highligting.
+
+    Document "*" in option names 
+    Automated tests for examples?
+    (new) Comments inside code snippets?
+    (new) Table of all symbols
+
+
+6. (deferred) 
+   Unicode support
+
+   - unicode in argv/argc
+   - Unicode in config files not supported
+    (
+       The difference between ASCII and unicode files is:
+         - big endian UTF16 starts with 2 bytes FE FF 9mandatory by Unicode
+        standard) - little endian UTF16 starts with FF FE
+          - UTF8 text starts with EF BB BF
+
+        Pavel Vozenilek
+     )
+
+7. Config file improvements
+
+   - should have "allow_unregistered" for config_file.
+   - (done) bool options in config file do not work.
+   - "#" inside strings, in config files (Pavel Vozenilek)
+
+8. 
+   Cmdline improvements
+
+   - must be able to parse WinMain string
+   - support for response files
+
+9. Other changes.
+
+   - (outdated) get_value -> value (Beman)
+   - (done) is "argv" const in std, or not? Adjust docs if not.
+   - variables_map::count_if, find_if (Tanton Gibbs)
+   - Works with exceptions disabled.
+   - (outdated) disallow empty name for the 'parameter' function
+   - check for prefixes if 'allow_guessing' is on
+   - check for duplicate declaration of options. 
+   - test additional parser
+   - Show default values in help output
+   - Adaptive field width
+   - Mandatory options (2 votes (second Jonathan Graehl))
+   - (new) return vector from parsers by auto_ptr, not by value?
+   - (new) rename value_semantic into value_description
+   - (new) output for positional_options_description
+   - (new) variables_map should throw when value not found
+   - (important) decide where we check that the number of passed option
+      tokens is less than the allowed number. In parser or later?
+   - (important) what if the same option has different definitions?
+   - (new) We lost the ability to specify options_description instance
+     in call to 'store'. So now we can't store just subset of options.
+     Is it a problem?
+   - (new) Improve formatting of 'arg'.   
+   - (new) revive real and regexp examples.
+   - (new) even more simpler syntax for assignent to var?
+
+
+10. Uncertain
+    - Function to get program name
+    - Order of 'description' and 'value'.
+       
+
+11. (new) Look at all "TODO" comments.
+    (new) Check that all methods are documented.
+
+        
+12. Deferred 
+
+   - storing value to boost::optional 
+   - setting a flag when option is found 

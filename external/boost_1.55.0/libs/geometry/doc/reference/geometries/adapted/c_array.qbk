@@ -1,0 +1,40 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:c_array C array]
+
+C arrays are adapted to the Boost.Geometry point concept
+
+[heading Description]
+
+C arrays, such as double[2] or int[3], are (optionally) adapted to the Boost.Geometry 
+point concept. They can therefore be used in many Boost.Geometry algorithms.
+
+Note that a C array cannot be the point type of a linestring or a polygon. The reason
+for that is that a std::vector does not allow containing C arrays 
+(this is not related to Boost.Geometry). The C array is therefore limited to 
+the point type.
+
+[heading Model of]
+[link geometry.reference.concepts.concept_point Point Concept]
+
+[heading Header]
+`#include <boost/geometry/geometries/adapted/c_array.hpp>`
+
+__not_in_boost_geometry_hpp__
+
+[heading Example]
+[c_array]
+[c_array_output]
+
+[endsect]
+

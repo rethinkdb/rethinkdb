@@ -1,0 +1,124 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section Integrate functions]
+
+Integrate functions perform the time evolution of a given ODE from some
+starting time ['t[sub 0]] to a given end time ['t[sub 1]] and starting at state ['x[sub 0]] by subsequent calls of a given stepper's `do_step` function.
+Additionally, the user can provide an __observer to analyze the state during time evolution.
+There are five different integrate functions which have different strategies on when to call the observer function during integration.
+All of the integrate functions except `integrate_n_steps` can be called with any stepper following one of the stepper concepts: __stepper , __error_stepper , __controlled_stepper , __dense_output_stepper.
+Depending on the abilities of the stepper, the integrate functions make use of step-size control or dense output.
+
+[heading Equidistant observer calls]
+
+If observer calls at equidistant time intervals /dt/ are needed, the
+`integrate_const` or `integrate_n_steps` function should be used.
+We start with explaining `integrate_const`:
+
+`integrate_const( stepper , system , x0 , t0 , t1 , dt )`
+
+`integrate_const( stepper , system , x0 , t0 , t1 , dt , observer )`
+
+These integrate the ODE given by `system` with subsequent steps from `stepper`.
+Integration start at `t0` and `x0` and ends at some ['t' = t[sub 0] + n dt] with /n/ such that ['t[sub 1] - dt < t' <= t[sub 1]].
+`x0` is changed to the approximative solution ['x(t')] at the end of integration.
+If provided, the `observer` is invoked at times ['t[sub 0]], ['t[sub 0] + dt], ['t[sub 0] + 2dt], ... ,['t'].
+`integrate_const` returns the number of steps performed during the integration.
+Note that if you are using a simple __stepper or __error_stepper and want to make exactly `n` steps you should prefer the `integrate_n_steps` function below.
+
+* If `stepper` is a __stepper or __error_stepper then `dt` is also the step size used for integration and the observer is called just after every step.
+* If `stepper` is a __controlled_stepper then `dt` is the initial step size.
+The actual step size will change due to error control during time evolution.
+However, if an observer is provided the step size will be adjusted such that the algorithm always calculates /x(t)/ at ['t = t[sub 0] + n dt] and calls the observer at that point.
+Note that the use of __controlled_stepper is reasonable here only if `dt` is considerably larger than typical step sizes used by the stepper.
+* If `stepper` is a __dense_output_stepper then `dt` is the initial step size.
+The actual step size will be adjusted during integration due to error control.
+If an observer is provided dense output is used to calculate /x(t)/ at ['t = t[sub 0] + n dt].
+
+[heading Integrate a given number of steps]
+
+This function is very similar to `integrate_const` above. The only difference
+is that it does not take the end time as parameter, but rather the number of
+steps. The integration is then performed until the time `t0+n*dt`.
+
+`integrate_n_steps( stepper , system , x0 , t0 , dt , n )`
+
+`integrate_n_steps( stepper , system , x0 , t0 , dt , n , observer )`
+
+Integrates the ODE given by `system` with subsequent steps from `stepper` starting at ['x[sub 0]] and ['t[sub 0]].
+If provided, `observer` is called after every step and at the beginning with
+`t0`, similar as above.
+The approximate result for ['x( t[sub 0] + n dt )] is stored in `x0`.
+This function returns the end time `t0 + n*dt`.
+
+
+[heading Observer calls at each step]
+
+If the observer should be called at each time step then the `integrate_adaptive` function should be used.
+Note that in the case of __controlled_stepper or __dense_output_stepper this leads to non-equidistant observer calls as the step size changes.
+
+`integrate_adaptive( stepper , system , x0 , t0 , t1 , dt )`
+
+`integrate_adaptive( stepper , system , x0 , t0 , t1 , dt , observer )`
+
+Integrates the ODE given by `system` with subsequent steps from `stepper`.
+Integration start at `t0` and `x0` and ends at ['t[sub 1]].
+`x0` is changed to the approximative solution ['x(t[sub 1])] at the end of integration.
+If provided, the `observer` is called after each step (and before the first step at `t0`).
+`integrate_adaptive` returns the number of steps performed during the integration.
+
+* If `stepper` is a __stepper or __error_stepper then `dt` is the step size used for integration and `integrate_adaptive` behaves like `integrate_const` except that for the last step the step size is reduced to ensure we end exactly at `t1`.
+If provided, the observer is called at each step.
+* If `stepper` is a __controlled_stepper then `dt` is the initial step size.
+The actual step size is changed according to error control of the stepper.
+For the last step, the step size will be reduced to ensure we end exactly at `t1`.
+If provided, the observer is called after each time step (and before the first step at `t0`).
+* If stepper is a __dense_output_stepper then `dt` is the initial step size and `integrate_adaptive` behaves just like for __controlled_stepper above. No dense output is used.
+
+[heading Observer calls at given time points]
+
+If the observer should be called at some user given time points the `integrate_times` function should be used.
+The times for observer calls are provided as a sequence of time values.
+The sequence is either defined via two iterators pointing to begin and end of the sequence or in terms of a __boost_range object.
+
+`integrate_times( stepper , system , x0 , times_start , times_end , dt , observer )`
+
+`integrate_times( stepper , system , x0 , time_range , dt , observer )`
+
+Integrates the ODE given by `system` with subsequent steps from `stepper`.
+Integration starts at `*times_start` and ends exactly at `*(times_end-1)`.
+`x0` contains the approximate solution at the end point of integration.
+This function requires an observer which is invoked at the subsequent times `*times_start++` until `times_start == times_end`.
+If called with a __boost_range `time_range` the function behaves the same with `times_start = boost::begin( time_range )` and `times_end = boost::end( time_range )`.
+`integrate_times` returns the number of steps performed during the integration.
+
+* If `stepper` is a __stepper or __error_stepper `dt` is the step size used for integration.
+However, whenever a time point from the sequence is approached the step size `dt` will be reduced to obtain the state /x(t)/ exactly at the time point.
+* If `stepper` is a __controlled_stepper then `dt` is the initial step size.
+The actual step size is adjusted during integration according to error control.
+However, if a time point from the sequence is approached the step size is reduced to obtain the state /x(t)/ exactly at the time point.
+* If `stepper` is a __dense_output_stepper then `dt` is the initial step size.
+The actual step size is adjusted during integration according to error control.
+Dense output is used to obtain the states /x(t)/ at the time points from the sequence.
+
+[heading Convenience integrate function]
+
+Additionally to the sophisticated integrate function above odeint also provides a simple `integrate` routine which uses a dense output stepper based on `runge_kutta_dopri5` with standard error bounds ['10[super -6]] for the steps.
+
+`integrate( system , x0 , t0 , t1 , dt )`
+
+`integrate( system , x0 , t0 , t1 , dt , observer )`
+
+This function behaves exactly like `integrate_adaptive` above but no stepper has to be provided.
+It also returns the number of steps performed during the integration.
+
+[endsect]

@@ -1,0 +1,140 @@
+#
+#  OS/2 specific Makefile for the EMX environment
+#
+#  You need GNU Make 3.71, gcc 2.5.7, emx 0.8h and GNU fileutils 3.9
+#  or similar tools. C++ interface and de.exe weren't tested.
+#
+#  Rename this file "Makefile".
+#
+
+# Primary targets:
+# gc.a - builds basic library
+# c++ - adds C++ interface to library and include directory
+# cords - adds cords (heavyweight strings) to library and include directory
+# test - prints porting information, then builds basic version of gc.a, and runs
+#        some tests of collector and cords.  Does not add cords or c++ interface to gc.a
+# cord/de.exe - builds dumb editor based on cords.
+CC= gcc
+CXX=g++
+# Needed only for "make c++", which adds the c++ interface
+
+CFLAGS= -O -DALL_INTERIOR_POINTERS
+# Setjmp_test may yield overly optimistic results when compiled
+# without optimization.
+# -DCHECKSUMS reports on erroneously clear dirty bits, and unexpectedly
+#   altered stubborn objects, at substantial performance cost.
+# -DFIND_LEAK causes the collector to assume that all inaccessible
+#   objects should have been explicitly deallocated, and reports exceptions
+# -DSOLARIS_THREADS enables support for Solaris (thr_) threads.
+#   (Clients should also define SOLARIS_THREADS and then include
+#   gc.h before performing thr_ or GC_ operations.)
+# -DALL_INTERIOR_POINTERS allows all pointers to the interior
+#   of objects to be recognized.  (See gc_private.h for consequences.)
+# -DSMALL_CONFIG tries to tune the collector for small heap sizes,
+#   usually causing it to use less space in such situations.
+#   Incremental collection no longer works in this case.
+# -DDONT_ADD_BYTE_AT_END is meaningful only with
+#   -DALL_INTERIOR_POINTERS.  Normally -DALL_INTERIOR_POINTERS
+#   causes all objects to be padded so that pointers just past the end of
+#   an object can be recognized.  This can be expensive.  (The padding
+#   is normally more than one byte due to alignment constraints.)
+#   -DDONT_ADD_BYTE_AT_END disables the padding.
+
+AR= ar
+RANLIB= ar s
+
+# Redefining srcdir allows object code for the nonPCR version of the collector
+# to be generated in different directories
+srcdir = .
+VPATH = $(srcdir)
+
+OBJS= alloc.o reclaim.o allchblk.o misc.o mach_dep.o os_dep.o mark_rts.o headers.o mark.o obj_map.o blacklst.o finalize.o new_hblk.o dyn_load.o dbg_mlc.o malloc.o stubborn.o checksums.o typd_mlc.o ptr_chck.o mallocx.o
+
+CORD_OBJS=  cord/cordbscs.o cord/cordxtra.o cord/cordprnt.o
+
+CORD_INCLUDE_FILES= $(srcdir)/gc.h $(srcdir)/cord/cord.h $(srcdir)/cord/ec.h \
+           $(srcdir)/cord/cord_pos.h
+
+# Libraries needed for curses applications.  Only needed for de.
+CURSES= -lcurses -ltermlib
+
+# The following is irrelevant on most systems.  But a few
+# versions of make otherwise fork the shell specified in
+# the SHELL environment variable.
+SHELL= bash
+
+SPECIALCFLAGS = 
+# Alternative flags to the C compiler for mach_dep.c.
+# Mach_dep.c often doesn't like optimization, and it's
+# not time-critical anyway.
+
+all: gc.a gctest.exe
+
+$(OBJS) test.o: $(srcdir)/gc_priv.h $(srcdir)/gc_hdrs.h $(srcdir)/gc.h \
+    $(srcdir)/gcconfig.h $(srcdir)/gc_typed.h
+# The dependency on Makefile is needed.  Changing
+# options affects the size of GC_arrays,
+# invalidating all .o files that rely on gc_priv.h
+
+mark.o typd_mlc.o finalize.o: $(srcdir)/include/gc_mark.h $(srcdir)/include/private/gc_pmark.h
+
+gc.a: $(OBJS)
+	$(AR) ru gc.a $(OBJS)
+	$(RANLIB) gc.a
+
+cords: $(CORD_OBJS) cord/cordtest.exe
+	$(AR) ru gc.a $(CORD_OBJS)
+	$(RANLIB) gc.a
+	cp $(srcdir)/cord/cord.h include/cord.h
+	cp $(srcdir)/cord/ec.h include/ec.h
+	cp $(srcdir)/cord/cord_pos.h include/cord_pos.h
+
+gc_cpp.o: $(srcdir)/gc_cpp.cc $(srcdir)/gc_cpp.h
+	$(CXX) -c -O $(srcdir)/gc_cpp.cc
+	
+c++: gc_cpp.o $(srcdir)/gc_cpp.h
+	$(AR) ru gc.a gc_cpp.o
+	$(RANLIB) gc.a
+	cp $(srcdir)/gc_cpp.h include/gc_cpp.h 
+
+mach_dep.o: $(srcdir)/mach_dep.c
+	$(CC) -o mach_dep.o -c $(SPECIALCFLAGS) $(srcdir)/mach_dep.c
+
+mark_rts.o: $(srcdir)/mark_rts.c
+	$(CC) -o mark_rts.o -c $(CFLAGS) $(srcdir)/mark_rts.c
+
+cord/cordbscs.o: $(srcdir)/cord/cordbscs.c $(CORD_INCLUDE_FILES)
+	$(CC) $(CFLAGS) -c $(srcdir)/cord/cordbscs.c -o  cord/cordbscs.o
+
+cord/cordxtra.o: $(srcdir)/cord/cordxtra.c $(CORD_INCLUDE_FILES)
+	$(CC) $(CFLAGS) -c $(srcdir)/cord/cordxtra.c -o  cord/cordxtra.o
+
+cord/cordprnt.o: $(srcdir)/cord/cordprnt.c $(CORD_INCLUDE_FILES)
+	$(CC) $(CFLAGS) -c $(srcdir)/cord/cordprnt.c -o cord/cordprnt.o
+
+cord/cordtest.exe: $(srcdir)/cord/cordtest.c $(CORD_OBJS) gc.a
+	$(CC) $(CFLAGS) -o cord/cordtest.exe $(srcdir)/cord/cordtest.c $(CORD_OBJS) gc.a
+
+cord/de.exe: $(srcdir)/cord/de.c $(srcdir)/cord/cordbscs.o $(srcdir)/cord/cordxtra.o gc.a
+	$(CC) $(CFLAGS) -o cord/de.exe $(srcdir)/cord/de.c $(srcdir)/cord/cordbscs.o $(srcdir)/cord/cordxtra.o gc.a $(CURSES)
+
+clean: 
+	rm -f gc.a tests/test.o gctest.exe output-local output-diff $(OBJS) \
+	      setjmp_test  mon.out gmon.out a.out core \
+	      $(CORD_OBJS) cord/cordtest.exe cord/de.exe
+	-rm -f *~
+
+gctest.exe: tests/test.o gc.a
+	$(CC) $(CFLAGS) -o gctest.exe tests/test.o gc.a
+
+# If an optimized setjmp_test generates a segmentation fault,
+# odds are your compiler is broken.  Gctest may still work.
+# Try compiling setjmp_t.c unoptimized.
+setjmp_test.exe: $(srcdir)/setjmp_t.c $(srcdir)/gc.h
+	$(CC) $(CFLAGS) -o setjmp_test.exe $(srcdir)/setjmp_t.c
+
+test: setjmp_test.exe gctest.exe
+	./setjmp_test
+	./gctest
+	make cord/cordtest.exe
+	cord/cordtest

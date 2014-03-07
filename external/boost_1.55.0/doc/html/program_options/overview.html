@@ -1,0 +1,617 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Library Overview</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../program_options.html" title="Chapter&#160;21.&#160;Boost.Program_options">
+<link rel="prev" href="tutorial.html" title="Tutorial">
+<link rel="next" href="howto.html" title="How To">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tutorial.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../program_options.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="howto.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="program_options.overview"></a>Library Overview</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="overview.html#idp163331176">Options Description Component</a></span></dt>
+<dt><span class="section"><a href="overview.html#idp163366168">Parsers Component</a></span></dt>
+<dt><span class="section"><a href="overview.html#idp163372680">Storage Component</a></span></dt>
+<dt><span class="section"><a href="overview.html#idp163378856">Specific parsers</a></span></dt>
+<dt><span class="section"><a href="overview.html#idp163396472">Annotated List of Symbols</a></span></dt>
+</dl></div>
+<p>In the tutorial section, we saw several examples of library usage.
+    Here we will describe the overall library design including the primary
+    components and their function.
+  </p>
+<p>The library has three main components:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>The options description component, which describes the allowed options
+          and what to do with the values of the options.
+        </p></li>
+<li class="listitem"><p>The parsers component, which uses this information to find option names
+          and values in the input sources and return them. 
+        </p></li>
+<li class="listitem"><p>The storage component, which provides the
+          interface to access the value of an option. It also converts the string
+          representation of values that parsers return into desired C++ types.
+        </p></li>
+</ul></div>
+<p>
+  </p>
+<p>To be a little more concrete, the <code class="computeroutput">options_description</code>
+  class is from the options description component, the
+  <code class="computeroutput">parse_command_line</code> function is from the parsers component, and the
+  <code class="computeroutput">variables_map</code> class is from the storage component. </p>
+<p>In the tutorial we've learned how those components can be used by the
+    <code class="computeroutput">main</code> function to parse the command line and config
+    file. Before going into the details of each component, a few notes about
+    the world outside of <code class="computeroutput">main</code>.
+  </p>
+<p>
+    For that outside world, the storage component is the most important. It
+    provides a class which stores all option values and that class can be
+    freely passed around your program to modules which need access to the
+    options. All the other components can be used only in the place where
+    the actual parsing is the done.  However, it might also make sense for the
+    individual program modules to describe their options and pass them to the
+    main module, which will merge all options. Of course, this is only
+    important when the number of options is large and declaring them in one
+    place becomes troublesome.
+  </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp163331176"></a>Options Description Component</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="overview.html#idp163346408">Syntactic Information</a></span></dt>
+<dt><span class="section"><a href="overview.html#idp163356200">Semantic Information</a></span></dt>
+<dt><span class="section"><a href="overview.html#idp163359032">Positional Options</a></span></dt>
+</dl></div>
+<p>The options description component has three main classes:
+      <code class="computeroutput"><a class="link" href="../boost/program_options/option_description.html" title="Class option_description">option_description</a></code>, <code class="computeroutput"><a class="link" href="../boost/program_options/value_semantic.html" title="Class value_semantic">value_semantic</a></code> and <code class="computeroutput"><a class="link" href="../boost/program_options/options_description.html" title="Class options_description">options_description</a></code>. The
+      first two together describe a single option. The <code class="computeroutput"><a class="link" href="../boost/program_options/option_description.html" title="Class option_description">option_description</a></code>
+      class contains the option's name, description and a pointer to <code class="computeroutput"><a class="link" href="../boost/program_options/value_semantic.html" title="Class value_semantic">value_semantic</a></code>,
+      which, in turn, knows the type of the option's value and can parse the value,
+      apply the default value, and so on. The <code class="computeroutput"><a class="link" href="../boost/program_options/options_description.html" title="Class options_description">options_description</a></code> class is a
+      container for instances of <code class="computeroutput"><a class="link" href="../boost/program_options/option_description.html" title="Class option_description">option_description</a></code>.
+    </p>
+<p>For almost every library, those classes could be created in a
+      conventional way: that is, you'd create new options using constructors and
+      then call the <code class="computeroutput">add</code> method of <code class="computeroutput"><a class="link" href="../boost/program_options/options_description.html" title="Class options_description">options_description</a></code>. However,
+      that's overly verbose for declaring 20 or 30 options. This concern led
+      to creation of the syntax that you've already seen:
+</p>
+<pre class="programlisting">
+options_description desc;
+desc.add_options()
+    ("help", "produce help")
+    ("optimization", value&lt;int&gt;()-&gt;default_value(10), "optimization level")
+    ;
+</pre>
+<p>      
+    </p>
+<p>The call to the <code class="computeroutput">value</code> function creates an instance of
+      a class derived from the <code class="computeroutput">value_semantic</code> class: <code class="computeroutput">typed_value</code>.
+      That class contains the code to parse
+      values of a specific type, and contains a number of methods which can be
+      called by the user to specify additional information. (This
+      essentially emulates named parameters of the constructor.) Calls to
+      <code class="computeroutput">operator()</code> on the object returned by <code class="computeroutput">add_options</code>
+      forward arguments to the constructor of the <code class="computeroutput">option_description</code>
+      class and add the new instance. 
+    </p>
+<p>
+      Note that in addition to the
+      <code class="computeroutput">value</code>, library provides the <code class="computeroutput">bool_switch</code>
+      function, and user can write his own function which will return
+      other subclasses of <code class="computeroutput">value_semantic</code> with 
+      different behaviour. For the remainder of this section, we'll talk only
+      about the <code class="computeroutput">value</code> function.
+    </p>
+<p>The information about an option is divided into syntactic and
+      semantic. Syntactic information includes the name of the option and the
+      number of tokens which can be used to specify the value. This
+      information is used by parsers to group tokens into (name, value) pairs,
+      where value is just a vector of strings
+      (<code class="computeroutput">std::vector&lt;std::string&gt;</code>). The semantic layer
+      is responsible for converting the value of the option into more usable C++
+      types. 
+    </p>
+<p>This separation is an important part of library design. The parsers
+      use only the syntactic layer, which takes away some of the freedom to
+      use overly complex structures. For example, it's not easy to parse
+      syntax like: </p>
+<pre class="screen">calc --expression=1 + 2/3</pre>
+<p> because it's not
+      possible to parse </p>
+<pre class="screen">1 + 2/3</pre>
+<p> without knowing that it's a C
+      expression. With a little help from the user the task becomes trivial,
+      and the syntax clear: </p>
+<pre class="screen">calc --expression="1 + 2/3"</pre>
+<p>
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp163346408"></a>Syntactic Information</h4></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="overview.html#idp163351864">Description formatting</a></span></dt></dl></div>
+<p>The syntactic information is provided by the
+        <code class="computeroutput"><a class="link" href="../boost/program_options/options_description.html" title="Class options_description">boost::program_options::options_description</a></code> class
+        and some methods of the
+        <code class="computeroutput"><a class="link" href="../boost/program_options/value_semantic.html" title="Class value_semantic">boost::program_options::value_semantic</a></code> class
+        and includes:        
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>
+              name of the option, used to identify the option inside the
+              program,
+            </p></li>
+<li class="listitem"><p>
+              description of the option, which can be presented to the user,
+            </p></li>
+<li class="listitem"><p>
+              the allowed number of source tokens that comprise options's
+              value, which is used during parsing.
+            </p></li>
+</ul></div>
+<p>
+      </p>
+<p>Consider the following example:
+      </p>
+<pre class="programlisting">
+options_description desc;
+desc.add_options()
+    ("help", "produce help message")
+    ("compression", value&lt;string&gt;(), "compression level")
+    ("verbose", value&lt;string&gt;()-&gt;implicit_value("0"), "verbosity level")
+    ("email", value&lt;string&gt;()-&gt;multitoken(), "email to send to")
+    ;
+      </pre>
+<p>
+      For the first parameter, we specify only the name and the
+      description. No value can be specified in the parsed source.
+      For the first option, the user must specify a value, using a single
+      token. For the third option, the user may either provide a single token
+      for the value, or no token at all. For the last option, the value can
+      span several tokens. For example, the following command line is OK:
+      </p>
+<pre class="screen">
+          test --help --compression 10 --verbose --email beadle@mars beadle2@mars
+      </pre>
+<p>      
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="idp163351864"></a>Description formatting</h5></div></div></div>
+<p>
+          Sometimes the description can get rather long, for example, when
+          several option's values need separate documentation. Below we
+          describe some simple formatting mechanisms you can use.
+        </p>
+<p>The description string has one or more paragraphs, separated by
+        the newline character ('\n'). When an option is output, the library
+        will compute the indentation for options's description. Each of the
+        paragraph is output as a separate line with that intentation. If 
+        a paragraph does not fit on one line it is spanned over multiple
+        lines (which will have the same indentation).
+        </p>
+<p>You may specify additional indent for the first specified by
+        inserting spaces at the beginning of a paragraph. For example: 
+        </p>
+<pre class="programlisting">
+options.add_options()
+    ("help", "   A long help msg a long help msg a long help msg a long help
+msg a long help msg a long help msg a long help msg a long help msg ")
+    ;  
+        </pre>
+<p>
+        will specify a four-space indent for the first line. The output will
+        look like:
+        </p>
+<pre class="screen">
+  --help                    A long help msg a long
+                        help msg a long help msg
+                        a long help msg a long
+                        help msg a long help msg
+                        a long help msg a long
+                        help msg
+          
+        </pre>
+<p>
+        </p>
+<p>For the case where line is wrapped, you can want an additional
+        indent for wrapped text. This can be done by
+        inserting a tabulator character ('\t') at the desired position. For
+        example: 
+        </p>
+<pre class="programlisting">
+options.add_options()
+      ("well_formated", "As you can see this is a very well formatted
+option description.\n"
+                        "You can do this for example:\n\n"
+                        "Values:\n"
+                        "  Value1: \tdoes this and that, bla bla bla bla
+bla bla bla bla bla bla bla bla bla bla bla\n"
+                        "  Value2: \tdoes something else, bla bla bla bla
+bla bla bla bla bla bla bla bla bla bla bla\n\n"
+                        "    This paragraph has a first line indent only,
+bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla");          
+        </pre>
+<p>
+        will produce:
+        </p>
+<pre class="screen">
+  --well_formated       As you can see this is a
+                        very well formatted
+                        option description.
+                        You can do this for
+                        example:
+
+                        Values:
+                          Value1: does this and
+                                  that, bla bla
+                                  bla bla bla bla
+                                  bla bla bla bla
+                                  bla bla bla bla
+                                  bla
+                          Value2: does something
+                                  else, bla bla
+                                  bla bla bla bla
+                                  bla bla bla bla
+                                  bla bla bla bla
+                                  bla
+
+                            This paragraph has a
+                        first line indent only,
+                        bla bla bla bla bla bla
+                        bla bla bla bla bla bla
+                        bla bla bla
+        </pre>
+<p>
+        The tab character is removed before output. Only one tabulator per
+        paragraph is allowed, otherwisee an exception of type
+        program_options::error is thrown. Finally, the tabulator is ignored if
+        it's is not on the first line of the paragraph or is on the last
+        possible position of the first line.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp163356200"></a>Semantic Information</h4></div></div></div>
+<p>The semantic information is completely provided by the 
+        <code class="computeroutput"><a class="link" href="../boost/program_options/value_semantic.html" title="Class value_semantic">boost::program_options::value_semantic</a></code> class. For
+        example:
+</p>
+<pre class="programlisting">
+options_description desc;
+desc.add_options()
+    ("compression", value&lt;int&gt;()-&gt;default_value(10), "compression level")
+    ("email", value&lt; vector&lt;string&gt; &gt;()
+        -&gt;composing()-&gt;notifier(&amp;your_function), "email")
+    ;
+</pre>
+<p>      
+        These declarations specify that default value of the first option is 10,
+        that the second option can appear several times and all instances should
+        be merged, and that after parsing is done, the library will  call
+        function <code class="computeroutput">&amp;your_function</code>, passing the value of the
+        "email" option as argument.      
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp163359032"></a>Positional Options</h4></div></div></div>
+<p>Our definition of option as (name, value) pairs is simple and
+        useful, but in one special case of the command line, there's a
+        problem. A command line can include a <em class="firstterm">positional option</em>,
+        which does not specify any name at all, for example:
+        </p>
+<pre class="screen">
+          archiver --compression=9 /etc/passwd
+        </pre>
+<p>
+        Here, the "/etc/passwd" element does not have any option name.
+      </p>
+<p>One solution is to ask the user to extract positional options
+        himself and process them as he likes. However, there's a nicer approach
+        -- provide a method to automatically assign the names for positional
+        options, so that the above command line can be interpreted the same way
+        as:
+        </p>
+<pre class="screen">
+          archiver --compression=9 --input-file=/etc/passwd
+        </pre>
+<p>
+      </p>
+<p>The <code class="computeroutput"><a class="link" href="../boost/program_options/positional_op_idp102255608.html" title="Class positional_options_description">positional_options_description</a></code> class allows the command line
+        parser to assign the names. The class specifies how many positional options
+        are allowed, and for each allowed option, specifies the name. For example:
+</p>
+<pre class="programlisting">
+positional_options_description pd; pd.add("input-file", 1);
+</pre>
+<p> specifies that for exactly one, first, positional
+        option the name will be "input-file".
+      </p>
+<p>It's possible to specify that a number, or even all positional options, be
+        given the same name.
+</p>
+<pre class="programlisting">
+positional_options_description pd;
+pd.add("output-file", 2).add("input-file", -1);
+</pre>
+<p>
+        In the above example, the first two positional options will be associated
+        with name "output-file", and any others with the name "input-file".
+      </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>The <code class="computeroutput"><a class="link" href="../boost/program_options/positional_op_idp102255608.html" title="Class positional_options_description">positional_options_description</a></code> class only specifies translation from
+      position to name, and the option name should still be registered with
+      an instance of the <code class="computeroutput"><a class="link" href="../boost/program_options/options_description.html" title="Class options_description">options_description</a></code> class.</p></td></tr>
+</table></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp163366168"></a>Parsers Component</h3></div></div></div>
+<p>The parsers component splits input sources into (name, value) pairs.
+      Each parser looks for possible options and consults the options
+      description component to determine if the option is known and how its value
+      is specified. In the simplest case, the name is explicitly specified,
+      which allows the library to decide if such option is known. If it is known, the
+      <code class="computeroutput"><a class="link" href="../boost/program_options/value_semantic.html" title="Class value_semantic">value_semantic</a></code> instance determines how the value is specified. (If
+      it is not known, an exception is thrown.) Common
+      cases are when the value is explicitly specified by the user, and when
+      the value cannot be specified by the user, but the presence of the
+      option implies some value (for example, <code class="computeroutput">true</code>). So, the
+      parser checks that the value is specified when needed and not specified
+      when not needed, and returns new (name, value) pair.
+    </p>
+<p>
+      To invoke a parser you typically call a function, passing the options
+      description and command line or config file or something else.
+      The results of parsing are returned as an instance of the <code class="computeroutput"><a class="link" href="reference.html#boost.program_options.parsed_options">parsed_options</a></code>
+      class. Typically, that object is passed directly to the storage
+      component. However, it also can be used directly, or undergo some additional
+      processing. 
+    </p>
+<p>
+      There are three exceptions to the above model -- all related to
+      traditional usage of the command line. While they require some support
+      from the options description component, the additional complexity is
+      tolerable.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>The name specified on the command line may be
+            different from the option name -- it's common to provide a "short option
+            name" alias to a longer name. It's also common to allow an abbreviated name
+            to be specified on the command line.
+          </p></li>
+<li class="listitem"><p>Sometimes it's desirable to specify value as several
+          tokens. For example, an option "--email-recipient" may be followed
+          by several emails, each as a separate command line token. This
+          behaviour is supported, though it can lead to parsing ambiguities
+          and is not enabled by default.
+          </p></li>
+<li class="listitem"><p>The command line may contain positional options -- elements
+            which don't have any name. The command line parser provides a
+            mechanism to guess names for such options, as we've seen in the
+            tutorial.
+          </p></li>
+</ul></div>
+<p>
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp163372680"></a>Storage Component</h3></div></div></div>
+<p>The storage component is responsible for:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>Storing the final values of an option into a special class and in
+            regular variables</p></li>
+<li class="listitem"><p>Handling priorities among different sources.</p></li>
+<li class="listitem"><p>Calling user-specified <code class="computeroutput">notify</code> functions with the final
+         values of options.</p></li>
+</ul></div>
+<p>
+    </p>
+<p>Let's consider an example:
+</p>
+<pre class="programlisting">
+variables_map vm;
+store(parse_command_line(argc, argv, desc), vm);
+store(parse_config_file("example.cfg", desc), vm);
+notify(vm);
+</pre>
+<p>
+      The <code class="computeroutput">variables_map</code> class is used to store the option
+      values. The two calls to the <code class="computeroutput">store</code> function add values
+      found on the command line and in the config file. Finally the call to
+      the <code class="computeroutput">notify</code> function runs the user-specified notify
+      functions and stores the values into regular variables, if needed.
+    </p>
+<p>The priority is handled in a simple way: the <code class="computeroutput">store</code>
+      function will not change the value of an option if it's already
+      assigned. In this case, if the command line specifies the value for an
+      option, any value in the config file is ignored.
+    </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>Don't forget to call the <code class="computeroutput">notify</code> function after you've
+      stored all parsed values.</p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp163378856"></a>Specific parsers</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="overview.html#idp163379208">Configuration file parser</a></span></dt>
+<dt><span class="section"><a href="overview.html#idp163385464">Environment variables parser</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp163379208"></a>Configuration file parser</h4></div></div></div>
+<p>The <code class="computeroutput"><a class="link" href="../boost/program_options/parse_config__idp102270904.html" title="Function template parse_config_file">parse_config_file</a></code> function implements parsing
+      of simple INI-like configuration files. Configuration file
+      syntax is line based:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p>A line in the form:</p>
+<pre class="screen">
+<em class="replaceable"><code>name</code></em>=<em class="replaceable"><code>value</code></em>
+        </pre>
+<p>gives a value to an option.</p>
+</li>
+<li class="listitem">
+<p>A line in the form:</p>
+<pre class="screen">
+[<em class="replaceable"><code>section name</code></em>]
+        </pre>
+<p>introduces a new section in the configuration file.</p>
+</li>
+<li class="listitem"><p>The <code class="literal">#</code> character introduces a
+        comment that spans until the end of the line.</p></li>
+</ul></div>
+<p>The option names are relative to the section names, so
+      the following configuration file part:</p>
+<pre class="screen">
+[gui.accessibility]
+visual_bell=yes
+      </pre>
+<p>is equivalent to</p>
+<pre class="screen">
+gui.accessibility.visual_bell=yes
+      </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp163385464"></a>Environment variables parser</h4></div></div></div>
+<p><em class="firstterm">Environment variables</em> are string variables
+      which are available to all programs via the <code class="computeroutput">getenv</code> function
+      of C runtime library. The operating system allows to set initial values
+      for a given user, and the values can be further changed on the command
+      line.  For example, on Windows one can use the
+      <code class="filename">autoexec.bat</code> file or (on recent versions) the
+      <code class="filename">Control Panel/System/Advanced/Environment Variables</code>
+      dialog, and on Unix &#8212;, the <code class="filename">/etc/profile</code>,
+      <code class="filename">~/.profile</code> and <code class="filename">~/.bash_profile</code>
+      files. Because environment variables can be set for the entire system,
+      they are particularly suitable for options which apply to all programs.
+      </p>
+<p>The environment variables can be parsed with the
+      <code class="computeroutput"><a class="link" href="../boost/program_options/parse_environ_idp101637256.html" title="Function parse_environment">parse_environment</a></code> function. The function have several overloaded
+      versions. The first parameter is always an <code class="computeroutput"><a class="link" href="../boost/program_options/options_description.html" title="Class options_description">options_description</a></code>
+      instance, and the second specifies what variables must be processed, and
+      what option names must correspond to it. To describe the second
+      parameter we need to consider naming conventions for environment
+      variables.</p>
+<p>If you have an option that should be specified via environment
+      variable, you need make up the variable's name. To avoid name clashes,
+      we suggest that you use a sufficiently unique prefix for environment
+      variables. Also, while option names are most likely in lower case,
+      environment variables conventionally use upper case. So, for an option
+      name <code class="literal">proxy</code> the environment variable might be called
+      <code class="envar">BOOST_PROXY</code>. During parsing, we need to perform reverse
+      conversion of the names. This is accomplished by passing the choosen
+      prefix as the second parameter of the <code class="computeroutput"><a class="link" href="../boost/program_options/parse_environ_idp101637256.html" title="Function parse_environment">parse_environment</a></code> function.
+      Say, if you pass <code class="literal">BOOST_</code> as the prefix, and there are
+      two variables, <code class="envar">CVSROOT</code> and <code class="envar">BOOST_PROXY</code>, the
+      first variable will be ignored, and the second one will be converted to
+      option <code class="literal">proxy</code>. 
+      </p>
+<p>The above logic is sufficient in many cases, but it is also
+      possible to pass, as the second parameter of the <code class="computeroutput"><a class="link" href="../boost/program_options/parse_environ_idp101637256.html" title="Function parse_environment">parse_environment</a></code>
+      function, any function taking a <code class="computeroutput">std::string</code> and returning
+      <code class="computeroutput">std::string</code>. That function will be called for each
+      environment variable and should return either the name of the option, or
+      empty string if the variable should be ignored.
+      </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp163396472"></a>Annotated List of Symbols</h3></div></div></div>
+<p>The following table describes all the important symbols in the
+      library, for quick access.</p>
+<div class="informaltable"><table class="table" width="100%">
+<colgroup>
+<col class="c1">
+<col class="c2">
+</colgroup>
+<thead><tr>
+<th>Symbol</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr><td colspan="2">Options description component</td></tr>
+<tr>
+<td><code class="computeroutput"><a class="link" href="../boost/program_options/options_description.html" title="Class options_description">options_description</a></code></td>
+<td>describes a number of options</td>
+</tr>
+<tr>
+<td><code class="computeroutput"><a class="link" href="../boost/program_options/value_idp103082200.html" title="Function value">value</a></code></td>
+<td>defines the option's value</td>
+</tr>
+<tr><td colspan="2">Parsers component</td></tr>
+<tr>
+<td><code class="computeroutput"><a class="link" href="../boost/program_options/parse_command_line.html" title="Function template parse_command_line">parse_command_line</a></code></td>
+<td>parses command line (simpified interface)</td>
+</tr>
+<tr>
+<td><code class="computeroutput"><a class="link" href="../boost/program_options/basic_command_line_parser.html" title="Class template basic_command_line_parser">basic_command_line_parser</a></code></td>
+<td>parses command line (extended interface)</td>
+</tr>
+<tr>
+<td><code class="computeroutput"><a class="link" href="../boost/program_options/parse_config__idp102270904.html" title="Function template parse_config_file">parse_config_file</a></code></td>
+<td>parses config file</td>
+</tr>
+<tr>
+<td><code class="computeroutput"><a class="link" href="../boost/program_options/parse_environ_idp101637256.html" title="Function parse_environment">parse_environment</a></code></td>
+<td>parses environment</td>
+</tr>
+<tr><td colspan="2">Storage component</td></tr>
+<tr>
+<td><code class="computeroutput"><a class="link" href="../boost/program_options/variables_map.html" title="Class variables_map">variables_map</a></code></td>
+<td>storage for option values</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2004 Vladimir Prus<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tutorial.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../program_options.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="howto.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

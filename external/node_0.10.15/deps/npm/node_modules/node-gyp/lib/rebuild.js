@@ -1,0 +1,16 @@
+
+module.exports = exports = rebuild
+
+exports.usage = 'Runs "clean", "configure" and "build" all at once'
+
+var log = require('npmlog')
+
+function rebuild (gyp, argv, callback) {
+
+  gyp.todo.push(
+      { name: 'clean', args: [] }
+    , { name: 'configure', args: [] }
+    , { name: 'build', args: [] }
+  )
+  process.nextTick(callback)
+}

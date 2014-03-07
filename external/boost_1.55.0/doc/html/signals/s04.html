@@ -1,0 +1,191 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Frequently Asked Questions</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../signals.html" title="Chapter&#160;27.&#160;Boost.Signals">
+<link rel="prev" href="../boost/last_value_voi_idp53517720.html" title="Class last_value&lt;void&gt;">
+<link rel="next" href="s05.html" title="Design Overview">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/last_value_voi_idp53517720.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="s05.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="idp204665288"></a>Frequently Asked Questions</h2></div></div></div>
+<div class="qandaset">
+<a name="idp204665752"></a><dl>
+<dt>1. <a href="s04.html#idp204665880">Is Boost.Signals being actively maintained?</a>
+</dt>
+<dt>2. <a href="s04.html#idp204667736">Don't noncopyable signal semantics mean that a class
+        with a signal member will be noncopyable as well?</a>
+</dt>
+<dt>3. <a href="s04.html#idp204669112">Is Boost.Signals thread-safe?</a>
+</dt>
+<dt>4. <a href="s04.html#idp204670328">How do I get Boost.Signals to work with Qt?</a>
+</dt>
+</dl>
+<table border="0" style="width: 100%;">
+<colgroup>
+<col align="left" width="1%">
+<col>
+</colgroup>
+<tbody>
+<tr class="question">
+<td align="left" valign="top">
+<a name="idp204665880"></a><a name="idp204666008"></a><p><b>1.</b></p>
+</td>
+<td align="left" valign="top"><p>Is Boost.Signals being actively maintained?</p></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p>No. Please migrate to <a href="http://www.boost.org/doc/html/signals2.html" target="_top">Boost.Signals2</a>.
+        There is a 
+        <a href="http://www.boost.org/doc/html/signals2/api_changes.html#signals2.porting" target="_top">porting guide</a>
+        in the Signals2 documentation.</p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="idp204667736"></a><a name="idp204667864"></a><p><b>2.</b></p>
+</td>
+<td align="left" valign="top"><p>Don't noncopyable signal semantics mean that a class
+        with a signal member will be noncopyable as well?</p></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p>No. The compiler will not be able to generate a copy
+        constructor or copy assignment operator for your class if it
+        has a signal as a member, but you are free to write your own
+        copy constructor and/or copy assignment operator. Just don't
+        try to copy the signal.</p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="idp204669112"></a><a name="idp204669240"></a><p><b>3.</b></p>
+</td>
+<td align="left" valign="top"><p>Is Boost.Signals thread-safe?</p></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p>No. Using Boost.Signals in a multithreaded concept is
+        very dangerous, and it is very likely that the results will be
+        less than satisfying. Boost.Signals will support thread safety
+        in the future.</p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="idp204670328"></a><a name="idp204670456"></a><p><b>4.</b></p>
+</td>
+<td align="left" valign="top"><p>How do I get Boost.Signals to work with Qt?</p></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top">
+<p>When building with Qt, the Moc keywords
+        <code class="computeroutput">signals</code> and <code class="computeroutput">slots</code> are defined using
+        preprocessor macros, causing programs using Boost.Signals and
+        Qt together to fail to compile.</p>
+<p><span class="emphasis"><em>For Qt 4.1 and later</em></span>, This behavior
+        can be turned off in Qt on a per-project or per-file basis
+        with the <code class="computeroutput">no_keywords</code> option.  This works with
+        out-of-the-box builds of Boost and Qt. You do not need to
+        re-configure, re-build, or duplicate existing libraries. For a
+        project where you want to use both Boost.Signals and Qt
+        Signals and Slots, the relevant part of your .pro file might
+        look like this:</p>
+<pre class="programlisting">
+CONFIG      += no_keywords # so Qt won't #define any non-all-caps `keywords'
+INCLUDEPATH += . /usr/local/include/boost-1_33_1/
+macx:LIBS   += /usr/local/lib/libboost_signals-1_33_1.a  # ...your exact paths may vary
+</pre>
+<p>Now you can mix Boost.Signals and Qt Signals and Slots
+        in the same files, and even within the same class or function.
+        You will have to use the upper-case versions of Qt macros in
+        your own code.  See the article <a href="http://scottcollins.net/articles/a-deeper-look-at-signals-and-slots.html" target="_top">A
+        Deeper Look at Signals and Slots</a> [off-site] for more
+        complete examples and a survey of the strengths of the two
+        systems.</p>
+<p><span class="emphasis"><em>Older versions of Qt</em></span> did not
+        provide a reliable mechanism for avoiding these unfriendly,
+        all lower-case `keyword'-like macros.  Although this is a
+        problem with Qt and not Boost.Signals, a user can use the two
+        systems together with a little extra effort. There are two
+        ways to do this:</p>
+<p>The first way involves defining
+        the <code class="computeroutput">BOOST_SIGNALS_NAMESPACE</code> 
+        macro to some other identifier (e.g., <code class="computeroutput">signalslib</code>)
+        when building and using the Boost.Signals library. Then the
+        namespace of the Boost.Signals library will be
+        <code class="computeroutput">boost::BOOST_SIGNALS_NAMESPACE</code> instead of
+        <code class="computeroutput">boost::signals</code>. To retain the original namespace
+        name in translation units that do not interact with Qt, you
+        can use a namespace alias:</p>
+<pre class="programlisting">
+  namespace boost {
+    namespace signals = BOOST_SIGNALS_NAMESPACE;
+  }
+</pre>
+<p>The second way, provided by Frank Hess and improved by
+        Niels Dekker, involves 
+        creating a header <code class="computeroutput">signalslib.hpp</code> that contains
+          the following code:</p>
+<pre class="programlisting">#ifndef SIGNALSLIB_HPP_INCLUDED
+#define SIGNALSLIB_HPP_INCLUDED 
+
+#if defined(signals) &amp;&amp; defined(QOBJECTDEFS_H) &amp;&amp; \
+  !defined(QT_MOC_CPP)
+#  undef signals
+#  define signals signals
+#endif
+
+#include &lt;boost/signal.hpp&gt;
+namespace boost
+{
+  namespace signalslib = signals;
+}
+
+#if defined(signals) &amp;&amp; defined(QOBJECTDEFS_H) &amp;&amp; \
+  !defined(QT_MOC_CPP)
+#  undef signals
+// Restore the macro definition of "signals", as it was
+// defined by Qt's &lt;qobjectdefs.h&gt;.
+#  define signals protected
+#endif
+
+#endif</pre>
+<p>Use this header to include the Boost library, then refer
+          to it in the namespace <code class="computeroutput">boost::signalslib</code>. This
+          option is often
+        preferable to the first option because it can be used without
+        recompiling the Signals library binary. </p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: June 20, 2013 at 22:18:17 +0100</small></p></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/last_value_voi_idp53517720.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="s05.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

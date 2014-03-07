@@ -1,0 +1,107 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:concepts Concepts]
+
+[section:charT_concept charT Requirements]
+
+Type `charT` used a template argument to class template [basic_regex], 
+must have a trivial default constructor, copy constructor, 
+assignment operator, and destructor.  In addition the following requirements 
+must be met for objects; /c/ of type `charT`, /c1/ and /c2/ of type `charT const`, 
+and /i/ of type `int`:
+
+[table
+[[Expression] 	[Return type] 	[Assertion / Note / Pre- / Post-condition]]
+[[charT c] 	[charT] 	[Default constructor (must be trivial).]]
+[[charT c(c1)] 	[charT] 	[Copy constructor (must be trivial).]]
+[[c1 = c2] 	[charT] 	[Assignment operator (must be trivial).]]
+[[c1 == c2] 	[bool] 	[true if c1 has the same value as c2.]]
+[[c1 != c2] 	[bool] 	[true if c1 and c2 are not equal.]]
+[[c1 < c2]     [bool] 	[true if the value of c1 is less than c2.]]
+[[c1 > c2] 	[bool] 	[true if the value of c1 is greater than c2.]]
+[[c1 <= c2] 	[bool] 	[true if c1 is less than or equal to c2.]]
+[[c1 >= c2] 	[bool] 	[true if c1 is greater than or equal to c2.]]
+[[intmax_t i = c1] 	[int 	] [charT must be convertible to an integral type.
+
+Note: type charT is not required to support this operation, if the traits class used supports the full Boost-specific interface, rather than the minimal standardised-interface (see traits class requirements below).]]
+[[charT c(i);] 	[charT] 	[charT must be constructable from an integral type.]]
+]
+
+[endsect]
+
+[section:traits_concept Traits Class Requirements]
+
+There are two sets of requirements for the `traits` template argument to 
+[basic_regex]: a mininal interface (which is part of the regex standardization proposal), 
+and an optional Boost-specific enhanced interface.
+
+[h4 Minimal requirements.]
+
+In the following table `X` denotes a traits class defining types and functions for 
+the character container type `charT`; /u/ is an object of type `X`; /v/ is 
+an object of type `const X`; /p/ is a value of type `const charT*`; 
+/I1/ and /I2/ are Input Iterators; /c/ is a value of type `const charT`; 
+/s/ is an object of type `X::string_type`; /cs/ is an object of type 
+`const X::string_type`; /b/ is a value of type `bool`; /I/ is a value of 
+type `int`; /F1/ and /F2/ are values of type `const charT*`; and /loc/ is 
+an object of type `X::locale_type`.
+
+[table
+[[Expression][Return type][Assertion / Note Pre / Post condition]]
+[[X::char_type][charT][The character container type used in the implementation of class template basic_regex.]]
+[[X::size_type][][An unsigned integer type, capable of holding the length of a null-terminated string of charT's.]]
+[[X::string_type][std::basic_string<charT> or std::vector<charT>][]]
+[[X::locale_type][Implementation defined][A copy constructible type that represents the locale used by the traits class.]]
+[[X::char_class_type][Implementation defined][A bitmask type representing a particular character classification. Multiple values of this type can be bitwise-or'ed together to obtain a new valid value.]]
+[[X::length(p)][X::size_type][Yields the smallest i such that p\[i\] == 0. Complexity is linear in i.]]
+[[v.translate(c)][X::char_type][Returns a character such that for any character d that is to be considered equivalent to c then v.translate(c) == v.translate(d).]]
+[[v.translate_nocase(c)][X::char_type][For all characters C that are to be considered equivalent to c when comparisons are to be performed without regard to case, then v.translate_nocase(c) == v.translate_nocase(C).]]
+[[v.transform(F1, F2)][X::string_type][Returns a sort key for the character sequence designated by the iterator range \[F1, F2) such that if the character sequence \[G1, G2) sorts before the character sequence [H1, H2) then v.transform(G1, G2) < v.transform(H1, H2). ]]
+[[v.transform_primary(F1, F2)][X::string_type][Returns a sort key for the character sequence designated by the iterator range \[F1, F2) such that if the character sequence [G1, G2) sorts before the character sequence \[H1, H2) when character case is not considered then v.transform_primary(G1, G2) < v.transform_primary(H1, H2).]]
+[[v.lookup_classname(F1, F2)][X::char_class_type][Converts the character sequence designated by the iterator range \[F1,F2) into a bitmask type that can subsequently be passed to isctype. Values returned from lookup_classname can be safely bitwise or'ed together. Returns 0 if the character sequence is not the name of a character class recognized by X. The value returned shall be independent of the case of the characters in the sequence.]]
+[[v.lookup_collatename(F1, F2)][X::string_type][Returns a sequence of characters that represents the collating element consisting of the character sequence designated by the iterator range \[F1, F2). Returns an empty string if the character sequence is not a valid collating element.]]
+[[v.isctype(c, v.lookup_classname (F1, F2))][bool][Returns true if character c is a member of the character class designated by the iterator range \[F1, F2), false otherwise.]]
+[[v.value(c, I)][int][Returns the value represented by the digit c in base I if the character c is a valid digit in base I; otherwise returns -1. \[Note: the value of I will only be 8, 10, or 16. -end note\]]]
+[[u.imbue(loc)][X::locale_type][Imbues u with the locale loc, returns the previous locale used by u if any. ]]
+[[v.getloc()][X::locale_type][Returns the current locale used by v if any. ]]
+]
+
+[h4 Additional Optional Requirements]
+
+The following additional requirements are strictly optional, 
+however in order for [basic_regex] to take advantage of these additional 
+interfaces, all of the following requirements must be met; [basic_regex] 
+will detect the presence or absense of the member `boost_extensions_tag` and 
+configure itself appropriately.
+
+
+[table 
+[[Expression][Result][Assertion / Note Pre / Post condition]]
+[[X::boost_extensions_tag][An unspecified type.][When present, all of the extensions listed in this table must be present.]]
+[[v.syntax_type(c)][regex_constants::syntax_type][Returns a symbolic value of type regex_constants::syntax_type that signifies the meaning of character c within the regular expression grammar.]]
+[[v.escape_syntax_type(c)][regex_constants::escape_syntax_type][Returns a symbolic value of type regex_constants::escape_syntax_type, that signifies the meaning of character c within the regular expression grammar, when c has been preceded by an escape character. Precondition: if b is the character preceding c in the expression being parsed then: `v.syntax_type(b) == syntax_escape`]]
+[[v.translate(c, b)][X::char_type][Returns a character d such that: for any character d that is to be considered equivalent to c then `v.translate(c,false)==v.translate(d,false)`. Likewise for all characters C that are to be considered equivalent to c when comparisons are to be performed without regard to case, then `v.translate(c,true)==v.translate(C,true)`.]]
+[[v.toi(I1, I2, i)][An integer type capable of holding either a charT or an int.][Behaves as follows: if `p == q` or if `*p` is not a digit character then returns -1. Otherwise performs formatted numeric input on the sequence \[p,q) and returns the result as an int. Postcondition: either p == q or *p is a non-digit character.]]
+[[v.error_string(I)][std::string][Returns a human readable error string for the error condition i, where i is one of the values enumerated by type regex_constants::error_type.  If the value /I/ is not recognized then returns the string "Unknown error" or a localized equivalent.]]
+[[v.tolower(c)][X::char_type][Converts c to lower case, used for Perl-style \l and \L formating operations.]]
+[[v.toupper(c)][X::char_type][Converts c to upper case, used for Perl-style \u and \U formating operations.]]
+]
+
+[endsect]
+
+[section:iterator_concepts Iterator Requirements]
+
+The regular expression algorithms (and iterators) take all require a 
+Bidirectional-Iterator.
+
+[endsect]
+
+[endsect]
+
+

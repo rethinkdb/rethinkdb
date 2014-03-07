@@ -1,0 +1,14 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Gujarati_Latin.txt
+# Generated from CLDR 
+#
+::[।-॥\u0A81-ઃઅ-ઍએ-ઑઓ-નપ-રલ-ળવ-હ\u0ABC-\u0AC5\u0AC7-ૉો-\u0ACDૐૠૡ૦-૯];
+::NFD;
+::Gujarati-InterIndic;
+::InterIndic-Latin;
+::NFC;

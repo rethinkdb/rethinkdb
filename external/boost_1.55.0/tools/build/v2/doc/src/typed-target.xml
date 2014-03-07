@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<section id="bbv2.reference.class.typed-target">
+
+  <title>Class typed-target</title>
+  <indexterm>
+    <primary>typed-target</primary>
+  </indexterm>
+
+<programlisting language="jam">
+class typed-target : <link linkend="bbv2.reference.class.basic-target">basic-target</link> {
+    rule <link linkend="bbv2.reference.class.typed-target.__init__">__init__</link> ( name : project : type : sources * : requirements * : default-build * : usage-requirements * ) 
+    rule <link linkend="bbv2.reference.class.typed-target.type">type</link> ( )
+    rule <link linkend="bbv2.reference.class.typed-target.construct">construct</link> ( name : source-targets * : property-set )
+
+    # Methods inherited from <link linkend="bbv2.reference.class.abstract-target">abstract-target</link>
+    rule <link linkend="bbv2.reference.class.abstract-target.name">name</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.project">project</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.location">location</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.full-name">full-name</link> ( )
+    
+    # Methods inherited from <link linkend="bbv2.reference.class.basic-target">basic-target</link>
+    rule <link linkend="bbv2.reference.class.basic-target.generate">generate</link> ( property-set )
+  }
+</programlisting>
+
+  <para>
+    <link linkend="bbv2.reference.class.typed-target">typed-target</link>
+    is the most common kind of target alternative.  Rules for creating
+    typed targets are defined automatically for each type.
+  </para>
+
+  <orderedlist>
+
+    <listitem id="bbv2.reference.class.typed-target.__init__">
+      <code language="jam">rule __init__ ( name : project : type : sources * : requirements * : default-build * : usage-requirements * )</code>
+      <para>
+        <variablelist>
+          <varlistentry>
+            <term><literal>name</literal></term>
+            <listitem><para>The name of the target</para></listitem>
+          </varlistentry>
+          <varlistentry>
+            <term><literal>project</literal></term>
+            <listitem>
+              <para>
+                The <link linkend="bbv2.reference.class.project-target">project</link>
+                in which the target is declared.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term><literal>type</literal></term>
+            <listitem>
+              <para>
+                The <link linkend="bbv2.reference.modules.type">type</link>
+                of the target.
+              </para>
+            </listitem>
+          </varlistentry>
+        </variablelist>
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.typed-target.type">
+      <indexterm zone="bbv2.reference.class.typed-target.type">
+        <primary>type</primary>
+        <secondary>Typed Target Method</secondary>
+      </indexterm>
+      <code language="jam">rule type ( )</code>
+      <para>
+        Returns the <link linkend="bbv2.reference.modules.type">type</link>
+        of the target.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.typed-target.construct">
+      <indexterm zone="bbv2.reference.class.typed-target.construct">
+        <primary>construct</primary>
+        <secondary>Typed Target Method</secondary>
+      </indexterm>
+      <code language="jam">rule construct ( name : source-targets * : property-set )</code>
+      <para>
+        Implements <link linkend="bbv2.reference.class.basic-target.construct">
+        basic-target.construct</link>.  Attempts to create a target of
+        the correct type using generators appropriate for the given
+        <link linkend="bbv2.reference.class.property-set">property-set</link>.
+        Returns a <link linkend="bbv2.reference.class.property-set">
+        property-set</link> containing the usage requirements
+        and a list of virtual targets.
+        
+        <note>
+          <para>
+            This function is invoked automatically by
+            <link linkend="bbv2.reference.class.basic-target.generate">basic-target.generate</link>
+            and should not be called directly by users.
+          </para>
+        </note>
+      </para>
+    </listitem>
+    
+  </orderedlist>
+  
+</section>

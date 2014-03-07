@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Pipable</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Pipable</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Description</H2>
+
+<P>
+    A Pipable Filter can appear as a component of a <A HREF="../guide/pipelines.html">pipline</A>.
+</P>
+
+<P>
+     Certian overloads of <CODE>operator|</CODE> must be defined to make a Filter Pipable; this is achieved by invoking the macro <A HREF="../guide/pipelines.html#boost_iostreams_pipable"><CODE>BOOST_IOSTREAMS_PIPABLE</CODE></A>.
+</P>
+
+<H2>Refinement of</H2>
+
+<A HREF="filter.html">Filter</A>.
+
+<A NAME="types"></A>
+<H2>Associated Types</H2>
+
+Same as <A HREF="filter.html">Filter</A>.
+
+<H2>Notation</H2>
+
+<TABLE CELLPADDING="2">
+    <TR><TD><CODE>P</CODE></TD><TD>-</TD><TD>A type which is a model of Pipable</TD></TR>
+    <TR><TD><CODE>C</CODE></TD><TD>-</TD><TD>A type which is a model of <A HREF="filter.html">Filter</A> or <A HREF="device.html">Device</A> and which is <A HREF="../../../../doc/html/CopyConstructible.html"  TARGET="_top">CopyConstructible</A><A CLASS='footnote_ref' NAME='note_1_ref' HREF="#note_1"><SUP>[1]</A></SUP></TD></TR>
+    <TR><TD><CODE>p</CODE></TD><TD>-</TD><TD>Object of type <CODE>P</CODE></TD></TR>
+    <TR><TD><CODE>c</CODE></TD><TD>-</TD><TD>Object of type <CODE>C</CODE></TD></TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Semantics</TH></TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE>f | c</CODE></PRE>
+        </TD>
+        <TD><I>implementation-defined</I></TD>
+        <TD>
+           Returns a pipeline corresponding to the sequence <CODE>f</CODE>, <CODE>c</CODE>
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Exceptions</H2>
+
+<P>
+    None.
+</P>
+
+<H2>Models</H2>
+<UL>
+    <LI>All the Filters provided by the Iostreams library.
+</UL>
+
+<!-- Begin Footnotes -->
+
+<HR>
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_1" HREF="#note_1_ref"><SUP>[1]</SUP></A>This requirement prevents streams and stream buffers from appearing in pipelines without the use of <A HREF="../../../../doc/html/ref.html">reference wrappers</A>. This restriction may be removed in a future version of the Iostreams library.
+</P>
+
+<!-- End Footnotes -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

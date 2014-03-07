@@ -1,0 +1,156 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+[section Chaotic systems and Lyapunov exponents]
+
+[import ../examples/chaotic_system.cpp]
+
+In this example we present application of odeint to investigation of the properties of chaotic
+deterministic systems. In mathematical terms chaotic refers to an exponential
+growth of perturbations ['__delta x]. In order to observe this exponential growth one usually solves the equations for the tangential dynamics which is again an ordinary differential equation. These equations are linear but time dependent and can be obtained via
+
+['d __delta x / dt = J(x) __delta x]
+
+where ['J] is the Jacobian of the system under consideration. ['__delta x] can
+also be interpreted as a perturbation of the original system. In principle
+['n] of these perturbations exist, they form a hypercube and evolve in the
+time. The Lyapunov exponents are then defined as logarithmic growth rates of
+the perturbations. If one Lyapunov exponent is larger then zero the nearby
+trajectories diverge exponentially hence they are chaotic. If the largest
+Lyapunov exponent is zero one is usually faced with periodic motion. In the
+case of a largest Lyapunov exponent smaller then zero convergence to a
+fixed point is expected. More information's about Lyapunov exponents and nonlinear
+dynamical systems can be found in many textbooks, see for example: E. Ott "Chaos is
+Dynamical Systems", Cambridge.
+
+To calculate the Lyapunov exponents numerically one usually solves the equations of motion for ['n] perturbations and orthonormalizes them every ['k] steps. The Lyapunov exponent is the average of the logarithm of the stretching factor of each perturbation.
+
+To demonstrate how one can use odeint to determine the Lyapunov exponents we choose the Lorenz system. It is one of the most studied dynamical systems in the nonlinear dynamics community. For the standard parameters it possesses a strange attractor with non-integer dimension. The Lyapunov exponents take values of approximately 0.9, 0 and -12.
+
+The implementation of the Lorenz system is
+
+``
+const double sigma = 10.0;
+const double R = 28.0;
+const double b = 8.0 / 3.0;
+
+typedef boost::array< double , 3 > lorenz_state_type;
+
+void lorenz( const lorenz_state_type &x , lorenz_state_type &dxdt , double t )
+{
+    dxdt[0] = sigma * ( x[1] - x[0] );
+    dxdt[1] = R * x[0] - x[1] - x[0] * x[2];
+    dxdt[2] = -b * x[2] + x[0] * x[1];
+}
+``
+We need also to integrate the set of the perturbations. This is done in parallel to the original system, hence within one system function. Of course, we want to use the above definition of the Lorenz system, hence the definition of the system function including the Lorenz system itself and the perturbation could look like:
+
+``
+const size_t n = 3;
+const size_t num_of_lyap = 3;
+const size_t N = n + n*num_of_lyap;
+
+typedef std::tr1::array< double , N > state_type;
+typedef std::tr1::array< double , num_of_lyap > lyap_type;
+
+void lorenz_with_lyap( const state_type &x , state_type &dxdt , double t )
+{
+    lorenz( x , dxdt , t );
+
+    for( size_t l=0 ; l<num_of_lyap ; ++l )
+    {
+        const double *pert = x.begin() + 3 + l * 3;
+        double *dpert = dxdt.begin() + 3 + l * 3;
+        dpert[0] = - sigma * pert[0] + 10.0 * pert[1];
+        dpert[1] = ( R - x[2] ) * pert[0] - pert[1] - x[0] * pert[2];
+        dpert[2] = x[1] * pert[0] + x[0] * pert[1] - b * pert[2];
+    }
+}
+``
+
+The perturbations are stored linearly in the `state_type` behind the state of the Lorenz system.
+The problem of '''lorenz()''' and '''lorenz_with_lyap()''' having different state types may be solved putting the Lorenz system inside a functor with templatized arguments:
+
+``
+struct lorenz
+{
+    template< class StateIn , class StateOut , class Value >
+    void operator()( const StateIn &x , StateOut &dxdt , Value t )
+    {
+        dxdt[0] = sigma * ( x[1] - x[0] );
+        dxdt[1] = R * x[0] - x[1] - x[0] * x[2];
+        dxdt[2] = -b * x[2] + x[0] * x[1];
+    }
+};
+
+void lorenz_with_lyap( const state_type &x , state_type &dxdt , double t )
+{
+    lorenz()( x , dxdt , t );
+    ...
+}
+
+``
+This works fine and `lorenz_with_lyap` can be used for example via
+``
+state_type x;
+// initialize x
+explicit_rk4< state_type > rk4;
+integrate_n_steps( rk4 , lorenz_with_lyap , x , 0.0 , 0.01 , 1000 );
+``
+This code snippet performs 1000 steps with constant step size 0.01.
+
+A real world use case for the calculation of the Lyapunov exponents of Lorenz system would always include some transient steps, just to ensure that the current state lies on the attractor, hence it would look like
+
+``
+state_type x;
+// initialize x
+explicit_rk4< state_type > rk4;
+integrate_n_steps( rk4 , lorenz , x , 0.0 , 0.01 , 1000 );
+``
+The problem is now, that `x` is the full state containing also the
+perturbations and `integrate_n_steps` does not know that it should only use 3
+elements. In detail, odeint and its steppers determine the length of the
+system under consideration by determining the length of the state. In the
+classical solvers, e.g. from Numerical Recipes, the problem was solved by
+pointer to the state and an appropriate length, something similar to 
+
+``
+void lorenz( double* x , double *dxdt , double t, void* params )
+{
+    ...
+}
+
+int system_length = 3;
+rk4( x , system_length , t , dt , lorenz );
+``
+
+But odeint supports a similar and much more sophisticated concept:  __boost_range. To make the steppers and the system ready to work with __boost_range the system has to by changed:
+
+[system_function_without_perturbations]
+
+This is in principle all. Now, we only have to call `integrate_n_steps` with a
+range including only the first 3 components of ['x]:
+
+[integrate_transients_with_range]
+
+Having integrated a sufficient number of transients steps we are now able to calculate the Lyapunov exponents:
+
+# Initialize the perturbations. They are stored linearly behind the state of the Lorenz system. The perturbations are initialized such that [' p [subl ij] = __delta [subl ij]], where ['p [subl ij]] is the ['j]-component of the ['i].-th perturbation and ['__delta [subl ij]] is the Kronecker symbol.
+# Integrate 100 steps of the full system with perturbations
+# Orthonormalize the perturbation using Gram-Schmidt orthonormalization algorithm.
+# Repeat step 2 and 3. Every 10000 steps write the current Lyapunov exponent.
+
+[lyapunov_full_code]
+
+The full code can be found here:  [github_link libs/numeric/odeint/examples/chaotic_system.cpp chaotic_system.cpp]
+
+[endsect]

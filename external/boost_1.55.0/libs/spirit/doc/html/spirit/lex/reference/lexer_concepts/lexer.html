@@ -1,0 +1,234 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Lexer</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../lexer_concepts.html" title="Lexer Concepts">
+<link rel="prev" href="../lexer_concepts.html" title="Lexer Concepts">
+<link rel="next" href="primitivelexer.html" title="PrimitiveLexer">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../lexer_concepts.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lexer_concepts.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="primitivelexer.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.lex.reference.lexer_concepts.lexer"></a><a class="link" href="lexer.html" title="Lexer">Lexer</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.lex.reference.lexer_concepts.lexer.h0"></a>
+            <span class="phrase"><a name="spirit.lex.reference.lexer_concepts.lexer.description"></a></span><a class="link" href="lexer.html#spirit.lex.reference.lexer_concepts.lexer.description">Description</a>
+          </h6>
+<p>
+            The <span class="emphasis"><em>Lexer</em></span> is the most fundamental concept. A Lexer
+            has a member function, <code class="computeroutput"><span class="identifier">collect</span></code>,
+            that accepts a token definition container <code class="computeroutput"><span class="identifier">Def</span></code>,
+            and a the name of the lexer state the token definitions of the lexer
+            component need to be added to (a string). It doesn't return anything
+            (return type is <code class="computeroutput"><span class="keyword">void</span></code>). Each
+            Lexer can represent a specific pattern or algorithm, or it can be a more
+            complex lexer component formed as a composition of other Lexer's. Additionally,
+            a Lexer exposes a member <code class="computeroutput"><span class="identifier">add_actions</span></code>,
+            that accepts the token definition container <code class="computeroutput"><span class="identifier">Def</span></code>,
+            while returning nothing (again, the returned type is <code class="computeroutput"><span class="keyword">void</span></code>).
+          </p>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">l</span></code></span></dt>
+<dd><p>
+                  A <code class="computeroutput"><span class="identifier">Lexer</span></code>.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">L</span></code></span></dt>
+<dd><p>
+                  A <code class="computeroutput"><span class="identifier">Lexer</span></code> type.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Def</span></code></span></dt>
+<dd><p>
+                  A token definition container type.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">State</span></code></span></dt>
+<dd><p>
+                  A type used to represent lexer state names.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.lex.reference.lexer_concepts.lexer.h1"></a>
+            <span class="phrase"><a name="spirit.lex.reference.lexer_concepts.lexer.valid_expressions"></a></span><a class="link" href="lexer.html#spirit.lex.reference.lexer_concepts.lexer.valid_expressions">Valid
+            Expressions</a>
+          </h6>
+<p>
+            In the expressions below, the behavior of the lexer component, <code class="computeroutput"><span class="identifier">l</span></code>, is left unspecified in the base
+            <code class="computeroutput"><span class="identifier">Lexer</span></code> concept. These
+            are specified in subsequent, more refined concepts and by the actual
+            models thereof.
+          </p>
+<p>
+            For any Lexer the following expressions must be valid:
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Return type
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">l</span><span class="special">.</span><span class="identifier">collect</span><span class="special">(</span><span class="identifier">def</span><span class="special">,</span>
+                      <span class="identifier">state</span><span class="special">,</span>
+                      <span class="identifier">targetstate</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Add all token definitions provided by this Lexer instance to
+                      the lexer state <code class="computeroutput"><span class="identifier">state</span></code>
+                      of the token definition container <code class="computeroutput"><span class="identifier">def</span></code>.
+                      After matching this token, the lexer should be switched into
+                      the state <code class="computeroutput"><span class="identifier">targetstate</span></code>
+                      (optional)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">void</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">l</span><span class="special">.</span><span class="identifier">add_actions</span><span class="special">(</span><span class="identifier">def</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Add all semantic actions provided by this Lexer instance to
+                      the token definition container <code class="computeroutput"><span class="identifier">def</span></code>.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">void</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.lex.reference.lexer_concepts.lexer.h2"></a>
+            <span class="phrase"><a name="spirit.lex.reference.lexer_concepts.lexer.type_expressions"></a></span><a class="link" href="lexer.html#spirit.lex.reference.lexer_concepts.lexer.type_expressions">Type
+            Expressions</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_lexer</span><span class="special">&lt;</span><span class="identifier">L</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Metafunction that evaluates to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+                      if a certain type, <code class="computeroutput"><span class="identifier">L</span></code>
+                      is a Lexer, <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>
+                      otherwise (See <a href="../../../../../../../../libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+                      Boolean Constant</a>).
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.lex.reference.lexer_concepts.lexer.h3"></a>
+            <span class="phrase"><a name="spirit.lex.reference.lexer_concepts.lexer.postcondition"></a></span><a class="link" href="lexer.html#spirit.lex.reference.lexer_concepts.lexer.postcondition">Postcondition</a>
+          </h6>
+<p>
+            Upon return from <code class="computeroutput"><span class="identifier">l</span><span class="special">.</span><span class="identifier">collect</span></code> the following post conditions
+            should hold:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                On return, <code class="computeroutput"><span class="identifier">def</span></code> holds
+                all token definitions defined in the Lexer, <code class="computeroutput"><span class="identifier">l</span></code>.
+                This includes all Lexer's contained inside <code class="computeroutput"><span class="identifier">l</span></code>.
+              </li></ul></div>
+<p>
+            Upon return from <code class="computeroutput"><span class="identifier">l</span><span class="special">.</span><span class="identifier">add_actions</span></code> the following post conditions
+            should hold:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                On return, <code class="computeroutput"><span class="identifier">def</span></code> holds
+                all semantic actions correctly associated with the corresponding
+                token definitions as defined in the Lexer, <code class="computeroutput"><span class="identifier">l</span></code>.
+                This includes all semantic actions defined by the Lexer's contained
+                inside <code class="computeroutput"><span class="identifier">l</span></code>.
+              </li></ul></div>
+<h6>
+<a name="spirit.lex.reference.lexer_concepts.lexer.h4"></a>
+            <span class="phrase"><a name="spirit.lex.reference.lexer_concepts.lexer.models"></a></span><a class="link" href="lexer.html#spirit.lex.reference.lexer_concepts.lexer.models">Models</a>
+          </h6>
+<p>
+            All lexer components in <span class="emphasis"><em>Spirit.Lex</em></span> are models of
+            the <span class="emphasis"><em>Lexer</em></span> concept.
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../lexer_concepts.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lexer_concepts.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="primitivelexer.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

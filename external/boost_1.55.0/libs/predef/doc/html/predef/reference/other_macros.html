@@ -1,0 +1,84 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Other macros</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Predef 1.0">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="boost_os_operating_system_macros.html" title="BOOST_OS operating system macros">
+<link rel="next" href="version_definition_macros.html" title="Version definition macros">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<div class="spirit-nav">
+<a accesskey="p" href="boost_os_operating_system_macros.html"><img src="../../images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../images/home.png" alt="Home"></a><a accesskey="n" href="version_definition_macros.html"><img src="../../images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="predef.reference.other_macros"></a><a class="link" href="other_macros.html" title="Other macros">Other macros</a>
+</h3></div></div></div>
+<h5>
+<a name="predef.reference.other_macros.h0"></a>
+        <span class="phrase"><a name="predef.reference.other_macros.boost_endian"></a></span><a class="link" href="other_macros.html#predef.reference.other_macros.boost_endian"><code class="computeroutput"><span class="identifier">BOOST_ENDIAN_</span><span class="special">*</span></code></a>
+      </h5>
+<p>
+        Detection of endian memory ordering. There are four defined macros in this
+        header that define the various generally possible endian memory orderings:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">BOOST_ENDIAN_BIG_BYTE</span></code>,
+            byte-swapped big-endian.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">BOOST_ENDIAN_BIG_WORD</span></code>,
+            word-swapped big-endian.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">BOOST_ENDIAN_LITTLE_BYTE</span></code>,
+            byte-swapped little-endian.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">BOOST_ENDIAN_LITTLE_WORD</span></code>,
+            word-swapped little-endian.
+          </li>
+</ul></div>
+<p>
+        The detection is conservative in that it only identifies endianness that
+        it knows for certain. In particular bi-endianness is not indicated as is
+        it not practically possible to determine the endianness from anything but
+        an operating system provided header. And the currently known headers do not
+        define that programatic bi-endianness is available.
+      </p>
+<p>
+        This implementation is a compilation of various publicly available information
+        and acquired knowledge:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            The indispensable documentation of "Pre-defined Compiler Macros"
+            <a href="http://sourceforge.net/p/predef/wiki/Endianness" target="_top">Endianness</a>.
+          </li>
+<li class="listitem">
+            The various endian specifications available in the <a href="http://wikipedia.org/" target="_top">Wikipedia</a>
+            computer architecture pages.
+          </li>
+<li class="listitem">
+            Generally available searches for headers that define endianness.
+          </li>
+</ol></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Rene Rivera<br>Copyright &#169; 2008-2013 Redshift Software Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_os_operating_system_macros.html"><img src="../../images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../images/home.png" alt="Home"></a><a accesskey="n" href="version_definition_macros.html"><img src="../../images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

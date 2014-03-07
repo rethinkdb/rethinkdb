@@ -1,0 +1,265 @@
+<html>
+<head>
+<title>Functional</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Functional</b></font> 
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="parametric_parsers.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="phoenix.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>If you look more closely, you'll notice that Spirit is all about composition 
+  of <i>parser functions</i>. A parser is just a function that accepts a scanner 
+  and returns a match. Parser <i>functions</i> are composed to form increasingly 
+  complex <i>higher order forms</i>. Notice too that the parser, albeit an object, 
+  is immutable and constant. All primitive and composite parser objects are <tt>const</tt>. 
+  The parse member function is even declared as <tt>const</tt>:</p>
+<pre>
+    <code><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+    </span><span class=keyword>typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>self_t</span><span class=special>, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+    </span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>ScannerT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>) </span><span class=keyword>const</span><span class=special>;</span></code></pre>
+<p> In all accounts, this looks and feels a lot like <b>Functional Programming</b>. 
+  And indeed it is. Spirit is by all means an application of Functional programming 
+  in the imperative C++ domain. In Haskell, for example, there is what are called 
+  <a href="references.html#combinators">parser combinators</a> which are strikingly 
+  similar to the approach taken by Spirit- parser functions which are composed 
+  using various operators to create higher order parser functions that model a 
+  top-down recursive descent parser. Those smart Haskell folks have been doing 
+  this way before Spirit.</p>
+<p> Functional style programming (or FP) libraries are gaining momentum in the 
+  C++ community. Certainly, we'll see more of FP in Spirit now and in the future. 
+  Actually, if one looks more closely, even the C++ standard library has an FP 
+  flavor. Stealthily beneath the core of the standard C++ library, a closer look 
+  into STL gives us a glimpse of a truly FP paradigm already in place. It is obvious 
+  that the authors of STL know and practice FP.</p>
+
+<h2>Semantic Actions in the FP Perspective</h2>
+
+<h3>STL style FP</h3>
+<p> A more obvious application of STL-style FP in Spirit is the semantic action. 
+  What is STL-style FP? It is primarily the use of functors that can be composed 
+  to form higher order functors.</p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"> <img src="theme/note.gif" width="16" height="16"> <strong>Functors</strong><br>
+      <br>
+      A Function Object, or Functor is simply any object that can be called as 
+      if it is a function. An ordinary function is a function object, and so is 
+      a function pointer; more generally, so is an object of a class that defines 
+      operator(). </td>
+  </tr>
+</table>
+<p> This STL-style FP can be seen everywhere these days. The following example 
+  is taken from <a href="http://www.sgi.com/tech/stl/">SGI's Standard Template 
+  Library Programmer's Guide</a>:</p>
+<pre>
+    <code><span class=comment>//  Computes sin(x)/(x + DBL_MIN) for each element of a range.
+
+    </span><span class=identifier>transform</span><span class=special>(</span><span class=identifier>first</span><span class=special>, </span><span class=identifier>last</span><span class=special>, </span><span class=identifier>first</span><span class=special>,
+              </span><span class=identifier>compose2</span><span class=special>(</span><span class=identifier>divides</span><span class=special>&lt;</span><span class=keyword>double</span><span class=special>&gt;(),
+                       </span><span class=identifier>ptr_fun</span><span class=special>(</span><span class=identifier>sin</span><span class=special>),
+                       </span><span class=identifier>bind2nd</span><span class=special>(</span><span class=identifier>plus</span><span class=special>&lt;</span><span class=keyword>double</span><span class=special>&gt;(), </span><span class=identifier>DBL_MIN</span><span class=special>)));</span></code></pre>
+<p align="left"> Really, this is just <i>currying</i> in FP terminology.</p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"> <img src="theme/lens.gif" width="15" height="16"> <strong>Currying</strong><br>
+      <br>
+      What is &quot;currying&quot;, and where does it come from?<br>
+      <br>
+      Currying has its origins in the mathematical study of functions. It was 
+      observed by Frege in 1893 that it suffices to restrict attention to functions 
+      of a single argument. For example, for any two parameter function <tt>f(x,y)</tt>, 
+      there is a one parameter function <tt>f'</tt> such that <tt>f'(x)</tt> is 
+      a function that can be applied to y to give <tt>(f'(x))(y) = f (x,y)</tt>. 
+      This corresponds to the well known fact that the sets <tt>(AxB -&gt; C)</tt> 
+      and <tt>(A -&gt; (B -&gt; C))</tt> are isomorphic, where <tt>&quot;x&quot;</tt> 
+      is cartesian product and <tt>&quot;-&gt;&quot;</tt> is function space. In 
+      functional programming, function application is denoted by juxtaposition, 
+      and assumed to associate to the left, so that the equation above becomes 
+      <tt>f' x y = f(x,y)</tt>. </td>
+  </tr>
+</table>
+<p> In the context of Spirit, the same FP style functor composition may be applied 
+  to semantic actions. <a href="../example/fundamental/full_calc.cpp">full_calc.cpp</a> is a good example. Here's a snippet from that sample:</p>
+<pre>
+    <code><span class=identifier>expression </span><span class=special>=
+        </span><span class=identifier>term
+        </span><span class=special>&gt;&gt; </span><span class=special>*(   </span><span class=special>(</span><span class=literal>'+' </span><span class=special>&gt;&gt; </span><span class=identifier>term</span><span class=special>)[</span><span class=identifier>make_op</span><span class=special>(</span><span class=identifier>plus</span><span class=special>&lt;</span><span class=keyword>long</span><span class=special>&gt;(), </span><span class=identifier>self</span><span class=special>.</span><span class=identifier>eval</span><span class=special>)]
+            </span><span class=special>|   </span><span class=special>(</span><span class=literal>'-' </span><span class=special>&gt;&gt; </span><span class=identifier>term</span><span class=special>)[</span><span class=identifier>make_op</span><span class=special>(</span><span class=identifier>minus</span><span class=special>&lt;</span><span class=keyword>long</span><span class=special>&gt;(), </span><span class=identifier>self</span><span class=special>.</span><span class=identifier>eval</span><span class=special>)]
+            </span><span class=special>)
+            </span><span class=special>;</span></code></pre>
+
+<p> <img height="16" width="15" src="theme/lens.gif"> The full source code can be <a href="../example/fundamental/full_calc.cpp">viewed here</a>. This is part of the Spirit distribution.</p>
+<h3>Boost style FP</h3>
+<p> Boost takes the FP paradigm further. There are libraries in boost that focus 
+  specifically on Function objects and higher-order programming.</p>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td class="table_title" colspan="14"> Boost FP libraries </td>
+  </tr>
+  <tr> 
+    <td class="table_cells"><a href="http://www.boost.org/libs/bind/bind.html">bind</a> 
+      and <a href="http://www.boost.org/libs/bind/mem_fn.html">mem_fn</a></td>
+    <td class="table_cells">Generalized binders for function/object/pointers and 
+      member functions, from Peter Dimov</td>
+  </tr>
+  <td class="table_cells"><a href="http://www.boost.org/libs/function/index.html">function</a></td>
+  <td class="table_cells">Function object wrappers for deferred calls or callbacks, 
+    from Doug Gregor</td>
+  </tr>
+  <td class="table_cells"><a href="http://www.boost.org/libs/functional/index.html">functional</a></td>
+  <td class="table_cells">Enhanced function object adaptors, from Mark Rodgers</td>
+  </tr>
+  <td class="table_cells"><a href="http://www.boost.org/libs/lambda/index.html">lambda</a></td>
+  <td class="table_cells">Define small unnamed function objects at the actual 
+    call site, and more, from Jaakko Järvi and Gary Powell</td>
+  </tr>
+  <td class="table_cells"><a href="http://www.boost.org/libs/bind/ref.html">ref</a></td>
+  <td class="table_cells">A utility library for passing references to generic 
+    functions, from Jaako Järvi, Peter Dimov, Doug Gregor, and Dave Abrahams</td>
+  </tr>
+</table>
+<p> The following is an example that uses boost <strong>Bind</strong> to use a 
+  member function as a Spirit semantic action. You can see this example in full 
+  in the file<a href="../example/fundamental/bind.cpp"> bind.cpp</a>.</p>
+<pre>
+    <code><span class=keyword>class </span><span class=identifier>list_parser
+    </span><span class=special>{
+    </span><span class=keyword>public</span><span class=special>:
+
+        </span><span class=keyword>typedef </span><span class=identifier>list_parser </span><span class=identifier>self_t</span><span class=special>;
+
+        </span><span class=keyword>bool
+        </span><span class=identifier>parse</span><span class=special>(</span><span class=keyword>char </span><span class=keyword>const</span><span class=special>* </span><span class=identifier>str</span><span class=special>)
+        </span><span class=special>{
+            </span><span class=keyword>return </span><span class=identifier>spirit</span><span class=special>::</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>str</span><span class=special>,
+
+                </span><span class=comment>//  Begin grammar
+                </span><span class=special>(
+                    </span><span class=identifier>real_p
+                    </span><span class=special>[
+                        </span><span class=identifier>bind</span><span class=special>(&amp;</span><span class=identifier>self_t</span><span class=special>::</span><span class=identifier>add</span><span class=special>, </span><span class=keyword>this</span><span class=special>, </span><span class=identifier>_1</span><span class=special>)
+                    </span><span class=special>]
+
+                    </span><span class=special>&gt;&gt; </span><span class=special>*(   </span><span class=literal>','
+                            </span><span class=special>&gt;&gt;  </span><span class=identifier>real_p
+                                </span><span class=special>[
+                                    </span><span class=identifier>bind</span><span class=special>(&amp;</span><span class=identifier>self_t</span><span class=special>::</span><span class=identifier>add</span><span class=special>, </span><span class=keyword>this</span><span class=special>, </span><span class=identifier>_1</span><span class=special>)
+                                </span><span class=special>]
+                        </span><span class=special>)
+                </span><span class=special>)
+                </span><span class=special>,
+                </span><span class=comment>//  End grammar
+
+                </span><span class=identifier>space_p</span><span class=special>).</span><span class=identifier>full</span><span class=special>;
+        </span><span class=special>}
+
+        </span><span class=keyword>void
+        </span><span class=identifier>add</span><span class=special>(</span><span class=keyword>double </span><span class=identifier>n</span><span class=special>)
+        </span><span class=special>{
+            </span><span class=identifier>v</span><span class=special>.</span><span class=identifier>push_back</span><span class=special>(</span><span class=identifier>n</span><span class=special>);
+        </span><span class=special>}
+
+        </span><span class=identifier>vector</span><span class=special>&lt;</span><span class=keyword>double</span><span class=special>&gt; </span><span class=identifier>v</span><span class=special>;
+    </span><span class=special>};
+</span></code></pre>
+<p>   <img height="16" width="15" src="theme/lens.gif"> The full source code can be <a href="../example/fundamental/bind.cpp">viewed here</a>. This is part of the Spirit distribution.</p>
+<p>This parser parses a comma separated list of real numbers and stores them 
+  in a vector&lt;double&gt;. Boost.bind creates a Spirit conforming semantic action 
+  from the <tt>list_parser</tt>'s member function <tt>add</tt>.</p>
+<h3>Lambda and Phoenix</h3>
+<p> There's a library, authored by yours truly, named <a href="../phoenix/index.html">Phoenix</a>. 
+  While this is not officially part of the Spirit distribution, this library has 
+  been used extensively to experiment on advanced FP techniques in C++. This library 
+  is highly influenced by <a href="http://www.cc.gatech.edu/%7Eyannis/fc%2B%2B/">FC++</a> 
+  and boost Lambda (<a href="http://www.boost.org/libs/lambda/index.html">BLL</a>).</p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"> <b><img src="theme/lens.gif" width="15" height="16"> 
+      BLL</b><br>
+      <br>
+      In as much as Phoenix is influenced by boost Lambda (<a href="http://www.boost.org/libs/lambda/index.html">BLL</a>), 
+      Phoenix innovations such as local variables, local functions and adaptable 
+      closures, in turn influenced BLL. Currently, BLL is very similar to Phoenix. 
+      Most importantly, BLL incorporated Phoenix's adaptable closures. In the 
+      future, Spirit will fully support BLL. </td>
+  </tr>
+</table>
+<p> Phoenix allows one to write semantic actions inline in C++ through lambda 
+  (an unnamed function) expressions. Here's a snippet from the <a href="../example/fundamental/phoenix_calc.cpp">phoenix_calc.cpp</a>  example:</p>
+<pre>
+    <code><span class=identifier>expression
+        </span><span class=special>=   </span><span class=identifier>term</span><span class=special>[</span><span class=identifier>expression</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=identifier>arg1</span><span class=special>]
+            </span><span class=special>&gt;&gt; </span><span class=special>*(   </span><span class=special>(</span><span class=literal>'+' </span><span class=special>&gt;&gt; </span><span class=identifier>term</span><span class=special>[</span><span class=identifier>expression</span><span class=special>.</span><span class=identifier>val </span><span class=special>+= </span><span class=identifier>arg1</span><span class=special>])
+                </span><span class=special>|   </span><span class=special>(</span><span class=literal>'-' </span><span class=special>&gt;&gt; </span><span class=identifier>term</span><span class=special>[</span><span class=identifier>expression</span><span class=special>.</span><span class=identifier>val </span><span class=special>-= </span><span class=identifier>arg1</span><span class=special>])
+                </span><span class=special>)
+        </span><span class=special>;
+
+    </span><span class=identifier>term
+        </span><span class=special>=   </span><span class=identifier>factor</span><span class=special>[</span><span class=identifier>term</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=identifier>arg1</span><span class=special>]
+            </span><span class=special>&gt;&gt; </span><span class=special>*(   </span><span class=special>(</span><span class=literal>'*' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>[</span><span class=identifier>term</span><span class=special>.</span><span class=identifier>val </span><span class=special>*= </span><span class=identifier>arg1</span><span class=special>])
+                </span><span class=special>|   </span><span class=special>(</span><span class=literal>'/' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>[</span><span class=identifier>term</span><span class=special>.</span><span class=identifier>val </span><span class=special>/= </span><span class=identifier>arg1</span><span class=special>])
+                </span><span class=special>)
+        </span><span class=special>;
+
+    </span><span class=identifier>factor
+        </span><span class=special>=   </span><span class=identifier>ureal_p</span><span class=special>[</span><span class=identifier>factor</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=identifier>arg1</span><span class=special>]
+        </span><span class=special>|   </span><span class=literal>'(' </span><span class=special>&gt;&gt; </span><span class=identifier>expression</span><span class=special>[</span><span class=identifier>factor</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=identifier>arg1</span><span class=special>] </span><span class=special>&gt;&gt; </span><span class=literal>')'
+        </span><span class=special>|   </span><span class=special>(</span><span class=literal>'-' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>[</span><span class=identifier>factor</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=special>-</span><span class=identifier>arg1</span><span class=special>])
+        </span><span class=special>|   </span><span class=special>(</span><span class=literal>'+' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>[</span><span class=identifier>factor</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=identifier>arg1</span><span class=special>])
+        </span><span class=special>;</span></code></pre>
+<p>  <img height="16" width="15" src="theme/lens.gif"> The full source code can be <a href="../example/fundamental/phoenix_calc.cpp">viewed here</a>. This is part of the Spirit distribution.</p>
+<p>You do not have to worry about the details for now. There is a lot going on here that needs to be explained. The succeeding chapters will be enlightening.</p>
+<p>Notice the use of lambda expressions such as:</p>
+<pre>
+    <code><span class=identifier>expression</span><span class=special>.</span><span class=identifier>val </span><span class=special>+= </span><span class=identifier>arg1</span></code></pre>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"> <b><img src="theme/lens.gif" width="15" height="16"> 
+        <a name="lambda"></a>Lambda Expressions?</b><br> 
+        <br>
+      Lambda expressions are actually unnamed partially applied functions where 
+      placeholders (e.g. arg1, arg2) are provided in place of some of the arguments. 
+      The reason this is called a lambda expression is that traditionally, such 
+    placeholders are written using the Greek letter lambda <img src="theme/lambda.png" width="15" height="22">.</td>
+  </tr>
+</table>
+<p>where <tt>expression.val</tt> is a closure variable of the expression rule 
+  (see <a href="closures.html">Closures</a>). <code><span class=identifier><tt>arg1</tt></span></code> 
+  is a placeholder for the first argument that the semantic action will receive 
+  (see <a href="../phoenix/doc/place_holders.html">Phoenix Place-holders</a>). 
+  In Boost.Lambda (BLL), this corresponds to <tt>_1</tt>. </p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="parametric_parsers.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="phoenix.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+<font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

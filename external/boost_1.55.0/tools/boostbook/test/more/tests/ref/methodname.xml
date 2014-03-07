@@ -1,0 +1,36 @@
+<!--
+Copyright Daniel James 2012
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<library name="Methodname Test" id="method">
+  <title>Methodname Test</title>
+  <section id="links">
+    <para>
+      <methodname>thing::foo::bar</methodname>,
+      <methodname>thing::foo::bar(int x)</methodname>,
+      <methodname>thing::foo::operator()</methodname>,
+      <methodname>thing::foo::operator()(int x)</methodname>.
+    </para>
+  </section>
+  <library-reference>
+    <header name="boost/unordered_set.hpp">
+      <namespace name="thing">
+        <class name="foo">
+          <method name="bar">
+            <parameter>
+              <paramtype>int</paramtype>
+            </parameter>
+            <type>void</type>
+          </method>
+          <method name="operator()">
+            <parameter>
+              <paramtype>int</paramtype>
+            </parameter>
+            <type>void</type>
+          </method>
+        </class>
+      </namespace>
+    </header>
+  </library-reference>
+</library>

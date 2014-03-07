@@ -1,0 +1,192 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Semantics</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="prev" href="concepts/map_traits.html" title="Map Traits">
+<link rel="next" href="semantics/sets.html" title="Sets">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="concepts/map_traits.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="semantics/sets.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_semantics" lang="en">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_icl.semantics"></a><a class="link" href="semantics.html" title="Semantics">Semantics</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="semantics.html#boost_icl.semantics.orderings_and_equivalences">Orderings
+      and Equivalences</a></span></dt>
+<dt><span class="section"><a href="semantics/sets.html">Sets</a></span></dt>
+<dt><span class="section"><a href="semantics/maps.html">Maps</a></span></dt>
+<dt><span class="section"><a href="semantics/collectors__maps_of_sets.html">Collectors:
+      Maps of Sets</a></span></dt>
+<dt><span class="section"><a href="semantics/quantifiers__maps_of_numbers.html">Quantifiers:
+      Maps of Numbers</a></span></dt>
+<dt><span class="section"><a href="semantics/concept_induction.html">Concept Induction</a></span></dt>
+</dl></div>
+<p>
+      &#8220;<span class="quote">Beauty is the ultimate defense against complexity</span>&#8221; -- <a href="http://en.wikipedia.org/wiki/David_Gelernter" target="_top">David Gelernter</a>
+    </p>
+<p>
+      In the <span class="bold"><strong>icl</strong></span> we follow the notion, that the
+      semantics of a <span class="emphasis"><em><span class="bold"><strong>concept</strong></span></em></span>
+      or <span class="emphasis"><em><span class="bold"><strong>abstract data type</strong></span></em></span>
+      can be expressed by <span class="emphasis"><em><span class="bold"><strong>laws</strong></span></em></span>.
+      We formulate laws over interval containers that can be evaluated for a given
+      instantiation of the variables contained in the law. The following pseudocode
+      gives a shorthand notation of such a law. 
+</p>
+<pre class="programlisting"><span class="identifier">Commutativity</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,+&gt;:</span>
+<span class="identifier">T</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">;</span> <span class="identifier">a</span> <span class="special">+</span> <span class="identifier">b</span> <span class="special">==</span> <span class="identifier">b</span> <span class="special">+</span> <span class="identifier">a</span><span class="special">;</span>
+</pre>
+<p>
+      This can of course be coded as a proper c++ class template which has been done
+      for the validation of the <span class="bold"><strong>icl</strong></span>. For sake of
+      simplicity we will use pseudocode here.
+    </p>
+<p>
+      The laws that describe the semantics of the <span class="bold"><strong>icl's</strong></span>
+      class templates were validated using the Law based Test Automaton <span class="emphasis"><em><span class="bold"><strong>LaBatea</strong></span></em></span>, a tool that generates instances
+      for the law's variables and then tests it's validity. Since the <span class="bold"><strong>icl</strong></span>
+      deals with sets, maps and relations, that are well known objects from mathematics,
+      the laws that we are using are mostly <span class="emphasis"><em>recycled</em></span> ones. Also
+      some of those laws are grouped in notions like e.g. <span class="emphasis"><em>orderings</em></span>
+      or <span class="emphasis"><em>algebras</em></span>.
+    </p>
+<div class="section boost_icl_semantics_orderings_and_equivalences" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.semantics.orderings_and_equivalences"></a><a class="link" href="semantics.html#boost_icl.semantics.orderings_and_equivalences" title="Orderings and Equivalences">Orderings
+      and Equivalences</a>
+</h3></div></div></div>
+<a name="boost_icl.semantics.orderings_and_equivalences.lexicographical_ordering_and_equality"></a><h5>
+<a name="id1118129"></a>
+        <a class="link" href="semantics.html#boost_icl.semantics.orderings_and_equivalences.lexicographical_ordering_and_equality">Lexicographical
+        Ordering and Equality</a>
+      </h5>
+<p>
+        On all set and map containers of the icl, there is an <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">&lt;</span></code> that implements a <a href="http://www.sgi.com/tech/stl/StrictWeakOrdering.html" target="_top">strict
+        weak ordering</a>.
+      </p>
+<p>
+        The semantics of <code class="computeroutput"><span class="keyword">operator</span> <span class="special">&lt;</span></code>
+        is the same as for an stl's <a href="http://www.sgi.com/tech/stl/SortedAssociativeContainer.html" target="_top">SortedAssociativeContainer</a>,
+        specifically <a href="http://www.sgi.com/tech/stl/set.html" target="_top">stl::set</a>
+        and <a href="http://www.sgi.com/tech/stl/map.html" target="_top">stl::map</a>: 
+</p>
+<pre class="programlisting"><span class="identifier">Irreflexivity</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,&lt;</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">T</span> <span class="identifier">a</span><span class="special">;</span>     <span class="special">!(</span><span class="identifier">a</span><span class="special">&lt;</span><span class="identifier">a</span><span class="special">)</span>
+<span class="identifier">Asymmetry</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,&lt;</span> <span class="special">&gt;</span>     <span class="special">:</span> <span class="identifier">T</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">;</span>   <span class="identifier">a</span><span class="special">&lt;</span><span class="identifier">b</span> <span class="identifier">implies</span> <span class="special">!(</span><span class="identifier">b</span><span class="special">&lt;</span><span class="identifier">a</span><span class="special">)</span>
+<span class="identifier">Transitivity</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,&lt;</span> <span class="special">&gt;</span>  <span class="special">:</span> <span class="identifier">T</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="identifier">a</span><span class="special">&lt;</span><span class="identifier">b</span> <span class="special">&amp;&amp;</span> <span class="identifier">b</span><span class="special">&lt;</span><span class="identifier">c</span> <span class="identifier">implies</span> <span class="identifier">a</span><span class="special">&lt;</span><span class="identifier">c</span>
+</pre>
+<p>
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">Operator</span> <span class="special">&lt;</span></code>
+        depends on the icl::container's template parameter <code class="computeroutput"><span class="identifier">Compare</span></code>
+        that implements a <span class="emphasis"><em>strict weak ordering</em></span> for the container's
+        <code class="computeroutput"><span class="identifier">domain_type</span></code>. For a given
+        <code class="computeroutput"><span class="identifier">Compare</span></code> ordering, <code class="computeroutput"><span class="keyword">operator</span> <span class="special">&lt;</span></code>
+        implements a lexicographical comparison on icl::containers, that uses the
+        <code class="computeroutput"><span class="identifier">Compare</span></code> order to establish
+        a unique sequence of values in the container.
+      </p>
+<p>
+        The induced equivalence of <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">&lt;</span></code> is lexicographical equality which
+        is implemented as <code class="computeroutput"><span class="keyword">operator</span> <span class="special">==</span></code>. 
+</p>
+<pre class="programlisting"><span class="comment">//equivalence induced by strict weak ordering &lt;
+</span><span class="special">!(</span><span class="identifier">a</span><span class="special">&lt;</span><span class="identifier">b</span><span class="special">)</span> <span class="special">&amp;&amp;</span> <span class="special">!(</span><span class="identifier">b</span><span class="special">&lt;</span><span class="identifier">a</span><span class="special">)</span> <span class="identifier">implies</span> <span class="identifier">a</span> <span class="special">==</span> <span class="identifier">b</span><span class="special">;</span>
+</pre>
+<p>
+        Again this follows the semantics of the <span class="bold"><strong>stl</strong></span>.
+        Lexicographical equality is stronger than the equality of elements. Two containers
+        that contain the same elements can be lexicographically unequal, if their
+        elements are differently sorted. Lexicographical comparison belongs to the
+        <span class="emphasis"><em><span class="bold"><strong>segmental</strong></span></em></span> aspect. Of
+        all the different sequences that are valid for unordered sets and maps, one
+        such sequence is selected by the <code class="computeroutput"><span class="identifier">Compare</span></code>
+        order of elements. Based on this selection a unique iteration is possible.
+      </p>
+<a name="boost_icl.semantics.orderings_and_equivalences.subset_ordering_and_element_equality"></a><h5>
+<a name="id1118617"></a>
+        <a class="link" href="semantics.html#boost_icl.semantics.orderings_and_equivalences.subset_ordering_and_element_equality">Subset
+        Ordering and Element Equality</a>
+      </h5>
+<p>
+        On the fundamental aspect only membership of elements matters, not their
+        sequence. So there are functions <code class="computeroutput"><span class="identifier">contained_in</span></code>
+        and <code class="computeroutput"><span class="identifier">element_equal</span></code> that implement
+        the subset relation and the equality on elements. Yet, <code class="computeroutput"><span class="identifier">contained_in</span></code>
+        and <code class="computeroutput"><span class="identifier">is_element_equal</span></code> functions
+        are not really working on the level of elements. They also work on the basis
+        of the containers templates <code class="computeroutput"><span class="identifier">Compare</span></code>
+        parameter. In practical terms we need to distinguish between lexicographical
+        equality <code class="computeroutput"><span class="keyword">operator</span> <span class="special">==</span></code>
+        and equality of elements <code class="computeroutput"><span class="identifier">is_element_equal</span></code>,
+        if we work with interval splitting interval containers: 
+</p>
+<pre class="programlisting"><span class="identifier">split_interval_set</span><span class="special">&lt;</span><span class="identifier">time</span><span class="special">&gt;</span> <span class="identifier">w1</span><span class="special">,</span> <span class="identifier">w2</span><span class="special">;</span> <span class="comment">//Pseudocode
+</span><span class="identifier">w1</span> <span class="special">=</span> <span class="special">{[</span><span class="identifier">Mon</span>       <span class="special">..</span>       <span class="identifier">Sun</span><span class="special">)};</span> <span class="comment">//split_interval_set containing a week
+</span><span class="identifier">w2</span> <span class="special">=</span> <span class="special">{[</span><span class="identifier">Mon</span> <span class="special">..</span> <span class="identifier">Fri</span><span class="special">)[</span><span class="identifier">Sat</span> <span class="special">..</span> <span class="identifier">Sun</span><span class="special">)};</span> <span class="comment">//Same week split in work and week end parts.
+</span><span class="identifier">w1</span> <span class="special">==</span> <span class="identifier">w2</span><span class="special">;</span>                        <span class="comment">//false: Different segmentation
+</span><span class="identifier">is_element_equal</span><span class="special">(</span><span class="identifier">w1</span><span class="special">,</span><span class="identifier">w2</span><span class="special">);</span>         <span class="comment">//true:  Same elements contained  
+</span></pre>
+<p>
+      </p>
+<p>
+        For a constant <code class="computeroutput"><span class="identifier">Compare</span></code> order
+        on key elements, member function <code class="computeroutput"><span class="identifier">contained_in</span></code>
+        that is defined for all icl::containers implements a <a href="http://en.wikipedia.org/wiki/Partially_ordered_set" target="_top">partial
+        order</a> on icl::containers.
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="identifier">with</span> <span class="special">&lt;=</span> <span class="keyword">for</span> <span class="identifier">contained_in</span><span class="special">,</span>
+    <span class="special">=</span><span class="identifier">e</span><span class="special">=</span> <span class="keyword">for</span> <span class="identifier">is_element_equal</span><span class="special">:</span>
+<span class="identifier">Reflexivity</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,&lt;=</span> <span class="special">&gt;</span>     <span class="special">:</span> <span class="identifier">T</span> <span class="identifier">a</span><span class="special">;</span>     <span class="identifier">a</span> <span class="special">&lt;=</span> <span class="identifier">a</span>
+<span class="identifier">Antisymmetry</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,&lt;=,=</span><span class="identifier">e</span><span class="special">=&gt;</span> <span class="special">:</span> <span class="identifier">T</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">;</span>   <span class="identifier">a</span> <span class="special">&lt;=</span> <span class="identifier">b</span> <span class="special">&amp;&amp;</span> <span class="identifier">b</span> <span class="special">&lt;=</span> <span class="identifier">a</span> <span class="identifier">implies</span> <span class="identifier">a</span> <span class="special">=</span><span class="identifier">e</span><span class="special">=</span> <span class="identifier">b</span> 
+<span class="identifier">Transitivity</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,&lt;=</span> <span class="special">&gt;</span>    <span class="special">:</span> <span class="identifier">T</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="identifier">a</span> <span class="special">&lt;=</span> <span class="identifier">b</span> <span class="special">&amp;&amp;</span> <span class="identifier">b</span> <span class="special">&lt;=</span> <span class="identifier">c</span> <span class="identifier">implies</span> <span class="identifier">a</span> <span class="special">&lt;=</span> <span class="identifier">c</span>
+</pre>
+<p>
+      </p>
+<p>
+        The induced equivalence is the equality of elements that is implemented via
+        function <code class="computeroutput"><span class="identifier">is_element_equal</span></code>.
+        
+</p>
+<pre class="programlisting"><span class="comment">//equivalence induced by the partial ordering contained_in on icl::container a,b
+</span><span class="identifier">a</span><span class="special">.</span><span class="identifier">contained_in</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span> <span class="special">&amp;&amp;</span> <span class="identifier">b</span><span class="special">.</span><span class="identifier">contained_in</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span> <span class="identifier">implies</span> <span class="identifier">is_element_equal</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">);</span>
+</pre>
+<p>
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="concepts/map_traits.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="semantics/sets.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

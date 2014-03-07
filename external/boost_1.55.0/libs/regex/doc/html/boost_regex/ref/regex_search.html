@@ -1,0 +1,425 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>regex_search</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Boost.Regex">
+<link rel="up" href="../ref.html" title="Reference">
+<link rel="prev" href="regex_match.html" title="regex_match">
+<link rel="next" href="regex_replace.html" title="regex_replace">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_match.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="regex_replace.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_regex_search">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_regex.ref.regex_search"></a><a class="link" href="regex_search.html" title="regex_search">regex_search</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        The algorithm <a class="link" href="regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a> will search a range
+        denoted by a pair of bidirectional-iterators for a given regular expression.
+        The algorithm uses various heuristics to reduce the search time by only checking
+        for a match if a match could conceivably start at that position. The algorithm
+        is defined as follows:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span>
+         <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">regex_search</span><span class="special">(</span><span class="identifier">BidirectionalIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">BidirectionalIterator</span> <span class="identifier">last</span><span class="special">,</span>
+                  <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ST</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">SA</span><span class="special">,</span>
+         <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">regex_search</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+                  <span class="identifier">match_results</span><span class="special">&lt;</span>
+                     <span class="keyword">typename</span> <span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span><span class="identifier">SA</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span><span class="special">,</span>
+                     <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">regex_search</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">str</span><span class="special">,</span>
+                  <span class="identifier">match_results</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">regex_search</span><span class="special">(</span><span class="identifier">BidirectionalIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">BidirectionalIterator</span> <span class="identifier">last</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">regex_search</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">str</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ST</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">SA</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">regex_search</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<h5>
+<a name="boost_regex.ref.regex_search.h0"></a>
+        <span class="phrase"><a name="boost_regex.ref.regex_search.description"></a></span><a class="link" href="regex_search.html#boost_regex.ref.regex_search.description">Description</a>
+      </h5>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">regex_search</span><span class="special">(</span><span class="identifier">BidirectionalIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">BidirectionalIterator</span> <span class="identifier">last</span><span class="special">,</span>
+                  <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Requires</strong></span>: Type BidirectionalIterator meets
+        the requirements of a Bidirectional Iterator (24.1.4).
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Determines whether there is some
+        sub-sequence within [first,last) that matches the regular expression <span class="emphasis"><em>e</em></span>,
+        parameter <span class="emphasis"><em>flags</em></span> is used to control how the expression
+        is matched against the character sequence. Returns true if such a sequence
+        exists, false otherwise.
+      </p>
+<p>
+        <span class="bold"><strong>Throws</strong></span>: <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+        if the complexity of matching the expression against an N character string
+        begins to exceed O(N<sup>2</sup>), or if the program runs out of stack space while matching
+        the expression (if Boost.Regex is configured in recursive mode), or if the
+        matcher exhausts its permitted memory allocation (if Boost.Regex is configured
+        in non-recursive mode).
+      </p>
+<p>
+        <span class="bold"><strong>Postconditions</strong></span>: If the function returns
+        false, then the effect on parameter <span class="emphasis"><em>m</em></span> is undefined,
+        otherwise the effects on parameter <span class="emphasis"><em>m</em></span> are given in the
+        table:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Element
+                </p>
+              </th>
+<th>
+                <p>
+                  Value
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">e</span><span class="special">.</span><span class="identifier">mark_count</span><span class="special">()</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">false</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">prefix</span><span class="special">().</span><span class="identifier">first</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">first</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">prefix</span><span class="special">().</span><span class="identifier">last</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">first</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">prefix</span><span class="special">().</span><span class="identifier">matched</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">prefix</span><span class="special">().</span><span class="identifier">first</span> <span class="special">!=</span>
+                  <span class="identifier">m</span><span class="special">.</span><span class="identifier">prefix</span><span class="special">().</span><span class="identifier">second</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">suffix</span><span class="special">().</span><span class="identifier">first</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">second</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">suffix</span><span class="special">().</span><span class="identifier">last</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">last</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">suffix</span><span class="special">().</span><span class="identifier">matched</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">suffix</span><span class="special">().</span><span class="identifier">first</span> <span class="special">!=</span>
+                  <span class="identifier">m</span><span class="special">.</span><span class="identifier">suffix</span><span class="special">().</span><span class="identifier">second</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">first</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The start of the sequence of characters that matched the regular
+                  expression
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">second</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The end of the sequence of characters that matched the regular
+                  expression
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">matched</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  true if a full match was found, and false if it was a partial match
+                  (found as a result of the match_partial flag being set).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">[</span><span class="identifier">n</span><span class="special">].</span><span class="identifier">first</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  For all integers <code class="computeroutput"><span class="identifier">n</span> <span class="special">&lt;</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>, the start of the sequence that
+                  matched sub-expression <span class="emphasis"><em>n</em></span>. Alternatively, if
+                  sub-expression <span class="emphasis"><em>n</em></span> did not participate in the
+                  match, then last.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">[</span><span class="identifier">n</span><span class="special">].</span><span class="identifier">second</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  For all integers <code class="computeroutput"><span class="identifier">n</span> <span class="special">&lt;</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>, the end of the sequence that
+                  matched sub-expression <span class="emphasis"><em>n</em></span>. Alternatively, if
+                  sub-expression <span class="emphasis"><em>n</em></span> did not participate in the
+                  match, then <code class="computeroutput"><span class="identifier">last</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">m</span><span class="special">[</span><span class="identifier">n</span><span class="special">].</span><span class="identifier">matched</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  For all integers <code class="computeroutput"><span class="identifier">n</span> <span class="special">&lt;</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>, true if sub-expression <span class="emphasis"><em>n</em></span>
+                  participated in the match, false otherwise.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">regex_search</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">str</span><span class="special">,</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns the result of <code class="computeroutput"><span class="identifier">regex_search</span><span class="special">(</span><span class="identifier">str</span><span class="special">,</span> <span class="identifier">str</span>
+        <span class="special">+</span> <span class="identifier">char_traits</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;::</span><span class="identifier">length</span><span class="special">(</span><span class="identifier">str</span><span class="special">),</span>
+        <span class="identifier">m</span><span class="special">,</span> <span class="identifier">e</span><span class="special">,</span> <span class="identifier">flags</span><span class="special">)</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ST</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">SA</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span>
+         <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">regex_search</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+                  <span class="identifier">match_results</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns the result of <code class="computeroutput"><span class="identifier">regex_search</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">m</span><span class="special">,</span> <span class="identifier">e</span><span class="special">,</span> <span class="identifier">flags</span><span class="special">)</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">regex_search</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">last</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Behaves "as if" by constructing
+        an instance of <code class="computeroutput"><span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;</span> <span class="identifier">what</span></code>,
+        and then returning the result of <code class="computeroutput"><span class="identifier">regex_search</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">what</span><span class="special">,</span> <span class="identifier">e</span><span class="special">,</span>
+        <span class="identifier">flags</span><span class="special">)</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">regex_search</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">str</span>
+                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns the result of <code class="computeroutput"><span class="identifier">regex_search</span><span class="special">(</span><span class="identifier">str</span><span class="special">,</span> <span class="identifier">str</span>
+        <span class="special">+</span> <span class="identifier">char_traits</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;::</span><span class="identifier">length</span><span class="special">(</span><span class="identifier">str</span><span class="special">),</span>
+        <span class="identifier">e</span><span class="special">,</span> <span class="identifier">flags</span><span class="special">)</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ST</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">SA</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">regex_search</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">ST</span><span class="special">,</span> <span class="identifier">SA</span><span class="special">&gt;&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns the result of <code class="computeroutput"><span class="identifier">regex_search</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">e</span><span class="special">,</span> <span class="identifier">flags</span><span class="special">)</span></code>.
+      </p>
+<h5>
+<a name="boost_regex.ref.regex_search.h1"></a>
+        <span class="phrase"><a name="boost_regex.ref.regex_search.examples"></a></span><a class="link" href="regex_search.html#boost_regex.ref.regex_search.examples">Examples</a>
+      </h5>
+<p>
+        The following example, takes the contents of a file in the form of a string,
+        and searches for all the C++ class declarations in the file. The code will
+        work regardless of the way that <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>
+        is implemented, for example it could easily be modified to work with the
+        SGI rope class, which uses a non-contiguous storage strategy.
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">map</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">// purpose: </span>
+<span class="comment">// takes the contents of a file in the form of a string </span>
+<span class="comment">// and searches for all the C++ class definitions, storing </span>
+<span class="comment">// their locations in a map of strings/int's </span>
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">map_type</span><span class="special">;</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span> <span class="identifier">expression</span><span class="special">(</span>
+   <span class="string">"^(template[[:space:]]*&lt;[^;:{]+&gt;[[:space:]]*)?"</span>
+   <span class="string">"(class|struct)[[:space:]]*"</span>
+   <span class="string">"(\\&lt;\\w+\\&gt;([[:blank:]]*\\([^)]*\\))?"</span>
+   <span class="string">"[[:space:]]*)*(\\&lt;\\w*\\&gt;)[[:space:]]*"</span>
+   <span class="string">"(&lt;[^;:{]+&gt;[[:space:]]*)?(\\{|:[^;\\{()]*\\{)"</span><span class="special">);</span>
+
+<span class="keyword">void</span> <span class="identifier">IndexClasses</span><span class="special">(</span><span class="identifier">map_type</span><span class="special">&amp;</span> <span class="identifier">m</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">file</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">start</span><span class="special">,</span> <span class="identifier">end</span><span class="special">;</span>
+   <span class="identifier">start</span> <span class="special">=</span> <span class="identifier">file</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+   <span class="identifier">end</span> <span class="special">=</span> <span class="identifier">file</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">const_iterator</span><span class="special">&gt;</span> <span class="identifier">what</span><span class="special">;</span>
+   <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">;</span>
+   <span class="keyword">while</span><span class="special">(</span><span class="identifier">regex_search</span><span class="special">(</span><span class="identifier">start</span><span class="special">,</span> <span class="identifier">end</span><span class="special">,</span> <span class="identifier">what</span><span class="special">,</span> <span class="identifier">expression</span><span class="special">,</span> <span class="identifier">flags</span><span class="special">))</span>
+   <span class="special">{</span>
+      <span class="comment">// what[0] contains the whole string </span>
+      <span class="comment">// what[5] contains the class name. </span>
+      <span class="comment">// what[6] contains the template specialisation if any. </span>
+      <span class="comment">// add class name and position to map: </span>
+      <span class="identifier">m</span><span class="special">[</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="identifier">what</span><span class="special">[</span><span class="number">5</span><span class="special">].</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">what</span><span class="special">[</span><span class="number">5</span><span class="special">].</span><span class="identifier">second</span><span class="special">)</span>
+            <span class="special">+</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="identifier">what</span><span class="special">[</span><span class="number">6</span><span class="special">].</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">what</span><span class="special">[</span><span class="number">6</span><span class="special">].</span><span class="identifier">second</span><span class="special">)]</span>
+         <span class="special">=</span> <span class="identifier">what</span><span class="special">[</span><span class="number">5</span><span class="special">].</span><span class="identifier">first</span> <span class="special">-</span> <span class="identifier">file</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+      <span class="comment">// update search position: </span>
+      <span class="identifier">start</span> <span class="special">=</span> <span class="identifier">what</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">second</span><span class="special">;</span>
+      <span class="comment">// update flags: </span>
+      <span class="identifier">flags</span> <span class="special">|=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_prev_avail</span><span class="special">;</span>
+      <span class="identifier">flags</span> <span class="special">|=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_not_bob</span><span class="special">;</span>
+   <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_match.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="regex_replace.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

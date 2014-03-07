@@ -1,0 +1,100 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/az_Cyrl.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/az_Cyrl.xml
+ */
+az_Cyrl{
+    %%ParentIsRoot:int{1}
+    AuxExemplarCharacters{"[ц щ ъ ь э ю я]"}
+    ExemplarCharacters{"[а ә б в г ғ д е ж з и й ј к ҝ л м н о ө п р с т у ү ф х һ ч ҹ ш ы]"}
+    LocaleScript{
+        "Cyrl",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤ #,##0.00"}
+            }
+            symbols{
+                decimal{","}
+                exponential{"E"}
+                group{"."}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.47.53"}
+    calendar{
+        gregorian{
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE, d, MMMM, y",
+                "d MMMM , y",
+                "d MMM, y",
+                "yyyy-MM-dd",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            dayNames{
+                format{
+                    wide{
+                        "базар",
+                        "базар ертәси",
+                        "чәршәнбә ахшамы",
+                        "чәршәнбә",
+                        "ҹүмә ахшамы",
+                        "ҹүмә",
+                        "шәнбә",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "7",
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                    }
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "јанвар",
+                        "феврал",
+                        "март",
+                        "апрел",
+                        "май",
+                        "ијун",
+                        "ијул",
+                        "август",
+                        "сентјабр",
+                        "октјабр",
+                        "нојабр",
+                        "декабр",
+                    }
+                }
+            }
+        }
+    }
+}

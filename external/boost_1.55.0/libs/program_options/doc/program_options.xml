@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+     "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library 
+    name="Program_options"
+    dirname="program_options" id="program_options" 
+    last-revision="$Date: 2007-11-25 10:38:02 -0800 (Sun, 25 Nov 2007) $" 
+    xmlns:xi="http://www.w3.org/2001/XInclude">
+  <libraryinfo>
+    <author>
+      <firstname>Vladimir</firstname>
+      <surname>Prus</surname>
+    </author>
+    
+    <copyright>
+      <year>2002</year>
+      <year>2003</year>
+      <year>2004</year>
+      <holder>Vladimir Prus</holder>
+    </copyright>
+
+    <legalnotice>
+      <para>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <filename>LICENSE_1_0.txt</filename> or copy at 
+      <ulink
+      url="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</ulink>)
+      </para>
+    </legalnotice>
+
+            
+    <librarypurpose>
+      Facilities to obtain configuration data from command line, config files
+      and other sources</librarypurpose>
+    <librarycategory name="category:data-structures"></librarycategory>
+  </libraryinfo>
+  
+  <title>Boost.Program_options</title>
+  
+  <section>
+    <title>Introduction</title>
+
+    <para>The program_options library allows program developers to obtain
+    <emphasis>program options</emphasis>, that is (name, value) pairs from the user,
+    via conventional methods such as command line and config file.</para>
+
+    <para>Why would you use such a library, and why is it better than parsing
+    your command line by straightforward hand-written code?
+      <itemizedlist>
+        <listitem>
+          <para>It's easier. The syntax for declaring options is simple, and
+          the library itself is small. Things like conversion of option values to
+          desired type and storing into program variables are handled
+          automatically.
+          </para>
+        </listitem>
+        <listitem>
+          <para>Error reporting is better. All the problems with the command line are
+            reported, while hand-written code can just misparse the input. In
+            addition, the usage message can be automatically generated, to
+            avoid falling out of sync with the real list of options.</para>
+        </listitem>
+        <listitem>
+          <para>Options can be read from anywhere. Sooner or later the command
+          line will be not enough for your users, and you'll want config files
+          or maybe even environment variables. These can be added without significant 
+          effort on your part.
+          </para>
+        </listitem>        
+      </itemizedlist>
+    </para>
+
+    <para>
+      Now let's see some examples of the library usage in the <xref
+      linkend="program_options.tutorial"/>.
+    </para>
+    
+  </section>
+
+  <xi:include href="tutorial.xml"/>  
+  <xi:include href="overview.xml"/>  
+  
+  <xi:include href="howto.xml"/>
+  <xi:include href="design.xml"/>
+  <xi:include href="acknowledgements.xml"/>    
+   
+  <xi:include href="autodoc.xml"/> 
+</library>

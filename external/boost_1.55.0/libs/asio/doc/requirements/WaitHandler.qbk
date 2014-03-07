@@ -1,0 +1,50 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:WaitHandler Wait handler requirements]
+
+A wait handler must meet the requirements for a [link
+boost_asio.reference.Handler handler]. A value `h` of a wait handler class
+should work correctly in the expression `h(ec)`, where `ec` is an lvalue of
+type `const error_code`.
+
+[heading Examples]
+
+A free function as a wait handler:
+
+  void wait_handler(
+      const boost::system::error_code& ec)
+  {
+    ...
+  }
+
+A wait handler function object:
+
+  struct wait_handler
+  {
+    ...
+    void operator()(
+        const boost::system::error_code& ec)
+    {
+      ...
+    }
+    ...
+  };
+
+A non-static class member function adapted to a wait handler using `bind()`:
+
+  void my_class::wait_handler(
+      const boost::system::error_code& ec)
+  {
+    ...
+  }
+  ...
+  socket.async_wait(...,
+      boost::bind(&my_class::wait_handler,
+        this, boost::asio::placeholders::error));
+
+[endsect]

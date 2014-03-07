@@ -1,0 +1,93 @@
+[/ QuickBook Document version 1.5 ]
+
+[section:BoyerMooreHorspool Boyer-Moore-Horspool Search]
+
+[/license
+
+Copyright (c) 2010-2012 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[heading Overview]
+
+The header file 'boyer_moore_horspool.hpp' contains an implementation of the Boyer-Moore-Horspool algorithm for searching sequences of values. 
+
+The Boyer-Moore-Horspool search algorithm was published by Nigel Horspool in 1980. It is a refinement of the Boyer-Moore algorithm that trades space for time. It uses less space for internal tables than Boyer-Moore, and has poorer worst-case performance.
+
+The Boyer-Moore-Horspool algorithm cannot be used with comparison predicates like `std::search`.
+
+[heading Interface]
+
+Nomenclature: I refer to the sequence being searched for as the "pattern", and the sequence being searched in as the "corpus".
+
+For flexibility, the Boyer-Moore-Horspool algorithm has two interfaces; an object-based interface and a procedural one. The object-based interface builds the tables in the constructor, and uses operator () to perform the search. The procedural interface builds the table and does the search all in one step. If you are going to be searching for the same pattern in multiple corpora, then you should use the object interface, and only build the tables once.
+
+Here is the object interface:
+``
+template <typename patIter>
+class boyer_moore_horspool {
+public:
+    boyer_moore_horspool ( patIter first, patIter last );
+    ~boyer_moore_horspool ();
+    
+    template <typename corpusIter>
+    corpusIter operator () ( corpusIter corpus_first, corpusIter corpus_last );
+    };
+``
+
+and here is the corresponding procedural interface:
+
+``
+template <typename patIter, typename corpusIter>
+corpusIter boyer_moore_horspool_search ( 
+        corpusIter corpus_first, corpusIter corpus_last, 
+        patIter pat_first, patIter pat_last );
+``
+
+Each of the functions is passed two pairs of iterators. The first two define the corpus and the second two define the pattern. Note that the two pairs need not be of the same type, but they do need to "point" at the same type. In other words, `patIter::value_type` and `curpusIter::value_type` need to be the same type.
+
+The return value of the function is an iterator pointing to the start of the pattern in the corpus. If the pattern is not found, it returns the end of the corpus (`corpus_last`).
+
+[heading Performance]
+
+The execution time of the Boyer-Moore-Horspool algorithm is linear in the size of the string being searched; it can have a significantly lower constant factor than many other search algorithms: it doesn't need to check every character of the string to be searched, but rather skips over some of them. Generally the algorithm gets faster as the pattern being searched for becomes longer. Its efficiency derives from the fact that with each unsuccessful attempt to find a match between the search string and the text it is searching, it uses the information gained from that attempt to rule out as many positions of the text as possible where the string cannot match.
+
+[heading Memory Use]
+
+The algorithm an internal table that has one entry for each member of the "alphabet" in the pattern. For (8-bit) character types, this table contains 256 entries.
+
+[heading Complexity]
+
+The worst-case performance is ['O(m x n)], where ['m] is the length of the pattern and ['n] is the length of the corpus. The average time is ['O(n)]. The best case performance is sub-linear, and is, in fact, identical to Boyer-Moore, but the initialization is quicker and the internal loop is simpler than Boyer-Moore.
+
+[heading Exception Safety]
+
+Both the object-oriented and procedural versions of the Boyer-Moore-Horspool algorithm take their parameters by value and do not use any information other than what is passed in. Therefore, both interfaces provide the strong exception guarantee.
+
+[heading Notes]
+
+* When using the object-based interface, the pattern must remain unchanged for during the searches; i.e, from the time the object is constructed until the final call to operator () returns.
+
+* The Boyer-Moore-Horspool algorithm requires random-access iterators for both the pattern and the corpus.
+
+[heading Customization points] 
+
+The Boyer-Moore-Horspool object takes a traits template parameter which enables the caller to customize how the precomputed table is stored. This table, called the skip table, contains (logically) one entry for every possible value that the pattern can contain. When searching 8-bit character data, this table contains 256 elements. The traits class defines the table to be used. 
+
+The default traits class uses a `boost::array` for small 'alphabets' and a `tr1::unordered_map` for larger ones.  The array-based skip table gives excellent performance, but could be prohibitively large when the 'alphabet' of elements to be searched grows. The unordered_map based version only grows as the number of unique elements in the pattern, but makes many more heap allocations, and gives slower lookup performance. 
+
+To use a different skip table, you should define your own skip table object and your own traits class, and use them to instantiate the Boyer-Moore-Horspool object. The interface to these objects is described TBD.
+
+
+[endsect]
+
+[/ File boyer_moore_horspool.qbk
+Copyright 2011 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

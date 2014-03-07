@@ -1,0 +1,53 @@
+# Copyright Redshift Software, Inc. 2011
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+using quickbook ;
+import path ;
+
+if ! $(BOOST_ROOT)
+{
+    BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+}
+
+if $(BOOST_PREDEF_ROOT)
+{
+    path-constant BOOST_PREDEF_INCLUDE_ROOT : $(BOOST_PREDEF_ROOT)/include ;
+}
+else
+{
+    path-constant BOOST_PREDEF_INCLUDE_ROOT : $(BOOST_ROOT) ;
+}
+
+local BOOST_PREDEF_HEADERS = [ path.glob-tree $(BOOST_PREDEF_INCLUDE_ROOT)/boost/predef : *.h ] ;
+
+xml predef
+    :
+        predef.qbk
+    :
+        <dependency>$(BOOST_PREDEF_INCLUDE_ROOT)/boost/predef.h
+        <dependency>$(BOOST_PREDEF_HEADERS)
+    ;
+explicit predef ;
+
+boostbook standalone
+    :
+        predef
+    :
+        <xsl:param>boost.root=../../..
+        #<xsl:param>generate.section.toc.level=3
+        <xsl:param>chunk.section.depth=2
+        <xsl:param>chunk.first.sections=1
+    
+        <dependency>images
+        <dependency>callouts
+        <dependency>css
+    ;
+
+install images : [ glob $(BOOST_ROOT)/doc/src/images/*.png ] : <location>html/images ;
+explicit images ;
+install callouts : [ glob $(BOOST_ROOT)/doc/src/images/callouts/*.png ] : <location>html/images/callouts ;
+explicit callouts ;
+install css : [ glob $(BOOST_ROOT)/doc/src/*.css ] : <location>html ;
+explicit css ;

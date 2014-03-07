@@ -1,0 +1,63 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Starter Kit]
+
+Most "quick starts" only get you a few blocks from where you are. From there,
+you are on your own. Yet, typically, you'd want to get to the next city. This
+starter kit shall be as minimal as possible, yet packed as much power as
+possible.
+
+So you are busy and always on the go. You do not wish to spend a lot of time
+studying the library. You wish to be spared the details for later when you need
+it. For now, all you need to do is to get up to speed as quickly as possible and
+start using the library. If this is the case, this is the right place to start.
+
+This section is by no means a thorough discourse of the library. For more
+information on Phoenix, please take some time to read the rest of the
+Documentation. Yet, if you just want to use the library quickly, now, this
+chapter will probably suffice. Rather than taking you to the details of the
+library, we shall try to provide you with annotated examples instead.
+Hopefully, this will get you into high gear quickly.
+
+[heading Functors everywhere]
+
+Phoenix is built on function objects (functors). The functor is the main
+building block. We compose functors to build more complex functors... to build
+more complex functors... and so on. Almost everything is a functor.
+
+[note Functors are so ubiquitous in Phoenix that, in the manual, the
+words /"functor"/ and /"function"/ are used interchangeably.]
+
+[/section Primitives]
+
+We start with some core functions that are called *primitives*. You can think of
+primitives (such as values, references and arguments) as atoms.
+
+Things start to get interesting when we start /composing/ primitives to form
+*expressions*. The expressions can, in turn, be composed to form even more complex
+expressions.
+
+[include starter_kit/values.qbk]
+[include starter_kit/references.qbk]
+[include starter_kit/arguments.qbk]
+
+[/endsect]
+
+[/section Composites]
+
+[include starter_kit/operator.qbk]
+[include starter_kit/statement.qbk]
+[include starter_kit/object.qbk]
+[include starter_kit/function.qbk]
+[include starter_kit/more.qbk]
+
+[/endsect]
+
+[endsect]

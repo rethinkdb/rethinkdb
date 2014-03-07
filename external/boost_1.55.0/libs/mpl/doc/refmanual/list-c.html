@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: list_c</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./vector-c.html" class="navigation-link">Prev</a>&nbsp;<a href="./set-c.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./vector-c.html" class="navigation-link">Back</a>&nbsp;<a href="./set-c.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./classes.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./classes.html" class="navigation-link">Classes</a> / <a href="./list-c.html" class="navigation-link">list_c</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="list-c">
+<h1><a class="toc-backref" href="./classes.html#id1413">list_c</a></h1>
+<div class="section" id="id100">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./list-c.html" class="identifier">list_c</a></span></tt> is an <a class="reference internal" href="./integral-sequence-wrapper.html">Integral Sequence Wrapper</a> for <a class="reference internal" href="./list.html">list</a>. As such, it shares
+all <a class="reference internal" href="./list.html">list</a> characteristics and requirements, and differs only in the way the
+original sequence content is specified.</p>
+</div>
+<div class="section" id="id101">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="26%" />
+<col width="74%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Sequence form</th>
+<th class="head">Header</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Variadic</td>
+<td><tt class="literal"><span class="pre">#include &lt;<a href="../../../../boost/mpl/list_c.hpp" class="header">boost/mpl/list_c.hpp</a>&gt;</span></tt></td>
+</tr>
+<tr><td>Numbered</td>
+<td><tt class="literal"><span class="pre">#include &lt;boost/mpl/list/list</span></tt><em>n</em><tt class="literal"><span class="pre">_c.hpp&gt;</span></tt></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id102">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<ul class="simple">
+<li><a class="reference internal" href="./integral-sequence-wrapper.html">Integral Sequence Wrapper</a></li>
+<li><a class="reference internal" href="./variadic-sequence.html">Variadic Sequence</a></li>
+<li><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></li>
+<li><a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a></li>
+<li><a class="reference internal" href="./front-extensible-sequence.html">Front Extensible Sequence</a></li>
+</ul>
+</div>
+<div class="section" id="id103">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>The semantics of an expression are defined only
+where they differ from, or are not defined in <a class="reference internal" href="./list.html">list</a>.</p>
+<!-- workaround substitution bug (should be replace:: list\ *n*\ _c<T,\ |c1...cn|>) -->
+<table border="1" class="docutils table">
+<colgroup>
+<col width="45%" />
+<col width="55%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Semantics</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><pre class="first last literal-block">
+<a href="./list-c.html" class="identifier">list_c</a>&lt;T,<em>c</em><sub>1</sub>,<em>c</em><sub>2</sub>,... <em>c</em><sub>n</sub>&gt;
+<a href="./list.html" class="identifier">list</a><em>n</em>_c&lt;T,<em>c</em><sub>1</sub>,<em>c</em><sub>2</sub>,... <em>c</em><sub>n</sub>&gt;
+</pre>
+</td>
+<td>A <a class="reference internal" href="./list.html">list</a> of integral constant wrappers
+<tt class="literal"><span class="pre"><a href="./integral-c.html" class="identifier">integral_c</a>&lt;T,</span></tt><em>c</em><sub>1</sub><tt class="literal"><span class="pre">&gt;</span></tt>,
+<tt class="literal"><span class="pre"><a href="./integral-c.html" class="identifier">integral_c</a>&lt;T,</span></tt><em>c</em><sub>2</sub><tt class="literal"><span class="pre">&gt;</span></tt>, ...
+<tt class="literal"><span class="pre"><a href="./integral-c.html" class="identifier">integral_c</a>&lt;T,</span></tt><em>c</em><sub>n</sub><tt class="literal"><span class="pre">&gt;</span></tt>;
+see <a class="reference internal" href="./integral-sequence-wrapper.html">Integral Sequence Wrapper</a>.</td>
+</tr>
+<tr><td><pre class="first last literal-block">
+<a href="./list-c.html" class="identifier">list_c</a>&lt;T,<em>c</em><sub>1</sub>,<em>c</em><sub>2</sub>,... <em>c</em><sub>n</sub>&gt;::type
+<a href="./list.html" class="identifier">list</a><em>n</em>_c&lt;T,<em>c</em><sub>1</sub>,<em>c</em><sub>2</sub>,... <em>c</em><sub>n</sub>&gt;::type
+</pre>
+</td>
+<td>Identical to <tt class="literal"><span class="pre"><a href="./list.html" class="identifier">list</a></span></tt><em>n</em><tt class="literal"><span class="pre">&lt;</span></tt>
+<tt class="literal"><span class="pre"><a href="./integral-c.html" class="identifier">integral_c</a>&lt;T,</span></tt><em>c</em><sub>1</sub><tt class="literal"><span class="pre">&gt;</span></tt>,
+<tt class="literal"><span class="pre"><a href="./integral-c.html" class="identifier">integral_c</a>&lt;T,</span></tt><em>c</em><sub>2</sub><tt class="literal"><span class="pre">&gt;</span></tt>, ...
+<tt class="literal"><span class="pre"><a href="./integral-c.html" class="identifier">integral_c</a>&lt;T,</span></tt><em>c</em><sub>n</sub><tt class="literal"><span class="pre">&gt;</span></tt> <tt class="literal"><span class="pre">&gt;</span></tt>;
+see <a class="reference internal" href="./integral-sequence-wrapper.html">Integral Sequence Wrapper</a>.</td>
+</tr>
+<tr><td><pre class="first last literal-block">
+<a href="./list-c.html" class="identifier">list_c</a>&lt;T,<em>c</em><sub>1</sub>,<em>c</em><sub>2</sub>,... <em>c</em><sub>n</sub>&gt;::<a href="./value-type.html" class="identifier">value_type</a>
+<a href="./list.html" class="identifier">list</a><em>n</em>_c&lt;T,<em>c</em><sub>1</sub>,<em>c</em><sub>2</sub>,... <em>c</em><sub>n</sub>&gt;::<a href="./value-type.html" class="identifier">value_type</a>
+</pre>
+</td>
+<td>Identical to <tt class="literal"><span class="pre">T</span></tt>; see
+<a class="reference internal" href="./integral-sequence-wrapper.html">Integral Sequence Wrapper</a>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id104">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./list-c.html" class="identifier">list_c</a>&lt;int,1,2,3,5,7,12,19,31&gt; fibonacci;
+typedef <a href="./push-front.html" class="identifier">push_front</a>&lt;fibonacci,<a href="./int.html" class="identifier">int_</a>&lt;1&gt; &gt;::type fibonacci2;
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./front.html" class="identifier">front</a>&lt;fibonacci2&gt;::type::value, ==, 1 );
+</pre>
+</div>
+<div class="section" id="id105">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./sequences.html">Sequences</a>, <a class="reference internal" href="./integral-sequence-wrapper.html">Integral Sequence Wrapper</a>, <a class="reference internal" href="./list.html">list</a>, <a class="reference internal" href="./integral-c.html">integral_c</a>, <a class="reference internal" href="./vector-c.html">vector_c</a>, <a class="reference internal" href="./set-c.html">set_c</a>, <a class="reference internal" href="./range-c.html">range_c</a></p>
+<!-- Sequences/Classes//set_c |90 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./vector-c.html" class="navigation-link">Prev</a>&nbsp;<a href="./set-c.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./vector-c.html" class="navigation-link">Back</a>&nbsp;<a href="./set-c.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./classes.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

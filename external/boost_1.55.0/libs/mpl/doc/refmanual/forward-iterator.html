@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: Forward Iterator</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./iterators-concepts.html" class="navigation-link">Prev</a>&nbsp;<a href="./bidirectional-iterator.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./bidirectional-iterator.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterators-concepts.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./iterators.html" class="navigation-link">Iterators</a> / <a href="./iterators-concepts.html" class="navigation-link">Concepts</a> / <a href="./forward-iterator.html" class="navigation-link">Forward Iterator</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="forward-iterator">
+<h1><a class="toc-backref" href="./iterators-concepts.html#id1450">Forward Iterator</a></h1>
+<div class="section" id="id384">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>A <a class="reference internal" href="./forward-iterator.html">Forward Iterator</a> <tt class="literal"><span class="pre">i</span></tt> is a type that represents a positional reference
+to an element of a <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>. It allows to access the element through
+a dereference operation, and provides a way to obtain an iterator to
+the next element in a sequence.</p>
+<!-- A [Forward Iterator] guarantees a linear traversal over
+the sequence. -->
+</div>
+<div class="section" id="id385">
+<h3><a class="subsection-title" href="#definitions" name="definitions">Definitions</a></h3>
+<ul class="simple">
+<li>An iterator can be <cite>dereferenceable</cite>, meaning that <tt class="literal"><span class="pre"><a href="./deref.html" class="identifier">deref</a>&lt;i&gt;::type</span></tt>
+is a well-defined expression.</li>
+<li>An iterator is <cite>past-the-end</cite> if it points beyond the last element of a
+sequence; past-the-end iterators are non-dereferenceable.</li>
+<li>An iterator <tt class="literal"><span class="pre">i</span></tt> is <cite>incrementable</cite> if there is a &quot;next&quot; iterator, that
+is, if <tt class="literal"><span class="pre"><a href="./next.html" class="identifier">next</a>&lt;i&gt;::type</span></tt> expression is well-defined; past-the-end iterators are
+not incrementable.</li>
+<li>Two iterators into the same sequence are <cite>equivalent</cite> if they have the same
+type.</li>
+<li>An iterator <tt class="literal"><span class="pre">j</span></tt> is <cite>reachable</cite> from an iterator <tt class="literal"><span class="pre">i</span></tt> if , after recursive
+application of <tt class="literal"><span class="pre"><a href="./next.html" class="identifier">next</a></span></tt> metafunction to <tt class="literal"><span class="pre">i</span></tt> a finite number of times, <tt class="literal"><span class="pre">i</span></tt>
+is equivalent to <tt class="literal"><span class="pre">j</span></tt>.</li>
+<li>The notation [<tt class="literal"><span class="pre">i</span></tt>,<tt class="literal"><span class="pre">j</span></tt>) refers to a <cite>range</cite> of iterators beginning with
+<tt class="literal"><span class="pre">i</span></tt> and up to but not including <tt class="literal"><span class="pre">j</span></tt>.</li>
+<li>The range [<tt class="literal"><span class="pre">i</span></tt>,<tt class="literal"><span class="pre">j</span></tt>) is a <cite>valid range</cite> if <tt class="literal"><span class="pre">j</span></tt> is reachable from <tt class="literal"><span class="pre">i</span></tt>.</li>
+</ul>
+</div>
+<div class="section" id="id386">
+<h3><a class="subsection-title" href="#expression-requirements" name="expression-requirements">Expression requirements</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="25%" />
+<col width="46%" />
+<col width="29%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Type</th>
+<th class="head">Complexity</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre"><a href="./deref.html" class="identifier">deref</a>&lt;i&gt;::type</span></tt></td>
+<td>Any type</td>
+<td>Amortized constant time</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./next.html" class="identifier">next</a>&lt;i&gt;::type</span></tt></td>
+<td><a class="reference internal" href="./forward-iterator.html">Forward Iterator</a></td>
+<td>Amortized constant time</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">i::category</span></tt></td>
+<td><a class="reference internal" href="./integral-constant.html">Integral Constant</a>, convertible
+to <tt class="literal"><span class="pre">forward_iterator_tag</span></tt></td>
+<td>Constant time</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id387">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<pre class="literal-block">
+typedef <a href="./deref.html" class="identifier">deref</a>&lt;i&gt;::type j;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><tt class="literal"><span class="pre">i</span></tt> is dereferenceable</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><tt class="literal"><span class="pre">j</span></tt> is identical to the type of the pointed element</td>
+</tr>
+</tbody>
+</table>
+<!-- .......................................................................... -->
+<pre class="literal-block">
+typedef <a href="./next.html" class="identifier">next</a>&lt;i&gt;::type j;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><tt class="literal"><span class="pre">i</span></tt> is incrementable</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><tt class="literal"><span class="pre">j</span></tt> is the next iterator in a sequence</td>
+</tr>
+<tr class="field"><th class="field-name">Postcondition:</th><td class="field-body"><tt class="literal"><span class="pre">j</span></tt> is dereferenceable or past-the-end</td>
+</tr>
+</tbody>
+</table>
+<!-- .......................................................................... -->
+<pre class="literal-block">
+typedef i::category c;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><tt class="literal"><span class="pre">c</span></tt> is identical to the iterator's category tag</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id388">
+<h3><a class="subsection-title" href="#invariants" name="invariants">Invariants</a></h3>
+<p>For any forward iterators <tt class="literal"><span class="pre">i</span></tt> and <tt class="literal"><span class="pre">j</span></tt> the following invariants always hold:</p>
+<ul class="simple">
+<li><tt class="literal"><span class="pre">i</span></tt> and <tt class="literal"><span class="pre">j</span></tt> are equivalent if and only if they are pointing to the same
+element.</li>
+<li>If <tt class="literal"><span class="pre">i</span></tt> is dereferenceable, and <tt class="literal"><span class="pre">j</span></tt> is equivalent to <tt class="literal"><span class="pre">i</span></tt>, then <tt class="literal"><span class="pre">j</span></tt> is
+dereferenceable as well.</li>
+<li>If <tt class="literal"><span class="pre">i</span></tt> and <tt class="literal"><span class="pre">j</span></tt> are equivalent and dereferenceable, then <tt class="literal"><span class="pre"><a href="./deref.html" class="identifier">deref</a>&lt;i&gt;::type</span></tt>
+and <tt class="literal"><span class="pre"><a href="./deref.html" class="identifier">deref</a>&lt;j&gt;::type</span></tt> are identical.</li>
+<li>If <tt class="literal"><span class="pre">i</span></tt> is incrementable, and <tt class="literal"><span class="pre">j</span></tt> is equivalent to <tt class="literal"><span class="pre">i</span></tt>, then <tt class="literal"><span class="pre">j</span></tt> is
+incrementable as well.</li>
+<li>If <tt class="literal"><span class="pre">i</span></tt> and <tt class="literal"><span class="pre">j</span></tt> are equivalent and incrementable, then <tt class="literal"><span class="pre"><a href="./next.html" class="identifier">next</a>&lt;i&gt;::type</span></tt>
+and <tt class="literal"><span class="pre"><a href="./next.html" class="identifier">next</a>&lt;j&gt;::type</span></tt> are equivalent.</li>
+</ul>
+</div>
+<div class="section" id="id389">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./iterators.html">Iterators</a>, <a class="reference internal" href="./bidirectional-iterator.html">Bidirectional Iterator</a>, <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>, <a class="reference internal" href="./deref.html">deref</a>, <a class="reference internal" href="./next.html">next</a></p>
+<!-- Iterators/Concepts//Bidirectional Iterator |20 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./iterators-concepts.html" class="navigation-link">Prev</a>&nbsp;<a href="./bidirectional-iterator.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./bidirectional-iterator.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterators-concepts.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

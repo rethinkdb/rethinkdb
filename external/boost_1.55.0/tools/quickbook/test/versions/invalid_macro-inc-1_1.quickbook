@@ -1,0 +1,7 @@
+[quickbook 1.1]
+
+[def __valid__ okay]
+[def __invalid\macro__ bad]
+
+* __valid__
+* __invalid\macro__

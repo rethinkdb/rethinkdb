@@ -1,0 +1,78 @@
+<HTML>
+<!--
+     Copyright (c) 2005, 2010 Trustees of Indiana University
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Random Graph Layout</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<TT>random_graph_layout</TT>
+</H1>
+
+
+<P>
+<PRE>
+<i>// non-named parameter version</i>
+template&lt;typename Graph, typename PositionMap, typename Topology&gt;
+void
+random_graph_layout(const Graph&amp; g, PositionMap position_map,
+                    const Topology&amp; space);
+</PRE>
+
+<P> This algorithm places the points of the graph at random
+locations within a given space. </p>
+
+<h3>Where Defined</h3>
+
+<a href="../../../boost/graph/random_layout.hpp"><tt>boost/graph/random_layout.hpp</tt></a>
+
+<h3>Parameters</h3>
+
+IN: <tt>const Graph&amp; g</tt> 
+<blockquote>
+  The graph object on which the algorithm will be applied.
+  The type <tt>Graph</tt> must be a model of 
+  <a href="./VertexAndEdgeListGraph.html">Vertex And Edge List Graph</a>.
+</blockquote>
+
+IN/OUT: <tt>PositionMap position</tt>
+<blockquote>
+  The property map that stores the position of each vertex. The type
+  <tt>PositionMap</tt> must be a model of <a
+  href="../../property_map/doc/LvaluePropertyMap.html">Lvalue Property
+  Map</a> such that the vertex descriptor type of <tt>Graph</tt> is
+  convertible to its key type. Its value type must be
+  <tt>Topology::point_type</tt>, representing the coordinates of the vertex.
+</blockquote>
+
+IN: <tt>const Topology&amp; space</tt>
+<blockquote>
+  The topology used to lay out the vertices.  This parameter describes both the
+  size and shape of the layout area and provides a random number generator used
+  to create random positions within the space.  Topologies are described in
+  more detail (with a list of BGL-provided topologies) <a
+  href="topology.html">in separate documentation</a>.
+</blockquote>
+
+<H3>Complexity</H3>
+<P> The time complexity is <i>O(|V|)</i>.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2004, 2010</TD><TD>
+<A HREF="http://www.boost.org/people/doug_gregor.html">Doug Gregor</A>, Indiana University
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

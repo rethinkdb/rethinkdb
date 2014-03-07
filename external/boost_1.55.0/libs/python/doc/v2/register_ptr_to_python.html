@@ -1,0 +1,162 @@
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="../boost.css">
+<title>Boost.Python - &lt;register_ptr_to_python.hpp&gt;</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+  <tr> 
+    <td valign="top" width="300"> 
+          <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+          "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+      <h2 align="center">Header &lt;register_ptr_to_python.hpp&gt;</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<h2>Contents</h2>
+<dl class="page-index"> 
+  <dt><a href="#introduction">Introduction</a></dt>
+  <dt><a href="#functions">Functions</a></dt>
+  <dl class="page-index">
+  <dt><a href="#register_ptr_to_python-spec">register_ptr_to_python</a></dt>
+  </dl>
+
+  <dt><a href="#examples">Example(s)</a></dt>
+
+</dl>
+<hr>
+<h2><a name="introduction"></a>Introduction</h2>
+<p>
+  <code>&lt;boost/python/register_ptr_to_python.hpp&gt;</code>
+  supplies <code>register_ptr_to_python</code>, a function template
+  which registers a conversion for smart pointers to Python.  The
+  resulting Python object holds a copy of the converted smart pointer,
+  but behaves as though it were a wrapped copy of the pointee.  If
+  the pointee type has virtual functions and the class representing
+  its dynamic (most-derived) type has been wrapped, the Python object
+  will be an instance of the wrapper for the most-derived type. More than
+  one smart pointer type for a pointee's class can be registered.
+</p>
+<p>
+  Note that in order to convert a Python <code>X</code> object to a
+  <code>smart_ptr&lt;X&gt;&amp;</code> (non-const reference), the embedded C++
+  object must be held by <code>smart_ptr&lt;X&gt;</code>, and that when wrapped
+  objects are created by calling the constructor from Python, how they are held
+  is determined by the <code>HeldType</code> parameter to
+  <code>class_&lt;...&gt;</code> instances.  
+</p>
+  
+<h2><a name="functions"></a>Functions</h2>
+<pre>
+<a name="register_ptr_to_python-spec">template &lt;class P&gt;
+void register_ptr_to_python() 
+</pre>
+<dl class="function-semantics"> 
+  <dt><b>Requires:</b> <code>P</code> is <a href="Dereferenceable.html#Dereferenceable-concept">Dereferenceable</a>.
+  </dt>
+  <dt><b>Effects:</b> Allows conversions to-python of <code>P</code>
+  instances.
+  </dt>
+</dl>
+
+<h2><a name="examples"></a>Example(s)</h2>
+
+<h3>C++ Wrapper Code</h3>
+
+Here is an example of a module that contains a class <code>A</code> with
+virtual functions and some functions that work with
+<code>boost::shared_ptr&lt;A&gt;</code>.
+
+<pre>
+struct A
+{
+    virtual int f() { return 0; }
+};
+
+shared_ptr&lt;A&gt; New() { return shared_ptr&lt;A&gt;( new A() ); }
+
+int Ok( const shared_ptr&lt;A&gt;&amp; a ) { return a-&gt;f(); }
+
+int Fail( shared_ptr&lt;A&gt;&amp; a ) { return a-&gt;f(); }
+
+struct A_Wrapper: A
+{
+    A_Wrapper(PyObject* self_): self(self_) {}
+    int f() { return call_method&lt;int&gt;(self, "f"); }    
+    int default_f() { return A::f(); }    
+    PyObject* self;
+};
+
+BOOST_PYTHON_MODULE(register_ptr)
+{
+    class_&lt;A, A_Wrapper&gt;("A")
+        .def("f", &amp;A::f, &amp;A_Wrapper::default_f)
+    ;
+    
+    def("New", &amp;New);
+    def("Ok", &amp;Call);
+    def("Fail", &amp;Fail);
+    
+    register_ptr_to_python&lt; shared_ptr&lt;A&gt; &gt;();
+} 
+</pre>
+
+<h3>Python Code</h3>
+
+<pre>
+&gt;&gt;&gt; from register_ptr import *
+&gt;&gt;&gt; a = A()
+&gt;&gt;&gt; Ok(a)     # ok, passed as shared_ptr&lt;A&gt;
+0
+&gt;&gt;&gt; Fail(a)   # passed as shared_ptr&lt;A&gt;&amp;, and was created in Python!
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in ?
+TypeError: bad argument type for built-in operation
+&gt;&gt;&gt;
+&gt;&gt;&gt; na = New()   # now "na" is actually a shared_ptr&lt;A&gt; 
+&gt;&gt;&gt; Ok(a)
+0
+&gt;&gt;&gt; Fail(a)
+0
+&gt;&gt;&gt;
+</pre>    
+
+If <code>shared_ptr&lt;A&gt;</code> is registered as follows:
+
+<pre>
+    class_&lt;A, A_Wrapper, shared_ptr&lt;A&gt; &gt;("A")
+        .def("f", &amp;A::f, &amp;A_Wrapper::default_f)
+    ;            
+</pre>    
+
+There will be an error when trying to convert <code>shared_ptr&lt;A&gt;</code> to
+<code>shared_ptr&lt;A_Wrapper&gt;</code>:
+
+<pre>
+&gt;&gt;&gt; a = New()
+Traceback (most recent call last):
+File "&lt;stdin&gt;", line 1, in ?
+TypeError: No to_python (by-value) converter found for C++ type: class boost::shared_ptr&lt;struct A&gt;
+&gt;&gt;&gt;    
+</pre>
+
+<p>Revised 
+  <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  24 Jun, 2003
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+</p>
+<p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 
+  2002. </i></p>
+</body>
+</html>  
+
+

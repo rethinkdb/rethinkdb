@@ -1,0 +1,259 @@
+<HTML>
+<!-- Copyright 2007 Aaron Windsor
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  -->
+<Head>
+<Title>Boost Graph Library: Boyer-Myrvold Planarity Testing/Embedding</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>Boyer-Myrvold Planarity Testing/Embedding</H1>
+
+<p>
+A graph is <a href="./planar_graphs.html#planar"><i>planar</i></a> if it can 
+be drawn in two-dimensional space without any of its edges crossing. Such a 
+drawing of a planar graph is called a 
+<a href="./planar_graphs.html#plane_drawing"><i>plane drawing</i></a>. Each 
+plane drawing belongs to an equivalence class called a <i>planar embedding</i>
+<a href="#1">[1]</a> that is defined by the clockwise ordering of adjacent 
+edges around each vertex in the graph. A planar embedding is a convenient 
+intermediate representation of an actual drawing of a planar graph, and many 
+planar graph drawing algorithms are formulated as functions mapping a planar 
+embedding to a plane drawing.
+<br>
+<br>
+<table align="center" class="image">
+<caption align="bottom"><h5>A planar graph (top left), along with a planar 
+embedding of that graph (bottom left) can be used to create a plane drawing 
+(right) by embedding edges around each vertex in the order in which they 
+appear in the planar embedding.
+</h5></caption>
+<tr><td>
+<img src="./figs/embedding_illustration.png">
+</td></tr>
+<tr></tr>
+<tr></tr>
+</table>
+<br>
+<p>
+The function <tt>boyer_myrvold_planarity_test</tt> implements the planarity 
+testing/embedding algorithm of Boyer and Myrvold 
+[<a href="./bibliography.html#boyermyrvold04">70</a>].
+<tt>boyer_myrvold_planarity_test</tt> returns <tt>true</tt> if the input graph 
+is planar and <tt>false</tt> otherwise. As a side-effect of this test, a planar
+embedding can be constructed if the graph is planar or a minimal set of edges 
+that form a <a href = "./planar_graphs.html#kuratowskisubgraphs">Kuratowski 
+subgraph</a> can be found if the graph is not planar.
+<tt>boyer_myrvold_planarity_test</tt> uses named parameter arguments (courtesy 
+of the <a href="../../parameter/doc/html/index.html">Boost.Parameter</a> 
+library) to specify what the function actually does. Some examples are:
+
+<ul>
+<li>Testing whether or not a graph is planar:
+<pre>
+bool is_planar = boyer_myrvold_planarity_test(g);
+</pre>
+
+<li>Computing a planar embedding for a graph if it is planar, otherwise finding
+a set of edges that forms an obstructing Kuratowski subgraph:
+<pre>
+if (boyer_myrvold_planarity_test(boyer_myrvold_params::graph = g, 
+                                 boyer_myrvold_params::embedding = embedding_pmap,  
+                                 boyer_myrvold_params::kuratowski_subgraph = out_itr
+                                 )
+    )
+{
+  //do something with the embedding in embedding_pmap
+}
+else
+{
+  //do something with the kuratowski subgraph output to out_itr
+}
+</pre>
+</ul>
+
+<p>
+The parameters passed to <tt>boyer_myrvold_planarity_test</tt> in the examples 
+above do more than just carry the data structures used for input and output - 
+the algorithm is optimized at compile time based on which parameters are 
+present. A complete list of parameters accepted and their interactions are 
+described below. 
+<p>
+<tt>boyer_myrvold_planarity_test</tt> accepts as input any undirected graph,
+even those with self-loops and multiple edges.
+However, many planar graph drawing algorithms make additional restrictions 
+on the structure of the input graph - for example, requiring that the input 
+graph is connected, biconnected, or even maximal planar (triangulated.)
+Fortunately, any planar graph on <i>n</i> vertices that lacks one of these 
+properties can be augmented with additional edges so that it satisfies that 
+property in <i>O(n)</i> time - the functions 
+<tt><a href="./make_connected.html">make_connected</a></tt>,
+<tt><a href="./make_biconnected_planar.html">make_biconnected_planar</a></tt>, 
+and <tt><a href="./make_maximal_planar.html">make_maximal_planar</a></tt> 
+exist for this purpose. If the graph drawing algorithm you're using requires, 
+say, a biconnected graph, then you must make your input graph biconnected 
+<i>before</i> passing it into <tt>boyer_myrvold_planarity_test</tt> so that the
+computed planar embedding includes these additional edges. This may require 
+more than one call to <tt>boyer_myrvold_planarity_test</tt> depending on the 
+structure of the graph you begin with, since both 
+<tt>make_biconnected_planar</tt> and <tt>make_maximal_planar</tt> require a 
+planar embedding of the existing graph as an input parameter.
+
+<p><p>
+The named parameters accepted by <tt>boyer_myrvold_planarity_test</tt> are:
+
+<ul>
+<li><b><tt>graph</tt></b> : The input graph - this is the only required 
+parameter.
+<li><b><tt>vertex_index_map</tt></b> : A mapping from vertices of the input 
+graph to indexes in the range <tt>[0..num_vertices(g))</tt>. If this parameter 
+is not provided, the vertex index map is assumed to be available as an interior
+property of the graph, accessible by calling <tt>get(vertex_index, g)</tt>.
+<li><b><tt>edge_index_map</tt></b>: A mapping from the edges of the input graph
+to indexes in the range <tt>[0..num_edges(g))</tt>. This parameter is only 
+needed if the <tt>kuratowski_subgraph</tt> argument is provided. If the 
+<tt>kuratowski_subgraph</tt> argument is provided and this parameter is not
+provided, the EdgeIndexMap is assumed to be available as an interior property 
+accessible by calling <tt>get(edge_index, g)</tt>.
+<li><b><tt>embedding</tt></b> : If the graph is planar, this will be populated 
+with a mapping from vertices to the clockwise order of neighbors in the planar 
+embedding.
+<li><b><tt>kuratowski_subgraph</tt></b> : If the graph is not planar, a minimal
+set of edges that form the obstructing Kuratowski subgraph will be written to 
+this iterator.
+</ul>
+
+These named parameters all belong to the namespace 
+<tt>boyer_myrvold_params</tt>. See below for more information on the concepts 
+required for these arguments. 
+
+<H3>Verifying the output</H3>
+
+Whether or not the input graph is planar, <tt>boyer_myrvold_planarity_test</tt>
+can produce a certificate that can be automatically checked to verify that the 
+function is working properly. 
+<p>
+If the graph is planar, a planar embedding can be produced. The
+planar embedding can be verified by passing it to a plane drawing routine 
+(such as <tt><a href="straight_line_drawing.html">
+chrobak_payne_straight_line_drawing</a></tt>) and using the function 
+<tt><a href="is_straight_line_drawing.html">is_straight_line_drawing</a></tt> 
+to verify that the resulting graph is planar.
+<p>
+If the graph is not planar, a set of edges that forms a Kuratowski subgraph in 
+the original graph can be produced. This set of edges can be passed to the 
+function <tt><a href="is_kuratowski_subgraph.html">is_kuratowski_subgraph</a>
+</tt> to verify that they can be contracted into a <i>K<sub>5</sub></i> or 
+<i>K<sub>3,3</sub></i>. <tt>boyer_myrvold_planarity_test</tt> chooses the set 
+of edges forming the Kuratowski subgraph in such a way that the contraction to 
+a <i>K<sub>5</sub></i> or <i>K<sub>3,3</sub></i> can be done by a simple 
+deterministic process which is described in the documentation to 
+<tt>is_kuratowski_subgraph</tt>.
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/boyer_myrvold_planar_test.hpp">
+<TT>boost/graph/boyer_myrvold_planar_test.hpp</TT>
+</a>
+
+<H3>Parameters</H3>
+
+IN: <tt>Graph&amp; g</tt>
+
+<blockquote>
+Any undirected graph. The graph type must be a model of 
+<a href="VertexAndEdgeListGraph.html">VertexAndEdgeListGraph</a> and 
+<a href="IncidenceGraph.html">IncidenceGraph</a>.
+</blockquote>
+
+OUT <tt>PlanarEmbedding embedding</tt>
+
+<blockquote>
+Must model the <a href="PlanarEmbedding.html">PlanarEmbedding</a> concept.
+</blockquote>
+
+IN <tt>OutputIterator kuratowski_subgraph</tt>
+
+<blockquote>
+An OutputIterator which accepts values of the type 
+<tt>graph_traits&lt;Graph&gt;::edge_descriptor</tt>
+</blockquote>
+
+IN <tt>VertexIndexMap vm</tt>
+
+<blockquote>
+A <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map
+</a> that maps vertices from <tt>g</tt> to distinct integers in the range 
+<tt>[0, num_vertices(g) )</tt><br>
+<b>Default</b>: <tt>get(vertex_index,g)</tt><br>
+</blockquote>
+
+IN <tt>EdgeIndexMap em</tt>
+
+<blockquote>
+A <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map
+</a> that maps edges from <tt>g</tt> to distinct integers in the range 
+<tt>[0, num_edges(g) )</tt><br>
+<b>Default</b>: <tt>get(edge_index,g)</tt>, but this parameter is only used if 
+the <tt>kuratowski_subgraph_iterator</tt> is provided.<br>
+</blockquote>
+
+<H3>Complexity</H3>
+
+Assuming that both the vertex index and edge index supplied take time 
+<i>O(1)</i> to return an index and there are <i>O(n)</i> 
+total self-loops and parallel edges in the graph, most combinations of 
+arguments given to 
+<tt>boyer_myrvold_planarity_test</tt> result in an algorithm that runs in time 
+<i>O(n)</i> for a graph with <i>n</i> vertices and <i>m</i> edges. The only 
+exception is when Kuratowski subgraph isolation is requested for a dense graph 
+(a graph with <i>n = o(m)</i>) - the running time will be <i>O(n+m)</i>
+<a href = "#2">[2]</a>.
+
+<H3>Examples</H3>
+
+<P>
+<ul>
+<li><a href="../example/simple_planarity_test.cpp">A simple planarity test</a>
+<li><a href="../example/kuratowski_subgraph.cpp">Isolating a Kuratowski 
+Subgraph</a>
+<li><a href="../example/straight_line_drawing.cpp">Using a planar embedding to 
+create a straight line drawing</a>
+</ul>
+
+<h3>See Also</h3>
+
+<a href="./planar_graphs.html">Planar Graphs in the Boost Graph Library</a>
+
+
+<h3>Notes</h3>
+
+<p><a name="1">[1] A planar embedding is also called a <i>combinatorial 
+embedding</i>.
+
+<p><a name="2">[2] The algorithm can still be made to run in time <i>O(n)</i> 
+for this case, if needed. <a href="planar_graphs.html#EulersFormula">Euler's 
+formula</a> implies that a planar graph with <i>n</i> vertices can have no more
+than <i>3n - 6</i> edges, which means that any non-planar graph on <i>n</i> 
+vertices has a subgraph of only <i>3n - 5</i> edges that contains a Kuratowski 
+subgraph. So, if you need to find a Kuratowski subgraph of a graph with more 
+than <i>3n - 5</i> edges in time <i>O(n)</i>, you can create a subgraph of the 
+original graph consisting of any arbitrary <i>3n - 5</i> edges and pass that 
+graph to <tt>boyer_myrvold_planarity_test</tt>.
+
+
+<br>
+<HR>
+Copyright &copy; 2007 Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">
+aaron.windsor@gmail.com</a>)
+</BODY>
+</HTML> 

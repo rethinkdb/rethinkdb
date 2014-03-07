@@ -1,0 +1,33 @@
+# (C) Copyright 2010 : Karsten Ahnert, Mario Mulansky
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# bring in rules for testing
+
+
+import testing ;
+
+use-project boost : $(BOOST_ROOT) ;
+VEXCL_INCLUDE = /home/karsten/boost/vexcl ;
+CUDA_INCLUDE = /usr/local/cuda/include ;
+
+
+project
+    : requirements
+      <library>/boost/test//boost_unit_test_framework
+      <define>BOOST_ALL_NO_LIB=1
+      <include>../../../../..
+      <include>$(VEXCL_INCLUDE)
+      <include>$(CUDA_INCLUDE)
+      <cxxflags>-std=c++0x
+    ;
+
+lib OpenCL : : <name>OpenCL <link>shared ;
+
+test-suite "odeint"
+    :
+    [ run lorenz.cpp OpenCL ]
+    : <testing.launcher>valgrind
+    : 
+    : <link>shared:<define>BOOST_TEST_DYN_LINK=1
+    ;

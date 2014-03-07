@@ -1,0 +1,147 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Examples</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Chapter 1. Boost.Optional">
+<link rel="up" href="../index.html" title="Chapter 1. Boost.Optional">
+<link rel="prev" href="detailed_semantics.html" title="Detailed Semantics">
+<link rel="next" href="optional_references.html" title="Optional references">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="detailed_semantics.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="optional_references.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+<div class="section" title="Examples">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_optional.examples"></a><a class="link" href="examples.html" title="Examples">Examples</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="examples.html#boost_optional.examples.optional_return_values">Optional
+      return values</a></span></dt>
+<dt><span class="section"><a href="examples.html#boost_optional.examples.optional_local_variables">Optional
+      local variables</a></span></dt>
+<dt><span class="section"><a href="examples.html#boost_optional.examples.optional_data_members">Optional
+      data members</a></span></dt>
+<dt><span class="section"><a href="examples.html#boost_optional.examples.bypassing_expensive_unnecessary_default_construction">Bypassing
+      expensive unnecessary default construction</a></span></dt>
+</dl></div>
+<div class="section" title="Optional return values">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_optional.examples.optional_return_values"></a><a class="link" href="examples.html#boost_optional.examples.optional_return_values" title="Optional return values">Optional
+      return values</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">get_async_input</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">if</span> <span class="special">(</span> <span class="special">!</span><span class="identifier">queue</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span> <span class="special">)</span>
+        <span class="keyword">return</span> <span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;(</span><span class="identifier">queue</span><span class="special">.</span><span class="identifier">top</span><span class="special">());</span>
+    <span class="keyword">else</span> <span class="keyword">return</span> <span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;();</span> <span class="comment">// uninitialized
+</span><span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">receive_async_message</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">rcv</span> <span class="special">;</span>
+    <span class="comment">// The safe boolean conversion from 'rcv' is used here.
+</span>    <span class="keyword">while</span> <span class="special">(</span> <span class="special">(</span><span class="identifier">rcv</span> <span class="special">=</span> <span class="identifier">get_async_input</span><span class="special">())</span> <span class="special">&amp;&amp;</span> <span class="special">!</span><span class="identifier">timeout</span><span class="special">()</span> <span class="special">)</span>
+        <span class="identifier">output</span><span class="special">(*</span><span class="identifier">rcv</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section" title="Optional local variables">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_optional.examples.optional_local_variables"></a><a class="link" href="examples.html#boost_optional.examples.optional_local_variables" title="Optional local variables">Optional
+      local variables</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">name</span> <span class="special">;</span>
+<span class="keyword">if</span> <span class="special">(</span> <span class="identifier">database</span><span class="special">.</span><span class="identifier">open</span><span class="special">()</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">name</span><span class="special">.</span><span class="identifier">reset</span> <span class="special">(</span> <span class="identifier">database</span><span class="special">.</span><span class="identifier">lookup</span><span class="special">(</span><span class="identifier">employer_name</span><span class="special">)</span> <span class="special">)</span> <span class="special">;</span>
+<span class="special">}</span>
+<span class="keyword">else</span>
+<span class="special">{</span>
+    <span class="keyword">if</span> <span class="special">(</span> <span class="identifier">can_ask_user</span> <span class="special">)</span>
+        <span class="identifier">name</span><span class="special">.</span><span class="identifier">reset</span> <span class="special">(</span> <span class="identifier">user</span><span class="special">.</span><span class="identifier">ask</span><span class="special">(</span><span class="identifier">employer_name</span><span class="special">)</span> <span class="special">)</span> <span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">if</span> <span class="special">(</span> <span class="identifier">name</span> <span class="special">)</span>
+    <span class="identifier">print</span><span class="special">(*</span><span class="identifier">name</span><span class="special">);</span>
+<span class="keyword">else</span> <span class="identifier">print</span><span class="special">(</span><span class="string">"employer's name not found!"</span><span class="special">);</span>
+</pre>
+</div>
+<div class="section" title="Optional data members">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_optional.examples.optional_data_members"></a><a class="link" href="examples.html#boost_optional.examples.optional_data_members" title="Optional data members">Optional
+      data members</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">figure</span>
+<span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+
+    <span class="identifier">figure</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="comment">// data member 'm_clipping_rect' is uninitialized at this point.
+</span>    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">clip_in_rect</span> <span class="special">(</span> <span class="identifier">rect</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rect</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="special">....</span>
+        <span class="identifier">m_clipping_rect</span><span class="special">.</span><span class="identifier">reset</span> <span class="special">(</span> <span class="identifier">rect</span> <span class="special">)</span> <span class="special">;</span> <span class="comment">// initialized here.
+</span>    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">draw</span> <span class="special">(</span> <span class="identifier">canvas</span><span class="special">&amp;</span> <span class="identifier">cvs</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">if</span> <span class="special">(</span> <span class="identifier">m_clipping_rect</span> <span class="special">)</span>
+            <span class="identifier">do_clipping</span><span class="special">(*</span><span class="identifier">m_clipping_rect</span><span class="special">);</span>
+
+        <span class="identifier">cvs</span><span class="special">.</span><span class="identifier">drawXXX</span><span class="special">(..);</span>
+    <span class="special">}</span>
+
+    <span class="comment">// this can return NULL.
+</span>    <span class="identifier">rect</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">get_clipping_rect</span><span class="special">()</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">get_pointer</span><span class="special">(</span><span class="identifier">m_clipping_rect</span><span class="special">);</span> <span class="special">}</span>
+
+    <span class="keyword">private</span> <span class="special">:</span>
+
+    <span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">rect</span><span class="special">&gt;</span> <span class="identifier">m_clipping_rect</span> <span class="special">;</span>
+
+<span class="special">};</span>
+</pre>
+</div>
+<div class="section" title="Bypassing expensive unnecessary default construction">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_optional.examples.bypassing_expensive_unnecessary_default_construction"></a><a class="link" href="examples.html#boost_optional.examples.bypassing_expensive_unnecessary_default_construction" title="Bypassing expensive unnecessary default construction">Bypassing
+      expensive unnecessary default construction</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">ExpensiveCtor</span> <span class="special">{</span> <span class="special">...</span> <span class="special">}</span> <span class="special">;</span>
+<span class="keyword">class</span> <span class="identifier">Fred</span>
+<span class="special">{</span>
+    <span class="identifier">Fred</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">mLargeVector</span><span class="special">(</span><span class="number">10000</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">ExpensiveCtor</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">mLargeVector</span> <span class="special">;</span>
+<span class="special">}</span> <span class="special">;</span>
+</pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2003 -2007 Fernando Luis Cacciola Carballal<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="detailed_semantics.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="optional_references.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

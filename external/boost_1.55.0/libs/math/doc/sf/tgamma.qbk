@@ -1,0 +1,202 @@
+[section:tgamma Gamma]
+
+[h4 Synopsis]
+
+``
+#include <boost/math/special_functions/gamma.hpp>
+``
+
+  namespace boost{ namespace math{
+  
+  template <class T>
+  ``__sf_result`` tgamma(T z);
+  
+  template <class T, class ``__Policy``>
+  ``__sf_result`` tgamma(T z, const ``__Policy``&);
+  
+  template <class T>
+  ``__sf_result`` tgamma1pm1(T dz);
+  
+  template <class T, class ``__Policy``>
+  ``__sf_result`` tgamma1pm1(T dz, const ``__Policy``&);
+  
+  }} // namespaces
+  
+[h4 Description]
+
+  template <class T>
+  ``__sf_result`` tgamma(T z);
+  
+  template <class T, class ``__Policy``>
+  ``__sf_result`` tgamma(T z, const ``__Policy``&);
+  
+Returns the "true gamma" (hence name tgamma) of value z:
+
+[equation gamm1]
+
+[graph tgamma]
+
+[optional_policy]
+
+There are effectively two versions of the [@http://en.wikipedia.org/wiki/Gamma_function tgamma]
+function internally: a fully
+generic version that is slow, but reasonably accurate, and a much more
+efficient approximation that is used where the number of digits in the significand
+of T correspond to a certain __lanczos.  In practice any built in
+floating point type you will encounter has an appropriate __lanczos
+defined for it.  It is also possible, given enough machine time, to generate
+further __lanczos's using the program libs/math/tools/lanczos_generator.cpp.
+
+The return type of this function is computed using the __arg_pomotion_rules:
+the result is `double` when T is an integer type, and T otherwise.
+
+  template <class T>
+  ``__sf_result`` tgamma1pm1(T dz);
+  
+  template <class T, class ``__Policy``>
+  ``__sf_result`` tgamma1pm1(T dz, const ``__Policy``&);
+  
+Returns `tgamma(dz + 1) - 1`.  Internally the implementation does not make
+use of the addition and subtraction implied by the definition, leading to
+accurate results even for very small `dz`.  However, the implementation is
+capped to either 35 digit accuracy, or to the precision of the __lanczos
+associated with type T, whichever is more accurate.
+  
+The return type of this function is computed using the __arg_pomotion_rules:
+the result is `double` when T is an integer type, and T otherwise.
+
+[optional_policy]
+
+[h4 Accuracy]
+
+The following table shows the peak errors (in units of epsilon) 
+found on various platforms with various floating point types, 
+along with comparisons to the __gsl, __glibc, __hpc and __cephes libraries.
+Unless otherwise specified any floating point type that is narrower
+than the one shown will have __zero_error.
+
+[table
+[[Significand Size] [Platform and Compiler] [Factorials and Half factorials] [Values Near Zero] [Values Near 1 or 2] [Values Near a Negative Pole]]
+[[53]            [Win32 Visual C++ 8]  
+[Peak=1.9 Mean=0.7
+
+(GSL=3.9)
+
+(__cephes=3.0)] 
+[Peak=2.0 Mean=1.1
+
+(GSL=4.5)
+
+(__cephes=1)]    
+[Peak=2.0 Mean=1.1
+
+(GSL=7.9)
+
+(__cephes=1.0)] 
+[Peak=2.6 Mean=1.3
+
+(GSL=2.5)
+
+(__cephes=2.7)] ]
+[[64]            [Linux IA32 / GCC]  
+[Peak=300 Mean=49.5
+
+(__glibc Peak=395 Mean=89)]           
+[Peak=3.0 Mean=1.4
+
+(__glibc Peak=11 Mean=3.3)]    
+[Peak=5.0 Mean=1.8
+
+(__glibc Peak=0.92 Mean=0.2)]       
+[Peak=157 Mean=65
+
+(__glibc Peak=205 Mean=108)]   ]
+[[64]            [Linux IA64 / GCC]  
+[__glibc Peak 2.8 Mean=0.9
+
+(__glibc Peak 0.7)]           
+[Peak=4.8 Mean=1.5
+
+(__glibc Peak 0)]    
+[Peak=4.8 Mean=1.5
+
+(__glibc Peak 0)]       
+
+[Peak=5.0 Mean=1.7
+(__glibc Peak 0)]           ]
+[[113]           [HPUX IA64, aCC A.06.06]    
+[Peak=2.5 Mean=1.1
+
+(__hpc Peak 0)] 
+[Peak=3.5 Mean=1.7
+
+(__hpc Peak 0)]    
+[Peak=3.5 Mean=1.6
+
+(__hpc Peak 0)] 
+[Peak=5.2 Mean=1.92
+
+(__hpc Peak 0)]  ]
+]
+
+[h4 Testing]
+
+The gamma is relatively easy to test: factorials and half-integer factorials
+can be calculated exactly by other means and compared with the gamma function.
+In addition, some accuracy tests in known tricky areas were computed at high precision
+using the generic version of this function.
+
+The function `tgamma1pm1` is tested against values calculated very naively
+using the formula `tgamma(1+dz)-1` with a lanczos approximation accurate
+to around 100 decimal digits.
+
+[h4 Implementation]
+
+The generic version of the `tgamma` function is implemented by combining the series and 
+continued fraction representations for the incomplete gamma function:
+
+[equation gamm2]
+
+where /l/ is an arbitrary integration limit: choosing [^l = max(10, a)] 
+seems to work fairly well.
+
+For types of known precision the __lanczos is used, a traits class 
+`boost::math::lanczos::lanczos_traits` maps type T to an appropriate
+approximation.  
+
+For z in the range -20 < z < 1 then recursion is used to shift to z > 1 via:
+
+[equation gamm3]
+
+For very small z, this helps to preserve the identity:
+
+[equation gamm4]
+
+For z < -20 the reflection formula:
+
+[equation gamm5]
+
+is used.  Particular care has to be taken to evaluate the `z * sin([pi][space] * z)` part: 
+a special routine is used to reduce z prior to multiplying by [pi][space] to ensure that the
+result in is the range [0, [pi]/2]. Without this an excessive amount of error occurs
+in this region (which is hard enough already, as the rate of change near a negative pole
+is /exceptionally/ high).
+
+Finally if the argument is a small integer then table lookup of the factorial
+is used.
+
+The function `tgamma1pm1` is implemented using rational approximations [jm_rationals] in the
+region `-0.5 < dz < 2`.  These are the same approximations (and internal routines)
+that are used for __lgamma, and so aren't detailed further here.  The result of
+the approximation is `log(tgamma(dz+1))` which can fed into __expm1 to give
+the desired result.  Outside the range `-0.5 < dz < 2` then the naive formula
+`tgamma1pm1(dz) = tgamma(dz+1)-1` can be used directly.
+
+[endsect][/section:tgamma The Gamma Function]
+[/ 
+  Copyright 2006 John Maddock and Paul A. Bristow.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+

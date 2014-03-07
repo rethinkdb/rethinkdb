@@ -1,0 +1,6 @@
+> example
+Running 1 test case...
+test.cpp(8): error in "test": check ::boost::test_tools::tt_detail::is_defined_impl( "SYMBOL1", "= SYMBOL1" ) failed
+test.cpp(9): error in "test": check ::boost::test_tools::tt_detail::is_defined_impl( "SYMBOL2(arg)", "= SYMBOL2(arg)" ) failed
+
+*** 2 failures detected in test suite "example"

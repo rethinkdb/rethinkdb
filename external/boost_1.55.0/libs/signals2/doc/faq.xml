@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<section last-revision="$Date: 2007-06-12 14:01:23 -0400 (Tue, 12 Jun 2007) $" id="signals2.faq">
+  <title>Frequently Asked Questions</title>
+
+  <using-namespace name="boost::signals2"/>
+  <using-namespace name="boost"/>
+
+  <qandaset>
+    <qandaentry>
+      <question>
+        <para>Don't noncopyable signal semantics mean that a class
+        with a signal member will be noncopyable as well?</para>
+      </question>
+      <answer>
+        <para>No. The compiler will not be able to generate a copy
+        constructor or copy assignment operator for your class if it
+        has a signal as a member, but you are free to write your own
+        copy constructor and/or copy assignment operator. Just don't
+        try to copy the signal.</para>
+      </answer>
+    </qandaentry>
+    <qandaentry>
+      <question>
+        <para>Is Boost.Signals2 thread-safe?</para>
+      </question>
+      <answer>
+        <para>
+          Yes, as long as the Mutex template parameter is not set to
+          a fake mutex type like <classname>boost::signals2::dummy_mutex</classname>.
+          Also, if your slots depend on objects which may be destroyed concurrently
+          with signal invocation, you will need to use automatic connection management.
+          That is, the objects will need to be owned by
+          <classname>shared_ptr</classname> and passed to the slot's
+          <methodname alt="signals2::slot::track">track</methodname>() method before the slot is connected.
+          The <classname>signals2::trackable</classname> scheme of automatic connection management
+          is NOT thread-safe, and is only provided to ease porting of single-threaded
+          code from Boost.Signals to Boost.Signals2.
+        </para>
+        <para>See the documentation section on <link linkend="signals2.thread-safety">thread-safety</link>
+          for more information.
+        </para>
+      </answer>
+    </qandaentry>
+  </qandaset>
+</section>

@@ -1,0 +1,31 @@
+#~ Copyright Rene Rivera 2008
+#~ Distributed under the Boost Software License, Version 1.0.
+#~ (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+project : requirements <warnings>all <toolset>gcc:<cxxflags>-Wextra ;
+
+test-suite integer
+    : 
+        [ run cstdint_test.cpp : : : <toolset>gcc:<cxxflags>-Wno-long-long <toolset>darwin:<cxxflags>-Wno-long-long ]
+        [ run cstdint_test2.cpp : : : <toolset>gcc:<cxxflags>-Wno-long-long <toolset>darwin:<cxxflags>-Wno-long-long ]
+        [ run integer_traits_test.cpp ]
+        [ run integer_test.cpp : : : <toolset>gcc:<cxxflags>-Wno-long-long <toolset>darwin:<cxxflags>-Wno-long-long <toolset>sun:<cxxflags>"-Qoption ccfe -tmpldepth=128" ]
+        [ run integer_mask_test.cpp ]
+        [ run static_log2_test.cpp ]
+        [ run static_min_max_test.cpp ]
+        [ compile cstdint_include_test.cpp ]
+        [ compile integer_traits_include_test.cpp ]
+        [ compile integer_include_test.cpp ]
+        [ compile integer_mask_include_test.cpp ]
+        [ compile static_log2_include_test.cpp ]
+        [ compile static_min_max_include_test.cpp ]
+        [ compile integer_fwd_include_test.cpp ]
+        [ compile-fail fail_int_exact.cpp ]
+        [ compile-fail fail_int_fast.cpp ]
+        [ compile-fail fail_int_least.cpp ]
+        [ compile-fail fail_uint_exact.cpp ]
+        [ compile-fail fail_uint_fast.cpp ]
+        [ compile-fail fail_uint_least.cpp ]
+    ;

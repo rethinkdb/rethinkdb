@@ -1,0 +1,107 @@
+# Copyright (c) 2001-2010 International Business Machines
+# Corporation and others. All Rights Reserved.
+# Begin temporary addition.
+# These are very bad "C" APIs that do not work with a C compiler and
+# violate many ICU coding guidelines. These were added with ticket #5996.
+# Temporarily marked as C++ for the hdrtst to pass.
+vzone.h
+zrule.h
+ztrans.h
+# End temporary addition.
+# common & i18n
+bidi.h
+basictz.h
+bmsearch.h
+brkiter.h
+bytestream.h
+calendar.h
+caniter.h
+chariter.h
+choicfmt.h
+coleitr.h
+coll.h
+colldata.h
+convert.h
+cpdtrans.h
+curramt.h
+currunit.h
+currpinf.h
+datefmt.h
+dbbi.h
+dcfmtsym.h
+decimfmt.h
+dtintrv.h
+dtitvinf.h
+dtitvfmt.h
+dtfmtsym.h
+dtptngen.h
+dtrule.h
+errorcode.h
+fieldpos.h
+fmtable.h
+format.h
+fpositer.h
+gregocal.h
+idna.h
+locdspnm.h
+locid.h
+measfmt.h
+measunit.h
+measure.h
+msgfmt.h
+normalizer2.h
+normlzr.h
+numfmt.h
+numsys.h
+parsepos.h
+plurfmt.h
+plurrule.h
+rbbi.h
+rbnf.h
+rbtz.h
+regex.h
+rep.h
+resbund.h
+schriter.h
+search.h
+selfmt.h
+simpletz.h
+smpdtfmt.h
+sortkey.h
+std_string.h
+strenum.h
+stringpiece.h
+stsearch.h
+symtable.h
+tblcoll.h
+timezone.h
+tmunit.h
+tmutamt.h
+tmutfmt.h
+translit.h
+tzrule.h
+tztrans.h
+uchriter.h
+unifilt.h
+unifunct.h
+unimatch.h
+unirepl.h
+uniset.h
+unistr.h
+uobject.h
+usetiter.h
+vtzone.h
+# io library
+ustream.h
+# layout & layoutex
+LayoutEngine.h
+LEFontInstance.h
+LEGlyphFilter.h
+LEGlyphStorage.h
+LELanguages.h
+LEScripts.h
+LESwaps.h
+# LETypes.h -- C header
+# loengine.h -- C header
+ParagraphLayout.h
+RunArrays.h

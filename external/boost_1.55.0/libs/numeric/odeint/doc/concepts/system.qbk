@@ -1,0 +1,43 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+[section System]
+
+[heading Description]
+
+The System concept models the algorithmic implementation of the rhs. of the ODE ['x' = f(x,t)].
+The only requirement for this concept is that it should be callable with a specific parameter syntax (see below).
+A System is typically implemented as a function or a functor.
+Systems fulfilling this concept are required by all Runge-Kutta steppers as well as the Bulirsch-Stoer steppers.
+However, symplectic and implicit steppers work with other system concepts, see __symplectic_system and __implicit_system.
+
+[heading Notation]
+
+[variablelist
+  [[`System`] [A type that is a model of System]] 
+  [[`State`] [A type representing the state /x/ of the ODE]]
+  [[`Deriv`] [A type representing the derivative /x'/ of the ODE]]
+  [[`Time`] [A type representing the time]]
+  [[`sys`] [An object of type `System`]]
+  [[`x`] [Object of type `State`]]
+  [[`dxdt`] [Object of type `Deriv`]]
+  [[`t`] [Object of type `Time`]]
+]
+
+[heading Valid expressions]
+
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Calculate ['dx/dt := f(x,t)]] [`sys( x , dxdt , t )`] [`void`] [Calculates f(x,t), the result is stored into dxdt] ]
+]
+
+[endsect]

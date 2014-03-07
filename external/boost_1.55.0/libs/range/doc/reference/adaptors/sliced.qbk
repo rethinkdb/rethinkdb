@@ -1,0 +1,31 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:sliced sliced]
+
+[table
+    [[Syntax] [Code]]
+    [[Pipe] [`rng | boost::adaptors::sliced(n, m)`]]
+    [[Function] [`boost::adaptors::slice(rng, n, m)`]]
+]
+
+* [*Precondition:] `0 <= n && n <= m && m < distance(rng)`
+* [*Returns:] `make_range(rng, n, m)`
+* [*Range Category:] __random_access_range__
+* [*Range Return Type:] `boost::sliced_range<typeof(rng)>`
+* [*Returned Range Category:] __random_access_range__
+
+[section:sliced_example sliced example]
+[import ../../../test/adaptor_test/sliced_example.cpp]
+[sliced_example]
+[endsect]
+
+This would produce the output:
+``
+3,4,5,
+``
+[endsect]
+
+

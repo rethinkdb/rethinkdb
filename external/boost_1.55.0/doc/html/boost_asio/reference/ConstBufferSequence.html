@@ -1,0 +1,244 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Constant buffer sequence requirements</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="ConnectHandler.html" title="Connect handler requirements">
+<link rel="next" href="ConvertibleToConstBuffer.html" title="Convertible to const buffer requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ConnectHandler.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ConvertibleToConstBuffer.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.ConstBufferSequence"></a><a class="link" href="ConstBufferSequence.html" title="Constant buffer sequence requirements">Constant buffer
+      sequence requirements</a>
+</h3></div></div></div>
+<p>
+        In the table below, <code class="computeroutput"><span class="identifier">X</span></code> denotes
+        a class containing objects of type <code class="computeroutput"><span class="identifier">T</span></code>,
+        <code class="computeroutput"><span class="identifier">a</span></code> denotes a value of type
+        <code class="computeroutput"><span class="identifier">X</span></code> and <code class="computeroutput"><span class="identifier">u</span></code>
+        denotes an identifier.
+      </p>
+<div class="table">
+<a name="boost_asio.reference.ConstBufferSequence.t0"></a><p class="title"><b>Table&#160;5.&#160;ConstBufferSequence requirements</b></p>
+<div class="table-contents"><table class="table" summary="ConstBufferSequence requirements">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  expression
+                </p>
+              </th>
+<th>
+                <p>
+                  return type
+                </p>
+              </th>
+<th>
+                <p>
+                  assertion/note<br> pre/post-condition
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">X</span><span class="special">::</span><span class="identifier">value_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span></code> meets the requirements
+                  for <a class="link" href="ConvertibleToConstBuffer.html" title="Convertible to const buffer requirements">ConvertibleToConstBuffer</a>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">X</span><span class="special">::</span><span class="identifier">const_iterator</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  iterator type pointing to <code class="computeroutput"><span class="identifier">T</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">const_iterator</span></code>
+                  meets the requirements for bidirectional iterators (C++ Std, 24.1.4).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">X</span><span class="special">(</span><span class="identifier">a</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+<td>
+                <p>
+                  post: <code class="computeroutput"><span class="identifier">equal_const_buffer_seq</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">X</span><span class="special">(</span><span class="identifier">a</span><span class="special">))</span></code> where the binary predicate <code class="computeroutput"><span class="identifier">equal_const_buffer_seq</span></code> is defined
+                  as
+</p>
+<pre class="programlisting"><span class="keyword">bool</span> <span class="identifier">equal_const_buffer_seq</span><span class="special">(</span>
+  <span class="keyword">const</span> <span class="identifier">X</span><span class="special">&amp;</span> <span class="identifier">x1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">X</span><span class="special">&amp;</span> <span class="identifier">x2</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="keyword">return</span>
+    <span class="identifier">distance</span><span class="special">(</span><span class="identifier">x1</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">x1</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+      <span class="special">==</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">x2</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">x2</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+        <span class="special">&amp;&amp;</span> <span class="identifier">equal</span><span class="special">(</span><span class="identifier">x1</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">x1</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+                 <span class="identifier">x2</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">equal_buffer</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+                  and the binary predicate <code class="computeroutput"><span class="identifier">equal_buffer</span></code>
+                  is defined as
+</p>
+<pre class="programlisting"><span class="keyword">bool</span> <span class="identifier">equal_buffer</span><span class="special">(</span>
+  <span class="keyword">const</span> <span class="identifier">X</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">&amp;</span> <span class="identifier">v1</span><span class="special">,</span>
+  <span class="keyword">const</span> <span class="identifier">X</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">&amp;</span> <span class="identifier">v2</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="identifier">const_buffer</span> <span class="identifier">b1</span><span class="special">(</span><span class="identifier">v1</span><span class="special">);</span>
+  <span class="identifier">const_buffer</span> <span class="identifier">b2</span><span class="special">(</span><span class="identifier">v2</span><span class="special">);</span>
+  <span class="keyword">return</span>
+    <span class="identifier">buffer_cast</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">void</span><span class="special">*&gt;(</span><span class="identifier">b1</span><span class="special">)</span>
+      <span class="special">==</span> <span class="identifier">buffer_cast</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">void</span><span class="special">*&gt;(</span><span class="identifier">b2</span><span class="special">)</span>
+        <span class="special">&amp;&amp;</span> <span class="identifier">buffer_size</span><span class="special">(</span><span class="identifier">b1</span><span class="special">)</span> <span class="special">==</span> <span class="identifier">buffer_size</span><span class="special">(</span><span class="identifier">b2</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">X</span> <span class="identifier">u</span><span class="special">(</span><span class="identifier">a</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+<td>
+                <p>
+                  post:
+</p>
+<pre class="programlisting"><span class="identifier">distance</span><span class="special">(</span><span class="identifier">a</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+  <span class="special">==</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">u</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">u</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+    <span class="special">&amp;&amp;</span> <span class="identifier">equal</span><span class="special">(</span><span class="identifier">a</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+             <span class="identifier">u</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">equal_buffer</span><span class="special">)</span>
+</pre>
+<p>
+                  where the binary predicate <code class="computeroutput"><span class="identifier">equal_buffer</span></code>
+                  is defined as
+</p>
+<pre class="programlisting"><span class="keyword">bool</span> <span class="identifier">equal_buffer</span><span class="special">(</span>
+  <span class="keyword">const</span> <span class="identifier">X</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">&amp;</span> <span class="identifier">v1</span><span class="special">,</span>
+  <span class="keyword">const</span> <span class="identifier">X</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">&amp;</span> <span class="identifier">v2</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="identifier">const_buffer</span> <span class="identifier">b1</span><span class="special">(</span><span class="identifier">v1</span><span class="special">);</span>
+  <span class="identifier">const_buffer</span> <span class="identifier">b2</span><span class="special">(</span><span class="identifier">v2</span><span class="special">);</span>
+  <span class="keyword">return</span>
+    <span class="identifier">buffer_cast</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">void</span><span class="special">*&gt;(</span><span class="identifier">b1</span><span class="special">)</span>
+      <span class="special">==</span> <span class="identifier">buffer_cast</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">void</span><span class="special">*&gt;(</span><span class="identifier">b2</span><span class="special">)</span>
+        <span class="special">&amp;&amp;</span> <span class="identifier">buffer_size</span><span class="special">(</span><span class="identifier">b1</span><span class="special">)</span> <span class="special">==</span> <span class="identifier">buffer_size</span><span class="special">(</span><span class="identifier">b2</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">(&amp;</span><span class="identifier">a</span><span class="special">)-&gt;~</span><span class="identifier">X</span><span class="special">();</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  note: the destructor is applied to every element of <code class="computeroutput"><span class="identifier">a</span></code>; all the memory is deallocated.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">const_iterator</span></code>
+                  or convertible to <code class="computeroutput"><span class="identifier">const_iterator</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">const_iterator</span></code>
+                  or convertible to <code class="computeroutput"><span class="identifier">const_iterator</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ConnectHandler.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ConvertibleToConstBuffer.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

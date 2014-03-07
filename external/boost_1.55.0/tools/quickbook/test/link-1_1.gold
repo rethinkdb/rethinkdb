@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="link_tests" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Link tests</title>
+  <section id="link_tests.different_types_of_links">
+    <title>Different types of links</title>
+    <para>
+      <ulink url="http://www.boost.org/">http://www.boost.org/</ulink> <ulink url="http://www.boost.org/">Boost</ulink>
+      <link linkend="link-id">link-id</link> <link linkend="link-id">Link Text</link>
+      <anchor id="link-id"/><functionname alt="foo">foo</functionname> <functionname
+      alt="foo">link text</functionname> <classname alt="foo">foo</classname> <classname
+      alt="foo">link text</classname> <methodname alt="foo">foo</methodname> <methodname
+      alt="foo">link text</methodname> <enumname alt="foo">foo</enumname> <enumname
+      alt="foo">link text</enumname> <macroname alt="foo">foo</macroname> <macroname
+      alt="foo">link text</macroname> <headername alt="foo">foo</headername> <headername
+      alt="foo">link text</headername> <conceptname alt="foo">foo</conceptname>
+      <conceptname alt="foo">link text</conceptname> <globalname alt="foo">foo</globalname>
+      <globalname alt="foo">link text</globalname>
+    </para>
+    <para>
+      <link linkend="link">description</link>
+    </para>
+  </section>
+  <section id="link_tests.side_by_side_links">
+    <title>Side-by-side links</title>
+    <para>
+      <link linkend="x">x</link> and <link linkend="y">y</link> are two distinct
+      links, which should be separated by whitespace when they appear together as
+      in <link linkend="x">x</link> <link linkend="y">y</link>. Also in <link linkend="x">x</link>
+      <link linkend="y">y</link>, and in <link linkend="x">x</link> <link linkend="y">y</link>
+      as well.
+    </para>
+  </section>
+</article>

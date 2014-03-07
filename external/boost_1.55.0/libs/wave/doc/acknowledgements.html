@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Acknowledgements</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+<body text="#000000" background="theme/bkd.gif">
+<table width="100%" border="0" cellspacing="2" background="theme/bkd2.gif">
+  <tr> 
+    <td width="21"> <h1></h1></td>
+    <td width="885"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">Acknowledgements</font></b></font></td>
+    <td width="96"><a href="http://www.boost.org"><img src="theme/wave.gif" width="93" height="68" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="wave_driver.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="references.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>Special thanks to:</p>
+<blockquote> 
+  <p> <b>Paul Mensonides</b> for his invaluable help while developing the macro 
+    expansion engine and his insightful tips. He developed the recursive macro 
+    expansion algorithm implemented herein and also contributed most of the small 
+    testcases used for testing the correctness of the macro expansion.</p>
+  <p><b>Dan Nuffer</b>, who wrote the initial Re2C based C++ lexer and the Slex 
+    (Spirit Lex) scanner generator sample.</p>
+  <p><b>Martin Wille</b> for helping with the port to Linux, testing on Linux and for contributing 
+    the automated test scripts.</p>
+  <p><b>Vladimir Prus</b> for helping with the command line and config file options 
+    analysis for the <tt>Wave</tt> driver executable.</p>
+  <p><b>Juan Carlos Arevalo-Baeza</b>, who wrote the Spirit cpp_lexer sample, 
+    from which are taken some ideas.</p>
+  <p> <strong>Andrei Alexandrescu</strong> for allowing to use his flex_string class, 
+a policy based std::basic_string&lt;&gt; compatible string implementation.</p>
+  <p><strong>Reece Dunn</strong>, <strong>Vesa Karvonen</strong>, <strong>Faisal Vali</strong>, <strong>Porter Schermerhorn, Juergen Hunold, Jozsef Mihalicza</strong> and <strong>Daniel Fontijne</strong> for 
+  reporting several problems and bugs.</p>
+  <p><strong>Tarmo Pikaro</strong> for reporting several bug while compiling specific
+  headers from the Microsoft Windows SDK.</p>
+  <p><strong>Rob Stewart</strong> helped a lot with proof reading the documentation. </p>
+  <p><strong>Stefan Seefeld</strong> for integrating Wave into his Synopsis library and finding a couple of bugs along the way. </p>
+  <p><strong>Andreas S&aelig;bj&oslash;rnsen</strong> and <strong>Felipe Magno de Almeida</strong> for suggesting some extensions and corrections to the <tt>Wave</tt> preprocessing hook interface and related testing. </p>
+  <p><strong>Tobias Schwinger</strong> for suggesting the '<span class="preprocessor">pragma wave option(output:...)</span>' and '<span class="preprocessor">#pragma message(&quot;...&quot;)</span>'  functionalities and reporting a couple of bugs. </p>
+  <p><strong>Richard Guenther</strong> for fixing a nasty buffer overrun problem in the Re2C lexer. </p>
+  <p><strong>Danny Havenith</strong> for contributing his partial C++ parser <tt>hannibal</tt> as a sample to <tt>Wave</tt>. </p>
+</blockquote>
+<p>and last but not least </p>
+<blockquote>
+  <p><b>Joel de Guzman</b> for nudging me into this adventure and for his work 
+    on the <tt>Spirit</tt> parser framework, without which the <tt>Wave</tt> library 
+    wouldn't have been possible.</p>
+</blockquote>
+<p> Special thanks also to people who gave feedback and valuable comments, particularly members of Boost and Spirit mailing lists. This includes all those who participated in the Boost review: 
+<blockquote>
+  <p><strong>Tom Brinkman</strong> (who volunteered to be the review manager), <strong>David Abrahams</strong>, <strong>Beman Dewes</strong>, <strong>Reece Dunn</strong>, <strong>Larry Evans</strong>, <strong>Doug Gregor</strong>, <strong>Joel de Guzman</strong>, <strong>Baptiste Lepilleur</strong>, <strong>Andy Little</strong>, <strong>Paul Mensonides</strong>, <strong>Dan Nuffer</strong>, <strong>Andreas Pokorny</strong>, <strong>Vladimir Prus</strong>, <strong>Gennadiy Rozental</strong>, <strong>Michiel Salters</strong>, <strong>Jonathan Turkanis</strong>, <strong>Chris Uzdavinis</strong>, <strong>Pavel Vozenilek</strong>, <strong>Michael Walter</strong></p>
+    </blockquote>
+<p>The <tt>Wave</tt> library uses the following <tt>Boost</tt> <a href="references.html#boost">[8]</a> 
+  libraries:</p>
+<blockquote> 
+  <p><b><img src="theme/bullet.gif" width="13" height="13" id="IMG1"></b>&nbsp;Boost 
+    Spirit (LL parser framework that represents parsers directly as EBNF grammars 
+    in inlined C++)<br>
+    <b><img src="theme/bullet.gif" width="13" height="13" id="IMG2"></b> Boost 
+    Iterator Adaptor Library (Adapt a base type into a standard conforming iterator)<br>
+    <b><img src="theme/bullet.gif" width="13" height="13" id="IMG3"></b> Boost 
+    Filesystem Library (Portable paths, iteration over directories, and other 
+    useful filesystem operations)<br>
+    <b><img src="theme/bullet.gif" width="13" height="13" id="IMG4"></b>&nbsp;Boost Program 
+    options and arguments library</p>
+</blockquote>
+<p>and other small parts of different <tt>Boost</tt> libraries. </p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="wave_driver.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="references.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2011 Hartmut Kaiser<br>
+  <br>
+  <font size="2">Distributed under the Boost Software 
+  License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) 
+  </font> </p>
+<span class="updated">Last updated: 
+  <!-- #BeginDate format:fcAm1m -->Wednesday, June 21, 2006  22:22<!-- #EndDate -->
+</span>
+</body>
+</html>

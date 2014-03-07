@@ -1,0 +1,18 @@
+An undirected graph:
+0 <--> 1 4 
+1 <--> 0 4 
+2 <--> 5 
+3 <--> 
+4 <--> 1 0 
+5 <--> 2 
+
+representative[0] = 1
+representative[1] = 1
+representative[2] = 5
+representative[3] = 3
+representative[4] = 1
+representative[5] = 5
+
+component 0 contains: 1 4 0 
+component 1 contains: 3 
+component 2 contains: 5 2 

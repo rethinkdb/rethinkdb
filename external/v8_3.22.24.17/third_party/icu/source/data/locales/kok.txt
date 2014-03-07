@@ -1,0 +1,87 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/kok.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/kok.xml
+ */
+kok{
+    AuxExemplarCharacters{"[\u200C \u200D]"}
+    ExemplarCharacters{
+        "[\u093C ० १ २ ३ ४ ५ ६ ७ ८ ९ ॐ \u0902 \u0901 ः अ आ इ ई उ ऊ ऋ ऌ ऍ ए ऐ ऑ ओ औ क "
+        "{क\u093C} ख {ख\u093C} ग {ग\u093C} घ ङ च छ ज {ज\u093C} झ ञ ट ठ ड {ड\u093C} ढ "
+        "{ढ\u093C} ण त थ द ध न प फ {फ\u093C} ब भ म य {य\u093C} र ल व श ष स ह ळ ऽ ा ि "
+        "ी \u0941 \u0942 \u0943 \u0944 \u0945 \u0947 \u0948 ॉ ो ौ \u094D]"
+    }
+    LocaleScript{
+        "Deva",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤ #,##,##0.00"}
+                decimalFormat{"#,##,##0.###"}
+                percentFormat{"#,##,##0%"}
+            }
+        }
+    }
+    Version{"2.0.47.68"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "म.पू.",
+                "म.नं.",
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "रवि",
+                        "सोम",
+                        "मंगळ",
+                        "बुध",
+                        "गुरु",
+                        "शुक्र",
+                        "शनि",
+                    }
+                    wide{
+                        "आदित्यवार",
+                        "सोमवार",
+                        "मंगळार",
+                        "बुधवार",
+                        "गुरुवार",
+                        "शुक्रवार",
+                        "शनिवार",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "क्रिस्तपूर्व",
+                    "क्रिस्तशखा",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "जानेवारी",
+                        "फेब्रुवारी",
+                        "मार्च",
+                        "एप्रिल",
+                        "मे",
+                        "जून",
+                        "जुलै",
+                        "ओगस्ट",
+                        "सेप्टेंबर",
+                        "ओक्टोबर",
+                        "नोव्हेंबर",
+                        "डिसेंबर",
+                    }
+                }
+            }
+        }
+    }
+}

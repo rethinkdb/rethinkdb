@@ -1,0 +1,49 @@
+{
+  "name": "module-deps",
+  "version": "1.4.2",
+  "description": "walk the dependency graph to generate json output that can be fed into browser-pack",
+  "main": "index.js",
+  "bin": {
+    "module-deps": "cmd.js"
+  },
+  "dependencies": {
+    "through": "~2.3.4",
+    "JSONStream": "~0.7.1",
+    "browser-resolve": "~1.2.2",
+    "resolve": "~0.6.0",
+    "concat-stream": "~1.4.1",
+    "minimist": "~0.0.5",
+    "parents": "0.0.2",
+    "mine": "~0.0.1"
+  },
+  "devDependencies": {
+    "tape": "~2.3.2",
+    "browser-pack": "~0.0.0"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/substack/module-deps.git"
+  },
+  "homepage": "https://github.com/substack/module-deps",
+  "keywords": [
+    "dependency",
+    "graph",
+    "browser",
+    "require",
+    "module",
+    "exports",
+    "json"
+  ],
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "engines": {
+    "node": ">= 0.6"
+  },
+  "license": "MIT"
+}

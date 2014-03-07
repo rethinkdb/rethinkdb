@@ -1,0 +1,90 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Point Usage</title>
+</head>
+
+<body>
+
+<p><font face="Courier New">/*<br>
+Copyright 2008 Intel Corporation<br>
+<br>
+Use, modification and distribution are subject to the Boost Software License,<br>
+Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at<br>
+http://www.boost.org/LICENSE_1_0.txt).<br>
+*/<br>
+#include &lt;boost/polygon/polygon.hpp&gt;<br>
+#include &lt;cassert&gt;<br>
+namespace gtl = boost::polygon;<br>
+using namespace boost::polygon::operators;<br><br>
+int main() {<br>
+&nbsp; //constructing a gtl point<br>
+&nbsp; typedef gtl::point_data&lt;int&gt; Point;<br>
+&nbsp; int x = 10;<br>
+&nbsp; int y = 20;<br>
+&nbsp; Point pt(x, y);<br>
+&nbsp; assert(gtl::x(pt) == 10);<br>
+&nbsp; assert(gtl::y(pt) == 20);<br>
+&nbsp; <br>
+&nbsp; //a quick primer in isotropic point access<br>
+&nbsp; typedef gtl::orientation_2d O;<br>
+&nbsp; using gtl::HORIZONTAL;<br>
+&nbsp; using gtl::VERTICAL;<br>
+&nbsp; O o = HORIZONTAL;<br>
+&nbsp; assert(gtl::x(pt) == gtl::get(pt, o));<br>
+&nbsp; <br>
+&nbsp; o = o.get_perpendicular();<br>
+&nbsp; assert(o == VERTICAL);<br>
+&nbsp; assert(gtl::y(pt) == gtl::get(pt, o));<br>
+<br>
+&nbsp; gtl::set(pt, o, 30);<br>
+&nbsp; assert(gtl::y(pt) == 30);<br>
+<br>
+&nbsp; //using some of the library functions<br>
+&nbsp; Point pt2(10, 30);<br>
+&nbsp; assert(gtl::equivalence(pt, pt2));<br>
+<br>
+&nbsp; gtl::transformation&lt;int&gt; tr(gtl::axis_transformation::SWAP_XY);<br>
+&nbsp; gtl::transform(pt, tr);<br>
+&nbsp; assert(gtl::equivalence(pt, Point(30, 10)));<br>
+<br>
+&nbsp; gtl::transformation&lt;int&gt; tr2 = tr.inverse();<br>
+&nbsp; assert(tr == tr2); //SWAP_XY is its own inverse transform<br>
+<br>
+&nbsp; gtl::transform(pt, tr2);<br>
+&nbsp; assert(gtl::equivalence(pt, pt2)); //the two points are equal again<br>
+<br>
+&nbsp; gtl::move(pt, o, 10); //move pt 10 units in y<br>
+&nbsp; assert(gtl::euclidean_distance(pt, pt2) == 10.0f);<br>
+<br>
+&nbsp; gtl::move(pt, o.get_perpendicular(), 10); //move pt 10 units in x<br>
+&nbsp; assert(gtl::manhattan_distance(pt, pt2) == 20);<br>
+<br>
+&nbsp; return 0;<br>
+}<br>
+&nbsp;</font></p>
+
+
+<table class="docinfo" rules="none" frame="void" id="table1">
+	<colgroup>
+		<col class="docinfo-name"><col class="docinfo-content">
+	</colgroup>
+	<tbody vAlign="top">
+		<tr>
+			<th class="docinfo-name">Copyright:</th>
+			<td>Copyright © Intel Corporation 2008-2010.</td>
+		</tr>
+		<tr class="field">
+			<th class="docinfo-name">License:</th>
+			<td class="field-body">Distributed under the Boost Software License, 
+			Version 1.0. (See accompanying file <tt class="literal">
+			<span class="pre">LICENSE_1_0.txt</span></tt> or copy at
+			<a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+			http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+		</tr>
+</table>
+
+</body>
+
+</html>

@@ -1,0 +1,332 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>model::d2::point_xy</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../models.html" title="Models">
+<link rel="prev" href="model_point.html" title="model::point">
+<link rel="next" href="model_linestring.html" title="model::linestring">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="model_point.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../models.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="model_linestring.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.models.model_d2_point_xy"></a><a class="link" href="model_d2_point_xy.html" title="model::d2::point_xy">model::d2::point_xy</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp59784024"></a><a class="indexterm" name="idp59784312"></a><a class="indexterm" name="idp59784632"></a>
+2D point in Cartesian coordinate system
+        </p>
+<h6>
+<a name="geometry.reference.models.model_d2_point_xy.h0"></a>
+          <span class="phrase"><a name="geometry.reference.models.model_d2_point_xy.model_of"></a></span><a class="link" href="model_d2_point_xy.html#geometry.reference.models.model_d2_point_xy.model_of">Model of</a>
+        </h6>
+<p>
+          <a class="link" href="../concepts/concept_point.html" title="Point Concept">Point Concept</a>
+        </p>
+<h6>
+<a name="geometry.reference.models.model_d2_point_xy.h1"></a>
+          <span class="phrase"><a name="geometry.reference.models.model_d2_point_xy.synopsis"></a></span><a class="link" href="model_d2_point_xy.html#geometry.reference.models.model_d2_point_xy.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">CoordinateType</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">CoordinateSystem</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">model</span><span class="special">::</span><span class="identifier">d2</span><span class="special">::</span><span class="identifier">point_xy</span>
+      <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">model</span><span class="special">::</span><span class="identifier">point</span><span class="special">&lt;</span> <span class="identifier">CoordinateType</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">CoordinateSystem</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+  <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.models.model_d2_point_xy.h2"></a>
+          <span class="phrase"><a name="geometry.reference.models.model_d2_point_xy.template_parameter_s_"></a></span><a class="link" href="model_d2_point_xy.html#geometry.reference.models.model_d2_point_xy.template_parameter_s_">Template
+          parameter(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    typename CoordinateType
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    numeric type, for example, double, float, int
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    typename CoordinateSystem
+                  </p>
+                </td>
+<td>
+                  <p>
+                    cs::cartesian
+                  </p>
+                </td>
+<td>
+                  <p>
+                    coordinate system, defaults to cs::cartesian
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.models.model_d2_point_xy.h3"></a>
+          <span class="phrase"><a name="geometry.reference.models.model_d2_point_xy.constructor_s_"></a></span><a class="link" href="model_d2_point_xy.html#geometry.reference.models.model_d2_point_xy.constructor_s_">Constructor(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Parameters
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">point_xy</span><span class="special">()</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Default constructor, does not initialize anything.
+                  </p>
+                </td>
+<td>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">point_xy</span><span class="special">(</span><span class="identifier">CoordinateType</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">CoordinateType</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">y</span><span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Constructor with x/y values.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>CoordinateType const &amp;</strong></span>:
+                    <span class="emphasis"><em>x</em></span>:
+                  </p>
+                  <p>
+                    <span class="bold"><strong>CoordinateType const &amp;</strong></span>:
+                    <span class="emphasis"><em>y</em></span>:
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.models.model_d2_point_xy.h4"></a>
+          <span class="phrase"><a name="geometry.reference.models.model_d2_point_xy.member_function_s_"></a></span><a class="link" href="model_d2_point_xy.html#geometry.reference.models.model_d2_point_xy.member_function_s_">Member
+          Function(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Parameters
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Returns
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">CoordinateType</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">()</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get x-value.
+                  </p>
+                </td>
+<td>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">CoordinateType</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">y</span><span class="special">()</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get y-value.
+                  </p>
+                </td>
+<td>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">void</span> <span class="identifier">x</span><span class="special">(</span><span class="identifier">CoordinateType</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">v</span><span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Set x-value.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>CoordinateType const &amp;</strong></span>:
+                    <span class="emphasis"><em>v</em></span>:
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">void</span> <span class="identifier">y</span><span class="special">(</span><span class="identifier">CoordinateType</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">v</span><span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Set y-value.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>CoordinateType const &amp;</strong></span>:
+                    <span class="emphasis"><em>v</em></span>:
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.models.model_d2_point_xy.h5"></a>
+          <span class="phrase"><a name="geometry.reference.models.model_d2_point_xy.header"></a></span><a class="link" href="model_d2_point_xy.html#geometry.reference.models.model_d2_point_xy.header">Header</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point_xy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<h6>
+<a name="geometry.reference.models.model_d2_point_xy.h6"></a>
+          <span class="phrase"><a name="geometry.reference.models.model_d2_point_xy.notes"></a></span><a class="link" href="model_d2_point_xy.html#geometry.reference.models.model_d2_point_xy.notes">Notes</a>
+        </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Coordinates are not initialized. If the constructor with parameters is
+            not called and points are not assigned using <code class="computeroutput"><span class="identifier">set</span></code>
+            or <code class="computeroutput"><span class="identifier">assign</span></code> then the coordinate
+            values will contain garbage
+          </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="model_point.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../models.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="model_linestring.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,100 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+
+[section Error Stepper]
+
+This concepts specifies the interface an error stepper has to fulfill to be used within a ControlledErrorStepper. An error stepper must always fulfill the stepper concept. This can trivially implemented by
+
+``
+template< class System >
+error_stepper::do_step( System sys , state_type &x , time_type t , time_type dt )
+{
+    state_type xerr;
+    // allocate xerr
+    do_step( sys , x , t , dt , xerr );
+}
+``
+
+[heading Description]
+
+An error stepper following this Error Stepper concept is capable of doing one step of the solution /x(t)/ of an ODE with step-size /dt/ to obtain /x(t+dt)/ and also computing an error estimate ['x[sub err]] of the result.
+Error Steppers can be Runge-Kutta steppers, symplectic steppers as well as implicit steppers.
+Based on the stepper type, the ODE is defined as __system, __symplectic_system, __simple_symplectic_system or __implicit_system.
+
+[heading Refinement of]
+
+* DefaultConstructable
+* CopyConstructable
+* Stepper
+
+[heading Associated types]
+
+*  '''<para>'''[*state_type]'''</para>'''
+'''<para>'''`Stepper::state_type`'''</para>'''
+'''<para>'''The type characterizing the state of the ODE, hence ['x].'''</para>'''
+
+*  '''<para>'''[*deriv_type]'''</para>'''
+'''<para>'''`Stepper::deriv_type`'''</para>'''
+'''<para>'''The type characterizing the derivative of the ODE, hence ['d x/dt].'''</para>'''
+
+*  '''<para>'''[*time_type]'''</para>'''
+'''<para>'''`Stepper::time_type`'''</para>'''
+'''<para>'''The type characterizing the dependent variable of the ODE, hence the time ['t].'''</para>'''
+
+*  '''<para>'''[*value_type]'''</para>'''
+'''<para>'''`Stepper::value_type`'''</para>'''
+'''<para>'''The numerical data type which is used within the stepper, something like `float`, `double`, `complex&lt; double &gt;`.'''</para>'''
+
+*  '''<para>'''[*order_type]'''</para>'''
+'''<para>'''`Stepper::order_type`'''</para>'''
+'''<para>'''The type characterizing the order of the ODE, typically `unsigned short`.'''</para>'''
+
+*  '''<para>'''[*stepper_category]'''</para>'''
+'''<para>'''`Stepper::stepper_category`'''</para>'''
+'''<para>'''A tag type characterizing the category of the stepper. This type must be convertible to `error_stepper_tag`.'''</para>'''
+
+
+[heading Notation]
+
+[variablelist 
+  [[`ErrorStepper`] [A type that is a model of Error Stepper]]
+  [[`State`] [A type representing the state /x/ of the ODE]]
+  [[`Error`] [A type representing the error calculated by the stepper, usually same as `State`]]
+  [[`Time`] [A type representing the time /t/ of the ODE]]
+  [[`stepper`] [An object of type `ErrorStepper`]]
+  [[`x`] [Object of type `State`]]
+  [[`xerr`] [Object of type `Error`]]
+  [[`t`, `dt`] [Objects of type `Time`]]
+  [[`sys`] [An object defining the ODE, should be a model of either __system, __symplectic_system, __simple_symplectic_system or __implicit_system.]]
+]
+
+[heading Valid Expressions]
+
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Get the stepper order] [`stepper.order()`] [`order_type`] [Returns the order of the stepper for one step without error estimation.]]
+  [[Get the stepper order] [`stepper.stepper_order()`] [`order_type`] [Returns the order of the stepper for one error estimation step which is used for error calculation.]]
+  [[Get the error order] [`stepper.errorr_order()`] [`order_type`] [Returns the order of the error step which is used for error calculation.]]
+  [[Do step] [`stepper.do_step( sys , x , t , dt )`] [`void`] [Performs one step of step size `dt`. The newly obtained state is written in-place to `x`.] ]
+  [[Do step with error estimation] [`stepper.do_step( sys , x , t , dt , xerr )`] [`void`] [Performs one step of step size `dt` with error estimation.  The newly obtained state is written in-place to `x` and the estimated error to `xerr`.] ]
+  [/ [Do step with reference] [`stepper.do_step( boost::ref(sys) , x , t , dt , xerr )`] [`void`] [Performs one step of step size `dt`.  The newly obtained state is written in-place to `x` and the estimated error to `xerr`.] ]
+]
+
+[heading Models]
+
+* `runge_kutta_cash_karp54`
+* `runge_kutta_dopri5`
+* `runge_kutta_fehlberg78`
+* `rosenbrock4`
+
+[endsect]

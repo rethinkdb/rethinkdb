@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+
+<title>Dynamic Parsers</title><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css"></head>
+<body>
+<table background="theme/bkd2.gif" border="0" cellspacing="2" width="100%">
+  <tbody><tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font face="Verdana, Arial, Helvetica, sans-serif" size="6"><b>Dynamic 
+      Parsers </b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" align="right" border="0" height="48" width="112"></a></td>
+  </tr>
+</tbody></table>
+<br>
+<table border="0">
+  <tbody><tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="closures.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="stored_rule.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</tbody></table>
+<p>We see dynamic parsing everywhere in Spirit. A special group of
+parsers, aptly named dynamic parsers, form the most basic building
+blocks to dynamic parsing. This chapter focuses on these critters.
+You'll notice the similarity of these parsers with C++'s control
+structures. The similarity is not a coincidence. These parsers give an
+imperative flavor to parsing, and, since imperative constructs are not
+native to declarative EBNF, mimicking the host language, C++, should
+make their use immediately familiar. </p>
+<p>Dynamic parsers modify the parsing behavior according to conditions. Constructing 
+    dynamic parsers requires a condition argument and a body parser argument. Additional 
+    arguments are required by some parsers.</p>
+<h2>Conditions</h2>
+<p>Functions or functors returning values convertable to bool can be used as conditions. 
+  When the evaluation of the function/functor yields true it will be considered 
+  as meeting the condition.</p>
+<p>Parsers can be used as conditions, as well. When the parser matches the condition 
+  is met. Parsers used as conditions work in an all-or-nothing manner: the scanner 
+  will not be advanced when they don't match.</p>
+<p>A failure to meet the condition will not result in a parse error.</p>
+<h2>if_p</h2>
+<p><tt>if_p</tt> can be used with or without an else-part. The syntax is:</p>
+<pre>    <span class="identifier">if_p</span><span class="special">(</span><span class="identifier">condition</span><span class="special">)[</span><span class="identifier">then</span><span class="special">-</span><span class="identifier">parser</span><span class="special">]</span></pre>
+<p><span class="special"></span>or</p>
+<pre><span class="identifier">    if_p</span><span class="special">(</span><span class="identifier">condition</span><span class="special">)[</span><span class="identifier">then</span><span class="special">-</span><span class="identifier">parser</span><span class="special">].</span><span class="identifier">else_p</span><span class="special">[</span><span class="identifier">else</span><span class="special">-</span><span class="identifier">parser</span><span class="special">]</span></pre>
+<p>When the condition is met the then-parser is used next in the parsing process. 
+  When the condition is not met and an else-parser is available the else-parser 
+  is used next. When the condition isn't met and no else-parser is available then 
+  the whole parser matches the empty sequence. (<img src="theme/alert.gif" height="16" width="16"> 
+  Note: older versions of <tt>if_p</tt> report a failure when the condition isn't 
+  met and no else-parser is available.)</p>
+<p>Example:</p>
+<pre>    <span class="special"></span><span class="identifier">if_p</span><span class="special">(</span><span class="string">"0x"</span><span class="special">)[</span><span class="identifier">hex_p</span><span class="special">].</span><span class="identifier">else_p</span><span class="special">[</span><span class="identifier">uint_p</span><span class="special">]</span></pre>
+<h2>while_p, do_p</h2>
+<p><tt>while_p</tt>/<tt>do_p</tt> syntax is:</p>
+<pre>    <span class="identifier">while_p</span><span class="special">(</span><span class="identifier">condition</span><span class="special">)[</span><span class="identifier">body</span><span class="special">-</span><span class="identifier">parser</span><span class="special">]<br>    </span><span class="identifier">do_p</span><span class="special">[</span><span class="identifier">body</span><span class="special">-</span><span class="identifier">parser</span><span class="special">].</span><span class="identifier">while_p</span><span class="special">(</span><span class="identifier">condition</span><span class="special">)</span></pre>
+<p>As long as the condition is met the dynamic parser constructed by <tt>while_p</tt> 
+  will try to match the body-parser. <tt>do_p</tt> returns a parser that tries 
+  to match the body-parser and then behaves just like the parser returned by <tt>while_p</tt>. 
+  A failure to match the body-parser will cause a failure to be reported by the 
+  while/do-parser.</p>
+<p>Example:</p>
+<pre><span class="special">    </span><span class="identifier">uint_p</span><span class="special">[</span><span class="identifier">assign_a</span><span class="special">(</span><span class="identifier">sum</span><span class="special">)] &gt;&gt; </span><span class="identifier">while_p</span><span class="special">(</span><span class="literal">'+'</span><span class="special">)[</span><span class="identifier">uint_p</span><span class="special">[</span><span class="identifier">add</span><span class="special">(</span><span class="identifier">sum</span><span class="special">)]]<br>    </span><span class="literal">'"' </span><span class="special">&gt;&gt; </span><span class="identifier">while_p</span><span class="special">(~</span><span class="identifier">eps_p</span><span class="special">(</span><span class="literal">'"'</span><span class="special">))[</span><span class="identifier">c_escape_ch_p</span><span class="special">[</span><span class="identifier">push_back_a</span><span class="special">(</span><span class="identifier">result</span><span class="special">)]] &gt;&gt; </span><span class="literal">'"'</span>
+</pre>
+<p>Assuming <span style="font-family: monospace;">add</span> is a user defined function object.<br></p><h2>for_p</h2>
+<p><tt>for_p</tt> requires four arguments. The syntax is:</p>
+<pre>    <span class="literal"></span><span class="identifier">for_p</span><span class="special">(</span><span class="identifier">init</span><span class="special">, </span><span class="identifier">condition</span><span class="special">, </span><span class="identifier">step</span><span class="special">)[</span><span class="identifier">body</span><span class="special">-</span><span class="identifier">parser</span><span class="special">]</span></pre>
+<p>init and step have to be 0-ary functions/functors. for_p returns a parser that 
+  will:</p>
+<ol>
+  <li> call init</li>
+  <li>check the condition, if the
+condition isn't met then a match is returned. The match will cover
+everything that has been matched successfully up to this point.</li>
+  <li> tries to match the body-parser. A failure to match the body-parser will cause a failure to be reported by the for-parser</li>
+  <li> calls step</li>
+  <li> goes to 2.</li>
+</ol>
+<table border="0">
+  <tbody><tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="closures.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="stored_rule.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</tbody></table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright © 2002-2003 Joel de Guzman<br>
+  Copyright © 2002-2003 Martin Wille<br>
+  <br>
+<font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body></html>

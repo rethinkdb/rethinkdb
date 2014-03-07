@@ -1,0 +1,425 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>posix::stream_descriptor_service</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="posix__stream_descriptor.html" title="posix::stream_descriptor">
+<link rel="next" href="posix__stream_descriptor_service/assign.html" title="posix::stream_descriptor_service::assign">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="posix__stream_descriptor.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="posix__stream_descriptor_service/assign.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.posix__stream_descriptor_service"></a><a class="link" href="posix__stream_descriptor_service.html" title="posix::stream_descriptor_service">posix::stream_descriptor_service</a>
+</h3></div></div></div>
+<p>
+        Default service implementation for a stream descriptor.
+      </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">stream_descriptor_service</span> <span class="special">:</span>
+  <span class="keyword">public</span> <span class="identifier">io_service</span><span class="special">::</span><span class="identifier">service</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.posix__stream_descriptor_service.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.posix__stream_descriptor_service.types"></a></span><a class="link" href="posix__stream_descriptor_service.html#boost_asio.reference.posix__stream_descriptor_service.types">Types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/implementation_type.html" title="posix::stream_descriptor_service::implementation_type"><span class="bold"><strong>implementation_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of a stream descriptor implementation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/native_handle_type.html" title="posix::stream_descriptor_service::native_handle_type"><span class="bold"><strong>native_handle_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The native descriptor type.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/native_type.html" title="posix::stream_descriptor_service::native_type"><span class="bold"><strong>native_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use native_handle_type.) The native descriptor type.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.posix__stream_descriptor_service.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.posix__stream_descriptor_service.member_functions"></a></span><a class="link" href="posix__stream_descriptor_service.html#boost_asio.reference.posix__stream_descriptor_service.member_functions">Member
+        Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/assign.html" title="posix::stream_descriptor_service::assign"><span class="bold"><strong>assign</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Assign an existing native descriptor to a stream descriptor.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/async_read_some.html" title="posix::stream_descriptor_service::async_read_some"><span class="bold"><strong>async_read_some</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Start an asynchronous read.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/async_write_some.html" title="posix::stream_descriptor_service::async_write_some"><span class="bold"><strong>async_write_some</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Start an asynchronous write.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/cancel.html" title="posix::stream_descriptor_service::cancel"><span class="bold"><strong>cancel</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Cancel all asynchronous operations associated with the descriptor.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/close.html" title="posix::stream_descriptor_service::close"><span class="bold"><strong>close</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Close a stream descriptor implementation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/construct.html" title="posix::stream_descriptor_service::construct"><span class="bold"><strong>construct</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Construct a new stream descriptor implementation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/destroy.html" title="posix::stream_descriptor_service::destroy"><span class="bold"><strong>destroy</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Destroy a stream descriptor implementation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/get_io_service.html" title="posix::stream_descriptor_service::get_io_service"><span class="bold"><strong>get_io_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the io_service object that owns the service.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/io_control.html" title="posix::stream_descriptor_service::io_control"><span class="bold"><strong>io_control</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Perform an IO control command on the descriptor.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/is_open.html" title="posix::stream_descriptor_service::is_open"><span class="bold"><strong>is_open</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Determine whether the descriptor is open.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/move_assign.html" title="posix::stream_descriptor_service::move_assign"><span class="bold"><strong>move_assign</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Move-assign from another stream descriptor implementation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/move_construct.html" title="posix::stream_descriptor_service::move_construct"><span class="bold"><strong>move_construct</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Move-construct a new stream descriptor implementation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/native.html" title="posix::stream_descriptor_service::native"><span class="bold"><strong>native</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use native_handle().) Get the native descriptor implementation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/native_handle.html" title="posix::stream_descriptor_service::native_handle"><span class="bold"><strong>native_handle</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the native descriptor implementation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/native_non_blocking.html" title="posix::stream_descriptor_service::native_non_blocking"><span class="bold"><strong>native_non_blocking</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Gets the non-blocking mode of the native descriptor implementation.
+                </p>
+                <p>
+                  Sets the non-blocking mode of the native descriptor implementation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/non_blocking.html" title="posix::stream_descriptor_service::non_blocking"><span class="bold"><strong>non_blocking</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Gets the non-blocking mode of the descriptor.
+                </p>
+                <p>
+                  Sets the non-blocking mode of the descriptor.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/read_some.html" title="posix::stream_descriptor_service::read_some"><span class="bold"><strong>read_some</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Read some data from the stream.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/release.html" title="posix::stream_descriptor_service::release"><span class="bold"><strong>release</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Release ownership of the native descriptor implementation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/stream_descriptor_service.html" title="posix::stream_descriptor_service::stream_descriptor_service"><span class="bold"><strong>stream_descriptor_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Construct a new stream descriptor service for the specified io_service.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/write_some.html" title="posix::stream_descriptor_service::write_some"><span class="bold"><strong>write_some</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Write the given data to the stream.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.posix__stream_descriptor_service.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.posix__stream_descriptor_service.data_members"></a></span><a class="link" href="posix__stream_descriptor_service.html#boost_asio.reference.posix__stream_descriptor_service.data_members">Data
+        Members</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <a class="link" href="posix__stream_descriptor_service/id.html" title="posix::stream_descriptor_service::id"><span class="bold"><strong>id</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The unique service identifier.
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.posix__stream_descriptor_service.h3"></a>
+        <span class="phrase"><a name="boost_asio.reference.posix__stream_descriptor_service.requirements"></a></span><a class="link" href="posix__stream_descriptor_service.html#boost_asio.reference.posix__stream_descriptor_service.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/posix/stream_descriptor_service.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="posix__stream_descriptor.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="posix__stream_descriptor_service/assign.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

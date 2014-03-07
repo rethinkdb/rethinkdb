@@ -1,0 +1,317 @@
+[/
+    Copyright 2002,2004,2006 Joel de Guzman, Eric Niebler
+    Copyright 2010-2011 Daniel James
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[chapter Installation and configuration
+    [quickbook 1.6]
+    [compatibility-mode 1.5]
+    [id quickbook.install]
+    [source-mode teletype]
+]
+
+This section provides some guidelines on how to install and configure
+BoostBook and Quickbook under several operating systems. Before installing
+you'll need a local copy of boost, and to install the version of `bjam`
+which comes with it (or a later version).
+
+[/ I don't think this is needed any more]
+[/
+Before continuing, it is very important that you keep this in mind: if you
+try to build some documents and the process breaks due to misconfiguration,
+be absolutely sure to delete any `bin` and `bin.v2` directories generated
+by the build before trying again.  Otherwise your configuration fixes will
+not take any effect.
+]
+
+[section:macosx Mac OS X]
+
+The simplest way to install on OS X is to use macports.
+If you don't want to use macports and are using Snow Leopard or later,
+there are instructions [link quickbook.install.macosx.native later].
+Earlier versions of OS X need to use something like macports to install
+`xsltproc` because the version they come with is very old, and doesn't have
+good enough XSL support for boostbook's stylesheets.
+
+[section:macports Mac OS X, using macports]
+
+First install the `libxslt`, `docbook-xsl` and `docbook-xml-4.2`
+packages:
+
+    sudo port install libxslt docbook-xsl docbook-xml-4.2
+
+Next, we need to configure Boost Build to compile BoostBook files. Add the
+following to your `user-config.jam` file, which should be in your home
+directory. If you don't have one, create a file containing this text. For more
+information on setting up `user-config.jam`, see the
+[@http://boost.org/boost-build2/doc/html/bbv2/advanced/configuration.html Boost
+Build documentation].
+
+    using xsltproc
+        : /opt/local/bin/xsltproc
+        ;
+
+    using boostbook
+        : /opt/local/share/xsl/docbook-xsl/
+        : /opt/local/share/xml/docbook/4.2
+        ;
+
+The above steps are enough to get a functional BoostBook setup.  Quickbook
+will be automatically built when needed.  If you want to avoid these
+rebuilds:
+
+# Go to Quickbook's source directory (`BOOST_ROOT/tools/quickbook`).
+
+# Build the utility by issuing `bjam`.
+
+# Copy the resulting `quickbook` binary (located at
+  `BOOST_ROOT/dist/bin`) to a safe place.  The traditional location is
+  `/usr/local/bin`.
+
+# Add the following to your `user-config.jam` file, using the full path of the
+  quickbook executable:
+  ```
+ using quickbook
+     : /usr/local/bin/quickbook
+     ;
+  ```
+ 
+If you need to build documentation that uses Doxygen, you will need to install it as well:
+
+    sudo port install doxygen
+
+And then add to your `user-config.jam`:
+
+    using doxygen ;
+
+Alternatively, you can install from the official doxygen `dmg`.
+This is described at [link osx-prebuilt-doxygen the end of the next section].
+
+[endsect] [/ macports]
+
+[section:native Mac OS X, Snow Leopard (or later)]
+
+[:['Section contributed by Julio M. Merino Vidal]]
+
+The text below assumes you want to install all the necessary utilities in a
+system-wide location, allowing any user in the machine to have access to
+them. Therefore, all files will be put in the `/usr/local` hierarchy.  If
+you do not want this, you can choose any other prefix such as
+`~/Applications` for a single-user installation.
+
+Snow Leopard comes with `xsltproc` and all related libraries preinstalled, so
+you do not need to take any extra steps to set them up.  It is probable
+that future versions will include them too, but these instructions may not
+apply to older versions.
+
+To get started:
+
+# Download [@http://www.docbook.org/xml/4.2/docbook-xml-4.2.zip Docbook XML
+  4.2] and unpack it inside `/usr/local/share/xml/docbook/4.2`.
+
+# Download the latest
+  [@http://sourceforge.net/project/showfiles.php?group_id=21935&package_id=16608
+  Docbook XSL] version and unpack it. Be careful that you download the correct
+  file, sometimes the 'looking for the latest version' link often links to
+  another file. The name should be of the form
+  '''<code>docbook-xsl-1.<emphasis>nn</emphasis>.<emphasis>n</emphasis>.tar.bz2</code>''',
+  with no suffix such as `-ns.tar.bz2` or `-doc.tar.bz2`.
+  Put the results in
+  `/usr/local/share/xsl/docbook`, thus effectively removing the version
+  number from the directory name (for simplicity).
+
+# Add the following to your `user-config.jam` file, which should live in
+  your home directory (`/Users/<your_username>`).  You must already have it
+  somewhere or otherwise you could not be building Boost (i.e. missing
+  tools configuration).
+  ```
+ using xsltproc ;
+
+ using boostbook
+     : "/usr/local/share/xsl/docbook"
+     : "/usr/local/share/xml/docbook/4.2"
+     ;
+  ```
+
+The above steps are enough to get a functional BoostBook setup.  Quickbook
+will be automatically built when needed.  If you want to avoid these
+rebuilds and install a system-wide Quickbook instead:
+
+# Go to Quickbook's source directory (`BOOST_ROOT/tools/quickbook`).
+
+# Build the utility by issuing `bjam`.
+
+# Copy the resulting `quickbook` binary (located at
+  `BOOST_ROOT/dist/bin`) to a safe place.  Following our previous
+  example, you can install it into: `/usr/local/bin`.
+
+# Add the following to your `user-config.jam` file:
+  ```
+ using quickbook
+     : "/usr/local/bin/quickbook" ;
+     ;
+  ```
+
+[# osx-prebuilt-doxygen]
+Additionally, if you need to build documentation that uses
+[@http://www.doxygen.org Doxygen], you will need to install it too:
+
+# Go to the [@http://www.stack.nl/~dimitri/doxygen/download.html#latestsrc
+  downloads section] and get the disk image (`dmg` file) for Mac OS X.
+
+# Open the disk image and drag the Doxygen application to your
+  `Applications` folder to install it.
+
+# Add the following to your `user-config.jam` file:
+  ```
+ using doxygen
+     : /Applications/Doxygen.app/Contents/Resources/doxygen
+     ;
+  ```
+
+[/ Removed this, since there are macports based instructions earlier.
+   Instructions for pkgsrc welcome]
+[/
+Alternatively, you may want to install all the prerequistes through a
+package system to avoid manual management of the installations.  In that
+case, check out [@http://www.pkgsrc.org pkgsrc].
+]
+
+[endsect] [/ native]
+
+[endsect] [/ macosx]
+
+[section:windows Windows 2000, XP, 2003, Vista, 7]
+
+[:['Section contributed by Julio M. Merino Vidal]]
+
+The following instructions apply to any Windows system based on Windows
+2000, including Windows XP, Windows 2003 Server, Windows Vista, and Windows 7. The
+paths shown below are taken from a Windows Vista machine; you will need to
+adjust them to match your system in case you are running an older version.
+
+# First of all you need to have a copy of `xsltproc` for Windows.  There
+  are many ways to get this tool, but to keep things simple, use the
+  [@http://www.zlatkovic.com/pub/libxml/ binary packages] made by Igor
+  Zlatkovic.  At the very least, you need to download the following
+  packages: `iconv`, `zlib`, `libxml2` and `libxslt`.
+
+# Unpack all these packages in the same directory so that you get unique
+  `bin`, `include` and `lib` directories within the hierarchy.  These
+  instructions use `C:\Users\example\Documents\boost\xml` as the root for
+  all files.
+
+# From the command line, go to the `bin` directory and launch
+  `xsltproc.exe` to ensure it works.  You should get usage information on
+  screen.
+
+# Download [@http://www.docbook.org/xml/4.2/docbook-xml-4.2.zip Docbook XML
+  4.2] and unpack it in the same directory used above.  That is:
+  `C:\Users\example\Documents\boost\xml\docbook-xml`.
+
+# Download the latest
+  [@http://sourceforge.net/project/showfiles.php?group_id=21935&package_id=16608
+  Docbook XSL] version and unpack it, again in the same directory
+  used before. Be careful that you download the correct
+  file, sometimes the 'looking for the latest version' link often links to
+  another file. The name should be of the form
+  '''<code>docbook-xsl-1.<emphasis>nn</emphasis>.<emphasis>n</emphasis>.tar.bz2</code>''',
+  with no suffix such as `-ns.tar.bz2` or `-doc.tar.bz2`.
+  To make things easier, rename the directory created
+  during the extraction to `docbook-xsl` (bypassing the version name):
+  `C:\Users\example\Documents\boost\xml\docbook-xsl`.
+
+# Add the following to your `user-config.jam` file, which should live in
+  your home directory (`%HOMEDRIVE%%HOMEPATH%`).  You must already have it
+  somewhere or otherwise you could not be building Boost (i.e. missing
+  tools configuration).
+ ```
+ using xsltproc
+     : "C:/Users/example/Documents/boost/xml/bin/xsltproc.exe"
+     ;
+
+ using boostbook
+     : "C:/Users/example/Documents/boost/xml/docbook-xsl"
+     : "C:/Users/example/Documents/boost/xml/docbook-xml"
+     ;
+ ```
+
+The above steps are enough to get a functional BoostBook setup.  Quickbook
+will be automatically built when needed.  If you want to avoid these
+rebuilds:
+
+# Go to Quickbook's source directory (`BOOST_ROOT\tools\quickbook`).
+
+# Build the utility by issuing `bjam`.
+
+# Copy the resulting `quickbook.exe` binary (located at
+  `BOOST_ROOT\dist\bin`) to a safe place.  Following our previous
+  example, you can install it into:
+  `C:\Users\example\Documents\boost\xml\bin`.
+
+# Add the following to your `user-config.jam` file:
+  ```
+ using quickbook
+     : "C:/Users/example/Documents/boost/xml/bin/quickbook.exe"
+     ;
+  ```
+
+[endsect] [/Windows]
+
+[section:linux Debian, Ubuntu]
+
+The following instructions apply to Debian and its derivatives. They are based
+on a Ubuntu Edgy install but should work on other Debian based systems. They
+assume you've already installed an appropriate version of `bjam` for your
+copy of boost.
+
+First install the `xsltproc`, `docbook-xsl` and `docbook-xml` packages.
+For example, using `apt-get`:
+
+    sudo apt-get install xsltproc docbook-xsl docbook-xml
+
+If you're planning on building boost's documentation, you'll also need to
+install the `doxygen` package as well.
+
+Next, we need to configure Boost Build to compile BoostBook files. Add the
+following to your `user-config.jam` file, which should be in your home
+directory. If you don't have one, create a file containing this text. For more
+information on setting up `user-config.jam`, see the
+[@http://boost.org/boost-build2/doc/html/bbv2/advanced/configuration.html Boost
+Build documentation].
+
+    using xsltproc ;
+
+    using boostbook
+        : /usr/share/xml/docbook/stylesheet/nwalsh
+        : /usr/share/xml/docbook/schema/dtd/4.2
+        ;
+
+    # Remove this line if you're not using doxygen
+    using doxygen ;
+
+The above steps are enough to get a functional BoostBook setup.  Quickbook
+will be automatically built when needed.  If you want to avoid these
+rebuilds:
+
+# Go to Quickbook's source directory (`BOOST_ROOT/tools/quickbook`).
+
+# Build the utility by issuing `bjam`.
+
+# Copy the resulting `quickbook` binary (located at
+  `BOOST_ROOT/dist/bin`) to a safe place.  The traditional location is
+  `/usr/local/bin`.
+
+# Add the following to your `user-config.jam` file, using the full path of the
+  quickbook executable:
+ ```
+ using quickbook
+     : /usr/local/bin/quickbook
+     ;
+ ```
+
+[endsect] [/Linux]

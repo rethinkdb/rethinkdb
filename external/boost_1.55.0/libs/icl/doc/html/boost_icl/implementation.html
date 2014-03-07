@@ -1,0 +1,128 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Implementation</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="prev" href="customization.html" title="Customization">
+<link rel="next" href="implementation/complexity.html" title="Complexity">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="customization.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="implementation/complexity.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_implementation" lang="en">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_icl.implementation"></a><a class="link" href="implementation.html" title="Implementation">Implementation</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="implementation.html#boost_icl.implementation.iterative_size">Iterative size</a></span></dt>
+<dt><span class="section"><a href="implementation/complexity.html">Complexity</a></span></dt>
+<dt><span class="section"><a href="implementation/inplace_and_infix_operators.html">Inplace
+      and infix operators</a></span></dt>
+</dl></div>
+<p>
+      The <a class="link" href="interface.html" title="Interface">previous section</a> gave an overview
+      over the interface of the <span class="bold"><strong>icl</strong></span> outlining <a class="link" href="interface.html#boost_icl.interface.class_templates" title="Class templates">class templates</a>, <a class="link" href="interface/associated_types.html" title="Associated Types">associated types</a> and
+      polymorphic <a class="link" href="interface/function_synopsis.html" title="Function Synopsis">functions
+      and operators</a>. In preparation to the <a class="link" href="function_reference.html" title="Function Reference">next
+      section</a>, that describes the <span class="bold"><strong>icl's</strong></span> polymorphic
+      functions in more detail together with <span class="emphasis"><em><span class="bold"><strong>complexity
+      characteristics</strong></span></em></span>, this section summarizes some general
+      information on implementation and performance.
+    </p>
+<a name="boost_icl.implementation.stl_based_implementation"></a><h6>
+<a name="id1166375"></a>
+      <a class="link" href="implementation.html#boost_icl.implementation.stl_based_implementation">STL based
+      implementation</a>
+    </h6>
+<p>
+      The <span class="bold"><strong>implementation</strong></span> of the <span class="bold"><strong>icl's</strong></span>
+      containers is based on <span class="bold"><strong>std::set</strong></span> and <span class="bold"><strong>std::map</strong></span>. So the underlying data structure of interval
+      containers is a red black tree of intervals or interval value pairs. The element
+      containers <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code>
+      </a> and <code class="computeroutput"><a class="link" href="../boost/icl/map.html" title="Class template map">icl::map</a></code> are wrapper
+      classes of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code> and <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span></code>. Interval
+      containers are then using <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">sets</span></code></a>
+      of intervals or <code class="computeroutput"><a class="link" href="../boost/icl/map.html" title="Class template map">icl::maps</a></code> of interval
+      value pairs as implementing containers. So all the <span class="emphasis"><em><span class="bold"><strong>complexity
+      characteristics</strong></span></em></span> of icl containers are based on and limited
+      by the <span class="emphasis"><em><span class="bold"><strong>red-black tree implementation</strong></span></em></span>
+      of the underlying std::AssociativeContainers.
+    </p>
+<div class="section boost_icl_implementation_iterative_size" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.implementation.iterative_size"></a><a class="link" href="implementation.html#boost_icl.implementation.iterative_size" title="Iterative size">Iterative size</a>
+</h3></div></div></div>
+<p>
+        Throughout the documentation on complexity, big <span class="emphasis"><em>O</em></span> expressions
+        like <span class="emphasis"><em>O(n)</em></span> or <span class="emphasis"><em>O(m log n)</em></span> refer to
+        container sizes <span class="emphasis"><em>n</em></span> and <span class="emphasis"><em>m</em></span>. In this
+        documentation these sizes <span class="emphasis"><em><span class="bold"><strong>do not</strong></span></em></span>
+        denote to the familiar <code class="computeroutput"><span class="identifier">size</span></code>
+        function that returns the <span class="emphasis"><em><span class="bold"><strong>number of elements</strong></span></em></span>
+        of a container. Because for an interval container 
+</p>
+<pre class="programlisting"><span class="identifier">interval_set</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">mono</span><span class="special">;</span>
+<span class="identifier">mono</span> <span class="special">+=</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="number">5</span><span class="special">);</span> <span class="comment">// {[1 ... 5]}
+</span><span class="identifier">mono</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span>           <span class="special">==</span> <span class="number">5</span><span class="special">;</span>         <span class="comment">// true, 5 elements
+</span><span class="identifier">mono</span><span class="special">.</span><span class="identifier">interval_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span><span class="special">;</span>         <span class="comment">// true, only one interval
+</span></pre>
+<p>
+      </p>
+<p>
+        it's size and the number of contained intervals is usually different. To
+        refer uniformly to a <span class="emphasis"><em>size</em></span> that matters for iteration,
+        which is the decisive kind of size concerning algorithmic behavior there
+        is a function 
+</p>
+<pre class="programlisting"><span class="keyword">bool</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">iterative_size</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span> <span class="comment">// Number of entities that can be iterated over.
+</span></pre>
+<p>
+        for all element and interval containers of the icl. So for complexity statements
+        throughout the icl's documentation the sizes will be <code class="computeroutput"><span class="identifier">iterative_sizes</span></code>
+        and big <span class="emphasis"><em>O</em></span> expressions like <span class="emphasis"><em>O(m log n)</em></span>
+        will refer to sizes 
+</p>
+<pre class="programlisting"><span class="identifier">n</span> <span class="special">=</span> <span class="identifier">y</span><span class="special">.</span><span class="identifier">iterative_size</span><span class="special">();</span>
+<span class="identifier">m</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">iterative_size</span><span class="special">();</span>
+</pre>
+<p>
+        for containers <code class="computeroutput"><span class="identifier">y</span></code> and <code class="computeroutput"><span class="identifier">x</span></code>. Note that 
+</p>
+<pre class="programlisting"><span class="identifier">iterative_size</span></pre>
+<p>
+        refers to the primary entities, that we can iterate over. For interval containers
+        these are intervals or segments. 
+</p>
+<pre class="programlisting"><span class="identifier">Itervative_size</span></pre>
+<p>
+        never refers to element iteration for interval containers.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="customization.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="implementation/complexity.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

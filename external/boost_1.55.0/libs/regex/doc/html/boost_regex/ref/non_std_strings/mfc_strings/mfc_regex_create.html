@@ -1,0 +1,57 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Regular Expression Creation From an MFC String</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Boost.Regex">
+<link rel="up" href="../mfc_strings.html" title="Using Boost Regex With MFC Strings">
+<link rel="prev" href="mfc_regex_types.html" title="Regex Types Used With MFC Strings">
+<link rel="next" href="mfc_algo.html" title="Overloaded Algorithms For MFC String Types">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="mfc_regex_types.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mfc_strings.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mfc_algo.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_non_std_strings_mfc_strings_mfc_regex_create">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_regex.ref.non_std_strings.mfc_strings.mfc_regex_create"></a><a class="link" href="mfc_regex_create.html" title="Regular Expression Creation From an MFC String">Regular
+          Expression Creation From an MFC String</a>
+</h5></div></div></div>
+<p>
+            The following helper function is available to assist in the creation
+            of a regular expression from an MFC/ATL string type:
+          </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">&gt;</span>
+<span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;</span>
+   <span class="identifier">make_regex</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ATL</span><span class="special">::</span><span class="identifier">CSimpleStringT</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+            <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">syntax_option_type</span> <span class="identifier">f</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">normal</span><span class="special">);</span>
+</pre>
+<p>
+            <span class="bold"><strong>Effects</strong></span>: returns <code class="computeroutput"><span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">GetString</span><span class="special">(),</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">GetString</span><span class="special">()</span> <span class="special">+</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">GetLength</span><span class="special">(),</span>
+            <span class="identifier">f</span><span class="special">);</span></code>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="mfc_regex_types.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mfc_strings.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mfc_algo.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

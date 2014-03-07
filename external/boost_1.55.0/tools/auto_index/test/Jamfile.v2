@@ -1,0 +1,62 @@
+
+import feature ;
+import generators ;
+import modules ;
+import project ;
+import targets ;
+import testing ;
+import toolset ;
+import type ;
+
+alias line_compare_tool : ../../quickbook/test/src//line-compare-tool ;
+
+rule auto-index-test ( target-name : input-file : output-file ? : options * )
+{
+    local project = [ project.current ] ;
+
+    local t =
+        [ targets.create-typed-target RUN
+            : $(project)
+            : $(target-name)
+            : [ alias autoindex : ../build//auto_index : release ]
+            : $(requirements)
+                <location-prefix>$(target-name).test
+                <testing.arg>--prefix=../../..
+                <testing.arg>$(options)
+                <testing.arg>--in=$(input-file)
+                <testing.arg>--out=$(target-name).out
+                <preserve-test-targets>on
+                <dependency>Jamfile.v2
+                <dependency>$(input-file)
+        ]
+        ;
+    
+    t += 
+        [ targets.create-typed-target RUN
+            : $(project)
+            : $(target-name)_check
+            : .//line_compare_tool
+            : $(requirements)
+                <location-prefix>$(target-name).test
+                <testing.arg>$(target-name).out
+                <testing.arg>$(target-name).gold
+                <preserve-test-targets>on
+                <dependency>$(target_name)
+                <implicit-dependency>$(target_name)
+                <dependency>Jamfile.v2
+                <dependency>$(input-file)
+        ]
+        ;
+
+    modules.poke testing : .all-tests : \$\(all-tests\) $(t) ;
+
+    return $(t) ;
+}
+
+auto-index-test test1 : type_traits.docbook : : --script=index.idx ;
+auto-index-test test2 : type_traits.docbook : : --internal-index --script=index.idx ;
+auto-index-test test3 : type_traits.docbook : : --internal-index --index-type=index --script=index.idx ;
+
+
+
+

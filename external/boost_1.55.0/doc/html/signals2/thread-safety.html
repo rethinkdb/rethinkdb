@@ -1,0 +1,220 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Thread-Safety</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../signals2.html" title="Chapter&#160;28.&#160;Boost.Signals2">
+<link rel="prev" href="../boost/signals2/trackable.html" title="Class trackable">
+<link rel="next" href="faq.html" title="Frequently Asked Questions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/signals2/trackable.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="faq.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="signals2.thread-safety"></a>Thread-Safety</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="thread-safety.html#idp206463352">Introduction</a></span></dt>
+<dt><span class="section"><a href="thread-safety.html#idp206466744">Signals and combiners</a></span></dt>
+<dt><span class="section"><a href="thread-safety.html#idp206476888">Connections and other classes</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206463352"></a>Introduction</h3></div></div></div>
+<p>
+      The primary motivation for Boost.Signals2 is to provide a version of
+      the original Boost.Signals library which can be used safely in a
+      multi-threaded environment.
+      This is achieved primarily through two changes from the original Boost.Signals
+      API.  One is the introduction of a new automatic connection management scheme
+      relying on <code class="computeroutput">shared_ptr</code> and <code class="computeroutput">weak_ptr</code>,
+      as described in the <a class="link" href="tutorial.html#signals2.tutorial.connection-management" title="Automatic Connection Management (Intermediate)">tutorial</a>.
+      The second change was the introduction of a <code class="computeroutput">Mutex</code> template type
+      parameter to the <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html" title="Class template signal">signal</a></code> class.  This section details how
+      the library employs these changes to provide thread-safety, and
+      the limits of the provided thread-safety.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206466744"></a>Signals and combiners</h3></div></div></div>
+<p>
+      Each signal object default-constructs a <code class="computeroutput">Mutex</code> object to protect
+      its internal state.  Furthermore, a <code class="computeroutput">Mutex</code> is created
+      each time a new slot is connected to the signal, to protect the
+      associated signal-slot connection.
+    </p>
+<p>
+      A signal's mutex is automatically locked whenever any of the
+      signal's methods are called.  The mutex is usually held until the
+      method completes, however there is one major exception to this rule.  When
+      a signal is invoked by calling
+      <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp96687272-bb">signal::operator()</a></code>,
+      the invocation first acquires a lock on the signal's mutex.  Then
+      it obtains a handle to the signal's slot list and combiner.  Next
+      it releases the signal's mutex, before invoking the combiner to
+      iterate through the slot list.  Thus no mutexes are held by the
+      signal while a slot is executing.  This design choice
+      makes it impossible for user code running in a slot
+      to deadlock against any of the
+      mutexes used internally by the Boost.Signals2 library.
+      It also prevents slots from accidentally causing
+      recursive locking attempts on any of the library's internal mutexes.
+      Therefore, if you invoke a signal concurrently from multiple threads,
+      it is possible for the signal's combiner to be invoked concurrently
+      and thus the slots to execute concurrently.
+    </p>
+<p>
+      During a combiner invocation, the following steps are performed in order to
+      find the next callable slot while iterating through the signal's
+      slot list.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>The <code class="computeroutput">Mutex</code> associated with the connection to the
+          slot is locked.</p></li>
+<li class="listitem"><p>All the tracked <code class="computeroutput">weak_ptr</code> associated with the
+          slot are copied into temporary <code class="computeroutput">shared_ptr</code> which
+          will be kept alive until the invocation is done with the slot.  If this fails due
+          to any of the
+          <code class="computeroutput">weak_ptr</code> being expired, the connection is
+          automatically disconnected.  Therefore a slot will never be run
+          if any of its tracked <code class="computeroutput">weak_ptr</code> have expired,
+          and none of its tracked <code class="computeroutput">weak_ptr</code> will
+          expire while the slot is running.
+        </p></li>
+<li class="listitem"><p>
+          The slot's connection is checked to see if it is blocked
+          or disconnected, and then the connection's mutex is unlocked.  If the connection
+          was either blocked or disconnected, we
+          start again from the beginning with the next slot in the slot list.
+          Otherwise, we commit to executing the slot when the combiner next
+          dereferences the slot call iterator (unless the combiner should increment
+          the iterator without ever dereferencing it).
+        </p></li>
+</ul></div>
+<p>
+      Note that since we unlock the connection's mutex before executing
+      its associated slot, it is possible a slot will still be executing
+      after it has been disconnected by a
+      <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html#idp89761576-bb">connection::disconnect</a>()</code>, if
+      the disconnect was called concurrently with signal invocation.
+    </p>
+<p>
+      You may have noticed above that during signal invocation, the invocation only
+      obtains handles to the signal's slot list and combiner while holding the
+      signal's mutex.  Thus concurrent signal invocations may still wind up
+      accessing the
+      same slot list and combiner concurrently.  So what happens if the slot list is modified,
+      for example by connecting a new slot, while a signal
+      invocation is in progress concurrently?  If the slot list is already in use,
+      the signal performs a deep copy of the slot list before modifying it.
+      Thus the a concurrent signal invocation will continue to use the old unmodified slot list,
+      undisturbed by modifications made to the newly created deep copy of the slot list.
+      Future signal invocations will receive a handle to the newly created deep
+      copy of the slot list, and the old slot list will be destroyed once it
+      is no longer in use.  Similarly, if you change a signal's combiner with
+      <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp57658312-bb">signal::set_combiner</a></code>
+      while a signal invocation is running concurrently, the concurrent
+      signal invocation will continue to use the old combiner undisturbed,
+      while future signal invocations will receive a handle to the new combiner.
+    </p>
+<p>
+      The fact that concurrent signal invocations use the same combiner object
+      means you need to insure any custom combiner you write is thread-safe.
+      So if your combiner maintains state which is modified when the combiner
+      is invoked, you
+      may need to protect that state with a mutex.  Be aware, if you hold
+      a mutex in your combiner while dereferencing slot call iterators,
+      you run the risk of deadlocks and recursive locking if any of
+      the slots cause additional mutex locking to occur.  One way to avoid
+      these perils is for your combiner to release any locks before
+      dereferencing a slot call iterator.  The combiner classes provided by
+      the Boost.Signals2 library are all thread-safe, since they do not maintain
+      any state across invocations.
+    </p>
+<p>
+      Suppose a user writes a slot which connects another slot to the invoking signal.
+      Will the newly connected slot be run during the same signal invocation in
+      which the new connection was made?  The answer is no.  Connecting a new slot
+      modifies the signal's slot list, and as explained above, a signal invocation
+      already in progress will not see any modifications made to the slot list.
+    </p>
+<p>
+      Suppose a user writes a slot which disconnects another slot from the invoking signal.
+      Will the disconnected slot be prevented from running during the same signal invocation,
+      if it appears later in the slot list than the slot which disconnected it?
+      This time the answer is yes.  Even if the disconnected slot is still
+      present in the signal's slot list, each slot is checked to see if it is
+      disconnected or blocked immediately before it is executed (or not executed as
+      the case may be), as was described in more detail above.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206476888"></a>Connections and other classes</h3></div></div></div>
+<p>
+      The methods of the <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">signals2::connection</a></code> class are thread-safe,
+      with the exception of assignment and swap.  This is achived via locking the mutex
+      associated with the object's underlying signal-slot connection.  Assignment and
+      swap are not thread-safe because the mutex protects the underlying connection
+      which a <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">signals2::connection</a></code> object references, not
+      the <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">signals2::connection</a></code> object itself.  That is,
+      there may be many copies of a <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">signals2::connection</a></code> object,
+      all of which reference the same underlying connection.  There is not a mutex
+      for each <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">signals2::connection</a></code> object, there is only
+      a single mutex protecting the underlying connection they reference.
+    </p>
+<p>The <code class="computeroutput"><a class="link" href="../boost/signals2/shared_connection_block.html" title="Class shared_connection_block">shared_connection_block</a></code> class obtains some thread-safety
+      from the <code class="computeroutput">Mutex</code> protecting the underlying connection which is blocked
+      and unblocked.  The internal reference counting which is used to keep track of
+      how many <code class="computeroutput"><a class="link" href="../boost/signals2/shared_connection_block.html" title="Class shared_connection_block">shared_connection_block</a></code> objects are asserting
+      blocks on their underlying connection is also thread-safe (the implementation
+      relies on <code class="computeroutput">shared_ptr</code> for the reference counting).
+      However, individual <code class="computeroutput"><a class="link" href="../boost/signals2/shared_connection_block.html" title="Class shared_connection_block">shared_connection_block</a></code> objects
+      should not be accessed concurrently by multiple threads.  As long as two
+      threads each have their own <code class="computeroutput"><a class="link" href="../boost/signals2/shared_connection_block.html" title="Class shared_connection_block">shared_connection_block</a></code> object,
+      then they may use them in safety, even if both <code class="computeroutput"><a class="link" href="../boost/signals2/shared_connection_block.html" title="Class shared_connection_block">shared_connection_block</a></code>
+      objects are copies and refer to the same underlying connection.
+    </p>
+<p>
+      The <code class="computeroutput"><a class="link" href="../boost/signals2/slot.html" title="Class template slot">signals2::slot</a></code> class has no internal mutex locking
+      built into it.  It is expected that slot objects will be created then
+      connected to a signal in a single thread.  Once they have been copied into
+      a signal's slot list, they are protected by the mutex associated with
+      each signal-slot connection.
+    </p>
+<p>The <code class="computeroutput"><a class="link" href="../boost/signals2/trackable.html" title="Class trackable">signals2::trackable</a></code> class does NOT provide
+      thread-safe automatic connection management.  In particular, it leaves open the
+      possibility of a signal invocation calling into a partially destructed object
+      if the trackable-derived object is destroyed in a different thread from the
+      one invoking the signal.
+      <code class="computeroutput"><a class="link" href="../boost/signals2/trackable.html" title="Class trackable">signals2::trackable</a></code> is only provided as a convenience
+      for porting single-threaded code from Boost.Signals to Boost.Signals2.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: June 12, 2007 at 14:01:23 -0400</small></p></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/signals2/trackable.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="faq.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

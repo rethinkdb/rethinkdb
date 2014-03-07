@@ -1,0 +1,145 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template mutable_constant</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../attributes.html#header.boost.log.attributes.mutable_constant_hpp" title="Header &lt;boost/log/attributes/mutable_constant.hpp&gt;">
+<link rel="prev" href="make_function.html" title="Function template make_function">
+<link rel="next" href="mutable_constant/impl.html" title="Class impl">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_function.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../attributes.html#header.boost.log.attributes.mutable_constant_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mutable_constant/impl.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.attributes.mutable_constant"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template mutable_constant</span></h2>
+<p>boost::log::attributes::mutable_constant &#8212; A class of an attribute that holds a single constant value with ability to change it. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../attributes.html#header.boost.log.attributes.mutable_constant_hpp" title="Header &lt;boost/log/attributes/mutable_constant.hpp&gt;">boost/log/attributes/mutable_constant.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> MutexT <span class="special">=</span> <span class="keyword">void</span><span class="special">,</span> <span class="keyword">typename</span> ScopedWriteLockT <span class="special">=</span> <span class="keyword">auto</span><span class="special">,</span> 
+         <span class="keyword">typename</span> ScopedReadLockT <span class="special">=</span> <span class="keyword">auto</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="mutable_constant.html" title="Class template mutable_constant">mutable_constant</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">attribute</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">T</span> <a name="boost.log.attributes.mutable_constant.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>  <span class="comment">// The attribute value type. </span>
+
+  <span class="comment">// member classes/structs/unions</span>
+
+  <span class="comment">// Factory implementation.</span>
+
+  <span class="keyword">class</span> <a class="link" href="mutable_constant/impl.html" title="Class impl">impl</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">attribute</span><span class="special">::</span><span class="identifier">impl</span> <span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// <a class="link" href="mutable_constant/impl.html#boost.log.attributes.mutable_constant.implconstruct-copy-destruct">construct/copy/destruct</a></span>
+    <span class="keyword">explicit</span> <a class="link" href="mutable_constant/impl.html#idp26088744-bb"><span class="identifier">impl</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">explicit</span> <a class="link" href="mutable_constant/impl.html#idp26089512-bb"><span class="identifier">impl</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="mutable_constant/impl.html#idp26085416-bb">public member functions</a></span>
+    <a class="link" href="../attribute_value.html" title="Class attribute_value">attribute_value</a> <a class="link" href="mutable_constant/impl.html#idp26085624-bb"><span class="identifier">get_value</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">void</span> <a class="link" href="mutable_constant/impl.html#idp26086664-bb"><span class="identifier">set</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">void</span> <a class="link" href="mutable_constant/impl.html#idp26087480-bb"><span class="identifier">set</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="identifier">value_type</span> <a class="link" href="mutable_constant/impl.html#idp26088280-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="mutable_constant.html#boost.log.attributes.mutable_constantconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="mutable_constant.html#idp26093960-bb"><span class="identifier">mutable_constant</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="mutable_constant.html#idp26094760-bb"><span class="identifier">mutable_constant</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="mutable_constant.html#idp26095544-bb"><span class="identifier">mutable_constant</span></a><span class="special">(</span><a class="link" href="cast_source.html" title="Class cast_source">cast_source</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="mutable_constant.html#idp26090760-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="mutable_constant.html#idp26090968-bb"><span class="identifier">set</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="mutable_constant.html#idp26092120-bb"><span class="identifier">set</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">value_type</span> <a class="link" href="mutable_constant.html#idp26093160-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="mutable_constant.html#idp26096456-bb">protected member functions</a></span>
+  <a class="link" href="mutable_constant/impl.html" title="Class impl">impl</a> <span class="special">*</span> <a class="link" href="mutable_constant.html#idp26096664-bb"><span class="identifier">get_impl</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp56126920"></a><h2>Description</h2>
+<p>The <a class="link" href="mutable_constant.html" title="Class template mutable_constant">mutable_constant</a> attribute stores a single value of type, specified as the first template argument. This value is returned on each attribute value acquisition.</p>
+<p>The attribute also allows to modify the stored value, even if the attribute is registered in an attribute set. In order to ensure thread safety of such modifications the <code class="computeroutput"><a class="link" href="mutable_constant.html" title="Class template mutable_constant">mutable_constant</a></code> class is also parametrized with three additional template arguments: mutex type, scoped write and scoped read lock types. If not specified, the lock types are automatically deduced based on the mutex type.</p>
+<p>The implementation may avoid using these types to actually create and use the mutex, if a more efficient synchronization method is available (such as atomic operations on the value type). By default no synchronization is done. </p>
+<div class="refsect2">
+<a name="idp56129496"></a><h3>
+<a name="boost.log.attributes.mutable_constantconstruct-copy-destruct"></a><code class="computeroutput">mutable_constant</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp26093960-bb"></a><span class="identifier">mutable_constant</span><span class="special">(</span><span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor with the stored value initialization </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp26094760-bb"></a><span class="identifier">mutable_constant</span><span class="special">(</span><span class="identifier">value_type</span> <span class="special">&amp;&amp;</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor with the stored value initialization </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp26095544-bb"></a><span class="identifier">mutable_constant</span><span class="special">(</span><a class="link" href="cast_source.html" title="Class cast_source">cast_source</a> <span class="keyword">const</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor for casting support </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp56140424"></a><h3>
+<a name="idp26090760-bb"></a><code class="computeroutput">mutable_constant</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp26090968-bb"></a><span class="identifier">set</span><span class="special">(</span><span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets a new attribute value. The implementation exclusively locks the mutex in order to protect the value assignment. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp26092120-bb"></a><span class="identifier">set</span><span class="special">(</span><span class="identifier">value_type</span> <span class="special">&amp;&amp;</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets a new attribute value. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">value_type</span> <a name="idp26093160-bb"></a><span class="identifier">get</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method acquires the current attribute value. The implementation non-exclusively locks the mutex in order to protect the value acquisition. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp56150536"></a><h3>
+<a name="idp26096456-bb"></a><code class="computeroutput">mutable_constant</code> protected member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a class="link" href="mutable_constant/impl.html" title="Class impl">impl</a> <span class="special">*</span> <a name="idp26096664-bb"></a><span class="identifier">get_impl</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Pointer to the factory implementation </p></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp56213288"></a><h3>Specializations</h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><a class="link" href="mutable_consta_idp26097720.html" title="Class template mutable_constant&lt;T, void, void, void&gt;">Class template mutable_constant&lt;T, void, void, void&gt;</a></p></li></ul></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_function.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../attributes.html#header.boost.log.attributes.mutable_constant_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mutable_constant/impl.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

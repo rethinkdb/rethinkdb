@@ -1,0 +1,138 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/literal.hpp">
+  <para>
+    The
+    <computeroutput><classname alt="boost::proto::literal">proto::literal&lt;&gt;</classname></computeroutput>
+    terminal wrapper, and the
+    <computeroutput><functionname alt="boost::proto::lit">proto::lit()</functionname></computeroutput>
+    function for creating
+    <computeroutput><classname alt="boost::proto::literal">proto::literal&lt;&gt;</classname></computeroutput>
+    wrappers.
+  </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <struct name="literal">
+        <template>
+          <template-type-parameter name="T"/>
+          <template-type-parameter name="Domain">
+            <default><classname>proto::default_domain</classname></default>
+          </template-type-parameter>
+        </template>
+        <inherit>
+          <type>
+  <classname>proto::extends</classname>&lt;<classname>proto::basic_expr</classname>&lt;<classname>proto::tag::terminal</classname>, <classname>proto::term</classname>&lt; T &gt; &gt;, proto::literal&lt;T, Domain&gt;, Domain&gt;</type>
+        </inherit>
+        <purpose>A simple wrapper for a terminal, provided for ease of use.</purpose>
+        <description>
+          <para>
+            A simple wrapper for a terminal, provided for ease of use. In all cases,
+            <computeroutput>proto::literal&lt;X&gt; l(x);</computeroutput> is equivalent to
+            <computeroutput><classname>proto::terminal</classname>&lt;X&gt;::type l = {x};</computeroutput>.
+          </para>
+          <para>
+            The <computeroutput>Domain</computeroutput> template parameter defaults to
+            <computeroutput><classname>proto::default_domain</classname></computeroutput>.
+          </para>
+        </description>
+        <typedef name="X">
+          <purpose>For exposition only</purpose>
+          <type><classname>proto::basic_expr</classname>&lt;<classname>proto::tag::terminal</classname>, <classname>proto::term</classname>&lt; T &gt; &gt;</type>
+        </typedef>
+        <typedef name="value_type">
+          <type>typename <classname>proto::result_of::value</classname>&lt;X&gt;::type</type>
+        </typedef>
+        <typedef name="reference">
+          <type>typename <classname>proto::result_of::value</classname>&lt;X &amp;&gt;::type</type>
+        </typedef>
+        <typedef name="const_reference">
+          <type>typename <classname>proto::result_of::value</classname>&lt;X const &amp;&gt;::type</type>
+        </typedef>
+        <method-group name="public member functions">
+          <method name="get">
+            <type>reference</type>
+            <returns>
+              <computeroutput><functionname>proto::value</functionname>(*this)</computeroutput>
+            </returns>
+          </method>
+          <method name="get" cv="const">
+            <type>const_reference</type>
+            <returns>
+              <computeroutput><functionname>proto::value</functionname>(*this)</computeroutput>
+            </returns>
+          </method>
+        </method-group>
+        <constructor/>
+        <constructor>
+          <template>
+            <template-type-parameter name="U"/>
+          </template>
+          <parameter name="u">
+            <paramtype>U &amp;</paramtype>
+          </parameter>
+        </constructor>
+        <constructor>
+          <template>
+            <template-type-parameter name="U"/>
+          </template>
+          <parameter name="u">
+            <paramtype>U const &amp;</paramtype>
+          </parameter>
+        </constructor>
+        <constructor>
+          <template>
+            <template-type-parameter name="U"/>
+          </template>
+          <parameter name="u">
+            <paramtype><classname>proto::literal</classname>&lt; U, Domain &gt; const &amp;</paramtype>
+          </parameter>
+        </constructor>
+      </struct>
+      
+      <!-- proto::lit() -->
+      <overloaded-function name="lit">
+        <signature>
+          <type><classname>proto::literal</classname>&lt; T &amp; &gt; const</type>
+          <template>
+            <template-type-parameter name="T"/>
+          </template>
+          <parameter name="t">
+            <paramtype>T &amp;</paramtype>
+            <description>
+              <para>The object to wrap.</para>
+            </description>
+          </parameter>
+        </signature>
+        <signature>
+          <type><classname>proto::literal</classname>&lt; T const &amp; &gt; const</type>
+          <template>
+            <template-type-parameter name="T"/>
+          </template>
+          <parameter name="t">
+            <paramtype>T const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>A helper function for creating a <computeroutput>
+          <classname alt="proto::literal">proto::literal&lt;&gt;</classname></computeroutput> wrapper.
+        </purpose>
+        <returns>
+          <para>
+            <computeroutput><classname>proto::literal</classname>&lt;T &amp;&gt;(t)</computeroutput>
+          </para>
+        </returns>
+        <throws>
+          <simpara>Will not throw.</simpara>
+        </throws>
+        <notes>
+          <para>The returned value holds the argument by reference. </para>
+        </notes>
+      </overloaded-function>
+    </namespace>
+  </namespace>
+</header>

@@ -1,0 +1,119 @@
+#
+# Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+subproject libs/asio/test ;
+
+project boost : $(BOOST_ROOT) ;
+project boost_system : $(BOOST_SYSTEM_ROOT) ;
+
+# bring in the rules for testing
+import testing ;
+
+if $(UNIX)
+{
+  switch $(JAMUNAME)
+  {
+  case SunOS* :
+    {
+      SOCKET_LIBS = <find-library>socket <find-library>nsl ;
+    }
+  }
+}
+
+template asio_unit_test
+  : <lib>@boost/libs/regex/build/boost_regex
+    <lib>@boost/libs/test/build/boost_test_exec_monitor
+    <lib>@boost_system/libs/system/build/boost_system
+  : <include>../../.. <include>@boost <include>@boost_system
+    <define>BOOST_ALL_NO_LIB=1
+    <threading>multi
+    <mingw><*><find-library>ws2_32
+    <mingw><*><find-library>mswsock
+    $(SOCKET_LIBS)
+  ;
+
+test-suite "asio"
+  :
+  [ run basic_datagram_socket.cpp <template>asio_unit_test ]
+  [ run basic_deadline_timer.cpp <template>asio_unit_test ]
+  [ run basic_raw_socket.cpp <template>asio_unit_test ]
+  [ run basic_seq_packet_socket.cpp <template>asio_unit_test ]
+  [ run basic_signal_set.cpp <template>asio_unit_test ]
+  [ run basic_socket_acceptor.cpp <template>asio_unit_test ]
+  [ run basic_stream_socket.cpp <template>asio_unit_test ]
+  [ run basic_streambuf.cpp <template>asio_unit_test ]
+  [ run buffer.cpp <template>asio_unit_test ]
+  [ run buffered_read_stream.cpp <template>asio_unit_test ]
+  [ run buffered_stream.cpp <template>asio_unit_test ]
+  [ run buffered_write_stream.cpp <template>asio_unit_test ]
+  [ run buffers_iterator.cpp <template>asio_unit_test ]
+  [ run completion_condition.cpp <template>asio_unit_test ]
+  [ run connect.cpp <template>asio_unit_test ]
+  [ run coroutine.cpp <template>asio_unit_test ]
+  [ run datagram_socket_service.cpp <template>asio_unit_test ]
+  [ run deadline_timer_service.cpp <template>asio_unit_test ]
+  [ run deadline_timer.cpp <template>asio_unit_test ]
+  [ run error.cpp <template>asio_unit_test ]
+  [ run generic/basic_endpoint.cpp <template>asio_unit_test ]
+  [ run generic/datagram_protocol.cpp <template>asio_unit_test ]
+  [ run generic/raw_protocol.cpp <template>asio_unit_test ]
+  [ run generic/seq_packet_protocol.cpp <template>asio_unit_test ]
+  [ run generic/stream_protocol.cpp <template>asio_unit_test ]
+  [ run io_service.cpp <template>asio_unit_test ]
+  [ run ip/address.cpp <template>asio_unit_test ]
+  [ run ip/address_v4.cpp <template>asio_unit_test ]
+  [ run ip/address_v6.cpp <template>asio_unit_test ]
+  [ run ip/basic_endpoint.cpp <template>asio_unit_test ]
+  [ run ip/basic_resolver.cpp <template>asio_unit_test ]
+  [ run ip/basic_resolver_entry.cpp <template>asio_unit_test ]
+  [ run ip/basic_resolver_iterator.cpp <template>asio_unit_test ]
+  [ run ip/basic_resolver_query.cpp <template>asio_unit_test ]
+  [ run ip/host_name.cpp <template>asio_unit_test ]
+  [ run ip/icmp.cpp <template>asio_unit_test ]
+  [ run ip/multicast.cpp <template>asio_unit_test ]
+  [ run ip/resolver_query_base.cpp <template>asio_unit_test ]
+  [ run ip/resolver_service.cpp <template>asio_unit_test ]
+  [ run ip/tcp.cpp <template>asio_unit_test ]
+  [ run ip/udp.cpp <template>asio_unit_test ]
+  [ run ip/unicast.cpp <template>asio_unit_test ]
+  [ run ip/v6_only.cpp <template>asio_unit_test ]
+  [ run is_read_buffered.cpp <template>asio_unit_test ]
+  [ run is_write_buffered.cpp <template>asio_unit_test ]
+  [ run local/basic_endpoint.cpp <template>asio_unit_test ]
+  [ run local/connect_pair.cpp <template>asio_unit_test ]
+  [ run local/datagram_protocol.cpp <template>asio_unit_test ]
+  [ run local/stream_protocol.cpp <template>asio_unit_test ]
+  [ run placeholders.cpp <template>asio_unit_test ]
+  [ run posix/basic_descriptor.cpp <template>asio_unit_test ]
+  [ run posix/basic_stream_descriptor.cpp <template>asio_unit_test ]
+  [ run posix/descriptor_base.cpp <template>asio_unit_test ]
+  [ run posix/stream_descriptor.cpp <template>asio_unit_test ]
+  [ run posix/stream_descriptor_service.cpp <template>asio_unit_test ]
+  [ run raw_socket_service.cpp <template>asio_unit_test ]
+  [ run read.cpp <template>asio_unit_test ]
+  [ run read_at.cpp <template>asio_unit_test ]
+  [ run read_until.cpp <template>asio_unit_test ]
+  [ run seq_packet_socket_service.cpp <template>asio_unit_test ]
+  [ run signal_set.cpp <template>asio_unit_test ]
+  [ run signal_set_service.cpp <template>asio_unit_test ]
+  [ run socket_acceptor_service.cpp <template>asio_unit_test ]
+  [ run socket_base.cpp <template>asio_unit_test ]
+  [ run strand.cpp <template>asio_unit_test ]
+  [ run stream_socket_service.cpp <template>asio_unit_test ]
+  [ run streambuf.cpp <template>asio_unit_test ]
+  [ run time_traits.cpp <template>asio_unit_test ]
+  [ run windows/basic_handle.cpp <template>asio_unit_test ]
+  [ run windows/basic_random_access_handle.cpp <template>asio_unit_test ]
+  [ run windows/basic_stream_handle.cpp <template>asio_unit_test ]
+  [ run windows/overlapped_ptr.cpp <template>asio_unit_test ]
+  [ run windows/random_access_handle.cpp <template>asio_unit_test ]
+  [ run windows/random_access_handle_service.cpp <template>asio_unit_test ]
+  [ run windows/stream_handle.cpp <template>asio_unit_test ]
+  [ run windows/stream_handle_service.cpp <template>asio_unit_test ]
+  [ run write.cpp <template>asio_unit_test ]
+  [ run write_at.cpp <template>asio_unit_test ]
+  ;

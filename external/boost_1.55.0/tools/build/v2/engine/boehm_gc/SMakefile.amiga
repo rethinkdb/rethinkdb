@@ -1,0 +1,177 @@
+
+# Rewritten smakefile for amiga / sas/c. -Kjetil M.
+# Dont use the cord-package if you define parm=both or parm=reg.
+
+
+#----------------TOOLS--------------------------------
+CC=sc
+LINKER=slink
+LIBER=oml
+
+#----------------CPU OPTIONS--------------------------
+
+CPU=68060
+
+#----------------FPU OPTIONS--------------------------
+
+MATH=8
+MATHLIB=LIB:scm881.lib
+
+#----------------COMPILER OPTIONS---------------------
+
+IGNORE= IGNORE=85 IGNORE=154 IGNORE=161 IGNORE=100 
+
+OPTIMIZE=optimize optimizetime optglobal optimizerdepth=100 optimizerpeephole optloop OPTSCHED optimizerinlocal optimizerrecurdepth=100
+# optimizerinline optimizercomplexity=100
+
+OPT= $(OPTIMIZE) CPU=$(CPU) math=$(MATH) NOSTACKCHECK VERBOSE \
+MAPHUNK NOVERSION NOICONS nodebug \
+parm=reg \
+DEFINE __USE_SYSBASE
+
+
+SOPT= $(OPT) $(IGNORE) \
+DEFINE AMIGA_SKIP_SEG \
+DEFINE ATOMIC_UNCOLLECTABLE \
+DEFINE GC_AMIGA_FASTALLOC \
+DEFINE GC_AMIGA_RETRY \
+DEFINE GC_AMIGA_PRINTSTATS \
+DEFINE GC_AMIGA_GC
+
+
+#DEFINE ALL_INTERIOR_POINTERS \
+
+
+SCOPT= $(SOPT) define GC_AMIGA_MAKINGLIB
+
+CSCOPT= $(OPT) DEFINE AMIGA IGNORE=100 IGNORE=161 
+
+#------------------LINKING----------------------------
+
+
+all: gctest setjmp_t cord/cordtest
+
+clean:
+   delete *.lib gctest setjmp_t *.o *.lnk cord/*.o cord/*.lib cord/*.lnk cord/cordtest
+	smake
+
+test: setjmp_t gctest cord/cordtest
+   setjmp_t
+   gctest
+   cord/cordtest
+
+gctest: gc$(CPU).lib GCAmigaOS$(CPU).lib test.o
+   $(LINKER) LIB:c.o test.o TO gctest LIB gc$(CPU).lib LIB:sc.lib $(MATHLIB)
+
+setjmp_t: setjmp_t.o gc.h
+   $(LINKER) LIB:c.o setjmp_t.o to setjmp_t lib LIB:sc.lib
+
+cord/cordtest: cord/cordtest.o cord/cord$(CPU).lib gc$(CPU).lib
+	slink LIB:c.o cord/cordtest.o LIB $(MATHLIB) gc$(CPU).lib cord/cord$(CPU).lib LIB:sc.lib TO cord/cordtest
+
+
+#------------------LIBBING----------------------------
+
+OBJS= alloc.o reclaim.o allchblk.o misc.o mach_dep.o os_dep.o mark_rts.o headers.o mark.o obj_map.o blacklst.o finalize.o new_hblk.o real_malloc.o dyn_load.o dbg_mlc.o malloc.o stubborn.o checksums.o typd_mlc.o ptr_chck.o mallocx.o
+
+gc$(CPU).lib: $(OBJS)
+   $(LIBER) gc$(CPU).lib r $(OBJS)
+
+
+COBJS = cord/cordbscs.o cord/cordprnt.o cord/cordxtra.o
+
+cord/cord$(CPU).lib: $(COBJS)
+	oml cord/cord$(CPU).lib r $(COBJS)
+
+#------------------COMPILING--------------------------
+
+INC=  gc_private.h gc_hdrs.h gc.h gcconfig.h
+
+alloc.o : alloc.c $(INC)
+	$(CC) alloc.c $(SCOPT) ignore=7
+
+reclaim.o : reclaim.c $(INC)
+	$(CC) reclaim.c $(SCOPT)
+
+allchblk.o : allchblk.c $(INC)
+	$(CC) allchblk.c $(SCOPT)
+
+misc.o : misc.c $(INC)
+	$(CC) misc.c $(SCOPT)
+
+os_dep.o : os_dep.c $(INC) AmigaOS.c
+	$(CC) os_dep.c $(SCOPT)
+
+mark_rts.o : mark_rts.c $(INC)
+	$(CC) mark_rts.c $(SCOPT)
+
+headers.o : headers.c $(INC)
+	$(CC) headers.c $(SCOPT)
+
+mark.o : mark.c $(INC)
+	$(CC) mark.c $(SCOPT)
+
+obj_map.o : obj_map.c $(INC)
+	$(CC) obj_map.c $(SCOPT)
+
+blacklst.o : blacklst.c $(INC)
+	$(CC) blacklst.c $(SCOPT)
+
+finalize.o : finalize.c $(INC)
+	$(CC) finalize.c $(SCOPT) noopt	#Could sas/c still have problems with this one? Gctest sometimes fails to finalize all.
+
+new_hblk.o : new_hblk.c $(INC)
+	$(CC) new_hblk.c $(SCOPT)
+
+real_malloc.o : real_malloc.c $(INC)
+	$(CC) real_malloc.c $(SCOPT)
+
+dyn_load.o : dyn_load.c $(INC)
+	$(CC) dyn_load.c $(SCOPT)
+
+dbg_mlc.o : dbg_mlc.c $(INC)
+	$(CC) dbg_mlc.c $(SCOPT)
+
+malloc.o : malloc.c $(INC)
+	$(CC) malloc.c $(SCOPT)
+
+mallocx.o : mallocx.c $(INC)
+	$(CC) mallocx.c $(SCOPT)
+
+stubborn.o : stubborn.c $(INC)
+	$(CC) stubborn.c $(SCOPT)
+
+checksums.o : checksums.c $(INC)
+	$(CC) checksums.c $(SCOPT)
+
+typd_mlc.o: typd_mlc.c $(INC)
+	$(CC) typd_mlc.c $(SCOPT)
+
+mach_dep.o : mach_dep.c $(INC)
+	$(CC) mach_dep.c $(SCOPT)
+
+ptr_chck.o: ptr_chck.c $(INC)
+	$(CC) ptr_chck.c $(SCOPT)
+
+test.o : test.c $(INC)
+	$(CC) test.c $(SOPT)
+
+setjmp_t: setjmp_t.c gc.h
+   $(CC) setjmp_t.c $(SOPT)
+
+
+# cords:
+
+cord/cordbscs.o: cord/cordbscs.c
+	sc cord/cordbscs.c $(CSCOPT)
+
+cord/cordprnt.o: cord/cordprnt.c
+	sc cord/cordprnt.c $(CSCOPT)
+
+cord/cordxtra.o: cord/cordxtra.c
+	sc cord/cordxtra.c $(CSCOPT)
+
+cord/cordtest.o: cord/cordtest.c
+	sc cord/cordtest.c $(CSCOPT)
+
+

@@ -1,0 +1,41 @@
+{
+    "name": "deps-sort",
+    "version": "0.1.1",
+    "description": "sort module-deps output for deterministic browserify bundles",
+    "main": "index.js",
+    "bin": {
+        "deps-sort": "bin/cmd.js"
+    },
+    "dependencies": {
+        "through": "~2.3.4",
+        "JSONStream": "~0.6.4",
+        "minimist": "~0.0.1"
+    },
+    "devDependencies": {
+        "tap": "~0.4.0"
+    },
+    "scripts": {
+        "test": "tap test/*.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/substack/deps-sort.git"
+    },
+    "homepage": "https://github.com/substack/deps-sort",
+    "keywords": [
+        "dependency",
+        "graph",
+        "browser",
+        "browserify",
+        "module-deps",
+        "browser-pack",
+        "sorted",
+        "determinism"
+    ],
+    "author": {
+        "name": "James Halliday",
+        "email": "mail@substack.net",
+        "url": "http://substack.net"
+    },
+    "license": "MIT"
+}

@@ -1,0 +1,2396 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:tutorial Tutorial]
+
+[heading Basic Skills]
+
+The tutorial programs in this first section introduce the fundamental concepts required to use the asio toolkit. Before plunging into the complex world of network programming, these tutorial programs illustrate the basic skills using simple asynchronous timers.
+
+* [link boost_asio.tutorial.tuttimer1 Timer.1 - Using a timer synchronously]
+
+
+* [link boost_asio.tutorial.tuttimer2 Timer.2 - Using a timer asynchronously]
+
+
+* [link boost_asio.tutorial.tuttimer3 Timer.3 - Binding arguments to a handler]
+
+
+* [link boost_asio.tutorial.tuttimer4 Timer.4 - Using a member function as a handler]
+
+
+* [link boost_asio.tutorial.tuttimer5 Timer.5 - Synchronising handlers in multithreaded programs]
+
+
+
+
+[heading Introduction to Sockets]
+
+The tutorial programs in this section show how to use asio to develop simple client and server programs. These tutorial programs are based around the [@http://www.ietf.org/rfc/rfc867.txt daytime] protocol, which supports both TCP and UDP.
+
+The first three tutorial programs implement the daytime protocol using TCP.
+
+* [link boost_asio.tutorial.tutdaytime1 Daytime.1 - A synchronous TCP daytime client]
+
+
+* [link boost_asio.tutorial.tutdaytime2 Daytime.2 - A synchronous TCP daytime server]
+
+
+* [link boost_asio.tutorial.tutdaytime3 Daytime.3 - An asynchronous TCP daytime server]
+
+
+
+The next three tutorial programs implement the daytime protocol using UDP.
+
+* [link boost_asio.tutorial.tutdaytime4 Daytime.4 - A synchronous UDP daytime client]
+
+
+* [link boost_asio.tutorial.tutdaytime5 Daytime.5 - A synchronous UDP daytime server]
+
+
+* [link boost_asio.tutorial.tutdaytime6 Daytime.6 - An asynchronous UDP daytime server]
+
+
+
+The last tutorial program in this section demonstrates how asio allows the TCP and UDP servers to be easily combined into a single program.
+
+* [link boost_asio.tutorial.tutdaytime7 Daytime.7 - A combined TCP/UDP asynchronous server]
+
+
+
+
+[section:tuttimer1 Timer.1 - Using a timer synchronously]
+
+This tutorial program introduces asio by showing how to perform a blocking wait on a timer.
+
+
+
+
+
+We start by including the necessary header files.
+
+All of the asio classes can be used by simply including the `"asio.hpp"` header file.
+
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/asio.hpp>
+
+
+
+Since this example uses timers, we need to include the appropriate Boost.Date\_Time header file for manipulating times.
+
+
+  ``''''''``#include <boost/date_time/posix_time/posix_time.hpp>
+
+
+
+All programs that use asio need to have at least one 
+[link boost_asio.reference.io_service io_service] object. This class provides access to I/O functionality. We declare an object of this type first thing in the main function.
+
+
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  boost::asio::io_service io;
+
+
+
+Next we declare an object of type boost::asio::deadline\_timer. The core asio classes that provide I/O functionality (or as in this case timer functionality) always take a reference to an io\_service as their first constructor argument. The second argument to the constructor sets the timer to expire 5 seconds from now.
+
+
+
+  ``''''''``  boost::asio::deadline_timer t(io, boost::posix_time::seconds(5));
+
+
+
+In this simple example we perform a blocking wait on the timer. That is, the call to [link boost_asio.reference.basic_deadline_timer.wait deadline_timer::wait()] will not return until the timer has expired, 5 seconds after it was created (i.e. not from when the wait starts).
+
+A deadline timer is always in one of two states: "expired" or "not expired". If the [link boost_asio.reference.basic_deadline_timer.wait deadline_timer::wait()] function is called on an expired timer, it will return immediately.
+
+
+  ``''''''``  t.wait();
+
+
+
+Finally we print the obligatory `"Hello, world!"` message to show when the timer has expired.
+
+
+
+  ``''''''``  std::cout << "Hello, world!\n";
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+
+
+See the [link boost_asio.tutorial.tuttimer1.src full source listing]
+
+Return to the [link boost_asio.tutorial tutorial index]
+
+Next: [link boost_asio.tutorial.tuttimer2 Timer.2 - Using a timer asynchronously]
+
+
+
+[section:src Source listing for Timer.1]
+
+
+  ``''''''``//
+  ``''''''``// timer.cpp
+  ``''''''``// ~~~~~~~~~
+  ``''''''``//
+  ``''''''``// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+  ``''''''``//
+  ``''''''``// Distributed under the Boost Software License, Version 1.0. (See accompanying
+  ``''''''``// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  ``''''''``//
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/asio.hpp>
+  ``''''''``#include <boost/date_time/posix_time/posix_time.hpp>
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  boost::asio::io_service io;
+
+  ``''''''``  boost::asio::deadline_timer t(io, boost::posix_time::seconds(5));
+  ``''''''``  t.wait();
+
+  ``''''''``  std::cout << "Hello, world!\n";
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+Return to [link boost_asio.tutorial.tuttimer1 Timer.1 - Using a timer synchronously]
+
+[endsect]
+
+[endsect]
+
+[section:tuttimer2 Timer.2 - Using a timer asynchronously]
+
+This tutorial program demonstrates how to use asio's asynchronous callback functionality by modifying the program from tutorial Timer.1 to perform an asynchronous wait on the timer.
+
+
+
+
+
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/asio.hpp>
+  ``''''''``#include <boost/date_time/posix_time/posix_time.hpp>
+
+
+
+Using asio's asynchronous functionality means having a callback function that will be called when an asynchronous operation completes. In this program we define a function called `print` to be called when the asynchronous wait finishes.
+
+
+
+  ``''''''``void print(const boost::system::error_code& /*e*/)
+  ``''''''``{
+  ``''''''``  std::cout << "Hello, world!\n";
+  ``''''''``}
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  boost::asio::io_service io;
+
+  ``''''''``  boost::asio::deadline_timer t(io, boost::posix_time::seconds(5));
+
+
+
+Next, instead of doing a blocking wait as in tutorial Timer.1, we call the [link boost_asio.reference.basic_deadline_timer.async_wait deadline_timer::async_wait()] function to perform an asynchronous wait. When calling this function we pass the `print` callback handler that was defined above.
+
+
+  ``''''''``  t.async_wait(&print);
+
+
+
+Finally, we must call the [link boost_asio.reference.io_service.run io_service::run()] member function on the io\_service object.
+
+The asio library provides a guarantee that callback handlers will only be called from threads that are currently calling [link boost_asio.reference.io_service.run io_service::run()]. Therefore unless the [link boost_asio.reference.io_service.run io_service::run()] function is called the callback for the asynchronous wait completion will never be invoked.
+
+The [link boost_asio.reference.io_service.run io_service::run()] function will also continue to run while there is still "work" to do. In this example, the work is the asynchronous wait on the timer, so the call will not return until the timer has expired and the callback has completed.
+
+It is important to remember to give the io\_service some work to do before calling [link boost_asio.reference.io_service.run io_service::run()]. For example, if we had omitted the above call to [link boost_asio.reference.basic_deadline_timer.async_wait deadline_timer::async_wait()], the io\_service would not have had any work to do, and consequently [link boost_asio.reference.io_service.run io_service::run()] would have returned immediately.
+
+
+  ``''''''``  io.run();
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+
+
+See the [link boost_asio.tutorial.tuttimer2.src full source listing]
+
+Return to the [link boost_asio.tutorial tutorial index]
+
+Previous: [link boost_asio.tutorial.tuttimer1 Timer.1 - Using a timer synchronously]
+
+Next: [link boost_asio.tutorial.tuttimer3 Timer.3 - Binding arguments to a handler]
+
+
+
+[section:src Source listing for Timer.2]
+
+
+  ``''''''``//
+  ``''''''``// timer.cpp
+  ``''''''``// ~~~~~~~~~
+  ``''''''``//
+  ``''''''``// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+  ``''''''``//
+  ``''''''``// Distributed under the Boost Software License, Version 1.0. (See accompanying
+  ``''''''``// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  ``''''''``//
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/asio.hpp>
+  ``''''''``#include <boost/date_time/posix_time/posix_time.hpp>
+
+  ``''''''``void print(const boost::system::error_code& /*e*/)
+  ``''''''``{
+  ``''''''``  std::cout << "Hello, world!\n";
+  ``''''''``}
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  boost::asio::io_service io;
+
+  ``''''''``  boost::asio::deadline_timer t(io, boost::posix_time::seconds(5));
+  ``''''''``  t.async_wait(&print);
+
+  ``''''''``  io.run();
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+Return to [link boost_asio.tutorial.tuttimer2 Timer.2 - Using a timer asynchronously]
+
+[endsect]
+
+[endsect]
+
+[section:tuttimer3 Timer.3 - Binding arguments to a handler]
+
+In this tutorial we will modify the program from tutorial Timer.2 so that the timer fires once a second. This will show how to pass additional parameters to your handler function.
+
+
+
+
+
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/asio.hpp>
+  ``''''''``#include <boost/bind.hpp>
+  ``''''''``#include <boost/date_time/posix_time/posix_time.hpp>
+
+
+
+To implement a repeating timer using asio you need to change the timer's expiry time in your callback function, and to then start a new asynchronous wait. Obviously this means that the callback function will need to be able to access the timer object. To this end we add two new parameters to the `print` function:
+
+* A pointer to a timer object.
+
+
+* A counter so that we can stop the program when the timer fires for the sixth time.
+
+
+
+
+  ``''''''``void print(const boost::system::error_code& /*e*/,
+  ``''''''``    boost::asio::deadline_timer* t, int* count)
+  ``''''''``{
+
+
+
+As mentioned above, this tutorial program uses a counter to stop running when the timer fires for the sixth time. However you will observe that there is no explicit call to ask the io\_service to stop. Recall that in tutorial Timer.2 we learnt that the [link boost_asio.reference.io_service.run io_service::run()] function completes when there is no more "work" to do. By not starting a new asynchronous wait on the timer when `count` reaches 5, the io\_service will run out of work and stop running.
+
+
+  ``''''''``  if (*count < 5)
+  ``''''''``  {
+  ``''''''``    std::cout << *count << "\n";
+  ``''''''``    ++(*count);
+
+
+
+Next we move the expiry time for the timer along by one second from the previous expiry time. By calculating the new expiry time relative to the old, we can ensure that the timer does not drift away from the whole-second mark due to any delays in processing the handler.
+
+
+
+  ``''''''``    t->expires_at(t->expires_at() + boost::posix_time::seconds(1));
+
+
+
+Then we start a new asynchronous wait on the timer. As you can see, the boost::bind() function is used to associate the extra parameters with your callback handler. The [link boost_asio.reference.basic_deadline_timer.async_wait deadline_timer::async_wait()] function expects a handler function (or function object) with the signature `void(const boost::system::error_code&)`. Binding the additional parameters converts your `print` function into a function object that matches the signature correctly.
+
+See the [@http://www.boost.org/libs/bind/bind.html Boost.Bind documentation] for more information on how to use boost::bind().
+
+In this example, the boost::asio::placeholders::error argument to boost::bind() is a named placeholder for the error object passed to the handler. When initiating the asynchronous operation, and if using boost::bind(), you must specify only the arguments that match the handler's parameter list. In tutorial Timer.4 you will see that this placeholder may be elided if the parameter is not needed by the callback handler.
+
+
+  ``''''''``    t->async_wait(boost::bind(print,
+  ``''''''``          boost::asio::placeholders::error, t, count));
+  ``''''''``  }
+  ``''''''``}
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  boost::asio::io_service io;
+
+
+
+A new `count` variable is added so that we can stop the program when the timer fires for the sixth time.
+
+
+
+  ``''''''``  int count = 0;
+  ``''''''``  boost::asio::deadline_timer t(io, boost::posix_time::seconds(1));
+
+
+
+As in Step 4, when making the call to [link boost_asio.reference.basic_deadline_timer.async_wait deadline_timer::async_wait()] from `main` we bind the additional parameters needed for the `print` function.
+
+
+  ``''''''``  t.async_wait(boost::bind(print,
+  ``''''''``        boost::asio::placeholders::error, &t, &count));
+
+  ``''''''``  io.run();
+
+
+
+Finally, just to prove that the `count` variable was being used in the `print` handler function, we will print out its new value.
+
+
+
+  ``''''''``  std::cout << "Final count is " << count << "\n";
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+
+
+See the [link boost_asio.tutorial.tuttimer3.src full source listing]
+
+Return to the [link boost_asio.tutorial tutorial index]
+
+Previous: [link boost_asio.tutorial.tuttimer2 Timer.2 - Using a timer asynchronously]
+
+Next: [link boost_asio.tutorial.tuttimer4 Timer.4 - Using a member function as a handler]
+
+
+
+[section:src Source listing for Timer.3]
+
+
+  ``''''''``//
+  ``''''''``// timer.cpp
+  ``''''''``// ~~~~~~~~~
+  ``''''''``//
+  ``''''''``// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+  ``''''''``//
+  ``''''''``// Distributed under the Boost Software License, Version 1.0. (See accompanying
+  ``''''''``// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  ``''''''``//
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/asio.hpp>
+  ``''''''``#include <boost/bind.hpp>
+  ``''''''``#include <boost/date_time/posix_time/posix_time.hpp>
+
+  ``''''''``void print(const boost::system::error_code& /*e*/,
+  ``''''''``    boost::asio::deadline_timer* t, int* count)
+  ``''''''``{
+  ``''''''``  if (*count < 5)
+  ``''''''``  {
+  ``''''''``    std::cout << *count << "\n";
+  ``''''''``    ++(*count);
+
+  ``''''''``    t->expires_at(t->expires_at() + boost::posix_time::seconds(1));
+  ``''''''``    t->async_wait(boost::bind(print,
+  ``''''''``          boost::asio::placeholders::error, t, count));
+  ``''''''``  }
+  ``''''''``}
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  boost::asio::io_service io;
+
+  ``''''''``  int count = 0;
+  ``''''''``  boost::asio::deadline_timer t(io, boost::posix_time::seconds(1));
+  ``''''''``  t.async_wait(boost::bind(print,
+  ``''''''``        boost::asio::placeholders::error, &t, &count));
+
+  ``''''''``  io.run();
+
+  ``''''''``  std::cout << "Final count is " << count << "\n";
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+Return to [link boost_asio.tutorial.tuttimer3 Timer.3 - Binding arguments to a handler]
+
+[endsect]
+
+[endsect]
+
+[section:tuttimer4 Timer.4 - Using a member function as a handler]
+
+In this tutorial we will see how to use a class member function as a callback handler. The program should execute identically to the tutorial program from tutorial Timer.3.
+
+
+
+
+
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/asio.hpp>
+  ``''''''``#include <boost/bind.hpp>
+  ``''''''``#include <boost/date_time/posix_time/posix_time.hpp>
+
+
+
+Instead of defining a free function `print` as the callback handler, as we did in the earlier tutorial programs, we now define a class called `printer`.
+
+
+
+  ``''''''``class printer
+  ``''''''``{
+  ``''''''``public:
+
+
+
+The constructor of this class will take a reference to the io\_service object and use it when initialising the `timer_` member. The counter used to shut down the program is now also a member of the class.
+
+
+  ``''''''``  printer(boost::asio::io_service& io)
+  ``''''''``    : timer_(io, boost::posix_time::seconds(1)),
+  ``''''''``      count_(0)
+  ``''''''``  {
+
+
+
+The boost::bind() function works just as well with class member functions as with free functions. Since all non-static class member functions have an implicit `this` parameter, we need to bind `this` to the function. As in tutorial Timer.3, boost::bind() converts our callback handler (now a member function) into a function object that can be invoked as though it has the signature `void(const boost::system::error_code&)`.
+
+You will note that the boost::asio::placeholders::error placeholder is not specified here, as the `print` member function does not accept an error object as a parameter.
+
+
+  ``''''''``    timer_.async_wait(boost::bind(&printer::print, this));
+  ``''''''``  }
+
+
+
+In the class destructor we will print out the final value of the counter.
+
+
+
+  ``''''''``  ~printer()
+  ``''''''``  {
+  ``''''''``    std::cout << "Final count is " << count_ << "\n";
+  ``''''''``  }
+
+
+
+The `print` member function is very similar to the `print` function from tutorial Timer.3, except that it now operates on the class data members instead of having the timer and counter passed in as parameters.
+
+
+
+  ``''''''``  void print()
+  ``''''''``  {
+  ``''''''``    if (count_ < 5)
+  ``''''''``    {
+  ``''''''``      std::cout << count_ << "\n";
+  ``''''''``      ++count_;
+
+  ``''''''``      timer_.expires_at(timer_.expires_at() + boost::posix_time::seconds(1));
+  ``''''''``      timer_.async_wait(boost::bind(&printer::print, this));
+  ``''''''``    }
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  boost::asio::deadline_timer timer_;
+  ``''''''``  int count_;
+  ``''''''``};
+
+
+
+The `main` function is much simpler than before, as it now declares a local `printer` object before running the io\_service as normal.
+
+
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  boost::asio::io_service io;
+  ``''''''``  printer p(io);
+  ``''''''``  io.run();
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+
+
+See the [link boost_asio.tutorial.tuttimer4.src full source listing]
+
+Return to the [link boost_asio.tutorial tutorial index]
+
+Previous: [link boost_asio.tutorial.tuttimer3 Timer.3 - Binding arguments to a handler]
+
+Next: [link boost_asio.tutorial.tuttimer5 Timer.5 - Synchronising handlers in multithreaded programs]
+
+
+
+
+
+[section:src Source listing for Timer.4]
+
+
+  ``''''''``//
+  ``''''''``// timer.cpp
+  ``''''''``// ~~~~~~~~~
+  ``''''''``//
+  ``''''''``// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+  ``''''''``//
+  ``''''''``// Distributed under the Boost Software License, Version 1.0. (See accompanying
+  ``''''''``// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  ``''''''``//
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/asio.hpp>
+  ``''''''``#include <boost/bind.hpp>
+  ``''''''``#include <boost/date_time/posix_time/posix_time.hpp>
+
+  ``''''''``class printer
+  ``''''''``{
+  ``''''''``public:
+  ``''''''``  printer(boost::asio::io_service& io)
+  ``''''''``    : timer_(io, boost::posix_time::seconds(1)),
+  ``''''''``      count_(0)
+  ``''''''``  {
+  ``''''''``    timer_.async_wait(boost::bind(&printer::print, this));
+  ``''''''``  }
+
+  ``''''''``  ~printer()
+  ``''''''``  {
+  ``''''''``    std::cout << "Final count is " << count_ << "\n";
+  ``''''''``  }
+
+  ``''''''``  void print()
+  ``''''''``  {
+  ``''''''``    if (count_ < 5)
+  ``''''''``    {
+  ``''''''``      std::cout << count_ << "\n";
+  ``''''''``      ++count_;
+
+  ``''''''``      timer_.expires_at(timer_.expires_at() + boost::posix_time::seconds(1));
+  ``''''''``      timer_.async_wait(boost::bind(&printer::print, this));
+  ``''''''``    }
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  boost::asio::deadline_timer timer_;
+  ``''''''``  int count_;
+  ``''''''``};
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  boost::asio::io_service io;
+  ``''''''``  printer p(io);
+  ``''''''``  io.run();
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+Return to [link boost_asio.tutorial.tuttimer4 Timer.4 - Using a member function as a handler]
+
+[endsect]
+
+[endsect]
+
+[section:tuttimer5 Timer.5 - Synchronising handlers in multithreaded programs]
+
+This tutorial demonstrates the use of the boost::asio::strand class to synchronise callback handlers in a multithreaded program.
+
+The previous four tutorials avoided the issue of handler synchronisation by calling the [link boost_asio.reference.io_service.run io_service::run()] function from one thread only. As you already know, the asio library provides a guarantee that callback handlers will only be called from threads that are currently calling [link boost_asio.reference.io_service.run io_service::run()]. Consequently, calling [link boost_asio.reference.io_service.run io_service::run()] from only one thread ensures that callback handlers cannot run concurrently.
+
+The single threaded approach is usually the best place to start when developing applications using asio. The downside is the limitations it places on programs, particularly servers, including:
+
+* Poor responsiveness when handlers can take a long time to complete. 
+
+
+* An inability to scale on multiprocessor systems. 
+
+
+
+
+If you find yourself running into these limitations, an alternative approach is to have a pool of threads calling [link boost_asio.reference.io_service.run io_service::run()]. However, as this allows handlers to execute concurrently, we need a method of synchronisation when handlers might be accessing a shared, thread-unsafe resource.
+
+
+
+
+
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/asio.hpp>
+  ``''''''``#include <boost/thread/thread.hpp>
+  ``''''''``#include <boost/bind.hpp>
+  ``''''''``#include <boost/date_time/posix_time/posix_time.hpp>
+
+
+
+We start by defining a class called `printer`, similar to the class in the previous tutorial. This class will extend the previous tutorial by running two timers in parallel.
+
+
+
+  ``''''''``class printer
+  ``''''''``{
+  ``''''''``public:
+
+
+
+In addition to initialising a pair of boost::asio::deadline\_timer members, the constructor initialises the `strand_` member, an object of type boost::asio::strand.
+
+An boost::asio::strand guarantees that, for those handlers that are dispatched through it, an executing handler will be allowed to complete before the next one is started. This is guaranteed irrespective of the number of threads that are calling [link boost_asio.reference.io_service.run io_service::run()]. Of course, the handlers may still execute concurrently with other handlers that were not dispatched through an boost::asio::strand, or were dispatched through a different boost::asio::strand object.
+
+
+  ``''''''``  printer(boost::asio::io_service& io)
+  ``''''''``    : strand_(io),
+  ``''''''``      timer1_(io, boost::posix_time::seconds(1)),
+  ``''''''``      timer2_(io, boost::posix_time::seconds(1)),
+  ``''''''``      count_(0)
+  ``''''''``  {
+
+
+
+When initiating the asynchronous operations, each callback handler is "wrapped" using the boost::asio::strand object. The [link boost_asio.reference.io_service__strand.wrap strand::wrap()] function returns a new handler that automatically dispatches its contained handler through the boost::asio::strand object. By wrapping the handlers using the same boost::asio::strand, we are ensuring that they cannot execute concurrently.
+
+
+  ``''''''``    timer1_.async_wait(strand_.wrap(boost::bind(&printer::print1, this)));
+  ``''''''``    timer2_.async_wait(strand_.wrap(boost::bind(&printer::print2, this)));
+  ``''''''``  }
+
+  ``''''''``  ~printer()
+  ``''''''``  {
+  ``''''''``    std::cout << "Final count is " << count_ << "\n";
+  ``''''''``  }
+
+
+
+In a multithreaded program, the handlers for asynchronous operations should be synchronised if they access shared resources. In this tutorial, the shared resources used by the handlers (`print1` and `print2`) are `std::cout` and the `count_` data member.
+
+
+
+  ``''''''``  void print1()
+  ``''''''``  {
+  ``''''''``    if (count_ < 10)
+  ``''''''``    {
+  ``''''''``      std::cout << "Timer 1: " << count_ << "\n";
+  ``''''''``      ++count_;
+
+  ``''''''``      timer1_.expires_at(timer1_.expires_at() + boost::posix_time::seconds(1));
+  ``''''''``      timer1_.async_wait(strand_.wrap(boost::bind(&printer::print1, this)));
+  ``''''''``    }
+  ``''''''``  }
+
+  ``''''''``  void print2()
+  ``''''''``  {
+  ``''''''``    if (count_ < 10)
+  ``''''''``    {
+  ``''''''``      std::cout << "Timer 2: " << count_ << "\n";
+  ``''''''``      ++count_;
+
+  ``''''''``      timer2_.expires_at(timer2_.expires_at() + boost::posix_time::seconds(1));
+  ``''''''``      timer2_.async_wait(strand_.wrap(boost::bind(&printer::print2, this)));
+  ``''''''``    }
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  boost::asio::strand strand_;
+  ``''''''``  boost::asio::deadline_timer timer1_;
+  ``''''''``  boost::asio::deadline_timer timer2_;
+  ``''''''``  int count_;
+  ``''''''``};
+
+
+
+The `main` function now causes [link boost_asio.reference.io_service.run io_service::run()] to be called from two threads: the main thread and one additional thread. This is accomplished using an boost::thread object.
+
+Just as it would with a call from a single thread, concurrent calls to [link boost_asio.reference.io_service.run io_service::run()] will continue to execute while there is "work" left to do. The background thread will not exit until all asynchronous operations have completed.
+
+
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  boost::asio::io_service io;
+  ``''''''``  printer p(io);
+  ``''''''``  boost::thread t(boost::bind(&boost::asio::io_service::run, &io));
+  ``''''''``  io.run();
+  ``''''''``  t.join();
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+
+
+See the [link boost_asio.tutorial.tuttimer5.src full source listing]
+
+Return to the [link boost_asio.tutorial tutorial index]
+
+Previous: [link boost_asio.tutorial.tuttimer4 Timer.4 - Using a member function as a handler]
+
+
+
+
+
+[section:src Source listing for Timer.5]
+
+
+  ``''''''``//
+  ``''''''``// timer.cpp
+  ``''''''``// ~~~~~~~~~
+  ``''''''``//
+  ``''''''``// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+  ``''''''``//
+  ``''''''``// Distributed under the Boost Software License, Version 1.0. (See accompanying
+  ``''''''``// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  ``''''''``//
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/asio.hpp>
+  ``''''''``#include <boost/thread/thread.hpp>
+  ``''''''``#include <boost/bind.hpp>
+  ``''''''``#include <boost/date_time/posix_time/posix_time.hpp>
+
+  ``''''''``class printer
+  ``''''''``{
+  ``''''''``public:
+  ``''''''``  printer(boost::asio::io_service& io)
+  ``''''''``    : strand_(io),
+  ``''''''``      timer1_(io, boost::posix_time::seconds(1)),
+  ``''''''``      timer2_(io, boost::posix_time::seconds(1)),
+  ``''''''``      count_(0)
+  ``''''''``  {
+  ``''''''``    timer1_.async_wait(strand_.wrap(boost::bind(&printer::print1, this)));
+  ``''''''``    timer2_.async_wait(strand_.wrap(boost::bind(&printer::print2, this)));
+  ``''''''``  }
+
+  ``''''''``  ~printer()
+  ``''''''``  {
+  ``''''''``    std::cout << "Final count is " << count_ << "\n";
+  ``''''''``  }
+
+  ``''''''``  void print1()
+  ``''''''``  {
+  ``''''''``    if (count_ < 10)
+  ``''''''``    {
+  ``''''''``      std::cout << "Timer 1: " << count_ << "\n";
+  ``''''''``      ++count_;
+
+  ``''''''``      timer1_.expires_at(timer1_.expires_at() + boost::posix_time::seconds(1));
+  ``''''''``      timer1_.async_wait(strand_.wrap(boost::bind(&printer::print1, this)));
+  ``''''''``    }
+  ``''''''``  }
+
+  ``''''''``  void print2()
+  ``''''''``  {
+  ``''''''``    if (count_ < 10)
+  ``''''''``    {
+  ``''''''``      std::cout << "Timer 2: " << count_ << "\n";
+  ``''''''``      ++count_;
+
+  ``''''''``      timer2_.expires_at(timer2_.expires_at() + boost::posix_time::seconds(1));
+  ``''''''``      timer2_.async_wait(strand_.wrap(boost::bind(&printer::print2, this)));
+  ``''''''``    }
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  boost::asio::strand strand_;
+  ``''''''``  boost::asio::deadline_timer timer1_;
+  ``''''''``  boost::asio::deadline_timer timer2_;
+  ``''''''``  int count_;
+  ``''''''``};
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  boost::asio::io_service io;
+  ``''''''``  printer p(io);
+  ``''''''``  boost::thread t(boost::bind(&boost::asio::io_service::run, &io));
+  ``''''''``  io.run();
+  ``''''''``  t.join();
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+Return to [link boost_asio.tutorial.tuttimer5 Timer.5 - Synchronising handlers in multithreaded programs]
+
+[endsect]
+
+[endsect]
+
+[section:tutdaytime1 Daytime.1 - A synchronous TCP daytime client]
+
+This tutorial program shows how to use asio to implement a client application with TCP.
+
+
+
+
+
+We start by including the necessary header files.
+
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/array.hpp>
+  ``''''''``#include <boost/asio.hpp>
+
+
+
+The purpose of this application is to access a daytime service, so we need the user to specify the server.
+
+
+
+  ``''''''``using boost::asio::ip::tcp;
+
+  ``''''''``int main(int argc, char* argv[])
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+  ``''''''``    if (argc != 2)
+  ``''''''``    {
+  ``''''''``      std::cerr << "Usage: client <host>" << std::endl;
+  ``''''''``      return 1;
+  ``''''''``    }
+
+
+
+All programs that use asio need to have at least one 
+[link boost_asio.reference.io_service io_service] object.
+
+
+
+  ``''''''``    boost::asio::io_service io_service;
+
+
+
+We need to turn the server name that was specified as a parameter to the application, into a TCP endpoint. To do this we use an [link boost_asio.reference.ip__tcp.resolver ip::tcp::resolver] object.
+
+
+
+  ``''''''``    tcp::resolver resolver(io_service);
+
+
+
+A resolver takes a query object and turns it into a list of endpoints. We construct a query using the name of the server, specified in `argv[1]`, and the name of the service, in this case `"daytime"`.
+
+
+  ``''''''``    tcp::resolver::query query(argv[1], "daytime");
+
+
+
+The list of endpoints is returned using an iterator of type [link boost_asio.reference.ip__basic_resolver.iterator ip::tcp::resolver::iterator]. (Note that a default constructed [link boost_asio.reference.ip__basic_resolver.iterator ip::tcp::resolver::iterator] object can be used as an end iterator.)
+
+
+  ``''''''``    tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+
+
+
+Now we create and connect the socket. The list of endpoints obtained above may contain both IPv4 and IPv6 endpoints, so we need to try each of them until we find one that works. This keeps the client program independent of a specific IP version. The boost::asio::connect() function does this for us automatically.
+
+
+
+  ``''''''``    tcp::socket socket(io_service);
+  ``''''''``    boost::asio::connect(socket, endpoint_iterator);
+
+
+
+The connection is open. All we need to do now is read the response from the daytime service.
+
+We use a `boost::array` to hold the received data. The boost::asio::buffer() function automatically determines the size of the array to help prevent buffer overruns. Instead of a `boost::array`, we could have used a `char []` or `std::vector`.
+
+
+
+  ``''''''``    for (;;)
+  ``''''''``    {
+  ``''''''``      boost::array<char, 128> buf;
+  ``''''''``      boost::system::error_code error;
+
+  ``''''''``      size_t len = socket.read_some(boost::asio::buffer(buf), error);
+
+
+
+When the server closes the connection, the [link boost_asio.reference.basic_stream_socket.read_some ip::tcp::socket::read_some()] function will exit with the boost::asio::error::eof error, which is how we know to exit the loop.
+
+
+
+  ``''''''``      if (error == boost::asio::error::eof)
+  ``''''''``        break; // Connection closed cleanly by peer.
+  ``''''''``      else if (error)
+  ``''''''``        throw boost::system::system_error(error); // Some other error.
+
+  ``''''''``      std::cout.write(buf.data(), len);
+  ``''''''``    }
+
+
+
+Finally, handle any exceptions that may have been thrown.
+
+
+  ``''''''``  }
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+
+
+See the [link boost_asio.tutorial.tutdaytime1.src full source listing]
+
+Return to the [link boost_asio.tutorial tutorial index]
+
+Next: [link boost_asio.tutorial.tutdaytime2 Daytime.2 - A synchronous TCP daytime server]
+
+
+
+[section:src Source listing for Daytime.1]
+
+
+  ``''''''``//
+  ``''''''``// client.cpp
+  ``''''''``// ~~~~~~~~~~
+  ``''''''``//
+  ``''''''``// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+  ``''''''``//
+  ``''''''``// Distributed under the Boost Software License, Version 1.0. (See accompanying
+  ``''''''``// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  ``''''''``//
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/array.hpp>
+  ``''''''``#include <boost/asio.hpp>
+
+  ``''''''``using boost::asio::ip::tcp;
+
+  ``''''''``int main(int argc, char* argv[])
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+  ``''''''``    if (argc != 2)
+  ``''''''``    {
+  ``''''''``      std::cerr << "Usage: client <host>" << std::endl;
+  ``''''''``      return 1;
+  ``''''''``    }
+
+  ``''''''``    boost::asio::io_service io_service;
+
+  ``''''''``    tcp::resolver resolver(io_service);
+  ``''''''``    tcp::resolver::query query(argv[1], "daytime");
+  ``''''''``    tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+
+  ``''''''``    tcp::socket socket(io_service);
+  ``''''''``    boost::asio::connect(socket, endpoint_iterator);
+
+  ``''''''``    for (;;)
+  ``''''''``    {
+  ``''''''``      boost::array<char, 128> buf;
+  ``''''''``      boost::system::error_code error;
+
+  ``''''''``      size_t len = socket.read_some(boost::asio::buffer(buf), error);
+
+  ``''''''``      if (error == boost::asio::error::eof)
+  ``''''''``        break; // Connection closed cleanly by peer.
+  ``''''''``      else if (error)
+  ``''''''``        throw boost::system::system_error(error); // Some other error.
+
+  ``''''''``      std::cout.write(buf.data(), len);
+  ``''''''``    }
+  ``''''''``  }
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+Return to [link boost_asio.tutorial.tutdaytime1 Daytime.1 - A synchronous TCP daytime client]
+
+[endsect]
+
+[endsect]
+
+[section:tutdaytime2 Daytime.2 - A synchronous TCP daytime server]
+
+This tutorial program shows how to use asio to implement a server application with TCP.
+
+
+
+
+
+
+  ``''''''``#include <ctime>
+  ``''''''``#include <iostream>
+  ``''''''``#include <string>
+  ``''''''``#include <boost/asio.hpp>
+
+  ``''''''``using boost::asio::ip::tcp;
+
+
+
+We define the function `make_daytime_string()` to create the string to be sent back to the client. This function will be reused in all of our daytime server applications.
+
+
+
+  ``''''''``std::string make_daytime_string()
+  ``''''''``{
+  ``''''''``  using namespace std; // For time_t, time and ctime;
+  ``''''''``  time_t now = time(0);
+  ``''''''``  return ctime(&now);
+  ``''''''``}
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+  ``''''''``    boost::asio::io_service io_service;
+
+
+
+A [link boost_asio.reference.ip__tcp.acceptor ip::tcp::acceptor] object needs to be created to listen for new connections. It is initialised to listen on TCP port 13, for IP version 4.
+
+
+
+  ``''''''``    tcp::acceptor acceptor(io_service, tcp::endpoint(tcp::v4(), 13));
+
+
+
+This is an iterative server, which means that it will handle one connection at a time. Create a socket that will represent the connection to the client, and then wait for a connection.
+
+
+
+  ``''''''``    for (;;)
+  ``''''''``    {
+  ``''''''``      tcp::socket socket(io_service);
+  ``''''''``      acceptor.accept(socket);
+
+
+
+A client is accessing our service. Determine the current time and transfer this information to the client.
+
+
+
+  ``''''''``      std::string message = make_daytime_string();
+
+  ``''''''``      boost::system::error_code ignored_error;
+  ``''''''``      boost::asio::write(socket, boost::asio::buffer(message), ignored_error);
+  ``''''''``    }
+  ``''''''``  }
+
+
+
+Finally, handle any exceptions.
+
+
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+
+
+See the [link boost_asio.tutorial.tutdaytime2.src full source listing]
+
+Return to the [link boost_asio.tutorial tutorial index]
+
+Previous: [link boost_asio.tutorial.tutdaytime1 Daytime.1 - A synchronous TCP daytime client]
+
+Next: [link boost_asio.tutorial.tutdaytime3 Daytime.3 - An asynchronous TCP daytime server]
+
+
+
+[section:src Source listing for Daytime.2]
+
+
+  ``''''''``//
+  ``''''''``// server.cpp
+  ``''''''``// ~~~~~~~~~~
+  ``''''''``//
+  ``''''''``// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+  ``''''''``//
+  ``''''''``// Distributed under the Boost Software License, Version 1.0. (See accompanying
+  ``''''''``// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  ``''''''``//
+
+  ``''''''``#include <ctime>
+  ``''''''``#include <iostream>
+  ``''''''``#include <string>
+  ``''''''``#include <boost/asio.hpp>
+
+  ``''''''``using boost::asio::ip::tcp;
+
+  ``''''''``std::string make_daytime_string()
+  ``''''''``{
+  ``''''''``  using namespace std; // For time_t, time and ctime;
+  ``''''''``  time_t now = time(0);
+  ``''''''``  return ctime(&now);
+  ``''''''``}
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+  ``''''''``    boost::asio::io_service io_service;
+
+  ``''''''``    tcp::acceptor acceptor(io_service, tcp::endpoint(tcp::v4(), 13));
+
+  ``''''''``    for (;;)
+  ``''''''``    {
+  ``''''''``      tcp::socket socket(io_service);
+  ``''''''``      acceptor.accept(socket);
+
+  ``''''''``      std::string message = make_daytime_string();
+
+  ``''''''``      boost::system::error_code ignored_error;
+  ``''''''``      boost::asio::write(socket, boost::asio::buffer(message), ignored_error);
+  ``''''''``    }
+  ``''''''``  }
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+Return to [link boost_asio.tutorial.tutdaytime2 Daytime.2 - A synchronous TCP daytime server]
+
+[endsect]
+
+[endsect]
+
+[section:tutdaytime3 Daytime.3 - An asynchronous TCP daytime server]
+
+[heading The main() function]
+
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+
+
+
+We need to create a server object to accept incoming client connections. The 
+[link boost_asio.reference.io_service io_service] object provides I/O services, such as sockets, that the server object will use.
+
+
+  ``''''''``    boost::asio::io_service io_service;
+  ``''''''``    tcp_server server(io_service);
+
+
+
+Run the 
+[link boost_asio.reference.io_service io_service] object so that it will perform asynchronous operations on your behalf.
+
+
+  ``''''''``    io_service.run();
+  ``''''''``  }
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+
+
+[heading The tcp_server class]
+
+
+  ``''''''``class tcp_server
+  ``''''''``{
+  ``''''''``public:
+
+
+
+The constructor initialises an acceptor to listen on TCP port 13.
+
+
+  ``''''''``  tcp_server(boost::asio::io_service& io_service)
+  ``''''''``    : acceptor_(io_service, tcp::endpoint(tcp::v4(), 13))
+  ``''''''``  {
+  ``''''''``    start_accept();
+  ``''''''``  }
+
+  ``''''''``private:
+
+
+
+The function `start_accept()` creates a socket and initiates an asynchronous accept operation to wait for a new connection.
+
+
+  ``''''''``  void start_accept()
+  ``''''''``  {
+  ``''''''``    tcp_connection::pointer new_connection =
+  ``''''''``      tcp_connection::create(acceptor_.get_io_service());
+
+  ``''''''``    acceptor_.async_accept(new_connection->socket(),
+  ``''''''``        boost::bind(&tcp_server::handle_accept, this, new_connection,
+  ``''''''``          boost::asio::placeholders::error));
+  ``''''''``  }
+
+
+
+The function `handle_accept()` is called when the asynchronous accept operation initiated by `start_accept()` finishes. It services the client request, and then calls `start_accept()` to initiate the next accept operation.
+
+
+
+  ``''''''``  void handle_accept(tcp_connection::pointer new_connection,
+  ``''''''``      const boost::system::error_code& error)
+  ``''''''``  {
+  ``''''''``    if (!error)
+  ``''''''``    {
+  ``''''''``      new_connection->start();
+  ``''''''``    }
+
+  ``''''''``    start_accept();
+  ``''''''``  }
+
+
+
+[heading The tcp_connection class]
+
+We will use `shared_ptr` and `enable_shared_from_this` because we want to keep the `tcp_connection` object alive as long as there is an operation that refers to it.
+
+
+  ``''''''``class tcp_connection
+  ``''''''``  : public boost::enable_shared_from_this<tcp_connection>
+  ``''''''``{
+  ``''''''``public:
+  ``''''''``  typedef boost::shared_ptr<tcp_connection> pointer;
+
+  ``''''''``  static pointer create(boost::asio::io_service& io_service)
+  ``''''''``  {
+  ``''''''``    return pointer(new tcp_connection(io_service));
+  ``''''''``  }
+
+  ``''''''``  tcp::socket& socket()
+  ``''''''``  {
+  ``''''''``    return socket_;
+  ``''''''``  }
+
+
+
+In the function `start()`, we call boost::asio::async\_write() to serve the data to the client. Note that we are using boost::asio::async\_write(), rather than [link boost_asio.reference.basic_stream_socket.async_write_some ip::tcp::socket::async_write_some()], to ensure that the entire block of data is sent.
+
+
+
+  ``''''''``  void start()
+  ``''''''``  {
+
+
+
+The data to be sent is stored in the class member `message_` as we need to keep the data valid until the asynchronous operation is complete.
+
+
+  ``''''''``    message_ = make_daytime_string();
+
+
+
+When initiating the asynchronous operation, and if using boost::bind(), you must specify only the arguments that match the handler's parameter list. In this program, both of the argument placeholders (boost::asio::placeholders::error and boost::asio::placeholders::bytes\_transferred) could potentially have been removed, since they are not being used in `handle_write()`.
+
+
+
+  ``''''''``    boost::asio::async_write(socket_, boost::asio::buffer(message_),
+  ``''''''``        boost::bind(&tcp_connection::handle_write, shared_from_this(),
+  ``''''''``          boost::asio::placeholders::error,
+  ``''''''``          boost::asio::placeholders::bytes_transferred));
+
+
+
+Any further actions for this client connection are now the responsibility of `handle_write()`.
+
+
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  tcp_connection(boost::asio::io_service& io_service)
+  ``''''''``    : socket_(io_service)
+  ``''''''``  {
+  ``''''''``  }
+
+  ``''''''``  void handle_write(const boost::system::error_code& /*error*/,
+  ``''''''``      size_t /*bytes_transferred*/)
+  ``''''''``  {
+  ``''''''``  }
+
+  ``''''''``  tcp::socket socket_;
+  ``''''''``  std::string message_;
+  ``''''''``};
+
+
+
+[heading Removing unused handler parameters]
+
+You may have noticed that the `error`, and `bytes_transferred` parameters are not used in the body of the `handle_write()` function. If parameters are not needed, it is possible to remove them from the function so that it looks like:
+
+
+  ``''''''``  void handle_write()
+  ``''''''``  {
+  ``''''''``  }
+
+
+
+The boost::asio::async\_write() call used to initiate the call can then be changed to just:
+
+
+  ``''''''``  boost::asio::async_write(socket_, boost::asio::buffer(message_),
+  ``''''''``      boost::bind(&tcp_connection::handle_write, shared_from_this()));
+
+
+
+See the [link boost_asio.tutorial.tutdaytime3.src full source listing]
+
+Return to the [link boost_asio.tutorial tutorial index]
+
+Previous: [link boost_asio.tutorial.tutdaytime2 Daytime.2 - A synchronous TCP daytime server]
+
+Next: [link boost_asio.tutorial.tutdaytime4 Daytime.4 - A synchronous UDP daytime client]
+
+
+
+[section:src Source listing for Daytime.3]
+
+
+  ``''''''``//
+  ``''''''``// server.cpp
+  ``''''''``// ~~~~~~~~~~
+  ``''''''``//
+  ``''''''``// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+  ``''''''``//
+  ``''''''``// Distributed under the Boost Software License, Version 1.0. (See accompanying
+  ``''''''``// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  ``''''''``//
+
+  ``''''''``#include <ctime>
+  ``''''''``#include <iostream>
+  ``''''''``#include <string>
+  ``''''''``#include <boost/bind.hpp>
+  ``''''''``#include <boost/shared_ptr.hpp>
+  ``''''''``#include <boost/enable_shared_from_this.hpp>
+  ``''''''``#include <boost/asio.hpp>
+
+  ``''''''``using boost::asio::ip::tcp;
+
+  ``''''''``std::string make_daytime_string()
+  ``''''''``{
+  ``''''''``  using namespace std; // For time_t, time and ctime;
+  ``''''''``  time_t now = time(0);
+  ``''''''``  return ctime(&now);
+  ``''''''``}
+
+  ``''''''``class tcp_connection
+  ``''''''``  : public boost::enable_shared_from_this<tcp_connection>
+  ``''''''``{
+  ``''''''``public:
+  ``''''''``  typedef boost::shared_ptr<tcp_connection> pointer;
+
+  ``''''''``  static pointer create(boost::asio::io_service& io_service)
+  ``''''''``  {
+  ``''''''``    return pointer(new tcp_connection(io_service));
+  ``''''''``  }
+
+  ``''''''``  tcp::socket& socket()
+  ``''''''``  {
+  ``''''''``    return socket_;
+  ``''''''``  }
+
+  ``''''''``  void start()
+  ``''''''``  {
+  ``''''''``    message_ = make_daytime_string();
+
+  ``''''''``    boost::asio::async_write(socket_, boost::asio::buffer(message_),
+  ``''''''``        boost::bind(&tcp_connection::handle_write, shared_from_this(),
+  ``''''''``          boost::asio::placeholders::error,
+  ``''''''``          boost::asio::placeholders::bytes_transferred));
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  tcp_connection(boost::asio::io_service& io_service)
+  ``''''''``    : socket_(io_service)
+  ``''''''``  {
+  ``''''''``  }
+
+  ``''''''``  void handle_write(const boost::system::error_code& /*error*/,
+  ``''''''``      size_t /*bytes_transferred*/)
+  ``''''''``  {
+  ``''''''``  }
+
+  ``''''''``  tcp::socket socket_;
+  ``''''''``  std::string message_;
+  ``''''''``};
+
+  ``''''''``class tcp_server
+  ``''''''``{
+  ``''''''``public:
+  ``''''''``  tcp_server(boost::asio::io_service& io_service)
+  ``''''''``    : acceptor_(io_service, tcp::endpoint(tcp::v4(), 13))
+  ``''''''``  {
+  ``''''''``    start_accept();
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  void start_accept()
+  ``''''''``  {
+  ``''''''``    tcp_connection::pointer new_connection =
+  ``''''''``      tcp_connection::create(acceptor_.get_io_service());
+
+  ``''''''``    acceptor_.async_accept(new_connection->socket(),
+  ``''''''``        boost::bind(&tcp_server::handle_accept, this, new_connection,
+  ``''''''``          boost::asio::placeholders::error));
+  ``''''''``  }
+
+  ``''''''``  void handle_accept(tcp_connection::pointer new_connection,
+  ``''''''``      const boost::system::error_code& error)
+  ``''''''``  {
+  ``''''''``    if (!error)
+  ``''''''``    {
+  ``''''''``      new_connection->start();
+  ``''''''``    }
+
+  ``''''''``    start_accept();
+  ``''''''``  }
+
+  ``''''''``  tcp::acceptor acceptor_;
+  ``''''''``};
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+  ``''''''``    boost::asio::io_service io_service;
+  ``''''''``    tcp_server server(io_service);
+  ``''''''``    io_service.run();
+  ``''''''``  }
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+Return to [link boost_asio.tutorial.tutdaytime3 Daytime.3 - An asynchronous TCP daytime server]
+
+[endsect]
+
+[endsect]
+
+[section:tutdaytime4 Daytime.4 - A synchronous UDP daytime client]
+
+This tutorial program shows how to use asio to implement a client application with UDP.
+
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/array.hpp>
+  ``''''''``#include <boost/asio.hpp>
+
+  ``''''''``using boost::asio::ip::udp;
+
+
+
+The start of the application is essentially the same as for the TCP daytime client.
+
+
+
+  ``''''''``int main(int argc, char* argv[])
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+  ``''''''``    if (argc != 2)
+  ``''''''``    {
+  ``''''''``      std::cerr << "Usage: client <host>" << std::endl;
+  ``''''''``      return 1;
+  ``''''''``    }
+
+  ``''''''``    boost::asio::io_service io_service;
+
+
+
+We use an [link boost_asio.reference.ip__udp.resolver ip::udp::resolver] object to find the correct remote endpoint to use based on the host and service names. The query is restricted to return only IPv4 endpoints by the [link boost_asio.reference.ip__udp.v4 ip::udp::v4()] argument.
+
+
+
+  ``''''''``    udp::resolver resolver(io_service);
+  ``''''''``    udp::resolver::query query(udp::v4(), argv[1], "daytime");
+
+
+
+The [link boost_asio.reference.ip__basic_resolver.resolve ip::udp::resolver::resolve()] function is guaranteed to return at least one endpoint in the list if it does not fail. This means it is safe to dereference the return value directly.
+
+
+  ``''''''``    udp::endpoint receiver_endpoint = *resolver.resolve(query);
+
+
+
+Since UDP is datagram-oriented, we will not be using a stream socket. Create an [link boost_asio.reference.ip__udp.socket ip::udp::socket] and initiate contact with the remote endpoint.
+
+
+
+  ``''''''``    udp::socket socket(io_service);
+  ``''''''``    socket.open(udp::v4());
+
+  ``''''''``    boost::array<char, 1> send_buf  = {{ 0 }};
+  ``''''''``    socket.send_to(boost::asio::buffer(send_buf), receiver_endpoint);
+
+
+
+Now we need to be ready to accept whatever the server sends back to us. The endpoint on our side that receives the server's response will be initialised by [link boost_asio.reference.basic_datagram_socket.receive_from ip::udp::socket::receive_from()].
+
+
+
+  ``''''''``    boost::array<char, 128> recv_buf;
+  ``''''''``    udp::endpoint sender_endpoint;
+  ``''''''``    size_t len = socket.receive_from(
+  ``''''''``        boost::asio::buffer(recv_buf), sender_endpoint);
+
+  ``''''''``    std::cout.write(recv_buf.data(), len);
+  ``''''''``  }
+
+
+
+Finally, handle any exceptions that may have been thrown.
+
+
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+See the [link boost_asio.tutorial.tutdaytime4.src full source listing]
+
+Return to the [link boost_asio.tutorial tutorial index]
+
+Previous: [link boost_asio.tutorial.tutdaytime3 Daytime.3 - An asynchronous TCP daytime server]
+
+Next: [link boost_asio.tutorial.tutdaytime5 Daytime.5 - A synchronous UDP daytime server]
+
+
+
+[section:src Source listing for Daytime.4]
+
+
+  ``''''''``//
+  ``''''''``// client.cpp
+  ``''''''``// ~~~~~~~~~~
+  ``''''''``//
+  ``''''''``// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+  ``''''''``//
+  ``''''''``// Distributed under the Boost Software License, Version 1.0. (See accompanying
+  ``''''''``// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  ``''''''``//
+
+  ``''''''``#include <iostream>
+  ``''''''``#include <boost/array.hpp>
+  ``''''''``#include <boost/asio.hpp>
+
+  ``''''''``using boost::asio::ip::udp;
+
+  ``''''''``int main(int argc, char* argv[])
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+  ``''''''``    if (argc != 2)
+  ``''''''``    {
+  ``''''''``      std::cerr << "Usage: client <host>" << std::endl;
+  ``''''''``      return 1;
+  ``''''''``    }
+
+  ``''''''``    boost::asio::io_service io_service;
+
+  ``''''''``    udp::resolver resolver(io_service);
+  ``''''''``    udp::resolver::query query(udp::v4(), argv[1], "daytime");
+  ``''''''``    udp::endpoint receiver_endpoint = *resolver.resolve(query);
+
+  ``''''''``    udp::socket socket(io_service);
+  ``''''''``    socket.open(udp::v4());
+
+  ``''''''``    boost::array<char, 1> send_buf  = {{ 0 }};
+  ``''''''``    socket.send_to(boost::asio::buffer(send_buf), receiver_endpoint);
+
+  ``''''''``    boost::array<char, 128> recv_buf;
+  ``''''''``    udp::endpoint sender_endpoint;
+  ``''''''``    size_t len = socket.receive_from(
+  ``''''''``        boost::asio::buffer(recv_buf), sender_endpoint);
+
+  ``''''''``    std::cout.write(recv_buf.data(), len);
+  ``''''''``  }
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+Return to [link boost_asio.tutorial.tutdaytime4 Daytime.4 - A synchronous UDP daytime client]
+
+[endsect]
+
+[endsect]
+
+[section:tutdaytime5 Daytime.5 - A synchronous UDP daytime server]
+
+This tutorial program shows how to use asio to implement a server application with UDP.
+
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+  ``''''''``    boost::asio::io_service io_service;
+
+
+
+Create an [link boost_asio.reference.ip__udp.socket ip::udp::socket] object to receive requests on UDP port 13.
+
+
+
+  ``''''''``    udp::socket socket(io_service, udp::endpoint(udp::v4(), 13));
+
+
+
+Wait for a client to initiate contact with us. The remote\_endpoint object will be populated by [link boost_asio.reference.basic_datagram_socket.receive_from ip::udp::socket::receive_from()].
+
+
+
+  ``''''''``    for (;;)
+  ``''''''``    {
+  ``''''''``      boost::array<char, 1> recv_buf;
+  ``''''''``      udp::endpoint remote_endpoint;
+  ``''''''``      boost::system::error_code error;
+  ``''''''``      socket.receive_from(boost::asio::buffer(recv_buf),
+  ``''''''``          remote_endpoint, 0, error);
+
+  ``''''''``      if (error && error != boost::asio::error::message_size)
+  ``''''''``        throw boost::system::system_error(error);
+
+
+
+Determine what we are going to send back to the client.
+
+
+
+  ``''''''``      std::string message = make_daytime_string();
+
+
+
+Send the response to the remote\_endpoint.
+
+
+
+  ``''''''``      boost::system::error_code ignored_error;
+  ``''''''``      socket.send_to(boost::asio::buffer(message),
+  ``''''''``          remote_endpoint, 0, ignored_error);
+  ``''''''``    }
+  ``''''''``  }
+
+
+
+Finally, handle any exceptions.
+
+
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+
+
+See the [link boost_asio.tutorial.tutdaytime5.src full source listing]
+
+Return to the [link boost_asio.tutorial tutorial index]
+
+Previous: [link boost_asio.tutorial.tutdaytime4 Daytime.4 - A synchronous UDP daytime client]
+
+Next: [link boost_asio.tutorial.tutdaytime6 Daytime.6 - An asynchronous UDP daytime server]
+
+
+
+[section:src Source listing for Daytime.5]
+
+
+  ``''''''``//
+  ``''''''``// server.cpp
+  ``''''''``// ~~~~~~~~~~
+  ``''''''``//
+  ``''''''``// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+  ``''''''``//
+  ``''''''``// Distributed under the Boost Software License, Version 1.0. (See accompanying
+  ``''''''``// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  ``''''''``//
+
+  ``''''''``#include <ctime>
+  ``''''''``#include <iostream>
+  ``''''''``#include <string>
+  ``''''''``#include <boost/array.hpp>
+  ``''''''``#include <boost/asio.hpp>
+
+  ``''''''``using boost::asio::ip::udp;
+
+  ``''''''``std::string make_daytime_string()
+  ``''''''``{
+  ``''''''``  using namespace std; // For time_t, time and ctime;
+  ``''''''``  time_t now = time(0);
+  ``''''''``  return ctime(&now);
+  ``''''''``}
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+  ``''''''``    boost::asio::io_service io_service;
+
+  ``''''''``    udp::socket socket(io_service, udp::endpoint(udp::v4(), 13));
+
+  ``''''''``    for (;;)
+  ``''''''``    {
+  ``''''''``      boost::array<char, 1> recv_buf;
+  ``''''''``      udp::endpoint remote_endpoint;
+  ``''''''``      boost::system::error_code error;
+  ``''''''``      socket.receive_from(boost::asio::buffer(recv_buf),
+  ``''''''``          remote_endpoint, 0, error);
+
+  ``''''''``      if (error && error != boost::asio::error::message_size)
+  ``''''''``        throw boost::system::system_error(error);
+
+  ``''''''``      std::string message = make_daytime_string();
+
+  ``''''''``      boost::system::error_code ignored_error;
+  ``''''''``      socket.send_to(boost::asio::buffer(message),
+  ``''''''``          remote_endpoint, 0, ignored_error);
+  ``''''''``    }
+  ``''''''``  }
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+Return to [link boost_asio.tutorial.tutdaytime5 Daytime.5 - A synchronous UDP daytime server]
+
+[endsect]
+
+[endsect]
+
+[section:tutdaytime6 Daytime.6 - An asynchronous UDP daytime server]
+
+[heading The main() function]
+
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+
+
+
+Create a server object to accept incoming client requests, and run the 
+[link boost_asio.reference.io_service io_service] object.
+
+
+  ``''''''``    boost::asio::io_service io_service;
+  ``''''''``    udp_server server(io_service);
+  ``''''''``    io_service.run();
+  ``''''''``  }
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+
+
+[heading The udp_server class]
+
+
+  ``''''''``class udp_server
+  ``''''''``{
+  ``''''''``public:
+
+
+
+The constructor initialises a socket to listen on UDP port 13.
+
+
+  ``''''''``  udp_server(boost::asio::io_service& io_service)
+  ``''''''``    : socket_(io_service, udp::endpoint(udp::v4(), 13))
+  ``''''''``  {
+  ``''''''``    start_receive();
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  void start_receive()
+  ``''''''``  {
+
+
+
+The function [link boost_asio.reference.basic_datagram_socket.async_receive_from ip::udp::socket::async_receive_from()] will cause the application to listen in the background for a new request. When such a request is received, the 
+[link boost_asio.reference.io_service io_service] object will invoke the `handle_receive()` function with two arguments: a value of type boost::system::error\_code indicating whether the operation succeeded or failed, and a `size_t` value `bytes_transferred` specifying the number of bytes received.
+
+
+  ``''''''``    socket_.async_receive_from(
+  ``''''''``        boost::asio::buffer(recv_buffer_), remote_endpoint_,
+  ``''''''``        boost::bind(&udp_server::handle_receive, this,
+  ``''''''``          boost::asio::placeholders::error,
+  ``''''''``          boost::asio::placeholders::bytes_transferred));
+  ``''''''``  }
+
+
+
+The function `handle_receive()` will service the client request.
+
+
+
+  ``''''''``  void handle_receive(const boost::system::error_code& error,
+  ``''''''``      std::size_t /*bytes_transferred*/)
+  ``''''''``  {
+
+
+
+The `error` parameter contains the result of the asynchronous operation. Since we only provide the 1-byte `recv_buffer_` to contain the client's request, the 
+[link boost_asio.reference.io_service io_service] object would return an error if the client sent anything larger. We can ignore such an error if it comes up.
+
+
+  ``''''''``    if (!error || error == boost::asio::error::message_size)
+  ``''''''``    {
+
+
+
+Determine what we are going to send.
+
+
+  ``''''''``      boost::shared_ptr<std::string> message(
+  ``''''''``          new std::string(make_daytime_string()));
+
+
+
+We now call [link boost_asio.reference.basic_datagram_socket.async_send_to ip::udp::socket::async_send_to()] to serve the data to the client.
+
+
+
+  ``''''''``      socket_.async_send_to(boost::asio::buffer(*message), remote_endpoint_,
+  ``''''''``          boost::bind(&udp_server::handle_send, this, message,
+  ``''''''``            boost::asio::placeholders::error,
+  ``''''''``            boost::asio::placeholders::bytes_transferred));
+
+
+
+When initiating the asynchronous operation, and if using boost::bind(), you must specify only the arguments that match the handler's parameter list. In this program, both of the argument placeholders (boost::asio::placeholders::error and boost::asio::placeholders::bytes\_transferred) could potentially have been removed.
+
+Start listening for the next client request.
+
+
+
+  ``''''''``      start_receive();
+
+
+
+Any further actions for this client request are now the responsibility of `handle_send()`.
+
+
+  ``''''''``    }
+  ``''''''``  }
+
+
+
+The function `handle_send()` is invoked after the service request has been completed.
+
+
+
+  ``''''''``  void handle_send(boost::shared_ptr<std::string> /*message*/,
+  ``''''''``      const boost::system::error_code& /*error*/,
+  ``''''''``      std::size_t /*bytes_transferred*/)
+  ``''''''``  {
+  ``''''''``  }
+
+  ``''''''``  udp::socket socket_;
+  ``''''''``  udp::endpoint remote_endpoint_;
+  ``''''''``  boost::array<char, 1> recv_buffer_;
+  ``''''''``};
+
+
+
+See the [link boost_asio.tutorial.tutdaytime6.src full source listing]
+
+Return to the [link boost_asio.tutorial tutorial index]
+
+Previous: [link boost_asio.tutorial.tutdaytime5 Daytime.5 - A synchronous UDP daytime server]
+
+Next: [link boost_asio.tutorial.tutdaytime7 Daytime.7 - A combined TCP/UDP asynchronous server]
+
+
+
+[section:src Source listing for Daytime.6]
+
+
+  ``''''''``//
+  ``''''''``// server.cpp
+  ``''''''``// ~~~~~~~~~~
+  ``''''''``//
+  ``''''''``// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+  ``''''''``//
+  ``''''''``// Distributed under the Boost Software License, Version 1.0. (See accompanying
+  ``''''''``// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  ``''''''``//
+
+  ``''''''``#include <ctime>
+  ``''''''``#include <iostream>
+  ``''''''``#include <string>
+  ``''''''``#include <boost/array.hpp>
+  ``''''''``#include <boost/bind.hpp>
+  ``''''''``#include <boost/shared_ptr.hpp>
+  ``''''''``#include <boost/asio.hpp>
+
+  ``''''''``using boost::asio::ip::udp;
+
+  ``''''''``std::string make_daytime_string()
+  ``''''''``{
+  ``''''''``  using namespace std; // For time_t, time and ctime;
+  ``''''''``  time_t now = time(0);
+  ``''''''``  return ctime(&now);
+  ``''''''``}
+
+  ``''''''``class udp_server
+  ``''''''``{
+  ``''''''``public:
+  ``''''''``  udp_server(boost::asio::io_service& io_service)
+  ``''''''``    : socket_(io_service, udp::endpoint(udp::v4(), 13))
+  ``''''''``  {
+  ``''''''``    start_receive();
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  void start_receive()
+  ``''''''``  {
+  ``''''''``    socket_.async_receive_from(
+  ``''''''``        boost::asio::buffer(recv_buffer_), remote_endpoint_,
+  ``''''''``        boost::bind(&udp_server::handle_receive, this,
+  ``''''''``          boost::asio::placeholders::error,
+  ``''''''``          boost::asio::placeholders::bytes_transferred));
+  ``''''''``  }
+
+  ``''''''``  void handle_receive(const boost::system::error_code& error,
+  ``''''''``      std::size_t /*bytes_transferred*/)
+  ``''''''``  {
+  ``''''''``    if (!error || error == boost::asio::error::message_size)
+  ``''''''``    {
+  ``''''''``      boost::shared_ptr<std::string> message(
+  ``''''''``          new std::string(make_daytime_string()));
+
+  ``''''''``      socket_.async_send_to(boost::asio::buffer(*message), remote_endpoint_,
+  ``''''''``          boost::bind(&udp_server::handle_send, this, message,
+  ``''''''``            boost::asio::placeholders::error,
+  ``''''''``            boost::asio::placeholders::bytes_transferred));
+
+  ``''''''``      start_receive();
+  ``''''''``    }
+  ``''''''``  }
+
+  ``''''''``  void handle_send(boost::shared_ptr<std::string> /*message*/,
+  ``''''''``      const boost::system::error_code& /*error*/,
+  ``''''''``      std::size_t /*bytes_transferred*/)
+  ``''''''``  {
+  ``''''''``  }
+
+  ``''''''``  udp::socket socket_;
+  ``''''''``  udp::endpoint remote_endpoint_;
+  ``''''''``  boost::array<char, 1> recv_buffer_;
+  ``''''''``};
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+  ``''''''``    boost::asio::io_service io_service;
+  ``''''''``    udp_server server(io_service);
+  ``''''''``    io_service.run();
+  ``''''''``  }
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+Return to [link boost_asio.tutorial.tutdaytime6 Daytime.6 - An asynchronous UDP daytime server]
+
+[endsect]
+
+[endsect]
+
+[section:tutdaytime7 Daytime.7 - A combined TCP/UDP asynchronous server]
+
+This tutorial program shows how to combine the two asynchronous servers that we have just written, into a single server application.
+
+[heading The main() function]
+
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+  ``''''''``    boost::asio::io_service io_service;
+
+
+
+We will begin by creating a server object to accept a TCP client connection.
+
+
+  ``''''''``    tcp_server server1(io_service);
+
+
+
+We also need a server object to accept a UDP client request.
+
+
+  ``''''''``    udp_server server2(io_service);
+
+
+
+We have created two lots of work for the 
+[link boost_asio.reference.io_service io_service] object to do.
+
+
+  ``''''''``    io_service.run();
+  ``''''''``  }
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+
+
+[heading The tcp_connection and tcp_server classes]
+
+The following two classes are taken from [link boost_asio.tutorial.tutdaytime3 Daytime.3] .
+
+
+  ``''''''``class tcp_connection
+  ``''''''``  : public boost::enable_shared_from_this<tcp_connection>
+  ``''''''``{
+  ``''''''``public:
+  ``''''''``  typedef boost::shared_ptr<tcp_connection> pointer;
+
+  ``''''''``  static pointer create(boost::asio::io_service& io_service)
+  ``''''''``  {
+  ``''''''``    return pointer(new tcp_connection(io_service));
+  ``''''''``  }
+
+  ``''''''``  tcp::socket& socket()
+  ``''''''``  {
+  ``''''''``    return socket_;
+  ``''''''``  }
+
+  ``''''''``  void start()
+  ``''''''``  {
+  ``''''''``    message_ = make_daytime_string();
+
+  ``''''''``    boost::asio::async_write(socket_, boost::asio::buffer(message_),
+  ``''''''``        boost::bind(&tcp_connection::handle_write, shared_from_this()));
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  tcp_connection(boost::asio::io_service& io_service)
+  ``''''''``    : socket_(io_service)
+  ``''''''``  {
+  ``''''''``  }
+
+  ``''''''``  void handle_write()
+  ``''''''``  {
+  ``''''''``  }
+
+  ``''''''``  tcp::socket socket_;
+  ``''''''``  std::string message_;
+  ``''''''``};
+
+  ``''''''``class tcp_server
+  ``''''''``{
+  ``''''''``public:
+  ``''''''``  tcp_server(boost::asio::io_service& io_service)
+  ``''''''``    : acceptor_(io_service, tcp::endpoint(tcp::v4(), 13))
+  ``''''''``  {
+  ``''''''``    start_accept();
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  void start_accept()
+  ``''''''``  {
+  ``''''''``    tcp_connection::pointer new_connection =
+  ``''''''``      tcp_connection::create(acceptor_.get_io_service());
+
+  ``''''''``    acceptor_.async_accept(new_connection->socket(),
+  ``''''''``        boost::bind(&tcp_server::handle_accept, this, new_connection,
+  ``''''''``          boost::asio::placeholders::error));
+  ``''''''``  }
+
+  ``''''''``  void handle_accept(tcp_connection::pointer new_connection,
+  ``''''''``      const boost::system::error_code& error)
+  ``''''''``  {
+  ``''''''``    if (!error)
+  ``''''''``    {
+  ``''''''``      new_connection->start();
+  ``''''''``    }
+
+  ``''''''``    start_accept();
+  ``''''''``  }
+
+  ``''''''``  tcp::acceptor acceptor_;
+  ``''''''``};
+
+
+
+[heading The udp_server class]
+
+Similarly, this next class is taken from the [link boost_asio.tutorial.tutdaytime6 previous tutorial step] .
+
+
+  ``''''''``class udp_server
+  ``''''''``{
+  ``''''''``public:
+  ``''''''``  udp_server(boost::asio::io_service& io_service)
+  ``''''''``    : socket_(io_service, udp::endpoint(udp::v4(), 13))
+  ``''''''``  {
+  ``''''''``    start_receive();
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  void start_receive()
+  ``''''''``  {
+  ``''''''``    socket_.async_receive_from(
+  ``''''''``        boost::asio::buffer(recv_buffer_), remote_endpoint_,
+  ``''''''``        boost::bind(&udp_server::handle_receive, this,
+  ``''''''``          boost::asio::placeholders::error));
+  ``''''''``  }
+
+  ``''''''``  void handle_receive(const boost::system::error_code& error)
+  ``''''''``  {
+  ``''''''``    if (!error || error == boost::asio::error::message_size)
+  ``''''''``    {
+  ``''''''``      boost::shared_ptr<std::string> message(
+  ``''''''``          new std::string(make_daytime_string()));
+
+  ``''''''``      socket_.async_send_to(boost::asio::buffer(*message), remote_endpoint_,
+  ``''''''``          boost::bind(&udp_server::handle_send, this, message));
+
+  ``''''''``      start_receive();
+  ``''''''``    }
+  ``''''''``  }
+
+  ``''''''``  void handle_send(boost::shared_ptr<std::string> /*message*/)
+  ``''''''``  {
+  ``''''''``  }
+
+  ``''''''``  udp::socket socket_;
+  ``''''''``  udp::endpoint remote_endpoint_;
+  ``''''''``  boost::array<char, 1> recv_buffer_;
+  ``''''''``};
+
+
+
+See the [link boost_asio.tutorial.tutdaytime7.src full source listing]
+
+Return to the [link boost_asio.tutorial tutorial index]
+
+Previous: [link boost_asio.tutorial.tutdaytime6 Daytime.6 - An asynchronous UDP daytime server]
+
+
+
+[section:src Source listing for Daytime.7]
+
+
+  ``''''''``//
+  ``''''''``// server.cpp
+  ``''''''``// ~~~~~~~~~~
+  ``''''''``//
+  ``''''''``// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+  ``''''''``//
+  ``''''''``// Distributed under the Boost Software License, Version 1.0. (See accompanying
+  ``''''''``// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  ``''''''``//
+
+  ``''''''``#include <ctime>
+  ``''''''``#include <iostream>
+  ``''''''``#include <string>
+  ``''''''``#include <boost/array.hpp>
+  ``''''''``#include <boost/bind.hpp>
+  ``''''''``#include <boost/shared_ptr.hpp>
+  ``''''''``#include <boost/enable_shared_from_this.hpp>
+  ``''''''``#include <boost/asio.hpp>
+
+  ``''''''``using boost::asio::ip::tcp;
+  ``''''''``using boost::asio::ip::udp;
+
+  ``''''''``std::string make_daytime_string()
+  ``''''''``{
+  ``''''''``  using namespace std; // For time_t, time and ctime;
+  ``''''''``  time_t now = time(0);
+  ``''''''``  return ctime(&now);
+  ``''''''``}
+
+  ``''''''``class tcp_connection
+  ``''''''``  : public boost::enable_shared_from_this<tcp_connection>
+  ``''''''``{
+  ``''''''``public:
+  ``''''''``  typedef boost::shared_ptr<tcp_connection> pointer;
+
+  ``''''''``  static pointer create(boost::asio::io_service& io_service)
+  ``''''''``  {
+  ``''''''``    return pointer(new tcp_connection(io_service));
+  ``''''''``  }
+
+  ``''''''``  tcp::socket& socket()
+  ``''''''``  {
+  ``''''''``    return socket_;
+  ``''''''``  }
+
+  ``''''''``  void start()
+  ``''''''``  {
+  ``''''''``    message_ = make_daytime_string();
+
+  ``''''''``    boost::asio::async_write(socket_, boost::asio::buffer(message_),
+  ``''''''``        boost::bind(&tcp_connection::handle_write, shared_from_this()));
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  tcp_connection(boost::asio::io_service& io_service)
+  ``''''''``    : socket_(io_service)
+  ``''''''``  {
+  ``''''''``  }
+
+  ``''''''``  void handle_write()
+  ``''''''``  {
+  ``''''''``  }
+
+  ``''''''``  tcp::socket socket_;
+  ``''''''``  std::string message_;
+  ``''''''``};
+
+  ``''''''``class tcp_server
+  ``''''''``{
+  ``''''''``public:
+  ``''''''``  tcp_server(boost::asio::io_service& io_service)
+  ``''''''``    : acceptor_(io_service, tcp::endpoint(tcp::v4(), 13))
+  ``''''''``  {
+  ``''''''``    start_accept();
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  void start_accept()
+  ``''''''``  {
+  ``''''''``    tcp_connection::pointer new_connection =
+  ``''''''``      tcp_connection::create(acceptor_.get_io_service());
+
+  ``''''''``    acceptor_.async_accept(new_connection->socket(),
+  ``''''''``        boost::bind(&tcp_server::handle_accept, this, new_connection,
+  ``''''''``          boost::asio::placeholders::error));
+  ``''''''``  }
+
+  ``''''''``  void handle_accept(tcp_connection::pointer new_connection,
+  ``''''''``      const boost::system::error_code& error)
+  ``''''''``  {
+  ``''''''``    if (!error)
+  ``''''''``    {
+  ``''''''``      new_connection->start();
+  ``''''''``    }
+
+  ``''''''``    start_accept();
+  ``''''''``  }
+
+  ``''''''``  tcp::acceptor acceptor_;
+  ``''''''``};
+
+  ``''''''``class udp_server
+  ``''''''``{
+  ``''''''``public:
+  ``''''''``  udp_server(boost::asio::io_service& io_service)
+  ``''''''``    : socket_(io_service, udp::endpoint(udp::v4(), 13))
+  ``''''''``  {
+  ``''''''``    start_receive();
+  ``''''''``  }
+
+  ``''''''``private:
+  ``''''''``  void start_receive()
+  ``''''''``  {
+  ``''''''``    socket_.async_receive_from(
+  ``''''''``        boost::asio::buffer(recv_buffer_), remote_endpoint_,
+  ``''''''``        boost::bind(&udp_server::handle_receive, this,
+  ``''''''``          boost::asio::placeholders::error));
+  ``''''''``  }
+
+  ``''''''``  void handle_receive(const boost::system::error_code& error)
+  ``''''''``  {
+  ``''''''``    if (!error || error == boost::asio::error::message_size)
+  ``''''''``    {
+  ``''''''``      boost::shared_ptr<std::string> message(
+  ``''''''``          new std::string(make_daytime_string()));
+
+  ``''''''``      socket_.async_send_to(boost::asio::buffer(*message), remote_endpoint_,
+  ``''''''``          boost::bind(&udp_server::handle_send, this, message));
+
+  ``''''''``      start_receive();
+  ``''''''``    }
+  ``''''''``  }
+
+  ``''''''``  void handle_send(boost::shared_ptr<std::string> /*message*/)
+  ``''''''``  {
+  ``''''''``  }
+
+  ``''''''``  udp::socket socket_;
+  ``''''''``  udp::endpoint remote_endpoint_;
+  ``''''''``  boost::array<char, 1> recv_buffer_;
+  ``''''''``};
+
+  ``''''''``int main()
+  ``''''''``{
+  ``''''''``  try
+  ``''''''``  {
+  ``''''''``    boost::asio::io_service io_service;
+  ``''''''``    tcp_server server1(io_service);
+  ``''''''``    udp_server server2(io_service);
+  ``''''''``    io_service.run();
+  ``''''''``  }
+  ``''''''``  catch (std::exception& e)
+  ``''''''``  {
+  ``''''''``    std::cerr << e.what() << std::endl;
+  ``''''''``  }
+
+  ``''''''``  return 0;
+  ``''''''``}
+
+Return to [link boost_asio.tutorial.tutdaytime7 Daytime.7 - A combined TCP/UDP asynchronous server]
+
+[endsect]
+
+[endsect]
+
+
+[endsect]

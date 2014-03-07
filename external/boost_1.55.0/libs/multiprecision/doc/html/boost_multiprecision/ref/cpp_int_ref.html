@@ -1,0 +1,157 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>cpp_int</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../ref.html" title="Reference">
+<link rel="prev" href="number.html" title="number">
+<link rel="next" href="gmp_int_ref.html" title="gmp_int">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="number.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="gmp_int_ref.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.ref.cpp_int_ref"></a><a class="link" href="cpp_int_ref.html" title="cpp_int">cpp_int</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">multiprecision</span><span class="special">{</span>
+
+<span class="keyword">typedef</span> <span class="identifier">unspecified</span><span class="special">-</span><span class="identifier">type</span> <span class="identifier">limb_type</span><span class="special">;</span>
+
+<span class="keyword">enum</span> <span class="identifier">cpp_integer_type</span>    <span class="special">{</span> <span class="identifier">signed_magnitude</span><span class="special">,</span> <span class="identifier">unsigned_magnitude</span> <span class="special">};</span>
+<span class="keyword">enum</span> <span class="identifier">cpp_int_check_type</span>  <span class="special">{</span> <span class="identifier">checked</span><span class="special">,</span> <span class="identifier">unchecked</span> <span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="identifier">MinDigits</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span>
+          <span class="keyword">unsigned</span> <span class="identifier">MaxDits</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span>
+          <span class="identifier">cpp_integer_type</span> <span class="identifier">SignType</span> <span class="special">=</span> <span class="identifier">signed_magnitude</span><span class="special">,</span>
+          <span class="identifier">cpp_int_check_type</span> <span class="identifier">Checked</span> <span class="special">=</span> <span class="identifier">unchecked</span><span class="special">,</span>
+          <span class="keyword">class</span> <span class="identifier">Allocator</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span><span class="identifier">limb_type</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">cpp_int_backend</span><span class="special">;</span>
+<span class="comment">//</span>
+<span class="comment">// Expression templates default to et_off if there is no allocator:</span>
+<span class="comment">//</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="identifier">MinDigits</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="identifier">MaxDigits</span><span class="special">,</span> <span class="identifier">cpp_integer_type</span> <span class="identifier">SignType</span><span class="special">,</span> <span class="identifier">cpp_int_check_type</span> <span class="identifier">Checked</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">expression_template_default</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="identifier">MinDigits</span><span class="special">,</span> <span class="identifier">MaxDigits</span><span class="special">,</span> <span class="identifier">SignType</span><span class="special">,</span> <span class="identifier">Checked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span> <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">expression_template_option</span> <span class="identifier">value</span> <span class="special">=</span> <span class="identifier">et_off</span><span class="special">;</span> <span class="special">};</span>
+
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span>              <span class="identifier">cpp_int</span><span class="special">;</span>    <span class="comment">// arbitrary precision integer</span>
+<span class="keyword">typedef</span> <span class="identifier">rational_adaptor</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span>    <span class="identifier">cpp_rational_backend</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_rational_backend</span><span class="special">&gt;</span>            <span class="identifier">cpp_rational</span><span class="special">;</span> <span class="comment">// arbitrary precision rational number</span>
+
+<span class="comment">// Fixed precision unsigned types:</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">128</span><span class="special">,</span> <span class="number">128</span><span class="special">,</span> <span class="identifier">unsigned_magnitude</span><span class="special">,</span> <span class="identifier">unchecked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>   <span class="identifier">uint128_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">256</span><span class="special">,</span> <span class="number">256</span><span class="special">,</span> <span class="identifier">unsigned_magnitude</span><span class="special">,</span> <span class="identifier">unchecked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>   <span class="identifier">uint256_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">512</span><span class="special">,</span> <span class="number">512</span><span class="special">,</span> <span class="identifier">unsigned_magnitude</span><span class="special">,</span> <span class="identifier">unchecked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>   <span class="identifier">uint512_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">1024</span><span class="special">,</span> <span class="number">1024</span><span class="special">,</span> <span class="identifier">unsigned_magnitude</span><span class="special">,</span> <span class="identifier">unchecked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">uint1024_t</span><span class="special">;</span>
+
+<span class="comment">// Fixed precision signed types:</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">128</span><span class="special">,</span> <span class="number">128</span><span class="special">,</span> <span class="identifier">signed_magnitude</span><span class="special">,</span> <span class="identifier">unchecked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>     <span class="identifier">int128_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">256</span><span class="special">,</span> <span class="number">256</span><span class="special">,</span> <span class="identifier">signed_magnitude</span><span class="special">,</span> <span class="identifier">unchecked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>     <span class="identifier">int256_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">512</span><span class="special">,</span> <span class="number">512</span><span class="special">,</span> <span class="identifier">signed_magnitude</span><span class="special">,</span> <span class="identifier">unchecked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>     <span class="identifier">int512_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">1024</span><span class="special">,</span> <span class="number">1024</span><span class="special">,</span> <span class="identifier">signed_magnitude</span><span class="special">,</span> <span class="identifier">unchecked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>   <span class="identifier">int1024_t</span><span class="special">;</span>
+
+<span class="comment">// Over again, but with checking enabled this time:</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">signed_magnitude</span><span class="special">,</span> <span class="identifier">checked</span><span class="special">&gt;</span> <span class="special">&gt;</span>                 <span class="identifier">checked_cpp_int</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">rational_adaptor</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">signed_magnitude</span><span class="special">,</span> <span class="identifier">checked</span><span class="special">&gt;</span> <span class="special">&gt;</span>       <span class="identifier">checked_cpp_rational_backend</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_rational_backend</span><span class="special">&gt;</span>                                              <span class="identifier">checked_cpp_rational</span><span class="special">;</span>
+
+<span class="comment">// Checked fixed precision unsigned types:</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">128</span><span class="special">,</span> <span class="number">128</span><span class="special">,</span> <span class="identifier">unsigned_magnitude</span><span class="special">,</span> <span class="identifier">checked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>     <span class="identifier">checked_uint128_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">256</span><span class="special">,</span> <span class="number">256</span><span class="special">,</span> <span class="identifier">unsigned_magnitude</span><span class="special">,</span> <span class="identifier">checked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>     <span class="identifier">checked_uint256_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">512</span><span class="special">,</span> <span class="number">512</span><span class="special">,</span> <span class="identifier">unsigned_magnitude</span><span class="special">,</span> <span class="identifier">checked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>     <span class="identifier">checked_uint512_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">1024</span><span class="special">,</span> <span class="number">1024</span><span class="special">,</span> <span class="identifier">unsigned_magnitude</span><span class="special">,</span> <span class="identifier">checked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>   <span class="identifier">checked_uint1024_t</span><span class="special">;</span>
+
+<span class="comment">// Fixed precision signed types:</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">128</span><span class="special">,</span> <span class="number">128</span><span class="special">,</span> <span class="identifier">signed_magnitude</span><span class="special">,</span> <span class="identifier">checked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>       <span class="identifier">checked_int128_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">256</span><span class="special">,</span> <span class="number">256</span><span class="special">,</span> <span class="identifier">signed_magnitude</span><span class="special">,</span> <span class="identifier">checked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>       <span class="identifier">checked_int256_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">512</span><span class="special">,</span> <span class="number">512</span><span class="special">,</span> <span class="identifier">signed_magnitude</span><span class="special">,</span> <span class="identifier">checked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>       <span class="identifier">checked_int512_t</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_int_backend</span><span class="special">&lt;</span><span class="number">1024</span><span class="special">,</span> <span class="number">1024</span><span class="special">,</span> <span class="identifier">signed_magnitude</span><span class="special">,</span> <span class="identifier">checked</span><span class="special">,</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span>     <span class="identifier">checked_int1024_t</span><span class="special">;</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<p>
+        Class template <code class="computeroutput"><span class="identifier">cpp_int_backend</span></code>
+        fulfils all of the requirements for a <a class="link" href="backendconc.html" title="Backend Requirements">Backend</a>
+        type. Its members and non-member functions are deliberately not documented:
+        these are considered implementation details that are subject to change.
+      </p>
+<p>
+        The template arguments are:
+      </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">MinBits</span></dt>
+<dd><p>
+              Determines the number of Bits to store directly within the object before
+              resorting to dynamic memory allocation. When zero, this field is determined
+              automatically based on how many bits can be stored in union with the
+              dynamic storage header: setting a larger value may improve performance
+              as larger integer values will be stored internally before memory allocation
+              is required.
+            </p></dd>
+<dt><span class="term">MaxBits</span></dt>
+<dd><p>
+              Determines the maximum number of bits to be stored in the type: resulting
+              in a fixed precision type. When this value is the same as MinBits,
+              then the Allocator parameter is ignored, as no dynamic memory allocation
+              will ever be performed: in this situation the Allocator parameter should
+              be set to type <code class="computeroutput"><span class="keyword">void</span></code>. Note
+              that this parameter should not be used simply to prevent large memory
+              allocations, not only is that role better performed by the allocator,
+              but fixed precision integers have a tendency to allocate all of MaxBits
+              of storage more often than one would expect.
+            </p></dd>
+<dt><span class="term">SignType</span></dt>
+<dd><p>
+              Determines whether the resulting type is signed or not. Note that for
+              <a href="http://en.wikipedia.org/wiki/Arbitrary-precision_arithmetic" target="_top">arbitrary
+              precision</a> types this parameter must be <code class="computeroutput"><span class="identifier">signed_magnitude</span></code>.
+              For fixed precision types then this type may be either <code class="computeroutput"><span class="identifier">signed_magnitude</span></code> or <code class="computeroutput"><span class="identifier">unsigned_magnitude</span></code>.
+            </p></dd>
+<dt><span class="term">Checked</span></dt>
+<dd><p>
+              This parameter has two values: <code class="computeroutput"><span class="identifier">checked</span></code>
+              or <code class="computeroutput"><span class="identifier">unchecked</span></code>. See the
+              <a class="link" href="../tut/ints/cpp_int.html" title="cpp_int">tutorial</a>
+              for more information.
+            </p></dd>
+<dt><span class="term">Allocator</span></dt>
+<dd><p>
+              The allocator to use for dynamic memory allocation, or type <code class="computeroutput"><span class="keyword">void</span></code> if MaxBits == MinBits.
+            </p></dd>
+</dl>
+</div>
+<p>
+        The type of <code class="computeroutput"><span class="identifier">number_category</span><span class="special">&lt;</span><span class="identifier">cpp_int</span><span class="special">&lt;</span><span class="identifier">Args</span><span class="special">...&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span></code> is <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">int_</span><span class="special">&lt;</span><span class="identifier">number_kind_integer</span><span class="special">&gt;</span></code>.
+      </p>
+<p>
+        More information on this type can be found in the <a class="link" href="../tut/ints/cpp_int.html" title="cpp_int">tutorial</a>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="number.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="gmp_int_ref.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>History and reasons to use Boost.Container</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../container.html" title="Chapter&#160;8.&#160;Boost.Container">
+<link rel="prev" href="Cpp11_conformance.html" title="C++11 Conformance">
+<link rel="next" href="index.html" title="Indexes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="Cpp11_conformance.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../container.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="index.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="container.history_and_reasons"></a><a class="link" href="history_and_reasons.html" title="History and reasons to use Boost.Container">History and reasons to use
+    Boost.Container</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="history_and_reasons.html#container.history_and_reasons.boost_container_history">Boost.Container
+      history</a></span></dt>
+<dt><span class="section"><a href="history_and_reasons.html#container.history_and_reasons.Why_boost_container">Why
+      Boost.Container?</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.history_and_reasons.boost_container_history"></a><a class="link" href="history_and_reasons.html#container.history_and_reasons.boost_container_history" title="Boost.Container history">Boost.Container
+      history</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Container</strong></span> is a product of a long development
+        effort that started <a href="http://lists.boost.org/Archives/boost/2004/11/76263.php" target="_top">in
+        2004 with the experimental Shmem library</a>, which pioneered the use
+        of standard containers in shared memory. Shmem included modified SGI STL
+        container code tweaked to support non-raw <code class="computeroutput"><span class="identifier">allocator</span><span class="special">::</span><span class="identifier">pointer</span></code>
+        types and stateful allocators. Once reviewed, Shmem was accepted as <a href="http://www.boost.org/libs/interprocess/" target="_top">Boost.Interprocess</a>
+        and this library continued to refine and improve those containers.
+      </p>
+<p>
+        In 2007, container code from node containers (<code class="computeroutput"><span class="identifier">map</span></code>,
+        <code class="computeroutput"><span class="identifier">list</span></code>, <code class="computeroutput"><span class="identifier">slist</span></code>)
+        was rewritten, refactored and expanded to build the intrusive container library
+        <a href="http://www.boost.org/libs/intrusive/" target="_top">Boost.Intrusive</a>.
+        <span class="bold"><strong>Boost.Interprocess</strong></span> containers were refactored
+        to take advantage of <span class="bold"><strong>Boost.Intrusive</strong></span> containers
+        and code duplication was minimized. Both libraries continued to gain support
+        and bug fixes for years. They introduced move semantics, emplacement insertion
+        and more features of then unreleased C++0x standard.
+      </p>
+<p>
+        <span class="bold"><strong>Boost.Interprocess</strong></span> containers were always
+        standard compliant, and those containers and new containers like <code class="computeroutput"><span class="identifier">stable_vector</span></code> and <code class="computeroutput"><span class="identifier">flat_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span><span class="special">/</span><span class="identifier">map</span></code> were used outside <span class="bold"><strong>Boost.Interprocess</strong></span>
+        with success. As containers were mature enough to get their own library,
+        it was a natural step to collect them containers and build <span class="bold"><strong>Boost.Container</strong></span>,
+        a library targeted to a wider audience.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.history_and_reasons.Why_boost_container"></a><a class="link" href="history_and_reasons.html#container.history_and_reasons.Why_boost_container" title="Why Boost.Container?">Why
+      Boost.Container?</a>
+</h3></div></div></div>
+<p>
+        With so many high quality standard library implementations out there, why
+        would you want to use <span class="bold"><strong>Boost.Container</strong></span>? There
+        are several reasons for that:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            If you have a C++03 compiler, you can have access to C++11 features and
+            have an easy code migration when you change your compiler.
+          </li>
+<li class="listitem">
+            It's compatible with <span class="bold"><strong>Boost.Interprocess</strong></span>
+            shared memory allocators.
+          </li>
+<li class="listitem">
+            You have extremely useful new containers like <code class="computeroutput"><span class="identifier">stable_vector</span></code>
+            and <code class="computeroutput"><span class="identifier">flat_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span><span class="special">/</span><span class="identifier">map</span></code>.
+          </li>
+<li class="listitem">
+            If you work on multiple platforms, you'll have a portable behaviour without
+            depending on the std-lib implementation conformance of each platform.
+            Some examples:
+            <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                  Default constructors don't allocate memory at all, which improves
+                  performance and usually implies a no-throw guarantee (if predicate's
+                  or allocator's default constructor doesn't throw).
+                </li>
+<li class="listitem">
+                  Small string optimization for <code class="computeroutput"><a class="link" href="../boost/container/basic_string.html" title="Class template basic_string">basic_string</a></code>.
+                </li>
+</ul></div>
+          </li>
+<li class="listitem">
+            New extensions beyond the standard based on user feedback to improve
+            code performance.
+          </li>
+<li class="listitem">
+            You need a portable implementation that works when compiling without
+            exceptions support or you need to customize the error handling when a
+            container needs to signall an exceptional error.
+          </li>
+</ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="Cpp11_conformance.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../container.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="index.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

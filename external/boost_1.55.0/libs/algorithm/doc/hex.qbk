@@ -1,0 +1,109 @@
+[/ File hex.qbk]
+
+[section:hex hex]
+
+[/license
+Copyright (c) 2011-2012 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+The header file `'boost/algorithm/hex.hpp'` contains three variants each of two algorithms, `hex` and `unhex`. They are inverse algorithms; that is, one undoes the effort of the other. `hex` takes a sequence of values, and turns them into hexadecimal characters. `unhex` takes a sequence of hexadecimal characters, and outputs a sequence of values.
+
+`hex` and `unhex` come from MySQL, where they are used in database queries and stored procedures.
+
+[heading interface]
+
+The function `hex` takes a sequence of values and writes hexadecimal characters. There are three different interfaces, differing only in how the input sequence is specified.
+
+The first one takes an iterator pair. The second one takes a pointer to the start of a zero-terminated sequence, such as a c string, and the third takes a range as defined by the Boost.Range library.
+
+``
+template <typename InputIterator, typename OutputIterator>
+OutputIterator hex ( InputIterator first, InputIterator last, OutputIterator out );
+
+template <typename T, typename OutputIterator>
+OutputIterator hex ( const T *ptr, OutputIterator out );
+
+template <typename Range, typename OutputIterator>
+OutputIterator hex ( const Range &r, OutputIterator out );
+``
+
+`hex` writes only values in the range '0'..'9' and 'A'..'F', but is not limited to character output. The output iterator could refer to a wstring, or a vector of integers, or any other integral type.
+
+The function `unhex` takes the output of `hex` and turns it back into a sequence of values.
+
+The input parameters for the different variations of `unhex` are the same as `hex`.
+
+``
+template <typename InputIterator, typename OutputIterator>
+OutputIterator unhex ( InputIterator first, InputIterator last, OutputIterator out );
+
+template <typename T, typename OutputIterator>
+OutputIterator unhex ( const T *ptr, OutputIterator out );
+
+template <typename Range, typename OutputIterator>
+OutputIterator unhex ( const Range &r, OutputIterator out );
+``
+
+[heading Error Handling]
+The header 'hex.hpp' defines three exception classes:
+``
+struct hex_decode_error: virtual boost::exception, virtual std::exception {};
+struct not_enough_input : public hex_decode_error;
+struct non_hex_input : public hex_decode_error;
+``
+
+If the input to `unhex` does not contain an "even number" of hex digits, then an exception of type `boost::algorithm::not_enough_input` is thrown.
+
+If the input to `unhex` contains any non-hexadecimal characters, then an exception of type `boost::algorithm::non_hex_input` is thrown.
+
+If you want to catch all the decoding errors, you can catch exceptions of type `boost::algorithm::hex_decode_error`.
+
+[heading Examples]
+
+Assuming that `out` is an iterator that accepts `char` values, and `wout` accepts `wchar_t` values (and that sizeof ( wchar_t ) == 2)
+
+``
+hex ( "abcdef", out )  --> "616263646566"
+hex ( "32", out )     --> "3332"
+hex ( "abcdef", wout ) --> "006100620063006400650066"
+hex ( "32", wout )    --> "00330032"
+
+unhex ( "616263646566", out )  --> "abcdef"
+unhex ( "3332", out )          --> "32"
+unhex ( "616263646566", wout ) --> "\6162\6364\6566"	( i.e, a 3 character string )
+unhex ( "3332", wout )         --> "\3233"				( U+3332, SQUARE HUARADDO )
+
+unhex ( "3", out )            --> Error - not enough input
+unhex ( "32", wout )          --> Error - not enough input
+
+unhex ( "ACEG", out )         --> Error - non-hex input
+
+``
+
+[heading Iterator Requirements]
+
+`hex` and `unhex` work on all iterator types.
+
+[heading Complexity]
+
+All of the variants of `hex` and `unhex` run in ['O(N)] (linear) time; that is, that is, they process each element in the input sequence once.
+
+[heading Exception Safety]
+
+All of the variants of `hex` and `unhex` take their parameters by value or const reference, and do not depend upon any global state. Therefore, all the routines in this file provide the strong exception guarantee. However, when working on input iterators, if an exception is thrown, the input iterators will not be reset to their original values (i.e, the characters read from the iterator cannot be un-read)
+
+[heading Notes]
+
+* `hex` and `unhex` both do nothing when passed empty ranges.
+
+[endsect]
+
+[/ File hex.qbk
+Copyright 2011 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

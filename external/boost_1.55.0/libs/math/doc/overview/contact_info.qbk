@@ -1,0 +1,25 @@
+
+[section:contact Contact Info and Support]
+
+The main support for this library is via the Boost mailing lists:
+
+* Use the 
+[@http://www.boost.org/more/mailing_lists.htm#users boost-user list] 
+for general support questions.
+* Use the 
+[@http://www.boost.org/more/mailing_lists.htm#main boost-developer list] 
+for discussion about implementation
+and or submission of extensions.
+
+You can also find JM at john - at - johnmaddock.co.uk and PAB at
+pbristow - at - hetp.u-net.com.
+
+[endsect]
+
+[/ 
+  Copyright 2006 John Maddock and Paul A. Bristow.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+

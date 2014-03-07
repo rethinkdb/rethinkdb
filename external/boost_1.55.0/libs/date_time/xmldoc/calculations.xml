@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2004 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.calculations">
+  <title>Calculations</title>
+
+  <para>
+    <link linkend="timepoints">Timepoints</link> -- 
+    <link linkend="durations">Durations</link> -- 
+    <link linkend="intervals">Intervals (Periods)</link> -- 
+    <link linkend="special_value_handling">Special Value Handling</link>
+  </para>
+  <anchor id="timepoints" />
+  <bridgehead renderas="sect3">Timepoints</bridgehead>
+  <para>
+    This section describes some of basic arithmetic rules that can be performed with timepoints. In general, Timepoints support basic arithmetic in conjunction with Durations as follows:
+    <programlisting>
+      Timepoint + Duration  --> Timepoint
+      Timepoint - Duration  --> Timepoint
+      Timepoint - Timepoint --> Duration
+    </programlisting>
+    Unlike regular numeric types, the following operations are undefined:
+    <programlisting>
+      Duration + Timepoint  --> Undefined
+      Duration - Timepoint  --> Undefined
+      Timepoint + Timepoint --> Undefined
+    </programlisting>
+  </para>
+  <anchor id="durations" />
+  <bridgehead renderas="sect3">Durations</bridgehead>
+  <para>
+    Durations represent a length of time and can have positive and negative values. It is frequently useful to be able to perform calculations with other durations and with simple integral values. The following describes these calculations:
+    <programlisting>
+      Duration + Duration  --> Duration
+      Duration - Duration  --> Duration
+      
+      Duration * Integer   --> Duration
+      Integer  * Duration  --> Duration
+      Duration / Integer   --> Duration  (Integer Division rules)
+    </programlisting>
+  </para>
+  <anchor id="intervals" />
+  <bridgehead renderas="sect3">Intervals (Periods)</bridgehead>
+  <para>
+    Interval logic is extremely useful for simplifying many 'calculations' for dates and times. The following describes the operations provided by periods which are based on half-open range. The following operations calculate new time periods based on two input time periods: 
+    <programlisting>
+Timeperiod intersection Timeperiod --> Timeperiod 
+  (null interval if no intersection)
+Timeperiod merge Timeperiod        --> Timeperiod 
+  (null interval if no intersection)
+Timeperiod shift Duration          --> Timeperiod 
+  (shift start and end by duration amount)
+    </programlisting>
+    In addition, periods support various queries that calculate boolean results. The first set is caluculations with other time periods:
+    <programlisting>
+  Timeperiod == Timeperiod           --> bool
+  Timeperiod &lt; Timeperiod            --> bool (true if lhs.last &lt;= rhs.begin)
+  Timeperiod intersects Timeperiod   --> bool
+  Timeperiod contains Timeperiod     --> bool
+  Timeperiod is_adjacent Timeperiod  --> bool 
+    </programlisting>
+    The following calculations are performed versus the Timepoint.
+    <programlisting>
+  Timeperiod contains Timepoint      --> bool
+  Timeperiod is_before Timepoint     --> bool
+  Timeperiod is_after Timepoint      --> bool 
+    </programlisting>
+  </para>
+  <anchor id="special_value_handling" />
+  <bridgehead renderas="sect3">Special Value Handling</bridgehead>
+  <para>
+    For many temporal problems it is useful for Duration and Timepoint types to support special values such as Not A Date Time (NADT) and infinity. In general special values such as Not A Date Time (NADT) and infinity should follow rules like floating point values. Note that it should be possible to configure NADT based systems to throw an exception instead of result in NADT. 
+    <programlisting>
+  Timepoint(NADT) + Duration --> Timepoint(NADT)
+  Timepoint(&#8734;) + Duration    --> Timepoint(&#8734;)
+  Timepoint + Duration(&#8734;)    --> Timepoint(&#8734;)
+  Timepoint - Duration(&#8734;)    --> Timepoint(-&#8734;)
+    </programlisting>
+    When performing operations on both positive and negative infinities, the library will produce results consistent with the following. 
+    <programlisting>
+  Timepoint(+&#8734;) + Duration(-&#8734;) --> NADT
+  Duration(+&#8734;) + Duration(-&#8734;)  --> NADT
+  Duration(&#177;&#8734;) * Zero          --> NADT
+  
+  Duration(&#8734;) * Integer(Not Zero) --> Duration(&#8734;)
+  Duration(+&#8734;) * -Integer         --> Duration(-&#8734;)
+  Duration(&#8734;) / Integer           --> Duration(&#8734;)
+    </programlisting>
+  </para>
+</section>

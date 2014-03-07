@@ -1,0 +1,213 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Future work</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+<link rel="start" href="index.html">
+<link rel="prev" href="tests.html">
+<link rel="up" href="index.html">
+<link rel="next" href="release_notes.html">
+</head>
+
+<body>
+<h1><img src="../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Future work</h1>
+
+<div class="prev_link"><a href="tests.html"><img src="prev.gif" alt="tests" border="0"><br>
+Tests
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="release_notes.html"><img src="next.gif" alt="release notes" border="0"><br>
+Release notes
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<p>
+A number of new functionalities are considered for inclusion into
+future releases of Boost.MultiIndex. Some of them depend on the
+potential for extensibility of the library, which has been a guiding
+principle driving the current internal design of <code>multi_index_container</code>.
+</p>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#ranked_indices">Ranked indices</a></li>
+  <li><a href="#notifying">Notifying indices</a></li>
+  <li><a href="#constraints">Constraints</a></li>
+  <li><a href="#user_defined_indices">User-defined indices</a></li>
+  <li><a href="#indexed_maps">Indexed maps</a></li>
+</ul>
+
+<h2><a name="ranked_indices">Ranked indices</a></h2>
+
+<p>
+Ordered indices are implemented using red-black trees; these trees
+can be augmented with additional information to obtain a type
+of data structure called
+<a href="http://pine.cs.yale.edu/pinewiki/OrderStatisticsTree"><i>order-statistics
+trees</i></a>, allowing for logarithmic search of the <i>n</i>-th element. It
+has been proposed that order-statistics trees be used to devise a new type of
+<i>ranked indices</i> that support <code>operator[]</code> while retaining
+the functionality of ordered indices.
+</p>
+
+<h2><a name="notifying">Notifying indices</a></h2>
+
+<p>
+<i>Notifying indices</i> can be implemented as decorators over
+preexistent index types, with the added functionality that internal
+events of the index (insertion, erasing, modifying of elements) are
+signalled to an external entity --for instance, by means of the
+<a href="../../../doc/html/signals.html">Boost.Signals</a>
+library. This functionality can have applications for:
+<ol>
+  <li>Logging,</li>
+  <li>interfacing to GUI-based applications,</li>
+  <li>synchronization between separate data structures.</li>
+</ol>
+</p>
+
+<p>
+The following is a sketch of a possible realization of notifying
+indices:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>insert_log</span>
+<span class=special>{</span>
+  <span class=keyword>void</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>int</span> <span class=identifier>x</span><span class=special>)</span>
+  <span class=special>{</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>clog</span><span class=special>&lt;&lt;</span><span class=string>&quot;insert: &quot;</span><span class=special>&lt;&lt;</span><span class=identifier>x</span><span class=special>&lt;&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>endl</span><span class=special>;</span>
+  <span class=special>}</span>
+<span class=special>};</span>
+
+<span class=keyword>int</span> <span class=identifier>main</span><span class=special>()</span>
+<span class=special>{</span>
+  <span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+    <span class=keyword>int</span><span class=special>,</span>
+    <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+      <span class=identifier>notifying</span><span class=special>&lt;</span><span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=special>&gt;,</span> <span class=comment>// notifying index</span>
+      <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+    <span class=special>&gt;</span>
+  <span class=special>&gt;</span> <span class=identifier>indexed_t</span><span class=special>;</span>
+
+  <span class=identifier>indexed_t</span> <span class=identifier>t</span><span class=special>;</span>
+
+  <span class=comment>// on_insert is the signal associated to insertions</span>
+  <span class=identifier>t</span><span class=special>.</span><span class=identifier>on_insert</span><span class=special>.</span><span class=identifier>connect</span><span class=special>(</span><span class=identifier>insert_log</span><span class=special>());</span>
+
+  <span class=identifier>t</span><span class=special>.</span><span class=identifier>insert</span><span class=special>(</span><span class=number>0</span><span class=special>);</span>
+  <span class=identifier>t</span><span class=special>.</span><span class=identifier>insert</span><span class=special>(</span><span class=number>1</span><span class=special>);</span>
+
+  <span class=keyword>return</span> <span class=number>0</span><span class=special>;</span>
+<span class=special>}</span>
+
+<span class=comment>// output:
+//   insert: 0
+//   insert: 1</span>
+</pre></blockquote>
+
+<h2><a name="constraints">Constraints</a></h2>
+
+<p>
+The notifying indices functionality described above exploits a powerful
+design pattern based on <i>index adaptors</i>, decorators over preexistent
+indices which add some functionality or somehow change the semantics of
+the underlying index. This pattern can be used for the implementation
+of <i>constraints</i>, adaptors that restrict the elements accepted by an
+index according to some validation predicate. The following is a possible
+realization of how constraints syntax may look like: 
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>is_even</span>
+<span class=special>{</span>
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>int</span> <span class=identifier>x</span><span class=special>)</span><span class=keyword>const</span><span class=special>{</span><span class=keyword>return</span> <span class=identifier>x</span><span class=special>%</span><span class=number>2</span><span class=special>==</span><span class=number>0</span><span class=special>;}</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>constrained</span><span class=special>&lt;</span><span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span><span class=identifier>is_even</span><span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>indexed_t</span><span class=special>;</span>
+</pre></blockquote>
+
+<h2><a name="user_defined_indices">User-defined indices</a></h2>
+
+<p>
+The mechanisms by which Boost.MultiIndex orchestrates the
+operations of the indices held by a <code>multi_index_container</code> are
+simple enough to make them worth documenting so that the (bold)
+user can write implementations for her own indices.
+</p>
+
+<h2><a name="indexed_maps">Indexed maps</a></h2>
+
+<p>
+<code>multi_index_container</code> is rich enough to provide the basis
+for implementation of <i>indexed maps</i>, i.e. maps which
+can be looked upon several different keys. The motivation for having
+such a container is mainly aesthetic convenience, since it
+would not provide any additional feature to similar constructs
+based directly on <code>multi_index_container</code>.
+</p>
+
+<p>
+The main challenge in writing an indexed map lies in the design of a
+reasonable interface that resembles that of <code>std::map</code> as
+much as possible. There seem to be fundamental difficulties in extending
+the syntax of a <code>std::map</code> to multiple keys. For one example,
+consider the situation:
+</p>
+
+<blockquote><pre>
+<span class=identifier>indexed_map</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>,</span><span class=identifier>string</span><span class=special>,</span><span class=keyword>double</span><span class=special>&gt;</span> <span class=identifier>m</span><span class=special>;</span>
+<span class=comment>// keys are int and string, double is the mapped to value</span>
+
+<span class=special>...</span>
+
+<span class=identifier>cout</span><span class=special>&lt;&lt;</span><span class=identifier>m</span><span class=special>[</span><span class=number>0</span><span class=special>]&lt;&lt;</span><span class=identifier>endl</span><span class=special>;</span>      <span class=comment>// OK</span>
+<span class=identifier>cout</span><span class=special>&lt;&lt;</span><span class=identifier>m</span><span class=special>[</span><span class=string>&quot;zero&quot;</span><span class=special>]&lt;&lt;</span><span class=identifier>endl</span><span class=special>;</span> <span class=comment>// OK</span>
+<span class=identifier>m</span><span class=special>[</span><span class=number>1</span><span class=special>]=</span><span class=number>1.0</span><span class=special>;</span>              <span class=comment>// !!</span>
+</pre></blockquote>
+
+<p>
+In the last sentence of the example, the user has no way of
+providing the <code>string</code> key mapping to the same value
+as <code>m[1]</code>. This and similar problems have to be devoted
+a careful study when designing the interface of a potential
+indexed map.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="tests.html"><img src="prev.gif" alt="tests" border="0"><br>
+Tests
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="release_notes.html"><img src="next.gif" alt="release notes" border="0"><br>
+Release notes
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised July 6th 2013</p>
+
+<p>&copy; Copyright 2003-2013 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

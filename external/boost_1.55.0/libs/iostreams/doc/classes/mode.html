@@ -1,0 +1,105 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Class Template mode_of</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Class Template <CODE>mode_of</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P><A HREF="http://www.boost.org/libs/mpl/doc/refmanual/metafunction.html" TARGET="_top">Metafunction</A> returning a <A HREF="../guide/modes.html#mode_tags">mode tag</A> corresponding the the <A HREF="../guide/modes.html">mode</A> of a model of one of the <A HREF="../guide/concepts.html#filter_concepts">Filter</A> or <A HREF="../guide/concepts.html#device_concepts">Device</A> concepts.</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/traits.hpp"><CODE>&lt;boost/iostreams/traits.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A HREF="#template_params" CLASS="documented">T</A>&gt;
+<SPAN CLASS="keyword">struct</SPAN> mode_of {
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">see below</SPAN> <A HREF="#type" CLASS="documented">type</A>;
+};
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+    <TR>
+        <TD VALIGN="top"><I>T</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A Model of one of the <A HREF="../guide/concepts.html#filter_concepts">Filter</A> or <A HREF="../guide/concepts.html#device_concepts">Device</A> concepts</TD>
+    </TR>
+</TABLE>
+
+<A NAME="type"></A>
+<H4><CODE>mode_of::type</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">implementation-defined</SPAN> <A HREF="#type" CLASS="documented">type</A>;</PRE>
+
+<P>The most-derived <A HREF="../guide/modes.html#mode_tags">mode tag</A> to which <A HREF="../guide/traits.html#category"><CODE>category_of&lt;T&gt;::type</CODE></A> is convertible. If there is no such most-derived tag, a compile-time error occurs.</P>
+
+<P>Modes assigned to standard library types are displayed in the following table.</P>
+
+<TABLE STYLE="margin-bottom:2em" BORDER=1 CELLPADDING=4>
+    <TR><TH><CODE>T</CODE></TH><TH><CODE>category</CODE></TH></TR>
+    <TR>
+        <TD VALIGN="top">Specialization of <CODE>std::basic_iostream</CODE>, or derived from such a specialization</TD>
+        <TD><CODE>seekable</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">Specialization of <CODE>std::basic_istream</CODE>, or derived from such a specialization</TD>
+        <TD><CODE>input_seekable</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">Specialization of <CODE>std::basic_ostream</CODE>, or derived from such a specialization</TD>
+        <TD><CODE>output_seekable</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">Specialization of <CODE>std::basic_streambuf</CODE>, or derived from such a specialization</TD>
+        <TD><CODE>seekable</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">Specialization of <CODE>std::back_insert_iterator</CODE>, or derived from such a specialization</TD>
+        <TD><CODE>output</CODE></TD>
+    </TR>
+</TABLE>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

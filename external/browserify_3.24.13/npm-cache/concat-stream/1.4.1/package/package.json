@@ -1,0 +1,51 @@
+{
+  "name": "concat-stream",
+  "description": "writable stream that concatenates strings or binary data and calls a callback with the result",
+  "tags": [
+    "stream",
+    "simple",
+    "util",
+    "utility"
+  ],
+  "version": "1.4.1",
+  "author": "Max Ogden <max@maxogden.com>",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/maxogden/node-concat-stream.git"
+  },
+  "bugs": {
+    "url": "http://github.com/maxogden/node-concat-stream/issues"
+  },
+  "engines": [
+    "node >= 0.8"
+  ],
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test/*.js test/server/*.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "inherits": "~2.0.1",
+    "typedarray": "~0.0.5",
+    "readable-stream": "~1.1.9"
+  },
+  "devDependencies": {
+    "tape": "~2.3.2"
+  },
+  "testling": {
+    "files": "test/*.js",
+    "browsers": [
+      "ie/8..latest",
+      "firefox/17..latest",
+      "firefox/nightly",
+      "chrome/22..latest",
+      "chrome/canary",
+      "opera/12..latest",
+      "opera/next",
+      "safari/5.1..latest",
+      "ipad/6.0..latest",
+      "iphone/6.0..latest",
+      "android-browser/4.2..latest"
+    ]
+  }
+}

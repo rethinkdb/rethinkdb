@@ -1,0 +1,172 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;31.&#160;Thread 4.2.0</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="string_algo/credits.html" title="Credits">
+<link rel="next" href="thread/build.html" title="Using and building the library">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="string_algo/credits.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="thread/build.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="thread"></a>Chapter&#160;31.&#160;Thread 4.2.0</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Anthony</span> <span class="surname">Williams</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Vicente J.</span> <span class="surname">Botet Escriba</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2007 -11 Anthony Williams</p></div>
+<div><p class="copyright">Copyright &#169; 2011 -13 Vicente J. Botet Escriba</p></div>
+<div><div class="legalnotice">
+<a name="thread.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="thread.html#thread.overview">Overview</a></span></dt>
+<dt><span class="section"><a href="thread/build.html">Using and building the library</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="thread/build.html#thread.build.configuration">Configuration</a></span></dt>
+<dt><span class="section"><a href="thread/build.html#thread.build.limitations">Limitations</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="thread/changes.html">History</a></span></dt>
+<dt><span class="section"><a href="thread/future.html">Future</a></span></dt>
+<dt><span class="section"><a href="thread/thread_management.html">Thread Management</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="thread/thread_management.html#thread.thread_management.synopsis">Synopsis</a></span></dt>
+<dt><span class="section"><a href="thread/thread_management.html#thread.thread_management.tutorial">Tutorial</a></span></dt>
+<dt><span class="section"><a href="thread/thread_management.html#thread.thread_management.thread">Class <code class="computeroutput"><span class="identifier">thread</span></code></a></span></dt>
+<dt><span class="section"><a href="thread/thread_management.html#thread.thread_management.this_thread">Namespace <code class="computeroutput"><span class="identifier">this_thread</span></code></a></span></dt>
+<dt><span class="section"><a href="thread/thread_management.html#thread.thread_management.threadgroup">Class <code class="computeroutput"><span class="identifier">thread_group</span></code> EXTENSION</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="thread/ScopedThreads.html">Scoped Threads</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="thread/ScopedThreads.html#thread.ScopedThreads.motovation">Motivation</a></span></dt>
+<dt><span class="section"><a href="thread/ScopedThreads.html#thread.ScopedThreads.tutorial">Tutorial</a></span></dt>
+<dt><span class="section"><a href="thread/ScopedThreads.html#thread.ScopedThreads.thread_functors">Free Thread Functors</a></span></dt>
+<dt><span class="section"><a href="thread/ScopedThreads.html#thread.ScopedThreads.strict_scoped_thread">Class <code class="computeroutput"><span class="identifier">strict_scoped_thread</span></code></a></span></dt>
+<dt><span class="section"><a href="thread/ScopedThreads.html#thread.ScopedThreads.scoped_thread">Class <code class="computeroutput"><span class="identifier">scoped_thread</span></code></a></span></dt>
+<dt><span class="section"><a href="thread/ScopedThreads.html#thread.ScopedThreads.non_member_swap">Non-member function
+      <code class="computeroutput"><span class="identifier">swap</span><span class="special">(</span><span class="identifier">scoped_thread</span><span class="special">&amp;,</span><span class="identifier">scoped_thread</span><span class="special">&amp;)</span></code></a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="thread/synchronization.html">Synchronization</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.tutorial">Tutorial</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.mutex_concepts">Mutex Concepts</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.lock_option">Lock Options</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.lock_guard">Lock Guard</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.lock_concepts">Lock Concepts</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.locks">Lock Types</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.other_locks">Other Lock Types
+      - EXTENSION</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.lock_functions">Lock functions</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.lock_factories">Lock Factories
+      - EXTENSION</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.mutex_types">Mutex Types</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.condvar_ref">Condition Variables</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.once">One-time Initialization</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.barriers">Barriers -- EXTENSION</a></span></dt>
+<dt><span class="section"><a href="thread/synchronization.html#thread.synchronization.futures">Futures</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="thread/thread_local_storage.html">Thread Local Storage</a></span></dt>
+<dd><dl><dt><span class="section"><a href="thread/thread_local_storage.html#thread.thread_local_storage.thread_specific_ptr">Class
+      <code class="computeroutput"><span class="identifier">thread_specific_ptr</span></code></a></span></dt></dl></dd>
+<dt><span class="section"><a href="thread/sds.html">Synchronized Data Structures</a></span></dt>
+<dd><dl><dt><span class="section"><a href="thread/sds.html#thread.sds.synchronized_valuesxxx">Synchronized Values
+      - EXPERIMENTAL</a></span></dt></dl></dd>
+<dt><span class="section"><a href="thread/time.html">Time Requirements</a></span></dt>
+<dd><dl><dt><span class="section"><a href="thread/time.html#thread.time.deprecated">Deprecated</a></span></dt></dl></dd>
+<dt><span class="section"><a href="thread/emulations.html">Emulations</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="thread/emulations.html#thread.emulations.delete"><code class="computeroutput"><span class="special">=</span><span class="keyword">delete</span></code> emulation</a></span></dt>
+<dt><span class="section"><a href="thread/emulations.html#thread.emulations.move">Move semantics</a></span></dt>
+<dt><span class="section"><a href="thread/emulations.html#thread.emulations.bool_explicit_conversion">Bool explicit
+      conversion</a></span></dt>
+<dt><span class="section"><a href="thread/emulations.html#thread.emulations.scoped_enums">Scoped Enums</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="thread/acknowledgements.html">Acknowledgments</a></span></dt>
+<dt><span class="section"><a href="thread/compliance.html">Conformance and Extension</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="thread/compliance.html#thread.compliance.cpp11">C++11 standard Thread library</a></span></dt>
+<dt><span class="section"><a href="thread/compliance.html#thread.compliance.cxx14">C++14 standard Thread library
+      - accepted changes</a></span></dt>
+<dt><span class="section"><a href="thread/compliance.html#thread.compliance.cxx1y">C++1y TS Concurrency - On going
+      proposals</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="thread.overview"></a><a class="link" href="thread.html#thread.overview" title="Overview">Overview</a>
+</h2></div></div></div>
+<p>
+      <span class="bold"><strong>Boost.Thread</strong></span> enables the use of multiple threads
+      of execution with shared data in portable C++ code. It provides classes and
+      functions for managing the threads themselves, along with others for synchronizing
+      data between the threads or providing separate copies of data specific to individual
+      threads.
+    </p>
+<p>
+      The <span class="bold"><strong>Boost.Thread</strong></span> library was originally written
+      and designed by William E. Kempf (version 1).
+    </p>
+<p>
+      Anthony Williams version (version 2) was a major rewrite designed to closely
+      follow the proposals presented to the C++ Standards Committee, in particular
+      <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2497.html" target="_top">N2497</a>,
+      <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2320.html" target="_top">N2320</a>,
+      <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2184.html" target="_top">N2184</a>,
+      <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2139.html" target="_top">N2139</a>,
+      and <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2094.html" target="_top">N2094</a>
+    </p>
+<p>
+      Vicente J. Botet Escriba started (version 3) the adaptation to comply with
+      the accepted Thread C++11 library (Make use of Boost.Chrono and Boost.Move)
+      and the <a href="http://home.roadrunner.com/~hinnant/bloomington/shared_mutex.html" target="_top">Shared
+      Locking</a> Howard Hinnant proposal except for the upward conversions.
+      Some minor non-standard features have been added also as thread attributes,
+      reverse_lock, shared_lock_guard.
+    </p>
+<p>
+      In order to use the classes and functions described here, you can either include
+      the specific headers specified by the descriptions of each class or function,
+      or include the master thread library header:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      which includes all the other headers in turn.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:54:47 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="string_algo/credits.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="thread/build.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

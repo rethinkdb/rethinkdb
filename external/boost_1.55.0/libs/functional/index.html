@@ -1,0 +1,263 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+
+  <title>Boost Function Object Adapter Library</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+  <table border="1" bgcolor="#007F7F" cellpadding="2" summary="">
+    <tr>
+      <td bgcolor="#FFFFFF"><img src="../../boost.png" alt=
+      "boost.png (6897 bytes)" width="277" height="86"></td>
+
+      <td><a href="../../index.htm"><font face="Arial" color=
+      "#FFFFFF"><big>Home</big></font></a></td>
+
+      <td><a href="../libraries.htm"><font face="Arial" color=
+      "#FFFFFF"><big>Libraries</big></font></a></td>
+
+      <td><a href="http://www.boost.org/people/people.htm"><font face="Arial" color=
+      "#FFFFFF"><big>People</big></font></a></td>
+
+      <td><a href="http://www.boost.org/more/faq.htm"><font face="Arial" color=
+      "#FFFFFF"><big>FAQ</big></font></a></td>
+
+      <td><a href="../../more/index.htm"><font face="Arial" color=
+      "#FFFFFF"><big>More</big></font></a></td>
+    </tr>
+  </table>
+
+  <h1>Improved Function Object Adapters</h1>
+
+  <p>The header <a href="../../boost/functional.hpp">functional.hpp</a>
+  provides enhancements to the function object adapters specified in the C++
+  Standard Library (sections 20.3.5, through to 20.3.8). The enhancements are
+  principally possible due to two changes:</p>
+
+  <ol>
+    <li>We use the Boost <tt><a href=
+    "../utility/call_traits.htm">call_traits</a></tt> templates to avoid the
+    problem of <a href="binders.html#refref">references to references</a>,
+    and to improve the efficiency of <a href="mem_fun.html#args">parameter
+    passing</a>.</li>
+
+    <li>We use two <a href="function_traits.html">function object traits</a>
+    class templates to avoid the need for <tt><a href=
+    "ptr_fun.html">ptr_fun</a></tt> with the adapters in this library.</li>
+  </ol>
+
+  <h3>Contents</h3>
+
+  <p>The header contains the following function and class templates:</p>
+
+  <table border="1" cellpadding="5" summary="">
+    <tr>
+      <th align="left"><a href="function_traits.html">Function object
+      traits</a></th>
+
+      <td valign="top"><tt>unary_traits<br>
+      binary_traits</tt></td>
+
+      <td valign="top">Used to determine the types of function objects' and
+      functions' arguments. Eliminate the necessity for
+      <tt>ptr_fun</tt>.</td>
+    </tr>
+
+    <tr>
+      <th align="left"><a href="negators.html">Negators</a></th>
+
+      <td valign="top"><tt>unary_negate<br>
+      binary_negate<br>
+      not1<br>
+      not2</tt></td>
+
+      <td valign="top">Based on section 20.3.5 of the standard.</td>
+    </tr>
+
+    <tr>
+      <th align="left"><a href="binders.html">Binders</a></th>
+
+      <td valign="top"><tt>binder1st<br>
+      binder2nd<br>
+      bind1st<br>
+      bind2nd</tt></td>
+
+      <td valign="top">Based on section 20.3.6 of the standard.</td>
+    </tr>
+
+    <tr>
+      <th align="left"><a href="ptr_fun.html">Adapters for pointers to
+      functions</a></th>
+
+      <td valign="top"><tt>pointer_to_unary_function<br>
+      pointer_to_binary_function<br>
+      ptr_fun</tt></td>
+
+      <td valign="top">Based on section 20.3.7 of the standard. Not required
+      for use with this library since the binders and negators can adapt
+      functions, but may be needed with third party adapters.</td>
+    </tr>
+
+    <tr>
+      <th align="left"><a href="mem_fun.html">Adapters for pointers to member
+      functions</a></th>
+
+      <td valign="top"><tt>mem_fun_t<br>
+      mem_fun1_t<br>
+      const_mem_fun_t<br>
+      const_mem_fun1_t<br>
+      mem_fun_ref_t<br>
+      mem_fun1_ref_t<br>
+      const_mem_fun_ref_t<br>
+      const_mem_fun1_ref_t<br>
+      mem_fun<br>
+      mem_fun_ref</tt></td>
+
+      <td valign="top">Based on section 20.3.8 of the standard.</td>
+    </tr>
+  </table>
+
+  <h3>Usage</h3>
+
+  <p>Using these adapters should be pretty much the same as using the
+  standard function object adapters; the only differences are that you need
+  to write <tt>boost::</tt> instead of <tt>std::</tt>, and that you will get
+  fewer headaches.</p>
+
+  <p>For example, suppose you had a <tt>Person</tt> class that contained a
+  <tt>set_name</tt> function:</p>
+
+  <blockquote>
+    <pre>
+class Person
+{
+  public:
+    void set_name(const std::string &amp;name);
+  // ...
+};
+</pre>
+  </blockquote>
+
+  <p>You could rename a bunch of people in a collection, <tt>c</tt>, by
+  writing</p>
+
+  <blockquote>
+    <pre>
+std::for_each(c.begin(), c.end(), 
+              boost::bind2nd(boost::mem_fun_ref(&amp;Person::set_name), "Fred"));
+</pre>
+  </blockquote>
+
+  <p>If the standard adapters had been used instead then this code would
+  normally fail to compile, because <tt>set_name</tt> takes a reference
+  argument. Refer to the comments in the <a href="binders.html#refref">binder
+  documentation</a> to explain why this is so.</p>
+
+  <h3>Compiler Compatibility</h3>
+
+  <p>The header and <a href="test/function_test.cpp">test program</a> have been
+  compiled with the following compilers:</p>
+
+  <table border="1" cellpadding="5" summary="">
+    <tr>
+      <th>Compiler</th>
+
+      <th>Comments</th>
+    </tr>
+
+    <tr>
+      <td valign="top">Borland C++Builder 4 Update 2</td>
+
+      <td valign="top">No known issues.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Borland C++ 5.5</td>
+
+      <td valign="top">No known issues.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">g++ 2.95.2</td>
+
+      <td valign="top">No known issues.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Microsoft Visual C++ Service Pack 3</td>
+
+      <td valign="top">
+        Compiler lacks partial specialisation, so this library offers little
+        more than is provided by the standard adapters:
+
+        <ul>
+          <li>The <tt>call_traits</tt> mechanism is unable to prevent
+          references to references, and so the adapters in this library will
+          be usable in fewer situations.</li>
+
+          <li>The <tt>function_traits</tt> mechanism is unable to determine
+          the argument and result types of functions, therefore
+          <tt>ptr_fun</tt> continues to be required to adapt functions.</li>
+        </ul>
+      </td>
+    </tr>
+  </table>
+
+  <h3>Future Directions</h3>
+
+  <p>This library's primary focus is to solve the problem of references to
+  references while maintaining as much compatibility as possible with the
+  standard library. This allows you to use the techniques you read about in
+  books and magazines with many of today's compilers.</p>
+
+  <p>In the longer term, even better solutions are likely:</p>
+
+  <ol>
+    <li>Several Boost members are working on expression template libraries.
+    These will allow a more natural syntax for combining and adapting
+    functions. As this is a new technology, it may be some time before it has
+    matured and is widely supported by major compilers but shows great
+    promise. In the meantime, the functional.hpp library fills the gap.</li>
+
+    <li>The Standard Committee has recognised the problem of references to
+    references occurring during template instantiation and has moved to fix
+    the standard (see the <a href=
+    "http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/cwg_active.html#106">C++
+    standard core language active issues list</a>).</li>
+  </ol>
+
+  <h3>Author</h3>
+
+  <p><a href="http://www.boost.org/people/mark_rodgers.htm">Mark Rodgers</a></p>
+
+  <h3>Acknowledgements</h3>
+
+  <p>Thanks to <a href="http://www.boost.org/people/john_maddock.htm">John Maddock</a> for
+  suggesting the mechanism that allowed the function objects traits to work
+  correctly. <a href="http://www.boost.org/people/jens_maurer.htm">Jens Maurer</a> provided
+  invaluable feedback during the <a href=
+  "http://www.boost.org/more/formal_review_process.htm">formal review process</a>.</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->02
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38510" --></p>
+
+  <p><i>Copyright &copy; 2000 Cadenza New Zealand Ltd.</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

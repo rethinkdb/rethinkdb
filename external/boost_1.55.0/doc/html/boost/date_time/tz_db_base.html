@@ -1,0 +1,155 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template tz_db_base</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.tz_db_base_hpp" title="Header &lt;boost/date_time/tz_db_base.hpp&gt;">
+<link rel="prev" href="bad_field_count.html" title="Class bad_field_count">
+<link rel="next" href="wrapping_int.html" title="Class template wrapping_int">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bad_field_count.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.tz_db_base_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="wrapping_int.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.tz_db_base"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template tz_db_base</span></h2>
+<p>boost::date_time::tz_db_base &#8212; Creates a database of time_zones from csv datafile. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.tz_db_base_hpp" title="Header &lt;boost/date_time/tz_db_base.hpp&gt;">boost/date_time/tz_db_base.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> time_zone_type<span class="special">,</span> <span class="keyword">typename</span> rule_type<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="tz_db_base.html" title="Class template tz_db_base">tz_db_base</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="keyword">char</span>                                                           <a name="boost.date_time.tz_db_base.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">time_zone_type</span><span class="special">::</span><span class="identifier">base_type</span>                                      <a name="boost.date_time.tz_db_base.time_zone_base_type"></a><span class="identifier">time_zone_base_type</span><span class="special">;</span>   
+  <span class="keyword">typedef</span> <span class="identifier">time_zone_type</span><span class="special">::</span><span class="identifier">time_duration_type</span>                             <a name="boost.date_time.tz_db_base.time_duration_type"></a><span class="identifier">time_duration_type</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <a class="link" href="time_zone_names_base.html" title="Class template time_zone_names_base">time_zone_names_base</a><span class="special">&lt;</span> <span class="identifier">char_type</span> <span class="special">&gt;</span>                              <a name="boost.date_time.tz_db_base.time_zone_names"></a><span class="identifier">time_zone_names</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <a class="link" href="dst_adjustment_offsets.html" title="Class template dst_adjustment_offsets">boost::date_time::dst_adjustment_offsets</a><span class="special">&lt;</span> <span class="identifier">time_duration_type</span> <span class="special">&gt;</span> <a name="boost.date_time.tz_db_base.dst_adjustment_offsets"></a><span class="identifier">dst_adjustment_offsets</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">char_type</span> <span class="special">&gt;</span>                                 <a name="boost.date_time.tz_db_base.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>           
+
+  <span class="comment">// <a class="link" href="tz_db_base.html#boost.date_time.tz_db_baseconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="tz_db_base.html#idp51391208-bb"><span class="identifier">tz_db_base</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="tz_db_base.html#idp53266248-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="tz_db_base.html#idp53541816-bb"><span class="identifier">load_from_stream</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="tz_db_base.html#idp19621192-bb"><span class="identifier">load_from_file</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="tz_db_base.html#idp19673880-bb"><span class="identifier">add_record</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+                  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">time_zone_base_type</span> <span class="special">&gt;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">time_zone_base_type</span> <span class="special">&gt;</span> 
+  <a class="link" href="tz_db_base.html#idp54413128-bb"><span class="identifier">time_zone_from_region</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;</span> <a class="link" href="tz_db_base.html#idp51390536-bb"><span class="identifier">region_list</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="tz_db_base.html#idp51391432-bb">private member functions</a></span>
+  <span class="identifier">rule_type</span> <span class="special">*</span> <a class="link" href="tz_db_base.html#idp51391640-bb"><span class="identifier">parse_rules</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">week_num</span> <a class="link" href="tz_db_base.html#idp20220936-bb"><span class="identifier">get_week_num</span></a><span class="special">(</span><span class="keyword">int</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="tz_db_base.html#idp22234216-bb"><span class="identifier">split_rule_spec</span></a><span class="special">(</span><span class="keyword">int</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">string_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="tz_db_base.html#idp52266584-bb"><span class="identifier">parse_string</span></a><span class="special">(</span><span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp91420168"></a><h2>Description</h2>
+<p>The csv file containing the zone_specs used by the <a class="link" href="tz_db_base.html" title="Class template tz_db_base">tz_db_base</a> is intended to be customized by the library user. When customizing this file (or creating your own) the file must follow a specific format.</p>
+<p>This first line is expected to contain column headings and is therefore not processed by the <a class="link" href="tz_db_base.html" title="Class template tz_db_base">tz_db_base</a>.</p>
+<p>Each record (line) must have eleven fields. Some of those fields can be empty. Every field (even empty ones) must be enclosed in double-quotes. Ex: </p>
+<pre class="programlisting"><span class="special">*</span> <span class="string">"America/Phoenix"</span> <span class="special">&lt;</span><span class="special">-</span> <span class="identifier">string</span> <span class="identifier">enclosed</span> <span class="identifier">in</span> <span class="identifier">quotes</span>
+<span class="special">*</span> <span class="string">""</span>                <span class="special">&lt;</span><span class="special">-</span> <span class="identifier">empty</span> <span class="identifier">field</span>
+<span class="special">*</span> 
+</pre>
+<p>Some fields represent a length of time. The format of these fields must be: </p>
+<pre class="programlisting"><span class="special">*</span> <span class="string">"{+|-}hh:mm[:ss]"</span> <span class="special">&lt;</span><span class="special">-</span> <span class="identifier">length</span><span class="special">-</span><span class="identifier">of</span><span class="special">-</span><span class="identifier">time</span> <span class="identifier">format</span>
+<span class="special">*</span> 
+</pre>
+<p> Where the plus or minus is mandatory and the seconds are optional.</p>
+<p>Since some time zones do not use daylight savings it is not always necessary for every field in a zone_spec to contain a value. All zone_specs must have at least ID and GMT offset. Zones that use daylight savings must have all fields filled except: STD ABBR, STD NAME, DST NAME. You should take note that DST ABBR is mandatory for zones that use daylight savings (see field descriptions for further details).</p>
+<p>******* Fields and their description/details *********</p>
+<p>ID: Contains the identifying string for the zone_spec. Any string will do as long as it's unique. No two ID's can be the same.</p>
+<p>STD ABBR: STD NAME: DST ABBR: DST NAME: These four are all the names and abbreviations used by the time zone being described. While any string will do in these fields, care should be taken. These fields hold the strings that will be used in the output of many of the local_time classes. Ex: </p>
+<pre class="programlisting"><span class="special">*</span> <span class="identifier">time_zone</span> <span class="identifier">nyc</span> <span class="special">=</span> <span class="identifier">tz_db</span><span class="special">.</span><span class="identifier">time_zone_from_region</span><span class="special">(</span><span class="string">"America/New_York"</span><span class="special">)</span><span class="special">;</span>
+<span class="special">*</span> <span class="identifier">local_time</span> <span class="identifier">ny_time</span><span class="special">(</span><span class="identifier">date</span><span class="special">(</span><span class="number">2004</span><span class="special">,</span> <span class="identifier">Aug</span><span class="special">,</span> <span class="number">30</span><span class="special">)</span><span class="special">,</span> <span class="identifier">IS_DST</span><span class="special">,</span> <span class="identifier">nyc</span><span class="special">)</span><span class="special">;</span>
+<span class="special">*</span> <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">ny_time</span><span class="special">.</span><span class="identifier">to_long_string</span><span class="special">(</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">*</span> <span class="comment">// 2004-Aug-30 00:00:00 Eastern Daylight Time</span>
+<span class="special">*</span> <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">ny_time</span><span class="special">.</span><span class="identifier">to_short_string</span><span class="special">(</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">*</span> <span class="comment">// 2004-Aug-30 00:00:00 EDT</span>
+<span class="special">*</span> 
+</pre>
+<p>NOTE: The exact format/function names may vary - see local_time documentation for further details.</p>
+<p>GMT offset: This is the number of hours added to utc to get the local time before any daylight savings adjustments are made. Some examples are: America/New_York offset -5 hours, &amp; Africa/Cairo offset +2 hours. The format must follow the length-of-time format described above.</p>
+<p>DST adjustment: The amount of time added to gmt_offset when daylight savings is in effect. The format must follow the length-of-time format described above.</p>
+<p>DST Start Date rule: This is a specially formatted string that describes the day of year in which the transition take place. It holds three fields of it's own, separated by semicolons. The first field indicates the "nth" weekday of the month. The possible values are: 1 (first), 2 (second), 3 (third), 4 (fourth), 5 (fifth), and -1 (last). The second field indicates the day-of-week from 0-6 (Sun=0). The third field indicates the month from 1-12 (Jan=1).</p>
+<p>Examples are: "-1;5;9"="Last Friday of September", "2;1;3"="Second Monday of March"</p>
+<p>Start time: Start time is the number of hours past midnight, on the day of the start transition, the transition takes place. More simply put, the time of day the transition is made (in 24 hours format). The format must follow the length-of-time format described above with the exception that it must always be positive.</p>
+<p>DST End date rule: See DST Start date rule. The difference here is this is the day daylight savings ends (transition to STD).</p>
+<p>End time: Same as Start time. </p>
+<div class="refsect2">
+<a name="idp91452152"></a><h3>
+<a name="boost.date_time.tz_db_baseconstruct-copy-destruct"></a><code class="computeroutput">tz_db_base</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp51391208-bb"></a><span class="identifier">tz_db_base</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Constructs an empty database. </li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp91454984"></a><h3>
+<a name="idp53266248-bb"></a><code class="computeroutput">tz_db_base</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp53541816-bb"></a><span class="identifier">load_from_stream</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream</span> <span class="special">&amp;</span> in<span class="special">)</span><span class="special">;</span></pre>Process csv data file, may throw exceptions. <p>May throw <code class="computeroutput"><a class="link" href="bad_field_count.html" title="Class bad_field_count">bad_field_count</a></code> exceptions </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp19621192-bb"></a><span class="identifier">load_from_file</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> pathspec<span class="special">)</span><span class="special">;</span></pre>Process csv data file, may throw exceptions. <p>May throw <code class="computeroutput"><a class="link" href="data_not_accessible.html" title="Class data_not_accessible">data_not_accessible</a></code>, or <code class="computeroutput"><a class="link" href="bad_field_count.html" title="Class bad_field_count">bad_field_count</a></code> exceptions </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp19673880-bb"></a><span class="identifier">add_record</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> region<span class="special">,</span> 
+                <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">time_zone_base_type</span> <span class="special">&gt;</span> tz<span class="special">)</span><span class="special">;</span></pre>returns true if record successfully added to map <p>Takes a region name in the form of "America/Phoenix", and a time_zone object for that region. The id string must be a unique name that does not already exist in the database. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">time_zone_base_type</span> <span class="special">&gt;</span> 
+<a name="idp54413128-bb"></a><span class="identifier">time_zone_from_region</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> region<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns a time_zone object built from the specs for the given region. <p>Returns a time_zone object built from the specs for the given region. If region does not exist a local_time::record_not_found exception will be thrown </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;</span> <a name="idp51390536-bb"></a><span class="identifier">region_list</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns a vector of strings holding the time zone regions in the database. </li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp91481144"></a><h3>
+<a name="idp51391432-bb"></a><code class="computeroutput">tz_db_base</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">rule_type</span> <span class="special">*</span> <a name="idp51391640-bb"></a><span class="identifier">parse_rules</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> sr<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> er<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>parses rule specs for transition day rules </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">week_num</span> <a name="idp20220936-bb"></a><span class="identifier">get_week_num</span><span class="special">(</span><span class="keyword">int</span> nth<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>helper function for parse_rules() </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp22234216-bb"></a><span class="identifier">split_rule_spec</span><span class="special">(</span><span class="keyword">int</span> <span class="special">&amp;</span> nth<span class="special">,</span> <span class="keyword">int</span> <span class="special">&amp;</span> d<span class="special">,</span> <span class="keyword">int</span> <span class="special">&amp;</span> m<span class="special">,</span> <span class="identifier">string_type</span> rule<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>splits the [start|end]_date_rule string into 3 ints </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp52266584-bb"></a><span class="identifier">parse_string</span><span class="special">(</span><span class="identifier">string_type</span> <span class="special">&amp;</span> s<span class="special">)</span><span class="special">;</span></pre>Take a line from the csv, turn it into a time_zone_type. <p>Take a line from the csv, turn it into a time_zone_type, and add it to the map. Zone_specs in csv file are expected to have eleven fields that describe the time zone. Returns true if zone_spec successfully added to database </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bad_field_count.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.tz_db_base_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="wrapping_int.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

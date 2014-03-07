@@ -1,0 +1,18 @@
+.. Copyright Bruno da Silva de Oliveira 2006. Distributed under the Boost
+.. Software License, Version 1.0. (See accompanying
+.. file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+- Make Pyste accept already-generated xml files
+
+- throw() declaration in virtual wrapper's member functions
+
+- Allow protected methods to be overriden in Python
+
+- Expose programmability to the Pyste files (listing members of a class, for
+  instance)
+
+- Virtual operators  
+
+- args() support
+
+- set policies to methods with the same name

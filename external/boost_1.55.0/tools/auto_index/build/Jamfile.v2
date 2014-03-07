@@ -1,0 +1,33 @@
+import quickbook ;
+import modules ;
+
+exe auto_index : 
+   ../src/auto_index.cpp 
+   ../src/file_scanning.cpp 
+   ../src/index_generator.cpp 
+   ../src/tiny_xml.cpp 
+   /boost//regex 
+   /boost//filesystem 
+   /boost//system 
+   /boost//program_options
+: <define>BOOST_ALL_NO_LIB=1 <link>static release ;
+
+install aii : auto_index : <location>. ;
+install i : auto_index : <location>../../../dist/bin ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

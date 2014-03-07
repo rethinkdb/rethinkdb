@@ -1,0 +1,65 @@
+/*
+Copyright 2002 David Abrahams.
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+ */
+H1
+{
+    FONT-SIZE: 200%
+    COLOR: #00007f
+}
+H2
+{
+    FONT-SIZE: 150%;
+}
+H3
+{
+    FONT-SIZE: 125%;
+}
+H4
+{
+    FONT-SIZE: 108%;
+}
+BODY
+{
+    FONT-SIZE: 100%;
+    BACKGROUND-COLOR: #ffffff
+}
+PRE
+{
+    MARGIN-LEFT: 2pc;
+    FONT-SIZE: 80%;
+    BACKGROUND-COLOR: #dfffff
+}
+CODE
+{
+    FONT-SIZE: 95%;
+     white-space: pre
+}
+.index
+{
+    TEXT-ALIGN: left
+}
+.page-index
+{
+	TEXT-ALIGN: left
+}
+.definition
+{
+	TEXT-ALIGN: left
+}
+.footnote
+{
+    FONT-SIZE: 66%;
+    VERTICAL-ALIGN: super;
+    TEXT-DECORATION: none
+}
+.function-semantics
+{
+    CLEAR: left
+}
+.metafunction-semantics
+{
+    CLEAR: left
+}

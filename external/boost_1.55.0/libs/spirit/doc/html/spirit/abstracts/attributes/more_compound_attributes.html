@@ -1,0 +1,256 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>More About Attributes of Compound Components</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../attributes.html" title="Attributes">
+<link rel="prev" href="compound_attributes.html" title="Attributes of Compound Components">
+<link rel="next" href="nonterminal_attributes.html" title="Attributes of Rules and Grammars">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="compound_attributes.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../attributes.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="nonterminal_attributes.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.abstracts.attributes.more_compound_attributes"></a><a class="link" href="more_compound_attributes.html" title="More About Attributes of Compound Components">More
+        About Attributes of Compound Components</a>
+</h4></div></div></div>
+<p>
+          While parsing input or generating output it is often desirable to combine
+          some constant elements with variable parts. For instance, let us look at
+          the example of parsing or formatting a complex number, which is written
+          as <code class="computeroutput"><span class="special">(</span><span class="identifier">real</span><span class="special">,</span> <span class="identifier">imag</span><span class="special">)</span></code>, where <code class="computeroutput"><span class="identifier">real</span></code>
+          and <code class="computeroutput"><span class="identifier">imag</span> </code> are the variables
+          representing the real and imaginary parts of our complex number. This can
+          be achieved by writing:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Library
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Sequence expression
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Qi
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="char">'('</span> <span class="special">&gt;&gt;</span>
+                    <span class="identifier">double_</span> <span class="special">&gt;&gt;</span>
+                    <span class="string">", "</span> <span class="special">&gt;&gt;</span>
+                    <span class="identifier">double_</span> <span class="special">&gt;&gt;</span>
+                    <span class="char">')'</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Karma
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="char">'('</span> <span class="special">&lt;&lt;</span>
+                    <span class="identifier">double_</span> <span class="special">&lt;&lt;</span>
+                    <span class="string">", "</span> <span class="special">&lt;&lt;</span>
+                    <span class="identifier">double_</span> <span class="special">&lt;&lt;</span>
+                    <span class="char">')'</span></code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          Fortunately, literals (such as <code class="computeroutput"><span class="char">'('</span></code>
+          and <code class="computeroutput"><span class="string">", "</span></code>) do <span class="emphasis"><em>not</em></span>
+          expose any attribute (well actually, they do expose the special type <code class="computeroutput"><span class="identifier">unused_type</span></code>, but in this context <code class="computeroutput"><span class="identifier">unused_type</span></code> is interpreted as if the
+          component does not expose any attribute at all). It is very important to
+          understand that the literals don't consume any of the elements of a fusion
+          sequence passed to this component sequence. As said, they just don't expose
+          any attribute and don't produce (consume) any data. The following example
+          shows this:
+        </p>
+<pre class="programlisting"><span class="comment">// the following parses "(1.0, 2.0)" into a pair of double</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">input</span><span class="special">(</span><span class="string">"(1.0, 2.0)"</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">strbegin</span> <span class="special">=</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">p</span><span class="special">;</span>
+<span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">strbegin</span><span class="special">,</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+    <span class="char">'('</span> <span class="special">&gt;&gt;</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="string">", "</span> <span class="special">&gt;&gt;</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="char">')'</span><span class="special">,</span> <span class="comment">// parser grammar </span>
+    <span class="identifier">p</span><span class="special">);</span>                                               <span class="comment">// attribute to fill while parsing</span>
+</pre>
+<p>
+          and here is the equivalent <span class="emphasis"><em>Spirit.Karma</em></span> code snippet:
+        </p>
+<pre class="programlisting"><span class="comment">// the following generates: (1.0, 2.0)</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">back_insert_iterator</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">out</span><span class="special">(</span><span class="identifier">str</span><span class="special">);</span>
+<span class="identifier">generate</span><span class="special">(</span><span class="identifier">out</span><span class="special">,</span>
+    <span class="char">'('</span> <span class="special">&lt;&lt;</span> <span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="string">", "</span> <span class="special">&lt;&lt;</span> <span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="char">')'</span><span class="special">,</span> <span class="comment">// generator grammar (format description)</span>
+    <span class="identifier">p</span><span class="special">);</span>                                                     <span class="comment">// data to use as the attribute </span>
+</pre>
+<p>
+          where the first element of the pair passed in as the data to generate is
+          still associated with the first <code class="computeroutput"><span class="identifier">double_</span></code>,
+          and the second element is associated with the second <code class="computeroutput"><span class="identifier">double_</span></code>
+          generator.
+        </p>
+<p>
+          This behavior should be familiar as it conforms to the way other input
+          and output formatting libraries such as <code class="computeroutput"><span class="identifier">scanf</span></code>,
+          <code class="computeroutput"><span class="identifier">printf</span></code> or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">format</span></code> are handling their variable parts.
+          In this context you can think about <span class="emphasis"><em>Spirit.Qi</em></span>'s and
+          <span class="emphasis"><em>Spirit.Karma</em></span>'s primitive components (such as the
+          <code class="computeroutput"><span class="identifier">double_</span></code> above) as of being
+          type safe placeholders for the attribute values.
+        </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+            Similarly to the tip provided above, this example could be rewritten
+            using <span class="emphasis"><em>Spirit's</em></span> multi-attribute API function:
+</p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">d1</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">,</span> <span class="identifier">d2</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span>
+<span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">begin</span><span class="special">,</span> <span class="identifier">end</span><span class="special">,</span> <span class="char">'('</span> <span class="special">&gt;&gt;</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="string">", "</span> <span class="special">&gt;&gt;</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="char">')'</span><span class="special">,</span> <span class="identifier">d1</span><span class="special">,</span> <span class="identifier">d2</span><span class="special">);</span>
+<span class="identifier">karma</span><span class="special">::</span><span class="identifier">generate</span><span class="special">(</span><span class="identifier">out</span><span class="special">,</span> <span class="char">'('</span> <span class="special">&lt;&lt;</span> <span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="string">", "</span> <span class="special">&lt;&lt;</span> <span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="char">')'</span><span class="special">,</span> <span class="identifier">d1</span><span class="special">,</span> <span class="identifier">d2</span><span class="special">);</span>
+</pre>
+<p>
+            which provides a clear and comfortable syntax, more similar to the placeholder
+            based syntax as exposed by <code class="computeroutput"><span class="identifier">printf</span></code>
+            or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">format</span></code>.
+          </p>
+</td></tr>
+</table></div>
+<p>
+          Let's take a look at this from a more formal perspective. The sequence
+          attribute propagation rules define a special behavior if generators exposing
+          <code class="computeroutput"><span class="identifier">unused_type</span></code> as their attribute
+          are involved (see <a class="link" href="../../karma/quick_reference/compound_attribute_rules.html" title="Compound Attribute Rules">Generator
+          Compound Attribute Rules</a>):
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Library
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Sequence attribute propagation rule
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Qi
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">a</span><span class="special">:</span>
+                    <span class="identifier">A</span><span class="special">,</span>
+                    <span class="identifier">b</span><span class="special">:</span>
+                    <span class="identifier">Unused</span> <span class="special">--&gt;</span>
+                    <span class="special">(</span><span class="identifier">a</span>
+                    <span class="special">&gt;&gt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">A</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Karma
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">a</span><span class="special">:</span>
+                    <span class="identifier">A</span><span class="special">,</span>
+                    <span class="identifier">b</span><span class="special">:</span>
+                    <span class="identifier">Unused</span> <span class="special">--&gt;</span>
+                    <span class="special">(</span><span class="identifier">a</span>
+                    <span class="special">&lt;&lt;</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">A</span></code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          which reads as:
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Given <code class="computeroutput"><span class="identifier">a</span></code> and <code class="computeroutput"><span class="identifier">b</span></code> are parsers (generators), and <code class="computeroutput"><span class="identifier">A</span></code> is the attribute type of <code class="computeroutput"><span class="identifier">a</span></code>, and <code class="computeroutput"><span class="identifier">unused_type</span></code>
+            is the attribute type of <code class="computeroutput"><span class="identifier">b</span></code>,
+            then the attribute type of <code class="computeroutput"><span class="identifier">a</span>
+            <span class="special">&gt;&gt;</span> <span class="identifier">b</span></code>
+            (<code class="computeroutput"><span class="identifier">a</span> <span class="special">&lt;&lt;</span>
+            <span class="identifier">b</span></code>) will be <code class="computeroutput"><span class="identifier">A</span></code>
+            as well. This rule applies regardless of the position the element exposing
+            the <code class="computeroutput"><span class="identifier">unused_type</span></code> is at.
+          </p></blockquote></div>
+<p>
+          This rule is the key to the understanding of the attribute handling in
+          sequences as soon as literals are involved. It is as if elements with
+          <code class="computeroutput"><span class="identifier">unused_type</span></code> attributes
+          'disappeared' during attribute propagation. Notably, this is not only true
+          for sequences but for any compound components. For instance, for alternative
+          components the corresponding rule is:
+        </p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">|</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">A</span>
+</pre>
+<p>
+          again, allowing to simplify the overall attribute type of an expression.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="compound_attributes.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../attributes.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="nonterminal_attributes.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

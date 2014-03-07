@@ -1,0 +1,16 @@
+/* conjure program with syntax error */
+
+int foo(n)
+{
+    int a = 2;
+    if (n @ 3) /* we don't have @ operator in conjure */
+    {
+        a = 3
+    }
+    return a;
+}
+
+int main()
+{
+    return foo(10);
+}

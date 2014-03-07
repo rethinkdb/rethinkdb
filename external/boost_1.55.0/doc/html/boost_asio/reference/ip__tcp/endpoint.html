@@ -1,0 +1,408 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>ip::tcp::endpoint</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../ip__tcp.html" title="ip::tcp">
+<link rel="prev" href="acceptor.html" title="ip::tcp::acceptor">
+<link rel="next" href="family.html" title="ip::tcp::family">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="acceptor.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ip__tcp.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="family.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.reference.ip__tcp.endpoint"></a><a class="link" href="endpoint.html" title="ip::tcp::endpoint">ip::tcp::endpoint</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp88616056"></a> 
+The type of a TCP endpoint.
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">basic_endpoint</span><span class="special">&lt;</span> <span class="identifier">tcp</span> <span class="special">&gt;</span> <span class="identifier">endpoint</span><span class="special">;</span>
+</pre>
+<h6>
+<a name="boost_asio.reference.ip__tcp.endpoint.h0"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__tcp.endpoint.types"></a></span><a class="link" href="endpoint.html#boost_asio.reference.ip__tcp.endpoint.types">Types</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/data_type.html" title="ip::basic_endpoint::data_type"><span class="bold"><strong>data_type</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The type of the endpoint structure. This type is dependent on
+                    the underlying implementation of the socket layer.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/protocol_type.html" title="ip::basic_endpoint::protocol_type"><span class="bold"><strong>protocol_type</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The protocol type associated with the endpoint.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="boost_asio.reference.ip__tcp.endpoint.h1"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__tcp.endpoint.member_functions"></a></span><a class="link" href="endpoint.html#boost_asio.reference.ip__tcp.endpoint.member_functions">Member
+          Functions</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/address.html" title="ip::basic_endpoint::address"><span class="bold"><strong>address</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the IP address associated with the endpoint.
+                  </p>
+                  <p>
+                    Set the IP address associated with the endpoint.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/basic_endpoint.html" title="ip::basic_endpoint::basic_endpoint"><span class="bold"><strong>basic_endpoint</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Default constructor.
+                  </p>
+                  <p>
+                    Construct an endpoint using a port number, specified in the host's
+                    byte order. The IP address will be the any address (i.e. INADDR_ANY
+                    or in6addr_any). This constructor would typically be used for
+                    accepting new connections.
+                  </p>
+                  <p>
+                    Construct an endpoint using a port number and an IP address.
+                    This constructor may be used for accepting connections on a specific
+                    interface or for making a connection to a remote endpoint.
+                  </p>
+                  <p>
+                    Copy constructor.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/capacity.html" title="ip::basic_endpoint::capacity"><span class="bold"><strong>capacity</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the capacity of the endpoint in the native type.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/data.html" title="ip::basic_endpoint::data"><span class="bold"><strong>data</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the underlying endpoint in the native type.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/operator_eq_.html" title="ip::basic_endpoint::operator="><span class="bold"><strong>operator=</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Assign from another endpoint.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/port.html" title="ip::basic_endpoint::port"><span class="bold"><strong>port</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the port associated with the endpoint. The port number is
+                    always in the host's byte order.
+                  </p>
+                  <p>
+                    Set the port associated with the endpoint. The port number is
+                    always in the host's byte order.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/protocol.html" title="ip::basic_endpoint::protocol"><span class="bold"><strong>protocol</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The protocol associated with the endpoint.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/resize.html" title="ip::basic_endpoint::resize"><span class="bold"><strong>resize</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Set the underlying size of the endpoint in the native type.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/size.html" title="ip::basic_endpoint::size"><span class="bold"><strong>size</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the underlying size of the endpoint in the native type.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="boost_asio.reference.ip__tcp.endpoint.h2"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__tcp.endpoint.friends"></a></span><a class="link" href="endpoint.html#boost_asio.reference.ip__tcp.endpoint.friends">Friends</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/operator_not__eq_.html" title="ip::basic_endpoint::operator!="><span class="bold"><strong>operator!=</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Compare two endpoints for inequality.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/operator_lt_.html" title="ip::basic_endpoint::operator&lt;"><span class="bold"><strong>operator&lt;</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Compare endpoints for ordering.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/operator_lt__eq_.html" title="ip::basic_endpoint::operator&lt;="><span class="bold"><strong>operator&lt;=</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Compare endpoints for ordering.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/operator_eq__eq_.html" title="ip::basic_endpoint::operator=="><span class="bold"><strong>operator==</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Compare two endpoints for equality.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/operator_gt_.html" title="ip::basic_endpoint::operator&gt;"><span class="bold"><strong>operator&gt;</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Compare endpoints for ordering.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/operator_gt__eq_.html" title="ip::basic_endpoint::operator&gt;="><span class="bold"><strong>operator&gt;=</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Compare endpoints for ordering.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="boost_asio.reference.ip__tcp.endpoint.h3"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__tcp.endpoint.related_functions"></a></span><a class="link" href="endpoint.html#boost_asio.reference.ip__tcp.endpoint.related_functions">Related
+          Functions</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <a class="link" href="../ip__basic_endpoint/operator_lt__lt_.html" title="ip::basic_endpoint::operator&lt;&lt;"><span class="bold"><strong>operator&lt;&lt;</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Output an endpoint as a string.
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<p>
+          The <a class="link" href="../ip__basic_endpoint.html" title="ip::basic_endpoint"><code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">basic_endpoint</span></code></a> class template
+          describes an endpoint that may be associated with a particular socket.
+        </p>
+<h6>
+<a name="boost_asio.reference.ip__tcp.endpoint.h4"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__tcp.endpoint.thread_safety"></a></span><a class="link" href="endpoint.html#boost_asio.reference.ip__tcp.endpoint.thread_safety">Thread Safety</a>
+        </h6>
+<p>
+          <span class="emphasis"><em>Distinct</em></span> <span class="emphasis"><em>objects:</em></span> Safe.
+        </p>
+<p>
+          <span class="emphasis"><em>Shared</em></span> <span class="emphasis"><em>objects:</em></span> Unsafe.
+        </p>
+<h6>
+<a name="boost_asio.reference.ip__tcp.endpoint.h5"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__tcp.endpoint.requirements"></a></span><a class="link" href="endpoint.html#boost_asio.reference.ip__tcp.endpoint.requirements">Requirements</a>
+        </h6>
+<p>
+          <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/ip/tcp.hpp</code>
+        </p>
+<p>
+          <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="acceptor.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ip__tcp.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="family.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

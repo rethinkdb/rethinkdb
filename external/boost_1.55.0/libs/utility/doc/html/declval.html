@@ -1,0 +1,176 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Declval</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.0">
+<link rel="home" href="declval.html" title="Declval">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"></div>
+<div class="article">
+<div class="titlepage">
+<div>
+<div><h2 class="title">
+<a name="declval"></a>Declval</h2></div>
+<div><div class="authorgroup">
+<div class="author"><h3 class="author">
+<span class="firstname">Howard</span> <span class="surname">Hinnant</span>
+</h3></div>
+<div class="author"><h3 class="author">
+<span class="firstname">Vicente J.</span> <span class="surname">Botet Escriba</span>
+</h3></div>
+</div></div>
+<div><p class="copyright">Copyright &#169; 2008 Howard Hinnant</p></div>
+<div><p class="copyright">Copyright &#169; 2009 -2012 Vicente J. Botet Escriba</p></div>
+<div><div class="legalnotice">
+<a name="idp13449552"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div>
+<hr>
+</div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="declval.html#declval.overview">Overview</a></span></dt>
+<dt><span class="section"><a href="declval.html#declval.reference">Reference </a></span></dt>
+<dt><span class="section"><a href="declval.html#declval.history">History</a></span></dt>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="declval.overview"></a><a class="link" href="declval.html#declval.overview" title="Overview">Overview</a>
+</h2></div></div></div>
+<p>
+      The motivation for <code class="computeroutput"><span class="identifier">declval</span></code>
+      was introduced in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2009/n2958.html#Value" target="_top">N2958:
+      Moving Swap Forward</a>. Here follows a rewording of this chapter.
+    </p>
+<p>
+      With the provision of decltype, late-specified return types, and default template-arguments
+      for function templates a new generation of SFINAE patterns will emerge to at
+      least partially compensate the lack of concepts on the C++0x timescale. Using
+      this technique, it is sometimes necessary to obtain an object of a known type
+      in a non-using context, e.g. given the declaration
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="identifier">T</span><span class="special">&amp;&amp;</span> <span class="identifier">declval</span><span class="special">();</span> <span class="comment">// not used
+</span></pre>
+<p>
+      as part of the function template declaration
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">To</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">From</span><span class="special">&gt;</span>
+<span class="identifier">decltype</span><span class="special">(</span><span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">To</span><span class="special">&gt;(</span><span class="identifier">declval</span><span class="special">&lt;</span><span class="identifier">From</span><span class="special">&gt;()))</span> <span class="identifier">convert</span><span class="special">(</span><span class="identifier">From</span><span class="special">&amp;&amp;);</span>
+</pre>
+<p>
+      or as part of a class template definition
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">result_of</span><span class="special">;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Fn</span><span class="special">,</span> <span class="keyword">class</span><span class="special">...</span> <span class="identifier">ArgTypes</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">result_of</span><span class="special">&lt;</span><span class="identifier">Fn</span><span class="special">(</span><span class="identifier">ArgTypes</span><span class="special">...)&gt;</span> 
+<span class="special">{</span>
+  <span class="keyword">typedef</span> <span class="identifier">decltype</span><span class="special">(</span><span class="identifier">declval</span><span class="special">&lt;</span><span class="identifier">Fn</span><span class="special">&gt;()(</span><span class="identifier">declval</span><span class="special">&lt;</span><span class="identifier">ArgTypes</span><span class="special">&gt;()...))</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      The role of the function template declval() is a transformation of a type T
+      into a value without using or evaluating this function. The name is supposed
+      to direct the reader's attention to the fact that the expression <code class="computeroutput"><span class="identifier">declval</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;()</span></code> is
+      an lvalue if and only if T is an lvalue-reference, otherwise an rvalue. To
+      extend the domain of this function we can do a bit better by changing its declaration
+      to
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">add_rvalue_reference</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">declval</span><span class="special">();</span> <span class="comment">// not used
+</span></pre>
+<p>
+      which ensures that we can also use cv void as template parameter. The careful
+      reader might have noticed that <code class="computeroutput"><span class="identifier">declval</span><span class="special">()</span></code> already exists under the name create() as
+      part of the definition of the semantics of the type trait is_convertible in
+      the C++0x standard.
+    </p>
+<p>
+      The provision of a new library component that allows the production of values
+      in unevaluated expressions is considered important to realize constrained templates
+      in C++0x where concepts are not available. This extremely light-weight function
+      is expected to be part of the daily tool-box of the C++0x programmer.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="declval.reference"></a><a class="link" href="declval.html#declval.reference" title="Reference">Reference </a>
+</h2></div></div></div>
+<p>
+      <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">declval</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">typename</span> <span class="identifier">add_rvalue_reference</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">declval</span><span class="special">()</span> <span class="identifier">noexcept</span><span class="special">;</span> <span class="comment">// as unevaluated operand
+</span>
+<span class="special">}</span>  <span class="comment">// namespace boost
+</span></pre>
+<p>
+      The library provides the function template declval to simplify the definition
+      of expressions which occur as unevaluated operands.
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">add_rvalue_reference</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">declval</span><span class="special">();</span>
+</pre>
+<p>
+      <span class="bold"><strong>Remarks:</strong></span> If this function is used, the program
+      is ill-formed.
+    </p>
+<p>
+      <span class="bold"><strong>Remarks:</strong></span> The template parameter T of declval
+      may be an incomplete type.
+    </p>
+<p>
+      <span class="bold"><strong>Example:</strong></span>
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">To</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">From</span><span class="special">&gt;</span>
+<span class="identifier">decltype</span><span class="special">(</span><span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">To</span><span class="special">&gt;(</span><span class="identifier">declval</span><span class="special">&lt;</span><span class="identifier">From</span><span class="special">&gt;()))</span> <span class="identifier">convert</span><span class="special">(</span><span class="identifier">From</span><span class="special">&amp;&amp;);</span>
+</pre>
+<p>
+      Declares a function template convert which only participates in overloading
+      if the type From can be explicitly converted to type To.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="declval.history"></a><a class="link" href="declval.html#declval.history" title="History">History</a>
+</h2></div></div></div>
+<a name="declval.history.boost_1_50"></a><h4>
+<a name="idp13553216"></a>
+      <a class="link" href="declval.html#declval.history.boost_1_50">boost 1.50</a>
+    </h4>
+<p>
+      Fixes:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6570" target="_top">#6570</a>
+          Adding noexcept to boost::declval.
+        </li></ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: May 28, 2012 at 18:59:06 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"></div>
+</body>
+</html>

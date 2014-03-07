@@ -1,0 +1,13 @@
+digraph {
+  edge [ len=1.8 ];
+  0 [ pos="148,246z" ];
+  1 [ pos="255,30", style="filled", fillcolor=gray ];
+  2 [ pos="148,138", style="filled", fillcolor=gray ];
+  3 [ pos="41,138", style="filled", fillcolor=gray ];
+  1 -> 0 [ label="5" ];
+  1 -> 2 [ label="3" ];
+  2 -> 3 [ label="8" ];
+  3 -> 0 [ headlabel="3", labeldistance=4.5, labelangle=0.2854 ];
+  0 -> 3 [ headlabel="1", labeldistance=4.5, labelangle=-0.2854, color=red, fontcolor=red, style=dotted ];
+  3 -> 1 [ label="2", len=2.8 ];
+}

@@ -1,0 +1,338 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000, 2001
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Breadth-First Search</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:bfs">
+<img src="figs/python.gif" alt="(Python)"/>
+<TT>breadth_first_search</TT>
+</H1>
+
+<P>
+<PRE>
+<i>// named parameter version</i>
+template &lt;class Graph, class P, class T, class R&gt;
+void breadth_first_search(Graph& G, 
+  typename graph_traits&lt;Graph&gt;::vertex_descriptor s, 
+  const bgl_named_params&lt;P, T, R&gt;&amp; params);
+
+<i>// non-named parameter version</i>
+template &lt;class Graph, class Buffer, class BFSVisitor, 
+	  class ColorMap&gt;
+void breadth_first_search(const Graph&amp; g, 
+   typename graph_traits&lt;Graph&gt;::vertex_descriptor s, 
+   Buffer&amp; Q, BFSVisitor vis, ColorMap color);
+</PRE>
+
+
+<p>
+The <tt>breadth_first_search()</tt> function performs a breadth-first
+traversal [<a href="./bibliography.html#moore59">49</a>] of a directed
+or undirected graph.  A breadth-first traversal visits vertices that
+are closer to the source before visiting vertices that are further
+away. In this context ``distance'' is defined as the number of edges
+in the shortest path from the source vertex. The
+<tt>breadth_first_search()</tt> function can be used to compute the
+shortest path from the source to all reachable vertices and the
+resulting shortest-path distances. For more definitions related to BFS
+see section <a href="./graph_theory_review.html#sec:bfs-algorithm">
+Breadth-First Search</a>.
+</p>
+
+<p>
+BFS uses two data structures to to implement the traversal: a color
+marker for each vertex and a queue. White vertices are undiscovered
+while gray vertices are discovered but have undiscovered adjacent
+vertices. Black vertices are discovered and are adjacent to only other
+black or gray vertices.  The algorithm proceeds by removing a vertex
+</i>u</i> from the queue and examining each out-edge <i>(u,v)</i>. If an
+adjacent vertex <i>v</i> is not already discovered, it is colored gray and
+placed in the queue. After all of the out-edges are examined, vertex
+<i>u</i> is colored black and the process is repeated.  Pseudo-code for the
+BFS algorithm is a listed below.
+</p>
+
+<table>
+<tr>
+<td valign="top">
+<pre>
+BFS(<i>G</i>, <i>s</i>)
+  <b>for</b> each vertex <i>u in V[G]</i>
+    <i>color[u] :=</i> WHITE 
+    <i>d[u] := infinity</i> 
+    <i>p[u] := u</i> 
+  <b>end for</b>
+  <i>color[s] :=</i> GRAY 
+  <i>d[s] := 0</i> 
+  ENQUEUE(<i>Q</i>, <i>s</i>)
+  <b>while</b> (<i>Q != &Oslash;</i>) 
+    <i>u :=</i> DEQUEUE(Q)
+    <b>for</b> each vertex <i>v in Adj[u]</i>
+      <b>if</b> (<i>color[v] =</i> WHITE)
+        <i>color[v] :=</i> GRAY 
+        <i>d[v] := d[u] + 1</i>  
+        <i>p[v] := u</i>  
+        ENQUEUE(<i>Q</i>, <i>v</i>)
+      <b>else</b>
+        <b>if</b> (<i>color[v] =</i> GRAY) 
+          ...
+        <b>else</b> 
+          ...
+    <b>end for</b>
+    <i>color[u] :=</i> BLACK
+  <b>end while</b>
+  return (<i>d</i>, <i>p</i>)
+</pre>
+</td>
+<td valign="top">
+<pre>
+
+initialize vertex <i>u</i> 
+
+
+
+
+
+
+discover vertex <i>s</i> 
+
+examine vertex <i>u</i> 
+examine edge <i>(u,v)</i>
+<i>(u,v)</i> is a tree edge 
+
+
+
+discover vertex <i>v</i> 
+<i>(u,v)</i> is a non-tree edge
+
+<i>(u,v)</i> has a gray target 
+
+<i>(u,v)</i> has a black target 
+
+finish vertex <i>u</i> 
+</pre>
+</tr>
+</table>
+
+The <tt>breadth_first_search()</tt> function can be extended with
+user-defined actions that will be called a certain event points. The
+actions must be provided in the form of a visitor object, that is, an
+object who's type meets the requirements for a <a
+href="./BFSVisitor.html">BFS Visitor</a>. In the above pseudo-code,
+the event points are the labels on the right. Also a description of
+each event point is given below. By default, the
+<tt>breadth_first_search()</tt> function does not carry out any
+actions, not even recording distances or predecessors. However these
+can be easily added using the <a
+href="./distance_recorder.html"><tt>distance_recorder</tt></a> and <a
+href="./predecessor_recorder.html"><tt>predecessor_recorder</tt></a>
+event visitors.
+
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/breadth_first_search.hpp"><TT>boost/graph/breadth_first_search.hpp</TT></a>
+
+<P>
+
+<h3>Parameters</h3>
+
+IN: <tt>Graph&amp; g</tt>
+<blockquote>
+  A directed or undirected graph. The graph type must
+  be a model of <a href="./VertexListGraph.html">Vertex List Graph</a>
+  and <a href="./IncidenceGraph.html">Incidence Graph</a>.<br>
+
+  <b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+
+IN: <tt>vertex_descriptor s</tt>
+<blockquote>
+  The source vertex where the search is started.<br>
+
+  <b>Python</b>: The parameter is named <tt>root_vertex</tt>.
+</blockquote>
+
+
+<h3>Named Parameters</h3>
+
+IN: <tt>visitor(BFSVisitor vis)</tt>
+<blockquote>
+  A visitor object that is invoked inside the algorithm at the
+  event-points specified by the <a href="BFSVisitor.html">BFS
+  Visitor</a> concept. The visitor object is passed by value <a
+  href="#1">[1]</a>.<br> <b>Default:</b>
+  <tt>bfs_visitor&lt;null_visitor&gt;</tt> <br>
+
+  <b>Python</b>: The parameter should be an object that derives from
+  the <a href="BFSVisitor.html#python"><tt>BFSVisitor</tt></a> type of the graph.
+
+</blockquote>
+
+UTIL/OUT: <tt>color_map(ColorMap color)</tt>
+<blockquote>
+  This is used by the algorithm to keep track of its progress through
+  the graph. The user need not initialize the color map before calling
+  <tt>breadth_first_search()</tt> since the algorithm initializes the
+  color of every vertex to white at the start of the algorihtm. If you
+  need to perform multiple breadth-first searches on a graph (for
+  example, if there are some disconnected components) then use the <a
+  href="./breadth_first_visit.html"><tt>breadth_first_visit()</tt></a>
+  function and do your own color initialization.
+
+  <p>The type <tt>ColorMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a> and its key type must be the graph's vertex
+  descriptor type and the value type of the color map must model
+  <a href="./ColorValue.html">ColorValue</a>.<br>
+  <b>Default:</b> an <a
+  href="../../property_map/doc/iterator_property_map.html">
+  </tt>iterator_property_map</tt></a> created from a
+  <tt>std::vector</tt> of <tt>default_color_type</tt> of size
+  <tt>num_vertices(g)</tt> and using the <tt>i_map</tt> for the index
+  map.<br>
+
+  <b>Python</b>: The color map must be a <tt>vertex_color_map</tt> for
+  the graph.
+</blockquote>
+
+IN: <tt>vertex_index_map(VertexIndexMap i_map)</tt>
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+  num_vertices(g))</tt>. This parameter is only necessary when the
+  default color property map is used. The type <tt>VertexIndexMap</tt>
+  must be a model of <a
+  href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+  Map</a>. The value type of the map must be an integer type. The
+  vertex descriptor type of the graph needs to be usable as the key
+  type of the map.<br>
+
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>.
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+UTIL: <tt>buffer(Buffer&amp; Q)</tt>
+<blockquote>
+  The queue used to determine the order in which vertices will be
+  discovered.  If a FIFO queue is used, then the traversal will
+  be according to the usual BFS ordering. Other types of queues
+  can be used, but the traversal order will be different.
+  For example Dijkstra's algorithm can be implemented
+  using a priority queue. The type <tt>Buffer</tt> must be a model of
+  <a href="./Buffer.html">Buffer</a>.<br> The <tt>value_type</tt>
+  of the buffer must be the <tt>vertex_descriptor</tt> type for the graph.<br>
+  <b>Default:</b> <tt>boost::queue</tt><br>
+
+  <b>Python</b>: The buffer must derive from the <a
+  href="./Buffer.html">Buffer</a> type for the graph.
+
+</blockquote>  
+
+
+<H3><A NAME="SECTION001330300000000000000">
+Complexity</A>
+</H3>
+
+<P>
+The time complexity is <i>O(E + V)</i>. 
+
+<P>
+
+<h3>Visitor Event Points</h3>
+
+<ul>
+<li><b><tt>vis.initialize_vertex(v, g)</tt></b> is invoked on every vertex
+  before the start of the search. 
+
+<li><b><tt>vis.examine_vertex(u, g)</tt></b>r is invoked in each
+  vertex as it is removed from the queue.
+
+<li><b><tt>vis.examine_edge(e, g)</tt></b> is invoked on every out-edge
+  of each vertex immediately after the vertex is removed from the queue. 
+
+<li><b><tt>vis.tree_edge(e, g)</tt></b> is invoked (in addition to
+  <tt>examine_edge()</tt>) if the edge is a tree edge. The
+  target vertex of edge <tt>e</tt> is discovered at this time.
+
+<li><b><tt>vis.discover_vertex(u, g)</tt></b> is invoked the first time the
+  algorithm encounters vertex <i>u</i>. All vertices closer to the
+  source vertex have been discovered, and vertices further from the
+  source have not yet been discovered. 
+
+<li><b><tt>vis.non_tree_edge(e, g)</tt></b> is invoked (in addition to
+  <tt>examine_edge()</tt>) if the edge is not a tree edge. 
+
+<li><b><tt>vis.gray_target(e, g)</tt></b> is invoked (in addition to
+  <tt>non_tree_edge()</tt>) if the target vertex is colored gray at the
+  time of examination. The color gray indicates that
+  the vertex is currently in the queue. 
+
+<li><b><tt>vis.black_target(e, g)</tt></b> is invoked (in addition to
+  <tt>non_tree_edge()</tt>) if the target vertex is colored black at the
+  time of examination. The color black indicates that the
+  vertex is no longer in the queue. 
+
+<li><b><tt>vis.finish_vertex(u, g)</tt></b> is invoked after all of the out
+  edges of <i>u</i> have been examined and all of the adjacent vertices
+  have been discovered.
+
+</ul>
+
+<H3><A NAME="SECTION001330400000000000000">
+Example</A>
+</H3>
+
+<P>
+The example in <a
+href="../example/bfs-example.cpp"><TT>example/bfs-example.cpp</TT></a>
+demonstrates using the BGL Breadth-first search algorithm on the graph
+from <A HREF="./graph_theory_review.html#fig:bfs-example">Figure
+5</A>. The file
+<a href="../example/bfs-example2.cpp"><TT>example/bfs-example2.cpp</TT></a>
+contains the same example, except that the <tt>adacency_list</tt>
+class used has <tt>VertexList</tt> and <tt>EdgeList</tt> set
+to <tt>listS</tt>.
+</P>
+
+<h3>See Also</h3>
+
+<a href="./bfs_visitor.html"><tt>bfs_visitor</tt></a> and
+<a href="./depth_first_search.html"><tt>depth_first_search()</tt></a>
+
+<h3>Notes</h3>
+
+<p><a name="1">[1]</a> 
+  Since the visitor parameter is passed by value, if your visitor
+  contains state then any changes to the state during the algorithm
+  will be made to a copy of the visitor object, not the visitor object
+  passed in. Therefore you may want the visitor to hold this state by
+  pointer or reference.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

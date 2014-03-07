@@ -1,0 +1,257 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>comparable_distance</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../distance.html" title="distance">
+<link rel="prev" href="../distance.html" title="distance">
+<link rel="next" href="distance_3_with_strategy.html" title="distance (with strategy)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../distance.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../distance.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="distance_3_with_strategy.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.algorithms.distance.comparable_distance"></a><a class="link" href="comparable_distance.html" title="comparable_distance">comparable_distance</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp54259016"></a>
+Calculate the comparable distance measurement of two geometries.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.distance.comparable_distance.h0"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.distance.comparable_distance.description"></a></span><a class="link" href="comparable_distance.html#geometry.reference.algorithms.distance.comparable_distance.description">Description</a>
+          </h6>
+<p>
+            The free function comparable_distance does not necessarily calculate
+            the distance, but it calculates a distance measure such that two distances
+            are comparable to each other. For example: for the Cartesian coordinate
+            system, Pythagoras is used but the square root is not taken, which makes
+            it faster and the results of two point pairs can still be compared to
+            each other.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.distance.comparable_distance.h1"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.distance.comparable_distance.synopsis"></a></span><a class="link" href="comparable_distance.html#geometry.reference.algorithms.distance.comparable_distance.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Geometry2</span><span class="special">&gt;</span>
+<span class="identifier">default_distance_result</span><span class="special">&lt;</span><span class="identifier">Geometry1</span><span class="special">,</span> <span class="identifier">Geometry2</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">comparable_distance</span><span class="special">(</span><span class="identifier">Geometry1</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry1</span><span class="special">,</span> <span class="identifier">Geometry2</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry2</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.distance.comparable_distance.h2"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.distance.comparable_distance.parameters"></a></span><a class="link" href="comparable_distance.html#geometry.reference.algorithms.distance.comparable_distance.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Concept
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Geometry1 const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      first geometry type
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry1
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Geometry2 const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      second geometry type
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry2
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.distance.comparable_distance.h3"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.distance.comparable_distance.returns"></a></span><a class="link" href="comparable_distance.html#geometry.reference.algorithms.distance.comparable_distance.returns">Returns</a>
+          </h6>
+<p>
+            The calculated comparable distance
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.distance.comparable_distance.h4"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.distance.comparable_distance.header"></a></span><a class="link" href="comparable_distance.html#geometry.reference.algorithms.distance.comparable_distance.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">comparable_distance</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.distance.comparable_distance.h5"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.distance.comparable_distance.conformance"></a></span><a class="link" href="comparable_distance.html#geometry.reference.algorithms.distance.comparable_distance.conformance">Conformance</a>
+          </h6>
+<p>
+            The function comparable_distance is not defined by OGC.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.distance.comparable_distance.h6"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.distance.comparable_distance.behaviour"></a></span><a class="link" href="comparable_distance.html#geometry.reference.algorithms.distance.comparable_distance.behaviour">Behaviour</a>
+          </h6>
+<p>
+            There is no (not yet) version with a strategy.
+          </p>
+<p>
+            It depends on the coordinate system of the geometry's point type if there
+            is a strategy available which can determine (more efficient than the
+            standard strategy) a measure of comparable distance.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.distance.comparable_distance.h7"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.distance.comparable_distance.complexity"></a></span><a class="link" href="comparable_distance.html#geometry.reference.algorithms.distance.comparable_distance.complexity">Complexity</a>
+          </h6>
+<p>
+            Linear
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.distance.comparable_distance.h8"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.distance.comparable_distance.example"></a></span><a class="link" href="comparable_distance.html#geometry.reference.algorithms.distance.comparable_distance.example">Example</a>
+          </h6>
+<p>
+            Shows how to efficiently get the closest point
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point_xy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">numeric</span><span class="special">/</span><span class="identifier">conversion</span><span class="special">/</span><span class="identifier">bounds</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">foreach</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">d2</span><span class="special">::</span><span class="identifier">point_xy</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">point_type</span><span class="special">;</span>
+
+    <span class="identifier">point_type</span> <span class="identifier">p</span><span class="special">(</span><span class="number">1.4</span><span class="special">,</span> <span class="number">2.6</span><span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">point_type</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">;</span>
+    <span class="keyword">for</span> <span class="special">(</span><span class="keyword">double</span> <span class="identifier">x</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span> <span class="identifier">x</span> <span class="special">&lt;=</span> <span class="number">4.0</span><span class="special">;</span> <span class="identifier">x</span><span class="special">++)</span>
+    <span class="special">{</span>
+        <span class="keyword">for</span> <span class="special">(</span><span class="keyword">double</span> <span class="identifier">y</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span> <span class="identifier">y</span> <span class="special">&lt;=</span> <span class="number">4.0</span><span class="special">;</span> <span class="identifier">y</span><span class="special">++)</span>
+        <span class="special">{</span>
+            <span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">point_type</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">y</span><span class="special">));</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+
+    <span class="identifier">point_type</span> <span class="identifier">min_p</span><span class="special">;</span>
+    <span class="keyword">double</span> <span class="identifier">min_d</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">bounds</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">highest</span><span class="special">();</span>
+    <span class="identifier">BOOST_FOREACH</span><span class="special">(</span><span class="identifier">point_type</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">pv</span><span class="special">,</span> <span class="identifier">v</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">comparable_distance</span><span class="special">(</span><span class="identifier">p</span><span class="special">,</span> <span class="identifier">pv</span><span class="special">);</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">d</span> <span class="special">&lt;</span> <span class="identifier">min_d</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">min_d</span> <span class="special">=</span> <span class="identifier">d</span><span class="special">;</span>
+            <span class="identifier">min_p</span> <span class="special">=</span> <span class="identifier">pv</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+        <span class="special">&lt;&lt;</span> <span class="string">"Closest: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">dsv</span><span class="special">(</span><span class="identifier">min_p</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+        <span class="special">&lt;&lt;</span> <span class="string">"At: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">distance</span><span class="special">(</span><span class="identifier">p</span><span class="special">,</span> <span class="identifier">min_p</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            Output:
+          </p>
+<pre class="programlisting">Closest: (1, 3)
+At: 0.565685
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../distance.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../distance.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="distance_3_with_strategy.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,664 @@
+[doc Pyste Documentation]
+
+[/ Copyright 2003 Bruno da Silva de Oliveira and Joel de Guzman.
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) ]
+
+[def GCCXML             [@http://www.gccxml.org GCCXML]]
+[def Boost.Python       [@../../index.html Boost.Python]]
+
+[page Introduction]
+
+[h2 What is Pyste?]
+
+Pyste is a Boost.Python code generator. The user specifies the classes and
+functions to be exported using a simple ['interface file], which following the
+Boost.Python's philosophy, is simple Python code. Pyste then uses GCCXML to
+parse all the headers and extract the necessary information to automatically
+generate C++ code.
+
+[h2 Example]
+
+Let's borrow the class [^World] from the [@../../doc/tutorial/doc/exposing_classes.html tutorial]: 
+
+    struct World
+    {
+        void set(std::string msg) { this->msg = msg; }
+        std::string greet() { return msg; }
+        std::string msg;
+    };
+
+Here's the interface file for it, named [^world.pyste]:
+
+    Class("World", "world.h")
+
+and that's it!
+
+The next step is invoke Pyste in the command-line:
+
+[pre python pyste.py --module=hello world.pyste]
+
+this will create a file "[^hello.cpp]" in the directory where the command was
+run. 
+
+Pyste supports the following features:
+
+* Functions
+* Classes
+* Class Templates
+* Virtual Methods
+* Overloading
+* Attributes 
+* Enums (both "free" enums and class enums)
+* Nested Classes
+* Support for [^boost::shared_ptr] and [^std::auto_ptr]
+* Global Variables
+
+[page Running Pyste]
+
+To run Pyste, you will need:
+
+* Python 2.2, available at [@http://www.python.org python's website].
+* The great [@http://effbot.org elementtree] library, from Fredrik Lundh.
+* The excellent GCCXML, from Brad King.
+
+Installation for the tools is available in their respective webpages.
+
+[blurb 
+[$theme/note.gif] GCCXML must be accessible in the PATH environment variable, so
+that Pyste can call it. How to do this varies from platform to platform.
+]
+
+[h2 Ok, now what?]
+
+Well, now let's fire it up:
+
+[pre 
+'''
+>python pyste.py
+
+Pyste version 0.9.26
+
+Usage:
+    pyste [options] interface-files
+
+where options are:
+    --module=<name>         The name of the module that will be generated;
+                            defaults to the first interface filename, without
+                            the extension.
+    -I <path>               Add an include path
+    -D <symbol>             Define symbol
+    --multiple              Create various cpps, instead of only one
+                            (useful during development)
+    --out=<name>            Specify output filename (default: <module>.cpp)
+                            in --multiple mode, this will be a directory
+    --no-using              Do not declare "using namespace boost";
+                            use explicit declarations instead
+    --pyste-ns=<name>       Set the namespace where new types will be declared;
+                            default is the empty namespace
+    --debug                 Writes the xml for each file parsed in the current
+                            directory
+    --cache-dir=<dir>       Directory for cache files (speeds up future runs)
+    --only-create-cache     Recreates all caches (doesn't generate code).
+    --generate-main         Generates the _main.cpp file (in multiple mode)
+    --file-list             A file with one pyste file per line. Use as a 
+                            substitute for passing the files in the command
+                            line.
+    -h, --help              Print this help and exit
+    -v, --version           Print version information
+  
+'''                        
+]
+
+Options explained:
+
+The [^-I] and [^-D] are preprocessor flags, which are needed by GCCXML to parse
+the header files correctly and by Pyste to find the header files declared in the
+interface files.
+
+[^--out] names the output file (default: [^<module>.cpp]), or in multiple mode,
+names a output directory for the files (default: [^<module>]).
+
+[^--no-using] tells Pyste to don't declare "[^using namespace boost;]" in the
+generated cpp, using the namespace boost::python explicitly in all declarations.
+Use only if you're having a name conflict in one of the files.
+
+Use [^--pyste-ns] to change the namespace where new types are declared (for
+instance, the virtual wrappers). Use only if you are having any problems. By
+default, Pyste uses the empty namespace.
+
+[^--debug] will write in the current directory a xml file as outputted by GCCXML
+for each header parsed. Useful for bug reports.
+
+[^--file-list] names a file where each line points to a Pyste file. Use this instead 
+to pass the pyste files if you have a lot of them and your shell has some command line
+size limit.
+
+The other options are explained below, in [@#multiple_mode [*Multiple Mode]] and
+[@#cache [*Cache]].
+
+[^-h, --help, -v, --version] are self-explaining, I believe. ;)
+
+So, the usage is simple enough:
+
+[pre >python pyste.py --module=mymodule file.pyste file2.pyste ...]
+
+will generate a file [^mymodule.cpp] in the same dir where the command was
+executed. Now you can compile the file using the same instructions of the
+[@../../doc/tutorial/doc/building_hello_world.html tutorial]. 
+
+[h2 Wait... how do I set those I and D flags?]
+
+Don't worry: normally GCCXML is already configured correctly for your plataform, 
+so the search path to the standard libraries and the standard defines should 
+already be set. You only have to set the paths to other libraries that your code 
+needs, like Boost, for example.
+
+Plus, Pyste automatically uses the contents of the environment variable
+[^INCLUDE] if it exists. Visual C++ users should run the [^Vcvars32.bat] file,
+which for Visual C++ 6 is normally located at:
+
+    C:\Program Files\Microsoft Visual Studio\VC98\bin\Vcvars32.bat
+
+with that, you should have little trouble setting up the flags.
+
+[blurb [$theme/note.gif][*A note about Psyco][br][br]
+Although you don't have to install [@http://psyco.sourceforge.net/ Psyco] to
+use Pyste, if you do, Pyste will make use of it to speed up the wrapper
+generation. Speed ups of 30% can be achieved, so it's highly recommended.
+]
+
+
+[h2 Multiple Mode]
+
+The multiple mode is useful in large projects, where the presence of multiple
+classes in a single file makes the compilation unpractical (excessive memory
+usage, mostly). 
+
+The solution is make Pyste generate multiple files, more specifically one cpp
+file for each Pyste file. This files will contain a function named after the
+file, for instance Export_MyPysteFile, which will contain all the code to export
+the classes, enums, etc. You can pass as much files as you want this way:
+
+[pre >python pyste.py --module=mymodule file1.pyste file2.pyste]
+
+This will create the files [^mymodule/file1.cpp] and [^mymodule/file2.cpp]. You
+can then later do:
+
+[pre >python pyste.py --module=mymodule file3.pyste]
+
+and [^mymodule/file3.cpp] will be generated.
+
+But compiling and linking this files won't be sufficient to generate your
+extension. You have to also generate a file named [^main.cpp]; call pyste with
+[*all] the Pyste files of your extension, and use the [^--generate-main] option:
+
+[pre >python pyste.py --module=mymodule --generate-main file1.pyste file2.pyste file3.pyste]
+
+Now compile and link all this files together and your extension is ready for
+use.
+
+[h2 Cache]
+
+Pyste now supports a form of cache, which is a way to speed up the code
+generation. Most of the time that Pyste takes to generate the code comes from
+having to execute GCCXML (since being a front-end to GCC, it has to compile the
+header files) and reading back the XML generated. 
+
+When you use the [^--cache-dir=<dir>] option, Pyste will dump in the specified
+directory the generated XMLs to a file named after the Pyste file, with the
+extension [^.pystec].  The next time you run with this option, Pyste will use
+the cache, instead of calling GCCXML again:
+
+[pre >python pyste.py --module=mymodule --cache-dir=cache file1.pyste]
+
+Will generate [^file1.cpp] and [^cache/file1.pystec]. Next time you execute
+this command, the cache file will be used. Note that Pyste doesn't do any check
+to ensure that the cache is up to date, but you can configure your build system to do that for you.
+
+When you run Pyste with [^--only-create-cache], all the cache files will be
+created again, but no code will be generated.
+
+[page The Interface Files]
+
+The interface files are the heart of Pyste. The user creates one or more
+interface files declaring the classes and functions he wants to export, and then
+invokes Pyste passing the interface files to it. Pyste then generates a single
+cpp file with Boost.Python code, with all the classes and functions exported.
+
+Besides declaring the classes and functions, the user has a number of other
+options, like renaming e excluding classes and member functionis. Those are
+explained later on.
+
+[h2 Basics]
+
+Suppose we have a class and some functions that we want to expose to Python
+declared in the header [^hello.h]:
+
+    struct World
+    {
+        World(std::string msg): msg(msg) {} 
+        void set(std::string msg) { this->msg = msg; }
+        std::string greet() { return msg; }
+        std::string msg;
+    };
+
+    enum choice { red, blue };
+    
+    namespace test {
+    
+    void show(choice c) { std::cout << "value: " << (int)c << std::endl; }
+    
+    }
+
+We create a file named [^hello.pyste] and create instances of the classes
+[^Function], [^Class] and [^Enum]:
+
+    Function("test::show", "hello.h")
+    Class("World", "hello.h")
+    Enum("choice", "hello.h")
+
+That will expose the class, the free function and the enum found in [^hello.h]. 
+
+[h2 Inheritance]
+
+Pyste automatically generates the correct code (specifying [^bases<>] in the
+[^class_] declaration) [*if] the Class() function that exports the base classes
+and their children are in the same Pyste file. If that's not the case, you have
+to indicate that there's a relationship between the Pyste files using the
+[^Import] function specifying the other Pyste file.
+
+Suppose we have two classes, [^A] and [^B], and A is a base class for B. We
+create two Pyste files:
+
+[^A.pyste]:
+
+    Class("A", "A.h")
+
+[^B.pyste]:
+
+    Import("A.pyste")
+    Class("B", "B.h")
+
+Note that we specify that [^B] needs to know about [^A] to be properly exported.
+
+[page:1 Renaming and Excluding]
+
+You can easily rename functions, classes, member functions, attributes, etc. Just use the
+function [^rename], like this:
+
+    World = Class("World", "hello.h")
+    rename(World, "IWorld")
+    show = Function("choice", "hello.h")
+    rename(show, "Show")
+
+You can rename member functions and attributes using this syntax:
+
+    rename(World.greet, "Greet")
+    rename(World.set, "Set")
+    choice = Enum("choice", "hello.h")
+    rename(choice.red, "Red")
+    rename(choice.blue, "Blue")
+
+You can exclude functions, classes, member functions, attributes, etc, in the same way,
+with the function [^exclude]:
+
+    exclude(World.greet)
+    exclude(World.msg)
+
+To access the operators of a class, access the member [^operator] like this
+(supposing that [^C] is a class being exported):
+
+    exclude(C.operator['+'])
+    exclude(C.operator['*'])
+    exclude(C.operator['<<'])
+
+The string inside the brackets is the same as the name of the operator in C++.[br]
+
+[h2 Virtual Member Functions]
+
+Pyste automatically generates wrappers for virtual member functions, but you may
+want to disable this behaviour (for performance reasons, for instance) if you do
+not plan to override the functions in Python. To do this, use the function
+[^final]:
+
+    C = Class('C', 'C.h')
+    final(C.foo) # C::foo is a virtual member function
+
+No virtual wrapper code will be generated for the virtual member function
+C::foo that way.
+
+[page:1 Policies]
+
+Even thought Pyste can identify various elements in the C++ code, like virtual
+member functions, attributes, and so on, one thing that it can't do is to
+guess the semantics of functions that return pointers or references. In this
+case, the user must manually specify the policy. Policies are explained in the
+[@../../doc/tutorial/doc/call_policies.html tutorial].
+
+The policies in Pyste are named exactly as in Boost.Python, only the syntax is
+slightly different. For instance, this policy:
+
+    return_internal_reference<1, with_custodian_and_ward<1, 2> >()
+
+becomes in Pyste:    
+
+    return_internal_reference(1, with_custodian_and_ward(1, 2))
+
+The user can specify policies for functions and virtual member functions with
+the [^set_policy] function:
+
+    set_policy(f, return_internal_reference())
+    set_policy(C.foo, return_value_policy(manage_new_object))
+
+[blurb 
+[$theme/note.gif] [*What if a function or member function needs a policy and
+the user doesn't set one?][br][br] If a function needs a policy and one
+was not set, Pyste will issue a error.  The user should then go in the
+interface file and set the policy for it, otherwise the generated cpp won't
+compile.
+]
+
+[blurb
+[$theme/note.gif] 
+Note that for functions that return [^const T&], the policy
+[^return_value_policy<copy_const_reference>()] wil be used by default, because
+that's normally what you want. You can change it to something else if you need
+to, though.
+]
+
+[page:1 Templates]
+
+Template classes can easily be exported too, but you can't export the template
+itself... you have to export instantiations of it! So, if you want to export a
+[^std::vector], you will have to export vectors of int, doubles, etc.
+
+Suppose we have this code:
+
+    template <class T>
+    struct Point
+    {
+        T x;
+        T y;
+    };
+
+And we want to export [^Point]s of int and double:
+
+    Point = Template("Point", "point.h")
+    Point("int")
+    Point("double")
+
+Pyste will assign default names for each instantiation. In this example, those
+would be "[^Point_int]" and "[^Point_double]", but most of the time users will want to
+rename the instantiations:
+
+    Point("int", "IPoint")         // renames the instantiation
+    double_inst = Point("double")  // another way to do the same
+    rename(double_inst, "DPoint")
+
+Note that you can rename, exclude, set policies, etc, in the [^Template] object
+like you would do with a [^Function] or a [^Class]. This changes affect all
+[*future] instantiations:
+
+    Point = Template("Point", "point.h")
+    Point("float", "FPoint")        // will have x and y as data members
+    rename(Point.x, "X")
+    rename(Point.y, "Y")
+    Point("int", "IPoint")          // will have X and Y as data members
+    Point("double", "DPoint")       // also will have X and Y as data member
+
+If you want to change a option of a particular instantiation, you can do so:
+
+    Point = Template("Point", "point.h")
+    Point("int", "IPoint")          
+    d_inst = Point("double", "DPoint")       
+    rename(d_inst.x, "X")           // only DPoint is affect by this renames,
+    rename(d_inst.y, "Y")           // IPoint stays intact
+
+[blurb [$theme/note.gif] [*What if my template accepts more than one type?]
+[br][br]
+When you want to instantiate a template with more than one type, you can pass
+either a string with the types separated by whitespace, or a list of strings
+'''("int double" or ["int", "double"]''' would both work).
+]
+
+[page:1 Wrappers]
+
+Suppose you have this function:
+
+    std::vector<std::string> names();
+
+But you don't want to [@../../doc/v2/faq.html#question2 to export std::vector<std::string>], 
+you want this function to return a python list of strings. Boost.Python has
+excellent support for things like that:
+
+    list names_wrapper()
+    {
+        list result;
+        // call original function
+        vector<string> v = names();
+        // put all the strings inside the python list
+        vector<string>::iterator it;
+        for (it = v.begin(); it != v.end(); ++it){
+            result.append(*it);    
+        }
+        return result;
+    }
+    
+    BOOST_PYTHON_MODULE(test)
+    {
+        def("names", &names_wrapper);
+    }
+
+Nice heh? Pyste supports this mechanism too. You declare the [^names_wrapper]
+function in a header named "[^test_wrappers.h]" and in the interface file:
+
+    Include("test_wrappers.h")
+    names = Function("names", "test.h")
+    set_wrapper(names, "names_wrapper")
+
+You can optionally declare the function in the interface file itself:
+
+    names_wrapper = Wrapper("names_wrapper",
+    """
+    list names_wrapper()
+    {
+        // code to call name() and convert the vector to a list...
+    }
+    """)
+    names = Function("names", "test.h")
+    set_wrapper(names, names_wrapper)
+
+The same mechanism can be used with member functions too. Just remember that
+the first parameter of wrappers for member functions is a pointer to the
+class, as in:
+
+    struct C
+    {
+        std::vector<std::string> names();
+    }
+
+    list names_wrapper(C* c)
+    {
+        // same as before, calling c->names() and converting result to a list 
+    }
+
+And then in the interface file:
+
+    C = Class("C", "test.h")
+    set_wrapper(C.names, "names_wrapper")
+
+[blurb 
+[$theme/note.gif]Even though Boost.Python accepts either a pointer or a
+reference to the class in wrappers for member functions as the first parameter,
+Pyste expects them to be a [*pointer]. Doing otherwise will prevent your
+code to compile when you set a wrapper for a virtual member function.
+]
+
+[page:1 Exporting An Entire Header]
+
+Pyste also supports a mechanism to export all declarations found in a header
+file. Suppose again our file, [^hello.h]:
+
+    struct World
+    {
+        World(std::string msg): msg(msg) {} 
+        void set(std::string msg) { this->msg = msg; }
+        std::string greet() { return msg; }
+        std::string msg;
+    };
+
+    enum choice { red, blue };
+    
+    void show(choice c) { std::cout << "value: " << (int)c << std::endl; } 
+
+You can just use the [^AllFromHeader] construct:
+
+    hello = AllFromHeader("hello.h")
+
+this will export all the declarations found in [^hello.h], which is equivalent
+to write:
+
+    Class("World", "hello.h")
+    Enum("choice", "hello.h")
+    Function("show", "hello.h")
+
+Note that you can still use the functions [^rename], [^set_policy], [^exclude], etc. Just access
+the members of the header object like this:
+
+    rename(hello.World.greet, "Greet")
+    exclude(hello.World.set, "Set")
+
+[blurb    
+[$theme/note.gif] [*AllFromHeader is broken] in some cases. Until it is fixed,
+use at you own risk.
+]
+
+
+[page:1 Smart Pointers]
+
+Pyste for now has manual support for smart pointers. Suppose:
+
+    struct C
+    {
+        int value;
+    };
+
+    boost::shared_ptr<C> newC(int value)
+    {
+        boost::shared_ptr<C> c( new C() );
+        c->value = value;
+        return c;
+    }
+
+    void printC(boost::shared_ptr<C> c)
+    {
+        std::cout << c->value << std::endl;
+    }
+
+To make [^newC] and [^printC] work correctly, you have to tell Pyste that a
+convertor for [^boost::shared_ptr<C>] is needed.
+
+    C = Class('C', 'C.h')
+    use_shared_ptr(C)
+    Function('newC', 'C.h')
+    Function('printC', 'C.h')
+
+For [^std::auto_ptr]'s, use the function [^use_auto_ptr].
+
+This system is temporary, and in the future the converters will automatically be
+exported if needed, without the need to tell Pyste about them explicitly.
+
+[h2 Holders]
+
+If only the converter for the smart pointers is not enough and you need to
+specify the smart pointer as the holder for a class, use the functions
+[^hold_with_shared_ptr] and [^hold_with_auto_ptr]:
+
+    C = Class('C', 'C.h')
+    hold_with_shared_ptr(C)
+    Function('newC', 'C.h')
+    Function('printC', 'C.h') 
+
+[page:1 Global Variables]
+
+To export global variables, use the [^Var] construct:
+
+    Var("myglobal", "foo.h")
+
+Beware of non-const global variables: changes in Python won't reflect in C++!
+If you really must change them in Python, you will have to write some accessor
+functions, and export those.
+
+
+[page:1 Adding New Methods]
+
+Suppose that you want to add a function to a class, turning it into a member
+function:
+
+    struct World
+    {
+        void set(std::string msg) { this->msg = msg; }
+        std::string msg;
+    };
+
+    std::string greet(World& w)
+    {
+        return w.msg;
+    }
+
+Here, we want to make [^greet] work as a member function of the class [^World]. We do
+that using the [^add_method] construct:
+
+    W = Class("World", "hello.h")
+    add_method(W, "greet")
+
+Notice also that then you can rename it, set its policy, just like a regular
+member function:
+
+    rename(W.greet, 'Greet')
+
+Now from Python:
+
+    >>> import hello
+    >>> w = hello.World()
+    >>> w.set('Ni')
+    >>> w.greet()
+    'Ni'
+    >>> print 'Oh no! The knights who say Ni!'
+    Oh no! The knights who say Ni!
+
+
+[page:1 Inserting Code]
+
+You can insert arbitrary code in the generated cpps, just use the functions
+[^declaration_code] and [^module_code]. This will insert the given string in the
+respective sections. Example:
+
+    # file A.pyste
+    Class("A", "A.h")
+    declaration_code("/* declaration_code() comes here */\n")
+    module_code("/* module_code() comes here */\n")
+
+Will generate:
+
+    // Includes ====================================================================
+    #include <boost/python.hpp>
+
+    // Using =======================================================================
+    using namespace boost::python;
+
+    // Declarations ================================================================
+
+    /* declaration_code() comes here */
+
+    // Module ======================================================================
+    BOOST_PYTHON_MODULE(A)
+    {
+        class_< A >("A", init<  >())
+            .def(init< const A& >())
+        ;
+
+    /* module_code() comes here */
+    }

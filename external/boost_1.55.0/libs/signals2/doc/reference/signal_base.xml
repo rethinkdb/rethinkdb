@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<header name="boost/signals2/signal_base.hpp" last-revision="$Date: 2007-03-06 16:51:55 -0500 (Tue, 06 Mar 2007) $">
+  <namespace name="boost">
+    <namespace name="signals2">
+
+      <class name="signal_base">
+        <inherit access="public">
+          <type><classname>noncopyable</classname></type>
+        </inherit>
+        <purpose>Base class for signals.</purpose>
+        <destructor specifiers="virtual">
+          <description><para>Virtual destructor.</para></description>
+        </destructor>
+      </class>
+    </namespace>
+  </namespace>
+</header>

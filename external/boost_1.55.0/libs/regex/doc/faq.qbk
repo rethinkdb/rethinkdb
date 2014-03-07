@@ -1,0 +1,98 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:faq FAQ]
+
+[*Q.] I can't get regex++ to work with escape characters, what's going on?
+
+[*A.] If you embed regular expressions in C++ code, then remember that escape 
+characters are processed twice: once by the C++ compiler, and once by the 
+Boost.Regex expression compiler, so to pass the regular expression \d+ 
+to Boost.Regex, you need to embed "\\d+" in your code. Likewise to match a 
+literal backslash you will need to embed "\\\\" in your code.
+
+[*Q.] No matter what I do regex_match always returns false, what's going on?
+
+[*A.] The algorithm regex_match only succeeds if the expression matches *all*
+of the text, if you want to *find* a sub-string within the text that matches
+the expression then use regex_search instead.
+
+[*Q.] Why does using parenthesis in a POSIX regular expression change the 
+result of a match?
+
+[*A.] For POSIX (extended and basic) regular expressions, but not for perl regexes, 
+parentheses don't only mark; they determine what the best match is as well. 
+When the expression is compiled as a POSIX basic or extended regex then Boost.Regex 
+follows the POSIX standard leftmost longest rule for determining what matched. 
+So if there is more than one possible match after considering the whole expression, 
+it looks next at the first sub-expression and then the second sub-expression 
+and so on. So...
+
+"'''(0*)([0-9]*)'''" against "00123" would produce
+$1 = "00"
+$2 = "123"
+
+where as
+
+"0*([0-9])*" against "00123" would produce
+$1 = "00123"
+
+If you think about it, had $1 only matched the "123", this would be "less good" 
+than the match "00123" which is both further to the left and longer. If you 
+want $1 to match only the "123" part, then you need to use something like:
+
+"0*([1-9][0-9]*)"
+
+as the expression.
+
+[*Q.] Why don't character ranges work properly (POSIX mode only)?
+
+[*A.] The POSIX standard specifies that character range expressions are 
+locale sensitive - so for example the expression [A-Z] will match any 
+collating element that collates between 'A' and 'Z'. That means that for 
+most locales other than "C" or "POSIX", [A-Z] would match the single 
+character 't' for example, which is not what most people expect - or 
+at least not what most people have come to expect from regular 
+expression engines. For this reason, the default behaviour of Boost.Regex 
+(perl mode) is to turn locale sensitive collation off by not setting the 
+`regex_constants::collate` compile time flag. However if you set a non-default 
+compile time flag - for example `regex_constants::extended` or 
+`regex_constants::basic`, then locale dependent collation will be enabled, 
+this also applies to the POSIX API functions which use either 
+`regex_constants::extended` or `regex_constants::basic` internally. 
+[Note - when `regex_constants::nocollate` in effect, the library behaves 
+"as if" the LC_COLLATE locale category were always "C", regardless of what 
+its actually set to - end note].
+
+[*Q.] Why are there no throw specifications on any of the functions? 
+What exceptions can the library throw?
+
+[*A.] Not all compilers support (or honor) throw specifications, others 
+support them but with reduced efficiency. Throw specifications may be added 
+at a later date as compilers begin to handle this better. The library 
+should throw only three types of exception: [boost::regex_error] can be 
+thrown by [basic_regex] when compiling a regular expression, `std::runtime_error` 
+can be thrown when a call to `basic_regex::imbue` tries to open a message 
+catalogue that doesn't exist, or when a call to [regex_search] or [regex_match] 
+results in an "everlasting" search, or when a call to `RegEx::GrepFiles` or 
+`RegEx::FindFiles` tries to open a file that cannot be opened, finally 
+`std::bad_alloc` can be thrown by just about any of the functions in this library.
+
+[*Q.] Why can't I use the "convenience" versions of regex_match / 
+regex_search / regex_grep / regex_format / regex_merge?
+
+[*A.] These versions may or may not be available depending upon the 
+capabilities of your compiler, the rules determining the format of 
+these functions are quite complex - and only the versions visible to 
+a standard compliant compiler are given in the help. To find out 
+what your compiler supports, run <boost/regex.hpp> through your 
+C++ pre-processor, and search the output file for the function 
+that you are interested in.  Note however, that very few current
+compilers still have problems with these overloaded functions.
+
+[endsect]
+

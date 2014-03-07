@@ -1,0 +1,18 @@
+#
+#   Copyright (c) 2011 Daniel James
+#
+#   Distributed under the Boost Software License, Version 1.0. (See
+#   accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#
+
+project quickbook/test/snippets ;
+
+import quickbook-testing : quickbook-test quickbook-error-test ;
+
+test-suite quickbook.test :
+    [ quickbook-test pass_thru ]
+    [ quickbook-test unbalanced_snippet1-1_5 ]
+    [ quickbook-error-test unbalanced_snippet1-1_6-fail ]
+    [ quickbook-error-test unbalanced_snippet2-1_6-fail ]
+    ;

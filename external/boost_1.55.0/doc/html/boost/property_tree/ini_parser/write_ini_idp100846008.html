@@ -1,0 +1,112 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function template write_ini</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../../property_tree/reference.html#header.boost.property_tree.ini_parser_hpp" title="Header &lt;boost/property_tree/ini_parser.hpp&gt;">
+<link rel="prev" href="write_ini_idp96594200.html" title="Function template write_ini">
+<link rel="next" href="../json_parser/read_json_idp101488088.html" title="Function template read_json">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="write_ini_idp96594200.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../property_tree/reference.html#header.boost.property_tree.ini_parser_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../json_parser/read_json_idp101488088.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.property_tree.ini_parser.write_ini_idp100846008"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function template write_ini</span></h2>
+<p>boost::property_tree::ini_parser::write_ini</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../property_tree/reference.html#header.boost.property_tree.ini_parser_hpp" title="Header &lt;boost/property_tree/ini_parser.hpp&gt;">boost/property_tree/ini_parser.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Ptree<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <span class="identifier">write_ini</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> filename<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Ptree</span> <span class="special">&amp;</span> pt<span class="special">,</span> 
+                 <span class="keyword">int</span> flags <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span> <span class="special">&amp;</span> loc <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp166481672"></a><h2>Description</h2>
+<p>Translates the property tree to INI and writes it the given file. 
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">filename</code></span></p></td>
+<td><p>The name of the file to which to write the INI representation of the property tree. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">flags</code></span></p></td>
+<td>
+<p>The flags to use when writing the INI file. The following flags are supported: </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="computeroutput">skip_ini_validity_check</code> <span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span> Skip check if ptree is a valid ini. The validity check covers the preconditions but takes <code class="computeroutput">O(n log n)</code> time. </p></li></ul></div>
+<p>
+</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">loc</code></span></p></td>
+<td><p>The locale to use when writing the file. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">pt</code></span></p></td>
+<td><p>The property tree to tranlsate to INI and output. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>
+<p><span class="emphasis"><em>pt</em></span> cannot have data in its root. </p>
+<p><span class="emphasis"><em>pt</em></span> cannot have keys both data and children. </p>
+<p><span class="emphasis"><em>pt</em></span> cannot be deeper than two levels. </p>
+<p>There cannot be duplicate keys on any given level of <span class="emphasis"><em>pt</em></span>. </p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>info_parser_error In case of error translating the property tree to INI or writing to the file. </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Marcin Kalicinski<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="write_ini_idp96594200.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../property_tree/reference.html#header.boost.property_tree.ini_parser_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../json_parser/read_json_idp101488088.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

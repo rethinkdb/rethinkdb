@@ -1,0 +1,200 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>async_connect (4 of 4 overloads)</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../async_connect.html" title="async_connect">
+<link rel="prev" href="overload3.html" title="async_connect (3 of 4 overloads)">
+<link rel="next" href="../async_read.html" title="async_read">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overload3.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../async_connect.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../async_read.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.reference.async_connect.overload4"></a><a class="link" href="overload4.html" title="async_connect (4 of 4 overloads)">async_connect
+        (4 of 4 overloads)</a>
+</h4></div></div></div>
+<p>
+          Asynchronously establishes a socket connection by trying each endpoint
+          in a sequence.
+        </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="../Protocol.html" title="Protocol requirements">Protocol</a><span class="special">,</span>
+    <span class="keyword">typename</span> <a class="link" href="../SocketService.html" title="Socket service requirements">SocketService</a><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">ConnectCondition</span><span class="special">,</span>
+    <span class="keyword">typename</span> <a class="link" href="../ComposedConnectHandler.html" title="Composed connect handler requirements">ComposedConnectHandler</a><span class="special">&gt;</span>
+<a class="link" href="../asynchronous_operations.html#boost_asio.reference.asynchronous_operations.return_type_of_an_initiating_function"><span class="emphasis"><em>void-or-deduced</em></span></a> <span class="identifier">async_connect</span><span class="special">(</span>
+    <span class="identifier">basic_socket</span><span class="special">&lt;</span> <span class="identifier">Protocol</span><span class="special">,</span> <span class="identifier">SocketService</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+    <span class="identifier">Iterator</span> <span class="identifier">begin</span><span class="special">,</span>
+    <span class="identifier">Iterator</span> <span class="identifier">end</span><span class="special">,</span>
+    <span class="identifier">ConnectCondition</span> <span class="identifier">connect_condition</span><span class="special">,</span>
+    <span class="identifier">ComposedConnectHandler</span> <span class="identifier">handler</span><span class="special">);</span>
+</pre>
+<p>
+          This function attempts to connect a socket to one of a sequence of endpoints.
+          It does this by repeated calls to the socket's <code class="computeroutput"><span class="identifier">async_connect</span></code>
+          member function, once for each endpoint in the sequence, until a connection
+          is successfully established.
+        </p>
+<h6>
+<a name="boost_asio.reference.async_connect.overload4.h0"></a>
+          <span class="phrase"><a name="boost_asio.reference.async_connect.overload4.parameters"></a></span><a class="link" href="overload4.html#boost_asio.reference.async_connect.overload4.parameters">Parameters</a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">s</span></dt>
+<dd><p>
+                The socket to be connected. If the socket is already open, it will
+                be closed.
+              </p></dd>
+<dt><span class="term">begin</span></dt>
+<dd><p>
+                An iterator pointing to the start of a sequence of endpoints.
+              </p></dd>
+<dt><span class="term">end</span></dt>
+<dd><p>
+                An iterator pointing to the end of a sequence of endpoints.
+              </p></dd>
+<dt><span class="term">connect_condition</span></dt>
+<dd>
+<p>
+                A function object that is called prior to each connection attempt.
+                The signature of the function object must be:
+</p>
+<pre class="programlisting"><span class="identifier">Iterator</span> <span class="identifier">connect_condition</span><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">ec</span><span class="special">,</span>
+    <span class="identifier">Iterator</span> <span class="identifier">next</span><span class="special">);</span>
+</pre>
+<p>
+                The <code class="computeroutput"><span class="identifier">ec</span></code> parameter
+                contains the result from the most recent connect operation. Before
+                the first connection attempt, <code class="computeroutput"><span class="identifier">ec</span></code>
+                is always set to indicate success. The <code class="computeroutput"><span class="identifier">next</span></code>
+                parameter is an iterator pointing to the next endpoint to be tried.
+                The function object should return the next iterator, but is permitted
+                to return a different iterator so that endpoints may be skipped.
+                The implementation guarantees that the function object will never
+                be called with the end iterator.
+              </p>
+</dd>
+<dt><span class="term">handler</span></dt>
+<dd>
+<p>
+                The handler to be called when the connect operation completes. Copies
+                will be made of the handler as required. The function signature of
+                the handler must be:
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">handler</span><span class="special">(</span>
+  <span class="comment">// Result of operation. if the sequence is empty, set to</span>
+  <span class="comment">// boost::asio::error::not_found. Otherwise, contains the</span>
+  <span class="comment">// error from the last connection attempt.</span>
+  <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">error</span><span class="special">,</span>
+
+  <span class="comment">// On success, an iterator denoting the successfully</span>
+  <span class="comment">// connected endpoint. Otherwise, the end iterator.</span>
+  <span class="identifier">Iterator</span> <span class="identifier">iterator</span>
+<span class="special">);</span>
+</pre>
+<p>
+                Regardless of whether the asynchronous operation completes immediately
+                or not, the handler will not be invoked from within this function.
+                Invocation of the handler will be performed in a manner equivalent
+                to using <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">post</span><span class="special">()</span></code>.
+              </p>
+</dd>
+</dl>
+</div>
+<h6>
+<a name="boost_asio.reference.async_connect.overload4.h1"></a>
+          <span class="phrase"><a name="boost_asio.reference.async_connect.overload4.example"></a></span><a class="link" href="overload4.html#boost_asio.reference.async_connect.overload4.example">Example</a>
+        </h6>
+<p>
+          The following connect condition function object can be used to output information
+          about the individual connection attempts:
+        </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">my_connect_condition</span>
+<span class="special">{</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+  <span class="identifier">Iterator</span> <span class="keyword">operator</span><span class="special">()(</span>
+      <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">ec</span><span class="special">,</span>
+      <span class="identifier">Iterator</span> <span class="identifier">next</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">ec</span><span class="special">)</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Error: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">ec</span><span class="special">.</span><span class="identifier">message</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Trying: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">next</span><span class="special">-&gt;</span><span class="identifier">endpoint</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">next</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+          It would be used with the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">connect</span></code>
+          function as follows:
+        </p>
+<pre class="programlisting"><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">resolver</span> <span class="identifier">r</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">);</span>
+<span class="identifier">tcp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">query</span> <span class="identifier">q</span><span class="special">(</span><span class="string">"host"</span><span class="special">,</span> <span class="string">"service"</span><span class="special">);</span>
+<span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">s</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">);</span>
+
+<span class="comment">// ...</span>
+
+<span class="identifier">r</span><span class="special">.</span><span class="identifier">async_resolve</span><span class="special">(</span><span class="identifier">q</span><span class="special">,</span> <span class="identifier">resolve_handler</span><span class="special">);</span>
+
+<span class="comment">// ...</span>
+
+<span class="keyword">void</span> <span class="identifier">resolve_handler</span><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">ec</span><span class="special">,</span>
+    <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">i</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">ec</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">end</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">async_connect</span><span class="special">(</span><span class="identifier">s</span><span class="special">,</span> <span class="identifier">i</span><span class="special">,</span> <span class="identifier">end</span><span class="special">,</span>
+        <span class="identifier">my_connect_condition</span><span class="special">(),</span>
+        <span class="identifier">connect_handler</span><span class="special">);</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="comment">// ...</span>
+
+<span class="keyword">void</span> <span class="identifier">connect_handler</span><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">ec</span><span class="special">,</span>
+    <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">i</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="keyword">if</span> <span class="special">(</span><span class="identifier">ec</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="comment">// An error occurred.</span>
+  <span class="special">}</span>
+  <span class="keyword">else</span>
+  <span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Connected to: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">endpoint</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overload3.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../async_connect.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../async_read.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

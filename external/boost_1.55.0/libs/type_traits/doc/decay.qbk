@@ -1,0 +1,40 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:decay decay]
+
+   template <class T>
+   struct decay
+   {
+      typedef __below type;
+   };
+  
+__type Let `U` be the result of `remove_reference<T>::type`, then if `U` is
+an array type, the result is `remove_extent<U>::type*`, otherwise if `U` is a 
+function type then the result is `U*`, otherwise the result is `U`.
+
+__std_ref 3.9.1.
+
+__header ` #include <boost/type_traits/decay.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[table Examples
+
+[ [Expression] [Result Type]]
+
+[[`decay<int[2][3]>::type`][`int[3]*`]]
+
+[[`decay<int(&)[2]>::type`] [`int*`]]
+
+[[`decay<int(&)(double)>::type`] [`int(*)(double)`]]
+
+[[`int(*)(double)`] [`int(*)(double)`]]
+[[`int(double)`] [`int(*)(double)`]]
+
+]
+
+[endsect]
+

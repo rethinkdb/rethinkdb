@@ -1,0 +1,13 @@
+[/
+          Copyright Oliver Kowalke 2009.
+ Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+          http://www.boost.org/LICENSE_1_0.txt
+]
+
+[section:todo Todo]
+
+* provide support for SPARC, SuperH (SH4), S/390
+* support split-stack feature from gcc/gold linker
+
+[endsect]

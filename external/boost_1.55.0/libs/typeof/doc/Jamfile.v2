@@ -1,0 +1,21 @@
+
+# Copyright Peder Holt 2005. Use, modification, and distribution are
+# subject to the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+using quickbook ;
+
+xml typeof : typeof.qbk ;
+boostbook standalone
+    :
+        typeof
+    :
+        <xsl:param>boost.root=../../../..
+        <xsl:param>nav.layout=none
+        <xsl:param>navig.graphics=0
+    ;
+
+install html : ../../../doc/html/boostbook.css ;
+install ../ : ../../../boost.png ;
+
+

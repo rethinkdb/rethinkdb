@@ -1,0 +1,197 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;16.&#160;Boost.Lambda</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="boost/intrusive/unordered_set_member_hook.html" title="Class template unordered_set_member_hook">
+<link rel="next" href="lambda/getting_started.html" title="Getting Started">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/intrusive/unordered_set_member_hook.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lambda/getting_started.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="lambda"></a>Chapter&#160;16.&#160;Boost.Lambda</h2></div>
+<div><div class="author">
+<h3 class="author">
+<span class="firstname">Jaakko</span> <span class="surname">J&#228;rvi</span>
+</h3>
+<code class="email">&lt;<a class="email" href="mailto:jarvi%20at%20cs%20tamu%20edu">jarvi at cs tamu edu</a>&gt;</code>
+</div></div>
+<div><p class="copyright">Copyright &#169; 1999-2004 Jaakko J&#228;rvi, Gary Powell</p></div>
+<div><div class="legalnotice">
+<a name="idp153224760"></a><p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="lambda.html#introduction">In a nutshell</a></span></dt>
+<dt><span class="section"><a href="lambda/getting_started.html">Getting Started</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="lambda/getting_started.html#idp153231768">Installing the library</a></span></dt>
+<dt><span class="section"><a href="lambda/getting_started.html#idp153249048">Conventions used in this document</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="lambda/s03.html">Introduction</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="lambda/s03.html#idp153251288">Motivation</a></span></dt>
+<dt><span class="section"><a href="lambda/s03.html#idp153267000">Introduction to lambda expressions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="lambda/using_library.html">Using the library</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="lambda/using_library.html#lambda.introductory_examples">Introductory Examples</a></span></dt>
+<dt><span class="section"><a href="lambda/using_library.html#lambda.parameter_and_return_types">Parameter and return types of lambda functors</a></span></dt>
+<dt><span class="section"><a href="lambda/using_library.html#lambda.actual_arguments_to_lambda_functors">About actual arguments to lambda functors</a></span></dt>
+<dt><span class="section"><a href="lambda/using_library.html#lambda.storing_bound_arguments">Storing bound arguments in lambda functions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="lambda/le_in_details.html">Lambda expressions in details</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="lambda/le_in_details.html#lambda.placeholders">Placeholders</a></span></dt>
+<dt><span class="section"><a href="lambda/le_in_details.html#lambda.operator_expressions">Operator expressions</a></span></dt>
+<dt><span class="section"><a href="lambda/le_in_details.html#lambda.bind_expressions">Bind expressions</a></span></dt>
+<dt><span class="section"><a href="lambda/le_in_details.html#lambda.overriding_deduced_return_type">Overriding the deduced return type</a></span></dt>
+<dt><span class="section"><a href="lambda/le_in_details.html#lambda.delaying_constants_and_variables">Delaying constants and variables</a></span></dt>
+<dt><span class="section"><a href="lambda/le_in_details.html#lambda.lambda_expressions_for_control_structures">Lambda expressions for control structures</a></span></dt>
+<dt><span class="section"><a href="lambda/le_in_details.html#lambda.exceptions">Exceptions</a></span></dt>
+<dt><span class="section"><a href="lambda/le_in_details.html#lambda.construction_and_destruction">Construction and destruction</a></span></dt>
+<dt><span class="section"><a href="lambda/le_in_details.html#idp153492008">Special lambda expressions</a></span></dt>
+<dt><span class="section"><a href="lambda/le_in_details.html#idp153520824">Casts, sizeof and typeid</a></span></dt>
+<dt><span class="section"><a href="lambda/le_in_details.html#lambda.nested_stl_algorithms">Nesting STL algorithm invocations</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="lambda/extending.html">Extending return type deduction system</a></span></dt>
+<dt><span class="section"><a href="lambda/s07.html">Practical considerations</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="lambda/s07.html#idp153593832">Performance</a></span></dt>
+<dt><span class="section"><a href="lambda/s07.html#idp153617160">About compiling</a></span></dt>
+<dt><span class="section"><a href="lambda/s07.html#idp153620168">Portability</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="lambda/s08.html">Relation to other Boost libraries</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="lambda/s08.html#idp153639592">Boost Function</a></span></dt>
+<dt><span class="section"><a href="lambda/s08.html#idp153645176">Boost Bind</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="lambda/s09.html">Contributors</a></span></dt>
+<dt><span class="section"><a href="lambda/s10.html">Rationale for some of the design decisions</a></span></dt>
+<dd><dl><dt><span class="section"><a href="lambda/s10.html#lambda.why_weak_arity">
+Lambda functor arity
+</a></span></dt></dl></dd>
+<dt><span class="bibliography"><a href="lambda.html#idp153660904">Bibliography</a></span></dt>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="introduction"></a>In a nutshell</h2></div></div></div>
+<p>
+
+      The Boost Lambda Library (BLL in the sequel) is a C++ template
+      library, which implements a form of <span class="emphasis"><em>lambda abstractions</em></span> for C++.
+The term originates from functional programming and lambda calculus, where a lambda abstraction defines an unnamed function.
+      The primary motivation for the BLL is to provide flexible and
+      convenient means to define unnamed function objects for STL algorithms.
+In explaining what the library is about, a line of code says more than a thousand words; the
+      following line outputs the elements of some STL container
+      <code class="literal">a</code> separated by spaces:
+
+      </p>
+<pre class="programlisting">for_each(a.begin(), a.end(), std::cout &lt;&lt; _1 &lt;&lt; ' ');</pre>
+<p>
+
+      The expression <code class="literal">std::cout &lt;&lt; _1 &lt;&lt; ' '</code> defines a unary function object. 
+      The variable <code class="literal">_1</code> is the parameter of this function, a <span class="emphasis"><em>placeholder</em></span> for the actual argument. 
+      Within each iteration of <code class="literal">for_each</code>, the function is
+      called with an element of <code class="literal">a</code> as the actual argument.
+      This actual argument is substituted for the placeholder, and the <span class="quote">&#8220;<span class="quote">body</span>&#8221;</span> of the function is evaluated.
+    </p>
+<p>The essence of BLL is letting you define small unnamed function objects, such as the one above, directly on the call site of an STL algorithm.
+    </p>
+</div>
+<div class="bibliography">
+<div class="titlepage"><div><div><h2 class="title">
+<a name="idp153660904"></a>Bibliography</h2></div></div></div>
+<div class="biblioentry">
+<a name="cit:stepanov:94"></a><p>[<abbr class="abbrev">STL94</abbr>] <span class="authorgroup"><span class="firstname">A. A.</span> <span class="surname">Stepanov</span> and <span class="firstname">M.</span> <span class="surname">Lee</span>. </span><span class="title"><i>The Standard Template Library</i>. </span><span class="orgname">Hewlett-Packard Laboratories. </span><span class="pubdate">1994. </span><span class="bibliomisc">
+<a href="http://www.hpl.hp.com/techreports" target="_top">www.hpl.hp.com/techreports</a>
+. </span></p>
+</div>
+<div class="biblioentry">
+<a name="cit:sgi:02"></a><p>[<abbr class="abbrev">SGI02</abbr>] <span class="title"><i>The SGI Standard Template Library</i>. </span><span class="pubdate">2002. </span><span class="bibliomisc"><a href="http://www.sgi.com/tech/stl/" target="_top">www.sgi.com/tech/stl/</a>. </span></p>
+</div>
+<div class="biblioentry">
+<a name="cit:c++:98"></a><p>[<abbr class="abbrev">C++98</abbr>] <span class="title"><i>International Standard, Programming Languages &#8211; C++</i>. </span><span class="subtitle">ISO/IEC:14882. </span><span class="pubdate">1998. </span></p>
+</div>
+<div class="biblioentry">
+<a name="cit:jarvi:99"></a><p>[<abbr class="abbrev">J&#228;r99</abbr>] <span class="articleinfo">
+<span class="author"><span class="firstname">Jaakko</span> <span class="surname">J&#228;rvi</span>. </span>
+<span class="title"><i>C++ Function Object Binders Made Easy</i>. </span>
+. </span><span class="title"><i>Lecture Notes in Computer Science</i>. </span><span class="volumenum">1977. </span><span class="publishername">Springer. </span><span class="pubdate">2000. </span></p>
+</div>
+<div class="biblioentry">
+<a name="cit:jarvi:00"></a><p>[<abbr class="abbrev">J&#228;r00</abbr>] <span class="author"><span class="firstname">Jaakko</span> <span class="surname">J&#228;rvi</span>. </span><span class="author"><span class="firstname">Gary</span> <span class="surname">Powell</span>. </span><span class="title"><i>The Lambda Library : Lambda Abstraction in C++</i>. </span><span class="orgname">Turku Centre for Computer Science. </span><span class="bibliomisc">Technical Report . </span><span class="issuenum">378. </span><span class="pubdate">2000. </span><span class="bibliomisc"><a href="http://www.tucs.fi/Publications/techreports/TR378.php" target="_top">www.tucs.fi/publications</a>. </span></p>
+</div>
+<div class="biblioentry">
+<a name="cit:jarvi:01"></a><p>[<abbr class="abbrev">J&#228;r01</abbr>] <span class="author"><span class="firstname">Jaakko</span> <span class="surname">J&#228;rvi</span>. </span><span class="author"><span class="firstname">Gary</span> <span class="surname">Powell</span>. </span><span class="title"><i>The Lambda Library : Lambda Abstraction in C++</i>. </span><span class="confgroup"><span class="conftitle">Second  Workshop on C++ Template Programming. </span><span class="address">Tampa Bay, OOPSLA'01. </span>. </span><span class="pubdate">2001. </span><span class="bibliomisc"><a href="http://www.oonumerics.org/tmpw01/" target="_top">www.oonumerics.org/tmpw01/</a>. </span></p>
+</div>
+<div class="biblioentry">
+<a name="cit:jarvi:03"></a><p>[<abbr class="abbrev">J&#228;r03</abbr>] <span class="articleinfo">
+
+<span class="author"><span class="firstname">Jaakko</span> <span class="surname">J&#228;rvi</span>. </span>
+
+<span class="author"><span class="firstname">Gary</span> <span class="surname">Powell</span>. </span>
+
+<span class="author"><span class="firstname">Andrew</span> <span class="surname">Lumsdaine</span>. </span>
+<span class="title"><i>The Lambda Library : unnamed functions in C++</i>. </span>
+
+. </span><span class="title"><i>Software - Practice and Expreience</i>. </span><span class="volumenum">33:259-291. </span><span class="pubdate">2003. </span></p>
+</div>
+<div class="biblioentry">
+<a name="cit:boost::tuple"></a><p>[<abbr class="abbrev">tuple</abbr>] <span class="title"><i>The Boost Tuple Library</i>. </span><span class="bibliomisc"><a href="http://www.boost.org/libs/tuple/doc/tuple_users_guide.html" target="_top">www.boost.org/libs/tuple/doc/tuple_users_guide.html</a>
+. </span><span class="pubdate">2002. </span></p>
+</div>
+<div class="biblioentry">
+<a name="cit:boost::type_traits"></a><p>[<abbr class="abbrev">type_traits</abbr>] <span class="title"><i>The Boost type_traits</i>. </span><span class="bibliomisc"><a href="http://www.boost.org/libs/type_traits/index.htm" target="_top">www.boost.org/libs/type_traits/</a>
+. </span><span class="pubdate">2002. </span></p>
+</div>
+<div class="biblioentry">
+<a name="cit:boost::ref"></a><p>[<abbr class="abbrev">ref</abbr>] <span class="title"><i>Boost ref</i>. </span><span class="bibliomisc"><a href="http://www.boost.org/libs/bind/ref.html" target="_top">www.boost.org/libs/bind/ref.html</a>
+. </span><span class="pubdate">2002. </span></p>
+</div>
+<div class="biblioentry">
+<a name="cit:boost::bind"></a><p>[<abbr class="abbrev">bind</abbr>] <span class="title"><i>Boost Bind Library</i>. </span><span class="bibliomisc"><a href="http://www.boost.org/libs/bind/bind.html" target="_top">www.boost.org/libs/bind/bind.html</a>
+. </span><span class="pubdate">2002. </span></p>
+</div>
+<div class="biblioentry">
+<a name="cit:boost::function"></a><p>[<abbr class="abbrev">function</abbr>] <span class="title"><i>Boost Function Library</i>. </span><span class="bibliomisc"><a href="http://www.boost.org/libs/function/" target="_top">www.boost.org/libs/function/</a>
+. </span><span class="pubdate">2002. </span></p>
+</div>
+<div class="biblioentry">
+<a name="cit:fc++"></a><p>[<abbr class="abbrev">fc++</abbr>] <span class="title"><i>The FC++ library: Functional Programming in C++</i>. </span><span class="author"><span class="firstname">Yannis</span> <span class="surname">Smaragdakis</span>. </span><span class="author"><span class="firstname">Brian</span> <span class="surname">McNamara</span>. </span><span class="bibliomisc"><a href="http://www.cc.gatech.edu/~yannis/fc++/" target="_top">www.cc.gatech.edu/~yannis/fc++/</a>
+. </span><span class="pubdate">2002. </span></p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: June 13, 2009 at 22:18:10 +0100</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/intrusive/unordered_set_member_hook.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lambda/getting_started.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

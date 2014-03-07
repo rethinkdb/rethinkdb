@@ -1,0 +1,231 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lexer_concepts Lexer Concepts]
+
+__lex__ components fall into a couple of generalized __concepts__. The
+/Lexer/ is the most fundamental concept. All __lex__ components are
+models of the /Lexer/ concept. /PrimitiveLexer/, /UnaryLexer/,
+and /NaryLexer/ are all refinements of the /Lexer/ concept.
+
+The following sections provide details on these concepts.
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section Lexer]
+
+[heading Description]
+
+The /Lexer/ is the most fundamental concept. A Lexer has a member
+function, `collect`, that accepts a token definition container `Def`, and a
+the name of the lexer state the token definitions of the lexer component need 
+to be added to (a string). It doesn't return anything (return type is `void`). 
+Each Lexer can represent a specific pattern or algorithm, or it 
+can be a more complex lexer component formed as a composition of other Lexer's.
+Additionally, a Lexer exposes a member `add_actions`, that accepts the token 
+definition container `Def`, while returning nothing (again, the returned type
+is `void`).
+
+[variablelist Notation
+    [[`l`]              [A `Lexer`.]]
+    [[`L`]              [A `Lexer` type.]]
+    [[`Def`]            [A token definition container type.]]
+    [[`State`]          [A type used to represent lexer state names.]]
+]
+
+[heading Valid Expressions]
+
+In the expressions below, the behavior of the lexer component, `l`, is left 
+unspecified in the base `Lexer` concept. These are specified in subsequent, 
+more refined concepts and by the actual models thereof.
+
+For any Lexer the following expressions must be valid:
+
+[table
+    [[Expression]              [Semantics]                        [Return type]]
+    [[`l.collect(def, state, targetstate)`] 
+                               [Add all token definitions provided 
+                                by this Lexer instance to the lexer
+                                state `state` of the token definition 
+                                container `def`. After matching this token, the 
+                                lexer should be switched into the state 
+                                `targetstate` (optional)]         [`void`]]
+    [[`l.add_actions(def)`]    [Add all semantic actions provided
+                                by this Lexer instance to the token
+                                definition container `def`.]      [`void`]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]                                   [Description]]
+    [[`traits::is_lexer<L>::type`]                  [Metafunction that evaluates to `mpl::true_` if 
+                                                     a certain type, `L` is a Lexer, `mpl::false_`  
+                                                     otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Postcondition]
+
+Upon return from `l.collect` the following post conditions should hold:
+
+* On return, `def` holds all token definitions defined in the Lexer, `l`. This 
+  includes all Lexer's contained inside `l`.
+
+Upon return from `l.add_actions` the following post conditions should hold:
+
+* On return, `def` holds all semantic actions correctly associated with the 
+  corresponding token definitions as defined in the Lexer, `l`. This 
+  includes all semantic actions defined by the Lexer's contained inside `l`.
+
+[heading Models]
+
+All lexer components in __lex__ are models of the /Lexer/ concept.
+
+[endsect] [/ Lexer Concept]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section PrimitiveLexer]
+
+[heading Description]
+
+/PrimitiveLexer/ is the most basic building block that the client uses
+to build more complex lexer components. 
+
+[heading Refinement of]
+
+[:__lexer_concept__]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]                                   [Description]]
+    [[`traits::is_primitive_lexer<L>::type`]        [Metafunction that evaluates to `mpl::true_` if 
+                                                    a certain type, `L`, is a PrimitiveLexer, `mpl::false_`  
+                                                    otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Models] 
+
+The following lexer components conform to this model: 
+
+* character literals (i.e. `'x'`), `char_`,
+* string literals (`"abc"`), `std::basic_string<>`, `string`
+
+__fixme__ Add more links to /PrimitiveLexer/ models here.
+
+[endsect] [/ PrimitiveLexer Concept]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section UnaryLexer]
+
+[heading Description]
+
+/UnaryLexer/ is a composite lexer component that has a single subject. The
+UnaryLexer may change the behavior of its subject following the
+__delegate_pattern__. 
+
+[heading Refinement of]
+
+[:__lexer_concept__]
+
+[variablelist Notation
+    [[`l`]              [A UnaryLexer.]]
+    [[`L`]              [A UnaryLexer type.]]
+]
+
+[heading Valid Expressions]
+
+In addition to the requirements defined in __lexer_concept__, for any
+UnaryLexer the following must be met:
+
+[table
+    [[Expression]       [Semantics]                 [Return type]]
+    [[`l.subject`]      [Subject lexer component.]  [__lexer_concept__]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]           [Description]]
+    [[`L::subject_type`]    [The subject lexer component type.]]
+    [[`traits::is_unary_lexer<L>::type`]       [Metafunction that evaluates to `mpl::true_` if 
+                                                a certain type, `L` is a UnaryLexer, `mpl::false_`  
+                                                otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Invariants]
+
+For any UnaryLexer, `L`, the following invariant always holds:
+
+* `traits::is_lexer<L::subject_type>::type` evaluates to `mpl::true_`
+
+[heading Models]
+
+The following lexer components conform to this model: 
+
+* action lexer component (allowing to attach semantic actions) 
+
+__fixme__ Add more links to models of UnaryLexer concept
+
+[endsect] [/ UnaryLexer Concept]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section NaryLexer]
+
+[heading Description]
+
+/NaryLexer/ is a composite lexer component that has one or more subjects. The
+NaryLexer allows its subjects to be treated in the same way as a single
+instance of a __lexer_concept__ following the __composite_pattern__. 
+
+[heading Refinement of] 
+
+[:__lexer_concept__]
+
+[variablelist Notation
+    [[`l`]              [A NaryLexer.]]
+    [[`L`]              [A NaryLexer type.]]
+]
+
+[heading Valid Expressions]
+
+In addition to the requirements defined in __lexer_concept__, for any
+NaryLexer the following must be met:
+
+[table
+    [[Expression]       [Semantics]                 [Return type]]
+    [[`l.elements`]     [The tuple of elements.]    [A __fusion__ Sequence of __lexer_concept__ types.]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]           [Description]]
+    [[`l.elements_type`]    [Elements tuple type.]]
+    [[`traits::is_nary_lexer<L>::type`]             [Metafunction that evaluates to `mpl::true_` if 
+                                                     a certain type, `L` is a NaryLexer, `mpl::false_`  
+                                                     otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Invariants]
+
+For each element, `E`, in any NaryLexer, `L`, the following
+invariant always holds: 
+  
+* `traits::is_lexer<E>::type` evaluates to `mpl::true_`
+
+[heading Models]
+
+The following lexer components conform to this model: 
+
+* lexer sequence component
+
+__fixme__ Add more links to models of NaryLexer concept
+
+[endsect] [/ NaryLexer Concept]
+
+[endsect]

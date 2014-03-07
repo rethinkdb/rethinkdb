@@ -1,0 +1,281 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>mpfr_float</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../floats.html" title="Floating Point Numbers">
+<link rel="prev" href="gmp_float.html" title="gmp_float">
+<link rel="next" href="float128.html" title="float128">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="gmp_float.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../floats.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="float128.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_multiprecision.tut.floats.mpfr_float"></a><a class="link" href="mpfr_float.html" title="mpfr_float">mpfr_float</a>
+</h4></div></div></div>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">mpfr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">multiprecision</span><span class="special">{</span>
+
+<span class="keyword">enum</span> <span class="identifier">mpfr_allocation_type</span>
+<span class="special">{</span>
+   <span class="identifier">allocate_stack</span><span class="special">,</span>
+   <span class="identifier">allocate_dynamic</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="identifier">Digits10</span><span class="special">,</span> <span class="identifier">mpfr_allocation_type</span> <span class="identifier">AllocateType</span> <span class="special">=</span> <span class="identifier">allocate_dynamic</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">mpfr_float_backend</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="number">50</span><span class="special">&gt;</span> <span class="special">&gt;</span>    <span class="identifier">mpfr_float_50</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="number">100</span><span class="special">&gt;</span> <span class="special">&gt;</span>   <span class="identifier">mpfr_float_100</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="number">500</span><span class="special">&gt;</span> <span class="special">&gt;</span>   <span class="identifier">mpfr_float_500</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="number">1000</span><span class="special">&gt;</span> <span class="special">&gt;</span>  <span class="identifier">mpfr_float_1000</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;</span>     <span class="identifier">mpfr_float</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="number">50</span><span class="special">,</span> <span class="identifier">allocate_stack</span><span class="special">&gt;</span> <span class="special">&gt;</span>    <span class="identifier">static_mpfr_float_50</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="number">100</span><span class="special">,</span> <span class="identifier">allocate_stack</span><span class="special">&gt;</span> <span class="special">&gt;</span>   <span class="identifier">static_mpfr_float_100</span><span class="special">;</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">mpfr_float_backend</span></code>
+          type is used in conjunction with <code class="computeroutput"><span class="identifier">number</span></code>:
+          It acts as a thin wrapper around the <a href="http://www.mpfr.org" target="_top">MPFR</a>
+          <code class="computeroutput"><span class="identifier">mpfr_t</span></code> to provide an real-number
+          type that is a drop-in replacement for the native C++ floating-point types,
+          but with much greater precision.
+        </p>
+<p>
+          Type <code class="computeroutput"><span class="identifier">mpfr_float_backend</span></code>
+          can be used at fixed precision by specifying a non-zero <code class="computeroutput"><span class="identifier">Digits10</span></code>
+          template parameter, or at variable precision by setting the template argument
+          to zero. The typedefs mpfr_float_50, mpfr_float_100, mpfr_float_500, mpfr_float_1000
+          provide arithmetic types at 50, 100, 500 and 1000 decimal digits precision
+          respectively. The typedef mpfr_float provides a variable precision type
+          whose precision can be controlled via the <code class="computeroutput"><span class="identifier">number</span></code>s
+          member functions.
+        </p>
+<p>
+          In addition the second template parameter lets you choose between dynamic
+          allocation (the default, and uses MPFR's normal allocation routines), or
+          stack allocation (where all the memory required for the underlying data
+          types is stored within <code class="computeroutput"><span class="identifier">mpfr_float_backend</span></code>).
+          The latter option can result in significantly faster code, at the expense
+          of growing the size of <code class="computeroutput"><span class="identifier">mpfr_float_backend</span></code>.
+          It can only be used at fixed precision, and should only be used for lower
+          digit counts. Note that we can not guarantee that using <code class="computeroutput"><span class="identifier">allocate_stack</span></code>
+          won't cause any calls to mpfr's allocation routines, as mpfr may call these
+          inside it's own code. The following table gives an idea of the performance
+          tradeoff's at 50 decimal digits precision<a href="#ftn.boost_multiprecision.tut.floats.mpfr_float.f0" class="footnote" name="boost_multiprecision.tut.floats.mpfr_float.f0"><sup class="footnote">[2]</sup></a>:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Bessel function evaluation, relative times
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="number">50</span><span class="special">,</span> <span class="identifier">allocate_static</span><span class="special">&gt;,</span>
+                    <span class="identifier">et_on</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    1.0 (5.5s)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="number">50</span><span class="special">,</span> <span class="identifier">allocate_static</span><span class="special">&gt;,</span>
+                    <span class="identifier">et_off</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    1.05 (5.8s)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="number">50</span><span class="special">,</span> <span class="identifier">allocate_dynamic</span><span class="special">&gt;,</span>
+                    <span class="identifier">et_on</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    1.05 (5.8s)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="number">50</span><span class="special">,</span> <span class="identifier">allocate_dynamic</span><span class="special">&gt;,</span>
+                    <span class="identifier">et_off</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    1.16 (6.4s)
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This type only provides <code class="computeroutput"><span class="identifier">numeric_limits</span></code>
+            support when the precision is fixed at compile time.
+          </p></td></tr>
+</table></div>
+<p>
+          As well as the usual conversions from arithmetic and string types, instances
+          of <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span> <span class="special">&gt;</span></code> are copy constructible and assignable
+          from:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              The <a href="http://gmplib.org" target="_top">GMP</a> native types <code class="computeroutput"><span class="identifier">mpf_t</span></code>, <code class="computeroutput"><span class="identifier">mpz_t</span></code>,
+              <code class="computeroutput"><span class="identifier">mpq_t</span></code>.
+            </li>
+<li class="listitem">
+              The <a href="http://www.mpfr.org" target="_top">MPFR</a> native type <code class="computeroutput"><span class="identifier">mpfr_t</span></code>.
+            </li>
+<li class="listitem">
+              The <code class="computeroutput"><span class="identifier">number</span></code> wrappers
+              around those types: <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpfr_float_backend</span><span class="special">&lt;</span><span class="identifier">M</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>,
+              <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpf_float</span><span class="special">&lt;</span><span class="identifier">M</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>, <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_int</span><span class="special">&gt;</span></code>, <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_rational</span><span class="special">&gt;</span></code>.
+            </li>
+</ul></div>
+<p>
+          It's also possible to access the underlying <code class="computeroutput"><span class="identifier">mpfr_t</span></code>
+          via the data() member function of <code class="computeroutput"><span class="identifier">mpfr_float_backend</span></code>.
+        </p>
+<p>
+          Things you should know when using this type:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              A default constructed <code class="computeroutput"><span class="identifier">mpfr_float_backend</span></code>
+              is set to a NaN (this is the default <a href="http://www.mpfr.org" target="_top">MPFR</a>
+              behavior).
+            </li>
+<li class="listitem">
+              All operations use round to nearest.
+            </li>
+<li class="listitem">
+              No changes are made to <a href="http://gmplib.org" target="_top">GMP</a> or
+              <a href="http://www.mpfr.org" target="_top">MPFR</a> global settings, so this
+              type can coexist with existing <a href="http://www.mpfr.org" target="_top">MPFR</a>
+              or <a href="http://gmplib.org" target="_top">GMP</a> code.
+            </li>
+<li class="listitem">
+              The code can equally use <a href="http://mpir.org/" target="_top">MPIR</a>
+              in place of <a href="http://gmplib.org" target="_top">GMP</a> - indeed that
+              is the preferred option on Win32.
+            </li>
+<li class="listitem">
+              This backend supports rvalue-references and is move-aware, making instantiations
+              of <code class="computeroutput"><span class="identifier">number</span></code> on this backend
+              move aware.
+            </li>
+<li class="listitem">
+              Conversion from a string results in a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+              being thrown if the string can not be interpreted as a valid floating
+              point number.
+            </li>
+<li class="listitem">
+              Division by zero results in an infinity.
+            </li>
+</ul></div>
+<h6>
+<a name="boost_multiprecision.tut.floats.mpfr_float.h0"></a>
+          <span class="phrase"><a name="boost_multiprecision.tut.floats.mpfr_float.__ulink_url__http___www_mpfr_org__mpfr__ulink__example_"></a></span><a class="link" href="mpfr_float.html#boost_multiprecision.tut.floats.mpfr_float.__ulink_url__http___www_mpfr_org__mpfr__ulink__example_">
+          MPFR example:</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">mpfr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">;</span>
+
+<span class="comment">// Operations at variable precision and no numeric_limits support:</span>
+<span class="identifier">mpfr_float</span> <span class="identifier">a</span> <span class="special">=</span> <span class="number">2</span><span class="special">;</span>
+<span class="identifier">mpfr_float</span><span class="special">::</span><span class="identifier">default_precision</span><span class="special">(</span><span class="number">1000</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">mpfr_float</span><span class="special">::</span><span class="identifier">default_precision</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">sqrt</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// print root-2</span>
+
+<span class="comment">// Operations at fixed precision and full numeric_limits support:</span>
+<span class="identifier">mpfr_float_100</span> <span class="identifier">b</span> <span class="special">=</span> <span class="number">2</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">mpfr_float_100</span><span class="special">&gt;::</span><span class="identifier">digits</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">// We can use any C++ std lib function:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">log</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// print log(2)</span>
+<span class="comment">// We can also use any function from Boost.Math:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">// These even work when the argument is an expression template:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">b</span> <span class="special">*</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+<span class="comment">// Access the underlying data:</span>
+<span class="identifier">mpfr_t</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="identifier">mpfr_init</span><span class="special">(</span><span class="identifier">r</span><span class="special">);</span>
+<span class="identifier">mpfr_set</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">b</span><span class="special">.</span><span class="identifier">backend</span><span class="special">().</span><span class="identifier">data</span><span class="special">(),</span> <span class="identifier">GMP_RNDN</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.boost_multiprecision.tut.floats.mpfr_float.f0" class="footnote"><p><a href="#boost_multiprecision.tut.floats.mpfr_float.f0" class="para"><sup class="para">[2] </sup></a>
+            Compiled with VC++10 and /Ox, with MPFR-3.0.0 and MPIR-2.3.0
+          </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="gmp_float.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../floats.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="float128.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

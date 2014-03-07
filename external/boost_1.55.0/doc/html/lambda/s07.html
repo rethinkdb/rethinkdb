@@ -1,0 +1,342 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Practical considerations</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../lambda.html" title="Chapter&#160;16.&#160;Boost.Lambda">
+<link rel="prev" href="extending.html" title="Extending return type deduction system">
+<link rel="next" href="s08.html" title="Relation to other Boost libraries">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extending.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="s08.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="idp153593512"></a>Practical considerations</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="s07.html#idp153593832">Performance</a></span></dt>
+<dt><span class="section"><a href="s07.html#idp153617160">About compiling</a></span></dt>
+<dt><span class="section"><a href="s07.html#idp153620168">Portability</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp153593832"></a>Performance</h3></div></div></div>
+<p>In theory, all overhead of using STL algorithms and lambda functors 
+compared to hand written loops can be optimized away, just as the overhead 
+from standard STL function objects and binders can.
+
+Depending on the compiler, this can also be true in practice.
+We ran two tests with the GCC 3.0.4 compiler on 1.5 GHz Intel Pentium 4.
+The optimization flag -03 was used.
+</p>
+<p>
+In the first test we compared lambda functors against explicitly written 
+function objects. 
+We used both of these styles to define unary functions which multiply the
+argument repeatedly by itself. 
+We started with the identity function, going up to 
+x<sup>5</sup>.
+The expressions were called inside a <code class="literal">std::transform</code> loop, 
+reading the argument from one <code class="literal">std::vector&lt;int&gt;</code> 
+and placing the result into another.
+The length of the vectors was 100 elements.
+The running times are listed in 
+<a class="xref" href="s07.html#table:increasing_arithmetic_test" title="Table&#160;16.3.&#160;Test 1">Table&#160;16.3, &#8220;Test 1&#8221;</a>.
+
+We can observe that there is no significant difference between the
+two approaches.
+</p>
+<p>
+In the second test we again used <code class="literal">std::transform</code> to 
+perform an operation to each element in a 100-element long vector.
+This time the element type of the vectors was <code class="literal">double</code>
+and we started with very simple arithmetic expressions and moved to 
+more complex ones.
+The running times are listed in <a class="xref" href="s07.html#table:ll_vs_stl_test" title="Table&#160;16.4.&#160;Test 2">Table&#160;16.4, &#8220;Test 2&#8221;</a>.
+
+Here, we also included classic STL style unnamed functions into tests.
+We do not show these expressions, as they get rather complex. 
+For example, the
+last expression in <a class="xref" href="s07.html#table:ll_vs_stl_test" title="Table&#160;16.4.&#160;Test 2">Table&#160;16.4, &#8220;Test 2&#8221;</a> written with
+classic STL tools contains 7 calls to <code class="literal">compose2</code>, 
+8 calls to <code class="literal">bind1st</code>
+and altogether 14 constructor invocations for creating 
+<code class="literal">multiplies</code>, <code class="literal">minus</code> 
+and <code class="literal">plus</code> objects.
+
+In this test the BLL expressions are a little slower (roughly 10% on average,
+less than 14% in all cases)
+than the corresponding hand-written function objects.
+The performance hit is a bit greater with classic STL expressions,
+up to 27% for the simplest expressios.
+</p>
+<p>
+The tests suggest that the BLL does not introduce a loss of performance 
+compared to STL function objects.  
+With a reasonable optimizing compiler, one should expect the performance characteristics be comparable to using classic STL.
+Moreover, with simple expressions the performance can be expected to be close
+to that of explicitly written function objects.
+
+
+
+Note however, that evaluating a lambda functor consist of a sequence of calls to small functions that are declared inline. 
+If the compiler fails to actually expand these functions inline, 
+the performance can suffer. 
+The running time can more than double if this happens.
+Although the above tests do not include such an expression, we have experienced
+this for some seemingly simple expressions.
+
+
+</p>
+<div class="table">
+<a name="table:increasing_arithmetic_test"></a><p class="title"><b>Table&#160;16.3.&#160;Test 1</b></p>
+<div class="table-contents">
+<div class="caption">CPU time of expressions with integer multiplication written as a lambda expression and as a traditional hand-coded function object class. 
+The running times are expressed in arbitrary units.</div>
+<table class="table" summary="Test 1">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>expression</th>
+<th>lambda expression</th>
+<th>hand-coded function object</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>x</td>
+<td>240</td>
+<td>230</td>
+</tr>
+<tr>
+<td>x*x</td>
+<td>340</td>
+<td>350</td>
+</tr>
+<tr>
+<td>x*x*x</td>
+<td>770</td>
+<td>760</td>
+</tr>
+<tr>
+<td>x*x*x*x</td>
+<td>1180</td>
+<td>1210</td>
+</tr>
+<tr>
+<td>x*x*x*x*x</td>
+<td>1950</td>
+<td>1910</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><br class="table-break">
+</p>
+<p>
+</p>
+<div class="table">
+<a name="table:ll_vs_stl_test"></a><p class="title"><b>Table&#160;16.4.&#160;Test 2</b></p>
+<div class="table-contents">
+<div class="caption">CPU time of arithmetic expressions written as lambda 
+expressions, as classic STL unnamed functions (using <code class="literal">compose2</code>, <code class="literal">bind1st</code> etc.) and as traditional hand-coded function object classes. 
+Using BLL terminology, 
+<code class="literal">a</code> and <code class="literal">b</code> are bound arguments in the expressions, and <code class="literal">x</code> is open. 
+All variables were of types <code class="literal">double</code>.
+The running times are expressed in arbitrary units.</div>
+<table class="table" summary="Test 2">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>expression</th>
+<th>lambda expression</th>
+<th>classic STL expression</th>
+<th>hand-coded function object</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>ax</td>
+<td>330</td>
+<td>370</td>
+<td>290</td>
+</tr>
+<tr>
+<td>-ax</td>
+<td>350</td>
+<td>370</td>
+<td>310</td>
+</tr>
+<tr>
+<td>ax-(a+x)</td>
+<td>470</td>
+<td>500</td>
+<td>420</td>
+</tr>
+<tr>
+<td>(ax-(a+x))(a+x)</td>
+<td>620</td>
+<td>670</td>
+<td>600</td>
+</tr>
+<tr>
+<td>((ax) - (a+x))(bx - (b+x))(ax - (b+x))(bx - (a+x))</td>
+<td>1660</td>
+<td>1660</td>
+<td>1460</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><br class="table-break">
+</p>
+<p>Some additional performance testing with an earlier version of the
+library is described
+<a class="xref" href="../lambda.html#cit:jarvi:00" title="The Lambda Library : Lambda Abstraction in C++">[<abbr class="abbrev">J&#228;r00</abbr>]</a>.
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp153617160"></a>About compiling</h3></div></div></div>
+<p>The BLL uses templates rather heavily, performing numerous recursive instantiations of the same templates. 
+This has (at least) three implications:
+</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>
+While it is possible to write incredibly complex lambda expressions, it probably isn't a good idea. 
+Compiling such expressions may end up requiring a lot of memory 
+at compile time, and being slow to compile.
+</p></li>
+<li class="listitem"><p>
+The types of lambda functors that result from even the simplest lambda expressions are cryptic. 
+Usually the programmer doesn't need to deal with the lambda functor types at all, but in the case of an error in a lambda expression, the compiler usually outputs the types of the lambda functors involved. 
+This can make the error messages very long and difficult to interpret, particularly if the compiler outputs the whole chain of template instantiations.
+</p></li>
+<li class="listitem"><p>
+The C++ Standard suggests a template nesting level of 17 to help detect infinite recursion. 
+Complex lambda templates can easily exceed this limit. 
+Most compilers allow a greater number of nested templates, but commonly require the limit explicitly increased with a command line argument.
+</p></li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp153620168"></a>Portability</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="s07.html#idp153622120">Test coverage</a></span></dt></dl></div>
+<p>
+The BLL works with the following compilers, that is, the compilers are capable of compiling the test cases that are included with the BLL:
+
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">GCC 3.0.4
+	</li>
+<li class="listitem">KCC 4.0f with EDG 2.43.1
+	</li>
+<li class="listitem">GCC 2.96 (fails with one test case, the <code class="filename">exception_test.cpp</code> results in an internal compiler error.
+)
+
+	</li>
+</ul></div>
+<p>
+</p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp153622120"></a>Test coverage</h4></div></div></div>
+<p>The following list describes the test files included and the features that each file covers:
+
+</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>
+<code class="filename">bind_tests_simple.cpp</code> : Bind expressions of different arities and types of target functions: function pointers, function objects and member functions.
+Function composition with bind expressions.</p></li>
+<li class="listitem"><p><code class="filename">bind_tests_simple_function_references.cpp</code> :
+Repeats all tests from <code class="filename">bind_tests_simple.cpp</code> where the target function is a function pointer, but uses function references instead.
+</p></li>
+<li class="listitem"><p><code class="filename">bind_tests_advanced.cpp</code> : Contains tests for nested bind expressions, <code class="literal">unlambda</code>, <code class="literal">protect</code>, <code class="literal">const_parameters</code> and <code class="literal">break_const</code>.
+Tests passing lambda functors as actual arguments to other lambda functors, currying, and using the <code class="literal">sig</code> template to specify the return type of a function object.
+</p></li>
+<li class="listitem"><p>
+<code class="filename">operator_tests_simple.cpp</code> :
+Tests using all operators that are overloaded for lambda expressions, that is, unary and binary arithmetic, 
+bitwise, 
+comparison, 
+logical,
+increment and decrement, 
+compound, 
+assignment,
+subscrict, 
+address of,
+dereference, and comma operators.
+The streaming nature of shift operators is tested, as well as pointer arithmetic with plus and minus operators.
+</p></li>
+<li class="listitem"><p><code class="filename">member_pointer_test.cpp</code> : The pointer to member operator is complex enough to warrant a separate test file.
+</p></li>
+<li class="listitem"><p>
+<code class="filename">control_structures.cpp</code> :
+Tests for the looping and if constructs.
+</p></li>
+<li class="listitem"><p>
+<code class="filename">switch_construct.cpp</code> :
+Includes tests for all supported arities of the switch statement, both with and without the default case.
+</p></li>
+<li class="listitem"><p>
+<code class="filename">exception_test.cpp</code> :
+Includes tests for throwing exceptions and for try/catch constructs with varying number of catch blocks.
+</p></li>
+<li class="listitem"><p>
+<code class="filename">constructor_tests.cpp</code> :
+Contains tests for <code class="literal">constructor</code>, <code class="literal">destructor</code>, <code class="literal">new_ptr</code>, <code class="literal">delete_ptr</code>, <code class="literal">new_array</code> and <code class="literal">delete_array</code>.
+</p></li>
+<li class="listitem"><p>
+<code class="filename">cast_test.cpp</code> : Tests for the four cast expressions, as well as <code class="filename">typeid</code> and <code class="literal">sizeof</code>.
+</p></li>
+<li class="listitem"><p>
+<code class="filename">extending_return_type_traits.cpp</code> : Tests extending the return type deduction system for user defined types.
+Contains several user defined operators and the corresponding specializations for the return type deduction templates.
+</p></li>
+<li class="listitem"><p>
+<code class="filename">is_instance_of_test.cpp</code> : Includes tests for an internally used traits template, which can detect whether a given type is an instance of a certain template or not. 
+</p></li>
+<li class="listitem"><p>
+<code class="filename">bll_and_function.cpp</code> :
+Contains tests for using <code class="literal">boost::function</code> together with lambda functors.
+</p></li>
+</ul></div>
+<p>
+
+</p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1999-2004 Jaakko J&#228;rvi, Gary Powell<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extending.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="s08.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

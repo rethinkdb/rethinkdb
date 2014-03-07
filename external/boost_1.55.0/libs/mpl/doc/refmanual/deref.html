@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: deref</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./prior.html" class="navigation-link">Prev</a>&nbsp;<a href="./iterator-category.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./prior.html" class="navigation-link">Back</a>&nbsp;<a href="./iterator-category.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterator-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./iterators.html" class="navigation-link">Iterators</a> / <a href="./iterator-metafunctions.html" class="navigation-link">Iterator Metafunctions</a> / <a href="./deref.html" class="navigation-link">deref</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="deref">
+<h1><a class="toc-backref" href="./iterator-metafunctions.html#id1458">deref</a></h1>
+<div class="section" id="id437">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Iterator
+    &gt;
+struct <a href="./deref.html" class="identifier">deref</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id438">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Dereferences an iterator.</p>
+</div>
+<div class="section" id="id439">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/deref.hpp" class="header">boost/mpl/deref.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id440">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="35%" />
+<col width="45%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Iterator</span></tt></td>
+<td><a class="reference internal" href="./forward-iterator.html">Forward Iterator</a></td>
+<td>The iterator to dereference.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id441">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any <a class="reference internal" href="./forward-iterator.html">Forward Iterator</a>s <tt class="literal"><span class="pre">iter</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./deref.html" class="identifier">deref</a>&lt;iter&gt;::type t;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">A type.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">iter</span></tt> is dereferenceable.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">t</span></tt> is identical to the element referenced by <tt class="literal"><span class="pre">iter</span></tt>. If <tt class="literal"><span class="pre">iter</span></tt> is
+a user-defined iterator, the library-provided default implementation is
+equivalent to</p>
+<pre class="last literal-block">
+typedef iter::type t;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id442">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Amortized constant time.</p>
+</div>
+<div class="section" id="id443">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./vector.html" class="identifier">vector</a>&lt;char,short,int,long&gt; types;
+typedef <a href="./begin.html" class="identifier">begin</a>&lt;types&gt;::type iter;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./deref.html" class="identifier">deref</a>&lt;iter&gt;::type, char > ));
+</pre>
+</div>
+<div class="section" id="id444">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./iterators.html">Iterators</a>, <a class="reference internal" href="./begin.html">begin</a> / <a class="reference internal" href="./end.html">end</a>, <a class="reference internal" href="./next.html">next</a></p>
+<!-- Iterators/Iterator Metafunctions//iterator_category |60 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./prior.html" class="navigation-link">Prev</a>&nbsp;<a href="./iterator-category.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./prior.html" class="navigation-link">Back</a>&nbsp;<a href="./iterator-category.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterator-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

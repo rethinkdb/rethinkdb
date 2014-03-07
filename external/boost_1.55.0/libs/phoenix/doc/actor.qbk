@@ -1,0 +1,57 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Actor]
+
+The `Actor` is the main concept behind the library. Actors are function objects.
+An actor can accept 0 to `BOOST_PHOENIX_LIMIT` arguments.
+
+[note You can set `BOOST_PHOENIX_LIMIT`, the predefined maximum arity an
+actor can take. By default, `BOOST_PHOENIX_LIMIT` is set to 10.]
+
+Phoenix supplies an `actor` class template whose specializations
+model the `Actor` concept.  `actor` has one template parameter, `Expr`,
+that supplies the underlying expression to evaluate.
+
+    template <typename Expr>
+    struct actor
+    {
+        return_type
+        operator()() const;
+        
+        return_type
+        operator()();
+
+        template <typename T0>
+        return_type
+        operator()(T0& _0) const;
+
+        template <typename T0>
+        return_type
+        operator()(T0 const& _0) const;
+
+        template <typename T0>
+        return_type
+        operator()(T0& _0);
+
+        template <typename T0>
+        return_type
+        operator()(T0 const& _0);
+
+
+        //...
+    };
+
+The actor class accepts the arguments through a set of function call operators
+for 0 to `BOOST_PHOENIX_LIMIT` arities (Don't worry about the details, for now. Note, for example,
+that we skimed over the details regarding `return_type`). The arguments
+are then forwarded to the actor's `Expr` for evaluation.
+
+[endsect]
+

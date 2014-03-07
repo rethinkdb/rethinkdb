@@ -1,0 +1,6 @@
+> example
+Running 1 test case...
+test.cpp(14): warning in "test": condition moo( 12,i,j ) is not satisfied
+test.cpp(15): warning in "test": condition moo( 12, i, j ) is not satisfied for ( 12, 17, 15 )
+
+*** No errors detected

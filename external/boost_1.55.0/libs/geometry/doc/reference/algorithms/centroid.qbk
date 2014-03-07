@@ -1,0 +1,45 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __this_function__ centroid]
+
+[heading_conformance_ogc __this_function__..Centroid]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__point__][Returns the point itself as the centroid]]
+[[__multi_point__][Calculates centroid (based on average)]]
+[[__1dim__][Calculates centroid (based on weighted length)]]
+[[__2dim__][Calculates centroid]]
+[[__empty__][Throws a [link geometry.reference.exceptions.centroid_exception centroid_exception] ]]
+[[__cart__][Implemented]]
+[[__sph__][Calculates the centroid as if based on Cartesian coordinates]]
+]
+
+[heading Supported geometries]
+[table
+[[ ][2D][3D]]
+[[Point][[$img/ok.png]][[$img/ok.png]]]
+[[Segment][[$img/ok.png]][[$img/ok.png]]]
+[[Box][[$img/ok.png]][[$img/ok.png]]]
+[[Linestring][[$img/ok.png]][[$img/nyi.png]]]
+[[Ring][[$img/ok.png]][[$img/nyi.png]]]
+[[Polygon][[$img/ok.png]][[$img/nyi.png]]]
+[[MultiPoint][[$img/ok.png]][[$img/ok.png]]]
+[[MultiLinestring][[$img/ok.png]][[$img/nyi.png]]]
+[[MultiPolygon][[$img/ok.png]][[$img/nyi.png]]]
+]
+
+[heading Complexity]
+Linear
+

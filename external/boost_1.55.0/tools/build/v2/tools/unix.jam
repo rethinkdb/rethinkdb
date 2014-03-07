@@ -1,0 +1,224 @@
+#  Copyright (c) 2004 Vladimir Prus.
+#
+#  Use, modification and distribution is subject to the Boost Software
+#  License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+#  This file implements linking semantic common to all unixes. On unix, static
+#  libraries must be specified in a fixed order on the linker command line. Generators
+#  declared there store information about the order and use it property.
+
+import feature ;
+import "class" : new ;
+import generators ;
+import type ;
+import set ;
+import order ;
+import builtin ;
+
+class unix-linking-generator : linking-generator
+{
+    import property-set ;
+    import type ;
+    import unix ;
+    
+    rule __init__ ( id 
+        composing ? : # Specify if generator is composing. The generator will be
+        # composing if non-empty string is passed, or parameter is
+        # not given. To make generator non-composing, pass empty
+        # string ("")
+        source-types + : target-types + : 
+        requirements * )
+    {
+        composing ?= true ;
+        generator.__init__ $(id) $(composing) : $(source-types) : $(target-types) :
+          $(requirements) ;
+    }
+    
+    rule run ( project name ? : property-set : sources + )
+    {   
+        local result = [ linking-generator.run $(project) $(name) : $(property-set)
+          : $(sources) ] ;
+        
+        unix.set-library-order $(sources) : $(property-set) : $(result[2-]) ;
+                                
+        return $(result) ;
+    }
+    
+    rule generated-targets ( sources + : property-set : project name ? )
+    {
+        local sources2 ;
+        local libraries ;
+        for local l in $(sources)
+        {
+            if [ type.is-derived [ $(l).type ] LIB ]
+            {
+                libraries += $(l) ;
+            }
+            else
+            {
+                sources2 += $(l) ;
+            }            
+        }
+        
+        sources = $(sources2) [ unix.order-libraries $(libraries) ] ;
+        
+        return [ linking-generator.generated-targets $(sources) : $(property-set)
+          : $(project) $(name) ] ;
+    }
+    
+} 
+
+class unix-archive-generator : archive-generator
+{
+    import unix ; 
+
+    rule __init__ ( id composing ? : source-types + : target-types + : 
+        requirements * )
+    {
+        composing ?= true ;
+        archive-generator.__init__ $(id) $(composing) : $(source-types) : $(target-types) :
+          $(requirements) ;
+    }
+        
+    rule run ( project name ? : property-set : sources + )
+    {                                
+        local result = [ archive-generator.run $(project) $(name) : $(property-set)
+          : $(sources) ] ;
+        
+        unix.set-library-order $(sources) : $(property-set) : $(result[2-]) ;
+        
+        return $(result) ;
+
+    }    
+}
+
+class unix-searched-lib-generator : searched-lib-generator
+{
+    import unix ;
+    rule __init__ ( * : * )
+    { 
+        generator.__init__ 
+          $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    }
+    
+    rule optional-properties ( )
+    {
+        return $(self.requirements) ;
+    }
+              
+    rule run ( project name ? : property-set : sources * )
+    {
+        local result = [ searched-lib-generator.run $(project) $(name) 
+          : $(property-set) : $(sources) ] ;
+        
+        unix.set-library-order $(sources) : $(property-set) : $(result[2-]) ;
+        
+        return $(result) ;
+    }    
+}
+
+class unix-prebuilt-lib-generator : generator
+{
+    import unix ;
+    rule __init__ ( * : * )
+    {
+        generator.__init__ $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    }
+
+    rule run ( project name ? : property-set : sources * )
+    {
+        local f = [ $(property-set).get <file> ] ;
+        unix.set-library-order-aux $(f) : $(sources) ;
+        return $(f) $(sources) ;
+    }    
+}
+
+generators.register 
+  [ new unix-prebuilt-lib-generator unix.prebuilt : : LIB 
+      : <file> <toolset>unix ] ;
+
+generators.override unix.prebuilt : builtin.lib-generator ;
+
+
+# Declare generators
+generators.register [ new unix-linking-generator unix.link : LIB OBJ : EXE 
+    : <toolset>unix ] ;
+
+generators.register [ new unix-archive-generator unix.archive : OBJ : STATIC_LIB 
+    : <toolset>unix ] ;
+
+generators.register [ new unix-linking-generator unix.link.dll : LIB OBJ : SHARED_LIB 
+    : <toolset>unix ] ;
+
+generators.register [ new unix-searched-lib-generator 
+   unix.searched-lib-generator : : SEARCHED_LIB : <toolset>unix ] ;
+
+
+# The derived toolset must specify their own actions.
+actions link {
+}
+
+actions link.dll {
+}
+
+actions archive {    
+}
+
+actions searched-lib-generator {    
+}
+
+actions prebuilt {
+}
+
+    
+
+
+
+.order = [ new order ] ;
+
+rule set-library-order-aux ( from * : to * )
+{        
+    for local f in $(from)
+    {
+        for local t in $(to)
+        {            
+            if $(f) != $(t)
+            {                
+                $(.order).add-pair $(f) $(t) ;
+            }            
+        }        
+    }    
+}
+
+rule set-library-order ( sources * : property-set : result * )
+{
+    local used-libraries ;
+    local deps = [ $(property-set).dependency ] ;        
+    for local l in $(sources) $(deps:G=)        
+    {
+        if [ $(l).type ] && [ type.is-derived [ $(l).type ] LIB ]
+        {
+            used-libraries += $(l) ;
+        }
+    }
+
+    local created-libraries ;
+    for local l in $(result)
+    {
+        if [ $(l).type ] && [ type.is-derived [ $(l).type ] LIB ] 
+        {
+            created-libraries += $(l) ;
+        }            
+    }
+    
+    created-libraries = [ set.difference $(created-libraries) : $(used-libraries) ] ;
+    set-library-order-aux $(created-libraries) : $(used-libraries) ;
+}
+
+rule order-libraries ( libraries * )
+{
+    local r = [ $(.order).order $(libraries) ] ;
+    return $(r) ;
+}
+     

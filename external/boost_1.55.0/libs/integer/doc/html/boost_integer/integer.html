@@ -1,0 +1,432 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Integer Type Selection</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Boost.Integer">
+<link rel="up" href="../index.html" title="Boost.Integer">
+<link rel="prev" href="traits.html" title="Integer Traits">
+<link rel="next" href="mask.html" title="Integer Masks">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="traits.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mask.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_integer.integer"></a><a class="link" href="integer.html" title="Integer Type Selection"> Integer Type Selection</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="integer.html#boost_integer.integer.synopsis"> Synopsis</a></span></dt>
+<dt><span class="section"><a href="integer.html#boost_integer.integer.easiest"> Easiest-to-Manipulate
+      Types</a></span></dt>
+<dt><span class="section"><a href="integer.html#boost_integer.integer.sized"> Sized Types</a></span></dt>
+<dt><span class="section"><a href="integer.html#boost_integer.integer.example">Example</a></span></dt>
+<dt><span class="section"><a href="integer.html#boost_integer.integer.demonstration_program">Demonstration
+      Program</a></span></dt>
+<dt><span class="section"><a href="integer.html#boost_integer.integer.rationale">Rationale</a></span></dt>
+<dt><span class="section"><a href="integer.html#boost_integer.integer.alternative">Alternative</a></span></dt>
+<dt><span class="section"><a href="integer.html#boost_integer.integer.credits">Credits</a></span></dt>
+</dl></div>
+<p>
+      The <a href="../../../../../boost/integer.hpp" target="_top">&lt;boost/integer.hpp&gt;</a>
+      type selection templates allow integer types to be selected based on desired
+      characteristics such as number of bits or maximum value. This facility is particularly
+      useful for solving generic programming problems.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.integer.synopsis"></a><a class="link" href="integer.html#boost_integer.integer.synopsis" title="Synopsis"> Synopsis</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+  <span class="comment">//  fast integers from least integers
+</span>  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">LeastInt</span><span class="special">&gt;</span>
+  <span class="keyword">struct</span> <span class="identifier">int_fast_t</span>
+  <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em>implementation-defined-type</em></span>  <span class="identifier">type</span><span class="special">;</span>
+  <span class="special">};</span>
+
+  <span class="comment">//  signed
+</span>  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">int</span> <span class="identifier">Bits</span><span class="special">&gt;</span>
+  <span class="keyword">struct</span> <span class="identifier">int_t</span> 
+  <span class="special">{</span>
+      <span class="comment">/* Member exact may or may not be defined depending upon Bits */</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em>implementation-defined-type</em></span>  <span class="identifier">exact</span><span class="special">;</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em>implementation-defined-type</em></span>  <span class="identifier">least</span><span class="special">;</span>
+      <span class="keyword">typedef</span> <span class="identifier">int_fast_t</span><span class="special">&lt;</span><span class="identifier">least</span><span class="special">&gt;::</span><span class="identifier">fast</span>      <span class="identifier">fast</span><span class="special">;</span>
+  <span class="special">};</span>
+
+  <span class="comment">//  unsigned
+</span>  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">int</span> <span class="identifier">Bits</span><span class="special">&gt;</span>
+  <span class="keyword">struct</span> <span class="identifier">uint_t</span> 
+  <span class="special">{</span>
+      <span class="comment">/* Member exact may or may not be defined depending upon Bits */</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em>implementation-defined-type</em></span>  <span class="identifier">exact</span><span class="special">;</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em>implementation-defined-type</em></span>  <span class="identifier">least</span><span class="special">;</span>
+      <span class="keyword">typedef</span> <span class="identifier">int_fast_t</span><span class="special">&lt;</span><span class="identifier">least</span><span class="special">&gt;::</span><span class="identifier">fast</span>      <span class="identifier">fast</span><span class="special">;</span>
+  <span class="special">};</span>
+
+  <span class="comment">//  signed
+</span>  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">long</span> <span class="keyword">long</span> <span class="identifier">MaxValue</span><span class="special">&gt;</span>
+  <span class="keyword">struct</span> <span class="identifier">int_max_value_t</span> 
+  <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em>implementation-defined-type</em></span>  <span class="identifier">least</span><span class="special">;</span>
+      <span class="keyword">typedef</span> <span class="identifier">int_fast_t</span><span class="special">&lt;</span><span class="identifier">least</span><span class="special">&gt;::</span><span class="identifier">fast</span>      <span class="identifier">fast</span><span class="special">;</span>
+  <span class="special">};</span>
+
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">long</span> <span class="keyword">long</span> <span class="identifier">MinValue</span><span class="special">&gt;</span>
+  <span class="keyword">struct</span> <span class="identifier">int_min_value_t</span> 
+  <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em>implementation-defined-type</em></span>  <span class="identifier">least</span><span class="special">;</span>
+      <span class="keyword">typedef</span> <span class="identifier">int_fast_t</span><span class="special">&lt;</span><span class="identifier">least</span><span class="special">&gt;::</span><span class="identifier">fast</span>      <span class="identifier">fast</span><span class="special">;</span>
+  <span class="special">};</span>
+
+  <span class="comment">//  unsigned
+</span>  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span> <span class="identifier">Value</span><span class="special">&gt;</span>
+  <span class="keyword">struct</span> <span class="identifier">uint_value_t</span> 
+  <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em>implementation-defined-type</em></span>  <span class="identifier">least</span><span class="special">;</span>
+      <span class="keyword">typedef</span> <span class="identifier">int_fast_t</span><span class="special">&lt;</span><span class="identifier">least</span><span class="special">&gt;::</span><span class="identifier">fast</span>      <span class="identifier">fast</span><span class="special">;</span>
+  <span class="special">};</span>
+<span class="special">}</span> <span class="comment">// namespace boost
+</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.integer.easiest"></a><a class="link" href="integer.html#boost_integer.integer.easiest" title="Easiest-to-Manipulate Types"> Easiest-to-Manipulate
+      Types</a>
+</h3></div></div></div>
+<p>
+        The <code class="literal">int_fast_t</code> class template maps its input type to the
+        next-largest type that the processor can manipulate the easiest, or to itself
+        if the input type is already an easy-to-manipulate type. For instance, processing
+        a bunch of <code class="literal">char</code> objects may go faster if they were converted
+        to <code class="literal">int</code> objects before processing. The input type, passed
+        as the only template parameter, must be a built-in integral type, except
+        <code class="literal">bool</code>. Unsigned integral types can be used, as well as
+        signed integral types. The output type is given as the nested type <code class="literal">fast</code>.
+      </p>
+<p>
+        <span class="bold"><strong>Implementation Notes:</strong></span> By default, the output
+        type is identical to the input type. Eventually, this code's implementation
+        should be customized for each platform to give accurate mappings between
+        the built-in types and the easiest-to-manipulate built-in types. Also, there
+        is no guarantee that the output type actually is easier to manipulate than
+        the input type.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.integer.sized"></a><a class="link" href="integer.html#boost_integer.integer.sized" title="Sized Types"> Sized Types</a>
+</h3></div></div></div>
+<p>
+        The <code class="literal">int_t</code>, <code class="literal">uint_t</code>, <code class="literal">int_max_value_t</code>,
+        <code class="literal">int_min_value_t</code>, and <code class="literal">uint_value_t</code> class
+        templates find the most appropiate built-in integral type for the given template
+        parameter. This type is given by the nested type <code class="literal">least</code>.
+        The easiest-to-manipulate version of that type is given by the nested type
+        <code class="literal">fast</code>. The following table describes each template's criteria.
+      </p>
+<div class="table">
+<a name="boost_integer.integer.sized.criteria_for_the_sized_type_class_templates"></a><p class="title"><b>Table&#160;1.&#160;Criteria for the Sized Type Class Templates</b></p>
+<div class="table-contents"><table class="table" summary="Criteria for the Sized Type Class Templates">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Class Template
+                </p>
+              </th>
+<th>
+                <p>
+                  Template Parameter Mapping
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="literal">boost::int_t&lt;N&gt;::least</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The smallest, built-in, signed integral type with at least <span class="emphasis"><em>N</em></span>
+                  bits, including the sign bit. The parameter should be a positive
+                  number. A compile-time error results if the parameter is larger
+                  than the number of bits in the largest integer type.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">boost::int_t&lt;N&gt;::fast</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The easiest-to-manipulate, built-in, signed integral type with
+                  at least <span class="emphasis"><em>N</em></span> bits, including the sign bit. The
+                  parameter should be a positive number. A compile-time error results
+                  if the parameter is larger than the number of bits in the largest
+                  integer type.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">boost::int_t&lt;N&gt;::exact</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  A built-in, signed integral type with exactly <span class="emphasis"><em>N</em></span>
+                  bits, including the sign bit. The parameter should be a positive
+                  number. Note that the member <span class="emphasis"><em>exact</em></span> is defined
+                  <span class="bold"><strong>only</strong></span> if there exists a type with
+                  exactly <span class="emphasis"><em>N</em></span> bits.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">boost::uint_t&lt;N&gt;::least</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The smallest, built-in, unsigned integral type with at least <span class="emphasis"><em>N</em></span>
+                  bits. The parameter should be a positive number. A compile-time
+                  error results if the parameter is larger than the number of bits
+                  in the largest integer type.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">boost::uint_t&lt;N&gt;::fast</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The easiest-to-manipulate, built-in, unsigned integral type with
+                  at least <span class="emphasis"><em>N</em></span> bits. The parameter should be a
+                  positive number. A compile-time error results if the parameter
+                  is larger than the number of bits in the largest integer type.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">boost::uint_t&lt;N&gt;::exact</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  A built-in, unsigned integral type with exactly <span class="emphasis"><em>N</em></span>
+                  bits. The parameter should be a positive number. A compile-time
+                  error results if the parameter is larger than the number of bits
+                  in the largest integer type. Note that the member <span class="emphasis"><em>exact</em></span>
+                  is defined <span class="bold"><strong>only</strong></span> if there exists
+                  a type with exactly N bits.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">boost::int_max_value_t&lt;V&gt;::last</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The smallest, built-in, signed integral type that can hold all
+                  the values in the inclusive range <span class="emphasis"><em>0 - V</em></span>. The
+                  parameter should be a positive number.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">boost::int_max_value_t&lt;V&gt;::fast</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The easiest-to-manipulate, built-in, signed integral type that
+                  can hold all the values in the inclusive range <span class="emphasis"><em>0 - V</em></span>.
+                  The parameter should be a positive number.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">boost::int_min_value_t&lt;V&gt;::least</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The smallest, built-in, signed integral type that can hold all
+                  the values in the inclusive range <span class="emphasis"><em>V - 0</em></span>. The
+                  parameter should be a negative number.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">boost::int_min_value_t&lt;V&gt;::fast</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The easiest-to-manipulate, built-in, signed integral type that
+                  can hold all the values in the inclusive range <span class="emphasis"><em>V - 0</em></span>.
+                  The parameter should be a negative number.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">boost::uint_value_t&lt;V&gt;::least</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The smallest, built-in, unsigned integral type that can hold all
+                  positive values up to and including <span class="emphasis"><em>V</em></span>. The
+                  parameter should be a positive number.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">boost::uint_value_t&lt;V&gt;::fast</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The easiest-to-manipulate, built-in, unsigned integral type that
+                  can hold all positive values up to and including <span class="emphasis"><em>V</em></span>.
+                  The parameter should be a positive number.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.integer.example"></a><a class="link" href="integer.html#boost_integer.integer.example" title="Example">Example</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">integer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">//...
+</span>
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">int_t</span><span class="special">&lt;</span><span class="number">24</span><span class="special">&gt;::</span><span class="identifier">least</span> <span class="identifier">my_var</span><span class="special">;</span>  <span class="comment">// my_var has at least 24-bits
+</span>    <span class="comment">//...
+</span>    <span class="comment">// This one is guarenteed not to be truncated:
+</span>    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">int_max_value_t</span><span class="special">&lt;</span><span class="number">1000</span><span class="special">&gt;::</span><span class="identifier">least</span> <span class="identifier">my1000</span> <span class="special">=</span> <span class="number">1000</span><span class="special">;</span>
+    <span class="comment">//...
+</span>    <span class="comment">// This one is guarenteed not to be truncated, and as fast
+</span>    <span class="comment">// to manipulate as possible, its size may be greater than
+</span>    <span class="comment">// that of my1000:
+</span>    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">int_max_value_t</span><span class="special">&lt;</span><span class="number">1000</span><span class="special">&gt;::</span><span class="identifier">fast</span> <span class="identifier">my_fast1000</span> <span class="special">=</span> <span class="number">1000</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.integer.demonstration_program"></a><a class="link" href="integer.html#boost_integer.integer.demonstration_program" title="Demonstration Program">Demonstration
+      Program</a>
+</h3></div></div></div>
+<p>
+        The program <a href="../../../test/integer_test.cpp" target="_top">integer_test.cpp</a>
+        is a simplistic demonstration of the results from instantiating various examples
+        of the sized type class templates.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.integer.rationale"></a><a class="link" href="integer.html#boost_integer.integer.rationale" title="Rationale">Rationale</a>
+</h3></div></div></div>
+<p>
+        The rationale for the design of the templates in this header includes:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            Avoid recursion because of concern about C++'s limited guaranteed recursion
+            depth (17).
+          </li>
+<li class="listitem">
+            Avoid macros on general principles.
+          </li>
+<li class="listitem">
+            Try to keep the design as simple as possible.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.integer.alternative"></a><a class="link" href="integer.html#boost_integer.integer.alternative" title="Alternative">Alternative</a>
+</h3></div></div></div>
+<p>
+        If the number of bits required is known beforehand, it may be more appropriate
+        to use the types supplied in <a href="../../../../../boost/cstdint.hpp" target="_top">&lt;boost/cstdint.hpp&gt;</a>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.integer.credits"></a><a class="link" href="integer.html#boost_integer.integer.credits" title="Credits">Credits</a>
+</h3></div></div></div>
+<p>
+        The author of most of the Boost integer type choosing templates is <a href="http://www.boost.org/people/beman_dawes.html" target="_top">Beman Dawes</a>. He
+        gives thanks to Valentin Bonnard and <a href="http://www.boost.org/people/kevlin_henney.htm" target="_top">Kevlin
+        Henney</a> for sharing their designs for similar templates. <a href="http://www.boost.org/people/daryle_walker.html" target="_top">Daryle
+        Walker</a> designed the value-based sized templates.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001 -2009 Beman Dawes, Daryle Walker, Gennaro Prota,
+      John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="traits.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mask.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,35 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Arguments]
+
+Arguments are also functions? You bet!
+
+Until now, we have been dealing with expressions returning a nullary function.
+Arguments, on the other hand, evaluate to an N-ary function. An argument
+represents the Nth argument. There are a few predefined arguments arg1,
+arg2, arg3, arg4 and so on (and it's __bll__ counterparts: _1, _2, _3, _4 and so
+on). Examples:
+
+    arg1 // one-or-more argument function that returns its first argument
+    arg2 // two-or-more argument function that returns its second argument
+    arg3 // three-or-more argument function that returns its third argument
+
+`argN` returns the Nth argument. Examples:
+
+    int i = 3;
+    char const* s = "Hello World";
+    std::cout << arg1(i) << std::endl;        // prints 3
+    std::cout << arg2(i, s) << std::endl;     // prints "Hello World"
+
+(See [@../../example/arguments.cpp arguments.cpp])
+
+[blurb __tip__ Learn more about arguments [link phoenix.modules.core.arguments here.]]
+
+[endsect]

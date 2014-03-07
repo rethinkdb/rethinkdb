@@ -1,0 +1,502 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Determine if a Type Should be Treated as a Container (Qi and Karma)</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../customize.html" title="Customization of Spirit's Attribute Handling">
+<link rel="prev" href="../customize.html" title="Customization of Spirit's Attribute Handling">
+<link rel="next" href="is_string.html" title="Determine if a Type Should be Treated as a String (Qi and Karma)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../customize.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../customize.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_string.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.advanced.customize.is_container"></a><a class="link" href="is_container.html" title="Determine if a Type Should be Treated as a Container (Qi and Karma)">Determine if
+        a Type Should be Treated as a Container (Qi and Karma)</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit.advanced.customize.is_container.h0"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_container.is_container"></a></span><a class="link" href="is_container.html#spirit.advanced.customize.is_container.is_container">is_container</a>
+        </h6>
+<p>
+          The template <code class="computeroutput"><span class="identifier">is_container</span></code>
+          is a template meta-function used as an attribute customization point. It
+          is invoked by the <span class="emphasis"><em>Qi</em></span> <a class="link" href="../../qi/reference/operator/sequence.html" title="Sequence Parser (a &gt;&gt; b)">Sequence</a>
+          (<code class="computeroutput"><span class="special">&gt;&gt;</span></code>) and <span class="emphasis"><em>Karma</em></span>
+          <a class="link" href="../../karma/reference/operator/sequence.html" title="Sequence Generator (a &lt;&lt; b)">Sequence (<code class="computeroutput"><span class="special">&lt;&lt;</span></code>)</a> operators in order to determine
+          whether a supplied attribute can potentially be treated as a container.
+        </p>
+<h6>
+<a name="spirit.advanced.customize.is_container.h1"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_container.header"></a></span><a class="link" href="is_container.html#spirit.advanced.customize.is_container.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">support</span><span class="special">/</span><span class="identifier">container</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Also, see <a class="link" href="../../structure/include.html" title="Include">Include Structure</a>.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This header file does not need to be included directly by any user program
+            as it is normally included by other Spirit header files relying on its
+            content.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.is_container.h2"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_container.namespace"></a></span><a class="link" href="is_container.html#spirit.advanced.customize.is_container.namespace">Namespace</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                  <p>
+                    Name
+                  </p>
+                </th></tr></thead>
+<tbody><tr><td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">traits</span></code>
+                  </p>
+                </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.is_container.h3"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_container.synopsis"></a></span><a class="link" href="is_container.html#spirit.advanced.customize.is_container.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Container</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Enable</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">is_container</span>
+<span class="special">{</span>
+    <span class="special">&lt;</span><span class="identifier">unspecified</span><span class="special">&gt;;</span>
+<span class="special">};</span>
+</pre>
+<h6>
+<a name="spirit.advanced.customize.is_container.h4"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_container.template_parameters"></a></span><a class="link" href="is_container.html#spirit.advanced.customize.is_container.template_parameters">Template
+          parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Container</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The type, <code class="computeroutput"><span class="identifier">Container</span></code>
+                    which needs to be tested whether it has to be treated as a container
+                  </p>
+                </td>
+<td>
+                  <p>
+                    none
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Enable</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Helper template parameter usable to selectively enable or disable
+                    certain specializations of <code class="computeroutput"><span class="identifier">is_container</span></code>
+                    utilizing SFINAE (i.e. <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">enable_if</span></code>
+                    or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">disable_if</span></code>).
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">void</span></code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">C</span></code></span></dt>
+<dd><p>
+                A type to be tested whether it needs to be treated as a container.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">T1</span></code>, <code class="computeroutput"><span class="identifier">T2</span></code>, ...</span></dt>
+<dd><p>
+                Arbitrary types
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.advanced.customize.is_container.h5"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_container.expression_semantics"></a></span><a class="link" href="is_container.html#spirit.advanced.customize.is_container.expression_semantics">Expression
+          Semantics</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">is_container</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Result of the metafunction that evaluates to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+                    if a given type, <code class="computeroutput"><span class="identifier">C</span></code>,
+                    is to be treated as a container, <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>
+                    otherwise Generally, any implementation of <code class="computeroutput"><span class="identifier">is_container</span></code>
+                    needs to behave as if if was a <a href="../../../../../../../libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+                    Boolean Constant</a>..
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.is_container.h6"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_container.predefined_specializations"></a></span><a class="link" href="is_container.html#spirit.advanced.customize.is_container.predefined_specializations">Predefined
+          Specializations</a>
+        </h6>
+<p>
+          <a href="http://boost-spirit.com" target="_top">Spirit</a> predefines specializations
+          of this customization point for several types. The following table lists
+          those types together with the conditions for which the corresponding specializations
+          will evaluate to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code> (see <a href="../../../../../../../libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+          Boolean Constant</a>):
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Template Parameters
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code> if <code class="computeroutput"><span class="identifier">T</span></code>
+                    has the following embedded types defined: <code class="computeroutput"><span class="identifier">value_type</span></code>,
+                    <code class="computeroutput"><span class="identifier">iterator</span></code>, <code class="computeroutput"><span class="identifier">size_type</span></code>, and<code class="computeroutput"><span class="identifier">reference</span></code>. Otherwise it will
+                    return <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">is_container</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variant</span><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span>
+                    <span class="identifier">T2</span><span class="special">,</span>
+                    <span class="special">...&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code> if at least one of the
+                    <code class="computeroutput"><span class="identifier">is_container</span><span class="special">&lt;</span><span class="identifier">TN</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code> (where <code class="computeroutput"><span class="identifier">TN</span></code> is <code class="computeroutput"><span class="identifier">T1</span></code>,
+                    <code class="computeroutput"><span class="identifier">T2</span></code>, ...). Otherwise
+                    it will return <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unused_type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.is_container.h7"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_container.when_to_implement"></a></span><a class="link" href="is_container.html#spirit.advanced.customize.is_container.when_to_implement">When
+          to implement</a>
+        </h6>
+<p>
+          The customization point <code class="computeroutput"><span class="identifier">is_container</span></code>
+          needs to be implemented for a specific type whenever this type is to be
+          used as an attribute in place of a STL container. It is applicable for
+          parsers (<span class="emphasis"><em>Spirit.Qi</em></span>) and generators (<span class="emphasis"><em>Spirit.Karma</em></span>).
+          As a rule of thumb: it has to be implemented whenever a certain type is
+          to be passed as an attribute to a parser or a generator normally exposing
+          a STL container, <code class="computeroutput"><span class="identifier">C</span></code> and
+          if the type does not expose the interface of a STL container (i.e. <code class="computeroutput"><span class="identifier">is_container</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">type</span></code> would normally return <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>). These components have an attribute
+          propagation rule in the form:
+        </p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">Op</span><span class="special">(</span><span class="identifier">a</span><span class="special">):</span> <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span>
+</pre>
+<p>
+          where <code class="computeroutput"><span class="identifier">Op</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code> stands
+          for any meaningful operation on the component <code class="computeroutput"><span class="identifier">a</span></code>.
+        </p>
+<h6>
+<a name="spirit.advanced.customize.is_container.h8"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_container.related_attribute_customization_points"></a></span><a class="link" href="is_container.html#spirit.advanced.customize.is_container.related_attribute_customization_points">Related
+          Attribute Customization Points</a>
+        </h6>
+<p>
+          If this customization point is implemented, the following other customization
+          points might need to be implemented as well.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    When to implement
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="store_value/container_value.html" title="Determine the Type to be Stored in a Container (Qi)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">container_value</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Needs to be implemented whenever <code class="computeroutput"><span class="identifier">is_container</span></code>
+                    is implemented.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="store_value/push_back.html" title="Store a Parsed Attribute Value into a Container (Qi)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">push_back_container</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Qi: <a class="link" href="../../qi/reference/operator/list.html" title="List Parser (a % b)">List</a>,
+                    <a class="link" href="../../qi/reference/operator/kleene.html" title="Kleene Parser (*a)">Kleene</a>,
+                    <a class="link" href="../../qi/reference/operator/plus.html" title="Plus Parser (+a)">Plus</a>,
+                    <a class="link" href="../../qi/reference/directive/repeat.html" title="Repetition Parser Directive (repeat[])">Repeat</a>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="iterate/container_iterator.html" title="Determine the Type of the Iterator of a Container"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">container_iterator</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Karma: <a class="link" href="../../karma/reference/operator/list.html" title="List Generator (a % b)">List
+                    (<code class="computeroutput"><span class="special">%</span></code>)</a>, <a class="link" href="../../karma/reference/operator/kleene.html" title="Kleene Star Generator (*a)">Kleene (unary
+                    <code class="computeroutput"><span class="special">*</span></code>)</a>, <a class="link" href="../../karma/reference/operator/plus.html" title="Plus Generator (+a)">Plus (unary <code class="computeroutput"><span class="special">+</span></code>)</a>, <a class="link" href="../../karma/reference/directive/repeat.html" title="Repetition Generator Directive (repeat[])">Repeat</a>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="iterate/begin_container.html" title="Get the Iterator pointing to the Begin of a Container Attribute"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">begin_container</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Karma: <a class="link" href="../../karma/reference/operator/list.html" title="List Generator (a % b)">List
+                    (<code class="computeroutput"><span class="special">%</span></code>)</a>, <a class="link" href="../../karma/reference/operator/kleene.html" title="Kleene Star Generator (*a)">Kleene (unary
+                    <code class="computeroutput"><span class="special">*</span></code>)</a>, <a class="link" href="../../karma/reference/operator/plus.html" title="Plus Generator (+a)">Plus (unary <code class="computeroutput"><span class="special">+</span></code>)</a>, <a class="link" href="../../karma/reference/directive/repeat.html" title="Repetition Generator Directive (repeat[])">Repeat</a>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="iterate/end_container.html" title="Get the Iterator pointing to the End of a Container Attribute"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">end_container</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Karma: <a class="link" href="../../karma/reference/operator/list.html" title="List Generator (a % b)">List
+                    (<code class="computeroutput"><span class="special">%</span></code>)</a>, <a class="link" href="../../karma/reference/operator/kleene.html" title="Kleene Star Generator (*a)">Kleene (unary
+                    <code class="computeroutput"><span class="special">*</span></code>)</a>, <a class="link" href="../../karma/reference/operator/plus.html" title="Plus Generator (+a)">Plus (unary <code class="computeroutput"><span class="special">+</span></code>)</a>, <a class="link" href="../../karma/reference/directive/repeat.html" title="Repetition Generator Directive (repeat[])">Repeat</a>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="iterate/deref_iterator.html" title="Dereference the Iterator pointing into a Container Attribute"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">deref_iterator</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Karma: <a class="link" href="../../karma/reference/operator/list.html" title="List Generator (a % b)">List
+                    (<code class="computeroutput"><span class="special">%</span></code>)</a>, <a class="link" href="../../karma/reference/operator/kleene.html" title="Kleene Star Generator (*a)">Kleene (unary
+                    <code class="computeroutput"><span class="special">*</span></code>)</a>, <a class="link" href="../../karma/reference/operator/plus.html" title="Plus Generator (+a)">Plus (unary <code class="computeroutput"><span class="special">+</span></code>)</a>, <a class="link" href="../../karma/reference/directive/repeat.html" title="Repetition Generator Directive (repeat[])">Repeat</a>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="iterate/next_iterator.html" title="Increment the Iterator pointing into a Container Attribute"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">next_iterator</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Karma: <a class="link" href="../../karma/reference/operator/list.html" title="List Generator (a % b)">List
+                    (<code class="computeroutput"><span class="special">%</span></code>)</a>, <a class="link" href="../../karma/reference/operator/kleene.html" title="Kleene Star Generator (*a)">Kleene (unary
+                    <code class="computeroutput"><span class="special">*</span></code>)</a>, <a class="link" href="../../karma/reference/operator/plus.html" title="Plus Generator (+a)">Plus (unary <code class="computeroutput"><span class="special">+</span></code>)</a>, <a class="link" href="../../karma/reference/directive/repeat.html" title="Repetition Generator Directive (repeat[])">Repeat</a>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="iterate/compare_iterators.html" title="Compare two Iterator pointing into a Container Attribute for Equality"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">compare_iterators</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Karma: <a class="link" href="../../karma/reference/operator/list.html" title="List Generator (a % b)">List
+                    (<code class="computeroutput"><span class="special">%</span></code>)</a>, <a class="link" href="../../karma/reference/operator/kleene.html" title="Kleene Star Generator (*a)">Kleene (unary
+                    <code class="computeroutput"><span class="special">*</span></code>)</a>, <a class="link" href="../../karma/reference/operator/plus.html" title="Plus Generator (+a)">Plus (unary <code class="computeroutput"><span class="special">+</span></code>)</a>, <a class="link" href="../../karma/reference/directive/repeat.html" title="Repetition Generator Directive (repeat[])">Repeat</a>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="clear_value.html" title="Re-Initialize an Attribute Value before Parsing (Qi)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">clear_value</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Qi: <a class="link" href="../../qi/reference/operator/list.html" title="List Parser (a % b)">List</a>,
+                    <a class="link" href="../../qi/reference/operator/kleene.html" title="Kleene Parser (*a)">Kleene</a>,
+                    <a class="link" href="../../qi/reference/operator/plus.html" title="Plus Parser (+a)">Plus</a>,
+                    <a class="link" href="../../qi/reference/directive/repeat.html" title="Repetition Parser Directive (repeat[])">Repeat</a>.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.is_container.h9"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_container.example"></a></span><a class="link" href="is_container.html#spirit.advanced.customize.is_container.example">Example</a>
+        </h6>
+<p>
+          For examples of how to use the customization point <code class="computeroutput"><span class="identifier">is_container</span></code>
+          please see here: <a class="link" href="iterate/container_iterator.html#spirit.advanced.customize.iterate.container_iterator.example">embedded_container_example</a>,
+          <a class="link" href="iterate/next_iterator.html#spirit.advanced.customize.iterate.next_iterator.example">use_as_container</a>,
+          and <a class="link" href="iterate/deref_iterator.html#spirit.advanced.customize.iterate.deref_iterator.example">counter_example</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../customize.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../customize.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_string.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

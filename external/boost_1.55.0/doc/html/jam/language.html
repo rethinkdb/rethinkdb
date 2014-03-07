@@ -1,0 +1,2010 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Language</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../jam.html" title="Chapter&#160;42.&#160;Boost.Jam : 3.1.19">
+<link rel="prev" href="../jam.html" title="Chapter&#160;42.&#160;Boost.Jam : 3.1.19">
+<link rel="next" href="miscellaneous.html" title="Miscellaneous">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../jam.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../jam.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="miscellaneous.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="jam.language"></a><a class="link" href="language.html" title="Language">Language</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="language.html#jam.language.lexical">Lexical Features</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.target">Targets</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.rules">Rules</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.flow_of_control">Flow-of-Control</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.variables">Variables</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.modules">Modules</a></span></dt>
+</dl></div>
+<p>
+      <code class="literal">B2</code> has an interpreted, procedural language. Statements in
+      <code class="literal">b2</code> are rule (procedure) definitions, rule invocations, flow-of-control
+      structures, variable assignments, and sundry language support.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="jam.language.lexical"></a><a class="link" href="language.html#jam.language.lexical" title="Lexical Features">Lexical Features</a>
+</h3></div></div></div>
+<p>
+        <code class="literal">B2</code> treats its input files as whitespace-separated tokens,
+        with two exceptions: double quotes (") can enclose whitespace to embed
+        it into a token, and everything between the matching curly braces ({}) in
+        the definition of a rule action is treated as a single string. A backslash
+        (\) can escape a double quote, or any single whitespace character.
+      </p>
+<p>
+        <code class="literal">B2</code> requires whitespace (blanks, tabs, or newlines) to
+        surround all tokens, including the colon (:) and semicolon (;) tokens.
+      </p>
+<p>
+        <code class="literal">B2</code> keywords (an mentioned in this document) are reserved
+        and generally must be quoted with double quotes (") to be used as arbitrary
+        tokens, such as variable or target names.
+      </p>
+<p>
+        Comments start with the <code class="literal">#</code> character and extend until the
+        end of line.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="jam.language.target"></a><a class="link" href="language.html#jam.language.target" title="Targets">Targets</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="language.html#jam.language.target.binding_detection">Binding Detection</a></span></dt></dl></div>
+<p>
+        The essential <code class="literal">b2</code> data entity is a target. Build targets
+        are files to be updated. Source targets are the files used in updating built
+        targets. Built targets and source targets are collectively referred to as
+        file targets, and frequently built targets are source targets for other built
+        targets. Pseudotargets are symbols representing dependencies on other targets,
+        but which are not themselves associated with any real file.
+      </p>
+<p>
+        A file target's identifier is generally the file's name, which can be absolutely
+        rooted, relative to the directory of <code class="literal">b2</code>'s invocation,
+        or simply local (no directory). Most often it is the last case, and the actual
+        file path is bound using the <code class="literal">$(SEARCH)</code> and <code class="literal">$(LOCATE)</code>
+        special variables. See <a class="link" href="language.html#jam.language.variables.builtins.search" title="SEARCH and LOCATE">SEARCH
+        and LOCATE Variables</a> below. A local filename is optionally qualified
+        with grist, a string value used to assure uniqueness. A file target with
+        an identifier of the form <span class="emphasis"><em>file(member)</em></span> is a library
+        member (usually an <code class="literal">ar</code>(1) archive on Unix).
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.target.binding_detection"></a><a class="link" href="language.html#jam.language.target.binding_detection" title="Binding Detection">Binding Detection</a>
+</h4></div></div></div>
+<p>
+          Whenever a target is bound to a location in the filesystem, Boost Jam will
+          look for a variable called <code class="literal">BINDRULE</code> (first "on"
+          the target being bound, then in the global module). If non-empty, =$(BINDRULE[1])=
+          names a rule which is called with the name of the target and the path it
+          is being bound to. The signature of the rule named by =$(BINDRULE[1])=
+          should match the following:
+        </p>
+<pre class="programlisting">rule <span class="emphasis"><em>bind-rule</em></span> ( <span class="emphasis"><em>target</em></span> : <span class="emphasis"><em>path</em></span> )
+</pre>
+<p>
+          This facility is useful for correct header file scanning, since many compilers
+          will search for <code class="computeroutput"><span class="preprocessor">#include</span></code>
+          files first in the directory containing the file doing the <code class="computeroutput"><span class="preprocessor">#include</span></code> directive. <code class="literal">$(BINDRULE)</code>
+          can be used to make a record of that directory.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="jam.language.rules"></a><a class="link" href="language.html#jam.language.rules" title="Rules">Rules</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="language.html#jam.language.rules.action_modifiers">Action Modifiers</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.rules.argument_lists">Argument lists</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.rules.builtins">Built-in Rules</a></span></dt>
+</dl></div>
+<p>
+        The basic <code class="literal">b2</code> language entity is called a rule. A rule
+        is defined in two parts: the procedure and the actions. The procedure is
+        a body of jam statements to be run when the rule is invoked; the actions
+        are the OS shell commands to execute when updating the built targets of the
+        rule.
+      </p>
+<p>
+        Rules can return values, which can be expanded into a list with "[
+        <span class="emphasis"><em>rule</em></span> <span class="emphasis"><em>args</em></span> ... ]". A rule's
+        value is the value of its last statement, though only the following statements
+        have values: 'if' (value of the leg chosen), 'switch' (value of the case
+        chosen), set (value of the resulting variable), and 'return' (value of its
+        arguments). Note that 'return' doesn't actually cause a return, i.e., is
+        a no-op unless it is the last statement of the last block executed within
+        rule body.
+      </p>
+<p>
+        The <code class="literal">b2</code> statements for defining and invoking rules are
+        as follows:
+      </p>
+<p>
+        Define a rule's procedure, replacing any previous definition.
+      </p>
+<pre class="programlisting">rule <span class="emphasis"><em>rulename</em></span> { <span class="emphasis"><em>statements</em></span> }
+</pre>
+<p>
+        Define a rule's updating actions, replacing any previous definition.
+      </p>
+<pre class="programlisting">actions [ <span class="emphasis"><em>modifiers</em></span> ] <span class="emphasis"><em>rulename</em></span> { <span class="emphasis"><em>commands</em></span> }
+</pre>
+<p>
+        Invoke a rule.
+      </p>
+<pre class="programlisting"><span class="emphasis"><em>rulename</em></span> <span class="emphasis"><em>field1</em></span> : <span class="emphasis"><em>field2</em></span> : <span class="emphasis"><em>...</em></span> : <span class="emphasis"><em>fieldN</em></span> ;
+</pre>
+<p>
+        Invoke a rule under the influence of target's specific variables..
+      </p>
+<pre class="programlisting">on <span class="emphasis"><em>target</em></span> <span class="emphasis"><em>rulename</em></span> <span class="emphasis"><em>field1</em></span> : <span class="emphasis"><em>field2</em></span> : <span class="emphasis"><em>...</em></span> : <span class="emphasis"><em>fieldN</em></span> ;
+</pre>
+<p>
+        Used as an argument, expands to the return value of the rule invoked.
+      </p>
+<pre class="programlisting">[ <span class="emphasis"><em>rulename</em></span> <span class="emphasis"><em>field1</em></span> : <span class="emphasis"><em>field2</em></span> : <span class="emphasis"><em>...</em></span> : <span class="emphasis"><em>fieldN</em></span> ]
+[ on <span class="emphasis"><em>target</em></span> <span class="emphasis"><em>rulename</em></span> <span class="emphasis"><em>field1</em></span> : <span class="emphasis"><em>field2</em></span> : <span class="emphasis"><em>...</em></span> : <span class="emphasis"><em>fieldN</em></span> ]
+</pre>
+<p>
+        A rule is invoked with values in <span class="emphasis"><em>field1</em></span> through <span class="emphasis"><em>fieldN</em></span>.
+        They may be referenced in the procedure's statements as <code class="literal">$(1)</code>
+        through <code class="literal">$(<span class="emphasis"><em>N</em></span>)</code> (9 max), and the first
+        two only may be referenced in the action's <span class="emphasis"><em>commands</em></span>
+        as <code class="literal">$(1)</code> and <code class="literal">$(2)</code>. <code class="literal">$(&lt;)</code>
+        and <code class="literal">$(&gt;)</code> are synonymous with <code class="literal">$(1)</code>
+        and <code class="literal">$(2)</code>.
+      </p>
+<p>
+        Rules fall into two categories: updating rules (with actions), and pure procedure
+        rules (without actions). Updating rules treat arguments <code class="literal">$(1)</code>
+        and <code class="literal">$(2)</code> as built targets and sources, respectively, while
+        pure procedure rules can take arbitrary arguments.
+      </p>
+<p>
+        When an updating rule is invoked, its updating actions are added to those
+        associated with its built targets (<code class="literal">$(1)</code>) before the rule's
+        procedure is run. Later, to build the targets in the updating phase, <span class="emphasis"><em>commands</em></span>
+        are passed to the OS command shell, with <code class="literal">$(1)</code> and <code class="literal">$(2)</code>
+        replaced by bound versions of the target names. See Binding above.
+      </p>
+<p>
+        Rule invocation may be indirected through a variable:
+      </p>
+<pre class="programlisting">$(<span class="emphasis"><em>var</em></span>) <span class="emphasis"><em>field1</em></span> : <span class="emphasis"><em>field2</em></span> : <span class="emphasis"><em>...</em></span> : <span class="emphasis"><em>fieldN</em></span> ;
+
+on <span class="emphasis"><em>target</em></span> $(<span class="emphasis"><em>var</em></span>) <span class="emphasis"><em>field1</em></span> : <span class="emphasis"><em>field2</em></span> : <span class="emphasis"><em>...</em></span> : <span class="emphasis"><em>fieldN</em></span> ;
+
+[ $(<span class="emphasis"><em>var</em></span>) <span class="emphasis"><em>field1</em></span> : <span class="emphasis"><em>field2</em></span> : <span class="emphasis"><em>...</em></span> : <span class="emphasis"><em>fieldN</em></span> ]
+[ on <span class="emphasis"><em>target</em></span> $(<span class="emphasis"><em>var</em></span>) <span class="emphasis"><em>field1</em></span> : <span class="emphasis"><em>field2</em></span> : <span class="emphasis"><em>...</em></span> : <span class="emphasis"><em>fieldN</em></span> ]
+</pre>
+<p>
+        The variable's value names the rule (or rules) to be invoked. A rule is invoked
+        for each element in the list of <code class="literal">$(<span class="emphasis"><em>var</em></span>)</code>'s
+        values. The fields <code class="literal"><span class="emphasis"><em>field1</em></span> : <span class="emphasis"><em>field2</em></span>
+        : <span class="emphasis"><em>...</em></span></code> are passed as arguments for each invokation.
+        For the [ ... ] forms, the return value is the concatenation of the return
+        values for all of the invocations.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.rules.action_modifiers"></a><a class="link" href="language.html#jam.language.rules.action_modifiers" title="Action Modifiers">Action Modifiers</a>
+</h4></div></div></div>
+<p>
+          The following action modifiers are understood:
+        </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="literal">actions bind <span class="emphasis"><em>vars</em></span></code></span></dt>
+<dd><p>
+                <code class="literal">$(<span class="emphasis"><em>vars</em></span>)</code> will be replaced
+                with bound values.
+              </p></dd>
+<dt><span class="term"><code class="literal">actions existing</code></span></dt>
+<dd><p>
+                <code class="literal">$(&gt;)</code> includes only source targets currently
+                existing.
+              </p></dd>
+<dt><span class="term"><code class="literal">actions ignore</code></span></dt>
+<dd><p>
+                The return status of the commands is ignored.
+              </p></dd>
+<dt><span class="term"><code class="literal">actions piecemeal</code></span></dt>
+<dd><p>
+                commands are repeatedly invoked with a subset of <code class="literal">$(&gt;)</code>
+                small enough to fit in the command buffer on this OS.
+              </p></dd>
+<dt><span class="term"><code class="literal">actions quietly</code></span></dt>
+<dd><p>
+                The action is not echoed to the standard output.
+              </p></dd>
+<dt><span class="term"><code class="literal">actions together</code></span></dt>
+<dd><p>
+                The <code class="literal">$(&gt;)</code> from multiple invocations of the same
+                action on the same built target are glommed together.
+              </p></dd>
+<dt><span class="term"><code class="literal">actions updated</code></span></dt>
+<dd><p>
+                <code class="literal">$(&gt;)</code> includes only source targets themselves
+                marked for updating.
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.rules.argument_lists"></a><a class="link" href="language.html#jam.language.rules.argument_lists" title="Argument lists">Argument lists</a>
+</h4></div></div></div>
+<p>
+          You can describe the arguments accepted by a rule, and refer to them by
+          name within the rule. For example, the following prints "I'm sorry,
+          Dave" to the console:
+        </p>
+<pre class="programlisting">rule report ( pronoun index ? : state : names + )
+{
+    local he.suffix she.suffix it.suffix = s ;
+    local I.suffix = m ;
+    local they.suffix you.suffix = re ;
+    ECHO $(pronoun)'$($(pronoun).suffix) $(state), $(names[$(index)]) ;
+}
+report I 2 : sorry : Joe Dave Pete ;
+</pre>
+<p>
+          Each name in a list of formal arguments (separated by "<code class="literal">:</code>"
+          in the rule declaration) is bound to a single element of the corresponding
+          actual argument unless followed by one of these modifiers:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Symbol
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics of preceding symbol
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="literal">?</code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    optional
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="literal">*</code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Bind to zero or more unbound elements of the actual argument.
+                    When <code class="literal">*</code> appears where an argument name is expected,
+                    any number of additional arguments are accepted. This feature
+                    can be used to implement "varargs" rules.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="literal">+</code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Bind to one or more unbound elements of the actual argument.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          The actual and formal arguments are checked for inconsistencies, which
+          cause <code class="literal">b2</code> to exit with an error code:
+        </p>
+<pre class="programlisting">### argument error
+# rule report ( pronoun index ?  : state  : names + )
+# called with: ( I 2 foo  : sorry  : Joe Dave Pete )
+# extra argument foo
+### argument error
+# rule report ( pronoun index ?  : state  : names + )
+# called with: ( I 2  : sorry )
+# missing argument names
+</pre>
+<p>
+          If you omit the list of formal arguments, all checking is bypassed as in
+          "classic" Jam. Argument lists drastically improve the reliability
+          and readability of your rules, however, and are <span class="bold"><strong>strongly
+          recommended</strong></span> for any new Jam code you write.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.rules.builtins"></a><a class="link" href="language.html#jam.language.rules.builtins" title="Built-in Rules">Built-in Rules</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="language.html#jam.language.rules.builtins.dependency_building">Dependency
+          Building</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.rules.builtins.modifying_binding">Modifying
+          Binding</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.rules.builtins.utility">Utility</a></span></dt>
+</dl></div>
+<p>
+          <code class="literal">B2</code> has a growing set of built-in rules, all of which
+          are pure procedure rules without updating actions. They are in three groups:
+          the first builds the dependency graph; the second modifies it; and the
+          third are just utility rules.
+        </p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="jam.language.rules.builtins.dependency_building"></a><a class="link" href="language.html#jam.language.rules.builtins.dependency_building" title="Dependency Building">Dependency
+          Building</a>
+</h5></div></div></div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.dependency_building._depends__"></a><a class="link" href="language.html#jam.language.rules.builtins.dependency_building._depends__" title="DEPENDS"><code class="literal">DEPENDS</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule DEPENDS ( <span class="emphasis"><em>targets1</em></span> * : <span class="emphasis"><em>targets2</em></span> * )
+</pre>
+<p>
+              Builds a direct dependency: makes each of <span class="emphasis"><em>targets1</em></span>
+              depend on each of <span class="emphasis"><em>targets2</em></span>. Generally, <span class="emphasis"><em>targets1</em></span>
+              will be rebuilt if <span class="emphasis"><em>targets2</em></span> are themselves rebuilt
+              or are newer than <span class="emphasis"><em>targets1</em></span>.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.dependency_building._includes__"></a><a class="link" href="language.html#jam.language.rules.builtins.dependency_building._includes__" title="INCLUDES"><code class="literal">INCLUDES</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule INCLUDES ( <span class="emphasis"><em>targets1</em></span> * : <span class="emphasis"><em>targets2</em></span> * )
+</pre>
+<p>
+              Builds a sibling dependency: makes any target that depends on any of
+              <span class="emphasis"><em>targets1</em></span> also depend on each of <span class="emphasis"><em>targets2</em></span>.
+              This reflects the dependencies that arise when one source file includes
+              another: the object built from the source file depends both on the
+              original and included source file, but the two sources files don't
+              depend on each other. For example:
+            </p>
+<pre class="programlisting">DEPENDS foo.o : foo.c ;
+INCLUDES foo.c : foo.h ;
+</pre>
+<p>
+              "<code class="literal">foo.o</code>" depends on "<code class="literal">foo.c</code>"
+              and "<code class="literal">foo.h</code>" in this example.
+            </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="jam.language.rules.builtins.modifying_binding"></a><a class="link" href="language.html#jam.language.rules.builtins.modifying_binding" title="Modifying Binding">Modifying
+          Binding</a>
+</h5></div></div></div>
+<p>
+            The six rules <code class="literal">ALWAYS</code>, <code class="literal">LEAVES</code>,
+            <code class="literal">NOCARE</code>, <code class="literal">NOTFILE</code>, <code class="literal">NOUPDATE</code>,
+            and <code class="literal">TEMPORARY</code> modify the dependency graph so that
+            <code class="literal">b2</code> treats the targets differently during its target
+            binding phase. See Binding above. Normally, <code class="literal">b2</code> updates
+            a target if it is missing, if its filesystem modification time is older
+            than any of its dependencies (recursively), or if any of its dependencies
+            are being updated. This basic behavior can be changed by invoking the
+            following rules:
+          </p>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.modifying_binding._always__"></a><a class="link" href="language.html#jam.language.rules.builtins.modifying_binding._always__" title="ALWAYS"><code class="literal">ALWAYS</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule ALWAYS ( <span class="emphasis"><em>targets</em></span> * )
+</pre>
+<p>
+              Causes <span class="emphasis"><em>targets</em></span> to be rebuilt regardless of whether
+              they are up-to-date (they must still be in the dependency graph). This
+              is used for the clean and uninstall targets, as they have no dependencies
+              and would otherwise appear never to need building. It is best applied
+              to targets that are also <code class="literal">NOTFILE</code> targets, but it
+              can also be used to force a real file to be updated as well.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.modifying_binding._leaves__"></a><a class="link" href="language.html#jam.language.rules.builtins.modifying_binding._leaves__" title="LEAVES"><code class="literal">LEAVES</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule LEAVES ( <span class="emphasis"><em>targets</em></span> * )
+</pre>
+<p>
+              Makes each of <span class="emphasis"><em>targets</em></span> depend only on its leaf
+              sources, and not on any intermediate targets. This makes it immune
+              to its dependencies being updated, as the "leaf" dependencies
+              are those without their own dependencies and without updating actions.
+              This allows a target to be updated only if original source files change.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.modifying_binding._nocare__"></a><a class="link" href="language.html#jam.language.rules.builtins.modifying_binding._nocare__" title="NOCARE"><code class="literal">NOCARE</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule NOCARE ( <span class="emphasis"><em>targets</em></span> * )
+</pre>
+<p>
+              Causes <code class="literal">b2</code> to ignore <span class="emphasis"><em>targets</em></span>
+              that neither can be found nor have updating actions to build them.
+              Normally for such targets <code class="literal">b2</code> issues a warning and
+              then skips other targets that depend on these missing targets. The
+              <code class="literal">HdrRule</code> in <code class="literal">Jambase</code> uses <code class="literal">NOCARE</code>
+              on the header file names found during header file scanning, to let
+              <code class="literal">b2</code> know that the included files may not exist. For
+              example, if an <code class="computeroutput"><span class="preprocessor">#include</span></code>
+              is within an <code class="computeroutput"><span class="preprocessor">#ifdef</span></code>,
+              the included file may not actually be around.
+            </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+                For targets with build actions: if their build actions exit with
+                a nonzero return code, dependent targets will still be built.
+              </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.modifying_binding._notfile__"></a><a class="link" href="language.html#jam.language.rules.builtins.modifying_binding._notfile__" title="NOTFILE"><code class="literal">NOTFILE</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule NOTFILE ( <span class="emphasis"><em>targets</em></span> * )
+</pre>
+<p>
+              Marks <span class="emphasis"><em>targets</em></span> as pseudotargets and not real files.
+              No timestamp is checked, and so the actions on such a target are only
+              executed if the target's dependencies are updated, or if the target
+              is also marked with <code class="literal">ALWAYS</code>. The default <code class="literal">b2</code>
+              target "<code class="literal">all</code>" is a pseudotarget. In <code class="literal">Jambase</code>,
+              <code class="literal">NOTFILE</code> is used to define several addition convenient
+              pseudotargets.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.modifying_binding._noupdate__"></a><a class="link" href="language.html#jam.language.rules.builtins.modifying_binding._noupdate__" title="NOUPDATE"><code class="literal">NOUPDATE</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule NOUPDATE ( <span class="emphasis"><em>targets</em></span> * )
+</pre>
+<p>
+              Causes the timestamps on <span class="emphasis"><em>targets</em></span> to be ignored.
+              This has two effects: first, once the target has been created it will
+              never be updated; second, manually updating target will not cause other
+              targets to be updated. In <code class="literal">Jambase</code>, for example,
+              this rule is applied to directories by the <code class="literal">MkDir</code>
+              rule, because <code class="literal">MkDir</code> only cares that the target directory
+              exists, not when it has last been updated.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.modifying_binding._temporary__"></a><a class="link" href="language.html#jam.language.rules.builtins.modifying_binding._temporary__" title="TEMPORARY"><code class="literal">TEMPORARY</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule TEMPORARY ( <span class="emphasis"><em>targets</em></span> * )
+</pre>
+<p>
+              Marks <span class="emphasis"><em>targets</em></span> as temporary, allowing them to be
+              removed after other targets that depend upon them have been updated.
+              If a <code class="literal">TEMPORARY</code> target is missing, <code class="literal">b2</code>
+              uses the timestamp of the target's parent. <code class="literal">Jambase</code>
+              uses <code class="literal">TEMPORARY</code> to mark object files that are archived
+              in a library after they are built, so that they can be deleted after
+              they are archived.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.modifying_binding._fail_expected__"></a><a class="link" href="language.html#jam.language.rules.builtins.modifying_binding._fail_expected__" title="FAIL_EXPECTED"><code class="literal">FAIL_EXPECTED</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule FAIL_EXPECTED ( <span class="emphasis"><em>targets</em></span> * )
+</pre>
+<p>
+              For handling targets whose build actions are expected to fail (e.g.
+              when testing that assertions or compile-time type checking work properly),
+              Boost Jam supplies the <code class="literal">FAIL_EXPECTED</code> rule in the
+              same style as <code class="literal">NOCARE</code>, et. al. During target updating,
+              the return code of the build actions for arguments to <code class="literal">FAIL_EXPECTED</code>
+              is inverted: if it fails, building of dependent targets continues as
+              though it succeeded. If it succeeds, dependent targets are skipped.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.modifying_binding._rmold__"></a><a class="link" href="language.html#jam.language.rules.builtins.modifying_binding._rmold__" title="RMOLD"><code class="literal">RMOLD</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule RMOLD ( <span class="emphasis"><em>targets</em></span> * )
+</pre>
+<p>
+              <code class="literal">B2</code> removes any target files that may exist on disk
+              when the rule used to build those targets fails. However, targets whose
+              dependencies fail to build are not removed by default. The <code class="literal">RMOLD</code>
+              rule causes its arguments to be removed if any of their dependencies
+              fail to build.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.modifying_binding._isfile__"></a><a class="link" href="language.html#jam.language.rules.builtins.modifying_binding._isfile__" title="ISFILE"><code class="literal">ISFILE</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule ISFILE ( <span class="emphasis"><em>targets</em></span> * )
+</pre>
+<p>
+              <code class="literal">ISFILE</code> marks targets as required to be files. This
+              changes the way <code class="literal">b2</code> searches for the target such
+              that it ignores matches for file system items that are not files, like
+              directories. This makes it possible to avoid <code class="computeroutput"><span class="preprocessor">#include</span>
+              <span class="string">"exception"</span></code> matching
+              if one happens to have a directory named exception in the header search
+              path.
+            </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+                This is currently not fully implemented.
+              </p></td></tr>
+</table></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="jam.language.rules.builtins.utility"></a><a class="link" href="language.html#jam.language.rules.builtins.utility" title="Utility">Utility</a>
+</h5></div></div></div>
+<p>
+            The two rules <code class="literal">ECHO</code> and <code class="literal">EXIT</code> are
+            utility rules, used only in <code class="literal">b2</code>'s parsing phase.
+          </p>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._echo__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._echo__" title="ECHO"><code class="literal">ECHO</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule ECHO ( <span class="emphasis"><em>args</em></span> * )
+</pre>
+<p>
+              Blurts out the message <span class="emphasis"><em>args</em></span> to stdout.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._exit__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._exit__" title="EXIT"><code class="literal">EXIT</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule EXIT ( <span class="emphasis"><em>message</em></span> * : <span class="emphasis"><em>result-value</em></span> ? )
+</pre>
+<p>
+              Blurts out the <span class="emphasis"><em>message</em></span> to stdout and then exits
+              with a failure status if no <span class="emphasis"><em>result-value</em></span> is given,
+              otherwise it exits with the given <span class="emphasis"><em>result-value</em></span>.
+            </p>
+<p>
+              "<code class="literal">Echo</code>", "<code class="literal">echo</code>",
+              "<code class="literal">Exit</code>", and "<code class="literal">exit</code>"
+              are accepted as aliases for <code class="literal">ECHO</code> and <code class="literal">EXIT</code>,
+              since it is hard to tell that these are built-in rules and not part
+              of the language, like "<code class="literal">include</code>".
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._glob__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._glob__" title="GLOB"><code class="literal">GLOB</code>
+            </a>
+</h6></div></div></div>
+<p>
+              The <code class="literal">GLOB</code> rule does filename globbing.
+            </p>
+<pre class="programlisting">rule GLOB ( <span class="emphasis"><em>directories</em></span> * : <span class="emphasis"><em>patterns</em></span> * : <span class="emphasis"><em>downcase-opt</em></span> ? )
+</pre>
+<p>
+              Using the same wildcards as for the patterns in the switch statement.
+              It is invoked by being used as an argument to a rule invocation inside
+              of "=[ ]=". For example: "<code class="literal">FILES = [ GLOB dir1
+              dir2 : *.c *.h ]</code>" sets <code class="literal">FILES</code> to the
+              list of C source and header files in <code class="literal">dir1</code> and <code class="literal">dir2</code>.
+              The resulting filenames are the full pathnames, including the directory,
+              but the pattern is applied only to the file name without the directory.
+            </p>
+<p>
+              If <span class="emphasis"><em>downcase-opt</em></span> is supplied, filenames are converted
+              to all-lowercase before matching against the pattern; you can use this
+              to do case-insensitive matching using lowercase patterns. The paths
+              returned will still have mixed case if the OS supplies them. On Windows
+              NT and Cygwin, filenames are always downcased before matching.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._match__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._match__" title="MATCH"><code class="literal">MATCH</code>
+            </a>
+</h6></div></div></div>
+<p>
+              The <code class="literal">MATCH</code> rule does pattern matching.
+            </p>
+<pre class="programlisting">rule MATCH ( <span class="emphasis"><em>regexps</em></span> + : <span class="emphasis"><em>list</em></span> * )
+</pre>
+<p>
+              Matches the <code class="literal">egrep</code>(1) style regular expressions
+              <span class="emphasis"><em>regexps</em></span> against the strings in <span class="emphasis"><em>list</em></span>.
+              The result is a list of matching <code class="literal">()</code> subexpressions
+              for each string in <span class="emphasis"><em>list</em></span>, and for each regular
+              expression in <span class="emphasis"><em>regexps</em></span>.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._backtrace__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._backtrace__" title="BACKTRACE"><code class="literal">BACKTRACE</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule BACKTRACE ( )
+</pre>
+<p>
+              Returns a list of quadruples: <span class="emphasis"><em>filename</em></span> <span class="emphasis"><em>line</em></span>
+              <span class="emphasis"><em>module</em></span> <span class="emphasis"><em>rulename</em></span>..., describing
+              each shallower level of the call stack. This rule can be used to generate
+              useful diagnostic messages from Jam rules.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._update__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._update__" title="UPDATE"><code class="literal">UPDATE</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule UPDATE ( <span class="emphasis"><em>targets</em></span> * )
+</pre>
+<p>
+              Classic jam treats any non-option element of command line as a name
+              of target to be updated. This prevented more sophisticated handling
+              of command line. This is now enabled again but with additional changes
+              to the <code class="literal">UPDATE</code> rule to allow for the flexibility
+              of changing the list of targets to update. The UPDATE rule has two
+              effects:
+            </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+                  It clears the list of targets to update, and
+                </li>
+<li class="listitem">
+                  Causes the specified targets to be updated.
+                </li>
+</ol></div>
+<p>
+              If no target was specified with the <code class="literal">UPDATE</code> rule,
+              no targets will be updated. To support changing of the update list
+              in more useful ways, the rule also returns the targets previously in
+              the update list. This makes it possible to add targets as such:
+            </p>
+<pre class="programlisting">local previous-updates = [ UPDATE ] ;
+UPDATE $(previous-updates) a-new-target ;
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._w32_getreg__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._w32_getreg__" title="W32_GETREG"><code class="literal">W32_GETREG</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule W32_GETREG ( <span class="emphasis"><em>path</em></span> : <span class="emphasis"><em>data</em></span> ? )
+</pre>
+<p>
+              Defined only for win32 platform. It reads the registry of Windows.
+              '<span class="emphasis"><em>path</em></span>' is the location of the information, and
+              '<span class="emphasis"><em>data</em></span>' is the name of the value which we want
+              to get. If '<span class="emphasis"><em>data</em></span>' is omitted, the default value
+              of '<span class="emphasis"><em>path</em></span>' will be returned. The '<span class="emphasis"><em>path</em></span>'
+              value must conform to MS key path format and must be prefixed with
+              one of the predefined root keys. As usual,
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                  '<code class="literal">HKLM</code>' is equivalent to '<code class="literal">HKEY_LOCAL_MACHINE</code>'.
+                </li>
+<li class="listitem">
+                  '<code class="literal">HKCU</code>' is equivalent to '<code class="literal">HKEY_CURRENT_USER</code>'.
+                </li>
+<li class="listitem">
+                  '<code class="literal">HKCR</code>' is equivalent to '<code class="literal">HKEY_CLASSES_ROOT</code>'.
+                </li>
+</ul></div>
+<p>
+              Other predefined root keys are not supported.
+            </p>
+<p>
+              Currently supported data types : '<code class="literal">REG_DWORD</code>', '<code class="literal">REG_SZ</code>',
+              '<code class="literal">REG_EXPAND_SZ</code>', '<code class="literal">REG_MULTI_SZ</code>'.
+              The data with '<code class="literal">REG_DWORD</code>' type will be turned into
+              a string, '<code class="literal">REG_MULTI_SZ</code>' into a list of strings,
+              and for those with '<code class="literal">REG_EXPAND_SZ</code>' type environment
+              variables in it will be replaced with their defined values. The data
+              with '<code class="literal">REG_SZ</code>' type and other unsupported types will
+              be put into a string without modification. If it can't receive the
+              value of the data, it just return an empty list. For example,
+            </p>
+<pre class="programlisting">local PSDK-location =
+  [ W32_GETREG HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\MicrosoftSDK\\Directories : "Install Dir" ] ;
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._w32_getregnames__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._w32_getregnames__" title="W32_GETREGNAMES"><code class="literal">W32_GETREGNAMES</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule W32_GETREGNAMES ( <span class="emphasis"><em>path</em></span> : <span class="emphasis"><em>result-type</em></span> )
+</pre>
+<p>
+              Defined only for win32 platform. It reads the registry of Windows.
+              '<span class="emphasis"><em>path</em></span>' is the location of the information, and
+              '<span class="emphasis"><em>result-type</em></span>' is either '<code class="literal">subkeys</code>'
+              or '<code class="literal">values</code>'. For more information on '<span class="emphasis"><em>path</em></span>'
+              format and constraints, please see <code class="literal">W32_GETREG</code>.
+            </p>
+<p>
+              Depending on '<span class="emphasis"><em>result-type</em></span>', the rule returns one
+              of the following:
+            </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="literal">subkeys</code></span></dt>
+<dd><p>
+                    Names of all direct subkeys of '<span class="emphasis"><em>path</em></span>'.
+                  </p></dd>
+<dt><span class="term"><code class="literal">values</code></span></dt>
+<dd><p>
+                    Names of values contained in registry key given by '<span class="emphasis"><em>path</em></span>'.
+                    The "default" value of the key appears in the returned
+                    list only if its value has been set in the registry.
+                  </p></dd>
+</dl>
+</div>
+<p>
+              If '<span class="emphasis"><em>result-type</em></span>' is not recognized, or requested
+              data cannot be retrieved, the rule returns an empty list. Example:
+            </p>
+<pre class="programlisting">local key = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths" ;
+local subkeys = [ W32_GETREGNAMES "$(key)" : subkeys ] ;
+for local subkey in $(subkeys)
+{
+    local values = [ W32_GETREGNAMES "$(key)\\$(subkey)" : values ] ;
+    for local value in $(values)
+    {
+        local data = [ W32_GETREG "$(key)\\$(subkey)" : "$(value)" ] ;
+        ECHO "Registry path: " $(key)\\$(subkey) ":" $(value) "=" $(data) ;
+    }
+}
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._shell__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._shell__" title="SHELL"><code class="literal">SHELL</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule SHELL ( <span class="emphasis"><em>command</em></span> : * )
+</pre>
+<p>
+              <code class="literal">SHELL</code> executes <span class="emphasis"><em>command</em></span>, and
+              then returns the standard output of <span class="emphasis"><em>command</em></span>.
+              <code class="literal">SHELL</code> only works on platforms with a <code class="literal">popen()</code>
+              function in the C library. On platforms without a working <code class="literal">popen()</code>
+              function, <code class="literal">SHELL</code> is implemented as a no-op. <code class="literal">SHELL</code>
+              works on Unix, MacOS X, and most Windows compilers. <code class="literal">SHELL</code>
+              is a no-op on Metrowerks compilers under Windows. There is a variable
+              set of allowed options as additional arguments:
+            </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="literal">exit-status</code></span></dt>
+<dd><p>
+                    In addition to the output the result status of the executed command
+                    is returned as a second element of the result.
+                  </p></dd>
+<dt><span class="term"><code class="literal">no-output</code></span></dt>
+<dd><p>
+                    Don't capture the output of the command. Instead an empty ("")
+                    string value is returned in place of the output.
+                  </p></dd>
+</dl>
+</div>
+<p>
+              Because the Perforce/Jambase defines a <code class="literal">SHELL</code> rule
+              which hides the builtin rule, <code class="literal">COMMAND</code> can be used
+              as an alias for <code class="literal">SHELL</code> in such a case.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._md5__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._md5__" title="MD5"><code class="literal">MD5</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule MD5 ( <span class="emphasis"><em>string</em></span> )
+</pre>
+<p>
+              <code class="literal">MD5</code> computes the MD5 hash of the string passed as
+              paramater and returns it.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._split_by_characters__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._split_by_characters__" title="SPLIT_BY_CHARACTERS"><code class="literal">SPLIT_BY_CHARACTERS</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule SPLIT_BY_CHARACTERS ( <span class="emphasis"><em>string</em></span> : <span class="emphasis"><em>delimiters</em></span> )
+</pre>
+<p>
+              <code class="literal">SPLIT_BY_CHARACTERS</code> splits the specified <span class="emphasis"><em>string</em></span>
+              on any delimiter character present in <span class="emphasis"><em>delimiters</em></span>
+              and returns the resulting list.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._precious__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._precious__" title="PRECIOUS"><code class="literal">PRECIOUS</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule PRECIOUS ( <span class="emphasis"><em>targets</em></span> * )
+</pre>
+<p>
+              The <code class="literal">PRECIOUS</code> rule specifies that each of the targets
+              passed as the arguments should not be removed even if the command updating
+              that target fails.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._pad__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._pad__" title="PAD"><code class="literal">PAD</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule PAD ( <span class="emphasis"><em>string</em></span> : <span class="emphasis"><em>width</em></span> )
+</pre>
+<p>
+              If <span class="emphasis"><em>string</em></span> is shorter than <span class="emphasis"><em>width</em></span>
+              characters, pads it with whitespace characters on the right, and returns
+              the result. Otherwise, returns <span class="emphasis"><em>string</em></span> unmodified.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._file_open__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._file_open__" title="FILE_OPEN"><code class="literal">FILE_OPEN</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule FILE_OPEN ( <span class="emphasis"><em>filename</em></span> : <span class="emphasis"><em>mode</em></span> )
+</pre>
+<p>
+              The <code class="literal">FILE_OPEN</code> rule opens the specified file and
+              returns a file descriptor. The <span class="emphasis"><em>mode</em></span> parameter
+              can be either "w" or "r". Note that at present,
+              only the <code class="literal">UPDATE_NOW</code> rule can use the resulting file
+              descriptor number.
+            </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="jam.language.rules.builtins.utility._update_now__"></a><a class="link" href="language.html#jam.language.rules.builtins.utility._update_now__" title="UPDATE_NOW"><code class="literal">UPDATE_NOW</code>
+            </a>
+</h6></div></div></div>
+<pre class="programlisting">rule UPDATE_NOW ( <span class="emphasis"><em>targets</em></span> * : <span class="emphasis"><em>log</em></span> ? : <span class="emphasis"><em>ignore-minus-n</em></span> ? )
+</pre>
+<p>
+              The <code class="literal">UPDATE_NOW</code> caused the specified targets to be
+              updated immediately. If update was successfull, non-empty string is
+              returned. The <span class="emphasis"><em>log</em></span> parameter, if present, specifies
+              a descriptor of a file where all output from building is redirected.
+              If the <span class="emphasis"><em>ignore-minus-n</em></span> parameter is specified,
+              the targets are updated even if the <code class="literal">-n</code> parameter
+              is specified on the command line.
+            </p>
+</div>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="jam.language.flow_of_control"></a><a class="link" href="language.html#jam.language.flow_of_control" title="Flow-of-Control">Flow-of-Control</a>
+</h3></div></div></div>
+<p>
+        <code class="literal">B2</code> has several simple flow-of-control statements:
+      </p>
+<pre class="programlisting">for <span class="emphasis"><em>var</em></span> in <span class="emphasis"><em>list</em></span> { <span class="emphasis"><em>statements</em></span> }
+</pre>
+<p>
+        Executes <span class="emphasis"><em>statements</em></span> for each element in <span class="emphasis"><em>list</em></span>,
+        setting the variable <span class="emphasis"><em>var</em></span> to the element value.
+      </p>
+<pre class="programlisting">if <span class="emphasis"><em>cond</em></span> { <span class="emphasis"><em>statements</em></span> }
+[ else { <span class="emphasis"><em>statements</em></span> } ]
+</pre>
+<p>
+        Does the obvious; the <code class="literal">else</code> clause is optional. <span class="emphasis"><em>cond</em></span>
+        is built of:
+      </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="literal"><span class="emphasis"><em>a</em></span></code></span></dt>
+<dd><p>
+              true if any <span class="emphasis"><em>a</em></span> element is a non-zero-length string
+            </p></dd>
+<dt><span class="term"><code class="literal"><span class="emphasis"><em>a</em></span> = <span class="emphasis"><em>b</em></span></code></span></dt>
+<dd><p>
+              list <span class="emphasis"><em>a</em></span> matches list <span class="emphasis"><em>b</em></span> string-for-string
+            </p></dd>
+<dt><span class="term"><code class="literal"><span class="emphasis"><em>a</em></span> != <span class="emphasis"><em>b</em></span></code></span></dt>
+<dd><p>
+              list <span class="emphasis"><em>a</em></span> does not match list <span class="emphasis"><em>b</em></span>
+            </p></dd>
+<dt><span class="term"><code class="literal"><span class="emphasis"><em>a</em></span> &lt; <span class="emphasis"><em>b</em></span></code></span></dt>
+<dd><p>
+              <span class="emphasis"><em>a[i]</em></span> string is less than <span class="emphasis"><em>b[i]</em></span>
+              string, where <span class="emphasis"><em>i</em></span> is first mismatched element in
+              lists <span class="emphasis"><em>a</em></span> and <span class="emphasis"><em>b</em></span>
+            </p></dd>
+<dt><span class="term"><code class="literal"><span class="emphasis"><em>a</em></span> &lt;= <span class="emphasis"><em>b</em></span></code></span></dt>
+<dd><p>
+              every <span class="emphasis"><em>a</em></span> string is less than or equal to its <span class="emphasis"><em>b</em></span>
+              counterpart
+            </p></dd>
+<dt><span class="term"><code class="literal"><span class="emphasis"><em>a</em></span> &gt; <span class="emphasis"><em>b</em></span></code></span></dt>
+<dd><p>
+              <span class="emphasis"><em>a[i]</em></span> string is greater than <span class="emphasis"><em>b[i]</em></span>
+              string, where <span class="emphasis"><em>i</em></span> is first mismatched element
+            </p></dd>
+<dt><span class="term"><code class="literal"><span class="emphasis"><em>a</em></span> &gt;= <span class="emphasis"><em>b</em></span></code></span></dt>
+<dd><p>
+              every <span class="emphasis"><em>a</em></span> string is greater than or equal to its
+              <span class="emphasis"><em>b</em></span> counterpart
+            </p></dd>
+<dt><span class="term"><code class="literal"><span class="emphasis"><em>a</em></span> in <span class="emphasis"><em>b</em></span></code></span></dt>
+<dd><p>
+              true if all elements of <span class="emphasis"><em>a</em></span> can be found in <span class="emphasis"><em>b</em></span>,
+              or if <span class="emphasis"><em>a</em></span> has no elements
+            </p></dd>
+<dt><span class="term"><code class="literal">! <span class="emphasis"><em>cond</em></span></code></span></dt>
+<dd><p>
+              condition not true
+            </p></dd>
+<dt><span class="term"><code class="literal"><span class="emphasis"><em>cond</em></span> &amp;&amp; <span class="emphasis"><em>cond</em></span></code></span></dt>
+<dd><p>
+              conjunction
+            </p></dd>
+<dt><span class="term"><code class="literal"><span class="emphasis"><em>cond</em></span> || <span class="emphasis"><em>cond</em></span></code></span></dt>
+<dd><p>
+              disjunction
+            </p></dd>
+<dt><span class="term"><code class="literal">( <span class="emphasis"><em>cond</em></span> )</code></span></dt>
+<dd><p>
+              precedence grouping
+            </p></dd>
+</dl>
+</div>
+<pre class="programlisting">include <span class="emphasis"><em>file</em></span> ;
+</pre>
+<p>
+        Causes <code class="literal">b2</code> to read the named <span class="emphasis"><em>file</em></span>.
+        The <span class="emphasis"><em>file</em></span> is bound like a regular target (see Binding
+        above) but unlike a regular target the include <span class="emphasis"><em>file</em></span>
+        cannot be built.
+      </p>
+<p>
+        The include <span class="emphasis"><em>file</em></span> is inserted into the input stream during
+        the parsing phase. The primary input file and all the included file(s) are
+        treated as a single file; that is, <code class="literal">b2</code> infers no scope
+        boundaries from included files.
+      </p>
+<pre class="programlisting">local <span class="emphasis"><em>vars</em></span> [ = <span class="emphasis"><em>values</em></span> ] ;
+</pre>
+<p>
+        Creates new <span class="emphasis"><em>vars</em></span> inside to the enclosing <code class="literal">{}</code>
+        block, obscuring any previous values they might have. The previous values
+        for vars are restored when the current block ends. Any rule called or file
+        included will see the local and not the previous value (this is sometimes
+        called Dynamic Scoping). The local statement may appear anywhere, even outside
+        of a block (in which case the previous value is restored when the input ends).
+        The <span class="emphasis"><em>vars</em></span> are initialized to <span class="emphasis"><em>values</em></span>
+        if present, or left uninitialized otherwise.
+      </p>
+<pre class="programlisting">return <span class="emphasis"><em>values</em></span> ;
+</pre>
+<p>
+        Within a rule body, the return statement sets the return value for an invocation
+        of the rule. It does <span class="bold"><strong>not</strong></span> cause the rule
+        to return; a rule's value is actually the value of the last statement executed,
+        so a return should be the last statement executed before the rule "naturally"
+        returns.
+      </p>
+<pre class="programlisting">switch <span class="emphasis"><em>value</em></span>
+{
+    case <span class="emphasis"><em>pattern1</em></span> : <span class="emphasis"><em>statements</em></span> ;
+    case <span class="emphasis"><em>pattern2</em></span> : <span class="emphasis"><em>statements</em></span> ;
+    ...
+}
+</pre>
+<p>
+        The switch statement executes zero or one of the enclosed <span class="emphasis"><em>statements</em></span>,
+        depending on which, if any, is the first case whose <span class="emphasis"><em>pattern</em></span>
+        matches <span class="emphasis"><em>value</em></span>. The <span class="emphasis"><em>pattern</em></span> values
+        are not variable-expanded. The pattern values may include the following wildcards:
+      </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="literal">?</code></span></dt>
+<dd><p>
+              match any single character
+            </p></dd>
+<dt><span class="term"><code class="literal">*</code></span></dt>
+<dd><p>
+              match zero or more characters
+            </p></dd>
+<dt><span class="term"><code class="literal">[<span class="emphasis"><em>chars</em></span>]</code></span></dt>
+<dd><p>
+              match any single character in <span class="emphasis"><em>chars</em></span>
+            </p></dd>
+<dt><span class="term"><code class="literal">[^<span class="emphasis"><em>chars</em></span>]</code></span></dt>
+<dd><p>
+              match any single character not in <span class="emphasis"><em>chars</em></span>
+            </p></dd>
+<dt><span class="term"><code class="literal">\<span class="emphasis"><em>x</em></span></code></span></dt>
+<dd><p>
+              match <span class="emphasis"><em>x</em></span> (escapes the other wildcards)
+            </p></dd>
+</dl>
+</div>
+<pre class="programlisting">while <span class="emphasis"><em>cond</em></span> { <span class="emphasis"><em>statements</em></span> }
+</pre>
+<p>
+        Repeatedly execute <span class="emphasis"><em>statements</em></span> while <span class="emphasis"><em>cond</em></span>
+        remains true upon entry. (See the description of <span class="emphasis"><em>cond</em></span>
+        expression syntax under if, above).
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="jam.language.variables"></a><a class="link" href="language.html#jam.language.variables" title="Variables">Variables</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="language.html#jam.language.variables.expansion">Variable Expansion</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.variables.local_for_loop_variables">Local
+        For Loop Variables</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.variables.atfile">Generated File Expansion</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.variables.builtins">Built-in Variables</a></span></dt>
+</dl></div>
+<p>
+        <code class="literal">B2</code> variables are lists of zero or more elements, with
+        each element being a string value. An undefined variable is indistinguishable
+        from a variable with an empty list, however, a defined variable may have
+        one more elements which are null strings. All variables are referenced as
+        <code class="literal">$(<span class="emphasis"><em>variable</em></span>)</code>.
+      </p>
+<p>
+        Variables are either global or target-specific. In the latter case, the variable
+        takes on the given value only during the updating of the specific target.
+      </p>
+<p>
+        A variable is defined with:
+      </p>
+<pre class="programlisting"><span class="emphasis"><em>variable</em></span> = <span class="emphasis"><em>elements</em></span> ;
+<span class="emphasis"><em>variable</em></span> += <span class="emphasis"><em>elements</em></span> ;
+<span class="emphasis"><em>variable</em></span> on <span class="emphasis"><em>targets</em></span> = <span class="emphasis"><em>elements</em></span> ;
+<span class="emphasis"><em>variable</em></span> on <span class="emphasis"><em>targets</em></span> += <span class="emphasis"><em>elements</em></span> ;
+<span class="emphasis"><em>variable</em></span> default = <span class="emphasis"><em>elements</em></span> ;
+<span class="emphasis"><em>variable</em></span> ?= <span class="emphasis"><em>elements</em></span> ;
+</pre>
+<p>
+        The first two forms set <span class="emphasis"><em>variable</em></span> globally. The third
+        and forth forms set a target-specific variable. The <code class="literal">=</code>
+        operator replaces any previous elements of <span class="emphasis"><em>variable</em></span>
+        with <span class="emphasis"><em>elements</em></span>; the <code class="literal">+=</code> operation adds
+        <span class="emphasis"><em>elements</em></span> to <span class="emphasis"><em>variable</em></span>'s list of
+        elements. The final two forms are synonymous: they set <span class="emphasis"><em>variable</em></span>
+        globally, but only if it was previously unset.
+      </p>
+<p>
+        Variables referenced in updating commands will be replaced with their values;
+        target-specific values take precedence over global values. Variables passed
+        as arguments (<code class="literal">$(1)</code> and <code class="literal">$(2)</code>) to actions
+        are replaced with their bound values; the "<code class="literal">bind</code>"
+        modifier can be used on actions to cause other variables to be replaced with
+        bound values. See Action Modifiers above.
+      </p>
+<p>
+        <code class="literal">B2</code> variables are not re-exported to the environment of
+        the shell that executes the updating actions, but the updating actions can
+        reference <code class="literal">b2</code> variables with <code class="literal">$(<span class="emphasis"><em>variable</em></span>)</code>.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.variables.expansion"></a><a class="link" href="language.html#jam.language.variables.expansion" title="Variable Expansion">Variable Expansion</a>
+</h4></div></div></div>
+<p>
+          During parsing, <code class="literal">b2</code> performs variable expansion on each
+          token that is not a keyword or rule name. Such tokens with embedded variable
+          references are replaced with zero or more tokens. Variable references are
+          of the form <code class="literal">$(<span class="emphasis"><em>v</em></span>)</code> or <code class="literal">$(<span class="emphasis"><em>vm</em></span>)</code>,
+          where <span class="emphasis"><em>v</em></span> is the variable name, and <span class="emphasis"><em>m</em></span>
+          are optional modifiers.
+        </p>
+<p>
+          Variable expansion in a rule's actions is similar to variable expansion
+          in statements, except that the action string is tokenized at whitespace
+          regardless of quoting.
+        </p>
+<p>
+          The result of a token after variable expansion is the <span class="emphasis"><em>product</em></span>
+          of the components of the token, where each component is a literal substring
+          or a list substituting a variable reference. For example:
+        </p>
+<pre class="programlisting">$(X) -&gt; a b c
+t$(X) -&gt; ta tb tc
+$(X)z -&gt; az bz cz
+$(X)-$(X) -&gt; a-a a-b a-c b-a b-b b-c c-a c-b c-c
+</pre>
+<p>
+          The variable name and modifiers can themselves contain a variable reference,
+          and this partakes of the product as well:
+        </p>
+<pre class="programlisting">$(X) -&gt; a b c
+$(Y) -&gt; 1 2
+$(Z) -&gt; X Y
+$($(Z)) -&gt; a b c 1 2
+</pre>
+<p>
+          Because of this product expansion, if any variable reference in a token
+          is undefined, the result of the expansion is an empty list. If any variable
+          element is a null string, the result propagates the non-null elements:
+        </p>
+<pre class="programlisting">$(X) -&gt; a ""
+$(Y) -&gt; "" 1
+$(Z) -&gt;
+-$(X)$(Y)- -&gt; -a- -a1- -- -1-
+-$(X)$(Z)- -&gt;
+</pre>
+<p>
+          A variable element's string value can be parsed into grist and filename-related
+          components. Modifiers to a variable are used to select elements, select
+          components, and replace components. The modifiers are:
+        </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="literal">[<span class="emphasis"><em>n</em></span>]</code></span></dt>
+<dd><p>
+                Select element number <span class="emphasis"><em>n</em></span> (starting at 1). If
+                the variable contains fewer than <span class="emphasis"><em>n</em></span> elements,
+                the result is a zero-element list. <span class="emphasis"><em>n</em></span> can be
+                negative in which case the element number <span class="emphasis"><em>n</em></span>
+                from the last leftward is returned.
+              </p></dd>
+<dt><span class="term"><code class="literal">[<span class="emphasis"><em>n</em></span>-<span class="emphasis"><em>m</em></span>]</code></span></dt>
+<dd><p>
+                Select elements number <span class="emphasis"><em>n</em></span> through <span class="emphasis"><em>m</em></span>.
+                <span class="emphasis"><em>n</em></span> and <span class="emphasis"><em>m</em></span> can be negative
+                in which case they refer to elements counting from the last leftward.
+              </p></dd>
+<dt><span class="term"><code class="literal">[<span class="emphasis"><em>n</em></span>-]</code></span></dt>
+<dd><p>
+                Select elements number <span class="emphasis"><em>n</em></span> through the last.
+                <span class="emphasis"><em>n</em></span> can be negative in which case it refers to
+                the element counting from the last leftward.
+              </p></dd>
+<dt><span class="term"><code class="literal">:B</code></span></dt>
+<dd><p>
+                Select filename base.
+              </p></dd>
+<dt><span class="term"><code class="literal">:S</code></span></dt>
+<dd><p>
+                Select (last) filename suffix.
+              </p></dd>
+<dt><span class="term"><code class="literal">:M</code></span></dt>
+<dd><p>
+                Select archive member name.
+              </p></dd>
+<dt><span class="term"><code class="literal">:D</code></span></dt>
+<dd><p>
+                Select directory path.
+              </p></dd>
+<dt><span class="term"><code class="literal">:P</code></span></dt>
+<dd><p>
+                Select parent directory.
+              </p></dd>
+<dt><span class="term"><code class="literal">:G</code></span></dt>
+<dd><p>
+                Select grist.
+              </p></dd>
+<dt><span class="term"><code class="literal">:U</code></span></dt>
+<dd><p>
+                Replace lowercase characters with uppercase.
+              </p></dd>
+<dt><span class="term"><code class="literal">:L</code></span></dt>
+<dd><p>
+                Replace uppercase characters with lowercase.
+              </p></dd>
+<dt><span class="term"><code class="literal">:T</code></span></dt>
+<dd>
+<p>
+                Converts all back-slashes ("\") to forward slashes ("/").
+                For example
+</p>
+<pre class="programlisting"><span class="identifier">x</span> <span class="special">=</span> <span class="string">"C:\\Program Files\\Borland"</span> <span class="special">;</span> <span class="identifier">ECHO</span> <span class="error">$</span><span class="special">(</span><span class="identifier">x</span><span class="special">:</span><span class="identifier">T</span><span class="special">)</span> <span class="special">;</span>
+</pre>
+<p>
+                prints <code class="literal">"C:/Program Files/Borland"</code>
+              </p>
+</dd>
+<dt><span class="term"><code class="literal">:W</code></span></dt>
+<dd>
+<p>
+                When invoking Windows-based tools from <a href="http://www.cygwin.com/" target="_top">Cygwin</a>
+                it can be important to pass them true windows-style paths. The <code class="literal">:W</code>
+                modifier, <span class="bold"><strong>under Cygwin only</strong></span>, turns
+                a cygwin path into a Win32 path using the <a href="http://www.cygwin.com/cygwin-api/func-cygwin-conv-to-win32-path.html" target="_top"><code class="literal">cygwin_conv_to_win32_path</code></a>
+                function. On other platforms, the string is unchanged. For example
+</p>
+<pre class="programlisting"><span class="identifier">x</span> <span class="special">=</span> <span class="string">"/cygdrive/c/Program Files/Borland"</span> <span class="special">;</span> <span class="identifier">ECHO</span> <span class="error">$</span><span class="special">(</span><span class="identifier">x</span><span class="special">:</span><span class="identifier">W</span><span class="special">)</span> <span class="special">;</span>
+</pre>
+<p>
+                prints <code class="literal">"C:\Program Files\Borland"</code> on
+                Cygwin
+              </p>
+</dd>
+<dt><span class="term"><code class="literal">:<span class="emphasis"><em>chars</em></span></code></span></dt>
+<dd><p>
+                Select the components listed in <span class="emphasis"><em>chars</em></span>.
+              </p></dd>
+<dt><span class="term"><code class="literal">:G=<span class="emphasis"><em>grist</em></span></code></span></dt>
+<dd><p>
+                Replace grist with <span class="emphasis"><em>grist</em></span>.
+              </p></dd>
+<dt><span class="term"><code class="literal">:D=<span class="emphasis"><em>path</em></span></code></span></dt>
+<dd><p>
+                Replace directory with <span class="emphasis"><em>path</em></span>.
+              </p></dd>
+<dt><span class="term"><code class="literal">:B=<span class="emphasis"><em>base</em></span></code></span></dt>
+<dd><p>
+                Replace the base part of file name with <span class="emphasis"><em>base</em></span>.
+              </p></dd>
+<dt><span class="term"><code class="literal">:S=<span class="emphasis"><em>suf</em></span></code></span></dt>
+<dd><p>
+                Replace the suffix of file name with <span class="emphasis"><em>suf</em></span>.
+              </p></dd>
+<dt><span class="term"><code class="literal">:M=<span class="emphasis"><em>mem</em></span></code></span></dt>
+<dd><p>
+                Replace the archive member name with <span class="emphasis"><em>mem</em></span>.
+              </p></dd>
+<dt><span class="term"><code class="literal">:R=<span class="emphasis"><em>root</em></span></code></span></dt>
+<dd><p>
+                Prepend <span class="emphasis"><em>root</em></span> to the whole file name, if not
+                already rooted.
+              </p></dd>
+<dt><span class="term"><code class="literal">:E=<span class="emphasis"><em>value</em></span></code></span></dt>
+<dd><p>
+                Assign <span class="emphasis"><em>value</em></span> to the variable if it is unset.
+              </p></dd>
+<dt><span class="term"><code class="literal">:J=<span class="emphasis"><em>joinval</em></span></code></span></dt>
+<dd><p>
+                Concatentate list elements into single element, separated by <span class="emphasis"><em>joinval</em></span>'.
+              </p></dd>
+</dl>
+</div>
+<p>
+          On VMS, <code class="literal">$(var:P)</code> is the parent directory of <code class="literal">$(var:D)</code>.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.variables.local_for_loop_variables"></a><a class="link" href="language.html#jam.language.variables.local_for_loop_variables" title="Local For Loop Variables">Local
+        For Loop Variables</a>
+</h4></div></div></div>
+<p>
+          Boost Jam allows you to declare a local for loop control variable right
+          in the loop:
+        </p>
+<pre class="programlisting">x = 1 2 3 ;
+y = 4 5 6 ;
+for <span class="bold"><strong>local</strong></span> y in $(x)
+{
+    ECHO $(y) ; # prints "1", "2", or "3"
+}
+ECHO $(y) ;     # prints "4 5 6"
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.variables.atfile"></a><a class="link" href="language.html#jam.language.variables.atfile" title="Generated File Expansion">Generated File Expansion</a>
+</h4></div></div></div>
+<p>
+          During expansion of expressions <code class="literal">b2</code> also looks for subexpressions
+          of the form <code class="literal">@(filename:E=filecontents)</code> and replaces
+          the expression with <code class="literal">filename</code> after creating the given
+          file with the contents set to <code class="literal">filecontents</code>. This is
+          useful for creating compiler response files, and other "internal"
+          files. The expansion works both during parsing and action execution. Hence
+          it is possible to create files during any of the three build phases.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.variables.builtins"></a><a class="link" href="language.html#jam.language.variables.builtins" title="Built-in Variables">Built-in Variables</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="language.html#jam.language.variables.builtins.search">SEARCH and
+          LOCATE</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.variables.builtins.hdrscan">HDRSCAN
+          and HDRRULE</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.variables.builtins.semaphores">Semaphores</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.variables.builtins.platform_identifier">Platform
+          Identifier</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.variables.builtins.jam_version">Jam
+          Version</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.variables.builtins.jamshell">JAMSHELL</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.variables.builtins.actionrule"><code class="literal">__TIMING_RULE__</code>
+          and <code class="literal">__ACTION_RULE__</code></a></span></dt>
+</dl></div>
+<p>
+          This section discusses variables that have special meaning to <code class="literal">b2</code>.
+          All of these must be defined or used in the global module -- using those
+          variables inside a named module will not have the desired effect. See
+          <a class="link" href="language.html#jam.language.modules" title="Modules">Modules</a>.
+        </p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="jam.language.variables.builtins.search"></a><a class="link" href="language.html#jam.language.variables.builtins.search" title="SEARCH and LOCATE">SEARCH and
+          LOCATE</a>
+</h5></div></div></div>
+<p>
+            These two variables control the binding of file target names to locations
+            in the file system. Generally, <code class="literal">$(SEARCH)</code> is used to
+            find existing sources while <code class="literal">$(LOCATE)</code> is used to fix
+            the location for built targets.
+          </p>
+<p>
+            Rooted (absolute path) file targets are bound as is. Unrooted file target
+            names are also normally bound as is, and thus relative to the current
+            directory, but the settings of <code class="literal">$(LOCATE)</code> and <code class="literal">$(SEARCH)</code>
+            alter this:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                If <code class="literal">$(LOCATE)</code> is set then the target is bound relative
+                to the first directory in <code class="literal">$(LOCATE)</code>. Only the
+                first element is used for binding.
+              </li>
+<li class="listitem">
+                If <code class="literal">$(SEARCH)</code> is set then the target is bound to
+                the first directory in <code class="literal">$(SEARCH)</code> where the target
+                file already exists.
+              </li>
+<li class="listitem">
+                If the <code class="literal">$(SEARCH)</code> search fails, the target is bound
+                relative to the current directory anyhow.
+              </li>
+</ul></div>
+<p>
+            Both <code class="literal">$(SEARCH)</code> and <code class="literal">$(LOCATE)</code> should
+            be set target-specific and not globally. If they were set globally,
+            <code class="literal">b2</code> would use the same paths for all file binding,
+            which is not likely to produce sane results. When writing your own rules,
+            especially ones not built upon those in Jambase, you may need to set
+            <code class="literal">$(SEARCH)</code> or <code class="literal">$(LOCATE)</code> directly.
+            Almost all of the rules defined in Jambase set <code class="literal">$(SEARCH)</code>
+            and <code class="literal">$(LOCATE)</code> to sensible values for sources they
+            are looking for and targets they create, respectively.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="jam.language.variables.builtins.hdrscan"></a><a class="link" href="language.html#jam.language.variables.builtins.hdrscan" title="HDRSCAN and HDRRULE">HDRSCAN
+          and HDRRULE</a>
+</h5></div></div></div>
+<p>
+            These two variables control header file scanning. <code class="literal">$(HDRSCAN)</code>
+            is an <code class="literal">egrep(1)</code> pattern, with ()'s surrounding the
+            file name, used to find file inclusion statements in source files. <code class="literal">Jambase</code>
+            uses <code class="literal">$(HDRPATTERN)</code> as the pattern for <code class="literal">$(HDRSCAN)</code>.
+            <code class="literal">$(HDRRULE)</code> is the name of a rule to invoke with the
+            results of the scan: the scanned file is the target, the found files
+            are the sources. This is the only place where <code class="literal">b2</code> invokes
+            a rule through a variable setting.
+          </p>
+<p>
+            Both <code class="literal">$(HDRSCAN)</code> and <code class="literal">$(HDRRULE)</code>
+            must be set for header file scanning to take place, and they should be
+            set target-specific and not globally. If they were set globally, all
+            files, including executables and libraries, would be scanned for header
+            file include statements.
+          </p>
+<p>
+            The scanning for header file inclusions is not exact, but it is at least
+            dynamic, so there is no need to run something like <code class="literal">makedepend(GNU)</code>
+            to create a static dependency file. The scanning mechanism errs on the
+            side of inclusion (i.e., it is more likely to return filenames that are
+            not actually used by the compiler than to miss include files) because
+            it can't tell if <code class="computeroutput"><span class="preprocessor">#include</span></code>
+            lines are inside <code class="computeroutput"><span class="preprocessor">#ifdefs</span></code>
+            or other conditional logic. In <code class="literal">Jambase</code>, <code class="literal">HdrRule</code>
+            applies the <code class="literal">NOCARE</code> rule to each header file found
+            during scanning so that if the file isn't present yet doesn't cause the
+            compilation to fail, <code class="literal">b2</code> won't care.
+          </p>
+<p>
+            Also, scanning for regular expressions only works where the included
+            file name is literally in the source file. It can't handle languages
+            that allow including files using variable names (as the <code class="literal">Jam</code>
+            language itself does).
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="jam.language.variables.builtins.semaphores"></a><a class="link" href="language.html#jam.language.variables.builtins.semaphores" title="Semaphores">Semaphores</a>
+</h5></div></div></div>
+<p>
+            It is sometimes desirable to disallow parallel execution of some actions.
+            For example:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                Old versions of yacc use files with fixed names. So, running two
+                yacc actions is dangerous.
+              </li>
+<li class="listitem">
+                One might want to perform parallel compiling, but not do parallel
+                linking, because linking is i/o bound and only gets slower.
+              </li>
+</ul></div>
+<p>
+            Craig McPeeters has extended Perforce Jam to solve such problems, and
+            that extension was integrated in Boost.Jam.
+          </p>
+<p>
+            Any target can be assigned a <span class="emphasis"><em>semaphore</em></span>, by setting
+            a variable called <code class="literal">SEMAPHORE</code> on that target. The value
+            of the variable is the semaphore name. It must be different from names
+            of any declared target, but is arbitrary otherwise.
+          </p>
+<p>
+            The semantic of semaphores is that in a group of targets which have the
+            same semaphore, only one can be updated at the moment, regardless of
+            "<code class="literal">-j</code>" option.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="jam.language.variables.builtins.platform_identifier"></a><a class="link" href="language.html#jam.language.variables.builtins.platform_identifier" title="Platform Identifier">Platform
+          Identifier</a>
+</h5></div></div></div>
+<p>
+            A number of Jam built-in variables can be used to identify runtime platform:
+          </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="literal">OS</code></span></dt>
+<dd><p>
+                  OS identifier string
+                </p></dd>
+<dt><span class="term"><code class="literal">OSPLAT</code></span></dt>
+<dd><p>
+                  Underlying architecture, when applicable
+                </p></dd>
+<dt><span class="term"><code class="literal">MAC</code></span></dt>
+<dd><p>
+                  true on MAC platform
+                </p></dd>
+<dt><span class="term"><code class="literal">NT</code></span></dt>
+<dd><p>
+                  true on NT platform
+                </p></dd>
+<dt><span class="term"><code class="literal">OS2</code></span></dt>
+<dd><p>
+                  true on OS2 platform
+                </p></dd>
+<dt><span class="term"><code class="literal">UNIX</code></span></dt>
+<dd><p>
+                  true on Unix platforms
+                </p></dd>
+<dt><span class="term"><code class="literal">VMS</code></span></dt>
+<dd><p>
+                  true on VMS platform
+                </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="jam.language.variables.builtins.jam_version"></a><a class="link" href="language.html#jam.language.variables.builtins.jam_version" title="Jam Version">Jam
+          Version</a>
+</h5></div></div></div>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="literal">JAMDATE</code></span></dt>
+<dd><p>
+                  Time and date at <code class="literal">b2</code> start-up as an ISO-8601
+                  UTC value.
+                </p></dd>
+<dt><span class="term"><code class="literal">JAMUNAME</code></span></dt>
+<dd><p>
+                  Ouput of uname(1) command (Unix only)
+                </p></dd>
+<dt><span class="term"><code class="literal">JAMVERSION</code></span></dt>
+<dd><p>
+                  <code class="literal">b2</code> version, currently "3.1.19"
+                </p></dd>
+<dt><span class="term"><code class="literal">JAM_VERSION</code></span></dt>
+<dd><p>
+                  A predefined global variable with two elements indicates the version
+                  number of Boost Jam. Boost Jam versions start at "<code class="literal">03</code>"
+                  "<code class="literal">00</code>". Earlier versions of <code class="literal">Jam</code>
+                  do not automatically define <code class="literal">JAM_VERSION</code>.
+                </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="jam.language.variables.builtins.jamshell"></a><a class="link" href="language.html#jam.language.variables.builtins.jamshell" title="JAMSHELL">JAMSHELL</a>
+</h5></div></div></div>
+<p>
+            When <code class="literal">b2</code> executes a rule's action block, it forks and
+            execs a shell, passing the action block as an argument to the shell.
+            The invocation of the shell can be controlled by <code class="literal">$(JAMSHELL)</code>.
+            The default on Unix is, for example:
+          </p>
+<pre class="programlisting">JAMSHELL = /bin/sh -c % ;
+</pre>
+<p>
+            The <code class="literal">%</code> is replaced with the text of the action block.
+          </p>
+<p>
+            <code class="literal">B2</code> does not directly support building in parallel
+            across multiple hosts, since that is heavily dependent on the local environment.
+            To build in parallel across multiple hosts, you need to write your own
+            shell that provides access to the multiple hosts. You then reset <code class="literal">$(JAMSHELL)</code>
+            to reference it.
+          </p>
+<p>
+            Just as <code class="literal">b2</code> expands a <code class="literal">%</code> to be the
+            text of the rule's action block, it expands a <code class="literal">!</code> to
+            be the multi-process slot number. The slot number varies between 1 and
+            the number of concurrent jobs permitted by the <code class="literal">-j</code>
+            flag given on the command line. Armed with this, it is possible to write
+            a multiple host shell. For example:
+          </p>
+<pre class="programlisting">#!/bin/sh
+
+# This sample JAMSHELL uses the SunOS on(1) command to execute a
+# command string with an identical environment on another host.
+
+# Set JAMSHELL = jamshell ! %
+#
+# where jamshell is the name of this shell file.
+#
+# This version handles up to -j6; after that they get executed
+# locally.
+
+case $1 in
+1|4) on winken sh -c "$2";;
+2|5) on blinken sh -c "$2";;
+3|6) on nod sh -c "$2";;
+*) eval "$2";;
+esac
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="jam.language.variables.builtins.actionrule"></a><a class="link" href="language.html#jam.language.variables.builtins.actionrule" title="__TIMING_RULE__ and __ACTION_RULE__"><code class="literal">__TIMING_RULE__</code>
+          and <code class="literal">__ACTION_RULE__</code></a>
+</h5></div></div></div>
+<p>
+            The <code class="literal">__TIMING_RULE__</code> and <code class="literal">__ACTION_RULE__</code>
+            can be set to the name of a rule for <code class="literal">b2</code> to call <span class="bold"><strong>after</strong></span> an action completes for a target. They both
+            give diagnostic information about the action that completed. For <code class="literal">__TIMING_RULE__</code>
+            the rule is called as:
+          </p>
+<pre class="programlisting"><span class="identifier">rule</span> <span class="identifier">timing</span><span class="special">-</span><span class="identifier">rule</span> <span class="special">(</span> <span class="identifier">args</span> <span class="special">*</span> <span class="special">:</span> <span class="identifier">target</span> <span class="special">:</span> <span class="identifier">start</span> <span class="identifier">end</span> <span class="identifier">user</span> <span class="identifier">system</span> <span class="special">)</span>
+</pre>
+<p>
+            And <code class="literal">__ACTION_RULE__</code> is called as:
+          </p>
+<pre class="programlisting"><span class="identifier">rule</span> <span class="identifier">action</span><span class="special">-</span><span class="identifier">rule</span> <span class="special">(</span> <span class="identifier">args</span> <span class="special">*</span> <span class="special">:</span> <span class="identifier">target</span> <span class="special">:</span> <span class="identifier">command</span> <span class="identifier">status</span> <span class="identifier">start</span> <span class="identifier">end</span> <span class="identifier">user</span> <span class="identifier">system</span> <span class="special">:</span> <span class="identifier">output</span> <span class="special">?</span> <span class="special">)</span>
+</pre>
+<p>
+            The arguments for both are:
+          </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="literal">args</code></span></dt>
+<dd><p>
+                  Any values following the rule name in the <code class="literal">__TIMING_RULE__</code>
+                  or <code class="literal">__ACTION_RULE__</code> are passed along here.
+                </p></dd>
+<dt><span class="term"><code class="literal">target</code></span></dt>
+<dd><p>
+                  The <code class="literal">b2</code> target that was built.
+                </p></dd>
+<dt><span class="term"><code class="literal">command</code></span></dt>
+<dd><p>
+                  The text of the executed command in the action body.
+                </p></dd>
+<dt><span class="term"><code class="literal">status</code></span></dt>
+<dd><p>
+                  The integer result of the executed command.
+                </p></dd>
+<dt><span class="term"><code class="literal">start</code></span></dt>
+<dd><p>
+                  The starting timestamp of the executed command as a ISO-8601 UTC
+                  value.
+                </p></dd>
+<dt><span class="term"><code class="literal">end</code></span></dt>
+<dd><p>
+                  The completion timestamp of the executed command as a ISO-8601
+                  UTC value.
+                </p></dd>
+<dt><span class="term"><code class="literal">user</code></span></dt>
+<dd><p>
+                  The number of user CPU seconds the executed command spent as a
+                  floating point value.
+                </p></dd>
+<dt><span class="term"><code class="literal">system</code></span></dt>
+<dd><p>
+                  The number of system CPU seconds the executed command spent as
+                  a floating point value.
+                </p></dd>
+<dt><span class="term"><code class="literal">output</code></span></dt>
+<dd><p>
+                  The output of the command as a single string. The content of the
+                  output reflects the use of the <code class="literal">-pX</code> option.
+                </p></dd>
+</dl>
+</div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              If both variables are set for a target both are called, first <code class="literal">__TIMING_RULE__</code>
+              then <code class="literal">__ACTION_RULE__</code>.
+            </p></td></tr>
+</table></div>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="jam.language.modules"></a><a class="link" href="language.html#jam.language.modules" title="Modules">Modules</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="language.html#jam.language.modules.declaration">Declaration</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.modules.variable_scope">Variable Scope</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.modules.local_rules">Local Rules</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.modules.the__rulenames__rule">The <code class="literal">RULENAMES</code>
+        Rule</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.modules.the__varnames__rule">The <code class="literal">VARNAMES</code>
+        Rule</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.modules.the__import__rule">The <code class="literal">IMPORT</code>
+        Rule</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.modules.the__export__rule">The <code class="literal">EXPORT</code>
+        Rule</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.modules.the__caller_module__rule">The
+        <code class="literal">CALLER_MODULE</code> Rule</a></span></dt>
+<dt><span class="section"><a href="language.html#jam.language.modules.the__delete_module__rule">The
+        <code class="literal">DELETE_MODULE</code> Rule</a></span></dt>
+</dl></div>
+<p>
+        Boost Jam introduces support for modules, which provide some rudimentary
+        namespace protection for rules and variables. A new keyword, "<code class="literal">module</code>"
+        was also introduced. The features described in this section are primitives,
+        meaning that they are meant to provide the operations needed to write Jam
+        rules which provide a more elegant module interface.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.modules.declaration"></a><a class="link" href="language.html#jam.language.modules.declaration" title="Declaration">Declaration</a>
+</h4></div></div></div>
+<pre class="programlisting">module <span class="emphasis"><em>expression</em></span> { ... }
+</pre>
+<p>
+          Code within the <code class="literal">{ ... }</code> executes within the module named
+          by evaluating expression. Rule definitions can be found in the module's
+          own namespace, and in the namespace of the global module as <span class="emphasis"><em>module-name</em></span>.<span class="emphasis"><em>rule-name</em></span>,
+          so within a module, other rules in that module may always be invoked without
+          qualification:
+        </p>
+<pre class="programlisting"><span class="bold"><strong>module my_module</strong></span>
+<span class="bold"><strong>{</strong></span>
+    rule salute ( x ) { ECHO $(x), world ; }
+    rule greet ( ) { salute hello ; }
+    greet ;
+<span class="bold"><strong>}</strong></span>
+<span class="bold"><strong>my_module.salute</strong></span> goodbye ;
+</pre>
+<p>
+          When an invoked rule is not found in the current module's namespace, it
+          is looked up in the namespace of the global module, so qualified calls
+          work across modules:
+        </p>
+<pre class="programlisting">module your_module
+{
+    rule bedtime ( ) { <span class="bold"><strong>my_module.salute</strong></span> goodnight ; }
+}
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.modules.variable_scope"></a><a class="link" href="language.html#jam.language.modules.variable_scope" title="Variable Scope">Variable Scope</a>
+</h4></div></div></div>
+<p>
+          Each module has its own set of dynamically nested variable scopes. When
+          execution passes from module A to module B, all the variable bindings from
+          A become unavailable, and are replaced by the bindings that belong to B.
+          This applies equally to local and global variables:
+        </p>
+<pre class="programlisting">module A
+{
+    x = 1 ;
+    rule f ( )
+    {
+        local y = 999 ; # becomes visible again when B.f calls A.g
+        B.f ;
+    }
+    rule g ( )
+    {
+        ECHO $(y) ;     # prints "999"
+    }
+}
+module B
+{
+    y = 2 ;
+    rule f ( )
+    {
+        ECHO $(y) ; # always prints "2"
+        A.g ;
+    }
+}
+</pre>
+<p>
+          The only way to access another module's variables is by entering that module:
+        </p>
+<pre class="programlisting">rule peek ( module-name ? : variables + )
+{
+    module $(module-name)
+    {
+        return $($(&gt;)) ;
+    }
+}
+</pre>
+<p>
+          Note that because existing variable bindings change whenever a new module
+          scope is entered, argument bindings become unavailable. That explains the
+          use of "<code class="literal">$(&gt;)</code>" in the peek rule above.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.modules.local_rules"></a><a class="link" href="language.html#jam.language.modules.local_rules" title="Local Rules">Local Rules</a>
+</h4></div></div></div>
+<pre class="programlisting">local rule <span class="emphasis"><em>rulename</em></span>...
+</pre>
+<p>
+          The rule is declared locally to the current module. It is not entered in
+          the global module with qualification, and its name will not appear in the
+          result of:
+        </p>
+<pre class="programlisting">[ RULENAMES <span class="emphasis"><em>module-name</em></span> ]
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.modules.the__rulenames__rule"></a><a class="link" href="language.html#jam.language.modules.the__rulenames__rule" title="The RULENAMES Rule">The <code class="literal">RULENAMES</code>
+        Rule</a>
+</h4></div></div></div>
+<pre class="programlisting">rule RULENAMES ( <span class="emphasis"><em>module</em></span> ? )
+</pre>
+<p>
+          Returns a list of the names of all non-local rules in the given module.
+          If <span class="emphasis"><em>module</em></span> is omitted, the names of all non-local rules
+          in the global module are returned.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.modules.the__varnames__rule"></a><a class="link" href="language.html#jam.language.modules.the__varnames__rule" title="The VARNAMES Rule">The <code class="literal">VARNAMES</code>
+        Rule</a>
+</h4></div></div></div>
+<pre class="programlisting">rule VARNAMES ( <span class="emphasis"><em>module</em></span> ? )
+</pre>
+<p>
+          Returns a list of the names of all variable bindings in the given module.
+          If <span class="emphasis"><em>module</em></span> is omitted, the names of all variable bindings
+          in the global module are returned.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This includes any local variables in rules from the call stack which
+            have not returned at the time of the <code class="literal">VARNAMES</code> invocation.
+          </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.modules.the__import__rule"></a><a class="link" href="language.html#jam.language.modules.the__import__rule" title="The IMPORT Rule">The <code class="literal">IMPORT</code>
+        Rule</a>
+</h4></div></div></div>
+<p>
+          <code class="literal">IMPORT</code> allows rule name aliasing across modules:
+        </p>
+<pre class="programlisting">rule IMPORT ( <span class="emphasis"><em>source_module</em></span> ? : <span class="emphasis"><em>source_rules</em></span> *
+            : <span class="emphasis"><em>target_module</em></span> ? : <span class="emphasis"><em>target_rules</em></span> * )
+</pre>
+<p>
+          The <code class="literal">IMPORT</code> rule copies rules from the <span class="emphasis"><em>source_module</em></span>
+          into the <span class="emphasis"><em>target_module</em></span> as local rules. If either
+          <span class="emphasis"><em>source_module</em></span> or <span class="emphasis"><em>target_module</em></span>
+          is not supplied, it refers to the global module. <span class="emphasis"><em>source_rules</em></span>
+          specifies which rules from the <span class="emphasis"><em>source_module</em></span> to import;
+          <span class="emphasis"><em>target_rules</em></span> specifies the names to give those rules
+          in <span class="emphasis"><em>target_module</em></span>. If <span class="emphasis"><em>source_rules</em></span>
+          contains a name which doesn't correspond to a rule in <span class="emphasis"><em>source_module</em></span>,
+          or if it contains a different number of items than <span class="emphasis"><em>target_rules</em></span>,
+          an error is issued. For example,
+        </p>
+<pre class="programlisting"># import m1.rule1 into m2 as local rule m1-rule1.
+IMPORT m1 : rule1 : m2 : m1-rule1 ;
+# import all non-local rules from m1 into m2
+IMPORT m1 : [ RULENAMES m1 ] : m2 : [ RULENAMES m1 ] ;
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.modules.the__export__rule"></a><a class="link" href="language.html#jam.language.modules.the__export__rule" title="The EXPORT Rule">The <code class="literal">EXPORT</code>
+        Rule</a>
+</h4></div></div></div>
+<p>
+          <code class="literal">EXPORT</code> allows rule name aliasing across modules:
+        </p>
+<pre class="programlisting">rule EXPORT ( <span class="emphasis"><em>module</em></span> ? : <span class="emphasis"><em>rules</em></span> * )
+</pre>
+<p>
+          The <code class="literal">EXPORT</code> rule marks <span class="emphasis"><em>rules</em></span> from
+          the <code class="literal">source_module</code> as non-local (and thus exportable).
+          If an element of <span class="emphasis"><em>rules</em></span> does not name a rule in <span class="emphasis"><em>module</em></span>,
+          an error is issued. For example,
+        </p>
+<pre class="programlisting">module X {
+  local rule r { ECHO X.r ; }
+}
+IMPORT X : r : : r ; # error - r is local in X
+EXPORT X : r ;
+IMPORT X : r : : r ; # OK.
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.modules.the__caller_module__rule"></a><a class="link" href="language.html#jam.language.modules.the__caller_module__rule" title="The CALLER_MODULE Rule">The
+        <code class="literal">CALLER_MODULE</code> Rule</a>
+</h4></div></div></div>
+<pre class="programlisting">rule CALLER_MODULE ( <span class="emphasis"><em>levels</em></span> ? )
+</pre>
+<p>
+          <code class="literal">CALLER_MODULE</code> returns the name of the module scope enclosing
+          the call to its caller (if levels is supplied, it is interpreted as an
+          integer number of additional levels of call stack to traverse to locate
+          the module). If the scope belongs to the global module, or if no such module
+          exists, returns the empty list. For example, the following prints "{Y}
+          {X}":
+        </p>
+<pre class="programlisting">module X {
+    rule get-caller { return [ CALLER_MODULE ] ; }
+    rule get-caller's-caller { return [ CALLER_MODULE 1 ] ; }
+    rule call-Y { return Y.call-X2 ; }
+}
+module Y {
+    rule call-X { return X.get-caller ; }
+    rule call-X2 { return X.get-caller's-caller ; }
+}
+callers = [ X.get-caller ] [ Y.call-X ] [ X.call-Y ] ;
+ECHO {$(callers)} ;
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="jam.language.modules.the__delete_module__rule"></a><a class="link" href="language.html#jam.language.modules.the__delete_module__rule" title="The DELETE_MODULE Rule">The
+        <code class="literal">DELETE_MODULE</code> Rule</a>
+</h4></div></div></div>
+<pre class="programlisting">rule DELETE_MODULE ( <span class="emphasis"><em>module</em></span> ? )
+</pre>
+<p>
+          <code class="literal">DELETE_MODULE</code> removes all of the variable bindings and
+          otherwise-unreferenced rules from the given module (or the global module,
+          if no module is supplied), and returns their memory to the system.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Though it won't affect rules that are currently executing until they
+            complete, <code class="literal">DELETE_MODULE</code> should be used with extreme
+            care because it will wipe out any others and all variable (including
+            locals in that module) immediately. Because of the way dynamic binding
+            works, variables which are shadowed by locals will not be destroyed,
+            so the results can be really unpredictable.
+          </p></td></tr>
+</table></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2007 Rene Rivera, David Abrahams, Vladimir Prus<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../jam.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../jam.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="miscellaneous.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

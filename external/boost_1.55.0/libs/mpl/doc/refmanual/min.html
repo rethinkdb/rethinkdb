@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: min</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./numeric-cast.html" class="navigation-link">Prev</a>&nbsp;<a href="./max.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./numeric-cast.html" class="navigation-link">Back</a>&nbsp;<a href="./max.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./miscellaneous.html" class="navigation-link">Miscellaneous</a> / <a href="./min.html" class="navigation-link">min</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="min">
+<h1><a class="toc-backref" href="./miscellaneous.html#id1569">min</a></h1>
+<div class="section" id="id1189">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename N1
+    , typename N2
+    &gt;
+struct <a href="./min.html" class="identifier">min</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id1190">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Returns the smaller of its two arguments.</p>
+</div>
+<div class="section" id="id1191">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/min_max.hpp" class="header">boost/mpl/min_max.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1192">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./metafunction.html">Metafunction</a></p>
+</div>
+<div class="section" id="id1193">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="25%" />
+<col width="56%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">N1</span></tt>, <tt class="literal"><span class="pre">N2</span></tt></td>
+<td>Any type</td>
+<td>Types to compare.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1194">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For arbitrary types <tt class="literal"><span class="pre">x</span></tt> and <tt class="literal"><span class="pre">y</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./min.html" class="identifier">min</a>&lt;x,y&gt;::type r;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">A type.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre"><a href="./less.html" class="identifier">less</a>&lt;x,y&gt;::value</span></tt> is a well-formed integral constant expression.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="last literal-block">
+typedef <a href="./if.html" class="identifier">if_</a>&lt; <a href="./less.html" class="identifier">less</a>&lt;x,y&gt;,x,y &gt;::type r;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1195">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Constant time.</p>
+</div>
+<div class="section" id="id1196">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./fold.html" class="identifier">fold</a>&lt;
+      <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,1,7,0,-2,5,-1&gt;
+    , <a href="./int.html" class="identifier">int_</a>&lt;-10&gt;
+    , <a href="./min.html" class="identifier">min</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>,<a href="./placeholders.html" class="identifier">_2</a>&gt;
+    &gt;::type r;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; r, <a href="./int.html" class="identifier">int_</a>&lt;-10&gt; > ));
+</pre>
+</div>
+<div class="section" id="id1197">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./comparisons.html">comparison</a>, <a class="reference internal" href="./max.html">max</a>, <a class="reference internal" href="./less.html">less</a>, <a class="reference internal" href="./min-element.html">min_element</a></p>
+<!-- Metafunctions/Miscellaneous//max |90 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./numeric-cast.html" class="navigation-link">Prev</a>&nbsp;<a href="./max.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./numeric-cast.html" class="navigation-link">Back</a>&nbsp;<a href="./max.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

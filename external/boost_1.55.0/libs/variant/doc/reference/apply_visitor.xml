@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/variant/apply_visitor.hpp">
+  <namespace name="boost">
+    <class name="apply_visitor_delayed_t">
+      <purpose>Adapts a visitor for use as a function object.</purpose>
+      <description>
+        <simpara>Adapts the function given at construction for use as a
+          function object. This is useful, for example, when one needs to
+          operate on each element of a sequence of variant objects using a
+          standard library algorithm such as
+          <code>std::for_each</code>.</simpara>
+        <simpara>See the &quot;visitor-only&quot; form of
+          <code><functionname>apply_visitor</functionname></code> for a simple
+          way to create <code>apply_visitor_delayed_t</code> objects.</simpara>
+      </description>
+
+      <template>
+        <template-type-parameter name="Visitor"/>
+      </template>
+
+      <typedef name="result_type">
+        <type>typename Visitor::result_type</type>
+      </typedef>
+
+      <constructor specifiers="explicit">
+        <parameter name="visitor">
+          <paramtype>Visitor &amp;</paramtype>
+        </parameter>
+
+        <effects>
+          <simpara>Constructs the function object with the given
+            visitor.</simpara>
+        </effects>
+      </constructor>
+
+      <method-group name="function object interface">
+        <overloaded-method name="operator()">
+          <signature>
+            <template>
+              <template-type-parameter name="Variant"/>
+            </template>
+
+            <type>result_type</type>
+            <parameter name="operand">
+              <paramtype>Variant &amp;</paramtype>
+            </parameter>
+          </signature>
+
+          <signature>
+            <template>
+              <template-type-parameter name="Variant1"/>
+              <template-type-parameter name="Variant2"/>
+            </template>
+
+            <type>result_type</type>
+            <parameter name="operand1">
+              <paramtype>Variant1 &amp;</paramtype>
+            </parameter>
+            <parameter name="operand2">
+              <paramtype>Variant2 &amp;</paramtype>
+            </parameter>
+          </signature>
+
+          <purpose>Function call operator.</purpose>
+          <description>
+            <simpara>Invokes
+            <code><functionname>apply_visitor</functionname></code> on the
+            stored visitor using the given operands.</simpara>
+          </description>
+        </overloaded-method>
+      </method-group>
+    </class>
+  
+    <overloaded-function name="apply_visitor">
+      <signature>
+        <template>
+          <template-type-parameter name="Visitor"/>
+          <template-type-parameter name="Variant"/>
+        </template>
+
+        <type>typename Visitor::result_type</type>
+
+        <parameter name="visitor">
+          <paramtype>Visitor &amp;</paramtype>
+        </parameter>
+        <parameter name="operand">
+          <paramtype>Variant &amp;</paramtype>
+        </parameter>
+      </signature>
+      
+      <signature>
+        <template>
+          <template-type-parameter name="Visitor"/>
+          <template-type-parameter name="Variant"/>
+        </template>
+
+        <type>typename Visitor::result_type</type>
+
+        <parameter name="visitor">
+          <paramtype>const Visitor &amp;</paramtype>
+        </parameter>
+        <parameter name="operand">
+          <paramtype>Variant &amp;</paramtype>
+        </parameter>
+      </signature>
+
+      <signature>
+        <template>
+          <template-type-parameter name="BinaryVisitor"/>
+          <template-type-parameter name="Variant1"/>
+          <template-type-parameter name="Variant2"/>
+        </template>
+
+        <type>typename BinaryVisitor::result_type</type>
+
+        <parameter name="visitor">
+          <paramtype>BinaryVisitor &amp;</paramtype>
+        </parameter>
+        <parameter name="operand1">
+          <paramtype>Variant1 &amp;</paramtype>
+        </parameter>
+        <parameter name="operand2">
+          <paramtype>Variant2 &amp;</paramtype>
+        </parameter>
+      </signature>
+
+      <signature>
+        <template>
+          <template-type-parameter name="BinaryVisitor"/>
+          <template-type-parameter name="Variant1"/>
+          <template-type-parameter name="Variant2"/>
+        </template>
+
+        <type>typename BinaryVisitor::result_type</type>
+
+        <parameter name="visitor">
+          <paramtype>const BinaryVisitor &amp;</paramtype>
+        </parameter>
+        <parameter name="operand1">
+          <paramtype>Variant1 &amp;</paramtype>
+        </parameter>
+        <parameter name="operand2">
+          <paramtype>Variant2 &amp;</paramtype>
+        </parameter>
+      </signature>
+
+      <signature>
+        <template>
+          <template-type-parameter name="MultiVisitor"/>
+          <template-type-parameter name="Variant1"/>
+          <template-type-parameter name="Variant2"/>
+          <template-type-parameter name="Variant3"/>
+        </template>
+
+        <type>typename MultiVisitor::result_type</type>
+
+        <parameter name="visitor">
+          <paramtype>MultiVisitor &amp;</paramtype>
+        </parameter>
+        <parameter name="operand1">
+          <paramtype>Variant1 &amp;</paramtype>
+        </parameter>
+        <parameter name="operand2">
+          <paramtype>Variant2 &amp;</paramtype>
+        </parameter>
+        <parameter name="operand3">
+          <paramtype>Variant3 &amp;</paramtype>
+        </parameter>
+        <parameter name="other_operands">
+          <paramtype>...</paramtype>
+        </parameter>
+      </signature>
+
+      <signature>
+        <template>
+          <template-type-parameter name="MultiVisitor"/>
+          <template-type-parameter name="Variant1"/>
+          <template-type-parameter name="Variant2"/>
+          <template-type-parameter name="Variant3"/>
+        </template>
+
+        <type>typename MultiVisitor::result_type</type>
+
+        <parameter name="visitor">
+          <paramtype>const MultiVisitor &amp;</paramtype>
+        </parameter>
+        <parameter name="operand1">
+          <paramtype>Variant1 &amp;</paramtype>
+        </parameter>
+        <parameter name="operand2">
+          <paramtype>Variant2 &amp;</paramtype>
+        </parameter>
+        <parameter name="operand3">
+          <paramtype>Variant3 &amp;</paramtype>
+        </parameter>
+        <parameter name="other_operands">
+          <paramtype>...</paramtype>
+        </parameter>
+      </signature>
+
+      <signature>
+        <template>
+          <template-type-parameter name="Visitor"/>
+        </template>
+
+        <type><classname>apply_visitor_delayed_t</classname>&lt;Visitor&gt;</type>
+
+        <parameter name="visitor">
+          <paramtype>Visitor &amp;</paramtype>
+        </parameter>
+      </signature>
+
+      <purpose>
+        <simpara>Allows compile-time checked type-safe application of the
+        given visitor to the content of the given variant, ensuring that all
+        types are handled by the visitor.</simpara>
+      </purpose>
+
+      <description>
+        <simpara>The behavior of <code>apply_visitor</code> is dependent on
+        the number of arguments on which it operates (i.e., other than the
+        visitor). The function behaves as follows:
+
+          <itemizedlist>
+            <listitem>Overloads accepting one operand invoke the unary function
+              call operator of the given visitor on the content of the given
+              <code><classname>variant</classname></code> operand.</listitem>
+
+            <listitem>Overloads accepting two operands invoke the binary
+              function call operator of the given visitor on the content of
+              the given <code><classname>variant</classname></code>
+              operands.</listitem>
+
+            <listitem>Overloads accepting three or more operands invoke the
+              function call operator of the given visitor on the content of
+              the given <code><classname>variant</classname></code>
+              operands. Maximum amount of parameters controlled by 
+              <code><emphasis role="bold"><macroname>BOOST_VARAINT_MAX_MULTIVIZITOR_PARAMS</macroname></emphasis></code>
+              macro. Those functions are actually defined in <xref linkend="header.boost.variant.multivisitors_hpp"/>.</listitem>
+
+            <listitem>The overload accepting only a visitor returns a
+              <classname alt="boost::apply_visitor_delayed_t">generic function object</classname>
+              that accepts either one or two arguments and invokes
+              <code><functionname>apply_visitor</functionname></code> using
+              these arguments and <code>visitor</code>, thus behaving as
+              specified above. (This behavior is particularly useful, for
+              example, when one needs to operate on each element of a sequence
+              of variant objects using a standard library
+              algorithm.)</listitem>
+          </itemizedlist>
+
+        </simpara>
+      </description>
+
+      <returns>
+        <simpara>The overloads acccepting operands return the result of
+        applying the given visitor to the content of the given operands.
+        The overload accepting only a visitor return a function object, thus
+        delaying application of the visitor to any operands.</simpara>
+      </returns>
+
+      <requires>
+        <simpara>The given visitor must fulfill the
+        <link linkend="variant.concepts.static-visitor"><emphasis>StaticVisitor</emphasis></link>
+        concept requirements with respect to each of the bounded types of the
+        given <code>variant</code>.</simpara>
+      </requires>
+
+      <throws>
+        <simpara>The overloads accepting operands throw only if the given
+        visitor throws when applied. The overload accepting only a visitor
+        will not throw. (Note, however, that the returned
+        <classname alt="boost::apply_visitor_delayed_t">function object</classname>
+        may throw when invoked.)</simpara>
+      </throws>
+    </overloaded-function>
+  </namespace>
+</header>

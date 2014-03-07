@@ -1,0 +1,421 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Parser Concepts]
+
+Spirit.Qi parsers fall into a couple of generalized __concepts__. The
+/Parser/ is the most fundamental concept. All Spirit.Qi parsers are
+models of the /Parser/ concept. /PrimitiveParser/, /UnaryParser/,
+/BinaryParser/, /NaryParser/, and /Nonterminal/ are all refinements of the
+/Parser/ concept.
+
+The following sections provide details on these concepts.
+
+[/------------------------------------------------------------------------------]
+[section Parser]
+
+[heading Description]
+
+The /Parser/ is the most fundamental concept. A Parser has a member
+function, `parse`, that accepts a first-last __fwditer__ pair and returns
+bool as its result. The iterators delimit the data being parsed.
+The Parser's `parse` member function returns `true` if the parse
+succeeds, in which case the first iterator is advanced accordingly. Each
+Parser can represent a specific pattern or algorithm, or it can be a
+more complex parser formed as a composition of other Parsers.
+
+[variablelist Notation
+    [[`p`]              [A `Parser`.]]
+    [[`P`]              [A `Parser` type.]]
+    [[`Iter`]           [a __fwditer__ type.]]
+    [[`f`, `l`]         [__fwditer__. first/last iterator pair.]]
+    [[`Context`]        [The parser's __context__ type.]]
+    [[`context`]        [The parser's __context__, or __unused__.]]
+    [[`skip`]           [A skip Parser, or __unused__.]]
+    [[`attrib`]         [A __compatible_attribute__, or __unused__.]]
+]
+
+[heading Valid Expressions]
+
+In the expressions below, the behavior of the parser, `p`, and how `skip`
+and `attrib` are handled by `p`, are left unspecified in the base `Parser`
+concept. These are specified in subsequent, more refined concepts and by
+the actual models thereof.
+
+For any Parser the following expressions must be valid:
+
+[table
+    [[Expression]           [Semantics]                         [Return type]]
+    [[
+``p.parse(f, l, context, skip, attr)``]
+                            [Match the input sequence
+                            starting from `f`. Return
+                            `true` if successful, otherwise
+                            return `false`.]                    [`bool`]]
+    [[`p.what(context)`]    [Get information about a Parser.]   [__info__]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]                                   [Description]]
+    [[`P::template attribute<Context, Iter>::type`] [The Parser's expected attribute.]]
+    [[`traits::is_parser<P>::type`]                 [Metafunction that evaluates to `mpl::true_` if
+                                                    a certain type, `P` is a Parser, `mpl::false_`
+                                                    otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Postcondition]
+
+Upon return from `p.parse` the following post conditions should hold:
+
+* On a successful match, `f` is positioned one past the last
+  matching character/token.
+* On a failed match, if a `skip` parser is __unused__,
+  `f` is restored to its original position prior to entry.
+* On a failed match, if a `skip` parser is not __unused__,
+  `f` is positioned one past the last character/token
+  matching `skip`.
+* On a failed match, `attrib` state is undefined.
+* No post-skips: trailing `skip` characters/tokens will not be skipped.
+
+[heading Models]
+
+All parsers in Spirit.Qi are models of the /Parser/ concept.
+
+[endsect] [/ Parser Concept]
+
+[/------------------------------------------------------------------------------]
+[section PrimitiveParser]
+
+[heading Description]
+
+/PrimitiveParser/ is the most basic building block that the client uses
+to build more complex parsers.
+
+[heading Refinement of]
+
+[:__parser_concept__]
+
+[heading Pre-skip]
+
+Upon entry to the `parse` member function, a PrimitiveParser is required
+to do a pre-skip. Leading `skip` characters/tokens will be skipped prior
+to parsing. Only PrimitiveParsers are required to perform this pre-skip.
+This is typically carried out through a call to `qi::skip_over`:
+
+    qi::skip_over(f, l, skip);
+
+[heading Type Expressions]
+
+[table
+    [[Expression]                                   [Description]]
+    [[`traits::is_primitive_parser<P>::type`]       [Metafunction that evaluates to `mpl::true_` if
+                                                    a certain type, `P`, is a PrimitiveParser, `mpl::false_`
+                                                    otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Models]
+
+* __qi_attr__
+* __qi_eoi__
+* __qi_eol__
+* __qi_eps__
+* __qi_symbols__
+
+[endsect] [/ PrimitiveParser Concept]
+
+[/------------------------------------------------------------------------------]
+[section UnaryParser]
+
+[heading Description]
+
+/UnaryParser/ is a composite parser that has a single subject. The
+UnaryParser may change the behavior of its subject following the
+__delegate_pattern__.
+
+[heading Refinement of]
+
+[:__parser_concept__]
+
+[variablelist Notation
+    [[`p`]              [A UnaryParser.]]
+    [[`P`]              [A UnaryParser type.]]
+]
+
+[heading Valid Expressions]
+
+In addition to the requirements defined in __parser_concept__, for any
+UnaryParser the following must be met:
+
+[table
+    [[Expression]       [Semantics]             [Return type]]
+    [[`p.subject`]      [Subject parser.]       [__parser_concept__]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]           [Description]]
+    [[`P::subject_type`]    [The subject parser type.]]
+    [[`traits::is_unary_parser<P>::type`]       [Metafunction that evaluates to `mpl::true_` if
+                                                a certain type, `P` is a UnaryParser, `mpl::false_`
+                                                otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Invariants]
+
+For any UnaryParser, `P`, the following invariant always holds:
+
+* `traits::is_parser<P::subject_type>::type` evaluates to `mpl::true_`
+
+[heading Models]
+
+* __qi_and_predicate__
+* __qi_kleene__
+* __qi_lexeme__
+* __qi_not_predicate__
+* __qi_omit__
+* __qi_plus__
+* __qi_raw__
+* [qi_repeat `repeat`]
+* __qi_skip__
+
+[endsect] [/ UnaryParser Concept]
+
+[/------------------------------------------------------------------------------]
+[section BinaryParser]
+
+[heading Description]
+
+/BinaryParser/ is a composite parser that has a two subjects, `left` and
+`right`. The BinaryParser allows its subjects to be treated in the same
+way as a single instance of a __parser_concept__ following the
+__composite_pattern__.
+
+[heading Refinement of]
+
+[:__parser_concept__]
+
+[variablelist Notation
+    [[`p`]              [A BinaryParser.]]
+    [[`P`]              [A BinaryParser type.]]
+]
+
+[heading Valid Expressions]
+
+In addition to the requirements defined in __parser_concept__, for any
+BinaryParser the following must be met:
+
+[table
+    [[Expression]       [Semantics]             [Return type]]
+    [[`p.left`]         [Left parser.]          [__parser_concept__]]
+    [[`p.right`]        [Right parser.]         [__parser_concept__]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]           [Description]]
+    [[`P::left_type`]       [The left parser type.]]
+    [[`P::right_type`]      [The right parser type.]]
+    [[`traits::is_binary_parser<P>::type`]      [Metafunction that evaluates to `mpl::true_` if
+                                                a certain type, `P` is a BinaryParser, `mpl::false_`
+                                                otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Invariants]
+
+For any BinaryParser, `P`, the following invariants always hold:
+
+* `traits::is_parser<P::left_type>::type` evaluates to `mpl::true_`
+* `traits::is_parser<P::right_type>::type` evaluates to `mpl::true_`
+
+[heading Models]
+
+* __qi_difference__
+* __qi_list__
+
+[endsect] [/ BinaryParser Concept]
+
+[/------------------------------------------------------------------------------]
+[section NaryParser]
+
+[heading Description]
+
+/NaryParser/ is a composite parser that has one or more subjects. The
+NaryParser allows its subjects to be treated in the same way as a single
+instance of a __parser_concept__ following the __composite_pattern__.
+
+[heading Refinement of]
+
+[:__parser_concept__]
+
+[variablelist Notation
+    [[`p`]              [A NaryParser.]]
+    [[`P`]              [A NaryParser type.]]
+]
+
+[heading Valid Expressions]
+
+In addition to the requirements defined in __parser_concept__, for any
+NaryParser the following must be met:
+
+[table
+    [[Expression]       [Semantics]                 [Return type]]
+    [[`p.elements`]     [The tuple of elements.]    [A __fusion__ Sequence of __parser_concept__ types.]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]           [Description]]
+    [[`p.elements_type`]    [Elements tuple type.]]
+    [[`traits::is_nary_parser<P>::type`]            [Metafunction that evaluates to `mpl::true_` if
+                                                    a certain type, `P` is a NaryParser, `mpl::false_`
+                                                    otherwise (See __mpl_boolean_constant__).]]
+]
+
+[heading Invariants]
+
+For each element, `E`, in any NaryParser, `P`, the following invariant
+always holds:
+
+* `traits::is_parser<E>::type` evaluates to `mpl::true_`
+
+[heading Models]
+
+* __qi_alternative__
+* __qi_expect__
+* __qi_permutation__
+* __qi_sequence__
+* __qi_sequential_or__
+
+[endsect] [/ NaryParser Concept]
+
+[/------------------------------------------------------------------------------]
+[section Nonterminal]
+
+[heading Description]
+
+A Nonterminal is a symbol in a __peg__ production that represents a
+grammar fragment. Nonterminals may self reference to specify recursion.
+This is one of the most important concepts and the reason behind the
+word "recursive" in recursive descent parsing.
+
+[heading Refinement of]
+
+[:__parser_concept__]
+
+[heading Signature]
+
+Nonterminals can have both synthesized and inherited attributes. The
+Nonterminal's /Signature/ specifies both the synthesized and inherited
+attributes. The specification uses the function declarator syntax:
+
+    RT(A0, A1, A2, ..., AN)
+
+where `RT` is the Nonterminal's synthesized attribute and `A0` ... `AN`
+are the Nonterminal's inherited attributes.
+
+[heading Attributes]
+
+The Nonterminal models a C++ function. The Nonterminal's synthesized
+attribute is analogous to the function return value and its inherited
+attributes are analogous to function arguments. The inherited attributes
+(arguments) can be passed in just like any __qi_lazy_argument__, e.g.:
+
+    r(expr) // Evaluate expr at parse time and pass the result to the Nonterminal r
+
+[heading `_val`]
+
+The `boost::spirit::qi::_val` placeholder can be used in __phoenix__
+semantic actions anywhere in the Nonterminal's definition. This
+__phoenix__ placeholder refers to the Nonterminal's (synthesized)
+attribute. The `_val` placeholder acts like a mutable reference to the
+Nonterminal's attribute.
+
+[note Starting with __spirit__ V2.5 (distributed with Boost V1.47) the 
+      placeholder `_val` can be used in semantic actions attached to top level
+      parser components as well. See __parse_api__ for more information.]
+
+[heading `_r1` ... `r10`]
+
+The `boost::spirit::_r1` ... `boost::spirit::r10` placeholders can be used
+in __phoenix__ semantic actions anywhere in the Nonterminal's
+definition. These __phoenix__ placeholders refer to the Nonterminal's
+inherited attributes.
+
+[heading Locals]
+
+Nonterminals can have local variables that will be created on the stack
+at parse time. A locals descriptor added to the Nonterminal declaration
+will give the Nonterminal local variables:
+
+    template <typename T0, typename T1, typename T2, ..., typename TN>
+    struct locals;
+
+where `T0` ... `TN` are the types of local variables accessible in your
+__phoenix__ semantic actions using the placeholders:
+
+* `boost::spirit::_a`
+* `boost::spirit::_b`
+* `boost::spirit::_c`
+* `boost::spirit::_d`
+* `boost::spirit::_e`
+* `boost::spirit::_f`
+* `boost::spirit::_g`
+* `boost::spirit::_h`
+* `boost::spirit::_i`
+* `boost::spirit::_j`
+
+which correspond to the Nonterminal's local variables `T0` ... `T9`.
+
+[variablelist Notation
+    [[`x`]                          [A Nonterminal]]
+    [[`X`]                          [A Nonterminal type]]
+    [[`arg1`, `arg2`, ..., `argN`]  [__qi_lazy_arguments__ that evaluate to each of
+                                    the Nonterminal's inherited attributes.]]
+]
+
+[heading Valid Expressions]
+
+In addition to the requirements defined in __parser_concept__, for any
+Nonterminal the following must be met:
+
+[table
+    [[Expression]               [Semantics]                                         [Return type]]
+    [[`x`]                      [In a parser expression, invoke Nonterminal `x`]    [`X`]]
+    [[`x(arg1, arg2, ..., argN)`][In a parser expression, invoke Nonterminal `r`
+                                passing in inherited attributes
+                                `arg1` ... `argN`]                                    [`X`]]
+    [[`x.name(name)`]           [Naming a Nonterminal.]                             [`void`]]
+    [[`x.name()`]               [Getting the name of a Nonterminal.]                [`std::string`]]
+    [[debug(x)]                 [Debug Nonterminal `x`.]                            [`void`]]
+]
+
+[heading Type Expressions]
+
+[table
+    [[Expression]       [Description]]
+    [[`X::sig_type`]    [The Signature of `X`: An __mpl_fwd_sequence__.
+                        The first element is the Nonterminal's synthesized attribute
+                        type and the rest are the inherited attribute types.]]
+    [[`X::locals_type`] [The local variables of `X`: An __mpl_fwd_sequence__.]]
+]
+
+[heading Models]
+
+* __qi_rule__
+* __qi_grammar__
+
+[endsect] [/ Concept]
+
+
+
+[endsect]

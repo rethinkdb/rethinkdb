@@ -1,0 +1,381 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Integer Real World Tests</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../perf.html" title="Performance Comparison">
+<link rel="prev" href="realworld.html" title="Floating Point Real World Tests">
+<link rel="next" href="float_performance.html" title="Float Algorithm Performance">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="realworld.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../perf.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="float_performance.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.perf.int_real_world"></a><a class="link" href="int_real_world.html" title="Integer Real World Tests">Integer Real
+      World Tests</a>
+</h3></div></div></div>
+<p>
+        The first set of <a href="../../../../performance/voronoi_performance.cpp" target="_top">tests</a>
+        measure the times taken to execute the multiprecision part of the Voronoi-diagram
+        builder from Boost.Polygon. The tests mainly create a large number of temporaries
+        "just in case" multiprecision arithmetic is required, for comparison,
+        also included in the tests is Boost.Polygon's own partial-multiprecision
+        integer type which was custom written for this specific task:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Integer Type
+                </p>
+              </th>
+<th>
+                <p>
+                  Relative Performance (Actual time in parenthesis)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  polygon::detail::extended_int
+                </p>
+              </td>
+<td>
+                <p>
+                  1(0.138831s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  int256_t
+                </p>
+              </td>
+<td>
+                <p>
+                  1.19247(0.165551s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  int512_t
+                </p>
+              </td>
+<td>
+                <p>
+                  1.23301(0.17118s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  int1024_t
+                </p>
+              </td>
+<td>
+                <p>
+                  1.21463(0.168628s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  checked_int256_t
+                </p>
+              </td>
+<td>
+                <p>
+                  1.31711(0.182855s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  checked_int512_t
+                </p>
+              </td>
+<td>
+                <p>
+                  1.57413(0.218538s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  checked_int1024_t
+                </p>
+              </td>
+<td>
+                <p>
+                  1.36992(0.190187s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  cpp_int
+                </p>
+              </td>
+<td>
+                <p>
+                  1.63244(0.226632s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  mpz_int
+                </p>
+              </td>
+<td>
+                <p>
+                  5.42511(0.753172s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  tom_int
+                </p>
+              </td>
+<td>
+                <p>
+                  29.0793(4.03709s)
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        Note how for this use case, any dynamic allocation is a performance killer.
+      </p>
+<p>
+        The next <a href="../../../../performance/miller_rabin_performance.cpp" target="_top">tests</a>
+        measure the time taken to generate 1000 128-bit random numbers and test for
+        primality using the Miller Rabin test. This is primarily a test of modular-exponentiation
+        since that is the rate limiting step:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Integer Type
+                </p>
+              </th>
+<th>
+                <p>
+                  Relative Performance (Actual time in parenthesis)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  cpp_int
+                </p>
+              </td>
+<td>
+                <p>
+                  5.25827(0.379597s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  cpp_int (no Expression templates)
+                </p>
+              </td>
+<td>
+                <p>
+                  5.15675(0.372268s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  cpp_int (128-bit cache)
+                </p>
+              </td>
+<td>
+                <p>
+                  5.10882(0.368808s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  cpp_int (256-bit cache)
+                </p>
+              </td>
+<td>
+                <p>
+                  5.50623(0.397497s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  cpp_int (512-bit cache)
+                </p>
+              </td>
+<td>
+                <p>
+                  4.82257(0.348144s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  cpp_int (1024-bit cache)
+                </p>
+              </td>
+<td>
+                <p>
+                  5.00053(0.360991s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  int1024_t
+                </p>
+              </td>
+<td>
+                <p>
+                  4.37589(0.315897s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  checked_int1024_t
+                </p>
+              </td>
+<td>
+                <p>
+                  4.52396(0.326587s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  mpz_int
+                </p>
+              </td>
+<td>
+                <p>
+                  1(0.0721905s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  mpz_int (no Expression templates)
+                </p>
+              </td>
+<td>
+                <p>
+                  1.0248(0.0739806s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  tom_int
+                </p>
+              </td>
+<td>
+                <p>
+                  2.60673(0.188181s)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  tom_int (no Expression templates)
+                </p>
+              </td>
+<td>
+                <p>
+                  2.64997(0.191303s)
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        It's interesting to note that expression templates have little effect here
+        - perhaps because the actual expressions involved are relatively trivial
+        in this case - so the time taken for multiplication and division tends to
+        dominate. Also note how increasing the internal cache size used by <code class="computeroutput"><span class="identifier">cpp_int</span></code> is quite effective in this case
+        in cutting out memory allocations altogether - cutting about a third off
+        the total runtime. Finally the much quicker times from GMP and tommath are
+        down to their much better modular-exponentiation algorithms (GMP's is about
+        5x faster). That's an issue which needs to be addressed in a future release
+        for <a class="link" href="../tut/ints/cpp_int.html" title="cpp_int">cpp_int</a>.
+      </p>
+<p>
+        Test code was compiled with Microsoft Visual Studio 2010 with all optimisations
+        turned on (/Ox), and used MPIR-2.3.0 and <a href="http://www.mpfr.org" target="_top">MPFR</a>-3.0.0.
+        The tests were run on 32-bit Windows Vista machine.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="realworld.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../perf.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="float_performance.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

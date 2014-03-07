@@ -1,0 +1,63 @@
+{
+  "title": "Node's [domain module](http://nodejs.org/api/domain.html) for the web browser",
+  "name": "domain-browser",
+  "version": "1.1.1",
+  "description": "Note, this is merely an evented try...catch with the same API as node. Nothing more.",
+  "homepage": "https://github.com/bevry/domain-browser",
+  "license": {
+    "type": "MIT"
+  },
+  "badges": {
+    "travis": true,
+    "npm": true,
+    "gittip": "bevry",
+    "flattr": "344188/balupton-on-Flattr",
+    "paypal": "QB8GQPZAH84N6"
+  },
+  "keywords": [
+    "domain",
+    "trycatch",
+    "try",
+    "catch",
+    "node-compat",
+    "ender.js",
+    "component",
+    "component.io",
+    "umd",
+    "amd",
+    "require.js",
+    "browser"
+  ],
+  "browsers": true,
+  "author": "Bevry Pty Ltd <us@bevry.me> (http://bevry.me)",
+  "maintainers": [
+    "Benjamin Lupton <b@lupton.cc> (https://github.com/balupton)"
+  ],
+  "contributors": [
+    "Benjamin Lupton <b@lupton.cc> (https://github.com/balupton)"
+  ],
+  "bugs": {
+    "url": "https://github.com/bevry/domain-browser/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/bevry/domain-browser.git"
+  },
+  "engines": {
+    "node": ">=0.4",
+    "npm": ">=1.2"
+  },
+  "directories": {
+    "lib": "./"
+  },
+  "main": "./index.js",
+  "devDependencies": {
+    "projectz": "~0.3.2",
+    "chai": "~1.8.1",
+    "joe": "~1.3.2",
+    "joe-reporter-console": "~1.2.1"
+  },
+  "scripts": {
+    "test": "node ./test.js"
+  }
+}

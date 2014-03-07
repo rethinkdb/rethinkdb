@@ -1,0 +1,164 @@
+body {
+    background-color: #ffffff;
+    min-width: 960px;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    font-weight: normal;
+    line-height: 18px;
+    color: #444;
+    margin: 0;
+}
+
+p {
+    font-size: 13px;
+    font-weight: normal;
+    line-height: 18px;
+    margin-bottom: 9px;
+}
+
+ul {
+    padding-left: 20px;
+}
+
+li {
+    font-size: 13px;
+    font-weight: normal;
+    line-height: 18px;
+    margin-bottom: 4px;
+}
+
+pre {
+    margin-left: 15px;
+    font-family: Inconsolata, Menlo, 'Courier New', monospace;
+}
+
+h1 {
+    margin-top: 2px;
+    margin-bottom: 18px;
+    font-size: 30px;
+    line-height: 36px;
+    font-weight: bold;
+    color: #444;
+}
+
+h1 small {
+    font-size: 18px;
+    color: #ccc;
+}
+
+h3, h4 {
+    font-size: 18px;
+    font-weight: bold;
+    color: #444;
+}
+
+h4 {
+    font-size: 16px;
+}
+
+.code {
+    border-left: 3px solid #ddd;
+    margin: 5px 3px 8px 15px;
+    padding: 0 0 0 8px;
+}
+
+.CodeMirror {
+    padding: 0;
+    border: 1px solid #ccc;
+}
+
+.CodeMirror-scroll {
+    height: 200px;
+}
+
+.container {
+    margin-left: auto;
+    margin-right: auto;
+    width: 960px;
+}
+
+.topbar {
+    top: 0;
+    margin: 0 0 0 480px;
+    padding: 0;
+    width: 300px;
+}
+
+.topbar ul {
+    padding: 5px 20px 5px 10px;
+    background-color: #222;
+    margin: 0 10px 0 0;
+}
+
+.topbar a {
+    color: #ddd;
+    text-decoration: none;
+}
+
+.topbar a:hover {
+    color: #fff;
+}
+
+.topbar .nav li {
+    background-color: #222;
+    display: inline;
+    padding: 4px 10px 4px 0px;
+    margin: 0;
+}
+
+.container .main {
+    width: 540px;
+    display: inline;
+    float: left;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.container .sidebar {
+    width: 350px;
+    display: inline;
+    float: left;
+    margin-left: 30px;
+    margin-right: 10px;
+}
+
+.footer {
+    margin-top: 25px;
+    margin-bottom: 25px;
+    color: #555;
+    text-align: center;
+}
+
+textarea {
+    font-family: Inconsolata, Monaco, Consolas, "Lucida Console", monospace;
+    font-size: 13px;
+    color: #555;
+    width: 80%;
+    padding: 7px;
+    overflow: auto;
+}
+
+table {
+    width: 80%;
+    border: 1px solid #ccc;
+    border-spacing: 0;
+}
+
+thead {
+    font-weight: bold;
+}
+
+table th, table td {
+    border-left: 1px solid #ccc;
+    padding: 3px 3px 10px 3px;
+    text-align: center;
+}
+
+table td {
+    border-top: 1px solid #ccc;
+}
+
+tbody tr:nth-child(odd) td {
+    background-color: #eee;
+}
+

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<section last-revision="$Date: 2007-06-12 14:01:23 -0400 (Tue, 12 Jun 2007) $">
+  <title>Introduction</title>
+
+  <para>The Boost.Signals2 library is an implementation of a managed
+  signals and slots system. Signals represent callbacks with multiple
+  targets, and are also called publishers or events in similar
+  systems. Signals are connected to some set of slots, which are
+  callback receivers (also called event targets or subscribers), which
+  are called when the signal is "emitted."</para>
+
+  <para>Signals and slots are managed, in that signals and slots (or,
+  more properly, objects that occur as part of the slots) can track
+  connections and are capable of automatically disconnecting signal/slot
+  connections when either is destroyed. This enables the user to make
+  signal/slot connections without expending a great effort to manage the
+  lifetimes of those connections with regard to the lifetimes of all
+  objects involved.</para>
+
+  <para>When signals are connected to multiple slots, there is a
+  question regarding the relationship between the return values of the
+  slots and the return value of the signals. Boost.Signals2 allows the
+  user to specify the manner in which multiple return values are
+  combined.</para>
+
+  <section>
+    <title>Signals2</title>
+    <para>This documentation describes a thread-safe variant of the
+    original Boost.Signals library.  There have been some changes to
+    the interface to support thread-safety, mostly with respect to
+    automatic connection management.  This implementation was written by
+    Frank Mori Hess.  Acknowledgements are also due to Timmo Stange, Peter
+    Dimov, and Tony Van Eerd for ideas and feedback, and to Douglas Gregor
+    for the original version of Boost.Signals this effort was based on.
+    </para>
+  </section>
+</section>

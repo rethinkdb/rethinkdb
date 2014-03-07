@@ -1,0 +1,29 @@
+Index: source/common/stringpiece.cpp
+===================================================================
+--- source/common/stringpiece.cpp       (revision 158118)
++++ source/common/stringpiece.cpp       (working copy)
+@@ -75,7 +75,7 @@
+  * Visual Studios 9.0.
+  * Cygwin with MSVC 9.0 also complains here about redefinition.
+  */
+-#if (!defined(_MSC_VER) || (_MSC_VER > 1600)) && !defined(CYGWINMSVC)
++#if (!defined(_MSC_VER) || (_MSC_VER > 1700)) && !defined(CYGWINMSVC)
+ const int32_t StringPiece::npos;
+ #endif
+
+Index: public/common/unicode/pwin32.h
+===================================================================
+--- public/common/unicode/pwin32.h      (revision 158118)
++++ public/common/unicode/pwin32.h      (working copy)
+@@ -26,6 +26,10 @@
+ #define U_WINDOWS
+ #endif
+
++#if _MSC_VER >= 1700
++#include <stdint.h>
++#endif
++
+ #if defined(__BORLANDC__)
+ #define U_HAVE_PLACEMENT_NEW 0
+ #define __STDC_CONSTANT_MACROS
+

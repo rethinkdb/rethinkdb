@@ -1,0 +1,165 @@
+<html>
+<head>
+<title>Organization</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Organization</b></font> 
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="basic_concepts.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="primitives.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>The framework is highly modular and is organized in layers:</p>
+<table width="100%" border="0">
+  <tr> 
+    <td><div align="center"> 
+        <table width="40%" border="1" cellpadding="3" cellspacing="3" class="table_cells">
+          <tr> 
+            <td><div align="center"><font color="#003366"><strong>iterator</strong></font></div></td>
+            <td><div align="center"><font color="#003366"><strong>actor</strong></font></div></td>
+          </tr>
+        </table>
+        <font color="#003366" size="3"><br>
+        </font></div></td>
+  </tr>
+  <tr> 
+    <td><div align="center"> 
+        <table width="20%" border="1" cellpadding="3" cellspacing="3" class="table_cells">
+          <tr> 
+            <td><div align="center"><font color="#003366"><strong>debug</strong></font></div></td>
+          </tr>
+        </table>
+        <font color="#003366" size="3"><br>
+        </font></div></td>
+  </tr>
+  <tr> 
+    <td><div align="center"> 
+        <table width="75%" border="1" cellpadding="3" cellspacing="3" class="table_cells">
+          <tr> 
+            <td><div align="center"><font color="#003366"><strong>attribute</strong></font></div></td>
+            <td><div align="center"><font color="#003366"><strong>dynamic</strong></font></div></td>
+            <td><div align="center"><font color="#003366"><strong>error_handling</strong></font></div></td>
+            <td><div align="center"><font color="#003366"><strong>symbols</strong></font></div></td>
+            <td><div align="center"><font color="#003366"><strong>tree</strong></font></div></td>
+            <td><div align="center"><font color="#003366"><strong>utility</strong></font></div></td>
+          </tr>
+        </table>
+        <font color="#003366" size="3"><br>
+        </font></div></td>
+  </tr>
+  <tr> 
+    <td><div align="center"> 
+        <table width="20%" border="1" cellpadding="3" cellspacing="3" class="table_cells">
+          <tr> 
+            <td><div align="center"><font color="#003366"><strong>meta</strong></font></div></td>
+          </tr>
+        </table>
+        <font color="#003366"><br>
+        </font></div></td>
+  </tr>
+  <tr> 
+    <td><div align="center"> 
+        <table width="85%" border="1" cellpadding="3" cellspacing="3" class="table_cells">
+          <tr> 
+            <td colspan="4"><div align="center"><font color="#003366"><strong><font size="4">core</font></strong></font></div></td>
+          </tr>
+          <tr> 
+            <td><div align="center"><font color="#003366"><strong>scanner</strong></font></div></td>
+            <td><div align="center"><font color="#003366"><strong>primitives</strong></font></div></td>
+            <td><div align="center"><font color="#003366"><strong>composite</strong></font></div></td>
+            <td><div align="center"><font color="#003366"><strong>non_terminal</strong></font></div></td>
+          </tr>
+        </table>
+      </div></td>
+  </tr>
+</table>
+<p>Spirit has four layers, plus an independent top layer. The independent layer, 
+  comprising of actor and iterator, does not rely on the other layers. The framework's 
+  architecture is completely orthogonal. The relationship among the layers is 
+  acyclic. Lower layers do not depend nor know the existence of upper layers. 
+  Modules in a layer do not depend on other modules in the same layer. </p>
+<p>The client may use only the modules that she wants without incurring any compile 
+  time nor run time penalty. A minimalistic approach is to use only the core as 
+  is. The highly streamlined core is usable by itself. The core is sufficiently 
+  suitable for tasks such as micro parsing.</p>
+<p>The <strong>iterator</strong> module is independent of Spirit and may be used 
+  in other non-Spirit applications. This module is a compilation of stand-alone 
+  iterators and iterator wrappers compatible with Spirit. 
+
+
+ Over time, these iterators have been found to be most useful for parsing with Spirit. </p>
+<p>The <strong>actor</strong> module, also independent of Spirit, is a compilation 
+  of predefined semantic actions that covers the most common semantics processing 
+  tasks.</p>
+<p>The <strong>debug</strong> module provides library wide parser debugging. This 
+  module hooks itself up transparently into the core non-intrusively and only 
+  when necessary.</p>
+<p>The<strong> attribute</strong> module introduces advanced semantic action machinery 
+  with emphasis on extraction and passing of data up and down the parser hierarchy 
+  through inherited and synthesized attributes. Attributes may also be used to 
+  actually control the parsing. Parametric parsers are a form of dynamic parsers 
+  that changes their behavior at run time based on some attribute or data.</p>
+<p>The <strong>dynamic</strong> module focuses on parsers with behavior that can 
+  be modified at run-time.</p>
+<p><strong>error_handling</strong>. The framework would not be complete without 
+  Error Handling. C++'s exception handling mechanism is a perfect match for Spirit 
+  due to its highly recursive functional nature. C++ Exceptions are used extensively 
+  by this module for handling errors.</p>
+<p>The<strong> symbols</strong> module focuses on symbol table management. This module 
+  is rather basic now. The goal is to build a sub-framework that will be able 
+  to accommodate C++ style multiple scope mechanisms. C++ is a great model for 
+  the complexity of scoping that perhaps has no parallel in any other language. 
+  There are classes and inheritance, private, protected and public access restrictions, 
+  friends, namespaces, using declarations, using directives, Koenig lookup (Argument 
+  Dependent Lookup) and more. The symbol table functionality we have now will 
+  be the basis of a complete facility that will attempt to model this.</p>
+<blockquote> 
+  <p><em><font color="#003366">I wish that I could ever see, a structure as lovely 
+    as a tree</font></em><font color="#003366">...</font></p>
+</blockquote>
+<p> Parse Tree and Abstract Syntax Tree (AST) generation are handled by the <b>Tree</b> 
+  module. There are advantages with Parse Trees and Abstract Syntax Trees over 
+  semantic actions. You can make multiple passes over the data without having 
+  to re-parse the input. You can perform transformations on the tree. You can 
+  evaluate things in any order you want, whereas with attribute schemes you have 
+  to process in a begin to end fashion. You do not have to worry about backtracking 
+  and action side effects that may occur with an ambiguous grammar.</p>
+<p>The <b>utility</b> module is a set of commonly useful parsers and support classes 
+  that were found to be useful in handling common tasks such as list processing, 
+  comments, confix expressions, etc.</p>
+<p><strong>meta</strong>, provides metaprogramming facilities for advanced Spirit 
+  developers. This module facilitates compile-time and run-time introspection 
+  of Spirit parsers.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="basic_concepts.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="primitives.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

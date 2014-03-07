@@ -1,0 +1,66 @@
+<?xml version="1.0" ?>
+<!--
+  Copyright 2008 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<concept name="PolymorphicFunctionObject" category="utility">
+  <param name="Fn" role="polymorphic-function-object-type" />
+
+  <models-sentence>
+    The type <arg num="1" /> must be a model of <self/>.
+  </models-sentence>
+
+  <description>
+    <para>
+      A type that can be called and that follows the TR1 ResultOf
+      protocol for return type calculation.
+    </para>
+  </description>
+
+  <notation variables="fn">
+    <sample-value>
+      <type name="Fn" />
+    </sample-value>
+  </notation>
+
+  <notation variables="a0,...an">
+    <sample-value>
+      <type name="A0,...An" />
+    </sample-value>
+  </notation>
+
+  <associated-type name="result_type">
+    <get-member-type name="type">
+      <apply-template name="result_of">
+        <apply-function name="Fn">
+          <type name="A0,...An" />
+        </apply-function>
+      </apply-template>
+    </get-member-type>
+    <description>
+      <simpara>The result of calling the Polymorphic Function Object.</simpara>
+    </description>
+  </associated-type>
+
+  <valid-expression name="Function Call">
+    <apply-function name="fn">
+      <sample-value>
+        <type name="A0,...An" />
+      </sample-value>
+    </apply-function>
+    <return-type>
+      <require-same-type testable="yes">
+        <type name="result_type"/>
+      </require-same-type>
+    </return-type>
+    <semantics>Calls the function object.</semantics>
+  </valid-expression>
+
+  <example-model>
+    <type name="std::plus&lt;int&gt;" />
+  </example-model>
+
+</concept>

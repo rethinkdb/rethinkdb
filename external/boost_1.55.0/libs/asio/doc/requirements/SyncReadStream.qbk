@@ -1,0 +1,48 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:SyncReadStream Buffer-oriented synchronous read stream requirements]
+
+In the table below, `a` denotes a synchronous read stream object, `mb` denotes
+an object satisfying [link boost_asio.reference.MutableBufferSequence
+mutable buffer sequence] requirements, and `ec` denotes an object of type
+`error_code`.
+
+[table Buffer-oriented synchronous read stream requirements
+  [[operation] [type] [semantics, pre/post-conditions]]
+  [
+    [`a.read_some(mb);`]
+    [`size_t`]
+    [Equivalent to:
+     ``
+       error_code ec;
+       size_t s = a.read_some(mb, ec);
+       if (ec) throw system_error(ec);
+       return s;
+     ``]
+  ]
+  [
+    [`a.read_some(mb, ec);`]
+    [`size_t`]
+    [
+      Reads one or more bytes of data from the stream `a`.\n
+      \n
+      The mutable buffer sequence `mb` specifies memory where the data should
+      be placed. The `read_some` operation shall always fill a buffer in the
+      sequence completely before proceeding to the next.\n
+      \n
+      If successful, returns the number of bytes read and sets `ec` such that
+      `!ec` is true. If an error occurred, returns `0` and sets `ec` such that
+      `!!ec` is true.\n
+      \n
+      If the total size of all buffers in the sequence `mb` is `0`, the
+      function shall return `0` immediately.
+    ]
+  ]
+]
+
+[endsect]

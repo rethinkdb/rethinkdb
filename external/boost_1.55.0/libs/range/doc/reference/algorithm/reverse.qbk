@@ -1,0 +1,37 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:reverse reverse]
+
+[heading Prototype]
+
+``
+template<class BidirectionalRange>
+BidirectionalRange& reverse(BidirectionalRange& rng);
+
+template<class BidirectionalRange>
+const BidirectionalRange& reverse(const BidirectionalRange& rng);
+``
+
+[heading Description]
+
+`reverse` reverses a range. Returns a reference to the reversed range.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/reverse.hpp`
+
+[heading Requirements]
+
+* `BidirectionalRange` is a model of the __bidirectional_range__ Concept.
+* `BidirectionalRange` is mutable.
+
+[heading Complexity]
+
+Linear. `reverse` makes `distance(rng)/2` calls to `iter_swap`.
+
+[endsect]
+
+

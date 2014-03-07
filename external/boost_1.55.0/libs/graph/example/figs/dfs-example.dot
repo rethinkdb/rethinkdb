@@ -1,0 +1,28 @@
+graph G {
+  size="3,3"
+  ratio="fill"
+  node[shape="circle"]
+  edge[style="bold"]
+  a;
+  b;
+  c;
+  d;
+  e;
+  f;
+  g;
+  h;
+  i;
+  j;
+
+  c -- a[label="1"]
+  a -- b[color="gray",style="bold",weight=0]
+  f -- c[label="2"]
+  g -- f[label="3"]
+  f -- h[label="7"]
+  g -- d[label="4"]
+  b -- e[label="6"]
+  b -- d[label="5"]
+  e -- d[color="gray",style="bold",weight=0]
+
+  i -- j[label="8"]
+}

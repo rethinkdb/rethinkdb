@@ -1,0 +1,51 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Including the UTF directly into your test module</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../compilation.html" title="The UTF compilation variants and procedures">
+<link rel="prev" href="auto-linking.html" title="Support of the auto-linking feature">
+<link rel="next" href="../user-guide.html" title="Unit Test Framework: User's guide">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../compilation.html">Compilation</a><a href="../user-guide.html">
+      &gt;
+      </a><b>Direct include</b>
+</td>
+<td><div class="spirit-nav">
+<a href="auto-linking.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="../user-guide.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.compilation.direct-include"></a>Including the <acronym class="acronym">UTF</acronym> directly into your test module</h4></div></div></div>
+<p class="first-line-indented">
+    If you prefer to avoid the standalone library compilation you can either include all files that constitute the
+    static library in your test module's makefile or include them as a part of a test module's source file.
+    To facilitate the later variant the <acronym class="acronym">UTF</acronym> presents the 
+    <a class="link" href="../user-guide/usage-variants/single-header-variant.html" title="The single-header variant of the UTF">single-header usage variant</a>. In either case no special 
+    build options or macro definitions are required to be added to your compilation options list by default. But the 
+    same flags that can be used for the <a class="link" href="standalone.html" title="Standalone library compilation">standalone library compilation</a>
+    are applicable in this case. Though, obviously, neither <a class="xref" href="../../prg-exec-monitor/compilation.html#pem.flag.dyn-link">BOOST_TEST_DYN_LINK</a> 
+    nor <a class="xref" href="../../prg-exec-monitor/compilation.html#pem.flag.no-lib">BOOST_TEST_NO_LIB</a> are applicable. This solution may not be the 
+    best choice in a long run, since it requires the <acronym class="acronym">UTF</acronym> sources recompilation for every test module you use it with 
+    and for every change of a test module you are working on. In a result your testing cycle time may increase. If it 
+    become tiresome, I recommend switching to one of the prebuilt library usage variants.
+   </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="auto-linking.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../compilation.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="../user-guide.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:AcceptHandler Accept handler requirements]
+
+An accept handler must meet the requirements for a [link
+boost_asio.reference.Handler handler]. A value `h` of an accept handler
+class should work correctly in the expression `h(ec)`, where `ec` is an lvalue
+of type `const error_code`.
+
+[heading Examples]
+
+A free function as an accept handler:
+
+  void accept_handler(
+      const boost::system::error_code& ec)
+  {
+    ...
+  }
+
+An accept handler function object:
+
+  struct accept_handler
+  {
+    ...
+    void operator()(
+        const boost::system::error_code& ec)
+    {
+      ...
+    }
+    ...
+  };
+
+A non-static class member function adapted to an accept handler using `bind()`:
+
+  void my_class::accept_handler(
+      const boost::system::error_code& ec)
+  {
+    ...
+  }
+  ...
+  acceptor.async_accept(...,
+      boost::bind(&my_class::accept_handler,
+        this, boost::asio::placeholders::error));
+
+[endsect]

@@ -1,0 +1,62 @@
+Index: source/i18n/rematch.cpp
+===================================================================
+--- source/i18n/rematch.cpp	(revision 98343)
++++ source/i18n/rematch.cpp	(working copy)
+@@ -5598,6 +5598,7 @@
+                     const UChar *foldChars = NULL;
+                     int32_t foldOffset, foldLength;
+                     UChar32 c;
++                    UBool c_is_valid = FALSE;
+                     
+                     #ifdef REGEX_SMART_BACKTRACKING
+                     int32_t originalInputIdx = fp->fInputIdx;
+@@ -5607,23 +5608,31 @@
+                     foldOffset = foldLength = 0;
+ 
+                     while (patternChars < patternEnd && success) {
+-                        if(foldOffset < foldLength) {
+-                            U16_NEXT_UNSAFE(foldChars, foldOffset, c);
+-                        } else {
+-                            U16_NEXT(inputBuf, fp->fInputIdx, fActiveLimit, c);
+-                            foldLength = ucase_toFullFolding(csp, c, &foldChars, U_FOLD_CASE_DEFAULT);
+-                            if(foldLength >= 0) {
+-                                if(foldLength <= UCASE_MAX_STRING_LENGTH) {   // !!!: Does not correctly handle chars that fold to 0-length strings
+-                                    foldOffset = 0;
+-                                    U16_NEXT_UNSAFE(foldChars, foldOffset, c);
+-                                } else {
+-                                    c = foldLength;
+-                                    foldLength = foldOffset; // to avoid reading chars from the folding buffer
++                        if (fp->fInputIdx < fActiveLimit) {  // don't read past end of string
++                            if(foldOffset < foldLength) {
++                                U16_NEXT_UNSAFE(foldChars, foldOffset, c);
++                                c_is_valid = TRUE;
++                            } else {
++                                // test pre-condition of U16_NEXT: i < length
++                                U_ASSERT(fp->fInputIdx < fActiveLimit);
++                                U16_NEXT(inputBuf, fp->fInputIdx, fActiveLimit, c);
++                                c_is_valid = TRUE;
++                                foldLength = ucase_toFullFolding(csp, c, &foldChars, U_FOLD_CASE_DEFAULT);
++                                if(foldLength >= 0) {
++                                    if(foldLength <= UCASE_MAX_STRING_LENGTH) {   // !!!: Does not correctly handle chars that fold to 0-length strings
++                                        foldOffset = 0;
++                                        U16_NEXT_UNSAFE(foldChars, foldOffset, c);
++                                    } else {
++                                        c = foldLength;
++                                        foldLength = foldOffset; // to avoid reading chars from the folding buffer
++                                    }
+                                 }
+                             }
++                        } else {
++                          c_is_valid = FALSE;
+                         }
+                         
+-                        if (fp->fInputIdx <= fActiveLimit) {
++                        if (fp->fInputIdx <= fActiveLimit && c_is_valid) {
+                             if (U_IS_BMP(c)) {
+                                 success = (*patternChars == c);
+                                 patternChars += 1;
+@@ -6070,4 +6079,3 @@
+ U_NAMESPACE_END
+ 
+ #endif  // !UCONFIG_NO_REGULAR_EXPRESSIONS
+-

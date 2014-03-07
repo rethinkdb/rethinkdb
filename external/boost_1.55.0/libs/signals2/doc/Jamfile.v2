@@ -1,0 +1,37 @@
+# Copyright 2005 Daniel James.
+# Copyright 2009 Frank Mori Hess.
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+using boostbook ;
+
+boostbook standalone : signals.xml :
+    <dependency>hello_world_def_code_snippet.xml
+    <implicit-dependency>hello_world_def_code_snippet.xml
+
+    <xsl:param>boost.root=../../../..
+#    <xsl:param>navig.graphics=1
+
+#    <xsl:param>chunk.first.sections=1
+#    <xsl:param>chunk.section.depth=2
+#    <xsl:param>generate.section.toc.level=2
+#    <xsl:param>toc.section.depth=1
+#    <xsl:param>toc.max.depth=1
+
+#    <xsl:param>boost.compact.typedef=0
+#    <xsl:param>boost.compact.function=0
+#    <xsl:param>boost.compact.enum=0
+    ;
+
+import snippet-extractor ;
+
+exe snippet_extractor : snippet_extractor.cpp : release ;
+
+make hello_world_def_code_snippet.xml
+  : [ glob ../example/*.cpp ]
+  : snippet-extractor.extract-snippets
+  : <extractor-command>.//snippet_extractor
+  ;
+
+

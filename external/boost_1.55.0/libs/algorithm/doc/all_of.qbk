@@ -1,0 +1,89 @@
+[/ File all_of.qbk]
+
+[section:all_of all_of]
+
+[/license
+Copyright (c) 2010-2012 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+The header file 'boost/algorithm/cxx11/all_of.hpp' contains four variants of a single algorithm, `all_of`. The algorithm tests all the elements of a sequence and returns true if they all share a  property.
+
+The routine `all_of` takes a sequence and a predicate. It will return true if the predicate returns true when applied to every element in the sequence. 
+
+The routine `all_of_equal` takes a sequence and a value. It will return true if every element in the sequence compares equal to the passed in value.
+
+Both routines come in two forms; the first one takes two iterators to define the range. The second form takes a single range parameter, and uses Boost.Range to traverse it.
+
+
+[heading interface]
+
+The function `all_of` returns true if the predicate returns true for every item in the sequence.  There are two versions; one takes two iterators, and the other takes a range.
+
+``
+namespace boost { namespace algorithm {
+template<typename InputIterator, typename Predicate>
+	bool all_of ( InputIterator first, InputIterator last, Predicate p );
+template<typename Range, typename Predicate> 
+	bool all_of ( const Range &r, Predicate p );
+}}
+``
+
+The function `all_of_equal` is similar to `all_of`, but instead of taking a predicate to test the elements of the sequence, it takes a value to compare against.
+
+``
+namespace boost { namespace algorithm {
+template<typename InputIterator, typename V>
+	bool all_of_equal ( InputIterator first, InputIterator last, V const &val );
+template<typename Range, typename V> 
+	bool all_of_equal ( const Range &r, V const &val );
+}}
+``
+
+[heading Examples]
+
+Given the container `c` containing `{ 0, 1, 2, 3, 14, 15 }`, then
+``
+bool isOdd ( int i ) { return i % 2 == 1; }
+bool lessThan10 ( int i ) { return i < 10; }
+
+using boost::algorithm;
+all_of ( c, isOdd ) --> false
+all_of ( c.begin (), c.end (), lessThan10 ) --> false
+all_of ( c.begin (), c.begin () + 3, lessThan10 ) --> true
+all_of ( c.end (), c.end (), isOdd ) --> true  // empty range
+all_of_equal ( c, 3 ) --> false
+all_of_equal ( c.begin () + 3, c.begin () + 4, 3 ) --> true
+all_of_equal ( c.begin (), c.begin (), 99 ) --> true  // empty range
+``
+
+[heading Iterator Requirements]
+
+`all_of` and `all_of_equal` work on all iterators except output iterators.
+
+[heading Complexity]
+
+All of the variants of `all_of` and `all_of_equal` run in ['O(N)] (linear) time; that is, they compare against each element in the list once. If any of the comparisons fail, the algorithm will terminate immediately, without examining the remaining members of the sequence.
+
+[heading Exception Safety]
+
+All of the variants of `all_of` and `all_of_equal` take their parameters by value or const reference, and do not depend upon any global state. Therefore, all the routines in this file provide the strong exception guarantee.
+
+[heading Notes]
+
+* The routine `all_of` is part of the C++11 standard. When compiled using a C++11 implementation, the implementation from the standard library will be used.
+
+* `all_of` and `all_of_equal` both return true for empty ranges, no matter what is passed to test against. When there are no items in the sequence to test, they all satisfy the condition to be tested against.
+
+* The second parameter to `all_of_value` is a template parameter, rather than deduced from the first parameter (`std::iterator_traits<InputIterator>::value_type`) because that allows more flexibility for callers, and takes advantage of built-in comparisons for the type that is pointed to by the iterator.  The function is defined to return true if, for all elements in the sequence, the expression `*iter == val` evaluates to true (where `iter` is an iterator to each element in the sequence)
+
+[endsect]
+
+[/ File all_of.qbk
+Copyright 2011 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

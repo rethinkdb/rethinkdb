@@ -1,0 +1,1523 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Posix Time</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../date_time.html" title="Chapter&#160;9.&#160;Boost.Date_Time">
+<link rel="prev" href="gregorian.html" title="Gregorian">
+<link rel="next" href="local_time.html" title="Local Time">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="gregorian.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../date_time.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="local_time.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="date_time.posix_time"></a>Posix Time</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="posix_time.html#date_time.posix_time.ptime_class">Ptime</a></span></dt>
+<dt><span class="section"><a href="posix_time.html#date_time.posix_time.time_duration">Time Duration</a></span></dt>
+<dt><span class="section"><a href="posix_time.html#date_time.posix_time.time_period">Time Period</a></span></dt>
+<dt><span class="section"><a href="posix_time.html#date_time.posix_time.time_iterators">Time Iterators</a></span></dt>
+</dl></div>
+<h3>
+<a name="idp81011528"></a>Posix Time System</h3>
+<p>
+    <a class="link" href="posix_time.html#posix_intro">Introduction</a> -- 
+    <a class="link" href="posix_time.html#posix_ex">Usage Examples</a>
+  </p>
+<a name="posix_intro"></a><h4>
+<a name="idp81013432"></a>Introduction</h4>
+<p>
+    Defines a non-adjusted time system with nano-second/micro-second resolution and stable calculation properties.  The nano-second resolution option uses 96 bits of underlying storage for each ptime while the micro-second resolution uses 64 bits per ptime (see <a class="link" href="details.html#date_time.buildinfo" title="Build-Compiler Information">Build Options</a> for details). This time system uses the Gregorian calendar to implement the date portion of the time representation. 
+  </p>
+<a name="posix_ex"></a><h4>
+<a name="idp81015224"></a>Usage Examples</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Example</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><a class="link" href="examples.html#date_time.examples.time_math" title="Time Math">Time Math</a></td>
+<td>A few simple calculations using ptime and time_durations.</td>
+</tr>
+<tr>
+<td><a class="link" href="examples.html#date_time.examples.print_hours" title="Print Hours">Print Hours</a></td>
+<td>Retrieve time from clock, use a time_iterator.</td>
+</tr>
+<tr>
+<td><a class="link" href="examples.html#date_time.examples.local_utc_conversion" title="Local to UTC Conversion">Local to UTC Conversion</a></td>
+<td>Demonstrates a couple different ways to convert a local to UTC time including daylight savings rules.</td>
+</tr>
+<tr>
+<td><a class="link" href="examples.html#date_time.examples.time_periods" title="Time Periods">Time Periods</a></td>
+<td>Some simple examples of intersection and display of time periods.</td>
+</tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.posix_time.ptime_class"></a>Ptime</h3></div></div></div>
+<a class="link" href="posix_time.html#ptime_intro">Introduction</a> --
+  <a class="link" href="posix_time.html#ptime_header">Header</a> --
+  <a class="link" href="posix_time.html#ptime_constr">Construction</a> --
+  <a class="link" href="posix_time.html#ptime_from_string">Construct from String</a> --
+  <a class="link" href="posix_time.html#ptime_from_clock">Construct from Clock</a> --
+  <a class="link" href="posix_time.html#ptime_from_funcs">Construct using Conversion functions</a> --
+  <a class="link" href="posix_time.html#ptime_accessors">Accessors</a> --
+  <a class="link" href="posix_time.html#ptime_to_string">Conversion To String</a> --
+  <a class="link" href="posix_time.html#ptime_operators">Operators</a> --
+  <a class="link" href="posix_time.html#ptime_struct_tm">Struct tm, time_t, and FILETIME Functions</a><a name="ptime_intro"></a><h4>
+<a name="idp81027640"></a>Introduction</h4>
+<p>
+    The class boost::posix_time::ptime is the primary interface for time point manipulation. In general, the ptime class is immutable once constructed although it does allow assignment. 
+  </p>
+<p>
+    Class ptime is dependent on <a class="link" href="gregorian.html#date_time.gregorian.date_class" title="Date">gregorian::date</a> for the interface to the date portion of a time point. 
+  </p>
+<p>
+    Other techniques for creating times include <a class="link" href="posix_time.html#date_time.posix_time.time_iterators" title="Time Iterators">time iterators</a>. 
+  </p>
+<a name="ptime_header"></a><h4>
+<a name="idp81030264"></a>Header</h4>
+<p>
+    </p>
+<pre class="programlisting">#include "boost/date_time/posix_time/posix_time.hpp" //include all types plus i/o
+or
+#include "boost/date_time/posix_time/posix_time_types.hpp" //no i/o just types</pre>
+<p>
+  </p>
+<a name="ptime_constr"></a><h4>
+<a name="idp81031624"></a>Construction</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime(date,time_duration)</pre></td>
+<td>Construct from a date and offset</td>
+</tr>
+<tr><td>
+<pre class="screen">ptime t1(date(2002,Jan,10), 
+         time_duration(1,2,3));
+ptime t2(date(2002,Jan,10), 
+         hours(1)+nanosec(5));</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime(ptime)</pre></td>
+<td>Copy constructor</td>
+</tr>
+<tr><td><pre class="screen">ptime t3(t1)</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime(special_values sv)</pre></td>
+<td>Constructor for infinities, not-a-date-time, max_date_time, and min_date_time</td>
+</tr>
+<tr><td><pre class="screen">ptime d1(neg_infin);
+ptime d2(pos_infin);
+ptime d3(not_a_date_time);
+ptime d4(max_date_time);
+ptime d5(min_date_time);</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime;</pre></td>
+<td>Default constructor. Creates a ptime object initialized to not_a_date_time. NOTE: this constructor can be disabled by defining DATE_TIME_NO_DEFAULT_CONSTRUCTOR (see compiler_config.hpp)</td>
+</tr>
+<tr><td><pre class="screen">ptime p; // p =&gt; not_a_date_time</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="ptime_from_string"></a><h4>
+<a name="idp81041976"></a>Construct from String</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime time_from_string(std::string)</pre></td>
+<td>From delimited string. NOTE: Excess digits in fractional seconds will be dropped. Ex: "1:02:03.123456999" =&gt; 1:02:03.123456. This behavior is affected by the precision the library is compiled with (see <a class="link" href="details.html#date_time.buildinfo" title="Build-Compiler Information">Build-Compiler Information</a>.</td>
+</tr>
+<tr><td><pre class="screen">std::string ts("2002-01-20 23:59:59.000");
+ptime t(time_from_string(ts))</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime from_iso_string(std::string)</pre></td>
+<td>From non delimited iso form string.</td>
+</tr>
+<tr><td><pre class="screen">std::string ts("20020131T235959");
+ptime t(from_iso_string(ts))</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="ptime_from_clock"></a><h4>
+<a name="idp81049192"></a>Construct from Clock</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime second_clock::local_time()</pre></td>
+<td>Get the local time, second level resolution, based on the time zone settings of the computer.</td>
+</tr>
+<tr><td><pre class="screen">ptime t(second_clock::local_time());</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime second_clock::universal_time()</pre></td>
+<td>Get the UTC time.</td>
+</tr>
+<tr><td><pre class="screen">ptime t(second_clock::universal_time())</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime microsec_clock::local_time()</pre></td>
+<td>Get the local time using a sub second resolution clock.  On Unix systems this is implemented using GetTimeOfDay.  On most Win32 platforms it is implemented using ftime.  Win32 systems often do not achieve microsecond resolution via this API.  If higher resolution is critical to your application test your platform to see the achieved resolution.</td>
+</tr>
+<tr><td><pre class="screen">ptime t(microsec_clock::local_time());</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime microsec_clock::universal_time()</pre></td>
+<td>Get the UTC time using a sub second resolution clock.  On Unix systems this is implemented using GetTimeOfDay.  On most Win32 platforms it is implemented using ftime.  Win32 systems often do not achieve microsecond resolution via this API.  If higher resolution is critical to your application test your platform to see the achieved resolution.</td>
+</tr>
+<tr><td><pre class="screen">ptime t(microsec_clock::universal_time());</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="ptime_from_funcs"></a><h4>
+<a name="idp81059816"></a>Construct using Conversion Functions</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime from_time_t(time_t t);</pre></td>
+<td>Converts a time_t into a ptime.</td>
+</tr>
+<tr><td><pre class="screen">ptime t = from_time_t(tt);</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime from_ftime&lt;ptime&gt;(FILETIME ft);</pre></td>
+<td>Creates a ptime object from a FILETIME structure.</td>
+</tr>
+<tr><td><pre class="screen">ptime t = from_ftime&lt;ptime&gt;(ft);</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="ptime_accessors"></a><h4>
+<a name="idp81066376"></a>Accessors</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date date()</pre></td>
+<td>Get the date part of a time.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,10);
+ptime t(d, hour(1));
+t.date() --&gt; 2002-Jan-10;</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration time_of_day()</pre></td>
+<td>Get the time offset in the day.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,10);
+ptime t(d, hour(1));
+t.time_of_day() --&gt; 01:00:00;</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_infinity() const</pre></td>
+<td>Returns true if ptime is either positive or negative infinity</td>
+</tr>
+<tr><td><pre class="screen">ptime pt(pos_infin); 
+pt.is_infinity(); // --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_neg_infinity() const</pre></td>
+<td>Returns true if ptime is negative infinity</td>
+</tr>
+<tr><td><pre class="screen">ptime pt(neg_infin);
+pt.is_neg_infinity(); // --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_pos_infinity() const</pre></td>
+<td>Returns true if ptime is positive infinity</td>
+</tr>
+<tr><td><pre class="screen">ptime pt(neg_infin); 
+pt.is_pos_infinity(); // --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_not_a_date_time() const</pre></td>
+<td>Returns true if value is not a ptime</td>
+</tr>
+<tr><td><pre class="screen">ptime pt(not_a_date_time);
+pt.is_not_a_date_time(); // --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_special() const</pre></td>
+<td>Returns true if ptime is any <code class="computeroutput">special_value</code>
+</td>
+</tr>
+<tr><td><pre class="screen">ptime pt(pos_infin); 
+ptime pt2(not_a_date_time); 
+ptime pt3(date(2005,Mar,1), hours(10));
+pt.is_special(); // --&gt; true
+pt2.is_special(); // --&gt; true
+pt3.is_special(); // --&gt; false</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="ptime_to_string"></a><h4>
+<a name="idp81081368"></a>Conversion to String</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">std::string to_simple_string(ptime)</pre></td>
+<td>To <code class="computeroutput">YYYY-mmm-DD HH:MM:SS.fffffffff</code> string where <code class="computeroutput">mmm</code> 3 char month name. Fractional seconds only included if non-zero.</td>
+</tr>
+<tr><td><pre class="screen">2002-Jan-01 10:00:01.123456789</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">std::string to_iso_string(ptime)</pre></td>
+<td>Convert to form <code class="computeroutput">YYYYMMDDTHHMMSS,fffffffff</code> where <code class="computeroutput">T</code> is the date-time separator</td>
+</tr>
+<tr><td><pre class="screen">20020131T100001,123456789</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">std::string to_iso_extended_string(ptime)</pre></td>
+<td>Convert to form <code class="computeroutput">YYYY-MM-DDTHH:MM:SS,fffffffff</code> where <code class="computeroutput">T</code> is the date-time separator</td>
+</tr>
+<tr><td><pre class="screen">2002-01-31T10:00:01,123456789</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="ptime_operators"></a><h4>
+<a name="idp81092536"></a>Operators</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&lt;&lt;, operator&gt;&gt;</pre></td>
+<td>Streaming operators. <span class="strong"><strong>Note:</strong></span> As of version 1.33, streaming operations have been greatly improved. See <a class="link" href="date_time_io.html" title="Date Time Input/Output">Date Time IO System</a> for more details (including exceptions and error conditions).</td>
+</tr>
+<tr><td>
+<pre class="screen">ptime pt(not_a_date_time);
+stringstream ss("2002-Jan-01 14:23:11");
+ss &gt;&gt; pt; 
+std::cout &lt;&lt; pt; // "2002-Jan-01 14:23:11"
+  </pre>
+            </td></tr>
+<tr>
+<td rowspan="2" valign="top">
+<pre class="screen">operator==, operator!=,
+operator&gt;, operator&lt;,
+operator&gt;=, operator&lt;=</pre>
+	    </td>
+<td>A full complement of comparison operators</td>
+</tr>
+<tr><td><pre class="screen">t1 == t2, etc</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime operator+(days)</pre></td>
+<td>Return a ptime adding a day offset</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,1);
+ptime t(d,minutes(5));
+days dd(1);
+ptime t2 = t + dd;</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime operator-(days)</pre></td>
+<td>Return a ptime subtracting a day offset</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,1);
+ptime t(d,minutes(5));
+days dd(1);
+ptime t2 = t - dd;</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime operator+(time_duration)</pre></td>
+<td>Return a ptime adding a time duration</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,1);
+ptime t(d,minutes(5));
+ptime t2 = t + hours(1) + minutes(2);</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime operator-(time_duration)</pre></td>
+<td>Return a ptime subtracting a time duration</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,1);
+ptime t(d,minutes(5));
+ptime t2 = t - minutes(2);</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration operator-(ptime)</pre></td>
+<td>Take the difference between two times.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,1);
+ptime t1(d,minutes(5));
+ptime t2(d,seconds(5));
+time_duration t3 = t2 - t1;//negative result</pre>
+	    </td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="ptime_struct_tm"></a><h4>
+<a name="idp81109304"></a>Struct tm, time_t, and FILETIME Functions</h4>
+<p>Functions for converting posix_time objects to, and from, <code class="computeroutput">tm</code> structs are provided as well as conversion from <code class="computeroutput">time_t</code> and <code class="computeroutput">FILETIME</code>.</p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">tm to_tm(ptime)</pre></td>
+<td>A function for converting a <code class="computeroutput">ptime</code> object to a <code class="computeroutput">tm</code> struct. The <code class="computeroutput">tm_isdst</code> field is set to -1.</td>
+</tr>
+<tr><td>
+<pre class="screen">ptime pt(date(2005,Jan,1), time_duration(1,2,3));
+tm pt_tm = to_tm(pt);
+/* tm_year =&gt; 105
+   tm_mon  =&gt; 0
+   tm_mday =&gt; 1
+   tm_wday =&gt; 6 (Saturday)
+   tm_yday =&gt; 0
+   tm_hour =&gt; 1
+   tm_min  =&gt; 2
+   tm_sec  =&gt; 3
+   tm_isddst =&gt; -1 */</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date date_from_tm(tm datetm)</pre></td>
+<td>A function for converting a <code class="computeroutput">tm</code> struct to a <code class="computeroutput">date</code> object. The fields: <code class="computeroutput">tm_wday </code>, <code class="computeroutput">tm_yday </code>, and <code class="computeroutput">tm_isdst</code> are ignored.</td>
+</tr>
+<tr><td>
+<pre class="screen">tm pt_tm;
+pt_tm.tm_year = 105;
+pt_tm.tm_mon  = 0;
+pt_tm.tm_mday = 1;
+pt_tm.tm_hour = 1;
+pt_tm.tm_min  = 2;
+pt_tm.tm_sec  = 3;
+ptime pt = ptime_from_tm(pt_tm);
+// pt =&gt; 2005-Jan-01 01:02:03</pre>
+          </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">tm to_tm(time_duration)</pre></td>
+<td>A function for converting a <code class="computeroutput">time_duration</code> object to a <code class="computeroutput">tm</code> struct. The fields: <code class="computeroutput">tm_year</code>, <code class="computeroutput">tm_mon</code>, <code class="computeroutput">tm_mday</code>, <code class="computeroutput">tm_wday</code>, <code class="computeroutput">tm_yday</code> are set to zero. The <code class="computeroutput">tm_isdst</code> field is set to -1.</td>
+</tr>
+<tr><td>
+<pre class="screen">time_duration td(1,2,3);
+tm td_tm = to_tm(td);
+/* tm_year =&gt; 0
+   tm_mon  =&gt; 0
+   tm_mday =&gt; 0
+   tm_wday =&gt; 0
+   tm_yday =&gt; 0
+   tm_hour =&gt; 1
+   tm_min  =&gt; 2
+   tm_sec  =&gt; 3
+   tm_isddst =&gt; -1 */</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime from_time_t(std::time_t)</pre></td>
+<td>Creates a <code class="computeroutput">ptime</code> from the time_t parameter. The seconds held in the time_t are added to a time point of 1970-Jan-01.</td>
+</tr>
+<tr><td><pre class="screen">ptime pt(not_a_date_time);
+std::time_t t;
+t = 1118158776;
+pt = from_time_t(t);
+// pt =&gt; 2005-Jun-07 15:39:36</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime from_ftime&lt;ptime&gt;(FILETIME)</pre></td>
+<td>A template function that constructs a <code class="computeroutput">ptime</code> from a FILETIME struct.</td>
+</tr>
+<tr><td><pre class="screen">FILETIME ft;
+ft.dwHighDateTime = 29715317;
+ft.dwLowDateTime = 3865122988UL;
+ptime pt = from_ftime&lt;ptime&gt;(ft);
+// pt =&gt; 2005-Jun-07 15:30:57.039582000</pre></td></tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.posix_time.time_duration"></a>Time Duration</h3></div></div></div>
+<a class="link" href="posix_time.html#time_duration_intro">Introduction</a> --
+  <a class="link" href="posix_time.html#time_duration_header">Header</a> --
+  <a class="link" href="posix_time.html#time_duration_constr">Construction</a> --
+  <a class="link" href="posix_time.html#time_duration_count_constr">Count Based Construction</a> --
+  <a class="link" href="posix_time.html#time_duration_from_string">Construct from String</a> --
+  <a class="link" href="posix_time.html#time_duration_accessors">Accessors</a> --
+  <a class="link" href="posix_time.html#time_duration_to_string">Conversion To String</a> --
+  <a class="link" href="posix_time.html#time_duration_operators">Operators</a> --
+  <a class="link" href="posix_time.html#time_duration_struct_tm">Struct tm Functions</a><a name="time_duration_intro"></a><h4>
+<a name="idp81135240"></a>Introduction</h4>
+<p>
+    The class boost::posix_time::time_duration the base type responsible for representing a length of time. A duration can be either positive or negative. The general time_duration class provides a constructor that takes a count of the number of hours, minutes, seconds, and fractional seconds count as shown in the code fragment below. The resolution of the time_duration is configure able at compile time. See <a class="link" href="details.html#date_time.buildinfo" title="Build-Compiler Information">Build-Compiler Information</a> for more information. 
+  </p>
+<p>
+    </p>
+<pre class="programlisting">using namespace boost::posix_time;
+time_duration td(1,2,3,4); //01:02:03.000000004 when resolution is nano seconds
+time_duration td(1,2,3,4); //01:02:03.000004 when resolution is micro seconds</pre>
+<p>
+  </p>
+<p>
+    Several small helper classes that derive from a base time_duration, as shown below, to adjust for different resolutions. These classes can shorten code and make the intent clearer.
+  </p>
+<img src="../../../libs/date_time/doc/time_duration_inherit.png"><p>
+    As an example: 
+    </p>
+<pre class="programlisting">using namespace boost::posix_time;
+      
+time_duration td = hours(1) + seconds(10); //01:00:01
+td = hours(1) + nanoseconds(5); //01:00:00.000000005</pre>
+<p>
+    Note that the existence of the higher resolution classes (eg: nanoseconds) depends on the installation of the library. See <a class="link" href="details.html#date_time.buildinfo" title="Build-Compiler Information">Build-Compiler Information</a> for more information. 
+  </p>
+<p>
+     Another way to handle this is to utilize the ticks_per_second() method of time_duration to
+     write code that is portable no matter how the library is compiled.   The general equation
+     for calculating a resolution independent count is as follows:
+
+    </p>
+<pre class="programlisting">
+count*(time_duration_ticks_per_second / count_ticks_per_second)
+    </pre>
+<p>
+
+     For example, let's suppose we want to construct using a count that represents tenths 
+     of a second.  That is, each tick is 0.1 second. 
+    </p>
+<pre class="programlisting">
+int number_of_tenths = 5;
+//create a resolution independent count -- divide by 10 since there are 
+//10 tenths in a second.  
+int count = number_of_tenths*(time_duration::ticks_per_second()/10);
+time_duration td(1,2,3,count); //01:02:03.5 //no matter the resolution settings
+    </pre>
+<p>
+  </p>
+<a name="time_duration_header"></a><h4>
+<a name="idp81141400"></a>Header</h4>
+<p>
+    </p>
+<pre class="programlisting">#include "boost/date_time/posix_time/posix_time.hpp" //include all types plus i/o
+or
+#include "boost/date_time/posix_time/posix_time_types.hpp" //no i/o just types</pre>
+<p>
+  </p>
+<a name="time_duration_constr"></a><h4>
+<a name="idp81142792"></a>Construction</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration(hours,
+              minutes,
+              seconds,
+              fractional_seconds)</pre></td>
+<td>Construct a duration from the counts. The fractional_second parameter is a number of units and is therefore affected by the resolution the application is compiled with (see <a class="link" href="details.html#compile_options">Build-Compiler Information</a>). If the fractional_seconds argument exceeds the limit of the compiled precision, the excess value will be "carried over" into the seconds field.  See above for techniques to creating a resolution independent count.</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(1,2,3,9);
+//1 hr 2 min 3 sec 9 nanoseconds
+time_duration td2(1,2,3,123456789);
+time_duration td3(1,2,3,1000);
+// with microsecond resolution (6 digits)
+// td2 =&gt; "01:04:06.456789"
+// td3 =&gt; "01:02:03.001000"
+// with nanosecond resolution (9 digits)
+// td2 =&gt; "01:02:03.123456789"
+// td3 =&gt; "01:02:03.000001000"</pre></td></tr>
+<tr>
+<td valign="top"><pre class="screen">time_duration(special_value sv)</pre></td>
+<td>Special values constructor. <span class="strong"><strong>Important note</strong></span>: When a time_duration is a special value, either by construction or other means, the following accessor functions will give unpredictable results: <pre class="screen">hours(), minutes(), seconds(), ticks(), 
+fractional_seconds(), total_nanoseconds(),
+total_microseconds(), total_milliseconds(),
+total_seconds()</pre>The remaining accessor functions will work as expected.</td>
+</tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="time_duration_count_constr"></a><h4>
+<a name="idp81147784"></a>Count Based Construction</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">hours(long)</pre></td>
+<td>Number of hours</td>
+</tr>
+<tr><td><pre class="screen">time_duration td = hours(3);</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">minutes(long)</pre></td>
+<td>Number of minutes</td>
+</tr>
+<tr><td><pre class="screen">time_duration td = minutes(3);</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">seconds(long)</pre></td>
+<td> Number of seconds</td>
+</tr>
+<tr><td><pre class="screen">time_duration td = seconds(3);</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">milliseconds(long)</pre></td>
+<td>Number of milliseconds.</td>
+</tr>
+<tr><td><pre class="screen">time_duration td = milliseconds(3);</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">microseconds(long)</pre></td>
+<td>Number of microseconds.</td>
+</tr>
+<tr><td><pre class="screen">time_duration td = microseconds(3);</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">nanoseconds(long)</pre></td>
+<td>Number of nanoseconds.</td>
+</tr>
+<tr><td><pre class="screen">time_duration td = nanoseconds(3);</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="time_duration_from_string"></a><h4>
+<a name="idp81163944"></a>Construct from String</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration duration_from_string(std::string)</pre></td>
+<td>From delimited string. NOTE: Excess digits in fractional seconds will be dropped. Ex: "1:02:03.123456999" =&gt; 1:02:03.123456. This behavior is affected by the precision the library is compiled with (see <a class="link" href="details.html#date_time.buildinfo" title="Build-Compiler Information">Build-Compiler Information</a>.</td>
+</tr>
+<tr><td>
+<pre class="screen">std::string ts("23:59:59.000");
+time_duration td(duration_from_string(ts));</pre>
+	    </td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="time_duration_accessors"></a><h4>
+<a name="idp81169480"></a>Accessors</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">long hours()</pre></td>
+<td>Get the number of normalized hours (will give unpredictable results if calling <code class="computeroutput">time_duration</code> is a <code class="computeroutput">special_value</code>).</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(1,2,3); 
+time_duration neg_td(-1,2,3);
+td.hours(); // --&gt; 1
+neg_td.hours(); // --&gt; -1</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">long minutes()</pre></td>
+<td>Get the number of minutes normalized +/-(0..59) (will give unpredictable results if calling <code class="computeroutput">time_duration</code> is a <code class="computeroutput">special_value</code>).</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(1,2,3);
+time_duration neg_td(-1,2,3);
+td.minutes(); // --&gt; 2
+neg_td.minutes(); // --&gt; -2</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">long seconds()</pre></td>
+<td>Get the normalized number of second +/-(0..59) (will give unpredictable results if calling <code class="computeroutput">time_duration</code> is a <code class="computeroutput">special_value</code>).</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(1,2,3); 
+time_duration neg_td(-1,2,3);
+td.seconds(); // --&gt; 3
+neg_td.seconds(); // --&gt; -3</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">long total_seconds()</pre></td>
+<td>Get the total number of seconds truncating any fractional seconds (will give unpredictable results if calling <code class="computeroutput">time_duration</code> is a <code class="computeroutput">special_value</code>).</td>
+</tr>
+<tr><td>
+<pre class="screen">time_duration td(1,2,3,10);
+td.total_seconds(); 
+// --&gt; (1*3600) + (2*60) + 3 == 3723</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">long total_milliseconds()</pre></td>
+<td>Get the total number of milliseconds truncating any remaining digits (will give unpredictable results if calling <code class="computeroutput">time_duration</code> is a <code class="computeroutput">special_value</code>).</td>
+</tr>
+<tr><td>
+<pre class="screen">time_duration td(1,2,3,123456789);
+td.total_milliseconds(); 
+// HMS --&gt; (1*3600) + (2*60) + 3 == 3723 seconds
+// milliseconds is 3 decimal places
+// (3723 * 1000) + 123 == 3723123</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">long total_microseconds()</pre></td>
+<td>Get the total number of microseconds truncating any remaining digits (will give unpredictable results if calling <code class="computeroutput">time_duration</code> is a <code class="computeroutput">special_value</code>).</td>
+</tr>
+<tr><td>
+<pre class="screen">time_duration td(1,2,3,123456789);
+td.total_microseconds(); 
+// HMS --&gt; (1*3600) + (2*60) + 3 == 3723 seconds
+// microseconds is 6 decimal places
+// (3723 * 1000000) + 123456 == 3723123456</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">long total_nanoseconds()</pre></td>
+<td>Get the total number of nanoseconds truncating any remaining digits (will give unpredictable results if calling <code class="computeroutput">time_duration</code> is a <code class="computeroutput">special_value</code>).</td>
+</tr>
+<tr><td>
+<pre class="screen">time_duration td(1,2,3,123456789);
+td.total_nanoseconds(); 
+// HMS --&gt; (1*3600) + (2*60) + 3 == 3723 seconds
+// nanoseconds is 9 decimal places
+// (3723 * 1000000000) + 123456789
+//                              == 3723123456789</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">long fractional_seconds()</pre></td>
+<td>Get the number of fractional seconds (will give unpredictable results if calling <code class="computeroutput">time_duration</code> is a <code class="computeroutput">special_value</code>).</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(1,2,3, 1000);
+td.fractional_seconds(); // --&gt; 1000</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_negative()</pre></td>
+<td>True if duration is negative.</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(-1,0,0); 
+td.is_negative(); // --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration invert_sign()</pre></td>
+<td>Generate a new duration with the sign inverted/</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(-1,0,0); 
+td.invert_sign(); // --&gt; 01:00:00</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_time::time_resolutions resolution()</pre></td>
+<td>Describes the resolution capability of the time_duration class. time_resolutions is an enum of resolution possibilities ranging from seconds to nanoseconds.</td>
+</tr>
+<tr><td><pre class="screen">time_duration::resolution() --&gt; nano</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration::num_fractional_digits()</pre></td>
+<td>Returns an unsigned short holding the number of fractional digits the time resolution has.</td>
+</tr>
+<tr><td><pre class="screen">unsigned short secs;
+secs = time_duration::num_fractional_digits();
+// 9 for nano, 6 for micro, etc.</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration::ticks_per_second()</pre></td>
+<td>Return the number of ticks in a second.  For example, if the duration supports nanoseconds then the returned result will be 1,000,000,000 (1e+9).</td>
+</tr>
+<tr><td><pre class="screen">std::cout &lt;&lt; time_duration::ticks_per_second();</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">boost::int64_t ticks()</pre></td>
+<td>Return the raw count of the duration type (will give unpredictable results if calling <code class="computeroutput">time_duration</code> is a <code class="computeroutput">special_value</code>).</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(0,0,0, 1000);
+td.ticks() // --&gt; 1000</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration unit()</pre></td>
+<td>Return smallest possible unit of duration type (1 nanosecond).</td>
+</tr>
+<tr><td><pre class="screen">time_duration::unit() --&gt; time_duration(0,0,0,1)</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_neg_infinity() const</pre></td>
+<td>Returns true if time_duration is negative infinity</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(neg_infin);
+td.is_neg_infinity(); // --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_pos_infinity() const</pre></td>
+<td>Returns true if time_duration is positive infinity</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(pos_infin); 
+td.is_pos_infinity(); // --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_not_a_date_time() const</pre></td>
+<td>Returns true if value is not a time</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(not_a_date_time);
+td.is_not_a_date_time(); // --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_special() const</pre></td>
+<td>Returns true if time_duration is any <code class="computeroutput">special_value</code>
+</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(pos_infin); 
+time_duration td2(not_a_date_time); 
+time_duration td3(2,5,10);
+td.is_special(); // --&gt; true
+td2.is_special(); // --&gt; true
+td3.is_special(); // --&gt; false</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="time_duration_to_string"></a><h4>
+<a name="idp81212712"></a>Conversion To String</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">std::string to_simple_string(time_duration)</pre></td>
+<td>To <code class="computeroutput">HH:MM:SS.fffffffff</code> were <code class="computeroutput">fff</code> is fractional seconds that are only included if non-zero.</td>
+</tr>
+<tr><td><pre class="screen">10:00:01.123456789</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">std::string to_iso_string(time_duration)</pre></td>
+<td>Convert to form <code class="computeroutput">HHMMSS,fffffffff</code>.</td>
+</tr>
+<tr><td><pre class="screen">100001,123456789</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="time_duration_operators"></a><h4>
+<a name="idp81221192"></a>Operators</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&lt;&lt;, operator&gt;&gt;</pre></td>
+<td>Streaming operators. <span class="strong"><strong>Note:</strong></span> As of version 1.33, streaming operations have been greatly improved. See <a class="link" href="date_time_io.html" title="Date Time Input/Output">Date Time IO System</a> for more details (including exceptions and error conditions).</td>
+</tr>
+<tr><td>
+<pre class="screen">time_duration td(0,0,0);
+stringstream ss("14:23:11.345678");
+ss &gt;&gt; td; 
+std::cout &lt;&lt; td; // "14:23:11.345678"
+  </pre>
+            </td></tr>
+<tr>
+<td rowspan="2" valign="top">
+<pre class="screen">operator==, operator!=,
+operator&gt;, operator&lt;,
+operator&gt;=, operator&lt;=</pre>
+	    </td>
+<td>A full complement of comparison operators</td>
+</tr>
+<tr><td><pre class="screen">dd1 == dd2, etc</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration operator+(time_duration)</pre></td>
+<td>Add durations.</td>
+</tr>
+<tr><td>
+<pre class="screen">time_duration td1(hours(1)+minutes(2));
+time_duration td2(seconds(10));
+time_duration td3 = td1 + td2;</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration operator-(time_duration)</pre></td>
+<td>Subtract durations.</td>
+</tr>
+<tr><td>
+<pre class="screen">time_duration td1(hours(1)+nanoseconds(2));
+time_duration td2 = td1 - minutes(1);</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration operator/(int)</pre></td>
+<td>Divide the length of a duration by an integer value. Discards any remainder.</td>
+</tr>
+<tr><td>
+<pre class="screen">hours(3)/2 == time_duration(1,30,0);
+nanosecond(3)/2 == nanosecond(1);</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration operator*(int)</pre></td>
+<td>Multiply the length of a duration by an integer value.</td>
+</tr>
+<tr><td><pre class="screen">hours(3)*2 == hours(6);</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="time_duration_struct_tm"></a><h4>
+<a name="idp81236088"></a>Struct tm, time_t, and FILETIME Functions</h4>
+<p>Function for converting a time_duration to a <code class="computeroutput">tm</code> struct is provided.</p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">tm to_tm(time_duration)</pre></td>
+<td>A function for converting a <code class="computeroutput">time_duration</code> object to a <code class="computeroutput">tm</code> struct. The fields: <code class="computeroutput">tm_year</code>, <code class="computeroutput">tm_mon</code>, <code class="computeroutput">tm_mday</code>, <code class="computeroutput">tm_wday</code>, <code class="computeroutput">tm_yday</code> are set to zero. The <code class="computeroutput">tm_isdst</code> field is set to -1.</td>
+</tr>
+<tr><td>
+<pre class="screen">time_duration td(1,2,3);
+tm td_tm = to_tm(td);
+/* tm_year =&gt; 0
+   tm_mon  =&gt; 0
+   tm_mday =&gt; 0
+   tm_wday =&gt; 0
+   tm_yday =&gt; 0
+   tm_hour =&gt; 1
+   tm_min  =&gt; 2
+   tm_sec  =&gt; 3
+   tm_isddst =&gt; -1 */</pre>
+	  </td></tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.posix_time.time_period"></a>Time Period</h3></div></div></div>
+<a class="link" href="posix_time.html#time_period_intro">Introduction</a> --
+  <a class="link" href="posix_time.html#time_period_header">Header</a> --
+  <a class="link" href="posix_time.html#time_period_constr">Construction</a> --
+  <a class="link" href="posix_time.html#time_period_mutators">Mutators</a> --
+  <a class="link" href="posix_time.html#time_period_accessors">Accessors</a> --
+  <a class="link" href="posix_time.html#time_period_to_string">Conversion To String</a> --
+  <a class="link" href="posix_time.html#time_period_operators">Operators</a><a name="time_period_intro"></a><h4>
+<a name="idp81248792"></a>Introduction</h4>
+<p>
+    The class boost::posix_time::time_period provides direct representation for ranges between two times. Periods provide the ability to simplify some types of calculations by simplifying the conditional logic of the program. 
+  </p>
+<p>
+    A period that is created with beginning and end points being equal, or with a duration of zero, is known as a zero length period. Zero length periods are considered invalid (it is perfectly legal to construct an invalid period). For these periods, the <code class="computeroutput">last</code> point will always be one unit less that the <code class="computeroutput">begin</code> point.
+  </p>
+<p>
+    The <a class="link" href="examples.html#date_time.examples.time_periods" title="Time Periods">time periods example</a> provides an example of using time periods. 
+  </p>
+<a name="time_period_header"></a><h4>
+<a name="idp81251832"></a>Header</h4>
+<p>
+    </p>
+<pre class="programlisting">#include "boost/date_time/posix_time/posix_time.hpp" //include all types plus i/o
+or
+#include "boost/date_time/posix_time/posix_time_types.hpp" //no i/o just types</pre>
+<p>
+  </p>
+<a name="time_period_constr"></a><h4>
+<a name="idp81253224"></a>Construction</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_period(ptime,
+            ptime)</pre></td>
+<td> Create a period as [begin, end). If end is &lt;= begin then the period will be defined as invalid.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,01);
+ptime t1(d, seconds(10)); //10 sec after midnight
+ptime t2(d, hours(10)); //10 hours after midnight
+time_period tp(t1, t2);</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_period(ptime, 
+            time_duration)</pre></td>
+<td> Create a period as [begin, begin+len) where end would be begin+len. If len is &lt;= zero then the period will be defined as invalid.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,01);
+ptime t(d, seconds(10)); //10 sec after midnight
+time_period tp(t, hours(3));</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_period(time_period rhs)</pre></td>
+<td> Copy constructor</td>
+</tr>
+<tr><td><pre class="screen">time_period tp1(tp);</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="time_period_mutators"></a><h4>
+<a name="idp81262120"></a>Mutators</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_period shift(time_duration)</pre></td>
+<td>Add duration to both begin and end.</td>
+</tr>
+<tr><td>
+              <pre class="screen">
+time_period tp(ptime(date(2005,Jan,1),hours(1)), hours(2));
+tp.shift(minutes(5)); 
+// tp == 2005-Jan-01 01:05:00 to 2005-Jan-01 03:05:00
+             </pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_period expand(days)</pre></td>
+<td>Subtract duration from begin and add duration to end.</td>
+</tr>
+<tr><td>
+              <pre class="screen">
+time_period tp(ptime(date(2005,Jan,1),hours(1)), hours(2));
+tp.expand(minutes(5)); 
+// tp == 2005-Jan-01 00:55:00 to 2005-Jan-01 03:05:00
+             </pre>
+	    </td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="time_period_accessors"></a><h4>
+<a name="idp81269128"></a>Accessors</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime begin()</pre></td>
+<td>Return first time of period.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,01);
+ptime t1(d, seconds(10)); //10 sec after midnight
+ptime t2(d, hours(10)); //10 hours after midnight
+time_period tp(t1, t2);
+tp.begin(); // --&gt; 2002-Jan-01 00:00:10</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime last()</pre></td>
+<td>Return last time in the period</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,01);
+ptime t1(d, seconds(10)); //10 sec after midnight
+ptime t2(d, hours(10)); //10 hours after midnight
+time_period tp(t1, t2);
+tp.last();// --&gt; 2002-Jan-01 09:59:59.999999999</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">ptime end()</pre></td>
+<td> Return one past the last in period</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,01);
+ptime t1(d, seconds(10)); //10 sec after midnight
+ptime t2(d, hours(10)); //10 hours after midnight
+time_period tp(t1, t2);
+tp.last(); // --&gt; 2002-Jan-01 10:00:00</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_duration length()</pre></td>
+<td>Return the length of the time period.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,01);
+ptime t1(d); //midnight
+time_period tp(t1, hours(1));
+tp.length() --&gt; 1 hour</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_null()</pre></td>
+<td>True if period is not well formed. eg: end is less than or equal to begin.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,01);
+ptime t1(d, hours(12)); // noon on Jan 1st
+ptime t2(d, hours(9)); // 9am on Jan 1st
+time_period tp(t1, t2);
+tp.is_null(); // true</pre>
+            </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool contains(ptime)</pre></td>
+<td>True if ptime is within the period. Zero length periods cannot contain any points.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,01);
+ptime t1(d, seconds(10)); //10 sec after midnight
+ptime t2(d, hours(10)); //10 hours after midnight
+ptime t3(d, hours(2)); //2 hours after midnight
+time_period tp(t1, t2); 
+tp.contains(t3); // true
+time_period tp2(t1, t1);
+tp2.contains(t1); // false</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool contains(time_period)</pre></td>
+<td>True if period is within the period</td>
+</tr>
+<tr><td>
+<pre class="screen">time_period tp1(ptime(d,hours(1)), 
+                ptime(d,hours(12)));
+time_period tp2(ptime(d,hours(2)), 
+                ptime(d,hours(4)));
+tp1.contains(tp2); // --&gt; true
+tp2.contains(tp1); // --&gt; false</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool intersects(time_period)</pre></td>
+<td> True if periods overlap</td>
+</tr>
+<tr><td>
+<pre class="screen">time_period tp1(ptime(d,hours(1)),
+                ptime(d,hours(12)));
+time_period tp2(ptime(d,hours(2)), 
+                ptime(d,hours(4)));
+tp2.intersects(tp1); // --&gt; true</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_period intersection(time_period)</pre></td>
+<td>Calculate the intersection of 2 periods. Null if no intersection.</td>
+</tr>
+<tr><td>&#160;</td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_period merge(time_period)</pre></td>
+<td>Returns union of two periods. Null if no intersection.</td>
+</tr>
+<tr><td>&#160;</td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_period span(time_period)</pre></td>
+<td>Combines two periods and any gap between them such that begin = min(p1.begin, p2.begin) and end = max(p1.end , p2.end).</td>
+</tr>
+<tr><td>&#160;</td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="time_period_to_string"></a><h4>
+<a name="idp81285064"></a>Conversion To String</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">std::string 
+  to_simple_string(time_period dp)</pre></td>
+<td>To <code class="computeroutput">[YYYY-mmm-DD hh:mm:ss.fffffffff/YYYY-mmm-DD hh:mm:ss.fffffffff]</code> string where <code class="computeroutput">mmm</code> is 3 char month name.</td>
+</tr>
+<tr><td><pre class="screen">[2002-Jan-01 01:25:10.000000001/
+                2002-Jan-31 01:25:10.123456789]
+// string occupies one line</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="time_period_operators"></a><h4>
+<a name="idp81298184"></a>Operators</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&lt;&lt;</pre></td>
+<td>Output streaming operator for time duration. Uses facet to output [date time_of_day/date time_of_day]. The default is format is <code class="computeroutput">[YYYY-mmm-DD hh:mm:ss.fffffffff/YYYY-mmm-DD hh:mm:ss.fffffffff]</code> string where <code class="computeroutput">mmm</code> is 3 char month name and the fractional seconds are left out when zero.</td>
+</tr>
+<tr><td><pre class="screen">[2002-Jan-01 01:25:10.000000001/ \
+    2002-Jan-31 01:25:10.123456789]</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&gt;&gt;</pre></td>
+<td>Input streaming operator for time duration. Uses facet to read [date time_of_day/date time_of_day]. The default is format is <code class="computeroutput">[YYYY-mmm-DD hh:mm:ss.fffffffff/YYYY-mmm-DD hh:mm:ss.fffffffff]</code> string where <code class="computeroutput">mmm</code> is 3 char month name and the fractional seconds are left out when zero.</td>
+</tr>
+<tr><td><pre class="screen">[2002-Jan-01 01:25:10.000000001/ \
+    2002-Jan-31 01:25:10.123456789]</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator==, operator!=</pre></td>
+<td>Equality operators. Periods are equal if p1.begin == p2.begin &amp;&amp; p1.last == p2.last</td>
+</tr>
+<tr><td><pre class="screen">if (tp1 == tp2) {...</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&lt;</pre></td>
+<td>Ordering with no overlap. True if tp1.end() less than tp2.begin()</td>
+</tr>
+<tr><td><pre class="screen">if (tp1 &lt; tp2) {...</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&gt;</pre></td>
+<td>Ordering with no overlap. True if tp1.begin() greater than tp2.end()</td>
+</tr>
+<tr><td><pre class="screen">if (tp1 &gt; tp2) {... etc</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&lt;=, operator&gt;=</pre></td>
+<td>Defined in terms of the other operators.</td>
+</tr>
+<tr><td>&#160;</td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.posix_time.time_iterators"></a>Time Iterators</h3></div></div></div>
+<a class="link" href="posix_time.html#time_iter_intro">Introduction</a> --
+  <a class="link" href="posix_time.html#time_iter_header">Header</a> --
+  <a class="link" href="posix_time.html#time_iter_overview">Overview</a> --
+  <a class="link" href="posix_time.html#time_iter_operators">Operators</a><a name="time_iter_intro"></a><h4>
+<a name="idp81315912"></a>Introduction</h4>
+<p>
+    Time iterators provide a mechanism for iteration through times. Time iterators are similar to <a href="http://www.sgi.com/tech/stl/BidirectionalIterator.html" target="_top">Bidirectional Iterators</a>. However, time_iterators are different than standard iterators in that there is no underlying sequence, just a calculation function. In addition, time_iterators are directly comparable against instances of <a class="link" href="posix_time.html#date_time.posix_time.ptime_class" title="Ptime">class ptime</a>. Thus a second iterator for the end point of the iteration is not required, but rather a point in time can be used directly. For example, the following code iterates using a 15 minute iteration interval. The <a class="link" href="examples.html#date_time.examples.print_hours" title="Print Hours">print hours</a> example also illustrates the use of the time_iterator. 
+  </p>
+<p>
+    </p>
+<pre class="programlisting">
+      
+	#include "boost/date_time/posix_time/posix_time.hpp"
+	#include &lt;iostream&gt;
+
+
+	int
+	main()
+	{
+	  using namespace boost::gregorian;
+	  using namespace boost::posix_time;
+	  date d(2000,Jan,20);
+	  ptime start(d);
+	  ptime end = start + hours(1);
+	  time_iterator titr(start,minutes(15)); //increment by 15 minutes
+	  //produces 00:00:00, 00:15:00, 00:30:00, 00:45:00
+	  while (titr &lt; end) {
+	    std::cout &lt;&lt; to_simple_string(*titr) &lt;&lt; std::endl;
+	    ++titr;
+	  }
+	  std::cout &lt;&lt; "Now backward" &lt;&lt; std::endl;
+	  //produces 01:00:00, 00:45:00, 00:30:00, 00:15:00
+	  while (titr &gt; start) {
+	    std::cout &lt;&lt; to_simple_string(*titr) &lt;&lt; std::endl;
+	    --titr;
+	  }
+	}
+      
+    </pre>
+<p>
+  </p>
+<a name="time_iter_header"></a><h4>
+<a name="idp81318936"></a>Header</h4>
+<p>
+    </p>
+<pre class="programlisting">#include "boost/date_time/posix_time/posix_time.hpp" //include all types plus i/o
+or
+#include "boost/date_time/posix_time/posix_time_types.hpp" //no i/o just types</pre>
+<p>
+  </p>
+<a name="time_iter_overview"></a><h4>
+<a name="idp81320696"></a>Overview</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Class</th>
+<th>Description</th>
+</tr>
+<tr><th>Construction Parameters</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">time_iterator</pre></td>
+<td>Iterate incrementing by the specified duration.</td>
+</tr>
+<tr><td><pre class="screen">ptime start_time, time_duration increment</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="time_iter_operators"></a><h4>
+<a name="idp81325480"></a>Operators</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top">
+<pre class="screen">operator==(const ptime&amp; rhs),
+operator!=(const ptime&amp; rhs),
+operator&gt;, operator&lt;,
+operator&gt;=, operator&lt;=</pre>
+	    </td>
+<td>A full complement of comparison operators</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,1);
+ptime start_time(d, hours(1));
+//increment by 10 minutes
+time_iterator titr(start_time, minutes(10));
+ptime end_time = start_time + hours(2);
+if (titr == end_time) // false
+if (titr != end_time) // true
+if (titr &gt;= end_time) // false
+if (titr &lt;= end_time) // true</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">prefix increment</pre></td>
+<td>Increment the iterator by the specified duration.</td>
+</tr>
+<tr><td>
+<pre class="screen">//increment by 10 milli seconds
+time_iterator titr(start_time, milliseconds(10));
+++titr; // == start_time + 10 milliseconds</pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">prefix decrement</pre></td>
+<td>Decrement the iterator by the specified time duration.</td>
+</tr>
+<tr><td><pre class="screen">time_duration td(1,2,3);
+time_iterator titr(start_time, td);
+--titr; // == start_time - 01:02:03</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="gregorian.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../date_time.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="local_time.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

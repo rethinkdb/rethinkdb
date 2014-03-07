@@ -1,0 +1,109 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function template let</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp" title="Header &lt;boost/xpressive/regex_actions.hpp&gt;">
+<link rel="prev" href="check.html" title="Function template check">
+<link rel="next" href="construct_idp163632632.html" title="Function template construct">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="check.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="construct_idp163632632.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.xpressive.let"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function template let</span></h2>
+<p>boost::xpressive::let &#8212; For binding local variables to placeholders in semantic actions when constructing a <code class="computeroutput"><a class="link" href="regex_iterator.html" title="Struct template regex_iterator">regex_iterator</a></code> or a <code class="computeroutput"><a class="link" href="regex_token_iterator.html" title="Struct template regex_token_iterator">regex_token_iterator</a></code>. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp" title="Header &lt;boost/xpressive/regex_actions.hpp&gt;">boost/xpressive/regex_actions.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> ArgBindings<span class="special">&gt;</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="identifier">let</span><span class="special">(</span><span class="identifier">ArgBindings</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">...</span> args<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp255920280"></a><h2>Description</h2>
+<p>
+<code class="computeroutput">xpressive::let()</code> serves the same purpose as <code class="computeroutput">match_results::let()</code>; that is, it binds a placeholder to a local value. The purpose is to allow a regex with semantic actions to be defined that refers to objects that do not yet exist. Rather than referring directly to an object, a semantic action can refer to a placeholder, and the value of the placeholder can be specified later with a <span class="emphasis"><em>let expression</em></span>. The <span class="emphasis"><em>let expression</em></span> created with <code class="computeroutput">let()</code> is passed to the constructor of either <code class="computeroutput"><code class="computeroutput"><a class="link" href="regex_iterator.html" title="Struct template regex_iterator">regex_iterator</a></code></code> or <code class="computeroutput"><code class="computeroutput"><a class="link" href="regex_token_iterator.html" title="Struct template regex_token_iterator">regex_token_iterator</a></code></code>.</p>
+<p>See the section <a class="link" href="../../xpressive/user_s_guide.html#boost_xpressive.user_s_guide.semantic_actions_and_user_defined_assertions.referring_to_non_local_variables"> "Referring to Non-Local Variables"</a> in the Users' Guide for more discussion.</p>
+<p><span class="emphasis"><em>Example:</em></span> </p>
+<pre class="programlisting">// Define a placeholder for a map object:
+placeholder&lt;std::map&lt;std::string, int&gt; &gt; _map;
+
+// Match a word and an integer, separated by =&gt;,
+// and then stuff the result into a std::map&lt;&gt;
+sregex pair = ( (s1= +_w) &gt;&gt; "=&gt;" &gt;&gt; (s2= +_d) )
+    [ _map[s1] = as&lt;int&gt;(s2) ];
+
+// The string to parse
+std::string str("aaa=&gt;1 bbb=&gt;23 ccc=&gt;456");
+
+// Here is the actual map to fill in:
+std::map&lt;std::string, int&gt; result;
+
+// Create a regex_iterator to find all the matches
+sregex_iterator it(str.begin(), str.end(), pair, let(_map=result));
+sregex_iterator end;
+
+// step through all the matches, and fill in
+// the result map
+while(it != end)
+    ++it;
+
+std::cout &lt;&lt; result["aaa"] &lt;&lt; '\n';
+std::cout &lt;&lt; result["bbb"] &lt;&lt; '\n';
+std::cout &lt;&lt; result["ccc"] &lt;&lt; '\n';
+</pre>
+<p> The above code displays:</p>
+<pre class="programlisting">1
+23
+456
+</pre>
+<p> </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">args</code></span></p></td>
+<td><p>A set of argument bindings, where each argument binding is an assignment expression, the left hand side of which must be an instance of <code class="computeroutput">placeholder&lt;X&gt;</code> for some <code class="computeroutput">X</code>, and the right hand side is an lvalue of type <code class="computeroutput">X</code>.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="check.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="construct_idp163632632.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

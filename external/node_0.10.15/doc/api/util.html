@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>util Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/util.html">
+</head>
+<body class="alt apidoc" id="api-section-util">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="util.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#util_util">util</a><ul>
+<li><a href="#util_util_format_format">util.format(format, [...])</a></li>
+<li><a href="#util_util_debug_string">util.debug(string)</a></li>
+<li><a href="#util_util_error">util.error([...])</a></li>
+<li><a href="#util_util_puts">util.puts([...])</a></li>
+<li><a href="#util_util_print">util.print([...])</a></li>
+<li><a href="#util_util_log_string">util.log(string)</a></li>
+<li><a href="#util_util_inspect_object_options">util.inspect(object, [options])</a><ul>
+<li><a href="#util_customizing_util_inspect_colors">Customizing <code>util.inspect</code> colors</a></li>
+</ul>
+</li>
+<li><a href="#util_util_isarray_object">util.isArray(object)</a></li>
+<li><a href="#util_util_isregexp_object">util.isRegExp(object)</a></li>
+<li><a href="#util_util_isdate_object">util.isDate(object)</a></li>
+<li><a href="#util_util_iserror_object">util.isError(object)</a></li>
+<li><a href="#util_util_pump_readablestream_writablestream_callback">util.pump(readableStream, writableStream, [callback])</a></li>
+<li><a href="#util_util_inherits_constructor_superconstructor">util.inherits(constructor, superConstructor)</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>util<span><a class="mark" href="#util_util" id="util_util">#</a></span></h1>
+<pre class="api_stability_5">Stability: 5 - Locked</pre><p>These functions are in the module <code>&#39;util&#39;</code>. Use <code>require(&#39;util&#39;)</code> to access
+them.
+
+
+</p>
+<h2>util.format(format, [...])<span><a class="mark" href="#util_util_format_format" id="util_util_format_format">#</a></span></h2>
+<p>Returns a formatted string using the first argument as a <code>printf</code>-like format.
+
+</p>
+<p>The first argument is a string that contains zero or more <em>placeholders</em>.
+Each placeholder is replaced with the converted value from its corresponding
+argument. Supported placeholders are:
+
+</p>
+<ul>
+<li><code>%s</code> - String.</li>
+<li><code>%d</code> - Number (both integer and float).</li>
+<li><code>%j</code> - JSON.</li>
+<li><code>%</code> - single percent sign (<code>&#39;%&#39;</code>). This does not consume an argument.</li>
+</ul>
+<p>If the placeholder does not have a corresponding argument, the placeholder is
+not replaced.
+
+</p>
+<pre><code>util.format(&#39;%s:%s&#39;, &#39;foo&#39;); // &#39;foo:%s&#39;</code></pre>
+<p>If there are more arguments than placeholders, the extra arguments are
+converted to strings with <code>util.inspect()</code> and these strings are concatenated,
+delimited by a space.
+
+</p>
+<pre><code>util.format(&#39;%s:%s&#39;, &#39;foo&#39;, &#39;bar&#39;, &#39;baz&#39;); // &#39;foo:bar baz&#39;</code></pre>
+<p>If the first argument is not a format string then <code>util.format()</code> returns
+a string that is the concatenation of all its arguments separated by spaces.
+Each argument is converted to a string with <code>util.inspect()</code>.
+
+</p>
+<pre><code>util.format(1, 2, 3); // &#39;1 2 3&#39;</code></pre>
+<h2>util.debug(string)<span><a class="mark" href="#util_util_debug_string" id="util_util_debug_string">#</a></span></h2>
+<p>A synchronous output function. Will block the process and
+output <code>string</code> immediately to <code>stderr</code>.
+
+</p>
+<pre><code>require(&#39;util&#39;).debug(&#39;message on stderr&#39;);</code></pre>
+<h2>util.error([...])<span><a class="mark" href="#util_util_error" id="util_util_error">#</a></span></h2>
+<p>Same as <code>util.debug()</code> except this will output all arguments immediately to
+<code>stderr</code>.
+
+</p>
+<h2>util.puts([...])<span><a class="mark" href="#util_util_puts" id="util_util_puts">#</a></span></h2>
+<p>A synchronous output function. Will block the process and output all arguments
+to <code>stdout</code> with newlines after each argument.
+
+</p>
+<h2>util.print([...])<span><a class="mark" href="#util_util_print" id="util_util_print">#</a></span></h2>
+<p>A synchronous output function. Will block the process, cast each argument to a
+string then output to <code>stdout</code>. Does not place newlines after each argument.
+
+</p>
+<h2>util.log(string)<span><a class="mark" href="#util_util_log_string" id="util_util_log_string">#</a></span></h2>
+<p>Output with timestamp on <code>stdout</code>.
+
+</p>
+<pre><code>require(&#39;util&#39;).log(&#39;Timestamped message.&#39;);</code></pre>
+<h2>util.inspect(object, [options])<span><a class="mark" href="#util_util_inspect_object_options" id="util_util_inspect_object_options">#</a></span></h2>
+<p>Return a string representation of <code>object</code>, which is useful for debugging.
+
+</p>
+<p>An optional <em>options</em> object may be passed that alters certain aspects of the
+formatted string:
+
+</p>
+<ul>
+<li><p><code>showHidden</code> - if <code>true</code> then the object&#39;s non-enumerable properties will be
+shown too. Defaults to <code>false</code>.</p>
+</li>
+<li><p><code>depth</code> - tells <code>inspect</code> how many times to recurse while formatting the
+object. This is useful for inspecting large complicated objects. Defaults to
+<code>2</code>. To make it recurse indefinitely pass <code>null</code>.</p>
+</li>
+<li><p><code>colors</code> - if <code>true</code>, then the output will be styled with ANSI color codes.
+Defaults to <code>false</code>. Colors are customizable, see below.</p>
+</li>
+<li><p><code>customInspect</code> - if <code>false</code>, then custom <code>inspect()</code> functions defined on the
+objects being inspected won&#39;t be called. Defaults to <code>true</code>.</p>
+</li>
+</ul>
+<p>Example of inspecting all properties of the <code>util</code> object:
+
+</p>
+<pre><code>var util = require(&#39;util&#39;);
+
+console.log(util.inspect(util, { showHidden: true, depth: null }));</code></pre>
+<h3>Customizing <code>util.inspect</code> colors<span><a class="mark" href="#util_customizing_util_inspect_colors" id="util_customizing_util_inspect_colors">#</a></span></h3>
+<p>Color output (if enabled) of <code>util.inspect</code> is customizable globally
+via <code>util.inspect.styles</code> and <code>util.inspect.colors</code> objects.
+
+</p>
+<p><code>util.inspect.styles</code> is a map assigning each style a color
+from <code>util.inspect.colors</code>.
+Highlighted styles and their default values are:
+ <em> <code>number</code> (yellow)
+ </em> <code>boolean</code> (yellow)
+ <em> <code>string</code> (green)
+ </em> <code>date</code> (magenta)
+ <em> <code>regexp</code> (red)
+ </em> <code>null</code> (bold)
+ <em> <code>undefined</code> (grey)
+ </em> <code>special</code> - only function at this time (cyan)
+ * <code>name</code> (intentionally no styling)
+
+</p>
+<p>Predefined color codes are: <code>white</code>, <code>grey</code>, <code>black</code>, <code>blue</code>, <code>cyan</code>, 
+<code>green</code>, <code>magenta</code>, <code>red</code> and <code>yellow</code>.
+There are also <code>bold</code>, <code>italic</code>, <code>underline</code> and <code>inverse</code> codes.
+
+</p>
+<p>Objects also may define their own <code>inspect(depth)</code> function which <code>util.inspect()</code>
+will invoke and use the result of when inspecting the object:
+
+</p>
+<pre><code>var util = require(&#39;util&#39;);
+
+var obj = { name: &#39;nate&#39; };
+obj.inspect = function(depth) {
+  return &#39;{&#39; + this.name + &#39;}&#39;;
+};
+
+util.inspect(obj);
+  // &quot;{nate}&quot;</code></pre>
+<h2>util.isArray(object)<span><a class="mark" href="#util_util_isarray_object" id="util_util_isarray_object">#</a></span></h2>
+<p>Returns <code>true</code> if the given &quot;object&quot; is an <code>Array</code>. <code>false</code> otherwise.
+
+</p>
+<pre><code>var util = require(&#39;util&#39;);
+
+util.isArray([])
+  // true
+util.isArray(new Array)
+  // true
+util.isArray({})
+  // false</code></pre>
+<h2>util.isRegExp(object)<span><a class="mark" href="#util_util_isregexp_object" id="util_util_isregexp_object">#</a></span></h2>
+<p>Returns <code>true</code> if the given &quot;object&quot; is a <code>RegExp</code>. <code>false</code> otherwise.
+
+</p>
+<pre><code>var util = require(&#39;util&#39;);
+
+util.isRegExp(/some regexp/)
+  // true
+util.isRegExp(new RegExp(&#39;another regexp&#39;))
+  // true
+util.isRegExp({})
+  // false</code></pre>
+<h2>util.isDate(object)<span><a class="mark" href="#util_util_isdate_object" id="util_util_isdate_object">#</a></span></h2>
+<p>Returns <code>true</code> if the given &quot;object&quot; is a <code>Date</code>. <code>false</code> otherwise.
+
+</p>
+<pre><code>var util = require(&#39;util&#39;);
+
+util.isDate(new Date())
+  // true
+util.isDate(Date())
+  // false (without &#39;new&#39; returns a String)
+util.isDate({})
+  // false</code></pre>
+<h2>util.isError(object)<span><a class="mark" href="#util_util_iserror_object" id="util_util_iserror_object">#</a></span></h2>
+<p>Returns <code>true</code> if the given &quot;object&quot; is an <code>Error</code>. <code>false</code> otherwise.
+
+</p>
+<pre><code>var util = require(&#39;util&#39;);
+
+util.isError(new Error())
+  // true
+util.isError(new TypeError())
+  // true
+util.isError({ name: &#39;Error&#39;, message: &#39;an error occurred&#39; })
+  // false</code></pre>
+<h2>util.pump(readableStream, writableStream, [callback])<span><a class="mark" href="#util_util_pump_readablestream_writablestream_callback" id="util_util_pump_readablestream_writablestream_callback">#</a></span></h2>
+<pre class="api_stability_0">Stability: 0 - Deprecated: Use readableStream.pipe(writableStream)</pre><p>Read the data from <code>readableStream</code> and send it to the <code>writableStream</code>.
+When <code>writableStream.write(data)</code> returns <code>false</code> <code>readableStream</code> will be
+paused until the <code>drain</code> event occurs on the <code>writableStream</code>. <code>callback</code> gets
+an error as its only argument and is called when <code>writableStream</code> is closed or
+when an error occurs.
+
+
+</p>
+<h2>util.inherits(constructor, superConstructor)<span><a class="mark" href="#util_util_inherits_constructor_superconstructor" id="util_util_inherits_constructor_superconstructor">#</a></span></h2>
+<p>Inherit the prototype methods from one
+<a href="https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object/constructor">constructor</a>
+into another.  The prototype of <code>constructor</code> will be set to a new
+object created from <code>superConstructor</code>.
+
+</p>
+<p>As an additional convenience, <code>superConstructor</code> will be accessible
+through the <code>constructor.super_</code> property.
+
+</p>
+<pre><code>var util = require(&quot;util&quot;);
+var events = require(&quot;events&quot;);
+
+function MyStream() {
+    events.EventEmitter.call(this);
+}
+
+util.inherits(MyStream, events.EventEmitter);
+
+MyStream.prototype.write = function(data) {
+    this.emit(&quot;data&quot;, data);
+}
+
+var stream = new MyStream();
+
+console.log(stream instanceof events.EventEmitter); // true
+console.log(MyStream.super_ === events.EventEmitter); // true
+
+stream.on(&quot;data&quot;, function(data) {
+    console.log(&#39;Received data: &quot;&#39; + data + &#39;&quot;&#39;);
+})
+stream.write(&quot;It works!&quot;); // Received data: &quot;It works!&quot;</code></pre>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

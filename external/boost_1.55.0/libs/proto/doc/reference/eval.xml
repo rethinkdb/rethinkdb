@@ -1,0 +1,149 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/eval.hpp">
+  <para>
+    Contains the
+    <computeroutput>
+      <functionname alt="boost::proto::eval">proto::eval()</functionname>
+    </computeroutput> expression evaluator.
+  </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="functional">
+        <!-- proto::functional::eval-->
+        <struct name="eval">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type for evaluating a given Proto
+            expression with a given context.</purpose>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Expr"/>
+              <template-type-parameter name="Context"/>
+            </template>
+            <specialization>
+              <template-arg>This(Expr, Context)</template-arg>
+            </specialization>
+            <inherit>
+              <type>
+    <classname>proto::result_of::eval</classname>&lt;
+      typename boost::remove_reference&lt; Expr &gt;::type, 
+      typename boost::remove_reference&lt; Context &gt;::type 
+    &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::eval</classname>&lt; Expr, Context &gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+                <template-type-parameter name="Context"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr &amp;</paramtype>
+                <description>
+                  <para>The Proto expression to evaluate.</para>
+                </description>
+              </parameter>
+              <parameter name="context">
+                <paramtype>Context &amp;</paramtype>
+                <description>
+                  <para>The context in which the expression should be evaluated. </para>
+                </description>
+              </parameter>
+              <purpose>Evaluate a given Proto expression with a given context. </purpose>
+              <returns>
+                <para>
+                  <computeroutput>typename Context::template eval&lt;Expr&gt;()(expr, context)</computeroutput>
+                </para>
+              </returns>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::eval</classname>&lt; Expr, Context &gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+                <template-type-parameter name="Context"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr &amp;</paramtype>
+              </parameter>
+              <parameter name="context">
+                <paramtype>Context const &amp;</paramtype>
+              </parameter>
+              <description>
+                <para>
+                  This is an overloaded member function, provided for convenience. It differs from the above
+                  function only in what argument(s) it accepts. 
+                </para>
+              </description>
+            </method>
+          </method-group>
+        </struct>
+      </namespace>
+      <namespace name="result_of">
+        <!-- proto::result_of::eval -->
+        <struct name="eval">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="Context"/>
+          </template>
+          <purpose>A metafunction for calculating the return type of <computeroutput>
+              <functionname alt="proto::eval">proto::eval()</functionname></computeroutput> given a
+              certain <computeroutput>Expr</computeroutput> and <computeroutput>Context</computeroutput> types.</purpose>
+          <typedef name="type">
+            <type>typename Context::template eval&lt; Expr &gt;::result_type</type>
+          </typedef>
+        </struct>
+      </namespace>
+      <!-- proto::eval() -->
+      <overloaded-function name="eval">
+        <signature>
+          <type>typename <classname>proto::result_of::eval</classname>&lt; Expr, Context &gt;::type</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="Context"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr &amp;</paramtype>
+            <description>
+              <para>The Proto expression to evaluate.</para>
+            </description>
+          </parameter>
+          <parameter name="context">
+            <paramtype>Context &amp;</paramtype>
+            <description>
+              <para>The context in which the expression should be evaluated.</para>
+            </description>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::eval</classname>&lt; Expr, Context &gt;::type</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="Context"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr &amp;</paramtype>
+          </parameter>
+          <parameter name="context">
+            <paramtype>Context const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>Evaluate a given Proto expression with a given context. </purpose>
+        <returns>
+          <para>
+            <computeroutput>typename Context::template eval&lt;Expr&gt;()(expr, context)</computeroutput>
+          </para>
+        </returns>
+      </overloaded-function>
+    </namespace>
+  </namespace>
+</header>

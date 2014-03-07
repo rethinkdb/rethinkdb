@@ -1,0 +1,119 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+[table Examples Overview
+  [[File] [Brief Description]]
+
+  [[[github_link libs/numeric/odeint/examples/bind_member_functions.cpp bind_member_functions.cpp]]
+  [This examples shows how member functions can be used as system functions in odeint.]]
+
+  [[[github_link libs/numeric/odeint/examples/bind_member_functions.cpp bind_member_functions_cpp11.cpp]]
+  [This examples shows how member functions can be used as system functions in odeint with `std::bind` in C++11.]]
+
+  [[[github_link libs/numeric/odeint/examples/bulirsch_stoer.cpp bulirsch_stoer.cpp]]
+  [Shows the usage of the Bulirsch-Stoer method.]]
+
+  [[[github_link libs/numeric/odeint/examples/chaotic_system.cpp chaotic_system.cpp]]
+  [The chaotic system examples integrates the Lorenz system and calculates the Lyapunov exponents.]]
+
+  [[[github_link libs/numeric/odeint/examples/elliptic_functions.cpp elliptic_functions.cpp]]
+  [Example calculating the elliptic functions using Bulirsch-Stoer and Runge-Kutta-Dopri5 Steppers with dense output.]] 
+ 
+  [[[github_link libs/numeric/odeint/examples/fpu.cpp fpu.cpp]]
+  [The Fermi-Pasta-Ulam (FPU) example shows how odeint can be used to integrate lattice systems.]]
+
+  [[[github_link libs/numeric/odeint/examples/generation_functions.cpp generation_functions.cpp]]
+  [Shows skeletal code on how to implement own factory functions.]]
+
+  [[[github_link libs/numeric/odeint/examples/harmonic_oscillator.cpp harmonic_oscillator.cpp]]
+  [The harmonic oscillator examples gives a brief introduction to odeint and shows the usage of the classical Runge-Kutta-solvers.]]
+
+  [[[github_link libs/numeric/odeint/examples/harmonic_oscillator_units.cpp harmonic_oscillator_units.cpp]]
+  [This examples shows how __boost_units can be used with odeint.]]
+
+  [[[github_link libs/numeric/odeint/examples/heun.cpp heun.cpp]]
+  [The Heun example shows how an custom Runge-Kutta stepper can be created with odeint generic Runge-Kutta method.]]
+
+  [[[github_link libs/numeric/odeint/examples/list_lattice.cpp list_lattice.cpp]]
+  [Example of a phase lattice integration using `std::list` as state type.]]
+
+  [[[github_link libs/numeric/odeint/examples/lorenz_point.cpp lorenz_point.cpp]]
+  [Alternative way of integrating lorenz by using a self defined point3d data type as state type.]]
+
+  [[[github_link libs/numeric/odeint/examples/my_vector.cpp my_vector.cpp]]
+  [Simple example showing how to get odeint to work with a self-defined vector type.]]
+
+  [[[github_link libs/numeric/odeint/examples/phase_oscillator_ensemble.cpp phase_oscillator_ensemble.cpp]]
+  [The phase oscillator ensemble example shows how globally coupled oscillators can be analyzed and how statistical measures can be computed during integration.]]
+
+  [[[github_link libs/numeric/odeint/examples/resizing_lattice.cpp resizing_lattice.cpp]]
+  [Shows the strength of odeint's memory management by simulating a Hamiltonian system on an expanding lattice.]]
+
+  [[[github_link libs/numeric/odeint/examples/simple1d.cpp simple1d.cpp]]
+  [Integrating a simple, one-dimensional ODE showing the usage of integrate- and generate-functions.]]
+
+  [[[github_link libs/numeric/odeint/examples/solar_system.cpp solar_system.cpp]]
+  [The solar system example shows the usage of the symplectic solvers.]]
+
+  [[[github_link libs/numeric/odeint/examples/stepper_details.cpp stepper_details.cpp]]
+  [Trivial example showing the usability of the several stepper classes.]]
+
+  [[[github_link libs/numeric/odeint/examples/stiff_system.cpp stiff_system.cpp]]
+  [The stiff system example shows the usage of the stiff solvers using the Jacobian of the system function.]]
+
+  [[[github_link libs/numeric/odeint/examples/stochastic_euler.cpp stochastic_euler.cpp]]
+  [Implementation of a custom stepper - the stochastic euler -  for solving stochastic differential equations.]]
+
+  [[[github_link libs/numeric/odeint/examples/stuart_landau.cpp stuart_landau.cpp]]
+  [The Stuart-Landau example shows how odeint can be used with complex state types.]]
+
+  [[[github_link libs/numeric/odeint/examples/two_dimensional_phase_lattice.cpp two_dimensional_phase_lattice.cpp]]
+  [The 2D phase oscillator example shows how a two-dimensional lattice works with odeint and how matrix types can be used as state types in odeint.]]
+
+  [[[github_link libs/numeric/odeint/examples/van_der_pol_stiff.cpp van_der_pol_stiff.cpp]]
+  [This stiff system example again shows the usage of the stiff solvers by integrating the van der Pol oscillator.]]
+
+  [[[github_link libs/numeric/odeint/examples/gmpxx/lorenz_gmpxx.cpp gmpxx/lorenz_gmpxx.cpp]]
+  [This examples integrates the Lorenz system by means of an arbitrary precision type.]]
+
+  [[[github_link libs/numeric/odeint/examples/mtl/gauss_packet.cpp mtl/gauss_packet.cpp]]
+  [The MTL-Gauss-packet example shows how the MTL can be easily used with odeint.]]
+
+  [[[github_link libs/numeric/odeint/examples/mtl/implicit_euler_mtl.cpp mtl/implicit_euler_mtl.cpp]]
+  [This examples shows the usage of the MTL implicit Euler method with a sparse matrix type.]]
+
+  [[[github_link libs/numeric/odeint/examples/thrust/phase_oscillator_ensemble.cu thrust/phase_oscillator_ensemble.cu]]
+  [The Thrust phase oscillator ensemble example shows how globally coupled oscillators can be analyzed with Thrust and CUDA, employing the power of modern graphic devices.]]
+
+  [[[github_link libs/numeric/odeint/examples/thrust/phase_oscillator_chain.cu thrust/phase_oscillator_chain.cu]]
+  [The Thrust phase oscillator chain example shows how chains of nearest neighbor coupled oscillators can be integrated with Thrust and odeint.]]
+
+  [[[github_link libs/numeric/odeint/examples/thrust/lorenz_parameters.cu thrust/lorenz_parameters.cu]]
+  [The Lorenz parameters examples show how ensembles of ordinary differential equations can be solved by means of Thrust to study
+  the dependence of an ODE on some parameters.]]
+
+  [[[github_link libs/numeric/odeint/examples/thrust/relaxation.cu thrust/relaxation.cu]]
+  [Another examples for the usage of Thrust.]]
+
+  [[[github_link libs/numeric/odeint/examples/ublas/lorenz_ublas.cpp ublas/lorenz_ublas.cpp]]
+  [This example shows how the ublas vector types can be used with odeint.]]
+
+  [[[github_link libs/numeric/odeint/examples/vexcl/lorenz_ensemble.cpp vexcl/lorenz_ensemble.cpp]]
+  [This example shows how the VexCL - a framework for OpenCL computation - can be used with odeint.]]
+
+  [[[github_link libs/numeric/odeint/examples/2d_lattice/spreading.cpp 2d_lattice/spreading.cpp]]
+  [This examples shows how a `vector< vector< T > >` can be used a state type for odeint and how a resizing mechanism of this state can be implemented.]]
+
+  [[[github_link libs/numeric/odeint/examples/quadmath/black_hole.cpp quadmath/black_hole.cpp]]
+  [This examples shows how gcc libquadmath can be used with odeint. It provides a high precision floating point type which is adapted to odeint in this example.]]
+
+]

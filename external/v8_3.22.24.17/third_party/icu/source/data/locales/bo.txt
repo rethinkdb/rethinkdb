@@ -1,0 +1,171 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/bo.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/bo.xml
+ */
+bo{
+    AuxExemplarCharacters{"[ༀ]"}
+    ExemplarCharacters{
+        "[\u0F7E ཿ ཀ {ཀ\u0FB5} \u0F90 {\u0F90\u0FB5} ཁ \u0F91 ག {ག\u0FB7} \u0F92 {"
+        "\u0F92\u0FB7} ང \u0F94 ཅ \u0F95 ཆ \u0F96 ཇ \u0F97 ཉ \u0F99 ཊ \u0F9A ཋ \u0F9B"
+        " ཌ {ཌ\u0FB7} \u0F9C {\u0F9C\u0FB7} ཎ \u0F9E ཏ \u0F9F ཐ \u0FA0 ད {ད\u0FB7} "
+        "\u0FA1 {\u0FA1\u0FB7} ན \u0FA3 པ \u0FA4 ཕ \u0FA5 བ {བ\u0FB7} \u0FA6 {\u0FA6"
+        "\u0FB7} མ \u0FA8 ཙ \u0FA9 ཚ \u0FAA ཛ {ཛ\u0FB7} \u0FAB {\u0FAB\u0FB7} ཝ "
+        "\u0FAD \u0FBA ཞ \u0FAE ཟ \u0FAF འ \u0FB0 ཡ \u0FB1 \u0FBB ར ཪ \u0FB2 \u0FBC ལ"
+        " \u0FB3 ཤ \u0FB4 ཥ \u0FB5 ས \u0FB6 ཧ \u0FB7 ཨ \u0FB8 \u0F71 \u0F72 {\u0F71"
+        "\u0F72} \u0F80 {\u0F71\u0F80} \u0F74 {\u0F71\u0F74} {\u0FB2\u0F80} \u0F77 {"
+        "\u0FB3\u0F80} \u0F79-\u0F7D \u0F84]"
+    }
+    ExemplarCharactersIndex{"[ཀ ཁ ག ང ཅ ཆ ཇ ཉ ཏ ཐ ད ན པ ཕ བ མ ཙ ཚ ཛ ཝ ཞ ཟ འ ཡ ར ལ ཤ ས ཧ ཨ]"}
+    LocaleScript{
+        "Tibt",
+    }
+    NumberElements{
+        default{"tibt"}
+        latn{
+            patterns{
+                percentFormat{"#,##0%"}
+            }
+            symbols{
+                group{","}
+                nan{"NaN"}
+            }
+        }
+        tibt{
+            symbols{
+                nan{"ཨང་མེན་"}
+            }
+        }
+    }
+    Version{"2.0.50.30"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "སྔ་དྲོ་",
+                "ཕྱི་དྲོ་",
+            }
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE, y MMMM dd",
+                "སྦྱི་ལོ་y MMMMའི་ཙེས་dད",
+                "y ལོ་འི་MMMཙེས་d",
+                "yyyy-MM-dd",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "ཉི་མ་",
+                        "ཟླ་བ་",
+                        "མིག་དམར་",
+                        "ཧླག་པ་",
+                        "ཕུར་བུ་",
+                        "སངས་",
+                        "སྤེན་པ་",
+                    }
+                    wide{
+                        "གཟའ་ཉི་མ་",
+                        "གཟའ་ཟླ་བ་",
+                        "གཟའ་མིག་དམར་",
+                        "གཟའ་ཧླག་པ་",
+                        "གཟའ་ཕུར་བུ་",
+                        "གཟའ་སངས་",
+                        "གཟའ་སྤེན་པ་",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ཉི",
+                        "ཟླ",
+                        "མི",
+                        "ཧླ",
+                        "ཕུ",
+                        "ས",
+                        "སྤེ",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "སྤྱི་ལོ་སྔོན།",
+                    "སྤྱི་ལོ།",
+                }
+            }
+            fields{
+                day{
+                    dn{"ཉིན།"}
+                    relative{
+                        "-1"{"ཁས་ས་"}
+                        "-2"{"ཁས་ཉིན་ཀ་"}
+                        "0"{"དེ་རིང་"}
+                        "1"{"སང་ཉིན་"}
+                        "2"{"གནངས་ཉིན་ཀ་"}
+                    }
+                }
+                hour{
+                    dn{"ཆུ་ཙོ་"}
+                }
+                minute{
+                    dn{"སྐར་མ།"}
+                }
+                month{
+                    dn{"ཟླ་བ་"}
+                }
+                second{
+                    dn{"སྐར་ཆ།"}
+                }
+                year{
+                    dn{"ལོ།"}
+                }
+                zone{
+                    dn{"དུས་ཚོད།"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "ཟླ་༡",
+                        "ཟླ་༢",
+                        "ཟླ་༣",
+                        "ཟླ་༤",
+                        "ཟླ་༥",
+                        "ཟླ་༦",
+                        "ཟླ་༧",
+                        "ཟླ་༨",
+                        "ཟླ་༩",
+                        "ཟླ་༡༠",
+                        "ཟླ་༡༡",
+                        "ཟླ་༡༢",
+                    }
+                    wide{
+                        "ཟླ་བ་དང་པོ་",
+                        "ཟླ་བ་གཉིས་པ་",
+                        "ཟླ་བ་སུམ་པ་",
+                        "ཟླ་བ་བཞི་པ་",
+                        "ཟླ་བ་ལྔ་པ་",
+                        "ཟླ་བ་དྲུག་པ་",
+                        "ཟླ་བ་བདུན་པ་",
+                        "ཟླ་བ་བརྒྱད་པ་",
+                        "ཟླ་བ་དགུ་པ་",
+                        "ཟླ་བ་བཅུ་པ་",
+                        "ཟླ་བ་བཅུ་གཅིག་པ་",
+                        "ཟླ་བ་བཅུ་གཉིས་པ་",
+                    }
+                }
+            }
+        }
+    }
+}

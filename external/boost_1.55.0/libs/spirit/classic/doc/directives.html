@@ -1,0 +1,202 @@
+<html>
+<head>
+<title>Directives</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> 
+      <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Directives</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="epsilon.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="scanner.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>Parser directives have the form: <b>directive[expression]</b></p>
+<p>A directive modifies the behavior of its enclosed expression, essentially <em>decorating</em> 
+  it. The framework pre-defines a few directives. Clients of the framework are 
+  free to define their own directives as needed. Information on how this is done 
+  will be provided later. For now, we shall deal only with predefined directives.</p>
+<h2>lexeme_d</h2>
+<p>Turns off white space skipping. At the phrase level, the parser ignores white 
+  spaces, possibly including comments. Use <tt>lexeme_d</tt> in situations where 
+  we want to work at the character level instead of the phrase level. Parsers 
+  can be made to work at the character level by enclosing the pertinent parts 
+  inside the lexeme_d directive. For example, let us complete the example presented 
+  in the <a href="introduction.html">Introduction</a>. There, we skipped the definition 
+  of the <tt>integer</tt> rule. Here's how it is actually defined:</p>
+<pre><code><font color="#000000"><span class=identifier>    </span><span class=identifier>integer </span><span class=special>= </span><span class=identifier>lexeme_d</span><span class=special>[ </span><span class=special>!(</span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'+'</span><span class=special>) </span><span class=special>| </span><span class=literal>'-'</span><span class=special>) </span><span class=special>&gt;&gt; </span><span class=special>+</span><span class=identifier>digit </span><span class=special>];</span></font></code></pre>
+<p>The <tt>lexeme_d</tt> directive instructs the parser to work on the character 
+  level. Without it, the <tt>integer</tt> rule would have allowed erroneous embedded 
+  white spaces in inputs such as <span class="quotes">&quot;1 2 345&quot;</span> 
+  which will be parsed as <span class="quotes">&quot;12345&quot;</span>.</p>
+<h2>as_lower_d</h2>
+<p>There are times when we want to inhibit case sensitivity. The <tt>as_lower_d</tt> 
+  directive converts all characters from the input to lower-case.</p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/alert.gif" width="16" height="16"><b> 
+      as_lower_d behavior</b> <br>
+      <br>
+      It is important to note that only the input is converted to lower case. 
+      Parsers enclosed inside the <tt>as_lower_d</tt> expecting upper case characters 
+      will fail to parse. Example: <tt>as_lower_d[<span class="quotes">'X'</span>]</tt> 
+      will never succeed because it expects an upper case <tt class="quotes">'X'</tt> 
+      that the <tt>as_lower_d</tt> directive will never supply.</td>
+  </tr>
+</table>
+<p>For example, in Pascal, keywords and identifiers are case insensitive. Pascal 
+  ignores the case of letters in identifiers and keywords. Identifiers Id, ID 
+  and id are indistinguishable in Pascal. Without the as_lower_d directive, it 
+  would be awkward to define a rule that recognizes this. Here's a possibility:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>str_p</span><span class=special>(</span><span class=string>"id"</span><span class=special>) </span><span class=special>| </span><span class=string>"Id" </span><span class=special>| </span><span class=string>"iD" </span><span class=special>| </span><span class=string>"ID"</span><span class=special>;</span></font></code></pre>
+<p>Now, try doing that with the case insensitive Pascal keyword <span class="quotes">&quot;BEGIN&quot;</span>. 
+  The <tt>as_lower_d</tt> directive makes this simple:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>as_lower_d</span><span class=special>[</span><span class=string>"begin"</span><span class=special>];</span></font></code></pre>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><div align="justify"><img src="theme/note.gif" width="16" height="16"> 
+        <b>Primitive arguments</b> <br>
+        <br>
+        The astute reader will notice that we did not explicitly wrap <span class="quotes">&quot;begin&quot;</span> 
+        inside an <tt>str_p</tt>. Whenever appropriate, directives should be able 
+        to allow primitive types such as <tt>char</tt>, <tt>int</tt>, <tt>wchar_t</tt>, 
+        <tt>char const<span class="operators">*</span></tt>, <tt>wchar_t const<span class="operators">*</span></tt> 
+        and so on. Examples: <tt><br>
+        <br>
+        </tt><code><span class=identifier>as_lower_d</span><tt><span class=special>[</span><span class=string>"hello"</span><span class=special>] 
+        </span><span class=comment>// same as as_lower_d[str_p("hello")]</span></tt><code></code><span class=identifier><br>
+        as_lower_d</span><span class=special>[</span><span class=literal>'x'</span><span class=special>] 
+        </span><span class=comment>// same as as_lower_d[ch_p('x')]</span></code></div></td>
+  </tr>
+</table>
+<h3>no_actions_d</h3>
+<p>There are cases where you want <a href="semantic_actions.html">semantic actions</a> 
+  not to be triggered. By enclosing a parser in the <tt>no_actions_d</tt> directive, 
+  all semantic actions directly or indirectly attached to the parser will not 
+  fire. </p>
+<pre><code><font color="#000000"><span class=special>    </span>no_actions_d<span class=special>[</span><span class=identifier>expression</span><span class=special>]</span></font></code><code><font color="#000000"><span class=special></span></font></code></pre>
+<h3>Tweaking the Scanner Type</h3>
+<p><img src="theme/note.gif" width="16" height="16"> How does <tt>lexeme_d, as_lower_d</tt> 
+  and <font color="#000000"><tt>no_actions_d</tt></font> work? These directives 
+  do their magic by tweaking the scanner policies. Well, you don't need to know 
+  what that means for now. Scanner policies are discussed <a href="indepth_the_scanner.html">later</a>. 
+  However, it is important to note that when the scanner policy is tweaked, the 
+  result is a different scanner. Why is this important to note? The <a href="rule.html">rule</a> 
+  is tied to a particular scanner (one or more scanners, to be precise). If you 
+  wrap a rule inside a <tt>lexeme_d, as_lower_d</tt> or <font color="#000000"><tt>no_actions_d,</tt>the 
+  compiler will complain about <a href="faq.html#scanner_business">scanner mismatch</a> 
+  unless you associate the required scanner with the rule. </font></p>
+<p><tt>lexeme_scanner</tt>, <tt>as_lower_scanner</tt> and <tt>no_actions_scanner</tt> 
+  are your friends if the need to wrap a rule inside these directives arise. Learn 
+  bout these beasts in the next chapter on <a href="scanner.html#lexeme_scanner">The 
+  Scanner and Parsing</a>.</p>
+<h2>longest_d</h2>
+<p>Alternatives in the Spirit parser compiler are short-circuited (see <a href="operators.html">Operators</a>). 
+  Sometimes, this is not what is desired. The <tt>longest_d</tt> directive instructs 
+  the parser not to short-circuit alternatives enclosed inside this directive, 
+  but instead makes the parser try all possible alternatives and choose the one 
+  matching the longest portion of the input stream.</p>
+<p>Consider the parsing of integers and real numbers:</p>
+<pre><code><font color="#000000"><span class=comment>    </span><span class=identifier>number </span><span class=special>= </span><span class=identifier>real </span><span class=special>| </span><span class=identifier>integer</span><span class=special>;</span></font></code></pre>
+<p>A number can be a real or an integer. This grammar is ambiguous. An input <span class="quotes">&quot;1234&quot;</span> 
+  should potentially match both real and integer. Recall though that alternatives 
+  are short-circuited . Thus, for inputs such as above, the real alternative always 
+  wins. However, if we swap the alternatives:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>number </span><span class=special>= </span><span class=identifier>integer </span><span class=special>| </span><span class=identifier>real</span><span class=special>;</span></font></code></pre>
+<p>we still have a problem. Now, an input <span class="quotes">&quot;123.456&quot;</span> 
+  will be partially matched by integer until the decimal point. This is not what 
+  we want. The solution here is either to fix the ambiguity by factoring out the 
+  common prefixes of real and integer or, if that is not possible nor desired, 
+  use the <tt>longest_d</tt> directive:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>number </span><span class=special>= </span><span class=identifier>longest_d</span><span class=special>[ </span><span class=identifier>integer </span><span class=special>| </span><span class=identifier>real </span><span class=special>];</span></font></code></pre>
+<h2>shortest_d</h2>
+<p>Opposite of the <tt>longest_d</tt> directive.</p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/note.gif" width="16" height="16"> <b>Multiple 
+      alternatives</b> <br>
+      <br>
+      The <tt>longest_d</tt> and <tt>shortest_d</tt> directives can accept two 
+      or more alternatives. Examples:<br>
+      <br>
+      <font color="#000000"><span class=identifier><code>longest</code></span><code><span class=special>[ 
+      </span><span class=identifier>a </span><span class=special>| </span><span class=identifier>b 
+      </span><span class=special>| </span><span class=identifier>c </span><span class=special>]; 
+      </span><span class=identifier><br>
+      shortest</span><span class=special>[ </span><span class=identifier>a </span><span class=special>| 
+      </span><span class=identifier>b </span><span class=special>| </span><span class=identifier>c 
+      </span><span class=special>| </span><span class=identifier>d </span><span class=special>];</span></code></font></td>
+  </tr>
+</table>
+<h2>limit_d</h2>
+<p>Ensures that the result of a parser is constrained to a given min..max range 
+  (inclusive). If not, then the parser fails and returns a no-match.</p>
+<p><b>Usage:</b></p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>limit_d</span><span class=special>(</span><span class=identifier>min</span><span class=special>, </span><span class=identifier>max</span><span class=special>)[</span><span class=identifier>expression</span><span class=special>]</span></font></code></pre>
+<p>This directive is particularly useful in conjunction with parsers that parse 
+  specific scalar ranges (for example, <a href="numerics.html">numeric parsers</a>). 
+  Here's a practical example. Although the numeric parsers can be configured to 
+  accept only a limited number of digits (say, 0..2), there is no way to limit 
+  the result to a range (say -1.0..1.0). This design is deliberate. Doing so would 
+  have undermined Spirit's design rule that <i><span class="quotes">&quot;the 
+  client should not pay for features that she does not use&quot;</span></i>. We 
+  would have stored the min, max values in the numeric parser itself, used or 
+  unused. Well, we could get by by using static constants configured by a non-type 
+  template parameter, but that is not acceptable because that way, we can only 
+  accommodate integers. What about real numbers or user defined numbers such as 
+  big-ints?</p>
+<p><b>Example</b>, parse time of the form <b>HH:MM:SS</b>:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>, </span><span class=number>10</span><span class=special>, </span><span class=number>2</span><span class=special>, </span><span class=number>2</span><span class=special>&gt; </span><span class=identifier>uint2_p</span><span class=special>;
+
+    </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>lexeme_d
+        </span><span class=special>[
+                </span><span class=identifier>limit_d</span><span class=special>(</span><span class=number>0u</span><span class=special>, </span><span class=number>23u</span><span class=special>)[</span><span class=identifier>uint2_p</span><span class=special>] </span><span class=special>&gt;&gt; </span><span class=literal>':'    </span><span class=comment>//  Hours 00..23
+            </span><span class=special>&gt;&gt;  </span><span class=identifier>limit_d</span><span class=special>(</span><span class=number>0u</span><span class=special>, </span><span class=number>59u</span><span class=special>)[</span><span class=identifier>uint2_p</span><span class=special>] </span><span class=special>&gt;&gt; </span><span class=literal>':'    </span><span class=comment>//  Minutes 00..59
+            </span><span class=special>&gt;&gt;  </span><span class=identifier>limit_d</span><span class=special>(</span><span class=number>0u</span><span class=special>, </span><span class=number>59u</span><span class=special>)[</span><span class=identifier>uint2_p</span><span class=special>]           </span><span class=comment>//  Seconds 00..59
+        </span><span class=special>];</span></font></code>
+</pre>
+<h2>min_limit_d</h2>
+<p>Sometimes, it is useful to unconstrain just the maximum limit. This will allow 
+  for an interval that's unbounded in one direction. The directive min_limit_d 
+  ensures that the result of a parser is not less than minimun. If not, then the 
+  parser fails and returns a no-match.</p>
+<p><b>Usage:</b></p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>min_limit_d</span><span class=special>(</span><span class=identifier>min</span><span class=special>)[</span><span class=identifier>expression</span><span class=special>]</span></font></code></pre>
+<p><b>Example</b>, ensure that a date is not less than 1900</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>min_limit_d</span><span class=special>(</span><span class=number>1900u</span><span class=special>)[</span><span class=identifier>uint_p</span><span class=special>]</span></font></code></pre>
+<h2>max_limit_d</h2>
+<p>Opposite of <tt>min_limit_d</tt>. Take note that <tt>limit_d[p]</tt> is equivalent 
+  to:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>min_limit_d</span><span class=special>(</span><span class=identifier>min</span><span class=special>)[</span><span class=identifier>max_limit_d</span><span class=special>(</span><span class=identifier>max</span><span class=special>)[</span><span class=identifier>p</span><span class=special>]]</span></font></code><code><font color="#000000"><span class=special></span></font></code></pre>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="epsilon.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="scanner.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+<font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<p>&nbsp;</p>
+</body>
+</html>

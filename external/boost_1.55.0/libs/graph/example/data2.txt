@@ -1,0 +1,16 @@
+# Copyright (c) 2002 Trustees of Indiana University
+#
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+# vertices
+v
+0 0.5 4.1 #
+1 1.5 5.1 # second vertex
+2 2.5 6.1
+
+# the edges
+e
+1 2 0.1
+0 1 0.2
+1 0 0.3

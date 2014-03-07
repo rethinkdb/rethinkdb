@@ -1,0 +1,7 @@
+[article Testing date: __DATE__
+    [quickbook 1.6]
+    [last-revision __DATE__]
+]
+
+[def NESTED_MACRO 5 May 2013]
+[include macros1-inc_1_6.quickbook]

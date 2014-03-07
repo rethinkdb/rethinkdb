@@ -1,0 +1,348 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>General Functionality</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="prev" href="tti_terminology.html" title="Terminology">
+<link rel="next" href="tti_detail.html" title="Macro Metafunctions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_terminology.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_detail.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="the_type_traits_introspection_library.tti_functionality"></a><a class="link" href="tti_functionality.html" title="General Functionality">General
+    Functionality</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="tti_functionality.html#the_type_traits_introspection_library.tti_functionality.tti_functionality_nm_gen">Macro
+      metafunction name generation considerations</a></span></dt></dl></div>
+<p>
+      The elements of a type about which a template metaprogrammer might be interested
+      in finding out at compile time are:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Does it have a nested type with a particular name ?
+        </li>
+<li class="listitem">
+          Does it have a nested type with a particular name which fulfills some other
+          possibility for that nested type.
+        </li>
+<li class="listitem">
+          Does it have a nested class template with a particular name ?
+        </li>
+<li class="listitem">
+          Does it have a nested class template with a particular name and a particular
+          signature ?
+        </li>
+<li class="listitem">
+          Does it have a member function with a particular name and a particular
+          signature ?
+        </li>
+<li class="listitem">
+          Does it have member data with a particular name and of a particular type
+          ?
+        </li>
+<li class="listitem">
+          Does it have a static member function with a particular name and a particular
+          signature ?
+        </li>
+<li class="listitem">
+          Does it have static member data with a particular name and of a particular
+          type ?
+        </li>
+<li class="listitem">
+          Does it have either member data or static member data with a particular
+          name and of a particular type ?
+        </li>
+<li class="listitem">
+          Does it have either a member function or static member function with a
+          particular name and of a particular type ?
+        </li>
+</ul></div>
+<p>
+      These are some of the compile-time questions which the TTI library answers.
+      It does this by creating metafunctions, which can be used at compile-time,
+      using C++ macros. Each of the metafunctions created returns a compile time
+      constant bool value which answers one of the above questions at compile time.
+      When the particular element above exists the value is 'true', or more precisely
+      boost::mpl::true_, while if the element does not exist the value is 'false',
+      or more precisely boost::mpl::false_. In either case the type of this value
+      is boost::mpl::bool_.
+    </p>
+<p>
+      This constant bool value, in the terminology of the Boost MPL library, is called
+      an 'integral constant wrapper' and the metafunction generated is called a 'numerical
+      metafunction'. The results from calling the metafunction can be passed to other
+      metafunctions for type selection, the most popular of these being the boolean-valued
+      operators in the Boost MPL library.
+    </p>
+<p>
+      All of the questions above attempt to find an answer about an inner element
+      with a particular name. In order to do this using template metaprogramming,
+      macros are used so that the name of the inner element can be passed to the
+      macro. The macro will then generate an appropriate metafunction, which the
+      template metaprogrammer can then use to introspect the information that is
+      needed. The name itself of the inner element is always passed to the macro
+      as a macro parameter, but other macro parameters may also be needed in some
+      cases.
+    </p>
+<p>
+      All of the macros start with the prefix <code class="computeroutput"><span class="identifier">BOOST_TTI_</span></code>,
+      create their metafunctions as class templates in whatever scope the user invokes
+      the macro, and come in two forms:
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          In the simplest macro form, which I call the simple macro form, the 'name'
+          of the inner element is used directly to generate the name of the metafunction
+          as well as serving as the 'name' to introspect. In generating the name
+          of the metafunction from the macro name, the <code class="computeroutput"><span class="identifier">BOOST_TTI_</span></code>
+          prefix is removed, the rest of the macro name is changed to lower case,
+          and an underscore ( '_' ) followed by the 'name' is appended. As an example,
+          for the macro <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_TYPE</span><span class="special">(</span><span class="identifier">MyType</span><span class="special">)</span></code> the name of the metafunction is <code class="computeroutput"><span class="identifier">has_type_MyType</span></code> and it will look for
+          an inner type called 'MyType'.
+        </li>
+<li class="listitem">
+          In a more complicated macro form, which I call the complex macro form,
+          the macro starts with <code class="computeroutput"><span class="identifier">BOOST_TTI_TRAIT_</span></code>
+          and a 'trait' name is passed as the first parameter, with the 'name' of
+          the inner element as the second parameter. The 'trait' name serves solely
+          to completely name the metafunction in whatever scope the macro is invoked.
+          As an example, for the macro <code class="computeroutput"><span class="identifier">BOOST_TTI_TRAIT_HAS_TYPE</span><span class="special">(</span><span class="identifier">MyTrait</span><span class="special">,</span><span class="identifier">MyType</span><span class="special">)</span></code> the name of the metafunction is <code class="computeroutput"><span class="identifier">MyTrait</span></code> and it will look for an inner
+          type called <code class="computeroutput"><span class="identifier">MyType</span></code>.
+        </li>
+</ol></div>
+<p>
+      Every macro metafunction has a simple macro form and a corresponding complex
+      macro form. Once either of these two macro forms are used for a particular
+      type of inner element, the corresponding macro metafunction works exactly the
+      same way and has the exact same functionality.
+    </p>
+<p>
+      In the succeeding documentation all macro metafunctions will be referred by
+      their simple form name, but remember that the complex form can always be used
+      instead. The complex form is useful whenever using the simple form could create
+      a duplicate name in the same name space, thereby violating the C++ one definition
+      rule.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_functionality.h0"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_functionality.macro_metafunction_name_generation"></a></span><a class="link" href="tti_functionality.html#the_type_traits_introspection_library.tti_functionality.macro_metafunction_name_generation">Macro
+      Metafunction Name Generation</a>
+    </h4>
+<p>
+      For the simple macro form, even though it is fairly easy to remember the algorithm
+      by which the generated metafunction is named, TTI also provides, for each macro
+      metafunction, a corresponding 'naming' macro which the end-user can use and
+      whose sole purpose is to expand to the metafunction name. The naming macro
+      for each macro metafunction has the form: 'corresponding-macro'_GEN(name).
+    </p>
+<p>
+      As an example, BOOST_TTI_HAS_TYPE(MyType) creates a metafunction which looks
+      for a nested type called 'MyType' within some enclosing type. The name of the
+      metafunction generated, given our rule above is 'has_type_MyType'. A corresponding
+      macro called BOOST_TTI_HAS_TYPE_GEN, invoked as BOOST_TTI_HAS_TYPE_GEN(MyType)
+      in our example, expands to the same 'has_type_MyType' name. These name generating
+      macros, for each of the metafunction generating macros, are purely a convenience
+      for end-users who find using them easier than remembering the name-generating
+      rule given above.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="the_type_traits_introspection_library.tti_functionality.tti_functionality_nm_gen"></a><a class="link" href="tti_functionality.html#the_type_traits_introspection_library.tti_functionality.tti_functionality_nm_gen" title="Macro metafunction name generation considerations">Macro
+      metafunction name generation considerations</a>
+</h3></div></div></div>
+<p>
+        Because having a double underscore ( __ ) in a name is reserved by the C++
+        implementation, creating C++ identifiers with double underscores should be
+        avoided by the end-user. When using a TTI macro to generate a metafunction
+        using the simple macro form, TTI appends a single underscore to the macro
+        name preceding the name of the element that is being introspected. The reason
+        for doing this is because Boost discourages as non-portable C++ identifiers
+        with mixed case letters and the underscore then becomes the normal way to
+        separate parts of an identifier name so that it looks understandable. Because
+        of this decision to use the underscore to generate the metafunction name
+        from the macro name, any inner element starting with an underscore will cause
+        the identifier for the metafunction name being generated to contain a double
+        underscore.
+      </p>
+<p>
+        A rule to avoid this problem is:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            When the name of the inner element to be introspected begins with an
+            underscore, use the complex macro form, where the name of the metafunction
+            is specifically given.
+          </li></ul></div>
+<p>
+        Furthermore because TTI often generates not only a metafunction for the end-user
+        to use but some supporting detail metafunctions whose identifier, for reasons
+        of programming clarity, is the same as the metafunction with further letters
+        appended to it separated by an underscore, another rule is:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            When using the complex macro form, which fully gives the name of the
+            generated macro metafunction, that name should not end with an underscore.
+          </li></ul></div>
+<p>
+        Following these two simple rules will avoid names with double underscores
+        being generated by TTI.
+      </p>
+<h5>
+<a name="the_type_traits_introspection_library.tti_functionality.tti_functionality_nm_gen.h0"></a>
+        <span class="phrase"><a name="the_type_traits_introspection_library.tti_functionality.tti_functionality_nm_gen.reusing_the_named_metafunction"></a></span><a class="link" href="tti_functionality.html#the_type_traits_introspection_library.tti_functionality.tti_functionality_nm_gen.reusing_the_named_metafunction">Reusing
+        the named metafunction</a>
+      </h5>
+<p>
+        When the end-user uses the TTI macros to generate a metafunction for introspecting
+        an inner element of a particular type, that metafunction can be re-used with
+        any combination of valid template parameters which involve the same type
+        of inner element of a particular name.
+      </p>
+<p>
+        As one example of this let's consider two different types called 'AType'
+        and 'BType', for each of which we want to determine whether an inner type
+        called 'InnerType' exists. For both these types we need only generate a single
+        macro metafunction in the current scope by using:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_TYPE</span><span class="special">(</span><span class="identifier">InnerType</span><span class="special">)</span>
+</pre>
+<p>
+        We now have a metafunction, which is a C++ class template, in the current
+        scope whose C++ identifier is 'has_type_InnerType'. We can use this same
+        metafunction to introspect the existence of the nested type 'InnerType' in
+        either 'AType' or 'BType' at compile time. Although the syntax for doing
+        this has no yet been explained, I will give it here so that you can see how
+        'has_type_InnerType' is reused:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            'has_type_InnerType&lt;AType&gt;::value' is a compile time constant telling
+            us whether 'InnerType' is a type which is nested within 'AType'.
+          </li>
+<li class="listitem">
+            'has_type_InnerType&lt;BType&gt;::value' is a compile time constant telling
+            us whether 'InnerType' is a type which is nested within 'BType'.
+          </li>
+</ol></div>
+<p>
+        As another example of metafunction reuse let's consider a single type, called
+        'CType', for which we want to determine if it has either of two overloaded
+        member functions with the same name of 'AMemberFunction' but with the different
+        function signatures of 'int (int)' and 'double (long)'. For both these member
+        functions we need only generate a single macro metafunction in the current
+        scope by using:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">AMemberFunction</span><span class="special">)</span>
+</pre>
+<p>
+        We now have a metafunction, which is a C++ class template, in the current
+        scope whose C++ identifier is 'has_member_function_AMemberFunction'. We can
+        use this same metafunction to introspect the existence of the member function
+        'AMemberFunction' with either the function signature of 'int (int)' or 'double
+        (long)' in 'CType' at compile time. Although the syntax for doing this has
+        no yet been explained, I will give it here so that you can see how 'has_type_InnerType'
+        is reused:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            'has_member_function_AMemberFunction&lt;CType,int,boost::mpl::vector&lt;int&gt;
+            &gt;::value' is a compile time constant telling us whether 'AMemberFunction'
+            is a member function of type 'CType' whose function signature is 'int
+            (int)'.
+          </li>
+<li class="listitem">
+            'has_member_function_AMemberFunction&lt;CType,double,boost::mpl::vector&lt;long&gt;
+            &gt;::value' is a compile time constant telling us whether 'AMemberFunction'
+            is a member function of type 'CType' whose function signature is 'double
+            (long)'.
+          </li>
+</ol></div>
+<p>
+        These are just two examples of the ways a particular macro metafunction can
+        be reused. The two 'constants' when generating a macro metafunction are the
+        'name' and 'type of inner element'. Once the macro metafunction for a particular
+        name and inner element type has been generated, it can be reused for introspecting
+        the inner element(s) of any enclosing type which correspond to that name
+        and inner element type.
+      </p>
+<h5>
+<a name="the_type_traits_introspection_library.tti_functionality.tti_functionality_nm_gen.h1"></a>
+        <span class="phrase"><a name="the_type_traits_introspection_library.tti_functionality.tti_functionality_nm_gen.avoiding_odr_violations"></a></span><a class="link" href="tti_functionality.html#the_type_traits_introspection_library.tti_functionality.tti_functionality_nm_gen.avoiding_odr_violations">Avoiding
+        ODR violations</a>
+      </h5>
+<p>
+        The TTI macro metafunctions are generating directly in the enclosing scope
+        in which the corresponding macro is invoked. This can be any C++ scope in
+        which a class template can be specified. Within this enclosing scope the
+        name of the metafunction being generated must be unique or else a C++ ODR
+        ( One Definition Rule ) violation will occur. This is extremely important
+        to remember, especially when the enclosing scope can occur in more than one
+        translation unit, which is the case for namespaces and the global scope.
+      </p>
+<p>
+        Because of ODR, and the way that the simple macro form metafunction name
+        is directly dependent on the inner element and name of the element being
+        introspected, it is the responsibility of the programmer using the TTI macros
+        to generate metafunctions to avoid ODR within a module ( application or library
+        ). There are a few general methods for doing this:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Create unique namespace names in which to generate the macro metafunctions
+            and/or generate the macro metafunctions in C++ scopes which can not extend
+            across translation units. The most obvious example of this latter is
+            within C++ classes.
+          </li>
+<li class="listitem">
+            Use the complex macro form to specifically name the metafunction generated
+            in order to provide a unique name.
+          </li>
+<li class="listitem">
+            Avoid using the TTI macros in the global scope.
+          </li>
+</ol></div>
+<p>
+        For anyone using TTI in a library which others will eventually use, it is
+        important to generate metafunction names which are unique to that library.
+      </p>
+<p>
+        TTI also reserves not only the name generated by the macro metafunction for
+        its use but also any C++ identifier sequence which begins with that name.
+        In other words if the metafunction being generated by TTI is named 'MyMetafunction'
+        using the complex macro form, do not create any C++ construct with an identifier
+        starting with 'MyMetaFunction', such as 'MyMetaFunction_Enumeration' or 'MyMetaFunctionHelper'
+        in the same scope. All names starting with the metafunction name in the current
+        scope should be considered out of bounds for the programmer using TTI.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Tropic Software
+      East Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_terminology.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_detail.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

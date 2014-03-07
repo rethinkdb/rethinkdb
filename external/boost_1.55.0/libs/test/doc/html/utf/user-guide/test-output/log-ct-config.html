@@ -1,0 +1,202 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Compile time configuration</title>
+<link rel="stylesheet" href="../../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../../index.html" title="Boost Test Library">
+<link rel="up" href="test-log.html" title="Test log output">
+<link rel="prev" href="log-xml-format.html" title="XML based log output format">
+<link rel="next" href="results-report.html" title="Test report output">
+<script language="JavaScript1.2" src="../../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../../utf.html">The Unit Test Framework</a> &gt; <a href="../../user-guide.html">User's guide</a><a href="../../testing-tools.html">
+      &gt;
+      </a><a href="../test-output.html">Test Output </a><a href="../runtime-config.html">
+      &gt;
+      </a><a href="test-log.html">Test log</a><a href="results-report.html">
+      &gt;
+      </a><b>Compile time configuration</b>
+</td>
+<td><div class="spirit-nav">
+<a href="log-xml-format.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="results-report.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-output.log.ct-config"></a>Compile time configuration</h6></div></div></div>
+<p class="first-line-indented">
+    While many test log configuration tasks can be performed at runtime using predefined framework parameters, the 
+    <acronym class="acronym">UTF</acronym> provides a compile time interface as well. The interface gives you full power over what, where and how to 
+    log. The interface is provided by singleton class <code class="computeroutput">boost::unit_test::unit_test_log_t</code> and is
+    accessible through local file scope reference to single instance of this class: boost::unit_test::unit_test_log.
+   </p>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-output.log.ct-config.output-stream"></a>Log output stream redirection</h6></div></div></div>
+<p class="first-line-indented">
+     If you want to redirect the test log output stream into something different from std::cout use the following 
+     interface:
+    </p>
+<pre class="programlisting">boost::unit_test::unit_test_log.set_stream( std::ostream&amp; str );</pre>
+<p class="first-line-indented">
+     You can reset the output stream at any time both during the test module initialization and from within test 
+     cases. There are no limitations on number of output stream resets either.
+    </p>
+<div class="example">
+<a name="utf.user-guide.test-output.log.ct-config.output-stream.example50"></a><p class="title"><b>Example 30. Test log output redirection</b></p>
+<div class="example-contents">
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+#include &lt;fstream&gt;
+
+//____________________________________________________________________________//
+
+struct MyConfig {
+    MyConfig() : test_log( "example.log" )  { boost::unit_test::unit_test_log.set_stream( test_log ); }
+    ~MyConfig()                             { boost::unit_test::unit_test_log.set_stream( std::cout ); }
+
+    std::ofstream test_log;
+};
+
+//____________________________________________________________________________//
+
+BOOST_GLOBAL_FIXTURE( MyConfig );
+
+BOOST_AUTO_TEST_CASE( test_case )
+{
+    BOOST_CHECK( false );
+}
+
+//____________________________________________________________________________//
+
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example50.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id655358" onclick="toggle_element( 'example50-output', 'id655358', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example50-output">&gt; example
+
+*** 1 failure detected in test suite "example"
+&gt; cat example.log
+Running 1 test case...
+test.cpp(20): error in "test_case": check false failed
+</pre>
+</div>
+</div>
+<br class="example-break">
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-output.log.ct-config.log-level"></a>Log level configuration</h6></div></div></div>
+<p class="first-line-indented">
+     If you need to enforce specific log level from within your test module use the following interface:
+    </p>
+<pre class="programlisting">boost::unit_test::unit_test_log.set_threshold_level( boost::unit_test::log_level );</pre>
+<p class="first-line-indented">
+     In regular circumstances you shouldn't use this interface, since you not only override default log level, but also
+     the one supplied at test execution time. Prefer to use runtime parameters for log level selection.
+    </p>
+<div class="example">
+<a name="utf.user-guide.test-output.log.ct-config.log-level.example51"></a><p class="title"><b>Example 31. Compile time log level configuration</b></p>
+<div class="example-contents">
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+#include &lt;boost/test/detail/unit_test_parameters.hpp&gt;
+using namespace boost::unit_test;
+
+//____________________________________________________________________________//
+
+BOOST_AUTO_TEST_CASE( test_case0 )
+{
+    if( runtime_config::log_level() &lt; log_warnings )
+        unit_test_log.set_threshold_level( log_warnings );
+
+    BOOST_WARN( sizeof(int) &gt; 4 );
+}
+
+//____________________________________________________________________________//
+
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example51.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id655481" onclick="toggle_element( 'example51-output', 'id655481', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example51-output">&gt; example
+Running 1 test case...
+test.cpp(13): warning in "test_case0": condition sizeof(int) &gt; 4 is not satisfied
+
+*** No errors detected
+</pre>
+</div>
+</div>
+<br class="example-break">
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-output.log.ct-config.log-format"></a>Predefined log format selection</h6></div></div></div>
+<p class="first-line-indented">
+     The select at compile time the log format from the list of the formats supplied by the <acronym class="acronym">UTF</acronym> 
+    </p>
+<pre class="programlisting">boost::unit_test::unit_test_log.set_format( boost::unit_test::output_format );</pre>
+<p class="first-line-indented">
+     In regular circumstances you shouldn't use this interface. Prefer to use runtime parameters for predefined log 
+     format selection.
+    </p>
+<div class="example">
+<a name="utf.user-guide.test-output.log.ct-config.log-format.example52"></a><p class="title"><b>Example 32. Compile time log format selection</b></p>
+<div class="example-contents">
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+using namespace boost::unit_test;
+
+//____________________________________________________________________________//
+
+struct MyConfig {
+    MyConfig()  { unit_test_log.set_format( XML ); }
+    ~MyConfig() {}
+};
+
+//____________________________________________________________________________//
+
+BOOST_GLOBAL_FIXTURE( MyConfig );
+
+BOOST_AUTO_TEST_CASE( test_case0 )
+{
+    BOOST_CHECK( false );
+}
+
+//____________________________________________________________________________//
+
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example52.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id655607" onclick="toggle_element( 'example52-output', 'id655607', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example52-output">&gt; example --report_level=no
+&lt;TestLog&gt;&lt;Error file="test.cpp" line="18"&gt;check false failed&lt;/Error&gt;&lt;/TestLog&gt;
+</pre>
+</div>
+</div>
+<br class="example-break">
+</div>
+<div class="section" lang="en"><div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-output.log.ct-config.log-formatter"></a>Custom log format support</h6></div></div></div></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="log-xml-format.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="test-log.html"><img src="../../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="results-report.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,262 @@
+[/
+  (C) Copyright 2008-11 Anthony Williams
+  (C) Copyright 2011-12 Vicente J. Botet Escriba
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[library Thread
+    [quickbook 1.5]
+    [version 4.2.0]
+    [authors [Williams, Anthony] [Botet Escriba, Vicente J.]]
+    [copyright 2007-11 Anthony Williams]
+    [copyright 2011-13 Vicente J. Botet Escriba]
+    [purpose C++ Library for launching threads and synchronizing data between them]
+    [category text]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[template lockable_concept_link[link_text] [link thread.synchronization.mutex_concepts.lockable [link_text]]]
+[def __lockable_concept__ [lockable_concept_link `Lockable` concept]]
+[def __lockable_concept_type__ [lockable_concept_link `Lockable`]]
+[def __BasicLockable [link thread.synchronization.mutex_concepts.basic_lockable `BasicLockable`]]
+[def __Lockable [link thread.synchronization.mutex_concepts.lockable `Lockable`]]
+[def __TimedLockable [link thread.synchronization.mutex_concepts.timed_lockable `TimedLockable`]]
+[def __SharedLockable [link thread.synchronization.mutex_concepts.shared_lockable `SharedLockable`]]
+[def __UpgradeLockable [link thread.synchronization.mutex_concepts.upgrade_lockable `UpgradeLockable`]]
+
+[template timed_lockable_concept_link[link_text] [link thread.synchronization.mutex_concepts.timed_lockable [link_text]]]
+[def __timed_lockable_concept__ [timed_lockable_concept_link `TimedLockable` concept]]
+[def __timed_lockable_concept_type__ [timed_lockable_concept_link `TimedLockable`]]
+
+[template shared_lockable_concept_link[link_text] [link thread.synchronization.mutex_concepts.shared_lockable [link_text]]]
+[def __shared_lockable_concept__ [shared_lockable_concept_link `SharedLockable` concept]]
+[def __shared_lockable_concept_type__ [shared_lockable_concept_link `SharedLockable`]]
+
+[template upgrade_lockable_concept_link[link_text] [link thread.synchronization.mutex_concepts.upgrade_lockable [link_text]]]
+[def __upgrade_lockable_concept__ [upgrade_lockable_concept_link `UpgradeLockable` concept]]
+[def __upgrade_lockable_concept_type__ [upgrade_lockable_concept_link `UpgradeLockable`]]
+
+
+[template lock_ref_link[link_text] [link thread.synchronization.mutex_concepts.basic_lockable.lock [link_text]]]
+[def __lock_ref__ [lock_ref_link `lock()`]]
+[def __lock [link thread.synchronization.mutex_concepts.basic_lockable.lock `lock`]]
+
+[template lock_multiple_ref_link[link_text] [link thread.synchronization.lock_functions.lock_multiple [link_text]]]
+[def __lock_multiple_ref__ [lock_multiple_ref_link `lock()`]]
+
+[template try_lock_multiple_ref_link[link_text] [link thread.synchronization.lock_functions.try_lock_multiple [link_text]]]
+[def __try_lock_multiple_ref__ [try_lock_multiple_ref_link `try_lock()`]]
+
+[template unlock_ref_link[link_text] [link thread.synchronization.mutex_concepts.basic_lockable.unlock [link_text]]]
+[def __unlock_ref__ [unlock_ref_link `unlock()`]]
+[def __unlock [link thread.synchronization.mutex_concepts.basic_lockable.unlock `unlock`]]
+
+[template try_lock_ref_link[link_text] [link thread.synchronization.mutex_concepts.lockable.try_lock [link_text]]]
+[def __try_lock_ref__ [try_lock_ref_link `try_lock()`]]
+[def __try_lock [link thread.synchronization.mutex_concepts.lockable.try_lock `try_lock`]]
+
+[template timed_lock_ref_link[link_text] [link thread.synchronization.mutex_concepts.timed_lockable.timed_lock [link_text]]]
+[def __timed_lock_ref__ [timed_lock_ref_link `timed_lock()`]]
+[def __timed_lock [link thread.synchronization.mutex_concepts.timed_lockable.timed_lock `timed_lock`]]
+
+[def __try_lock_for [link thread.synchronization.mutex_concepts.timed_lockable.try_lock_for `try_lock_for`]]
+[def __try_lock_until [link thread.synchronization.mutex_concepts.timed_lockable.try_lock_until `try_lock_until`]]
+
+[template timed_lock_duration_ref_link[link_text] [link thread.synchronization.mutex_concepts.timed_lockable.timed_lock_duration [link_text]]]
+[def __timed_lock_duration_ref__ [timed_lock_duration_ref_link `timed_lock()`]]
+[def __timed_lock_duration [link thread.synchronization.mutex_concepts.timed_lockable.timed_lock_duration `timed_lock`]]
+
+[template lock_shared_ref_link[link_text] [link thread.synchronization.mutex_concepts.shared_lockable.lock_shared [link_text]]]
+[def __lock_shared_ref__ [lock_shared_ref_link `lock_shared()`]]
+[def __lock_shared [link thread.synchronization.mutex_concepts.shared_lockable.lock_shared  `lock_shared()`]]
+
+[template unlock_shared_ref_link[link_text] [link thread.synchronization.mutex_concepts.shared_lockable.unlock_shared [link_text]]]
+[def __unlock_shared_ref__ [unlock_shared_ref_link `unlock_shared()`]]
+[def __unlock_shared [link thread.synchronization.mutex_concepts.shared_lockable.unlock_shared  `unlock_shared()`]]
+
+[template try_lock_shared_ref_link[link_text] [link thread.synchronization.mutex_concepts.shared_lockable.try_lock_shared [link_text]]]
+[def __try_lock_shared_ref__ [try_lock_shared_ref_link `try_lock_shared()`]]
+[def __try_lock_shared [link thread.synchronization.mutex_concepts.shared_lockable.try_lock_shared `try_lock_shared`]]
+
+[template timed_lock_shared_ref_link[link_text] [link thread.synchronization.mutex_concepts.shared_lockable.timed_lock_shared [link_text]]]
+[def __timed_lock_shared_ref__ [timed_lock_shared_ref_link `timed_lock_shared()`]]
+[def __try_lock_shared_for [link thread.synchronization.mutex_concepts.shared_lockable.try_lock_shared_for `try_lock_shared_for`]]
+[def __try_lock_shared_for [link thread.synchronization.mutex_concepts.shared_lockable.try_lock_shared_until `try_lock_shared_until`]]
+
+[template timed_lock_shared_duration_ref_link[link_text] [link thread.synchronization.mutex_concepts.shared_lockable.timed_lock_shared_duration [link_text]]]
+[def __timed_lock_shared_duration_ref__ [timed_lock_shared_duration_ref_link `timed_lock_shared()`]]
+[def __try_lock_shared_for [link thread.synchronization.mutex_concepts.shared_lockable.try_lock_shared_for `try_lock_shared_for`]]
+[def __try_lock_shared_until [link thread.synchronization.mutex_concepts.shared_lockable.try_lock_shared_until `try_lock_shared_until`]]
+
+[template lock_upgrade_ref_link[link_text] [link thread.synchronization.mutex_concepts.upgrade_lockable.lock_upgrade [link_text]]]
+[def __lock_upgrade_ref__ [lock_upgrade_ref_link `lock_upgrade()`]]
+[def __lock_upgrade [link thread.synchronization.mutex_concepts.upgrade_lockable.lock_upgrade `lock_upgrade`]]
+[def __try_lock_upgrade [link thread.synchronization.mutex_concepts.upgrade_lockable.try_lock_upgrade `try_lock_upgrade`]]
+[def __try_lock_upgrade_for [link thread.synchronization.mutex_concepts.upgrade_lockable.try_lock_upgrade_for `try_lock_upgrade_for`]]
+[def __try_lock_upgrade_until [link thread.synchronization.mutex_concepts.upgrade_lockable.try_lock_upgrade_until `try_lock_upgrade_until`]]
+
+[template unlock_upgrade_ref_link[link_text] [link thread.synchronization.mutex_concepts.upgrade_lockable.unlock_upgrade [link_text]]]
+[def __unlock_upgrade_ref__ [unlock_upgrade_ref_link `unlock_upgrade()`]]
+[def __unlock_upgrade [link thread.synchronization.mutex_concepts.upgrade_lockable.unlock_upgrade `unlock_upgrade`]]
+
+[template unlock_upgrade_and_lock_ref_link[link_text] [link thread.synchronization.mutex_concepts.upgrade_lockable.unlock_upgrade_and_lock [link_text]]]
+[def __unlock_upgrade_and_lock_ref__ [unlock_upgrade_and_lock_ref_link `unlock_upgrade_and_lock()`]]
+[def __unlock_upgrade_and_lock [link thread.synchronization.mutex_concepts.upgrade_lockable.unlock_upgrade_and_lock `unlock_upgrade_and_lock`]]
+
+[template unlock_and_lock_upgrade_ref_link[link_text] [link thread.synchronization.mutex_concepts.upgrade_lockable.unlock_and_lock_upgrade [link_text]]]
+[def __unlock_and_lock_upgrade_ref__ [unlock_and_lock_upgrade_ref_link `unlock_and_lock_upgrade()`]]
+[def __unlock_and_lock_upgrade [link thread.synchronization.mutex_concepts.upgrade_lockable.unlock_and_lock_upgrade `unlock_and_lock_upgrade`]]
+
+[template unlock_upgrade_and_lock_shared_ref_link[link_text] [link thread.synchronization.mutex_concepts.upgrade_lockable.unlock_upgrade_and_lock_shared [link_text]]]
+[def __unlock_upgrade_and_lock_shared_ref__ [unlock_upgrade_and_lock_shared_ref_link `unlock_upgrade_and_lock_shared()`]]
+[def __unlock_upgrade_and_lock_shared [link thread.synchronization.mutex_concepts.upgrade_lockable.unlock_upgrade_and_lock_shared `unlock_upgrade_and_lock_shared`]]
+
+
+[def __try_unlock_shared_and_lock [link thread.synchronization.mutex_concepts.upgrade_lockable.try_unlock_shared_and_lock `try_unlock_shared_and_lock`]]
+[def __try_unlock_shared_and_lock_for [link thread.synchronization.mutex_concepts.upgrade_lockable.try_unlock_shared_and_lock_for `try_unlock_shared_and_lock_for`]]
+[def __try_unlock_shared_and_lock_until [link thread.synchronization.mutex_concepts.upgrade_lockable.try_unlock_shared_and_lock_until `try_unlock_shared_and_lock_until`]]
+
+[def __unlock_and_lock_shared [link thread.synchronization.mutex_concepts.upgrade_lockable.unlock_and_lock_shared `unlock_and_lock_shared`]]
+
+[def __try_unlock_shared_and_lock_upgrade [link thread.synchronization.mutex_concepts.upgrade_lockable.try_unlock_shared_and_lock_upgrade `try_unlock_shared_and_lock_upgrade`]]
+[def __try_unlock_shared_and_lock_upgrade_for [link thread.synchronization.mutex_concepts.upgrade_lockable.try_unlock_shared_and_lock_upgrade_for `try_unlock_shared_and_lock_upgrade_for`]]
+[def __try_unlock_shared_and_lock_upgrade_until [link thread.synchronization.mutex_concepts.upgrade_lockable.try_unlock_shared_and_lock_upgrade_until `try_unlock_shared_and_lock_upgrade_until`]]
+
+[def __try_unlock_upgrade_and_lock [link thread.synchronization.mutex_concepts.upgrade_lockable.try_unlock_upgrade_and_lock `try_unlock_upgrade_and_lock`]]
+[def __try_unlock_upgrade_and_lock_for [link thread.synchronization.mutex_concepts.upgrade_lockable.try_unlock_upgrade_and_lock_for `try_unlock_upgrade_and_lock_for`]]
+[def __try_unlock_upgrade_and_lock_until [link thread.synchronization.mutex_concepts.upgrade_lockable.try_unlock_upgrade_and_lock_until `try_unlock_upgrade_and_lock_until`]]
+
+
+[template owns_lock_ref_link[link_text] [link thread.synchronization.locks.unique_lock.owns_lock [link_text]]]
+[def __owns_lock_ref__ [owns_lock_ref_link `owns_lock()`]]
+[def __owns_lock [owns_lock_ref_link `owns_lock()`]]
+
+[template owns_lock_shared_ref_link[link_text] [link thread.synchronization.locks.shared_lock.owns_lock [link_text]]]
+[def __owns_lock_shared_ref__ [owns_lock_shared_ref_link `owns_lock()`]]
+
+[template mutex_func_ref_link[link_text] [link thread.synchronization.locks.unique_lock.mutex [link_text]]]
+[def __mutex_func_ref__ [mutex_func_ref_link `mutex()`]]
+
+[def __boost_thread__ [*Boost.Thread]]
+[def __not_a_thread__ ['Not-a-Thread]]
+[def __interruption_points__ [link interruption_points ['interruption points]]]
+[def __lock_error__ `lock_error`]
+
+[def __mutex__ [link thread.synchronization.mutex_types.mutex `boost::mutex`]]
+[def __try_mutex__ [link thread.synchronization.mutex_types.try_mutex `boost::try_mutex`]]
+[def __timed_mutex__ [link thread.synchronization.mutex_types.timed_mutex `boost::timed_mutex`]]
+[def __recursive_mutex__ [link thread.synchronization.mutex_types.recursive_mutex `boost::recursive_mutex`]]
+[def __recursive_try_mutex__ [link thread.synchronization.mutex_types.recursive_try_mutex `boost::recursive_try_mutex`]]
+[def __recursive_timed_mutex__ [link thread.synchronization.mutex_types.recursive_timed_mutex `boost::recursive_timed_mutex`]]
+[def __shared_mutex__ [link thread.synchronization.mutex_types.shared_mutex `boost::shared_mutex`]]
+
+
+[def __StrictLock [link thread.synchronization.lock_concepts.StrictLock `StrictLock`]]
+
+[template unique_lock_link[link_text] [link thread.synchronization.locks.unique_lock [link_text]]]
+
+[def __lock_guard__ [link thread.synchronization.lock_guard.lock_guard `boost::lock_guard`]]
+[def __unique_lock__ [unique_lock_link `boost::unique_lock`]]
+[def __unique_lock [unique_lock_link `boost::unique_lock`]]
+[def __shared_lock__ [link thread.synchronization.locks.shared_lock `boost::shared_lock`]]
+[def __upgrade_lock__ [link thread.synchronization.locks.upgrade_lock `boost::upgrade_lock`]]
+[def __upgrade_to_unique_lock__ [link thread.synchronization.locks.upgrade_to_unique_lock `boost::upgrade_to_unique_lock`]]
+[def __reverse_lock [link thread.synchronization.other_locks.reverse_lock `reverse_lock`]]
+[def __shared_lock_guard [link thread.synchronization.other_locks.shared_lock_guard `shared_lock_guard`]]
+[def __shared_lock_guard_constructor_adopt [link thread.synchronization.other_locks.shared_lock_guard `shared_lock_guard`]]
+
+[def __strict_lock [link thread.synchronization.other_locks.strict_locks.strict_lock `strict_lock`]]
+[def __nested_strict_lock [link thread.synchronization.other_locks.strict_locks.nested_strict_lock `nested_strict_lock`]]
+
+
+[def __thread__ [link thread.thread_management.thread `boost::thread`]]
+[def __thread [link thread.thread_management.thread `thread`]]
+[def __thread_id__ [link thread.thread_management.thread.id `boost::thread::id`]]
+[template join_link[link_text] [link thread.thread_management.thread.join [link_text]]]
+[def __join__ [join_link `join()`]]
+
+[def __try_join_for [link thread.thread_management.thread.try_join_for `try_join_for`]]
+[def __try_join_until [link thread.thread_management.thread.try_join_until `try_join_until`]]
+
+[template timed_join_link[link_text] [link thread.thread_management.thread.timed_join [link_text]]]
+[def __timed_join__ [timed_join_link `timed_join()`]]
+[def __detach__ [link thread.thread_management.thread.detach `detach()`]]
+[def __interrupt__ [link thread.thread_management.thread.interrupt `interrupt()`]]
+[def __sleep__ [link thread.thread_management.this_thread.sleep `boost::this_thread::sleep()`]]
+[def __sleep_for [link thread.thread_management.this_thread.sleep_for `sleep_for`]]
+[def __sleep_until [link thread.thread_management.this_thread.sleep_until `sleep_until`]]
+[def __yield [link thread.thread_management.this_thread.yield `yield`]]
+[def __get_id [link thread.thread_management.thread.get_id `get_id`]]
+
+[def __interruption_enabled__ [link thread.thread_management.this_thread.interruption_enabled `boost::this_thread::interruption_enabled()`]]
+[def __interruption_requested__ [link thread.thread_management.this_thread.interruption_requested `boost::this_thread::interruption_requested()`]]
+[def __interruption_point__ [link thread.thread_management.this_thread.interruption_point `boost::this_thread::interruption_point()`]]
+[def __disable_interruption__ [link thread.thread_management.this_thread.disable_interruption `boost::this_thread::disable_interruption`]]
+[def __restore_interruption__ [link thread.thread_management.this_thread.restore_interruption `boost::this_thread::restore_interruption`]]
+
+[def __thread_resource_error__ `boost::thread_resource_error`]
+[def __thread_interrupted__ `boost::thread_interrupted`]
+[def __barrier__ [link thread.synchronization.barriers.barrier `boost::barrier`]]
+[def __latch__   [link thread.synchronization.latches.latch `latch`]]
+
+[template cond_wait_link[link_text] [link thread.synchronization.condvar_ref.condition_variable.wait [link_text]]]
+[def __cond_wait__ [cond_wait_link `wait()`]]
+[template cond_timed_wait_link[link_text] [link thread.synchronization.condvar_ref.condition_variable.timed_wait [link_text]]]
+[def __cond_timed_wait__ [cond_timed_wait_link `timed_wait()`]]
+
+[def __condition_variable [link thread.synchronization.condvar_ref.condition_variable `condition_variable`]]
+[def __wait_for [link thread.synchronization.condvar_ref.condition_variable.wait_for `wait_for`]]
+[def __wait_until [link thread.synchronization.condvar_ref.condition_variable.wait_until `wait_until`]]
+
+
+[template cond_any_wait_link[link_text] [link thread.synchronization.condvar_ref.condition_variable_any.wait [link_text]]]
+[def __cond_any_wait__ [cond_any_wait_link `wait()`]]
+[template cond_any_timed_wait_link[link_text] [link thread.synchronization.condvar_ref.condition_variable_any.timed_wait [link_text]]]
+[def __cond_any_timed_wait__ [cond_any_timed_wait_link `timed_wait()`]]
+
+[def __condition_variable_any [link thread.synchronization.condvar_ref.condition_variable_any `condition_variable_any`]]
+[def __cvany_wait_for [link thread.synchronization.condvar_ref.condition_variable_any.wait_for `wait_for`]]
+[def __cvany_wait_until [link thread.synchronization.condvar_ref.condition_variable_any.wait_until `wait_until`]]
+
+[def __blocked__ ['blocked]]
+
+[include overview.qbk]
+[include changes.qbk]
+
+[include thread_ref.qbk]
+[include scoped_thread.qbk]
+
+[section:synchronization Synchronization]
+[include sync_tutorial.qbk]
+[include mutex_concepts.qbk]
+[include mutexes.qbk]
+[include condition_variables.qbk]
+[include once.qbk]
+[include barrier.qbk]
+[/include latch.qbk]
+[include futures.qbk]
+[/include async_executors.qbk]
+[endsect]
+
+
+[include tss.qbk]
+
+[section:sds Synchronized Data Structures]
+[include synchronized_value.qbk]
+[/include sync_queues_ref.qbk]
+[/include sync_streams.qbk]
+[endsect]
+
+[include time.qbk]
+
+[include emulations.qbk]
+
+[include acknowledgements.qbk]
+
+[include compliance.qbk]

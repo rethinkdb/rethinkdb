@@ -1,0 +1,40 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:irange irange]
+
+[heading Prototype]
+
+``
+template<class Integer>
+iterator_range< range_detail::integer_iterator<Integer> >
+irange(Integer first, Integer  last);
+
+template<class Integer, class StepSize>
+iterator_range< range_detail::integer_iterator_with_step<Integer, StepSize> >
+irange(Integer first, Integer last, StepSize step_size);
+``
+
+[heading Description]
+
+`irange` is a function to generate an Integer Range.
+
+`irange` allows treating integers as a model of the __random_access_range__ Concept. It should be noted that the `first` and `last` parameters denoted a half-open range.
+
+[heading Definition]
+
+Defined in the header file `boost/range/irange.hpp`
+
+[heading Requirements]
+
+# `Integer` is a model of the `Integer` Concept.
+# `StepSize` is a model of the `SignedInteger` Concept.
+
+[heading Complexity]
+
+Constant. Since this function generates a new range the most significant performance cost is incurred through the iteration of the generated range.
+
+[endsect]
+

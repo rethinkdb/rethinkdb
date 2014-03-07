@@ -1,0 +1,176 @@
+# Boost regression-testing Jamfile
+#  (C) Copyright David Abrahams 2002. Permission to copy, use, modify, sell and
+#  distribute this software is granted provided this copyright notice appears in
+#  all copies. This software is provided "as is" without express or implied
+#  warranty, and with no claim as to its suitability for any purpose.
+
+#  Status:
+#  - std::locale-support usage is commented out.
+#  Two test suite have different names.
+#  <no-warn> in config test is commented out.
+#  One of the smart_ptr test is run only from invocation dir in V1, and not
+#  run in V2 at all.
+
+
+project status
+    : source-location $(BOOST_ROOT)
+    : requirements <hardcode-dll-paths>true
+    ;
+
+import testing ;
+import modules ;
+
+local rule run-tests ( root : tests * )
+{
+    local limit-tests = [ MATCH "^--limit-tests=(.*)" : [ modules.peek : ARGV ] ] ;
+    for local test in $(tests)
+    {
+        if $(limit-tests)
+        {
+            if [ MATCH "^($(limit-tests))" : $(test) ]
+            {
+                build-project ../$(root)/$(test) ;
+            }
+            else
+            {
+                use-project /boost/$(test) : ../$(root)/$(test) ;
+            }
+        }
+        else
+        {
+            build-project ../$(root)/$(test) ;
+        }
+    }
+}
+
+# Tests from Jamfiles in individual library test subdirectories
+# Please keep these in alphabetic order by test-suite name
+run-tests libs :
+    accumulators/test           # test-suite accumulators
+    algorithm/test              # test-suite algorithm
+    algorithm/minmax/test       # test-suite algorith/minmax
+    algorithm/string/test       # test-suite algorithm/string
+    array/test                  # test-suite array
+    asio/test                   # test-suite asio
+    assign/test                 # test-suite assign
+    atomic/test                 # test-suite atomic
+    any/test                    # test-suite any
+    bimap/test                  # test-suite bimap
+    bind/test                   # test-suite bind
+    chrono/test                 # test-suite chrono
+    container/example           # test-suite container_example
+    container/test              # test-suite container_test
+    circular_buffer/test        # test-suite circular_buffer
+    concept_check               # test-suite concept_check
+    config/test                 # test-suite config
+    context/test                # test-suite context
+    conversion/test             # test-suite conversion
+    coroutine/test              # test-suite coroutine
+    crc/test                    # test-suite crc
+    date_time/test              # test-suite date_time
+    detail/test                 # test-suite detail
+    disjoint_sets               # test-suite disjoint_sets
+    dynamic_bitset              # test-suite dynamic_bitset
+    exception/test
+    filesystem/test             # test-suite filesystem
+    flyweight/test              # test-suite flyweight
+    foreach/test                # test-suite foreach
+    format/test                 # test-suite format
+    function/test               # test-suite function
+    functional/test             # test-suite functional
+    functional/factory/test     # test-suite functional/factory
+    functional/forward/test     # test-suite functional/forward
+    functional/hash/test/extra  # test-suite functional/hash
+    functional/overloaded_function/test # test-suite func./overloaded_function
+    function_types/test         # test-suite function_types
+    fusion/test                 # test-suite fusion
+    geometry/test               # test-suite geometry
+    gil/test                    # test-suite gil
+    graph/test                  # test-suite graph
+    graph_parallel/test         # test-suite graph/parallel
+    heap/test                   # test-suite heap
+    icl/test                    # test-suite icl
+    io/test                     # test-suite io
+    integer/test                # test-suite integer
+    interprocess/example        # test-suite interprocess_example
+    interprocess/test           # test-suite interprocess_test
+    intrusive/example           # test-suite intrusive_example
+    intrusive/test              # test-suite intrusive_test
+    iostreams/test              # test-suite iostreams
+    iterator/test               # test-suite iterator
+    lambda/test                 # test-suite lambda
+    local_function/test         # test-suite local_function
+    locale/test                 # test-suite locale
+    log/test                    # test-suite log
+    logic/test                  # test-suite logic
+    lockfree/test               # test-suite lockfree
+    math/test                   # test-suite math
+    multiprecision/test         # test-suite multiprecision
+    move/example                # test-suite move_example
+    move/test                   # test-suite move_test
+    mpi/test                    # test-suite mpi
+    mpl/test                    # test-suite mpl
+    msm/test                    # msm-unit-tests
+    numeric/conversion/test     # test-suite numeric/conversion
+    numeric/interval/test       # test-suite numeric/interval
+    numeric/odeint/test         # test-suite numeric/odeint
+    numeric/ublas/test          # test-suite numeirc/uBLAS
+    multi_array/test            # test-suite multi_array
+    multi_index/test            # test-suite multi_index
+    optional/test               # test-suite optional
+    parameter/test              # test-suite parameter
+    phoenix/test                # test-suite phoenix
+    polygon/test                # test-suite polygon
+    pool/test                   # test-suite pool
+    predef/test                 # test-suite predef
+    preprocessor/test           # test-suite preprocessor
+    program_options/test        # test-suite program_options
+    property_map/test           # test-suite property_map
+    property_tree/test          # test-suite property_test
+    proto/test                  # test-suite proto
+    ptr_container/test          # test-suite ptr_container
+    python/test                 # test-suite python
+    random/test                 # test-suite random
+    range/test                  # test-suite range
+    ratio/test                  # test-suite ratio
+    rational/test               # test-suite rational
+    regex/test                  # test-suite regex
+    regex/example               # test-suite regex-examples
+    scope_exit/test             # test-suite scope_exit
+    serialization/test          # test-suite serialization
+    signals/test                # test-suite signals
+    signals2/test               # test-suite signals2
+    smart_ptr/test              # test-suite smart_ptr
+    spirit/classic/test         # test-suite classic spirit
+    spirit/test                 # test-suite spirit_v2
+    spirit/repository/test      # test-suite spirit_v2 repository
+    statechart/test             # test-suite statechart
+    static_assert               # test-suite static_assert
+    system/test                 # test-suite system
+    test/test                   # test-suite test
+    thread/test                 # test-suite thread
+    timer/test                  # test-suite timer
+    tokenizer/test              # test-suite tokenizer
+    tr1/test                    # test-suite tr1
+    tti/test                    # test-suite tti
+    tuple/test                  # test-suite tuple
+    type_erasure/test           # test-suite type_erasure
+    type_traits/test            # test-suite type_traits
+    typeof/test                 # test-suite typeof
+    units/test                  # test-suite units
+    unordered/test/unordered    # test-suite unordered
+    unordered/test/exception    # test-suite unordered-exception
+    utility/enable_if/test      # test-suite utility/enable_if
+    utility/identity_type/test  # test-suite utility/identity_type
+    utility/swap/test           # test-suite utility/swap
+    utility/test                # test-suite utility
+    uuid/test                   # test-suite uuid
+    variant/test                # test-suite variant
+    wave/test/build             # test-suite wave
+    xpressive/test              # test-suite xpressive
+    ;
+
+run-tests tools :
+    bcp/test
+    ;
+

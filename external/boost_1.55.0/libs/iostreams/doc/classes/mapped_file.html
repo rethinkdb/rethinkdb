@@ -1,0 +1,680 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Memory-Mapped Files</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Memory-Mapped Files</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#acknowledgments">Acknowledgments</A></DT>
+  <DT><A href="#installation">Installation</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A>
+    <OL>
+      <LI CLASS="square"><A href="#mapped_file_params">Class <CODE>mapped_file_params</CODE></A></LI>
+      <LI CLASS="square"><A href="#mapped_file_source">Class <CODE>mapped_file_source</CODE></A></LI>
+      <LI CLASS="square"><A href="#mapped_file_sink">Class <CODE>mapped_file_sink</CODE></A></LI>
+      <LI CLASS="square"><A href="#mapped_file">Class <CODE>mapped_file</CODE></A></LI>
+    </OL>
+  </DT>
+</DL>
+
+<HR>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The classes <CODE>mapped_file_source</CODE>, <CODE>mapped_file_sink</CODE> and <CODE>mapped_file</CODE> provide access to memory-mapped files on Windows and POSIX systems. These <A HREF="../guide/concepts.html#device_concepts">Devices</A> behave much like the <A HREF="file.html">File Wrappers</A> <CODE>basic_file_source</CODE>, <CODE>basic_file_sink</CODE> and <CODE>basic_file</CODE>, with the following important differences:
+</P>
+    <UL>
+        <LI CLASS="square">By default, files must exist before being opened, and are not truncated; attempting to write past the end of a file results in an error. To map a file which does not yet exist, use <A HREF="#mapped_file_params_size"><CODE>mapped_file_params::new_file_size</CODE></A>.
+        <LI CLASS="square">Files are always opened in binary mode.
+        <LI CLASS="square">Wide-character streams are not supported. 
+    </UL>
+<P>
+    Wide-character versions of the memory-mapped file Devices may be defined as follows, using the template <A HREF="code_converter.html"><CODE>code_converter</CODE></A>:
+    <PRE CLASS="broken_ie">    <SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/code_converter.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/code_converter.hpp&gt;</SPAN></A>
+    <SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/device/mapped_file.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/device/mapped_file.hpp&gt;</SPAN></A>
+
+    <SPAN CLASS="keyword">typedef</SPAN> code_converter&lt;mapped_file_source&gt;  <SPAN CLASS="defined">wmapped_file_source</SPAN>;
+    <SPAN CLASS="keyword">typedef</SPAN> code_converter&lt;mapped_file_sink&gt;    <SPAN CLASS="defined">wmapped_file_sink</SPAN>;</PRE>
+</P>
+
+<A NAME="acknowledgments"></A>
+<H2>Acknowledgments</H2>
+
+<P>
+The memory-mapped file Devices are based on the work of Craig Henderson (<A CLASS="bib_ref" HREF="../bibliography.html#henderson">[Henderson]</A>). Additionals features were implemented by Jonathan Graehl.
+</P>
+
+<A NAME="installation"></A>
+<H2>Installation</H2>
+
+<P>
+    The memory-mapped file Devices depend on the source file <A CLASS="header" HREF="../../src/mapped_file.cpp"><CODE>&lt;libs/iostreams/src/mapped_file.cpp&gt;</CODE></A>. This source file makes use of Windows or POSIX headers depending on the user's operating system. For installation instructions see <A HREF="../installation.html">Installation</A>.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/device/mapped_file.hpp"><CODE>&lt;boost/iostreams/device/mapped_file.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="mapped_file_params"></A>
+<H3>1. Class <CODE>mapped_file_params</CODE></H3>
+
+<H4>Description</H4>
+
+<P>Class encapsulating the parameters used to open a memory-mapped file.</P>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">struct</SPAN> <SPAN CLASS="defined">mapped_file_params</SPAN> {
+    <SPAN CLASS='keyword'>explicit</SPAN> mapped_file_params();
+    <SPAN CLASS='keyword'>explicit</SPAN> mapped_file_params(<SPAN CLASS='keyword'>const</SPAN> std::string&amp; path);
+    std::string              <A CLASS='documented' HREF='#mapped_file_params_hint'>path</A>;
+    mapped_file::mapmode     <A CLASS='documented' HREF='#mapped_file_params_flags'>flags</A>;
+    std::ios_base::openmode  <A CLASS='documented' HREF='#mapped_file_params_mode'>mode</A>;  // Deprecated
+    stream_offset            <A CLASS='documented' HREF='#mapped_file_params_offset'>offset</A>;
+    std::size_t              <A CLASS='documented' HREF='#mapped_file_params_length'>length</A>;
+    stream_offset            <A CLASS="documented" HREF="#mapped_file_params_size">new_file_size</A>;
+    <SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>char</SPAN>*              <A CLASS='documented' HREF='#mapped_file_params_hint'>hint</A>;
+};
+
+} } // End namespace boost::io</PRE>
+
+<A NAME="mapped_file_params_path"></A>
+<H4><CODE>mapped_file_params::path</CODE></H4>
+
+<PRE CLASS="broken_ie">    std::string              path;</PRE>
+    
+<P>The pathname of the file to map.</P>
+
+<A NAME="mapped_file_params_mode"></A>
+<H4><CODE>mapped_file_params::mode</CODE></H4>
+
+<PRE CLASS="broken_ie">    std::ios_base::openmode  mode;</PRE>
+    
+<P>Indicates whether the file should be opened with read-access, write-access or both. Ignored by <CODE>mapped_file_source</CODE> and <CODE>mapped_file_sink</CODE>. This member is deprecated.  Please use flags in new code instead.</P>
+
+<A NAME="mapped_file_params_flags"></A>
+<H4><CODE>mapped_file_params::flags</CODE></H4>
+
+<PRE CLASS="broken_ie">    mapped_file::mapmode  flags;</PRE>
+    
+<P>Indicates whether the file should be opened with read-access, read-write-access, or private access.  A file opened with private access can be written to, but the changes will not affect the underlying file.</P>
+
+<A NAME="mapped_file_params_offset"></A>
+<H4><CODE>mapped_file_params::offset</CODE></H4>
+
+<PRE CLASS="broken_ie">    stream_offset            offset;</PRE>
+    
+<P>The offset where the mapping is to begin. This value must be a multiple of the operating system's virtual memory allocation granularity, which can be abotained via the static member function <A HREF="#mapped_file_alignment"><CODE>alignment</CODE></A> of  <CODE>mapped_file_source</CODE>, <CODE>mapped_file_sink</CODE> or <CODE>mapped_file</CODE>. Defaults to <CODE>0</CODE>.</P>
+
+<A NAME="mapped_file_params_length"></A>
+<H4><CODE>mapped_file_params::length</CODE></H4>
+
+<PRE CLASS="broken_ie">    std::size_t              length;</PRE>
+    
+<P>The number of bytes to map. If this parameter is not specified, the entire file is mapped.</P>
+
+<A NAME="mapped_file_params_size"></A>
+<H4><CODE>mapped_file_params::new_file_size</CODE></H4>
+
+<PRE CLASS="broken_ie">    stream_offset            new_file_size;</PRE>
+    
+<P>If this value is non-zero it specifies the size of a file to be created. If a file with pathname <I>path</I> already exists, it will be overwritten.</P>
+
+<A NAME="mapped_file_params_hint"></A>
+<H4><CODE>mapped_file_params::hint</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>char</SPAN>*              hint;</PRE>
+    
+<P>Suggests a location in the process's address space for the mapping to begin.</P>
+
+<A NAME="mapped_file_source"></A>
+<H3>2. Class <CODE>mapped_file_source</CODE></H3>
+
+<H4>Description</H4>
+
+<P>Model of <A HREF="../concepts/source.html">Source</A> providing read-only access to memory-mapped files on Windows and POSIX systems.</P>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">class</SPAN> <SPAN CLASS="defined">mapped_file_source</SPAN> {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>char</SPAN>                      char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='omitted'>[implementation-defined]</SPAN>  category;
+    <A CLASS='documented' HREF='#mapped_file_source_default_ctor'>mapped_file_source</A>();
+    <SPAN CLASS='keyword'>explicit</SPAN> <A CLASS='documented' HREF='#mapped_file_source_params_ctor'>mapped_file_source</A>(<A CLASS='documented' HREF='#mapped_file_params'>mapped_file_params</A> params);
+    <SPAN CLASS='keyword'>explicit</SPAN> <A CLASS='documented' HREF='#mapped_file_source_basic_ctor'>mapped_file_source</A>( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+                                 size_type length = max_length,
+                                 boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN> );
+    void <A CLASS='documented' HREF='#mapped_file_source_params_open'>open</A>(<A CLASS='documented' HREF='#mapped_file_params'>mapped_file_params</A> params);
+    void <A CLASS='documented' HREF='#mapped_file_source_basic_open'>open</A>( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+               size_type length = max_length,
+               boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN> );
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS='documented' HREF='#mapped_file_source_is_open'>is_open</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>void</SPAN> <A CLASS='documented' HREF='#mapped_file_source_close'>close</A>();
+    size_type <A CLASS='documented' HREF='#mapped_file_source_size'>size</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>char</SPAN>* <A CLASS='documented' HREF='#mapped_file_source_data'>data</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>static</SPAN> <SPAN CLASS='keyword'>int</SPAN> <A CLASS='documented' HREF='#mapped_file_source_alignment'>alignment</A>();
+};
+
+} } // End namespace boost::io</PRE>
+
+<A NAME="mapped_file_source_default_ctor"></A>
+<H4><CODE>mapped_file_source::mapped_file_source</CODE></H4>
+
+<PRE CLASS="broken_ie">    mapped_file_source();</PRE>
+    
+<P>Constructs a <CODE>mapped_file_source</CODE> which must be opened before it can be used to perform i/o.</P>
+
+<A NAME="mapped_file_source_params_ctor"></A>
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>explicit</SPAN> mapped_file_source(<A CLASS='documented' HREF='#mapped_file_params'>mapped_file_params</A> params);</PRE>
+    
+<P>Constructs a <CODE>mapped_file_source</CODE> from the given parameters.</P>
+
+<A NAME="mapped_file_source_basic_ctor"></A>
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>explicit</SPAN> mapped_file_source( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+                                 size_type length = max_length,
+                                 boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN> );</PRE>
+    
+<P>Constructs a <CODE>mapped_file_source</CODE> to access a specified file. The parameters have the following interpretation:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>path</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The pathname of the file to map.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>length</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The number of bytes to map. If this parameter is not specified, the entire file is mapped.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>offset</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The offset where the mapping is to begin. This value must be a multiple of the operating system's virtual memory allocation granularity, which can be obtained using the static member function <A HREF='#mapped_file_source_alignment'><CODE>alignment</CODE></A>.</TD>
+    </TR>
+</TABLE>
+
+<A NAME="mapped_file_source_params_open"></A>
+<H4><CODE>mapped_file_source::open</CODE></H4>
+
+<PRE CLASS="broken_ie">    void open(<A CLASS='documented' HREF='#mapped_file_params'>mapped_file_params</A> params);</PRE>
+    
+<P>Connects this <CODE>mapped_file_source</CODE> to a memory-mapped file obtained as described by the given parameters.</P>
+
+<A NAME="mapped_file_source_basic_open"></A>
+<PRE CLASS="broken_ie">        void open( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+                   size_type length = max_length,
+                   boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN> );</PRE>
+    
+<P>Connects this <CODE>mapped_file_source</CODE> to a memory-mapped file obtained as described by the given parameters, which have the following interpretation:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>path</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The pathname of the file to map.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>length</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The number of bytes to map. If this parameter is not specified, the entire file is mapped.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>offset</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The offset where the mapping is to begin. This value must be a multiple of the operating system's virtual memory allocation granularity, which can be obtained using the static member function <A HREF='#mapped_file_source_alignment'><CODE>alignment</CODE></A>.</TD>
+    </TR>
+</TABLE>
+
+<A NAME="mapped_file_source_is_open"></A>
+<H4><CODE>mapped_file_source::is_open</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_open() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+    
+<P>Returns <CODE>true</CODE> if this <CODE>mapped_file_source</CODE> has been successfully opened without subsequently having been closed.</P>
+
+<A NAME="mapped_file_source_close"></A>
+<H4><CODE>mapped_file_source::close</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>void</SPAN> close();</PRE>
+    
+<P>Frees the mapping associated with this <CODE>mapped_file_source</CODE>.</P>
+
+<A NAME="mapped_file_source_size"></A>
+<H4><CODE>mapped_file_source::size</CODE></H4>
+
+<PRE CLASS="broken_ie">    size_type size() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+    
+<P>Returns the size in bytes of the mapping associated with this <CODE>mapped_file_source</CODE>.</P>
+
+<A NAME="mapped_file_source_data"></A>
+<H4><CODE>mapped_file_source::data</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>char</SPAN>* data() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+    
+<P>Returns a pointer to the first byte of data in the mapping associated with this <CODE>mapped_file_source</CODE>.</P>
+
+<A NAME="mapped_file_source_alignment"></A>
+<H4><CODE>mapped_file_source::alignment</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>static</SPAN> <SPAN CLASS='keyword'>int</SPAN> alignment();</PRE>
+    
+<P>Returns the operating system's virtual memory allocation granularity.</P>
+
+<A NAME="mapped_file_sink"></A>
+<H3>3. Class <CODE>mapped_file_sink</CODE></H3>
+
+<H4>Description</H4>
+
+<P>Model of <A HREF="../concepts/sink.html">Sink</A> providing write-only access to memory-mapped files on Windows and POSIX systems.</P>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">class</SPAN> <SPAN CLASS="defined">mapped_file_sink</SPAN> {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>char</SPAN>                      char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='omitted'>[implementation-defined]</SPAN>  category;
+    <SPAN CLASS='keyword'>enum</SPAN> mapmode { readwrite, priv };
+    <A CLASS='documented' HREF='#mapped_file_sink_default_ctor'>mapped_file_sink</A>();
+    <SPAN CLASS='keyword'>explicit</SPAN> <A CLASS='documented' HREF='#mapped_file_sink_params_ctor'>mapped_file_sink</A>(<A CLASS='documented' HREF='#mapped_file_params'>mapped_file_params</A> params);
+    <SPAN CLASS='keyword'>explicit</SPAN> <A CLASS='documented' HREF='#mapped_file_sink_basic_ctor'>mapped_file_sink</A>( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+                               size_type length = max_length,
+                               boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN>,
+                               mapmode flags = readwrite );
+    void <A CLASS='documented' HREF='#mapped_file_sink_params_open'>open</A>(<A CLASS='documented' HREF='#mapped_file_params'>mapped_file_params</A> params);
+    void <A CLASS='documented' HREF='#mapped_file_sink_basic_open'>open</A>( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+               size_type length = max_length,
+               boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN>,
+               mapmode flags = readwrite );
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS='documented' HREF='#mapped_file_sink_is_open'>is_open</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    mapmode <A CLASS='documented' HREF='#mapped_file_sink_flags'>flags</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>void</SPAN> <A CLASS='documented' HREF='#mapped_file_sink_close'>close</A>();
+    size_type <A CLASS='documented' HREF='#mapped_file_sink_size'>size</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>char</SPAN>* <A CLASS='documented' HREF='#mapped_file_sink_data'>data</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>static</SPAN> <SPAN CLASS='keyword'>int</SPAN> <A CLASS='documented' HREF='#mapped_file_sink_alignment'>alignment</A>();
+};
+
+} } // End namespace boost::io</PRE>
+
+<A NAME="mapped_file_sink_default_ctor"></A>
+<H4><CODE>mapped_file_sink::mapped_file_sink</CODE></H4>
+
+<PRE CLASS="broken_ie">    mapped_file_sink();</PRE>
+    
+<P>Constructs a <CODE>mapped_file_sink</CODE> which must be opened before it can be used to perform i/o.</P>
+
+<A NAME="mapped_file_sink_params_ctor"></A>
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>explicit</SPAN> mapped_file_sink(<A CLASS='documented' HREF='#mapped_file_params'>mapped_file_params</A> params);</PRE>
+    
+<P>Constructs a <CODE>mapped_file_sink</CODE> from the given parameters.</P>
+
+<A NAME="mapped_file_sink_basic_ctor"></A>
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>explicit</SPAN> mapped_file_sink( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+                               size_type length = max_length,
+                               boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN>,
+                               mapmode flags );</PRE>
+    
+<P>Constructs a <CODE>mapped_file_sink</CODE> to access a specified file. The parameters have the following interpretation:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>path</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The pathname of the file to map.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>length</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The number of bytes to map. If this parameter is not specified, the entire file is mapped.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>offset</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The offset where the mapping is to begin. This value must be a multiple of the operating system's virtual memory allocation granularity, which can be obtained using the static member function <A HREF='#mapped_file_sink_alignment'><CODE>alignment</CODE></A>.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>flags</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Indicates whether the <CODE>mapped_file_sink</CODE> should be opened for read-write access or private access.</TD>
+    </TR>
+</TABLE>
+
+<A NAME="mapped_file_sink_params_open"></A>
+<H4><CODE>mapped_file_sink::open</CODE></H4>
+
+<PRE CLASS="broken_ie">    void open(<A CLASS='documented' HREF='#mapped_file_params'>mapped_file_params</A> params);</PRE>
+    
+<P>Connects this <CODE>mapped_file_sink</CODE> to a memory-mapped file obtained as described by the given parameters.</P>
+
+<A NAME="mapped_file_sink_basic_open"></A>
+<PRE CLASS="broken_ie">        void open( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+                   size_type length = max_length,
+                   boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN>
+                   mapmode flags );</PRE>
+    
+<P>Connects this <CODE>mapped_file_sink</CODE> to a memory-mapped file obtained as described by the given parameters, which have the following interpretation:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>path</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The pathname of the file to map.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>length</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The number of bytes to map. If this parameter is not specified, the entire file is mapped.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>offset</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The offset where the mapping is to begin. This value must be a multiple of the operating system's virtual memory allocation granularity, which can be obtained using the static member function <A HREF='#mapped_file_sink_alignment'><CODE>alignment</CODE></A>.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>flags</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Indicates whether the <CODE>mapped_file_sink</CODE> should be opened for read-write access or private access.</TD>
+    </TR>
+</TABLE>
+
+<A NAME="mapped_file_sink_is_open"></A>
+<H4><CODE>mapped_file_sink::is_open</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_open() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+    
+<P>Returns <CODE>true</CODE> if this <CODE>mapped_file_sink</CODE> has been successfully opened without subsequently having been closed.</P>
+
+<A NAME="mapped_file_sink_flags"></A>
+<H4><CODE>mapped_file_sink::flags</CODE></H4>
+
+<PRE CLASS="broken_ie">    mapmode flags() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+    
+<P>Indicates whether the <CODE>mapped_file_sink</CODE> was opened for read/write-access or private-access.</P>
+
+<A NAME="mapped_file_sink_close"></A>
+<H4><CODE>mapped_file_sink::close</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>void</SPAN> close();</PRE>
+    
+<P>Frees the mapping associated with this <CODE>mapped_file_sink</CODE>.</P>
+
+<A NAME="mapped_file_sink_size"></A>
+<H4><CODE>mapped_file_sink::size</CODE></H4>
+
+<PRE CLASS="broken_ie">    size_type size() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+    
+<P>Returns the size in bytes of the mapping associated with this <CODE>mapped_file_sink</CODE>.</P>
+
+<A NAME="mapped_file_sink_data"></A>
+<H4><CODE>mapped_file_sink::data</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>char</SPAN>* data() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+    
+<P>Returns a pointer to the first byte of data in the mapping associated with this <CODE>mapped_file_sink</CODE>.</P>
+
+<A NAME="mapped_file_sink_alignment"></A>
+<H4><CODE>mapped_file_sink::alignment</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>static</SPAN> <SPAN CLASS='keyword'>int</SPAN> alignment();</PRE>
+    
+<P>Returns the operating system's virtual memory allocation granularity.</P>
+
+<A NAME="mapped_file"></A>
+<H3>4. Class <CODE>mapped_file</CODE></H3>
+
+<H4>Description</H4>
+
+<P>Model of <A HREF="../concepts/seekable_device.html">SeekableDevice</A> providing read-write access to memory-mapped files on Windows and POSIX systems.</P>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">class</SPAN> <SPAN CLASS="defined">mapped_file</SPAN> {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>char</SPAN>                      char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='omitted'>[implementation-defined]</SPAN>  category;
+    <SPAN CLASS='keyword'>enum</SPAN> mapmode { readonly, readwrite, priv };
+    <A CLASS='documented' HREF='#mapped_file_default_ctor'>mapped_file</A>();
+    <SPAN CLASS='keyword'>explicit</SPAN> <A CLASS='documented' HREF='#mapped_file_params_ctor'>mapped_file</A>(<A CLASS='documented' HREF='#mapped_file_params'>mapped_file_params</A> params);
+    <SPAN CLASS='keyword'>explicit</SPAN> <A CLASS='documented' HREF='#mapped_file_basic_ctor'>mapped_file</A>( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+                          std::ios_base::openmode mode =
+                              std::ios_base::in | std::ios_base::out,
+                          size_type length = max_length,
+                          boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN> );
+    <SPAN CLASS='keyword'>explicit</SPAN> <A CLASS='documented' HREF='#mapped_file_mapmode_ctor'>mapped_file</A>( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+                          mapmode mode,
+                          size_type length = max_length,
+                          boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN> );
+    <SPAN CLASS='keyword'>void</SPAN> <A CLASS='documented' HREF='#mapped_file_params_open'>open</A>(<A CLASS='documented' HREF='#mapped_file_params'>mapped_file_params</A> params);
+    <SPAN CLASS='keyword'>void</SPAN> <A CLASS='documented' HREF='#mapped_file_basic_open'>open</A>( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+               std::ios_base::openmode mode = 
+                   std::ios_base | std::ios_base,
+               size_type length = max_length,
+               boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN> );
+    <SPAN CLASS='keyword'>void</SPAN> <A CLASS='documented' HREF='#mapped_file_mapmode_open'>open</A>( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+               mapmode mode,
+               size_type length = max_length,
+               boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN> );
+    <SPAN CLASS='keyword'>bool</SPAN> <A CLASS='documented' HREF='#mapped_file_is_open'>is_open</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    mapmode <A CLASS='documented' HREF='#mapped_file_flags'>flags</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>void</SPAN> <A CLASS='documented' HREF='#mapped_file_close'>close</A>();
+    size_type <A CLASS='documented' HREF='#mapped_file_size'>size</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>char</SPAN>* <A CLASS='documented' HREF='#mapped_file_data'>data</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>char</SPAN>* <A CLASS='documented' HREF='#mapped_file_const_data'>const_data</A>() <SPAN CLASS='keyword'>const</SPAN>;
+    <SPAN CLASS='keyword'>static</SPAN> <SPAN CLASS='keyword'>int</SPAN> <A CLASS='documented' HREF='#mapped_file_alignment'>alignment</A>();
+};
+
+} } // End namespace boost::iostreams</PRE>
+
+<A NAME="mapped_file_default_ctor"></A>
+<H4><CODE>mapped_file::mapped_file</CODE></H4>
+
+<PRE CLASS="broken_ie">    mapped_file();</PRE>
+    
+<P>Constructs a <CODE>mapped_file</CODE> which must be opened before it can be used to perform i/o.</P>
+
+<A NAME="mapped_file_params_ctor"></A>
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>explicit</SPAN> mapped_file(<A CLASS='documented' HREF='#mapped_file_params'>mapped_file_params</A> params);</PRE>
+    
+<P>Constructs a <CODE>mapped_file</CODE> from the given parameters.</P>
+
+<A NAME="mapped_file_basic_ctor"></A>
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>explicit</SPAN> mapped_file( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+                          std::ios_base::openmode mode = 
+                              std::ios_base | std::ios_base,
+                          size_type length = max_length,
+                          boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN> );</PRE>
+    
+<P>Constructs a <CODE>mapped_file</CODE> to access a specified file. The parameters have the following interpretation:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>path</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The pathname of the file to map.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>mode</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Indicates whether the file should be opened with read-access, write-access or both. Use of <CODE>std::ios_base::openmode</CODE> with <CODE>mapped_file</CODE> is deprecated.  Please use <CODE>mapmode</CODE> instead in new code.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>length</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The number of bytes to map. If this parameter is not specified, the entire file is mapped.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>offset</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The offset where the mapping is to begin. This value must be a multiple of the operating system's virtual memory allocation granularity, which can be obtained using the static member function <A HREF='#mapped_file_alignment'><CODE>alignment</CODE></A>.</TD>
+    </TR>
+</TABLE>
+
+<A NAME="mapped_file_mapmode_ctor"></A>
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>explicit</SPAN> mapped_file( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+                          mapmode mode,
+                          size_type length = max_length,
+                          boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN> );</PRE>
+    
+<P>Constructs a <CODE>mapped_file</CODE> to access a specified file. The parameters have the following interpretation:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>path</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The pathname of the file to map.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>mode</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Indicates whether the file should be opened with read-access, read/write-access or private-access.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>length</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The number of bytes to map. If this parameter is not specified, the entire file is mapped.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>offset</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The offset where the mapping is to begin. This value must be a multiple of the operating system's virtual memory allocation granularity, which can be obtained using the static member function <A HREF='#mapped_file_alignment'><CODE>alignment</CODE></A>.</TD>
+    </TR>
+</TABLE>
+
+<A NAME="mapped_file_params_open"></A>
+<H4><CODE>mapped_file::open</CODE></H4>
+
+<PRE CLASS="broken_ie">    void open(<A CLASS='documented' HREF='#mapped_file_params'>mapped_file_params</A> params);</PRE>
+    
+<P>Connects this <CODE>mapped_file</CODE> to a memory-mapped file obtained as described by the given parameters.</P>
+
+<A NAME="mapped_file_basic_open"></A>
+<PRE CLASS="broken_ie">        void open( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+                   std::ios_base::openmode mode = 
+                       std::ios_base | std::ios_base,
+                   size_type length = max_length,
+                   boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN> );</PRE>
+    
+<P>Connects this <CODE>mapped_file</CODE> to a memory-mapped file obtained as described by the given parameters, which have the following interpretation:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>path</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The pathname of the file to map.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>mode</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Indicates whether the file should be opened with read-access, write-access or both. Use of <CODE>std::ios_base::openmode</CODE> with <CODE>mapped_file</CODE> is deprecated. Please use <CODE>mapmode</CODE> in new code.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>length</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The number of bytes to map. If this parameter is not specified, the entire file is mapped.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>offset</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The offset where the mapping is to begin. This value must be a multiple of the operating system's virtual memory allocation granularity, which can be obtained using the static member function <A HREF='#mapped_file_alignment'><CODE>alignment</CODE></A>.</TD>
+    </TR>
+</TABLE>
+
+<A NAME="mapped_file_mapmode_open"></A>
+<PRE CLASS="broken_ie">        void open( <SPAN CLASS='keyword'>const</SPAN> std::string&amp; path,
+                   mapmode mode,
+                   size_type length = max_length,
+                   boost::intmax_t offset = <SPAN CLASS='numeric_literal'>0</SPAN> );</PRE>
+    
+<P>Connects this <CODE>mapped_file</CODE> to a memory-mapped file obtained as described by the given parameters, which have the following interpretation:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>path</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The pathname of the file to map.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>mode</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Indicates whether the file should be opened with read-access, read/write-access or private access.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>length</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The number of bytes to map. If this parameter is not specified, the entire file is mapped.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>offset</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The offset where the mapping is to begin. This value must be a multiple of the operating system's virtual memory allocation granularity, which can be obtained using the static member function <A HREF='#mapped_file_alignment'><CODE>alignment</CODE></A>.</TD>
+    </TR>
+</TABLE>
+
+<A NAME="mapped_file_is_open"></A>
+<H4><CODE>mapped_file::is_open</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>bool</SPAN> is_open() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+    
+<P>Returns <CODE>true</CODE> if this <CODE>mapped_file</CODE> has been successfully opened without subsequently having been closed.</P>
+
+<A NAME="mapped_file_flags"></A>
+<H4><CODE>mapped_file::flags</CODE></H4>
+
+<PRE CLASS="broken_ie">    mapmode flags() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+    
+<P>Indicates whether the <CODE>mapped_file</CODE> was opened for read-access, read/write-access or private-access.</P>
+
+<A NAME="mapped_file_close"></A>
+<H4><CODE>mapped_file::close</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>void</SPAN> close();</PRE>
+    
+<P>Frees the mapping associated with this <CODE>mapped_file</CODE>.</P>
+
+<A NAME="mapped_file_size"></A>
+<H4><CODE>mapped_file::size</CODE></H4>
+
+<PRE CLASS="broken_ie">    size_type size() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+    
+<P>Returns the size in bytes of the mapping associated with this <CODE>mapped_file</CODE>.</P>
+
+<A NAME="mapped_file_data"></A>
+<H4><CODE>mapped_file::data</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>char</SPAN>* data() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+    
+<P>Returns a pointer to the first byte of data in the mapping associated with this <CODE>mapped_file</CODE>, if it was opened with write-access, and a null pointer otherwise.</P>
+
+<A NAME="mapped_file_const_data"></A>
+<H4><CODE>mapped_file::const_data</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>const</SPAN> <SPAN CLASS='keyword'>char</SPAN>* const_data() <SPAN CLASS='keyword'>const</SPAN>;</PRE>
+    
+<P>Returns a pointer to the first byte of data in the mapping associated with this <CODE>mapped_file</CODE>.</P>
+
+<A NAME="mapped_file_alignment"></A>
+<H4><CODE>mapped_file::alignment</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>static</SPAN> <SPAN CLASS='keyword'>int</SPAN> alignment();</PRE>
+    
+<P>Returns the operating system's virtual memory allocation granularity.</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

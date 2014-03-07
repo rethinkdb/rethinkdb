@@ -1,0 +1,169 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Stack allocation</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Coroutine">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Coroutine">
+<link rel="prev" href="attributes.html" title="Attributes">
+<link rel="next" href="stack/stack_allocator.html" title="Class stack_allocator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="attributes.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="stack/stack_allocator.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="coroutine.stack"></a><a class="link" href="stack.html" title="Stack allocation">Stack allocation</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="stack/stack_allocator.html">Class <span class="emphasis"><em>stack_allocator</em></span></a></span></dt>
+<dt><span class="section"><a href="stack/stack_context.html">Class <span class="emphasis"><em>stack_context</em></span></a></span></dt>
+<dt><span class="section"><a href="stack/segmented_stack.html">Segmented stacks</a></span></dt>
+</dl></div>
+<p>
+      A <span class="emphasis"><em>coroutine</em></span> uses internally a <span class="emphasis"><em>context</em></span>
+      which manages a set of registers and a stack. The memory used by the stack
+      is allocated/deallocated via a <span class="emphasis"><em>stack-allocator</em></span> which is
+      required to model a <span class="emphasis"><em>stack-allocator concept</em></span>.
+    </p>
+<h4>
+<a name="coroutine.stack.h0"></a>
+      <span class="phrase"><a name="coroutine.stack._emphasis_stack_allocator_concept__emphasis_"></a></span><a class="link" href="stack.html#coroutine.stack._emphasis_stack_allocator_concept__emphasis_"><span class="emphasis"><em>stack-allocator
+      concept</em></span></a>
+    </h4>
+<p>
+      A <span class="emphasis"><em>stack-allocator</em></span> must satisfy the <span class="emphasis"><em>stack-allocator
+      concept</em></span> requirements shown in the following table, in which <code class="computeroutput"><span class="identifier">a</span></code> is an object of a <span class="emphasis"><em>stack-allocator</em></span>
+      type, <code class="computeroutput"><span class="identifier">sctx</span></code> is a <code class="computeroutput"><span class="identifier">stack_context</span></code>, and <code class="computeroutput"><span class="identifier">size</span></code>
+      is a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code>:
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                expression
+              </p>
+            </th>
+<th>
+              <p>
+                return type
+              </p>
+            </th>
+<th>
+              <p>
+                notes
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">allocate</span><span class="special">(</span>
+                <span class="identifier">sctx</span><span class="special">,</span>
+                <span class="identifier">size</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">void</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                creates a stack of at least <code class="computeroutput"><span class="identifier">size</span></code>
+                bytes and stores both values in <code class="computeroutput"><span class="identifier">sctx</span></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">deallocate</span><span class="special">(</span>
+                <span class="identifier">sctx</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">void</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                deallocates the stack created by <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">allocate</span><span class="special">()</span></code>
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        The implementation of <code class="computeroutput"><span class="identifier">allocate</span><span class="special">()</span></code> might include logic to protect against
+        exceeding the context's available stack size rather than leaving it as undefined
+        behaviour.
+      </p></td></tr>
+</table></div>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Calling <code class="computeroutput"><span class="identifier">deallocate</span><span class="special">()</span></code>
+        with a pointer not returned by <code class="computeroutput"><span class="identifier">allocate</span><span class="special">()</span></code> results in undefined behaviour.
+      </p></td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        The stack is not required to be aligned; alignment takes place inside <span class="emphasis"><em>coroutine</em></span>.
+      </p></td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Depending on the architecture <code class="computeroutput"><span class="identifier">allocate</span><span class="special">()</span></code> returns an address from the top of the
+        stack (growing downwards) or the bottom of the stack (growing upwards).
+      </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009 Oliver Kowalke<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="attributes.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="stack/stack_allocator.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

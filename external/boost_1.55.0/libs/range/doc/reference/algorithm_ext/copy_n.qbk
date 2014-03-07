@@ -1,0 +1,37 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:copy_n copy_n]
+
+[heading Prototype]
+
+``
+template<class SinglePassRange, class Size, class OutputIterator>
+OutputIterator copy_n(const SinglePassRange& rng, Size n, OutputIterator out);
+``
+
+[heading Description]
+
+`copy_n` is provided to completely replicate the standard algorithm header,
+it is preferable to use Range Adaptors and the extension functions to achieve
+the same result with greater safety.
+
+`copy_n` copies elements from `[boost::begin(rng), boost::begin(rng) + n)` to the range `[out, out + n)`
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm_ext/copy_n.hpp`
+
+[heading Requirements]
+
+# `SinglePassRange` is a model of the __single_pass_range__ Concept.
+# `Size` is a model of the `Integer` Concept.
+# `OutputIterator` is a model of the `OutputIteratorConcept`.
+
+[heading Complexity]
+
+Linear. Exactly `n` elements are copied.
+
+[endsect]

@@ -1,0 +1,382 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class text_file_backend</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../sinks.html#header.boost.log.sinks.text_file_backend_hpp" title="Header &lt;boost/log/sinks/text_file_backend.hpp&gt;">
+<link rel="prev" href="file/make_collector.html" title="Function template make_collector">
+<link rel="next" href="file/file_name_composer_adapter.html" title="Class template file_name_composer_adapter">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="file/make_collector.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.text_file_backend_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="file/file_name_composer_adapter.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.sinks.text_file_backend"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class text_file_backend</span></h2>
+<p>boost::log::sinks::text_file_backend &#8212; An implementation of a text file logging sink backend. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../sinks.html#header.boost.log.sinks.text_file_backend_hpp" title="Header &lt;boost/log/sinks/text_file_backend.hpp&gt;">boost/log/sinks/text_file_backend.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="text_file_backend.html" title="Class text_file_backend">text_file_backend</a> <span class="special">:</span> <span class="keyword">public</span> basic_formatted_sink_backend&lt; char, combine_requirements&lt; synchronized_feeding, flushing &gt;::type &gt;
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">char_type</span>            <a name="boost.log.sinks.text_file_backend.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>                      <span class="comment">// Character type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">string_type</span>          <a name="boost.log.sinks.text_file_backend.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>                    <span class="comment">// String type to be used as a message text holder. </span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">char_type</span> <span class="special">&gt;</span> <a name="boost.log.sinks.text_file_backend.stream_type"></a><span class="identifier">stream_type</span><span class="special">;</span>                    <span class="comment">// Stream type. </span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a name="boost.log.sinks.text_file_backend.open_handler_type"></a><span class="identifier">open_handler_type</span><span class="special">;</span>              <span class="comment">// File open handler. </span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a name="boost.log.sinks.text_file_backend.close_handler_type"></a><span class="identifier">close_handler_type</span><span class="special">;</span>             <span class="comment">// File close handler. </span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a name="boost.log.sinks.text_file_backend.time_based_rot_idp27387240"></a><span class="identifier">time_based_rotation_predicate</span><span class="special">;</span>  <span class="comment">// Predicate that defines the time-based condition for file rotation. </span>
+
+  <span class="comment">// <a class="link" href="text_file_backend.html#boost.log.sinks.text_file_backendconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="text_file_backend.html#idp27408936-bb"><span class="identifier">text_file_backend</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> ArgsT<span class="special">&gt;</span> <span class="keyword">explicit</span> <a class="link" href="text_file_backend.html#idp27409288-bb"><span class="identifier">text_file_backend</span></a><span class="special">(</span><span class="identifier">ArgsT</span><span class="special">...</span><span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="text_file_backend.html#idp27415320-bb"><span class="special">~</span><span class="identifier">text_file_backend</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="text_file_backend.html#idp27387864-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> PathT<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="text_file_backend.html#idp27388072-bb"><span class="identifier">set_file_name_pattern</span></a><span class="special">(</span><span class="identifier">PathT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="text_file_backend.html#idp27390024-bb"><span class="identifier">set_open_mode</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">openmode</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="text_file_backend.html#idp27391432-bb"><span class="identifier">set_file_collector</span></a><span class="special">(</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <a class="link" href="file/collector.html" title="Struct collector">file::collector</a> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="text_file_backend.html#idp27393192-bb"><span class="identifier">set_open_handler</span></a><span class="special">(</span><span class="identifier">open_handler_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="text_file_backend.html#idp27394808-bb"><span class="identifier">set_close_handler</span></a><span class="special">(</span><span class="identifier">close_handler_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="text_file_backend.html#idp27396424-bb"><span class="identifier">set_rotation_size</span></a><span class="special">(</span><span class="identifier">uintmax_t</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="text_file_backend.html#idp27398280-bb"><span class="identifier">set_time_based_rotation</span></a><span class="special">(</span><span class="identifier">time_based_rotation_predicate</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="text_file_backend.html#idp27400200-bb"><span class="identifier">auto_flush</span></a><span class="special">(</span><span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">uintmax_t</span> <a class="link" href="text_file_backend.html#idp27401432-bb"><span class="identifier">scan_for_files</span></a><span class="special">(</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">scan_method</span> <span class="special">=</span> <span class="identifier">file</span><span class="special">::</span><span class="identifier">scan_matching</span><span class="special">,</span> 
+                           <span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="text_file_backend.html#idp27406120-bb"><span class="identifier">consume</span></a><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="text_file_backend.html#idp27407544-bb"><span class="identifier">flush</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="text_file_backend.html#idp27408248-bb"><span class="identifier">rotate_file</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp65662984"></a><h2>Description</h2>
+<p>The sink backend puts formatted log records to a text file. The sink supports file rotation and advanced file control, such as size and file count restriction. </p>
+<div class="refsect2">
+<a name="idp65663496"></a><h3>
+<a name="boost.log.sinks.text_file_backendconstruct-copy-destruct"></a><code class="computeroutput">text_file_backend</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp27408936-bb"></a><span class="identifier">text_file_backend</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Default constructor. The constructed sink backend uses default values of all the parameters. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> ArgsT<span class="special">&gt;</span> <span class="keyword">explicit</span> <a name="idp27409288-bb"></a><span class="identifier">text_file_backend</span><span class="special">(</span><span class="identifier">ArgsT</span><span class="special">...</span><span class="keyword">const</span> <span class="special">&amp;</span> args<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor. Creates a sink backend with the specified named parameters. The following named parameters are supported:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><code class="computeroutput">file_name</code> - Specifies the file name pattern where logs are actually written to. The pattern may contain directory and file name portions, but only the file name may contain placeholders. The backend supports Boost.DateTime placeholders for injecting current time and date into the file name. Also, an additional N placeholder is supported, it will be replaced with an integral increasing file counter. The placeholder may also contain width specification in the printf-compatible form (e.g. %5N). The printed file counter will always be zero-filled. If <code class="computeroutput">file_name</code> is not specified, pattern "%5N.log" will be used. </p></li>
+<li class="listitem"><p><code class="computeroutput">open_mode</code> - File open mode. The mode should be presented in form of mask compatible to <code class="computeroutput">std::ios_base::openmode</code>. If not specified, <code class="computeroutput">trunc | out</code> will be used. </p></li>
+<li class="listitem"><p><code class="computeroutput">rotation_size</code> - Specifies the approximate size, in characters written, of the temporary file upon which the file is passed to the file collector. Note the size does not count any possible character conversions that may take place during writing to the file. If not specified, the file won't be rotated upon reaching any size. </p></li>
+<li class="listitem"><p><code class="computeroutput">time_based_rotation</code> - Specifies the predicate for time-based file rotation. No time-based file rotations will be performed, if not specified. </p></li>
+<li class="listitem"><p><code class="computeroutput">auto_flush</code> - Specifies a flag, whether or not to automatically flush the file after each written log record. By default, is <code class="computeroutput">false</code>.</p></li>
+</ul></div>
+<p>
+</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>Read the caution note regarding file name pattern in the <code class="computeroutput">sinks::file::collector::scan_for_files</code> documentation. </p></td></tr>
+</table></div>
+<p>
+</p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp27415320-bb"></a><span class="special">~</span><span class="identifier">text_file_backend</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destructor </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp65679656"></a><h3>
+<a name="idp27387864-bb"></a><code class="computeroutput">text_file_backend</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> PathT<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp27388072-bb"></a><span class="identifier">set_file_name_pattern</span><span class="special">(</span><span class="identifier">PathT</span> <span class="keyword">const</span> <span class="special">&amp;</span> pattern<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets file name wildcard for the files being written. The wildcard supports date and time injection into the file name.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">pattern</code></span></p></td>
+<td><p>The name pattern for the file being written. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27390024-bb"></a><span class="identifier">set_open_mode</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">openmode</span> mode<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets the file open mode</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">mode</code></span></p></td>
+<td><p>File open mode </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27391432-bb"></a><span class="identifier">set_file_collector</span><span class="special">(</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <a class="link" href="file/collector.html" title="Struct collector">file::collector</a> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> collector<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets the log file collector function. The function is called on file rotation and is being passed the written file name.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">collector</code></span></p></td>
+<td><p>The file collector function object </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27393192-bb"></a><span class="identifier">set_open_handler</span><span class="special">(</span><span class="identifier">open_handler_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> handler<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets file opening handler. The handler will be called every time the backend opens a new temporary file. The handler may write a header to the opened file in order to maintain file validity.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">handler</code></span></p></td>
+<td><p>The file open handler function object </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27394808-bb"></a><span class="identifier">set_close_handler</span><span class="special">(</span><span class="identifier">close_handler_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> handler<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets file closing handler. The handler will be called every time the backend closes a temporary file. The handler may write a footer to the opened file in order to maintain file validity.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">handler</code></span></p></td>
+<td><p>The file close handler function object </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27396424-bb"></a><span class="identifier">set_rotation_size</span><span class="special">(</span><span class="identifier">uintmax_t</span> size<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets maximum file size. When the size is reached, file rotation is performed.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>The size does not count any possible character translations that may happen in the underlying API. This may result in greater actual sizes of the written files.</p></td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">size</code></span></p></td>
+<td><p>The maximum file size, in characters. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27398280-bb"></a><span class="identifier">set_time_based_rotation</span><span class="special">(</span><span class="identifier">time_based_rotation_predicate</span> <span class="keyword">const</span> <span class="special">&amp;</span> predicate<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets the predicate that defines the time-based condition for file rotation.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>The rotation always occurs on writing a log record, so the rotation is not strictly bound to the specified condition.</p></td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">predicate</code></span></p></td>
+<td><p>The predicate that defines the time-based condition for file rotation. If empty, no time-based rotation will take place. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27400200-bb"></a><span class="identifier">auto_flush</span><span class="special">(</span><span class="keyword">bool</span> f <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Sets the flag to automatically flush buffers of all attached streams after each log record </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">uintmax_t</span> <a name="idp27401432-bb"></a><span class="identifier">scan_for_files</span><span class="special">(</span><span class="identifier">file</span><span class="special">::</span><span class="identifier">scan_method</span> method <span class="special">=</span> <span class="identifier">file</span><span class="special">::</span><span class="identifier">scan_matching</span><span class="special">,</span> 
+                         <span class="keyword">bool</span> update_counter <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Performs scanning of the target directory for log files that may have been left from previous runs of the application. The found files are considered by the file collector as if they were rotated.</p>
+<p>The file scan can be performed in two ways: either all files in the target directory will be considered as log files, or only those files that satisfy the file name pattern. See documentation on <code class="computeroutput">sinks::file::collector::scan_for_files</code> for more information.</p>
+<p>
+
+
+</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>The method essentially delegates to the same-named function of the file collector. </p></td></tr>
+</table></div>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">method</code></span></p></td>
+<td><p>File scanning method </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">update_counter</code></span></p></td>
+<td><p>If <code class="computeroutput">true</code> and <span class="emphasis"><em>method</em></span> is <code class="computeroutput">scan_matching</code>, the method attempts to update the internal file counter according to the found files. The counter is unaffected otherwise. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>File collector and the proper file name pattern have already been set.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The number of files found.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27406120-bb"></a><span class="identifier">consume</span><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span> rec<span class="special">,</span> <span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> formatted_message<span class="special">)</span><span class="special">;</span></pre>
+<p>The method writes the message to the sink </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27407544-bb"></a><span class="identifier">flush</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method flushes the currently open log file </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27408248-bb"></a><span class="identifier">rotate_file</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method rotates the file </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="file/make_collector.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.text_file_backend_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="file/file_name_composer_adapter.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

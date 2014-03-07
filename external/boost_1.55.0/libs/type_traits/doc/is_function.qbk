@@ -1,0 +1,75 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_function is_function]
+   
+   template <class T>
+   struct is_function : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) function type then inherits from __true_type, 
+otherwise inherits from __false_type.  Note that this template does not detect /pointers
+to functions/, or /references to functions/, these are detected by __is_pointer and 
+__is_reference respectively:
+
+   typedef int f1();      // f1 is of function type.
+   typedef int (*f2)();   // f2 is a pointer to a function.
+   typedef int (&f3)();   // f3 is a reference to a function.
+
+__std_ref 3.9.2p1 and 8.3.5.
+
+__header ` #include <boost/type_traits/is_function.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+[:`is_function<int (void)>` inherits from `__true_type`.]
+
+[:`is_function<long (double, int)>::type` is the type `__true_type`.]
+
+[:`is_function<long (double, int)>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_function<long (*)(double, int)>::value` is an integral constant 
+expression that evaluates to /false/: the argument in this case is a pointer type,
+not a function type.]
+
+[:`is_function<long (&)(double, int)>::value` is an integral constant 
+expression that evaluates to /false/: the argument in this case is a 
+reference to a function, not a function type.]
+
+[:`is_function<long (MyClass::*)(double, int)>::value` is an integral constant 
+expression that evaluates to /false/: the argument in this case is a pointer
+to a member function.]
+
+[:`is_function<T>::value_type` is the type `bool`.]
+
+[tip Don't confuse function-types with pointers to functions:
+
+`typedef int f(double);`
+
+defines a function type,
+
+`f foo;`
+
+declares a prototype for a function of type `f`,
+
+`f* pf = foo;`
+
+`f& fr = foo;`
+
+declares a pointer and a reference to the function `foo`.
+
+If you want to detect whether some type is a pointer-to-function then use:
+
+`__is_function<__remove_pointer<T>::type>::value && __is_pointer<T>::value`
+
+or for pointers to member functions you can just use 
+__is_member_function_pointer directly.
+]
+
+[endsect]
+
+

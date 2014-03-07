@@ -1,0 +1,121 @@
+<html>
+<head>
+<title>Epsilon</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Epsilon</b></font> 
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="rule.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="directives.html"><img src="theme/r_arr.gif" border="0"></a></td>
+   </tr>
+</table>
+<p>The <strong>Epsilon</strong> (<tt>epsilon_p</tt> and <tt>eps_p</tt>) is a multi-purpose 
+  parser that returns a zero length match. </p>
+<h3>Simple Form</h3>
+<p>In its simplest form, epsilon_p matches the null string and always returns 
+  a match of zero length:</p>
+<pre><code><span class=special>    </span><span class="identifier">epsilon_p </span><span class="comment">// always returns a zero-length match</span></code></pre>
+<p>This form is usually used to trigger a <a href="semantic_actions.html">semantic 
+  action</a> unconditionally. For example, it is useful in triggering error messages 
+  when a set of alternatives fail:</p>
+<pre><code><span class=special>    </span><span class="identifier">r</span><span class="special"> = </span><span class="identifier">A</span><span class="special"> | </span><span class="identifier">B</span><span class="special"> | </span><span class="identifier">C</span><span class="special"> | </span><span class="identifier">eps_p</span><span class="special">[</span><span class="identifier">error</span><span class="special">];</span><span class="identifier"></span><span class="comment"> // error if A, B, or C fails to match</span></code></pre>
+<h3>Semantic Predicate</h3>
+<p>Semantic predicates allow you to attach a function anywhere in the grammar. 
+  In this role, the epsilon takes a 0-ary (nullary) function/functor. The run-time 
+  function/functor is typically a test that is called upon to resolve ambiguity 
+  in the grammar. A parse failure will be reported when the function/functor result 
+  evaluates to false. Otherwise an empty match will be reported. The general form 
+  is:</p>
+<pre>    eps_p<span class="special">(</span>f<span class="special">) &gt;&gt;</span> rest<span class="special">;</span>
+</pre>
+<p>The nullary function <tt>f</tt> is called to do a semantic test (say, checking 
+  if a symbol is in the <a href="symbols.html">symbol table</a>). If test returns 
+  <tt>true</tt>, <tt>rest</tt> will be evaluated. Otherwise, the production will 
+  return early with a no-match without ever touching <tt>rest</tt>.</p>
+<h3>Syntactic Predicate</h3>
+<p>Similar to Semantic predicates, Syntactic predicates assert a certain conditional 
+  syntax to be satisfied before evaluating another production. This time, epsilon_p 
+  accepts a (conditional) parser. The general form is:</p>
+<pre>    eps_p<span class="special">(</span>p<span class="special">) &gt;&gt;</span> rest<span class="special">;</span>
+</pre>
+<p>If <tt>p</tt> is matched on the input stream then attempt to recognize <tt>rest</tt>. 
+  The parser <tt>p </tt>is called to do a syntax check. Regardless of <tt>p</tt>'s 
+  success, <tt>eps_p(p)</tt> will always return a zero length match (i.e. the 
+  input is not consumed). If test returns <tt>true</tt>, <tt>rest</tt> will be 
+  evaluated. Otherwise, the production will return early with a no-match without 
+  ever touching <tt>rest</tt>.</p>
+<p>Example:</p>
+<pre><code><span class=special>    </span><span class="identifier">eps_p</span><span class="special">(</span><span class="literal">'0'</span><span class="special">) &gt;&gt; </span><span class="identifier">oct_p </span><span class="comment">// note that '0' is actually a ch_p('0')</span><span class="identifier"> </span></code></pre>
+<p>Epsilon here is used as a syntactic predicate. <tt>oct_p</tt> (see <a href="numerics.html">numerics</a>) 
+  is parsed only if we see a leading <tt>'0'</tt>. Wrapping the leading <tt>'0'</tt> 
+  inside an epsilon makes the parser not consume anything from the input. If a 
+  <tt>'0'</tt> is seen, <tt>epsilon_p</tt> reports a successful match with zero 
+  length. </p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><div align="justify"><img src="theme/note.gif" width="16" height="16"> 
+        <b>Primitive arguments</b> <br>
+        <br>
+        Epsilon allows primitive type arguments such as <tt>char</tt>, <tt>int</tt>, 
+        <tt>wchar_t</tt>, <tt>char const<span class="operators">*</span></tt>, 
+        <tt>wchar_t const<span class="operators">*</span></tt> and so on. Examples: 
+        <tt><br>
+        <br>
+        </tt><code><span class="identifier">eps_p</span><tt><span class=special>(</span><span class=string>"hello"</span><span class=special>)</span><span class=comment> 
+        // same as eps_p(str_p("hello"))</span></tt><span class=identifier><br>
+        eps_p</span><span class=special>(</span><span class=literal>'x'</span><span class="special">) 
+        </span><span class=comment>// same as eps_p(ch_p('x'))</span></code></div></td>
+  </tr>
+</table>
+<h3><img src="theme/alert.gif" width="16" height="16"> Inhibiting Semantic Actions</h3>
+<p>In a syntactic predicate <tt>eps_p(p)</tt>, any semantic action directly or 
+  indirectly attached to the conditional parser <tt>p</tt> will not be called. 
+  However, semantic actions attached to epsilon itself will always be called. 
+  The following code snippets illustrates the behavior:</p>
+<pre>    eps_p<span class="special">(</span>c<span class="special">[</span>f<span class="special">])</span>  <span class="comment">// f not called</span><br>    eps_p<span class="special">(</span>c<span class="special">)[</span>f<span class="special">]</span>  <span class="comment">// f is called</span><br>    eps_p<span class="special">[</span>f<span class="special">]</span>     <span class="comment">// f is called</span></pre>
+<p>Actually, the conditional parser <tt>p</tt> is implicitly wrapped in a <tt><a href="scanner.html#no_actions_scanner">no_actions_d</a></tt> 
+  directive:</p>
+<pre><code><span class=special>    </span>no_actions_d<span class="special">[</span>p<span class="special">]</span></code></pre>
+<p>The conditional parser is required to be free from side-effects (semantic actions). 
+  <code></code>The conditional parser's purpose is to resolve ambiguity by looking 
+  ahead in the input stream for a certain pattern. Ambiguity and semantic actions 
+  do not mix well. On an ambiguous grammar, backtracking happens. And when it 
+  happens, we cannot undo the effects of triggered semantic actions. </p>
+<h3>Negation</h3>
+<p>Operator <tt>~</tt> is defined for parsers constructed by <tt>epsilon_p</tt>/<tt>eps_p</tt>. 
+  It performs negation by complementing the results reported. <tt>~~eps_p(x)</tt> 
+  is identical to <tt>eps_p(x)</tt>.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="rule.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="directives.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  Copyright &copy; 2003 Martin Wille<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<p>&nbsp;</p>
+</body>
+</html>

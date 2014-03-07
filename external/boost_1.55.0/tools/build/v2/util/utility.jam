@@ -1,0 +1,235 @@
+# Copyright 2001, 2002 Dave Abrahams
+# Copyright 2002, 2003, 2004, 2005 Vladimir Prus
+# Copyright 2008 Jurko Gospodnetic
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+import "class" : is-instance ;
+
+
+# For all elements of 'list' which do not already have 'suffix', add 'suffix'.
+#
+rule apply-default-suffix ( suffix : list * )
+{
+    local result ;
+    for local i in $(list)
+    {
+        if $(i:S) = $(suffix)
+        {
+            result += $(i) ;
+        }
+        else
+        {
+            result += $(i)$(suffix) ;
+        }
+    }
+    return $(result) ;
+}
+
+
+# If 'name' contains a dot, returns the part before the last dot. If 'name'
+# contains no dot, returns it unmodified.
+#
+rule basename ( name )
+{
+    if $(name:S)
+    {
+        name = $(name:B) ;
+    }
+    return $(name) ;
+}
+
+
+# Return the file of the caller of the rule that called caller-file.
+#
+rule caller-file ( )
+{
+    local bt = [ BACKTRACE ] ;
+    return $(bt[9]) ;
+}
+
+
+# Tests if 'a' is equal to 'b'. If 'a' is a class instance, calls its 'equal'
+# method. Uses ordinary jam's comparison otherwise.
+#
+rule equal ( a b )
+{
+    if [ is-instance $(a) ]
+    {
+        return [ $(a).equal $(b) ] ;
+    }
+    else
+    {
+        if $(a) = $(b)
+        {
+            return true ;
+        }
+    }
+}
+
+
+# Tests if 'a' is less than 'b'. If 'a' is a class instance, calls its 'less'
+# method. Uses ordinary jam's comparison otherwise.
+#
+rule less ( a b )
+{
+    if [ is-instance $(a) ]
+    {
+        return [ $(a).less $(b) ] ;
+    }
+    else
+    {
+        if $(a) < $(b)
+        {
+            return true ;
+        }
+    }
+}
+
+
+# Returns the textual representation of argument. If it is a class instance,
+# class its 'str' method. Otherwise, returns the argument.
+#
+rule str ( value )
+{
+    if [ is-instance $(value) ]
+    {
+        return [ $(value).str ] ;
+    }
+    else
+    {
+        return $(value) ;
+    }
+}
+
+
+# Accepts a list of gristed values and returns them ungristed. Reports an error
+# in case any of the passed parameters is not gristed, i.e. surrounded in angle
+# brackets < and >.
+#
+rule ungrist ( names * )
+{
+    local result ;
+    for local name in $(names)
+    {
+        local stripped = [ MATCH ^<(.*)>$ : $(name) ] ;
+        if ! $(stripped)-defined
+        {
+            import errors ;
+            local quoted-names = \"$(names)\" ;
+            errors.error "in" ungrist $(quoted-names:J=" "): \"$(name)\" is not
+                of the form <.*> ;
+        }
+        result += $(stripped) ;
+    }
+    return $(result) ;
+}
+
+
+# If the passed value is quoted, unquotes it. Otherwise returns the value
+# unchanged.
+#
+rule unquote ( value ? )
+{
+    local match-result = [ MATCH ^(\")(.*)(\")$ : $(value) ] ;
+    if $(match-result)
+    {
+        return $(match-result[2]) ;
+    }
+    else
+    {
+        return $(value) ;
+    }
+}
+
+
+rule __test__ ( )
+{
+    import assert ;
+    import "class" : new ;
+    import errors : try catch ;
+
+    assert.result 123 : str 123 ;
+
+    class test-class__
+    {
+        rule __init__ (   ) {                            }
+        rule str      (   ) { return "str-test-class"  ; }
+        rule less     ( a ) { return "yes, of course!" ; }
+        rule equal    ( a ) { return "not sure"        ; }
+    }
+
+    assert.result "str-test-class" : str [ new test-class__ ] ;
+    assert.true less 1 2 ;
+    assert.false less 2 1 ;
+    assert.result "yes, of course!" : less [ new test-class__ ] 1 ;
+    assert.true equal 1 1 ;
+    assert.false equal 1 2 ;
+    assert.result "not sure" : equal [ new test-class__ ] 1 ;
+
+    assert.result foo.lib foo.lib : apply-default-suffix .lib : foo.lib foo.lib
+        ;
+
+    assert.result foo : basename foo ;
+    assert.result foo : basename foo.so ;
+    assert.result foo.so : basename foo.so.1 ;
+
+    assert.result         : unquote ;
+    assert.result ""      : unquote "" ;
+    assert.result ""      : unquote \"\" ;
+    assert.result \"      : unquote \"\"\" ;
+    assert.result \"\"    : unquote \"\"\"\" ;
+    assert.result foo     : unquote foo ;
+    assert.result \"foo   : unquote \"foo ;
+    assert.result foo\"   : unquote foo\" ;
+    assert.result foo     : unquote \"foo\" ;
+    assert.result \"foo\" : unquote \"\"foo\"\" ;
+
+    assert.result         : ungrist ;
+    assert.result ""      : ungrist <> ;
+    assert.result foo     : ungrist <foo> ;
+    assert.result <foo>   : ungrist <<foo>> ;
+    assert.result foo bar : ungrist <foo> <bar> ;
+
+    try ;
+    {
+        ungrist "" ;
+    }
+    catch "in" ungrist \"\": \"\" is not of the form <.*> ;
+
+    try ;
+    {
+        ungrist foo ;
+    }
+    catch "in" ungrist \"foo\": \"foo\" is not of the form <.*> ;
+
+    try ;
+    {
+        ungrist <foo ;
+    }
+    catch "in" ungrist \"<foo\": \"<foo\" is not of the form <.*> ;
+
+    try ;
+    {
+        ungrist foo> ;
+    }
+    catch "in" ungrist \"foo>\": \"foo>\" is not of the form <.*> ;
+
+    try ;
+    {
+        ungrist foo bar ;
+    }
+    catch "in" ungrist "\"foo\" \"bar\"": \"foo\" is not of the form <.*> ;
+
+    try ;
+    {
+        ungrist foo <bar> ;
+    }
+    catch "in" ungrist "\"foo\" \"<bar>\"": \"foo\" is not of the form <.*> ;
+
+    try ;
+    {
+        ungrist <foo> bar ;
+    }
+    catch "in" ungrist "\"<foo>\" \"bar\"": \"bar\" is not of the form <.*> ;
+}

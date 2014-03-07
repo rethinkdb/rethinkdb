@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2004 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.tradeoffs">
+  <title>Tradeoffs: Stability, Predictability, and Approximations</title>
+  <bridgehead renderas="sect2">
+    Unavoidable Trade-offs
+  </bridgehead>
+  <para>
+    The library does its best to provide everything a user could want, but there are certain inherent constraints that limit what <emphasis>any</emphasis> temporal library can do. Specifically, a user must choose which two of the following three capabilities are desired in any particular application:
+    <itemizedlist mark="bullet">
+      <listitem>exact agreement with wall-clock time</listitem>
+      <listitem>accurate math, e.g. duration calculations</listitem>
+      <listitem>ability to handle timepoints in the future</listitem>
+    </itemizedlist>
+    Some libraries may implicitly promise to deliver all three, but if you actually put them to the test, only two can be true at once. This limitation is not a deficiency in the design or implementation of any particular library; rather it is a consequence of the way different time systems are defined by international standards. Let's look at each of the three cases:
+  </para>
+  <para>
+    If you want exact agreement with wall-clock time, you must use either UTC or local time. If you compute a duration by subtracting one UTC time from another and you want an answer accurate to the second, the two times must not be too far in the future because leap seconds affect the count but are only determined about 6 months in advance. With local times a future duration calculation could be off by an entire hour, since legislatures can and do change DST rules at will. 
+  </para>
+  <para>
+    If you want to handle wall-clock times in the future, you won't be able (in the general case) to calculate exact durations, for the same reasons described above. 
+  </para>
+  <para>
+    If you want accurate calculations with future times, you will have to use TAI or an equivalent, but the mapping from TAI to UTC or local time depends on leap seconds, so you will not have exact agreement with wall-clock time. 
+  </para>
+  
+  <bridgehead renderas="sect2">
+    Stability, Predictability, and Approximations
+  </bridgehead>
+  <para>
+    Here is some underlying theory that helps to explain what's going on. Remember that a temporal type, like any abstract data type (ADT), is a set of values together with operations on those values. 
+  </para>
+  
+  <bridgehead renderas="sect3">
+    Stability
+  </bridgehead>
+  <para>
+    The representation of a type is <emphasis>stable</emphasis> if the bit pattern associated with a given value does not change over time. A type with an unstable representation is unlikely to be of much use to anyone, so we will insist that any temporal library use only stable representations. 
+  </para>
+  <para>
+    An operation on a type is stable if the result of applying the operation to a particular operand(s) does not change over time. 
+  </para>
+  
+  <bridgehead renderas="sect3">
+    Predictability
+  </bridgehead>
+  <para>
+    Sets are most often classified into two categories: well-defined and ill-defined. Since a type is a set, we can extend these definitions to cover types. For any type T, there must be a predicate <emphasis>is_member( x )</emphasis> which determines whether a value x is a member of type T. This predicate must return <emphasis>true, false,</emphasis> or <emphasis>dont_know</emphasis>. 
+  </para>
+  <para>
+    If for all x, is_member( x ) returns either true or false, we say the set T is <emphasis>well-defined</emphasis>. 
+  </para>
+  <para>
+    If for any x, is_member( x ) returns dont_know, we say the set T is <emphasis>ill-defined</emphasis>. 
+  </para>
+  <para>
+    Those are the rules normally used in math. However, because of the special characteristics of temporal types, it is useful to refine this view and create a third category as follows: 
+  </para>
+  <para>
+    For any temporal type T, there must be a predicate <emphasis>is_member( x, t )</emphasis> which determines whether a value x is a member of T. The parameter t represents the time when the predicate is evaluated. For each x<subscript>i</subscript>, there must be a time t<subscript>i</subscript> and a value v such that: 
+    <itemizedlist mark="bullet">
+      <listitem>v = true or v = false, and</listitem>
+      <listitem>for all t &lt; t<subscript>i</subscript>, is_member( x<subscript>i</subscript>, t ) returns dont_know, and</listitem>
+      <listitem>for all t >= t<subscript>i</subscript>, is_member( x<subscript>i</subscript>, t ) returns v.</listitem>
+    </itemizedlist>
+    t<subscript>i</subscript> is thus the time when we "find out" whether x<subscript>i</subscript> is a member of T. Now we can define three categories of temporal types:
+  </para>
+  <para>
+    If for all x<subscript>i</subscript>, t<subscript>i</subscript> = negative infinity, we say the type T is <emphasis>predictable</emphasis>. 
+  </para>
+  <para>
+    If for some x<subscript>i</subscript>, t<subscript>i</subscript> = positive infinity, we say the type T is <emphasis>ill-formed</emphasis>. 
+  </para>
+  <para>
+    Otherwise we say the type T is <emphasis>unpredictable</emphasis> (this implies that for some x<subscript>i</subscript>, t<subscript>i</subscript> is finite). 
+  </para>
+  <para>
+    Ill-formed sets are not of much practical use, so we will not discuss them further. In plain english the above simply says that all the values of a predictable type are known ahead of time, but some values of an unpredictable type are not known until some particular time. 
+  </para>
+  
+  <bridgehead renderas="sect3">
+    Stability of Operations
+  </bridgehead>
+  <para>
+    Predictable types have a couple of important properties: 
+    <itemizedlist mark="bullet">
+      <listitem>there is an order-preserving mapping from their elements onto a set of consecutive integers, and</listitem>
+      <listitem>duration operations on their values are stable</listitem>
+    </itemizedlist> 
+  </para>
+  <para>
+    The practical effect of this is that duration calculations can be implemented with simple integer subtraction. Examples of predictable types are TAI timepoints and Gregorian dates.
+  </para>
+  <para>
+    Unpredictable types have exactly the opposite properties: 
+    <itemizedlist mark="bullet">
+      <listitem>there is no order-preserving mapping from their elements onto a set of consecutive integers, and</listitem>
+      <listitem>duration operations on their values are not stable. </listitem>
+    </itemizedlist> 
+  </para>
+  <para>
+    Examples of unpredictable types are UTC timepoints and Local Time timepoints.
+  </para>
+  <para>
+    We can refine this a little by saying that a range within an unpredicatable type can be predictable, and operations performed entirely on values within that range will be stable. For example, the range of UTC timepoints from 1970-01-01 through the present is predictable, so calculations of durations within that range will be stable. 
+  </para>
+  
+  <bridgehead renderas="sect3">
+    Approximations
+  </bridgehead>
+  <para>
+    These limitations are problematical, because important temporal types like UTC and Local Time are in fact unpredictable, and therefore operations on them are sometimes unstable. Yet as a practical matter we often want to perform this kind of operation, such as computing the duration between two timepoints in the future that are specified in Local Time. 
+  </para>
+  <para>
+    The best the library can do is to provide an approximation, which is generally possible and for most purposes will be good enough. Of course the documentation must specify when an answer will be approximate (and thus unstable) and how big the error may be. In many respects calculating with unpredictable sets is analogous to the use of floating point numbers, for which results are expected to only be approximately correct. Calculating with predictable sets would then be analogous to the user of integers, where results are expected to be exact. 
+  </para>
+  <para>
+    For situations where exact answers are required or instability cannot be tolerated, the user must be able to specify this, and then the library should throw an exception if the user requests a computation for which an exact, stable answer is not possible. 
+  </para>
+</section>

@@ -1,0 +1,180 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:stream Stream Parsers]
+
+This module includes the description of the different variants of the `stream` 
+parser. It can be used to utilize existing streaming operators 
+(`operator>>(std::istream&, ...)`) for input parsing.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/stream.hpp>
+    #include <boost/spirit/include/qi_stream.hpp>
+
+Also, see __include_structure__.
+
+[section:stream Stream Parsers (`stream`, `wstream`, etc.)]
+
+[heading Description]
+
+The `stream_parser` is a primitive which allows to use pre-existing standard
+streaming operators for input parsing integrated with __qi__. It 
+provides a wrapper parser dispatching the underlying input stream to the stream 
+operator of the corresponding attribute type to be parsed. Any value `a` to be 
+parsed using the `stream_parser` will result in invoking the standard streaming 
+operator for its type `A`, for instance:
+
+    std::istream& operator>> (std::istream&, A&);
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/stream.hpp>
+    #include <boost/spirit/include/qi_stream.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::stream  // alias: boost::spirit::qi::stream`]]
+    [[`boost::spirit::wstream // alias: boost::spirit::qi::wstream`]]
+]
+
+[heading Synopsis]
+
+    template <typename Char, typename Attrib>
+    struct stream_parser;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]    [Description]                       [Default]]
+    [[`Char`]   [The character type to use to generate 
+                 the input. This type will be used while 
+                 assigning the generated characters to the 
+                 underlying input iterator.]           [`char`]]
+    [[`Attrib`] [The type of the attribute the `stream_parser` is
+                 expected to parse its input into.]    [`spirit::basic_hold_any<Char>`]]
+]
+
+[heading Model of]
+
+[:__primitive_parser_concept__]
+
+[variablelist Notation
+    [[`s`]      [A variable instance of any type with a defined matching 
+                 streaming `operator>>()` or a __qi_lazy_argument__ that 
+                 evaluates to any type with a defined matching streaming 
+                 `operator>>()`.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_parser_concept__.
+
+[table
+    [[Expression]           [Description]]
+    [[`stream`]             [Call the streaming `operator>>()` for the type
+                             of the mandatory attribute. The input recognized 
+                             by this operator will be the result of the 
+                             `stream` parser. This parser never fails 
+                             (unless the underlying input stream reports an 
+                             error). The character type of the I/O istream
+                             is assumed to be `char`.]]
+    [[`wstream`]            [Call the streaming `operator>>()` for the type
+                             of the mandatory attribute. The input recognized 
+                             by this operator will be the result of the 
+                             `wstream` parser. This parser never fails 
+                             (unless the underlying input stream reports an 
+                             error). The character type of the I/O istream
+                             is assumed to be `wchar_t`.]]
+]
+
+All parsers listed in the table above are predefined specializations of the 
+`stream_parser<Char>` basic stream parser type described below. It is 
+possible to directly use this type to create stream parsers using an 
+arbitrary underlying character type.
+
+[table
+    [[Expression]       [Semantics]]
+    [
+[``stream_parser<
+    Char, Attrib
+>()``]                      [Call the streaming `operator>>()` for the type
+                             of the optional attribute, `Attrib`. The input recognized 
+                             by this operator will be the result of the 
+                             `stream_parser<>` parser. This parser never fails 
+                             (unless the underlying input stream reports an 
+                             error). The character type of the I/O istream
+                             is assumed to be `Char`]]
+]
+
+[heading Additional Requirements]
+
+All of the stream parsers listed above require the type of the value to 
+parse (the associated attribute) to implement a streaming operator conforming 
+to the usual I/O streams conventions (where `attribute_type` is the type of the 
+value to recognize while parse):
+
+    template <typename Istream>
+    Istream& operator>> (Istream& os, attribute_type& attr)
+    {
+        // type specific input parsing
+        return os;
+    }
+
+This operator will be called by the stream parsers to gather the input for
+the attribute of type `attribute_type`. 
+
+[note   If the `stream` parser is invoked inside a [qi_match `match`] 
+        (or [qi_match `phrase_match`]) stream manipulator the `Istream` 
+        passed to the `operator>>()` will have registered (imbued) the same 
+        standard locale instance as the stream the [qi_match `match`] (or 
+        [qi_match `phrase_match`]) manipulator has been used with. 
+        This ensures all facets registered (imbued) with the original I/O 
+        stream object are used during input parsing.
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]           [Attribute]]
+    [[`stream`]             [`spirit::hold_any`]]
+    [[`wstream`]            [`spirit::whold_any`]]
+    [[`stream_parser<Char, Attrib>()`]    [`Attrib`]]
+]
+
+[important The attribute type `spirit::hold_any` exposed by some of the stream 
+           parsers is semantically and syntactically equivalent to 
+           the type implemented by __boost_any__. It has been added to /Spirit/ 
+           as it has better performance and a smaller footprint than 
+           __boost_any__.
+]
+
+[heading Complexity]
+
+[:O(N), where N is the number of characters consumed by the stream parser]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+A class definition used in the examples:
+
+[reference_qi_complex]
+[reference_qi_stream_complex]
+
+[reference_qi_stream]
+
+[endsect]
+
+[endsect]

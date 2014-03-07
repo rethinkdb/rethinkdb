@@ -1,0 +1,137 @@
+/* More operators tests */
+/* Conjure >=3 only!!! */
+
+// assign ops
+
+int aplus(x, y)
+{
+    int t = x;
+    t += y;
+    return t;
+}
+
+int aminus(x, y)
+{
+    int t = x;
+    t -= y;
+    return t;
+}
+
+int ashl(x, y)
+{
+    int t = x;
+    t <<= y;
+    return t;
+}
+
+int adiv(x, y)
+{
+    int t = x;
+    t /= y;
+    return t;
+}
+
+int amult(x, y)
+{
+    int t = x;
+    t *= y;
+    return t;
+}
+
+int amod(x, y)
+{
+    int t = x;
+    t %= y;
+    return t;
+}
+
+int aor(x, y)
+{
+    int t = x;
+    t |= y;
+    return t;
+}
+
+int aand(x, y)
+{
+    int t = x;
+    t &= y;
+    return t;
+}
+
+int axor(x, y)
+{
+    int t = x;
+    t ^= y;
+    return t;
+}
+
+int ashr(x, y)
+{
+    int t = x;
+    t >>= y;
+    return t;
+}
+
+// binary ops
+
+int plus(x, y)      { return x + y; }
+int minus(x, y)     { return x - y; }
+int shl(x, y)       { return x << y; }
+int div(x, y)       { return x / y; }
+int mult(x, y)      { return x * y; }
+int mod(x, y)       { return x % y; }
+int or(x, y)        { return x | y; }
+int and(x, y)       { return x & y; }
+int xor(x, y)       { return x ^ y; }
+int shr(x, y)       { return x >> y; }
+
+int assign()
+{
+    int a = aplus(2, 3);    // 5
+    int b = ashl(a, 2);     // 20
+    int c = aminus(b, 2);   // 18
+    int d = adiv(c, 2);     // 9
+    int e = amult(d, c);    // 162
+    int f = amod(e, 10);    // 2
+    int g = aor(f, 45);     // 47
+    int h = aand(g, 48);    // 32
+    int j = axor(h, h);     // 0
+    int k = aor(j, 65535);  // 65535
+    int l = ashr(k, 3);     // 8191
+    return l;
+}
+
+int binary()
+{
+    int a = plus(2, 3);     // 5
+    int b = shl(a, 2);      // 20
+    int c = minus(b, 2);    // 18
+    int d = div(c, 2);      // 9
+    int e = mult(d, c);     // 162
+    int f = mod(e, 10);     // 2
+    int g = or(f, 45);      // 47
+    int h = and(g, 48);     // 32
+    int j = xor(h, h);      // 0
+    int k = or(j, 65535);   // 65535
+    int l = shr(k, 3);      // 8191
+    return l;
+}
+
+int zero() { return 0; }
+
+int unary()
+{
+    int i = ~zero();    // -1
+    int j = -i;         // 1
+    ++j;                // 2
+    ++++j;              // 4
+    --j;                // 3
+    return j;
+}
+
+int main()
+{
+    return assign() + binary() + unary(); // 16385
+}
+

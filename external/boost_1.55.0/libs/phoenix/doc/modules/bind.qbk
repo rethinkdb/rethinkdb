@@ -1,0 +1,132 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Bind]
+
+['Binding] is the act of tying together a function to some arguments for
+deferred (lazy) evaluation. Named [link phoenix.modules.function lazy functions]
+require a bit of typing. Unlike (unnamed) lambda expressions, we need to write a
+functor somewhere offline, detached from the call site. If you wish to transform a
+plain function, member function or member variable to a lambda expression, `bind`
+is your friend.
+
+[note Take note that binding functions, member functions or member variables is
+monomorphic. Rather than binding functions, the preferred way is to write true
+generic and polymorphic [link phoenix.modules.function lazy functions].]
+
+There is a set of overloaded `bind` template functions. Each `bind(x)`
+function generates a suitable binder object.
+
+[section Binding Function Objects]
+
+    #include <boost/phoenix/bind/bind_function_object.hpp>
+
+Binding function objects serves two purposes:
+* Partial function application
+* Quick adaption of already existing function objects
+
+In order to deduce the return type of the function object, it has to implement
+the __boost_result_of__ protocol. If the bound function object is polymorphic,
+the resulting binding object is polymorphic.
+
+[endsect]
+
+[section Binding Functions]
+
+    #include <boost/phoenix/bind/bind_function.hpp>
+
+Example, given a function `foo`:
+
+    void foo(int n)
+    {
+        std::cout << n << std::endl;
+    }
+
+Here's how the function `foo` may be bound:
+
+    bind(&foo, arg1)
+
+This is now a full-fledged expression that can finally
+be evaluated by another function call invocation. A second function call will
+invoke the actual `foo` function. Example:
+
+    bind(&foo, arg1)(4);
+
+will print out "4".
+
+[endsect]
+[section Binding Member Functions]
+
+    #include <boost/phoenix/bind/bind_member_function.hpp>
+
+Binding member functions can be done similarly. A bound member function takes in
+a pointer or reference to an object as the first argument. For instance, given:
+
+    struct xyz
+    {
+        void foo(int) const;
+    };
+
+`xyz`'s `foo` member function can be bound as:
+
+    bind(&xyz::foo, obj, arg1) // obj is an xyz object
+
+Take note that a lazy-member functions expects the first argument to be a
+pointer or reference to an object. Both the object (reference or pointer) and
+the arguments can be lazily bound. Examples:
+
+    xyz obj;
+    bind(&xyz::foo, arg1, arg2)     // arg1.foo(arg2)
+    bind(&xyz::foo, obj, arg1)      // obj.foo(arg1)
+    bind(&xyz::foo, obj, 100)       // obj.foo(100)
+
+[endsect]
+[section Binding Member Variables]
+
+    #include <boost/phoenix/bind/bind_member_variable.hpp>
+
+Member variables can also be bound much like member functions. Member variables
+are not functions. Yet, like the [link phoenix.modules.core.references `ref(x)`] that
+acts like a nullary function returning a reference to the data, member variables,
+when bound, act like a unary function, taking in a pointer or reference to an
+object as its argument and returning a reference to the bound member variable.
+For instance, given:
+
+    struct xyz
+    {
+        int v;
+    };
+
+`xyz::v` can be bound as:
+
+    bind(&xyz::v, obj) // obj is an xyz object
+
+As noted, just like the bound member function, a bound member variable also
+expects the first (and only) argument to be a pointer or reference to an object.
+The object (reference or pointer) can be lazily bound. Examples:
+
+    xyz obj;
+    bind(&xyz::v, arg1)             // arg1.v
+    bind(&xyz::v, obj)              // obj.v
+    bind(&xyz::v, arg1)(obj) = 4    // obj.v = 4
+
+[endsect]
+
+[section Compatibility with Boost.Bind]
+
+`phoenix::bind` passes all testcases of the Boost.Bind library. It is therefore
+completely compatible and interchangeable.
+
+Given the compatibility with Boost.Bind, we also assume compatibility with
+std::tr1::bind and std::bind from the upcoming C++0x standard.
+
+[endsect]
+
+[endsect]
+

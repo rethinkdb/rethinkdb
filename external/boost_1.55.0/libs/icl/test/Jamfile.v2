@@ -1,0 +1,161 @@
+# (C) Copyright 2008-2011: Joachim Faulhaber
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# bring in rules for testing
+import testing ;
+import feature ;
+
+project
+    : requirements
+      <library>/boost/test//boost_unit_test_framework
+      <library>/boost/date_time//boost_date_time
+      <library>/boost/chrono//boost_chrono
+      <link>static
+      <include>../../..
+    ;
+
+test-suite "itl"
+    : 
+      # interval
+      [ run fastest_icl_interval_/fastest_icl_interval.cpp ]
+      
+      # sets
+      [ run fastest_interval_set_/fastest_interval_set.cpp ]
+      [ run fastest_interval_set_infix_/fastest_interval_set_infix.cpp ]
+      
+      [ run fastest_separate_interval_set_/fastest_separate_interval_set.cpp ]
+      [ run fastest_separate_interval_set_infix_/fastest_separate_interval_set_infix.cpp ]
+      
+      [ run fastest_split_interval_set_/fastest_split_interval_set.cpp ]
+      [ run fastest_split_interval_set_infix_/fastest_split_interval_set_infix.cpp ]
+            
+      [ run fastest_interval_set_mixed_/fastest_interval_set_mixed.cpp ]
+      
+      # maps
+      [ run fastest_interval_map_/fastest_interval_map.cpp ]
+      
+      [ run fast_stat_interval_map_/fast_stat_interval_map.cpp 
+            : : : : interval_map_right_open ]
+      [ run fast_stat_interval_map_/fast_stat_interval_map.cpp 
+            : : : <define>BOOST_ICL_CONTINUOUS_STATIC_INTERVAL_DEFAULT=left_open_interval
+            : interval_map_left_open ]
+      
+      [ run fastest_interval_map_infix_/fastest_interval_map_infix.cpp ]
+      [ run fastest_split_interval_map_/fastest_split_interval_map.cpp ]
+      [ run fastest_split_interval_map_infix_/fastest_split_interval_map_infix.cpp ]
+      [ run fastest_interval_map_mixed_/fastest_interval_map_mixed.cpp ]
+      [ run fastest_interval_map_mixed2_/fastest_interval_map_mixed2.cpp ]
+      [ run fastest_interval_map_infix_mixed_/fastest_interval_map_infix_mixed.cpp ]
+      [ run fastest_icl_map_/fastest_icl_map.cpp ]
+
+      # handcoded tests using laws (not LaBatea) -------------------------------
+      # Concept Set
+      [ run fastest_set_interval_set_/fastest_set_interval_set.cpp ]
+      [ run fastest_set_icl_set_/fastest_set_icl_set.cpp ]
+      
+      # Concept Map 
+      [ run fastest_partial_interval_quantifier_/fastest_partial_interval_quantifier.cpp ]
+      [ run fastest_total_interval_quantifier_/fastest_total_interval_quantifier.cpp ]            
+      [ run fastest_partial_icl_quantifier_/fastest_partial_icl_quantifier.cpp ]
+      [ run fastest_total_icl_quantifier_/fastest_total_icl_quantifier.cpp ]   
+      
+      # Misc -------------------------------------------------------------------         
+      [ run test_misc_/test_misc.cpp ]   
+      [ run test_doc_code_/test_doc_code.cpp ]   
+      [ run test_type_traits_/test_type_traits.cpp ]   
+      # test_combinable is too slow or too large for some compilers
+      #[ run test_combinable_/test_combinable.cpp ]   
+      [ run test_changing_interval_defaults_/test_changing_interval_defaults.cpp ]   
+      
+      # Bug fixes --------------------------------------------------------------
+      [ run fix_icl_after_thread_/fix_icl_after_thread.cpp ] 
+      [ run fix_tickets_/fix_tickets.cpp ] 
+      
+      # Check for compiler bugs ------------------------------------------------
+      # compile-fail-tests  
+      [ run cmp_msvc_value_born_error_/cmp_msvc_value_born_error.cpp ]   
+      [ run cmp_clang_ttp_passing_/cmp_clang_ttp_passing.cpp ]   
+      [ run cmp_clang_ttp_passing2_/cmp_clang_ttp_passing2.cpp ]
+      
+      # Examples ---------------------------------------------------------------
+      [ run ex_boost_party_/ex_boost_party.cpp ]
+
+      # Ad hoc -----------------------------------------------------------------
+      #[ run test_casual_/test_casual.cpp ]
+
+
+      # ========================================================================
+      # Chrono -----------------------------------------------------------------
+      # interval
+      [ run fastest_icl_interval_/fastest_icl_interval.cpp 
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_icl_interval ]
+
+      # sets
+      [ run fastest_interval_set_/fastest_interval_set.cpp 
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_interval_set ]
+            
+      [ run fastest_interval_set_infix_/fastest_interval_set_infix.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_interval_set_infix ]
+               
+      [ run fastest_interval_set_mixed_/fastest_interval_set_mixed.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_interval_set_mixed ]
+            
+      # maps
+      [ run fastest_interval_map_/fastest_interval_map.cpp 
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_interval_map ]
+
+      [ run fastest_interval_map_infix_/fastest_interval_map_infix.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_interval_map_infix ]
+            
+      [ run fastest_interval_map_mixed_/fastest_interval_map_mixed.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_interval_map_mixed ]
+      
+      [ run fastest_interval_map_mixed2_/fastest_interval_map_mixed2.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_interval_map_mixed2 ]
+      
+      [ run fastest_interval_map_infix_mixed_/fastest_interval_map_infix_mixed.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_interval_map_infix_mixed ]
+      
+      [ run fastest_icl_map_/fastest_icl_map.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_icl_map ]
+      
+
+      # handcoded tests using laws (not LaBatea) -------------------------------
+      # Concept Set
+      [ run fastest_set_interval_set_/fastest_set_interval_set.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_set_interval_set ]
+            
+      [ run fastest_set_icl_set_/fastest_set_icl_set.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_set_icl_set ]
+      
+      # Concept Map 
+      [ run fastest_partial_interval_quantifier_/fastest_partial_interval_quantifier.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_partial_interval_quantifier ]
+      
+      [ run fastest_total_interval_quantifier_/fastest_total_interval_quantifier.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_total_interval_quantifier ]
+            
+      [ run fastest_partial_icl_quantifier_/fastest_partial_icl_quantifier.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_partial_icl_quantifier ]
+            
+      [ run fastest_total_icl_quantifier_/fastest_total_icl_quantifier.cpp
+            : : : <define>BOOST_ICL_TEST_CHRONO
+            : chrono_total_icl_quantifier ]
+      
+    ;

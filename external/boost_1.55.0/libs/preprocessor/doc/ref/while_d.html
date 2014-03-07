@@ -1,0 +1,129 @@
+<html>
+<head>
+	<title>BOOST_PP_WHILE_d</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_WHILE_<i>d</i></b> macro represents a reentry into the <b>BOOST_PP_WHILE</b> looping construct.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_WHILE_</b> ## <i>d</i>(<i>pred</i>, <i>op</i>, <i>state</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>d</dt>
+			<dd>
+				The next available <b>BOOST_PP_WHILE</b> iteration.
+			</dd>
+			<dt>pred</dt>
+			<dd>
+				A binary predicate of the form <i>pred</i>(<i>d</i>, <i>state</i>).&nbsp;
+				This predicate is expanded by <b>BOOST_PP_WHILE</b> with the next available
+				iteration <i>d</i> and the current <i>state</i>.&nbsp;
+				This predicate must expand to value in the range of <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+				The construct continues to loop until this predicate returns <i>0</i>.&nbsp;
+				When this predicate returns <i>0</i>, <b>BOOST_PP_WHILE</b> returns the current <i>state</i>.
+			</dd>
+			<dt>op</dt>
+			<dd>
+				A binary operation of the form <i>op</i>(<i>d</i>, <i>state</i>).&nbsp;
+				This operation is expanded by <b>BOOST_PP_WHILE</b> with the next available
+				iteration <i>d</i> and the current <i>state</i>.&nbsp;
+				This macro is repeatedly applied to the <i>state</i>, each time producing a new <i>state</i>, until <i>pred</i> returns <i>0</i>.
+			</dd>
+			<dt>state</dt>
+			<dd>
+				The initial state.&nbsp;
+				Often this argument is a <i>tuple</i>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro iterates <i>op</i>(<i>d</i>, <i>state</i>) while <i>pred</i>(<i>d</i>, <i>state</i>) is non-zero.&nbsp;
+			In other words expands to:
+			<div>
+				<i>op</i>(<i>d</i>, ... <i>op</i>(<i>d</i>, <i>op</i>(<i>d</i>, <i>state</i>)) ... ).
+			</div>
+		</div>
+		<div>
+			At certain times, it may be necessary to perform the concatenation with <b>BOOST_PP_CAT</b> rather than the preprocessor token-pasting operator.&nbsp;
+			This happens when the <i>d</i> value is a macro invocation itself.&nbsp;
+			It needs a delay to allow it to expand.&nbsp;
+			The syntax in such a scenario becomes:
+			<div>
+				<b>BOOST_PP_CAT</b>(<b>BOOST_PP_WHILE_</b>, <i>d</i>)(<i>pred</i>, <i>op</i>, <i>state</i>).
+			</div>
+		</div>
+		<div>
+			Previously, it was possible to concatenate <i>d</i> directly to <b>BOOST_PP_WHILE</b> (without the trailing underscore).&nbsp;
+			This is no longer supported.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="cat.html">BOOST_PP_CAT</a></li>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+			<li><a href="while.html">BOOST_PP_WHILE</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/control/while.html">&lt;boost/preprocessor/control/while.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/arithmetic/add.html">boost/preprocessor/arithmetic/add.hpp</a>&gt;
+#include &lt;<a href="../headers/arithmetic/dec.html">boost/preprocessor/arithmetic/dec.hpp</a>&gt;
+#include &lt;<a href="../headers/array/elem.html">boost/preprocessor/array/elem.hpp</a>&gt;
+#include &lt;<a href="../headers/array/size.html">boost/preprocessor/array/size.hpp</a>&gt;
+#include &lt;<a href="../headers/control/while.html">boost/preprocessor/control/while.hpp</a>&gt;
+#include &lt;<a href="../headers/tuple/elem.html">boost/preprocessor/tuple/elem.hpp</a>&gt;
+
+#define PRED(d, data) <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(3, 1, data)
+
+#define OP(d, data) \
+   OP_D( \
+      d, \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(3, 0, data), \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(3, 1, data), \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(3, 2, data) \
+   ) \
+   /**/
+
+#define OP_D(d, res, i, array) \
+   ( \
+      <a href="add_d.html">BOOST_PP_ADD_D</a>( \
+         d, res, \
+         <a href="array_elem.html">BOOST_PP_ARRAY_ELEM</a>(<a href="dec.html">BOOST_PP_DEC</a>(i), array)), \
+      <a href="dec.html">BOOST_PP_DEC</a>(i), \
+      array \
+   ) \
+   /**/
+
+#define ACCUMULATE_D(d, array) \
+   <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>( \
+      3, 0, \
+      <a href="while_d.html">BOOST_PP_WHILE_</a> ## d( \
+         PRED, OP, \
+         (0, <a href="array_size.html">BOOST_PP_ARRAY_SIZE</a>(array), array) \
+      ) \
+   ) \
+   /**/
+
+#define ARRAY (4, (1, 2, 3, 4))
+
+ACCUMULATE_D(1, ARRAY)// expands to 10
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

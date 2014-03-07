@@ -1,0 +1,12 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/zh_HK.xml
+// *
+// ***************************************************************************
+zh_HK{
+    "%%ALIAS"{"zh_Hant_HK"}
+    Version{"2.0.41.23"}
+}

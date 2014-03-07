@@ -1,0 +1,331 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Manually registered nullary function based test case</title>
+<link rel="stylesheet" href="../../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../../index.html" title="Boost Test Library">
+<link rel="up" href="nullary-test-case.html" title="Nullary function based test case">
+<link rel="prev" href="nullary-test-case.html" title="Nullary function based test case">
+<link rel="next" href="auto-nullary-test-case.html" title="Nullary function based test case with automated registration">
+<script language="JavaScript1.2" src="../../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../../utf.html">The Unit Test Framework</a> &gt; <a href="../../user-guide.html">User's guide</a><a href="../../testing-tools.html">
+      &gt;
+      </a><a href="../test-organization.html">Test organization</a><a href="../fixture.html">
+      &gt;
+      </a><a href="nullary-test-case.html">Nullary function based test case</a><a href="unary-test-case.html">
+      &gt;
+      </a><b>Manual registration</b>
+</td>
+<td><div class="spirit-nav">
+<a href="nullary-test-case.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="auto-nullary-test-case.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="utf.user-guide.test-organization.manual-nullary-test-case"></a>Manually registered nullary function based test case</h6></div></div></div>
+<p class="first-line-indented">
+    To create a test case manually, employ the macro BOOST_TEST_CASE:
+   </p>
+<pre class="inline-synopsis">
+<a name="BOOST_TEST_CASE"></a>BOOST_TEST_CASE(<span class="emphasis"><em>test_function</em></span>)</pre>
+<p class="first-line-indented">
+    BOOST_TEST_CASE creates an instance of the class boost::unit_test::test_case and returns a pointer to the
+    constructed instance. The test case name is deduced from the macro argument test_function. If you prefer to
+    assign a different test case name, you have to use the underlying make_test_case interface instead. To
+    register a new test case, employ the method test_suite::add. Both test case creation and registration are
+    performed in the test module initialization function.
+   </p>
+<p class="first-line-indented">
+    Here is the simplest possible manually registered test case. This example employs the original test module
+    initialization function specification. A single test case is created and registered in the master test suite.
+    Note that the free function name is passed by address to the macro BOOST_TEST_CASE.
+   </p>
+<div class="example">
+<a name="utf.user-guide.test-organization.manual-nullary-test-case.example01"></a><p class="title"><b>Example 5. Nullary free function manually registered</b></p>
+<div class="example-contents">
+<pre class="programlisting">#include &lt;boost/test/included/unit_test.hpp&gt;
+using namespace boost::unit_test;
+
+//____________________________________________________________________________//
+
+void free_test_function()
+{
+    BOOST_CHECK( true /* test assertion */ );
+}
+
+//____________________________________________________________________________//
+
+test_suite*
+init_unit_test_suite( int argc, char* argv[] ) 
+{
+    framework::master_test_suite().
+        add( BOOST_TEST_CASE( &amp;free_test_function ) );
+
+    return 0;
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example01.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id649237" onclick="toggle_element( 'example01-output', 'id649237', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example01-output">&gt; example
+Running 1 test case...
+
+*** No errors detected</pre>
+</div>
+</div>
+<br class="example-break"><p class="first-line-indented">
+    A test case can be implemented as a method of a class. In this case a pointer to the class instance has to be
+    bound to the test method to create a test case. You can use the same instance of the class for multiple test
+    cases. The <acronym class="acronym">UTF</acronym> doesn't take an ownership of the class instance and you are required to manage the class
+    instance lifetime yourself.
+   </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../../../../../doc/html/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+     The class instance can't be defined in the initialization function scope, since it becomes invalid as
+     soon as the test execution exits it. It needs to be either defined statically/globally or managed using a
+     shared pointer.
+    </p></td></tr>
+</table></div>
+<div class="example">
+<a name="utf.user-guide.test-organization.manual-nullary-test-case.example02"></a><p class="title"><b>Example 6. Nullary method of a class bound to global class instance and manually registered</b></p>
+<div class="example-contents">
+<pre class="programlisting">#include &lt;boost/test/included/unit_test.hpp&gt;
+#include &lt;boost/bind.hpp&gt;
+using namespace boost::unit_test;
+
+//____________________________________________________________________________//
+
+class test_class {
+public:
+    void test_method()
+    {
+        BOOST_CHECK( true /* test assertion */ );
+    }
+} tester;
+
+//____________________________________________________________________________//
+
+test_suite*
+init_unit_test_suite( int argc, char* argv[] ) 
+{
+    framework::master_test_suite().
+        add( BOOST_TEST_CASE( boost::bind( &amp;test_class::test_method, &amp;tester )));
+
+    return 0;
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example02.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id649344" onclick="toggle_element( 'example02-output', 'id649344', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example02-output">&gt; example
+Running 1 test case...
+test.cpp(11): error in "boost::bind( &amp;test_class::test_method, &amp;tester )": check false failed
+
+*** 1 failure detected in test suite "Master Test Suite"
+</pre>
+</div>
+</div>
+<br class="example-break"><div class="example">
+<a name="utf.user-guide.test-organization.manual-nullary-test-case.example03"></a><p class="title"><b>Example 7. Nullary method of a class bound to shared class instance and manually registered</b></p>
+<div class="example-contents">
+<pre class="programlisting">#include &lt;boost/test/included/unit_test.hpp&gt;
+#include &lt;boost/bind.hpp&gt;
+using namespace boost::unit_test;
+
+//____________________________________________________________________________//
+
+class test_class {
+public:
+    void test_method1()
+    {
+        BOOST_CHECK( true /* test assertion */ );
+    }
+    void test_method2()
+    {
+        BOOST_CHECK( false /* test assertion */ );
+    }
+};
+
+//____________________________________________________________________________//
+
+test_suite*
+init_unit_test_suite( int argc, char* argv[] ) 
+{
+    boost::shared_ptr&lt;test_class&gt; tester( new test_class );
+
+    framework::master_test_suite().
+        add( BOOST_TEST_CASE( boost::bind( &amp;test_class::test_method1, tester )));
+    framework::master_test_suite().
+        add( BOOST_TEST_CASE( boost::bind( &amp;test_class::test_method2, tester )));
+    return 0;
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example03.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id649428" onclick="toggle_element( 'example03-output', 'id649428', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example03-output">&gt; example
+Running 2 test cases...
+test.cpp(15): error in "boost::bind( &amp;test_class::test_method2, tester )": check false failed
+
+*** 1 failure detected in test suite "Master Test Suite"
+</pre>
+</div>
+</div>
+<br class="example-break"><p class="first-line-indented">
+    If you do not need to reuse the test class instance and can't or do not wish to create test class
+    instance globally it may be easier and safer to create an instance on the stack of free function:
+   </p>
+<div class="example">
+<a name="utf.user-guide.test-organization.manual-nullary-test-case.example04"></a><p class="title"><b>Example 8. Nullary method of a class bound to local class instance inside free function</b></p>
+<div class="example-contents">
+<pre class="programlisting">#include&lt;boost/test/included/unit_test.hpp&gt;
+
+using namespace boost::unit_test; 
+
+class test_class {
+public:
+    void test_method()
+    {
+        BOOST_CHECK( true /* test assertion */ );
+    }
+};
+
+//____________________________________________________________________________//
+
+void free_test_function() 
+{ 
+    test_class inst; 
+
+    inst.test_method(); 
+} 
+
+//____________________________________________________________________________//
+
+test_suite* 
+init_unit_test_suite( int argc, char* argv[] ) 
+{ 
+    framework::master_test_suite().add( BOOST_TEST_CASE( &amp;free_test_function ) ); 
+
+    return 0; 
+} 
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example04.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id649523" onclick="toggle_element( 'example04-output', 'id649523', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example04-output">&gt; example
+Running 1 test case...
+
+*** No errors detected
+</pre>
+</div>
+</div>
+<br class="example-break"><p class="first-line-indented">
+    If you have to perform the same set of tests with different sets of parameters you may want to base your test
+    case on a function with arguments and bind particular parameters during test case creation.
+   </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../../../../../doc/html/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+     If you bind parameters by reference or pointer, the referenced value can't have local storage in the
+     test module initialization function.
+    </p></td></tr>
+</table></div>
+<div class="example">
+<a name="utf.user-guide.test-organization.manual-nullary-test-case.example05"></a><p class="title"><b>Example 9. Binary free function bound to set of different parameter pairs</b></p>
+<div class="example-contents">
+<p class="first-line-indented">
+     This example employs the alternative test module initialization function specification.
+    </p>
+<pre class="programlisting">#define BOOST_TEST_DYN_LINK
+#include &lt;boost/test/included/unit_test.hpp&gt;
+#include &lt;boost/bind.hpp&gt;
+using namespace boost::unit_test;
+
+//____________________________________________________________________________//
+
+void free_test_function( int i, int j )
+{
+    BOOST_CHECK( true /* test assertion */ );
+}
+
+//____________________________________________________________________________//
+
+bool
+init_function()
+{
+    framework::master_test_suite().
+        add( BOOST_TEST_CASE( boost::bind( &amp;free_test_function, 1, 1 ) ) );
+    framework::master_test_suite().
+        add( BOOST_TEST_CASE( boost::bind( &amp;free_test_function, 1, 2 ) ) );
+    framework::master_test_suite().
+        add( BOOST_TEST_CASE( boost::bind( &amp;free_test_function, 2, 1 ) ) );
+
+    return true;
+}
+
+//____________________________________________________________________________//
+
+int
+main( int argc, char* argv[] )
+{
+    return ::boost::unit_test::unit_test_main( &amp;init_function, argc, argv );
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example05.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id649634" onclick="toggle_element( 'example05-output', 'id649634', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example05-output">&gt; example
+Running 3 test cases...
+
+*** No errors detected
+</pre>
+</div>
+</div>
+<br class="example-break"><p class="first-line-indented">
+    The <acronym class="acronym">UTF</acronym> also presents an alternative method for parameterized test case creation, which is covered in
+    <a class="xref" href="unary-test-case.html" title="Unary function based test case">the section called &#8220;Unary function based test case&#8221;</a>.
+   </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="nullary-test-case.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="nullary-test-case.html"><img src="../../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="auto-nullary-test-case.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

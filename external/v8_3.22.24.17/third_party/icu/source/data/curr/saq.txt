@@ -1,0 +1,232 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/saq.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/saq.xml
+ */
+saq{
+    Currencies{
+        AED{
+            "AED",
+            "Njilingi eel Falme za Kiarabu",
+        }
+        AOA{
+            "Kz",
+            "Njilingi eel Angola",
+        }
+        AUD{
+            "AU$",
+            "Njilingi eel Australia",
+        }
+        BHD{
+            "BD",
+            "Njilingi eel Bahareni",
+        }
+        BIF{
+            "FBu",
+            "Njilingi eel Burundi",
+        }
+        BWP{
+            "BWP",
+            "Njilingi eel Botswana",
+        }
+        CAD{
+            "CA$",
+            "Njilingi eel Kanada",
+        }
+        CDF{
+            "CDF",
+            "Njilingi eel Kongo",
+        }
+        CHF{
+            "CHF",
+            "Njilingi eel Uswisi",
+        }
+        CNY{
+            "CN¥",
+            "Njilingi eel China",
+        }
+        CVE{
+            "CV$",
+            "Njilingi eel Kepuvede",
+        }
+        DJF{
+            "Fdj",
+            "Njilingi eel Jibuti",
+        }
+        DZD{
+            "DA",
+            "Njilingi eel Aljeria",
+        }
+        EGP{
+            "EGP",
+            "Njilingi eel Misri",
+        }
+        ERN{
+            "Nfk",
+            "Njilingi eel Eritrea",
+        }
+        ETB{
+            "Br",
+            "Njilingi eel Uhabeshi",
+        }
+        EUR{
+            "€",
+            "Yuro",
+        }
+        GBP{
+            "£",
+            "Njilingi eel Uingereza",
+        }
+        GHC{
+            "₵",
+            "Njilingi eel Ghana",
+        }
+        GMD{
+            "GMD",
+            "Njilingi eel Gambia",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Njilingi eel Gine",
+        }
+        INR{
+            "Rs",
+            "Njilingi eel India",
+        }
+        JPY{
+            "JP¥",
+            "Njilingi eel Kijapani",
+        }
+        KES{
+            "Ksh",
+            "Njilingi eel Kenya",
+        }
+        KMF{
+            "CF",
+            "Njilingi eel Komoro",
+        }
+        LRD{
+            "L$",
+            "Dola eel Liberia",
+        }
+        LSL{
+            "LSL",
+            "Njilingi eel Lesoto",
+        }
+        LYD{
+            "LD",
+            "Njilingi eel Libya",
+        }
+        MAD{
+            "MAD",
+            "Njilingi eel Moroko",
+        }
+        MGA{
+            "MGA",
+            "Njilingi eel Bukini",
+        }
+        MRO{
+            "UM",
+            "Njilingi eel Moritania",
+        }
+        MUR{
+            "MURs",
+            "Njilingi eel Morisi",
+        }
+        MWK{
+            "MWK",
+            "Njilingi eel Malawi",
+        }
+        MZM{
+            "Mt",
+            "Njilingi eel Msumbiji",
+        }
+        NAD{
+            "N$",
+            "Njilingi eel Namibia",
+        }
+        NGN{
+            "₦",
+            "Njilingi eel Nijeria",
+        }
+        RWF{
+            "RWF",
+            "Njilingi eel Rwanda",
+        }
+        SAR{
+            "SR",
+            "Njilingi eel Saudia",
+        }
+        SCR{
+            "SRe",
+            "Njilingi eel Shelisheli",
+        }
+        SDG{
+            "SDG",
+            "Paunt eel Sudani",
+        }
+        SHP{
+            "SH£",
+            "Paunt eel  Santahelena",
+        }
+        SLL{
+            "Le",
+            "Leoni",
+        }
+        SOS{
+            "Ssh",
+            "Njilingi eel Somalia",
+        }
+        STD{
+            "Db",
+            "Njilingi eel  Sao Tome na Principe",
+        }
+        SZL{
+            "SZL",
+            "Lilangeni",
+        }
+        TND{
+            "DT",
+            "Njilingi eel Tunisia",
+        }
+        TZS{
+            "TSh",
+            "Njilingi eel Tanzania",
+        }
+        UGX{
+            "USh",
+            "Njilingi eel Uganda",
+        }
+        USD{
+            "US$",
+            "Dola eel  Marekani",
+        }
+        XAF{
+            "FCFA",
+            "Njilingi eel CFA BEAC",
+        }
+        XOF{
+            "CFA",
+            "Njilingi eel CFA BCEAO",
+        }
+        ZAR{
+            "R",
+            "Njilingi eel Afrika Kusini",
+        }
+        ZMK{
+            "ZK",
+            "Njilingi eel Zambia",
+        }
+        ZWD{
+            "Z$",
+            "Dola eel Zimbabwe",
+        }
+    }
+    Version{"2.0.46.70"}
+}

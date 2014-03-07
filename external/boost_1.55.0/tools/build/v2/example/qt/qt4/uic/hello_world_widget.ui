@@ -1,0 +1,55 @@
+<ui version="4.0" >
+ <author></author>
+ <comment>
+<!--
+    Copyright Felix E. Klee, 2003
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt
+    or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+ </comment>
+ <exportmacro></exportmacro>
+ <class>HelloWorldWidget</class>
+ <widget class="QWidget" name="HelloWorldWidget" >
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>124</width>
+    <height>63</height>
+   </rect>
+  </property>
+  <property name="windowTitle" >
+   <string>Hello World!</string>
+  </property>
+  <layout class="QVBoxLayout" >
+   <property name="margin" >
+    <number>11</number>
+   </property>
+   <property name="spacing" >
+    <number>6</number>
+   </property>
+   <item>
+    <widget class="QLabel" name="TextLabel2" >
+     <property name="text" >
+      <string>Hello World!</string>
+     </property>
+     <property name="alignment" >
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="OkButton" >
+     <property name="text" >
+      <string>OK</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <layoutdefault spacing="6" margin="11" />
+ <pixmapfunction>qPixmapFromMimeSource</pixmapfunction>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,0 +1,125 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:distinct Qi Distinct Parser Directive]
+
+[heading Description]
+
+The __qi__ `distinct` parser is a directive component allowing to avoid partial 
+matches while parsing using a skipper. A simple example is the common task of 
+matching a C keyword. 
+Consider:
+
+    "description" >> -lit(":") >> *(char_ - eol)
+
+intended to match a line in a configuration file. Let's assume further, that 
+this rule is used with a `space` skipper and that we have the following strings 
+in the input:
+
+    "description: ident\n"
+    "description ident\n"
+    "descriptionident\n"
+
+It might seem unexpected, but the parser above matches all three inputs just 
+fine, even if the third input should not match at all! In order to avoid the 
+unwanted match we are forced to make our rule more complicated:
+
+    lexeme["description" >> !char_("a-zA-Z_0-9")] >> -lit(":") >> *(char_ - eol)
+
+(the rule reads as: match `"description"` as long as it's not /directly/ 
+followed by a valid identifier).
+
+The `distinct[]` directive is meant to simplify the rule above:
+
+    distinct(char_("a-zA-Z_0-9"))["description"] >> -lit(":") >> *(char_ - eol)
+
+Using the `distinct[]` component instead of the explicit sequence has the 
+advantage of being able to encapsulate the tail (i.e the `char_("a-zA-Z_0-9")`) 
+as a separate parser construct. The following code snippet illustrates the idea 
+(for the full code of this example please see 
+[@../../test/qi/distinct.cpp distinct.cpp]):
+
+[import ../test/qi/distinct.cpp]
+[qi_distinct_encapsulation]
+
+These definitions define a new Qi parser recognizing keywords! This allows to 
+rewrite our declaration parser expression as:
+
+    keyword["description"] >> -lit(":") >> *(char_ - eol)
+
+which is much more readable and concise if compared to the original parser 
+expression. In addition the new `keyword[]` directive has the advantage to be 
+usable for wrapping any parser expression, not only strings as in the example 
+above.
+
+[heading Header]
+
+    // forwards to <boost/spirit/repository/home/qi/directive/distinct.hpp>
+    #include <boost/spirit/repository/include/qi_distinct.hpp>
+
+[heading Synopsis]
+
+    distinct(tail)[subject]
+
+[heading Parameters]
+
+[table
+    [[Parameter]            [Description]]
+    [[`tail`]               [The parser construct specifying what whould not
+                             follow the subject in order to match the overall 
+                             expression.]]
+    [[`subject`]            [The parser construct to use to match the current
+                             input. The distinct directive makes sure that no
+                             unexpected partial matches occur.]]
+]
+
+All two parameters can be arbitrary complex parsers themselves.
+
+[heading Attribute]
+
+The `distinct` component exposes the attribute type of its subject as its own 
+attribute type. If the `subject` does not expose any attribute (the type is
+`unused_type`), then the `distinct` does not expose any attribute either.
+
+    a: A, b: B --> distinct(b)[a]: A
+
+[heading Example]
+
+The following example shows simple use cases of the `distinct` parser. 
+[@../../example/qi/distinct.cpp distinct.cpp])
+
+[import ../example/qi/distinct.cpp]
+
+[heading Prerequisites]
+
+In addition to the main header file needed to include the core components 
+implemented in __qi__ we add the header file needed for the new `distinct` 
+generator.
+
+[qi_distinct_includes]
+
+To make all the code below more readable we introduce the following namespaces.
+
+[qi_distinct_namespace]
+
+[heading Using The Distinct Directive to Match keywords]
+
+We show several examples of how the `distinct[]` directive can be used to force
+correct behavior while matching keywords. The first two code snippets show 
+the correct matching of the `description` keyword (in this hypothetical example 
+we allow keywords to be directly followed by an optional `"--"`):
+
+[qi_distinct_description_ident]
+[qi_distinct_description__ident]
+
+The last example shows that the `distinct[]` parser component correctly refuses
+to match "description-ident":
+
+[qi_distinct_description_ident_error]
+
+[endsect]

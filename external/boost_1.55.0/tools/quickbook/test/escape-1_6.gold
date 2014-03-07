@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="escape" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Escape</title>
+  <section id="escape.escape">
+    <title><link linkend="escape.escape">Escape</link></title>
+    <para>
+      <emphasis>Da do do do. Da da da da. That's all I have to say to you.</emphasis>
+    </para>
+    <para>
+      This letter &#x3B1; should have a space either side of it.
+    </para>
+    <para>
+      These should be properly encoded: &gt; &lt; &quot;
+    </para>
+    <para>
+      This <link linkend="$0">link</link> shouldn't be changed.
+    </para>
+    <para>
+      Some other problematic links:
+<link linkend="$157">one</link>,
+<link linkend="$-256">two</link>,
+<link linkend="$text">three</link>.
+    </para>
+    <para>
+      <emphasis>This will be escaped</emphasis>
+    </para>
+    <para>
+      \[ generates [. \] generates ].
+    </para>
+  </section>
+</article>

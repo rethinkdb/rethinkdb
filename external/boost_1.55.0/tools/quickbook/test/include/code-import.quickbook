@@ -1,0 +1,13 @@
+[article Import]
+
+[import ../stub.c]
+[import ../stub.py]
+[import ../stub.cpp]
+
+[foo]
+
+[foo_py]
+
+[foo_c]
+
+[class_]

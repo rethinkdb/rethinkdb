@@ -1,0 +1,15 @@
+0  --joe--> 1  
+1  --joe--> 0   --curly--> 2   --dick--> 3  
+2  --curly--> 1   --tom--> 4  
+3  --dick--> 1   --harry--> 4  
+4  --tom--> 2   --harry--> 3  
+(0,1) (1,2) (1,3) (2,4) (3,4) 
+
+removing edge (1,3): 
+removing edge (1,0)
+0 
+1  --curly--> 2  
+2  --curly--> 1   --tom--> 4  
+3  --harry--> 4  
+4  --tom--> 2   --harry--> 3  
+(1,2) (2,4) (3,4) 

@@ -1,0 +1,62 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:strands Strands: Use Threads Without Explicit Locking]
+
+A strand is defined as a strictly sequential invocation of event handlers (i.e.
+no concurrent invocation). Use of strands allows execution of code in a
+multithreaded program without the need for explicit locking (e.g. using
+mutexes).
+
+Strands may be either implicit or explicit, as illustrated by the following
+alternative approaches:
+
+* Calling io_service::run() from only one thread means all event handlers
+  execute in an implicit strand, due to the io_service's guarantee that handlers
+  are only invoked from inside run().
+
+* Where there is a single chain of asynchronous operations associated with a
+  connection (e.g. in a half duplex protocol implementation like HTTP) there is
+  no possibility of concurrent execution of the handlers. This is an implicit
+  strand.
+
+* An explicit strand is an instance of `io_service::strand`. All event handler
+  function objects need to be wrapped using `io_service::strand::wrap()` or
+  otherwise posted/dispatched through the `io_service::strand` object.
+
+In the case of composed asynchronous operations, such as `async_read()` or
+`async_read_until()`, if a completion handler goes through a strand, then all
+intermediate handlers should also go through the same strand. This is needed to
+ensure thread safe access for any objects that are shared between the caller
+and the composed operation (in the case of `async_read()` it's the socket,
+which the caller can close() to cancel the operation). This is done by having
+hook functions for all intermediate handlers which forward the calls to the
+customisable hook associated with the final handler:
+
+  struct my_handler
+  {
+    void operator()() { ... }
+  };
+
+  template<class F>
+  void asio_handler_invoke(F f, my_handler*)
+  {
+    // Do custom invocation here.
+    // Default implementation calls f();
+  }
+
+The `io_service::strand::wrap()` function creates a new completion handler that
+defines `asio_handler_invoke` so that the function object is executed through
+the strand.
+
+[heading See Also]
+
+[link boost_asio.reference.io_service__strand io_service::strand],
+[link boost_asio.tutorial.tuttimer5 tutorial Timer.5],
+[link boost_asio.examples.cpp03_examples.http_server_3 HTTP server 3 example].
+
+[endsect]

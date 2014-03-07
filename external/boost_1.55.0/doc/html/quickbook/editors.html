@@ -1,0 +1,528 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Editor Support</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../quickbook.html" title="Chapter&#160;41.&#160;Quickbook 1.6">
+<link rel="prev" href="install.html" title="Installation and configuration">
+<link rel="next" href="faq.html" title="Frequently Asked Questions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="install.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../quickbook.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="faq.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="quickbook.editors"></a>Editor Support</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="editors.html#quickbook.editors.scite">Scintilla Text Editor</a></span></dt>
+<dt><span class="section"><a href="editors.html#editor_support.kde_support">KDE Support</a></span></dt>
+</dl></div>
+<p>
+      Editing quickbook files is usually done with text editors both simple and powerful.
+      The following sections list the settings for some editors which can help make
+      editing quickbook files a bit easier.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        You may submit your settings, tips, and suggestions to the authors, or through
+        the <a href="https://lists.sourceforge.net/lists/listinfo/boost-" target="_top">docs
+        Boost Docs mailing list</a>.
+      </p></td></tr>
+</table></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="quickbook.editors.scite"></a><a class="link" href="editors.html#quickbook.editors.scite" title="Scintilla Text Editor">Scintilla Text Editor</a>
+</h3></div></div></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>Section contributed by Dean Michael Berris</em></span>
+        </p></blockquote></div>
+<p>
+        The Scintilla Text Editor (SciTE) is a free source code editor for Win32
+        and X. It uses the SCIntilla source code editing component.
+      </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          SciTE can be downloaded from <a href="http://www.scintilla.org/SciTE.html" target="_top">http://www.scintilla.org/SciTE.html</a>
+        </p></td></tr>
+</table></div>
+<p>
+        You can use the following settings to highlight quickbook tags when editing
+        quickbook files.
+      </p>
+<pre class="programlisting">qbk=*.qbk
+lexer.*.qbk=props
+use.tabs.$(qbk)=0
+tab.size.$(qbk)=4
+indent.size.$(qbk)=4
+style.props.32=$(font.base)
+comment.stream.start.props=[/
+comment.stream.end.props=]
+comment.box.start.props=[/
+comment.box.middle.props=
+comment.box.end.props=]
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Thanks to Rene Rivera for the above SciTE settings.
+        </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="editor_support.kde_support"></a><a class="link" href="editors.html#editor_support.kde_support" title="KDE Support">KDE Support</a>
+</h3></div></div></div>
+<h4>
+<a name="editor_support.kde_support.h0"></a>
+        <span class="phrase"><a name="editor_support.kde_support.boost__hs__quickbook"></a></span><a class="link" href="editors.html#editor_support.kde_support.boost__hs__quickbook">boost::hs::quickbook</a>
+      </h4>
+<p>
+        boost::hs::quickbook is a syntax highlighting designed to work with Katepart.
+        It can be used in KWrite, Kate, Konqueror and KDevelop, and supports all
+        the constructs of Quickbook 1.4 including tables, list, templates and macros.
+      </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">.qbk loaded in a text editor</span></dt>
+<dd><p>
+              <span class="inlinemediaobject"><img src="../../../tools/quickbook/doc/html/images/extra/katepart/table.text.editor.png"></span>
+            </p></dd>
+<dt><span class="term">.qbk loaded with boost::hs support</span></dt>
+<dd><p>
+              <span class="inlinemediaobject"><img src="../../../tools/quickbook/doc/html/images/extra/katepart/table.boost.hs.png"></span>
+            </p></dd>
+</dl>
+</div>
+<p>
+        <span class="bold"><strong>html generated from this .qbk file</strong></span>
+      </p>
+<div class="table">
+<a name="editor_support.kde_support.code_examples"></a><p class="title"><b>Table&#160;41.7.&#160;Code examples</b></p>
+<div class="table-contents"><table class="table" summary="Code examples">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Code
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  for loop
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"> for(int k=0; k&lt;10; k++) v+=k; </code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Sums some numbers.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  while loop
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"> { int k; while( k &lt; 10 ) { v+=k; k++ } } </code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Same effect.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  infinite loop
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"> while( true ) { v+=1; } </code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Not a good example.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h4>
+<a name="editor_support.kde_support.h1"></a>
+        <span class="phrase"><a name="editor_support.kde_support.code_folding_"></a></span><a class="link" href="editors.html#editor_support.kde_support.code_folding_">Code
+        Folding </a>
+      </h4>
+<p>
+        boost::hs goes far beyond simple coloring. One useful thing you can get the
+        editor to do is to mark regions. They appear in a small grey line and each
+        region can be folded or unfolded independently.
+      </p>
+<h4>
+<a name="editor_support.kde_support.h2"></a>
+        <span class="phrase"><a name="editor_support.kde_support.auto_comment___uncomment_"></a></span><a class="link" href="editors.html#editor_support.kde_support.auto_comment___uncomment_">Auto Comment
+        / Uncomment </a>
+      </h4>
+<p>
+        Another important feature is the possibility to auto-comment or uncomment
+        some piece of code (<span class="emphasis"><em>Tools - Comment</em></span>). Commented regions
+        can be uncommented simple calling the <span class="emphasis"><em>uncomment</em></span> command
+        while being in it.
+      </p>
+<h4>
+<a name="editor_support.kde_support.h3"></a>
+        <span class="phrase"><a name="editor_support.kde_support.styles_reference_"></a></span><a class="link" href="editors.html#editor_support.kde_support.styles_reference_">Styles
+        reference </a>
+      </h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Style
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>plain text</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  normal black
+                </p>
+              </td>
+<td>
+                <p>
+                  Plain text at each level.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>formatted text</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  formatted black
+                </p>
+              </td>
+<td>
+                <p>
+                  Bold, italic, underline and mixes. Teletype, replaceable, strikeout.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>structure</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  light blue
+                </p>
+              </td>
+<td>
+                <p>
+                  All quickbook structures characters ([, ], [block-type, simple
+                  formating boundaries, lists keywords (*, #)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>macros</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  red
+                </p>
+              </td>
+<td>
+                <p>
+                  Names in macro definitions, macros insertion if it is used the
+                  __xxx__ proposed sintaxis.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>templates</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  red
+                </p>
+              </td>
+<td>
+                <p>
+                  Names in template definitions
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>anchors</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  red
+                </p>
+              </td>
+<td>
+                <p>
+                  All the keywords that are used to link quickbooks together.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>comments</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  italic light gray
+                </p>
+              </td>
+<td>
+                <p>
+                  Inside the commentaries.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>tables</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  HTML like
+                </p>
+              </td>
+<td>
+                <p>
+                  Reveal the structure, bold title, higlighted HTML like columns
+                  titles.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>variable lists</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  HTML like
+                </p>
+              </td>
+<td>
+                <p>
+                  Reveal the structure, bold title, bold HTML like items names.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>c++ code</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  cpp Kate syntax
+                </p>
+              </td>
+<td>
+                <p>
+                  Code blocks and inline code.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>paths</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  green
+                </p>
+              </td>
+<td>
+                <p>
+                  Image, files and web paths
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>IDE specific</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  dark blue
+                </p>
+              </td>
+<td>
+                <p>
+                  IDE commands
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h4>
+<a name="editor_support.kde_support.h4"></a>
+        <span class="phrase"><a name="editor_support.kde_support.about_boost__hs"></a></span><a class="link" href="editors.html#editor_support.kde_support.about_boost__hs">About
+        boost::hs</a>
+      </h4>
+<p>
+        <span class="inlinemediaobject"><img src="../../../tools/quickbook/doc/html/images/extra/katepart/boost.hs.logo.png"></span>
+      </p>
+<p>
+        boost::hs::quickbook is a component of boost::hs, a syntax highlighting for
+        C++, doxygen, Boost.Build jamfiles and QuickBook. boost::hs has his own page
+        <a href="http://tinyurl.com/2l7u33" target="_top">here</a>.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          boost::hs::cpp support QuickBook code import comments style!
+        </p></td></tr>
+</table></div>
+<h4>
+<a name="editor_support.kde_support.h5"></a>
+        <span class="phrase"><a name="editor_support.kde_support.installing_boost__hs"></a></span><a class="link" href="editors.html#editor_support.kde_support.installing_boost__hs">Installing
+        boost::hs</a>
+      </h4>
+<p>
+        There exist an ongoing effort to push boost::hs upstream to the KatePart
+        project. In a few months KDE may have native Quickbook support! For the moment
+        you must download and install it.
+      </p>
+<p>
+        You can download boost::hs from <a href="http://matias.capeletto.googlepages.com/boost_hs.zip" target="_top">here</a>.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          A copy of boost::hs::quickbook and boost::hs::cpp is available in <code class="computeroutput">boost/tools/quickbook/extra/katepart</code>.
+        </p></td></tr>
+</table></div>
+<p>
+        In order to install it you must copy the content in the folder <span class="bold"><strong>katepart/syntax/</strong></span> to the appropriate katepart syntax
+        folder in your machine. In general this folder will be in <span class="bold"><strong>/usr/share/apps/katepart/syntax</strong></span>.
+        A bash script named <span class="emphasis"><em>install.sh</em></span> is included that copy
+        the files to this folder.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002, 2004, 2006 Joel de Guzman,
+      Eric Niebler<br>Copyright &#169; 2010, 2011 Daniel James<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="install.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../quickbook.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="faq.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

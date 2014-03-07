@@ -1,0 +1,69 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct default_user_allocator_malloc_free</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Boost.Pool">
+<link rel="up" href="../header/boost/pool/pool_hpp.html" title="Header &lt;boost/pool/pool.hpp&gt;">
+<link rel="prev" href="default_user_allocator_new_delete.html" title="Struct default_user_allocator_new_delete">
+<link rel="next" href="pool.html" title="Class template pool">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="default_user_allocator_new_delete.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../header/boost/pool/pool_hpp.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pool.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.default_user_allocator_malloc_free"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct default_user_allocator_malloc_free</span></h2>
+<p>boost::default_user_allocator_malloc_free &#8212; <a href="../boost_pool/pool/pooling.html#boost_pool.pool.pooling.user_allocator" target="_top">UserAllocator</a> used as template parameter for <a class="link" href="pool.html" title="Class template pool">pool</a> and <a class="link" href="object_pool.html" title="Class template object_pool">object_pool</a>. Uses malloc and free internally. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../header/boost/pool/pool_hpp.html" title="Header &lt;boost/pool/pool.hpp&gt;">boost/pool/pool.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="default_user_allocator_malloc_free.html" title="Struct default_user_allocator_malloc_free">default_user_allocator_malloc_free</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span>    <a name="boost.default_user_allocator_malloc_free.size_type"></a><span class="identifier">size_type</span><span class="special">;</span>        <span class="comment">// An unsigned integral type that can represent the size of the largest object to be allocated. </span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span> <a name="boost.default_user_allocator_malloc_free.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span>  <span class="comment">// A signed integral type that can represent the difference of any two pointers. </span>
+
+  <span class="comment">// <a class="link" href="default_user_allocator_malloc_free.html#id490297-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="keyword">char</span> <span class="special">*</span> <a class="link" href="default_user_allocator_malloc_free.html#id490299-bb"><span class="identifier">malloc</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="default_user_allocator_malloc_free.html#id490310-bb"><span class="identifier">free</span></a><span class="special">(</span><span class="keyword">char</span> <span class="special">*</span><span class="keyword">const</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="id1026603"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="id1026606"></a><h3>
+<a name="id490297-bb"></a><code class="computeroutput">default_user_allocator_malloc_free</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">char</span> <span class="special">*</span> <a name="id490299-bb"></a><span class="identifier">malloc</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span> bytes<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="id490310-bb"></a><span class="identifier">free</span><span class="special">(</span><span class="keyword">char</span> <span class="special">*</span><span class="keyword">const</span> block<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2006 Stephen Cleary<br>Copyright &#169; 2011 Paul A. Bristow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="default_user_allocator_new_delete.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../header/boost/pool/pool_hpp.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pool.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

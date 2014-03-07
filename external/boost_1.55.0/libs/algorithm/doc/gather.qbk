@@ -1,0 +1,79 @@
+[/ File gather.qbk]
+
+[section:gather gather]
+
+[/license
+Copyright (c) 2013 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+The header file 'boost/algorithm/gather.hpp' contains two variants of a single algorithm, `gather`. 
+
+`gather()` takes a collection of elements defined by a pair of iterators and moves the ones satisfying a predicate to them to a position (called the pivot) within the sequence. The algorithm is stable. The result is a pair of iterators that contains the items that satisfy the predicate.
+
+[heading Interface]
+
+The function `gather` returns a `std::pair` of iterators that denote the elements that satisfy the predicate.  
+
+There are two versions; one takes two iterators, and the other takes a range.
+
+``
+namespace boost { namespace algorithm {
+
+template <typename BidirectionalIterator, typename Pred>
+std::pair<BidirectionalIterator,BidirectionalIterator> 
+gather ( BidirectionalIterator first, BidirectionalIterator last, BidirectionalIterator pivot, Pred pred );
+
+template <typename BidirectionalRange, typename Pred>
+std::pair<typename boost::range_iterator<const BidirectionalRange>::type, typename boost::range_iterator<const BidirectionalRange>::type>
+gather ( const BidirectionalRange &range, typename boost::range_iterator<const BidirectionalRange>::type pivot, Pred pred );
+
+}}
+``
+
+[heading Examples]
+
+Given an sequence containing:
+``
+0 1 2 3 4 5 6 7 8 9
+``
+
+a call to gather ( arr, arr + 10, arr + 4, IsEven ) will result in:
+
+``
+1 3 0 2 4 6 8 5 7 9
+    |---|-----|
+  first |  second
+      pivot
+``
+where `first` and `second` are the fields of the pair that is returned by the call.
+
+
+[heading Iterator Requirements]
+
+`gather` work on bidirectional iterators or better. This requirement comes from the usage of `stable_partition`, which requires bidirectional iterators. Some standard libraries (libstdc++ and libc++, for example) have implementations of `stable_partition` that work with forward iterators. If that is the case, then `gather` will work with forward iterators as well.
+
+[heading Storage Requirements]
+
+`gather` uses `stable_partition`, which will attempt to allocate temporary memory, but will work in-situ if there is none available.
+
+[heading Complexity]
+
+If there is sufficient memory available, the run time is linear: `O(N)`
+
+If there is not any memory available, then the run time is `O(N log N)`.
+
+[heading Exception Safety]
+
+[heading Notes]
+
+[endsect]
+
+[/ File gather.qbk
+Copyright 2013 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

@@ -1,0 +1,147 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Other Algorithms</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost Algorithm Library">
+<link rel="up" href="../index.html" title="The Boost Algorithm Library">
+<link rel="prev" href="../the_boost_algorithm_library/CXX14/mismatch.html" title="mismatch">
+<link rel="next" href="../the_boost_algorithm_library/Misc/gather.html" title="gather">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../the_boost_algorithm_library/CXX14/mismatch.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../the_boost_algorithm_library/Misc/gather.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="algorithm.Misc"></a><a class="link" href="Misc.html" title="Other Algorithms">Other Algorithms</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="Misc.html#the_boost_algorithm_library.Misc.clamp">clamp</a></span></dt>
+<dt><span class="section"><a href="../the_boost_algorithm_library/Misc/gather.html">gather</a></span></dt>
+<dt><span class="section"><a href="../the_boost_algorithm_library/Misc/hex.html">hex</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="the_boost_algorithm_library.Misc.clamp"></a><a class="link" href="Misc.html#the_boost_algorithm_library.Misc.clamp" title="clamp">clamp</a>
+</h3></div></div></div>
+<p>
+        The header file clamp.hpp contains two functions for "clamping"
+        a value between a pair of boundary values.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Misc.clamp.h0"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Misc.clamp.clamp"></a></span><a class="link" href="Misc.html#the_boost_algorithm_library.Misc.clamp.clamp">clamp</a>
+      </h5>
+<p>
+        The function <code class="computeroutput"><span class="identifier">clamp</span> <span class="special">(</span><span class="identifier">v</span><span class="special">,</span> <span class="identifier">lo</span><span class="special">,</span> <span class="identifier">hi</span><span class="special">)</span></code>
+        returns:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            lo if v &lt; lo
+          </li>
+<li class="listitem">
+            hi if hi &lt; v
+          </li>
+<li class="listitem">
+            otherwise, v
+          </li>
+</ul></div>
+<p>
+        Note: using <code class="computeroutput"><span class="identifier">clamp</span></code> with floating
+        point numbers may give unexpected results if one of the values is <code class="computeroutput"><span class="identifier">NaN</span></code>.
+      </p>
+<p>
+        There is also a version that allows the caller to specify a comparison predicate
+        to use instead of <code class="computeroutput"><span class="keyword">operator</span> <span class="special">&lt;</span></code>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">V</span><span class="special">&gt;</span>
+<span class="identifier">V</span> <span class="identifier">clamp</span> <span class="special">(</span> <span class="identifier">V</span> <span class="identifier">val</span><span class="special">,</span> <span class="identifier">V</span> <span class="identifier">lo</span><span class="special">,</span> <span class="identifier">V</span> <span class="identifier">hi</span> <span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">V</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Pred</span><span class="special">&gt;</span>
+<span class="identifier">V</span> <span class="identifier">clamp</span> <span class="special">(</span> <span class="identifier">V</span> <span class="identifier">val</span><span class="special">,</span> <span class="identifier">V</span> <span class="identifier">lo</span><span class="special">,</span> <span class="identifier">V</span> <span class="identifier">hi</span><span class="special">,</span> <span class="identifier">Pred</span> <span class="identifier">p</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        The following code:
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">foo</span> <span class="special">=</span> <span class="number">23</span><span class="special">;</span>
+<span class="identifier">foo</span> <span class="special">=</span> <span class="identifier">clamp</span> <span class="special">(</span> <span class="identifier">foo</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">10</span> <span class="special">);</span>
+</pre>
+<p>
+        will leave <code class="computeroutput"><span class="identifier">foo</span></code> with a value
+        of 10
+      </p>
+<p>
+        Complexity: <code class="computeroutput"><span class="identifier">clamp</span></code> will make
+        either one or two calls to the comparison predicate before returning one
+        of the three parameters.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Misc.clamp.h1"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Misc.clamp.clamp_range"></a></span><a class="link" href="Misc.html#the_boost_algorithm_library.Misc.clamp.clamp_range">clamp_range</a>
+      </h5>
+<p>
+        There are also four range-based versions of clamp, that apply clamping to
+        a series of values. You could write them yourself with std::transform and
+        bind, like this: <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">transform</span> <span class="special">(</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">out</span><span class="special">,</span> <span class="identifier">bind</span>
+        <span class="special">(</span> <span class="identifier">clamp</span>
+        <span class="special">(</span> <span class="identifier">_1</span><span class="special">,</span> <span class="identifier">lo</span><span class="special">,</span>
+        <span class="identifier">hi</span> <span class="special">)))</span></code>,
+        but they are provided here for your convenience.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">InputIterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">OutputIterator</span><span class="special">&gt;</span>
+<span class="identifier">OutputIterator</span> <span class="identifier">clamp_range</span> <span class="special">(</span> <span class="identifier">InputIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">InputIterator</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">OutputIterator</span> <span class="identifier">out</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="identifier">InputIterator</span><span class="special">&gt;::</span><span class="identifier">value_type</span> <span class="identifier">lo</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="identifier">InputIterator</span><span class="special">&gt;::</span><span class="identifier">value_type</span> <span class="identifier">hi</span> <span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Range</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">OutputIterator</span><span class="special">&gt;</span>
+<span class="identifier">OutputIterator</span> <span class="identifier">clamp_range</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Range</span> <span class="special">&amp;</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">OutputIterator</span> <span class="identifier">out</span><span class="special">,</span>
+	<span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value_type</span> <span class="identifier">lo</span><span class="special">,</span>
+	<span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value_type</span> <span class="identifier">hi</span> <span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">InputIterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">OutputIterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Pred</span><span class="special">&gt;</span>
+<span class="identifier">OutputIterator</span> <span class="identifier">clamp_range</span> <span class="special">(</span> <span class="identifier">InputIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">InputIterator</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">OutputIterator</span> <span class="identifier">out</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="identifier">InputIterator</span><span class="special">&gt;::</span><span class="identifier">value_type</span> <span class="identifier">lo</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="identifier">InputIterator</span><span class="special">&gt;::</span><span class="identifier">value_type</span> <span class="identifier">hi</span><span class="special">,</span> <span class="identifier">Pred</span> <span class="identifier">p</span> <span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Range</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">OutputIterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Pred</span><span class="special">&gt;</span>
+<span class="identifier">OutputIterator</span> <span class="identifier">clamp_range</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Range</span> <span class="special">&amp;</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">OutputIterator</span> <span class="identifier">out</span><span class="special">,</span>
+	<span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value_type</span> <span class="identifier">lo</span><span class="special">,</span>
+	<span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value_type</span> <span class="identifier">hi</span><span class="special">,</span>
+	<span class="identifier">Pred</span> <span class="identifier">p</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010-2012 Marshall Clow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../the_boost_algorithm_library/CXX14/mismatch.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../the_boost_algorithm_library/Misc/gather.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

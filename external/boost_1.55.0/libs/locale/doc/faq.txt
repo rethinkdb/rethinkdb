@@ -1,0 +1,50 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page faq Frequently Asked Questions
+
+-   \anchor faq_bad_cast <b>I try to use some Boost.Locale functions and I get an \c std::bad_cast exception thrown?</b>
+    \n
+    \n
+    \b Answer: You probably try to use incorrect \c std::locale object. All Boost.Locale tools relay on \c std::locale object's facets.
+    The locale object should be generated with \ref boost::locale::generator "generator" class and then passed to
+    the function or alternatively global locale should be set using \c std::locale::global() function such that
+    global locale (and default created one) would have required facets to use.
+-   \anchor faq_number <b>I had installed global locale and try to write something to stream but still get wrong output?</b>
+    For example:
+    \code
+    #include <boost/locale.hpp>
+    #include <iostream>
+    int main()
+    {
+        boost::locale::generator gen;
+        std::locale::global(gen(""));
+        std::cout << boost::locale::as::date << std::time(0) << std::endl;
+    }
+    \endcode
+    Prints a number instead of a date.
+    \n
+    \b Answer: You forget to imbue the locale to the stream. Changing the global locale does not affect the
+    locale in existing \c iostream objects. Thus because \c std::out and other global streams were created
+    before changing the global locale Boost.Locale manipulators have no effect. You need to write:
+    \code
+    #include <boost/locale.hpp>
+    #include <iostream>
+    int main()
+    {
+        boost::locale::generator gen;
+        std::locale l = gen("");
+        std::locale::global(l);
+        std::cout.imbue(l);
+        std::cout << boost::locale::as::date << std::time(0) << std::endl;
+    }
+    \endcode
+
+*/

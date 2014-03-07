@@ -1,0 +1,147 @@
+#  Copyright Noel Belcourt 2007.
+#  Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+
+import property ;
+import generators ;
+import os ;
+import toolset : flags ;
+import feature ;
+import fortran ;
+import type ;
+import common ;
+import gcc ;
+
+feature.extend toolset : pgi ;
+toolset.inherit pgi : unix ;
+generators.override pgi.prebuilt : builtin.lib-generator ;
+generators.override pgi.searched-lib-generator : searched-lib-generator ;
+
+# Documentation and toolchain description located
+# http://www.pgroup.com/resources/docs.htm
+
+rule init ( version ? : command * : options * ) 
+{
+  local condition = [ common.check-init-parameters pgi : version $(version) ] ;
+
+  local l_command = [ common.get-invocation-command pgi : pgCC : $(command) ] ;
+
+  common.handle-options pgi : $(condition) : $(l_command) : $(options) ;
+    
+  command_c = $(command_c[1--2]) $(l_command[-1]:B=pgcc) ;
+
+  toolset.flags pgi CONFIG_C_COMMAND $(condition) : $(command_c) ;
+
+  flags pgi.compile DEFINES $(condition) :
+    [ feature.get-values <define> : $(options) ] : unchecked ;
+
+  # IOV_MAX support
+  flags pgi.compile DEFINES $(condition) : __need_IOV_MAX : unchecked ;
+
+  # set link flags
+  flags pgi.link FINDLIBS-ST : [
+    feature.get-values <find-static-library> : $(options) ] : unchecked ;
+
+  # always link lib rt to resolve clock_gettime()
+  flags pgi.link FINDLIBS-SA : rt [
+    feature.get-values <find-shared-library> : $(options) ] : unchecked ;
+
+  gcc.init-link-flags pgi gnu $(condition) ;
+}
+
+# Declare generators
+generators.register-c-compiler pgi.compile.c : C : OBJ : <toolset>pgi ;
+generators.register-c-compiler pgi.compile.c++ : CPP : OBJ : <toolset>pgi ;
+generators.register-fortran-compiler pgi.compile.fortran : FORTRAN : OBJ : <toolset>pgi ;
+
+# Declare flags and actions for compilation
+flags pgi.compile OPTIONS : -Kieee ;
+flags pgi.compile OPTIONS <link>shared : -fpic -fPIC ;
+flags pgi.compile OPTIONS <debug-symbols>on : -gopt ;
+flags pgi.compile OPTIONS <profiling>on : -xprofile=tcov ;
+flags pgi.compile OPTIONS <optimization>speed : -fast -Mx,8,0x10000000 ;
+flags pgi.compile OPTIONS <optimization>space : -xO2 -xspace ;
+# flags pgi.compile OPTIONS <threading>multi : -mt ;
+
+flags pgi.compile OPTIONS <warnings>off : -Minform=severe ;
+flags pgi.compile OPTIONS <warnings>on : -Minform=warn ;
+
+flags pgi.compile.c++ OPTIONS <inlining>off : -INLINE:none ;
+
+flags pgi.compile OPTIONS <cflags> ;
+flags pgi.compile.c++ OPTIONS <cxxflags> ;
+flags pgi.compile DEFINES <define> ;
+flags pgi.compile INCLUDES <include> ;
+
+flags pgi.compile.fortran OPTIONS <fflags> ;
+
+actions compile.c
+{
+    "$(CONFIG_C_COMMAND)" $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.c++
+{
+    "$(CONFIG_COMMAND)" $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.fortran
+{
+    "$(CONFIG_F_COMMAND)" $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+# Declare flags and actions for linking
+flags pgi.link OPTIONS <debug-symbols>on : -gopt ;
+# Strip the binary when no debugging is needed
+flags pgi.link OPTIONS <debug-symbols>off : -s ;
+flags pgi.link OPTIONS <profiling>on : -xprofile=tcov ;
+flags pgi.link OPTIONS <linkflags> ;
+flags pgi.link OPTIONS <link>shared : -fpic -fPIC ;
+flags pgi.link LINKPATH <library-path> ;
+flags pgi.link FINDLIBS-ST <find-static-library> ;
+flags pgi.link FINDLIBS-SA <find-shared-library> ;
+flags pgi.link FINDLIBS-SA <threading>multi : pthread rt ;
+flags pgi.link LIBRARIES <library-file> ;
+flags pgi.link LINK-RUNTIME <runtime-link>static : static ;
+flags pgi.link LINK-RUNTIME <runtime-link>shared : dynamic ;
+flags pgi.link RPATH <dll-path> ;
+
+# On gcc, there are separate options for dll path at runtime and
+# link time. On Solaris, there's only one: -R, so we have to use
+# it, even though it's bad idea.
+flags pgi.link RPATH <xdll-path> ;
+
+rule link ( targets * : sources * : properties * )
+{
+    SPACE on $(targets) = " " ;
+}
+
+# reddish can only link statically and, somehow, the presence of -Bdynamic on the link line 
+# marks the executable as a dynamically linked exec even though no dynamic libraries are supplied.
+# Yod on redstorm refuses to load an executable that is dynamically linked.
+# removing the dynamic link options should get us where we need to be on redstorm.
+# "$(CONFIG_COMMAND)" $(OPTIONS) -L"$(LINKPATH)" -R"$(RPATH)" -o "$(<)" "$(>)" "$(LIBRARIES)" -Bdynamic -l$(FINDLIBS-SA) -Bstatic -l$(FINDLIBS-ST) -B$(LINK-RUNTIME)
+actions link bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" $(OPTIONS) -L"$(LINKPATH)" -R"$(RPATH)" -o "$(<)" "$(>)" "$(LIBRARIES)" -Bstatic -l$(FINDLIBS-ST) -Bdynamic -l$(FINDLIBS-SA) -B$(LINK-RUNTIME)
+}
+
+# Slight mods for dlls
+rule link.dll ( targets * : sources * : properties * )
+{
+    SPACE on $(targets) = " " ;
+}
+
+# "$(CONFIG_COMMAND)" $(OPTIONS) -L"$(LINKPATH)" -R"$(RPATH)" -o "$(<)" -h$(<[1]:D=) -G "$(>)" "$(LIBRARIES)" -Bdynamic -l$(FINDLIBS-SA) -Bstatic -l$(FINDLIBS-ST) -B$(LINK-RUNTIME)
+
+actions link.dll bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" $(OPTIONS) -shared -L"$(LINKPATH)" -R"$(RPATH)" -o "$(<)" "$(>)" -Wl,-h -Wl,$(<[1]:D=) "$(LIBRARIES)" -Bdynamic -l$(FINDLIBS-SA) -Bstatic -l$(FINDLIBS-ST) -B$(LINK-RUNTIME)
+}
+
+actions updated together piecemeal pgi.archive
+{
+    ar -rc$(ARFLAGS:E=) "$(<)" "$(>)"
+}
+

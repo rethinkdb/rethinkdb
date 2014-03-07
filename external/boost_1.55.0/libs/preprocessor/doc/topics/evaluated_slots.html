@@ -1,0 +1,157 @@
+<html>
+<head>
+	<title>evaluated_slots.html</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+<h4>Evaluated Slots</h4>
+<div>
+	The evaluated slot mechanism is a tool to fully evaluate a constant integral expression and avoid the lazy evaluation normally performed by the preprocessor.
+</div>
+<h4>Tutorial</h4>
+<div>
+	In order to understand the use of such a mechanism, I will start with a simple file-iteration example.&nbsp;
+	Consider the following scenario....
+</div>
+<div class ="code"><pre>
+for (int i = 0; i < 10; ++i) {
+   for (int j = 0; j < i; ++j) {
+      // ... use i and j
+   }
+}
+</pre></div>
+<div>
+	The above is a simple runtime model of the following multidimensional file-iteration....
+</div>
+<div class="code"><pre>
+// file.hpp
+#if !BOOST_PP_IS_ITERATING
+   #ifndef FILE_HPP_
+   #define FILE_HPP_
+
+   #include &lt;boost/preprocessor/iteration/iterate.hpp&gt;
+
+   #define BOOST_PP_ITERATION_PARAMS_1 (3, (0, 9, "file.hpp"))
+   #include BOOST_PP_ITERATE()
+
+   #endif // FILE_HPP_
+#elif BOOST_PP_ITERATION_DEPTH() == 1
+   #define I BOOST_PP_ITERATION()
+
+   #define BOOST_PP_ITERATION_PARAMS_2 (3, (0, I, "file.hpp"))
+   #include BOOST_PP_ITERATE()
+
+   #undef I
+#elif BOOST_PP_ITERATION_DEPTH() == 2
+   #define J BOOST_PP_ITERATION()
+
+   // use I and J
+
+   #undef J
+#endif
+</pre></div>
+<div>
+	There is a problem with the code above.&nbsp;
+	The writer expected <i>I</i> to refer the previous iteration frame.&nbsp;
+	However, that is not the case.&nbsp;
+	When the user refers to <i>I</i>, he is actually referring to <b>BOOST_PP_ITERATION</b>(),
+	not the value of <b>BOOST_PP_ITERATION</b>() at the point of definition.&nbsp;
+	Instead, it refers to exactly the same value to which <i>J</i> refers.
+</div>
+<div>
+	The problem is that the preprocessor always evaluates everything with lazy evaluation.&nbsp;
+	To solve the problem, we need <i>I</i> to be <i>evaluated</i> here:
+</div>
+<div class="code"><pre>
+// ...
+#elif BOOST_PP_ITERATION_DEPTH() == 1
+   #define I BOOST_PP_ITERATION()
+// ...
+</pre></div>
+<div>
+	Fortunately, the library offers a mechanism to do just that:&nbsp; evaluated slots.&nbsp;
+	The following code uses this mechanism to "fix" the example above...
+</div>
+<div class="code"><pre>
+// ...
+#elif BOOST_PP_ITERATION_DEPTH() == 1
+   #define BOOST_PP_VALUE BOOST_PP_ITERATION()
+   #include BOOST_PP_ASSIGN_SLOT(1)
+   #define I BOOST_PP_SLOT(1)
+// ...
+</pre></div>
+<div>
+	There are two steps to the assignment of an evaluated slot.&nbsp;
+	First, the user must define the <i>named external argument</i> <b>BOOST_PP_VALUE</b>.&nbsp;
+	This value must be an integral constant expression.&nbsp;
+	Second, the user must <i>include</i> <b>BOOST_PP_ASSIGN_SLOT</b>(<i>x</i>), where <i>x</i> is the particular slot to be assigned to (<i>1</i> to <b>BOOST_PP_LIMIT_SLOT_COUNT</b>).&nbsp;
+	This will evaluate <b>BOOST_PP_VALUE</b> and assign the result to the slot at index <i>x</i>.
+</div>
+<div>
+	To retrieve a slot's value, the user must use <b>BOOST_PP_SLOT</b>(<i>x</i>).
+</div>
+<div>
+	In the case above, <i>I</i> is <i>still</i> lazily evaluated.&nbsp;
+	However, it now evaluates to <b>BOOST_PP_SLOT</b>(<i>1</i>).&nbsp;
+	This value <i>will not change</i> unless there is a subsequent call to <b>BOOST_PP_ASSIGN_SLOT</b>(<i>1</i>).
+</div>
+<h4>Advanced Techniques</h4>
+<div>
+	The slot mechanism can also be used to perform calculations:
+</div>
+<div class="code"><pre>
+#include &lt;iostream&gt;
+
+#include &lt;boost/preprocessor/slot/slot.hpp&gt;
+#include &lt;boost/preprocessor/stringize.hpp&gt;
+
+#define X() 4
+
+#define BOOST_PP_VALUE 1 + 2 + 3 + X()
+#include BOOST_PP_ASSIGN_SLOT(1)
+
+#undef X
+
+int main(void) {
+   std::cout
+      &lt;&lt; BOOST_PP_STRINGIZE(BOOST_PP_SLOT(1))
+      &lt;&lt; &amp;std::endl;
+   return 0;
+}
+</pre></div>
+<div>
+	In essence, anything that can be evaluated in an #if (or #elif) preprocessor directive is available <i>except</i> the <i>defined</i> operator.
+</div>
+<div>
+	It is even possible to use a particular slot itself while reassigning it:
+</div>
+<div class="code"><pre>
+#define BOOST_PP_VALUE 20
+#include BOOST_PP_ASSIGN_SLOT(1)
+
+#define BOOST_PP_VALUE 2 * BOOST_PP_SLOT(1)
+#include BOOST_PP_ASSIGN_SLOT(1)
+
+BOOST_PP_SLOT(1) // 40
+</pre></div>
+<h4>See Also</h4>
+<ul>
+	<li><a href="../ref/assign_slot.html">BOOST_PP_ASSIGN_SLOT</a></li>
+	<li><a href="../ref/limit_slot_count.html">BOOST_PP_LIMIT_SLOT_COUNT</a></li>
+	<li><a href="../ref/slot.html">BOOST_PP_SLOT</a></li>
+	<li><a href="../ref/value.html">BOOST_PP_VALUE</a></li>
+</ul>
+<div class="sig">- Paul Mensonides</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

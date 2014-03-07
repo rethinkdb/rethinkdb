@@ -1,0 +1,228 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<!--
+    Copyright Doug Gregor 2004. Use, modification and
+    distribution is subject to the Boost Software License, Version
+    1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+
+   For more information, see http://www.boost.org
+-->
+<head>
+<title>Bundled Properties</title>
+</head>
+
+<body BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b"
+  ALINK="#ff0000">
+<IMG SRC="../../../boost.png"
+ALT="C++ Boost" width="277" height="86"/>
+<h1>Bundled Properties</h1>
+
+<p>Class templates <code><a
+href="adjacency_list.html">adjacency_list</a></code> and
+<code><a href="adjacency_matrix.html">adjacency_matrix</a></code> support
+the introduction of named properties via <a
+href="using_adjacency_list.html#sec:adjacency-list-properties">internal
+properties</a>. However, this method is cumbersome in many uses,
+where it would be more intuitive to just specify a structure or
+class that contains internal properties for edges or
+vertices. Bundled properties allow one to use
+<code>adjacency_list</code> and <code>adjacency_matrix</code> in this
+manner, providing a simple
+way to introduce and access any number of internal properties
+for vertices and edges.</p>
+
+<p>One can introduce bundled properties into an
+either graph type by providing a user-defined class
+type for the <code>VertexProperties</code> or
+<code>EdgeProperties</code> template arguments. The user-defined
+class may alternatively be placed at the end of a
+<code>property</code> list, replacing the (implicit)
+<code>boost::no_property</code> argument.</p>
+
+<h2>Example: Route planning</h2>
+<p>Consider the implementation of a simple route planner that
+  should find the shortest directions from one city to another
+  via a set of highways. The vertices of the graph are cities,
+  and we may wish to store several bits of information about the
+  city within each vertex:</p>
+<pre>
+struct City
+{
+  string name;
+  int population;
+  vector&lt;int&gt; zipcodes;
+};
+</pre>
+
+<p>
+The edges in the graph represent highways, which also have several interesting
+attributes:
+</p>
+
+<pre>
+struct Highway
+{
+  string name;
+  double miles;
+  int speed_limit;
+  int lanes;
+  bool divided;
+};
+</pre>
+
+<p>With bundled properties, we can directly use the <code>City</code> and
+<code>Highway</code> structures to define the graph:</p>
+<pre>
+typedef boost::adjacency_list&lt;
+    boost::listS, boost::vecS, boost::bidirectionalS,
+    City, Highway&gt;
+  Map;
+</pre>
+
+<p>Without bundled properties, translating this example directly
+into an instantiation of <code>adjacency_list</code> would
+involve several custom properties and would result in a type
+like this:</p>
+<pre>
+typedef boost::adjacency_list&lt;
+    boost::listS, boost::vecS, boost::bidirectionalS,
+    // Vertex properties
+    boost::property&lt;boost::vertex_name_t, std::string,
+    boost::property&lt;population_t, int,
+    boost::property&lt;zipcodes_t, std::vector&lt;int&gt; &gt; &gt; &gt;,
+    // Edge properties
+    boost::property&lt;boost::edge_name_t, std::string,
+    boost::property&lt;boost::edge_weight_t, double,
+    boost::property&lt;edge_speed_limit_t, int,
+    boost::property&lt;edge_lanes_t, int,
+    boost::property&lt;edge_divided, bool&gt; &gt; &gt; &gt; &gt; &gt;
+  Map;
+</pre>
+
+<p>
+Bundling vertex and edge properties greatly simplifies the declaration of
+graphs.
+</p>
+<p>
+In addition to vertex and edge bundles, we can also bundle properties of the
+graph itself. Suppopse we extend the application to include a portfolio of
+route-planning maps for different countries. In addition to the <code>City</code>
+and <code>Highway</code> bundles above, we can declare a graph bundle,
+<code>Country</Code>.
+</p>
+
+<pre>
+struct Country {
+  string name;
+  bool use_right;   // Drive on the left or right
+  bool use_metric;  // mph or km/h
+};
+</pre>
+
+<p>The graph would now be declared as:</p>
+
+<pre>
+<pre>
+typedef boost::adjacency_list&lt;
+    boost::listS, boost::vecS, boost::bidirectionalS,
+    City, Highway, Country&gt;
+  Map;
+</pre>
+</pre>
+
+<h2>Accessing bundled properties</h2>
+<p>To access a bundled property for a particular edge or vertex,
+  subscript your graph with the descriptor of the edge or vertex
+  whose bundled property you wish to access. For instance:</p>
+<pre>
+Map map; // load the map
+Map::vertex_descriptor v = *vertices(map).first;
+map[v].name = "Troy";
+map[v].population = 49170;
+map[v].zipcodes.push_back(12180);
+Map::edge_descriptor e = *out_edges(v, map).first;
+map[e].name = "I-87";
+map[e].miles = 10.;
+map[e].speed_limit = 65;
+map[e].lanes = 4;
+map[e].divided = true;
+</pre>
+
+<p>
+The graph bundle, since it does not correspond to a vertex or edge descripor
+is accessed using the graph_bundle object as a key.
+</p>
+
+<pre>
+map[graph_bundle].name = "United States";
+map[graph_bundle].use_right = true;
+map[graph_bundle].use_metric = false;
+</pre>
+
+
+<h2>Properties maps from bundled properties</h2>
+<p>Often one needs to create a property map from an internal
+  property for use in a generic algorithm. For instance, using the
+  graph without bundled properties we might invoke <a
+    href="dijkstra_shortest_paths.html">Dijkstra's shortest
+    paths</a> algorithm like this:</p>
+<pre>
+vector&lt;double&gt; distances(num_vertices(map));
+dijkstra_shortest_paths(map, from,
+      weight_map(get(edge_length, map))
+      .distance_map(make_iterator_property_map(distances.begin(),
+                                               get(vertex_index, map))));
+</pre>
+
+<p>With bundled properties, we can just pass a <em>member pointer</em>
+as the property for <code>get</code>. The equivalent example using bundled
+properties is:</p>
+<pre>
+vector&lt;double&gt; distances(num_vertices(map));
+dijkstra_shortest_paths(map, from,
+      weight_map(get(<font color="#ff0000">&amp;Highway::miles</font>, map))
+      .distance_map(make_iterator_property_map(distances.begin(),
+                                               get(vertex_index, map))));
+</pre>
+
+<p>The type of the returned property map is <code>property_map&lt;Map, double Highway::*&gt;::type</code>
+or <code>property_map&lt;Map, double Highway::*&gt;::const_type</code>, depending on whether the graph
+<code>map</code> is non-constant or constant.
+
+<p> You may also access the entire vertex or edge bundle as a property map
+using the <code>vertex_bundle</code> or <code>edge_bundle</code> properties,
+respectively. For instance, the property map returned by <code>get(vertex_bundle, map)</code> is
+an <a href="../../property_map/doc/LvaluePropertyMap.html">Lvalue Property Map</a> providing access to the
+<code>City</code> values stored in each vertex.
+
+<h2>Property maps for a graph bundle</h2>
+There is currently no support for creating property maps from the bundled
+properties of a graph.
+
+<h2>Getting the type of bundled properties</h2>
+
+<p>To get the type of the vertex or edge bundle for a given graph
+type <tt>Graph</tt>, you can use the trait
+classes <tt>vertex_bundle_type</tt>
+and <tt>edge_bundle_type</tt>. The
+type <tt>vertex_bundle_type&lt;Graph&gt;::type</tt> will be the
+type bundled with vertices (or <tt>no_vertex_bundle</tt> if the
+graph supports bundles but no vertex bundle
+exists). Likewise, <tt>edge_bundle_type&lt;Graph&gt;::type</tt>
+will be the type bundled with edges (or <tt>no_edge_bundle</tt> if
+no edge bundle exists).</p>
+
+<h2>Compatibility</h2> <p>Bundled properties will only work
+properly on compilers that support class template partial
+specialization.</p>
+
+<hr>
+Copyright &copy; 2004 <a href="http://www.boost.org/people/doug_gregor.html">Doug Gregor</a>.
+<address><a href="mailto:gregod@cs.rpi.edu"></a></address>
+<!-- Created: Fri May  7 09:59:21 EDT 2004 -->
+<!-- hhmts start -->
+Last modified: Fri May  7 10:56:01 EDT 2004
+<!-- hhmts end -->
+</body>
+</html>

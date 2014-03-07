@@ -1,0 +1,153 @@
+[/
+    Boost.Optional
+
+    Copyright (c) 2003-2007 Fernando Luis Cacciola Carballal
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section  Improved numeric_cast<>]
+
+[section Introduction]
+
+The lack of preservation of range makes conversions between numeric types
+error prone. This is true for both implicit conversions and explicit
+conversions (through `static_cast`).
+[link boost_numericconversion.improved_numeric_cast__.numeric_cast `numeric_cast`]
+detects loss of range when a numeric type is converted, and throws an
+exception if the range cannot be preserved.
+
+There are several situations where conversions are unsafe:
+
+* Conversions from an integral type with a wider range than the target integral type.
+* Conversions from unsigned to signed (and vice versa) integral types.
+* Conversions from floating point types to integral types.
+
+The C++ Standard does not specify the behavior when a numeric type is
+assigned a value that cannot be represented by the type, except for unsigned
+integral types \[3.9.1.4\], which must obey the laws of arithmetic modulo 2n
+(this implies that the result will be reduced modulo the number that is one
+greater than the largest value that can be represented). The fact that the
+behavior for overflow is undefined for all conversions (except the
+aforementioned unsigned to unsigned) makes any code that may produce
+positive or negative overflows exposed to portability issues.
+
+By default `numeric_cast` adheres to the rules for implicit conversions mandated by
+the C++ Standard, such as truncating floating point types when converting
+to integral types. The implementation must guarantee that for a conversion
+to a type that can hold all possible values of the source type, there will
+be no runtime overhead.
+
+[endsect]
+
+[section numeric_cast]
+    
+    template <typename Target, typename Source> inline
+    Target numeric_cast( Source arg )
+    {
+        typedef conversion_traits<Target, Source>   conv_traits;
+        typedef numeric_cast_traits<Target, Source> cast_traits;
+        typedef converter
+            <
+                Target,
+                Source, 
+                conv_traits,
+                typename cast_traits::overflow_policy, 
+                typename cast_traits::rounding_policy, 
+                raw_converter<conv_traits>,
+                typename cast_traits::range_checking_policy
+            > converter;
+        return converter::convert(arg);
+    }
+
+`numeric_cast` returns the result of converting a value of type Source
+to a value of type Target. If out-of-range is detected, an overflow policy
+is executed whose default behavior is to throw an an exception (see 
+[link numeric_conversion_bad_numeric_cast bad_numeric_cast],
+[link numeric_conversion_negative_overflow negative_overflow] and
+[link numeric_conversion_possitive_overflow positive_overflow]
+).
+
+[endsect]
+
+[section numeric_cast_traits]
+
+    template <typename Target, typename Source, typename EnableIf = void>
+    struct numeric_cast_traits
+    {
+        typedef def_overflow_handler    overflow_policy;
+        typedef UseInternalRangeChecker range_checking_policy;
+        typedef Trunc<Source>           rounding_policy;
+    };
+
+The behavior of `numeric_cast` may be tailored for custom numeric types through
+the specialization of `numeric_cast_traits`. (see 
+[link boost_numericconversion.type_requirements_and_user_defined_types_support User Defined Types] 
+for details.
+)
+
+[endsect]
+
+[section Examples]
+
+The following example performs some typical conversions between numeric types:
+
+#include <boost/numeric/conversion/cast.hpp>
+#include <iostream>
+
+    int main()
+    {
+        using boost::numeric_cast;
+
+        using boost::numeric::bad_numeric_cast;
+        using boost::numeric::positive_overflow;
+        using boost::numeric::negative_overflow;
+
+        try
+        {
+            int i=42;
+            short s=numeric_cast<short>(i); // This conversion succeeds (is in range)
+        }
+        catch(negative_overflow& e) {
+            std::cout << e.what();
+        }
+        catch(positive_overflow& e) {
+            std::cout << e.what();
+        }
+
+        try
+        {
+            float f=-42.1234;
+
+            // This will cause a boost::numeric::negative_overflow exception to be thrown
+            unsigned int i=numeric_cast<unsigned int>(f);
+        }
+        catch(bad_numeric_cast& e) {
+            std::cout << e.what();
+        }
+
+        double d= f + numeric_cast<double>(123); // int -> double
+
+        unsigned long l=std::numeric_limits<unsigned long>::max();
+
+        try
+        {
+            // This will cause a boost::numeric::positive_overflow exception to be thrown
+            // NOTE: *operations* on unsigned integral types cannot cause overflow
+            // but *conversions* to a signed type ARE range checked by numeric_cast.
+
+            unsigned char c=numeric_cast<unsigned char>(l);
+        }
+        catch(positive_overflow& e) {
+            std::cout << e.what();
+        }
+
+
+        return 0;
+    }
+
+[endsect]
+
+[endsect]

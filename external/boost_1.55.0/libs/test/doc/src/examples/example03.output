@@ -1,0 +1,5 @@
+> example
+Running 2 test cases...
+test.cpp(15): error in "boost::bind( &test_class::test_method2, tester )": check false failed
+
+*** 1 failure detected in test suite "Master Test Suite"

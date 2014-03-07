@@ -1,0 +1,66 @@
+<html>
+<head>
+	<title>BOOST_PP_IIF</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_IIF</b> macro chooses between to values based on a bitwise condition.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_IIF</b>(<i>bit</i>, <i>t</i>, <i>f</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>bit</dt>
+			<dd>
+				The condition that determines if the result is <i>expr</i> or nothing.&nbsp;
+				This value must expand to <i>0</i> or <i>1</i>.
+			</dd>
+			<dt>t</dt>
+			<dd>
+				The result of the expansion if <i>bit</i> is <i>1</i>.
+			</dd>
+			<dt>f</dt>
+			<dd>
+				The result of the expansion if <i>bit</i> is <i>0</i>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro <i>does not</i> perform a boolean conversion on its first argument.&nbsp;
+			If that conversion is necessary, use <b>BOOST_PP_IF</b> instead.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="if.html">BOOST_PP_IF</a></li>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/control/iif.html">&lt;boost/preprocessor/control/iif.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/control/iif.html">boost/preprocessor/control/iif.hpp</a>&gt;
+#include &lt;<a href="../headers/logical/or.html">boost/preprocessor/logical/or.hpp</a>&gt;
+
+#define OR_IF(p, q, t, f) <a href="iif.html">BOOST_PP_IIF</a>(<a href="or.html">BOOST_PP_OR</a>(p, q), t, f)
+
+OR_IF(1, 0, abc, xyz) // expands to abc
+OR_IF(0, 0, abc, xyz) // expands to xyz
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

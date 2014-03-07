@@ -1,0 +1,96 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>An Optimized Version of std::copy</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="up" href="../examples.html" title="Examples">
+<link rel="prev" href="../examples.html" title="Examples">
+<link rel="next" href="fill.html" title="An Optimised Version of std::fill">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../examples.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="fill.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typetraits.examples.copy"></a><a class="link" href="copy.html" title="An Optimized Version of std::copy">An Optimized Version
+      of std::copy</a>
+</h3></div></div></div>
+<p>
+        Demonstrates a version of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span></code>
+        that uses <code class="computeroutput"><a class="link" href="../reference/has_trivial_assign.html" title="has_trivial_assign">has_trivial_assign</a></code>
+        to determine whether to use <code class="computeroutput"><span class="identifier">memcpy</span></code>
+        to optimise the copy operation (see <a href="../../../../examples/copy_example.cpp" target="_top">copy_example.cpp</a>):
+      </p>
+<pre class="programlisting"><span class="comment">//</span>
+<span class="comment">// opt::copy</span>
+<span class="comment">// same semantics as std::copy</span>
+<span class="comment">// calls memcpy where appropriate.</span>
+<span class="comment">//</span>
+
+<span class="keyword">namespace</span> <span class="identifier">detail</span><span class="special">{</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">I1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">I2</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">b</span><span class="special">&gt;</span>
+<span class="identifier">I2</span> <span class="identifier">copy_imp</span><span class="special">(</span><span class="identifier">I1</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">I1</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">I2</span> <span class="identifier">out</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="../reference/integral_constant.html" title="integral_constant">integral_constant</a><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">,</span> <span class="identifier">b</span><span class="special">&gt;&amp;)</span>
+<span class="special">{</span>
+   <span class="keyword">while</span><span class="special">(</span><span class="identifier">first</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">)</span>
+   <span class="special">{</span>
+      <span class="special">*</span><span class="identifier">out</span> <span class="special">=</span> <span class="special">*</span><span class="identifier">first</span><span class="special">;</span>
+      <span class="special">++</span><span class="identifier">out</span><span class="special">;</span>
+      <span class="special">++</span><span class="identifier">first</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="identifier">out</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="identifier">T</span><span class="special">*</span> <span class="identifier">copy_imp</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">*</span> <span class="identifier">first</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">*</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">T</span><span class="special">*</span> <span class="identifier">out</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="../reference/integral_constant.html" title="integral_constant">true_type</a><span class="special">&amp;)</span>
+<span class="special">{</span>
+   <span class="identifier">memmove</span><span class="special">(</span><span class="identifier">out</span><span class="special">,</span> <span class="identifier">first</span><span class="special">,</span> <span class="special">(</span><span class="identifier">last</span><span class="special">-</span><span class="identifier">first</span><span class="special">)*</span><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">T</span><span class="special">));</span>
+   <span class="keyword">return</span> <span class="identifier">out</span><span class="special">+(</span><span class="identifier">last</span><span class="special">-</span><span class="identifier">first</span><span class="special">);</span>
+<span class="special">}</span>
+
+
+<span class="special">}</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">I1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">I2</span><span class="special">&gt;</span>
+<span class="keyword">inline</span> <span class="identifier">I2</span> <span class="identifier">copy</span><span class="special">(</span><span class="identifier">I1</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">I1</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">I2</span> <span class="identifier">out</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="comment">//</span>
+   <span class="comment">// We can copy with memcpy if T has a trivial assignment operator,</span>
+   <span class="comment">// and if the iterator arguments are actually pointers (this last</span>
+   <span class="comment">// requirement we detect with overload resolution):</span>
+   <span class="comment">//</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="identifier">I1</span><span class="special">&gt;::</span><span class="identifier">value_type</span> <span class="identifier">value_type</span><span class="special">;</span>
+   <span class="keyword">return</span> <span class="identifier">detail</span><span class="special">::</span><span class="identifier">copy_imp</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">out</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><a class="link" href="../reference/has_trivial_assign.html" title="has_trivial_assign">has_trivial_assign</a><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;());</span>
+<span class="special">}</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000, 2011 Adobe Systems Inc, David Abrahams,
+      Frederic Bron, Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant,
+      Jesse Jones, Mat Marcus, Itay Maman, John Maddock, Alexander Nasonov, Thorsten
+      Ottosen, Roman Perepelitsa, Robert Ramey, Jeremy Siek, Robert Stewart and Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../examples.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="fill.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

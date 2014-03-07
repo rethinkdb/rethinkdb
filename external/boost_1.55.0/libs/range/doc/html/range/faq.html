@@ -1,0 +1,90 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>FAQ</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="prev" href="portability.html" title="Portability">
+<link rel="next" href="history_ack.html" title="History and Acknowledgement">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="portability.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="history_ack.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_faq">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="range.faq"></a><a class="link" href="faq.html" title="FAQ">FAQ</a>
+</h2></div></div></div>
+<p>
+      1. <span class="emphasis"><em><span class="bold"><strong>Why is there no difference between <code class="computeroutput"><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+      and <code class="computeroutput"><span class="identifier">range_const_iterator</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+      for <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">iterator</span><span class="special">&gt;</span></code>?</strong></span></em></span>
+    </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        In general it is not possible nor desirable to find a corresponding <code class="computeroutput"><span class="identifier">const_iterator</span></code>. When it is possible to
+        come up with one, the client might choose to construct a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">const_iterator</span><span class="special">,</span><span class="identifier">const_iterator</span><span class="special">&gt;</span></code> object.
+      </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        Note that an <a class="link" href="reference/utilities/iterator_range.html" title="Class iterator_range"><code class="computeroutput"><span class="identifier">iterator_range</span></code></a> is somewhat more
+        convenient than a <code class="computeroutput"><span class="identifier">pair</span></code> and
+        that a <a class="link" href="reference/utilities/sub_range.html" title="Class sub_range"><code class="computeroutput"><span class="identifier">sub_range</span></code></a> does propagate const-ness.
+      </p></blockquote></div>
+<p>
+      2. <span class="emphasis"><em><span class="bold"><strong>Why is there not supplied more types or
+      more functions?</strong></span></em></span>
+    </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        The library has been kept small because its current interface will serve
+        most purposes. If and when a genuine need arises for more functionality,
+        it can be implemented.
+      </p></blockquote></div>
+<p>
+      3. <span class="emphasis"><em><span class="bold"><strong>How should I implement generic algorithms
+      for ranges?</strong></span></em></span>
+    </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        One should always start with a generic algorithm that takes two iterators
+        (or more) as input. Then use Boost.Range to build handier versions on top
+        of the iterator based algorithm. Please notice that once the range version
+        of the algorithm is done, it makes sense not to expose the iterator version
+        in the public interface.
+      </p></blockquote></div>
+<p>
+      4. <span class="emphasis"><em><span class="bold"><strong>Why is there no Incrementable Range concept?</strong></span></em></span>
+    </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        Even though we speak of incrementable iterators, it would not make much sense
+        for ranges; for example, we cannot determine the size and emptiness of a
+        range since we cannot even compare its iterators.
+      </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        Note also that incrementable iterators are derived from output iterators
+        and so there exist no output range.
+      </p></blockquote></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="portability.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="history_ack.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

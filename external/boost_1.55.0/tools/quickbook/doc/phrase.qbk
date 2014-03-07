@@ -1,0 +1,592 @@
+[/
+    Copyright 2002,2004,2006 Joel de Guzman, Eric Niebler
+    Copyright 2010-2011 Daniel James
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[chapter Phrase Level Elements
+    [quickbook 1.6]
+    [compatibility-mode 1.5]
+    [id quickbook.syntax.phrase]
+    [source-mode teletype]
+]
+
+[#quickbook.ref.font_styles]
+[section:font_styles Font Styles]
+
+```
+['italic], [*bold], [_underline], [^teletype], [-strikethrough]
+```
+
+will generate:
+
+['italic], [*bold], [_underline], [^teletype], [-strikethrough]
+
+Like all non-terminal phrase level elements, this can of course be nested:
+
+```
+[*['bold-italic]]
+```
+
+will generate:
+
+[*['bold-italic]]
+
+[endsect] [/font_styles]
+
+[#quickbook.ref.replaceable]
+[section:replaceable Replaceable]
+
+When you want content that may or must be replaced by the user, use the syntax:
+
+```
+[~replacement]
+```
+
+This will generate:
+
+[~replacement]
+
+[endsect] [/replaceable]
+
+[#quickbook.ref.quotations]
+[section:quotations Quotations]
+
+```
+["A question that sometimes drives me hazy: am I or are the others crazy?]--Einstein
+```
+
+will generate:
+
+["A question that sometimes drives me hazy: am I or are the others crazy?]--Einstein
+
+Note the proper left and right quote marks. Also, while you can simply use
+ordinary quote marks like "quoted", our quotation, above, will generate correct
+DocBook quotations (e.g. <quote>quoted</quote>).
+
+Like all phrase elements, quotations may be nested. Example:
+
+```
+["Here's the rule for bargains: ["Do other men, for they would do you.] That's
+the true business precept.]
+```
+
+will generate:
+
+["Here's the rule for bargains: ["Do other men, for they would do you.]
+That's the true business precept.]
+
+[endsect] [/quotations]
+
+[#quickbook.ref.simple_formatting]
+[section:simple_formatting Simple formatting]
+
+Simple markup for formatting text, common in many applications, is now supported:
+
+```
+/italic/, *bold*, _underline_, =teletype=
+```
+
+will generate:
+
+/italic/, *bold*, _underline_, =teletype=
+
+Unlike QuickBook's standard formatting scheme, the rules for simpler
+alternatives are much stricter[footnote Thanks to David Barrett, author of
+[@http://quinthar.com/qwikiwiki/index.php?page=Home Qwiki], for sharing
+these samples and teaching me these obscure formatting rules. I wasn't sure
+at all if __spirit__, being more or less a formal EBNF parser, can handle
+the context sensitivity and ambiguity.].
+
+* Simple markups cannot nest. You can combine a simple markup with a nestable markup.
+* Simple markups cannot contain any other form of quickbook markup.
+* A non-space character must follow the leading markup
+* A non-space character must precede the trailing markup
+* A space or a punctuation must follow the trailing markup
+* If the matching markup cannot be found within a block, the formatting
+  will not be applied. This is to ensure that un-matched formatting markups,
+  which can be a common mistake, does not corrupt anything past a single block.
+  We do not want the rest of the document to be rendered bold just because we
+  forgot a trailing '*'. A single block is terminated by two end of lines or
+  the close bracket: '\]'.
+* A line starting with the star will be interpreted as an unordered list.
+  See __unordered_lists__.
+
+[table More Formatting Samples
+    [[Markup]                                           [Result]]
+    [[`*Bold*`]                                         [*Bold*]]
+    [[`*Is bold*`]                                      [*Is bold*]]
+    [[`* Not bold* *Not bold * * Not bold *`]           [* Not bold* *Not bold * * Not bold *]]
+    [[`This*Isn't*Bold (no bold)`]                      [This*Isn't*Bold (no bold)]]
+    [[`(*Bold Inside*) (parenthesis not bold)`]         [(*Bold Inside*) (parenthesis not bold)]]
+    [[`*(Bold Outside)* (parenthesis bold)`]            [*(Bold Outside)* (parenthesis bold)]]
+    [[`3*4*5 = 60 (no bold)`]                           [3*4*5 = 60 (no bold)]]
+    [[`3 * 4 * 5 = 60 (no bold)`]                       [3 * 4 * 5 = 60 (no bold)]]
+    [[`3 *4* 5 = 60 (4 is bold)`]                       [3 *4* 5 = 60 (4 is bold)]]
+    [[`*This is bold* this is not *but this is*`]       [*This is bold* this is not *but this is*]]
+    [[`*This is bold*.`]                                [*This is bold*.]]
+    [[`*B*. (bold B)`]                                  [*B*. (bold B)]]
+    [[`['*Bold-Italic*]`]                               [['*Bold-Italic*]]]
+    [[`*side-by*/-side/`]                               [*side-by*/-side/]]
+]
+
+As mentioned, simple markups cannot go past a single block. The text
+from "have" to "full" in the following paragraph will be rendered as
+bold:
+
+```
+Baa baa black sheep, *have you any wool?
+Yes sir, yes sir, three bags full!*
+One for the master, one for the dame,
+And one for the little boy who lives down the lane.
+```
+
+Baa baa black sheep, *have you any wool?
+Yes sir, yes sir, three bags full!*
+One for the master, one for the dame,
+And one for the little boy who lives down the lane.
+
+But in the following paragraph, bold is not applied:
+
+```
+Baa baa black sheep, *have you any wool?
+Yes sir, yes sir, three bags full!
+One for the master, one for the dame,
+And one for the little boy who lives down the lane.
+```
+
+Baa baa black sheep, *have you any wool?
+Yes sir, yes sir, three bags full!
+One for the master, one for the dame,
+And one for the little boy who lives down the lane.
+
+[endsect] [/simple_formatting]
+
+[#quickbook.ref.role]
+[section:role Role]
+
+Sometime the basic formatting options aren't enough, and you wish
+to use CSS to style the generated html. For these cases you can
+use the `role` phase element. For example:
+
+    [role red Text content]
+
+Will generate the docbook:
+
+    <phrase role="red">Text content</phrase>
+
+Which will generate html along the lines of:
+
+    <span class="red">Text content</span>
+
+And then you can use css to style this however you wish.
+
+[note When generating other formats such as pdfs, your css is not going to
+      apply, so this will appear as normal, unstyled text. The docbook
+      =role= attribute is meant to be used as a more general mechanism, so
+      you might be able to take advantage of it by some other means.]
+
+[endsect] [/role]
+
+[#quickbook.ref.inline_code]
+[section:inline_code Inline code]
+
+Inlining code in paragraphs is quite common when writing C++ documentation. We
+provide a very simple markup for this. For example, this:
+
+```
+This text has inlined code `int main() { return 0; }` in it.
+```
+
+will generate:
+
+This text has inlined code `int main() { return 0; }` in it. The code will be
+syntax highlighted.
+
+[note We simply enclose the code with the tick: [^"\`"], not the
+single quote: `"'"`. Note too that [^\`some code\`] is preferred over
+`[^some code]`. ]
+
+[endsect] [/inline_code]
+
+[#quickbook.ref.code_blocks]
+[section:code_blocks Code blocks]
+
+Preformatted code simply starts with a space or a tab (See __code__).
+However, such a simple syntax cannot be used as phrase elements in lists
+(See __ordered_lists__ and __unordered_lists__), tables (See __tables__),
+etc. Inline code (see above) can. The problem is, inline code does not
+allow formatting with newlines, spaces, and tabs. These are lost.
+
+We provide a phrase level markup that is a mix between the two. By using the
+double-tick or triple-tick, instead of the single-tick, we are telling QuickBook
+to use preformatted blocks of code. Example:
+
+```
+``\`\` ``
+    #include <iostream>
+
+    int main()
+    {
+        std::cout << "Hello, World!" << std::endl;
+        return 0;
+    }
+``\`\`\ ``
+```
+
+or:
+
+```
+``\`\`\` ``
+    #include <iostream>
+
+    int main()
+    {
+        std::cout << "Hello, World!" << std::endl;
+        return 0;
+    }
+``\`\`\` ``
+```
+
+will generate:
+
+[c++]
+
+``
+    #include <iostream>
+
+    int main()
+    {
+        std::cout << "Hello, World!" << std::endl;
+        return 0;
+    }
+``
+
+[teletype]
+
+[endsect] [/code_blocks]
+
+[#quickbook.ref.source_mode]
+[section:source_mode Source Mode]
+
+If a document contains more than one type of source code then the source
+mode may be changed dynamically as the document is processed. All QuickBook
+documents are initially in C++ mode by default, though an alternative
+initial value may be set in the __document__ section.
+
+To change the source mode, use the [^\[source-mode\]] markup, where
+=source-mode= is one of the supported modes. For example, this:
+
+```
+Python's [python] `import` is rather like C++'s [c++] `#include`. A
+C++ comment `// looks like this` whereas a Python comment [python]
+`# looks like this`.
+```
+
+will generate:
+
+Python's [python] `import` is rather like C++'s [c++] `#include`. A
+C++ comment `// looks like this` whereas a Python comment [python]
+`#looks like this`.
+
+[teletype]
+
+[table Supported Source Modes
+    [[Mode]                 [Source Mode Markup]]
+    [[C++]                  [[^\[c++\]]]]
+    [[Python]               [[^\[python\]]]]
+    [[Plain Text]           [[^\[teletype\]]]]
+]
+
+[note The source mode strings are lowercase.]
+
+[endsect] [/source_mode]
+
+[#quickbook.ref.line_break]
+[section:line_break line-break]
+
+```
+[br]
+```
+
+[warning `[br]` generates invalid docbook. It seems to mostly work okay but
+there might be problems, especially when using an alternative docbook
+processor.]
+
+[endsect] [/line_break]
+
+[#quickbook.ref.anchors]
+[section:anchors Anchors]
+
+```
+[#named_anchor]
+```
+
+A named anchor is a hook that can be referenced by a link elsewhere in the
+document. You can then reference an anchor with `[link named_anchor
+Some link text]`. See __anchor_links__, __section__ and __heading__.
+
+These anchors are global and can be accessed from anywhere in the
+quickbook documentation. Be careful to avoid clashes with anchors in
+other sections.
+
+[endsect] [/anchors]
+
+[#quickbook.ref.links]
+[section:links Links]
+
+```
+[@http://www.boost.org this is [*boost's] website....]
+```
+
+will generate:
+
+[@http://www.boost.org this is [*boost's] website....]
+
+URL links where the link text is the link itself is common. Example:
+
+```
+see http://spirit.sourceforge.net/
+```
+
+so, when the text is absent in a link markup, the URL is assumed. Example:
+
+```
+see [@http://spirit.sourceforge.net/]
+```
+
+will generate:
+
+see [@http://spirit.sourceforge.net/]
+
+Boostbook also support a custom url schema for linking to files within
+the boost distribution:
+
+```
+[@boost:/libs/spirit/index.html the Boost.Spirit documentation]
+```
+
+will generate: [@boost:/libs/spirit/index.html the Boost.Spirit documentation]
+
+Note that this is only available when using BoostBook, and only for links
+- it can't be used for images.
+
+[endsect] [/links]
+
+[#quickbook.ref.anchor_links]
+[section:anchor_links Anchor links]
+
+You can link within a document using:
+
+```
+[link document_id.section_id.normalized_header_text The link text]
+```
+
+See sections __section__ and __heading__ for more info.
+
+[endsect] [/anchor_links]
+
+[#quickbook.ref.refentry_links]
+[section:refentry_links refentry links]
+
+In addition, you can link internally to an XML refentry like:
+
+```
+[link xml.refentry The link text]
+```
+
+This gets converted into [^<link linkend="xml.refentry">The link text</link>].
+
+Like URLs, the link text is optional. If this is not present, the link text will
+automatically be the refentry. Example:
+
+```
+[link xml.refentry]
+```
+
+This gets converted into [^<link linkend="xml.refentry">xml.refentry</link>].
+
+[endsect] [/refentry_links]
+
+[#quickbook.ref.code_links]
+[section:code_links Code Links]
+
+If you want to link to a function, class, member, enum, concept, global, or header in
+the reference section, you can use:
+
+```
+[funcref fully::qualified::function_name The link text]
+[classref fully::qualified::class_name The link text]
+[memberref fully::qualified::member_name The link text]
+[enumref fully::qualified::enum_name The link text]
+[macroref MACRO_NAME The link text]
+[conceptref ConceptName The link text]
+[headerref path/to/header.hpp The link text]
+[globalref fully::qualified::global The link text]
+```
+
+Again, the link text is optional. If this is not present, the link text will
+automatically be the function, class, member, enum, macro, concept, global, or header name.
+Example:
+
+```
+[classref boost::bar::baz]
+```
+
+would have "boost::bar::baz" as the link text.
+
+[endsect] [/code_links]
+
+[#quickbook.ref.escape]
+[section:escape Escape]
+
+The escape mark-up is used when we don't want to do any processing.
+
+```
+'''
+escape (no processing/formatting)
+'''
+```
+
+Escaping allows us to pass XML markup to __boostbook__ or __docbook__. For example:
+
+```
+'''
+<emphasis role="bold">This is direct XML markup</emphasis>
+'''
+```
+
+'''
+<emphasis role="bold">This is direct XML markup</emphasis>
+'''
+
+[important Be careful when using the escape. The text must conform to
+__boostbook__/__docbook__ syntax.]
+
+[endsect] [/escape]
+
+[#quickbook.ref.single_char_escape]
+[section:single_char_escape Single char escape]
+
+The backslash may be used to escape a single punctuation character. The
+punctuation immediately after the backslash is passed without any processing.
+This is useful when we need to escape QuickBook punctuations such as `[` and `]`.
+For example, how do you escape the triple quote? Simple: [^\\'\\'\\']
+
+
+`\n` has a special meaning. It is used to generate line breaks.
+
+[warning `\n` is now deprecated, use [link quickbook.ref.line_break `[br]`]
+instead. Although, use it sparingly as it can generated invalid docbook]
+
+The escaped space: `\ ` also has a special meaning. The escaped space is removed
+from the output.
+
+[endsect] [/single_char_escape]
+
+[#quickbook.ref.unicode_escape]
+[section:unicode_escape Unicode escape]
+
+You can enter any 16-bit unicode character by using `\u` followed by its 4 digit
+hexadecimal code, or a 32-bit character by using `\U` followed by an 8 digit
+hexadecimal code. eg.
+
+```
+\u03B1 + \u03B2
+```
+
+will generate:
+
+[:
+\u03B1 + \u03B2
+]
+
+[endsect] [/unicode_escape]
+
+[#quickbook.ref.images]
+[section:images Images]
+
+```
+[$image.jpg]
+```
+
+From version 1.5, you can also use
+[@http://www.docbook.org/tdg/en/html/imagedata.html
+DocBook imagedata attributes]:
+
+```
+[$image.jpg [width 200in] [height 200in]]
+```
+
+[endsect] [/images]
+
+[#quickbook.ref.footnotes]
+[section:footnotes Footnotes]
+
+As of version 1.3, QuickBook supports footnotes. Just put the text of the
+footnote in a `[footnote]` block, and the text will be put at the bottom
+of the current page. For example, this:
+
+```
+[footnote A sample footnote]
+```
+
+will generate this[footnote A sample footnote].
+
+[endsect] [/footnotes]
+
+[#quickbook.ref.macro_expansion]
+[section:macro_expansion Macro Expansion]
+
+```
+__a_macro_identifier__
+```
+
+See __macros__ for details.
+
+[endsect] [/macro_expansion]
+
+[#quickbook.ref.template_expansion]
+[section:template_expansion Template Expansion]
+
+```
+[a_template_identifier]
+```
+
+See __templates__ for details.
+
+[endsect] [/template_expansion]
+
+[#quickbook.ref.cond]
+[section:cond Conditional Generation]
+
+Like C++ `#ifdef`, you can generate phrases depending on the presence of
+a macro. Example:
+
+```
+[? __to_be__ To be or not to be]
+```
+
+[? __to_be__ To be or not to be]
+
+Here, the phrase "To be or not to be" will only be generated if the
+macro symbol `__to_be__` has been previously defined. The phrase
+above will not do anything since we haven't defined `__to_be__`.
+Now, let's define the symbol:
+
+```
+[def __to_be__]
+```
+
+[def __to_be__]
+
+And try again:
+
+[? __to_be__ To be or not to be]
+
+Yes!
+
+[endsect] [/cond]

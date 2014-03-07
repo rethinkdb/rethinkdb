@@ -1,0 +1,238 @@
+%%
+%% This is file `lgrind.sty',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% lgrind.dtx  (with options: `package')
+%% 
+%% LGrind is used to format source code of different programming
+%% languages for LaTeX.
+%% 
+%% LGrind is a major adaptation of Jerry Leichter's tgrind for LaTeX,
+%% which was a notable improvement upon Van Jacobsen's tgrind for
+%% plain TeX, which was adapted from vgrind, a troff prettyprinter.
+%% 
+%% Author: Michael Piefel, piefel@cs.tu-berlin.de
+%% Based on Van Jacobson's ``tgrindmac'', a macro package for TeX.
+%% Modified, 1987 by Jerry Leichter. Put '@' in all internal names.
+%% Modified, 1991 by George Reilly. Changed name from tgrind to lgrind.
+%% Modified, 1995 by Michael Piefel. Made it work with \LaTeXe.
+%%          -1999    Hundreds of bells and whistles. No changelog here.
+\NeedsTeXFormat{LaTeX2e}[1996/06/01]
+\ProvidesPackage{lgrind}
+          [1999/05/28 v3.6 LGrind environment and supporting stuff]
+%%stopzone   % VIM syncing
+\newcount\lc@unt
+\newcount\ln@xt
+\newcount\LGnuminterval
+\LGnuminterval=10
+\DeclareOption{nolineno}{\LGnuminterval=50000}
+\DeclareOption{lineno5}{\LGnuminterval=5}
+\DeclareOption{lineno1}{\LGnuminterval=1}
+\newif\ifLGleftnum
+\DeclareOption{leftno}{\LGleftnumtrue}
+\newskip\LGindent
+\LGindent=1.0\parindent
+\DeclareOption{noindent}{\LGindent=0pt}
+\newif\ifLGnorules
+\DeclareOption{norules}{\LGnorulestrue}
+\newlength{\LGsloppy}
+\setlength{\LGsloppy}{7.2pt}
+\DeclareOption{fussy}{\LGsloppy=0pt}
+\newcommand{\DefaultProc}{\@gobble}
+\newcommand{\DefaultProcCont}{\@gobble}
+\DeclareOption{procnames}{
+\renewcommand{\DefaultProc}[1]{\renewcommand{\Procname}{#1}%
+\global\setbox\procbox=\hbox{\PNsize #1}}
+\renewcommand{\DefaultProcCont}[1]{\renewcommand\Procname{#1}
+\global\setbox\procbox=\hbox{\PNsize\dots #1}}}
+\newbox\procbox
+\newcommand{\Procname}{}
+\newif\ifLGnoprocindex
+\DeclareOption{noprocindex}{\LGnoprocindextrue}
+\ProcessOptions
+%\def\BGfont{\sffamily}
+\def\BGfont{\ttfamily\bfseries}
+\def\CMfont{\rmfamily\itshape}
+\def\NOfont{\sffamily}
+%\def\NOfont{\ttfamily}
+%\def\KWfont{\rmfamily\bfseries}
+\def\KWfont{\rmfamily\itshape\bfseries}
+%\def\KWfont{\ttfamily}
+%\def\STfont{\ttfamily}
+\def\STfont{\rmfamily\itshape\bfseries}
+%\def\TTfont{\ttfamily\upshape}
+\def\TTfont{\rmfamily\itshape\bfseries}
+%\def\VRfont{\ttfamily}
+\def\VRfont{\rmfamily\itshape\bfseries}
+\def\PNsize{\BGfont\small}
+\def\LGsize{\small}
+\def\LGfsize{\footnotesize}
+\newif\ifLGinline
+\newif\ifLGd@fault
+\def\LGbegin{\ifLGinline$\hbox\else$$\vbox\fi\bgroup\LGd@faulttrue}
+\def\LGend{\ifLGd@fault\egroup\ifLGinline$\else$$\fi\LGd@faultfalse\fi}
+%%stopzone   % VIM syncing
+\newif\ifc@mment
+\newif\ifstr@ng
+\newif\ifright@
+\newbox\ls@far
+\newbox\tb@x
+\newdimen\TBw@d
+\newdimen\@ts
+{\catcode`\_=\active \gdef\@setunder{\let_=\sp@ce}}
+\newcommand{\lgrindhead}{}
+\newcommand{\lgrindfilename}{}\newcommand{\lgrindfilesize}{}
+\newcommand{\lgrindmodyear}{}\newcommand{\lgrindmodmonth}{}
+\newcommand{\lgrindmodday}{}\newcommand{\lgrindmodtime}{}
+\newenvironment{lgrind}[1][1]{%
+\def\Line##1{\L{\LB{##1}}}%
+\newcommand{\Head}[1]{\gdef\lgrindhead{##1}}%
+\newcommand{\File}[6]{\gdef\lgrindfilename{##1}\message{(LGround: ##1)}%
+    \gdef\lgrindmodyear{##2}\gdef\lgrindmodmonth{##3}%
+    \gdef\lgrindmodday{##4}\gdef\lgrindmodtime{##5}%
+    \gdef\lgrindfilesize{##6}}%
+\let\Proc=\DefaultProc%
+\let\ProcCont=\DefaultProcCont%
+\ifLGnoprocindex%
+  \let\index\@gobble%
+\fi%
+\hfuzz=\LGsloppy
+\def\NewPage{\filbreak\bigskip}%
+\ifLGinline
+ \def\L##1{\setbox\ls@far\null{\CF\strut##1}\ignorespaces}%
+\else
+ \let\r@ghtlno\relax\let\l@ftlno\relax
+ \ifnum\LGnuminterval>\z@
+  \ifLGleftnum
+   \def\l@ftlno{\ifnum\lc@unt>\ln@xt
+     \global\advance\ln@xt by\LGnuminterval
+     \llap{{\normalfont\scriptsize\the\lc@unt\quad}}\fi}
+   \def\r@ghtlno{\rlap{\enspace\box\procbox}}%
+  \else
+   \def\r@ghtlno{\ifnum\lc@unt>\ln@xt
+     \global\advance\ln@xt by\LGnuminterval
+     \rlap{{\normalfont\scriptsize\enspace\the\lc@unt%
+                \enspace\box\procbox}}
+     \else\rlap{\enspace\box\procbox}\fi}%
+  \fi
+ \fi
+ \def\L##1{\@@par\setbox\ls@far=\null\strut
+  \global\advance\lc@unt by1%
+  \hbox to \linewidth{\hskip\LGindent\l@ftlno ##1\egroup%
+  \hfil\r@ghtlno}%
+  \ignorespaces}%
+\fi
+\lc@unt=#1\advance\lc@unt by-1%
+\ln@xt=\LGnuminterval\advance\ln@xt by-1%
+\loop\ifnum\lc@unt>\ln@xt\advance\ln@xt by\LGnuminterval\repeat%
+\def\LB{\hbox\bgroup\bgroup\box\ls@far\CF\let\next=}%
+\def\Tab##1{\egroup\setbox\tb@x=\lastbox\TBw@d=\wd\tb@x%
+ \advance\TBw@d by 1\@ts\ifdim\TBw@d>##1\@ts
+  \setbox\ls@far=\hbox{\box\ls@far \box\tb@x \sp@ce}\else
+  \setbox\ls@far=\hbox to ##1\@ts{\box\ls@far \box\tb@x \hfil}\fi\LB}%
+\ifLGinline\def\sp@ce{{\hskip .3333em}}%
+\else \setbox\tb@x=\hbox{\texttt{0}}%
+      \@ts=0.8\wd\tb@x \def\sp@ce{{\hskip 1\@ts}}\fi
+\catcode`\_=\active \@setunder
+\def\CF{\ifc@mment\CMfont\else\ifstr@ng\STfont\fi\fi}
+\def\N##1{{\NOfont ##1}\global\futurelet\next\ic@r}%
+\def\K##1{{\KWfont ##1}\global\futurelet\next\ic@r}%
+\def\V##1{{\VRfont ##1}\global\futurelet\next\ic@r}%
+\def\ic@r{\let\@tempa\/\ifx.\next\let\@tempa\relax%
+ \else\ifx,\next\let\@tempa\relax\fi\fi\@tempa}%
+\def\C{\egroup\bgroup\CMfont \global\c@mmenttrue \global\right@false}%
+\def\CE{\egroup\bgroup \global\c@mmentfalse}%
+\def\S{\egroup\bgroup\STfont \global\str@ngtrue}%
+\def\SE{\egroup\bgroup \global\str@ngfalse}%
+\def\,{\relax \ifmmode\mskip\thinmuskip \else\thinspace \fi}%
+\def\!{\relax \ifmmode\mskip-\thinmuskip \else\negthinspace \fi}%
+%%stopzone   % VIM syncing
+\def\CH##1##2##3{\relax\ifmmode ##1\relax
+\else\ifstr@ng ##2\relax\else$##3$\fi\fi }%
+\def\|{\CH|||}%  not necessary for T1
+\def\<{\CH<<<}%  dto.
+\def\>{\CH>>>}%  dto.
+\def\-{\CH---}%  minus sign nicer than hyphen
+\def\_{\ifstr@ng {\char'137}\else
+  \leavevmode \kern.06em \vbox{\hrule width.35em}%
+  \ifdim\fontdimen\@ne\font=\z@ \kern.06em \fi\fi }%
+\def\#{{\STfont\char'043}}%
+\def\2{\CH\backslash {\char'134}\backslash }%          % \
+\def\3{\ifc@mment\ifright@ ''\global\right@false%
+                      \else``\global\right@true \fi
+   \else{\texttt{\char'042}}\fi}%                      % "
+\def\5{{\texttt{\char'136}}}%                          % ^
+\parindent\z@\parskip\z@ plus 1pt%
+\bgroup\BGfont
+}
+{\egroup\@@par}           % end of environment lgrind
+\def\lgrinde{\ifLGinline\else\LGsize\fi\begin{lgrind}}
+\def\endlgrinde{\end{lgrind}}
+\def\lagrind{\@ifstar{\@slagrind}{\@lagrind}}
+
+\def\@lagrind{\@ifnextchar[{\@@lagrind}{\@@lagrind[t]}}
+\def\@slagrind{\@ifnextchar[{\@@slagrind}{\@@slagrind[t]}}
+\def\@@lagrind[#1]#2#3#4{%
+    \begin{figure}[#1]
+\ifLGnorules\else\hrule\fi
+\vskip .5\baselineskip
+\begin{minipage}\columnwidth\LGsize\LGindent\z@
+    \begin{lgrind}
+\input #2\relax
+    \end{lgrind}
+\end{minipage}
+\vskip .5\baselineskip plus .5\baselineskip
+\ifLGnorules\else\hrule\fi\vskip .5\baselineskip
+\begingroup
+    \setbox\z@=\hbox{#4}%
+    \ifdim\wd\z@>\z@
+\caption{#3}%
+\label{#4}%
+    \else
+\captcont{#3}%
+    \fi
+\endgroup
+\vskip 2pt
+    \end{figure}
+}
+\def\@@slagrind[#1]#2#3#4{%
+    \begin{figure*}[#1]
+\ifLGnorules\else\hrule\fi
+\vskip .5\baselineskip
+\begin{minipage}\linewidth\LGsize\LGindent\z@
+    \begin{lgrind}
+\input #2\relax
+    \end{lgrind}
+\end{minipage}
+\vskip .5\baselineskip plus .5\baselineskip
+\ifLGnorules\else\hrule\fi\vskip .5\baselineskip
+\begingroup
+    \setbox\z@=\hbox{#4}%
+    \ifdim\wd\z@>\z@
+\caption{#3}%
+\label{#4}%
+    \else
+\captcont{#3}%
+    \fi
+\endgroup
+\vskip 2pt
+    \end{figure*}
+}
+\def\lgrindfile#1{%
+    \par\addvspace{0.1in}
+    \ifLGnorules\else\hrule\fi
+    \vskip .5\baselineskip
+    \begingroup\LGfsize\LGindent\z@
+\begin{lgrind}
+    \input #1\relax
+\end{lgrind}
+    \endgroup
+    \vskip .5\baselineskip
+    \ifLGnorules\else\hrule\fi
+    \addvspace{0.1in}
+}
+\endinput
+%%
+%% End of file `lgrind.sty'.

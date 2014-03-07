@@ -1,0 +1,232 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/mas.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/mas.xml
+ */
+mas{
+    Currencies{
+        AED{
+            "AED",
+            "Iropiyianí  ɔ́ɔ̄ lmarabu",
+        }
+        AOA{
+            "Kz",
+            "Iropiyianí e Angola",
+        }
+        AUD{
+            "AU$",
+            "Iropiyianí e Austria",
+        }
+        BHD{
+            "BD",
+            "Iropiyianí e Bahareini",
+        }
+        BIF{
+            "FBu",
+            "Iropiyianí e Burundi",
+        }
+        BWP{
+            "BWP",
+            "Iropiyianí e Botswana",
+        }
+        CAD{
+            "CA$",
+            "Iropiyianí e Kanada",
+        }
+        CDF{
+            "CDF",
+            "Iropiyianí e Kongo",
+        }
+        CHF{
+            "CHF",
+            "Iropiyianí e Uswisi",
+        }
+        CNY{
+            "CN¥",
+            "Iropiyianí e China",
+        }
+        CVE{
+            "CV$",
+            "Iropiyianí e Kepuvede",
+        }
+        DJF{
+            "Fdj",
+            "Iropiyianí e Jibuti",
+        }
+        DZD{
+            "DA",
+            "Iropiyianí e Algeria",
+        }
+        EGP{
+            "EGP",
+            "Iropiyianí e Misri",
+        }
+        ERN{
+            "Nfk",
+            "Iropiyianí e Eritrea",
+        }
+        ETB{
+            "Br",
+            "Iropiyianí e Uhabeshi",
+        }
+        EUR{
+            "€",
+            "Iropiyianí e yuro",
+        }
+        GBP{
+            "£",
+            "Iropiyianí e Nkɨ́resa",
+        }
+        GHC{
+            "₵",
+            "Iropiyianí e Ghana",
+        }
+        GMD{
+            "GMD",
+            "Iropiyianí e Gambia",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Iropiyianí e Gine",
+        }
+        INR{
+            "Rs",
+            "Iropiyianí e India",
+        }
+        JPY{
+            "JP¥",
+            "Iropiyianí e Japani",
+        }
+        KES{
+            "Ksh",
+            "Iropiyianí e Kenya",
+        }
+        KMF{
+            "CF",
+            "Iropiyianí e Komoro",
+        }
+        LRD{
+            "L$",
+            "Iropiyianí e Liberia",
+        }
+        LSL{
+            "LSL",
+            "Iropiyianí e Lesoto",
+        }
+        LYD{
+            "LD",
+            "Iropiyianí e Libya",
+        }
+        MAD{
+            "MAD",
+            "Iropiyianí e Moroko",
+        }
+        MGA{
+            "MGA",
+            "Iropiyianí e Bukini",
+        }
+        MRO{
+            "UM",
+            "Iropiyianí e Moritania",
+        }
+        MUR{
+            "MURs",
+            "Iropiyianí e Morisi",
+        }
+        MWK{
+            "MWK",
+            "Iropiyianí e Malawi",
+        }
+        MZM{
+            "Mt",
+            "Iropiyianí e Msumbiji",
+        }
+        NAD{
+            "N$",
+            "Iropiyianí e Namibia",
+        }
+        NGN{
+            "₦",
+            "Iropiyianí e Nijeria",
+        }
+        RWF{
+            "RWF",
+            "Iropiyianí e Rwanda",
+        }
+        SAR{
+            "SR",
+            "Iropiyianí e Saudi",
+        }
+        SCR{
+            "SRe",
+            "Iropiyianí e Shelisheli",
+        }
+        SDG{
+            "SDG",
+            "Iropiyianí e Sudani",
+        }
+        SHP{
+            "SH£",
+            "Iropiyianí e Santahelena",
+        }
+        SLL{
+            "Le",
+            "Iropiyianí e leoni",
+        }
+        SOS{
+            "Ssh",
+            "Iropiyianí e Somalia",
+        }
+        STD{
+            "Db",
+            "Iropiyianí e Saotome",
+        }
+        SZL{
+            "SZL",
+            "Iropiyianí e lilangeni",
+        }
+        TND{
+            "DT",
+            "Iropiyianí e Tunisia",
+        }
+        TZS{
+            "TSh",
+            "Iropiyianí e Tanzania",
+        }
+        UGX{
+            "USh",
+            "Iropiyianí e Uganda",
+        }
+        USD{
+            "US$",
+            "Iropiyianí  ɔ́ɔ̄ lamarekani",
+        }
+        XAF{
+            "FCFA",
+            "Iropiyianí e CFA BEAC",
+        }
+        XOF{
+            "CFA",
+            "Iropiyianí e CFA BCEAO",
+        }
+        ZAR{
+            "R",
+            "Iropiyianí e Afrika Kusini",
+        }
+        ZMK{
+            "ZK",
+            "Iropiyianí e Sambia",
+        }
+        ZWD{
+            "Z$",
+            "Iropiyianí e Simbabwe",
+        }
+    }
+    Version{"2.0.46.85"}
+}

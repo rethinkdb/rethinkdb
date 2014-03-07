@@ -1,0 +1,352 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/et.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/et.xml
+ */
+et{
+    AuxExemplarCharacters{"[á à â å ā æ ç é è ê ë ē í ì î ï ī ñ ó ò ŏ ô ø ō œ ú ù û ū]"}
+    ExemplarCharacters{"[a b c d e f g h i j k l m n o p q r s š z ž t u v w õ ä ö ü x y]"}
+    ExemplarCharactersIndex{"[A B C D E F G H I J K L M N O P Q R S Š Z Ž T U V Õ Ä Ö Ü X Y]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00 ¤"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0%"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{","}
+                exponential{"E"}
+                group{" "}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.50.94"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "enne keskpäeva",
+                "pärast keskpäeva",
+            }
+            DateTimePatterns{
+                "H:mm.ss zzzz",
+                "H:mm.ss z",
+                "H:mm.ss",
+                "H:mm",
+                "EEEE, d. MMMM y",
+                "d. MMMM y",
+                "dd.MM.yyyy",
+                "dd.MM.yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                H{"H"}
+                Hm{"H:mm"}
+                Hms{"H:mm.ss"}
+                MEd{"E, d.M"}
+                MMMEd{"E, d. MMM"}
+                MMMMEd{"E, d. MMMM"}
+                MMMMd{"d. MMMM"}
+                MMMd{"d. MMM"}
+                MMdd{"dd.MM"}
+                hms{"h:mm.ss a"}
+                mmss{"mm.ss"}
+                yMMMEd{"EEE, d. MMM y"}
+                yyQ{"Q. yy"}
+                yyyyMM{"MM.yyyy"}
+                yyyyMMMM{"MMMM y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "P",
+                        "E",
+                        "T",
+                        "K",
+                        "N",
+                        "R",
+                        "L",
+                    }
+                    wide{
+                        "pühapäev",
+                        "esmaspäev",
+                        "teisipäev",
+                        "kolmapäev",
+                        "neljapäev",
+                        "reede",
+                        "laupäev",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "P",
+                        "E",
+                        "T",
+                        "K",
+                        "N",
+                        "R",
+                        "L",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "e.m.a.",
+                    "m.a.j.",
+                }
+                wide{
+                    "enne meie aega",
+                    "meie aja järgi",
+                }
+            }
+            fields{
+                day{
+                    dn{"päev"}
+                    relative{
+                        "-1"{"eile"}
+                        "-2"{"üleeile"}
+                        "-3"{"üleüleeile"}
+                        "0"{"täna"}
+                        "1"{"homme"}
+                        "2"{"ülehomme"}
+                        "3"{"üleülehomme"}
+                    }
+                }
+                dayperiod{
+                    dn{"enne/pärast lõunat"}
+                }
+                era{
+                    dn{"ajastu"}
+                }
+                hour{
+                    dn{"tund"}
+                }
+                minute{
+                    dn{"minut"}
+                }
+                month{
+                    dn{"kuu"}
+                }
+                second{
+                    dn{"sekund"}
+                }
+                week{
+                    dn{"nädal"}
+                }
+                weekday{
+                    dn{"nädalapäev"}
+                }
+                year{
+                    dn{"aasta"}
+                }
+                zone{
+                    dn{"vöönd"}
+                }
+            }
+            intervalFormats{
+                M{
+                    M{"M–M"}
+                }
+                MEd{
+                    M{"E, dd.MM–E, dd.MM"}
+                    d{"E, dd.MM–E, dd.MM"}
+                }
+                MMM{
+                    M{"LLL–LLL"}
+                }
+                MMMEd{
+                    M{"E, d. MMM–E, d. MMM"}
+                    d{"E, d. MMM–E, d. MMM"}
+                }
+                MMMd{
+                    M{"d. MMM–d. MMM"}
+                    d{"d.–d. MMM"}
+                }
+                Md{
+                    M{"dd.MM–dd.MM"}
+                    d{"dd.MM–dd.MM"}
+                }
+                d{
+                    d{"d–d"}
+                }
+                fallback{"{0}–{1}"}
+                h{
+                    h{"h–h a"}
+                }
+                hm{
+                    h{"h:mm–h:mm a"}
+                    m{"h:mm–h:mm a"}
+                }
+                hmv{
+                    h{"h:mm–h:mm a v"}
+                    m{"h:mm–h:mm a v"}
+                }
+                hv{
+                    h{"h–h a v"}
+                }
+                y{
+                    y{"y–y"}
+                }
+                yM{
+                    M{"MM.yy–MM.yy"}
+                    y{"MM.yy–MM.yy"}
+                }
+                yMEd{
+                    M{"E, dd.MM.yy–E, dd.MM.yy"}
+                    d{"E, dd.MM.yy–E, dd.MM.yy"}
+                    y{"E, dd.MM.yy–E, dd.MM.yy"}
+                }
+                yMMM{
+                    M{"MMM–MMM y"}
+                    y{"MMM y–MMM y"}
+                }
+                yMMMEd{
+                    M{"E, d. MMM–E, d. MMM y"}
+                    d{"E, d. MMM–E, d. MMM y"}
+                    y{"E, d. MMM y–E, d. MMM y"}
+                }
+                yMMMd{
+                    M{"d. MMM–d. MMM y"}
+                    d{"d.–d. MMM y"}
+                    y{"E, d. MMM y–E, d. MMM y"}
+                }
+                yMd{
+                    M{"dd.MM.yy–dd.MM.yy"}
+                    d{"dd.MM.yy–dd.MM.yy"}
+                    y{"dd.MM.yy–dd.MM.yy"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "jaan",
+                        "veebr",
+                        "märts",
+                        "apr",
+                        "mai",
+                        "juuni",
+                        "juuli",
+                        "aug",
+                        "sept",
+                        "okt",
+                        "nov",
+                        "dets",
+                    }
+                    wide{
+                        "jaanuar",
+                        "veebruar",
+                        "märts",
+                        "aprill",
+                        "mai",
+                        "juuni",
+                        "juuli",
+                        "august",
+                        "september",
+                        "oktoober",
+                        "november",
+                        "detsember",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "J",
+                        "V",
+                        "M",
+                        "A",
+                        "M",
+                        "J",
+                        "J",
+                        "A",
+                        "S",
+                        "O",
+                        "N",
+                        "D",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "K1",
+                        "K2",
+                        "K3",
+                        "K4",
+                    }
+                    wide{
+                        "1. kvartal",
+                        "2. kvartal",
+                        "3. kvartal",
+                        "4. kvartal",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"“"}
+        alternateQuotationStart{"„"}
+        quotationEnd{"“"}
+        quotationStart{"„"}
+    }
+    listPattern{
+        standard{
+            2{"{0} ja {1}"}
+            end{"{0} ja {1}"}
+        }
+    }
+    measurementSystemNames{
+        US{"inglise mõõdustik"}
+        metric{"meetermõõdustik"}
+    }
+    units{
+        day{
+            one{"{0} ööpäev"}
+            other{"{0} ööpäeva"}
+        }
+        hour{
+            one{"{0} tund"}
+            other{"{0} tundi"}
+        }
+        minute{
+            one{"{0} minut"}
+            other{"{0} minutit"}
+        }
+        month{
+            one{"{0} kuu"}
+            other{"{0} kuud"}
+        }
+        second{
+            one{"{0} sekund"}
+            other{"{0} sekundit"}
+        }
+        week{
+            one{"{0} nädal"}
+            other{"{0} nädalat"}
+        }
+        year{
+            one{"{0} aasta"}
+            other{"{0} aastat"}
+        }
+    }
+}

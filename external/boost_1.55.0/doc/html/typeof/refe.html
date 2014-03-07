@@ -1,0 +1,585 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Reference</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../typeof.html" title="Chapter&#160;35.&#160;Boost.Typeof">
+<link rel="prev" href="tuto.html" title="Tutorial">
+<link rel="next" href="other.html" title="Other considerations and tips">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tuto.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../typeof.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="other.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="typeof.refe"></a>Reference</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="refe.html#typeof.auto">AUTO, AUTO_TPL</a></span></dt>
+<dt><span class="section"><a href="refe.html#typeof.compl">COMPLIANT</a></span></dt>
+<dt><span class="section"><a href="refe.html#typeof.incr">INCREMENT_REGISTRATION_GROUP</a></span></dt>
+<dt><span class="section"><a href="refe.html#typeof.inte">INTEGRAL</a></span></dt>
+<dt><span class="section"><a href="refe.html#typeof.limit_func">LIMIT_FUNCTION_ARITY</a></span></dt>
+<dt><span class="section"><a href="refe.html#typeof.messages">MESSAGES</a></span></dt>
+<dt><span class="section"><a href="refe.html#typeof.limit_size">LIMIT_SIZE</a></span></dt>
+<dt><span class="section"><a href="refe.html#typeof.regtype">REGISTER_TYPE</a></span></dt>
+<dt><span class="section"><a href="refe.html#typeof.regtemp">REGISTER_TEMPLATE</a></span></dt>
+<dt><span class="section"><a href="refe.html#typeof.temp">TEMPLATE</a></span></dt>
+<dt><span class="section"><a href="refe.html#typeof.typo">TYPEOF, TYPEOF_TPL</a></span></dt>
+<dt><span class="section"><a href="refe.html#typeof.typn">TYPEOF_NESTED_TYPEDEF, TYPEOF_NESTED_TYPEDEF_TPL</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.auto"></a>AUTO, AUTO_TPL</h3></div></div></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">BOOST_AUTO</span></code> macro emulates
+        the proposed <code class="computeroutput"><span class="keyword">auto</span></code> keyword in
+        C++.
+      </p>
+<h5>
+<a name="auto.usage"></a>
+        Usage
+      </h5>
+<pre class="programlisting"><span class="identifier">BOOST_AUTO</span><span class="special">(</span><span class="identifier">var</span><span class="special">,</span><span class="identifier">expr</span><span class="special">)</span>
+<span class="identifier">BOOST_AUTO_TPL</span><span class="special">(</span><span class="identifier">var</span><span class="special">,</span><span class="identifier">expr</span><span class="special">)</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b>Arguments</b></p>
+<dl class="variablelist">
+<dt><span class="term">var</span></dt>
+<dd><p>
+              a variable to be initialized with the expression
+            </p></dd>
+<dt><span class="term">expr</span></dt>
+<dd><p>
+              a valid c++ expression
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="auto.remarks"></a>
+        Remarks
+      </h5>
+<p>
+        If you want to use <code class="computeroutput"><span class="keyword">auto</span></code> in a
+        template-context, use <code class="computeroutput"><span class="identifier">BOOST_AUTO_TPL</span><span class="special">(</span><span class="identifier">expr</span><span class="special">)</span></code>,
+        which takes care of the <code class="computeroutput"><span class="keyword">typename</span></code>
+        keyword inside the <code class="computeroutput"><span class="keyword">auto</span></code> expression.
+      </p>
+<h5>
+<a name="auto.sample_code"></a>
+        Sample Code
+      </h5>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">length</span><span class="special">::</span><span class="identifier">meter</span> <span class="identifier">a</span><span class="special">(</span><span class="number">5</span><span class="special">);</span>
+    <span class="identifier">force</span><span class="special">::</span><span class="identifier">newton</span> <span class="identifier">b</span><span class="special">(</span><span class="number">6</span><span class="special">);</span>
+    <span class="identifier">BOOST_AUTO</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="identifier">a</span> <span class="special">*</span> <span class="identifier">b</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.compl"></a>COMPLIANT</h3></div></div></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_COMPLIANT</span></code>
+        macro can be used to force the emulation mode. Define it if your compiler
+        by default uses another mode, such as native <code class="computeroutput"><span class="identifier">typeof</span></code>
+        or Microsoft-specific trick, but you want to use the emulation mode, for
+        example for portability reasons.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.incr"></a>INCREMENT_REGISTRATION_GROUP</h3></div></div></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_INCREMENT_REGISTRATION_GROUP</span></code>
+        macro ensures that type registrations in different header files receive unique
+        identifiers.
+      </p>
+<h5>
+<a name="incr.usage"></a>
+        Usage
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="identifier">BOOST_TYPEOF_INCREMENT_REGISTRATION_GROUP</span><span class="special">()</span>
+</pre>
+<h5>
+<a name="incr.remarks"></a>
+        Remarks
+      </h5>
+<p>
+        specified once in every cpp/hpp file where any registration is performed,
+        before any registration.
+      </p>
+<h5>
+<a name="incr.sample_code"></a>
+        Sample Code
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="identifier">BOOST_TYPEOF_INCREMENT_REGISTRATION_GROUP</span><span class="special">()</span>
+
+<span class="keyword">class</span> <span class="identifier">X</span><span class="special">;</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">X</span><span class="special">)</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.inte"></a>INTEGRAL</h3></div></div></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_INTEGRAL</span></code>
+        macro is used when registering an integral template parameter using <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span></code>.
+      </p>
+<p>
+        Useful for <code class="computeroutput"><span class="keyword">enum</span></code>s and dependent
+        integral template parameters.
+      </p>
+<h5>
+<a name="inte.usage"></a>
+        Usage
+      </h5>
+<pre class="programlisting"><span class="identifier">BOOST_TYPEOF_INTEGRAL</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b>Arguments</b></p>
+<dl class="variablelist">
+<dt><span class="term">x</span></dt>
+<dd><p>
+              a fully qualified integral type or enum
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="inte.remarks"></a>
+        Remarks
+      </h5>
+<p>
+        A short syntax has been implemented for the built in types (int, bool, long,
+        unsigned long, etc.) Other non-type template parameters (e.g. pointer to
+        member) are not supported.
+      </p>
+<h5>
+<a name="inte.sample_code"></a>
+        Sample Code
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="identifier">BOOST_TYPEOF_INCREMENT_REGISTRATION_GROUP</span><span class="special">()</span>
+
+<span class="keyword">namespace</span> <span class="identifier">foo</span>
+<span class="special">{</span>
+    <span class="keyword">enum</span> <span class="identifier">color</span> <span class="special">{</span><span class="identifier">red</span><span class="special">,</span> <span class="identifier">green</span><span class="special">,</span> <span class="identifier">blue</span><span class="special">};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="identifier">color</span> <span class="identifier">C0</span><span class="special">,</span><span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">&gt;</span>
+    <span class="keyword">class</span> <span class="identifier">class_with_enum</span> <span class="special">{};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">,</span><span class="identifier">T0</span> <span class="identifier">I1</span><span class="special">&gt;</span>
+    <span class="keyword">class</span> <span class="identifier">class_with_dependent_non_type</span> <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">foo</span><span class="special">::</span><span class="identifier">class_with_enum</span><span class="special">,</span>
+    <span class="special">(</span><span class="identifier">BOOST_TYPEOF_INTEGRAL</span><span class="special">(</span><span class="identifier">foo</span><span class="special">::</span><span class="identifier">color</span><span class="special">))</span>
+    <span class="special">(</span><span class="keyword">typename</span><span class="special">)</span>
+    <span class="special">)</span>
+
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">foo</span><span class="special">::</span><span class="identifier">class_with_dependent_non_type</span><span class="special">,</span>
+    <span class="special">(</span><span class="keyword">typename</span><span class="special">)</span>
+    <span class="special">(</span><span class="identifier">BOOST_TYPEOF_INTEGRAL</span><span class="special">(</span><span class="identifier">P0</span><span class="special">))</span>
+    <span class="special">)</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.limit_func"></a>LIMIT_FUNCTION_ARITY</h3></div></div></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_LIMIT_FUNCTION_ARITY</span></code>
+        macro defines how many parameters are supported for functios, and applies
+        to functions, function pointers, function references, and member function
+        pointers. The default value is 10. Redefine if you want the Typeof Library
+        to handle functions with more parameters.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.messages"></a>MESSAGES</h3></div></div></div>
+<p>
+        Define <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_MESSAGE</span></code>
+        before including boost/typeof/typeof.hpp to include messages "using
+        typeof emulation" and "using native typeof". By default, these
+        messages will not be displayed.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.limit_size"></a>LIMIT_SIZE</h3></div></div></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_LIMIT_SIZE</span></code>
+        macro defines the size of the compile-time sequence used to encode a type.
+        The default value is 50. Increase it if you want the Typeof Library to handle
+        very complex types, although this possibility is limited by the maximum number
+        of template parameters supported by your compiler. On the other hand, if
+        you work only with very simple types, decreasing this number may help to
+        boost compile-time performance.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.regtype"></a>REGISTER_TYPE</h3></div></div></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span></code>
+        macro informs the Typeof Library about the existence of a type
+      </p>
+<h5>
+<a name="regtype.usage"></a>
+        Usage
+      </h5>
+<pre class="programlisting"><span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b>Arguments</b></p>
+<dl class="variablelist">
+<dt><span class="term">x</span></dt>
+<dd><p>
+              a fully qualified type
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="regtype.remarks"></a>
+        Remarks
+      </h5>
+<p>
+        Must be used in the global namespace
+      </p>
+<h5>
+<a name="regtype.sample_code"></a>
+        Sample Code
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="identifier">BOOST_TYPEOF_INCREMENT_REGISTRATION_GROUP</span><span class="special">()</span>
+
+<span class="keyword">namespace</span> <span class="identifier">foo</span>
+<span class="special">{</span>
+    <span class="keyword">class</span> <span class="identifier">bar</span> <span class="special">{};</span>
+    <span class="keyword">enum</span> <span class="identifier">color</span> <span class="special">{</span><span class="identifier">red</span><span class="special">,</span> <span class="identifier">green</span><span class="special">,</span> <span class="identifier">blue</span><span class="special">};</span>
+<span class="special">}</span>
+
+<span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">foo</span><span class="special">::</span><span class="identifier">bar</span><span class="special">)</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span><span class="special">(</span><span class="identifier">foo</span><span class="special">::</span><span class="identifier">color</span><span class="special">)</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.regtemp"></a>REGISTER_TEMPLATE</h3></div></div></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span></code>
+        macro informs the Typeof Library about the existence of a template and describes
+        its parameters
+      </p>
+<h5>
+<a name="regtemp.usage"></a>
+        Usage
+      </h5>
+<pre class="programlisting"><span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">n</span><span class="special">)</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">seq</span><span class="special">)</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b>Arguments</b></p>
+<dl class="variablelist">
+<dt><span class="term">x</span></dt>
+<dd><p>
+              a fully qualified template
+            </p></dd>
+<dt><span class="term">n</span></dt>
+<dd><p>
+              the number of template arguments. Only valid if all template arguments
+              are typenames
+            </p></dd>
+<dt><span class="term">seq</span></dt>
+<dd><p>
+              a sequence of template arguments. Must be used when integral or template
+              template parameters are present
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="regtemp.remarks"></a>
+        Remarks
+      </h5>
+<p>
+        Must be used in the global namespace.
+      </p>
+<p>
+        The library allows registration of templates with type, integral, and template
+        template parameters:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            A type template parameter is described by the <code class="computeroutput"><span class="special">(</span><span class="keyword">class</span><span class="special">)</span></code>
+            or <code class="computeroutput"><span class="special">(</span><span class="keyword">typename</span><span class="special">)</span></code> sequence element
+          </li>
+<li class="listitem">
+            A template parameter of a well-known integral type can be described by
+            simply supplying its type, like <code class="computeroutput"><span class="special">(</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">)</span></code>. The following well-known integral types
+            are supported:
+            <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                  <code class="computeroutput"><span class="special">[</span><span class="keyword">signed</span><span class="special">/</span><span class="keyword">unsigned</span><span class="special">]</span> <span class="keyword">char</span></code>
+                </li>
+<li class="listitem">
+                  <code class="computeroutput"><span class="special">[</span><span class="keyword">unsigned</span><span class="special">]</span> <span class="keyword">short</span></code>
+                </li>
+<li class="listitem">
+                  <code class="computeroutput"><span class="special">[</span><span class="keyword">unsigned</span><span class="special">]</span> <span class="keyword">int</span></code>
+                </li>
+<li class="listitem">
+                  <code class="computeroutput"><span class="special">[</span><span class="keyword">unsigned</span><span class="special">]</span> <span class="keyword">long</span></code>
+                </li>
+<li class="listitem">
+                  <code class="computeroutput"><span class="keyword">unsigned</span></code>
+                </li>
+<li class="listitem">
+                  <code class="computeroutput"><span class="keyword">bool</span></code>
+                </li>
+<li class="listitem">
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </li>
+</ul></div>
+          </li>
+<li class="listitem">
+            Enums and typedefs of integral types, need to be described explicitly
+            with the <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_INTEGRAL</span></code>
+            macro, like <code class="computeroutput"><span class="special">(</span><span class="identifier">BOOST_TYPEOF_INTEGRAL</span><span class="special">(</span><span class="identifier">MyEnum</span><span class="special">))</span></code>
+          </li>
+<li class="listitem">
+            Template template parameters are described with the <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_TEMPLATE</span></code>
+            macro, like: <code class="computeroutput"><span class="special">(</span><span class="identifier">BOOST_TYPEOF_TEMPLATE</span><span class="special">((</span><span class="keyword">class</span><span class="special">)(</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">)))</span></code>.
+            In case of all type parameters this can be shortened to something like
+            <code class="computeroutput"><span class="special">(</span><span class="identifier">BOOST_TYPEOF_TEMPLATE</span><span class="special">(</span><span class="number">2</span><span class="special">))</span></code>.
+            The nested template template parameters are not supported.
+          </li>
+</ul></div>
+<h5>
+<a name="regtemp.sample_code"></a>
+        Sample Code
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="identifier">BOOST_TYPEOF_INCREMENT_REGISTRATION_GROUP</span><span class="special">()</span>
+
+<span class="keyword">namespace</span> <span class="identifier">foo</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">&gt;</span>
+    <span class="keyword">class</span> <span class="identifier">simple_template</span> <span class="special">{};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">I1</span><span class="special">&gt;</span>
+    <span class="keyword">class</span> <span class="identifier">class_with_integral_constant</span> <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">foo</span><span class="special">::</span><span class="identifier">simple_template</span><span class="special">,</span> <span class="number">2</span><span class="special">)</span>
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">foo</span><span class="special">::</span><span class="identifier">class_with_integral_constant</span><span class="special">,</span> <span class="special">(</span><span class="keyword">typename</span><span class="special">)(</span><span class="keyword">int</span><span class="special">))</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.temp"></a>TEMPLATE</h3></div></div></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_TEMPLATE</span></code>
+        macro is used when registering template template parameters using <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span></code>.
+      </p>
+<h5>
+<a name="temp.usage"></a>
+        Usage
+      </h5>
+<pre class="programlisting"><span class="identifier">BOOST_TYPEOF_TEMPLATE</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span>
+<span class="identifier">BOOST_TYPEOF_TEMPLATE</span><span class="special">(</span><span class="identifier">seq</span><span class="special">)</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b>Arguments</b></p>
+<dl class="variablelist">
+<dt><span class="term">n</span></dt>
+<dd><p>
+              the number of template arguments. Only valid if all template arguments
+              are typenames
+            </p></dd>
+<dt><span class="term">seq</span></dt>
+<dd><p>
+              a sequence of template arguments. Must be used when there are integral
+              constants in the nested template
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="temp.remarks"></a>
+        Remarks
+      </h5>
+<p>
+        Can not be used to register nested template template parameters.
+      </p>
+<h5>
+<a name="temp.sample_code"></a>
+        Sample Code
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="identifier">BOOST_TYPEOF_INCREMENT_REGISTRATION_GROUP</span><span class="special">()</span>
+
+<span class="keyword">namespace</span> <span class="identifier">foo</span>
+<span class="special">{</span>
+    <span class="keyword">enum</span> <span class="identifier">color</span> <span class="special">{</span><span class="identifier">red</span><span class="special">,</span> <span class="identifier">green</span><span class="special">,</span> <span class="identifier">blue</span><span class="special">};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="identifier">color</span> <span class="identifier">C0</span><span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">T1</span><span class="special">&gt;</span>
+    <span class="keyword">class</span> <span class="identifier">nested_template_class</span> <span class="special">{};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">T1</span><span class="special">&gt;</span>
+    <span class="keyword">class</span> <span class="identifier">nested_with_integral</span> <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">foo</span><span class="special">::</span><span class="identifier">nested_template_class</span><span class="special">,</span>
+    <span class="special">(</span><span class="identifier">foo</span><span class="special">::</span><span class="identifier">color</span><span class="special">)</span>
+    <span class="special">(</span><span class="identifier">BOOST_TYPEOF_TEMPLATE</span><span class="special">(</span><span class="number">1</span><span class="special">))</span>
+    <span class="special">)</span>
+
+<span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span><span class="special">(</span><span class="identifier">foo</span><span class="special">::</span><span class="identifier">nested_with_integral</span><span class="special">,</span>
+    <span class="special">(</span><span class="identifier">BOOST_TYPEOF_TEMPLATE</span><span class="special">((</span><span class="keyword">typename</span><span class="special">)(</span><span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">)))</span>
+    <span class="special">)</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.typo"></a>TYPEOF, TYPEOF_TPL</h3></div></div></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">BOOST_TYPEOF</span></code> macro calculates
+        the type of an expression, but removes the top-level qualifiers, <code class="computeroutput"><span class="keyword">const</span><span class="special">&amp;</span></code>
+      </p>
+<h5>
+<a name="typo.usage"></a>
+        Usage
+      </h5>
+<pre class="programlisting"><span class="identifier">BOOST_TYPEOF</span><span class="special">(</span><span class="identifier">expr</span><span class="special">)</span>
+<span class="identifier">BOOST_TYPEOF_TPL</span><span class="special">(</span><span class="identifier">expr</span><span class="special">)</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b>Arguments</b></p>
+<dl class="variablelist">
+<dt><span class="term">expr</span></dt>
+<dd><p>
+              a valid c++ expression that can be bound to const T&amp;
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="typo.remarks"></a>
+        Remarks
+      </h5>
+<p>
+        If you want to use <code class="computeroutput"><span class="identifier">typeof</span></code>
+        in a template-context, use <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_TPL</span><span class="special">(</span><span class="identifier">expr</span><span class="special">)</span></code>,
+        which takes care of <code class="computeroutput"><span class="keyword">typename</span></code>
+        inside the <code class="computeroutput"><span class="identifier">typeof</span></code> expression.
+      </p>
+<h5>
+<a name="typo.sample_code"></a>
+        Sample Code
+      </h5>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">B</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">result_of_conditional</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">BOOST_TYPEOF_TPL</span><span class="special">(</span><span class="keyword">true</span><span class="special">?</span><span class="identifier">A</span><span class="special">():</span><span class="identifier">B</span><span class="special">())</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">B</span><span class="special">&gt;</span>
+<span class="identifier">result_of_conditional</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">min</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">A</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span><span class="keyword">const</span> <span class="identifier">B</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">a</span> <span class="special">&lt;</span> <span class="identifier">b</span> <span class="special">?</span> <span class="identifier">a</span> <span class="special">:</span> <span class="identifier">b</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="typeof.typn"></a>TYPEOF_NESTED_TYPEDEF, TYPEOF_NESTED_TYPEDEF_TPL</h3></div></div></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">TYPEOF_NESTED_TYPEDEF</span></code>
+        macro works in much the same way as the 'TYPEOF' macro does, but workarounds
+        several compiler deficiencies.
+      </p>
+<h5>
+<a name="typn.usage"></a>
+        Usage
+      </h5>
+<pre class="programlisting"><span class="identifier">BOOST_TYPEOF_NESTED_TYPEDEF</span><span class="special">(</span><span class="identifier">name</span><span class="special">,</span><span class="identifier">expr</span><span class="special">)</span>
+<span class="identifier">BOOST_TYPEOF_NESTED_TYPEDEF_TPL</span><span class="special">(</span><span class="identifier">name</span><span class="special">,</span><span class="identifier">expr</span><span class="special">)</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b>Arguments</b></p>
+<dl class="variablelist">
+<dt><span class="term">name</span></dt>
+<dd>
+<p>
+              a valid identifier to nest the typeof operation inside
+            </p>
+<p>
+              expr
+            </p>
+<p>
+              a valid c++ expression that can be bound to const T&amp;
+            </p>
+</dd>
+</dl>
+</div>
+<h5>
+<a name="typn.remarks"></a>
+        Remarks
+      </h5>
+<p>
+        'typeof_nested_typedef' nests the 'typeof' operation inside a struct. By
+        doing this, the 'typeof' operation can be split into two steps, deconfusing
+        several compilers (notably VC7.1 and VC8.0) on the way. This also removes
+        the limitation imposed by <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_LIMIT_SIZE</span></code>
+        and allows you to use 'typeof' on much larger expressions.
+      </p>
+<p>
+        If you want to use <code class="computeroutput"><span class="identifier">typeof_nested_typedef</span></code>
+        in a template-context, use <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_NESTED_TYPEDEF_TPL</span><span class="special">(</span><span class="identifier">name</span><span class="special">,</span><span class="identifier">expr</span><span class="special">)</span></code>,
+        which takes care of <code class="computeroutput"><span class="keyword">typename</span></code>
+        inside the <code class="computeroutput"><span class="identifier">typeof</span></code> expression.
+      </p>
+<p>
+        'typeof_nested_typedef' can not be used at function/block scope.
+      </p>
+<h5>
+<a name="typn.sample_code"></a>
+        Sample Code
+      </h5>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">B</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">result_of_conditional</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_TYPEOF_NESTED_TYPEDEF_TPL</span><span class="special">(</span><span class="identifier">nested</span><span class="special">,</span><span class="keyword">true</span><span class="special">?</span><span class="identifier">A</span><span class="special">():</span><span class="identifier">B</span><span class="special">())</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">nested</span><span class="special">::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">B</span><span class="special">&gt;</span>
+<span class="identifier">result_of_conditional</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">min</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">A</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span><span class="keyword">const</span> <span class="identifier">B</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">a</span> <span class="special">&lt;</span> <span class="identifier">b</span> <span class="special">?</span> <span class="identifier">a</span> <span class="special">:</span> <span class="identifier">b</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004, 2005 Arkadiy Vertleyb, Peder Holt<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tuto.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../typeof.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="other.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

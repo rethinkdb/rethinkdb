@@ -1,0 +1,55 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template make_scaled_unit&lt;unit&lt; Dimension, heterogeneous_system&lt; heterogeneous_system_impl&lt; UnitList, Dimension, OldScale &gt; &gt; &gt;, Scale&gt;</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_units/Reference.html#header.boost.units.make_scaled_unit_hpp" title="Header &lt;boost/units/make_scaled_unit.hpp&gt;">
+<link rel="prev" href="make_scaled_unit.html" title="Struct template make_scaled_unit">
+<link rel="next" href="make_scaled_u_idp157015992.html" title="Struct template make_scaled_unit&lt;unit&lt; Dimension, heterogeneous_system&lt; heterogeneous_system_impl&lt; UnitList, Dimension, OldScale &gt; &gt; &gt;, scale&lt; Base, static_rational&lt; 0 &gt; &gt;&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_scaled_unit.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_units/Reference.html#header.boost.units.make_scaled_unit_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_scaled_u_idp157015992.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.units.make_scaled_u_idp157012424"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template make_scaled_unit&lt;unit&lt; Dimension, heterogeneous_system&lt; heterogeneous_system_impl&lt; UnitList, Dimension, OldScale &gt; &gt; &gt;, Scale&gt;</span></h2>
+<p>boost::units::make_scaled_unit&lt;unit&lt; Dimension, heterogeneous_system&lt; heterogeneous_system_impl&lt; UnitList, Dimension, OldScale &gt; &gt; &gt;, Scale&gt;</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_units/Reference.html#header.boost.units.make_scaled_unit_hpp" title="Header &lt;boost/units/make_scaled_unit.hpp&gt;">boost/units/make_scaled_unit.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Dimension<span class="special">,</span> <span class="keyword">typename</span> UnitList<span class="special">,</span> <span class="keyword">typename</span> OldScale<span class="special">,</span> 
+         <span class="keyword">typename</span> Scale<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="make_scaled_u_idp157012424.html" title="Struct template make_scaled_unit&lt;unit&lt; Dimension, heterogeneous_system&lt; heterogeneous_system_impl&lt; UnitList, Dimension, OldScale &gt; &gt; &gt;, Scale&gt;">make_scaled_unit</a><span class="special">&lt;</span><span class="identifier">unit</span><span class="special">&lt;</span> <span class="identifier">Dimension</span><span class="special">,</span> <span class="identifier">heterogeneous_system</span><span class="special">&lt;</span> <span class="identifier">heterogeneous_system_impl</span><span class="special">&lt;</span> <span class="identifier">UnitList</span><span class="special">,</span> <span class="identifier">Dimension</span><span class="special">,</span> <span class="identifier">OldScale</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">Scale</span><span class="special">&gt;</span> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <a class="link" href="unit.html" title="Class template unit">unit</a><span class="special">&lt;</span> <span class="identifier">Dimension</span><span class="special">,</span> <a class="link" href="heterogeneous_system.html" title="Struct template heterogeneous_system">heterogeneous_system</a><span class="special">&lt;</span> heterogeneous_system_impl<span class="special">&lt;</span> <span class="identifier">UnitList</span><span class="special">,</span> <span class="identifier">Dimension</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">times</span><span class="special">&lt;</span> <span class="identifier">OldScale</span><span class="special">,</span> <span class="identifier">list</span><span class="special">&lt;</span> <span class="identifier">scale_list_dim</span><span class="special">&lt;</span> <span class="identifier">Scale</span> <span class="special">&gt;</span><span class="special">,</span> <a class="link" href="dimensionless_type.html" title="Struct dimensionless_type">dimensionless_type</a> <span class="special">&gt;</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <a name="boost.units.make_scaled_u_idp157012424.type"></a><span class="identifier">type</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2008 Matthias Christian Schabel<br>Copyright &#169; 2007-2010 Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_scaled_unit.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_units/Reference.html#header.boost.units.make_scaled_unit_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_scaled_u_idp157015992.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

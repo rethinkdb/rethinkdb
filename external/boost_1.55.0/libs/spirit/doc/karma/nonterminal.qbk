@@ -1,0 +1,267 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:nonterminal Nonterminal Generators]
+
+[heading Module Headers]
+
+    // forwards to <boost/spirit/home/karma/nonterminal.hpp>
+    #include <boost/spirit/include/karma_nonterminal.hpp>
+
+Also, see __include_structure__.
+
+[//////////////////////////////////////////////////////////////////////////////]
+[section:rule Generator Rule]
+
+[heading Description]
+
+The rule is a polymorphic generator that acts as a named place-holder
+capturing the behavior of a PEG expression assigned to it. Naming a
+__peg__ expression allows it to be referenced later and makes it
+possible for the rule to call itself. This is one of the most important
+mechanisms and the reason behind the word "recursive" in recursive
+descent output generation.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/nonterminal/rule.hpp>
+    #include <boost/spirit/include/karma_rule.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::karma::rule`]]
+]
+
+[heading Synopsis]
+
+    template <typename OutputIterator, typename A1, typename A2, typename A3>
+    struct rule;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                   [Default]]
+    [[`OutputIterator`]     [The underlying output iterator 
+                            type that the rule is  
+                            expected to work on.]           [none]]
+    [[`A1`, `A2`, `A3`]     [Either `Signature`, 
+                            `Delimiter` or `Locals` in 
+                            any order. See table below.]    [See table below.]]
+]
+
+Here is more information about the template parameters:
+
+[table
+    [[Parameter]            [Description]                   [Default]]
+    [[`Signature`]          [Specifies the rule's consumed 
+                            (value to output) and inherited 
+                            (arguments) attributes. More on
+                            this here: __karma_nonterminal_concept__.]
+                                                           [__unused_type__. 
+                                                            When `Signature` defaults 
+                                                            to __unused_type__, the effect 
+                                                            is the same as specifying a signature
+                                                            of `void()` which is also equivalent 
+                                                            to `unused_type()`]]
+    [[`Delimiter`]          [Specifies the rule's delimiter 
+                            generator. Specify this if you
+                            want the rule to delimit the 
+                            generated output.]              [__unused_type__]]
+    [[`Locals`]             [Specifies the rule's local
+                            variables. See __karma_nonterminal_concept__.]
+                                                            [__unused_type__]]
+]
+
+[heading Model of]
+
+[:__karma_nonterminal_concept__]
+
+[variablelist Notation
+    [[`r, r2`]                  [Rules]]
+    [[`g`]                      [A generator expression]]
+    [[`OutputIterator`]         [The underlying output iterator type that the rule is  
+                                 expected to work on.]]
+    [[`A1`, `A2`, `A3`]         [Either `Signature`, `Delimiter` or `Locals` in 
+                                 any order.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __karma_nonterminal_concept__.
+
+[table
+    [[Expression]                               [Description]]
+    [[
+``rule<OutputIterator, A1, A2, A3> 
+    r(name);``] 
+                                                [Rule declaration. `OutputIterator` is required.
+                                                `A1, A2, A3` are optional and can be specified in any order.
+                                                `name` is an optional string that gives the rule
+                                                its name, useful for debugging.]]
+    [[
+``rule<OutputIterator, A1, A2, A3> 
+    r(r2);``]                                   [Copy construct rule `r` from rule `r2`.]]
+    [[`r = r2;`]                                [Assign rule `r2` to `r`.]]
+    [[`r.alias()`]                              [Return an alias of `r`. The alias is a generator that
+                                                 holds a reference to `r`. Reference semantics.]]
+    [[`r.copy()`]                               [Get a copy of `r`.]]
+    [[`r = g;`]                                 [Rule definition]]
+    [[`r %= g;`]                                [Auto-rule definition. The attribute of `g` should be
+                                                 compatible with the consumed attribute of `r`.]]
+    [[`r.name()`]                               [Retrieve the current name of the rule object.]]
+    [[`r.name(name)`]                           [Set the current name of the rule object to be `name`.]]
+]
+
+[heading Attributes]
+
+[:The rule's generator attribute is `RT`: The consumed attribute of the
+rule. See __karma_nonterminal_attribute__]
+
+[heading Complexity]
+
+[:The complexity is defined by the complexity of the RHS generator, `g`]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+[karma_reference_rule]
+
+[endsect] [/ Rule]
+
+[////////////////////////////////////////////////////////////////////////////////]
+[section:grammar Generator Grammar]
+
+[heading Description]
+
+The grammar encapsulates a set of __karma_rules__ (as well as primitive
+generators (__primitive_generator_concept__) and sub-grammars). The grammar is
+the main mechanism for modularization and composition. Grammars can be
+composed to form more complex grammars.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/nonterminal/grammar.hpp>
+    #include <boost/spirit/include/karma_grammar.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::karma::grammar`]]
+]
+
+[heading Synopsis]
+
+    template <typename OutputIterator, typename A1, typename A2, typename A3>
+    struct grammar;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                   [Default]]
+    [[`OutputIterator`]     [The underlying output iterator 
+                            type that the rule is  
+                            expected to work on.]           [none]]
+    [[`A1`, `A2`, `A3`]     [Either `Signature`, 
+                            `Delimiter` or `Locals` in 
+                            any order. See table below.]    [See table below.]]
+]
+
+Here is more information about the template parameters:
+
+[table
+    [[Parameter]            [Description]                   [Default]]
+    [[`Signature`]          [Specifies the grammar's synthesized 
+                            (return value) and inherited 
+                            attributes (arguments). More on
+                            this here: __karma_nonterminal_concept__.]
+                                                           [__unused_type__. 
+                                                            When `Signature` defaults 
+                                                            to __unused_type__, the effect 
+                                                            is the same as specifying a signature
+                                                            of `void()` which is also equivalent 
+                                                            to `unused_type()`]]
+    [[`Delimiter`]          [Specifies the grammar's delimiter 
+                            generator. Specify this if you
+                            want the grammar to delimit the 
+                            generated output.]              [__unused_type__]]
+    [[`Locals`]             [Specifies the grammar's local
+                            variables. See __karma_nonterminal_concept__.]
+                                                            [__unused_type__]]
+]
+
+[heading Model of]
+
+[:__karma_nonterminal_concept__]
+
+[variablelist Notation
+    [[`g`]                      [A grammar]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __karma_nonterminal_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[
+``
+    template <typename OutputIterator>
+    struct my_grammar : grammar<OutputIterator, A1, A2, A3>
+    {
+        my_grammar() : my_grammar::base_type(start, name)
+        {
+            // Rule definitions
+            start = /* ... */;
+        }
+
+        rule<OutputIterator, A1, A2, A3> start;
+        // more rule declarations...
+    };
+``
+    ]                   [Grammar definition. `name` is an optional string that gives the
+                        grammar its name, useful for debugging.]]
+]
+
+[note The template parameters of a grammar and its start rule (the rule passed 
+      to the grammar's base class constructor) must match, otherwise you will 
+      see compilation errors.]
+
+[heading Attributes]
+
+[:The generator attribute of the grammar is `RT`, its consumed attribute. See
+__karma_nonterminal_attribute__]
+
+[heading Complexity]
+
+[:The complexity is defined by the complexity of the its definition.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+[karma_reference_grammar_using]
+
+[karma_reference_grammar_definition]
+
+[karma_reference_grammar]
+
+[endsect] [/ Grammar]
+
+[endsect]

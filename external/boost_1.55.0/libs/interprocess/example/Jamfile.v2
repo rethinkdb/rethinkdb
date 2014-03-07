@@ -1,0 +1,53 @@
+# Boost Interprocess Library Example Jamfile
+
+#  (C) Copyright Ion Gaztanaga 2006-2012.
+# Use, modification and distribution are subject to the
+# Boost Software License, Version 1.0. (See accompanying file
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Adapted from John Maddock's TR1 Jamfile.v2
+# Copyright John Maddock 2005.
+# Use, modification and distribution are subject to the
+# Boost Software License, Version 1.0. (See accompanying file
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# this rule enumerates through all the sources and invokes
+# the run rule for each source, the result is a list of all
+# the run rules, which we can pass on to the test_suite rule:
+
+rule test_all
+{
+   local all_rules = ;
+
+   for local fileb in [ glob comp*.cpp ]
+   {
+      all_rules += [ link $(fileb)
+      :  # additional args
+        <toolset>acc:<linkflags>-lrt
+        <toolset>acc-pa_risc:<linkflags>-lrt
+        <toolset>gcc-mingw:<linkflags>"-lole32 -loleaut32 -lpsapi -ladvapi32"
+        <host-os>hpux,<toolset>gcc:<linkflags>"-Wl,+as,mpas"
+        <host-os>windows,<toolset>clang:<linkflags>"-lole32 -loleaut32 -lpsapi -ladvapi32"
+      :  # test-files
+      :  # requirements
+      ] ;
+   }
+
+   for local fileb in [ glob doc_*.cpp ]
+   {
+      all_rules += [ run $(fileb)
+      :  # additional args
+      :  # test-files
+      :  # requirements
+        <toolset>acc:<linkflags>-lrt
+        <toolset>acc-pa_risc:<linkflags>-lrt
+        <toolset>gcc-mingw:<linkflags>"-lole32 -loleaut32 -lpsapi -ladvapi32"
+        <host-os>hpux,<toolset>gcc:<linkflags>"-Wl,+as,mpas"
+        <host-os>windows,<toolset>clang:<linkflags>"-lole32 -loleaut32 -lpsapi -ladvapi32"
+      ] ;
+   }
+
+   return $(all_rules) ;
+}
+
+test-suite interprocess_example : [ test_all r ] : <threading>multi ;

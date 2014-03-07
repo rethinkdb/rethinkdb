@@ -1,0 +1,123 @@
+<HTML>
+<!--
+  Copyright (c) Matyas Egyhazy 2008
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: tsp_tour_len_visitor</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b"
+        ALINK="#ff0000">
+<IMG SRC="../../../boost.png"
+     ALT="C++ Boost" width="277" height="86">
+
+<BR Clear>
+
+<H1>
+<pre>
+tsp_tour_len_visitor&lt;Graph, WeightMap, OutputIterator, Length&gt;
+</pre>
+</H1>
+
+This type is a TSP tour visitor.  It supplies the OutputIterator with the vertices of the tour and
+records the total length of the tour.
+
+<h3>Example</h3>
+
+<pre>
+double d(0.0);
+std::vector&lt;Vertex&gt; c;
+boost::metric_tsp_approx
+  (g, get(edge_weight, g),
+  make_tsp_tour_len_visitor(g, std::back_inserter(c), d, get(edge_weight, g)));
+</pre>
+
+
+<h3>Model of</h3>
+
+<a href="./TSPTourVisitor.html">TSP Tour Visitor</a>
+
+<H3>Template Parameters</H3>
+
+<P>
+<TABLE border>
+<TR>
+<th>Parameter</th><th>Description</th><th>Default</th>
+</tr>
+
+<TR><TD><TT>Graph</TT></TD>
+<TD>
+The graph type
+</TD>
+<TD>None</TD>
+</TR>
+
+<TR><TD><TT>WeightMap</TT></TD>
+<TD>
+The weight of each edge in the graph.
+The type <tt>WeightMap</tt> must be a model of
+<a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>.
+The edge descriptor type of the graph needs to be usable as the key type for the weight map.
+</TD>
+<TD>None</TD>
+</TR>
+
+<TR><TD><TT>OutputIterator</TT></TD>
+<TD>
+An OutputIterator
+</TD>
+<TD>None</TD>
+</TR>
+
+<TR><TD><TT>Length</TT></TD>
+<TD>
+A suitable container for the length of the tour.  It must implement additive operators.
+</TD>
+<TD>None</TD>
+</TR>
+
+</table>
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/metric_tsp_approx.hpp">
+<TT>boost/graph/metric_tsp_approx.hpp</TT></a>
+
+<h3>Member Functions</h3>
+
+This class implements all of the member functions required by <a
+href="./TSPTourVisitor.html">TSPTourVisitor</a>.
+
+<h3>Non-Member Functions</h3>
+
+<table border>
+<tr>
+<th>Function</th><th>Description</th>
+</tr>
+
+<tr><td><tt>
+template &lt;typename Graph, typename WeightMap, typename OutputIterator, typename Length&gt;<br>
+tsp_tour_len_visitor&lt;OutputIterator&gt;<br>
+make_tsp_tour_len_visitor(Graph const& g, OutIter iter, Length& l, WeightMap map)
+</tt></td><td>
+Returns a tour_len_visitor that records the TSP tour in the OutputIterator parameter and the length of the tour in the Length parameter.
+</td></tr>
+
+</table>
+
+<h3>See Also</h3>
+
+None
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2008</TD><TD>
+Matyas Egyhazy
+</TD></TR></TABLE>
+
+</BODY>
+</HTML>

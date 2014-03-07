@@ -1,0 +1,69 @@
+[/ File is_partitioned.qbk]
+
+[section:is_partitioned is_partitioned ]
+
+[/license
+Copyright (c) 2010-2012 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+The header file 'is_partitioned.hpp' contains two variants of a single algorithm, `is_partitioned`. The algorithm tests to see if a sequence is partitioned according to a predicate; in other words, all the items in the sequence that satisfy the predicate are at the beginning of the sequence.
+
+The routine `is_partitioned` takes a sequence and a predicate. It returns true if the sequence is partitioned according to the predicate.
+
+`is_partitioned` come in two forms; the first one takes two iterators to define the range. The second form takes a single range parameter, and uses Boost.Range to traverse it.
+
+
+[heading interface]
+
+The function `is_partitioned` returns true if the items in the sequence are separated according to their ability to satisfy the predicate.  There are two versions; one takes two iterators, and the other takes a range.
+
+``
+template<typename InputIterator, typename Predicate>
+	bool is_partitioned ( InputIterator first, InputIterator last, Predicate p );
+template<typename Range, typename Predicate> 
+	bool is_partitioned ( const Range &r, Predicate p );
+``
+
+[heading Examples]
+
+Given the container `c` containing `{ 0, 1, 2, 3, 14, 15 }`, then
+``
+bool isOdd ( int i ) { return i % 2 == 1; }
+bool lessThan10 ( int i ) { return i < 10; }
+
+is_partitioned ( c, isOdd ) --> false
+is_partitioned ( c, lessThan10 ) --> true
+is_partitioned ( c.begin (), c.end (), lessThan10 ) --> true
+is_partitioned ( c.begin (), c.begin () + 3, lessThan10 ) --> true
+is_partitioned ( c.end (), c.end (), isOdd ) --> true  // empty range
+``
+
+[heading Iterator Requirements]
+
+`is_partitioned` works on all iterators except output iterators.
+
+[heading Complexity]
+
+Both of the variants of `is_partitioned` run in ['O(N)] (linear) time; that is, they compare against each element in the list once. If the sequence is found to be not partitioned at any point, the routine will terminate immediately, without examining the rest of the elements.
+
+[heading Exception Safety]
+
+Both of the variants of `is_partitioned` take their parameters by value or const reference, and do not depend upon any global state. Therefore, all the routines in this file provide the strong exception guarantee.
+
+[heading Notes]
+
+* The iterator-based version of the routine `is_partitioned` is part of the C++11 standard. When compiled using a C++11 implementation, the implementation from the standard library will be used.
+
+* `is_partitioned` returns true for empty ranges, no matter what predicate is passed to test against. 
+
+[endsect]
+
+[/ File is_partitioned.qbk
+Copyright 2011 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

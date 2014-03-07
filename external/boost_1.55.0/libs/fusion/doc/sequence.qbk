@@ -1,0 +1,1891 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Sequence]
+
+Like __mpl__, the Sequence is a fundamental concept in Fusion. A Sequence
+may or may not actually store or contain data. __containers__ are sequences
+that hold data. __views__, on the other hand, are sequences that do not
+store any data. Instead, they are proxies that impart an alternative
+presentation over another sequence. All models of Sequence have an
+associated __iterator__ type that can be used to iterate through the
+Sequence's elements.
+
+[heading Header]
+
+    #include <boost/fusion/sequence.hpp>
+    #include <boost/fusion/include/sequence.hpp>
+
+[section Concepts]
+
+Fusion Sequences are organized into a hierarchy of concepts.
+
+[heading Traversal]
+
+Fusion's sequence traversal related concepts parallel Fusion's
+__iterator_concepts__. __forward_sequence__ is the most basic concept.
+__bidirectional_sequence__ is a refinement of __forward_sequence__.
+__random_access_sequence__ is a refinement of __bidirectional_sequence__.
+These concepts pertain to sequence traversal.
+
+[heading Associativity]
+
+The __associative_sequence__ concept is orthogonal to traversal. An Associative
+Sequence allows efficient retrieval of elements based on keys.
+
+[section Forward Sequence]
+
+[heading Description]
+
+A Forward Sequence is a Sequence whose elements are arranged in a definite
+order. The ordering is guaranteed not to change from iteration to
+iteration. The requirement of a definite ordering allows the definition of
+element-by-element equality (if the container's element type is Equality
+Comparable) and of lexicographical ordering (if the container's element
+type is LessThan Comparable).
+
+[variablelist Notation
+    [[`s`]       [A Forward Sequence]]
+    [[`S`]       [A Forward Sequence type]]
+    [[`o`]       [An arbitrary object]]
+    [[`e`]       [A Sequence element]]
+]
+
+[heading Valid Expressions]
+
+For any Forward Sequence the following expressions must be valid:
+
+[table
+    [[Expression]       [Return type]               [Type Requirements]     [Runtime Complexity]]
+    [[`__begin__(s)`]       [__forward_iterator__]      []                      [Constant]]
+    [[`__end__(s)`]         [__forward_iterator__]      []                      [Constant]]
+    [[`__size__(s)`]        [__mpl_integral_constant__.
+                        Convertible to int.]        []                      [Constant]]
+    [[`__empty__(s)`]       [__mpl_boolean_constant__.
+                        Convertible to bool.]       []                      [Constant]]
+    [[`__front__(s)`]       [Any type]                  []                      [Constant]]
+    [[`__front__(s) = o`]   [Any type]                  [`s` is mutable and
+                                                    `e = o`, where `e`
+                                                    is the first element
+                                                    in the sequence, is
+                                                    a valid expression.]    [Constant]]
+]
+
+[heading Result Type Expressions]
+
+[table
+    [[Expression]                   [Compile Time Complexity]]
+    [[`__result_of_begin__<S>::type`]  [Amortized constant time]]
+    [[`__result_of_end__<S>::type`]    [Amortized constant time]]
+    [[`__result_of_size__<S>::type`]   [Unspecified]]
+    [[`__result_of_empty__<S>::type`]  [Constant time]]
+    [[`__result_of_front__<S>::type`]  [Amortized constant time]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[`__begin__(s)`]       [An iterator to the first element of the sequence; see __begin__.]]
+    [[`__end__(s)`]         [A past-the-end iterator to the sequence; see __end__.]]
+    [[`__size__(s)`]        [The size of the sequence; see __size__.]]
+    [[`__empty__(s)`]       [A boolean Integral Constant `c` such that
+                        `c::value == true` if and only if the sequence
+                        is empty; see __empty__.]]
+    [[`__front__(s)`]       [The first element in the sequence; see __front__.]]
+]
+
+[heading Invariants]
+
+For any Forward Sequence s the following invariants always hold:
+
+* `[__begin__(s), __end__(s))` is always a valid range.
+* An __algorithm__ that iterates through the range `[__begin__(s), __end__(s))`
+  will pass through every element of `s` exactly once.
+* `__begin__(s)` is identical to `__end__(s))` if and only if `s` is empty.
+* Two different iterations through `s` will access its elements in
+  the same order.
+
+[heading Models]
+
+* __std_pair__
+* __boost_array__
+* __vector__
+* __cons__
+* __list__
+* __set__
+* __map__
+* __single_view__
+* __filter_view__
+* __iterator_range__
+* __joint_view__
+* __transform_view__
+* __reverse_view__
+* __zip_view__
+
+[endsect]
+
+[section Bidirectional Sequence]
+
+[heading Description]
+
+A Bidirectional Sequence is a __forward_sequence__ whose iterators model
+__bidirectional_iterator__.
+
+[heading Refinement of]
+
+__forward_sequence__
+
+[variablelist Notation
+    [[`s`]       [A Forward Sequence]]
+    [[`S`]       [A Forward Sequence type]]
+    [[`o`]       [An arbitrary object]]
+    [[`e`]       [A Sequence element]]
+]
+
+[heading Valid Expressions]
+
+In addition to the requirements defined in __forward_sequence__, for any
+Bidirectional Sequence the following must be met:
+
+[table
+    [[Expression]       [Return type]                   [Type Requirements]     [Runtime Complexity]]
+    [[`__begin__(s)`]       [__bidirectional_iterator__]    []                      [Constant]]
+    [[`__end__(s)`]         [__bidirectional_iterator__]    []                      [Constant]]
+    [[`__back__(s)`]        [Any type]                      []                      [Constant]]
+    [[`__back__(s) = o`]    [Any type]                      [`s` is mutable and
+                                                        `e = o`, where `e`
+                                                        is the first element
+                                                        in the sequence, is
+                                                        a valid expression.]    [Constant]]
+]
+
+[heading Result Type Expressions]
+
+[table
+    [[Expression]                   [Compile Time Complexity]]
+    [[`__result_of_begin__<S>::type`]  [Amortized constant time]]
+    [[`__result_of_end__<S>::type`]    [Amortized constant time]]
+    [[`__result_of_back__<S>::type`]   [Amortized constant time]]
+]
+
+[heading Expression Semantics]
+
+The semantics of an expression are defined only where they differ from, or
+are not defined in __forward_sequence__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`__back__(s)`]        [The last element in the sequence; see __back__.]]
+]
+
+[heading Models]
+
+* __std_pair__
+* __boost_array__
+* __vector__
+* __reverse_view__
+* __single_view__
+* __iterator_range__ (where adapted sequence is a Bidirectional Sequence)
+* __transform_view__ (where adapted sequence is a Bidirectional Sequence)
+* __zip_view__       (where adapted sequences are models of Bidirectional Sequence)
+
+[endsect]
+
+[section Random Access Sequence]
+
+[heading Description]
+
+A Random Access Sequence is a __bidirectional_sequence__ whose iterators
+model __random_access_iterator__. It guarantees constant time access to
+arbitrary sequence elements.
+
+[heading Refinement of]
+
+__bidirectional_sequence__
+
+[variablelist Notation
+    [[`s`]       [A Random Access Sequence]]
+    [[`S`]       [A Random Access Sequence type]]
+    [[`N`]       [An __mpl_integral_constant__]]
+    [[`o`]       [An arbitrary object]]
+    [[`e`]       [A Sequence element]]
+]
+
+[heading Valid Expressions]
+
+In addition to the requirements defined in __bidirectional_sequence__, for
+any Random Access Sequence the following must be met:
+
+[table
+    [[Expression]       [Return type]                   [Type Requirements]     [Runtime Complexity]]
+    [[`__begin__(s)`]       [__random_access_iterator__]    []                      [Constant]]
+    [[`__end__(s)`]         [__random_access_iterator__]    []                      [Constant]]
+    [[`__at__<N>(s)`]       [Any type]                      []                      [Constant]]
+    [[`__at__<N>(s) = o`]   [Any type]                      [`s` is mutable and
+                                                        `e = o`, where `e`
+                                                        is the first element
+                                                        in the sequence, is
+                                                        a valid expression.]    [Constant]]
+]
+
+[heading Result Type Expressions]
+
+[table
+    [[Expression]                           [Compile Time Complexity]]
+    [[`__result_of_begin__<S>::type`]          [Amortized constant time]]
+    [[`__result_of_end__<S>::type`]            [Amortized constant time]]
+    [[`__result_of_at__<S, N>::type`]          [Amortized constant time]]
+    [[`__result_of_value_at__<S, N>::type`]    [Amortized constant time]]
+]
+
+[blurb __note__ `__result_of_at__<S, N>` returns the actual type returned by
+`__at__<N>(s)`. In most cases, this is a reference. Hence, there is no way to
+know the exact element type using `__result_of_at__<S, N>`.The element at `N`
+may actually be a reference to begin with. For this purpose, you can use
+`__result_of_value_at__<S, N>`.]
+
+[heading Expression Semantics]
+
+The semantics of an expression are defined only where they differ from, or
+are not defined in __bidirectional_sequence__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`__at__<N>(s)`]       [The Nth element from the beginning of the sequence; see __at__.]]
+]
+
+[heading Models]
+
+* __std_pair__
+* __boost_array__
+* __vector__
+* __reverse_view__
+* __single_view__
+* __iterator_range__ (where adapted sequence is a Random Access Sequence)
+* __transform_view__ (where adapted sequence is a Random Access Sequence)
+* __zip_view__       (where adapted sequences are models of Random Access Sequence)
+
+[endsect]
+
+[section Associative Sequence]
+
+[heading Description]
+
+An Associative Sequence allows efficient retrieval of elements based on keys.
+Like associative sequences in __mpl__, and unlike associative containers in
+__stl__, Fusion associative sequences have no implied ordering relation.
+Instead, type identity is used to impose an equivalence relation on keys.
+
+[variablelist Notation
+    [[`s`]       [An Associative Sequence]]
+    [[`S`]       [An Associative Sequence type]]
+    [[`K`]       [An arbitrary /key/ type]]
+    [[`o`]       [An arbitrary object]]
+    [[`e`]       [A Sequence element]]
+]
+
+[heading Valid Expressions]
+
+For any Associative Sequence the following expressions must be valid:
+
+[table
+    [[Expression]           [Return type]               [Type Requirements]     [Runtime Complexity]]
+    [[`__has_key__<K>(s)`]      [__mpl_boolean_constant__.
+                            Convertible to bool.]       []                      [Constant]]
+    [[`__at_key__<K>(s)`]       [Any type]                  []                      [Constant]]
+    [[`__at_key__<K>(s) = o`]   [Any type]                  [`s` is mutable and
+                                                        `e = o`, where `e`
+                                                        is the first element
+                                                        in the sequence, is
+                                                        a valid expression.]    [Constant]]
+]
+
+[heading Result Type Expressions]
+
+[table
+    [[Expression]                               [Compile Time Complexity]]
+    [[`__result_of_has_key__<S, K>::type`]         [Amortized constant time]]
+    [[`__result_of_at_key__<S, K>::type`]          [Amortized constant time]]
+    [[`__result_of_value_at_key__<S, K>::type`]    [Amortized constant time]]
+]
+
+[blurb __note__ `__result_of_at_key__<S, K>` returns the actual type returned
+by `__at_key__<K>(s)`. In most cases, this is a reference. Hence, there is no
+way to know the exact element type using `__result_of_at_key__<S, K>`.The
+element at `K` may actually be a reference to begin with. For this purpose,
+you can use `__result_of_value_at_key__<S, N>`.]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[`__has_key__<K>(s)`]  [A boolean Integral Constant `c` such that
+                        `c::value == true` if and only if there is
+                        one or more elements with the key `k` in `s`;
+                        see __has_key__.]]
+    [[`__at_key__<K>(s)`]   [The element associated with the key
+                        `K` in the sequence `s`; see __at__.]]
+]
+
+[heading Models]
+
+* __set__
+* __map__
+* __filter_view__    (where adapted sequence is an __associative_sequence__ and a __forward_sequence__)
+* __iterator_range__ (where adapted iterators are __associative_iterator__\ s)
+* __joint_view__     (where adapted sequences are __associative_sequence__\ s and __forward_sequence__\ s)
+* __reverse_view__   (where adapted sequence is an __associative_sequence__ and a __bidirectional_sequence__)
+
+[endsect]
+
+[endsect]
+
+[section Intrinsic]
+
+Intrinsic form the essential interface of every Fusion __sequence__. __stl__
+counterparts of these functions are usually implemented as member
+functions. Intrinsic functions, unlike __algorithms__, are not generic
+across the full __sequence__ repertoire. They need to be implemented for
+each Fusion __sequence__[footnote In practice, many of intrinsic functions
+have default implementations that will work in majority of cases].
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic.hpp>
+    #include <boost/fusion/include/intrinsic.hpp>
+
+[section Functions]
+
+[section begin]
+
+[heading Description]
+
+Returns an iterator pointing to the first element in the sequence.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    typename __result_of_begin__<Sequence>::type
+    begin(Sequence& seq);
+
+    template <typename Sequence>
+    typename __result_of_begin__<Sequence const>::type
+    begin(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                   [Description]]
+    [[`seq`]        [Model of __forward_sequence__] [The sequence we wish to get an iterator from.]]
+]
+
+[heading Expression Semantics]
+
+    begin(seq);
+
+[*Return type]:
+
+* A model of __forward_iterator__ if `seq` is a __forward_sequence__
+else, __bidirectional_iterator__ if `seq` is a __bidirectional_sequence__
+else, __random_access_iterator__ if `seq` is a __random_access_sequence__.
+* A model of __associative_iterator__ if `seq` is an __associative_sequence__.
+
+[*Semantics]: Returns an iterator pointing to the first element in the sequence.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/begin.hpp>
+    #include <boost/fusion/include/begin.hpp>
+
+[heading Example]
+
+    __vector__<int, int, int> v(1, 2, 3);
+    assert(__deref__(begin(v)) == 1);
+
+[endsect]
+
+[section end]
+
+[heading Description]
+
+Returns an iterator pointing to one element past the end of the sequence.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    typename __result_of_end__<Sequence>::type
+    end(Sequence& seq);
+
+    template <typename Sequence>
+    typename __result_of_end__<Sequence const>::type
+    end(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                   [Description]]
+    [[`seq`]        [Model of __forward_sequence__] [The sequence we wish to get an iterator from.]]
+]
+
+[heading Expression Semantics]
+
+    end(seq);
+
+[*Return type]:
+
+* A model of __forward_iterator__ if `seq` is a __forward_sequence__
+else, __bidirectional_iterator__ if `seq` is a __bidirectional_sequence__
+else, __random_access_iterator__ if `seq` is a __random_access_sequence__.
+* A model of __associative_iterator__ if `seq` is an __associative_sequence__.
+
+[*Semantics]: Returns an iterator pointing to one element past the end of
+the sequence.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/end.hpp>
+    #include <boost/fusion/include/end.hpp>
+
+[heading Example]
+
+    __vector__<int, int, int> v(1, 2, 3);
+    assert(__deref__(__prior__(end(v))) == 3);
+
+[endsect]
+
+[section empty]
+
+[heading Description]
+
+Returns a type convertible to `bool` that evaluates to `true` if the
+sequence is empty, else, evaluates to `false`.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    typename __result_of_empty__<Sequence>::type
+    empty(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                   [Description]]
+    [[`seq`]        [Model of __forward_sequence__] [The sequence we wish to investigate.]]
+]
+
+[heading Expression Semantics]
+
+    empty(seq);
+
+[*Return type]: Convertible to `bool`.
+
+[*Semantics]: Evaluates to `true` if the sequence is empty, else, evaluates
+to `false`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/empty.hpp>
+    #include <boost/fusion/include/empty.hpp>
+
+[heading Example]
+
+    __vector__<int, int, int> v(1, 2, 3);
+    assert(empty(v) == false);
+
+[endsect]
+
+[section front]
+
+[heading Description]
+
+Returns the first element in the sequence.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    typename __result_of_front__<Sequence>::type
+    front(Sequence& seq);
+
+    template <typename Sequence>
+    typename __result_of_front__<Sequence const>::type
+    front(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                   [Description]]
+    [[`seq`]        [Model of __forward_sequence__] [The sequence we wish to investigate.]]
+]
+
+[heading Expression Semantics]
+
+    front(seq);
+
+[*Return type]: Returns a reference to the first element in the sequence
+`seq` if `seq` is mutable and `e = o`, where `e` is the first element in
+the sequence, is a valid expression. Else, returns a type convertable to
+the first element in the sequence.
+
+[*Precondition]: `__empty__(seq) == false`
+
+[*Semantics]: Returns the first element in the sequence.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/front.hpp>
+    #include <boost/fusion/include/front.hpp>
+
+[heading Example]
+
+    __vector__<int, int, int> v(1, 2, 3);
+    assert(front(v) == 1);
+
+[endsect]
+
+[section back]
+
+[heading Description]
+
+Returns the last element in the sequence.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    typename __result_of_back__<Sequence>::type
+    back(Sequence& seq);
+
+    template <typename Sequence>
+    typename __result_of_back__<Sequence const>::type
+    back(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                           [Description]]
+    [[`seq`]        [Model of __bidirectional_sequence__]   [The sequence we wish to investigate.]]
+]
+
+[heading Expression Semantics]
+
+    back(seq);
+
+[*Return type]: Returns a reference to the last element in the sequence
+`seq` if `seq` is mutable and `e = o`, where `e` is the last element in the
+sequence, is a valid expression. Else, returns a type convertable to the
+last element in the sequence.
+
+[*Precondition]: `__empty__(seq) == false`
+
+[*Semantics]: Returns the last element in the sequence.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/back.hpp>
+    #include <boost/fusion/include/back.hpp>
+
+[heading Example]
+
+    __vector__<int, int, int> v(1, 2, 3);
+    assert(back(v) == 3);
+
+[endsect]
+
+[section size]
+
+[heading Description]
+
+Returns a type convertible to `int` that evaluates the number of elements
+in the sequence.
+
+[heading Synopsis]
+
+    template <typename Sequence>
+    typename __result_of_size__<Sequence>::type
+    size(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                   [Description]]
+    [[`seq`]        [Model of __forward_sequence__] [The sequence we wish to investigate.]]
+]
+
+[heading Expression Semantics]
+
+    size(seq);
+
+[*Return type]: Convertible to `int`.
+
+[*Semantics]: Returns the number of elements in the sequence.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/size.hpp>
+    #include <boost/fusion/include/size.hpp>
+
+[heading Example]
+
+    __vector__<int, int, int> v(1, 2, 3);
+    assert(size(v) == 3);
+
+[endsect]
+
+[section at]
+
+[heading Description]
+
+Returns the N-th element from the beginning of the sequence.
+
+[heading Synopsis]
+
+    template <typename N, typename Sequence>
+    typename __result_of_at__<Sequence, N>::type
+    at(Sequence& seq);
+
+    template <typename N, typename Sequence>
+    typename __result_of_at__<Sequence const, N>::type
+    at(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                           [Description]]
+    [[`seq`]        [Model of __random_access_sequence__]   [The sequence we wish to investigate.]]
+    [[`N`]          [An __mpl_integral_constant__]          [An index from the beginning of the
+                                                             sequence.]]
+]
+
+[heading Expression Semantics]
+
+    at<N>(seq);
+
+[*Return type]: Returns a reference to the N-th element from the beginning
+of the sequence `seq` if `seq` is mutable and `e = o`, where `e` is the N-th
+element from the beginning of the sequence, is a valid expression. Else,
+returns a type convertable to the N-th element from the beginning of the
+sequence.
+
+[*Precondition]: `0 <= N::value < __size__(s)`
+
+[*Semantics]: Equivalent to
+
+    __deref__(__advance__<N>(__begin__(s)))
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/at.hpp>
+    #include <boost/fusion/include/at.hpp>
+
+[heading Example]
+
+    __vector__<int, int, int> v(1, 2, 3);
+    assert(at<mpl::int_<1> >(v) == 2);
+
+[endsect]
+
+[section at_c]
+
+[heading Description]
+
+Returns the N-th element from the beginning of the sequence.
+
+[heading Synopsis]
+
+    template <int N, typename Sequence>
+    typename __result_of_at_c__<Sequence, N>::type
+    at_c(Sequence& seq);
+
+    template <int N, typename Sequence>
+    typename __result_of_at_c__<Sequence const, N>::type
+    at_c(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                           [Description]]
+    [[`seq`]        [Model of __random_access_sequence__]   [The sequence we wish to investigate.]]
+    [[`N`]          [An integral constant]                  [An index from the beginning of the
+                                                             sequence.]]
+]
+
+[heading Expression Semantics]
+
+    at_c<N>(seq);
+
+[*Return type]: Returns a reference to the N-th element from the beginning
+of the sequence `seq` if `seq` is mutable and `e = o`, where `e` is the N-th
+element from the beginning of the sequence, is a valid expression. Else,
+returns a type convertable to the N-th element from the beginning of the
+sequence.
+
+[*Precondition]: `0 <= N < __size__(s)`
+
+[*Semantics]: Equivalent to
+
+    __deref__(__advance__<N>(__begin__(s)))
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/at_c.hpp>
+    #include <boost/fusion/include/at_c.hpp>
+
+[heading Example]
+
+    __vector__<int, int, int> v(1, 2, 3);
+    assert(at_c<1>(v) == 2);
+
+[endsect]
+
+[section has_key]
+
+[heading Description]
+
+Returns a type convertible to `bool` that evaluates to `true` if the
+sequence contains an element associated with a Key, else, evaluates to
+`false`.
+
+[heading Synopsis]
+
+    template <typename Key, typename Sequence>
+    typename __result_of_has_key__<Sequence, Key>::type
+    has_key(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                       [Description]]
+    [[`seq`]        [Model of __associative_sequence__] [The sequence we wish to investigate.]]
+    [[`Key`]        [Any type]                          [The queried key.]]
+]
+
+[heading Expression Semantics]
+
+    has_key<Key>(seq);
+
+[*Return type]: Convertible to `bool`.
+
+[*Semantics]: Evaluates to `true` if the sequence contains an element
+associated with Key, else, evaluates to `false`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/has_key.hpp>
+    #include <boost/fusion/include/has_key.hpp>
+
+[heading Example]
+
+    __set__<int, char, bool> s(1, 'x', true);
+    assert(has_key<char>(s) == true);
+
+[endsect]
+
+[section at_key]
+
+[heading Description]
+
+Returns the element associated with a Key from the sequence.
+
+[heading Synopsis]
+
+    template <typename Key, typename Sequence>
+    typename __result_of_at_key__<Sequence, Key>::type
+    at_key(Sequence& seq);
+
+    template <typename Key, typename Sequence>
+    typename __result_of_at_key__<Sequence const, Key>::type
+    at_key(Sequence const& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                           [Description]]
+    [[`seq`]        [Model of __associative_sequence__]     [The sequence we wish to investigate.]]
+    [[`Key`]        [Any type]                              [The queried key.]]
+]
+
+[heading Expression Semantics]
+
+    at_key<Key>(seq);
+
+[*Return type]: Returns a reference to the element associated with Key from
+the sequence `seq` if `seq` is mutable and `e = o`, where `e` is the
+element associated with Key, is a valid expression. Else, returns a type
+convertable to the element associated with Key.
+
+[*Precondition]: `has_key<Key>(seq) == true`
+
+[*Semantics]: Returns the element associated with Key.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/at_key.hpp>
+    #include <boost/fusion/include/at_key.hpp>
+
+[heading Example]
+
+    __set__<int, char, bool> s(1, 'x', true);
+    assert(at_key<char>(s) == 'x');
+
+[endsect]
+
+[section swap]
+
+[heading Description]
+
+Performs an element by element swap of the elements in 2 sequences.
+
+[heading Synopsis]
+    template<typename Seq1, typename Seq2>
+    void swap(Seq1& seq1, Seq2& seq2);
+
+[heading Parameters]
+
+[table
+    [[Parameters]    [Requirement]                           [Description]]
+    [[`seq1`, `seq2`]        [Models of __forward_sequence__][The sequences whos elements we wish to swap.]]
+]
+
+[heading Expression Semantics]
+
+    swap(seq1, seq2);
+
+[*Return type]: `void`
+
+[*Precondition]: `__size__(seq1) == __size__(seq2)`
+
+[*Semantics]: Calls `swap(a1, b1)` for corresponding elements in `seq1` and `seq2`.
+
+/sequence/intrinsic/swap.hpp>
+
+[heading Example]
+    __vector__<int, std::string> v1(1, "hello"), v2(2, "world");
+    swap(v1, v2);
+    assert(v1 == __make_vector__(2, "world"));
+    assert(v2 == __make_vector__(1, "hello"));
+
+[endsect]
+
+[endsect]
+
+[section Metafunctions]
+
+[section begin]
+
+[heading Description]
+Returns the result type of __begin__.
+
+[heading Synopsis]
+    template<typename Seq>
+    struct begin
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __forward_sequence__][Argument sequence]]
+]
+
+[heading Expression Semantics]
+    result_of::begin<Seq>::type
+
+[*Return type]:
+
+* A model of __forward_iterator__ if `seq` is a __forward_sequence__
+else, __bidirectional_iterator__ if `seq` is a __bidirectional_sequence__
+else, __random_access_iterator__ if `seq` is a __random_access_sequence__.
+* A model of __associative_iterator__ if `seq` is an __associative_sequence__.
+
+[*Semantics]: Returns the type of an iterator to the first element of `Seq`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/begin.hpp>
+    #include <boost/fusion/include/begin.hpp>
+
+[heading Example]
+    typedef __vector__<int> vec;
+    typedef __result_of_begin__<vec>::type it;
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_deref__<it>::type, int&>))
+
+[endsect]
+
+[section end]
+
+[heading Description]
+Returns the result type of __end__.
+
+[heading Synopsis]
+    template<typename Seq>
+    struct end
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __forward_sequence__][Argument sequence]]
+]
+
+[heading Expression Semantics]
+    result_of::end<Seq>::type
+
+[*Return type]:
+
+* A model of __forward_iterator__ if `seq` is a __forward_sequence__
+else, __bidirectional_iterator__ if `seq` is a __bidirectional_sequence__
+else, __random_access_iterator__ if `seq` is a __random_access_sequence__.
+* A model of __associative_iterator__ if `seq` is an __associative_sequence__.
+
+[*Semantics]: Returns the type of an iterator one past the end of `Seq`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/end.hpp>
+    #include <boost/fusion/include/end.hpp>
+
+[heading Example]
+    typedef __vector__<int> vec;
+    typedef __result_of_prior__<__result_of_end__<vec>::type>::type first;
+    BOOST_MPL_ASSERT((__result_of_equal_to__<first, __result_of_begin__<vec>::type>))
+
+[endsect]
+
+[section empty]
+
+[heading Description]
+Returns the result type of __empty__.
+
+[heading Synopsis]
+    template<typename Seq>
+    struct empty
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __forward_sequence__][Argument sequence]]
+]
+
+[heading Expression Semantics]
+    result_of::empty<Seq>::type
+
+[*Return type]: An __mpl_integral_constant__
+
+[*Semantics]: Returns `mpl::true_` if `Seq` has zero elements, `mpl::false_` otherwise.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/empty.hpp>
+    #include <boost/fusion/include/empty.hpp>
+
+[heading Example]
+    typedef __vector__<> empty_vec;
+    typedef __vector__<int,float,char> vec;
+
+    BOOST_MPL_ASSERT((__result_of_empty__<empty_vec>));
+    BOOST_MPL_ASSERT_NOT((__result_of_empty__<vec>));
+
+[endsect]
+
+[section front]
+
+[heading Description]
+Returns the result type of __front__.
+
+[heading Synopsis]
+    template<typename Seq>
+    struct front
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __forward_sequence__][Argument sequence]]
+]
+
+[heading Expression Semantics]
+    result_of::front<Seq>::type
+
+[*Return type]: Any type
+
+[*Semantics]: The type returned by dereferencing an iterator to the first element in `Seq`. Equivalent to `__result_of_deref__<__result_of_begin__<Seq>::type>::type`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/front.hpp>
+    #include <boost/fusion/include/front.hpp>
+
+[heading Example]
+    typedef __vector__<int,char> vec;
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_front__<vec>::type, int&>));
+
+[endsect]
+
+[section back]
+
+[heading Description]
+Returns the result type of __back__.
+
+[heading Synopsis]
+    template<typename Seq>
+    struct back
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __forward_sequence__][Argument sequence]]
+]
+
+[heading Expression Semantics]
+    result_of::back<Seq>::type
+
+[*Return type]:  Any type
+
+[*Semantics]: The type returned by dereferencing an iterator to the last element in the sequence. Equivalent to `__result_of_deref__<__result_of_prior__<__result_of_end__<Seq>::type>::type>::type`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/back.hpp>
+    #include <boost/fusion/include/back.hpp>
+
+[heading Example]
+    typedef __vector__<int,char> vec;
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_back__<vec>::type, char&>));
+
+[endsect]
+
+[section size]
+
+[heading Description]
+Returns the result type of __size__.
+
+[heading Synopsis]
+    template<typename Seq>
+    struct size
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __forward_sequence__][Argument sequence]]
+]
+
+[heading Expression Semantics]
+    result_of::size<Seq>::type
+
+[*Return type]: An __mpl_integral_constant__.
+
+[*Semantics]: Returns the number of elements in `Seq`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/size.hpp>
+    #include <boost/fusion/include/size.hpp>
+
+[heading Example]
+    typedef __vector__<int,float,char> vec;
+    typedef __result_of_size__<vec>::type size_mpl_integral_constant;
+    BOOST_MPL_ASSERT_RELATION(size_mpl_integral_constant::value, ==, 3);
+
+[endsect]
+
+[section at]
+
+[heading Description]
+
+Returns the result type of __at__[footnote __result_of_at__ reflects the
+actual return type of the function __at__. __sequence__(s) typically return
+references to its elements via the __at__ function. If you want to get
+the actual element type, use __result_of_value_at__].
+
+[heading Synopsis]
+    template<
+        typename Seq,
+        typename N>
+    struct at
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __random_access_sequence__][Argument sequence]]
+    [[`N`][An __mpl_integral_constant__][Index of element]]
+]
+
+[heading Expression Semantics]
+    result_of::at<Seq, N>::type
+
+[*Return type]: Any type.
+
+[*Semantics]: Returns the result type of using __at__ to access the `N`th element of `Seq`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/at.hpp>
+    #include <boost/fusion/include/at.hpp>
+
+[heading Example]
+    typedef __vector__<int,float,char> vec;
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_at__<vec, boost::mpl::int_<1> >::type, float&>));
+
+[endsect]
+
+[section at_c]
+
+[heading Description]
+
+Returns the result type of __at_c__[footnote __result_of_at_c__ reflects
+the actual return type of the function __at_c__. __sequence__(s) typically
+return references to its elements via the __at_c__ function. If you want to
+get the actual element type, use __result_of_value_at_c__].
+
+[heading Synopsis]
+    template<
+        typename Seq,
+        int M>
+    struct at_c
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __random_access_sequence__][Argument sequence]]
+    [[`M`][Positive integer index][Index of element]]
+]
+
+[heading Expression Semantics]
+    result_of::at_c<Seq, M>::type
+
+[*Return type]: Any type
+
+[*Semantics]: Returns the result type of using __at_c__ to access the `M`th element of `Seq`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/at.hpp>
+    #include <boost/fusion/include/at.hpp>
+
+[heading Example]
+    typedef __vector__<int,float,char> vec;
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_at_c__<vec, 1>::type, float&>));
+
+[endsect]
+
+[section value_at]
+
+[heading Description]
+
+Returns the actual type at a given index from the __sequence__.
+
+[heading Synopsis]
+    template<
+        typename Seq,
+        typename N>
+    struct value_at
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __random_access_sequence__][Argument sequence]]
+    [[`N`][An __mpl_integral_constant__][Index of element]]
+]
+
+[heading Expression Semantics]
+    result_of::value_at<Seq, N>::type
+
+[*Return type]: Any type.
+
+[*Semantics]: Returns the actual type at the `N`th element of `Seq`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/value_at.hpp>
+    #include <boost/fusion/include/value_at.hpp>
+
+[heading Example]
+    typedef __vector__<int,float,char> vec;
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_value_at__<vec, boost::mpl::int_<1> >::type, float>));
+
+[endsect]
+
+[section value_at_c]
+
+[heading Description]
+
+Returns the actual type at a given index from the __sequence__.
+
+[heading Synopsis]
+    template<
+        typename Seq,
+        int M>
+    struct value_at_c
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __random_access_sequence__][Argument sequence]]
+    [[`M`][Positive integer index][Index of element]]
+]
+
+[heading Expression Semantics]
+    result_of::value_at_c<Seq, M>::type
+
+[*Return type]: Any type
+
+[*Semantics]: Returns the actual type at the `M`th element of `Seq`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/value_at.hpp>
+    #include <boost/fusion/include/value_at.hpp>
+
+[heading Example]
+    typedef __vector__<int,float,char> vec;
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_value_at_c__<vec, 1>::type, float>));
+
+[endsect]
+
+[section has_key]
+
+[heading Description]
+Returns the result type of __has_key__.
+
+[heading Synopsis]
+    template<
+        typename Seq,
+        typename Key>
+    struct has_key
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __associative_sequence__][Argument sequence]]
+    [[`Key`][Any type][Key type]]
+]
+
+[heading Expression Semantics]
+    result_of::has_key<Seq, Key>::type
+
+[*Return type]: An __mpl_integral_constant__.
+
+[*Semantics]: Returns `mpl::true_` if `Seq` contains an element with key type `Key`, returns `mpl::false_` otherwise.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/has_key.hpp>
+    #include <boost/fusion/include/has_key.hpp>
+
+[heading Example]
+    typedef __map__<__pair__<int, char>, __pair__<char, char>, __pair__<double, char> > mymap;
+    BOOST_MPL_ASSERT((__result_of_has_key__<mymap, int>));
+    BOOST_MPL_ASSERT_NOT((__result_of_has_key__<mymap, void*>));
+
+[endsect]
+
+[section at_key]
+
+[heading Description]
+
+Returns the result type of __at_key__[footnote __result_of_at_key__
+reflects the actual return type of the function __at_key__. __sequence__s
+typically return references to its elements via the __at_key__ function. If
+you want to get the actual element type, use __result_of_value_at_key__].
+
+[heading Synopsis]
+    template<
+        typename Seq,
+        typename Key>
+    struct at_key
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __associative_sequence__][Argument sequence]]
+    [[`Key`][Any type][Key type]]
+]
+
+[heading Expression Semantics]
+    result_of::at_key<Seq, Key>::type
+
+[*Return type]: Any type.
+
+[*Semantics]: Returns the result of using __at_key__ to access the element with key type `Key` in `Seq`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/at_key.hpp>
+    #include <boost/fusion/include/at_key.hpp>
+
+[heading Example]
+    typedef __map__<__pair__<int, char>, __pair__<char, char>, __pair__<double, char> > mymap;
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_at_key__<mymap, int>::type, char&>));
+
+[endsect]
+
+[section value_at_key]
+
+[heading Description]
+Returns the actual element type associated with a Key from the __sequence__.
+
+[heading Synopsis]
+    template<
+        typename Seq,
+        typename Key>
+    struct value_at_key
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter]    [Requirement]   [Description]]
+    [[`Seq`][A model of __associative_sequence__][Argument sequence]]
+    [[`Key`][Any type][Key type]]
+]
+
+[heading Expression Semantics]
+    result_of::value_at_key<Seq, Key>::type
+
+[*Return type]: Any type.
+
+[*Semantics]: Returns the actual element type associated with key type
+`Key` in `Seq`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/value_at_key.hpp>
+    #include <boost/fusion/include/value_at_key.hpp>
+    
+[heading Example]
+    typedef __map__<__pair__<int, char>, __pair__<char, char>, __pair__<double, char> > mymap;
+    BOOST_MPL_ASSERT((boost::is_same<__result_of_at_key__<mymap, int>::type, char>));
+
+[endsect]
+
+[section swap]
+
+[heading Description]
+Returns the return type of swap.
+
+[heading Synopsis]
+    template<typename Seq1, typename Seq2>
+    struct swap
+    {
+        typedef void type;
+    };
+
+[table Parameters
+    [[Parameters]    [Requirement]   [Description]]
+    [[`Seq1`, `Seq2`][Models of __forward_sequence__][The sequences being swapped]]
+]
+
+[heading Expression Semantics]
+    result_of::swap<Seq1, Seq2>::type
+
+[*Return type]: `void`.
+
+[*Semantics]: Always returns `void`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/intrinsic/swap.hpp>
+    #include <boost/fusion/include/swap.hpp>
+
+[endsect]
+
+[endsect]
+
+[endsect]
+
+[section Operator]
+
+These operators, like the __algorithms__, work generically on all Fusion
+sequences. All conforming Fusion sequences automatically get these
+operators for free.
+
+[section I/O]
+
+The I/O operators: `<<` and `>>` work generically on all Fusion
+sequences. The I/O operators are overloaded in namespace `boost::fusion`
+[footnote __sequences__ and __views__ residing in different namespaces
+will have to either provide their own I/O operators (possibly forwarding
+to fusion's I/O operators) or hoist fusion's I/O operators (using
+declaration), in their own namespaces for proper argument dependent
+lookup.]
+
+The `operator<<` has been overloaded for generic output streams such
+that __sequence__(s) are output by recursively calling `operator<<` for
+each element. Analogously, the global `operator>>` has been overloaded
+to extract __sequence__(s) from generic input streams by recursively
+calling `operator>>` for each element.
+
+The default delimiter between the elements is space, and the __sequence__
+is enclosed in parenthesis. For Example:
+
+    __vector__<float, int, std::string> a(1.0f, 2, std::string("Howdy folks!");
+    cout << a;
+
+outputs the __vector__ as: (1.0 2 Howdy folks!)
+
+The library defines three manipulators for changing the default behavior:
+
+[variablelist Manipulators
+    [[`tuple_open(arg)`]        [Defines the character that is output before the first element.]]
+    [[`tuple_close(arg)`]       [Defines the character that is output after the last element.]]
+    [[`tuple_delimiter(arg)`]   [Defines the delimiter character between elements.]]
+]
+
+The argument to `tuple_open`, `tuple_close` and `tuple_delimiter` may be a
+`char`, `wchar_t`, a C-string, or a wide C-string.
+
+Example:
+
+    std::cout << tuple_open('[') << tuple_close(']') << tuple_delimiter(", ") << a;
+
+outputs the same __vector__, `a` as: [1.0, 2, Howdy folks!]
+
+The same manipulators work with `operator>>` and `istream` as well. Suppose
+the `std::cin` stream contains the following data:
+
+    (1 2 3) [4:5]
+
+The code:
+
+    __vector__<int, int, int> i;
+    __vector__<int, int> j;
+
+    std::cin >> i;
+    std::cin >> set_open('[') >> set_close(']') >> set_delimiter(':');
+    std::cin >> j;
+
+reads the data into the __vector__(s) `i` and `j`.
+
+Note that extracting __sequence__(s) with `std::string` or C-style string
+elements does not generally work, since the streamed __sequence__
+representation may not be unambiguously parseable.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/io.hpp>
+    #include <boost/fusion/include/io.hpp>
+
+[section in]
+
+[heading Description]
+
+Read a __sequence__ from an input stream.
+
+[heading Synopsis]
+
+    template <typename IStream, typename Sequence>
+    IStream&
+    operator>>(IStream& is, Sequence& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]           [Description]]
+    [[is]           [An input stream.]      [Stream to extract information from.]]
+    [[seq]          [A __sequence__.]       [The sequence to read.]]
+]
+
+[heading Expression Semantics]
+
+    is >> seq
+
+[*Return type]: IStream&
+
+[*Semantics]: For each element, `e`, in sequence, `seq`, call `is >> e`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/io/in.hpp>
+    #include <boost/fusion/include/in.hpp>
+
+[heading Example]
+
+    __vector__<int, std::string, char> v;
+    std::cin >> v;
+
+[endsect]
+
+[section out]
+
+[heading Description]
+
+Write a __sequence__ to an output stream.
+
+[heading Synopsis]
+
+    template <typename OStream, typename Sequence>
+    OStream&
+    operator<<(OStream& os, Sequence& seq);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]           [Description]]
+    [[os]           [An output stream.]     [Stream to write information to.]]
+    [[seq]          [A __sequence__.]       [The sequence to write.]]
+]
+
+[heading Expression Semantics]
+
+    os << seq
+
+[*Return type]: OStream&
+
+[*Semantics]: For each element, `e`, in sequence, `seq`, call `os << e`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/io/out.hpp>
+    #include <boost/fusion/include/out.hpp>
+
+[heading Example]
+
+    std::cout << __make_vector__(123, "Hello", 'x') << std::endl;
+
+[endsect]
+
+[endsect]
+
+[section Comparison]
+
+The Comparison operators: `==`, `!=`, `<`, `<=`, `>=` and `>=` work
+generically on all Fusion sequences. Comparison operators are "short-
+circuited": elementary comparisons start from the first elements and are
+performed only until the result is clear.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/comparison.hpp>
+    #include <boost/fusion/include/comparison.hpp>
+
+[section equal]
+
+[heading Description]
+
+Compare two sequences for equality.
+
+[heading Synopsis]
+
+    template <typename Seq1, typename Seq2>
+    bool
+    operator==(Seq1 const& a, Seq2 const& b);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                       [Description]]
+    [[`a, b`]       [Instances of __sequence__]         [__sequence__(s) to compare]]
+]
+
+[heading Expression Semantics]
+
+    a == b
+
+[*Return type]: `bool`
+
+[*Requirements]:
+
+For each element, `e1`, in  sequence `a`, and for each element, `e2`, in
+sequence `b`, `a == b` is a valid expression returning a type that is
+convertible to bool.
+
+An attempt to compare two Sequences of different lengths results in a
+compile time error.
+
+[*Semantics]:
+
+For each element, `e1`, in  sequence `a`, and for each element, `e2`, in
+sequence `b`, `e1 == e2` returns true. For any 2 zero length __sequence__s,
+e and f, e == f  returns true.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/comparison/equal_to.hpp>
+    #include <boost/fusion/include/equal_to.hpp>
+
+[heading Example]
+
+    __vector__<int, char> v1(5, 'a');
+    __vector__<int, char> v2(5, 'a');
+    assert(v1 == v2);
+
+[endsect]
+
+[section not equal]
+
+Compare two sequences for inequality.
+
+[heading Synopsis]
+
+    template <typename Seq1, typename Seq2>
+    bool
+    operator!=(Seq1 const& a, Seq2 const& b);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                       [Description]]
+    [[`a, b`]       [Instances of __sequence__]         [__sequence__(s) to compare]]
+]
+
+[heading Expression Semantics]
+
+    a != b
+
+[*Return type]: `bool`
+
+[*Requirements]:
+
+For each element, `e1`, in  sequence `a`, and for each element, `e2`, in
+sequence `b`, `a == b` is a valid expression returning a type that is
+convertible to bool.
+
+An attempt to compare two Sequences of different lengths results in a
+compile time error.
+
+[*Semantics]:
+
+Returns !(a == b).
+
+[heading Header]
+
+    #include <boost/fusion/sequence/comparison/not_equal_to.hpp>
+    #include <boost/fusion/include/not_equal_to.hpp>
+
+[heading Example]
+
+    __vector__<int, char> v3(5, 'b');
+    __vector__<int, char> t4(2, 'a');
+    assert(v1 != v3);
+    assert(v1 != t4);
+    assert(!(v1 != v2));
+
+[endsect]
+
+[section less than]
+
+Lexicographically compare two sequences.
+
+[heading Synopsis]
+
+    template <typename Seq1, typename Seq2>
+    bool
+    operator<(Seq1 const& a, Seq2 const& b);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                       [Description]]
+    [[`a, b`]       [Instances of __sequence__]         [__sequence__(s) to compare]]
+]
+
+[heading Expression Semantics]
+
+    a < b
+
+[*Return type]: `bool`
+
+[*Requirements]:
+
+For each element, `e1`, in  sequence `a`, and for each element, `e2`, in
+sequence `b`, `a < b` is a valid expression returning a type that is
+convertible to bool.
+
+An attempt to compare two Sequences of different lengths results in a
+compile time error.
+
+[*Semantics]: Returns the lexicographical comparison of between `a` and `b`.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/comparison/less.hpp>
+    #include <boost/fusion/include/less.hpp>
+
+[heading Example]
+
+    __vector__<int, float> v1(4, 3.3f);
+    __vector__<short, float> v2(5, 3.3f);
+    __vector__<long, double> v3(5, 4.4);
+    assert(v1 < v2);
+    assert(v2 < v3);
+
+[endsect]
+
+[section less than equal]
+
+Lexicographically compare two sequences.
+
+[heading Synopsis]
+
+    template <typename Seq1, typename Seq2>
+    bool
+    operator<=(Seq1 const& a, Seq2 const& b);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                       [Description]]
+    [[`a, b`]       [Instances of __sequence__]         [__sequence__(s) to compare]]
+]
+
+[heading Expression Semantics]
+
+    a <= b
+
+[*Return type]: `bool`
+
+[*Requirements]:
+
+For each element, `e1`, in  sequence `a`, and for each element, `e2`, in
+sequence `b`, `a < b` is a valid expression returning a type that is
+convertible to bool.
+
+An attempt to compare two Sequences of different lengths results in a
+compile time error.
+
+[*Semantics]: Returns !(b < a).
+
+[heading Header]
+
+    #include <boost/fusion/sequence/comparison/less_equal.hpp>
+    #include <boost/fusion/include/less_equal.hpp>
+
+[heading Example]
+
+    __vector__<int, float> v1(4, 3.3f);
+    __vector__<short, float> v2(5, 3.3f);
+    __vector__<long, double> v3(5, 4.4);
+    assert(v1 <= v2);
+    assert(v2 <= v3);
+
+[endsect]
+
+[section greater than]
+
+Lexicographically compare two sequences.
+
+[heading Synopsis]
+
+    template <typename Seq1, typename Seq2>
+    bool
+    operator>(Seq1 const& a, Seq2 const& b);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                       [Description]]
+    [[`a, b`]       [Instances of __sequence__]         [__sequence__(s) to compare]]
+]
+
+[heading Expression Semantics]
+
+    a > b
+
+[*Return type]: `bool`
+
+[*Requirements]:
+
+For each element, `e1`, in  sequence `a`, and for each element, `e2`, in
+sequence `b`, `a < b` is a valid expression returning a type that is
+convertible to bool.
+
+An attempt to compare two Sequences of different lengths results in a
+compile time error.
+
+[*Semantics]: Returns b < a.
+
+[heading Header]
+
+    #include <boost/fusion/sequence/comparison/less_equal.hpp>
+    #include <boost/fusion/include/less_equal.hpp>
+
+[heading Example]
+
+    __vector__<int, float> v1(4, 3.3f);
+    __vector__<short, float> v2(5, 3.3f);
+    __vector__<long, double> v3(5, 4.4);
+    assert(v2 > v1);
+    assert(v3 > v2);
+
+[endsect]
+
+[section greater than equal]
+
+Lexicographically compare two sequences.
+
+[heading Synopsis]
+
+    template <typename Seq1, typename Seq2>
+    bool
+    operator>=(Seq1 const& a, Seq2 const& b);
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                       [Description]]
+    [[`a, b`]       [Instances of __sequence__]         [__sequence__(s) to compare]]
+]
+
+[heading Expression Semantics]
+
+    a >= b
+
+[*Return type]: `bool`
+
+[*Requirements]:
+
+For each element, `e1`, in  sequence `a`, and for each element, `e2`, in
+sequence `b`, `a < b` is a valid expression returning a type that is
+convertible to bool.
+
+An attempt to compare two Sequences of different lengths results in a
+compile time error.
+
+[*Semantics]: Returns !(a < b).
+
+[heading Header]
+
+    #include <boost/fusion/sequence/comparison/greater_equal.hpp>
+    #include <boost/fusion/include/greater_equal.hpp>
+
+[heading Example]
+
+    __vector__<int, float> v1(4, 3.3f);
+    __vector__<short, float> v2(5, 3.3f);
+    __vector__<long, double> v3(5, 4.4);
+    assert(v2 >= v1);
+    assert(v3 >= v2);
+
+[endsect]
+
+[endsect]
+
+[endsect]
+
+[endsect]
+

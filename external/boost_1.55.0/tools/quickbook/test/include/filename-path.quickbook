@@ -1,0 +1,9 @@
+[article Filename test with include path
+[quickbook 1.5]
+]
+
+__FILENAME__
+
+[include filename_include1.quickbook]
+
+[include filename_include2.quickbook]

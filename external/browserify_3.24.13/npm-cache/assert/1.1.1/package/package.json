@@ -1,0 +1,25 @@
+{
+  "name": "assert",
+  "description": "commonjs assert - node.js api compatible",
+  "keywords": [
+    "assert"
+  ],
+  "version": "1.1.1",
+  "homepage": "https://github.com/defunctzombie/commonjs-assert",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/defunctzombie/commonjs-assert.git"
+  },
+  "main": "./assert.js",
+  "dependencies": {
+    "util": "0.10.2"
+  },
+  "devDependencies": {
+    "zuul": "~1.0.9",
+    "mocha": "1.14.0"
+  },
+  "license": "MIT",
+  "scripts": {
+    "test": "mocha --ui qunit test.js && zuul -- test.js"
+  }
+}

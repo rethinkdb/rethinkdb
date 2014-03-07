@@ -1,0 +1,4 @@
+Inspect complains that this directory is called '1.1', but that's the
+standard naming style for DTDs, and this needs to match the url of the
+DTD on the website. Any platform which has problems with this domain
+name probably won't be able to build the documentation anyway.

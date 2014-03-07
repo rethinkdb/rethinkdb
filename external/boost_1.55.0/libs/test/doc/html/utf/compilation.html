@@ -1,0 +1,152 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>The UTF compilation variants and procedures</title>
+<link rel="stylesheet" href="../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Boost Test Library">
+<link rel="up" href="../utf.html" title="Part IV. Boost Test Library: The Unit Test Framework">
+<link rel="prev" href="../tutorials/new-year-resolution.html" title='Boost.Test driven development or "getting started" for TDD followers'>
+<link rel="next" href="compilation/standalone.html" title="Standalone library compilation">
+<script language="JavaScript1.2" src="../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../utf.html">The Unit Test Framework</a> &gt; <b>Compilation</b><a href="user-guide.html">
+      &gt;
+      </a>
+</td>
+<td><div class="spirit-nav">
+<a href="../tutorials/new-year-resolution.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="compilation/standalone.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="chapter" lang="en">
+<div class="titlepage"><div><div><h2 class="title">
+<a name="utf.compilation"></a>The <acronym class="acronym">UTF</acronym> compilation variants and procedures</h2></div></div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><a href="compilation/standalone.html">Standalone library compilation</a></dt>
+<dt><a href="compilation/auto-linking.html">Auto-linking support</a></dt>
+<dt><a href="compilation/direct-include.html">Direct include</a></dt>
+</dl>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title"><a name="utf.compilation.impl"></a></h4></div></div></div>
+<p class="first-line-indented">
+    The <acronym class="acronym">UTF</acronym> is comparatively complicated component and is implemented in close to hundred header and source files,
+    so for long term usage the preferable solution is to build the <acronym class="acronym">UTF</acronym> as a reusable standalone library.
+    Depending on your platform this may save you a significant time during test module compilation and doesn't
+    really require that much effort. 
+    <a href="http://boost.org/more/getting_started/index.html" target="_top">Boost Getting started</a> tells you how to get 
+    pre-built libraries for some platforms. If available, this is the easiest option and you can ignore standalone 
+    library compilation instructions below.
+   </p>
+<p class="first-line-indented">
+    Following files constitute the <acronym class="acronym">UTF</acronym> implementation: 
+   </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="files-list"><ul type="disc">
+<li><a href="../../../../../boost/test/impl/debug.ipp" target="_top"><code class="filename">debug.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/compiler_log_formatter.ipp" target="_top"><code class="filename">compiler_log_formatter.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/exception_safety.ipp" target="_top"><code class="filename">exception_safety.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/execution_monitor.ipp" target="_top"><code class="filename">execution_monitor.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/framework.ipp" target="_top"><code class="filename">framework.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/interaction_based.ipp" target="_top"><code class="filename">interaction_based.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/logged_expectations.ipp" target="_top"><code class="filename">logged_expectations.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/plain_report_formatter.ipp" target="_top"><code class="filename">plain_report_formatter.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/progress_monitor.ipp" target="_top"><code class="filename">progress_monitor.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/results_collector.ipp" target="_top"><code class="filename">results_collector.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/results_reporter.ipp" target="_top"><code class="filename">results_reporter.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/unit_test_log.ipp" target="_top"><code class="filename">unit_test_log.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/unit_test_main.ipp" target="_top"><code class="filename">unit_test_main.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/unit_test_monitor.ipp" target="_top"><code class="filename">unit_test_monitor.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/unit_test_parameters.ipp" target="_top"><code class="filename">unit_test_parameters.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/unit_test_suite.ipp" target="_top"><code class="filename">unit_test_suite.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/xml_log_formatter.ipp" target="_top"><code class="filename">xml_log_formatter.cpp</code></a></li>
+<li><a href="../../../../../boost/test/impl/xml_report_formatter.ipp" target="_top"><code class="filename">xml_report_formatter.cpp</code></a></li>
+</ul></div>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.compilation.procedured"></a>Compilation procedures</h4></div></div></div>
+<p class="first-line-indented">
+    In comparison with many other boost libraries, which are completely implemented in header files, compilation and
+    linking with the <acronym class="acronym">UTF</acronym> may require additional steps. The <acronym class="acronym">UTF</acronym> presents you with options to either
+    <a class="link" href="compilation/standalone.html" title="Standalone library compilation">built and link with a standalone library</a> or
+    <a class="link" href="compilation/direct-include.html" title="Including the UTF directly into your test module">include the implementation directly</a> into a test module.
+    If you opt to use the library the <acronym class="acronym">UTF</acronym> headers implement the 
+    <a class="link" href="compilation/auto-linking.html" title="Support of the auto-linking feature">auto-linking support</a>. The compilation of the <acronym class="acronym">UTF</acronym> library and
+    a test module can be configured using the following compilation flags.
+   </p>
+<div class="table">
+<a name="utf.compilation.flags"></a><p class="title"><b>Table 3. The <acronym class="acronym">UTF</acronym> compilation flags</b></p>
+<div class="table-contents"><table class="table" summary="The UTF compilation flags">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Flag</th>
+<th>Usage</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+<a name="utf.flag.dyn-link"></a>BOOST_TEST_DYN_LINK</td>
+<td>Define this flag to build/use dynamic library.</td>
+</tr>
+<tr>
+<td>
+<a name="utf.flag.no-lib"></a>BOOST_TEST_NO_LIB</td>
+<td>Define this flag to prevent auto-linking.</td>
+</tr>
+<tr>
+<td>
+<a name="utf.flag.no-main"></a>BOOST_TEST_NO_MAIN</td>
+<td>Define this flag to prevent function main() implementation generation.</td>
+</tr>
+<tr>
+<td>
+<a name="utf.flag.main"></a>BOOST_TEST_MAIN</td>
+<td>
+        Define this flag to generate an empty test module initialization function and in case of 
+        <a class="link" href="user-guide/test-runners.html#utf.user-guide.dynamic-lib-runner" title="Dynamic library variant of the UTF">dynamic library variant</a> default function main() 
+        implementation as well.
+       </td>
+</tr>
+<tr>
+<td>
+<a name="utf.flag.module"></a>BOOST_TEST_MODULE</td>
+<td>
+        Define this flag to generate the test module initialization function, which uses the defined value to name
+        the master test suite. In case of <a class="link" href="user-guide/test-runners.html#utf.user-guide.dynamic-lib-runner" title="Dynamic library variant of the UTF">dynamic library variant</a> 
+        default function main() implementation is generated as well
+       </td>
+</tr>
+<tr>
+<td>
+<a name="utf.flag.alt-init-api"></a>BOOST_TEST_ALTERNATIVE_INIT_API</td>
+<td>
+        Define this flag to generate the switch to the alternative test module initialization API.
+       </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p class="first-line-indented">
+    Further in documentation you are going to see in details when and how these flags should be used.
+   </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../tutorials/new-year-resolution.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../utf.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="compilation/standalone.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,719 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Logging sources</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../detailed.html" title="Detailed features description">
+<link rel="prev" href="../detailed.html" title="Detailed features description">
+<link rel="next" href="sink_frontends.html" title="Sink frontends">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../detailed.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../detailed.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sink_frontends.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.detailed.sources"></a><a class="link" href="sources.html" title="Logging sources">Logging sources</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="sources.html#log.detailed.sources.basic_logger">Basic loggers</a></span></dt>
+<dt><span class="section"><a href="sources.html#log.detailed.sources.severity_level_logger">Loggers
+        with severity level support</a></span></dt>
+<dt><span class="section"><a href="sources.html#log.detailed.sources.channel_logger">Loggers with channel
+        support</a></span></dt>
+<dt><span class="section"><a href="sources.html#log.detailed.sources.exception_handling">Loggers with
+        exception handling support</a></span></dt>
+<dt><span class="section"><a href="sources.html#log.detailed.sources.mixed_loggers">Loggers with mixed
+        features</a></span></dt>
+<dt><span class="section"><a href="sources.html#log.detailed.sources.global_storage">Global storage
+        for loggers</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.sources.basic_logger"></a><a class="link" href="sources.html#log.detailed.sources.basic_logger" title="Basic loggers">Basic loggers</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../logging_sources.html#header.boost.log.sources.basic_logger_hpp" title="Header &lt;boost/log/sources/basic_logger.hpp&gt;">boost/log/sources/basic_logger.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          The simplest logging sources provided by the library are loggers <code class="computeroutput"><a class="link" href="../../boost/log/sources/logger.html" title="Class logger">logger</a></code> and its thread-safe
+          version, <code class="computeroutput"><a class="link" href="../../boost/log/sources/logger_mt.html" title="Class logger_mt">logger_mt</a></code>
+          (<code class="computeroutput"><a class="link" href="../../boost/log/sources/wlogger.html" title="Class wlogger">wlogger</a></code> and
+          <code class="computeroutput"><a class="link" href="../../boost/log/sources/wlogger_mt.html" title="Class wlogger_mt">wlogger_mt</a></code>
+          for wide-character logging, accordingly). These loggers only provide the
+          ability to store source-specific attributes within themselves and, of course,
+          to form log records. This type of logger should probably be used when there
+          is no need for advanced features like severity level checks. It may well
+          be used as a tool to collect application statistics and register application
+          events, such as notifications and alarms. In such cases the logger is normally
+          used in conjunction with <a class="link" href="attributes.html#log.detailed.attributes.related_components.scoped_attributes" title="Scoped attributes">scoped
+          attributes</a> to attach the needed data to the notification event.
+          Below is an example of usage:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">network_connection</span>
+<span class="special">{</span>
+    <span class="identifier">src</span><span class="special">::</span><span class="identifier">logger</span> <span class="identifier">m_logger</span><span class="special">;</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">m_remote_addr</span><span class="special">;</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">void</span> <span class="identifier">on_connected</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">remote_addr</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="comment">// Put the remote address into the logger to automatically attach it</span>
+        <span class="comment">// to every log record written through the logger</span>
+        <span class="identifier">m_remote_addr</span> <span class="special">=</span> <span class="identifier">m_logger</span><span class="special">.</span><span class="identifier">add_attribute</span><span class="special">(</span><span class="string">"RemoteAddress"</span><span class="special">,</span>
+            <span class="identifier">attrs</span><span class="special">::</span><span class="identifier">constant</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="identifier">remote_addr</span><span class="special">)).</span><span class="identifier">first</span><span class="special">;</span>
+
+        <span class="comment">// The straightforward way of logging</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record</span> <span class="identifier">rec</span> <span class="special">=</span> <span class="identifier">m_logger</span><span class="special">.</span><span class="identifier">open_record</span><span class="special">())</span>
+        <span class="special">{</span>
+            <span class="identifier">rec</span><span class="special">.</span><span class="identifier">attribute_values</span><span class="special">().</span><span class="identifier">insert</span><span class="special">(</span><span class="string">"Message"</span><span class="special">,</span>
+                <span class="identifier">attrs</span><span class="special">::</span><span class="identifier">make_attribute_value</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">"Connection established"</span><span class="special">)));</span>
+            <span class="identifier">m_logger</span><span class="special">.</span><span class="identifier">push_record</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="identifier">rec</span><span class="special">));</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+    <span class="keyword">void</span> <span class="identifier">on_disconnected</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="comment">// The simpler way of logging: the above "if" condition is wrapped into a neat macro</span>
+        <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">m_logger</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Connection shut down"</span><span class="special">;</span>
+
+        <span class="comment">// Remove the attribute with the remote address</span>
+        <span class="identifier">m_logger</span><span class="special">.</span><span class="identifier">remove_attribute</span><span class="special">(</span><span class="identifier">m_remote_addr</span><span class="special">);</span>
+    <span class="special">}</span>
+    <span class="keyword">void</span> <span class="identifier">on_data_received</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="comment">// Put the size as an additional attribute</span>
+        <span class="comment">// so it can be collected and accumulated later if needed.</span>
+        <span class="comment">// The attribute will be attached only to this log record.</span>
+        <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">m_logger</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"ReceivedSize"</span><span class="special">,</span> <span class="identifier">size</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Some data received"</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">void</span> <span class="identifier">on_data_sent</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">m_logger</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"SentSize"</span><span class="special">,</span> <span class="identifier">size</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Some data sent"</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          The class <code class="computeroutput"><span class="identifier">network_connection</span></code>
+          in the code snippet above represents an approach to implementing simple
+          logging and statistical information gathering in a network-related application.
+          Each of the presented methods of the class effectively marks a corresponding
+          event that can be tracked and collected on the sinks level. Furthermore,
+          other methods of the class, that are not shown here for simplicity, are
+          able to write logs too. Note that every log record ever made in the connected
+          state of the <code class="computeroutput"><span class="identifier">network_connection</span></code>
+          object will be implicitly marked up with the address of the remote site.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.sources.severity_level_logger"></a><a class="link" href="sources.html#log.detailed.sources.severity_level_logger" title="Loggers with severity level support">Loggers
+        with severity level support</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../logging_sources.html#header.boost.log.sources.severity_feature_hpp" title="Header &lt;boost/log/sources/severity_feature.hpp&gt;">boost/log/sources/severity_feature.hpp</a></code><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../logging_sources.html#header.boost.log.sources.severity_logger_hpp" title="Header &lt;boost/log/sources/severity_logger.hpp&gt;">boost/log/sources/severity_logger.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          The ability to distinguish some log records from others based on some kind
+          of level of severity or importance is one of the most frequently requested
+          features. The class templates <code class="computeroutput"><a class="link" href="../../boost/log/sources/severity_logger.html" title="Class template severity_logger">severity_logger</a></code>
+          and <code class="computeroutput"><a class="link" href="../../boost/log/sources/severity_logger_mt.html" title="Class template severity_logger_mt">severity_logger_mt</a></code>
+          (along with their <code class="computeroutput"><a class="link" href="../../boost/log/sources/wseverity_logger.html" title="Class template wseverity_logger">wseverity_logger</a></code>
+          and <code class="computeroutput"><a class="link" href="../../boost/log/sources/wseverity_logger_mt.html" title="Class template wseverity_logger_mt">wseverity_logger_mt</a></code>
+          wide-character counterparts) provide this functionality.
+        </p>
+<p>
+          The loggers automatically register a special source-specific attribute
+          "Severity", which can be set for every record in a compact and
+          efficient manner, with a named argument <code class="computeroutput"><span class="identifier">severity</span></code>
+          that can be passed to the constructor and/or the <code class="computeroutput"><span class="identifier">open_record</span></code>
+          method. If passed to the logger constructor, the <code class="computeroutput"><span class="identifier">severity</span></code>
+          argument sets the default value of the severity level that will be used
+          if none is provided in the <code class="computeroutput"><span class="identifier">open_record</span></code>
+          arguments. The <code class="computeroutput"><span class="identifier">severity</span></code>
+          argument passed to the <code class="computeroutput"><span class="identifier">open_record</span></code>
+          method sets the level of the particular log record being made. The type
+          of the severity level can be provided as a template argument for the logger
+          class template. The default type is <code class="computeroutput"><span class="keyword">int</span></code>.
+        </p>
+<p>
+          The actual values of this attribute and their meaning are entirely user-defined.
+          However, it is recommended to use the level of value equivalent to zero
+          as a base point for other values. This is because the default-constructed
+          logger object sets its default severity level to zero. It is also recommended
+          to define the same levels of severity for the entire application in order
+          to avoid confusion in the written logs later. The following code snippet
+          shows the usage of <code class="computeroutput"><span class="identifier">severity_logger</span></code>.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// We define our own severity levels</span>
+<span class="keyword">enum</span> <span class="identifier">severity_level</span>
+<span class="special">{</span>
+    <span class="identifier">normal</span><span class="special">,</span>
+    <span class="identifier">notification</span><span class="special">,</span>
+    <span class="identifier">warning</span><span class="special">,</span>
+    <span class="identifier">error</span><span class="special">,</span>
+    <span class="identifier">critical</span>
+<span class="special">};</span>
+
+<span class="keyword">void</span> <span class="identifier">logging_function</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// The logger implicitly adds a source-specific attribute 'Severity'</span>
+    <span class="comment">// of type 'severity_level' on construction</span>
+    <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_logger</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;</span> <span class="identifier">slg</span><span class="special">;</span>
+
+    <span class="identifier">BOOST_LOG_SEV</span><span class="special">(</span><span class="identifier">slg</span><span class="special">,</span> <span class="identifier">normal</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"A regular message"</span><span class="special">;</span>
+    <span class="identifier">BOOST_LOG_SEV</span><span class="special">(</span><span class="identifier">slg</span><span class="special">,</span> <span class="identifier">warning</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Something bad is going on but I can handle it"</span><span class="special">;</span>
+    <span class="identifier">BOOST_LOG_SEV</span><span class="special">(</span><span class="identifier">slg</span><span class="special">,</span> <span class="identifier">critical</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Everything crumbles, shoot me now!"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">default_severity</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// The default severity can be specified in constructor.</span>
+    <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_logger</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;</span> <span class="identifier">error_lg</span><span class="special">(</span><span class="identifier">keywords</span><span class="special">::</span><span class="identifier">severity</span> <span class="special">=</span> <span class="identifier">error</span><span class="special">);</span>
+
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">error_lg</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"An error level log record (by default)"</span><span class="special">;</span>
+
+    <span class="comment">// The explicitly specified level overrides the default</span>
+    <span class="identifier">BOOST_LOG_SEV</span><span class="special">(</span><span class="identifier">error_lg</span><span class="special">,</span> <span class="identifier">warning</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"A warning level log record (overrode the default)"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Or, if you prefer logging without macros:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">manual_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_logger</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;</span> <span class="identifier">slg</span><span class="special">;</span>
+
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">record</span> <span class="identifier">rec</span> <span class="special">=</span> <span class="identifier">slg</span><span class="special">.</span><span class="identifier">open_record</span><span class="special">(</span><span class="identifier">keywords</span><span class="special">::</span><span class="identifier">severity</span> <span class="special">=</span> <span class="identifier">normal</span><span class="special">);</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">rec</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">logging</span><span class="special">::</span><span class="identifier">record_ostream</span> <span class="identifier">strm</span><span class="special">(</span><span class="identifier">rec</span><span class="special">);</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="string">"A regular message"</span><span class="special">;</span>
+        <span class="identifier">strm</span><span class="special">.</span><span class="identifier">flush</span><span class="special">();</span>
+        <span class="identifier">slg</span><span class="special">.</span><span class="identifier">push_record</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="identifier">rec</span><span class="special">));</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          And, of course, severity loggers also provide the same functionality the
+          <a class="link" href="sources.html#log.detailed.sources.basic_logger" title="Basic loggers">basic loggers</a>
+          do.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.sources.channel_logger"></a><a class="link" href="sources.html#log.detailed.sources.channel_logger" title="Loggers with channel support">Loggers with channel
+        support</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../logging_sources.html#header.boost.log.sources.channel_feature_hpp" title="Header &lt;boost/log/sources/channel_feature.hpp&gt;">boost/log/sources/channel_feature.hpp</a></code><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../logging_sources.html#header.boost.log.sources.channel_logger_hpp" title="Header &lt;boost/log/sources/channel_logger.hpp&gt;">boost/log/sources/channel_logger.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          Sometimes it is important to associate log records with some application
+          component, such as the module or class name, the relation of the logged
+          information to some specific domain of application functionality (e.g.
+          network or file system related messages) or some arbitrary tag that can
+          be used later to route these records to a specific sink. This feature is
+          fulfilled with loggers <code class="computeroutput"><a class="link" href="../../boost/log/sources/channel_logger.html" title="Class template channel_logger">channel_logger</a></code>,
+          <code class="computeroutput"><a class="link" href="../../boost/log/sources/channel_logger_mt.html" title="Class template channel_logger_mt">channel_logger_mt</a></code>
+          and their wide-char counterparts <code class="computeroutput"><a class="link" href="../../boost/log/sources/wchannel_logger.html" title="Class template wchannel_logger">wchannel_logger</a></code>,
+          <code class="computeroutput"><a class="link" href="../../boost/log/sources/wchannel_logger_mt.html" title="Class template wchannel_logger_mt">wchannel_logger_mt</a></code>.
+          These loggers automatically register an attribute named "Channel".
+          The default channel name can be set in the logger constructor with a named
+          argument <code class="computeroutput"><span class="identifier">channel</span></code>. The type
+          of the channel attribute value can be specified as a template argument
+          for the logger, with <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>
+          (<code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">wstring</span></code> in case of wide character loggers)
+          as a default. Aside from that, the usage is similar to the <a class="link" href="sources.html#log.detailed.sources.basic_logger" title="Basic loggers">basic
+          loggers</a>:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">network_connection</span>
+<span class="special">{</span>
+    <span class="identifier">src</span><span class="special">::</span><span class="identifier">channel_logger</span><span class="special">&lt;</span> <span class="special">&gt;</span> <span class="identifier">m_net</span><span class="special">,</span> <span class="identifier">m_stat</span><span class="special">;</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">m_net_remote_addr</span><span class="special">,</span> <span class="identifier">m_stat_remote_addr</span><span class="special">;</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">network_connection</span><span class="special">()</span> <span class="special">:</span>
+        <span class="comment">// We can dump network-related messages through this logger</span>
+        <span class="comment">// and be able to filter them later</span>
+        <span class="identifier">m_net</span><span class="special">(</span><span class="identifier">keywords</span><span class="special">::</span><span class="identifier">channel</span> <span class="special">=</span> <span class="string">"net"</span><span class="special">),</span>
+        <span class="comment">// We also can separate statistic records in a different channel</span>
+        <span class="comment">// in order to route them to a different sink</span>
+        <span class="identifier">m_stat</span><span class="special">(</span><span class="identifier">keywords</span><span class="special">::</span><span class="identifier">channel</span> <span class="special">=</span> <span class="string">"stat"</span><span class="special">)</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">on_connected</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">remote_addr</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="comment">// Add the remote address to both channels</span>
+        <span class="identifier">attrs</span><span class="special">::</span><span class="identifier">constant</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;</span> <span class="identifier">addr</span><span class="special">(</span><span class="identifier">remote_addr</span><span class="special">);</span>
+        <span class="identifier">m_net_remote_addr</span> <span class="special">=</span> <span class="identifier">m_net</span><span class="special">.</span><span class="identifier">add_attribute</span><span class="special">(</span><span class="string">"RemoteAddress"</span><span class="special">,</span> <span class="identifier">addr</span><span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+        <span class="identifier">m_stat_remote_addr</span> <span class="special">=</span> <span class="identifier">m_stat</span><span class="special">.</span><span class="identifier">add_attribute</span><span class="special">(</span><span class="string">"RemoteAddress"</span><span class="special">,</span> <span class="identifier">addr</span><span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+
+        <span class="comment">// Put message to the "net" channel</span>
+        <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">m_net</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Connection established"</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">on_disconnected</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="comment">// Put message to the "net" channel</span>
+        <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">m_net</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Connection shut down"</span><span class="special">;</span>
+
+        <span class="comment">// Remove the attribute with the remote address</span>
+        <span class="identifier">m_net</span><span class="special">.</span><span class="identifier">remove_attribute</span><span class="special">(</span><span class="identifier">m_net_remote_addr</span><span class="special">);</span>
+        <span class="identifier">m_stat</span><span class="special">.</span><span class="identifier">remove_attribute</span><span class="special">(</span><span class="identifier">m_stat_remote_addr</span><span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">on_data_received</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">m_stat</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"ReceivedSize"</span><span class="special">,</span> <span class="identifier">size</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Some data received"</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">on_data_sent</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">m_stat</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"SentSize"</span><span class="special">,</span> <span class="identifier">size</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Some data sent"</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          It is also possible to set the channel name of individual log records.
+          This can be useful when a <a class="link" href="sources.html#log.detailed.sources.global_storage" title="Global storage for loggers">global
+          logger</a> is used instead of an object-specific one. The channel name
+          can be set by calling the <code class="computeroutput"><span class="identifier">channel</span></code>
+          modifier on the logger or by using a special macro for logging. For example:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Define a global logger</span>
+<span class="identifier">BOOST_LOG_INLINE_GLOBAL_LOGGER_CTOR_ARGS</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">,</span> <span class="identifier">src</span><span class="special">::</span><span class="identifier">channel_logger_mt</span><span class="special">&lt;</span> <span class="special">&gt;,</span> <span class="special">(</span><span class="identifier">keywords</span><span class="special">::</span><span class="identifier">channel</span> <span class="special">=</span> <span class="string">"general"</span><span class="special">))</span>
+
+<span class="keyword">class</span> <span class="identifier">network_connection</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">m_remote_addr</span><span class="special">;</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">void</span> <span class="identifier">on_connected</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">remote_addr</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">m_remote_addr</span> <span class="special">=</span> <span class="identifier">remote_addr</span><span class="special">;</span>
+
+        <span class="comment">// Put message to the "net" channel</span>
+        <span class="identifier">BOOST_LOG_CHANNEL</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">::</span><span class="identifier">get</span><span class="special">(),</span> <span class="string">"net"</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"RemoteAddress"</span><span class="special">,</span> <span class="identifier">m_remote_addr</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="string">"Connection established"</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">on_disconnected</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="comment">// Put message to the "net" channel</span>
+        <span class="identifier">BOOST_LOG_CHANNEL</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">::</span><span class="identifier">get</span><span class="special">(),</span> <span class="string">"net"</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"RemoteAddress"</span><span class="special">,</span> <span class="identifier">m_remote_addr</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="string">"Connection shut down"</span><span class="special">;</span>
+
+        <span class="identifier">m_remote_addr</span><span class="special">.</span><span class="identifier">clear</span><span class="special">();</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">on_data_received</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">BOOST_LOG_CHANNEL</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">::</span><span class="identifier">get</span><span class="special">(),</span> <span class="string">"stat"</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"RemoteAddress"</span><span class="special">,</span> <span class="identifier">m_remote_addr</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"ReceivedSize"</span><span class="special">,</span> <span class="identifier">size</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="string">"Some data received"</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">on_data_sent</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">BOOST_LOG_CHANNEL</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">::</span><span class="identifier">get</span><span class="special">(),</span> <span class="string">"stat"</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"RemoteAddress"</span><span class="special">,</span> <span class="identifier">m_remote_addr</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"SentSize"</span><span class="special">,</span> <span class="identifier">size</span><span class="special">)</span>
+            <span class="special">&lt;&lt;</span> <span class="string">"Some data sent"</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          Note that changing the channel name is persistent, so unless the channel
+          name is reset, the subsequent records will also belong to the new channel.
+        </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            For performance reasons it is advised to avoid dynamically setting the
+            channel name individually for every log record, when possible. Changing
+            the channel name involves dynamic memory allocation. Using distinct loggers
+            for different channels allows to avoid this overhead.
+          </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.sources.exception_handling"></a><a class="link" href="sources.html#log.detailed.sources.exception_handling" title="Loggers with exception handling support">Loggers with
+        exception handling support</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../logging_sources.html#header.boost.log.sources.exception_handler_feature_hpp" title="Header &lt;boost/log/sources/exception_handler_feature.hpp&gt;">boost/log/sources/exception_handler_feature.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          The library provides a logger feature that enables the user to handle and/or
+          suppress exceptions at the logger level. The <code class="computeroutput"><a class="link" href="../../boost/log/sources/exception_handler.html" title="Struct exception_handler">exception_handler</a></code>
+          feature adds a <code class="computeroutput"><span class="identifier">set_exception_handler</span></code>
+          method to the logger that allows setting a function object to be called
+          if an exception is thrown from the logging core during the filtering or
+          processing of log records. One can use the <a class="link" href="utilities.html#log.detailed.utilities.exception_handlers" title="Exception handlers">library-provided
+          adapters</a> to simplify implementing exception handlers. Usage example
+          is as follows:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">enum</span> <span class="identifier">severity_level</span>
+<span class="special">{</span>
+    <span class="identifier">normal</span><span class="special">,</span>
+    <span class="identifier">warning</span><span class="special">,</span>
+    <span class="identifier">error</span>
+<span class="special">};</span>
+
+<span class="comment">// A logger class that allows to intercept exceptions and supports severity level</span>
+<span class="keyword">class</span> <span class="identifier">my_logger_mt</span> <span class="special">:</span>
+    <span class="keyword">public</span> <span class="identifier">src</span><span class="special">::</span><span class="identifier">basic_composite_logger</span><span class="special">&lt;</span>
+        <span class="keyword">char</span><span class="special">,</span>
+        <span class="identifier">my_logger_mt</span><span class="special">,</span>
+        <span class="identifier">src</span><span class="special">::</span><span class="identifier">multi_thread_model</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_mutex</span> <span class="special">&gt;,</span>
+        <span class="identifier">src</span><span class="special">::</span><span class="identifier">features</span><span class="special">&lt;</span>
+            <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;,</span>
+            <span class="identifier">src</span><span class="special">::</span><span class="identifier">exception_handler</span>
+        <span class="special">&gt;</span>
+    <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_LOG_FORWARD_LOGGER_MEMBERS</span><span class="special">(</span><span class="identifier">my_logger_mt</span><span class="special">)</span>
+<span class="special">};</span>
+
+<span class="identifier">BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">,</span> <span class="identifier">my_logger_mt</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">my_logger_mt</span> <span class="identifier">lg</span><span class="special">;</span>
+
+    <span class="comment">// Set up exception handler: all exceptions that occur while</span>
+    <span class="comment">// logging through this logger, will be suppressed</span>
+    <span class="identifier">lg</span><span class="special">.</span><span class="identifier">set_exception_handler</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">make_exception_suppressor</span><span class="special">());</span>
+
+    <span class="keyword">return</span> <span class="identifier">lg</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">logging_function</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// This will not throw</span>
+    <span class="identifier">BOOST_LOG_SEV</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">::</span><span class="identifier">get</span><span class="special">(),</span> <span class="identifier">normal</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Hello, world"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            <a class="link" href="../detailed.html#log.detailed.core.core.exception_handling" title="Exception handling">Logging core</a>
+            and <a class="link" href="sink_frontends.html#log.detailed.sink_frontends.basic_services.exception_handling" title="Exception handling">sink
+            frontends</a> also support installing exception handlers.
+          </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.sources.mixed_loggers"></a><a class="link" href="sources.html#log.detailed.sources.mixed_loggers" title="Loggers with mixed features">Loggers with mixed
+        features</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../logging_sources.html#header.boost.log.sources.severity_channel_logger_hpp" title="Header &lt;boost/log/sources/severity_channel_logger.hpp&gt;">boost/log/sources/severity_channel_logger.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          If you wonder whether you can use a mixed set of several logger features
+          in one logger, then yes, you certainly can. The library provides <code class="computeroutput"><a class="link" href="../../boost/log/sources/severity_channel_logger.html" title="Class template severity_channel_logger">severity_channel_logger</a></code>
+          and <code class="computeroutput"><a class="link" href="../../boost/log/sources/severity_channel_logger_mt.html" title="Class template severity_channel_logger_mt">severity_channel_logger_mt</a></code>
+          (with their wide-char analogues <code class="computeroutput"><a class="link" href="../../boost/log/sources/wseverity_channel_logger.html" title="Class template wseverity_channel_logger">wseverity_channel_logger</a></code>
+          and <code class="computeroutput"><a class="link" href="../../boost/log/sources/wseverity_chan_idp26795608.html" title="Class template wseverity_channel_logger_mt">wseverity_channel_logger_mt</a></code>)
+          which combine features of the described loggers with <a class="link" href="sources.html#log.detailed.sources.severity_level_logger" title="Loggers with severity level support">severity
+          level</a> and <a class="link" href="sources.html#log.detailed.sources.channel_logger" title="Loggers with channel support">channels</a>
+          support. The composite loggers are templates, too, which allows you to
+          specify severity level and channel types. You can also design your own
+          logger features and combine them with the ones provided by the library,
+          as described in the <a class="link" href="../extension/sources.html" title="Writing your own sources">Extending the
+          library</a> section.
+        </p>
+<p>
+          The usage of the loggers with several features does not conceptually differ
+          from the usage of the single-featured loggers. For instance, here is how
+          a <code class="computeroutput"><a class="link" href="../../boost/log/sources/severity_channel_logger_mt.html" title="Class template severity_channel_logger_mt">severity_channel_logger_mt</a></code>
+          could be used:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">enum</span> <span class="identifier">severity_level</span>
+<span class="special">{</span>
+    <span class="identifier">normal</span><span class="special">,</span>
+    <span class="identifier">notification</span><span class="special">,</span>
+    <span class="identifier">warning</span><span class="special">,</span>
+    <span class="identifier">error</span><span class="special">,</span>
+    <span class="identifier">critical</span>
+<span class="special">};</span>
+
+<span class="keyword">typedef</span> <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_channel_logger_mt</span><span class="special">&lt;</span>
+    <span class="identifier">severity_level</span><span class="special">,</span>     <span class="comment">// the type of the severity level</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span>         <span class="comment">// the type of the channel name</span>
+<span class="special">&gt;</span> <span class="identifier">my_logger_mt</span><span class="special">;</span>
+
+
+<span class="identifier">BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">,</span> <span class="identifier">my_logger_mt</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// Specify the channel name on construction, similarly as with the channel_logger</span>
+    <span class="keyword">return</span> <span class="identifier">my_logger_mt</span><span class="special">(</span><span class="identifier">keywords</span><span class="special">::</span><span class="identifier">channel</span> <span class="special">=</span> <span class="string">"my_logger"</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">logging_function</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Do logging with the severity level. The record will have both</span>
+    <span class="comment">// the severity level and the channel name attached.</span>
+    <span class="identifier">BOOST_LOG_SEV</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">::</span><span class="identifier">get</span><span class="special">(),</span> <span class="identifier">normal</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Hello, world!"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="log.detailed.sources.global_storage"></a><a class="link" href="sources.html#log.detailed.sources.global_storage" title="Global storage for loggers">Global storage
+        for loggers</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../logging_sources.html#header.boost.log.sources.global_logger_storage_hpp" title="Header &lt;boost/log/sources/global_logger_storage.hpp&gt;">boost/log/sources/global_logger_storage.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+          Sometimes it is inconvenient to have a logger object to be able to write
+          logs. This issue is often present in functional-style code with no obvious
+          places where a logger could be stored. Another domain where the problem
+          persists is generic libraries that would benefit from logging. In such
+          cases it would be more convenient to have one or several global loggers
+          in order to easily access them in every place when needed. In this regard
+          <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span></code> is a good example of such a logger.
+        </p>
+<p>
+          The library provides a way to declare global loggers that can be accessed
+          pretty much like <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span></code>. In fact, this feature can be used
+          with any logger, including user-defined ones. Having declared a global
+          logger, one can be sure to have a thread-safe access to this logger instance
+          from any place of the application code. The library also guarantees that
+          a global logger instance will be unique even across module boundaries.
+          This allows employing logging even in header-only components that may get
+          compiled into different modules.
+        </p>
+<p>
+          One may wonder why there is a need for something special in order to create
+          global loggers. Why not just declare a logger variable at namespace scope
+          and use it wherever you need? While technically this is possible, declaring
+          and using global logger variables is complicated for the following reasons:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Order of initialization of namespace scope variables is not specified
+              by the C++ Standard. This means that generally you cannot use the logger
+              during this stage of initialization (i.e. before <code class="computeroutput"><span class="identifier">main</span></code>).
+            </li>
+<li class="listitem">
+              Initialization of namespace scope variables is not thread-safe. You
+              may end up initializing the same logger twice or using an uninitialized
+              logger.
+            </li>
+<li class="listitem">
+              Using namespace scope variables in a header-only library is quite complicated.
+              One either has to declare a variable with external linkage and define
+              it only in a single translation unit (that is, in a separate .cpp file,
+              which defeats the "header-only" thesis), or define a variable
+              with internal linkage, or as a special case in an anonymous namespace
+              (this will most likely break ODR and give unexpected results when the
+              header is used in different translation units). There are other compiler-specific
+              and standard tricks to tackle the problem, but they are not quite trivial
+              and portable.
+            </li>
+<li class="listitem">
+              On most platforms namespace scope variables are local to the module
+              where they were compiled in. That is, if variable <code class="computeroutput"><span class="identifier">a</span></code>
+              has external linkage and was compiled into modules X and Y, each of
+              these modules has its own copy of variable <code class="computeroutput"><span class="identifier">a</span></code>.
+              To make things worse, on other platforms this variable can be shared
+              between the modules.
+            </li>
+</ul></div>
+<p>
+          Global logger storage is intended to eliminate all these problems.
+        </p>
+<p>
+          The easiest way to declare a global logger is to use the following macro:
+        </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../../BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT.html" title="Macro BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT">BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT</a></code><span class="special">(</span><span class="identifier">my_logger</span><span class="special">,</span> <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_logger_mt</span><span class="special">&lt;</span> <span class="special">&gt;)</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">my_logger</span></code> argument
+          gives the logger a name that may be used to acquire the logger instance.
+          This name acts as a tag of the declared logger. The second parameter denotes
+          the logger type. In multithreaded applications, when the logger can be
+          accessed from different threads, users will normally want to use the thread-safe
+          versions of loggers.
+        </p>
+<p>
+          If passing arguments to the logger constructor is needed, there is another
+          macro:
+        </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../../BOOST_LOG_INLINE_GLOBAL_LOGGER_CTOR_ARGS.html" title="Macro BOOST_LOG_INLINE_GLOBAL_LOGGER_CTOR_ARGS">BOOST_LOG_INLINE_GLOBAL_LOGGER_CTOR_ARGS</a></code><span class="special">(</span>
+    <span class="identifier">my_logger</span><span class="special">,</span>
+    <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_channel_logger</span><span class="special">&lt;</span> <span class="special">&gt;,</span>
+    <span class="special">(</span><span class="identifier">keywords</span><span class="special">::</span><span class="identifier">severity</span> <span class="special">=</span> <span class="identifier">error</span><span class="special">)(</span><span class="identifier">keywords</span><span class="special">::</span><span class="identifier">channel</span> <span class="special">=</span> <span class="string">"my_channel"</span><span class="special">))</span>
+</pre>
+<p>
+          The last macro argument is a <a href="http://www.boost.org/doc/libs/release/libs/preprocessor/doc/index.html" target="_top">Boost.Preprocessor</a>
+          sequence of arguments passed to the logger constructor. Be careful, however,
+          when using non-constant expressions and references to objects as constructor
+          arguments, since the arguments are evaluated only once and it is often
+          difficult to tell the exact moment when it is done. The logger is constructed
+          on the first request from whichever part of the application that has the
+          knowledge of the logger declaration. It is up to user to make sure that
+          all arguments have valid states at that point.
+        </p>
+<p>
+          The third macro of this section provides maximum initialization flexibility,
+          allowing the user to actually define the logic of creating the logger.
+        </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../../BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT.html" title="Macro BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT">BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT</a></code><span class="special">(</span><span class="identifier">my_logger</span><span class="special">,</span> <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_logger_mt</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// Do something that needs to be done on logger initialization,</span>
+    <span class="comment">// e.g. add a stop watch attribute.</span>
+    <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_logger_mt</span><span class="special">&lt;</span> <span class="special">&gt;</span> <span class="identifier">lg</span><span class="special">;</span>
+    <span class="identifier">lg</span><span class="special">.</span><span class="identifier">add_attribute</span><span class="special">(</span><span class="string">"StopWatch"</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">attrs</span><span class="special">::</span><span class="identifier">timer</span> <span class="special">&gt;());</span>
+    <span class="comment">// The initializing routine must return the logger instance</span>
+    <span class="keyword">return</span> <span class="identifier">lg</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          Like the <code class="computeroutput"><a class="link" href="../../BOOST_LOG_INLINE_GLOBAL_LOGGER_CTOR_ARGS.html" title="Macro BOOST_LOG_INLINE_GLOBAL_LOGGER_CTOR_ARGS">BOOST_LOG_INLINE_GLOBAL_LOGGER_CTOR_ARGS</a></code>
+          macro, the initialization code is called only once, on the first request
+          of the logger.
+        </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Beware of One Definition Rule (ODR) issues. Regardless of the way of
+            logger declaration you choose, you should ensure that <span class="underline">the
+            logger is declared in exactly the same way at all occurrences</span>
+            and <span class="underline">all symbol names involved in the declaration
+            resolve to the same entities</span>. The latter includes the names
+            used within the initialization routine of the <code class="computeroutput"><a class="link" href="../../BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT.html" title="Macro BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT">BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT</a></code>
+            macro, such as references to external variables, functions and types.
+            The library tries to protect itself from ODR violations to a certain
+            degree, but in general the behavior is undefined if the rule is violated.
+          </p></td></tr>
+</table></div>
+<p>
+          In order to alleviate ODR problems, it is possible to separate the logger
+          declaration and its initialization routine. The library provides the following
+          macros to achieve this:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><a class="link" href="../../BOOST_LOG_GLOBAL_LOGGER.html" title="Macro BOOST_LOG_GLOBAL_LOGGER">BOOST_LOG_GLOBAL_LOGGER</a></code>
+              provides the logger declaration. It can be used in a header, similarly
+              to the <code class="computeroutput"><span class="identifier">BOOST_LOG_INLINE_GLOBAL_LOGGER</span><span class="special">*</span></code> macros described above.
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><a class="link" href="../../BOOST_LOG_GLOBAL_LOGGER_INIT.html" title="Macro BOOST_LOG_GLOBAL_LOGGER_INIT">BOOST_LOG_GLOBAL_LOGGER_INIT</a></code>,
+              <code class="computeroutput"><a class="link" href="../../BOOST_LOG_GLOBAL_LOGGER_DEFAULT.html" title="Macro BOOST_LOG_GLOBAL_LOGGER_DEFAULT">BOOST_LOG_GLOBAL_LOGGER_DEFAULT</a></code>
+              and <code class="computeroutput"><a class="link" href="../../BOOST_LOG_GLOBAL_LOGGER_CTOR_ARGS.html" title="Macro BOOST_LOG_GLOBAL_LOGGER_CTOR_ARGS">BOOST_LOG_GLOBAL_LOGGER_CTOR_ARGS</a></code>
+              define the logger initialization routine. Their semantics and usage
+              is similar to the corresponding <code class="computeroutput"><span class="identifier">BOOST_LOG_INLINE_GLOBAL_LOGGER</span><span class="special">*</span></code> macros, for one exception: these macros
+              should be used in a single .cpp file.
+            </li>
+</ul></div>
+<p>
+          For example:
+        </p>
+<pre class="programlisting"><span class="comment">// my_logger.h</span>
+<span class="comment">// ===========</span>
+
+<span class="identifier">BOOST_LOG_GLOBAL_LOGGER</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">,</span> <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_logger_mt</span><span class="special">)</span>
+
+
+<span class="comment">// my_logger.cpp</span>
+<span class="comment">// ===========</span>
+
+<span class="preprocessor">#include</span> <span class="string">"my_logger.h"</span>
+
+<span class="identifier">BOOST_LOG_GLOBAL_LOGGER_INIT</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">,</span> <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_logger_mt</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_logger_mt</span><span class="special">&lt;</span> <span class="special">&gt;</span> <span class="identifier">lg</span><span class="special">;</span>
+    <span class="identifier">lg</span><span class="special">.</span><span class="identifier">add_attribute</span><span class="special">(</span><span class="string">"StopWatch"</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_shared</span><span class="special">&lt;</span> <span class="identifier">attrs</span><span class="special">::</span><span class="identifier">timer</span> <span class="special">&gt;());</span>
+    <span class="keyword">return</span> <span class="identifier">lg</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          Regardless of the macro you used to declare the logger, you can acquire
+          the logger instance with the static <code class="computeroutput"><span class="identifier">get</span></code>
+          function of the logger tag:
+        </p>
+<pre class="programlisting"><span class="identifier">src</span><span class="special">::</span><span class="identifier">severity_logger_mt</span><span class="special">&lt;</span> <span class="special">&gt;&amp;</span> <span class="identifier">lg</span> <span class="special">=</span> <span class="identifier">my_logger</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+</pre>
+<p>
+          Further usage of the logger is the same as if it was a regular logger object
+          of the corresponding type.
+        </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            It should be noted that it is not advised to use global loggers during
+            the deinitialization stage of the application. Like any other global
+            object in your application, the global logger may get destroyed before
+            you try to use it. In such cases it's better to have a dedicated logger
+            object that is guaranteed to be available as long as needed.
+          </p></td></tr>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../detailed.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../detailed.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sink_frontends.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>UnaryLexer</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../lexer_concepts.html" title="Lexer Concepts">
+<link rel="prev" href="primitivelexer.html" title="PrimitiveLexer">
+<link rel="next" href="narylexer.html" title="NaryLexer">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="primitivelexer.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lexer_concepts.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="narylexer.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.lex.reference.lexer_concepts.unarylexer"></a><a class="link" href="unarylexer.html" title="UnaryLexer">UnaryLexer</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.lex.reference.lexer_concepts.unarylexer.h0"></a>
+            <span class="phrase"><a name="spirit.lex.reference.lexer_concepts.unarylexer.description"></a></span><a class="link" href="unarylexer.html#spirit.lex.reference.lexer_concepts.unarylexer.description">Description</a>
+          </h6>
+<p>
+            <span class="emphasis"><em>UnaryLexer</em></span> is a composite lexer component that has
+            a single subject. The UnaryLexer may change the behavior of its subject
+            following the Delegate Design Pattern.
+          </p>
+<h6>
+<a name="spirit.lex.reference.lexer_concepts.unarylexer.h1"></a>
+            <span class="phrase"><a name="spirit.lex.reference.lexer_concepts.unarylexer.refinement_of"></a></span><a class="link" href="unarylexer.html#spirit.lex.reference.lexer_concepts.unarylexer.refinement_of">Refinement
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="lexer.html" title="Lexer"><code class="computeroutput"><span class="identifier">Lexer</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">l</span></code></span></dt>
+<dd><p>
+                  A UnaryLexer.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">L</span></code></span></dt>
+<dd><p>
+                  A UnaryLexer type.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.lex.reference.lexer_concepts.unarylexer.h2"></a>
+            <span class="phrase"><a name="spirit.lex.reference.lexer_concepts.unarylexer.valid_expressions"></a></span><a class="link" href="unarylexer.html#spirit.lex.reference.lexer_concepts.unarylexer.valid_expressions">Valid
+            Expressions</a>
+          </h6>
+<p>
+            In addition to the requirements defined in <a class="link" href="lexer.html" title="Lexer"><code class="computeroutput"><span class="identifier">Lexer</span></code></a>, for any UnaryLexer the
+            following must be met:
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Return type
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">l</span><span class="special">.</span><span class="identifier">subject</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Subject lexer component.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <a class="link" href="lexer.html" title="Lexer"><code class="computeroutput"><span class="identifier">Lexer</span></code></a>
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.lex.reference.lexer_concepts.unarylexer.h3"></a>
+            <span class="phrase"><a name="spirit.lex.reference.lexer_concepts.unarylexer.type_expressions"></a></span><a class="link" href="unarylexer.html#spirit.lex.reference.lexer_concepts.unarylexer.type_expressions">Type
+            Expressions</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">L</span><span class="special">::</span><span class="identifier">subject_type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The subject lexer component type.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_unary_lexer</span><span class="special">&lt;</span><span class="identifier">L</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Metafunction that evaluates to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+                      if a certain type, <code class="computeroutput"><span class="identifier">L</span></code>
+                      is a UnaryLexer, <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>
+                      otherwise (See <a href="../../../../../../../../libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+                      Boolean Constant</a>).
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.lex.reference.lexer_concepts.unarylexer.h4"></a>
+            <span class="phrase"><a name="spirit.lex.reference.lexer_concepts.unarylexer.invariants"></a></span><a class="link" href="unarylexer.html#spirit.lex.reference.lexer_concepts.unarylexer.invariants">Invariants</a>
+          </h6>
+<p>
+            For any UnaryLexer, <code class="computeroutput"><span class="identifier">L</span></code>,
+            the following invariant always holds:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_lexer</span><span class="special">&lt;</span><span class="identifier">L</span><span class="special">::</span><span class="identifier">subject_type</span><span class="special">&gt;::</span><span class="identifier">type</span></code> evaluates to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+              </li></ul></div>
+<h6>
+<a name="spirit.lex.reference.lexer_concepts.unarylexer.h5"></a>
+            <span class="phrase"><a name="spirit.lex.reference.lexer_concepts.unarylexer.models"></a></span><a class="link" href="unarylexer.html#spirit.lex.reference.lexer_concepts.unarylexer.models">Models</a>
+          </h6>
+<p>
+            The following lexer components conform to this model:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                action lexer component (allowing to attach semantic actions)
+              </li></ul></div>
+<p>
+            <span class="bold"><strong>FIXME</strong></span> Add more links to models of UnaryLexer
+            concept
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="primitivelexer.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lexer_concepts.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="narylexer.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,386 @@
+[library Boost.Functional/Factory
+  [quickbook 1.3]
+  [version 1.0]
+  [authors [Schwinger, Tobias]]
+  [copyright 2007 2008 Tobias Schwinger]
+  [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at 
+        [@http://www.boost.org/LICENSE_1_0.txt])
+  ]
+  [purpose Function object templates for object creation.]
+  [category higher-order]
+  [category generic]
+  [last-revision $Date: 2008/11/01 21:44:52 $]
+]
+
+[def __boost_bind__ [@http://www.boost.org/libs/bind/bind.html Boost.Bind]]
+[def __boost__bind__ [@http://www.boost.org/libs/bind/bind.html `boost::bind`]]
+
+[def __boost__forward_adapter__ [@http://www.boost.org/libs/functional/forward/doc/index.html `boost::forward_adapter`]]
+[def __fusion_functional_adapters__ [@http://www.boost.org/libs/fusion/doc/html/functional.html Fusion Functional Adapters]]
+
+[def __boost_function__ [@http://www.boost.org/doc/html/function.html Boost.Function]]
+[def __boost__function__ [@http://www.boost.org/doc/html/function.html `boost::function`]]
+
+[def __smart_pointer__ [@http://www.boost.org/libs/smart_ptr/index.html Smart Pointer]]
+[def __smart_pointers__ [@http://www.boost.org/libs/smart_ptr/index.html Smart Pointers]]
+[def __boost__shared_ptr__ [@http://www.boost.org/libs/smart_ptr/shared_ptr.htm `boost::shared_ptr`]]
+
+[def __std__map__ [@http://www.sgi.com/tech/stl/map.html `std::map`]]
+[def __std__string__ [@http://www.sgi.com/tech/stl/string.html `std::string`]]
+[def __allocator__ [@http://www.sgi.com/tech/stl/concepts/allocator.html Allocator]]
+[def __std_allocator__ [@http://www.sgi.com/tech/stl/concepts/allocator.html Allocator]]
+[def __std_allocators__ [@http://www.sgi.com/tech/stl/concepts/allocator.html Allocators]]
+
+[def __boost__ptr_map__ [@http://www.boost.org/libs/ptr_container/doc/ptr_map.html `boost::ptr_map`]]
+
+[def __boost__factory__ `boost::factory`]
+[def __boost__value_factory__ `boost::value_factory`]
+
+[def __factory__ `factory`]
+[def __value_factory__ `value_factory`]
+
+
+[section Brief Description]
+
+The template __boost__factory__ lets you encapsulate a `new` expression
+as a function object, __boost__value_factory__ encapsulates a constructor
+invocation without `new`.
+
+    __boost__factory__<T*>()(arg1,arg2,arg3) 
+    // same as new T(arg1,arg2,arg3)
+
+    __boost__value_factory__<T>()(arg1,arg2,arg3)
+    // same as T(arg1,arg2,arg3)
+
+For technical reasons the arguments to the function objects have to be
+LValues. A factory that also accepts RValues can be composed using the
+__boost__forward_adapter__ or __boost__bind__.
+
+[endsect]
+
+[section Background]
+
+In traditional Object Oriented Programming a Factory is an object implementing
+an interface of one or more methods that construct objects conforming to known
+interfaces.
+
+    // assuming a_concrete_class and another_concrete_class are derived
+    // from an_abstract_class
+
+    class a_factory
+    {
+      public:
+        virtual an_abstract_class* create() const = 0;
+        virtual ~a_factory() { }
+    };
+
+    class a_concrete_factory : public a_factory
+    {
+      public:
+        virtual an_abstract_class* create() const
+        {
+            return new a_concrete_class();
+        }
+    };
+
+    class another_concrete_factory : public a_factory
+    {
+      public:
+        virtual an_abstract_class* create() const
+        {
+            return new another_concrete_class();
+        }
+    };
+
+    // [...]
+
+    int main()
+    {
+        __boost__ptr_map__<__std__string__,a_factory> factories;
+
+        // [...]
+
+        factories.insert("a_name",std::auto_ptr<a_factory>(
+            new a_concrete_factory));
+        factories.insert("another_name",std::auto_ptr<a_factory>(
+            new another_concrete_factory));
+
+        // [...]
+
+        std::auto_ptr<an_abstract_class> x(factories.at(some_name).create());
+
+        // [...]
+    }
+
+This approach has several drawbacks. The most obvious one is that there is
+lots of boilerplate code. In other words there is too much code to express
+a rather simple intention. We could use templates to get rid of some of it
+but the approach remains inflexible: 
+
+* We may want a factory that takes some arguments that are forwarded to
+  the constructor,
+* we will probably want to use smart pointers,
+* we may want several member functions to create different kinds of
+  objects,
+* we might not necessarily need a polymorphic base class for the objects,
+* as we will see, we do not need a factory base class at all, 
+* we might want to just call the constructor - without `new` to create
+  an object on the stack, and
+* finally we might want to use customized memory management.
+
+Experience has shown that using function objects and generic Boost components
+for their composition, Design Patterns that describe callback mechanisms
+(typically requiring a high percentage of boilerplate code with pure Object
+Oriented methodology) become implementable with just few code lines and without
+extra classes. 
+
+Factories are callback mechanisms for constructors, so we provide two class
+templates, __boost__value_factory__ and __boost__factory__, that encapsulate
+object construction via direct application of the constructor and the `new`
+operator, respectively. 
+
+We let the function objects forward their arguments to the construction
+expressions they encapsulate. Over this __boost__factory__ optionally allows
+the use of smart pointers and __std_allocators__.
+
+Compile-time polymorphism can be used where appropriate,
+
+    template< class T >
+    void do_something()
+    {
+        // [...]
+        T x = T(a,b);
+
+        // for conceptually similar objects x we neither need virtual
+        // functions nor a common base class in this context.
+        // [...]
+    }
+
+Now, to allow inhomogeneous signatures for the constructors of the types passed
+in for `T` we can use __value_factory__ and __boost__bind__ to normalize between
+them. 
+
+    template< class ValueFactory > 
+    void do_something(ValueFactory make_obj = ValueFactory())
+    {
+        // [...]
+        typename ValueFactory::result_type x = make_obj(a,b);
+
+        // for conceptually similar objects x we neither need virtual
+        // functions nor a common base class in this context.
+        // [...]
+    }
+
+    int main()
+    {
+        // [...]
+
+        do_something(__boost__value_factory__<X>());
+        do_something(boost::bind(__boost__value_factory__<Y>(),_1,5,_2));
+        // construct X(a,b) and Y(a,5,b), respectively.
+
+        // [...]
+    }
+
+Maybe we want our objects to outlive the function's scope, in this case we
+have to use dynamic allocation;
+
+    template< class Factory >
+    whatever do_something(Factory new_obj = Factory())
+    {
+        typename Factory::result_type ptr = new_obj(a,b);
+
+        // again, no common base class or virtual functions needed,
+        // we could enforce a polymorphic base by writing e.g.
+        //    boost::shared_ptr<base>
+        // instead of
+        //    typename Factory::result_type
+        // above.
+        // Note that we are also free to have the type erasure happen 
+        // somewhere else (e.g. in the constructor of this function's
+        // result type).
+
+        // [...]
+    }
+
+    // [... call do_something like above but with __factory__ instead
+    // of __value_factory__]
+
+Although we might have created polymorphic objects in the previous example,
+we have used compile time polymorphism for the factory. If we want to erase
+the type of the factory and thus allow polymorphism at run time, we can
+use __boost_function__ to do so. The first example can be rewritten as 
+follows.
+
+    typedef boost::function< an_abstract_class*() > a_factory;
+
+    // [...]
+
+    int main()
+    {
+        __std__map__<__std__string__,a_factory> factories;
+
+        // [...]
+
+        factories["a_name"] = __boost__factory__<a_concrete_class*>();
+        factories["another_name"] = 
+            __boost__factory__<another_concrete_class*>();
+
+        // [...]
+    } 
+
+Of course we can just as easy create factories that take arguments and/or
+return __smart_pointers__.
+
+[endsect]
+
+
+[section:reference Reference]
+
+
+[section value_factory]
+
+[heading Description]
+
+Function object template that invokes the constructor of the type `T`.
+
+[heading Header]
+    #include <boost/functional/value_factory.hpp>
+
+[heading Synopsis]
+
+    namespace boost
+    {
+        template< typename T >
+        class value_factory;
+    }
+
+[variablelist Notation
+    [[`T`]         [an arbitrary type with at least one public constructor]]
+    [[`a0`...`aN`] [argument LValues to a constructor of `T`]]
+    [[`F`]         [the type `value_factory<F>`]]
+    [[`f`]         [an instance object of `F`]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[`F()`]            [creates an object of type `F`.]]
+    [[`F(f)`]           [creates an object of type `F`.]]
+    [[`f(a0`...`aN)`]   [returns `T(a0`...`aN)`.]]
+    [[`F::result_type`] [is the type `T`.]]
+]
+
+[heading Limits]
+
+The macro BOOST_FUNCTIONAL_VALUE_FACTORY_MAX_ARITY can be defined to set the
+maximum arity. It defaults to 10.
+
+[endsect]
+
+
+[section factory]
+
+[heading Description]
+
+Function object template that dynamically constructs a pointee object for
+the type of pointer given as template argument. Smart pointers may be used
+for the template argument, given that `boost::pointee<Pointer>::type` yields
+the pointee type.
+
+If an __allocator__ is given, it is used for memory allocation and the 
+placement form of the `new` operator is used to construct the object.
+A function object that calls the destructor and deallocates the memory
+with a copy of the Allocator is used for the second constructor argument
+of `Pointer` (thus it must be a __smart_pointer__ that provides a suitable 
+constructor, such as __boost__shared_ptr__).
+
+If a third template argument is `factory_passes_alloc_to_smart_pointer`,
+the allocator itself is used for the third constructor argument of `Pointer`
+(__boost__shared_ptr__ then uses the allocator to manage the memory of its
+separately allocated reference counter).
+
+[heading Header]
+    #include <boost/functional/factory.hpp>
+
+[heading Synopsis]
+
+    namespace boost
+    {
+        enum factory_alloc_propagation
+        {
+            factory_alloc_for_pointee_and_deleter,
+            factory_passes_alloc_to_smart_pointer
+        };
+
+        template< typename Pointer, 
+            class Allocator = boost::none_t,
+            factory_alloc_propagation AllocProp =
+                factory_alloc_for_pointee_and_deleter >
+        class factory;
+    }
+
+[variablelist Notation
+    [[`T`]         [an arbitrary type with at least one public constructor]]
+    [[`P`]         [pointer or smart pointer to `T`]]
+    [[`a0`...`aN`] [argument LValues to a constructor of `T`]]
+    [[`F`]         [the type `factory<P>`]]
+    [[`f`]         [an instance object of `F`]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[`F()`]            [creates an object of type `F`.]]
+    [[`F(f)`]           [creates an object of type `F`.]]
+    [[`f(a0`...`aN)`]   [dynamically creates an object of type `T` using 
+        `a0`...`aN` as arguments for the constructor invocation.]]
+    [[`F::result_type`] [is the type `P` with top-level cv-qualifiers removed.]]
+]
+
+[heading Limits]
+
+The macro BOOST_FUNCTIONAL_FACTORY_MAX_ARITY can be defined to set the
+maximum arity. It defaults to 10.
+
+[endsect]
+
+[endsect]
+
+[section Acknowledgements]
+
+Eric Niebler requested a function to invoke a type's constructor (with the 
+arguments supplied as a Tuple) as a Fusion feature. These Factory utilities are
+a factored-out generalization of this idea.
+
+Dave Abrahams suggested Smart Pointer support for exception safety, providing
+useful hints for the implementation.
+
+Joel de Guzman's documentation style was copied from Fusion.
+
+Further, I want to thank Peter Dimov for sharing his insights on language
+details and their evolution.
+
+[endsect]
+
+[section References]
+
+# [@http://en.wikipedia.org/wiki/Design_Patterns Design Patterns],
+  Gamma et al. - Addison Wesley Publishing, 1995
+
+# [@http://www.sgi.com/tech/stl/ Standard Template Library Programmer's Guide], 
+  Hewlett-Packard Company, 1994
+
+# [@http://www.boost.org/libs/bind/bind.html Boost.Bind], 
+  Peter Dimov, 2001-2005
+
+# [@http://www.boost.org/doc/html/function.html Boost.Function],
+  Douglas Gregor, 2001-2004
+
+[endsect]
+
+

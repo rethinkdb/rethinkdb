@@ -1,0 +1,163 @@
+# Copyright 2003 Dave Abrahams
+# Copyright 2002, 2003, 2004, 2005 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Implements scanners: objects computing implicit dependencies for files, such
+# as includes in C++.
+#
+# A scanner has a regular expression used to find the dependencies, some data
+# needed to interpret those dependencies (e.g., include paths), and code which
+# establishing needed relationships between actual jam targets.
+#
+# Scanner objects are created by actions when they try to actualize virtual
+# targets, passed to the virtual-target.actualize() method and are then
+# associated with actual targets. It is possible to use several scanners for a
+# single virtual-target. For example, a single source file might be compiled
+# twice - each time using a different include path. In this case, two separate
+# actual targets will be created, each having a scanner of its own.
+#
+# Typically, scanners are created from target type and the action's properties,
+# using the rule 'get' in this module. Directly creating scanners is not
+# recommended, as it might create multiple equvivalent but different instances,
+# and lead to unnecessary actual target duplication. However, actions can also
+# create scanners in a special way, instead of relying on just the target type.
+
+import "class" : new ;
+import property ;
+import property-set ;
+import virtual-target ;
+
+# Base scanner class.
+#
+class scanner
+{
+    rule __init__ ( )
+    {
+    }
+
+    # Returns a pattern to use for scanning.
+    #
+    rule pattern ( )
+    {
+        import errors : error : errors.error ;
+        errors.error "method must be overriden" ;
+    }
+
+    # Establish necessary relationship between targets, given an actual target
+    # beeing scanned and a list of pattern matches in that file.
+    #
+    rule process ( target : matches * )
+    {
+        import errors : error : errors.error ;
+        errors.error "method must be overriden" ;
+    }
+}
+
+
+# Registers a new generator class, specifying a set of properties relevant to
+# this scanner. Constructor for that class should have one parameter: a list of
+# properties.
+#
+rule register ( scanner-class : relevant-properties * )
+{
+    .registered += $(scanner-class) ;
+    .relevant-properties.$(scanner-class) = $(relevant-properties) ;
+}
+
+
+# Common scanner class, usable when there is only one kind of includes (unlike
+# C, where "" and <> includes have different search paths).
+#
+class common-scanner : scanner
+{
+    import scanner ;
+
+    rule __init__ ( includes * )
+    {
+        scanner.__init__ ;
+        self.includes = $(includes) ;
+    }
+
+    rule process ( target : matches * : binding )
+    {
+        local target_path = [ NORMALIZE_PATH $(binding:D) ] ;
+
+        NOCARE $(matches) ;
+        INCLUDES $(target) : $(matches) ;
+        SEARCH on $(matches) = $(target_path) $(self.includes:G=) ;
+        ISFILE $(matches) ;
+
+        scanner.propagate $(__name__) : $(matches) : $(target) ;
+    }
+}
+
+
+# Returns an instance of a previously registered scanner, with the specified
+# properties.
+#
+rule get ( scanner-class : property-set )
+{
+    if ! $(scanner-class) in $(.registered)
+    {
+        import errors ;
+        errors.error "attempt to get an unregisted scanner" ;
+    }
+
+    local r = $(.rv-cache.$(property-set)) ;
+    if ! $(r)
+    {
+        r = [ property-set.create
+            [ property.select $(.relevant-properties.$(scanner-class)) :
+              [ $(property-set).raw ] ] ] ;
+        .rv-cache.$(property-set) = $(r) ;
+    }
+
+    if ! $(scanner.$(scanner-class).$(r:J=-))
+    {
+        local s = [ new $(scanner-class) [ $(r).raw ] ] ;
+        scanner.$(scanner-class).$(r:J=-) = $(s) ;
+    }
+    return $(scanner.$(scanner-class).$(r:J=-)) ;
+}
+
+
+# Installs the specified scanner on the actual target 'target'.
+#
+rule install ( scanner : target )
+{
+    HDRSCAN on $(target) = [ $(scanner).pattern ] ;
+    SCANNER on $(target) = $(scanner) ;
+    HDRRULE on $(target) = scanner.hdrrule ;
+
+    # Scanner reflects differences in properties affecting binding of 'target',
+    # which will be known when processing includes for it, and give information
+    # on how to interpret different include types (e.g. quoted vs. those in
+    # angle brackets in C files).
+    HDRGRIST on $(target) = $(scanner) ;
+}
+
+
+# Propagate scanner settings from 'including-target' to 'targets'.
+#
+rule propagate ( scanner : targets * : including-target )
+{
+    HDRSCAN on $(targets) = [ on $(including-target) return $(HDRSCAN) ] ;
+    SCANNER on $(targets) = $(scanner) ;
+    HDRRULE on $(targets) = scanner.hdrrule ;
+    HDRGRIST on $(targets) = [ on $(including-target) return $(HDRGRIST) ] ;
+}
+
+
+rule hdrrule ( target : matches * : binding )
+{
+    local scanner = [ on $(target) return $(SCANNER) ] ;
+    $(scanner).process $(target) : $(matches) : $(binding) ;
+}
+
+
+# hdrrule must be available at global scope so it can be invoked by header
+# scanning.
+#
+IMPORT scanner : hdrrule : : scanner.hdrrule ;

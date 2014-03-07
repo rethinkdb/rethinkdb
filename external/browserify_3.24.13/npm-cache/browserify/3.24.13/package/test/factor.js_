@@ -1,0 +1,25 @@
+var browserify = require('../');
+var vm = require('vm');
+var test = require('tap').test;
+
+test('factor', function (t) {
+    t.plan(5);
+    
+    var files = [
+        __dirname + '/factor/a.js',
+        __dirname + '/factor/b.js'
+    ];
+    var b = browserify(files, { factor: true });
+    
+    var bs = b.bundle(function (err, src) {
+        common = src;
+        done();
+        vm.runInNewContext(src, c);
+    });
+    
+    function done () {
+        if (pending === 3) {
+            
+        }
+    }
+});

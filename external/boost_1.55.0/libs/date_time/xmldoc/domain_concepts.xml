@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2004 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.domain_concepts">
+  <title>Domain Concepts</title>
+
+  <para>
+    The date time domain is rich in terminology and problems. 
+    The following is a brief introduction to the concepts you 
+    will find reflected in the library. 
+  </para>
+  <para>
+    The library supports 3 basic temporal types:
+    <itemizedlist mark="bullet">
+      <listitem>
+	<emphasis role="strong">Time Point</emphasis> -- Specifier 
+	for a location in the time continuum.
+      </listitem>
+      <listitem>
+	<emphasis role="strong">Time Duration</emphasis> -- A 
+	length of time unattached to any point on the time continuum.
+      </listitem>
+      <listitem>
+	<emphasis role="strong">Time Interval</emphasis> -- A duration 
+	of time attached to a specific point in the time continuum. 
+	Also known as a time period. 
+      </listitem>
+    </itemizedlist>
+  </para>
+  <para>
+    Each of these temporal types has a <emphasis role="strong">Resolution</emphasis> which is defined by the smallest representable duration. A <emphasis role="strong">Time system</emphasis> provides all these categories of temporal types as well as the rules for labeling and calculating with time points. <emphasis role="strong">Calendar Systems</emphasis> are simply time systems with a maximum resolution of one day. The <emphasis role="strong">Gregorian</emphasis> system is the most widely used calendar system today (the ISO system is basically a derivative of this). However, there are many other calendar systems as well. <emphasis role="strong">UTC (Coordinated Universal Time)</emphasis> is a widely used civil time system. UTC is adjusted for earth rotation at longitude 0 by the use of leap seconds (This is not predictable, only as necessary). Most <emphasis role="strong">local time</emphasis> systems are based on UTC but are also adjusted for earth rotation so that daylight hours are similar everywhere. In addition, some local times include <emphasis role="strong">daylight savings time (DST)</emphasis> adjustments to shift the daylight hours during the summer.
+  </para>
+  <para>
+    A <emphasis role="strong">Clock Device</emphasis> is software component (tied to some hardware) that provides the current date or time with respect to a time system. A clock can measure the current time to a known resolution which may be higher or lower than a particular time representation. 
+  </para>
+  <para>
+    The library provides support for calculating with dates and times. However, time calculations are not quite the same as calculating with integers. If you are serious about the accuracy of your time calculations need to read about <link linkend="date_time.tradeoffs">Stability, Predictability, and Approximations</link>. 
+  </para>
+  <para>
+    <itemizedlist mark="bullet">
+      <listitem>
+	<link linkend="date_time.terminology">Basic Terminology</link>
+      </listitem>
+      <listitem>
+	<link linkend="date_time.calculations">Calculations</link>
+      </listitem>
+      <listitem>
+	<link linkend="date_time.tradeoffs">Stability, Predictability, and Approximations</link>
+      </listitem>
+      <listitem>
+	<link linkend="date_time.references">References</link>
+      </listitem>
+    </itemizedlist>
+  </para>
+</section>

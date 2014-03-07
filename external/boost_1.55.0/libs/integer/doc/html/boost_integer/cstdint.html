@@ -1,0 +1,289 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Standard Integer Types</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Boost.Integer">
+<link rel="up" href="../index.html" title="Boost.Integer">
+<link rel="prev" href="../index.html" title="Boost.Integer">
+<link rel="next" href="traits.html" title="Integer Traits">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="traits.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_integer.cstdint"></a><a class="link" href="cstdint.html" title="Standard Integer Types"> Standard Integer Types</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="cstdint.html#boost_integer.cstdint.overview">Overview</a></span></dt>
+<dt><span class="section"><a href="cstdint.html#boost_integer.cstdint.rationale"> Rationale</a></span></dt>
+<dt><span class="section"><a href="cstdint.html#boost_integer.cstdint.ce"> <span class="emphasis"><em>Caveat emptor</em></span></a></span></dt>
+<dt><span class="section"><a href="cstdint.html#boost_integer.cstdint.exact_width_integer_types">Exact-width
+      integer types</a></span></dt>
+<dt><span class="section"><a href="cstdint.html#boost_integer.cstdint.minimum_width_integer_types">Minimum-width
+      integer types</a></span></dt>
+<dt><span class="section"><a href="cstdint.html#boost_integer.cstdint.fastest_minimum_width_integer_types">Fastest
+      minimum-width integer types</a></span></dt>
+<dt><span class="section"><a href="cstdint.html#boost_integer.cstdint.greatest_width_integer_types">Greatest-width
+      integer types</a></span></dt>
+<dt><span class="section"><a href="cstdint.html#boost_integer.cstdint.integer_constant_macros">Integer
+      Constant Macros</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.cstdint.overview"></a><a class="link" href="cstdint.html#boost_integer.cstdint.overview" title="Overview">Overview</a>
+</h3></div></div></div>
+<p>
+        The header <code class="literal"><a href="../../../../../boost/cstdint.hpp" target="_top">&lt;boost/cstdint.hpp&gt;</a></code>
+        provides the typedef's useful for writing portable code that requires certain
+        integer widths. All typedef's are in namespace boost.
+      </p>
+<p>
+        The specifications for these types are based on the ISO/IEC 9899:1999 C Language
+        standard header &lt;stdint.h&gt;. The 64-bit types required by the C standard
+        are <span class="emphasis"><em>not required</em></span> in the boost header, and may not be
+        supplied for all platforms/compilers, because <code class="literal">long long</code>
+        is not [yet] included in the C++ standard.
+      </p>
+<p>
+        See <a href="../../../test/cstdint_test.cpp" target="_top">cstdint_test.cpp</a> for
+        a test program.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.cstdint.rationale"></a><a class="link" href="cstdint.html#boost_integer.cstdint.rationale" title="Rationale"> Rationale</a>
+</h3></div></div></div>
+<p>
+        The organization of the Boost.Integer headers and classes is designed to
+        take advantage of &lt;stdint.h&gt; types from the 1999 C standard without
+        causing undefined behavior in terms of the 1998 C++ standard. The header
+        &lt;boost/cstdint.hpp&gt; makes the standard integer types safely available
+        in namespace <code class="literal">boost</code> without placing any names in namespace
+        <code class="literal">std</code>. The intension is to complement rather than compete
+        with the C++ Standard Library. Should some future C++ standard include &lt;stdint.h&gt;
+        and &lt;cstdint&gt;, then &lt;boost/cstdint.hpp&gt; will continue to function,
+        but will become redundant and may be safely deprecated.
+      </p>
+<p>
+        Because these are boost headers, their names conform to boost header naming
+        conventions rather than C++ Standard Library header naming conventions.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.cstdint.ce"></a><a class="link" href="cstdint.html#boost_integer.cstdint.ce" title="Caveat emptor"> <span class="emphasis"><em>Caveat emptor</em></span></a>
+</h3></div></div></div>
+<p>
+        As an implementation artifact, certain C &lt;limits.h&gt; macro names may
+        possibly be visible to users of &lt;boost/cstdint.hpp&gt;. Don't use these
+        macros; they are not part of any Boost-specified interface. Use <code class="literal">boost::integer_traits&lt;&gt;</code>
+        or <code class="literal">std::numeric_limits&lt;&gt;</code> instead.
+      </p>
+<p>
+        As another implementation artifact, certain C &lt;stdint.h&gt; typedef names
+        may possibly be visible in the global namespace to users of &lt;boost/cstdint.hpp&gt;.
+        Don't use these names, they are not part of any Boost-specified interface.
+        Use the respective names in namespace <code class="literal">boost</code> instead.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.cstdint.exact_width_integer_types"></a><a class="link" href="cstdint.html#boost_integer.cstdint.exact_width_integer_types" title="Exact-width integer types">Exact-width
+      integer types</a>
+</h3></div></div></div>
+<p>
+        The typedef <code class="literal">int#_t</code>, with # replaced by the width, designates
+        a signed integer type of exactly # bits; for example <code class="literal">int8_t</code>
+        denotes an 8-bit signed integer type. Similarly, the typedef <code class="literal">uint#_t</code>
+        designates an unsigned integer type of exactly # bits.
+      </p>
+<p>
+        These types are optional. However, if a platform supports integer types with
+        widths of 8, 16, 32, 64, or any combination thereof, then &lt;boost/cstdint.hpp&gt;
+        does provide the corresponding typedefs.
+      </p>
+<p>
+        The absence of int64_t and uint64_t is indicated by the macro <code class="computeroutput"><span class="identifier">BOOST_NO_INT64_T</span></code>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.cstdint.minimum_width_integer_types"></a><a class="link" href="cstdint.html#boost_integer.cstdint.minimum_width_integer_types" title="Minimum-width integer types">Minimum-width
+      integer types</a>
+</h3></div></div></div>
+<p>
+        The typedef <code class="literal">int_least#_t</code>, with # replaced by the width,
+        designates a signed integer type with a width of at least # bits, such that
+        no signed integer type with lesser size has at least the specified width.
+        Thus, <code class="literal">int_least32_t</code> denotes the smallest signed integer
+        type with a width of at least 32 bits. Similarly, the typedef name <code class="literal">uint_least#_t</code>
+        designates an unsigned integer type with a width of at least # bits, such
+        that no unsigned integer type with lesser size has at least the specified
+        width.
+      </p>
+<p>
+        The following minimum-width integer types are provided for all platforms:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            <code class="literal">int_least8_t</code>
+          </li>
+<li class="listitem">
+            <code class="literal">int_least16_t</code>
+          </li>
+<li class="listitem">
+            <code class="literal">int_least32_t</code>
+          </li>
+<li class="listitem">
+            <code class="literal">uint_least8_t</code>
+          </li>
+<li class="listitem">
+            <code class="literal">uint_least16_t</code>
+          </li>
+<li class="listitem">
+            <code class="literal">uint_least32_t</code>
+          </li>
+</ul></div>
+<p>
+        The following types are available only if, after including &lt;boost/cstdint.hpp&gt;,
+        the macro BOOST_NO_INT64_T is not defined:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            <code class="literal">int_least64_t</code>
+          </li>
+<li class="listitem">
+            <code class="literal">uint_least64_t</code>
+          </li>
+</ul></div>
+<p>
+        All other minimum-width integer types are optional.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.cstdint.fastest_minimum_width_integer_types"></a><a class="link" href="cstdint.html#boost_integer.cstdint.fastest_minimum_width_integer_types" title="Fastest minimum-width integer types">Fastest
+      minimum-width integer types</a>
+</h3></div></div></div>
+<p>
+        The typedef <code class="literal">int_fast#_t</code>, with # replaced by the width,
+        designates the fastest signed integer type with a width of at least # bits.
+        Similarly, the typedef name <code class="literal">uint_fast#_t</code> designates the
+        fastest unsigned integer type with a width of at least # bits.
+      </p>
+<p>
+        There is no guarantee that these types are fastest for all purposes. In any
+        case, however, they satisfy the signedness and width requirements.
+      </p>
+<p>
+        The following fastest minimum-width integer types are provided for all platforms:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            <code class="literal">int_fast8_t</code>
+          </li>
+<li class="listitem">
+            <code class="literal">int_fast16_t</code>
+          </li>
+<li class="listitem">
+            <code class="literal">int_fast32_t</code>
+          </li>
+<li class="listitem">
+            <code class="literal">uint_fast8_t</code>
+          </li>
+<li class="listitem">
+            <code class="literal">uint_fast16_t</code>
+          </li>
+<li class="listitem">
+            <code class="literal">uint_fast32_t</code>
+          </li>
+</ul></div>
+<p>
+        The following types are available only if, after including &lt;boost/cstdint.hpp&gt;,
+        the macro BOOST_NO_INT64_T is not defined:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            <code class="literal">int_fast64_t</code>
+          </li>
+<li class="listitem">
+            <code class="literal">uint_fast64_t</code>
+          </li>
+</ul></div>
+<p>
+        All other fastest minimum-width integer types are optional.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.cstdint.greatest_width_integer_types"></a><a class="link" href="cstdint.html#boost_integer.cstdint.greatest_width_integer_types" title="Greatest-width integer types">Greatest-width
+      integer types</a>
+</h3></div></div></div>
+<p>
+        The typedef <code class="literal">intmax_t </code>designates a signed integer type
+        capable of representing any value of any signed integer type.
+      </p>
+<p>
+        The typedef <code class="literal">uintmax_t</code> designates an unsigned integer type
+        capable of representing any value of any unsigned integer type.
+      </p>
+<p>
+        These types are provided for all platforms.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.cstdint.integer_constant_macros"></a><a class="link" href="cstdint.html#boost_integer.cstdint.integer_constant_macros" title="Integer Constant Macros">Integer
+      Constant Macros</a>
+</h3></div></div></div>
+<p>
+        The following macros are always defined after inclusion of this header, these
+        allow integer constants of at least the specified width to be declared: INT8_C,
+        UINT8_C, INT16_C, UINT16_C, INT32_C, UINT32_C, INTMAX_C, UINTMAX_C.
+      </p>
+<p>
+        The macros INT64_C and UINT64_C are also defined if the the macro BOOST_NO_INT64_T
+        is not defined.
+      </p>
+<p>
+        The C99 macro __STDC_CONSTANT_MACROS is also defined as an artifact of the
+        implementation.
+      </p>
+<p>
+        For example:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">cstdint</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">// Here the constant 0x1FFFFFFFF has the correct suffix applied:
+</span><span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uint64_t</span> <span class="identifier">c</span> <span class="special">=</span> <span class="identifier">INT64_C</span><span class="special">(</span><span class="number">0</span><span class="identifier">x1FFFFFFFF</span><span class="special">);</span> 
+</pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001 -2009 Beman Dawes, Daryle Walker, Gennaro Prota,
+      John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="traits.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

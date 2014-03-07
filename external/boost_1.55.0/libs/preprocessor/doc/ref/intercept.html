@@ -1,0 +1,51 @@
+<html>
+<head>
+	<title>BOOST_PP_INTERCEPT</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_INTERCEPT</b> macro intercepts a numeric concatenation and expands to nothing.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_INTERCEPT</b>
+		</div>
+	<h4>Remarks</h4>
+		<div>
+			This macro is used to intercept concatenations performed by various other library constructs.&nbsp;
+			It is typically used after other text to prevent eat the concatenation expand to nothing.&nbsp;
+			This macro can only intercept integer constants in the range of <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/facilities/intercept.html">&lt;boost/preprocessor/facilities/intercept.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/facilities/intercept.html">boost/preprocessor/facilities/intercept.hpp</a>&gt;
+#include &lt;<a href="../headers/repetition/enum_binary_params.html">boost/preprocessor/repetition/enum_binary_params.hpp</a>&gt;
+
+<a href="enum_binary_params.html">BOOST_PP_ENUM_BINARY_PARAMS</a>(3, class T, = U)
+// expands to class T0 = U0, class T1 = U1, class T2 = U2
+
+<a href="enum_binary_params.html">BOOST_PP_ENUM_BINARY_PARAMS</a>(3, class T, = int <a href="intercept.html">BOOST_PP_INTERCEPT</a>)
+// expands to class T0 = int, class T1 = int, class T2 = int
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

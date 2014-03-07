@@ -1,0 +1,127 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Concept Assignable</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="idp18734808-bb.html#concepts.reference" title="Concept reference">
+<link rel="prev" href="idp18734808-bb.html" title="Chapter&#160;7.&#160;Boost.Concept_Check">
+<link rel="next" href="InputIterator.html" title="Concept InputIterator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="idp18734808-bb.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="idp18734808-bb.html#concepts.reference"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="InputIterator.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="Assignable"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Concept Assignable</span></h2>
+<p>Assignable</p>
+</div>
+<div class="refsect1">
+<a name="idp75696952"></a><h2>Description</h2>
+<p>Assignable types must have copy constructors,
+    <code class="computeroutput">operator=</code> for assignment, and the <code class="computeroutput">swap()</code>
+    function defined.</p>
+</div>
+<div class="refsect1">
+<a name="idp75698216"></a><h2>Refinement of</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><a class="link" href="CopyConstructible.html" title="Concept CopyConstructible">CopyConstructible</a></p></li></ul></div>
+</div>
+<div class="refsect1">
+<a name="idp75699000"></a><h2>Notation</h2>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term">X</span></dt>
+<dd>A type playing the role of assignable-type in the <a class="link" href="Assignable.html" title="Concept Assignable">Assignable</a> concept.</dd>
+<dt>
+<span class="term"><code class="varname">x</code>, </span><span class="term"><code class="varname">y</code></span>
+</dt>
+<dd>Objects of type X</dd>
+</dl></div>
+</div>
+<div class="refsect1">
+<a name="idp75700808"></a><h2>Valid expressions</h2>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type</th>
+<th>Semantics</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><p>Assignment</p></td>
+<td><p>x = y</p></td>
+<td><p><span class="type">X &amp;</span></p></td>
+<td><p>Require <code class="computeroutput">operator=</code></p></td>
+</tr>
+<tr>
+<td><p>Swap</p></td>
+<td><p>swap(x, y)</p></td>
+<td><p><span class="type">void</span></p></td>
+<td><p>Require <code class="computeroutput">swap()</code> function</p></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="refsect1">
+<a name="idp75704584"></a><h2>Models</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><span class="simplelist"><span class="type">int</span></span></li></ul></div>
+</div>
+<div class="refsect1">
+<a name="idp75705304"></a><h2>See also</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><a class="link" href="CopyConstructible.html" title="Concept CopyConstructible">CopyConstructible</a></p></li></ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001, 2002 Indiana University<br>Copyright &#169; 2000, 2001 University of Notre Dame du Lac<br>Copyright &#169; 2000 Jeremy Siek, Lie-Quan Lee, Andrew Lumsdaine<br>Copyright &#169; 1996-1999 Silicon Graphics Computer Systems, Inc.<br>Copyright &#169; 1994 Hewlett-Packard Company<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+<p>This product includes software developed at the University
+      of Notre Dame and the Pervasive Technology Labs at Indiana
+      University. For technical information contact Andrew Lumsdaine
+      at the Pervasive Technology Labs at Indiana University.  For
+      administrative and license questions contact the Advanced
+      Research and Technology Institute at 351 West 10th Street.
+      Indianapolis, Indiana 46202, phone 317-278-4100, fax
+      317-274-5902.</p>
+<p>Some concepts based on versions from the MTL draft manual
+      and Boost Graph and Property Map documentation, the SGI Standard
+      Template Library documentation and the Hewlett-Packard STL,
+      under the following license: 
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>Permission to use, copy, modify, distribute and
+        sell this software and its documentation for any purpose is
+        hereby granted without fee, provided that the above copyright
+        notice appears in all copies and that both that copyright
+        notice and this permission notice appear in supporting
+        documentation.  Silicon Graphics makes no representations
+        about the suitability of this software for any purpose.  It is
+        provided "as is" without express or implied
+        warranty.</p></blockquote></div>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="idp18734808-bb.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="idp18734808-bb.html#concepts.reference"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="InputIterator.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

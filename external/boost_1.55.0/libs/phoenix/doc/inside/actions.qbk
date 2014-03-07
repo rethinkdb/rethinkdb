@@ -1,0 +1,124 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:actions More on Actions]
+
+As you know from the [link phoenix.inside.actor Actors in Detail] section,
+Actions are what brings life to a Phoenix expression tree.
+
+When dealing with a Phoenix expression tree, it gets evaluated top-down.
+Example:
+
+    _1 + 3 * _2
+
+Can be visualized as an AST in the following way:
+
+[$images/simple_ast.png]
+
+In terms of actions this means:
+
+* `rule::plus` is matched
+* evaluate left:
+ * `rule::placeholder` is matched
+* evaluate right:
+ * `rule::multiplies` is matched
+  * evaluate left:
+    * `rule::value` is matched
+  * evaluate right:
+    * `rule::placeholder` is matched
+
+Every time a rule is matched, an action will be called. The action determines
+how the Phoenix AST will be traversed.
+
+[heading Writing an Action]
+
+As mentioned in [link phoenix.inside.actor Actors in Detail] actions are
+__proto_primitive_transforms__ for convenience Phoenix provides an abstraction
+to this:
+
+    template <typename Fun>
+    struct call;
+
+This is similar to __proto_call__ but does more. It calls the `Fun` function
+object passed as template parameter with the `Context` and the children of the
+expression associated with the rule.
+
+Lets have an (simplified) example on how to write an evaluation action for
+`rule::plus`:
+
+    struct plus_eval
+    {
+        typedef int result_type;
+
+        template <typename Lhs, typename Rhs, typename Context>
+        result_type operator()(Lhs const& lhs, Rhs const &rhs, Context & ctx)
+        {
+            return eval(lhs, ctx) + eval(rhs, ctx);
+        }
+    };
+
+    template <>
+    struct default_actions::when<rule::plus>
+        : call<plus_eval>
+    {};
+
+That's it. When evaluating a `plus` expression, the `plus_eval` callable gets
+called with the left hand side and right hand side expression and the associated
+Context.
+
+[*But there is more:] As Actions /can/ be full fletched __proto_transforms__, you can
+in fact use any proto expression you can imagine as the action. Phoenix predifines a
+set of callables and transform to deal with the Context information passed along and
+of course every Phoenix expression can be used as a Phoenix grammar or
+__proto_pass_through_transform__.
+
+[variablelist
+ [
+  [`functional::context(Env, Actions)`]
+  [A __proto_callable__ that creates a new context out of the `Env` and `Actions` parameter]
+ ]
+ [
+  [`functional::env(Context)`]
+  [A __proto_callable__ that returns the environment out of the `Context` parameter]
+ ]
+ [
+  [`functional::actions(Context)`]
+  [A __proto_callable__ that returns the actions out of the `Context` parameter]
+ ]
+ [
+  [`_context`]
+  [A __proto_primitive_transform__ that returns the current context]
+ ]
+ [
+  [`_env`]
+  [A __proto_primitive_transform__ that returns the current environment]
+ ]
+ [
+  [`_actions`]
+  [A __proto_primitive_transform__ that returns the current actions]
+ ]
+ [
+  [`context(env, actions)`]
+  [A regular function that creates a context]
+ ]
+ [
+  [`env(ctx)`]
+  [A regular function that returns the environment from the given context]
+ ]
+ [
+  [`actions(ctx)`]
+  [A regular function that returns the actions from the given context]
+ ]
+]
+
+Phoenix is equipped with a predefined set of expressions, rules and actions to
+make all the stuff work you learned in the __phoenix_starter_kit__ and __phoenix_modules__
+sections. See the [link phoenix.inside.rules next section] for more details!
+
+[endsect]

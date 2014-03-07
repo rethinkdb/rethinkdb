@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Function Template seek</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Function Template <CODE>seek</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The function template <CODE>seek</CODE> is used by the Iostreams library to perform random access withing a sequence controlled by a <A HREF="../concepts/device.html">Device</A>.</P>
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><CODE>&lt;boost/iostreams/operations.hpp&gt;</CODE></A></DT>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/seek.hpp"><CODE>&lt;boost/iostreams/seek.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="description"></A>
+<H4>Description</H4>
+
+Repositions one or both heads within the sequence controlled by a given instance of the template parameter <CODE>T</CODE>, returning the resulting stream position.
+
+<A NAME="synopsis"></A>
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+              
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">T</A>&gt;
+std::streampos 
+<A CLASS="documented" HREF="#semantics">seek</A>( T&amp;, <A CLASS="documented" HREF="positioning.html#synopsis">stream_offset</A>  <A CLASS="documented" HREF="#function_params">off</A>, std::ios_base::seekdir <A CLASS="documented" HREF="#function_params">way</A>,
+      std::ios_base::openmode <A CLASS="documented" HREF="#function_params">which</A> =
+          std::ios_base::in | std::ios_base::out );
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="template_params"></A>
+<H4>Template Parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>T</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of one of the <A HREF="../guide/concepts.html#device_concepts">Device</A> concepts which allows random access.
+    </TR>
+</TABLE>
+
+<A NAME="function_params"></A>
+<H4>Function Parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>off</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A <A HREF="positioning.html#synopsis"><CODE>stream_offset</CODE></A> indicating the number of characters by which the appropriate reading or writing heads should be advanced. The initial position is determined by the parameter <I>way</I>.
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>way</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD><P>Determines the initial position to which the offset <I>off</I> is applied, as follows:
+            <UL>
+                <LI CLASS="square">if <I>way</I> is <CODE>std::ios_base::beg</CODE>, the initial position is the begining of the stream
+                <LI CLASS="square">if <I>way</I> is <CODE>std::ios_base::cur</CODE>, the initial position is the current position
+                <LI CLASS="square">if <I>way</I> is <CODE>std::ios_base::end</CODE>, the initial position is the end of the stream
+            </UL>
+            </P>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>which</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Determines whether the reading head, the writing head or both are repositioned.
+    </TR>
+</TABLE>
+
+<A NAME="semantics"></A>
+<H4>Semantics</H4>
+
+<P>The semantics of <CODE>seek</CODE> depends on the <A HREF="../guide/traits.html#category">category</A> of <CODE>T</CODE> as follows:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=1 CELLPADDING=4>
+    <TR><TH><CODE>category_of&lt;T&gt;::type</CODE></TH><TH>semantics</TH></TR>
+    <TR>
+        <TD VALIGN="top">convertible to <CODE>istream_tag</CODE> or <CODE>ostream_tag</CODE></TD>
+        <TD>returns:
+        <UL STYLE='margin-top:0'>
+            <LI><CODE>t.rdbuf()->pubseekpos(<A HREF="positioning.html#offset_to_position">offset_to_position</A>(off))</CODE>, if <CODE>way</CODE> is <CODE>std::ios_base::beg</CODE> and <CODE>off</CODE> is outside the range of <CODE>std::streamoff</CODE>, and
+            <LI><CODE>t.rdbuf()->pubseekoff(off, way)</CODE>, otherwise
+        <UL>
+    </TR>
+    <TR>
+        <TD VALIGN="top">convertible to <CODE>streambuf_tag</CODE></TD>
+        <TD>returns:
+        <UL STYLE='margin-top:0'>
+            <LI><CODE>t.pubseekpos(<A HREF="positioning.html#offset_to_position">offset_to_position</A>(off))</CODE>, if <CODE>way</CODE> is <CODE>std::ios_base::beg</CODE> and <CODE>off</CODE> is outside the range of <CODE>std::streamoff</CODE>, and
+            <LI><CODE>t.pubseekoff(off, way)</CODE>, otherwise
+        <UL>
+    </TR>
+    <TR>
+        <TD VALIGN="top">convertible to <CODE>input_seekable</CODE> but not to <CODE>output_seekable</CODE></TD>
+        <TD>returns <CODE>t.seek(off, way)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">convertible to <CODE>output_seekable</CODE> but not to <CODE>input_seekable</CODE></TD>
+        <TD>returns <CODE>t.seek(off, way)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">convertible to <CODE>dual_seekable</CODE> or to <CODE>bidirectional_seekable</CODE></TD>
+        <TD>returns <CODE>t.seek(off, way, which)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">convertible to <CODE>seekable</CODE></TD>
+        <TD>returns <CODE>t.seek(off, way)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>otherwise</I></TD>
+        <TD>compile-time error</TD>
+    </TR>
+</TABLE>
+
+<P>In short:
+<UL>
+    <LI CLASS="square">If <CODE>T</CODE> is a standard stream or stream buffer type, delegates to <CODE>std::basic_streambuf::pubseekoff</CODE> or <CODE>std::basic_streambuf::pubseekpos</CODE>, as appropriate.
+    <LI CLASS="square">Otherwise, if the <A HREF="../guide/modes.html">mode</A> of <CODE>T</CODE> allows only one reading head, delegates to a member function <CODE>seek</CODE> which takes a <CODE>stream_offset</CODE> and a <CODE>seekdir</CODE> but no <CODE>openmode</CODE>.
+    <LI CLASS="square">Otherwise, if the <A HREF="../guide/modes.html">mode</A> of <CODE>T</CODE> allows random access with two reading heads, delegates to a member function <CODE>seek</CODE> which takes a <CODE>stream_offset</CODE>, a <CODE>seekdir</CODE> and an <CODE>openmode</CODE>.
+    <LI CLASS="square">If the <A HREF="../guide/modes.html">mode</A> of T does not permit random access, attempting to invoke <CODE>seek</CODE> is a compile-time error.
+</UL>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

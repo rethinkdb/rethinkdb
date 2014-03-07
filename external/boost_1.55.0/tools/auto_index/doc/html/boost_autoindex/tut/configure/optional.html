@@ -1,0 +1,106 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Making AutoIndex optional</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../../index.html" title="Boost.AutoIndex">
+<link rel="up" href="../configure.html" title="Step 2: Configure Boost.Build jamfile to use AutoIndex">
+<link rel="prev" href="options.html" title="Available Indexing Options">
+<link rel="next" href="../add_indexes.html" title="Step 3: Add indexes to your documentation">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="options.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../configure.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../add_indexes.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_autoindex.tut.configure.optional"></a><a class="link" href="optional.html" title="Making AutoIndex optional">Making AutoIndex
+        optional</a>
+</h4></div></div></div>
+<p>
+          It is considerate to make the <span class="bold"><strong>use of auto-index optional</strong></span>
+          in Boost.Build, to allow users who do not have AutoIndex installed to still
+          be able to build your documentation.
+        </p>
+<p>
+          This also very convenient while you are refining your documentation, to
+          allow you to decide to build indexes, or not: building indexes can take
+          long time, if you are just correcting typos, you won't want to wait while
+          you keep rebuilding the index!
+        </p>
+<p>
+          One method of setting up optional AutoIndex support is to place all AutoIndex
+          configuration in a the body of a bjam if statement:
+        </p>
+<pre class="programlisting">if --enable-index in  [ modules.peek : ARGV ]
+  {
+     ECHO "Building the  docs with automatic index generation enabled." ;
+
+     using auto-index ;
+     project : requirements
+          &lt;auto-index&gt;on
+          &lt;auto-index-script&gt;index.idx
+          
+           ... other AutoIndex options here...
+
+        # And tell Quickbook that it should enable indexing.
+        &lt;quickbook-define&gt;enable_index
+    ;
+  }
+  else
+  {
+     ECHO "Building the my_library docs with automatic index generation disabled. To get an Index, try building with --enable-index." ;
+  }
+</pre>
+<p>
+          You will also need to add a conditional statement at the end of your Quickbook
+          file, so that the index(es) is/are only added after the last section if
+          indexing is enabled.
+        </p>
+<pre class="programlisting">[? enable_index
+'''
+  &lt;index/&gt;
+'''
+]
+</pre>
+<p>
+          To use this jamfile, you need to cd to your docs folder, for example:
+        </p>
+<pre class="programlisting"><span class="identifier">cd</span> <span class="special">\</span><span class="identifier">boost</span><span class="special">-</span><span class="identifier">sandbox</span><span class="special">\</span><span class="identifier">guild</span><span class="special">\</span><span class="identifier">mylibrary</span><span class="special">\</span><span class="identifier">libs</span><span class="special">\</span><span class="identifier">mylibrary</span><span class="special">\</span><span class="identifier">doc</span>
+</pre>
+<p>
+          and then run <code class="computeroutput"><span class="identifier">bjam</span></code> to build
+          the docs without index, for example:
+        </p>
+<pre class="programlisting"><span class="identifier">bjam</span> <span class="special">-</span><span class="identifier">a</span> <span class="identifier">html</span> <span class="special">&gt;</span> <span class="identifier">mylibrary_html</span><span class="special">.</span><span class="identifier">log</span>
+</pre>
+<p>
+          or with index(es)
+        </p>
+<pre class="programlisting"><span class="identifier">bjam</span> <span class="special">-</span><span class="identifier">a</span> <span class="identifier">html</span> <span class="special">--</span><span class="identifier">enable</span><span class="special">-</span><span class="identifier">index</span> <span class="special">&gt;</span> <span class="identifier">mylibrary_html_index</span><span class="special">.</span><span class="identifier">log</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008, 2011 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="options.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../configure.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../add_indexes.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

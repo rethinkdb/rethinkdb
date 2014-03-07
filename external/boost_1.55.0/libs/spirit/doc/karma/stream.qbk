@@ -1,0 +1,223 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:stream Stream Generators]
+
+This module includes the description of the different variants of the `stream` 
+generator. It can be used to utilize existing streaming operators 
+(`operator<<(std::ostream&, ...)`) for output generation.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/stream.hpp>
+    #include <boost/spirit/include/karma_stream.hpp>
+
+Also, see __include_structure__.
+
+[section:stream Stream Generators (`stream`, `wstream`, etc.)]
+
+[heading Description]
+
+The `stream_generator` is a primitive which allows to use pre-existing standard
+streaming operators for output generation integrated with __karma__. It 
+provides a wrapper generator dispatching the value to output to the stream 
+operator of the corresponding type. Any value `a` to be formatted using the
+`stream_generator` will result in invoking the standard streaming operator
+for its type `A`, for instance:
+
+    std::ostream& operator<< (std::ostream&, A const&);
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/stream.hpp>
+    #include <boost/spirit/include/karma_stream.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::stream  // alias: boost::spirit::karma::stream`]]
+    [[`boost::spirit::wstream // alias: boost::spirit::karma::wstream`]]
+]
+
+[heading Synopsis]
+
+    template <typename Char>
+    struct stream_generator;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]    [Description]                       [Default]]
+    [[`Char`]   [The character type to use to generate 
+                 the output. This type will be used while 
+                 assigning the generated characters to the 
+                 underlying output iterator.]           [`char`]]
+]
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[variablelist Notation
+    [[`s`]      [A variable instance of any type with a defined matching 
+                 streaming `operator<<()` or a __karma_lazy_argument__ that 
+                 evaluates to any type with a defined matching streaming 
+                 `operator<<()`.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]           [Description]]
+    [[`stream`]             [Call the streaming `operator<<()` for the type
+                             of the mandatory attribute. The output emitted 
+                             by this operator will be the result of the 
+                             `stream` generator. This generator never fails 
+                             (unless the underlying output stream reports an 
+                             error). The character type of the I/O ostream
+                             is assumed to be `char`.]]
+    [[`stream(s)`]          [Call the streaming `operator<<()` for the type
+                             of the immediate value `s`. The output emitted 
+                             by this operator will be the result of the 
+                             `stream` generator. This generator never fails 
+                             (unless the underlying output stream reports an 
+                             error). The character type of the I/O ostream
+                             is assumed to be `char`.]]
+    [[`wstream`]            [Call the streaming `operator<<()` for the type
+                             of the mandatory attribute. The output emitted 
+                             by this operator will be the result of the 
+                             `stream` generator. This generator never fails 
+                             (unless the underlying output stream reports an 
+                             error). The character type of the I/O ostream
+                             is assumed to be `wchar_t`.]]
+    [[`wstream(s)`]         [Call the streaming `operator<<()` for the type
+                             of the immediate value `s`. The output emitted 
+                             by this operator will be the result of the 
+                             `stream` generator. This generator never fails 
+                             (unless the underlying output stream reports an 
+                             error). The character type of the I/O ostream
+                             is assumed to be `wchar_t`.]]
+]
+
+All generators listed in the table above are predefined specializations of the 
+`stream_generator<Char>` basic stream generator type described below. It is 
+possible to directly use this type to create stream generators using an 
+arbitrary underlying character type.
+
+[table
+    [[Expression]       [Semantics]]
+    [
+[``stream_generator<
+    Char
+>()``]                      [Call the streaming `operator<<()` for the type
+                             of the mandatory attribute. The output emitted 
+                             by this operator will be the result of the 
+                             `stream` generator. This generator never fails 
+                             (unless the underlying output stream reports an 
+                             error). The character type of the I/O ostream
+                             is assumed to be `Char`]]
+    [
+[``stream_generator<
+    Char
+>()(s)``]                   [Call the streaming `operator<<()` for the type
+                             of the immediate value `s`. The output emitted 
+                             by this operator will be the result of the 
+                             `stream` generator. This generator never fails 
+                             (unless the underlying output stream reports an 
+                             error). The character type of the I/O ostream
+                             is assumed to be `Char`.]]
+]
+
+[heading Additional Requirements]
+
+All of the stream generators listed above require the type of the value to 
+generate output for (either the immediate value or the associated attribute) to 
+implement a streaming operator conforming to the usual I/O streams conventions
+(where `attribute_type` is the type of the value to generate output for):
+
+    template <typename Ostream>
+    Ostream& operator<< (Ostream& os, attribute_type const& attr)
+    {
+        // type specific output generation
+        return os;
+    }
+
+This operator will be called by the stream generators to gather the output for
+the attribute of type `attribute_type`. All data streamed into the given 
+`Ostream` will end up being generated by the corresponding stream generator 
+instance.
+
+[note   If the `stream` generator is invoked inside a [karma_format `format`] 
+        (or [karma_format `format_delimited`]) stream manipulator the `Ostream` 
+        passed to the `operator<<()` will have registered (imbued) the same 
+        standard locale instance as the stream the [karma_format `format`] (or 
+        [karma_format `format_delimited`]) manipulator has been used with. 
+        This ensures all facets registered (imbued) with the original I/O 
+        stream object are used during output generation.
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]           [Attribute]]
+    [[`stream`]             [`hold_any`, attribute is mandatory (otherwise compilation will fail)]]
+    [[`stream(s)`]          [__unused__]]
+    [[`wstream`]            [`whold_any`, attribute is mandatory (otherwise compilation will fail)]]
+    [[`wstream(s)`]         [__unused__]]
+    [[`stream_generator<Char>()`]    [`basic_hold_any<Char>`, attribute is mandatory (otherwise compilation will fail)]]
+    [[`stream_generator<Char>()(s)`] [__unused__]]
+]
+
+[important The attribute type `hold_any` exposed by some of the stream 
+           generators is semantically and syntactically equivalent to 
+           the type implemented by __boost_any__. It has been added to /Spirit/ 
+           as it has better a performance and a smaller footprint if compared to 
+           __boost_any__.
+]
+
+[note  In addition to their usual attribute of type `Attrib` all listed generators 
+       accept an instance of a `boost::optional<Attrib>` as well. If the 
+       `boost::optional<>` is initialized (holds a value) the generators behave 
+       as if their attribute was an instance of `Attrib` and emit the value stored
+       in the `boost::optional<>`. Otherwise the generators will fail.]
+
+[heading Complexity]
+
+[:O(N), where N is the number of characters emitted by the stream generator]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_stream]
+
+And a class definition used in the examples:
+
+[reference_karma_complex]
+[reference_karma_stream_complex]
+
+Basic usage of `stream` generators:
+
+[reference_karma_stream]
+
+[endsect]
+
+[endsect]

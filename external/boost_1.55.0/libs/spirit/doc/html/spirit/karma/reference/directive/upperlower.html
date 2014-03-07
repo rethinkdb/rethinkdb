@@ -1,0 +1,345 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Generator Directives Controlling Case Sensitivity (upper[], lower[])</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../directive.html" title="Generator Directives">
+<link rel="prev" href="delimit.html" title="Generator Directives Controlling Automatic Delimiting (verbatim[], no_delimit[], delimit[])">
+<link rel="next" href="maxwidth.html" title="Generator Directives Controlling the Maximum Field Width (maxwidth[])">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="delimit.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="maxwidth.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.reference.directive.upperlower"></a><a class="link" href="upperlower.html" title="Generator Directives Controlling Case Sensitivity (upper[], lower[])">Generator
+          Directives Controlling Case Sensitivity (<code class="computeroutput"><span class="identifier">upper</span><span class="special">[]</span></code>, <code class="computeroutput"><span class="identifier">lower</span><span class="special">[]</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.karma.reference.directive.upperlower.h0"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.upperlower.description"></a></span><a class="link" href="upperlower.html#spirit.karma.reference.directive.upperlower.description">Description</a>
+          </h6>
+<p>
+            The generator directives <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">lower</span><span class="special">[]</span></code> and <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">upper</span><span class="special">[]</span></code> force their embedded generators to
+            emit lower case or upper case only characters based on the interpretation
+            of the generated characters in the character set defined by <code class="computeroutput"><span class="identifier">ns</span></code> (see <a class="link" href="../basics.html#spirit.karma.reference.basics.character_encoding_namespace">Character
+            Encoding Namespace</a>).
+          </p>
+<h6>
+<a name="spirit.karma.reference.directive.upperlower.h1"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.upperlower.header"></a></span><a class="link" href="upperlower.html#spirit.karma.reference.directive.upperlower.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/karma/directive/upper_lower_case.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_upper_lower_case</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.karma.reference.directive.upperlower.h2"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.upperlower.namespace"></a></span><a class="link" href="upperlower.html#spirit.karma.reference.directive.upperlower.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">lower</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">upper</span></code>
+                    </p>
+                  </td></tr>
+</tbody>
+</table></div>
+<p>
+            In the table above, <code class="computeroutput"><span class="identifier">ns</span></code>
+            represents a <a class="link" href="../basics.html#spirit.karma.reference.basics.character_encoding_namespace">Character
+            Encoding Namespace</a>.
+          </p>
+<h6>
+<a name="spirit.karma.reference.directive.upperlower.h3"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.upperlower.model_of"></a></span><a class="link" href="upperlower.html#spirit.karma.reference.directive.upperlower.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The model of <code class="computeroutput"><span class="identifier">lower</span><span class="special">[]</span></code> and <code class="computeroutput"><span class="identifier">upper</span><span class="special">[]</span></code> is the model of its subject generator.
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code></span></dt>
+<dd><p>
+                  A generator object
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">A</span></code></span></dt>
+<dd><p>
+                  Attribute type of the generator <code class="computeroutput"><span class="identifier">a</span></code>
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">ns</span></code></span></dt>
+<dd><p>
+                  A <a class="link" href="../basics.html#spirit.karma.reference.basics.character_encoding_namespace">Character
+                  Encoding Namespace</a>.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.karma.reference.directive.upperlower.h4"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.upperlower.expression_semantics"></a></span><a class="link" href="upperlower.html#spirit.karma.reference.directive.upperlower.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">lower</span><span class="special">[]</span></code>
+            and <code class="computeroutput"><span class="identifier">upper</span><span class="special">[]</span></code>
+            directives have no special generator semantics. They are pure modifier
+            directives. They indirectly influence the way all subject generators
+            work. They add information (the <code class="computeroutput"><span class="identifier">tag</span><span class="special">::</span><span class="identifier">upper</span></code>
+            or <code class="computeroutput"><span class="identifier">tag</span><span class="special">::</span><span class="identifier">lower</span></code>) to the <code class="computeroutput"><span class="identifier">Modifier</span></code>
+            template parameter used while transforming the <code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">expr</span></code>
+            into the corresponding generator expression. This is achieved by the
+            following specializations:
+          </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">spirit</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">CharEncoding</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">is_modifier_directive</span><span class="special">&lt;</span>
+            <span class="identifier">karma</span><span class="special">::</span><span class="identifier">domain</span>
+          <span class="special">,</span> <span class="identifier">tag</span><span class="special">::</span><span class="identifier">char_code</span><span class="special">&lt;</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">lower</span><span class="special">,</span> <span class="identifier">CharEncoding</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+      <span class="special">:</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span>
+    <span class="special">{};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">CharEncoding</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">is_modifier_directive</span><span class="special">&lt;</span>
+            <span class="identifier">karma</span><span class="special">::</span><span class="identifier">domain</span>
+          <span class="special">,</span> <span class="identifier">tag</span><span class="special">::</span><span class="identifier">char_code</span><span class="special">&lt;</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">upper</span><span class="special">,</span> <span class="identifier">CharEncoding</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+      <span class="special">:</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span>
+<span class="special">}}</span>
+</pre>
+<p>
+            (for more details see the section describing the compilation process
+            of the <a href="../../../../../../../../doc/html/proto.html" target="_top">Boost.Proto</a> expression
+            into the corresponding generator expressions).
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">lower</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      as lower case, interpreted in the character set defined by
+                      <code class="computeroutput"><span class="identifier">ns</span></code>. The directive
+                      succeeds as long as the embedded generator succeeded (unless
+                      the underlying output stream reports an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">upper</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      as upper case, interpreted in the character set defined by
+                      <code class="computeroutput"><span class="identifier">ns</span></code>. The directive
+                      succeeds as long as the embedded generator succeeded (unless
+                      the underlying output stream reports an error).
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+              If both directives are 'active' with regard to a generator, the innermost
+              of those directives takes precedence. For instance:
+</p>
+<pre class="programlisting"><span class="identifier">generate</span><span class="special">(</span><span class="identifier">sink</span><span class="special">,</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">lower</span><span class="special">[</span><span class="char">'A'</span> <span class="special">&lt;&lt;</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">upper</span><span class="special">[</span><span class="char">'b'</span><span class="special">]])</span>
+</pre>
+<p>
+              will generate <code class="computeroutput"><span class="string">"aB"</span></code>
+              (without the quotes).
+            </p>
+<p>
+              Further, the directives will have no effect on generators emitting
+              characters not having an upper case or lower case equivalent in the
+              character set defined by <code class="computeroutput"><span class="identifier">ns</span></code>.
+            </p>
+</td></tr>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.upperlower.h5"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.upperlower.attributes"></a></span><a class="link" href="upperlower.html#spirit.karma.reference.directive.upperlower.attributes">Attributes</a>
+          </h6>
+<p>
+            See <a class="link" href="../../quick_reference/compound_attribute_rules.html#spirit.karma.quick_reference.compound_attribute_rules.notation">Compound
+            Attribute Notation</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ns</span><span class="special">:</span><span class="identifier">lower</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">ns</span><span class="special">:</span><span class="identifier">lower</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">ns</span><span class="special">:</span><span class="identifier">lower</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ns</span><span class="special">:</span><span class="identifier">upper</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">ns</span><span class="special">:</span><span class="identifier">upper</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">ns</span><span class="special">:</span><span class="identifier">upper</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.upperlower.h6"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.upperlower.complexity"></a></span><a class="link" href="upperlower.html#spirit.karma.reference.directive.upperlower.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The overall complexity of the generator directives <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">lower</span><span class="special">[]</span></code> and <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">upper</span><span class="special">[]</span></code> is defined by the complexity of its
+              embedded generators. The directives themselves are compile time only
+              directives, having no impact on runtime performance.
+            </p></blockquote></div>
+<h6>
+<a name="spirit.karma.reference.directive.upperlower.h7"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.upperlower.example"></a></span><a class="link" href="upperlower.html#spirit.karma.reference.directive.upperlower.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.karma.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some includes:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">upper</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">lower</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Basic usage of the <code class="computeroutput"><span class="identifier">upper</span></code>
+            and <code class="computeroutput"><span class="identifier">lower</span></code> generator directives:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"abc:2.0e-06"</span><span class="special">,</span> <span class="identifier">lower</span><span class="special">[</span><span class="string">"ABC:"</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span><span class="special">],</span> <span class="number">2e-6</span><span class="special">);</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"ABC:2.0E-06"</span><span class="special">,</span> <span class="identifier">upper</span><span class="special">[</span><span class="string">"abc:"</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span><span class="special">],</span> <span class="number">2e-6</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="delimit.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="maxwidth.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

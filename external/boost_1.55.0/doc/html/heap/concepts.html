@@ -1,0 +1,646 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Concepts &amp; Interface</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../heap.html" title="Chapter&#160;13.&#160;Boost.Heap">
+<link rel="prev" href="../heap.html" title="Chapter&#160;13.&#160;Boost.Heap">
+<link rel="next" href="data_structures.html" title="Data Structures">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../heap.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../heap.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="data_structures.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="heap.concepts"></a><a class="link" href="concepts.html" title="Concepts &amp; Interface">Concepts &amp; Interface</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="concepts.html#heap.concepts.basic">Basic Priority Queue Interface</a></span></dt>
+<dt><span class="section"><a href="concepts.html#heap.concepts.iterators">Priority Queue Iterators</a></span></dt>
+<dt><span class="section"><a href="concepts.html#heap.concepts.comparing">Comparing Priority Queues &amp;
+      Equivalence</a></span></dt>
+<dt><span class="section"><a href="concepts.html#heap.concepts.merge">Merging Priority Queues</a></span></dt>
+<dt><span class="section"><a href="concepts.html#heap.concepts.mutability">Mutability</a></span></dt>
+<dt><span class="section"><a href="concepts.html#heap.concepts.stability">Stability</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="heap.concepts.basic"></a><a class="link" href="concepts.html#heap.concepts.basic" title="Basic Priority Queue Interface">Basic Priority Queue Interface</a>
+</h3></div></div></div>
+<p>
+        Priority queues are queues of objects, that are ordered by their priority.
+        They support the operations of adding nodes to the data structure, accessing
+        the top element (the element with the highest priority), and removing the
+        top element.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          <code class="literal">boost.heap</code> implements priority queues as max-heaps to
+          be consistent with the STL heap functions. This is in contrast to the typical
+          textbook design, which uses min-heaps.
+        </p></td></tr>
+</table></div>
+<h6>
+<a name="heap.concepts.basic.h0"></a>
+        <span class="phrase"><a name="heap.concepts.basic.synopsis"></a></span><a class="link" href="concepts.html#heap.concepts.basic.synopsis">Synopsis</a>
+      </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="special">...</span><span class="identifier">Options</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">priority_queue</span>
+<span class="special">{</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <span class="identifier">T</span>                   <span class="identifier">value_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span>         <span class="identifier">size_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span>         <span class="identifier">difference_type</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span>         <span class="identifier">allocator_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span>         <span class="identifier">value_compare</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span>         <span class="identifier">reference</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span>         <span class="identifier">const_reference</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span>         <span class="identifier">pointer</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span>         <span class="identifier">const_pointer</span><span class="special">;</span>
+
+    <span class="comment">// construct/copy/destruct</span>
+    <span class="keyword">explicit</span> <span class="identifier">priority_queue</span><span class="special">(</span><span class="identifier">value_compare</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">value_compare</span><span class="special">());</span>
+    <span class="identifier">priority_queue</span><span class="special">(</span><span class="identifier">priority_queue</span> <span class="keyword">const</span> <span class="special">&amp;);</span>
+    <span class="identifier">priority_queue</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">priority_queue</span> <span class="keyword">const</span> <span class="special">&amp;);</span>
+    <span class="identifier">priority_queue</span><span class="special">(</span><span class="identifier">priority_queue</span> <span class="special">&amp;&amp;);</span>                  <span class="comment">// move semantics (C++11 only)</span>
+    <span class="identifier">priority_queue</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">priority_queue</span> <span class="special">&amp;&amp;);</span>       <span class="comment">// move semantics (C++11 only)</span>
+
+    <span class="comment">// public member functions</span>
+    <span class="emphasis"><em>unspecified</em></span> <span class="identifier">push</span><span class="special">(</span><span class="identifier">const_reference</span><span class="special">);</span>                  <span class="comment">// push new element to heap</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">...</span> <span class="identifier">Args</span><span class="special">&gt;</span> <span class="keyword">void</span> <span class="identifier">emplace</span><span class="special">(</span><span class="identifier">Args</span> <span class="special">&amp;&amp;...);</span>   <span class="comment">// push new element to heap, C++11 only</span>
+    <span class="identifier">const_reference</span> <span class="identifier">top</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>                        <span class="comment">// return top element</span>
+    <span class="keyword">void</span> <span class="identifier">pop</span><span class="special">();</span>                                         <span class="comment">// remove top element</span>
+    <span class="keyword">void</span> <span class="identifier">clear</span><span class="special">();</span>                                       <span class="comment">// clear heap</span>
+    <span class="identifier">size_type</span> <span class="identifier">size</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>                             <span class="comment">// number of elements</span>
+    <span class="keyword">bool</span> <span class="identifier">empty</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>                                 <span class="comment">// priority queue is empty</span>
+    <span class="identifier">allocator_type</span> <span class="identifier">get_allocator</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>           <span class="comment">// return allocator</span>
+    <span class="identifier">size_type</span> <span class="identifier">max_size</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>                     <span class="comment">// maximal possible size</span>
+    <span class="keyword">void</span> <span class="identifier">reserve</span><span class="special">(</span><span class="identifier">size_type</span><span class="special">);</span>                            <span class="comment">// reserve space, only available if (has_reserve == true)</span>
+
+    <span class="comment">// heap equivalence</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">HeapType</span><span class="special">&gt;</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">HeapType</span><span class="special">&gt;</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!=(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// heap comparison</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">HeapType</span><span class="special">&gt;</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&lt;(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">HeapType</span><span class="special">&gt;</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&gt;(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">HeapType</span><span class="special">&gt;</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&gt;=(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">HeapType</span><span class="special">&gt;</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&lt;=(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// public data members</span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">constant_time_size</span><span class="special">;</span>               <span class="comment">// size() has constant complexity</span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">has_ordered_iterators</span><span class="special">;</span>            <span class="comment">// priority queue has <a class="link" href="concepts.html#heap.concepts.iterators" title="Priority Queue Iterators">ordered iterators</a></span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_mergable</span><span class="special">;</span>                      <span class="comment">// priority queue is efficiently <a class="link" href="concepts.html#heap.concepts.merge" title="Merging Priority Queues">mergable</a></span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_stable</span><span class="special">;</span>                        <span class="comment">// priority queue has a <a class="link" href="concepts.html#heap.concepts.stability" title="Stability">stable heap order</a></span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">has_reserve</span><span class="special">;</span>                      <span class="comment">// priority queue has a reserve() member</span>
+<span class="special">};</span>
+</pre>
+<h6>
+<a name="heap.concepts.basic.h1"></a>
+        <span class="phrase"><a name="heap.concepts.basic.example"></a></span><a class="link" href="concepts.html#heap.concepts.basic.example">Example</a>
+      </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// PriorityQueue is expected to be a max-heap of integer values</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">basic_interface</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">PriorityQueue</span> <span class="identifier">pq</span><span class="special">;</span>
+
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Priority Queue: popped elements"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">top</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span><span class="special">;</span> <span class="comment">// 3</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">pop</span><span class="special">();</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">top</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span><span class="special">;</span> <span class="comment">// 2</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">pop</span><span class="special">();</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">top</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span><span class="special">;</span> <span class="comment">// 1</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">pop</span><span class="special">();</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="heap.concepts.iterators"></a><a class="link" href="concepts.html#heap.concepts.iterators" title="Priority Queue Iterators">Priority Queue Iterators</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="concepts.html#heap.concepts.iterators.ordered_iterators">Ordered
+        Iterators</a></span></dt></dl></div>
+<h6>
+<a name="heap.concepts.iterators.h0"></a>
+        <span class="phrase"><a name="heap.concepts.iterators.synopsis"></a></span><a class="link" href="concepts.html#heap.concepts.iterators.synopsis">Synopsis</a>
+      </h6>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">iteratable_heap_interface</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span>         <span class="identifier">iterator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span>         <span class="identifier">const_iterator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span>         <span class="identifier">ordered_iterator</span><span class="special">;</span>
+
+    <span class="comment">// public member functions</span>
+    <span class="identifier">iterator</span> <span class="identifier">begin</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">iterator</span> <span class="identifier">end</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">ordered_iterator</span> <span class="identifier">ordered_begin</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">ordered_iterator</span> <span class="identifier">ordered_end</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        Priority queues provide iterators, that can be used to traverse their elements.
+        All heap iterators are const_iterators, that means they cannot be used to
+        modify the values, because changing the value of a heap node may corrupt
+        the heap order. Details about modifying heap nodes are described in the section
+        about the <a class="link" href="concepts.html#heap.concepts.mutability" title="Mutability">mutability interface</a>.
+      </p>
+<p>
+        Iterators do not visit heap elements in any specific order. Unless otherwise
+        noted, all non-const heap member functions invalidate iterators, while all
+        const member functions preserve the iterator validity.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Some implementations require iterators, that contain a set of elements,
+          that are <span class="bold"><strong>discovered</strong></span>, but not <span class="bold"><strong>visited</strong></span>. Therefore copying iterators can be inefficient
+          and should be avoided.
+        </p></td></tr>
+</table></div>
+<h6>
+<a name="heap.concepts.iterators.h1"></a>
+        <span class="phrase"><a name="heap.concepts.iterators.example"></a></span><a class="link" href="concepts.html#heap.concepts.iterators.example">Example</a>
+      </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// PriorityQueue is expected to be a max-heap of integer values</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">iterator_interface</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">PriorityQueue</span> <span class="identifier">pq</span><span class="special">;</span>
+
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+
+    <span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">begin</span> <span class="special">=</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+    <span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">end</span> <span class="special">=</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Priority Queue: iteration"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="keyword">for</span> <span class="special">(</span><span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">begin</span><span class="special">;</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">end</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">it</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span><span class="special">;</span> <span class="comment">// 1, 2, 3 in unspecified order</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="heap.concepts.iterators.ordered_iterators"></a><a class="link" href="concepts.html#heap.concepts.iterators.ordered_iterators" title="Ordered Iterators">Ordered
+        Iterators</a>
+</h4></div></div></div>
+<p>
+          Except for <code class="computeroutput"><a class="link" href="../boost/heap/priority_queue.html" title="Class template priority_queue">boost::heap::priority_queue</a></code>
+          all <code class="literal">boost.heap</code> data structures support ordered iterators,
+          which visit all elements of the heap in heap-order. The implementation
+          of these <code class="literal">ordered_iterator</code>s requires some internal bookkeeping,
+          so iterating the a heap in heap order has an amortized complexity of O(N*log(N)).
+        </p>
+<h6>
+<a name="heap.concepts.iterators.ordered_iterators.h0"></a>
+          <span class="phrase"><a name="heap.concepts.iterators.ordered_iterators.example"></a></span><a class="link" href="concepts.html#heap.concepts.iterators.ordered_iterators.example">Example</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// PriorityQueue is expected to be a max-heap of integer values</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">ordered_iterator_interface</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">PriorityQueue</span> <span class="identifier">pq</span><span class="special">;</span>
+
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+
+    <span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">::</span><span class="identifier">ordered_iterator</span> <span class="identifier">begin</span> <span class="special">=</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">ordered_begin</span><span class="special">();</span>
+    <span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">::</span><span class="identifier">ordered_iterator</span> <span class="identifier">end</span> <span class="special">=</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">ordered_end</span><span class="special">();</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Priority Queue: ordered iteration"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="keyword">for</span> <span class="special">(</span><span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">::</span><span class="identifier">ordered_iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">begin</span><span class="special">;</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">end</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">it</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span><span class="special">;</span> <span class="comment">// 3, 2, 1 (i.e. 1, 2, 3 in heap order)</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="heap.concepts.comparing"></a><a class="link" href="concepts.html#heap.concepts.comparing" title="Comparing Priority Queues &amp; Equivalence">Comparing Priority Queues &amp;
+      Equivalence</a>
+</h3></div></div></div>
+<p>
+        The data structures of <code class="literal">boost.heap</code> can be compared with
+        standard comparison operators. The comparison is performed by comparing two
+        heaps element by element using <code class="literal">value_compare</code>.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Depending on the heap type, this operation can be rather expensive, because
+          both data structures need to be traversed in heap order. On heaps without
+          ordered iterators, the heap needs to be copied internally. The typical
+          complexity is O(n log(n)).
+        </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="heap.concepts.merge"></a><a class="link" href="concepts.html#heap.concepts.merge" title="Merging Priority Queues">Merging Priority Queues</a>
+</h3></div></div></div>
+<h4>
+<a name="heap.concepts.merge.h0"></a>
+        <span class="phrase"><a name="heap.concepts.merge.mergable_priority_queues"></a></span><a class="link" href="concepts.html#heap.concepts.merge.mergable_priority_queues">Mergable
+        Priority Queues</a>
+      </h4>
+<h6>
+<a name="heap.concepts.merge.h1"></a>
+        <span class="phrase"><a name="heap.concepts.merge.synopsis"></a></span><a class="link" href="concepts.html#heap.concepts.merge.synopsis">Synopsis</a>
+      </h6>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">mergable_heap_interface</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// public member functions</span>
+    <span class="keyword">void</span> <span class="identifier">merge</span><span class="special">(</span><span class="identifier">mergable_heap_interface</span> <span class="special">&amp;);</span>
+<span class="special">};</span>
+</pre>
+<p>
+        <code class="literal">boost.heap</code> has a concept of a Mergable Priority Queue.
+        A mergable priority queue can efficiently be merged with a different instance
+        of the same type.
+      </p>
+<h6>
+<a name="heap.concepts.merge.h2"></a>
+        <span class="phrase"><a name="heap.concepts.merge.example"></a></span><a class="link" href="concepts.html#heap.concepts.merge.example">Example</a>
+      </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// PriorityQueue is expected to be a max-heap of integer values</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">merge_interface</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">PriorityQueue</span> <span class="identifier">pq</span><span class="special">;</span>
+
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">5</span><span class="special">);</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+
+    <span class="identifier">PriorityQueue</span> <span class="identifier">pq2</span><span class="special">;</span>
+
+    <span class="identifier">pq2</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+    <span class="identifier">pq2</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">4</span><span class="special">);</span>
+    <span class="identifier">pq2</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">merge</span><span class="special">(</span><span class="identifier">pq2</span><span class="special">);</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Priority Queue: merge"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"first queue: "</span><span class="special">;</span>
+    <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">pq</span><span class="special">.</span><span class="identifier">empty</span><span class="special">())</span> <span class="special">{</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">top</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span><span class="special">;</span> <span class="comment">// 5 4 3 2 1 0</span>
+        <span class="identifier">pq</span><span class="special">.</span><span class="identifier">pop</span><span class="special">();</span>
+    <span class="special">}</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"second queue: "</span><span class="special">;</span>
+    <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">pq2</span><span class="special">.</span><span class="identifier">empty</span><span class="special">())</span> <span class="special">{</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">pq2</span><span class="special">.</span><span class="identifier">top</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span><span class="special">;</span> <span class="comment">// 4 2 0</span>
+        <span class="identifier">pq2</span><span class="special">.</span><span class="identifier">pop</span><span class="special">();</span>
+    <span class="special">}</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<h4>
+<a name="heap.concepts.merge.h3"></a>
+        <span class="phrase"><a name="heap.concepts.merge.heap_merge_algorithms"></a></span><a class="link" href="concepts.html#heap.concepts.merge.heap_merge_algorithms">Heap
+        Merge Algorithms</a>
+      </h4>
+<p>
+        <code class="literal">boost.heap</code> provides a <code class="literal">heap_merge()</code>
+        algorithm that is can be used to merge different kinds of heaps. Using this
+        algorithm, all <code class="literal">boost.heap</code> data structures can be merged,
+        although some cannot be merged efficiently.
+      </p>
+<h6>
+<a name="heap.concepts.merge.h4"></a>
+        <span class="phrase"><a name="heap.concepts.merge.example0"></a></span><a class="link" href="concepts.html#heap.concepts.merge.example0">Example</a>
+      </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// PriorityQueue is expected to be a max-heap of integer values</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">heap_merge_algorithm</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">PriorityQueue</span> <span class="identifier">pq</span><span class="special">;</span>
+
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">5</span><span class="special">);</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+
+    <span class="identifier">PriorityQueue</span> <span class="identifier">pq2</span><span class="special">;</span>
+
+    <span class="identifier">pq2</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+    <span class="identifier">pq2</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">4</span><span class="special">);</span>
+    <span class="identifier">pq2</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">heap</span><span class="special">::</span><span class="identifier">heap_merge</span><span class="special">(</span><span class="identifier">pq</span><span class="special">,</span> <span class="identifier">pq2</span><span class="special">);</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Priority Queue: merge"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"first queue: "</span><span class="special">;</span>
+    <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">pq</span><span class="special">.</span><span class="identifier">empty</span><span class="special">())</span> <span class="special">{</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">top</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span><span class="special">;</span> <span class="comment">// 5 4 3 2 1 0</span>
+        <span class="identifier">pq</span><span class="special">.</span><span class="identifier">pop</span><span class="special">();</span>
+    <span class="special">}</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"second queue: "</span><span class="special">;</span>
+    <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">pq2</span><span class="special">.</span><span class="identifier">empty</span><span class="special">())</span> <span class="special">{</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">pq2</span><span class="special">.</span><span class="identifier">top</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span><span class="special">;</span> <span class="comment">// 4 2 0</span>
+        <span class="identifier">pq2</span><span class="special">.</span><span class="identifier">pop</span><span class="special">();</span>
+    <span class="special">}</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="heap.concepts.mutability"></a><a class="link" href="concepts.html#heap.concepts.mutability" title="Mutability">Mutability</a>
+</h3></div></div></div>
+<p>
+        Some priority queues of <code class="literal">boost.heap</code> are mutable, that means
+        the priority of their elements can be changed. To achieve mutability, <code class="literal">boost.heap</code>
+        introduces the concept of <span class="bold"><strong>handles</strong></span>, which
+        can be used to access the internal nodes of the priority queue in order to
+        change its value and to restore the heap order.
+      </p>
+<h6>
+<a name="heap.concepts.mutability.h0"></a>
+        <span class="phrase"><a name="heap.concepts.mutability.synopsis"></a></span><a class="link" href="concepts.html#heap.concepts.mutability.synopsis">Synopsis</a>
+      </h6>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">mutable_heap_interface</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">iterator</span><span class="special">;</span>
+    <span class="keyword">struct</span> <span class="identifier">handle_type</span>
+    <span class="special">{</span>
+        <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">*()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">static</span> <span class="identifier">handle_type</span> <span class="identifier">s_iterator_to_handle</span><span class="special">(</span><span class="identifier">iterator</span> <span class="keyword">const</span> <span class="special">&amp;);</span>
+
+    <span class="comment">// priority queue interface</span>
+    <span class="identifier">handle_type</span> <span class="identifier">push</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">v</span><span class="special">);</span>
+
+    <span class="comment">// update element via assignment and fix heap</span>
+    <span class="keyword">void</span> <span class="identifier">update</span><span class="special">(</span><span class="identifier">handle_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">handle</span><span class="special">,</span> <span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">v</span><span class="special">);</span>
+    <span class="keyword">void</span> <span class="identifier">increase</span><span class="special">(</span><span class="identifier">handle_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">handle</span><span class="special">,</span> <span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">v</span><span class="special">);</span>
+    <span class="keyword">void</span> <span class="identifier">decrease</span><span class="special">(</span><span class="identifier">handle_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">handle</span><span class="special">,</span> <span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">v</span><span class="special">);</span>
+
+    <span class="comment">// fix heap after element has been changed via the handle</span>
+    <span class="keyword">void</span> <span class="identifier">update</span><span class="special">(</span><span class="identifier">handle_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">handle</span><span class="special">);</span>
+    <span class="keyword">void</span> <span class="identifier">increase</span><span class="special">(</span><span class="identifier">handle_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">handle</span><span class="special">);</span>
+    <span class="keyword">void</span> <span class="identifier">decrease</span><span class="special">(</span><span class="identifier">handle_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">handle</span><span class="special">);</span>
+<span class="special">};</span>
+</pre>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Incorrect use of <code class="literal">increase</code> or <code class="literal">decrease</code>
+          may corrupt the priority queue data structure. If unsure use <code class="literal">update</code>
+          can be used at the cost of efficiency.
+        </p></td></tr>
+</table></div>
+<h6>
+<a name="heap.concepts.mutability.h1"></a>
+        <span class="phrase"><a name="heap.concepts.mutability.example"></a></span><a class="link" href="concepts.html#heap.concepts.mutability.example">Example</a>
+      </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// PriorityQueue is expected to be a max-heap of integer values</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">mutable_interface</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">PriorityQueue</span> <span class="identifier">pq</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">::</span><span class="identifier">handle_type</span> <span class="identifier">handle_t</span><span class="special">;</span>
+
+    <span class="identifier">handle_t</span> <span class="identifier">t3</span> <span class="special">=</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+    <span class="identifier">handle_t</span> <span class="identifier">t5</span> <span class="special">=</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">5</span><span class="special">);</span>
+    <span class="identifier">handle_t</span> <span class="identifier">t1</span> <span class="special">=</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">update</span><span class="special">(</span><span class="identifier">t3</span><span class="special">,</span> <span class="number">4</span><span class="special">);</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">increase</span><span class="special">(</span><span class="identifier">t5</span><span class="special">,</span> <span class="number">7</span><span class="special">);</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">decrease</span><span class="special">(</span><span class="identifier">t1</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Priority Queue: update"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">pq</span><span class="special">.</span><span class="identifier">empty</span><span class="special">())</span> <span class="special">{</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">top</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span><span class="special">;</span> <span class="comment">// 7, 4, 0</span>
+        <span class="identifier">pq</span><span class="special">.</span><span class="identifier">pop</span><span class="special">();</span>
+    <span class="special">}</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        Note that handles can be stored inside the <code class="literal">value_type</code>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">heap_data</span>
+<span class="special">{</span>
+    <span class="identifier">fibonacci_heap</span><span class="special">&lt;</span><span class="identifier">heap_data</span><span class="special">&gt;::</span><span class="identifier">handle_type</span> <span class="identifier">handle</span><span class="special">;</span>
+    <span class="keyword">int</span> <span class="identifier">payload</span><span class="special">;</span>
+
+    <span class="identifier">heap_data</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">):</span>
+        <span class="identifier">payload</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span>
+    <span class="special">{}</span>
+
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&lt;(</span><span class="identifier">heap_data</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">payload</span> <span class="special">&lt;</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">payload</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">void</span> <span class="identifier">mutable_interface_handle_in_value</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">fibonacci_heap</span><span class="special">&lt;</span><span class="identifier">heap_data</span><span class="special">&gt;</span> <span class="identifier">heap</span><span class="special">;</span>
+    <span class="identifier">heap_data</span> <span class="identifier">f</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+
+    <span class="identifier">fibonacci_heap</span><span class="special">&lt;</span><span class="identifier">heap_data</span><span class="special">&gt;::</span><span class="identifier">handle_type</span> <span class="identifier">handle</span> <span class="special">=</span> <span class="identifier">heap</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="identifier">f</span><span class="special">);</span>
+    <span class="special">(*</span><span class="identifier">handle</span><span class="special">).</span><span class="identifier">handle</span> <span class="special">=</span> <span class="identifier">handle</span><span class="special">;</span> <span class="comment">// store handle in node</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<h4>
+<a name="heap.concepts.mutability.h2"></a>
+        <span class="phrase"><a name="heap.concepts.mutability.the_fixup_interface"></a></span><a class="link" href="concepts.html#heap.concepts.mutability.the_fixup_interface">The
+        Fixup Interface</a>
+      </h4>
+<p>
+        There are two different APIs to support mutability. The first family of functions
+        provides update functionality by changing the current element by assigning
+        a new value. The second family of functions can be used to fix the heap data
+        structure after an element has been changed directly via a handle. While
+        this provides the user with a means to modify the priority of queue elements
+        without the need to change their non-priority part, this needs to be handled
+        with care. The heap needs to be fixed up immediately after the priority of
+        the element has been changed.
+      </p>
+<p>
+        Beside an <code class="literal">update</code> function, two additional functions <code class="literal">increase</code>
+        and <code class="literal">decrease</code> are provided, that are generally more efficient
+        than the generic <code class="literal">update</code> function. However the user has
+        do ensure, that the priority of an element is changed to the right direction.
+      </p>
+<h6>
+<a name="heap.concepts.mutability.h3"></a>
+        <span class="phrase"><a name="heap.concepts.mutability.example0"></a></span><a class="link" href="concepts.html#heap.concepts.mutability.example0">Example</a>
+      </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// PriorityQueue is expected to be a max-heap of integer values</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">mutable_fixup_interface</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">PriorityQueue</span> <span class="identifier">pq</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">PriorityQueue</span><span class="special">::</span><span class="identifier">handle_type</span> <span class="identifier">handle_t</span><span class="special">;</span>
+
+    <span class="identifier">handle_t</span> <span class="identifier">t3</span> <span class="special">=</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+    <span class="identifier">handle_t</span> <span class="identifier">t5</span> <span class="special">=</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">5</span><span class="special">);</span>
+    <span class="identifier">handle_t</span> <span class="identifier">t1</span> <span class="special">=</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+
+    <span class="special">*</span><span class="identifier">t3</span> <span class="special">=</span> <span class="number">4</span><span class="special">;</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">update</span><span class="special">(</span><span class="identifier">t3</span><span class="special">);</span>
+
+    <span class="special">*</span><span class="identifier">t5</span> <span class="special">=</span> <span class="number">7</span><span class="special">;</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">increase</span><span class="special">(</span><span class="identifier">t5</span><span class="special">);</span>
+
+    <span class="special">*</span><span class="identifier">t1</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+    <span class="identifier">pq</span><span class="special">.</span><span class="identifier">decrease</span><span class="special">(</span><span class="identifier">t1</span><span class="special">);</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Priority Queue: update with fixup"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">pq</span><span class="special">.</span><span class="identifier">empty</span><span class="special">())</span> <span class="special">{</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">pq</span><span class="special">.</span><span class="identifier">top</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span><span class="special">;</span> <span class="comment">// 7, 4, 0</span>
+        <span class="identifier">pq</span><span class="special">.</span><span class="identifier">pop</span><span class="special">();</span>
+    <span class="special">}</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        Iterators can be coverted to handles using the static member function <code class="literal">s_handle_from_iterator</code>.
+        However most implementations of <code class="literal">update</code> invalidate all
+        iterators. The most notable exception is the <code class="computeroutput"><a class="link" href="../boost/heap/fibonacci_heap.html" title="Class template fibonacci_heap">fibonacci
+        heap</a></code>, providing a lazy update function, that just invalidates
+        the iterators, that are related to this handle.
+      </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          After changing the priority via a handle, the heap needs to be fixed by
+          calling one of the update functions. Otherwise the priority queue structure
+          may be corrupted!
+        </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="heap.concepts.stability"></a><a class="link" href="concepts.html#heap.concepts.stability" title="Stability">Stability</a>
+</h3></div></div></div>
+<p>
+        A priority queue is `stable', if elements with the same priority are popped
+        from the heap, in the same order as they are inserted. The data structures
+        provided by <code class="literal">boost.heap</code>, can be configured to be stable
+        at compile time using the <code class="computeroutput"><a class="link" href="../boost/heap/stable.html" title="Struct template stable">boost::heap::stable</a></code>
+        policy. Two notions of stability are supported. If a heap is configured with
+        <span class="bold"><strong>no stability</strong></span>, the order of nodes of the
+        same priority is undefined, if it is configured as <span class="bold"><strong>stable</strong></span>,
+        nodes of the same priority are ordered by their insertion time.
+      </p>
+<p>
+        Stability is achieved by associating an integer version count with each value
+        in order to distinguish values with the same node. The type of this version
+        count defaults to <code class="literal">boost::uintmax_t</code>, which is at least
+        64bit on most systems. However it can be configured to use a different type
+        using the <code class="computeroutput"><a class="link" href="../boost/heap/stability_counter_type.html" title="Struct template stability_counter_type">boost::heap::stability_counter_type</a></code>
+        template argument.
+      </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          The stability counter is prone to integer overflows. If an overflow occurs
+          during a <code class="literal">push()</code> call, the operation will fail and an
+          exception is thrown. Later <code class="literal">push()</code> call will succeed,
+          but the stable heap order will be compromised. However an integer overflow
+          at 64bit is very unlikely: if an application would issue one <code class="literal">push()</code>
+          operation per microsecond, the value will overflow in more than 500000
+          years.
+        </p></td></tr>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010, 2011 Tim Blechmann<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../heap.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../heap.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="data_structures.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

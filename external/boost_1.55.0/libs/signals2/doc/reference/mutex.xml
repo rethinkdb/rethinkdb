@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Frank Mori Hess 2008-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<header name="boost/signals2/mutex.hpp" last-revision="$Date: 2007-03-06 16:51:55 -0500 (Tue, 06 Mar 2007) $">
+  <using-namespace name="boost::signals2"/>
+  <using-namespace name="boost"/>
+  <namespace name="boost">
+    <namespace name="signals2">
+      <class name="mutex">
+        <purpose>A header-only mutex which implements the Lockable concept of Boost.Thread.</purpose>
+
+        <description>
+          <para>
+            The <code>mutex</code> class implements the <code>Lockable</code>
+            concept of Boost.Thread, and is the default <code>Mutex</code> template parameter
+            type for signals.
+            If boost has detected thread support in your compiler, the <code>mutex</code>
+            class will map to a CRITICAL_SECTION on Windows
+            or a pthread_mutex on POSIX.  If thread support is not detected, <code>mutex</code>
+            will behave similarly to a <classname>dummy_mutex</classname>.
+            The header file <code>boost/config.hpp</code>
+            defines the macro <code>BOOST_HAS_THREADS</code> when boost detects threading support.
+            The user may globally disable thread support
+            in boost by defining BOOST_DISABLE_THREADS before any boost header files are included.
+          </para>
+          <para>
+            If you are already using the Boost.Thread library, you may prefer to use its
+            <classname>boost::mutex</classname> class instead as the mutex type for your signals.
+          </para>
+          <para>
+            You may wish to use a thread-unsafe signal, if
+            the signal is only used by a single thread.  In that case, you may prefer to
+            use the <classname>signals2::dummy_mutex</classname> class as the <code>Mutex</code>
+            template type for your signal.
+          </para>
+        </description>
+        <access name="public">
+          <method name="lock">
+            <type>void</type>
+            <description>
+              <para>Locks the mutex.
+              </para>
+            </description>
+          </method>
+          <method name="try_lock">
+            <type>bool</type>
+            <description>
+              <para>Makes a non-blocking attempt to lock the mutex.
+              </para>
+            </description>
+            <returns><para><code>true</code> on success.</para></returns>
+          </method>
+          <method name="unlock">
+            <type>void</type>
+            <description>
+              <para>Unlocks the mutex.
+              </para>
+            </description>
+          </method>
+        </access>
+      </class>
+    </namespace>
+  </namespace>
+</header>

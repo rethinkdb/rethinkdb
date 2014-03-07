@@ -1,0 +1,47 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_class is_class]
+   template <class T>
+   struct is_class : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) class type (and not a union type) then inherits from __true_type, 
+otherwise inherits from __false_type.
+
+__std_ref 3.9.2 and 9.2.
+
+__header ` #include <boost/type_traits/is_class.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__compat Without (some as yet unspecified) help from the compiler, 
+we cannot distinguish between union and class types, as a result this type 
+will erroneously inherit from __true_type for union types.  See also __is_union.  
+Currently (May 2011) compilers more recent than Visual C++ 8, GCC-4.3, Greenhills 6.0, 
+Intel-11.0, and Codegear have the necessary compiler __intrinsics to ensure that this 
+trait "just works".  You may also test to see if the necessary __intrinsics are available 
+by checking to see if the macro `BOOST_IS_CLASS` is defined.
+
+__examples
+
+[:Given: `class MyClass;` then:]
+
+[:`is_class<MyClass>` inherits from `__true_type`.]
+
+[:`is_class<MyClass const>::type` is the type `__true_type`.]
+
+[:`is_class<MyClass>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_class<MyClass&>::value` is an integral constant 
+expression that evaluates to /false/.]
+
+[:`is_class<MyClass*>::value` is an integral constant 
+expression that evaluates to /false/.]
+
+[:`is_class<T>::value_type` is the type `bool`.]
+
+[endsect]
+

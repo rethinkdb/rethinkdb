@@ -1,0 +1,227 @@
+# Copyright Vladimir Prus 2004.
+# Copyright Noel Belcourt 2007.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt
+# or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import intel ;
+import feature : feature ;
+import os ;
+import toolset ;
+import toolset : flags ;
+import gcc ;
+import common ;
+import errors ;
+import generators ;
+
+feature.extend-subfeature toolset intel : platform : darwin ;
+
+toolset.inherit-generators intel-darwin 
+  <toolset>intel <toolset-intel:platform>darwin 
+  : gcc 
+  # Don't inherit PCH generators. They were not tested, and probably
+  # don't work for this compiler.
+  : gcc.mingw.link gcc.mingw.link.dll gcc.compile.c.pch gcc.compile.c++.pch
+  ;
+
+generators.override intel-darwin.prebuilt : builtin.lib-generator ;
+generators.override intel-darwin.prebuilt : builtin.prebuilt ;
+generators.override intel-darwin.searched-lib-generator : searched-lib-generator ;
+
+toolset.inherit-rules intel-darwin : gcc ;
+toolset.inherit-flags intel-darwin : gcc 
+        : <inlining>off <inlining>on <inlining>full <optimization>space 
+          <warnings>off <warnings>all <warnings>on
+          <architecture>x86/<address-model>32
+          <architecture>x86/<address-model>64
+        ;
+        
+if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ]
+{
+    .debug-configuration = true ;
+}
+                       
+# vectorization diagnostics
+feature vectorize : off on full ;
+
+# Initializes the intel-darwin toolset
+#   version in mandatory
+#   name (default icc) is used to invoke the specified intel complier
+#   compile and link options allow you to specify addition command line options for each version
+rule init ( version ? :  command * : options * )
+{
+    local condition = [ common.check-init-parameters intel-darwin
+        : version $(version) ] ;
+    
+    command = [ common.get-invocation-command intel-darwin : icc 
+        : $(command) : /opt/intel_cc_80/bin ] ;
+
+    common.handle-options intel-darwin : $(condition) : $(command) : $(options) ;
+
+    gcc.init-link-flags intel-darwin darwin $(condition) ;
+
+    # handle <library-path>
+    # local library-path = [ feature.get-values <library-path> : $(options) ] ;
+    # flags intel-darwin.link USER_OPTIONS $(condition) : [ feature.get-values <dll-path> : $(options) ] ;
+
+    local root = [ feature.get-values <root> : $(options) ] ;
+    local bin ;
+    if $(command) || $(root)
+    {
+        bin ?= [ common.get-absolute-tool-path $(command[-1]) ] ;
+        root ?= $(bin:D) ;
+    
+        if $(root)
+        {
+            # Libraries required to run the executable may be in either
+            # $(root)/lib (10.1 and earlier) 
+            #     or 
+            # $(root)/lib/architecture-name (11.0 and later:
+            local lib_path = $(root)/lib $(root:P)/lib/$(bin:B) ;
+            if $(.debug-configuration)
+            {
+                ECHO notice: using intel libraries :: $(condition) :: $(lib_path) ;
+            }
+            flags intel-darwin.link RUN_PATH $(condition) : $(lib_path) ;
+        }   
+    }
+
+    local m = [ MATCH (..).* : $(version) ] ;
+    local n = [ MATCH (.)\\. : $(m) ] ;
+    if $(n) {
+      m = $(n) ;
+    }
+
+    local major = $(m) ;
+    
+    if $(major) = "9" {
+      flags intel-darwin.compile OPTIONS $(condition)/<inlining>off : -Ob0 ;
+      flags intel-darwin.compile OPTIONS $(condition)/<inlining>on : -Ob1  ;
+      flags intel-darwin.compile OPTIONS $(condition)/<inlining>full : -Ob2  ;
+      flags intel-darwin.compile OPTIONS $(condition)/<vectorize>off : -vec-report0 ;
+      flags intel-darwin.compile OPTIONS $(condition)/<vectorize>on : -vec-report1 ;
+      flags intel-darwin.compile OPTIONS $(condition)/<vectorize>full : -vec-report5 ;
+      flags intel-darwin.link OPTIONS $(condition)/<runtime-link>static : -static -static-libcxa -lstdc++ -lpthread ;
+      flags intel-darwin.link OPTIONS $(condition)/<runtime-link>shared : -shared-libcxa -lstdc++ -lpthread ;
+    }
+    else {
+      flags intel-darwin.compile OPTIONS $(condition)/<inlining>off : -inline-level=0 ;
+      flags intel-darwin.compile OPTIONS $(condition)/<inlining>on : -inline-level=1  ;
+      flags intel-darwin.compile OPTIONS $(condition)/<inlining>full : -inline-level=2  ;
+      flags intel-darwin.compile OPTIONS $(condition)/<vectorize>off : -vec-report0 ;
+      flags intel-darwin.compile OPTIONS $(condition)/<vectorize>on : -vec-report1 ;
+      flags intel-darwin.compile OPTIONS $(condition)/<vectorize>full : -vec-report5 ;
+      flags intel-darwin.link OPTIONS $(condition)/<runtime-link>static : -static -static-intel -lstdc++ -lpthread ;
+      flags intel-darwin.link OPTIONS $(condition)/<runtime-link>shared : -shared-intel -lstdc++ -lpthread ;
+    }
+
+    local minor = [ MATCH ".*\\.(.).*" : $(version) ] ;
+
+    # wchar_t char_traits workaround for compilers older than 10.2
+    if $(major) = "9" || ( $(major) = "10" && ( $(minor) = "0" || $(minor) = "1" ) ) {
+        flags intel-darwin.compile DEFINES $(condition) : __WINT_TYPE__=int : unchecked ;
+    }
+}
+
+SPACE = " " ;
+
+flags intel-darwin.compile OPTIONS <cflags> ;
+flags intel-darwin.compile OPTIONS <cxxflags> ;
+# flags intel-darwin.compile INCLUDES <include> ;
+
+flags intel-darwin.compile OPTIONS <optimization>space : -O1 ; # no specific space optimization flag in icc
+
+# 
+.cpu-type-em64t    = prescott nocona core2 corei7 corei7-avx core-avx-i
+                     conroe conroe-xe conroe-l allendale merom
+                     merom-xe kentsfield kentsfield-xe penryn wolfdale
+                     yorksfield nehalem sandy-bridge ivy-bridge haswell ;
+.cpu-type-amd64    = k8 opteron athlon64 athlon-fx k8-sse3 opteron-sse3
+                     athlon64-sse3 amdfam10 barcelona bdver1 bdver2 bdver3 btver1 btver2 ;
+.cpu-type-x86-64   = $(.cpu-type-em64t) $(.cpu-type-amd64) ;
+
+flags intel-darwin.compile OPTIONS <instruction-set>$(.cpu-type-x86-64)/<address-model>32 : -m32 ; # -mcmodel=small ;
+flags intel-darwin.compile OPTIONS <instruction-set>$(.cpu-type-x86-64)/<address-model>64 : -m64 ; # -mcmodel=large ;
+
+flags intel-darwin.compile.c OPTIONS <warnings>off : -w0 ;
+flags intel-darwin.compile.c OPTIONS <warnings>on : -w1 ;
+flags intel-darwin.compile.c OPTIONS <warnings>all : -w2 ;
+
+flags intel-darwin.compile.c++ OPTIONS <warnings>off : -w0 ;
+flags intel-darwin.compile.c++ OPTIONS <warnings>on : -w1 ;
+flags intel-darwin.compile.c++ OPTIONS <warnings>all : -w2 ;
+
+actions compile.c
+{
+    "$(CONFIG_COMMAND)" -xc $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.c++
+{
+    "$(CONFIG_COMMAND)" -xc++ $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+flags intel-darwin ARFLAGS <archiveflags> ;
+
+# Default value. Mostly for the sake of intel-linux
+# that inherits from gcc, but does not has the same
+# logic to set the .AR variable. We can put the same
+# logic in intel-linux, but that's hardly worth the trouble
+# as on Linux, 'ar' is always available.
+.AR = ar ;
+
+rule archive ( targets * : sources * : properties * )
+{
+  # Always remove archive and start again. Here's rationale from
+  # Andre Hentz:
+  #
+  # I had a file, say a1.c, that was included into liba.a. 
+  # I moved a1.c to a2.c, updated my Jamfiles and rebuilt. 
+  # My program was crashing with absurd errors. 
+  # After some debugging I traced it back to the fact that a1.o was *still* 
+  # in liba.a 
+  #
+  # Rene Rivera:
+  #
+  # Originally removing the archive was done by splicing an RM
+  # onto the archive action. That makes archives fail to build on NT
+  # when they have many files because it will no longer execute the
+  # action directly and blow the line length limit. Instead we
+  # remove the file in a different action, just before the building
+  # of the archive.
+  #
+  local clean.a = $(targets[1])(clean) ;
+  TEMPORARY $(clean.a) ;
+  NOCARE $(clean.a) ;
+  LOCATE on $(clean.a) = [ on $(targets[1]) return $(LOCATE) ] ;
+  DEPENDS $(clean.a) : $(sources) ;
+  DEPENDS $(targets) : $(clean.a) ;
+  common.RmTemps $(clean.a) : $(targets) ;
+}
+
+actions piecemeal archive
+{
+  "$(.AR)" $(AROPTIONS) rc "$(<)" "$(>)"
+  "ranlib" -cs "$(<)"
+}
+
+flags intel-darwin.link USER_OPTIONS <linkflags> ;
+
+# Declare actions for linking
+rule link ( targets * : sources * : properties * )
+{
+  SPACE on $(targets) = " " ;
+  # Serialize execution of the 'link' action, since
+  # running N links in parallel is just slower.
+  JAM_SEMAPHORE on $(targets) = <s>intel-darwin-link-semaphore ;
+}
+
+actions link bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" $(USER_OPTIONS) -L"$(LINKPATH)" -o "$(<)" "$(>)" "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST) $(OPTIONS)
+}
+
+actions link.dll bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" $(USER_OPTIONS) -L"$(LINKPATH)" -o "$(<)" -single_module -dynamiclib -install_name "$(<[1]:D=)" "$(>)"  "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST) $(OPTIONS)
+}

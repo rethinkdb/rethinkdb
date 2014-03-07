@@ -1,0 +1,193 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Isomorphism</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>
+<img src="figs/python.gif" alt="(Python)"/>
+<TT>isomorphism</TT>
+</H1>
+
+
+<PRE>
+<i>// named parameter version</i>
+template &lt;class Graph1, class Graph2, class P, class T, class R&gt;
+bool isomorphism(const Graph1&amp; g1, const Graph2&amp; g2,
+                 const bgl_named_params&lt;P,T,R&gt;&amp; params = <i>all defaults</i>)
+
+<i>// non-named parameter version</i>
+template &lt;typename Graph1, typename Graph2, typename IsoMap, 
+          typename VertexInvariant1, typename VertexInvariant2, 
+          typename V1Map, typename V2Map&gt;
+bool isomorphism(const Graph1&amp; g1, const Graph2&amp; g2,
+		 IsoMap f, VertexInvariant1 invariant2, VertexInvariant2 invariant2,
+		 std::size_t max_invariant, VertexIndex1Map i1_map, VertexIndex2Map i2_map)
+</pre>
+
+<p>
+An <b><i>isomorphism</i></b> is a 1-to-1 mapping of the vertices in
+one graph to the vertices of another graph such that adjacency is
+preserved. Another words, given graphs <i>G<sub>1</sub> =
+(V<sub>1</sub>,E<sub>1</sub>)</i> and <i>G<sub>2</sub> =
+(V<sub>2</sub>,E<sub>2</sub>)</i> an isomorphism is a function
+<i>f</i> such that for all pairs of vertices <i>a,b</i> in
+<i>V<sub>1</sub></i>, edge <i>(a,b)</i> is in <i>E<sub>1</sub></i> if
+and only if edge <i>(f(a),f(b))</i> is in <i>E<sub>2</sub></i>.
+</p>
+
+<p>
+This function returns <tt>true</tt> if there exists an isomorphism
+between graph 1 and graph 2 and <tt>false</tt> otherwise. Also, if a
+isomorphism map named parameter is provided then an isomorphism is
+recorded in the map.
+</p>
+
+<p>
+The current implementation is based on descriptions of a backtracking
+algorithm in [<a
+href="./bibliography.html#fortin96:_graph_iso_prob">46</a>,<a
+href="./bibliography.html#reingold77:_combin_algo">48</a>].  The file
+<a href="./isomorphism-impl.pdf">isomorphism-impl.pdf</a> contains a (somewhat out-of-date)
+&quot;literate&quot; description of the implementation.  The algorithm
+used is simple but slow. A more efficient (and much more complex)
+algorithm is described in [<a
+href="./bibliography.html#mckay81:_pract_graph_iso">47</a>]. When (and
+if) a version of this algorithm is ported to the BGL interface it
+should replace the current algorithm.
+</p>
+
+<H3>Where Defined</H3>
+
+<a href="../../../boost/graph/isomorphism.hpp"><TT>boost/graph/isomorphism.hpp</TT></a>
+
+<h3>Parameters</h3>
+
+IN: <tt>const Graph1&amp; g1</tt>
+<blockquote>
+A directed or undirected graph. The graph type must model of <a
+href="./VertexListGraph.html">Vertex List Graph</a> and <a
+href="./EdgeListGraph.html">Edge List Graph</a>.
+</blockquote>
+
+IN: <tt>const Graph2&amp; g2</tt>
+<blockquote>
+A directed or undirected graph. The graph type must model <a
+href="./BidirectionalGraph.html">Bidirectional Graph</a> and <a
+href="./VertexListGraph.html">Vertex List Graph</a>.
+</blockquote>
+
+<h3>Named Parameters</h3>
+
+OUT: <tt>isomorphism_map(IsoMap f)</tt>
+<blockquote>
+The mapping from vertices in graph 1 to vertices in graph 2. This must
+be a <a href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+Property Map</a>.<br> <b>Default:</b> an <a
+href="../../property_map/doc/iterator_property_map.html"><tt>iterator_property_map</tt></a>
+constructed from a <tt>std::vector</tt> of graph 2's vertex
+descriptor type and the vertex index map for graph 1.<br>
+<b>Python</b>: Must be a <tt>vertex_vertex_map</tt> for the first graph.
+</blockquote>
+
+IN: <tt>vertex_invariant1(VertexInvariant1 i1)</tt>
+IN: <tt>vertex_invariant2(VertexInvariant2 i2)</tt>
+<blockquote>
+Mappings from vertices to integers which restrict which vertices may be
+considered isomorphic. If a candidate isomorphism maps <i>v1</i> to <i>v2</i>
+but <i>i1</i>(<i>v1</i>) != <i>i2</i>(<i>v2</i>), that candidate is rejected.
+This mapping can be used either to speed up the search (as is done by the
+default value, which requires that the degrees of <i>v1</i> and <i>v2</i> are
+equal) or to impose extra conditions on the result.  The
+<tt>VertexInvariant1</tt> and <tt>VertexInvariant2</tt> types must model <a
+href="http://www.sgi.com/tech/stl/UnaryFunction.html">UnaryFunction</a>, with
+the argument type of <tt>vertex_invariant1</tt> being <tt>Graph1</tt>'s vertex
+descriptor type, the argument type of <tt>vertex_invariant2</tt> being
+<tt>Graph2</tt>'s vertex descriptor type, and both functions having integral
+result types.  The values returned by these two functions must be in the range
+[0, <tt>vertex_max_invariant</tt>).
+<br>
+<b>Default:</b> <tt>degree_vertex_invariant</tt> for both arguments<br>
+<b>Python</b>: Unsupported parameter.
+</blockquote>
+
+IN: <tt>vertex_max_invariant(std::size_t max_invariant)</tt>
+<blockquote>
+An upper bound on the possible values returned from either 
+vertex_invariant1 or vertex_invariant2.
+<br>
+<b>Default:</b> <tt>vertex_invariant2.max()</tt>. The default
+<tt>vertex_invariant2</tt> parameter, an instance of 
+<tt>degree_vertex_invariant</tt>, defines this function to
+return <tt>num_vertices(g2) * (num_vertices(g2)+1)</tt>.<br> 
+<b>Python</b>: Unsupported parameter.
+</blockquote>
+
+IN: <tt>vertex_index1_map(VertexIndex1Map i1_map)</tt>
+<blockquote>
+This maps each vertex to an integer in the range <tt>[0,
+num_vertices(g))</tt>. This is necessary for efficient updates of the
+heap data structure when an edge is relaxed. The type
+<tt>VertexIndex1Map</tt> must be a model of <a
+href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+Map</a>. The value type of the map must be an integer type. The vertex
+descriptor type of graph 1 needs to be usable as the key type of the
+map.<br>
+<b>Default:</b> <tt>get(vertex_index, g1)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+   <br>
+<b>Python</b>: Unsupported parameter.
+</blockquote>
+
+IN: <tt>vertex_index2_map(VertexIndex2Map i2_map)</tt>
+<blockquote>
+This maps each vertex to an integer in the range <tt>[0,
+num_vertices(g))</tt>. This is necessary for efficient updates of the
+heap data structure when an edge is relaxed. The type
+<tt>VertexIndex2Map</tt> must be a model of <a
+href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+Map</a>. The value type of the map must be an integer type. The vertex
+descriptor type of graph 2 needs to be usable as the key type of the
+map.<br>
+<b>Default:</b> <tt>get(vertex_index, g2)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+   <br>
+<b>Python</b>: Unsupported parameter.
+</blockquote>
+
+
+<h3>Complexity</h3>
+
+The worst-case time complexity is <i>O(|V|!)</i>.
+
+<h3>Example</h3>
+
+See <a href="../example/isomorphism.cpp"><tt>libs/graph/example/isomorphism.cpp</tt></a>.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

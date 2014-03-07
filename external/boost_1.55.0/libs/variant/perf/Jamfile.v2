@@ -1,0 +1,29 @@
+#==============================================================================
+#   Copyright (c) 2012 Antony Polukhin
+#
+#   Distributed under the Boost Software License, Version 1.0. (See accompanying
+#   file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+
+# performance tests
+import testing ;
+import path ;
+
+path-constant TEST_DIR : . ;
+
+project performance/test
+    : source-location ./
+    : requirements
+#      <library>/boost/chrono//boost_chrono
+#      <library>/boost/system//boost_system
+      <link>static
+      <target-os>freebsd:<linkflags>"-lrt"
+      <target-os>linux:<linkflags>"-lrt"
+      <toolset>gcc:<cxxflags>-fvisibility=hidden
+      <toolset>intel-linux:<cxxflags>-fvisibility=hidden
+      <toolset>sun:<cxxflags>-xldscope=hidden
+    : default-build release
+ ;
+
+run move_perf.cpp : $(TEST_DIR) ;
+

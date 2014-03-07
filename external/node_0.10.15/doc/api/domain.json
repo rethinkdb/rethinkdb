@@ -1,0 +1,225 @@
+{
+  "source": "doc/api/domain.markdown",
+  "modules": [
+    {
+      "textRaw": "Domain",
+      "name": "domain",
+      "stability": 2,
+      "stabilityText": "Unstable",
+      "desc": "<p>Domains provide a way to handle multiple different IO operations as a\nsingle group.  If any of the event emitters or callbacks registered to a\ndomain emit an <code>error</code> event, or throw an error, then the domain object\nwill be notified, rather than losing the context of the error in the\n<code>process.on(&#39;uncaughtException&#39;)</code> handler, or causing the program to\nexit immediately with an error code.\n\n</p>\n",
+      "miscs": [
+        {
+          "textRaw": "Warning: Don't Ignore Errors!",
+          "name": "Warning: Don't Ignore Errors!",
+          "type": "misc",
+          "desc": "<p>Domain error handlers are not a substitute for closing down your\nprocess when an error occurs.\n\n</p>\n<p>By the very nature of how <code>throw</code> works in JavaScript, there is almost\nnever any way to safely &quot;pick up where you left off&quot;, without leaking\nreferences, or creating some other sort of undefined brittle state.\n\n</p>\n<p>The safest way to respond to a thrown error is to shut down the\nprocess.  Of course, in a normal web server, you might have many\nconnections open, and it is not reasonable to abruptly shut those down\nbecause an error was triggered by someone else.\n\n</p>\n<p>The better approach is send an error response to the request that\ntriggered the error, while letting the others finish in their normal\ntime, and stop listening for new requests in that worker.\n\n</p>\n<p>In this way, <code>domain</code> usage goes hand-in-hand with the cluster module,\nsince the master process can fork a new worker when a worker\nencounters an error.  For node programs that scale to multiple\nmachines, the terminating proxy or service registry can take note of\nthe failure, and react accordingly.\n\n</p>\n<p>For example, this is not a good idea:\n\n</p>\n<pre><code class=\"javascript\">// XXX WARNING!  BAD IDEA!\n\nvar d = require(&#39;domain&#39;).create();\nd.on(&#39;error&#39;, function(er) {\n  // The error won&#39;t crash the process, but what it does is worse!\n  // Though we&#39;ve prevented abrupt process restarting, we are leaking\n  // resources like crazy if this ever happens.\n  // This is no better than process.on(&#39;uncaughtException&#39;)!\n  console.log(&#39;error, but oh well&#39;, er.message);\n});\nd.run(function() {\n  require(&#39;http&#39;).createServer(function(req, res) {\n    handleRequest(req, res);\n  }).listen(PORT);\n});</code></pre>\n<p>By using the context of a domain, and the resilience of separating our\nprogram into multiple worker processes, we can react more\nappropriately, and handle errors with much greater safety.\n\n</p>\n<pre><code class=\"javascript\">// Much better!\n\nvar cluster = require(&#39;cluster&#39;);\nvar PORT = +process.env.PORT || 1337;\n\nif (cluster.isMaster) {\n  // In real life, you&#39;d probably use more than just 2 workers,\n  // and perhaps not put the master and worker in the same file.\n  //\n  // You can also of course get a bit fancier about logging, and\n  // implement whatever custom logic you need to prevent DoS\n  // attacks and other bad behavior.\n  //\n  // See the options in the cluster documentation.\n  //\n  // The important thing is that the master does very little,\n  // increasing our resilience to unexpected errors.\n\n  cluster.fork();\n  cluster.fork();\n\n  cluster.on(&#39;disconnect&#39;, function(worker) {\n    console.error(&#39;disconnect!&#39;);\n    cluster.fork();\n  });\n\n} else {\n  // the worker\n  //\n  // This is where we put our bugs!\n\n  var domain = require(&#39;domain&#39;);\n\n  // See the cluster documentation for more details about using\n  // worker processes to serve requests.  How it works, caveats, etc.\n\n  var server = require(&#39;http&#39;).createServer(function(req, res) {\n    var d = domain.create();\n    d.on(&#39;error&#39;, function(er) {\n      console.error(&#39;error&#39;, er.stack);\n\n      // Note: we&#39;re in dangerous territory!\n      // By definition, something unexpected occurred,\n      // which we probably didn&#39;t want.\n      // Anything can happen now!  Be very careful!\n\n      try {\n        // make sure we close down within 30 seconds\n        var killtimer = setTimeout(function() {\n          process.exit(1);\n        }, 30000);\n        // But don&#39;t keep the process open just for that!\n        killtimer.unref();\n\n        // stop taking new requests.\n        server.close();\n\n        // Let the master know we&#39;re dead.  This will trigger a\n        // &#39;disconnect&#39; in the cluster master, and then it will fork\n        // a new worker.\n        cluster.worker.disconnect();\n\n        // try to send an error to the request that triggered the problem\n        res.statusCode = 500;\n        res.setHeader(&#39;content-type&#39;, &#39;text/plain&#39;);\n        res.end(&#39;Oops, there was a problem!\\n&#39;);\n      } catch (er2) {\n        // oh well, not much we can do at this point.\n        console.error(&#39;Error sending 500!&#39;, er2.stack);\n      }\n    });\n\n    // Because req and res were created before this domain existed,\n    // we need to explicitly add them.\n    // See the explanation of implicit vs explicit binding below.\n    d.add(req);\n    d.add(res);\n\n    // Now run the handler function in the domain.\n    d.run(function() {\n      handleRequest(req, res);\n    });\n  });\n  server.listen(PORT);\n}\n\n// This part isn&#39;t important.  Just an example routing thing.\n// You&#39;d put your fancy application logic here.\nfunction handleRequest(req, res) {\n  switch(req.url) {\n    case &#39;/error&#39;:\n      // We do some async stuff, and then...\n      setTimeout(function() {\n        // Whoops!\n        flerb.bark();\n      });\n      break;\n    default:\n      res.end(&#39;ok&#39;);\n  }\n}</code></pre>\n"
+        },
+        {
+          "textRaw": "Additions to Error objects",
+          "name": "Additions to Error objects",
+          "type": "misc",
+          "desc": "<p>Any time an Error object is routed through a domain, a few extra fields\nare added to it.\n\n</p>\n<ul>\n<li><code>error.domain</code> The domain that first handled the error.</li>\n<li><code>error.domainEmitter</code> The event emitter that emitted an &#39;error&#39; event\nwith the error object.</li>\n<li><code>error.domainBound</code> The callback function which was bound to the\ndomain, and passed an error as its first argument.</li>\n<li><code>error.domainThrown</code> A boolean indicating whether the error was\nthrown, emitted, or passed to a bound callback function.</li>\n</ul>\n"
+        },
+        {
+          "textRaw": "Implicit Binding",
+          "name": "Implicit Binding",
+          "type": "misc",
+          "desc": "<p>If domains are in use, then all <strong>new</strong> EventEmitter objects (including\nStream objects, requests, responses, etc.) will be implicitly bound to\nthe active domain at the time of their creation.\n\n</p>\n<p>Additionally, callbacks passed to lowlevel event loop requests (such as\nto fs.open, or other callback-taking methods) will automatically be\nbound to the active domain.  If they throw, then the domain will catch\nthe error.\n\n</p>\n<p>In order to prevent excessive memory usage, Domain objects themselves\nare not implicitly added as children of the active domain.  If they\nwere, then it would be too easy to prevent request and response objects\nfrom being properly garbage collected.\n\n</p>\n<p>If you <em>want</em> to nest Domain objects as children of a parent Domain,\nthen you must explicitly add them.\n\n</p>\n<p>Implicit binding routes thrown errors and <code>&#39;error&#39;</code> events to the\nDomain&#39;s <code>error</code> event, but does not register the EventEmitter on the\nDomain, so <code>domain.dispose()</code> will not shut down the EventEmitter.\nImplicit binding only takes care of thrown errors and <code>&#39;error&#39;</code> events.\n\n</p>\n"
+        },
+        {
+          "textRaw": "Explicit Binding",
+          "name": "Explicit Binding",
+          "type": "misc",
+          "desc": "<p>Sometimes, the domain in use is not the one that ought to be used for a\nspecific event emitter.  Or, the event emitter could have been created\nin the context of one domain, but ought to instead be bound to some\nother domain.\n\n</p>\n<p>For example, there could be one domain in use for an HTTP server, but\nperhaps we would like to have a separate domain to use for each request.\n\n</p>\n<p>That is possible via explicit binding.\n\n</p>\n<p>For example:\n\n</p>\n<pre><code>// create a top-level domain for the server\nvar serverDomain = domain.create();\n\nserverDomain.run(function() {\n  // server is created in the scope of serverDomain\n  http.createServer(function(req, res) {\n    // req and res are also created in the scope of serverDomain\n    // however, we&#39;d prefer to have a separate domain for each request.\n    // create it first thing, and add req and res to it.\n    var reqd = domain.create();\n    reqd.add(req);\n    reqd.add(res);\n    reqd.on(&#39;error&#39;, function(er) {\n      console.error(&#39;Error&#39;, er, req.url);\n      try {\n        res.writeHead(500);\n        res.end(&#39;Error occurred, sorry.&#39;);\n      } catch (er) {\n        console.error(&#39;Error sending 500&#39;, er, req.url);\n      }\n    });\n  }).listen(1337);\n});</code></pre>\n"
+        }
+      ],
+      "methods": [
+        {
+          "textRaw": "domain.create()",
+          "type": "method",
+          "name": "create",
+          "signatures": [
+            {
+              "return": {
+                "textRaw": "return: {Domain} ",
+                "name": "return",
+                "type": "Domain"
+              },
+              "params": []
+            },
+            {
+              "params": []
+            }
+          ],
+          "desc": "<p>Returns a new Domain object.\n\n</p>\n"
+        }
+      ],
+      "classes": [
+        {
+          "textRaw": "Class: Domain",
+          "type": "class",
+          "name": "Domain",
+          "desc": "<p>The Domain class encapsulates the functionality of routing errors and\nuncaught exceptions to the active Domain object.\n\n</p>\n<p>Domain is a child class of [EventEmitter][].  To handle the errors that it\ncatches, listen to its <code>error</code> event.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "domain.run(fn)",
+              "type": "method",
+              "name": "run",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "textRaw": "`fn` {Function} ",
+                      "name": "fn",
+                      "type": "Function"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "fn"
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>Run the supplied function in the context of the domain, implicitly\nbinding all event emitters, timers, and lowlevel requests that are\ncreated in that context.\n\n</p>\n<p>This is the most basic way to use a domain.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>var d = domain.create();\nd.on(&#39;error&#39;, function(er) {\n  console.error(&#39;Caught error!&#39;, er);\n});\nd.run(function() {\n  process.nextTick(function() {\n    setTimeout(function() { // simulating some various async stuff\n      fs.open(&#39;non-existent file&#39;, &#39;r&#39;, function(er, fd) {\n        if (er) throw er;\n        // proceed...\n      });\n    }, 100);\n  });\n});</code></pre>\n<p>In this example, the <code>d.on(&#39;error&#39;)</code> handler will be triggered, rather\nthan crashing the program.\n\n</p>\n"
+            },
+            {
+              "textRaw": "domain.add(emitter)",
+              "type": "method",
+              "name": "add",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "textRaw": "`emitter` {EventEmitter | Timer} emitter or timer to be added to the domain ",
+                      "name": "emitter",
+                      "type": "EventEmitter | Timer",
+                      "desc": "emitter or timer to be added to the domain"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "emitter"
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>Explicitly adds an emitter to the domain.  If any event handlers called by\nthe emitter throw an error, or if the emitter emits an <code>error</code> event, it\nwill be routed to the domain&#39;s <code>error</code> event, just like with implicit\nbinding.\n\n</p>\n<p>This also works with timers that are returned from <code>setInterval</code> and\n<code>setTimeout</code>.  If their callback function throws, it will be caught by\nthe domain &#39;error&#39; handler.\n\n</p>\n<p>If the Timer or EventEmitter was already bound to a domain, it is removed\nfrom that one, and bound to this one instead.\n\n</p>\n"
+            },
+            {
+              "textRaw": "domain.remove(emitter)",
+              "type": "method",
+              "name": "remove",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "textRaw": "`emitter` {EventEmitter | Timer} emitter or timer to be removed from the domain ",
+                      "name": "emitter",
+                      "type": "EventEmitter | Timer",
+                      "desc": "emitter or timer to be removed from the domain"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "emitter"
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>The opposite of <code>domain.add(emitter)</code>.  Removes domain handling from the\nspecified emitter.\n\n</p>\n"
+            },
+            {
+              "textRaw": "domain.bind(callback)",
+              "type": "method",
+              "name": "bind",
+              "signatures": [
+                {
+                  "return": {
+                    "textRaw": "return: {Function} The bound function ",
+                    "name": "return",
+                    "type": "Function",
+                    "desc": "The bound function"
+                  },
+                  "params": [
+                    {
+                      "textRaw": "`callback` {Function} The callback function ",
+                      "name": "callback",
+                      "type": "Function",
+                      "desc": "The callback function"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "callback"
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>The returned function will be a wrapper around the supplied callback\nfunction.  When the returned function is called, any errors that are\nthrown will be routed to the domain&#39;s <code>error</code> event.\n\n</p>\n<h4>Example</h4>\n<pre><code>var d = domain.create();\n\nfunction readSomeFile(filename, cb) {\n  fs.readFile(filename, &#39;utf8&#39;, d.bind(function(er, data) {\n    // if this throws, it will also be passed to the domain\n    return cb(er, data ? JSON.parse(data) : null);\n  }));\n}\n\nd.on(&#39;error&#39;, function(er) {\n  // an error occurred somewhere.\n  // if we throw it now, it will crash the program\n  // with the normal line number and stack message.\n});</code></pre>\n"
+            },
+            {
+              "textRaw": "domain.intercept(callback)",
+              "type": "method",
+              "name": "intercept",
+              "signatures": [
+                {
+                  "return": {
+                    "textRaw": "return: {Function} The intercepted function ",
+                    "name": "return",
+                    "type": "Function",
+                    "desc": "The intercepted function"
+                  },
+                  "params": [
+                    {
+                      "textRaw": "`callback` {Function} The callback function ",
+                      "name": "callback",
+                      "type": "Function",
+                      "desc": "The callback function"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "callback"
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>This method is almost identical to <code>domain.bind(callback)</code>.  However, in\naddition to catching thrown errors, it will also intercept <code>Error</code>\nobjects sent as the first argument to the function.\n\n</p>\n<p>In this way, the common <code>if (er) return callback(er);</code> pattern can be replaced\nwith a single error handler in a single place.\n\n</p>\n<h4>Example</h4>\n<pre><code>var d = domain.create();\n\nfunction readSomeFile(filename, cb) {\n  fs.readFile(filename, &#39;utf8&#39;, d.intercept(function(data) {\n    // note, the first argument is never passed to the\n    // callback since it is assumed to be the &#39;Error&#39; argument\n    // and thus intercepted by the domain.\n\n    // if this throws, it will also be passed to the domain\n    // so the error-handling logic can be moved to the &#39;error&#39;\n    // event on the domain instead of being repeated throughout\n    // the program.\n    return cb(null, JSON.parse(data));\n  }));\n}\n\nd.on(&#39;error&#39;, function(er) {\n  // an error occurred somewhere.\n  // if we throw it now, it will crash the program\n  // with the normal line number and stack message.\n});</code></pre>\n"
+            },
+            {
+              "textRaw": "domain.dispose()",
+              "type": "method",
+              "name": "dispose",
+              "desc": "<p>The dispose method destroys a domain, and makes a best effort attempt to\nclean up any and all IO that is associated with the domain.  Streams are\naborted, ended, closed, and/or destroyed.  Timers are cleared.\nExplicitly bound callbacks are no longer called.  Any error events that\nare raised as a result of this are ignored.\n\n</p>\n<p>The intention of calling <code>dispose</code> is generally to prevent cascading\nerrors when a critical part of the Domain context is found to be in an\nerror state.\n\n</p>\n<p>Once the domain is disposed the <code>dispose</code> event will emit.\n\n</p>\n<p>Note that IO might still be performed.  However, to the highest degree\npossible, once a domain is disposed, further errors from the emitters in\nthat set will be ignored.  So, even if some remaining actions are still\nin flight, Node.js will not communicate further about them.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            }
+          ],
+          "properties": [
+            {
+              "textRaw": "`members` {Array} ",
+              "name": "members",
+              "desc": "<p>An array of timers and event emitters that have been explicitly added\nto the domain.\n\n</p>\n"
+            }
+          ]
+        }
+      ],
+      "type": "module",
+      "displayName": "Domain"
+    }
+  ]
+}

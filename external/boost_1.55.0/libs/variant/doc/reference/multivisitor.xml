@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/variant/multivisitors.hpp">
+  <using-namespace name="boost"/>
+
+  <para>Provides declarations of <functionname>apply_visitor</functionname> for three or more
+    <code><classname>variant</classname></code> parameters.</para>
+
+    <macro name="BOOST_VARAINT_MAX_MULTIVIZITOR_PARAMS">
+      <purpose>
+        <simpara>Controls maximum amount of <code><classname>variant</classname></code>
+          parameters for multi visistors. </simpara>
+      </purpose>
+
+      <description>
+        <para><emphasis role="bold">Note</emphasis>: Default amount is 4. Define it 
+          to bigger value before including &lt;boost/variant/multivisitors.hpp&gt; to
+          increase maximum amount of <code><classname>variant</classname></code>
+          parameters for <functionname>apply_visitor</functionname>.</para>
+      </description>
+    </macro>
+
+  <namespace name="boost">
+    <overloaded-function name="apply_visitor /*three or more variant parameters*/">
+      <description>
+        <simpara>Allows compile-time checked type-safe application of the
+        given visitor to the content of the given variant, ensuring that all
+        types are handled by the visitor. See <functionname>apply_visitor</functionname>
+        for more information.</simpara>
+      </description>
+
+      <signature>
+        <template>
+          <template-type-parameter name="MultiVisitor"/>
+          <template-type-parameter name="Variant1"/>
+          <template-type-parameter name="Variant2"/>
+          <template-type-parameter name="Variant3"/>
+        </template>
+
+        <type>typename MultiVisitor::result_type</type>
+
+        <parameter name="visitor">
+          <paramtype>MultiVisitor &amp;</paramtype>
+        </parameter>
+        <parameter name="operand1">
+          <paramtype>Variant1 &amp;</paramtype>
+        </parameter>
+        <parameter name="operand2">
+          <paramtype>Variant2 &amp;</paramtype>
+        </parameter>
+        <parameter name="operand3">
+          <paramtype>Variant3 &amp;</paramtype>
+        </parameter>
+        <parameter name="other_operands">
+          <paramtype>...</paramtype>
+        </parameter>
+      </signature>
+
+      <signature>
+        <template>
+          <template-type-parameter name="MultiVisitor"/>
+          <template-type-parameter name="Variant1"/>
+          <template-type-parameter name="Variant2"/>
+          <template-type-parameter name="Variant3"/>
+        </template>
+
+        <type>typename MultiVisitor::result_type</type>
+
+        <parameter name="visitor">
+          <paramtype>const MultiVisitor &amp;</paramtype>
+        </parameter>
+        <parameter name="operand1">
+          <paramtype>Variant1 &amp;</paramtype>
+        </parameter>
+        <parameter name="operand2">
+          <paramtype>Variant2 &amp;</paramtype>
+        </parameter>
+        <parameter name="operand3">
+          <paramtype>Variant3 &amp;</paramtype>
+        </parameter>
+        <parameter name="other_operands">
+          <paramtype>...</paramtype>
+        </parameter>
+      </signature>
+    </overloaded-function>
+  </namespace>
+</header>

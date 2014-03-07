@@ -1,0 +1,26 @@
+[/
+    Boost.Optional
+
+    Copyright (c) 2003-2007 Fernando Luis Cacciola Carballal
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+
+[section Implementation Notes]
+
+`optional<T>` is currently implemented using a custom aligned storage facility
+built from `alignment_of` and `type_with_alignment` (both from Type Traits). It
+uses a separate boolean flag to indicate the initialization state.
+Placement new with `T`'s copy constructor and `T`'s destructor are explicitly used
+to initialize,copy and destroy optional values.
+As a result, `T`'s default constructor is effectively by-passed, but the exception
+guarantees are basic.
+It is planned to replace the current implementation with another with stronger
+exception safety, such as a future `boost::variant`.
+
+[endsect]
+ 

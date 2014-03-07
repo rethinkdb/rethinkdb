@@ -1,0 +1,50 @@
+[/ 
+  Copyright 2010 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:add_rvalue_reference add_rvalue_reference]
+
+   template <class T>
+   struct add_rvalue_reference
+   {
+      typedef __below type;
+   };
+  
+__type If `T` names an object or function type then the member typedef type
+shall name `T&&`; otherwise, type shall name `T`. ['\[Note: This rule reflects
+the semantics of reference collapsing. For example, when a type `T` names
+a type U&, the type `add_rvalue_reference<T>::type` is not an rvalue
+reference. -end note\]].
+
+__std_ref 20.7.6.2.
+
+__compat If the compiler does not support partial specialization of class-templates
+and rvalue references
+then this template will compile, but the member `type` will always be the same as 
+type `T`.
+
+__header ` #include <boost/type_traits/add_rvalue_reference.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[table Examples
+
+[ [Expression] [Result Type]]
+
+[[`add_rvalue_reference<int>::type`][`int&&`]]
+
+[[`add_rvalue_reference<int const&>::type`] [`int const&`]]
+
+[[`add_rvalue_reference<int*>::type`] [`int*&&`]]
+
+[[`add_rvalue_reference<int*&>::type`] [`int*&`]]
+
+[[`add_rvalue_reference<int&&>::type`][`int&&`]]
+
+[[`add_rvalue_reference<void>::type`][`void`]]
+
+]
+
+[endsect]
+

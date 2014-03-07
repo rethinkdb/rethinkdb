@@ -1,0 +1,112 @@
+#  (C) Copyright Edward Diener 2011
+#  Use, modification and distribution are subject to the Boost Software License,
+#  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt).
+#
+# TypeTraitsIntrospection documentation Jamfile
+#
+
+using quickbook ;
+using doxygen ;
+
+path-constant here : . ; # convenient to refer to files in the same directory as this jamfile.v2
+path-constant boost-images : $(BOOST_ROOT)/doc/src/images ;
+
+import modules ;
+
+if --enable-index in  [ modules.peek : ARGV ]
+{
+   ECHO "Building the tti docs with automatic index generation enabled." ;
+   using auto-index ;
+   project tti_doc : requirements
+             <auto-index>on
+             <auto-index-script>index.idx
+             <auto-index-prefix>../../../
+             <auto-index-verbose>on
+             <format>html:<auto-index-internal>on
+             <format>html:<xsl:param>generate.index=0
+             <format>pdf:<auto-index-internal>on
+             <format>pdf:<xsl:param>index.on.type=1
+             <quickbook-define>enable_index ;
+}
+else
+{
+   project tti_doc ;
+   ECHO "Building the tti docs with automatic index generation disabled. Try building with --enable-index." ;
+}
+
+doxygen tti_reference
+  :
+    $(here)/../../../boost/tti/has_data.hpp
+    $(here)/../../../boost/tti/has_function.hpp
+    $(here)/../../../boost/tti/has_member_data.hpp
+    $(here)/../../../boost/tti/has_member_function.hpp
+    $(here)/../../../boost/tti/has_static_member_data.hpp
+    $(here)/../../../boost/tti/has_static_member_function.hpp
+    $(here)/../../../boost/tti/has_template.hpp
+    $(here)/../../../boost/tti/has_type.hpp
+    $(here)/../../../boost/tti/member_type.hpp
+    $(here)/../../../boost/tti/gen/has_data_gen.hpp
+    $(here)/../../../boost/tti/gen/has_function_gen.hpp
+    $(here)/../../../boost/tti/gen/has_member_data_gen.hpp
+    $(here)/../../../boost/tti/gen/has_member_function_gen.hpp
+    $(here)/../../../boost/tti/gen/has_static_member_data_gen.hpp
+    $(here)/../../../boost/tti/gen/has_static_member_function_gen.hpp
+    $(here)/../../../boost/tti/gen/has_template_gen.hpp
+    $(here)/../../../boost/tti/gen/has_type_gen.hpp
+    $(here)/../../../boost/tti/gen/member_type_gen.hpp
+    $(here)/../../../boost/tti/gen/namespace_gen.hpp
+  : 
+    <doxygen:param>PROJECT_NAME="TTI"
+    <doxygen:param>PROJECT_NUMBER=1
+    <doxygen:param>SORT_MEMBER_DOCS=NO
+    <doxygen:param>SHOW_INCLUDE_FILES=NO
+    <doxygen:param>MAX_INITIALIZER_LINES=0
+    <doxygen:param>VERBATIM_HEADERS=NO
+    <doxygen:param>PREDEFINED=BOOST_PP_VARIADICS
+    <reftitle>"Reference"
+;
+
+xml tti
+  :
+    tti.qbk
+  :
+    <dependency>tti_reference
+;
+
+boostbook standalone
+  :
+     tti
+  :
+  <xsl:param>boost.root="../../../.."
+  <xsl:param>chunk.section.depth=8  # How far down we chunk nested sections, basically all of them.
+  <xsl:param>toc.section.depth=8  # How far down sections get TOCs.
+  <xsl:param>toc.max.depth=4  # Max depth in each TOC.
+  
+  # PDF Options:
+  # TOC Generation: this is needed for FOP-0.9 and later:
+  <xsl:param>fop1.extensions=0
+  <xsl:param>xep.extensions=1
+  # TOC generation: this is needed for FOP 0.2, but must not be set to zero for FOP-0.9!
+  <xsl:param>fop.extensions=0
+  # No indent on body text:
+  <xsl:param>body.start.indent=0pt
+  # Margin size:
+  <xsl:param>page.margin.inner=0.5in
+  # Margin size:
+  <xsl:param>page.margin.outer=0.5in
+  # Paper type = A4
+  <xsl:param>paper.type=A4
+  # Yes, we want graphics for admonishments:
+  <xsl:param>admon.graphics=1
+  # Set this one for PDF generation *only*:
+  # default pnd graphics are awful in PDF form,
+  # better use SVG's instead:
+  <format>pdf:<xsl:param>admon.graphics.extension=".svg"
+  <format>pdf:<xsl:param>admon.graphics.path=$(boost-images)/
+  ;
+
+install pdfinstall
+    : standalone
+    : <location>$(here) <install-type>PDF <name>TypeTraitsIntrospection.pdf
+    ;

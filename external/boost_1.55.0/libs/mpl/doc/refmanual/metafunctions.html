@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: Metafunctions</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./for-each.html" class="navigation-link">Prev</a>&nbsp;<a href="./metafunctions-concepts.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./algorithms.html" class="navigation-link">Back</a>&nbsp;<a href="./data-types.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="../refmanual.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="metafunctions">
+<h1><a class="toc-backref" href="../refmanual.html#id1510">Metafunctions</a></h1>
+<p id="label-metafunctions">The MPL includes a number of predefined metafunctions that can be roughly
+classified in two categories: <cite>general purpose metafunctions</cite>, dealing with
+conditional <a class="reference internal" href="./type-selection.html">type selection</a> and higher-order metafunction <a class="reference internal" href="./invocation.html">invocation</a>,
+<a class="reference internal" href="./composition-and-argument-binding.html">composition</a>, and <a class="reference internal" href="./composition-and-argument-binding.html">argument binding</a>, and <cite>numeric metafunctions</cite>,
+incapsulating built-in and user-defined <a class="reference internal" href="./arithmetic-operations.html">arithmetic</a>, <a class="reference internal" href="./comparisons.html">comparison</a>,
+<a class="reference internal" href="./logical-operations.html">logical</a>, and <a class="reference internal" href="./bitwise-operations.html">bitwise</a> operations.</p>
+<p>Given that it is possible to perform integer numeric computations at
+compile time using the conventional operators notation, the need for the
+second category might be not obvious, but it in fact plays a cental role in
+making programming with MPL seemingly effortless. In
+particular, there are at least two contexts where built-in language
+facilities fall short <a class="footnote-reference" href="#portability" id="id820">[3]</a>:</p>
+<ol class="arabic simple">
+<li>Passing a computation to an algorithm.</li>
+<li>Performing a computation on non-integer data.</li>
+</ol>
+<p>The second use case deserves special attention. In contrast to the built-in,
+strictly integer compile-time arithmetics, the MPL numeric metafunctions are
+<em>polymorphic</em>, with support for <em>mixed-type arithmetics</em>. This means that they
+can operate on a variety of numeric types — for instance, rational,
+fixed-point or complex numbers, — and that, in general, you are allowed to
+freely intermix these types within a single expression. See <a class="reference internal" href="./numeric-metafunction.html">Numeric Metafunction</a> concept for more details on the MPL numeric infrastructure.</p>
+<!-- The provided `infrastructure`__ allows easy plugging of user-defined numeric
+types
+Naturally, they also , meaning that you can perform a computation on the
+arguments of different types, and the result will yeild the largest/most general
+of them. For user-defined numeric types, they provide an `infrastructure`__ that
+allows easy plugging and seemless integration with predefined library
+types. details.
+
+__ `Numeric Metafunction`_ -->
+<p>To reduce a negative syntactical impact of the metafunctions notation
+over the infix operator notation, all numeric metafunctions
+allow to pass up to N arguments, where N is defined by the value of
+<a class="reference internal" href="./limit-metafunction-arity.html">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a> configuration macro.</p>
+<table class="docutils footnote" frame="void" id="portability" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id820">[3]</a></td><td>All other considerations aside, as of the time of this writing
+(early 2004), using built-in operators on integral constants still often
+present a portability problem — many compilers cannot handle particular
+forms of expressions, forcing us to use conditional compilation. Because MPL
+numeric metafunctions work on types and encapsulate these kind of workarounds
+internally, they elude these problems, so if you aim for portability, it is
+generally adviced to use them in the place of the conventional operators, even
+at the price of slightly decreased readability.</td></tr>
+</tbody>
+</table>
+<ul class="toc simple" id="outline">
+<li><a class="reference internal" href="./metafunctions-concepts.html" id="id1511">Concepts</a></li>
+<li><a class="reference internal" href="./type-selection.html" id="id1519">Type Selection</a></li>
+<li><a class="reference internal" href="./invocation.html" id="id1524">Invocation</a></li>
+<li><a class="reference internal" href="./composition-and-argument-binding.html" id="id1528">Composition and Argument Binding</a></li>
+<li><a class="reference internal" href="./arithmetic-operations.html" id="id1535">Arithmetic Operations</a></li>
+<li><a class="reference internal" href="./comparisons.html" id="id1542">Comparisons</a></li>
+<li><a class="reference internal" href="./logical-operations.html" id="id1549">Logical Operations</a></li>
+<li><a class="reference internal" href="./bitwise-operations.html" id="id1553">Bitwise Operations</a></li>
+<li><a class="reference internal" href="./trivial.html" id="id1559">Trivial</a></li>
+<li><a class="reference internal" href="./string-operations.html" id="id1561">String Operations</a></li>
+<li><a class="reference internal" href="./miscellaneous.html" id="id1563">Miscellaneous</a></li>
+</ul>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./for-each.html" class="navigation-link">Prev</a>&nbsp;<a href="./metafunctions-concepts.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./algorithms.html" class="navigation-link">Back</a>&nbsp;<a href="./data-types.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="../refmanual.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

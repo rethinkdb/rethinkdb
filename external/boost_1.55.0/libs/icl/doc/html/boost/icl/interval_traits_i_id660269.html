@@ -1,0 +1,79 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template interval_traits&lt;icl::closed_interval&lt; DomainT, Compare &gt;&gt;</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../../interval_container_library_reference.html#header.boost.icl.closed_interval_hpp" title="Header &lt;boost/icl/closed_interval.hpp&gt;">
+<link rel="prev" href="closed_interval.html" title="Class template closed_interval">
+<link rel="next" href="interval_bound_ty_id660357.html" title="Struct template interval_bound_type&lt;closed_interval&lt; DomainT, Compare &gt;&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="closed_interval.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interval_container_library_reference.html#header.boost.icl.closed_interval_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interval_bound_ty_id660357.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry" lang="en">
+<a name="boost.icl.interval_traits_i_id660269"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template interval_traits&lt;icl::closed_interval&lt; DomainT, Compare &gt;&gt;</span></h2>
+<p>boost::icl::interval_traits&lt;icl::closed_interval&lt; DomainT, Compare &gt;&gt;</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interval_container_library_reference.html#header.boost.icl.closed_interval_hpp" title="Header &lt;boost/icl/closed_interval.hpp&gt;">boost/icl/closed_interval.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DomainT<span class="special">,</span> <span class="identifier">ICL_COMPARE</span> Compare<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="interval_traits_i_id660269.html" title="Struct template interval_traits&lt;icl::closed_interval&lt; DomainT, Compare &gt;&gt;">interval_traits</a><span class="special">&lt;</span><span class="identifier">icl</span><span class="special">::</span><span class="identifier">closed_interval</span><span class="special">&lt;</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span> <span class="special">&gt;</span><span class="special">&gt;</span> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">DomainT</span>                                  <a name="boost.icl.interval_traits_i_id660269.domain_type"></a><span class="identifier">domain_type</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">closed_interval</span><span class="special">&lt;</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span> <span class="special">&gt;</span> <a name="boost.icl.interval_traits_i_id660269.interval_type"></a><span class="identifier">interval_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="interval_traits_i_id660269.html#id660299-bb">public member functions</a></span>
+  <span class="keyword">typedef</span> <a class="link" href="interval_traits_i_id660269.html#id660302-bb"><span class="identifier">ICL_COMPARE_DOMAIN</span></a><span class="special">(</span><span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="interval_traits_i_id660269.html#id660317-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">interval_type</span> <a class="link" href="interval_traits_i_id660269.html#id660320-bb"><span class="identifier">construct</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">domain_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">domain_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">domain_type</span> <a class="link" href="interval_traits_i_id660269.html#id660335-bb"><span class="identifier">lower</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">domain_type</span> <a class="link" href="interval_traits_i_id660269.html#id660346-bb"><span class="identifier">upper</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1" lang="en">
+<a name="id1163210"></a><h2>Description</h2>
+<div class="refsect2" lang="en">
+<a name="id1163214"></a><h3>
+<a name="id660299-bb"></a><code class="computeroutput">interval_traits</code> public member functions</h3>
+<div class="orderedlist"><ol type="1"><li><pre class="literallayout"><span class="keyword">typedef</span> <a name="id660302-bb"></a><span class="identifier">ICL_COMPARE_DOMAIN</span><span class="special">(</span><span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2" lang="en">
+<a name="id1163267"></a><h3>
+<a name="id660317-bb"></a><code class="computeroutput">interval_traits</code> public static functions</h3>
+<div class="orderedlist"><ol type="1">
+<li><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">interval_type</span> <a name="id660320-bb"></a><span class="identifier">construct</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">domain_type</span> <span class="special">&amp;</span> lo<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">domain_type</span> <span class="special">&amp;</span> up<span class="special">)</span><span class="special">;</span></pre></li>
+<li><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">domain_type</span> <a name="id660335-bb"></a><span class="identifier">lower</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span> <span class="special">&amp;</span> inter_val<span class="special">)</span><span class="special">;</span></pre></li>
+<li><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">domain_type</span> <a name="id660346-bb"></a><span class="identifier">upper</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span> <span class="special">&amp;</span> inter_val<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="closed_interval.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interval_container_library_reference.html#header.boost.icl.closed_interval_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interval_bound_ty_id660357.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

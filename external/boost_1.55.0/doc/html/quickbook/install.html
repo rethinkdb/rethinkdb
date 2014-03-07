@@ -1,0 +1,411 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Installation and configuration</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../quickbook.html" title="Chapter&#160;41.&#160;Quickbook 1.6">
+<link rel="prev" href="versions.html" title="Language Versions">
+<link rel="next" href="editors.html" title="Editor Support">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="versions.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../quickbook.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="editors.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="quickbook.install"></a>Installation and configuration</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="install.html#quickbook.install.macosx">Mac OS X</a></span></dt>
+<dt><span class="section"><a href="install.html#quickbook.install.windows">Windows 2000, XP, 2003, Vista,
+      7</a></span></dt>
+<dt><span class="section"><a href="install.html#quickbook.install.linux">Debian, Ubuntu</a></span></dt>
+</dl></div>
+<p>
+      This section provides some guidelines on how to install and configure BoostBook
+      and Quickbook under several operating systems. Before installing you'll need
+      a local copy of boost, and to install the version of <code class="computeroutput">bjam</code> which
+      comes with it (or a later version).
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="quickbook.install.macosx"></a><a class="link" href="install.html#quickbook.install.macosx" title="Mac OS X">Mac OS X</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="install.html#quickbook.install.macosx.macports">Mac OS X, using
+        macports</a></span></dt>
+<dt><span class="section"><a href="install.html#quickbook.install.macosx.native">Mac OS X, Snow Leopard
+        (or later)</a></span></dt>
+</dl></div>
+<p>
+        The simplest way to install on OS X is to use macports. If you don't want
+        to use macports and are using Snow Leopard or later, there are instructions
+        <a class="link" href="install.html#quickbook.install.macosx.native" title="Mac OS X, Snow Leopard (or later)">later</a>. Earlier versions
+        of OS X need to use something like macports to install <code class="computeroutput">xsltproc</code>
+        because the version they come with is very old, and doesn't have good enough
+        XSL support for boostbook's stylesheets.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="quickbook.install.macosx.macports"></a><a class="link" href="install.html#quickbook.install.macosx.macports" title="Mac OS X, using macports">Mac OS X, using
+        macports</a>
+</h4></div></div></div>
+<p>
+          First install the <code class="computeroutput">libxslt</code>, <code class="computeroutput">docbook-xsl</code> and <code class="computeroutput">docbook-xml-4.2</code>
+          packages:
+        </p>
+<pre class="programlisting">sudo port install libxslt docbook-xsl docbook-xml-4.2
+</pre>
+<p>
+          Next, we need to configure Boost Build to compile BoostBook files. Add
+          the following to your <code class="computeroutput">user-config.jam</code> file, which should be
+          in your home directory. If you don't have one, create a file containing
+          this text. For more information on setting up <code class="computeroutput">user-config.jam</code>,
+          see the <a href="http://boost.org/boost-build2/doc/html/bbv2/advanced/configuration.html" target="_top">Boost
+          Build documentation</a>.
+        </p>
+<pre class="programlisting">using xsltproc
+    : /opt/local/bin/xsltproc
+    ;
+
+using boostbook
+    : /opt/local/share/xsl/docbook-xsl/
+    : /opt/local/share/xml/docbook/4.2
+    ;
+</pre>
+<p>
+          The above steps are enough to get a functional BoostBook setup. Quickbook
+          will be automatically built when needed. If you want to avoid these rebuilds:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              Go to Quickbook's source directory (<code class="computeroutput">BOOST_ROOT/tools/quickbook</code>).
+            </li>
+<li class="listitem">
+              Build the utility by issuing <code class="computeroutput">bjam</code>.
+            </li>
+<li class="listitem">
+              Copy the resulting <code class="computeroutput">quickbook</code> binary (located at <code class="computeroutput">BOOST_ROOT/dist/bin</code>)
+              to a safe place. The traditional location is <code class="computeroutput">/usr/local/bin</code>.
+            </li>
+<li class="listitem">
+<p class="simpara">
+              Add the following to your <code class="computeroutput">user-config.jam</code> file, using
+              the full path of the quickbook executable:
+            </p>
+<pre class="programlisting">using quickbook
+    : /usr/local/bin/quickbook
+    ;
+</pre>
+</li>
+</ol></div>
+<p>
+          If you need to build documentation that uses Doxygen, you will need to
+          install it as well:
+        </p>
+<pre class="programlisting">sudo port install doxygen
+</pre>
+<p>
+          And then add to your <code class="computeroutput">user-config.jam</code>:
+        </p>
+<pre class="programlisting">using doxygen ;
+</pre>
+<p>
+          Alternatively, you can install from the official doxygen <code class="computeroutput">dmg</code>.
+          This is described at <a class="link" href="install.html#osx-prebuilt-doxygen">the end of the
+          next section</a>.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="quickbook.install.macosx.native"></a><a class="link" href="install.html#quickbook.install.macosx.native" title="Mac OS X, Snow Leopard (or later)">Mac OS X, Snow Leopard
+        (or later)</a>
+</h4></div></div></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            <span class="emphasis"><em>Section contributed by Julio M. Merino Vidal</em></span>
+          </p></blockquote></div>
+<p>
+          The text below assumes you want to install all the necessary utilities
+          in a system-wide location, allowing any user in the machine to have access
+          to them. Therefore, all files will be put in the <code class="computeroutput">/usr/local</code>
+          hierarchy. If you do not want this, you can choose any other prefix such
+          as <code class="computeroutput">~/Applications</code> for a single-user installation.
+        </p>
+<p>
+          Snow Leopard comes with <code class="computeroutput">xsltproc</code> and all related libraries
+          preinstalled, so you do not need to take any extra steps to set them up.
+          It is probable that future versions will include them too, but these instructions
+          may not apply to older versions.
+        </p>
+<p>
+          To get started:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              Download <a href="http://www.docbook.org/xml/4.2/docbook-xml-4.2.zip" target="_top">Docbook
+              XML 4.2</a> and unpack it inside <code class="computeroutput">/usr/local/share/xml/docbook/4.2</code>.
+            </li>
+<li class="listitem">
+              Download the latest <a href="http://sourceforge.net/project/showfiles.php?group_id=21935&amp;package_id=16608" target="_top">Docbook
+              XSL</a> version and unpack it. Be careful that you download the
+              correct file, sometimes the 'looking for the latest version' link often
+              links to another file. The name should be of the form <code class="computeroutput">docbook-xsl-1.<span class="emphasis"><em>nn</em></span>.<span class="emphasis"><em>n</em></span>.tar.bz2</code>, with no suffix
+              such as <code class="computeroutput">-ns.tar.bz2</code> or <code class="computeroutput">-doc.tar.bz2</code>. Put
+              the results in <code class="computeroutput">/usr/local/share/xsl/docbook</code>, thus effectively
+              removing the version number from the directory name (for simplicity).
+            </li>
+<li class="listitem">
+<p class="simpara">
+              Add the following to your <code class="computeroutput">user-config.jam</code> file, which
+              should live in your home directory (<code class="computeroutput">/Users/&lt;your_username&gt;</code>).
+              You must already have it somewhere or otherwise you could not be building
+              Boost (i.e. missing tools configuration).
+            </p>
+<pre class="programlisting">using xsltproc ;
+
+using boostbook
+    : "/usr/local/share/xsl/docbook"
+    : "/usr/local/share/xml/docbook/4.2"
+    ;
+</pre>
+</li>
+</ol></div>
+<p>
+          The above steps are enough to get a functional BoostBook setup. Quickbook
+          will be automatically built when needed. If you want to avoid these rebuilds
+          and install a system-wide Quickbook instead:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              Go to Quickbook's source directory (<code class="computeroutput">BOOST_ROOT/tools/quickbook</code>).
+            </li>
+<li class="listitem">
+              Build the utility by issuing <code class="computeroutput">bjam</code>.
+            </li>
+<li class="listitem">
+              Copy the resulting <code class="computeroutput">quickbook</code> binary (located at <code class="computeroutput">BOOST_ROOT/dist/bin</code>)
+              to a safe place. Following our previous example, you can install it
+              into: <code class="computeroutput">/usr/local/bin</code>.
+            </li>
+<li class="listitem">
+<p class="simpara">
+              Add the following to your <code class="computeroutput">user-config.jam</code> file:
+            </p>
+<pre class="programlisting">using quickbook
+    : "/usr/local/bin/quickbook" ;
+    ;
+</pre>
+</li>
+</ol></div>
+<p>
+          <a name="osx-prebuilt-doxygen"></a>Additionally, if you need to build documentation
+          that uses <a href="http://www.doxygen.org" target="_top">Doxygen</a>, you will
+          need to install it too:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              Go to the <a href="http://www.stack.nl/~dimitri/doxygen/download.html#latestsrc" target="_top">downloads
+              section</a> and get the disk image (<code class="computeroutput">dmg</code> file) for
+              Mac OS X.
+            </li>
+<li class="listitem">
+              Open the disk image and drag the Doxygen application to your <code class="computeroutput">Applications</code>
+              folder to install it.
+            </li>
+<li class="listitem">
+<p class="simpara">
+              Add the following to your <code class="computeroutput">user-config.jam</code> file:
+            </p>
+<pre class="programlisting">using doxygen
+    : /Applications/Doxygen.app/Contents/Resources/doxygen
+    ;
+</pre>
+</li>
+</ol></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="quickbook.install.windows"></a><a class="link" href="install.html#quickbook.install.windows" title="Windows 2000, XP, 2003, Vista, 7">Windows 2000, XP, 2003, Vista,
+      7</a>
+</h3></div></div></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="emphasis"><em>Section contributed by Julio M. Merino Vidal</em></span>
+        </p></blockquote></div>
+<p>
+        The following instructions apply to any Windows system based on Windows 2000,
+        including Windows XP, Windows 2003 Server, Windows Vista, and Windows 7.
+        The paths shown below are taken from a Windows Vista machine; you will need
+        to adjust them to match your system in case you are running an older version.
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            First of all you need to have a copy of <code class="computeroutput">xsltproc</code> for Windows.
+            There are many ways to get this tool, but to keep things simple, use
+            the <a href="http://www.zlatkovic.com/pub/libxml/" target="_top">binary packages</a>
+            made by Igor Zlatkovic. At the very least, you need to download the following
+            packages: <code class="computeroutput">iconv</code>, <code class="computeroutput">zlib</code>, <code class="computeroutput">libxml2</code>
+            and <code class="computeroutput">libxslt</code>.
+          </li>
+<li class="listitem">
+            Unpack all these packages in the same directory so that you get unique
+            <code class="computeroutput">bin</code>, <code class="computeroutput">include</code> and <code class="computeroutput">lib</code> directories
+            within the hierarchy. These instructions use <code class="computeroutput">C:\Users\example\Documents\boost\xml</code>
+            as the root for all files.
+          </li>
+<li class="listitem">
+            From the command line, go to the <code class="computeroutput">bin</code> directory and launch
+            <code class="computeroutput">xsltproc.exe</code> to ensure it works. You should get usage information
+            on screen.
+          </li>
+<li class="listitem">
+            Download <a href="http://www.docbook.org/xml/4.2/docbook-xml-4.2.zip" target="_top">Docbook
+            XML 4.2</a> and unpack it in the same directory used above. That
+            is: <code class="computeroutput">C:\Users\example\Documents\boost\xml\docbook-xml</code>.
+          </li>
+<li class="listitem">
+            Download the latest <a href="http://sourceforge.net/project/showfiles.php?group_id=21935&amp;package_id=16608" target="_top">Docbook
+            XSL</a> version and unpack it, again in the same directory used before.
+            Be careful that you download the correct file, sometimes the 'looking
+            for the latest version' link often links to another file. The name should
+            be of the form <code class="computeroutput">docbook-xsl-1.<span class="emphasis"><em>nn</em></span>.<span class="emphasis"><em>n</em></span>.tar.bz2</code>, with no suffix such as <code class="computeroutput">-ns.tar.bz2</code> or
+            <code class="computeroutput">-doc.tar.bz2</code>. To make things easier, rename the directory
+            created during the extraction to <code class="computeroutput">docbook-xsl</code> (bypassing
+            the version name): <code class="computeroutput">C:\Users\example\Documents\boost\xml\docbook-xsl</code>.
+          </li>
+<li class="listitem">
+<p class="simpara">
+            Add the following to your <code class="computeroutput">user-config.jam</code> file, which should
+            live in your home directory (<code class="computeroutput">%HOMEDRIVE%%HOMEPATH%</code>). You
+            must already have it somewhere or otherwise you could not be building
+            Boost (i.e. missing tools configuration).
+          </p>
+<pre class="programlisting">using xsltproc
+    : "C:/Users/example/Documents/boost/xml/bin/xsltproc.exe"
+    ;
+
+using boostbook
+    : "C:/Users/example/Documents/boost/xml/docbook-xsl"
+    : "C:/Users/example/Documents/boost/xml/docbook-xml"
+    ;
+</pre>
+</li>
+</ol></div>
+<p>
+        The above steps are enough to get a functional BoostBook setup. Quickbook
+        will be automatically built when needed. If you want to avoid these rebuilds:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Go to Quickbook's source directory (<code class="computeroutput">BOOST_ROOT\tools\quickbook</code>).
+          </li>
+<li class="listitem">
+            Build the utility by issuing <code class="computeroutput">bjam</code>.
+          </li>
+<li class="listitem">
+            Copy the resulting <code class="computeroutput">quickbook.exe</code> binary (located at <code class="computeroutput">BOOST_ROOT\dist\bin</code>)
+            to a safe place. Following our previous example, you can install it into:
+            <code class="computeroutput">C:\Users\example\Documents\boost\xml\bin</code>.
+          </li>
+<li class="listitem">
+<p class="simpara">
+            Add the following to your <code class="computeroutput">user-config.jam</code> file:
+          </p>
+<pre class="programlisting">using quickbook
+    : "C:/Users/example/Documents/boost/xml/bin/quickbook.exe"
+    ;
+</pre>
+</li>
+</ol></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="quickbook.install.linux"></a><a class="link" href="install.html#quickbook.install.linux" title="Debian, Ubuntu">Debian, Ubuntu</a>
+</h3></div></div></div>
+<p>
+        The following instructions apply to Debian and its derivatives. They are
+        based on a Ubuntu Edgy install but should work on other Debian based systems.
+        They assume you've already installed an appropriate version of <code class="computeroutput">bjam</code>
+        for your copy of boost.
+      </p>
+<p>
+        First install the <code class="computeroutput">xsltproc</code>, <code class="computeroutput">docbook-xsl</code> and <code class="computeroutput">docbook-xml</code>
+        packages. For example, using <code class="computeroutput">apt-get</code>:
+      </p>
+<pre class="programlisting">sudo apt-get install xsltproc docbook-xsl docbook-xml
+</pre>
+<p>
+        If you're planning on building boost's documentation, you'll also need to
+        install the <code class="computeroutput">doxygen</code> package as well.
+      </p>
+<p>
+        Next, we need to configure Boost Build to compile BoostBook files. Add the
+        following to your <code class="computeroutput">user-config.jam</code> file, which should be in your
+        home directory. If you don't have one, create a file containing this text.
+        For more information on setting up <code class="computeroutput">user-config.jam</code>, see the
+        <a href="http://boost.org/boost-build2/doc/html/bbv2/advanced/configuration.html" target="_top">Boost
+        Build documentation</a>.
+      </p>
+<pre class="programlisting">using xsltproc ;
+
+using boostbook
+    : /usr/share/xml/docbook/stylesheet/nwalsh
+    : /usr/share/xml/docbook/schema/dtd/4.2
+    ;
+
+# Remove this line if you're not using doxygen
+using doxygen ;
+</pre>
+<p>
+        The above steps are enough to get a functional BoostBook setup. Quickbook
+        will be automatically built when needed. If you want to avoid these rebuilds:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Go to Quickbook's source directory (<code class="computeroutput">BOOST_ROOT/tools/quickbook</code>).
+          </li>
+<li class="listitem">
+            Build the utility by issuing <code class="computeroutput">bjam</code>.
+          </li>
+<li class="listitem">
+            Copy the resulting <code class="computeroutput">quickbook</code> binary (located at <code class="computeroutput">BOOST_ROOT/dist/bin</code>)
+            to a safe place. The traditional location is <code class="computeroutput">/usr/local/bin</code>.
+          </li>
+<li class="listitem">
+<p class="simpara">
+            Add the following to your <code class="computeroutput">user-config.jam</code> file, using the
+            full path of the quickbook executable:
+          </p>
+<pre class="programlisting">using quickbook
+    : /usr/local/bin/quickbook
+    ;
+</pre>
+</li>
+</ol></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002, 2004, 2006 Joel de Guzman,
+      Eric Niebler<br>Copyright &#169; 2010, 2011 Daniel James<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="versions.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../quickbook.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="editors.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

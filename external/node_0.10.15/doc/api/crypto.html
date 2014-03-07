@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Crypto Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/crypto.html">
+</head>
+<body class="alt apidoc" id="api-section-crypto">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="crypto.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#crypto_crypto">Crypto</a><ul>
+<li><a href="#crypto_crypto_getciphers">crypto.getCiphers()</a></li>
+<li><a href="#crypto_crypto_gethashes">crypto.getHashes()</a></li>
+<li><a href="#crypto_crypto_createcredentials_details">crypto.createCredentials(details)</a></li>
+<li><a href="#crypto_crypto_createhash_algorithm">crypto.createHash(algorithm)</a></li>
+<li><a href="#crypto_class_hash">Class: Hash</a><ul>
+<li><a href="#crypto_hash_update_data_input_encoding">hash.update(data, [input_encoding])</a></li>
+<li><a href="#crypto_hash_digest_encoding">hash.digest([encoding])</a></li>
+</ul>
+</li>
+<li><a href="#crypto_crypto_createhmac_algorithm_key">crypto.createHmac(algorithm, key)</a></li>
+<li><a href="#crypto_class_hmac">Class: Hmac</a><ul>
+<li><a href="#crypto_hmac_update_data">hmac.update(data)</a></li>
+<li><a href="#crypto_hmac_digest_encoding">hmac.digest([encoding])</a></li>
+</ul>
+</li>
+<li><a href="#crypto_crypto_createcipher_algorithm_password">crypto.createCipher(algorithm, password)</a></li>
+<li><a href="#crypto_crypto_createcipheriv_algorithm_key_iv">crypto.createCipheriv(algorithm, key, iv)</a></li>
+<li><a href="#crypto_class_cipher">Class: Cipher</a><ul>
+<li><a href="#crypto_cipher_update_data_input_encoding_output_encoding">cipher.update(data, [input_encoding], [output_encoding])</a></li>
+<li><a href="#crypto_cipher_final_output_encoding">cipher.final([output_encoding])</a></li>
+<li><a href="#crypto_cipher_setautopadding_auto_padding_true">cipher.setAutoPadding(auto_padding=true)</a></li>
+</ul>
+</li>
+<li><a href="#crypto_crypto_createdecipher_algorithm_password">crypto.createDecipher(algorithm, password)</a></li>
+<li><a href="#crypto_crypto_createdecipheriv_algorithm_key_iv">crypto.createDecipheriv(algorithm, key, iv)</a></li>
+<li><a href="#crypto_class_decipher">Class: Decipher</a><ul>
+<li><a href="#crypto_decipher_update_data_input_encoding_output_encoding">decipher.update(data, [input_encoding], [output_encoding])</a></li>
+<li><a href="#crypto_decipher_final_output_encoding">decipher.final([output_encoding])</a></li>
+<li><a href="#crypto_decipher_setautopadding_auto_padding_true">decipher.setAutoPadding(auto_padding=true)</a></li>
+</ul>
+</li>
+<li><a href="#crypto_crypto_createsign_algorithm">crypto.createSign(algorithm)</a></li>
+<li><a href="#crypto_class_sign">Class: Sign</a><ul>
+<li><a href="#crypto_sign_update_data">sign.update(data)</a></li>
+<li><a href="#crypto_sign_sign_private_key_output_format">sign.sign(private_key, [output_format])</a></li>
+</ul>
+</li>
+<li><a href="#crypto_crypto_createverify_algorithm">crypto.createVerify(algorithm)</a></li>
+<li><a href="#crypto_class_verify">Class: Verify</a><ul>
+<li><a href="#crypto_verifier_update_data">verifier.update(data)</a></li>
+<li><a href="#crypto_verifier_verify_object_signature_signature_format">verifier.verify(object, signature, [signature_format])</a></li>
+</ul>
+</li>
+<li><a href="#crypto_crypto_creatediffiehellman_prime_length">crypto.createDiffieHellman(prime_length)</a></li>
+<li><a href="#crypto_crypto_creatediffiehellman_prime_encoding">crypto.createDiffieHellman(prime, [encoding])</a></li>
+<li><a href="#crypto_class_diffiehellman">Class: DiffieHellman</a><ul>
+<li><a href="#crypto_diffiehellman_generatekeys_encoding">diffieHellman.generateKeys([encoding])</a></li>
+<li><a href="#crypto_diffiehellman_computesecret_other_public_key_input_encoding_output_encoding">diffieHellman.computeSecret(other_public_key, [input_encoding], [output_encoding])</a></li>
+<li><a href="#crypto_diffiehellman_getprime_encoding">diffieHellman.getPrime([encoding])</a></li>
+<li><a href="#crypto_diffiehellman_getgenerator_encoding">diffieHellman.getGenerator([encoding])</a></li>
+<li><a href="#crypto_diffiehellman_getpublickey_encoding">diffieHellman.getPublicKey([encoding])</a></li>
+<li><a href="#crypto_diffiehellman_getprivatekey_encoding">diffieHellman.getPrivateKey([encoding])</a></li>
+<li><a href="#crypto_diffiehellman_setpublickey_public_key_encoding">diffieHellman.setPublicKey(public_key, [encoding])</a></li>
+<li><a href="#crypto_diffiehellman_setprivatekey_private_key_encoding">diffieHellman.setPrivateKey(private_key, [encoding])</a></li>
+</ul>
+</li>
+<li><a href="#crypto_crypto_getdiffiehellman_group_name">crypto.getDiffieHellman(group_name)</a></li>
+<li><a href="#crypto_crypto_pbkdf2_password_salt_iterations_keylen_callback">crypto.pbkdf2(password, salt, iterations, keylen, callback)</a></li>
+<li><a href="#crypto_crypto_pbkdf2sync_password_salt_iterations_keylen">crypto.pbkdf2Sync(password, salt, iterations, keylen)</a></li>
+<li><a href="#crypto_crypto_randombytes_size_callback">crypto.randomBytes(size, [callback])</a></li>
+<li><a href="#crypto_crypto_pseudorandombytes_size_callback">crypto.pseudoRandomBytes(size, [callback])</a></li>
+<li><a href="#crypto_crypto_default_encoding">crypto.DEFAULT_ENCODING</a></li>
+<li><a href="#crypto_recent_api_changes">Recent API Changes</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>Crypto<span><a class="mark" href="#crypto_crypto" id="crypto_crypto">#</a></span></h1>
+<pre class="api_stability_2">Stability: 2 - Unstable; API changes are being discussed for
+future versions.  Breaking changes will be minimized.  See below.</pre><p>Use <code>require(&#39;crypto&#39;)</code> to access this module.
+
+</p>
+<p>The crypto module offers a way of encapsulating secure credentials to be
+used as part of a secure HTTPS net or http connection.
+
+</p>
+<p>It also offers a set of wrappers for OpenSSL&#39;s hash, hmac, cipher,
+decipher, sign and verify methods.
+
+
+</p>
+<h2>crypto.getCiphers()<span><a class="mark" href="#crypto_crypto_getciphers" id="crypto_crypto_getciphers">#</a></span></h2>
+<p>Returns an array with the names of the supported ciphers.
+
+</p>
+<p>Example:
+
+</p>
+<pre><code>var ciphers = crypto.getCiphers();
+console.log(ciphers); // [&#39;AES-128-CBC&#39;, &#39;AES-128-CBC-HMAC-SHA1&#39;, ...]</code></pre>
+<h2>crypto.getHashes()<span><a class="mark" href="#crypto_crypto_gethashes" id="crypto_crypto_gethashes">#</a></span></h2>
+<p>Returns an array with the names of the supported hash algorithms.
+
+</p>
+<p>Example:
+
+</p>
+<pre><code>var hashes = crypto.getHashes();
+console.log(hashes); // [&#39;sha&#39;, &#39;sha1&#39;, &#39;sha1WithRSAEncryption&#39;, ...]</code></pre>
+<h2>crypto.createCredentials(details)<span><a class="mark" href="#crypto_crypto_createcredentials_details" id="crypto_crypto_createcredentials_details">#</a></span></h2>
+<p>Creates a credentials object, with the optional details being a
+dictionary with keys:
+
+</p>
+<ul>
+<li><code>pfx</code> : A string or buffer holding the PFX or PKCS12 encoded private
+key, certificate and CA certificates</li>
+<li><code>key</code> : A string holding the PEM encoded private key</li>
+<li><code>passphrase</code> : A string of passphrase for the private key or pfx</li>
+<li><code>cert</code> : A string holding the PEM encoded certificate</li>
+<li><code>ca</code> : Either a string or list of strings of PEM encoded CA
+certificates to trust.</li>
+<li><code>crl</code> : Either a string or list of strings of PEM encoded CRLs
+(Certificate Revocation List)</li>
+<li><code>ciphers</code>: A string describing the ciphers to use or exclude.
+Consult
+<a href="http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT">http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT</a>
+for details on the format.</li>
+</ul>
+<p>If no &#39;ca&#39; details are given, then node.js will use the default
+publicly trusted list of CAs as given in
+</p>
+<p><a href="http://mxr.mozilla.org/mozilla/source/security/nss/lib/ckfw/builtins/certdata.txt">http://mxr.mozilla.org/mozilla/source/security/nss/lib/ckfw/builtins/certdata.txt</a>.
+
+
+</p>
+<h2>crypto.createHash(algorithm)<span><a class="mark" href="#crypto_crypto_createhash_algorithm" id="crypto_crypto_createhash_algorithm">#</a></span></h2>
+<p>Creates and returns a hash object, a cryptographic hash with the given
+algorithm which can be used to generate hash digests.
+
+</p>
+<p><code>algorithm</code> is dependent on the available algorithms supported by the
+version of OpenSSL on the platform. Examples are <code>&#39;sha1&#39;</code>, <code>&#39;md5&#39;</code>,
+<code>&#39;sha256&#39;</code>, <code>&#39;sha512&#39;</code>, etc.  On recent releases, <code>openssl
+list-message-digest-algorithms</code> will display the available digest
+algorithms.
+
+</p>
+<p>Example: this program that takes the sha1 sum of a file
+
+</p>
+<pre><code>var filename = process.argv[2];
+var crypto = require(&#39;crypto&#39;);
+var fs = require(&#39;fs&#39;);
+
+var shasum = crypto.createHash(&#39;sha1&#39;);
+
+var s = fs.ReadStream(filename);
+s.on(&#39;data&#39;, function(d) {
+  shasum.update(d);
+});
+
+s.on(&#39;end&#39;, function() {
+  var d = shasum.digest(&#39;hex&#39;);
+  console.log(d + &#39;  &#39; + filename);
+});</code></pre>
+<h2>Class: Hash<span><a class="mark" href="#crypto_class_hash" id="crypto_class_hash">#</a></span></h2>
+<p>The class for creating hash digests of data.
+
+</p>
+<p>It is a <a href="stream.html">stream</a> that is both readable and writable.  The
+written data is used to compute the hash.  Once the writable side of
+the stream is ended, use the <code>read()</code> method to get the computed hash
+digest.  The legacy <code>update</code> and <code>digest</code> methods are also supported.
+
+</p>
+<p>Returned by <code>crypto.createHash</code>.
+
+</p>
+<h3>hash.update(data, [input_encoding])<span><a class="mark" href="#crypto_hash_update_data_input_encoding" id="crypto_hash_update_data_input_encoding">#</a></span></h3>
+<p>Updates the hash content with the given <code>data</code>, the encoding of which
+is given in <code>input_encoding</code> and can be <code>&#39;utf8&#39;</code>, <code>&#39;ascii&#39;</code> or
+<code>&#39;binary&#39;</code>.  If no encoding is provided, then a buffer is expected.
+
+</p>
+<p>This can be called many times with new data as it is streamed.
+
+</p>
+<h3>hash.digest([encoding])<span><a class="mark" href="#crypto_hash_digest_encoding" id="crypto_hash_digest_encoding">#</a></span></h3>
+<p>Calculates the digest of all of the passed data to be hashed.  The
+<code>encoding</code> can be <code>&#39;hex&#39;</code>, <code>&#39;binary&#39;</code> or <code>&#39;base64&#39;</code>.  If no encoding
+is provided, then a buffer is returned.
+
+</p>
+<p>Note: <code>hash</code> object can not be used after <code>digest()</code> method has been
+called.
+
+
+</p>
+<h2>crypto.createHmac(algorithm, key)<span><a class="mark" href="#crypto_crypto_createhmac_algorithm_key" id="crypto_crypto_createhmac_algorithm_key">#</a></span></h2>
+<p>Creates and returns a hmac object, a cryptographic hmac with the given
+algorithm and key.
+
+</p>
+<p>It is a <a href="stream.html">stream</a> that is both readable and writable.  The
+written data is used to compute the hmac.  Once the writable side of
+the stream is ended, use the <code>read()</code> method to get the computed
+digest.  The legacy <code>update</code> and <code>digest</code> methods are also supported.
+
+</p>
+<p><code>algorithm</code> is dependent on the available algorithms supported by
+OpenSSL - see createHash above.  <code>key</code> is the hmac key to be used.
+
+</p>
+<h2>Class: Hmac<span><a class="mark" href="#crypto_class_hmac" id="crypto_class_hmac">#</a></span></h2>
+<p>Class for creating cryptographic hmac content.
+
+</p>
+<p>Returned by <code>crypto.createHmac</code>.
+
+</p>
+<h3>hmac.update(data)<span><a class="mark" href="#crypto_hmac_update_data" id="crypto_hmac_update_data">#</a></span></h3>
+<p>Update the hmac content with the given <code>data</code>.  This can be called
+many times with new data as it is streamed.
+
+</p>
+<h3>hmac.digest([encoding])<span><a class="mark" href="#crypto_hmac_digest_encoding" id="crypto_hmac_digest_encoding">#</a></span></h3>
+<p>Calculates the digest of all of the passed data to the hmac.  The
+<code>encoding</code> can be <code>&#39;hex&#39;</code>, <code>&#39;binary&#39;</code> or <code>&#39;base64&#39;</code>.  If no encoding
+is provided, then a buffer is returned.
+
+</p>
+<p>Note: <code>hmac</code> object can not be used after <code>digest()</code> method has been
+called.
+
+
+</p>
+<h2>crypto.createCipher(algorithm, password)<span><a class="mark" href="#crypto_crypto_createcipher_algorithm_password" id="crypto_crypto_createcipher_algorithm_password">#</a></span></h2>
+<p>Creates and returns a cipher object, with the given algorithm and
+password.
+
+</p>
+<p><code>algorithm</code> is dependent on OpenSSL, examples are <code>&#39;aes192&#39;</code>, etc.  On
+recent releases, <code>openssl list-cipher-algorithms</code> will display the
+available cipher algorithms.  <code>password</code> is used to derive key and IV,
+which must be a <code>&#39;binary&#39;</code> encoded string or a <a href="buffer.html">buffer</a>.
+
+</p>
+<p>It is a <a href="stream.html">stream</a> that is both readable and writable.  The
+written data is used to compute the hash.  Once the writable side of
+the stream is ended, use the <code>read()</code> method to get the computed hash
+digest.  The legacy <code>update</code> and <code>digest</code> methods are also supported.
+
+</p>
+<h2>crypto.createCipheriv(algorithm, key, iv)<span><a class="mark" href="#crypto_crypto_createcipheriv_algorithm_key_iv" id="crypto_crypto_createcipheriv_algorithm_key_iv">#</a></span></h2>
+<p>Creates and returns a cipher object, with the given algorithm, key and
+iv.
+
+</p>
+<p><code>algorithm</code> is the same as the argument to <code>createCipher()</code>.  <code>key</code> is
+the raw key used by the algorithm.  <code>iv</code> is an <a href="http://en.wikipedia.org/wiki/Initialization_vector">initialization
+vector</a>.
+
+</p>
+<p><code>key</code> and <code>iv</code> must be <code>&#39;binary&#39;</code> encoded strings or
+<a href="buffer.html">buffers</a>.
+
+</p>
+<h2>Class: Cipher<span><a class="mark" href="#crypto_class_cipher" id="crypto_class_cipher">#</a></span></h2>
+<p>Class for encrypting data.
+
+</p>
+<p>Returned by <code>crypto.createCipher</code> and <code>crypto.createCipheriv</code>.
+
+</p>
+<p>Cipher objects are <a href="stream.html">streams</a> that are both readable and
+writable.  The written plain text data is used to produce the
+encrypted data on the readable side.  The legacy <code>update</code> and <code>final</code>
+methods are also supported.
+
+</p>
+<h3>cipher.update(data, [input_encoding], [output_encoding])<span><a class="mark" href="#crypto_cipher_update_data_input_encoding_output_encoding" id="crypto_cipher_update_data_input_encoding_output_encoding">#</a></span></h3>
+<p>Updates the cipher with <code>data</code>, the encoding of which is given in
+<code>input_encoding</code> and can be <code>&#39;utf8&#39;</code>, <code>&#39;ascii&#39;</code> or <code>&#39;binary&#39;</code>.  If no
+encoding is provided, then a buffer is expected.
+
+</p>
+<p>The <code>output_encoding</code> specifies the output format of the enciphered
+data, and can be <code>&#39;binary&#39;</code>, <code>&#39;base64&#39;</code> or <code>&#39;hex&#39;</code>.  If no encoding is
+provided, then a buffer is returned.
+
+</p>
+<p>Returns the enciphered contents, and can be called many times with new
+data as it is streamed.
+
+</p>
+<h3>cipher.final([output_encoding])<span><a class="mark" href="#crypto_cipher_final_output_encoding" id="crypto_cipher_final_output_encoding">#</a></span></h3>
+<p>Returns any remaining enciphered contents, with <code>output_encoding</code>
+being one of: <code>&#39;binary&#39;</code>, <code>&#39;base64&#39;</code> or <code>&#39;hex&#39;</code>.  If no encoding is
+provided, then a buffer is returned.
+
+</p>
+<p>Note: <code>cipher</code> object can not be used after <code>final()</code> method has been
+called.
+
+</p>
+<h3>cipher.setAutoPadding(auto_padding=true)<span><a class="mark" href="#crypto_cipher_setautopadding_auto_padding_true" id="crypto_cipher_setautopadding_auto_padding_true">#</a></span></h3>
+<p>You can disable automatic padding of the input data to block size. If
+<code>auto_padding</code> is false, the length of the entire input data must be a
+multiple of the cipher&#39;s block size or <code>final</code> will fail.  Useful for
+non-standard padding, e.g. using <code>0x0</code> instead of PKCS padding. You
+must call this before <code>cipher.final</code>.
+
+
+</p>
+<h2>crypto.createDecipher(algorithm, password)<span><a class="mark" href="#crypto_crypto_createdecipher_algorithm_password" id="crypto_crypto_createdecipher_algorithm_password">#</a></span></h2>
+<p>Creates and returns a decipher object, with the given algorithm and
+key.  This is the mirror of the <a href="#crypto_crypto_createcipher_algorithm_password">createCipher()</a> above.
+
+</p>
+<h2>crypto.createDecipheriv(algorithm, key, iv)<span><a class="mark" href="#crypto_crypto_createdecipheriv_algorithm_key_iv" id="crypto_crypto_createdecipheriv_algorithm_key_iv">#</a></span></h2>
+<p>Creates and returns a decipher object, with the given algorithm, key
+and iv.  This is the mirror of the <a href="#crypto_crypto_createcipheriv_algorithm_key_iv">createCipheriv()</a> above.
+
+</p>
+<h2>Class: Decipher<span><a class="mark" href="#crypto_class_decipher" id="crypto_class_decipher">#</a></span></h2>
+<p>Class for decrypting data.
+
+</p>
+<p>Returned by <code>crypto.createDecipher</code> and <code>crypto.createDecipheriv</code>.
+
+</p>
+<p>Decipher objects are <a href="stream.html">streams</a> that are both readable and
+writable.  The written enciphered data is used to produce the
+plain-text data on the the readable side.  The legacy <code>update</code> and
+<code>final</code> methods are also supported.
+
+</p>
+<h3>decipher.update(data, [input_encoding], [output_encoding])<span><a class="mark" href="#crypto_decipher_update_data_input_encoding_output_encoding" id="crypto_decipher_update_data_input_encoding_output_encoding">#</a></span></h3>
+<p>Updates the decipher with <code>data</code>, which is encoded in <code>&#39;binary&#39;</code>,
+<code>&#39;base64&#39;</code> or <code>&#39;hex&#39;</code>.  If no encoding is provided, then a buffer is
+expected.
+
+</p>
+<p>The <code>output_decoding</code> specifies in what format to return the
+deciphered plaintext: <code>&#39;binary&#39;</code>, <code>&#39;ascii&#39;</code> or <code>&#39;utf8&#39;</code>.  If no
+encoding is provided, then a buffer is returned.
+
+</p>
+<h3>decipher.final([output_encoding])<span><a class="mark" href="#crypto_decipher_final_output_encoding" id="crypto_decipher_final_output_encoding">#</a></span></h3>
+<p>Returns any remaining plaintext which is deciphered, with
+<code>output_encoding</code> being one of: <code>&#39;binary&#39;</code>, <code>&#39;ascii&#39;</code> or <code>&#39;utf8&#39;</code>.  If
+no encoding is provided, then a buffer is returned.
+
+</p>
+<p>Note: <code>decipher</code> object can not be used after <code>final()</code> method has been
+called.
+
+</p>
+<h3>decipher.setAutoPadding(auto_padding=true)<span><a class="mark" href="#crypto_decipher_setautopadding_auto_padding_true" id="crypto_decipher_setautopadding_auto_padding_true">#</a></span></h3>
+<p>You can disable auto padding if the data has been encrypted without
+standard block padding to prevent <code>decipher.final</code> from checking and
+removing it. Can only work if the input data&#39;s length is a multiple of
+the ciphers block size. You must call this before streaming data to
+<code>decipher.update</code>.
+
+</p>
+<h2>crypto.createSign(algorithm)<span><a class="mark" href="#crypto_crypto_createsign_algorithm" id="crypto_crypto_createsign_algorithm">#</a></span></h2>
+<p>Creates and returns a signing object, with the given algorithm.  On
+recent OpenSSL releases, <code>openssl list-public-key-algorithms</code> will
+display the available signing algorithms. Examples are <code>&#39;RSA-SHA256&#39;</code>.
+
+</p>
+<h2>Class: Sign<span><a class="mark" href="#crypto_class_sign" id="crypto_class_sign">#</a></span></h2>
+<p>Class for generating signatures.
+
+</p>
+<p>Returned by <code>crypto.createSign</code>.
+
+</p>
+<p>Sign objects are writable <a href="stream.html">streams</a>.  The written data is
+used to generate the signature.  Once all of the data has been
+written, the <code>sign</code> method will return the signature.  The legacy
+<code>update</code> method is also supported.
+
+</p>
+<h3>sign.update(data)<span><a class="mark" href="#crypto_sign_update_data" id="crypto_sign_update_data">#</a></span></h3>
+<p>Updates the sign object with data.  This can be called many times
+with new data as it is streamed.
+
+</p>
+<h3>sign.sign(private_key, [output_format])<span><a class="mark" href="#crypto_sign_sign_private_key_output_format" id="crypto_sign_sign_private_key_output_format">#</a></span></h3>
+<p>Calculates the signature on all the updated data passed through the
+sign.  <code>private_key</code> is a string containing the PEM encoded private
+key for signing.
+
+</p>
+<p>Returns the signature in <code>output_format</code> which can be <code>&#39;binary&#39;</code>,
+<code>&#39;hex&#39;</code> or <code>&#39;base64&#39;</code>. If no encoding is provided, then a buffer is
+returned.
+
+</p>
+<p>Note: <code>sign</code> object can not be used after <code>sign()</code> method has been
+called.
+
+</p>
+<h2>crypto.createVerify(algorithm)<span><a class="mark" href="#crypto_crypto_createverify_algorithm" id="crypto_crypto_createverify_algorithm">#</a></span></h2>
+<p>Creates and returns a verification object, with the given algorithm.
+This is the mirror of the signing object above.
+
+</p>
+<h2>Class: Verify<span><a class="mark" href="#crypto_class_verify" id="crypto_class_verify">#</a></span></h2>
+<p>Class for verifying signatures.
+
+</p>
+<p>Returned by <code>crypto.createVerify</code>.
+
+</p>
+<p>Verify objects are writable <a href="stream.html">streams</a>.  The written data
+is used to validate against the supplied signature.  Once all of the
+data has been written, the <code>verify</code> method will return true if the
+supplied signature is valid.  The legacy <code>update</code> method is also
+supported.
+
+</p>
+<h3>verifier.update(data)<span><a class="mark" href="#crypto_verifier_update_data" id="crypto_verifier_update_data">#</a></span></h3>
+<p>Updates the verifier object with data.  This can be called many times
+with new data as it is streamed.
+
+</p>
+<h3>verifier.verify(object, signature, [signature_format])<span><a class="mark" href="#crypto_verifier_verify_object_signature_signature_format" id="crypto_verifier_verify_object_signature_signature_format">#</a></span></h3>
+<p>Verifies the signed data by using the <code>object</code> and <code>signature</code>.
+<code>object</code> is  a string containing a PEM encoded object, which can be
+one of RSA public key, DSA public key, or X.509 certificate.
+<code>signature</code> is the previously calculated signature for the data, in
+the <code>signature_format</code> which can be <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code> or <code>&#39;base64&#39;</code>.
+If no encoding is specified, then a buffer is expected.
+
+</p>
+<p>Returns true or false depending on the validity of the signature for
+the data and public key.
+
+</p>
+<p>Note: <code>verifier</code> object can not be used after <code>verify()</code> method has been
+called.
+
+</p>
+<h2>crypto.createDiffieHellman(prime_length)<span><a class="mark" href="#crypto_crypto_creatediffiehellman_prime_length" id="crypto_crypto_creatediffiehellman_prime_length">#</a></span></h2>
+<p>Creates a Diffie-Hellman key exchange object and generates a prime of
+the given bit length. The generator used is <code>2</code>.
+
+</p>
+<h2>crypto.createDiffieHellman(prime, [encoding])<span><a class="mark" href="#crypto_crypto_creatediffiehellman_prime_encoding" id="crypto_crypto_creatediffiehellman_prime_encoding">#</a></span></h2>
+<p>Creates a Diffie-Hellman key exchange object using the supplied prime.
+The generator used is <code>2</code>. Encoding can be <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>, or
+<code>&#39;base64&#39;</code>.  If no encoding is specified, then a buffer is expected.
+
+</p>
+<h2>Class: DiffieHellman<span><a class="mark" href="#crypto_class_diffiehellman" id="crypto_class_diffiehellman">#</a></span></h2>
+<p>The class for creating Diffie-Hellman key exchanges.
+
+</p>
+<p>Returned by <code>crypto.createDiffieHellman</code>.
+
+</p>
+<h3>diffieHellman.generateKeys([encoding])<span><a class="mark" href="#crypto_diffiehellman_generatekeys_encoding" id="crypto_diffiehellman_generatekeys_encoding">#</a></span></h3>
+<p>Generates private and public Diffie-Hellman key values, and returns
+the public key in the specified encoding. This key should be
+transferred to the other party. Encoding can be <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>,
+or <code>&#39;base64&#39;</code>.  If no encoding is provided, then a buffer is returned.
+
+</p>
+<h3>diffieHellman.computeSecret(other_public_key, [input_encoding], [output_encoding])<span><a class="mark" href="#crypto_diffiehellman_computesecret_other_public_key_input_encoding_output_encoding" id="crypto_diffiehellman_computesecret_other_public_key_input_encoding_output_encoding">#</a></span></h3>
+<p>Computes the shared secret using <code>other_public_key</code> as the other
+party&#39;s public key and returns the computed shared secret. Supplied
+key is interpreted using specified <code>input_encoding</code>, and secret is
+encoded using specified <code>output_encoding</code>. Encodings can be
+<code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>, or <code>&#39;base64&#39;</code>. If the input encoding is not
+provided, then a buffer is expected.
+
+</p>
+<p>If no output encoding is given, then a buffer is returned.
+
+</p>
+<h3>diffieHellman.getPrime([encoding])<span><a class="mark" href="#crypto_diffiehellman_getprime_encoding" id="crypto_diffiehellman_getprime_encoding">#</a></span></h3>
+<p>Returns the Diffie-Hellman prime in the specified encoding, which can
+be <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>, or <code>&#39;base64&#39;</code>. If no encoding is provided,
+then a buffer is returned.
+
+</p>
+<h3>diffieHellman.getGenerator([encoding])<span><a class="mark" href="#crypto_diffiehellman_getgenerator_encoding" id="crypto_diffiehellman_getgenerator_encoding">#</a></span></h3>
+<p>Returns the Diffie-Hellman prime in the specified encoding, which can
+be <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>, or <code>&#39;base64&#39;</code>. If no encoding is provided,
+then a buffer is returned.
+
+</p>
+<h3>diffieHellman.getPublicKey([encoding])<span><a class="mark" href="#crypto_diffiehellman_getpublickey_encoding" id="crypto_diffiehellman_getpublickey_encoding">#</a></span></h3>
+<p>Returns the Diffie-Hellman public key in the specified encoding, which
+can be <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>, or <code>&#39;base64&#39;</code>. If no encoding is provided,
+then a buffer is returned.
+
+</p>
+<h3>diffieHellman.getPrivateKey([encoding])<span><a class="mark" href="#crypto_diffiehellman_getprivatekey_encoding" id="crypto_diffiehellman_getprivatekey_encoding">#</a></span></h3>
+<p>Returns the Diffie-Hellman private key in the specified encoding,
+which can be <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>, or <code>&#39;base64&#39;</code>. If no encoding is
+provided, then a buffer is returned.
+
+</p>
+<h3>diffieHellman.setPublicKey(public_key, [encoding])<span><a class="mark" href="#crypto_diffiehellman_setpublickey_public_key_encoding" id="crypto_diffiehellman_setpublickey_public_key_encoding">#</a></span></h3>
+<p>Sets the Diffie-Hellman public key. Key encoding can be <code>&#39;binary&#39;</code>,
+<code>&#39;hex&#39;</code> or <code>&#39;base64&#39;</code>. If no encoding is provided, then a buffer is
+expected.
+
+</p>
+<h3>diffieHellman.setPrivateKey(private_key, [encoding])<span><a class="mark" href="#crypto_diffiehellman_setprivatekey_private_key_encoding" id="crypto_diffiehellman_setprivatekey_private_key_encoding">#</a></span></h3>
+<p>Sets the Diffie-Hellman private key. Key encoding can be <code>&#39;binary&#39;</code>,
+<code>&#39;hex&#39;</code> or <code>&#39;base64&#39;</code>. If no encoding is provided, then a buffer is
+expected.
+
+</p>
+<h2>crypto.getDiffieHellman(group_name)<span><a class="mark" href="#crypto_crypto_getdiffiehellman_group_name" id="crypto_crypto_getdiffiehellman_group_name">#</a></span></h2>
+<p>Creates a predefined Diffie-Hellman key exchange object.  The
+supported groups are: <code>&#39;modp1&#39;</code>, <code>&#39;modp2&#39;</code>, <code>&#39;modp5&#39;</code> (defined in <a href="http://www.rfc-editor.org/rfc/rfc2412.txt">RFC
+2412</a>) and <code>&#39;modp14&#39;</code>, <code>&#39;modp15&#39;</code>, <code>&#39;modp16&#39;</code>, <code>&#39;modp17&#39;</code>,
+<code>&#39;modp18&#39;</code> (defined in <a href="http://www.rfc-editor.org/rfc/rfc3526.txt">RFC 3526</a>).  The returned object mimics the
+interface of objects created by <a href="#crypto_crypto_creatediffiehellman_prime_encoding">crypto.createDiffieHellman()</a>
+above, but will not allow to change the keys (with
+<a href="#crypto_diffiehellman_setpublickey_public_key_encoding">diffieHellman.setPublicKey()</a> for example).  The advantage of using
+this routine is that the parties don&#39;t have to generate nor exchange
+group modulus beforehand, saving both processor and communication
+time.
+
+</p>
+<p>Example (obtaining a shared secret):
+
+</p>
+<pre><code>var crypto = require(&#39;crypto&#39;);
+var alice = crypto.getDiffieHellman(&#39;modp5&#39;);
+var bob = crypto.getDiffieHellman(&#39;modp5&#39;);
+
+alice.generateKeys();
+bob.generateKeys();
+
+var alice_secret = alice.computeSecret(bob.getPublicKey(), null, &#39;hex&#39;);
+var bob_secret = bob.computeSecret(alice.getPublicKey(), null, &#39;hex&#39;);
+
+/* alice_secret and bob_secret should be the same */
+console.log(alice_secret == bob_secret);</code></pre>
+<h2>crypto.pbkdf2(password, salt, iterations, keylen, callback)<span><a class="mark" href="#crypto_crypto_pbkdf2_password_salt_iterations_keylen_callback" id="crypto_crypto_pbkdf2_password_salt_iterations_keylen_callback">#</a></span></h2>
+<p>Asynchronous PBKDF2 applies pseudorandom function HMAC-SHA1 to derive
+a key of given length from the given password, salt and iterations.
+The callback gets two arguments <code>(err, derivedKey)</code>.
+
+</p>
+<h2>crypto.pbkdf2Sync(password, salt, iterations, keylen)<span><a class="mark" href="#crypto_crypto_pbkdf2sync_password_salt_iterations_keylen" id="crypto_crypto_pbkdf2sync_password_salt_iterations_keylen">#</a></span></h2>
+<p>Synchronous PBKDF2 function.  Returns derivedKey or throws error.
+
+</p>
+<h2>crypto.randomBytes(size, [callback])<span><a class="mark" href="#crypto_crypto_randombytes_size_callback" id="crypto_crypto_randombytes_size_callback">#</a></span></h2>
+<p>Generates cryptographically strong pseudo-random data. Usage:
+
+</p>
+<pre><code>// async
+crypto.randomBytes(256, function(ex, buf) {
+  if (ex) throw ex;
+  console.log(&#39;Have %d bytes of random data: %s&#39;, buf.length, buf);
+});
+
+// sync
+try {
+  var buf = crypto.randomBytes(256);
+  console.log(&#39;Have %d bytes of random data: %s&#39;, buf.length, buf);
+} catch (ex) {
+  // handle error
+}</code></pre>
+<h2>crypto.pseudoRandomBytes(size, [callback])<span><a class="mark" href="#crypto_crypto_pseudorandombytes_size_callback" id="crypto_crypto_pseudorandombytes_size_callback">#</a></span></h2>
+<p>Generates <em>non</em>-cryptographically strong pseudo-random data. The data
+returned will be unique if it is sufficiently long, but is not
+necessarily unpredictable. For this reason, the output of this
+function should never be used where unpredictability is important,
+such as in the generation of encryption keys.
+
+</p>
+<p>Usage is otherwise identical to <code>crypto.randomBytes</code>.
+
+</p>
+<h2>crypto.DEFAULT_ENCODING<span><a class="mark" href="#crypto_crypto_default_encoding" id="crypto_crypto_default_encoding">#</a></span></h2>
+<p>The default encoding to use for functions that can take either strings
+or buffers.  The default value is <code>&#39;buffer&#39;</code>, which makes it default
+to using Buffer objects.  This is here to make the crypto module more
+easily compatible with legacy programs that expected <code>&#39;binary&#39;</code> to be
+the default encoding.
+
+</p>
+<p>Note that new programs will probably expect buffers, so only use this
+as a temporary measure.
+
+</p>
+<h2>Recent API Changes<span><a class="mark" href="#crypto_recent_api_changes" id="crypto_recent_api_changes">#</a></span></h2>
+<p>The Crypto module was added to Node before there was the concept of a
+unified Stream API, and before there were Buffer objects for handling
+binary data.
+
+</p>
+<p>As such, the streaming classes don&#39;t have the typical methods found on
+other Node classes, and many methods accepted and returned
+Binary-encoded strings by default rather than Buffers.  This was
+changed to use Buffers by default instead.
+
+</p>
+<p>This is a breaking change for some use cases, but not all.
+
+</p>
+<p>For example, if you currently use the default arguments to the Sign
+class, and then pass the results to the Verify class, without ever
+inspecting the data, then it will continue to work as before.  Where
+you once got a binary string and then presented the binary string to
+the Verify object, you&#39;ll now get a Buffer, and present the Buffer to
+the Verify object.
+
+</p>
+<p>However, if you were doing things with the string data that will not
+work properly on Buffers (such as, concatenating them, storing in
+databases, etc.), or you are passing binary strings to the crypto
+functions without an encoding argument, then you will need to start
+providing encoding arguments to specify which encoding you&#39;d like to
+use.  To switch to the previous style of using binary strings by
+default, set the <code>crypto.DEFAULT_ENCODING</code> field to &#39;binary&#39;.  Note
+that new programs will probably expect buffers, so only use this as a
+temporary measure.
+
+
+</p>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

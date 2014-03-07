@@ -1,0 +1,97 @@
+<html>
+<head>
+<title>File Iterator</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> 
+      <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>File Iterator</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="multi_pass.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="position_iterator.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>Since Spirit is a back-tracking parser, it requires at least a forward iterator. 
+  In particular, an input iterator is not sufficient. Many times it is convenient 
+  to read the input to a parser from a file, but the STL file iterators are input 
+  iterators. To get around this limitation, Spirit has a utility class <tt>file_iterator</tt>, 
+  which is a read-only random-access iterator for files.</p>
+<p>To use the Spirit file iterator, simply create a file iterator with the path 
+  to the file you wish to parse, and then create an EOF iterator for the file:</p>
+<pre><span class=identifier>    </span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>spirit</span><span class=special>/</span><span class=identifier>iterator</span><span class=special>/</span><span class=identifier>file_iterator</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt; </span><span class=comment>// the header file</span></pre>
+<pre>    <span class=identifier>file_iterator</span><span class=special>&lt;&gt; </span><span class=identifier>first</span><span class=special>(</span><span class=string>&quot;input.dat&quot;</span><span class=special>);
+
+    </span><span class=keyword>if </span><span class=special>(!</span><span class=identifier>first</span><span class=special>)
+    {
+       </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=string>&quot;Unable to open file!\n&quot;</span><span class=special>;
+
+       </span><span class=comment>// Clean up, throw an exception, whatever
+       </span><span class=keyword>return </span><span class=special>-</span><span class=number>1</span><span class=special>;
+    }
+
+    </span><span class=identifier>file_iterator</span><span class=special>&lt;&gt; </span><span class=identifier>last </span><span class=special>= </span><span class=identifier>first</span><span class=special>.</span><span class=identifier>make_end</span><span class=special>();</span></pre>
+<p>You now have a pair of iterators to use with Spirit . If your parser is fully 
+  parametrized (no hard-coded <tt>&lt;char const *&gt;</tt>), it is a simple matter 
+  of redefining the iterator type to <tt>file_iterator</tt>:<br>
+</p>
+<pre>    <span class=keyword>typedef char                    </span><span class="identifier">char_t</span><span class=special>;
+    </span><span class=keyword>typedef </span><span class=identifier>file_iterator </span><span class=special>&lt;</span><span class=keyword>char</span><span class=identifier>_t</span><span class=special>&gt;  </span><span class=identifier>iterator_t</span><span class=special>;
+    </span><span class=keyword>typedef </span><span class=identifier>scanner</span><span class=special>&lt;</span><span class=identifier>iterator_t</span><span class=special>&gt;     </span><span class=identifier>scanner_t</span><span class=special>;
+    </span><span class=keyword>typedef </span><span class=identifier>rule </span><span class=special>&lt;</span><span class=identifier>scanner_t</span><span class=special>&gt;        </span><span class=identifier>rule_t</span><span class=special>;
+
+    </span><span class=identifier>rule_t my_rule</span><span class=special>;
+
+    </span><span class=comment>// Define your rule
+
+    </span><span class=identifier>parse_info</span><span class=special>&lt;</span><span class=identifier>iterator_t</span><span class=special>&gt; </span><span class=identifier>info </span><span class=special>= </span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>first</span><span class=special>, </span><span class=identifier>last</span><span class=special>, </span><span class=identifier>my_rule</span><span class=special>);</span></pre>
+<p>Of course, you don't have to deal with the <a href="faq.html#scanner_business">scanner-business</a> 
+  at all if you use grammars rather than rules as arguments to the parse functions. 
+  You simply pass the iterator pairs and the grammar as is:<span class=special><br>
+  </span></p>
+<pre>    <span class=identifier>my_grammar </span><span class=identifier>g</span><span class=special>;
+    </span><span class=identifier>parse_info</span><span class=special>&lt;</span><span class=identifier>iterator_t</span><span class=special>&gt; </span><span class=identifier>info </span><span class=special>= </span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>first</span><span class=special>, </span><span class=identifier>last</span><span class=special>, </span><span class=identifier>g</span><span class=special>);</span></pre>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/bulb.gif" width="13" height="18"><b> 
+      Generic iterator</b><br>
+      <br>
+      The Spirit file iterator can be parameterized with any type that is default 
+      constructible and assignable. It transparently supports large files (greater 
+      than 2GB) on systems that provide an appropriate interface. The file iterator 
+      can be useful outside of Spirit as well. For instance, the Boost.Tokenizer 
+      package requires a bidirectional iterator, which is provided by file_iterator.</td>
+  </tr>
+</table>
+<p><img src="theme/lens.gif" width="15" height="16"> See <a href="../example/fundamental/file_parser.cpp">file_parser.cpp</a> for a compilable example. This is part of the Spirit distribution.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="multi_pass.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="position_iterator.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2002 Jeff Westfahl</p>
+<p class="copyright"><font size="2"> Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+ </font> </p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

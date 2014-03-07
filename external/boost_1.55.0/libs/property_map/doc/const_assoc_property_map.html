@@ -1,0 +1,190 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Constant Associative Property Map Adaptor</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+	ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H2><A NAME="sec:const-associative-property-map"></A>
+</h2>
+<PRE>
+const_associative_property_map&lt;UniquePairAssociativeContainer&gt;
+</PRE>
+
+<P>
+This property map is an adaptor that converts any type that is a model
+of both <a
+href="http://www.sgi.com/tech/stl/PairAssociativeContainer.html">Pair
+Associative Container</a> and <a
+href="http://www.sgi.com/tech/stl/UniqueAssociativeContainer.html">Unique
+Associative Container</a> such as <a
+href="http://www.sgi.com/tech/stl/Map.html"><tt>std::map</tt></a> into
+a constant <a href="./LvaluePropertyMap.html">Lvalue Property Map</a>.
+Note that the adaptor only retains a reference to the container, so
+the lifetime of the container must encompass the use of the adaptor.
+</P>
+
+<h3>Example</h3>
+
+<a href="../example/example1.cpp">example1.cpp</a>:
+<pre>
+<font color="#008040">#include &lt;iostream&gt;</font>
+<font color="#008040">#include &lt;map&gt;</font>
+<font color="#008040">#include &lt;string&gt;</font>
+<font color="#008040">#include &lt;boost/property_map/property_map.hpp&gt;</font>
+
+
+<B>template</B> &lt;<B>typename</B> ConstAddressMap&gt;
+<B>void</B> display(ConstAddressMap address)
+{
+  <B>typedef</B> <B>typename</B> boost::property_traits&lt;ConstAddressMap&gt;::value_type
+    value_type;
+  <B>typedef</B> <B>typename</B> boost::property_traits&lt;ConstAddressMap&gt;::key_type key_type;
+
+  key_type fred = <font color="#0000FF">"Fred"</font>;
+  key_type joe = <font color="#0000FF">"Joe"</font>;
+
+  value_type freds_address = get(address, fred);
+  value_type joes_address = get(address, joe);
+  
+  std::cout &lt;&lt; fred &lt;&lt; <font color="#0000FF">": "</font> &lt;&lt; freds_address &lt;&lt; <font color="#0000FF">"\n"</font>
+	    &lt;&lt; joe  &lt;&lt; <font color="#0000FF">": "</font> &lt;&lt; joes_address  &lt;&lt; <font color="#0000FF">"\n"</font>;
+}
+
+<B>int</B>
+main()
+{
+  std::map&lt;std::string, std::string&gt; name2address;
+  boost::const_associative_property_map&lt; std::map&lt;std::string, std::string&gt; &gt;
+    address_map(name2address);
+
+  name2address.insert(make_pair(std::string(<font color="#0000FF">"Fred"</font>), 
+				std::string(<font color="#0000FF">"710 West 13th Street"</font>)));
+  name2address.insert(make_pair(std::string(<font color="#0000FF">"Joe"</font>), 
+				std::string(<font color="#0000FF">"710 West 13th Street"</font>)));
+
+  display(address_map);
+  
+  <B>return</B> EXIT_SUCCESS;
+}
+
+
+</PRE>
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/property_map/property_map.hpp"><TT>boost/property_map/property_map.hpp</TT></a>
+
+<p>
+<H3>Model Of</H3>
+
+<a href="./LvaluePropertyMap.html">Lvalue Property Map</a>
+
+<P>
+
+<H3>Template Parameters</H3>
+
+<P>
+
+<TABLE border>
+<TR>
+<th>Parameter</th><th>Description</th><th>Default</th>
+</tr>
+
+
+<TR>
+<TD><TT>UniquePairAssociativeContainer</TT></TD> 
+<TD>Must be a model of both <a
+href="http://www.sgi.com/tech/stl/PairAssociativeContainer.html">Pair
+Associative Container</a> and <a
+href="http://www.sgi.com/tech/stl/UniqueAssociativeContainer.html">Unique
+Associative Container</a> .</TD>
+<TD>&nbsp;</td>
+</tr>
+
+</TABLE>
+<P>
+
+<H3>Members</H3>
+
+<P>
+In addition to the methods and functions required by <a
+href="./LvaluePropertyMap.html">Lvalue Property Map</a>, this
+class has the following members.
+
+<hr>
+
+<pre>
+property_traits&lt;const_associative_property_map&gt;::value_type
+</pre>
+This is the same type as
+<TT>UniquePairAssociativeContainer::data_type</TT>.
+
+<hr>
+
+<pre>
+const_associative_property_map()
+</pre>
+Default Constructor.
+
+<pre>
+const_associative_property_map(const UniquePairAssociativeContainer&amp; c)
+</pre>
+Constructor.
+
+<hr>
+
+<pre>
+const data_type&amp; operator[](const key_type&amp; k) const
+</pre>
+The operator bracket for property access.
+The <TT>key_type</TT> and
+<TT>data_type</TT> types are from the typedefs inside of
+<TT>UniquePairAssociativeContainer</TT>.
+
+<hr>
+
+<h3>Non-Member functions</h3>
+
+<hr>
+
+<pre>
+  template &lt;typename UniquePairAssociativeContainer&gt;
+  const_associative_property_map&lt;UniquePairAssociativeContainer&gt;
+  make_assoc_property_map(const UniquePairAssociativeContainer&amp; c);
+</pre>
+A function for conveniently creating an associative property map.
+
+
+
+<hr>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy 2002</TD><TD>
+<a HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee1@osl.iu.edu">llee1@osl.iu.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

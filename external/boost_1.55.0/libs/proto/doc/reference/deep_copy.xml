@@ -1,0 +1,106 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/deep_copy.hpp">
+  <para>Replace all nodes stored by reference by nodes stored by value.</para>
+  <namespace name="boost">
+    <namespace name="proto">
+
+      <namespace name="result_of">
+        <!-- proto::result_of::deep_copy -->
+        <struct name="deep_copy">
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <purpose>A metafunction for calculating the return type of <computeroutput>
+            <functionname alt="proto::deep_copy">proto::deep_copy()</functionname></computeroutput>.</purpose>
+          <description>
+            <para>
+              A metafunction for calculating the return type of <computeroutput>
+              <functionname alt="proto::deep_copy">proto::deep_copy()</functionname></computeroutput>. The type
+              parameter <computeroutput>Expr</computeroutput> should be the type of a Proto expression tree.
+              It should not be a reference type, nor should it be cv-qualified.
+            </para>
+          </description>
+          <typedef name="type">
+            <type><emphasis>unspecified</emphasis></type>
+          </typedef>
+        </struct>
+      </namespace>
+
+      <namespace name="functional">
+        <!-- proto::functional::deep_copy -->
+        <struct name="deep_copy">
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type for deep-copying Proto
+            expression trees.</purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type for deep-copying Proto expression trees.
+              When a tree is deep-copied, all internal nodes and terminals held by reference are instead held by value.
+              The only exception is function references, which continue to be held by reference.
+            </para>
+          </description>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <specialization>
+              <template-arg>This(Expr)</template-arg>
+            </specialization>
+            <inherit>
+              <type><classname>result_of::deep_copy</classname>&lt;Expr&gt;</type>
+            </inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type><classname>result_of::deep_copy</classname>&lt;Expr&gt;::type</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr const &amp;</paramtype>
+              </parameter>
+              <purpose>Deep-copies a Proto expression tree, turning all nodes and terminals held by
+                reference into ones held by value.</purpose>
+            </method>
+          </method-group>
+        </struct>
+      </namespace>
+
+      <!-- proto::deep_copy() -->
+      <function name="deep_copy">
+        <type>typename <classname>proto::result_of::deep_copy</classname>&lt;Expr&gt;::type</type>
+        <template>
+          <template-type-parameter name="Expr"/>
+        </template>
+        <parameter name="expr">
+          <paramtype>Expr const &amp;</paramtype>
+        </parameter>
+        <purpose>A function for deep-copying Proto expression trees. </purpose>
+        <description>
+          <para>
+            A function for deep-copying Proto expression trees. When a tree is deep-copied, all internal
+            nodes and terminals held by reference are instead held by value.</para>
+        </description>
+        <notes>
+          <para>
+            Terminals of reference-to-function type are left unchanged.
+          </para>
+          <para>
+            Equivalent to <computeroutput><classname>proto::functional::deep_copy</classname>()(expr)
+            </computeroutput>.
+          </para>
+        </notes>
+      </function>
+    </namespace>
+  </namespace>
+</header>

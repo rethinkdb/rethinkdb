@@ -1,0 +1,60 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:partial_sum partial_sum]
+
+[heading Prototype]
+
+``
+template<class SinglePassRange,
+         class OutputIterator>
+OutputIterator partial_sum(const SinglePassRange& rng,
+                           OutputIterator out_it);
+
+template<class SinglePassRange,
+         class OutputIterator,
+         class BinaryOperation>
+OutputIterator partial_sum(const SinglePassRange& rng,
+                           OutputIterator out_it,
+                           BinaryOperation op);
+``
+
+[heading Description]
+
+`partial_sum` calculates a generalised partial sum of `rng` in the same manner as
+`std::partial_sum(boost::begin(rng), boost::end(rng), out_it)`. See __sgi_partial_sum__.
+
+
+[heading Definition]
+
+Defined in the header file `boost/range/numeric.hpp`
+
+[heading Requirements]
+
+[heading For the first version]
+
+# `SinglePassRange` is a model of the __single_pass_range__ Concept.
+# `OutputIterator` is a model of the `OutputIteratorConcept`.
+# If `x` and `y` are objects of `SinglePassRange`'s value type, then `x + y` is defined.
+# The return type of `x + y` is convertible to the value type of `SinglePassRange`.
+# The value type of `SinglePassRange` is convertible to a type in `OutputIterator`'s set of value types.
+
+[heading For the second version]
+
+# `SinglePassRange` is a model of the __single_pass_range__ Concept.
+# `OutputIterator` is a model of the `OutputIteratorConcept`.
+# `BinaryOperation` is a model of the `BinaryFunctionConcept`.
+# The result type of `BinaryOperation` is convertible to the value type of `SinglePassRange`.
+# The value type of `SinglePassRange` is convertible to a type in `OutputIterator`'s set of value types.
+
+[heading Precondition:]
+
+`[result, result + distance(rng))` is a valid range.
+
+[heading Complexity]
+
+Linear. If `empty(rng)` then zero applications, otherwise `distance(rng) - 1` applications are performed.
+
+[endsect]

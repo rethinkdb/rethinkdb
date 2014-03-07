@@ -1,0 +1,1053 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Intersection</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../function_reference.html" title="Function Reference">
+<link rel="prev" href="erasure.html" title="Erasure">
+<link rel="next" href="symmetric_difference.html" title="Symmetric Difference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="erasure.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function_reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="symmetric_difference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_function_reference_intersection" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.function_reference.intersection"></a><a class="link" href="intersection.html" title="Intersection">Intersection</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="intersection.html#boost_icl.function_reference.intersection.synopsis">Synopsis</a></span></dt>
+<dt><span class="section"><a href="intersection.html#boost_icl.function_reference.intersection.functions">Functions</a></span></dt>
+<dt><span class="section"><a href="intersection.html#boost_icl.function_reference.intersection.inplace_operators">Inplace
+        operators</a></span></dt>
+<dt><span class="section"><a href="intersection.html#boost_icl.function_reference.intersection.infix_operators">Infix
+        operators</a></span></dt>
+<dt><span class="section"><a href="intersection.html#boost_icl.function_reference.intersection.intersection_tester">Intersection
+        tester</a></span></dt>
+</dl></div>
+<div class="section boost_icl_function_reference_intersection_synopsis" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.intersection.synopsis"></a><a class="link" href="intersection.html#boost_icl.function_reference.intersection.synopsis" title="Synopsis">Synopsis</a>
+</h4></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Intersection
+                </p>
+                </th>
+<th>
+                <p>
+                  interval<br> type
+                </p>
+                </th>
+<th>
+                <p>
+                  interval<br> sets
+                </p>
+                </th>
+<th>
+                <p>
+                  interval<br> maps
+                </p>
+                </th>
+<th>
+                <p>
+                  element<br> sets
+                </p>
+                </th>
+<th>
+                <p>
+                  element<br> maps
+                </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">add_intersection</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+                  <span class="keyword">operator</span> <span class="special">&amp;=(</span><span class="identifier">T</span><span class="special">&amp;,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span> <span class="keyword">operator</span>
+                  <span class="special">&amp;</span> <span class="special">(</span><span class="identifier">T</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code><br> <code class="computeroutput"><span class="identifier">T</span>
+                  <span class="keyword">operator</span> <span class="special">&amp;</span>
+                  <span class="special">(</span><span class="keyword">const</span>
+                  <span class="identifier">P</span><span class="special">&amp;,</span>
+                  <span class="identifier">T</span><span class="special">)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">intersects</span><span class="special">(</span><span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code><br> <code class="computeroutput"><span class="keyword">bool</span>
+                  <span class="identifier">disjoint</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                  <span class="identifier">P</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>
+                  <a class="link" href="../interface/function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>
+                </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          Functions and operators that are related to <span class="emphasis"><em><span class="bold"><strong>intersection</strong></span></em></span>
+          on <span class="bold"><strong>icl</strong></span> objects are given in the table
+          above.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                </p>
+                </th>
+<th>
+                <p>
+                  Description of Intersection
+                </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">Sets</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  Intersection on Sets implements <span class="emphasis"><em><span class="bold"><strong>set
+                  intersection</strong></span></em></span>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">Maps</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  Intersection on Maps implements a <span class="emphasis"><em><span class="bold"><strong>map
+                  intersection</strong></span></em></span> function similar to <span class="emphasis"><em>set
+                  intersection</em></span>. If, on intersection, an element value
+                  pair <code class="computeroutput"><span class="special">(</span><span class="identifier">k</span><span class="special">,</span><span class="identifier">v</span><span class="special">)</span></code> it's key <code class="computeroutput"><span class="identifier">k</span></code>
+                  is in the map already, the intersection function is propagated
+                  to the associated value, if it exists for the Map's codomain_type.
+                </p>
+                <p>
+                  If the codomain_type has no intersection operation, associated
+                  values are combined using addition. For partial map types this
+                  results in an addition on the intersection of the domains of the
+                  intersected sets. For total maps intersection and addition are
+                  identical in this case.
+                </p>
+                <p>
+                  See also <a class="link" href="../semantics/quantifiers__maps_of_numbers.html#boost_icl.semantics.quantifiers__maps_of_numbers.intersection_on_quantifiers"><span class="emphasis"><em>intersection
+                  on Maps of numbers</em></span></a>.
+                </p>
+                <p>
+                  A Map can be intersected with key types: an element (an interval
+                  for interval_maps) and and a Set. This results in the selection
+                  of a submap, and can be defined as a generalized selection function
+                  on Maps.
+                </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="section boost_icl_function_reference_intersection_functions" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.intersection.functions"></a><a class="link" href="intersection.html#boost_icl.function_reference.intersection.functions" title="Functions">Functions</a>
+</h4></div></div></div>
+<p>
+          The overloaded function
+        </p>
+<p>
+          <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">add_intersection</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span>
+          <span class="identifier">result</span><span class="special">,</span>
+          <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">y</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span></code>
+        </p>
+<p>
+          allows to accumulate the intersection of <code class="computeroutput"><span class="identifier">y</span></code>
+          and <code class="computeroutput"><span class="identifier">x</span></code> in the first argument
+          <code class="computeroutput"><span class="identifier">result</span></code>. <code class="computeroutput"><span class="identifier">Result</span></code>
+          might already contain data. In this case the intersection of <code class="computeroutput"><span class="identifier">y</span></code> and <code class="computeroutput"><span class="identifier">x</span></code>
+          is <code class="computeroutput"><span class="identifier">added</span></code> the the contents
+          of <code class="computeroutput"><span class="identifier">result</span></code>. 
+</p>
+<pre class="programlisting"><span class="identifier">T</span> <span class="identifier">s1</span> <span class="special">=</span> <span class="identifier">f</span><span class="special">,</span> <span class="identifier">s2</span> <span class="special">=</span> <span class="identifier">f</span><span class="special">,</span> <span class="identifier">y</span> <span class="special">=</span> <span class="identifier">g</span><span class="special">;</span> <span class="identifier">P</span> <span class="identifier">x</span> <span class="special">=</span> <span class="identifier">h</span><span class="special">;</span> <span class="comment">// The effect of 
+</span><span class="identifier">add_intersection</span><span class="special">(</span><span class="identifier">s1</span><span class="special">,</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">x</span><span class="special">);</span>       <span class="comment">// add_intersection 
+</span><span class="identifier">s2</span> <span class="special">+=</span> <span class="special">(</span><span class="identifier">y</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>                    <span class="comment">// and &amp; followed by +=
+</span><span class="identifier">assert</span><span class="special">(</span><span class="identifier">s1</span><span class="special">==</span><span class="identifier">s2</span><span class="special">);</span>                   <span class="comment">// is identical
+</span></pre>
+<p>
+        </p>
+<p>
+          This might be convenient, if intersection is used like a generalized selection
+          function. Using element or segment types for <code class="computeroutput"><span class="identifier">P</span></code>,
+          we can select small parts of a container <code class="computeroutput"><span class="identifier">y</span></code>
+          and accumulate them in <code class="computeroutput"><span class="identifier">section</span></code>.
+        </p>
+<p>
+          The admissible combinations of types for function <code class="computeroutput"><span class="keyword">void</span>
+          <span class="identifier">add_intersection</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+          can be summarized in the <span class="emphasis"><em><span class="bold"><strong>overload table</strong></span></em></span>
+          below. Compared to other overload tables, placements of function arguments
+          are different: Row headers denote type <code class="computeroutput"><span class="identifier">T</span></code>
+          of <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+          object. Columns headers denote type <code class="computeroutput"><span class="identifier">P</span></code>
+          of the second function argument. The table cells contain the arguments
+          <code class="computeroutput"><span class="identifier">T</span></code> of the intersections
+          <code class="computeroutput"><span class="identifier">result</span></code>, which is the functions
+          first argument.
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">/* overload table for */</span>                                <span class="identifier">T</span><span class="special">\</span><span class="identifier">P</span><span class="special">|</span> <span class="identifier">e</span> <span class="identifier">i</span> <span class="identifier">b</span> <span class="identifier">p</span> 
+<span class="keyword">void</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">add_intersection</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">result</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span><span class="keyword">const</span>      <span class="special">---+--------</span>
+                                                         <span class="identifier">s</span> <span class="special">|</span> <span class="identifier">s</span>
+                                                         <span class="identifier">m</span> <span class="special">|</span> <span class="identifier">m</span>   <span class="identifier">m</span>
+                                                         <span class="identifier">S</span> <span class="special">|</span> <span class="identifier">S</span> <span class="identifier">S</span>     
+                                                         <span class="identifier">M</span> <span class="special">|</span> <span class="identifier">M</span> <span class="identifier">M</span> <span class="identifier">M</span> <span class="identifier">M</span> 
+</pre>
+<p>
+        </p>
+<p>
+          The next table contains complexity characteristics for function <code class="computeroutput"><span class="identifier">add_intersection</span></code>.
+        </p>
+<div class="table">
+<a name="id1208571"></a><p class="title"><b>Table&#160;1.34.&#160;Time Complexity for function add_intersection
+        on icl containers</b></p>
+<div class="table-contents"><table class="table" summary="Time Complexity for function add_intersection
+        on icl containers">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">add_intersection</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                <span class="identifier">T</span><span class="special">&amp;,</span>
+                <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span><span class="keyword">const</span></code>
+              </p>
+              </th>
+<th>
+              <p>
+                domain<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                domain<br> mapping<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> mapping<br> type
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code> </a>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/map.html" title="Class template map">icl::map</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/interval_set.html" title="Class template interval_set">interval_sets</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_maps</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section boost_icl_function_reference_intersection_inplace_operators" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.intersection.inplace_operators"></a><a class="link" href="intersection.html#boost_icl.function_reference.intersection.inplace_operators" title="Inplace operators">Inplace
+        operators</a>
+</h4></div></div></div>
+<p>
+          The overload tables below are giving admissible type combinations for the
+          intersection <code class="computeroutput"><span class="keyword">operator</span> <span class="special">&amp;=</span></code>.
+          As for the overload patterns of <span class="emphasis"><em>subtraction</em></span> intersections
+          are possible within Sets and Maps but also for Maps combined with <span class="emphasis"><em>key
+          objects</em></span> which are <span class="emphasis"><em>key elements, intervals</em></span>
+          and <span class="emphasis"><em>Sets of keys</em></span>.
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">// overload tables for             element containers:     interval containers:
+</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">&amp;=</span> <span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>      <span class="special">&amp;=</span> <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">b</span> <span class="identifier">s</span> <span class="identifier">m</span>            <span class="special">&amp;=</span> <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">i</span> <span class="identifier">b</span> <span class="identifier">p</span> <span class="identifier">S</span> <span class="identifier">M</span>    
+                                   <span class="special">---+--------</span>            <span class="special">---+------------</span>    
+                                   <span class="identifier">s</span>  <span class="special">|</span> <span class="identifier">s</span>   <span class="identifier">s</span>              <span class="identifier">S</span>  <span class="special">|</span> <span class="identifier">S</span> <span class="identifier">S</span>     <span class="identifier">S</span>      
+                                   <span class="identifier">m</span>  <span class="special">|</span> <span class="identifier">m</span> <span class="identifier">m</span> <span class="identifier">m</span> <span class="identifier">m</span>            <span class="identifier">M</span>  <span class="special">|</span> <span class="identifier">M</span> <span class="identifier">M</span> <span class="identifier">M</span> <span class="identifier">M</span> <span class="identifier">M</span> <span class="identifier">M</span>    
+</pre>
+<p>
+        </p>
+<p>
+          While intersection on maps can be viewed as a <span class="emphasis"><em><span class="bold"><strong>generalisation
+          of set intersection</strong></span></em></span>. The combination on Maps and
+          Sets can be interpreted as a <span class="emphasis"><em><span class="bold"><strong>generalized
+          selection function</strong></span></em></span>, because it allows to select parts
+          of a maps using <span class="emphasis"><em>key</em></span> or <span class="emphasis"><em>selection objects</em></span>.
+          So we have a <span class="emphasis"><em><span class="bold"><strong>generalized intersection</strong></span></em></span>
+          for these overloads,
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">/* (Generalized) intersection */</span>   <span class="special">&amp;=</span> <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">b</span> <span class="identifier">s</span> <span class="identifier">m</span>            <span class="special">&amp;=</span> <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">i</span> <span class="identifier">b</span> <span class="identifier">p</span> <span class="identifier">S</span> <span class="identifier">M</span>  
+                                   <span class="special">---+--------</span>            <span class="special">---+------------</span>  
+                                   <span class="identifier">s</span>  <span class="special">|</span> <span class="identifier">s</span>   <span class="identifier">s</span>              <span class="identifier">S</span>  <span class="special">|</span> <span class="identifier">S</span> <span class="identifier">S</span>     <span class="identifier">S</span>    
+                                   <span class="identifier">m</span>  <span class="special">|</span>   <span class="identifier">m</span>   <span class="identifier">m</span>            <span class="identifier">M</span>  <span class="special">|</span>     <span class="identifier">M</span> <span class="identifier">M</span>   <span class="identifier">M</span>  
+</pre>
+<p>
+        </p>
+<p>
+          <span class="bold"><strong>and</strong></span> a <span class="emphasis"><em><span class="bold"><strong>selection
+          by key objects</strong></span></em></span> here:
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">/* Selection by key objects */</span>     <span class="special">&amp;=</span> <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">b</span> <span class="identifier">s</span> <span class="identifier">m</span>            <span class="special">&amp;=</span> <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">i</span> <span class="identifier">b</span> <span class="identifier">p</span> <span class="identifier">S</span> <span class="identifier">M</span> 
+                                   <span class="special">---+--------</span>            <span class="special">---+------------</span> 
+                                   <span class="identifier">s</span>  <span class="special">|</span> <span class="identifier">s</span>   <span class="identifier">s</span>              <span class="identifier">S</span>  <span class="special">|</span> <span class="identifier">S</span> <span class="identifier">S</span>     <span class="identifier">S</span>   
+                                   <span class="identifier">m</span>  <span class="special">|</span> <span class="identifier">m</span>   <span class="identifier">m</span>              <span class="identifier">M</span>  <span class="special">|</span> <span class="identifier">M</span> <span class="identifier">M</span>     <span class="identifier">M</span>   
+</pre>
+<p>
+        </p>
+<p>
+          The differences for the different functionalities of <code class="computeroutput"><span class="keyword">operator</span>
+          <span class="special">&amp;=</span></code> are on the Map-row of the
+          tables. Both functionalities fall together for Sets in the function <span class="emphasis"><em><span class="bold"><strong>set intersection</strong></span></em></span>.
+        </p>
+<p>
+          Complexity characteristics for inplace intersection operations are given
+          by the next tables where 
+</p>
+<pre class="programlisting"><span class="identifier">n</span> <span class="special">=</span> <span class="identifier">iterative_size</span><span class="special">(</span><span class="identifier">y</span><span class="special">);</span>
+<span class="identifier">m</span> <span class="special">=</span> <span class="identifier">iterative_size</span><span class="special">(</span><span class="identifier">x</span><span class="special">);</span> <span class="comment">//if P is a container type
+</span></pre>
+<p>
+        </p>
+<div class="table">
+<a name="id1209670"></a><p class="title"><b>Table&#160;1.35.&#160;Time Complexity for inplace intersection on element
+        containers</b></p>
+<div class="table-contents"><table class="table" summary="Time Complexity for inplace intersection on element
+        containers">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+                <span class="keyword">operator</span> <span class="special">&amp;=</span>
+                <span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">y</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">P</span><span class="special">&amp;</span>
+                <span class="identifier">x</span><span class="special">)</span></code>
+              </p>
+              </th>
+<th>
+              <p>
+                domain<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                domain<br> mapping<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                std::set
+              </p>
+              </th>
+<th>
+              <p>
+                icl::map
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code> </a>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(m log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/map.html" title="Class template map">icl::map</a></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(m log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(m log n)</em></span>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="id1209911"></a><p class="title"><b>Table&#160;1.36.&#160;Time Complexity for inplace intersection
+        on interval containers</b></p>
+<div class="table-contents"><table class="table" summary="Time Complexity for inplace intersection
+        on interval containers">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+                <span class="keyword">operator</span> <span class="special">&amp;=</span>
+                <span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">y</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">P</span><span class="special">&amp;</span>
+                <span class="identifier">x</span><span class="special">)</span></code>
+              </p>
+              </th>
+<th>
+              <p>
+                domain<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                domain<br> mapping<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> mapping<br> type
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> sets
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> maps
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                interval_sets
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(m log(n+m))</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                interval_maps
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(m log(n+m))</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(m log(n+m))</em></span>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section boost_icl_function_reference_intersection_infix_operators" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.intersection.infix_operators"></a><a class="link" href="intersection.html#boost_icl.function_reference.intersection.infix_operators" title="Infix operators">Infix
+        operators</a>
+</h4></div></div></div>
+<p>
+          For the <span class="bold"><strong>icl's</strong></span> infix intersection the following
+          overloads are available:
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">// overload tables for             element containers:     interval containers:
+</span><span class="identifier">T</span> <span class="keyword">operator</span> <span class="special">&amp;</span> <span class="special">(</span><span class="identifier">T</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>         <span class="special">&amp;</span>  <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">b</span> <span class="identifier">s</span> <span class="identifier">m</span>            <span class="special">&amp;</span>  <span class="special">|</span> <span class="identifier">e</span>  <span class="identifier">i</span>  <span class="identifier">b</span>  <span class="identifier">p</span>  <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+<span class="identifier">T</span> <span class="keyword">operator</span> <span class="special">&amp;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="identifier">T</span><span class="special">)</span>         <span class="special">---+--------</span>            <span class="special">---+---------------------------</span>
+                                   <span class="identifier">e</span>  <span class="special">|</span>     <span class="identifier">s</span> <span class="identifier">m</span>            <span class="identifier">e</span>  <span class="special">|</span>             <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                   <span class="identifier">b</span>  <span class="special">|</span>       <span class="identifier">m</span>            <span class="identifier">i</span>  <span class="special">|</span>    <span class="identifier">i</span>        <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                   <span class="identifier">s</span>  <span class="special">|</span> <span class="identifier">s</span>   <span class="identifier">s</span> <span class="identifier">m</span>            <span class="identifier">b</span>  <span class="special">|</span>                      <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                   <span class="identifier">m</span>  <span class="special">|</span> <span class="identifier">m</span> <span class="identifier">m</span> <span class="identifier">m</span> <span class="identifier">m</span>            <span class="identifier">p</span>  <span class="special">|</span>                      <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                                           <span class="identifier">S1</span> <span class="special">|</span> <span class="identifier">S1</span> <span class="identifier">S1</span>       <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                                           <span class="identifier">S2</span> <span class="special">|</span> <span class="identifier">S2</span> <span class="identifier">S2</span>       <span class="identifier">S2</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                                           <span class="identifier">S3</span> <span class="special">|</span> <span class="identifier">S3</span> <span class="identifier">S3</span>       <span class="identifier">S3</span> <span class="identifier">S3</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                                           <span class="identifier">M1</span> <span class="special">|</span> <span class="identifier">M1</span> <span class="identifier">M1</span> <span class="identifier">M1</span> <span class="identifier">M1</span> <span class="identifier">M1</span> <span class="identifier">M1</span> <span class="identifier">M1</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                                           <span class="identifier">M3</span> <span class="special">|</span> <span class="identifier">M3</span> <span class="identifier">M3</span> <span class="identifier">M3</span> <span class="identifier">M3</span> <span class="identifier">M3</span> <span class="identifier">M3</span> <span class="identifier">M3</span> <span class="identifier">M3</span> <span class="identifier">M3</span>
+</pre>
+<p>
+        </p>
+<p>
+          To resolve ambiguities among interval containers the <span class="emphasis"><em><span class="bold"><strong>finer</strong></span></em></span> container type is chosen as result
+          type.
+        </p>
+<p>
+          Again, we can split up the overload tables of <code class="computeroutput"><span class="keyword">operator</span>
+          <span class="special">&amp;</span></code> in a part describing the
+          <span class="emphasis"><em>*generalized intersection</em></span> on interval containers and
+          a second part defining the <span class="emphasis"><em>*selection by key object</em></span>
+          functionality.
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">/* (Generalized) intersection */</span>   <span class="special">&amp;</span>  <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">b</span> <span class="identifier">s</span> <span class="identifier">m</span>            <span class="special">&amp;</span>  <span class="special">|</span> <span class="identifier">e</span>  <span class="identifier">i</span>  <span class="identifier">b</span>  <span class="identifier">p</span>  <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                   <span class="special">---+--------</span>            <span class="special">---+---------------------------</span>
+                                   <span class="identifier">e</span>  <span class="special">|</span>     <span class="identifier">s</span>              <span class="identifier">e</span>  <span class="special">|</span>             <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span>      
+                                   <span class="identifier">b</span>  <span class="special">|</span>       <span class="identifier">m</span>            <span class="identifier">i</span>  <span class="special">|</span>    <span class="identifier">i</span>        <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span>      
+                                   <span class="identifier">s</span>  <span class="special">|</span> <span class="identifier">s</span>   <span class="identifier">s</span>              <span class="identifier">b</span>  <span class="special">|</span>                      <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                   <span class="identifier">m</span>  <span class="special">|</span>   <span class="identifier">m</span>   <span class="identifier">m</span>            <span class="identifier">p</span>  <span class="special">|</span>                      <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                                           <span class="identifier">S1</span> <span class="special">|</span> <span class="identifier">S1</span> <span class="identifier">S1</span>       <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span>      
+                                                           <span class="identifier">S2</span> <span class="special">|</span> <span class="identifier">S2</span> <span class="identifier">S2</span>       <span class="identifier">S2</span> <span class="identifier">S2</span> <span class="identifier">S3</span>      
+                                                           <span class="identifier">S3</span> <span class="special">|</span> <span class="identifier">S3</span> <span class="identifier">S3</span>       <span class="identifier">S3</span> <span class="identifier">S3</span> <span class="identifier">S3</span>      
+                                                           <span class="identifier">M1</span> <span class="special">|</span>       <span class="identifier">M1</span> <span class="identifier">M1</span>          <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                                           <span class="identifier">M3</span> <span class="special">|</span>       <span class="identifier">M3</span> <span class="identifier">M3</span>          <span class="identifier">M3</span> <span class="identifier">M3</span>
+</pre>
+<p>
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">/* Selection by key objects */</span>     <span class="special">&amp;</span>  <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">b</span> <span class="identifier">s</span> <span class="identifier">m</span>            <span class="special">&amp;</span>  <span class="special">|</span> <span class="identifier">e</span>  <span class="identifier">i</span>  <span class="identifier">b</span>  <span class="identifier">p</span>  <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                   <span class="special">---+--------</span>            <span class="special">---+---------------------------</span>
+                                   <span class="identifier">e</span>  <span class="special">|</span>     <span class="identifier">s</span> <span class="identifier">m</span>            <span class="identifier">e</span>  <span class="special">|</span>             <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                   <span class="identifier">b</span>  <span class="special">|</span>                    <span class="identifier">i</span>  <span class="special">|</span>    <span class="identifier">i</span>        <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                   <span class="identifier">s</span>  <span class="special">|</span> <span class="identifier">s</span>   <span class="identifier">s</span> <span class="identifier">m</span>            <span class="identifier">b</span>  <span class="special">|</span>                           
+                                   <span class="identifier">m</span>  <span class="special">|</span> <span class="identifier">m</span>   <span class="identifier">m</span>              <span class="identifier">p</span>  <span class="special">|</span>                           
+                                                           <span class="identifier">S1</span> <span class="special">|</span> <span class="identifier">S1</span> <span class="identifier">S1</span>       <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                                           <span class="identifier">S2</span> <span class="special">|</span> <span class="identifier">S2</span> <span class="identifier">S2</span>       <span class="identifier">S2</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                                           <span class="identifier">S3</span> <span class="special">|</span> <span class="identifier">S3</span> <span class="identifier">S3</span>       <span class="identifier">S3</span> <span class="identifier">S3</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>
+                                                           <span class="identifier">M1</span> <span class="special">|</span> <span class="identifier">M1</span> <span class="identifier">M1</span>       <span class="identifier">M1</span> <span class="identifier">M1</span> <span class="identifier">M1</span>      
+                                                           <span class="identifier">M3</span> <span class="special">|</span> <span class="identifier">M3</span> <span class="identifier">M3</span>       <span class="identifier">M3</span> <span class="identifier">M3</span> <span class="identifier">M3</span>      
+</pre>
+<p>
+        </p>
+</div>
+<div class="section boost_icl_function_reference_intersection_intersection_tester" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.intersection.intersection_tester"></a><a class="link" href="intersection.html#boost_icl.function_reference.intersection.intersection_tester" title="Intersection tester">Intersection
+        tester</a>
+</h4></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Tester
+                </p>
+                </th>
+<th>
+                <p>
+                  Desctription
+                </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">intersects</span><span class="special">(</span><span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;</span>
+                  <span class="identifier">left</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">right</span><span class="special">)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  Tests, if <code class="computeroutput"><span class="identifier">left</span></code>
+                  and <code class="computeroutput"><span class="identifier">right</span></code> intersect.
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">disjoint</span><span class="special">(</span><span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;</span>
+                  <span class="identifier">left</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">right</span><span class="special">)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  Tests, if <code class="computeroutput"><span class="identifier">left</span></code>
+                  and <code class="computeroutput"><span class="identifier">right</span></code> are disjoint.
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">intersects</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">)</span>
+                  <span class="special">==</span> <span class="special">!</span><span class="identifier">disjoint</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">)</span></code>
+                </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="keyword">bool</span> <span class="identifier">intersects</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>      <span class="identifier">T</span><span class="special">\</span><span class="identifier">P</span><span class="special">|</span> <span class="identifier">e</span> <span class="identifier">b</span> <span class="identifier">s</span> <span class="identifier">m</span>      <span class="identifier">T</span><span class="special">\</span><span class="identifier">P</span><span class="special">|</span> <span class="identifier">e</span> <span class="identifier">i</span> <span class="identifier">b</span> <span class="identifier">p</span> <span class="identifier">S</span> <span class="identifier">M</span> 
+<span class="keyword">bool</span>   <span class="identifier">disjoint</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>      <span class="special">---+--------</span>      <span class="special">---+------------</span>
+                                          <span class="identifier">s</span> <span class="special">|</span> <span class="number">1</span>   <span class="number">1</span>         <span class="identifier">S</span> <span class="special">|</span> <span class="number">1</span> <span class="number">1</span>     <span class="number">1</span>  
+                                          <span class="identifier">m</span> <span class="special">|</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span>       <span class="identifier">M</span> <span class="special">|</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span> <span class="number">1</span>
+</pre>
+<p>
+        </p>
+</div>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>See also . . .</strong></span></em></span>
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr><td>
+              <p>
+                <a class="link" href="symmetric_difference.html" title="Symmetric Difference"><span class="emphasis"><em><span class="bold"><strong>Symmetric difference</strong></span></em></span></a>
+              </p>
+              </td></tr>
+<tr><td>
+              <p>
+                <a class="link" href="subtraction.html" title="Subtraction"><span class="emphasis"><em><span class="bold"><strong>Subtraction</strong></span></em></span></a>
+              </p>
+              </td></tr>
+<tr><td>
+              <p>
+                <a class="link" href="addition.html" title="Addition"><span class="emphasis"><em><span class="bold"><strong>Addition</strong></span></em></span></a>
+              </p>
+              </td></tr>
+</tbody>
+</table></div>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>Back to section . . .</strong></span></em></span>
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr><td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#function_synopsis_table"><span class="emphasis"><em><span class="bold"><strong>Function
+                Synopsis</strong></span></em></span></a>
+              </p>
+              </td></tr>
+<tr><td>
+              <p>
+                <a class="link" href="../interface.html" title="Interface"><span class="emphasis"><em><span class="bold"><strong>Interface</strong></span></em></span></a>
+              </p>
+              </td></tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="erasure.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function_reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="symmetric_difference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

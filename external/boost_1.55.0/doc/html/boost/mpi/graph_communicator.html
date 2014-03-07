@@ -1,0 +1,164 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class graph_communicator</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../mpi/reference.html#header.boost.mpi.graph_communicator_hpp" title="Header &lt;boost/mpi/graph_communicator.hpp&gt;">
+<link rel="prev" href="../../BOOST_MPI_CHECK_RESULT.html" title="Macro BOOST_MPI_CHECK_RESULT">
+<link rel="next" href="get_idp94938600.html" title="Function get">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../BOOST_MPI_CHECK_RESULT.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.graph_communicator_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="get_idp94938600.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.mpi.graph_communicator"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class graph_communicator</span></h2>
+<p>boost::mpi::graph_communicator &#8212; An MPI communicator with a graph topology. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../mpi/reference.html#header.boost.mpi.graph_communicator_hpp" title="Header &lt;boost/mpi/graph_communicator.hpp&gt;">boost/mpi/graph_communicator.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="graph_communicator.html" title="Class graph_communicator">graph_communicator</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpi</span><span class="special">::</span><span class="identifier">communicator</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="graph_communicator.html#boost.mpi.graph_communicatorconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="graph_communicator.html#idp94967384-bb"><span class="identifier">graph_communicator</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MPI_Comm</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">comm_create_kind</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Graph<span class="special">&gt;</span> 
+    <span class="keyword">explicit</span> <a class="link" href="graph_communicator.html#idp94961528-bb"><span class="identifier">graph_communicator</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="communicator.html" title="Class communicator">communicator</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Graph</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Graph<span class="special">,</span> <span class="keyword">typename</span> RankMap<span class="special">&gt;</span> 
+    <span class="keyword">explicit</span> <a class="link" href="graph_communicator.html#idp94957224-bb"><span class="identifier">graph_communicator</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="communicator.html" title="Class communicator">communicator</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Graph</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">RankMap</span><span class="special">,</span> 
+                                <span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp161710520"></a><h2>Description</h2>
+<p>A <code class="computeroutput"><a class="link" href="graph_communicator.html" title="Class graph_communicator">graph_communicator</a></code> is a communicator whose topology is expressed as a graph. Graph communicators have the same functionality as (intra)communicators, but also allow one to query the relationships among processes. Those relationships are expressed via a graph, using the interface defined by the Boost Graph Library. The <code class="computeroutput"><a class="link" href="graph_communicator.html" title="Class graph_communicator">graph_communicator</a></code> class meets the requirements of the BGL Graph, Incidence Graph, Adjacency Graph, Vertex List Graph, and Edge List Graph concepts. </p>
+<div class="refsect2">
+<a name="idp161712552"></a><h3>
+<a name="boost.mpi.graph_communicatorconstruct-copy-destruct"></a><code class="computeroutput">graph_communicator</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp94967384-bb"></a><span class="identifier">graph_communicator</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MPI_Comm</span> <span class="special">&amp;</span> comm<span class="special">,</span> <span class="identifier">comm_create_kind</span> kind<span class="special">)</span><span class="special">;</span></pre>
+<p>Build a new Boost.MPI graph communicator based on the MPI communicator <code class="computeroutput">comm</code> with graph topology.</p>
+<p><code class="computeroutput">comm</code> may be any valid MPI communicator. If <code class="computeroutput">comm</code> is MPI_COMM_NULL, an empty communicator (that cannot be used for communication) is created and the <code class="computeroutput">kind</code> parameter is ignored. Otherwise, the <code class="computeroutput">kind</code> parameter determines how the Boost.MPI communicator will be related to <code class="computeroutput">comm:</code> </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>If <code class="computeroutput">kind</code> is <code class="computeroutput">comm_duplicate</code>, duplicate <code class="computeroutput">comm</code> to create a new communicator. This new communicator will be freed when the Boost.MPI communicator (and all copies of it) is destroyed. This option is only permitted if the underlying MPI implementation supports MPI 2.0; duplication of intercommunicators is not available in MPI 1.x.</p></li>
+<li class="listitem"><p>If <code class="computeroutput">kind</code> is <code class="computeroutput">comm_take_ownership</code>, take ownership of <code class="computeroutput">comm</code>. It will be freed automatically when all of the Boost.MPI communicators go out of scope.</p></li>
+<li class="listitem"><p>If <code class="computeroutput">kind</code> is <code class="computeroutput">comm_attach</code>, this Boost.MPI communicator will reference the existing MPI communicator <code class="computeroutput">comm</code> but will not free <code class="computeroutput">comm</code> when the Boost.MPI communicator goes out of scope. This option should only be used when the communicator is managed by the user. </p></li>
+</ul></div>
+<p>
+</p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Graph<span class="special">&gt;</span> 
+  <span class="keyword">explicit</span> <a name="idp94961528-bb"></a><span class="identifier">graph_communicator</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="communicator.html" title="Class communicator">communicator</a> <span class="special">&amp;</span> comm<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Graph</span> <span class="special">&amp;</span> graph<span class="special">,</span> 
+                              <span class="keyword">bool</span> reorder <span class="special">=</span> <span class="keyword">false</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Create a new communicator whose topology is described by the given graph. The indices of the vertices in the graph will be assumed to be the ranks of the processes within the communicator. There may be fewer vertices in the graph than there are processes in the communicator; in this case, the resulting communicator will be a NULL communicator.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">comm</code></span></p></td>
+<td><p>The communicator that the new, graph communicator will be based on.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">graph</code></span></p></td>
+<td><p>Any type that meets the requirements of the Incidence Graph and Vertex List Graph concepts from the Boost Graph Library. This structure of this graph will become the topology of the communicator that is returned.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">reorder</code></span></p></td>
+<td><p>Whether MPI is permitted to re-order the process ranks within the returned communicator, to better optimize communication. If false, the ranks of each process in the returned process will match precisely the rank of that process within the original communicator. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Graph<span class="special">,</span> <span class="keyword">typename</span> RankMap<span class="special">&gt;</span> 
+  <span class="keyword">explicit</span> <a name="idp94957224-bb"></a><span class="identifier">graph_communicator</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="communicator.html" title="Class communicator">communicator</a> <span class="special">&amp;</span> comm<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Graph</span> <span class="special">&amp;</span> graph<span class="special">,</span> 
+                              <span class="identifier">RankMap</span> rank<span class="special">,</span> <span class="keyword">bool</span> reorder <span class="special">=</span> <span class="keyword">false</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Create a new communicator whose topology is described by the given graph. The rank map (<code class="computeroutput">rank</code>) gives the mapping from vertices in the graph to ranks within the communicator. There may be fewer vertices in the graph than there are processes in the communicator; in this case, the resulting communicator will be a NULL communicator.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">comm</code></span></p></td>
+<td><p>The communicator that the new, graph communicator will be based on. The ranks in <code class="computeroutput">rank</code> refer to the processes in this communicator.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">graph</code></span></p></td>
+<td><p>Any type that meets the requirements of the Incidence Graph and Vertex List Graph concepts from the Boost Graph Library. This structure of this graph will become the topology of the communicator that is returned.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">rank</code></span></p></td>
+<td><p>This map translates vertices in the <code class="computeroutput">graph</code> into ranks within the current communicator. It must be a Readable Property Map (see the Boost Property Map library) whose key type is the vertex type of the <code class="computeroutput">graph</code> and whose value type is <code class="computeroutput">int</code>.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">reorder</code></span></p></td>
+<td><p>Whether MPI is permitted to re-order the process ranks within the returned communicator, to better optimize communication. If false, the ranks of each process in the returned process will match precisely the rank of that process within the original communicator. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../BOOST_MPI_CHECK_RESULT.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.graph_communicator_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="get_idp94938600.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

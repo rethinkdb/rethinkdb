@@ -1,0 +1,288 @@
+<?xml version="1.0" ?>
+
+<!--
+Copyright (c) 2002-2003 The Trustees of Indiana University.
+                        All rights reserved.
+Copyright (c) 2000-2001 University of Notre Dame. All rights reserved.
+
+   Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at
+   http://www.boost.org/LICENSE_1_0.txt) -->
+
+<operator-list>
+  <!-- This list is from Pohl's book, and needs to be checked for accuracy -->
+
+  <op name="postincrement">
+    <apply priority="100"><arg num="1"/>++</apply> <!-- No assoc - always use parentheses -->
+    <impl position="method">operator++(int)</impl>
+  </op>
+
+  <op name="postdecrement">
+    <apply priority="100"><arg num="1"/>--</apply>
+    <impl position="method">operator--(int)</impl>
+  </op>
+
+  <op name="apply-function">
+    <apply priority="100"><name/>(<arg-list start="1" priority="30"/>)</apply>
+    <impl position="freestanding"><name/>(<arg-list/>)</impl>
+  </op>
+
+  <op name="apply-method">
+    <apply priority="100" assoc="1"><arg num="1"/>.<name/>(<arg-list start="2" priority="30"/>)</apply>
+    <impl position="method"><name/>(<arg-list/>)</impl>
+  </op>
+
+  <op name="pointer-apply-method">
+    <apply priority="100" assoc="1"><arg num="1"/>-&gt;<name/>(<arg-list start="2" priority="30"/>)</apply>
+    <impl>Error</impl>
+  </op>
+
+  <op name="apply-funcobj">
+    <apply priority="100" assoc="1"><arg num="1"/>(<arg-list start="2" priority="30"/>)</apply>
+    <impl position="method">operator()(<arg-list/>)</impl>
+  </op>
+
+  <op name="construct">
+    <apply priority="100"><arg num="1"/>(<arg-list start="2" priority="30"/>)</apply>
+    <impl position="method"><self/>(<arg-list/>)</impl>
+  </op>
+
+  <op name="subscript">
+    <apply priority="100" assoc="1"><arg num="1"/>[<arg num="2" priority="0"/>]</apply>
+    <impl position="method">operator[](<arg-list/>)</impl>
+  </op>
+
+  <op name="class-member">
+    <apply priority="100" assoc="1"><arg num="1"/>.<name/></apply>
+    <impl>Error</impl>
+  </op>
+
+  <op name="pointer-member">
+    <!-- Note: non-testable constraint -->
+    <apply priority="100"><arg num="1" assoc="1"/>-&gt;{member-name} (return type is pointer-to-object type)</apply>
+    <impl>operator-&gt;(<arg-list/>)</impl>
+  </op>
+
+  <op name="preincrement">
+    <apply priority="95">++<arg num="1"/></apply>
+    <impl position="method">operator++(<arg-list/>)</impl>
+  </op>
+
+  <op name="predecrement">
+    <apply priority="95">--<arg num="1"/></apply>
+    <impl position="method">operator--(<arg-list/>)</impl>
+  </op>
+
+  <op name="logical-not">
+    <apply priority="95" assoc="1">!<arg num="1"/></apply>
+    <impl position="method">operator!(<arg-list/>)</impl>
+  </op>
+
+  <op name="bitwise-not">
+    <apply priority="95" assoc="1">~<arg num="1"/></apply>
+    <impl position="method">operator~(<arg-list/>)</impl>
+  </op>
+
+  <op name="address-of">
+    <apply priority="95">&amp;<arg num="1"/></apply>
+    <impl position="method">operator&amp;(<arg-list/>)</impl>
+  </op>
+
+  <op name="dereference">
+    <apply priority="95" assoc="1">*<arg num="1"/></apply>
+    <impl position="method">operator*(<arg-list/>)</impl>
+  </op>
+
+  <op name="unary-plus">
+    <apply priority="95">+<arg num="1"/></apply>
+    <impl position="method">operator+(<arg-list/>)</impl>
+  </op>
+
+  <op name="unary-minus">
+    <apply priority="95">-<arg num="1"/></apply>
+    <impl position="method">operator-(<arg-list/>)</impl>
+  </op>
+
+  <op name="class-member-ptr">
+    <apply priority="90" assoc="1"><arg num="1"/>.*<arg num="2"/></apply>
+    <impl>Error</impl>
+  </op>
+
+  <op name="pointer-member-ptr">
+    <apply priority="90" assoc="1"><arg num="1"/>-&gt;*<arg num="2"/></apply>
+    <impl position="method">operator-&gt;*(<arg-list/>)</impl>
+  </op>
+
+  <op name="multiply">
+    <apply priority="90" assoc="1"><arg num="1"/> * <arg num="2"/></apply>
+    <impl position="freestanding">operator * (<arg-list/>)</impl>
+  </op>
+
+  <op name="divide">
+    <apply priority="90" assoc="1"><arg num="1"/> / <arg num="2"/></apply>
+    <impl position="freestanding">operator / (<arg-list/>)</impl>
+  </op>
+
+  <op name="modulus">
+    <apply priority="90" assoc="1"><arg num="1"/> % <arg num="2"/></apply>
+    <impl position="freestanding">operator % (<arg-list/>)</impl>
+  </op>
+
+  <op name="add">
+    <apply priority="85" assoc="1"><arg num="1"/> + <arg num="2"/></apply>
+    <impl position="freestanding">operator + (<arg-list/>)</impl>
+  </op>
+
+  <op name="subtract">
+    <apply priority="85" assoc="1"><arg num="1"/> - <arg num="2"/></apply>
+    <impl position="freestanding">operator - (<arg-list/>)</impl>
+  </op>
+
+  <op name="shift-left">
+    <apply priority="80" assoc="1"><arg num="1"/> &lt;&lt; <arg num="2"/></apply>
+    <impl position="freestanding">operator &lt;&lt; (<arg-list/>)</impl>
+  </op>
+
+  <op name="shift-right">
+    <apply priority="80" assoc="1"><arg num="1"/> &gt;&gt; <arg num="2"/></apply>
+    <impl position="freestanding">operator &gt;&gt; (<arg-list/>)</impl>
+  </op>
+
+  <op name="less-than">
+    <apply priority="75"><arg num="1"/> &lt; <arg num="2"/></apply>
+    <impl position="freestanding">operator &lt; (<arg-list/>)</impl>
+  </op>
+
+  <op name="greater-than">
+    <apply priority="75"><arg num="1"/> &gt; <arg num="2"/></apply>
+    <impl position="freestanding">operator &gt; (<arg-list/>)</impl>
+  </op>
+
+  <op name="less-than-or-equal">
+    <apply priority="75"><arg num="1"/> &lt;= <arg num="2"/></apply>
+    <impl position="freestanding">operator &lt;= (<arg-list/>)</impl>
+  </op>
+
+  <op name="greater-than-or-equal">
+    <apply priority="75"><arg num="1"/> &gt;= <arg num="2"/></apply>
+    <impl position="freestanding">operator &gt;= (<arg-list/>)</impl>
+  </op>
+
+  <op name="equal-to">
+    <apply priority="70"><arg num="1"/> == <arg num="2"/></apply>
+    <impl position="freestanding">operator == (<arg-list/>)</impl>
+  </op>
+
+  <op name="not-equal-to">
+    <apply priority="70"><arg num="1"/> != <arg num="2"/></apply>
+    <impl position="freestanding">operator != (<arg-list/>)</impl>
+  </op>
+
+  <op name="bitwise-and">
+    <apply priority="65" assoc="1"><arg num="1"/> &amp; <arg num="2"/></apply>
+    <impl position="freestanding">operator &amp; (<arg-list/>)</impl>
+  </op>
+
+  <op name="bitwise-or">
+    <apply priority="60" assoc="1"><arg num="1"/> | <arg num="2"/></apply>
+    <impl position="freestanding">operator | (<arg-list/>)</impl>
+  </op>
+
+  <op name="bitwise-xor">
+    <apply priority="55" assoc="1"><arg num="1"/> ^ <arg num="2"/></apply>
+    <impl position="freestanding">operator ^ (<arg-list/>)</impl>
+  </op>
+
+  <op name="logical-and">
+    <apply priority="50" assoc="1"><arg num="1"/> &amp;&amp; <arg num="2"/></apply>
+    <impl position="freestanding">operator &amp;&amp; (<arg-list/>)</impl>
+  </op>
+
+  <op name="logical-or">
+    <apply priority="45" assoc="1"><arg num="1"/> || <arg num="2"/></apply>
+    <impl position="freestanding">operator || (<arg-list/>)</impl>
+  </op>
+
+  <op name="conditional">
+    <apply priority="40" assoc="3"><arg num="1"/> ? <arg num="2"/> : <arg num="3"/></apply>
+    <impl>Error</impl>
+  </op>
+
+  <op name="assign">
+    <apply priority="35" assoc="2"><arg num="1"/> = <arg num="2"/></apply>
+    <impl position="method">operator = (<arg-list/>)</impl>
+  </op>
+
+  <op name="add-assign">
+    <apply priority="35" assoc="2"><arg num="1"/> += <arg num="2"/></apply>
+    <impl position="method">operator += (<arg-list/>)</impl>
+  </op>
+
+  <op name="subtract-assign">
+    <apply priority="35" assoc="2"><arg num="1"/> -= <arg num="2"/></apply>
+    <impl position="method">operator -= (<arg-list/>)</impl>
+  </op>
+
+  <op name="multiply-assign">
+    <apply priority="35" assoc="2"><arg num="1"/> *= <arg num="2"/></apply>
+    <impl position="method">operator *= (<arg-list/>)</impl>
+  </op>
+
+  <op name="divide-assign">
+    <apply priority="35" assoc="2"><arg num="1"/> /= <arg num="2"/></apply>
+    <impl position="method">operator /= (<arg-list/>)</impl>
+  </op>
+
+  <op name="modulus-assign">
+    <apply priority="35" assoc="2"><arg num="1"/> %= <arg num="2"/></apply>
+    <impl position="method">operator %= (<arg-list/>)</impl>
+  </op>
+
+  <op name="shift-left-assign">
+    <apply priority="35" assoc="2"><arg num="1"/> &lt;&lt;= <arg num="2"/></apply>
+    <impl position="method">operator &lt;&lt;= (<arg-list/>)</impl>
+  </op>
+
+  <op name="shift-right-assign">
+    <apply priority="35" assoc="2"><arg num="1"/> &gt;&gt;= <arg num="2"/></apply>
+    <impl position="method">operator &gt;&gt;= (<arg-list/>)</impl>
+  </op>
+
+  <op name="bitwise-and-assign">
+    <apply priority="35" assoc="2"><arg num="1"/> &amp;= <arg num="2"/></apply>
+    <impl position="method">operator &amp;= (<arg-list/>)</impl>
+  </op>
+
+  <op name="bitwise-or-assign">
+    <apply priority="35" assoc="2"><arg num="1"/> |= <arg num="2"/></apply>
+    <impl position="method">operator |= (<arg-list/>)</impl>
+  </op>
+
+  <op name="bitwise-xor-assign">
+    <apply priority="35" assoc="2"><arg num="1"/> ^= <arg num="2"/></apply>
+    <impl position="method">operator ^= (<arg-list/>)</impl>
+  </op>
+
+  <op name="comma">
+    <apply priority="20"><arg num="1"/>, <arg num="2"/></apply>
+    <impl position="freestanding">operator , (<arg-list/>)</impl>
+  </op>
+
+  <op name="function-pointer">
+    <apply><arg num="1"/> (*)(<arg-list start="2" priority="30"/>)</apply>
+    <impl>Error</impl>
+  </op>
+
+  <op name="functorize-operator">
+    <!-- Note: non-testable constraint -->
+    <apply>functorization of operator <name/> on arguments {<arg-list start="1"/>}</apply>
+    <impl>Error</impl>
+  </op>
+
+  <op name="functorize-function">
+    <!-- Note: non-testable constraint -->
+    <apply>functorization of function <name/> on arguments {<arg-list start="1"/>}</apply>
+    <impl>Error</impl>
+  </op>
+
+</operator-list>

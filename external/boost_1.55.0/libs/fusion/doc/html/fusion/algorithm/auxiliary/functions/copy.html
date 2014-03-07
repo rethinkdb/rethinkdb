@@ -1,0 +1,170 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>copy</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../functions.html" title="Functions">
+<link rel="prev" href="../functions.html" title="Functions">
+<link rel="next" href="../../iteration.html" title="Iteration">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../functions.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../functions.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../iteration.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="fusion.algorithm.auxiliary.functions.copy"></a><a class="link" href="copy.html" title="copy">copy</a>
+</h5></div></div></div>
+<h6>
+<a name="fusion.algorithm.auxiliary.functions.copy.h0"></a>
+            <span class="phrase"><a name="fusion.algorithm.auxiliary.functions.copy.description"></a></span><a class="link" href="copy.html#fusion.algorithm.auxiliary.functions.copy.description">Description</a>
+          </h6>
+<p>
+            Copy a sequence <code class="computeroutput"><span class="identifier">src</span></code> to
+            a sequence <code class="computeroutput"><span class="identifier">dest</span></code>. It is
+            also used to convert sequence into other.
+          </p>
+<h6>
+<a name="fusion.algorithm.auxiliary.functions.copy.h1"></a>
+            <span class="phrase"><a name="fusion.algorithm.auxiliary.functions.copy.synopsis"></a></span><a class="link" href="copy.html#fusion.algorithm.auxiliary.functions.copy.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Seq1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Seq2</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">copy</span><span class="special">(</span><span class="identifier">Seq1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">src</span><span class="special">,</span> <span class="identifier">Seq2</span><span class="special">&amp;</span> <span class="identifier">dest</span><span class="special">);</span>
+</pre>
+<div class="table">
+<a name="fusion.algorithm.auxiliary.functions.copy.t0"></a><p class="title"><b>Table&#160;1.37.&#160;Parameters</b></p>
+<div class="table-contents"><table class="table" summary="Parameters">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Requirement
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">src</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of <a class="link" href="../../../sequence/concepts/forward_sequence.html" title="Forward Sequence">Forward
+                      Sequence</a>, all elements contained in the <code class="computeroutput"><span class="identifier">src</span></code> sequence should be convertible
+                      into the element contained in the <code class="computeroutput"><span class="identifier">dest</span></code>
+                      sequence.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Operation's argument
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">dest</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of <a class="link" href="../../../sequence/concepts/forward_sequence.html" title="Forward Sequence">Forward
+                      Sequence</a>, <code class="computeroutput"><span class="identifier">e2</span>
+                      <span class="special">=</span> <span class="identifier">e1</span></code>
+                      is valid expression for each pair of elements <code class="computeroutput"><span class="identifier">e1</span></code> of <code class="computeroutput"><span class="identifier">src</span></code>
+                      and <code class="computeroutput"><span class="identifier">e2</span></code> of
+                      <code class="computeroutput"><span class="identifier">dest</span></code>.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Operation's argument
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h6>
+<a name="fusion.algorithm.auxiliary.functions.copy.h2"></a>
+            <span class="phrase"><a name="fusion.algorithm.auxiliary.functions.copy.expression_semantics"></a></span><a class="link" href="copy.html#fusion.algorithm.auxiliary.functions.copy.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<pre class="programlisting"><a class="link" href="copy.html" title="copy"><code class="computeroutput"><span class="identifier">copy</span></code></a><span class="special">(</span><span class="identifier">src</span><span class="special">,</span> <span class="identifier">dest</span><span class="special">);</span>
+</pre>
+<p>
+            <span class="bold"><strong>Return type</strong></span>: <code class="computeroutput"><span class="keyword">void</span></code>
+          </p>
+<p>
+            <span class="bold"><strong>Semantics</strong></span>: <code class="computeroutput"><span class="identifier">e2</span>
+            <span class="special">=</span> <span class="identifier">e1</span></code>
+            for each element <code class="computeroutput"><span class="identifier">e1</span></code> in
+            <code class="computeroutput"><span class="identifier">src</span></code> and <code class="computeroutput"><span class="identifier">e2</span></code> in <code class="computeroutput"><span class="identifier">dest</span></code>.
+          </p>
+<h6>
+<a name="fusion.algorithm.auxiliary.functions.copy.h3"></a>
+            <span class="phrase"><a name="fusion.algorithm.auxiliary.functions.copy.complexity"></a></span><a class="link" href="copy.html#fusion.algorithm.auxiliary.functions.copy.complexity">Complexity</a>
+          </h6>
+<p>
+            Linear, exactly <code class="computeroutput"><a class="link" href="../../../sequence/intrinsic/metafunctions/size.html" title="size"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">size</span></code></a><span class="special">&lt;</span><span class="identifier">Sequence</span><span class="special">&gt;::</span><span class="identifier">value</span></code>.
+          </p>
+<h6>
+<a name="fusion.algorithm.auxiliary.functions.copy.h4"></a>
+            <span class="phrase"><a name="fusion.algorithm.auxiliary.functions.copy.header"></a></span><a class="link" href="copy.html#fusion.algorithm.auxiliary.functions.copy.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">auxiliary</span><span class="special">/</span><span class="identifier">copy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">copy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="fusion.algorithm.auxiliary.functions.copy.h5"></a>
+            <span class="phrase"><a name="fusion.algorithm.auxiliary.functions.copy.example"></a></span><a class="link" href="copy.html#fusion.algorithm.auxiliary.functions.copy.example">Example</a>
+          </h6>
+<pre class="programlisting"><a class="link" href="../../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">vec</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">);</span>
+<a class="link" href="../../../container/list.html" title="list"><code class="computeroutput"><span class="identifier">list</span></code></a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">ls</span><span class="special">;</span>
+<a class="link" href="copy.html" title="copy"><code class="computeroutput"><span class="identifier">copy</span></code></a><span class="special">(</span><span class="identifier">vec</span><span class="special">,</span> <span class="identifier">ls</span><span class="special">);</span>
+<span class="identifier">assert</span><span class="special">(</span><span class="identifier">ls</span> <span class="special">==</span> <a class="link" href="../../../container/generation/functions/make_list.html" title="make_list"><code class="computeroutput"><span class="identifier">make_list</span></code></a><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">));</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../functions.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../functions.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../iteration.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

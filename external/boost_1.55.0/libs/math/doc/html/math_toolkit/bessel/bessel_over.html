@@ -1,0 +1,211 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Bessel Function Overview</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Math Toolkit">
+<link rel="up" href="../bessel.html" title="Bessel Functions">
+<link rel="prev" href="../bessel.html" title="Bessel Functions">
+<link rel="next" href="bessel_first.html" title="Bessel Functions of the First and Second Kinds">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../bessel.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bessel.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bessel_first.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="math_toolkit.bessel.bessel_over"></a><a class="link" href="bessel_over.html" title="Bessel Function Overview">Bessel Function Overview</a>
+</h3></div></div></div>
+<h5>
+<a name="math_toolkit.bessel.bessel_over.h0"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.bessel_over.ordinary_bessel_functions"></a></span><a class="link" href="bessel_over.html#math_toolkit.bessel.bessel_over.ordinary_bessel_functions">Ordinary
+        Bessel Functions</a>
+      </h5>
+<p>
+        Bessel Functions are solutions to Bessel's ordinary differential equation:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel1.png"></span>
+      </p>
+<p>
+        where &#957; &#160; is the <span class="emphasis"><em>order</em></span> of the equation, and may be an arbitrary
+        real or complex number, although integer orders are the most common occurrence.
+      </p>
+<p>
+        This library supports either integer or real orders.
+      </p>
+<p>
+        Since this is a second order differential equation, there must be two linearly
+        independent solutions, the first of these is denoted J<sub>v</sub> &#160;
+and known as a Bessel
+        function of the first kind:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel2.png"></span>
+      </p>
+<p>
+        This function is implemented in this library as <a class="link" href="bessel_first.html" title="Bessel Functions of the First and Second Kinds">cyl_bessel_j</a>.
+      </p>
+<p>
+        The second solution is denoted either Y<sub>v</sub> &#160; or N<sub>v</sub> &#160;
+and is known as either a Bessel
+        Function of the second kind, or as a Neumann function:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel3.png"></span>
+      </p>
+<p>
+        This function is implemented in this library as <a class="link" href="bessel_first.html" title="Bessel Functions of the First and Second Kinds">cyl_neumann</a>.
+      </p>
+<p>
+        The Bessel functions satisfy the recurrence relations:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel4.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel5.png"></span>
+      </p>
+<p>
+        Have the derivatives:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel6.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel7.png"></span>
+      </p>
+<p>
+        Have the Wronskian relation:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel8.png"></span>
+      </p>
+<p>
+        and the reflection formulae:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel9.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel10.png"></span>
+      </p>
+<h5>
+<a name="math_toolkit.bessel.bessel_over.h1"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.bessel_over.modified_bessel_functions"></a></span><a class="link" href="bessel_over.html#math_toolkit.bessel.bessel_over.modified_bessel_functions">Modified
+        Bessel Functions</a>
+      </h5>
+<p>
+        The Bessel functions are valid for complex argument <span class="emphasis"><em>x</em></span>,
+        and an important special case is the situation where <span class="emphasis"><em>x</em></span>
+        is purely imaginary: giving a real valued result. In this case the functions
+        are the two linearly independent solutions to the modified Bessel equation:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel1.png"></span>
+      </p>
+<p>
+        The solutions are known as the modified Bessel functions of the first and
+        second kind (or occasionally as the hyperbolic Bessel functions of the first
+        and second kind). They are denoted I<sub>v</sub> &#160; and K<sub>v</sub> &#160;
+respectively:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel2.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel3.png"></span>
+      </p>
+<p>
+        These functions are implemented in this library as <a class="link" href="mbessel.html" title="Modified Bessel Functions of the First and Second Kinds">cyl_bessel_i</a>
+        and <a class="link" href="mbessel.html" title="Modified Bessel Functions of the First and Second Kinds">cyl_bessel_k</a> respectively.
+      </p>
+<p>
+        The modified Bessel functions satisfy the recurrence relations:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel4.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel5.png"></span>
+      </p>
+<p>
+        Have the derivatives:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel6.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel7.png"></span>
+      </p>
+<p>
+        Have the Wronskian relation:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel8.png"></span>
+      </p>
+<p>
+        and the reflection formulae:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel9.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel10.png"></span>
+      </p>
+<h5>
+<a name="math_toolkit.bessel.bessel_over.h2"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.bessel_over.spherical_bessel_functions"></a></span><a class="link" href="bessel_over.html#math_toolkit.bessel.bessel_over.spherical_bessel_functions">Spherical
+        Bessel Functions</a>
+      </h5>
+<p>
+        When solving the Helmholtz equation in spherical coordinates by separation
+        of variables, the radial equation has the form:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/sbessel1.png"></span>
+      </p>
+<p>
+        The two linearly independent solutions to this equation are called the spherical
+        Bessel functions j<sub>n</sub> &#160; and y<sub>n</sub> &#160;, and are related to the ordinary Bessel functions
+        J<sub>n</sub> &#160; and Y<sub>n</sub> &#160; by:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/sbessel2.png"></span>
+      </p>
+<p>
+        The spherical Bessel function of the second kind y<sub>n</sub> &#160;
+is also known as the spherical
+        Neumann function n<sub>n</sub>.
+      </p>
+<p>
+        These functions are implemented in this library as <a class="link" href="sph_bessel.html" title="Spherical Bessel Functions of the First and Second Kinds">sph_bessel</a>
+        and <a class="link" href="sph_bessel.html" title="Spherical Bessel Functions of the First and Second Kinds">sph_neumann</a>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../bessel.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bessel.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bessel_first.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

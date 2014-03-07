@@ -1,0 +1,33 @@
+
+digraph SCC {
+ node[shape=circle];
+ ratio=1.2
+ a
+ b
+ c
+ d
+ e
+ f
+ g
+ h
+ i
+ j
+
+ a -> b
+ a -> f
+ a -> h
+ b -> c 
+ b -> a
+ c -> d 
+ c -> b
+ d -> e
+ e -> d
+ f -> g
+ g -> f
+ g -> d
+ h -> i
+ i -> h
+ i -> j
+ i -> e
+ i -> c
+}

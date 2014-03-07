@@ -1,0 +1,90 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Why my application fails to link with Boost.Log? What's the fuss about library namespaces?</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../rationale.html" title="Rationale and FAQ">
+<link rel="prev" href="why_crash_on_term.html" title="Why my application crashes on process termination when file sinks are used?">
+<link rel="next" href="msvc_link_fails_lnk1123.html" title="Why MSVC 2010 fails to link the library with error LNK1123: failure during conversion to COFF: file invalid or corrupt?">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="why_crash_on_term.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="msvc_link_fails_lnk1123.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.rationale.namespace_mangling"></a><a class="link" href="namespace_mangling.html" title="Why my application fails to link with Boost.Log? What's the fuss about library namespaces?">Why my application
+      fails to link with Boost.Log? What's the fuss about library namespaces?</a>
+</h3></div></div></div>
+<p>
+        The library declares the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">log</span></code> namespace
+        which should be used in client code to access library components. However,
+        internally the library uses another nested namespace for actual implementation.
+        The namespace name is configuration and platform dependent, it can change
+        between different releases of the library, so it should never be used in
+        the user side code. This is done in order to make the library configuration
+        synchronized with the application as much as possible and eliminate problems
+        caused by configuration mismatch.
+      </p>
+<p>
+        Most of the time users won't even notice the existence of this internal namespace,
+        but it often appears in compiler and linker errors and in some cases it is
+        useful to know how to decode its name. Currently, the namespace name is composed
+        from the following elements:
+      </p>
+<pre class="programlisting">&lt;version&gt;&lt;linkage&gt;_&lt;threading&gt;_&lt;system&gt;</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">version</span><span class="special">&gt;</span></code> component describes the library major
+            version. It is currently <code class="computeroutput"><span class="identifier">v2</span></code>.
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">linkage</span><span class="special">&gt;</span></code> component tells whether the library
+            is linked statically or dynamically. It is <code class="computeroutput"><span class="identifier">s</span></code>
+            if the library is linked statically and empty otherwise.
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">threading</span><span class="special">&gt;</span></code> component is <code class="computeroutput"><span class="identifier">st</span></code>
+            for single-threaded builds and <code class="computeroutput"><span class="identifier">mt</span></code>
+            for multi-threaded ones.
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">system</span><span class="special">&gt;</span></code> component describes the underlying
+            OS API used by the library. Currently, it is only specified for multi-threaded
+            builds. Depending on the target platform and configuration, it can be
+            <code class="computeroutput"><span class="identifier">posix</span></code>, <code class="computeroutput"><span class="identifier">nt5</span></code> or <code class="computeroutput"><span class="identifier">nt6</span></code>.
+          </li>
+</ul></div>
+<p>
+        As a couple quick examples, <code class="computeroutput"><span class="identifier">v2s_st</span></code>
+        corresponds to v2 static single-threaded build of the library and <code class="computeroutput"><span class="identifier">v2_mt_posix</span></code> - to v2 dynamic multi-threaded
+        build for POSIX system API.
+      </p>
+<p>
+        Namespace mangling may lead to linking errors if the application is misconfigured.
+        One common mistake is to build dynamic version of the library and not define
+        <code class="computeroutput"><span class="identifier">BOOST_LOG_DYN_LINK</span></code> or <code class="computeroutput"><span class="identifier">BOOST_ALL_DYN_LINK</span></code> when building the application,
+        so that the library assumes static linking by default. Whenever such linking
+        errors appear, one can decode the namespace name in the missing symbols and
+        the exported symbols of Boost.Log library and adjust library or application
+        <a class="link" href="../installation/config.html" title="Configuring and building the library">configuration</a> accordingly.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="why_crash_on_term.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="msvc_link_fails_lnk1123.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

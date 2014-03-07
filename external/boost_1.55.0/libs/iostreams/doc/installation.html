@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Installation</TITLE>
+    <LINK REL="stylesheet" HREF="../../../boost.css">
+    <LINK REL="stylesheet" HREF="theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Installation</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+    <DT><A HREF="#overview">Overview</A>
+    <DT><A HREF="#ide">Building with an IDE or Makefile</A>
+    <DT><A HREF="#bjam">Building with Boost.Build</A>
+</DL>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    Most of Boost.Iostreams can be used simply by including appropriate headers. This is true, for instance, of all the <A HREF="quick_reference.html#core">core components</A> &#8212; including <A HREF="guide/generic_streams.html#stream"><CODE>stream</CODE></A>, <A HREF="guide/generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A>, <A HREF="classes/filtering_stream.html"><CODE>filtering_stream</CODE></A> and <A HREF="classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A> &#8212; and of about two thirds of the concrete <A HREF="quick_reference.html#filters">Filters</A> and <A HREF="quick_reference.html#devices">Devices</A>. 
+    Some components, however, are implemented in <CODE>.cpp</CODE> files; in addition, the <A HREF="classes/regex_filter.html">regular expression filters</A> depend on <A HREF="../../regex/index.html" TARGET="_top">Boost.Regex</A>, and the compressions filters rely on the third-party libraries zlib (<A CLASS='bib_ref' NAME='gailly' HREF="bibliography.html#gailly"'>[Gailly]</A>) and libbz2 (<A CLASS='bib_ref' NAME='seward' HREF="bibliography.html#seward"'>[Seward]</A>). To obatin zlib and libbz2, see the instructions <A HREF="classes/zlib.html#installation">here</A> and <A HREF="classes/bzip2.html#installation">here</A>.
+</P>
+
+<P>
+    The components which are implemented in <CODE>.cpp</CODE> or which rely on external libraries can be built in two ways: by adding the appropriate <CODE>.cpp</CODE> files to your IDE project or makefile, or by using <A HREF="../../../tools/build/index.html" TARGET="_top">Boost.Build</A>.
+</P>
+
+<A NAME="ide"></A>
+<H2>Building with an IDE or Makefile</H2>
+
+<P>
+    The following table shows which headers contain components defined in <CODE>.cpp</CODE> files. If your application includes one of these headers, you'll need to add the corresponding <CODE>.cpp</CODE> files to you IDE project or makefile, and to define the preprocessor symbol <CODE>BOOST_IOSTREAMS_NO_LIB</CODE>. In addition, if the <CODE>.cpp</CODE> file depends on an external library, you'll have to build it from the source or link to a pre-built binary.
+</P>
+
+<TABLE CELLPADDING=5 BORDER=1>
+<TR><TH>Header</TH><TH>Source File</TH><TH WIDTH=200>External Library</TH></TR>
+<TR>
+    <TD><A HREF="../../../boost/iostreams/device/file_descriptor.hpp"><CODE>boost/iostreams/device/file_descriptor.hpp</CODE></A></TD> <TD><A HREF="../../../libs/iostreams/src/file_descriptor.cpp"><CODE>file_descriptor.cpp</CODE></A></TD>
+    <TD STYLE='padding-left:1.5em'>-</TD>
+</TR>
+<TR>
+    <TD><A HREF="../../../boost/iostreams/device/mapped_file.hpp"><CODE>boost/iostreams/device/mapped_file.hpp</CODE></A></TD> 
+    <TD><A HREF="../../../libs/iostreams/src/mapped_file.cpp"><CODE>mapped_file.cpp</CODE></A></TD>
+    <TD STYLE='padding-left:1.5em'>-</TD>
+</TR>
+<TR>
+    <TD><A HREF="../../../boost/iostreams/filter/bzip2.hpp"><CODE>boost/iostreams/filter/bzip2.hpp</CODE></A></TD> 
+    <TD><A HREF="../../../libs/iostreams/src/bzip2.cpp"><CODE>bzip2.cpp</CODE></A></TD>
+    <TD STYLE='padding-left:1.5em'>libbz2</TD>
+</TR>
+<TR>
+    <TD><A HREF="../../../boost/iostreams/filter/gzip.hpp"><CODE>boost/iostreams/filter/gzip.hpp</CODE></A></TD> 
+    <TD><A HREF="../../../libs/iostreams/src/gzip.cpp"><CODE>gzip.cpp</CODE></A>, <A HREF="../../../libs/iostreams/src/zlib.cpp"><CODE>zlib.cpp</CODE></A></TD>
+    <TD STYLE='padding-left:1.5em'>zlib</TD>
+</TR>
+<TR>
+    <TD><A HREF="../../../boost/iostreams/filter/regex.hpp"><CODE>boost/iostreams/filter/regex.hpp</CODE></A></TD> 
+    <TD STYLE='padding-left:1em'>-</TD>
+    <TD STYLE='padding-left:1.5em'><A HREF="../../regex/index.html" TARGET="_top">Boost.Regex</A></TD>
+</TR>
+<TR>
+    <TD><A HREF="../../../boost/iostreams/filter/zlib.hpp"><CODE>boost/iostreams/filter/zlib.hpp</CODE></A></TD> 
+    <TD><A HREF="../../../libs/iostreams/src/zlib.cpp"><CODE>zlib.cpp</CODE></A></TD>
+    <TD STYLE='padding-left:1.5em'>zlib</TD>
+</TR>
+</TABLE>
+
+<A NAME="bjam"></A>
+<H2>Building with Boost.Build</H2>
+
+<P>
+    To build with <A HREF="../../../tools/build/v2/index.html" TARGET="_top">Boost.Build</A>, run <I>bjam</I> from the directory <CODE>libs/iostreams/build</CODE>, or from the Boost root directory. If you want to use the compression filters, you may need to set several Boost.Build variables indicating where the source files or pre-built binaries are located. These variables are summarized in the following table.
+</P>
+<P>
+    On most UNIX systems, it should not be necessary to set any of these variables, since the zlib and libbz2 headers and binaries are already installed in locations where they will be found automatically. On Windows, the zlib and bzip2 filters are disabled by default; to enable support for these filters, you will need to set variables indicating the location of the source files, if building from the source, or the location of the headers and binaries, if using pre-built binaries.
+</P>
+
+<TABLE STYLE="margin-bottom:1em" BORDER="1" CELLPADDING="6" CELLSPACING="1">
+<TR>
+    <TH>Variable</TH><TH>Interpretation</TH><TH>Default</TH>
+</TR>
+<TR>
+    <TD><CODE>NO_COMPRESSION</CODE></TD>
+    <TD>
+        Disable support for compression filters.
+    </TD>
+    <TD ALIGN="center">-</TD>
+</TR>
+<TR>
+    <TD><CODE>NO_BZIP2</CODE></TD>
+    <TD>
+        Disable support for the bzip2 filters.
+    </TD>
+    <TD><CODE>1</CODE> (Windows)</TD>
+</TR>
+<TR>
+    <TD><CODE>BZIP2_BINARY</CODE></TD>
+    <TD>
+        Name of the libbz2 binary, not including the file extension, or the "lib" prefix on UNIX. On Windows, if linking with a dynamic build of libbz2, specify the name of the import library.
+    </TD>
+    <TD><CODE>bz2</CODE>&nbsp;(UNIX)<BR><CODE>libbz2</CODE>&nbsp;(Windows)</TD>
+</TR>
+<TR>
+    <TD><CODE>BZIP2_INCLUDE</CODE></TD>
+    <TD>
+        Path to the libbz2 headers, if they're not in a location where they'll be found automatically.
+    </TD>
+    <TD><CODE>BZIP2_SOURCE</CODE></TD>
+</TR>
+<TR>
+    <TD><CODE>BZIP2_LIBPATH</CODE></TD>
+    <TD>
+        Path to the libbz2 binary, if it's not in a location where it will be found automatically. On Windows, if linking with a dynamic build of libbz2, specify the path to the import library.
+    </TD>
+    <TD ALIGN="center">-</TD>
+</TR>
+<TR>
+    <TD><CODE>BZIP2_SOURCE</CODE></TD>
+    <TD>
+        Path to the libbz2 source files, if they're not in a location where they'll be found automatically.
+    </TD>
+    <TD ALIGN="center">-</TD>
+</TR>
+<TR>
+    <TD><CODE>NO_ZLIB</CODE></TD>
+    <TD>
+        Disable support for the zlib filters.
+    </TD>
+    <TD><CODE>1</CODE> (Windows)</TD>
+</TR>
+<TR>
+    <TD><CODE>ZLIB_BINARY</CODE></TD>
+    <TD>
+        Name of the zlib binary, not including the file extension, or the "lib" prefix on UNIX. On Windows, if linking with a dynamic build of zlib, specify the name of the import library.
+    </TD>
+    <TD><CODE>z</CODE>&nbsp;(UNIX)<BR><CODE>zdll</CODE>&nbsp;(Windows)</TD>
+</TR>
+<TR>
+    <TD><CODE>ZLIB_INCLUDE</CODE></TD>
+    <TD>
+        Path to the zlib headers, if they're not in a location where they'll be found automatically.
+    </TD>
+    <TD><CODE>ZLIB_SOURCE</CODE></TD>
+</TR>
+<TR>
+    <TD><CODE>ZLIB_LIBPATH</CODE></TD>
+    <TD>
+        Path to the zlib binary, if it's not in a location where it will be found automatically. On Windows, if linking with a dynamic build of zlib, specify the path to the import library.
+    </TD>
+    <TD ALIGN="center">-</TD>
+</TR>
+<TR>
+    <TD><CODE>ZLIB_SOURCE</CODE></TD>
+    <TD>
+        Path to the zlib source files, if they're not in a location where they'll be found automatically.
+    </TD>
+    <TD ALIGN="center">-</TD>
+</TR>
+</TABLE>
+
+<!-- End Footnotes -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

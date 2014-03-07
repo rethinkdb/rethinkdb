@@ -1,0 +1,311 @@
+[library Boost.Log
+    [quickbook 1.5]
+    [version v2]
+    [authors [Semashev, Andrey]]
+    [copyright 2007 - 2013 Andrey Semashev]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt]).
+    ]
+    [id log]
+    [source-mode c++]
+    [last-revision $Date: 2013-09-29 14:04:06 -0700 (Sun, 29 Sep 2013) $]
+]
+
+[c++]
+
+[/ Links to external resources /]
+[def __boost_config__ [@http://www.boost.org/doc/libs/release/libs/config/doc/html/index.html Boost.Config]]
+[def __boost_smart_ptr__ [@http://www.boost.org/doc/libs/release/libs/smart_ptr/smart_ptr.htm Boost.SmartPtr]]
+[def __boost_function__ [@http://www.boost.org/doc/libs/release/doc/html/function.html Boost.Function]]
+[def __boost_filesystem__ [@http://www.boost.org/doc/libs/release/libs/filesystem/doc/index.htm Boost.Filesystem]]
+[def __boost_system__ [@http://www.boost.org/doc/libs/release/libs/system/doc/index.html Boost.System]]
+[def __boost_date_time__ [@http://www.boost.org/doc/libs/release/doc/html/date_time.html Boost.DateTime]]
+[def __boost_date_time_format__ [@http://www.boost.org/doc/libs/release/doc/html/date_time/date_time_io.html#date_time.format_flags Boost.DateTime]]
+[def __boost_thread__ [@http://www.boost.org/doc/libs/release/doc/html/thread.html Boost.Thread]]
+[def __boost_regex__ [@http://www.boost.org/doc/libs/release/libs/regex/index.html Boost.Regex]]
+[def __boost_xpressive__ [@http://www.boost.org/doc/libs/release/doc/html/xpressive.html Boost.Xpressive]]
+[def __boost_parameter__ [@http://www.boost.org/doc/libs/release/libs/parameter/doc/html/index.html Boost.Parameter]]
+[def __boost_format__ [@http://www.boost.org/doc/libs/release/libs/format/index.html Boost.Format]]
+[def __boost_preprocessor__ [@http://www.boost.org/doc/libs/release/libs/preprocessor/doc/index.html Boost.Preprocessor]]
+[def __boost_bind__ [@http://www.boost.org/doc/libs/release/libs/bind/bind.html Boost.Bind]]
+[def __boost_lambda__ [@http://www.boost.org/doc/libs/release/doc/html/lambda.html Boost.Lambda]]
+[def __boost_phoenix__ [@http://www.boost.org/doc/libs/release/libs/phoenix/doc/html/index.html Boost.Phoenix]]
+[def __boost_spirit__ [@http://www.boost.org/doc/libs/release/libs/spirit/classic/index.html Boost.Spirit]]
+[def __boost_spirit2__ [@http://www.boost.org/doc/libs/release/libs/spirit/doc/html/index.html Boost.Spirit2]]
+[def __boost_optional__ [@http://www.boost.org/doc/libs/release/libs/optional/index.html Boost.Optional]]
+[def __boost_variant__ [@http://www.boost.org/doc/libs/release/doc/html/variant.html Boost.Variant]]
+[def __boost_intrusive__ [@http://www.boost.org/doc/libs/release/doc/html/intrusive.html Boost.Intrusive]]
+[def __boost_iostreams__ [@http://www.boost.org/doc/libs/release/libs/iostreams/doc/index.html Boost.IOStreams]]
+[def __boost_mpl__ [@http://www.boost.org/doc/libs/release/libs/mpl/doc/index.html Boost.MPL]]
+[def __boost_exception__ [@http://www.boost.org/doc/libs/release/libs/exception/doc/boost-exception.html Boost.Exception]]
+[def __boost_scope_exit__ [@http://www.boost.org/doc/libs/release/libs/scope_exit/doc/html/index.html Boost.ScopeExit]]
+[def __boost_any__ [@http://www.boost.org/doc/libs/release/doc/html/any.html Boost.Any]]
+[def __boost_property_tree__ [@http://www.boost.org/doc/libs/release/doc/html/property_tree.html Boost.PropertyTree]]
+[def __boost_asio__ [@http://www.boost.org/doc/libs/release/doc/html/boost_asio.html Boost.ASIO]]
+[def __boost_move__ [@http://www.boost.org/doc/libs/release/doc/html/move.html Boost.Move]]
+[def __boost_locale__ [@http://www.boost.org/doc/libs/release/libs/locale/doc/html/index.html Boost.Locale]]
+[def __boost_utility__ [@http://www.boost.org/doc/libs/release/libs/utility/utility.htm Boost.Utility]]
+[def __boost_quickbook__ [@http://www.boost.org/doc/libs/release/doc/html/quickbook.html Boost.Quickbook]]
+
+[template ticket[key] '''<ulink url="https://svn.boost.org/trac/boost/ticket/'''[key]'''">#'''[key]'''</ulink>''']
+
+[/ Auto-generated macros that refer to Reference sections /]
+[include top_level_reference.qbk]
+[include core_reference.qbk]
+[include attributes_reference.qbk]
+[include expressions_reference.qbk]
+[include sources_reference.qbk]
+[include sinks_reference.qbk]
+[include utility_reference.qbk]
+[include support_reference.qbk]
+
+[/ Code samples /]
+[import ../example/doc/tutorial_trivial.cpp]
+[import ../example/doc/tutorial_trivial_flt.cpp]
+[import ../example/doc/tutorial_file.cpp]
+[import ../example/doc/tutorial_file_manual.cpp]
+[import ../example/doc/tutorial_fmt_stream.cpp]
+[import ../example/doc/tutorial_fmt_stream_manual.cpp]
+[import ../example/doc/tutorial_fmt_format.cpp]
+[import ../example/doc/tutorial_fmt_string.cpp]
+[import ../example/doc/tutorial_fmt_custom.cpp]
+[import ../example/doc/tutorial_logging.cpp]
+[import ../example/doc/tutorial_attributes.cpp]
+[import ../example/doc/tutorial_filtering.cpp]
+[import ../example/doc/core_record.cpp]
+[import ../example/doc/core_core_manual.cpp]
+[import ../example/doc/attr_value_visitation.cpp]
+[import ../example/doc/attr_value_extraction.cpp]
+[import ../example/doc/expressions_attr_fmt_tag.cpp]
+[import ../example/doc/expressions_keyword_fmt_tag.cpp]
+[import ../example/doc/expressions_has_attr_stat_accum.cpp]
+[import ../example/doc/expressions_channel_severity_filter.cpp]
+[import ../example/doc/sources_net_connection.cpp]
+[import ../example/doc/sources_net_connection_chan.cpp]
+[import ../example/doc/sources_net_connection_dynamic_chan.cpp]
+[import ../example/doc/sources_severity.cpp]
+[import ../example/doc/sources_severity_channel.cpp]
+[import ../example/doc/exception_handling.cpp]
+[import ../example/doc/sinks_unlocked.cpp]
+[import ../example/doc/sinks_sync.cpp]
+[import ../example/doc/sinks_async.cpp]
+[import ../example/doc/sinks_async_bounded.cpp]
+[import ../example/doc/sinks_async_ordering.cpp]
+[import ../example/doc/sinks_ostream.cpp]
+[import ../example/doc/sinks_file.cpp]
+[import ../example/doc/sinks_xml_file.cpp]
+[import ../example/doc/sinks_multifile.cpp]
+[import ../example/doc/sinks_syslog.cpp]
+[import ../example/doc/sinks_debugger.cpp]
+[import ../example/doc/sinks_simple_event_log.cpp]
+[import ../example/doc/util_static_type_disp.cpp]
+[import ../example/doc/util_dynamic_type_disp.cpp]
+[import ../example/doc/util_manip_to_log.cpp]
+[import ../example/doc/extension_stat_collector.cpp]
+[import ../example/doc/extension_app_launcher.cpp]
+[import ../example/doc/extension_record_tagger.cpp]
+[import ../example/doc/extension_system_uptime_attr.cpp]
+[import ../example/doc/extension_formatter_parser.cpp]
+[import ../example/doc/extension_filter_parser.cpp]
+[import ../example/doc/extension_filter_parser_custom_rel.cpp]
+[import ../example/doc/extension_stat_collector_settings.cpp]
+[import ../example/wide_char/main.cpp]
+[import ../example/event_log/main.cpp]
+
+[section:moti Motivation]
+
+Today applications grow rapidly, becoming complicated and difficult to test and debug. Most of the time applications run on a remote site, leaving the developer little chance to monitor their execution and figure out the reasons for their failure, once it should happen. Moreover, even the local debugging may become problematic if the application behavior depends heavily on asynchronous side events, such as a device feedback or another process activity.
+
+This is where logging can help. The application stores all essential information about its execution to a log, and when something goes wrong this information can be used to analyze the program behavior and make the necessary corrections. There are other very useful applications of logging, such as gathering statistical information and highlighting events (i.e. indicating that some situation has occurred or that the application is experiencing some problems). These tasks have proved to be vital for many real-world industrial applications.
+
+This library aims to make logging significantly easier for the application developer. It provides a wide range of out-of-the-box tools along with public interfaces for extending the library. The main goals of the library are:
+
+* Simplicity. A small example code snippet should be enough to get the feel of the library and be ready to use its basic features.
+* Extensibility. A user should be able to extend functionality of the library for collecting and storing information into logs.
+* Performance. The library should have as little performance impact on the user's application as possible.
+
+[endsect]
+
+[section:how_to_read How to read the documentation]
+
+The documentation is oriented to both new and experienced library users. However, users are expected to be familiar with commonly used Boost components, such as `shared_ptr`, `make_shared` (see __boost_smart_ptr__), and `function` (__boost_function__). Some parts of the documentation will refer to other Boost libraries, as needed.
+
+If this is your first experience with the library, it is recommended to read the [link log.design Design overview] section for a first glance at the library's capabilities and architecture. The [link log.installation Installation] and [link log.tutorial Tutorial] sections will help to get started experimenting with the library. The tutorial gives an overview of the library features with sample code snippets. Some tutorial steps are presented in two forms: simple and advanced. The simple form typically describes the most common and easy way to do the task and it is being recommended to be read by new users. The advanced form usually gives an expanded way to do the same thing but with an in-depth explanation and the ability to do some extra customization. This form may come in handy for more experienced users and should generally be read if the easy way does not satisfy your needs.
+
+Besides the tutorial there is a [link log.detailed Detailed features description] chapter. This part describes other tools provided by the library that were not covered by the tutorial. This chapter is best read on a case by case basis.
+
+Last, but not least, there is a reference which gives the formal description of library components.
+
+To keep the code snippets in this documentation simple, the following namespace aliases are assumed to be defined:
+
+    namespace logging = boost::log;
+    namespace sinks = boost::log::sinks;
+    namespace src = boost::log::sources;
+    namespace expr = boost::log::expressions;
+    namespace attrs = boost::log::attributes;
+    namespace keywords = boost::log::keywords;
+
+[endsect]
+
+[section:installation Installation and compatibility]
+
+[section:supported_compilers Supported compilers and platforms]
+
+The library should build and work with a reasonably compliant compiler. The library was successfully built and tested on the following platforms:
+
+* Windows XP, Windows Vista, Windows 7. MSVC 8.0 SP1, MSVC 9.0 and newer.
+* Linux. GCC 4.5 and newer. Older versions may work too, but it was not tested.
+* Linux. Intel C++ 13.1.0.146 Build 20130121.
+* Linux. Clang 3.2.
+
+The following compilers/platforms are not supported and will likely fail to compile the library:
+
+* C++11 compilers with non-C++11 standard libraries (like Clang with libstdc++ from GCC 4.2). Please, use a C++11 standard library in C++11 mode.
+* MSVC 8.0 (without SP1) and older.
+* GCC 4.0 and older.
+* Borland C++ 5.5.1 (free version). Newer versions might or might not work.
+* Solaris Studio 12.3 and older.
+* Windows 9x, ME, NT4 and older are not supported.
+
+Boost.Log should be compatible with all hardware architectures supported by Boost. However, in case of 32 bit x86 architecture the library requires at least i586 class CPU to run.
+
+[heading Notes for MinGW, Cygwin and Visual Studio Express Edition users]
+
+In order to compile the library with these compilers special preparations are needed. First, in case of MinGW or Cygwin make sure you have installed the latest GCC version. The library will most likely fail to compile with GCC 3.x.
+
+Second, at some point the library will require a Message Compiler tool (`mc.exe`), which is not available in MinGW, Cygwin and some versions of MSVC Express Edition. Typically the library build scripts will automatically detect if message compiler is present on the system and disable Event log related portion of the library if it's not. If Event log support is required and it is not found on the system, you have three options to settle the problem. The recommended solution is to obtain the original `mc.exe`. This tool is available in Windows SDK, which can be downloaded from the Microsoft site freely (for example, [@http://www.microsoft.com/downloads/details.aspx?FamilyID=71deb800-c591-4f97-a900-bea146e4fae1&displaylang=en here]). Also, this tool should be available in Visual Studio 2010 Express Edition. During the compilation, `mc.exe` should be accessible through one of the directories in your `PATH` environment variable.
+
+Another way is to attempt to use the `windmc.exe` tool distributed with MinGW and Cygwin, which is the analogue of the original `mc.exe`. In order to do that you will have to patch Boost.Build files (in particular, the `tools/build/v2/tools/mc.jam` file) as described in [@https://svn.boost.org/trac/boost/ticket/4111 this] ticket. After that you will be able to specify the `mc-compiler=windmc` option to bjam to build the library.
+
+In case if message compiler detection fails for some reason, you can explicitly disable support for event log backend by defining the `BOOST_LOG_WITHOUT_EVENT_LOG` configuration macro when building the library. This will remove the need for the message compiler. See [link log.installation.config this section] for more configuration options.
+
+MinGW users on Windows XP may be affected by the [@http://sourceforge.net/p/mingw-w64/bugs/307/ bug] in msvcrt.dll that is bundled with the operating system. The bug manifests itself as crashes while the library formats log records. This problem is not specific to Boost.Log and may also show in different contexts related to locale and IO-streams management.
+
+[heading Additional notes for Cygwin users]
+
+Cygwin support is very preliminary. The default GCC version available in Cygwin (4.5.3 as of this writing) is unable to compile the library because of compiler errors. You will have to build a newer GCC from sources. Even then some Boost.Log functionality is not available. In particular, the socket-based syslog backend is not supported, as it is based on __boost_asio__, which doesn't compile on this platform. However, the native syslog support is still in place.
+
+[endsect]
+
+[section:config Configuring and building the library]
+
+The library has a separately compiled part which should be built as described in the [@http://www.boost.org/doc/libs/release/more/getting_started/ Getting Started guide]. One thing should be noted, though. If your application consists of more than one module (e.g. an exe and one or several dll's) that use Boost.Log, the library _must_ be built as a shared object. If you have a single executable or a single module that works with Boost.Log, you may build the library as a static library.
+
+The library supports a number of configuration macros:
+
+[table Configuration macros
+    [[Macro name]                               [Effect]]
+    [[`BOOST_LOG_DYN_LINK`]                     [If defined in user code, the library will assume the binary is built as a dynamically loaded library ("dll" or "so"). Otherwise it is assumed that the library is built in static mode. This macro must be either defined or not defined for all translation units of user application that uses logging. This macro can help with auto-linking on platforms that support it.]]
+    [[`BOOST_ALL_DYN_LINK`]                     [Same as `BOOST_LOG_DYN_LINK` but also affects other Boost libraries the same way.]]
+    [[`BOOST_LOG_NO_THREADS`]                   [If defined, disables multithreading support. Affects the compilation of both the library and users' code. The macro is automatically defined if no threading support is detected.]]
+    [[`BOOST_LOG_WITHOUT_CHAR`]                 [If defined, disables support for narrow character logging. Affects the compilation of both the library and users' code.]]
+    [[`BOOST_LOG_WITHOUT_WCHAR_T`]              [If defined, disables support for wide character logging. Affects the compilation of both the library and users' code.]]
+    [[`BOOST_LOG_NO_QUERY_PERFORMANCE_COUNTER`] [This macro is only useful on Windows. It affects the compilation of both the library and users' code. If defined, disables support for the `QueryPerformanceCounter` API in the `timer` attribute. This will result in significantly less accurate time readings. The macro is intended to solve possible problems with earlier revisions of AMD Athlon CPU, described [@http://support.microsoft.com/?scid=kb;en-us;895980 here] and [@http://support.microsoft.com/?id=896256 here]. There are also known chipset hardware failures that may prevent this API from functioning properly (see [@http://support.microsoft.com/kb/274323 here]).]]
+    [[`BOOST_LOG_USE_NATIVE_SYSLOG`]            [Affects only the compilation of the library. If for some reason support for the native SysLog API is not detected automatically, define this macro to forcibly enable it]]
+    [[`BOOST_LOG_WITHOUT_DEFAULT_FACTORIES`]    [Affects only the compilation of the library. If defined, the parsers for settings will be built without any default factories for filters and formatters. The user will have to register all attributes in the library before parsing any filters or formatters from strings. This can substantially reduce the binary size.]]
+    [[`BOOST_LOG_WITHOUT_SETTINGS_PARSERS`]     [Affects only the compilation of the library. If defined, none of the facilities related to the parsers for settings will be built. This can substantially reduce the binary size.]]
+    [[`BOOST_LOG_WITHOUT_DEBUG_OUTPUT`]         [Affects only the compilation of the library. If defined, the support for debugger output on Windows will not be built.]]
+    [[`BOOST_LOG_WITHOUT_EVENT_LOG`]            [Affects only the compilation of the library. If defined, the support for Windows event log will not be built. Defining the macro also makes Message Compiler toolset unnecessary.]]
+    [[`BOOST_LOG_WITHOUT_SYSLOG`]               [Affects only the compilation of the library. If defined, the support for syslog backend will not be built.]]
+    [[`BOOST_LOG_NO_SHORTHAND_NAMES`]           [Affects only the compilation of users' code. If defined, some deprecated shorthand macro names will not be available.]]
+    [[`BOOST_LOG_USE_WINNT6_API`]               [Affects the compilation of both the library and users' code. This macro is Windows-specific. If defined, the library makes use of the Windows NT 6 (Vista, Server 2008) and later APIs to generate more efficient code. This macro will also enable some experimental features of the library. Note, however, that the resulting binary will not run on Windows prior to NT 6. In order to use this feature Platform SDK 6.0 or later is required.]]
+    [[`BOOST_LOG_USE_COMPILER_TLS`]             [Affects only the compilation of the library. This macro enables support for compiler intrinsics for thread-local storage. Defining it may improve performance of Boost.Log if certain usage limitations are acceptable. See below for more comments.]]
+]
+
+You can define configuration macros in the `bjam` command line, like this:
+
+[pre
+    bjam --with-log variant=release define=BOOST_LOG_WITHOUT_EVENT_LOG define=BOOST_LOG_USE_WINNT6_API stage
+]
+
+However, it may be more convenient to define configuration macros in the "boost/config/user.hpp" file in order to automatically define them both for the library and user's projects. If none of the options are specified, the library will try to support the most comprehensive setup, including support for all character types and features available for the target platform.
+
+The logging library uses several other Boost libraries that require building too. These are __boost_filesystem__, __boost_system__, __boost_date_time__ and __boost_thread__. Refer to their documentation for detailed instructions on the building procedure.
+
+One final thing should be added. The library requires run-time type information (RTTI) to be enabled for both the library compilation and user's code compilation. Normally, this won't need anything from you except to verify that RTTI support is not disabled in your project.
+
+[heading Notes about compiler-supplied intrinsics for TLS]
+
+Many widely used compilers support builtin intrinsics for managing thread-local storage, which is used in several parts of the library. This feature is also included in the C++11 standard. Generally, these intrinsics allow for a much more efficient access to the storage than any surrogate implementation, be that __boost_thread__ or even native operating system API. However, this feature has several caveats:
+
+* Some operating systems don't support the use of these intrinsics in case if the TLS is defined in a shared library that is dynamically loaded during the application run time. These systems include Linux and Windows prior to Vista. Windows Vista and later do not have this issue.
+* The TLS may not be reliably accessed from global constructors and destructors. At least MSVC 8.0 on Windows is known to have this problem.
+
+The library provides the `BOOST_LOG_USE_COMPILER_TLS` configuration macro that allows to enable the use of this feature, which will improve the library performance at the cost of these limitations:
+
+* The application executable must be linked with the Boost.Log library. It should not be loaded dynamically during run time.
+* The application must not use logging in global constructors or destructors.
+
+[endsect]
+
+[endsect]
+
+[section:defs Definitions]
+
+Here are definitions of some terms that will be used widely throughout the documentation:
+
+[variablelist
+    [[Log record][A single bundle of information, collected from the user's application, that is a candidate to be put into the log. In a simple case the log record will be represented as a line of text in the log file after being processed by the logging library.]]
+    [[Attribute][An "attribute" is a piece of meta-information that can be used to specialize a log record. In Boost.Log attributes are represented by function objects with a specific interface, which return the actual attribute value when invoked.]]
+    [[Attribute value][Attribute values are the actual data acquired from attributes. This data is attached to the specific log record and processed by the library. Values can have different types (integers, strings and more complex, including user defined types). Some examples of attribute values: current time stamp value, file name, line number, current scope name, etc.. Attribute values are enveloped in a type erasing wrapper, so the actual type of the attribute is not visible in the interface. The actual (erased) type of the value is sometimes called the stored type.]]
+    [[(Attribute) value visitation][A way of processing the attribute value. This approach involves a function object (a visitor) which is applied to the attribute value. The visitor should know the stored type of the attribute value in order to process it.]]
+    [[(Attribute) value extraction][A way of processing the attribute value when the caller attempts to obtain a reference to the stored value. The caller should know the stored type of the attribute value in order to be able to extract it.]]
+    [[Log sink][A target, to which all log records are fed after being collected from the user's application. The sink defines where and how the log records are going to be stored or processed.]]
+    [[Log source][An entry point for the user's application to put log records to. In a simple case it is an object (logger) which maintains a set of attributes that will be used to form a log record upon the user's request. However, one can surely create a source that would emit log records on some side events (for example, by intercepting and parsing console output of another application).]]
+    [[Log filter][A predicate that takes a log record and tells whether this record should be passed through or discarded. The predicate typically forms its decision based on the attribute values attached to the record.]]
+    [[Log formatter][A function object that generates the final textual output from a log record. Some sinks, e.g. a binary logging sink, may not need it, although almost any text-based sink would use a formatter to compose its output.]]
+    [[Logging core][The global entity that maintains connections between sources and sinks and applies filters to records. It is mainly used when the logging library is initialized.]]
+    [[i18n][Internationalization. The ability to manipulate wide characters.]]
+    [[TLS][Thread-local storage. The concept of having a variable that has independent values for each thread that attempts to access it.]]
+    [[RTTI][Run-time type information. This is the C++ language support data structures required for `dynamic_cast` and `typeid` operators to function properly.]]
+]
+
+[endsect]
+
+[include:log design.qbk]
+
+[include:log tutorial.qbk]
+
+[section:detailed Detailed features description]
+
+[include:log core.qbk]
+[include:log sources.qbk]
+[include:log sink_frontends.qbk]
+[include:log sink_backends.qbk]
+[include:log expressions.qbk]
+[include:log attributes.qbk]
+[include:log utilities.qbk]
+
+[endsect]
+
+[include:log extension.qbk]
+[include:log rationale.qbk]
+
+[section:reference Reference]
+
+[xinclude top_level_reference.xml]
+[xinclude core_reference.xml]
+[xinclude attributes_reference.xml]
+[xinclude expressions_reference.xml]
+[xinclude sources_reference.xml]
+[xinclude sinks_reference.xml]
+[xinclude utility_reference.xml]
+[xinclude support_reference.xml]
+
+[endsect]
+
+[include:log changelog.qbk]
+[include:log todo.qbk]
+
+[section:acknowledgments Acknowledgments]
+
+* Vladimir Prus managed the library review in Boost and actually reviewed it in the process.
+* Luca Rigini wrote the initial implementation of the NT event log sink and made a lot of suggestions on how to improve the library with regard to writing user-defined sinks.
+* Jean-Daniel Michaud, Michael Lacher and all others who took part in the discussion of the requirements to the library on [@http://www.crystalclearsoftware.com/cgi-bin/boost_wiki/wiki.pl?Boost.Logging Wiki].
+* John Torjo, Gennadiy Rozental and others for their discussion on John's logging library on the Boost developers list. It helped a lot to learn the requirements and possible solutions for the library.
+* All authors of the great Boost libraries that were involved in this library (notably, __boost_smart_ptr__, __boost_thread__, __boost_date_time__, __boost_filesystem__, __boost_intrusive__, __boost_spirit2__ and others) and __boost_quickbook__ authors for a simple yet powerful documenting tool.
+* All the reviewers and the users who made suggestions and offered their feedback on the library. Most notably, Steven Watanabe for his in-depth studying the docs and the code, with a lot of fruitful comments on both.
+
+[endsect]

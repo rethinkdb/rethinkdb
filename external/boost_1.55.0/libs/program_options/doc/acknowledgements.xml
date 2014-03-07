@@ -1,0 +1,85 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+     "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd"
+[
+    <!ENTITY % entities SYSTEM "program_options.ent" >
+    %entities;
+]>
+<section>
+  <title>Acknowledgements</title>
+
+  <para>I'm very gratefull to all the people who helped with the development, 
+    by discussion, fixes, and as users. It was pleasant
+    to see all that involvement, which made the library much better than it
+    would be otherwise.
+  </para>
+
+  <para>In the early stages, the library was affected by discussions with 
+    Gennadiy Rozental, William Kempf and Alexander Okhotin.
+  </para>
+
+  <para>Hartmut Kaiser was the first person to try the library on his project
+    and send a number of suggestions and fixes.    
+  </para>
+
+  <para>The formal review lead to numerous comments and enhancements. Pavol
+  Droba helped with the option description semantic. Gennadiy Rozental has
+  criticised many aspects of the library which caused various simplifications.
+  Pavel Vozenilek did carefull review of the implementation. A number of
+  comments were made by:
+    <itemizedlist>
+      <listitem><para>David Abrahams</para></listitem>
+      <listitem><para>Neal D. Becker</para></listitem>
+      <listitem><para>Misha Bergal</para></listitem>
+      <listitem><para>James Curran</para></listitem>
+      <listitem><para>Carl Daniel</para></listitem>
+      <listitem><para>Beman Dawes</para></listitem>
+      <listitem><para>Tanton Gibbs</para></listitem>
+      <listitem><para>Holger Grund</para></listitem>
+      <listitem><para>Hartmut Kaiser</para></listitem>
+      <listitem><para>Petr Kocmid</para></listitem>
+      <listitem><para>Baptiste Lepilleur</para></listitem>
+      <listitem><para>Marcelo E. Magallon</para></listitem>
+      <listitem><para>Chuck Messenger</para></listitem>
+      <listitem><para>John Torjo</para></listitem>
+      <listitem><para>Matthias Troyer</para></listitem>
+    </itemizedlist>
+  </para>
+
+  <para>Doug Gregor and Reece Dunn helped to resolve the issues with Boostbook
+    version of the documentation.
+  </para>
+
+  <para>Even after review, a number of people have helped with further development:
+    <itemizedlist>
+      <listitem><para>Rob Lievaart</para></listitem>
+      <listitem><para>Thorsten Ottosen</para></listitem>
+      <listitem><para>Joseph Wu</para></listitem>
+      <listitem><para>Ferdinand Prantl</para></listitem>
+      <listitem><para>Miro Jurisic</para></listitem>
+      <listitem><para>John Maddock</para></listitem>
+      <listitem><para>Janusz Piwowarski</para></listitem>
+      <listitem><para>Charles Brockman</para></listitem>
+      <listitem><para>Jonathan Wakely</para></listitem>
+
+
+    </itemizedlist>
+  </para>
+
+
+
+
+
+
+
+
+</section>
+
+<!--
+     Local Variables:
+     mode: xml
+     sgml-indent-data: t     
+     sgml-parent-document: ("program_options.xml" "section")
+     sgml-set-face: t
+     End:
+-->

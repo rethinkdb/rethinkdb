@@ -1,0 +1,1029 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>New Iterator Concepts</title>
+<meta name="author" content="David Abrahams, Jeremy Siek, Thomas Witt" />
+<meta name="organization" content="Boost Consulting, Indiana University Open Systems Lab, Zephyr Associates, Inc." />
+<meta name="date" content="2006-09-11" />
+<meta name="copyright" content="Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2003." />
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="new-iterator-concepts">
+<h1 class="title">New Iterator Concepts</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>David Abrahams, Jeremy Siek, Thomas Witt</td></tr>
+<tr><th class="docinfo-name">Contact:</th>
+<td><a class="first reference external" href="mailto:dave&#64;boost-consulting.com">dave&#64;boost-consulting.com</a>, <a class="reference external" href="mailto:jsiek&#64;osl.iu.edu">jsiek&#64;osl.iu.edu</a>, <a class="last reference external" href="mailto:witt&#64;styleadvisor.com">witt&#64;styleadvisor.com</a></td></tr>
+<tr><th class="docinfo-name">Organization:</th>
+<td><a class="first reference external" href="http://www.boost-consulting.com">Boost Consulting</a>, Indiana University <a class="reference external" href="http://www.osl.iu.edu">Open Systems
+Lab</a>, <a class="last reference external" href="http://www.styleadvisor.com">Zephyr Associates, Inc.</a></td></tr>
+<tr><th class="docinfo-name">Date:</th>
+<td>2006-09-11</td></tr>
+<tr class="field"><th class="docinfo-name">Number:</th><td class="field-body">This is a revised version of <a class="reference external" href="http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1550.html">n1550</a>=03-0133, which was
+accepted for Technical Report 1 by the C++ standard
+committee's library working group. This proposal is a
+revision of paper <a class="reference external" href="http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/papers/2001/n1297.html">n1297</a>, <a class="reference external" href="http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1477.html">n1477</a>, and <a class="reference external" href="http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1531.html">n1531</a>.</td>
+</tr>
+<tr><th class="docinfo-name">Copyright:</th>
+<td>Copyright David Abrahams, Jeremy Siek, and Thomas Witt
+2003.</td></tr>
+</tbody>
+</table>
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<!-- Version 1.25 of this ReStructuredText document is the same as
+n1550_, the paper accepted by the LWG. -->
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Abstract:</th><td class="field-body">We propose a new system of iterator concepts that treat
+access and positioning independently. This allows the
+concepts to more closely match the requirements
+of algorithms and provides better categorizations
+of iterators that are used in practice.</td>
+</tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#motivation" id="id1">Motivation</a></li>
+<li><a class="reference internal" href="#impact-on-the-standard" id="id2">Impact on the Standard</a><ul>
+<li><a class="reference internal" href="#possible-but-not-proposed-changes-to-the-working-paper" id="id3">Possible (but not proposed) Changes to the Working Paper</a><ul>
+<li><a class="reference internal" href="#changes-to-algorithm-requirements" id="id4">Changes to Algorithm Requirements</a></li>
+<li><a class="reference internal" href="#deprecations" id="id5">Deprecations</a></li>
+<li><a class="reference internal" href="#vector-bool" id="id6"><tt class="docutils literal"><span class="pre">vector&lt;bool&gt;</span></tt></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#design" id="id7">Design</a></li>
+<li><a class="reference internal" href="#proposed-text" id="id8">Proposed Text</a><ul>
+<li><a class="reference internal" href="#addition-to-lib-iterator-requirements" id="id9">Addition to [lib.iterator.requirements]</a><ul>
+<li><a class="reference internal" href="#iterator-value-access-concepts-lib-iterator-value-access" id="id10">Iterator Value Access Concepts [lib.iterator.value.access]</a><ul>
+<li><a class="reference internal" href="#readable-iterators-lib-readable-iterators" id="id11">Readable Iterators [lib.readable.iterators]</a></li>
+<li><a class="reference internal" href="#writable-iterators-lib-writable-iterators" id="id12">Writable Iterators [lib.writable.iterators]</a></li>
+<li><a class="reference internal" href="#swappable-iterators-lib-swappable-iterators" id="id13">Swappable Iterators [lib.swappable.iterators]</a></li>
+<li><a class="reference internal" href="#lvalue-iterators-lib-lvalue-iterators" id="id14">Lvalue Iterators [lib.lvalue.iterators]</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#iterator-traversal-concepts-lib-iterator-traversal" id="id15">Iterator Traversal Concepts [lib.iterator.traversal]</a><ul>
+<li><a class="reference internal" href="#incrementable-iterators-lib-incrementable-iterators" id="id16">Incrementable Iterators [lib.incrementable.iterators]</a></li>
+<li><a class="reference internal" href="#single-pass-iterators-lib-single-pass-iterators" id="id17">Single Pass Iterators [lib.single.pass.iterators]</a></li>
+<li><a class="reference internal" href="#forward-traversal-iterators-lib-forward-traversal-iterators" id="id18">Forward Traversal Iterators [lib.forward.traversal.iterators]</a></li>
+<li><a class="reference internal" href="#bidirectional-traversal-iterators-lib-bidirectional-traversal-iterators" id="id19">Bidirectional Traversal Iterators [lib.bidirectional.traversal.iterators]</a></li>
+<li><a class="reference internal" href="#random-access-traversal-iterators-lib-random-access-traversal-iterators" id="id20">Random Access Traversal Iterators [lib.random.access.traversal.iterators]</a></li>
+<li><a class="reference internal" href="#interoperable-iterators-lib-interoperable-iterators" id="id21">Interoperable Iterators [lib.interoperable.iterators]</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#addition-to-lib-iterator-synopsis" id="id22">Addition to [lib.iterator.synopsis]</a></li>
+<li><a class="reference internal" href="#addition-to-lib-iterator-traits" id="id23">Addition to [lib.iterator.traits]</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#footnotes" id="id24">Footnotes</a></li>
+</ul>
+</div>
+<div class="section" id="motivation">
+<h1><a class="toc-backref" href="#id1">Motivation</a></h1>
+<p>The standard iterator categories and requirements are flawed because
+they use a single hierarchy of concepts to address two orthogonal
+issues: <em>iterator traversal</em> and <em>value access</em>. As a result, many
+algorithms with requirements expressed in terms of the iterator
+categories are too strict. Also, many real-world iterators can not be
+accurately categorized.  A proxy-based iterator with random-access
+traversal, for example, may only legally have a category of &quot;input
+iterator&quot;, so generic algorithms are unable to take advantage of its
+random-access capabilities.  The current iterator concept hierarchy is
+geared towards iterator traversal (hence the category names), while
+requirements that address value access sneak in at various places. The
+following table gives a summary of the current value access
+requirements in the iterator categories.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="31%" />
+<col width="69%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="2">Value Access Requirements in Existing Iterator Categories</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Output Iterator</td>
+<td><tt class="docutils literal"><span class="pre">*i</span> <span class="pre">=</span> <span class="pre">a</span></tt></td>
+</tr>
+<tr><td>Input Iterator</td>
+<td><tt class="docutils literal"><span class="pre">*i</span></tt> is convertible to <tt class="docutils literal"><span class="pre">T</span></tt></td>
+</tr>
+<tr><td>Forward Iterator</td>
+<td><tt class="docutils literal"><span class="pre">*i</span></tt> is <tt class="docutils literal"><span class="pre">T&amp;</span></tt> (or <tt class="docutils literal"><span class="pre">const</span> <span class="pre">T&amp;</span></tt> once <a class="reference external" href="http://anubis.dkuug.dk/JTC1/SC22/WG21/docs/lwg-active.html#200">issue 200</a>
+is resolved)</td>
+</tr>
+<tr><td>Random Access Iterator</td>
+<td><tt class="docutils literal"><span class="pre">i[n]</span></tt> is convertible to <tt class="docutils literal"><span class="pre">T</span></tt> (also <tt class="docutils literal"><span class="pre">i[n]</span> <span class="pre">=</span> <span class="pre">t</span></tt>
+is required for mutable iterators once <a class="reference external" href="http://anubis.dkuug.dk/JTC1/SC22/WG21/docs/lwg-active.html#299">issue 299</a>
+is resolved)</td>
+</tr>
+</tbody>
+</table>
+<p>Because iterator traversal and value access are mixed together in a
+single hierarchy, many useful iterators can not be appropriately
+categorized. For example, <tt class="docutils literal"><span class="pre">vector&lt;bool&gt;::iterator</span></tt> is almost a
+random access iterator, but the return type is not <tt class="docutils literal"><span class="pre">bool&amp;</span></tt> (see
+<a class="reference external" href="http://anubis.dkuug.dk/JTC1/SC22/WG21/docs/lwg-active.html#96">issue 96</a> and Herb Sutter's paper J16/99-0008 = WG21
+N1185). Therefore, the iterators of <tt class="docutils literal"><span class="pre">vector&lt;bool&gt;</span></tt> only meet the
+requirements of input iterator and output iterator.  This is so
+nonintuitive that the C++ standard contradicts itself on this point.
+In paragraph 23.2.4/1 it says that a <tt class="docutils literal"><span class="pre">vector</span></tt> is a sequence that
+supports random access iterators.</p>
+<p>Another difficult-to-categorize iterator is the transform iterator, an
+adaptor which applies a unary function object to the dereferenced
+value of the some underlying iterator (see <a class="reference external" href="http://www.boost.org/libs/utility/transform_iterator.htm">transform_iterator</a>).
+For unary functions such as <tt class="docutils literal"><span class="pre">times</span></tt>, the return type of
+<tt class="docutils literal"><span class="pre">operator*</span></tt> clearly needs to be the <tt class="docutils literal"><span class="pre">result_type</span></tt> of the function
+object, which is typically not a reference.  Because random access
+iterators are required to return lvalues from <tt class="docutils literal"><span class="pre">operator*</span></tt>, if you
+wrap <tt class="docutils literal"><span class="pre">int*</span></tt> with a transform iterator, you do not get a random
+access iterator as might be expected, but an input iterator.</p>
+<p>A third example is found in the vertex and edge iterators of the
+<a class="reference external" href="http://www.boost.org/libs/graph/doc/table_of_contents.html">Boost Graph Library</a>. These iterators return vertex and edge
+descriptors, which are lightweight handles created on-the-fly. They
+must be returned by-value. As a result, their current standard
+iterator category is <tt class="docutils literal"><span class="pre">input_iterator_tag</span></tt>, which means that,
+strictly speaking, you could not use these iterators with algorithms
+like <tt class="docutils literal"><span class="pre">min_element()</span></tt>. As a temporary solution, the concept
+<a class="reference external" href="http://www.boost.org/libs/utility/MultiPassInputIterator.html">Multi-Pass Input Iterator</a> was introduced to describe the vertex and
+edge descriptors, but as the design notes for the concept suggest, a
+better solution is needed.</p>
+<p>In short, there are many useful iterators that do not fit into the
+current standard iterator categories. As a result, the following bad
+things happen:</p>
+<ul class="simple">
+<li>Iterators are often mis-categorized.</li>
+<li>Algorithm requirements are more strict than necessary, because they
+cannot separate the need for random access or bidirectional
+traversal from the need for a true reference return type.</li>
+</ul>
+</div>
+<div class="section" id="impact-on-the-standard">
+<h1><a class="toc-backref" href="#id2">Impact on the Standard</a></h1>
+<p>This proposal for TR1 is a pure extension. Further, the new iterator
+concepts are backward-compatible with the old iterator requirements,
+and old iterators are forward-compatible with the new iterator
+concepts. That is to say, iterators that satisfy the old requirements
+also satisfy appropriate concepts in the new system, and iterators
+modeling the new concepts will automatically satisfy the appropriate
+old requirements.</p>
+<!-- I think we need to say something about the resolution to allow
+convertibility to any of the old-style tags as a TR issue (hope it
+made it). -DWA -->
+<!-- Hmm, not sure I understand. Are you talking about whether a
+standards conforming input iterator is allowed to have
+a tag that is not input_iterator_tag but that
+is convertible to input_iterator_tag? -JGS -->
+<div class="section" id="possible-but-not-proposed-changes-to-the-working-paper">
+<h2><a class="toc-backref" href="#id3">Possible (but not proposed) Changes to the Working Paper</a></h2>
+<p>The extensions in this paper suggest several changes we might make
+to the working paper for the next standard.  These changes are not
+a formal part of this proposal for TR1.</p>
+<div class="section" id="changes-to-algorithm-requirements">
+<h3><a class="toc-backref" href="#id4">Changes to Algorithm Requirements</a></h3>
+<p>The algorithms in the standard library could benefit from the new
+iterator concepts because the new concepts provide a more accurate way
+to express their type requirements. The result is algorithms that are
+usable in more situations and have fewer type requirements.</p>
+<p>For the next working paper (but not for TR1), the committee should
+consider the following changes to the type requirements of algorithms.
+These changes are phrased as textual substitutions, listing the
+algorithms to which each textual substitution applies.</p>
+<p>Forward Iterator -&gt; Forward Traversal Iterator and Readable Iterator</p>
+<blockquote>
+<tt class="docutils literal"><span class="pre">find_end,</span> <span class="pre">adjacent_find,</span> <span class="pre">search,</span> <span class="pre">search_n,</span> <span class="pre">rotate_copy,</span>
+<span class="pre">lower_bound,</span> <span class="pre">upper_bound,</span> <span class="pre">equal_range,</span> <span class="pre">binary_search,</span>
+<span class="pre">min_element,</span> <span class="pre">max_element</span></tt></blockquote>
+<p>Forward Iterator (1) -&gt; Single Pass Iterator and Readable Iterator,
+Forward Iterator (2) -&gt; Forward Traversal Iterator and Readable Iterator</p>
+<blockquote>
+<tt class="docutils literal"><span class="pre">find_first_of</span></tt></blockquote>
+<p>Forward Iterator -&gt; Readable Iterator and Writable Iterator</p>
+<blockquote>
+<tt class="docutils literal"><span class="pre">iter_swap</span></tt></blockquote>
+<p>Forward Iterator -&gt; Single Pass Iterator and Writable Iterator</p>
+<blockquote>
+<tt class="docutils literal"><span class="pre">fill,</span> <span class="pre">generate</span></tt></blockquote>
+<p>Forward Iterator -&gt; Forward Traversal Iterator and Swappable Iterator</p>
+<blockquote>
+<tt class="docutils literal"><span class="pre">rotate</span></tt></blockquote>
+<p>Forward Iterator (1) -&gt; Swappable Iterator and Single Pass Iterator,
+Forward Iterator (2) -&gt; Swappable Iterator and  Incrementable Iterator</p>
+<blockquote>
+<tt class="docutils literal"><span class="pre">swap_ranges</span></tt></blockquote>
+<dl class="docutils">
+<dt>Forward Iterator -&gt; Forward Traversal Iterator and Readable Iterator and Writable Iterator</dt>
+<dd><tt class="docutils literal"><span class="pre">remove,</span> <span class="pre">remove_if,</span> <span class="pre">unique</span></tt></dd>
+</dl>
+<p>Forward Iterator -&gt; Single Pass Iterator and Readable Iterator and Writable Iterator</p>
+<blockquote>
+<tt class="docutils literal"><span class="pre">replace,</span> <span class="pre">replace_if</span></tt></blockquote>
+<dl class="docutils">
+<dt>Bidirectional Iterator -&gt; Bidirectional Traversal Iterator and Swappable Iterator</dt>
+<dd><tt class="docutils literal"><span class="pre">reverse</span></tt></dd>
+<dt>Bidirectional Iterator -&gt; Bidirectional Traversal Iterator and Readable and Swappable Iterator</dt>
+<dd><tt class="docutils literal"><span class="pre">partition</span></tt></dd>
+</dl>
+<p>Bidirectional Iterator (1) -&gt; Bidirectional Traversal Iterator and Readable Iterator,
+Bidirectional Iterator (2) -&gt; Bidirectional Traversal Iterator and Writable Iterator</p>
+<blockquote>
+<tt class="docutils literal"><span class="pre">copy_backwards</span></tt></blockquote>
+<dl class="docutils">
+<dt>Bidirectional Iterator -&gt; Bidirectional Traversal Iterator and Swappable Iterator and Readable Iterator</dt>
+<dd><tt class="docutils literal"><span class="pre">next_permutation,</span> <span class="pre">prev_permutation</span></tt></dd>
+<dt>Bidirectional Iterator -&gt; Bidirectional Traversal Iterator and Readable Iterator and Writable Iterator</dt>
+<dd><tt class="docutils literal"><span class="pre">stable_partition,</span> <span class="pre">inplace_merge</span></tt></dd>
+<dt>Bidirectional Iterator -&gt; Bidirectional Traversal Iterator and Readable Iterator</dt>
+<dd><tt class="docutils literal"><span class="pre">reverse_copy</span></tt></dd>
+<dt>Random Access Iterator -&gt; Random Access Traversal Iterator and Readable and Writable Iterator</dt>
+<dd><tt class="docutils literal"><span class="pre">random_shuffle,</span> <span class="pre">sort,</span> <span class="pre">stable_sort,</span> <span class="pre">partial_sort,</span> <span class="pre">nth_element,</span> <span class="pre">push_heap,</span> <span class="pre">pop_heap</span>
+<span class="pre">make_heap,</span> <span class="pre">sort_heap</span></tt></dd>
+<dt>Input Iterator (2) -&gt; Incrementable Iterator and Readable Iterator</dt>
+<dd><tt class="docutils literal"><span class="pre">equal,</span> <span class="pre">mismatch</span></tt></dd>
+<dt>Input Iterator (2) -&gt; Incrementable Iterator and Readable Iterator</dt>
+<dd><tt class="docutils literal"><span class="pre">transform</span></tt></dd>
+</dl>
+</div>
+<div class="section" id="deprecations">
+<h3><a class="toc-backref" href="#id5">Deprecations</a></h3>
+<p>For the next working paper (but not for TR1), the committee should
+consider deprecating the old iterator tags, and
+std::iterator_traits, since it will be superceded by individual
+traits metafunctions.</p>
+</div>
+<div class="section" id="vector-bool">
+<h3><a class="toc-backref" href="#id6"><tt class="docutils literal"><span class="pre">vector&lt;bool&gt;</span></tt></a></h3>
+<p>For the next working paper (but not for TR1), the committee should
+consider reclassifying <tt class="docutils literal"><span class="pre">vector&lt;bool&gt;::iterator</span></tt> as a Random
+Access Traversal Iterator and Readable Iterator and Writable
+Iterator.</p>
+</div>
+</div>
+</div>
+<div class="section" id="design">
+<h1><a class="toc-backref" href="#id7">Design</a></h1>
+<p>The iterator requirements are to be separated into two groups. One set
+of concepts handles the syntax and semantics of value access:</p>
+<ul class="simple">
+<li>Readable Iterator</li>
+<li>Writable Iterator</li>
+<li>Swappable Iterator</li>
+<li>Lvalue Iterator</li>
+</ul>
+<p>The access concepts describe requirements related to <tt class="docutils literal"><span class="pre">operator*</span></tt> and
+<tt class="docutils literal"><span class="pre">operator-&gt;</span></tt>, including the <tt class="docutils literal"><span class="pre">value_type</span></tt>, <tt class="docutils literal"><span class="pre">reference</span></tt>, and
+<tt class="docutils literal"><span class="pre">pointer</span></tt> associated types.</p>
+<p>The other set of concepts handles traversal:</p>
+<ul class="simple">
+<li>Incrementable Iterator</li>
+<li>Single Pass Iterator</li>
+<li>Forward Traversal Iterator</li>
+<li>Bidirectional Traversal Iterator</li>
+<li>Random Access Traversal Iterator</li>
+</ul>
+<p>The refinement relationships for the traversal concepts are in the
+following diagram.</p>
+<img alt="traversal.png" src="traversal.png" />
+<p>In addition to the iterator movement operators, such as
+<tt class="docutils literal"><span class="pre">operator++</span></tt>, the traversal concepts also include requirements on
+position comparison such as <tt class="docutils literal"><span class="pre">operator==</span></tt> and <tt class="docutils literal"><span class="pre">operator&lt;</span></tt>.  The
+reason for the fine grain slicing of the concepts into the
+Incrementable and Single Pass is to provide concepts that are exact
+matches with the original input and output iterator requirements.</p>
+<p>This proposal also includes a concept for specifying when an iterator
+is interoperable with another iterator, in the sense that <tt class="docutils literal"><span class="pre">int*</span></tt> is
+interoperable with <tt class="docutils literal"><span class="pre">int</span> <span class="pre">const*</span></tt>.</p>
+<ul class="simple">
+<li>Interoperable Iterators</li>
+</ul>
+<p>The relationship between the new iterator concepts and the old are
+given in the following diagram.</p>
+<img alt="oldeqnew.png" src="oldeqnew.png" />
+<p>Like the old iterator requirements, we provide tags for purposes of
+dispatching based on the traversal concepts.  The tags are related via
+inheritance so that a tag is convertible to another tag if the concept
+associated with the first tag is a refinement of the second tag.</p>
+<p>Our design reuses <tt class="docutils literal"><span class="pre">iterator_traits&lt;Iter&gt;::iterator_category</span></tt> to
+indicate an iterator's traversal capability.  To specify
+capabilities not captured by any old-style iterator category, an
+iterator designer can use an <tt class="docutils literal"><span class="pre">iterator_category</span></tt> type that is
+convertible to both the the most-derived old iterator category tag
+which fits, and the appropriate new iterator traversal tag.</p>
+<!-- dwa2003/1/2: Note that we are not *requiring* convertibility to
+a new-style traversal tag in order to meet new concepts.
+Old-style iterators still fit, after all. -->
+<p>We do not provide tags for the purposes of dispatching based on the
+access concepts, in part because we could not find a way to
+automatically infer the right access tags for old-style iterators.
+An iterator's writability may be dependent on the assignability of
+its <tt class="docutils literal"><span class="pre">value_type</span></tt> and there's no known way to detect whether an
+arbitrary type is assignable.  Fortunately, the need for
+dispatching based on access capability is not as great as the need
+for dispatching based on traversal capability.</p>
+<p>A difficult design decision concerned the <tt class="docutils literal"><span class="pre">operator[]</span></tt>. The direct
+approach for specifying <tt class="docutils literal"><span class="pre">operator[]</span></tt> would have a return type of
+<tt class="docutils literal"><span class="pre">reference</span></tt>; the same as <tt class="docutils literal"><span class="pre">operator*</span></tt>. However, going in this
+direction would mean that an iterator satisfying the old Random Access
+Iterator requirements would not necessarily be a model of Readable or
+Writable Lvalue Iterator.  Instead we have chosen a design that
+matches the preferred resolution of <a class="reference external" href="http://anubis.dkuug.dk/JTC1/SC22/WG21/docs/lwg-active.html#299">issue 299</a>: <tt class="docutils literal"><span class="pre">operator[]</span></tt> is
+only required to return something convertible to the <tt class="docutils literal"><span class="pre">value_type</span></tt>
+(for a Readable Iterator), and is required to support assignment
+<tt class="docutils literal"><span class="pre">i[n]</span> <span class="pre">=</span> <span class="pre">t</span></tt> (for a Writable Iterator).</p>
+</div>
+<div class="section" id="proposed-text">
+<h1><a class="toc-backref" href="#id8">Proposed Text</a></h1>
+<div class="section" id="addition-to-lib-iterator-requirements">
+<h2><a class="toc-backref" href="#id9">Addition to [lib.iterator.requirements]</a></h2>
+<div class="section" id="iterator-value-access-concepts-lib-iterator-value-access">
+<h3><a class="toc-backref" href="#id10">Iterator Value Access Concepts [lib.iterator.value.access]</a></h3>
+<p>In the tables below, <tt class="docutils literal"><span class="pre">X</span></tt> is an iterator type, <tt class="docutils literal"><span class="pre">a</span></tt> is a constant
+object of type <tt class="docutils literal"><span class="pre">X</span></tt>, <tt class="docutils literal"><span class="pre">R</span></tt> is
+<tt class="docutils literal"><span class="pre">std::iterator_traits&lt;X&gt;::reference</span></tt>, <tt class="docutils literal"><span class="pre">T</span></tt> is
+<tt class="docutils literal"><span class="pre">std::iterator_traits&lt;X&gt;::value_type</span></tt>, and <tt class="docutils literal"><span class="pre">v</span></tt> is a constant
+object of type <tt class="docutils literal"><span class="pre">T</span></tt>.</p>
+<div class="section" id="readable-iterators-lib-readable-iterators">
+<span id="readable-iterator"></span><h4><a class="toc-backref" href="#id11">Readable Iterators [lib.readable.iterators]</a></h4>
+<p>A class or built-in type <tt class="docutils literal"><span class="pre">X</span></tt> models the <em>Readable Iterator</em> concept
+for value type <tt class="docutils literal"><span class="pre">T</span></tt> if, in addition to <tt class="docutils literal"><span class="pre">X</span></tt> being Assignable and
+Copy Constructible, the following expressions are valid and respect
+the stated semantics. <tt class="docutils literal"><span class="pre">U</span></tt> is the type of any specified member of
+type <tt class="docutils literal"><span class="pre">T</span></tt>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="28%" />
+<col width="20%" />
+<col width="52%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="3">Readable Iterator Requirements (in addition to Assignable and Copy Constructible)</th>
+</tr>
+<tr><th class="head">Expression</th>
+<th class="head">Return Type</th>
+<th class="head">Note/Precondition</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">iterator_traits&lt;X&gt;::value_type</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">T</span></tt></td>
+<td>Any non-reference,
+non-cv-qualified type</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">*a</span></tt></td>
+<td>Convertible to <tt class="docutils literal"><span class="pre">T</span></tt></td>
+<td><dl class="first last docutils">
+<dt>pre: <tt class="docutils literal"><span class="pre">a</span></tt> is dereferenceable. If <tt class="docutils literal"><span class="pre">a</span> <span class="pre">==</span> <span class="pre">b</span></tt> then <tt class="docutils literal"><span class="pre">*a</span></tt></dt>
+<dd>is equivalent to <tt class="docutils literal"><span class="pre">*b</span></tt>.</dd>
+</dl>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a-&gt;m</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">U&amp;</span></tt></td>
+<td>pre: <tt class="docutils literal"><span class="pre">pre:</span> <span class="pre">(*a).m</span></tt> is well-defined. Equivalent to <tt class="docutils literal"><span class="pre">(*a).m</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<!-- We won't say anything about iterator_traits<X>::reference until the DR is resolved. -JGS -->
+</div>
+<div class="section" id="writable-iterators-lib-writable-iterators">
+<span id="writable-iterator"></span><h4><a class="toc-backref" href="#id12">Writable Iterators [lib.writable.iterators]</a></h4>
+<p>A class or built-in type <tt class="docutils literal"><span class="pre">X</span></tt> models the <em>Writable Iterator</em> concept
+if, in addition to <tt class="docutils literal"><span class="pre">X</span></tt> being Copy Constructible, the following
+expressions are valid and respect the stated semantics.  Writable
+Iterators have an associated <em>set of value types</em>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="37%" />
+<col width="21%" />
+<col width="42%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="3">Writable Iterator Requirements (in addition to Copy Constructible)</th>
+</tr>
+<tr><th class="head">Expression</th>
+<th class="head">Return Type</th>
+<th class="head">Precondition</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">*a</span> <span class="pre">=</span> <span class="pre">o</span></tt></td>
+<td>&nbsp;</td>
+<td>pre: The type of <tt class="docutils literal"><span class="pre">o</span></tt>
+is in the set of
+value types of <tt class="docutils literal"><span class="pre">X</span></tt></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="swappable-iterators-lib-swappable-iterators">
+<h4><a class="toc-backref" href="#id13">Swappable Iterators [lib.swappable.iterators]</a></h4>
+<p>A class or built-in type <tt class="docutils literal"><span class="pre">X</span></tt> models the <em>Swappable Iterator</em> concept
+if, in addition to <tt class="docutils literal"><span class="pre">X</span></tt> being Copy Constructible, the following
+expressions are valid and respect the stated semantics.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="37%" />
+<col width="19%" />
+<col width="43%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="3">Swappable Iterator Requirements (in addition to Copy Constructible)</th>
+</tr>
+<tr><th class="head">Expression</th>
+<th class="head">Return Type</th>
+<th class="head">Postcondition</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">iter_swap(a,</span> <span class="pre">b)</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">void</span></tt></td>
+<td>the pointed to values are
+exchanged</td>
+</tr>
+</tbody>
+</table>
+<p>[<em>Note:</em> An iterator that is a model of the <a class="reference internal" href="#readable-iterator">Readable Iterator</a> and
+<a class="reference internal" href="#writable-iterator">Writable Iterator</a> concepts is also a model of <em>Swappable
+Iterator</em>.  <em>--end note</em>]</p>
+</div>
+<div class="section" id="lvalue-iterators-lib-lvalue-iterators">
+<h4><a class="toc-backref" href="#id14">Lvalue Iterators [lib.lvalue.iterators]</a></h4>
+<p>The <em>Lvalue Iterator</em> concept adds the requirement that the return
+type of <tt class="docutils literal"><span class="pre">operator*</span></tt> type be a reference to the value type of the
+iterator.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="22%" />
+<col width="19%" />
+<col width="59%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="3">Lvalue Iterator Requirements</th>
+</tr>
+<tr><th class="head">Expression</th>
+<th class="head">Return Type</th>
+<th class="head">Note/Assertion</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">*a</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">T&amp;</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">T</span></tt> is <em>cv</em>
+<tt class="docutils literal"><span class="pre">iterator_traits&lt;X&gt;::value_type</span></tt>
+where <em>cv</em> is an optional
+cv-qualification.  pre: <tt class="docutils literal"><span class="pre">a</span></tt> is
+dereferenceable.</td>
+</tr>
+</tbody>
+</table>
+<p>If <tt class="docutils literal"><span class="pre">X</span></tt> is a <a class="reference internal" href="#writable-iterator">Writable Iterator</a> then <tt class="docutils literal"><span class="pre">a</span> <span class="pre">==</span> <span class="pre">b</span></tt> if and only if
+<tt class="docutils literal"><span class="pre">*a</span></tt> is the same object as <tt class="docutils literal"><span class="pre">*b</span></tt>.  If <tt class="docutils literal"><span class="pre">X</span></tt> is a <a class="reference internal" href="#readable-iterator">Readable
+Iterator</a> then <tt class="docutils literal"><span class="pre">a</span> <span class="pre">==</span> <span class="pre">b</span></tt> implies <tt class="docutils literal"><span class="pre">*a</span></tt> is the same object as
+<tt class="docutils literal"><span class="pre">*b</span></tt>.</p>
+</div>
+</div>
+<div class="section" id="iterator-traversal-concepts-lib-iterator-traversal">
+<h3><a class="toc-backref" href="#id15">Iterator Traversal Concepts [lib.iterator.traversal]</a></h3>
+<p>In the tables below, <tt class="docutils literal"><span class="pre">X</span></tt> is an iterator type, <tt class="docutils literal"><span class="pre">a</span></tt> and <tt class="docutils literal"><span class="pre">b</span></tt> are
+constant objects of type <tt class="docutils literal"><span class="pre">X</span></tt>, <tt class="docutils literal"><span class="pre">r</span></tt> and <tt class="docutils literal"><span class="pre">s</span></tt> are mutable objects of
+type <tt class="docutils literal"><span class="pre">X</span></tt>, <tt class="docutils literal"><span class="pre">T</span></tt> is <tt class="docutils literal"><span class="pre">std::iterator_traits&lt;X&gt;::value_type</span></tt>, and
+<tt class="docutils literal"><span class="pre">v</span></tt> is a constant object of type <tt class="docutils literal"><span class="pre">T</span></tt>.</p>
+<div class="section" id="incrementable-iterators-lib-incrementable-iterators">
+<h4><a class="toc-backref" href="#id16">Incrementable Iterators [lib.incrementable.iterators]</a></h4>
+<p>A class or built-in type <tt class="docutils literal"><span class="pre">X</span></tt> models the <em>Incrementable Iterator</em>
+concept if, in addition to <tt class="docutils literal"><span class="pre">X</span></tt> being Assignable and Copy
+Constructible, the following expressions are valid and respect the
+stated semantics.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="39%" />
+<col width="38%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="3">Incrementable Iterator Requirements (in addition to Assignable, Copy Constructible)</th>
+</tr>
+<tr><th class="head">Expression</th>
+<th class="head">Return Type</th>
+<th class="head">Assertion</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">++r</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X&amp;</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">&amp;r</span> <span class="pre">==</span> <span class="pre">&amp;++r</span></tt></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">r++</span></tt></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">*r++</span></tt></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">iterator_traversal&lt;X&gt;::type</span></tt></td>
+<td>Convertible to
+<tt class="docutils literal"><span class="pre">incrementable_traversal_tag</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<p>If <tt class="docutils literal"><span class="pre">X</span></tt> is a <a class="reference internal" href="#writable-iterator">Writable Iterator</a> then <tt class="docutils literal"><span class="pre">X</span> <span class="pre">a(r++);</span></tt> is equivalent
+to <tt class="docutils literal"><span class="pre">X</span> <span class="pre">a(r);</span> <span class="pre">++r;</span></tt> and <tt class="docutils literal"><span class="pre">*r++</span> <span class="pre">=</span> <span class="pre">o</span></tt> is equivalent
+to  <tt class="docutils literal"><span class="pre">*r</span> <span class="pre">=</span> <span class="pre">o;</span> <span class="pre">++r</span></tt>.
+If <tt class="docutils literal"><span class="pre">X</span></tt> is a <a class="reference internal" href="#readable-iterator">Readable Iterator</a> then <tt class="docutils literal"><span class="pre">T</span> <span class="pre">z(*r++);</span></tt> is equivalent
+to <tt class="docutils literal"><span class="pre">T</span> <span class="pre">z(*r);</span> <span class="pre">++r;</span></tt>.</p>
+<!-- TR1: incrementable_iterator_tag changed to
+incrementable_traversal_tag for consistency. -->
+</div>
+<div class="section" id="single-pass-iterators-lib-single-pass-iterators">
+<h4><a class="toc-backref" href="#id17">Single Pass Iterators [lib.single.pass.iterators]</a></h4>
+<p>A class or built-in type <tt class="docutils literal"><span class="pre">X</span></tt> models the <em>Single Pass Iterator</em>
+concept if the following expressions are valid and respect the stated
+semantics.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="37%" />
+<col width="27%" />
+<col width="12%" />
+<col width="25%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="4">Single Pass Iterator Requirements (in addition to Incrementable Iterator and Equality
+Comparable)</th>
+</tr>
+<tr><th class="head">Expression</th>
+<th class="head">Return Type</th>
+<th class="head">Operational
+Semantics</th>
+<th class="head">Assertion/
+Pre-/Post-condition</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">++r</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X&amp;</span></tt></td>
+<td>&nbsp;</td>
+<td>pre: <tt class="docutils literal"><span class="pre">r</span></tt> is
+dereferenceable; post:
+<tt class="docutils literal"><span class="pre">r</span></tt> is dereferenceable or
+<tt class="docutils literal"><span class="pre">r</span></tt> is past-the-end</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">==</span> <span class="pre">b</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td>&nbsp;</td>
+<td><tt class="docutils literal"><span class="pre">==</span></tt> is an equivalence
+relation over its domain</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">!=</span> <span class="pre">b</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">!(a</span> <span class="pre">==</span> <span class="pre">b)</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">iterator_traits&lt;X&gt;::difference_type</span></tt></td>
+<td>A signed integral type
+representing the distance
+between iterators</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">iterator_traversal&lt;X&gt;::type</span></tt></td>
+<td>Convertible to
+<tt class="docutils literal"><span class="pre">single_pass_traversal_tag</span></tt></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<!-- TR1: single_pass_iterator_tag changed to
+single_pass_traversal_tag for consistency -->
+</div>
+<div class="section" id="forward-traversal-iterators-lib-forward-traversal-iterators">
+<h4><a class="toc-backref" href="#id18">Forward Traversal Iterators [lib.forward.traversal.iterators]</a></h4>
+<p>A class or built-in type <tt class="docutils literal"><span class="pre">X</span></tt> models the <em>Forward Traversal Iterator</em>
+concept if, in addition to <tt class="docutils literal"><span class="pre">X</span></tt> meeting the requirements of Default
+Constructible and Single Pass Iterator, the following expressions are
+valid and respect the stated semantics.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="38%" />
+<col width="34%" />
+<col width="27%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="3">Forward Traversal Iterator Requirements (in addition to Default Constructible and Single Pass Iterator)</th>
+</tr>
+<tr><th class="head">Expression</th>
+<th class="head">Return Type</th>
+<th class="head">Assertion/Note</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">X</span> <span class="pre">u;</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X&amp;</span></tt></td>
+<td>note: <tt class="docutils literal"><span class="pre">u</span></tt> may have a
+singular value.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">++r</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X&amp;</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">r</span> <span class="pre">==</span> <span class="pre">s</span></tt> and <tt class="docutils literal"><span class="pre">r</span></tt> is
+dereferenceable implies
+<tt class="docutils literal"><span class="pre">++r</span> <span class="pre">==</span> <span class="pre">++s.</span></tt></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">iterator_traversal&lt;X&gt;::type</span></tt></td>
+<td>Convertible to
+<tt class="docutils literal"><span class="pre">forward_traversal_tag</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<!-- TR1: forward_traversal_iterator_tag changed to
+forward_traversal_tag for consistency -->
+</div>
+<div class="section" id="bidirectional-traversal-iterators-lib-bidirectional-traversal-iterators">
+<h4><a class="toc-backref" href="#id19">Bidirectional Traversal Iterators [lib.bidirectional.traversal.iterators]</a></h4>
+<p>A class or built-in type <tt class="docutils literal"><span class="pre">X</span></tt> models the <em>Bidirectional Traversal
+Iterator</em> concept if, in addition to <tt class="docutils literal"><span class="pre">X</span></tt> meeting the requirements of
+Forward Traversal Iterator, the following expressions are valid and
+respect the stated semantics.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="33%" />
+<col width="32%" />
+<col width="14%" />
+<col width="21%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="4">Bidirectional Traversal Iterator Requirements (in addition to Forward Traversal
+Iterator)</th>
+</tr>
+<tr><th class="head">Expression</th>
+<th class="head">Return Type</th>
+<th class="head">Operational
+Semantics</th>
+<th class="head">Assertion/
+Pre-/Post-condition</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">--r</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X&amp;</span></tt></td>
+<td>&nbsp;</td>
+<td><p class="first">pre: there exists
+<tt class="docutils literal"><span class="pre">s</span></tt> such that <tt class="docutils literal"><span class="pre">r</span>
+<span class="pre">==</span> <span class="pre">++s</span></tt>.  post:
+<tt class="docutils literal"><span class="pre">s</span></tt> is
+dereferenceable.</p>
+<p class="last"><tt class="docutils literal"><span class="pre">++(--r)</span> <span class="pre">==</span> <span class="pre">r</span></tt>.
+<tt class="docutils literal"><span class="pre">--r</span> <span class="pre">==</span> <span class="pre">--s</span></tt>
+implies <tt class="docutils literal"><span class="pre">r</span> <span class="pre">==</span>
+<span class="pre">s</span></tt>. <tt class="docutils literal"><span class="pre">&amp;r</span> <span class="pre">==</span> <span class="pre">&amp;--r</span></tt>.</p>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">r--</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">const</span> <span class="pre">X&amp;</span></tt></td>
+<td><pre class="first last literal-block">
+{
+  X tmp = r;
+  --r;
+  return tmp;
+}
+</pre>
+</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">iterator_traversal&lt;X&gt;::type</span></tt></td>
+<td>Convertible to
+<tt class="docutils literal"><span class="pre">bidirectional_traversal_tag</span></tt></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<!-- TR1: bidirectional_traversal_iterator_tag changed to
+bidirectional_traversal_tag for consistency -->
+</div>
+<div class="section" id="random-access-traversal-iterators-lib-random-access-traversal-iterators">
+<h4><a class="toc-backref" href="#id20">Random Access Traversal Iterators [lib.random.access.traversal.iterators]</a></h4>
+<p>A class or built-in type <tt class="docutils literal"><span class="pre">X</span></tt> models the <em>Random Access Traversal
+Iterator</em> concept if the following expressions are valid and respect
+the stated semantics.  In the table below, <tt class="docutils literal"><span class="pre">Distance</span></tt> is
+<tt class="docutils literal"><span class="pre">iterator_traits&lt;X&gt;::difference_type</span></tt> and <tt class="docutils literal"><span class="pre">n</span></tt> represents a
+constant object of type <tt class="docutils literal"><span class="pre">Distance</span></tt>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="28%" />
+<col width="30%" />
+<col width="23%" />
+<col width="20%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="4">Random Access Traversal Iterator Requirements (in addition to Bidirectional Traversal Iterator)</th>
+</tr>
+<tr><th class="head">Expression</th>
+<th class="head">Return Type</th>
+<th class="head">Operational Semantics</th>
+<th class="head">Assertion/
+Precondition</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">r</span> <span class="pre">+=</span> <span class="pre">n</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X&amp;</span></tt></td>
+<td><pre class="first last literal-block">
+{
+  Distance m = n;
+  if (m &gt;= 0)
+    while (m--)
+      ++r;
+  else
+    while (m++)
+      --r;
+  return r;
+}
+</pre>
+</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">+</span> <span class="pre">n</span></tt>, <tt class="docutils literal"><span class="pre">n</span> <span class="pre">+</span> <span class="pre">a</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">{</span> <span class="pre">X</span> <span class="pre">tmp</span> <span class="pre">=</span> <span class="pre">a;</span> <span class="pre">return</span> <span class="pre">tmp</span>
+<span class="pre">+=</span> <span class="pre">n;</span> <span class="pre">}</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">r</span> <span class="pre">-=</span> <span class="pre">n</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X&amp;</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">return</span> <span class="pre">r</span> <span class="pre">+=</span> <span class="pre">-n</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">-</span> <span class="pre">n</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">{</span> <span class="pre">X</span> <span class="pre">tmp</span> <span class="pre">=</span> <span class="pre">a;</span> <span class="pre">return</span> <span class="pre">tmp</span>
+<span class="pre">-=</span> <span class="pre">n;</span> <span class="pre">}</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">b</span> <span class="pre">-</span> <span class="pre">a</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">Distance</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">&lt;</span> <span class="pre">b</span> <span class="pre">?</span>&nbsp; <span class="pre">distance(a,b)</span>
+<span class="pre">:</span> <span class="pre">-distance(b,a)</span></tt></td>
+<td>pre: there exists a
+value <tt class="docutils literal"><span class="pre">n</span></tt> of
+<tt class="docutils literal"><span class="pre">Distance</span></tt> such that
+<tt class="docutils literal"><span class="pre">a</span> <span class="pre">+</span> <span class="pre">n</span> <span class="pre">==</span> <span class="pre">b</span></tt>.  <tt class="docutils literal"><span class="pre">b</span>
+<span class="pre">==</span> <span class="pre">a</span> <span class="pre">+</span> <span class="pre">(b</span> <span class="pre">-</span> <span class="pre">a)</span></tt>.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a[n]</span></tt></td>
+<td>convertible to T</td>
+<td><tt class="docutils literal"><span class="pre">*(a</span> <span class="pre">+</span> <span class="pre">n)</span></tt></td>
+<td>pre: a is a <a class="reference internal" href="#readable-iterator">Readable
+Iterator</a></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a[n]</span> <span class="pre">=</span> <span class="pre">v</span></tt></td>
+<td>convertible to T</td>
+<td><tt class="docutils literal"><span class="pre">*(a</span> <span class="pre">+</span> <span class="pre">n)</span> <span class="pre">=</span> <span class="pre">v</span></tt></td>
+<td>pre: a is a <a class="reference internal" href="#writable-iterator">Writable
+Iterator</a></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">&lt;</span> <span class="pre">b</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">b</span> <span class="pre">-</span> <span class="pre">a</span> <span class="pre">&gt;</span> <span class="pre">0</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">&lt;</span></tt> is a total
+ordering relation</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">&gt;</span> <span class="pre">b</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">b</span> <span class="pre">&lt;</span> <span class="pre">a</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">&gt;</span></tt> is a total
+ordering relation</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">&gt;=</span> <span class="pre">b</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">!(a</span> <span class="pre">&lt;</span> <span class="pre">b)</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">&lt;=</span> <span class="pre">b</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">!(a</span> <span class="pre">&gt;</span> <span class="pre">b)</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">iterator_traversal&lt;X&gt;::type</span></tt></td>
+<td>Convertible to
+<tt class="docutils literal"><span class="pre">random_access_traversal_tag</span></tt></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<!-- TR1: random_access_traversal_iterator_tag changed to
+random_access_traversal_tag for consistency -->
+</div>
+<div class="section" id="interoperable-iterators-lib-interoperable-iterators">
+<h4><a class="toc-backref" href="#id21">Interoperable Iterators [lib.interoperable.iterators]</a></h4>
+<p>A class or built-in type <tt class="docutils literal"><span class="pre">X</span></tt> that models Single Pass Iterator is
+<em>interoperable with</em> a class or built-in type <tt class="docutils literal"><span class="pre">Y</span></tt> that also models
+Single Pass Iterator if the following expressions are valid and
+respect the stated semantics. In the tables below, <tt class="docutils literal"><span class="pre">x</span></tt> is an object
+of type <tt class="docutils literal"><span class="pre">X</span></tt>, <tt class="docutils literal"><span class="pre">y</span></tt> is an object of type <tt class="docutils literal"><span class="pre">Y</span></tt>, <tt class="docutils literal"><span class="pre">Distance</span></tt> is
+<tt class="docutils literal"><span class="pre">iterator_traits&lt;Y&gt;::difference_type</span></tt>, and <tt class="docutils literal"><span class="pre">n</span></tt> represents a
+constant object of type <tt class="docutils literal"><span class="pre">Distance</span></tt>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="13%" />
+<col width="27%" />
+<col width="60%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Return Type</th>
+<th class="head">Assertion/Precondition/Postcondition</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">y</span> <span class="pre">=</span> <span class="pre">x</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">Y</span></tt></td>
+<td>post: <tt class="docutils literal"><span class="pre">y</span> <span class="pre">==</span> <span class="pre">x</span></tt></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">Y(x)</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">Y</span></tt></td>
+<td>post: <tt class="docutils literal"><span class="pre">Y(x)</span> <span class="pre">==</span> <span class="pre">x</span></tt></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">x</span> <span class="pre">==</span> <span class="pre">y</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">==</span></tt> is an equivalence relation over its domain.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">y</span> <span class="pre">==</span> <span class="pre">x</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">==</span></tt> is an equivalence relation over its domain.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">x</span> <span class="pre">!=</span> <span class="pre">y</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">bool(a==b)</span> <span class="pre">!=</span> <span class="pre">bool(a!=b)</span></tt> over its domain.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">y</span> <span class="pre">!=</span> <span class="pre">x</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">bool(a==b)</span> <span class="pre">!=</span> <span class="pre">bool(a!=b)</span></tt> over its domain.</td>
+</tr>
+</tbody>
+</table>
+<p>If <tt class="docutils literal"><span class="pre">X</span></tt> and <tt class="docutils literal"><span class="pre">Y</span></tt> both model Random Access Traversal Iterator then
+the following additional requirements must be met.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="12%" />
+<col width="25%" />
+<col width="23%" />
+<col width="41%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Return Type</th>
+<th class="head">Operational Semantics</th>
+<th class="head">Assertion/ Precondition</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">x</span> <span class="pre">&lt;</span> <span class="pre">y</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">y</span> <span class="pre">-</span> <span class="pre">x</span> <span class="pre">&gt;</span> <span class="pre">0</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">&lt;</span></tt> is a total ordering relation</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">y</span> <span class="pre">&lt;</span> <span class="pre">x</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">x</span> <span class="pre">-</span> <span class="pre">y</span> <span class="pre">&gt;</span> <span class="pre">0</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">&lt;</span></tt> is a total ordering relation</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">x</span> <span class="pre">&gt;</span> <span class="pre">y</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">y</span> <span class="pre">&lt;</span> <span class="pre">x</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">&gt;</span></tt> is a total ordering relation</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">y</span> <span class="pre">&gt;</span> <span class="pre">x</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">x</span> <span class="pre">&lt;</span> <span class="pre">y</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">&gt;</span></tt> is a total ordering relation</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">x</span> <span class="pre">&gt;=</span> <span class="pre">y</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">!(x</span> <span class="pre">&lt;</span> <span class="pre">y)</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">y</span> <span class="pre">&gt;=</span> <span class="pre">x</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">!(y</span> <span class="pre">&lt;</span> <span class="pre">x)</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">x</span> <span class="pre">&lt;=</span> <span class="pre">y</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">!(x</span> <span class="pre">&gt;</span> <span class="pre">y)</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">y</span> <span class="pre">&lt;=</span> <span class="pre">x</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">!(y</span> <span class="pre">&gt;</span> <span class="pre">x)</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">y</span> <span class="pre">-</span> <span class="pre">x</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">Distance</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">distance(Y(x),y)</span></tt></td>
+<td>pre: there exists a value <tt class="docutils literal"><span class="pre">n</span></tt> of
+<tt class="docutils literal"><span class="pre">Distance</span></tt> such that <tt class="docutils literal"><span class="pre">x</span> <span class="pre">+</span> <span class="pre">n</span> <span class="pre">==</span> <span class="pre">y</span></tt>.
+<tt class="docutils literal"><span class="pre">y</span> <span class="pre">==</span> <span class="pre">x</span> <span class="pre">+</span> <span class="pre">(y</span> <span class="pre">-</span> <span class="pre">x)</span></tt>.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">x</span> <span class="pre">-</span> <span class="pre">y</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">Distance</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">distance(y,Y(x))</span></tt></td>
+<td>pre: there exists a value <tt class="docutils literal"><span class="pre">n</span></tt> of
+<tt class="docutils literal"><span class="pre">Distance</span></tt> such that <tt class="docutils literal"><span class="pre">y</span> <span class="pre">+</span> <span class="pre">n</span> <span class="pre">==</span> <span class="pre">x</span></tt>.
+<tt class="docutils literal"><span class="pre">x</span> <span class="pre">==</span> <span class="pre">y</span> <span class="pre">+</span> <span class="pre">(x</span> <span class="pre">-</span> <span class="pre">y)</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="section" id="addition-to-lib-iterator-synopsis">
+<h2><a class="toc-backref" href="#id22">Addition to [lib.iterator.synopsis]</a></h2>
+<pre class="literal-block">
+// lib.iterator.traits, traits and tags
+template &lt;class Iterator&gt; struct is_readable_iterator;
+template &lt;class Iterator&gt; struct iterator_traversal;
+
+struct incrementable_traversal_tag { };
+struct single_pass_traversal_tag : incrementable_traversal_tag { };
+struct forward_traversal_tag : single_pass_traversal_tag { };
+struct bidirectional_traversal_tag : forward_traversal_tag { };
+struct random_access_traversal_tag : bidirectional_traversal_tag { };
+</pre>
+</div>
+<div class="section" id="addition-to-lib-iterator-traits">
+<h2><a class="toc-backref" href="#id23">Addition to [lib.iterator.traits]</a></h2>
+<p>The <tt class="docutils literal"><span class="pre">is_readable_iterator</span></tt> class
+template satisfies the <a class="reference external" href="http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1519.htm">UnaryTypeTrait</a> requirements.</p>
+<p>Given an iterator type <tt class="docutils literal"><span class="pre">X</span></tt>, <tt class="docutils literal"><span class="pre">is_readable_iterator&lt;X&gt;::value</span></tt>
+yields <tt class="docutils literal"><span class="pre">true</span></tt> if, for an object <tt class="docutils literal"><span class="pre">a</span></tt> of type <tt class="docutils literal"><span class="pre">X</span></tt>, <tt class="docutils literal"><span class="pre">*a</span></tt> is
+convertible to <tt class="docutils literal"><span class="pre">iterator_traits&lt;X&gt;::value_type</span></tt>, and <tt class="docutils literal"><span class="pre">false</span></tt>
+otherwise.</p>
+<p><tt class="docutils literal"><span class="pre">iterator_traversal&lt;X&gt;::type</span></tt> is</p>
+<pre class="literal-block">
+<em>category-to-traversal</em>(iterator_traits&lt;X&gt;::iterator_category)
+</pre>
+<p>where <em>category-to-traversal</em> is defined as follows</p>
+<pre class="literal-block" id="category-to-traversal">
+<em>category-to-traversal</em>(C) =
+    if (C is convertible to incrementable_traversal_tag)
+        return C;
+    else if (C is convertible to random_access_iterator_tag)
+        return random_access_traversal_tag;
+    else if (C is convertible to bidirectional_iterator_tag)
+        return bidirectional_traversal_tag;
+    else if (C is convertible to forward_iterator_tag)
+        return forward_traversal_tag;
+    else if (C is convertible to input_iterator_tag)
+        return single_pass_traversal_tag;
+    else if (C is convertible to output_iterator_tag)
+        return incrementable_traversal_tag;
+    else
+        <em>the program is ill-formed</em>
+</pre>
+</div>
+</div>
+<div class="section" id="footnotes">
+<h1><a class="toc-backref" href="#id24">Footnotes</a></h1>
+<p>The UnaryTypeTrait concept is defined in <a class="reference external" href="http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1519.htm">n1519</a>; the LWG is
+considering adding the requirement that specializations are derived
+from their nested <tt class="docutils literal"><span class="pre">::type</span></tt>.</p>
+<!-- LocalWords:  Abrahams Siek Witt const bool Sutter's WG int UL LI href Lvalue
+LocalWords:  ReadableIterator WritableIterator SwappableIterator cv pre iter
+LocalWords:  ConstantLvalueIterator MutableLvalueIterator CopyConstructible TR
+LocalWords:  ForwardTraversalIterator BidirectionalTraversalIterator lvalue
+LocalWords:  RandomAccessTraversalIterator dereferenceable Incrementable tmp
+LocalWords:  incrementable xxx min prev inplace png oldeqnew AccessTag struct
+LocalWords:  TraversalTag typename lvalues DWA Hmm JGS mis enum -->
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="new-iter-concepts.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>inplace_merge</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../mutating.html" title="Mutating algorithms">
+<link rel="prev" href="generate.html" title="generate">
+<link rel="next" href="merge.html" title="merge">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="generate.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mutating.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="merge.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_algorithms_mutating_inplace_merge">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="range.reference.algorithms.mutating.inplace_merge"></a><a class="link" href="inplace_merge.html" title="inplace_merge">inplace_merge</a>
+</h5></div></div></div>
+<h6>
+<a name="range.reference.algorithms.mutating.inplace_merge.h0"></a>
+            <span><a name="range.reference.algorithms.mutating.inplace_merge.prototype"></a></span><a class="link" href="inplace_merge.html#range.reference.algorithms.mutating.inplace_merge.prototype">Prototype</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalRange</span><span class="special">&gt;</span>
+<span class="identifier">BidirectionalRange</span><span class="special">&amp;</span>
+<span class="identifier">inplace_merge</span><span class="special">(</span> <span class="identifier">BidirectionalRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span>
+               <span class="keyword">typename</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">BidirectionalRange</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">middle</span> <span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalRange</span><span class="special">&gt;</span>
+<span class="keyword">const</span> <span class="identifier">BidirectionalRange</span><span class="special">&amp;</span>
+<span class="identifier">inplace_merge</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">BidirectionalRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span>
+               <span class="keyword">typename</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">BidirectionalRange</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">middle</span> <span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalRange</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span><span class="special">&gt;</span>
+<span class="identifier">BidirectionalRange</span><span class="special">&amp;</span>
+<span class="identifier">inplace_merge</span><span class="special">(</span> <span class="identifier">BidirectionalRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span>
+               <span class="keyword">typename</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">BidirectionalRange</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">middle</span><span class="special">,</span>
+               <span class="identifier">BinaryPredicate</span> <span class="identifier">pred</span> <span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalRange</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span><span class="special">&gt;</span>
+<span class="keyword">const</span> <span class="identifier">BidirectionalRange</span><span class="special">&amp;</span>
+<span class="identifier">inplace_merge</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">BidirectionalRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span>
+               <span class="keyword">typename</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">BidirectionalRange</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">middle</span><span class="special">,</span>
+               <span class="identifier">BinaryPredicate</span> <span class="identifier">pred</span> <span class="special">);</span>
+</pre>
+<p>
+          </p>
+<h6>
+<a name="range.reference.algorithms.mutating.inplace_merge.h1"></a>
+            <span><a name="range.reference.algorithms.mutating.inplace_merge.description"></a></span><a class="link" href="inplace_merge.html#range.reference.algorithms.mutating.inplace_merge.description">Description</a>
+          </h6>
+<p>
+            <code class="computeroutput"><span class="identifier">inplace_merge</span></code> combines
+            two consecutive sorted ranges <code class="computeroutput"><span class="special">[</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">),</span> <span class="identifier">middle</span><span class="special">)</span></code>
+            and <code class="computeroutput"><span class="special">[</span><span class="identifier">middle</span><span class="special">,</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">rng</span><span class="special">))</span></code> into a single sorted range <code class="computeroutput"><span class="special">[</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">rng</span><span class="special">))</span></code>. That is, it starts with a range <code class="computeroutput"><span class="special">[</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">rng</span><span class="special">))</span></code> that consists of two pieces each of
+            which is in ascending order, and rearranges it so that the entire range
+            is in ascending order. <code class="computeroutput"><span class="identifier">inplace_merge</span></code>
+            is stable, meaning both that the relative order of elements within each
+            input range is preserved.
+          </p>
+<h6>
+<a name="range.reference.algorithms.mutating.inplace_merge.h2"></a>
+            <span><a name="range.reference.algorithms.mutating.inplace_merge.definition"></a></span><a class="link" href="inplace_merge.html#range.reference.algorithms.mutating.inplace_merge.definition">Definition</a>
+          </h6>
+<p>
+            Defined in the header file <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">inplace_merge</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          </p>
+<h6>
+<a name="range.reference.algorithms.mutating.inplace_merge.h3"></a>
+            <span><a name="range.reference.algorithms.mutating.inplace_merge.requirements"></a></span><a class="link" href="inplace_merge.html#range.reference.algorithms.mutating.inplace_merge.requirements">Requirements</a>
+          </h6>
+<p>
+            <span class="bold"><strong>For the non-predicate version:</strong></span>
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">BidirectionalRange</span></code>
+                is a model of the <a class="link" href="../../../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                Range</a> Concept.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">BidirectionalRange</span></code>
+                is mutable.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">range_value</span><span class="special">&lt;</span><span class="identifier">BidirectionalRange</span><span class="special">&gt;::</span><span class="identifier">type</span></code> is a model of <code class="computeroutput"><span class="identifier">LessThanComparableConcept</span></code>
+              </li>
+<li class="listitem">
+                The ordering on objects of <code class="computeroutput"><span class="identifier">range_type</span><span class="special">&lt;</span><span class="identifier">BidirectionalRange</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                is a <span class="bold"><strong><span class="emphasis"><em>strict weak ordering</em></span></strong></span>,
+                as defined in the <code class="computeroutput"><span class="identifier">LessThanComparableConcept</span></code>
+                requirements.
+              </li>
+</ul></div>
+<p>
+            <span class="bold"><strong>For the predicate version:</strong></span> * <code class="computeroutput"><span class="identifier">BidirectionalRange</span></code> is a model of the
+            <a class="link" href="../../../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional Range</a>
+            Concept. * <code class="computeroutput"><span class="identifier">BidirectionalRange</span></code>
+            is mutable. * <code class="computeroutput"><span class="identifier">BinaryPredicate</span></code>
+            is a model of the <code class="computeroutput"><span class="identifier">StrictWeakOrderingConcept</span></code>.
+            * <code class="computeroutput"><span class="identifier">BidirectionalRange</span></code>'s
+            value type is convertible to both <code class="computeroutput"><span class="identifier">BinaryPredicate</span></code>'s
+            argument types.
+          </p>
+<h6>
+<a name="range.reference.algorithms.mutating.inplace_merge.h4"></a>
+            <span><a name="range.reference.algorithms.mutating.inplace_merge.precondition_"></a></span><a class="link" href="inplace_merge.html#range.reference.algorithms.mutating.inplace_merge.precondition_">Precondition:</a>
+          </h6>
+<h6>
+<a name="range.reference.algorithms.mutating.inplace_merge.h5"></a>
+            <span><a name="range.reference.algorithms.mutating.inplace_merge.for_the_non_predicate_version_"></a></span><a class="link" href="inplace_merge.html#range.reference.algorithms.mutating.inplace_merge.for_the_non_predicate_version_">For
+            the non-predicate version:</a>
+          </h6>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">middle</span></code> is in the
+                range <code class="computeroutput"><span class="identifier">rng</span></code>.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">),</span> <span class="identifier">middle</span><span class="special">)</span></code> is in ascending order. That is for
+                each pair of adjacent elements <code class="computeroutput"><span class="special">[</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">]</span></code>,
+                <code class="computeroutput"><span class="identifier">y</span> <span class="special">&lt;</span>
+                <span class="identifier">x</span></code> is <code class="computeroutput"><span class="keyword">false</span></code>.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">middle</span><span class="special">,</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">rng</span><span class="special">))</span></code> is in ascending order. That is
+                for each pair of adjacent elements <code class="computeroutput"><span class="special">[</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">]</span></code>,
+                <code class="computeroutput"><span class="identifier">y</span> <span class="special">&lt;</span>
+                <span class="identifier">x</span></code> is <code class="computeroutput"><span class="keyword">false</span></code>.
+              </li>
+</ul></div>
+<h6>
+<a name="range.reference.algorithms.mutating.inplace_merge.h6"></a>
+            <span><a name="range.reference.algorithms.mutating.inplace_merge.for_the_predicate_version_"></a></span><a class="link" href="inplace_merge.html#range.reference.algorithms.mutating.inplace_merge.for_the_predicate_version_">For
+            the predicate version:</a>
+          </h6>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">middle</span></code> is in the
+                range <code class="computeroutput"><span class="identifier">rng</span></code>.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">),</span> <span class="identifier">middle</span><span class="special">)</span></code> is in ascending order. That is for
+                each pair of adjacent elements <code class="computeroutput"><span class="special">[</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">]</span></code>,
+                <code class="computeroutput"><span class="identifier">pred</span><span class="special">(</span><span class="identifier">y</span><span class="special">,</span><span class="identifier">x</span><span class="special">)</span> <span class="special">==</span> <span class="keyword">false</span></code>.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">middle</span><span class="special">,</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">rng</span><span class="special">))</span></code> is in ascending order. That is
+                for each pair of adjacent elements <code class="computeroutput"><span class="special">[</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">]</span></code>,
+                <code class="computeroutput"><span class="identifier">pred</span><span class="special">(</span><span class="identifier">y</span><span class="special">,</span><span class="identifier">x</span><span class="special">)</span> <span class="special">==</span> <span class="keyword">false</span></code>.
+              </li>
+</ul></div>
+<h6>
+<a name="range.reference.algorithms.mutating.inplace_merge.h7"></a>
+            <span><a name="range.reference.algorithms.mutating.inplace_merge.complexity"></a></span><a class="link" href="inplace_merge.html#range.reference.algorithms.mutating.inplace_merge.complexity">Complexity</a>
+          </h6>
+<p>
+            Worst case: <code class="computeroutput"><span class="identifier">O</span><span class="special">(</span><span class="identifier">N</span> <span class="identifier">log</span><span class="special">(</span><span class="identifier">N</span><span class="special">))</span></code>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="generate.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mutating.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="merge.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

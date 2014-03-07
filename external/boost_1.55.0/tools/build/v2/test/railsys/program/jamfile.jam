@@ -1,0 +1,45 @@
+# ================================================================
+#
+#  Railsys
+#  --------------
+#
+#  Copyright (c) 2002 Institute of Transport, 
+#             Railway Construction and Operation, 
+#             University of Hanover, Germany
+#  Copyright (c) 2006 Jürgen Hunold
+#
+#  Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+#
+#  02/21/02! Jürgen Hunold
+#
+#  $Id: jamfile.jam 55188 2009-07-26 20:11:03Z danieljames $
+#
+# ================================================================
+
+local BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+
+use-project /libx : ../libx/src ;
+
+project program
+    : requirements 
+        <include>$(BOOST_ROOT)
+        <threading>multi
+        <library>/qt3//qt    
+        <hardcode-dll-paths>true
+        <stdlib>stlport
+        <use>/libx
+        <library>/libx//libx
+           
+ : usage-requirements 
+        <include>$(BOOST_ROOT)
+        : 
+        default-build release
+        <threading>multi
+        <library>/qt3//qt
+        <hardcode-dll-paths>true
+        ;
+
+build-project main ;
+

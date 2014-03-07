@@ -1,0 +1,14 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Oriya_Gujarati.txt
+# Generated from CLDR 
+#
+::[\u0B01-ଃଅ-ଌଏ-ଐଓ-ନପ-ରଲ-ଳଵ-ହ\u0B3C-\u0B43େ-ୈୋ-\u0B4D\u0B56-ୗଡ଼-ଢ଼ୟ-ୡ୦-ୱ];
+::NFD;
+::Oriya-InterIndic;
+::InterIndic-Gujarati;
+::NFC;

@@ -1,0 +1,550 @@
+[/
+    Boost.Optional
+
+    Copyright (c) 2003-2007 Fernando Luis Cacciola Carballal
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[section Definitions]
+
+[section Introduction]
+
+This section provides definitions of terms used in the Numeric Conversion library.
+
+[blurb [*Notation]
+[_underlined text] denotes terms defined in the C++ standard.
+
+[*bold face] denotes terms defined here but not in the standard.
+]
+
+[endsect]
+
+[section Types and Values]
+
+As defined by the [_C++ Object Model] (§1.7) the [_storage] or memory on which a
+C++ program runs is a contiguous sequence of [_bytes] where each byte is a
+contiguous sequence of bits.
+
+An [_object] is a region of storage (§1.8) and has a type (§3.9).
+
+A [_type] is a discrete set of values.
+
+An object of type `T` has an [_object representation] which is the sequence of
+bytes stored in the object (§3.9/4)
+
+An object of type `T` has a [_value representation] which is the set of
+bits that determine the ['value] of an object of that type (§3.9/4).
+For [_POD] types (§3.9/10), this bitset is given by the object representation,
+but not all the bits in the storage need to participate in the value
+representation (except for character types): for example, some bits might
+be used for padding or there may be trap-bits.
+
+__SPACE__
+
+The [*typed value] that is held by an object is the value which is determined
+by its value representation.
+
+An [*abstract value] (untyped) is the conceptual information that is
+represented in a type (i.e. the number π).
+
+The [*intrinsic value] of an object is the binary value of the sequence of
+unsigned characters which form its object representation.
+
+__SPACE__
+
+['Abstract] values can be [*represented] in a given type.
+
+To [*represent] an abstract value `V` in a type `T` is to obtain a typed value
+`v` which corresponds to the abstract value `V`.
+
+The operation is denoted using the `rep()` operator, as in: `v=rep(V)`.
+`v` is the [*representation] of `V` in the type `T`.
+
+For example, the abstract value π can be represented in the type
+`double` as the `double value M_PI` and in the type `int` as the
+`int value 3`
+
+__SPACE__
+
+Conversely, ['typed values] can be [*abstracted].
+
+To [*abstract] a typed value `v` of type `T` is to obtain the abstract value `V`
+whose representation in `T` is `v`.
+
+The operation is denoted using the `abt()` operator, as in: `V=abt(v)`.
+
+`V` is the [*abstraction] of `v` of type `T`.
+
+Abstraction is just an abstract operation (you can't do it); but it is
+defined nevertheless because it will be used to give the definitions in the
+rest of this document.
+
+[endsect]
+
+[section C++ Arithmetic Types]
+
+The C++ language defines [_fundamental types] (§3.9.1). The following subsets of
+the fundamental types are intended to represent ['numbers]:
+
+[variablelist
+[[[_signed integer types] (§3.9.1/2):][
+`{signed char, signed short int, signed int, signed long int}`
+Can be used to represent general integer numbers (both negative and positive).
+]]
+[[[_unsigned integer types] (§3.9.1/3):][
+`{unsigned char, unsigned short int, unsigned int, unsigned long int}`
+Can be used to represent positive integer numbers with modulo-arithmetic.
+]]
+[[[_floating-point types] (§3.9.1/8):][
+`{float,double,long double}`
+Can be used to represent real numbers.
+]]
+[[[_integral or integer types] (§3.9.1/7):][
+`{{signed integers},{unsigned integers}, bool, char and wchar_t}`
+]]
+[[[_arithmetic types] (§3.9.1/8):][
+`{{integer types},{floating types}}`
+]]
+]
+
+The integer types are required to have a ['binary] value representation.
+
+Additionally, the signed/unsigned integer types of the same base type
+(`short`, `int` or `long`) are required to have the same value representation,
+that is:
+
+             int i = -3 ; // suppose value representation is: 10011 (sign bit + 4 magnitude bits)
+    unsigned int u =  i ; // u is required to have the same 10011 as its value representation.
+
+In other words, the integer types signed/unsigned X use the same value
+representation but a different ['interpretation] of it; that is, their
+['typed values] might differ.
+
+Another consequence of this is that the range for signed X is always a smaller
+subset of the range of unsigned X, as required by §3.9.1/3.
+
+[note
+Always remember that unsigned types, unlike signed types, have modulo-arithmetic;
+that is, they do not overflow.
+This means that:
+
+[*-] Always be extra careful when mixing signed/unsigned types
+
+[*-] Use unsigned types only when you need modulo arithmetic or very very large
+numbers. Don't use unsigned types just because you intend to deal with
+positive values only (you can do this with signed types as well).
+]
+
+
+[endsect]
+
+[section Numeric Types]
+
+This section introduces the following definitions intended to integrate
+arithmetic types with user-defined types which behave like numbers.
+Some definitions are purposely broad in order to include a vast variety of
+user-defined number types.
+
+Within this library, the term ['number] refers to an abstract numeric value.
+
+A type is [*numeric] if:
+
+* It is an arithmetic type, or,
+* It is a user-defined type which
+    * Represents numeric abstract values (i.e. numbers).
+    * Can be converted (either implicitly or explicitly) to/from at least one arithmetic type.
+    * Has [link boost_numericconversion.definitions.range_and_precision range] (possibly unbounded) 
+      and [link boost_numericconversion.definitions.range_and_precision precision] (possibly dynamic or
+      unlimited).
+    * Provides an specialization of `std::numeric_limits`.
+
+A numeric type is [*signed] if the abstract values it represent include negative numbers.
+
+A numeric type is [*unsigned] if the abstract values it represent exclude negative numbers.
+
+A numeric type is [*modulo] if it has modulo-arithmetic (does not overflow).
+
+A numeric type is [*integer] if the abstract values it represent are whole numbers.
+
+A numeric type is [*floating] if the abstract values it represent are real numbers.
+
+An [*arithmetic value] is the typed value of an arithmetic type
+
+A [*numeric value] is the typed value of a numeric type
+
+These definitions simply generalize the standard notions of arithmetic types and
+values by introducing a superset called [_numeric]. All arithmetic types and values are
+numeric types and values, but not vice versa, since user-defined numeric types are not
+arithmetic types.
+
+The following examples clarify the differences between arithmetic and numeric
+types (and values):
+
+
+    // A numeric type which is not an arithmetic type (is user-defined)
+    // and which is intended to represent integer numbers (i.e., an 'integer' numeric type)
+    class MyInt
+    {
+        MyInt ( long long v ) ;
+        long long to_builtin();
+    } ;
+    namespace std {
+    template<> numeric_limits<MyInt> { ... } ;
+    }
+
+    // A 'floating' numeric type (double) which is also an arithmetic type (built-in),
+    // with a float numeric value.
+    double pi = M_PI ;
+
+    // A 'floating' numeric type with a whole numeric value.
+    // NOTE: numeric values are typed valued, hence, they are, for instance,
+    // integer or floating, despite the value itself being whole or including
+    // a fractional part.
+    double two = 2.0 ;
+
+    // An integer numeric type with an integer numeric value.
+    MyInt i(1234);
+
+
+[endsect]
+
+[section Range and Precision]
+
+Given a number set `N`, some of its elements are representable in a numeric type `T`.
+
+The set of representable values of type `T`, or numeric set of `T`, is a set of numeric
+values whose elements are the representation of some subset of `N`.
+
+For example, the interval of `int` values `[INT_MIN,INT_MAX]` is the set of representable
+values of type `int`, i.e. the `int` numeric set, and corresponds to the representation
+of the elements of the interval of abstract values `[abt(INT_MIN),abt(INT_MAX)]` from
+the integer numbers.
+
+Similarly, the interval of `double` values `[-DBL_MAX,DBL_MAX]` is the `double`
+numeric set, which corresponds to the subset of the real numbers from `abt(-DBL_MAX)` to
+`abt(DBL_MAX)`.
+
+__SPACE__
+
+Let [*`next(x)`] denote the lowest numeric value greater than x.
+
+Let [*`prev(x)`] denote the highest numeric value lower then x.
+
+Let [*`v=prev(next(V))`] and [*`v=next(prev(V))`] be identities that relate a numeric
+typed value `v` with a number `V`.
+
+An ordered pair of numeric values `x`,`y` s.t. `x<y` are [*consecutive] iff `next(x)==y`.
+
+The abstract distance between consecutive numeric values is usually referred to as a
+[_Unit in the Last Place], or [*ulp] for short. A ulp is a quantity whose abstract
+magnitude is relative to the numeric values it corresponds to: If the numeric set
+is not evenly distributed, that is, if the abstract distance between consecutive
+numeric values varies along the set -as is the case with the floating-point types-,
+the magnitude of 1ulp after the numeric value `x` might be (usually is) different
+from the magnitude of a 1ulp after the numeric value y for `x!=y`.
+
+Since numbers are inherently ordered, a [*numeric set] of type `T` is an ordered sequence
+of numeric values (of type `T`) of the form:
+
+    REP(T)={l,next(l),next(next(l)),...,prev(prev(h)),prev(h),h}
+
+where `l` and `h` are respectively the lowest and highest values of type `T`, called
+the boundary values of type `T`.
+
+__SPACE__
+
+A numeric set is discrete. It has a [*size] which is the number of numeric values in the set,
+a [*width] which is the abstract difference between the highest and lowest boundary values:
+`[abt(h)-abt(l)]`, and a [*density] which is the relation between its size and width:
+`density=size/width`.
+
+The integer types have density 1, which means that there are no unrepresentable integer
+numbers between `abt(l)` and `abt(h)` (i.e. there are no gaps). On the other hand,
+floating types have density much smaller than 1, which means that there are real numbers
+unrepresented between consecutive floating values (i.e. there are gaps).
+
+__SPACE__
+
+The interval of [_abstract values] `[abt(l),abt(h)]` is the range of the type `T`,
+denoted `R(T)`.
+
+A range is a set of abstract values and not a set of numeric values. In other
+documents, such as the C++ standard, the word `range` is ['sometimes] used as synonym
+for `numeric set`, that is, as the ordered sequence of numeric values from `l` to `h`.
+In this document, however, a range is an abstract interval which subtends the
+numeric set.
+
+For example, the sequence `[-DBL_MAX,DBL_MAX]` is the numeric set of the type
+`double`, and the real interval `[abt(-DBL_MAX),abt(DBL_MAX)]` is its range.
+
+Notice, for instance, that the range of a floating-point type is ['continuous]
+unlike its numeric set.
+
+This definition was chosen because:
+
+* [*(a)] The discrete set of numeric values is already given by the numeric set.
+* [*(b)] Abstract intervals are easier to compare and overlap since only boundary
+values need to be considered.
+
+This definition allows for a concise definition of `subranged` as given in the last section.
+
+The width of a numeric set, as defined, is exactly equivalent to the width of a range.
+
+__SPACE__
+
+The [*precision] of a type is given by the width or density of the numeric set.
+
+For integer types, which have density 1, the precision is conceptually equivalent
+to the range and is determined by the number of bits used in the value representation:
+The higher the number of bits the bigger the size of the numeric set, the wider the
+range, and the higher the precision.
+
+For floating types, which have density <<1, the precision is given not by the width
+of the range but by the density. In a typical implementation, the range is determined
+by the number of bits used in the exponent, and the precision by the number of bits
+used in the mantissa (giving the maximum number of significant digits that can be
+exactly represented). The higher the number of exponent bits the wider the range,
+while the higher the number of mantissa bits, the higher the precision.
+
+[endsect]
+
+[section Exact, Correctly Rounded and Out-Of-Range Representations]
+
+Given an abstract value `V` and a type `T` with its corresponding range `[abt(l),abt(h)]`:
+
+If `V < abt(l)` or `V > abt(h)`, `V` is [*not representable] (cannot be represented) in
+the type `T`, or, equivalently, it's representation in the type `T` is [*out of range],
+or [*overflows].
+
+* If `V < abt(l)`, the [*overflow is negative].
+* If `V > abt(h)`, the [*overflow is positive].
+
+If `V >= abt(l)` and `V <= abt(h)`, `V` is [*representable] (can be represented) in the
+type `T`, or, equivalently, its representation in the type `T` is [*in range], or
+[*does not overflow].
+
+Notice that a numeric type, such as a C++ unsigned type, can define that any `V` does
+not overflow by always representing not `V` itself but the abstract value
+`U = [ V % (abt(h)+1) ]`, which is always in range.
+
+Given an abstract value `V` represented in the type `T` as `v`, the [*roundoff] error
+of the representation is the abstract difference: `(abt(v)-V)`.
+
+Notice that a representation is an ['operation], hence, the roundoff error corresponds
+to the representation operation and not to the numeric value itself
+(i.e. numeric values do not have any error themselves)
+
+* If the roundoff is 0, the representation is [*exact], and `V` is exactly representable
+in the type `T`.
+* If the roundoff is not 0, the representation is [*inexact], and `V` is inexactly
+representable in the type `T`.
+
+If a representation `v` in a type `T` -either exact or inexact-, is any of the adjacents
+of `V` in that type, that is, if `v==prev` or `v==next`, the representation is
+faithfully rounded. If the choice between `prev` and `next` matches a given
+[*rounding direction], it is [*correctly rounded].
+
+All exact representations are correctly rounded, but not all inexact representations are.
+In particular, C++ requires numeric conversions (described below) and the result of
+arithmetic operations (not covered by this document) to be correctly rounded, but
+batch operations propagate roundoff, thus final results are usually incorrectly
+rounded, that is, the numeric value `r` which is the computed result is neither of
+the adjacents of the abstract value `R` which is the theoretical result.
+
+Because a correctly rounded representation is always one of adjacents of the abstract
+value being represented, the roundoff is guaranteed to be at most 1ulp.
+
+The following examples summarize the given definitions. Consider:
+
+* A numeric type `Int` representing integer numbers with a
+['numeric set]: `{-2,-1,0,1,2}` and
+['range]: `[-2,2]`
+* A numeric type `Cardinal` representing integer numbers with a
+['numeric set]: `{0,1,2,3,4,5,6,7,8,9}` and
+['range]: `[0,9]` (no modulo-arithmetic here)
+* A numeric type `Real` representing real numbers with a
+['numeric set]: `{-2.0,-1.5,-1.0,-0.5,-0.0,+0.0,+0.5,+1.0,+1.5,+2.0}` and
+['range]: `[-2.0,+2.0]`
+* A numeric type `Whole` representing real numbers with a
+['numeric set]: `{-2.0,-1.0,0.0,+1.0,+2.0}` and
+['range]: `[-2.0,+2.0]`
+
+First, notice that the types `Real` and `Whole` both represent real numbers,
+have the same range, but different precision.
+
+* The integer number `1` (an abstract value) can be exactly represented
+in any of these types.
+* The integer number `-1` can be exactly represented in `Int`, `Real` and `Whole`,
+but cannot be represented in `Cardinal`, yielding negative overflow.
+* The real number `1.5` can be exactly represented in `Real`, and inexactly
+represented in the other types.
+* If `1.5` is represented as either `1` or `2` in any of the types (except `Real`),
+the representation is correctly rounded.
+* If `0.5` is represented as `+1.5` in the type `Real`, it is incorrectly rounded.
+* `(-2.0,-1.5)` are the `Real` adjacents of any real number in the interval
+`[-2.0,-1.5]`, yet there are no `Real` adjacents for `x < -2.0`, nor for `x > +2.0`.
+
+[endsect]
+
+[section Standard (numeric) Conversions]
+
+The C++ language defines [_Standard Conversions] (§4) some of which are conversions
+between arithmetic types.
+
+These are [_Integral promotions] (§4.5), [_Integral conversions] (§4.7),
+[_Floating point promotions] (§4.6), [_Floating point conversions] (§4.8) and
+[_Floating-integral conversions] (§4.9).
+
+In the sequel, integral and floating point promotions are called [*arithmetic promotions],
+and these plus integral, floating-point and floating-integral conversions are called
+[*arithmetic conversions] (i.e, promotions are conversions).
+
+Promotions, both Integral and Floating point, are ['value-preserving], which means that
+the typed value is not changed with the conversion.
+
+In the sequel, consider a source typed value `s` of type `S`, the source abstract
+value `N=abt(s)`, a destination type `T`; and whenever possible, a result typed value
+`t` of type `T`.
+
+
+Integer to integer conversions are always defined:
+
+* If `T` is unsigned, the abstract value which is effectively represented is not
+`N` but `M=[ N % ( abt(h) + 1 ) ]`, where `h` is the highest unsigned typed
+value of type `T`.
+* If `T` is signed and `N` is not directly representable, the result `t` is
+[_implementation-defined], which means that the C++ implementation is required to
+produce a value `t` even if it is totally unrelated to `s`.
+
+
+Floating to Floating conversions are defined only if `N` is representable;
+if it is not, the conversion has [_undefined behavior].
+
+* If `N` is exactly representable, `t` is required to be the exact representation.
+* If `N` is inexactly representable, `t` is required to be one of the two
+adjacents, with an implementation-defined choice of rounding direction;
+that is, the conversion is required to be correctly rounded.
+
+
+Floating to Integer conversions represent not `N` but `M=trunc(N)`, were
+`trunc()` is to truncate: i.e. to remove the fractional part, if any.
+
+* If `M` is not representable in `T`, the conversion has [_undefined behavior]
+(unless `T` is `bool`, see §4.12).
+
+
+Integer to Floating conversions are always defined.
+
+* If `N` is exactly representable, `t` is required to be the exact representation.
+* If `N` is inexactly representable, `t` is required to be one of the
+two adjacents, with an implementation-defined choice of rounding direction;
+that is, the conversion is required to be correctly rounded.
+
+[endsect]
+
+[section Subranged Conversion Direction, Subtype and Supertype]
+
+Given a source type `S` and a destination type `T`, there is a
+[*conversion direction] denoted: `S->T`.
+
+For any two ranges the following ['range relation] can be defined:
+A range `X` can be ['entirely contained] in a range `Y`, in which case
+it is said that `X` is enclosed by `Y`.
+
+[: [*Formally:] `R(S)` is enclosed by `R(T)` iif `(R(S) intersection R(T)) == R(S)`.]
+
+If the source type range, `R(S)`, is not enclosed in the target type range,
+`R(T)`; that is, if `(R(S) & R(T)) != R(S)`, the conversion direction is said
+to be [*subranged], which means that `R(S)` is not entirely contained in `R(T)`
+and therefore there is some portion of the source range which falls outside
+the target range. In other words, if a conversion direction `S->T` is subranged,
+there are values in `S` which cannot be represented in `T` because they are
+out of range.
+Notice that for `S->T`, the adjective subranged applies to `T`.
+
+Examples:
+
+Given the following numeric types all representing real numbers:
+
+* `X` with numeric set `{-2.0,-1.0,0.0,+1.0,+2.0}` and range `[-2.0,+2.0]`
+* `Y` with numeric set `{-2.0,-1.5,-1.0,-0.5,0.0,+0.5,+1.0,+1.5,+2.0}` and range `[-2.0,+2.0]`
+* `Z` with numeric set `{-1.0,0.0,+1.0}` and range `[-1.0,+1.0]`
+
+For:
+
+[variablelist
+[[(a) X->Y:][
+`R(X) & R(Y) == R(X)`, then `X->Y` is not subranged.
+Thus, all values of type `X` are representable in the type `Y`.
+]]
+[[(b) Y->X:][
+`R(Y) & R(X) == R(Y)`, then `Y->X` is not subranged.
+Thus, all values of type `Y` are representable in the type `X`, but in this case,
+some values are ['inexactly] representable (all the halves).
+(note: it is to permit this case that a range is an interval of abstract values and
+not an interval of typed values)
+]]
+[[(b) X->Z:][
+`R(X) & R(Z) != R(X)`, then `X->Z` is subranged.
+Thus, some values of type `X` are not representable in the type `Z`, they fall
+out of range `(-2.0 and +2.0)`.
+]]
+]
+
+It is possible that `R(S)` is not enclosed by `R(T)`, while neither is `R(T)` enclosed
+by `R(S)`; for example, `UNSIG=[0,255]` is not enclosed by `SIG=[-128,127]`;
+neither is `SIG` enclosed by `UNSIG`.
+This implies that is possible that a conversion direction is subranged both ways.
+This occurs when a mixture of signed/unsigned types are involved and indicates that
+in both directions there are values which can fall out of range.
+
+Given the range relation (subranged or not) of a conversion direction `S->T`, it
+is possible to classify `S` and `T` as [*supertype] and [*subtype]:
+If the conversion is subranged, which means that `T` cannot represent all possible
+values of type `S`, `S` is the supertype and `T` the subtype; otherwise, `T` is the
+supertype and `S` the subtype.
+
+For example:
+
+[: `R(float)=[-FLT_MAX,FLT_MAX]` and `R(double)=[-DBL_MAX,DBL_MAX]` ]
+
+If `FLT_MAX < DBL_MAX`:
+
+* `double->float` is subranged and `supertype=double`, `subtype=float`.
+* `float->double` is not subranged and `supertype=double`, `subtype=float`.
+
+Notice that while `double->float` is subranged, `float->double` is not,
+which yields the same supertype,subtype for both directions.
+
+Now consider:
+
+[: `R(int)=[INT_MIN,INT_MAX]` and `R(unsigned int)=[0,UINT_MAX]` ]
+
+A C++ implementation is required to have `UINT_MAX > INT_MAX` (§3.9/3), so:
+
+* 'int->unsigned' is subranged (negative values fall out of range)
+and `supertype=int`, `subtype=unsigned`.
+* 'unsigned->int' is ['also] subranged (high positive values fall out of range)
+and `supertype=unsigned`, `subtype=int`.
+
+In this case, the conversion is subranged in both directions and the
+supertype,subtype pairs are not invariant (under inversion of direction).
+This indicates that none of the types can represent all the values of the other.
+
+When the supertype is the same for both `S->T` and `T->S`, it is effectively
+indicating a type which can represent all the values of the subtype.
+Consequently, if a conversion `X->Y` is not subranged, but the opposite `(Y->X)` is,
+so that the supertype is always `Y`, it is said that the direction `X->Y` is [*correctly
+rounded value preserving], meaning that all such conversions are guaranteed to
+produce results in range and correctly rounded (even if inexact).
+For example, all integer to floating conversions are correctly rounded value preserving.
+
+[endsect]
+
+[endsect]
+
+

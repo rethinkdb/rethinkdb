@@ -1,0 +1,236 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/shi.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/shi.xml
+ */
+shi{
+    Currencies{
+        AED{
+            "AED",
+            "adrim n limarat",
+        }
+        AOA{
+            "Kz",
+            "kwanza n angula",
+        }
+        AUD{
+            "AU$",
+            "adular n ustralya",
+        }
+        BHD{
+            "BD",
+            "adinar n bḥrayn",
+        }
+        BIF{
+            "FBu",
+            "frank n burundi",
+        }
+        BWP{
+            "BWP",
+            "abula n butswana",
+        }
+        CAD{
+            "CA$",
+            "adular n kanada",
+        }
+        CDF{
+            "CDF",
+            "frank n kungu",
+        }
+        CHF{
+            "CHF",
+            "afrank n swisra",
+        }
+        CNY{
+            "CN¥",
+            "ayan n ccinwa",
+        }
+        CVE{
+            "CV$",
+            "iskudu n kabbirdi",
+        }
+        DJF{
+            "Fdj",
+            "frank n djibuti",
+        }
+        DZD{
+            "DA",
+            "adinar n dzayr",
+        }
+        EGP{
+            "EGP",
+            "ajnih n miṣṛ",
+        }
+        ERN{
+            "Nfk",
+            "nafka n iritirya",
+        }
+        ETB{
+            "Br",
+            "bir n ityubya",
+        }
+        EUR{
+            "€",
+            "uru",
+        }
+        GBP{
+            "£",
+            "ajnih astrlini n nngliz",
+        }
+        GHC{
+            "₵",
+            "sidi n ɣana",
+        }
+        GMD{
+            "GMD",
+            "dalasi n gambya",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "frank n ɣinya",
+        }
+        INR{
+            "Rs",
+            "arubi n lhind",
+        }
+        JPY{
+            "JP¥",
+            "ayan n lyaban",
+        }
+        KES{
+            "Ksh",
+            "acilin n kinya",
+        }
+        KMF{
+            "CF",
+            "frank n qumuṛ",
+        }
+        LRD{
+            "L$",
+            "adular n libirya",
+        }
+        LSL{
+            "LSL",
+            "luti n liṣuṭu",
+        }
+        LYD{
+            "LD",
+            "adinar n libya",
+        }
+        MAD{
+            "MAD",
+            "adrim n lmɣrib",
+        }
+        MGA{
+            "MGA",
+            "frank n madaɣacqar",
+        }
+        MRO{
+            "UM",
+            "uqiyya n muṛiṭanya",
+        }
+        MUR{
+            "MURs",
+            "arubi n muris",
+        }
+        MWK{
+            "MWK",
+            "kwaca n malawi",
+        }
+        MZM{
+            "Mt",
+            "amitikl n muznbiq",
+        }
+        NAD{
+            "N$",
+            "adular n namibya",
+        }
+        NGN{
+            "₦",
+            "nayra n nijirya",
+        }
+        RWF{
+            "RWF",
+            "afrank n rwanda",
+        }
+        SAR{
+            "SR",
+            "aryal n ssaɛudiya",
+        }
+        SCR{
+            "SRe",
+            "arubi n ssicil",
+        }
+        SDG{
+            "SDG",
+            "adinar n ssudan",
+        }
+        SDP{
+            "SDP" /** ===  */,
+            "ajnih n ssudan",
+        }
+        SHP{
+            "SH£",
+            "ajnih n santilin",
+        }
+        SLL{
+            "Le",
+            "liyun",
+        }
+        SOS{
+            "Ssh",
+            "acilin n ṣṣumal",
+        }
+        STD{
+            "Db",
+            "adubra n sanṭumi",
+        }
+        SZL{
+            "SZL",
+            "lilanjini",
+        }
+        TND{
+            "DT",
+            "adinar n tuns",
+        }
+        TZS{
+            "TSh",
+            "acilin n ṭanẓanya",
+        }
+        UGX{
+            "USh",
+            "acilin n uɣanda",
+        }
+        USD{
+            "US$",
+            "adular n iwunak imunn",
+        }
+        XAF{
+            "FCFA",
+            "frank ṣifa",
+        }
+        XOF{
+            "CFA",
+            "frank ṣifa bisaw",
+        }
+        ZAR{
+            "R",
+            "arand n afriqya n iffus",
+        }
+        ZMK{
+            "ZK",
+            "akwaca n zambya",
+        }
+        ZWD{
+            "Z$",
+            "adular n zimbabwi",
+        }
+    }
+    Version{"2.0.45.90"}
+}

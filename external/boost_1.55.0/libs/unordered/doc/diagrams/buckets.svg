@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   version="1.0"
+   width="507.85925"
+   height="400.45422"
+   viewBox="1.33 0.95 6.01 4.09"
+   id="svg2">
+  <defs
+     id="defs95" />
+  <rect
+     width="6.0023117"
+     height="4.0815721"
+     x="1.3310578"
+     y="0.95080346"
+     id="rect4"
+     style="fill:#e5e5e5;stroke:none;stroke-width:0" />
+  <rect
+     width="6.0023117"
+     height="4.0815721"
+     x="1.3310578"
+     y="0.95080346"
+     id="rect6"
+     style="opacity:1;fill:none;stroke:#000000;stroke-width:0.02400924" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="1.5711501"
+     y="1.1908962"
+     id="rect8"
+     style="fill:#ffffff;stroke:none;stroke-width:0" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="1.5711501"
+     y="1.1908962"
+     id="rect10"
+     style="fill:none;stroke:#000000;stroke-width:0.02400924" />
+  <text
+     x="1.7289008"
+     y="1.4950322"
+     id="text12"
+     style="font-size:0.19207397px;font-style:normal;font-weight:400;text-anchor:start;fill:#000000;font-family:sans">Bucket 1</text>
+  <line
+     x1="1.5711501"
+     y1="1.6710808"
+     x2="2.7716124"
+     y2="1.6710808"
+     id="line14"
+     style="stroke:#000000;stroke-width:0.02400924" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="3.0117054"
+     y="1.1908962"
+     id="rect16"
+     style="fill:#ffffff;stroke:none;stroke-width:0" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="3.0117054"
+     y="1.1908962"
+     id="rect18"
+     style="fill:none;stroke:#000000;stroke-width:0.02400924" />
+  <text
+     x="3.1603069"
+     y="1.4950322"
+     id="text20"
+     style="font-size:0.19207397px;font-style:normal;font-weight:400;text-anchor:start;fill:#000000;font-family:sans">Bucket 2</text>
+  <line
+     x1="3.0117054"
+     y1="1.6710808"
+     x2="4.2121677"
+     y2="1.6710808"
+     id="line22"
+     style="stroke:#000000;stroke-width:0.02400924" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="4.4522605"
+     y="1.1908962"
+     id="rect24"
+     style="fill:#ffffff;stroke:none;stroke-width:0" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="4.4522605"
+     y="1.1908962"
+     id="rect26"
+     style="fill:none;stroke:#000000;stroke-width:0.02400924" />
+  <text
+     x="4.5917125"
+     y="1.4950322"
+     id="text28"
+     style="font-size:0.19207397px;font-style:normal;font-weight:400;text-anchor:start;fill:#000000;font-family:sans">Bucket 3</text>
+  <line
+     x1="4.4522605"
+     y1="1.6710808"
+     x2="5.6527228"
+     y2="1.6710808"
+     id="line30"
+     style="stroke:#000000;stroke-width:0.02400924" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="5.8928151"
+     y="1.1908962"
+     id="rect32"
+     style="fill:#ffffff;stroke:none;stroke-width:0" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="5.8928151"
+     y="1.1908962"
+     id="rect34"
+     style="fill:none;stroke:#000000;stroke-width:0.02400924" />
+  <text
+     x="6.0688629"
+     y="1.4858831"
+     id="text36"
+     style="font-size:0.19207397px;font-style:normal;font-weight:400;text-anchor:start;fill:#000000;font-family:sans">Bucket 4</text>
+  <line
+     x1="5.8928151"
+     y1="1.6710808"
+     x2="7.093277"
+     y2="1.6710808"
+     id="line38"
+     style="stroke:#000000;stroke-width:0.02400924" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="2.2941716"
+     y="3.1054616"
+     id="rect40"
+     style="fill:#ffffff;stroke:none;stroke-width:0" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="2.2941716"
+     y="3.1054616"
+     id="rect42"
+     style="fill:none;stroke:#000000;stroke-width:0.02400924" />
+  <text
+     x="2.4427731"
+     y="3.4187472"
+     id="text44"
+     style="font-size:0.19207397px;font-style:normal;font-weight:400;text-anchor:start;fill:#000000;font-family:sans">Bucket 5</text>
+  <line
+     x1="2.2941716"
+     y1="3.5856469"
+     x2="3.4946339"
+     y2="3.5856469"
+     id="line46"
+     style="stroke:#000000;stroke-width:0.02400924" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="3.7347264"
+     y="3.1054616"
+     id="rect48"
+     style="fill:#ffffff;stroke:none;stroke-width:0" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="3.7347264"
+     y="3.1054616"
+     id="rect50"
+     style="fill:none;stroke:#000000;stroke-width:0.02400924" />
+  <text
+     x="3.8833277"
+     y="3.4187472"
+     id="text52"
+     style="font-size:0.19207397px;font-style:normal;font-weight:400;text-anchor:start;fill:#000000;font-family:sans">Bucket 6</text>
+  <line
+     x1="3.7347264"
+     y1="3.5856469"
+     x2="4.9351892"
+     y2="3.5856469"
+     id="line54"
+     style="stroke:#000000;stroke-width:0.02400924" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="5.175281"
+     y="3.1054616"
+     id="rect56"
+     style="fill:#ffffff;stroke:none;stroke-width:0" />
+  <rect
+     width="1.2004625"
+     height="1.6806473"
+     x="5.175281"
+     y="3.1054616"
+     id="rect58"
+     style="fill:none;stroke:#000000;stroke-width:0.02400924" />
+  <text
+     x="5.3330317"
+     y="3.4187472"
+     id="text60"
+     style="font-size:0.19207397px;font-style:normal;font-weight:400;text-anchor:start;fill:#000000;font-family:sans">Bucket 7</text>
+  <line
+     x1="5.175281"
+     y1="3.5856469"
+     x2="6.3757439"
+     y2="3.5856469"
+     id="line62"
+     style="stroke:#000000;stroke-width:0.02400924" />
+  <ellipse
+     cx="7.1999998"
+     cy="4.0110002"
+     rx="0.308"
+     ry="0.308"
+     transform="matrix(0.6859785,0,0,0.6859785,1.3310577,-0.7298436)"
+     id="ellipse64"
+     style="fill:#ffffff;stroke:none" />
+  <ellipse
+     cx="7.1999998"
+     cy="4.0110002"
+     rx="0.308"
+     ry="0.308"
+     transform="matrix(0.6859785,0,0,0.6859785,1.3310577,-0.7298436)"
+     id="ellipse66"
+     style="fill:none;stroke:#000000;stroke-width:0.035" />
+  <text
+     x="6.1443377"
+     y="2.1364057"
+     id="text68"
+     style="font-size:0.34038281px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#000000;font-family:Sans;-inkscape-font-specification:Sans">A</text>
+  <ellipse
+     cx="3.007"
+     cy="4.0300002"
+     rx="0.308"
+     ry="0.308"
+     transform="matrix(0.6859785,0,0,0.6859785,1.3310577,-0.7298436)"
+     id="ellipse70"
+     style="fill:#ffffff;stroke:none" />
+  <ellipse
+     cx="3.007"
+     cy="4.0300002"
+     rx="0.308"
+     ry="0.308"
+     transform="matrix(0.6859785,0,0,0.6859785,1.3310577,-0.7298436)"
+     id="ellipse72"
+     style="fill:none;stroke:#000000;stroke-width:0.035" />
+  <text
+     x="3.2742035"
+     y="2.1540098"
+     id="text74"
+     style="font-size:0.34038281px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#000000;font-family:Sans;-inkscape-font-specification:Sans">B</text>
+  <ellipse
+     cx="4.0599999"
+     cy="6.7820001"
+     rx="0.308"
+     ry="0.308"
+     transform="matrix(0.6859785,0,0,0.6859785,1.3310577,-0.7298436)"
+     id="ellipse76"
+     style="fill:#ffffff;stroke:none" />
+  <ellipse
+     cx="4.0599999"
+     cy="6.7820001"
+     rx="0.308"
+     ry="0.308"
+     transform="matrix(0.6859785,0,0,0.6859785,1.3310577,-0.7298436)"
+     id="ellipse78"
+     style="fill:none;stroke:#000000;stroke-width:0.035" />
+  <text
+     x="3.976877"
+     y="4.0473108"
+     id="text80"
+     style="font-size:0.34038281px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#000000;font-family:Sans;-inkscape-font-specification:Sans">C</text>
+  <ellipse
+     cx="7.8449998"
+     cy="4.6550002"
+     rx="0.308"
+     ry="0.308"
+     transform="matrix(0.6859785,0,0,0.6859785,1.3310577,-0.7298436)"
+     id="ellipse82"
+     style="fill:#ffffff;stroke:none" />
+  <ellipse
+     cx="7.8449998"
+     cy="4.6550002"
+     rx="0.308"
+     ry="0.308"
+     transform="matrix(0.6859785,0,0,0.6859785,1.3310577,-0.7298436)"
+     id="ellipse84"
+     style="fill:none;stroke:#000000;stroke-width:0.035" />
+  <text
+     x="6.5808516"
+     y="2.5937216"
+     id="text86"
+     style="font-size:0.34038281px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#000000;font-family:Sans;-inkscape-font-specification:Sans">D</text>
+  <ellipse
+     cx="0.87"
+     cy="4.0079999"
+     rx="0.308"
+     ry="0.308"
+     transform="matrix(0.6859785,0,0,0.6859785,1.3310577,-0.7298436)"
+     id="ellipse88"
+     style="fill:#ffffff;stroke:none" />
+  <ellipse
+     cx="0.87"
+     cy="4.0079999"
+     rx="0.308"
+     ry="0.308"
+     transform="matrix(0.6859785,0,0,0.6859785,1.3310577,-0.7298436)"
+     id="ellipse90"
+     style="fill:none;stroke:#000000;stroke-width:0.035" />
+  <text
+     x="1.7991183"
+     y="2.1403852"
+     id="text92"
+     style="font-size:0.34038281px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#000000;font-family:Sans;-inkscape-font-specification:Sans">E</text>
+</svg>

@@ -1,0 +1,331 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Using the library</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../lambda.html" title="Chapter&#160;16.&#160;Boost.Lambda">
+<link rel="prev" href="s03.html" title="Introduction">
+<link rel="next" href="le_in_details.html" title="Lambda expressions in details">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="s03.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="le_in_details.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="lambda.using_library"></a>Using the library</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="using_library.html#lambda.introductory_examples">Introductory Examples</a></span></dt>
+<dt><span class="section"><a href="using_library.html#lambda.parameter_and_return_types">Parameter and return types of lambda functors</a></span></dt>
+<dt><span class="section"><a href="using_library.html#lambda.actual_arguments_to_lambda_functors">About actual arguments to lambda functors</a></span></dt>
+<dt><span class="section"><a href="using_library.html#lambda.storing_bound_arguments">Storing bound arguments in lambda functions</a></span></dt>
+</dl></div>
+<p>
+The purpose of this section is to introduce the basic functionality of the library.
+There are quite a lot of exceptions and special cases, but discussion of them is postponed until later sections.
+
+
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.introductory_examples"></a>Introductory Examples</h3></div></div></div>
+<p>
+	In this section we give basic examples of using BLL lambda expressions in STL algorithm invocations. 
+	We start with some simple expressions and work up. 
+	First, we initialize the elements of a container, say, a <code class="literal">list</code>, to the value <code class="literal">1</code>:
+
+
+	</p>
+<pre class="programlisting">
+list&lt;int&gt; v(10);
+for_each(v.begin(), v.end(), _1 = 1);</pre>
+<p>
+
+	The expression <code class="literal">_1 = 1</code> creates a lambda functor which assigns the value <code class="literal">1</code> to every element in <code class="literal">v</code>.<a href="#ftn.idp153285688" class="footnote" name="idp153285688"><sup class="footnote">[3]</sup></a>
+      </p>
+<p>
+	Next, we create a container of pointers and make them point to the elements in the first container <code class="literal">v</code>:
+
+	</p>
+<pre class="programlisting">
+vector&lt;int*&gt; vp(10); 
+transform(v.begin(), v.end(), vp.begin(), &amp;_1);</pre>
+<p>
+
+The expression <code class="literal">&amp;_1</code> creates a function object for getting the address of each element in <code class="literal">v</code>.
+The addresses get assigned to the corresponding elements in <code class="literal">vp</code>.
+      </p>
+<p>
+	The next code fragment changes the values in <code class="literal">v</code>. 
+	For each element, the function <code class="literal">foo</code> is called. 
+The original value of the element is passed as an argument to <code class="literal">foo</code>.
+The result of <code class="literal">foo</code> is assigned back to the element:
+
+
+	</p>
+<pre class="programlisting">
+int foo(int);
+for_each(v.begin(), v.end(), _1 = bind(foo, _1));</pre>
+<p>
+      </p>
+<p>
+	The next step is to sort the elements of <code class="literal">vp</code>:
+	
+	</p>
+<pre class="programlisting">sort(vp.begin(), vp.end(), *_1 &gt; *_2);</pre>
+<p>
+
+	In this call to <code class="literal">sort</code>, we are sorting the elements by their contents in descending order. 
+      </p>
+<p>
+	Finally, the following <code class="literal">for_each</code> call outputs the sorted content of <code class="literal">vp</code> separated by line breaks:
+
+</p>
+<pre class="programlisting">
+for_each(vp.begin(), vp.end(), cout &lt;&lt; *_1 &lt;&lt; '\n');
+</pre>
+<p>
+
+Note that a normal (non-lambda) expression as subexpression of a lambda expression is evaluated immediately.  
+This may cause surprises. 
+For instance, if the previous example is rewritten as
+</p>
+<pre class="programlisting">
+for_each(vp.begin(), vp.end(), cout &lt;&lt; '\n' &lt;&lt; *_1);
+</pre>
+<p>
+the subexpression <code class="literal">cout &lt;&lt; '\n'</code> is evaluated immediately and the effect is to output a single line break, followed by the elements of <code class="literal">vp</code>.
+The BLL provides functions <code class="literal">constant</code> and <code class="literal">var</code> to turn constants and, respectively, variables into lambda expressions, and can be used to prevent the immediate evaluation of subexpressions:
+</p>
+<pre class="programlisting">
+for_each(vp.begin(), vp.end(), cout &lt;&lt; constant('\n') &lt;&lt; *_1);
+</pre>
+<p>
+These functions are described more thoroughly in <a class="xref" href="le_in_details.html#lambda.delaying_constants_and_variables" title="Delaying constants and variables">the section called &#8220;Delaying constants and variables&#8221;</a>
+
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.parameter_and_return_types"></a>Parameter and return types of lambda functors</h3></div></div></div>
+<p>
+	During the invocation of a lambda functor, the actual arguments are substituted for the placeholders. 
+	The placeholders do not dictate the type of these actual arguments.
+	The basic rule is that a lambda function can be called with arguments of any types, as long as the lambda expression with substitutions performed is a valid C++ expression. 
+	As an example, the expression
+	<code class="literal">_1 + _2</code> creates a binary lambda functor. 
+	It can be called with two objects of any types <code class="literal">A</code> and <code class="literal">B</code> for which <code class="literal">operator+(A,B)</code> is defined (and for which BLL knows the return type of the operator, see below).
+      </p>
+<p>
+	C++ lacks a mechanism to query a type of an expression. 
+	However, this precise mechanism is crucial for the implementation of C++ lambda expressions.
+	Consequently, BLL includes a somewhat complex type deduction system which uses a set of traits classes for deducing the resulting type of lambda functions.
+	It handles expressions where the operands are of built-in types and many of the expressions with operands of standard library types.
+	Many of the user defined types are covered as well, particularly if the user defined operators obey normal conventions in defining the return types. 
+      </p>
+<p>
+	There are, however, cases when the return type cannot be deduced. For example, suppose you have defined:
+
+	</p>
+<pre class="programlisting">C operator+(A, B);</pre>
+<p>
+
+	The following lambda function invocation fails, since the return type cannot be deduced:
+
+	</p>
+<pre class="programlisting">A a; B b; (_1 + _2)(a, b);</pre>
+<p>
+      </p>
+<p>
+	There are two alternative solutions to this. 
+	The first is to extend the BLL type deduction system to cover your own types (see <a class="xref" href="extending.html" title="Extending return type deduction system">the section called &#8220;Extending return type deduction system&#8221;</a>). 
+	The second is to use a special lambda expression (<code class="literal">ret</code>) which defines the return type in place (see <a class="xref" href="le_in_details.html#lambda.overriding_deduced_return_type" title="Overriding the deduced return type">the section called &#8220;Overriding the deduced return type&#8221;</a>):
+
+	</p>
+<pre class="programlisting">A a; B b; ret&lt;C&gt;(_1 + _2)(a, b);</pre>
+<p>
+      </p>
+<p>
+	For bind expressions, the return type can be defined as a template argument of the bind function as well: 
+	</p>
+<pre class="programlisting">bind&lt;int&gt;(foo, _1, _2);</pre>
+<p>
+
+
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.actual_arguments_to_lambda_functors"></a>About actual arguments to lambda functors</h3></div></div></div>
+<p>A general restriction for the actual arguments is that they cannot be non-const rvalues. 
+	For example:
+
+</p>
+<pre class="programlisting">
+int i = 1; int j = 2; 
+(_1 + _2)(i, j); // ok
+(_1 + _2)(1, 2); // error (!)
+</pre>
+<p>
+
+	This restriction is not as bad as it may look. 
+	Since the lambda functors are most often called inside STL-algorithms, 
+	the arguments originate from dereferencing iterators and the dereferencing operators seldom return rvalues.
+	And for the cases where they do, there are workarounds discussed in 
+<a class="xref" href="le_in_details.html#lambda.rvalues_as_actual_arguments" title="Rvalues as actual arguments to lambda functors">the section called &#8220;Rvalues as actual arguments to lambda functors&#8221;</a>.
+
+
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.storing_bound_arguments"></a>Storing bound arguments in lambda functions</h3></div></div></div>
+<p>
+
+By default, temporary const copies of the bound arguments are stored 
+in the lambda functor.
+
+This means that the value of a bound argument is fixed at the time of the 
+creation of the lambda function and remains constant during the lifetime 
+of the lambda function object.
+For example:
+</p>
+<pre class="programlisting">
+int i = 1;
+(_1 = 2, _1 + i)(i);
+</pre>
+<p>
+The comma operator is overloaded to combine lambda expressions into a sequence;
+the resulting unary lambda functor first assigns 2 to its argument, 
+then adds the value of <code class="literal">i</code> to it.
+The value of the expression in the last line is 3, not 4. 
+In other words, the lambda expression that is created is
+<code class="literal">lambda x.(x = 2, x + 1)</code> rather than
+<code class="literal">lambda x.(x = 2, x + i)</code>.
+      
+</p>
+<p>
+
+As said, this is the default behavior for which there are exceptions.
+The exact rules are as follows:
+
+</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p>
+
+The programmer can control the storing mechanism with <code class="literal">ref</code> 
+and <code class="literal">cref</code> wrappers <a class="xref" href="../lambda.html#cit:boost::ref" title="Boost ref">[<abbr class="abbrev">ref</abbr>]</a>.
+
+Wrapping an argument with <code class="literal">ref</code>, or <code class="literal">cref</code>, 
+instructs the library to store the argument as a reference, 
+or as a reference to const respectively.
+
+For example, if we rewrite the previous example and wrap the variable 
+<code class="literal">i</code> with <code class="literal">ref</code>, 
+we are creating the lambda expression <code class="literal">lambda x.(x = 2, x + i)</code> 
+and the value of the expression in the last line will be 4:
+
+</p>
+<pre class="programlisting">
+i = 1;
+(_1 = 2, _1 + ref(i))(i);
+</pre>
+<p>
+
+Note that <code class="literal">ref</code> and <code class="literal">cref</code> are different
+from <code class="literal">var</code> and <code class="literal">constant</code>.
+
+While the latter ones create lambda functors, the former do not. 
+For example:
+
+</p>
+<pre class="programlisting">
+int i; 
+var(i) = 1; // ok
+ref(i) = 1; // not ok, ref(i) is not a lambda functor
+</pre>
+<p>
+
+The functions <code class="literal">ref</code> and <code class="literal">cref</code> mostly 
+exist for historical reasons,
+and <code class="literal">ref</code> can always
+be replaced with <code class="literal">var</code>, and <code class="literal">cref</code> with
+<code class="literal">constant_ref</code>. 
+See <a class="xref" href="le_in_details.html#lambda.delaying_constants_and_variables" title="Delaying constants and variables">the section called &#8220;Delaying constants and variables&#8221;</a> for details.
+The <code class="literal">ref</code> and <code class="literal">cref</code> functions are
+general purpose utility functions in Boost, and hence defined directly
+in the <code class="literal">boost</code> namespace.
+
+</p>
+</li>
+<li class="listitem"><p>
+Array types cannot be copied, they are thus stored as const reference by default.
+</p></li>
+<li class="listitem">
+<p> 
+For some expressions it makes more sense to store the arguments as references. 
+
+For example, the obvious intention of the lambda expression 
+<code class="literal">i += _1</code> is that calls to the lambda functor affect the 
+value of the variable <code class="literal">i</code>, 
+rather than some temporary copy of it. 
+
+As another example, the streaming operators take their leftmost argument 
+as non-const references. 
+
+The exact rules are:
+
+</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem"><p>The left argument of compound assignment operators (<code class="literal">+=</code>, <code class="literal">*=</code>, etc.) are stored as references to non-const.</p></li>
+<li class="listitem"><p>If the left argument of <code class="literal">&lt;&lt;</code> or <code class="literal">&gt;&gt;</code>  operator is derived from an instantiation of <code class="literal">basic_ostream</code> or respectively from <code class="literal">basic_istream</code>, the argument is stored as a reference to non-const. 
+For all other types, the argument is stored as a copy.
+</p></li>
+<li class="listitem"><p>
+In pointer arithmetic expressions, non-const array types are stored as non-const references.
+This is to prevent pointer arithmetic making non-const arrays const. 
+
+</p></li>
+</ul></div>
+<p>
+
+</p>
+</li>
+</ul></div>
+<p>
+</p>
+</div>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.idp153285688" class="footnote"><p><a href="#idp153285688" class="para"><sup class="para">[3] </sup></a>
+Strictly taken, the C++ standard defines <code class="literal">for_each</code> as a <span class="emphasis"><em>non-modifying sequence operation</em></span>, and the function object passed to <code class="literal">for_each</code> should not modify its argument. 
+The requirements for the arguments of <code class="literal">for_each</code> are unnecessary strict, since as long as the iterators are <span class="emphasis"><em>mutable</em></span>, <code class="literal">for_each</code> accepts a function object that can have side-effects on their argument.
+Nevertheless, it is straightforward to provide another function template with the functionality of<code class="literal">std::for_each</code> but more fine-grained requirements for its arguments.
+</p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1999-2004 Jaakko J&#228;rvi, Gary Powell<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="s03.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="le_in_details.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

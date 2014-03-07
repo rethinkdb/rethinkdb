@@ -1,0 +1,135 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>as_vector</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../functions.html" title="Functions">
+<link rel="prev" href="as_list.html" title="as_list">
+<link rel="next" href="as_deque.html" title="as_deque">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="as_list.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../functions.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="as_deque.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="fusion.container.conversion.functions.as_vector"></a><a class="link" href="as_vector.html" title="as_vector">as_vector</a>
+</h5></div></div></div>
+<h6>
+<a name="fusion.container.conversion.functions.as_vector.h0"></a>
+            <span class="phrase"><a name="fusion.container.conversion.functions.as_vector.description"></a></span><a class="link" href="as_vector.html#fusion.container.conversion.functions.as_vector.description">Description</a>
+          </h6>
+<p>
+            Convert a fusion sequence to a <a class="link" href="../../vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a>.
+          </p>
+<h6>
+<a name="fusion.container.conversion.functions.as_vector.h1"></a>
+            <span class="phrase"><a name="fusion.container.conversion.functions.as_vector.synopsis"></a></span><a class="link" href="as_vector.html#fusion.container.conversion.functions.as_vector.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Sequence</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">result_of</span><span class="special">::</span><span class="identifier">as_vector</span><span class="special">&lt;</span><span class="identifier">Sequence</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">as_vector</span><span class="special">(</span><span class="identifier">Sequence</span><span class="special">&amp;</span> <span class="identifier">seq</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Sequence</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">result_of</span><span class="special">::</span><span class="identifier">as_vector</span><span class="special">&lt;</span><span class="identifier">Sequence</span> <span class="keyword">const</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">as_vector</span><span class="special">(</span><span class="identifier">Sequence</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">seq</span><span class="special">);</span>
+</pre>
+<h6>
+<a name="fusion.container.conversion.functions.as_vector.h2"></a>
+            <span class="phrase"><a name="fusion.container.conversion.functions.as_vector.parameters"></a></span><a class="link" href="as_vector.html#fusion.container.conversion.functions.as_vector.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Requirement
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">seq</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      An instance of Sequence
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The sequence to convert.
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="fusion.container.conversion.functions.as_vector.h3"></a>
+            <span class="phrase"><a name="fusion.container.conversion.functions.as_vector.expression_semantics"></a></span><a class="link" href="as_vector.html#fusion.container.conversion.functions.as_vector.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">as_vector</span><span class="special">(</span><span class="identifier">seq</span><span class="special">);</span>
+</pre>
+<p>
+            <span class="bold"><strong>Return type</strong></span>: <a class="link" href="../metafunctions/as_vector.html" title="as_vector"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">as_vector</span></code></a><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">Sequence</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+          </p>
+<p>
+            <span class="bold"><strong>Semantics</strong></span>: Convert a fusion sequence,
+            <code class="computeroutput"><span class="identifier">seq</span></code>, to a <a class="link" href="../../vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a>.
+          </p>
+<h6>
+<a name="fusion.container.conversion.functions.as_vector.h4"></a>
+            <span class="phrase"><a name="fusion.container.conversion.functions.as_vector.header"></a></span><a class="link" href="as_vector.html#fusion.container.conversion.functions.as_vector.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">vector</span><span class="special">/</span><span class="identifier">convert</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">as_vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="fusion.container.conversion.functions.as_vector.h5"></a>
+            <span class="phrase"><a name="fusion.container.conversion.functions.as_vector.example"></a></span><a class="link" href="as_vector.html#fusion.container.conversion.functions.as_vector.example">Example</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">as_vector</span><span class="special">(</span><a class="link" href="../../generation/functions/make_list.html" title="make_list"><code class="computeroutput"><span class="identifier">make_list</span></code></a><span class="special">(</span><span class="char">'x'</span><span class="special">,</span> <span class="number">123</span><span class="special">,</span> <span class="string">"hello"</span><span class="special">))</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="as_list.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../functions.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="as_deque.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

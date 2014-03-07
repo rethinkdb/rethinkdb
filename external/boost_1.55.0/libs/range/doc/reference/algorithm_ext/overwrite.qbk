@@ -1,0 +1,39 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:overwrite overwrite]
+
+[heading Prototype]
+
+``
+template<
+    class SinglePassRange1,
+    class SinglePassRange2
+    >
+void overwrite(const SinglePassRange1& from,
+               SinglePassRange2& to);
+``
+
+[heading Description]
+
+`overwrite` assigns the values from the range `from` into the range `to`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm_ext/overwrite.hpp`
+
+[heading Requirements]
+
+# `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+# `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+# `SinglePassRange2` is mutable.
+# `distance(SinglePassRange1) <= distance(SinglePassRange2)`
+# `SinglePassRange1`'s value type is convertible to `SinglePassRange2`'s value type.
+
+[heading Complexity]
+
+Linear. `distance(rng1)` assignments are performed.
+
+[endsect]

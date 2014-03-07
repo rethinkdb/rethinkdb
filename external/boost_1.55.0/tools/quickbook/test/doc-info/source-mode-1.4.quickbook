@@ -1,0 +1,17 @@
+[article C++ test
+[quickbook 1.5]
+[source-mode python]
+[license `def foo(x): print "Hello"`]
+[source-mode c++]
+[purpose `int main() {}`]
+]
+
+```int main() {}```
+
+[include source-mode-python-include.quickbook]
+
+```def foo(x):```
+
+[include source-mode-cpp-include.quickbook]
+
+```int main() {}```

@@ -1,0 +1,44 @@
+# Copyright (C) 2004 Toon Knapen
+#
+#  Use, modification and distribution is subject to the Boost Software
+#  License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+import toolset : flags ;
+import feature ;
+import fortran ;
+
+rule init ( version ? : command * : options * )
+{
+}
+
+# Declare flags and action for compilation
+flags ifort OPTIONS <fflags> ;
+
+flags ifort OPTIONS <optimization>off : /Od ;
+flags ifort OPTIONS <optimization>speed : /O3 ;
+flags ifort OPTIONS <optimization>space : /O1 ;
+
+flags ifort OPTIONS <debug-symbols>on : /debug:full ;
+flags ifort OPTIONS <profiling>on : /Qprof_gen ;
+
+flags ifort.compile FFLAGS <runtime-debugging>off/<runtime-link>shared : /MD ;
+flags ifort.compile FFLAGS <runtime-debugging>on/<runtime-link>shared : /MDd ;
+flags ifort.compile FFLAGS <runtime-debugging>off/<runtime-link>static/<threading>single : /ML ;
+flags ifort.compile FFLAGS <runtime-debugging>on/<runtime-link>static/<threading>single : /MLd ;
+flags ifort.compile FFLAGS <runtime-debugging>off/<runtime-link>static/<threading>multi : /MT ;
+flags ifort.compile FFLAGS <runtime-debugging>on/<runtime-link>static/<threading>multi : /MTd ;
+
+flags ifort DEFINES <define> ;
+flags ifort INCLUDES <include> ;
+
+rule compile.fortran
+{
+}
+
+actions compile.fortran
+{
+  ifort $(FFLAGS) $(OPTIONS) /names:lowercase /D$(DEFINES) /I"$(INCLUDES)" /c /object:"$(<)" "$(>)" 
+}
+
+generators.register-fortran-compiler ifort.compile.fortran : FORTRAN : OBJ ; 

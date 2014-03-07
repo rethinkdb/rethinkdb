@@ -1,0 +1,31 @@
+[section Inner]
+
+[heading Header]
+
+[h1 Heading1]
+
+[heading:x1 Header with id]
+
+[h1:x2 Heading1 with id]
+
+[table
+[[]][[]]
+]
+
+[table:withid
+[[]][[]]
+]
+
+[table With Title
+[[]][[]]
+]
+
+[table:x Id and Title
+[[]][[]]
+]
+
+
+[endsect]
+
+[section:x Inner with id]
+[endsect]

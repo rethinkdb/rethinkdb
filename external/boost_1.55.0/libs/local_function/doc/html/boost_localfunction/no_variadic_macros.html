@@ -1,0 +1,265 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Annex: No Variadic Macros</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.LocalFunction 1.0.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.LocalFunction 1.0.0">
+<link rel="prev" href="alternatives.html" title="Annex: Alternatives">
+<link rel="next" href="implementation.html" title="Annex: Implementation">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="alternatives.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="implementation.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_localfunction_no_variadic_macros">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_localfunction.no_variadic_macros"></a><a class="link" href="no_variadic_macros.html" title="Annex: No Variadic Macros">Annex: No Variadic
+    Macros</a>
+</h2></div></div></div>
+<p>
+      This section illustrates an alternative syntax for compilers without variadic
+      macro support.
+    </p>
+<h4>
+<a name="boost_localfunction.no_variadic_macros.h0"></a>
+      <span><a name="boost_localfunction.no_variadic_macros.sequence_syntax"></a></span><a class="link" href="no_variadic_macros.html#boost_localfunction.no_variadic_macros.sequence_syntax">Sequence Syntax</a>
+    </h4>
+<p>
+      Most modern compilers support <a href="http://en.wikipedia.org/wiki/Variadic_macro" target="_top">variaid
+      macros</a> (notably, these include GCC, MSVC, and all <a href="http://www.open-std.org/JTC1/SC22/WG21/" target="_top">C++11</a>
+      compilers). However, in the rare case that programmers need to use this library
+      on a compiler without variadic macros, this library also allows to specify
+      its macro parameters using a <a href="http://www.boost.org/libs/preprocessor" target="_top">Boost.Preprocessor</a>
+      sequence where tokens are separated by round parenthesis <code class="computeroutput"><span class="special">()</span></code>:
+    </p>
+<pre class="programlisting"><span class="special">(</span><span class="identifier">token1</span><span class="special">)</span> <span class="special">(</span><span class="identifier">token2</span><span class="special">)</span> <span class="special">...</span> <span class="comment">// All compilers.</span>
+</pre>
+<p>
+      Instead of the comma-separated list that we have seen so far which requires
+      variadic macros:
+    </p>
+<pre class="programlisting"><span class="identifier">token1</span><span class="special">,</span> <span class="identifier">token2</span><span class="special">,</span> <span class="special">...</span> <span class="comment">// Only compilers with varidic macros.</span>
+</pre>
+<p>
+      For example, the following syntax is accepted on all compilers with and without
+      variadic macros (see also <a href="../../../test/add_seq.cpp" target="_top"><code class="literal">add_seq.cpp</code></a>):
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">sum</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">factor</span> <span class="special">=</span> <span class="number">10</span><span class="special">;</span>
+
+    <span class="keyword">void</span> <span class="identifier">BOOST_LOCAL_FUNCTION</span><span class="special">(</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">bind</span> <span class="identifier">factor</span><span class="special">)</span> <span class="special">(</span><span class="identifier">bind</span><span class="special">&amp;</span> <span class="identifier">sum</span><span class="special">)</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">num</span><span class="special">)</span> <span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">sum</span> <span class="special">+=</span> <span class="identifier">factor</span> <span class="special">*</span> <span class="identifier">num</span><span class="special">;</span>
+    <span class="special">}</span> <span class="identifier">BOOST_LOCAL_FUNCTION_NAME</span><span class="special">(</span><span class="identifier">add</span><span class="special">)</span>
+
+    <span class="identifier">add</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+    <span class="keyword">int</span> <span class="identifier">nums</span><span class="special">[]</span> <span class="special">=</span> <span class="special">{</span><span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">};</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">nums</span><span class="special">,</span> <span class="identifier">nums</span> <span class="special">+</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">add</span><span class="special">);</span>
+
+    <span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">sum</span> <span class="special">==</span> <span class="number">60</span><span class="special">);</span>
+    <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">report_errors</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      However, on compilers with variadic macros the comma-separated syntax we have
+      seen so far is preferred because more readable (see also <a href="../../../test/add.cpp" target="_top"><code class="literal">add.cpp</code></a>):
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="special">{</span>                            <span class="comment">// Some local scope.</span>
+    <span class="keyword">int</span> <span class="identifier">sum</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">factor</span> <span class="special">=</span> <span class="number">10</span><span class="special">;</span>               <span class="comment">// Variables in scope to bind.</span>
+
+    <span class="keyword">void</span> <span class="identifier">BOOST_LOCAL_FUNCTION</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bind</span> <span class="identifier">factor</span><span class="special">,</span> <span class="identifier">bind</span><span class="special">&amp;</span> <span class="identifier">sum</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">num</span><span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">sum</span> <span class="special">+=</span> <span class="identifier">factor</span> <span class="special">*</span> <span class="identifier">num</span><span class="special">;</span>
+    <span class="special">}</span> <span class="identifier">BOOST_LOCAL_FUNCTION_NAME</span><span class="special">(</span><span class="identifier">add</span><span class="special">)</span>
+
+    <span class="identifier">add</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>                                 <span class="comment">// Call the local function.</span>
+    <span class="keyword">int</span> <span class="identifier">nums</span><span class="special">[]</span> <span class="special">=</span> <span class="special">{</span><span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">};</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">nums</span><span class="special">,</span> <span class="identifier">nums</span> <span class="special">+</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">add</span><span class="special">);</span>     <span class="comment">// Pass it to an algorithm.</span>
+
+    <span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">sum</span> <span class="special">==</span> <span class="number">60</span><span class="special">);</span>                  <span class="comment">// Assert final summation value.</span>
+    <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">report_errors</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      Note that the same macros accept both syntaxes on compilers with variadic macros
+      and only the sequence syntax on compilers without variadic macros. Finally,
+      an empty local function parameter list is always specified using <code class="computeroutput"><span class="keyword">void</span></code> on compilers with and without variadic
+      macros:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">BOOST_LOCAL_FUNCTION</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="special">{</span> <span class="comment">// No parameter.</span>
+    <span class="keyword">return</span> <span class="number">10</span><span class="special">;</span>
+<span class="special">}</span> <span class="identifier">BOOST_LOCAL_FUNCTION_NAME</span><span class="special">(</span><span class="identifier">ten</span><span class="special">)</span>
+
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">ten</span><span class="special">()</span> <span class="special">==</span> <span class="number">10</span><span class="special">);</span>
+</pre>
+<p>
+    </p>
+<h4>
+<a name="boost_localfunction.no_variadic_macros.h1"></a>
+      <span><a name="boost_localfunction.no_variadic_macros.examples"></a></span><a class="link" href="no_variadic_macros.html#boost_localfunction.no_variadic_macros.examples">Examples</a>
+    </h4>
+<p>
+      For reference, the following is a list of most of the examples presented in
+      this documentation reprogrammed using the sequence syntax instead of the comma-separated
+      syntax (in alphabetic order):
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+              <p>
+                Files
+              </p>
+            </th></tr></thead>
+<tbody>
+<tr><td>
+              <p>
+                <a href="../../../test/add_classifiers_seq.cpp" target="_top"><code class="literal">add_classifiers_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/add_default_seq.cpp" target="_top"><code class="literal">add_default_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/add_except_seq.cpp" target="_top"><code class="literal">add_except_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/add_inline_seq.cpp" target="_top"><code class="literal">add_inline_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/add_params_only_seq.cpp" target="_top"><code class="literal">add_params_only_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/add_template_seq.cpp" target="_top"><code class="literal">add_template_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/add_this_seq.cpp" target="_top"><code class="literal">add_this_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/add_typed_seq.cpp" target="_top"><code class="literal">add_typed_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/add_with_default_seq.cpp" target="_top"><code class="literal">add_with_default_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/all_decl_seq.cpp" target="_top"><code class="literal">all_decl_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/factorial_seq.cpp" target="_top"><code class="literal">factorial_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/macro_commas_seq.cpp" target="_top"><code class="literal">macro_commas_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/nesting_seq.cpp" target="_top"><code class="literal">nesting_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/overload_seq.cpp" target="_top"><code class="literal">overload_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/return_assign_seq.cpp" target="_top"><code class="literal">return_assign_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/return_derivative_seq.cpp" target="_top"><code class="literal">return_derivative_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/return_inc_seq.cpp" target="_top"><code class="literal">return_inc_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/return_setget_seq.cpp" target="_top"><code class="literal">return_setget_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/return_this_seq.cpp" target="_top"><code class="literal">return_this_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/same_line_seq.cpp" target="_top"><code class="literal">same_line_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/transform_seq.cpp" target="_top"><code class="literal">transform_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/typeof_seq.cpp" target="_top"><code class="literal">typeof_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/typeof_template_seq.cpp" target="_top"><code class="literal">typeof_template_seq.cpp</code></a>
+              </p>
+            </td></tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Lorenzo
+      Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="alternatives.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="implementation.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

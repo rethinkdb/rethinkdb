@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0063)http://www.boost.org/libs/graph/doc/cuthill_mckee_ordering.html -->
+<HTML><HEAD><TITLE>Boost Graph Library: Cuthill-Mckee Ordering</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=windows-1252"><!--
+  -- Copyright (c) Jeremy Siek 2000
+  --
+  -- Distributed under the Boost Software License, Version 1.0.
+  -- (See accompanying file LICENSE_1_0.txt or copy at
+  -- http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<META content="MSHTML 6.00.2715.400" name=GENERATOR></HEAD>
+<BODY text=#000000 vLink=#551a8b aLink=#ff0000 link=#0000ee bgColor=#ffffff><IMG 
+height=86 alt="C++ Boost" 
+src="../../../boost.png" width=277> 
+<BR>
+<H1><A name=sec:bfs></a><tt>sloan_start_end_vertices</tt></H1>
+<P>
+<DIV align=left>
+<TABLE cellPadding=3 border=1>
+  <TBODY>
+  <TR>
+    <TH align=left><B>Graphs:</B></TH>
+    <TD align=left>undirected</TD></TR>
+  <TR>
+    <TH align=left><B>Properties:</B></TH>
+      <TD align=left>color, degree</TD>
+    </TR>
+  <TR>
+    <TH align=left><B>Complexity:</B></TH>
+      <TD align=left>&nbsp;</TD>
+    </TR></TBODY></TABLE></DIV>
+<PRE>  (1)
+  template &lt;class Graph, class ColorMap, class DegreeMap&gt;
+  typename graph_traits&lt;Graph&gt;::vertex_descriptor
+  sloan_start_end_vertices(Graph&amp; G,
+                           typename graph_traits&lt;Graph&gt;::vertex_descriptor &amp;s,
+                           ColorMap color, 
+                           DegreeMap degree )
+</PRE>
+<p>The goal of the sloan_start_end_vertices algorithm[1, 2] is to find good start- 
+  and end-vertices for the profile and wavefront reduction algorithm sloan_ordering. 
+  The algorithm is similar to pseudo_peripheral_pair and also based on breadth_first_search. 
+  With this breadth_first_search function a so-called rooted level structure (RLS) 
+  is formed, where the vertices with the same distance to the starting vertex 
+  are grouped together. The maximum number of vertices in one group is called 
+  the width of the RLS. Sloan_start_end_vertices tries to find a pseudoperipheral 
+  pair with a minimum RLS-width.</p>
+<H3>Parameters</H3>
+For version 1: 
+<UL>
+  <LI><TT>Graph&amp; g</TT> &nbsp;(IN) <BR>
+    An undirected graph. The graph's type must be a model of <A 
+  href="http://www.boost.org/libs/graph/doc/IncidenceGraph.html">IncidenceGraph</A>. 
+  <LI><TT>vertex_descriptor s</TT> &nbsp;(IN) <BR>
+    The starting vertex. 
+  <LI><TT>ColorMap color_map</TT> &nbsp;(WORK) <BR>
+    Used internally to keep track of the progress of the algorithm (to avoid visiting 
+    the same vertex twice). 
+  <LI><TT>DegreeMap degree_map</TT> &nbsp;(IN) <BR>
+    This must map vertices to their degree. </LI>
+</UL>
+<p>&nbsp;</p>
+<H3>Example</H3>
+See <A 
+href="http://www.boost.org/libs/graph/example/cuthill_mckee_ordering.cpp"><TT>example/sloan_ordering.cpp</TT></A>. 
+<H3>See Also</H3>
+<p><a href="http://www.boost.org/libs/graph/doc/sloan_start_end_vertices.htm">sloan_start_end_vertices</a>, 
+  <A 
+href="http://www.boost.org/libs/graph/doc/bandwidth.html">bandwidth</A>, <a href="http://www.boost.org/libs/graph/doc/profile.htm">profile</a>, 
+  <a href="http://www.boost.org/libs/graph/doc/wavefront.htm">wavefront</a> and 
+  <TT>degree_property_map</TT> in <TT>boost/graph/properties.hpp</TT>. </p>
+<p>[1] S. W. Sloan, <i>An algorithm for profile and wavefront reduction of sparse 
+  matrices</i>, Int. j. numer. methods eng., <b>23</b>, 239 - 251 (1986)</p>
+<p>[2] S. W. Sloan, <i>A fortran program for profile and wavefront reduction</i>, 
+  Int. j. numer. methods eng., <b>28</b>, 2651 - 2679 (1989)<BR>
+</p>
+<HR>
+
+<TABLE width="663">
+  <TBODY> 
+  <TR vAlign=top>
+    <TD noWrap>Copyright © 2001-2002</TD>
+    <TD>Marc Wintermantel, ETH Zurich(<A 
+      href="mailto:wintermantel@imes.mavt.ethz.ch">wintermantel@imes.mavt.ethz.ch</a>) 
+    </TD>
+  </TR></TBODY></TABLE></BODY></HTML>

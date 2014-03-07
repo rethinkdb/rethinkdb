@@ -1,0 +1,424 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Container Concepts</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Container Concepts</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="vector"></a>Vector</h2>
+<h4>Description</h4>
+<p>A Vector describes common aspects of dense, packed and sparse
+vectors.</p>
+<h4>Refinement of</h4>
+<p><a href="http://www.sgi.com/tech/stl/DefaultConstructible.html">DefaultConstructible</a>,
+<a href="expression_concept.htm#vector_expression">Vector Expression</a>
+<a href="#vector_expression_note">[1]</a>.</p>
+<h4>Associated types</h4>
+<p>In addition to the types defined by <a href="expression_concept.htm#vector_expression">Vector Expression</a></p>
+<table border="1" summary="types">
+<tbody>
+<tr>
+<td>Public base</td>
+<td>vector_container&lt;V&gt;</td>
+<td>V must be derived from this public base type.</td>
+</tr>
+<tr>
+<td>Storage array</td>
+<td>V::array_type</td>
+<td>
+Dense Vector ONLY. The type of underlying storage array used to store the elements. The array_type must model the
+<a href="storage_concept.htm"><b>Storage</b></a> concept.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notation</h4>
+<table border="0" summary="notation">
+<tbody>
+<tr>
+<td><code>V</code></td>
+<td>A type that is a model of Vector</td>
+</tr>
+<tr>
+<td><code>v</code></td>
+<td>Objects of type <code>V</code></td>
+</tr>
+<tr>
+<td><code>n, i</code></td>
+<td>Objects of a type convertible to <code>size_type</code></td>
+</tr>
+<tr>
+<td><code>t</code></td>
+<td>Object of a type convertible to <code>value_type</code></td>
+</tr>
+<tr>
+<td><code>p</code></td>
+<td>Object of a type convertible to <code>bool</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Definitions</h4>
+<h4>Valid expressions</h4>
+<p>In addition to the expressions defined in <a href="http://www.sgi.com/tech/stl/DefaultConstructible.html">DefaultConstructible</a>,
+<a href="expression_concept.htm#vector_expression">Vector Expression</a> the following expressions must be valid.</p>
+<table border="1" summary="expressions">
+<tbody>
+<tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type requirements</th>
+<th>Return type</th>
+</tr>
+<tr>
+<td>Sizing constructor</td>
+<td><code>V v (n)</code></td>
+<td>&nbsp;</td>
+<td><code>V</code></td>
+</tr>
+<tr>
+<td>Insert</td>
+<td><code>v.insert_element (i, t)</code></td>
+<td><code>v</code> is mutable.</td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td>Erase</td>
+<td><code>v.erase_element (i)</code></td>
+<td><code>v</code> is mutable.</td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td>Clear</td>
+<td><code>v.clear ()</code></td>
+<td><code>v</code> is mutable.</td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td>Resize</td>
+<td><code>v.resize (n)</code><br />
+<code>v.resize (n, p)</code></td>
+<td><code>v</code> is mutable.</td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td>Storage</td>
+<td><code>v.data()</code></td>
+<td><code>v</code> is mutable and Dense.</td>
+<td><code>array_type&amp;</code> if <code>v</code> is mutable, <code>const array_type&amp;</code> otherwise</td>
+</tr>
+</tbody>
+</table>
+<h4>Expression semantics</h4>
+<p>Semantics of an expression is defined only where it differs
+from, or is not defined in <a href=
+"expression_concept.htm#vector_expression">Vector Expression</a> .</p>
+<table border="1" summary="semantics">
+<tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Precondition</th>
+<th>Semantics</th>
+<th>Postcondition</th>
+</tr>
+<tr>
+<td>Sizing constructor</td>
+<td><code>V v (n)</code></td>
+<td><code>n &gt;= 0</code></td>
+<td>Allocates a vector of<code>n</code> elements.</td>
+<td><code>v.size () == n</code>.</td>
+</tr>
+<tr>
+<td>Element access <a href="#element_access_note">[2]</a></td>
+<td><code>v[n]</code></td>
+<td><code>0&lt;n&gt;v.size()</code></td>
+<td>returns the n-th element in v</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Insert</td>
+<td><code>v.insert_element (i, t)</code></td>
+<td><code>0 &lt;= i &lt; v.size ()</code>.</td>
+<td>Inserts an element at <code>v (i)</code> with value <code>t</code>.
+The storage requirement of the Vector may be increased.</td>
+<td><code>v (i)</code> is equal to <code>t</code>.</td>
+</tr>
+<tr>
+<td>Erase</td>
+<td><code>v.erase_element (i)</code></td>
+<td><code>0 &lt;= i &lt; v.size ()</code></td>
+<td>Destroys the element as <code>v (i)</code> and replaces it with the default
+<code>value_type ()</code>.
+The storage requirement of the Vector may be decreased.</td>
+<td><code>v (i)</code> is equal to <code>value_type ()</code>.</td>
+</tr>
+<tr>
+<td>Clear</td>
+<td><code>v.clear ()</code></td>
+<td>&nbsp;</td>
+<td>Equivalent to<br />
+<code>for (i = 0; i &lt; v.size (); ++ i)</code><br />
+&nbsp; <code>v.erase_element (i);</code></td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Resize</td>
+<td><code>v.resize (n)
+<br />v.resize (n, p)</code></td>
+<td>&nbsp;</td>
+<td>Reallocates the vector so that it can hold <code>n</code>
+elements.<br />
+Erases or appends elements in order to bring the vector to the prescribed size. Appended elements copies of <code>value_type()</code>.
+<br />
+When <code>p == false</code> then existing elements are not preserved and elements will not appended as normal. Instead the vector is in the same state as that after an equivalent sizing constructor.</td>
+<td><code>v.size () == n</code>.</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td><code>v.data()</code></td>
+<td></td>
+<td>Returns a reference to the underlying dense storage.</td>
+<td>&nbsp;</td>
+</tr>
+</table>
+<h4>Complexity guarantees</h4>
+<p>The run-time complexity of the sizing constructor is linear in
+the vector's size.</p>
+<p>The run-time complexity of insert_element and erase_element is specific for the
+Vector model and it depends on increases/decreases in storage requirements.</p>
+<p>The run-time complexity of resize is linear in the vector's
+size.</p>
+<h4>Invariants</h4>
+<h4>Models</h4>
+<ul>
+<li><code>vector</code>, <code>bounded_vector</code>, <code>c_vector</code></li>
+<li><code>unit_vector</code>, <code>zero_vector</code>, <code>scalar_vector</code></li>
+<li><code>mapped_vector;</code>, <code>compressed_vector</code>, <code>coordinate_vector</code></li>
+</ul>
+<h4>Notes</h4>
+<p><a name="vector_expression_note">[1]</a>
+As a user you need not care about <tt>Vector</tt> being a refinement of the VectorExpression. Being a refinement of the VectorExpression is only important for the template-expression engine but not the user.</p>
+<p><a name="element_access_note">[2]</a>
+The <code>operator[]</code> is added purely for convenience 
+and compatibility with the <code>std::vector</code>. In uBLAS however, 
+generally <code>operator()</code> is used for indexing because this can be
+used for both vectors and matrices.</p>
+<h2><a name="matrix"></a>Matrix</h2>
+<h4>Description</h4>
+<p>A Matrix describes common aspects of dense, packed and sparse
+matrices.</p>
+<h4>Refinement of</h4>
+<p><a href="http://www.sgi.com/tech/stl/DefaultConstructible.html">DefaultConstructible</a>,
+<a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+<a href="#matrix_expression_note">[1]</a>
+.</p>
+<h4>Associated types</h4>
+<p>In addition to the types defined by <a href="expression_concept.htm#matrix_expression">Matrix Expression</a></p>
+<table border="1" summary="types">
+<tbody>
+<tr>
+<td>Public base</td>
+<td>matrix_container&lt;M&gt;</td>
+<td>M must be derived from this public base type.</td>
+</tr>
+<tr>
+<td>Storage array</td>
+<td>M::array_type</td>
+<td>Dense Matrix ONLY. The type of underlying storage array used to store the elements. The array_type must model
+the <a href="storage_concept.htm"><b>Storage</b></a> concept.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notation</h4>
+<table border="0" summary="notation">
+<tbody>
+<tr>
+<td><code>M</code></td>
+<td>A type that is a model of Matrix</td>
+</tr>
+<tr>
+<td><code>m</code></td>
+<td>Objects of type <code>M</code></td>
+</tr>
+<tr>
+<td><code>n1, n2, i, j</code></td>
+<td>Objects of a type convertible to <code>size_type</code></td>
+</tr>
+<tr>
+<td><code>t</code></td>
+<td>Object of a type convertible to <code>value_type</code></td>
+</tr>
+<tr>
+<td><code>p</code></td>
+<td>Object of a type convertible to <code>bool</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Definitions</h4>
+<h4>Valid expressions</h4>
+<p>In addition to the expressions defined in <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> the
+following expressions must be valid.</p>
+<table border="1" summary="expressions">
+<tbody>
+<tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type requirements</th>
+<th>Return type</th>
+</tr>
+<tr>
+<td>Sizing constructor</td>
+<td><code>M m (n1, n2)</code></td>
+<td>&nbsp;</td>
+<td><code>M</code></td>
+</tr>
+<tr>
+<td>Insert</td>
+<td><code>m.insert_element (i, j, t)</code></td>
+<td><code>m</code> is mutable.</td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td>Erase</td>
+<td><code>m.erase_element (i, j)</code></td>
+<td><code>m</code> is mutable.</td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td>Clear</td>
+<td><code>m.clear ()</code></td>
+<td><code>m</code> is mutable.</td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td>Resize</td>
+<td><code>m.resize (n1, n2)</code><br />
+<code>m.resize (n1, n2, p)</code></td>
+<td><code>m</code> is mutable.</td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td>Storage</td>
+<td><code>m.data()</code></td>
+<td><code>m</code> is mutable and Dense.</td>
+<td><code>array_type&amp;</code> if <code>m</code> is mutable, <code>const array_type&amp;</code> otherwise</td>
+</tr>
+</tbody>
+</table>
+<h4>Expression semantics</h4>
+<p>Semantics of an expression is defined only where it differs
+from, or is not defined in <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</p>
+<table border="1" summary="semantics">
+<tbody>
+<tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Precondition</th>
+<th>Semantics</th>
+<th>Postcondition</th>
+</tr>
+<tr>
+<td>Sizing constructor</td>
+<td><code>M m (n1, n2)</code></td>
+<td><code>n1 &gt;= 0</code> and <code>n2 &gt;= 0</code></td>
+<td>Allocates a matrix of <code>n1</code> rows and <code>n2</code>
+columns.</td>
+<td><code>m.size1 () == n1</code> and <code>m.size2 () ==
+n2</code>.</td>
+</tr>
+<tr>
+<td>Insert</td>
+<td><code>m.insert_element (i, j, t)</code></td>
+<td><code>0 &lt;= i &lt; m.size1 ()</code>,<br />
+<code>0 &lt;= j &lt; m.size2 ()</code>.</td>
+<td>Inserts an element at <code>m (i, j)</code> with value <code>t</code>.
+The storage requirement of the Matrix may be increased.</td>
+<td><code>m (i, j)</code> is equal to <code>t</code>.</td>
+</tr>
+<tr>
+<td>Erase</td>
+<td><code>m.erase_element (i, j)</code></td>
+<td><code>0 &lt;= i &lt; m.size1 ()</code>and <code><br />
+0 &lt;= j &lt; m.size2</code></td>
+<td>Destroys the element as <code>m (i, j)</code> and replaces it with the default
+<code>value_type ()</code>.
+The storage requirement of the Matrix may be decreased.</td>
+<td><code>m (i, j)</code> is equal to <code>value_type ()</code>.</td>
+</tr>
+<tr>
+<td>Clear</td>
+<td><code>m.clear ()</code></td>
+<td>&nbsp;</td>
+<td>Equivalent to<br />
+<code>for (i = 0; i &lt; m.size1 (); ++ i)</code><br />
+&nbsp; <code>for (j = 0; j &lt; m.size2 (); ++ j)</code><br />
+&nbsp; &nbsp; <code>m.erase_element (i, j);</code></td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Resize</td>
+<td><code>m.resize (n1, n2)
+<br />
+m.resize (n1, n2, p)
+</code></td>
+<td>&nbsp;</td>
+<td>Reallocate the matrix so that it can hold <code>n1</code> rows
+and <code>n2</code> columns.<br />
+Erases or appends elements in order to bring the matrix to the
+prescribed size. Appended elements are <code>value_type()</code>
+copies.<br />
+When <code>p == false</code> then existing elements are not preserved and elements will not appended as normal. Instead the matrix is in the same state as that after an equivalent sizing constructor.</td>
+<td><code>m.size1 () == n1</code> and <code>m.size2 () == n2</code>.</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td><code>m.data()</code></td>
+<td></td>
+<td>Returns a reference to the underlying dense storage.</td>
+<td>&nbsp;</td>
+</tbody>
+</table>
+<h4>Complexity guarantees</h4>
+<p>The run-time complexity of the sizing constructor is quadratic
+in the matrix's size.</p>
+<p>The run-time complexity of insert_element and erase_element is specific for the
+Matrix model and it depends on increases/decreases in storage requirements.</p>
+<p>The run-time complexity of resize is quadratic in the matrix's
+size.</p>
+<h4>Invariants</h4>
+<h4>Models</h4>
+<ul>
+<li><code>matrix</code>, <code>bounded_matrix</code>, <code>c_matrix</code></li>
+<li><code>identity_matrix</code> , <code>zero_matrix</code> , <code>scalar_matrix</code></li>
+<li><code>triangular_matrix</code> , <code>symmetric_matrix</code> , <code>banded_matrix</code></li>
+<li><code>mapped_matrix</code> , <code>compressed_matrix</code> , <code>coordinate_matrix</code></li>
+</ul>
+<h4>Notes</h4>
+<p><a name="matrix_expression_note">[1]</a>
+As a user you need not care about <tt>Matrix</tt> being a refinement of the MatrixExpression. Being a refinement of the MatrixExpression is only important for the template-expression engine but not the user.</p>
+<hr />
+<p>Copyright (&copy;) 2000-2002 Joerg Walter, Mathias Koch<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

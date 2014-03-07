@@ -1,0 +1,125 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>const Ranges</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../mfc_atl.html" title="MFC/ATL (courtesy of Shunsuke Sogame)">
+<link rel="prev" href="atl_ranges.html" title="ATL Ranges">
+<link rel="next" href="references.html" title="References">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="atl_ranges.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mfc_atl.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="references.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_mfc_atl_const_ranges">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="range.mfc_atl.const_ranges"></a><a class="link" href="const_ranges.html" title="const Ranges">const Ranges</a>
+</h3></div></div></div>
+<p>
+        <code class="computeroutput"><span class="identifier">range_reference</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+        is defined by the following algorithm. Let <code class="computeroutput"><span class="identifier">Range</span></code>
+        be any type listed above and <code class="computeroutput"><span class="identifier">Ref</span></code>
+        be the same as <code class="computeroutput"><span class="identifier">range_reference</span><span class="special">&lt;</span><span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">if</span> <span class="special">(</span><span class="identifier">Range</span> <span class="identifier">is</span> <span class="identifier">CObArray</span> <span class="special">||</span> <span class="identifier">Range</span> <span class="identifier">is</span> <span class="identifier">CObList</span><span class="special">)</span>
+    <span class="keyword">return</span> <span class="identifier">CObject</span> <span class="keyword">const</span> <span class="special">*</span> <span class="special">&amp;</span>
+<span class="keyword">else</span> <span class="keyword">if</span> <span class="special">(</span><span class="identifier">Range</span> <span class="identifier">is</span> <span class="identifier">CPtrArray</span> <span class="special">||</span> <span class="identifier">Range</span> <span class="identifier">is</span> <span class="identifier">CPtrList</span><span class="special">)</span>
+    <span class="keyword">return</span> <span class="keyword">void</span> <span class="keyword">const</span> <span class="special">*</span> <span class="special">&amp;</span>
+<span class="keyword">else</span> <span class="keyword">if</span> <span class="special">(</span><span class="identifier">there</span> <span class="identifier">is</span> <span class="identifier">a</span> <span class="identifier">type</span> <span class="identifier">X</span> <span class="identifier">such</span> <span class="identifier">that</span> <span class="identifier">X</span><span class="special">&amp;</span> <span class="identifier">is</span> <span class="identifier">the</span> <span class="identifier">same</span> <span class="identifier">as</span> <span class="identifier">Ref</span><span class="special">)</span>
+    <span class="keyword">return</span> <span class="identifier">X</span> <span class="keyword">const</span> <span class="special">&amp;</span>
+<span class="keyword">else</span> <span class="keyword">if</span> <span class="special">(</span><span class="identifier">there</span> <span class="identifier">is</span> <span class="identifier">a</span> <span class="identifier">type</span> <span class="identifier">X</span> <span class="identifier">such</span> <span class="identifier">that</span> <span class="identifier">X</span><span class="special">*</span> <span class="keyword">const</span> <span class="identifier">is</span> <span class="identifier">the</span> <span class="identifier">same</span> <span class="identifier">as</span> <span class="identifier">Ref</span><span class="special">)</span>
+    <span class="keyword">return</span> <span class="identifier">X</span> <span class="keyword">const</span> <span class="special">*</span> <span class="keyword">const</span>
+<span class="keyword">else</span>
+    <span class="keyword">return</span> <span class="identifier">Ref</span>
+</pre>
+<p>
+      </p>
+<p>
+        Other Boost.Range metafunctions are defined by the following.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Range metafunction
+                </p>
+              </th>
+<th>
+                <p>
+                  Result
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">range_value</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">range_value</span><span class="special">&lt;</span><span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">range_difference</span><span class="special">&lt;</span><span class="keyword">const</span>
+                  <span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">range_pointer</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">add_pointer</span><span class="special">&lt;</span><span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="identifier">range_reference</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="atl_ranges.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mfc_atl.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="references.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

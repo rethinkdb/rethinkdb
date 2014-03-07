@@ -1,0 +1,261 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>for_each_segment</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../for_each.html" title="for_each">
+<link rel="prev" href="for_each_point.html" title="for_each_point">
+<link rel="next" href="../intersection.html" title="intersection">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="for_each_point.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../for_each.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../intersection.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.algorithms.for_each.for_each_segment"></a><a class="link" href="for_each_segment.html" title="for_each_segment">for_each_segment</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp55288968"></a>
+Applies function <span class="bold"><strong>f</strong></span> to each segment.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.for_each.for_each_segment.h0"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.for_each.for_each_segment.description"></a></span><a class="link" href="for_each_segment.html#geometry.reference.algorithms.for_each.for_each_segment.description">Description</a>
+          </h6>
+<p>
+            Applies a function <span class="bold"><strong>f</strong></span> (functor, having
+            operator() defined) to each segment making up the geometry
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.for_each.for_each_segment.h1"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.for_each.for_each_segment.synopsis"></a></span><a class="link" href="for_each_segment.html#geometry.reference.algorithms.for_each.for_each_segment.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Functor</span><span class="special">&gt;</span>
+<span class="identifier">Functor</span> <span class="identifier">for_each_segment</span><span class="special">(</span><span class="identifier">Geometry</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">,</span> <span class="identifier">Functor</span> <span class="identifier">f</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.for_each.for_each_segment.h2"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.for_each.for_each_segment.parameters"></a></span><a class="link" href="for_each_segment.html#geometry.reference.algorithms.for_each.for_each_segment.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Concept
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Geometry &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Geometry Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Functor
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Function or class with operator()
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      f
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Unary function, taking a segment as argument
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.for_each.for_each_segment.h3"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.for_each.for_each_segment.header"></a></span><a class="link" href="for_each_segment.html#geometry.reference.algorithms.for_each.for_each_segment.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">for_each</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.for_each.for_each_segment.h4"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.for_each.for_each_segment.conformance"></a></span><a class="link" href="for_each_segment.html#geometry.reference.algorithms.for_each.for_each_segment.conformance">Conformance</a>
+          </h6>
+<p>
+            The function for_each_segment is not defined by OGC.
+          </p>
+<p>
+            The function for_each_segment conforms to the std::for_each function
+            of the C++ std-library.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.for_each.for_each_segment.h5"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.for_each.for_each_segment.example"></a></span><a class="link" href="for_each_segment.html#geometry.reference.algorithms.for_each.for_each_segment.example">Example</a>
+          </h6>
+<p>
+            Sample using for_each_segment, using a functor to get the minimum and
+            maximum length of a segment in a linestring
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">linestring</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point_xy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">assign</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Segment</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">gather_segment_statistics</span>
+<span class="special">{</span>
+    <span class="comment">// Remember that if coordinates are integer, the length might be floating point</span>
+    <span class="comment">// So use "double" for integers. In other cases, use coordinate type</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">select_most_precise</span>
+        <span class="special">&lt;</span>
+            <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">coordinate_type</span><span class="special">&lt;</span><span class="identifier">Segment</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="keyword">double</span>
+        <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+
+    <span class="identifier">type</span> <span class="identifier">min_length</span><span class="special">,</span> <span class="identifier">max_length</span><span class="special">;</span>
+
+    <span class="comment">// Initialize min and max</span>
+    <span class="identifier">gather_segment_statistics</span><span class="special">()</span>
+        <span class="special">:</span> <span class="identifier">min_length</span><span class="special">(</span><span class="number">1e38</span><span class="special">)</span>
+        <span class="special">,</span> <span class="identifier">max_length</span><span class="special">(-</span><span class="number">1</span><span class="special">)</span>
+    <span class="special">{}</span>
+
+    <span class="comment">// This operator is called for each segment</span>
+    <span class="keyword">inline</span> <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Segment</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">type</span> <span class="identifier">length</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">length</span><span class="special">(</span><span class="identifier">s</span><span class="special">);</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">length</span> <span class="special">&lt;</span> <span class="identifier">min_length</span><span class="special">)</span> <span class="identifier">min_length</span> <span class="special">=</span> <span class="identifier">length</span><span class="special">;</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">length</span> <span class="special">&gt;</span> <span class="identifier">max_length</span><span class="special">)</span> <span class="identifier">max_length</span> <span class="special">=</span> <span class="identifier">length</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Bring "+=" for a vector into scope</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">assign</span><span class="special">;</span>
+
+    <span class="comment">// Define a type</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">d2</span><span class="special">::</span><span class="identifier">point_xy</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">point</span><span class="special">;</span>
+
+    <span class="comment">// Declare a linestring</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">linestring</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">&gt;</span> <span class="identifier">polyline</span><span class="special">;</span>
+
+    <span class="comment">// Use Boost.Assign to initialize a linestring</span>
+    <span class="identifier">polyline</span> <span class="special">+=</span> <span class="identifier">point</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">),</span> <span class="identifier">point</span><span class="special">(</span><span class="number">3</span><span class="special">,</span> <span class="number">3</span><span class="special">),</span> <span class="identifier">point</span><span class="special">(</span><span class="number">5</span><span class="special">,</span> <span class="number">1</span><span class="special">),</span> <span class="identifier">point</span><span class="special">(</span><span class="number">6</span><span class="special">,</span> <span class="number">2</span><span class="special">),</span>
+                <span class="identifier">point</span><span class="special">(</span><span class="number">8</span><span class="special">,</span> <span class="number">0</span><span class="special">),</span> <span class="identifier">point</span><span class="special">(</span><span class="number">4</span><span class="special">,</span> <span class="special">-</span><span class="number">4</span><span class="special">),</span> <span class="identifier">point</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="special">-</span><span class="number">1</span><span class="special">),</span> <span class="identifier">point</span><span class="special">(</span><span class="number">3</span><span class="special">,</span> <span class="number">2</span><span class="special">);</span>
+
+
+    <span class="comment">// Declare the gathering class...</span>
+    <span class="identifier">gather_segment_statistics</span>
+        <span class="special">&lt;</span>
+            <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">referring_segment</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">&gt;</span>
+        <span class="special">&gt;</span> <span class="identifier">functor</span><span class="special">;</span>
+
+    <span class="comment">// ... and use it, the essention.</span>
+    <span class="comment">// As also in std::for_each it is a const value, so retrieve it as a return value.</span>
+    <span class="identifier">functor</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">for_each_segment</span><span class="special">(</span><span class="identifier">polyline</span><span class="special">,</span> <span class="identifier">functor</span><span class="special">);</span>
+
+    <span class="comment">// Output the results</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+        <span class="special">&lt;&lt;</span> <span class="string">"Min segment length: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">functor</span><span class="special">.</span><span class="identifier">min_length</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+        <span class="special">&lt;&lt;</span> <span class="string">"Max segment length: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">functor</span><span class="special">.</span><span class="identifier">max_length</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            Output:
+          </p>
+<pre class="programlisting">Min segment length: 1.41421
+Max segment length: 5.65685
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="for_each_point.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../for_each.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../intersection.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

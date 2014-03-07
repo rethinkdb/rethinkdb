@@ -1,0 +1,129 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Cyrillic_Latin.txt
+# Generated from CLDR 
+#
+:: [Ққ\u0308Ă-ăĔ-ĕĞ-ğĬ-ĭŎ-ŏŬ-ŭ\u0306Ѐ-џҐ-ҕҘ-ҙӁ-ӂӐ-ӟӢ-ӧӬ-ӵӸ-ӹḜ-ḝẮ-ặᾰᾸῐῘῠῨ] ;
+:: NFD (NFC) ;
+$modprime = ʹ;
+$modprime2 = ʺ;
+$grave = \u0300;
+$acute = \u0301;
+$hat = \u0302;
+$breve = \u0306 ;
+$dot = \u0307 ;
+$caron = \u030C ;
+$comma = \u0326 ;
+$under = \u0331 ;
+$descender = ˌ;
+я ↔ a  $hat ; # CYRILLIC SMALL LETTER YA
+Я ↔  A $hat ; # CYRILLIC CAPITAL LETTER YA
+ч ↔ c $caron ; # CYRILLIC SMALL LETTER CHE
+Ч ↔ C $caron; # CYRILLIC CAPITAL LETTER CHE
+э ↔ e $acute; # CYRILLIC SMALL LETTER E
+Э ↔ E $acute; # CYRILLIC CAPITAL LETTER E
+є ↔ e $hat; # CYRILLIC SMALL LETTER UKRAINIAN IE
+Є ↔ E $hat; # CYRILLIC CAPITAL LETTER UKRAINIAN IE
+ш ↔ s $caron ; # CYRILLIC SMALL LETTER SHA
+Ш ↔ S $caron ; # CYRILLIC CAPITAL LETTER SHA
+щ ↔ s $hat ; # CYRILLIC SMALL LETTER SHCHA
+Щ ↔ S $hat; # CYRILLIC CAPITAL LETTER SHCHA
+ѕ ↔ z $hat ; # CYRILLIC SMALL LETTER DZE
+Ѕ ↔ Z $hat; # CYRILLIC CAPITAL LETTER DZE
+ю ↔ u $hat ; # CYRILLIC SMALL LETTER YU
+Ю ↔  U $hat ; # CYRILLIC CAPITAL LETTER YU
+і ↔ i $acute; # CYRILLIC SMALL LETTER BYELORUSSIAN-UKRAINIAN I
+І ↔ I $acute; # CYRILLIC CAPITAL LETTER BYELORUSSIAN-UKRAINIAN I
+ј ↔ j $caron; # CYRILLIC SMALL LETTER JE
+Ј ↔ J $caron; # CYRILLIC CAPITAL LETTER JE
+љ ↔ l $hat ; # CYRILLIC SMALL LETTER LJE
+Љ ↔ L $hat ; # CYRILLIC CAPITAL LETTER LJE
+њ ↔ n $hat ; # CYRILLIC SMALL LETTER NJE
+Њ ↔ N $hat ; # CYRILLIC CAPITAL LETTER NJE
+ћ ↔ c $acute ; # CYRILLIC SMALL LETTER TSHE
+Ћ ↔ C $acute ; # CYRILLIC CAPITAL LETTER TSHE
+џ ↔ d $hat ; # CYRILLIC SMALL LETTER DZHE
+Џ ↔ D $hat ; # CYRILLIC CAPITAL LETTER DZHE
+а ↔ a ; # CYRILLIC SMALL LETTER A
+А ↔ A ; # CYRILLIC CAPITAL LETTER A
+ә ↔  ə ; # CYRILLIC SMALL LETTER SCHWA
+Ә ↔ Ə ; # CYRILLIC CAPITAL LETTER SCHWA
+ӕ ↔ æ ; # CYRILLIC SMALL LIGATURE A IE
+Ӕ ↔ Æ ; # CYRILLIC CAPITAL LIGATURE A IE
+б ↔ b ; # CYRILLIC SMALL LETTER BE
+Б ↔ B ; # CYRILLIC CAPITAL LETTER BE
+в ↔ v ; # CYRILLIC SMALL LETTER VE
+В ↔ V ; # CYRILLIC CAPITAL LETTER VE
+ґ ↔ g $grave ; # CYRILLIC SMALL LETTER GHE WITH UPTURN
+Ґ ↔ G $grave ; # CYRILLIC CAPITAL LETTER GHE WITH UPTURN
+ғ ↔ g $dot ; # CYRILLIC SMALL LETTER GHE WITH STROKE
+Ғ ↔ G $dot; # CYRILLIC CAPITAL LETTER GHE WITH STROKE
+ҕ ↔ g $breve; # CYRILLIC SMALL LETTER GHE WITH MIDDLE HOOK
+Ҕ ↔ G $breve; # CYRILLIC CAPITAL LETTER GHE WITH MIDDLE HOOK
+г ↔ g ; # CYRILLIC SMALL LETTER GHE
+Г ↔ G ; # CYRILLIC CAPITAL LETTER GHE
+д ↔ d; # CYRILLIC SMALL LETTER DE
+Д ↔ D; # CYRILLIC CAPITAL LETTER DE
+ђ ↔ đ ; # CYRILLIC SMALL LETTER DJE
+Ђ ↔ Đ ; # CYRILLIC CAPITAL LETTER DJE
+ҙ ↔ z $comma ; # CYRILLIC SMALL LETTER ZE WITH DESCENDER
+Ҙ ↔ Z $comma ; # CYRILLIC CAPITAL LETTER ZE WITH DESCENDER
+е ↔ e ; # CYRILLIC SMALL LETTER IE
+Е ↔ E; # CYRILLIC CAPITAL LETTER IE
+ж ↔ z $caron; # CYRILLIC SMALL LETTER ZHE
+Ж ↔ Z $caron; # CYRILLIC CAPITAL LETTER ZHE
+з ↔ z ; # CYRILLIC SMALL LETTER ZE
+З ↔ Z; # CYRILLIC CAPITAL LETTER ZE
+и\u0306 ↔ j ; # CYRILLIC SMALL LETTER I
+И\u0306 ↔ J ; # CYRILLIC CAPITAL LETTER I
+и ↔ i ; # CYRILLIC SMALL LETTER I
+И ↔ I ; # CYRILLIC CAPITAL LETTER I
+қ ↔ k $descender ; # CYRILLIC SMALL LETTER KA WITH DESCENDER
+Қ ↔ K $descender ; # CYRILLIC CAPITAL LETTER KA WITH DESCENDER
+к ↔ k ; # CYRILLIC SMALL LETTER KA
+К ↔ K; # CYRILLIC CAPITAL LETTER KA
+л ↔ l ; # CYRILLIC SMALL LETTER EL
+Л ↔ L; # CYRILLIC CAPITAL LETTER EL
+м ↔ m ; # CYRILLIC SMALL LETTER EM
+М ↔ M ; # CYRILLIC CAPITAL LETTER EM
+н ↔ n ; # CYRILLIC SMALL LETTER EN
+Н ↔ N; # CYRILLIC CAPITAL LETTER EN
+о ↔ o ; # CYRILLIC SMALL LETTER O
+О ↔ O ; # CYRILLIC CAPITAL LETTER O
+п ↔ p ; # CYRILLIC SMALL LETTER PE
+П ↔ P ; # CYRILLIC CAPITAL LETTER PE
+р ↔ r ; # CYRILLIC SMALL LETTER ER
+Р ↔ R ; # CYRILLIC CAPITAL LETTER ER
+с ↔ s ; # CYRILLIC SMALL LETTER ES
+С ↔ S ; # CYRILLIC CAPITAL LETTER ES
+т ↔ t ; # CYRILLIC SMALL LETTER TE
+Т ↔ T ; # CYRILLIC CAPITAL LETTER TE
+у ↔ u ; # CYRILLIC SMALL LETTER U
+У ↔ U ; # CYRILLIC CAPITAL LETTER U
+ф ↔ f ; # CYRILLIC SMALL LETTER EF
+Ф ↔ F ; # CYRILLIC CAPITAL LETTER EF
+х ↔ h ; # CYRILLIC SMALL LETTER HA
+Х ↔ H; # CYRILLIC CAPITAL LETTER HA
+ц ↔ c ; # CYRILLIC SMALL LETTER TSE
+Ц ↔ C; # CYRILLIC CAPITAL LETTER TSE
+Ъ ↔ $modprime2 $under ; # CYRILLIC CAPITAL LETTER HARD SIGN
+ъ ↔  $modprime2 ; # CYRILLIC SMALL LETTER HARD SIGN
+Ь ↔ $modprime $under ; # CYRILLIC CAPITAL LETTER SOFT SIGN
+ь ↔  $modprime ; # CYRILLIC SMALL LETTER SOFT SIGN
+ы ↔ y ; # CYRILLIC SMALL LETTER YERU
+Ы ↔ Y ; # CYRILLIC CAPITAL LETTER YERU
+$ignore = [[:Mark:]''] * ;
+| k ← q ;
+| K ← Q ;
+| u ← w ;
+| U ← W ;
+| KS ← X } $ignore [:UppercaseLetter:] ;
+| KS ← [:UppercaseLetter:] $ignore { X ;
+| Ks ← X ;
+| ks ← x ;
+:: NFC (NFD) ;
+:: ( [ˌ\u0308A-Za-zÀ-ÏÑ-ÖÙ-Ýà-ïñ-öù-ýÿ-ĥĨ-İĴ-ķĹ-ľŃ-ňŌ-őŔ-ťŨ-žƏƠ-ơƯ-ưǍ-ǜǞ-ǣǦ-ǰǴ-ǵǸ-țȞ-ȟȦ-ȳəʹ-ʺ\u0300-\u0302\u0306-\u0307\u030C\u0326\u0331\u0340-\u0341\u0344ʹ΅-ΆΈ-ΊΌΎ-ΐά-ΰό-ώϓЀЃЌ-ЎЙйѐѓќ-ўӁ-ӂӐ-ӑӖ-ӗḀ-ẙẛẠ-ỹἂ-ἅἊ-Ἅἒ-ἕἚ-Ἕἢ-ἥἪ-Ἥἲ-ἵἺ-Ἵὂ-ὅὊ-Ὅὒ-ὕὛὝὢ-ὥὪ-Ὥὰ-ώᾂ-ᾅᾊ-ᾍᾒ-ᾕᾚ-ᾝᾢ-ᾥᾪ-ᾭᾰᾲᾴᾸᾺ-ΆῂῄῈ-Ή῍-῎ῐῒ-ΐῘῚ-Ί῝-῞ῠῢ-ΰῨῪ-Ύ῭-΅ῲῴῸ-ΏK-Å] ) ;

@@ -1,0 +1,178 @@
+<HTML>
+<!--
+     Copyright (c) Lie-Quan Lee and Jeremy Siek, 2001
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Minimum Degree Ordering</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:mmd">
+<img src="figs/python.gif" alt="(Python)"/>
+<TT>minimum_degree_ordering</TT>
+</H1>
+
+
+<pre>
+  template &lt;class AdjacencyGraph, class OutDegreeMap,
+           class InversePermutationMap, 
+           class PermutationMap, class SuperNodeSizeMap, class VertexIndexMap&gt;
+  void minimum_degree_ordering
+    (AdjacencyGraph& G,
+     OutDegreeMap outdegree,
+     InversePermutationMap inverse_perm,
+     PermutationMap perm, 
+     SuperNodeSizeMap supernode_size, int delta, VertexIndexMap id) 
+</pre>
+
+<p>The minimum degree ordering algorithm&nbsp;[<A
+HREF="bibliography.html#LIU:MMD">21</A>, <A
+href="bibliography.html#George:evolution">35</a>] is a fill-in
+reduction matrix reordering algorithm.  When solving a system of
+equations such as <i>A x = b</i> using a sparse version of Cholesky
+factorization (which is a variant of Gaussian elimination for
+symmetric matrices), often times elements in the matrix that were once
+zero become non-zero due to the elimination process. This is what is
+referred to as &quot;fill-in&quot;, and fill-in is bad because it
+makes the matrix less sparse and therefore consume more time and space
+in later stages of the elimintation and in computations that use the
+resulting factorization. Now it turns out that reordering the rows of
+a matrix can have a dramatic affect on the amount of fill-in that
+occurs. So instead of solving <i>A x = b</i>, we instead solve the
+reordered (but equivalent) system <i>(P A P<sup>T</sup>)(P x) = P
+b</i>. Finding the optimal ordering is an NP-complete problem (e.i.,
+it can not be solved in a reasonable amount of time) so instead we
+just find an ordering that is &quot;good enough&quot; using
+heuristics. The minimum degree ordering algorithm is one such
+approach.
+
+<p>
+A symmetric matrix <TT>A</TT> is typically represented with an
+undirected graph, however for this function we require the input to be
+a directed graph.  Each nonzero matrix entry <TT>A(i, j)</TT> must be
+represented by two directed edges (<TT>e(i,j)</TT> and
+<TT>e(j,i)</TT>) in <TT>G</TT>.
+
+<p>
+The output of the algorithm are the vertices in the new ordering.
+<pre>
+  inverse_perm[new_index[u]] == old_index[u]
+</pre>
+<p> and the permutation from the old index to the new index. 
+<pre>
+  perm[old_index[u]] == new_index[u]
+</pre>
+<p>The following equations are always held.
+<pre>
+  for (size_type i = 0; i != inverse_perm.size(); ++i)
+    perm[inverse_perm[i]] == i;
+</pre>
+
+<h3>Parameters</h3>
+
+<ul>
+
+<li> <tt>AdjacencyGraph&amp; G</tt> &nbsp;(IN) <br> 
+  A directed graph. The graph's type must be a model of <a
+  href="./AdjacencyGraph.html">Adjacency Graph</a>,
+  <a
+  href="./VertexListGraph.html">Vertex List Graph</a>,
+  <a href="./IncidenceGraph.html">Incidence Graph</a>,
+  and <a href="./MutableGraph.html">Mutable Graph</a>.
+  In addition, the functions <tt>num_vertices()</tt> and
+  <TT>out_degree()</TT> are required.
+
+<li> <tt>OutDegreeMap outdegree</tt> &nbsp(WORK) <br>
+  This is used internally to store the out degree of vertices.  This
+  must be a <a href="../../property_map/doc/LvaluePropertyMap.html">
+  LvaluePropertyMap</a> with key type the same as the vertex
+  descriptor type of the graph, and with a value type that is an
+  integer type.
+
+<li> <tt>InversePermutationMap inverse_perm</tt> &nbsp(OUT) <br> 
+  The new vertex ordering, given as the mapping from the
+  new indices to the old indices (an inverse permutation).
+  This must be an <a href="../../property_map/doc/LvaluePropertyMap.html">
+  LvaluePropertyMap</a> with a value type and key type a signed integer. 
+
+<li> <tt>PermutationMap perm</tt> &nbsp(OUT) <br> 
+  The new vertex ordering, given as the mapping from the
+  old indices to the new indices (a permutation).
+  This must be an <a href="../../property_map/doc/LvaluePropertyMap.html">
+  LvaluePropertyMap</a> with a value type and key type a signed integer. 
+
+<li> <tt>SuperNodeSizeMap supernode_size</tt> &nbsp(WORK/OUT) <br> 
+  This is used internally to record the size of supernodes and is also
+  useful information to have. This is a <a
+  href="../../property_map/doc/LvaluePropertyMap.html">
+  LvaluePropertyMap</a> with an unsigned integer value type and key
+  type of vertex descriptor.
+
+<li> <tt>int delta</tt> &nbsp(IN) <br> 
+  Multiple elimination control variable. If it is larger than or equal
+  to zero then multiple elimination is enabled. The value of
+  <tt>delta</tt> specifies the difference between the minimum degree
+  and the degree of vertices that are to be eliminated.
+  
+<li> <tt>VertexIndexMap id</tt> &nbsp(IN) <br> 
+  Used internally to map vertices to their indices. This must be a <a
+  href="../../property_map/doc/ReadablePropertyMap.html"> Readable
+  Property Map</a> with key type the same as the vertex descriptor of
+  the graph and a value type that is some unsigned integer type.
+
+</ul>
+
+
+<h3>Example</h3>
+
+See <a
+href="../example/minimum_degree_ordering.cpp"><tt>example/minimum_degree_ordering.cpp</tt></a>.
+
+
+<h3>Implementation Notes</h3>
+
+<p>UNDER CONSTRUCTION
+
+<p>It chooses the vertex with minimum degree in the graph at each step of
+simulating Gaussian elimination process.
+
+<p>This implementation provided a number of enhancements
+including mass elimination, incomplete degree update, multiple
+elimination, and external degree. See&nbsp;[<A
+href="bibliography.html#George:evolution">35</a>] for a historical
+survey of the minimum degree algorithm.
+
+<p>
+An <b>elimination graph</b> <i>G<sub>v</sub></i> is obtained from the
+graph <i>G</i> by removing vertex <i>v</i> and all of its incident
+edges and by then adding edges to make all of the vertices adjacent to
+<i>v</i> into a clique (that is, add an edge between each pair of
+adjacent vertices if an edge doesn't already exist). 
+
+Suppose that graph <i>G</i> is the graph representing the nonzero
+structure of a matrix <i>A</i>. Then performing a step of Guassian
+elimination on row <i>i</i> of matrix <i>A</i> is equivalent to
+
+
+
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2001</TD><TD>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>) <br>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

@@ -1,0 +1,84 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct as_env</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../../proto/reference.html#header.boost.proto.transform.env_hpp" title="Header &lt;boost/proto/transform/env.hpp&gt;">
+<link rel="prev" href="../_default/impl.html" title="Struct template impl">
+<link rel="next" href="as_env/result.html" title="Struct template result">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../_default/impl.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../proto/reference.html#header.boost.proto.transform.env_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="as_env/result.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.functional.as_env"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct as_env</span></h2>
+<p>boost::proto::functional::as_env &#8212; 
+            A unary <a class="link" href="../../../PolymorphicFunctionObject.html" title="Concept PolymorphicFunctionObject">PolymorphicFunctionObject</a> for ensuring that an object
+            is a transform environment. If it isn't already, it is turned into one such that the
+            object is associated with the <a class="link" href="../data_type.html" title="Struct data_type">proto::data_type</a> key.
+          </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../proto/reference.html#header.boost.proto.transform.env_hpp" title="Header &lt;boost/proto/transform/env.hpp&gt;">boost/proto/transform/env.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="as_env.html" title="Struct as_env">as_env</a> <span class="special">:</span> <span class="keyword"></span> <a class="link" href="../callable.html" title="Struct callable">proto::callable</a> <span class="special">{</span>
+  <span class="comment">// member classes/structs/unions</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Sig<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="as_env/result.html" title="Struct template result">result</a> <span class="special">{</span>
+    <span class="comment">// <a class="link" href="as_env/result.html#boost.proto.functional.as_env.resulttypes">types</a></span>
+    <span class="keyword">typedef</span> <em class="replaceable"><code><span class="identifier">see</span><span class="special">-</span><span class="identifier">below</span></code></em> <a class="link" href="as_env/result.html#boost.proto.functional.as_env.result.type"><span class="identifier">type</span></a><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="as_env.html#idp68474616-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">see</span><span class="special">-</span><span class="identifier">below</span></code></em> <a class="link" href="as_env.html#idp68475176-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">see</span><span class="special">-</span><span class="identifier">below</span></code></em> <a class="link" href="as_env.html#idp68477000-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp186129384"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp186129592"></a><h3>
+<a name="idp68474616-bb"></a><code class="computeroutput">as_env</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp68474904-bb"></a><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">see</span><span class="special">-</span><span class="identifier">below</span></code></em> <a name="idp68475176-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span> t<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <em class="replaceable"><code><span class="identifier">see</span><span class="special">-</span><span class="identifier">below</span></code></em> <a name="idp68477000-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> t<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+                  If <code class="computeroutput"><a class="link" href="../is_env.html" title="Struct template is_env">proto::is_env</a>&lt;T&gt;::value</code> is <code class="computeroutput">false</code>,
+                  this function returns the result of <code class="computeroutput">(<a class="link" href="../data.html" title="Global data">proto::data</a> = t)</code>.
+                  See <code class="computeroutput"><a class="link" href="../data_type.html#idp68459288-bb">proto::data_type::operator=</a></code> for details.
+                </p>
+<p>
+                  Otherwise, this function returns <code class="computeroutput">t</code> by reference.
+                </p>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../_default/impl.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../proto/reference.html#header.boost.proto.transform.env_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="as_env/result.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

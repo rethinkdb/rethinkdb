@@ -1,0 +1,169 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template period</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.period_hpp" title="Header &lt;boost/date_time/period.hpp&gt;">
+<link rel="prev" href="ymd_order_spec.html" title="Type ymd_order_spec">
+<link rel="next" href="period_formatter.html" title="Class template period_formatter">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ymd_order_spec.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.period_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="period_formatter.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.period"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template period</span></h2>
+<p>boost::date_time::period &#8212; Provides generalized period type useful in date-time systems. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.period_hpp" title="Header &lt;boost/date_time/period.hpp&gt;">boost/date_time/period.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> point_rep<span class="special">,</span> <span class="keyword">typename</span> duration_rep<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">:</span> <span class="keyword">private</span> boost::less_than_comparable&lt; period&lt; point_rep, duration_rep &gt;, boost::equality_comparable&lt; period&lt; point_rep, duration_rep &gt; &gt; &gt;
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">point_rep</span>    <a name="boost.date_time.period.point_type"></a><span class="identifier">point_type</span><span class="special">;</span>   
+  <span class="keyword">typedef</span> <span class="identifier">duration_rep</span> <a name="boost.date_time.period.duration_type"></a><span class="identifier">duration_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="period.html#boost.date_time.periodconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="period.html#idp21559768-bb"><span class="identifier">period</span></a><span class="special">(</span><span class="identifier">point_rep</span><span class="special">,</span> <span class="identifier">point_rep</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="period.html#idp22177128-bb"><span class="identifier">period</span></a><span class="special">(</span><span class="identifier">point_rep</span><span class="special">,</span> <span class="identifier">duration_rep</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="period.html#idp54444776-bb">public member functions</a></span>
+  <span class="identifier">point_rep</span> <a class="link" href="period.html#idp54444952-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">point_rep</span> <a class="link" href="period.html#idp51396488-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">point_rep</span> <a class="link" href="period.html#idp36505928-bb"><span class="identifier">last</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">duration_rep</span> <a class="link" href="period.html#idp22441240-bb"><span class="identifier">length</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="period.html#idp22441880-bb"><span class="identifier">is_null</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="period.html#idp21450376-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="period.html#idp19315064-bb"><span class="keyword">operator</span><span class="special">&lt;</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="period.html#idp20389416-bb"><span class="identifier">shift</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">duration_rep</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="period.html#idp20390424-bb"><span class="identifier">expand</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">duration_rep</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="period.html#idp22194408-bb"><span class="identifier">contains</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">point_rep</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="period.html#idp51789880-bb"><span class="identifier">contains</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="period.html#idp20224040-bb"><span class="identifier">intersects</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="period.html#idp20225208-bb"><span class="identifier">is_adjacent</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="period.html#idp21179816-bb"><span class="identifier">is_before</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">point_rep</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="period.html#idp22289032-bb"><span class="identifier">is_after</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">point_rep</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="period.html" title="Class template period">period</a> <a class="link" href="period.html#idp21062056-bb"><span class="identifier">intersection</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="period.html" title="Class template period">period</a> <a class="link" href="period.html#idp19341416-bb"><span class="identifier">merge</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="period.html" title="Class template period">period</a> <a class="link" href="period.html#idp18848008-bb"><span class="identifier">span</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp88418152"></a><h2>Description</h2>
+<p>This template uses a class to represent a time point within the period and another class to represent a duration. As a result, this class is not appropriate for use when the number and duration representation are the same (eg: in the regular number domain).</p>
+<p>A period can be specified by providing either the begining point and a duration or the begining point and the end point( end is NOT part of the period but 1 unit past it. A period will be "invalid" if either end_point &lt;= begin_point or the given duration is &lt;= 0. Any valid period will return false for is_null().</p>
+<p>Zero length periods are also considered invalid. Zero length periods are periods where the begining and end points are the same, or, the given duration is zero. For a zero length period, the last point will be one unit less than the begining point.</p>
+<p>In the case that the begin and last are the same, the period has a length of one unit.</p>
+<p>The best way to handle periods is usually to provide a begining point and a duration. So, day1 + 7 days is a week period which includes all of the first day and 6 more days (eg: Sun to Sat). </p>
+<div class="refsect2">
+<a name="idp88420488"></a><h3>
+<a name="boost.date_time.periodconstruct-copy-destruct"></a><code class="computeroutput">period</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp21559768-bb"></a><span class="identifier">period</span><span class="special">(</span><span class="identifier">point_rep</span> first_point<span class="special">,</span> <span class="identifier">point_rep</span> end_point<span class="special">)</span><span class="special">;</span></pre>create a period from begin to last eg: [begin,end) <p>If end &lt;= begin then the period will be invalid </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp22177128-bb"></a><span class="identifier">period</span><span class="special">(</span><span class="identifier">point_rep</span> first_point<span class="special">,</span> <span class="identifier">duration_rep</span> len<span class="special">)</span><span class="special">;</span></pre>create a period as [begin, begin+len) <p>If len is &lt;= 0 then the period will be invalid </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp88427736"></a><h3>
+<a name="idp54444776-bb"></a><code class="computeroutput">period</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">point_rep</span> <a name="idp54444952-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Return the first element in the period. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">point_rep</span> <a name="idp51396488-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Return one past the last element. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">point_rep</span> <a name="idp36505928-bb"></a><span class="identifier">last</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Return the last item in the period. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">duration_rep</span> <a name="idp22441240-bb"></a><span class="identifier">length</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Return the length of the period. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp22441880-bb"></a><span class="identifier">is_null</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>True if period is ill formed (length is zero or less) </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp21450376-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Equality operator. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp19315064-bb"></a><span class="keyword">operator</span><span class="special">&lt;</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Strict as defined by rhs.last &lt;= lhs.last. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp20389416-bb"></a><span class="identifier">shift</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">duration_rep</span> <span class="special">&amp;</span> d<span class="special">)</span><span class="special">;</span></pre>Shift the start and end by the specified amount. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp20390424-bb"></a><span class="identifier">expand</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">duration_rep</span> <span class="special">&amp;</span> d<span class="special">)</span><span class="special">;</span></pre>
+<p>Expands the size of the period by the duration on both ends.</p>
+<p>So before expand </p>
+<pre class="programlisting">*
+*         [-------]
+* ^   ^   ^   ^   ^   ^  ^
+* 1   2   3   4   5   6  7
+* 
+*
+</pre>
+<p> After expand(2) </p>
+<pre class="programlisting">*
+* [----------------------]
+* ^   ^   ^   ^   ^   ^  ^
+* 1   2   3   4   5   6  7
+* 
+*
+</pre>
+<p> </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp22194408-bb"></a><span class="identifier">contains</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">point_rep</span> <span class="special">&amp;</span> point<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>True if the point is inside the period, zero length periods contain no points. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp51789880-bb"></a><span class="identifier">contains</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span> other<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>True if this period fully contains (or equals) the other period. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp20224040-bb"></a><span class="identifier">intersects</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span> other<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>True if the periods overlap in any way. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp20225208-bb"></a><span class="identifier">is_adjacent</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span> other<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>True if periods are next to each other without a gap. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp21179816-bb"></a><span class="identifier">is_before</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">point_rep</span> <span class="special">&amp;</span> point<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>True if all of the period is prior to the passed point or end &lt;= t. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp22289032-bb"></a><span class="identifier">is_after</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">point_rep</span> <span class="special">&amp;</span> point<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>True if all of the period is prior or t &lt; start. </li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="period.html" title="Class template period">period</a> <a name="idp21062056-bb"></a><span class="identifier">intersection</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span> other<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns the period of intersection or invalid range no intersection. </li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="period.html" title="Class template period">period</a> <a name="idp19341416-bb"></a><span class="identifier">merge</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span> other<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns the union of intersecting periods <span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span> or null period. </li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="period.html" title="Class template period">period</a> <a name="idp18848008-bb"></a><span class="identifier">span</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="period.html" title="Class template period">period</a> <span class="special">&amp;</span> other<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Combine two periods with earliest start and latest end. <p>Combines two periods and any gap between them such that start = min(p1.start, p2.start) end = max(p1.end , p2.end) </p>
+<pre class="programlisting">*        [---p1---)
+*                       [---p2---)
+* result:
+*        [-----------p3----------) 
+*
+</pre>
+<p> </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ymd_order_spec.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.period_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="period_formatter.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

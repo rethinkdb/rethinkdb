@@ -1,0 +1,147 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Rationale]
+
+[heading Naming]
+
+Why use the name "Spirit", "Qi" and "Karma"? Because xpressive names
+have a better spirit, brings qi to your software and will enhance your
+karma so they can heal your (con)fusion and make you wave like a phoenix
+from the ashes. (Joachim Faulhaber)
+
+[heading Type Erasure: From static to dynamic C++]
+
+Rules straddle the border between static and dynamic C++. In effect, a
+rule transforms compile-time polymorphism (using templates) into
+run-time polymorphism (using virtual functions). This is necessary due
+to C++'s inability to automatically declare a variable of a type deduced
+from an arbitrarily complex expression in the right-hand side (rhs) of
+an assignment. Basically, we want to do something like:
+
+    T rule = an_arbitrarily_complex_expression;
+
+without having to know or care about the resulting type of the
+right-hand side (rhs) of the assignment expression. This can be done
+with modern C++ 0x compilers using `auto`:
+
+    auto rule = an_arbitrarily_complex_expression;
+
+Apart from this, we also need a facility to forward declare an unknown
+type:
+
+    T rule;
+    ...
+    rule = a | b;
+
+These limitations lead us to this implementation of rules. This comes at
+the expense of the overhead of a type-erased call which is an indirect
+function call that connot be inlined, once through each invocation of a
+rule.
+
+[heading Multiple declaration]
+
+Some BNF variants allow multiple declarations of a rule. The
+declarations are taken as alternatives. Example:
+
+   r = a;
+   r = b;
+
+is equivalent to:
+
+   r = a | b;
+
+Spirit v1.3 allowed this behavior. However, the current version of
+Spirit no longer allows this because experience shows that this behavior
+leads to unwanted gotchas (for instance, it does not allow rules to be
+held in containers). In the current release of Spirit, a second
+assignment to a rule will simply redefine it. The old definition is
+destructed. This follows more closely C++ semantics and is more in line
+with what the user expects the rule to behave.
+
+[heading Sequencing Syntax]
+
+The comma operator as in `a, b` seems to be a better candidate,
+syntax-wise. But then the problem is with its precedence. It has the
+lowest precedence in C/C++, which makes it virtually useless.
+
+Bjarne Stroustrup, in his article "Generalizing Overloading for C++2000"
+talks about overloading whitespace. Such a feature would allow
+juxtapositioning of parser objects exactly as we do in (E)BNF (e.g. a b
+| c instead of a >> b | c). Unfortunately, the article was dated April
+1, 1998. Oh well.
+
+[heading Forward iterators]
+
+In general, the expected iterator is at least a standard conforming
+forward iterator. Forward iterators are needed for backtracking where
+the iterator needs to be saved and restored later. Generally speaking,
+Spirit is a backtracking parser. The implication of this is that at some
+point, the iterator position will have to be saved to allow the parser
+to backtrack to a previous point. Thus, for backtracking to work, the
+framework requires at least a forward iterator.
+
+There are remedies of course. In cases where we need to use input
+iterators, you can use the __multi_pass__ iterator to make the forward
+iterators.
+
+Some parsers might require more specialized iterators (bi-directional or
+even random access). Perhaps in the future, deterministic parsers when
+added to the framework, will perform no backtracking and will need just
+a single token lookahead, hence will require input iterators only.
+
+[heading Exhaustive backtracking and greedy RD]
+
+Spirit doesn't do exhaustive backtracking like regular expressions are
+expected to. For example:
+
+    *char_('a') >> char_('a');
+
+will always fail to match because Spirit's Kleene star does not back off
+when the rest of the rule fails to match.
+
+Actually, there's a solution to this greedy RD problem. Such a scheme is
+discussed in section 6.6.2 of Parsing Techniques: A Practical Guide. The
+trick involves passing a tail parser (in addition to the scanner) to
+each parser. The start parser will then simply be:
+
+    start >> end;
+
+(end is the start's tail).
+
+Spirit is greedy --using straight forward, naive RD. It is certainly
+possible to implement the fully backtracking scheme presented above, but
+there will be also certainly be a performance hit. The scheme will
+always try to match all possible parser paths (full parser hierarchy
+traversal) until it reaches a point of certainty, that the whole thing
+matches or fails to match.
+
+[:Backtracking and Greedy RD
+
+Spirit is quite consistent and intuitive about when it backtracks and to
+where, although it may not be obvious to those coming from different
+backgrounds. In general, any (sub)parser will, given the same input,
+always match the same portion of the input (or fail to match the input
+at all). This means that Spirit is inherently greedy. Spirit will only
+backtrack when a (sub)parser fails to match the input, and it will
+always backtrack to the next choice point upward (not backward) in the
+parser structure. In other words abb|ab will match `"ab"`, as will
+`a(bb|b)`, but `(ab|a)b` won't because the `(ab|a)` subparser will
+always match the `'b'` after the `'a'` if it is available.
+
+--Rainer Deyke]
+
+This is the very nature of __peg__.
+
+There's a strong preference on "simplicity with all the knobs when you
+need them" approach, right now. On the other hand, the flexibility of
+Spirit makes it possible to have different optional schemes available.
+It might be possible to implement an exhaustive backtracking RD scheme
+as an optional feature in the future.
+
+[endsect]

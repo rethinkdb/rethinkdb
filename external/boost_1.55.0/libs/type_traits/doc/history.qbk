@@ -1,0 +1,44 @@
+[/ 
+  Copyright 2009 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:history History]
+
+[h4 Boost 1.55.0]
+
+* Added new trait __is_copy_constructible.
+
+[h4 Boost 1.54.0]
+
+* Added new traits __is_nothrow_move_assignable, __is_nothrow_move_constructible, __has_trivial_move_assign, 
+__has_trivial_move_constructor.
+
+[h4 Boost 1.47.0]
+
+* [* Breaking change]: changed __is_convertible to C++0x behaviour when possible.
+* Fixed issues [@https://svn.boost.org/trac/boost/ticket/5271 #5271],
+[@https://svn.boost.org/trac/boost/ticket/4530 #4530].
+
+
+[h4 Boost 1.45.0]
+
+* Added new traits __add_rvalue_reference, __add_lvalue_reference and __common_type.
+* Minor fixes to __is_signed, __is_unsigned and __is_virtual_base_of.
+
+[h4 Boost 1.44.0]
+
+* Added support for rvalue references throughout the library, plus two new traits classes
+__is_rvalue_reference and __is_lvalue_reference.  Fixes [@https://svn.boost.org/trac/boost/ticket/4407 #4407]
+and [@https://svn.boost.org/trac/boost/ticket/3804 #3804].
+* Fixed ticket [@https://svn.boost.org/trac/boost/ticket/3621 #3621].
+
+[h4 Boost 1.42.0]
+
+* Fixed issue [@https://svn.boost.org/trac/boost/ticket/3704 #3704].
+
+
+[endsect]
+

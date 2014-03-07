@@ -1,0 +1,223 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Writing your own attributes</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../extension.html" title="Extending the library">
+<link rel="prev" href="sources.html" title="Writing your own sources">
+<link rel="next" href="settings.html" title="Extending library settings support">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sources.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../extension.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="settings.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.extension.attributes"></a><a class="link" href="attributes.html" title="Writing your own attributes">Writing your own attributes</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../attributes.html#header.boost.log.attributes.attribute_hpp" title="Header &lt;boost/log/attributes/attribute.hpp&gt;">boost/log/attributes/attribute.hpp</a></code><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../attributes.html#header.boost.log.attributes.attribute_value_hpp" title="Header &lt;boost/log/attributes/attribute_value.hpp&gt;">boost/log/attributes/attribute_value.hpp</a></code><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../attributes.html#header.boost.log.attributes.attribute_value_impl_hpp" title="Header &lt;boost/log/attributes/attribute_value_impl.hpp&gt;">boost/log/attributes/attribute_value_impl.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+        Developing your own attributes is quite simple. Generally, you need to do
+        the following:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Define what will be the attribute value. Most likely, it will be a piece
+            of constant data that you want to participate in filtering and formatting.
+            Envelop this data into a class that derives from the <code class="computeroutput"><a class="link" href="../../boost/log/attribute_value/impl.html" title="Struct impl">impl</a></code>
+            interface; this is the attribute value implementation class. This object
+            will have to implement the <code class="computeroutput"><span class="identifier">dispatch</span></code>
+            method that will extract the stored data (or, in other words, the stored
+            value) to a type dispatcher. In most cases the class <code class="computeroutput"><a class="link" href="../../boost/log/attributes/attribute_value_impl.html" title="Class template attribute_value_impl">attribute_value_impl</a></code>
+            provided by the library can be used for this.
+          </li>
+<li class="listitem">
+            Use the <code class="computeroutput"><a class="link" href="../../boost/log/attribute_value.html" title="Class attribute_value">attribute_value</a></code>
+            class as the interface class that holds a reference to the attribute
+            value implementation.
+          </li>
+<li class="listitem">
+            Define how attribute values are going to be produced. In a corner case
+            the values do not need to be produced (like in the case of the <code class="computeroutput"><a class="link" href="../../boost/log/attributes/constant.html" title="Class template constant">constant</a></code> attribute
+            provided by the library), but often there is some logic that needs to
+            be invoked to acquire the attribute value. This logic has to be concentrated
+            in a class derived from the <code class="computeroutput"><a class="link" href="../../boost/log/attribute/impl.html" title="Struct impl">impl</a></code>
+            interface, more precisely - in the <code class="computeroutput"><span class="identifier">get_value</span></code>
+            method. This class is the attribute implementation class. You can think
+            of it as an attribute value factory.
+          </li>
+<li class="listitem">
+            Define the attribute interface class that derives from <code class="computeroutput"><a class="link" href="../../boost/log/attribute.html" title="Class attribute">attribute</a></code>.
+            By convention, the interface class should create the corresponding implementation
+            on construction and pass the pointer to it to the <code class="computeroutput"><a class="link" href="../../boost/log/attribute.html" title="Class attribute">attribute</a></code>
+            class constructor. The interface class may have interface methods but
+            it typically should not contain any data members as the data will be
+            lost when the attribute is added to the library. All relevant data should
+            be placed in the implementation class instead.
+          </li>
+</ol></div>
+<p>
+        While designing an attribute, one has to strive to make it as independent
+        from the values it produces, as possible. The attribute can be called from
+        different threads concurrently to produce a value. Once produced, the attribute
+        value can be used several times by the library (maybe even concurrently),
+        it can outlive the attribute object that created it, and several attribute
+        values produced by the same attribute can exist simultaneously.
+      </p>
+<p>
+        From the library perspective, each attribute value is considered independent
+        from other attribute values or the attribute itself. That said, it is still
+        possible to implement attributes that are also attribute values, which allows
+        to optimize performance in some cases. This is possible if the following
+        requirements are fulfilled:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The attribute value never changes, so it's possible to store it in the
+            attribute itself. The <code class="computeroutput"><a class="link" href="../../boost/log/attributes/constant.html" title="Class template constant">constant</a></code>
+            attribute is an example.
+          </li>
+<li class="listitem">
+            The attribute stores its value in a global (external with regard to the
+            attribute) storage, that can be accessed from any attribute value. The
+            attribute values must guarantee, though, that their stored values do
+            not change over time and are safely accessible concurrently from different
+            threads.
+          </li>
+</ul></div>
+<p>
+        As a special case for the second point, it is possible to store attribute
+        values (or their parts) in a thread-specific storage. However, in that case
+        the user has to implement the <code class="computeroutput"><span class="identifier">detach_from_thread</span></code>
+        method of the attribute value implementation properly. The result of this
+        method - another attribute value - must be independent from the thread it
+        is being called in, but its stored value should be equivalent to the original
+        attribute value. This method will be called by the library when the attribute
+        value passes to a thread that is different from the thread where it was created.
+        As of this moment, this will only happen in the case of <a class="link" href="../detailed/sink_frontends.html#log.detailed.sink_frontends.async" title="Asynchronous sink frontend">asynchronous
+        logging sinks</a>.
+      </p>
+<p>
+        But in the vast majority of cases attribute values must be self-contained
+        objects with no dependencies on other entities. In fact, this case is so
+        common that the library provides a ready to use attribute value implementation
+        class template <code class="computeroutput"><a class="link" href="../../boost/log/attributes/attribute_value_impl.html" title="Class template attribute_value_impl">attribute_value_impl</a></code>
+        and <code class="computeroutput"><a class="link" href="../../boost/log/attributes/make_attribute_value.html" title="Function template make_attribute_value">make_attribute_value</a></code>
+        generator function. The class template has to be instantiated on the stored
+        value type, and the stored value has to be provided to the class constructor.
+        For example, let's implement an attribute that returns system uptime in seconds.
+        This is the attribute implementation class.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// The function returns the system uptime, in seconds</span>
+<span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">get_uptime</span><span class="special">();</span>
+
+<span class="comment">// Attribute implementation class</span>
+<span class="keyword">class</span> <span class="identifier">system_uptime_impl</span> <span class="special">:</span>
+    <span class="keyword">public</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute</span><span class="special">::</span><span class="identifier">impl</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// The method generates a new attribute value</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute_value</span> <span class="identifier">get_value</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">attrs</span><span class="special">::</span><span class="identifier">make_attribute_value</span><span class="special">(</span><span class="identifier">get_uptime</span><span class="special">());</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        Since there is no need for special attribute value classes we can use the
+        <code class="computeroutput"><a class="link" href="../../boost/log/attributes/make_attribute_value.html" title="Function template make_attribute_value">make_attribute_value</a></code>
+        function to create the value envelop.
+      </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          For cases like this, when the attribute value can be obtained in a single
+          function call, it is typically more convenient to use the <a class="link" href="../detailed/attributes.html#log.detailed.attributes.function" title="Function objects as attributes"><code class="computeroutput"><span class="identifier">function</span></code></a> attribute.
+        </p></td></tr>
+</table></div>
+<p>
+        The interface class of the attribute can be defined as follows:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Attribute interface class</span>
+<span class="keyword">class</span> <span class="identifier">system_uptime</span> <span class="special">:</span>
+    <span class="keyword">public</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">system_uptime</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">system_uptime_impl</span><span class="special">())</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+    <span class="comment">// Attribute casting support</span>
+    <span class="keyword">explicit</span> <span class="identifier">system_uptime</span><span class="special">(</span><span class="identifier">attrs</span><span class="special">::</span><span class="identifier">cast_source</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">source</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute</span><span class="special">(</span><span class="identifier">source</span><span class="special">.</span><span class="identifier">as</span><span class="special">&lt;</span> <span class="identifier">system_uptime_impl</span> <span class="special">&gt;())</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        As it was mentioned before, the default constructor creates the implementation
+        instance so that the default constructed attribute can be used by the library.
+      </p>
+<p>
+        The second constructor adds support for <a class="link" href="../detailed/attributes.html" title="Attributes">attribute
+        casting</a>. The constructor argument contains a reference to an attribute
+        implementation object, and by calling <code class="computeroutput"><span class="identifier">as</span></code>
+        on it the constructor attempts to upcast it to the implementation object
+        of our custom attribute. The <code class="computeroutput"><span class="identifier">as</span></code>
+        method will return <code class="computeroutput"><span class="identifier">NULL</span></code> if
+        the upcast fails, which will result in an empty attribute constructed in
+        case of failure.
+      </p>
+<p>
+        Having defined these two classes, the attribute can be used with the library
+        as usual:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">init_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="comment">// ...</span>
+
+    <span class="comment">// Add the uptime attribute to the core</span>
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_global_attribute</span><span class="special">(</span><span class="string">"SystemUptime"</span><span class="special">,</span> <span class="identifier">system_uptime</span><span class="special">());</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        <a href="../../../../../../libs/log/example/doc/extension_system_uptime_attr.cpp" target="_top">See
+        the complete code</a>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sources.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../extension.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="settings.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

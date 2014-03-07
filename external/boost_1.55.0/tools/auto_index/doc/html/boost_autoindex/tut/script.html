@@ -1,0 +1,160 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Step 4: Create the .idx script file - to control what to terms to index</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Boost.AutoIndex">
+<link rel="up" href="../tut.html" title="Getting Started and Tutorial">
+<link rel="prev" href="add_indexes.html" title="Step 3: Add indexes to your documentation">
+<link rel="next" href="entries.html" title="Step 5: Add Manual Index Entries to Docbook XML - Optional">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="add_indexes.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="entries.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_autoindex.tut.script"></a><a class="link" href="script.html" title="Step 4: Create the .idx script file - to control what to terms to index">Step 4: Create the .idx script
+      file - to control what to terms to index</a>
+</h3></div></div></div>
+<p>
+        AutoIndex works by reading a script file that tells it what terms to index.
+      </p>
+<p>
+        If your document contains largely text, and only a small amount of simple
+        C++, and/or if you are using Doxygen to provide a C++ Reference section (that
+        lists the C++ elements), and/or if you are relying on the indexing provided
+        from a Standalone Doxygen Index, you may decide that a index is not needed
+        and that you may only want the text part indexed.
+      </p>
+<p>
+        But if you want C++ classes functions, typedefs and/or macros AutoIndexed,
+        optionally, the script file also tells which other C++ files to scan.
+      </p>
+<p>
+        At its simplest, it will scan one or more headers for terms that should be
+        indexed in the documentation. So for example to scan "myheader.hpp"
+        the script file would just contain:
+      </p>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">scan</span> <span class="identifier">myheader</span><span class="special">.</span><span class="identifier">hpp</span>
+<span class="special">!</span><span class="identifier">scan</span> <span class="identifier">mydetailsheader</span><span class="special">.</span><span class="identifier">hpp</span>
+</pre>
+<p>
+        Or, more likely in practice, so we can recursively scan through directories
+        looking for all the files to scan whose <span class="bold"><strong>name matches
+        a particular regular expression</strong></span>:
+      </p>
+<pre class="programlisting">!scan-path "boost/mylibrary" ".*.hpp" true </pre>
+<p>
+        Each argument is whitespace separated and can be optionally enclosed in "double
+        quotes" (recommended).
+      </p>
+<p>
+        The final <span class="emphasis"><em>true</em></span> argument indicates that subdirectories
+        in <code class="computeroutput"><span class="special">/</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">mylibrary</span></code> should be searched recursively
+        in addition to that directory.
+      </p>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../../../../doc/src/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          The second <span class="emphasis"><em>file-name-regex</em></span> argument is a regular expression
+          and not a filename GLOB!
+        </p></td></tr>
+</table></div>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../../../../doc/src/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          The scan-path is modified by any setting of &lt;auto-index-prefix&gt;.
+          The examples here assume that this is <code class="literal">&lt;auto-index-prefix&gt;../../..</code>
+          so that <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">mylibrary</span></code> will be your header files,
+          <code class="computeroutput"><span class="identifier">libs</span><span class="special">/</span><span class="identifier">mylibrary</span><span class="special">/</span><span class="identifier">doc</span></code> will contain your documentation files
+          and <code class="computeroutput"><span class="identifier">libs</span><span class="special">/</span><span class="identifier">mylibrary</span><span class="special">/</span><span class="identifier">example</span></code> will contain your examples.
+        </p></td></tr>
+</table></div>
+<p>
+        You could also scan any examples (.cpp) files, typically in folder <code class="computeroutput"><span class="special">/</span><span class="identifier">mylibrary</span><span class="special">/</span><span class="identifier">lib</span><span class="special">/</span><span class="identifier">example</span></code>.
+      </p>
+<pre class="programlisting"># All example source files, assuming no sub-folders.
+!scan-path "libs/mylibrary/example" ".*\.cpp" 
+</pre>
+<p>
+        Often the <span class="emphasis"><em>scan</em></span> or <span class="emphasis"><em>scan-path</em></span> rules
+        will bring in too many terms to search for, so we need to be able to exclude
+        terms as well:
+      </p>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">exclude</span> <span class="identifier">type</span>
+</pre>
+<p>
+        Which excludes the term "type" from being indexed.
+      </p>
+<p>
+        We can also add terms manually:
+      </p>
+<pre class="programlisting"><span class="identifier">foobar</span>
+</pre>
+<p>
+        will index occurrences of "foobar" and:
+      </p>
+<pre class="programlisting"><span class="identifier">foobar</span> <span class="special">\&lt;\</span><span class="identifier">w</span><span class="special">*(</span><span class="identifier">foo</span><span class="special">|</span><span class="identifier">bar</span><span class="special">)\</span><span class="identifier">w</span><span class="special">*\&gt;</span>
+</pre>
+<p>
+        will index any whole word containing either "foo" or "bar"
+        within it, this is useful when you want to index a lot of similar or related
+        words under one entry, for example:
+      </p>
+<pre class="programlisting"><span class="identifier">reflex</span>
+</pre>
+<p>
+        Will only index occurrences of "reflex" as a whole word, but:
+      </p>
+<pre class="programlisting"><span class="identifier">reflex</span> <span class="special">\&lt;</span><span class="identifier">reflex</span><span class="special">\</span><span class="identifier">w</span><span class="special">*\&gt;</span>
+</pre>
+<p>
+        will index occurrences of "reflex", "reflexing" and "reflexed"
+        all under the same entry <span class="emphasis"><em>reflex</em></span>. You will very often
+        need to use this to deal with plurals and other variants.
+      </p>
+<p>
+        This inclusion rule can also restrict the term to certain sections, and add
+        an index category that the term should belong to (so it only appears in certain
+        indexes).
+      </p>
+<p>
+        Finally the script can add rewrite rules, that rename section names that
+        are automatically used as index entries. For example we might want to remove
+        leading "A" or "The" prefixes from section titles when
+        AutoIndex uses them as an index entry:
+      </p>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">rewrite</span><span class="special">-</span><span class="identifier">name</span> <span class="string">"(?i)(?:A|The)\s+(.*)"</span> <span class="string">"\1"</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008, 2011 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="add_indexes.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="entries.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

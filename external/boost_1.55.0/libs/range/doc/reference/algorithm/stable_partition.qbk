@@ -1,0 +1,61 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:stable_partition stable_partition]
+
+[heading Prototype]
+
+``
+template<class ForwardRange, class UnaryPredicate>
+typename range_iterator<ForwardRange>::type
+stable_partition(ForwardRange& rng, UnaryPredicate pred);
+
+template<class ForwardRange, class UnaryPredicate>
+typename range_iterator<const ForwardRange>::type
+stable_partition(const ForwardRange& rng, UnaryPredicate pred);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class UnaryPredicate
+>
+typename range_return<ForwardRange, re>::type
+stable_partition(ForwardRange& rng, UnaryPredicate pred);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class UnaryPredicate
+>
+typename range_return<const ForwardRange, re>::type
+stable_partition(const ForwardRange& rng, UnaryPredicate pred);
+``
+
+[heading Description]
+
+`stable_partition` reorders the elements in the range `rng` base on the function object `pred`. Once this function has completed all of the elements that satisfy `pred` appear before all of the elements that fail to satisfy it. `stable_partition` differs from `partition` because it preserves relative order. It is stable.
+
+For the versions that return an iterator, the return value is the iterator to the first element that fails to satisfy `pred`.
+
+For versions that return a `range_return`, the `found` iterator is the iterator to the first element that fails to satisfy `pred`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/stable_partition.hpp`
+
+[heading Requirements]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+* `UnaryPredicate` is a model of the `PredicateConcept`.
+
+[heading Complexity]
+
+Best case: `O(N)` where `N` is `distance(rng)`.
+Worst case: `N * log(N)` swaps, where `N` is `distance(rng)`.
+
+[endsect]
+
+

@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Function Template flush</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Function Template <CODE>flush</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<A NAME="overview"></A></A>
+<H2>Overview</H2>
+
+<P>
+    The function template <CODE>flush</CODE> attemps to flush all buffered characters downstream. It is provided to facilite modifiying a filter chain in the middle of a sequence of output operations; specifically, it is used to implement the function <CODE>strict_sync</CODE> (<I>see</I>, <I>e.g.</I>, <A HREF='../classes/filtering_stream.html#strict_sync'><CODE>filtering_stream::strict_sync</CODE></A>). If <CODE>strict_sync</CODE> succeeds, the auto-close feature of a filter chain can be safely disabled using <CODE>set_auto_close(false)</CODE> (<I>see</I>, <I>e.g.</I>, <A HREF='../classes/filtering_stream.html#set_auto_close'><CODE>filtering_stream::set_auto_close</CODE></A>). Filters can then be added to or removed from the chain with the knowledge that no characters remain buffered.
+</P>
+<P>
+    For non-<A HREF='../concepts/flushable.html'>Flushable</A> devices, <CODE>flush</CODE> returns <CODE>true</CODE>, indicating that no error has occurred.<A CLASS='footnote_ref' NAME='note_1_ref' HREF="#note_1"><SUP>[1]</SUP></A> For non-<A HREF='../concepts/flushable.html'>Flushable</A> filters, however, <CODE>flush</CODE> returns <CODE>false</CODE>, indicating that some characters may remain buffered.
+</P>
+<P>
+    When working with Devices, <CODE>flush</CODE> may be used as a generic version of <CODE>std::basic_ostream::flush()</CODE>.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/flush.hpp"><CODE>&lt;boost/iostreams/flush.hpp&gt;</CODE></A></DT>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><CODE>&lt;boost/iostreams/operations.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="description"></A>
+<H4>Description</H4>
+
+<P>Attempts to flush all buffered characters downstream. For <A HREF='../concepts/device.html'>Devices</A>, returns <CODE>true</CODE> unless an error occurs.<A CLASS='footnote_ref' NAME='note_1_ref2' HREF='#note_1'><SUP>[1]</SUP></A>. For <A HREF='../concepts/filter.html'>Filters</A>, returns <CODE>true</CODE> only if all buffered characters were successfully written to <CODE>snk</CODE>. </P>
+
+<A NAME="synopsis"></A>
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+              
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">T</A>&gt;
+<SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#flush_device">flush</A>(T&amp; t);
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">T</A>, <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Sink</A>&gt;
+<SPAN CLASS='keyword'>bool</SPAN> <A CLASS="documented" HREF="#flush_filter">flush</A>(T&amp; t, Sink&amp; snk);
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="template_params"></A>
+<H4>Template Parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>T</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>For the first overload, a model of <A HREF="../concepts/device.html">Device</A>; for the second overload, a model of <A HREF="../concepts/filter.html">Filter</A>.
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Sink</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of <A HREF="../concepts/sink.html">Sink</A> with the same <A HREF="../guide/traits.html#char_type">character type</A> as <CODE>T</CODE>.
+    </TR>
+</TABLE>
+
+<A NAME="flush_device"></A>
+<H4>Semantics &#8212; Device Types</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T&gt;
+<SPAN CLASS='keyword'>bool</SPAN> flush(T&amp; t);</PRE>
+
+<P>The semantics of <CODE>flush</CODE> depends on the <A HREF="../guide/traits.html#category">category</A> of <CODE>T</CODE> as follows:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=1 CELLPADDING=4>
+    <TR><TH><CODE>category_of&lt;T&gt;::type</CODE></TH><TH>semantics</TH></TR>
+    <TR>
+        <TD VALIGN="top">convertible to <A HREF="../guide/traits.html#category_tags"><CODE>ostream_tag</CODE></A></TD>
+        <TD>Invokes <CODE>t.rdbuf()->pubsync()</CODE> and returns <CODE>true</CODE> if the operation succeeds.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">convertible to <A HREF="../guide/traits.html#category_tags"><CODE>streambuf_tag</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>istream_tag</CODE></A></TD>
+        <TD>Invokes <CODE>t.pubsync()</CODE> and returns <CODE>true</CODE> if the operation succeeds.</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>not</I> convertible to <A HREF="../guide/traits.html#category_tags"><CODE>flushable_tag</CODE></A></TD>
+        <TD>returns <CODE>t.flush()</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">otherwise</TD>
+        <TD>returns <CODE>true</CODE></TD>
+    </TR>
+</TABLE>
+
+<A NAME="flush_filter"></A>
+<H4>Semantics &#8212; Filter Types</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T, <SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+<SPAN CLASS='keyword'>bool</SPAN> flush(T&amp; t, Sink&amp; snk);</PRE>
+
+<P>The semantics of <CODE>flush</CODE> depends on the <A HREF="../guide/traits.html#category">category</A> of <CODE>T</CODE> as follows:</P>
+
+<TABLE STYLE="margin-bottom:2em;margin-left:2em" BORDER=1 CELLPADDING=4>
+    <TR><TH><CODE>category_of&lt;T&gt;::type</CODE></TH><TH>semantics</TH></TR>
+    <TR>
+        <TD VALIGN="top">convertible to <A HREF="../guide/traits.html#category_tags"><CODE>flushable_tag</CODE></A></TD>
+        <TD>returns <CODE>t.flush(snk)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">otherwise</TD>
+        <TD>returns <CODE>false</CODE></TD>
+    </TR>
+</TABLE>
+
+<!-- Begin Footnotes -->
+
+<HR>
+
+<P>
+<A CLASS='footnote_ref' NAME='note_1' HREF='#note_1_ref'><SUP>[1]</SUP></A>It was noticed late in developement that to be consistent with the policy of reporting errors using exceptions (<I>see</I> <A HREF='../guide/exceptions.html'>Exceptions</A>), <CODE>flush</CODE> should have been specified to return <CODE>void</CODE> when invoked on a Device. Until the specification is changed, Devices should always return <CODE>true</CODE> when flushed.
+</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

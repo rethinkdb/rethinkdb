@@ -1,0 +1,233 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Semantic Actions with Parsers</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="parse_api/create_parser.html" title="API for Automatic Parser Creation">
+<link rel="next" href="auto.html" title="Auto Parser">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="parse_api/create_parser.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="auto.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.reference.action"></a><a class="link" href="action.html" title="Semantic Actions with Parsers">Semantic Actions with Parsers</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit.qi.reference.action.h0"></a>
+          <span class="phrase"><a name="spirit.qi.reference.action.description"></a></span><a class="link" href="action.html#spirit.qi.reference.action.description">Description</a>
+        </h6>
+<p>
+          Semantic actions may be attached to any point in the grammar specification.
+          They allow to call a function or function object in order to provide the
+          value to be output by the parser attached to the semantic action. Semantic
+          actions are associated with a parser using the syntax <code class="computeroutput"><span class="identifier">p</span><span class="special">[]</span></code>, where <code class="computeroutput"><span class="identifier">p</span></code>
+          is an arbitrary parser expression.
+        </p>
+<h6>
+<a name="spirit.qi.reference.action.h1"></a>
+          <span class="phrase"><a name="spirit.qi.reference.action.header"></a></span><a class="link" href="action.html#spirit.qi.reference.action.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/action.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_action</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Also, see <a class="link" href="../../structure/include.html" title="Include">Include Structure</a>.
+        </p>
+<h6>
+<a name="spirit.qi.reference.action.h2"></a>
+          <span class="phrase"><a name="spirit.qi.reference.action.model_of"></a></span><a class="link" href="action.html#spirit.qi.reference.action.model_of">Model
+          of</a>
+        </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            <a class="link" href="parser_concepts/unaryparser.html" title="UnaryParser"><code class="computeroutput"><span class="identifier">UnaryParser</span></code></a>
+          </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code>, <code class="computeroutput"><span class="identifier">p</span></code></span></dt>
+<dd><p>
+                Instances of a parser, <code class="computeroutput"><span class="identifier">P</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">A</span></code></span></dt>
+<dd><p>
+                Attribute type exposed by a parser, <code class="computeroutput"><span class="identifier">a</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">fa</span></code></span></dt>
+<dd><p>
+                A (semantic action) function with signature <code class="computeroutput"><span class="keyword">void</span><span class="special">(</span><span class="identifier">Attrib</span><span class="special">&amp;,</span> <span class="identifier">Context</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">&amp;)</span></code>. The third parameter is a boolean
+                flag that can be set to false to force the parser to fail. Both
+                <code class="computeroutput"><span class="identifier">Context</span></code> and the boolean
+                flag are optional. For more information see below.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Attrib</span></code></span></dt>
+<dd><p>
+                The attribute obtained from the parse.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Context</span></code></span></dt>
+<dd><p>
+                The type of the parser execution context. For more information see
+                below.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.action.h3"></a>
+          <span class="phrase"><a name="spirit.qi.reference.action.expression_semantics"></a></span><a class="link" href="action.html#spirit.qi.reference.action.expression_semantics">Expression
+          Semantics</a>
+        </h6>
+<p>
+          Semantics of an expression is defined only where it differs from, or is
+          not defined in <a class="link" href="parser_concepts/unaryparser.html" title="UnaryParser"><code class="computeroutput"><span class="identifier">UnaryParser</span></code></a>.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">p</span><span class="special">[</span><span class="identifier">fa</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    If <code class="computeroutput"><span class="identifier">p</span></code> is successful,
+                    call semantic action, <code class="computeroutput"><span class="identifier">fa</span></code>.
+                    The function or function object <code class="computeroutput"><span class="identifier">fa</span></code>
+                    is provided the attribute value parsed by the parser <code class="computeroutput"><span class="identifier">p</span></code>, plus some more context information
+                    and a mutable bool flag which can be used to fail parsing.
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<p>
+          The possible signatures for functions to be used as semantic actions are:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Attrib</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">fa</span><span class="special">(</span><span class="identifier">Attrib</span><span class="special">&amp;</span> <span class="identifier">attr</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Attrib</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Context</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">fa</span><span class="special">(</span><span class="identifier">Attrib</span><span class="special">&amp;</span> <span class="identifier">attr</span><span class="special">,</span> <span class="identifier">Context</span><span class="special">&amp;</span> <span class="identifier">context</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Attrib</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Context</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">fa</span><span class="special">(</span><span class="identifier">Attrib</span><span class="special">&amp;</span> <span class="identifier">attr</span><span class="special">,</span> <span class="identifier">Context</span><span class="special">&amp;</span> <span class="identifier">context</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">&amp;</span> <span class="identifier">pass</span><span class="special">);</span>
+</pre>
+<p>
+          The function or function object is expected to return the value to generate
+          output from by assigning it to the first parameter, <code class="computeroutput"><span class="identifier">attr</span></code>.
+          Here <code class="computeroutput"><span class="identifier">Attrib</span></code> is the attribute
+          type of the parser attached to the semantic action.
+        </p>
+<p>
+          The type <code class="computeroutput"><span class="identifier">Context</span></code> is the
+          type of the parser execution context. This type is unspecified and depends
+          on the context the parser is invoked in. The value, <code class="computeroutput"><span class="identifier">context</span></code>
+          used by semantic actions written using <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>
+          to access various context dependent attributes and values. For more information
+          about <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a> placeholder
+          expressions usable in semantic actions see <a class="link" href="parser_concepts/nonterminal.html" title="Nonterminal"><code class="computeroutput"><span class="identifier">Nonterminal</span></code></a>.
+        </p>
+<p>
+          The third parameter, <code class="computeroutput"><span class="identifier">pass</span></code>,
+          can be used by the semantic action to force the associated parser to fail.
+          If pass is set to <code class="computeroutput"><span class="keyword">false</span></code> the
+          action parser will immediately return <code class="computeroutput"><span class="keyword">false</span></code>
+          as well, while not invoking <code class="computeroutput"><span class="identifier">p</span></code>
+          and not generating any output.
+        </p>
+<h6>
+<a name="spirit.qi.reference.action.h4"></a>
+          <span class="phrase"><a name="spirit.qi.reference.action.attributes"></a></span><a class="link" href="action.html#spirit.qi.reference.action.attributes">Attributes</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Attribute
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">a</span><span class="special">[</span><span class="identifier">fa</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">a</span><span class="special">:</span>
+                    <span class="identifier">A</span> <span class="special">--&gt;</span>
+                    <span class="identifier">a</span><span class="special">[</span><span class="identifier">fa</span><span class="special">]:</span>
+                    <span class="identifier">A</span></code>
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.action.h5"></a>
+          <span class="phrase"><a name="spirit.qi.reference.action.complexity"></a></span><a class="link" href="action.html#spirit.qi.reference.action.complexity">Complexity</a>
+        </h6>
+<p>
+          The complexity of the action parser is defined by the complexity of the
+          parser the semantic action is attached to and the complexity of the function
+          or function object used as the semantic action.
+        </p>
+<h6>
+<a name="spirit.qi.reference.action.h6"></a>
+          <span class="phrase"><a name="spirit.qi.reference.action.example"></a></span><a class="link" href="action.html#spirit.qi.reference.action.example">Example</a>
+        </h6>
+<p>
+          Examples for semantic actions can be found here: <a class="link" href="../tutorials/semantic_actions.html#spirit.qi.tutorials.semantic_actions.examples_of_semantic_actions">Examples
+          of Semantic Actions</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="parse_api/create_parser.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="auto.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

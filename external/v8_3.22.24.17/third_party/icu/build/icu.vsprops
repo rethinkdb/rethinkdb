@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioPropertySheet
+	ProjectType="Visual C++"
+	Version="8.00"
+	Name="icu"
+	>
+	<Tool
+		Name="VCCLCompilerTool"
+		AdditionalIncludeDirectories="..\source\common;..\public\common;..\source\i18n;..\public\i18n;..\source\tools\toolutil"
+		PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;U_STATIC_IMPLEMENTATION"
+		Detect64BitPortabilityProblems="false"
+		DisableSpecificWarnings="4005,4355,4996"
+	/>
+        <Tool 
+		Name="VCCLinkerTool"
+                AdditionalOptions="/nxcompat /dynamicbase"
+	/>
+</VisualStudioPropertySheet>

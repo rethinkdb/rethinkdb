@@ -1,0 +1,577 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Tutorial</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">
+<link rel="prev" href="getting_started.html" title="Getting Started">
+<link rel="next" href="alternatives.html" title="Annex: Alternatives">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="getting_started.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="alternatives.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section scope_exit_tutorial">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="scope_exit.tutorial"></a><a class="link" href="tutorial.html" title="Tutorial">Tutorial</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="tutorial.html#scope_exit.tutorial.capturing_variables">Capturing Variables</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#scope_exit.tutorial.capturing_the_object__this_">Capturing
+      The Object <code class="computeroutput"><span class="keyword">this</span></code></a></span></dt>
+<dt><span class="section"><a href="tutorial.html#scope_exit.tutorial.capturing_no_variable">Capturing
+      No Variable</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#scope_exit.tutorial.capturing_all_variables__c__11_only_">Capturing
+      All Variables (C++11 Only)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#scope_exit.tutorial.template_workaround__gcc_">Template
+      Workaround (GCC)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#scope_exit.tutorial.same_line_expansions">Same Line Expansions</a></span></dt>
+</dl></div>
+<p>
+      This section illustrates how to use this library.
+    </p>
+<div class="section scope_exit_tutorial_capturing_variables">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="scope_exit.tutorial.capturing_variables"></a><a class="link" href="tutorial.html#scope_exit.tutorial.capturing_variables" title="Capturing Variables">Capturing Variables</a>
+</h3></div></div></div>
+<p>
+        Imagine that we want to make many modifications to data members of some
+        <code class="computeroutput"><span class="identifier">world</span></code> class in its <code class="computeroutput"><span class="identifier">world</span><span class="special">::</span><span class="identifier">add_person</span></code> member function. We start with
+        adding a new <code class="computeroutput"><span class="identifier">person</span></code> object
+        to a vector of persons:
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">world</span><span class="special">::</span><span class="identifier">add_person</span><span class="special">(</span><span class="identifier">person</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a_person</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">bool</span> <span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+
+    <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">a_person</span><span class="special">);</span>           <span class="comment">// (1) direct action</span>
+    <span class="special">...</span>
+</pre>
+<p>
+        Some operations down the road may throw an exception and all changes to involved
+        objects should be rolled back. This all-or-nothing semantic is also known
+        as <a href="http://www.research.att.com/~bs/glossary.html#Gstrong-guarantee" target="_top">strong
+        guarantee</a>.
+      </p>
+<p>
+        In particular, the last added person must be deleted from <code class="computeroutput"><span class="identifier">persons_</span></code>
+        if the function throws. All we need is to define a delayed action (release
+        of a resource) right after the direct action (resource acquisition). For
+        example (see also <a href="../../../test/world.cpp" target="_top"><code class="literal">world.cpp</code></a>):
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">world</span><span class="special">::</span><span class="identifier">add_person</span><span class="special">(</span><span class="identifier">person</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a_person</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">bool</span> <span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+
+    <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">a_person</span><span class="special">);</span>           <span class="comment">// (1) direct action</span>
+    <span class="comment">// Following block is executed when the enclosing scope exits.</span>
+    <span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(&amp;</span><span class="identifier">commit</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">persons_</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">if</span><span class="special">(!</span><span class="identifier">commit</span><span class="special">)</span> <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">pop_back</span><span class="special">();</span>    <span class="comment">// (2) rollback action</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END</span>
+
+    <span class="comment">// ...                                  // (3) other operations</span>
+
+    <span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>                          <span class="comment">// (4) disable rollback actions</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        The block below point <code class="literal">(1)</code> is a <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a>
+        declaration. Unlike point <code class="literal">(1)</code>, an execution of the <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a> body will be delayed until the
+        end of the current scope. In this case it will be executed either after point
+        <code class="literal">(4)</code> or on any exception. (On various versions of the GCC
+        compiler, it is necessary to use <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code>
+        instead of <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>
+        within templates, see later in this section for details.)
+      </p>
+<p>
+        The <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a> declaration starts
+        with the <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> macro
+        invocation which accepts a comma-separated list of captured variables (a
+        <a href="http://www.boost.org/libs/preprocessor" target="_top">Boost.Preprocessor</a>
+        sequence is also accepted for compilers that do not support variadic macros
+        and for backward compatibility with older versions of this library, see the
+        <a class="link" href="no_variadic_macros.html" title="Annex: No Variadic Macros">No Variadic Macros</a> section).
+        If a capture starts with the ampersand sign <code class="computeroutput"><span class="special">&amp;</span></code>,
+        a reference to the captured variable will be available inside the <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a>
+        body; otherwise, a copy of the variable will be made after the <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a>
+        declaration at point <code class="literal">(1)</code> and only the copy will be available
+        inside the body (in this case, the captured variable's type must be <a href="http://www.boost.org/doc/libs/release/doc/html/CopyConstructible.html" target="_top"><code class="computeroutput"><span class="identifier">CopyConstructible</span></code></a>).
+      </p>
+<p>
+        In the example above, the variables <code class="computeroutput"><span class="identifier">commit</span></code>
+        and <code class="computeroutput"><span class="identifier">persons_</span></code> are captured
+        by reference because the final value of the <code class="computeroutput"><span class="identifier">commit</span></code>
+        variable should be used to determine whether to execute rollback actions
+        or not, and the action should modify the <code class="computeroutput"><span class="identifier">persons_</span></code>
+        object, not its copy. This is the most common case but passing a variable
+        by value is sometimes useful as well.
+      </p>
+<p>
+        Finally, the end of the <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a>
+        body must be marked by the <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_END.html" title="Macro BOOST_SCOPE_EXIT_END">BOOST_SCOPE_EXIT_END</a></code>
+        macro which must follow the closing curly bracket <code class="computeroutput"><span class="special">}</span></code>
+        of the <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a> body.
+      </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          In order to comply with the <a href="http://www.stlport.org/doc/exception_safety.html" target="_top">STL
+          exception safety requirements</a>, the <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a>
+          body must never throw (because the library implementation executes the
+          body within a destructor call). This is true for all <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a>
+          macros (including <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code>
+          and <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+          seen below) on both C++03 and C++11.
+        </p></td></tr>
+</table></div>
+<p>
+        Consider a more complex example where <code class="computeroutput"><span class="identifier">world</span><span class="special">::</span><span class="identifier">add_person</span></code>
+        can save intermediate states at some point and roll back to the last saved
+        state. We use <code class="computeroutput"><span class="identifier">person</span><span class="special">::</span><span class="identifier">evolution_</span></code> to store a version of the changes
+        and increment it to cancel all rollback actions associated with those changes.
+        If we pass a current value of <code class="computeroutput"><span class="identifier">evolution_</span></code>
+        stored in the <code class="computeroutput"><span class="identifier">checkpoint</span></code>
+        variable by value, it remains unchanged within the <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a>
+        body so we can compare it with the final value of <code class="computeroutput"><span class="identifier">evolution_</span></code>.
+        If the latter was not incremented since we saved it, the rollback action
+        inside the <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a> body should
+        be executed. For example (see also <a href="../../../test/world_checkpoint.cpp" target="_top"><code class="literal">world_checkpoint.cpp</code></a>):
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">world</span><span class="special">::</span><span class="identifier">add_person</span><span class="special">(</span><span class="identifier">person</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a_person</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">a_person</span><span class="special">);</span>
+
+    <span class="comment">// This block must be no-throw.</span>
+    <span class="identifier">person</span><span class="special">&amp;</span> <span class="identifier">p</span> <span class="special">=</span> <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">back</span><span class="special">();</span>
+    <span class="identifier">person</span><span class="special">::</span><span class="identifier">evolution_t</span> <span class="identifier">checkpoint</span> <span class="special">=</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">evolution</span><span class="special">;</span>
+    <span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(</span><span class="identifier">checkpoint</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">p</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">persons_</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">checkpoint</span> <span class="special">==</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">evolution</span><span class="special">)</span> <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">pop_back</span><span class="special">();</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END</span>
+
+    <span class="comment">// ...</span>
+
+    <span class="identifier">checkpoint</span> <span class="special">=</span> <span class="special">++</span><span class="identifier">p</span><span class="special">.</span><span class="identifier">evolution</span><span class="special">;</span>
+
+    <span class="comment">// Assign new identifier to the person.</span>
+    <span class="identifier">person</span><span class="special">::</span><span class="identifier">id_t</span> <span class="keyword">const</span> <span class="identifier">prev_id</span> <span class="special">=</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">id</span><span class="special">;</span>
+    <span class="identifier">p</span><span class="special">.</span><span class="identifier">id</span> <span class="special">=</span> <span class="identifier">next_id_</span><span class="special">++;</span>
+    <span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(</span><span class="identifier">checkpoint</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">p</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">next_id_</span><span class="special">,</span> <span class="identifier">prev_id</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">checkpoint</span> <span class="special">==</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">evolution</span><span class="special">)</span> <span class="special">{</span>
+            <span class="identifier">next_id_</span> <span class="special">=</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">id</span><span class="special">;</span>
+            <span class="identifier">p</span><span class="special">.</span><span class="identifier">id</span> <span class="special">=</span> <span class="identifier">prev_id</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END</span>
+
+    <span class="comment">// ...</span>
+
+    <span class="identifier">checkpoint</span> <span class="special">=</span> <span class="special">++</span><span class="identifier">p</span><span class="special">.</span><span class="identifier">evolution</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        When multiple <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a> blocks are
+        declared within the same enclosing scope, the <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a>
+        bodies are executed in the reversed order of their declarations.
+      </p>
+</div>
+<div class="section scope_exit_tutorial_capturing_the_object__this_">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="scope_exit.tutorial.capturing_the_object__this_"></a><a class="link" href="tutorial.html#scope_exit.tutorial.capturing_the_object__this_" title="Capturing The Object this">Capturing
+      The Object <code class="computeroutput"><span class="keyword">this</span></code></a>
+</h3></div></div></div>
+<p>
+        Within a member function, it is also possible to capture the object <code class="computeroutput"><span class="keyword">this</span></code>. However, the special symbol <code class="computeroutput"><span class="identifier">this_</span></code> must be used instead of <code class="computeroutput"><span class="keyword">this</span></code> in the <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a>
+        declaration and body to capture and access the object. For example (see also
+        <a href="../../../test/world_this.cpp" target="_top"><code class="literal">world_this.cpp</code></a>):
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(&amp;</span><span class="identifier">commit</span><span class="special">,</span> <span class="identifier">this_</span><span class="special">)</span> <span class="special">{</span> <span class="comment">// Capture object `this_`.</span>
+    <span class="keyword">if</span><span class="special">(!</span><span class="identifier">commit</span><span class="special">)</span> <span class="identifier">this_</span><span class="special">-&gt;</span><span class="identifier">persons_</span><span class="special">.</span><span class="identifier">pop_back</span><span class="special">();</span>
+<span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END</span>
+</pre>
+<p>
+      </p>
+<p>
+        It is not possible to capture the object <code class="computeroutput"><span class="identifier">this_</span></code>
+        by reference because C++ does not allow to take a reference to <code class="computeroutput"><span class="keyword">this</span></code>. If the enclosing member function is
+        constant then the captured object will also be constant, otherwise the captured
+        object will be mutable.
+      </p>
+</div>
+<div class="section scope_exit_tutorial_capturing_no_variable">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="scope_exit.tutorial.capturing_no_variable"></a><a class="link" href="tutorial.html#scope_exit.tutorial.capturing_no_variable" title="Capturing No Variable">Capturing
+      No Variable</a>
+</h3></div></div></div>
+<p>
+        A <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a> declaration can also
+        capture no variable. In this case, the list of captured variables is replaced
+        by the <code class="computeroutput"><span class="keyword">void</span></code> keyword (similarly
+        to the C++ syntax that allows to declare a function with no parameter using
+        <code class="literal"><span class="emphasis"><em>result-type function-name</em></span></code><code class="computeroutput"><span class="special">(</span><span class="keyword">void</span><span class="special">)</span></code>).
+        <sup>[<a name="scope_exit.tutorial.capturing_no_variable.f0" href="#ftn.scope_exit.tutorial.capturing_no_variable.f0" class="footnote">3</a>]</sup> For example, this can be useful when the <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a>
+        body only needs to access global variables (see also <a href="../../../test/world_void.cpp" target="_top"><code class="literal">world_void.cpp</code></a>):
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">world_t</span> <span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">person</span><span class="special">&gt;</span> <span class="identifier">persons</span><span class="special">;</span>
+    <span class="keyword">bool</span> <span class="identifier">commit</span><span class="special">;</span>
+<span class="special">}</span> <span class="identifier">world</span><span class="special">;</span> <span class="comment">// Global variable.</span>
+
+<span class="keyword">void</span> <span class="identifier">add_person</span><span class="special">(</span><span class="identifier">person</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a_person</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">world</span><span class="special">.</span><span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="identifier">world</span><span class="special">.</span><span class="identifier">persons</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">a_person</span><span class="special">);</span>
+
+    <span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="special">{</span> <span class="comment">// No captures.</span>
+        <span class="keyword">if</span><span class="special">(!</span><span class="identifier">world</span><span class="special">.</span><span class="identifier">commit</span><span class="special">)</span> <span class="identifier">world</span><span class="special">.</span><span class="identifier">persons</span><span class="special">.</span><span class="identifier">pop_back</span><span class="special">();</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END</span>
+
+    <span class="comment">// ...</span>
+
+    <span class="identifier">world</span><span class="special">.</span><span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        (Both compilers with and without variadic macros use this same syntax for
+        capturing no variable, see the <a class="link" href="no_variadic_macros.html" title="Annex: No Variadic Macros">No
+        Variadic Macros</a> section for more information.)
+      </p>
+</div>
+<div class="section scope_exit_tutorial_capturing_all_variables__c__11_only_">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="scope_exit.tutorial.capturing_all_variables__c__11_only_"></a><a class="link" href="tutorial.html#scope_exit.tutorial.capturing_all_variables__c__11_only_" title="Capturing All Variables (C++11 Only)">Capturing
+      All Variables (C++11 Only)</a>
+</h3></div></div></div>
+<p>
+        On C++11 compliers, it is also possible to capture all the variables in scope
+        without naming them one-by-one using the special macro <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+        instead of <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>.
+        <sup>[<a name="scope_exit.tutorial.capturing_all_variables__c__11_only_.f0" href="#ftn.scope_exit.tutorial.capturing_all_variables__c__11_only_.f0" class="footnote">4</a>]</sup>
+      </p>
+<p>
+        Following the same syntax adopted by C++11 lambda functions, the <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code> macro accepts
+        a comma-separated list of captures which must start with either <code class="computeroutput"><span class="special">&amp;</span></code> or <code class="computeroutput"><span class="special">=</span></code>
+        to capture all variables in scope respectively by reference or by value (note
+        that no variable name is specified by these leading captures). Additional
+        captures of specific variables can follow the leading <code class="computeroutput"><span class="special">&amp;</span></code>
+        or <code class="computeroutput"><span class="special">=</span></code> and they will override
+        the default reference or value captures. For example (see also <a href="../../../test/world_checkpoint_all.cpp" target="_top"><code class="literal">world_checkpoint_all.cpp</code></a>):
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">world</span><span class="special">::</span><span class="identifier">add_person</span><span class="special">(</span><span class="identifier">person</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a_person</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">a_person</span><span class="special">);</span>
+
+    <span class="comment">// This block must be no-throw.</span>
+    <span class="identifier">person</span><span class="special">&amp;</span> <span class="identifier">p</span> <span class="special">=</span> <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">back</span><span class="special">();</span>
+    <span class="identifier">person</span><span class="special">::</span><span class="identifier">evolution_t</span> <span class="identifier">checkpoint</span> <span class="special">=</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">evolution</span><span class="special">;</span>
+    <span class="comment">// Capture all by reference `&amp;`, but `checkpoint` and `this` (C++11 only).</span>
+    <span class="identifier">BOOST_SCOPE_EXIT_ALL</span><span class="special">(&amp;,</span> <span class="identifier">checkpoint</span><span class="special">,</span> <span class="keyword">this</span><span class="special">)</span> <span class="special">{</span> <span class="comment">// Use `this` (not `this_`).</span>
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">checkpoint</span> <span class="special">==</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">evolution</span><span class="special">)</span> <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">persons_</span><span class="special">.</span><span class="identifier">pop_back</span><span class="special">();</span>
+    <span class="special">};</span> <span class="comment">// Use `;` (not `SCOPE_EXIT_END`).</span>
+
+    <span class="comment">// ...</span>
+
+    <span class="identifier">checkpoint</span> <span class="special">=</span> <span class="special">++</span><span class="identifier">p</span><span class="special">.</span><span class="identifier">evolution</span><span class="special">;</span>
+
+    <span class="comment">// Assign new identifier to the person.</span>
+    <span class="identifier">person</span><span class="special">::</span><span class="identifier">id_t</span> <span class="keyword">const</span> <span class="identifier">prev_id</span> <span class="special">=</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">id</span><span class="special">;</span>
+    <span class="identifier">p</span><span class="special">.</span><span class="identifier">id</span> <span class="special">=</span> <span class="identifier">next_id_</span><span class="special">++;</span>
+    <span class="comment">// Capture all by value `=`, but `p` (C++11 only).</span>
+    <span class="identifier">BOOST_SCOPE_EXIT_ALL</span><span class="special">(=,</span> <span class="special">&amp;</span><span class="identifier">p</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">checkpoint</span> <span class="special">==</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">evolution</span><span class="special">)</span> <span class="special">{</span>
+            <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">next_id_</span> <span class="special">=</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">id</span><span class="special">;</span>
+            <span class="identifier">p</span><span class="special">.</span><span class="identifier">id</span> <span class="special">=</span> <span class="identifier">prev_id</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="comment">// ...</span>
+
+    <span class="identifier">checkpoint</span> <span class="special">=</span> <span class="special">++</span><span class="identifier">p</span><span class="special">.</span><span class="identifier">evolution</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        The first <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a> declaration captures
+        all variables in scope by reference but the variable <code class="computeroutput"><span class="identifier">checkpoint</span></code>
+        and the object <code class="computeroutput"><span class="keyword">this</span></code> which are
+        explicitly captured by value (in particular, <code class="computeroutput"><span class="identifier">p</span></code>
+        and <code class="computeroutput"><span class="identifier">persons_</span></code> are implicitly
+        captured by reference here). The second <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a>
+        declaration instead captures all variables in scope by value but <code class="computeroutput"><span class="identifier">p</span></code> which is explicitly captured by reference
+        (in particular, <code class="computeroutput"><span class="identifier">checkpoint</span></code>,
+        <code class="computeroutput"><span class="identifier">prev_id</span></code>, and <code class="computeroutput"><span class="keyword">this</span></code> are implicitly captured by value here).
+      </p>
+<p>
+        Note that the <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+        macro follows the C++11 lambda function syntax which is unfortunately different
+        from the <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> macro
+        syntax. In particular:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            The <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+            macro cannot capture data members without capturing the object <code class="computeroutput"><span class="keyword">this</span></code> while that is not the case for <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>. <sup>[<a name="scope_exit.tutorial.capturing_all_variables__c__11_only_.f1" href="#ftn.scope_exit.tutorial.capturing_all_variables__c__11_only_.f1" class="footnote">5</a>]</sup>
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+            macro captures the object in scope using <code class="computeroutput"><span class="keyword">this</span></code>
+            instead of <code class="computeroutput"><span class="identifier">this_</span></code>. <sup>[<a name="scope_exit.tutorial.capturing_all_variables__c__11_only_.f2" href="#ftn.scope_exit.tutorial.capturing_all_variables__c__11_only_.f2" class="footnote">6</a>]</sup>
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+            body is terminated by a semicolon <code class="computeroutput"><span class="special">;</span></code>
+            instead than by the <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_END.html" title="Macro BOOST_SCOPE_EXIT_END">BOOST_SCOPE_EXIT_END</a></code>
+            macro.
+          </li>
+</ol></div>
+<p>
+        If programmers define the configuration macro <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_CONFIG_USE_LAMBDAS.html" title="Macro BOOST_SCOPE_EXIT_CONFIG_USE_LAMBDAS">BOOST_SCOPE_EXIT_CONFIG_USE_LAMBDAS</a></code>
+        then the <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> macro
+        implementation will use C++11 lamda functions and the <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>
+        macro will follow the same syntax of <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+        macro, which is the C++11 lambda function syntax. However, <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>
+        will no longer be backward compatible and older code using <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>
+        might no longer compile (if data members were explicitly captured).
+      </p>
+</div>
+<div class="section scope_exit_tutorial_template_workaround__gcc_">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="scope_exit.tutorial.template_workaround__gcc_"></a><a class="link" href="tutorial.html#scope_exit.tutorial.template_workaround__gcc_" title="Template Workaround (GCC)">Template
+      Workaround (GCC)</a>
+</h3></div></div></div>
+<p>
+        Various versions of the GCC compiler do not compile <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>
+        inside templates (see the <a href="../reference.html" target="_top">Reference</a> section
+        for more information). As a workaround, <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code>
+        should be used instead of <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>
+        in these cases. <sup>[<a name="scope_exit.tutorial.template_workaround__gcc_.f0" href="#ftn.scope_exit.tutorial.template_workaround__gcc_.f0" class="footnote">7</a>]</sup> The <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code>
+        macro has the exact same syntax of <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>.
+        For example (see also <a href="../../../test/world_tpl.cpp" target="_top"><code class="literal">world_tpl.cpp</code></a>):
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Person</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">world</span><span class="special">&lt;</span><span class="identifier">Person</span><span class="special">&gt;::</span><span class="identifier">add_person</span><span class="special">(</span><span class="identifier">Person</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a_person</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">bool</span> <span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">a_person</span><span class="special">);</span>
+
+    <span class="identifier">BOOST_SCOPE_EXIT_TPL</span><span class="special">(&amp;</span><span class="identifier">commit</span><span class="special">,</span> <span class="identifier">this_</span><span class="special">)</span> <span class="special">{</span> <span class="comment">// Use `_TPL` postfix.</span>
+        <span class="keyword">if</span><span class="special">(!</span><span class="identifier">commit</span><span class="special">)</span> <span class="identifier">this_</span><span class="special">-&gt;</span><span class="identifier">persons_</span><span class="special">.</span><span class="identifier">pop_back</span><span class="special">();</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END</span>
+
+    <span class="comment">// ...</span>
+
+    <span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        It is recommended to always use <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code>
+        within templates so to maximize portability among different compilers.
+      </p>
+</div>
+<div class="section scope_exit_tutorial_same_line_expansions">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="scope_exit.tutorial.same_line_expansions"></a><a class="link" href="tutorial.html#scope_exit.tutorial.same_line_expansions" title="Same Line Expansions">Same Line Expansions</a>
+</h3></div></div></div>
+<p>
+        In general, it is not possible to expand the <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>,
+        <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code>,
+        <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_END.html" title="Macro BOOST_SCOPE_EXIT_END">BOOST_SCOPE_EXIT_END</a></code>, and
+        <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code> macros
+        multiple times on the same line. <sup>[<a name="scope_exit.tutorial.same_line_expansions.f0" href="#ftn.scope_exit.tutorial.same_line_expansions.f0" class="footnote">8</a>]</sup>
+      </p>
+<p>
+        Therefore, this library provides additional macros <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ID.html" title="Macro BOOST_SCOPE_EXIT_ID">BOOST_SCOPE_EXIT_ID</a></code>,
+        <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ID_TPL.html" title="Macro BOOST_SCOPE_EXIT_ID_TPL">BOOST_SCOPE_EXIT_ID_TPL</a></code>,
+        <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_END_ID.html" title="Macro BOOST_SCOPE_EXIT_END_ID">BOOST_SCOPE_EXIT_END_ID</a></code>,
+        and <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL_ID.html" title="Macro BOOST_SCOPE_EXIT_ALL_ID">BOOST_SCOPE_EXIT_ALL_ID</a></code>
+        which can be expanded multiple times on the same line as long as programmers
+        specify a unique identifiers as the macros' first parameters. The unique
+        identifier can be any token (not just numeric) that can be concatenated by
+        the C++ preprocessor (e.g., <code class="computeroutput"><span class="identifier">scope_exit_number_1_at_line_123</span></code>).
+        <sup>[<a name="scope_exit.tutorial.same_line_expansions.f1" href="#ftn.scope_exit.tutorial.same_line_expansions.f1" class="footnote">9</a>]</sup>
+      </p>
+<p>
+        The <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ID.html" title="Macro BOOST_SCOPE_EXIT_ID">BOOST_SCOPE_EXIT_ID</a></code>,
+        <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ID_TPL.html" title="Macro BOOST_SCOPE_EXIT_ID_TPL">BOOST_SCOPE_EXIT_ID_TPL</a></code>,
+        and <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL_ID.html" title="Macro BOOST_SCOPE_EXIT_ALL_ID">BOOST_SCOPE_EXIT_ALL_ID</a></code>
+        macros accept a capture list using the exact same syntax as <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>
+        and <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+        respectively. For example (see also <a href="../../../test/same_line.cpp" target="_top"><code class="literal">same_line.cpp</code></a>):
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">SCOPE_EXIT_INC_DEC</span><span class="special">(</span><span class="identifier">variable</span><span class="special">,</span> <span class="identifier">offset</span><span class="special">)</span> <span class="special">\</span>
+    <span class="identifier">BOOST_SCOPE_EXIT_ID</span><span class="special">(</span><span class="identifier">BOOST_PP_CAT</span><span class="special">(</span><span class="identifier">inc</span><span class="special">,</span> <span class="identifier">__LINE__</span><span class="special">),</span> <span class="comment">/* unique ID */</span> <span class="special">\</span>
+            <span class="special">&amp;</span><span class="identifier">variable</span><span class="special">,</span> <span class="identifier">offset</span><span class="special">)</span> <span class="special">{</span> <span class="special">\</span>
+        <span class="identifier">variable</span> <span class="special">+=</span> <span class="identifier">offset</span><span class="special">;</span> <span class="special">\</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END_ID</span><span class="special">(</span><span class="identifier">BOOST_PP_CAT</span><span class="special">(</span><span class="identifier">inc</span><span class="special">,</span> <span class="identifier">__LINE__</span><span class="special">))</span> <span class="special">\</span>
+    <span class="special">\</span>
+    <span class="identifier">BOOST_SCOPE_EXIT_ID</span><span class="special">(</span><span class="identifier">BOOST_PP_CAT</span><span class="special">(</span><span class="identifier">dec</span><span class="special">,</span> <span class="identifier">__LINE__</span><span class="special">),</span> <span class="special">\</span>
+            <span class="special">&amp;</span><span class="identifier">variable</span><span class="special">,</span> <span class="identifier">offset</span><span class="special">)</span> <span class="special">{</span> <span class="special">\</span>
+        <span class="identifier">variable</span> <span class="special">-=</span> <span class="identifier">offset</span><span class="special">;</span> <span class="special">\</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END_ID</span><span class="special">(</span><span class="identifier">BOOST_PP_CAT</span><span class="special">(</span><span class="identifier">dec</span><span class="special">,</span> <span class="identifier">__LINE__</span><span class="special">))</span>
+
+<span class="preprocessor">#define</span> <span class="identifier">SCOPE_EXIT_INC_DEC_TPL</span><span class="special">(</span><span class="identifier">variable</span><span class="special">,</span> <span class="identifier">offset</span><span class="special">)</span> <span class="special">\</span>
+    <span class="identifier">BOOST_SCOPE_EXIT_TPL_ID</span><span class="special">(</span><span class="identifier">BOOST_PP_CAT</span><span class="special">(</span><span class="identifier">inc</span><span class="special">,</span> <span class="identifier">__LINE__</span><span class="special">),</span> <span class="special">\</span>
+            <span class="special">&amp;</span><span class="identifier">variable</span><span class="special">,</span> <span class="identifier">offset</span><span class="special">)</span> <span class="special">{</span> <span class="special">\</span>
+        <span class="identifier">variable</span> <span class="special">+=</span> <span class="identifier">offset</span><span class="special">;</span> <span class="special">\</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END_ID</span><span class="special">(</span><span class="identifier">BOOST_PP_CAT</span><span class="special">(</span><span class="identifier">inc</span><span class="special">,</span> <span class="identifier">__LINE__</span><span class="special">))</span> <span class="special">\</span>
+    <span class="special">\</span>
+    <span class="identifier">BOOST_SCOPE_EXIT_TPL_ID</span><span class="special">(</span><span class="identifier">BOOST_PP_CAT</span><span class="special">(</span><span class="identifier">dec</span><span class="special">,</span> <span class="identifier">__LINE__</span><span class="special">),</span> <span class="special">\</span>
+            <span class="special">&amp;</span><span class="identifier">variable</span><span class="special">,</span> <span class="identifier">offset</span><span class="special">)</span> <span class="special">{</span> <span class="special">\</span>
+        <span class="identifier">variable</span> <span class="special">-=</span> <span class="identifier">offset</span><span class="special">;</span> <span class="special">\</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END_ID</span><span class="special">(</span><span class="identifier">BOOST_PP_CAT</span><span class="special">(</span><span class="identifier">dec</span><span class="special">,</span> <span class="identifier">__LINE__</span><span class="special">))</span>
+
+<span class="preprocessor">#define</span> <span class="identifier">SCOPE_EXIT_ALL_INC_DEC</span><span class="special">(</span><span class="identifier">variable</span><span class="special">,</span> <span class="identifier">offset</span><span class="special">)</span> <span class="special">\</span>
+    <span class="identifier">BOOST_SCOPE_EXIT_ALL_ID</span><span class="special">(</span><span class="identifier">BOOST_PP_CAT</span><span class="special">(</span><span class="identifier">inc</span><span class="special">,</span> <span class="identifier">__LINE__</span><span class="special">),</span> <span class="special">\</span>
+            <span class="special">=,</span> <span class="special">&amp;</span><span class="identifier">variable</span><span class="special">)</span> <span class="special">{</span> <span class="special">\</span>
+        <span class="identifier">variable</span> <span class="special">+=</span> <span class="identifier">offset</span><span class="special">;</span> <span class="special">\</span>
+    <span class="special">};</span> <span class="special">\</span>
+    <span class="identifier">BOOST_SCOPE_EXIT_ALL_ID</span><span class="special">(</span><span class="identifier">BOOST_PP_CAT</span><span class="special">(</span><span class="identifier">dec</span><span class="special">,</span> <span class="identifier">__LINE__</span><span class="special">),</span> <span class="special">\</span>
+            <span class="special">=,</span> <span class="special">&amp;</span><span class="identifier">variable</span><span class="special">)</span> <span class="special">{</span> <span class="special">\</span>
+        <span class="identifier">variable</span> <span class="special">-=</span> <span class="identifier">offset</span><span class="special">;</span> <span class="special">\</span>
+    <span class="special">};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">delta</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">SCOPE_EXIT_INC_DEC_TPL</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">delta</span><span class="special">)</span> <span class="comment">// Multiple scope exits on same line.</span>
+    <span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">x</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">x</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">delta</span> <span class="special">=</span> <span class="number">10</span><span class="special">;</span>
+
+    <span class="special">{</span>
+        <span class="identifier">SCOPE_EXIT_INC_DEC</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">delta</span><span class="special">)</span> <span class="comment">// Multiple scope exits on same line.</span>
+    <span class="special">}</span>
+    <span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">x</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+
+    <span class="identifier">f</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">delta</span><span class="special">);</span>
+
+<span class="preprocessor">#ifndef</span> <span class="identifier">BOOST_NO_LAMBDAS</span>
+    <span class="special">{</span>
+        <span class="identifier">SCOPE_EXIT_ALL_INC_DEC</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">delta</span><span class="special">)</span> <span class="comment">// Multiple scope exits on same line.</span>
+    <span class="special">}</span>
+    <span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">x</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+<span class="preprocessor">#endif</span> <span class="comment">// LAMBDAS</span>
+
+    <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">report_errors</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        As shown by the example above, the <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ID.html" title="Macro BOOST_SCOPE_EXIT_ID">BOOST_SCOPE_EXIT_ID</a></code>,
+        <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ID_TPL.html" title="Macro BOOST_SCOPE_EXIT_ID_TPL">BOOST_SCOPE_EXIT_ID_TPL</a></code>,
+        <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_END_ID.html" title="Macro BOOST_SCOPE_EXIT_END_ID">BOOST_SCOPE_EXIT_END_ID</a></code>,
+        and <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL_ID.html" title="Macro BOOST_SCOPE_EXIT_ALL_ID">BOOST_SCOPE_EXIT_ALL_ID</a></code>
+        macros are especially useful when it is necessary to invoke them multiple
+        times within user-defined macros (because the C++ preprocessor expands all
+        nested macros on the same line).
+      </p>
+</div>
+<div class="footnotes">
+<br><hr width="100" align="left">
+<div class="footnote"><p><sup>[<a id="ftn.scope_exit.tutorial.capturing_no_variable.f0" href="#scope_exit.tutorial.capturing_no_variable.f0" class="para">3</a>] </sup>
+          <span class="bold"><strong>Rationale.</strong></span> Unfortunately, it is not possible
+          to simply invoke the <a class="link" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">Boost.ScopeExit</a>
+          macro with no parameters as in <code class="computeroutput"><span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">()</span></code> because the C++ preprocessor cannot detect
+          emptiness of a macro parameter when the parameter can start with a non-alphanumeric
+          symbol (which is the case when capturing a variable by reference <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">variable</span></code>).
+        </p></div>
+<div class="footnote"><p><sup>[<a id="ftn.scope_exit.tutorial.capturing_all_variables__c__11_only_.f0" href="#scope_exit.tutorial.capturing_all_variables__c__11_only_.f0" class="para">4</a>] </sup>
+          <span class="bold"><strong>Rationale.</strong></span> The <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+          macro is only defined on C++11 compilers for which the <a href="http://www.boost.org/libs/config" target="_top">Boost.Config</a>
+          macro <code class="computeroutput"><span class="identifier">BOOST_NO_LAMBDAS</span></code>
+          is not defined. Using <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+          on C++03 compilers for which <code class="computeroutput"><span class="identifier">BOOST_NO_LAMBDAS</span></code>
+          is defined will generate (possibly cryptic) compiler errors. Note that
+          a new macro <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+          needed to be introduced instead of reusing <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>
+          because <code class="computeroutput"><span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(&amp;)</span></code> and <code class="computeroutput"><span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(=)</span></code> cannot be distinguished from <code class="computeroutput"><span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span></code> or
+          <code class="computeroutput"><span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(</span><span class="identifier">this_</span><span class="special">)</span></code>
+          using the C++ preprocessor given that the symbols <code class="computeroutput"><span class="special">&amp;</span></code>
+          and <code class="computeroutput"><span class="special">=</span></code> are neither prefxied
+          nor postfixed by alphanumeric tokens (this is not an issue for <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code> which always
+          has the non-alphanumeric <code class="computeroutput"><span class="special">&amp;</span></code>
+          or <code class="computeroutput"><span class="special">=</span></code> as the first capture
+          so the first capture tokens are simply never compared with neither <code class="computeroutput"><span class="keyword">void</span></code> nor <code class="computeroutput"><span class="identifier">this_</span></code>
+          for this macro).
+        </p></div>
+<div class="footnote"><p><sup>[<a id="ftn.scope_exit.tutorial.capturing_all_variables__c__11_only_.f1" href="#scope_exit.tutorial.capturing_all_variables__c__11_only_.f1" class="para">5</a>] </sup>
+              At present, there seems to be some discussion to allow C++11 lambda
+              functions to capture data members without capturing the object <code class="computeroutput"><span class="keyword">this</span></code>. If the C++11 standard were changed
+              to allow this, the <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+              macro syntax could be extended to be a superset of the <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>
+              macro while keeping full backward compatibility.
+            </p></div>
+<div class="footnote"><p><sup>[<a id="ftn.scope_exit.tutorial.capturing_all_variables__c__11_only_.f2" href="#scope_exit.tutorial.capturing_all_variables__c__11_only_.f2" class="para">6</a>] </sup>
+              On compilers that support the use of the <code class="computeroutput"><span class="keyword">typename</span></code>
+              outside templates as allowed by the C++11 standard, <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+              can use both <code class="computeroutput"><span class="keyword">this</span></code> and
+              <code class="computeroutput"><span class="identifier">this_</span></code> to capture the
+              object in scope (notably, this is not the case for the MSVC 10.0 compiler).
+            </p></div>
+<div class="footnote"><p><sup>[<a id="ftn.scope_exit.tutorial.template_workaround__gcc_.f0" href="#scope_exit.tutorial.template_workaround__gcc_.f0" class="para">7</a>] </sup>
+          <span class="bold"><strong>Rationale.</strong></span> GCC versions compliant with
+          C++11 do not present this issue and given that <code class="computeroutput"><a class="link" href="../BOOST_SCOPE_EXIT_ALL.html" title="Macro BOOST_SCOPE_EXIT_ALL">BOOST_SCOPE_EXIT_ALL</a></code>
+          is only available on C++11 compilers, there is no need for a <code class="computeroutput"><span class="identifier">BOOST_SCOPE_EXIT_ALL_TPL</span></code> macro.
+        </p></div>
+<div class="footnote"><p><sup>[<a id="ftn.scope_exit.tutorial.same_line_expansions.f0" href="#scope_exit.tutorial.same_line_expansions.f0" class="para">8</a>] </sup>
+          <span class="bold"><strong>Rationale.</strong></span> The library macros internally
+          use <code class="computeroutput"><span class="identifier">__LINE__</span></code> to generate
+          unique identifiers. Therefore, if the same macro is expanded more than
+          on time on the same line, the generated identifiers will no longer be unique
+          and the code will not compile. (This restriction does not apply to MSVC
+          and other compilers that provide the non-standard <code class="computeroutput"><span class="identifier">__COUNTER__</span></code>
+          macro.)
+        </p></div>
+<div class="footnote"><p><sup>[<a id="ftn.scope_exit.tutorial.same_line_expansions.f1" href="#scope_exit.tutorial.same_line_expansions.f1" class="para">9</a>] </sup>
+          Because there are restrictions on the set of tokens that the C++ preprocessor
+          can concatenate and because not all compilers correctly implement these
+          restrictions, it is in general recommended to specify unique identifiers
+          as a combination of alphanumeric tokens.
+        </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Alexander Nasonov, Lorenzo Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="getting_started.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="alternatives.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

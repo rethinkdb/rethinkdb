@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: BOOST_MPL_LIMIT_METAFUNCTION_ARITY</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./cfg-no-has-xxx-template.html" class="navigation-link">Prev</a>&nbsp;<a href="./limit-vector-size.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./cfg-no-has-xxx-template.html" class="navigation-link">Back</a>&nbsp;<a href="./limit-vector-size.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./configuration.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./macros.html" class="navigation-link">Macros</a> / <a href="./configuration.html" class="navigation-link">Configuration</a> / <a href="./limit-metafunction-arity.html" class="navigation-link">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="boost-mpl-limit-metafunction-arity">
+<h1><a class="toc-backref" href="./configuration.html#id1601">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a></h1>
+<div class="section" id="id1353">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+#if !defined(<a href="./limit-metafunction-arity.html" class="identifier">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a>)
+#   define <a href="./limit-metafunction-arity.html" class="identifier">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a> \
+        <em>implementation-defined integral constant</em> \
+/**/
+#endif
+</pre>
+</div>
+<div class="section" id="id1354">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./limit-metafunction-arity.html" class="identifier">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a></span></tt> is an overridable configuration macro
+regulating the maximum supported arity of <a class="reference internal" href="./metafunction.html">metafunctions</a> and
+<a class="reference internal" href="./metafunction-class.html">metafunction classes</a>. In this implementation of the
+library, <tt class="literal"><span class="pre"><a href="./limit-metafunction-arity.html" class="identifier">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a></span></tt> has a default value of 5. To
+override the default limit, define <tt class="literal"><span class="pre"><a href="./limit-metafunction-arity.html" class="identifier">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a></span></tt> to
+the desired maximum arity before including any library header.
+[<em>Note:</em> Overriding will take effect
+<em>only</em> if the library is configured not to use <a class="reference internal" href="./cfg-no-preprocessed-headers.html#boost-mpl-cfg-no-preprocessed">preprocessed headers</a>. See
+<a class="reference internal" href="./cfg-no-preprocessed-headers.html">BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS</a> for more information. — <em>end note</em>]</p>
+</div>
+<div class="section" id="id1357">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+#define <a href="./cfg-no-preprocessed-headers.html" class="identifier">BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS</a>
+#define <a href="./limit-metafunction-arity.html" class="identifier">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a> 2
+<tt class="literal"><span class="pre">#</span></tt>include &lt;boost/mpl/<a href="./apply.html" class="identifier">apply</a>.hpp&gt;
+
+using namespace boost::mpl;
+
+template&lt; typename T1, typename T2 &gt; struct second
+{
+    typedef T2 type;
+};
+
+template&lt; typename T1, typename T2, typename T3 &gt; struct third
+{
+    typedef T3 type;
+};
+
+typedef <a href="./apply.html" class="identifier">apply</a>&lt; second&lt;<a href="./placeholders.html" class="identifier">_1</a>,_2_&gt;,int,long &gt;::type r1;
+// typedef <a href="./apply.html" class="identifier">apply</a>&lt; third&lt;<a href="./placeholders.html" class="identifier">_1</a>,_2_,<a href="./placeholders.html" class="identifier">_3</a>&gt;,int,long,float &gt;::type r2; // error!
+</pre>
+</div>
+<div class="section" id="id1358">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./macros.html">Macros</a>, <a class="reference internal" href="./configuration.html">Configuration</a>, <a class="reference internal" href="./cfg-no-preprocessed-headers.html">BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS</a></p>
+<!-- Macros/Configuration//BOOST_MPL_LIMIT_VECTOR_SIZE |30 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./cfg-no-has-xxx-template.html" class="navigation-link">Prev</a>&nbsp;<a href="./limit-vector-size.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./cfg-no-has-xxx-template.html" class="navigation-link">Back</a>&nbsp;<a href="./limit-vector-size.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./configuration.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

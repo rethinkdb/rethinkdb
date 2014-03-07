@@ -1,0 +1,732 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/he.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/he.xml
+ */
+he{
+    AuxExemplarCharacters{
+        "[\u05BD\u05C4\u200E\u200F \u05B0 \u05B1 \u05B2 \u05B3 \u05B4 \u05B5 \u05B6 "
+        "\u05B7 \u05B8 \u05B9 \u05BB \u05C2 \u05C1 \u05BC \u05BF ־ ׳ ״ a b c d e f g "
+        "h i j k l m n o p q r s t u v w x y z]"
+    }
+    ExemplarCharacters{"[א ב ג ד ה ו ז ח ט י כ ך ל מ ם נ ן ס ע פ ף צ ץ ק ר ש ת]"}
+    ExemplarCharactersCurrency{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+    ExemplarCharactersIndex{"[א ב ג ד ה ו ז ח ט י כ ל מ נ ס ע פ צ ק ר ש ת]"}
+    LocaleScript{
+        "Hebr",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00 ¤"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0%"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{"."}
+                exponential{"E"}
+                group{","}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.48.46"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "לפנה״צ",
+                "אחה״צ",
+            }
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE, d בMMMM y",
+                "d בMMMM y",
+                "d בMMM yyyy",
+                "dd/MM/yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                EEEd{"EEE ה-d"}
+                Ed{"E ה-d"}
+                H{"HH"}
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"E, M-d"}
+                MMM{"LLL"}
+                MMMEd{"E, d בMMM"}
+                MMMMEd{"E, d בMMMM"}
+                MMMMd{"d בMMMM"}
+                MMMd{"d בMMM"}
+                MMdd{"dd/MM"}
+                Md{"d/M"}
+                d{"d"}
+                hm{"h:mm a"}
+                hms{"h:mm:ss a"}
+                mmss{"mm:ss"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M.yyyy"}
+                yMEd{"EEE, d.M.yyyy"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE, d בMMM y"}
+                yMMMM{"MMMM y"}
+                yQ{"yyyy Q"}
+                yQQQ{"y QQQ"}
+                yyMM{"MM/yy"}
+                yyMMM{"MMM yyyy"}
+                yyQ{"Q yy"}
+                yyyy{"y"}
+                yyyyMM{"MM/yyyy"}
+                yyyyMMMM{"MMMM y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "יום א׳",
+                        "יום ב׳",
+                        "יום ג׳",
+                        "יום ד׳",
+                        "יום ה׳",
+                        "יום ו׳",
+                        "שבת",
+                    }
+                    wide{
+                        "יום ראשון",
+                        "יום שני",
+                        "יום שלישי",
+                        "יום רביעי",
+                        "יום חמישי",
+                        "יום שישי",
+                        "יום שבת",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "א",
+                        "ב",
+                        "ג",
+                        "ד",
+                        "ה",
+                        "ו",
+                        "ש",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "לפנה״ס",
+                    "לסה״נ",
+                }
+                wide{
+                    "לפני הספירה",
+                    "לספירה",
+                }
+            }
+            fields{
+                day{
+                    dn{"יום"}
+                    relative{
+                        "-1"{"אתמול"}
+                        "-2"{"שלשום"}
+                        "-3"{"לפני שלושה ימים"}
+                        "0"{"היום"}
+                        "1"{"מחר"}
+                        "2"{"מחרתיים"}
+                        "3"{"בעוד שלושה ימים"}
+                    }
+                }
+                dayperiod{
+                    dn{"לפה״צ/אחה״צ"}
+                }
+                era{
+                    dn{"תקופה"}
+                }
+                hour{
+                    dn{"שעה"}
+                }
+                minute{
+                    dn{"דקה"}
+                }
+                month{
+                    dn{"חודש"}
+                }
+                second{
+                    dn{"שנייה"}
+                }
+                week{
+                    dn{"שבוע"}
+                }
+                weekday{
+                    dn{"יום בשבוע"}
+                }
+                year{
+                    dn{"שנה"}
+                }
+                zone{
+                    dn{"אזור"}
+                }
+            }
+            intervalFormats{
+                M{
+                    M{"M–M"}
+                }
+                MEd{
+                    M{"EEEE dd/MM – EEEE dd/MM"}
+                    d{"EEEE dd/MM – EEEE dd/MM"}
+                }
+                MMM{
+                    M{"MMM–MMM"}
+                }
+                MMMEd{
+                    M{"EEEE d MMM – EEEE d MMM"}
+                    d{"EEEE d MMM – EEEE d MMM"}
+                }
+                MMMM{
+                    M{"LLLL–LLLL"}
+                }
+                MMMd{
+                    M{"d MMM – d MMM"}
+                    d{"d–d MMM"}
+                }
+                Md{
+                    M{"dd/MM – dd/MM"}
+                    d{"dd/MM – dd/MM"}
+                }
+                d{
+                    d{"d–d"}
+                }
+                fallback{"{0} – {1}"}
+                h{
+                    a{"h a – h a"}
+                    h{"h–h a"}
+                }
+                hm{
+                    a{"h:mm a – h:mm a"}
+                    h{"h:mm–h:mm a"}
+                    m{"h:mm–h:mm a"}
+                }
+                hmv{
+                    a{"h:mm a – h:mm a v"}
+                    h{"h:mm–h:mm a v"}
+                    m{"h:mm–h:mm a v"}
+                }
+                hv{
+                    a{"h a – h a v"}
+                    h{"h–h a v"}
+                }
+                y{
+                    y{"y–y"}
+                }
+                yM{
+                    M{"MM/yy – MM/yy"}
+                    y{"MM/yy – MM/yy"}
+                }
+                yMEd{
+                    M{"EEEE dd/MM/yy – EEEE dd/MM/yy"}
+                    d{"EEEE dd/MM/yy – EEEE dd/MM/yy"}
+                    y{"EEEE dd/MM/yy – EEEE dd/MM/yy"}
+                }
+                yMMM{
+                    M{"MMM–MMM y"}
+                    y{"MMM y – MMM y"}
+                }
+                yMMMEd{
+                    M{"EEEE d MMM – EEEE d MMM y"}
+                    d{"EEEE d MMM – EEEE d MMM y"}
+                    y{"EEEE d MMM y – EEEE d MMM y"}
+                }
+                yMMMM{
+                    M{"MMMM–MMMM y"}
+                    y{"MMMM y–MMMM y"}
+                }
+                yMMMd{
+                    M{"d MMM – d MMM y"}
+                    d{"d–d MMM y"}
+                    y{"d MMM y – d MMM y"}
+                }
+                yMd{
+                    M{"dd/MM/yy – dd/MM/yy"}
+                    d{"dd/MM/yy – dd/MM/yy"}
+                    y{"dd/MM/yy – dd/MM/yy"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "ינו",
+                        "פבר",
+                        "מרס",
+                        "אפר",
+                        "מאי",
+                        "יונ",
+                        "יול",
+                        "אוג",
+                        "ספט",
+                        "אוק",
+                        "נוב",
+                        "דצמ",
+                    }
+                    wide{
+                        "ינואר",
+                        "פברואר",
+                        "מרס",
+                        "אפריל",
+                        "מאי",
+                        "יוני",
+                        "יולי",
+                        "אוגוסט",
+                        "ספטמבר",
+                        "אוקטובר",
+                        "נובמבר",
+                        "דצמבר",
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        "ינו׳",
+                        "פבר׳",
+                        "מרס",
+                        "אפר׳",
+                        "מאי",
+                        "יונ׳",
+                        "יול׳",
+                        "אוג׳",
+                        "ספט׳",
+                        "אוק׳",
+                        "נוב׳",
+                        "דצמ׳",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    wide{
+                        "רבעון 1",
+                        "רבעון 2",
+                        "רבעון 3",
+                        "רבעון 4",
+                    }
+                }
+            }
+        }
+        hebrew{
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                {
+                    "EEEE, d בMMMM y",
+                    "hebr",
+                }
+                {
+                    "d בMMMM y",
+                    "hebr",
+                }
+                {
+                    "dd/MM/yyyy",
+                    "hebr",
+                }
+                {
+                    "dd/MM/yy",
+                    "hebr",
+                }
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                MMMMEd{"E, d בMMMM"}
+            }
+            eras{
+                abbreviated{
+                    "לבה״ע",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "תשרי",
+                        "חשון",
+                        "כסלו",
+                        "טבת",
+                        "שבט",
+                        "אדר א׳",
+                        "אדר",
+                        "ניסן",
+                        "אייר",
+                        "סיון",
+                        "תמוז",
+                        "אב",
+                        "אלול",
+                        "אדר ב׳",
+                    }
+                }
+            }
+        }
+        islamic{
+            eras{
+                abbreviated{
+                    "שנת היג׳רה",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "מוחרם",
+                        "ספר",
+                        "רביע אל-אוואל",
+                        "רביע אל-תני",
+                        "ג׳ומדה אל-אוואל",
+                        "ג׳ומדה אל-תני",
+                        "רג׳אב",
+                        "שעבאן",
+                        "ראמדן",
+                        "שוואל",
+                        "זו אל-QI'DAH",
+                        "זו אל-חיג׳ה",
+                    }
+                }
+            }
+        }
+        japanese{
+            eras{
+                abbreviated{
+                    "טאיקה",
+                    "Hakuchi",
+                    "Hakuhō",
+                    "Shuchō",
+                    "Taihō",
+                    "Keiun",
+                    "Wadō",
+                    "Reiki",
+                    "Yōrō",
+                    "Jinki",
+                    "Tempyō",
+                    "Tempyō-kampō",
+                    "Tempyō-shōhō",
+                    "Tempyō-hōji",
+                    "Temphō-jingo",
+                    "Jingo-keiun",
+                    "Hōki",
+                    "Ten-ō",
+                    "Enryaku",
+                    "Daidō",
+                    "Kōnin",
+                    "Tenchō",
+                    "Shōwa",
+                    "Kajō",
+                    "נינג׳ו",
+                    "Saiko",
+                    "Tennan",
+                    "Jōgan",
+                    "Genkei",
+                    "Ninna",
+                    "Kampyō",
+                    "Shōtai",
+                    "Engi",
+                    "Enchō",
+                    "Shōhei",
+                    "Tengyō",
+                    "Tenryaku",
+                    "Tentoku",
+                    "Ōwa",
+                    "Kōhō",
+                    "Anna",
+                    "Tenroku",
+                    "Ten-en",
+                    "Jōgen",
+                    "Tengen",
+                    "Eikan",
+                    "Kanna",
+                    "Ei-en",
+                    "Eiso",
+                    "Shōryaku",
+                    "Chōtoku",
+                    "Chōhō",
+                    "Kankō",
+                    "Chōwa",
+                    "Kannin",
+                    "Jian",
+                    "Manju",
+                    "Chōgen",
+                    "Chōryaku",
+                    "Chōkyū",
+                    "Kantoku",
+                    "Eishō",
+                    "Tengi",
+                    "Kōhei",
+                    "Jiryaku",
+                    "Enkyū",
+                    "Shōho",
+                    "Shōryaku",
+                    "Eiho",
+                    "Ōtoku",
+                    "Kanji",
+                    "Kaho",
+                    "Eichō",
+                    "שוטוקו",
+                    "Kōwa",
+                    "Chōji",
+                    "Kashō",
+                    "Tennin",
+                    "Ten-ei",
+                    "Eikyū",
+                    "Gen-ei",
+                    "Hoan",
+                    "Tenji",
+                    "Daiji",
+                    "Tenshō",
+                    "Chōshō",
+                    "Hoen",
+                    "Eiji",
+                    "Kōji",
+                    "Tenyō",
+                    "Kyūan",
+                    "Ninpei",
+                    "Kyūju",
+                    "Hogen",
+                    "Heiji",
+                    "Eiryaku",
+                    "Ōho",
+                    "Chōkan",
+                    "Eiman",
+                    "Nin-an",
+                    "Kaō",
+                    "Shōan",
+                    "Angen",
+                    "Jishō",
+                    "Yōwa",
+                    "Juei",
+                    "Genryuku",
+                    "Bunji",
+                    "Kenkyū",
+                    "Shōji",
+                    "Kennin",
+                    "Genkyū",
+                    "Ken-ei",
+                    "Shōgen",
+                    "Kenryaku",
+                    "Kenpō",
+                    "Shōkyū",
+                    "Jōō",
+                    "Gennin",
+                    "Karoku",
+                    "Antei",
+                    "Kanki",
+                    "Jōei",
+                    "Tempuku",
+                    "Bunryaku",
+                    "Katei",
+                    "Ryakunin",
+                    "En-ō",
+                    "Ninji",
+                    "Kangen",
+                    "Hōji",
+                    "Kenchō",
+                    "Kōgen",
+                    "Shōka",
+                    "Shōgen",
+                    "Bun-ō",
+                    "Kōchō",
+                    "Bun-ei",
+                    "Kenji",
+                    "Kōan",
+                    "Shōō",
+                    "Einin",
+                    "Shōan",
+                    "Kengen",
+                    "Kagen",
+                    "Tokuji",
+                    "Enkei",
+                    "Ōchō",
+                    "Shōwa",
+                    "Bunpō",
+                    "Genō",
+                    "Genkyō",
+                    "Shōchū",
+                    "Kareki",
+                    "Gentoku",
+                    "Genkō",
+                    "Kemmu",
+                    "Engen",
+                    "Kōkoku",
+                    "Shōhei",
+                    "Kentoku",
+                    "Bunchũ",
+                    "Tenju",
+                    "Kōryaku",
+                    "Kōwa",
+                    "Genchũ",
+                    "Meitoku",
+                    "Kakei",
+                    "Kōō",
+                    "Meitoku",
+                    "Ōei",
+                    "Shōchō",
+                    "Eikyō",
+                    "Kakitsu",
+                    "Bun-an",
+                    "Hōtoku",
+                    "Kyōtoku",
+                    "Kōshō",
+                    "Chōroku",
+                    "Kanshō",
+                    "Bunshō",
+                    "Ōnin",
+                    "Bunmei",
+                    "Chōkyō",
+                    "Entoku",
+                    "Meiō",
+                    "Bunki",
+                    "Eishō",
+                    "Taiei",
+                    "Kyōroku",
+                    "Tenmon",
+                    "Kōji",
+                    "Eiroku",
+                    "Genki",
+                    "Tenshō",
+                    "Bunroku",
+                    "Keichō",
+                    "Genwa",
+                    "Kan-ei",
+                    "Shōho",
+                    "Keian",
+                    "Shōō",
+                    "Meiryaku",
+                    "Manji",
+                    "Kanbun",
+                    "Enpō",
+                    "Tenwa",
+                    "Jōkyō",
+                    "Genroku",
+                    "Hōei",
+                    "Shōtoku",
+                    "Kyōhō",
+                    "Genbun",
+                    "Kanpō",
+                    "Enkyō",
+                    "Kan-en",
+                    "Hōryaku",
+                    "Meiwa",
+                    "An-ei",
+                    "Tenmei",
+                    "Kansei",
+                    "Kyōwa",
+                    "Bunka",
+                    "Bunsei",
+                    "Tenpō",
+                    "Kōka",
+                    "Kaei",
+                    "Ansei",
+                    "Man-en",
+                    "Bunkyū",
+                    "Genji",
+                    "Keiō",
+                    "Meiji",
+                    "Taishō",
+                    "Shōwa",
+                    "Heisei",
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"\""}
+        alternateQuotationStart{"\""}
+        quotationEnd{"”"}
+        quotationStart{"“"}
+    }
+    layout{
+        characters{"right-to-left"}
+        lines{"top-to-bottom"}
+    }
+    measurementSystemNames{
+        US{"ארה״ב"}
+        metric{"מטרי"}
+    }
+    units{
+        day{
+            one{"{0} יום"}
+            other{"{0} ימים"}
+        }
+        hour{
+            one{"{0} שעה"}
+            other{"{0} שעות"}
+        }
+        minute{
+            one{"{0} דקה"}
+            other{"{0} דקות"}
+        }
+        month{
+            one{"{0} חודש"}
+            other{"{0} חודשים"}
+        }
+        second{
+            one{"{0} שניה"}
+            other{"{0} שניות"}
+        }
+        week{
+            one{"{0} שבוע"}
+            other{"{0} שבועות"}
+        }
+        year{
+            one{"{0} שנה"}
+            other{"{0} שנים"}
+        }
+    }
+    unitsShort{
+        day{
+            one{"{0} יום"}
+            other{"{0} ימים"}
+        }
+        hour{
+            one{"{0} שעה"}
+            other{"{0} שעות"}
+        }
+        minute{
+            one{"{0} דק׳"}
+            other{"{0} דק׳"}
+        }
+        month{
+            one{"{0} חודש"}
+            other{"{0} חודשים"}
+        }
+        second{
+            one{"{0} שנ׳"}
+            other{"{0} שנ׳"}
+        }
+        week{
+            one{"{0} שבוע"}
+            other{"{0} שבועות"}
+        }
+        year{
+            one{"{0} שנה"}
+            other{"{0} שנים"}
+        }
+    }
+}

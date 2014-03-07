@@ -1,0 +1,77 @@
+
+# Copyright (C) 2009-2012 Lorenzo Caminiti
+# Distributed under the Boost Software License, Version 1.0
+# (see accompanying file LICENSE_1_0.txt or a copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+# Home at http://www.boost.org/libs/local_function
+
+import testing ;
+
+# Sun does not automatically detect type-of emulation mode (force it).
+project : requirements <toolset>sun:<define>BOOST_TYPEOF_EMULATION ;
+
+run add_cxx11_lambda.cpp ;
+run add_global_functor.cpp ;
+run add_local_functor.cpp ;
+run add_phoenix.cpp ;
+
+run const_block.cpp ;
+compile-fail const_block_error.cpp : <variant>debug : ;
+run const_block_error.cpp : <variant>release : ;
+compile-fail const_block_error_cxx11_lambda.cpp ;
+
+run expensive_copy_cxx11_lambda.cpp ;
+run expensive_copy_local_function.cpp ;
+
+run gcc_access.cpp ;
+run gcc_lambda.cpp ;
+run gcc_cxx11_lambda.cpp ;
+run gcc_square.cpp ;
+run gcc_store.cpp ;
+
+run impl_pp_keyword.cpp ;
+run impl_tparam_tricks.cpp ;
+
+run n2529_this.cpp ;
+run n2550_find_if.cpp ;
+
+compile-fail noncopyable_cxx11_lambda_error.cpp ;
+run noncopyable_local_function.cpp ;
+
+run phoenix_factorial.cpp ;
+run phoenix_factorial_local.cpp ;
+
+# Only compile but do not run profiling programs (they take a long time to run).
+exe profile_global_functor : profile_global_functor.cpp
+    :   <library>/boost/chrono//boost_chrono
+        <library>/boost/system//boost_system
+        <link>static
+    ;
+exe profile_cxx11_lambda : profile_cxx11_lambda.cpp
+    :   <library>/boost/chrono//boost_chrono
+        <library>/boost/system//boost_system
+        <link>static
+    ;
+exe profile_local_function : profile_local_function.cpp
+    :   <library>/boost/chrono//boost_chrono
+        <library>/boost/system//boost_system
+        <link>static
+    ;
+exe profile_local_function_inline : profile_local_function_inline.cpp
+    :   <library>/boost/chrono//boost_chrono
+        <library>/boost/system//boost_system
+        <link>static
+    ;
+exe profile_local_functor : profile_local_functor.cpp
+    :   <library>/boost/chrono//boost_chrono
+        <library>/boost/system//boost_system
+        <link>static
+    ;
+exe profile_phoenix : profile_phoenix.cpp
+    :   <library>/boost/chrono//boost_chrono
+        <library>/boost/system//boost_system
+        <link>static
+    ;
+
+run scope_exit.cpp ;
+

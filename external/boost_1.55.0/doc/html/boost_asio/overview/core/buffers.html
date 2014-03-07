@@ -1,0 +1,246 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Buffers</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../core.html" title="Core Concepts and Functionality">
+<link rel="prev" href="strands.html" title="Strands: Use Threads Without Explicit Locking">
+<link rel="next" href="streams.html" title="Streams, Short Reads and Short Writes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="strands.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="streams.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.core.buffers"></a><a class="link" href="buffers.html" title="Buffers">Buffers</a>
+</h4></div></div></div>
+<p>
+          Fundamentally, I/O involves the transfer of data to and from contiguous
+          regions of memory, called buffers. These buffers can be simply expressed
+          as a tuple consisting of a pointer and a size in bytes. However, to allow
+          the development of efficient network applications, Boost.Asio includes
+          support for scatter-gather operations. These operations involve one or
+          more buffers:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              A scatter-read receives data into multiple buffers.
+            </li>
+<li class="listitem">
+              A gather-write transmits multiple buffers.
+            </li>
+</ul></div>
+<p>
+          Therefore we require an abstraction to represent a collection of buffers.
+          The approach used in Boost.Asio is to define a type (actually two types)
+          to represent a single buffer. These can be stored in a container, which
+          may be passed to the scatter-gather operations.
+        </p>
+<p>
+          In addition to specifying buffers as a pointer and size in bytes, Boost.Asio
+          makes a distinction between modifiable memory (called mutable) and non-modifiable
+          memory (where the latter is created from the storage for a const-qualified
+          variable). These two types could therefore be defined as follows:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">*,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&gt;</span> <span class="identifier">mutable_buffer</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">void</span><span class="special">*,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&gt;</span> <span class="identifier">const_buffer</span><span class="special">;</span>
+</pre>
+<p>
+          Here, a mutable_buffer would be convertible to a const_buffer, but conversion
+          in the opposite direction is not valid.
+        </p>
+<p>
+          However, Boost.Asio does not use the above definitions as-is, but instead
+          defines two classes: <code class="computeroutput"><span class="identifier">mutable_buffer</span></code>
+          and <code class="computeroutput"><span class="identifier">const_buffer</span></code>. The goal
+          of these is to provide an opaque representation of contiguous memory, where:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Types behave as std::pair would in conversions. That is, a <code class="computeroutput"><span class="identifier">mutable_buffer</span></code> is convertible to
+              a <code class="computeroutput"><span class="identifier">const_buffer</span></code>, but
+              the opposite conversion is disallowed.
+            </li>
+<li class="listitem">
+              There is protection against buffer overruns. Given a buffer instance,
+              a user can only create another buffer representing the same range of
+              memory or a sub-range of it. To provide further safety, the library
+              also includes mechanisms for automatically determining the size of
+              a buffer from an array, <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code>
+              or <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code> of POD elements, or from a
+              <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>.
+            </li>
+<li class="listitem">
+              Type safety violations must be explicitly requested using the <code class="computeroutput"><span class="identifier">buffer_cast</span></code> function. In general
+              an application should never need to do this, but it is required by
+              the library implementation to pass the raw memory to the underlying
+              operating system functions.
+            </li>
+</ul></div>
+<p>
+          Finally, multiple buffers can be passed to scatter-gather operations (such
+          as <a class="link" href="../../reference/read.html" title="read">read()</a> or <a class="link" href="../../reference/write.html" title="write">write()</a>)
+          by putting the buffer objects into a container. The <code class="computeroutput"><span class="identifier">MutableBufferSequence</span></code>
+          and <code class="computeroutput"><span class="identifier">ConstBufferSequence</span></code>
+          concepts have been defined so that containers such as <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code>,
+          <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span></code>, <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code>
+          or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code> can be used.
+        </p>
+<h6>
+<a name="boost_asio.overview.core.buffers.h0"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.buffers.streambuf_for_integration_with_iostreams"></a></span><a class="link" href="buffers.html#boost_asio.overview.core.buffers.streambuf_for_integration_with_iostreams">Streambuf
+          for Integration with Iostreams</a>
+        </h6>
+<p>
+          The class <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">basic_streambuf</span></code> is derived from <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_streambuf</span></code> to associate the input
+          sequence and output sequence with one or more objects of some character
+          array type, whose elements store arbitrary values. These character array
+          objects are internal to the streambuf object, but direct access to the
+          array elements is provided to permit them to be used with I/O operations,
+          such as the send or receive operations of a socket:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              The input sequence of the streambuf is accessible via the <a class="link" href="../../reference/basic_streambuf/data.html" title="basic_streambuf::data">data()</a>
+              member function. The return type of this function meets the <code class="computeroutput"><span class="identifier">ConstBufferSequence</span></code> requirements.
+            </li>
+<li class="listitem">
+              The output sequence of the streambuf is accessible via the <a class="link" href="../../reference/basic_streambuf/data.html" title="basic_streambuf::data">prepare()</a>
+              member function. The return type of this function meets the <code class="computeroutput"><span class="identifier">MutableBufferSequence</span></code> requirements.
+            </li>
+<li class="listitem">
+              Data is transferred from the front of the output sequence to the back
+              of the input sequence by calling the <a class="link" href="../../reference/basic_streambuf/commit.html" title="basic_streambuf::commit">commit()</a>
+              member function.
+            </li>
+<li class="listitem">
+              Data is removed from the front of the input sequence by calling the
+              <a class="link" href="../../reference/basic_streambuf/consume.html" title="basic_streambuf::consume">consume()</a>
+              member function.
+            </li>
+</ul></div>
+<p>
+          The streambuf constructor accepts a <code class="computeroutput"><span class="identifier">size_t</span></code>
+          argument specifying the maximum of the sum of the sizes of the input sequence
+          and output sequence. Any operation that would, if successful, grow the
+          internal data beyond this limit will throw a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">length_error</span></code>
+          exception.
+        </p>
+<h6>
+<a name="boost_asio.overview.core.buffers.h1"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.buffers.bytewise_traversal_of_buffer_sequences"></a></span><a class="link" href="buffers.html#boost_asio.overview.core.buffers.bytewise_traversal_of_buffer_sequences">Bytewise
+          Traversal of Buffer Sequences</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><span class="identifier">buffers_iterator</span><span class="special">&lt;&gt;</span></code>
+          class template allows buffer sequences (i.e. types meeting <code class="computeroutput"><span class="identifier">MutableBufferSequence</span></code> or <code class="computeroutput"><span class="identifier">ConstBufferSequence</span></code> requirements) to
+          be traversed as though they were a contiguous sequence of bytes. Helper
+          functions called buffers_begin() and buffers_end() are also provided, where
+          the buffers_iterator&lt;&gt; template parameter is automatically deduced.
+        </p>
+<p>
+          As an example, to read a single line from a socket and into a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>, you may write:
+        </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">streambuf</span> <span class="identifier">sb</span><span class="special">;</span>
+<span class="special">...</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">n</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">read_until</span><span class="special">(</span><span class="identifier">sock</span><span class="special">,</span> <span class="identifier">sb</span><span class="special">,</span> <span class="char">'\n'</span><span class="special">);</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">streambuf</span><span class="special">::</span><span class="identifier">const_buffers_type</span> <span class="identifier">bufs</span> <span class="special">=</span> <span class="identifier">sb</span><span class="special">.</span><span class="identifier">data</span><span class="special">();</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">line</span><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffers_begin</span><span class="special">(</span><span class="identifier">bufs</span><span class="special">),</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffers_begin</span><span class="special">(</span><span class="identifier">bufs</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">n</span><span class="special">);</span>
+</pre>
+<h6>
+<a name="boost_asio.overview.core.buffers.h2"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.buffers.buffer_debugging"></a></span><a class="link" href="buffers.html#boost_asio.overview.core.buffers.buffer_debugging">Buffer
+          Debugging</a>
+        </h6>
+<p>
+          Some standard library implementations, such as the one that ships with
+          Microsoft Visual C++ 8.0 and later, provide a feature called iterator debugging.
+          What this means is that the validity of iterators is checked at runtime.
+          If a program tries to use an iterator that has been invalidated, an assertion
+          will be triggered. For example:
+        </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">(</span><span class="number">1</span><span class="special">)</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">v</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">clear</span><span class="special">();</span> <span class="comment">// invalidates iterators</span>
+<span class="special">*</span><span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="comment">// assertion!</span>
+</pre>
+<p>
+          Boost.Asio takes advantage of this feature to add buffer debugging. Consider
+          the following code:
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">dont_do_this</span><span class="special">()</span>
+<span class="special">{</span>
+ <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">msg</span> <span class="special">=</span> <span class="string">"Hello, world!"</span><span class="special">;</span>
+ <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">async_write</span><span class="special">(</span><span class="identifier">sock</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">msg</span><span class="special">),</span> <span class="identifier">my_handler</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+          When you call an asynchronous read or write you need to ensure that the
+          buffers for the operation are valid until the completion handler is called.
+          In the above example, the buffer is the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>
+          variable <code class="computeroutput"><span class="identifier">msg</span></code>. This variable
+          is on the stack, and so it goes out of scope before the asynchronous operation
+          completes. If you're lucky then the application will crash, but random
+          failures are more likely.
+        </p>
+<p>
+          When buffer debugging is enabled, Boost.Asio stores an iterator into the
+          string until the asynchronous operation completes, and then dereferences
+          it to check its validity. In the above example you would observe an assertion
+          failure just before Boost.Asio tries to call the completion handler.
+        </p>
+<p>
+          This feature is automatically made available for Microsoft Visual Studio
+          8.0 or later and for GCC when <code class="computeroutput"><span class="identifier">_GLIBCXX_DEBUG</span></code>
+          is defined. There is a performance cost to this checking, so buffer debugging
+          is only enabled in debug builds. For other compilers it may be enabled
+          by defining <code class="computeroutput"><span class="identifier">BOOST_ASIO_ENABLE_BUFFER_DEBUGGING</span></code>.
+          It can also be explicitly disabled by defining <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_BUFFER_DEBUGGING</span></code>.
+        </p>
+<h6>
+<a name="boost_asio.overview.core.buffers.h3"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.buffers.see_also"></a></span><a class="link" href="buffers.html#boost_asio.overview.core.buffers.see_also">See
+          Also</a>
+        </h6>
+<p>
+          <a class="link" href="../../reference/buffer.html" title="buffer">buffer</a>, <a class="link" href="../../reference/buffers_begin.html" title="buffers_begin">buffers_begin</a>,
+          <a class="link" href="../../reference/buffers_end.html" title="buffers_end">buffers_end</a>, <a class="link" href="../../reference/buffers_iterator.html" title="buffers_iterator">buffers_iterator</a>,
+          <a class="link" href="../../reference/const_buffer.html" title="const_buffer">const_buffer</a>,
+          <a class="link" href="../../reference/const_buffers_1.html" title="const_buffers_1">const_buffers_1</a>,
+          <a class="link" href="../../reference/mutable_buffer.html" title="mutable_buffer">mutable_buffer</a>,
+          <a class="link" href="../../reference/mutable_buffers_1.html" title="mutable_buffers_1">mutable_buffers_1</a>,
+          <a class="link" href="../../reference/streambuf.html" title="streambuf">streambuf</a>, <a class="link" href="../../reference/ConstBufferSequence.html" title="Constant buffer sequence requirements">ConstBufferSequence</a>,
+          <a class="link" href="../../reference/MutableBufferSequence.html" title="Mutable buffer sequence requirements">MutableBufferSequence</a>,
+          <a class="link" href="../../examples/cpp03_examples.html#boost_asio.examples.cpp03_examples.buffers">buffers example
+          (C++03)</a>, <a class="link" href="../../examples/cpp11_examples.html#boost_asio.examples.cpp11_examples.buffers">buffers
+          example (c++11)</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="strands.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="streams.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Basic Boost.Asio Anatomy</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../core.html" title="Core Concepts and Functionality">
+<link rel="prev" href="../core.html" title="Core Concepts and Functionality">
+<link rel="next" href="async.html" title="The Proactor Design Pattern: Concurrency Without Threads">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../core.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="async.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.core.basics"></a><a class="link" href="basics.html" title="Basic Boost.Asio Anatomy">Basic Boost.Asio Anatomy</a>
+</h4></div></div></div>
+<p>
+          Boost.Asio may be used to perform both synchronous and asynchronous operations
+          on I/O objects such as sockets. Before using Boost.Asio it may be useful
+          to get a conceptual picture of the various parts of Boost.Asio, your program,
+          and how they work together.
+        </p>
+<p>
+          As an introductory example, let's consider what happens when you perform
+          a connect operation on a socket. We shall start by examining synchronous
+          operations.
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../sync_op.png" alt="sync_op"></span>
+        </p>
+<p>
+          <span class="bold"><strong>Your program</strong></span> will have at least one <span class="bold"><strong>io_service</strong></span> object. The <span class="bold"><strong>io_service</strong></span>
+          represents <span class="bold"><strong>your program</strong></span>'s link to the
+          <span class="bold"><strong>operating system</strong></span>'s I/O services.
+        </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span> <span class="identifier">io_service</span><span class="special">;</span>
+</pre>
+<p>
+          To perform I/O operations <span class="bold"><strong>your program</strong></span>
+          will need an <span class="bold"><strong>I/O object</strong></span> such as a TCP
+          socket:
+        </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">);</span>
+</pre>
+<p>
+          When a synchronous connect operation is performed, the following sequence
+          of events occurs:
+        </p>
+<p>
+          1. <span class="bold"><strong>Your program</strong></span> initiates the connect
+          operation by calling the <span class="bold"><strong>I/O object</strong></span>:
+        </p>
+<pre class="programlisting"><span class="identifier">socket</span><span class="special">.</span><span class="identifier">connect</span><span class="special">(</span><span class="identifier">server_endpoint</span><span class="special">);</span>
+</pre>
+<p>
+          2. The <span class="bold"><strong>I/O object</strong></span> forwards the request
+          to the <span class="bold"><strong>io_service</strong></span>.
+        </p>
+<p>
+          3. The <span class="bold"><strong>io_service</strong></span> calls on the <span class="bold"><strong>operating system</strong></span> to perform the connect operation.
+        </p>
+<p>
+          4. The <span class="bold"><strong>operating system</strong></span> returns the result
+          of the operation to the <span class="bold"><strong>io_service</strong></span>.
+        </p>
+<p>
+          5. The <span class="bold"><strong>io_service</strong></span> translates any error
+          resulting from the operation into an object of type <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span></code>.
+          An <code class="computeroutput"><span class="identifier">error_code</span></code> may be compared
+          with specific values, or tested as a boolean (where a <code class="computeroutput"><span class="keyword">false</span></code>
+          result means that no error occurred). The result is then forwarded back
+          up to the <span class="bold"><strong>I/O object</strong></span>.
+        </p>
+<p>
+          6. The <span class="bold"><strong>I/O object</strong></span> throws an exception
+          of type <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">system_error</span></code> if the operation failed.
+          If the code to initiate the operation had instead been written as:
+        </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">ec</span><span class="special">;</span>
+<span class="identifier">socket</span><span class="special">.</span><span class="identifier">connect</span><span class="special">(</span><span class="identifier">server_endpoint</span><span class="special">,</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+          then the <code class="computeroutput"><span class="identifier">error_code</span></code> variable
+          <code class="computeroutput"><span class="identifier">ec</span></code> would be set to the
+          result of the operation, and no exception would be thrown.
+        </p>
+<p>
+          When an asynchronous operation is used, a different sequence of events
+          occurs.
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../async_op1.png" alt="async_op1"></span>
+        </p>
+<p>
+          1. <span class="bold"><strong>Your program</strong></span> initiates the connect
+          operation by calling the <span class="bold"><strong>I/O object</strong></span>:
+        </p>
+<pre class="programlisting"><span class="identifier">socket</span><span class="special">.</span><span class="identifier">async_connect</span><span class="special">(</span><span class="identifier">server_endpoint</span><span class="special">,</span> <span class="identifier">your_completion_handler</span><span class="special">);</span>
+</pre>
+<p>
+          where <code class="computeroutput"><span class="identifier">your_completion_handler</span></code>
+          is a function or function object with the signature:
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">your_completion_handler</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+          The exact signature required depends on the asynchronous operation being
+          performed. The reference documentation indicates the appropriate form for
+          each operation.
+        </p>
+<p>
+          2. The <span class="bold"><strong>I/O object</strong></span> forwards the request
+          to the <span class="bold"><strong>io_service</strong></span>.
+        </p>
+<p>
+          3. The <span class="bold"><strong>io_service</strong></span> signals to the <span class="bold"><strong>operating system</strong></span> that it should start an asynchronous
+          connect.
+        </p>
+<p>
+          Time passes. (In the synchronous case this wait would have been contained
+          entirely within the duration of the connect operation.)
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../async_op2.png" alt="async_op2"></span>
+        </p>
+<p>
+          4. The <span class="bold"><strong>operating system</strong></span> indicates that
+          the connect operation has completed by placing the result on a queue, ready
+          to be picked up by the <span class="bold"><strong>io_service</strong></span>.
+        </p>
+<p>
+          5. <span class="bold"><strong>Your program</strong></span> must make a call to <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">run</span><span class="special">()</span></code>
+          (or to one of the similar <span class="bold"><strong>io_service</strong></span> member
+          functions) in order for the result to be retrieved. A call to <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">run</span><span class="special">()</span></code>
+          blocks while there are unfinished asynchronous operations, so you would
+          typically call it as soon as you have started your first asynchronous operation.
+        </p>
+<p>
+          6. While inside the call to <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">run</span><span class="special">()</span></code>, the <span class="bold"><strong>io_service</strong></span>
+          dequeues the result of the operation, translates it into an <code class="computeroutput"><span class="identifier">error_code</span></code>, and then passes it to <span class="bold"><strong>your completion handler</strong></span>.
+        </p>
+<p>
+          This is a simplified picture of how Boost.Asio operates. You will want
+          to delve further into the documentation if your needs are more advanced,
+          such as extending Boost.Asio to perform other types of asynchronous operations.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../core.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="async.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

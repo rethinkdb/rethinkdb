@@ -1,0 +1,4682 @@
+--- source/data/curr/ms.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/curr/ms.txt	2012-02-01 10:31:02.797294000 -0800
+@@ -1,6 +1,6 @@
+ ﻿// ***************************************************************************
+ // *
+-// * Copyright (C) 2010 International Business Machines
++// * Copyright (C) 2011 International Business Machines
+ // * Corporation and others.  All Rights Reserved.
+ // * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+ // * Source File:<path>/common/main/ms.xml
+@@ -11,10 +11,626 @@
+  */
+ ms{
+     Currencies{
++        AED{
++            "AED",
++            "Dirham Emiriah Arab Bersatu",
++        }
++        AFN{
++            "AFN",
++            "Afghani Afghanistan",
++        }
++        ALL{
++            "ALL",
++            "Lek Albania",
++        }
++        AMD{
++            "AMD",
++            "Dram Armenia",
++        }
++        ANG{
++            "ANG",
++            "Guilder Antillean Netherland",
++        }
++        AOA{
++            "AOA",
++            "Kwanza Angola",
++        }
++        ARS{
++            "ARS",
++            "Peso Argentina",
++        }
++        AUD{
++            "AU$",
++            "Dolar Australia",
++        }
++        AWG{
++            "AWG",
++            "Florin Aruba",
++        }
++        AZN{
++            "AZN",
++            "Manat Azerbaijan",
++        }
++        BAM{
++            "BAM",
++            "Mark Boleh Tukar Bosnia-Herzegovina",
++        }
++        BBD{
++            "BBD",
++            "Dolar Barbados",
++        }
++        BDT{
++            "BDT",
++            "Taka Bangladesh",
++        }
++        BGN{
++            "BGN",
++            "Lev Bulgaria",
++        }
++        BHD{
++            "BHD",
++            "Dinar Bahrain",
++        }
++        BIF{
++            "BIF",
++            "Franc Burundia",
++        }
++        BMD{
++            "BMD",
++            "Dolar Bermuda",
++        }
++        BND{
++            "BND",
++            "Dolar Brunei",
++        }
++        BOB{
++            "BOB",
++            "Boliviano Bolivia",
++        }
++        BRL{
++            "BR$",
++            "Real Brazil",
++        }
++        BSD{
++            "BSD",
++            "Dolar Bahamas",
++        }
++        BTN{
++            "BTN",
++            "Ngultrum Bhutan",
++        }
++        BWP{
++            "BWP",
++            "Pula Botswana",
++        }
++        BYR{
++            "BYR",
++            "Ruble Belarus",
++        }
++        BZD{
++            "BZD",
++            "Dolar Belize",
++        }
++        CAD{
++            "CA$",
++            "Dolar Kanada",
++        }
++        CDF{
++            "CDF",
++            "Franc Congo",
++        }
++        CHF{
++            "CHF",
++            "Franc Switzerland",
++        }
++        CLP{
++            "CLP",
++            "Peso Chile",
++        }
++        CNY{
++            "CN¥",
++            "Yuan Cina",
++        }
++        COP{
++            "COP",
++            "Peso Colombia",
++        }
++        CRC{
++            "CRC",
++            "Colón Costa Rica",
++        }
++        CUC{
++            "CUC",
++            "Peso Boleh Tukar Cuba",
++        }
++        CUP{
++            "CUP",
++            "Peso Cuba",
++        }
++        CVE{
++            "CVE",
++            "Escudo Tanjung Verde",
++        }
++        CZK{
++            "CZK",
++            "Koruna Republik Czech",
++        }
++        DJF{
++            "DJF",
++            "Franc Djibouti",
++        }
++        DKK{
++            "DKK",
++            "Krone Denmark",
++        }
++        DOP{
++            "DOP",
++            "Peso Dominican",
++        }
++        DZD{
++            "DZD",
++            "Dinar Algeria",
++        }
++        EGP{
++            "EGP",
++            "Paun Mesir",
++        }
++        ERN{
++            "ERN",
++            "Nakfa Eritrea",
++        }
++        ETB{
++            "ETB",
++            "Birr Ethiopia",
++        }
++        EUR{
++            "€",
++            "Euro",
++        }
++        FJD{
++            "FJD",
++            "Dolar Fiji",
++        }
++        FKP{
++            "FKP",
++            "Paun Kepulauan Falkland",
++        }
++        GBP{
++            "£",
++            "Paun Sterling British",
++        }
++        GEL{
++            "GEL",
++            "Lari Georgia",
++        }
++        GHS{
++            "GHS",
++            "Cedi Ghana",
++        }
++        GIP{
++            "GIP",
++            "Paun Gibraltar",
++        }
++        GMD{
++            "GMD",
++            "Dalasi Gambia",
++        }
++        GNF{
++            "GNF",
++            "Franc Guinea",
++        }
++        GTQ{
++            "GTQ",
++            "Quetzal Guatemala",
++        }
++        GYD{
++            "GYD",
++            "Dolar Guyana",
++        }
++        HKD{
++            "HK$",
++            "Dolar Hong Kong",
++        }
++        HNL{
++            "HNL",
++            "Lempira Honduras",
++        }
++        HRK{
++            "HRK",
++            "Kuna Croatia",
++        }
++        HTG{
++            "HTG",
++            "Gourde Haiti",
++        }
++        HUF{
++            "HUF",
++            "Forint Hungary",
++        }
++        IDR{
++            "IDR",
++            "Rupiah Indonesia",
++        }
++        ILS{
++            "₪",
++            "Sheqel Baru Israel",
++        }
++        INR{
++            "₹",
++            "Rupee India",
++        }
++        IQD{
++            "IQD",
++            "Dinar Iraq",
++        }
++        IRR{
++            "IRR",
++            "Rial Iran",
++        }
++        ISK{
++            "ISK",
++            "Króna Iceland",
++        }
++        JMD{
++            "JMD",
++            "Dolar Jamaica",
++        }
++        JOD{
++            "JOD",
++            "Dinar Jordan",
++        }
++        JPY{
++            "JP¥",
++            "Yen Jepun",
++        }
++        KES{
++            "KES",
++            "Syiling Kenya",
++        }
++        KGS{
++            "KGS",
++            "Som Kyrgystani",
++        }
++        KHR{
++            "KHR",
++            "Riel Kemboja",
++        }
++        KMF{
++            "KMF",
++            "Franc Comoria",
++        }
++        KPW{
++            "KPW",
++            "Won Korea Utara",
++        }
++        KRW{
++            "₩",
++            "Won Korea Selatan",
++        }
++        KWD{
++            "KWD",
++            "Dinar Kuwait",
++        }
++        KYD{
++            "KYD",
++            "Dolar Kepulauan Cayman",
++        }
++        KZT{
++            "KZT",
++            "Tenge Kazakhstan",
++        }
++        LAK{
++            "LAK",
++            "Kip Laos",
++        }
++        LBP{
++            "LBP",
++            "Paun Lubnan",
++        }
++        LKR{
++            "LKR",
++            "Rupee Sri Lanka",
++        }
++        LRD{
++            "LRD",
++            "Dolar Liberia",
++        }
++        LSL{
++            "LSL",
++            "Loti Lesotho",
++        }
++        LTL{
++            "LTL",
++            "Litas Lithuania",
++        }
++        LVL{
++            "LVL",
++            "Lats Latvia",
++        }
++        LYD{
++            "LYD",
++            "Dinar Libya",
++        }
++        MAD{
++            "MAD",
++            "Dirham Maghribi",
++        }
++        MDL{
++            "MDL",
++            "Leu Moldova",
++        }
++        MGA{
++            "MGA",
++            "Ariary Malagasy",
++        }
++        MKD{
++            "MKD",
++            "Denar Macedonia",
++        }
++        MMK{
++            "MMK",
++            "Kyat Myanma",
++        }
++        MNT{
++            "MNT",
++            "Tugrik Mongolia",
++        }
++        MOP{
++            "MOP",
++            "Pataca Macau",
++        }
++        MRO{
++            "MRO",
++            "Ouguiya Mauritania",
++        }
++        MUR{
++            "MUR",
++            "Rupee Mauritia",
++        }
++        MVR{
++            "MVR",
++            "Rufiyaa Maldives",
++        }
++        MWK{
++            "MWK",
++            "Kwacha Malawi",
++        }
++        MXN{
++            "MX$",
++            "Peso Mexico",
++        }
+         MYR{
+             "RM",
+             "Ringgit Malaysia",
+         }
++        NAD{
++            "NAD",
++            "Dolar Namibia",
++        }
++        NGN{
++            "NGN",
++            "Naira Nigeria",
++        }
++        NIO{
++            "NIO",
++            "Córdoba Nicaragua",
++        }
++        NOK{
++            "NOK",
++            "Krone Norway",
++        }
++        NPR{
++            "NPR",
++            "Rupee Nepal",
++        }
++        NZD{
++            "NZ$",
++            "Dolar New Zealand",
++        }
++        OMR{
++            "OMR",
++            "Rial Oman",
++        }
++        PAB{
++            "PAB",
++            "Balboa Panama",
++        }
++        PEN{
++            "PEN",
++            "Nuevo Sol Peru",
++        }
++        PGK{
++            "PGK",
++            "Kina Papua New Guinea",
++        }
++        PHP{
++            "PHP",
++            "Peso Filipina",
++        }
++        PKR{
++            "PKR",
++            "Rupee Pakistan",
++        }
++        PLN{
++            "PLN",
++            "Zloty Poland",
++        }
++        PYG{
++            "PYG",
++            "Guarani Paraguay",
++        }
++        QAR{
++            "QAR",
++            "Rial Qatar",
++        }
++        RSD{
++            "RSD",
++            "Dinar Serbia",
++        }
++        RUB{
++            "RUB",
++            "Ruble Rusia",
++        }
++        RWF{
++            "RWF",
++            "Franc Rwanda",
++        }
++        SAR{
++            "SAR",
++            "Riyal Saudi",
++        }
++        SBD{
++            "SBD",
++            "Dolar Kepulauan Solomon",
++        }
++        SCR{
++            "SCR",
++            "Rupee Seychelles",
++        }
++        SDG{
++            "SDG",
++            "Paun Sudan",
++        }
++        SEK{
++            "SEK",
++            "Krona Sweden",
++        }
++        SGD{
++            "SGD",
++            "Dolar Singapura",
++        }
++        SHP{
++            "SHP",
++            "Paun Saint Helena",
++        }
++        SLL{
++            "SLL",
++            "Leone Sierra Leone",
++        }
++        SOS{
++            "SOS",
++            "Syiling Somali",
++        }
++        SRD{
++            "SRD",
++            "Dolar Surinam",
++        }
++        STD{
++            "STD",
++            "São Tomé dan Príncipe Dobra",
++        }
++        SYP{
++            "SYP",
++            "Paun Syria",
++        }
++        SZL{
++            "SZL",
++            "Lilangeni Swazi",
++        }
++        THB{
++            "฿",
++            "Baht Thai",
++        }
++        TJS{
++            "TJS",
++            "Somoni Tajikistan",
++        }
++        TMT{
++            "TMT",
++            "Manat Turkmenistan",
++        }
++        TND{
++            "TND",
++            "Dinar Tunisia",
++        }
++        TOP{
++            "TOP",
++            "Tongan Paʻanga",
++        }
++        TRY{
++            "TRY",
++            "Lira Turki",
++        }
++        TTD{
++            "TTD",
++            "Dolar Trinidad dan Tobago",
++        }
++        TWD{
++            "NT$",
++            "Dolar Taiwan Baru",
++        }
++        TZS{
++            "TZS",
++            "Syiling Tanzania",
++        }
++        UAH{
++            "UAH",
++            "Hryvnia Ukraine",
++        }
++        UGX{
++            "UGX",
++            "Syiling Uganda",
++        }
++        USD{
++            "US$",
++            "Dolar AS",
++        }
++        UYU{
++            "UYU",
++            "Peso Uruguay",
++        }
++        UZS{
++            "UZS",
++            "Som Uzbekistan",
++        }
++        VEF{
++            "VEF",
++            "Bolívar Venezuela",
++        }
++        VND{
++            "₫",
++            "Dong Vietnam",
++        }
++        VUV{
++            "VUV",
++            "Vatu Vanuatu",
++        }
++        WST{
++            "WST",
++            "Tala Samoa",
++        }
++        XAF{
++            "FCFA",
++            "Franc CFA BEAC",
++        }
++        XCD{
++            "EC$",
++            "Dolar Caribbean Timur",
++        }
++        XOF{
++            "CFA",
++            "Franc CFA BCEAO",
++        }
++        XPF{
++            "CFPF",
++            "Franc CFP",
++        }
++        XXX{
++            "XXX",
++            "Mata Wang Tidak Diketahui",
++        }
++        YER{
++            "YER",
++            "Rial Yaman",
++        }
++        ZAR{
++            "ZAR",
++            "Rand Afrika Selatan",
++        }
++        ZMK{
++            "ZMK",
++            "Kwacha Zambia",
++        }
+     }
+-    Version{"2.0.50.96"}
++    Version{"2.0.59.53"}
+ }
+--- source/data/lang/am.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/lang/am.txt	2011-07-25 02:16:27.276258000 -0700
+@@ -37,15 +37,19 @@
+         dz{"ድዞንግኻኛ"}
+         el{"ግሪክኛ"}
+         en{"እንግሊዝኛ"}
++        en_GB{"ብሪቲሽ እንግሊዝኛ"}
++        en_US{"ዩ.ኤስ እንግሊዝኛ"}
+         eo{"ኤስፐራንቶ"}
+         es{"ስፓኒሽ"}
+         et{"ኤስቶኒአን"}
+         eu{"ባስክኛ"}
+         fa{"ፐርሲያኛ"}
+         fi{"ፊኒሽ"}
++        fil{"ፊሊፕኖኛ"}
+         fj{"ፊጂኛ"}
+         fo{"ፋሮኛ"}
+         fr{"ፈረንሳይኛ"}
++        fr_CA{"የካናዳ ፈረንሳይኛ"}
+         fy{"ፍሪስኛ"}
+         ga{"አይሪሽ"}
+         gd{"እስኮትስ ጌልክኛ"}
+@@ -54,6 +58,7 @@
+         gn{"ጓራኒኛ"}
+         gu{"ጉጃርቲኛ"}
+         ha{"ሃውሳኛ"}
++        haw{"ሀዋይኛ"}
+         he{"ዕብራስጥ"}
+         hi{"ሐንድኛ"}
+         hr{"ክሮሽያንኛ"}
+@@ -104,6 +109,8 @@
+         pl{"ፖሊሽኛ"}
+         ps{"ፑሽቶኛ"}
+         pt{"ፖርቱጋሊኛ"}
++        pt_BR{"የብራዚል ፖርቱጋሊኛ "}
++        pt_PT{"የፖርቱጋል አይበሪኛ"}
+         qu{"ኵቿኛ"}
+         rm{"ሮማንስ"}
+         rn{"ሩንዲኛ"}
+@@ -153,6 +160,9 @@
+         yo{"ዮሩባዊኛ"}
+         za{"ዡዋንግኛ"}
+         zh{"ቻይንኛ"}
++        zh_Hans{"ቀላል ቻይንኛ"}
++        zh_Hant{"ባህላዊ ቻይንኛ"}
++        znd{"ዛንዲኛ"}
+         zu{"ዙሉኛ"}
+     }
+     Version{"2.0.50.94"}
+--- source/data/lang/da.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/lang/da.txt	2011-01-19 18:16:42.592783000 -0800
+@@ -82,7 +82,7 @@
+         bua{"buriatisk"}
+         bug{"buginesisk"}
+         byn{"blin"}
+-        ca{"katalansk"}
++        ca{"catalansk"}
+         cad{"caddo"}
+         cai{"mellemamerikansk indiansk sprog"}
+         car{"caribisk"}
+--- source/data/lang/fil.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/lang/fil.txt	2011-01-21 16:11:12.781119000 -0800
+@@ -24,11 +24,13 @@
+         bs{"Bosnian"}
+         ca{"Catalan"}
+         cs{"Czech"}
++        cy{"Welsh"}
+         da{"Danish"}
+         de{"Aleman"}
+         el{"Griyego"}
+         en{"Ingles"}
+         en_GB{"Ingles (UK)"}
++        en_US{"Ingles (US)"}
+         eo{"Esperanto"}
+         es{"Espanyol"}
+         et{"Estonian"}
+@@ -38,6 +40,7 @@
+         fil{"Filipino"}
+         fo{"Faroeso"}
+         fr{"Pranses"}
++        fy{"Prisian"}
+         ga{"Irish"}
+         gd{"Scots Gaelic"}
+         gl{"Galician"}
+@@ -72,6 +75,7 @@
+         mr{"Marathi"}
+         ms{"Malay"}
+         mt{"Maltese"}
++        nb{"Norwegian"}
+         ne{"Nepali"}
+         nl{"Olandes"}
+         nn{"Norwegian Nynorsk"}
+@@ -82,25 +86,44 @@
+         pl{"Polish"}
+         ps{"Pashto"}
+         pt{"Portuges"}
++        pt_BR{"Portuges (Brasil)"}
+         rm{"Rhaeto-Romance"}
+         ro{"Romanian"}
+         ru{"Russian"}
+         sa{"Sanskrit"}
+         sd{"Sindhi"}
+         sh{"Serbo-Croatian"}
++        si{"Sinhalese"}
++        sk{"Eslobak"}
+         sl{"Slovenian"}
++        so{"Somali"}
+         sq{"Albanian"}
+         sr{"Serbian"}
++        st{"Sesoto"}
++        su{"Taga Sundan"}
+         sv{"Swedish"}
+         swb{"Comorian"}
++        ta{"Tamil"}
++        te{"Telugu"}
++        th{"Thai"}
++        ti{"Tigrinya"}
++        tk{"Turkmen"}
++        tl{"Tagalog"}
+         tlh{"Klingon"}
+-        tr{"Turkish"}
++        tr{"Turko"}
+         uk{"Ukranian"}
+         und{"und"}
++        ur{"Urdu"}
++        uz{"Uzbeko"}
++        vi{"Vietnamese"}
++        wo{"Wolof"}
++        xh{"Xhosa"}
++        yi{"Yiddish"}
+         yue{"Cantonese"}
+         zh{"Chinese"}
+         zh_Hans{"Chinese (pinasimple)"}
+         zh_Hant{"Chinese (tradisyunal)"}
++        zu{"Zulu"}
+     }
+     Variants{
+         PINYIN{"Pinyin Romanization"}
+--- source/data/lang/ko.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/lang/ko.txt	2011-07-22 13:46:05.760743000 -0700
+@@ -147,8 +147,8 @@
+         enm{"영어, 중세 (1100-1500)"}
+         eo{"에스페란토어"}
+         es{"스페인어"}
+-        es_419{"중남미 스페인어"}
+-        es_ES{"스페인어 (이베리아)"}
++        es_419{"스페인어 (중남미)"}
++        es_ES{"스페인어 (스페인)"}
+         et{"에스토니아어"}
+         eu{"바스크어"}
+         ewo{"이원도어"}
+--- source/data/lang/ms.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/lang/ms.txt	2012-02-01 16:23:41.520769000 -0800
+@@ -1,6 +1,6 @@
+ ﻿// ***************************************************************************
+ // *
+-// * Copyright (C) 2010 International Business Machines
++// * Copyright (C) 2011 International Business Machines
+ // * Corporation and others.  All Rights Reserved.
+ // * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+ // * Source File:<path>/common/main/ms.xml
+@@ -10,59 +10,284 @@
+  *  ICU <specials> source: <path>/xml/main/ms.xml
+  */
+ ms{
++    Keys{
++        calendar{"Kalendar"}
++        collation{"Kolasi"}
++        currency{"Mata wang"}
++        numbers{"Nombor"}
++        x{"Penggunaan Peribadi"}
++    }
+     Languages{
++        ab{"Abkhazia"}
+         af{"Afrikaans"}
+         am{"Amharic"}
+         ar{"Arab"}
+         as{"Assam"}
++        ay{"Aymara"}
++        az{"Azerbaijan"}
+         be{"Belarus"}
++        bg{"Bulgaria"}
+         bn{"Benggala"}
++        bo{"Tibet"}
+         bs{"Bosnia"}
+         ca{"Catalonia"}
++        cs{"Czech"}
+         cy{"Wales"}
++        da{"Denmark"}
++        de{"Jerman"}
++        de_AT{"Jerman Austria"}
++        de_CH{"Jerman Halus Switzerland"}
++        dv{"Divehi"}
++        dz{"Dzongkha"}
++        efi{"Efik"}
++        el{"Greek"}
++        en{"Inggeris"}
++        en_AU{"Inggeris Australia"}
++        en_CA{"Inggeris Kanada"}
++        en_GB{"Inggeris British"}
++        en_US{"Bahasa Inggeris AS"}
+         eo{"Esperanto"}
++        es{"Sepanyol"}
++        es_419{"Sepanyol Amerika Latin"}
++        es_ES{"Sepanyol Iberia"}
++        et{"Estonia"}
+         eu{"Basque"}
+         fa{"Parsi"}
++        fi{"Finland"}
++        fil{"Filipina"}
++        fj{"Fiji"}
++        fo{"Faroe"}
++        fr{"Perancis"}
++        fr_CA{"Perancis Kanada"}
++        fr_CH{"Perancis Switzerland"}
+         fy{"Frisian"}
++        ga{"Ireland"}
+         gd{"Scots Gaelic"}
+         gl{"Galicia"}
++        gn{"Guarani"}
++        gsw{"Jerman Switzerland"}
+         gu{"Gujerat"}
++        ha{"Hausa"}
++        haw{"Hawaii"}
++        he{"Ibrani"}
++        hi{"Hindi"}
+         hr{"Croat"}
++        ht{"Haiti"}
+         hu{"Hungary"}
+         hy{"Armenia"}
+         id{"Indonesia"}
++        ig{"Igbo"}
++        is{"Iceland"}
++        it{"Itali"}
++        ja{"Jepun"}
++        jv{"Jawa"}
+         ka{"Georgia"}
++        kk{"Kazakhstan"}
+         km{"Khmer"}
+         kn{"Kannada"}
++        ko{"Korea"}
++        ks{"Kashmiri"}
++        ku{"Kurdish"}
++        ky{"Kirghiz"}
+         la{"Latin"}
++        lb{"Luxembourg"}
+         ln{"Lingala"}
+         lo{"Laos"}
++        lt{"Lithuania"}
++        lv{"Latvia"}
++        mg{"Malagasy"}
++        mi{"Maori"}
++        mk{"Macedonia"}
+         ml{"Malayalam"}
+         mn{"Mongolia"}
+         mr{"Marathi"}
+         ms{"Bahasa Melayu"}
+         mt{"Malta"}
++        my{"Burma"}
++        nb{"Bokmål Norway"}
++        nd{"Ndebele Utara"}
+         ne{"Nepal"}
++        nl{"Belanda"}
++        nl_BE{"Flemish"}
+         nn{"Nynorsk Norway"}
++        nso{"Sotho Utara"}
++        ny{"Nyanja"}
++        or{"Oriya"}
++        os{"Ossete"}
+         pa{"Punjabi"}
++        pl{"Poland"}
++        ps{"Pashto"}
++        pt{"Portugis"}
++        pt_BR{"Portugis Brazil"}
+         pt_PT{"Portugis Iberia"}
++        qu{"Quechua"}
++        rm{"Romansh"}
++        rn{"Rundi"}
++        ro{"Romania"}
++        ru{"Rusia"}
++        rw{"Kinyarwanda"}
+         sa{"Sanskrit"}
+         sd{"Sindhi"}
++        se{"Sami Utara"}
++        sg{"Sango"}
+         sh{"SerboCroatia"}
+         si{"Sinhala"}
+         sk{"Slovak"}
+         sl{"Slovenia"}
++        sm{"Samoa"}
++        sn{"Shona"}
+         so{"Somali"}
+         sq{"Albania"}
+         sr{"Serbia"}
++        ss{"Swati"}
++        st{"Sotho Selatan"}
+         su{"Sunda"}
++        sv{"Sweden"}
+         sw{"Swahili"}
+         ta{"Tamil"}
+         te{"Telugu"}
++        tet{"Tetum"}
++        tg{"Tajik"}
+         th{"Thai"}
+         ti{"Tigrinya"}
++        tk{"Turkmen"}
++        tn{"Tswana"}
++        to{"Tonga"}
++        tpi{"Tok Pisin"}
++        tr{"Turki"}
++        ts{"Tsonga"}
++        tt{"Tatar"}
++        ty{"Tahiti"}
+         ug{"Uighur"}
++        uk{"Ukraine"}
++        und{"Bahasa Tidak Diketahui"}
++        ur{"Urdu"}
++        uz{"Uzbekistan"}
++        ve{"Venda"}
+         vi{"Vietnam"}
++        wo{"Wolof"}
++        xh{"Xhosa"}
++        yo{"Yoruba"}
++        zh{"Cina"}
++        zh_Hans{"Cina Ringkas"}
++        zh_Hant{"Cina Tradisional"}
++        zu{"Zulu"}
++        zxx{"Tidak kandungan linguistik"}
++    }
++    LanguagesShort{
++        az{"Azeri"}
++    }
++    Scripts{
++        Arab{"Arab"}
++        Armn{"Armenia"}
++        Beng{"Bengali"}
++        Bopo{"Bopomofo"}
++        Brai{"Braille"}
++        Cyrl{"Cyril"}
++        Deva{"Devanagari"}
++        Ethi{"Ethiopia"}
++        Geor{"Georgia"}
++        Grek{"Greek"}
++        Gujr{"Gujarat"}
++        Guru{"Gurmukhi"}
++        Hang{"Hangul"}
++        Hani{"Han"}
++        Hans{"Ringkas"}
++        Hant{"Tradisional"}
++        Hebr{"Ibrani"}
++        Hira{"Hiragana"}
++        Jpan{"Jepun"}
++        Kana{"Katakana"}
++        Khmr{"Khmer"}
++        Knda{"Kannada"}
++        Kore{"Korea"}
++        Laoo{"Lao"}
++        Latn{"Latin"}
++        Mlym{"Malayalam"}
++        Mong{"Mongolia"}
++        Mymr{"Myammar"}
++        Orya{"Oriya"}
++        Sinh{"Sinhala"}
++        Taml{"Tamil"}
++        Telu{"Telugu"}
++        Thaa{"Thaana"}
++        Thai{"Thai"}
++        Tibt{"Tibet"}
++        Zsym{"Simbol"}
++        Zxxx{"Tidak ditulis"}
++        Zyyy{"Biasa"}
++        Zzzz{"Skrip Tidak Diketahui"}
++    }
++    Types{
++        calendar{
++            buddhist{"Kalendar Buddha"}
++            chinese{"Kalendar Cina"}
++            coptic{"Kalendar Qibti"}
++            ethiopic{"Kalendar Ethiopia"}
++            ethiopic-amete-alem{"Kalendar Amete Alem Ethiopia"}
++            gregorian{"Kalendar Gregory"}
++            hebrew{"Kalendar Ibrani"}
++            indian{"Kalendar Kebangsaan India"}
++            islamic{"Kalendar Islam"}
++            islamic-civil{"Kalendar Sivil Islam"}
++            japanese{"Kalendar Jepun"}
++            persian{"Kalendar Parsi"}
++            roc{"Kalendar Minguo"}
++        }
++        collation{
++            big5han{"Aturan Isih Cina Tradisional - Big5"}
++            dictionary{"Aturan Isih Kamus"}
++            direct{"Aturan Isih Langsung"}
++            ducet{"Aturan Isih Unikod Lalai"}
++            gb2312han{"Aturan Isih Bahasa Cina Ringkas - GB2312"}
++            phonebook{"Aturan Isih Buku Telefon"}
++            pinyin{"Aturan Isih Pinyin"}
++            reformed{"Aturan Isih Pembaharuan"}
++            search{"Carian Tujuan Umum"}
++            stroke{"Aturan Isih Coretan"}
++            traditional{"Aturan Isih Tradisional"}
++            unihan{"Aturan Isih Coretan Radikal"}
++        }
++        numbers{
++            arab{"Digit Indi-Arab"}
++            arabext{"Digit Indi Arab Lanjutan"}
++            armn{"Angka Armenia"}
++            armnlow{"Angka Kecil Armenia"}
++            beng{"Digit Bengali"}
++            deva{"Digit Devanagari"}
++            ethi{"Angka Ethiopia"}
++            fullwide{"Digit Lebar Penuh"}
++            geor{"Angka Georgia"}
++            grek{"Angka Greek"}
++            greklow{"Angka Huruf Kecil Greek"}
++            gujr{"Digit Gujarat"}
++            guru{"Digit Gurmukhi"}
++            hanidec{"Angka Perpuluhan Cina"}
++            hans{"Angka Cina Ringkas"}
++            hansfin{"Angka Kewangan Cina Ringkas"}
++            hant{"Angka Cina Tradisional"}
++            hantfin{"Angka Kewangan Cina Tradisional"}
++            hebr{"Angka Ibrani"}
++            jpan{"Angka Jepun"}
++            jpanfin{"Angka Kewangan Jepun"}
++            khmr{"Digit Khmer"}
++            knda{"Digit Kannada"}
++            laoo{"Digit Lao"}
++            latn{"Digit Barat"}
++            mlym{"Digit Malayalam"}
++            mong{"Digit Mongolia"}
++            mymr{"Digit Myammar"}
++            orya{"Digit Oriya"}
++            roman{"Angka Roman"}
++            romanlow{"Angka Huruf Kecil Roman"}
++            taml{"Angka Tamil"}
++            telu{"Digit Telugu"}
++            thai{"Digit Thai"}
++            tibt{"Digit Tibet"}
++        }
++    }
++    Version{"2.0.59.53"}
++    localeDisplayPattern{
++        separator{","}
+     }
+-    Version{"2.0.50.96"}
+ }
+--- source/data/lang/sw.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/lang/sw.txt	2011-07-25 02:16:27.322258000 -0700
+@@ -11,47 +11,115 @@
+  */
+ sw{
+     Languages{
++        af{"Kiafrikana"}
+         ak{"Kiakan"}
+         am{"Kiamhari"}
+         ar{"Kiarabu"}
++        az{"Kiazabaijani"}
+         be{"Kibelarusi"}
+         bg{"Kibulgaria"}
+         bn{"Kibangla"}
++        br{"Kibreton"}
++        bs{"Kibosnia"}
++        ca{"Kikatalani"}
++        co{"Kikosikani"}
+         cs{"Kicheki"}
++        cy{"Kiwelisi"}
++        da{"Kidenmaki"}
+         de{"Kijerumani"}
+         el{"Kigiriki"}
+         en{"Kiingereza"}
++        eo{"Kiesperanto"}
+         es{"Kihispania"}
++        et{"Kiestonia"}
++        eu{"Kibaski"}
+         fa{"Kiajemi"}
++        fil{"Kifilipino"}
++        fo{"Kifaroe"}
+         fr{"Kifaransa"}
++        fy{"Kifrisia cha Magharibi"}
++        ga{"Kiayalandi"}
++        gd{"Kigaeli"}
++        gl{"Kigalisia"}
++        gn{"Kiguarani"}
++        gu{"Kigujarati"}
+         ha{"Kihausa"}
++        he{"Kiyahudi"}
+         hi{"Kihindi"}
++        hr{"Kikroeshia"}
+         hu{"Kihungari"}
++        hy{"Kiarmenia"}
++        ia{"Kiintalingua"}
+         id{"Kiindonesia"}
+         ig{"Kiigbo"}
++        is{"Kiaislandi"}
+         it{"Kiitaliano"}
+         ja{"Kijapani"}
+         jv{"Kijava"}
++        jw{"Kijava"}
++        ka{"Kijojia"}
++        kk{"Kikazakhi"}
+         km{"Kikambodia"}
++        kn{"Kikannada"}
+         ko{"Kikorea"}
++        ku{"Kikurdi"}
++        ky{"Kikirgizi"}
++        la{"Kilatini"}
++        ln{"Kilingala"}
++        lo{"Kilaosi"}
++        lt{"Kilithuania"}
++        lv{"Kilatvia"}
++        mk{"Kimasedonia"}
++        ml{"Kimalayam"}
++        mn{"Kimongolia"}
++        mo{"Kimoldavia"}
++        mr{"Kimarathi"}
+         ms{"Kimalesia"}
++        mt{"Kimalta"}
+         my{"Kiburma"}
++        nb{"Kinorwe (Bokmål)"}
+         ne{"Kinepali"}
+         nl{"Kiholanzi"}
++        nn{"Kinorwe (Nynorsk)"}
++        no{"Kinorwe"}
++        oc{"Kiositani"}
++        or{"Kioriya"}
+         pa{"Kipunjabi"}
+         pl{"Kipolandi"}
++        ps{"Kipashto"}
+         pt{"Kireno"}
++        qu{"Kiquechua"}
++        rm{"Kirumi cha Raetia"}
+         ro{"Kiromania"}
+         ru{"Kirusi"}
+         rw{"Kinyarwanda"}
++        sd{"Kisindhi"}
++        sh{"Kiserbia-Kikroeshia"}
++        si{"Kisinhali"}
++        sk{"Kislovakia"}
++        sl{"Kislovenia"}
++        sn{"Kishona"}
+         so{"Kisomali"}
++        sq{"Kialbania"}
++        sr{"Kiserbia"}
++        st{"Kisotho"}
++        su{"Kinubi"}
+         sv{"Kiswidi"}
+         sw{"Kiswahili"}
+         ta{"Kitamil"}
++        te{"Kitelugu"}
++        tg{"Kitajiki"}
+         th{"Kitailandi"}
++        ti{"Kitigrinya"}
++        tk{"Kiturukimeni"}
++        to{"Kitonga"}
+         tr{"Kituruki"}
++        tt{"Kitatari"}
++        tw{"Kitwii"}
++        ug{"Kiuigur"}
+         uk{"Kiukrania"}
+         ur{"Kiurdu"}
++        uz{"Kiuzbeki"}
+         vi{"Kivietinamu"}
+         yo{"Kiyoruba"}
+         zh{"Kichina"}
+--- source/data/locales/am.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/am.txt	2011-07-25 02:16:27.338258000 -0700
+@@ -44,6 +44,8 @@
+                 "{1} {0}",
+             }
+             availableFormats{
++                h{"h a"}
++                H{"H"}
+                 Hm{"HH:mm"}
+                 Hms{"HH:mm:ss"}
+                 M{"L"}
+--- source/data/locales/bn.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/bn.txt	2011-07-25 02:16:27.346260000 -0700
+@@ -14,6 +14,7 @@
+     ExemplarCharacters{
+         "[৺ অ আ ই ঈ উ ঊ ঋ ৠ ঌ ৡ এ ঐ ও ঔ \u09BC ং ঃ \u0981 ক {ক\u09CDষ} খ গ ঘ ঙ চ ছ জ "
+         "ঝ ঞ ট ঠ ড {ড\u09BC} ঢ {ঢ\u09BC} ণ ৎ ত থ দ ধ ন প ফ ব ভ ম য {য\u09BC} র ল শ ষ "
++	"\u200C \u200D"
+         "স হ ঽ া ি ী \u09C1 \u09C2 \u09C3 \u09C4 \u09E2 \u09E3 ে ৈ ো ৌ \u09CD ৗ]"
+     }
+     ExemplarCharactersCurrency{"[৳]"}
+@@ -56,8 +57,8 @@
+     calendar{
+         gregorian{
+             AmPmMarkers{
+-                "পূর্বাহ্ণ",
+-                "অপরাহ্ণ",
++		"am",
++		"pm",
+             }
+             DateTimePatterns{
+                 "h:mm:ss a zzzz",
+--- source/data/locales/fil.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/locales/fil.txt	2011-07-22 13:46:05.823727000 -0700
+@@ -65,6 +65,7 @@
+                 MMMMd{"MMMM d"}
+                 MMMd{"MMM d"}
+                 Md{"M-d"}
++		d{"d"}
+                 ms{"mm:ss"}
+                 y{"y"}
+                 yM{"yyyy-M"}
+--- source/data/locales/gu.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/gu.txt	2011-07-25 02:16:27.355258000 -0700
+@@ -14,6 +14,7 @@
+     ExemplarCharacters{
+         "[ૐ અ આ ઇ ઈ ઉ ઊ ઋ ૠ ઍ એ ઐ ઑ ઓ ઔ ક ખ ગ ઘ ઙ ચ છ જ ઝ ઞ ટ ઠ ડ ઢ ણ ત થ દ ધ ન પ ફ બ"
+         " ભ મ ય ર લ વ શ ષ સ હ \u0ABC \u0A81 \u0A82 ઃ ળ ઽ \u0ACD ા િ ી \u0AC1 \u0AC2 "
++	"\u200C \u200D"
+         "\u0AC3 \u0AC4 \u0AC5 \u0AC7 \u0AC8 ૉ ો ૌ]"
+     }
+     ExemplarCharactersIndex{
+@@ -57,9 +58,13 @@
+             availableFormats{
+                 MMMMd{"d MMMM"}
+                 MMdd{"dd-MM"}
++		Md{"d/M"}
++		MEd{"E, d/M"}
+                 h{"hh a"}
+                 hm{"hh:mm a"}
+                 hms{"hh:mm:ss a"}
++                yM{"M/y"}
++                yMd{"d/M/y"}
+                 yyQ{"Q yy"}
+                 yyyyMM{"MM-yyyy"}
+                 yyyyMMMM{"MMMM y"}
+--- source/data/locales/hi.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/hi.txt	2011-01-19 18:16:42.486837000 -0800
+@@ -13,6 +13,7 @@
+     AuxExemplarCharacters{"[\u200C \u200D]"}
+     ExemplarCharacters{
+         "[ॐ अ आ इ ई उ ऊ ऋ ऌ ऍ ए ऐ ऑ ओ औ क ख ग घ ङ च छ ज झ ञ ट ठ ड ढ ण त थ द ध न प फ ब"
++	"\u200C \u200D"
+         " भ म य र ल ळ व श ष स ह ़ ँ ं ः ऽ ् ा ि ी ु ू ृ ॄ ॅ े ै ॉ ो ौ]"
+     }
+     ExemplarCharactersCurrency{"[a b c č d e f g h i j k l ł m n o º p q r s t u v w x y z]"}
+--- source/data/locales/id.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/id.txt	2011-12-01 15:14:28.384233000 -0800
+@@ -59,8 +59,8 @@
+         }
+         gregorian{
+             AmPmMarkers{
+-                "pagi",
+-                "malam",
++                "AM",
++                "PM",
+             }
+             DateTimePatterns{
+                 "H:mm:ss zzzz",
+--- source/data/locales/ja.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/ja.txt	2011-01-19 18:16:42.395861000 -0800
+@@ -12,59 +12,211 @@
+ ja{
+     AuxExemplarCharacters{"[兌 拼 楔 錄 鳯]"}
+     ExemplarCharacters{
+-        "[ゝ ゞ ヽ ヾ ぁァ あア ぃィ いイ ぅゥ うウ ヴ ぇェ えエ ぉォ おオ ヵ かカ がガ きキ ぎギ くク ぐグ ヶ けケ げゲ こコ ごゴ さ"
+-        "サ ざザ しシ じジ すス ずズ せセ ぜゼ そソ ぞゾ たタ だダ ちチ ぢヂ っッ つツ づヅ てテ でデ とト どド なナ にニ ぬヌ ねネ のノ"
+-        " はハ ばバ ぱパ ひヒ びビ ぴピ ふフ ぶブ ぷプ へヘ べベ ぺペ ほホ ぼボ ぽポ まマ みミ むム めメ もモ ゃャ やヤ ゅュ ゆユ ょョ "
+-        "よヨ らラ りリ るル れレ ろロ ゎヮ わワ ゐヰ ゑヱ をヲ んン 一 丁 七 万-下 不 与 且 世 丘 丙 両 並 中 丸 丹 主 久 乏 乗 "
+-        "乙 九 乱 乳 乾 亀 了 予 争 事 二 互 五 井 亜 亡 交 亨 享-亭 人 仁 今 介 仏 仕 他 付 仙 代-以 仮 仰 仲 件 任 企 伏-"
+-        "休 会 伝 伯 伴 伸 伺 似 但 位-佐 体 何 余 作 佳 併 使 例 侍 供 依 価 侮 侯 侵 便 係 促 俊 俗 保 信 修 俳 俵 俸 倉 "
+-        "個 倍 倒 候 借 倣 値 倫 倹 偉 偏 停 健 側-偶 偽 傍 傑 傘 備 催 債 傷 傾 働 像 僕 僚 僧 儀 億 儒 償 優 元-兆 先 光 "
+-        "克 免 児 党 入 全 八-六 共 兵 具 典 兼 内 円 冊 再 冒 冗 写 冠 冬 冷 准 凍 凝 凡 処 凶 凸-出 刀 刃 分-刈 刊 刑 列 "
+-        "初 判 別 利 到 制-券 刺 刻 則 削 前 剖 剛 剣 剤 副 剰 割 創 劇 力 功 加 劣 助 努 励 労 効 劾 勅 勇 勉 動 勘 務 勝 "
+-        "募 勢 勤 勧 勲 勺 匁 包 化 北 匠 匹-医 匿 十 千 升 午 半 卑-協 南 単 博 占 印 危 即-卵 卸 厄 厘 厚 原 厳 去 参 又 "
+-        "及-収 叔 取 受 叙 口-句 叫 召 可 台 史 右 号 司 各 合 吉 同-向 君 吟 否 含 吸 吹 呈-告 周 味 呼 命 和 咲 哀 品 員 "
+-        "哲 唆 唇 唐 唯 唱 商 問 啓 善 喚 喜 喝 喪 喫 営 嗣 嘆 嘉 嘱 器 噴 嚇 囚 四 回 因 団 困 囲 図 固 国 圏 園 土 圧 在 "
+-        "地 坂 均 坊 坑 坪 垂 型 垣 埋 城 域 執 培 基 堀 堂 堅 堕 堤 堪 報 場 塀 塁 塊 塑 塔 塗 塚 塩 塾 境 墓 増 墜 墨 墳 "
+-        "墾 壁 壇 壊 壌 士 壮 声-売 変 夏 夕 外 多 夜 夢 大 天-夫 央 失 奇 奉 奏 契 奔 奥 奨 奪 奮 女 奴 好 如-妄 妊 妙 妥 "
+-        "妨 妹 妻 姉 始 姓 委 姫 姻 姿 威 娘 娠 娯 婆 婚 婦 婿 媒 嫁 嫌 嫡 嬢 子 孔 字 存 孝 季 孤 学 孫 宅 宇-安 完 宗-定 "
+-        "宜 宝 実 客-室 宮 宰 害-家 容 宿 寂 寄 密 富 寒 寛 寝 察 寡 寧 審 寮 寸 寺 対 寿 封 専 射 将 尉-尋 導 小 少 尚 就 "
+-        "尺 尼-局 居 屈 届 屋 展 属 層 履 屯 山 岐 岩 岬 岳 岸 峠 峡 峰 島 崇 崎 崩 川 州 巡 巣 工-巨 差 己 巻 市 布 帆 希 "
+-        "帝 帥 師 席 帯 帰 帳 常 帽 幅 幕 幣 干-年 幸 幹 幻-幾 庁 広 床 序 底 店 府 度 座 庫 庭 庶-庸 廃 廉 廊 延 廷 建 弁 "
+-        "弊 式 弐 弓-引 弘 弟 弦 弧 弱 張 強 弾 当 形 彩 彫 彰 影 役 彼 往 征 径 待 律 後 徐 徒 従 得 御 復 循 微 徳 徴 徹 "
+-        "心 必 忌 忍 志-忙 応 忠 快 念 怒 怖 思 怠 急 性 怪 恋 恐 恒 恥 恨 恩 恭 息 恵 悔 悟 悠 患 悦 悩 悪 悲 悼 情 惑 惜 "
+-        "惨 惰 想 愁 愉 意 愚 愛 感 慈 態 慌 慎 慕 慢 慣 慨 慮 慰 慶 憂 憎 憤 憩 憲 憶 憾 懇 懐 懲 懸 成-戒 戦 戯 戸 戻 房 "
+-        "所 扇 扉 手 才 打 払 扱 扶 批 承 技 抄 把 抑 投 抗 折 抜 択 披 抱 抵 抹 押 抽 担 拍 拐 拒 拓 拘 拙 招 拝 拠 拡 括 "
+-        "拷 拾 持 指 挑 挙 挟 振 挿 捕 捜 捨 据 掃 授 掌 排 掘 掛 採 探 接 控 推 措 掲 描 提 揚 換 握 揮 援 揺 損 搬 搭 携 "
+-        "搾 摂 摘 摩 撃 撤 撮 撲 擁 操 擦 擬 支 改 攻 放 政 故 敏 救 敗 教 敢 散 敬 数 整 敵 敷 文 斉 斎 斗 料 斜 斤 斥 断 "
+-        "新 方 施 旅 旋 族 旗 既 日 旧-早 旬 昆 昇 昌 明 易 昔 星 映 春 昨 昭 是 昼 時 晩 普 景 晴 晶 暁 暇 暑 暖 暗 暦 暫 "
+-        "暮 暴 曇 曜 曲 更 書 曹 替 最 月 有 服 朕 朗 望 朝 期 木 未-札 朱 朴 机 朽 杉 材 村 束 条 来 杯 東 松 板 析 林 枚 "
+-        "果 枝 枠 枢 枯 架 柄 某 染 柔 柱 柳 査 栄 栓 校 株 核 根 格 栽 桃 案 桑 桜 桟 梅 械 棄 棋 棒 棚 棟 森 棺 植 検 業 "
+-        "極 楼 楽 概 構 様 槽 標 模 権 横 樹 橋 機 欄 欠 次 欧 欲 欺 款 歌 歓 止 正 武 歩 歯 歳 歴 死 殉-残 殖 殴 段 殺 殻 "
+-        "殿 母 毎 毒 比 毛 氏 民 気 水 氷 永 汁 求 汗 汚 江 池 決 汽 沈 沖 没 沢 河 沸 油 治 沼 沿 況 泉 泊 泌 法 泡-泣 泥 "
+-        "注 泰 泳 洋 洗 洞 津 洪 活 派 流 浄 浅 浜 浦 浪 浮 浴 海 浸 消 涙 涯 液 涼 淑 淡 深 混 添 清 渇-渉 渋 渓 減 渡 渦 "
+-        "温 測 港 湖 湯 湾-満 源 準 溝 溶 滅 滋 滑 滝 滞 滴 漁 漂 漆 漏 演 漠 漢 漫 漬 漸 潔 潜 潟 潤 潮 澄 激 濁 濃 濫 濯 "
+-        "瀬 火 灯 灰 災 炉 炊 炎 炭 点 為 烈 無 焦 然 焼 煙 照 煩 煮 熟 熱 燃 燥 爆 爵 父 片 版 牛 牧 物 牲 特 犠 犬 犯 状 "
+-        "狂 狩 独 狭 猛 猟 猫 献 猶 猿 獄 獣 獲 玄 率 玉 王 珍 珠 班 現 球 理 琴 環 璽 瓶 甘 甚 生 産 用 田-申 男 町 画 界 "
+-        "畑 畔 留 畜 畝 略 番 異 畳 疎 疑 疫 疲 疾 病 症 痘 痛 痢 痴 療 癒 癖 発 登 白 百 的 皆 皇 皮 皿 盆 益 盗 盛 盟 監 "
+-        "盤 目 盲 直 相 盾 省 看 県 真 眠 眺 眼 着 睡 督 瞬 矛 矢 知 短 矯 石 砂 研 砕 砲 破 硝 硫 硬 碁 碑 確 磁 磨 礁 礎 "
+-        "示 礼 社 祈 祉 祖 祚 祝 神 祥 票 祭 禁 禄 禅 禍-福 秀 私 秋 科 秒 秘 租 秩 称 移 程 税 稚 種 稲 稼 稿 穀 穂 積 穏 "
+-        "穫 穴 究 空 突 窃 窒 窓 窮 窯 立 竜 章 童 端 競 竹 笑 笛 符 第 筆 等 筋 筒 答 策 箇 算 管 箱 節 範 築 篤 簡 簿 籍 "
+-        "米 粉 粋 粒 粗 粘 粛 粧 精 糖 糧 糸 系 糾 紀 約 紅 紋 納 純 紙-紛 素-索 紫 累 細 紳 紹 紺 終 組 経 結 絞 絡 給 統 "
+-        "絵 絶 絹 継 続 維 綱 網 綿 緊 総 緑 緒 線 締 編 緩 緯 練 縁 縄 縛 縦 縫 縮 績 繁 繊 織 繕 繭 繰 缶 罪 置 罰 署 罷 "
+-        "羅 羊 美 群 義 羽 翁 翌 習 翻 翼 老 考 者 耐 耕 耗 耳 聖 聞 聴 職 肉 肌 肖 肝 肢 肥 肩 肪 肯 育 肺 胃 胆 背 胎 胞 "
+-        "胴 胸 能 脂 脅 脈 脚 脱 脳 脹 腐 腕 腰 腸 腹 膚 膜 膨 臓 臣 臨 自 臭 至 致 興 舌 舎 舗 舞 舟 航 般 舶 船 艇 艦 良 "
+-        "色 芋 芝 花 芳 芸 芽 苗 若 苦 英 茂 茎 茶 草 荒 荘 荷 菊 菌 菓 菜 華 落 葉 著 葬 蒸 蓄 蔵 薄 薦 薪-薬 藩 藻 虐 虚 "
+-        "虜 虞 虫 蚊 蚕 蛇 蛍 蛮 融 血 衆 行 術 街 衛 衝 衡 衣 表 衰 衷 袋 被 裁 裂 装 裏 裕 補 裸 製 複 褐 褒 襟 襲 西 要 "
+-        "覆 覇 見 規 視 覚 覧 親 観 角 解 触 言 訂 計 討 訓 託 記 訟 訪 設 許 訳 訴 診 証 詐 詔 評 詞 詠 試 詩 詰-詳 誇 誉 "
+-        "誌 認 誓 誕 誘 語 誠 誤 説 読 課 調 談 請 論 諭 諮 諸 諾 謀 謁 謄 謙 講 謝 謡 謹 識 譜 警 議 譲 護 谷 豆 豊 豚 象 "
+-        "豪 貝 貞 負-貢 貧-販 貫 責 貯 貴 買 貸 費 貿 賀 賃 賄 資 賊 賓 賛 賜 賞 賠 賢 賦 質 購 贈 赤 赦 走 赴 起 超 越 趣 "
+-        "足 距 跡 路 跳 践 踊 踏 躍 身 車 軌 軍 軒 軟 転 軸 軽 較 載 輝 輩 輪 輸 轄 辛 辞 辱 農 辺 込 迅 迎 近 返 迫 迭 述 "
+-        "迷 追 退 送 逃 逆 透 逐 逓 途 通 逝 速 造 連 逮 週 進 逸 遂 遅 遇 遊 運 遍 過 道-違 遠 遣 適 遭 遮 遵 遷 選 遺 避 "
+-        "還 邦 邪 邸 郊 郎 郡 部 郭 郵 郷 都 酌 配 酒 酔 酢 酪 酬 酵 酷 酸 醜 醸 釈 里-量 金 針 釣 鈍 鈴 鉄 鉛 鉢 鉱 銀 銃 "
+-        "銅 銑 銘 銭 鋭 鋳 鋼 錘 錠 錬 錯 録 鍛 鎖 鎮 鏡 鐘 鑑 長 門 閉 開 閑 間 関 閣 閥 閲 闘 防 阻 附 降 限 陛 院-陥 陪 "
+-        "陰 陳 陵 陶 陸 険 陽 隅 隆 隊 階 随 隔 際 障 隠 隣 隷 隻 雄-雇 雉 雌 雑 離 難 雨 雪 雰 雲 零 雷 電 需 震 霊 霜 霧 "
+-        "露 青 静 非 面 革 靴 韓 音 韻 響 頂 項 順 預-頒 領 頭 頻 頼 題 額 顔 顕 願 類 顧 風 飛 食 飢 飯 飲 飼-飾 養 餓 館 "
+-        "首 香 馬 駄-駆 駐 騎 騒 験 騰 驚 骨 髄 高 髪 鬼 魂 魅 魔 魚 鮮 鯨 鳥 鳴 鶏 麗 麦 麻 黄 黒 黙 鼓 鼻 齢]"
++        "[ぁ-ゔ ゕ ゖ ァ-ヴ ヵ ヶ ヷ-ヺ ゝ-ゞ ・-ヾ ゙-゚"
++        " 〃々〆〇仝"
++        "  一-丁 七 万-下 不-与 丐-丑 且-丙 丞 両 並 个 中 丱-串 丶 丸-丹 主-丼 丿 乂-乃 久"
++        " 之 乍-乏 乕-乙 九-也 乢 乱 乳 乾 亀 亂 亅-了 予-二 于 云-互 五-井 亘-亙 些-亜"
++        " 亞-亢 交-亦 亨 享-亮 亰 亳 亶 人 什-仂 仄 仆-仇 今-介 仍-仏 仔-仙 仝-仟 代-以"
++        " 仭-仮 仰 仲 件-价 任 企 伉-伊 伍-休 会 伜-伝 伯-估 伴 伶 伸 伺 似-伽 佃 但-佇"
++        " 位-佑 体 何 佗 余-佞 佩 佯-佰 佳 併-佶 佻-佼 使 侃 來 侈 例 侍 侏 侑 侖 侘 供 依"
++        " 侠-価 侫 侭-侯 侵-侶 便 係-俄 俊 俎 俐-俑 俔 俗-俘 俚-俛 保 俟 信 俣-俥 修-俯 俳"
++        " 俵-俶 俸 俺 俾 倅-倆 倉 個 倍 倏 們-倒 倔 倖 候-倚 借 倡 倣-倦 倨-倭 倶 倹 偃"
++        " 假-偉 偏-偐 偕-偖 做 停 健 偬 偲 側-偶 偸 偽 傀 傅 傍 傑 傘-傚 催-傭 傲-債 傷 傾"
++        " 僂 僅 僉-僊 働 像 僑 僕-僖 僚 僞 僣 僥 僧 僭-僮 僵 價 僻 儀-儂 億 儉 儒 儔-儖 儘"
++        " 儚 償 儡 優 儲 儷 儺-儼 儿-允 元-光 克-兎 児 兒 兔 党 兜 兢 入 全-兮 共 兵-典 兼"
++        " 冀 冂 内-円 冉-冊 册-再 冏-冓 冕-冗 写 冠 冢 冤-冦 冨-冬 冰-冷 冽 凄-准 凉 凋-凍"
++        " 凖 凛-凝 几-凡 処-凧 凩-凪 凭 凰-凱 凵-凶 凸-出 函-凾 刀 刃-刄 分-刈 刊-刋 刎 刑"
++        " 刔 列 初 判-別 刧 利-刪 刮 到 刳 制-刻 剃-剄 則 削-前 剏 剔 剖 剛 剞 剣-剥 剩-剪"
++        " 副-創 剽 剿 劃 劇-劉 劍 劑-劒 劔 力 功-加 劣 助-劭 励 労-劵 効 劼 劾 勁 勃 勅 勇"
++        " 勉 勍 勒 動 勗-務 勝-勠 勢-勤 勦-勧 勲-勳 勵 勸-勺 勾-勿 匁-匂 包-匆 匈 匍 匏-匐"
++        " 匕-北 匙-匚 匝 匠-匡 匣 匪 匯 匱 匳 匸-医 匿-十 千 卅-半 卍 卑-協 南-単 博 卜 卞"
++        " 占 卦 卩 卮-危 即-卵 卷-卸 卻 卿 厂 厄 厖 厘 厚 原-厠 厥-厦 厨-厩 厭-厮 厰 厳 厶"
++        " 去 参-參 又-収 叔 取-受 叙 叛 叟 叡-句 叨-右 叶-司 叺 吁 吃-各 合-向 君 吝 吟-吠"
++        " 否 吩 含-吮 吶 吸-吹 吻-吾 呀 呂 呆 呈-告 呎 呑 呟 周 呪 呰-呱 味 呵-呷 呻-命 咀"
++        " 咄 咆 咋-和 咎-咐 咒 咢 咤-咥 咨 咫-咬 咯 咲-咳 咸 咼-咾 哀-哂 哄 哇-哉 哘 員-哢"
++        " 哥-哦 哨-哩 哭-哮 哲 哺 哽 唄 唆-唇 唏-唐 唔 唖 售-唯 唱 唳 唸-唹 唾 啀 啄-商 啌"
++        " 問 啓 啖-啗 啜-啝 啣 啻-啼 啾 喀 喃-善 喇 喉-喋 喘-喚 喜-喟 喧-喬 單 喰 営 嗄-嗅"
++        " 嗇 嗔 嗚 嗜 嗟 嗣-嗤 嗷 嗹 嗽-嗾 嘆 嘉 嘔 嘖-嘘 嘛 嘩 嘯 嘱-嘲 嘴 嘶 嘸 噂 噌 噎"
++        " 噐 噛 噤 器 噪-噬 噴 噸 噺 嚀 嚆-嚇 嚊 嚏 嚔 嚠 嚢 嚥 嚮 嚴 嚶 嚼 囀-囃 囈 囎 囑"
++        " 囓 囗-囘 囚-四 回 因 団 囮 困 囲-図 囹-固 国 囿-圀 圃-圄 圈-圉 國 圍 圏 園-圓 圖"
++        " 團 圜 土 圦-在 圭 地 圷-圸 圻 址 坂 均 坊 坎-坑 坡 坤 坦 坩-坪 坿 垂 垈-垉 型 垓"
++        " 垠 垢-垤 垪 垰 垳 埀 埃 埆 埋 城 埒-埔 埖 埜 域-埠 埣 埴 執 培-基 埼 堀 堂 堅-堆"
++        " 堊-堋 堕 堙 堝 堡 堤 堪 堯-報 場-堵 堺 堽 塀-塁 塊-塋 塑-塒 塔 塗-塚 塞 塢 塩 填"
++        " 塰 塲 塵 塹 塾 境 墅 墓 増 墜 墟 墨 墫 墮 墳 墸-墻 墾 壁 壅 壇 壊 壌 壑 壓 壕"
++        " 壗-壙 壜 壞-壟 壤-壥 士-壬 壮-売 壷 壹-壽 夂 変-夊 夏-夐 夕-外 夘-夜 夢 夥 大"
++        " 天-央 失-夲 夷-夸 夾 奄 奇-奉 奎-契 奔-奕 套-奘 奚 奠 奢 奥 奧-奪 奬 奮 女-奴 奸"
++        " 好 妁-妄 妊 妍 妓 妖 妙 妛 妝 妣 妥 妨 妬 妲 妹 妻 妾 姆 姉 始 姐-姑 姓-委 姙-姚"
++        " 姜 姥-姦 姨 姪-姫 姶 姻 姿 威 娃 娉 娑 娘 娚 娜 娟-娠 娥 娩 娯 娵-娶 娼 婀-婁 婆"
++        " 婉 婚 婢 婦 婪 婬 婿 媒 媚-媛 媼-媾 嫁-嫂 嫉 嫋-嫌 嫐 嫖-嫗 嫡 嫣 嫦 嫩 嫺-嫻 嬉"
++        " 嬋-嬌 嬖 嬢 嬪 嬬 嬰 嬲 嬶 嬾 孀 孃 孅 子-孑 孔-孕 字-存 孚-孝 孟 季-学 孩 孫"
++        " 孰-孱 孳 孵 學 孺 宀 它 宅 宇-安 宋-宍 宏 宕 宗-宝 実 客-宦 宮 宰 害-家 宸-容 宿"
++        " 寂-寇 寉 富 寐 寒-寔 寛 寝-察 寡-寢 寤-審 寫 寮 寰 寳 寵-寶 寸 寺 対-寿 封-専"
++        " 射-尋 對-小 少 尓 尖 尚 尠 尢 尤 尨 尭 就 尸-屁 居-屆 屈 届-屋 屍-屑 屓 展 属"
++        " 屠-屡 層-履 屬 屮-屯 山 屶 屹 岌 岐-岑 岔 岡 岨-岩 岫-岬 岱 岳 岶-岸 岻-岼 岾 峅"
++        " 峇 峙 峠-峡 峨-峪 峭 峯-峰 島 峺-峻 峽 崇 崋 崎 崑 崔-崛 崟 崢 崩 嵋-嵌 嵎 嵐 嵒"
++        " 嵜 嵩 嵬 嵯 嵳 嵶 嶂 嶄 嶇 嶋-嶌 嶐 嶝 嶢 嶬 嶮 嶷 嶺 嶼-嶽 巉 巌-巍 巒-巓 巖 巛"
++        " 川-州 巡 巣 工-巨 巫 差 己-巵 巷 巻 巽-巾 市-布 帆 帋-希 帑 帖 帙-帛 帝 帥 師 席"
++        " 帯-帰 帳 帶-常 帽 幀 幃-幅 幇 幌 幎 幔-幕 幗 幟 幡-幤 干-并 幸-广 庁 広-庄 庇 床"
++        " 序 底-店 庚 府 庠 度-座 庫 庭 庵-庸 廁-廃 廈-廊 廏-廐 廓 廖 廚-廛 廝 廟-廣 廨-廩"
++        " 廬 廰-廱 廳-廴 延-廸 建-廼 廾-廿 弁 弃-弄 弉-弍 式-弑 弓-弘 弛 弟 弥-弧 弩 弭 弯"
++        " 弱 張 強-弸 弼 弾 彁 彈 彊 彌 彎 彑 当 彖-彗 彙 彜-彝 彡-形 彦 彩-彭 彰-影 彳 彷"
++        " 役 彼 彿-待 徇-很 徊-後 徐-従 得-徙 從 徠-御 徨-循 徭-微 徳-徴 徹 徼-徽 心 必"
++        " 忌-忍 忖-忙 応-忝 忠 忤 快 忰-忱 念 忸 忻 忽 忿 怎-怐 怒 怕-怖 怙 怛-思 怠-怡"
++        " 急-怫 怯 怱 怺 恁-恃 恆 恊-恋 恍 恐 恒 恕 恙-恚 恟-恠 恢-恥 恨-恭 息-恰 恵 恷 悁"
++        " 悃-悄 悉 悋-悍 悒 悔 悖-悗 悚-悛 悟-悠 患 悦-悧 悩-悪 悲-悶 悸 悼-悽 情-惇 惑 惓"
++        " 惘 惚 惜 惟-惡 惣 惧-惨 惰-惱 想-惴 惶-惷 惹-惻 愀-愁 愃 愆 愈-愉 愍-意 愕 愚-愛"
++        " 感 愡 愧-愨 愬 愴 愼-愿 慂 慄 慇-慈 慊-慎 慓 慕 慘-慚 慝 慟 慢-慣 慥 慧-慨 慫"
++        " 慮-慱 慳-慷 慾 憂 憇 憊 憎 憐-憑 憔 憖 憙-憚 憤 憧 憩 憫-憬 憮 憲 憶 憺 憾 懃"
++        " 懆-懍 懐 懣 懦 懲 懴 懶-懸 懺 懼-戀 戈-戊 戌-戎 成-戒 戔 或 戚-戛 戝-戟 戡 戦 截"
++        " 戮-戰 戲-戴 戸 戻 房-扁 扇-扉 手 才-扎 打 払 托 扛 扞 扠 扣 扨 扮 扱 扶 批 扼"
++        " 找-技 抂-抄 抉-把 抑-折 抛-抜 択 披-抬 抱 抵 抹 抻-抽 拂 担-拊 拌-拍 拏-拔 拗-拙"
++        " 招-拝 拠-拡 括-拯 拱 拳 拵-拷 拾-拿 持-挂 指-按 挌 挑 挙 挟 挧-挨 挫 振 挺 挽-挿"
++        " 捉 捌-捍 捏-捐 捕 捗 捜 捧-捩 捫 据 捲 捶-捷 捺-捻 掀 掃 授-掉 掌 掎-掏 排 掖 掘"
++        " 掛 掟-掣 接 控-掬 掲 掴-掵 掻 掾 揀 揃-揄 揆 揉 描-提 插 揖 揚-換 握 揣 揩 揮 援"
++        " 揶 揺 搆 損 搏 搓 搖-搗 搜 搦 搨 搬-搭 搴 搶 携 搾 摂 摎 摘 摧 摩 摯 摶 摸 摺 撃"
++        " 撈 撒-撓 撕 撚 撞 撤-撥 撩 撫 播-撮 撰 撲 撹 撻-撼 擁-擂 擅 擇 操 擒 擔 擘 據"
++        " 擠-擣 擦-擧 擬 擯 擱-擲 擴 擶 擺 擽-擾 攀 攅 攘 攜-攝 攣-攤 攪-攬 支 攴-改 攻"
++        " 放-政 故 效 敍 敏 救 敕-教 敝-敞 敢-散 敦 敬 数 敲 整-敵 敷-數 斂-斃 文-斉 斌 斎"
++        " 斐-斑 斗 料 斛-斜 斟 斡 斤-斥 斧 斫-断 斯-新 斷 方 於-施 旁 旃-旆 旋-旌 族 旒 旗"
++        " 旙 旛 无-既 日-早 旬-旭 旱 旺-旻 昂-昃 昆-昇 昊 昌 明-昏 易-昔 昜 星-映 春 昧-昨"
++        " 昭 是 昴-昶 昼 昿 晁-晄 晉 晋 晏 晒 晝-晟 晢 晤 晦-晩 普-晰 晴 晶 智 暁 暃-暄"
++        " 暇-暉 暎 暑 暖-暘 暝 暢 暦 暫 暮 暴 暸-暹 暼 暾 曁 曄 曇 曉 曖 曙-曚 曜-曝 曠 曦"
++        " 曩 曰 曲-曵 曷-曹 曼-最 會 月-有 朋 服 朏 朔-朗 望 朝-期 朦-木 未-朮 朱 朴 朶-朸"
++        " 机 朽 朿 杁 杆 杉 李-村 杓 杖 杙 杜 杞-来 杪 杭 杯-杳 杵 杷 杼 松-板 枅 枇 枉"
++        " 枋-枌 析 枕 林 枚 果-枝 枠-枢 枦 枩 枯 枳-枴 架-枹 柁 柄 柆 柊 柎-柑 染-柔 柘 柚"
++        " 柝-柞 柢 柤 柧 柩 柬 柮-柯 柱 柳-柵 査 柾-柿 栂-栄 栓 栖-栗 栞 校-栢 栩-栫 栲 栴"
++        " 核-根 格-栽 桀-桃 框 案 桍-桎 桐-桑 桓-桔 桙 桜-桝 桟 档 桧 桴 桶-桷 桾-桿 梁 梃"
++        " 梅 梍 梏 梓-梔 梗 梛 條 梟-梠 梢 梦-梨 梭 梯-梱 梳 梵-梶 梹-梺 梼 棄 棆 棉-棋 棍"
++        " 棒 棔-棕 棗-棘 棚 棟-棡 棣 棧 森-棯 棲 棹-棺 椀-椁 椄-椅 椈 椋-椏 椒 椙-検 椡-椣"
++        " 椥-椦 椨 椪 椰 椴 椶 椹 椽 椿 楊 楓-楕 楙-楚 楜-楞 楠-楢 楪-楫 業-楯 楳-極 楷-楹"
++        " 楼-楾 榁-概 榊 榎 榑 榔-榕 榛-榜 榠 榧 榮 榱-榲 榴 榻 榾-榿 槁 槃 槇 槊-槎 槐 槓"
++        " 様-槙 槝-槞 槧-槨 槫 槭 槲 槹 槻 槽 槿 樂 樅 樊-樌 樒-樔 樗 標 樛 樞-樟 模-樣"
++        " 権-樫 樮 樵-樶 樸-樺 樽 橄 橇-橈 橋 橘-橙 機 橡-橢 橦 橲 橸 橿-檀 檄 檍-檎 檐 檗"
++        " 檜 檠 檢-檣 檪 檬 檮 檳 檸 檻 櫁-櫃 櫑 櫓 櫚-櫛 櫞-櫟 櫨 櫪 櫺-櫻 欄-欅 權 欒 欖"
++        " 欝 欟-次 欣 欧 欲 欷-欺 欽-款 歃 歇 歉 歌 歎 歐 歓-歔 歙 歛 歟 歡-此 武 歩-歪 歯"
++        " 歳-歴 歸-歹 死 歿-殀 殃-殄 殆 殉-残 殍 殕-殖 殘 殞 殤 殪-殫 殯 殱-段 殷 殺-殼"
++        " 殿-毀 毅-毆 毋 母-毎 毒-比 毘 毛 毟 毫-毬 毯 毳 氈 氏 民 氓-气 気 氛 氣-氤 水"
++        " 氷-永 氾 汀-求 汎 汐 汕 汗 汚 汝-池 汢 汨 汪 汰 汲-汳 決 汽-汾 沁-沃 沈 沌-沍 沐"
++        " 沒-沓 沖 沙-沛 没-沢 沫 沮 沱 河 沸-沿 況 泄-泅 泉-泊 泌 泓 法 泗 泙 泛 泝 泡-泣"
++        " 泥 注 泪 泯-泱 泳 洋-洌 洒 洗 洙 洛 洞-洟 津 洩-洫 洲-洳 洵-洶 洸 活 洽-派 流"
++        " 浄-浅 浙-浚 浜 浣-浤 浦 浩-浪 浬 浮 浴 海-浹 涅 消 涌 涎 涓 涕 涙 涛-涜 涯 液 涵"
++        " 涸 涼 淀 淅-淇 淋-淌 淑-淒 淕 淘-淙 淞 淡 淤 淦 淨 淪-淬 淮 深 淳 淵 混 淹-添 清"
++        " 渇-渋 渓 渕 渙-減 渝 渟-渡 渣-渦 温 渫-港 游 渺 渾 湃 湊 湍-湎 湖 湘 湛 湟 湧 湫"
++        " 湮-湯 湲 湶 湾-満 溂 溌 溏-源 準 溘 溜-溝 溟 溢 溥 溪 溯 溲 溶-溷 溺 溽 滂 滄-滅"
++        " 滉 滋-滌 滑 滓-滕 滝-滞 滬 滯 滲 滴 滷-滸 滾-滿 漁-漂 漆 漉 漏 漑 漓-漕 漠 漢-漣"
++        " 漫-漬 漱-漲 漸 漾-漿 潁 潅 潔 潘 潛-潜 潟 潤 潦 潭-潰 潴 潸 潺 潼 澀-澂 澄 澆 澎"
++        " 澑 澗 澡 澣-澤 澪 澱 澳 澹 激-濃 濆 濔-濕 濘 濛 濟-濡 濤 濫-濬 濮-濯 濱 濳 濶 濺"
++        " 濾 瀁 瀉 瀋 瀏 瀑 瀕 瀘 瀚-瀛 瀝-瀟 瀦-瀧 瀬 瀰 瀲 瀾 灌 灑 灘 灣 火 灯-灰 灸"
++        " 灼-災 炉-炊 炎 炒 炙 炬-炯 炳 炸-為 烈 烋 烏 烙 烝 烟 烱 烹 烽 焉 焔 焙-焚 焜 無"
++        " 焦 然 焼 煉 煌 煎 煕-煖 煙 煢 煤-照 煩 煬 煮 煽 熄 熈 熊 熏 熔-熕 熙 熟 熨 熬 熱"
++        " 熹 熾 燃 燈-燉 燎 燐 燒 燔-燕 燗 營-燠 燥-燧 燬-燮 燵 燹 燻-燼 燿 爆 爍 爐 爛 爨"
++        " 爪 爬-爭 爰 爲 爵-父 爺-牀 牆-版 牋-牌 牒 牘-牙 牛 牝 牟 牡-牢 牧 物 牲 牴 特"
++        " 牽-牾 犀-犂 犇 犒 犖 犠 犢 犧 犬 犯 犲 状 犹 狂-狄 狆 狎 狐 狒 狗 狙 狛 狠-狢 狩"
++        " 独-狭 狷-狹 狼-狽 猊 猖-猗 猛-猝 猟 猥 猩-猫 献-猯 猴 猶-猷 猾-猿 獄-獅 獎-獏 獗"
++        " 獣 獨 獪 獰 獲 獵 獸 獺-獻 玄 率 玉 王 玖 玩 玲-玳 玻 珀 珂 珈 珊 珍-珎 珞 珠 珥"
++        " 珪 班-珮 珱 珸 現 球 琅-理 琉 琢 琥 琲-琶 琺 琿 瑁 瑕 瑙-瑜 瑞-瑠 瑣-瑤 瑩-瑪"
++        " 瑯-瑰 瑳 瑶 瑾 璃 璋 璞 璢 璧 環 璽 瓊 瓏 瓔 瓜 瓠 瓢-瓣 瓦-瓧 瓩 瓮 瓰-瓲 瓶-瓸"
++        " 甃-甅 甌-甎 甑 甓 甕 甘 甚 甜 甞-生 産 甥-甦 用 甫-甬 田-申 男-甸 町-甼 畄 畆"
++        " 畉-畍 畏 畑 畔 留-畝 畠 畢 畤-畧 畩-畫 畭 異 畳-畴 當-畸 畿 疂 疆-疇 疉-疋 疎-疏"
++        " 疑 疔 疚 疝 疣 疥 疫 疱-疳 疵 疸-疹 疼-疾 痂-痃 病 症 痊 痍 痒 痔-痕 痘-痙 痛 痞"
++        " 痢-痣 痩 痰 痲-痴 痺 痼 痾-痿 瘁 瘉 瘋 瘍 瘟-瘢 瘤 瘧 瘰 瘴 瘻 療 癆-癈 癌 癒 癖"
++        " 癘 癜 癡-癢 癧-癪 癬 癰 癲 癶 癸 発-百 皀 皃-的 皆-皈 皋 皎 皐 皓 皖 皙-皚 皮 皰"
++        " 皴 皷-皺 皿 盂-盃 盆 盈 益 盍 盒 盖-盗 盛-盜 盞-盟 盡 監-盥 盧 盪 目 盲 直 相 盻"
++        " 盾 省 眄 眇-眉 看-県 眛 眞-眠 眤-眦 眩 眷-眸 眺 眼 着 睇 睚-睛 睡 督 睥-睦 睨 睫"
++        " 睹 睾-睿 瞋 瞎 瞑 瞞 瞠 瞥 瞬-瞭 瞰 瞳 瞶 瞹 瞻-瞽 瞿 矇 矍 矗 矚-矜 矢-矣 知 矧"
++        " 矩 短-矯 石 矼 砂 砌 砒 研-砕 砠 砥-砧 砲 破 砺 砿 硅 硝 硫-硬 硯 硲 硴 硼 碁"
++        " 碆-碇 碌-碎 碑 碓 碕 碗 碚 碣 碧 碩-碪 碯 碵 確 碼 碾 磁 磅-磆 磊-磋 磐-磑 磔 磚"
++        " 磧-磨 磬 磯 磴 磽 礁 礇 礎 礑-礒 礙 礦 礪-礬 示 礼 社 祀-祁 祇-祉 祐 祓 祕-祗 祚"
++        " 祝-祠 祢 祥 票 祭 祷 祺 祿-禁 禄-禅 禊 禍-福 禝 禦-禧 禪 禮 禰 禳 禹-禺 禽-私 秉"
++        " 秋 科-秒 秕 秘 租 秡 秣-秤 秦-秧 秩 秬 称 移 稀 稈 程 稍-税 稔 稗-稚 稜 稟-稠 種"
++        " 稱-稲 稷 稻-穀 穂-穃 穆 穉 積-穐 穗 穡-穣 穩 穫 穰 穴 究 穹-空 穽 穿 突 窃-窄 窈"
++        " 窒-窓 窕-窘 窟 窩-窪 窮-窰 窶 窺 窿 竃-竅 竇-竈 竊-立 竍 竏 竒-竓 竕 站-竚 竜-竝"
++        " 竟-竣 童-竦 竪 竭 端-竰 競 竸-竺 竿 笂 笄 笆 笈 笊-笋 笏 笑 笘-笙 笛 笞 笠 笥-符"
++        " 笨 第 笳 笵-笶 笹 筅-筆 筈-等 筋-筍 筏-筒 答 策 筝 筥 筧 筬 筮 筰-筱 筴-筵 筺"
++        " 箆-箇 箋 箍 箏 箒 箔-箕 算-箚 箜-箝 箟 管 箪 箭 箱 箴 箸 節-篁 範 篆-篇 築 篋-篌"
++        " 篏 篝 篠 篤-篦 篩 篭 篳 篶-篷 簀 簇 簍 簑-簔 簗 簟 簡 簣 簧 簪-簫 簷-簸 簽-籀 籃"
++        " 籌-籍 籏-籐 籔 籖 籘 籟-籠 籤-籥 籬 米 籵 籾 粁-粃 粉 粋 粍 粐 粒 粕 粗-粘 粛 粟"
++        " 粡-粢 粤-粥 粧-粨 粫 粭-粮 粱-粳 粹 粽-精 糀 糂 糅 糊 糎 糒 糖 糘 糜 糞-糠 糢 糧"
++        " 糯 糲 糴 糶 糸 糺-系 糾 紀 紂 約-紆 紊-紋 納 紐 純-紕 紗-紜 素-索 紫-紬 紮-細"
++        " 紲-紳 紵 紹-紺 紿 終-絆 絋-経 絎-結 絖 絛 絞 絡-絣 給 絨 絮 統-絳 絵-絶 絹 絽 綉"
++        " 綏 經 継-綜 綟 綢-綣 綫-網 綴-綵 綸 綺-綻 綽-綿 緇 緊-緋 総 緑-緒 緕 緘 線 緜-緞"
++        " 締-緡 緤 編-緩 緬 緯 緲 練 緻 縁 縄-縅 縉-縋 縒 縛 縞-縟 縡-縣 縦 縫 縮 縱-縲 縵"
++        " 縷 縹-縻 總-績 繁 繃 繆 繊-繋 繍 織-繖 繙-繚 繝-繞 繦-繧 繩-繪 繭 繰 繹 繻-繽 繿"
++        " 纂-纃 纈-纉 續 纎-纐 纒-纔 纖 纛-纜 缶 缸 缺 罅 罌-罎 罐-网 罔-罕 罘 罟-罠 罧-罫"
++        " 置 罰 署 罵 罷-罹 羂-羃 羅-羈 羊 羌 美 羔 羚 羝-羞 羣-群 羨-義 羮-羯 羲 羶 羸-羹"
++        " 羽 翁 翅-翆 翊 翌 習 翔-翕 翠-翡 翦 翩 翫 翰 翳 翹 翻-翼 耀-老 考-耆 耋-而 耐 耒"
++        " 耕 耗-耙 耜 耡 耨 耳 耶 耻 耽 耿 聆 聊 聒 聖 聘 聚 聞-聟 聡-聢 聨 聯-聰 聲-聴"
++        " 聶-職 聹 聽-聿 肄-肇 肉 肋-肌 肓 肖 肘 肚-肛 肝 股-肢 肥 肩-肪 肬-肭 肯 肱-育 肴"
++        " 肺 胃-胄 胆 背 胎 胖 胙-胛 胝-胞 胡 胤-胥 胯 胱 胴 胸 胼-能 脂 脅-脊 脚-脛 脣 脩"
++        " 脯 脱 脳 脹 脾 腆 腋 腎 腐-腑 腓-腕 腟 腥-腦 腫 腮 腰-腱 腴 腸-腺 腿-膀 膂-膃 膈"
++        " 膊 膏 膓 膕 膚 膜-膝 膠 膣-膤 膨-膩 膰 膳 膵 膸 膺 膽-臀 臂 臆 臈-臉 臍 臑 臓"
++        " 臘-臚 臟-臠 臣 臥 臧-臨 自 臭 至-致 臺-臼 臾 舁-舂 舅 與-舊 舌-舎 舐 舒 舖-舘"
++        " 舛-舜 舞-舟 舩-般 舮 舳 舵-船 艀 艇 艘-艚 艝 艟 艢 艤 艦 艨 艪-艫 艮-良 艱-色"
++        " 艶-艸 艾 芋 芍 芒 芙 芝 芟 芥-芦 芫-芭 芯 花 芳 芸-芹 芻 芽 苅 苑-苔 苗 苙 苛-苜"
++        " 苞-苟 苡 苣 若-苧 苫 英 苳-苴 苹-苻 茂-茆 茉 茎 茖-茘 茜 茣 茨 茫 茯 茱-茲 茴-茶"
++        " 茸-茹 荀 荅 草-荊 荏-荐 荒 荘 荳 荵 荷 荻-荼 莅 莇 莉-莊 莎 莓 莖 莚 莞-莠 莢 莨"
++        " 莪-莫 莱 莵 莽 菁 菅 菊 菌 菎 菓 菖 菘 菜 菟-菠 菩 菫 華-菲 菴 菷 菻 菽 萃-萄 萇"
++        " 萋-萎 萓 萠 萢 萩-萪 萬 萱 萵 萸 萼-落 葆 葉 葎 著 葛 葡-董 葦 葩 葫-葯 葱 葵 葷"
++        " 葹-葺 蒂 蒄 蒋 蒐 蒔 蒙 蒜 蒟 蒡 蒭 蒲 蒸-蒹 蒻-蒼 蒿 蓁 蓄 蓆 蓉-蓋 蓍 蓐-蓑 蓖"
++        " 蓙-蓚 蓬 蓮 蓴 蓼 蓿-蔀 蔆 蔑 蔓-蔕 蔗-蔘 蔚 蔟 蔡 蔦 蔬-蔭 蔵 蔽 蕀-蕁 蕃 蕈-蕋"
++        " 蕎 蕕 蕗-蕘 蕚 蕣 蕨-蕪 蕭 蕷 蕾 薀 薄 薇-薈 薊 薐-薑 薔 薗 薙 薛-薜 薤 薦 薨-薬"
++        " 薮-薯 薹-薺 藁 藉 藍 藏-藐 藕 藜-藝 藤-藥 藩-藪 藷 藹-藻 藾 蘂 蘆-蘇 蘊-蘋 蘓"
++        " 蘖-蘗 蘚 蘢 蘭 蘯-蘰 蘿 虍-虎 虐 虔-處 虚 虜 虞-號 虧 虫 虱 虹 虻 蚊-蚌 蚓 蚕"
++        " 蚣-蚤 蚩-蚫 蚯-蚰 蚶 蛄 蛆-蛇 蛉 蛋 蛍-蛎 蛔 蛙 蛛 蛞-蛟 蛤 蛩 蛬-蛯 蛸-蛹 蛻 蛾"
++        " 蜀 蜂-蜃 蜆 蜈-蜊 蜍 蜑-蜒 蜘 蜚 蜜 蜥 蜩 蜴 蜷 蜻 蜿 蝉 蝋-蝌 蝎 蝓 蝕 蝗 蝙"
++        " 蝟-蝠 蝣 蝦 蝨 蝪 蝮 蝴 蝶 蝸 蝿 螂 融 螟 螢 螫 螯 螳 螺-螻 螽 蟀 蟄 蟆-蟇 蟋 蟐"
++        " 蟒 蟠 蟯 蟲 蟶-蟷 蟹 蟻 蟾 蠅 蠍-蠏 蠑 蠕-蠖 蠡-蠣 蠧 蠱 蠶 蠹 蠻 血 衂 衄 衆"
++        " 行-衍 衒-術 街 衙 衛 衝-衞 衡-衣 表 衫 衰 衲 衵 衷 衽-衿 袁-袂 袈 袋 袍 袒 袖-袗"
++        " 袙 袞 袢 袤 被 袮 袰-袱 袴-袵 袷 袿 裁-装 裏 裔-裕 裘-裙 補-裝 裟 裡 裨 裲-裴"
++        " 裸-裹 裼-裾 褂 褄 複 褊 褌 褐 褒-褓 褝-褞 褥 褪-褫 褶 褸 褻 襁 襃-襄 襌-襍 襖"
++        " 襞-襠 襤 襦 襪 襭 襯 襲 襴 襷 襾-西 要 覃 覆-覈 覊-見 規 覓 視-覘 覚 覡 覦-覧"
++        " 覩-親 覬 覯 覲-観 覺 覽 覿-觀 角 觚 觜-觝 解 触-觧 觴 觸 言 訂-訃 計 訊 訌 討 訐"
++        " 訓 訖-記 訛 訝 訟 訣 訥 訪 設 許 訳-訴 訶 診-証 詁 詆 詈 詐-詒 詔-評 詛 詞 詠"
++        " 詢-詣 試 詩 詫-詮 詰-詳 詼 誂 誄-誅 誇 誉 誌-認 誑 誓 誕 誘 誚 語 誠-誡 誣-誦 誨"
++        " 説-読 誰 課 誹 誼 調 諂 諄 談 請-諍 諏 諒 論 諚-諜 諞 諠-諢 諤 諦-諧 諫 諭-諮 諱"
++        " 諳 諷-諸 諺 諾 謀-謂 謄 謇 謌 謎 謐 謔 謖-謗 謙-講 謝 謠-謡 謦 謨 謫-謬 謳 謹 謾"
++        " 譁 證 譌 譎-譏 譖 識 譚-譜 譟 警 譫-譬 譯-譲 譴 護 譽 讀 讃 變 讌 讎 讐 讒-讓 讖"
++        " 讙-讚 谷 谺 谿 豁 豆 豈 豊 豌 豎 豐 豕 豚 象-豢 豪-豬 豸-豺 豼 貂 貅 貉-貊 貌-貎"
++        " 貔 貘 貝-貞 負-貢 貧-貰 貲-貴 貶-貸 費-貽 貿-賄 資-賈 賊 賍-賎 賑 賓 賚-賜 賞 賠"
++        " 賢-賤 賦 質 賭 賺-賽 贄-贅 贇-贈 贊-贋 贍 贏-贐 贓-贔 贖 赤 赦-赧 赫 赭 走-赱"
++        " 赳-赴 起 趁 超 越 趙 趣 趨 足 趺 趾 跂 跋-跌 跏 跖 跚-跛 距 跟 跡 跣 跨 跪-跫 路"
++        " 跳 践 跼 跿 踈-踊 踏-踐 踝-踟 踪 踰 踴-踵 蹂 蹄 蹇-蹊 蹌 蹐 蹕 蹙 蹟-蹠 蹣-蹤 蹲"
++        " 蹴 蹶 蹼 躁 躄-躅 躇 躊-躋 躍 躑 躓-躔 躙 躡 躪-躬 躯-躱 躾 軅-軆 軈 車-軍 軒 軛"
++        " 軟 転-軣 軫 軸 軻-軾 較 輅 載-輊 輌 輒-輕 輙 輛-輝 輟 輦 輩-輪 輯 輳 輸-輹 輻"
++        " 輾-輿 轂 轄-轆 轉 轌-轎 轗 轜 轟 轡-轤 辛-辜 辞-辟 辣 辧-辨 辭-農 辷 辺-込 辿 迂"
++        " 迄-迅 迎 近 返 迚 迢 迥-迦 迩-迫 迭 迯-述 迴 迷-迺 追 退-送 逃 逅-逆 逋 逍-逑"
++        " 逓-逗 這-通 逝-連 逧 逮 週-進 逵-逶 逸-逹 逼 逾 遁-遂 遅 遇 遉-運 遍-遖 遘-遙 遜"
++        " 遞 遠-遡 遣 遥 遨-適 遭-遯 遲 遵-選 遺 遼-遽 避-還 邇 邉-邊 邏 邑 那 邦 邨 邪 邯"
++        " 邱 邵 邸 郁 郊 郎 郛 郡-郢 郤 部 郭 郵 郷 都 鄂 鄒 鄙 鄭 鄰 鄲 酉-酎 酒 酔 酖 酘"
++        " 酢-酣 酥 酩-酪 酬 酲-酳 酵 酷-酸 醂 醇 醉 醋 醍 醐 醒 醗 醜 醢 醤 醪-醫 醯 醴-醵"
++        " 醸 醺 釀-釁 釆-釉 釋-金 釖 釘 釛-針 釟 釡 釣 釦-釧 釵-釶 釼 釿 鈍-鈎 鈑 鈔-鈕 鈞"
++        " 鈩 鈬 鈴 鈷 鈿 鉄-鉅 鉈-鉉 鉋 鉐 鉗 鉚-鉛 鉞 鉢 鉤 鉦 鉱 鉾 銀 銃 銅 銑 銓 銕-銖"
++        " 銘 銚-銜 銭 銷 銹 鋏 鋒 鋤 鋩-鋪 鋭 鋲-鋳 鋸 鋺 鋼 錆 錏-錐 錘-錚 錠 錢-錣 錦 錨"
++        " 錫-錬 錮-錯 録 錵 錺-錻 鍄 鍋 鍍 鍔 鍖 鍛-鍜 鍠 鍬 鍮 鍵 鍼 鍾 鎌 鎔 鎖-鎗 鎚 鎧"
++        " 鎬-鎮 鎰 鎹 鏃 鏈 鏐-鏑 鏖-鏘 鏝 鏡 鏤-鏥 鏨 鐃 鐇 鐐 鐓-鐔 鐘-鐚 鐡 鐫 鐵-鐶 鐸"
++        " 鐺 鑁 鑄 鑑-鑓 鑚-鑛 鑞 鑠 鑢 鑪 鑰 鑵 鑷 鑼-鑿 钁 長 門 閂-閃 閇 閉-開 閏 閑"
++        " 間-閔 閖 閘-閙 閠 関-閥 閧-閨 閭 閲 閹 閻-閼 閾 闃 闇 闊 闌-闍 闔-闖 闘 關 闡-闢"
++        " 闥 阜 阡 阨 阪 阮-阯 防 阻 阿-陀 陂 附 陋-降 陏-限 陛-陟 院-陦 陪 陬 陰 陲-陳"
++        " 陵-陸 険 陽 隅-隆 隈 隊-隋 隍-随 隔-隕 隗-隙 際-障 隠 隣 隧-隨 險 隰-隲 隴 隶-隹"
++        " 隻-隼 雀-雁 雄-雇 雉 雋-雎 雑 雕-雖 雙 雛-雜 離-難 雨 雪-雫 雰 雲 零-雷 雹 電 需"
++        " 霄 霆-霈 霊 霍-霏 霑 霓 霖 霙 霜 霞 霤 霧 霪 霰 露 霸-霹 霽-霾 靂 靄 靆 靈-靉 青"
++        " 靖 静 靜 非 靠-面 靤 靦 靨-革 靫 靭 靱 靴 靹-靺 靼 鞁 鞄-鞆 鞋 鞍 鞏-鞐 鞘 鞜 鞠"
++        " 鞣 鞦 鞨 鞫 鞭 鞳-鞴 韃 韆 韈 韋 韓 韜 韭-韮 韲-音 韵-韶 韻 響 頁-頃 項-順 須 頌"
++        " 頏-頓 頗-領 頚 頡 頤 頬-頭 頴 頷-頸 頻-頽 顆 顋-顏 顔-顕 願 顛 類 顧 顫 顯-顱"
++        " 顳-顴 風 颪 颯 颱 颶 飃-飄 飆 飛-飜 食 飢 飩 飫 飭-飯 飲 飴 飼-飾 餃 餅 餉-養 餌"
++        " 餐 餒-餔 餘 餝-餞 餠-餡 餤 館 餬 餮 餽-餾 饂 饅 饉 饋-饌 饐-饒 饕 饗 首-香 馥 馨"
++        " 馬-馮 馳-馴 馼 駁 駄-駆 駈 駐-駒 駕 駘 駛 駝 駟 駢 駭-駮 駱-駲 駸 駻 駿 騁 騅"
++        " 騎-騏 騒-験 騙 騨 騫 騰 騷 騾 驀 驂-驃 驅 驍 驕 驗 驚-驛 驟 驢 驤-驥 驩-驫 骨 骭"
++        " 骰 骸 骼 髀 髄 髏 髑 髓-體 高 髞-髟 髢-髣 髦 髪-髫 髭-髯 髱 髴 髷 髻 鬆 鬘 鬚 鬟"
++        " 鬢-鬣 鬥 鬧-鬪 鬮-鬯 鬱-鬲 鬻-鬼 魁-魅 魍-魏 魑 魔 魘 魚 魯 魴 鮃 鮎 鮑-鮓 鮖-鮗"
++        " 鮟-鮠 鮨 鮪-鮫 鮭-鮮 鮴 鮹 鯀 鯆 鯉-鯊 鯏 鯑-鯒 鯔 鯖 鯛 鯡-鯤 鯨 鯰-鯲 鯵 鰄 鰆"
++        " 鰈-鰊 鰌-鰍 鰐 鰒-鰕 鰛 鰡 鰤-鰥 鰭-鰰 鰲 鰹-鰻 鰾 鱆-鱈 鱒 鱗 鱚 鱠 鱧 鱶 鱸 鳥"
++        " 鳧 鳩 鳫-鳬 鳰 鳳-鳴 鳶 鴃 鴆-鴉 鴎 鴒 鴕 鴛 鴟 鴣 鴦 鴨 鴪-鴬 鴻 鴾-鴿 鵁 鵄 鵆"
++        " 鵈 鵐-鵑 鵙 鵜-鵞 鵠-鵡 鵤 鵬 鵯 鵲 鵺 鶇 鶉 鶏 鶚 鶤 鶩 鶫 鶯 鶲 鶴 鶸 鶺-鶻"
++        " 鷁-鷂 鷄 鷆 鷏 鷓 鷙 鷦 鷭 鷯 鷲 鷸-鷺 鷽 鸚-鸛 鸞 鹵 鹸-鹹 鹽 鹿 麁 麈 麋-麌"
++        " 麑-麓 麕 麗 麝 麟 麥-麦 麩-麪 麭 麸-麼 麾-麿 黄 黌-黐 黒 黔 默-黙 黛-點 黠 黥 黨"
++        " 黯 黴 黶-黷 黹 黻-黽 鼇-鼈 鼎 鼓 鼕 鼠-鼡 鼬 鼻 鼾 齊-齋 齎-齏 齒 齔 齟-齣 齦-齧"
++        " 齪 齬 齲 齶-齷 龍 龕 龜-龝 龠]"
+     }
+     ExemplarCharactersCurrency{"[a b c č d e f g h i j k l ł m n o º p q r s t u v w x y z]"}
+     ExemplarCharactersIndex{"[あ か さ た な は ま や ら わ]"}
+--- source/data/locales/kn.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/kn.txt	2011-07-25 02:16:27.359258000 -0700
+@@ -13,6 +13,7 @@
+     ExemplarCharacters{
+         "[\u0CBC ೦ ೧ ೨ ೩ ೪ ೫ ೬ ೭ ೮ ೯ ಅ ಆ ಇ ಈ ಉ ಊ ಋ ೠ ಌ ೡ ಎ ಏ ಐ ಒ ಓ ಔ ಂ ಃ ಕ ಖ ಗ ಘ ಙ ಚ "
+         "ಛ ಜ ಝ ಞ ಟ ಠ ಡ ಢ ಣ ತ ಥ ದ ಧ ನ ಪ ಫ ಬ ಭ ಮ ಯ ರ ಱ ಲ ವ ಶ ಷ ಸ ಹ ಳ ೞ ಽ ಾ \u0CBF ೀ ು ೂ"
++	"\u200C \u200D"
+         " ೃ ೄ \u0CC6 ೇ ೈ ೊ ೋ \u0CCC \u0CCD ೕ ೖ]"
+     }
+     ExemplarCharactersIndex{
+--- source/data/locales/ko.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/locales/ko.txt	2011-07-22 13:46:05.796736000 -0700
+@@ -80,8 +80,7 @@
+                 "{1} {0}",
+             }
+             availableFormats{
+-                EEEd{"d일 EEE"}
+-                Ed{"d일 (E)"}
++                EEEd{"d일 (E)"}
+                 H{"H시"}
+                 HHmmss{"HH:mm:ss"}
+                 Hm{"HH:mm"}
+@@ -101,13 +100,14 @@
+                 ms{"mm:ss"}
+                 y{"G y년"}
+                 yM{"G y. M."}
+-                yMEd{"G y. M. d. EEE"}
++                yMEd{"G y. M. d. (E)"}
+                 yMMM{"G y년 MMM"}
+-                yMMMEd{"G y년 MMM d일 EEE"}
++                yMMMEEEd{"G y년 MMM d일 (E)"}
++                yMMMEEEEd{"G y년 MMM d일 EEEE"}
+                 yMMMd{"G y년 MMM d일"}
+                 yQ{"G y년 Q분기"}
+                 yQQQ{"G y년 QQQ"}
+-                yyMM{"G YY. M."}
++                yyMM{"G yy. M."}
+                 yyMMM{"G y년 MMM"}
+                 yyQ{"G y년 Q분기"}
+                 yyyyMM{"G y. MM"}
+@@ -139,8 +139,7 @@
+                 "{1} {0}",
+             }
+             availableFormats{
+-                EEEd{"d일 EEE"}
+-                Ed{"d일 (E)"}
++                EEEd{"d일 (E)"}
+                 H{"H시"}
+                 HHmmss{"HH:mm:ss"}
+                 Hm{"HH:mm"}
+@@ -160,13 +159,14 @@
+                 ms{"mm:ss"}
+                 y{"y년"}
+                 yM{"yyyy. M."}
+-                yMEd{"yyyy. M. d. EEE"}
++                yMEd{"yyyy. M. d. (E)"}
+                 yMMM{"y년 MMM"}
+-                yMMMEd{"y년 MMM d일 EEE"}
++                yMMMEd{"y년 MMM d일 (E)"}
++                yMMMEEEEd{"y년 MMM d일 EEEE"}
+                 yMMMd{"y년 MMM d일"}
+                 yQ{"y년 Q분기"}
+                 yQQQ{"y년 QQQ"}
+-                yyMM{"YY. M."}
++                yyMM{"yy. M."}
+                 yyMMM{"yy년 MMM"}
+                 yyQ{"yy년 Q분기"}
+                 yyyyMM{"yyyy. MM"}
+@@ -263,15 +263,15 @@
+                     M{"M월 ~ M월"}
+                 }
+                 MEd{
+-                    M{"M. d E ~ M. d E"}
+-                    d{"M. d E ~ M. d E"}
++                    M{"M. d (E) ~ M. d (E)"}
++                    d{"M. d (E) ~ M. d (E)"}
+                 }
+                 MMM{
+                     M{"MMM ~ MMM"}
+                 }
+                 MMMEd{
+-                    M{"M월 d일 E ~ M월 d일 E"}
+-                    d{"M월 d일 E ~ d일 E"}
++                    M{"M월 d일 (E) ~ M월 d일 (E)"}
++                    d{"M월 d일 (E) ~ d일 (E)"}
+                 }
+                 MMMM{
+                     M{"LLLL-LLLL"}
+@@ -314,31 +314,31 @@
+                     y{"yyyy. M ~ yyyy. M"}
+                 }
+                 yMEd{
+-                    M{"yy. M. d. E ~ yy. M. d. E"}
+-                    d{"yy. M. d. E ~ yy. M. d. E"}
+-                    y{"yy. M. d. E ~ yy. M. d. E"}
++                    M{"yy. M. d. (E) ~ M. d. (E)"}
++                    d{"yy. M. d. (E) ~ d. (E)"}
++                    y{"yy. M. d. (E) ~ yy. M. d. (E)"}
+                 }
+                 yMMM{
+-                    M{"y년 M월~M월"}
++                    M{"y년 M월 ~ M월"}
+                     y{"y년 M월 ~ y년 M월"}
+                 }
+                 yMMMEd{
+-                    M{"y년 M월 d일 E ~ M월 d일 E"}
+-                    d{"y년 M월 d일 E ~ d일 E"}
+-                    y{"y년 M월 d일 E ~ y년 M월 d일 E"}
++                    M{"y년 M월 d일 (E) ~ M월 d일 (E)"}
++                    d{"y년 M월 d일 (E) ~ d일 (E)"}
++                    y{"y년 M월 d일 (E) ~ y년 M월 d일 (E)"}
+                 }
+                 yMMMM{
+-                    M{"y년 MM월 ~ MM월"}
+-                    y{"y년 MM월 ~ y년 MM월"}
++                    M{"y년 M월 ~ M월"}
++                    y{"y년 M월 ~ y년 M월"}
+                 }
+                 yMMMd{
+                     M{"y년 M월 d일 ~ M월 d일"}
+-                    d{"y년 M월 d일~d일"}
++                    d{"y년 M월 d일 ~ d일"}
+                     y{"y년 M월 d일 ~ y년 M월 d일"}
+                 }
+                 yMd{
+-                    M{"yy. M. d. ~ yy. M. d."}
+-                    d{"yy. M. d. ~ yy. M. d."}
++                    M{"yy. M. d ~ M. d"}
++                    d{"yy. M. d ~ d"}
+                     y{"yy. M. d. ~ yy. M. d."}
+                 }
+             }
+@@ -410,8 +410,7 @@
+                 "{1} {0}",
+             }
+             availableFormats{
+-                EEEd{"d일 EEE"}
+-                Ed{"d일 (E)"}
++                EEEd{"d일 (E)"}
+                 H{"H시"}
+                 HHmmss{"HH:mm:ss"}
+                 Hm{"HH:mm"}
+@@ -429,15 +428,16 @@
+                 hms{"a h:mm:ss"}
+                 mmss{"mm:ss"}
+                 ms{"mm:ss"}
+-                yyMM{"G YY. M."}
++                yyMM{"G yy. M."}
+                 yyMMM{"G yy년 MMM"}
+                 yyQ{"G yy년 Q분기"}
+                 yyyy{"G yy년"}
+                 yyyyM{"G y. M."}
+-                yyyyMEd{"G y. M. d. EEE"}
++                yyyyMEd{"G y. M. d. (EEE)"}
+                 yyyyMM{"G y. MM"}
+                 yyyyMMM{"G y년 MMM"}
+-                yyyyMMMEd{"G y년 MMM d일 EEE"}
++                yyyyMMMEd{"G y년 MMM d일 (EEE)"}
++                yyyyMMMEEEEd{"G y년 MMM d일 EEEE"}
+                 yyyyMMMd{"G yy년 MMM d일"}
+                 yyyyQ{"G yy년 Q분기"}
+                 yyyyQQQ{"G y년 QQQ"}
+@@ -700,8 +700,7 @@
+                 "{1} {0}",
+             }
+             availableFormats{
+-                EEEd{"d일 EEE"}
+-                Ed{"d일 (E)"}
++                EEEd{"d일 (EEE)"}
+                 H{"H시"}
+                 HHmmss{"HH:mm:ss"}
+                 Hm{"HH:mm"}
+@@ -719,7 +718,7 @@
+                 hms{"a h:mm:ss"}
+                 mmss{"mm:ss"}
+                 ms{"mm:ss"}
+-                yyMM{"G YY. M."}
++                yyMM{"G yy. M."}
+                 yyMMM{"G yy년 MMM"}
+                 yyQ{"G y년 Q분기"}
+                 yyyy{"G yy년"}
+@@ -727,7 +726,8 @@
+                 yyyyMEd{"G y. M. d. EEE"}
+                 yyyyMM{"G y. MM"}
+                 yyyyMMM{"G y년 MMM"}
+-                yyyyMMMEd{"G y년 MMM d일 EEE"}
++                yyyyMMMEd{"G y년 MMM d일 (EEE)"}
++                yyyyMMMEEEEd{"G y년 MMM d일 EEEE"}
+                 yyyyMMMd{"G yy년 MMM d일"}
+                 yyyyQ{"G y년 Q분기"}
+                 yyyyQQQ{"G y년 QQQ"}
+--- source/data/locales/lt.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/lt.txt	2011-07-22 13:46:18.962671000 -0700
+@@ -89,6 +89,9 @@
+                 h{"hh a"}
+                 hm{"hh:mm a"}
+                 hms{"hh:mm:ss a"}
++                yMd{"y-M-d"}
++                yMEd{"y-M-d EEE"}
++                yMMMd{"y MMM d"}
+                 yyQ{"Q yy"}
+                 yyyyMM{"yyyy.MM"}
+             }
+--- source/data/locales/lv.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/lv.txt	2011-07-22 13:46:05.834732000 -0700
+@@ -74,7 +74,7 @@
+                 MMMMEd{"E, d. MMMM"}
+                 MMMMd{"d. MMMM"}
+                 MMMd{"d. MMM"}
+-                Md{"dd.mm."}
++                Md{"dd.MM."}
+                 d{"d"}
+                 h{"h a"}
+                 hm{"h:mm a"}
+@@ -82,8 +82,8 @@
+                 mmss{"mm:ss"}
+                 ms{"mm:ss"}
+                 y{"y. 'g'."}
+-                yM{"mm.yyyy."}
+-                yMEd{"EEE, dd.mm.yyyy."}
++                yM{"MM.yyyy."}
++                yMEd{"EEE, dd.MM.yyyy."}
+                 yMMM{"yyyy. 'g'. MMM"}
+                 yMMMEd{"EEE, yyyy. 'g'. dd. MMM"}
+                 yMMMM{"y. 'g'. MMMM"}
+@@ -216,8 +216,8 @@
+                     d{"d.–d. MMM"}
+                 }
+                 Md{
+-                    M{"dd.mm–dd.mm"}
+-                    d{"dd.mm.–dd.mm."}
++                    M{"dd.MM–dd.MM"}
++                    d{"dd.MM.–dd.MM."}
+                 }
+                 d{
+                     d{"d.–d."}
+@@ -245,13 +245,13 @@
+                     y{"y.–y."}
+                 }
+                 yM{
+-                    M{"mm.yyyy.–mm.yyyy."}
+-                    y{"mm.yyyy.–mm.yyyy."}
++                    M{"MM.yyyy.–MM.yyyy."}
++                    y{"MM.yyyy.–MM.yyyy."}
+                 }
+                 yMEd{
+-                    M{"EEE, dd.mm.yy. – EEE, dd.mm.yy."}
+-                    d{"EEE, dd.mm.yy. – EEE, dd.mm.yy."}
+-                    y{"EEE, dd.mm.yy. – EEE, dd.mm.yy."}
++                    M{"EEE, dd.MM.yy. – EEE, dd.MM.yy."}
++                    d{"EEE, dd.MM.yy. – EEE, dd.MM.yy."}
++                    y{"EEE, dd.MM.yy. – EEE, dd.MM.yy."}
+                 }
+                 yMMM{
+                     M{"y. 'gada' MMM–MMM"}
+@@ -263,8 +263,8 @@
+                     y{"E, y. 'gada' d. MMM – E, y. 'gada' d. MMM"}
+                 }
+                 yMMMM{
+-                    M{"mm.yyyy.–mm.yyyy."}
+-                    y{"mm.yyyy.–mm.yyyy."}
++                    M{"MM.yyyy.–MM.yyyy."}
++                    y{"MM.yyyy.–MM.yyyy."}
+                 }
+                 yMMMd{
+                     M{"y. 'gada' d. MMM – d. MMM"}
+@@ -272,9 +272,9 @@
+                     y{"y. 'gada' d. MMM – y. 'gada' d. MMM"}
+                 }
+                 yMd{
+-                    M{"dd.mm.yy.–dd.mm.yy."}
+-                    d{"dd.mm.yyyy.–dd.mm.yyyy."}
+-                    y{"dd.mm.yy.–dd.mm.yy."}
++                    M{"dd.MM.yy.–dd.MM.yy."}
++                    d{"dd.MM.yyyy.–dd.MM.yyyy."}
++                    y{"dd.MM.yy.–dd.MM.yy."}
+                 }
+             }
+             monthNames{
+--- source/data/locales/ml.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/ml.txt	2011-07-25 02:16:27.363259000 -0700
+@@ -82,6 +82,7 @@
+                 yM{"M-y"}
+                 yMEd{"d-M-yyyy, EEE"}
+                 yMMM{"y MMM"}
++                yMMMd{"y MMM d"}
+                 yMMMEd{"y MMM d, EEE"}
+                 yMMMM{"y MMMM"}
+                 yQ{"yyyy Q"}
+--- source/data/locales/mr.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/mr.txt	2011-07-25 02:16:27.367258000 -0700
+@@ -14,6 +14,7 @@
+     ExemplarCharacters{
+         "[\u093C ० १ २ ३ ४ ५ ६ ७ ८ ९ ॐ \u0902 \u0901 ः अ आ इ ई उ ऊ ऋ ऌ ऍ ए ऐ ऑ ओ औ क "
+         "ख ग घ ङ च छ ज झ ञ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह ळ ऽ ा ि ी "
++	"\u200C \u200D"
+         "\u0941 \u0942 \u0943 \u0944 \u0945 \u0947 \u0948 ॉ ो ौ \u094D]"
+     }
+     ExemplarCharactersIndex{
+@@ -58,6 +59,9 @@
+             availableFormats{
+                 Hm{"H-mm"}
+                 Hms{"H-mm-ss"}
++                M{"M"}
++                Md{"d/M"}
++                MEd{"E, d/M"}
+                 MMMMd{"d MMMM"}
+                 MMdd{"dd-MM"}
+                 yyQ{"Q yy"}
+--- source/data/locales/sr.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/sr.txt	2011-06-08 13:15:56.508012000 -0700
+@@ -29,9 +29,9 @@
+                 scientificFormat{"#E0"}
+             }
+             symbols{
+-                decimal{"."}
++                decimal{","}
+                 exponential{"E"}
+-                group{","}
++                group{"."}
+                 infinity{"∞"}
+                 list{";"}
+                 minusSign{"-"}
+--- source/data/locales/ta.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/ta.txt	2011-07-25 02:16:27.410258000 -0700
+@@ -12,6 +12,7 @@
+ ta{
+     ExemplarCharacters{
+         "[அ ஆ இ ஈ உ ஊ எ ஏ ஐ ஒ ஓ ஔ ஃ க ங ச ஞ ட ண த ந ப ம ய ர ல வ ழ ள ற ன ஜ ஷ ஸ ஹ ா ி "
++	"\u200C \u200D"
+         "\u0BC0 ு ூ ெ ே ை ொ ோ ௌ \u0BCD]"
+     }
+     ExemplarCharactersCurrency{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+--- source/data/locales/te.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/te.txt	2011-07-25 02:16:27.431266000 -0700
+@@ -14,6 +14,7 @@
+     ExemplarCharacters{
+         "[అ ఆ ఇ ఈ ఉ ఊ ఋ ౠ ఌ ౡ ఎ ఏ ఐ ఒ ఓ ఔ క ఖ గ ఘ ఙ చ ఛ జ ఝ ఞ ట ఠ డ ఢ ణ త థ ద ధ న ప ఫ"
+         " బ భ మ య ర ఱ ల వ శ ష స హ ఁ ం ః \u0C4D ళ \u0C3E \u0C3F \u0C40 ు ూ ృ ౄ \u0C46 "
++	"\u200C \u200D"
+         "\u0C47 \u0C48 \u0C4A \u0C4B \u0C4C \u0C55 \u0C56]"
+     }
+     ExemplarCharactersIndex{
+@@ -55,8 +56,14 @@
+                 "{1} {0}",
+             }
+             availableFormats{
++                EEEd{"EEE d"}
++                Md{"d/M"}
++                MEd{"E, d/M"}
++                MMMEd{"E, d MMM"}
+                 MMMMd{"d MMMM"}
+                 MMdd{"dd-MM"}
++                yM{"M/y"}
++                yMd{"d/M/y"}
+                 yyQ{"Q yy"}
+                 yyyyMM{"MM-yyyy"}
+                 yyyyMMMM{"MMMM y"}
+--- source/data/locales/tr.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/tr.txt	2011-01-19 18:16:42.499823000 -0800
+@@ -144,7 +144,9 @@
+                 "dd MMMM y EEEE",
+                 "dd MMMM y",
+                 "dd MMM y",
+-                "dd.MM.yyyy",
++		// Chrome change begins
++                "dd MM yyyy",
++		// Chrone change ends
+                 "{1} {0}",
+                 "{1} {0}",
+                 "{1} {0}",
+--- source/data/locales/zh_Hant.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/zh_Hant.txt	2011-01-19 18:16:42.425865000 -0800
+@@ -13,60 +13,240 @@
+     %%ParentIsRoot:int{1}
+     AuxExemplarCharacters{"[伏 侶 兌 兹 别 勳 卑 占 叶 堤 墎 奥 孜 峇 巽 彝 楔 渾 燦 狄 琳 瑚 甫 礁 芒 苗 茨 蚩 蜀 隴]"}
+     ExemplarCharacters{
+-        "[一 丁 七 丈-不 且 世 丘 丙 丟 並 中 串 丸 丹 主 乃 久 么 之 乎 乏 乖 乘 乙 九 也 乾 亂 了 予 事 二 于 云 互 五 井"
+-        " 些 亞 亡 交 亦 亨 享 京 亮 人 什 仁 仇 今 介 仍 仔 他 付 仙 代-以 仰 仲 件 任 份 企 伊 伍 伐 休 伙 伯 估 伴 伸 似"
+-        " 伽 但 佈 位-住 佔 何 余 佛 作 你 佩 佳 使 來 例 供 依 侯 侵 便 係-俄 俊 俗 保 俠 信 修 俱 俾 個 倍 們 倒 候 倚 借"
+-        " 倫 值 假 偉 偏 做 停 健 側-偷 傑 備 傢 傲 傳 傷 傻 傾 僅 像 僑 僧 價 儀 億 儒 儘 優 允 元-充 兇-光 克 免 兒 兔 入"
+-        " 內-兩 八-兮 共 兵-典 兼 冊 再 冒 冠 冬 冰 冷 准 凌 凝 凡 凰 凱 出 函 刀 分 切 刊 列 初 判 別 利 刪 到 制 刷 刺 刻"
+-        " 則 前 剛 剩 剪 副 割 創 劃 劇 劉 劍 力 功 加 助-劫 勁 勇 勉 勒 動 務 勝 勞 勢 勤 勵 勸 勿 包 匈 化 北 匹 區 十 千"
+-        " 升 午 半 卒-協 南 博 卡 印 危 即 卷 卻 厄 厘 厚 原 厭 厲 去 參 又 及 友 反 叔 取 受 口-另 叫-叭 可 台 史 右 司 吃"
+-        " 各 合-吊 同-后 吐 向 君 吝-吟 否 吧 含 吳 吵 吸 吹 吾 呀 呂 呆 告 呢 周 味 呵 呼 命 和 咖 咦 咧 咪 咬 咱 哀 品 哇"
+-        "-哉 哎 員 哥 哦 哩 哪 哭 哲 唉 唐 唬 售 唯 唱 唷 唸 商 啊 問 啟 啡 啥 啦 啪 喀 喂 善 喇 喊 喔 喜 喝 喬 單 喵 嗎 嗚"
+-        " 嗨 嗯 嘆 嘉 嘗 嘛 嘴 嘻 嘿 器 噴 嚇 嚴 囉 四 回 因 困 固 圈 國 圍 園 圓 圖 團 圜 土 在 圭 地 圾 址 均 坎 坐 坡 坤"
+-        " 坦 坪 垂 垃 型 埃 城 埔 域 執 培 基 堂 堅 堆 堡 堪 報 場 塊 塔 塗 塞 填 塵 境 增 墨 墮 壁 壓 壘 壞 壢 士 壯 壽 夏"
+-        " 夕 外 多 夜 夠 夢 夥 大 天-夫 央 失 夷 夸 夾 奇-奉 奎 奏 契 奔 套 奧 奪 奮 女 奴 奶 她 好 如 妙 妥 妨 妮 妳 妹 妻"
+-        " 姆 姊 始 姐 姑 姓 委 姿 威 娃 娘 婁 婆 婚 婦 媒 媽 嫌 嫩 子 孔 字 存 孝 孟 季 孤 孩 孫 學 它 宅 宇-安 宋 完 宏 宗"
+-        "-宜 客-室 宮 害 家 容 宿 寂 寄 密 富 寒 寞 察 寢 實-審 寫 寬 寮 寶 封 射 將 專 尊 尋 對-小 少 尖 尚 尤 就 尺 尼 尾"
+-        " 局 屁 居 屆 屋 屏 展 屠 層 屬 山 岡 岩 岸 峰 島 峽 崇 崙 崴 嵐 嶺 川 州 巡 工-巨 巫 差 己 已 巴 巷 市 布 希 帕 帛"
+-        " 帝 帥 師 席 帳 帶 常 帽 幅 幕 幣 幫 干-年 幸 幹 幻-幾 床 序 底 店 府 度 座 庫 庭 康 庸 廉 廖 廠 廢 廣 廳 延 廷 建"
+-        " 弄 式 引 弗 弘 弟 弦 弱 張 強 彈 彊 彌 彎 彞 形 彥 彩 彬 彭 彰 影 役 彼 往 征 待 很 律 後 徐-徒 得 從 復 微 徵 德"
+-        " 徹 心 必 忌 忍 志-忙 忠 快 念 忽 怎 怒 怕 怖 思 怡 急 性 怨 怪 恆 恐 恢 恥 恨 恩 恭 息 恰 悅 悉 悔 悟 悠 您 悲 悶"
+-        " 情 惑 惜 惠 惡 惱 想 惹 愁 愈 愉 意 愚 愛 感 慈 態 慕 慘 慢 慣 慧 慮 慰 慶 慾 憂 憐 憑 憲 憶 憾 懂 應 懶 懷 懼 戀"
+-        " 戈 成-戒 或 截 戰 戲 戴 戶 房-扁 扇 手 才 扎 打 托 扣 扥 扭 扯 批 找-技 抄 把 抓 投 抗 折 披 抬 抱 抵 抹 抽 拆 拉"
+-        " 拋 拍 拒 拔 拖 招 拜 括 拳 拼 拾 拿 持 指 按 挑 挖 挪 振 挺 捐 捕 捨 捲 捷 掃 授 掉 掌 排 掛 採 探 接 控 推 措 描"
+-        " 提 插 揚 換 握 揮 援 損 搖 搞 搬 搭 搶 摘 摩 摸 撐 撒 撞 撣 撥 播 撾 撿 擁 擇 擊 擋 操 擎 擔 據 擠 擦 擬 擴 擺 擾"
+-        " 攝 支 收 改 攻 放 政 故 效 敍 敏 救 敗-教 敝 敢 散 敦 敬 整 敵 數 文 斐 斗 料 斯 新 斷 方 於 施 旁 旅 旋 族 旗 既"
+-        " 日 旦 早 旭 旺 昂 昆 昇 昌 明 昏 易 星 映 春 昨 昭 是 時 晉 晒 晚 晨 普 景 晴 晶 智 暑 暖 暗 暫 暴 曆 曉 曰 曲 更"
+-        " 書 曼 曾-最 會 月 有 朋 服 朗 望 朝 期 木 未-札 朱 朵 杉 李 材 村 杜 束 杯-東 松 板 析 林 果 枝 架 柏 某 染 柔 查"
+-        " 柬 柳 柴 校 核 根 格 桃 案 桌 桑 梁 梅 條 梨 梯 械 梵 棄 棉 棋 棒 棚 森 椅 植 椰 楊 楓 楚 業 極 概 榜 榮 構 槍 樂"
+-        " 樓 標 樞 模 樣 樹 橋 機 橫 檀 檔 檢 欄 權 次 欣 欲 欺 欽 款 歉 歌 歐 歡-武 歲 歷 歸 死 殊 殘 段 殺 殼 毀 毅 母 每"
+-        " 毒 比 毛 毫 氏 民 氣 水 永 求 汗 汝 江-污 汪 汶 決 汽 沃 沈 沉 沒 沖 沙 河 油 治 沿 況 泉 泊 法 泡 波 泥 注 泰 泳"
+-        " 洋 洗 洛 洞 洩 洪 洲 活 洽 派 流 浦 浩 浪 浮 海 涇-涉 涯 液 涵 涼 淑 淚 淡 淨 深 混 淺 清 減 渡 測 港 游 湖 湯 源"
+-        " 準 溝 溪 溫 滄 滅 滋 滑 滴 滾 滿 漂 漏 演 漠 漢 漫 漲 漸 潔 潘 潛 潮 澤 澳 激 濃 濟 濤 濫 濱 灌 灣 火 灰 災 炎 炮"
+-        " 炸 為 烈 烏 烤 無 焦 然 煙 煞 照 煩 熊 熟 熱 燃 燈 燒 營 爆 爐 爛 爪 爬 爭 爵 父 爸 爺 爽 爾 牆-版 牌 牙 牛 牠 牧"
+-        " 物 牲 特 牽 犧 犯 狀 狂 狐 狗 狠 狼 猛 猜 猶 獄 獅 獎 獨 獲 獸 獻 玄 率 玉 王 玩 玫 玲 玻 珊 珍 珠 班 現 球 理 琉"
+-        " 琪 琴 瑙 瑜 瑞 瑟 瑤 瑪 瑰 環 瓜 瓦 瓶 甘 甚 甜 生 產 用 田-申 男 甸 界 留 畢 略 番 畫 異 當 疆 疏 疑 疼 病 痕 痛"
+-        " 痴 瘋 療 癡 登-百 的 皆 皇 皮 盃 益 盛 盜 盟 盡 監 盤 盧 目 盲 直 相 盼 盾 省 眉 看 真 眠 眼 眾 睛 睡 督 瞧 瞭 矛"
+-        " 矣 知 短 石 砂 砍 研 砲 破 硬 碎 碗 碟 碧 碩 碰 確 碼 磁 磨 磯 礎 礙 示 社 祕 祖 祝 神 祥 票 禁 禍 福 禪 禮 秀 私"
+-        " 秋 科 秒 秘 租 秤 秦 移 稅 程 稍 種 稱 稿 穆 穌 積 穩 究 穹 空 穿 突 窗 窩 窮 立 站 竟 章 童 端 競 竹 笑 笛 符 笨"
+-        " 第 筆 等 筋 答 策 简 算 管 箭 箱 節 範 篇 築 簡 簫 簽 簿 籃 籌 籍 米 粉 粗 精 糊 糕 糟 系 糾 紀 約 紅 納 紐 純 紙"
+-        "-紛 素 索 紫 累 細 紹 終 組 結 絕 絡 給 統 絲 經 綜 綠 維 綱 網 緊 緒 線 緣 編 緩 緬 緯 練 縣 縮 縱 總 績 繁 織 繞"
+-        " 繪 繳 繼 續 缸 缺 罕 罪 置 罰 署 罵 罷 羅 羊 美 羞 群 義 羽 翁 習 翔 翰 翹 翻 翼 耀 老 考 者 而 耍 耐 耗 耳 耶 聊"
+-        " 聖 聚 聞 聯 聰 聲 職 聽 肉 肚 股 肥 肩 肯 育 背 胎 胖 胞 胡 胸 能 脆 脫 腓 腔 腦 腰 腳 腿 膽 臉 臘 臣 臥 臨 自 臭"
+-        " 至 致 臺 與-舊 舌 舍 舒 舞 舟 航 般 船 艦 良 色 艾 芝 芬 花 芳 若 苦 英 茅 茫 茲 茶 草 荒 荷 莉 莊 莎 莫 菜 菩 華"
+-        " 菲 萄 萊 萬 落 葉 著 葛 葡 蒂 蒙 蒲 蒼 蓋 蓮 蔕 蔡 蔣 蕭 薄 薦 薩 薪 藉 藍 藏 藝 藤 藥 蘆 蘇 蘭 虎 處 虛 號 虧 蛋"
+-        " 蛙 蜂 蜜 蝶 融 螢 蟲 蟹 蠍 蠻 血 行 術 街 衛 衝 衡 衣 表 袋 被 裁 裂 裕 補 裝 裡 製 複 褲 西 要 覆 見 規 視 親 覺"
+-        " 覽 觀 角 解 觸 言 訂 計 訊 討 訓 託 記 訪 設 許 訴 註 証 評 詞 詢 試 詩 話-詳 誇 誌 認 誓 誕 語 誠 誤 說 誰 課 誼"
+-        " 調 談 請 諒 論 諸 諺 諾 謀 謂 講 謝 證 識 譜 警 譯 議 護 譽 讀 變 讓 讚 谷 豆 豈 豐 象 豪 豬 貌 貓 貝 貞 負-貢 貨"
+-        " 貪-責 貴 買 費 貼 賀 資 賈 賓 賜 賞 賢-賤 賦 質 賭 賴 賺 購 賽 贈 贊 贏 赤 赫 走 起 超 越 趕 趙 趣 趨 足 跌 跎 跑"
+-        " 距 跟 跡 路 跳 踏 踢 蹟 蹤 躍 身 躲 車 軌 軍 軒 軟 較 載 輔 輕 輛 輝 輩 輪 輯 輸 轉 轟 辛 辦 辨 辭 辯 辱 農 迅 迎"
+-        " 近 迦 迪 迫 述 迴 迷 追 退 送 逃 逆 透 逐 途 這-逛 逝 速 造 逢 連 週 進 逸 逼 遇 遊 運 遍 過 道-違 遙 遜 遠 適 遭"
+-        " 遮 遲 遷 選 遺 避-邁 還 邊 邏 那 邦 邪 邱 郎 部 郭 郵 都 鄂 鄉 鄭 鄰 配 酒 酷 酸 醉 醒 醜 醫 采 釋-量 金 針 釣 鈴"
+-        " 銀 銖 銘 銳 銷 鋒 鋼 錄 錢 錦 錫 錯 鍋 鍵 鍾 鎊 鎖 鎮 鏡 鐘 鐵 鑑 長 門 閃 閉 開 閒 間 閣 閱 闆 闊 闐 關 闡 防 阻"
+-        " 阿 陀 附 降 限 院-除 陪 陰 陳 陵-陸 陽 隆 隊 階 隔 際 障 隨 險 隱 隻 雄-集 雖 雙 雜 雞 離 難 雨 雪 雲 零 雷 電 需"
+-        " 震 霍 霧 露 霸 霹 靂 靈 青 靖 靜 非 靠 面 革 靼 鞋 韃 韋 韓 音 韻 響 頁 頂 項 順 須 預 頑 頓 頗 領 頭 頻 顆 題 額"
+-        " 顏 願 類 顧 顯 風 飄 飛 食 飯 飲 飽 飾 餅 養 餐 餘 館 首 香 馬 駐 駕 駛 騎 騙 騷 驅 驗 驚 骨 體 高 髮 鬆 鬥 鬧 鬱"
+-        " 鬼 魁 魂 魅 魔 魚 魯 鮮 鳥 鳳 鳴 鴻 鵝 鷹 鹿 麗 麥 麵 麻 麼 黃 黎 黑 默 點 黨 鼓 鼠 鼻 齊 齋 齒 齡 龍 龜]"
++        "[一-丁 七 万-丑 且-世 丘-丙 丞-丟 並 丫 中-丮 丰-丳 丸-丹 主-丼 乂-乃 久 乇-么 之"
++        " 乍-乏 乒-乓 乖 乘-乙 乜-也 乩 乳 乾-乿 亂-亄 了 予 事-于 云-井 亙 些 亞-亟 亡-亢"
++        " 交-亦 亨 享-亮 亳 亶 亹-人 什-仄 仆-介 仍 仔-仚 仜-仟 仡 代-以 仨-仩 仰-价 任 份"
++        " 仿-伂 伄-伅 伈-伋 伍-伕 优-伙 伝 伢 伬-伭 伯-估 伳-伴 伶 伸 伺-伿 佁 佃 但-佉"
++        " 佌-佤 佧 佩-佬 佮-佰 佳-侉 例 侍 侏-侒 侔-侘 侚-侞 侮-侯 侲-侳 侵-侷 侹-侻 便-俅"
++        " 俇 俉-俋 俍-俑 俓-俔 俖-信 俬 修-俯 俱 俳-俸 俺 俾 倀 倅-倇 倉 個-倏 們-倜 倞-倣"
++        " 倥-倭 倯-倱 倳 倵 倷 值 偀-偁 偃 偅-偏 偑 偓 偕 偗 做-健 偨-偫 偭-偰 偲-偷 偺 偽"
++        " 傀 傂-傃 傅 傇 傋-傎 傑-傒 傔-傖 傘-傞 傢-傣 催-傸 傺-傻 傽-傿 僁-僂 僄-僋 僎-像"
++        " 僑 僓-僗 僚-僛 僝 僠 僣-僪 僬-僱 僳 僵-僶 僸-價 僻 僽-儀 儂-儌 儐-儕 儗-儘 儚 儜"
++        " 償-儢 儤-儦 儩-優 儭-儮 儰-儵 儷-儽 儿-允 元-光 克-免 兒 兔-兕 兗 兙-兟 兡-兣 入"
++        " 內-兩 八-兮 共 兵-典 兼 冀 冇 冉-冊 再 冏 冑-冕 冗-冘 冞 冠 冢 冤-冥 冪 冬 冰-冱"
++        " 冶-冷 冹 冼-冾 凄-准 凈 凊-凎 凐 凔 凗-凘 凜-凞 几-凡 凰-凱 凳 凵-凶 凸-出 函"
++        " 刀-刁 刃 分-刊 刌 刎 刐-刓 刖-列 刜-刞 刡 判-別 刨-刪 刮 到-刳 刵-券 刺-刻 剁"
++        " 剃-剄 剆-則 剉-剎 剒 剔-剖 剚-剟 剡-剢 剩-副 割 剴-創 剷-剸 剺-剽 剿-劄 劇-劍 劑"
++        " 劓 劖-劙 力 功-加 劣 劦 助-劮 劻-劼 劾 勀-勃 勇 勉 勍 勒-勓 動-務 勛 勝-募 勢-勤"
++        " 勦 勩 勫 勯-勱 勳-勵 勷-勸 勺-勼 勾-勿 包-匆 匈-匋 匍-匒 匕-北 匙-匚 匜-匝 匟-匣"
++        " 匪 匭 匯-匱 匴 匷 匹 匼-十 千-卅 升-半 卌-卍 卑-協 南 博 卜 卞 占-卡 卣 卦 卬"
++        " 卮-即 卵 卷-卹 卻-卼 卿 厂 厄 厊 厎-厏 厒 厔 厖-厚 厜-原 厤-厥 厧 厬-厭 厲 厴 厹"
++        " 去 參 又-友 反 叔 取-受 叛 叟 叡-另 叨-右 叵 司 叻-叼 吁 吃-各 吆-吒 吘-吙 君-吠"
++        " 吤-吮 吰-吱 吳 吵-吹 吻-吾 呀-呃 呅-呈 告 呎-呏 呔 呠-周 呫-呬 呯-呸 呺-咂 咄"
++        " 咆-咈 咋-咎 咐-咒 咕-咖 咘 咚 咠-咢 咥-咱 咳 咶-咸 咺-哉 哎-哏 哖 哞 哠-哢 哤-哫"
++        " 哭-哮 哱-哳 哷-哸 哺-哽 哿 唁 唃-唌 唎-唒 唔 唗 唚 唦-唧 唪 唬-唹 唻-唼 唾 啀-啁"
++        " 啃-商 啈 啊-啋 啍-啒 啕-啗 啜 啞-啟 啡-啦 啪 啵-啷 啻-善 喇-喏 喑-喕 喘-喚 喜-喝"
++        " 喟 喡-喨 喪-單 喱-喳 喵 喻 喿-嗀 嗂-嗖 嗙-嗝 嗟 嗡-嗩 嗯 嗲 嗶-嗷 嗹-嗺 嗼-嘂 嘄"
++        " 嘆 嘈-嘉 嘌-嘐 嘒-嘗 嘛-嘝 嘟 嘧 嘩-嘪 嘬 嘮-嘰 嘲-嘶 嘸-嘻 嘽-噂 噅-噆 噈-噊 噌"
++        " 噎 噓 噗-噚 噞 噠 噢-噦 器-噴 噶-噹 噾-嚇 嚌-嚐 嚓 嚕 嚗-嚚 嚜-嚝 嚥-嚨 嚪-嚮"
++        " 嚲-嚷 嚼-嚾 囀-囃 囅-囆 囈-囍 囑 囓-囔 囗 囚-四 囝-囡 囤-囥 囧 囪-囫 囮 困 囷"
++        " 囹-固 囿 圁-圄 圇-圍 園-圔 圖 團 圚-圜 圞-圠 圢-圣 在-圪 圬-地 圳-圴 圻 圾 址-坁"
++        " 坅 均 坉-坒 坡-坢 坤 坦 坨-坫 坭 坯-坷 坻-坽 垀 垂-垃 型-垌 垏 垓-垕 垗-垛 垝-垠"
++        " 垢-垥 垮 垵-垶 垸-垺 垼-垽 垿 埁-埃 埆-埇 埋-埌 城-埐 埒 埔-埕 埜 域-埥 埧 埩"
++        " 埬-埮 埰-埽 堀-堂 堄-堎 堐 堔 堙 堛-堞 堠-堡 堣-堥 堧-堪 堬-堹 堻 堽 堿 塈-塏"
++        " 塑-塕 塗-塛 塝-塞 塢-塥 塨 填 塭 塯 塱 塴-塶 塹-境 墅-墋 墎-墑 墓-墔 墘 墜-墡 墣"
++        " 墥-墦 墨-墩 墫-墬 墮-墯 墱 墳 墺-墿 壁-壂 壅-壉 壎-壏 壑-壖 壘-壛 壝-壟 壢-壤"
++        " 壧-壩 士-壬 壯 壴 壹-壺 壼-壿 夃 夆 夌-夏 夒 夔-夗 夙-多 夜 夠 夢 夤-夥 大 天-夯"
++        " 失 夷-夸 夼 夾 奀 奄-奅 奇-奊 奎-契 奓-奕 套-奘 奚 奜 奠-奢 奧 奩-奫 奭-奮 奰-奴"
++        " 奶-她 奻-妅 妊 妍-妐 妒-妓 妖-妙 妝-妞 妠-妨 妮-妯 妱-妶 妹-妾 姀-姁 姃 姅-姈"
++        " 姊-委 姖 姘 姚-姞 姠-姡 姣-姦 姨-姪 姬-姮 姱-姷 姺-威 娃 娉-娊 娌 娏 娑 娓 娕-娙"
++        " 娛-娜 娞-娠 娣 娥 娩 娭-娮 娳 娵-娹 娼 娾 婀-婄 婆-婊 婌-婍 婐-婓 婕-婘 婚-婠 婢"
++        " 婤-婧 婩-婪 婬-婭 婰 婷-婸 婺-婽 婿 媃-媄 媊-媌 媎-媐 媒-媕 媗 媚-媟 媢 媥-媧 媩"
++        " 媬 媮-嫂 嫄 嫆-嫍 嫕-嫣 嫥-嫦 嫨-嫮 嫳-嫻 嫽 嫿 嬁-嬃 嬅 嬇-嬉 嬋-嬌 嬏-嬐 嬓-嬔"
++        " 嬖-嬗 嬙-嬛 嬝-嬞 嬠-嬡 嬣-嬨 嬪 嬬-嬰 嬲 嬴 嬸 嬼-孀 孃 孅 孇-孈 孋-孎 子-孑"
++        " 孓-存 孚-孝 孟 孢-孥 孩 孫-孬 孮 孰-孳 孵 孷-學 孺-孻 孽 孿 宁 它-宅 宇-安 宋-完"
++        " 宎-宏 宒-宓 宕 宗-宜 客-宨 宬-宮 宰 害-家 宸-容 宿-寂 寄-寇 寊-寎 寐-寔 寖 寘-寙"
++        " 寞-寬 寮-寲 寵-寶 寸 寺 封 尃-射 將-尒 尕-尖 尚 尟 尢 尤-尥 尨 尪 尬 尰-就 尳"
++        " 尷-尼 尾-屁 屄-屈 屋-屑 屔-屖 屘-屙 屜-屝 屠 屢-履 屧-屪 屬-屯 山 屳-屴 屹-屼 屾"
++        " 岆 岈-岍 岏-岕 岝 岟-岱 岳 岵-岸 峆-峌 峎-峐 峒-峔 峖-峛 峞-峟 峨 峪 峬-峮 峰-峱"
++        " 峴 島-峹 峻 峽 峿-崁 崆-崇 崋-崏 崑-崒 崔 崖-崗 崙-崛 崝-崠 崢-崩 崮 崰-崺 崼-崽"
++        " 崿-嵃 嵅 嵇 嵉-嵌 嵎 嵐-嵒 嵕 嵙 嵞 嵢-嵣 嵥 嵧-嵩 嵫-嵬 嵯 嵱-嵲 嵷 嵹-嵺 嵼-嶂"
++        " 嶄 嶆-嶊 嶍 嶒-嶕 嶗 嶙-嶚 嶜-嶢 嶧-嶪 嶬-嶲 嶴-嶵 嶷-嶸 嶺 嶼-嶽 巀 巂-巃 巆-巇"
++        " 巉 巋 巍 巏 巑-巒 巔-巖 巘 川-巢 工-巨 巫 差 巰-巴 巷 巹 巽-巿 市-帄 帆 帊 希 帎"
++        " 帑 帔-帛 帝 帟-帥 帨-帩 師 席 帳-帴 帶-常 帽-帾 幀-幁 幃-幅 幊-幏 幓-幕 幗-幙"
++        " 幛-幝 幟-幣 幦-幰 干-并 幸-幹 幻-幾 庀 庂 庄 庇-庍 序 底-店 庚-府 庠 庢-庨 庪-庮"
++        " 庰-庹 庾 廁-廂 廄-廌 廎 廑-廣 廥-廩 廬 廮-廯 廱-廳 延-廷 建 廾-廿 弁-异 弄-弅"
++        " 弇-弈 弊-弋 式 弒-引 弗-弘 弚-弛 弝 弟 弢-弤 弦-弩 弭-弮 弰-弱 弳 張-弸 弼 彀"
++        " 彃-彄 彆 彈-彌 彎-彏 彔 彖-彙 彝 形 彤-彥 彧 彩-彭 彯-影 彳-彴 彶-役 彼-徂 待-後"
++        " 徐-徒 徖-徙 徛-徜 從-御 徥-徦 徨-徯 徲 徵-德 徹 徻-忁 心 必 忉 忌-忍 忏-忒 忔-忙"
++        " 忝-忞 忠-忡 忣-忥 忨 忪-快 忭-忯 忱 忳-念 忷-忸 忺-忻 忽 忿-怀 怉-怗 怙-怞 怠-怢"
++        " 怤-怯 怲-怵 怷 怹 恀-恇 恉 恌-恍 恐 恒-恕 恘-恛 恝-恟 恢-恰 恲 恿-悁 悃-悊 悌-悎"
++        " 悐 悒 悔-悗 悚-悝 悟-悠 悢-患 您 悰-悲 悴-惁 惃-惏 惑 惓-惕 惘-惝 惟-惢 惤 惦"
++        " 惰-惼 惾-愁 愃-愆 愈-愋 愍-愐 愒-愖 愘 愚-愝 感 愣 愧-愩 愫-愬 愮-愯 愲 愴 愶-愷"
++        " 愻 愾-慁 慄-慏 慒-慖 慘 慚-慛 慝-慟 慡-慣 慥-慨 慪-慬 慮 慰-慷 慹-慺 慼 慾 憀"
++        " 憂-憃 憉-憎 憐-憔 憖 憚-憛 憝 憟 憡-憢 憤 憧-憶 憸 憺 憼 憾-憿 懁-懃 懅-懍 懖 懘"
++        " 懞-懠 懣-懫 懭-懮 懰-懲 懵-戁 戃-戄 戇-戊 戌-戎 成-戒 戔-或 戙-戛 戟-戥 戧 戩-戫"
++        " 戭-戮 戰 戲-戴 戶 戺 戽-扃 扆-手 才-扎 扐-扔 托-扜 扞 扠-扦 扭-扴 扶-扷 批-抁"
++        " 抃-抄 抆-把 抌 抎-抏 抑-折 抨-抱 抳-抶 抸-抹 抻-抿 拂 拄 拆-拔 拖-拜 拫-挃 指-按"
++        " 挋-挑 挓-挖 挨-挭 振 挲-挴 挶 挸-挾 捀-捑 捔-捚 捥 捧-捩 捫 捭-捲 捵-捸 捺-捽"
++        " 掀-掅 掇-掊 掌-排 掔 掖-掙 掛-接 控-掱 掽-掾 揀 揂-提 插-揓 揕-揝 揟-握 揣-揥"
++        " 揧-揫 揭-揶 揹 搆 搉-搐 搒-搘 搚-搜 搞-搨 搪-搰 搳-搷 搹 搽-摁 摃 摋 摍-摎 摐-摔"
++        " 摘-摙 摛-摡 摥-摩 摫-摰 摲-摻 摽 摿 撂 撅 撇-撌 撏-撐 撒-撓 撕-撚 撜-撠 撢-撦 撩"
++        " 撫-撮 撰-撳 撻-撿 擁-擅 擇 擉-擋 操-擐 擒 擔 擖-擛 擠 擢-擤 擦 擨-擩 擫-擭 擯-擴"
++        " 擷-擸 擺-攁 攃-攄 攆-攇 攉 攌-攐 攓-攙 攛-攝 攠-攦 攩-支 攲-攳 收-改 攻 攽-政 敁"
++        " 敃 故-敆 效-敊 敏 救 敓-教 敜-敞 敢-敨 敪 敬 敯 敲-敼 敿-斄 文 斌 斐-斒 斔-斗 料"
++        " 斛-斢 斤-斥 斧-斨 斪-斬 斮-新 斲-斳 斶-方 斻-施 斿 旁-旆 旋-旐 旒-旓 旖-旗 旚-旛"
++        " 旝-旟 旡-既 日-旦 旨-早 旬-旵 旺-旽 昀 昂-昕 昜-昝 星-昢 昤-昨 昫 昭-是 昱-昶"
++        " 昹-昺 晁-晃 晅 晇 晉-晊 晌 晏 晑-晒 晙-晟 晡-晢 晤-晦 晨 晪 晬 普-晲 晴 晶-晼 晾"
++        " 暀 暄 暆-暍 暐-暑 暔-暙 暝 暟-暢 暨-暫 暮-暲 暴-暵 暷-暻 暽-暾 曀 曄 曆-曌 曏 曒"
++        " 曖 曘-曞 曠 曣-曤 曦 曨-曩 曫-曮 曰 曲-更 曶-曹 曼 曾-朁 會-朅 月-朋 服 朏-朐"
++        " 朒-朕 朗-朘 望 朝 期-朣 朦-木 未-朮 朱 朳-朵 朸-朿 杅-杉 杋-村 杓 杕-杗 杙-杚"
++        " 杜-杠 杪 杬-杭 杯-板 极 枃-枇 枉 枋-枎 析-枕 林-枚 果-枝 枟 枮-枰 枲-枻 柀-柆"
++        " 柈-柔 柘-柟 柢-柧 柩-柸 柺 柼 柿 栒-栔 栖-栘 栚 栜-栝 栟-校 栥-栦 栨-栫 栭-栯"
++        " 栱-栵 核-栽 桀-框 案-桉 桋-桑 桓-桔 桫 桭-桯 桱-桲 桴-桹 桻-梃 梅-梇 梉-梌 梏-梔"
++        " 梖-梗 梛-條 梟-梤 梧-梵 棄 棆-棉 棋-棎 棐-棘 棚 棜-棡 棣-棤 棦-棬 森-棽 椄-椈"
++        " 椊-椕 椗 椥 椪 椯-椰 椲-椵 椷-椹 椻-椽 椿-楂 楄-楅 楈-楌 楎-楏 楑-楔 楖-楠 楢-楣"
++        " 楥-楦 楨-楱 楴-楻 概-榃 榆 榍-榎 榐-榑 榓-榗 榙-榜 榞 榠-榡 榣-榱 榳-榷 榹 榻-榿"
++        " 槁-槄 槆 槉-槐 槓-槔 槙 槢 槤-槨 槫-槮 槱-槴 槶-槸 槻-樂 樄-樊 樍 樏 樑 樓-標 樛"
++        " 樝-模 樣 樥-樨 樲 樴-樵 樸-橁 橄 橆-橉 橋 橍-橑 橔-橖 橘-橛 橝-橢 橤 橦-橫 橭 橯"
++        " 橶 橾-檁 檃-檅 檇 檉 檌-檎 檐-檗 檚-檜 檞-檦 檨 檬-檯 檳-檴 檶-檻 檽 櫂-櫃 櫅-櫇"
++        " 櫋-櫍 櫏-櫑 櫓 櫙-櫡 櫥 櫧-櫨 櫪-櫬 櫮-櫱 櫳 櫸-櫼 欀 欂-欄 欈-欋 欏-欓 欖-欚 欞"
++        " 欠-次 欣 欥 欨 欬-欭 欯 欱-欴 欶-欿 歁-歃 歅-歎 歐-歑 歔-歖 歙 歛-歜 歞-歧 歪 歭"
++        " 歲 歶-歹 死 歾-殀 殂-殄 殆 殈-殊 殌-殏 殑 殔-殙 殛 殞-殠 殢-殧 殪-殫 殭-殰 殲-殳"
++        " 段-殷 殺 殼-殽 殿-毀 毃-母 每-毐 毒-比 毖-毘 毚-毛 毞 毠 毢-毤 毦-毨 毫-毬 毯-毰"
++        " 毲-毳 毷-毹 毻-氆 氈-氉 氋-氍 氏-民 氓-氖 氘-氛 氝 氟-氡 氣-氨 氪-氬 氮-氰 氳-水"
++        " 氶 永 氻 氾-汃 汆 汊-汐 汒 汔-汕 汗 汙 汛-污 汥-汫 汭 汯-汴 汶 汸 決-汻 汽-汾"
++        " 沀-沐 沒-沖 沘-沝 沫-沮 沰-沱 河-沴 沶-泇 泉-泊 泌-泍 泏-泗 泙-泞 泠-泣 泥 泧-泩"
++        " 泫-泳 泵 泹 洀-洁 洃-洄 洇-洒 洖-洛 洝-洠 洢 津 洧-浂 浘-浚 浞-浪 浬-浰 浴-涀"
++        " 涂-涎 涐-涕 涗-涘 涪-涬 涮-涯 液-涵 涷-涸 涺-淀 淂 淄-淍 淏-淦 淨-混 淹-淽 渀 渃"
++        " 清 渙-渝 渟-渨 渫-渶 游-湁 湃-湇 湉-湋 湍-湎 湑-湖 湘 湚-湩 湫 湮-湯 湱-湴 湷-湹"
++        " 溈-溉 溍-源 溒-溔 準-溙 溛-溧 溪-溫 溮-溴 溶-溷 溹-溺 溼-滖 滘 滜 滫-滯 滱-滲"
++        " 滴-滹 滻-漃 漅-漊 漍-漏 漒-漕 漘-漚 漜 漞-漣 漥-漧 漩-漳 漵-漼 漾-潁 潃 潎-潕"
++        " 潗-潘 潚-潛 潝-潤 潦-潧 潩-潰 潲-潳 潶-潸 潺-澀 澂 澄-澉 澋-澎 澐 澒-澗 澞 澠-澴"
++        " 澶 澸-澺 澼-澽 澿-濄 濆-濏 濔-濕 濘 濛-濤 濦-濩 濫-濲 濴 濷 濺-濼 濾-瀁 瀄-瀇"
++        " 瀉-瀏 瀑 瀔-瀝 瀟-瀤 瀦-瀫 瀯-瀵 瀷-瀼 瀾-灆 灈-灊 灌 灑-灒 灕-灘 灚-灛 灝-灦"
++        " 灨-火 灰-灱 灴 灶 灸 灺 灼-災 炂-炆 炊 炎 炑-炖 炘-炚 炟 炡 炤 炩 炫-炱 炳-炵"
++        " 炷-炸 為 炾 烅-烈 烊-烋 烍-烏 烑-烔 烗-烚 烜-烞 烠-烢 烤 烯-烰 烳-烴 烶-烽 烿-焀"
++        " 焂 焄 焆 焉-焎 焐 焓 焗 焙-焜 焞-焣 焥-焦 焨 焮-焲 然 焺 煁-煄 煆-煇 煉 煋-煎 煐"
++        " 煒-煔 煖 煘-煚 煜-煪 煬 煮 煰 煲 煸 煻 煽 熀-熂 熄-熇 熉-熊 熏-熐 熒 熔 熗 熙-熡"
++        " 熤-熥 熧-熪 熬 熯-熳 熵 熸-熹 熼-燋 燎-燐 燒 燔-燖 燘-燜 營-燢 燤-燨 燬-燮 燰-燲"
++        " 燴 燸-燹 燻-燿 爁-爃 爅-爇 爊 爌-爍 爐 爓-爔 爙-爛 爝-爟 爢-爣 爦-爪 爬-爭 爰"
++        " 爵-父 爸-爻 爽-爿 牁-牂 牄 牆-牌 牏 牒-牓 牖 牘-牛 牝-牣 牧 物-牪 牬 牮-牰 牲-牴"
++        " 牶-特 牻-犁 犄-犆 犈-犉 犋-犎 犐-犓 犕-犘 犚-犛 犝-犞 犡-犪 犬 犮-犰 犴-犵 犺 犽"
++        " 犿-狆 狉-狌 狎 狐-狒 狔 狖-狚 狜 狟-狡 狣-狤 狦 狨-狫 狳-狴 狶-猁 猇-猈 猊-猌 猏"
++        " 猑-猓 猖-猙 猛-猞 猢-猣 猥-猧 猩 猭 猰-猷 猺-猼 猾-獀 獂-獅 獉-獊 獌-獎 獐-獒"
++        " 獗-獛 獝-獢 獥-獬 獮-獰 獲-獳 獵-獸 獺-王 玎 玒-玗 玝 玟-玢 玤-玦 玨-玩 玫-玭"
++        " 玲-玹 玻-玼 玾-珀 珂-珃 珅-珈 珊-珍 珒-珔 珖-珞 珠 珣 珥 珧-珫 班-珮 珴-珶 珸 珺"
++        " 珼-琁 球-琍 琖 琚-琛 琝 琠-琦 琨-琶 琺 琿-瑂 瑄 瑆 瑊-瑋 瑍-瑒 瑔-瑕 瑗 瑙-瑜"
++        " 瑞-瑟 瑢-瑤 瑧 瑩-瑪 瑭-瑳 瑵 瑹 瑼-璁 璃 璅-璋 璐 璒 璔-璕 璗-璘 璚 璜 璞-璡 璣"
++        " 璥-璫 璭 璯-璲 璵-璸 璺-璻 璽-瓃 瓅 瓊-瓋 瓏 瓔-瓦 瓨-瓩 瓬 瓮 瓴-瓷 瓻 瓽-甀"
++        " 甂-甄 甇-甈 甋-甍 甏-甘 甚 甜-甝 生 甡-產 甥-甦 用-申 男-町 甽-畀 畇-畈 畋-界"
++        " 畎-畏 畔 留-畝 畟 畢-畦 番-畬 畯-異 當-畹 畽-疀 疄 疆-疇 疊-疌 疏-疑 疔-疕 疘-疚"
++        " 疝 疢-疥 疧 疪-疫 疰 疲-疳 疵-疶 疸-痂 痄-病 症 痊-痒 痔-痕 痗-痛 痝-痤 痦-痧 痭"
++        " 痯-瘁 瘃 瘈-瘍 瘏-瘑 瘓-瘖 瘙-瘩 瘭 瘯-瘵 瘸 瘺 瘼-瘽 療-癃 癆-癉 癌 癐 癒-癓"
++        " 癖-癚 癜 癟-癢 癤-癥 癩-癪 癬-癮 癰-癲 癵 癸-癹 登-癿 皁-皂 的 皆-皋 皎-皏 皒-皓"
++        " 皕-皖 皙-皞 皤 皦 皪-皫 皭-皰 皴-皵 皸 皺-皻 皽-皿 盂-盆 盈-益 盍-盎 盒-盔 盚-盟"
++        " 盡 監-盧 盩-盪 盬-盵 盷-盼 盾 省 眃-眅 眇-看 眐-眓 眕 眙-眛 眝 真-眠 眢-眣 眥"
++        " 眧-眩 眭 眯 眱-眾 睄-睇 睊-睏 睒 睔-睖 睙-睜 睞-督 睥-睯 睹 睼-瞅 瞇-瞉 瞋-瞏 瞑"
++        " 瞕 瞗 瞙-瞣 瞥 瞧-瞨 瞪-瞭 瞰-瞷 瞺-瞽 瞿 矂 矄 矇 矉-矊 矌-矐 矓-矕 矗-矜 矞 矠"
++        " 矢-矣 知 矧-矩 矬-石 矷-矽 砂-砃 砅-砆 砉 砌-研 砝 砟-砣 砥-砵 砷-砸 硃 硅 硈-硊"
++        " 硌-硎 硐 硒 硜-硞 硠 硢 硤-硥 硨-硱 硹 硻-硼 硾-碁 碃-碇 碉 碌 碎-碏 碑 碓-碚"
++        " 碞-碥 碧-碭 碰 碲-碴 確-碼 碾 磁 磃-磅 磈-磑 磔-磕 磚-磛 磝-磣 磥 磧-磪 磬-磭 磯"
++        " 磲-磴 磷 磹-磿 礁-礂 礄-礅 礉 礌 礎 礐-礔 礗 礙 礛-礞 礡 礣-礭 礯 礱 礵 礸-示"
++        " 礽-祂 祄-祌 祏-祗 祚-祡 祣-祥 祧-祫 祭 祰 祲-祴 祹-祺 祼-祽 祿 禁-禂 禈 禊-禋"
++        " 禍-禐 禒-禘 禚-禜 禠-禢 禤 禦-禨 禪-禮 禰-禴 禶-离 禽-私 秅 秈-秉 秋 种-秏 科-秒"
++        " 秕-秖 秘 秜-秠 秣-秤 秦-秧 秩-秮 秶-秸 秺-移 稀 稂-稅 稈 稊-稍 稐-稕 稗-稜 稞-稠"
++        " 稢 稦 稨 稫 種-稱 稷 稹 稻-稽 稿-穀 穄 穆-穈 穊-穎 穔 穖-穘 穚-穜 穟-穢 穧-穩"
++        " 穫-穮 穰-穱 穴-究 穸-穻 穾-突 窄-窌 窏-窐 窒 窔-窙 窞-窠 窢-窣 窨-窬 窮-窯 窱-窸"
++        " 窺 窾-竁 竄-竅 竇 竊-立 竑 竘-站 竟-章 竣-竦 竫 竭-端 競-竷 竹-竻 竽 竿-笁 笄-笆"
++        " 笈-笊 笎-笓 笘-笛 笝-笞 笠 笢-符 笨 笪-笵 笸 笻 筀 筄-筒 答 策 筘 筠-筡 筣-筧 筩"
++        " 筭-筮 筰-筸 箂 箄-箅 箇-箈 箊-箑 箔-箙 箛-箝 箠-管 箤 箬-箭 箯 箱 箴-箵 箷-箹 箾"
++        " 節-篁 範 篆-篇 築-篌 篎 篔-篕 篘-篫 篰-篴 篷-篹 篻 篽-簃 簅-簇 簉-簑 簙 簜-簣"
++        " 簥-簭 簰 簳 簷-簹 簻-籀 籃 籅 籇-籊 籌-籍 籐 籓-籔 籗 籙-籜 籟-籠 籣-籧 籩-籬"
++        " 籮-籯 籲-米 籵 籸-籺 籽 籿-粁 粄-粅 粈-粊 粌-粍 粑-粒 粔-粘 粞-粟 粡-粣 粥 粧-粨"
++        " 粯 粱-粵 粹-粿 糅 糈 糊-糌 糎 糐-糒 糔-糗 糙 糜-糠 糢 糧-糨 糪 糬 糮-糲 糴 糶-糸"
++        " 系 糽-糾 紀-索 紨-紩 紫-紬 紮-紳 紵-紶 紸-絇 絊 絎-絖 絘 絛-絜 絞-絟 絡-絣 給-絫"
++        " 絭-絳 絹-絽 絿-綁 綃-綆 綈 綌-綏 綑-綔 綖 綜-綣 綦-綧 綩-綪 綬-網 綴-綵 綷-緂"
++        " 緄-緇 緉-緌 緎 緒 緗-緛 緝-緡 緣 緦-緪 緬 緮-練 緶-緷 緹-緻 縃 縈-縗 縚-縥 縩-縫"
++        " 縭-繉 繌 繐-繚 繜 繞-繣 繨-繫 繭 繯-繰 繲-繾 纀-纂 纆-纈 纊-纍 纏 纑 纓-纜 缶"
++        " 缸-缺 缽-缿 罃-罅 罈 罊-罍 罏-网 罔-罕 罘 罛-罡 罣 罥-置 罰 署-罳 罵-罷 罹-罿 羃"
++        " 羅-美 羑-羒 羔-羖 羚-羞 羠-羢 群-義 羬-羭 羯-羳 羵-翃 翅 翇 翉-習 翔-翕 翗 翛-翜"
++        " 翞-翣 翥-翦 翨-翵 翷-翹 翻-老 考-耇 耋-耒 耔-耙 耛-耜 耞-耟 耡 耤 耦 耨-耪 耬 耰"
++        " 耳-耷 耹 耽-耿 聃 聆-聈 聊 聏-聒 聖 聘 聚 聜-聞 聤 聧 聬 聯-聳 聵-聹 聽-聿 肂"
++        " 肄-肇 肉-肌 肏-肐 肒-肓 肕-肖 肘-肝 股-肣 肥 肩-肫 肭-肯 肱-育 肴-肵 肸 肺 胂-胅"
++        " 胇-胊 背-胑 胔-胞 胠-胡 胣-胦 胭 胯-胵 胸-胾 脀-脂 脅-脆 脈 脊 脕-脖 脘-脙 脛"
++        " 脝-脟 脡-脥 脧 脩 脫-脭 脯-脰 脹-脺 脽-脾 腃-腄 腆-腇 腊-腕 腛-腜 腞 腠-腢 腤-腧"
++        " 腩 腫 腮-腴 腶-腺 腿-膀 膂-膃 膆-膍 膏 膕 膗-膠 膢-膣 膦-膩 膫-膬 膮 膰-膵 膷"
++        " 膹-臀 臂-臇 臉-臊 臌-臍 臏-臒 臕 臗-臛 臝-臣 臥-自 臬-臮 臲-致 臷-臼 臾-舂 舄-舅"
++        " 與-舍 舐-舒 舔-舖 舛-舢 舥 舨 航-般 舯 舲-舺 舼-舽 舿-艀 艂 艄-艅 艇 艉 艋 艎-艓"
++        " 艕-艜 艞-艟 艡 艣-艤 艦 艨-艩 艫-良 艱-色 艴-艵 艷-艸 艼-芀 芃-芅 芊-芋 芍-芔"
++        " 芘-芛 芝-芥 芧-芩 芫-花 芳-芾 苀 苂-苃 苑-苗 苙 苛-苜 苞-苡 苣-苨 苪-苭 苯-苶"
++        " 苹-苻 苾 茀-茉 茌-茍 茖-茗 茙 茛-茜 茞 茠 茢 茤-茭 茯 茱-茼 茿-荅 荇-荔 荖 荳-荸"
++        " 荺-荿 莁 莃 莆-莐 莒-莛 莝-莞 莠 莢-莫 莮-莰 莽 莿-菌 菎-菏 菑 菔-菙 菛-菥 菧-菬"
++        " 菮-菶 菸-菿 萁 萃-萄 萆-萇 萉-萓 萛 萣 萩 萫-萭 萯-落 萿-葀 葂-葇 葉 葋-葎 葐-葒"
++        " 葔 葖-著 葙-葛 葝-葡 董 葥-葩 葫-葰 葳-葺 葽-葾 蒂 蒆 蒍-蒑 蒔 蒗-蒢 蒤 蒧-蒬"
++        " 蒮-蒲 蒴 蒶 蒸-蒼 蒿-蓂 蓄-蓇 蓉-蓔 蓖-蓗 蓛 蓧-蓬 蓮-蓴 蓶-蓷 蓹-蔀 蔂 蔆-蔏"
++        " 蔑-蔚 蔜-蔡 蔣-蔱 蔻 蔽-蔾 蕀-蕁 蕃-蕊 蕍-蕎 蕑 蕓-蕙 蕛 蕝-蕞 蕠-蕮 蕱 蕵-蕼 蕾"
++        " 薀-薑 薔-薖 薘-薤 薦-薪 薯-薱 薳-薺 薽-藀 藂-藉 藋 藍-藒 藕 藗-藚 藜-藟 藡-藦"
++        " 藨-藭 藯-藲 藶-藻 藽-蘁 蘄-蘇 蘉-蘌 蘑 蘗-蘜 蘞-蘧 蘩-蘪 蘬-蘮 蘱-蘶 蘸-蘼 蘾-虀"
++        " 虃 虆-虈 虋-虎 虐 虒-虖 虙 虛-虜 虞-號 虡-虥 虧-虫 虭-虱 虳-虴 虷 虹-虼 蚅-蚇"
++        " 蚊-蚎 蚐-蚑 蚓-蚚 蚜-蚞 蚡-蚥 蚧-蚪 蚯-蚱 蚳-蛉 蛋-蛌 蛐-蛑 蛓-蛔 蛖-蛟 蛢-蛤 蛦"
++        " 蛨-蛭 蛵-蛻 蛾 蜀-蜎 蜑-蜓 蜘-蜜 蜞 蜠-蜪 蜬-蜮 蜰-蜵 蜷-蜸 蜺-蜼 蜾-蝃 蝆 蝌-蝯"
++        " 蝳-蝻 螁-螅 螇-螉 融 螏-螔 螖-螘 螚-螟 螢-螤 螪-螰 螲-蟀 蟂-蟆 蟈-蟌 蟑-蟔 蟗-蟙"
++        " 蟛-蟨 蟪-蟭 蟯 蟲-蟴 蟶-蟷 蟹-蟼 蟾-蠃 蠅-蠆 蠈-蠍 蠐-蠑 蠓-蠗 蠙 蠛-蠝 蠟-蠦"
++        " 蠨-蠬 蠮-蠳 蠵-蠹 蠻-衁 衃-衄 衈 衊-衎 衒-術 衕-街 衙-衛 衝 衡-衣 衧-衫 衭 衯-衲"
++        " 衴-衷 衹 衼-袃 袈-袉 袋-袎 袑-袓 袕-袛 袞-袟 袡-袢 袤 袧-袨 袪-袬 袱-袲 袶-袺"
++        " 袼-袾 裀-裂 裉-裐 裒 裔-裟 裡 裧-裨 裫-裬 裮-裴 裶-裾 褁-褂 褅-複 褉-褌 褎 褐-褚"
++        " 褞-褟 褡-褣 褥-褧 褩-褳 褵-褸 褻-褾 襁-襂 襄 襆 襉 襋-襌 襏-襓 襖-襤 襦 襩-襯"
++        " 襱-襴 襶 襹-襼 襾-西 要-覃 覅-覆 覈 見 規 覓 覕-覘 覛-覟 覡-覤 覦 親 覬-覯 覲"
++        " 覶-覷 覹-覺 覽-觀 角-觖 觙-觝 觟-触 觨-觩 觫-觭 觰-觴 觶-觸 觺-觼 觾-言 訂-訄"
++        " 訇-計 訊 訌 討-訓 訕-記 訛 訝-訟 訢-訣 訥 訧 訪 訬-設 訰-許 訴 訶 訹-証 訾-詁"
++        " 詄-詆 詈 詊 詌-詒 詔-詙 詛 詞 詠-詣 試 詨-詩 詫-詮 詰-詷 詹-詼 詿 誁-誇 誋-認 誏"
++        " 誑-誓 誕-誖 誘-誚 語 誠-誡 誣-誨 說-誫 誰 課 誶 誸-諀 諂-諉 請 諍 諏 諑-諙 諛-諢"
++        " 諤 諦-諨 諫 諭-諸 諺-諼 諾-謂 謄-謈 謊-謋 謍-謞 謠 謢-謨 謪-謬 謮-謱 謳 謵-謷"
++        " 謹-謾 譀-譂 譅-譋 譎-譚 譜-譝 譟-譠 譣 譥-譨 譪-譭 譯-議 譴 護-譻 譽-讀 讂 讄-讆"
++        " 讈 變-讌 讎 讒-讖 讘-讚 讜 讞-讟 谷 谹 谻-谿 豁-豃 豅-豐 豔-豗 豚 豜-豝 豟 象-豢"
++        " 豤-豦 豨-豭 豯-豳 豵-豻 豽 貀-貂 貄-貆 貉-貊 貌-貍 貏-貕 貗-貚 貜-貞 負-貥 貧-責"
++        " 貯-貰 貲-賅 資-賈 賊 賌 賏 賑-賓 賕 賗 賙-賚 賜-賨 質 賬-賮 賰-賱 賳-賵 賸-賾 贀"
++        " 贂 贄-贊 贍 贏-贐 贓-贗 贙 贛 赤 赦-赩 赫-走 赲-赴 赶-赹 赻 赽 趀-趁 趄-超 趉-越"
++        " 趌-趖 趙 趛-趜 趟-趡 趣 趥 趧-趨 趪-趯 趲-趷 趹-趺 趼 趾-趿 跁-跂 跅-跈 跋-跑 跓"
++        " 跕-距 跟-跤 跦-跬 跮-跴 跺 跼-踀 踂-踇 踉-踊 踍 踏-踧 踩 踫 踮 踰-踱 踳-踶 踸-踹"
++        " 踼-蹂 蹄-蹅 蹇-蹎 蹐 蹓-蹗 蹙-蹧 蹩-蹪 蹬-蹭 蹯 蹲-蹴 蹶 蹸 蹺-蹼 躁-躂 躄-躎"
++        " 躐-躘 躚 躝-躡 躣-躦 躨-躬 躲 躺 躽 軀 軂 軉-軍 軏 軑-軔 軗-軘 軛-軡 軥-軩 軫-軬"
++        " 軮-軯 軱 軴-軼 軾-較 輅-輋 輍-輎 輐-輘 輚-輠 輣-輦 輩-輪 輬 輮-輯 輲-輹 輻 輾-轀"
++        " 轂-轉 轋 轍-轛 轝-轤 辛-辜 辟 辣 辦 辨 辭-農 辴 辿 迂 迄-迆 迉 迋 迍-迎 近-迗"
++        " 迠-迦 迨 迪-迫 迭-迮 述 迴-迸 迺-逆 逋-逍 透-逑 途-逗 這-逤 逭-逯 週-進 逴-逶 逸"
++        " 逼-逿 遁-遂 遄 遇 遉-運 遍-違 遘-遙 遛-遞 遠 遢-遣 遧-適 遫 遭-遰 遲-邈 邊-邋 邍"
++        " 邏-邑 邔-邕 邗-邙 邛 邞-那 邥-邧 邪 邯-邶 邸 邽-邿 郁 郃 郅 郇-郈 郊-郋 郎 郔-郝"
++        " 郟-郥 部-郭 郯-郵 郹-鄉 鄋 鄍-鄒 鄔 鄖-鄤 鄦-鄶 鄸-鄻 鄾-酁 酃-酐 酒-酓 酕-酘 酚"
++        " 酟-酥 酨-酪 酬 酮-酯 酲-酵 酷-酺 醀-醇 醉-醋 醍 醏-醓 醙-醣 醥 醧-醨 醪-醵 醷"
++        " 醹-醺 醼-醾 釀-釃 釅-采 釉 釋-金 釓-釕 釗-釚 釜-針 釢-釤 釦-釮 釱 釳-釵 釷-釹 釽"
++        " 釿-鈇 鈉-鈊 鈌-鈍 鈏-鈒 鈔-鈗 鈙-鈚 鈜 鈞 鈣-鈧 鈭-鈮 鈰-鈴 鈶-鈺 鈽-鉀 鉅-鉆"
++        " 鉈-鉔 鉖-鉗 鉚-鉛 鉞 鉠-鉡 鉣-鉧 鉬-鉭 鉯-鉰 鉲 鉶 鉸-銀 銂-銃 銅-銈 銊-銎 銑"
++        " 銓-銝 銠-銬 銲-銷 銹 銻-銼 鋀-鋓 鋕 鋗-鋙 鋝-鋡 鋤 鋦-鋪 鋮-鋱 鋷-鋼 鋾-錂 錄 錆"
++        " 錈-錉 錋-錐 錒-錖 錘-錛 錝-錫 錭-錯 錳-錶 錸-錹 錼 鍆-鍇 鍉-鍒 鍔-鍜 鍞 鍠-鍡"
++        " 鍣-鍥 鍧 鍪 鍬-鍭 鍰-鍱 鍵-鍷 鍹-鍼 鍾 鎀 鎂-鎃 鎈-鎊 鎌-鎏 鎑-鎒 鎔-鎛 鎝-鎟"
++        " 鎡-鎪 鎬 鎮-鎵 鎷 鏀 鏂-鏄 鏇-鏈 鏊 鏌-鏒 鏔-鏚 鏜-鏟 鏡-鏤 鏦-鏨 鏬 鏮 鏵-鐀 鐃"
++        " 鐆-鐇 鐉-鐖 鐘-鐙 鐠 鐨-鐬 鐮 鐰-鐳 鐵-鐽 鐿-鑀 鑄-鑌 鑏-鑒 鑕 鑗 鑝-鑞 鑠 鑢-鑤"
++        " 鑨-鑫 鑭-鑸 鑼-钃 長 镺-镽 門 閂-閃 閆 閈-閉 開-閔 閘 閛-閜 閞-閟 閡 閣-閥 閨-閩"
++        " 閫-閮 閰-閱 閵-閷 閹-闀 闃 闅-闍 闐-闖 闚-關 闞-闥 阜 阞 阠-阤 阨 阪 阬-防 阹-阽"
++        " 阿-陀 陂-附 陊-陑 陓-陔 陘 陛-陟 陡-除 陪-陭 陯-陸 陼-陾 隀 隃-隋 隍-階 隑-隕"
++        " 隗-隙 際-障 隞 隡-隢 隤 隧-險 隬 隮 隰-隱 隳-隴 隸-隹 隻-隼 隿-雎 雒-雟 雡-難 雥"
++        " 雨-雪 雯-雲 雵-電 雽 雿-需 霂 霄-霉 霋 霍-霓 霖 霘-霙 霜-霠 霢-霬 霮-霰 露 霵"
++        " 霸-霺 霽-霿 靂-靄 靆-靉 靋 青 靖 靘 靚-靜 非 靠-面 靦 靨-靪 靬 靮 靰 靲-靴 靶-靸"
++        " 靺-鞅 鞈 鞊-鞋 鞍-鞏 鞔 鞗-鞚 鞜-鞞 鞠-鞦 鞨 鞪-鞮 鞳 鞶-鞷 鞹 鞻 鞿 韁 韃-韇 韉"
++        " 韋-韐 韓-韙 韜-韟 韡 韣 韥 韭 韰-韱 音 韶 韸-韻 韽-須 頊 頌-頓 頖-領 頛-頞 頠-頡"
++        " 頤 頦-頩 頫 頭 頯-頰 頲 頵 頷-頹 頻 顁 顃-顆 顈-顊 題-顓 顗-顙 顛-顠 顢-顥 顧"
++        " 顩-顫 顯-顴 風-颩 颬-颯 颱-颳 颶 颸 颺-飂 飄 飆 飉 飋-飌 飛 食 飢-飣 飥 飧 飩-飫"
++        " 飭 飯 飲 飴 飶 飹-飺 飼-飾 餀 餂-餃 餅 餇-養 餌 餐-餘 餚-餛 餞-餟 餡 餤-餥 餧-餳"
++        " 餵 餺 餼-餿 饁 饃 饅 饇-饉 饋-饌 饎 饐-饙 饛-饜 饞-饟 饡 首-香 馜-馞 馡 馣 馥-馨"
++        " 馫-馵 馹-馻 馽 駁-駃 駇 駉 駋-駙 駛-駝 駟 駢-駥 駧 駩-駪 駬-駮 駰-駱 駴 駶-駿"
++        " 騁-騇 騉-騋 騍-騏 騑 騔-騖 騙-騞 騠 騢-騥 騧 騩-騮 騰-騲 騴-騺 騽-驆 驈-驊 驌-驐"
++        " 驒-驗 驙-驛 驞-驠 驢 驤-驫 骨 骫 骭 骯-骱 骳-骴 骷-骹 骻-骼 骾-髂 髆-髇 髊 髍"
++        " 髏-髖 高 髜 髟 髡 髣 髦-髧 髫-髯 髱-髳 髶-髷 髹-髾 鬁 鬃-鬆 鬈 鬊-鬎 鬐-鬒 鬕-鬚"
++        " 鬞-鬠 鬢-鬥 鬧-鬩 鬫 鬮-鬯 鬱-鬳 鬵 鬷 鬺-鬼 鬾-鬿 魁-魆 魈 魊-魏 魑-魒 魔-魖"
++        " 魘-魛 魟-魡 魤 魦-魨 魬 魯-魱 魴-魷 魺-魾 鮀 鮂 鮅-鮈 鮐-鮓 鮕 鮚-鮛 鮞 鮠-鮢"
++        " 鮤-鮦 鮨 鮪-鮫 鮭-鮯 鮵-鮶 鮸-鮹 鮽 鮿-鯁 鯃-鯄 鯆-鯊 鯓-鯗 鯙-鯜 鯞 鯠-鯢 鯤-鯨"
++        " 鯪-鯬 鯰 鯷-鯸 鯽 鰅-鰉 鰋 鰍-鰎 鰒-鰔 鰗 鰜-鰝 鰡 鰣-鰥 鰨-鰩 鰫-鰭 鰱-鰴 鰶-鰷"
++        " 鰹 鰻-鱁 鱄 鱆 鱈-鱎 鱐 鱒 鱔-鱙 鱞-鱠 鱢-鱣 鱦-鱨 鱭-鱮 鱱 鱳-鱵 鱷-鱺 鳥-鳧"
++        " 鳩-鳪 鳭 鳱-鳷 鳹-鳽 鳿-鴀 鴃-鴉 鴐 鴒 鴔-鴕 鴗-鴙 鴛 鴝-鴠 鴢-鴣 鴥-鴦 鴨-鴩"
++        " 鴭-鴱 鴳 鴶-鴸 鴻 鴽-鵃 鵅 鵊-鵌 鵏 鵑-鵔 鵖-鵝 鵟-鵡 鵧-鵬 鵯-鵵 鵷-鵹 鵻 鵽"
++        " 鵿-鶂 鶄-鶌 鶐 鶒 鶔 鶖-鶤 鶦-鶪 鶬-鶭 鶯 鶱-鶼 鶾-鶿 鷁-鷃 鷅 鷇-鷈 鷊-鷓 鷕-鷟"
++        " 鷡-鷦 鷨-鷩 鷫-鷰 鷲-鷻 鷽-鸇 鸉 鸋 鸍 鸏-鸕 鸗 鸙-鸛 鸝-鸞 鹵 鹹-鹺 鹼-鹽 鹿-麀"
++        " 麂-麃 麆-麎 麑-麔 麗 麙-麝 麟-麡 麤-麥 麧 麩 麭-麮 麰 麴-麷 麻-麼 麾 黀 黂-黃 黈"
++        " 黌-黑 黓-黖 默 黚-黠 黤-黨 黫 黭-黰 黲-黷 黹-黽 黿-鼁 鼆-鼇 鼉-鼊 鼎-鼐 鼒-鼓"
++        " 鼕-鼖 鼘-鼜 鼞 鼠 鼢-鼥 鼨-鼸 鼻 鼽-鼾 齀-齃 齆-齏 齒 齔-齙 齛-齡 齣-齧 齪-齬"
++        " 齮-齲 齴-齻 齾 龍 龐-龒 龔-龕 龘 龜 龠 龢 龤 彞 敍 简]"
+     }
+     ExemplarCharactersIndex{"[一 丁 三 丑 丙 丞 串 並 亟 乘 乾 傢 亂 僧 億 儒 優 叢 嚥 勸 儷 儼 囌 囑 廳]"}
+     LocaleScript{
+--- source/data/locales/zh.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/locales/zh.txt	2011-01-19 18:16:42.551781000 -0800
+@@ -12,59 +12,7 @@
+ zh{
+     AuxExemplarCharacters{"[侣 傣 卑 厘 吕 堤 奎 巽 录 户 撤 楔 楠 滕 瑚 甫 盲 禄 粟 线 脚 钯 铂 锑 镑 魁]"}
+     ExemplarCharacters{
+-        "[一 丁 七 丈-与 专 且 世 丘-业 东 丝 丢 两 严 丧 个 中 丰 串 临 丸-主 丽 举 乃 久 么 义 之-乐 乔 乖 乘 乙 九 也-乡"
+-        " 书 买 乱 乾 了 予 争 事 二 于 亏 云 互 五 井 亚 些 亡 交 亦 亨 享 京 亮 亲 人 亿-仁 仅 仇 今 介 仍 从 仔 他 付 仙"
+-        " 代-以 仪 们 仰 仲 件 任 份 仿 企 伊 伍 伏-休 众 伙 会 伟 传 伤 伦 伯 估 伴 伸 似 伽 但 位-佑 体 何 余 佛 作 你 佤"
+-        " 佩 佳 使 例 供 依 侠 侦-侨 侬 侯 侵 便 促 俄 俊 俗 保 信 俩 修 俱 俾 倍 倒 候 倚 借 倦 值 倾 假 偌 偏 做 停 健 偶"
+-        " 偷 储 催 傲 傻 像 僧 儒 允 元-充 先 光 克 免 兑 兔 入 全 八-兮 兰 共 关-兹 养-兽 内 冈 再 冒 写 军 农 冠 冬 冰 冲"
+-        " 冷 准 凌 凝 几 凡 凤 凭 凯 凰 出 击 函 刀 分 切 刊 刑 划 列-创 初 判 利 别 到 制-券 刺 刻 剂 前 剑 剧 剩 剪 副 割"
+-        " 力 劝-务 劣 动-劫 励-劳 势 勇 勉 勋 勒 勤 勾 勿 包 匆 匈 化 北 匙 匹-医 十 千 升 午 半 华 协 卒 卓 单-南 博 占-卢"
+-        " 卫 印 危 即 卷 厄-历 厉 压-厍 厚 原 去 县 参 又-反 发 叔 取-叙 口-另 叫-叭 可 台 史 右 叶-叹 吃 各 合-吊 同-后 吐"
+-        " 向 吓 吗 君 吝 吟 否 吧 含 吵 吸 吹 吻 吾 呀 呆 呈 告 呐 员 呜 呢 呦 周 味 呵 呼 命 和 咖 咦 咧 咪 咬 咯 咱 哀 品"
+-        " 哇-哉 响 哎 哟 哥 哦 哩 哪 哭 哲 唉 唐 唤 唬 售 唯 唱 唷 商 啊 啡 啥 啦 啪 喀 喂 善 喇 喊 喏 喔 喜 喝 喵 喷 喻 嗒"
+-        " 嗨 嗯 嘉 嘛 嘴 嘻 嘿 器 四 回 因 团 园 困 围 固 国 图 圆 圈 土 圣 在 圭 地 场 圾 址 均 坎 坐 坑 块 坚-坜 坡 坤 坦"
+-        " 坪 垂 垃 型 垒 埃 埋 城 埔 域 培 基 堂 堆 堕 堡 堪 塑 塔 塞 填 境 增 墨 壁 士 壮 声 处 备 复 夏 夕 外 多 夜 夥 大"
+-        " 天-夫 央 失 头 夷-夺 奇-奉 奋 奏 契 奔 套 奥 女 奴 奶 她 好 如 妇 妈 妖 妙 妥 妨 妮 妹 妻 姆 姊 始 姐 姑 姓 委 姿"
+-        " 威 娃 娄 娘 娜 娟 婆 婚 媒 嫁 嫌 嫩 子 孔 孕 字-孙 孜 孝 孟 季 孤 学 孩 宁 它 宇-安 宋 完 宏 宗-实 审-室 宪 害 家"
+-        " 容 宽-宿 寂 寄 密 寇 富 寒 寝-察 寡 寨 寸 对 寻 导 寿 封 射 将 尊 小 少 尔 尖 尘 尚 尝 尤 就 尺 尼-尾 局-层 居 屋"
+-        " 屏 展 属 屠 山 岁 岂 岗 岘 岚 岛 岳 岸 峡 峰 崇 崩 川 州 巡 工-巨 巫 差 己 已 巴 巷 币-布 帅 师 希 帐 帕 帝 带 席"
+-        " 帮 常 帽 幅 幕 干-年 幸 幻-幽 广 庆 床 序 库-底 店 庙 府 庞 废 度 座 庭 康 庸 廉 廖 延 廷 建 开 弃 弄 弊 式 引 弗"
+-        " 弘 弟 张 弥 弦 弯 弱 弹 归 当 彝 形 彩 彬 彭 彰 影 彷 役 彻 彼 往 征 径 待 很 律 後 徐 徒 得 循 微 徵 德 心 必 忆"
+-        " 忌 忍 志-忙 忠 忧 快 念 忽 怀 态 怎 怒 怕 怖 思 怡 急 性 怨 怪 总 恋 恐 恢 恨 恩 恭 息 恰 恶 恼 悄 悉 悔 悟 悠 患"
+-        " 您 悲 情 惑 惜 惠 惧 惨 惯 想 惹 愁 愈 愉 意 愚 感 愧 慈 慎 慕 慢 慧 慰 憾 懂 懒 戈 戏-戒 或 战 截 戴 房-扁 扇 手"
+-        " 才 扎 扑 打 托 扣 执 扩 扫-扯 批 找-技 抄 把 抑 抓 投 抗 折 抢 护 报 披 抬 抱 抵 抹 抽 担 拆 拉 拍 拒 拔 拖 拘 招"
+-        " 拜 拟 拥 拦 拨 择 括 拳 拷 拼 拾 拿 持 指 按 挑 挖 挝 挡 挤 挥 挪 振 挺 捉 捐 捕 损 捡 换 捷 授 掉 掌 排 探 接 控"
+-        "-措 掸 描 提 插 握 援 搜 搞 搬 搭 摄 摆 摊 摔 摘 摩 摸 撒 撞 播 操 擎 擦 支 收 改 攻 放 政 故 效 敌 敏 救 教 敝 敢"
+-        " 散 敦 敬 数 敲 整 文 斋 斐 斗 料 斜 斥 断 斯 新 方 於 施 旁 旅 旋 族 旗 无 既 日-早 旭 时 旺 昂 昆 昌 明 昏 易 星"
+-        " 映 春 昨 昭 是 显 晃 晋 晒 晓 晚 晨 普 景 晴 晶 智 暂 暑 暖 暗 暮 暴 曰 曲 更 曹 曼 曾-最 月 有 朋 服 朗 望 朝 期"
+-        " 木 未-札 术 朱 朵 杀 杂 权 杉 李 材 村 杜 束 条 来 杨 杯 杰 松 板 极 析 林 果 枝 枢 枪 枫 架 柏 某 染 柔 查 柬 柯"
+-        " 柳 柴 标 栋 栏 树 校 样-根 格 桃 框 案 桌 桑 档 桥 梁 梅 梦 梯 械 梵 检 棉 棋 棒 棚 森 椅 植 椰 楚 楼 概 榜 模 樱"
+-        " 檀 欠-欣 欧 欲 欺 款 歉 歌 止-武 歪 死 殊 残 段 毅 母 每 毒 比 毕 毛 毫 氏 民 氛 水 永 求 汉 汗 汝 江-污 汤 汪 汶"
+-        " 汽 沃 沈 沉 沙 沟 沧 河 油 治 沿 泉 泊 法 泛 泡-泣 泥 注 泰 泳 泽 洋 洗 洛 洞 津 洪 洲 活 洽 派 流 浅 测 济 浑 浓"
+-        " 浦 浩 浪 浮 浴 海 涅 消 涉 涛 涨 涯 液 涵 淋 淑 淘 淡 深 混 添 清 渐 渡 渣 温 港 渴 游 湖 湾 源 溜 溪 滋 滑 满 滥"
+-        " 滨 滴 漂 漏 演 漠 漫 潘 潜 潮 澎 澳 激 灌 火 灭 灯 灰 灵 灿 炉 炎 炮 炸 点 烂 烈 烤 烦 烧 热 焦 然 煌 煞 照 煮 熊"
+-        " 熟 燃 燕 爆 爪 爬 爱 爵-爸 爽 片 版 牌 牙 牛 牡 牢 牧 物 牲 牵 特 牺 犯 状 犹 狂 狐 狗 狠 独 狮 狱 狼 猛 猜 献 玄"
+-        " 率 玉 王 玛 玩 玫 环 现 玲 玻 珊 珍 珠 班 球 理 琊 琪 琳 琴 瑙 瑜 瑞 瑟 瑰 瑶 璃 瓜 瓦 瓶 甘 甚 甜 生 用 田-申 电"
+-        " 男 甸 画 畅 界 留 略 番 疆 疏 疑 疗 疯 疲 疼 疾 病 痕 痛 痴 登 白 百 的 皆 皇 皮 盈 益 监 盒 盖 盘 盛 盟 目 直 相"
+-        " 盼 盾 省 眉 看 真 眠 眼 睛 睡 督 瞧 矛 矣 知 短 石 矶 码 砂 砍 研 破 础 硕 硬 碍 碎 碗 碟 碧 碰 磁 磅 磨 示 礼 社"
+-        " 祖 祝 神 祥 票 祸 禁 禅 福 秀 私 秋 种 科 秒 秘 租 秤 秦 秩 积 称 移 稀 程 稍 稣 稳 稿 穆 究 穷 穹 空 穿 突 窗 窝"
+-        " 立 站 竞-章 童 端 竹 笑 笔 笛 符 笨 第 等 筋 答 策 筹 签 简 算 管 箭 箱 篇 篮 簿 籍 米 类 粉 粒 粗 粹 精 糊 糕 糖"
+-        " 糟 系 素 索 紧 紫 累 繁 红 约 级 纪 纯 纲 纳 纵 纷 纸 纽 练 组 细-终 绍 经 结 绕 绘 给 络 统 继 绩 绪 续 维 绵 综"
+-        " 缅 缓 编 缘 缠 缩 缴 缶 缸 缺 罐 罕 罗 罚 罢 罪 置 署 羊 美 羞 群 羯 羽 翁 翅 翔 翘 翠 翰 翻 翼 耀 老 考 者 而 耍"
+-        " 耐 耗 耳 耶 聊 职 联 聚 聪 肉 肚 股 肤 肥 肩 肯 育 胁 胆 背 胎 胖 胞 胡 胶 胸 能 脆 脑 脱 脸 腊 腐 腓 腰 腹 腾 腿"
+-        " 臂 臣 自 臭 至 致 舌 舍 舒 舞 舟 航 般 舰 船 良 色 艺 艾 节 芒 芝 芦 芬 芭 花 芳 苍 苏 苗 若 苦 英 茂 茨 茫 茶 草"
+-        " 荒 荣 药 荷 莉 莎 莪 莫 莱 莲 获 菜 菩 菲 萄 萍 萤 营 萧 萨 落 著 葛 葡 蒂 蒋 蒙 蓉 蓝 蓬 蔑 蔡 薄 薪 藉 藏 藤 虎"
+-        " 虑 虫 虹 虽 虾 蚁 蛇 蛋 蛙 蛮 蜂 蜜 蝶 融 蟹 蠢 血 行 街 衡 衣 补 表 袋 被 袭 裁 裂 装 裕 裤 西 要 覆 见 观 规 视"
+-        " 览 觉 角 解 言 誉 誓 警 计 订 认 讨 让 训-记 讲 许 论 设 访 证 评 识 诉 词 译 试 诗 诚 话 诞 询 该 详 语 误 说 请"
+-        " 诸 诺 读 课 谁 调 谅 谈 谊 谋 谓 谜 谢 谨 谱 谷 豆 象 豪 貌 贝-负 贡-败 货-贪 购 贯 贱 贴 贵 费 贺 贼 贾 资 赋 赌"
+-        " 赏 赐 赔 赖 赚 赛 赞 赠 赢 赤 赫 走 赵 起 趁 超 越 趋 趣 足 跃 跌 跑 距 跟 路 跳 踏 踢 踩 身 躲 车 轨 轩 转 轮-轰"
+-        " 轻 载 较 辅 辆 辈 辉 辑 输 辛 辞 辨 辩 辱 边 达 迁 迅 过 迈 迎 运 近 返 还 这 进-迟 迦 迪 迫 述 迷 追 退 送 逃 逆"
+-        " 选 逊 透 逐 递 途 通 逛 逝 速 造 逢 逸 逻 逼 遇 遍 道 遗 遭 遮 遵 避 邀 邓 那 邦 邪 邮 邱 邻 郎 郑 部 郭 都 鄂 酋"
+-        " 配 酒 酷 酸 醉 醒 采 释 里-量 金 针 钓 钟 钢 钦 钱 钻 铁 铃 铢 铭 银 销 锁 锅 锋 错 锡 锦 键 锺 镇 镜 镭 长 门 闪"
+-        " 闭 问 间 闷 闹 闻 阁 阐 阔 队 阮 防-阶 阻 阿 陀 附-陆 陈 降 限 院 除 险 陪 陵-陷 隆 随 隐 隔 障 难 雄-集 雨 雪 雯"
+-        " 雳 零 雷 雾 需 震 霍 霖 露 霸 霹 青 靖 静 非 靠 面 革 靼 鞋 鞑 韦 韩 音 页 顶 项-须 顽-顿 预 领 颇 频 颗 题 额 风"
+-        " 飘 飙 飞 食 餐 饭 饮 饰 饱 饼 馆 首 香 馨 马 驱 驶 驻 驾 验 骑 骗 骚 骤 骨 高 鬼 魂 魅 魔 鱼 鲁 鲜 鸟 鸣 鸭 鸿 鹅"
+-        " 鹤 鹰 鹿 麦 麻 黄 黎 黑 默 鼓 鼠 鼻 齐 齿 龄 龙 龟]"
++        "[一-龥 﨎-﨏 﨑 﨓-﨔 﨟 﨣-﨤 﨧-﨩]"
+     }
+     ExemplarCharactersCurrency{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+     ExemplarCharactersIndex{"[A B C D E F G H I J K L M N O P Q R S T U V W X Y Z]"}
+--- source/data/region/am.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/am.txt	2011-07-24 21:47:06.871489000 -0700
+@@ -11,6 +11,7 @@
+  */
+ am{
+     Countries{
++        419{"ላቲን አሜሪካ እና ካሪቢያን"}
+         AD{"አንዶራ"}
+         AE{"የተባበሩት አረብ ኤምሬትስ"}
+         AF{"አፍጋኒስታን"}
+--- source/data/region/az.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/region/az.txt	2011-07-24 21:47:06.900490000 -0700
+@@ -11,38 +11,7 @@
+  */
+ az{
+     Countries{
+-        001{"Dünya"}
+-        002{"Afrika"}
+-        003{"Şimal Amerika"}
+-        005{"Cənub Amerika"}
+-        009{"Okeyaniya"}
+-        011{"Qərb afrika"}
+-        013{"Orta Amerika"}
+-        014{"Şərq Afrika"}
+-        015{"Şimal Afrika"}
+-        017{"Orta Afrika"}
+-        018{"018"}
+-        019{"Amerikalar"}
+-        021{"021"}
+-        029{"Kariyıplar"}
+-        030{"Şərq Asiya"}
+-        034{"Cənub Asiya"}
+-        035{"Cənub Şərq Asiya"}
+-        039{"Cənub Avropa"}
+-        053{"Avstraliya və Yeni Zelandiya"}
+-        054{"Melanesya"}
+-        057{"Mikronesiya reqionu"}
+-        061{"Polineziya"}
+-        062{"Cənub Orta Asiya"}
+-        142{"Aziya"}
+-        143{"Orta Aziya"}
+-        145{"Qərb Asiya"}
+-        150{"Avropa"}
+-        151{"Şərq Avropa"}
+-        154{"Şimal Avropa"}
+-        155{"Qərb Avropa"}
+-        172{"172"}
+-        419{"Latın Amerikası və Kariblər"}
++        419{"Latın Amerikası"}
+         AD{"Andorra"}
+         AE{"Birləşmiş Ərəb Emiratları"}
+         AF{"Əfqənistan"}
+--- source/data/region/bg.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/region/bg.txt	2011-07-24 21:47:06.918491000 -0700
+@@ -11,39 +11,7 @@
+  */
+ bg{
+     Countries{
+-        001{"Земята"}
+-        002{"Африка"}
+-        003{"Северноамерикански континент"}
+-        005{"Южна Америка"}
+-        009{"Океания"}
+-        011{"Западна Афирка"}
+-        013{"Централна Америка"}
+-        014{"Източна Африка"}
+-        015{"Северна Африка"}
+-        017{"Централна Африка"}
+-        018{"Южноафрикански регион"}
+-        019{"Америка"}
+-        021{"Северна Америка"}
+-        029{"Карибски о-ви"}
+-        030{"Източна Азия"}
+-        034{"Южна Азия"}
+-        035{"Югоизточна Азия"}
+-        039{"Южна Европа"}
+-        053{"Австралия и Нова Зеландия"}
+-        054{"Меланезия"}
+-        057{"Микронезия"}
+-        061{"Полинезия"}
+-        062{"Южна Азия [062]"}
+-        142{"Азия"}
+-        143{"Централна Азия"}
+-        145{"Западна Азия"}
+-        150{"Европа"}
+-        151{"Източна Европа"}
+-        154{"Северна Европа"}
+-        155{"Западна Европа"}
+-        172{"Общност на независимите държави"}
+-        419{"Латинска Америка и Карибски басейн"}
+-        830{"Нормандски о-ви"}
++        419{"Латинска Америка"}
+         AC{"Остров Възнесение"}
+         AD{"Андора"}
+         AE{"Обединени арабски емирства"}
+--- source/data/region/bs.txt	2010-11-30 21:40:46.000000000 -0800
++++ source/data/region/bs.txt	2011-07-24 21:47:06.945488000 -0700
+@@ -11,39 +11,7 @@
+  */
+ bs{
+     Countries{
+-        001{"Svet"}
+-        002{"Afrika"}
+-        003{"Severnoamerički kontinent"}
+-        005{"Južna Amerika"}
+-        009{"Okeanija"}
+-        011{"Zapadna Afrika"}
+-        013{"Centralna Amerika"}
+-        014{"Istočna Afrika"}
+-        015{"Severna Afrika"}
+-        017{"Centralna Afrika"}
+-        018{"Južna Afrika"}
+-        019{"Amerike"}
+-        021{"Severna Amerika"}
+-        029{"Karibi"}
+-        030{"Istočna Azija"}
+-        034{"Južna Azija"}
+-        035{"Jugoistočna Azija"}
+-        039{"Južna Evropa"}
+-        053{"Australija i Novi Zeland"}
+-        054{"Melanezija"}
+-        057{"Micronezija"}
+-        061{"Polinezija"}
+-        062{"Južno-centralna Azija"}
+-        142{"Azija"}
+-        143{"Centralna Azija"}
+-        145{"Zapadna Azija"}
+-        150{"Evropa"}
+-        151{"Istočna Evropa"}
+-        154{"Severna Evropa"}
+-        155{"Zapadna Evropa"}
+-        172{"Komonvelt nezavisnih država"}
+-        419{"Latinska Amerika i Karibi"}
+-        830{"Kanalska ostrva"}
++        419{"Latinska Amerika"}
+         AD{"Andora"}
+         AE{"Ujedinjeni Arapski Emirati"}
+         AF{"Avganistan"}
+--- source/data/region/ca.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/ca.txt	2011-07-24 21:47:06.948489000 -0700
+@@ -11,38 +11,7 @@
+  */
+ ca{
+     Countries{
+-        001{"Món"}
+-        002{"Àfrica"}
+-        003{"Amèrica del Nord"}
+-        005{"Amèrica del Sud"}
+-        009{"Oceania"}
+-        011{"Àfrica Occidental"}
+-        013{"Amèrica Central"}
+-        014{"Àfrica Oriental"}
+-        015{"Àfrica septentrional"}
+-        017{"Àfrica Central"}
+-        018{"Àfrica meridional"}
+-        019{"Amèrica"}
+-        021{"Amèrica septentrional"}
+-        029{"Carib"}
+-        030{"Àsia Oriental"}
+-        034{"Àsia meridional"}
+-        035{"Àsia Sud-oriental"}
+-        039{"Europa meridional"}
+-        053{"Austràlia i Nova Zelanda"}
+-        054{"Melanèsia"}
+-        057{"Regió de la Micronèsia"}
+-        061{"Polinèsia"}
+-        062{"Àsia Sud-central"}
+-        142{"Àsia"}
+-        143{"Àsia Central"}
+-        145{"Àsia Occidental"}
+-        150{"Europa"}
+-        151{"Europa Oriental"}
+-        154{"Europa septentrional"}
+-        155{"Europa Occidental"}
+-        172{"Comunitat d'Estats Independents"}
+-        419{"Amèrica Llatina i Carib"}
++        419{"Amèrica Llatina"}
+         AC{"Illa de l'Ascensió"}
+         AD{"Andorra"}
+         AE{"Unió dels Emirats Àrabs"}
+--- source/data/region/cs.txt	2010-09-13 12:12:47.000000000 -0700
++++ source/data/region/cs.txt	2011-07-24 21:47:06.960488000 -0700
+@@ -11,39 +11,7 @@
+  */
+ cs{
+     Countries{
+-        001{"Svět"}
+-        002{"Afrika"}
+-        003{"003"}
+-        005{"Jižní Amerika"}
+-        009{"Oceánie"}
+-        011{"Západní Afrika"}
+-        013{"Střední Amerika"}
+-        014{"Východní Afrika"}
+-        015{"Severní Afrika"}
+-        017{"Střední Afrika"}
+-        018{"Jižní Afrika"}
+-        019{"Amerika"}
+-        021{"Severní Amerika"}
+-        029{"Karibik"}
+-        030{"Východní Asie"}
+-        034{"Jižní Asie"}
+-        035{"Jihovýchodní Asie"}
+-        039{"Jižní Evropa"}
+-        053{"Austrálie a Nový Zéland"}
+-        054{"Melanésie"}
+-        057{"Mikronésie"}
+-        061{"Polynésie"}
+-        062{"Jižní a centrální Asie"}
+-        142{"Asie"}
+-        143{"Střední Asie"}
+-        145{"Západní Asie"}
+-        150{"Evropa"}
+-        151{"Východní Evropa"}
+-        154{"Severní Evropa"}
+-        155{"Západní Evropa"}
+-        200{"Československo"}
+-        419{"Latinská Amerika a Karibské moře"}
+-        830{"Normanské ostrovy"}
++        419{"Latinská Amerika"}
+         AD{"Andorra"}
+         AE{"Spojené arabské emiráty"}
+         AF{"Afghánistán"}
+--- source/data/region/da.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/da.txt	2011-07-24 21:47:06.968492000 -0700
+@@ -11,38 +11,7 @@
+  */
+ da{
+     Countries{
+-        001{"Verden"}
+-        002{"Afrika"}
+-        003{"Nordamerika"}
+-        005{"Sydamerika"}
+-        009{"Oceanien"}
+-        011{"Vestafrika"}
+-        013{"Mellemamerika"}
+-        014{"Østafrika"}
+-        015{"Nordafrika"}
+-        017{"Centralafrika"}
+-        018{"Det sydlige Afrika"}
+-        019{"Amerika"}
+-        021{"Det nordlige Amerika"}
+-        029{"Caribien"}
+-        030{"Østasien"}
+-        034{"Sydasien"}
+-        035{"Sydøstasien"}
+-        039{"Sydeuropa"}
+-        053{"Australien og New Zealand"}
+-        054{"Melanesien"}
+-        057{"Mikronesien"}
+-        061{"Polynesien"}
+-        062{"Sydcentralasien"}
+-        142{"Asien"}
+-        143{"Centralasien"}
+-        145{"Vestasien"}
+-        150{"Europa"}
+-        151{"Østeuropa"}
+-        154{"Nordeuropa"}
+-        155{"Vesteuropa"}
+-        172{"Sammenslutningen af uafhængige stater"}
+-        419{"Latinamerika og Caribien"}
++        419{"Latinamerika"}
+         AC{"Ascensionøen"}
+         AD{"Andorra"}
+         AE{"Forenede Arabiske Emirater"}
+--- source/data/region/de.txt	2010-10-28 12:45:36.000000000 -0700
++++ source/data/region/de.txt	2011-07-24 21:47:06.989484000 -0700
+@@ -11,39 +11,7 @@
+  */
+ de{
+     Countries{
+-        001{"Welt"}
+-        002{"Afrika"}
+-        003{"Nordamerika"}
+-        005{"Südamerika"}
+-        009{"Ozeanien"}
+-        011{"Westafrika"}
+-        013{"Mittelamerika"}
+-        014{"Ostafrika"}
+-        015{"Nordafrika"}
+-        017{"Zentralafrika"}
+-        018{"Südliches Afrika"}
+-        019{"Amerika"}
+-        021{"Nördliches Amerika"}
+-        029{"Karibik"}
+-        030{"Ostasien"}
+-        034{"Südasien"}
+-        035{"Südostasien"}
+-        039{"Südeuropa"}
+-        053{"Australien und Neuseeland"}
+-        054{"Melanesien"}
+-        057{"Mikronesisches Inselgebiet"}
+-        061{"Polynesien"}
+-        062{"Süd-Zentralasien"}
+-        142{"Asien"}
+-        143{"Zentralasien"}
+-        145{"Westasien"}
+-        150{"Europa"}
+-        151{"Osteuropa"}
+-        154{"Nordeuropa"}
+-        155{"Westeuropa"}
+-        172{"Gemeinschaft Unabhängiger Staaten"}
+-        419{"Lateinamerika und Karibik"}
+-        830{"Kanalinseln"}
++        419{"Lateinamerika"}
+         AC{"Ascension"}
+         AD{"Andorra"}
+         AE{"Vereinigte Arabische Emirate"}
+--- source/data/region/el.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/el.txt	2011-07-24 21:47:07.003463000 -0700
+@@ -11,39 +11,7 @@
+  */
+ el{
+     Countries{
+-        001{"Κόσμος"}
+-        002{"Αφρική"}
+-        003{"Βόρεια Αμερική"}
+-        005{"Νότια Αμερική"}
+-        009{"Ωκεανία"}
+-        011{"Δυτική Αφρική"}
+-        013{"Κεντρική Αμερική"}
+-        014{"Ανατολική Αφρική"}
+-        015{"Βόρεια Αφρική"}
+-        017{"Μέση Αφρική"}
+-        018{"Νότιος Αφρική"}
+-        019{"Αμερική"}
+-        021{"Βόρειος Αμερική"}
+-        029{"Καραϊβική"}
+-        030{"Ανατολική Ασία"}
+-        034{"Νότια Ασία"}
+-        035{"Νοτιοανατολική Ασία"}
+-        039{"Νότια Ευρώπη"}
+-        053{"Αυστραλία και Νέα Ζηλανδία"}
+-        054{"Μελανησία"}
+-        057{"Περιοχή Μικρονησίας"}
+-        061{"Πολυνησία"}
+-        062{"Νότια Κεντρική Ασία"}
+-        142{"Ασία"}
+-        143{"Κεντρική Ασία"}
+-        145{"Δυτική Ασία"}
+-        150{"Ευρώπη"}
+-        151{"Ανατολική Ευρώπη"}
+-        154{"Βόρεια Ευρώπη"}
+-        155{"Δυτική Ευρώπη"}
+-        172{"Κοινοπολιτεία Ανεξαρτήτων Πολιτειών"}
+-        419{"Λατινική Αμερική και Καραϊβική"}
+-        830{"Νησιά Τσάνελ"}
++        419{"Λατινική Αμερική"}
+         AC{"Νήσος Ασενσιόν"}
+         AD{"Ανδόρα"}
+         AE{"Ηνωμένα Αραβικά Εμιράτα"}
+--- source/data/region/es.txt	2010-10-28 12:45:36.000000000 -0700
++++ source/data/region/es.txt	2011-07-24 21:47:07.029442000 -0700
+@@ -11,38 +11,7 @@
+  */
+ es{
+     Countries{
+-        001{"Mundo"}
+-        002{"África"}
+-        003{"América del Norte"}
+-        005{"Suramérica"}
+-        009{"Oceanía"}
+-        011{"África occidental"}
+-        013{"Centroamérica"}
+-        014{"África oriental"}
+-        015{"África septentrional"}
+-        017{"África central"}
+-        018{"África meridional"}
+-        019{"Américas"}
+-        021{"Norteamérica"}
+-        029{"Caribe"}
+-        030{"Asia oriental"}
+-        034{"Asia meridional"}
+-        035{"Sudeste asiático"}
+-        039{"Europa meridional"}
+-        053{"Australia y Nueva Zelanda"}
+-        054{"Melanesia"}
+-        057{"Micronesia [057]"}
+-        061{"Polinesia"}
+-        062{"Asia centromeridional"}
+-        142{"Asia"}
+-        143{"Asia central"}
+-        145{"Asia occidental"}
+-        150{"Europa"}
+-        151{"Europa oriental"}
+-        154{"Europa septentrional"}
+-        155{"Europa occidental"}
+-        172{"Comunidad de Estados Independientes"}
+-        419{"Latinoamérica y el Caribe"}
++        419{"Latinoamérica"}
+         AC{"Isla de la Ascensión"}
+         AD{"Andorra"}
+         AE{"Emiratos Árabes Unidos"}
+--- source/data/region/et.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/et.txt	2011-07-24 21:47:07.033434000 -0700
+@@ -11,38 +11,7 @@
+  */
+ et{
+     Countries{
+-        001{"maailm"}
+-        002{"Aafrika"}
+-        003{"Põhja-Ameerika"}
+-        005{"Lõuna-Ameerika"}
+-        009{"Okeaania"}
+-        011{"Lääne-Aafrika"}
+-        013{"Kesk-Ameerika"}
+-        014{"Ida-Aafrika"}
+-        015{"Põhja-Aafrika"}
+-        017{"Kesk-Aafrika"}
+-        018{"Lõuna-Aafrika"}
+-        019{"Ameerika maailmajagu"}
+-        021{"Ameerika põhjaosa"}
+-        029{"Kariibi meri"}
+-        030{"Ida-Aasia"}
+-        034{"Lõuna-Aasia"}
+-        035{"Kagu-Aasia"}
+-        039{"Lõuna-Euroopa"}
+-        053{"Austraalia ja Uus-Meremaa"}
+-        054{"Melaneesia"}
+-        057{"Mikroneesia"}
+-        061{"Polüneesia"}
+-        062{"Kesk-Aasia lõunaosa"}
+-        142{"Aasia"}
+-        143{"Kesk-Aasia"}
+-        145{"Lääne-Aasia"}
+-        150{"Euroopa"}
+-        151{"Ida-Euroopa"}
+-        154{"Põhja-Euroopa"}
+-        155{"Lääne-Euroopa"}
+-        172{"Sõltumatute Riikide Ühendus"}
+-        419{"Ladina-Ameerika ja Kariibi meri"}
++        419{"Ladina-Ameerika"}
+         AC{"Ascensioni saar"}
+         AD{"Andorra"}
+         AE{"Araabia Ühendemiraadid"}
+--- source/data/region/fil.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/region/fil.txt	2011-07-24 21:47:07.059411000 -0700
+@@ -11,43 +11,16 @@
+  */
+ fil{
+     Countries{
+-        001{"Mundo"}
+-        002{"Africa"}
+-        003{"North America"}
+-        005{"South America"}
+-        009{"Oceania"}
+-        011{"Kanlurang Africa"}
+-        013{"Gitnang Amerika"}
+-        014{"Silangang Africa"}
+-        015{"Hilagang Africa"}
+-        017{"Gitnang Africa"}
+-        018{"Katimugang Africa"}
+-        019{"Americas"}
+-        021{"Hilagang Amerika"}
+-        029{"Carribbean"}
+-        030{"Silangang Asya"}
+-        034{"Katimugang Asya"}
+-        035{"Timog-Silangang Asya"}
+-        039{"Katimugang Europa"}
+-        053{"Australia at New Zealand"}
+-        054{"Melanesia"}
+-        057{"Rehiyong Micronesia"}
+-        061{"Polynesia"}
+-        062{"Timog-Gitnang Asya"}
+-        142{"Asya"}
+-        143{"Gitnang Asya"}
+-        145{"Kanlurang Asya"}
+-        150{"Europa"}
+-        151{"Silangang Europa"}
+-        154{"Hilagang Europa"}
+-        155{"Kanlurang Europa"}
+-        419{"Latin America at ang Caribbean"}
++        419{"Latin America"}
+         AC{"Acsencion island"}
+         AD{"Andorra"}
++        AE{"United Arab Emirates"}
+         AF{"Afghanistan"}
++        AG{"Antigua at Barbuda"}
+         AI{"Anguilla"}
+         AL{"Albania"}
+         AM{"Armenia"}
++        AN{"Netherlands Antilles"}
+         AO{"Angola"}
+         AQ{"Antartica"}
+         AR{"Argentina"}
+@@ -60,62 +33,213 @@
+         BA{"Bosnia and Herzegovina"}
+         BB{"Barbados"}
+         BD{"Bangladesh"}
++        BE{"Belgium"}
+         BF{"Burkina Faso"}
+         BG{"Bulgaria"}
+         BH{"Bahrain"}
+         BI{"Burundi"}
++        BJ{"Benin"}
++        BM{"Bermuda"}
+         BN{"Brunei"}
+         BO{"Bolivia"}
+         BR{"Brazil"}
+         BS{"Bahamas"}
++        BT{"Bhutan"}
+         BV{"Bouvet Island"}
+         BW{"Botswana"}
+         BY{"Belarus"}
++        BZ{"Belize"}
+         CA{"Canada"}
+         CD{"Congo - Kinshasa"}
++        CF{"Central African Republic"}
+         CG{"Congo - Brazzaville"}
++        CH{"Switzerland"}
+         CI{"Côte d'Ivoire"}
++        CK{"Cook Islands"}
++        CL{"Chile"}
+         CM{"Cameroon"}
++        CN{"Tsina"}
++        CO{"Colombia"}
+         CP{"Clipperton Island"}
++        CR{"Costa Rica"}
++        CS{"Serbia at Montenegro"}
++        CU{"Cuba"}
+         CV{"Cape Verde"}
++        CX{"Christmas Island"}
++        CY{"Cyprus"}
++        CZ{"Czech Republic"}
++        DE{"Alemaya"}
+         DG{"Diego Garcia"}
++        DJ{"Djibouti"}
++        DK{"Denmark"}
++        DM{"Dominica"}
++        DO{"Dominican Republic"}
+         DZ{"Algeria"}
+         EA{"Ceuta and Melilla"}
++        EC{"Ecuador"}
++        EE{"Estonia"}
++        EG{"Ehipto"}
++        EH{"Western Sahara"}
++        ER{"Eritrea"}
++        ES{"Espanya"}
++        ET{"Ethiopia"}
+         EU{"European Union"}
++        FI{"Finland"}
++        FJ{"Fiji"}
+         FK{"Falkland Islands"}
++        FM{"Micronesia"}
++        FO{"Faroe Islands"}
++        FR{"Pranses"}
++        GA{"Gabon"}
++        GB{"United Kingdom"}
+         GE{"Georgia"}
++        GF{"French Guiana"}
++        GG{"Guernsey"}
++        GH{"Ghana"}
++        GL{"Greenland"}
++        GM{"Gambia"}
++        GN{"Guinea"}
++        GQ{"Equatorial Guinea"}
++        GR{"Griyego"}
+         GS{"South Georgia and The South Sandwich Islands"}
++        GW{"Guinea-Bissau"}
+         HK{"Hong Kong SAR China"}
++        HM{"Heard Island and McDonald Islands"}
++        HN{"Honduras"}
++        HR{"Croatia"}
++        HT{"Haiti"}
++        HU{"Hungary"}
+         IC{"Canary Island"}
+         ID{"Indonesia"}
++        IE{"Ireland"}
++        IL{"Israel"}
++        IM{"Isle of Man"}
++        IN{"India"}
+         IO{"British Indian Ocean Territory"}
++        IQ{"Iraq"}
++        IR{"Iran"}
++        IS{"Iceland"}
++        IT{"Italya"}
++        JE{"Jersey"}
++        JO{"Jordan"}
++        JP{"Japan"}
++        KE{"Kenya"}
++        KG{"Kyrgyzstan"}
+         KH{"Cambodia"}
++        KI{"Kiribati"}
++        KM{"Comoros"}
++        KN{"Saint Kitts and Nevis"}
+         KP{"North Korea"}
++        KR{"Timog Korea"}
+         KY{"Cayman Islands"}
++        KZ{"Kazakhstan"}
++        LA{"Laos"}
++        LB{"Lebanon"}
++        LC{"Saint Lucia"}
++        LI{"Liechtenstein"}
++        LK{"Sri Lanka"}
++        LR{"Liberia"}
++        LS{"Lesotho"}
++        LT{"Lithuania"}
++        LV{"Latvia"}
++        LY{"Libya"}
++        MA{"Morocco"}
++        MD{"Moldova"}
++        ME{"Montenegro"}
++        MG{"Madagascar"}
+         MH{"Marshall Islands"}
+         MK{"Macedonia"}
++        ML{"Mali"}
+         MM{"Myanmar"}
++        MN{"Mongolia"}
+         MO{"Macau SAR China"}
++        MP{"Northern Mariana Islands"}
++        MR{"Mauritania"}
++        MW{"Malawi"}
++        MX{"Mehiko"}
++        MY{"Malaysia"}
++        MZ{"Mozambique"}
++        NA{"Namibia"}
++        NC{"New Caledonia"}
++        NE{"Niger"}
++        NF{"Norfolk Island"}
++        NG{"Nigeria"}
++        NI{"Nicaragua"}
++        NL{"Netherlands"}
++        NO{"Norway"}
++        NP{"Nepal"}
++        NZ{"New Zealand"}
++        OM{"Oman"}
++        PE{"Peru"}
++        PF{"French Polynesia"}
++        PG{"Papua New Guinea"}
+         PH{"Pilipinas"}
++        PK{"Pakistan"}
+         PL{"Poland"}
++        PM{"Saint Pierre at Miquelon"}
+         PN{"Pitcairn"}
+         PS{"Palestinian Territory"}
++        PT{"Portugal"}
++        PY{"Paraguay"}
+         QO{"Malayong bahagi ng Oceania"}
++        RO{"Romania"}
++        RS{"Serbia"}
+         RU{"Russian Federation"}
++        RW{"Rwanda"}
++        SA{"Saudi Arabya"}
++        SB{"Solomon Islands"}
++        SC{"Seychelles"}
++        SD{"Sudan"}
++        SE{"Sweden"}
+         SH{"St. Helena"}
++        SI{"Slovenia"}
+         SJ{"Svalbard and Jan Mayen Islands"}
++        SK{"Slovakia"}
++        SL{"Sierra Leone"}
++        SM{"San Marino"}
++        SN{"Senegal"}
++        SO{"Somalia"}
++        SR{"Suriname"}
+         ST{"Sao Tome and Principe"}
++        SV{"El Salvador"}
++        SY{"Syria"}
++        SZ{"Swaziland"}
+         TA{"Tristan de Cunha"}
++        TC{"Turks and Caicos Islands"}
++        TD{"Chad"}
++        TF{"French Southern Territories"}
++        TG{"Togo"}
++        TH{"Thailand"}
++        TJ{"Tajikistan"}
++        TK{"Tokelau"}
+         TL{"Timor-Leste"}
++        TM{"Turkmenistan"}
++        TN{"Tunisia"}
++        TO{"Tonga"}
++        TR{"Turkey"}
+         TT{"Trinidad and Tobago"}
++        TV{"Tuvalu"}
++        TW{"Taiwan"}
++        TZ{"Tanzania"}
++        UA{"Ukraine"}
++        UG{"Uganda"}
+         UM{"Mga Minor Outlying Island ng Estados Unidos"}
+         US{"Estados Unidos"}
++        UY{"Uruguay"}
++        UZ{"Uzbekistan"}
++        VA{"Vatican City"}
+         VC{"Saint Vincent and the Grenadines"}
++        VE{"Venezuela"}
+         VG{"British Virgin Islands"}
+         VI{"U.S. Virgin Islands"}
+         VN{"Vietnam"}
++        VU{"Vanuatu"}
+         WF{"Wallis and the Futuna Islands"}
++        WS{"Samoa"}
++        YE{"Yemen"}
+         ZA{"South Africa"}
++        ZM{"Zambia"}
++        ZW{"Zimbabwe"}
+         ZZ{"Hindi kilala o Hindi wastong Rehiyon"}
+     }
+     Version{"2.0.48.64"}
+--- source/data/region/fi.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/fi.txt	2011-07-24 21:47:07.063407000 -0700
+@@ -11,39 +11,7 @@
+  */
+ fi{
+     Countries{
+-        001{"maailma"}
+-        002{"Afrikka"}
+-        003{"Pohjois-Amerikka"}
+-        005{"Etelä-Amerikka"}
+-        009{"Oseania"}
+-        011{"Länsi-Afrikka"}
+-        013{"Väli-Amerikka"}
+-        014{"Itä-Afrikka"}
+-        015{"Pohjois-Afrikka"}
+-        017{"Keski-Afrikka"}
+-        018{"eteläinen Afrikka"}
+-        019{"Amerikka"}
+-        021{"pohjoinen Amerikka"}
+-        029{"Karibia"}
+-        030{"Itä-Aasia"}
+-        034{"Etelä-Aasia"}
+-        035{"Kaakkois-Aasia"}
+-        039{"Etelä-Eurooppa"}
+-        053{"Australia ja Uusi-Seelanti"}
+-        054{"Melanesia"}
+-        057{"Mikronesia"}
+-        061{"Polynesia"}
+-        062{"Etelä- ja Keski-Aasia"}
+-        142{"Aasia"}
+-        143{"Keski-Aasia"}
+-        145{"Länsi-Aasia"}
+-        150{"Eurooppa"}
+-        151{"Itä-Eurooppa"}
+-        154{"Pohjois-Eurooppa"}
+-        155{"Länsi-Eurooppa"}
+-        172{"Itsenäisten valtioiden yhteisö"}
+-        419{"Latinalainen Amerikka ja Karibia"}
+-        830{"Kanaalisaaret"}
++        419{"Latinalainen Amerikka"}
+         AC{"Ascension-saari"}
+         AD{"Andorra"}
+         AE{"Arabiemiirikunnat"}
+--- source/data/region/fr.txt	2010-10-28 12:45:36.000000000 -0700
++++ source/data/region/fr.txt	2011-07-24 21:47:07.073405000 -0700
+@@ -11,39 +11,7 @@
+  */
+ fr{
+     Countries{
+-        001{"Monde"}
+-        002{"Afrique"}
+-        003{"Amérique du Nord"}
+-        005{"Amérique du Sud"}
+-        009{"Océanie"}
+-        011{"Afrique occidentale"}
+-        013{"Amérique centrale"}
+-        014{"Afrique orientale"}
+-        015{"Afrique septentrionale"}
+-        017{"Afrique centrale"}
+-        018{"Afrique australe"}
+-        019{"Amériques"}
+-        021{"Amérique septentrionale"}
+-        029{"Caraïbes"}
+-        030{"Asie orientale"}
+-        034{"Asie du Sud"}
+-        035{"Asie du Sud-Est"}
+-        039{"Europe méridionale"}
+-        053{"Australie et Nouvelle-Zélande"}
+-        054{"Mélanésie"}
+-        057{"région micronésienne"}
+-        061{"Polynésie"}
+-        062{"Asie centrale et du Sud"}
+-        142{"Asie"}
+-        143{"Asie centrale"}
+-        145{"Asie occidentale"}
+-        150{"Europe"}
+-        151{"Europe orientale"}
+-        154{"Europe septentrionale"}
+-        155{"Europe occidentale"}
+-        172{"Communauté des États indépendants"}
+-        419{"Amérique latine et Caraïbes"}
+-        830{"Îles Anglo-normandes"}
++        419{"Amérique latine"}
+         AC{"Île de l'Ascension"}
+         AD{"Andorre"}
+         AE{"Émirats arabes unis"}
+--- source/data/region/hu.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/hu.txt	2011-07-24 21:47:07.211405000 -0700
+@@ -11,39 +11,7 @@
+  */
+ hu{
+     Countries{
+-        001{"Világ"}
+-        002{"Afrika"}
+-        003{"Észak-Amerika"}
+-        005{"Dél-Amerika"}
+-        009{"Óceánia"}
+-        011{"Nyugat-Afrika"}
+-        013{"Közép-Amerika"}
+-        014{"Kelet-Afrika"}
+-        015{"Észak-Afrika"}
+-        017{"Közép-Afrika"}
+-        018{"Afrika déli része"}
+-        019{"Amerika"}
+-        021{"Amerika északi része"}
+-        029{"Karib-térség"}
+-        030{"Kelet-Ázsia"}
+-        034{"Dél-Ázsia"}
+-        035{"Délkelet-Ázsia"}
+-        039{"Dél-Európa"}
+-        053{"Ausztrália és Új-Zéland"}
+-        054{"Melanézia"}
+-        057{"Mikronéziai régió"}
+-        061{"Polinézia"}
+-        062{"Délközép-Ázsia"}
+-        142{"Ázsia"}
+-        143{"Közép-Ázsia"}
+-        145{"Nyugat-Ázsia"}
+-        150{"Európa"}
+-        151{"Kelet-Európa"}
+-        154{"Észak-Európa"}
+-        155{"Nyugat-Európa"}
+-        172{"Független Államok Közössége"}
+-        419{"Latin-Amerika és a Karib-térség"}
+-        830{"Csatorna-szigetek"}
++        419{"Latin-Amerika"}
+         AC{"Ascension-sziget"}
+         AD{"Andorra"}
+         AE{"Egyesült Arab Emirátus"}
+--- source/data/region/it.txt	2010-10-28 12:45:36.000000000 -0700
++++ source/data/region/it.txt	2011-07-24 21:47:07.264410000 -0700
+@@ -11,38 +11,7 @@
+  */
+ it{
+     Countries{
+-        001{"Mondo"}
+-        002{"Africa"}
+-        003{"Nord America"}
+-        005{"America del Sud"}
+-        009{"Oceania"}
+-        011{"Africa occidentale"}
+-        013{"America centrale"}
+-        014{"Africa orientale"}
+-        015{"Africa del Nord"}
+-        017{"Africa centrale"}
+-        018{"Africa del Sud"}
+-        019{"Americhe"}
+-        021{"America del Nord"}
+-        029{"Caraibi"}
+-        030{"Asia orientale"}
+-        034{"Asia del Sud"}
+-        035{"Asia sudorientale"}
+-        039{"Europa del Sud"}
+-        053{"Australia e Nuova Zelanda"}
+-        054{"Melanesia"}
+-        057{"Regione Micronesiana"}
+-        061{"Polinesia"}
+-        062{"Asia centro-meridionale"}
+-        142{"Asia"}
+-        143{"Asia centrale"}
+-        145{"Asia occidentale"}
+-        150{"Europa"}
+-        151{"Europa orientale"}
+-        154{"Europa del Nord"}
+-        155{"Europa occidentale"}
+-        172{"Comunità di Stati Indipendenti"}
+-        419{"America Latina e Caraibi"}
++        419{"America Latina"}
+         AC{"Isola di Ascensione"}
+         AD{"Andorra"}
+         AE{"Emirati Arabi Uniti"}
+--- source/data/region/ja.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/ja.txt	2011-07-24 21:47:07.284414000 -0700
+@@ -11,39 +11,7 @@
+  */
+ ja{
+     Countries{
+-        001{"世界"}
+-        002{"アフリカ"}
+-        003{"北米"}
+-        005{"南アメリカ"}
+-        009{"オセアニア"}
+-        011{"西アフリカ"}
+-        013{"中央アメリカ"}
+-        014{"東アフリカ"}
+-        015{"北アフリカ"}
+-        017{"中部アフリカ"}
+-        018{"南部アフリカ"}
+-        019{"アメリカ大陸"}
+-        021{"北アメリカ"}
+-        029{"カリブ海"}
+-        030{"東アジア"}
+-        034{"南アジア"}
+-        035{"東南アジア"}
+-        039{"南ヨーロッパ"}
+-        053{"オーストラリア・ニュージーランド"}
+-        054{"メラネシア"}
+-        057{"ミクロネシア地域"}
+-        061{"ポリネシア"}
+-        062{"南中央アジア"}
+-        142{"アジア"}
+-        143{"中央アジア"}
+-        145{"西アジア"}
+-        150{"ヨーロッパ"}
+-        151{"東ヨーロッパ"}
+-        154{"北ヨーロッパ"}
+-        155{"西ヨーロッパ"}
+-        172{"独立国家共同体"}
+-        419{"ラテンアメリカ・カリブ地域"}
+-        830{"チャネル諸島"}
++        419{"ラテンアメリカ"}
+         AC{"アセンション島"}
+         AD{"アンドラ"}
+         AE{"アラブ首長国連邦"}
+--- source/data/region/ko.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/region/ko.txt	2011-07-24 21:47:07.397404000 -0700
+@@ -11,38 +11,7 @@
+  */
+ ko{
+     Countries{
+-        001{"세계"}
+-        002{"아프리카"}
+-        003{"북아메리카"}
+-        005{"남아메리카[남미]"}
+-        009{"오세아니아, 대양주"}
+-        011{"서아프리카"}
+-        013{"중앙 아메리카"}
+-        014{"동부 아프리카"}
+-        015{"북부 아프리카"}
+-        017{"중부 아프리카"}
+-        018{"남부 아프리카"}
+-        019{"아메리카 대륙"}
+-        021{"북부 아메리카"}
+-        029{"카리브 해 제도"}
+-        030{"동아시아"}
+-        034{"남아시아"}
+-        035{"동남 아시아"}
+-        039{"남유럽"}
+-        053{"오스트레일리아와 뉴질랜드"}
+-        054{"멜라네시아"}
+-        057{"미크로네시아 지역"}
+-        061{"폴리네시아"}
+-        062{"중남 아시아"}
+-        142{"아시아"}
+-        143{"중앙 아시아"}
+-        145{"서아시아"}
+-        150{"유럽"}
+-        151{"동유럽"}
+-        154{"북유럽"}
+-        155{"서유럽"}
+-        172{"독립 국가 연합"}
+-        419{"라틴 아메리카 및 카리브 해 제도"}
++        419{"라틴 아메리카"}
+         AD{"안도라"}
+         AE{"아랍에미리트 연합"}
+         AF{"아프가니스탄"}
+--- source/data/region/lt.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/lt.txt	2011-07-24 21:47:07.414412000 -0700
+@@ -11,39 +11,7 @@
+  */
+ lt{
+     Countries{
+-        001{"Pasaulis"}
+-        002{"Afrika"}
+-        003{"Šiaurės Amerika"}
+-        005{"Pietų Amerika"}
+-        009{"Okeanija"}
+-        011{"Vakarų Afrika"}
+-        013{"Centrinė Amerika"}
+-        014{"Rytų Afrika"}
+-        015{"Šiaurės Afrika"}
+-        017{"Vidurio Afrika"}
+-        018{"Pietų Afrika [018]"}
+-        019{"Amerika"}
+-        021{"Šiaurinė Amerika"}
+-        029{"Karibai"}
+-        030{"Rytų Azija"}
+-        034{"Pietų Azija"}
+-        035{"Pietryčių Azija"}
+-        039{"Pietų Europa"}
+-        053{"Australija ir Naujoji Zelandija"}
+-        054{"Melanezija"}
+-        057{"Mikronezijos regionas"}
+-        061{"Polinezija"}
+-        062{"Pietų vidurio Azija"}
+-        142{"Azija"}
+-        143{"Centrinė Azija"}
+-        145{"Vakarų Azija"}
+-        150{"Europa"}
+-        151{"Rytų Europa"}
+-        154{"Šiaurės Europa"}
+-        155{"Vakarų Europa"}
+-        172{"Nepriklausomų Valstybių Sandrauga"}
+-        200{"Čekoslovakija"}
+-        419{"Lotynų Amerika ir Karibai"}
++        419{"Lotynų Amerika"}
+         AC{"Ascension sala"}
+         AD{"Andora"}
+         AE{"Jungtiniai Arabų Emyratai"}
+--- source/data/region/lv.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/lv.txt	2011-07-24 21:47:07.427405000 -0700
+@@ -11,38 +11,7 @@
+  */
+ lv{
+     Countries{
+-        001{"pasaule"}
+-        002{"Āfrika"}
+-        003{"Ziemeļamerika"}
+-        005{"Dienvidamerika"}
+-        009{"Okeānija"}
+-        011{"Rietumāfrika"}
+-        013{"Centrālamerika"}
+-        014{"Austrumāfrika"}
+-        015{"Ziemeļāfrika"}
+-        017{"Vidusāfrika"}
+-        018{"Āfrikas dienvidi"}
+-        019{"Amerika"}
+-        021{"Amerikas ziemeļi"}
+-        029{"Karību jūras reģions"}
+-        030{"Austrumāzija"}
+-        034{"Dienvidāzija"}
+-        035{"Centrālaustrumāzija"}
+-        039{"Dienvideiropa"}
+-        053{"Austrālija un Jaunzēlande"}
+-        054{"Melanēzija"}
+-        057{"Mikronēzijas reģions"}
+-        061{"Polinēzija"}
+-        062{"Centrāldienvidāzija"}
+-        142{"Āzija"}
+-        143{"Centrālāzija"}
+-        145{"Rietumāzija"}
+-        150{"Eiropa"}
+-        151{"Austrumeiropa"}
+-        154{"Ziemeļeiropa"}
+-        155{"Rietumeiropa"}
+-        172{"Neatkarīgo Valstu Savienība"}
+-        419{"Latīņamerika un Karību jūras reģions"}
++        419{"Latīņamerika"}
+         AC{"Debesbraukšanas sala"}
+         AD{"Andora"}
+         AE{"Apvienotie Arābu Emirāti"}
+--- source/data/region/mk.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/region/mk.txt	2011-07-24 21:47:07.467411000 -0700
+@@ -11,38 +11,7 @@
+  */
+ mk{
+     Countries{
+-        001{"Свет"}
+-        002{"Африка"}
+-        003{"Северна Америка"}
+-        005{"Јужна Америка"}
+-        009{"Океанија"}
+-        011{"Западна Африка"}
+-        013{"Централна Америка"}
+-        014{"Источна Африка"}
+-        015{"Северна Африка"}
+-        017{"Средна Африка"}
+-        018{"Јужна континентална Африка"}
+-        019{"Америки"}
+-        021{"Северна континентална Америка"}
+-        029{"Кариби"}
+-        030{"Источна Азија"}
+-        034{"Јужна Азија"}
+-        035{"Југоисточна Азија"}
+-        039{"Јужна Европа"}
+-        053{"Австралија и Нов Зеланд"}
+-        054{"Меланезија"}
+-        057{"Микронезиски регион"}
+-        061{"Полинезија"}
+-        062{"Јужно-централна Азија"}
+-        142{"Азија"}
+-        143{"Централна Азија"}
+-        145{"Западна Азија"}
+-        150{"Европа"}
+-        151{"Источна Европа"}
+-        154{"Северна Европа"}
+-        155{"Западна Европа"}
+-        172{"Комонвелт на независни држави"}
+-        419{"Латинска Америка и Карибите"}
++        419{"Латинска Америка"}
+         AC{"Остров Асенсион"}
+         AD{"Андора"}
+         AE{"Обединети Арапски Емирати"}
+--- source/data/region/nb.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/nb.txt	2011-07-24 21:47:07.544404000 -0700
+@@ -11,38 +11,7 @@
+  */
+ nb{
+     Countries{
+-        001{"verden"}
+-        002{"Afrika"}
+-        003{"Nord-Amerika"}
+-        005{"Sør-Amerika"}
+-        009{"Oseania"}
+-        011{"Vest-Afrika"}
+-        013{"Sentral-Amerika"}
+-        014{"Øst-Afrika"}
+-        015{"Nord-Afrika"}
+-        017{"Sentral-Afrika"}
+-        018{"Sørlige Afrika"}
+-        019{"Amerika"}
+-        021{"Nordlige Amerika"}
+-        029{"Karibia"}
+-        030{"Øst-Asia"}
+-        034{"Sør-Asia"}
+-        035{"Sørøst-Asia"}
+-        039{"Sør-Europa"}
+-        053{"Australia og New Zealand"}
+-        054{"Melanesia"}
+-        057{"Mikronesia"}
+-        061{"Polynesia"}
+-        062{"Sørsentral-Asia"}
+-        142{"Asia"}
+-        143{"Sentral-Asia"}
+-        145{"Vest-Asia"}
+-        150{"Europa"}
+-        151{"Øst-Europa"}
+-        154{"Nord-Europa"}
+-        155{"Vest-Europa"}
+-        172{"Samveldet av uavhengige stater"}
+-        419{"Latin-Amerika og Karibia"}
++        419{"Latin-Amerika"}
+         AC{"Ascension"}
+         AD{"Andorra"}
+         AE{"De forente arabiske emirater"}
+--- source/data/region/nl.txt	2010-10-28 12:45:36.000000000 -0700
++++ source/data/region/nl.txt	2011-07-24 21:47:07.570406000 -0700
+@@ -11,39 +11,7 @@
+  */
+ nl{
+     Countries{
+-        001{"Wereld"}
+-        002{"Afrika"}
+-        003{"Noord-Amerika"}
+-        005{"Zuid-Amerika"}
+-        009{"Oceanië"}
+-        011{"West-Afrika"}
+-        013{"Midden-Amerika"}
+-        014{"Oost-Afrika"}
+-        015{"Noord-Afrika"}
+-        017{"Centraal-Afrika"}
+-        018{"Zuidelijk Afrika"}
+-        019{"Amerika"}
+-        021{"Noordelijk Amerika"}
+-        029{"Caribisch gebied"}
+-        030{"Oost-Azië"}
+-        034{"Zuid-Azië"}
+-        035{"Zuidoost-Azië"}
+-        039{"Zuid-Europa"}
+-        053{"Australië en Nieuw-Zeeland"}
+-        054{"Melanesië"}
+-        057{"Micronesische regio"}
+-        061{"Polynesië"}
+-        062{"Zuidelijk Centraal-Azië"}
+-        142{"Azië"}
+-        143{"Centraal-Azië"}
+-        145{"West-Azië"}
+-        150{"Europa"}
+-        151{"Oost-Europa"}
+-        154{"Noord-Europa"}
+-        155{"West-Europa"}
+-        172{"Gemenebest van Onafhankelijke Staten"}
+-        419{"Latijns-Amerika en het Caribisch gebied"}
+-        830{"Kanaaleilanden"}
++        419{"Latijns-Amerika"}
+         AC{"Ascension"}
+         AD{"Andorra"}
+         AE{"Verenigde Arabische Emiraten"}
+--- source/data/region/nn.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/nn.txt	2011-07-24 21:47:07.578408000 -0700
+@@ -11,39 +11,7 @@
+  */
+ nn{
+     Countries{
+-        001{"verda"}
+-        002{"Afrika"}
+-        003{"Nord-Amerika"}
+-        005{"Sør-Amerika"}
+-        009{"Oseania"}
+-        011{"Vest-Afrika"}
+-        013{"Sentral-Amerika"}
+-        014{"Aust-Afrika"}
+-        015{"Nord-Afrika"}
+-        017{"Sentral-Afrika"}
+-        018{"Sørlege Afrika"}
+-        019{"Amerika"}
+-        021{"nordlege Amerika"}
+-        029{"Karibia"}
+-        030{"Aust-Asia"}
+-        034{"Sør-Asia"}
+-        035{"Søraust-Asia"}
+-        039{"Sør-Europa"}
+-        053{"Australia og New Zealand"}
+-        054{"Melanesia"}
+-        057{"Mikronesia"}
+-        061{"Polynesia"}
+-        062{"Sørlege Sentral-Asia"}
+-        142{"Asia"}
+-        143{"Sentral-Asia"}
+-        145{"Vest-Asia"}
+-        150{"Europa"}
+-        151{"Aust-Europa"}
+-        154{"Nord-Europa"}
+-        155{"Vest-Europa"}
+-        172{"Samveldet av uavhengige statar"}
+-        419{"Latin-Amerika og Karibia"}
+-        830{"Kanaløyane"}
++        419{"Latin-Amerika"}
+         AC{"Ascension"}
+         AD{"Andorra"}
+         AE{"Dei sameinte arabiske emirata"}
+--- source/data/region/pl.txt	2010-10-28 12:45:36.000000000 -0700
++++ source/data/region/pl.txt	2011-07-24 21:47:07.648404000 -0700
+@@ -11,39 +11,7 @@
+  */
+ pl{
+     Countries{
+-        001{"Świat"}
+-        002{"Afryka"}
+-        003{"Ameryka Północna"}
+-        005{"Ameryka Południowa"}
+-        009{"Oceania"}
+-        011{"Afryka Zachodnia"}
+-        013{"Ameryka Środkowa"}
+-        014{"Afryka Wschodnia"}
+-        015{"Afryka Północna"}
+-        017{"Afryka Środkowa"}
+-        018{"Afryka Południowa"}
+-        019{"Ameryka"}
+-        021{"Ameryka Północna - Kanada, USA"}
+-        029{"Karaiby"}
+-        030{"Azja Wschodnia"}
+-        034{"Azja Południowa"}
+-        035{"Azja Południowo-Wschodnia"}
+-        039{"Europa Południowa"}
+-        053{"Australia i Nowa Zelandia"}
+-        054{"Melanezja"}
+-        057{"Mikronezja"}
+-        061{"Polinezja"}
+-        062{"Azja Południowo-Środkowa"}
+-        142{"Azja"}
+-        143{"Azja Środkowa"}
+-        145{"Azja Zachodnia"}
+-        150{"Europa"}
+-        151{"Europa Wschodnia"}
+-        154{"Europa Północna"}
+-        155{"Europa Zachodnia"}
+-        172{"Wspólnota Niezależnych Państw"}
+-        419{"Ameryka Łacińska i Karaiby"}
+-        830{"Wyspy Normandzkie"}
++        419{"Ameryka Łacińska"}
+         AC{"Wyspa Wniebowstąpienia"}
+         AD{"Andora"}
+         AE{"Zjednoczone Emiraty Arabskie"}
+--- source/data/region/pt.txt	2010-10-28 12:45:36.000000000 -0700
++++ source/data/region/pt.txt	2011-07-24 21:47:07.660407000 -0700
+@@ -11,38 +11,7 @@
+  */
+ pt{
+     Countries{
+-        001{"Mundo"}
+-        002{"África"}
+-        003{"América do Norte"}
+-        005{"América do Sul"}
+-        009{"Oceania"}
+-        011{"África Ocidental"}
+-        013{"América Central"}
+-        014{"África Oriental"}
+-        015{"África do Norte"}
+-        017{"África Central"}
+-        018{"África Austral"}
+-        019{"Américas"}
+-        021{"América Setentrional"}
+-        029{"Caribe"}
+-        030{"Ásia Oriental"}
+-        034{"Ásia do Sul"}
+-        035{"Ásia Centro-Oriental"}
+-        039{"Europa do Sul"}
+-        053{"Austrália e Nova Zelândia"}
+-        054{"Melanésia"}
+-        057{"Região da Micronésia"}
+-        061{"Polinésia"}
+-        062{"Ásia Centro-Meridional"}
+-        142{"Ásia"}
+-        143{"Ásia Central"}
+-        145{"Ásia Ocidental"}
+-        150{"Europa"}
+-        151{"Europa Oriental"}
+-        154{"Europa Setentrional"}
+-        155{"Europa Ocidental"}
+-        172{"Comunidade dos Estados Independentes"}
+-        419{"América Latina e Caribe"}
++        419{"América Latina"}
+         AC{"Ilha de Ascensão"}
+         AD{"Andorra"}
+         AE{"Emirados Árabes Unidos"}
+--- source/data/region/rm.txt	2010-10-24 23:30:04.000000000 -0700
++++ source/data/region/rm.txt	2011-07-24 21:47:07.664411000 -0700
+@@ -11,39 +11,7 @@
+  */
+ rm{
+     Countries{
+-        001{"mund"}
+-        002{"Africa"}
+-        003{"America dal Nord"}
+-        005{"America dal Sid"}
+-        009{"Oceania"}
+-        011{"Africa dal Vest"}
+-        013{"America Centrala"}
+-        014{"Africa da l'Ost"}
+-        015{"Africa dal Nord"}
+-        017{"Africa Centrala"}
+-        018{"Africa Meridiunala"}
+-        019{"America dal Nord, America Centrala ed America dal Sid"}
+-        029{"Caribica"}
+-        030{"Asia da l'Ost"}
+-        034{"Asia dal Sid"}
+-        035{"Asia dal Sidost"}
+-        039{"Europa dal Sid"}
+-        053{"Australia e Nova Zelanda"}
+-        054{"Melanesia"}
+-        057{"Regiun Micronesica"}
+-        061{"Polinesia"}
+-        062{"Asia Centrala dal Sid"}
+-        142{"Asia"}
+-        143{"Asia Centrala"}
+-        145{"Asia dal Vest"}
+-        150{"Europa"}
+-        151{"Europa Orientala"}
+-        154{"Europa dal Nord"}
+-        155{"Europa dal Vest"}
+-        172{"Communitad dals Stadis Independents"}
+-        200{"Tschecoslovachia"}
+-        419{"America Latina e Caribica"}
+-        830{"Inslas dal Chanal da la Mongia"}
++        419{"America Latina"}
+         AD{"Andorra"}
+         AE{"Emirats Arabs Unids"}
+         AF{"Afghanistan"}
+--- source/data/region/ro.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/ro.txt	2011-07-24 21:47:07.697405000 -0700
+@@ -11,39 +11,7 @@
+  */
+ ro{
+     Countries{
+-        001{"Lume"}
+-        002{"Africa"}
+-        003{"America de Nord"}
+-        005{"America de Sud"}
+-        009{"Oceania"}
+-        011{"Africa Occidentală"}
+-        013{"America Centrală"}
+-        014{"Africa Orientală"}
+-        015{"Africa Septentrională"}
+-        017{"Africa Centrală"}
+-        018{"Africa Meridională"}
+-        019{"Americi"}
+-        021{"America Septentrională"}
+-        029{"Caraibe"}
+-        030{"Asia Orientală"}
+-        034{"Asia Meridională"}
+-        035{"Asia de Sud-Est"}
+-        039{"Europa Meridională"}
+-        053{"Australia și Noua Zeelandă"}
+-        054{"Melanezia"}
+-        057{"Regiunea Micronezia"}
+-        061{"Polinezia"}
+-        062{"Asia Centrală de Sud"}
+-        142{"Asia"}
+-        143{"Asia Centrală"}
+-        145{"Asia Occidentală"}
+-        150{"Europa"}
+-        151{"Europa Orientală"}
+-        154{"Europa Septentrională"}
+-        155{"Europa Occidentală"}
+-        172{"Comunitatea Statelor Independente"}
+-        419{"America Latină și Caraibe"}
+-        830{"Insulele Anglo-Normande"}
++        419{"America Latină"}
+         AC{"Insula Ascension"}
+         AD{"Andorra"}
+         AE{"Emiratele Arabe Unite"}
+--- source/data/region/ru.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/ru.txt	2011-07-24 21:47:07.703407000 -0700
+@@ -11,39 +11,7 @@
+  */
+ ru{
+     Countries{
+-        001{"Мир"}
+-        002{"Африка"}
+-        003{"Северная Америка"}
+-        005{"Южная Америка"}
+-        009{"Океания"}
+-        011{"Западная Африка"}
+-        013{"Центральная Америка"}
+-        014{"Восточная Африка"}
+-        015{"Северная Африка"}
+-        017{"Центральная Африка"}
+-        018{"Южная Африка [018]"}
+-        019{"Центральная и Южная Америка"}
+-        021{"Северная Америка (021)"}
+-        029{"Карибы"}
+-        030{"Восточная Азия"}
+-        034{"Южная Азия"}
+-        035{"Юго-Восточная Азия"}
+-        039{"Южная Европа"}
+-        053{"Австралия и Новая Зеландия"}
+-        054{"Меланезия"}
+-        057{"Микронезия"}
+-        061{"Полинезия"}
+-        062{"Юг Средней Азии"}
+-        142{"Азия"}
+-        143{"Средняя Азия"}
+-        145{"Ближний и Средний Восток"}
+-        150{"Европа"}
+-        151{"Восточная Европа"}
+-        154{"Северная Европа"}
+-        155{"Западная Европа"}
+-        172{"СНГ"}
+-        419{"Латинская Америка и Карибские о-ва"}
+-        830{"Нормандские о-ва"}
++        419{"Латинская Америка"}
+         AC{"Остров Вознесения"}
+         AD{"Андорра"}
+         AE{"Объединенные Арабские Эмираты"}
+--- source/data/region/sk.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/sk.txt	2011-07-24 21:47:07.765404000 -0700
+@@ -11,40 +11,7 @@
+  */
+ sk{
+     Countries{
+-        001{"Svet"}
+-        002{"Afrika"}
+-        003{"Severná Amerika (003)"}
+-        005{"Južná Amerika"}
+-        009{"Oceánia"}
+-        011{"Západná Afrika"}
+-        013{"Stredná Amerika"}
+-        014{"Východná Afrika"}
+-        015{"Severná Afrika"}
+-        017{"Stredná Afrika"}
+-        018{"Južná Afrika [018]"}
+-        019{"Americký kontinent"}
+-        021{"Severná Amerika"}
+-        029{"Karibik"}
+-        030{"Východná Ázia"}
+-        034{"Južná Ázia"}
+-        035{"Juhovýchodná Ázia"}
+-        039{"Južná Európa"}
+-        053{"Austrália a Nový Zéland"}
+-        054{"Melanézia"}
+-        057{"Mikronésia"}
+-        061{"Polynézia"}
+-        062{"Stredná a južná Ázia"}
+-        142{"Ázia"}
+-        143{"Stredná Ázia"}
+-        145{"Západná Ázia"}
+-        150{"Európa"}
+-        151{"Východná Európa"}
+-        154{"Severná Európa"}
+-        155{"Západná Európa"}
+-        172{"Spoločenstvo nezávislých štátov"}
+-        200{"Československo"}
+-        419{"Latinská Amerika a Karibik"}
+-        830{"Kanál La Manche"}
++        419{"Latinská Amerika"}
+         AD{"Andorra"}
+         AE{"Spojené arabské emiráty"}
+         AF{"Afganistan"}
+--- source/data/region/sl.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/sl.txt	2011-07-24 21:47:07.769405000 -0700
+@@ -11,39 +11,7 @@
+  */
+ sl{
+     Countries{
+-        001{"Svet"}
+-        002{"Afrika"}
+-        003{"Severna Amerika"}
+-        005{"Južna Amerika"}
+-        009{"Oceanija"}
+-        011{"Zahodna Afrika"}
+-        013{"Srednja Amerika"}
+-        014{"Vzhodna Afrika"}
+-        015{"Severna Afrika"}
+-        017{"Srednja Afrika"}
+-        018{"Južna Afrika"}
+-        019{"Amerike"}
+-        021{"severnoameriška celina"}
+-        029{"Karibi"}
+-        030{"Vzhodna Azija"}
+-        034{"Južna Azija"}
+-        035{"Jugovzhodna Azija"}
+-        039{"Južna Evropa"}
+-        053{"Avstralija in Nova Zelandija"}
+-        054{"Melanezija"}
+-        057{"mikronezijska regija"}
+-        061{"Polinezija"}
+-        062{"Južna osrednja Azija"}
+-        142{"Azija"}
+-        143{"Osrednja Azija"}
+-        145{"Zahodna Azija"}
+-        150{"Evropa"}
+-        151{"Vzhodna Evropa"}
+-        154{"Severna Evropa"}
+-        155{"Zahodna Evropa"}
+-        172{"Skupnost neodvisnih držav"}
+-        419{"Latinska Amerika in Karibi"}
+-        830{"Kanalski otoki"}
++        419{"Latinska Amerika"}
+         AC{"Otok Ascension"}
+         AD{"Andora"}
+         AE{"Združeni arabski emirati"}
+--- source/data/region/sr_Latn.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/sr_Latn.txt	2011-07-24 21:47:07.836404000 -0700
+@@ -12,39 +12,7 @@
+ sr_Latn{
+     %%ParentIsRoot:int{1}
+     Countries{
+-        001{"Svet"}
+-        002{"Afrika"}
+-        003{"Severnoamerički kontinent"}
+-        005{"Južna Amerika"}
+-        009{"Okeanija"}
+-        011{"Zapadna Afrika"}
+-        013{"Centralna Amerika"}
+-        014{"Istočna Afrika"}
+-        015{"Severna Afrika"}
+-        017{"Centralna Afrika"}
+-        018{"Južna Afrika"}
+-        019{"Amerike"}
+-        021{"Severna Amerika"}
+-        029{"Karibi"}
+-        030{"Istočna Azija"}
+-        034{"Južna Azija"}
+-        035{"Jugoistočna Azija"}
+-        039{"Južna Evropa"}
+-        053{"Australija i Novi Zeland"}
+-        054{"Melanezija"}
+-        057{"Micronezija"}
+-        061{"Polinezija"}
+-        062{"Južno-centralna Azija"}
+-        142{"Azija"}
+-        143{"Centralna Azija"}
+-        145{"Zapadna Azija"}
+-        150{"Evropa"}
+-        151{"Istočna Evropa"}
+-        154{"Severna Evropa"}
+-        155{"Zapadna Evropa"}
+-        172{"Komonvelt nezavisnih država"}
+-        419{"Latinska Amerika i Karibi"}
+-        830{"Kanalska ostrva"}
++        419{"Latinska Amerika"}
+         AD{"Andora"}
+         AE{"Ujedinjeni Arapski Emirati"}
+         AF{"Avganistan"}
+--- source/data/region/sr.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/sr.txt	2011-07-24 21:47:07.857407000 -0700
+@@ -11,39 +11,7 @@
+  */
+ sr{
+     Countries{
+-        001{"Свет"}
+-        002{"Африка"}
+-        003{"Северноамерички континент"}
+-        005{"Јужна Америка"}
+-        009{"Океанија"}
+-        011{"Западна Африка"}
+-        013{"Централна Америка"}
+-        014{"Источна Африка"}
+-        015{"Северна Африка"}
+-        017{"Централна Африка"}
+-        018{"Јужна Африка"}
+-        019{"Америке"}
+-        021{"Северна Америка"}
+-        029{"Кариби"}
+-        030{"Источна Азија"}
+-        034{"Јужна Азија"}
+-        035{"Југоисточна Азија"}
+-        039{"Јужна Европа"}
+-        053{"Аустралија и Нови Зеланд"}
+-        054{"Меланезија"}
+-        057{"Микронезијски регион"}
+-        061{"Полинезија"}
+-        062{"Јужно-централна Азија"}
+-        142{"Азија"}
+-        143{"Централна Азија"}
+-        145{"Западна Азија"}
+-        150{"Европа"}
+-        151{"Источна Европа"}
+-        154{"Северна Европа"}
+-        155{"Западна Европа"}
+-        172{"Комонвелт независних држава"}
+-        419{"Латинска Америка и Кариби"}
+-        830{"Каналска острва"}
++        419{"Латинска Америка"}
+         AC{"Острво Асенсион"}
+         AD{"Андора"}
+         AE{"Уједињени Арапски Емирати"}
+--- source/data/region/sv.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/sv.txt	2011-07-24 21:47:07.867407000 -0700
+@@ -11,39 +11,7 @@
+  */
+ sv{
+     Countries{
+-        001{"världen"}
+-        002{"Afrika"}
+-        003{"Nordamerika"}
+-        005{"Sydamerika"}
+-        009{"Oceanien"}
+-        011{"Västafrika"}
+-        013{"Centralamerika"}
+-        014{"Östafrika"}
+-        015{"Nordafrika"}
+-        017{"Centralafrika"}
+-        018{"södra Afrika"}
+-        019{"Nord- och Sydamerika"}
+-        021{"norra Amerika"}
+-        029{"Karibien"}
+-        030{"Östasien"}
+-        034{"södra Asien"}
+-        035{"Sydostasien"}
+-        039{"Sydeuropa"}
+-        053{"Australien och Nya Zeeland"}
+-        054{"Melanesien"}
+-        057{"Mikronesiska öarna"}
+-        061{"Polynesien"}
+-        062{"södra Centralasien"}
+-        142{"Asien"}
+-        143{"Centralasien"}
+-        145{"Västasien"}
+-        150{"Europa"}
+-        151{"Östeuropa"}
+-        154{"Nordeuropa"}
+-        155{"Västeuropa"}
+-        172{"Oberoende staters samvälde"}
+-        419{"Latinamerika och Karibien"}
+-        830{"Kanalöarna"}
++        419{"Latinamerika"}
+         AC{"Ascension"}
+         AD{"Andorra"}
+         AE{"Förenade Arabemiraten"}
+--- source/data/region/sw.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/region/sw.txt	2011-07-24 21:47:07.871404000 -0700
+@@ -11,6 +11,7 @@
+  */
+ sw{
+     Countries{
++        419{"Amerika ya Kilatini"}
+         AD{"Andora"}
+         AE{"Falme za Kiarabu"}
+         AF{"Afuganistani"}
+--- source/data/region/tr.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/tr.txt	2011-07-24 21:47:07.953404000 -0700
+@@ -11,39 +11,7 @@
+  */
+ tr{
+     Countries{
+-        001{"Dünya"}
+-        002{"Afrika"}
+-        003{"Kuzey Amerika"}
+-        005{"Güney Amerika"}
+-        009{"Okyanusya"}
+-        011{"Batı Afrika"}
+-        013{"Orta Amerika"}
+-        014{"Doğu Afrika"}
+-        015{"Kuzey Afrika"}
+-        017{"Orta Afrika"}
+-        018{"Afrika'nın Güneyi"}
+-        019{"Amerika"}
+-        021{"Amerika'nın Kuzeyi"}
+-        029{"Karayipler"}
+-        030{"Doğu Asya"}
+-        034{"Güney Asya"}
+-        035{"Güney Doğu Asya"}
+-        039{"Güney Avrupa"}
+-        053{"Avustralya ve Yeni Zelanda"}
+-        054{"Melanezya"}
+-        057{"Mikronezya"}
+-        061{"Polinezya"}
+-        062{"Güney Orta Asya"}
+-        142{"Asya"}
+-        143{"Orta Asya"}
+-        145{"Batı Asya"}
+-        150{"Avrupa"}
+-        151{"Doğu Avrupa"}
+-        154{"Kuzey Avrupa"}
+-        155{"Batı Avrupa"}
+-        172{"Bağımsız Devletler Topluluğu"}
+-        419{"Latin Amerika ve Karayipler"}
+-        830{"Kanal Adaları"}
++        419{"Latin Amerika"}
+         AC{"Ascension Adası"}
+         AD{"Andorra"}
+         AE{"Birleşik Arap Emirlikleri"}
+--- source/data/region/uk.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/uk.txt	2011-07-24 21:47:08.017369000 -0700
+@@ -11,39 +11,7 @@
+  */
+ uk{
+     Countries{
+-        001{"Світ"}
+-        002{"Африка"}
+-        003{"Північноамериканський континент"}
+-        005{"Південна Америка"}
+-        009{"Океанія"}
+-        011{"Західна Африка"}
+-        013{"Центральна Америка"}
+-        014{"Східна Африка"}
+-        015{"Північна Африка"}
+-        017{"Центральна Африка"}
+-        018{"Південна Африка"}
+-        019{"Америки"}
+-        021{"Північна Америка"}
+-        029{"Карибський басейн"}
+-        030{"Східна Азія"}
+-        034{"Південна Азія"}
+-        035{"Південно-Східна Азія"}
+-        039{"Південна Європа"}
+-        053{"Австралія та Нова Зеландія"}
+-        054{"Меланезія"}
+-        057{"Мікронезійський регіон"}
+-        061{"Полінезія"}
+-        062{"Південно-Центральна Азія"}
+-        142{"Азія"}
+-        143{"Центральна Азія"}
+-        145{"Західна Азія"}
+-        150{"Європа"}
+-        151{"Східна Європа"}
+-        154{"Північна Європа"}
+-        155{"Західна Європа"}
+-        172{"Співдружність Незалежних Держав"}
+-        419{"Латинська Америка і Карибський басейн"}
+-        830{"Нормандські острови"}
++        419{"Латинська Америка"}
+         AC{"Острів Вознесіння"}
+         AD{"Андорра"}
+         AE{"Обʼєднані Арабські Емірати"}
+--- source/data/region/vi.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/vi.txt	2011-07-24 21:47:08.181327000 -0700
+@@ -11,37 +11,7 @@
+  */
+ vi{
+     Countries{
+-        001{"Thế giới"}
+-        002{"Châu Phi"}
+-        003{"Bắc Mỹ"}
+-        005{"Nam Mỹ"}
+-        009{"Châu Đại Dương"}
+-        011{"Tây Phi"}
+-        013{"Trung Mỹ"}
+-        014{"Đông Phí"}
+-        015{"Bắc Phi"}
+-        017{"Trung Phi"}
+-        018{"Miền Nam Châu Phi"}
+-        019{"Châu Mỹ"}
+-        021{"Miền Bắc Châu Mỹ"}
+-        029{"Ca-ri-bê"}
+-        030{"Đông Á"}
+-        034{"Nam Á"}
+-        035{"Đông Nam Á"}
+-        039{"Nam Âu"}
+-        053{"Úc và New Zealand"}
+-        054{"Melanesia"}
+-        057{"Vùng Micronesian"}
+-        061{"Polynesia"}
+-        062{"Trung Nam Á"}
+-        142{"Châu Á"}
+-        143{"Trung Á"}
+-        145{"Tây Á"}
+-        150{"Âu Châu"}
+-        151{"Đông Âu"}
+-        154{"Miền Bắc Châu Âu"}
+-        155{"Tây Âu"}
+-        419{"Châu Mỹ La-tinh và Ca-ri-be"}
++        419{"Châu Mỹ La-tinh"}
+         AD{"Andorra"}
+         AE{"Các Tiểu Vương quốc A-rập Thống nhất"}
+         AF{"Áp-ga-ni-xtan"}
+--- source/data/region/zh.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/region/zh.txt	2011-07-24 21:47:08.414323000 -0700
+@@ -11,39 +11,7 @@
+  */
+ zh{
+     Countries{
+-        001{"世界"}
+-        002{"非洲"}
+-        003{"北美洲"}
+-        005{"南美洲"}
+-        009{"大洋洲"}
+-        011{"西非"}
+-        013{"中美洲"}
+-        014{"东非"}
+-        015{"北非"}
+-        017{"中非"}
+-        018{"南部非洲"}
+-        019{"美洲"}
+-        021{"美洲北部"}
+-        029{"加勒比海"}
+-        030{"东亚"}
+-        034{"南亚"}
+-        035{"东南亚"}
+-        039{"南欧"}
+-        053{"澳大利亚和新西兰"}
+-        054{"美拉尼西亚"}
+-        057{"密克罗尼西亚"}
+-        061{"玻利尼西亚"}
+-        062{"中南亚"}
+-        142{"亚洲"}
+-        143{"中亚"}
+-        145{"西亚"}
+-        150{"欧洲"}
+-        151{"东欧"}
+-        154{"北欧"}
+-        155{"西欧"}
+-        172{"独联体"}
+-        419{"拉丁美洲和加勒比海"}
+-        830{"海峡群岛"}
++        419{"拉丁美洲"}
+         AC{"阿森松岛"}
+         AD{"安道尔"}
+         AE{"阿拉伯联合酋长国"}
+--- source/data/zone/de.txt	2010-10-28 12:45:36.000000000 -0700
++++ source/data/zone/de.txt	2011-07-22 16:00:32.959778000 -0700
+@@ -308,28 +308,112 @@
+         "meta:Amazon"{
+             ld{"Amazonas-Sommerzeit"}
+         }
++        "meta:America_Central"{
++            ld{"Nordamerikanische Inland-Sommerzeit"}
++            lg{"Nordamerikanische Inlandzeit"}
++            ls{"Nordamerikanische Inland-Winterzeit"}
++        }
++        "meta:America_Eastern"{
++            ld{"Nordamerikanische Ostküsten-Sommerzeit"}
++            lg{"Nordamerikanische Ostküstenzeit"}
++            ls{"Nordamerikanische Ostküsten-Winterzeit"}
++        }
++        "meta:America_Mountain"{
++            ld{"Rocky Mountain Sommerzeit"}
++            lg{"Rocky Mountain Zeit"}
++            ls{"Rocky Mountain Winterzeit"}
++        }
++        "meta:America_Pacific"{
++            ld{"Nordamerikanische Westküsten-Sommerzeit"}
++            lg{"Nordamerikanische Westküstenzeit"}
++            ls{"Nordamerikanische Westküsten-Winterzeit"}
++        }
++        "meta:Anadyr"{
++            ld{"Anadyr Sommerzeit"}
++            lg{"Anadyr Zeit"}
++            ls{"Anadyr Winterzeit"}
++        }
++        "meta:Arabian"{
++            ld{"Arabische Sommerzeit"}
++            lg{"Arabische Zeit"}
++            ls{"Arabische Winterzeit"}
++        }
++        "meta:Argentina"{
++            ld{"Argentinische Sommerzeit"}
++            lg{"Argentinische Zeit"}
++            ls{"Argentinische Winterzeit"}
++        }
++        "meta:Argentina_Western"{
++            ld{"West-Argentinische Sommerzeit"}
++            lg{"West-Argentinische Zeit"}
++            ls{"West-Argentinische Winterzeit"}
++        }
++        "meta:Atlantic"{
++            ld{"Atlantik-Sommerzeit"}
++            lg{"Atlantik-Zeit"}
++            ls{"Atlantik-Winterzeit"}
++        }
++        "meta:Australia_Central"{
++            ld{"Zentralaustralische Sommerzeit"}
++            lg{"Zentralaustralische Zeit"}
++            ls{"Zentralaustralische Winterzeit"}
++        }
++        "meta:Australia_CentralWestern"{
++            ld{"Zentral-/Westaustralische Sommerzeit"}
++            lg{"Zentral-/Westaustralische Zeit"}
++            ls{"Zentral-/Westaustralische Winterzeit"}
++        }
++        "meta:Australia_Eastern"{
++            ld{"Ostaustralische Sommerzeit"}
++            lg{"Ostaustralische Zeit"}
++            ls{"Ostaustralische Winterzeit"}
++        }
++        "meta:Australia_Western"{
++            ld{"Westaustralische Sommerzeit"}
++            lg{"Westaustralische Zeit"}
++            ls{"Westaustralische Winterzeit"}
++        }
++        "meta:China"{
++            ld{"Chinesische Sommerzeit"}
++            lg{"Chinesische Zeit"}
++            ls{"Chinesische Winterzeit"}
++        }
+         "meta:Europe_Central"{
+             cu:int{1}
+             ld{"Mitteleuropäische Sommerzeit"}
+-            ls{"Mitteleuropäische Zeit"}
++            lg{"Mitteleuropäische Zeit"}
++            ls{"Mitteleuropäische Winterzeit"}
+             sd{"MESZ"}
+             ss{"MEZ"}
+         }
+         "meta:Europe_Eastern"{
+             ld{"Osteuropäische Sommerzeit"}
+-            ls{"Osteuropäische Zeit"}
++            lg{"Osteuropäische Zeit"}
++            ls{"Osteuropäische Winterzeit"}
+             sd{"OESZ"}
+             ss{"OEZ"}
+         }
+         "meta:Europe_Western"{
+             ld{"Westeuropäische Sommerzeit"}
+-            ls{"Westeuropäische Zeit"}
++            lg{"Westeuropäische Zeit"}
++            ls{"Westeuropäische Winterzeit"}
+             sd{"WESZ"}
+             ss{"WEZ"}
+         }
++        "meta:Korea"{
++            ld{"Koreanische Sommerzeit"}
++            lg{"Koreanische Zeit"}
++            ls{"Koreanische Winterzeit"}
++        }
+         "meta:Moscow"{
+             ld{"Moskauer Sommerzeit"}
+-            ls{"Moskauer Zeit"}
++            lg{"Moskauer Zeit"}
++            ls{"Moskauer Winterzeit"}
++        }
++        "meta:Japan"{
++            ld{"Japanische Sommerzeit"}
++            lg{"Japanische Zeit"}
++            ls{"Japanische Winterzeit"}
+         }
+         fallbackFormat{"{1} ({0})"}
+         gmtFormat{"GMT{0}"}
+--- source/data/zone/it.txt	2010-10-28 12:45:36.000000000 -0700
++++ source/data/zone/it.txt	2011-07-22 16:00:32.906774000 -0700
+@@ -205,6 +205,26 @@
+             ld{"Ora Legale Alaska"}
+             ls{"Ora Standard Alaska"}
+         }
++        "meta:America_Central"{
++            ld{"Ora legale centrale USA"}
++            lg{"Ora centrale USA"}
++            ls{"Ora standard centrale USA"}
++        }
++        "meta:America_Eastern"{
++            ld{"Ora legale orientale USA"}
++            lg{"Ora orientale USA"}
++            ls{"Ora standard orientale USA"}
++        }
++        "meta:America_Mountain"{
++            ld{"Ora legale delle Montagne Rocciose USA"}
++            lg{"Ora sulle Montagne Rocciose USA"}
++            ls{"Ora standard sulle Montagne Rocciose USA"}
++        }
++        "meta:America_Pacific"{
++            ld{"Ora legale della costa del Pacifico USA"}
++            lg{"Ora del Pacifico USA"}
++            ls{"Ora standard della costa del Pacifico USA"}
++        }
+         "meta:China"{
+             ld{"Ora Legale Cina"}
+             ls{"Ora Standard Cina"}
+@@ -219,6 +239,10 @@
+             ld{"Ora Legale Europa Orientale"}
+             ls{"Ora Standard Europa Orientale"}
+         }
++        "meta:Europe_Western"{
++            ld{"Ora Legale Europa Occidentale"}
++            ls{"Ora Standard Europa Occidentale"}
++        }
+         "meta:Hawaii"{
+             ld{"Ora Legale Hawaii"}
+             ls{"Ora Standard Hawaii"}
+--- source/data/zone/ja.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/zone/ja.txt	2011-07-22 16:00:32.922792000 -0700
+@@ -646,14 +646,22 @@
+         }
+         "meta:China"{
+             ld{"中国夏時間"}
++            lg{"中国時間"}
+             ls{"中国標準時"}
+         }
+         "meta:Europe_Central"{
+             ld{"中欧夏時間"}
++            lg{"中欧時間"}
+             ls{"中欧標準時"}
+         }
+         "meta:Europe_Eastern"{
+             ld{"東欧夏時間"}
++            lg{"東欧時間"}
++            ls{"東欧標準時"}
++        }
++        "meta:Europe_Western"{
++            ld{"西欧夏時間"}
++            lg{"西欧時間"}
+             ls{"東欧標準時"}
+         }
+         "meta:GMT"{
+@@ -666,8 +674,14 @@
+         "meta:Japan"{
+             cu:int{1}
+             ld{"日本夏時間"}
++            lg{"日本時間"}
+             ls{"日本標準時"}
+         }
++        "meta:Korea"{
++            ld{"韓国夏時間"}
++            lg{"韓国時間"}
++            ls{"韓国標準時"}
++        }
+         "meta:Newfoundland"{
+             ld{"ニューファンドランド島夏時間"}
+             ls{"ニューファンドランド島標準時"}
+--- source/data/zone/ko.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/zone/ko.txt	2011-11-29 12:58:35.744696000 -0800
+@@ -1127,24 +1127,24 @@
+             ls{"아마존 표준시"}
+         }
+         "meta:America_Central"{
+-            ld{"미 중부 하계 표준시"}
+-            lg{"중부 표준시"}
+-            ls{"중부 표준시"}
++            ld{"북미 중부 하계 표준시"}
++            lg{"북미 중부 시간"}
++            ls{"북미 중부 표준시"}
+         }
+         "meta:America_Eastern"{
+-            ld{"미 동부 하계 표준시"}
+-            lg{"동부 표준시"}
+-            ls{"동부 표준시"}
++            ld{"북미 동부 하계 표준시"}
++            lg{"북미 동부 시간"}
++            ls{"북미 동부 표준시"}
+         }
+         "meta:America_Mountain"{
+-            ld{"미 산지 하계 표준시"}
+-            lg{"산지 표준시"}
+-            ls{"산악 표준시"}
++            ld{"북미 로키 산맥 하계 표준시"}
++            lg{"북미 로키 산맥 시간"}
++            ls{"북미 로키 산맥 표준시"}
+         }
+         "meta:America_Pacific"{
+-            ld{"미 태평양 하계 표준시"}
+-            lg{"태평양 표준시"}
+-            ls{"태평양 표준시"}
++            ld{"북미 태평양 하계 표준시"}
++            lg{"북미 태평양 시간"}
++            ls{"북미 태평양 표준시"}
+         }
+         "meta:Aqtau"{
+             sd{"AQTST (아크타우)"}
+@@ -1163,29 +1163,29 @@
+             ss{"AST(아라비아)"}
+         }
+         "meta:Atlantic"{
+-            ld{"미 대서양 하계 표준시"}
+-            lg{"대서양 표준시"}
+-            ls{"대서양 표준시"}
++            ld{"북미 대서양 하계 표준시"}
++            lg{"북미 대서양 시간"}
++            ls{"북미 대서양 표준시"}
+         }
+         "meta:Australia_Central"{
+-            ld{"오스트레일리아 중부 하계 표준시"}
+-            lg{"중앙 오스트레일리아 시간"}
+-            ls{"오스트레일리아 중부 표준시"}
++            ld{"호주 중부 하계 표준시"}
++            lg{"호주 중부 시간"}
++            ls{"호주 중부 표준시"}
+         }
+         "meta:Australia_CentralWestern"{
+-            ld{"오스트레일리아 중서부 하계 표준시"}
+-            lg{"오스트레일리아 중서부 시간"}
+-            ls{"오스트레일리아 중서부 표준시"}
++            ld{"호주 중서부 하계 표준시"}
++            lg{"호주 중서부 시간"}
++            ls{"호주 중서부 표준시"}
+         }
+         "meta:Australia_Eastern"{
+-            ld{"오스트레일리아 동부 하계 표준시"}
+-            lg{"동부 오스트레일리아 시간"}
+-            ls{"오스트레일리아 동부 표준시"}
++            ld{"호주 동부 하계 표준시"}
++            lg{"호주 동부 시간"}
++            ls{"호주 동부 표준시"}
+         }
+         "meta:Australia_Western"{
+-            ld{"오스트레일리아 서부 하계 표준시"}
+-            lg{"서부 오스트레일리아 시간"}
+-            ls{"오스트레일리아 서부 표준시"}
++            ld{"호주 서부 하계 표준시"}
++            lg{"호주 서부 시간"}
++            ls{"호주 서부 표준시"}
+         }
+         "meta:Azores"{
+             ld{"아조레스 하계 표준시"}
+@@ -1214,6 +1214,7 @@
+         }
+         "meta:China"{
+             ld{"중국 하계 표준시"}
++            lg{"중국 시간"}
+             ls{"중국 표준시"}
+             sd{"CDT (중국)"}
+             sg{"CT (중국)"}
+@@ -1246,15 +1247,18 @@
+         }
+         "meta:Europe_Central"{
+             ld{"중부유럽 하계 표준시"}
++            lg{"중부유럽 시간"}
+             ls{"중부유럽 표준시"}
+         }
+         "meta:Europe_Eastern"{
+-            ld{"동부유럽 하계 표준시"}
+-            ls{"동부유럽 표준시"}
++            ld{"동유럽 하계 표준시"}
++            lg{"동유럽 시간"}
++            ls{"동유럽 표준시"}
+         }
+         "meta:Europe_Western"{
+-            ld{"서부 유럽 하계 표준시"}
+-            ls{"서부 유럽 시간"}
++            ld{"서유럽 하계 표준시"}
++            lg{"서유럽 시간"}
++            ls{"서유럽 표준시"}
+         }
+         "meta:Falkland"{
+             ld{"포클랜드 하계 표준시"}
+@@ -1278,7 +1282,8 @@
+         }
+         "meta:Hong_Kong"{
+             ld{"홍콩 하계 표준시"}
+-            ls{"홍콩 시간"}
++            lg{"홍콩 시간"}
++            ls{"홍콩 표준시"}
+         }
+         "meta:India"{
+             ls{"인도 표준시"}
+@@ -1305,11 +1310,13 @@
+         }
+         "meta:Japan"{
+             ld{"일본 하계 표준시"}
++            lg{"일본 시간"}
+             ls{"일본 표준시"}
+         }
+         "meta:Korea"{
+             cu:int{1}
+             ld{"한국 하계 표준시"}
++            lg{"한국 시간"}
+             ls{"한국 표준시"}
+         }
+         "meta:Lord_Howe"{
+@@ -1328,6 +1335,7 @@
+         }
+         "meta:Moscow"{
+             ld{"모스크바 하계 표준시"}
++            lg{"모스크바 시간"}
+             ls{"모스크바 표준시"}
+         }
+         "meta:New_Zealand"{
+--- source/data/zone/ms.txt	2010-10-18 20:27:40.000000000 -0700
++++ source/data/zone/ms.txt	2012-02-01 10:40:45.627583000 -0800
+@@ -1,6 +1,6 @@
+ ﻿// ***************************************************************************
+ // *
+-// * Copyright (C) 2010 International Business Machines
++// * Copyright (C) 2011 International Business Machines
+ // * Corporation and others.  All Rights Reserved.
+ // * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+ // * Source File:<path>/common/main/ms.xml
+@@ -10,5 +10,214 @@
+  *  ICU <specials> source: <path>/xml/main/ms.xml
+  */
+ ms{
+-    Version{"2.0.50.96"}
++    Version{"2.0.59.53"}
++    zoneStrings{
++        "Asia:Brunei"{
++            ec{"Brunei"}
++        }
++        "Asia:Kuching"{
++            ec{"Kuching"}
++        }
++        "Asia:Singapore"{
++            ec{"Singapura"}
++        }
++        "Etc:Unknown"{
++            ec{"Bandar Tidak Diketahui"}
++        }
++        "meta:Alaska"{
++            ld{"Waktu Siang Alaska"}
++            lg{"Waktu Alaska"}
++            ls{"Waktu Piawai Alaska"}
++        }
++        "meta:Amazon"{
++            lg{"Waktu Amazon"}
++        }
++        "meta:America_Central"{
++            ld{"Waktu Siang Tengah"}
++            lg{"Waktu Pusat"}
++            ls{"Waktu Piawai Pusat"}
++        }
++        "meta:America_Eastern"{
++            ld{"Waktu Siang Timur"}
++            lg{"Waktu Timur"}
++            ls{"Waktu Piawai Timur"}
++        }
++        "meta:America_Mountain"{
++            ld{"Waktu Hari Siang Pergunungan"}
++            lg{"Waktu Gunung"}
++            ls{"Waktu Piawai Pergunungan"}
++        }
++        "meta:America_Pacific"{
++            ld{"Waktu Siang Pasifik"}
++            lg{"Waktu Pasifik"}
++            ls{"Waktu Piawai Pasifik"}
++        }
++        "meta:Anadyr"{
++            ld{"Waktu Musim Panas Anadyr"}
++            lg{"Waktu Anadyr"}
++            ls{"Waktu Anadyr"}
++        }
++        "meta:Argentina"{
++            ld{"Waktu Musim Panas Argentina"}
++            lg{"Waktu Argentina"}
++            ls{"Waktu Argentina"}
++        }
++        "meta:Argentina_Western"{
++            ld{"Waktu Musim Panas Barat Argentina"}
++            lg{"Waktu Barat Argentina"}
++            ls{"Waktu Argentina Barat"}
++        }
++        "meta:Atlantic"{
++            ld{"Waktu Siang Atlantik"}
++            lg{"Waktu Atlantik"}
++            ls{"Waktu Piawai Atlantik"}
++        }
++        "meta:Australia_Central"{
++            ld{"Waktu Siang Australia Tengah"}
++            lg{"Waktu Australia Tengah"}
++            ls{"Waktu Piawai Pusat Australia"}
++        }
++        "meta:Australia_CentralWestern"{
++            ld{"Waktu Siang Barat Australia Tengah"}
++            lg{"Waktu Barat Pusat Australia"}
++            ls{"Waktu Piawai Barat Pusat Australia"}
++        }
++        "meta:Australia_Eastern"{
++            ld{"Waktu Siang Australia Timur"}
++            lg{"Waktu Australia Timur"}
++            ls{"Waktu Piawai Timur Australia"}
++        }
++        "meta:Australia_Western"{
++            ld{"Waktu Siang Australia Barat"}
++            lg{"Waktu Australia Barat"}
++            ls{"Waktu Piawai Barat Australia"}
++        }
++        "meta:Brasilia"{
++            ld{"Waktu Musim Panas Brasil"}
++            lg{"Waktu Brasil"}
++            ls{"Waktu Brasil"}
++        }
++        "meta:Choibalsan"{
++            ld{"Waktu Musim Panas Choibalsan"}
++            lg{"Waktu Choibalsan"}
++            ls{"Waktu Choibalsan"}
++        }
++        "meta:Hawaii_Aleutian"{
++            lg{"Waktu Aleutian Hawaii"}
++        }
++        "meta:Hovd"{
++            ld{"Waktu Musim Panas Hovd"}
++            lg{"Waktu Hovd"}
++            ls{"Waktu Hovd"}
++        }
++        "meta:Indonesia_Central"{
++            lg{"Waktu Pusat Indonesia"}
++        }
++        "meta:Indonesia_Eastern"{
++            lg{"Waktu Timur Indonesia"}
++        }
++        "meta:Indonesia_Western"{
++            lg{"Waktu Barat Indonesia"}
++        }
++        "meta:Irkutsk"{
++            ld{"Waktu Musim Panas Irkutsk"}
++            lg{"Waktu Irkutsk"}
++            ls{"Waktu Irkutsk"}
++        }
++        "meta:Kamchatka"{
++            ld{"Waktu Musim Panas Petropavlovsk-Kamchatski"}
++            lg{"Waktu Kamchatka"}
++            ls{"Waktu Petropavlovsk-Kamchatski"}
++        }
++        "meta:Kazakhstan_Eastern"{
++            ld{"Waktu Musim Panas Timur Kazakhtan"}
++            lg{"Waktu Kazakhstan Timur"}
++            ls{"Waktu Piawai Kazakhstan Timur"}
++        }
++        "meta:Kazakhstan_Western"{
++            ld{"Waktu Musim Panas Barat Kazakhtan"}
++            lg{"Waktu Kazakhstan Barat"}
++            ls{"Waktu Piawai Kazakhstan Barat"}
++        }
++        "meta:Krasnoyarsk"{
++            ld{"Waktu Musim Panas Krasnoyarsk"}
++            lg{"Waktu Krasnoyarsk"}
++            ls{"Waktu Krasnoyarsk"}
++        }
++        "meta:Lord_Howe"{
++            ld{"Waktu Siang Lord Howe"}
++            lg{"Waktu Lord Howe"}
++            ls{"Waktu Piawai Lord Howe"}
++        }
++        "meta:Macquarie"{
++            lg{"Waktu Macquarie"}
++        }
++        "meta:Magadan"{
++            ld{"Waktu Musim Panas Magadan"}
++            lg{"Waktu Magadan"}
++            ls{"Waktu Magadan"}
++        }
++        "meta:Mongolia"{
++            ld{"Waktu Musim Panas Ulan Bator"}
++            lg{"Waktu Mongolia"}
++            ls{"Waktu Ulan Bator"}
++        }
++        "meta:Moscow"{
++            ld{"Waktu Musim Panas Moscow"}
++            lg{"Waktu Moscow"}
++            ls{"Waktu Piawai Moscow"}
++        }
++        "meta:Newfoundland"{
++            ld{"Waktu Siang Newfoundland"}
++            lg{"Waktu Newfoundland"}
++            ls{"Waktu Piawai Newfoundland"}
++        }
++        "meta:Noronha"{
++            ld{"Waktu Musim Panas Fernando de Noronha"}
++            lg{"Waktu Noronha"}
++            ls{"Waktu Fernando de Noronha"}
++        }
++        "meta:Novosibirsk"{
++            ld{"Waktu Musim Panas Novosibirsk"}
++            lg{"Waktu Novosibirsk"}
++            ls{"Waktu Novosibirsk"}
++        }
++        "meta:Omsk"{
++            ld{"Waktu Musim Panas Omsk"}
++            lg{"Waktu Omsk"}
++            ls{"Waktu Omsk"}
++        }
++        "meta:Sakhalin"{
++            ld{"Waktu Musim Panas Sakhalin"}
++            lg{"Waktu Skhalin"}
++            ls{"Waktu Skhalin"}
++        }
++        "meta:Samara"{
++            ld{"Waktu Musim Panas Samara"}
++            lg{"Waktu Samara"}
++            ls{"Waktu Samara"}
++        }
++        "meta:Vladivostok"{
++            ld{"Waktu Musim Panas Vladivostok"}
++            lg{"Waktu Vladivostok"}
++            ls{"Waktu Vladivostok"}
++        }
++        "meta:Volgograd"{
++            ld{"Waktu Musim Panas Volgogra"}
++            lg{"Waktu Volgograd"}
++            ls{"Waktu Volgograd"}
++        }
++        "meta:Yakutsk"{
++            ld{"Waktu Musim Panas Yakutsk"}
++            lg{"Waktu Yakutsk"}
++            ls{"Waktu Yakutsk"}
++        }
++        "meta:Yekaterinburg"{
++            ld{"Waktu Musim Panas Yekaterinburg"}
++            lg{"Waktu Yekaterinburg"}
++            ls{"Waktu Yekaterinburg"}
++        }
++        fallbackRegionFormat{"{1} Waktu ({0})"}
++        regionFormat{"Waktu {0}"}
++    }
+ }

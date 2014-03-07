@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Concept Global Descriptor</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-concept-global-descriptor">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Concept Global Descriptor</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#description" id="id1">Description</a></li>
+<li><a class="reference internal" href="#refinement-of" id="id2">Refinement of</a></li>
+<li><a class="reference internal" href="#notation" id="id3">Notation</a></li>
+<li><a class="reference internal" href="#associated-types" id="id4">Associated types</a></li>
+<li><a class="reference internal" href="#valid-expressions" id="id5">Valid Expressions</a></li>
+</ul>
+</div>
+<div class="section" id="description">
+<h1><a class="toc-backref" href="#id1">Description</a></h1>
+<p>A global descriptor is an object that represents an entity that is
+owned by some process and may reside in an address space not
+accessible to the currently-executing process. The global descriptor
+consists of two parts: the <em>owner</em> of the entity, which is the
+identifier of that process in which the entity resides, and a <em>local
+descriptor</em>, that uniquely identifies the entity with the address
+space of the owner.</p>
+</div>
+<div class="section" id="refinement-of">
+<h1><a class="toc-backref" href="#id2">Refinement of</a></h1>
+<blockquote>
+<ul class="simple">
+<li><a class="reference external" href="http://www.sgi.com/tech/stl/DefaultConstructible.html">Default Constructible</a></li>
+<li><a class="reference external" href="http://www.sgi.com/tech/stl/Assignable.html">Assignable</a></li>
+</ul>
+</blockquote>
+</div>
+<div class="section" id="notation">
+<h1><a class="toc-backref" href="#id3">Notation</a></h1>
+<dl class="docutils">
+<dt>X</dt>
+<dd>A type that models the Global Descriptor concept.</dd>
+<dt>x</dt>
+<dd>Object of type X</dd>
+</dl>
+</div>
+<div class="section" id="associated-types">
+<h1><a class="toc-backref" href="#id4">Associated types</a></h1>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="29%" />
+<col width="48%" />
+</colgroup>
+<tbody valign="top">
+<tr><td>Process ID type</td>
+<td><tt class="docutils literal"><span class="pre">process_id_type</span></tt></td>
+<td>Determined by the process group
+associated with type X.</td>
+</tr>
+<tr><td>Local descriptor
+type</td>
+<td><tt class="docutils literal"><span class="pre">local_type</span></tt></td>
+<td>Determined by the data structure
+the descriptor accesses.
+Must model <a class="reference external" href="http://www.sgi.com/tech/stl/EqualityComparable.html">Equality Comparable</a>
+and <a class="reference external" href="http://www.sgi.com/tech/stl/CopyConstructible.html">Copy Constructible</a>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="valid-expressions">
+<h1><a class="toc-backref" href="#id5">Valid Expressions</a></h1>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="22%" />
+<col width="22%" />
+<col width="39%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Name</th>
+<th class="head">Expression</th>
+<th class="head">Type</th>
+<th class="head">Semantics</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Owner</td>
+<td><tt class="docutils literal"><span class="pre">owner(x)</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">process_id_type</span></tt></td>
+<td>Returns the owner of <tt class="docutils literal"><span class="pre">x</span></tt>.</td>
+</tr>
+<tr><td>Local descriptor</td>
+<td><tt class="docutils literal"><span class="pre">local(x)</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">local_type</span></tt></td>
+<td>Returns the local descriptor
+uniquely identifying <tt class="docutils literal"><span class="pre">x</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<hr class="docutils" />
+<p>Copyright (C) 2005 The Trustees of Indiana University.</p>
+<p>Authors: Douglas Gregor and Andrew Lumsdaine</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:22 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<html>
+	<head>
+		<title>BOOST_PP_SEQ_SUBSEQ</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<div style="margin-left:  0px;">
+			The <b>BOOST_PP_SEQ_SUBSEQ</b> macro expands to a subseq of elements in a <i>seq</i>.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_SUBSEQ</b>(<i>seq</i>, <i>i</i>, <i>len</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> whose size is to be calculated.
+			</dd>
+			<dt>i</dt>
+			<dd>
+				The index of the first element of the subseq to be extracted.
+			</dd>
+			<dt>len</dt>
+			<dd>
+				The length of the subseq to be extracted.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			This macro expands to a <i>seq</i> extracted from <i>seq</i>.
+		</div>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/subseq.html">&lt;boost/preprocessor/seq/subseq.hpp&gt;</a>
+		</div>
+		<h4>
+			Sample Code
+		</h4>
+		<div>
+			<pre>
+#include &lt;<a href="../headers/seq/subseq.html">boost/preprocessor/seq/subseq.hpp</a>&gt;
+
+#define SEQ (0)(1)(2)(3)(4)(5)
+
+<a href="seq_subseq.html">BOOST_PP_SEQ_SUBSEQ</a>(SEQ, 2, 3) // expands to (2)(3)(4)
+</pre>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

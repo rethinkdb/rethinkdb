@@ -1,0 +1,79 @@
+<html>
+<head>
+	<title>BOOST_PP_ENUM_SHIFTED_PARAMS_Z</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_ENUM_SHIFTED_PARAMS_Z</b> macro generates a comma-separated, shifted list of parameters.&nbsp;
+		It reenters <b>BOOST_PP_REPEAT</b> with maximum efficiency.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_ENUM_SHIFTED_PARAMS_Z</b>(<i>z</i>, <i>count</i>, <i>param</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>z</dt>
+			<dd>
+				The next available <b>BOOST_PP_REPEAT</b> dimension.
+			</dd>
+			<dt>count</dt>
+			<dd>
+				The number of parameters to generate.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_REPEAT</b>.
+			</dd>
+			<dt>param</dt>
+			<dd>
+				The text of the parameter.&nbsp;
+				<b>BOOST_PP_ENUM_SHIFTED_PARAMS_Z</b> concatenates numbers ranging from <i>1</i> to <i>count</i> - <i>1</i>
+				to generate parameters.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro expands to the comma-separated sequence:
+			<div>
+				<i>param</i> ## <i>1</i>, ... <i>param</i> ## <i>count</i> - <i>1</i>
+			</div>
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="limit_repeat.html">BOOST_PP_LIMIT_REPEAT</a></li>
+			<li><a href="enum_shifted_params.html">BOOST_PP_ENUM_SHIFTED_PARAMS</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/repetition/enum_shifted_params.html">&lt;boost/preprocessor/repetition/enum_shifted_params.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/repetition/enum_params.html">boost/preprocessor/repetition/enum_params.hpp</a>&gt;
+#include &lt;<a href="../headers/repetition/enum_shifted_params.html">boost/preprocessor/repetition/enum_shifted_params.hpp</a>&gt;
+#include &lt;<a href="../headers/repetition/repeat.html">boost/preprocessor/repetition/repeat.hpp</a>&gt;
+
+int add(void) {
+   return 0;
+}
+
+#define ADD_F(z, n, _) \
+   int add_f(<a href="enum_params_z.html">BOOST_PP_ENUM_PARAMS_Z</a>(z, <a href="inc.html">BOOST_PP_INC</a>(n), int p)) { \
+      return p0 + add_f(<a href="enum_shifted_params_z.html">BOOST_PP_ENUM_SHIFTED_PARAMS_Z</a>(z, <a href="inc.html">BOOST_PP_INC</a>(n), p)); \
+   } \
+   /**/
+
+<a href="repeat.html">BOOST_PP_REPEAT</a>(5, ADD_F, nil)
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

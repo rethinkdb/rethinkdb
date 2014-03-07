@@ -1,0 +1,238 @@
+#  Copyright (c) 2001 David Abrahams.
+#  Copyright (c) 2002-2003 Rene Rivera.
+#  Copyright (c) 2002-2003 Vladimir Prus.
+#
+#  Use, modification and distribution is subject to the Boost Software
+#  License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+import "class" : new ;
+import common ;
+import errors ;
+import feature ;
+import generators ;
+import os ;
+import property ;
+import set ;
+import toolset ;
+import type ;
+import unix ;
+
+feature.extend toolset : qcc ;
+
+toolset.inherit-generators qcc : unix : unix.link unix.link.dll ;
+generators.override builtin.lib-generator : qcc.prebuilt ;
+toolset.inherit-flags qcc : unix ;
+toolset.inherit-rules qcc : unix ;
+
+# Initializes the qcc toolset for the given version. If necessary, command may
+# be used to specify where the compiler is located. The parameter 'options' is a
+# space-delimited list of options, each one being specified as
+# <option-name>option-value. Valid option names are: cxxflags, linkflags and
+# linker-type. Accepted values for linker-type are gnu and sun, gnu being the
+# default.
+#
+# Example:
+#   using qcc : 3.4 : : <cxxflags>foo <linkflags>bar <linker-type>sun ;
+#
+rule init ( version ? : command * : options * )
+{
+    local condition = [ common.check-init-parameters qcc : version $(version) ] ;
+    local command = [ common.get-invocation-command qcc : QCC : $(command) ] ;
+    common.handle-options qcc : $(condition) : $(command) : $(options) ;
+}
+
+
+generators.register-c-compiler qcc.compile.c++ : CPP : OBJ : <toolset>qcc ;
+generators.register-c-compiler qcc.compile.c   : C   : OBJ : <toolset>qcc ;
+generators.register-c-compiler qcc.compile.asm : ASM : OBJ : <toolset>qcc ;
+
+
+# Declare flags for compilation.
+toolset.flags qcc.compile OPTIONS <debug-symbols>on : -gstabs+ ;
+
+# Declare flags and action for compilation.
+toolset.flags qcc.compile OPTIONS <optimization>off : -O0 ;
+toolset.flags qcc.compile OPTIONS <optimization>speed : -O3 ;
+toolset.flags qcc.compile OPTIONS <optimization>space : -Os ;
+
+toolset.flags qcc.compile OPTIONS <inlining>off : -Wc,-fno-inline ;
+toolset.flags qcc.compile OPTIONS <inlining>on : -Wc,-Wno-inline ;
+toolset.flags qcc.compile OPTIONS <inlining>full : -Wc,-finline-functions -Wc,-Wno-inline ;
+
+toolset.flags qcc.compile OPTIONS <warnings>off : -w ;
+toolset.flags qcc.compile OPTIONS <warnings>all : -Wc,-Wall ;
+toolset.flags qcc.compile OPTIONS <warnings-as-errors>on : -Wc,-Werror ;
+
+toolset.flags qcc.compile OPTIONS <profiling>on : -p ;
+
+toolset.flags qcc.compile OPTIONS <cflags> ;
+toolset.flags qcc.compile.c++ OPTIONS <cxxflags> ;
+toolset.flags qcc.compile DEFINES <define> ;
+toolset.flags qcc.compile INCLUDES <include> ;
+
+toolset.flags qcc.compile OPTIONS <link>shared : -shared ;
+
+toolset.flags qcc.compile.c++ TEMPLATE_DEPTH <c++-template-depth> ;
+
+
+rule compile.c++
+{
+    # Here we want to raise the template-depth parameter value to something
+    # higher than the default value of 17. Note that we could do this using the
+    # feature.set-default rule but we do not want to set the default value for
+    # all toolsets as well.
+    #
+    # TODO: This 'modified default' has been inherited from some 'older Boost
+    # Build implementation' and has most likely been added to make some Boost
+    # library parts compile correctly. We should see what exactly prompted this
+    # and whether we can get around the problem more locally.
+    local template-depth = [ on $(1) return $(TEMPLATE_DEPTH) ] ;
+    if ! $(template-depth)
+    {
+        TEMPLATE_DEPTH on $(1) = 128 ;
+    }
+}
+
+actions compile.c++
+{
+    "$(CONFIG_COMMAND)" -Wc,-ftemplate-depth-$(TEMPLATE_DEPTH) $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.c
+{
+    "$(CONFIG_COMMAND)" $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.asm
+{
+    "$(CONFIG_COMMAND)" $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+
+# The class checking that we do not try to use the <runtime-link>static property
+# while creating or using a shared library, since it is not supported by qcc/
+# /libc.
+#
+class qcc-linking-generator : unix-linking-generator
+{
+    rule generated-targets ( sources + : property-set : project name ? )
+    {
+        if <runtime-link>static in [ $(property-set).raw ]
+        {
+            local m ;
+            if [ id ] = "qcc.link.dll"
+            {
+                m = "on qcc, DLL can't be build with <runtime-link>static" ;
+            }
+            if ! $(m)
+            {
+                for local s in $(sources)
+                {
+                    local type = [ $(s).type ] ;
+                    if $(type) && [ type.is-derived $(type) SHARED_LIB ]
+                    {
+                        m = "on qcc, using DLLS together with the <runtime-link>static options is not possible " ;
+                    }
+                }
+            }
+            if $(m)
+            {
+                errors.user-error $(m) : "It is suggested to use"
+                    "<runtime-link>static together with <link>static." ;
+            }
+        }
+
+        return [ unix-linking-generator.generated-targets
+            $(sources) : $(property-set) : $(project) $(name) ] ;
+    }
+}
+
+generators.register [ new qcc-linking-generator qcc.link : LIB OBJ : EXE
+    : <toolset>qcc ] ;
+
+generators.register [ new qcc-linking-generator qcc.link.dll : LIB OBJ
+    : SHARED_LIB : <toolset>qcc ] ;
+
+generators.override qcc.prebuilt : builtin.prebuilt ;
+generators.override qcc.searched-lib-generator : searched-lib-generator ;
+
+
+# Declare flags for linking.
+# First, the common flags.
+toolset.flags qcc.link OPTIONS <debug-symbols>on : -gstabs+ ;
+toolset.flags qcc.link OPTIONS <profiling>on : -p ;
+toolset.flags qcc.link OPTIONS <linkflags> ;
+toolset.flags qcc.link LINKPATH <library-path> ;
+toolset.flags qcc.link FINDLIBS-ST <find-static-library> ;
+toolset.flags qcc.link FINDLIBS-SA <find-shared-library> ;
+toolset.flags qcc.link LIBRARIES <library-file> ;
+
+toolset.flags qcc.link FINDLIBS-SA : m ;
+
+# For <runtime-link>static we made sure there are no dynamic libraries in the
+# link.
+toolset.flags qcc.link OPTIONS <runtime-link>static : -static ;
+
+# Assuming this is just like with gcc.
+toolset.flags qcc.link RPATH : <dll-path> : unchecked ;
+toolset.flags qcc.link RPATH_LINK : <xdll-path> : unchecked ;
+
+
+# Declare actions for linking.
+#
+rule link ( targets * : sources * : properties * )
+{
+    SPACE on $(targets) = " " ;
+    # Serialize execution of the 'link' action, since running N links in
+    # parallel is just slower. For now, serialize only qcc links while it might
+    # be a good idea to serialize all links.
+    JAM_SEMAPHORE on $(targets) = <s>qcc-link-semaphore ;
+}
+
+actions link bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" -L"$(LINKPATH)" -Wl,-R$(SPACE)-Wl,"$(RPATH)" -Wl,-rpath-link$(SPACE)-Wl,"$(RPATH_LINK)" -o "$(<)" "$(>)" "$(LIBRARIES)" -l$(FINDLIBS-ST) -l$(FINDLIBS-SA) $(OPTIONS)
+}
+
+
+# Always remove archive and start again. Here is the rationale from Andre Hentz:
+# I had a file, say a1.c, that was included into liba.a. I moved a1.c to a2.c,
+# updated my Jamfiles and rebuilt. My program was crashing with absurd errors.
+# After some debugging I traced it back to the fact that a1.o was *still* in
+# liba.a
+RM = [ common.rm-command ] ;
+if [ os.name ] = NT
+{
+    RM = "if exist \"$(<[1])\" DEL \"$(<[1])\""  ;
+}
+
+
+# Declare action for creating static libraries. The 'r' letter means to add
+# files to the archive with replacement. Since we remove the archive, we do not
+# care about replacement, but there is no option to "add without replacement".
+# The 'c' letter suppresses warnings in case the archive does not exists yet.
+# That warning is produced only on some platforms, for whatever reasons.
+#
+# Use qcc driver to create archive, see
+#     http://www.qnx.com/developers/docs/6.3.2/neutrino/utilities/q/qcc.html
+actions piecemeal archive
+{
+    $(RM) "$(<)"
+    "$(CONFIG_COMMAND)" -A "$(<)" "$(>)"
+}
+
+
+rule link.dll ( targets * : sources * : properties * )
+{
+    SPACE on $(targets) = " " ;
+    JAM_SEMAPHORE on $(targets) = <s>qcc-link-semaphore ;
+}
+
+
+# Differ from 'link' above only by -shared.
+#
+actions link.dll bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" -L"$(LINKPATH)" -Wl,-R$(SPACE)-Wl,"$(RPATH)" -o "$(<)" $(HAVE_SONAME)-Wl,-h$(SPACE)-Wl,$(<[1]:D=) -shared "$(>)"  "$(LIBRARIES)" -l$(FINDLIBS-ST) -l$(FINDLIBS-SA) $(OPTIONS)
+}

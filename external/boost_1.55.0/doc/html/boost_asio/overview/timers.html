@@ -1,0 +1,95 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Timers</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../overview.html" title="Overview">
+<link rel="prev" href="networking/bsd_sockets.html" title="The BSD Socket API and Boost.Asio">
+<link rel="next" href="serial_ports.html" title="Serial Ports">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="networking/bsd_sockets.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../overview.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="serial_ports.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.overview.timers"></a><a class="link" href="timers.html" title="Timers">Timers</a>
+</h3></div></div></div>
+<p>
+        Long running I/O operations will often have a deadline by which they must
+        have completed. These deadlines may be expressed as absolute times, but are
+        often calculated relative to the current time.
+      </p>
+<p>
+        As a simple example, to perform a synchronous wait operation on a timer using
+        a relative time one may write:
+      </p>
+<pre class="programlisting"><span class="identifier">io_service</span> <span class="identifier">i</span><span class="special">;</span>
+<span class="special">...</span>
+<span class="identifier">deadline_timer</span> <span class="identifier">t</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+<span class="identifier">t</span><span class="special">.</span><span class="identifier">expires_from_now</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">seconds</span><span class="special">(</span><span class="number">5</span><span class="special">));</span>
+<span class="identifier">t</span><span class="special">.</span><span class="identifier">wait</span><span class="special">();</span>
+</pre>
+<p>
+        More commonly, a program will perform an asynchronous wait operation on a
+        timer:
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">handler</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">ec</span><span class="special">)</span> <span class="special">{</span> <span class="special">...</span> <span class="special">}</span>
+<span class="special">...</span>
+<span class="identifier">io_service</span> <span class="identifier">i</span><span class="special">;</span>
+<span class="special">...</span>
+<span class="identifier">deadline_timer</span> <span class="identifier">t</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+<span class="identifier">t</span><span class="special">.</span><span class="identifier">expires_from_now</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">milliseconds</span><span class="special">(</span><span class="number">400</span><span class="special">));</span>
+<span class="identifier">t</span><span class="special">.</span><span class="identifier">async_wait</span><span class="special">(</span><span class="identifier">handler</span><span class="special">);</span>
+<span class="special">...</span>
+<span class="identifier">i</span><span class="special">.</span><span class="identifier">run</span><span class="special">();</span>
+</pre>
+<p>
+        The deadline associated with a timer may also be obtained as a relative time:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">time_duration</span> <span class="identifier">time_until_expiry</span>
+  <span class="special">=</span> <span class="identifier">t</span><span class="special">.</span><span class="identifier">expires_from_now</span><span class="special">();</span>
+</pre>
+<p>
+        or as an absolute time to allow composition of timers:
+      </p>
+<pre class="programlisting"><span class="identifier">deadline_timer</span> <span class="identifier">t2</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+<span class="identifier">t2</span><span class="special">.</span><span class="identifier">expires_at</span><span class="special">(</span><span class="identifier">t</span><span class="special">.</span><span class="identifier">expires_at</span><span class="special">()</span> <span class="special">+</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">seconds</span><span class="special">(</span><span class="number">30</span><span class="special">));</span>
+</pre>
+<h5>
+<a name="boost_asio.overview.timers.h0"></a>
+        <span class="phrase"><a name="boost_asio.overview.timers.see_also"></a></span><a class="link" href="timers.html#boost_asio.overview.timers.see_also">See
+        Also</a>
+      </h5>
+<p>
+        <a class="link" href="../reference/basic_deadline_timer.html" title="basic_deadline_timer">basic_deadline_timer</a>,
+        <a class="link" href="../reference/deadline_timer.html" title="deadline_timer">deadline_timer</a>,
+        <a class="link" href="../reference/deadline_timer_service.html" title="deadline_timer_service">deadline_timer_service</a>,
+        <a class="link" href="../tutorial/tuttimer1.html" title="Timer.1 - Using a timer synchronously">timer tutorials</a>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="networking/bsd_sockets.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../overview.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="serial_ports.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

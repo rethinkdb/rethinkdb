@@ -1,0 +1,67 @@
+<html>
+<head>
+	<title>BOOST_PP_ENUM_TRAILING_BINARY_PARAMS_Z</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_ENUM_TRAILING_BINARY_PARAMS_Z</b> macro generates a comma-separated list of binary parameters with a leading comma.&nbsp;
+		It reenters <b>BOOST_PP_REPEAT</b> with maximum efficiency.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_ENUM_TRAILING_BINARY_PARAMS_Z</b>(<i>z</i>, <i>count</i>, <i>p1</i>, <i>p2</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>z</dt>
+			<dd>
+				The next available <b>BOOST_PP_REPEAT</b> dimension.
+			</dd>
+			<dt>count</dt>
+			<dd>
+				The number of parameters to generate.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_REPEAT</b>.
+			</dd>
+			<dt>p1</dt>
+			<dd>
+				The text of the first part of the parameter.&nbsp;
+				<b>BOOST_PP_ENUM_TRAILING_BINARY_PARAMS_Z</b> concatenates numbers ranging from <i>0</i> to <i>count</i> - <i>1</i>
+				to generate parameters.
+			</dd>
+			<dt>p2</dt>
+			<dd>
+				The text of the first part of the parameter.&nbsp;
+				<b>BOOST_PP_ENUM_TRAILING_BINARY_PARAMS_Z</b> concatenates numbers ranging from <i>0</i> to <i>count</i> - <i>1</i>
+				to generate parameters.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro expands to the comma-separated sequence:
+			<div>
+				, <i>p1</i> ## <i>0</i> <i>p2</i> ## <i>0</i>, <i>p1</i> ## <i>1</i> <i>p2</i> ## <i>1</i>, ... <i>p1</i> ## <i>count</i> - <i>1</i> <i>p2</i> ## <i>count</i> - <i>1</i>
+			</div>
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="etbp.html">BOOST_PP_ENUM_TRAILING_BINARY_PARAMS</a></li>
+			<li><a href="limit_repeat.html">BOOST_PP_LIMIT_REPEAT</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/repetition/etbp.html">&lt;boost/preprocessor/repetition/enum_trailing_binary_params.hpp&gt;</a>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

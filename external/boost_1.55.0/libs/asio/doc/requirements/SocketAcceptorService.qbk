@@ -1,0 +1,270 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:SocketAcceptorService Socket acceptor service requirements]
+
+A socket acceptor service must meet the requirements for an [link
+boost_asio.reference.IoObjectService I/O object service], as well as the
+additional requirements listed below.
+
+In the table below, `X` denotes a socket acceptor service class for protocol
+[link boost_asio.reference.Protocol `Protocol`], `a` and `ao` denote values of type
+`X`, `b` and `c` denote values of type `X::implementation_type`, `p` denotes a
+value of type `Protocol`, `n` denotes a value of type `X::native_handle_type`,
+`e` denotes a value of type `Protocol::endpoint`, `ec` denotes a value of type
+`error_code`, `s` denotes a value meeting [link
+boost_asio.reference.SettableSocketOption `SettableSocketOption`] requirements, `g`
+denotes a value meeting [link boost_asio.reference.GettableSocketOption
+`GettableSocketOption`] requirements, `i` denotes a value meeting [link
+boost_asio.reference.IoControlCommand `IoControlCommand`] requirements, `k` denotes a
+value of type `basic_socket<Protocol, SocketService>` where `SocketService` is
+a type meeting [link boost_asio.reference.SocketService socket service] requirements,
+`ah` denotes a value meeting [link boost_asio.reference.AcceptHandler
+`AcceptHandler`] requirements, and `u` and `v` denote identifiers.
+
+[table SocketAcceptorService requirements
+  [[expression] [return type] [assertion/note\npre/post-condition]]
+  [
+    [`X::native_handle_type`]
+    []
+    [
+      The implementation-defined native representation of a socket acceptor.
+      Must satisfy the requirements of `CopyConstructible` types (C++ Std,
+      20.1.3), and the requirements of `Assignable` types (C++ Std, 23.1).
+    ]
+  ]
+  [
+    [`a.construct(b);`]
+    []
+    [
+      From [link boost_asio.reference.IoObjectService IoObjectService]
+      requirements.\n
+      post: `!a.is_open(b)`.
+    ]
+  ]
+  [
+    [`a.destroy(b);`]
+    []
+    [
+      From [link boost_asio.reference.IoObjectService IoObjectService]
+      requirements. Implicitly cancels asynchronous operations, as if by calling
+      `a.close(b, ec)`.
+    ]
+  ]
+  [
+    [``
+      a.move_construct(b, c);
+    ``]
+    []
+    [
+      From [link boost_asio.reference.IoObjectService IoObjectService] requirements.
+      The underlying native representation is moved from `c` to `b`.
+    ]
+  ]
+  [
+    [``
+      a.move_assign(b, ao, c);
+    ``]
+    []
+    [
+      From [link boost_asio.reference.IoObjectService IoObjectService] requirements.
+      Implicitly cancels asynchronous operations associated with `b`, as if by
+      calling `a.close(b, ec)`. Then the underlying native representation is
+      moved from `c` to `b`.
+    ]
+  ]
+  [
+    [``
+      a.open(b, p, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `!a.is_open(b)`.\n
+      post: `!!ec || a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      a.assign(b, p, n, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `!a.is_open(b)`.\n
+      post: `!!ec || a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      a.is_open(b);
+    ``]
+    [`bool`]
+    [
+    ]
+  ]
+  [
+    [``
+      const X& u = a;
+      const X::implementation_type& v = b;
+      u.is_open(v);
+    ``]
+    [`bool`]
+    [
+    ]
+  ]
+  [
+    [``
+      a.close(b, ec);
+    ``]
+    [`error_code`]
+    [
+      If `a.is_open()` is true, causes any outstanding asynchronous operations
+      to complete as soon as possible. Handlers for cancelled operations shall
+      be passed the error code `error::operation_aborted`.\n
+      post: `!a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      a.native_handle(b);
+    ``]
+    [`X::native_handle_type`]
+    [
+    ]
+  ]
+  [
+    [``
+      a.cancel(b, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b)`.\n
+      Causes any outstanding asynchronous operations to complete as soon as
+      possible. Handlers for cancelled operations shall be passed the error
+      code `error::operation_aborted`.
+    ]
+  ]
+  [
+    [``
+      a.set_option(b, s, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      a.get_option(b, g, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      const X& u = a;
+      const X::implementation_type& v = b;
+      u.get_option(v, g, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      a.io_control(b, i, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      const typename Protocol::endpoint& u = e;
+      a.bind(b, u, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      a.local_endpoint(b, ec);
+    ``]
+    [`Protocol::endpoint`]
+    [
+      pre: `a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      const X& u = a;
+      const X::implementation_type& v = b;
+      u.local_endpoint(v, ec);
+    ``]
+    [`Protocol::endpoint`]
+    [
+      pre: `a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      a.accept(b, k, &e, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b) && !k.is_open()`.\n
+      post: `k.is_open()`
+    ]
+  ]
+  [
+    [``
+      a.accept(b, k, 0, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b) && !k.is_open()`.\n
+      post: `k.is_open()`
+    ]
+  ]
+  [
+    [``
+      a.async_accept(b, k, &e, ah);
+    ``]
+    []
+    [
+      pre: `a.is_open(b) && !k.is_open()`.\n
+      Initiates an asynchronous accept operation that is performed via the
+      `io_service` object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n\n
+      The program must ensure the objects `k` and `e` are valid until the
+      handler for the asynchronous operation is invoked.
+    ]
+  ]
+  [
+    [``
+      a.async_accept(b, k, 0, ah);
+    ``]
+    []
+    [
+      pre: `a.is_open(b) && !k.is_open()`.\n
+      Initiates an asynchronous accept operation that is performed via the
+      `io_service` object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n\n
+      The program must ensure the object `k` is valid until the handler for the
+      asynchronous operation is invoked.
+    ]
+  ]
+]
+
+[endsect]

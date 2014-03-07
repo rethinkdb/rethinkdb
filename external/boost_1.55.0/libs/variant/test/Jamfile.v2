@@ -1,0 +1,51 @@
+#  Boost.Variant Library test Jamfile
+#
+#  Copyright (C) 2003, Eric Friedman, Itay Maman.
+#  Copyright (C) 2013, Antony Polukhin.
+#
+#  This material is provided "as is", with absolutely no warranty expressed
+#  or implied. Any use is at your own risk.
+#
+#  Permission to use or copy this software for any purpose is hereby granted
+#  without fee, provided the above notices are retained on all copies.
+#  Permission to modify the code and to distribute modified code is granted,
+#  provided the above notices are retained, and a notice that the code was
+#  modified is included with the above copyright notice.
+#
+project
+    : requirements
+        #<dependency>/boost/test//minimal
+        <toolset>msvc:<asynch-exceptions>on
+    ;
+    
+test-suite variant
+     : 
+    [ run test1.cpp class_a.cpp : : : : variant_test1 ]
+    [ run test2.cpp : : : : variant_test2 ]
+    [ run test3.cpp : : : : variant_test3 ]
+    [ run test4.cpp class_a.cpp 
+        : : : : variant_test4 ]
+    [ run test5.cpp : : : : variant_test5 ]
+    [ run test6.cpp : : : : variant_test6 ]
+    [ run test7.cpp : : : : variant_test7 ]
+    [ run test8.cpp : : : : variant_test8 ]
+    [ run recursive_variant_test.cpp ]
+    [ run variant_reference_test.cpp ]
+    [ run variant_comparison_test.cpp ]
+    [ run variant_visit_test.cpp ]
+    [ run variant_multivisit_test.cpp ]
+    [ run hash_variant_test.cpp ]
+    [ run rvalue_test.cpp ]
+    [ run recursive_variant_test.cpp : : : <define>BOOST_NO_EXCEPTIONS
+      <toolset>gcc-4.3:<cxxflags>-fno-exceptions
+      <toolset>gcc-4.4:<cxxflags>-fno-exceptions
+      <toolset>gcc-4.5:<cxxflags>-fno-exceptions
+      <toolset>gcc-4.6:<cxxflags>-fno-exceptions
+      <toolset>gcc-4.7:<cxxflags>-fno-exceptions
+      <toolset>gcc-4.8:<cxxflags>-fno-exceptions
+      <toolset>clang:<cxxflags>-fno-exceptions
+      : variant_noexcept_test
+    ]
+   ; 
+
+

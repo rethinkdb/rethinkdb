@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2010 Daniel James.
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+-->
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library id="test" xmlns:xi="http://www.w3.org/2001/XInclude"
+           last-revision="$Date: 2010-10-30 15:29:27 +0100 (Sat, 30 Oct 2010) $">
+  <title>Test 'boostbook' root.</title>
+</library>
+
+

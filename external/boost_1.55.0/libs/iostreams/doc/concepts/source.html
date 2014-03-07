@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Source</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Source</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Definition</H2>
+
+<P>
+    A Source is a <A HREF="device.html">Device</A> whose <A HREF="../guide/modes.html">mode</A> refines <A HREF="../guide/modes.html#input">input</A>. 
+</P>
+
+<H2>Description</H2>
+
+<P>A Source provides read-access to a sequence of characters of a given type. In general, a Source may expose this sequence in two ways:</P> 
+
+<OL>
+    <LI STYLE="list-style-type:lower-roman">
+        by defining a member function <CODE>read</CODE>; or
+    </LI>
+    <LI STYLE="list-style-type:lower-roman">
+        by defining a member function <CODE>input_sequence</CODE> returning a pair of pointers delimiting the sequence in its entirety.
+    </LI>
+</OL>
+
+<P>As a special case, Boost.Iostreams treats standard input streams as Sources. (For details, see <A HREF="../functions/read.html"><CODE>read</CODE></A>.)</P>
+
+<P>The mode of a Source is <A HREF="../guide/modes.html#input"><CODE>input</CODE></A> or one of its refinements.</P>
+
+<H2>Note</H2>
+
+<P>To be usable with the streams and stream buffers provided by the Boost Iostreams library, Sources must model <A HREF="blocking.html">Blocking</A>.
+
+<H2>Example</H2>
+
+<P>
+    A model of Source can be defined as follows:
+</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">struct</SPAN> Source {
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="keyword">char</SPAN>        char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> source_tag  category;
+    std::streamsize read(<SPAN CLASS="keyword">char</SPAN>* s, std::streamsize n) 
+    {
+        <SPAN CLASS="comment">// Read up to n characters from the input 
+        // sequence into the buffer s, returning   
+        // the number of characters read, or -1 
+        // to indicate end-of-sequence.</SPAN>
+    }
+};</PRE>
+
+<P>
+    Here <CODE>source_tag</CODE> is a <A HREF="../guide/traits.html#category_tags">category tag</A> identifying the type as a model of Source. Typically a Source can be defined by deriving from the helper classes <A HREF="../classes/device.html#synopsis"><CODE>source</CODE></A> or <A HREF="../classes/device.html#synopsis"><CODE>wsource</CODE></A> and defining a member function <CODE>read</CODE>.
+
+<H2>Refinement of</H2>
+
+<P><A HREF="device.html">Device</A>.</P>
+
+<A NAME="types"></A>
+<H2>Associated Types</H2>
+
+<P>Same as <A HREF="device.html#types">Device</A>, with the following additional requirements:</P>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TD>Category</TD><TD>A type convertible to <A HREF="../guide/traits.html#category_tags"><CODE>device_tag</CODE></A> and to <A HREF="../guide/modes.html#mode_tags"><CODE>input</CODE></A></TD></TR>
+</TABLE>
+
+<A NAME="notation"></A>
+<H2>Notation</H2>
+
+<TABLE CELLPADDING="2">
+    <TR><TD><CODE>S</CODE></TD><TD>- A type which is a model of Source</TD></TR>
+    <TR><TD><CODE>Ch</CODE></TD><TD>- The character type</TD></TR>
+    <TR><TD><CODE>src</CODE></TD><TD>- Object of type <CODE>S</CODE></TD></TR>
+    <TR><TD><CODE>s</CODE></TD><TD>- Object of type <CODE>Ch*</CODE></SPAN></TD></TR>
+    <TR><TD><CODE>n</CODE></TD><TD>- Object of type <CODE>std::streamsize</CODE></TD></TR>
+    <TR><TD><CODE>io</CODE></TD><TD>- Alias for namespace <CODE>boost::iostreams</CODE></TD></TR>
+</TABLE>
+
+<A NAME="expressions"></A>
+<H2>Valid Expressions / Semantics</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Category Precondition</TH><TH>Semantics</TH></TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE>typename <A HREF="../guide/traits.html#char_type_of_ref">char_type_of</A>&lt;S&gt;::type</CODE></PRE>
+        </TD>
+        <TD><CODE>typename</CODE> of the character type</TD>
+        <TD ALIGN="center">-</TD><TD ALIGN="center">-</TD>
+    </TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE>typename <A HREF="../guide/traits.html#category_ref">category_of</A>&lt;S&gt;::type</CODE></PRE>
+        </TD>
+        <TD><CODE>typename</CODE> of the category</TD>
+        <TD ALIGN="center">-</TD><TD ALIGN="center">-</TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE><A HREF="../functions/read.html">io::read</A>(src, s, n)</CODE></PRE></TD>
+        <TD><CODE>std::streamsize</CODE></TD>
+        <TD>Not convertible to <A HREF="direct.html"><CODE>direct_tag</CODE></A></TD>
+        <TD>
+            Reads up to <CODE>n</CODE> characters from the input sequence controlled by <CODE>dev</CODE> into <CODE>s</CODE>, returning the number of characters read, or <CODE>-1</CODE> to indicate end-of-sequence
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>src.input_sequence()</CODE></PRE></TD>
+        <TD><PRE CLASS="plain_code"><CODE>std::pair&lt;Ch*,Ch*&gt;</CODE></PRE></TD>
+        <TD>Convertible to <A HREF="direct.html"><CODE>direct_tag</CODE></A></TD>
+        <TD>Returns a pair of pointers delimiting the sequence controlled by <CODE>src</CODE></TD>
+    </TR>
+</TABLE>
+
+<H2>Exceptions</H2>
+
+<P>
+    Errors which occur during the execution of member functions <CODE>read</CODE> or <CODE>input_sequence</CODE> are indicated by throwing exceptions. Reaching the end of the sequence is not an error.
+</P>
+
+<P>
+    After an exception is thrown, a Source must be in a consistent state; further i/o operations may throw exceptions but must have well-defined behaviour.
+</P>
+
+<H2>Models</H2>
+
+<UL>
+    <LI>Standard input streams and stream buffers.
+    <LI><A HREF="../classes/array.html#array_source"><CODE>array_source</CODE></A>, <A HREF="../classes/file.html#file_source"><CODE>file_source</CODE></A>, <A HREF="../classes/file_descriptor.html#file_descriptor_source"><CODE>file_descriptor_source</CODE></A>, <A HREF="../classes/mapped_file.html#mapped_file_source"><CODE>mapped_file_source</CODE></A>.
+</UL>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

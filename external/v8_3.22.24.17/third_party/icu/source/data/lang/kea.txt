@@ -1,0 +1,61 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/kea.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/kea.xml
+ */
+kea{
+    Languages{
+        ak{"akan"}
+        am{"amariku"}
+        ar{"arabi"}
+        be{"bielorusu"}
+        bg{"bulgaru"}
+        bn{"bengali"}
+        cs{"txeku"}
+        de{"alemãu"}
+        el{"gregu"}
+        en{"ingles"}
+        es{"spanhol"}
+        fa{"persa"}
+        fr{"franses"}
+        ha{"auza"}
+        hi{"indi"}
+        hu{"ungaru"}
+        id{"indoneziu"}
+        ig{"ibo"}
+        it{"italianu"}
+        ja{"japones"}
+        jv{"javanes"}
+        kea{"kabuverdianu"}
+        km{"kmer"}
+        ko{"kureanu"}
+        ms{"malaiu"}
+        my{"birmanes"}
+        ne{"nepales"}
+        nl{"olandes"}
+        pa{"pandjabi"}
+        pl{"pulaku"}
+        pt{"purtuges"}
+        ro{"rumenu"}
+        ru{"rusu"}
+        rw{"kiniaruanda"}
+        so{"somali"}
+        sv{"sueku"}
+        ta{"tamil"}
+        th{"tailandes"}
+        tr{"turku"}
+        uk{"ukranianu"}
+        ur{"urdu"}
+        vi{"vietnamita"}
+        yo{"ioruba"}
+        zh{"xines"}
+        zu{"zulu"}
+    }
+    Version{"2.0.47.63"}
+}

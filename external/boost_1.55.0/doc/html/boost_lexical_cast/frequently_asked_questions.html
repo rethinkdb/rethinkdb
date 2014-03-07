@@ -1,0 +1,157 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Frequently Asked Questions</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_lexical_cast.html" title="Chapter&#160;17.&#160;Boost.Lexical_Cast 1.0">
+<link rel="prev" href="synopsis.html" title="Synopsis">
+<link rel="next" href="changes.html" title="Changes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="synopsis.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_lexical_cast.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="changes.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_lexical_cast.frequently_asked_questions"></a><a class="link" href="frequently_asked_questions.html" title="Frequently Asked Questions">Frequently
+    Asked Questions</a>
+</h2></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <span class="bold"><strong>Question:</strong></span> Why does <code class="computeroutput"><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="identifier">int8_t</span><span class="special">&gt;(</span><span class="string">"127"</span><span class="special">)</span></code> throw <code class="computeroutput"><span class="identifier">bad_lexical_cast</span></code>?
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                <span class="bold"><strong>Answer:</strong></span> The type <code class="computeroutput"><span class="identifier">int8_t</span></code>
+                is a <code class="computeroutput"><span class="keyword">typedef</span></code> to <code class="computeroutput"><span class="keyword">char</span></code> or <code class="computeroutput"><span class="keyword">signed</span>
+                <span class="keyword">char</span></code>. Lexical conversion to
+                these types is simply reading a byte from source but since the source
+                has more than one byte, the exception is thrown. Please use other
+                integer types such as <code class="computeroutput"><span class="keyword">int</span></code>
+                or <code class="computeroutput"><span class="keyword">short</span> <span class="keyword">int</span></code>.
+                If bounds checking is important, you can also call <a href="../../../libs/numeric/conversion/doc/html/boost_numericconversion/improved_numeric_cast__.html" target="_top"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric_cast</span></code></a>: <code class="computeroutput"><span class="identifier">numeric_cast</span><span class="special">&lt;</span><span class="identifier">int8_t</span><span class="special">&gt;(</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="string">"127"</span><span class="special">));</span></code>
+              </li></ul></div>
+        </li></ul></div>
+<pre class="programlisting"></pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <span class="bold"><strong>Question:</strong></span> Why does <code class="computeroutput"><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">&gt;(</span><span class="string">"127"</span><span class="special">)</span></code>
+          throw <code class="computeroutput"><span class="identifier">bad_lexical_cast</span></code>?
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                <span class="bold"><strong>Answer:</strong></span> Lexical conversion to any
+                char type is simply reading a byte from source. But since the source
+                has more than one byte, the exception is thrown. Please use other
+                integer types such as <code class="computeroutput"><span class="keyword">int</span></code>
+                or <code class="computeroutput"><span class="keyword">short</span> <span class="keyword">int</span></code>.
+                If bounds checking is important, you can also call <a href="../../../libs/numeric/conversion/doc/html/boost_numericconversion/improved_numeric_cast__.html" target="_top"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric_cast</span></code></a>: <code class="computeroutput"><span class="identifier">numeric_cast</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">&gt;(</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="string">"127"</span><span class="special">));</span></code>
+              </li></ul></div>
+        </li></ul></div>
+<pre class="programlisting"></pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <span class="bold"><strong>Question:</strong></span> What does <code class="computeroutput"><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span></code> of an <code class="computeroutput"><span class="identifier">int8_t</span></code>
+          or <code class="computeroutput"><span class="identifier">uint8_t</span></code> not do what
+          I expect?
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                <span class="bold"><strong>Answer:</strong></span> As above, note that int8_t
+                and uint8_t are actually chars and are formatted as such. To avoid
+                this, cast to an integer type first: <code class="computeroutput"><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">n</span><span class="special">));</span></code>
+              </li></ul></div>
+        </li></ul></div>
+<pre class="programlisting"></pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <span class="bold"><strong>Question:</strong></span> The implementation always resets
+          the <code class="computeroutput"><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">skipws</span></code> flag of an underlying stream object.
+          It breaks my <code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;</span></code>
+          that works only in presence of this flag. Can you remove code that resets
+          the flag?
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                <span class="bold"><strong>Answer:</strong></span> May be in a future version.
+                There is no requirement in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1973.html" target="_top">Lexical
+                Conversion Library Proposal for TR2, N1973 by Kevlin Henney and Beman
+                Dawes</a> to reset the flag but remember that <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1973.html" target="_top">Lexical
+                Conversion Library Proposal for TR2, N1973</a> is not yet accepted
+                by the committee. By the way, it's a great opportunity to make your
+                <code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;</span></code>
+                more general. Read a good C++ book, study <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">sentry</span></code>
+                and <a href="../../../libs/io/doc/ios_state.html" target="_top"><code class="computeroutput"><span class="identifier">ios_state_saver</span></code></a>.
+              </li></ul></div>
+        </li></ul></div>
+<pre class="programlisting"></pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <span class="bold"><strong>Question:</strong></span> Why <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">&gt;(</span><span class="string">"-1"</span><span class="special">);</span></code>
+          does not throw, but outputs 4294967295?
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                <span class="bold"><strong>Answer:</strong></span> <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span></code>
+                has the behavior of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">stringstream</span></code>,
+                which uses <code class="computeroutput"><span class="identifier">num_get</span></code>
+                functions of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span></code>
+                to convert numbers. If we look at the Programming languages &#8212; C++,
+                we'll see, that <code class="computeroutput"><span class="identifier">num_get</span></code>
+                uses the rules of <code class="computeroutput"><span class="identifier">scanf</span></code>
+                for conversions. And in the C99 standard for unsigned input value
+                minus sign is optional, so if a negative number is read, no errors
+                will arise and the result will be the two's complement.
+              </li></ul></div>
+        </li></ul></div>
+<pre class="programlisting"></pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <span class="bold"><strong>Question:</strong></span> Why <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">L</span><span class="char">'A'</span><span class="special">);</span></code> outputs
+          65 and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">wchar_t</span><span class="special">&gt;(</span><span class="identifier">L</span><span class="string">"65"</span><span class="special">);</span></code> does not throw?
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                <span class="bold"><strong>Answer:</strong></span> If you are using an old
+                version of Visual Studio or compile code with /Zc:wchar_t- flag,
+                <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span></code> sees single <code class="computeroutput"><span class="keyword">wchar_t</span></code> character as <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">short</span></code>.
+                It is not a <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span></code>
+                mistake, but a limitation of compiler options that you use.
+              </li></ul></div>
+        </li></ul></div>
+<pre class="programlisting"></pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <span class="bold"><strong>Question:</strong></span> Why <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="string">"-1.#IND"</span><span class="special">);</span></code> throws <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">bad_lexical_cast</span></code>?
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                <span class="bold"><strong>Answer:</strong></span> <code class="computeroutput"><span class="string">"-1.#IND"</span></code>
+                is a compiler extension, that violates standard. You shall input
+                <code class="computeroutput"><span class="string">"-nan"</span></code>, <code class="computeroutput"><span class="string">"nan"</span></code>, <code class="computeroutput"><span class="string">"inf"</span></code>
+                , <code class="computeroutput"><span class="string">"-inf"</span></code> (case
+                insensitive) strings to get NaN and Inf values. <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span></code> outputs <code class="computeroutput"><span class="string">"-nan"</span></code>,
+                <code class="computeroutput"><span class="string">"nan"</span></code>, <code class="computeroutput"><span class="string">"inf"</span></code>, <code class="computeroutput"><span class="string">"-inf"</span></code>
+                strings, when has NaN or Inf input values.
+              </li></ul></div>
+        </li></ul></div>
+<pre class="programlisting"></pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <span class="bold"><strong>Question:</strong></span> What is the fastest way to convert
+          a non zero terminated string or a substring using <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span></code>?
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                <span class="bold"><strong>Answer:</strong></span> Use <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_range</span></code>
+                for conversion or <code class="computeroutput"><span class="identifier">lexical_cast</span></code>
+                overload with two parameters. For example, if you whant to convert
+                to <code class="computeroutput"><span class="keyword">int</span></code> two characters
+                from a string <code class="computeroutput"><span class="identifier">str</span></code>,
+                you shall write <code class="computeroutput"><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">make_iterator_range</span><span class="special">(</span><span class="identifier">str</span><span class="special">.</span><span class="identifier">data</span><span class="special">(),</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">data</span><span class="special">()</span> <span class="special">+</span> <span class="number">2</span><span class="special">));</span></code>
+                or <code class="computeroutput"><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">str</span><span class="special">.</span><span class="identifier">data</span><span class="special">(),</span>
+                <span class="number">2</span><span class="special">);</span></code>.
+              </li></ul></div>
+        </li></ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2005 Kevlin Henney<br>Copyright &#169; 2006-2010 Alexander Nasonov<br>Copyright &#169; 2011-2013 Antony Polukhin<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="synopsis.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_lexical_cast.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="changes.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

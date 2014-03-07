@@ -1,0 +1,319 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Tutorial</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Tutorial</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='tab_expanding_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='unix2dos_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<H2>2.2.6. Dictionary Filters</H2>
+
+<P>
+    A <SPAN CLASS='term'>dictionary filter</SPAN> is a Filter which performs text substitution in the following manner. It maintains a collection of pairs of strings whose first components are words and whose second components represent replacement text &#8212; I'll call such a collection a <SPAN CLASS='term'>dictionary</SPAN>, and refer to the pairs it contains as <SPAN CLASS='term'>definitions</SPAN>.  When a dictionary filter encounters a word which appears as the first component of a definition, it forwards the replacement text instead of the original word. Other words, whitespace and punctuation are forwarded unchanged. 
+</P>
+
+<P>
+    The basic algorithm is as follows: You examine characters one at a time, appending them to a string which I'll call the <SPAN CLASS='term'>current word</SPAN>. When you encounter a non-alphabetic character, you consult the dictionary to determine whether the current word appears as the first component of a definition. If it does, you forward the replacement text followed by the non-alphabetic character. Otherwise, you forward the current word followed by the non-alphabetic character. When the end-of-stream is reached, you consult the dictionary again and forward either the curent word or its replacement, as appropriate.
+</P>
+
+<P>
+    In the following sections, I'll express this algorithm as a <A HREF="../classes/stdio_filter.html"><CODE>stdio_filter</CODE></A>, an <A HREF="../concepts/input_filter.html">InputFilter</A> and an <A HREF="../concepts/output_filter.html">OutputFilter</A>. The source code can be found in the header <A HREF="../../example/dictionary_filter.hpp"><CODE>&lt;libs/iostreams/example/dictionary_filter.hpp&gt;</CODE></A>.
+</P>
+
+<A NAME="dictionary"></A>
+<H4><CODE>dictionary</CODE></H4>
+
+<P>You can represent a dictionary using the following class:</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS="literal">&lt;map&gt;</SPAN>
+<SPAN CLASS="preprocessor">#include</SPAN> <SPAN CLASS="literal">&lt;string&gt;</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> dictionary {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">void</SPAN> add(std::string key, <SPAN CLASS="keyword">const</SPAN> std::string&amp; value);
+    <SPAN CLASS="keyword">void</SPAN> replace(std::string&amp; key);
+
+    <SPAN CLASS='comment'>/* ... */</SPAN>
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>
+    The member function <CODE>add</CODE> converts <CODE>key</CODE> to lower case and adds the pair <CODE>key</CODE>, <CODE>value</CODE> to the dictionary. The member function <CODE>replace</CODE> searches for a definition whose first component is equal to the result of converting <CODE>key</CODE> to lower case. If it finds such a definition, it assigns the replacement text to <CODE>key</CODE>, adjusting the case of the first character to match the case of the first character of <CODE>key</CODE>. Otherwise, it does nothing.
+</P>
+
+<A NAME="dictionary_stdio_filter"></A>
+<H4><CODE>dictionary_stdio_filter</CODE></H4>
+
+<P>You can express a dictionary filter as a <A HREF="../classes/stdio_filter.html"><CODE>stdio_filter</CODE></A> as follows:</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS="literal">&lt;cstdio&gt;</SPAN>    <SPAN CLASS="comment">// EOF</SPAN>
+<SPAN CLASS="preprocessor">#include</SPAN> <SPAN CLASS="literal">&lt;iostream&gt;</SPAN>  <SPAN CLASS="comment">// cin, cout</SPAN>
+<SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/filter/stdio.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/filter/stdio.hpp&gt;</SPAN></A>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> dictionary_stdio_filter : <SPAN CLASS="keyword"><SPAN CLASS="keyword"><SPAN CLASS="keyword">public</SPAN></SPAN></SPAN> stdio_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    dictionary_stdio_filter(dictionary&amp; d) : dictionary_(d) { }
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword">void</SPAN> do_filter()
+    {
+        <SPAN CLASS="keyword">using</SPAN> <SPAN CLASS="keyword">namespace</SPAN> std;
+        <SPAN CLASS="keyword">while</SPAN> (<SPAN CLASS="keyword">true</SPAN>) {
+            <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c = std::cin.get();
+            <SPAN CLASS="keyword">if</SPAN> (c == <SPAN CLASS="numeric_literal">EOF</SPAN> || !std::isalpha((<SPAN CLASS="keyword">unsigned</SPAN> <SPAN CLASS="keyword">char</SPAN>) c)) {
+                dictionary_.replace(current_word_);
+                cout.write( current_word_.data(),
+                            <SPAN CLASS="keyword">static_cast</SPAN>&lt;streamsize&gt;(current_word_.size()) );
+                current_word_.erase();
+                <SPAN CLASS="keyword">if</SPAN> (c == <SPAN CLASS="numeric_literal">EOF</SPAN>)
+                    break;
+                cout.put(c);
+            } <SPAN CLASS="keyword">else</SPAN> {
+                current_word_ += c;
+            }
+        }
+    }
+    dictionary&amp;  dictionary_;
+    std::string  current_word_;
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>
+    The implementation of <CODE>do_filter</CODE> simply loops, reading characters from <CODE>std::cin</CODE> and <CODE>appending</CODE> them to the member variable <CODE>current_word_</CODE> until a non-alphabetic character or end-of-stream indication is encountered. When this occurs it uses its dictionary, stored in the member variable <CODE>dictionary_</CODE>, to replace the current word if necessary. Finally, it writes the current word, followed by the non-alphabetic character, if any, to <CODE>std::cout</CODE>.
+</P>
+
+<A NAME="dictionary_input_filter"></A>
+<H4><CODE>dictionary_input_filter</CODE></H4>
+
+<P>You can express a dictionary filter as an <A HREF="../concepts/input_filter.html">InputFilter</A> as follows:</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/char_traits.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/char_traits.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// EOF, WOULD_BLOCK</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>    <SPAN CLASS="comment">// input_filter</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A>  <SPAN CLASS="comment">// get</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> dictionary_input_filter : <SPAN CLASS="keyword"><SPAN CLASS="keyword"><SPAN CLASS="keyword">public</SPAN></SPAN></SPAN> input_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    dictionary_input_filter(dictionary&amp; d)
+        : dictionary_(d), off_(std::string::npos), eof_(<SPAN CLASS="keyword">false</SPAN>)
+        { }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> get(Source&amp; src);
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Source&amp;);
+<SPAN CLASS="keyword">private</SPAN>:
+    dictionary&amp;             dictionary_;
+    std::string             current_word_;
+    std::string::size_type  off_;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN>                    eof_;
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>The function <CODE>get</CODE> is implemented as follows:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> get(Source&amp; src)
+    {
+        <SPAN CLASS='comment'>// Handle unfinished business.</SPAN>
+        <SPAN CLASS="keyword">if</SPAN> (off_ != std::string::npos &amp;&amp; off_ &lt; current_word_.size())
+            <SPAN CLASS="keyword">return</SPAN> current_word_[off_++];
+        <SPAN CLASS="keyword">if</SPAN> (off_ == current_word_.size()) {
+            current_word_.erase();
+            off_ = std::string::npos;
+        }
+        <SPAN CLASS="keyword">if</SPAN> (eof_)
+            <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS="numeric_literal">EOF</SPAN>;
+
+        <SPAN CLASS='comment'>// Compute curent word.</SPAN>
+        <SPAN CLASS="keyword">while</SPAN> (<SPAN CLASS="keyword">true</SPAN>) {
+            <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c;
+            <SPAN CLASS="keyword">if</SPAN> ((c = iostreams::get(src)) == WOULD_BLOCK)
+                <SPAN CLASS="keyword">return</SPAN> WOULD_BLOCK;
+
+            <SPAN CLASS="keyword">if</SPAN> (c == <SPAN CLASS="numeric_literal">EOF</SPAN> || !std::isalpha((<SPAN CLASS="keyword">unsigned</SPAN> <SPAN CLASS="keyword">char</SPAN>) c)) {
+                dictionary_.replace(current_word_);
+                off_ = 0;
+                <SPAN CLASS="keyword">if</SPAN> (c == <SPAN CLASS="numeric_literal">EOF</SPAN>)
+                    eof_ = <SPAN CLASS="keyword">true</SPAN>;
+                <SPAN CLASS="keyword">else</SPAN>
+                    current_word_ += c;
+                break;
+            } <SPAN CLASS="keyword">else</SPAN> {
+                current_word_ += c;
+            }
+        }
+
+        <SPAN CLASS="keyword">return</SPAN> this-&gt;get(src); <SPAN CLASS='comment'>// Note: current_word_ is not empty.</SPAN>
+    }</PRE>
+
+<P>
+    You first check to see whether there are any characters which remain from a previous invocation of <CODE>get</CODE>. If so, you update some book keeping information and return the first such character.
+</P>
+<P>
+    The <CODE>while</CODE> loop is very similar to that of <A HREF="#dictionary_stdio_filter"><CODE>dictionary_stdio_filter::do_filter</CODE></A>: it reads characters from the <A HREF="../concepts/source.html">Source</A> <CODE>src</CODE>, appending them to <CODE>current_word_</CODE> until a non-alphabetic character, <CODE>EOF</CODE> or <CODE>WOULD_BLOCK</CODE> is encountered. The value <CODE>WOULD_BLOCK</CODE> is passed on to the caller. In the remaining cases, the dictionary is consulted to determine the appropriate replacement text.
+ </P>
+
+ <P>Finally, <CODE>get</CODE> is called recursively to return the first character of the current word.</P>
+
+<P>As usual, the function <CODE>close</CODE> resets the Filter's state:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Source&amp;)
+    {
+        current_word_.erase();
+        off_ = std::string::npos;
+        eof_ = <SPAN CLASS="keyword">false</SPAN>;
+    }</PRE>
+
+<A NAME="dictionary_output_filter"></A>
+<H4><CODE>dictionary_output_filter</CODE></H4>
+
+<P>You can express a dictionary filter as an <A HREF="../concepts/output_filter.html">OutputFilter</A> as follows:</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;algorithm&gt;</SPAN>                      <SPAN CLASS='comment'>// swap</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>   <SPAN CLASS="comment">// output_filter</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// write</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> dictionary_output_filter : <SPAN CLASS="keyword"><SPAN CLASS="keyword"><SPAN CLASS="keyword">public</SPAN></SPAN></SPAN> output_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">typedef</SPAN> std::map&lt;std::string, std::string&gt; map_type;
+    dictionary_output_filter(dictionary&amp; d)
+        : dictionary_(d), off_(std::string::npos)
+        { }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> put(Sink&amp; dest, <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c);
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Sink&amp; dest);
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> write_current_word(Sink&amp; dest);
+    dictionary&amp;             dictionary_;
+    std::string             current_word_;
+    std::string::size_type  off_;
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>Let's look first at the helper function <CODE>write_current_word</CODE>:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> write_current_word(Sink&amp; dest)
+    {
+        <SPAN CLASS="keyword">using</SPAN> <SPAN CLASS="keyword">namespace</SPAN> std;
+        streamsize amt = <SPAN CLASS="keyword">static_cast</SPAN>&lt;streamsize&gt;(current_word_.size() - off_);
+        streamsize result =
+            iostreams::write(dest, current_word_.data() + off_, amt);
+        <SPAN CLASS="keyword">if</SPAN> (result == amt) {
+            current_word_.erase();
+            off_ = string::npos;
+            <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS="keyword">true</SPAN>;
+        } <SPAN CLASS="keyword">else</SPAN> {
+            off_ += result;
+            <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS="keyword">false</SPAN>;
+        }
+    }</PRE>
+
+<P>
+    This function attempts to write <CODE>current_word_</CODE>, beginning at the offset <CODE>off_</CODE>, to the provided <A HREF="../concepts/sink.html">Sink</A>. If the entire sequence is successfully written, <CODE>current_word_</CODE> is cleared and the function returns <CODE>true</CODE>. Otherwise the member variable <CODE>off_</CODE> is updated to point to the first unwritten character and the function fails.
+</P>
+
+<P>Using <CODE>write_current_word</CODE> you can implement <CODE>put</CODE> as follows:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> put(Sink&amp; dest, <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c)
+    {
+        <SPAN CLASS="keyword">if</SPAN> (off_ != std::string::npos &amp;&amp; !write_current_word(dest))
+            <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS="keyword">false</SPAN>;
+        <SPAN CLASS="keyword">if</SPAN> (!std::isalpha((<SPAN CLASS="keyword">unsigned</SPAN> <SPAN CLASS="keyword">char</SPAN>) c)) {
+            dictionary_.replace(current_word_);
+            off_ = 0;
+        }
+
+        current_word_ += c;
+        <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS="keyword">true</SPAN>;
+    }</PRE>
+
+<P>
+    As in the implementation of <A HREF="#dictionary_input_filter"><CODE>dictionary_input_filter::get</CODE></A>, you first check to see whether there are any characters from a previous invocation of <CODE>put</CODE> which remain to be written. If so, you attempt to write these characters using <CODE>write_current_word</CODE>. If successful, you next examine the given character <CODE>c</CODE>. If it is a non-alphabetic character, you consult the dictionary to determine the appropriate replacement text. In any case, you append <CODE>c</CODE> to <CODE>current_word_</CODE> and return <CODE>true</CODE>.
+</P>
+
+<P>The function <CODE>close</CODE> has more work to do in this case than simply reseting the Filter's state. Unless the last character of the unfiltered sequence happened to be a non-alphabetic character, the contents of current_word_ will not yet have been written:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    void close(Sink&amp; dest)
+    {
+        <SPAN CLASS='comment'>// Reset current_word_ and off_, saving old values.</SPAN>
+        std::string             current_word;
+        std::string::size_type  off = <SPAN CLASS='numeric_literal'>0</SPAN>;
+        current_word.swap(current_word_);
+        std::swap(off, off_);
+
+        <SPAN CLASS='comment'>// Write remaining characters to dest.</SPAN>
+        <SPAN CLASS="keyword">if</SPAN> (off == std::string::npos) {
+            dictionary_.replace(current_word);
+            off = <SPAN CLASS='numeric_literal'>0</SPAN>;
+        }
+        <SPAN CLASS="keyword">if</SPAN> (!current_word.empty())
+            iostreams::write( 
+                dest,
+                current_word.data() + off, 
+                <SPAN CLASS="keyword">static_cast</SPAN>&lt;std::streamsize&gt;(current_word.size() - off) 
+            );
+    }</PRE>
+
+<P>Note that you may assume that the template argument is a <A HREF="../concepts/blocking.html">Blocking</A> <A HREF="../concepts/sink.html">Sink</A>, and that you must reset the values of <CODE>current_word_</CODE> and <CODE>off_</CODE> before calling <A HREF="../functions/write.html"><CODE>write</CODE></A>, in case <A HREF="../functions/write.html"><CODE>write</CODE></A> throws an exception.</P>
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='tab_expanding_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='unix2dos_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<!-- Begin Footer -->
+
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Use, modification, and distribution are subject to the Boost Software License, Version 2.0. (See accompanying file <A HREF="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+
+</BODY>

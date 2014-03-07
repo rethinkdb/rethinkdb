@@ -1,0 +1,194 @@
+#==============================================================================
+#   Copyright (c) 2002 Joel de Guzman
+#   Copyright (c) 2003-2004 Martin Wille
+#   http://spirit.sourceforge.net/
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+#
+#  Spirit regression test boost-jam file
+#  Joel de Guzman [Sept 27, 2002]
+#
+
+
+
+# VP, 2005/04/14: Inside boost, we inherit proper <include>
+# from Jamroot.
+# Not sure about standalone Spirit.
+# SPIRIT_HEADER_INCLUDE ?= ../../.. ;
+# spirit-header-include = <include>$(SPIRIT_HEADER_INCLUDE) ;
+
+rule spirit-run ( sources + : args * : input-files * : requirements * : name ? : default-build * )
+{
+    name ?= $(sources[1]:D=:S=) ;
+    return  
+       [ run $(sources) : $(args) : $(input-files) : $(requirements) : $(name)
+        : $(default-build) ]
+       [ run $(sources) : $(args) : $(input-files) : $(requirements)
+          <define>BOOST_SPIRIT_DEBUG=1 : $(name)_debug
+        : $(default-build) ]
+        ;
+}
+
+############################################################
+
+local opt = <toolset>vc-7.0:<optimization>speed
+            <toolset>vc-7.0:<inlining>on
+            <toolset>cw:<optimization>speed ;
+
+local opt-metrowerks = <toolset>cw:<optimization>speed ;
+
+
+# VP, 2005/04/14: MT is not available with Como, but this is
+# not handled yet.
+local multi-threading = <library>/boost/thread//boost_thread 
+                        <threading>multi <define>BOOST_ALL_NO_LIB=1 ;
+
+    test-suite "spirit.classic.core.kernel"
+        : [ spirit-run match_tests.cpp ]
+          [ spirit-run post_skips.cpp ]
+        ;
+
+    test-suite "spirit.classic.core.scanner"
+        : [ spirit-run scanner_tests.cpp ]
+          [ spirit-run scanner_value_type_tests.cpp ]
+        ;
+
+    test-suite "spirit.classic.core.primitive"
+        : [ spirit-run primitives_tests.cpp ]
+          [ spirit-run char_strings_test.cpp ]
+          [ compile-fail char_strings_test_fail.cpp ]
+          [ spirit-run numerics_tests.cpp : : : $(opt) ]
+          [ spirit-run custom_real_parser.cpp ]
+        ;
+
+    test-suite "spirit.classic.core.composite"
+        : [ spirit-run epsilon_tests.cpp ]
+          [ spirit-run negated_eps_p_test.cpp ]
+          [ spirit-run operators_tests.cpp ]
+          [ spirit-run directives_tests.cpp ]
+          [ spirit-run shortest_alternative_tests.cpp ]
+        ;
+
+    test-suite "spirit.classic.core.non_terminal"
+        : [ spirit-run rule_tests.cpp ]
+          [ spirit-run owi_st_tests.cpp ]
+          [ spirit-run grammar_tests.cpp : : : $(opt-metrowerks) ]
+          [ spirit-run grammar_multi_instance_tst.cpp : : : $(opt-metrowerks) ]
+          [ spirit-run subrule_tests.cpp ]
+          [        run owi_mt_tests.cpp : : : $(multi-threading) ]
+          [        run grammar_mt_tests.cpp : : : $(multi-threading) ]
+          [ spirit-run parser_context_test.cpp ]
+        ;
+
+    # traverse_tests defines SPIRIT_DEBUG, don't run the tests twice
+    test-suite "spirit.classic.meta"
+        : [ spirit-run fundamental_tests.cpp ]
+          [ spirit-run parser_traits_tests.cpp ]
+          [ spirit-run traverse_tests.cpp : : : <toolset>intel:<debug-symbols>off ]
+        ;
+
+    test-suite "spirit.classic.attribute"
+        : [ spirit-run closure_tests.cpp : : : $(opt-metrowerks) ]
+          [        run bug_000008.cpp : : : $(multi-threading) ]
+          [ spirit-run parametric_tests.cpp ]
+        ;
+
+    test-suite "spirit.classic.error_handling"
+        : [ spirit-run exception_tests.cpp ]
+        ;
+
+    test-suite "spirit.classic.tree"
+        : [ spirit-run ast_calc_tests.cpp ]
+          [ spirit-run group_match_bug.cpp ]
+          [ spirit-run repeat_ast_tests.cpp ]
+          [ spirit-run tree_to_xml.cpp ]
+          [ compile mix_and_match_trees.cpp ]
+        ;
+
+# temporarily removed from the test suite. tree_tests are not finished, yet.
+#         [ spirit-run tree_tests.cpp ]
+
+    test-suite "spirit.classic.dynamic"
+        : [ compile if_p_as_parser_tests.cpp ]
+          [ compile while_p_as_parser_tests.cpp ]
+          [ compile for_p_as_parser_tests.cpp ]
+          [ spirit-run if_tests.cpp ]
+          [ spirit-run if_p_int_as_condition_test.cpp ]
+          [ spirit-run for_tests.cpp ]
+          [ spirit-run while_tests.cpp ]
+          [ spirit-run lazy_tests.cpp ]
+          [ spirit-run switch_tests_eps_default.cpp ]
+          [ spirit-run switch_tests_general_def.cpp ]
+          [ spirit-run switch_tests_wo_default.cpp ]
+          [ spirit-run switch_tests_single.cpp ]
+          [ spirit-run switch_problem.cpp ]
+          [ spirit-run select_p_with_rule.cpp ]
+        ;
+
+    test-suite "spirit.classic.utility.parsers"
+        : [ spirit-run chset_tests.cpp ]
+          [ spirit-run confix_tests.cpp ]
+          [ spirit-run loops_tests.cpp ]
+          [ spirit-run symbols_tests.cpp ]
+          [ spirit-run symbols_add_null.cpp ]
+          [ spirit-run symbols_find_null.cpp ]
+          [ spirit-run escape_char_parser_tests.cpp : : : $(opt) ]
+          [ spirit-run distinct_tests.cpp ]
+          [ spirit-run grammar_def_test.cpp ]
+        ;
+
+    test-suite "spirit.classic.utility.support"
+        # This test doesn't actually use multiple threads
+        : [ spirit-run scoped_lock_tests.cpp : : : $(multi-threading) ]
+        ;
+
+    test-suite "spirit.classic.iterator"
+        : [ spirit-run fixed_size_queue_tests.cpp ]
+          [ compile-fail fixed_size_queue_fail_tests.cpp ]
+          [ spirit-run file_iterator_tests.cpp ]
+          [ spirit-run multi_pass_tests.cpp : : : $(opt-metrowerks) ]
+          [ spirit-run sf_bug_720917.cpp : : : $(opt-metrowerks) ]
+          [ spirit-run position_iterator_tests.cpp : : : $(opt-metrowerks) ]
+          [ compile multi_pass_compile_tests.cpp ]
+        ;
+
+    test-suite "spirit.classic.small_bug_fixes"
+        : [ spirit-run bug_fixes.cpp ]
+        ;
+
+    actor_test_sources =
+        action_tests
+        assign_test
+        assign_key_test
+        clear_test
+        decrement_test
+        erase_at_test
+        increment_test
+        insert_key_test
+        insert_at_test
+        push_back_test
+        push_front_test
+        swap_test
+        ;
+
+    test-suite "spirit.classic.utility.actors"
+        : [ spirit-run actor/$(actor_test_sources).cpp ]
+        ;
+
+    test-suite "spirit.classic.typeof-support"
+        : [ compile typeof_support/typeof_actor.cpp ]
+          [ compile typeof_support/typeof_attribute.cpp ]
+          [ compile typeof_support/typeof_core.cpp ]
+          [ compile typeof_support/typeof_debug.cpp ]
+          [ compile typeof_support/typeof_dynamic.cpp ]
+          [ compile typeof_support/typeof_error_handling.cpp ]
+          [ compile typeof_support/typeof_iterator.cpp ]
+          [ compile typeof_support/typeof_symbols.cpp ]
+          [ compile typeof_support/typeof_tree.cpp ]
+          [ compile typeof_support/typeof_utility.cpp ]
+        ; 
+
+

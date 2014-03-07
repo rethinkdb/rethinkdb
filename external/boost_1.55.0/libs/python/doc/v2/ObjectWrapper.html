@@ -1,0 +1,153 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - ObjectWrapper Concept</title>
+  </head>
+
+  <body link="#0000ff" vlink="#800080">
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">ObjectWrapper and TypeWrapper Concepts</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#concept-requirements">Concept Requirements</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#ObjectWrapper-concept">ObjectWrapper Concept</a></dt>
+
+          <dt><a href="#TypeWrapper-concept">TypeWrapper Concept</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#caveat">Caveat</a></dt>
+    </dl>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p>This page defines two concepts used to describe classes which manage a
+    Python objects, and which are intended to support usage with a
+    Python-like syntax.</p>
+
+    <h2><a name="concept-requirements"></a>Concept Requirements</h2>
+
+    <h3><a name="ObjectWrapper-concept"></a>ObjectWrapper Concept</h3>
+    Models of the ObjectWrapper concept have <a href=
+    "object.html#object-spec">object</a> as a publicly-accessible base class,
+    and are used to supply special construction behavior and/or additional
+    convenient functionality through (often templated) member functions.
+    Except when the return type <code>R</code> is itself an <a href=
+    "#TypeWrapper-concept">TypeWrapper</a>, a member function invocation of
+    the form 
+<pre>
+x.<i>some_function</i>(<i>a<small>1</small>, a<small>2</small>,...a<small>n</small></i>)
+</pre>
+    always has semantics equivalent to: 
+<pre>
+<a href=
+"extract.html#extract-spec">extract</a>&lt;R&gt;(x.attr("<i>some_function</i>")(<a
+ href=
+"object.html#object-spec-ctors">object</a>(<i>a<small>1</small></i>), <a
+href=
+"object.html#object-spec-ctors">object</a>(<i>a<small>2</small></i>),...<a
+href="object.html#object-spec-ctors">object</a>(<i>a<small>n</small></i>)))()
+</pre>
+    When the <code>R</code> is an <a href=
+    "#TypeWrapper-concept">TypeWrapper</a>, the result type may be
+    constructed by taking direct posession of: 
+<pre>
+x.attr("<i>some_function</i>")(<a href=
+"object.html#object-spec-ctors">object</a>(<i>a<small>1</small></i>), <a
+ href=
+"object.html#object-spec-ctors">object</a>(<i>a<small>2</small></i>),...<a
+ href=
+"object.html#object-spec-ctors">object</a>(<i>a<small>n</small></i>)).ptr()
+</pre>
+    [see <a href="#caveat">caveat</a> below] 
+
+    <h3><a name="TypeWrapper-concept"></a>TypeWrapper Concept</h3>
+    TypeWrapper is a refinement of ObjectWrapper which is associated with a
+    particular Python type <code>X</code>. For a given TypeWrapper
+    <code>T</code>, a valid constructor expression 
+<pre>
+T(<i>a<small>1</small>, a<small>2</small>,...a<small>n</small></i>)
+</pre>
+    builds a new <code>T</code> object managing the result of invoking
+    <code>X</code> with arguments corresponding to 
+<pre>
+<a href=
+"object.html#object-spec-ctors">object</a>(<i>a<small>1</small></i>), <a
+ href=
+"object.html#object-spec-ctors">object</a>(<i>a<small>2</small></i>),...<a
+ href=
+"object.html#object-spec-ctors">object</a>(<i>a<small>n</small></i>)
+</pre>
+
+When used as arguments to wrapped C++ functions, or as the template
+parameter to <code><a
+href="extract.html#extract-spec">extract</a>&lt;&gt;</code>, only
+instances of the associated Python type will be considered a match.
+
+    <h3><a name="caveat">Caveat</a></h3>
+    The upshot of the special member function invocation rules when the
+    return type is a TypeWrapper is that it is possible for the returned
+    object to manage a Python object of an inappropriate type. This is not
+    usually a serious problem; the worst-case result is that errors will be
+    detected at runtime a little later than they might otherwise be. For an
+    example of how this can occur, note that the <code><a href=
+    "dict.html#dict-spec">dict</a></code> member function <code>items</code>
+    returns an object of type <code><a href=
+    "list.html#list-spec">list</a></code>. Now suppose the user defines this
+    <code>dict</code> subclass in Python: 
+<pre>
+&gt;&gt;&gt; class mydict(dict):
+...     def items(self):
+...         return tuple(dict.items(self)) # return a tuple
+</pre>
+    Since an instance of <code>mydict</code> is also an instance of
+    <code>dict</code>, when used as an argument to a wrapped C++ function,
+    <code><a href="dict.html#dict-spec">boost::python::dict</a></code> can
+    accept objects of Python type <code>mydict</code>. Invoking
+    <code>items()</code> on this object can result in an instance of <code><a
+    href="list.html#list-spec">boost::python::list</a></code> which actually
+    holds a Python tuple. Subsequent attempts to use list methods (e.g.
+    <code>append</code>, or any other mutating operation) on this object will
+    raise the same exception that would occur if you tried to do it from
+    Python. 
+    <hr>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Frequently Asked Questions</TITLE>
+    <LINK REL="stylesheet" HREF="../../../boost.css">
+    <LINK REL="stylesheet" HREF="theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Frequently Asked Questions</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index" style="margin-top:1em">
+  <DT><A href="#flush">Why is data I've written to a <CODE>filtering_stream</CODE> not reaching the Sink at the end of the chain?</A></DT>
+  <DT><A href="#tee">How do I write to several ostreams at once?</A></DT>
+  <DT><A href="#component_access">How do I access a Filter or Device after I've added it to a chain or attached it to a <CODE>stream</CODE> or <CODE>stream_buffer?</CODE></A></DT>
+  <DT><A href="#offsets">How do perform file positioning operations with large (64-bit) offsets?</A></DT>
+  <DT><A href="#stl">How do I read from or write to an STL sequence?</A></DT>
+  <DT><A href="#multibyte">How do I write a stream which can read or write multibyte character encodings?</A></DT>
+  <DT><A href="#auto_close">Can I swap Filters or Devices in the middle of a sequence of i/o operations?</CODE></A></DT>
+  <DT><A href="#lifetime">Why does my filter chain work with <CODE>std::cout</CODE> but not with another <CODE>ostream</CODE>?</A></DT>
+  <DT><A href="#pipe">Why do I get errors stating that <CODE>operator|</CODE> is ambiguous?</A></DT>
+  <DT><A href="#finite_state">Why do I get errors when compiling the <CODE>finite_state_filter</CODE> examples?</A></DT>
+</DL>
+
+<HR style="margin-top:1em">
+
+<A NAME="flush"></A>
+<H4>Why is data I've written to a <CODE>filtering_stream</CODE> not reaching the Sink at the end of the chain?</H4>
+
+<P>
+     You may need to flush the stream. Note, however, that there is no guarantee that all data written to a <A HREF="classes/filtering_stream.html"><CODE>filtering_stream</CODE></A> will be forwarded to the final Sink until the stream is closed, unless all the Filters in the underlying <A HREF="classes/chain.html"><CODE>chain</CODE></A> are <A HREF="concepts/flushable.html">Flushable</A>.
+</P>
+<P>
+     It's also possible that a buggy Filter is modifying data in a way you don't expect, <I>e.g.</I>, by silently discarding data.
+</P>
+
+<A NAME="tee"></A>
+<H4>How do I write to several ostreams at once?</H4>
+
+<P>
+     Use a <A HREF="functions/tee.html#tee_filter"><CODE>tee_filter</CODE></A> or <A HREF="functions/tee.html#tee_device"><CODE>tee_device</CODE></A>. <I>See</I> <A HREF="functions/tee.html"><CODE>tee</CODE></A>.
+</P>
+
+<A NAME="component_access"></A>
+<H4>How do I access a Filter or Device after I've added it to a chain or attached it to a <CODE>stream</CODE> or <CODE>stream_buffer?</CODE></H4>
+
+<P>
+     If you're using a <A HREF="guide/generic_streams.html#stream"><CODE>stream</CODE></A> or <A HREF="guide/generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A>, use <CODE>operator*</CODE> or <CODE>operator-&gt;</CODE>. 
+</P>
+
+<P>
+     If you're using a <A HREF="classes/filtering_stream.html"><CODE>filtering_stream</CODE></A>, <A HREF="classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A> or <A HREF="classes/chain.html"><CODE>chain</CODE></A>, use the member function templates <A HREF="classes/chain.html#component_type"><CODE>component_type</CODE></A> and <A HREF="classes/chain.html#component"><CODE>component</CODE></A>. Alternatively, add your Filter or Device to the chain by reference, using a  <A HREF="../../../doc/html/ref.html" TARGET="_top">reference wrapper</A>.
+</P>
+
+<A NAME="offsets"></A>
+<H4>How do perform file positioning operations with large (64-bit) offsets?</H4>
+
+<P>
+    If you're using a raw Device and your compiler supports a 64-bit integral type, you can pass a large offset directly to <CODE>seek</CODE>. To convert the return value of seek to an integral type, use <A HREF="functions/positioning.html#position_to_offset"><CODE>position_to_offset</CODE></A>.
+</P>
+
+<P>
+    If you're using a <A HREF="guide/generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A> or <A HREF="classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A>, convert the offset to a <CODE>std::streampos</CODE> using <A HREF="functions/positioning.html#offset_to_position"><CODE>offset_to_position</CODE></A>, then pass it to <CODE>pubseekpos</CODE>. To convert the return value of seek to an integral type, use <A HREF="functions/positioning.html#position_to_offset"><CODE>position_to_offset</CODE></A>.
+</P>
+
+<P>
+    If you're using a <A HREF="guide/generic_streams.html#stream"><CODE>stream</CODE></A> or <A HREF="classes/filtering_stream.html"><CODE>filtering_stream</CODE></A>, convert the offset to a <CODE>std::streampos</CODE> using <A HREF="functions/positioning.html#offset_to_position"><CODE>offset_to_position</CODE></A>, then pass it to the overload of <CODE>seekg</CODE> or <CODE>seekp</CODE> which takes a single <CODE>std::streampos</CODE> argument. To convert the return value of seek to an integral type, use <A HREF="functions/positioning.html#position_to_offset"><CODE>position_to_offset</CODE></A>.
+</P>
+
+<P><I>See</I> <A HREF="functions/positioning.html">Stream Offsets</A>.</P>
+
+<A NAME="stl"></A>
+<H4>How do I read from or write to an STL sequence?</H4>
+
+<P>
+    You can append to an STL sequence using a <A HREF="classes/back_inserter.html"><CODE>back_insert_device</CODE></A>, or the function <A HREF="classes/back_inserter.html#back_inserter"><CODE>boost::iostreams::back_inserter</CODE></A>. You can read from an STL sequence 
+    by adding an instance of <A HREF="../../range/doc/html/range/reference/utilities/iterator_range.html" TARGET="_top"><CODE>boost::itertator_range</CODE></A> to a <A HREF="classes/filtering_stream.html"><CODE>filtering_stream</CODE></A> or <A HREF="classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A>.
+</P>
+
+<P><I>See</I> <A HREF="tutorial/container_source.html">Writing a <CODE>container_source</CODE></A> and <A HREF="tutorial/container_sink.html">Writing a <CODE>container_sink</CODE></A>.</P>
+
+<A NAME="multibyte"></A>
+<H4>How do I write a stream which can read or write multibyte character encodings?</H4>
+
+<P>
+     Use a <A HREF="classes/code_converter.html"><CODE>code_converter</CODE></A>. <I>See</I> <A HREF="guide/code_conversion.html"><CODE>Code Conversion</CODE></A>.
+</P>
+
+<A NAME="auto_close"></A>
+<H4>Can I swap Filters or Devices in the middle of a sequence of i/o operations?</H4>
+
+<P>
+     If you're performing output, and if all the Filters in you chain are <A HREF="concepts/flushable.html">Flushable</A>, then yes. First call <A HREF="classes/chain.html#strict_sync"><CODE>strict_sync</CODE></A>. If it returns <CODE>true</CODE>, you can safely call <CODE><A HREF="classes/chain.html#set_auto_close">set_auto_close</A>(false)</CODE> and <A HREF="classes/chain.html#pop"><CODE>pop</CODE></A> one or more components without closing the stream. This applies to instances of <A HREF="classes/filtering_stream.html"><CODE>filtering_stream</CODE></A>, <A HREF="classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A> and <A HREF="classes/chain.html"><CODE>chain</CODE></A>.
+</P>
+
+<A NAME="lifetime"></A>
+<H4>Why does my filter chain work with <CODE>std::cout</CODE> but not with another <CODE>ostream</CODE>?</H4>
+
+<P>
+     The Iostreams library stores streams and stream buffers by reference; consequently, streams and stream buffers must outlive any filter chain to which they are added. This is not a problem for <CODE>std::cout</CODE>, since it is guaranteed to live until the end of the program.
+</P>
+
+<P>
+     Check to make sure that the <CODE>ostream</CODE> is not being destroyed before the <CODE>filtering_stream</CODE>. If both objects are constructed on the stack within the same block, make sure that the <CODE>ostream</CODE> is constructed <I>first</I>.
+</P>
+
+<A NAME="pipe"></A>
+<H4>Why do I get errors stating that <CODE>operator|</CODE> is ambiguous?</H4>
+
+<P>
+     During overload resolution for an expression involving <CODE>operator|</CODE>, your compiler could be considering an implicit conversion from an intergral type to a <A HREF="concepts/pipable.html">Pipable</A> Filter. Make sure that all your Pipable Filters have <CODE>explicit</CODE> constructors. <I>See</I> <A HREF="guide/pipelines.html">Pipelines</A>.
+</P>
+
+<A NAME="finite_state"></A>
+<H4>Why do I get errors when compiling the <CODE>finite_state_filter</CODE> examples?</H4>
+
+<P>
+     The template <CODE>finite_state_filter</CODE> requires a highly standard-conforming compiler. See <A HREF="portability.html">Portability</A> and the <A HREF="http://www.boost.org/status/compiler_status.html" TARGET="_top">Compiler Status Tables</A> for details.
+</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

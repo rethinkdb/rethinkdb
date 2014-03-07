@@ -1,0 +1,377 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template basic_settings_section</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../utilities.html#header.boost.log.utility.setup.settings_hpp" title="Header &lt;boost/log/utility/setup/settings.hpp&gt;">
+<link rel="prev" href="init_from_stream.html" title="Function template init_from_stream">
+<link rel="next" href="basic_settings.html" title="Class template basic_settings">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="init_from_stream.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../utilities.html#header.boost.log.utility.setup.settings_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_settings.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.basic_settings_section"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template basic_settings_section</span></h2>
+<p>boost::log::basic_settings_section &#8212; The class represents a reference to the settings container section. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../utilities.html#header.boost.log.utility.setup.settings_hpp" title="Header &lt;boost/log/utility/setup/settings.hpp&gt;">boost/log/utility/setup/settings.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="basic_settings_section.html" title="Class template basic_settings_section">basic_settings_section</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="basic_settings_section.html#boost.log.basic_settings_sectiontypes">types</a></span>
+  <span class="keyword">typedef</span> <span class="identifier">CharT</span>                                                  <a name="boost.log.basic_settings_section.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>           <span class="comment">// Character type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">char_type</span> <span class="special">&gt;</span>                         <a name="boost.log.basic_settings_section.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>         <span class="comment">// String type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">property_tree</span><span class="special">::</span><span class="identifier">basic_ptree</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">string_type</span> <span class="special">&gt;</span> <a name="boost.log.basic_settings_section.property_tree_type"></a><span class="identifier">property_tree_type</span><span class="special">;</span>  <span class="comment">// Property tree type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">property_tree_type</span><span class="special">::</span><span class="identifier">path_type</span>                          <a name="boost.log.basic_settings_section.path_type"></a><span class="identifier">path_type</span><span class="special">;</span>           <span class="comment">// Property tree path type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span>                                 <a class="link" href="basic_settings_section.html#boost.log.basic_settings_section.const_reference"><span class="identifier">const_reference</span></a><span class="special">;</span>   
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span>                                 <a class="link" href="basic_settings_section.html#boost.log.basic_settings_section.reference"><span class="identifier">reference</span></a><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span>                                 <a class="link" href="basic_settings_section.html#boost.log.basic_settings_section.const_iterator"><span class="identifier">const_iterator</span></a><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span>                                 <a class="link" href="basic_settings_section.html#boost.log.basic_settings_section.iterator"><span class="identifier">iterator</span></a><span class="special">;</span>          
+
+  <span class="comment">// <a class="link" href="basic_settings_section.html#boost.log.basic_settings_sectionconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="basic_settings_section.html#idp28463704-bb"><span class="identifier">basic_settings_section</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_settings_section.html#idp28464024-bb"><span class="identifier">basic_settings_section</span></a><span class="special">(</span><a class="link" href="basic_settings_section.html" title="Class template basic_settings_section">basic_settings_section</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="basic_settings_section.html#idp28465016-bb"><span class="identifier">basic_settings_section</span></a><span class="special">(</span><span class="identifier">property_tree_type</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="basic_settings_section.html#idp28441800-bb">public member functions</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="basic_settings_section.html#idp28442008-bb"><span class="keyword">operator</span> <span class="keyword">bool</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_settings_section.html#idp28442856-bb"><span class="keyword">operator</span><span class="special">!</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="basic_settings_section.html#idp28443560-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="basic_settings_section.html#idp28444296-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="basic_settings_section.html#idp28445032-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="basic_settings_section.html#idp28445768-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">reverse_iterator</span> <a class="link" href="basic_settings_section.html#idp28446504-bb"><span class="identifier">rbegin</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">reverse_iterator</span> <a class="link" href="basic_settings_section.html#idp28447256-bb"><span class="identifier">rend</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_reverse_iterator</span> <a class="link" href="basic_settings_section.html#idp28448008-bb"><span class="identifier">rbegin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_reverse_iterator</span> <a class="link" href="basic_settings_section.html#idp28448760-bb"><span class="identifier">rend</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_settings_section.html#idp28449512-bb"><span class="identifier">empty</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">reference</span> <a class="link" href="basic_settings_section.html#idp28450248-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_reference</span> <a class="link" href="basic_settings_section.html#idp28452088-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">reference</span> <a class="link" href="basic_settings_section.html#idp28453928-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_reference</span> <a class="link" href="basic_settings_section.html#idp28455752-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">property_tree_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a class="link" href="basic_settings_section.html#idp28457576-bb"><span class="identifier">property_tree</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">property_tree_type</span> <span class="special">&amp;</span> <a class="link" href="basic_settings_section.html#idp28458296-bb"><span class="identifier">property_tree</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_settings_section.html#idp28459016-bb"><span class="identifier">has_section</span></a><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_settings_section.html#idp28460456-bb"><span class="identifier">has_parameter</span></a><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_settings_section.html#idp28462504-bb"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="basic_settings_section.html" title="Class template basic_settings_section">basic_settings_section</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp70208184"></a><h2>Description</h2>
+<p>The section refers to a sub-tree of the library settings container. It does not own the referred sub-tree but allows for convenient access to parameters within the subsection. </p>
+<div class="refsect2">
+<a name="idp70208712"></a><h3>
+<a name="boost.log.basic_settings_sectiontypes"></a><code class="computeroutput">basic_settings_section</code> 
+        public
+       types</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">implementation_defined</span> <a name="boost.log.basic_settings_section.const_reference"></a><span class="identifier">const_reference</span><span class="special">;</span></p>
+<p>Constant reference to the parameter value </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">implementation_defined</span> <a name="boost.log.basic_settings_section.reference"></a><span class="identifier">reference</span><span class="special">;</span></p>
+<p>Mutable reference to the parameter value </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">implementation_defined</span> <a name="boost.log.basic_settings_section.const_iterator"></a><span class="identifier">const_iterator</span><span class="special">;</span></p>
+<p>Constant iterator over nested parameters and subsections </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">implementation_defined</span> <a name="boost.log.basic_settings_section.iterator"></a><span class="identifier">iterator</span><span class="special">;</span></p>
+<p>Mutable iterator over nested parameters and subsections </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp70217560"></a><h3>
+<a name="boost.log.basic_settings_sectionconstruct-copy-destruct"></a><code class="computeroutput">basic_settings_section</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp28463704-bb"></a><span class="identifier">basic_settings_section</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Default constructor. Creates an empty settings container. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28464024-bb"></a><span class="identifier">basic_settings_section</span><span class="special">(</span><a class="link" href="basic_settings_section.html" title="Class template basic_settings_section">basic_settings_section</a> <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Copy constructor. </p>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">explicit</span> <a name="idp28465016-bb"></a><span class="identifier">basic_settings_section</span><span class="special">(</span><span class="identifier">property_tree_type</span> <span class="special">*</span> tree<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp70226584"></a><h3>
+<a name="idp28441800-bb"></a><code class="computeroutput">basic_settings_section</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp28442008-bb"></a><span class="keyword">operator</span> <span class="keyword">bool</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Checks if the section refers to the container. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28442856-bb"></a><span class="keyword">operator</span><span class="special">!</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Checks if the section refers to the container. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp28443560-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns an iterator over the nested subsections and parameters. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp28444296-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns an iterator over the nested subsections and parameters. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp28445032-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns an iterator over the nested subsections and parameters. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp28445768-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns an iterator over the nested subsections and parameters. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">reverse_iterator</span> <a name="idp28446504-bb"></a><span class="identifier">rbegin</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns a reverse iterator over the nested subsections and parameters. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">reverse_iterator</span> <a name="idp28447256-bb"></a><span class="identifier">rend</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns a reverse iterator over the nested subsections and parameters. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reverse_iterator</span> <a name="idp28448008-bb"></a><span class="identifier">rbegin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a reverse iterator over the nested subsections and parameters. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reverse_iterator</span> <a name="idp28448760-bb"></a><span class="identifier">rend</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a reverse iterator over the nested subsections and parameters. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28449512-bb"></a><span class="identifier">empty</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Checks if the container is empty (i.e. contains no sections and parameters). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">reference</span> <a name="idp28450248-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="special">&amp;</span> section_name<span class="special">)</span><span class="special">;</span></pre>
+<p>Accessor to a single parameter. This operator should be used in conjunction with the subsequent subscript operator that designates the parameter name.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">section_name</code></span></p></td>
+<td><p>The name of the section in which the parameter resides </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>An unspecified reference type that can be used for parameter name specifying </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reference</span> <a name="idp28452088-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="special">&amp;</span> section_name<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Accessor to a single parameter. This operator should be used in conjunction with the subsequent subscript operator that designates the parameter name.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">section_name</code></span></p></td>
+<td><p>The name of the section in which the parameter resides </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>An unspecified reference type that can be used for parameter name specifying </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">reference</span> <a name="idp28453928-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> section_name<span class="special">)</span><span class="special">;</span></pre>
+<p>Accessor to a single parameter. This operator should be used in conjunction with the subsequent subscript operator that designates the parameter name.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">section_name</code></span></p></td>
+<td><p>The name of the section in which the parameter resides </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>An unspecified reference type that can be used for parameter name specifying </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reference</span> <a name="idp28455752-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> section_name<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Accessor to a single parameter. This operator should be used in conjunction with the subsequent subscript operator that designates the parameter name.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">section_name</code></span></p></td>
+<td><p>The name of the section in which the parameter resides </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>An unspecified reference type that can be used for parameter name specifying </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">property_tree_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a name="idp28457576-bb"></a><span class="identifier">property_tree</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Accessor for the embedded property tree </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">property_tree_type</span> <span class="special">&amp;</span> <a name="idp28458296-bb"></a><span class="identifier">property_tree</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Accessor for the embedded property tree </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28459016-bb"></a><span class="identifier">has_section</span><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> section_name<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Checks if the specified section is present in the container.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">section_name</code></span></p></td>
+<td><p>The name of the section </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28460456-bb"></a><span class="identifier">has_parameter</span><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> section_name<span class="special">,</span> 
+                   <span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> param_name<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Checks if the specified parameter is present in the container.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">param_name</code></span></p></td>
+<td><p>The name of the parameter </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">section_name</code></span></p></td>
+<td><p>The name of the section in which the parameter resides </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28462504-bb"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="basic_settings_section.html" title="Class template basic_settings_section">basic_settings_section</a> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Swaps two references to settings sections. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="init_from_stream.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../utilities.html#header.boost.log.utility.setup.settings_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_settings.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

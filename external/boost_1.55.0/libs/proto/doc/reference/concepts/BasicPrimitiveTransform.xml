@@ -1,0 +1,92 @@
+<?xml version="1.0" ?>
+<concept name="BasicPrimitiveTransform" category="utility">
+  <!--
+  Copyright 2008 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+  <param name="Fn" role="basic-primitive-transform-type" />
+  <param name="Expr" role="expression-type" />
+  <param name="State" role="state-type" />
+  <param name="Data" role="data-type" />
+
+  <models-sentence>
+    The type <arg num="1" /> must be a model of <self/>.
+  </models-sentence>
+
+  <description>
+    <para>
+      A BasicPrimitiveTransform is class type that
+      has a nested class template called impl that takes
+      three template parameters representing an expression
+      type, a state type and a data type. Specializations
+      of the nested impl template are ternary monomorphic
+      function objects that accept expression, state, and
+      data parameters.
+    </para>
+  </description>
+
+  <notation variables="fn">
+    <sample-value>
+      <type name="Fn" />
+    </sample-value>
+  </notation>
+
+  <notation variables="expr">
+    <sample-value>
+      <type name="Expr" />
+    </sample-value>
+  </notation>
+
+  <notation variables="state">
+    <sample-value>
+      <type name="State" />
+    </sample-value>
+  </notation>
+
+  <notation variables="data">
+    <sample-value>
+      <type name="Data" />
+    </sample-value>
+  </notation>
+
+  <associated-type name="result_type">
+    <get-member-type name="result_type">
+      <apply-template name="typename Fn::template impl">
+        <type name="Expr"/>
+        <type name="State"/>
+        <type name="Data"/>
+      </apply-template>
+    </get-member-type>
+    <description>
+      <simpara>The return type of the overloaded function call operator.</simpara>
+    </description>
+  </associated-type>
+
+  <valid-expression name="Monomorphic Function Call">
+    <apply-function name="typename Fn::template impl&lt; Expr, State, Data &gt;()">
+      <sample-value>
+        <type name="Expr" />
+      </sample-value>
+      <sample-value>
+        <type name="State" />
+      </sample-value>
+      <sample-value>
+        <type name="Data" />
+      </sample-value>
+    </apply-function>
+    <return-type>
+      <require-same-type testable="yes">
+        <type name="result_type"/>
+      </require-same-type>
+    </return-type>
+    <semantics>Applies the transform.</semantics>
+  </valid-expression>
+
+  <example-model>
+    <type name="boost::proto::terminal&lt; int &gt;" />
+  </example-model>
+
+</concept>

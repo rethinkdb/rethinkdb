@@ -1,0 +1,50 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function template matches</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../expressions.html#header.boost.log.expressions.predicates.matches_hpp" title="Header &lt;boost/log/expressions/predicates/matches.hpp&gt;">
+<link rel="prev" href="attribute_matches.html" title="Type definition attribute_matches">
+<link rel="next" href="matches_idp26712904.html" title="Function template matches">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="attribute_matches.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../expressions.html#header.boost.log.expressions.predicates.matches_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="matches_idp26712904.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.expressions.matches_idp26709608"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function template matches</span></h2>
+<p>boost::log::expressions::matches</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../expressions.html#header.boost.log.expressions.predicates.matches_hpp" title="Header &lt;boost/log/expressions/predicates/matches.hpp&gt;">boost/log/expressions/predicates/matches.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">,</span> 
+         <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> RegexT<span class="special">&gt;</span> 
+  <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="identifier">matches</span><span class="special">(</span><a class="link" href="attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">TagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> attr<span class="special">,</span> 
+                      <span class="identifier">RegexT</span> <span class="keyword">const</span> <span class="special">&amp;</span> rex<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp61548792"></a><h2>Description</h2>
+<p>The function generates a terminal node in a template expression. The node will check if the attribute value, which is assumed to be a string, matches the specified regular expression. </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="attribute_matches.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../expressions.html#header.boost.log.expressions.predicates.matches_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="matches_idp26712904.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

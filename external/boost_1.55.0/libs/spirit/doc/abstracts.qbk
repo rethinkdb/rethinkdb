@@ -1,0 +1,27 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Abstracts]
+
+[include        abstracts/syntax_diagram.qbk]
+[include        abstracts/peg.qbk]
+[/include        abstracts/parsing.qbk]
+[/include        abstracts/generating.qbk]
+[/include        abstracts/primitives.qbk]
+[/include        abstracts/operators.qbk]
+[include        abstracts/attributes.qbk]
+[/include        abstracts/semantic_actions.qbk]
+[/include        abstracts/directives.qbk]
+[/include        abstracts/rules.qbk]
+[/include        abstracts/grammars.qbk]
+[/include        abstracts/debugging.qbk]
+[/include        abstracts/error_handling.qbk]
+[/include        abstracts/parse_trees_and_asts.qbk]
+
+[endsect]
+

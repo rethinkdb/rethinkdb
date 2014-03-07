@@ -1,0 +1,24 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:inside Inside Phoenix]
+
+This chapter explains in more detail how the library operates. The information
+henceforth should not be necessary to those who are interested in just using the
+library. However, a microscopic view might prove to be beneficial
+to advanced programmers who wish to extend the library.
+
+[include inside/actor.qbk]
+[include inside/expression.qbk]
+[include inside/actions.qbk]
+[include inside/rules.qbk]
+[include inside/custom_terminal.qbk]
+[include inside/placeholder.qbk]
+
+[endsect]

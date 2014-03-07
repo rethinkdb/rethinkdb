@@ -1,0 +1,244 @@
+[/
+  (C) Copyright 2007-11 Anthony Williams
+  (C) Copyright 2011-12 Vicente J. Botet Escriba
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:mutex_types Mutex Types]
+
+[section:mutex Class `mutex`]
+
+    #include <boost/thread/mutex.hpp>
+
+    class mutex:
+        boost::noncopyable
+    {
+    public:
+        mutex();
+        ~mutex();
+        
+        void lock();
+        bool try_lock();
+        void unlock();
+
+        typedef platform-specific-type native_handle_type;
+        native_handle_type native_handle();
+        
+        typedef unique_lock<mutex> scoped_lock;
+        typedef unspecified-type scoped_try_lock;
+    };
+
+__mutex__ implements the __lockable_concept__ to provide an exclusive-ownership mutex. At most one thread can own the lock on a given
+instance of __mutex__ at any time. Multiple concurrent calls to __lock_ref__, __try_lock_ref__ and __unlock_ref__ shall be permitted.
+
+[section:nativehandle Member function `native_handle()`]
+
+    typedef platform-specific-type native_handle_type;
+    native_handle_type native_handle();
+
+[variablelist
+
+[[Effects:] [Returns an instance of `native_handle_type` that can be used with platform-specific APIs to manipulate the underlying
+implementation. If no such instance exists, `native_handle()` and `native_handle_type` are not present.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+
+[endsect]
+
+[section:try_mutex Typedef `try_mutex`]
+
+    #include <boost/thread/mutex.hpp>
+
+    typedef mutex try_mutex;
+
+__try_mutex__ is a `typedef` to __mutex__, provided for backwards compatibility with previous releases of boost.
+
+[endsect]
+
+[section:timed_mutex Class `timed_mutex`]
+
+    #include <boost/thread/mutex.hpp>
+
+    class timed_mutex:
+        boost::noncopyable
+    {
+    public:
+        timed_mutex();
+        ~timed_mutex();
+
+        void lock();
+        void unlock();
+        bool try_lock();
+
+        template <class Rep, class Period>
+        bool try_lock_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_lock_until(const chrono::time_point<Clock, Duration>& t);
+
+        typedef platform-specific-type native_handle_type;
+        native_handle_type native_handle();
+
+        typedef unique_lock<timed_mutex> scoped_timed_lock;
+        typedef unspecified-type scoped_try_lock;
+        typedef scoped_timed_lock scoped_lock;
+
+    #if defined BOOST_THREAD_PROVIDES_DATE_TIME || defined BOOST_THREAD_DONT_USE_CHRONO
+        bool timed_lock(system_time const & abs_time);
+        template<typename TimeDuration>
+        bool timed_lock(TimeDuration const & relative_time);
+    #endif
+
+    };
+
+__timed_mutex__ implements the __timed_lockable_concept__ to provide an exclusive-ownership mutex. At most one thread can own the
+lock on a given instance of __timed_mutex__ at any time. Multiple concurrent calls to __lock_ref__, __try_lock_ref__,
+__timed_lock_ref__, __timed_lock_duration_ref__ and __unlock_ref__ shall be permitted.
+
+[section:nativehandle Member function `native_handle()`]
+
+    typedef platform-specific-type native_handle_type;
+    native_handle_type native_handle();
+
+[variablelist
+
+[[Effects:] [Returns an instance of `native_handle_type` that can be used with platform-specific APIs to manipulate the underlying
+implementation. If no such instance exists, `native_handle()` and `native_handle_type` are not present.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[endsect]
+
+[section:recursive_mutex Class `recursive_mutex`]
+
+    #include <boost/thread/recursive_mutex.hpp>
+
+    class recursive_mutex:
+        boost::noncopyable
+    {
+    public:
+        recursive_mutex();
+        ~recursive_mutex();
+        
+        void lock();
+        bool try_lock() noexcept;
+        void unlock();
+
+        typedef platform-specific-type native_handle_type;
+        native_handle_type native_handle();
+        
+        typedef unique_lock<recursive_mutex> scoped_lock;
+        typedef unspecified-type scoped_try_lock;
+    };
+
+__recursive_mutex__ implements the __lockable_concept__ to provide an exclusive-ownership recursive mutex. At most one thread can
+own the lock on a given instance of __recursive_mutex__ at any time. Multiple concurrent calls to __lock_ref__, __try_lock_ref__ and
+__unlock_ref__ shall be permitted. A thread that already has exclusive ownership of a given __recursive_mutex__ instance can call
+__lock_ref__ or __try_lock_ref__ to acquire an additional level of ownership of the mutex. __unlock_ref__ must be called once for
+each level of ownership acquired by a single thread before ownership can be acquired by another thread.
+
+[section:nativehandle Member function `native_handle()`]
+
+    typedef platform-specific-type native_handle_type;
+    native_handle_type native_handle();
+
+[variablelist
+
+[[Effects:] [Returns an instance of `native_handle_type` that can be used with platform-specific APIs to manipulate the underlying
+implementation. If no such instance exists, `native_handle()` and `native_handle_type` are not present.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[endsect]
+
+[section:recursive_try_mutex Typedef `recursive_try_mutex`]
+
+    #include <boost/thread/recursive_mutex.hpp>
+
+    typedef recursive_mutex recursive_try_mutex;
+
+__recursive_try_mutex__ is a `typedef` to __recursive_mutex__, provided for backwards compatibility with previous releases of boost.
+
+[endsect]
+
+[section:recursive_timed_mutex Class `recursive_timed_mutex`]
+
+    #include <boost/thread/recursive_mutex.hpp>
+
+    class recursive_timed_mutex:
+        boost::noncopyable
+    {
+    public:
+        recursive_timed_mutex();
+        ~recursive_timed_mutex();
+        
+        void lock();
+        bool try_lock() noexcept;
+        void unlock();
+
+
+        template <class Rep, class Period>
+        bool try_lock_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_lock_until(const chrono::time_point<Clock, Duration>& t);
+
+        typedef platform-specific-type native_handle_type;
+        native_handle_type native_handle();
+        
+        typedef unique_lock<recursive_timed_mutex> scoped_lock;
+        typedef unspecified-type scoped_try_lock;
+        typedef scoped_lock scoped_timed_lock;
+
+    #if defined BOOST_THREAD_PROVIDES_DATE_TIME || defined BOOST_THREAD_DONT_USE_CHRONO
+        bool timed_lock(system_time const & abs_time); 
+        template<typename TimeDuration>
+        bool timed_lock(TimeDuration const & relative_time);
+    #endif
+
+    };
+
+__recursive_timed_mutex__ implements the __timed_lockable_concept__ to provide an exclusive-ownership recursive mutex. At most one
+thread can own the lock on a given instance of __recursive_timed_mutex__ at any time. Multiple concurrent calls to __lock_ref__,
+__try_lock_ref__, __timed_lock_ref__, __timed_lock_duration_ref__ and __unlock_ref__ shall be permitted. A thread that already has
+exclusive ownership of a given __recursive_timed_mutex__ instance can call __lock_ref__, __timed_lock_ref__,
+__timed_lock_duration_ref__ or __try_lock_ref__ to acquire an additional level of ownership of the mutex. __unlock_ref__ must be
+called once for each level of ownership acquired by a single thread before ownership can be acquired by another thread.
+
+[section:nativehandle Member function `native_handle()`]
+
+    typedef platform-specific-type native_handle_type;
+    native_handle_type native_handle();
+
+[variablelist
+
+[[Effects:] [Returns an instance of `native_handle_type` that can be used with platform-specific APIs to manipulate the underlying
+implementation. If no such instance exists, `native_handle()` and `native_handle_type` are not present.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[endsect]
+
+[include shared_mutex_ref.qbk]
+
+[endsect]
+
+
+

@@ -1,0 +1,192 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/return_opaque_pointer.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header
+          &lt;boost/python/return_opaque_pointer.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#return_opaque_pointer-spec">Class
+          <code>return_opaque_pointer</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#return_opaque_pointer-spec-synopsis">Class
+              <code>return_opaque_pointer</code> synopsis</a></dt>
+
+              <dt><a href="#return_opaque_pointer-spec-metafunctions">Class
+              <code>return_opaque_pointer</code> metafunctions</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+
+      <dt><a href="#see-also">See Also</a></dt>
+    </dl>
+    <hr>
+
+        <h2><a name="classes"></a>Classes</h2>
+
+        <h3><a name="return_opaque_pointer-spec"></a>Class
+          <code>return_opaque_pointer</code></h3>
+
+        <p><code>return_opaque_pointer</code> is a model of
+          <a href="ResultConverter.html#ResultConverterGenerator-concept">
+            ResultConverterGenerator</a>
+          which can be used to wrap C++ functions returning pointers to
+          undefined types such that the return value is copied into a
+          new Python object.</p>
+        <p>In addition to specifying the <code>return_opaque_pointer</code>
+          policy the <a href="opaque.html#BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID-spec">
+          <code>BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID</code></a> macro must be
+          used to define specializations for the 
+          <a href="type_id.html#type_id-spec">type_id</a> function
+          on the type pointed to by returned pointer.</p>
+
+    <h4><a name="return_opaque_pointer-spec-synopsis"></a>Class
+    <code>return_opaque_pointer</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+    struct return_opaque_pointer
+    {
+        template &lt;class R&gt; struct apply;
+    };
+}}
+</pre>
+
+    <h4><a name="return_opaque_pointer-spec-metafunctions"></a>Class
+    <code>return_opaque_pointer</code> metafunctions</h4>
+<pre>
+template &lt;class R&gt; struct apply
+</pre>
+
+    <dl class="metafunction-semantics">
+      <dt><b>Returns:</b> <code>typedef
+                detail::opaque_conversion_holder&lt;R&gt;
+      type;</code></dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+
+    <h3>C++ Module Definition</h3>
+<pre>
+# include &lt;boost/python/return_opaque_pointer.hpp&gt;
+# include &lt;boost/python/def.hpp&gt;
+# include &lt;boost/python/module.hpp&gt;
+# include &lt;boost/python/return_value_policy.hpp&gt;
+
+typedef struct opaque_ *opaque;
+
+opaque the_op   = ((opaque) 0x47110815);
+
+opaque get () { return the_op; }
+void use (opaque op) {
+    if (op != the_op)
+	throw std::runtime_error (std::string ("failed"));
+}
+
+void failuse (opaque op) {
+    if (op == the_op)
+	throw std::runtime_error (std::string ("success"));
+}
+
+BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID(opaque_)
+
+namespace bpl = boost::python;
+
+BOOST_PYTHON_MODULE(opaque_ext)
+{
+    bpl::def (
+        "get", &::get, bpl::return_value_policy&lt;bpl::return_opaque_pointer&gt;());
+    bpl::def ("use", &::use);
+    bpl::def ("failuse", &::failuse);
+}
+</pre>
+
+    <h3>Python Code</h3>
+<pre>
+"""
+>>> from opaque_ext import *
+>>> #
+>>> # Check for correct conversion
+>>> use(get())
+>>> failuse(get())
+Traceback (most recent call last):
+        ...
+RuntimeError: success
+>>> #
+>>> # Check that there is no conversion from integers ...
+>>> use(0)
+Traceback (most recent call last):
+        ...
+TypeError: bad argument type for built-in operation
+>>> #
+>>> # ... and from strings to opaque objects
+>>> use("")
+Traceback (most recent call last):
+        ...
+TypeError: bad argument type for built-in operation
+"""
+def run(args = None):
+    import sys
+    import doctest
+
+    if args is not None:
+        sys.argv = args
+    return doctest.testmod(sys.modules.get(__name__))
+    
+if __name__ == '__main__':
+    print "running..."
+    import sys
+    sys.exit(run()[0])
+</pre>
+
+    <h2><a name="see-also"></a>See Also</h2>
+        <p>
+          <a href="opaque.html">
+            opaque</a>
+        </p>
+
+    <p>Revised 
+  28 January, 2003
+    </p>
+
+    <p><i>&copy; Copyright 2003 Haufe Mediengruppe. All Rights
+    Reserved.</i></p>
+  </body>
+</html>
+

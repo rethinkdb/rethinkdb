@@ -1,0 +1,126 @@
+<HTML>
+<!--
+     Copyright (c) The Trustees of Indiana University
+    
+     Use, modification and distribution is subject to the Boost Software
+     License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+      Authors: Douglas Gregor
+               Andrew Lumsdaine
+  -->
+<Head>
+  <Title>Boost Graph Library: Small World Generator</Title>
+<script language="JavaScript" type="text/JavaScript">
+<!--
+function address(host, user) {
+        var atchar = '@';
+        var thingy = user+atchar+host;
+        thingy = '<a hre' + 'f=' + "mai" + "lto:" + thingy + '>' + user+atchar+host + '</a>';
+        document.write(thingy);
+}
+//-->
+</script>
+</head>
+
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<tt>small_world_iterator</tt>
+
+<br>
+
+<PRE>
+template&lt;typename RandomGenerator, typename Graph&gt;
+class small_world_iterator
+{
+public:
+  typedef std::input_iterator_tag iterator_category;
+  typedef std::pair&lt;vertices_size_type, vertices_size_type&gt; value_type;
+  typedef const value_type&amp; reference;
+  typedef const value_type* pointer;
+  typedef void difference_type;
+
+  small_world_iterator();
+  small_world_iterator(RandomGenerator&amp; gen, vertices_size_type n,
+                       vertices_size_type k, double probability = 0.,
+                       bool allow_self_loops = false);
+  // Iterator operations
+  reference operator*() const;
+  pointer operator-&gt;() const;
+  small_world_iterator&amp; operator++();
+  small_world_iterator operator++(int);
+  bool operator==(const small_world_iterator&amp; other) const;
+  bool operator!=(const small_world_iterator&amp; other) const;
+}; 
+</PRE>
+
+<p> This class template implements a generator for small-world graphs,
+suitable for initializing an <a
+href="adjacency_list.html"><tt>adjacency_list</tt></a> or other graph
+structure with iterator-based initialization. A small-world graph
+consists of a ring graph (where each vertex is connected to its
+<em>k</em> nearest neighbors). Edges in the graph are randomly
+rewired to different vertices with a probability
+<em>p</em>. Small-world graphs exhibit a high clustering coefficient
+(because vertices are always connected to their closest neighbors),
+but rewiring ensures a small diameter.</p>
+
+<h3>Where Defined</h3>
+
+<a href="../../../boost/graph/small_world_generator.hpp"><tt>boost/graph/small_world_generator.hpp</tt></a>
+
+<h3>Constructors</h3>
+
+<a name="default-constructor"/>
+<pre>small_world_iterator();</pre>
+<blockquote>
+Constructs a past-the-end iterator.
+</blockquote>
+
+<pre>
+small_world_iterator(RandomGenerator&amp; gen, vertices_size_type n,
+                     vertices_size_type k, double probability = 0.,
+                     bool allow_self_loops = false);
+</pre>
+<blockquote>
+Constructs a small-world generator iterator that creates a
+graph with <tt>n</tt> vertices, each connected to its <tt>k</tt>
+nearest neighbors. Probabilities are drawn from the
+random number generator <tt>gen</tt>. Self-loops are permitted only
+when <tt>allow_self_loops</tt> is <tt>true</tt>.
+</blockquote>
+
+<H3>Example</H3>
+
+<pre>
+#include &lt;boost/graph/adjacency_list.hpp&gt;
+#include &lt;boost/graph/small_world_generator.hpp&gt;
+#include &lt;boost/random/linear_congruential.hpp&gt;
+
+typedef boost::adjacency_list&lt;&gt; Graph;
+typedef boost::small_world_iterator&lt;boost::minstd_rand, Graph&gt; SWGen;
+
+int main()
+{
+  boost::minstd_rand gen;
+  // Create graph with 100 nodes 
+  Graph g(SWGen(gen, 100, 6, 0.03), SWGen(), 100);
+  return 0;
+}
+</pre>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2005</TD><TD>
+<A HREF="http://www.boost.org/people/doug_gregor.html">Doug Gregor</A>, Indiana University (<script language="Javascript">address("cs.indiana.edu", "dgregor")</script>)<br>
+  <A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<script language="Javascript">address("osl.iu.edu", "lums")</script>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

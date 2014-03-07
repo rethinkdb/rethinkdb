@@ -1,0 +1,589 @@
+[/
+              Copyright Andrey Semashev 2007 - 2013.
+     Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+              http://www.boost.org/LICENSE_1_0.txt)
+
+    This document is a part of Boost.Log library documentation.
+/]
+
+[section:attributes Attributes]
+
+    #include <``[boost_log_attributes_attribute_hpp]``>
+    #include <``[boost_log_attributes_attribute_cast_hpp]``>
+    #include <``[boost_log_attributes_attribute_value_hpp]``>
+
+All attributes in the library are implemented using the [@http://c2.com/cgi/wiki?PimplIdiom pimpl idiom], or more specifically - shared pimpl idiom. Every attribute provides an interface class which derives from the [class_log_attribute] class and an implementation class that derives from [class_log_attribute_impl]. The interface class only holds a reference counted pointer to the actual implementation of the attribute; this pointer is a member of the [class_log_attribute] class, so derived interface classes don't have any data members. When the interface class is default constructed, it creates the corresponding implementation object and initializes the [class_log_attribute] base class with a pointer to the implementation. Therefore the pimpl nature of attributes is transparent for users in a typical workflow.
+
+The shared pimpl design comes significant in a few cases though. One such case is copying the attribute. The copy operation is shallow, so multiple interface objects may refer to a single implementation object. There is no way to deep copy an attribute. Another case is default construction of [class_log_attribute] which creates an empty object that does not refer to an implementation. Attributes in such empty state should not be passed to the library but can be useful in some cases, e.g. when a delayed variable initialization is needed.
+
+It is possible to upcast the attribute interface from [class_log_attribute] to the actual interface class. To do this one has to apply [funcref boost::log::attribute_cast `attribute_cast`]:
+
+    logging::attribute attr = ...;
+    attrs::constant< int > const_attr = logging::attribute_cast< attrs::constant< int > >(attr);
+
+In this example, the cast will succeed (i.e. the `const_attr` will be non-empty) if the attribute `attr` was originally created as `attrs::constant< int >`. Since all data is stored in the implementation object, no data is lost in the casting process.
+
+The main purpose of attributes is to generate attribute values. Values are semantically distinct from the attributes. Such separation allows implementing attributes that can return different values at different time points (like clock-related attributes, for example) and, on the other hand, allows using different values of the same attribute independently. The [class_log_attribute] interface has a method named `get_value` that returns the actual attribute value. Attribute values are also implemented using the shared pimpl approach, the interface class is [class_log_attribute_value] and implementation classes derive from [class_log_attribute_value_impl].
+
+The attribute value object is mostly intended to store the actual attribute value and implement type dispatching in order to be able to extract the stored value. One should not confuse the attribute value object type and the stored value type. The former is in most cases not needed by users and provides type erasure, but the latter is needed to be able to extract the value. For brevity we call the stored attribute value type simply the attribute value type in this documentation.
+
+[section:constant Constants]
+
+    #include <``[boost_log_attributes_constant_hpp]``>
+
+The most simple and frequently used attribute type is a constant value of some type. This kind of attribute is implemented with the [class_attributes_constant] class template. The template is parametrized with the attribute value type. The constant value should be passed to the attribute constructor. Here is an example:
+
+    void foo()
+    {
+        src::logger lg;
+
+        // Register a constant attribute that always yields value -5
+        lg.add_attribute("MyInteger", attrs::constant< int >(-5));
+
+        // Register another constant attribute. Make it a string this time.
+        lg.add_attribute("MyString", attrs::constant< std::string >("Hello world!"));
+
+        // There is also a convenience generator function. "MyInteger2" is constant< int > here.
+        lg.add_attribute("MyInteger2", attrs::make_constant(10));
+    }
+
+That's it, there's nothing much you can do with a constant attribute. Constants are very useful when one wants to highlight some log records or just pass some data to a sink backend (e.g. pass statistical parameters to the collector).
+
+[endsect]
+
+[section:mutable_constant Mutable constants]
+
+    #include <``[boost_log_attributes_mutable_constant_hpp]``>
+
+This kind of attribute is an extension for the [link log.detailed.attributes.constant constant attribute]. In addition to being able to store some value, the [class_attributes_mutable_constant] class template has two distinctions:
+
+* it allows modification of the stored value without re-registering the attribute
+* it allows synchronization of the stores and reads of the stored value
+
+In order to change the stored value of the attribute, one must call the `set` method:
+
+    void foo()
+    {
+        src::logger lg;
+
+        // Register a mutable constant attribute that always yields value -5
+        attrs::mutable_constant< int > attr(-5);
+        lg.add_attribute("MyInteger", attr);
+        BOOST_LOG(lg) << "This record has MyInteger == -5";
+
+        // Change the attribute value
+        attr.set(100);
+        BOOST_LOG(lg) << "This record has MyInteger == 100";
+    }
+
+In multithreaded applications the `set` method calls must be serialized with the `get_value` calls (which, generally speaking, happen on every log record being made). By default [class_attributes_mutable_constant] does not serialize calls in any way, assuming that the user will do so externally. However, the [class_attributes_mutable_constant] template provides three additional template arguments: synchronization primitive type, scoped exclusive lock type and scoped shareable lock type. If a synchronization primitive type is specified, the scoped exclusive lock type is a mandatory parameter. If the scoped shareable lock type is not specified, the attribute will fall back to the exclusive lock instead of shared locks. For example:
+
+    // This mutable constant will always lock exclusively
+    // either for reading or storing the value
+    typedef attrs::mutable_constant<
+        int,                                        // attribute value type
+        boost::mutex,                               // synchronization primitive
+        boost::lock_guard< boost::mutex >           // exclusive lock type
+    > exclusive_mc;
+    exclusive_mc my_int1(10);
+
+    // This mutable constant will use shared clocking for reading the value
+    // and exclusive locking for storing
+    typedef attrs::mutable_constant<
+        int,                                        // attribute value type
+        boost::shared_mutex,                        // synchronization primitive
+        boost::unique_lock< boost::shared_mutex >,  // exclusive lock type
+        boost::shared_lock< boost::shared_mutex >   // shared lock type
+    > shared_mc;
+    shared_mc my_int2(20);
+
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(my_logger, src::logger_mt)
+    {
+        src::logger_mt lg;
+        lg.add_attribute("MyInteger1", my_int1);
+        lg.add_attribute("MyInteger2", my_int2);
+
+        return lg;
+    }
+
+    void foo()
+    {
+        src::logger_mt& lg = get_my_logger();
+
+        // This is safe, even if executed in multiple threads
+        my_int1.set(200);
+        BOOST_LOG(lg) << "This record has MyInteger1 == 200";
+
+        my_int2.set(300);
+        BOOST_LOG(lg) << "This record has MyInteger2 == 300";
+    }
+
+Mutable constants are often used as auxiliary attributes inside loggers to store attributes that may change on some events. As opposed to regular constants, which would require re-registering in case of value modification, mutable constants allow modifying the value in-place.
+
+[endsect]
+
+[section:counter Counters]
+
+    #include <``[boost_log_attributes_counter_hpp]``>
+
+Counters are one of the simplest attributes that generate a new value each time requested. Counters are often used to identify log records or to count some events, e.g. accepted network connections. The class template [class_attributes_counter] provides such functionality. This template is parametrized with the counter value type, which should support arithmetic operations, such as `operator +` and `operator -`. The counter attribute allows specification of the initial value and step (which can be negative) on construction.
+
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT(my_logger, src::logger_mt)
+    {
+        src::logger_mt lg;
+
+        // This counter will count lines, starting from 0
+        lg.add_attribute("LineCounter", attrs::counter< unsigned int >());
+
+        // This counter will count backwards, starting from 100 with step -5
+        lg.add_attribute("CountDown", attrs::counter< int >(100, -5));
+
+        return lg;
+    }
+
+    void foo()
+    {
+        src::logger_mt& lg = get_my_logger();
+        BOOST_LOG(lg) << "This record has LineCounter == 0, CountDown == 100";
+        BOOST_LOG(lg) << "This record has LineCounter == 1, CountDown == 95";
+        BOOST_LOG(lg) << "This record has LineCounter == 2, CountDown == 90";
+    }
+
+[note Don't expect that the log records with the [class_attributes_counter] attribute will always have ascending or descending counter values in the resulting log. In multithreaded applications counter values acquired by different threads may come to a sink in any order. See [link log.rationale.why_weak_record_ordering Rationale] for a more detailed explanation on why it can happen. For this reason it is more accurate to say that the [class_attributes_counter] attribute generates an identifier in an ascending or descending order rather than that it counts log records in either order.]
+
+[endsect]
+
+[section:clock Wall clock]
+
+    #include <``[boost_log_attributes_clock_hpp]``>
+
+One of the "must-have" features of any logging library is support for attaching a time stamp to every log record. The library provides two attributes for this purpose: `utc_clock` and `local_clock`. The former returns the current UTC time and the latter returns the current local time. In either case the returned time stamp is acquired with the maximum precision for the target platform. The attribute value is `boost::posix_time::ptime` (see __boost_date_time__). The usage is quite straightforward:
+
+    BOOST_LOG_DECLARE_GLOBAL_LOGGER(my_logger, src::logger_mt)
+
+    void foo()
+    {
+        logging::core::get()->add_global_attribute(
+            "TimeStamp",
+            attrs::local_clock());
+
+        // Now every log record ever made will have a time stamp attached
+        src::logger_mt& lg = get_my_logger();
+        BOOST_LOG(lg) << "This record has a time stamp";
+    }
+
+[endsect]
+
+[section:timer Stop watch (timer)]
+
+    #include <``[boost_log_attributes_timer_hpp]``>
+
+The [class_attributes_timer] attribute is very useful when there is a need to estimate the duration of some prolonged process. The attribute returns the time elapsed since the attribute construction. The attribute value type is `boost::posix_time::ptime::time_duration_type` (see __boost_date_time__).
+
+    // The class represents a single peer-to-peer connection
+    class network_connection
+    {
+        src::logger m_logger;
+
+    public:
+        network_connection()
+        {
+            m_logger.add_attribute("Duration", attrs::timer());
+            BOOST_LOG(m_logger) << "Connection established";
+        }
+        ~network_connection()
+        {
+            // This log record will show the whole life time duration of the connection
+            BOOST_LOG(m_logger) << "Connection closed";
+        }
+    };
+
+The attribute provides high resolution of the time estimation and can even be used as a simple in-place performance profiling tool.
+
+[tip The [class_attributes_timer] attribute can even be used to profile the code in different modules without recompiling them. The trick is to wrap an expensive call to a foreign module with the thread-specific [class_attributes_timer] [link log.detailed.attributes.related_components.scoped_attributes scoped attribute], which will markup all log records made from within the module with time readings.]
+
+[endsect]
+
+[section:named_scope Named scopes]
+
+    #include <``[boost_log_attributes_named_scope_hpp]``>
+
+    // Supporting headers
+    #include <``[boost_log_support_exception_hpp]``>
+
+The logging library supports maintaining scope stack tracking during the application's execution. This stack may either be written to log or be used for other needs (for example, to save the exact call sequence that led to an exception when throwing one). Each stack element contains the following information (see the [class_attributes_named_scope_entry] structure template definition):
+
+* Scope name. It can be defined by the user or generated by the compiler, but in any case it [_must be a constant string literal] (see [link log.rationale.why_str_lit Rationale]).
+* Source file name, where the scope begins. It is usually a result of the standard `__FILE__` macro expansion. Like the scope name, the file name [_must be a constant string literal].
+* Line number in the source file. Usually it is a result of the standard `__LINE__` macro expansion.
+
+The scope stack is implemented as a thread-specific global storage internally. There is the [class_attributes_named_scope] attribute that allows hooking this stack into the logging pipeline. This attribute generates value of the nested type `named_scope::scope_stack` which is the instance of the scope stack. The attribute can be registered in the following way:
+
+    logging::core::get()->add_global_attribute("Scope", attrs::named_scope());
+
+Note that it is perfectly valid to register the attribute globally because the scope stack is thread-local anyway. This will also implicitly add scope tracking to all threads of the application, which is often exactly what is needed.
+
+Now we can mark execution scopes with the macros `BOOST_LOG_FUNCTION` and `BOOST_LOG_NAMED_SCOPE` (the latter accepts the scope name as its argument). These macros automatically add source position information to each scope entry. An example follows:
+
+    void foo(int n)
+    {
+        // Mark the scope of the function foo
+        BOOST_LOG_FUNCTION();
+
+        switch (n)
+        {
+        case 0:
+            {
+                // Mark the current scope
+                BOOST_LOG_NAMED_SCOPE("case 0");
+                BOOST_LOG(lg) << "Some log record";
+                bar(); // call some function
+            }
+            break;
+
+        case 1:
+            {
+                // Mark the current scope
+                BOOST_LOG_NAMED_SCOPE("case 1");
+                BOOST_LOG(lg) << "Some log record";
+                bar(); // call some function
+            }
+            break;
+
+        default:
+            {
+                // Mark the current scope
+                BOOST_LOG_NAMED_SCOPE("default");
+                BOOST_LOG(lg) << "Some log record";
+                bar(); // call some function
+            }
+            break;
+        }
+    }
+
+After executing `foo` we will be able to see in the log that the `bar` function was called from `foo` and, more precisely, from the case statement that corresponds to the value of `n`. This may be very useful when tracking down subtle bugs that show up only when `bar` is called from a specific location (e.g. if `bar` is being passed invalid arguments in that particular location).
+
+Another good use case is attaching the scope stack information to an exception. With the help of __boost_exception__, this is possible:
+
+    void bar(int x)
+    {
+        BOOST_LOG_FUNCTION();
+
+        if (x < 0)
+        {
+            // Attach a copy of the current scope stack to the exception
+            throw boost::enable_error_info(std::range_error("x must not be negative"))
+                << logging::current_scope();
+        }
+    }
+
+    void foo()
+    {
+        BOOST_LOG_FUNCTION();
+
+        try
+        {
+            bar(-1);
+        }
+        catch (std::range_error& e)
+        {
+            // Acquire the scope stack from the exception object
+            BOOST_LOG(lg) << "bar call failed: " << e.what() << ", scopes stack:\n"
+                << *boost::get_error_info< logging::current_scope_info >(e);
+        }
+    }
+
+[note In order this code to compile, the __boost_exception__ support header has to be included.]
+
+[note We do not inject the [class_attributes_named_scope] attribute into the exception. Since scope stacks are maintained globally, throwing an exception will cause stack unwinding and, as a result, will truncate the global stack. Instead we create a copy of the scope stack by calling [funcref boost::log::current_scope `current_scope`] at the throw site. This copy will be kept intact even if the global stack instance changes during the stack unwinding.]
+
+[endsect]
+
+[section:process_id Current process identifier]
+
+    #include <``[boost_log_attributes_current_process_id_hpp]``>
+
+It is often useful to know the process identifier that produces the log, especially if the log can eventually combine the output of different processes. The [class_attributes_current_process_id] attribute is a constant that formats into the current process identifier. The value type of the attribute can be determined by the `current_process_id::value_type` typedef.
+
+    void foo()
+    {
+        logging::core::get()->add_global_attribute(
+            "ProcessID",
+            attrs::current_process_id());
+    }
+
+[endsect]
+
+[section:process_name Current process name]
+
+    #include <``[boost_log_attributes_current_process_name_hpp]``>
+
+The [class_attributes_current_process_name] produces `std::string` values with the executable name of the current process.
+
+[note This attribute is not universally portable, although Windows, Linux and OS X are supported. The attribute may work on other POSIX systems as well, but it was not tested. If the process name cannot be obtained the attribute will generate a string with the process id.]
+
+    void foo()
+    {
+        logging::core::get()->add_global_attribute(
+            "Process",
+            attrs::current_process_name());
+    }
+
+[endsect]
+
+[section:thread_id Current thread identifier]
+
+    #include <``[boost_log_attributes_current_thread_id_hpp]``>
+
+Multithreaded builds of the library also support the [class_attributes_current_thread_id] attribute with value type `current_thread_id::value_type`. The attribute will generate values specific to the calling thread. The usage is similar to the process id.
+
+    void foo()
+    {
+        logging::core::get()->add_global_attribute(
+            "ThreadID",
+            attrs::current_thread_id());
+    }
+
+[tip You may have noticed that the attribute is registered globally. This will not result in all threads having the same ThreadID in log records as the attribute will always return a thread-specific value. The additional benefit is that you don't have to do a thing in the thread initialization routines to have the thread-specific attribute value in log records.]
+
+[endsect]
+
+[section:function Function objects as attributes]
+
+    #include <``[boost_log_attributes_function_hpp]``>
+
+This attribute is a simple wrapper around a user-defined function object. Each attempt to acquire the attribute value results in the function object call. The result of the call is returned as the attribute value (this implies that the function must not return `void`). The function object attribute can be constructed with the `make_function` helper function, like this:
+
+    void foo()
+    {
+        logging::core::get()->add_global_attribute("MyRandomAttr", attrs::make_function(&std::rand));
+    }
+
+Auto-generated function objects, like the ones defined in __boost_bind__ or STL, are also supported.
+
+[note Some deficient compilers may not support `result_of` construct properly. This metafunction is used in the `make_function` function to automatically detect the return type of the function object. If `result_of` breaks or detects incorrect type, one can try to explicitly specify the return type of the function object as a template argument to the `make_function` function.]
+
+[endsect]
+
+[section:related_components Other attribute-related components]
+
+[section:attribute_name Attribute names]
+
+    #include <``[boost_log_attributes_attribute_name_hpp]``>
+
+Attribute names are represented with [class_log_attribute_name] objects which are used as keys in associative containers of attributes used by the library. The [class_log_attribute_name] object can be created from a string, so most of the time its use is transparent.
+
+The name is not stored as a string within the [class_log_attribute_name] object. Instead, a process-wide unique identifier is generated and associated with the particular name. This association is preserved until the process termination, so every time the [class_log_attribute_name] object is created for the same name it obtains the same identifier. The association is not stable across the different runs of the application though.
+
+[warning Since the association between string names and identifiers involves some state allocation, it is not advised to use externally provided or known to be changing strings for attribute names. Even if the name is not used in any log records, the association is preserved anyway. Continuously constructing [class_log_attribute_name] objects with unique string names may manifest itself as a memory leak.]
+
+Working with identifiers is much more efficient than with strings. For example, copying does not involve dynamic memory allocation and comparison operators are very lightweight. On the other hand, it is easy to get a human-readable attribute name for presentation, if needed.
+
+The [class_log_attribute_name] class supports an empty (uninitialized) state when default constructed. In this state the name object is not equal to any other initialized name object. Uninitialized attribute names should not be passed to the library but can be useful in some contexts (e.g. when a delayed initialization is desired).
+
+[endsect]
+
+[section:attribute_set Attribute set]
+
+    #include <``[boost_log_attributes_attribute_set_hpp]``>
+
+Attribute set is an unordered associative container that maps [link log.detailed.attributes.related_components.attribute_name attribute names] to [link log.detailed.attributes attributes]. It is used in [link log.detailed.sources loggers] and the [link log.detailed.core.core logging core] to store source-specific, thread-specific and global attributes. The interface is very similar to STL associative containers and is described in the [class_log_attribute_set] class reference.
+
+[endsect]
+
+[section:attribute_value_set Attribute value set]
+
+    #include <``[boost_log_attributes_attribute_value_set_hpp]``>
+
+Attribute value set is an unordered associative container that maps [link log.detailed.attributes.related_components.attribute_name attribute names] to [link log.detailed.attributes attribute values]. This container is used in log [link log.detailed.core.record records] to represent attribute values. Unlike conventional containers, [class_log_attribute_value_set] does not support removing or modifying elements after being inserted. This warrants that the attribute values that participated filtering will not disappear from the log record in the middle of the processing.
+
+Additionally, the set can be constructed from three [link log.detailed.attributes.related_components.attribute_set attribute sets], which are interpreted as the sets of source-specific, thread-specific and global attributes. The constructor adopts attribute values from the three attribute sets into a single set of attribute values. After construction, [class_log_attribute_value_set] is considered to be in an unfrozen state. This means that the container may keep references to the elements of the attribute sets used as the source for the value set construction. While in this state, neither the attribute sets nor the value set must not be modified in any way as this may make the value set corrupted. The value set can be used for reading in this state, its lookup operations will perform as usual. The value set can be frozen by calling the `freeze` method; the set will no longer be attached to the original attribute sets and will be available for further insertions after this call. The library will ensure that the value set is always frozen when a log record is returned from the logging core; the set is [_not] frozen during filtering though.
+
+[tip In the unfrozen state the value set may not have all attribute values acquired from the attributes. It will only acquire the values as requested by filters. After freezing the container has all attribute values. This transition allows to optimize the library so that attribute values are only acquired when needed.]
+
+For further details on the container interface please consult the [class_log_attribute_value_set] reference.
+
+[endsect]
+
+[section:value_processing Attribute value extraction and visitation]
+
+Since attribute values do not expose the stored value in the interface, an API is needed to acquire the stored value. The library provides two APIs for this purpose: value visitation and extraction.
+
+[section:visitation Value visitation]
+
+    #include <``[boost_log_attributes_value_visitation_fwd_hpp]``>
+    #include <``[boost_log_attributes_value_visitation_hpp]``>
+
+Attribute value visitation implements the visitor design pattern, hence the naming. The user has to provide a unary function object (a visitor) which will be invoked on the stored attribute value. The caller also has to provide the expected type or set of possible types of the stored value. Obviously, the visitor must be capable of receiving an argument of the expected type. Visitation will only succeed if the stored type matches the expectation.
+
+In order to apply the visitor, one should call the [funcref boost::log::visit `visit`] function on the attribute value. Let's see an example:
+
+[example_attr_value_visitation]
+
+[@boost:/libs/log/example/doc/attr_value_visitation.cpp See the complete code].
+
+In this example we print the stored attribute value in our `print_visitor`. We expect the attribute value to have either `int` or `std::string` stored type; only in this case the visitor will be invoked and the visitation result will be positive. In case of failure the [class_log_visitation_result] class provides additional information on the failure reason. The class has the method named `code` which returns visitation error code. The following error codes are possible:
+
+* `ok` - visitation succeeded, the visitor has been invoked; visitation result is positive when this code is used
+* `value_not_found` - visitation failed because the requested value was not found; this code is used when visitation is applied to a log record or a set of attribute values rather than a single value
+* `value_has_invalid_type` - visitation failed because the value has type differing from any of the expected types
+
+By default the visitor function result is ignored but it is possible to obtain it. To do this one should use a special [funcref boost::log::save_result `save_result`] wrapper for the visitor; the wrapper will save the visitor resulting value into an external variable captured by reference. The visitor result is initialized when the returned [class_log_visitation_result] is positive. See the following example where we compute the hash value on the stored value.
+
+[example_attr_value_visitation_with_retval]
+
+[@boost:/libs/log/example/doc/attr_value_visitation.cpp See the complete code].
+
+[tip When there is no default state for the visitor result it is convenient to use __boost_optional__ to wrap the returned value. The `optional` will be initialized with the visitor result if visitation succeeded. In case if visitor is polymorphic (i.e. it has different result types depending on its argument type) __boost_variant__ can be used to receive the resulting value. It is also worthwhile to use an empty type, such as `boost::blank`, to indicate the uninitialized state of the `variant`.]
+
+As it has been mentioned, visitation can also be applied to log records and attribute value sets. The syntax is the same, except that the attribute name also has to be specified. The [funcref boost::log::visit `visit`] algorithm will try to find the attribute value by name and then apply the visitor to the found element.
+
+[example_attr_value_visitation_with_retval_rec]
+
+Also, for convenience [class_log_attribute_value] has the method named `visit` with the same meaning as the free function applied to the attribute value.
+
+[endsect]
+
+[section:extraction Value extraction]
+
+    #include <``[boost_log_attributes_value_extraction_fwd_hpp]``>
+    #include <``[boost_log_attributes_value_extraction_hpp]``>
+
+Attribute value extraction API allows to acquire a reference to the stored value. It does not require a visitor function object, but the user still has to provide the expected type or a set of types the stored value may have.
+
+[example_attr_value_extraction]
+
+[@boost:/libs/log/example/doc/attr_value_extraction.cpp See the complete code].
+
+In this example we expect the attribute value to have the stored type `int`. The [funcref boost::log::extract `extract`] function attempts to extract a reference to the stored value and returns the filled [link log.detailed.utilities.value_ref `value_ref`] object if succeeded.
+
+Value extraction can also be used with a set of expected stored types. The following code snippet demonstrates this:
+
+[example_attr_value_extraction_multiple_types]
+
+Notice that we used `which` method of the returned reference to dispatch between possible types. The method returns the index of the type in the `types` sequence. Also note that the `get` method now accepts an explicit template parameter to select the reference type to acquire; naturally, this type must correspond to the actual referred type, which is warranted by the switch/case statement in our case.
+
+Value visitation is also supported by the [link log.detailed.utilities.value_ref `value_ref`] object. Here is how we compute a hash value from the extracted value:
+
+[example_attr_value_extraction_visitor]
+
+Lastly, like with value visitation, value extraction can also be applied to log records and attribute value sets.
+
+[example_attr_value_extraction_visitor_rec]
+
+In addition the library provides two special variants of the [funcref boost::log::extract `extract`] function: [funcref boost::log::extract_or_throw `extract_or_throw`] and [funcref boost::log::extract_or_default `extract_or_default`]. As the naming implies, the functions provide different behavior in case if the attribute value cannot be extracted. The former one throws an exception if the value cannot be extracted and the latter one returns the default value.
+
+[warning Care must be taken with the [funcref boost::log::extract_or_default `extract_or_default`] function. The function accepts the default value is accepted by constant reference, and this reference can eventually be returned from [funcref boost::log::extract_or_default `extract_or_default`]. If a temporary object as used for the default value, user must ensure that the result of [funcref boost::log::extract_or_default `extract_or_default`] is saved by value and not by reference. Otherwise the saved reference may become dangling when the temporary is destroyed.]
+
+Similarly to `visit`, the [class_log_attribute_value] class has methods named `extract`, `extract_or_throw` and `extract_or_default` with the same meaning as the corresponding free functions applied to the attribute value.
+
+[endsect]
+
+[endsect]
+
+[section:scoped_attributes Scoped attributes]
+
+    #include <``[boost_log_attributes_scoped_attribute_hpp]``>
+
+Scoped attributes are a powerful mechanism of tagging log records that can be used for different purposes. As the naming implies, scoped attributes are registered in the beginning of a scope and unregistered on the end of the scope. The mechanism includes the following macros:
+
+    ``[macroref BOOST_LOG_SCOPED_LOGGER_ATTR]``(logger, attr_name, attr);
+    ``[macroref BOOST_LOG_SCOPED_THREAD_ATTR]``(attr_name, attr);
+
+The first macro registers a source-specific attribute in the `logger` logger object. The attribute name and the attribute itself are given in the `attr_name` and `attr` arguments. The second macro does exactly the same but the attribute is registered for the current thread in the logging core (which does not require a logger).
+
+[note If an attribute with the same name is already registered in the logger/logging core, the macros won't override the existing attribute and will eventually have no effect. See [link log.rationale.why_weak_scoped_attributes Rationale] for a more detailed explanation of the reasons for such behavior.]
+
+Usage example follows:
+
+    BOOST_LOG_DECLARE_GLOBAL_LOGGER(my_logger, src::logger_mt)
+
+    void foo()
+    {
+        // This log record will also be marked with the "Tag" attribute,
+        // whenever it is called from the A::bar function.
+        // It will not be marked when called from other places.
+        BOOST_LOG(get_my_logger()) << "A log message from foo";
+    }
+
+    struct A
+    {
+        src::logger m_Logger;
+
+        void bar()
+        {
+            // Set a thread-wide markup tag.
+            // Note the additional parentheses to form a Boost.PP sequence.
+            BOOST_LOG_SCOPED_THREAD_ATTR("Tag",
+                attrs::constant< std::string >("Called from A::bar"));
+
+            // This log record will be marked
+            BOOST_LOG(m_Logger) << "A log message from A::bar";
+
+            foo();
+        }
+    };
+
+    int main(int, char*[])
+    {
+        src::logger lg;
+
+        // Let's measure our application run time
+        BOOST_LOG_SCOPED_LOGGER_ATTR(lg, "RunTime", attrs::timer());
+
+        // Mark application start.
+        // The "RunTime" attribute should be nearly 0 at this point.
+        BOOST_LOG(lg) << "Application started";
+
+        // Note that no other log records are affected by the "RunTime" attribute.
+        foo();
+
+        A a;
+        a.bar();
+
+        // Mark application ending.
+        // The "RunTime" attribute will show the execution time elapsed.
+        BOOST_LOG(lg) << "Application ended";
+
+        return 0;
+    }
+
+It is quite often convenient to mark a group of log records with a constant value in order to be able to filter the records later. The library provides two convenience macros just for this purpose:
+
+    ``[macroref BOOST_LOG_SCOPED_LOGGER_TAG]``(logger, tag_name, tag_value);
+    ``[macroref BOOST_LOG_SCOPED_THREAD_TAG]``(tag_name, tag_value);
+
+The macros are effectively wrappers around [macroref BOOST_LOG_SCOPED_LOGGER_ATTR] and [macroref BOOST_LOG_SCOPED_THREAD_ATTR], respectively. For example, the "Tag" scoped attribute from the example above can be registered like this:
+
+    BOOST_LOG_SCOPED_THREAD_TAG("Tag", "Called from A::bar");
+
+[warning When using scoped attributes, make sure that the scoped attribute is not altered in the attribute set in which it was registered. For example, one should not clear or reinstall the attribute set of the logger if there are logger-specific scoped attributes registered in it. Otherwise the program will likely crash. This issue is especially critical in multithreaded application, when one thread may not know whether there are scoped attributes in the logger or there are not. Future releases may solve this limitation but currently the scoped attribute must remain intact until unregistered on leaving the scope.]
+
+Although the described macros are intended to be the primary interface for the functionality, there is also a C++ interface available. It may be useful if the user decides to develop his own macros that cannot be based on the existing ones.
+
+Any scoped attribute is attached to a generic sentry object of type `scoped_attribute`. As long as the sentry exists, the attribute is registered. There are several functions that create sentries for source or thread-specific attributes:
+
+    // Source-specific scoped attribute registration
+    template< typename LoggerT >
+    [unspecified] add_scoped_logger_attribute(
+        LoggerT& l,
+        attribute_name const& name,
+        attribute const& attr);
+
+    // Thread-specific scoped attribute registration
+    template< typename CharT >
+    [unspecified] add_scoped_thread_attribute(
+        attribute_name const& name,
+        attribute const& attr);
+
+An object of the `scoped_attribute` type is able to attach results of each of these functions on its construction. For example, `BOOST_LOG_SCOPED_LOGGER_ATTR(lg, "RunTime", attrs::timer())` can roughly be expanded to this:
+
+    attrs::scoped_attribute sentry =
+        attrs::add_scoped_logger_attribute(lg, "RunTime", attrs::timer());
+
+[endsect]
+
+[endsect]
+
+[endsect]

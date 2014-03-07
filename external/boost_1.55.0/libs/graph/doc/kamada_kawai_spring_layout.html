@@ -1,0 +1,323 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<!--
+     Copyright (c) 2004, 2010 Trustees of Indiana University
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<head>
+<meta name="generator" content=
+"HTML Tidy for Mac OS X (vers 12 April 2005), see www.w3.org">
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii">
+<title>Function kamada_kawai_spring_layout</title>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084"
+alink="#0000FF">
+<table cellpadding="2" width="100%">
+<tr>
+<td valign="top"><img src="../../../boost.png" alt=
+"boost.png (6897 bytes)" width="277" height="86"></td>
+<td align="center"><a href="../../../index.htm">Home</a></td>
+<td align="center"><a href="../../libraries.htm">Libraries</a></td>
+<td align="center"><a href=
+"http://www.boost.org/people/people.htm">People</a></td>
+<td align="center"><a href="http://www.boost.org/more/faq.htm">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr>
+</table>
+<hr>
+<div class="refentry" lang="en"><a name="id103831-bb" id=
+"id103831-bb"></a>
+<div class="titlepage"></div>
+<div class="refnamediv">
+<h2><img src="figs/python.gif" alt="(Python)"><span class=
+"refentrytitle">Function kamada_kawai_spring_layout</span></h2>
+<p>boost::kamada_kawai_spring_layout &mdash; Kamada-Kawai spring
+layout for connected, undirected graphs.</p>
+</div>
+<h2 xmlns:rev=
+"http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class=
+"refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev=
+"http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class=
+"refsynopsisdiv">
+<pre class="synopsis">
+<span class="bold"><b>template</b></span>&lt;<span class=
+"bold"><b>typename</b></span> Topology, <span class=
+"bold"><b>typename</b></span> Graph, <span class=
+"bold"><b>typename</b></span> PositionMap, <span class=
+"bold"><b>typename</b></span> WeightMap, <span class=
+"bold"><b>typename</b></span> T, 
+         <span class=
+"bold"><b>bool</b></span> EdgeOrSideLength, <span class=
+"bold"><b>typename</b></span> Done, <span class=
+"bold"><b>typename</b></span> VertexIndexMap, 
+         <span class=
+"bold"><b>typename</b></span> DistanceMatrix, <span class=
+"bold"><b>typename</b></span> SpringStrengthMatrix, 
+         <span class=
+"bold"><b>typename</b></span> PartialDerivativeMap&gt; 
+  <span class="type"><span class=
+"bold"><b>bool</b></span></span> kamada_kawai_spring_layout(<span class="bold"><b>const</b></span> Graph &amp; g, PositionMap position, 
+                                  WeightMap weight, 
+                                  <b>const</b> Topology&amp; space,
+                                  <span class=
+"emphasis"><em>unspecified</em></span> edge_or_side_length, Done done, 
+                                  <span class=
+"bold"><b>typename</b></span> property_traits&lt; WeightMap &gt;::value_type spring_constant, 
+                                  VertexIndexMap index, 
+                                  DistanceMatrix distance, 
+                                  SpringStrengthMatrix spring_strength, 
+                                  PartialDerivativeMap partial_derivatives);
+<span class="bold"><b>template</b></span>&lt;<span class=
+"bold"><b>typename</b></span> Topology, <span class=
+"bold"><b>typename</b></span> Graph, <span class=
+"bold"><b>typename</b></span> PositionMap, <span class=
+"bold"><b>typename</b></span> WeightMap, <span class=
+"bold"><b>typename</b></span> T, 
+         <span class=
+"bold"><b>bool</b></span> EdgeOrSideLength, <span class=
+"bold"><b>typename</b></span> Done, <span class=
+"bold"><b>typename</b></span> VertexIndexMap&gt; 
+  <span class="type"><span class=
+"bold"><b>bool</b></span></span> kamada_kawai_spring_layout(<span class="bold"><b>const</b></span> Graph &amp; g, PositionMap position, 
+                                  WeightMap weight, 
+                                  <b>const</b> Topology&amp; space,
+                                  <span class=
+"emphasis"><em>unspecified</em></span> edge_or_side_length, Done done, 
+                                  <span class=
+"bold"><b>typename</b></span> property_traits&lt; WeightMap &gt;::value_type spring_constant, 
+                                  VertexIndexMap index);
+<span class="bold"><b>template</b></span>&lt;<span class=
+"bold"><b>typename</b></span> Topology, <span class=
+"bold"><b>typename</b></span> Graph, <span class=
+"bold"><b>typename</b></span> PositionMap, <span class=
+"bold"><b>typename</b></span> WeightMap, <span class=
+"bold"><b>typename</b></span> T, 
+         <span class=
+"bold"><b>bool</b></span> EdgeOrSideLength, <span class=
+"bold"><b>typename</b></span> Done&gt; 
+  <span class="type"><span class=
+"bold"><b>bool</b></span></span> kamada_kawai_spring_layout(<span class="bold"><b>const</b></span> Graph &amp; g, PositionMap position, 
+                                  WeightMap weight, 
+                                  <b>const</b> Topology&amp; space,
+                                  <span class=
+"emphasis"><em>unspecified</em></span> edge_or_side_length, Done done, 
+                                  <span class=
+"bold"><b>typename</b></span> property_traits&lt; WeightMap &gt;::value_type spring_constant = typename property_traits&lt; WeightMap &gt;::value_type(1));
+<span class="bold"><b>template</b></span>&lt;<span class=
+"bold"><b>typename</b></span> Topology, <span class=
+"bold"><b>typename</b></span> Graph, <span class=
+"bold"><b>typename</b></span> PositionMap, <span class=
+"bold"><b>typename</b></span> WeightMap, <span class=
+"bold"><b>typename</b></span> T, 
+         <span class=
+"bold"><b>bool</b></span> EdgeOrSideLength&gt; 
+  <span class="type"><span class=
+"bold"><b>bool</b></span></span> kamada_kawai_spring_layout(<span class="bold"><b>const</b></span> Graph &amp; g, PositionMap position, 
+                                  WeightMap weight, 
+                                  <b>const</b> Topology&amp; space,
+                                  <span class=
+"emphasis"><em>unspecified</em></span> edge_or_side_length);
+</pre></div>
+<div class="refsect1" lang="en"><a name="id822881" id=
+"id822881"></a>
+<h2>Where Defined</h2>
+<a href=
+"../../../boost/graph/kamada_kawai_spring_layout.hpp">boost/graph/kamada_kawai_spring_layout.hpp</a>
+
+<h2>Description</h2>
+<p>This algorithm&nbsp;[<a href=
+"bibliography.html#kamada89">57</a>] performs graph layout (in two
+dimensions) for connected, undirected graphs. It operates by
+relating the layout of graphs to a dynamic spring system and
+minimizing the energy within that system. The strength of a spring
+between two vertices is inversely proportional to the square of the
+shortest distance (in graph terms) between those two vertices.
+Essentially, vertices that are closer in the graph-theoretic sense
+(i.e., by following edges) will have stronger springs and will
+therefore be placed closer together.</p>
+<p>Prior to invoking this algorithm, it is recommended that the
+vertices be placed along the vertices of a regular n-sided polygon
+via <a href="circle_layout.html"><tt>circle_layout</tt></a>.</p>
+<p><b xmlns:rev=
+"http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision"><span class="term">
+Returns</span></b>: <tt class="computeroutput">true</tt> if layout
+was successful or <tt class="computeroutput">false</tt> if a
+negative weight cycle was detected or the graph is
+disconnected.</p>
+
+<h2>Parameters</h2>
+IN: <tt>const Graph&amp; g</tt>
+<blockquote>
+  The graph, whose type <tt>Graph</tt> must model the 
+  <a href="VertexListGraph.html">VertexListGraph</a>, 
+  <a href="EdgeListGraph.html">EdgeListGraph</a>, and 
+  <a href="IncidenceGraph.html">IncidenceGraph</a> concepts. The
+  graph must be undirected and connected. <br>
+  <b>Python</b>: This parameter is named <tt>graph</tt> in Python.
+</blockquote>
+
+OUT: <tt>PositionMap position</tt>
+<blockquote>
+  This property map is used to store the position of each vertex.  The
+  type <tt>PositionMap</tt> must be a model of <a
+  href="../../property_map/doc/WritablePropertyMap.html">Writable Property
+  Map</a>, with the graph's vertex descriptor type as its key type and
+  <tt>Topology::point_type</tt> as its value type.<br>
+
+  <b>Python</b>: The position map must be a <tt>vertex_point2d_map</tt> for
+  the graph.<br>
+  <b>Python default</b>: <tt>graph.get_vertex_point2d_map("position")</tt>
+</blockquote>
+
+IN: <tt>weight_map(WeightMap w_map)</tt>   
+<blockquote>
+  The weight or ``length'' of each edge in the graph. The weights
+  must all be non-negative, and the algorithm will throw a
+  <a href="./exception.html#negative_edge"><tt>negative_edge</tt></a> 
+  exception is one of the edges is negative.
+  The type <tt>WeightMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The edge descriptor type of
+  the graph needs to be usable as the key type for the weight
+  map. The value type for this map must be
+  the same as the value type of the distance map.<br>
+  <b>Default:</b>  <tt>get(edge_weight, g)</tt><br>
+
+  <b>Python</b>: Must be an <tt>edge_double_map</tt> for the graph.<br>
+  <b>Python default</b>: <tt>graph.get_edge_double_map("weight")</tt>
+</blockquote>
+
+IN: <tt>const Topology&amp; space</tt>
+<blockquote>
+The topology used to lay out the vertices.  This parameter describes both the
+size and shape of the layout area, as well as its dimensionality; up to three
+dimensions are supported by the current implementation.  Topologies are
+described in more detail
+(with a list of BGL-provided topologies) <a href="topology.html">in separate
+documentation</a>.
+</blockquote>
+
+IN: <tt>EdgeOrSideLength edge_or_side_length</tt>
+<blockquote>
+Provides either the unit length <tt class= "computeroutput">e</tt> of
+an edge in the layout or the length of a side <tt
+class="computeroutput">s</tt> of the display area, and must be
+either <tt class= "computeroutput">boost::edge_length(e)</tt> or <tt
+class= "computeroutput">boost::side_length(s)</tt> , respectively.
+<b>Python</b>: In Python, this value always refers to the side length
+and may only be a <tt>double</tt>.
+</blockquote>
+
+IN: <tt>Done done</tt>
+<blockquote>
+A 4-argument function object that is passed the current
+value of delta_p (i.e., the energy of vertex <tt class=
+"computeroutput">p</tt> ), the vertex <tt class=
+"computeroutput">p</tt> , the graph <tt class=
+"computeroutput">g</tt> , and a boolean flag indicating whether
+<tt class="computeroutput">delta_p</tt> is the maximum energy in
+the system (when <tt class="computeroutput">true</tt> ) or the
+energy of the vertex being moved.
+<b>Default</b>: <a href=
+"layout_tolerance.html"><tt class=
+"computeroutput">layout_tolerance</tt></a> instantiated over the
+value type of the weight map.<br>
+<b>Python</b>: Any callable Python object with an appropriate signature suffices. 
+</blockquote>
+
+IN: <tt>typename property_traits&lt;WeightMap&gt;::value_type spring_constant</tt>
+<blockquote>
+The constant multiplied by each spring's strength.
+Larger values create systems with more energy that can take longer
+to stabilize; smaller values create systems with less energy that
+stabilize quickly but do not necessarily result in pleasing
+layouts.<br>
+<b>Default</b>: 1.
+</blockquote>
+
+IN: <tt>VertexIndexMap index</tt>
+<blockquote>
+As a mapping from vertices to index values between 0 and
+<tt class="computeroutput">num_vertices(g)</tt> .<br>
+<b>Default</b>:<tt class="computeroutput">get(vertex_index,g)</tt>.
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+   <br>
+<b>Python</b>: Unsupported parameter.
+</blockquote>
+
+UTIL/OUT: <tt>DistanceMap distance</tt>
+<blockquote>
+This parameter will be used to store the distance from every vertex to
+every other vertex, which is computed in the first stages of the
+algorithm. This value's type must be a model of <a
+href="BasicMatrix.html"><tt>BasicMatrix</tt></a> with value type equal to
+the value type of the weight map.<br>
+<b>Default</b>: A vector of vectors.<br>
+<b>Python</b>: Unsupported parameter.
+</blockquote>
+
+UTIL/OUT: <tt>SpringStrengthMatrix spring_strength</tt>
+<blockquote>
+
+This matrix will be used to store the strength of the spring between
+every pair of vertices. This value's type must be a model of <a
+href="BasicMatrix.html">BasicMatrix</a> with value type equal to the
+value type of the weight map.<br>
+<b>Default</b>: A vector of vectors of the value type of the weight map.<br>
+<b>Python</b>: Unsupported parameter.
+</blockquote>
+
+UTIL: <tt>PartialDerivativeMap partial_derivatives</tt>
+<blockquote>
+A property map that will be used to store the partial derivatives of
+each vertex with respect to the vertex's current coordinates.
+coordinates. This must be a
+<a href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+Property Map</a> whose value type is <tt>Topology::point_difference_type</tt>.
+The default is an iterator property map built using the graph's vertex index
+map.<br>
+<b>Default</b>: An <tt>iterator_property_map</tt> created from
+an <tt>std::vector</tt> of <tt>Topology::point_difference_type</tt>.<br>
+<b>Python</b>: Unsupported parameter.
+</blockquote>
+
+<b>Python</b> IN: <tt>bool progressive</tt>
+<blockquote>
+  When <tt>false</tt>, performs layout of the graph on a circle before
+  running the Kamada-Kawai algorithm. If <tt>true</tt>, the algorithm
+  is executing starting with the vertex configuration in
+  the <tt>position</tt> map.<br>
+  <b>Default</b>: <tt>False</tt>.
+</blockquote>
+
+</div>
+</div>
+</div>
+<table xmlns:rev=
+"http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width=
+"100%">
+<tr>
+<td align="left"></td>
+<td align="right"></td>
+</tr>
+</table>
+<hr>
+<table>
+<tr valign="top">
+<td nowrap>Copyright &copy; 2004, 2010 Trustees of Indiana University</td>
+<td><a href="http://www.boost.org/people/doug_gregor.html">Douglas Gregor</a>,
+Indiana University (dgregor -at cs.indiana.edu)<br>
+<a href="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</a>, Indiana
+University (<a href=
+"mailto:lums@osl.iu.edu">lums@osl.iu.edu</a>)</td>
+</tr>
+</table>
+</body>
+</html>

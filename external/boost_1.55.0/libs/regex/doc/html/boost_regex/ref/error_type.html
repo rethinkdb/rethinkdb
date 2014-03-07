@@ -1,0 +1,271 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>error_type</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Boost.Regex">
+<link rel="up" href="../ref.html" title="Reference">
+<link rel="prev" href="match_flag_type.html" title="match_flag_type">
+<link rel="next" href="regex_traits.html" title="regex_traits">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="match_flag_type.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="regex_traits.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_error_type">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_regex.ref.error_type"></a><a class="link" href="error_type.html" title="error_type">error_type</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_regex.ref.error_type.h0"></a>
+        <span class="phrase"><a name="boost_regex.ref.error_type.synopsis"></a></span><a class="link" href="error_type.html#boost_regex.ref.error_type.synopsis">Synopsis</a>
+      </h5>
+<p>
+        Type error type represents the different types of errors that can be raised
+        by the library when parsing a regular expression.
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">regex_constants</span><span class="special">{</span>
+
+<span class="keyword">typedef</span> <span class="identifier">implementation</span><span class="special">-</span><span class="identifier">specific</span><span class="special">-</span><span class="identifier">type</span> <span class="identifier">error_type</span><span class="special">;</span>
+
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_collate</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_ctype</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_escape</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_backref</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_brack</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_paren</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_brace</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_badbrace</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_range</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_space</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_badrepeat</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_complexity</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_stack</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">error_type</span> <span class="identifier">error_bad_pattern</span><span class="special">;</span>
+
+<span class="special">}</span> <span class="comment">// namespace regex_constants</span>
+<span class="special">}</span> <span class="comment">// namespace boost</span>
+</pre>
+<h5>
+<a name="boost_regex.ref.error_type.h1"></a>
+        <span class="phrase"><a name="boost_regex.ref.error_type.description"></a></span><a class="link" href="error_type.html#boost_regex.ref.error_type.description">Description</a>
+      </h5>
+<p>
+        The type <code class="computeroutput"><span class="identifier">error_type</span></code> is an
+        implementation-specific enumeration type that may take one of the following
+        values:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Constant
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  error_collate
+                </p>
+              </td>
+<td>
+                <p>
+                  An invalid collating element was specified in a [[.name.]] block.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_ctype
+                </p>
+              </td>
+<td>
+                <p>
+                  An invalid character class name was specified in a [[:name:]] block.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_escape
+                </p>
+              </td>
+<td>
+                <p>
+                  An invalid or trailing escape was encountered.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_backref
+                </p>
+              </td>
+<td>
+                <p>
+                  A back-reference to a non-existant marked sub-expression was encountered.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_brack
+                </p>
+              </td>
+<td>
+                <p>
+                  An invalid character set [...] was encountered.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_paren
+                </p>
+              </td>
+<td>
+                <p>
+                  Mismatched '(' and ')'.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_brace
+                </p>
+              </td>
+<td>
+                <p>
+                  Mismatched '{' and '}'.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_badbrace
+                </p>
+              </td>
+<td>
+                <p>
+                  Invalid contents of a {...} block.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_range
+                </p>
+              </td>
+<td>
+                <p>
+                  A character range was invalid, for example [d-a].
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_space
+                </p>
+              </td>
+<td>
+                <p>
+                  Out of memory.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_badrepeat
+                </p>
+              </td>
+<td>
+                <p>
+                  An attempt to repeat something that can not be repeated - for example
+                  a*+
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_complexity
+                </p>
+              </td>
+<td>
+                <p>
+                  The expression became too complex to handle.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_stack
+                </p>
+              </td>
+<td>
+                <p>
+                  Out of program stack space.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  error_bad_pattern
+                </p>
+              </td>
+<td>
+                <p>
+                  Other unspecified errors.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="match_flag_type.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="regex_traits.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

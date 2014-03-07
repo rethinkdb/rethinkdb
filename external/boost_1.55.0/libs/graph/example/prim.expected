@@ -1,0 +1,9 @@
+parent[a] = a
+parent[b] = a
+parent[c] = f
+parent[d] = c
+parent[e] = d
+parent[f] = g
+parent[g] = h
+parent[h] = a
+parent[i] = c

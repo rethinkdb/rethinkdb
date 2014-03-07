@@ -1,0 +1,155 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:semantic_actions Generator Semantic Actions]
+
+In the previous section we mentioned a very important difference between parsers
+and generators. While parsers may be used without 'producing' any data, 
+generators always need data to generate the output from. We mentioned one way 
+of passing data to the generator by supplying it as a parameter to one of the
+main API functions (for instance `generate()` or `generate_delimited()`). 
+But sometimes this is not possible or not desirable. 
+
+Very much like for __qi__ we have semantic actions in __karma__ as well.
+Semantic actions may be attached to any point in the grammar specification. 
+These actions are C++ functions or function objects that are called whenever a 
+part of the generator is about to be invoked. Say you have a generator `G`, 
+and a C++ function `F`, you can make the generator call `F` just before it gets 
+invoked by attaching `F`:
+
+    G[F]
+
+The expression above links `F` to the generator, `G`.
+
+Semantic actions in __qi__ are invoked after a parser successfully 
+matches its input and the matched value is passed into the
+semantic action. In __karma__ the opposite happens. Semantic actions are called
+before its associated generator is invoked. They may provide the data required
+by the generator.
+
+The function/function object signature depends on the type of the generator to
+which it is attached. The generator `double_` expects the number to generate. 
+Thus, if we were to attach a function `F` to `double_`, we need `F` to be 
+declared as:
+
+    void F(double& n);
+
+where the function is expected to initialize the parameter `n` with the value 
+to generate.
+
+[important  Generally, and more formally, the semantic action `F` attached to 
+            a generator `G` needs to take a reference to the generator's 
+            attribute type as its first parameter. For more information about 
+            generator attributes please see the section __karma_attribute__.
+
+            In the example above the function F takes a `double&` as its first
+            parameter as the attribute of the `double_` generator happens to be
+            a `double`.
+]
+
+There are actually 2 more arguments being passed (the generator context and a
+reference to a boolean 'pass' parameter). We don't need these, for now, but 
+we'll see more on these other arguments later. __karma__ allows us to bind a 
+single argument function, like above. The other arguments are simply ignored.
+
+To sum up, the possible signatures for semantic actions are:
+
+    void f(Attrib&);
+    void f(Attrib&, Context&);
+    void f(Attrib&, Context&, bool&);
+
+[heading Examples of Semantic Actions]
+
+In the following example we present various ways to attach semantic actions:
+
+* Using a plain function pointer
+* Using a simple function object
+* Using __boost_bind__ with a plain function
+* Using __boost_bind__ with a member function
+* Using __boost_lambda__
+
+[import ../../example/karma/actions.cpp]
+
+Let's assume we have:
+
+[karma_tutorial_semantic_action_functions]
+
+Take note that with function objects, we need to have an `operator()` with 3
+arguments. Since we don't care about the other two, we can use `unused_type` for
+these. We'll see more of `unused_type` elsewhere. Get used to it. `unused_type`
+is a Spirit supplied support class. Most of the time it stands for 'I don't 
+care, just use the appropriate default'.
+
+All following examples generate outputs of the form:
+
+    "{integer}"
+
+An integer inside the curly braces.
+
+The first example shows how to attach a plain function:
+
+[karma_tutorial_attach_actions1]
+
+What's new? Well `int_` is the sibling of `double_`. I'm sure you can guess
+what this generator does and what type of attribute it expects.
+
+The next example shows how to attach a simple function object:
+
+[karma_tutorial_attach_actions2]
+
+We can use __boost_bind__ to 'bind' member functions:
+
+[karma_tutorial_attach_actions4]
+
+Likewise, we can also use __boost_bind__ to 'bind' plain functions:
+
+[karma_tutorial_attach_actions3]
+
+And last but not least, we can also use __boost_lambda__:
+
+[karma_tutorial_attach_actions5]
+
+There are more ways to bind semantic action functions, but the examples above
+are the most common. Attaching semantic actions is the first hurdle one has
+to tackle when getting started with generating with Spirit. If you didn't do so 
+yet, it is probably a good idea to familiarize yourself with the tools behind 
+it such as __boost_bind__ and __boost_lambda__.
+
+The examples above can be found here: [@../../example/karma/actions.cpp actions.cpp]
+
+[heading Phoenix]
+
+__phoenix__, a companion library bundled with Spirit, is specifically suited
+for binding semantic actions. It is like __boost_lambda__ on steroids, with
+special custom features that make it easy to integrate semantic actions with
+Spirit. If your requirements go beyond simple to moderate generation, I suggest 
+you use this library. Examples presented henceforth shall be using the Phoenix 
+library exclusively.
+
+[important There are different ways to write semantic actions for __karma__: 
+           using plain functions, __boost_bind__, __boost_lambda__, or 
+           __phoenix__. The latter three allow you to use special placeholders
+           to control parameter placement (`_1`, `_2`, etc.). Each of those
+           libraries has it's own implementation of the placeholders, all
+           in different namespaces. You have to make sure not to mix 
+           placeholders with a library they don't belong to and not to 
+           use different libraries while writing a semantic action.
+
+           Generally, for __boost_bind__, use `::_1`, `::_2`, etc. (yes, these
+           placeholders are defined in the global namespace). 
+
+           For __boost_lambda__ use the placeholders defined in the namespace 
+           `boost::lambda`. 
+
+          For semantic actions written using __phoenix__ use the placeholders 
+          defined in the namespace `boost::spirit`. Please note that all 
+          existing placeholders for your convenience are also available from 
+          the namespace `boost::spirit::karma`.]
+
+[endsect] [/ Semantic Actions]
+

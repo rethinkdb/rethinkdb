@@ -1,0 +1,23 @@
+# (C) Copyright 2010: Tim Blechmann
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+rule test_all
+{
+   local all_rules = ;
+
+   for local fileb in [ glob *.cpp ]
+   {
+       all_rules += [ run $(fileb) ../../test/build//boost_unit_test_framework/<link>static
+      :  # additional args
+      :  # test-files
+      : <library>/boost/test//boost_unit_test_framework # requirements
+      ] ;
+   }
+
+    return $(all_rules) ;
+}
+
+test-suite heap : [ test_all r ] : <threading>multi ;

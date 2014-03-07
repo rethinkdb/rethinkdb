@@ -1,0 +1,43 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:introduction Introduction]
+
+Generic algorithms have so far been specified in terms of two or more iterators. Two iterators would together form a range of values that the algorithm could work on. This leads to a very general interface, but also to a somewhat clumsy use of the algorithms with redundant specification of container names. Therefore we would like to raise the abstraction level for algorithms so they specify their interface in terms of __ranges__ as much as possible.
+
+The most common form of ranges used throughout the C++ community are standard library containers. When writing algorithms however, one often finds it desirable for the algorithm to accept other types that offer enough functionality to satisfy the needs of the generic code [*/if a suitable layer of indirection is applied/] . For example, raw arrays are often suitable for use with generic code that works with containers, provided a suitable adapter is used. Likewise, null terminated strings can be treated as containers of characters, if suitably adapted.
+
+This library therefore provides the means to adapt standard-like containers, null terminated strings, `std::pairs` of iterators, and raw arrays (and more), such that the same generic code can work with them all. The basic idea is to add another layer of indirection using __metafunctions__ and free-standing functions so syntactic and/or semantic differences can be removed.
+
+The main advantages are
+
+* simpler implementation and specification of generic range algorithms
+* more flexible, compact and maintainable client code
+* safe use of built-in arrays (for legacy code; why else would you use built-in arrays?)
+
+[heading Example - Iterate over the values in a map]
+``
+using namespace boost;
+using namespace boost::adaptors;
+for_each( my_map | map_values, fn );
+``
+
+[heading Example - Iterate over the keys in a map]
+``
+using namespace boost;
+using namespace boost::adaptors;
+for_each( my_map | map_keys, fn );
+``
+
+[heading Example - Push the even values from a map in reverse order into the container `target`]
+``
+using namespace boost;
+using namespace boost::adaptors;
+// Assume that is_even is a predicate that has been implemented elsewhere...
+push_back(target, my_map | map_values | filtered(is_even()) | reversed);
+``
+
+[endsect]
+

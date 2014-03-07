@@ -1,0 +1,31 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section What's New]
+
+[section Phoenix 3.0]
+
+This is the first official release of Phoenix as first class Boost citizen. As a
+consequence of the review of Phoenix V2 the internals got completely rewritten.
+Therefore the internal extension mechanism is different.
+
+* composite<...>, as_composite<...> and compose are gone and have been replaced.
+  For an in depth discussion see the section [link phoenix.inside Inside Phoenix]
+* [link phoenix.modules.function] phoenix::function now supports function objects
+  that implement the __boost_result_of__ protocol. *This is a breaking change*
+  
+  [/as well as the old return type
+  deduction protocol. The same is true for [link phoenix.modules.bind Bind].]
+* Boilerplate macros to easily adapt already existing functions and function
+  objects
+* [link phoenix.modules.bind Bind] is no completely compatible with Boost.Bind
+
+[endsect]
+
+[endsect]

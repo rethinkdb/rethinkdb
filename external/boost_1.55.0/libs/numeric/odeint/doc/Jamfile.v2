@@ -1,0 +1,277 @@
+# (C) Copyright 2009 - 2012 : Karsten Ahnert, Mario Mulansky
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+
+import quickbook ;
+import boostbook ;
+import doxygen ;
+import modules ;
+
+project : requirements
+        <include>$(BOOST_ROOT)/tools/auto_index/include
+        ;
+
+if --enable-index in  [ modules.peek : ARGV ]
+{
+    ECHO "Building the odeint docs with automatic index generation enabled." ;
+
+    using auto-index ;
+
+    project : requirements
+
+        <auto-index>on
+        <auto-index-verbose>on
+        
+        # Choose indexing method (separately for html and pdf):
+        <format>html:<auto-index-internal>on  # on (or off) to use internally generated indexes.
+        # <format>html:<xsl:param>generate.index=0 # Don't let the XSL stylesheets generate indexes.
+        
+        <format>pdf:<auto-index-internal>off # on (or off) to use internally generated indexes.
+        # <auto-index-type>index  # Use <index>...</index> as the XML wrapper.
+        
+        <format>pdf:<xsl:param>index.on.type=1 # For the native stylesheets to generate the different indexes.
+        # PDF native index support is probably better for PDFs as then you actually get page numbers.
+
+        <auto-index-script>odeint.idx # Specifies the name of the index script to load. 
+        <auto-index-prefix>../../../.. 
+        
+        # Inform Quickbook that there is to be an index(es).
+        <quickbook-define>enable_index
+    ;
+}
+else
+{
+    ECHO "Building the odeint docs with automatic index generation disabled. To get an auto-index, try building with --enable-index." ;
+}
+
+
+
+doxygen reference 
+    :
+#    [ glob ../../../../boost/numeric/odeint/*.hpp ] 
+    [ glob ../../../../boost/numeric/odeint/stepper/*.hpp ]
+    [ glob ../../../../boost/numeric/odeint/stepper/base/*.hpp ]
+#    [ glob ../../../../boost/numeric/odeint/stepper/generation/*.hpp ]
+    [ glob ../../../../boost/numeric/odeint/integrate/*.hpp ]
+#    [ glob ../../../../boost/numeric/odeint/iterator/*.hpp ]
+#    [ glob ../../../../boost/numeric/odeint/algebra/*.hpp ]
+#    [ glob ../../../../boost/numeric/odeint/util/*.hpp ]
+#    ../../../../boost/numeric/odeint.hpp
+    : 
+
+    # Lots of parameters passed to Doxygen. You can see these in the doxygen docs, or the Wizard Expert tab displays them.
+    # If you have successfuly built your Doxygen docs standalone using the Wizard (strongly recommended as it is much quicker).
+    # The values in your project's doxyfile are what to put as the Doxygen parameters passed below.
+    <doxygen:param>WARNINGS=YES
+    <doxygen:param>WARN_LOGFILE=AutoDoxywarnings.log
+    <doxygen:param>WARN_IF_UNDOCUMENTED=NO # Default NO but useful if you aim to Doxygen document *all* members.
+    <doxygen:param>QUIET=NO
+    <doxygen:param>WARN_NO_PARAMDOC=NO # Default no, but YES useful if you aim to document all function parameters.
+    <doxygen:param>DOXYFILE_ENCODING=UTF-8
+    <doxygen:param>PROJECT_NAME="odeint"
+    <doxygen:param>PROJECT_NUMBER=2.2
+    <doxygen:param>TAB_SIZE=2
+    <doxygen:param>SORT_MEMBER_DOCS=NO
+    <doxygen:param>SORT_BRIEF_DOCS=NO
+    <doxygen:param>SORT_MEMBERS_CTORS_1ST=NO
+    <doxygen:param>EXTRACT_PRIVATE=NO 
+    <doxygen:param>INLINE_INHERITED_MEMB=YES
+    <doxygen:param>INHERIT_DOCS=YES
+    <doxygen:param>EXTRACT_STATIC=YES
+    <doxygen:param>EXTRACT_ANON_NSPACES=NO
+    <doxygen:param>EXTRACT_LOCAL_CLASSES=YES
+    <doxygen:param>EXTRACT_LOCAL_METHODS=YES
+    <doxygen:param>HIDE_UNDOC_MEMBERS=NO
+    <doxygen:param>HIDE_UNDOC_CLASSES=YES
+    <doxygen:param>HIDE_FRIEND_COMPOUNDS=NO
+    #<doxygen:param>HIDE_INBODY_DOCS=NO
+    <doxygen:param>INTERNAL_DOCS=YES
+    <doxygen:param>CASE_SENSE_NAMES=NO
+    <doxygen:param>HIDE_SCOPE_NAMES=NO
+
+    # Preprocessor settings.
+    # Some ugly examples of predefined macro calls (from Boost.Units library) :(
+    <doxygen:param>"PREDEFINED= \\
+    \"BOOST_UNITS_STATIC_CONSTANT(a,b)=static const b a\" \\
+    \"BOOST_UNITS_TYPEOF(a)=typeof(a)\" \\
+    \"BOOST_PREVENT_MACRO_SUBSTITUTION=\" \\
+    \"BOOST_UNITS_HAS_TYPEOF=1\" \\
+    \"DOXYGEN_SKIP=1\" "
+    <doxygen:param>ENABLE_PREPROCESSING=YES # Evaluates all C-preprocessor directives found in files.
+    <doxygen:param>MACRO_EXPANSION=YES # Will expand all macro names.
+    <doxygen:param>EXPAND_ONLY_PREDEF=YES # Only predefined macros expanded.  See units library for an example.
+    <doxygen:param>SEARCH_INCLUDES=YES # Search #include files found.
+    <doxygen:param>INLINE_INFO=YES # If the INLINE_INFO tag is set to YES (the default) then a tag [inline] is inserted in the documentation for inline members.
+
+    <doxygen:param>SHOW_INCLUDE_FILES=NO # List of the files that are included by a file in the documentation of that file.
+    <doxygen:param>REPEAT_BRIEF=YES # Prepend the brief description of a member or function before the detailed description
+    <doxygen:param>BRIEF_MEMBER_DESC=YES # Include brief member descriptions after the members that are listed in the file and class
+    <doxygen:param>MULTILINE_CPP_IS_BRIEF=YES # Treat a multi-line C++ special comment block (i.e. a block of //! or /// comments) as a brief description.
+    # May be best to always use \brief and \details to avoid ambiguity?
+    # <doxygen:param>STRIP_FROM_PATH=NO # Most useful to leave default to strip just the directory from which Doxygen is run.
+    # Yes gives the full path, but NO is more useful, only giving enough to be
+    # <doxygen:param>CPP_CLI_SUPPORT=NO # unless, most unusually, you are compiled for a 'managed' CLI application.
+    <doxygen:param>SHOW_USED_FILES=YES # Default YES to show a list files used to generate documention.
+    <doxygen:param>SHOW_DIRECTORIES=YES # Default NO, but useful to show directory heirarchy.
+    <doxygen:param>SHOW_FILES=YES # Default YES is to include a tab for a page of files listed.  Useful.
+    <doxygen:param>SHOW_NAMESPACES=YES # Default YES to include tab for list of namespaces.  Useful if you have namespacess other than boost::
+    <doxygen:param>FILE_PATTERNS= # Types of files to be used as input. Default includes *.c *.cc *.cxx *.cpp *.c++ *.ipp *.i++ *.inl *.h *.hh *.hxx *.hpp *.h++ *.py
+    #  Might include .qbk?
+
+    <doxygen:param>RECURSIVE=YES # Search recursively down subdirectories.
+    <doxygen:param>EXCLUDE= # Files or directories that should be excluded from INPUT source files.
+    #  Headers and footers are actually rather attractive,
+    #     <doxygen:param>HTML_HEADER="doxygen/checks_doxygen_header.html" # A sample including a draft stamp and 'Not_Yet_In_Boost' logo.
+    #  Take care that if you use this (recommended), you need to ensure that the html
+    #    <doxygen:param>HTML_FOOTER="doxygen/checks_doxygen_footer.html" # This is very useful to add copyright, date of revision, versioning etc.
+
+    # A custom stylesheet is also useful, as the default syntax coloring is 'unusual' ;-)
+    <doxygen:param>HTML_STYLESHEET="doxygen/doxygen.css" # Placed in the doxygen directory,
+    # this will change to your choice of C++ syntax coloring when viewing source from Doxygen.
+    # Users can place (or edit) their own personal choice CSS file here.
+
+    # Default is just Reference but you can provide your own title for reference section here.
+    <xsl:param>"boost.doxygen.reftitle=odeint Reference"
+;
+
+
+xml odeint 
+    :
+    odeint.qbk
+    :
+;
+
+boostbook standalone
+    :
+    odeint
+    :
+
+    # Path for links to Boost:
+    #<xsl:param>boost.root=\$(local-boost-root) # Link to Boost logo boost.png
+    # Links are relative and trying to make absolute does NOT work.
+    # And remember that all links MUST (unless in quotes) use  backslash, not forward that is trip char.
+
+    <xsl:param>boost.root=../../../../.. # OK but link to I:/boost_trunk/boost.png
+
+    # Also control links to admonitions, so need to set separately.
+    #<xsl:param>boost.root=../../../../../../../boost_1_47_0 # OK file:///I:/boost_1_48_0/boost.png
+    # Quickbook [@boost:/boost/units/detail/utility.hpp] should make it relative to xsl parameter boost.root.
+
+    # Use the your own local Boost stylesheet:
+    # <xsl:param>html.stylesheet=../html/boostbook.css
+
+    # Some general style settings:
+    #   see http://docbook.sourceforge.net/release/xsl/current/doc/html/index.html
+    <xsl:param>table.footnote.number.format=1 # Identifies the format used for footnote numbers in tables.
+    <xsl:param>footnote.number.format=1 # Identifies the format used for text footnote numbers.
+
+    # Default to not including the Boost logo in the navbar, when one expressly asks to include the navbar.
+    # Boost jamroot now includes
+    # Default to not include a navbar.
+    #<xsl:param>nav.layout=none # No navigation bar (home, prev, next).
+    # defining creates a runtime error: Global parameter nav.layout already defined
+    #<xsl:param>nav.layout=horizontal # to get a horizontal navigation bar (you probably DO want this).
+
+    <xsl:param>boost.image.src=logo.jpg #
+    <xsl:param>boost.image.width=294 # Width of logo in pixels.
+    <xsl:param>boost.image.height=127 # Height of logo in pixels.
+
+
+    # HTML options:
+    # ------------
+    <xsl:param>navig.graphics=1  # Use graphics not text for navigation.
+    <xsl:param>chunk.section.depth=2  # How far down we chunk nested sections, basically all of them.
+    <xsl:param>chunk.first.sections=1  # Don't put the first section on the same page as the TOC.
+    <xsl:param>toc.section.depth=2  # How far down sections get TOCs.
+    <xsl:param>toc.max.depth=2  # Max depth in each TOC.
+    <xsl:param>generate.section.toc.level=3  # How far down we go with TOCs.
+
+    #<format>html:<xsl:param>admon.graphics.extension=".png"  # default type for admonitions (important, warning, note ...)
+    #<format>html:<xsl:param>admon.graphics.path=$(nav-images)/ # path to admonition (warning, note...) image (.png) files.
+
+    # <xsl:param name="draft.watermark.image">http://docbook.sourceforge.net/release/images/draft.png</xsl:param>
+    # but use a local copy of draft.png.
+
+    # PDF Options:
+    # -----------
+    # TOC Generation
+    <xsl:param>fop1.extensions=0 # DISable extensions for FOP version 0.90 and later .
+    <format>pdf:<xsl:param>fop.extensions=0 # DISable extensions for FOP version 0.20.5 and earlier.
+    <format>pdf:<xsl:param>xep.extensions=1 # Use XEP extension- PDF bookmarks, document information and better index processing.
+
+    # No indent on body text:
+    <format>pdf:<xsl:param>body.start.indent=0pt #
+    <format>pdf:<xsl:param>paper.type=A4  # Paper type = A4
+    #  http://xml.resource.org/public/rfc/html/rfc2346.html
+    #  Making Postscript and PDF International, J Palme, RFC 2346 recommends
+    #  If you are using US letter paper format, ensure that both left and right margins are at least 21 mm (0.8 in).
+    #  If you are using A4 paper, ensure that both the top and bottom margins are at least 33 mm (1.3 in).
+    # Margins sizes:
+    #<format>pdf:<xsl:param>page.margin.top=1.3in
+    #<format>pdf:<xsl:param>page.margin.inner=0.8in
+    #<format>pdf:<xsl:param>page.margin.bottom=1.3in
+    #<format>pdf:<xsl:param>page.margin.outer=0.8in
+
+    # http://docbook.sourceforge.net/release/xsl/current/doc/index.html
+    # DocBook XSL Stylesheets: Reference Documentation.
+
+    # Yes, we want graphics for admonishments:
+    <xsl:param>admon.graphics=1
+    # Set these one for PDF generation *only*:
+    # In PDF format, default PNG graphics are awful, so better use SVG images (type .svg) instead.
+    <format>pdf:<xsl:param>admon.graphics.extension=".svg"  #
+    <format>pdf:<xsl:param>use.role.for.mediaobject=1 # Use print role on next line.
+    <format>pdf:<xsl:param>preferred.mediaobject.role=print # pdf role is to be printed.
+    <format>pdf:<xsl:param>img.src.path=$(images_location)/ # Path of image (.svg) files. (Note trailing /) ? 
+    <format>pdf:<xsl:param>admon.graphics.path=$(nav_images)/ # path to admonition (warning, note...) image (.svg) files.
+    <format>pdf:<xsl:param>draft.mode="yes" # Yes if draft watermark wanted!
+    #<format>pdf:<xsl:param>draft.watermark.image="draft.png" # Watermark (local copy).
+    #<format>pdf:<xsl:param>draft.watermark.image=http://docbook.sourceforge.net/release/images/draft.png # Watermark.
+
+    <dependency>reference # Doxygen  reference section
+    # <dependency>pdf-install # final pdf
+    #  <dependency>png-install # Boost standard icons in both png
+    #	<dependency>svg-install # and svg.
+;
+
+
+# To install a copy of 'master' boostbook.css and logo.
+# install html : ../../../doc/html/boostbook.css ;
+# install ../ : ../../../boost.png ;
+
+
+
+# Install (copy) the 'master' copy of boostbook Cascading Style sheet
+# from your current Boost-root to the /doc/html folder.
+# path-constant boost-root : [ modules.peek : BOOST ] ;
+# install css-install : $(boost-root)/doc/src/boostbook.css : <location>html ;
+
+# path-constant boost-root : [ modules.peek : BOOST ] ;
+
+
+# Install (copy) the 'master' copies of all icon images (both PNG and SVG)
+# and the Boost logo from your current Boost-root
+# to the local /doc/html/images folder so that html is complete and standalone. 
+# install png-install : [ glob $(boost-root)/doc/src/images/*.png $(boost-root)/boost.png ] : <location>html/images ;
+# install svg-install : [ glob $(boost-root)/doc/src/images/*.svg ] : <location>html/images ;
+
+#   install unordered_pdf : standalone/<format>pdf : <location>. ;
+#   explicit unordered_pdf ;
+# The explicit rule is there so that it's only installed when the target is explicitly named.
+
+# Effectively copies the file from \bin folder to the \doc folder.
+# install pdf-install : standalone : <location>. <install-type>PDF ;
+# But will not work as expected if doxygen and/or autoindex is used
+# because a modified pdf file is created, so this command below
+# will rename the file to the expected filename, here quick_auto_dox_index.pdf.
+# <location>. means installed in same place as this jamfile, /doc.
+
+install pdf-install : standalone : <install-type>PDF <location>. <name>checks.pdf ;
+
+install callouts : [ glob src/images/callouts/*.png ] : <location>html/images/callouts ;
+
+
+
+
+

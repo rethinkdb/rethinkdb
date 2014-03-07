@@ -1,0 +1,47 @@
+[/ 
+  (C) Copyright Edward Diener 2011-2013
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[library The Type Traits Introspection Library
+    [quickbook 1.5]
+    [id tti]
+    [dirname tti]
+    [copyright 2011-2013 Tropic Software East Inc]
+    [purpose Compile time introspection of a type]
+    [category template]
+    [category generic]
+    [authors [Diener, Edward]]
+    [source-mode c++]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+ 
+[include tti_introduction.qbk]
+[include tti_why.qbk]
+[include tti_terminology.qbk]
+[include tti_functionality.qbk]
+[include tti_detail.qbk]
+[include tti_detail_has_type.qbk]
+[include tti_detail_has_template.qbk]
+[include tti_detail_has_member_data.qbk]
+[include tti_detail_has_member_function.qbk]
+[include tti_detail_has_static_member_data.qbk]
+[include tti_detail_has_static_member_function.qbk]
+[include tti_detail_has_data.qbk]
+[include tti_detail_has_function.qbk]
+[include tti_nested_type.qbk]
+[include tti_nested_type_and_signatures.qbk]
+[include tti_using_mm.qbk]
+[include tti_func_templates.qbk]
+[include tti_reference.qbk]
+[include tti_tests.qbk]
+[include tti_history.qbk]
+[include tti_to_do.qbk]
+[include tti_acknowledgements.qbk]
+[include tti_index.qbk]

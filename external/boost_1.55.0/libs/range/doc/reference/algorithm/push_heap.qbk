@@ -1,0 +1,61 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:push_heap push_heap]
+
+[heading Prototype]
+
+``
+template<class RandomAccessRange>
+RandomAccessRange& push_heap(RandomAccessRange& rng);
+
+template<class RandomAccessRange>
+const RandomAccessRange& push_heap(const RandomAccessRange& rng);
+
+template<class RandomAccessRange, class Compare>
+RandomAccessRange& push_heap(RandomAccessRange& rng, Compare pred);
+
+template<class RandomAccessRange, class Compare>
+const RandomAccessRange& push_heap(const RandomAccessRange& rng, Compare pred);
+``
+
+[heading Description]
+
+`push_heap` adds an element to a heap. It is assumed that `begin(rng)`, `prior(end(rng))` is already a heap and that the element to be added is `*prior(end(rng))`.
+
+The ordering relationship is determined by using `operator<` in the non-predicate versions, and by evaluating `pred` in the predicate versions.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/heap_algorithm.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions:]
+
+* `RandomAccessRange` is a model of the __random_access_range__ Concept.
+* `RandomAccessRange` is mutable.
+* `RandomAccessRange`'s value type is a model of the `LessThanComparableConcept`.
+* The ordering of objects of type `RandomAccessRange`'s value type is a [*/strict weak ordering/], as defined in the `LessThanComparableConcept` requirements.
+
+[*For the predicate versions:]
+
+* `RandomAccessRange` is a model of the __random_access_range__ Concept.
+* `RandomAccessRange` is mutable.
+* `Compare` is a model of the `StrictWeakOrderingConcept`.
+* `RandomAccessRange`'s value type is convertible to both of `Compare`'s argument types.
+
+[heading Precondition:]
+
+* `!empty(rng)`
+* `[begin(rng), prior(end(rng)))` is a heap.
+
+[heading Complexity]
+
+Logarithmic. At most `log(distance(rng))` comparisons.
+
+[endsect]
+
+

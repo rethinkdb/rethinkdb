@@ -1,0 +1,723 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2002 Daniel C. Nuffer
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:multi_pass The multi pass iterator]
+
+Backtracking in __qi__ requires the use of the following types of iterator: 
+forward, bidirectional, or random access. Because of backtracking, input 
+iterators cannot be used. Therefore, the standard library classes 
+`std::istreambuf_iterator` and `std::istream_iterator`, that fall under the 
+category of input iterators, cannot be used. Another input iterator that is of 
+interest is one that wraps a lexer, such as LEX.
+
+[note In general, __qi__ generates recursive descent parser which require 
+      backtracking parsers by design. For this reason we need to provide at 
+      least forward iterators to any of __qi__'s API functions. This is not an 
+      absolute requirement though. In the future, we shall see more 
+      deterministic parsers that require no more than 1 character (token) of 
+      lookahead. Such parsers allow us to use input iterators such as the 
+      `std::istream_iterator` as is. ]
+
+Backtracking can be implemented only if we are allowed to save an iterator 
+position, i.e. making a copy of the current iterator. Unfortunately, with an 
+input iterator, there is no way to do so, and thus input iterators will not 
+work with backtracking in __qi__. One solution to this problem is to simply 
+load all the data to be parsed into a container, such as a vector or deque, 
+and then pass the begin and end of the container to __qi__. This method can be 
+too memory intensive for certain applications, which is why the `multi_pass` 
+iterator was created.
+
+[heading Using the multi_pass]
+
+The `multi_pass` iterator will convert any input iterator into a forward 
+iterator suitable for use with __qi__. `multi_pass` will buffer data when 
+needed and will discard the buffer when its contents is not needed anymore.
+This happens either if only one copy of the iterator exists or if no 
+backtracking can occur.
+
+A grammar must be designed with care if the `multi_pass` iterator is used. 
+Any rule that may need to backtrack, such as one that contains an alternative, 
+will cause data to be buffered. The rules that are optimal to use are 
+repetition constructs (as kleene and plus). 
+
+Sequences of the form `a >> b` will buffer data as well. This is different from 
+the behavior of __classic__ but for a good reason. Sequences need to reset the 
+current iterator to its initial state if one of the components of a sequence 
+fails to match. To compensate for this behavior we added functionality to 
+the `expect` parsers (i.e. constructs like `a > b`). Expectation points introduce
+deterministic points into the grammar ensuring no backtracking can occur if
+they match. For this reason we clear the buffers of any multi_pass iterator
+on each expectation point, ensuring minimal buffer content even for large
+grammars.
+
+[important  If you use an error handler in conjunction with the `expect` parser
+            while utilizing a `multi_pass` iterator and you intend to use
+            the error handler to force a `retry` or a `fail` (see the 
+            description of error handlers - __fixme__: insert link), then 
+            you need to instantiate the error handler using `retry` or `fail`,
+            for instance:
+``
+        rule r<iterator_type> r;
+        on_error<retry>(r, std::cout << phoenix::val("Error!"));
+``
+            If you fail to do so the resulting code will trigger an assert 
+            statement at runtime.]
+
+Any rule that repeats, such as kleene_star (`*a`) or positive such as (`+a`), 
+will only buffer the data for the current repetition.
+
+In typical grammars, ambiguity and therefore lookahead is often localized. In 
+fact, many well designed languages are fully deterministic and require no 
+lookahead at all. Peeking at the first character from the input will 
+immediately determine the alternative branch to take. Yet, even with highly 
+ambiguous grammars, alternatives are often of the form `*(a | b | c | d)`. 
+The input iterator moves on and is never stuck at the beginning. Let's look at 
+a Pascal snippet for example:
+
+    program =
+            programHeading >> block >> '.'
+        ;
+
+    block =
+           *(   labelDeclarationPart
+            |   constantDefinitionPart
+            |   typeDefinitionPart
+            |   variableDeclarationPart
+            |   procedureAndFunctionDeclarationPart
+            )
+        >>  statementPart
+        ;
+
+Notice the alternatives inside the Kleene star in the rule block . The rule 
+gobbles the input in a linear manner and throws away the past history with each 
+iteration. As this is fully deterministic LL(1) grammar, each failed 
+alternative only has to peek 1 character (token). The alternative that consumes 
+more than 1 character (token) is definitely a winner. After which, the Kleene 
+star moves on to the next.
+
+Now, after the lecture on the features to be careful with when using 
+`multi_pass`, you may think that `multi_pass` is way too restrictive to use. 
+That's not the case. If your grammar is deterministic, you can make use of 
+the `flush_multi_pass` pseudo parser in your grammar to ensure that data is not 
+buffered when unnecessary (`flush_multi_pass` is available from the __qi__
+parser __repo__). 
+
+Here we present a minimal example showing a minimal use case. The `multi_pass`
+iterator is highly configurable, but the default policies have been chosen so 
+that its easily usable with input iterators such as `std::istreambuf_iterator`. 
+For the complete source code of this example please refer to 
+[@../../example/support/multi_pass.cpp multi_pass.cpp].
+
+[import ../../example/support/multi_pass.cpp]
+[tutorial_multi_pass]
+
+[heading Using the flush_multi_pass parser]
+
+The __spirit__ __repo__ contains the `flush_multi_pass` parser component.
+This is usable in conjunction with the `multi_pass` iterator to minimize the
+buffering. It allows to insert explicit synchronization points into your 
+grammar where it is safe to clear any stored input as it is ensured that no
+backtracking can occur at this point anymore.
+
+When the `flush_multi_pass` parser is used with `multi_pass`, it will call 
+`multi_pass::clear_queue()`. This will cause any buffered data to be erased. 
+This also will invalidate all other copies of multi_pass and they should not 
+be used. If they are, an `boost::illegal_backtracking` exception will be 
+thrown.
+
+[heading The multi_pass Policies]
+
+The `multi_pass` iterator is a templated class configurable using policies. 
+The description of `multi_pass` above is how it was originally implemented 
+(before it used policies), and is the default configuration now. But, 
+`multi_pass` is capable of much more. Because of the open-ended nature of 
+policies, you can write your own policy to make `multi_pass` behave in a way 
+that we never before imagined.
+
+The multi_pass class has two template parameters:
+
+[variablelist The multi_pass template parameters
+    [[Input]    [The type multi_pass uses to acquire it's input. This is 
+                 typically an input iterator, or functor.]]
+    [[Policies] [The combined policies to use to create an instance of a 
+                 multi_pass iterator. This combined policy type is described 
+                 below]]
+]
+
+It is possible to implement all of the required functionality of the combined 
+policy in a single class. But it has shown to be more convenient to split this 
+into four different groups of functions, i.e. four separate, but well 
+coordinated policies. For this reason the `multi_pass` library
+implements a template `iterator_policies::default_policy` allowing to combine
+several different policies, each implementing one of the functionality groups:
+
+[table Policies needed for default_policy template
+    [[Template Parameter]   [Description]]
+    [[`OwnershipPolicy`]    [This policy determines how `multi_pass` deals with 
+                             it's shared components.]]
+    [[`CheckingPolicy`]     [This policy determines how checking for invalid 
+                             iterators is done.]]
+    [[`InputPolicy`]        [A class that defines how `multi_pass` acquires its 
+                             input. The `InputPolicy` is parameterized by the
+                             `Input` template parameter to the `multi_pass`.]]
+    [[`StoragePolicy`]      [The buffering scheme used by `multi_pass` is 
+                             determined and managed by the StoragePolicy.]]
+]
+
+The `multi_pass` library contains several predefined policy implementations
+for each of the policy types as described above. First we will describe those
+predefined types. Afterwards we will give some guidelines how you can write 
+your own policy implementations.
+
+[heading Predefined policies]
+
+All predefined `multi_pass` policies are defined in the namespace 
+`boost::spirit::iterator_policies`.
+
+[table Predefined policy classes
+    [[Class name]         [Description]]
+    [[*InputPolicy* classes]]
+    [[`input_iterator`]   [This policy directs `multi_pass` to read from an 
+                           input iterator of type `Input`.]]
+    [[`buffering_input_iterator`]   [This policy directs `multi_pass` to read from an 
+                           input iterator of type `Input`. Additionally it buffers
+                           the last character received from the underlying iterator.
+                           This allows to wrap iterators not buffering the last 
+                           character on their own (as `std::istreambuf_iterator`).]]
+    [[`istream`]          [This policy directs `multi_pass` to read from an 
+                           input stream of type `Input` (usually a 
+                           `std::basic_istream`).]]
+    [[`lex_input`]        [This policy obtains it's input by calling yylex(), 
+                           which would typically be provided by a scanner 
+                           generated by __flex__. If you use this policy your code 
+                           must link against a __flex__ generated scanner.]]
+    [[`functor_input`]    [This input policy obtains it's data by calling a 
+                           functor of type `Input`. The functor must meet 
+                           certain requirements. It must have a typedef called 
+                           `result_type` which should be the type returned 
+                           from `operator()`. Also, since an input policy needs 
+                           a way to determine when the end of input has been 
+                           reached, the functor must contain a static variable 
+                           named `eof` which is comparable to a variable of 
+                           `result_type`.]]
+    [[`split_functor_input`][This is essentially the same as the `functor_input`
+                           policy except that the (user supplied) function 
+                           object exposes separate `unique` and `shared` sub 
+                           classes, allowing to integrate the functors /unique/
+                           data members with the `multi_pass` data items held
+                           by each instance and its /shared/ data members will
+                           be integrated with the `multi_pass` members shared 
+                           by all copies.]]
+
+    [[*OwnershipPolicy* classes]]
+    [[`ref_counted`]      [This class uses a reference counting scheme. 
+                           The `multi_pass` will delete it's shared components 
+                           when the count reaches zero.]]
+    [[`first_owner`]      [When this policy is used, the first `multi_pass` 
+                           created will be the one that deletes the shared data. 
+                           Each copy will not take ownership of the shared data. 
+                           This works well for __spirit__, since no dynamic 
+                           allocation of iterators is done. All copies are made 
+                           on the stack, so the original iterator has the 
+                           longest lifespan.]]
+
+    [[*CheckingPolicy* classes]]
+    [[`no_check`]         [This policy does no checking at all.]]
+    [[`buf_id_check`]     [This policy keeps around a buffer id, or a buffer 
+                           age. Every time `clear_queue()` is called on a 
+                           `multi_pass` iterator, it is possible that all other 
+                           iterators become invalid. When `clear_queue()` is 
+                           called, `buf_id_check` increments the buffer id. 
+                           When an iterator is dereferenced, this policy checks 
+                           that the buffer id of the iterator matches the shared 
+                           buffer id. This policy is most effective when used 
+                           together with the `split_std_deque` StoragePolicy. 
+                           It should not be used with the `fixed_size_queue` 
+                           StoragePolicy, because it will not detect iterator 
+                           dereferences that are out of range.]]
+    [[full_check]         [This policy has not been implemented yet. When it 
+                           is, it will keep track of all iterators and make 
+                           sure that they are all valid. This will be mostly 
+                           useful for debugging purposes as it will incur 
+                           significant overhead.]]
+
+    [[*StoragePolicy* classes]]
+    [[`split_std_deque`]  [Despite its name this policy keeps all buffered data 
+                           in a `std::vector`. All data is stored as long as 
+                           there is more than one iterator. Once the iterator 
+                           count goes down to one, and the queue is no longer 
+                           needed, it is cleared, freeing up memory. The queue 
+                           can also be forcibly cleared by calling 
+                           `multi_pass::clear_queue()`.]]
+    [[`fixed_size_queue<N>`][This policy keeps a circular buffer that is size 
+                            `N+1` and stores `N` elements. `fixed_size_queue` 
+                            is a template with a `std::size_t` parameter that 
+                            specified the queue size. It is your responsibility 
+                            to ensure that `N` is big enough for your parser. 
+                            Whenever the foremost iterator is incremented, the 
+                            last character of the buffer is automatically 
+                            erased. Currently there is no way to tell if an 
+                            iterator is trailing too far behind and has become 
+                            invalid. No dynamic allocation is done by this 
+                            policy during normal iterator operation, only on 
+                            initial construction. The memory usage of this 
+                            `StoragePolicy` is set at `N+1` bytes, unlike 
+                            `split_std_deque`, which is unbounded.]]
+]
+
+[heading Combinations: How to specify your own custom multi_pass]
+
+The beauty of policy based designs is that you can mix and match policies to 
+create your own custom iterator by selecting the policies you want. Here's an 
+example of how to specify a custom `multi_pass` that wraps an 
+`std::istream_iterator<char>`, and is slightly more efficient than the default 
+`multi_pass` (as generated by the `make_default_multi_pass()` API function) 
+because it uses the `iterator_policies::first_owner` OwnershipPolicy and the 
+`iterator_policies::no_check` CheckingPolicy:
+
+    typedef multi_pass<
+        std::istream_iterator<char>
+      , iterator_policies::default_policy<
+            iterator_policies::first_owner
+          , iterator_policies::no_check
+          , iterator_policies::buffering_input_iterator
+          , iterator_policies::split_std_deque
+        > 
+    > first_owner_multi_pass_type;
+
+The default template parameters for `iterator_policies::default_policy` are: 
+
+* `iterator_policies::ref_counted` OwnershipPolicy
+* `iterator_policies::no_check` CheckingPolicy, if `BOOST_SPIRIT_DEBUG` is 
+  defined: `iterator_policies::buf_id_check` CheckingPolicy 
+* `iterator_policies::buffering_input_iterator` InputPolicy, and
+* `iterator_policies::split_std_deque` StoragePolicy. 
+
+So if you use `multi_pass<std::istream_iterator<char> >` you will get those 
+pre-defined behaviors while wrapping an `std::istream_iterator<char>`.
+
+[heading Dealing with constant look ahead]
+
+There is one other pre-defined class called `look_ahead`. The class 
+`look_ahead` is another predefine `multi_pass` iterator type. It has two 
+template parameters: `Input`, the type of the input iterator to wrap, and a 
+`std::size_t N`, which specifies the size of the buffer to the 
+`fixed_size_queue` policy. While the default multi_pass configuration is 
+designed for safety, `look_ahead` is designed for speed. `look_ahead` is derived 
+from a multi_pass with the following policies: `input_iterator` InputPolicy, 
+`first_owner` OwnershipPolicy, `no_check` CheckingPolicy, and 
+`fixed_size_queue<N>` StoragePolicy. 
+
+This iterator is defined by including the files:
+
+    // forwards to <boost/spirit/home/support/look_ahead.hpp>
+    #include <boost/spirit/include/support_look_ahead.hpp>
+
+Also, see __include_structure__.
+
+[heading Reading from standard input streams]
+
+Yet another predefined iterator for wrapping standard input streams (usually a
+`std::basic_istream<>`) is called `basic_istream_iterator<Char, Traits>`. This 
+class is usable as a drop in replacement for `std::istream_iterator<Char, Traits>`.
+Its only difference is that it is a forward iterator (instead of the 
+`std::istream_iterator`, which is an input iterator). `basic_istream_iterator` 
+is derived from a multi_pass with the following policies: `istream` InputPolicy, 
+`ref_counted` OwnershipPolicy, `no_check` CheckingPolicy, and 
+`split_std_deque` StoragePolicy. 
+
+There exists an additional predefined typedef:
+
+    typedef basic_istream_iterator<char, std::char_traits<char> > istream_iterator;
+
+This iterator is defined by including the files:
+
+    // forwards to <boost/spirit/home/support/istream_iterator.hpp>
+    #include <boost/spirit/include/support_istream_iterator.hpp>
+
+Also, see __include_structure__.
+
+[heading How to write a functor for use with the `functor_input` InputPolicy]
+
+If you want to use the `functor_input` InputPolicy, you can write your own 
+function object that will supply the input to `multi_pass`. The function object 
+must satisfy several requirements. It must have a typedef `result_type` which 
+specifies the return type of its `operator()`. This is standard practice in the 
+STL. Also, it must supply a static variable called eof which is compared against 
+to know whether the input has reached the end. Last but not least the function 
+object must be default constructible. Here is an example: 
+
+    #include <iostream>
+    #include <boost/spirit/home/qi.hpp>
+    #include <boost/spirit/home/support.hpp>
+    #include <boost/spirit/home/support/multi_pass.hpp>
+    #include <boost/spirit/home/support/iterators/detail/functor_input_policy.hpp>
+
+    // define the function object
+    class iterate_a2m
+    {
+    public:
+        typedef char result_type;
+
+        iterate_a2m() : c_('A') {}
+        iterate_a2m(char c) : c_(c) {}
+
+        result_type operator()()
+        {
+            if (c_ == 'M')
+                return eof;
+            return c_++;
+        }
+
+        static result_type eof;
+
+    private:
+        char c_;
+    };
+
+    iterate_a2m::result_type iterate_a2m::eof = iterate_a2m::result_type('M');
+
+    using namespace boost::spirit;
+
+    // create two iterators using the define function object, one of which is 
+    // an end iterator
+    typedef multi_pass<iterate_a2m
+      , iterator_policies::first_owner
+      , iterator_policies::no_check
+      , iterator_policies::functor_input
+      , iterator_policies::split_std_deque> 
+    functor_multi_pass_type;
+
+    int main()
+    {
+        functor_multi_pass_type first = functor_multi_pass_type(iterate_a2m());
+        functor_multi_pass_type last;
+
+        // use the iterators: this will print "ABCDEFGHIJKL"
+        while (first != last) {
+            std::cout << *first;
+            ++first;
+        }
+        std::cout << std::endl;
+        return 0;
+    }
+
+[heading How to write policies for use with multi_pass]
+
+All policies to be used with the `default_policy` template need to have two
+embedded classes: `unique` and `shared`. The `unique` class needs to implement 
+all required functions for a particular policy type. In addition it may hold 
+all member data items being /unique/ for a particular instance of a `multi_pass`
+(hence the name). The `shared` class does not expose any member functions 
+(except sometimes a constructor), but it may hold all member data items to be
+/shared/ between all copies of a particular `multi_pass`.
+
+[heading InputPolicy]
+
+An `InputPolicy` must have the following interface:
+
+    struct input_policy
+    {
+        // Input is the same type used as the first template parameter
+        // while instantiating the multi_pass
+        template <typename Input>
+        struct unique
+        {
+            // these typedef's will be exposed as the multi_pass iterator
+            // properties
+            typedef __unspecified_type__ value_type;
+            typedef __unspecified_type__ difference_type;
+            typedef __unspecified_type__ distance_type;
+            typedef __unspecified_type__ pointer;
+            typedef __unspecified_type__ reference;
+
+            unique() {}
+            explicit unique(Input) {}
+
+            // destroy is called whenever the last copy of a multi_pass is
+            // destructed (ownership_policy::release() returned true)
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            template <typename MultiPass>
+            static void destroy(MultiPass& mp);
+
+            // swap is called by multi_pass::swap()
+            void swap(unique&);
+
+            // get_input is called whenever the next input character/token
+            // should be fetched. 
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            //
+            // This method is expected to return a reference to the next 
+            // character/token
+            template <typename MultiPass>
+            static typename MultiPass::reference get_input(MultiPass& mp);
+
+            // advance_input is called whenever the underlying input stream 
+            // should be advanced so that the next call to get_input will be 
+            // able to return the next input character/token
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            template <typename MultiPass>
+            static void advance_input(MultiPass& mp);
+
+            // input_at_eof is called to test whether this instance is a 
+            // end of input iterator.
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            //
+            // This method is expected to return true if the end of input is 
+            // reached. It is often used in the implementation of the function
+            // storage_policy::is_eof.
+            template <typename MultiPass>
+            static bool input_at_eof(MultiPass const& mp);
+
+            // input_is_valid is called to verify if the parameter t represents 
+            // a valid input character/token
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            //   t:     is the character/token to test for validity
+            // 
+            // This method is expected to return true if the parameter t 
+            // represents a valid character/token.
+            template <typename MultiPass>
+            static bool input_is_valid(MultiPass const& mp, value_type const& t);
+        };
+
+        // Input is the same type used as the first template parameter passed
+        // while instantiating the multi_pass
+        template <typename Input>
+        struct shared 
+        {
+            explicit shared(Input) {}
+        };
+    };
+
+It is possible to derive the struct `unique` from the type 
+`boost::spirit::detail::default_input_policy`. This type implements a minimal
+sufficient interface for some of the required functions, simplifying the task 
+of writing a new input policy.
+
+This class may implement a function `destroy()` being called during destruction 
+of the last copy of a `multi_pass`. This function should be used to free any of 
+the shared data items the policy might have allocated during construction of 
+its `shared` part. Because of the way `multi_pass` is implemented any allocated 
+data members in `shared` should _not_ be deep copied in a copy constructor of 
+`shared`.
+
+[heading OwnershipPolicy]
+
+The `OwnershipPolicy` must have the following interface:
+
+    struct ownership_policy
+    {
+        struct unique
+        {
+            // destroy is called whenever the last copy of a multi_pass is
+            // destructed (ownership_policy::release() returned true)
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            template <typename MultiPass>
+            static void destroy(MultiPass& mp);
+
+            // swap is called by multi_pass::swap()
+            void swap(unique&);
+
+            // clone is called whenever a multi_pass is copied
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            template <typename MultiPass>
+            static void clone(MultiPass& mp);
+
+            // release is called whenever a multi_pass is destroyed
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            //
+            // The method is expected to return true if the destructed 
+            // instance is the last copy of a particular multi_pass. 
+            template <typename MultiPass>
+            static bool release(MultiPass& mp);
+
+            // is_unique is called to test whether this instance is the only 
+            // existing copy of a particular multi_pass
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            //
+            // The method is expected to return true if this instance is unique
+            // (no other copies of this multi_pass exist).
+            template <typename MultiPass>
+            static bool is_unique(MultiPass const& mp);
+        };
+
+        struct shared {};
+    };
+
+It is possible to derive the struct `unique` from the type 
+`boost::spirit::detail::default_ownership_policy`. This type implements a 
+minimal sufficient interface for some of the required functions, simplifying 
+the task of writing a new ownership policy.
+
+This class may implement a function `destroy()` being called during destruction 
+of the last copy of a `multi_pass`. This function should be used to free any of 
+the shared data items the policy might have allocated during construction of 
+its `shared` part. Because of the way `multi_pass` is implemented any allocated 
+data members in `shared` should _not_ be deep copied in a copy constructor of 
+`shared`.
+
+[heading CheckingPolicy]
+
+The `CheckingPolicy` must have the following interface:
+
+    struct checking_policy
+    {
+        struct unique 
+        {
+            // swap is called by multi_pass::swap()
+            void swap(unique&);
+
+            // destroy is called whenever the last copy of a multi_pass is
+            // destructed (ownership_policy::release() returned true)
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            template <typename MultiPass>
+            static void destroy(MultiPass& mp);
+
+            // docheck is called before the multi_pass is dereferenced or 
+            // incremented. 
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            //
+            // This method is expected to make sure the multi_pass instance is
+            // still valid. If it is invalid an exception should be thrown.
+            template <typename MultiPass>
+            static void docheck(MultiPass const& mp);
+
+            // clear_queue is called whenever the function 
+            // multi_pass::clear_queue is called on this instance
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            template <typename MultiPass>
+            static void clear_queue(MultiPass& mp);
+        };
+
+        struct shared {};
+    };
+
+It is possible to derive the struct `unique` from the type 
+`boost::spirit::detail::default_checking_policy`. This type implements a 
+minimal sufficient interface for some of the required functions, simplifying 
+the task of writing a new checking policy.
+
+This class may implement a function `destroy()` being called during destruction 
+of the last copy of a `multi_pass`. This function should be used to free any of 
+the shared data items the policy might have allocated during construction of 
+its `shared` part. Because of the way `multi_pass` is implemented any allocated 
+data members in `shared` should _not_ be deep copied in a copy constructor of 
+`shared`.
+
+[heading StoragePolicy]
+
+A `StoragePolicy` must have the following interface:
+
+    struct storage_policy
+    {
+        // Value is the same type as typename MultiPass::value_type
+        template <typename Value>
+        struct unique
+        {
+            // destroy is called whenever the last copy of a multi_pass is
+            // destructed (ownership_policy::release() returned true)
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            template <typename MultiPass>
+            static void destroy(MultiPass& mp);
+
+            // swap is called by multi_pass::swap()
+            void swap(unique&);
+
+            // dereference is called whenever multi_pass::operator*() is invoked
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            //
+            // This function is expected to return a reference to the current
+            // character/token.
+            template <typename MultiPass>
+            static typename MultiPass::reference dereference(MultiPass const& mp);
+
+            // increment is called whenever multi_pass::operator++ is invoked
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            template <typename MultiPass>
+            static void increment(MultiPass& mp);
+
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            template <typename MultiPass>
+            static void clear_queue(MultiPass& mp);
+
+            // is_eof is called to test whether this instance is a end of input 
+            // iterator.
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            //
+            // This method is expected to return true if the end of input is 
+            // reached. 
+            template <typename MultiPass>
+            static bool is_eof(MultiPass const& mp);
+
+            // less_than is called whenever multi_pass::operator==() is invoked
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            //   rhs:   is the multi_pass reference this instance is compared 
+            //          to
+            //
+            // This function is expected to return true if the current instance
+            // is equal to the right hand side multi_pass instance
+            template <typename MultiPass>
+            static bool equal_to(MultiPass const& mp, MultiPass const& rhs);
+
+            // less_than is called whenever multi_pass::operator<() is invoked
+            //
+            //   mp:    is a reference to the whole multi_pass instance
+            //   rhs:   is the multi_pass reference this instance is compared 
+            //          to
+            //
+            // This function is expected to return true if the current instance
+            // is less than the right hand side multi_pass instance
+            template <typename MultiPass>
+            static bool less_than(MultiPass const& mp, MultiPass const& rhs);
+        };
+
+        // Value is the same type as typename MultiPass::value_type
+        template <typename Value>
+        struct shared {};
+    };
+
+It is possible to derive the struct `unique` from the type 
+`boost::spirit::detail::default_storage_policy`. This type implements a 
+minimal sufficient interface for some of the required functions, simplifying 
+the task of writing a new storage policy.
+
+This class may implement a function `destroy()` being called during destruction 
+of the last copy of a `multi_pass`. This function should be used to free any of 
+the shared data items the policy might have allocated during construction of 
+its `shared` part. Because of the way `multi_pass` is implemented any allocated 
+data members in `shared` should _not_ be deep copied in a copy constructor of 
+`shared`.
+
+Generally, a `StoragePolicy` is the trickiest policy to implement. You should 
+study and understand the existing `StoragePolicy` classes before you try and 
+write your own.
+
+
+[endsect]
+
+
+

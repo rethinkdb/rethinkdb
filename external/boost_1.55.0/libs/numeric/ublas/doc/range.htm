@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Range and slice</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Range and Slice Storage</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="range"></a>Range&lt;SizeType,DistanceType&gt;</h2>
+<h4>Description</h4>
+<p>The class <code>range</code> specifies a range of indicies. The range is a sequence of indices
+from a start value to stop value. The indices increase by one and exlude the stop value.
+<code>range</code> can therefore be used to specify ranges of elements from vectors and matrices.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/storage.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    range r (0, 3);
+    for (unsigned i = 0; i &lt; r.size (); ++ i) {
+        std::cout &lt;&lt; r (i) &lt;&lt; std::endl;
+    }
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header storage.hpp.</p>
+<h4>Model of</h4>
+<p>Reversible Container.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of Reversible
+Container.</p>
+<h4>Public base classes</h4>
+<p>None.</p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>range (size_type start, size_type stop)</code></td>
+<td>Constructs a range of indicies from <code>start</code> to <code>stop (excluded)</code>
+.</td>
+</tr>
+<tr>
+<td><code>size_type start () const</code></td>
+<td>Returns the beginning of the <code>range</code>.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the <code>range</code>.</td>
+</tr>
+<tr>
+<td><code>const_reference operator [] (size_type i)
+const</code></td>
+<td>Returns the value <code>start + i</code> of the <code>i</code>
+-th element.</td>
+</tr>
+<tr>
+<td><code>range compose (const range &amp;r) const</code></td>
+<td>Returns the composite range from <code>start + r.start
+()</code> to <code>start + r.start () + r.size ()</code>.</td>
+</tr>
+<tr>
+<td><code>bool operator == (const range &amp;r) const</code></td>
+<td>Tests two ranges for equality.</td>
+</tr>
+<tr>
+<td><code>bool operator != (const range &amp;r) const</code></td>
+<td>Tests two ranges for inequality.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>range</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>range</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed <code>range</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>range</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Preconditions</h4>
+<ul>
+<li><code>start () &lt;= stop ()</code></li>
+</ul>
+
+<h2><a name="slice"></a>Slice&lt;SizeType,DistanceType&gt;</h2>
+<h4>Description</h4>
+<p>The class <code>slice</code> specifies a 'slice' of indicies. Slices are more general
+then ranges, the stride allows the sequence of indicies to increase and decrease by the specified amount between element.
+<code>slice</code> can therefore be used to specify slices of element from vectors and matrices.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/storage.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    slice s (0, 1, 3);
+    for (unsigned i = 0; i &lt; s.size (); ++ i) {
+        std::cout &lt;&lt; s (i) &lt;&lt; std::endl;
+    }
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header storage.hpp.</p>
+<h4>Model of</h4>
+<p>Reversible Container.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of Reversible
+Container.</p>
+<h4>Public base classes</h4>
+<p>None.</p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>slice (size_type start, size_type stride, size_type
+size)</code></td>
+<td>Constructs a slice <code>start,start+stride,start+2*stride...</code> with 
+<code>size</code> elements.</td>
+</tr>
+<tr>
+<td><code>size_type start () const</code></td>
+<td>Returns the beginning of the <code>slice</code>.</td>
+</tr>
+<tr>
+<td><code>size_type stride () const</code></td>
+<td>Returns the stride of the <code>slice</code>.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the <code>slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_reference operator [] (size_type i)
+const</code></td>
+<td>Returns the value <code>start + i * stride</code> of the
+<code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>slice compose (const range &amp;r) const</code></td>
+<td>Returns the composite slice from <code>start + stride * r.start
+()</code> to <code>start + stride * (r.start () + r.size ())</code>
+with stride <code>stride</code>.</td>
+</tr>
+<tr>
+<td><code>slice compose (const slice &amp;s) const</code></td>
+<td>Returns the composite slice from <code>start + stride * s.start
+()</code> to <code>start + stride * s.stride () * (s.start () +
+s.size ())</code> with stride <code>stride * s.stride ()</code>
+.</td>
+</tr>
+<tr>
+<td><code>bool operator == (const slice &amp;s) const</code></td>
+<td>Tests two slices for equality.</td>
+</tr>
+<tr>
+<td><code>bool operator != (const slice &amp;s) const</code></td>
+<td>Tests two slices for inequality.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed <code>slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>slice</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Preconditions</h4>
+<ul>
+<li>None all strides are vaild. However when an index is returned or an iterator is dereferenced its
+value must be representable as the size_type.</li>
+</ul>
+   <hr/>
+   <p>
+      Copyright (&copy;) 2000-2004 Michael Stevens, Mathias Koch,
+      Joerg Walter, Gunter Winkler<br />
+      Use, modification and distribution are subject to the
+      Boost Software License, Version 1.0.
+      (See accompanying file LICENSE_1_0.txt
+      or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+         http://www.boost.org/LICENSE_1_0.txt
+      </a>).
+   </p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

@@ -1,0 +1,262 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Design Topics</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../string_algo.html" title="Chapter&#160;30.&#160;Boost String Algorithms Library">
+<link rel="prev" href="quickref.html" title="Quick Reference">
+<link rel="next" href="concept.html" title="Concepts">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="quickref.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../string_algo.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concept.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="string_algo.design"></a>Design Topics</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="design.html#string_algo.string">String Representation</a></span></dt>
+<dt><span class="section"><a href="design.html#string_algo.sequence_traits">Sequence Traits</a></span></dt>
+<dt><span class="section"><a href="design.html#string_algo.find">Find Algorithms</a></span></dt>
+<dt><span class="section"><a href="design.html#string_algo.replace">Replace Algorithms</a></span></dt>
+<dt><span class="section"><a href="design.html#string_algo.split">Find Iterators &amp; Split Algorithms</a></span></dt>
+<dt><span class="section"><a href="design.html#string_algo.exception">Exception Safety</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="string_algo.string"></a>String Representation</h3></div></div></div>
+<p>
+            As the name suggest, this library works mainly with strings. However, in the context of this library,
+            a string is not restricted to any particular implementation (like <code class="computeroutput">std::basic_string</code>),
+            rather it is a concept. This allows the algorithms in this library to be reused for any string type,
+            that satisfies the given requirements.
+        </p>
+<p>
+            <span class="bold"><strong>Definition:</strong></span> A string is a 
+            <a href="../../../libs/range/index.html" target="_top">range</a> of characters accessible in sequential
+            ordered fashion. Character is any value type with "cheap" copying and assignment.                
+        </p>
+<p>
+            First requirement of string-type is that it must accessible using 
+            <a href="../../../libs/range/index.html" target="_top">Boost.Range</a>. This facility allows to access
+            the elements inside the string in a uniform iterator-based fashion. 
+            This is sufficient for our library
+        </p>
+<p>            
+            Second requirement defines the way in which the characters are stored in the string. Algorithms in 
+            this library work with an assumption that copying a character is cheaper then allocating extra 
+            storage to cache results. This is a natural assumption for common character types. Algorithms will 
+            work even if this requirement is not satisfied, however at the cost of performance degradation.
+        </p>
+<p>
+        </p>
+<p>
+            In addition some algorithms have additional requirements on the string-type. Particularly, it is required
+            that an algorithm can create a new string of the given type. In this case, it is required that
+            the type satisfies the sequence (Std &#167;23.1.1) requirements.
+        </p>
+<p>
+            In the reference and also in the code, requirement on the string type is designated by the name of
+            template argument. <code class="computeroutput">RangeT</code> means that the basic range requirements must hold.
+            <code class="computeroutput">SequenceT</code> designates extended sequence requirements.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="string_algo.sequence_traits"></a>Sequence Traits</h3></div></div></div>
+<p>
+            The major difference between <code class="computeroutput">std::list</code> and <code class="computeroutput">std::vector</code> is not in the interfaces
+            they provide, but rather in the inner details of the class and the way how it performs 
+            various operations. The problem is that it is not possible to infer this difference from the 
+            definitions of classes without some special mechanism.
+            However, some algorithms can run significantly faster with the knowledge of the properties
+            of a particular container.
+        </p>
+<p>
+            Sequence traits allow one to specify additional properties of a sequence container (see Std.&#167;32.2).
+            These properties are then used by algorithms to select optimized handling for some operations.
+            The sequence traits are declared in the header 
+            <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string.sequence_traits_hpp" title="Header &lt;boost/algorithm/string/sequence_traits.hpp&gt;">boost/algorithm/string/sequence_traits.hpp</a></code>.
+        </p>
+<p>
+            In the table C denotes a container and c is an object of C.
+        </p>
+<div class="table">
+<a name="idp207038376"></a><p class="title"><b>Table&#160;30.12.&#160;Sequence Traits</b></p>
+<div class="table-contents"><table class="table" summary="Sequence Traits">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th align="left">Trait</th>
+<th align="left">Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td align="left">
+<code class="computeroutput"><a class="link" href="../boost/algorithm/has_native_replace.html" title="Class template has_native_replace">has_native_replace&lt;C&gt;</a></code>::value</td>
+<td align="left">Specifies that the sequence has std::string like replace method</td>
+</tr>
+<tr>
+<td align="left">
+<code class="computeroutput"><a class="link" href="../boost/algorithm/has_stable_iterators.html" title="Class template has_stable_iterators">has_stable_iterators&lt;C&gt;</a></code>::value</td>
+<td align="left">
+                            Specifies that the sequence has stable iterators. It means,
+                            that operations like <code class="computeroutput">insert</code>/<code class="computeroutput">erase</code>/<code class="computeroutput">replace</code> 
+                            do not invalidate iterators.
+                        </td>
+</tr>
+<tr>
+<td align="left">
+<code class="computeroutput"><a class="link" href="../boost/algorithm/has_const_time_insert.html" title="Class template has_const_time_insert">has_const_time_insert&lt;C&gt;</a></code>::value</td>
+<td align="left">
+                            Specifies that the insert method of the sequence has 
+                            constant time complexity.
+                        </td>
+</tr>
+<tr>
+<td align="left">
+<code class="computeroutput"><a class="link" href="../boost/algorithm/has_const_time_erase.html" title="Class template has_const_time_erase">has_const_time_erase&lt;C&gt;</a></code>::value</td>
+<td align="left">
+                            Specifies that the erase method of the sequence has constant time complexity
+                        </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+            Current implementation contains specializations for std::list&lt;T&gt; and
+            std::basic_string&lt;T&gt; from the standard library and SGI's std::rope&lt;T&gt; and std::slist&lt;T&gt;.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="string_algo.find"></a>Find Algorithms</h3></div></div></div>
+<p>
+            Find algorithms have similar functionality to <code class="computeroutput">std::search()</code> algorithm. They provide a different 
+            interface which is more suitable for common string operations. 
+            Instead of returning just the start of matching subsequence they return a range which is necessary 
+            when the length of the matching subsequence is not known beforehand. 
+            This feature also allows a partitioning of  the input sequence into three 
+            parts: a prefix, a substring and a suffix. 
+        </p>
+<p>
+            Another difference is an addition of various searching methods besides find_first, including find_regex. 
+        </p>
+<p>
+            It the library, find algorithms are implemented in terms of 
+            <a class="link" href="concept.html#string_algo.finder_concept" title="Finder Concept">Finders</a>. Finders are used also by other facilities 
+            (replace,split).
+            For convenience, there are also function wrappers for these finders to simplify find operations.
+        </p>
+<p>
+            Currently the library contains only naive implementation of find algorithms with complexity 
+            O(n * m) where n is the size of the input sequence and m is the size of the search sequence. 
+            There are algorithms with complexity O(n), but for smaller sequence a constant overhead is 
+            rather big. For small m &lt;&lt; n (m by magnitude smaller than n) the current implementation 
+            provides acceptable efficiency. 
+            Even the C++ standard defines the required complexity for search algorithm as O(n * m). 
+            It is possible that a future version of library will also contain algorithms with linear 
+            complexity as an option
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="string_algo.replace"></a>Replace Algorithms</h3></div></div></div>
+<p>
+            The implementation of replace algorithms follows the layered structure of the library. The 
+            lower layer implements generic substitution of a range in the input sequence. 
+            This layer takes a <a class="link" href="concept.html#string_algo.finder_concept" title="Finder Concept">Finder</a> object and a 
+            <a class="link" href="concept.html#string_algo.formatter_concept" title="Formatter concept">Formatter</a> object as an input. These two 
+            functors define what to replace and what to replace it with. The upper layer functions 
+            are just wrapping calls to the lower layer. Finders are shared with the find and split facility. 
+        </p>
+<p>
+            As usual, the implementation of the lower layer is designed to work with a generic sequence while
+            taking advantage of specific features if possible 
+            (by using <a class="link" href="design.html#string_algo.sequence_traits" title="Sequence Traits">Sequence traits</a>)
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="string_algo.split"></a>Find Iterators &amp; Split Algorithms</h3></div></div></div>
+<p>
+            Find iterators are a logical extension of the <a class="link" href="design.html#string_algo.find" title="Find Algorithms">find facility</a>.
+            Instead of searching for one match, the whole input can be iteratively searched for multiple matches.
+            The result of the search is then used to partition the input. It depends on the algorithms which parts 
+            are returned as the result. They can be the matching parts (<code class="computeroutput"><a class="link" href="../boost/algorithm/find_iterator.html" title="Class template find_iterator">find_iterator</a></code>) of the parts in
+            between (<code class="computeroutput"><a class="link" href="../boost/algorithm/split_iterator.html" title="Class template split_iterator">split_iterator</a></code>). 
+        </p>
+<p>
+            In addition the split algorithms like <code class="computeroutput"><a class="link" href="../boost/algorithm/find_all.html" title="Function template find_all">find_all()</a></code> and <code class="computeroutput"><a class="link" href="../boost/algorithm/split_idp58609016.html" title="Function template split">split()</a></code>
+            can simplify the common operations. They use a find iterator to search the whole input and copy the 
+            matches they found into the supplied container.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="string_algo.exception"></a>Exception Safety</h3></div></div></div>
+<p>
+            The library requires that all operations on types used as template
+            or function arguments provide the <span class="emphasis"><em>basic exception-safety guarantee</em></span>. 
+            In turn, all functions and algorithms in this library, except where stated
+            otherwise, will provide the <span class="emphasis"><em>basic exception-safety guarantee</em></span>.
+            In other words:
+            The library maintains its invariants and does not leak resources in
+            the face of exceptions.  Some library operations give stronger
+            guarantees, which are documented on an individual basis.
+        </p>
+<p>
+            Some functions can provide the <span class="emphasis"><em>strong exception-safety guarantee</em></span>.
+            That means that following statements are true:    
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                    If an exception is thrown, there are no effects other than those
+                    of the function 
+                </li>
+<li class="listitem">
+                    If an exception is thrown other than by the function, there are no effects
+                </li>
+</ul></div>
+<p>
+            This guarantee can be provided under the condition that the operations 
+            on the types used for arguments for these functions either
+            provide the strong exception guarantee or do not alter the global state .
+         </p>
+<p>
+            In the reference, under the term <span class="emphasis"><em>strong exception-safety guarantee</em></span>, we mean the
+            guarantee as defined above.            
+        </p>
+<p>
+            For more information about the exception safety topics, follow this 
+            <a href="http://www.boost.org/more/generic_exception_safety.html" target="_top">link</a>
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: April 22, 2010 at 00:00:35 +0100</small></p></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2004 Pavol Droba<p>Use, modification and distribution is subject to the Boost
+                Software License, Version 1.0. (See accompanying file
+                <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+            </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="quickref.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../string_algo.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concept.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

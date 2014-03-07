@@ -1,0 +1,17 @@
+#==============================================================================
+#   Copyright (c) 2009 Chris Hoeppler
+#
+#   Distributed under the Boost Software License, Version 1.0. (See accompanying
+#   file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+
+project spirit_v2_repository/example_karma 
+    : requirements
+        <toolset>gcc:<cxxflags>-ftemplate-depth-300
+        <toolset>darwin:<cxxflags>-ftemplate-depth-300
+    ;
+
+exe karma_confix : confix.cpp ;
+exe calc2_ast_dump_sr : calc2_ast_dump_sr.cpp ;
+exe mini_xml_karma_sr : mini_xml_karma_sr.cpp ;
+

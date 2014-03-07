@@ -1,0 +1,83 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Overview</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Context">
+<link rel="up" href="../index.html" title="Context">
+<link rel="prev" href="../index.html" title="Context">
+<link rel="next" href="requirements.html" title="Requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="requirements.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="context.overview"></a><a class="link" href="overview.html" title="Overview">Overview</a>
+</h2></div></div></div>
+<p>
+      <span class="bold"><strong>Boost.Context</strong></span> is a foundational library that
+      provides a sort of cooperative multitasking on a single thread. By providing
+      an abstraction of the current execution state in the current thread, including
+      the stack (with local variables) and stack pointer, all registers and CPU flags,
+      and the instruction pointer, a <span class="emphasis"><em>fcontext_t</em></span> instance represents
+      a specific point in the application's execution path. This is useful for building
+      higher-level abstractions, like <span class="emphasis"><em>coroutines</em></span>, <span class="emphasis"><em>cooperative
+      threads (userland threads)</em></span> or an equivalent to <a href="http://msdn.microsoft.com/en-us/library/9k7k7cf0%28v=vs.80%29.aspx" target="_top">C#
+      keyword <span class="emphasis"><em>yield</em></span></a> in C++.
+    </p>
+<p>
+      A <span class="emphasis"><em>fcontext_t</em></span> provides the means to suspend the current
+      execution path and to transfer execution control, thereby permitting another
+      <span class="emphasis"><em>fcontext_t</em></span> to run on the current thread. This state full
+      transfer mechanism enables a <span class="emphasis"><em>fcontext_t</em></span> to suspend execution
+      from within nested functions and, later, to resume from where it was suspended.
+      While the execution path represented by a <span class="emphasis"><em>fcontext_t</em></span> only
+      runs on a single thread, it can be migrated to another thread at any given
+      time.
+    </p>
+<p>
+      A context switch between threads requires system calls (involving the OS kernel),
+      which can cost more than thousand CPU cycles on x86 CPUs. By contrast, transferring
+      control among them requires only fewer than hundred CPU cycles because it does
+      not involve system calls as it is done within a single thread.
+    </p>
+<p>
+      In order to use the classes and functions described here, you can either include
+      the specific headers specified by the descriptions of each class or function,
+      or include the master library header:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">context</span><span class="special">/</span><span class="identifier">all</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      which includes all the other headers in turn.
+    </p>
+<p>
+      All functions and classes are contained in the namespace <span class="emphasis"><em>boost::context</em></span>.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009 Oliver Kowalke<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="requirements.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

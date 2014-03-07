@@ -1,0 +1,469 @@
+[/
+ / Copyright (c) 2008 Vicente J. Botet Escriba
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+
+[section  Internal Locking]
+[note This tutorial is an adaptation of chapter Concurrency of the Object-Oriented Programming in the BETA Programming Language and  of the paper of Andrei Alexandrescu "Multithreading and the C++ Type System" to the Boost library.]
+[section Concurrent threads of execution]
+
+Consider, for example, modeling a bank account class that supports simultaneous deposits and withdrawals from multiple locations (arguably the "Hello, World" of multithreaded programming).
+
+From here a component is a model of the `Callable` concept.
+
+On C++11 (Boost) concurrent execution of a component is obtained by means of the `std::thread`(`boost::thread`):
+
+    boost::thread thread1(S);
+
+where `S` is a model of `Callable`. The meaning of this expression is that execution of `S()` will take place concurrently with the current thread of execution executing the expression.
+
+The following example includes a bank account of a person (Joe) and two components, one corresponding to a bank agent depositing money in Joe's account, and one representing Joe. Joe will only be withdrawing money from the account:
+
+  class BankAccount;
+
+  BankAccount JoesAccount;
+  
+  void bankAgent()
+  {
+      for (int i =10; i>0; --i) {
+          //...
+          JoesAccount.Deposit(500);
+          //...
+      }
+  }
+  
+  void Joe() {
+      for (int i =10; i>0; --i) {
+          //...
+          int myPocket = JoesAccount.Withdraw(100);
+          std::cout << myPocket << std::endl;
+          //...
+      }
+  }
+  
+  int main() {
+      //...
+      boost::thread thread1(bankAgent); // start concurrent execution of bankAgent
+      boost::thread thread2(Joe); // start concurrent execution of Joe
+      thread1.join();
+      thread2.join();
+      return 0;
+  }
+
+From time to time, the `bankAgent` will deposit $500 in `JoesAccount`. Joe will similarly withdraw $100 from his account. These sentences describe that the bankAgent and Joe are executed concurrently.
+
+[endsect]
+[section  Internal locking]
+
+The above example works well as long as the bankAgent and Joe doesn't access JoesAccount at the same time. There is, however, no guarantee that this will not happen. We may use a mutex to guarantee exclusive access to each bank.
+
+  class BankAccount {
+      boost::mutex mtx_;
+      int balance_;
+  public:
+      void Deposit(int amount) {
+          mtx_.lock();
+          balance_ += amount;
+          mtx_.unlock();
+      }
+      void Withdraw(int amount) {
+          mtx_.lock();
+          balance_ -= amount;
+          mtx_.unlock();
+      }
+      int GetBalance() {
+          mtx_.lock();
+          int b = balance_;
+          mtx_.unlock();
+          return b;
+      }
+  };
+
+Execution of the Deposit and Withdraw operations will no longer be able to make simultaneous access to balance.
+
+Mutex is a simple and basic mechanism for obtaining synchronization. In the above example it is relatively easy to be convinced that the synchronization works correctly (in the absence of exception). In a system with several concurrent objects and several shared objects, it may be difficult to describe synchronization by means of mutexes. Programs that make heavy use of mutexes may be difficult to read and write. Instead, we shall introduce a number of generic classes for handling more complicated forms of synchronization and communication.
+
+With the RAII idiom we can simplify a lot this using the scoped locks. In the code below, guard's constructor locks the passed-in object this, and guard's destructor unlocks this.
+
+  class BankAccount {
+      boost::mutex mtx_; // explicit mutex declaration 
+      int balance_;
+  public:
+      void Deposit(int amount) {
+          boost::lock_guard<boost::mutex> guard(mtx_);
+          balance_ += amount;
+      }
+      void Withdraw(int amount) {
+          boost::lock_guard<boost::mutex> guard(mtx_);
+          balance_ -= amount;
+      }
+      int GetBalance() {
+          boost::lock_guard<boost::mutex> guard(mtx_);
+          return balance_;
+      }
+  };
+
+The object-level locking idiom doesn't cover the entire richness of a threading model. For example, the model above is quite deadlock-prone when you try to coordinate multi-object transactions. Nonetheless, object-level locking is useful in many cases, and in combination with other mechanisms can provide a satisfactory solution to many threaded access problems in object-oriented programs.
+
+[endsect]
+[section  Internal and external locking]
+
+The BankAccount class above uses internal locking. Basically, a class that uses internal locking guarantees that any concurrent calls to its public member functions don't corrupt an instance of that class. This is typically ensured by having each public member function acquire a lock on the object upon entry. This way, for any given object of that class, there can be only one member function call active at any moment, so the operations are nicely serialized.
+
+This approach is reasonably easy to implement and has an attractive simplicity. Unfortunately, "simple" might sometimes morph into "simplistic."
+
+Internal locking is insufficient for many real-world synchronization tasks. Imagine that you want to implement an ATM withdrawal transaction with the BankAccount class. The requirements are simple. The ATM transaction consists of two withdrawals-one for the actual money and one for the $2 commission. The two withdrawals must appear in strict sequence; that is, no other transaction can exist between them.
+
+The obvious implementation is erratic:
+
+  void ATMWithdrawal(BankAccount& acct, int sum) {
+      acct.Withdraw(sum);
+      // preemption possible
+      acct.Withdraw(2);
+  }
+
+The problem is that between the two calls above, another thread can perform another operation on the account, thus breaking the second design requirement.
+
+In an attempt to solve this problem, let's lock the account from the outside during the two operations:
+
+  void ATMWithdrawal(BankAccount& acct, int sum) {
+      boost::lock_guard<boost::mutex> guard(acct.mtx_); 1
+      acct.Withdraw(sum);
+      acct.Withdraw(2);
+  }
+
+Notice that the code above doesn't compiles, the `mtx_` field is private.
+We have two possibilities:
+
+* make `mtx_` public which seams odd
+* make the `BankAccount` lockable by adding the lock/unlock functions
+
+We can add these functions explicitly
+
+  class BankAccount {
+      boost::mutex mtx_;
+      int balance_;
+  public:
+      void Deposit(int amount) {
+          boost::lock_guard<boost::mutex> guard(mtx_);
+          balance_ += amount;
+      }
+      void Withdraw(int amount) {
+          boost::lock_guard<boost::mutex> guard(mtx_);
+          balance_ -= amount;
+      }
+      void lock() {
+          mtx_.lock();
+      }
+      void unlock() {
+          mtx_.unlock();
+      }
+  };
+
+or inheriting from a class which add these lockable functions.
+
+The `basic_lockable_adapter` class helps to define the `BankAccount` class as
+
+  class BankAccount
+  : public basic_lockable_adapter<mutex>
+  {
+      int balance_;
+  public:
+      void Deposit(int amount) {
+          boost::lock_guard<BankAccount> guard(*this);
+          balance_ += amount;
+      }
+      void Withdraw(int amount) {
+          boost::lock_guard<BankAccount> guard(*this);
+          balance_ -= amount;
+      }
+      int GetBalance() {
+          boost::lock_guard<BankAccount> guard(*this);
+          return balance_;
+      }
+  };
+
+
+and the code that doesn't compiles becomes
+
+  void ATMWithdrawal(BankAccount& acct, int sum) {
+      boost::lock_guard<BankAccount> guard(acct);
+      acct.Withdraw(sum);
+      acct.Withdraw(2);
+  }
+
+Notice that now acct is being locked by Withdraw after it has already been locked by guard. When running such code, one of two things happens.
+
+* Your mutex implementation might support the so-called recursive mutex semantics. This means that the same thread can lock the same mutex several times successfully. In this case, the implementation works but has a performance overhead due to unnecessary locking. (The locking/unlocking sequence in the two Withdraw calls is not needed but performed anyway-and that costs time.)
+* Your mutex implementation might not support recursive locking, which means that as soon as you try to acquire it the second time, it blocks-so the ATMWithdrawal function enters the dreaded deadlock.
+
+As `boost::mutex` is not recursive, we need to use its recursive version `boost::recursive_mutex`.
+
+  class BankAccount
+  : public basic_lockable_adapter<recursive_mutex>
+  {
+  
+      // ...
+  };
+
+The caller-ensured locking approach is more flexible and the most efficient, but very dangerous. In an implementation using caller-ensured locking, BankAccount still holds a mutex, but its member functions don't manipulate it at all. Deposit and Withdraw are not thread-safe anymore. Instead, the client code is responsible for locking BankAccount properly.
+
+    class BankAccount
+        : public basic_lockable_adapter<boost:mutex> {
+        int balance_;
+    public:
+        void Deposit(int amount) {
+            balance_ += amount;
+        }
+        void Withdraw(int amount) {
+            balance_ -= amount;
+        }
+    };
+
+Obviously, the caller-ensured locking approach has a safety problem. BankAccount's implementation code is finite, and easy to reach and maintain, but there's an unbounded amount of client code that manipulates BankAccount objects. In designing applications, it's important to differentiate between requirements imposed on bounded code and unbounded code. If your class makes undue requirements on unbounded code, that's usually a sign that encapsulation is out the window.
+
+To conclude, if in designing a multi-threaded class you settle on internal locking, you expose yourself to inefficiency or deadlocks. On the other hand, if you rely on caller-provided locking, you make your class error-prone and difficult to use. Finally, external locking completely avoids the issue by leaving it all to the client code.
+
+
+[endsect]
+
+[/
+[section  Monitors]
+
+The use of `mutex` and `lockers`, as in `BankAccount`, is a common way of defining objects shared by two or more concurrent components. The basic_lockable_adapter class was a first step. 
+We shall therefore introduce an abstraction that makes it easier to define such objects. 
+The following class describes a so-called monitor pattern.
+
+  template <
+      typename Lockable=mutex
+  >
+  class basic_monitor : protected basic_lockable_adapter<Lockable> { // behaves like an BasicLockable for the derived classes 
+  protected:
+      typedef unspecified synchronizer; // is an strict lock guard 
+  };
+
+[/shared_monitor]
+[/monitor]
+
+A basic_monitor object behaves like a `BasicLockable` object but only for the inheriting classes. 
+Protected inheritance from lockable_adapter provide to all the derived classes all BasicLockable operations. In addition has a protected nested class, synchronizer, used when defining the monitor operations to synchronize the access critical regions. The BankAccount may be described using Monitor in the following way:
+
+  class BankAccount : protected basic_monitor<>
+  {
+  protected:
+      int balance_;
+  public:
+      BankAccount() : balance_(0) {}
+      BankAccount(const BankAccount &rhs) {
+          synchronizer _(*rhs.mutex());
+          balance_=rhs.balance_;
+      }
+  
+      BankAccount& operator=(BankAccount &rhs)
+      {
+          if(&rhs == this) return *this;
+  
+          int balance=0;
+          {
+              synchronizer _(*rhs.mutex());
+              balance=rhs.balance_;
+          }
+          synchronizer _(*this->mutex());
+          balance_=balance;
+          return *this;
+      }
+  
+      void Deposit(int amount) {
+          synchronizer _(*this->mutex());
+          balance_ += amount;
+      }
+      int Withdraw(int amount) {
+          synchronizer _(*this->mutex());
+          balance_ -= amount;
+          return amount;
+      }
+      int GetBalance() {
+          synchronizer _(*this->mutex());
+          return balance_;
+      }
+  };
+
+In the following, a monitor means some sub-class of monitor. A synchronized operation means an operation using the synchronizer guard defined within some monitor. Monitor is one example of a high-level concurrency abstraction that can be defined by means of mutexes.
+
+
+[section Monitor Conditions]
+
+It may happen that a component executing an entry operation of a monitor is unable to continue execution due to some condition not being fulfilled. Consider, for instance, a bounded buffer of characters. Such a buffer may be implemented as a monitor with two operations Push and Pull: the Puss operation cannot be executed if the buffer is full, and the Pull operation cannot be executed if the buffer is empty. A sketch of such a buffer monitor may look as
+follows:
+
+  class sync_buffer {
+      boost::mutex mtx_; 1
+  public:
+      ...
+      bool full() { return in_==out_; }
+      bool empty() { return in_==(out_%size)+1; }
+      void push(T& v) {
+          // wait if buffer is full
+          data_[in_]=v;
+          in_ = (in_% size)+1;
+      }
+      T pull() {
+          // wait if buffer is empty
+          out_ = (out_% size)+1;
+          return data_[out_];
+      }
+  };
+
+The meaning of a wait is that the calling component is delayed until the condition becomes true. We can do that using Boost.Thread condition variables like:
+
+  template <typename T, unsigned size>
+  class sync_buffer
+  {
+      typedef boost::mutex mutex_type;
+      typedef boost::condition_variable condition_type;
+      typedef boost::unique_lock<mutex_type> unique_lock_type;
+      mutex_type mtx_;
+      condition_type not_full_;
+      condition_type not_empty_;
+  
+      T data_[size+1];
+      unsigned in_, out_;
+  
+  public:
+      sync_buffer():in_(0), out_(0) {}
+  
+      bool full() { return out_==(in_+1)%(size+1); }
+      bool empty() { return out_==in_; }
+  
+      unsigned get_in() {return in_;}
+      unsigned get_out() {return out_;}
+      void push(T v) {
+          unique_lock_type guard(mtx_); 1
+          while (full()) { 2
+              not_full_.wait(guard);
+          }
+          data_[in_]=v;
+          in_ = (in_+1)% (size+1);
+          not_empty_.notify_one(); 3
+      }
+  
+      T pull() {
+          unique_lock_type guard(mtx_); 4
+          while (empty()) { 5
+              not_empty_.wait(guard);
+          }
+          unsigned idx = out_;
+          out_ = (out_+1)% (size+1);
+          not_full_.notify_one(); 6
+          return data_[idx];
+      }
+  };
+
+The Monitor class replace the nested synchronizer unique_lock with the class `condition_unique_lock` for this purpose:
+
+  template <
+      typename Lockable,
+      class Condition=condition_safe<typename best_condition<Lockable>::type >
+      , typename ScopeTag=typename scope_tag<Lockable>::type
+  >
+  class condition_unique_lock
+      : protected unique_lock<Lockable,ScopeTag>
+  {
+      BOOST_CONCEPT_ASSERT((LockableConcept<Lockable>));
+  public:
+      typedef Lockable lockable_type;
+      typedef Condition condition;
+  
+      explicit condition_unique_lock(lockable_type& obj); 1
+      condition_unique_lock(lockable_type& obj, condition &cond); 2
+      template <typename Predicate>
+      condition_unique_lock(lockable_type& obj, condition &cond, Predicate pred); 3
+      ~condition_unique_lock() 4
+  
+      typedef bool (condition_unique_lock::*bool_type)() const; 5
+      operator bool_type() const; 6
+      bool operator!() const { return false; } 7
+      bool owns_lock() const { return true; } 8
+      bool is_locking(lockable_type* l) const 9
+  
+      void relock_on(condition & cond);
+      template<typename Clock, typename Duration>
+      void relock_until(condition & cond, chrono::time_point<Clock, Duration> const& abs_time);
+      template<typename duration_type>
+      void relock_on_for(condition & cond, duration_type const& rel_time);
+  
+      template<typename Predicate>
+      void relock_when(condition &cond, Predicate pred);
+      template<typename Predicate>
+      template<typename Clock, typename Duration>
+      void relock_when_until(condition &cond, Predicate pred,
+              chrono::time_point<Clock, Duration> const& abs_time);
+      template<typename Predicate, typename duration_type>
+      void relock_when_for(condition &cond, Predicate pred,
+              duration_type const& rel_time);
+  
+      10
+  };
+
+
+We may now give the complete version of the buffer class. The content of the buffer is: `data_[out_+1], data_[out_+2], ... data_R[in_-1]` where all the indexes are modulo size. The buffer is full if `in_=out_` and it is empty if `in_=(out_+1)%size`.
+
+  template <typename T, unsigned size>
+  class sync_buffer : protected basic_monitor<>
+  {
+      condition not_full_;
+      condition not_empty_;
+  
+      T data_[size+1];
+      unsigned in_, out_;
+  
+      struct  not_full {
+          explicit not_full(sync_buffer &b):that_(b){};
+          bool operator()() const { return !that_.full(); }
+          sync_buffer &that_;
+      };
+      struct  not_empty {
+          explicit not_empty(sync_buffer &b):that_(b){};
+          bool operator()() const { return !that_.empty(); }
+          sync_buffer &that_;
+      };
+  public:
+      BOOST_COPY_CONSTRUCTOR_DELETE(sync_buffer) 1
+      BOOST_COPY_ASSIGNEMENT_DELETE(sync_buffer) 2
+      sync_buffer():in_(0), out_(0) {}
+  
+      bool full() { return out_==(in_+1)%(size+1); }
+      bool empty() { return out_==in_; }
+  
+      unsigned get_in() {return in_;}
+      unsigned get_out() {return out_;}
+  
+      void push(T v) {
+          synchronizer _(*this->mutex(), not_full_, not_full(*this)); 3
+          data_[in_]=v;
+          in_ = (in_+1)% (size+1);
+          not_empty_.notify_one(); 4
+      }
+  
+      T pull() {
+          synchronizer _(*this->mutex(), not_empty_, not_empty(*this)); 5
+          unsigned idx = out_;
+          out_ = (out_+1)% (size+1);
+          not_full_.notify_one(); 6
+          return data_[idx];
+      }
+  };
+
+Monitors and conditions are useful for describing simple cases of shared objects (by simple we mean a limited use of conditions). If the conditions for delaying a calling component become complicated, the monitor may similarly become difficult to program and read.
+
+[endsect] [/Monitor Conditions]
+
+[endsect] [/Monitors]
+]
+
+[endsect] [/Internal Locking]
+
+

@@ -1,0 +1,378 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Preface</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../index.html" title="Spirit 2.5.2">
+<link rel="prev" href="../index.html" title="Spirit 2.5.2">
+<link rel="next" href="what_s_new.html" title="What's New">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="what_s_new.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="spirit.preface"></a><a class="link" href="preface.html" title="Preface">Preface</a>
+</h2></div></div></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        <span class="emphasis"><em><span class="quote">&#8220;<span class="quote">Examples of designs that meet most of the criteria for "goodness"
+        (easy to understand, flexible, efficient) are a recursive-descent parser,
+        which is traditional procedural code. Another example is the STL, which is
+        a generic library of containers and algorithms depending crucially on both
+        traditional procedural code and on parametric polymorphism.</span>&#8221;</span></em></span>
+        <span class="bold"><strong>--Bjarne Stroustrup</strong></span>
+      </p></blockquote></div>
+<h4>
+<a name="spirit.preface.h0"></a>
+      <span class="phrase"><a name="spirit.preface.history"></a></span><a class="link" href="preface.html#spirit.preface.history">History</a>
+    </h4>
+<h4>
+<a name="spirit.preface.h1"></a>
+      <span class="phrase"><a name="spirit.preface._emphasis_80s__emphasis_"></a></span><a class="link" href="preface.html#spirit.preface._emphasis_80s__emphasis_"><span class="emphasis"><em>80s</em></span></a>
+    </h4>
+<p>
+      In the mid-80s, Joel wrote his first calculator in Pascal. Such an unforgettable
+      coding experience, he was amazed at how a mutually recursive set of functions
+      can model a grammar specification. In time, the skills he acquired from that
+      academic experience became very practical as he was tasked to do some parsing.
+      For instance, whenever he needed to perform any form of binary or text I/O,
+      he tried to approach each task somewhat formally by writing a grammar using
+      Pascal-like syntax diagrams and then a corresponding recursive-descent parser.
+      This process worked very well.
+    </p>
+<h4>
+<a name="spirit.preface.h2"></a>
+      <span class="phrase"><a name="spirit.preface._emphasis_90s__emphasis_"></a></span><a class="link" href="preface.html#spirit.preface._emphasis_90s__emphasis_"><span class="emphasis"><em>90s</em></span></a>
+    </h4>
+<p>
+      The arrival of the Internet and the World Wide Web magnified the need for parsing
+      a thousand-fold. At one point Joel had to write an HTML parser for a Web browser
+      project. Using the W3C formal specifications, he easily wrote a recursive-descent
+      HTML parser. With the influence of the Internet, RFC specifications were abundent.
+      SGML, HTML, XML, email addresses and even those seemingly trivial URLs were
+      all formally specified using small EBNF-style grammar specifications. Joel
+      had more parsing to do, and he wished for a tool similar to larger parser generators
+      such as YACC and ANTLR, where a parser is built automatically from a grammar
+      specification.
+    </p>
+<p>
+      This ideal tool would be able to parse anything from email addresses and command
+      lines, to XML and scripting languages. Scalability was a primary goal. The
+      tool would be able to do this without incurring a heavy development load, which
+      was not possible with the above mentioned parser generators. The result was
+      Spirit.
+    </p>
+<p>
+      Spirit was a personal project that was conceived when Joel was involved in
+      R&amp;D in Japan. Inspired by the GoF's composite and interpreter patterns,
+      he realized that he can model a recursive-descent parser with hierarchical-object
+      composition of primitives (terminals) and composites (productions). The original
+      version was implemented with run-time polymorphic classes. A parser was generated
+      at run time by feeding in production rule strings such as:
+    </p>
+<pre class="programlisting"><span class="string">"prod ::= {'A' | 'B'} 'C';"</span>
+</pre>
+<p>
+      A compile function compiled the parser, dynamically creating a hierarchy of
+      objects and linking semantic actions on the fly. A very early text can be found
+      here: <a href="http://spirit.sourceforge.net/dl_docs/pre-spirit.htm" target="_top">pre-Spirit</a>.
+    </p>
+<h4>
+<a name="spirit.preface.h3"></a>
+      <span class="phrase"><a name="spirit.preface._emphasis_2001_to_2006__emphasis_"></a></span><a class="link" href="preface.html#spirit.preface._emphasis_2001_to_2006__emphasis_"><span class="emphasis"><em>2001
+      to 2006</em></span></a>
+    </h4>
+<p>
+      Version 1.0 to 1.8 was a complete rewrite of the original Spirit parser using
+      expression templates and static polymorphism, inspired by the works of Todd
+      Veldhuizen (<a href="http://en.wikipedia.org/wiki/Expression_templates" target="_top">Expression
+      Templates</a>, C++ Report, June 1995). Initially, the static-Spirit version
+      was meant only to replace the core of the original dynamic-Spirit. Dynamic-Spirit
+      needed a parser to implement itself anyway. The original employed a hand-coded
+      recursive-descent parser to parse the input grammar specification strings.
+      It was at this time when Hartmut Kaiser joined the Spirit development.
+    </p>
+<p>
+      After its initial "open-source" debut in May 2001, static-Spirit
+      became a success. At around November 2001, the Spirit website had an activity
+      percentile of 98%, making it the number one parser tool at Source Forge at
+      the time. Not bad for a niche project like a parser library. The "static"
+      portion of Spirit was forgotten and static-Spirit simply became Spirit. The
+      library soon evolved to acquire more dynamic features.
+    </p>
+<p>
+      Spirit was formally accepted into <a href="http://www.boost.org/" target="_top">Boost</a>
+      in October 2002. Boost is a peer-reviewed, open collaborative development effort
+      around a collection of free Open Source C++ libraries covering a wide range
+      of domains. The Boost Libraries have become widely known as an industry standard
+      for design and implementation quality, robustness, and reusability.
+    </p>
+<h4>
+<a name="spirit.preface.h4"></a>
+      <span class="phrase"><a name="spirit.preface._emphasis_2007__emphasis_"></a></span><a class="link" href="preface.html#spirit.preface._emphasis_2007__emphasis_"><span class="emphasis"><em>2007</em></span></a>
+    </h4>
+<p>
+      Over the years, especially after Spirit was accepted into Boost, Spirit has
+      served its purpose quite admirably. <span class="bold"><strong><span class="emphasis"><em>Classic-Spirit</em></span></strong></span>
+      (versions prior to 2.0) focused on transduction parsing, where the input string
+      is merely translated to an output string. Many parsers fall into the transduction
+      type. When the time came to add attributes to the parser library, it was done
+      in a rather ad-hoc manner, with the goal being 100% backward compatible with
+      Classic Spirit. As a result, some parsers have attributes, some don't.
+    </p>
+<p>
+      Spirit V2 is another major rewrite. Spirit V2 grammars are fully attributed
+      (see <a href="http://en.wikipedia.org/wiki/Attribute_grammar" target="_top">Attribute
+      Grammar</a>) which means that all parser components have attributes. To
+      do this efficiently and elegantly, we had to use a couple of infrastructure
+      libraries. Some did not exist, some were quite new when Spirit debuted, and
+      some needed work. <a href="http://www.boost.org/libs/mpl/index.html" target="_top">Boost.Mpl</a>
+      is an important infrastructure library, yet is not sufficient to implement
+      Spirit V2. Another library had to be written: <a href="../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>.
+      Fusion sits between MPL and STL --between compile time and runtime -- mapping
+      types to values. Fusion is a direct descendant of both MPL and <a href="../../../../../libs/tuple/index.html" target="_top">Boost.Tuples</a>.
+      Fusion is now a full-fledged <a href="http://www.boost.org/" target="_top">Boost</a>
+      library. <a href="../../../phoenix/doc/html/index.html" target="_top">Phoenix</a> also
+      had to be beefed up to support Spirit V2. The result is <a href="../../../../../libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>.
+      Last but not least, Spirit V2 uses an <a href="http://en.wikipedia.org/wiki/Expression_templates" target="_top">Expression
+      Templates</a> library called <a href="../../../../../doc/html/proto.html" target="_top">Boost.Proto</a>.
+    </p>
+<p>
+      Even though it has evolved and matured to become a multi-module library, Spirit
+      is still used for micro-parsing tasks as well as scripting languages. Like
+      C++, you only pay for features that you need. The power of Spirit comes from
+      its modularity and extensibility. Instead of giving you a sledgehammer, it
+      gives you the right ingredients to easily create a sledgehammer.
+    </p>
+<h4>
+<a name="spirit.preface.h5"></a>
+      <span class="phrase"><a name="spirit.preface.new_ideas__spirit_v2"></a></span><a class="link" href="preface.html#spirit.preface.new_ideas__spirit_v2">New
+      Ideas: Spirit V2</a>
+    </h4>
+<p>
+      Just before the development of Spirit V2 began, Hartmut came across the <a href="http://www.stringtemplate.org/" target="_top">StringTemplate</a> library that is
+      a part of the ANTLR parser framework. <a href="#ftn.spirit.preface.f0" class="footnote" name="spirit.preface.f0"><sup class="footnote">[1]</sup></a> The concepts presented in that library lead Hartmut to the next
+      step in the evolution of Spirit. Parsing and generation are tightly connected
+      to a formal notation, or a grammar. The grammar describes both input and output,
+      and therefore, a parser library should have a grammar driven output. This duality
+      is expressed in Spirit by the parser library <span class="emphasis"><em>Spirit.Qi</em></span>
+      and the generator library <span class="emphasis"><em>Spirit.Karma</em></span> using the same
+      component infrastructure.
+    </p>
+<p>
+      The idea of creating a lexer library well integrated with the Spirit parsers
+      is not new. This has been discussed almost since Classic-Spirit (pre V2) initially
+      debuted. Several attempts to integrate existing lexer libraries and frameworks
+      with Spirit have been made and served as a proof of concept and usability (for
+      example see <a href="http://www.boost.org/libs/wave/index.html" target="_top">Wave</a>:
+      The Boost C/C++ Preprocessor Library, and <a href="http://spirit.sourceforge.net/repository/applications/slex.zip" target="_top">SLex</a>:
+      a fully dynamic C++ lexer implemented with Spirit). Based on these experiences
+      we added <span class="emphasis"><em>Spirit.Lex</em></span>: a fully integrated lexer library
+      to the mix, allowing the user to take advantage of the power of regular expressions
+      for token matching, removing pressure from the parser components, simplifying
+      parser grammars. Again, Spirit's modular structure allowed us to reuse the
+      same underlying component library as for the parser and generator libraries.
+    </p>
+<h4>
+<a name="spirit.preface.h6"></a>
+      <span class="phrase"><a name="spirit.preface.how_to_use_this_manual"></a></span><a class="link" href="preface.html#spirit.preface.how_to_use_this_manual">How
+      to use this manual</a>
+    </h4>
+<p>
+      Each major section (there are 3: <a class="link" href="qi.html" title="Qi - Writing Parsers">Qi</a>, <a class="link" href="karma.html" title="Karma - Writing Generators">Karma</a>, and <a class="link" href="lex.html" title="Lex - Writing Lexical Analyzers">Lex</a>)
+      is roughly divided into 3 parts:
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          Tutorials: A step by step guide with heavily annotated code. These are
+          meant to get the user acquainted with the library as quickly as possible.
+          The objective is to build the confidence of the user in using the library
+          through abundant examples and detailed instructions. Examples speak volumes
+          and we have volumes of examples!
+        </li>
+<li class="listitem">
+          Abstracts: A high level summary of key topics. The objective is to give
+          the user a high level view of the library, the key concepts, background
+          and theories.
+        </li>
+<li class="listitem">
+          Reference: Detailed formal technical reference. We start with a quick reference
+          -- an easy to use table that maps into the reference proper. The reference
+          proper starts with C++ concepts followed by models of the concepts.
+        </li>
+</ol></div>
+<p>
+      Some icons are used to mark certain topics indicative of their relevance. These
+      icons precede some text to indicate:
+    </p>
+<div class="table">
+<a name="spirit.preface.icons"></a><p class="title"><b>Table&#160;1.&#160;Icons</b></p>
+<div class="table-contents"><table class="table" summary="Icons">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Icon
+              </p>
+            </th>
+<th>
+              <p>
+                Name
+              </p>
+            </th>
+<th>
+              <p>
+                Meaning
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <span class="inlinemediaobject"><img src=".././images/note.png" alt="note"></span>
+              </p>
+            </td>
+<td>
+              <p>
+                Note
+              </p>
+            </td>
+<td>
+              <p>
+                Generally useful information (an aside that doesn't fit in the flow
+                of the text)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="inlinemediaobject"><img src=".././images/tip.png" alt="tip"></span>
+              </p>
+            </td>
+<td>
+              <p>
+                Tip
+              </p>
+            </td>
+<td>
+              <p>
+                Suggestion on how to do something (especially something that is not
+                obvious)
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="inlinemediaobject"><img src=".././images/important.png" alt="important"></span>
+              </p>
+            </td>
+<td>
+              <p>
+                Important
+              </p>
+            </td>
+<td>
+              <p>
+                Important note on something to take particular notice of
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="inlinemediaobject"><img src=".././images/caution.png" alt="caution"></span>
+              </p>
+            </td>
+<td>
+              <p>
+                Caution
+              </p>
+            </td>
+<td>
+              <p>
+                Take special care with this - it may not be what you expect and may
+                cause bad results
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="inlinemediaobject"><img src=".././images/alert.png" alt="alert"></span>
+              </p>
+            </td>
+<td>
+              <p>
+                Danger
+              </p>
+            </td>
+<td>
+              <p>
+                This is likely to cause serious trouble if ignored
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      This documentation is automatically generated by Boost QuickBook documentation
+      tool. QuickBook can be found in the <a href="http://www.boost.org/tools/index.html" target="_top">Boost
+      Tools</a>.
+    </p>
+<h4>
+<a name="spirit.preface.h7"></a>
+      <span class="phrase"><a name="spirit.preface.support"></a></span><a class="link" href="preface.html#spirit.preface.support">Support</a>
+    </h4>
+<p>
+      Please direct all questions to Spirit's mailing list. You can subscribe to
+      the <a href="http://www.nabble.com/The-Spirit-Parser-Library-f3430.html" target="_top">Spirit
+      General List</a>. The mailing list has a searchable archive. A search link
+      to this archive is provided in <a href="http://boost-spirit.com" target="_top">Spirit</a>'s
+      home page. You may also read and post messages to the mailing list through
+      <a href="news://news.gmane.org/gmane.comp.spirit.general" target="_top">Spirit General
+      NNTP news portal</a> (thanks to <a href="http://www.gmane.org" target="_top">Gmane</a>).
+      The news group mirrors the mailing list. Here is a link to the archives: <a href="http://news.gmane.org/gmane.comp.parsers.spirit.general" target="_top">http://news.gmane.org/gmane.comp.parsers.spirit.general</a>.
+    </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.spirit.preface.f0" class="footnote"><p><a href="#spirit.preface.f0" class="para"><sup class="para">[1] </sup></a>
+        Quote from http://www.stringtemplate.org/: It is a Java template engine (with
+        ports for C# and Python) for generating source code, web pages, emails, or
+        any other formatted text output.
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="what_s_new.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

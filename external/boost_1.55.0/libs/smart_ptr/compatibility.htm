@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>
+		<title>Smart Pointer Changes</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	</head>
+	<body bgcolor="#ffffff" text="#000000">
+		<h1><A href="../../index.htm"><img src="../../boost.png" alt="boost.png (6897 bytes)" align="middle" width="277" height="86"
+					border="0"></A>Smart Pointer Changes</h1>
+		<p>The February 2002 change to the Boost smart pointers introduced a number of 
+			changes. Since the previous version of the smart pointers was in use for a long 
+			time, it's useful to have a detailed list of what changed from a library user's 
+			point of view.</p>
+		<p>Note that for compilers that don't support member templates well enough, a 
+			separate implementation is used that lacks many of the new features and is more 
+			like the old version.</p>
+		<h2>Features Requiring Code Changes to Take Advantage</h2>
+		<ul>
+			<li>
+				The smart pointer class templates now each have their own header file. For 
+				compatibility, the <a href="../../boost/smart_ptr.hpp">&lt;boost/smart_ptr.hpp&gt;</a>
+			header now includes the headers for the four classic smart pointer class 
+			templates.
+			<li>
+				The <b>weak_ptr</b>
+			template was added.
+			<li>
+				The new <b>shared_ptr</b> and <b>shared_array</b> relax the requirement that 
+				the pointed-to object's destructor must be visible when instantiating the <b>shared_ptr</b>
+			destructor. This makes it easier to have shared_ptr members in classes without 
+			explicit destructors.
+			<li>
+				A custom deallocator can be passed in when creating a <b>shared_ptr</b> or <b>shared_array</b>.
+			<li>
+				<b>shared_static_cast</b> and <b>shared_dynamic_cast</b> function templates are 
+				provided which work for <b>shared_ptr</b> and <b>weak_ptr</b> as <b>static_cast</b>
+				and <b>dynamic_cast</b>
+			do for pointers.
+			<li>
+				The self-assignment misfeature has been removed from <b>shared_ptr::reset</b>, 
+				although it is still present in <b>scoped_ptr</b>, and in <b>std::auto_ptr</b>. 
+				Calling <b>reset</b> with a pointer to the object that's already owned by the <b>shared_ptr</b>
+			results in undefined behavior (an assertion, or eventually a double-delete if 
+			assertions are off).
+			<li>
+				The <b>BOOST_SMART_PTR_CONVERSION</b>
+			feature has been removed.
+			<li>
+				<b>shared_ptr&lt;void&gt;</b> is now allowed.</li>
+		</ul>
+		<h2>Features That Improve Robustness</h2>
+		<ul>
+			<li>
+				The manipulation of use counts is now <a name="threadsafe">thread safe</a> on 
+				Windows, Linux, and platforms that support pthreads. See the <a href="../../boost/detail/atomic_count.hpp">
+					&lt;boost/detail/atomic_count.hpp&gt;</a>
+			file for details
+			<li>
+				The new shared_ptr will always delete the object using the pointer it was 
+				originally constructed with. This prevents subtle problems that could happen if 
+				the last <b>shared_ptr</b> was a pointer to a sub-object of a class that did 
+				not have a virtual destructor.</li>
+		</ul>
+		<h2>Implementation Details</h2>
+		<ul>
+			<li>
+				Some bugs in the assignment operator implementations and in <b>reset</b>
+			have been fixed by using the "copy and swap" idiom.
+			<li>
+				Assertions have been added to check preconditions of various functions; 
+				however, since these use the new <a href="../../boost/assert.hpp">&lt;boost/assert.hpp&gt;</a>
+			header, the assertions are disabled by default.
+			<li>
+				The partial specialization of <b>std::less</b> has been replaced by <b>operator&lt;</b>
+			overloads which accomplish the same thing without relying on undefined 
+			behavior.
+			<li>
+				The incorrect overload of <b>std::swap</b> has been replaced by <b>boost::swap</b>, 
+				which has many of the same advantages for generic programming but does not 
+				violate the C++ standard.</li>
+		</ul>
+		<hr>
+		<p>Revised 1 February 2002</p>
+		<p><small>Copyright 2002 Darin Adler. Distributed under the Boost Software License, Version 
+				1.0. See accompanying file <A href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or 
+				copy at <A href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>.</small></p>
+	</body>
+</html>

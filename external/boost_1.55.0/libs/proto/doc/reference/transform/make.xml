@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/transform/make.hpp">
+  <para>
+    Contains definition of the
+    <computeroutput>
+      <classname alt="boost::proto::make">proto::make&lt;&gt;</classname>
+    </computeroutput>
+    and
+    <computeroutput>
+      <classname alt="boost::proto::protect">proto::protect&lt;&gt;</classname>
+    </computeroutput>
+    transforms.
+  </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <struct name="noinvoke">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <purpose>A type annotation in an <conceptname>ObjectTransform</conceptname> which instructs
+          Proto not to look for a nested <computeroutput>::type</computeroutput> within
+          <computeroutput>T</computeroutput> after type substitution.</purpose>
+        <description>
+          <para>
+            <conceptname>ObjectTransform</conceptname>s are evaluated by
+            <computeroutput><classname alt="proto::make">proto::make&lt;&gt;</classname></computeroutput>,
+            which finds all nested transforms and replaces them with the result of their applications.
+            If any substitutions are performed, the result is first assumed to be a metafunction to be applied;
+            that is, Proto checks to see if the result has a nested <computeroutput>::type</computeroutput>
+            typedef. If it does, that becomes the result. The purpose of <computeroutput>proto::noinvoke&lt;&gt;</computeroutput>
+            is to prevent Proto from looking for a nested <computeroutput>::type</computeroutput> typedef
+            in these situations.
+          </para>
+          <para>
+            Example:
+            <programlisting>struct Test
+  : <classname>proto::when</classname>&lt;
+        <classname>_</classname>
+      , proto::noinvoke&lt;
+            // This remove_pointer invocation is bloked by noinvoke
+            boost::remove_pointer&lt;
+                // This add_pointer invocation is *not* blocked by noinvoke
+                boost::add_pointer&lt;<classname>_</classname>&gt;
+            &gt;
+        &gt;()
+    &gt;
+{};
+
+void test_noinvoke()
+{
+    typedef <classname>proto::terminal</classname>&lt;int&gt;::type Int;
+    
+    BOOST_MPL_ASSERT((
+        boost::is_same&lt;
+            boost::result_of&lt;Test(Int)&gt;::type
+          , boost::remove_pointer&lt;Int *&gt;
+        &gt;
+    ));
+    
+    Int i = {42};
+    boost::remove_pointer&lt;Int *&gt; t = Test()(i);
+}</programlisting>
+          </para>
+        </description>
+      </struct>
+      <struct name="protect">
+        <template>
+          <template-type-parameter name="PrimitiveTransform"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; protect&lt;PrimitiveTransform&gt; &gt;</inherit>
+        <purpose>A <conceptname>PrimitiveTransform</conceptname> which prevents another
+          <conceptname>PrimitiveTransform</conceptname> from being applied in an
+          <conceptname>ObjectTransform</conceptname>.</purpose>
+        <description>
+          <para>
+            When building higher order transforms with
+            <computeroutput>
+              <classname alt="proto::make">proto::make&lt;&gt;</classname>
+            </computeroutput> or
+            <computeroutput>
+              <classname alt="proto::lazy">proto::lazy&lt;&gt;</classname>
+            </computeroutput>,
+            you sometimes would like to build types that are parameterized with Proto transforms. In such
+            lambda-style transforms, Proto will unhelpfully find all nested transforms and apply them, even
+            if you don't want them to be applied. Consider the following transform, which will replace the
+            <computeroutput>proto::_</computeroutput> in
+            <computeroutput>Bar&lt;proto::_&gt;()</computeroutput>
+            with <computeroutput>proto::terminal&lt;int&gt;::type</computeroutput>:
+          </para>
+          <para>
+            <programlisting>template&lt;typename T&gt;
+struct Bar
+{};
+
+struct Foo :
+  <classname>proto::when</classname>&lt;<classname>proto::_</classname>, Bar&lt;<classname>proto::_</classname>&gt;() &gt;
+{};
+
+<classname>proto::terminal</classname>&lt;int&gt;::type i = {0};
+
+int main() {
+  Foo()(i);
+  std::cout &lt;&lt; typeid(Foo()(i)).name() &lt;&lt; std::endl;
+}</programlisting>
+          </para>
+          <para>
+            If you actually wanted to default-construct an object of type
+            <computeroutput>Bar&lt;proto::_&gt;</computeroutput>, you would have to protect the
+            <computeroutput>_</computeroutput> to prevent it from being applied. You can
+            use <computeroutput>proto::protect&lt;&gt;</computeroutput> as follows:
+          </para>
+          <para>
+            <programlisting>// OK: replace anything with Bar&lt;_&gt;()
+struct Foo :
+  <classname>proto::when</classname>&lt;<classname>proto::_</classname>, Bar&lt;<classname>proto::protect</classname>&lt;<classname>proto::_</classname>&gt; &gt;() &gt;
+{};</programlisting>
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name=""/>
+            <template-type-parameter name=""/>
+            <template-type-parameter name=""/>
+          </template>
+          <typedef name="result_type">
+            <type>PrimitiveTransform</type>
+          </typedef>
+        </struct>
+      </struct>
+
+      <struct name="make">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        
+        <inherit><classname>proto::transform</classname>&lt; make&lt;T&gt; &gt;</inherit>
+        
+        <purpose>A <conceptname>PrimitiveTransform</conceptname> that computes a type by evaluating
+          any nested transforms and then constructs an object of that type. </purpose>
+        
+        <description>
+          <para>
+            The purpose of <computeroutput>proto::make&lt;&gt;</computeroutput> is to annotate a transform as
+            an <conceptname>ObjectTransform</conceptname> so that
+            <computeroutput><classname alt="proto::when">proto::when&lt;&gt;</classname></computeroutput> knows
+            how to apply it.
+          </para>
+
+          <para>
+            For the full description of the behavior of the
+            <computeroutput><classname alt="proto::make">proto::make&lt;&gt;</classname></computeroutput>
+            transform, see the documentation for the nested
+            <computeroutput><classname alt="proto::make::impl">proto::make::impl&lt;&gt;</classname></computeroutput>
+            class template.
+          </para>
+        </description>
+
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><classname>proto::transform_impl</classname>&lt; Expr, State, Data &gt;</inherit>
+          <typedef name="result_type">
+            <type><emphasis>see-below</emphasis></type>
+            <description>
+              <para>
+                <computeroutput><classname>proto::make</classname>&lt;T&gt;::impl&lt;Expr, State, Data&gt;::result_type</computeroutput> is
+                computed as follows:
+              </para>
+              <para>
+                If <computeroutput>T</computeroutput> is an <conceptname>ObjectTransform</conceptname> of the form
+                <computeroutput>Object(A<subscript>0</subscript>,…A<subscript>n</subscript>)</computeroutput> or
+                <computeroutput>Object(A<subscript>0</subscript>,…A<subscript>n</subscript> ...)</computeroutput>,
+                then let <computeroutput>O</computeroutput> be the return type
+                <computeroutput>Object</computeroutput>. Otherwise, let <computeroutput>O</computeroutput>
+                be <computeroutput>T</computeroutput>. The <computeroutput>result_type</computeroutput> typedef is
+                then computed as follows:
+              </para>
+              <para>
+                <itemizedlist>
+                  <listitem>
+                    <para>
+                      If <computeroutput><classname>proto::is_transform</classname>&lt;O&gt;::value</computeroutput> is
+                      <computeroutput>true</computeroutput>, then let the result type be
+                      <computeroutput>
+                        boost::result_of&lt;<classname>proto::when</classname>&lt;<classname>_</classname>, O&gt;(Expr, State, Data)&gt;::type
+                      </computeroutput>.
+                      Note that a substitution took place.
+                    </para>
+                  </listitem>
+                  <listitem>
+                    If <computeroutput>O</computeroutput> is a template like
+                    <computeroutput><classname>proto::noinvoke</classname>&lt;S&lt;X<subscript>0</subscript>,…X<subscript>n</subscript>&gt; &gt;</computeroutput>,
+                    then the result type is calculated as follows:
+                    <itemizedlist>
+                      <listitem>
+                        <para>
+                          For each <computeroutput>i</computeroutput> in
+                          <computeroutput>[0,n]</computeroutput>, let <computeroutput>
+                            X<subscript>i</subscript>'
+                          </computeroutput> be
+                          <computeroutput>
+                            boost::result_of&lt;<classname>proto::make</classname>&lt;X<subscript>i</subscript>&gt;(Expr, State, Data)&gt;::type
+                          </computeroutput>
+                          (which evaluates this procedure recursively). Note that a substitution took place. (In this case,
+                          Proto merely assumes that a substitution took place for the sake of compile-time efficiency. There
+                          would be no reason to use <computeroutput><classname>proto::noinvoke&lt;&gt;</classname></computeroutput>
+                          otherwise.)
+                        </para>
+                      </listitem>
+                      <listitem>
+                        <para>
+                          The result type is
+                          <computeroutput>
+                            S&lt;X<subscript>0</subscript>',…X<subscript>n</subscript>'&gt;
+                          </computeroutput>.
+                        </para>
+                      </listitem>
+                    </itemizedlist>
+                  </listitem>
+                  <listitem>
+                    If <computeroutput>O</computeroutput> is a template like
+                    <computeroutput>S&lt;X<subscript>0</subscript>,…X<subscript>n</subscript>&gt;</computeroutput>,
+                    then the result type is calculated as follows:
+                    <itemizedlist>
+                      <listitem>
+                        <para>
+                          For each <computeroutput>i</computeroutput> in
+                          <computeroutput>[0,n]</computeroutput>, let <computeroutput>
+                            X<subscript>i</subscript>'
+                          </computeroutput> be
+                          <computeroutput>
+                            boost::result_of&lt;<classname>proto::make</classname>&lt;X<subscript>i</subscript>&gt;(Expr, State, Data)&gt;::type
+                          </computeroutput>
+                          (which evaluates this procedure recursively). Note whether any substitutions took place during
+                          this operation.
+                        </para>
+                      </listitem>
+                      <listitem>
+                        <para>
+                          If any substitutions took place in the above step and
+                          <computeroutput>
+                            S&lt;X<subscript>0</subscript>',…X<subscript>n</subscript>'&gt;
+                          </computeroutput> has a nested
+                          <computeroutput>type</computeroutput> typedef, the result type is
+                          <computeroutput>
+                            S&lt;X<subscript>0</subscript>',…X<subscript>n</subscript>'&gt;::type
+                          </computeroutput>.
+                        </para>
+                      </listitem>
+                      <listitem>
+                        <para>
+                          Otherwise, the result type is
+                          <computeroutput>
+                            S&lt;X<subscript>0</subscript>',…X<subscript>n</subscript>'&gt;
+                          </computeroutput>.
+                        </para>
+                      </listitem>
+                    </itemizedlist>
+                  </listitem>
+                  <listitem>
+                    Otherwise, the result type is <computeroutput>O</computeroutput>, and note that no
+                    substitution took place.
+                  </listitem>
+                </itemizedlist>
+              </para>
+              <para>
+                Note that <computeroutput><classname alt="proto::when">proto::when&lt;&gt;</classname></computeroutput> is implemented
+                in terms of <computeroutput><classname alt="proto::call">proto::call&lt;&gt;</classname></computeroutput>
+                and <computeroutput><classname alt="proto::make">proto::make&lt;&gt;</classname></computeroutput>, so the
+                above procedure is evaluated recursively.
+              </para>
+            </description>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>result_type</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+              </parameter>
+              <parameter name="state">
+                <paramtype>typename impl::state_param</paramtype>
+              </parameter>
+              <parameter name="data">
+                <paramtype>typename impl::data_param</paramtype>
+              </parameter>
+              <description>
+                <para>
+                  <computeroutput>
+                    <classname>proto::make</classname>&lt;T&gt;::impl&lt;Expr,State,Data&gt;::operator()
+                  </computeroutput>
+                  behaves as follows:
+                </para>
+                <para>
+                  <itemizedlist>
+                    <listitem>
+                      <para>
+                        If <computeroutput>T</computeroutput> is of the form
+                        <computeroutput>O(A<subscript>0</subscript>,…A<subscript>n</subscript>)</computeroutput>, then:
+                      </para>
+                      <itemizedlist>
+                        <listitem>
+                          <para>
+                            If <computeroutput>
+                              <classname>proto::is_aggregate</classname>&lt;result_type&gt;::value
+                            </computeroutput> is <computeroutput>true</computeroutput>, then construct
+                            and return an object <computeroutput>that</computeroutput> as follows:
+                            <programlisting>result_type that = {
+  <classname>proto::when</classname>&lt;<classname>_</classname>, A<subscript>0</subscript>&gt;()(expr, state, data),
+  …
+  <classname>proto::when</classname>&lt;<classname>_</classname>, A<subscript>n</subscript>&gt;()(expr, state, data)
+};</programlisting>
+                          </para>
+                        </listitem>
+                        <listitem>
+                          <para>
+                            Otherwise, construct
+                            and return an object <computeroutput>that</computeroutput> as follows:
+                            <programlisting>result_type that(
+  <classname>proto::when</classname>&lt;<classname>_</classname>, A<subscript>0</subscript>&gt;()(expr, state, data),
+  …
+  <classname>proto::when</classname>&lt;<classname>_</classname>, A<subscript>n</subscript>&gt;()(expr, state, data)
+);</programlisting>
+                          </para>
+                        </listitem>
+                      </itemizedlist>
+                    </listitem>
+                    <listitem>
+                      <para>
+                        If <computeroutput>T</computeroutput> is of the form
+                        <computeroutput>O(A<subscript>0</subscript>,…A<subscript>n</subscript> ...)</computeroutput>,
+                        then let <computeroutput>T&apos;</computeroutput> be <computeroutput>O(A<subscript>0</subscript>,…A<subscript>n-1</subscript>, <replaceable>S</replaceable>)</computeroutput>,
+                        where <replaceable>S</replaceable> is a type sequence computed from the unpacking expression <computeroutput>A<subscript>n</subscript></computeroutput>
+                        as described in the reference for <computeroutput><classname>proto::pack</classname></computeroutput>. Then, return:
+                        <programlisting>proto::make&lt;T&apos;&gt;()(expr, state, data)</programlisting>
+                      </para>
+                    </listitem>
+                    <listitem>
+                      <para>
+                        Otherwise, construct and return an object <computeroutput>that</computeroutput>
+                        as follows: <programlisting>result_type that = result_type();</programlisting>
+                      </para>
+                    </listitem>
+                  </itemizedlist>
+                </para>
+              </description>
+            </method>
+          </method-group>
+        </struct>
+      </struct>
+    </namespace>
+  </namespace>
+</header>

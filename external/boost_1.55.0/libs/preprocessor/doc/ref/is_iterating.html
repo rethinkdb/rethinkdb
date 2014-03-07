@@ -1,0 +1,38 @@
+<html>
+<head>
+	<title>BOOST_PP_IS_ITERATING</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+	
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_IS_ITERATING</b> macro is defined when a <i>file-iteration</i> is in progress.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			#if !defined(<b>BOOST_PP_IS_ITERATING</b>) // ...
+		</div>
+	<h4>Remarks</h4>
+		<div>
+			If a <i>file-iteration</i> is in progress, this macro is defined as <i>1</i>.&nbsp;
+			This means that the following will also work:
+			<div>
+				#if !<b>BOOST_PP_IS_ITERATING</b> // ...
+			</div>
+		</div>
+		<div>
+			This macro is defined to guard a file from infinite inclusion.
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

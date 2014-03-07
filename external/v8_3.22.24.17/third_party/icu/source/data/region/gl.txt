@@ -1,0 +1,265 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/gl.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/gl.xml
+ */
+gl{
+    Countries{
+        419{"América Latina e o Caribe"}
+        AD{"Andorra"}
+        AE{"Emiratos Árabes Unidos"}
+        AF{"Afganistán"}
+        AG{"Antiga e Barbuda"}
+        AI{"Anguila"}
+        AL{"Albania"}
+        AM{"Armenia"}
+        AN{"Antillas Holandesas"}
+        AO{"Angola"}
+        AQ{"Antártida"}
+        AR{"Arxentina"}
+        AS{"Samoa Americana"}
+        AT{"Austria"}
+        AU{"Australia"}
+        AW{"Aruba"}
+        AX{"Illas Aland"}
+        AZ{"Acerbaixán"}
+        BA{"Bosnia e Hercegovina"}
+        BB{"Barbados"}
+        BD{"Bangladesh"}
+        BE{"Bélxica"}
+        BF{"Burkina Faso"}
+        BG{"Bulgaria"}
+        BH{"Bahrein"}
+        BI{"Burundi"}
+        BJ{"Benin"}
+        BL{"San Bartolomé"}
+        BM{"Bermudas"}
+        BN{"Brunei"}
+        BO{"Bolivia"}
+        BR{"Brasil"}
+        BS{"Bahamas"}
+        BT{"Bután"}
+        BV{"Illa Bouvet"}
+        BW{"Botsuana"}
+        BY{"Bielorrusia"}
+        BZ{"Belice"}
+        CA{"Canadá"}
+        CC{"Illas Cocos"}
+        CD{"República Democrática do Congo"}
+        CF{"República Africana Central"}
+        CG{"Congo"}
+        CH{"Suíza"}
+        CI{"Costa de Marfil"}
+        CK{"Illas Cook"}
+        CL{"Chile"}
+        CM{"Camerún"}
+        CN{"China"}
+        CO{"Colombia"}
+        CR{"Costa Rica"}
+        CS{"Serbia e Montenegro"}
+        CU{"Cuba"}
+        CV{"Cabo Verde"}
+        CX{"Illa Christmas"}
+        CY{"Chipre"}
+        CZ{"República Checa"}
+        DE{"Alemaña"}
+        DJ{"Xibuti"}
+        DK{"Dinamarca"}
+        DM{"Dominica"}
+        DO{"República Dominicana"}
+        DZ{"Arxelia"}
+        EC{"Ecuador"}
+        EE{"Estonia"}
+        EG{"Exipto"}
+        EH{"Sahara Occidental"}
+        ER{"Eritrea"}
+        ES{"España"}
+        ET{"Etiopía"}
+        EU{"Unión Europea"}
+        FI{"Finlandia"}
+        FJ{"Fixi"}
+        FK{"Illas Malvinas"}
+        FM{"Micronesia"}
+        FO{"Illas Feroe"}
+        FR{"Francia"}
+        GA{"Gabón"}
+        GB{"Reino Unido"}
+        GD{"Granada"}
+        GE{"Xeorxia"}
+        GF{"Güiana Francesa"}
+        GG{"Guernsey"}
+        GH{"Gana"}
+        GI{"Xibraltar"}
+        GL{"Grenlandia"}
+        GM{"Gambia"}
+        GN{"Guinea"}
+        GP{"Guadalupe"}
+        GQ{"Guinea Ecuatorial"}
+        GR{"Grecia"}
+        GS{"Xeorxia do Sur e Illas Sandwich"}
+        GT{"Guatemala"}
+        GU{"Guam"}
+        GW{"Guinea-Bissau"}
+        GY{"Güiana"}
+        HK{"Hong Kong RAE de China"}
+        HM{"Illa Heard e Illas McDonald"}
+        HN{"Honduras"}
+        HR{"Croacia"}
+        HT{"Haití"}
+        HU{"Hungría"}
+        ID{"Indonesia"}
+        IE{"Irlanda"}
+        IL{"Israel"}
+        IM{"Illa de Man"}
+        IN{"India"}
+        IO{"Territorio Británico do Océano Índico"}
+        IQ{"Iraq"}
+        IR{"Irán"}
+        IS{"Islandia"}
+        IT{"Italia"}
+        JE{"Jersey"}
+        JM{"Xamaica"}
+        JO{"Xordania"}
+        JP{"Xapón"}
+        KE{"Quenia"}
+        KG{"Quirguicistán"}
+        KH{"Cambodia"}
+        KI{"Kiribati"}
+        KM{"Comores"}
+        KN{"San Cristovo e Nevis"}
+        KP{"Corea do Norte"}
+        KR{"Corea do Sur"}
+        KW{"Kuwait"}
+        KY{"Illas Caimán"}
+        KZ{"Kazakhstan"}
+        LA{"Laos"}
+        LB{"Líbano"}
+        LC{"Santa Lucía"}
+        LI{"Liechtenstein"}
+        LK{"Sri Lanka"}
+        LR{"Liberia"}
+        LS{"Lesotho"}
+        LT{"Lituania"}
+        LU{"Luxemburgo"}
+        LV{"Letonia"}
+        LY{"Libia"}
+        MA{"Marrocos"}
+        MC{"Mónaco"}
+        MD{"Moldova"}
+        ME{"Montenegro"}
+        MF{"San Martiño"}
+        MG{"Madagascar"}
+        MH{"Illas Marshall"}
+        MK{"Macedonia"}
+        ML{"Mali"}
+        MM{"Myanmar"}
+        MN{"Mongolia"}
+        MO{"Macau RAE de China"}
+        MP{"Illas Marianas do norte"}
+        MQ{"Martinica"}
+        MR{"Mauritania"}
+        MS{"Montserrat"}
+        MT{"Malta"}
+        MU{"Mauricio"}
+        MV{"Maldivas"}
+        MW{"Malaui"}
+        MX{"México"}
+        MY{"Malaisia"}
+        MZ{"Mozambique"}
+        NA{"Namibia"}
+        NC{"Nova Caledonia"}
+        NE{"Níxer"}
+        NF{"Illa Norfolk"}
+        NG{"Nixeria"}
+        NI{"Nicaragua"}
+        NL{"Países Baixos"}
+        NO{"Noruega"}
+        NP{"Nepal"}
+        NR{"Nauru"}
+        NU{"Niue"}
+        NZ{"Nova Celandia"}
+        OM{"Omán"}
+        PA{"Panamá"}
+        PE{"Perú"}
+        PF{"Polinesia Francesa"}
+        PG{"Papúa Nova Guinea"}
+        PH{"Filipinas"}
+        PK{"Paquistán"}
+        PL{"Polonia"}
+        PM{"San Pedro e Miguelón"}
+        PN{"Pitcairn"}
+        PR{"Porto Rico"}
+        PS{"Palestina"}
+        PT{"Portugal"}
+        PW{"Palau"}
+        PY{"Paraguai"}
+        QA{"Qatar"}
+        QO{"Oceanía Distante"}
+        RE{"Reunión"}
+        RO{"Romanía"}
+        RS{"Serbia"}
+        RU{"Rusia"}
+        RW{"Ruanda"}
+        SA{"Arabia Saudita"}
+        SB{"Illas Salomón"}
+        SD{"Sudán"}
+        SE{"Suecia"}
+        SG{"Singapur"}
+        SH{"Santa Helena"}
+        SI{"Eslovenia"}
+        SJ{"Svalbard e Jan Mayen"}
+        SK{"Eslovaquia"}
+        SL{"Serra Leoa"}
+        SM{"San Marino"}
+        SN{"Senegal"}
+        SO{"Somalia"}
+        SR{"Surinam"}
+        ST{"Santo Tomé e Príncipe"}
+        SV{"El Salvador"}
+        SY{"Siria"}
+        SZ{"Suacilandia"}
+        TC{"Illas Turks e Caicos"}
+        TF{"Territorios Franceses do Sul"}
+        TG{"Togo"}
+        TH{"Tailandia"}
+        TJ{"Taxiquistán"}
+        TK{"Tokelau"}
+        TL{"Timor Leste"}
+        TM{"Turkmenistán"}
+        TN{"Tunisia"}
+        TO{"Tonga"}
+        TR{"Turquía"}
+        TT{"Trindade e Tobago"}
+        TV{"Tuvalu"}
+        TW{"Taiwán"}
+        TZ{"Tanzania"}
+        UA{"Ucraína"}
+        UG{"Uganda"}
+        UM{"Illas Menores Distantes dos EUA."}
+        US{"Estados Unidos de América"}
+        UY{"Uruguai"}
+        UZ{"Uzbekistán"}
+        VA{"Cidade do Vaticano"}
+        VC{"San Vicente e Granadinas"}
+        VE{"Venezuela"}
+        VG{"Illas Virxes Británicas"}
+        VI{"Illas Virxes Estadounidenses"}
+        VN{"Vietnam"}
+        VU{"Vanuatu"}
+        WF{"Wallis e Futuna"}
+        WS{"Samoa"}
+        YE{"Iemen"}
+        YT{"Mayotte"}
+        ZA{"Sudáfrica"}
+        ZM{"Zambia"}
+        ZW{"Cimbabue"}
+        ZZ{"rexión descoñecida ou non válida"}
+    }
+    Version{"2.0.47.53"}
+}

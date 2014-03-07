@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.examples.flight">
+  <title>Flight Time Example</title>
+
+  <para>This example shows a program that calculates the arrival time of a plane that flys from Phoenix to New York.  During the flight New York shifts into daylight savings time (Phoenix doesn't because Arizona doesn't use dst).</para>
+
+<programlisting>
+<literal>
+<phrase role="preprocessor">#include</phrase><phrase role="string"> &quot;boost/date_time/local_time/local_time.hpp&quot;</phrase><phrase role="preprocessor">
+#include</phrase><phrase role="special"> &lt;</phrase><phrase role="identifier">iostream</phrase><phrase role="special">&gt;</phrase><phrase role="comment">
+
+/* This example shows a program that calculates the arrival time of a plane
+ * that flys from Phoenix to New York.  During the flight New York shifts
+ * into daylight savings time (Phoenix doesn't because Arizona doesn't use
+ * dst).  
+ *
+ * 
+ */</phrase><phrase role="keyword">
+
+int</phrase><phrase role="identifier"> main</phrase><phrase role="special">()</phrase><phrase role="special">
+{</phrase><phrase role="keyword">
+  using</phrase><phrase role="keyword"> namespace</phrase><phrase role="identifier"> boost</phrase><phrase role="special">::</phrase><phrase role="identifier">gregorian</phrase><phrase role="special">;</phrase><phrase role="keyword"> 
+  using</phrase><phrase role="keyword"> namespace</phrase><phrase role="identifier"> boost</phrase><phrase role="special">::</phrase><phrase role="identifier">local_time</phrase><phrase role="special">;</phrase><phrase role="keyword">
+  using</phrase><phrase role="keyword"> namespace</phrase><phrase role="identifier"> boost</phrase><phrase role="special">::</phrase><phrase role="identifier">posix_time</phrase><phrase role="special">;</phrase><phrase role="comment">
+
+
+  //setup some timezones for creating and adjusting local times
+  //This user editable file can be found in libs/date_time/data.
+</phrase><phrase role="identifier">  tz_database</phrase><phrase role="identifier"> tz_db</phrase><phrase role="special">;</phrase><phrase role="identifier">
+  tz_db</phrase><phrase role="special">.</phrase><phrase role="identifier">load_from_file</phrase><phrase role="special">(</phrase><phrase role="string">&quot;date_time_zonespec.csv&quot;</phrase><phrase role="special">);</phrase><phrase role="identifier">
+  time_zone_ptr</phrase><phrase role="identifier"> nyc_tz</phrase><phrase role="special"> =</phrase><phrase role="identifier"> tz_db</phrase><phrase role="special">.</phrase><phrase role="identifier">time_zone_from_region</phrase><phrase role="special">(</phrase><phrase role="string">&quot;America/New_York&quot;</phrase><phrase role="special">);</phrase><phrase role="comment">
+  //Use a 
+</phrase><phrase role="identifier">  time_zone_ptr</phrase><phrase role="identifier"> phx_tz</phrase><phrase role="special">(</phrase><phrase role="keyword">new</phrase><phrase role="identifier"> posix_time_zone</phrase><phrase role="special">(</phrase><phrase role="string">&quot;MST-07:00:00&quot;</phrase><phrase role="special">));</phrase><phrase role="comment">
+
+  //local departure time in phoenix is 11 pm on april 2 2005 
+  // (ny changes to dst on apr 3 at 2 am)
+</phrase><phrase role="identifier">  local_date_time</phrase><phrase role="identifier"> phx_departure</phrase><phrase role="special">(</phrase><phrase role="identifier">date</phrase><phrase role="special">(</phrase><phrase role="number">2005</phrase><phrase role="special">,</phrase><phrase role="identifier"> Apr</phrase><phrase role="special">,</phrase><phrase role="number"> 2</phrase><phrase role="special">),</phrase><phrase role="identifier"> hours</phrase><phrase role="special">(</phrase><phrase role="number">23</phrase><phrase role="special">),</phrase><phrase role="identifier"> 
+                                phx_tz</phrase><phrase role="special">,</phrase><phrase role="identifier"> 
+                                local_date_time</phrase><phrase role="special">::</phrase><phrase role="identifier">NOT_DATE_TIME_ON_ERROR</phrase><phrase role="special">);</phrase><phrase role="identifier">
+
+  time_duration</phrase><phrase role="identifier"> flight_length</phrase><phrase role="special"> =</phrase><phrase role="identifier"> hours</phrase><phrase role="special">(</phrase><phrase role="number">4</phrase><phrase role="special">)</phrase><phrase role="special"> +</phrase><phrase role="identifier"> minutes</phrase><phrase role="special">(</phrase><phrase role="number">30</phrase><phrase role="special">);</phrase><phrase role="identifier">
+  local_date_time</phrase><phrase role="identifier"> phx_arrival</phrase><phrase role="special"> =</phrase><phrase role="identifier"> phx_departure</phrase><phrase role="special"> +</phrase><phrase role="identifier"> flight_length</phrase><phrase role="special">;</phrase><phrase role="identifier">
+  local_date_time</phrase><phrase role="identifier"> nyc_arrival</phrase><phrase role="special"> =</phrase><phrase role="identifier"> phx_arrival</phrase><phrase role="special">.</phrase><phrase role="identifier">local_time_in</phrase><phrase role="special">(</phrase><phrase role="identifier">nyc_tz</phrase><phrase role="special">);</phrase><phrase role="identifier">
+
+  std</phrase><phrase role="special">::</phrase><phrase role="identifier">cout</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="string"> &quot;departure phx time: &quot;</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier"> phx_departure</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier"> std</phrase><phrase role="special">::</phrase><phrase role="identifier">endl</phrase><phrase role="special">;</phrase><phrase role="identifier">
+  std</phrase><phrase role="special">::</phrase><phrase role="identifier">cout</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="string"> &quot;arrival phx time:   &quot;</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier"> phx_arrival</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier"> std</phrase><phrase role="special">::</phrase><phrase role="identifier">endl</phrase><phrase role="special">;</phrase><phrase role="identifier">
+  std</phrase><phrase role="special">::</phrase><phrase role="identifier">cout</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="string"> &quot;arrival nyc time:   &quot;</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier"> nyc_arrival</phrase><phrase role="special"> &lt;&lt;</phrase><phrase role="identifier"> std</phrase><phrase role="special">::</phrase><phrase role="identifier">endl</phrase><phrase role="special">;</phrase><phrase role="special">
+
+}</phrase>
+</literal>
+</programlisting>
+</section>

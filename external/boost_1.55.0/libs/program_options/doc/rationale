@@ -1,0 +1,15 @@
+
+We could either implement simple chaining for variable maps, or
+implement generic composition classes. The former was choosen,
+mostly because of simplicity.
+
+There were two implementation approaches for multiple option
+occurences in options_and_arguments. First is store them
+separately. The advantage is that it's easy to obtain all
+occurences before certain position on command line. The
+disadvantage is that we cannot return a reference to 
+vector<vector<string> > in get_all_values. It was considered
+that if support for position-dependent options is to be
+added, then we're be mostly interested in occurences of 
+a single option that were before some point. That's possible
+with vector<vector<string> > storage.

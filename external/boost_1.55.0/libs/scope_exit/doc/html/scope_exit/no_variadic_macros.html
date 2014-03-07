@@ -1,0 +1,229 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Annex: No Variadic Macros</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">
+<link rel="prev" href="alternatives.html" title="Annex: Alternatives">
+<link rel="next" href="../reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="alternatives.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section scope_exit_no_variadic_macros">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="scope_exit.no_variadic_macros"></a><a class="link" href="no_variadic_macros.html" title="Annex: No Variadic Macros">Annex: No Variadic Macros</a>
+</h2></div></div></div>
+<p>
+      This section presents an alternative syntax for compilers without variadic
+      macro support.
+    </p>
+<h4>
+<a name="scope_exit.no_variadic_macros.h0"></a>
+      <span><a name="scope_exit.no_variadic_macros.sequence_syntax"></a></span><a class="link" href="no_variadic_macros.html#scope_exit.no_variadic_macros.sequence_syntax">Sequence
+      Syntax</a>
+    </h4>
+<p>
+      Most modern compilers support variadic macros (notably, these include GCC,
+      MSVC, and all C++11 compilers). <sup>[<a name="scope_exit.no_variadic_macros.f0" href="#ftn.scope_exit.no_variadic_macros.f0" class="footnote">10</a>]</sup> However, in the rare case that programmers need to use this library
+      on a complier without variaidc macros, this library also allows to specify
+      the capture list using a <a href="http://www.boost.org/libs/preprocessor" target="_top">Boost.Preprocessor</a>
+      sequence where tokens are separated by round parenthesis <code class="computeroutput"><span class="special">()</span></code>:
+    </p>
+<pre class="programlisting"><span class="special">(</span><span class="identifier">capture1</span><span class="special">)</span> <span class="special">(</span><span class="identifier">capture2</span><span class="special">)</span> <span class="special">...</span> <span class="comment">// All compilers.</span>
+</pre>
+<p>
+      Instead of the comma-separated list that we have seen so far which requires
+      variadic macros:
+    </p>
+<pre class="programlisting"><span class="identifier">capture1</span><span class="special">,</span> <span class="identifier">capture2</span><span class="special">,</span> <span class="special">...</span> <span class="comment">// Only compilers with variadic macros.</span>
+</pre>
+<p>
+      For example, the following syntax is accepted on all compilers with and without
+      variadic macros (see also <a href="../../../test/world_seq.cpp" target="_top"><code class="literal">world_seq.cpp</code></a>
+      and <a href="../../../test/world.cpp" target="_top"><code class="literal">world.cpp</code></a>):
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Boost.Preprocessor Sequence (All Compilers)
+              </p>
+            </th>
+<th>
+              <p>
+                Comma-Separated List (Variadic Macros Only)
+              </p>
+            </th>
+</tr></thead>
+<tbody><tr>
+<td>
+              <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">void</span> <span class="identifier">world</span><span class="special">::</span><span class="identifier">add_person</span><span class="special">(</span><span class="identifier">person</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a_person</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">bool</span> <span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+
+    <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">a_person</span><span class="special">);</span>           <span class="comment">// (1) direct action</span>
+    <span class="comment">// Following block is executed when the enclosing scope exits.</span>
+    <span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(</span> <span class="special">(&amp;</span><span class="identifier">commit</span><span class="special">)</span> <span class="special">(&amp;</span><span class="identifier">persons_</span><span class="special">)</span> <span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">if</span><span class="special">(!</span><span class="identifier">commit</span><span class="special">)</span> <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">pop_back</span><span class="special">();</span>    <span class="comment">// (2) rollback action</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END</span>
+
+    <span class="comment">// ...                                  // (3) other operations</span>
+
+    <span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>                          <span class="comment">// (4) disable rollback actions</span>
+<span class="special">}</span>
+</pre>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">void</span> <span class="identifier">world</span><span class="special">::</span><span class="identifier">add_person</span><span class="special">(</span><span class="identifier">person</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a_person</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">bool</span> <span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+
+    <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">a_person</span><span class="special">);</span>           <span class="comment">// (1) direct action</span>
+    <span class="comment">// Following block is executed when the enclosing scope exits.</span>
+    <span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(&amp;</span><span class="identifier">commit</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">persons_</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">if</span><span class="special">(!</span><span class="identifier">commit</span><span class="special">)</span> <span class="identifier">persons_</span><span class="special">.</span><span class="identifier">pop_back</span><span class="special">();</span>    <span class="comment">// (2) rollback action</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END</span>
+
+    <span class="comment">// ...                                  // (3) other operations</span>
+
+    <span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>                          <span class="comment">// (4) disable rollback actions</span>
+<span class="special">}</span>
+</pre>
+<p>
+              </p>
+            </td>
+</tr></tbody>
+</table></div>
+<p>
+      Note how the same macros accept both syntaxes on compilers with variadic macros
+      and only the <a href="http://www.boost.org/libs/preprocessor" target="_top">Boost.Preprocessor</a>
+      sequence syntax on compilers without variadic macros. Older versions of this
+      library used to only support the <a href="http://www.boost.org/libs/preprocessor" target="_top">Boost.Preprocessor</a>
+      sequence syntax so this syntax is supported also for backward compatibility.
+      However, in the current version of this library and on compilers with variadic
+      macros, the comma-separated syntax is preferred because it is more readable.
+    </p>
+<p>
+      Finally, an empty capture list is always specified using <code class="computeroutput"><span class="keyword">void</span></code>
+      on compilers with and without variaidc macros (see also <a href="../../../test/world_void.cpp" target="_top"><code class="literal">world_void.cpp</code></a>):
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">world_t</span> <span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">person</span><span class="special">&gt;</span> <span class="identifier">persons</span><span class="special">;</span>
+    <span class="keyword">bool</span> <span class="identifier">commit</span><span class="special">;</span>
+<span class="special">}</span> <span class="identifier">world</span><span class="special">;</span> <span class="comment">// Global variable.</span>
+
+<span class="keyword">void</span> <span class="identifier">add_person</span><span class="special">(</span><span class="identifier">person</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a_person</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">world</span><span class="special">.</span><span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="identifier">world</span><span class="special">.</span><span class="identifier">persons</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">a_person</span><span class="special">);</span>
+
+    <span class="identifier">BOOST_SCOPE_EXIT</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="special">{</span> <span class="comment">// No captures.</span>
+        <span class="keyword">if</span><span class="special">(!</span><span class="identifier">world</span><span class="special">.</span><span class="identifier">commit</span><span class="special">)</span> <span class="identifier">world</span><span class="special">.</span><span class="identifier">persons</span><span class="special">.</span><span class="identifier">pop_back</span><span class="special">();</span>
+    <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END</span>
+
+    <span class="comment">// ...</span>
+
+    <span class="identifier">world</span><span class="special">.</span><span class="identifier">commit</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<h4>
+<a name="scope_exit.no_variadic_macros.h1"></a>
+      <span><a name="scope_exit.no_variadic_macros.examples"></a></span><a class="link" href="no_variadic_macros.html#scope_exit.no_variadic_macros.examples">Examples</a>
+    </h4>
+<p>
+      For reference, the following is a list of most of the examples presented in
+      this documentation reprogrammed using the <a href="http://www.boost.org/libs/preprocessor" target="_top">Boost.Preprocessor</a>
+      sequence syntax instead of comma-separated lists (in alphabetic order):
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+              <p>
+                Files
+              </p>
+            </th></tr></thead>
+<tbody>
+<tr><td>
+              <p>
+                <a href="../../../test/same_line_seq.cpp" target="_top"><code class="literal">same_line_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../example/scope_guard_seq.cpp" target="_top"><code class="literal">scope_guard_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../example/try_catch_seq.cpp" target="_top"><code class="literal">try_catch_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/world_checkpoint_all_seq.cpp" target="_top"><code class="literal">world_checkpoint_all_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/world_checkpoint_seq.cpp" target="_top"><code class="literal">world_checkpoint_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/world_this_seq.cpp" target="_top"><code class="literal">world_this_seq.cpp</code></a>
+              </p>
+            </td></tr>
+<tr><td>
+              <p>
+                <a href="../../../test/world_tpl_seq.cpp" target="_top"><code class="literal">world_tpl_seq.cpp</code></a>
+              </p>
+            </td></tr>
+</tbody>
+</table></div>
+<div class="footnotes">
+<br><hr width="100" align="left">
+<div class="footnote"><p><sup>[<a id="ftn.scope_exit.no_variadic_macros.f0" href="#scope_exit.no_variadic_macros.f0" class="para">10</a>] </sup>
+        A C++ compiler does not support variadic macros if the <a href="http://www.boost.org/libs/config" target="_top">Boost.Config</a>
+        macro <code class="computeroutput"><span class="identifier">BOOST_NO_VARIADIC_MACROS</span></code>
+        is defined for that compiler.
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Alexander Nasonov, Lorenzo Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="alternatives.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

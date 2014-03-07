@@ -1,0 +1,38 @@
+# Copyright (C) 2005, 2007  Douglas Gregor <doug.gregor -at- gmail.com>
+# Distributed under the Boost Software License, Version 1.0. 
+# See www.boost.org/LICENSE_1_0.txt
+#
+# This file lists the names and e-mail addresses of the maintainers
+# of each Boost testing platform , and is used by the regression-
+# reporting scripts to direct e-mail related to those platforms to the 
+# maintainers. When making changes to this file, please be careful
+# to closely follow the format of the library.
+#
+# The format of each line is:
+#
+# Runner      Platform      Email addresses
+
+Sandia-darwin-intel    darwin-4.0.1	       Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-darwin-ppc      darwin-4.0.1	       Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-intel           intel-linux-8.1         Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-intel           intel-linux-9.0         Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-intel           intel-linux-9.1         Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-gcc             gcc-4.2.1               Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-gcc             gcc-3.4.3               Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-gcc             gcc-4.0.1               Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-gcc-64          gcc-4.2.1               Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-gcc-64          gcc-4.1.1               Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-sun             gcc-3.4.6               Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-sun             sun-5.7                 Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-sun             sun-5.8                 Noel Belcourt <kbelco -at- sandia.gov>
+Sandia-sun             sun-5.9                 Noel Belcourt <kbelco -at- sandia.gov>
+"Martin Wille x86_64"  gcc-4.2.1_linux_x86_64  Martin Wille <mw8329 -at- yahoo.com.au>
+"Martin Wille x86_64"  gcc-3.4.6_linux_x86_64  Martin Wille <mw8329 -at- yahoo.com.au>
+Huang-WinXP-x86_32     intel-vc8-win-10.0      Sean Huang <huangsean -at- hotmail.com>
+Huang-WinXP-x86_32     msvc-8.0                Sean Huang <huangsean -at- hotmail.com>
+Huang-Vista-x64        msvc-8.0_64             Sean Huang <huangsean -at- hotmail.com>
+Huang-Vista-x64        intel-vc8-win-10.0_x86_64  Sean Huang <huangsean -at- hotmail.com>
+Huang-Vista-x64        msvc-8.0_x86_64         Sean Huang <huangsean -at- hotmail.com>
+IBM_Canada_Ltd         vacpp                   Chris Cambly <ccambly -at- ca.ibm.com>
+RW_WinXP_VC            msvc-7.1                Richard Webb <richard.webb -at- boldonjames.com>
+RW_WinXP_VC            msvc-9.0                Richard Webb <richard.webb -at- boldonjames.com>

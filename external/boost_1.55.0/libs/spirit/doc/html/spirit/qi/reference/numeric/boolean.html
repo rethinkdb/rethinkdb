@@ -1,0 +1,672 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Boolean Parser (bool_)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../numeric.html" title="Numeric Parsers">
+<link rel="prev" href="real.html" title="Real Number Parsers (float_, double_, etc.)">
+<link rel="next" href="../operator.html" title="Parser Operators">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="real.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../numeric.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../operator.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.numeric.boolean"></a><a class="link" href="boolean.html" title="Boolean Parser (bool_)">Boolean Parser
+          (<code class="computeroutput"><span class="identifier">bool_</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.description"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.description">Description</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">bool_parser</span></code> can parse
+            booleans of arbitrary type, <code class="computeroutput"><span class="identifier">B</span></code>.
+            The boolean base type <code class="computeroutput"><span class="identifier">T</span></code>
+            can be a user defined boolean type as long as the type follows certain
+            expression requirements (documented below).
+          </p>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.header"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/numeric/bool.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_bool</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.namespace"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">bool_</span> <span class="comment">//
+                      alias: boost::spirit::qi::bool_</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">true_</span> <span class="comment">//
+                      alias: boost::spirit::qi::true_</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">false_</span> <span class="comment">//
+                      alias: boost::spirit::qi::false_</span></code>
+                    </p>
+                  </td></tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.synopsis"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">BooleanPolicies</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">bool_parser</span><span class="special">;</span>
+</pre>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.template_parameters"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.template_parameters">Template
+            parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Default
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">B</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The boolean type of the boolean parser.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">bool</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">BooleanPolicies</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Policies control the parser's behavior.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">bool_policies</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h5"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.model_of"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../parser_concepts/primitiveparser.html" title="PrimitiveParser"><code class="computeroutput"><span class="identifier">PrimitiveParser</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">BP</span></code></span></dt>
+<dd><p>
+                  A boolean <code class="computeroutput"><span class="identifier">Policies</span></code>
+                  (type).
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">b</span></code></span></dt>
+<dd><p>
+                  An object of <code class="computeroutput"><span class="identifier">B</span></code>,
+                  the numeric base type.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">boolean</span></code></span></dt>
+<dd><p>
+                  Numeric literal, any boolean value, or a <a class="link" href="../basics.html#spirit.qi.reference.basics.lazy_argument">Lazy
+                  Argument</a> that evaluates to a boolean value.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">f</span></code>, <code class="computeroutput"><span class="identifier">l</span></code></span></dt>
+<dd><p>
+                  <a href="http://www.sgi.com/tech/stl/ForwardIterator.html" target="_top"><code class="computeroutput"><span class="identifier">ForwardIterator</span></code></a>. first/last
+                  iterator pair.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">attr</span></code></span></dt>
+<dd><p>
+                  An attribute value.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Context</span></code></span></dt>
+<dd><p>
+                  The type of the parse context of the current invocation of the
+                  <code class="computeroutput"><span class="identifier">bool_</span></code> parser.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">ctx</span></code></span></dt>
+<dd><p>
+                  An instance of the parse context, <code class="computeroutput"><span class="identifier">Context</span></code>.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h6"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.expression_semantics"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../parser_concepts/primitiveparser.html" title="PrimitiveParser"><code class="computeroutput"><span class="identifier">PrimitiveParser</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">bool_</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a boolean using the default policies (<code class="computeroutput"><span class="identifier">bool_policies</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">boolean</span><span class="special">)</span>
+<span class="identifier">bool_</span><span class="special">(</span><span class="identifier">boolean</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Match the literal <code class="computeroutput"><span class="identifier">boolean</span></code>
+                      using the default policies (<code class="computeroutput"><span class="identifier">bool_policies</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>). The parser will fail
+                      if the parsed value is not equal to the specified value.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">true_</span>
+<span class="identifier">false_</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Match <code class="computeroutput"><span class="string">"true"</span></code>
+                      and <code class="computeroutput"><span class="string">"false"</span></code>,
+                      respectively.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">bool_parser</span><span class="special">&lt;</span>
+    <span class="identifier">T</span><span class="special">,</span> <span class="identifier">BoolPolicies</span>
+<span class="special">&gt;()</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a real of type <code class="computeroutput"><span class="identifier">T</span></code>
+                      using <code class="computeroutput"><span class="identifier">BoolPolicies</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">bool_parser</span><span class="special">&lt;</span>
+    <span class="identifier">T</span><span class="special">,</span> <span class="identifier">BoolPolicies</span>
+<span class="special">&gt;()(</span><span class="identifier">boolean</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Match the literal <code class="computeroutput"><span class="identifier">boolean</span></code>
+                      of type <code class="computeroutput"><span class="identifier">T</span></code> using
+                      <code class="computeroutput"><span class="identifier">BoolPolicies</span></code>.
+                      The parser will fail if the parsed value is not equal to the
+                      specified value.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              All boolean parsers properly respect the <a class="link" href="../directive/no_case.html" title="Parser Directive Inhibiting Case Sensitivity (no_case[])"><code class="computeroutput"><span class="identifier">no_case</span></code></a><code class="computeroutput"><span class="special">[]</span></code>
+              directive.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h7"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.attributes"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.attributes">Attributes</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">boolean</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">unused</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">true_</span>
+<span class="identifier">false_</span>
+<span class="identifier">bool_</span>
+<span class="identifier">bool_</span><span class="special">(</span><span class="identifier">boolean</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">bool</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">bool_parser</span><span class="special">&lt;</span>
+    <span class="identifier">T</span><span class="special">,</span> <span class="identifier">BoolPolicies</span>
+<span class="special">&gt;()</span>
+<span class="identifier">bool_parser</span><span class="special">&lt;</span>
+    <span class="identifier">T</span><span class="special">,</span> <span class="identifier">BoolPolicies</span>
+<span class="special">&gt;()(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">T</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h8"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.complexity"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              O(N), where N is the number of characters being parsed.
+            </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h9"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.minimum_expression_requirements_for__code__phrase_role__identifier__b__phrase___code_"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.minimum_expression_requirements_for__code__phrase_role__identifier__b__phrase___code_">Minimum
+            Expression Requirements for <code class="computeroutput"><span class="identifier">B</span></code></a>
+          </h6>
+<p>
+            The boolean type, <code class="computeroutput"><span class="identifier">B</span></code>,
+            the minimum expression requirements listed below must be valid. Take
+            note that additional requirements may be imposed by custom policies.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">B</span><span class="special">(</span><span class="keyword">bool</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Constructible from a <code class="computeroutput"><span class="keyword">bool</span></code>.
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h10"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.boolean__code__phrase_role__identifier__policies__phrase___code_"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.boolean__code__phrase_role__identifier__policies__phrase___code_">Boolean
+            <code class="computeroutput"><span class="identifier">Policies</span></code></a>
+          </h6>
+<p>
+            The boolean <code class="computeroutput"><span class="identifier">Policies</span></code>
+            template parameter is a class that groups all the policies that control
+            the parser's behavior. Policies control the boolean parsers' behavior.
+          </p>
+<p>
+            The default is <code class="computeroutput"><span class="identifier">bool_policies</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code>. The default is provided to take
+            care of the most common case (there are many ways to represent, and hence
+            parse, boolean numbers). In most cases, the default policies are sufficient
+            and can be used straight out of the box. They are designed to parse boolean
+            value of the form <code class="computeroutput"><span class="string">"true"</span></code>
+            and <code class="computeroutput"><span class="string">"false"</span></code>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h11"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.boolean__code__phrase_role__identifier__policies__phrase___code__expression_requirements"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.boolean__code__phrase_role__identifier__policies__phrase___code__expression_requirements">Boolean
+            <code class="computeroutput"><span class="identifier">Policies</span></code> Expression Requirements</a>
+          </h6>
+<p>
+            For models of boolean <code class="computeroutput"><span class="identifier">Policies</span></code>
+            the following expressions must be valid:
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">BP</span><span class="special">::</span><span class="identifier">parse_true</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span>
+                      <span class="identifier">l</span><span class="special">,</span>
+                      <span class="identifier">attr</span><span class="special">,</span>
+                      <span class="identifier">ctx</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a <code class="computeroutput"><span class="keyword">true</span></code> value.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">BP</span><span class="special">::</span><span class="identifier">parse_false</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span>
+                      <span class="identifier">l</span><span class="special">,</span>
+                      <span class="identifier">attr</span><span class="special">,</span>
+                      <span class="identifier">ctx</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse a <code class="computeroutput"><span class="keyword">false</span></code>
+                      value.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+            The functions should return true if the required representations of
+            <code class="computeroutput"><span class="keyword">true</span></code> or <code class="computeroutput"><span class="keyword">false</span></code>
+            have been found. In this case the attribute <code class="computeroutput"><span class="identifier">n</span></code>
+            should be set to the matched value (<code class="computeroutput"><span class="keyword">true</span></code>
+            or <code class="computeroutput"><span class="keyword">false</span></code>).
+          </p>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h12"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.boolean__code__phrase_role__identifier__policies__phrase___code__specializations"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.boolean__code__phrase_role__identifier__policies__phrase___code__specializations">Boolean
+            <code class="computeroutput"><span class="identifier">Policies</span></code> Specializations</a>
+          </h6>
+<p>
+            The easiest way to implement a proper boolean parsing policy is to derive
+            a new type from the the type <code class="computeroutput"><span class="identifier">bool_policies</span></code>
+            while overriding the aspects of the parsing which need to be changed.
+            For example, here's the implementation of a boolean parsing policy interpreting
+            the string <code class="computeroutput"><span class="string">"eurt"</span></code>
+            (i.e. "true" spelled backwards) as <code class="computeroutput"><span class="keyword">false</span></code>:
+          </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">backwards_bool_policies</span> <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">bool_policies</span><span class="special">&lt;&gt;</span>
+<span class="special">{</span>
+    <span class="comment">// we want to interpret a 'true' spelled backwards as 'false'</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attribute</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Context</span><span class="special">&gt;</span>
+    <span class="keyword">static</span> <span class="keyword">bool</span>
+    <span class="identifier">parse_false</span><span class="special">(</span><span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">Attribute</span><span class="special">&amp;</span> <span class="identifier">attr</span><span class="special">,</span> <span class="identifier">Context</span><span class="special">&amp;</span> <span class="identifier">ctx</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">namespace</span> <span class="identifier">qi</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">;</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">string_parse</span><span class="special">(</span><span class="string">"eurt"</span><span class="special">,</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">unused</span><span class="special">,</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">unused</span><span class="special">))</span>
+        <span class="special">{</span>
+            <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">traits</span><span class="special">::</span><span class="identifier">assign_to</span><span class="special">(</span><span class="keyword">false</span><span class="special">,</span> <span class="identifier">attr</span><span class="special">,</span> <span class="identifier">ctx</span><span class="special">);</span>    <span class="comment">// result is false</span>
+            <span class="keyword">return</span> <span class="keyword">true</span><span class="special">;</span>
+        <span class="special">}</span>
+        <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<h6>
+<a name="spirit.qi.reference.numeric.boolean.h13"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.boolean.example"></a></span><a class="link" href="boolean.html#spirit.qi.reference.numeric.boolean.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.qi.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">val</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">bool_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">bool_parser</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Basic real number parsing:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// bool</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"true"</span><span class="special">,</span> <span class="identifier">bool_</span><span class="special">);</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"false"</span><span class="special">,</span> <span class="identifier">bool_</span><span class="special">);</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"true"</span><span class="special">,</span> <span class="identifier">bool_</span><span class="special">(</span><span class="keyword">true</span><span class="special">));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"false"</span><span class="special">,</span> <span class="identifier">bool_</span><span class="special">(</span><span class="keyword">false</span><span class="special">));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"true"</span><span class="special">,</span> <span class="identifier">bool_</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="keyword">true</span><span class="special">)));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"false"</span><span class="special">,</span> <span class="identifier">bool_</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="keyword">false</span><span class="special">)));</span>
+
+<span class="comment">// literals</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"true"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="keyword">true</span><span class="special">));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"false"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="keyword">false</span><span class="special">));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"true"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="keyword">true</span><span class="special">)));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"false"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="keyword">false</span><span class="special">)));</span>
+</pre>
+<p>
+          </p>
+<p>
+            A custom real number policy:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">///////////////////////////////////////////////////////////////////////////////</span>
+<span class="comment">//  These policies can be used to parse "eurt" (i.e. "true" spelled backwards)</span>
+<span class="comment">//  as `false`</span>
+<span class="comment">///////////////////////////////////////////////////////////////////////////////</span>
+<span class="keyword">struct</span> <span class="identifier">backwards_bool_policies</span> <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">bool_policies</span><span class="special">&lt;&gt;</span>
+<span class="special">{</span>
+    <span class="comment">// we want to interpret a 'true' spelled backwards as 'false'</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attribute</span><span class="special">&gt;</span>
+    <span class="keyword">static</span> <span class="keyword">bool</span>
+    <span class="identifier">parse_false</span><span class="special">(</span><span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">Attribute</span><span class="special">&amp;</span> <span class="identifier">attr</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">namespace</span> <span class="identifier">qi</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">;</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">string_parse</span><span class="special">(</span><span class="string">"eurt"</span><span class="special">,</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">unused</span><span class="special">))</span>
+        <span class="special">{</span>
+            <span class="keyword">namespace</span> <span class="identifier">traits</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">traits</span><span class="special">;</span>
+            <span class="identifier">traits</span><span class="special">::</span><span class="identifier">assign_to</span><span class="special">(</span><span class="keyword">false</span><span class="special">,</span> <span class="identifier">attr</span><span class="special">);</span>    <span class="comment">// result is false</span>
+            <span class="keyword">return</span> <span class="keyword">true</span><span class="special">;</span>
+        <span class="special">}</span>
+        <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+          </p>
+<p>
+            And its use:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">bool_parser</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">,</span> <span class="identifier">backwards_bool_policies</span><span class="special">&gt;</span> <span class="identifier">backwards_bool</span><span class="special">;</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"true"</span><span class="special">,</span> <span class="identifier">backwards_bool</span><span class="special">);</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"eurt"</span><span class="special">,</span> <span class="identifier">backwards_bool</span><span class="special">);</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"true"</span><span class="special">,</span> <span class="identifier">backwards_bool</span><span class="special">(</span><span class="keyword">true</span><span class="special">));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"eurt"</span><span class="special">,</span> <span class="identifier">backwards_bool</span><span class="special">(</span><span class="keyword">false</span><span class="special">));</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="real.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../numeric.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../operator.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

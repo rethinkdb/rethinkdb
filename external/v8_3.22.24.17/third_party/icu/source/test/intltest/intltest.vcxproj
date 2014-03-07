@@ -1,0 +1,532 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{73632960-B3A6-464D-83A3-4B43365F19B8}</ProjectGuid>
+    <RootNamespace>intltest</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\x86\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\x86\Debug\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\x64\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\x64\Debug\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\x86\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\x86\Release\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\x64\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\x64\Release\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Midl>
+      <TypeLibraryName>.\x86\Debug/intltest.tlb</TypeLibraryName>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\common;..\..\i18n;..\..\tools\toolutil;..\..\tools\ctestfw;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <DisableLanguageExtensions>true</DisableLanguageExtensions>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeaderOutputFile>.\x86\Debug/intltest.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>.\x86\Debug/</AssemblerListingLocation>
+      <ObjectFileName>.\x86\Debug/</ObjectFileName>
+      <ProgramDataBaseFileName>.\x86\Debug/</ProgramDataBaseFileName>
+      <BrowseInformation>true</BrowseInformation>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <CompileAs>Default</CompileAs>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+    </ResourceCompile>
+    <Link>
+      <OutputFile>.\x86\Debug/intltest.exe</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>.\x86\Debug/intltest.pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <FixedBaseAddress>false</FixedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+      <TypeLibraryName>.\x64\Debug/intltest.tlb</TypeLibraryName>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\common;..\..\i18n;..\..\tools\toolutil;..\..\tools\ctestfw;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN64;WIN32;_DEBUG;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <DisableLanguageExtensions>true</DisableLanguageExtensions>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeaderOutputFile>.\x64\Debug/intltest.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>.\x64\Debug/</AssemblerListingLocation>
+      <ObjectFileName>.\x64\Debug/</ObjectFileName>
+      <ProgramDataBaseFileName>.\x64\Debug/</ProgramDataBaseFileName>
+      <BrowseInformation>true</BrowseInformation>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <CompileAs>Default</CompileAs>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+    </ResourceCompile>
+    <Link>
+      <OutputFile>.\x64\Debug/intltest.exe</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>.\x64\Debug/intltest.pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <FixedBaseAddress>false</FixedBaseAddress>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Midl>
+      <TypeLibraryName>.\x86\Release/intltest.tlb</TypeLibraryName>
+    </Midl>
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\common;..\..\i18n;..\..\tools\toolutil;..\..\tools\ctestfw;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DisableLanguageExtensions>true</DisableLanguageExtensions>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeaderOutputFile>.\x86\Release/intltest.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>.\x86\Release/</AssemblerListingLocation>
+      <ObjectFileName>.\x86\Release/</ObjectFileName>
+      <ProgramDataBaseFileName>.\x86\Release/</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <CompileAs>Default</CompileAs>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+    </ResourceCompile>
+    <Link>
+      <OutputFile>.\x86\Release/intltest.exe</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>.\x86\Release/intltest.pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+      <TypeLibraryName>.\x64\Release/intltest.tlb</TypeLibraryName>
+    </Midl>
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\common;..\..\i18n;..\..\tools\toolutil;..\..\tools\ctestfw;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN64;WIN32;NDEBUG;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DisableLanguageExtensions>true</DisableLanguageExtensions>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeaderOutputFile>.\x64\Release/intltest.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>.\x64\Release/</AssemblerListingLocation>
+      <ObjectFileName>.\x64\Release/</ObjectFileName>
+      <ProgramDataBaseFileName>.\x64\Release/</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <CompileAs>Default</CompileAs>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+    </ResourceCompile>
+    <Link>
+      <OutputFile>.\x64\Release/intltest.exe</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>.\x64\Release/intltest.pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="itrbbi.cpp" />
+    <ClCompile Include="rbbiapts.cpp" />
+    <ClCompile Include="rbbitst.cpp" />
+    <ClCompile Include="itspoof.cpp" />
+    <ClCompile Include="allcoll.cpp" />
+    <ClCompile Include="apicoll.cpp" />
+    <ClCompile Include="cntabcol.cpp" />
+    <ClCompile Include="currcoll.cpp" />
+    <ClCompile Include="dadrcoll.cpp" />
+    <ClCompile Include="decoll.cpp" />
+    <ClCompile Include="encoll.cpp" />
+    <ClCompile Include="escoll.cpp" />
+    <ClCompile Include="ficoll.cpp" />
+    <ClCompile Include="frcoll.cpp" />
+    <ClCompile Include="g7coll.cpp" />
+    <ClCompile Include="itercoll.cpp" />
+    <ClCompile Include="jacoll.cpp" />
+    <ClCompile Include="lcukocol.cpp" />
+    <ClCompile Include="mnkytst.cpp" />
+    <ClCompile Include="regcoll.cpp" />
+    <ClCompile Include="srchtest.cpp" />
+    <ClCompile Include="ssearch.cpp" />
+    <ClCompile Include="svccoll.cpp" />
+    <ClCompile Include="thcoll.cpp" />
+    <ClCompile Include="trcoll.cpp" />
+    <ClCompile Include="tscoll.cpp" />
+    <ClCompile Include="ucaconf.cpp" />
+    <ClCompile Include="uvectest.cpp" />
+    <ClCompile Include="v32test.cpp" />
+    <ClCompile Include="simplethread.cpp">
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DisableLanguageExtensions>
+    </ClCompile>
+    <ClCompile Include="strtest.cpp">
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DisableLanguageExtensions>
+    </ClCompile>
+    <ClCompile Include="tsmthred.cpp">
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DisableLanguageExtensions>
+    </ClCompile>
+    <ClCompile Include="tsputil.cpp" />
+    <ClCompile Include="uobjtest.cpp" />
+    <ClCompile Include="astrotst.cpp" />
+    <ClCompile Include="calcasts.cpp" />
+    <ClCompile Include="callimts.cpp" />
+    <ClCompile Include="calregts.cpp" />
+    <ClCompile Include="caltest.cpp" />
+    <ClCompile Include="caltztst.cpp" />
+    <ClCompile Include="dadrcal.cpp" />
+    <ClCompile Include="dadrfmt.cpp" />
+    <ClCompile Include="dcfmapts.cpp" />
+    <ClCompile Include="dcfmtest.cpp" />
+    <ClCompile Include="dtfmapts.cpp" />
+    <ClCompile Include="dtfmrgts.cpp" />
+    <ClCompile Include="dtfmtrtts.cpp" />
+    <ClCompile Include="dtfmttst.cpp" />
+    <ClCompile Include="dtifmtts.cpp" />
+    <ClCompile Include="dtptngts.cpp" />
+    <ClCompile Include="fldset.cpp" />
+    <ClCompile Include="incaltst.cpp" />
+    <ClCompile Include="itformat.cpp" />
+    <ClCompile Include="itrbnf.cpp" />
+    <ClCompile Include="itrbnfp.cpp" />
+    <ClCompile Include="itrbnfrt.cpp" />
+    <ClCompile Include="locnmtst.cpp" />
+    <ClCompile Include="miscdtfm.cpp" />
+    <ClCompile Include="msfmrgts.cpp" />
+    <ClCompile Include="nmfmapts.cpp" />
+    <ClCompile Include="nmfmtrt.cpp" />
+    <ClCompile Include="numfmtst.cpp" />
+    <ClCompile Include="numrgts.cpp" />
+    <ClCompile Include="plurfmts.cpp" />
+    <ClCompile Include="plurults.cpp" />
+    <ClCompile Include="pptest.cpp" />
+    <ClCompile Include="sdtfmtts.cpp" />
+    <ClCompile Include="selfmts.cpp" />
+    <ClCompile Include="tchcfmt.cpp" />
+    <ClCompile Include="tfsmalls.cpp" />
+    <ClCompile Include="tmsgfmt.cpp" />
+    <ClCompile Include="tsdate.cpp" />
+    <ClCompile Include="tsdcfmsy.cpp" />
+    <ClCompile Include="tsdtfmsy.cpp" />
+    <ClCompile Include="tsnmfmt.cpp" />
+    <ClCompile Include="tufmtts.cpp" />
+    <ClCompile Include="tzbdtest.cpp" />
+    <ClCompile Include="tzfmttst.cpp" />
+    <ClCompile Include="tzoffloc.cpp" />
+    <ClCompile Include="tzregts.cpp" />
+    <ClCompile Include="tzrulets.cpp" />
+    <ClCompile Include="tztest.cpp" />
+    <ClCompile Include="windttst.cpp">
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DisableLanguageExtensions>
+    </ClCompile>
+    <ClCompile Include="winnmtst.cpp">
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DisableLanguageExtensions>
+    </ClCompile>
+    <ClCompile Include="idnaconf.cpp" />
+    <ClCompile Include="idnaref.cpp" />
+    <ClCompile Include="nptrans.cpp" />
+    <ClCompile Include="punyref.c" />
+    <ClCompile Include="testidn.cpp" />
+    <ClCompile Include="testidna.cpp" />
+    <ClCompile Include="uts46test.cpp" />
+    <ClCompile Include="aliastst.cpp" />
+    <ClCompile Include="loctest.cpp" />
+    <ClCompile Include="restest.cpp" />
+    <ClCompile Include="restsnew.cpp" />
+    <ClCompile Include="intltest.cpp" />
+    <ClCompile Include="itmajor.cpp" />
+    <ClCompile Include="itutil.cpp" />
+    <ClCompile Include="testutil.cpp" />
+    <ClCompile Include="textfile.cpp" />
+    <ClCompile Include="tokiter.cpp" />
+    <ClCompile Include="winutil.cpp">
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DisableLanguageExtensions>
+    </ClCompile>
+    <ClCompile Include="canittst.cpp" />
+    <ClCompile Include="normconf.cpp" />
+    <ClCompile Include="tstnorm.cpp" />
+    <ClCompile Include="tstnrapi.cpp" />
+    <ClCompile Include="ucdtest.cpp" />
+    <ClCompile Include="usettest.cpp" />
+    <ClCompile Include="regextst.cpp" />
+    <ClCompile Include="icusvtst.cpp" />
+    <ClCompile Include="citrtest.cpp" />
+    <ClCompile Include="reptest.cpp" />
+    <ClCompile Include="sfwdchit.cpp" />
+    <ClCompile Include="strcase.cpp" />
+    <ClCompile Include="ustrtest.cpp">
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DisableLanguageExtensions>
+      <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DisableLanguageExtensions>
+    </ClCompile>
+    <ClCompile Include="utxttest.cpp" />
+    <ClCompile Include="cpdtrtst.cpp" />
+    <ClCompile Include="ittrans.cpp" />
+    <ClCompile Include="jamotest.cpp" />
+    <ClCompile Include="transapi.cpp" />
+    <ClCompile Include="transrt.cpp" />
+    <ClCompile Include="transtst.cpp" />
+    <ClCompile Include="trnserr.cpp" />
+    <ClCompile Include="convtest.cpp" />
+    <ClCompile Include="csdetest.cpp" />
+    <ClCompile Include="bidiconf.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="itrbbi.h" />
+    <ClInclude Include="rbbiapts.h" />
+    <ClInclude Include="rbbitst.h" />
+    <ClInclude Include="itspoof.h" />
+    <ClInclude Include="allcoll.h" />
+    <ClInclude Include="apicoll.h" />
+    <ClInclude Include="cntabcol.h" />
+    <ClInclude Include="currcoll.h" />
+    <ClInclude Include="dadrcoll.h" />
+    <ClInclude Include="decoll.h" />
+    <ClInclude Include="encoll.h" />
+    <ClInclude Include="escoll.h" />
+    <ClInclude Include="ficoll.h" />
+    <ClInclude Include="frcoll.h" />
+    <ClInclude Include="g7coll.h" />
+    <ClInclude Include="itercoll.h" />
+    <ClInclude Include="jacoll.h" />
+    <ClInclude Include="lcukocol.h" />
+    <ClInclude Include="mnkytst.h" />
+    <ClInclude Include="regcoll.h" />
+    <ClInclude Include="srchtest.h" />
+    <ClInclude Include="ssearch.h" />
+    <ClInclude Include="svccoll.h" />
+    <ClInclude Include="thcoll.h" />
+    <ClInclude Include="trcoll.h" />
+    <ClInclude Include="tscoll.h" />
+    <ClInclude Include="ucaconf.h" />
+    <ClInclude Include="uvectest.h" />
+    <ClInclude Include="v32test.h" />
+    <ClInclude Include="simplethread.h" />
+    <ClInclude Include="strtest.h" />
+    <ClInclude Include="tsmthred.h" />
+    <ClInclude Include="tsputil.h" />
+    <ClInclude Include="uobjtest.h" />
+    <ClInclude Include="astrotst.h" />
+    <ClInclude Include="calcasts.h" />
+    <ClInclude Include="callimts.h" />
+    <ClInclude Include="calregts.h" />
+    <ClInclude Include="caltest.h" />
+    <ClInclude Include="caltztst.h" />
+    <ClInclude Include="dadrcal.h" />
+    <ClInclude Include="dadrfmt.h" />
+    <ClInclude Include="dcfmapts.h" />
+    <ClInclude Include="dcfmtest.h" />
+    <ClInclude Include="dtfmapts.h" />
+    <ClInclude Include="dtfmrgts.h" />
+    <ClInclude Include="dtfmtrtts.h" />
+    <ClInclude Include="dtfmttst.h" />
+    <ClInclude Include="dtifmtts.h" />
+    <ClInclude Include="dtptngts.h" />
+    <ClInclude Include="fldset.h" />
+    <ClInclude Include="incaltst.h" />
+    <ClInclude Include="itformat.h" />
+    <ClInclude Include="itrbnf.h" />
+    <ClInclude Include="itrbnfp.h" />
+    <ClInclude Include="itrbnfrt.h" />
+    <ClInclude Include="locnmtst.h" />
+    <ClInclude Include="miscdtfm.h" />
+    <ClInclude Include="msfmrgts.h" />
+    <ClInclude Include="nmfmapts.h" />
+    <ClInclude Include="nmfmtrt.h" />
+    <ClInclude Include="numfmtst.h" />
+    <ClInclude Include="numrgts.h" />
+    <ClInclude Include="plurfmts.h" />
+    <ClInclude Include="plurults.h" />
+    <ClInclude Include="pptest.h" />
+    <ClInclude Include="sdtfmtts.h" />
+    <ClInclude Include="selfmts.h" />
+    <ClInclude Include="tchcfmt.h" />
+    <ClInclude Include="tfsmalls.h" />
+    <ClInclude Include="tmsgfmt.h" />
+    <ClInclude Include="tsdate.h" />
+    <ClInclude Include="tsdcfmsy.h" />
+    <ClInclude Include="tsdtfmsy.h" />
+    <ClInclude Include="tsnmfmt.h" />
+    <ClInclude Include="tufmtts.h" />
+    <ClInclude Include="tzbdtest.h" />
+    <ClInclude Include="tzfmttst.h" />
+    <ClInclude Include="tzoffloc.h" />
+    <ClInclude Include="tzregts.h" />
+    <ClInclude Include="tzrulets.h" />
+    <ClInclude Include="tztest.h" />
+    <ClInclude Include="windttst.h" />
+    <ClInclude Include="winnmtst.h" />
+    <ClInclude Include="idnaconf.h" />
+    <ClInclude Include="idnaref.h" />
+    <ClInclude Include="nptrans.h" />
+    <ClInclude Include="punyref.h" />
+    <ClInclude Include="testidna.h" />
+    <ClInclude Include="aliastst.h" />
+    <ClInclude Include="loctest.h" />
+    <ClInclude Include="restest.h" />
+    <ClInclude Include="restsnew.h" />
+    <ClInclude Include="intltest.h" />
+    <ClInclude Include="itmajor.h" />
+    <ClInclude Include="itutil.h" />
+    <ClInclude Include="testutil.h" />
+    <ClInclude Include="textfile.h" />
+    <ClInclude Include="tokiter.h" />
+    <ClInclude Include="winutil.h" />
+    <ClInclude Include="canittst.h" />
+    <ClInclude Include="normconf.h" />
+    <ClInclude Include="tstnorm.h" />
+    <ClInclude Include="ucdtest.h" />
+    <ClInclude Include="usettest.h" />
+    <ClInclude Include="regextst.h" />
+    <ClInclude Include="icusvtst.h" />
+    <ClInclude Include="citrtest.h" />
+    <ClInclude Include="reptest.h" />
+    <ClInclude Include="sfwdchit.h" />
+    <ClInclude Include="ustrtest.h" />
+    <ClInclude Include="utxttest.h" />
+    <ClInclude Include="cpdtrtst.h" />
+    <ClInclude Include="ittrans.h" />
+    <ClInclude Include="jamotest.h" />
+    <ClInclude Include="transapi.h" />
+    <ClInclude Include="transrt.h" />
+    <ClInclude Include="transtst.h" />
+    <ClInclude Include="trnserr.h" />
+    <ClInclude Include="convtest.h" />
+    <ClInclude Include="csdetest.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\common\common.vcxproj">
+      <Project>{73c0a65b-d1f2-4de1-b3a6-15dad2c23f3d}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\i18n\i18n.vcxproj">
+      <Project>{0178b127-6269-407d-b112-93877bb62776}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tools\ctestfw\ctestfw.vcxproj">
+      <Project>{eca6b435-b4fa-4f9f-bf95-f451d078fc47}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tools\toolutil\toolutil.vcxproj">
+      <Project>{6b231032-3cb5-4eed-9210-810d666a23a0}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

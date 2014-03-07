@@ -1,0 +1,58 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:bad_expression bad_expression]
+
+[h4 Synopsis]
+
+   #include <boost/pattern_except.hpp>
+
+The class `regex_error` defines the type of objects thrown as exceptions to 
+report errors during the conversion from a string representing a regular 
+expression to a finite state machine.  
+
+   namespace boost{
+
+   class regex_error : public std::runtime_error
+   {
+   public:
+      explicit regex_error(const std::string& s, regex_constants::error_type err, std::ptrdiff_t pos);
+      explicit regex_error(boost::regex_constants::error_type err);
+      boost::regex_constants::error_type code()const;
+      std::ptrdiff_t position()const;
+   };
+
+   typedef regex_error bad_pattern; // for backwards compatibility
+   typedef regex_error bad_expression; // for backwards compatibility
+   
+   } // namespace boost
+
+[h4 Description]
+
+   regex_error(const std::string& s, regex_constants::error_type err, std::ptrdiff_t pos);
+   regex_error(boost::regex_constants::error_type err);
+
+[*Effects:] Constructs an object of class regex_error.
+
+   boost::regex_constants::error_type code()const;
+
+[*Effects:] returns the error code that represents parsing error that occurred.
+
+   std::ptrdiff_t position()const; 
+
+[*Effects:] returns the location in the expression where parsing stopped.
+
+Footnotes: the choice of `std::runtime_error` as the base class for `regex_error` 
+is moot; depending upon how the library is used exceptions may be either 
+logic errors (programmer supplied expressions) or run time errors 
+(user supplied expressions).  The library previously used `bad_pattern` 
+and `bad_expression` for errors, these have been replaced by the single 
+class `regex_error` to keep the library in synchronization with the 
+[tr1].
+
+[endsect]

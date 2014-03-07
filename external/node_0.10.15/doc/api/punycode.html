@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>punycode Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/punycode.html">
+</head>
+<body class="alt apidoc" id="api-section-punycode">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="punycode.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#punycode_punycode">punycode</a><ul>
+<li><a href="#punycode_punycode_decode_string">punycode.decode(string)</a></li>
+<li><a href="#punycode_punycode_encode_string">punycode.encode(string)</a></li>
+<li><a href="#punycode_punycode_tounicode_domain">punycode.toUnicode(domain)</a></li>
+<li><a href="#punycode_punycode_toascii_domain">punycode.toASCII(domain)</a></li>
+<li><a href="#punycode_punycode_ucs2">punycode.ucs2</a><ul>
+<li><a href="#punycode_punycode_ucs2_decode_string">punycode.ucs2.decode(string)</a></li>
+<li><a href="#punycode_punycode_ucs2_encode_codepoints">punycode.ucs2.encode(codePoints)</a></li>
+</ul>
+</li>
+<li><a href="#punycode_punycode_version">punycode.version</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>punycode<span><a class="mark" href="#punycode_punycode" id="punycode_punycode">#</a></span></h1>
+<pre class="api_stability_2">Stability: 2 - Unstable</pre><p><a href="http://mths.be/punycode">Punycode.js</a> is bundled with Node.js v0.6.2+. Use
+<code>require(&#39;punycode&#39;)</code> to access it. (To use it with other Node.js versions,
+use npm to install the <code>punycode</code> module first.)
+
+</p>
+<h2>punycode.decode(string)<span><a class="mark" href="#punycode_punycode_decode_string" id="punycode_punycode_decode_string">#</a></span></h2>
+<p>Converts a Punycode string of ASCII code points to a string of Unicode code
+points.
+
+</p>
+<pre><code>// decode domain name parts
+punycode.decode(&#39;maana-pta&#39;); // &#39;mañana&#39;
+punycode.decode(&#39;--dqo34k&#39;); // &#39;☃-⌘&#39;</code></pre>
+<h2>punycode.encode(string)<span><a class="mark" href="#punycode_punycode_encode_string" id="punycode_punycode_encode_string">#</a></span></h2>
+<p>Converts a string of Unicode code points to a Punycode string of ASCII code
+points.
+
+</p>
+<pre><code>// encode domain name parts
+punycode.encode(&#39;mañana&#39;); // &#39;maana-pta&#39;
+punycode.encode(&#39;☃-⌘&#39;); // &#39;--dqo34k&#39;</code></pre>
+<h2>punycode.toUnicode(domain)<span><a class="mark" href="#punycode_punycode_tounicode_domain" id="punycode_punycode_tounicode_domain">#</a></span></h2>
+<p>Converts a Punycode string representing a domain name to Unicode. Only the
+Punycoded parts of the domain name will be converted, i.e. it doesn&#39;t matter if
+you call it on a string that has already been converted to Unicode.
+
+</p>
+<pre><code>// decode domain names
+punycode.toUnicode(&#39;xn--maana-pta.com&#39;); // &#39;mañana.com&#39;
+punycode.toUnicode(&#39;xn----dqo34k.com&#39;); // &#39;☃-⌘.com&#39;</code></pre>
+<h2>punycode.toASCII(domain)<span><a class="mark" href="#punycode_punycode_toascii_domain" id="punycode_punycode_toascii_domain">#</a></span></h2>
+<p>Converts a Unicode string representing a domain name to Punycode. Only the
+non-ASCII parts of the domain name will be converted, i.e. it doesn&#39;t matter if
+you call it with a domain that&#39;s already in ASCII.
+
+</p>
+<pre><code>// encode domain names
+punycode.toASCII(&#39;mañana.com&#39;); // &#39;xn--maana-pta.com&#39;
+punycode.toASCII(&#39;☃-⌘.com&#39;); // &#39;xn----dqo34k.com&#39;</code></pre>
+<h2>punycode.ucs2<span><a class="mark" href="#punycode_punycode_ucs2" id="punycode_punycode_ucs2">#</a></span></h2>
+<h3>punycode.ucs2.decode(string)<span><a class="mark" href="#punycode_punycode_ucs2_decode_string" id="punycode_punycode_ucs2_decode_string">#</a></span></h3>
+<p>Creates an array containing the decimal code points of each Unicode character
+in the string. While <a href="http://mathiasbynens.be/notes/javascript-encoding">JavaScript uses UCS-2
+internally</a>, this function
+will convert a pair of surrogate halves (each of which UCS-2 exposes as
+separate characters) into a single code point, matching UTF-16.
+
+</p>
+<pre><code>punycode.ucs2.decode(&#39;abc&#39;); // [97, 98, 99]
+// surrogate pair for U+1D306 tetragram for centre:
+punycode.ucs2.decode(&#39;\uD834\uDF06&#39;); // [0x1D306]</code></pre>
+<h3>punycode.ucs2.encode(codePoints)<span><a class="mark" href="#punycode_punycode_ucs2_encode_codepoints" id="punycode_punycode_ucs2_encode_codepoints">#</a></span></h3>
+<p>Creates a string based on an array of decimal code points.
+
+</p>
+<pre><code>punycode.ucs2.encode([97, 98, 99]); // &#39;abc&#39;
+punycode.ucs2.encode([0x1D306]); // &#39;\uD834\uDF06&#39;</code></pre>
+<h2>punycode.version<span><a class="mark" href="#punycode_punycode_version" id="punycode_punycode_version">#</a></span></h2>
+<p>A string representing the current Punycode.js version number.
+</p>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

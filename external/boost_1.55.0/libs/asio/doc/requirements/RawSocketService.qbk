@@ -1,0 +1,227 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:RawSocketService Raw socket service requirements]
+
+A raw socket service must meet the requirements for a [link
+boost_asio.reference.SocketService socket service], as well as the additional
+requirements listed below.
+
+In the table below, `X` denotes a raw socket service class for protocol
+[link boost_asio.reference.Protocol `Protocol`], `a` denotes a value of type
+`X`, `b` denotes a value of type `X::implementation_type`, `e` denotes a value
+of type `Protocol::endpoint`, `ec` denotes a value of type `error_code`, `f`
+denotes a value of type `socket_base::message_flags`, `mb` denotes a value
+satisfying [link boost_asio.reference.MutableBufferSequence mutable buffer
+sequence] requirements, `rh` denotes a value meeting [link
+boost_asio.reference.ReadHandler `ReadHandler`] requirements, `cb` denotes a
+value satisfying [link boost_asio.reference.ConstBufferSequence constant
+buffer sequence] requirements, and `wh` denotes a value meeting [link
+boost_asio.reference.WriteHandler `WriteHandler`] requirements.
+
+[table RawSocketService requirements
+  [[expression] [return type] [assertion/note\npre/post-condition]]
+  [
+    [`a.receive(b, mb, f, ec);`]
+    [`size_t`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Reads one or more bytes of data from a connected socket `b`.\n
+      \n
+      The mutable buffer sequence `mb` specifies memory where the data should
+      be placed. The operation shall always fill a buffer in the sequence
+      completely before proceeding to the next.\n
+      \n
+      If successful, returns the number of bytes read. Otherwise returns `0`.
+    ]
+  ]
+  [
+    [`a.async_receive(b, mb, f, rh);`]
+    [`void`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Initiates an asynchronous operation to read one or more bytes of data
+      from a connected socket `b`. The operation is performed via the
+      `io_service` object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      The mutable buffer sequence `mb` specifies memory where the data should
+      be placed. The operation shall always fill a buffer in the sequence
+      completely before proceeding to the next.\n
+      \n
+      The implementation shall maintain one or more copies of `mb` until such
+      time as the read operation no longer requires access to the memory
+      specified by the buffers in the sequence. The program must ensure the
+      memory is valid until:\n
+      \n
+      [mdash] the last copy of `mb` is destroyed, or\n
+      \n
+      [mdash] the handler for the asynchronous operation is invoked,\n
+      \n
+      whichever comes first.\n
+      \n
+      If the operation completes successfully, the `ReadHandler` object
+      `rh` is invoked with the number of bytes transferred. Otherwise it is
+      invoked with `0`.
+    ]
+  ]
+  [
+    [`a.receive_from(b, mb, e, f, ec);`]
+    [`size_t`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Reads one or more bytes of data from an unconnected socket `b`.\n
+      \n
+      The mutable buffer sequence `mb` specifies memory where the data should
+      be placed. The operation shall always fill a buffer in the sequence
+      completely before proceeding to the next.\n
+      \n
+      If successful, returns the number of bytes read. Otherwise returns `0`.
+    ]
+  ]
+  [
+    [`a.async_receive_from(b, mb, e, f, rh);`]
+    [`void`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Initiates an asynchronous operation to read one or more bytes of data
+      from an unconnected socket `b`. The operation is performed via the
+      `io_service` object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      The mutable buffer sequence `mb` specifies memory where the data should
+      be placed. The operation shall always fill a buffer in the sequence
+      completely before proceeding to the next.\n
+      \n
+      The implementation shall maintain one or more copies of `mb` until such
+      time as the read operation no longer requires access to the memory
+      specified by the buffers in the sequence. The program must ensure the
+      memory is valid until:\n
+      \n
+      [mdash] the last copy of `mb` is destroyed, or\n
+      \n
+      [mdash] the handler for the asynchronous operation is invoked,\n
+      \n
+      whichever comes first.\n
+      \n
+      The program must ensure the object `e` is valid until the handler
+      for the asynchronous operation is invoked.\n
+      \n
+      If the operation completes successfully, the `ReadHandler` object
+      `rh` is invoked with the number of bytes transferred. Otherwise it is
+      invoked with `0`.
+    ]
+  ]
+  [
+    [`a.send(b, cb, f, ec);`]
+    [`size_t`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Writes one or more bytes of data to a connected socket `b`.\n
+      \n
+      The constant buffer sequence `cb` specifies memory where the data to be
+      written is located. The operation shall always write a buffer in the
+      sequence completely before proceeding to the next.\n
+      \n
+      If successful, returns the number of bytes written. Otherwise returns `0`.
+    ]
+  ]
+  [
+    [`a.async_send(b, cb, f, wh);`]
+    [`void`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Initiates an asynchronous operation to write one or more bytes of data to
+      a connected socket `b`. The operation is performed via the `io_service`
+      object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      The constant buffer sequence `cb` specifies memory where the data to be
+      written is located. The operation shall always write a buffer in the
+      sequence completely before proceeding to the next.\n
+      \n
+      The implementation shall maintain one or more copies of `cb` until such
+      time as the write operation no longer requires access to the memory
+      specified by the buffers in the sequence. The program must ensure the
+      memory is valid until:\n
+      \n
+      [mdash] the last copy of `cb` is destroyed, or\n
+      \n
+      [mdash] the handler for the asynchronous operation is invoked,\n
+      \n
+      whichever comes first.\n
+      \n
+      If the operation completes successfully, the `WriteHandler` object `wh`
+      is invoked with the number of bytes transferred. Otherwise it is invoked
+      with `0`.
+    ]
+  ]
+  [
+    [``
+      const typename Protocol::endpoint& u = e;
+      a.send_to(b, cb, u, f, ec);
+    ``]
+    [`size_t`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Writes one or more bytes of data to an unconnected socket `b`.\n
+      \n
+      The constant buffer sequence `cb` specifies memory where the data to be
+      written is located. The operation shall always write a buffer in the
+      sequence completely before proceeding to the next.\n
+      \n
+      If successful, returns the number of bytes written. Otherwise returns `0`.
+    ]
+  ]
+  [
+    [``
+      const typename Protocol::endpoint& u = e;
+      a.async_send(b, cb, u, f, wh);
+    ``]
+    [`void`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Initiates an asynchronous operation to write one or more bytes of data to
+      an unconnected socket `b`. The operation is performed via the `io_service`
+      object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      The constant buffer sequence `cb` specifies memory where the data to be
+      written is located. The operation shall always write a buffer in the
+      sequence completely before proceeding to the next.\n
+      \n
+      The implementation shall maintain one or more copies of `cb` until such
+      time as the write operation no longer requires access to the memory
+      specified by the buffers in the sequence. The program must ensure the
+      memory is valid until:\n
+      \n
+      [mdash] the last copy of `cb` is destroyed, or\n
+      \n
+      [mdash] the handler for the asynchronous operation is invoked,\n
+      \n
+      whichever comes first.\n
+      \n
+      If the operation completes successfully, the `WriteHandler` object `wh`
+      is invoked with the number of bytes transferred. Otherwise it is invoked
+      with `0`.
+    ]
+  ]
+]
+
+[endsect]

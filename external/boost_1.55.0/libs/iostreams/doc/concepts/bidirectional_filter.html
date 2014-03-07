@@ -1,0 +1,154 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>BidirectionalFilter</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">BidirectionalFilter</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Definition</H2>
+
+<P>
+    An BidirectionalFilter is a <A HREF="filter.html">Filter</A> whose <A HREF="../guide/modes.html">mode</A> refines <A HREF="../guide/modes.html#bidirectional"><CODE>bidirectional</CODE></A>. 
+</P>
+
+<H2>Description</H2>
+
+<P>
+    An BidirectionalFilter operates on the character sequences controlled by a <A HREF="bidirectional_device.html">BidirectionalDevice</A>, providing access to two filtered sequences having the same character type. It may expose the filtered sequences in two ways:
+    <OL>
+        <LI STYLE="list-style-type:lower-roman">
+            by defining member function <CODE>get</CODE> and <CODE>put</CODE>.
+        </LI>
+        <LI STYLE="list-style-type:lower-roman">
+            by defining member functions <CODE>read</CODE> and <CODE>write</CODE>.
+        </LI>
+    </OL>
+    The second alternative is provided for enhanced performance. BidirectionalFilters implementing this alternative are referred to as <A HREF="multi_character.html">Multi-Character Filters</A>.
+</P>
+
+<H2>Refinement of</H2>
+
+<P><A HREF="input_filter.html">InputFilter</A>, <A HREF="output_filter.html">OutputFilter</A>.</P>
+
+<H2>Associated Types</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TD>Character type</TD><TD>The type of the characters in the filtered sequences</TD></TR>
+    <TR>
+        <TD>Category</TD>
+        <TD>
+            A type convertible to <A HREF="../guide/traits.html#category_tags"><CODE>filter_tag</CODE></A> and to <A HREF="../guide/modes.html#bidirectional"><CODE>bidirectional</CODE></A>
+        </TD>
+    </TR>
+    <TR>
+        <TD>Mode</TD>
+        <TD>
+            The unique <I>most-derived</I> <A HREF="../guide/modes.html#mode_tags">mode tag</A> to which Category is convertible
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Notation</H2>
+
+<TABLE CELLPADDING="2">
+    <TR><TD><CODE>F</CODE></TD><TD>- A type which is a model of BidirectionalFilter</TD></TR>
+    <TR><TD><CODE>D</CODE></TD><TD>- A type which is a model of <A HREF="device.html">Device</A>, with the same character type as <CODE>F</CODE> and with mode refining the mode of <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>Ch</CODE></TD><TD>- The character type of <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>Tr</CODE></A></TD><TD>- <A HREF="../classes/char_traits.html"><CODE>boost::iostreams::char_traits&lt;Ch&gt;</CODE></A></TD></TR>
+    <TR><TD><CODE>f</CODE></TD><TD>- Object of type <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>d</CODE></TD><TD>- Object of type <CODE>D</CODE></TD></TR>
+    <TR><TD><CODE>c</CODE></TD><TD>- Object of type <CODE>Ch</CODE></TD></TR>
+    <TR><TD><CODE>s1</CODE></TD><TD>- Object of type <CODE>Ch*</CODE></TD></TR>
+    <TR><TD><CODE>s2</CODE></TD><TD>- Object of type <CODE>const Ch*</CODE></TD></TR>
+    <TR><TD><CODE>n</CODE></TD><TD>- Object of type <CODE>std::streamsize</CODE></TD></TR>
+    <TR><TD><CODE>io</CODE></TD><TD>- Alias for namespace <CODE>boost::iostreams</CODE></TD></TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Category Precondition</TH><TH>Semantics</TH></TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE>typename <A HREF="../guide/traits.html#char_type_of_ref">char_type_of</A>&lt;F&gt;::type</CODE></PRE>
+        </TD>
+        <TD><CODE>typename</CODE> of the character type</TD>
+        <TD ALIGN="center">-</TD><TD ALIGN="center">-</TD>
+    </TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE>typename <A HREF="../guide/traits.html#category_ref">category_of</A>&lt;F&gt;::type</CODE></PRE>
+        </TD>
+        <TD><CODE>typename</CODE> of the category</TD>
+        <TD ALIGN="center">-</TD><TD ALIGN="center">-</TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.get(d)</CODE></PRE></TD>
+        <TD><CODE>Tr::int_type</CODE></TD>
+        <TD ROWSPAN="2">
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>input</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>multichar_tag</CODE></A>
+        </TD>
+        <TD>
+            Returns the next character in the input sequence controlled by <CODE>f</CODE>, <CODE>Tr::eof()</CODE> if the end of the sequence has been reached or <CODE>Tr::would_block()</CODE> if input is temporarily unavilable because a call to <CODE>d</CODE> has produced fewer characters than requested. The input sequence controlled by <CODE>d</CODE> may be accessed using <A HREF="../functions/get.html"><CODE>io::get</CODE></A>, <A HREF="../functions/read.html"><CODE>io::read</CODE></A> and <A HREF="../functions/putback.html"><CODE>io::putback</CODE></A>.
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.put(d, c)</CODE></PRE></TD>
+        <TD><CODE>bool</CODE></TD>
+        <TD>
+            Attempts to writes the character <CODE>c</CODE> to the output sequence controlled by <CODE>f</CODE>, returning <CODE>false</CODE> if <CODE>c</CODE> cannot be consumed because a call to <CODE>d</CODE> has consumed fewer characters than requested. The output sequence controlled by <CODE>d</CODE> may be accessed using <A HREF="../functions/put.html"><CODE>io::put</CODE></A> and <A HREF="../functions/write.html"><CODE>io::write</CODE></A>.
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.read(d, s1, n)</CODE></PRE></TD>
+        <TD><PRE CLASS="plain_code"><CODE>std::streamsize</CODE></PRE></TD>
+        <TD ROWSPAN="2">
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>input</CODE></A> and to <A HREF="../guide/traits.html#category_tags"><CODE>multichar_tag</CODE></A>
+        </TD>
+        <TD>
+            Reads up to <CODE>n</CODE> characters from the input sequence controlled by <CODE>f</CODE> into the buffer <CODE>s1</CODE>, returning the number of characters read or <CODE>-1</CODE> to indicate end-of-sequence. A value less than <CODE>n</CODE> may be returned only at end-of-sequence or if input is temporarily unavilable because a call to <CODE>d</CODE> has produced fewer characters than requested. The input sequence controlled by <CODE>d</CODE> may be accessed using <A HREF="../functions/get.html"><CODE>io::get</CODE></A>, <A HREF="../functions/read.html"><CODE>io::read</CODE></A> and <A HREF="../functions/putback.html"><CODE>io::putback</CODE></A>.
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.write(d, s2, n)</CODE></PRE></TD>
+        <TD><PRE CLASS="plain_code"><CODE>std::streamsize</CODE></PRE></TD>
+        <TD>
+            Writes up to <CODE>n</CODE> characters from the buffer <CODE>s2</CODE> to the output sequence controlled by <CODE>d</CODE>, returning the number of characters written. A value less than <CODE>n</CODE> may be returned only if a call to <CODE>d</CODE> has consumed fewer characters than requested. The output sequence controlled by <CODE>d</CODE> may be accessed using <A HREF="../functions/put.html"><CODE>io::put</CODE></A> and <A HREF="../functions/write.html"><CODE>io::write</CODE></A>.
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Exceptions</H2>
+
+<P>
+    Errors which occur during the execution of <CODE>get</CODE>, <CODE>put</CODE>, <CODE>read</CODE> or <CODE>write</CODE> are indicated by throwing exceptions. Reaching the end of the input sequence is not an error, but attempting to write past the end of the output sequence is.
+</P>
+
+<P>
+    After an exception is thrown, an BidirectionalFilter must be in a consistent state; further i/o operations may throw exceptions but must have well-defined behaviour. Furthermore, unless it is <A HREF="closable.html">Closable</A>, it must be ready to begin processing a new character sequence.
+</P>
+
+
+<H2>Models</H2>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

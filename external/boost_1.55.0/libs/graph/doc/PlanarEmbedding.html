@@ -1,0 +1,178 @@
+<html><head><!-- Copyright 2007 Aaron Windsor
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  -->
+<title>Planar Embedding Concept</title>
+</head>
+<body alink="#ff0000" 
+      bgcolor="#ffffff" 
+      link="#0000ee" 
+      text="#000000" 
+      vlink="#551a8b"> 
+<img src="../../../boost.png" alt="C++ Boost" height="86" width="277"> 
+
+<br clear="">
+
+<h1>Planar Embedding Concept</h1>
+
+
+A planar embedding is an important intermediate representation of a drawing
+of a planar graph. Instead of specifying the absolute positions of the vertices
+and edges in the plane, a planar embedding specifies their positions relative 
+to one another. A planar embedding consists of a sequence, for each vertex in 
+the graph, of all of the edges incident on that vertex in the order in which 
+they are to be drawn around that vertex.
+<p>
+A planar embedding is a refinement of 
+<a href="../../property_map/doc/LvaluePropertyMap.html">LValuePropertyMap</a> that
+places additional restrictions the <tt>value_type</tt> used in the property
+map.
+
+</p><h3>Notation</h3>
+
+<table>
+<tbody>
+
+<tr> 
+<td> <tt>Embedding</tt> </td>  
+<td> is a type that models the Planar Embedding concept.</td>
+</tr>
+
+<tr> 
+<td> <tt>embedding</tt> </td>
+<td> is an object of type <tt>Embedding</tt>. </td>
+</tr>
+
+<tr> 
+<td> <tt>Graph</tt> </td>  
+<td> is the type of the underlying graph.</td>
+</tr>
+
+<tr> 
+<td> <tt>e</tt> </td>  
+<td> is an object of type <tt>graph_traits&lt;Graph&gt;::edge_descriptor</tt>. 
+</td>
+</tr>
+
+<tr>
+<td> <tt>v</tt> </td>
+<td> is an object of type <tt>graph_traits&lt;Graph&gt;::vertex_descriptor
+</tt>.</td>
+
+</tr><tr>
+<td> 
+
+</td></tr></tbody></table>
+
+
+<h3>Associated Types</h3>
+
+<table border="1">
+
+<tbody><tr> 
+<td> Const Iterator  </td>
+<td> <tt>boost::property_traits&lt;Embedding&gt;::value_type::const_iterator
+</tt>
+</td>
+<td> The iterator type used to iterate over the ordering of the edges in the 
+planar embedding of a particular vertex
+</td>
+</tr>
+
+</tbody></table>
+
+<h3>Valid Expressions</h3>
+
+<p>
+
+<table border="1">
+
+<tbody><tr><th>Expression</th><th>Return Type</th><th>Description</th>
+
+</tr><tr> 
+<td> <tt>embedding[v].begin()</tt>  </td>
+<td> <tt>boost::property_traits&lt;Embedding&gt;::value_type::const_iterator
+     </tt></td>
+<td> Returns an iterator to the beginning of the range of edges in the 
+     embedding around vertex v</td>
+</tr>
+
+<tr> 
+<td> <tt>embedding[v].end()</tt>  </td>
+<td> <tt>boost::property_traits&lt;Embedding&gt;::value_type::const_iterator
+     </tt></td>
+<td> Returns an iterator to the end of the range of edges in the 
+     embedding around vertex v</td>
+</tr>
+
+<tr> 
+<td> <tt>embedding[v].clear()</tt>  </td>
+<td> <tt>void</tt></td>
+<td> Clears all edges in the embedding around a vertex <tt>v</tt></td>
+</tr>
+
+<tr> 
+<td> <tt>embedding[v].push_back(e)</tt>  </td>
+<td> <tt>void</tt></td>
+<td> Adds an edge <tt>e</tt> to the end of the sequence of embedded edges 
+     around the vertex <tt>v</tt> </td>
+</tr>
+
+</tbody></table>
+
+</p><h3>Complexity Guarantees</h3>
+
+Starting with an empty embedding, any mixed sequence of <i>n</i> calls to a
+particular vertex's <tt>push_back</tt> and <tt>clear</tt> should take 
+<i>O(n)</i> time.
+
+<h3>Models</h3>
+
+Any LValue property map that maps vertices to a <tt>std::vector</tt>, 
+<tt>std::list</tt>, or <tt>std::deque</tt> models this
+concept. Below is an example of using this approach to create a model of
+PlanarEmbedding:
+
+<pre>
+#include &lt;boost/property_map/property_map.hpp&gt;
+#include &lt;vector&gt;
+
+...
+
+// Assume a graph type "Graph" defined somewhere above and
+// an instance of Graph in a variable g.
+
+// A typedef for the storage - a vector of vectors of edge descriptors
+typedef 
+    std::vector&lt; std::vector&lt; graph_traits&lt;Graph&gt;::edge_descriptor &gt; &gt;
+    planar_embedding_storage_t;
+
+// A typedef for the iterator property map, assuming the graph has
+// an interior vertex index map
+typedef
+    boost::iterator_property_map&lt; planar_embedding_storage_t::iterator,
+                                  property_map&lt;Graph, vertex_index_t&gt;::type
+                                &gt;
+    planar_embedding_t;
+
+// Create an instance of the storage and the property map
+planar_embedding_storage_t planar_embedding_storage(num_vertices(g));
+planar_embedding_t planar_embedding(planar_embedding_storage.begin(),
+                                    get(vertex_index, g)
+                                    );
+
+// planar_embedding can now be passed to any function expecting a model
+// of PlanarEmbedding.
+</pre>
+
+<p>
+
+<br>
+</p><hr>
+Copyright © 2007 Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">
+aaron.windsor@gmail.com</a>) 
+
+</body></html>

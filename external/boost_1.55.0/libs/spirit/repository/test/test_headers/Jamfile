@@ -1,0 +1,82 @@
+# Jamfile
+#
+# Copyright (c) 2007-2008 Steven Watanabe
+# Copyright (c) 2009 Joel de Guzman
+# Copyright (c) 2009 Hartmut Kaiser
+# Copyright (c) 2009 Francois Barel
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt
+
+import testing ;
+import path ;
+import regex ;
+import print ;
+import sequence ;
+import feature ;
+
+project boost/spirit/repository/test/test_headers 
+    : requirements 
+        <include>$(BOOST_ROOT) 
+        <include>../../../../..
+        <toolset>gcc:<cxxflags>-ftemplate-depth-300
+        <toolset>darwin:<cxxflags>-ftemplate-depth-300
+    ;
+
+headers = 
+[ 
+    path.glob-tree ../../../../../boost/spirit/repository/include : *.hpp 
+] ;
+
+main_headers = 
+[ 
+    path.glob-tree ../../../../../boost/spirit/include : *.hpp : classic* phoenix1*
+] ;
+
+for local file in $(headers)
+{
+    compile test.cpp
+        : # requirements
+            <define>BOOST_SPIRIT_HEADER_NAME=$(file)
+            <dependency>$(file)
+        : # test name
+            [ regex.replace [ path.relative-to ../../../../../boost/spirit/repository $(file) ] "/" "_" ] 
+        ;
+}
+
+feature.feature <generate-include-all-order> : forward reverse : incidental ;
+
+rule generate-include-all ( target : sources * : properties * )
+{
+    print.output $(target) ;
+
+    if <generate-include-all-order>reverse in $(properties)
+    {
+        sources = [ sequence.reverse $(sources) ] ;
+    }
+
+    for local file in $(sources)
+    {
+        print.text "#include <$(file:G=)>
+" : overwrite ;
+    }
+
+}
+
+make auto_all1.cpp 
+    : $(headers) $(main_headers)
+    : @generate-include-all 
+    ;
+
+make auto_all2.cpp 
+    : $(headers) $(main_headers)
+    : @generate-include-all 
+    : <generate-include-all-order>reverse 
+    ;
+
+# this ought to catch non-inlined functions and other duplicate definitions
+link auto_all1.cpp auto_all2.cpp main.cpp 
+    : <include>. 
+    : auto_all_headers 
+    ;

@@ -1,0 +1,137 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lexer_static_model The /Static/ Lexer Model]
+
+The documentation of __lex__ so far mostly was about describing the features of
+the /dynamic/ model, where the tables needed for lexical analysis are generated
+from the regular expressions at runtime. The big advantage of the dynamic model
+is its flexibility, and its integration with the __spirit__ library and the C++
+host language. Its big disadvantage is the need to spend additional runtime to 
+generate the tables, which especially might be a limitation for larger lexical 
+analyzers. The /static/ model strives to build upon the smooth integration with
+__spirit__ and C++, and reuses large parts of the __lex__ library as described
+so far, while overcoming the additional runtime requirements by using 
+pre-generated tables and tokenizer routines. To make the code generation as 
+simple as possible, the static model reuses the token definition types developed 
+for the /dynamic/ model without any changes. As will be shown in this 
+section, building a code generator based on an existing token definition type 
+is a matter of writing 3 lines of code.
+
+Assuming you already built a dynamic lexer for your problem, there are two more
+steps needed to create a static lexical analyzer using __lex__:
+
+# generating the C++ code for the static analyzer (including the tokenization 
+  function and corresponding tables), and 
+# modifying the dynamic lexical analyzer to use the generated code.
+
+Both steps are described in more detail in the two sections below (for the full
+source code used in this example see the code here:
+[@../../example/lex/static_lexer/word_count_tokens.hpp the common token definition],
+[@../../example/lex/static_lexer/word_count_generate.cpp the code generator], 
+[@../../example/lex/static_lexer/word_count_static.hpp the generated code], and 
+[@../../example/lex/static_lexer/word_count_static.cpp the static lexical analyzer]).
+
+[import ../example/lex/static_lexer/word_count_tokens.hpp]
+[import ../example/lex/static_lexer/word_count_static.cpp]
+[import ../example/lex/static_lexer/word_count_generate.cpp]
+
+But first we provide the code snippets needed to further understand the 
+descriptions. Both, the definition of the used token identifier and the of the 
+token definition class in this example are put into a separate header file to 
+make these available to the code generator and the static lexical analyzer. 
+
+[wc_static_tokenids]
+
+The important point here is, that the token definition class is not different 
+from a similar class to be used for a dynamic lexical analyzer. The library 
+has been designed in a way, that all components (dynamic lexical analyzer, code 
+generator, and static lexical analyzer) can reuse the very same token definition 
+syntax.
+
+[wc_static_tokendef]
+
+The only thing changing between the three different use cases is the template
+parameter used to instantiate a concrete token definition. For the dynamic 
+model and the code generator you probably will use the __class_lexertl_lexer__
+template, where for the static model you will use the 
+__class_lexertl_static_lexer__ type as the template parameter.
+
+This example not only shows how to build a static lexer, but it additionally 
+demonstrates how such a lexer can be used for parsing in conjunction with a 
+__qi__ grammar. For completeness, we provide the simple grammar used in this 
+example. As you can see, this grammar does not have any dependencies on the 
+static lexical analyzer, and for this reason it is not different from a grammar
+used either without a lexer or using a dynamic lexical analyzer as described 
+before.
+
+[wc_static_grammar]
+
+
+[heading Generating the Static Analyzer]
+
+The first additional step to perform in order to create a static lexical 
+analyzer is to create a small stand alone program for creating the lexer tables
+and the corresponding tokenization function. For this purpose the __lex__ 
+library exposes a special API - the function __api_generate_static__. It 
+implements the whole code generator, no further code is needed. All what it 
+takes to invoke this function is to supply a token definition instance, an 
+output stream to use to generate the code to, and an optional string to be used 
+as a suffix for the name of the generated function. All in all just a couple 
+lines of code.
+
+[wc_static_generate_main]
+
+The shown code generator will generate output, which should be stored in a file
+for later inclusion into the static lexical analyzer as shown in the next 
+topic (the full generated code can be viewed 
+[@../../example/lex/static_lexer/word_count_static.hpp here]).
+
+[note  The generated code will have compiled in the version number of the 
+       current __lex__ library. This version number is used at compilation time
+       of your static lexer object to ensure this is compiled using exactly the
+       same version of the __lex__ library as the lexer tables have been 
+       generated with. If the versions do not match you will see an compilation 
+       error mentioning an `incompatible_static_lexer_version`.
+]
+
+[heading Modifying the Dynamic Analyzer]
+
+The second required step to convert an existing dynamic lexer into a static one 
+is to change your main program at two places. First, you need to change the 
+type of the used lexer (that is the template parameter used while instantiating
+your token definition class). While in the dynamic model we have been using the
+__class_lexertl_lexer__ template, we now need to change that to the 
+__class_lexertl_static_lexer__ type. The second change is tightly related to 
+the first one and involves correcting the corresponding `#include` statement to:
+
+[wc_static_include]
+
+Otherwise the main program is not different from an equivalent program using 
+the dynamic model. This feature makes it easy to develop the lexer in dynamic 
+mode and to switch to the static mode after the code has been stabilized. 
+The simple generator application shown above enables the integration of the 
+code generator into any existing build process. The following code snippet 
+provides the overall main function, highlighting the code to be changed.
+
+[wc_static_main]
+
+[important The generated code for the static lexer contains the token ids as 
+           they have been assigned, either explicitly by the programmer or 
+           implicitly during lexer construction. It is your responsibility
+           to make sure that all instances of a particular static lexer  
+           type use exactly the same token ids. The constructor of the lexer 
+           object has a second (default) parameter allowing it to designate a 
+           starting token id to be used while assigning the ids to the token 
+           definitions. The requirement above is fulfilled by default
+           as long as no `first_id` is specified during construction of the
+           static lexer instances. 
+]
+
+
+[endsect]

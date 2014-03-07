@@ -1,0 +1,148 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Examples</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../any.html" title="Chapter&#160;2.&#160;Boost.Any">
+<link rel="prev" href="../any.html" title="Chapter&#160;2.&#160;Boost.Any">
+<link rel="next" href="reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../any.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../any.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="idp61685800"></a>Examples</h2></div></div></div>
+<p>The following code demonstrates the syntax for using
+    implicit conversions to and copying of any objects:</p>
+<pre class="programlisting">
+#include &lt;list&gt;
+#include &lt;boost/any.hpp&gt;
+
+using <code class="computeroutput"><a class="link" href="../boost/any_cast_idp25247624.html" title="Function any_cast">boost::any_cast</a></code>;
+typedef std::list&lt;<code class="computeroutput"><a class="link" href="../boost/any.html" title="Class any">boost::any</a></code>&gt; many;
+
+void append_int(many &amp; values, int value)
+{
+    <code class="computeroutput"><a class="link" href="../boost/any.html" title="Class any">boost::any</a></code> to_append = value;
+    values.push_back(to_append);
+}
+
+void append_string(many &amp; values, const std::string &amp; value)
+{
+    values.push_back(value);
+}
+
+void append_char_ptr(many &amp; values, const char * value)
+{
+    values.push_back(value);
+}
+
+void append_any(many &amp; values, const <code class="computeroutput"><a class="link" href="../boost/any.html" title="Class any">boost::any</a></code> &amp; value)
+{
+    values.push_back(value);
+}
+
+void append_nothing(many &amp; values)
+{
+    values.push_back(<code class="computeroutput"><a class="link" href="../boost/any.html" title="Class any">boost::any</a></code>());
+}
+</pre>
+<p>The following predicates follow on from the previous
+    definitions and demonstrate the use of queries on any
+    objects:</p>
+<pre class="programlisting">
+bool is_empty(const <code class="computeroutput"><a class="link" href="../boost/any.html" title="Class any">boost::any</a></code> &amp; operand)
+{
+    return operand.<code class="computeroutput"><a class="link" href="../boost/any.html#idp25241416-bb">empty</a></code>();
+}
+
+bool is_int(const <code class="computeroutput"><a class="link" href="../boost/any.html" title="Class any">boost::any</a></code> &amp; operand)
+{
+    return operand.<code class="computeroutput"><a class="link" href="../boost/any.html#idp25242904-bb">type</a></code>() == typeid(int);
+}
+
+bool is_char_ptr(const <code class="computeroutput"><a class="link" href="../boost/any.html" title="Class any">boost::any</a></code> &amp; operand)
+{
+    try
+    {
+        <code class="computeroutput"><a class="link" href="../boost/any_cast_idp25247624.html" title="Function any_cast">any_cast</a></code>&lt;const char *&gt;(operand);
+        return true;
+    }
+    catch(const <code class="computeroutput"><a class="link" href="../boost/bad_any_cast.html" title="Class bad_any_cast">boost::bad_any_cast</a></code> &amp;)
+    {
+        return false;
+    }
+}
+
+bool is_string(const <code class="computeroutput"><a class="link" href="../boost/any.html" title="Class any">boost::any</a></code> &amp; operand)
+{
+    return <code class="computeroutput"><a class="link" href="../boost/any_cast_idp25247624.html" title="Function any_cast">any_cast</a></code>&lt;std::string&gt;(&amp;operand);
+}
+
+void count_all(many &amp; values, std::ostream &amp; out)
+{
+    out &lt;&lt; "#empty == "
+        &lt;&lt; std::count_if(values.begin(), values.end(), is_empty) &lt;&lt; std::endl;
+    out &lt;&lt; "#int == "
+        &lt;&lt; std::count_if(values.begin(), values.end(), is_int) &lt;&lt; std::endl;
+    out &lt;&lt; "#const char * == "
+        &lt;&lt; std::count_if(values.begin(), values.end(), is_char_ptr) &lt;&lt; std::endl;
+    out &lt;&lt; "#string == "
+        &lt;&lt; std::count_if(values.begin(), values.end(), is_string) &lt;&lt; std::endl;
+}
+</pre>
+<p>The following type, patterned after the OMG's Property Service, defines name-value pairs for arbitrary value types:</p>
+<pre class="programlisting">
+struct property
+{
+    property();
+    property(const std::string &amp;, const <code class="computeroutput"><a class="link" href="../boost/any.html" title="Class any">boost::any</a></code> &amp;);
+
+    std::string name;
+    <code class="computeroutput"><a class="link" href="../boost/any.html" title="Class any">boost::any</a></code> value;
+};
+
+typedef std::list&lt;property&gt; properties;
+</pre>
+<p>The following base class demonstrates one approach to
+    runtime polymorphism based callbacks that also require arbitrary
+    argument types. The absence of virtual member templates requires
+    that different solutions have different trade-offs in terms of
+    efficiency, safety, and generality. Using a checked variant type
+    offers one approach:</p>
+<pre class="programlisting">
+class consumer
+{
+public:
+    virtual void notify(const <code class="computeroutput"><a class="link" href="../boost/any.html" title="Class any">any</a></code> &amp;) = 0;
+    ...
+};
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001 Kevlin Henney<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../any.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../any.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,61 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/xog.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/xog.xml
+ */
+xog{
+    Languages{
+        ak{"Oluakaani"}
+        am{"Oluamhariki"}
+        ar{"Oluwarabu"}
+        be{"Olubelarusi"}
+        bg{"Olubulugariya"}
+        bn{"Olubengali"}
+        cs{"Oluceeke"}
+        de{"Oludaaki"}
+        el{"Oluyonaani"}
+        en{"Olungereza"}
+        es{"Olusipanya"}
+        fa{"Oluperusi"}
+        fr{"Olufalansa"}
+        ha{"Oluhawuza"}
+        hi{"Oluhindu"}
+        hu{"Oluhangare"}
+        id{"Oluyindonezya"}
+        ig{"Oluyibo"}
+        it{"Oluyitale"}
+        ja{"Olujapani"}
+        jv{"Olunnajjava"}
+        km{"Olukme"}
+        ko{"Olukoreya"}
+        ms{"Olumalayi"}
+        my{"Olubbama"}
+        ne{"Olunepali"}
+        nl{"Oluholandi"}
+        pa{"Olupunjabi"}
+        pl{"Olupolandi"}
+        pt{"Olupotugiizi"}
+        ro{"Olulomaniya"}
+        ru{"Olulasa"}
+        rw{"Olunarwanda"}
+        so{"Olusomaliya"}
+        sv{"Oluswideni"}
+        ta{"Olutamiiru"}
+        th{"Oluttaayi"}
+        tr{"Olutake"}
+        uk{"Oluyukurayine"}
+        ur{"Olu-urudu"}
+        vi{"Oluvyetinaamu"}
+        xog{"Olusoga"}
+        yo{"Oluyoruba"}
+        zh{"Olucayina"}
+        zu{"Oluzzulu"}
+    }
+    Version{"2.0.47.53"}
+}

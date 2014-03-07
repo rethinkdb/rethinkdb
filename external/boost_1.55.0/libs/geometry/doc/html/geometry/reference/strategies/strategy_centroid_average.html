@@ -1,0 +1,207 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>strategy::centroid::average</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../strategies.html" title="Strategies">
+<link rel="prev" href="strategy_area_huiller.html" title="strategy::area::huiller">
+<link rel="next" href="strategy_centroid_bashein_detmer.html" title="strategy::centroid::bashein_detmer">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="strategy_area_huiller.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../strategies.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="strategy_centroid_bashein_detmer.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.strategies.strategy_centroid_average"></a><a class="link" href="strategy_centroid_average.html" title="strategy::centroid::average">strategy::centroid::average</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp63281368"></a><a class="indexterm" name="idp63281704"></a><a class="indexterm" name="idp63282040"></a>
+Centroid calculation taking average of points.
+        </p>
+<h6>
+<a name="geometry.reference.strategies.strategy_centroid_average.h0"></a>
+          <span class="phrase"><a name="geometry.reference.strategies.strategy_centroid_average.synopsis"></a></span><a class="link" href="strategy_centroid_average.html#geometry.reference.strategies.strategy_centroid_average.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">PointCentroid</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Point</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">strategy</span><span class="special">::</span><span class="identifier">centroid</span><span class="special">::</span><span class="identifier">average</span>
+<span class="special">{</span>
+  <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.strategies.strategy_centroid_average.h1"></a>
+          <span class="phrase"><a name="geometry.reference.strategies.strategy_centroid_average.template_parameter_s_"></a></span><a class="link" href="strategy_centroid_average.html#geometry.reference.strategies.strategy_centroid_average.template_parameter_s_">Template
+          parameter(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    typename PointCentroid
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    typename Point
+                  </p>
+                </td>
+<td>
+                  <p>
+                    PointCentroid
+                  </p>
+                </td>
+<td>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.strategies.strategy_centroid_average.h2"></a>
+          <span class="phrase"><a name="geometry.reference.strategies.strategy_centroid_average.member_function_s_"></a></span><a class="link" href="strategy_centroid_average.html#geometry.reference.strategies.strategy_centroid_average.member_function_s_">Member
+          Function(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Parameters
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Returns
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">void</span> <span class="identifier">apply</span><span class="special">(</span><span class="identifier">Point</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">sum</span> <span class="special">&amp;</span> <span class="identifier">state</span><span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>Point const &amp;</strong></span>: <span class="emphasis"><em>p</em></span>:
+                  </p>
+                  <p>
+                    <span class="bold"><strong>sum &amp;</strong></span>: <span class="emphasis"><em>state</em></span>:
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">void</span> <span class="identifier">result</span><span class="special">(</span><span class="identifier">sum</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">state</span><span class="special">,</span> <span class="identifier">PointCentroid</span> <span class="special">&amp;</span> <span class="identifier">centroid</span><span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>sum const &amp;</strong></span>: <span class="emphasis"><em>state</em></span>:
+                  </p>
+                  <p>
+                    <span class="bold"><strong>PointCentroid &amp;</strong></span>: <span class="emphasis"><em>centroid</em></span>:
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.strategies.strategy_centroid_average.h3"></a>
+          <span class="phrase"><a name="geometry.reference.strategies.strategy_centroid_average.header"></a></span><a class="link" href="strategy_centroid_average.html#geometry.reference.strategies.strategy_centroid_average.header">Header</a>
+        </h6>
+<p>
+          Either
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">multi</span><span class="special">/</span><span class="identifier">multi</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<p>
+          Or
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">multi</span><span class="special">/</span><span class="identifier">strategies</span><span class="special">/</span><span class="identifier">cartesian</span><span class="special">/</span><span class="identifier">centroid_average</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="strategy_area_huiller.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../strategies.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="strategy_centroid_bashein_detmer.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

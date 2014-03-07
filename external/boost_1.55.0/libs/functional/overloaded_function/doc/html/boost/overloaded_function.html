@@ -1,0 +1,112 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template overloaded_function</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Functional/OverloadedFunction 1.0.0">
+<link rel="up" href="../reference.html#header.boost.functional.overloaded_function_hpp" title="Header &lt;boost/functional/overloaded_function.hpp&gt;">
+<link rel="prev" href="../reference.html" title="Reference">
+<link rel="next" href="make_overloaded_function.html" title="Function template make_overloaded_function">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../reference.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html#header.boost.functional.overloaded_function_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_overloaded_function.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.overloaded_function"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template overloaded_function</span></h2>
+<p>boost::overloaded_function &#8212; Function object to overload functions with distinct signatures. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../reference.html#header.boost.functional.overloaded_function_hpp" title="Header &lt;boost/functional/overloaded_function.hpp&gt;">boost/functional/overloaded_function.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> F1<span class="special">,</span> <span class="keyword">typename</span> F2<span class="special">,</span> <span class="special">...</span> <span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="overloaded_function.html" title="Class template overloaded_function">overloaded_function</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="overloaded_function.html#boost.overloaded_functionconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="overloaded_function.html#id259090-bb"><span class="identifier">overloaded_function</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function</span><span class="special">&lt;</span> <span class="identifier">F1</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+                      <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function</span><span class="special">&lt;</span> <span class="identifier">F2</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="special">...</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="overloaded_function.html#id259020-bb">public member functions</a></span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_traits</span><span class="special">&lt;</span> <span class="identifier">F1</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">result_type</span> 
+  <a class="link" href="overloaded_function.html#id259023-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_traits</span><span class="special">&lt;</span> <span class="identifier">F1</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">arg1_type</span><span class="special">,</span> 
+             <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_traits</span><span class="special">&lt;</span> <span class="identifier">F1</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">arg2_type</span><span class="special">,</span> <span class="special">...</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_traits</span><span class="special">&lt;</span> <span class="identifier">F2</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">result_type</span> 
+  <a class="link" href="overloaded_function.html#id259049-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_traits</span><span class="special">&lt;</span> <span class="identifier">F2</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">arg1_type</span><span class="special">,</span> 
+             <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_traits</span><span class="special">&lt;</span> <span class="identifier">F2</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">arg2_type</span><span class="special">,</span> <span class="special">...</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="id820590"></a><h2>Description</h2>
+<p>This function object aggregates together calls to functions of all the specified function types <code class="computeroutput">F1</code>, <code class="computeroutput">F2</code>, etc which must have distinct function signatures from one another.</p>
+<p><span class="bold"><strong>Parameters:</strong></span> </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody><tr>
+<td><span class="bold"><strong><code class="computeroutput">F<span class="emphasis"><em>i</em></span></code></strong></span></td>
+<td>Each function type must be specified using the following syntax (which is Boost.Function's preferred syntax): <pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">    <span class="identifier">result_type</span> <span class="special">(</span><span class="identifier">argument1_type</span><span class="special">,</span> <span class="identifier">argumgnet2_type</span><span class="special">,</span> <span class="special">...</span><span class="special">)</span>
+</pre>  </td>
+</tr></tbody>
+</table></div>
+<p>
+</p>
+<p>In some cases, the  <code class="computeroutput"><a class="link" href="make_overloaded_function.html" title="Function template make_overloaded_function">make_overloaded_function</a></code> function template can be useful to construct an overloaded function object without explicitly specifying the function types.</p>
+<p>At least two distinct function types must be specified (because there is nothing to overload between one or zero functions). The maximum number of functions to overload is given by the  <code class="computeroutput"><a class="link" href="../BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_OVERLOAD_MAX.html" title="Macro BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_OVERLOAD_MAX">BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_OVERLOAD_MAX</a></code> configuration macro. The maximum number of function parameters for each of the specified function types is given by the  <code class="computeroutput"><a class="link" href="../BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_ARITY_MAX.html" title="Macro BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_ARITY_MAX">BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_ARITY_MAX</a></code> configuration macro.</p>
+<p><span class="bold"><strong>See:</strong></span>  <a class="link" href="../boost_functional_overloadedfunction/tutorial.html" title="Tutorial"> Tutorial</a> section,  <code class="computeroutput"><a class="link" href="make_overloaded_function.html" title="Function template make_overloaded_function">make_overloaded_function</a></code>,  <code class="computeroutput"><a class="link" href="../BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_OVERLOAD_MAX.html" title="Macro BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_OVERLOAD_MAX">BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_OVERLOAD_MAX</a></code>,  <code class="computeroutput"><a class="link" href="../BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_ARITY_MAX.html" title="Macro BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_ARITY_MAX">BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_ARITY_MAX</a></code>, Boost.Function. </p>
+<div class="refsect2">
+<a name="id820738"></a><h3>
+<a name="boost.overloaded_functionconstruct-copy-destruct"></a><code class="computeroutput">overloaded_function</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="id259090-bb"></a><span class="identifier">overloaded_function</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function</span><span class="special">&lt;</span> <span class="identifier">F1</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+                    <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function</span><span class="special">&lt;</span> <span class="identifier">F2</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="special">...</span><span class="special">)</span><span class="special">;</span></pre>Construct the overloaded function object. <p>Any function pointer, function reference, and monomorphic function object that can be converted to a <code class="computeroutput">boost::function</code> function object can be specified as parameter.</p>
+<p><span class="bold"><strong>Note:</strong></span> Unfortunately, it is not possible to support polymorphic function objects (as explained <a href="http://lists.boost.org/Archives/boost/2012/03/191744.php" target="_top">here</a>). </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="id820874"></a><h3>
+<a name="id259020-bb"></a><code class="computeroutput">overloaded_function</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_traits</span><span class="special">&lt;</span> <span class="identifier">F1</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">result_type</span> 
+<a name="id259023-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_traits</span><span class="special">&lt;</span> <span class="identifier">F1</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">arg1_type</span><span class="special">,</span> 
+           <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_traits</span><span class="special">&lt;</span> <span class="identifier">F1</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">arg2_type</span><span class="special">,</span> <span class="special">...</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Call operator matching the signature of the function type specified as 1st template parameter. <p>This will in turn invoke the call operator of the 1st function passed to the constructor. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_traits</span><span class="special">&lt;</span> <span class="identifier">F2</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">result_type</span> 
+<a name="id259049-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_traits</span><span class="special">&lt;</span> <span class="identifier">F2</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">arg1_type</span><span class="special">,</span> 
+           <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_traits</span><span class="special">&lt;</span> <span class="identifier">F2</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">arg2_type</span><span class="special">,</span> <span class="special">...</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Call operator matching the signature of the function type specified as 2nd template parameter. <p>This will in turn invoke the call operator of the 2nd function passed to the constructor.</p>
+<p><span class="bold"><strong>Note:</strong></span> Similar call operators are present for all specified function types <code class="computeroutput">F1</code>, <code class="computeroutput">F2</code>, etc (even if not exhaustively listed by this documentation). </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011, 2012 Lorenzo Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../reference.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html#header.boost.functional.overloaded_function_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_overloaded_function.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class record</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../core_components.html#header.boost.log.core.record_hpp" title="Header &lt;boost/log/core/record.hpp&gt;">
+<link rel="prev" href="core.html" title="Class core">
+<link rel="next" href="swap_idp25235608.html" title="Function swap">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="core.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../core_components.html#header.boost.log.core.record_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="swap_idp25235608.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.record"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class record</span></h2>
+<p>boost::log::record &#8212; Logging record class. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../core_components.html#header.boost.log.core.record_hpp" title="Header &lt;boost/log/core/record.hpp&gt;">boost/log/core/record.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="record.html" title="Class record">record</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="record.html#boost.log.recordconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="record.html#idp25232616-bb"><span class="identifier">record</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="record.html#idp25233464-bb"><span class="identifier">record</span></a><span class="special">(</span><a class="link" href="record.html" title="Class record">record</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  record&amp; <a class="link" href="record.html#idp25234664-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="record.html" title="Class record">record</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="record.html#idp25234280-bb"><span class="special">~</span><span class="identifier">record</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="record.html#idp25217016-bb">public member functions</a></span>
+  <span class="identifier">attribute_value_set</span> <span class="special">&amp;</span> <a class="link" href="record.html#idp25217224-bb"><span class="identifier">attribute_values</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">attribute_value_set</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a class="link" href="record.html#idp25218552-bb"><span class="identifier">attribute_values</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="record.html#idp25219880-bb"><span class="keyword">operator</span> <span class="keyword">bool</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="record.html#idp25221912-bb"><span class="keyword">operator</span><span class="special">!</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="record.html#idp25223816-bb"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="record.html" title="Class record">record</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="record.html#idp25225704-bb"><span class="identifier">reset</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+    <span class="identifier">result_of</span><span class="special">::</span><span class="identifier">extract</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">expressions</span><span class="special">::</span><span class="identifier">attribute_keyword</span><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">DescriptorT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+    <a class="link" href="record.html#idp25227016-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">expressions</span><span class="special">::</span><span class="identifier">attribute_keyword</span><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="record_view.html" title="Class record_view">record_view</a> <a class="link" href="record.html#idp25230120-bb"><span class="identifier">lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp53979480"></a><h2>Description</h2>
+<p>The logging record encapsulates all information related to a single logging statement, in particular, attribute values view and the log message string. The record can be updated before pushing for further processing to the logging core. </p>
+<div class="refsect2">
+<a name="idp53980056"></a><h3>
+<a name="boost.log.recordconstruct-copy-destruct"></a><code class="computeroutput">record</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp25232616-bb"></a><span class="identifier">record</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Default constructor. Creates an empty record that is equivalent to the invalid record handle.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">!*this == true</code> </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp25233464-bb"></a><span class="identifier">record</span><span class="special">(</span><a class="link" href="record.html" title="Class record">record</a> <span class="special">&amp;&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Move constructor. Source record contents unspecified after the operation. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">record&amp; <a name="idp25234664-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="record.html" title="Class record">record</a> <span class="special">&amp;&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Move assignment. Source record contents unspecified after the operation. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp25234280-bb"></a><span class="special">~</span><span class="identifier">record</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destructor. Destroys the record, releases any sinks and attribute values that were involved in processing this record. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp53992392"></a><h3>
+<a name="idp25217016-bb"></a><code class="computeroutput">record</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">attribute_value_set</span> <span class="special">&amp;</span> <a name="idp25217224-bb"></a><span class="identifier">attribute_values</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">!!*this</code> </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A reference to the set of attribute values attached to this record</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">attribute_value_set</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a name="idp25218552-bb"></a><span class="identifier">attribute_values</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">!!*this</code> </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A reference to the set of attribute values attached to this record</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp25219880-bb"></a><span class="keyword">operator</span> <span class="keyword">bool</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Conversion to an unspecified boolean type</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code>, if the <code class="computeroutput">*this</code> identifies a log record, <code class="computeroutput">false</code>, if the <code class="computeroutput">*this</code> is not valid </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp25221912-bb"></a><span class="keyword">operator</span><span class="special">!</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Inverted conversion to an unspecified boolean type</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">false</code>, if the <code class="computeroutput">*this</code> identifies a log record, <code class="computeroutput">true</code>, if the <code class="computeroutput">*this</code> is not valid </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25223816-bb"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="record.html" title="Class record">record</a> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Swaps two handles</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">that</code></span></p></td>
+<td><p>Another record to swap with <span class="bold"><strong>Throws:</strong></span> Nothing </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25225704-bb"></a><span class="identifier">reset</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Resets the log record handle. If there are no other handles left, the log record is closed and all resources referenced by the record are released.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">!*this == true</code> </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+  <span class="identifier">result_of</span><span class="special">::</span><span class="identifier">extract</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">expressions</span><span class="special">::</span><span class="identifier">attribute_keyword</span><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">DescriptorT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <a name="idp25227016-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">expressions</span><span class="special">::</span><span class="identifier">attribute_keyword</span><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> keyword<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Attribute value lookup.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">keyword</code></span></p></td>
+<td><p>Attribute keyword. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A <code class="computeroutput">value_ref</code> with extracted attribute value if it is found, empty <code class="computeroutput">value_ref</code> otherwise. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="record_view.html" title="Class record_view">record_view</a> <a name="idp25230120-bb"></a><span class="identifier">lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The function ensures that the log record does not depend on any thread-specific data. Then the record contents are used to construct a <code class="computeroutput"><code class="computeroutput"><a class="link" href="record_view.html" title="Class record_view">record_view</a></code></code> which is returned from the function. The record is no longer valid after the call.</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">!!*this</code> </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">!*this</code> </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The record view that contains all attribute values from the original record. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="core.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../core_components.html#header.boost.log.core.record_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="swap_idp25235608.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

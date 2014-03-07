@@ -1,0 +1,66 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:threads Threads and Boost.Asio]
+
+[heading Thread Safety]
+
+In general, it is safe to make concurrent use of distinct objects, but unsafe
+to make concurrent use of a single object. However, types such as `io_service`
+provide a stronger guarantee that it is safe to use a single object
+concurrently.
+
+[heading Thread Pools]
+
+Multiple threads may call `io_service::run()` to set up a pool of threads from
+which completion handlers may be invoked. This approach may also be used with
+`io_service::post()` to use a means to perform any computational tasks across a
+thread pool.
+
+Note that all threads that have joined an `io_service`'s pool are considered
+equivalent, and the `io_service` may distribute work across them in an
+arbitrary fashion.
+
+[heading Internal Threads]
+
+The implementation of this library for a particular platform may make use of
+one or more internal threads to emulate asynchronicity. As far as possible,
+these threads must be invisible to the library user. In particular, the threads:
+
+* must not call the user's code directly; and
+
+* must block all signals.
+
+This approach is complemented by the following guarantee:
+
+* Asynchronous completion handlers will only be called from threads that are
+  currently calling `io_service::run()`.
+
+Consequently, it is the library user's responsibility to create and manage all
+threads to which the notifications will be delivered.
+
+The reasons for this approach include:
+
+* By only calling `io_service::run()` from a single thread, the user's code can
+  avoid the development complexity associated with synchronisation. For
+  example, a library user can implement scalable servers that are
+  single-threaded (from the user's point of view).
+
+* A library user may need to perform initialisation in a thread shortly after
+  the thread starts and before any other application code is executed. For
+  example, users of Microsoft's COM must call `CoInitializeEx` before any other
+  COM operations can be called from that thread.
+
+* The library interface is decoupled from interfaces for thread creation and
+  management, and permits implementations on platforms where threads are not
+  available.
+
+[heading See Also]
+
+[link boost_asio.reference.io_service io_service].
+
+[endsect]

@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Storage concept</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Storage concept</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="range"></a>Storage concept</h2>
+<h4>Description</h4>
+<p>Storage is a variable-size container whose elements are arranged in a strict linear order.
+<p>Storage extends the STL Container concept with some STL Sequence-like functionality. The main difference with
+the Sequence concept however is that the Storage concept does not require default-initialisation of its
+elements.
+<h4>Refinement of</h4>
+<a href="http://www.sgi.com/tech/stl/RandomAccessContainer.html">Random Access Container</a>
+and 
+<a href="http://www.sgi.com/tech/stl/DefaultConstructible.html">Default Constructible</a>
+<h4>Associated types</h4>
+No additional types beyond those defined by 
+<a href="http://www.sgi.com/tech/stl/RandomAccessContainer.html">Random Access Container</a>
+<h4>Notation</h4>
+<table summary="storage types">
+<tr><td><tt>X</tt></td><td>A type that is model of Storage</td></tr>
+<tr><td><tt>T</tt></td><td>The value_type of <tt>X</tt></td></tr>
+<tr><td><tt>t</tt></td><td>An object of type <tt>T</tt></td></tr>
+<tr><td><tt>n</tt></td><td>object of type convertible to <tt>X::size_type</tt></td></tr>
+</table>
+<h4>Definitions</h4>
+<h4>Valid expressions</h4>
+In addition to the expressions defined in 
+<a href="http://www.sgi.com/tech/stl/RandomAccessContainer.html">Random Access Container</a>,
+and 
+<a href="http://www.sgi.com/tech/stl/DefaultConstructible.html">Default Constructible</a>
+the following expressions must be valid:
+<table border="1" summary="type requirements">
+<TR><TH>Name</TH><TH>Expression</TH><TH>Type requirements</TH><TH>Return type</TH></TR>
+<TR>
+<td>Size constructor</td>
+<td><tt>X(n)</tt></td>
+<td>T is <a href="http://www.sgi.com/tech/stl/DefaultConstructible.html">DefaultConstructible</a></td>
+<td><tt>X</tt></td>
+</TR>
+<TR>
+<td>Fill constructor</td>
+<td><tt>X(n,t)</tt></td>
+<td></td>
+<td><tt>X</tt></td>
+</TR>
+<TR>
+<TD>Range constructor</TD>
+<TD><tt>X(i, j)</tt></TD>
+<TD><tt>i</tt> and <tt>j</tt> are <A href="http://www.sgi.com/tech/stl/InputIterator.html">Input Iterators</A> whose value type is convertible to <tt>T</tt> </TD>
+<TD><tt>X</tt> </TD>
+</TR>
+<TR>
+<TD>Resize</TD>
+<TD><tt>a.resize(n, t)</tt></TD>
+<TD><tt>a</tt> is mutable</TD>
+<TD><tt>void</tt></TD>
+</TR>
+<TR>
+<TD>Resize</TD>
+<TD><tt>a.resize(n)</tt></TD>
+<TD><tt>a</tt> is mutable</TD>
+<TD><tt>void</tt></TD>
+</tr>
+</table>
+<h3>Expression semantics</h3>
+<table border="1" summary="expresisons">
+<tr><th>Name<th>Expression<th>Precondition<th>Semantics<th>Postcondition
+<tr>
+<td>Default-constructor</td>
+<td><tt>X()</tt>
+<td></td>
+<td>Creates 0 elements. 
+</td>
+<td><tt>size()==0</tt></td>
+</tr>
+<tr>
+<td>Size-constructor</td>
+<td><tt>X(n)</tt>
+<td><tt>n>=0</tt></td>
+<td>Creates n elements. Elements are constructed without an initializer. That is
+if T is a (possibly cv-qualified) non-POD class type (or array thereof), the object is default
+initialized. Otherwise, the object created has indeterminate value. See the sentance
+"If new initializer is omitted" in section 5.3.4 paragraph 15 of the ISO C++ standard.
+</td>
+<td><tt>size()==n</tt></td>
+</tr>
+<tr>
+<td>Fill-constructor</td>
+<td><tt>X(n,t)</tt>
+<td><tt>n>=0</tt></td>
+<td>Creates n initialised element with copies of <code>t</code></td>
+<td><tt>size()==n</tt></td>
+</tr>
+<TR>
+<TD>Range constructor</TD>
+<TD><tt>X(i, j)</tt></TD>
+<TD><tt>[i,j)</tt> is a valid range.</TD>
+<TD>copies the range <tt>[i,j) to the storage</tt></TD>
+<TD><tt>size()</tt> is equal to the distance from <tt>i</tt> to <tt>j</tt>.  Each element is a copy of the corresponding element in the range <tt>[i,j)</tt>.</TD>
+</TR>
+<TR>
+<TD>Resize</TD>
+<TD><tt>a.resize(n, t)</tt></TD>
+<TD><tt>n &lt;= a.max_size()</tt></TD>
+<td>Modified the container so that it has exactly <tt>n</tt> elements.<br />
+The container may be reallocated if its size changes.
+Existing element values are preserved, additional elements are copies of <code>t</code>.</td>
+<TD><tt>a.size() == n</tt></TD>
+</TR>
+<TR>
+<TD>Resize</TD>
+<TD><tt>a.resize(n)</tt></TD>
+<TD><tt>n &lt;= a.max_size()</tt></TD>
+<TD>Modified the container so that it has exactly <tt>n</tt> elements.<br />
+The container may be reallocated if its size changes. Element values are uninitialised. That is,
+each element value may be a previously assigned value or default construced value for <code>T</code>.</TD>
+<TD><tt>a.size() == n</tt></TD>
+</tr>
+</table>
+<h4>Complexity guarantees</h4>
+<h4>Invariants</h4>
+<h4>Models</h4>
+<ul>
+<li><a href="unbounded_array.htm">unbounded_array</a>
+<li><a href="bounded_array.htm">bounded_array</a>
+</ul>
+<h4>Notes</h4>
+<hr />
+<p>Copyright (&copy;) 2000-2002 Joerg Walter, Mathias Koch<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

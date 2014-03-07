@@ -1,0 +1,158 @@
+##############################################################################
+# Copyright 2005-2009 Andreas Huber Doenni
+# Distributed under the Boost Software License, Version 1.0. (See accompany-
+# ing file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+##############################################################################
+
+project libs/statechart/test ;
+
+local test_monitor =
+  ../../../libs/test/build//boost_test_exec_monitor/<link>static ;
+# Some platforms have either problems with the automatic detection of the
+# threading mode (e.g. vc-7_1 & gcc >= 3.4.0) or don't support single-
+# threaded mode (e.g. vc-8_0). We therefore manually turn MT off here
+local st-requirements = <define>BOOST_DISABLE_THREADS ;
+local dll = <define>BOOST_STATECHART_TEST_DYNAMIC_LINK ;
+local dll-export = $(dll) <define>BOOST_STATECHART_TEST_DLL_EXPORT ;
+
+local normal = ;
+local native = <define>BOOST_STATECHART_USE_NATIVE_RTTI ;
+local relaxed = <define>BOOST_STATECHART_RELAX_TRANSITION_CONTEXT ;
+local both = $(native) $(relaxed) ;
+
+rule independent-obj-build ( name : cpp-sources + : requirements * )
+{
+  local objs ;
+
+  for local cpp-source in $(cpp-sources)
+  {
+    obj $(name)$(cpp-source) : $(cpp-source).cpp : $(requirements) ;
+    objs += $(name)$(cpp-source) ;
+  }
+
+  return $(objs) ;
+}
+
+rule statechart-st-lib ( name : cpp-sources + : requirements * )
+{
+  lib $(name)
+    : [ independent-obj-build $(name)
+          : $(cpp-sources)
+          : <threading>single $(st-requirements)
+            <link>shared:$(dll-export) $(requirements) ] ;
+  
+  return $(name) ;
+}
+
+rule statechart-run ( name : sources + : requirements * )
+{
+  return [ run $(sources) $(test_monitor) : : : $(requirements) : $(name) ] ;
+}
+
+rule statechart-st-run ( name : sources + : requirements * )
+{
+  return [ statechart-run $(name) : $(sources)
+             : <threading>single $(st-requirements) $(requirements) ] ;
+}
+
+rule statechart-st-run-variants ( cpp-source )
+{
+  local result ;
+
+  result += [ statechart-st-run $(cpp-source)Normal
+                : $(cpp-source).cpp : $(normal) ] ;
+  result += [ statechart-st-run $(cpp-source)Native
+                : $(cpp-source).cpp : $(native) ] ;
+  result += [ statechart-st-run $(cpp-source)Relaxed
+                : $(cpp-source).cpp : $(relaxed) ] ;
+  result += [ statechart-st-run $(cpp-source)Both
+                : $(cpp-source).cpp : $(both) ] ;
+
+  return $(result) ;
+}
+
+rule statechart-compile-fail ( name : cpp-sources + : requirements * )
+{
+  return [ compile-fail $(cpp-sources).cpp : $(requirements) : $(name) ] ;
+}
+
+rule statechart-compile-fail-variants ( cpp-source )
+{
+  local result ;
+
+  result += [ statechart-compile-fail $(cpp-source)Normal
+                : $(cpp-source) : $(normal) ] ;
+  result += [ statechart-compile-fail $(cpp-source)Native
+                : $(cpp-source) : $(native) ] ;
+  result += [ statechart-compile-fail $(cpp-source)Relaxed
+                : $(cpp-source) : $(relaxed) ] ;
+  result += [ statechart-compile-fail $(cpp-source)Both
+                : $(cpp-source) : $(both) ] ;
+
+  return $(result) ;
+}
+
+rule statechart-st-lib-run (
+  name : exe-cpp-sources + : lib-cpp-sources + : requirements * )
+{
+  return [ statechart-st-run $(name)
+             : $(exe-cpp-sources).cpp
+               [ statechart-st-lib $(name)Lib
+                   : $(lib-cpp-sources) : $(requirements) ]
+             : <link>shared:$(dll) $(requirements) ] ;
+}
+
+rule statechart-st-compile-example ( name : directory : cpp-sources + )
+{
+  return [ link ../example/$(directory)/$(cpp-sources).cpp
+             : <threading>single $(st-requirements) : $(name)Example ] ;
+}
+
+test-suite statechart
+  : [ statechart-compile-fail-variants InvalidChartTest1 ]
+    [ statechart-compile-fail-variants InvalidChartTest2 ]
+    [ statechart-compile-fail-variants InvalidChartTest3 ]
+    [ statechart-st-run-variants TransitionTest ]
+    [ statechart-compile-fail-variants InvalidTransitionTest1 ]
+    [ statechart-compile-fail-variants InvalidTransitionTest2 ]
+    [ statechart-st-run-variants InStateReactionTest ]
+    [ statechart-st-run-variants TerminationTest ]
+    [ statechart-st-run-variants DeferralTest ]
+    [ statechart-st-run-variants DeferralBug ]
+    [ statechart-st-run-variants CustomReactionTest ]
+    [ statechart-compile-fail-variants InvalidResultAssignTest ]
+    [ statechart-compile-fail-variants InvalidResultDefCtorTest ]
+    [ statechart-st-run-variants InvalidResultCopyTest ]
+    [ statechart-st-run-variants UnconsumedResultTest ]
+    [ statechart-st-run-variants HistoryTest ]
+    [ statechart-compile-fail-variants InconsistentHistoryTest1 ]
+    [ statechart-compile-fail-variants InconsistentHistoryTest2 ]
+    [ statechart-compile-fail-variants InconsistentHistoryTest3 ]
+    [ statechart-compile-fail-variants InconsistentHistoryTest4 ]
+    [ statechart-compile-fail-variants InconsistentHistoryTest5 ]
+    [ statechart-compile-fail-variants InconsistentHistoryTest6 ]
+    [ statechart-compile-fail-variants InconsistentHistoryTest7 ]
+    [ statechart-compile-fail-variants InconsistentHistoryTest8 ]
+    [ statechart-compile-fail-variants UnsuppDeepHistoryTest ]
+    [ statechart-st-run-variants StateCastTest ]
+    [ statechart-st-run-variants TypeInfoTest ]
+    [ statechart-st-run-variants StateIterationTest ]
+    [ statechart-st-run-variants FifoSchedulerTest ]
+    [ statechart-st-run-variants TriggeringEventTest ]
+    [ statechart-st-lib-run LibTestNormal
+        : TuTestMain : TuTest : <link>static $(normal) ]
+    [ statechart-st-lib-run LibTestNative
+        : TuTestMain : TuTest : <link>static $(native) ]
+    [ statechart-st-lib-run DllTestNormal
+        : TuTestMain : TuTest : <link>shared $(normal) ]
+    [ statechart-st-lib-run DllTestNative
+        : TuTestMain : TuTest : <link>shared $(native) ]
+    [ statechart-st-compile-example BitMachine : BitMachine : BitMachine ]
+    [ statechart-st-compile-example Camera
+        : Camera : Camera Configuring Main Shooting ]
+    [ statechart-st-compile-example Handcrafted : Handcrafted : Handcrafted ]
+    [ statechart-st-compile-example Keyboard : Keyboard : Keyboard : ]
+    [ statechart-st-compile-example Performance : Performance : Performance ]
+    [ statechart-st-compile-example PingPong : PingPong : PingPong Player ]
+    [ statechart-st-compile-example StopWatch : StopWatch : StopWatch ]
+    [ statechart-st-compile-example StopWatch2 : StopWatch : StopWatch2 ] ;

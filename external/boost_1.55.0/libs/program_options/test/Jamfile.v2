@@ -1,0 +1,38 @@
+
+project
+    : requirements 
+    <library>../build//boost_program_options
+    <link>static
+    <variant>debug
+    
+#    <define>_GLIBCXX_CONCEPT_CHECKS
+#    <define>_GLIBCXX_DEBUG
+    ;
+    
+rule po-test ( source : input-file ? )
+{
+    return
+        [ run $(source) : : $(input-file) ]
+        [ run $(source) : : $(input-file) 
+          : <link>shared <define>BOOST_PROGRAM_OPTIONS_DYN_LINK=1
+          : $(source:B)_dll ] 
+    ;   
+}    
+
+test-suite program_options :
+
+    [ po-test options_description_test.cpp ] 
+    [ po-test parsers_test.cpp : config_test.cfg ]
+    [ po-test variable_map_test.cpp ]
+    [ po-test cmdline_test.cpp ]
+    [ po-test positional_options_test.cpp ]
+    [ po-test unicode_test.cpp ] 
+    [ po-test winmain.cpp ] 
+    [ po-test exception_test.cpp ]
+    [ po-test split_test.cpp ]
+    [ po-test unrecognized_test.cpp ]
+    [ po-test required_test.cpp : required_test.cfg ]
+    ;
+        
+exe test_convert : test_convert.cpp ;   
+

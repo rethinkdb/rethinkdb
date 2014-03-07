@@ -1,0 +1,46 @@
+<html>
+<head>
+	<title>lists.html</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<h4>Lists</h4>
+	<div>
+		A <i>list</i> is a simple cons-style list with a head and a tail.&nbsp;
+		The head of a <i>list</i> is an element,
+		and the tail is either another <i>list</i> or <b>BOOST_PP_NIL</b>.
+		For example,
+	</div>
+	<div class="code">
+		(<i>a</i>, (<i>b</i>, (<i>c</i>, <b>BOOST_PP_NIL</b>)))
+	</div>
+	<div>
+		...is a <i>list</i> of <i>3</i> elements--<i>a</i>, <i>b</i>, and <i>c</i>.
+	</div>
+	<div>
+		This allows macro parameters to be variable in size and allows data states to change
+		size without the user explicitly keeping track of the size independently.
+	</div>
+	<div>
+		Elements of a <i>list</i> can be extracted with
+		<b>BOOST_PP_LIST_FIRST</b> and <b>BOOST_PP_LIST_REST</b>.&nbsp;
+	</div>
+	<h4>Primitives</h4>
+		<ul>
+			<li><a href="../ref/list_first.html">BOOST_PP_LIST_FIRST</a></li>
+			<li><a href="../ref/list_rest.html">BOOST_PP_LIST_REST</a></li>
+			<li><a href="../ref/nil.html">BOOST_PP_NIL</a></li>
+		</ul>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

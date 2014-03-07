@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>pointee and indirect_reference</title>
+<meta name="author" content="David Abrahams" />
+<meta name="organization" content="Boost Consulting" />
+<meta name="date" content="2006-09-11" />
+<meta name="copyright" content="Copyright David Abrahams 2004." />
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="pointee-and-indirect-reference">
+<h1 class="title"><tt class="docutils literal"><span class="pre">pointee</span></tt> and <tt class="docutils literal"><span class="pre">indirect_reference</span></tt></h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>David Abrahams</td></tr>
+<tr><th class="docinfo-name">Contact:</th>
+<td><a class="first last reference external" href="mailto:dave&#64;boost-consulting.com">dave&#64;boost-consulting.com</a></td></tr>
+<tr><th class="docinfo-name">Organization:</th>
+<td><a class="first last reference external" href="http://www.boost-consulting.com">Boost Consulting</a></td></tr>
+<tr><th class="docinfo-name">Date:</th>
+<td>2006-09-11</td></tr>
+<tr><th class="docinfo-name">Copyright:</th>
+<td>Copyright David Abrahams 2004.</td></tr>
+</tbody>
+</table>
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">abstract:</th><td class="field-body">Provides the capability to deduce the referent types of
+pointers, smart pointers and iterators in generic code.</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="overview">
+<h1>Overview</h1>
+<p>Have you ever wanted to write a generic function that can operate
+on any kind of dereferenceable object?  If you have, you've
+probably run into the problem of how to determine the type that the
+object &quot;points at&quot;:</p>
+<pre class="literal-block">
+template &lt;class Dereferenceable&gt;
+void f(Dereferenceable p)
+{
+    <em>what-goes-here?</em> value = *p;
+    ...
+}
+</pre>
+<div class="section" id="pointee">
+<h2><tt class="docutils literal"><span class="pre">pointee</span></tt></h2>
+<p>It turns out to be impossible to come up with a fully-general
+algorithm to do determine <em>what-goes-here</em> directly, but it is
+possible to require that <tt class="docutils literal"><span class="pre">pointee&lt;Dereferenceable&gt;::type</span></tt> is
+correct. Naturally, <tt class="docutils literal"><span class="pre">pointee</span></tt> has the same difficulty: it can't
+determine the appropriate <tt class="docutils literal"><span class="pre">::type</span></tt> reliably for all
+<tt class="docutils literal"><span class="pre">Dereferenceable</span></tt>s, but it makes very good guesses (it works
+for all pointers, standard and boost smart pointers, and
+iterators), and when it guesses wrongly, it can be specialized as
+necessary:</p>
+<pre class="literal-block">
+namespace boost
+{
+  template &lt;class T&gt;
+  struct pointee&lt;third_party_lib::smart_pointer&lt;T&gt; &gt;
+  {
+      typedef T type;
+  };
+}
+</pre>
+</div>
+<div class="section" id="indirect-reference">
+<h2><tt class="docutils literal"><span class="pre">indirect_reference</span></tt></h2>
+<p><tt class="docutils literal"><span class="pre">indirect_reference&lt;T&gt;::type</span></tt> is rather more specialized than
+<tt class="docutils literal"><span class="pre">pointee</span></tt>, and is meant to be used to forward the result of
+dereferencing an object of its argument type.  Most dereferenceable
+types just return a reference to their pointee, but some return
+proxy references or return the pointee by value.  When that
+information is needed, call on <tt class="docutils literal"><span class="pre">indirect_reference</span></tt>.</p>
+<p>Both of these templates are essential to the correct functioning of
+<a class="reference external" href="indirect_iterator.html"><tt class="docutils literal"><span class="pre">indirect_iterator</span></tt></a>.</p>
+</div>
+</div>
+<div class="section" id="reference">
+<h1>Reference</h1>
+<div class="section" id="id1">
+<h2><tt class="docutils literal"><span class="pre">pointee</span></tt></h2>
+<!-- Copyright David Abrahams 2004. Use, modification and distribution is -->
+<!-- subject to the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template &lt;class Dereferenceable&gt;
+struct pointee
+{
+    typedef /* see below */ type;
+};
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Requires:</th><td class="field-body">For an object <tt class="docutils literal"><span class="pre">x</span></tt> of type <tt class="docutils literal"><span class="pre">Dereferenceable</span></tt>, <tt class="docutils literal"><span class="pre">*x</span></tt>
+is well-formed.  If <tt class="docutils literal"><span class="pre">++x</span></tt> is ill-formed it shall neither be
+ambiguous nor shall it violate access control, and
+<tt class="docutils literal"><span class="pre">Dereferenceable::element_type</span></tt> shall be an accessible type.
+Otherwise <tt class="docutils literal"><span class="pre">iterator_traits&lt;Dereferenceable&gt;::value_type</span></tt> shall
+be well formed.  [Note: These requirements need not apply to
+explicit or partial specializations of <tt class="docutils literal"><span class="pre">pointee</span></tt>]</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">type</span></tt> is determined according to the following algorithm, where
+<tt class="docutils literal"><span class="pre">x</span></tt> is an object of type <tt class="docutils literal"><span class="pre">Dereferenceable</span></tt>:</p>
+<pre class="literal-block">
+if ( ++x is ill-formed )
+{
+    return ``Dereferenceable::element_type``
+}
+else if (``*x`` is a mutable reference to
+         std::iterator_traits&lt;Dereferenceable&gt;::value_type)
+{
+    return iterator_traits&lt;Dereferenceable&gt;::value_type
+}
+else
+{
+    return iterator_traits&lt;Dereferenceable&gt;::value_type const
+}
+</pre>
+</div>
+<div class="section" id="id2">
+<h2><tt class="docutils literal"><span class="pre">indirect_reference</span></tt></h2>
+<!-- Copyright David Abrahams 2004. Use, modification and distribution is -->
+<!-- subject to the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template &lt;class Dereferenceable&gt;
+struct indirect_reference
+{
+    typedef /* see below */ type;
+};
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Requires:</th><td class="field-body">For an object <tt class="docutils literal"><span class="pre">x</span></tt> of type <tt class="docutils literal"><span class="pre">Dereferenceable</span></tt>, <tt class="docutils literal"><span class="pre">*x</span></tt>
+is well-formed.  If <tt class="docutils literal"><span class="pre">++x</span></tt> is ill-formed it shall neither be
+ambiguous nor shall it violate access control, and
+<tt class="docutils literal"><span class="pre">pointee&lt;Dereferenceable&gt;::type&amp;</span></tt> shall be well-formed.
+Otherwise <tt class="docutils literal"><span class="pre">iterator_traits&lt;Dereferenceable&gt;::reference</span></tt> shall
+be well formed.  [Note: These requirements need not apply to
+explicit or partial specializations of <tt class="docutils literal"><span class="pre">indirect_reference</span></tt>]</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">type</span></tt> is determined according to the following algorithm, where
+<tt class="docutils literal"><span class="pre">x</span></tt> is an object of type <tt class="docutils literal"><span class="pre">Dereferenceable</span></tt>:</p>
+<pre class="literal-block">
+if ( ++x is ill-formed )
+    return ``pointee&lt;Dereferenceable&gt;::type&amp;``
+else
+    std::iterator_traits&lt;Dereferenceable&gt;::reference
+</pre>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="pointee.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template listN</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.args_hpp" title="Header &lt;boost/proto/args.hpp&gt;">
+<link rel="prev" href="term.html" title="Struct template term">
+<link rel="next" href="functional/display_expr.html" title="Struct display_expr">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="term.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.args_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="functional/display_expr.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.listN"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template listN</span></h2>
+<p>boost::proto::listN &#8212; <code class="computeroutput">proto::list1&lt;&gt;</code>, <code class="computeroutput">proto::list2&lt;&gt;</code>, etc.,
+          are type sequences for use as the 2<sup>nd</sup> parameter to the 
+          <code class="computeroutput"><a class="link" href="expr.html" title="Struct template expr">proto::expr&lt;&gt;</a></code> or
+          <code class="computeroutput"><a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr&lt;&gt;</a></code> class templates.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.args_hpp" title="Header &lt;boost/proto/args.hpp&gt;">boost/proto/args.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> Arg<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="listN.html" title="Struct template listN">listN</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">Arg</span><em class="replaceable"><code><span class="identifier">M</span></code></em> <a name="boost.proto.listN.childM"></a><span class="identifier">childM</span><span class="special">;</span>  <span class="comment">// For each <em class="replaceable"><code>M</code></em> in <em class="replaceable"><code>[0,N)</code></em></span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">long</span> <span class="identifier">arity</span><span class="special">;</span>  <span class="comment">// <code class="computeroutput">= N;</code></span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp176151000"></a><h2>Description</h2>
+<p>
+            Type sequences, for use as the 2<sup>nd</sup> parameter to the
+            <code class="computeroutput"><a class="link" href="expr.html" title="Struct template expr">proto::expr&lt;&gt;</a></code> or
+            <code class="computeroutput"><a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr&lt;&gt;</a></code> class template. The
+            types in the sequence correspond to the children of a node in an expression tree.
+            There is no type literally named "<code class="computeroutput">listN</code>"; rather, there is
+            a set of types named
+            <code class="computeroutput">proto::list1&lt;&gt;</code>,
+            <code class="computeroutput">proto::list2&lt;&gt;</code>, etc.
+          </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="term.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.args_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="functional/display_expr.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

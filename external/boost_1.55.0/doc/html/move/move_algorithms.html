@@ -1,0 +1,96 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Move algorithms</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../move.html" title="Chapter&#160;19.&#160;Boost.Move">
+<link rel="prev" href="move_inserters.html" title="Move inserters">
+<link rel="next" href="emulation_limitations.html" title="Emulation limitations">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="move_inserters.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../move.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="emulation_limitations.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="move.move_algorithms"></a><a class="link" href="move_algorithms.html" title="Move algorithms">Move algorithms</a>
+</h2></div></div></div>
+<p>
+      The standard library offers several copy-based algorithms. Some of them, like
+      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span></code> or <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">uninitialized_copy</span></code>
+      are basic building blocks for containers and other data structures. This library
+      offers move-based functions for those purposes:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">I</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">O</span><span class="special">&gt;</span> <span class="identifier">O</span> <span class="identifier">move</span><span class="special">(</span><span class="identifier">I</span><span class="special">,</span> <span class="identifier">I</span><span class="special">,</span> <span class="identifier">O</span><span class="special">);</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">I</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">O</span><span class="special">&gt;</span> <span class="identifier">O</span> <span class="identifier">move_backward</span><span class="special">(</span><span class="identifier">I</span><span class="special">,</span> <span class="identifier">I</span><span class="special">,</span> <span class="identifier">O</span><span class="special">);</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">I</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span> <span class="identifier">F</span> <span class="identifier">uninitialized_move</span><span class="special">(</span><span class="identifier">I</span><span class="special">,</span> <span class="identifier">I</span><span class="special">,</span> <span class="identifier">F</span><span class="special">);</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">I</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span> <span class="identifier">F</span> <span class="identifier">uninitialized_copy_or_move</span><span class="special">(</span><span class="identifier">I</span><span class="special">,</span> <span class="identifier">I</span><span class="special">,</span> <span class="identifier">F</span><span class="special">);</span>
+</pre>
+<p>
+      The first 3 are move variations of their equivalent copy algorithms, but copy
+      assignment and copy construction are replaced with move assignment and construction.
+      The last one has the same behaviour as <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">uninitialized_copy</span></code>
+      but since several standand library implementations don't play very well with
+      <code class="computeroutput"><span class="identifier">move_iterator</span></code>s, this version
+      is a portable version for those willing to use move iterators.
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="string">"movable.hpp"</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">move</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">aligned_storage</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">ArraySize</span> <span class="special">=</span> <span class="number">10</span><span class="special">;</span>
+   <span class="identifier">movable</span> <span class="identifier">movable_array</span><span class="special">[</span><span class="identifier">ArraySize</span><span class="special">];</span>
+   <span class="identifier">movable</span> <span class="identifier">movable_array2</span><span class="special">[</span><span class="identifier">ArraySize</span><span class="special">];</span>
+   <span class="comment">//move</span>
+   <span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(&amp;</span><span class="identifier">movable_array2</span><span class="special">[</span><span class="number">0</span><span class="special">],</span> <span class="special">&amp;</span><span class="identifier">movable_array2</span><span class="special">[</span><span class="identifier">ArraySize</span><span class="special">],</span> <span class="special">&amp;</span><span class="identifier">movable_array</span><span class="special">[</span><span class="number">0</span><span class="special">]);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">movable_array2</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">moved</span><span class="special">());</span>
+   <span class="identifier">assert</span><span class="special">(!</span><span class="identifier">movable_array</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">moved</span><span class="special">());</span>
+
+   <span class="comment">//move backward</span>
+   <span class="identifier">boost</span><span class="special">::</span><span class="identifier">move_backward</span><span class="special">(&amp;</span><span class="identifier">movable_array</span><span class="special">[</span><span class="number">0</span><span class="special">],</span> <span class="special">&amp;</span><span class="identifier">movable_array</span><span class="special">[</span><span class="identifier">ArraySize</span><span class="special">],</span> <span class="special">&amp;</span><span class="identifier">movable_array2</span><span class="special">[</span><span class="identifier">ArraySize</span><span class="special">]);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">movable_array</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">moved</span><span class="special">());</span>
+   <span class="identifier">assert</span><span class="special">(!</span><span class="identifier">movable_array2</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">moved</span><span class="special">());</span>
+
+   <span class="comment">//uninitialized_move</span>
+   <span class="identifier">boost</span><span class="special">::</span><span class="identifier">aligned_storage</span><span class="special">&lt;</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">movable</span><span class="special">)*</span><span class="identifier">ArraySize</span>
+                         <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">alignment_of</span><span class="special">&lt;</span><span class="identifier">movable</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">storage</span><span class="special">;</span>
+   <span class="identifier">movable</span> <span class="special">*</span><span class="identifier">raw_movable</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">movable</span><span class="special">*&gt;(</span><span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">*&gt;(&amp;</span><span class="identifier">storage</span><span class="special">));</span>
+   <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uninitialized_move</span><span class="special">(&amp;</span><span class="identifier">movable_array2</span><span class="special">[</span><span class="number">0</span><span class="special">],</span> <span class="special">&amp;</span><span class="identifier">movable_array2</span><span class="special">[</span><span class="identifier">ArraySize</span><span class="special">],</span> <span class="identifier">raw_movable</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">movable_array2</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">moved</span><span class="special">());</span>
+   <span class="identifier">assert</span><span class="special">(!</span><span class="identifier">raw_movable</span><span class="special">[</span><span class="number">0</span><span class="special">].</span><span class="identifier">moved</span><span class="special">());</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="move_inserters.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../move.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="emulation_limitations.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

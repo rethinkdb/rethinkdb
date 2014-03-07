@@ -1,0 +1,5 @@
+import testing ;
+
+# Tests from Jamfiles in individual library test subdirectories
+build-project example ;   # test-suite interprocess_example
+build-project test ;      # test-suite interprocess_test

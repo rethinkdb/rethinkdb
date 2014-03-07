@@ -1,0 +1,19 @@
+
+# (C) Copyright Tobias Schwinger
+#
+# Use modification and distribution are subject to the boost Software License,
+# Version 1.0. (See http:/\/www.boost.org/LICENSE_1_0.txt).
+
+using quickbook ;
+
+xml forward : forward.qbk ;
+boostbook standalone : forward
+  :
+        <xsl:param>boost.root=../../../../..
+        <xsl:param>boost.libraries=../../../../libraries.htm
+        <xsl:param>chunk.section.depth=0
+        <xsl:param>chunk.first.sections=0
+        <xsl:param>generate.section.toc.level=2
+        <xsl:param>toc.max.depth=1
+  ;
+

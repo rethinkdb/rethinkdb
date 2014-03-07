@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Debugger Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/debugger.html">
+</head>
+<body class="alt apidoc" id="api-section-debugger">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="debugger.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#debugger_debugger">Debugger</a><ul>
+<li><a href="#debugger_watchers">Watchers</a></li>
+<li><a href="#debugger_commands_reference">Commands reference</a><ul>
+<li><a href="#debugger_stepping">Stepping</a></li>
+<li><a href="#debugger_breakpoints">Breakpoints</a></li>
+<li><a href="#debugger_info">Info</a></li>
+<li><a href="#debugger_execution_control">Execution control</a></li>
+<li><a href="#debugger_various">Various</a></li>
+</ul>
+</li>
+<li><a href="#debugger_advanced_usage">Advanced Usage</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>Debugger<span><a class="mark" href="#debugger_debugger" id="debugger_debugger">#</a></span></h1>
+<pre class="api_stability_3">Stability: 3 - Stable</pre><!-- type=misc -->
+
+<p>V8 comes with an extensive debugger which is accessible out-of-process via a
+simple <a href="http://code.google.com/p/v8/wiki/DebuggerProtocol">TCP protocol</a>.
+Node has a built-in client for this debugger. To use this, start Node with the
+<code>debug</code> argument; a prompt will appear:
+
+</p>
+<pre><code>% node debug myscript.js
+&lt; debugger listening on port 5858
+connecting... ok
+break in /home/indutny/Code/git/indutny/myscript.js:1
+  1 x = 5;
+  2 setTimeout(function () {
+  3   debugger;
+debug&gt;</code></pre>
+<p>Node&#39;s debugger client doesn&#39;t support the full range of commands, but
+simple step and inspection is possible. By putting the statement <code>debugger;</code>
+into the source code of your script, you will enable a breakpoint.
+
+</p>
+<p>For example, suppose <code>myscript.js</code> looked like this:
+
+</p>
+<pre><code>// myscript.js
+x = 5;
+setTimeout(function () {
+  debugger;
+  console.log(&quot;world&quot;);
+}, 1000);
+console.log(&quot;hello&quot;);</code></pre>
+<p>Then once the debugger is run, it will break on line 4.
+
+</p>
+<pre><code>% node debug myscript.js
+&lt; debugger listening on port 5858
+connecting... ok
+break in /home/indutny/Code/git/indutny/myscript.js:1
+  1 x = 5;
+  2 setTimeout(function () {
+  3   debugger;
+debug&gt; cont
+&lt; hello
+break in /home/indutny/Code/git/indutny/myscript.js:3
+  1 x = 5;
+  2 setTimeout(function () {
+  3   debugger;
+  4   console.log(&quot;world&quot;);
+  5 }, 1000);
+debug&gt; next
+break in /home/indutny/Code/git/indutny/myscript.js:4
+  2 setTimeout(function () {
+  3   debugger;
+  4   console.log(&quot;world&quot;);
+  5 }, 1000);
+  6 console.log(&quot;hello&quot;);
+debug&gt; repl
+Press Ctrl + C to leave debug repl
+&gt; x
+5
+&gt; 2+2
+4
+debug&gt; next
+&lt; world
+break in /home/indutny/Code/git/indutny/myscript.js:5
+  3   debugger;
+  4   console.log(&quot;world&quot;);
+  5 }, 1000);
+  6 console.log(&quot;hello&quot;);
+  7
+debug&gt; quit
+%</code></pre>
+<p>The <code>repl</code> command allows you to evaluate code remotely. The <code>next</code> command
+steps over to the next line. There are a few other commands available and more
+to come. Type <code>help</code> to see others.
+
+</p>
+<h2>Watchers<span><a class="mark" href="#debugger_watchers" id="debugger_watchers">#</a></span></h2>
+<p>You can watch expression and variable values while debugging your code.
+On every breakpoint each expression from the watchers list will be evaluated
+in the current context and displayed just before the breakpoint&#39;s source code
+listing.
+
+</p>
+<p>To start watching an expression, type <code>watch(&quot;my_expression&quot;)</code>. <code>watchers</code>
+prints the active watchers. To remove a watcher, type
+<code>unwatch(&quot;my_expression&quot;)</code>.
+
+</p>
+<h2>Commands reference<span><a class="mark" href="#debugger_commands_reference" id="debugger_commands_reference">#</a></span></h2>
+<h3>Stepping<span><a class="mark" href="#debugger_stepping" id="debugger_stepping">#</a></span></h3>
+<ul>
+<li><code>cont</code>, <code>c</code> - Continue execution</li>
+<li><code>next</code>, <code>n</code> - Step next</li>
+<li><code>step</code>, <code>s</code> - Step in</li>
+<li><code>out</code>, <code>o</code> - Step out</li>
+<li><code>pause</code> - Pause running code (like pause button in Developer Tools)</li>
+</ul>
+<h3>Breakpoints<span><a class="mark" href="#debugger_breakpoints" id="debugger_breakpoints">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>setBreakpoint()</code>, <code>sb()</code> - Set breakpoint on current line</li>
+<li><code>setBreakpoint(line)</code>, <code>sb(line)</code> - Set breakpoint on specific line</li>
+<li><code>setBreakpoint(&#39;fn()&#39;)</code>, <code>sb(...)</code> - Set breakpoint on a first statement in
+functions body</li>
+<li><code>setBreakpoint(&#39;script.js&#39;, 1)</code>, <code>sb(...)</code> - Set breakpoint on first line of
+script.js</li>
+<li><code>clearBreakpoint</code>, <code>cb(...)</code> - Clear breakpoint</li>
+</div></ul>
+<p>It is also possible to set a breakpoint in a file (module) that
+isn&#39;t loaded yet:
+
+</p>
+<pre><code>% ./node debug test/fixtures/break-in-module/main.js
+&lt; debugger listening on port 5858
+connecting to port 5858... ok
+break in test/fixtures/break-in-module/main.js:1
+  1 var mod = require(&#39;./mod.js&#39;);
+  2 mod.hello();
+  3 mod.hello();
+debug&gt; setBreakpoint(&#39;mod.js&#39;, 23)
+Warning: script &#39;mod.js&#39; was not loaded yet.
+  1 var mod = require(&#39;./mod.js&#39;);
+  2 mod.hello();
+  3 mod.hello();
+debug&gt; c
+break in test/fixtures/break-in-module/mod.js:23
+ 21
+ 22 exports.hello = function() {
+ 23   return &#39;hello from module&#39;;
+ 24 };
+ 25
+debug&gt;</code></pre>
+<h3>Info<span><a class="mark" href="#debugger_info" id="debugger_info">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>backtrace</code>, <code>bt</code> - Print backtrace of current execution frame</li>
+<li><code>list(5)</code> - List scripts source code with 5 line context (5 lines before and
+after)</li>
+<li><code>watch(expr)</code> - Add expression to watch list</li>
+<li><code>unwatch(expr)</code> - Remove expression from watch list</li>
+<li><code>watchers</code> - List all watchers and their values (automatically listed on each
+breakpoint)</li>
+<li><code>repl</code> - Open debugger&#39;s repl for evaluation in debugging script&#39;s context</li>
+</div></ul>
+<h3>Execution control<span><a class="mark" href="#debugger_execution_control" id="debugger_execution_control">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>run</code> - Run script (automatically runs on debugger&#39;s start)</li>
+<li><code>restart</code> - Restart script</li>
+<li><code>kill</code> - Kill script</li>
+</div></ul>
+<h3>Various<span><a class="mark" href="#debugger_various" id="debugger_various">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>scripts</code> - List all loaded scripts</li>
+<li><code>version</code> - Display v8&#39;s version</li>
+</div></ul>
+<h2>Advanced Usage<span><a class="mark" href="#debugger_advanced_usage" id="debugger_advanced_usage">#</a></span></h2>
+<p>The V8 debugger can be enabled and accessed either by starting Node with
+the <code>--debug</code> command-line flag or by signaling an existing Node process
+with <code>SIGUSR1</code>.
+
+</p>
+<p>Once a process has been set in debug mode with this it can be connected to
+with the node debugger. Either connect to the <code>pid</code> or the URI to the debugger.
+The syntax is:
+
+</p>
+<ul>
+<li><code>node debug -p &lt;pid&gt;</code> - Connects to the process via the <code>pid</code></li>
+<li>`node debug <URI> - Connects to the process via the URI such as localhost:5858</li>
+</ul>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,142 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/as.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/as.xml
+ */
+as{
+    AuxExemplarCharacters{"[\u200C \u200D ৲]"}
+    ExemplarCharacters{
+        "[অ আ ই ঈ উ ঊ ঋ এ ঐ ও ঔ ং ঁ ঃ ক খ গ ঘ ঙ চ ছ জ ঝ ঞ ট ঠ ড ড় ঢ ঢ় ণ ত থ দ ধ ন প ফ"
+        " ব ভ ম য য় ৰ ল ৱ শ ষ স হ া ি ী ু ূ ৃ ে ৈ ো ৌ ্]"
+    }
+    LocaleScript{
+        "Beng",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤ #,##,##0.00"}
+                decimalFormat{"#,##,##0.###"}
+                percentFormat{"#,##,##0%"}
+            }
+        }
+    }
+    Version{"2.0.47.67"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "পূৰ্বাহ্ণ",
+                "অপৰাহ্ণ",
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "ৰবি",
+                        "সোম",
+                        "মঙ্গল",
+                        "বুধ",
+                        "বৃহষ্পতি",
+                        "শুক্ৰ",
+                        "শনি",
+                    }
+                    wide{
+                        "দেওবাৰ",
+                        "সোমবাৰ",
+                        "মঙ্গলবাৰ",
+                        "বুধবাৰ",
+                        "বৃহষ্পতিবাৰ",
+                        "শুক্ৰবাৰ",
+                        "শনিবাৰ",
+                    }
+                }
+            }
+            fields{
+                day{
+                    dn{"দিন"}
+                    relative{
+                        "-1"{"কালি"}
+                        "1"{"কাইলৈ"}
+                        "2"{"পৰহিলৈ"}
+                        "3"{"চ’ঠা দিনালৈ"}
+                    }
+                }
+                era{
+                    dn{"যুগ"}
+                }
+                hour{
+                    dn{"ঘণ্টা"}
+                }
+                minute{
+                    dn{"মিনিট"}
+                }
+                month{
+                    dn{"মাহ"}
+                }
+                second{
+                    dn{"ছেকেণ্ড"}
+                }
+                week{
+                    dn{"সপ্তাহ"}
+                }
+                year{
+                    dn{"বছৰ"}
+                }
+                zone{
+                    dn{"ক্ষেত্ৰ"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "জানু",
+                        "ফেব্ৰু",
+                        "মাৰ্চ",
+                        "এপ্ৰিল",
+                        "মে",
+                        "জুন",
+                        "জুলাই",
+                        "আগ",
+                        "সেপ্ট",
+                        "অক্টো",
+                        "নভে",
+                        "ডিসে",
+                    }
+                    wide{
+                        "জানুৱাৰী",
+                        "ফেব্ৰুৱাৰী",
+                        "মাৰ্চ",
+                        "এপ্ৰিল",
+                        "মে",
+                        "জুন",
+                        "জুলাই",
+                        "আগষ্ট",
+                        "ছেপ্তেম্বৰ",
+                        "অক্টোবৰ",
+                        "নৱেম্বৰ",
+                        "ডিচেম্বৰ",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    wide{
+                        "প্ৰথম প্ৰহৰ",
+                        "দ্বিতীয় প্ৰহৰ",
+                        "তৃতীয় প্ৰহৰ",
+                        "চতুৰ্থ প্ৰহৰ",
+                    }
+                }
+            }
+        }
+    }
+    measurementSystemNames{
+        US{"ইউ.এছ."}
+        metric{"মেট্ৰিক"}
+    }
+}

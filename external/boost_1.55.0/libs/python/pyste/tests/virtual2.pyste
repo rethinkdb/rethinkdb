@@ -1,0 +1,6 @@
+A = Class('virtual2::A', 'virtual2.h')
+set_policy(A.make_new, return_value_policy(manage_new_object))
+B = Class('virtual2::B', 'virtual2.h')
+set_policy(B.make_new, return_value_policy(manage_new_object))
+Function('virtual2::call_fs', 'virtual2.h')
+Function('virtual2::call_f', 'virtual2.h')

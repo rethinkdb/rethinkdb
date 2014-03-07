@@ -1,0 +1,13 @@
+distances from start vertex:
+distance(0) = 0
+distance(1) = 6
+distance(2) = 1
+distance(3) = 4
+distance(4) = 5
+
+shortest paths tree
+0 --> 2 
+1 --> 
+2 --> 3 
+3 --> 4 
+4 --> 1 

@@ -1,0 +1,463 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Examples</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+<link rel="start" href="index.html">
+<link rel="prev" href="performance.html">
+<link rel="up" href="index.html">
+<link rel="next" href="tests.html">
+</head>
+
+<body>
+<h1><img src="../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Examples</h1>
+
+<div class="prev_link"><a href="performance.html"><img src="prev.gif" alt="performance" border="0"><br>
+Performance
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="tests.html"><img src="next.gif" alt="tests" border="0"><br>
+Tests
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#example1">Example 1: basic usage</a></li>
+  <li><a href="#example2">Example 2: using functions as keys</a></li>
+  <li><a href="#example3">Example 3: constructing <code>multi_index_container</code>s
+    with <code>ctor_args_list</code></a></li>
+  <li><a href="#example4">Example 4: bidirectional map</a></li>
+  <li><a href="#example5">Example 5: sequenced indices</a></li>
+  <li><a href="#example6">Example 6: complex searches and foreign keys</a></li>
+  <li><a href="#example7">Example 7: composite keys</a></li>
+  <li><a href="#example8">Example 8: hashed indices</a></li>
+  <li><a href="#example9">Example 9: serialization and MRU lists</a></li>
+  <li><a href="#example10">Example 10: random access indices</a></li>
+  <li><a href="#example11">Example 11: index rearrangement</a></li>
+  <li><a href="#example12">Example 12: using Boost.Interprocess allocators</a></li>
+</ul>
+
+<h2><a name="example1">Example 1: basic usage</a></h2>
+
+<p>
+See <a href="../example/basic.cpp">source code</a>.
+</p>
+
+<p>
+Basic program showing the multi-indexing capabilities of Boost.MultiIndex
+with an admittedly boring set of <code>employee</code> records.
+</p>
+
+<h2><a name="example2">Example 2: using functions as keys</a></h2>
+
+<p>
+See <a href="../example/fun_key.cpp">source code</a>.
+</p>
+
+<p>
+Usually keys assigned to an index are based on a member variable of the
+element, but key extractors can be defined which take their value from
+a member function or a global function. This has some similarity with the concept of
+<i>calculated keys</i> supported by some relational database engines.
+The example shows how to use the predefined <code>const_mem_fun</code>
+and <code>global_fun</code> key extractors to deal with this situation.
+</p>
+
+<p>
+Keys based on functions usually will not be actual references,
+but rather the temporary values resulting from the invocation of the
+member function used. This implies that <code>modify_key</code> cannot be
+applied to this type of extractors, which is a perfectly logical
+constraint anyway.
+</p>
+
+<h2><a name="example3">Example 3: constructing <code>multi_index_container</code>s
+with <code>ctor_args_list</code></a></h2>
+
+<p>
+See <a href="../example/non_default_ctor.cpp">source code</a>.
+</p>
+
+<p>
+We show a practical example of usage of <code>multi_index_container::ctor_arg_list</code>,
+whose definition and purpose are explained in the
+<a href="tutorial/creation.html#ctor_args_list">tutorial</a>. The
+program groups a sorted collection of numbers based on identification through
+modulo arithmetics, by which <code>x</code> and <code>y</code> are equivalent
+if <code>(x%n)==(y%n)</code>, for some fixed <code>n</code>.
+</p>
+
+<h2><a name="example4">Example 4: bidirectional map</a></h2>
+
+<p>
+See <a href="../example/bimap.cpp">source code</a>.
+</p>
+
+<p>
+This example shows how to construct a bidirectional map with
+<code>multi_index_container</code>. By a <i>bidirectional map</i> we mean
+a container of <code>(const FromType,const ToType)</code> pairs
+such that no two elements exists with the same first
+<i>or</i> second component (<code>std::map</code> only
+guarantees uniqueness of the first component). Fast lookup is provided
+for both keys. The program features a tiny Spanish-English
+dictionary with online query of words in both languages.
+</p>
+
+<p>
+This bidirectional map can be considered as a primitive precursor
+to the full-fledged container provided by
+<a href="../../bimap/index.html">Boost.Bimap</a>.
+</p>
+
+<h2><a name="example5">Example 5: sequenced indices</a></h2>
+
+<p>
+See <a href="../example/sequenced.cpp">source code</a>.
+</p>
+
+<p>
+The combination of a sequenced index with an index of type <code>ordered_non_unique</code>
+yields a <code>list</code>-like structure with fast lookup capabilities. The
+example performs some operations on a given text, like word counting and
+selective deletion of some words.
+</p>
+
+<h2><a name="example6">Example 6: complex searches and foreign keys</a></h2>
+
+<p>
+See <a href="../example/complex_structs.cpp">source code</a>.
+</p>
+
+<p>
+This program illustrates some advanced techniques that can be applied
+for complex data structures using <code>multi_index_container</code>.
+Consider a <code>car_model</code> class for storing information
+about automobiles. On a first approach, <code>car_model</code> can
+be defined as:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>car_model</span>
+<span class=special>{</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>model</span><span class=special>;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>manufacturer</span><span class=special>;</span>
+  <span class=keyword>int</span>         <span class=identifier>price</span><span class=special>;</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+This definition has a design flaw that any reader acquainted with
+relational databases can easily spot: The <code>manufacturer</code>
+member is duplicated among all cars having the same manufacturer.
+This is a waste of space and poses difficulties when, for instance,
+the name of a manufacturer has to be changed. Following the usual
+principles in relational database design, the appropriate design
+involves having the manufactures stored in a separate
+<code>multi_index_container</code> and store pointers to these in
+<code>car_model</code>:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>car_manufacturer</span>
+<span class=special>{</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>name</span><span class=special>;</span>
+<span class=special>};</span>
+
+<span class=keyword>struct</span> <span class=identifier>car_model</span>
+<span class=special>{</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span>       <span class=identifier>model</span><span class=special>;</span>
+  <span class=identifier>car_manufacturer</span><span class=special>*</span> <span class=identifier>manufacturer</span><span class=special>;</span>
+  <span class=keyword>int</span>               <span class=identifier>price</span><span class=special>;</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+Although predefined Boost.MultiIndex key extractors can handle many
+situations involving pointers (see
+<a href="tutorial/key_extraction.html#advanced_key_extractors">advanced features
+of Boost.MultiIndex key extractors</a> in the tutorial), this case
+is complex enough that a suitable key extractor has to be defined. The following
+utility cascades two key extractors:
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>class</span> <span class=identifier>KeyExtractor1</span><span class=special>,</span><span class=keyword>class</span> <span class=identifier>KeyExtractor2</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>key_from_key</span>
+<span class=special>{</span>
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=keyword>typedef</span> <span class=keyword>typename</span> <span class=identifier>KeyExtractor1</span><span class=special>::</span><span class=identifier>result_type</span> <span class=identifier>result_type</span><span class=special>;</span>
+
+  <span class=identifier>key_from_key</span><span class=special>(</span>
+    <span class=keyword>const</span> <span class=identifier>KeyExtractor1</span><span class=special>&amp;</span> <span class=identifier>key1_</span><span class=special>=</span><span class=identifier>KeyExtractor1</span><span class=special>(),</span>
+    <span class=keyword>const</span> <span class=identifier>KeyExtractor2</span><span class=special>&amp;</span> <span class=identifier>key2_</span><span class=special>=</span><span class=identifier>KeyExtractor2</span><span class=special>()):</span>
+    <span class=identifier>key1</span><span class=special>(</span><span class=identifier>key1_</span><span class=special>),</span><span class=identifier>key2</span><span class=special>(</span><span class=identifier>key2_</span><span class=special>)</span>
+  <span class=special>{}</span>
+
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Arg</span><span class=special>&gt;</span>
+  <span class=identifier>result_type</span> <span class=keyword>operator</span><span class=special>()(</span><span class=identifier>Arg</span><span class=special>&amp;</span> <span class=identifier>arg</span><span class=special>)</span><span class=keyword>const</span>
+  <span class=special>{</span>
+    <span class=keyword>return</span> <span class=identifier>key1</span><span class=special>(</span><span class=identifier>key2</span><span class=special>(</span><span class=identifier>arg</span><span class=special>));</span>
+  <span class=special>}</span>
+
+<span class=keyword>private</span><span class=special>:</span>
+  <span class=identifier>KeyExtractor1</span> <span class=identifier>key1</span><span class=special>;</span>
+  <span class=identifier>KeyExtractor2</span> <span class=identifier>key2</span><span class=special>;</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+so that access from a <code>car_model</code> to the <code>name</code> field
+of its associated <code>car_manufacturer</code> can be accomplished with
+</p>
+
+<blockquote><pre>
+<span class=identifier>key_from_key</span><span class=special>&lt;</span>
+  <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>car_manufacturer</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>car_manufacturer</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;,</span>
+  <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>car_model</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>car_manufacturer</span> <span class=special>*,</span><span class=identifier>car_model</span><span class=special>::</span><span class=identifier>manufacturer</span><span class=special>&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+The program asks the user for a car manufacturer and a range of prices
+and returns the car models satisfying these requirements. This is a complex
+search that cannot be performed on a single operation. Broadly sketched,
+one procedure for executing the selection is:
+<ol>
+  <li>Select the elements with the given manufacturer by means
+    of <code>equal_range</code>,
+  <li>feed these elements into a <code>multi_index_container</code> sorted
+    by price,
+  <li>select by price using <code>lower_bound</code> and
+    <code>upper_bound</code>;
+</ol>
+or alternatively:
+<ol>
+  <li>Select the elements within the price range with 
+  <code>lower_bound</code> and <code>upper_bound</code>,
+  <li>feed these elements into a <code>multi_index_container</code> sorted
+    by manufacturer,
+  <li>locate the elements with given manufacturer using
+    <code>equal_range</code>.
+</ol>
+An interesting technique developed in the example lies in
+the construction of the intermediate <code>multi_index_container</code>.
+In order to avoid object copying, appropriate <i>view</i> types
+are defined with <code>multi_index_container</code>s having as elements
+pointers to <code>car_model</code>s instead of actual objects.
+These views have to be supplemented with appropriate 
+dereferencing key extractors.
+</p>
+
+<h2><a name="example7">Example 7: composite keys</a></h2>
+
+<p>
+See <a href="../example/composite_keys.cpp">source code</a>.
+</p>
+
+<p>
+Boost.MultiIndex <a href="tutorial/key_extraction.html#composite_keys">
+<code>composite_key</code></a> construct provides a flexible tool for
+creating indices with non-trivial sorting criteria.
+The program features a rudimentary simulation of a file system
+along with an interactive Unix-like shell. A file entry is represented by
+the following structure:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>file_entry</span>
+<span class=special>{</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span>       <span class=identifier>name</span><span class=special>;</span>
+  <span class=keyword>unsigned</span>          <span class=identifier>size</span><span class=special>;</span>
+  <span class=keyword>bool</span>              <span class=identifier>is_dir</span><span class=special>;</span> <span class=comment>// true if the entry is a directory</span>
+  <span class=keyword>const</span> <span class=identifier>file_entry</span><span class=special>*</span> <span class=identifier>dir</span><span class=special>;</span>    <span class=comment>// directory this entry belongs in</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+Entries are kept in a <code>multi_index_container</code> maintaining two indices
+with composite keys:
+<ul>
+  <li>A primary index ordered by directory and name,</li>
+  <li>a secondary index ordered by directory and size.</li>
+</ul>
+The reason that the order is made firstly by the directory in which
+the files are located obeys to the local nature of the shell commands,
+like for instance <code>ls</code>. The shell simulation only has three
+commands:
+<ul>
+  <li><code>cd [.|..|<i>&lt;directory&gt;</i>]</code></li>
+  <li><code>ls [-s]</code> (<code>-s</code> orders the output by size)</li>
+  <li><code>mkdir <i>&lt;directory&gt;</i></code></li>
+</ul>
+The program exits when the user presses the Enter key at the command prompt.
+</p>
+
+<p>
+The reader is challenged to add more functionality to the program; for
+instance:
+<ul>
+  <li>Implement additional commands, like <code>cp</code>.</li>
+  <li>Add handling of absolute paths.</li>
+  <li>Use <a href="tutorial/creation.html#serialization">serialization</a>
+    to store and retrieve the filesystem state between program runs.</li>
+</ul>
+</p>
+
+<h2><a name="example8">Example 8: hashed indices</a></h2>
+
+<p>
+See <a href="../example/hashed.cpp">source code</a>.
+</p>
+
+<p>
+Hashed indices can be used as an alternative to ordered indices when
+fast lookup is needed and sorting information is of no interest. The
+example features a word counter where duplicate entries are checked
+by means of a hashed index. Confront the word counting algorithm with
+that of <a href="#example5">example 5</a>.
+</p>
+
+<h2><a name="example9">Example 9: serialization and MRU lists</a></h2>
+
+<p>
+See <a href="../example/serialization.cpp">source code</a>.
+</p>
+
+<p>
+A typical application of serialization capabilities allows a program to
+restore the user context between executions. The example program asks
+the user for words and keeps a record of the ten most recently entered
+ones, in the current or in previous sessions. The serialized data structure,
+sometimes called an <i>MRU (most recently used) list</i>, has some interest
+on its own: an MRU list behaves as a regular FIFO queue, with the exception
+that, when inserting a preexistent entry, this does not appear twice, but
+instead the entry is moved to the front of the list. You can observe this
+behavior in many programs featuring a "Recent files" menu command. This
+data structure is implemented with <code>multi_index_container</code> by
+combining a sequenced index and an index of type <code>hashed_unique</code>.
+</p>
+
+<h2><a name="example10">Example 10: random access indices</a></h2>
+
+<p>
+See <a href="../example/random_access.cpp">source code</a>.
+</p>
+
+<p>
+The example resumes the text container introduced in
+<a href="#example5">example 5</a> and shows how substituting a random
+access index for a sequenced index allows for extra capabilities like
+efficient access by position and calculation of the offset of a given
+element into the container.
+</p>
+
+<h2><a name="example11">Example 11: index rearrangement</a></h2>
+
+<p>
+See <a href="../example/rearrange.cpp">source code</a>.
+</p>
+
+<p>
+There is a relatively common piece of urban lore claiming that
+a deck of cards must be shuffled seven times in a row to be perfectly
+mixed. The statement derives from the works of mathematician Persi
+Diaconis on <i>riffle shuffling</i>: this shuffling
+technique involves splitting the deck in two packets roughly the same
+size and then dropping the cards from both packets so that they become
+interleaved. It has been shown that when repeating this procedure
+seven times the statistical distribution of cards is reasonably
+close to that associated with a truly random permutation. A measure
+of "randomness" can be estimated by counting <i>rising sequences</i>:
+consider a permutation of the sequence 1,2, ... , <i>n</i>, a rising sequence
+is a maximal chain of consecutive elements <i>m</i>, <i>m+1</i>, ... , <i>m+r</i>
+such that they are arranged in ascending order. For instance, the permutation
+125364789 is composed of the two rising sequences 1234 and 56789,
+as becomes obvious by displaying the sequence like this,
+<span style="vertical-align:sub">1</span><span style="vertical-align:sub">2</span><span style="vertical-align:super">5</span><span style="vertical-align:sub">3</span><span style="vertical-align:super">6</span><span style="vertical-align:sub">4</span><span style="vertical-align:super">7</span><span style="vertical-align:super">8</span><span style="vertical-align:super">9</span>.
+The average number of rising sequences in a random permutation of
+<i>n</i> elements is (<i>n</i>+1)/2: by contrast, after a single riffle
+shuffle of an initially sorted deck of cards, there cannot be more than
+two rising sequences. The average number of rising sequences approximates
+to (<i>n</i>+1)/2 as the number of consecutive riffle shuffles increases,
+with seven shuffles yielding a close result for a 52-card poker deck.
+Brad Mann's paper
+<a href="http://www.dartmouth.edu/~chance/teaching_aids/books_articles/Mann.pdf">"How
+many times should you shuffle a deck of cards?"</a> provides a
+rigorous yet very accessible treatment of this subject.
+
+</p>
+
+<p>
+The example program estimates the average number of rising sequences
+in a 52-card deck after repeated riffle shuffling as well as applying
+a completely random permutation. The deck is modeled by the following
+container:
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>random_access</span><span class=special>&lt;&gt;,</span>
+    <span class=identifier>random_access</span><span class=special>&lt;&gt;</span> 
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+where the first index stores the current arrangement of the deck, while
+the second index is used to remember the start position. This representation
+allows for an efficient implementation of a rising sequences counting
+algorithm in linear time.
+<a href="reference/rnd_indices.html#rearrange"><code>rearrange</code></a>
+is used to apply to the deck a shuffle performed externally on an
+auxiliary data structure.
+</p>
+
+<h2><a name="example12">Example 12: using Boost.Interprocess allocators</a></h2>
+
+<p>
+See <a href="../example/ip_allocator.cpp">source code</a>.
+</p>
+
+<p>
+Boost.MultiIndex supports special allocators such as those provided by
+<a href="../../interprocess/index.html">Boost.Interprocess</a>,
+which allows for <code>multi_index_container</code>s to be placed in shared
+memory. The example features a front-end to a small book database
+implemented by means of a <code>multi_index_container</code> stored
+in a Boost.Interprocess memory mapped file. The reader can verify that several
+instances of the program correctly work simultaneously and immediately see
+the changes to the database performed by any other instance.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="performance.html"><img src="prev.gif" alt="performance" border="0"><br>
+Performance
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="tests.html"><img src="next.gif" alt="tests" border="0"><br>
+Tests
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised May 26th 2009</p>
+
+<p>&copy; Copyright 2003-2009 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

@@ -1,0 +1,195 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Building Hello World</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;python 2.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;python 2.0">
+<link rel="prev" href="../index.html" title="Chapter&#160;1.&#160;python 2.0">
+<link rel="next" href="exposing.html" title="Exposing Classes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="exposing.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="python.hello"></a>Building Hello World</h2></div></div></div>
+<h3>
+<a name="hello.from_start_to_finish"></a>
+      From Start To Finish
+    </h3>
+<p>
+      Now the first thing you'd want to do is to build the Hello World module and
+      try it for yourself in Python. In this section, we will outline the steps necessary
+      to achieve that. We will use the build tool that comes bundled with every boost
+      distribution: <span class="bold"><strong>bjam</strong></span>.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+        <span class="bold"><strong>Building without bjam</strong></span>
+      </p>
+<p>
+        Besides bjam, there are of course other ways to get your module built. What's
+        written here should not be taken as "the one and only way". There
+        are of course other build tools apart from <code class="literal">bjam</code>.
+      </p>
+<p>
+        Take note however that the preferred build tool for Boost.Python is bjam.
+        There are so many ways to set up the build incorrectly. Experience shows
+        that 90% of the "I can't build Boost.Python" problems come from
+        people who had to use a different tool.
+      </p>
+</td></tr>
+</table></div>
+<p>
+      We will skip over the details. Our objective will be to simply create the hello
+      world module and run it in Python. For a complete reference to building Boost.Python,
+      check out: <a href="../../../../building.html" target="_top">building.html</a>. After
+      this brief <span class="emphasis"><em>bjam</em></span> tutorial, we should have built the DLLs
+      and run a python program using the extension.
+    </p>
+<p>
+      The tutorial example can be found in the directory: <code class="literal">libs/python/example/tutorial</code>.
+      There, you can find:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          hello.cpp
+        </li>
+<li class="listitem">
+          hello.py
+        </li>
+<li class="listitem">
+          Jamroot
+        </li>
+</ul></div>
+<p>
+      The <code class="literal">hello.cpp</code> file is our C++ hello world example. The
+      <code class="literal">Jamroot</code> is a minimalist <span class="emphasis"><em>bjam</em></span> script
+      that builds the DLLs for us. Finally, <code class="literal">hello.py</code> is our Python
+      program that uses the extension in <code class="literal">hello.cpp</code>.
+    </p>
+<p>
+      Before anything else, you should have the bjam executable in your boost directory
+      or somewhere in your path such that <code class="literal">bjam</code> can be executed
+      in the command line. Pre-built Boost.Jam executables are available for most
+      platforms. The complete list of Bjam executables can be found <a href="http://sourceforge.net/project/showfiles.php?group_id=7586" target="_top">here</a>.
+    </p>
+<h3>
+<a name="hello.let_s_jam_"></a>
+      Let's Jam!
+    </h3>
+<p>
+      <span class="inlinemediaobject"><img src="../images/jam.png" alt="jam"></span>
+    </p>
+<p>
+      <a href="../../../../../example/tutorial/Jamroot" target="_top">Here</a> is our minimalist
+      Jamroot file. Simply copy the file and tweak <code class="literal">use-project boost</code>
+      to where your boost root directory is and your OK.
+    </p>
+<p>
+      The comments contained in the Jamrules file above should be sufficient to get
+      you going.
+    </p>
+<h3>
+<a name="hello.running_bjam"></a>
+      Running bjam
+    </h3>
+<p>
+      <span class="emphasis"><em>bjam</em></span> is run using your operating system's command line
+      interpreter.
+    </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        Start it up.
+      </p></blockquote></div>
+<p>
+      A file called user-config.jam in your home directory is used to configure your
+      tools. In Windows, your home directory can be found by typing:
+    </p>
+<pre class="programlisting">ECHO %HOMEDRIVE%%HOMEPATH%
+</pre>
+<p>
+      into a command prompt window. Your file should at least have the rules for
+      your compiler and your python installation. A specific example of this on Windows
+      would be:
+    </p>
+<pre class="programlisting">#  MSVC configuration
+using msvc : 8.0 ;
+
+#  Python configuration
+using python : 2.4 : C:<span class="emphasis"><em>dev/tools/Python</em></span> ;
+</pre>
+<p>
+      The first rule tells Bjam to use the MSVC 8.0 compiler and associated tools.
+      The second rule provides information on Python, its version and where it is
+      located. The above assumes that the Python installation is in <code class="literal">C:<span class="emphasis"><em>dev/tools\/Python</em></span></code>.
+      If you have one fairly "standard" python installation for your platform,
+      you might not need to do this.
+    </p>
+<p>
+      Now we are ready... Be sure to <code class="literal">cd</code> to <code class="literal">libs/python/example/tutorial</code>
+      where the tutorial <code class="literal">"hello.cpp"</code> and the <code class="literal">"Jamroot"</code>
+      is situated.
+    </p>
+<p>
+      Finally:
+    </p>
+<pre class="programlisting"><span class="identifier">bjam</span>
+</pre>
+<p>
+      It should be building now:
+    </p>
+<pre class="programlisting">cd C:\dev\boost\libs\python\example\tutorial
+bjam
+...patience...
+...found 1101 targets...
+...updating 35 targets...
+</pre>
+<p>
+      And so on... Finally:
+    </p>
+<pre class="programlisting">Creating library <span class="emphasis"><em>path-to-boost_python.dll</em></span>
+   Creating library /path-to-hello_ext.exp/
+**passed** ... hello.test
+...updated 35 targets...
+</pre>
+<p>
+      Or something similar. If all is well, you should now have built the DLLs and
+      run the Python program.
+    </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        <span class="bold"><strong>There you go... Have fun!</strong></span>
+      </p></blockquote></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005 Joel
+      de Guzman, David Abrahams<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="exposing.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

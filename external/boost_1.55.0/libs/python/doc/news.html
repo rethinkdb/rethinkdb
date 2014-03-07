@@ -1,0 +1,371 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Cygwin (vers 1st September 2004), see www.w3.org">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="boost.css">
+
+  <title>Boost.Python - News/Change Log</title>
+</head>
+
+<body link="#0000FF" vlink="#800080">
+  <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+  "header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../index.htm"><img height="86" width="277" alt=
+        "C++ Boost" src="../../../boost.png" border="0"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center"><a href="index.html">Boost.Python</a></h1>
+
+        <h2 align="center">News/Change Log</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <dl class="page-index">
+
+    <dt>Current SVN</dt>
+    <dd>
+      <ul>
+        <li>Python 3 support:</li>
+          <ul>
+              <li>All the current Boost.Python test cases passed. Extension modules using 
+                  Boost.Python expected to support Python 3 smoothly.</li>
+              <li>Introduced <code>object.contains</code> where <code>x.contains(y)</code>
+                   is equivalent to Python code <code>y in x</code>. 
+                  Now <code>dict.has_key</code> is just a wrapper of <code>object.contains</code>.
+              </li>
+              <li>When building against Python 3, <code>str.decode</code> will be removed.</li>
+              <li>When building against Python 3, the original signature of <code>list.sort</code>, which is:
+                  <pre>void sort(object_cref cmpfunc);</pre>
+                  will change to:
+                  <pre>void sort(args_proxy const &args, kwds_proxy const &kwds);</pre>
+
+                  This is because in Python 3 <code>list.sort</code> requires all its arguments be keyword arguments.
+                  So you should call it like this:
+                  <pre>x.sort(*tuple(), **dict(make_tuple(make_tuple("reverse", true))));</pre>
+
+              </li>
+              <li>According to <a href="http://www.python.org/dev/peps/pep-3123/">PEP 3123</a>, 
+                  when building Boost.Python against Python older than 2.6, the following macros will
+                  be defined in Boost.Python header:
+                <pre>
+# define Py_TYPE(o)    (((PyObject*)(o))->ob_type)
+# define Py_REFCNT(o)  (((PyObject*)(o))->ob_refcnt)
+# define Py_SIZE(o)    (((PyVarObject*)(o))->ob_size)</pre>
+                  So extension writers can use these macro directly, to make code clean and compatible with Python 3.
+              </li>
+          </ul> 
+      </ul>
+    </dd>
+
+    <dt>1.39.0 Release</dt>
+
+    <dd>
+      <ul>
+        <li>Pythonic signatures are now automatically appended to the
+        docstrings.
+
+        <li>Use <a href="v2/docstring_options.html"
+        ><code>docstring_options.hpp</code></a> header 
+        control the content of docstrings.
+	
+	<li>This new feature increases the size of the modules by about 14%.
+        If this is not acceptable it can be turned off by defining the macro
+        BOOST_PYTHON_NO_PY_SIGNATURES. Modules compiled with and without the macro
+        defined are compatible.
+        </li>
+	<li> If BOOST_PYTHON_NO_PY_SIGNATURES is undefined, this version defines the 
+        macro BOOST_PYTHON_SUPPORTS_PY_SIGNATURES. This allows writing code that will compile
+        with older version of Boost.Python (see <a href="v2/pytype_function.html#examples">here</a>).
+        </li>
+	<li>By defining BOOST_PYTHON_PY_SIGNATURES_PROPER_INIT_SELF_TYPE, and at a cost
+        of another 14% size increase, proper pythonic type is generated for the "self"
+        parameter of the __init__ methods.
+        </li>
+        
+        <li> To support this new feature changes were made to the 
+        <a href="v2/to_python_converter.html"><code>to_python_converter.hpp</code></a>, 
+        <a href="v2/default_call_policies.html"><code>default_call_policies</code></a>,
+        <a href="v2/ResultConverter.html"><code>ResultConverter</code></a>,
+        <a href="v2/CallPolicies.html"><code>CallPolicies</code></a> and some others.
+        Efforts were made not to have interface breaking changes. 
+        </li>
+
+      </ul>
+    </dd>
+
+    <dt>12 May 2007 - 1.34.0 release</dt>
+
+    <dd>
+      <ul>
+        <li>C++ signatures are now automatically appended to the
+        docstrings.
+
+        <li>New <a href="v2/docstring_options.html"
+        ><code>docstring_options.hpp</code></a> header to
+        control the content of docstrings.
+
+        <li>Support for converting <code>void*</code> to/from python,
+        with <code><a
+        href="v2/opaque.html">opaque_pointer_converter</a></code>
+        as the return value policy.  Thanks to Niall Douglas for the
+        initial patch.
+      </ul>
+    </dd>
+
+    <dt>19 October 2005 - 1.33.1 release</dt>
+
+    <dd>
+      <ul>
+        <li><code>wrapper&lt;T&gt;</code> can now be used as expected with a
+        held type of <i>some-smart-pointer</i><code>&lt;T&gt;</code></li>
+
+        <li>The build now assumes Python 2.4 by default, rather than 2.2</li>
+
+        <li>Support Python that's built without Unicode support</li>
+
+        <li>Support for wrapping classes with overloaded address-of
+        (<code>&amp;</code>) operators</li>
+      </ul>
+    </dd>
+
+    <dt>14 August 2005 - 1.33 release</dt>
+
+    <dd>
+      <ul>
+        <li>Support for docstrings on nonstatic properties.</li>
+
+        <li>We now export the client-provided docstrings for
+        <code>init&lt;optional&lt;&gt; &gt;</code> and
+        <i>XXX</i><code>_FUNCTION_OVERLOADS()</code> for only the last
+        overload.</li>
+
+        <li>Fixed some support for Embedded VC++ 4</li>
+
+        <li>Better support for rvalue from-python conversions of shared_ptr:
+        always return a pointer that holds the owning python object *unless*
+        the python object contains a NULL shared_ptr holder of the right
+        type.</li>
+
+        <li>Support for exposing <code>vector&lt;T*&gt;</code> with the
+        indexing suite.</li>
+
+        <li>Support for GCC-3.3 on MacOS.</li>
+
+        <li>updated visual studio project build file to include two new files
+        (slice.cpp and wrapper.cpp)</li>
+
+        <li>Added search feature to the index page.</li>
+
+        <li>Numerous fixes to the tutorial</li>
+
+        <li>Numerous workarounds for MSVC 6 and 7, GCC 2.96, and EDG
+        2.45</li>
+      </ul>
+    </dd>
+
+    <dt>11 March 2005</dt>
+
+    <dd>
+      <ul>
+        <li>Added a hack that will fool PyDoc into working with Boost.Python,
+        thanks to Nick Rasmussen</li>
+      </ul>
+    </dd>
+
+    <dt>19 November 2004 - 1.32 release</dt>
+
+    <dd>
+      <ul>
+        <li>Updated to use the Boost Software License.</li>
+
+        <li>A new, <a href=
+        "tutorial/doc/html/python/exposing.html#python.class_virtual_functions">
+        better method of wrapping classes with virtual functions</a> has been
+        implemented.</li>
+
+        <li>Support for upcoming GCC symbol export control features have been
+        folded in, thanks to Niall Douglas.</li>
+
+        <li>Improved support for <code>std::auto_ptr</code>-like types.</li>
+
+        <li>The Visual C++ bug that makes top-level <i>cv-qualification</i>
+        of function parameter types part of the function type has been worked
+        around.</li>
+
+        <li>Components used by other libraries have been moved out of
+        <code>python/detail</code> and into <code>boost/detail</code> to
+        improve dependency relationships.</li>
+
+        <li>Miscellaneous bug fixes and compiler workarounds.</li>
+      </ul>
+    </dd>
+
+    <dt>8 Sept 2004</dt>
+
+    <dd>Support for Python's Bool type, thanks to <a href=
+    "mailto:dholth-at-fastmail.fm">Daniel Holth</a>.</dd>
+
+    <dt>11 Sept 2003</dt>
+
+    <dd>
+      <ul>
+        <li>Changed the response to multiple to-python converters being
+        registered for the same type from a hard error into warning;
+        Boost.Python now reports the offending type in the message.</li>
+
+        <li>Added builtin <code>std::wstring</code> conversions</li>
+
+        <li>Added <code>std::out_of_range</code> =&gt; Python
+        <code>IndexError</code> exception conversion, thanks to <a href=
+        "mailto:RaoulGough-at-yahoo.co.uk">Raoul Gough</a></li>
+      </ul>
+    </dd>
+
+    <dt>9 Sept 2003</dt>
+
+    <dd>Added new <code><a href="v2/str.html#str-spec">str</a></code></dd>
+
+    <dt>constructors which take a range of characters, allowing strings
+    containing nul (<code>'\0'</code>) characters.</dt>
+
+    <dt>8 Sept 2003</dt>
+
+    <dd>Added the ability to create methods from function objects (with an
+    <code>operator()</code>); see the <a href=
+    "v2/make_function.html#make_function-spec">make_function</a> docs for
+    more info.</dd>
+
+    <dt>10 August 2003</dt>
+
+    <dd>Added the new <code>properties</code> unit tests contributed by
+    <a href="mailto:romany-at-actimize.com">Roman Yakovenko</a> and
+    documented <code>add_static_property</code> at his urging.</dd>
+
+    <dt>1 August 2003</dt>
+
+    <dd>
+      Added the new <code>arg</code> class contributed by <a href=
+      "mailto:nickm-at-sitius.com">Nikolay Mladenov</a> which supplies the
+      ability to wrap functions that can be called with ommitted arguments in
+      the middle:
+      <pre>
+void f(int x = 0, double y = 3.14, std::string z = std::string("foo"));
+
+BOOST_PYTHON_MODULE(test)
+{
+   def("f", f
+       , (arg("x", 0), arg("y", 3.14), arg("z", "foo")));
+}
+ 
+</pre>And in Python:
+      <pre>
+&gt;&gt;&gt; import test
+&gt;&gt;&gt; f(0, z = "bar")
+&gt;&gt;&gt; f(z = "bar", y = 0.0)
+</pre>Thanks, Nikolay!
+    </dd>
+
+    <dt>22 July 2003</dt>
+
+    <dd>Killed the dreaded "bad argument type for builtin operation" error.
+    Argument errors now show the actual and expected argument types!</dd>
+
+    <dt>19 July 2003</dt>
+
+    <dd>Added the new <code><a href=
+    "v2/return_arg.html">return_arg</a></code> policy from <a href=
+    "mailto:nickm-at-sitius.com">Nikolay Mladenov</a>. Thanks, Nikolay!</dd>
+
+    <dt>18 March, 2003</dt>
+
+    <dd><a href="mailto:Gottfried.Ganssauge-at-haufe.de">Gottfried
+    Gan&szlig;auge</a> has contributed <a href=
+    "v2/opaque.html">opaque pointer support</a>.<br>
+    <a href="mailto:nicodemus-at-globalite.com.br">Bruno da Silva de
+    Oliveira</a> has contributed the exciting <a href=
+    "../pyste/index.html">Pyste</a> ("Pie-steh") package.</dd>
+
+    <dt>24 February 2003</dt>
+
+    <dd>Finished improved support for <code>boost::shared_ptr</code>. Now any
+    wrapped object of C++ class <code>X</code> can be converted automatically
+    to <code>shared_ptr&lt;X&gt;</code>, regardless of how it was wrapped.
+    The <code>shared_ptr</code> will manage the lifetime of the Python object
+    which supplied the <code>X</code>, rather than just the <code>X</code>
+    object itself, and when such a <code>shared_ptr</code> is converted back
+    to Python, the original Python object will be returned.</dd>
+
+    <dt>19 January 2003</dt>
+
+    <dd>Integrated <code>staticmethod</code> support from <a href=
+    "mailto:nickm-at-sitius.com">Nikolay Mladenov</a>. Thanks, Nikolay!</dd>
+
+    <dt>29 December 2002</dt>
+
+    <dd>Added Visual Studio project file and instructions from Brett Calcott.
+    Thanks, Brett!</dd>
+
+    <dt>20 December 2002</dt>
+
+    <dd>Added automatic downcasting for pointers, references, and smart
+    pointers to polymorphic class types upon conversion to python</dd>
+
+    <dt>18 December 2002</dt>
+
+    <dd>Optimized from_python conversions for wrapped classes by putting the
+    conversion logic in the shared library instead of registering separate
+    converters for each class in each extension module</dd>
+
+    <dt>19 November 2002</dt>
+
+    <dd>Removed the need for users to cast base class member function
+    pointers when used as arguments to <a href=
+    "v2/class.html#class_-spec-modifiers">add_property</a></dd>
+
+    <dt>13 December 2002</dt>
+
+    <dd>Allow exporting of <a href=
+    "v2/enum.html#enum_-spec"><code>enum_</code></a> values into enclosing
+    <a href="v2/scope.html#scope-spec"><code>scope</code></a>.<br>
+    Fixed unsigned integer conversions to deal correctly with numbers that
+    are out-of-range of <code>signed long</code>.</dd>
+
+    <dt>14 November 2002</dt>
+
+    <dd>Auto-detection of class data members wrapped with <a href=
+    "v2/data_members.html#make_getter-spec"><code>make_getter</code></a></dd>
+
+    <dt>13 November 2002</dt>
+
+    <dd>Full Support for <code>std::auto_ptr&lt;&gt;</code> added.</dd>
+
+    <dt>October 2002</dt>
+
+    <dd>Ongoing updates and improvements to tutorial documentation</dd>
+
+    <dt>10 October 2002</dt>
+
+    <dd>Boost.Python V2 is released!</dd>
+  </dl>
+  <hr>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+   19 November 2004 
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" --></p>
+
+  <p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave
+  Abrahams</a> 2002-2003.</i></p>
+</body>
+</html>

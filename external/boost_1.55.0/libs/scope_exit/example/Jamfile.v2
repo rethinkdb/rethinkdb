@@ -1,0 +1,23 @@
+
+# Copyright (C) 2006-2009, 2012 Alexander Nasonov
+# Copyright (C) 2012 Lorenzo Caminiti
+# Distributed under the Boost Software License, Version 1.0
+# (see accompanying file LICENSE_1_0.txt or a copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+# Home at http://www.boost.org/libs/scope_exit
+
+import testing ;
+
+# Sun does not automatically detect type-of emulation mode (force it).
+project : requirements <toolset>sun:<define>BOOST_TYPEOF_EMULATION ;
+
+run try_catch.cpp ;
+run try_catch_seq.cpp ;
+run try_catch_seq_nova.cpp ;
+
+run scope_guard.cpp ;
+run scope_guard_seq.cpp ;
+run scope_guard_seq_nova.cpp ;
+
+run world_cxx11_lambda.cpp ;
+

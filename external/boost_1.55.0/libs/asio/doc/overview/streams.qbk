@@ -1,0 +1,62 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:streams Streams, Short Reads and Short Writes]
+
+Many I/O objects in Boost.Asio are stream-oriented. This means that:
+
+* There are no message boundaries. The data being transferred is a continuous
+  sequence of bytes.
+
+* Read or write operations may transfer fewer bytes than requested. This is
+  referred to as a short read or short write.
+
+Objects that provide stream-oriented I/O model one or more of the following
+type requirements:
+
+* `SyncReadStream`, where synchronous read operations are performed using a
+  member function called `read_some()`.
+
+* `AsyncReadStream`, where asynchronous read operations are performed using a
+  member function called `async_read_some()`.
+
+* `SyncWriteStream`, where synchronous write operations are performed using a
+  member function called `write_some()`.
+
+* `AsyncWriteStream`, where synchronous write operations are performed using a
+  member function called `async_write_some()`.
+
+Examples of stream-oriented I/O objects include `ip::tcp::socket`,
+`ssl::stream<>`, `posix::stream_descriptor`, `windows::stream_handle`, etc.
+
+Programs typically want to transfer an exact number of bytes. When a short read
+or short write occurs the program must restart the operation, and continue to
+do so until the required number of bytes has been transferred. Boost.Asio provides
+generic functions that do this automatically: `read()`, `async_read()`,
+`write()` and `async_write()`.
+
+[heading Why EOF is an Error]
+
+* The end of a stream can cause `read`, `async_read`, `read_until` or
+  `async_read_until` functions to violate their contract. E.g.
+  a read of N bytes may finish early due to EOF.
+
+* An EOF error may be used to distinguish the end of a stream from a successful
+  read of size 0.
+
+[heading See Also]
+
+[link boost_asio.reference.async_read async_read()],
+[link boost_asio.reference.async_write async_write()],
+[link boost_asio.reference.read read()],
+[link boost_asio.reference.write write()],
+[link boost_asio.reference.AsyncReadStream AsyncReadStream],
+[link boost_asio.reference.AsyncWriteStream AsyncWriteStream],
+[link boost_asio.reference.SyncReadStream SyncReadStream],
+[link boost_asio.reference.SyncWriteStream SyncWriteStream].
+
+[endsect]

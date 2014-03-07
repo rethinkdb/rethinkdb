@@ -1,0 +1,165 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Tokens Matching Single Characters</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../primitives.html" title="Token definition Primitives">
+<link rel="prev" href="../primitives.html" title="Token definition Primitives">
+<link rel="next" href="../../../advanced.html" title="Advanced">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../primitives.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../primitives.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../advanced.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.lex.reference.primitives.char_tokendef"></a><a class="link" href="char_tokendef.html" title="Tokens Matching Single Characters">Tokens
+          Matching Single Characters</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.lex.reference.primitives.char_tokendef.h0"></a>
+            <span class="phrase"><a name="spirit.lex.reference.primitives.char_tokendef.description"></a></span><a class="link" href="char_tokendef.html#spirit.lex.reference.primitives.char_tokendef.description">Description</a>
+          </h6>
+<p>
+            The character based token definitions described in this section are:
+          </p>
+<p>
+            The <code class="computeroutput"><span class="identifier">char_</span></code> creates token
+            definitions matching single characters. The <code class="computeroutput"><span class="identifier">char_</span></code>
+            token definition is associated <code class="computeroutput"><span class="identifier">standard</span></code>
+            encoding namespace. This is needed when doing basic operations such as
+            forcing lower or upper case and dealing with character ranges.
+          </p>
+<h6>
+<a name="spirit.lex.reference.primitives.char_tokendef.h1"></a>
+            <span class="phrase"><a name="spirit.lex.reference.primitives.char_tokendef.header"></a></span><a class="link" href="char_tokendef.html#spirit.lex.reference.primitives.char_tokendef.header">Header</a>
+          </h6>
+<h6>
+<a name="spirit.lex.reference.primitives.char_tokendef.h2"></a>
+            <span class="phrase"><a name="spirit.lex.reference.primitives.char_tokendef.module_headers"></a></span><a class="link" href="char_tokendef.html#spirit.lex.reference.primitives.char_tokendef.module_headers">Module
+            Headers</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/lex/lexer/char_token_def.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">lex_char_token_def</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.lex.reference.primitives.char_tokendef.h3"></a>
+            <span class="phrase"><a name="spirit.lex.reference.primitives.char_tokendef.namespace"></a></span><a class="link" href="char_tokendef.html#spirit.lex.reference.primitives.char_tokendef.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody><tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">char_</span></code>
+                    </p>
+                  </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.lex.reference.primitives.char_tokendef.h4"></a>
+            <span class="phrase"><a name="spirit.lex.reference.primitives.char_tokendef.model_of"></a></span><a class="link" href="char_tokendef.html#spirit.lex.reference.primitives.char_tokendef.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../lexer_concepts/primitivelexer.html" title="PrimitiveLexer"><code class="computeroutput"><span class="identifier">PrimitiveLexer</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">ch</span></code></span></dt>
+<dd><p>
+                  Character-class specific character from <code class="computeroutput"><span class="identifier">standard</span></code>
+                  character set.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.lex.reference.primitives.char_tokendef.h5"></a>
+            <span class="phrase"><a name="spirit.lex.reference.primitives.char_tokendef.expression_semantics"></a></span><a class="link" href="char_tokendef.html#spirit.lex.reference.primitives.char_tokendef.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../lexer_concepts/primitivelexer.html" title="PrimitiveLexer"><code class="computeroutput"><span class="identifier">PrimitiveLexer</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ch</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Create a token definition matching the character literal <code class="computeroutput"><span class="identifier">ch</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">char_</span><span class="special">(</span><span class="identifier">ch</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Create a token definition matching the character <code class="computeroutput"><span class="identifier">ch</span></code>.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.lex.reference.primitives.char_tokendef.h6"></a>
+            <span class="phrase"><a name="spirit.lex.reference.primitives.char_tokendef.example"></a></span><a class="link" href="char_tokendef.html#spirit.lex.reference.primitives.char_tokendef.example">Example</a>
+          </h6>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../primitives.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../primitives.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../advanced.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

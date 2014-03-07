@@ -1,0 +1,344 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/gsw.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/gsw.xml
+ */
+gsw{
+    Version{"2.0.50.94"}
+    zoneStrings{
+        "Africa:Accra"{
+            ec{"Akkra"}
+        }
+        "Africa:Addis_Ababa"{
+            ec{"Addis Abeba"}
+        }
+        "Africa:Algiers"{
+            ec{"Algier"}
+        }
+        "Africa:Cairo"{
+            ec{"Kairo"}
+        }
+        "Africa:Dar_es_Salaam"{
+            ec{"Daressalam"}
+        }
+        "Africa:Djibouti"{
+            ec{"Dschibuti"}
+        }
+        "Africa:El_Aaiun"{
+            ec{"El Aaiún"}
+        }
+        "Africa:Khartoum"{
+            ec{"Khartum"}
+        }
+        "Africa:Mogadishu"{
+            ec{"Mogadischu"}
+        }
+        "Africa:Niamey"{
+            ec{"Niger"}
+        }
+        "Africa:Ouagadougou"{
+            ec{"Wagadugu"}
+        }
+        "Africa:Sao_Tome"{
+            ec{"São Tomé"}
+        }
+        "America:Asuncion"{
+            ec{"Asunción"}
+        }
+        "America:Cayman"{
+            ec{"Kaimaninsle"}
+        }
+        "America:Curacao"{
+            ec{"Curaçao"}
+        }
+        "America:El_Salvador"{
+            ec{"Salvador"}
+        }
+        "America:Havana"{
+            ec{"Havanna"}
+        }
+        "America:Indiana:Knox"{
+            ec{"Knox"}
+        }
+        "America:Jamaica"{
+            ec{"Jamaika"}
+        }
+        "America:Mexico_City"{
+            ec{"Mexiko-Schtadt"}
+        }
+        "America:Port_of_Spain"{
+            ec{"Port-of-Spain"}
+        }
+        "America:Scoresbysund"{
+            ec{"Ittoqqortoormiit"}
+        }
+        "America:St_Kitts"{
+            ec{"St. Kitts"}
+        }
+        "America:St_Lucia"{
+            ec{"St. Lucia"}
+        }
+        "America:St_Thomas"{
+            ec{"St. Thomas"}
+        }
+        "America:St_Vincent"{
+            ec{"St. Vincent"}
+        }
+        "Antarctica:DumontDUrville"{
+            ec{"Dumont D'Urville"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"Süüdpol"}
+        }
+        "Antarctica:Vostok"{
+            ec{"Woschtok"}
+        }
+        "Asia:Aqtobe"{
+            ec{"Aktobe"}
+        }
+        "Asia:Baghdad"{
+            ec{"Bagdad"}
+        }
+        "Asia:Bishkek"{
+            ec{"Bischkek"}
+        }
+        "Asia:Damascus"{
+            ec{"Damaskus"}
+        }
+        "Asia:Dushanbe"{
+            ec{"Duschanbe"}
+        }
+        "Asia:Hong_Kong"{
+            ec{"Hongkong"}
+        }
+        "Asia:Kamchatka"{
+            ec{"Kamtschatka"}
+        }
+        "Asia:Krasnoyarsk"{
+            ec{"Krasnojarsk"}
+        }
+        "Asia:Macau"{
+            ec{"Macao"}
+        }
+        "Asia:Muscat"{
+            ec{"Muschkat"}
+        }
+        "Asia:Nicosia"{
+            ec{"Nikosia"}
+        }
+        "Asia:Novosibirsk"{
+            ec{"Nowosibirsk"}
+        }
+        "Asia:Pyongyang"{
+            ec{"Pjöngjang"}
+        }
+        "Asia:Qatar"{
+            ec{"Katar"}
+        }
+        "Asia:Riyadh"{
+            ec{"Riad"}
+        }
+        "Asia:Sakhalin"{
+            ec{"Sachalin"}
+        }
+        "Asia:Singapore"{
+            ec{"Singapur"}
+        }
+        "Asia:Taipei"{
+            ec{"Taipeh"}
+        }
+        "Asia:Tashkent"{
+            ec{"Taschkent"}
+        }
+        "Asia:Tbilisi"{
+            ec{"Tiflis"}
+        }
+        "Asia:Tehran"{
+            ec{"Teheran"}
+        }
+        "Asia:Tokyo"{
+            ec{"Tokio"}
+        }
+        "Asia:Ulaanbaatar"{
+            ec{"Ulan-Baator"}
+        }
+        "Asia:Vladivostok"{
+            ec{"Wladiwostok"}
+        }
+        "Asia:Yakutsk"{
+            ec{"Jakutsk"}
+        }
+        "Asia:Yekaterinburg"{
+            ec{"Jekaterinburg"}
+        }
+        "Asia:Yerevan"{
+            ec{"Erivan"}
+        }
+        "Atlantic:Azores"{
+            ec{"Azore"}
+        }
+        "Atlantic:Bermuda"{
+            ec{"Bermudas"}
+        }
+        "Atlantic:Canary"{
+            ec{"Kanare"}
+        }
+        "Atlantic:Cape_Verde"{
+            ec{"Kap Verde"}
+        }
+        "Atlantic:Faeroe"{
+            ec{"Färöer"}
+        }
+        "Atlantic:South_Georgia"{
+            ec{"Süüd-Georgie"}
+        }
+        "Atlantic:St_Helena"{
+            ec{"St. Helena"}
+        }
+        "Etc:Unknown"{
+            ec{"Unbekannt"}
+        }
+        "Europe:Athens"{
+            ec{"Athen"}
+        }
+        "Europe:Brussels"{
+            ec{"Brüssel"}
+        }
+        "Europe:Bucharest"{
+            ec{"Bukarescht"}
+        }
+        "Europe:Chisinau"{
+            ec{"Kischinau"}
+        }
+        "Europe:Copenhagen"{
+            ec{"Kopehage"}
+        }
+        "Europe:Kiev"{
+            ec{"Kiew"}
+        }
+        "Europe:Lisbon"{
+            ec{"Lissabon"}
+        }
+        "Europe:Luxembourg"{
+            ec{"Luxemburg"}
+        }
+        "Europe:Moscow"{
+            ec{"Moskau"}
+        }
+        "Europe:Rome"{
+            ec{"Rom"}
+        }
+        "Europe:Tirane"{
+            ec{"Tirana"}
+        }
+        "Europe:Uzhgorod"{
+            ec{"Uschgorod"}
+        }
+        "Europe:Vienna"{
+            ec{"Wien"}
+        }
+        "Europe:Vilnius"{
+            ec{"Wilna"}
+        }
+        "Europe:Warsaw"{
+            ec{"Warschau"}
+        }
+        "Europe:Zaporozhye"{
+            ec{"Saporischja"}
+        }
+        "Europe:Zurich"{
+            ec{"Züri"}
+        }
+        "Indian:Christmas"{
+            ec{"Wienachts-Insle"}
+        }
+        "Indian:Comoro"{
+            ec{"Komore"}
+        }
+        "Indian:Maldives"{
+            ec{"Maledive"}
+        }
+        "Indian:Reunion"{
+            ec{"Réunion"}
+        }
+        "Pacific:Easter"{
+            ec{"Oschterinsle"}
+        }
+        "Pacific:Fiji"{
+            ec{"Fidschi"}
+        }
+        "meta:Acre"{
+            ld{"Acre-Summerziit"}
+            ls{"Acre-Ziit"}
+        }
+        "meta:Afghanistan"{
+            ls{"Afghanischtan-Ziit"}
+        }
+        "meta:Africa_Central"{
+            ls{"Zentralafrikanischi Ziit"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"Oschtafrikanischi Ziit"}
+        }
+        "meta:Africa_Southern"{
+            lg{"Süüdafrikanischi Ziit"}
+            ls{"Süüdafrikanischi Schtandardziit"}
+        }
+        "meta:Africa_Western"{
+            ld{"Weschtafrikanischi Summerziit"}
+            ls{"Weschtafrikanischi Ziit"}
+        }
+        "meta:Aktyubinsk"{
+            ld{"Aktyubinsk-Summerziit"}
+            ls{"Aktyubinsk-Ziit"}
+        }
+        "meta:Alaska"{
+            cu:int{1}
+            lg{"Alaska-Ziit"}
+            ls{"Alaska-Schtandardziit"}
+        }
+        "meta:Alaska_Hawaii"{
+            lg{"Alaska-Hawaii-Ziit"}
+            ls{"Alaska-Hawaii-Schtandardziit"}
+        }
+        "meta:Almaty"{
+            ld{"Almaty-Summerziit"}
+            ls{"Almaty-Ziit"}
+        }
+        "meta:Amazon"{
+            ld{"Amazonas-Summerziit"}
+        }
+        "meta:Europe_Central"{
+            cu:int{1}
+            ld{"Mitteleuropäischi Summerziit"}
+            ls{"Mitteleuropäischi Ziit"}
+            sd{"MESZ"}
+            ss{"MEZ"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"Oschteuropäischi Summerziit"}
+            ls{"Oschteuropäischi Ziit"}
+            sd{"OESZ"}
+            ss{"OEZ"}
+        }
+        "meta:Europe_Western"{
+            ld{"Weschteuropäischi Summerziit"}
+            ls{"Weschteuropäischi Ziit"}
+            sd{"WESZ"}
+            ss{"WEZ"}
+        }
+        "meta:Moscow"{
+            ld{"Moskauer Summerziit"}
+            ls{"Moskauer Ziit"}
+        }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;-HH:mm"}
+    }
+}

@@ -1,0 +1,232 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/sg.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/sg.xml
+ */
+sg{
+    Currencies{
+        AED{
+            "AED",
+            "dirâm tî âEmirâti tî Arâbo Ôko",
+        }
+        AOA{
+            "Kz",
+            "kwânza tî Angoläa",
+        }
+        AUD{
+            "AU$",
+            "dolära tî Ostralïi",
+        }
+        BHD{
+            "BD",
+            "dolùara tî Bahrâina",
+        }
+        BIF{
+            "FBu",
+            "farânga tî Burundïi",
+        }
+        BWP{
+            "BWP",
+            "pûla tî Botswana",
+        }
+        CAD{
+            "CA$",
+            "dolära tî kanadäa",
+        }
+        CDF{
+            "CDF",
+            "farânga tî Kongöo",
+        }
+        CHF{
+            "CHF",
+            "farânga tî Sûîsi",
+        }
+        CNY{
+            "CN¥",
+            "yuan renminbi tî Shîni",
+        }
+        CVE{
+            "CV$",
+            "eskûêdo tî Kâpo-Vêre",
+        }
+        DJF{
+            "Fdj",
+            "farânga tî Dibutïi",
+        }
+        DZD{
+            "DA",
+            "dinäri tî Alzerïi",
+        }
+        EGP{
+            "EGP",
+            "pôndo tî Kâmitâ",
+        }
+        ERN{
+            "Nfk",
+            "nakafa tî Eritrëe",
+        }
+        ETB{
+            "Br",
+            "bir tî Etiopïi",
+        }
+        EUR{
+            "€",
+            "zoröo",
+        }
+        GBP{
+            "£",
+            "pôndo tî Anglëe",
+        }
+        GHC{
+            "₵",
+            "sêdi tî  Ganäa",
+        }
+        GMD{
+            "GMD",
+            "dalasi tî gambïi",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "sili tî Ginëe",
+        }
+        INR{
+            "Rs",
+            "rupïi tî Ênnde",
+        }
+        JPY{
+            "JP¥",
+            "yêni tî Zapön",
+        }
+        KES{
+            "Ksh",
+            "shilîngi tî Kenyäa",
+        }
+        KMF{
+            "CF",
+            "farânga tî Kömôro",
+        }
+        LRD{
+            "L$",
+            "dolära tî Liberïa",
+        }
+        LSL{
+            "LSL",
+            "loti tî Lesôtho",
+        }
+        LYD{
+            "LD",
+            "dinäar tî Libïi",
+        }
+        MAD{
+            "MAD",
+            "dirâm tî Marôko",
+        }
+        MGA{
+            "MGA",
+            "ariâri tî Madagasikära",
+        }
+        MRO{
+            "UM",
+            "ugîya tî Moritanïi",
+        }
+        MUR{
+            "MURs",
+            "rupïi tî Mörîsi",
+        }
+        MWK{
+            "MWK",
+            "kwâtia tî Malawïi",
+        }
+        MZM{
+            "Mt",
+            "metikala tî Mozambîka",
+        }
+        NAD{
+            "N$",
+            "dolära tî Namibïi",
+        }
+        NGN{
+            "₦",
+            "nâîra tî Nizerïa",
+        }
+        RWF{
+            "RWF",
+            "farânga tî Ruandäa",
+        }
+        SAR{
+            "SR",
+            "riâli tî Saûdi Arabïi",
+        }
+        SCR{
+            "SRe",
+            "rupïi tî Sëyshêle",
+        }
+        SDG{
+            "SDG",
+            "pôndo tî Sudäan",
+        }
+        SHP{
+            "SH£",
+            "pôndo tî Zûâ Sênt-Helêna",
+        }
+        SLL{
+            "Le",
+            "leône tî Sierâ-Leône",
+        }
+        SOS{
+            "Ssh",
+            "shilîngi tî Somalïi",
+        }
+        STD{
+            "Db",
+            "dôbra tî Sâô Tomë na Prinsîpe",
+        }
+        SZL{
+            "SZL",
+            "lilangùeni tî Swazïlânde",
+        }
+        TND{
+            "DT",
+            "dinära tî Tunizïi",
+        }
+        TZS{
+            "TSh",
+            "shilîngi tî Tanzanïi",
+        }
+        UGX{
+            "USh",
+            "shilîngi tî Ugandäa",
+        }
+        USD{
+            "US$",
+            "dol$ara ttî äLetäa-Ôko tî Amerîka",
+        }
+        XAF{
+            "FCFA",
+            "farânga CFA (BEAC)",
+        }
+        XOF{
+            "CFA",
+            "farânga CFA (BCEAO)",
+        }
+        ZAR{
+            "R",
+            "rânde tî Mbongo-Afrîka",
+        }
+        ZMK{
+            "ZK",
+            "kwâtia tî Zambïi",
+        }
+        ZWD{
+            "Z$",
+            "dolära tî Zimbäbwe",
+        }
+    }
+    Version{"2.0.46.85"}
+}

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Vertex List Graph Adaptor</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-vertex-list-graph-adaptor">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Vertex List Graph Adaptor</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template&lt;typename Graph, typename GlobalIndexMap&gt;
+class vertex_list_adaptor
+{
+public:
+  vertex_list_adaptor(const Graph&amp; g,
+                      const GlobalIndexMap&amp; index_map = GlobalIndexMap());
+};
+
+template&lt;typename Graph, typename GlobalIndexMap&gt;
+vertex_list_adaptor&lt;Graph, GlobalIndexMap&gt;
+make_vertex_list_adaptor(const Graph&amp; g, const GlobalIndexMap&amp; index_map);
+
+template&lt;typename Graph&gt;
+vertex_list_adaptor&lt;Graph, *unspecified*&gt;
+make_vertex_list_adaptor(const Graph&amp; g);
+</pre>
+<p>The vertex list graph adaptor adapts any model of <a class="reference external" href="DistributedVertexListGraph.html">Distributed Vertex List
+Graph</a> in a <a class="reference external" href="http://www.boost.org/libs/graph/doc/VertexListGraph.html">Vertex List Graph</a>. In the former type of graph, the
+set of vertices is distributed across the process group, so no
+process has access to all vertices. In the latter type of graph,
+however, every process has access to every vertex in the graph. This
+is required by some distributed algorithms, such as the
+implementations of <a class="reference external" href="dehne_gotz_min_spanning_tree.html">Minimum spanning tree</a> algorithms.</p>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id1">Where Defined</a></li>
+<li><a class="reference internal" href="#class-template-vertex-list-adaptor" id="id2">Class template <tt class="docutils literal"><span class="pre">vertex_list_adaptor</span></tt></a></li>
+<li><a class="reference internal" href="#function-templates-make-vertex-list-adaptor" id="id3">Function templates <tt class="docutils literal"><span class="pre">make_vertex_list_adaptor</span></tt></a><ul>
+<li><a class="reference internal" href="#parameters" id="id4">Parameters</a></li>
+<li><a class="reference internal" href="#complexity" id="id5">Complexity</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id1">Where Defined</a></h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/distributed/vertex_list_adaptor.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="class-template-vertex-list-adaptor">
+<h1><a class="toc-backref" href="#id2">Class template <tt class="docutils literal"><span class="pre">vertex_list_adaptor</span></tt></a></h1>
+<p>The <tt class="docutils literal"><span class="pre">vertex_list_adaptor</span></tt> class template takes a <a class="reference external" href="DistributedVertexListGraph.html">Distributed
+Vertex List Graph</a> and a mapping from vertex descriptors to global
+vertex indices, which must be in the range <em>[0, n)</em>, where <em>n</em> is the
+number of vertices in the entire graph. The mapping is a <a class="reference external" href="http://www.boost.org/libs/property_map/ReadablePropertyMap.html">Readable
+Property Map</a> whose key type is a vertex descriptor.</p>
+<p>The vertex list adaptor stores only a reference to the underlying
+graph, forwarding all operations not related to the vertex list on to
+the underlying graph. For instance, if the underlying graph models
+<a class="reference external" href="http://www.boost.org/libs/graph/doc/AdjacencyGraph.html">Adjacency Graph</a>, then the adaptor will also model <a class="reference external" href="http://www.boost.org/libs/graph/doc/AdjacencyGraph.html">Adjacency
+Graph</a>. Note, however, that no modifications to the underlying graph
+can occur through the vertex list adaptor. Modifications made to the
+underlying graph directly will be reflected in the vertex list
+adaptor, but modifications that add or remove vertices invalidate the
+vertex list adaptor. Additionally, the vertex list adaptor provides
+access to the global index map via the <tt class="docutils literal"><span class="pre">vertex_index</span></tt> property.</p>
+<p>On construction, the vertex list adaptor performs an all-gather
+operation to create a list of all vertices in the graph within each
+process. It is this list that is accessed via <em>vertices</em> and the
+length of this list that is accessed via <em>num_vertices</em>. Due to the
+all-gather operation, the creation of this adaptor is a collective
+operation.</p>
+</div>
+<div class="section" id="function-templates-make-vertex-list-adaptor">
+<h1><a class="toc-backref" href="#id3">Function templates <tt class="docutils literal"><span class="pre">make_vertex_list_adaptor</span></tt></a></h1>
+<p>These function templates construct a vertex list adaptor from a graph
+and, optionally, a property map that maps vertices to global index
+numbers.</p>
+<div class="section" id="parameters">
+<h2><a class="toc-backref" href="#id4">Parameters</a></h2>
+<dl class="docutils">
+<dt>IN: <tt class="docutils literal"><span class="pre">Graph&amp;</span> <span class="pre">g</span></tt></dt>
+<dd>The graph type must be a model of <a class="reference external" href="DistributedVertexListGraph.html">Distributed Vertex List Graph</a>.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">GlobalIndexMap</span> <span class="pre">index_map</span></tt></dt>
+<dd><p class="first">A <a class="reference external" href="distributed_property_map.html">Distributed property map</a> whose type must model <a class="reference external" href="http://www.boost.org/libs/property_map/ReadablePropertyMap.html">Readable
+property map</a> that maps from vertices to a global index. If
+provided, this map must be initialized prior to be passed to the
+vertex list adaptor.</p>
+<p class="last"><strong>Default:</strong> A property map of unspecified type constructed from a
+distributed <tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> that uses the
+<tt class="docutils literal"><span class="pre">vertex_index</span></tt> property map of the underlying graph and a vector
+of <tt class="docutils literal"><span class="pre">vertices_size_type</span></tt>.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="complexity">
+<h2><a class="toc-backref" href="#id5">Complexity</a></h2>
+<p>These operations require <em>O(n)</em> time, where <em>n</em> is the number of
+vertices in the graph, and <em>O(n)</em> communication per node in the BSP model.</p>
+<hr class="docutils" />
+<p>Copyright (C) 2004 The Trustees of Indiana University.</p>
+<p>Authors: Douglas Gregor and Andrew Lumsdaine</p>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Vector Property Map</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+	ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H2><A NAME="sec:vector-property-map"></A>
+</h2>
+<PRE>
+template&lt;typename T, typename IndexMap = identity_property_map&gt;
+class vector_property_map;
+</PRE>
+
+<P>
+This property map is used to efficiently store properties for a variable 
+number of elements. It's somewhere between <a
+href="associative_property_map.html">associative_property_map</a> and 
+<a href="iterator_property_map.html">iterator_property_map</a>. The latter
+is very fast, but requires that the number of stored elements is known
+when creating property map. The former does not have this requirement, but
+is slower, and requires stored elements to be comparable.
+
+<p>
+The <tt>vector_property_map</tt> uses mapping from key to indices,
+and allows to add new elements. It accoplishes this by storing values
+in a vector, which is resized on demand. 
+
+<p>
+Note that <tt>vector_property_map</tt> does not provide reference/pointer 
+stability for stored values.
+
+<h3>Example</h3>
+
+<a href="../example/example3.cpp">example3.cpp</a>:
+
+<p>
+<pre>
+#include &lt;boost/property_map/vector_property_map.hpp&gt;
+#include &lt;string&gt;
+#include &lt;iostream&gt;
+
+int main()
+{
+    boost::vector_property_map&lt;std::string&gt; m;
+    
+    // Assign string to '4'. 
+    m[4] = &quot;e&quot;;
+    std::cout &lt;&lt; &quot;'&quot; &lt;&lt; m[4] &lt;&lt; &quot;'\n&quot;;
+    
+    // Grab string from '10'. Since none is associated,
+    // &quot;&quot; will be returned.
+    std::cout &lt;&lt; &quot;'&quot; &lt;&lt; m[10] &lt;&lt; &quot;'\n&quot;;
+}
+</pre>
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/property_map/vector_property_map.hpp"><TT>boost/property_map/vector_property_map.hpp</TT></a>
+
+<p>
+<H3>Model Of</H3>
+
+<a href="./LvaluePropertyMap.html">Lvalue Property Map</a>
+
+<P>
+
+<H3>Template Parameters</H3>
+
+<P>
+
+<TABLE border>
+<TR>
+<th>Parameter</th><th>Description</th><th>Default</th>
+</tr>
+
+
+<TR>
+<TD><TT>T</TT></TD> 
+<TD>The type of property value. Must be both <a
+href="http://www.sgi.com/tech/stl/Assignable.html">Assignable</a>
+and <a
+href="http://www.sgi.com/tech/stl/DefaultConstructible.html">DefaultConstructible</a>.
+</TD>
+<TD>&nbsp;</td>
+</tr>
+
+<TR>
+<TD><TT>IndexMap</TT></TD> <TD>Must be a model of <a
+href="./ReadablePropertyMap.html">Readable Property Map</a>
+and the value type must be convertible to
+<tt>std::vector&lt;T&gt;::size_type</tt>.</TD> 
+<TD><a href="identity_property_map.html">identity_property_map</a></TD>
+</TR>
+
+</TABLE>
+<P>
+
+<H3>Members</H3>
+
+<P>
+In addition to the methods and functions required by <a
+href="./LvaluePropertyMap.html">Lvalue Property Map</a>, this
+class has the following members.
+
+<hr>
+
+<pre>
+vector_property_map(const IndexMap& index = IndexMap())
+</pre>
+Constructor which takes an index map.
+
+<hr>
+
+<pre>
+vector_property_map(unsigned initial_size, const IndexMap& index = IndexMap())
+</pre>
+This constructor version allows to specify maximum index of element
+that will be stored. Correct number will improve performance, but semantic
+is always the same.
+
+<hr>
+
+<pre>
+vector_property_map(const vector_property_map&amp;)
+</pre>
+Copy constructor. The copy will share the same data and changes
+made to it will affect original property map.
+
+<hr>
+
+<pre>
+vector_property_map&amp; operator=(const vector_property_map&amp;)
+</pre>
+Assignment operator. The semantic is the same as for copy constructor.
+
+<hr>
+
+<pre>
+reference operator[](const key_type&amp; v) const
+</pre>
+The operator bracket for property access.
+
+<hr>
+
+<pre>
+std::vector&lt;T&gt;::iterator storage_begin()
+std::vector&lt;T&gt;::iterator storage_end()
+std::vector&lt;T&gt;::const_iterator storage_begin()
+std::vector&lt;T&gt;::const_iterator storage_end()
+</pre>
+
+<p>This group of methods gives access to begin and end iterators of the
+underlying vector.</p>
+
+<p><b>Rationale:</b> The methods are handy, for example, when it's needed to
+specify a single value for all elements in a freshly created property map. The
+methods are not called simply &quot;begin&quot; and &quot;end&quot; since
+conceptually, <tt>vector_property_map</tt> is unbounded map, and has no end
+iterator. The direct access to the underlying method is not provided, since
+it would decrease encapsulation and make future performance tuning dangerous.
+
+<p><b>Acknolegements:</b> Matthias Troyer suggested adding those functions.
+
+<hr>
+
+<pre>
+void reserve(unsigned size)
+</pre>
+Reserve the space for storing elements with maximum index of 'size'. Unless
+element with greater index is accesses, all accesses will be take O(1) time.
+
+
+<hr>
+
+<h3>Non-Member functions</h3>
+
+<hr>
+
+<pre>
+template<typename T, typename IndexMap>
+vector_property_map<T, IndexMap>
+make_vector_property_map(IndexMap index)
+{
+  return vector_property_map<T, IndexMap>(index);
+} 
+</pre>
+A function for conveniently creating a vector property map.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy 2002</TD><TD>
+<a HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee1@osl.iu.edu">llee1@osl.iu.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR>
+<tr>
+<td nowrap>Copyright &copy; 2003</td><td>Vladimir Prus</td>
+</tr>
+</TABLE>
+
+</BODY>
+</HTML> 

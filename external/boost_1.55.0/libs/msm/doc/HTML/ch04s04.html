@@ -1,0 +1,17 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Limitations</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="ch04.html" title="Chapter&nbsp;4.&nbsp; Performance / Compilers"><link rel="prev" href="ch04s03.html" title="Supported compilers"><link rel="next" href="ch04s05.html" title="Compilers corner"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center"> Limitations </th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s03.html">Prev</a>&nbsp;</td><th width="60%" align="center">Chapter&nbsp;4.&nbsp; Performance / Compilers</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch04s05.html">Next</a></td></tr></table><hr></div><div class="sect1" title="Limitations"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d0e2849"></a> Limitations </h2></div></div></div><p>
+                    </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Compilation times of state machines with &gt; 80 transitions that are
+                                going to make you storm the CFO's office and make sure you get a
+                                shiny octocore with 12GB RAM by next week, unless he's interested in
+                                paying you watch the compiler agonize for hours... (Make sure you
+                                ask for dual 24" as well, it doesn't hurt).</p></li><li class="listitem"><p>eUML allows very long constructs but will also quickly increase
+                                your compile time on some compilers (VC9, VC10) with buggy decltype
+                                support (I suspect some at least quadratic algorithms there). Even
+                                g++ 4.4 shows some regression compared to 4.3 and will crash if the
+                                constructs become too big.</p></li><li class="listitem"><p>Need to overwrite the mpl::vector/list default-size-limit of 20
+                                and fusion default vector size of 10 if more than 10 states found in
+                                a state machine</p></li><li class="listitem"><p><span class="command"><strong><a class="command" href="ch03s02.html#limitation-submachine">Limitation for
+                                    submachines</a></strong></span> and entry actions requiring an event
+                                property.</p></li></ul></div><p>
+                </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s03.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right">&nbsp;<a accesskey="n" href="ch04s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Supported compilers&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp; Compilers corner </td></tr></table></div></body></html>

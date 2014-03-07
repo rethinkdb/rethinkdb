@@ -1,0 +1,75 @@
+[library The Boost Algorithm Library
+    [quickbook 1.5]
+    [id algorithm]
+    [dirname algorithm]
+    [purpose Library of useful algorithms]
+    [category algorithms]
+    [authors [Clow, Marshall]]
+    [copyright 2010-2012 Marshall Clow]
+    [source-mode c++]
+    [license
+		Distributed under the Boost Software License, Version 1.0.
+		(See accompanying file LICENSE_1_0.txt or copy at
+		[@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[section Description and Rationale]
+
+Boost.Algorithm is a collection of general purpose algorithms. While Boost contains many libraries of data structures, there is no single library for general purpose algorithms. Even though the algorithms are generally useful, many tend to be thought of as "too small" for Boost.
+
+An implementation of Boyer-Moore searching, for example, might take a developer a week or so to implement, including test cases and documentation. However, scheduling a review to include that code into Boost might take several months, and run into resistance because "it is too small". Nevertheless, a library of tested, reviewed, documented algorithms can make the developer's life much easier, and that is the purpose of this library.
+
+[heading Future plans]
+
+I will be soliciting submissions from other developers, as well as looking through the literature for existing algorithms to include. The Adobe Source Library, for example, contains many useful algorithms that already have documentation and test cases. Knuth's _The Art of Computer Programming_ is chock-full of algorithm descriptions, too. 
+
+My goal is to run regular algorithm reviews, similar to the Boost library review process, but with smaller chunks of code. 
+
+[heading Dependencies]
+
+Boost.Algorithm uses Boost.Range, Boost.Assert, Boost.Array, Boost.TypeTraits, and Boost.StaticAssert.
+
+
+[heading Acknowledgements]
+
+Thanks to all the people who have reviewed this library and made suggestions for improvements. Steven Watanabe and Sean Parent, in particular, have provided a great deal of help.
+
+[endsect]
+
+[/ include toc.qbk]
+
+
+[section:Searching Searching Algorithms]
+[include boyer_moore.qbk]
+[include boyer_moore_horspool.qbk]
+[include knuth_morris_pratt.qbk]
+[endsect]
+
+[section:CXX11 C++11 Algorithms]
+[include all_of.qbk]
+[include any_of.qbk]
+[include none_of.qbk]
+[include one_of.qbk]
+[include ordered-hpp.qbk]
+[include is_partitioned.qbk]
+[include is_permutation.qbk]
+[include partition_point.qbk]
+[endsect]
+
+[section:CXX14 C++14 Algorithms]
+[include equal.qbk]
+[include mismatch.qbk]
+[endsect]
+
+[section:Misc Other Algorithms]
+[include clamp-hpp.qbk]
+[include gather.qbk]
+[include hex.qbk]
+[endsect]
+
+
+
+[xinclude autodoc.xml]
+
+

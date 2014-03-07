@@ -1,0 +1,19 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:overview Overview]
+
+Three types of objects are currently supported by the library:
+
+* standard-like containers
+* `std::pair<iterator,iterator>`
+* built-in arrays
+
+Even though the behavior of the primary templates are exactly such that standard containers will be supported by default, the requirements are much lower than the standard container requirements. For example, the utility class __iterator_range__ implements the __minimal_interface__ required to make the class a __forward_range__.
+
+Please also see __range_concepts__ for more details.
+
+[endsect]
+

@@ -1,0 +1,102 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:spawn Stackful Coroutines]
+
+The [link boost_asio.reference.spawn `spawn()`] function is a high-level wrapper for
+running stackful coroutines. It is based on the Boost.Coroutine library. The
+`spawn()` function enables programs to implement asynchronous logic in a
+synchronous manner, as shown in the following example:
+
+  boost::asio::spawn(my_strand, do_echo);
+
+  // ...
+
+  void do_echo(boost::asio::yield_context yield)
+  {
+    try
+    {
+      char data[128];
+      for (;;)
+      {
+        std::size_t length =
+          my_socket.async_read_some(
+            boost::asio::buffer(data), yield);
+
+        boost::asio::async_write(my_socket,
+            boost::asio::buffer(data, length), yield);
+      }
+    }
+    catch (std::exception& e)
+    {
+      // ...
+    }
+  }
+
+The first argument to `spawn()` may be a
+[link boost_asio.reference.io_service__strand `strand`],
+[link boost_asio.reference.io_service `io_service`], or
+[link boost_asio.reference.CompletionHandler completion handler].
+This argument determines the context in which the coroutine is permitted to
+execute. For example, a server's per-client object may consist of multiple
+coroutines; they should all run on the same `strand` so that no explicit
+synchronisation is required.
+
+The second argument is a function object with signature:
+
+  void coroutine(boost::asio::yield_context yield);
+
+that specifies the code to be run as part of the coroutine. The parameter
+`yield` may be passed to an asynchronous operation in place of the completion
+handler, as in:
+
+  std::size_t length =
+    my_socket.async_read_some(
+      boost::asio::buffer(data), yield);
+
+This starts the asynchronous operation and suspends the coroutine. The
+coroutine will be resumed automatically when the asynchronous operation
+completes.
+
+Where an asynchronous operation's handler signature has the form:
+
+  void handler(boost::system::error_code ec, result_type result);
+
+the initiating function returns the result_type. In the `async_read_some`
+example above, this is `size_t`. If the asynchronous operation fails, the
+`error_code` is converted into a `system_error` exception and thrown.
+
+Where a handler signature has the form:
+
+  void handler(boost::system::error_code ec);
+
+the initiating function returns `void`. As above, an error is passed back to
+the coroutine as a `system_error` exception.
+
+To collect the `error_code` from an operation, rather than have it throw an
+exception, associate the output variable with the `yield_context` as follows:
+
+  boost::system::error_code ec;
+  std::size_t length =
+    my_socket.async_read_some(
+      boost::asio::buffer(data), yield[ec]);
+  
+[*Note:] if `spawn()` is used with a custom completion handler of type
+`Handler`, the function object signature is actually:
+  
+  void coroutine(boost::asio::basic_yield_context<Handler> yield);
+
+[heading See Also]
+
+[link boost_asio.reference.spawn spawn],
+[link boost_asio.reference.yield_context yield_context],
+[link boost_asio.reference.basic_yield_context basic_yield_context],
+[link boost_asio.examples.cpp03_examples.spawn Spawn example (C++03)],
+[link boost_asio.examples.cpp11_examples.spawn Spawn example (C++11)],
+[link boost_asio.overview.core.coroutine Stackless Coroutines].
+
+[endsect]

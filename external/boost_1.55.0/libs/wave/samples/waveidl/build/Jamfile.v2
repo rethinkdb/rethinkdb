@@ -1,0 +1,39 @@
+# Boost.Wave: A Standard compliant C++ preprocessor library
+#
+# Boost Wave Library Sample Build Jamfile (waveidl)
+#
+# http://www.boost.org/
+#
+# Copyright (c) 2001-2010 Hartmut Kaiser. Distributed under the Boost 
+# Software License, Version 1.0. (See accompanying file 
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+SOURCES = 
+        ../idl
+        ../instantiate_cpp_grammar
+        ../instantiate_defined_grammar
+        ../instantiate_predef_macros
+        ../instantiate_re2c_lexer
+        ../instantiate_re2c_lexer_str
+        ../idllexer/idl_re
+	;
+	
+exe waveidl
+    :
+        $(SOURCES)
+        /boost/wave//boost_wave
+        /boost/program_options//boost_program_options
+        /boost/system//boost_system
+        /boost/thread//boost_thread
+        /boost/date_time//boost_date_time
+    ;
+
+for local source in $(SOURCES)
+{
+    local requirements ;
+    # workaround for compiler bug
+    requirements += <toolset-msvc:version>7.1:<rtti>off ;
+    requirements += <toolset-msvc:version>7.1_stlport4:<rtti>off ;
+    obj $(source) : $(source).cpp : $(requirements) ;
+}
+

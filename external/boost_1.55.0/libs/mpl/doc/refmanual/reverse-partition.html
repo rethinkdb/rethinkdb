@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: reverse_partition</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./reverse-unique.html" class="navigation-link">Prev</a>&nbsp;<a href="./reverse-stable-partition.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./reverse-unique.html" class="navigation-link">Back</a>&nbsp;<a href="./reverse-stable-partition.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./transformation-algorithms.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./algorithms.html" class="navigation-link">Algorithms</a> / <a href="./transformation-algorithms.html" class="navigation-link">Transformation Algorithms</a> / <a href="./reverse-partition.html" class="navigation-link">reverse_partition</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="reverse-partition">
+<h1><a class="toc-backref" href="./transformation-algorithms.html#id1506">reverse_partition</a></h1>
+<div class="section" id="id794">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Seq
+    , typename Pred
+    , typename In1 = <em>unspecified</em>
+    , typename In2 = <em>unspecified</em>
+    &gt;
+struct <a href="./reverse-partition.html" class="identifier">reverse_partition</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id795">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Returns a pair of sequences together containing all elements in the range
+[<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;Seq&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;Seq&gt;::type</span></tt>) split into two groups based on the predicate <tt class="literal"><span class="pre">Pred</span></tt>.
+<tt class="literal"><span class="pre"><a href="./reverse-partition.html" class="identifier">reverse_partition</a></span></tt> is a synonym for <a class="reference internal" href="./reverse-stable-partition.html">reverse_stable_partition</a>.</p>
+<p>[<em>Note:</em> This wording applies to a no-inserter version(s) of the algorithm. See the
+<cite>Expression semantics</cite> subsection for a precise specification of the algorithm's
+details in all cases — <em>end note</em>]</p>
+</div>
+<div class="section" id="id796">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/partition.hpp" class="header">boost/mpl/partition.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id797">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./reversible-algorithm.html">Reversible Algorithm</a></p>
+</div>
+<div class="section" id="id798">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="22%" />
+<col width="41%" />
+<col width="36%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Seq</span></tt></td>
+<td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>An original sequence.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">Pred</span></tt></td>
+<td>Unary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a></td>
+<td>A partitioning predicate.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">In1</span></tt>, <tt class="literal"><span class="pre">In2</span></tt></td>
+<td><a class="reference internal" href="./inserter.html">Inserter</a></td>
+<td>Output inserters.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id799">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>The semantics of an expression are defined only
+where they differ from, or are not defined in <a class="reference internal" href="./reversible-algorithm.html">Reversible Algorithm</a>.</p>
+<p>For any <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> <tt class="literal"><span class="pre">s</span></tt>, an unary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a> <tt class="literal"><span class="pre">pred</span></tt>, and <a class="reference internal" href="./inserter.html">Inserter</a>s
+<tt class="literal"><span class="pre">in1</span></tt> and <tt class="literal"><span class="pre">in2</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./reverse-partition.html" class="identifier">reverse_partition</a>&lt;s,pred,in1,in2&gt;::type r;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">A <a class="reference internal" href="./pair.html">pair</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="last literal-block">
+typedef <a href="./reverse-stable-partition.html" class="identifier">reverse_stable_partition</a>&lt;s,pred,in1,in2&gt;::type r;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id800">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Linear. Exactly <tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::value</span></tt> applications of <tt class="literal"><span class="pre">pred</span></tt>, and <tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::value</span></tt>
+of summarized <tt class="literal"><span class="pre">in1::operation</span></tt> / <tt class="literal"><span class="pre">in2::operation</span></tt> applications.</p>
+</div>
+<div class="section" id="id801">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+template&lt; typename N &gt; struct is_odd : <a href="./bool.html" class="identifier">bool_</a>&lt;(N::value % 2)&gt; {};
+
+typedef <a href="./partition.html" class="identifier">partition</a>&lt;
+      <a href="./range-c.html" class="identifier">range_c</a>&lt;int,0,10&gt;
+    , is_odd&lt;<a href="./placeholders.html" class="identifier">_1</a>&gt;
+    , <a href="./back-inserter.html" class="identifier">back_inserter</a>&lt; <a href="./vector.html" class="identifier">vector</a>&lt;&gt; &gt;
+    , <a href="./back-inserter.html" class="identifier">back_inserter</a>&lt; <a href="./vector.html" class="identifier">vector</a>&lt;&gt; &gt;
+    &gt;::type r;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./equal.html" class="identifier">equal</a>&lt; r::first, <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,9,7,5,3,1&gt; &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./equal.html" class="identifier">equal</a>&lt; r::second, <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,8,6,4,2,0&gt; > ));
+</pre>
+</div>
+<div class="section" id="id802">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./transformation-algorithms.html">Transformation Algorithms</a>, <a class="reference internal" href="./reversible-algorithm.html">Reversible Algorithm</a>, <a class="reference internal" href="./partition.html">partition</a>, <a class="reference internal" href="./reverse-stable-partition.html">reverse_stable_partition</a>, <a class="reference internal" href="./sort.html">sort</a></p>
+<!-- Algorithms/Transformation Algorithms//reverse_stable_partition |190 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./reverse-unique.html" class="navigation-link">Prev</a>&nbsp;<a href="./reverse-stable-partition.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./reverse-unique.html" class="navigation-link">Back</a>&nbsp;<a href="./reverse-stable-partition.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./transformation-algorithms.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

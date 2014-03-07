@@ -1,0 +1,88 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Organization]
+
+The library is organized into layers of modules, with each module addressing a particular
+area of responsibility. A module may not depend on modules in higher layers.
+
+The library is organized in three layers:
+
+[heading Layers]
+
+[:[$images/fusion_org.png]]
+
+The entire library is found in the `"boost/fusion"` directory. Modules are
+organized in directories. Each module has its own header file placed in
+the same directory with the actual module-directory. For example, there
+exists `"boost/fusion/support.hpp"` in the same directory as
+"boost/fusion/support". Everything, except those found inside "detail"
+directories, is public.
+
+There is also a `"boost/fusion/include/"` directory that contains all the
+headers to all the components and modules. If you are unsure where to
+find a specific component or module, or don't want to fuss with
+hierarchy and nesting, use this.
+
+The library is header-only. There is no need to build object files to
+link against.
+
+[heading Directory]
+
+* tuple
+* algorithm
+    * iteration
+    * query
+    * transformation
+* adapted
+    * array
+    * mpl
+    * boost::tuple
+    * std_pair
+    * struct
+    * variant
+* view
+    * filter_view
+    * iterator_range
+    * joint_view
+    * reverse_view
+    * single_view
+    * transform_view
+    * zip_view
+* container
+    * deque
+    * list
+    * map
+    * set
+    * vector
+    * generation
+* mpl
+* functional
+* sequence
+    * comparison
+    * intrinsic
+    * io
+* iterator
+* support
+
+[heading Example]
+
+If, for example, you want to use `list`, depending on the granularity that
+you desire, you may do so by including one of
+
+    #include <boost/fusion/container.hpp>
+    #include <boost/fusion/include/container.hpp>
+    #include <boost/fusion/container/list.hpp>
+    #include <boost/fusion/include/list.hpp>
+
+The first includes all containers The second includes only `list`
+[footnote Modules may contain smaller components. Header file
+information for each component will be provided as part of the
+component's documentation.].
+
+[endsect]

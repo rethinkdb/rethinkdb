@@ -1,0 +1,231 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:locale Localization]
+
+Boost.Regex provides extensive support for run-time localization, the 
+localization model used can be split into two parts: front-end and back-end.
+
+Front-end localization deals with everything which the user sees - 
+error messages, and the regular expression syntax itself. For example a 
+French application could change \[\[:word:\]\] to \[\[:mot:\]\] and \\w to \\m. 
+Modifying the front end locale requires active support from the developer, 
+by providing the library with a message catalogue to load, containing the 
+localized strings. Front-end locale is affected by the LC_MESSAGES category only.
+
+Back-end localization deals with everything that occurs after the expression 
+has been parsed - in other words everything that the user does not see or 
+interact with directly. It deals with case conversion, collation, and character 
+class membership. The back-end locale does not require any intervention from 
+the developer - the library will acquire all the information it requires for 
+the current locale from the underlying operating system / run time library. 
+This means that if the program user does not interact with regular 
+expressions directly - for example if the expressions are embedded in your 
+C++ code - then no explicit localization is required, as the library will 
+take care of everything for you. For example embedding the expression 
+\[\[:word:\]\]+ in your code will always match a whole word, if the 
+program is run on a machine with, for example, a Greek locale, then it 
+will still match a whole word, but in Greek characters rather than Latin ones. 
+The back-end locale is affected by the LC_TYPE and LC_COLLATE categories.
+
+There are three separate localization mechanisms supported by Boost.Regex:
+
+[h4 Win32 localization model.]
+
+This is the default model when the library is compiled under Win32, and is 
+encapsulated by the traits class `w32_regex_traits`. When this model is in 
+effect each [basic_regex] object gets it's own LCID, by default this is 
+the users default setting as returned by GetUserDefaultLCID, but you can 
+call imbue on the `basic_regex` object to set it's locale to some other 
+LCID if you wish. All the settings used by Boost.Regex are acquired directly 
+from the operating system bypassing the C run time library. Front-end 
+localization requires a resource dll, containing a string table with the 
+user-defined strings. The traits class exports the function:
+
+   static std::string set_message_catalogue(const std::string& s);
+
+which needs to be called with a string identifying the name of the resource 
+dll, before your code compiles any regular expressions (but not necessarily 
+before you construct any `basic_regex` instances):
+
+   boost::w32_regex_traits<char>::set_message_catalogue("mydll.dll");
+
+The library provides full Unicode support under NT, under Windows 9x 
+the library degrades gracefully - characters 0 to 255 are supported, the 
+remainder are treated as "unknown" graphic characters.
+
+[h4 C localization model.]
+
+This model has been deprecated in favor of the C++ locale for all non-Windows 
+compilers that support it.  This locale is encapsulated by the traits class 
+`c_regex_traits`, Win32 users can force this model to take effect by 
+defining the pre-processor symbol BOOST_REGEX_USE_C_LOCALE. When this model is 
+in effect there is a single global locale, as set by `setlocale`. All settings 
+are acquired from your run time library, consequently Unicode support is 
+dependent upon your run time library implementation.
+
+Front end localization is not supported.
+
+Note that calling setlocale invalidates all compiled regular expressions, 
+calling `setlocale(LC_ALL, "C")` will make this library behave equivalent to 
+most traditional regular expression libraries including version 1 of this library.
+
+[h4 C++ localization model.]
+
+This model is the default for non-Windows compilers.
+
+When this model is in effect each instance of [basic_regex] has its own 
+instance of `std::locale`, class [basic_regex] also has a member function 
+`imbue` which allows the locale for the expression to be set on a 
+per-instance basis. Front end localization requires a POSIX message catalogue, 
+which will be loaded via the `std::messages` facet of the expression's locale, 
+the traits class exports the symbol:
+
+   static std::string set_message_catalogue(const std::string& s);
+
+which needs to be called with a string identifying the name of the 
+message catalogue, before your code compiles any regular expressions 
+(but not necessarily before you construct any basic_regex instances):
+
+   boost::cpp_regex_traits<char>::set_message_catalogue("mycatalogue");
+
+Note that calling `basic_regex<>::imbue` will invalidate any expression 
+currently compiled in that instance of [basic_regex].
+
+Finally note that if you build the library with a non-default localization model, 
+then the appropriate pre-processor symbol (BOOST_REGEX_USE_C_LOCALE or 
+BOOST_REGEX_USE_CPP_LOCALE) must be defined both when you build the support 
+library, and when you include `<boost/regex.hpp>` or `<boost/cregex.hpp>` 
+in your code. The best way to ensure this is to add the #define to 
+`<boost/regex/user.hpp>`.
+
+[h4 Providing a message catalogue]
+
+In order to localize the front end of the library, you need to provide the 
+library with the appropriate message strings contained either in a resource 
+dll's string table (Win32 model), or a POSIX message catalogue (C++ models). 
+In the latter case the messages must appear in message set zero of the 
+catalogue. The messages and their id's are as follows:
+ 
+[table
+  	[[Message][id][Meaning][Default value]] 	 
+  	[[101][The character used to start a sub-expression.]["(" 	 ]]
+  	[[102][The character used to end a sub-expression declaration.][")" 	 ]]
+  	[[103][The character used to denote an end of line assertion.]["$" 	 ]]
+  	[[104][The character used to denote the start of line assertion.]["^" 	 ]]
+  	[[105][The character used to denote the "match any character expression".]["." 	 ]]
+  	[[106][The match zero or more times repetition operator.]["*" 	 ]]
+  	[[107][The match one or more repetition operator.]["+" 	 ]]
+  	[[108][The match zero or one repetition operator.]["?" 	 ]]
+  	[[109][The character set opening character.]["\[" 	 ]]
+  	[[110][The character set closing character.]["\]" 	 ]]
+  	[[111][The alternation operator.]["|" 	 ]]
+  	[[112][The escape character.]["\\" 	 ]]
+  	[[113][The hash character (not currently used).]["#" 	 ]]
+  	[[114][The range operator.]["-" 	 ]]
+  	[[115][The repetition operator opening character.]["{" 	 ]]
+  	[[116][The repetition operator closing character.]["}" 	 ]]
+  	[[117][The digit characters.]["0123456789" 	 ]]
+  	[[118][The character which when preceded by an escape character represents the word boundary assertion.]["b" 	 ]]
+  	[[119][The character which when preceded by an escape character represents the non-word boundary assertion.]["B" 	 ]]
+  	[[120][The character which when preceded by an escape character represents the word-start boundary assertion.]["<" 	 ]]
+  	[[121][The character which when preceded by an escape character represents the word-end boundary assertion.][">" 	 ]]
+  	[[122][The character which when preceded by an escape character represents any word character.]["w" 	 ]]
+  	[[123][The character which when preceded by an escape character represents a non-word character.]["W" 	 ]]
+  	[[124][The character which when preceded by an escape character represents a start of buffer assertion.]["`A" 	 ]]
+  	[[125][The character which when preceded by an escape character represents an end of buffer assertion.]["'z" 	 ]]
+  	[[126][The newline character. ]["\\n" 	 ]]
+  	[[127][The comma separator.]["," 	 ]]
+  	[[128][The character which when preceded by an escape character represents the bell character.]["a" 	 ]]
+  	[[129][The character which when preceded by an escape character represents the form feed character.]["f" 	 ]]
+  	[[130][The character which when preceded by an escape character represents the newline character.]["n" 	 ]]
+  	[[131][The character which when preceded by an escape character represents the carriage return character.]["r" 	 ]]
+  	[[132][The character which when preceded by an escape character represents the tab character.]["t" 	 ]]
+  	[[133][The character which when preceded by an escape character represents the vertical tab character.]["v" 	 ]]
+  	[[134][The character which when preceded by an escape character represents the start of a hexadecimal character constant.]["x" 	 ]]
+  	[[135][The character which when preceded by an escape character represents the start of an ASCII escape character.]["c" 	 ]]
+  	[[136][The colon character.][":" 	 ]]
+  	[[137][The equals character.]["=" 	 ]]
+  	[[138][The character which when preceded by an escape character represents the ASCII escape character.]["e" 	 ]]
+  	[[139][The character which when preceded by an escape character represents any lower case character.]["l" 	 ]]
+  	[[140][The character which when preceded by an escape character represents any non-lower case character.]["L" 	 ]]
+  	[[141][The character which when preceded by an escape character represents any upper case character.]["u" 	 ]]
+  	[[142][The character which when preceded by an escape character represents any non-upper case character.]["U" 	 ]]
+  	[[143][The character which when preceded by an escape character represents any space character.]["s" 	 ]]
+  	[[144][The character which when preceded by an escape character represents any non-space character.]["S" 	 ]]
+  	[[145][The character which when preceded by an escape character represents any digit character.]["d" 	 ]]
+  	[[146][The character which when preceded by an escape character represents any non-digit character.]["D" 	 ]]
+  	[[147][The character which when preceded by an escape character represents the end quote operator.]["E" 	 ]]
+  	[[148][The character which when preceded by an escape character represents the start quote operator.]["Q" 	 ]]
+  	[[149][The character which when preceded by an escape character represents a Unicode combining character sequence.]["X" 	 ]]
+  	[[150][The character which when preceded by an escape character represents any single character.]["C" 	 ]]
+  	[[151][The character which when preceded by an escape character represents end of buffer operator.]["Z" 	 ]]
+  	[[152][The character which when preceded by an escape character represents the continuation assertion.]["G" 	 ]]
+  	[[153][The character which when preceeded by (? indicates a zero width negated forward lookahead assert.][! 	 ]]
+]
+
+Custom error messages are loaded as follows: 
+
+[table
+  	[[Message ID][Error message ID][Default string 	 ]]
+  	[[201][REG_NOMATCH]["No match" 	 ]]
+  	[[202][REG_BADPAT]["Invalid regular expression" 	 ]]
+  	[[203][REG_ECOLLATE]["Invalid collation character" 	 ]]
+  	[[204][REG_ECTYPE]["Invalid character class name" 	 ]]
+  	[[205][REG_EESCAPE]["Trailing backslash" 	 ]]
+  	[[206][REG_ESUBREG]["Invalid back reference" 	 ]]
+  	[[207][REG_EBRACK]["Unmatched [ or [^" 	 ]]
+  	[[208][REG_EPAREN]["Unmatched ( or \\(" 	 ]]
+  	[[209][REG_EBRACE]["Unmatched \\{" 	 ]]
+  	[[210][REG_BADBR]["Invalid content of \\{\\}" 	 ]]
+  	[[211][REG_ERANGE]["Invalid range end" 	 ]]
+  	[[212][REG_ESPACE]["Memory exhausted" 	 ]]
+  	[[213][REG_BADRPT]["Invalid preceding regular expression" 	 ]]
+  	[[214][REG_EEND]["Premature end of regular expression" 	 ]]
+  	[[215][REG_ESIZE]["Regular expression too big" 	 ]]
+  	[[216][REG_ERPAREN]["Unmatched ) or \\)" 	 ]]
+  	[[217][REG_EMPTY]["Empty expression" 	 ]]
+  	[[218][REG_E_UNKNOWN]["Unknown error" 	 ]]
+]
+
+Custom character class names are loaded as followed: 
+
+[table
+  	[[Message ID][Description][Equivalent default class name 	 ]]
+  	[[300][The character class name for alphanumeric characters.]["alnum" 	 ]]
+  	[[301][The character class name for alphabetic characters.]["alpha" 	 ]]
+  	[[302][The character class name for control characters.]["cntrl" 	 ]]
+  	[[303][The character class name for digit characters.]["digit" 	 ]]
+  	[[304][The character class name for graphics characters.]["graph" 	 ]]
+  	[[305][The character class name for lower case characters.]["lower" 	 ]]
+  	[[306][The character class name for printable characters.]["print" 	 ]]
+  	[[307][The character class name for punctuation characters.]["punct" 	 ]]
+  	[[308][The character class name for space characters.]["space" 	 ]]
+  	[[309][The character class name for upper case characters.]["upper" 	 ]]
+  	[[310][The character class name for hexadecimal characters.]["xdigit" 	 ]]
+  	[[311][The character class name for blank characters.]["blank" 	 ]]
+  	[[312][The character class name for word characters.]["word" 	 ]]
+  	[[313][The character class name for Unicode characters.]["unicode" 	 ]]
+]
+
+Finally, custom collating element names are loaded starting from message 
+id 400, and terminating when the first load thereafter fails. Each message 
+looks something like: "tagname string" where tagname is the name used 
+inside [[.tagname.]] and string is the actual text of the collating element. 
+Note that the value of collating element [[.zero.]] is used for the 
+conversion of strings to numbers - if you replace this with another value then 
+that will be used for string parsing - for example use the Unicode 
+character 0x0660 for [[.zero.]] if you want to use Unicode Arabic-Indic 
+digits in your regular expressions in place of Latin digits.
+
+Note that the POSIX defined names for character classes and collating elements 
+are always available - even if custom names are defined, in contrast, 
+custom error messages, and custom syntax messages replace the default ones.
+
+[endsect]
+
+

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: inserter (class)</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./front-inserter.html" class="navigation-link">Prev</a>&nbsp;<a href="./iteration-algorithms.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./front-inserter.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./inserters.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./algorithms.html" class="navigation-link">Algorithms</a> / <a href="./inserters.html" class="navigation-link">Inserters</a> / <a href="./inserter-class.html" class="navigation-link">inserter (class)</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="inserter-class">
+<span id="id483"></span><h1><a class="toc-backref" href="./inserters.html#id1467">inserter (class)</a></h1>
+<div class="section" id="id484">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename State
+    , typename Operation
+    &gt;
+struct <a href="./inserter-class.html" class="identifier">inserter</a>
+{
+    typedef State state;
+    typedef Operation operation;
+};
+</pre>
+</div>
+<div class="section" id="id485">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>A general-purpose model of the <a class="reference internal" href="./inserter.html">Inserter</a> concept.</p>
+</div>
+<div class="section" id="id486">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/inserter.hpp" class="header">boost/mpl/inserter.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id487">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./inserter.html">Inserter</a></p>
+</div>
+<div class="section" id="id488">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="38%" />
+<col width="43%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">State</span></tt></td>
+<td>Any type</td>
+<td>A initial state.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">Operation</span></tt></td>
+<td>Binary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a></td>
+<td>An output operation.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id489">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>The semantics of an expression are defined only
+where they differ from, or are not defined in <a class="reference internal" href="./inserter.html">Inserter</a>.</p>
+<p>For any binary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a> <tt class="literal"><span class="pre">op</span></tt> and arbitrary type <tt class="literal"><span class="pre">state</span></tt>:</p>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="39%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Semantics</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre"><a href="./inserter-class.html" class="identifier">inserter</a>&lt;op,state&gt;</span></tt></td>
+<td>An <a class="reference internal" href="./inserter.html">Inserter</a>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id490">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Amortized constant time.</p>
+</div>
+<div class="section" id="id491">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+template&lt; typename N &gt; struct is_odd : <a href="./bool.html" class="identifier">bool_</a>&lt; ( N::value % 2 ) &gt; {};
+
+typedef <a href="./copy.html" class="identifier">copy</a>&lt;
+      <a href="./range-c.html" class="identifier">range_c</a>&lt;int,0,10&gt;
+    , <a href="./inserter-class.html" class="identifier">inserter</a>&lt; // a filtering '<a href="./push-back.html" class="identifier">push_back</a>' <a href="./inserter-class.html" class="identifier">inserter</a>
+          <a href="./vector.html" class="identifier">vector</a>&lt;&gt;
+        , <a href="./if.html" class="identifier">if_</a>&lt; is_odd&lt;<a href="./placeholders.html" class="identifier">_2</a>&gt;, <a href="./push-back.html" class="identifier">push_back</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>,<a href="./placeholders.html" class="identifier">_2</a>&gt;, <a href="./placeholders.html" class="identifier">_1</a> &gt;
+        &gt;
+    &gt;::type odds;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./equal.html" class="identifier">equal</a>&lt; odds, <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,1,3,5,7,9&gt;, <a href="./equal-to.html" class="identifier">equal_to</a>&lt;_,_&gt; > ));
+</pre>
+</div>
+<div class="section" id="id492">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./algorithms.html">Algorithms</a>, <a class="reference internal" href="./inserter.html">Inserter</a>, <a class="reference internal" href="./reversible-algorithm.html">Reversible Algorithm</a>, <a class="reference internal" href="./front-inserter.html">front_inserter</a>, <a class="reference internal" href="./back-inserter.html">back_inserter</a></p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./front-inserter.html" class="navigation-link">Prev</a>&nbsp;<a href="./iteration-algorithms.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./front-inserter.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./inserters.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

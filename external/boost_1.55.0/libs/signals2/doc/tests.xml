@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE testsuite PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<testsuite last-revision="$Date: 2007-06-12 14:01:23 -0400 (Tue, 12 Jun 2007) $">
+  <run-test filename="connection_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <purpose>
+      <para>Test functionality of <classname>boost::signals2::connection</classname>
+        and <classname>boost::signals2::scoped_connection</classname>
+        objects, including release() and swap().</para>
+    </purpose>
+  </run-test>
+
+  <run-test filename="dead_slot_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <purpose>
+<para>Ensure that calling <methodname alt="boost::signals2::signal::connect">connect</methodname> with a slot
+that has already expired does not actually
+connect to the slot.</para>
+    </purpose>
+  </run-test>
+
+  <run-test filename="deconstruct_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <purpose>
+      <para>Test postconstruction/predestruction functionality of
+        <functionname>boost::signals2::deconstruct</functionname>.</para>
+    </purpose>
+  </run-test>
+
+  <run-test filename="deletion_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <purpose>
+<para>Test deletion of slots.</para>
+    </purpose>
+  </run-test>
+
+  <run-test filename="ordering_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <purpose><para>Test slot group ordering.</para></purpose>
+  </run-test>
+
+  <run-test filename="regression_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <purpose><para>Tests for various bugs that have occurred in the past,
+        to make sure they are fixed and stay fixed.</para></purpose>
+  </run-test>
+
+  <run-test filename="signal_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <purpose>
+<para>Basic test of signal/slot connections and invocation using the
+<classname>boost::signals2::signal</classname> class template.</para>
+    </purpose>
+  </run-test>
+
+  <run-test filename="track_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <purpose>
+      <para>Test automatic connection management of signals
+      and slots.</para>
+    </purpose>
+  </run-test>
+</testsuite>

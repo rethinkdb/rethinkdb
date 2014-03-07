@@ -1,0 +1,233 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>is_sorted</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost Algorithm Library">
+<link rel="up" href="../../algorithm/CXX11.html" title="C++11 Algorithms">
+<link rel="prev" href="one_of.html" title="one_of">
+<link rel="next" href="is_partitioned.html" title="is_partitioned">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="one_of.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../algorithm/CXX11.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_partitioned.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="the_boost_algorithm_library.CXX11.is_sorted"></a><a class="link" href="is_sorted.html" title="is_sorted">is_sorted
+      </a>
+</h3></div></div></div>
+<p>
+        The header file <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">cxx11</span><span class="special">/</span><span class="identifier">is_sorted</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        contains functions for determining if a sequence is ordered.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX11.is_sorted.h0"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX11.is_sorted.is_sorted"></a></span><a class="link" href="is_sorted.html#the_boost_algorithm_library.CXX11.is_sorted.is_sorted">is_sorted</a>
+      </h5>
+<p>
+        The function <code class="computeroutput"><span class="identifier">is_sorted</span><span class="special">(</span><span class="identifier">sequence</span><span class="special">)</span></code>
+        determines whether or not a sequence is completely sorted according so some
+        criteria. If no comparison predicate is specified, then std::less_equal is
+        used (i.e, the test is to see if the sequence is non-decreasing)
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">algorithm</span> <span class="special">{</span>
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Pred</span><span class="special">&gt;</span>
+	<span class="keyword">bool</span> <span class="identifier">is_sorted</span> <span class="special">(</span> <span class="identifier">Iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">Pred</span> <span class="identifier">p</span> <span class="special">);</span>
+	
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+	<span class="keyword">bool</span> <span class="identifier">is_sorted</span> <span class="special">(</span> <span class="identifier">Iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span> <span class="special">);</span>
+	
+	
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Range</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Pred</span><span class="special">&gt;</span>
+	<span class="keyword">bool</span> <span class="identifier">is_sorted</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Range</span> <span class="special">&amp;</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">Pred</span> <span class="identifier">p</span> <span class="special">);</span>
+	
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Range</span><span class="special">&gt;</span>
+	<span class="keyword">bool</span> <span class="identifier">is_sorted</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Range</span> <span class="special">&amp;</span><span class="identifier">r</span> <span class="special">);</span>
+<span class="special">}}</span>
+</pre>
+<p>
+      </p>
+<p>
+        Iterator requirements: The <code class="computeroutput"><span class="identifier">is_sorted</span></code>
+        functions will work on all kinds of iterators (except output iterators).
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX11.is_sorted.h1"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX11.is_sorted.is_sorted_until"></a></span><a class="link" href="is_sorted.html#the_boost_algorithm_library.CXX11.is_sorted.is_sorted_until">is_sorted_until</a>
+      </h5>
+<p>
+        If <code class="computeroutput"><span class="identifier">distance</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">)</span> <span class="special">&lt;</span> <span class="number">2</span></code>, then
+        <code class="computeroutput"><span class="identifier">is_sorted</span> <span class="special">(</span>
+        <span class="identifier">first</span><span class="special">,</span>
+        <span class="identifier">last</span> <span class="special">)</span></code>
+        returns <code class="computeroutput"><span class="identifier">last</span></code>. Otherwise,
+        it returns the last iterator i in [first,last] for which the range [first,i)
+        is sorted.
+      </p>
+<p>
+        In short, it returns the element in the sequence that is "out of order".
+        If the entire sequence is sorted (according to the predicate), then it will
+        return <code class="computeroutput"><span class="identifier">last</span></code>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">algorithm</span> <span class="special">{</span>
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">ForwardIterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Pred</span><span class="special">&gt;</span>
+	<span class="identifier">FI</span> <span class="identifier">is_sorted_until</span> <span class="special">(</span> <span class="identifier">ForwardIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">ForwardIterator</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">Pred</span> <span class="identifier">p</span> <span class="special">);</span>
+	
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">ForwardIterator</span><span class="special">&gt;</span>
+	<span class="identifier">ForwardIterator</span> <span class="identifier">is_sorted_until</span> <span class="special">(</span> <span class="identifier">ForwardIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">ForwardIterator</span> <span class="identifier">last</span> <span class="special">);</span>
+	
+	
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Range</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Pred</span><span class="special">&gt;</span>
+	<span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">R</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">is_sorted_until</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Range</span> <span class="special">&amp;</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">Pred</span> <span class="identifier">p</span> <span class="special">);</span>
+	
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Range</span><span class="special">&gt;</span>
+	<span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">R</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">is_sorted_until</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Range</span> <span class="special">&amp;</span><span class="identifier">r</span> <span class="special">);</span>
+<span class="special">}}</span>
+</pre>
+<p>
+      </p>
+<p>
+        Iterator requirements: The <code class="computeroutput"><span class="identifier">is_sorted_until</span></code>
+        functions will work on forward iterators or better. Since they have to return
+        a place in the input sequence, input iterators will not suffice.
+      </p>
+<p>
+        Complexity: <code class="computeroutput"><span class="identifier">is_sorted_until</span></code>
+        will make at most <span class="emphasis"><em>N-1</em></span> calls to the predicate (given
+        a sequence of length <span class="emphasis"><em>N</em></span>).
+      </p>
+<p>
+        Examples:
+      </p>
+<p>
+        Given the sequence <code class="computeroutput"><span class="special">{</span> <span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span>
+        <span class="number">3</span><span class="special">,</span> <span class="number">4</span><span class="special">,</span> <span class="number">5</span><span class="special">,</span> <span class="number">3</span> <span class="special">}</span></code>,
+        <code class="computeroutput"><span class="identifier">is_sorted_until</span> <span class="special">(</span>
+        <span class="identifier">beg</span><span class="special">,</span>
+        <span class="identifier">end</span><span class="special">,</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;())</span></code>
+        would return an iterator pointing at the second <code class="computeroutput"><span class="number">3</span></code>.
+      </p>
+<p>
+        Given the sequence <code class="computeroutput"><span class="special">{</span> <span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span>
+        <span class="number">3</span><span class="special">,</span> <span class="number">4</span><span class="special">,</span> <span class="number">5</span><span class="special">,</span> <span class="number">9</span> <span class="special">}</span></code>,
+        <code class="computeroutput"><span class="identifier">is_sorted_until</span> <span class="special">(</span>
+        <span class="identifier">beg</span><span class="special">,</span>
+        <span class="identifier">end</span><span class="special">,</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;())</span></code>
+        would return <code class="computeroutput"><span class="identifier">end</span></code>.
+      </p>
+<p>
+        There are also a set of "wrapper functions" for is_ordered which
+        make it easy to see if an entire sequence is ordered. These functions return
+        a boolean indicating success or failure rather than an iterator to where
+        the out of order items were found.
+      </p>
+<p>
+        To test if a sequence is increasing (each element at least as large as the
+        preceding one):
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">algorithm</span> <span class="special">{</span>
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+	<span class="keyword">bool</span> <span class="identifier">is_increasing</span> <span class="special">(</span> <span class="identifier">Iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span> <span class="special">);</span>
+	
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">&gt;</span>
+	<span class="keyword">bool</span> <span class="identifier">is_increasing</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">R</span> <span class="special">&amp;</span><span class="identifier">range</span> <span class="special">);</span>
+<span class="special">}}</span>
+</pre>
+<p>
+      </p>
+<p>
+        To test if a sequence is decreasing (each element no larger than the preceding
+        one):
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">algorithm</span> <span class="special">{</span>
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+	<span class="keyword">bool</span> <span class="identifier">is_decreasing</span> <span class="special">(</span> <span class="identifier">Iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span> <span class="special">);</span>
+	
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">&gt;</span>
+	<span class="keyword">bool</span> <span class="identifier">is_decreasing</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">R</span> <span class="special">&amp;</span><span class="identifier">range</span> <span class="special">);</span>
+<span class="special">}}</span>
+</pre>
+<p>
+      </p>
+<p>
+        To test if a sequence is strictly increasing (each element larger than the
+        preceding one):
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">algorithm</span> <span class="special">{</span>
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+	<span class="keyword">bool</span> <span class="identifier">is_strictly_increasing</span> <span class="special">(</span> <span class="identifier">Iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span> <span class="special">);</span>
+	
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">&gt;</span>
+	<span class="keyword">bool</span> <span class="identifier">is_strictly_increasing</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">R</span> <span class="special">&amp;</span><span class="identifier">range</span> <span class="special">);</span>
+<span class="special">}}</span>
+</pre>
+<p>
+      </p>
+<p>
+        To test if a sequence is strictly decreasing (each element smaller than the
+        preceding one):
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">algorithm</span> <span class="special">{</span>
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+	<span class="keyword">bool</span> <span class="identifier">is_strictly_decreasing</span> <span class="special">(</span> <span class="identifier">Iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span> <span class="special">);</span>
+	
+	<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">&gt;</span>
+	<span class="keyword">bool</span> <span class="identifier">is_strictly_decreasing</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">R</span> <span class="special">&amp;</span><span class="identifier">range</span> <span class="special">);</span>
+<span class="special">}}</span>
+</pre>
+<p>
+      </p>
+<p>
+        Complexity: Each of these calls is just a thin wrapper over <code class="computeroutput"><span class="identifier">is_sorted</span></code>, so they have the same complexity
+        as <code class="computeroutput"><span class="identifier">is_sorted</span></code>.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX11.is_sorted.h2"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX11.is_sorted.notes"></a></span><a class="link" href="is_sorted.html#the_boost_algorithm_library.CXX11.is_sorted.notes">Notes</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The routines <code class="computeroutput"><span class="identifier">is_sorted</span></code>
+            and <code class="computeroutput"><span class="identifier">is_sorted_until</span></code> are
+            part of the C++11 standard. When compiled using a C++11 implementation,
+            the implementation from the standard library will be used.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">is_sorted</span></code> and <code class="computeroutput"><span class="identifier">is_sorted_until</span></code> both return true for
+            empty ranges and ranges of length one.
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010-2012 Marshall Clow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="one_of.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../algorithm/CXX11.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_partitioned.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>I/O Traits and Categories</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">I/O Traits and Categories</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#char_type_of_ref">Class template <CODE>char_type_of</CODE></A></DT>
+  <DT><A href="#int_type_of_ref">Class template <CODE>int_type_of</CODE></A></DT>
+  <DT><A href="#category_ref">Class template <CODE>category_of</CODE></A></DT>
+  <DT><A href="#category_tags">Category Tags</A></DT>
+  </DT>
+</DL>
+
+<HR>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The header <A CLASS="header" href="../../../../boost/iostreams/categories.hpp"><CODE>&lt;boost/iostreams/categories.hpp&gt;</CODE></A> contains <A href="#category_tags">category tags</A> for classifying models of the various <A href="concepts.html#filter_concepts">Filter</A> and <A href="concepts.html#device_concepts">Device</A> concepts. The header <A CLASS="header" href="../../../../boost/iostreams/traits.hpp"><CODE>&lt;boost/iostreams/traits.hpp&gt;</CODE></A> contains the definitions of the metafunctions <A HREF="#char_type_of_ref"><CODE>char_type_of</CODE></A> and <A HREF="#category_ref"><CODE>category</CODE></A>, used to associate two fundamental types with each model of one the <A href="concepts.html#filter_concepts">Filter</A> or <A href="concepts.html#device_concepts">Device</A> concepts:
+</P>
+
+<A NAME="char_type"></A>
+<H4>Character Type</H4>
+
+<P>The type of characters which a Filter or Device reads or writes.</P>
+
+<A NAME="category"></A>
+<H4>Category</H4>
+
+<P>
+    A tag structure which the Iostreams library relies on to determine which operations a Filter or Device supports. It indicates, for a given type <CODE>T</CODE>:
+</P>
+<UL>
+    <LI CLASS="square">whether <CODE>T</CODE> is a <A href="concepts.html#filter_concepts">Filter</A> or a <A href="concepts.html#device_concepts">Device</A>
+    <LI CLASS="square">the <A href="modes.html">mode</A> of <CODE>T</CODE>
+    <LI CLASS="square">any <A href="concepts.html#optional_behavior">optional_behavior</A> <CODE>T</CODE> implements
+</UL>
+<P>
+   Its function is similar to the <CODE>iterator_category</CODE> member of <CODE>std::iterator_traits</CODE>.<A CLASS="footnote_ref" NAME="note_1_ref" HREF="#note_1"><SUP>[1]</SUP></A> Types which serve as categories are called <A HREF="#category_tags">category tags</A>.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" href="../../../../boost/iostreams/categories.hpp"><CODE>&lt;boost/iostreams/categories.hpp&gt;</CODE></A></DT>
+  <DT><A CLASS="header" href="../../../../boost/iostreams/traits.hpp"><CODE>&lt;boost/iostreams/traits.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="char_type_of_ref"></A>
+<H2>Class Template <CODE>char_type_of</CODE></H2>
+
+<H4>Description</H4>
+
+<P><A HREF="http://www.boost.org/libs/mpl/doc/refmanual/metafunction.html" TARGET="_top">Metafunction</A> associating a <A HREF="#char_type">character type</A> to each <A href="concepts.html#filter_concepts">Filter</A> or <A href="concepts.html#device_concepts">Device</A> type. Although <CODE>char_type_of</CODE> is designed to be specialized for new Filter and Device types, the default implementation should be suitable for most purposes.
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A HREF="#char_type_template_params" CLASS="documented">T</A>&gt;
+<SPAN CLASS="keyword">struct</SPAN> <A CLASS="documented" HREF="#char_type_template_params">char_type_of</A> {
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">see below</SPAN> <A HREF="#char_type_of_type" CLASS="documented">type</A>;
+};
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="char_type_template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+    <TR>
+        <TD VALIGN="top"><I>T</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of one of the <A href="concepts.html#filter_concepts">Filter</A> or <A href="concepts.html#device_concepts">Device</A> concepts</TD>
+    </TR>
+</TABLE>
+
+<A NAME="char_type_of_type"></A>
+<H4><CODE>io_traits::type</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">see below</SPAN> char_type;</PRE>
+
+<P>The value of the nested type <CODE>type</CODE> depends on the template parameter <CODE>T</CODE> as follows:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=1 CELLPADDING=4>
+<TR><TH><CODE>T</CODE></TH><TH><CODE>char_type</CODE></TH></TR>
+    <TR>
+        <TD VALIGN="top">Sepcialization of <CODE>std::back_insert_iterator</CODE></TD>
+        <TD>The <CODE>value_type</CODE> of the iterator's <CODE>container_type</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">All other types</TD>
+        <TD><CODE>T::char_type</CODE></TD>
+    </TR>
+</TABLE>
+
+<A NAME="int_type_of_ref"></A>
+<H2>Class Template <CODE>int_type_of</CODE></H2>
+
+<H4>Description</H4>
+
+<P><A HREF="http://www.boost.org/libs/mpl/doc/refmanual/metafunction.html" TARGET="_top">Metafunction</A> associating an integral type to each <A href="concepts.html#filter_concepts">Filter</A> or <A href="concepts.html#device_concepts">Device</A> type. Although <CODE>int_type_of</CODE> is designed to be specialized for new Filter and Device types, the default implementation should be suitable for most purposes.
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A HREF="#int_type_template_params" CLASS="documented">T</A>&gt;
+<SPAN CLASS="keyword">struct</SPAN> <A CLASS="documented" HREF="#int_type_template_params">int_type_of</A> {
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">see below</SPAN> <A HREF="#int_type_of_type" CLASS="documented">type</A>;
+};
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="int_type_template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+    <TR>
+        <TD VALIGN="top"><I>T</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of one of the <A href="concepts.html#filter_concepts">Filter</A> or <A href="concepts.html#device_concepts">Device</A> concepts</TD>
+    </TR>
+</TABLE>
+
+<A NAME="int_type_of_type"></A>
+<H4><CODE>io_traits::type</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">see below</SPAN> char_type;</PRE>
+
+<P>Equal to <CODE>std::char_traits&lt;char_type&gt;::int_type</CODE>, where <CODE>char_type</CODE> is <A HREF="#char_type_of_ref"><CODE>char_type_of&lt;T&gt;::type</CODE></A>.
+
+<A NAME="category_ref"></A>
+<H2>Class Template <CODE>category_of</CODE></H2>
+
+<H4>Description</H4>
+
+<P><A HREF="http://www.boost.org/libs/mpl/doc/refmanual/metafunction.html" TARGET="_top">Metafunction</A> associating a <A HREF="#category_tags">category tag</A> to each <A href="concepts.html#filter_concepts">Filter</A> or <A href="concepts.html#device_concepts">Device</A> type. Although <CODE>category</CODE> is designed to be specialized for new Filter and Device types, the default implementation should be suitable for most purposes.
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A HREF="#category_template_params" CLASS="documented">T</A>&gt;
+<SPAN CLASS="keyword">struct</SPAN> <A CLASS="documented" HREF="#category_template_params">category_of</A> {
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">see below</SPAN> <A HREF="#category_type" CLASS="documented">type</A>;
+};
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="category_template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+    <TR>
+        <TD VALIGN="top"><I>T</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of one of the <A href="concepts.html#filter_concepts">Filter</A> or <A href="concepts.html#device_concepts">Device</A> concepts</TD>
+    </TR>
+</TABLE>
+
+<A NAME="category_type"></A>
+<H4><CODE>category::type</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">see below</SPAN> type;</PRE>
+
+<P>The value of the nested type <CODE>type</CODE> depends on the template parameter <CODE>T</CODE> as follows:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=1 CELLPADDING=4>
+    <TR><TH><CODE>T</CODE></TH><TH><CODE>category</CODE></TH></TR>
+    <TR>
+        <TD VALIGN="top">Specialization of <CODE>std::basic_iostream</CODE>, or derived from such a specialization</TD>
+        <TD><CODE>iostream_tag</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">Specialization of <CODE>std::basic_istream</CODE>, or derived from such a specialization</TD>
+        <TD><CODE>istream_tag</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">Specialization of <CODE>std::basic_ostream</CODE>, or derived from such a specialization</TD>
+        <TD><CODE>ostream_tag</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">Specialization of <CODE>std::basic_streambuf</CODE>, or derived from such a specialization</TD>
+        <TD><CODE>streambuf_tag</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">Specialization of <CODE>std::back_insert_iterator</CODE>, or derived from such a specialization</TD>
+        <TD><CODE>insert_iterator_tag</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">All other types</TD>
+        <TD><CODE>T::category</CODE></TD>
+    </TR>
+</TABLE>
+
+<P>For more information, see <A CLASS="header" href="../../../../boost/iostreams/traits.hpp"><CODE>&lt;boost/iostreams/traits.hpp&gt;</CODE></A>.</P>
+
+<A NAME="category_tags"></A>
+<H2>Category Tags</H2>
+
+<P>
+    In addition to the various <A href="modes.html#mode_tags">mode tags</A>, the header <A CLASS="header" href="../../../../boost/iostreams/categories.hpp"><CODE>&lt;boost/iostreams/categories.hpp&gt;</CODE></A> provides the category tags shown in the following table. To produce a new category tag which combines several existing tags, simply define a <CODE>struct</CODE> extending the existing tags. <I>E.g.</I>, 
+    <PRE CLASS="broken_ie">    <SPAN CLASS="keyword">struct</SPAN> category
+        : seekable,
+          filter_tag, 
+          localizable_tag 
+        { };</PRE>
+    This defines a category tag representing <A href="modes.html#seekable">Seekable</A>, <A href="../concepts/localizable.html">Localizable</A> <A href="../concepts/filter.html">Filters</A>.
+</P>
+
+
+<TABLE STYLE="margin-left:2em;margin-bottom:2em" BORDER="1" CELLPADDING="6">
+    <TR><TH>Tag</TH><TH>Description</TH></TR>
+    <TR>
+        <TD VALIGN="top"><CODE>filter_tag</CODE></TD>
+        <TD>Indicates that a type models <A href="../concepts/filter.html">Filter</A></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><CODE>device_tag</CODE></TD>
+        <TD>Indicates that a type models <A href="../concepts/device.html">Device</A></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">
+            <CODE>closable_tag</CODE><BR><CODE>localizable_tag</CODE><BR>
+            <CODE>direct_tag</CODE><BR><CODE>peekable_tag</CODE><BR>
+            <CODE>multichar_tag</CODE>
+        </TD>
+        <TD>
+            Used to indicate <A href="concepts.html#optional_behavior">optional behavior</A> implemented by a Filter or Device type
+        </TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">
+            <CODE>source_tag</CODE><BR>
+            <CODE>sink_tag</CODE><BR>
+            <CODE>bidirectional_device_tag</CODE><BR>
+            <CODE>seekable_device_tag</CODE><BR>
+            <CODE>input_filter_tag</CODE><BR>
+            <CODE>output_filter_tag</CODE><BR>
+            <CODE>bidirectional_filter_tag</CODE><BR>
+            <CODE>seekable_filter_tag</CODE><BR>
+            <CODE>multichar_input_filter_tag</CODE><BR>
+            <CODE>multichar_output_filter_tag</CODE><BR>
+            <CODE>multichar_bidirectional_filter_tag</CODE><BR>
+            <CODE>multichar_seekable_filter_tag</CODE>
+        </TD>
+        <TD>
+            Convenience tags for defining models of the various <A href="../concepts/filter.html">Filter</A> and <A href="../concepts/device.html">Device</A> refinements
+        </TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">
+            <CODE>istream_tag</CODE><BR>
+            <CODE>ostream_tag</CODE><BR>
+            <CODE>iostream_tag</CODE><BR>
+            <CODE>streambuf_tag</CODE>
+        </TD>
+        <TD>
+            Used internally to distinguish standard stream and stream buffer types
+        </TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><CODE>insert_iterator_tag</CODE></TD>
+        <TD>Used internally to distinguish specialization of <CODE>std::back_insert_iterator</CODE></TD>
+    </TR>
+</TABLE>
+
+<!-- Begin Footnotes -->
+
+<HR>
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_1" HREF="#note_1_ref"><SUP>[1]</SUP></A><A CLASS="bib_ref" href="../bibliography.html#iso">[I<SPAN STYLE="font-size:80%">SO</SPAN>]</A> 24.3.1. <I>See</I> <A HREF="http://www.boost.org/more/generic_programming.html#tag_dispatching" TARGET="_top">Tag Dispatching</A> for a discussion.
+</P>
+
+<!-- End Footnotes -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Use modification and distribution are subject to the Boost Software License Version 1.0. (See accompanying file <A href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at <A href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

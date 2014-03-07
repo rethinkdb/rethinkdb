@@ -1,0 +1,217 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:asynchronous_operations Requirements on asynchronous operations]
+
+In Boost.Asio, an asynchronous operation is initiated by a function that is
+named with the prefix `async_`. These functions will be referred to as
+['initiating functions].
+
+All initiating functions in Boost.Asio take a function object meeting [link
+boost_asio.reference.Handler handler] requirements as the final parameter.
+These handlers accept as their first parameter an lvalue of type `const
+error_code`.
+
+Implementations of asynchronous operations in Boost.Asio may call the
+application programming interface (API) provided by the operating system. If
+such an operating system API call results in an error, the handler will be
+invoked with a `const error_code` lvalue that evaluates to true. Otherwise the
+handler will be invoked with a `const error_code` lvalue that evaluates to
+false.
+
+Unless otherwise noted, when the behaviour of an asynchronous operation is
+defined "as if" implemented by a __POSIX__ function, the handler will be
+invoked with a value of type `error_code` that corresponds to the failure
+condition described by __POSIX__ for that function, if any. Otherwise the
+handler will be invoked with an implementation-defined `error_code` value that
+reflects the operating system error.
+
+Asynchronous operations will not fail with an error condition that indicates
+interruption by a signal (__POSIX__ `EINTR`). Asynchronous operations will not
+fail with any error condition associated with non-blocking operations
+(__POSIX__ `EWOULDBLOCK`, `EAGAIN` or `EINPROGRESS`; __Windows__
+`WSAEWOULDBLOCK` or `WSAEINPROGRESS`).
+
+All asynchronous operations have an associated `io_service` object. Where the
+initiating function is a member function, the associated `io_service` is that
+returned by the `get_io_service()` member function on the same object. Where the
+initiating function is not a member function, the associated `io_service` is
+that returned by the `get_io_service()` member function of the first argument to
+the initiating function.
+
+Arguments to initiating functions will be treated as follows:
+
+[mdash] If the parameter is declared as a const reference or by-value, the
+program is not required to guarantee the validity of the argument after the
+initiating function completes. The implementation may make copies of the
+argument, and all copies will be destroyed no later than immediately after
+invocation of the handler.
+
+[mdash] If the parameter is declared as a non-const reference, const pointer or
+non-const pointer, the program must guarantee the validity of the argument
+until the handler is invoked.
+
+The library implementation is only permitted to make calls to an initiating
+function's arguments' copy constructors or destructors from a thread that
+satisfies one of the following conditions:
+
+[mdash] The thread is executing any member function of the associated
+`io_service` object.
+
+[mdash] The thread is executing the destructor of the associated `io_service`
+object.
+
+[mdash] The thread is executing one of the `io_service` service access
+functions `use_service`, `add_service` or `has_service`, where the first
+argument is the associated `io_service` object.
+
+[mdash] The thread is executing any member function, constructor or destructor
+of an object of a class defined in this clause, where the object's
+`get_io_service()` member function returns the associated `io_service` object.
+
+[mdash] The thread is executing any function defined in this clause, where any
+argument to the function has an `get_io_service()` member function that returns
+the associated `io_service` object.
+
+[blurb Boost.Asio may use one or more hidden threads to emulate asynchronous
+functionality. The above requirements are intended to prevent these hidden
+threads from making calls to program code. This means that a program can, for
+example, use thread-unsafe reference counting in handler objects, provided the
+program ensures that all calls to an `io_service` and related objects occur
+from the one thread.]
+
+The `io_service` object associated with an asynchronous operation will have
+unfinished work, as if by maintaining the existence of one or more objects of
+class `io_service::work` constructed using the `io_service`, until immediately
+after the handler for the asynchronous operation has been invoked.
+
+When an asynchronous operation is complete, the handler for the operation will
+be invoked as if by:
+
+# Constructing a bound completion handler `bch` for the handler, as described
+  below.
+
+# Calling `ios.post(bch)` to schedule the handler for deferred invocation,
+  where `ios` is the associated `io_service`.
+
+This implies that the handler must not be called directly from within
+the initiating function, even if the asynchronous operation completes
+immediately.
+
+A bound completion handler is a handler object that contains a copy of a
+user-supplied handler, where the user-supplied handler accepts one or more
+arguments. The bound completion handler does not accept any arguments, and
+contains values to be passed as arguments to the user-supplied handler. The
+bound completion handler forwards the `asio_handler_allocate()`,
+`asio_handler_deallocate()`, and `asio_handler_invoke()` calls to the
+corresponding functions for the user-supplied handler. A bound completion
+handler meets the requirements for a [link
+boost_asio.reference.CompletionHandler completion handler].
+
+For example, a bound completion handler for a `ReadHandler` may be implemented
+as follows:
+
+  template<class ReadHandler>
+  struct bound_read_handler
+  {
+    bound_read_handler(ReadHandler handler, const error_code& ec, size_t s)
+      : handler_(handler), ec_(ec), s_(s)
+    {
+    }
+
+    void operator()()
+    {
+      handler_(ec_, s_);
+    }
+
+    ReadHandler handler_;
+    const error_code ec_;
+    const size_t s_;
+  };
+
+  template<class ReadHandler>
+  void* asio_handler_allocate(size_t size,
+                              bound_read_handler<ReadHandler>* this_handler)
+  {
+    using boost::asio::asio_handler_allocate;
+    return asio_handler_allocate(size, &this_handler->handler_);
+  }
+
+  template<class ReadHandler>
+  void asio_handler_deallocate(void* pointer, std::size_t size,
+                               bound_read_handler<ReadHandler>* this_handler)
+  {
+    using boost::asio::asio_handler_deallocate;
+    asio_handler_deallocate(pointer, size, &this_handler->handler_);
+  }
+
+  template<class F, class ReadHandler>
+  void asio_handler_invoke(const F& f,
+                           bound_read_handler<ReadHandler>* this_handler)
+  {
+    using boost::asio::asio_handler_invoke;
+    asio_handler_invoke(f, &this_handler->handler_);
+  }
+
+If the thread that initiates an asynchronous operation terminates before the
+associated handler is invoked, the behaviour is implementation-defined.
+Specifically, on __Windows__ versions prior to Vista, unfinished operations are
+cancelled when the initiating thread exits.
+
+The handler argument to an initiating function defines a handler identity. That
+is, the original handler argument and any copies of the handler argument will
+be considered equivalent. If the implementation needs to allocate storage for
+an asynchronous operation, the implementation will perform
+`asio_handler_allocate(size, &h)`, where `size` is the required size in bytes,
+and `h` is the handler. The implementation will perform
+`asio_handler_deallocate(p, size, &h)`, where `p` is a pointer to the storage,
+to deallocate the storage prior to the invocation of the handler via
+`asio_handler_invoke`. Multiple storage blocks may be allocated for a single
+asynchronous operation.
+
+[heading Return type of an initiating function]
+
+By default, initiating functions return `void`. This is always the case when
+the handler is a function pointer, C++11 lambda, or a function object produced
+by `boost::bind` or `std::bind`.
+
+For other types, the return type may be customised via a two-step process:
+
+# A specialisation of the [link boost_asio.reference.handler_type `handler_type`]
+template, which is used to determine the true handler type based on the
+asynchronous operation's handler's signature.
+
+# A specialisation of the [link boost_asio.reference.async_result `async_result`]
+template, which is used both to determine the return type and to extract the
+return value from the handler.
+
+These two templates have been specialised to provide support for [link
+boost_asio.overview.core.spawn stackful coroutines] and the C++11 `std::future`
+class.
+
+As an example, consider what happens when enabling `std::future` support by
+using the `boost::asio::use_future` special value, as in:
+
+  std::future<std::size_t> length =
+    my_socket.async_read_some(my_buffer, boost::asio::use_future);
+
+When a handler signature has the form:
+
+  void handler(error_code ec, result_type result);
+
+the initiating function returns a `std::future` templated on `result_type`. In
+the above `async_read_some` example, this is `std::size_t`. If the asynchronous
+operation fails, the `error_code` is converted into a `system_error` exception
+and passed back to the caller through the future.
+
+Where a handler signature has the form:
+
+  void handler(error_code ec);
+
+the initiating function instead returns `std::future<void>`.
+
+[endsect]

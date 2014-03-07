@@ -1,0 +1,150 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/kn.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/kn.xml
+ */
+kn{
+    ExemplarCharacters{
+        "[\u0CBC ೦ ೧ ೨ ೩ ೪ ೫ ೬ ೭ ೮ ೯ ಅ ಆ ಇ ಈ ಉ ಊ ಋ ೠ ಌ ೡ ಎ ಏ ಐ ಒ ಓ ಔ ಂ ಃ ಕ ಖ ಗ ಘ ಙ ಚ "
+        "ಛ ಜ ಝ ಞ ಟ ಠ ಡ ಢ ಣ ತ ಥ ದ ಧ ನ ಪ ಫ ಬ ಭ ಮ ಯ ರ ಱ ಲ ವ ಶ ಷ ಸ ಹ ಳ ೞ ಽ ಾ \u0CBF ೀ ು ೂ"
+	"\u200C \u200D"
+        " ೃ ೄ \u0CC6 ೇ ೈ ೊ ೋ \u0CCC \u0CCD ೕ ೖ]"
+    }
+    ExemplarCharactersIndex{
+        "[ಅ ಆ ಇ ಈ ಉ ಊ ಋ ೠ ಌ ೡ ಎ ಏ ಐ ಒ ಓ ಔ ಕ ಖ ಗ ಘ ಙ ಚ ಛ ಜ ಝ ಞ ಟ ಠ ಡ ಢ ಣ ತ ಥ ದ ಧ ನ ಪ ಫ"
+        " ಬ ಭ ಮ ಯ ರ ಱ ಲ ವ ಶ ಷ ಸ ಹ ಳ ೞ]"
+    }
+    LocaleScript{
+        "Knda",
+    }
+    NumberElements{
+        default{"knda"}
+        latn{
+            patterns{
+                currencyFormat{"¤ #,##,##0.00"}
+                decimalFormat{"#,##,##0.###"}
+                percentFormat{"#,##,##0%"}
+            }
+        }
+    }
+    Version{"2.0.50.94"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "am",
+                "pm",
+            }
+            DateTimePatterns{
+                "hh:mm:ss a zzzz",
+                "hh:mm:ss a z",
+                "hh:mm:ss a",
+                "hh:mm a",
+                "EEEE d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "d-M-yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                MMMMd{"d MMMM"}
+                MMdd{"dd-MM"}
+                yyQ{"Q yy"}
+                yyyyMM{"MM-yyyy"}
+                yyyyMMMM{"MMMM y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "ರ.",
+                        "ಸೋ.",
+                        "ಮಂ.",
+                        "ಬು.",
+                        "ಗು.",
+                        "ಶು.",
+                        "ಶನಿ.",
+                    }
+                    wide{
+                        "ರವಿವಾರ",
+                        "ಸೋಮವಾರ",
+                        "ಮಂಗಳವಾರ",
+                        "ಬುಧವಾರ",
+                        "ಗುರುವಾರ",
+                        "ಶುಕ್ರವಾರ",
+                        "ಶನಿವಾರ",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ರ",
+                        "ಸೋ",
+                        "ಮಂ",
+                        "ಬು",
+                        "ಗು",
+                        "ಶು",
+                        "ಶ",
+                    }
+                }
+            }
+            eras{
+                wide{
+                    "ಈಸಪೂವ೯.",
+                    "ಕ್ರಿಸ್ತ ಶಕ",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "ಜನವರೀ",
+                        "ಫೆಬ್ರವರೀ",
+                        "ಮಾರ್ಚ್",
+                        "ಎಪ್ರಿಲ್",
+                        "ಮೆ",
+                        "ಜೂನ್",
+                        "ಜುಲೈ",
+                        "ಆಗಸ್ಟ್",
+                        "ಸಪ್ಟೆಂಬರ್",
+                        "ಅಕ್ಟೋಬರ್",
+                        "ನವೆಂಬರ್",
+                        "ಡಿಸೆಂಬರ್",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ಜ",
+                        "ಫೆ",
+                        "ಮಾ",
+                        "ಎ",
+                        "ಮೇ",
+                        "ಜೂ",
+                        "ಜು",
+                        "ಆ",
+                        "ಸೆ",
+                        "ಅ",
+                        "ನ",
+                        "ಡಿ",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    wide{
+                        "ಒಂದು 1",
+                        "ಎರಡು 2",
+                        "ಮೂರು 3",
+                        "ನಾಲೃಕ 4",
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Copyright (C) 2006 Marcin Kalicinski
+Distributed under the Boost Software License, Version 1.0.
+See http://www.boost.org/LICENSE_1_0.txt
+-->
+<debug>
+    <filename>debug.log</filename>
+    <modules>
+        <module>Finance</module>
+        <module>Admin</module>
+        <module>HR</module>
+    </modules>
+    <level>2</level>
+</debug>

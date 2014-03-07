@@ -1,0 +1,173 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>regex_format (Deprecated)</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Boost.Regex">
+<link rel="up" href="../deprecated_interfaces.html" title="Deprecated Interfaces">
+<link rel="prev" href="../deprecated_interfaces.html" title="Deprecated Interfaces">
+<link rel="next" href="regex_grep.html" title="regex_grep (Deprecated)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../deprecated_interfaces.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../deprecated_interfaces.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="regex_grep.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_deprecated_interfaces_regex_format">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_regex.ref.deprecated_interfaces.regex_format"></a><a class="link" href="regex_format.html" title="regex_format (Deprecated)">regex_format
+        (Deprecated)</a>
+</h4></div></div></div>
+<p>
+          The algorithm <code class="computeroutput"><span class="identifier">regex_format</span></code>
+          is deprecated; new code should use <a class="link" href="../match_results.html#boost_regex.match_results_format"><code class="computeroutput"><span class="identifier">match_results</span><span class="special">&lt;&gt;::</span><span class="identifier">format</span></code></a> instead. Existing code
+          will continue to compile, the following documentation is taken from the
+          previous version of Boost.Regex and will not be further updated:
+        </p>
+<h5>
+<a name="boost_regex.ref.deprecated_interfaces.regex_format.h0"></a>
+          <span class="phrase"><a name="boost_regex.ref.deprecated_interfaces.regex_format.algorithm_regex_format"></a></span><a class="link" href="regex_format.html#boost_regex.ref.deprecated_interfaces.regex_format.algorithm_regex_format">Algorithm
+          regex_format</a>
+        </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          The algorithm <code class="computeroutput"><span class="identifier">regex_format</span></code>
+          takes the results of a match and creates a new string based upon a format
+          string, <code class="computeroutput"><span class="identifier">regex_format</span></code> can
+          be used for search and replace operations:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">OutputIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Formatter</span><span class="special">&gt;</span>
+<span class="identifier">OutputIterator</span> <span class="identifier">regex_format</span><span class="special">(</span><span class="identifier">OutputIterator</span> <span class="identifier">out</span><span class="special">,</span>
+                           <span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m</span><span class="special">,</span>
+                           <span class="identifier">Formatter</span> <span class="identifier">fmt</span><span class="special">,</span>
+                           <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="number">0</span><span class="special">);</span>
+</pre>
+<p>
+          The library also defines the following convenience variation of <code class="computeroutput"><span class="identifier">regex_format</span></code>, which returns the result
+          directly as a string, rather than outputting to an iterator.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This version may not be available, or may be available in a more limited
+            form, depending upon your compilers capabilities
+          </p></td></tr>
+</table></div>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Formatter</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;</span> <span class="identifier">regex_format</span>
+                                 <span class="special">(</span><span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m</span><span class="special">,</span>
+                                 <span class="identifier">Formatter</span> <span class="identifier">fmt</span><span class="special">,</span>
+                                 <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="number">0</span><span class="special">);</span>
+</pre>
+<p>
+          Parameters to the main version of the function are passed as follows:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">OutputIterator</span> <span class="identifier">out</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    An output iterator type, the output string is sent to this iterator.
+                    Typically this would be a std::ostream_iterator.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    An instance of <a class="link" href="../match_results.html" title="match_results"><code class="computeroutput"><span class="identifier">match_results</span></code></a> obtained
+                    from one of the matching algorithms above, and denoting what
+                    matched.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Formatter</span> <span class="identifier">fmt</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Either a format string that determines how the match is transformed
+                    into the new string, or a functor that computes the new string
+                    from <span class="emphasis"><em>m</em></span> - see <a class="link" href="../match_results.html#boost_regex.match_results_format"><code class="computeroutput"><span class="identifier">match_results</span><span class="special">&lt;&gt;::</span><span class="identifier">format</span></code></a>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="identifier">flags</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Optional flags which describe how the format string is to be
+                    interpreted.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          Format flags are described under <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a>.
+        </p>
+<p>
+          The format string syntax (and available options) is described more fully
+          under <a class="link" href="../../format.html" title="Search and Replace Format String Syntax">format strings</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../deprecated_interfaces.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../deprecated_interfaces.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="regex_grep.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

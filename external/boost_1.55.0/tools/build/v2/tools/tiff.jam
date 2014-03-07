@@ -1,0 +1,230 @@
+# Copyright (c) 2010 Vladimir Prus.
+# Copyright (c) 2013 Steven Watanabe
+#
+# Use, modification and distribution is subject to the Boost Software
+# License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Supports the libtiff library
+#
+# After 'using libtiff', the following targets are available:
+#
+# /libtiff//libtiff -- The libtiff library
+
+import project ;
+import ac ;
+import errors ;
+import "class" : new ;
+import targets ; 
+import path ;
+import modules ;
+import errors ;
+import indirect ;
+import property ;
+import property-set ;
+
+header = tiff.h tiffio.hxx ;
+
+names = libtiff ;
+
+sources =   tif_aux.c tif_close.c tif_codec.c tif_color.c tif_compress.c tif_dir.c tif_dirinfo.c
+	tif_dirread.c tif_dirwrite.c tif_dumpmode.c tif_error.c tif_extension.c tif_fax3.c tif_fax3sm.c
+	tif_getimage.c tif_jbig.c tif_jpeg.c tif_jpeg_12.c tif_ojpeg.c tif_flush.c tif_luv.c tif_lzw.c
+	tif_next.c tif_open.c tif_packbits.c tif_pixarlog.c tif_predict.c tif_print.c tif_read.c tif_stream.cxx
+	tif_swab.c tif_strip.c tif_thunder.c tif_tile.c tif_version.c tif_warning.c tif_write.c tif_zip.c ;
+
+library-id = 0 ;
+
+if --debug-configuration in [ modules.peek : ARGV ]
+{
+    .debug =  true ;
+}
+
+# Initializes the libtiff library.
+#
+# libtiff can be configured either to use pre-existing binaries
+# or to build the library from source.
+#
+# Options for configuring a prebuilt libtiff::
+#
+#   <search>
+#       The directory containing the libtiff binaries.
+#   <name>
+#       Overrides the default library name.
+#   <include>
+#       The directory containing the libtiff headers.
+#
+# If none of these options is specified, then the environmental
+# variables LIBTIFF_LIBRARY_PATH, LIBTIFF_NAME, and LIBTIFF_INCLUDE will
+# be used instead.
+#
+# Options for building libtiff from source::
+#
+#   <source>
+#       The libtiff source directory.  Defaults to the environmental variable
+#       LIBTIFF_SOURCE.
+#   <tag>
+#       A rule which computes the actual name of the compiled
+#       libraries based on the build properties.  Ignored
+#       when using precompiled binaries.
+#   <build-name>
+#       The base name to use for the compiled library.  Ignored
+#       when using precompiled binaries.
+#
+# Examples::
+#
+#   # Find libtiff in the default system location
+#   using libtiff ;
+#   # Build libtiff from source
+#   using libtiff : 4.0.1 : <source>/home/steven/libtiff-4.0.1 ;
+#   # Find libtiff in /usr/local
+#   using libtiff : 4.0.1
+#     : <include>/usr/local/include <search>/usr/local/lib ;
+#   # Build libtiff from source for msvc and find
+#   # prebuilt binaries for gcc.
+#   using libtiff : 4.0.1 : <source>C:/Devel/src/libtiff-4.0.1 : <toolset>msvc ;
+#   using libtiff : 4.0.1 : : <toolset>gcc ;
+#
+rule init (
+    version ?
+    # The libtiff version (currently ignored)
+
+    : options *
+    # A list of the options to use
+
+    : requirements *
+    # The requirements for the libtiff target
+
+    : is-default ?
+    # Default configurations are only used when libtiff
+    # has not yet been configured.
+    )
+{
+    local caller = [ project.current ] ;
+
+    if ! $(.initialized)
+    {
+        .initialized = true ;
+
+        project.initialize $(__name__) ;
+        .project = [ project.current ] ;
+        project libtiff ;
+    }
+
+    local library-path = [ property.select <search> : $(options) ] ;
+    library-path = $(library-path:G=) ;
+    local include-path = [ property.select <include> : $(options) ] ;
+    include-path = $(include-path:G=) ;
+    local source-path = [ property.select <source> : $(options) ] ;
+    source-path = $(source-path:G=) ;
+    local library-name = [ property.select <name> : $(options) ] ;
+    library-name = $(library-name:G=) ;
+    local tag = [ property.select <tag> : $(options) ] ;
+    tag = $(tag:G=) ;
+    local build-name = [ property.select <build-name> : $(options) ] ;
+    build-name = $(build-name:G=) ;
+
+    condition = [ property-set.create $(requirements) ] ;
+    condition = [ property-set.create [ $(condition).base ] ] ;
+
+    local no-build-from-source ;
+    # Ignore environmental ZLIB_SOURCE if this initialization
+    # requested to search for a specific pre-built library.
+    if $(library-path) || $(include-path) || $(library-name)
+    {
+        if $(source-path) || $(tag) || $(build-name)
+        {
+            errors.user-error "incompatible options for libtiff:"
+                [ property.select <search> <include> <name> : $(options) ] "and"
+                [ property.select <source> <tag> <build-name> : $(options) ] ;
+        }
+        else
+        {
+            no-build-from-source = true ;
+        }
+    }
+
+    source-path ?= [ modules.peek : ZLIB_SOURCE ] ;
+
+    if $(.configured.$(condition))
+    {
+        if $(is-default)
+        {
+            if $(.debug)
+            {
+                ECHO "notice: [libtiff] libtiff is already configured" ;
+            }
+        }
+        else
+        {
+            errors.user-error "libtiff is already configured" ;
+        }
+        return ;
+    }
+    else if $(source-path) && ! $(no-build-from-source)
+    {
+        build-name ?= z ;
+        library-id = [ CALC $(library-id) + 1 ] ;
+        tag = [ MATCH ^@?(.*)$ : $(tag) ] ;
+        if $(tag) && ! [ MATCH ^([^%]*)%([^%]+)$ : $(tag) ]
+        {
+            tag = [ indirect.make $(tag) : [ $(caller).project-module ] ] ;
+        }
+        sources = [ path.glob $(source-path) : $(sources) ] ;
+        if $(.debug)
+        {
+            ECHO "notice: [libtiff] Building libtiff from source as $(build-name)" ;
+            if $(condition)
+            {
+                ECHO "notice: [libtiff] Condition" [ $(condition).raw ] ;
+            }
+            if $(sources)
+            {
+                ECHO "notice: [libtiff] found libtiff source in $(source-path)" ;
+            }
+            else
+            {
+                ECHO "warning: [libtiff] could not find libtiff source in $(source-path)" ;
+            }
+        }
+        local target ;
+        if $(sources) {
+            target = [ targets.create-typed-target LIB : $(.project)
+              : $(build-name).$(library-id)
+              : $(sources)
+              : $(requirements)
+                <tag>@$(tag)
+                <include>$(source-path)
+                <toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+                <toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+                <link>shared:<define>ZLIB_DLL
+              :
+              : <include>$(source-path) ] ;
+        }
+
+        local mt = [ new ac-library libtiff : $(.project) : $(condition) ] ;
+        $(mt).set-header $(header) ;
+        $(mt).set-default-names $(names) ;
+        if $(target)
+        {
+            $(mt).set-target $(target) ;
+        }
+        targets.main-target-alternative $(mt) ;
+    } else {
+        if $(.debug)
+        {
+            ECHO "notice: [libtiff] Using pre-installed library" ;
+            if $(condition)
+            {
+                ECHO "notice: [libtiff] Condition" [ $(condition).raw ] ;
+            }
+        }
+
+        local mt = [ new ac-library libtiff : $(.project) : $(condition) :
+            $(include-path) : $(library-path) : $(library-name) : $(root) ] ;
+        $(mt).set-header $(header) ;
+        $(mt).set-default-names $(names) ;
+        targets.main-target-alternative $(mt) ;
+    }
+    .configured.$(condition) = true ;
+}

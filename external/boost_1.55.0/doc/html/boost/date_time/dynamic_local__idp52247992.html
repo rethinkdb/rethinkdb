@@ -1,0 +1,75 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template dynamic_local_time_adjustor</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.local_time_adjustor_hpp" title="Header &lt;boost/date_time/local_time_adjustor.hpp&gt;">
+<link rel="prev" href="utc_adjustment.html" title="Class template utc_adjustment">
+<link rel="next" href="static_local_time_adjustor.html" title="Class template static_local_time_adjustor">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="utc_adjustment.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.local_time_adjustor_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="static_local_time_adjustor.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.dynamic_local__idp52247992"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template dynamic_local_time_adjustor</span></h2>
+<p>boost::date_time::dynamic_local_time_adjustor &#8212; Allow sliding utc adjustment with fixed dst rules. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.local_time_adjustor_hpp" title="Header &lt;boost/date_time/local_time_adjustor.hpp&gt;">boost/date_time/local_time_adjustor.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> time_type<span class="special">,</span> <span class="keyword">typename</span> dst_rules<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="dynamic_local__idp52247992.html" title="Class template dynamic_local_time_adjustor">dynamic_local_time_adjustor</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">dst_rules</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">time_type</span><span class="special">::</span><span class="identifier">time_duration_type</span> <a name="boost.date_time.dynamic_local__idp52247992.time_duration_type"></a><span class="identifier">time_duration_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">time_type</span><span class="special">::</span><span class="identifier">date_type</span>          <a name="boost.date_time.dynamic_local__idp52247992.date_type"></a><span class="identifier">date_type</span><span class="special">;</span>         
+
+  <span class="comment">// <a class="link" href="dynamic_local__idp52247992.html#boost.date_time.dynamic_local__idp52247992construct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="dynamic_local__idp52247992.html#idp19058968-bb"><span class="identifier">dynamic_local_time_adjustor</span></a><span class="special">(</span><span class="identifier">time_duration_type</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="dynamic_local__idp52247992.html#idp52440216-bb">public member functions</a></span>
+  <span class="identifier">time_duration_type</span> <a class="link" href="dynamic_local__idp52247992.html#idp52440424-bb"><span class="identifier">utc_offset</span></a><span class="special">(</span><span class="keyword">bool</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp87918888"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp87919096"></a><h3>
+<a name="boost.date_time.dynamic_local__idp52247992construct-copy-destruct"></a><code class="computeroutput">dynamic_local_time_adjustor</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><a name="idp19058968-bb"></a><span class="identifier">dynamic_local_time_adjustor</span><span class="special">(</span><span class="identifier">time_duration_type</span> utc_offset<span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp87922488"></a><h3>
+<a name="idp52440216-bb"></a><code class="computeroutput">dynamic_local_time_adjustor</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">time_duration_type</span> <a name="idp52440424-bb"></a><span class="identifier">utc_offset</span><span class="special">(</span><span class="keyword">bool</span> is_dst<span class="special">)</span><span class="special">;</span></pre>Presumes local time. </li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="utc_adjustment.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.local_time_adjustor_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="static_local_time_adjustor.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

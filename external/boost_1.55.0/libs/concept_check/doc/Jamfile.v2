@@ -1,0 +1,8 @@
+project boost/concepts ;
+import boostbook : boostbook ;
+
+boostbook concepts : reference/concepts.xml 
+	:
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/doc/html
+        <xsl:param>boost.root=../../../..
+	;

@@ -1,0 +1,69 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Preface]
+
+[:["There are more things in heaven and earth, Horatio, than are dreamt of in your 
+    philosophy.]]
+[:[*['-- William Shakespeare]]]
+
+[heading Description]
+
+Proto is a framework for building Embedded Domain-Specific Languages in C++. It provides tools for constructing, type-checking, transforming and executing ['expression templates][footnote See [@http://en.wikipedia.org/wiki/Expression_templates Expression Templates]].
+More specifically, Proto provides:
+
+* An expression tree data structure.
+* A mechanism for giving expressions additional behaviors and members.
+* Operator overloads for building the tree from an expression.
+* Utilities for defining the grammar to which an expression must conform.
+* An extensible mechanism for immediately executing an expression template.
+* An extensible set of tree transformations to apply to expression trees.
+
+[heading Motivation]
+
+Expression Templates are an advanced technique that C++ library developers use to define embedded mini-languages that target specific problem domains. The technique has been used to create efficient and easy-to-use libraries for linear algebra as well as to define C++ parser generators with a readable syntax. But developing such a library involves writing an inordinate amount of unreadable and unmaintainable template mumbo-jumbo. Boost.Proto eases the development of [link boost_proto.users_guide.glossary.edsl domain-specific embedded languages (EDSLs)]. Use Proto to define the primitives of your mini-language and let Proto handle the operator overloading and the construction of the expression parse tree. Immediately evaluate the expression tree by passing it a function object. Or transform the expression tree by defining the grammar of your mini-language, decorated with an assortment of tree transforms provided by Proto or defined by you. Then use the grammar to give your users short and readable syntax errors for invalid expressions! No more mumbo-jumbo -- an expression template library developed with Proto is declarative and readable.
+
+In short, Proto is an EDSL for defining EDSLs.
+
+[/====================================]
+[heading How to Use This Documentation]
+[/====================================]
+
+This documentation makes use of the following naming and formatting conventions.
+
+* Code is in `fixed width font` and is syntax-highlighted.
+* Replaceable text that you will need to supply is in [~italics].
+* If a name refers to a free function, it is specified like this:
+  `free_function()`; that is, it is in code font and its name is followed by `()` 
+  to indicate that it is a free function.
+* If a name refers to a class template, it is specified like this:
+  `class_template<>`; that is, it is in code font and its name is followed by `<>` 
+  to indicate that it is a class template.
+* If a name refers to a function-like macro, it is specified like this: `MACRO()`;
+  that is, it is uppercase in code font and its name is followed by `()` to
+  indicate that it is a function-like macro. Object-like macros appear without the 
+  trailing `()`.
+* Names that refer to /concepts/ in the generic programming sense are
+  specified in CamelCase.
+
+[note In addition, notes such as this one specify non-essential information that
+provides additional background or rationale.]
+
+Finally, you can mentally add the following to any code fragments in this document:
+
+    // Include all of Proto
+    #include <boost/proto/proto.hpp>
+
+    // Create some namespace aliases
+    namespace mpl = boost::mpl;
+    namespace fusion = boost::fusion;
+    namespace proto = boost::proto;
+
+    // Allow unqualified use of Proto's wildcard pattern
+    using proto::_;
+
+[endsect]

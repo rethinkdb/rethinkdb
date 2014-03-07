@@ -1,0 +1,121 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Using arbitrary precision floating point types</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="using_matrices_as_state_types.html" title="Using matrices as state types">
+<link rel="next" href="self_expanding_lattices.html" title="Self expanding lattices">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_matrices_as_state_types.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="self_expanding_lattices.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.tutorial.using_arbitrary_precision_floating_point_types"></a><a class="link" href="using_arbitrary_precision_floating_point_types.html" title="Using arbitrary precision floating point types">Using
+      arbitrary precision floating point types</a>
+</h3></div></div></div>
+<p>
+        Besides the classical floating point number like <code class="computeroutput"><span class="keyword">float</span></code>,
+        <code class="computeroutput"><span class="keyword">double</span></code>, <code class="computeroutput"><span class="identifier">complex</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span></code> you can also use arbitrary precision
+        types, like the types from <a href="http://gmplib.org/" target="_top">gmp</a> and
+        <a href="http://www.mpfr.org/" target="_top">mpfr</a>. But you have to be careful
+        about instantiating any numbers.
+      </p>
+<p>
+        For gmp types you have to set the default precision before any number is
+        instantiated. This can be done by calling <code class="computeroutput"><span class="identifier">mpf_set_default_prec</span><span class="special">(</span> <span class="identifier">precision</span> <span class="special">)</span></code> as the first function in your main program.
+        Secondly, you can not use any global constant variables since they will not
+        be set with the default precision you have already set.
+      </p>
+<p>
+        Here is a simple example:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">mpf_class</span> <span class="identifier">value_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="number">3</span> <span class="special">&gt;</span> <span class="identifier">state_type</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">lorenz</span>
+<span class="special">{</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="identifier">t</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">sigma</span><span class="special">(</span> <span class="number">10.0</span> <span class="special">);</span>
+        <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">R</span><span class="special">(</span> <span class="number">28.0</span> <span class="special">);</span>
+        <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">b</span><span class="special">(</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="number">8.0</span> <span class="special">)</span> <span class="special">/</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="number">3.0</span> <span class="special">)</span> <span class="special">);</span>
+
+        <span class="identifier">dxdt</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">sigma</span> <span class="special">*</span> <span class="special">(</span> <span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">);</span>
+        <span class="identifier">dxdt</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">R</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">[</span><span class="number">2</span><span class="special">];</span>
+        <span class="identifier">dxdt</span><span class="special">[</span><span class="number">2</span><span class="special">]</span> <span class="special">=</span> <span class="special">-</span><span class="identifier">b</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">[</span><span class="number">2</span><span class="special">]</span> <span class="special">+</span> <span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">];</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        which can be integrated:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">precision</span> <span class="special">=</span> <span class="number">1024</span><span class="special">;</span>
+<span class="identifier">mpf_set_default_prec</span><span class="special">(</span> <span class="identifier">precision</span> <span class="special">);</span>
+
+<span class="identifier">state_type</span> <span class="identifier">x</span> <span class="special">=</span> <span class="special">{{</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="number">10.0</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="number">10.0</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="number">10.0</span> <span class="special">)</span> <span class="special">}};</span>
+
+<span class="identifier">cout</span><span class="special">.</span><span class="identifier">precision</span><span class="special">(</span> <span class="number">1000</span> <span class="special">);</span>
+<span class="identifier">integrate_const</span><span class="special">(</span> <span class="identifier">runge_kutta4</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">,</span> <span class="identifier">value_type</span> <span class="special">&gt;()</span> <span class="special">,</span>
+        <span class="identifier">lorenz</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="number">0.0</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="number">10.0</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="number">1.0</span> <span class="special">)</span> <span class="special">/</span> <span class="identifier">value_type</span><span class="special">(</span> <span class="number">10.0</span> <span class="special">)</span> <span class="special">)</span> <span class="special">,</span>
+        <span class="identifier">streaming_observer</span><span class="special">(</span> <span class="identifier">cout</span> <span class="special">)</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../../../../../doc/src/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          The full support of arbitrary precision types depends on the functionality
+          they provide. For example, the types from gmp are lacking of functions
+          for calculating the power and arbitrary roots, hence they can not be used
+          with the controlled steppers. In detail, for full support the <code class="computeroutput"><span class="identifier">min</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">,</span> <span class="identifier">y</span> <span class="special">)</span></code>,
+          <code class="computeroutput"><span class="identifier">max</span><span class="special">(</span>
+          <span class="identifier">x</span> <span class="special">,</span>
+          <span class="identifier">y</span> <span class="special">)</span></code>,
+          <code class="computeroutput"><span class="identifier">pow</span><span class="special">(</span>
+          <span class="identifier">x</span> <span class="special">,</span>
+          <span class="identifier">y</span> <span class="special">)</span></code>
+          must be callable.
+        </p></td></tr>
+</table></div>
+<p>
+        The full example can be found at <a href="../../../../../../../libs/numeric/odeint/examples/gmpxx/lorenz_gmpxx.cpp" target="_top">lorenz_gmpxx.cpp</a>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_matrices_as_state_types.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="self_expanding_lattices.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

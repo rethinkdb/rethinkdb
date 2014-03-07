@@ -1,0 +1,814 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Required Concepts</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../interface.html" title="Interface">
+<link rel="prev" href="../interface.html" title="Interface">
+<link rel="next" href="associated_types.html" title="Associated Types">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../interface.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interface.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="associated_types.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_interface_required_concepts" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.interface.required_concepts"></a><a class="link" href="required_concepts.html" title="Required Concepts">Required Concepts</a>
+</h3></div></div></div>
+<p>
+        There are uniform requirements for the template parameters across <span class="bold"><strong>icl's</strong></span> class templates. The template parameters can
+        be grouped with respect to those requirements.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+              </p>
+              </th>
+<th>
+              <p>
+                used in
+              </p>
+              </th>
+<th>
+              <p>
+                Kind
+              </p>
+              </th>
+<th>
+              <p>
+                Parameter
+              </p>
+              </th>
+<th>
+              <p>
+                Instance
+              </p>
+              </th>
+<th>
+              <p>
+                Description
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                Domain order
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Intervals</span><span class="special">,</span>
+                <span class="identifier">Sets</span><span class="special">,</span>
+                <span class="identifier">Maps</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">typename</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">DomainT</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                For the type <code class="computeroutput"><span class="identifier">DomainT</span></code>
+                of key elements <code class="computeroutput"><span class="special">...</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">template</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Compare</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Compare</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">...</span></code> there is an order
+                <code class="computeroutput"><span class="identifier">Compare</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Interval type
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">interval_sets</span><span class="special">/</span><span class="identifier">maps</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">typename</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">IntervalT</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">...</span></code> the <code class="computeroutput"><span class="identifier">IntervalT</span></code> parameter has to use
+                the same element type and order.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Codomain aggregation
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Maps</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">typename</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">CodomainT</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                For the type <code class="computeroutput"><span class="identifier">CodomainT</span></code>
+                of associated values <code class="computeroutput"><span class="special">...</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">template</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Combine</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Combine</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">...</span></code> there is a binary
+                functor <code class="computeroutput"><span class="identifier">Combine</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;()</span></code>
+                to combine them
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Inverse</span><span class="special">&lt;</span><span class="identifier">Combine</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;&gt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">...</span></code> and implicitly an
+                <code class="computeroutput"><span class="identifier">Inverse</span></code> functor to
+                inversely combine them.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">template</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Section</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Section</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                Intersection is propagated to CodomainT values via functor <code class="computeroutput"><span class="identifier">Section</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;()</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Memory allocation
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Sets</span><span class="special">,</span>
+                <span class="identifier">Maps</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">template</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Alloc</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Alloc</span><span class="special">&lt;</span></code><span class="emphasis"><em>various</em></span><code class="computeroutput"><span class="special">&gt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                An allocator can be chosen for memory allocation.
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<a name="boost_icl.interface.required_concepts.requirements_on_domaint"></a><h5>
+<a name="id1141302"></a>
+        <a class="link" href="required_concepts.html#boost_icl.interface.required_concepts.requirements_on_domaint">Requirements
+        on DomainT</a>
+      </h5>
+<p>
+        The next table gives an overview over the requirements for template parameter
+        <code class="computeroutput"><span class="identifier">DomainT</span></code>. Some requirements
+        are dependent on <span class="emphasis"><em>conditions</em></span>. Column <span class="emphasis"><em>operators</em></span>
+        shows the operators and functions that are expected for <code class="computeroutput"><span class="identifier">DomainT</span></code>,
+        if the default order <code class="computeroutput"><span class="identifier">Compare</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span></code> is used.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Parameter
+              </p>
+              </th>
+<th>
+              <p>
+                Condition
+              </p>
+              </th>
+<th>
+              <p>
+                Operators
+              </p>
+              </th>
+<th>
+              <p>
+                Requirement
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">DomainT</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">DomainT</span><span class="special">(),</span>
+                <span class="special">&lt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Regular</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">&gt;</span>
+                <span class="special">&amp;&amp;</span> <span class="identifier">StrictWeakOrdering</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">++,</span> <span class="identifier">unit_element</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">()</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&amp;&amp;</span> <span class="special">(</span><span class="identifier">IsIncrementable</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">&gt;||</span><span class="identifier">HasUnitElement</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">&gt;)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">IsIntegral</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">++,</span> <span class="special">--</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">IsIncrementable</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">&gt;</span>
+                <span class="special">&amp;&amp;</span> <span class="identifier">IsDecrementable</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        A domain type <code class="computeroutput"><span class="identifier">DomainT</span></code> for
+        intervals and interval containers has to satisfy the requirements of concept
+        <a href="http://www.informit.com/guides/content.aspx?g=cplusplus&amp;seqNum=314" target="_top"><code class="computeroutput"><span class="identifier">Regular</span></code></a> which implies among other
+        properties the existence of a copy and a default constructor. In addition
+        <code class="computeroutput"><span class="identifier">IsIncrementable</span></code> <span class="bold"><strong>or</strong></span> <code class="computeroutput"><span class="identifier">HasUnitElement</span></code>
+        is required for <code class="computeroutput"><span class="identifier">DomainT</span></code>.
+        In the <span class="bold"><strong>icl</strong></span> we represent an empty closed
+        interval as interval <code class="computeroutput"><span class="special">[</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">a</span><span class="special">]</span></code>
+        where <code class="computeroutput"><span class="identifier">a</span> <span class="special">&lt;</span>
+        <span class="identifier">b</span></code> (here <code class="computeroutput"><span class="special">&lt;</span></code>
+        represents <code class="computeroutput"><span class="identifier">Compare</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">&gt;()</span></code>).
+        To construct one of these empty intervals as default constructor for any
+        type <code class="computeroutput"><span class="identifier">DomainT</span></code> we choose <code class="computeroutput"><span class="special">[</span><span class="number">1</span><span class="special">,</span><span class="number">0</span><span class="special">]</span></code>, where
+        <code class="computeroutput"><span class="number">0</span></code> is a null-value or <code class="computeroutput"><span class="identifier">identity_element</span></code> and <code class="computeroutput"><span class="number">1</span></code>
+        is a one-value or <code class="computeroutput"><span class="identifier">unit_element</span></code>:
+        
+</p>
+<pre class="programlisting"><span class="identifier">interval</span><span class="special">()</span> <span class="special">:=</span> <span class="special">[</span><span class="identifier">unit_element</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">(),</span> <span class="identifier">identity_element</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">()]</span> <span class="comment">//pseudocode
+</span></pre>
+<p>
+        <code class="computeroutput"><span class="identifier">Identity_elements</span></code> are implemented
+        via call of the default constructor of <code class="computeroutput"><span class="identifier">DomainT</span></code>.
+        A <code class="computeroutput"><span class="identifier">unit_element</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">()</span></code>
+        is implemented <code class="computeroutput">by default</code>
+        as a <code class="computeroutput"><span class="identifier">identity_element</span></code>, that
+        is incremented once. 
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Type</span><span class="special">&gt;</span> 
+<span class="keyword">inline</span> <span class="identifier">Type</span> <span class="identifier">unit_element</span><span class="special">&lt;</span><span class="identifier">Type</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">(){</span> <span class="keyword">return</span> <span class="identifier">succ</span><span class="special">(</span><span class="identifier">identity_element</span><span class="special">&lt;</span><span class="identifier">Type</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">());</span> <span class="special">};</span>
+</pre>
+<p>
+        So a type <code class="computeroutput"><span class="identifier">DomainT</span></code> that is
+        <code class="computeroutput"><span class="identifier">incrementable</span></code> will also have
+        an <code class="computeroutput"><span class="identifier">unit_element</span></code>. If it does
+        not, a <code class="computeroutput"><span class="identifier">unit_element</span></code> can be
+        provided. A <code class="computeroutput"><span class="identifier">unit_element</span></code>
+        can be any value, that is greater as the <code class="computeroutput"><span class="identifier">identity_element</span></code>
+        in the <code class="computeroutput"><span class="identifier">Compare</span></code> order given.
+        An example of a type, that has an <code class="computeroutput"><span class="identifier">identity_element</span></code>
+        but no increment operation is <code class="computeroutput"><span class="identifier">string</span></code>.
+        So for <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> a unit_element is implemented like
+        this: 
+</p>
+<pre class="programlisting"><span class="comment">// Smallest 'visible' string that is greater than the empty string.
+</span><span class="keyword">template</span> <span class="special">&lt;&gt;</span>    
+<span class="keyword">inline</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">unit_element</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">(){</span> <span class="keyword">return</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">" "</span><span class="special">);</span> <span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        Just as for the key type of std::sets and maps template parameter <code class="computeroutput"><span class="identifier">Compare</span></code> is required to be a <a href="http://en.wikipedia.org/wiki/Strict_weak_ordering" target="_top">strict
+        weak ordering</a> on <code class="computeroutput"><span class="identifier">DomainT</span></code>.
+      </p>
+<p>
+        Finally, if <code class="computeroutput"><span class="identifier">DomainT</span></code> is an
+        integral type, <code class="computeroutput"><span class="identifier">DomainT</span></code> needs
+        to be <code class="computeroutput"><span class="identifier">incrementable</span></code> and
+        <code class="computeroutput"><span class="identifier">decrementable</span></code>. This <span class="emphasis"><em>'bicrementability'</em></span>
+        needs to be implemented on the smallest possible unit of the integral type.
+        This seems like being trivial but there are types like e.g. <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">date_time</span><span class="special">::</span><span class="identifier">ptime</span></code>, that are integral in nature but
+        do not provide the required in- and decrementation on the least incrementable
+        unit. For <code class="computeroutput"><a class="link" href="../../boost/icl/interval.html" title="Struct template interval">icl::intervals</a></code>
+        incementation and decementation is used for computations between open to
+        closed interval borders like e.g. <code class="computeroutput"><span class="special">[</span><span class="number">2</span><span class="special">,</span><span class="number">43</span><span class="special">)</span> <span class="special">==</span> <span class="special">[</span><span class="number">2</span><span class="special">,</span><span class="number">42</span><span class="special">]</span></code>. Such computations always need only one
+        in- or decrementation, if <code class="computeroutput"><span class="identifier">DomainT</span></code>
+        is an integral type.
+      </p>
+<a name="boost_icl.interface.required_concepts.requirements_on_intervalt"></a><h6>
+<a name="id1142487"></a>
+        <a class="link" href="required_concepts.html#boost_icl.interface.required_concepts.requirements_on_intervalt">Requirements
+        on IntervalT</a>
+      </h6>
+<p>
+        Requirements on the <code class="computeroutput"><span class="identifier">IntervalT</span></code>
+        parameter are closely related to the <code class="computeroutput"><span class="identifier">DomainT</span></code>
+        parameter. <code class="computeroutput"><span class="identifier">IntervalT</span></code> has
+        two associated types itself for an element type and a compare order that
+        have to be consistent with the element and order parameters of their interval
+        containers. <code class="computeroutput"><span class="identifier">IntervalT</span></code> then
+        has to implement an order called <code class="computeroutput"><span class="identifier">exclusive_less</span></code>.
+        Two intervals <code class="computeroutput"><span class="identifier">x</span><span class="special">,</span>
+        <span class="identifier">y</span></code> are exclusive_less 
+</p>
+<pre class="programlisting"><span class="identifier">icl</span><span class="special">::</span><span class="identifier">exclusive_less</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">y</span><span class="special">)</span></pre>
+<p>
+        if all <code class="computeroutput"><span class="identifier">DomainT</span></code> elements of
+        <code class="computeroutput"><span class="identifier">x</span></code> are less than elements
+        of <code class="computeroutput"><span class="identifier">y</span></code> in the <code class="computeroutput"><span class="identifier">Compare</span></code> order.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Parameter
+              </p>
+              </th>
+<th>
+              <p>
+                Operators
+              </p>
+              </th>
+<th>
+              <p>
+                Requirement
+              </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">IntervalT</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">exclusive_less</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">IsExclusiveLessComparable</span><span class="special">&lt;</span><span class="identifier">Interval</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr></tbody>
+</table></div>
+<a name="boost_icl.interface.required_concepts.requirements_on_codomaint"></a><h5>
+<a name="id1142736"></a>
+        <a class="link" href="required_concepts.html#boost_icl.interface.required_concepts.requirements_on_codomaint">Requirements
+        on CodomainT</a>
+      </h5>
+<p>
+        Summarized in the next table are requirements for template parameter <code class="computeroutput"><span class="identifier">CodomainT</span></code> of associated values for <code class="computeroutput"><span class="identifier">Maps</span></code>. Again there are <span class="emphasis"><em>conditions</em></span>
+        for some of the requirements. Column <span class="emphasis"><em>operators</em></span> contains
+        the operators and functions required for <code class="computeroutput"><span class="identifier">CodomainT</span></code>,
+        if we are using the default combiner <code class="computeroutput"><span class="identifier">Combine</span>
+        <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">inplace_plus</span></code>.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Parameter
+              </p>
+              </th>
+<th>
+              <p>
+                Condition
+              </p>
+              </th>
+<th>
+              <p>
+                Operators
+              </p>
+              </th>
+<th>
+              <p>
+                Requirement
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">CodomainT</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">add</span></code>, <code class="computeroutput"><span class="identifier">subtract</span></code>, <code class="computeroutput"><span class="identifier">intersect</span></code>
+                unused
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">CodomainT</span><span class="special">(),</span>
+                <span class="special">==</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Regular</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;</span></code>
+                which implies
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">DefaultConstructible</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;</span> <span class="special">&amp;&amp;</span>
+                <span class="identifier">EqualityComparable</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                only <code class="computeroutput"><span class="identifier">add</span></code> used
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">+=</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&amp;&amp;</span> <span class="identifier">Combinable</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">,</span><span class="identifier">Combine</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                ... and also <code class="computeroutput"><span class="identifier">subtract</span></code>
+                used
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">-=</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&amp;&amp;</span> <span class="identifier">Combinable</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">,</span><span class="identifier">Inverse</span><span class="special">&lt;</span><span class="identifier">Combine</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Section</span></code> used and
+                <code class="computeroutput"><span class="identifier">CodomainT</span></code> is a set
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&amp;=</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">&amp;&amp;</span> <span class="identifier">Intersectable</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">,</span><span class="identifier">Section</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        The requirements on the type <code class="computeroutput"><span class="identifier">CodomainT</span></code>
+        of associated values for a <code class="computeroutput"><a class="link" href="../../boost/icl/map.html" title="Class template map">icl::map</a></code>
+        or <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code> depend
+        on the usage of their aggregation functionality. If aggregation on overlap
+        is never used, that is to say that none of the addition, subtraction and
+        intersection operations (<code class="computeroutput"><span class="special">+,</span> <span class="special">+=,</span> <span class="identifier">add</span></code>,
+        <code class="computeroutput"><span class="special">-,</span> <span class="special">-=,</span>
+        <span class="identifier">subtract</span></code>, &amp;, &amp;=, add_intersection)
+        are used on the <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>,
+        then <code class="computeroutput"><span class="identifier">CodomainT</span></code> only needs
+        to be <a href="http://www.informit.com/guides/content.aspx?g=cplusplus&amp;seqNum=314" target="_top">Regular</a>.
+      </p>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>Regular</strong></span></em></span> object semantics
+        implies <code class="computeroutput"><span class="identifier">DefaultConstructible</span></code>
+        and <code class="computeroutput"><span class="identifier">EqualityComparable</span></code> which
+        means it has a default ctor <code class="computeroutput"><span class="identifier">CodomainT</span><span class="special">()</span></code> and an <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">==</span></code>.
+      </p>
+<p>
+        Use <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_maps</a></code>
+        <span class="emphasis"><em><span class="bold"><strong>without aggregation</strong></span></em></span>,
+        if the associated values are not addable but still are attached to intervals
+        so you want to use <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_maps</a></code>
+        to handle them. As long as those values are added with <code class="computeroutput"><span class="identifier">insert</span></code>
+        and deleted with <code class="computeroutput"><span class="identifier">erase</span></code> <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_maps</a></code> will work fine with
+        such values.
+      </p>
+<p>
+        If <span class="emphasis"><em><span class="bold"><strong>only addition</strong></span></em></span> is
+        used via <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_map's</a></code>
+        <code class="computeroutput"><span class="special">+,</span> <span class="special">+=</span></code>
+        or <code class="computeroutput"><span class="identifier">add</span></code> but no subtraction,
+        then <code class="computeroutput"><span class="identifier">CodomainT</span></code> need to be
+        <code class="computeroutput"><span class="identifier">Combinable</span></code> for functor template
+        <code class="computeroutput"><span class="identifier">Combine</span></code>. That means in most
+        cases when the default implementation <code class="computeroutput"><span class="identifier">inplace_plus</span></code>
+        for <code class="computeroutput"><span class="identifier">Combine</span></code> is used, that
+        <code class="computeroutput"><span class="identifier">CodomainT</span></code> has to implement
+        <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+=</span></code>.
+      </p>
+<p>
+        For associated value types, that are addable but not subtractable like e.g.
+        <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> it usually makes sense to use addition
+        to combine values but the inverse combination is not desired. 
+</p>
+<pre class="programlisting"><span class="identifier">interval_map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">cat_map</span><span class="special">;</span>
+<span class="identifier">cat_map</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">rightopen</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="number">5</span><span class="special">),</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">"Hello"</span><span class="special">));</span>
+<span class="identifier">cat_map</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">rightopen</span><span class="special">(</span><span class="number">3</span><span class="special">,</span><span class="number">7</span><span class="special">),</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">" world"</span><span class="special">));</span>
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"cat_map: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">cat_map</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">//cat_map: {([1,3)-&gt;Hello)([3,5)-&gt;Hello world)([5,7)-&gt; world)}
+</span></pre>
+<p>
+      </p>
+<p>
+        For <span class="emphasis"><em>complete aggregation functionality</em></span> an inverse aggregation
+        functor on a <code class="computeroutput"><span class="identifier">Map</span></code>'s <code class="computeroutput"><span class="identifier">CodomainT</span></code> is needed. The icl provides a
+        metafunction <code class="computeroutput"><a class="link" href="../../boost/icl/inverse.html" title="Struct template inverse">inverse</a></code> for
+        that purpose. Using the default <code class="computeroutput"><span class="identifier">Combine</span>
+        <span class="special">=</span> <span class="identifier">inplace_plus</span></code>
+        that relies on the existence of <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">+=</span></code> on type <code class="computeroutput"><span class="identifier">CodomainT</span></code>
+        metafunction <code class="computeroutput"><a class="link" href="../../boost/icl/inverse.html" title="Struct template inverse">inverse</a></code> will
+        infer <code class="computeroutput"><a class="link" href="../../boost/icl/inplace_minus.html" title="Struct template inplace_minus">inplace_minus</a></code>
+        as inverse functor, that requires <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">-=</span></code> on type <code class="computeroutput"><span class="identifier">CodomainT</span></code>.
+      </p>
+<p>
+        In the icl's design we make the assumption, in particular for the default
+        setting of parameters <code class="computeroutput"><span class="identifier">Combine</span> <span class="special">=</span> </code><code class="computeroutput"><a class="link" href="../../boost/icl/inplace_minus.html" title="Struct template inplace_minus">inplace_plus</a></code>,
+        that type <code class="computeroutput"><span class="identifier">CodomainT</span></code> has a
+        neutral element or <code class="computeroutput"><span class="identifier">identity_element</span></code>
+        with respect to the <code class="computeroutput"><span class="identifier">Combine</span></code>
+        functor.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../interface.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interface.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="associated_types.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

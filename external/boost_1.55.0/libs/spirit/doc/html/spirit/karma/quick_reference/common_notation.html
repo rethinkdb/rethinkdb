@@ -1,0 +1,162 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Common Notation</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../quick_reference.html" title="Quick Reference">
+<link rel="prev" href="../quick_reference.html" title="Quick Reference">
+<link rel="next" href="primitive_generators.html" title="Karma Generators">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../quick_reference.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../quick_reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="primitive_generators.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.karma.quick_reference.common_notation"></a><a class="link" href="common_notation.html" title="Common Notation">Common
+        Notation</a>
+</h4></div></div></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">G</span></code></span></dt>
+<dd><p>
+                Generator type
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">g</span><span class="special">,</span>
+            <span class="identifier">a</span><span class="special">,</span>
+            <span class="identifier">b</span><span class="special">,</span>
+            <span class="identifier">c</span><span class="special">,</span>
+            <span class="identifier">d</span></code></span></dt>
+<dd><p>
+                Generator objects
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">A</span><span class="special">,</span>
+            <span class="identifier">B</span><span class="special">,</span>
+            <span class="identifier">C</span><span class="special">,</span>
+            <span class="identifier">D</span></code></span></dt>
+<dd><p>
+                Attribute types of generators <code class="computeroutput"><span class="identifier">a</span></code>,
+                <code class="computeroutput"><span class="identifier">b</span></code>, <code class="computeroutput"><span class="identifier">c</span></code>, and <code class="computeroutput"><span class="identifier">d</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">I</span></code></span></dt>
+<dd><p>
+                The iterator type used for generation
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Unused</span></code></span></dt>
+<dd><p>
+                An <code class="computeroutput"><span class="identifier">unused_type</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Context</span></code></span></dt>
+<dd><p>
+                The enclosing rule's <code class="computeroutput"><span class="identifier">Context</span></code>
+                type
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">attrib</span></code></span></dt>
+<dd><p>
+                An attribute value
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Attrib</span></code></span></dt>
+<dd><p>
+                An attribute type
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">b</span></code></span></dt>
+<dd><p>
+                A boolean expression
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">B</span></code></span></dt>
+<dd><p>
+                A type to be interpreted in boolean expressions
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">fg</span></code></span></dt>
+<dd><p>
+                A (lazy generator) function with signature <code class="computeroutput"><span class="identifier">G</span><span class="special">(</span><span class="identifier">Unused</span><span class="special">,</span> <span class="identifier">Context</span><span class="special">)</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">fa</span></code></span></dt>
+<dd><p>
+                A (semantic action) function with signature <code class="computeroutput"><span class="keyword">void</span><span class="special">(</span><span class="identifier">Attrib</span><span class="special">&amp;,</span> <span class="identifier">Context</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">&amp;)</span></code>. The third parameter is a boolean
+                flag that can be set to false to force the generator to fail. Both
+                <code class="computeroutput"><span class="identifier">Context</span></code> and the boolean
+                flag are optional.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">outiter</span></code></span></dt>
+<dd><p>
+                An output iterator to receive the generated output
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Ch</span></code></span></dt>
+<dd><p>
+                Character-class specific character type (See Character Class Types)
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">ch</span><span class="special">,</span>
+            <span class="identifier">ch2</span></code></span></dt>
+<dd><p>
+                Character-class specific character (See Character Class Types)
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">charset</span></code></span></dt>
+<dd><p>
+                Character-set specifier string (example: <code class="computeroutput"><span class="string">"a-z0-9"</span></code>)
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">str</span></code></span></dt>
+<dd><p>
+                Character-class specific string (See Character Class Types)
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Str</span></code></span></dt>
+<dd><p>
+                Attribute of <code class="computeroutput"><span class="identifier">str</span></code>:
+                <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+                where <code class="computeroutput"><span class="identifier">T</span></code> is the underlying
+                character type of <code class="computeroutput"><span class="identifier">str</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">num</span></code></span></dt>
+<dd><p>
+                Numeric literal, any integer or real number type
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Num</span></code></span></dt>
+<dd><p>
+                Attribute of <code class="computeroutput"><span class="identifier">num</span></code>:
+                any integer or real number type
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">tuple</span><span class="special">&lt;&gt;</span></code></span></dt>
+<dd><p>
+                Used as a placeholder for a fusion sequence
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;&gt;</span></code></span></dt>
+<dd><p>
+                Used as a placeholder for an STL container
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">variant</span><span class="special">&lt;&gt;</span></code></span></dt>
+<dd><p>
+                Used as a placeholder for a boost::variant
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;&gt;</span></code></span></dt>
+<dd><p>
+                Used as a placeholder for a boost::optional
+              </p></dd>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../quick_reference.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../quick_reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="primitive_generators.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

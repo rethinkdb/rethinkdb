@@ -1,0 +1,32 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:leftmost_longest_rule The Leftmost Longest Rule]
+
+Often there is more than one way of matching a regular expression at a 
+particular location, for POSIX basic and extended regular expressions, 
+the "best" match is determined as follows:
+
+# Find the leftmost match, if there is only one match possible at 
+this location then return it.
+# Find the longest of the possible matches, along with any ties.  
+If there is only one such possible match then return it.
+# If there are no marked sub-expressions, then all the remaining 
+alternatives are indistinguishable; return the first of these found.
+# Find the match which has matched the first sub-expression in the 
+leftmost position, along with any ties.  If there is only on such 
+match possible then return it.
+# Find the match which has the longest match for the first sub-expression, 
+along with any ties.  If there is only one such match then return it.
+# Repeat steps 4 and 5 for each additional marked sub-expression.
+# If there is still more than one possible match remaining, then they are 
+indistinguishable; return the first one found.
+
+[endsect]
+
+

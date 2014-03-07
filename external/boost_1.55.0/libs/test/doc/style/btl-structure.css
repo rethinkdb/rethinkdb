@@ -1,0 +1,21 @@
+/* Copyright Gennadiy Rozental 2001-2007. 
+ * Distributed under the Boost Software License, Version 1.0. 
+ * (See accompanying file LICENSE_1_0.txt or copy at www.boost.org/LICENSE_1_0.txt)
+ */
+
+BODY
+{
+    background-color: white;
+}
+
+.toc
+{
+   margin: 0pc 0% 0pc 2%;
+   padding: 0.1pc 0.1pc 0.1pc 0.5pc;
+}
+
+.toc dl dl
+{
+   margin: 0pc 0% 0pc 2%;
+   padding: 0.1pc 0.1pc 0.1pc 0.1pc;
+}

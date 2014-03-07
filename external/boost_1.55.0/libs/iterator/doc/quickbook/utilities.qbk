@@ -1,0 +1,224 @@
+
+[section:utilities Iterator Utilities]
+
+[section:utilities_traits Traits]
+
+[h2 Overview]
+
+Have you ever wanted to write a generic function that can operate
+on any kind of dereferenceable object?  If you have, you've
+probably run into the problem of how to determine the type that the
+object "points at":
+
+   template <class Dereferenceable>
+   void f(Dereferenceable p)
+   {
+       *what-goes-here?* value = \*p;
+       ...
+   }
+
+
+[h2 `pointee`]
+
+It turns out to be impossible to come up with a fully-general
+algorithm to do determine *what-goes-here* directly, but it is
+possible to require that `pointee<Dereferenceable>::type` is
+correct. Naturally, `pointee` has the same difficulty: it can't
+determine the appropriate `::type` reliably for all
+`Dereferenceable`\ s, but it makes very good guesses (it works
+for all pointers, standard and boost smart pointers, and
+iterators), and when it guesses wrongly, it can be specialized as
+necessary:
+
+  namespace boost
+  {
+    template <class T>
+    struct pointee<third_party_lib::smart_pointer<T> >
+    {
+        typedef T type;
+    };
+  }
+
+[h2 `indirect_reference`]
+
+`indirect_reference<T>::type` is rather more specialized than
+`pointee`, and is meant to be used to forward the result of
+dereferencing an object of its argument type.  Most dereferenceable
+types just return a reference to their pointee, but some return
+proxy references or return the pointee by value.  When that
+information is needed, call on `indirect_reference`.
+
+Both of these templates are essential to the correct functioning of
+[link indirecct `indirect_iterator`].
+
+[h2 Reference]
+
+[h3 `pointeee`]
+
+  template <class Dereferenceable>
+  struct pointee
+  {
+      typedef /* see below */ type;
+  };
+
+[*Requires:] For an object `x` of type `Dereferenceable`, `*x`
+  is well-formed.  If `++x` is ill-formed it shall neither be
+  ambiguous nor shall it violate access control, and
+  `Dereferenceable::element_type` shall be an accessible type.
+  Otherwise `iterator_traits<Dereferenceable>::value_type` shall
+  be well formed. \[Note: These requirements need not apply to
+  explicit or partial specializations of `pointee`\]
+
+`type` is determined according to the following algorithm, where
+`x` is an object of type `Dereferenceable`:
+
+  if ( ++x is ill-formed )
+  {
+      return `Dereferenceable::element_type`
+  }
+  else if (`*x` is a mutable reference to
+           std::iterator_traits<Dereferenceable>::value_type)
+  {
+      return iterator_traits<Dereferenceable>::value_type
+  }
+  else
+  {
+      return iterator_traits<Dereferenceable>::value_type const
+  }
+
+[h3 `indirect_reference`]
+
+  template <class Dereferenceable>
+  struct indirect_reference
+  {
+      typedef /* see below */ type;
+  };
+
+[*Requires:] For an object `x` of type `Dereferenceable`, `*x`
+  is well-formed.  If `++x` is ill-formed it shall neither be
+  ambiguous nor shall it violate access control, and
+  `pointee<Dereferenceable>::type&` shall be well-formed.
+  Otherwise `iterator_traits<Dereferenceable>::reference` shall
+  be well formed.  \[Note: These requirements need not apply to
+  explicit or partial specializations of `indirect_reference`\]
+
+`type` is determined according to the following algorithm, where
+`x` is an object of type `Dereferenceable`:
+
+  if ( ++x is ill-formed )
+      return `pointee<Dereferenceable>::type&`
+  else
+      std::iterator_traits<Dereferenceable>::reference
+
+
+[endsect]
+
+[section:utilities_testing Testing and Concept Checking]
+
+The iterator concept checking classes provide a mechanism for a
+template to report better error messages when a user instantiates
+the template with a type that does not meet the requirements of the
+template.
+
+For an introduction to using concept checking classes, see
+the documentation for the 
+[@../../concept_check/index.html `boost::concept_check`] library.
+
+
+[h2 Reference]
+
+[h3 Iterator Access Concepts]
+
+* |Readable|_ 
+* |Writable|_ 
+* |Swappable|_ 
+* |Lvalue|_ 
+
+[/ .. |Readable| replace:: *Readable Iterator* ]
+[/ .. _Readable: ReadableIterator.html            ]
+[/                                                ]
+[/ .. |Writable| replace:: *Writable Iterator*    ]
+[/ .. _Writable: WritableIterator.html            ]
+[/                                                ]
+[/ .. |Swappable| replace:: *Swappable Iterator*  ]
+[/ .. _Swappable: SwappableIterator.html          ]
+[/                                                ]
+[/ .. |Lvalue| replace:: *Lvalue Iterator*        ]
+[/ .. _Lvalue: LvalueIterator.html                ]
+
+
+Iterator Traversal Concepts
+...........................
+
+* |Incrementable|_
+* |SinglePass|_
+* |Forward|_
+* |Bidir|_
+* |Random|_
+
+
+[/ .. |Incrementable| replace:: *Incrementable Iterator* ]
+[/ .. _Incrementable: IncrementableIterator.html         ]
+[/                                                       ]
+[/ .. |SinglePass| replace:: *Single Pass Iterator*      ]
+[/ .. _SinglePass: SinglePassIterator.html               ]
+[/                                                       ]
+[/ .. |Forward| replace:: *Forward Traversal*            ]
+[/ .. _Forward: ForwardTraversal.html                    ]
+[/                                                       ]
+[/ .. |Bidir| replace:: *Bidirectional Traversal*        ]
+[/ .. _Bidir: BidirectionalTraversal.html                ]
+[/                                                       ]
+[/ .. |Random| replace:: *Random Access Traversal*       ]
+[/ .. _Random: RandomAccessTraversal.html                ]
+
+
+
+[h3 `iterator_concepts.hpp` Synopsis]
+
+    namespace boost_concepts {
+
+        // Iterator Access Concepts
+
+        template <typename Iterator>
+        class ReadableIteratorConcept;
+
+        template <
+            typename Iterator
+          , typename ValueType = std::iterator_traits<Iterator>::value_type
+        >
+        class WritableIteratorConcept;
+
+        template <typename Iterator>
+        class SwappableIteratorConcept;
+
+        template <typename Iterator>
+        class LvalueIteratorConcept;
+
+        // Iterator Traversal Concepts
+
+        template <typename Iterator>
+        class IncrementableIteratorConcept;
+
+        template <typename Iterator>
+        class SinglePassIteratorConcept;
+
+        template <typename Iterator>
+        class ForwardTraversalConcept;
+
+        template <typename Iterator>
+        class BidirectionalTraversalConcept;
+
+        template <typename Iterator>
+        class RandomAccessTraversalConcept;
+
+        // Interoperability
+
+        template <typename Iterator, typename ConstIterator>
+        class InteroperableIteratorConcept;
+
+    }
+
+[endsect]
+
+[endsect]

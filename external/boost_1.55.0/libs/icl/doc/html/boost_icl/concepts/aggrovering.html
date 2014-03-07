@@ -1,0 +1,326 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Addability, Subtractability and Aggregate on Overlap</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="sets_and_maps.html" title="Sets and Maps">
+<link rel="next" href="map_traits.html" title="Map Traits">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sets_and_maps.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="map_traits.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_concepts_aggrovering" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.concepts.aggrovering"></a><a class="link" href="aggrovering.html" title="Addability, Subtractability and Aggregate on Overlap"> Addability, Subtractability
+      and Aggregate on Overlap</a>
+</h3></div></div></div>
+<p>
+        While <span class="emphasis"><em><span class="bold"><strong>addition</strong></span></em></span> and
+        <span class="emphasis"><em><span class="bold"><strong>subtraction</strong></span></em></span> on <code class="computeroutput"><span class="identifier">Sets</span></code> are implemented as <span class="emphasis"><em><span class="bold"><strong>set union</strong></span></em></span> and <span class="emphasis"><em><span class="bold"><strong>set
+        difference</strong></span></em></span>, for <code class="computeroutput"><span class="identifier">Maps</span></code>
+        we want to implement <span class="emphasis"><em><span class="bold"><strong>aggregation</strong></span></em></span>
+        on the associated values for the case of collision (of key elements) or overlap
+        (of key intervals), which has been refered to as <span class="emphasis"><em><span class="bold"><strong>aggregate
+        on overlap</strong></span></em></span> above. This kind of <code class="computeroutput"><span class="identifier">Addability</span></code>
+        and <code class="computeroutput"><span class="identifier">Subtractability</span></code> allows
+        to compute a lot of useful aggregation results on an <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_map's</a></code>
+        associated values, just by adding and subtracting value pairs. Various examples
+        of <span class="emphasis"><em><span class="bold"><strong>aggregate on overlap</strong></span></em></span>
+        are given in <a class="link" href="../examples.html" title="Examples">section examples</a>.
+        In addition, this concept of <code class="computeroutput"><span class="identifier">Addability</span></code>
+        and <code class="computeroutput"><span class="identifier">Subtractability</span></code> contains
+        the classical <code class="computeroutput"><span class="identifier">Insertability</span></code>
+        and <code class="computeroutput"><span class="identifier">Erasability</span></code> of key value
+        pairs as a special case so it provides a broader new semantics without loss
+        of the <span class="emphasis"><em>classical</em></span> one.
+      </p>
+<p>
+        Aggregation is implemented for functions <code class="computeroutput"><span class="identifier">add</span></code>
+        and <code class="computeroutput"><span class="identifier">subtract</span></code> by propagating
+        a <code class="computeroutput"><span class="identifier">Combiner</span></code> functor to combine
+        associated values of type <code class="computeroutput"><span class="identifier">CodomainT</span></code>.
+        The standard <code class="computeroutput"><span class="identifier">Combiner</span></code> is
+        set as default template parameter <code class="computeroutput"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">Combine</span> <span class="special">=</span> <span class="identifier">inplace_plus</span></code>, which is again generically
+        implemented by <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+=</span></code>
+        for all Addable types.
+      </p>
+<p>
+        For <code class="computeroutput"><span class="identifier">Combine</span></code> functors, the
+        Icl provides an <code class="computeroutput"><a class="link" href="../../boost/icl/inverse.html" title="Struct template inverse">inverse</a></code>
+        functor.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                <code class="computeroutput"><span class="identifier">Combine</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </th>
+<th>
+              <p>
+                <code class="computeroutput"><span class="identifier">inverse</span><span class="special">&lt;</span><span class="identifier">Combine</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span>
+                <span class="special">&gt;::</span><span class="identifier">type</span></code>
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/inplace_plus.html" title="Struct template inplace_plus">inplace_plus</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/inplace_minus.html" title="Struct template inplace_minus">inplace_minus</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/inplace_et.html" title="Struct template inplace_et">inplace_et</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/inplace_caret.html" title="Struct template inplace_caret">inplace_caret</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/inplace_star.html" title="Struct template inplace_star">inplace_star</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/inplace_slash.html" title="Struct template inplace_slash">inplace_slash</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/inplace_max.html" title="Struct template inplace_max">inplace_max</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/inplace_min.html" title="Struct template inplace_min">inplace_min</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/inplace_identity.html" title="Struct template inplace_identity">inplace_identity</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/inplace_erasure.html" title="Struct template inplace_erasure">inplace_erasure</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Functor</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../../boost/icl/inplace_erasure.html" title="Struct template inplace_erasure">inplace_erasure</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        The meta function <code class="computeroutput"><a class="link" href="../../boost/icl/inverse.html" title="Struct template inverse">inverse</a></code>
+        is mutually implemented for all but the default functor <code class="computeroutput"><span class="identifier">Functor</span></code>
+        such that e.g. <code class="computeroutput"><span class="identifier">inverse</span><span class="special">&lt;</span><span class="identifier">inplace_minus</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span></code>
+        yields <code class="computeroutput"><span class="identifier">inplace_plus</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>.
+        Not in every case, e.g. <code class="computeroutput"><span class="identifier">max</span><span class="special">/</span><span class="identifier">min</span></code>, does
+        the <code class="computeroutput"><a class="link" href="../../boost/icl/inverse.html" title="Struct template inverse">inverse</a></code> functor invert
+        the effect of it's antetype. But for the default it does:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+              </p>
+              </th>
+<th>
+              <p>
+                <code class="computeroutput"><span class="identifier">_add</span><span class="special">&lt;</span><span class="identifier">Combine</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;</span>
+                <span class="special">&gt;((</span><span class="identifier">k</span><span class="special">,</span><span class="identifier">x</span><span class="special">))</span></code>
+              </p>
+              </th>
+<th>
+              <p>
+                <code class="computeroutput"><span class="identifier">_subtract</span><span class="special">&lt;</span><span class="identifier">inverse</span><span class="special">&lt;</span><span class="identifier">Combine</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;</span>
+                <span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;((</span><span class="identifier">k</span><span class="special">,</span><span class="identifier">x</span><span class="special">))</span></code>
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                Instance
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">_add</span><span class="special">&lt;</span><span class="identifier">inplace_plus</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span>
+                <span class="special">&gt;((</span><span class="identifier">k</span><span class="special">,</span><span class="identifier">x</span><span class="special">))</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">_subtract</span><span class="special">&lt;</span><span class="identifier">inplace_minus</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span>
+                <span class="special">&gt;((</span><span class="identifier">k</span><span class="special">,</span><span class="identifier">x</span><span class="special">))</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Inversion
+              </p>
+              </td>
+<td>
+              <p>
+                adds <code class="computeroutput"><span class="identifier">x</span></code> on overlap.
+                This inverts a preceding <code class="computeroutput"><span class="identifier">subtract</span></code>
+                of <code class="computeroutput"><span class="identifier">x</span></code> on <code class="computeroutput"><span class="identifier">k</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                subtracts <code class="computeroutput"><span class="identifier">x</span></code> on overlap.
+                This inverts a preceding <code class="computeroutput"><span class="identifier">add</span></code>
+                of <code class="computeroutput"><span class="identifier">x</span></code> on <code class="computeroutput"><span class="identifier">k</span></code>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        As already mentioned aggregating <code class="computeroutput"><span class="identifier">Addability</span></code>
+        and <code class="computeroutput"><span class="identifier">Subtractability</span></code> on <code class="computeroutput"><span class="identifier">Maps</span></code> contains the <span class="emphasis"><em>classical</em></span>
+        <code class="computeroutput"><span class="identifier">Insertability</span></code> and <code class="computeroutput"><span class="identifier">Erasability</span></code> of key value pairs as a special
+        case:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                aggregating function
+              </p>
+              </th>
+<th>
+              <p>
+                equivalent <span class="emphasis"><em>classical</em></span> function
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">_add</span><span class="special">&lt;</span><span class="identifier">inplace_identity</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;</span>
+                <span class="special">&gt;(</span><span class="keyword">const</span>
+                <span class="identifier">value_type</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">insert</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">_subtract</span><span class="special">&lt;</span><span class="identifier">inplace_erasure</span><span class="special">&lt;</span><span class="identifier">CodomainT</span><span class="special">&gt;</span>
+                <span class="special">&gt;(</span><span class="keyword">const</span>
+                <span class="identifier">value_type</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">erase</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        The aggregating member function templates <code class="computeroutput"><span class="identifier">_add</span></code>
+        and <code class="computeroutput"><span class="identifier">_subtract</span></code> are not in
+        the public interface of <code class="computeroutput"><a class="link" href="../../boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_maps</a></code>,
+        because the <code class="computeroutput"><span class="identifier">Combine</span></code> functor
+        is intended to be an invariant of <code class="computeroutput"><a class="link" href="../../boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_map's</a></code>
+        template instance to avoid, that clients spoil the aggregation by accidentally
+        calling varying aggregation functors. But you could instantiate an <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code> to have <code class="computeroutput"><span class="identifier">insert</span><span class="special">/</span><span class="identifier">erase</span></code> semantics this way: 
+</p>
+<pre class="programlisting"><span class="identifier">interval_map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">partial_absorber</span><span class="special">,</span>
+             <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">,</span>
+             <span class="identifier">inplace_identity</span> <span class="comment">//Combine parameter specified
+</span>            <span class="special">&gt;</span> <span class="identifier">m</span><span class="special">;</span> 
+<span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">itv</span> <span class="special">=</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">rightopen</span><span class="special">(</span><span class="number">2</span><span class="special">,</span><span class="number">7</span><span class="special">);</span>
+<span class="identifier">m</span><span class="special">.</span><span class="identifier">add</span><span class="special">(</span><span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">itv</span><span class="special">,</span><span class="number">42</span><span class="special">));</span>      <span class="comment">//same as insert
+</span><span class="identifier">m</span><span class="special">.</span><span class="identifier">subtract</span><span class="special">(</span><span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">itv</span><span class="special">,</span><span class="number">42</span><span class="special">));</span> <span class="comment">//same as erase 
+</span></pre>
+<p>
+      </p>
+<p>
+        This is, of course, only a clarifying example. Member functions <code class="computeroutput"><span class="identifier">insert</span></code> and <code class="computeroutput"><span class="identifier">erase</span></code>
+        are available in <code class="computeroutput"><a class="link" href="../../boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_map's</a></code>
+        interface so they can be called directly.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sets_and_maps.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="map_traits.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

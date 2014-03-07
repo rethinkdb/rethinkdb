@@ -1,0 +1,73 @@
+#!/usr/bin/make -f
+# Sample debian/rules that uses debhelper.
+# GNU copyright 1997 to 1999 by Joey Hess.
+# GNU copyright 2001 by Yann Dirson.
+
+# This is the debian/rules file for packages jam and ftjam
+# It should be usable with both packages without any change
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# This is the debhelper compatability version to use.
+export DH_COMPAT=3
+
+topdir=$(shell pwd)
+
+jam=bjam
+binname=bjam
+
+build: build-stamp
+build-stamp: debian/jam.1
+	dh_testdir
+
+	./build.sh
+
+	touch build-stamp
+
+%.1: %.man.sgml
+	/usr/bin/docbook-to-man $< > $@
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	rm -rf bin.*
+	rm -f jam0 debian/jam.1
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+	install -d ${topdir}/debian/${jam}/usr/bin
+	install -m755 bin.linuxx86/bjam ${topdir}/debian/${jam}/usr/bin/
+	install -d ${topdir}/debian/${jam}/usr/share/man/man1/
+	install -m644 debian/jam.1 ${topdir}/debian/${jam}/usr/share/man/man1/${binname}.1
+
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installdocs README RELNOTES Jambase *.html
+#	dh_installemacsen
+#	dh_undocumented
+	dh_installchangelogs 
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure

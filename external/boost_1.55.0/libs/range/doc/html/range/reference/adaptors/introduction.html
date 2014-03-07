@@ -1,0 +1,276 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introduction and motivation</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../adaptors.html" title="Range Adaptors">
+<link rel="prev" href="../adaptors.html" title="Range Adaptors">
+<link rel="next" href="general_requirements.html" title="General Requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../adaptors.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../adaptors.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="general_requirements.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_adaptors_introduction">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="range.reference.adaptors.introduction"></a><a class="link" href="introduction.html" title="Introduction and motivation">Introduction
+        and motivation</a>
+</h4></div></div></div>
+<p>
+          A <span class="bold"><strong>Range Adaptor</strong></span> is a class that wraps
+          an existing Range to provide a new Range with different behaviour. Since
+          the behaviour of Ranges is determined by their associated iterators, a
+          Range Adaptor simply wraps the underlying iterators with new special iterators.
+          In this example
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">adaptors</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">vec</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span> <span class="identifier">vec</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">reversed</span><span class="special">,</span>
+             <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream_iterator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">)</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          the iterators from <code class="computeroutput"><span class="identifier">vec</span></code>
+          are wrapped <code class="computeroutput"><span class="identifier">reverse_iterator</span></code>s.
+          The type of the underlying Range Adapter is not documented because you
+          do not need to know it. All that is relevant is that the expression
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">vec</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">reversed</span>
+</pre>
+<p>
+        </p>
+<p>
+          returns a Range Adaptor where the iterator type is now the iterator type
+          of the range <code class="computeroutput"><span class="identifier">vec</span></code> wrapped
+          in <code class="computeroutput"><span class="identifier">reverse_iterator</span></code>. The
+          expression <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">reversed</span></code> is called an <span class="bold"><strong>Adaptor
+          Generator</strong></span>.
+        </p>
+<p>
+          There are two ways of constructing a range adaptor. The first is by using
+          <code class="computeroutput"><span class="keyword">operator</span><span class="special">|()</span></code>.
+          This is my preferred technique, however while discussing range adaptors
+          with others it became clear that some users of the library strongly prefer
+          a more familiar function syntax, so equivalent functions of the present
+          tense form have been added as an alternative syntax. The equivalent to
+          <code class="computeroutput"><span class="identifier">rng</span> <span class="special">|</span>
+          <span class="identifier">reversed</span></code> is <code class="computeroutput"><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">reverse</span><span class="special">(</span><span class="identifier">rng</span><span class="special">)</span></code> for example.
+        </p>
+<p>
+          Why do I prefer the <code class="computeroutput"><span class="keyword">operator</span><span class="special">|</span></code> syntax? The answer is readability:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">vec</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">reverse</span><span class="special">(</span><span class="identifier">vec</span><span class="special">),</span>
+             <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream_iterator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">)</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          This might not look so bad, but when we apply several adaptors, it becomes
+          much worse. Just compare
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">vec</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">unique</span><span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">reverse</span><span class="special">(</span> <span class="identifier">vec</span> <span class="special">)</span> <span class="special">),</span>
+             <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream_iterator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">)</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          to
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">vec</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span> <span class="identifier">vec</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">reversed</span>
+                 <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">uniqued</span><span class="special">,</span>
+             <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream_iterator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">)</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          Furthermore, some of the adaptor generators take arguments themselves and
+          these arguments are expressed with function call notation too. In those
+          situations, you will really appreciate the succinctness of <code class="computeroutput"><span class="keyword">operator</span><span class="special">|()</span></code>.
+        </p>
+<h6>
+<a name="range.reference.adaptors.introduction.h0"></a>
+          <span><a name="range.reference.adaptors.introduction.composition_of_adaptors"></a></span><a class="link" href="introduction.html#range.reference.adaptors.introduction.composition_of_adaptors">Composition
+          of Adaptors</a>
+        </h6>
+<p>
+          Range Adaptors are a powerful complement to Range algorithms. The reason
+          is that adaptors are <span class="emphasis"><em><span class="bold"><strong>orthogonal</strong></span></em></span>
+          to algorithms. For example, consider these Range algorithms:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">out</span> <span class="special">)</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">count</span><span class="special">(</span>
+              <span class="identifier">rng</span><span class="special">,</span>
+              <span class="identifier">pred</span> <span class="special">)</span></code>
+            </li>
+</ul></div>
+<p>
+          What should we do if we only want to copy an element <code class="computeroutput"><span class="identifier">a</span></code>
+          if it satisfies some predicate, say <code class="computeroutput"><span class="identifier">pred</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code>?
+          And what if we only want to count the elements that satisfy the same predicate?
+          The naive answer would be to use these algorithms:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">copy_if</span><span class="special">(</span>
+              <span class="identifier">rng</span><span class="special">,</span>
+              <span class="identifier">pred</span><span class="special">,</span>
+              <span class="identifier">out</span> <span class="special">)</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">count_if</span><span class="special">(</span>
+              <span class="identifier">rng</span><span class="special">,</span>
+              <span class="identifier">pred</span> <span class="special">)</span></code>
+            </li>
+</ul></div>
+<p>
+          These algorithms are only defined to maintain a one to one relationship
+          with the standard library algorithms. This approach of adding algorithm
+          suffers a combinatorial explosion. Inevitably many algorithms are missing
+          <code class="computeroutput"><span class="identifier">_if</span></code> variants and there
+          is redundant development overhead for each new algorithm. The Adaptor Generator
+          is the design solution to this problem.
+        </p>
+<h6>
+<a name="range.reference.adaptors.introduction.h1"></a>
+          <span><a name="range.reference.adaptors.introduction.range_adaptor_alternative_to_copy_if_algorithm"></a></span><a class="link" href="introduction.html#range.reference.adaptors.introduction.range_adaptor_alternative_to_copy_if_algorithm">Range
+          Adaptor alternative to copy_if algorithm</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">copy_if</span><span class="special">(</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">pred</span><span class="special">,</span> <span class="identifier">out</span> <span class="special">);</span>
+</pre>
+<p>
+          can be expressed as
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span> <span class="identifier">rng</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">filtered</span><span class="special">(</span><span class="identifier">pred</span><span class="special">),</span> <span class="identifier">out</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="range.reference.adaptors.introduction.h2"></a>
+          <span><a name="range.reference.adaptors.introduction.range_adaptor_alternative_to_count_if_algorithm"></a></span><a class="link" href="introduction.html#range.reference.adaptors.introduction.range_adaptor_alternative_to_count_if_algorithm">Range
+          Adaptor alternative to count_if algorithm</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">count_if</span><span class="special">(</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">pred</span> <span class="special">);</span>
+</pre>
+<p>
+          can be expressed as
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">count</span><span class="special">(</span> <span class="identifier">rng</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">filtered</span><span class="special">(</span><span class="identifier">pred</span><span class="special">),</span> <span class="identifier">out</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          What this means is that <span class="emphasis"><em><span class="bold"><strong>no</strong></span></em></span>
+          algorithm with the <code class="computeroutput"><span class="identifier">_if</span></code>
+          suffix is needed. Furthermore, it turns out that algorithms with the <code class="computeroutput"><span class="identifier">_copy</span></code> suffix are not needed either. Consider
+          the somewhat misdesigned <code class="computeroutput"><span class="identifier">replace_copy_if</span><span class="special">()</span></code> which may be used as
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">vec</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">replace_copy_if</span><span class="special">(</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">back_inserter</span><span class="special">(</span><span class="identifier">vec</span><span class="special">),</span> <span class="identifier">pred</span><span class="special">,</span> <span class="identifier">new_value</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          With adaptors and algorithms we can express this as
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">vec</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">vec</span><span class="special">,</span> <span class="identifier">rng</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">replaced_if</span><span class="special">(</span><span class="identifier">pred</span><span class="special">,</span> <span class="identifier">new_value</span><span class="special">));</span>
+</pre>
+<p>
+        </p>
+<p>
+          The latter code has several benefits:
+        </p>
+<p>
+          1. it is more <span class="emphasis"><em><span class="bold"><strong>efficient</strong></span></em></span>
+          because we avoid extra allocations as might happen with <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">back_inserter</span></code>
+        </p>
+<p>
+          2. it is <span class="emphasis"><em><span class="bold"><strong>flexible</strong></span></em></span>
+          as we can subsequently apply even more adaptors, for example:
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">vec</span><span class="special">,</span> <span class="identifier">rng</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">replaced_if</span><span class="special">(</span><span class="identifier">pred</span><span class="special">,</span> <span class="identifier">new_value</span><span class="special">)</span>
+                          <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">reversed</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          3. it is <span class="emphasis"><em><span class="bold"><strong>safer</strong></span></em></span> because
+          there is no use of an unbounded output iterator.
+        </p>
+<p>
+          In this manner, the <span class="emphasis"><em><span class="bold"><strong>composition</strong></span></em></span>
+          of Range Adaptors has the following consequences:
+        </p>
+<p>
+          1. we no longer need <code class="computeroutput"><span class="identifier">_if</span></code>,
+          <code class="computeroutput"><span class="identifier">_copy</span></code>, <code class="computeroutput"><span class="identifier">_copy_if</span></code>
+          and <code class="computeroutput"><span class="identifier">_n</span></code> variants of algorithms.
+        </p>
+<p>
+          2. we can generate a multitude of new algorithms on the fly, for example,
+          above we generated <code class="computeroutput"><span class="identifier">reverse_replace_copy_if</span><span class="special">()</span></code>
+        </p>
+<p>
+          In other words:
+        </p>
+<p>
+          <span class="bold"><strong>Range Adaptors are to algorithms what algorithms
+          are to containers</strong></span>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../adaptors.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../adaptors.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="general_requirements.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

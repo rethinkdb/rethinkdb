@@ -1,0 +1,112 @@
+# log-architecture.jam
+#
+# Copyright 2012 Steven Watanabe
+# Copyright 2013 Andrey Semashev
+#
+# Distributed under the Boost Software License Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import configure ;
+import project ;
+import path ;
+import property ;
+import feature ;
+
+local here = [ modules.binding $(__name__) ] ;
+
+feature.feature log-architecture : : free ;
+feature.feature log-address-model : : free ;
+feature.feature log-instruction-set : : free ;
+
+project.push-current [ project.current ] ;
+project.load [ path.join [ path.make $(here:D) ] ../../context/config ] ;
+project.pop-current ;
+
+rule deduce-address-model ( properties * )
+{
+    local address_model = [ feature.get-values "address-model" : $(properties) ] ;
+    if $(address_model)
+    {
+        return <log-address-model>$(address_model) ;
+    }
+    else
+    {
+        if [ configure.builds /boost/architecture//32 : $(properties) : 32-bit ]
+        {
+            return <log-address-model>32 ;
+        }
+        else if [ configure.builds /boost/architecture//64 : $(properties) : 64-bit ]
+        {
+            return <log-address-model>64 ;
+        }
+    }
+}
+
+rule address-model ( )
+{
+    return <conditional>@log-architecture.deduce-address-model ;
+}
+
+rule deduce-architecture ( properties * )
+{
+    local architecture = [ feature.get-values "architecture" : $(properties) ] ;
+    if $(architecture)
+    {
+        return <log-architecture>$(architecture) ;
+    }
+    else
+    {
+        if [ configure.builds /boost/architecture//x86 : $(properties) : x86 ]
+        {
+            return <log-architecture>x86 ;
+        }
+        else if [ configure.builds /boost/architecture//arm : $(properties) : arm ]
+        {
+            return <log-architecture>arm ;
+        }
+        else if [ configure.builds /boost/architecture//mips1 : $(properties) : mips1 ]
+        {
+            return <log-architecture>mips1 ;
+        }
+        else if [ configure.builds /boost/architecture//power : $(properties) : power ]
+        {
+            return <log-architecture>power ;
+        }
+        else if [ configure.builds /boost/architecture//sparc : $(properties) : sparc ]
+        {
+            return <log-architecture>sparc ;
+        }
+    }
+}
+
+rule architecture ( )
+{
+    return <conditional>@log-architecture.deduce-architecture ;
+}
+
+rule deduce-instruction-set ( properties * )
+{
+    local result ;
+    local instruction_set = [ feature.get-values "instruction-set" : $(properties) ] ;
+
+    if $(instruction_set)
+    {
+        result = <log-instruction-set>$(instruction_set) ;
+    }
+    else
+    {
+        if <log-architecture>x86 in $(properties) && <log-address-model>32 in $(properties)
+        {
+            # We build for Pentium Pro and later CPUs by default. This is used as the target in many Linux distributions, and Windows and OS X also seem to not support older CPUs.
+            result = <log-instruction-set>i686 ;
+        }
+    }
+
+    return $(result) ;
+}
+
+rule instruction-set ( )
+{
+    return <conditional>@log-architecture.deduce-instruction-set ;
+}

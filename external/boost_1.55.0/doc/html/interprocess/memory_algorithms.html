@@ -1,0 +1,173 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Memory allocation algorithms</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../interprocess.html" title="Chapter&#160;14.&#160;Boost.Interprocess">
+<link rel="prev" href="allocators_containers.html" title="Allocators, containers and memory allocation algorithms">
+<link rel="next" href="streams.html" title="Direct iostream formatting: vectorstream and bufferstream">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="allocators_containers.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="streams.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="interprocess.memory_algorithms"></a><a class="link" href="memory_algorithms.html" title="Memory allocation algorithms">Memory allocation algorithms</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="memory_algorithms.html#interprocess.memory_algorithms.simple_seq_fit">simple_seq_fit:
+      A simple shared memory management algorithm</a></span></dt>
+<dt><span class="section"><a href="memory_algorithms.html#interprocess.memory_algorithms.rbtree_best_fit">rbtree_best_fit:
+      Best-fit logarithmic-time complexity allocation</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.memory_algorithms.simple_seq_fit"></a><a class="link" href="memory_algorithms.html#interprocess.memory_algorithms.simple_seq_fit" title="simple_seq_fit: A simple shared memory management algorithm">simple_seq_fit:
+      A simple shared memory management algorithm</a>
+</h3></div></div></div>
+<p>
+        The algorithm is a variation of sequential fit using singly linked list of
+        free memory buffers. The algorithm is based on the article about shared memory
+        titled <a href="http://home.earthlink.net/~joshwalker1/writing/SharedMemory.html" target="_top"><span class="emphasis"><em>"Taming
+        Shared Memory"</em></span> </a>. The algorithm is as follows:
+      </p>
+<p>
+        The shared memory is divided in blocks of free shared memory, each one with
+        some control data and several bytes of memory ready to be used. The control
+        data contains a pointer (in our case offset_ptr) to the next free block and
+        the size of the block. The allocator consists of a singly linked list of
+        free blocks, ordered by address. The last block, points always to the first
+        block:
+      </p>
+<pre class="programlisting"><span class="identifier">simple_seq_fit</span> <span class="identifier">memory</span> <span class="identifier">layout</span><span class="special">:</span>
+
+    <span class="identifier">main</span>      <span class="identifier">extra</span>  <span class="identifier">allocated</span>  <span class="identifier">free_block_1</span>     <span class="identifier">allocated</span>   <span class="identifier">free_block_2</span>    <span class="identifier">allocated</span>   <span class="identifier">free_block_3</span>
+    <span class="identifier">header</span>    <span class="identifier">header</span>  <span class="identifier">block</span>       <span class="identifier">ctrl</span>     <span class="identifier">usr</span>     <span class="identifier">block</span>      <span class="identifier">ctrl</span>     <span class="identifier">usr</span>     <span class="identifier">block</span>      <span class="identifier">ctrl</span>     <span class="identifier">usr</span>
+   <span class="identifier">_________</span>  <span class="identifier">_____</span>  <span class="identifier">_________</span>  <span class="identifier">_______________</span>  <span class="identifier">_________</span>  <span class="identifier">_______________</span>  <span class="identifier">_________</span>  <span class="identifier">_______________</span>
+  <span class="special">|</span>         <span class="special">||</span>     <span class="special">||</span>         <span class="special">||</span>         <span class="special">|</span>     <span class="special">||</span>         <span class="special">||</span>         <span class="special">|</span>     <span class="special">||</span>         <span class="special">||</span>         <span class="special">|</span>     <span class="special">|</span>
+  <span class="special">|</span><span class="identifier">free</span><span class="special">|</span><span class="identifier">ctrl</span><span class="special">||</span><span class="identifier">extra</span><span class="special">||</span>         <span class="special">||</span><span class="identifier">next</span><span class="special">|</span><span class="identifier">size</span><span class="special">|</span> <span class="identifier">mem</span> <span class="special">||</span>         <span class="special">||</span><span class="identifier">next</span><span class="special">|</span><span class="identifier">size</span><span class="special">|</span> <span class="identifier">mem</span> <span class="special">||</span>         <span class="special">||</span><span class="identifier">next</span><span class="special">|</span><span class="identifier">size</span><span class="special">|</span> <span class="identifier">mem</span> <span class="special">|</span>
+  <span class="special">|</span><span class="identifier">_________</span><span class="special">||</span><span class="identifier">_____</span><span class="special">||</span><span class="identifier">_________</span><span class="special">||</span><span class="identifier">_________</span><span class="special">|</span><span class="identifier">_____</span><span class="special">||</span><span class="identifier">_________</span><span class="special">||</span><span class="identifier">_________</span><span class="special">|</span><span class="identifier">_____</span><span class="special">||</span><span class="identifier">_________</span><span class="special">||</span><span class="identifier">_________</span><span class="special">|</span><span class="identifier">_____</span><span class="special">|</span>
+      <span class="special">|</span>                         <span class="special">|</span> <span class="special">|</span>                         <span class="special">|</span>  <span class="special">|</span>                       <span class="special">|</span> <span class="special">|</span>
+      <span class="special">|</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">|</span> <span class="special">|</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">|</span>  <span class="special">|</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">&gt;</span><span class="identifier">_</span><span class="special">|</span> <span class="special">|</span>
+                                <span class="special">|</span>                                                        <span class="special">|</span>
+                                <span class="special">|</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">_</span><span class="special">&lt;</span><span class="identifier">__</span><span class="special">|</span>
+</pre>
+<p>
+        When a user requests N bytes of memory, the allocator traverses the free
+        block list looking for a block large enough. If the "mem" part
+        of the block has the same size as the requested memory, we erase the block
+        from the list and return a pointer to the "mem" part of the block.
+        If the "mem" part size is bigger than needed, we split the block
+        in two blocks, one of the requested size and the other with remaining size.
+        Now, we take the block with the exact size, erase it from list and give it
+        to the user.
+      </p>
+<p>
+        When the user deallocates a block, we traverse the list (remember that the
+        list is ordered), and search its place depending on the block address. Once
+        found, we try to merge the block with adjacent blocks if possible.
+      </p>
+<p>
+        To ease implementation, the size of the free memory block is measured in
+        multiples of "basic_size" bytes. The basic size will be the size
+        of the control block aligned to machine most restrictive alignment.
+      </p>
+<p>
+        This algorithm is a low size overhead algorithm suitable for simple allocation
+        schemes. This algorithm should only be used when size is a major concern,
+        because the performance of this algorithm suffers when the memory is fragmented.
+        This algorithm has linear allocation and deallocation time, so when the number
+        of allocations is high, the user should use a more performance-friendly algorithm.
+      </p>
+<p>
+        In most 32 systems, with 8 byte alignment, "basic_size" is 8 bytes.
+        This means that an allocation request of 1 byte leads to the creation of
+        a 16 byte block, where 8 bytes are available to the user. The allocation
+        of 8 bytes leads also to the same 16 byte block.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.memory_algorithms.rbtree_best_fit"></a><a class="link" href="memory_algorithms.html#interprocess.memory_algorithms.rbtree_best_fit" title="rbtree_best_fit: Best-fit logarithmic-time complexity allocation">rbtree_best_fit:
+      Best-fit logarithmic-time complexity allocation</a>
+</h3></div></div></div>
+<p>
+        This algorithm is an advanced algorithm using red-black trees to sort the
+        free portions of the memory segment by size. This allows logarithmic complexity
+        allocation. Apart from this, a doubly-linked list of all portions of memory
+        (free and allocated) is maintained to allow constant-time access to previous
+        and next blocks when doing merging operations.
+      </p>
+<p>
+        The data used to create the red-black tree of free nodes is overwritten by
+        the user since it's no longer used once the memory is allocated. This maintains
+        the memory size overhead down to the doubly linked list overhead, which is
+        pretty small (two pointers). Basically this is the scheme:
+      </p>
+<pre class="programlisting"><span class="identifier">rbtree_best_fit</span> <span class="identifier">memory</span> <span class="identifier">layout</span><span class="special">:</span>
+
+   <span class="identifier">main</span>            <span class="identifier">allocated</span> <span class="identifier">block</span>   <span class="identifier">free</span> <span class="identifier">block</span>                        <span class="identifier">allocated</span> <span class="identifier">block</span>  <span class="identifier">free</span> <span class="identifier">block</span>
+   <span class="identifier">header</span>
+  <span class="identifier">_______________</span>  <span class="identifier">_______________</span>  <span class="identifier">_________________________________</span>  <span class="identifier">_______________</span>  <span class="identifier">_________________________________</span>
+ <span class="special">|</span>               <span class="special">||</span>         <span class="special">|</span>     <span class="special">||</span>         <span class="special">|</span>                 <span class="special">|</span>     <span class="special">||</span>         <span class="special">|</span>     <span class="special">||</span>         <span class="special">|</span>                 <span class="special">|</span>     <span class="special">|</span>
+ <span class="special">|</span>  <span class="identifier">main</span> <span class="identifier">header</span>  <span class="special">||</span><span class="identifier">next</span><span class="special">|</span><span class="identifier">prev</span><span class="special">|</span> <span class="identifier">mem</span> <span class="special">||</span><span class="identifier">next</span><span class="special">|</span><span class="identifier">prev</span><span class="special">|</span><span class="identifier">left</span><span class="special">|</span><span class="identifier">right</span><span class="special">|</span><span class="identifier">parent</span><span class="special">|</span> <span class="identifier">mem</span> <span class="special">||</span><span class="identifier">next</span><span class="special">|</span><span class="identifier">prev</span><span class="special">|</span> <span class="identifier">mem</span> <span class="special">||</span><span class="identifier">next</span><span class="special">|</span><span class="identifier">prev</span><span class="special">|</span><span class="identifier">left</span><span class="special">|</span><span class="identifier">right</span><span class="special">|</span><span class="identifier">parent</span><span class="special">|</span> <span class="identifier">mem</span> <span class="special">|</span>
+ <span class="special">|</span><span class="identifier">_______________</span><span class="special">||</span><span class="identifier">_________</span><span class="special">|</span><span class="identifier">_____</span><span class="special">||</span><span class="identifier">_________</span><span class="special">|</span><span class="identifier">_________________</span><span class="special">|</span><span class="identifier">_____</span><span class="special">||</span><span class="identifier">_________</span><span class="special">|</span><span class="identifier">_____</span><span class="special">||</span><span class="identifier">_________</span><span class="special">|</span><span class="identifier">_________________</span><span class="special">|</span><span class="identifier">_____</span><span class="special">|</span>
+</pre>
+<p>
+        This allocation algorithm is pretty fast and scales well with big shared
+        memory segments and big number of allocations. To form a block a minimum
+        memory size is needed: the sum of the doubly linked list and the red-black
+        tree control data. The size of a block is measured in multiples of the most
+        restrictive alignment value.
+      </p>
+<p>
+        In most 32 systems with 8 byte alignment the minimum size of a block is 24
+        byte. When a block is allocated the control data related to the red black
+        tree is overwritten by the user (because it's only needed for free blocks).
+      </p>
+<p>
+        In those systems a 1 byte allocation request means that:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            24 bytes of memory from the segment are used to form a block.
+          </li>
+<li class="listitem">
+            16 bytes of them are usable for the user.
+          </li>
+</ul></div>
+<p>
+        For really small allocations (&lt;= 8 bytes), this algorithm wastes more
+        memory than the simple sequential fit algorithm (8 bytes more). For allocations
+        bigger than 8 bytes the memory overhead is exactly the same. This is the
+        default allocation algorithm in <span class="bold"><strong>Boost.Interprocess</strong></span>
+        managed memory segments.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="allocators_containers.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="streams.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

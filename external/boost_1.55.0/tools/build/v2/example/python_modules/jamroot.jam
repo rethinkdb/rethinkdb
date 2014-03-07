@@ -1,0 +1,8 @@
+# Copyright 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+import python_helpers ;
+
+ECHO "test1:" [ python_helpers.test1 ] ;
+ECHO "test2:" [ python_helpers.test2 1234 : 5678 ] ;

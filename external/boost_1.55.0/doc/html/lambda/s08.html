@@ -1,0 +1,184 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Relation to other Boost libraries</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../lambda.html" title="Chapter&#160;16.&#160;Boost.Lambda">
+<link rel="prev" href="s07.html" title="Practical considerations">
+<link rel="next" href="s09.html" title="Contributors">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="s07.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="s09.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="idp153639224"></a>Relation to other Boost libraries</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="s08.html#idp153639592">Boost Function</a></span></dt>
+<dt><span class="section"><a href="s08.html#idp153645176">Boost Bind</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp153639592"></a>Boost Function</h3></div></div></div>
+<p>Sometimes it is convenient to store lambda functors in variables.
+However, the types of even the simplest lambda functors are long and unwieldy, and it is in general unfeasible to declare variables with lambda functor types.
+<span class="emphasis"><em>The Boost Function library</em></span> <a class="xref" href="../lambda.html#cit:boost::function" title="Boost Function Library">[<abbr class="abbrev">function</abbr>]</a> defines wrappers for arbitrary function objects, for example 
+lambda functors; and these wrappers have types that are easy to type out.
+
+For example:
+
+</p>
+<pre class="programlisting">
+boost::function&lt;int(int, int)&gt; f = _1 + _2;
+boost::function&lt;int&amp;(int&amp;)&gt; g = (_1 += 10);
+int i = 1, j = 2;
+f(i, j); // returns 3
+g(i);    // sets i to = 11;
+</pre>
+<p>
+
+The return and parameter types of the wrapped function object must be written explicilty as the template argument to the wrapper template <code class="literal">boost::function</code>; even when lambda functors, which otherwise have generic parameters, are wrapped.
+Wrapping a function object with <code class="literal">boost::function</code> introduces a performance cost comparable to virtual function dispatch, though virtual functions are not actually used.
+
+Note that storing lambda functors inside <code class="literal">boost::function</code> 
+introduces a danger.
+Certain types of lambda functors may store references to the bound 
+arguments, instead as taking copies of the arguments of the lambda expression.
+When temporary lambda functor objects are used 
+in STL algorithm invocations this is always safe, as the lambda functor gets 
+destructed immediately after the STL algortihm invocation is completed.
+
+However, a lambda functor wrapped inside <code class="literal">boost::function</code> 
+may continue to exist longer, creating the possibility of dangling references.
+For example:
+
+</p>
+<pre class="programlisting">
+int* sum = new int();
+*sum = 0;
+boost::function&lt;int&amp;(int)&gt; counter = *sum += _1;
+counter(5); // ok, *sum = 5;
+delete sum; 
+counter(3); // error, *sum does not exist anymore
+</pre>
+<p>
+
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp153645176"></a>Boost Bind</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="s08.html#idp153648312">First argument of bind expression</a></span></dt></dl></div>
+<p>
+<span class="emphasis"><em>The Boost Bind</em></span> <a class="xref" href="../lambda.html#cit:boost::bind" title="Boost Bind Library">[<abbr class="abbrev">bind</abbr>]</a> library has partially overlapping functionality with the BLL. 
+Basically, the Boost Bind library (BB in the sequel) implements the bind expression part of BLL.
+There are, however, some semantical differerences.
+</p>
+<p>
+The BLL and BB evolved separately, and have different implementations. 
+This means that the bind expressions from the BB cannot be used within 
+bind expressions, or within other type of lambda expressions, of the BLL.
+The same holds for using BLL bind expressions in the BB.
+The libraries can coexist, however, as
+the names of the BB library are in <code class="literal">boost</code> namespace, 
+whereas the BLL names are in <code class="literal">boost::lambda</code> namespace.
+</p>
+<p>
+The BLL requires a compiler that is reasonably conformant to the 
+C++ standard, whereas the BB library is more portable, and works with 
+a larger set of compilers. 
+</p>
+<p>
+The following two sections describe what are the semantic differences 
+between the bind expressions in BB and BLL.
+</p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp153648312"></a>First argument of bind expression</h4></div></div></div>
+
+In BB the first argument of the bind expression, the target function, 
+is treated differently from the other arguments, 
+as no argument substitution takes place within that argument.
+In BLL the first argument is not a special case in this respect.
+
+For example:
+
+<pre class="programlisting">
+template&lt;class F&gt;
+int foo(const F&amp; f) {
+  int x;
+  ..
+  bind(f, _1)(x);
+  ...
+}
+</pre>
+<pre class="programlisting">
+int bar(int, int);
+nested(bind(bar, 1, _1));
+</pre>
+
+The bind expression inside <code class="literal">foo</code> becomes:
+<pre class="programlisting">
+bind(bind(bar, 1, _1), _1)(x)
+</pre>
+
+The BLL interpretes this as:
+<pre class="programlisting">
+bar(1, x)(x)
+</pre>
+whereas the BB library as
+<pre class="programlisting">
+bar(1, x)
+</pre>
+
+To get this functionality in BLL, the bind expression inside the <code class="literal">foo</code> function can be written as:
+<pre class="programlisting">
+bind(unlambda(f), _1)(x);
+</pre>
+as explained in <a class="xref" href="le_in_details.html#lambda.unlambda" title="Unlambda">the section called &#8220;Unlambda&#8221;</a>. 
+
+</div>
+<p>
+The BB library supports up to nine placeholders, while the BLL 
+defines only three placeholders. 
+The rationale for not providing more, is that the highest arity of the
+function objects accepted by any STL algorithm is two. 
+The placeholder count is easy to increase in the BB library.
+In BLL it is possible, but more laborous.
+The BLL currently passes the actual arguments to the lambda functors
+internally just as they are and does not wrap them inside a tuple object.
+The reason for this is that some widely used compilers are not capable
+of optimizing the intermediate tuple objects away. 
+The creation of the intermediate tuples would cause a significant
+performance hit, particularly for the simplest (and thus the most common) 
+lambda functors.  
+We are working on a hybrid approach, which will allow more placeholders
+but not compromise the performance of simple lambda functors.
+</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1999-2004 Jaakko J&#228;rvi, Gary Powell<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="s07.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="s09.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>How to Access Data in a Property Tree</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../property_tree.html" title="Chapter&#160;22.&#160;Boost.PropertyTree">
+<link rel="prev" href="parsers.html" title="How to Populate a Property Tree">
+<link rel="next" href="../property_tree/appendices.html" title="Appendices">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="parsers.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../property_tree.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../property_tree/appendices.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_propertytree.accessing"></a><a class="link" href="accessing.html" title="How to Access Data in a Property Tree">How to Access Data in a Property
+    Tree</a>
+</h2></div></div></div>
+<p>
+      Property tree resembles (almost is) a standard container with value type of
+      <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">ptree</span><span class="special">&gt;</span></code>.
+      It has the usual member functions, such as <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp96780456-bb">insert</a></code>,
+      <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp93976504-bb">push_back</a></code>,
+      <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp97927384-bb">find</a></code>,
+      <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp93982632-bb">erase</a></code>,
+      etc. These can of course be used to populate and access the tree. For example
+      the following code adds key <code class="computeroutput"><span class="string">"pi"</span></code>
+      with data (almost) equal to mathematical <span class="emphasis"><em>pi</em></span> value:
+    </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code> <span class="identifier">pt</span><span class="special">;</span>
+<span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp93976504-bb">push_back</a></code><span class="special">(</span><code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code><span class="special">::</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#boost.property_tree.basic_ptree.value_type">value_type</a></code><span class="special">(</span><span class="string">"pi"</span><span class="special">,</span> <code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code><span class="special">(</span><span class="string">"3.14159"</span><span class="special">)));</span>
+</pre>
+<p>
+      To find the value of <code class="computeroutput"><span class="identifier">pi</span></code> we
+      might do the following:
+    </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code><span class="special">::</span><code class="computeroutput">const_iterator</code> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp97927384-bb">find</a></code><span class="special">(</span><span class="string">"pi"</span><span class="special">);</span>
+<span class="keyword">double</span> <span class="identifier">pi</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">it</span><span class="special">-&gt;</span><span class="identifier">second</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp101689704-bb">data</a></code><span class="special">());</span>
+</pre>
+<p>
+      This looks quite cumbersome, and would be even more so if <code class="computeroutput"><span class="identifier">pi</span></code>
+      value was not stored so near the top of the tree, and we cared just a little
+      bit more about errors. Fortunately, there is another, correct way of doing
+      it:
+    </p>
+<pre class="programlisting"><span class="identifier">ptree</span> <span class="identifier">pt</span><span class="special">;</span>
+<span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a></code><span class="special">(</span><span class="string">"pi"</span><span class="special">,</span> <span class="number">3.14159</span><span class="special">);</span>                <span class="comment">// put double</span>
+<span class="keyword">double</span> <span class="identifier">pi</span> <span class="special">=</span> <span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="string">"pi"</span><span class="special">);</span>     <span class="comment">// get double</span>
+</pre>
+<p>
+      It doesn't get simpler than that. Basically, there are 2 families of member
+      functions, <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code>
+      and <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a></code>,
+      which allow intuitive access to data stored in the tree (direct children or
+      not).
+    </p>
+<h4>
+<a name="boost_propertytree.accessing.h0"></a>
+      <span class="phrase"><a name="boost_propertytree.accessing.three_ways_of_getting_data"></a></span><a class="link" href="accessing.html#boost_propertytree.accessing.three_ways_of_getting_data">Three Ways
+      of Getting Data</a>
+    </h4>
+<p>
+      There are three versions of get: get, get (default-value version), and get_optional,
+      which differ by failure handling strategy. All versions take path specifier,
+      which determines in which key to search for a value. It can be a single key,
+      or a path to key, where path elements are separated with a special character
+      (a '.' if not specified differently). For example debug.logging.errorlevel
+      might be a valid path with dot as a separator.
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          The throwing version (<code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code>):
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code> <span class="identifier">pt</span><span class="special">;</span>
+<span class="comment">/* ... */</span>
+<span class="keyword">float</span> <span class="identifier">v</span> <span class="special">=</span> <span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;(</span><span class="string">"a.path.to.float.value"</span><span class="special">);</span>
+</pre>
+          This call locates the proper node in the tree and tries to translate its
+          data string to a float value. If that fails, exception is thrown. If path
+          does not exist, it will be <code class="computeroutput"><a class="link" href="../boost/property_tree/ptree_bad_path.html" title="Class ptree_bad_path">ptree_bad_path</a></code>
+          exception. If value could not be translated, it will be <code class="computeroutput"><a class="link" href="../boost/property_tree/ptree_bad_data.html" title="Class ptree_bad_data">ptree_bad_data</a></code>.
+          Both of them derive from <code class="computeroutput"><a class="link" href="../boost/property_tree/ptree_error.html" title="Class ptree_error">ptree_error</a></code>
+          to make common handling possible.
+        </li>
+<li class="listitem">
+          The default-value version (<code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code>):
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code> <span class="identifier">pt</span><span class="special">;</span>
+<span class="comment">/* ... */</span>
+<span class="keyword">float</span> <span class="identifier">v</span> <span class="special">=</span> <span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code><span class="special">(</span><span class="string">"a.path.to.float.value"</span><span class="special">,</span> <span class="special">-</span><span class="number">1.f</span><span class="special">);</span>
+</pre>
+          It will do the same as above, but if it fails, it will return the default
+          value specified by second parameter (here -1.f) instead of throwing. This
+          is very useful in common situations where one wants to allow omitting of
+          some keys. Note that type specification needed in throwing version is normally
+          not necessary here, because type is determined by the default value parameter.
+        </li>
+<li class="listitem">
+          The optional version (<code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp97747048-bb">get_optional</a></code>):
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code> <span class="identifier">pt</span><span class="special">;</span>
+<span class="comment">/* ... */</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;</span> <span class="identifier">v</span> <span class="special">=</span> <span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp97747048-bb">get_optional</a></code><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;(</span><span class="string">"a.path.to.float.value"</span><span class="special">);</span>
+</pre>
+          This version uses boost::optional class to handle extraction failure. On
+          successful extraction, it will return boost::optional initialized with
+          extracted value. Otherwise, it will return uninitialized boost::optional.
+        </li>
+</ol></div>
+<p>
+      To retrieve a value from this tree (not some subkey), use <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp93987672-bb">get_value</a></code>,
+      <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp93987672-bb">get_value</a></code>
+      (default-value version), and <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102317000-bb">get_value_optional</a></code>.
+      They have identical semantics to <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code>
+      functions, except they don't take the <code class="computeroutput"><a class="link" href="../boost/property_tree/string_path.html" title="Class template string_path">path</a></code>
+      parameter. Don't call <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code>
+      with and empty <code class="computeroutput"><a class="link" href="../boost/property_tree/string_path.html" title="Class template string_path">path</a></code>
+      to do this as it will try to extract contents of subkey with empty name.
+    </p>
+<p>
+      To use a separator character other than default '<code class="literal">.</code>', you
+      need to construct a path object explicitly. The path type for a <code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code> is a string_path instantiation,
+      so the easiest way to refer to it is <code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code>::path_type.
+      This way you can use trees that have dots in their keys:
+    </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">ptree</span><span class="special">::</span><span class="identifier">path_type</span> <span class="identifier">path</span><span class="special">;</span>
+<span class="identifier">pt</span><span class="special">.</span><span class="identifier">get</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;(</span><span class="identifier">path</span><span class="special">(</span><span class="string">"p.a.t.h/t.o/v.a.l.u.e"</span><span class="special">,</span> <span class="char">'/'</span><span class="special">));</span>
+<span class="identifier">pt</span><span class="special">.</span><span class="identifier">get</span><span class="special">(</span><span class="identifier">path</span><span class="special">(</span><span class="string">"p.a.t.h/t.o/v.a.l.u.e"</span><span class="special">,</span> <span class="char">'/'</span><span class="special">),</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">NULL</span><span class="special">);</span>
+<span class="identifier">pt</span><span class="special">.</span><span class="identifier">get_optional</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="identifier">path</span><span class="special">(</span><span class="string">"p.a.t.h/t.o/v.a.l.u.e"</span><span class="special">,</span> <span class="char">'/'</span><span class="special">));</span>
+</pre>
+<p>
+      Note: the special overloads of <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code>
+      and <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp97747048-bb">get_optional</a></code>
+      taking a separator character that existed in pre-release versions of PropertyTree
+      have been removed. This is because the overloads conflicted with using per-call
+      data translators.
+    </p>
+<h4>
+<a name="boost_propertytree.accessing.h1"></a>
+      <span class="phrase"><a name="boost_propertytree.accessing.two_ways_of_putting_data"></a></span><a class="link" href="accessing.html#boost_propertytree.accessing.two_ways_of_putting_data">Two
+      Ways of Putting Data</a>
+    </h4>
+<p>
+      To complement <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code>,
+      there are <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a></code>
+      and <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp96747928-bb">add</a></code>.
+      Contrary to <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code>,
+      they have only one variant each. This is because there is no need to deal with
+      missing values when adding data. If the supplied value cannot be converted
+      to the tree's data type, the functions will throw <code class="computeroutput"><a class="link" href="../boost/property_tree/ptree_bad_data.html" title="Class ptree_bad_data">ptree_bad_data</a></code>.
+    </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code> <span class="identifier">pt</span><span class="special">;</span>
+<span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a></code><span class="special">(</span><span class="string">"a.path.to.float.value"</span><span class="special">,</span> <span class="number">3.14f</span><span class="special">);</span>
+<span class="comment">// Overwrites the value</span>
+<span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a></code><span class="special">(</span><span class="string">"a.path.to.float.value"</span><span class="special">,</span> <span class="number">2.72f</span><span class="special">);</span>
+<span class="comment">// Adds a second node with the new value.</span>
+<span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp96747928-bb">add</a></code><span class="special">(</span><span class="string">"a.path.to.float.value"</span><span class="special">,</span> <span class="number">3.14f</span><span class="special">);</span>
+</pre>
+<p>
+      Calling <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a></code>
+      will insert a new value at specified path, so that a call to <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code>
+      specifying the same path will retrieve it. Further, <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a></code>
+      will insert any missing path elements during path traversal. For example, calling
+      <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a><span class="special">(</span><span class="string">"key1.key2.key3"</span><span class="special">,</span> <span class="number">3.14f</span><span class="special">)</span></code>
+      on an empty tree will insert three new children: <code class="computeroutput"><span class="identifier">key1</span></code>,
+      <code class="computeroutput"><span class="identifier">key1</span><span class="special">.</span><span class="identifier">key2</span></code> and <code class="computeroutput"><span class="identifier">key1</span><span class="special">.</span><span class="identifier">key2</span><span class="special">.</span><span class="identifier">key3</span></code>. The last one will receive a string
+      <code class="computeroutput"><span class="string">"3.14"</span></code> as data, while
+      the two former ones will have empty data strings. <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a></code>
+      always inserts new keys at the back of the existing sequences. The difference
+      between <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a></code>
+      and <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp96747928-bb">add</a></code>
+      is that put will overwrite existing values if there are any, while add will
+      create a new node to hold the value even if the specified path references an
+      existing node.
+    </p>
+<p>
+      Similar to <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp93987672-bb">get_value</a></code>,
+      there is also a <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp94094136-bb">put_value</a></code>
+      function. It does the same for this property tree what <code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a></code>
+      does for its children. Thus, it does not receive a <code class="computeroutput"><a class="link" href="../boost/property_tree/string_path.html" title="Class template string_path">path</a></code>:
+    </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code> <span class="identifier">pt</span><span class="special">;</span>
+<span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp94094136-bb">put_value</a></code><span class="special">(</span><span class="number">3.14f</span><span class="special">);</span>
+</pre>
+<p>
+      There is no add_value function.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Marcin Kalicinski<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="parsers.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../property_tree.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../property_tree/appendices.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

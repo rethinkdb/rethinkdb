@@ -1,0 +1,26 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page appendix Appendix
+
+\section appendix_toc Table of Contents 
+
+- \subpage rationale
+- \subpage faq
+- \subpage default_encoding_under_windows
+- \subpage running_examples_under_windows 
+- \subpage gettext_for_windows 
+- \subpage glossary
+- \subpage tested_compilers_and_paltforms 
+- \subpage status_of_cpp0x_characters_support
+- \subpage special_thanks
+
+*/
+

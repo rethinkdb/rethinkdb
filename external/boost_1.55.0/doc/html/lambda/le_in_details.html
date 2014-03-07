@@ -1,0 +1,1685 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Lambda expressions in details</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../lambda.html" title="Chapter&#160;16.&#160;Boost.Lambda">
+<link rel="prev" href="using_library.html" title="Using the library">
+<link rel="next" href="extending.html" title="Extending return type deduction system">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_library.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="extending.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="lambda.le_in_details"></a>Lambda expressions in details</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="le_in_details.html#lambda.placeholders">Placeholders</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.operator_expressions">Operator expressions</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.bind_expressions">Bind expressions</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.overriding_deduced_return_type">Overriding the deduced return type</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.delaying_constants_and_variables">Delaying constants and variables</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.lambda_expressions_for_control_structures">Lambda expressions for control structures</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.exceptions">Exceptions</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.construction_and_destruction">Construction and destruction</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#idp153492008">Special lambda expressions</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#idp153520824">Casts, sizeof and typeid</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.nested_stl_algorithms">Nesting STL algorithm invocations</a></span></dt>
+</dl></div>
+<p>
+This section describes different categories of lambda expressions in details.
+We devote a separate section for each of the possible forms of a lambda expression.
+
+
+</p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.placeholders"></a>Placeholders</h3></div></div></div>
+<p>
+The BLL defines three placeholder types: <code class="literal">placeholder1_type</code>, <code class="literal">placeholder2_type</code> and <code class="literal">placeholder3_type</code>. 
+BLL has a predefined placeholder variable for each placeholder type: <code class="literal">_1</code>, <code class="literal">_2</code> and <code class="literal">_3</code>. 
+However, the user is not forced to use these placeholders. 
+It is easy to define placeholders with alternative names.
+This is done by defining new variables of placeholder types. 
+For example:
+
+</p>
+<pre class="programlisting">boost::lambda::placeholder1_type X;
+boost::lambda::placeholder2_type Y;
+boost::lambda::placeholder3_type Z;
+</pre>
+<p>
+
+With these variables defined, <code class="literal">X += Y * Z</code> is equivalent to <code class="literal">_1 += _2 * _3</code>.
+</p>
+<p>
+The use of placeholders in the lambda expression determines whether the resulting function is nullary, unary, binary or 3-ary. 
+The highest placeholder index is decisive. For example:
+
+</p>
+<pre class="programlisting">
+_1 + 5              // unary
+_1 * _1 + _1        // unary
+_1 + _2             // binary
+bind(f, _1, _2, _3) // 3-ary
+_3 + 10             // 3-ary
+</pre>
+<p>
+
+Note that the last line creates a 3-ary function, which adds <code class="literal">10</code> to its <span class="emphasis"><em>third</em></span> argument. 
+The first two arguments are discarded.
+Furthermore, lambda functors only have a minimum arity.
+One can always provide more arguments (up the number of supported placeholders)
+that is really needed.
+The remaining arguments are just discarded.
+For example:
+
+</p>
+<pre class="programlisting">
+int i, j, k; 
+_1(i, j, k)        // returns i, discards j and k
+(_2 + _2)(i, j, k) // returns j+j, discards i and k
+</pre>
+<p>
+
+See
+<a class="xref" href="s10.html#lambda.why_weak_arity" title="Lambda functor arity">the section called &#8220;
+Lambda functor arity
+&#8221;</a> for the design rationale behind this
+functionality.
+
+</p>
+<p>
+In addition to these three placeholder types, there is also a fourth placeholder type <code class="literal">placeholderE_type</code>.
+The use of this placeholder is defined in <a class="xref" href="le_in_details.html#lambda.exceptions" title="Exceptions">the section called &#8220;Exceptions&#8221;</a> describing exception handling in lambda expressions. 
+</p>
+<p>When an actual argument is supplied for a placeholder, the parameter passing mode is always by reference. 
+This means that any side-effects to the placeholder are reflected to the actual argument. 
+For example:
+
+
+</p>
+<pre class="programlisting">
+int i = 1; 
+(_1 += 2)(i);         // i is now 3
+(++_1, cout &lt;&lt; _1)(i) // i is now 4, outputs 4
+</pre>
+<p>
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.operator_expressions"></a>Operator expressions</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="le_in_details.html#idp153339064">Operators that cannot be overloaded</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.assignment_and_subscript">Assignment and subscript operators</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.logical_operators">Logical operators</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.comma_operator">Comma operator</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.function_call_operator">Function call operator</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.member_pointer_operator">Member pointer operator</a></span></dt>
+</dl></div>
+<p>
+The basic rule is that any C++ operator invocation with at least one argument being a lambda expression is itself a lambda expression.
+Almost all overloadable operators are supported. 
+For example, the following is a valid lambda expression:
+
+</p>
+<pre class="programlisting">cout &lt;&lt; _1, _2[_3] = _1 &amp;&amp; false</pre>
+<p>
+</p>
+<p>
+However, there are some restrictions that originate from the C++ operator overloading rules, and some special cases.
+</p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp153339064"></a>Operators that cannot be overloaded</h4></div></div></div>
+<p>
+Some operators cannot be overloaded at all (<code class="literal">::</code>, <code class="literal">.</code>, <code class="literal">.*</code>).
+For some operators, the requirements on return types prevent them to be overloaded to create lambda functors.
+These operators are <code class="literal">-&gt;.</code>, <code class="literal">-&gt;</code>, <code class="literal">new</code>, <code class="literal">new[]</code>, <code class="literal">delete</code>, <code class="literal">delete[]</code> and <code class="literal">?:</code> (the conditional operator).
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="lambda.assignment_and_subscript"></a>Assignment and subscript operators</h4></div></div></div>
+<p>
+These operators must be implemented as class members. 
+Consequently, the left operand must be a lambda expression. For example:
+
+</p>
+<pre class="programlisting">
+int i; 
+_1 = i;      // ok
+i = _1;      // not ok. i is not a lambda expression
+</pre>
+<p>
+
+There is a simple solution around this limitation, described in <a class="xref" href="le_in_details.html#lambda.delaying_constants_and_variables" title="Delaying constants and variables">the section called &#8220;Delaying constants and variables&#8221;</a>.
+In short, 
+the left hand argument can be explicitly turned into a lambda functor by wrapping it with a special <code class="literal">var</code> function:
+</p>
+<pre class="programlisting">
+var(i) = _1; // ok
+</pre>
+<p>
+
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="lambda.logical_operators"></a>Logical operators</h4></div></div></div>
+<p>
+Logical operators obey the short-circuiting evaluation rules. For example, in the following code, <code class="literal">i</code> is never incremented:
+</p>
+<pre class="programlisting">
+bool flag = true; int i = 0;
+(_1 || ++_2)(flag, i);
+</pre>
+<p>
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="lambda.comma_operator"></a>Comma operator</h4></div></div></div>
+<p>
+Comma operator is the <span class="quote">&#8220;<span class="quote">statement separator</span>&#8221;</span> in lambda expressions. 
+Since comma is also the separator between arguments in a function call, extra parenthesis are sometimes needed:
+
+</p>
+<pre class="programlisting">
+for_each(a.begin(), a.end(), (++_1, cout &lt;&lt; _1));
+</pre>
+<p>
+
+Without the extra parenthesis around <code class="literal">++_1, cout &lt;&lt; _1</code>, the code would be interpreted as an attempt to call <code class="literal">for_each</code> with four arguments.
+</p>
+<p>
+The lambda functor created by the comma operator adheres to the C++ rule of always evaluating the left operand before the right one.
+In the above example, each element of <code class="literal">a</code> is first incremented, then written to the stream.
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="lambda.function_call_operator"></a>Function call operator</h4></div></div></div>
+<p>
+The function call operators have the effect of evaluating the lambda
+functor. 
+Calls with too few arguments lead to a compile time error.
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="lambda.member_pointer_operator"></a>Member pointer operator</h4></div></div></div>
+<p>
+The member pointer operator <code class="literal">operator-&gt;*</code> can be overloaded freely. 
+Hence, for user defined types, member pointer operator is no special case.
+The built-in meaning, however, is a somewhat more complicated case.
+The built-in member pointer operator is applied if the left argument is a pointer to an object of some class <code class="literal">A</code>, and the right hand argument is a pointer to a member of <code class="literal">A</code>, or a pointer to a member of a class from which <code class="literal">A</code> derives.
+We must separate two cases:
+
+</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p>The right hand argument is a pointer to a data member. 
+In this case the lambda functor simply performs the argument substitution and calls the built-in member pointer operator, which returns a reference to the member pointed to. 
+For example:
+</p>
+<pre class="programlisting">
+struct A { int d; };
+A* a = new A();
+  ...
+(a -&gt;* &amp;A::d);     // returns a reference to a-&gt;d 
+(_1 -&gt;* &amp;A::d)(a); // likewise
+</pre>
+<p>
+</p>
+</li>
+<li class="listitem">
+<p>
+The right hand argument is a pointer to a member function.
+For a built-in call like this, the result is kind of a delayed member function call. 
+Such an expression must be followed by a function argument list, with which the delayed member function call is performed.
+For example:
+</p>
+<pre class="programlisting">
+struct B { int foo(int); };
+B* b = new B();
+  ...
+(b -&gt;* &amp;B::foo)         // returns a delayed call to b-&gt;foo
+                        // a function argument list must follow
+(b -&gt;* &amp;B::foo)(1)      // ok, calls b-&gt;foo(1)
+
+(_1 -&gt;* &amp;B::foo)(b);    // returns a delayed call to b-&gt;foo, 
+                        // no effect as such
+(_1 -&gt;* &amp;B::foo)(b)(1); // calls b-&gt;foo(1)
+</pre>
+<p>
+</p>
+</li>
+</ul></div>
+<p>
+</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.bind_expressions"></a>Bind expressions</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="le_in_details.html#lambda.function_pointers_as_targets">Function pointers or references as targets</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#member_functions_as_targets">Member functions as targets</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.members_variables_as_targets">Member variables as targets</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.function_objects_as_targets">Function objects as targets</a></span></dt>
+</dl></div>
+<p>
+Bind expressions can have two forms: 
+
+
+</p>
+<pre class="programlisting">
+bind(<em class="parameter"><code>target-function</code></em>, <em class="parameter"><code>bind-argument-list</code></em>)
+bind(<em class="parameter"><code>target-member-function</code></em>, <em class="parameter"><code>object-argument</code></em>, <em class="parameter"><code>bind-argument-list</code></em>)
+</pre>
+<p>
+
+A bind expression delays the call of a function. 
+If this <span class="emphasis"><em>target function</em></span> is <span class="emphasis"><em>n</em></span>-ary, then the <code class="literal"><span class="emphasis"><em>bind-argument-list</em></span></code> must contain <span class="emphasis"><em>n</em></span> arguments as well.
+In the current version of the BLL, 0 &lt;= n &lt;= 9 must hold. 
+For member functions, the number of arguments must be at most 8, as the object argument takes one argument position.
+
+Basically, the
+<span class="emphasis"><em><code class="literal">bind-argument-list</code></em></span> must be a valid argument list for the target function, except that any argument can be replaced with a placeholder, or more generally, with a lambda expression. 
+Note that also the target function can be a lambda expression.
+
+The result of a bind expression is either a nullary, unary, binary or 3-ary function object depending on the use of placeholders in the <span class="emphasis"><em><code class="literal">bind-argument-list</code></em></span> (see <a class="xref" href="le_in_details.html#lambda.placeholders" title="Placeholders">the section called &#8220;Placeholders&#8221;</a>).
+</p>
+<p>
+The return type of the lambda functor created by the bind expression can be given as an explicitly specified template parameter, as in the following example:
+</p>
+<pre class="programlisting">
+bind&lt;<span class="emphasis"><em>RET</em></span>&gt;(<span class="emphasis"><em>target-function</em></span>, <span class="emphasis"><em>bind-argument-list</em></span>)
+</pre>
+<p>
+This is only necessary if the return type of the target function cannot be deduced.
+</p>
+<p>
+The following sections describe the different types of bind expressions.
+</p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="lambda.function_pointers_as_targets"></a>Function pointers or references as targets</h4></div></div></div>
+<p>The target function can be a pointer or a reference to a function and it can be either bound or unbound. For example:
+</p>
+<pre class="programlisting">
+X foo(A, B, C); A a; B b; C c;
+bind(foo, _1, _2, c)(a, b);
+bind(&amp;foo, _1, _2, c)(a, b);
+bind(_1, a, b, c)(foo);
+</pre>
+<p>
+ 
+The return type deduction always succeeds with this type of bind expressions. 
+</p>
+<p>
+Note, that in C++ it is possible to take the address of an overloaded function only if the address is assigned to, or used as an initializer of, a variable, the type of which solves the amibiguity, or if an explicit cast expression is used.
+This means that overloaded functions cannot be used in bind expressions directly, e.g.:
+</p>
+<pre class="programlisting">
+void foo(int);
+void foo(float);
+int i; 
+  ...
+bind(&amp;foo, _1)(i);                            // error 
+  ...
+void (*pf1)(int) = &amp;foo;
+bind(pf1, _1)(i);                             // ok
+bind(static_cast&lt;void(*)(int)&gt;(&amp;foo), _1)(i); // ok
+</pre>
+<p>
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="member_functions_as_targets"></a>Member functions as targets</h4></div></div></div>
+<p>
+The syntax for using pointers to member function in bind expression is:
+</p>
+<pre class="programlisting">
+bind(<em class="parameter"><code>target-member-function</code></em>, <em class="parameter"><code>object-argument</code></em>, <em class="parameter"><code>bind-argument-list</code></em>)
+</pre>
+<p>
+
+The object argument can be a reference or pointer to the object, the BLL supports both cases with a uniform interface: 
+
+</p>
+<pre class="programlisting">
+bool A::foo(int) const; 
+A a;
+vector&lt;int&gt; ints; 
+  ...
+find_if(ints.begin(), ints.end(), bind(&amp;A::foo, a, _1)); 
+find_if(ints.begin(), ints.end(), bind(&amp;A::foo, &amp;a, _1));
+</pre>
+<p>
+
+Similarly, if the object argument is unbound, the resulting lambda functor can be called both via a pointer or a reference:
+
+</p>
+<pre class="programlisting">
+bool A::foo(int); 
+list&lt;A&gt; refs; 
+list&lt;A*&gt; pointers; 
+  ...
+find_if(refs.begin(), refs.end(), bind(&amp;A::foo, _1, 1)); 
+find_if(pointers.begin(), pointers.end(), bind(&amp;A::foo, _1, 1));
+</pre>
+<p>
+
+</p>
+<p>
+Even though the interfaces are the same, there are important semantic differences between using a pointer or a reference as the object argument.
+The differences stem from the way <code class="literal">bind</code>-functions take their parameters, and how the bound parameters are stored within the lambda functor.
+The object argument has the same parameter passing and storing mechanism as any other bind argument slot (see <a class="xref" href="using_library.html#lambda.storing_bound_arguments" title="Storing bound arguments in lambda functions">the section called &#8220;Storing bound arguments in lambda functions&#8221;</a>); it is passed as a const reference and stored as a const copy in the lambda functor.
+This creates some asymmetry between the lambda functor and the original member function, and between seemingly similar lambda functors. For example:
+</p>
+<pre class="programlisting">
+class A {
+  int i; mutable int j;
+public:
+
+  A(int ii, int jj) : i(ii), j(jj) {};
+  void set_i(int x) { i = x; }; 
+  void set_j(int x) const { j = x; }; 
+};
+</pre>
+<p>
+
+When a pointer is used, the behavior is what the programmer might expect:
+
+</p>
+<pre class="programlisting">
+A a(0,0); int k = 1;
+bind(&amp;A::set_i, &amp;a, _1)(k); // a.i == 1
+bind(&amp;A::set_j, &amp;a, _1)(k); // a.j == 1
+</pre>
+<p>
+
+Even though a const copy of the object argument is stored, the original object <code class="literal">a</code> is still modified.
+This is since the object argument is a pointer, and the pointer is copied, not the object it points to.
+When we use a reference, the behaviour is different:
+
+</p>
+<pre class="programlisting">
+A a(0,0); int k = 1;
+bind(&amp;A::set_i, a, _1)(k); // error; a const copy of a is stored. 
+                           // Cannot call a non-const function set_i
+bind(&amp;A::set_j, a, _1)(k); // a.j == 0, as a copy of a is modified
+</pre>
+<p>
+</p>
+<p>
+To prevent the copying from taking place, one can use the <code class="literal">ref</code> or <code class="literal">cref</code> wrappers (<code class="literal">var</code> and <code class="literal">constant_ref</code> would do as well):
+</p>
+<pre class="programlisting">
+bind(&amp;A::set_i, ref(a), _1)(k); // a.j == 1
+bind(&amp;A::set_j, cref(a), _1)(k); // a.j == 1
+</pre>
+<p>
+</p>
+<p>Note that the preceding discussion is relevant only for bound arguments. 
+If the object argument is unbound, the parameter passing mode is always by reference. 
+Hence, the argument <code class="literal">a</code> is not copied in the calls to the two lambda functors below:
+</p>
+<pre class="programlisting">
+A a(0,0);
+bind(&amp;A::set_i, _1, 1)(a); // a.i == 1
+bind(&amp;A::set_j, _1, 1)(a); // a.j == 1
+</pre>
+<p>
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="lambda.members_variables_as_targets"></a>Member variables as targets</h4></div></div></div>
+<p>
+A pointer to a member variable is not really a function, but 
+the first argument to the <code class="literal">bind</code> function can nevertheless
+be a pointer to a member variable.
+Invoking such a bind expression returns a reference to the data member.
+For example:
+
+</p>
+<pre class="programlisting">
+struct A { int data; };
+A a;
+bind(&amp;A::data, _1)(a) = 1;     // a.data == 1
+</pre>
+<p>
+
+The cv-qualifiers of the object whose member is accessed are respected.
+For example, the following tries to write into a const location:
+</p>
+<pre class="programlisting">
+const A ca = a;
+bind(&amp;A::data, _1)(ca) = 1;     // error
+</pre>
+<p>
+
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="lambda.function_objects_as_targets"></a>Function objects as targets</h4></div></div></div>
+<p>
+
+Function objects, that is, class objects which have the function call 
+operator defined, can be used as target functions. 
+
+In general, BLL cannot deduce the return type of an arbitrary function object. 
+
+However, there are two methods for giving BLL this capability for a certain 
+function object class.
+
+</p>
+<div class="simplesect">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="idp153382760"></a>The result_type typedef</h5></div></div></div>
+<p>
+
+The BLL supports the standard library convention of declaring the return type
+of a function object with a member typedef named <code class="literal">result_type</code> in the
+function object class.
+
+Here is a simple example:
+</p>
+<pre class="programlisting">
+struct A {
+  typedef B result_type;
+  B operator()(X, Y, Z); 
+};
+</pre>
+<p>
+
+If a function object does not define a <code class="literal">result_type</code> typedef, 
+the method described below (<code class="literal">sig</code> template) 
+is attempted to resolve the return type of the
+function object. If a function object defines both <code class="literal">result_type</code>
+and <code class="literal">sig</code>, <code class="literal">result_type</code> takes precedence.
+
+</p>
+</div>
+<div class="simplesect">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="idp153386152"></a>The sig template</h5></div></div></div>
+<p>
+Another mechanism that make BLL aware of the return type(s) of a function object is defining
+member template struct 
+<code class="literal">sig&lt;Args&gt;</code> with a typedef 
+<code class="literal">type</code> that specifies the return type.
+
+Here is a simple example:
+</p>
+<pre class="programlisting">
+struct A {
+  template &lt;class Args&gt; struct sig { typedef B type; }
+  B operator()(X, Y, Z); 
+};
+</pre>
+<p>
+
+The template argument <code class="literal">Args</code> is a 
+<code class="literal">tuple</code> (or more precisely a <code class="literal">cons</code> list) 
+type <a class="xref" href="../lambda.html#cit:boost::tuple" title="The Boost Tuple Library">[<abbr class="abbrev">tuple</abbr>]</a>, where the first element 
+is the function 
+object type itself, and the remaining elements are the types of 
+the arguments, with which the function object is being called.
+
+This may seem overly complex compared to defining the <code class="literal">result_type</code> typedef.
+Howver, there are two significant restrictions with using just a simple
+typedef to express the return type:
+</p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><p>
+If the function object defines several function call operators, there is no way to specify different result types for them.
+</p></li>
+<li class="listitem"><p>
+If the function call operator is a template, the result type may 
+depend on the template parameters. 
+Hence, the typedef ought to be a template too, which the C++ language 
+does not support.
+</p></li>
+</ol></div>
+<p>
+
+The following code shows an example, where the return type depends on the type
+of one of the arguments, and how that dependency can be expressed with the
+<code class="literal">sig</code> template:
+
+</p>
+<pre class="programlisting">
+struct A {
+
+  // the return type equals the third argument type:
+  template&lt;class T1, class T2, class T3&gt;
+  T3 operator()(const T1&amp; t1, const T2&amp; t2, const T3&amp; t3) const;
+
+  template &lt;class Args&gt; 
+  class sig {
+    // get the third argument type (4th element)
+    typedef typename 
+      boost::tuples::element&lt;3, Args&gt;::type T3;
+  public:
+    typedef typename 
+      boost::remove_cv&lt;T3&gt;::type type;
+  };
+};
+</pre>
+<p>
+
+
+The elements of the <code class="literal">Args</code> tuple are always 
+non-reference types.
+
+Moreover, the element types can have a const or volatile qualifier
+(jointly referred to as <span class="emphasis"><em>cv-qualifiers</em></span>), or both.
+This is since the cv-qualifiers in the arguments can affect the return type.
+The reason for including the potentially cv-qualified function object 
+type itself into the <code class="literal">Args</code> tuple, is that the function
+object class can contain both const and non-const (or volatile, even
+const volatile) function call operators, and they can each have a different
+return type.
+</p>
+<p>
+The <code class="literal">sig</code> template can be seen as a 
+<span class="emphasis"><em>meta-function</em></span> that maps the argument type tuple to 
+the result type of the call made with arguments of the types in the tuple.
+
+As the example above demonstrates, the template can end up being somewhat 
+complex.
+Typical tasks to be performed are the extraction of the relevant types 
+from the tuple, removing cv-qualifiers etc.
+See the Boost type_traits <a class="xref" href="../lambda.html#cit:boost::type_traits" title="The Boost type_traits">[<abbr class="abbrev">type_traits</abbr>]</a> and
+Tuple <a class="xref" href="../lambda.html#cit:boost::type_traits" title="The Boost type_traits">[<abbr class="abbrev">type_traits</abbr>]</a> libraries 
+for tools that can aid in these tasks.
+The <code class="literal">sig</code> templates are a refined version of a similar
+mechanism first introduced in the FC++ library  
+<a class="xref" href="../lambda.html#cit:fc++" title="The FC++ library: Functional Programming in C++">[<abbr class="abbrev">fc++</abbr>]</a>.
+</p>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.overriding_deduced_return_type"></a>Overriding the deduced return type</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="le_in_details.html#lambda.nullary_functors_and_ret">Nullary lambda functors and ret</a></span></dt></dl></div>
+<p>
+The return type deduction system may not be able to deduce the return types of some user defined operators or bind expressions with class objects.
+
+A special lambda expression type is provided for stating the return type explicitly and overriding the deduction system. 
+To state that the return type of the lambda functor defined by the lambda expression <code class="literal">e</code> is <code class="literal">T</code>, you can write:
+
+</p>
+<pre class="programlisting">ret&lt;T&gt;(e);</pre>
+<p>
+
+The effect is that the return type deduction is not performed for the lambda expression <code class="literal">e</code> at all, but instead, <code class="literal">T</code> is used as the return type. 
+Obviously <code class="literal">T</code> cannot be an arbitrary type, the true result of the lambda functor must be implicitly convertible to <code class="literal">T</code>. 
+For example:
+
+</p>
+<pre class="programlisting">
+A a; B b;
+C operator+(A, B);
+int operator*(A, B); 
+  ...
+ret&lt;D&gt;(_1 + _2)(a, b);     // error (C cannot be converted to D)
+ret&lt;C&gt;(_1 + _2)(a, b);     // ok
+ret&lt;float&gt;(_1 * _2)(a, b); // ok (int can be converted to float)
+  ...
+struct X {
+  Y operator(int)();   
+};
+  ...
+X x; int i;
+bind(x, _1)(i);            // error, return type cannot be deduced
+ret&lt;Y&gt;(bind(x, _1))(i);    // ok
+</pre>
+<p>
+For bind expressions, there is a short-hand notation that can be used instead of <code class="literal">ret</code>. 
+The last line could alternatively be written as:
+
+</p>
+<pre class="programlisting">bind&lt;Z&gt;(x, _1)(i);</pre>
+<p>
+This feature is modeled after the Boost Bind library <a class="xref" href="../lambda.html#cit:boost::bind" title="Boost Bind Library">[<abbr class="abbrev">bind</abbr>]</a>.
+
+</p>
+<p>Note that within nested lambda expressions, 
+the <code class="literal">ret</code> must be used at each subexpression where 
+the deduction would otherwise fail. 
+For example:
+</p>
+<pre class="programlisting">
+A a; B b;
+C operator+(A, B); D operator-(C);
+  ...
+ret&lt;D&gt;( - (_1 + _2))(a, b); // error 
+ret&lt;D&gt;( - ret&lt;C&gt;(_1 + _2))(a, b); // ok
+</pre>
+<p>
+</p>
+<p>If you find yourself using  <code class="literal">ret</code> repeatedly with the same types, it is worth while extending the return type deduction (see <a class="xref" href="extending.html" title="Extending return type deduction system">the section called &#8220;Extending return type deduction system&#8221;</a>).
+</p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="lambda.nullary_functors_and_ret"></a>Nullary lambda functors and ret</h4></div></div></div>
+<p>
+As stated above, the effect of <code class="literal">ret</code> is to prevent the return type deduction to be performed. 
+However, there is an exception. 
+Due to the way the C++ template instantiation works, the compiler is always forced to instantiate the return type deduction templates for zero-argument lambda functors.
+This introduces a slight problem with <code class="literal">ret</code>, best described with an example:
+
+</p>
+<pre class="programlisting">
+struct F { int operator()(int i) const; }; 
+F f;
+  ...
+bind(f, _1);           // fails, cannot deduce the return type
+ret&lt;int&gt;(bind(f, _1)); // ok
+  ...
+bind(f, 1);            // fails, cannot deduce the return type
+ret&lt;int&gt;(bind(f, 1));  // fails as well!
+</pre>
+<p>
+The BLL cannot deduce the return types of the above bind calls, as <code class="literal">F</code> does not define the typedef <code class="literal">result_type</code>. 
+One would expect <code class="literal">ret</code> to fix this, but for the nullary lambda functor that results from a bind expression (last line above) this does not work.
+The return type deduction templates are instantiated, even though it would not be necessary and the result is a compilation error.
+</p>
+<p>The solution to this is not to use the <code class="literal">ret</code> function, but rather define the return type as an explicitly specified template parameter in the <code class="literal">bind</code> call:
+</p>
+<pre class="programlisting">
+bind&lt;int&gt;(f, 1);       // ok
+</pre>
+<p>
+
+The lambda functors created with 
+<code class="literal">ret&lt;<em class="parameter"><code>T</code></em>&gt;(bind(<em class="parameter"><code>arg-list</code></em>))</code> and 
+<code class="literal">bind&lt;<em class="parameter"><code>T</code></em>&gt;(<em class="parameter"><code>arg-list</code></em>)</code> have the exact same functionality &#8212;
+apart from the fact that for some nullary lambda functors the former does not work while the latter does. 
+</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.delaying_constants_and_variables"></a>Delaying constants and variables</h3></div></div></div>
+<p>
+The unary functions <code class="literal">constant</code>,
+<code class="literal">constant_ref</code> and <code class="literal">var</code> turn their argument into a lambda functor, that implements an identity mapping.
+The former two are for constants, the latter for variables. 
+The use of these <span class="emphasis"><em>delayed</em></span> constants and variables is sometimes necessary due to the lack of explicit syntax for lambda expressions. 
+For example:
+</p>
+<pre class="programlisting">
+for_each(a.begin(), a.end(), cout &lt;&lt; _1 &lt;&lt; ' ');
+for_each(a.begin(), a.end(), cout &lt;&lt; ' ' &lt;&lt; _1);
+</pre>
+<p>
+The first line outputs the elements of <code class="literal">a</code> separated by spaces, while the second line outputs a space followed by the elements of <code class="literal">a</code> without any separators.
+The reason for this is that neither of the operands of 
+<code class="literal">cout &lt;&lt; ' '</code> is a lambda expression, hence <code class="literal">cout &lt;&lt; ' '</code> is evaluated immediately.
+
+To delay the evaluation of <code class="literal">cout &lt;&lt; ' '</code>, one of the operands must be explicitly marked as a lambda expression. 
+This is accomplished with the <code class="literal">constant</code> function:
+</p>
+<pre class="programlisting">
+for_each(a.begin(), a.end(), cout &lt;&lt; constant(' ') &lt;&lt; _1);
+</pre>
+<p>
+
+The call <code class="literal">constant(' ')</code> creates a nullary lambda functor which stores the character constant <code class="literal">' '</code> 
+and returns a reference to it when invoked. 
+The function <code class="literal">constant_ref</code> is similar, except that it
+stores a constant reference to its argument.
+
+The <code class="literal">constant</code> and <code class="literal">consant_ref</code> are only
+needed when the operator call has side effects, like in the above example.
+</p>
+<p>
+Sometimes we need to delay the evaluation of a variable. 
+Suppose we wanted to output the elements of a container in a numbered list:
+
+</p>
+<pre class="programlisting">
+int index = 0; 
+for_each(a.begin(), a.end(), cout &lt;&lt; ++index &lt;&lt; ':' &lt;&lt; _1 &lt;&lt; '\n');
+for_each(a.begin(), a.end(), cout &lt;&lt; ++var(index) &lt;&lt; ':' &lt;&lt; _1 &lt;&lt; '\n');
+</pre>
+<p>
+
+The first <code class="literal">for_each</code> invocation does not do what we want; <code class="literal">index</code> is incremented only once, and its value is written into the output stream only once.
+By using <code class="literal">var</code> to make <code class="literal">index</code> a lambda expression, we get the desired effect.
+
+</p>
+<p>
+In sum, <code class="literal">var(x)</code> creates a nullary lambda functor, 
+which stores a reference to the variable <code class="literal">x</code>. 
+When the lambda functor is invoked, a reference to <code class="literal">x</code> is returned.
+</p>
+<div class="simplesect">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp153424056"></a>Naming delayed constants and variables</h4></div></div></div>
+<p>
+It is possible to predefine and name a delayed variable or constant outside a lambda expression. 
+The templates <code class="literal">var_type</code>, <code class="literal">constant_type</code> 
+and <code class="literal">constant_ref_type</code> serve for this purpose. 
+They are used as:
+</p>
+<pre class="programlisting">
+var_type&lt;T&gt;::type delayed_i(var(i));
+constant_type&lt;T&gt;::type delayed_c(constant(c));
+</pre>
+<p>
+The first line defines the variable <code class="literal">delayed_i</code> which is a delayed version of the variable <code class="literal">i</code> of type <code class="literal">T</code>.
+Analogously, the second line defines the constant <code class="literal">delayed_c</code> as a delayed version of the constant <code class="literal">c</code>.
+For example:
+
+</p>
+<pre class="programlisting">
+int i = 0; int j;
+for_each(a.begin(), a.end(), (var(j) = _1, _1 = var(i), var(i) = var(j))); 
+</pre>
+<p>
+is equivalent to:
+</p>
+<pre class="programlisting">
+int i = 0; int j;
+var_type&lt;int&gt;::type vi(var(i)), vj(var(j));
+for_each(a.begin(), a.end(), (vj = _1, _1 = vi, vi = vj));
+</pre>
+<p>
+</p>
+<p>
+Here is an example of naming a delayed constant:
+</p>
+<pre class="programlisting">
+constant_type&lt;char&gt;::type space(constant(' '));
+for_each(a.begin(),a.end(), cout &lt;&lt; space &lt;&lt; _1);
+</pre>
+<p>
+</p>
+</div>
+<div class="simplesect">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp153430008"></a>About assignment and subscript operators</h4></div></div></div>
+<p>
+As described in <a class="xref" href="le_in_details.html#lambda.assignment_and_subscript" title="Assignment and subscript operators">the section called &#8220;Assignment and subscript operators&#8221;</a>, assignment and subscripting operators are always defined as member functions.
+This means, that for expressions of the form
+<code class="literal">x = y</code> or <code class="literal">x[y]</code> to be interpreted as lambda expressions, the left-hand operand <code class="literal">x</code> must be a lambda expression. 
+Consequently, it is sometimes necessary to use <code class="literal">var</code> for this purpose.
+We repeat the example from <a class="xref" href="le_in_details.html#lambda.assignment_and_subscript" title="Assignment and subscript operators">the section called &#8220;Assignment and subscript operators&#8221;</a>:
+
+</p>
+<pre class="programlisting">
+int i; 
+i = _1;       // error
+var(i) = _1;  // ok
+</pre>
+<p>
+</p>
+<p>
+
+Note that the compound assignment operators <code class="literal">+=</code>, <code class="literal">-=</code> etc. can be defined as non-member functions, and thus they are interpreted as lambda expressions even if only the right-hand operand is a lambda expression.
+Nevertheless, it is perfectly ok to delay the left operand explicitly. 
+For example, <code class="literal">i += _1</code> is equivalent to <code class="literal">var(i) += _1</code>.
+</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.lambda_expressions_for_control_structures"></a>Lambda expressions for control structures</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="le_in_details.html#lambda.switch_statement">Switch statement</a></span></dt></dl></div>
+<p>
+BLL defines several functions to create lambda functors that represent control structures. 
+They all take lambda functors as parameters and return <code class="literal">void</code>.
+To start with an example, the following code outputs all even elements of some container <code class="literal">a</code>:
+
+</p>
+<pre class="programlisting">
+for_each(a.begin(), a.end(), 
+         if_then(_1 % 2 == 0, cout &lt;&lt; _1));  
+</pre>
+<p>
+</p>
+<p>
+The BLL supports the following function templates for control structures: 
+
+</p>
+<pre class="programlisting">
+if_then(condition, then_part)
+if_then_else(condition, then_part, else_part)
+if_then_else_return(condition, then_part, else_part)
+while_loop(condition, body)
+while_loop(condition) // no body case
+do_while_loop(condition, body)
+do_while_loop(condition) // no body case 
+for_loop(init, condition, increment, body)
+for_loop(init, condition, increment) // no body case
+switch_statement(...)
+</pre>
+<p>
+
+The return types of all control construct lambda functor is 
+<code class="literal">void</code>, except for <code class="literal">if_then_else_return</code>,
+which wraps a call to the conditional operator 
+</p>
+<pre class="programlisting">
+condition ? then_part : else_part
+</pre>
+<p>
+The return type rules for this operator are somewhat complex. 
+Basically, if the branches have the same type, this type is the return type.
+If the type of the branches differ, one branch, say of type 
+<code class="literal">A</code>, must be convertible to the other branch, 
+say of type <code class="literal">B</code>.
+In this situation, the result type is <code class="literal">B</code>.
+Further, if the common type is an lvalue, the return type will be an lvalue
+too.
+</p>
+<p>
+Delayed variables tend to be commonplace in control structure lambda expressions. 
+For instance, here we use the <code class="literal">var</code> function to turn the arguments of <code class="literal">for_loop</code> into lambda expressions. 
+The effect of the code is to add 1 to each element of a two-dimensional array:
+
+</p>
+<pre class="programlisting">
+int a[5][10]; int i;
+for_each(a, a+5, 
+  for_loop(var(i)=0, var(i)&lt;10, ++var(i), 
+           _1[var(i)] += 1));  
+</pre>
+<p>
+
+
+</p>
+<p>
+The BLL supports an alternative syntax for control expressions, suggested
+by Joel de Guzmann. 
+By overloading the <code class="literal">operator[]</code> we can
+get a closer resemblance with the built-in control structures:
+
+</p>
+<pre class="programlisting">
+if_(condition)[then_part]
+if_(condition)[then_part].else_[else_part]
+while_(condition)[body]
+do_[body].while_(condition)
+for_(init, condition, increment)[body]
+</pre>
+<p>
+
+For example, using this syntax the <code class="literal">if_then</code> example above
+can be written as:
+</p>
+<pre class="programlisting">
+for_each(a.begin(), a.end(), 
+         if_(_1 % 2 == 0)[ cout &lt;&lt; _1 ])  
+</pre>
+<p>
+
+As more experience is gained, we may end up deprecating one or the other 
+of these syntaces. 
+
+</p>
+<div class="section"><div class="titlepage"><div><div><h4 class="title">
+<a name="lambda.switch_statement"></a>Switch statement</h4></div></div></div></div>
+<p>
+The lambda expressions for <code class="literal">switch</code> control structures are more complex since the number of cases may vary. 
+The general form of a switch lambda expression is:
+
+</p>
+<pre class="programlisting">
+switch_statement(<em class="parameter"><code>condition</code></em>, 
+  case_statement&lt;<em class="parameter"><code>label</code></em>&gt;(<em class="parameter"><code>lambda expression</code></em>),
+  case_statement&lt;<em class="parameter"><code>label</code></em>&gt;(<em class="parameter"><code>lambda expression</code></em>),
+  ...
+  default_statement(<em class="parameter"><code>lambda expression</code></em>)
+)
+</pre>
+<p>
+
+The <code class="literal"><em class="parameter"><code>condition</code></em></code> argument must be a lambda expression that creates a lambda functor with an integral return type.
+The different cases are created with the <code class="literal">case_statement</code> functions, and the optional default case with the <code class="literal">default_statement</code> function.
+The case labels are given as explicitly specified template arguments to <code class="literal">case_statement</code> functions and 
+<code class="literal">break</code> statements are implicitly part of each case. 
+For example, <code class="literal">case_statement&lt;1&gt;(a)</code>, where <code class="literal">a</code> is some lambda functor,  generates the code:
+
+</p>
+<pre class="programlisting">
+case 1: 
+  <em class="parameter"><code>evaluate lambda functor</code></em> a; 
+  break;
+</pre>
+<p>
+The <code class="literal">switch_statement</code> function is specialized for up to 9 case statements.
+
+</p>
+<p>
+As a concrete example, the following code iterates over some container <code class="literal">v</code> and ouptuts <span class="quote">&#8220;<span class="quote">zero</span>&#8221;</span> for each <code class="literal">0</code>, <span class="quote">&#8220;<span class="quote">one</span>&#8221;</span> for each <code class="literal">1</code>, and <span class="quote">&#8220;<span class="quote">other: <em class="parameter"><code>n</code></em></span>&#8221;</span> for any other value <em class="parameter"><code>n</code></em>.
+Note that another lambda expression is sequenced after the <code class="literal">switch_statement</code> to output a line break after each element:
+
+</p>
+<pre class="programlisting">
+std::for_each(v.begin(), v.end(),
+  ( 
+    switch_statement(
+      _1,
+      case_statement&lt;0&gt;(std::cout &lt;&lt; constant("zero")),
+      case_statement&lt;1&gt;(std::cout &lt;&lt; constant("one")),
+      default_statement(cout &lt;&lt; constant("other: ") &lt;&lt; _1)
+    ), 
+    cout &lt;&lt; constant("\n") 
+  )
+);
+</pre>
+<p>
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.exceptions"></a>Exceptions</h3></div></div></div>
+<p>
+The BLL provides lambda functors that throw and catch exceptions.
+Lambda functors for throwing exceptions are created with the unary function <code class="literal">throw_exception</code>.
+The argument to this function is the exception to be thrown, or a lambda functor which creates the exception to be thrown.
+A lambda functor for rethrowing exceptions is created with the nullary <code class="literal">rethrow</code> function.
+</p>
+<p>
+Lambda expressions for handling exceptions are somewhat more complex.
+The general form of a lambda expression for try catch blocks is as follows:
+
+</p>
+<pre class="programlisting">
+try_catch(
+  <em class="parameter"><code>lambda expression</code></em>,
+  catch_exception&lt;<em class="parameter"><code>type</code></em>&gt;(<em class="parameter"><code>lambda expression</code></em>),
+  catch_exception&lt;<em class="parameter"><code>type</code></em>&gt;(<em class="parameter"><code>lambda expression</code></em>),
+  ...
+  catch_all(<em class="parameter"><code>lambda expression</code></em>)
+)
+</pre>
+<p>
+
+The first lambda expression is the try block. 
+Each <code class="literal">catch_exception</code> defines a catch block where the 
+explicitly specified template argument defines the type of the exception 
+to catch.
+
+The lambda expression within the <code class="literal">catch_exception</code> defines 
+the actions to take if the exception is caught.
+
+Note that the resulting exception handlers catch the exceptions as 
+references, i.e., <code class="literal">catch_exception&lt;T&gt;(...)</code> 
+results in the catch block:
+
+</p>
+<pre class="programlisting">
+catch(T&amp; e) { ... }
+</pre>
+<p>
+
+The last catch block can alternatively be a call to 
+<code class="literal">catch_exception&lt;<em class="parameter"><code>type</code></em>&gt;</code> 
+or to 
+<code class="literal">catch_all</code>, which is the lambda expression equivalent to 
+<code class="literal">catch(...)</code>.
+
+</p>
+<p>
+
+The <a class="xref" href="le_in_details.html#ex:exceptions" title="Example&#160;16.1.&#160;Throwing and handling exceptions in lambda expressions.">Example&#160;16.1, &#8220;Throwing and handling exceptions in lambda expressions.&#8221;</a> demonstrates the use of the BLL 
+exception handling tools. 
+The first handler catches exceptions of type <code class="literal">foo_exception</code>. 
+Note the use of <code class="literal">_1</code> placeholder in the body of the handler.
+</p>
+<p>
+The second handler shows how to throw exceptions, and demonstrates the 
+use of the <span class="emphasis"><em>exception placeholder</em></span> <code class="literal">_e</code>.
+
+It is a special placeholder, which refers to the caught exception object 
+within the handler body.
+
+Here we are handling an exception of type <code class="literal">std::exception</code>, 
+which carries a string explaining the cause of the exception. 
+
+This explanation can be queried with the zero-argument member 
+function <code class="literal">what</code>.
+
+The expression
+<code class="literal">bind(&amp;std::exception::what, _e)</code> creates the lambda 
+function for making that call.
+
+Note that <code class="literal">_e</code> cannot be used outside of an exception handler lambda expression.
+
+
+The last line of the second handler constructs a new exception object and 
+throws that with <code class="literal">throw exception</code>. 
+
+Constructing and destructing objects within lambda expressions is 
+explained in <a class="xref" href="le_in_details.html#lambda.construction_and_destruction" title="Construction and destruction">the section called &#8220;Construction and destruction&#8221;</a>
+</p>
+<p>
+Finally, the third handler (<code class="literal">catch_all</code>) demonstrates 
+rethrowing exceptions.
+</p>
+<div class="example">
+<a name="ex:exceptions"></a><p class="title"><b>Example&#160;16.1.&#160;Throwing and handling exceptions in lambda expressions.</b></p>
+<div class="example-contents"><pre class="programlisting">
+for_each(
+  a.begin(), a.end(),
+  try_catch(
+    bind(foo, _1),                 // foo may throw
+    catch_exception&lt;foo_exception&gt;(
+      cout &lt;&lt; constant("Caught foo_exception: ") 
+           &lt;&lt; "foo was called with argument = " &lt;&lt; _1
+    ),
+    catch_exception&lt;std::exception&gt;(
+      cout &lt;&lt; constant("Caught std::exception: ") 
+           &lt;&lt; bind(&amp;std::exception::what, _e),
+      throw_exception(bind(constructor&lt;bar_exception&gt;(), _1)))
+    ),      
+    catch_all(
+      (cout &lt;&lt; constant("Unknown"), rethrow())
+    )
+  )
+);
+</pre></div>
+</div>
+<br class="example-break">
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.construction_and_destruction"></a>Construction and destruction</h3></div></div></div>
+<p>
+Operators <code class="literal">new</code> and <code class="literal">delete</code> can be 
+overloaded, but their return types are fixed. 
+
+Particularly, the return types cannot be lambda functors, 
+which prevents them to be overloaded for lambda expressions.
+
+It is not possible to take the address of a constructor, 
+hence constructors cannot be used as target functions in bind expressions.
+
+The same is true for destructors.
+
+As a way around these constraints, BLL defines wrapper classes for 
+<code class="literal">new</code> and <code class="literal">delete</code> calls, 
+as well as for constructors and destructors.
+
+Instances of these classes are function objects, that can be used as 
+target functions of bind expressions. 
+
+For example:
+
+</p>
+<pre class="programlisting">
+int* a[10];
+for_each(a, a+10, _1 = bind(new_ptr&lt;int&gt;())); 
+for_each(a, a+10, bind(delete_ptr(), _1));
+</pre>
+<p>
+
+The <code class="literal">new_ptr&lt;int&gt;()</code> expression creates 
+a function object that calls <code class="literal">new int()</code> when invoked, 
+and wrapping that inside <code class="literal">bind</code> makes it a lambda functor.
+
+In the same way, the expression <code class="literal">delete_ptr()</code> creates 
+a function object that invokes <code class="literal">delete</code> on its argument. 
+
+Note that <code class="literal">new_ptr&lt;<em class="parameter"><code>T</code></em>&gt;()</code> 
+can take arguments as well.
+
+They are passed directly to the constructor invocation and thus allow 
+calls to constructors which take arguments. 
+
+</p>
+<p>
+
+As an example of constructor calls in lambda expressions, 
+the following code reads integers from two containers <code class="literal">x</code> 
+and <code class="literal">y</code>, 
+constructs pairs out of them and inserts them into a third container:
+
+</p>
+<pre class="programlisting">
+vector&lt;pair&lt;int, int&gt; &gt; v;
+transform(x.begin(), x.end(), y.begin(), back_inserter(v),
+          bind(constructor&lt;pair&lt;int, int&gt; &gt;(), _1, _2));
+</pre>
+<p>
+
+<a class="xref" href="le_in_details.html#table:constructor_destructor_fos" title="Table&#160;16.1.&#160;Construction and destruction related function objects.">Table&#160;16.1, &#8220;Construction and destruction related function objects.&#8221;</a> lists all the function 
+objects related to creating and destroying objects,
+ showing the expression to create and call the function object, 
+and the effect of evaluating that expression.
+
+</p>
+<div class="table">
+<a name="table:constructor_destructor_fos"></a><p class="title"><b>Table&#160;16.1.&#160;Construction and destruction related function objects.</b></p>
+<div class="table-contents"><table class="table" summary="Construction and destruction related function objects.">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Function object call</th>
+<th>Wrapped expression</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code class="literal">constructor&lt;T&gt;()(<em class="parameter"><code>arg_list</code></em>)</code></td>
+<td>T(<em class="parameter"><code>arg_list</code></em>)</td>
+</tr>
+<tr>
+<td><code class="literal">destructor()(a)</code></td>
+<td>
+<code class="literal">a.~A()</code>, where <code class="literal">a</code> is of type <code class="literal">A</code>
+</td>
+</tr>
+<tr>
+<td><code class="literal">destructor()(pa)</code></td>
+<td>
+<code class="literal">pa-&gt;~A()</code>, where <code class="literal">pa</code> is of type <code class="literal">A*</code>
+</td>
+</tr>
+<tr>
+<td><code class="literal">new_ptr&lt;T&gt;()(<em class="parameter"><code>arg_list</code></em>)</code></td>
+<td><code class="literal">new T(<em class="parameter"><code>arg_list</code></em>)</code></td>
+</tr>
+<tr>
+<td><code class="literal">new_array&lt;T&gt;()(sz)</code></td>
+<td><code class="literal">new T[sz]</code></td>
+</tr>
+<tr>
+<td><code class="literal">delete_ptr()(p)</code></td>
+<td><code class="literal">delete p</code></td>
+</tr>
+<tr>
+<td><code class="literal">delete_array()(p)</code></td>
+<td><code class="literal">delete p[]</code></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp153492008"></a>Special lambda expressions</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="le_in_details.html#idp153492360">Preventing argument substitution</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#lambda.rvalues_as_actual_arguments">Rvalues as actual arguments to lambda functors</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp153492360"></a>Preventing argument substitution</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="le_in_details.html#lambda.unlambda">Unlambda</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#idp153505608">Protect</a></span></dt>
+</dl></div>
+<p>
+When a lambda functor is called, the default behavior is to substitute 
+the actual arguments for the placeholders within all subexpressions.
+
+This section describes the tools to prevent the substitution and 
+evaluation of a subexpression, and explains when these tools should be used.
+</p>
+<p>
+The arguments to a bind expression can be arbitrary lambda expressions, 
+e.g., other bind expressions.
+
+For example:
+
+</p>
+<pre class="programlisting">
+int foo(int); int bar(int);
+...
+int i;
+bind(foo, bind(bar, _1))(i);
+</pre>
+<p>
+
+The last line makes the call <code class="literal">foo(bar(i));</code>
+
+Note that the first argument in a bind expression, the target function, 
+is no exception, and can thus be a bind expression too.
+
+The innermost lambda functor just has to return something that can be used 
+as a target function: another lambda functor, function pointer, 
+pointer to member function etc. 
+
+For example, in the following code the innermost lambda functor makes 
+a selection between two functions, and returns a pointer to one of them:
+
+</p>
+<pre class="programlisting">
+int add(int a, int b) { return a+b; }
+int mul(int a, int b) { return a*b; }
+
+int(*)(int, int)  add_or_mul(bool x) { 
+  return x ? add : mul; 
+}
+
+bool condition; int i; int j;
+...
+bind(bind(&amp;add_or_mul, _1), _2, _3)(condition, i, j);
+</pre>
+<p>
+
+</p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="lambda.unlambda"></a>Unlambda</h5></div></div></div>
+<p>A nested bind expression may occur inadvertently, 
+if the target function is a variable with a type that depends on a 
+template parameter. 
+
+Typically the target function could be a formal parameter of a 
+function template. 
+
+In such a case, the programmer may not know whether the target function is a lambda functor or not.
+</p>
+<p>Consider the following function template:
+
+</p>
+<pre class="programlisting">
+template&lt;class F&gt;
+int nested(const F&amp; f) {
+  int x;
+  ...
+  bind(f, _1)(x);
+  ...
+}
+</pre>
+<p>
+
+Somewhere inside the function the formal parameter
+<code class="literal">f</code> is used as a target function in a bind expression. 
+
+In order for this <code class="literal">bind</code> call to be valid, 
+<code class="literal">f</code> must be a unary function.
+
+Suppose the following two calls to <code class="literal">nested</code> are made:
+
+</p>
+<pre class="programlisting">
+int foo(int);
+int bar(int, int);
+nested(&amp;foo);
+nested(bind(bar, 1, _1));
+</pre>
+<p>
+
+Both are unary functions, or function objects, with appropriate argument 
+and return types, but the latter will not compile.
+
+In the latter call, the bind expression inside <code class="literal">nested</code> 
+will become:
+
+</p>
+<pre class="programlisting">
+bind(bind(bar, 1, _1), _1) 
+</pre>
+<p>
+
+When this is invoked with <code class="literal">x</code>, 
+after substituitions we end up trying to call
+
+</p>
+<pre class="programlisting">
+bar(1, x)(x)
+</pre>
+<p>
+
+which is an error. 
+
+The call to <code class="literal">bar</code> returns int, 
+not a unary function or function object.
+</p>
+<p>
+In the example above, the intent of the bind expression in the 
+<code class="literal">nested</code> function is to treat <code class="literal">f</code> 
+as an ordinary function object, instead of a lambda functor. 
+
+The BLL provides the function template <code class="literal">unlambda</code> to 
+express this: a lambda functor wrapped inside <code class="literal">unlambda</code> 
+is not a lambda functor anymore, and does not take part into the 
+argument substitution process.
+
+Note that for all other argument types <code class="literal">unlambda</code> is 
+an identity operation, except for making non-const objects const.
+</p>
+<p>
+Using <code class="literal">unlambda</code>, the <code class="literal">nested</code> 
+function is written as:
+
+</p>
+<pre class="programlisting">
+template&lt;class F&gt;
+int nested(const F&amp; f) {
+  int x;
+  ...
+  bind(unlambda(f), _1)(x);
+  ...
+}
+</pre>
+<p>
+
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="idp153505608"></a>Protect</h5></div></div></div>
+<p>
+The <code class="literal">protect</code> function is related to unlambda. 
+
+It is also used to prevent the argument substitution taking place, 
+but whereas <code class="literal">unlambda</code> turns a lambda functor into 
+an ordinary function object for good, <code class="literal">protect</code> does 
+this temporarily, for just one evaluation round.
+
+For example:
+
+</p>
+<pre class="programlisting">
+int x = 1, y = 10;
+(_1 + protect(_1 + 2))(x)(y);
+</pre>
+<p>
+    
+The first call substitutes <code class="literal">x</code> for the leftmost 
+<code class="literal">_1</code>, and results in another lambda functor 
+<code class="literal">x + (_1 + 2)</code>, which after the call with 
+<code class="literal">y</code> becomes <code class="literal">x + (y + 2)</code>, 
+and thus finally 13.
+</p>
+<p>
+Primary motivation for including <code class="literal">protect</code> into the library, 
+was to allow nested STL algorithm invocations 
+(<a class="xref" href="le_in_details.html#lambda.nested_stl_algorithms" title="Nesting STL algorithm invocations">the section called &#8220;Nesting STL algorithm invocations&#8221;</a>).
+</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="lambda.rvalues_as_actual_arguments"></a>Rvalues as actual arguments to lambda functors</h4></div></div></div>
+<p>
+Actual arguments to the lambda functors cannot be non-const rvalues.
+This is due to a deliberate design decision: either we have this restriction, 
+or there can be no side-effects to the actual arguments.
+
+There are ways around this limitation.
+
+We repeat the example from section 
+<a class="xref" href="using_library.html#lambda.actual_arguments_to_lambda_functors" title="About actual arguments to lambda functors">the section called &#8220;About actual arguments to lambda functors&#8221;</a> and list the 
+different solutions:
+
+</p>
+<pre class="programlisting">
+int i = 1; int j = 2; 
+(_1 + _2)(i, j); // ok
+(_1 + _2)(1, 2); // error (!)
+</pre>
+<p>
+
+</p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><p>
+If the rvalue is of a class type, the return type of the function that 
+creates the rvalue should be defined as const. 
+Due to an unfortunate language restriction this does not work for 
+built-in types, as built-in rvalues cannot be const qualified. 
+</p></li>
+<li class="listitem">
+<p>
+If the lambda function call is accessible, the <code class="literal">make_const</code> 
+function can be used to <span class="emphasis"><em>constify</em></span> the rvalue. E.g.:
+
+</p>
+<pre class="programlisting">
+(_1 + _2)(make_const(1), make_const(2)); // ok
+</pre>
+<p>
+
+Commonly the lambda function call site is inside a standard algorithm 
+function template, preventing this solution to be used.
+
+</p>
+</li>
+<li class="listitem">
+<p>
+If neither of the above is possible, the lambda expression can be wrapped 
+in a <code class="literal">const_parameters</code> function. 
+It creates another type of lambda functor, which takes its arguments as 
+const references. For example:
+
+</p>
+<pre class="programlisting">
+const_parameters(_1 + _2)(1, 2); // ok
+</pre>
+<p>
+
+Note that <code class="literal">const_parameters</code> makes all arguments const.
+Hence, in the case were one of the arguments is a non-const rvalue, 
+and another argument needs to be passed as a non-const reference, 
+this approach cannot be used.
+</p>
+</li>
+<li class="listitem">
+<p>If none of the above is possible, there is still one solution, 
+which unfortunately can break const correctness.
+
+The solution is yet another lambda functor wrapper, which we have named 
+<code class="literal">break_const</code> to alert the user of the potential dangers 
+of this function. 
+
+The <code class="literal">break_const</code> function creates a lambda functor that 
+takes its arguments as const, and casts away constness prior to the call 
+to the original wrapped lambda functor.
+
+For example:
+</p>
+<pre class="programlisting">
+int i; 
+...
+(_1 += _2)(i, 2);                 // error, 2 is a non-const rvalue
+const_parameters(_1 += _2)(i, 2); // error, i becomes const
+break_const(_1 += _2)(i, 2);      // ok, but dangerous
+</pre>
+<p>
+
+Note, that the results of <code class="literal"> break_const</code> or 
+<code class="literal">const_parameters</code> are not lambda functors, 
+so they cannot be used as subexpressions of lambda expressions. For instance:
+
+</p>
+<pre class="programlisting">
+break_const(_1 + _2) + _3; // fails.
+const_parameters(_1 + _2) + _3; // fails.
+</pre>
+<p>
+
+However, this kind of code should never be necessary, 
+since calls to sub lambda functors are made inside the BLL, 
+and are not affected by the non-const rvalue problem.
+</p>
+</li>
+</ol></div>
+<p>
+
+</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp153520824"></a>Casts, sizeof and typeid</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="le_in_details.html#lambda.cast_expressions">
+Cast expressions
+</a></span></dt>
+<dt><span class="section"><a href="le_in_details.html#idp153526104">Sizeof and typeid</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="lambda.cast_expressions"></a>
+Cast expressions
+</h4></div></div></div>
+<p>
+The BLL defines its counterparts for the four cast expressions 
+<code class="literal">static_cast</code>, <code class="literal">dynamic_cast</code>, 
+<code class="literal">const_cast</code> and <code class="literal">reinterpret_cast</code>.
+
+The BLL versions of the cast expressions have the prefix 
+<code class="literal">ll_</code>.
+
+The type to cast to is given as an explicitly specified template argument, 
+and the sole argument is the expression from which to perform the cast.
+
+If the argument is a lambda functor, the lambda functor is evaluated first.
+
+For example, the following code uses <code class="literal">ll_dynamic_cast</code> 
+to count the number of <code class="literal">derived</code> instances in the container 
+<code class="literal">a</code>:
+
+</p>
+<pre class="programlisting">
+class base {};
+class derived : public base {};
+
+vector&lt;base*&gt; a;
+...
+int count = 0;
+for_each(a.begin(), a.end(), 
+         if_then(ll_dynamic_cast&lt;derived*&gt;(_1), ++var(count)));
+</pre>
+<p>
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp153526104"></a>Sizeof and typeid</h4></div></div></div>
+<p>
+The BLL counterparts for these expressions are named 
+<code class="literal">ll_sizeof</code> and <code class="literal">ll_typeid</code>.
+
+Both take one argument, which can be a lambda expression.
+The lambda functor created wraps the <code class="literal">sizeof</code> or 
+<code class="literal">typeid</code> call, and when the lambda functor is called 
+the wrapped operation is performed.
+
+For example:
+
+</p>
+<pre class="programlisting">
+vector&lt;base*&gt; a; 
+...
+for_each(a.begin(), a.end(), 
+         cout &lt;&lt; bind(&amp;type_info::name, ll_typeid(*_1)));
+</pre>
+<p>
+
+Here <code class="literal">ll_typeid</code> creates a lambda functor for 
+calling <code class="literal">typeid</code> for each element.
+
+The result of a <code class="literal">typeid</code> call is an instance of 
+the <code class="literal">type_info</code> class, and the bind expression creates 
+a lambda functor for calling the <code class="literal">name</code> member 
+function of that class.
+
+</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.nested_stl_algorithms"></a>Nesting STL algorithm invocations</h3></div></div></div>
+<p>
+The BLL defines common STL algorithms as function object classes, 
+instances of which can be used as target functions in bind expressions.
+For example, the following code iterates over the elements of a 
+two-dimensional array, and computes their sum.
+
+</p>
+<pre class="programlisting">
+int a[100][200];
+int sum = 0;
+
+std::for_each(a, a + 100, 
+	      bind(ll::for_each(), _1, _1 + 200, protect(sum += _1)));
+</pre>
+<p>
+
+The BLL versions of the STL algorithms are classes, which define the function call operator (or several overloaded ones) to call the corresponding function templates in the <code class="literal">std</code> namespace.
+All these structs are placed in the subnamespace <code class="literal">boost::lambda:ll</code>. 
+
+</p>
+<p>
+Note that there is no easy way to express an overloaded member function 
+call in a lambda expression. 
+
+This limits the usefulness of nested STL algorithms, as for instance 
+the <code class="literal">begin</code> function has more than one overloaded 
+definitions in container templates.
+
+In general, something analogous to the pseudo-code below cannot be written:
+
+</p>
+<pre class="programlisting">
+std::for_each(a.begin(), a.end(), 
+	      bind(ll::for_each(), _1.begin(), _1.end(), protect(sum += _1)));
+</pre>
+<p>
+
+Some aid for common special cases can be provided though.
+
+The BLL defines two helper function object classes, 
+<code class="literal">call_begin</code> and <code class="literal">call_end</code>, 
+which wrap a call to the <code class="literal">begin</code> and, respectively, 
+<code class="literal">end</code> functions of a container, and return the 
+<code class="literal">const_iterator</code> type of the container.
+
+With these helper templates, the above code becomes:
+</p>
+<pre class="programlisting">
+std::for_each(a.begin(), a.end(), 
+	      bind(ll::for_each(), 
+                   bind(call_begin(), _1), bind(call_end(), _1),
+                        protect(sum += _1)));
+</pre>
+<p>
+
+</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1999-2004 Jaakko J&#228;rvi, Gary Powell<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_library.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="extending.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

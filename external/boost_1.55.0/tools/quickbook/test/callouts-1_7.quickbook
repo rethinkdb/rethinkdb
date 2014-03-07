@@ -1,0 +1,68 @@
+[article Callout Tests
+    [quickbook 1.7]
+]
+
+[import callouts.cpp]
+
+Example 1:
+
+[example1]
+
+Example 2:
+
+[example2]
+
+Example 3:
+
+[example3]
+
+Example 3 (again!):
+
+[example3]
+
+Example 4:
+
+[example4]
+[example4a]
+
+[section:test_section Try callouts in a section]
+
+Example 1:
+
+[example1]
+
+Example 2:
+
+[example2]
+
+Example 3:
+
+[example3]
+
+Example 3 (again!):
+
+[example3]
+
+Example 4:
+
+[example4]
+[example4a]
+
+[endsect]
+
+[section:blocks Callouts in code blocks]
+
+    int roll_die() {
+      boost::uniform_int<> dist(1, 6); /*< create a uniform_int distribution >*/
+    }
+
+```
+int roll_die() {
+  /*<< [important test] >>*/
+  boost::variate_generator<boost::mt19937&, boost::uniform_int<> > die(gen, dist);
+}
+```
+
+`/*< This shouldn't be a callout >*/`
+
+[endsect]

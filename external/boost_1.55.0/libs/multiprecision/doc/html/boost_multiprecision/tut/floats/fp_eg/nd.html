@@ -1,0 +1,211 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Calculating a Derivative</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../fp_eg.html" title="Examples">
+<link rel="prev" href="jel.html" title="Defining a Special Function.">
+<link rel="next" href="gi.html" title="Calculating an Integral">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="jel.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../fp_eg.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="gi.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_multiprecision.tut.floats.fp_eg.nd"></a><a class="link" href="nd.html" title="Calculating a Derivative">Calculating
+          a Derivative</a>
+</h5></div></div></div>
+<p>
+            In this example we'll add even more power to generic numeric programming
+            using not only different floating-point types but also function objects
+            as template parameters. Consider some well-known central difference rules
+            for numerically computing the first derivative of a function <span class="emphasis"><em>f&#8242;(x)</em></span>
+            with <span class="emphasis"><em>x &#8712; &#8476;</em></span>:
+          </p>
+<p>
+            <span class="inlinemediaobject"><img src="../../../../../floating_point_eg1.png"></span>
+          </p>
+<p>
+            Where the difference terms <span class="emphasis"><em>m<sub>n</sub></em></span> are given by:
+          </p>
+<p>
+            <span class="inlinemediaobject"><img src="../../../../../floating_point_eg2.png"></span>
+          </p>
+<p>
+            and <span class="emphasis"><em>dx</em></span> is the step-size of the derivative.
+          </p>
+<p>
+            The third formula in Equation 1 is a three-point central difference rule.
+            It calculates the first derivative of <span class="emphasis"><em>f&#8242;(x)</em></span> to <span class="emphasis"><em>O(dx<sup>6</sup>)</em></span>,
+            where <span class="emphasis"><em>dx</em></span> is the given step-size. For example, if
+            the step-size is 0.01 this derivative calculation has about 6 decimal
+            digits of precision - just about right for the 7 decimal digits of single-precision
+            float. Let's make a generic template subroutine using this three-point
+            central difference rule. In particular:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">value_type</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">function_type</span><span class="special">&gt;</span>
+   <span class="identifier">value_type</span> <span class="identifier">derivative</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">dx</span><span class="special">,</span> <span class="identifier">function_type</span> <span class="identifier">func</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="comment">// Compute d/dx[func(*first)] using a three-point</span>
+   <span class="comment">// central difference rule of O(dx^6).</span>
+
+   <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">dx1</span> <span class="special">=</span> <span class="identifier">dx</span><span class="special">;</span>
+   <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">dx2</span> <span class="special">=</span> <span class="identifier">dx1</span> <span class="special">*</span> <span class="number">2</span><span class="special">;</span>
+   <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">dx3</span> <span class="special">=</span> <span class="identifier">dx1</span> <span class="special">*</span> <span class="number">3</span><span class="special">;</span>
+
+   <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">m1</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">func</span><span class="special">(</span><span class="identifier">x</span> <span class="special">+</span> <span class="identifier">dx1</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">func</span><span class="special">(</span><span class="identifier">x</span> <span class="special">-</span> <span class="identifier">dx1</span><span class="special">))</span> <span class="special">/</span> <span class="number">2</span><span class="special">;</span>
+   <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">m2</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">func</span><span class="special">(</span><span class="identifier">x</span> <span class="special">+</span> <span class="identifier">dx2</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">func</span><span class="special">(</span><span class="identifier">x</span> <span class="special">-</span> <span class="identifier">dx2</span><span class="special">))</span> <span class="special">/</span> <span class="number">4</span><span class="special">;</span>
+   <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">m3</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">func</span><span class="special">(</span><span class="identifier">x</span> <span class="special">+</span> <span class="identifier">dx3</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">func</span><span class="special">(</span><span class="identifier">x</span> <span class="special">-</span> <span class="identifier">dx3</span><span class="special">))</span> <span class="special">/</span> <span class="number">6</span><span class="special">;</span>
+
+   <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">fifteen_m1</span> <span class="special">=</span> <span class="number">15</span> <span class="special">*</span> <span class="identifier">m1</span><span class="special">;</span>
+   <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">six_m2</span>     <span class="special">=</span>  <span class="number">6</span> <span class="special">*</span> <span class="identifier">m2</span><span class="special">;</span>
+   <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="identifier">ten_dx1</span>    <span class="special">=</span> <span class="number">10</span> <span class="special">*</span> <span class="identifier">dx1</span><span class="special">;</span>
+
+   <span class="keyword">return</span> <span class="special">((</span><span class="identifier">fifteen_m1</span> <span class="special">-</span> <span class="identifier">six_m2</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">m3</span><span class="special">)</span> <span class="special">/</span> <span class="identifier">ten_dx1</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            The <code class="computeroutput"><span class="identifier">derivative</span><span class="special">()</span></code>
+            template function can be used to compute the first derivative of any
+            function to <span class="emphasis"><em>O(dx<sup>6</sup>)</em></span>. For example, consider the first
+            derivative of <span class="emphasis"><em>sin(x)</em></span> evaluated at <span class="emphasis"><em>x =
+            &#960;/3</em></span>. In other words,
+          </p>
+<p>
+            <span class="inlinemediaobject"><img src="../../../../../floating_point_eg3.png"></span>
+          </p>
+<p>
+            The code below computes the derivative in Equation 3 for float, double
+            and boost's multiple-precision type cpp_dec_float_50.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iomanip</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">cpp_dec_float</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">constants</span><span class="special">/</span><span class="identifier">constants</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">char</span><span class="special">**)</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">constants</span><span class="special">::</span><span class="identifier">pi</span><span class="special">;</span>
+   <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">::</span><span class="identifier">cpp_dec_float_50</span><span class="special">;</span>
+   <span class="comment">//</span>
+   <span class="comment">// We'll pass a function pointer for the function object passed to derivative,</span>
+   <span class="comment">// the typecast is needed to select the correct overload of std::sin:</span>
+   <span class="comment">//</span>
+   <span class="keyword">const</span> <span class="keyword">float</span> <span class="identifier">d_f</span> <span class="special">=</span> <span class="identifier">derivative</span><span class="special">(</span>
+      <span class="identifier">pi</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;()</span> <span class="special">/</span> <span class="number">3</span><span class="special">,</span>
+      <span class="number">0.01F</span><span class="special">,</span>
+      <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">(*)(</span><span class="keyword">float</span><span class="special">)&gt;(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">sin</span><span class="special">)</span>
+   <span class="special">);</span>
+
+   <span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">d_d</span> <span class="special">=</span> <span class="identifier">derivative</span><span class="special">(</span>
+      <span class="identifier">pi</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;()</span> <span class="special">/</span> <span class="number">3</span><span class="special">,</span>
+      <span class="number">0.001</span><span class="special">,</span>
+      <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">(*)(</span><span class="keyword">double</span><span class="special">)&gt;(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">sin</span><span class="special">)</span>
+      <span class="special">);</span>
+   <span class="comment">//</span>
+   <span class="comment">// In the cpp_dec_float_50 case, the sin function is multiply overloaded</span>
+   <span class="comment">// to handle expression templates etc.  As a result it's hard to take its</span>
+   <span class="comment">// address without knowing about its implementation details.  We'll use a </span>
+   <span class="comment">// C++11 lambda expression to capture the call.</span>
+   <span class="comment">// We also need a typecast on the first argument so we don't accidentally pass</span>
+   <span class="comment">// an expression template to a template function:</span>
+   <span class="comment">//</span>
+   <span class="keyword">const</span> <span class="identifier">cpp_dec_float_50</span> <span class="identifier">d_mp</span> <span class="special">=</span> <span class="identifier">derivative</span><span class="special">(</span>
+      <span class="identifier">cpp_dec_float_50</span><span class="special">(</span><span class="identifier">pi</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float_50</span><span class="special">&gt;()</span> <span class="special">/</span> <span class="number">3</span><span class="special">),</span>
+      <span class="identifier">cpp_dec_float_50</span><span class="special">(</span><span class="number">1.0E-9</span><span class="special">),</span>
+      <span class="special">[](</span><span class="keyword">const</span> <span class="identifier">cpp_dec_float_50</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="special">-&gt;</span> <span class="identifier">cpp_dec_float_50</span>
+      <span class="special">{</span>
+         <span class="keyword">return</span> <span class="identifier">sin</span><span class="special">(</span><span class="identifier">x</span><span class="special">);</span>
+      <span class="special">}</span>
+      <span class="special">);</span>
+
+   <span class="comment">// 5.000029e-001</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;::</span><span class="identifier">digits10</span><span class="special">)</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">d_f</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+   <span class="comment">// 4.999999999998876e-001</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">digits10</span><span class="special">)</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">d_d</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+   <span class="comment">// 4.99999999999999999999999999999999999999999999999999e-01</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float_50</span><span class="special">&gt;::</span><span class="identifier">digits10</span><span class="special">)</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">d_mp</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            The expected value of the derivative is 0.5. This central difference
+            rule in this example is ill-conditioned, meaning it suffers from slight
+            loss of precision. With that in mind, the results agree with the expected
+            value of 0.5.
+          </p>
+<p>
+            We can take this a step further and use our derivative function to compute
+            a partial derivative. For example if we take the incomplete gamma function
+            <span class="emphasis"><em>P(a, z)</em></span>, and take the derivative with respect to
+            <span class="emphasis"><em>z</em></span> at <span class="emphasis"><em>(2,2)</em></span> then we can calculate
+            the result as shown below, for good measure we'll compare with the "correct"
+            result obtained from a call to <span class="emphasis"><em>gamma_p_derivative</em></span>,
+            the results agree to approximately 44 digits:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">cpp_dec_float_50</span> <span class="identifier">gd</span> <span class="special">=</span> <span class="identifier">derivative</span><span class="special">(</span>
+   <span class="identifier">cpp_dec_float_50</span><span class="special">(</span><span class="number">2</span><span class="special">),</span>
+   <span class="identifier">cpp_dec_float_50</span><span class="special">(</span><span class="number">1.0E-9</span><span class="special">),</span>
+   <span class="special">[](</span><span class="keyword">const</span> <span class="identifier">cpp_dec_float_50</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="special">-&gt;</span><span class="identifier">cpp_dec_float_50</span>
+   <span class="special">{</span>
+      <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">gamma_p</span><span class="special">(</span><span class="number">2</span><span class="special">,</span> <span class="identifier">x</span><span class="special">);</span>
+   <span class="special">}</span>
+<span class="special">);</span>
+<span class="comment">// 2.70670566473225383787998989944968806815263091819151e-01</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+   <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float_50</span><span class="special">&gt;::</span><span class="identifier">digits10</span><span class="special">)</span>
+   <span class="special">&lt;&lt;</span> <span class="identifier">gd</span>
+   <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">// 2.70670566473225383787998989944968806815253190143120e-01</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">gamma_p_derivative</span><span class="special">(</span><span class="identifier">cpp_dec_float_50</span><span class="special">(</span><span class="number">2</span><span class="special">),</span> <span class="identifier">cpp_dec_float_50</span><span class="special">(</span><span class="number">2</span><span class="special">))</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="jel.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../fp_eg.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="gi.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

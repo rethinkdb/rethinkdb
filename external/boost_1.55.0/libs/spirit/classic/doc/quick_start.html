@@ -1,0 +1,462 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <meta content=
+    "HTML Tidy for Windows (vers 1st February 2003), see www.w3.org"
+          name="generator">
+    <title>
+      Quick Start
+    </title>
+    <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+    <link rel="stylesheet" href="theme/style.css" type="text/css">
+    </head>
+  <body>
+    <table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+      <tr>
+        <td width="10"></td>
+        <td width="85%">
+          <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Quick
+          Start</b></font>
+        </td>
+        <td width="112">
+          <a href="http://spirit.sf.net"><img src="theme/spirit.gif"
+               width="112" height="48" align="right" border="0"></a>
+        </td>
+      </tr>
+    </table><br>
+    <table border="0">
+      <tr>
+        <td width="10"></td>
+        <td width="30">
+          <a href="../index.html"><img src="theme/u_arr.gif" border="0"></a>
+        </td>
+        <td width="30">
+          <a href="introduction.html"><img src="theme/l_arr.gif" border="0">
+          </a>
+        </td>
+        <td width="30">
+          <a href="basic_concepts.html"><img src="theme/r_arr.gif" border="0">
+          </a>
+        </td>
+      </tr>
+    </table>
+    <h2>
+      <b>Why would you want to use Spirit?</b>
+    </h2>
+    <p>
+      Spirit is designed to be a practical parsing tool. At the very least, the
+      ability to generate a fully-working parser from a formal EBNF
+      specification inlined in C++ significantly reduces development time.
+      While it may be practical to use a full-blown, stand-alone parser such as
+      YACC or ANTLR when we want to develop a computer language such as C or
+      Pascal, it is certainly overkill to bring in the big guns when we wish to
+      write extremely small micro-parsers. At that end of the spectrum,
+      programmers typically approach the job at hand not as a formal parsing
+      task but through ad hoc hacks using primitive tools such as
+      <tt>scanf</tt>. True, there are tools such as regular-expression
+      libraries (such as <a href=
+      "http://www.boost.org/libs/regex/index.html">boost regex</a>) or scanners
+      (such as <a href="http://www.boost.org/libs/tokenizer/index.html">boost
+      tokenizer</a>), but these tools do not scale well when we need to write
+      more elaborate parsers. Attempting to write even a moderately-complex
+      parser using these tools leads to code that is hard to understand and
+      maintain.
+    </p>
+    <p>
+      One prime objective is to make the tool easy to use. When one thinks of a
+      parser generator, the usual reaction is "it must be big and complex with
+      a steep learning curve." Not so. Spirit is designed to be fully scalable.
+      The framework is structured in layers. This permits learning on an
+      as-needed basis, after only learning the minimal core and basic concepts.
+    </p>
+    <p>
+      For development simplicity and ease in deployment, the entire framework
+      consists of only header files, with no libraries to link against or
+      build. Just put the spirit distribution in your include path, compile and
+      run. Code size? -very tight. In the quick start example that we shall
+      present in a short while, the code size is dominated by the instantiation
+      of the <tt>std::vector</tt> and <tt>std::iostream</tt>.
+    </p>
+    <h2>
+    <b>Trivial Example #1</b></h2>
+    <p>Create a parser that will parse
+      a floating-point number.
+    </p>
+    <pre><code><font color="#000000">    </font></code><span class="identifier">real_p</span>
+</pre>
+<p>
+      (You've got to admit, that's trivial!) The above code actually generates
+      a Spirit <tt>real_parser</tt> (a built-in parser) which parses a floating
+      point number. Take note that parsers that are meant to be used directly
+      by the user end with "<tt>_p</tt>" in their names as a Spirit convention.
+      Spirit has many pre-defined parsers and consistent naming conventions
+      help you keep from going insane!
+  </p>
+    <h2>
+      <b>Trivial Example #2</b></h2>
+    <p>
+      Create a parser that will accept a line consisting of two floating-point
+      numbers.
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><code><span class=
+"identifier">real_p</span> <span class=
+      "special">&gt;&gt;</span> <span class="identifier">real_p</span></code>
+</pre>
+<p>
+      Here you see the familiar floating-point numeric parser
+      <code><tt>real_p</tt></code> used twice, once for each number. What's
+      that <tt class="operators">&gt;&gt;</tt> operator doing in there? Well,
+      they had to be separated by something, and this was chosen as the
+      "followed by" sequence operator. The above program creates a parser from
+      two simpler parsers, glueing them together with the sequence operator.
+      The result is a parser that is a composition of smaller parsers.
+      Whitespace between numbers can implicitly be consumed depending on how
+      the parser is invoked (see below).
+  </p>
+    <p>
+      Note: when we combine parsers, we end up with a "bigger" parser, But it's
+      still a parser. Parsers can get bigger and bigger, nesting more and more,
+      but whenever you glue two parsers together, you end up with one bigger
+      parser. This is an important concept.
+    </p>
+    <h2>
+      <b>Trivial Example #3</b></h2>
+    <p>
+      Create a parser that will accept an arbitrary number of floating-point
+      numbers. (Arbitrary means anything from zero to infinity)
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><code><span class=
+"special">*</span><span class="identifier">real_p</span></code>
+</pre>
+<p>
+      This is like a regular-expression Kleene Star, though the syntax might
+      look a bit odd for a C++ programmer not used to seeing the <tt class=
+      "operators">*</tt> operator overloaded like this. Actually, if you know
+      regular expressions it may look odd too since the star is <b>before</b>
+      the expression it modifies. C'est la vie. Blame it on the fact that we
+      must work with the syntax rules of C++.
+  </p>
+    <p>
+      Any expression that evaluates to a parser may be used with the Kleene
+      Star. Keep in mind, though, that due to C++ operator precedence rules you
+      may need to put the expression in parentheses for complex expressions.
+      The Kleene Star is also known as a Kleene Closure, but we call it the
+      Star in most places.
+    </p>
+    <h3>
+      <b><a name="list_of_numbers"></a> Example #4 [ A Just Slightly Less Trivial Example</b>
+]    </h3>
+    <p>
+ This example will create a parser that accepts a comma-delimited list of numbers and put the numbers in a vector.
+</p>
+    <h4><strong> Step 1. Create the parser</strong></h4>
+    <pre><code><font color="#000000">    </font></code><code><span class=
+"identifier">real_p</span> <span class=
+      "special">&gt;&gt;</span> <span class="special">*(</span><span class=
+      "identifier">ch_p</span><span class="special">(</span><span class=
+      "literal">','</span><span class="special">)</span> <span class=
+      "special">&gt;&gt;</span> <span class=
+      "identifier">real_p</span><span class="special">)</span></code>
+</pre>
+    <p>
+      Notice <tt>ch_p(',')</tt>. It is a literal character parser that can
+      recognize the comma <tt>','</tt>. In this case, the Kleene Star is
+      modifying a more complex parser, namely, the one generated by the
+      expression:
+    </p>
+    
+    <pre><code><font color="#000000">    </font></code><code><span class=
+      "special">(</span><span class="identifier">ch_p</span><span class=
+      "special">(</span><span class="literal">','</span><span class=
+      "special">)</span> <span class="special">&gt;&gt;</span> <span class=
+      "identifier">real_p</span><span class="special">)</span></code>
+</pre>
+<p>
+      Note that this is a case where the parentheses are necessary. The Kleene
+      star encloses the complete expression above.
+  </p>
+    <h4>
+      <b><strong>Step 2. </strong>Using a Parser (now that it's created)</b></h4>
+    <p>
+      Now that we have created a parser, how do we use it? Like the result of
+      any C++ temporary object, we can either store it in a variable, or call
+      functions directly on it.
+    </p>
+    <p>
+      We'll gloss over some low-level C++ details and just get to the good
+      stuff.
+    </p>
+    <p>
+      If <b><tt>r</tt></b> is a rule (don't worry about what rules exactly are
+      for now. This will be discussed later. Suffice it to say that the rule is
+      a placeholder variable that can hold a parser), then we store the parser
+      as a rule like this:
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><code><font color="#000000"><span class=
+      "identifier">r</span> <span class="special">=</span> <span class=
+      "identifier">real_p</span> <span class=
+      "special">&gt;&gt; *(</span><span class=
+      "identifier">ch_p</span><span class="special">(</span><span class=
+      "literal">','</span><span class="special">) &gt;&gt;</span> <span class=
+      "identifier">real_p</span><span class="special">);</span></font></code>
+</pre>
+<p>
+      Not too exciting, just an assignment like any other C++ expression you've
+      used for years. The cool thing about storing a parser in a rule is this:
+      rules are parsers, and now you can refer to it <b>by name</b>. (In this
+      case the name is <tt><b>r</b></tt>). Notice that this is now a full
+      assignment expression, thus we terminate it with a semicolon,
+      "<tt>;</tt>".
+  </p>
+    <p>
+      That's it. We're done with defining the parser. So the next step is now
+      invoking this parser to do its work. There are a couple of ways to do
+      this. For now, we shall use the free <tt>parse</tt> function that takes
+      in a <tt>char const*</tt>. The function accepts three arguments:
+    </p>
+    <blockquote>
+      <p>
+        <img src="theme/bullet.gif" width="12" height="12"> The null-terminated
+        <tt>const char*</tt> input<br>
+         <img src="theme/bullet.gif" width="12" height="12"> The parser
+        object<br>
+         <img src="theme/bullet.gif" width="12" height="12"> Another parser
+        called the <b>skip parser</b>
+      </p>
+    </blockquote>
+    <p>
+      In our example, we wish to skip spaces and tabs. Another parser named
+      <tt>space_p</tt> is included in Spirit's repertoire of predefined
+      parsers. It is a very simple parser that simply recognizes whitespace. We
+      shall use <tt>space_p</tt> as our skip parser. The skip parser is the one
+      responsible for skipping characters in between parser elements such as
+      the <tt>real_p</tt> and the <tt>ch_p</tt>.
+    </p>
+    <p>
+      Ok, so now let's parse!
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><code><font color="#000000"><span class=
+"identifier">r</span> <span class="special">=</span> <span class=
+"identifier">real_p</span> <span class=
+      "special">&gt;&gt;</span> <span class="special">*(</span><span class=
+      "identifier">ch_p</span><span class="special">(</span><span class=
+      "literal">','</span><span class="special">)</span> <span class=
+      "special">&gt;&gt;</span> <span class=
+      "identifier">real_p</span><span class="special">);
+</span> <span class="identifier">   parse</span><span class=
+"special">(</span><span class="identifier">str</span><span class=
+"special">,</span> <span class="identifier">r</span><span class=
+"special">,</span> <span class="identifier">space_p</span><span class=
+"special">)</span> <span class=
+"comment">// Not a full statement yet, patience...</span></font></code>
+</pre>
+<p>
+      The parse function returns an object (called <tt>parse_info</tt>) that
+      holds, among other things, the result of the parse. In this example, we
+      need to know:
+  </p>
+    <blockquote>
+      <p>
+        <img src="theme/bullet.gif" width="12" height="12"> Did the parser
+        successfully recognize the input <tt>str</tt>?<br>
+         <img src="theme/bullet.gif" width="12" height="12"> Did the parser
+        <b>fully</b> parse and consume the input up to its end?
+      </p>
+    </blockquote>
+    <p>
+      To get a complete picture of what we have so far, let us also wrap this
+      parser inside a function:
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><code><font color="#000000"><span class=
+"keyword">bool
+</span> <span class="identifier">   parse_numbers</span><span class=
+"special">(</span><span class="keyword">char</span> <span class=
+"keyword">const</span><span class="special">*</span> <span class=
+"identifier">str</span><span class="special">)
+    {
+</span> <span class="keyword">       return</span> <span class=
+"identifier">parse</span><span class="special">(</span><span class=
+"identifier">str</span><span class="special">,</span> <span class=
+"identifier">real_p</span> <span class=
+      "special">&gt;&gt;</span> <span class="special">*(</span><span class=
+      "literal">','</span> <span class="special">&gt;&gt;</span> <span class=
+      "identifier">real_p</span><span class="special">),</span> <span class=
+      "identifier">space_p</span><span class="special">).</span><span class=
+      "identifier">full</span><span class="special">;
+    }</span></font></code>
+</pre>
+<p>
+      Note in this case we dropped the named rule and inlined the parser
+      directly in the call to parse. Upon calling parse, the expression
+      evaluates into a temporary, unnamed parser which is passed into the
+      parse() function, used, and then destroyed.
+  </p>
+    <table border="0" width="80%" align="center">
+      <tr>
+        <td class="note_box">
+          <img src="theme/note.gif" width="16" height="16"><b>char and wchar_t
+          operands</b><br>
+          <br>
+           The careful reader may notice that the parser expression has
+          <tt class="quotes">','</tt> instead of <tt>ch_p(',')</tt> as the
+          previous examples did. This is ok due to C++ syntax rules of
+          conversion. There are <tt>&gt;&gt;</tt> operators that are overloaded
+          to accept a <tt>char</tt> or <tt>wchar_t</tt> argument on its left or
+          right (but not both). An operator may be overloaded if at least one
+          of its parameters is a user-defined type. In this case, the
+          <tt>real_p</tt> is the 2nd argument to <tt>operator<span class=
+          "operators">&gt;&gt;</span></tt>, and so the proper overload of
+          <tt class="operators">&gt;&gt;</tt> is used, converting
+              <tt class="quotes">','</tt> into a character literal parser.<br>
+          <br>
+           The problem with omiting the <tt>ch_p</tt> call should be obvious:
+          <tt>'a' &gt;&gt; 'b'</tt> is <b>not</b> a spirit parser, it is a
+          numeric expression, right-shifting the ASCII (or another encoding)
+          value of <tt class="quotes">'a'</tt> by the ASCII value of
+              <tt class="quotes">'b'</tt>. However, both <tt>ch_p('a') &gt;&gt;
+              'b'</tt> and <tt>'a' &gt;&gt; ch_p('b')</tt> are Spirit sequence
+              parsers for the letter <tt class="quotes">'a'</tt> followed by
+              <tt class="quotes">'b'</tt>. You'll get used to it, sooner or
+              later.
+        </td>
+      </tr>
+    </table>
+    <p>
+      Take note that the object returned from the parse function has a member
+      called <tt>full</tt> which returns true if both of our requirements above
+      are met (i.e. the parser fully parsed the input).
+    </p>
+    <h4>
+      <b> Step 3. Semantic Actions</b></h4>
+    <p>
+      Our parser above is really nothing but a recognizer. It answers the
+      question <i class="quotes">"did the input match our grammar?"</i>, but it
+      does not remember any data, nor does it perform any side effects.
+      Remember: we want to put the parsed numbers into a vector. This is done
+      in an <b>action</b> that is linked to a particular parser. For example,
+      whenever we parse a real number, we wish to store the parsed number after
+      a successful match. We now wish to extract information from the parser.
+      Semantic actions do this. Semantic actions may be attached to any point
+      in the grammar specification. These actions are C++ functions or functors
+      that are called whenever a part of the parser successfully recognizes a
+      portion of the input. Say you have a parser <b>P</b>, and a C++ function
+      <b>F</b>, you can make the parser call <b>F</b> whenever it matches an
+      input by attaching <b>F</b>:
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><code><font color="#000000"><span class=
+"identifier">P</span><span class="special">[&amp;</span><span class=
+"identifier">F</span><span class="special">]</span></font></code>
+</pre>
+<p>
+      Or if <b>F</b> is a function object (a functor):
+  </p>
+    
+<pre><code><font color="#000000">    </font></code><code><font color="#000000"><span class=
+"identifier">P</span><span class="special">[</span><span class=
+"identifier">F</span><span class="special">]</span></font></code>
+</pre>
+<p>
+      The function/functor signature depends on the type of the parser to which
+      it is attached. The parser <tt>real_p</tt> passes a single argument: the
+      parsed number. Thus, if we were to attach a function <b>F</b> to
+      <tt>real_p</tt>, we need <b>F</b> to be declared as:
+  </p>
+    
+<pre><code>    </code><code><span class=
+"keyword">void</span> <span class="identifier">F</span><span class=
+"special">(</span><span class="keyword">double</span> <span class=
+"identifier">n</span><span class="special">);</span></code></pre>
+<p>
+      For our example however, again, we can take advantage of some predefined
+      semantic functors and functor generators (<img src="theme/lens.gif"
+         width="15" height="16"> A functor generator is a function that returns
+         a functor). For our purpose, Spirit has a functor generator
+         <tt>push_back_a(c)</tt>. In brief, this semantic action, when called,
+         <b>appends</b> the parsed value it receives from the parser it is
+         attached to, to the container <tt>c</tt>.
+  </p>
+    <p>
+      Finally, here is our complete comma-separated list parser:
+    </p>
+    
+<pre><code><font color="#000000">    </font></code><code><font color="#000000"><span class=
+"keyword">bool
+</span>    <span class="identifier">parse_numbers</span><span class=
+"special">(</span><span class="keyword">char</span> <span class=
+"keyword">const</span><span class="special">*</span> <span class=
+"identifier">str</span><span class="special">,</span> <span class=
+"identifier">vector</span><span class="special">&lt;</span><span class=
+"keyword">double</span><span class=
+      "special">&gt;&amp;</span> <span class="identifier">v</span><span class=
+      "special">)
+    {
+</span>        <span class="keyword">return</span> <span class=
+"identifier">parse</span><span class="special">(</span><span class=
+"identifier">str</span><span class="special">,
+
+</span>        <span class="comment">    //  Begin grammar
+</span>        <span class="special">    (
+</span>                <span class="identifier">real_p</span><span class=
+"special">[</span><span class="identifier">push_back_a</span><span class=
+"special">(</span><span class="identifier">v</span><span class=
+"special">)]</span> <span class="special">&gt;&gt;</span> <span class=
+"special">*(</span><span class="literal">','</span> <span class=
+"special">&gt;&gt;</span> <span class=
+      "identifier">real_p</span><span class="special">[</span><span class=
+      "identifier">push_back_a</span><span class="special">(</span><span class=
+      "identifier">v</span><span class="special">)])
+            )
+</span> <span class="special">           ,
+</span>        <span class="comment">    //  End grammar
+
+</span>        <span class="identifier">    space_p</span><span class=
+"special">).</span><span class="identifier">full</span><span class="special">;
+    }</span></font></code>
+</pre>
+<p>
+      This is the same parser as above. This time with appropriate semantic
+      actions attached to strategic places to extract the parsed numbers and
+      stuff them in the vector <tt>v</tt>. The parse_numbers function returns
+      true when successful.
+  </p>
+    <p>
+      <img src="theme/lens.gif" width="15" height="16"> The full source code
+      can be <a href="../example/fundamental/number_list.cpp">viewed here</a>.
+      This is part of the Spirit distribution.
+    </p>
+    <table border="0">
+      <tr>
+        <td width="10"></td>
+        <td width="30">
+          <a href="../index.html"><img src="theme/u_arr.gif" border="0"></a>
+        </td>
+        <td width="30">
+          <a href="introduction.html"><img src="theme/l_arr.gif" border="0">
+          </a>
+        </td>
+        <td width="30">
+          <a href="basic_concepts.html"><img src="theme/r_arr.gif" border="0">
+          </a>
+        </td>
+      </tr>
+    </table><br>
+    <hr size="1">
+    <p class="copyright">
+      Copyright &copy; 1998-2003 Joel de Guzman<br>
+       Copyright &copy; 2002 Chris Uzdavinis<br>
+      <br>
+       <font size="2">Use, modification and distribution is subject to the
+      Boost Software License, Version 1.0. (See accompanying file
+      LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)</font>
+    </p>
+    <blockquote>&nbsp;
+      
+    </blockquote>
+  </body>
+</html>

@@ -1,0 +1,42 @@
+<html>
+<head>
+  <title>BOOST_PP_VARIADIC_ELEM</title>
+  <link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+<div style="margin-left: 0px;"> The <b>BOOST_PP_VARIADIC_ELEM</b> variadic macro
+extracts an element from <i>variadic data</i>. </div>
+<h4>Usage</h4>
+<div class="code"> <b>BOOST_PP_VARIADIC_ELEM</b>(<i>i</i>, <i>...</i>) <sup>(v)</sup><br>
+ </div>
+<h4>Arguments</h4>
+<dl><dt>i</dt>
+  <dd> The zero-based index into the <i>variadic data</i> of the element to be
+extracted.&nbsp; Valid values range from <i>0</i> to the size of the variadic data - 1.
+  </dd>
+  <dt>...<br>
+</dt>
+  <dd> The <i>variadic data</i> from which an element is to be extracted. </dd>
+</dl>
+<h4>Remarks</h4>
+<div>The index <i>i</i> must be less than the size of the <i>variadic data</i>. </div>
+<h4>See Also</h4>
+<ul>
+  <li><a href="limit_variadic.html">BOOST_PP_LIMIT_VARIADIC</a></li>
+</ul>
+<h4>Requirements</h4>
+<div> <b>Header:</b> &nbsp;<a href="../headers/variadic/elem.html">&lt;boost/preprocessor/variadic/elem.hpp&gt;</a>
+</div>
+<h4>Sample Code</h4>
+<div>
+<pre>#include &lt;<a href="../headers/variadic/elem.html">boost/preprocessor/variadic/elem.hpp</a>&gt;<br><br>#define VAR_DATA a, b, c, d<br><br><a href="variadic_elem.html">BOOST_PP_VARIADIC_ELEM</a>(0, VAR_DATA) // expands to a<br><a href="variadic_elem.html">BOOST_PP_VARIADIC_ELEM</a>(3, VAR_DATA) // expands to d<br></pre>
+</div>
+<hr size="1">
+<div style="margin-left: 0px;"> <i></i><i>© Copyright Edward Diener 2011</i> </div>
+<div style="margin-left: 0px;">
+<p><small>Distributed under the Boost Software License, Version 1.0.
+(See accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+</div>
+</body>
+</html>

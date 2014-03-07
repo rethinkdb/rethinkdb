@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="include" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Include</title>
+  <para>
+    This should appear when <literal>stub.c</literal> is included.
+  </para>
+  <para>
+    This is the C <emphasis role="bold"><emphasis>foo</emphasis></emphasis> function.
+  </para>
+  <para>
+    This description can have paragraphs...
+  </para>
+  <itemizedlist>
+    <listitem>
+      <simpara>
+        lists
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        etc.
+      </simpara>
+    </listitem>
+  </itemizedlist>
+  <para>
+    And any quickbook block markup.
+  </para>
+<programlisting><phrase role="keyword">char</phrase><phrase role="special">*</phrase> <phrase role="identifier">foo</phrase><phrase role="special">()</phrase>
+<phrase role="special">{</phrase>
+    <phrase role="comment">// return 'em, foo man!</phrase>
+    <phrase role="keyword">return</phrase> <phrase role="string">&quot;foo&quot;</phrase><phrase role="special">;</phrase>
+<phrase role="special">}</phrase>
+</programlisting>
+  <para>
+    This should appear when <literal>stub.py</literal> is included.
+  </para>
+  <para>
+    This should appear when <literal>stub.cpp</literal> is included.
+  </para>
+  <para>
+    [foo]
+  </para>
+  <para>
+    [foo_py]
+  </para>
+  <para>
+    [foo_c]
+  </para>
+</article>

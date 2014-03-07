@@ -1,0 +1,385 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Copyright (c) 2002 Douglas Gregor <doug.gregor -at- gmail.com>
+  
+   Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at
+   http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<!DOCTYPE part PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<part xmlns:xi="http://www.w3.org/2001/XInclude" id="boostbook"
+     last-revision="$Date: 2010-07-19 16:29:09 -0700 (Mon, 19 Jul 2010) $">
+  <partinfo>
+    <author>
+      <firstname>Douglas</firstname>
+      <surname>Gregor</surname>
+    </author>
+    
+    <copyright>
+      <year>2003</year>
+      <year>2004</year>
+      <year>2005</year>
+      <holder>Douglas Gregor</holder>
+    </copyright>
+
+    <legalnotice>
+      <para>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file LICENSE_1_0.txt or copy at
+      <ulink url="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</ulink>).
+      </para>
+    </legalnotice>
+  </partinfo>
+
+  <title>The BoostBook Documentation Format</title>
+
+  <chapter id="boostbook.introduction">
+    <title>Introduction</title>
+   
+    <para>The BoostBook documentation format is an extension of <ulink
+    url="http://www.docbook.org">DocBook</ulink>, an SGML- or
+    XML-based format for describing documentation. BoostBook augments
+    DocBook with semantic markup that aids in the documentation of C++
+    libraries, specifically the <ulink
+    url="http://www.boost.org">Boost C++ libraries</ulink>, by
+    providing the ability to express and refer to C++ constructs such
+    as namespaces, classes, overloaded functions, templates, and
+    specializations.</para>
+
+    <para>
+    BoostBook offers additional features more specific to its use for
+    documenting the <ulink url="http://www.boost.org">Boost C++
+    libraries</ulink>. These features are intended to eliminate or
+    reduce the need for duplication of information and to aid in
+    documenting portions of Boost that might otherwise not be
+    documented. Examples of Boost-centric features include:
+      <itemizedlist>
+        <listitem>
+          <para><emphasis role="bold">Testsuites</emphasis>:
+          Testsuites in Boost are created by writing an appropriate
+          Jamfile and including that Jamfile in
+          <filename>status/Jamfile</filename>. If the testsuites are
+          documented (<ulink
+          url="http://www.boost.org/libs/multi_array/doc/test_cases.html">as
+          in the MultiArray library</ulink>), the documentation is
+          maintained separately from the testcase Jamfile, leading to
+          duplication of information and the possibility of having the
+          documentation out of sync with the Jamfile. BoostBook
+          contains elements that describe a testsuite for both
+          purposes: the BoostBook stylesheets can generate
+          documentation for the testcases and also generate an
+          appropriate Jamfile to integrate the testcases with the
+          regression testing system.</para>
+        </listitem>
+        <listitem>
+          <para><emphasis role="bold">Example programs</emphasis>:
+          Example programs in documentation need to be duplicated in
+          testcases to ensure that the examples compile and execute
+          correctly. Keeping the two copies in sync is a tedious and
+          error-prone task. For instance, the following code snippet
+          persisted for six months:</para>
+<programlisting>
+std::cout &lt;&lt; f(5, 3) &gt;&gt; std::endl;
+</programlisting>
+          <para>The BoostBook format allows testcases to be generated
+          by weaving together program fragments from example programs
+          in the documentation. This capability is integrated with
+          testsuite generation so that example programs are normal
+          tests in BoostBook.</para>
+        </listitem>
+      </itemizedlist>
+    </para>
+  </chapter>
+
+  <chapter id="boostbook.getting.started">
+    <title>Getting Started</title>
+
+    <para>To use the Boost documentation tools, you will need several tools:</para>
+    <itemizedlist>
+      <listitem><simpara><command>xsltproc</command>:</simpara>
+        <itemizedlist>
+          <listitem>Windows with <ulink
+                       url="http://www.cygwin.com/">Cygwin</ulink>: select the libxml2 and libxslt packages.</listitem>
+          <listitem>Windows without Cygwin: Download the <ulink url="http://www.zlatkovic.com/pub/libxml/">binary packages</ulink>
+            from Igor Zlatkovic. At the very least, you'll need iconv, zlib, libxml2 and libxslt.</listitem>
+          <listitem>Mac OS X with Fink: Get the <code>libxslt</code> package.</listitem>
+          <listitem>Mac OS X without Fink: <ulink url="http://www.zveno.com/open_source/libxml2xslt.html">Download the libxslt binaries</ulink></listitem>
+          <listitem>Any platform: <ulink
+                                     url="http://xmlsoft.org/XSLT/">libxslt source</ulink>.</listitem>
+        </itemizedlist>
+      </listitem>
+        <listitem><simpara><command>doxygen</command>:</simpara> Available from <ulink url="http://www.doxygen.org">http://www.doxygen.org</ulink></listitem>
+    </itemizedlist>
+
+    <section id="boostbook.setup.autounix">
+      <title>Automatic setup for Unix-like systems</title>
+            
+      <para>BoostBook provides a nearly-automatic setup script. Once
+      you have downloaded and
+      installed <command>xsltproc</command>, <command>doxygen</command>,
+      and (optionally) <command>java</command>, the setup script can
+      download the required DocBook stylesheets, DocBook DTD, and
+      (when Java is enabled) Apache FOP for PDF output. It will then
+      configure Boost.Build version 2 to build BoostBook
+      documentation.</para>
+      
+      <para>The script requires: <command>sh</command>,
+      <command>curl</command> and <command>gunzip</command>.
+      To perform the installation, execute the
+      script <command>tools/boostbook/setup_boostbook.sh</command>
+      from a directory where you would like the resulting XSL, DTD,
+      and Apache FOP installations to occur. </para>
+    </section>
+
+    <section id="boostbook.setup.manual">
+      <title>Manual setup for all systems</title>
+    
+      <para>This section describes how to manually configure Boost
+      Boost version 2 (BBv@) for BoostBook. If you can use the
+      automatic setup script, you should. All configuration will
+      happen in the BBv2 user configuration file,
+      <filename>user-config.jam</filename>. If you do not have a copy
+      of this file in your home directory, you should copy the one
+      that resides in <code>tools/build/v2</code> to your home
+      directory. Alternatively, you can edit
+      <filename>tools/build/v2/user-config.jam</filename> directly or
+      a site-wide <filename>site-config.jam</filename> file.</para>
+
+      <section id="boostbook.setup.xsltproc">
+        <title>Configuring <command>xsltproc</command></title>
+
+        <para>To configure <command>xsltproc</command> manually, you
+        will need to add a directive to
+        <filename>user-config.jam</filename> telling it where to find
+        <command>xsltproc</command>. If the program is in your path,
+        just add the following line to
+        <filename>user-config.jam</filename>:</para>
+
+<programlisting>using xsltproc ;</programlisting>
+
+        <para>If <command>xsltproc</command> is somewhere else, use
+        this directive, where <code>XSLTPROC</code> is the full
+        pathname to <command>xsltproc</command> (including
+        <command>xsltproc</command>):</para>
+
+<programlisting>using xsltproc : XSLTPROC ;</programlisting>
+      </section>
+
+      <section id="boostbook.setup.docbook">
+        <title>Configuring local DocBook XSL and DTD distributions</title>
+ 
+        <para>This section describes how to configure Boost.Build to
+        use local copies of the DocBook DTD and XSL stylesheets to
+        improve processing time. You will first need to download two
+        packages:
+
+        <itemizedlist>
+          <listitem><para>Norman Walsh's DocBook XSL stylesheets,
+          available at the <ulink
+          url="http://docbook.sourceforge.net">DocBook sourceforge
+          site</ulink>. Extract the DocBook XSL stylesheets to a
+          directory on your hard disk (which we'll refer to as the
+          <code>DOCBOOK_XSL_DIR</code>).</para>
+          </listitem>
+
+          <listitem><para>The DocBook DTD, available as a ZIP archive
+          at the <ulink
+          url="http://www.oasis-open.org/docbook/xml/4.2/">OASIS
+          DocBook site</ulink>. The package is called "DocBook XML
+          4.2". Extract the DocBook DTD to a directory on your hard
+          disk (which we'll refer to as the
+          <code>DOCBOOK_DTD_DIR</code>). You will want to extract this
+          archive in a subdirectory!</para></listitem>
+        </itemizedlist>
+        </para>
+
+        <para>Add the following directive telling BBv2 where to find
+        the DocBook DTD and XSL stylesheets:</para>
+
+        <programlisting>#  BoostBook configuration
+using boostbook 
+  : DOCBOOK_XSL_DIR
+  : DOCBOOK_DTD_DIR
+  ;</programlisting>
+
+        <para>Whenever you change this directive, you will need to
+        remove the <code>bin.v2</code> directory that BBv2 generates.
+        This is due to longstanding bug we are trying to fix.</para>
+
+        <para>At this point, you should be able to build HTML
+        documentation for libraries that do not require Doxygen. To
+        test this, change into the directory <filename
+        class="directory">$BOOST_ROOT/libs/function/doc</filename> and
+        run the command <code>bjam</code>: it should produce HTML
+        documentation for the Boost.Function library in the
+        <code>html</code> subdirectory.</para>
+      </section>
+
+      <section id="boostbook.setup.doxygen">
+        <title>Configuring Doxygen for Documentation Extraction</title>
+ 
+        <para>Doxygen is required to build the documentation for
+        several Boost libraries. You will need a recent version of
+        <ulink url="http://www.doxygen.org">Doxygen</ulink> (most of
+        the 1.3.x and 1.4.x versions will suffice). BBv2 by adding the
+        following directive to
+        <filename>user-config.jam</filename>:</para>
+
+        <programlisting>using doxygen : DOXYGEN ;</programlisting>
+
+        <para><filename>DOXYGEN</filename> should be replaced with the
+        name of the <command>doxygen</command> executable (with full
+        path name). If the right <command>doxygen</command> executable
+        can be found via the path, this parameter can be
+        omitted, e.g.</para>
+
+        <programlisting>using doxygen ;</programlisting>
+      
+        <important>
+          <para>The relative order of declarations in
+          <filename>user-config.jam</filename> /
+          <filename>site-config.jam</filename> files is
+          significant. In particular, the <literal>using
+          doxygen</literal> line should come
+          <emphasis>after</emphasis> the <literal>using
+          boostbook</literal> declaration.
+          </para>
+        </important>
+      </section>
+
+      <section id="boostbook.setup.fop">
+      <title>Configuring Apache FOP</title>
+
+      <para>In order to generate PDF and PostScript output using
+      Apache FOP, you will need a <ulink
+      url="http://java.sun.com">Java interpreter</ulink> and <ulink
+      url="http://xml.apache.org/fop/download.html">Apache FOP</ulink>
+      (version 0.20.5 is best). Unpack Apache FOP to some
+      directory. The top level directory of the FOP tool should
+      contain a main script called <filename>fop.sh</filename> on Unix
+      and <filename>fop.bat</filename> on Windows. You need to specify
+      the location of that script and Java location to
+      Boost.Build. Add the following to your
+      <filename>user-config.jam</filename> or
+      <filename>site-config.jam</filename>:
+<programlisting>
+using fop : FOP_COMMAND 
+          : JAVA_HOME 
+          ;
+</programlisting> replacing
+      <code>FOP_COMMAND</code> with the full path to the FOP main script, and
+      replacing <code>JAVA_HOME</code> with the directory where Java is
+      installed. If the <envar>JAVA_HOME</envar> environment variable is
+      already set, you don't need to specify it above.
+      </para>
+    
+      <para>
+        Proper generation of images in PDFs depends on the <ulink
+        url="http://java.sun.com/products/jimi/#">Jimi Image
+        Library</ulink>.  To get FOP to use Jimi, extract the
+        <filename>JimiProClasses.zip</filename> file from the Jimi SDK
+        and rename it—if on Windows, to
+        <filename>jimi-1.0.jar</filename>, or if on *nix, to
+        <filename>JimiProClasses.jar</filename>—and place it in the
+        <filename>lib/</filename> subdirectory of your FOP
+        installation.
+      </para>
+
+      <para>To test PDF generation, switch to the directory <filename
+      class="directory">$BOOST_ROOT/libs/function/doc</filename> and
+      execute the command <command>bjam pdf</command>. In the
+      absence of any errors, Apache FOP will be executed to transform
+      the XSL:FO output of DocBook into a PDF file.</para>
+    </section>
+  </section>
+
+  <section id="boostbook.setup.running">
+    <title>Running BoostBook</title>
+
+    <para>Once BoostBook has been configured, we can build some
+    documentation. First, change to the directory
+    <code>$BOOST_ROOT/doc</code> and remove (or make writable) the
+    <code>.html</code> files in
+    <code>$BOOST_ROOT/doc/html</code>. Then, run <code>bjam</code>
+    to build HTML documentation. You should see several
+    warnings like these while DocBook documentation is being built
+    from BoostBook documentation:</para>
+
+    <programlisting>Cannot find function named 'checked_delete'
+Cannot find function named 'checked_array_delete'
+Cannot find function named 'next'</programlisting>
+
+    <para>These warnings are emitted when the Boost documentation
+    tools cannot find documentation for functions, methods, or classes
+    that are referenced in the source, and are not harmful in any
+    way. Once Boost.Jam has completed its execution, HTML
+    documentation for Boost will be available in
+    <code>$BOOST_ROOT/doc/html</code>. You can also create HTML
+    documentation in a single (large!) HTML file with the command line
+    <code>bjam onehtml</code>, or Unix man pages with the command
+    line <code>bjam man</code>. The complete list of output
+    formats is listed in <xref
+    linkend="boostbook.output.formats"/>. Several output formats can
+    be passed to a single invocation of <code>bjam</code>, e.g.,
+    <code>bjam html man docbook</code> would generate HTML
+    (multiple files), man pages, and DocBook documentation.</para>
+   
+    <table id="boostbook.output.formats">
+      <title>BoostBook Output Formats</title>
+      <tgroup cols="2">
+        <thead>
+          <row><entry>Format</entry><entry>Description</entry></row>
+        </thead>
+        <tbody> 
+          <row>
+            <entry>html</entry>
+            <entry><simpara>HTML output (multiple files). This is the default</simpara></entry>
+          </row>
+          <row>
+            <entry>onehtml</entry>
+            <entry><simpara>HTML output in a single HTML file.</simpara></entry>
+          </row>
+          <row>
+            <entry>man</entry>
+            <entry><simpara>Unix man pages.</simpara></entry>
+          </row>
+          <row>
+            <entry>pdf</entry>
+            <entry><simpara>PDF. Requires <ulink url="http://xml.apache.org/fop/index.html">Apache FOP</ulink>.</simpara></entry>
+          </row>
+          <row>
+            <entry>ps</entry>
+            <entry><simpara>Postscript. Requires <ulink url="http://xml.apache.org/fop/index.html">Apache FOP</ulink>.</simpara></entry>
+          </row>
+          <row>
+            <entry>docbook</entry>
+            <entry><ulink url="http://www.docbook.org/">DocBook</ulink>.</entry>
+          </row>
+          <row>
+            <entry>fo</entry>
+            <entry><ulink url="http://www.w3.org/TR/xsl/">XSL Formatting Objects</ulink></entry>
+          </row>
+        </tbody> 
+      </tgroup>
+    </table>
+    </section>
+
+    <section id="boostbook.setup.troubleshooting">
+      <title>Troubleshooting</title>
+    
+      <para>The Boost documentation tools are still in their early phase of 
+      development, and some things don't work as seamlessly as we would like 
+      them to, yet. In particular, error messages can be somewhat 
+      uninformative at times. If you find yourself in the situation when 
+      you have double checked everything, and yet things still don't work as 
+      expected, consider helping the tools by deleting 
+      <literal>bin.v2</literal> build directory.
+      </para>
+ 
+    </section>
+  </chapter>
+    
+  <xi:include href="documenting.xml"/>
+  <xi:include href="together.xml"/>
+  <xi:include href="reference.xml"/>
+</part>

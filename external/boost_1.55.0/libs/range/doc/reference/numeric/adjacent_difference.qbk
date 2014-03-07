@@ -1,0 +1,68 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:adjacent_difference adjacent_difference]
+
+[heading Prototype]
+
+``
+template<
+    class SinglePassRange,
+    class OutputIterator
+    >
+OutputIterator adjacent_difference(
+    const SinglePassRange& source_rng,
+    OutputIterator out_it);
+
+template<
+    class SinglePassRange,
+    class OutputIterator,
+    class BinaryOperation
+    >
+OutputIterator adjacent_difference(
+    const SinglePassRange& source_rng,
+    OutputIterator out_it,
+    BinaryOperation op);
+``
+
+[heading Description]
+
+`adjacent_difference` calculates the differences of adjacent_elements in `rng`.
+
+The first version of `adjacent_difference` uses `operator-()` to calculate the differences.
+The second version uses `BinaryOperation` instead of `operator-()`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/numeric.hpp`
+
+[heading Requirements]
+
+[heading For the first version]
+
+# `SinglePassRange` is a model of the __single_pass_range__ Concept.
+# `OutputIterator` is a model of the `OutputIteratorConcept`.
+# If `x` and `y` are objects of `SinglePassRange`'s value type, then `x - y` is defined.
+# The value type of `SinglePassRange` is convertible to a type in `OutputIterator`'s set of value types.
+# The return type of `x - y` is convertible to a type in `OutputIterator`'s set of value types.
+
+[heading For the second version]
+
+# `SinglePassRange` is a model of the __single_pass_range__ Concept.
+# `OutputIterator` is a model of the `OutputIteratorConcept`.
+# `BinaryOperation` is a model of the `BinaryFunctionConcept`.
+# The value type of `SinglePassRange` is convertible to `BinaryOperation`'s first and second argument types.
+# The value type of `SinglePassRange` is convertible to a type in `OutputIterator`'s set of value types.
+# The result type of `BinaryOperation` is convertible to a type in `OutputIterator`'s set of value types.
+
+[heading Precondition:]
+
+`[result, result + distance(rng))` is a valid range.
+
+[heading Complexity]
+
+Linear. If `empty(rng)` then zero applications, otherwise `distance(rng) - 1` applications are performed.
+
+[endsect]

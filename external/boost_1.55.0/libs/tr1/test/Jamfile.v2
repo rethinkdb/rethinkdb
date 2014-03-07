@@ -1,0 +1,95 @@
+# Copyright John Maddock 2005.
+# Use, modification and distribution are subject to the 
+# Boost Software License, Version 1.0. (See accompanying file 
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+project :
+    : requirements
+    ; 
+    
+local TR1_PROPERTIES = 
+    <include>$(BOOST_ROOT)/boost/tr1/tr1 
+    # Borland's broken include mechanism needs these extra headers:
+    <toolset>borland:<include>$(BOOST_ROOT)/boost/tr1/tr1/bcc32 
+    # Sunpro's broken include mechanism needs these extra headers:
+    <include>$(BOOST_ROOT)/boost/tr1/tr1/sun 
+    ;
+
+
+#
+# define the sources which need testing, mostly this is just
+# all the files *_test.cpp, but any badly named examples can 
+# be added to this list :-)
+#
+
+# this rule enumerates through all the sources and invokes
+# the run rule for each source, the result is a list of all
+# the run rules, which we can pass on to the test_suite rule:
+rule test_all
+{
+   #ECHO executing test_all rule ;
+   local all_rules = ;
+   for local file in [ glob test*.cpp ]
+   {
+      all_rules += [ compile $(file) ] ;
+      all_rules += [ compile $(file) 
+         : <define>TEST_STD_HEADERS=1 $(TR1_PROPERTIES) : std_$(file:B) ] ;
+   }
+   for local fileb in [ glob run*.cpp ]
+   {
+      all_rules += [ run $(fileb) ] ;
+      all_rules += [ run $(fileb) 
+      :  # additional args
+      :  # test-files
+      :  # requirements
+		<define>TEST_STD_HEADERS=1 $(TR1_PROPERTIES) : std_$(fileb:B)  ] ;
+   }
+   for local file2 in [ glob config/tr1_has_tr1*fail.cpp ]
+   {
+      all_rules += [ compile-fail $(file2) ] ;
+   }
+   for local filec in [ glob config/tr1_has_tr1*pass.cpp ]
+   {
+      all_rules += [ compile $(filec) ] ;
+   }
+   
+   for local file3 in [ glob type_traits/*.cpp ]
+   {
+      all_rules += [ run $(file3) 
+      :  # additional args
+      :  # test-files
+      :  # requirements
+      <include>$(BOOST_ROOT)/libs/type_traits/test 
+      <define>TEST_STD=2005 $(TR1_PROPERTIES) ] ;
+   }
+# Commented due to conflict between test_complex in this dir
+# and in std_headers.
+   for local file5 in [ glob std_headers/*.cpp ]
+   {
+      all_rules += [ compile $(file5) 
+      :   <define>TEST_STD=2005 $(TR1_PROPERTIES) 
+      :   $(file5:B)_std_header
+      ] ;
+   }
+   for local file6 in [ glob cyclic_depend/*.cpp ]
+   {
+      all_rules += [ compile $(file6) 
+      :  $(TR1_PROPERTIES) 
+      ] ;
+   }
+   #ECHO $(all_rules) ;
+   return $(all_rules) ;
+}
+
+test-suite tr1 : [ test_all r ] ; 
+
+
+
+
+
+
+
+
+
+
+

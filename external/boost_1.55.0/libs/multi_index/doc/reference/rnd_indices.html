@@ -1,0 +1,1121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Random access indices reference</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="seq_indices.html">
+<link rel="up" href="index.html">
+<link rel="next" href="key_extraction.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Random access indices reference</h1>
+
+<div class="prev_link"><a href="seq_indices.html"><img src="../prev.gif" alt="sequenced indices" border="0"><br>
+Sequenced indices
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex reference" border="0"><br>
+Boost.MultiIndex reference
+</a></div>
+<div class="next_link"><a href="key_extraction.html"><img src="../next.gif" alt="key extraction" border="0"><br>
+Key extraction
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#rnd_index_fwd_synopsis">Header
+    <code>"boost/multi_index/random_access_index_fwd.hpp"</code> synopsis</a></li>
+  <li><a href="#synopsis">Header
+    <code>"boost/multi_index/random_access_index.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#random_access"><code>random_access</code> index specifier</a></li>
+      <li><a href="#rnd_indices">Random access indices</a>
+        <ul>
+          <li><a href="#complexity_signature">Complexity signature</a></li>
+          <li><a href="#instantiation_types">Instantiation types</a></li>
+          <li><a href="#constructors">Constructors, copy and assignment</a></li>
+          <li><a href="#iterators">Iterators</a></li>
+          <li><a href="#capacity">Capacity operations</a></li>
+          <li><a href="#modifiers">Modifiers</a></li>
+          <li><a href="#list_operations">List operations</a></li>
+          <li><a href="#rearrange_operations">Rearrange operations</a></li>
+          <li><a href="#serialization">Serialization</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2>
+<a name="rnd_index_fwd_synopsis">Header
+<a href="../../../../boost/multi_index/random_access_index_fwd.hpp">
+<code>"boost/multi_index/random_access_index_fwd.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>multi_index</span><span class=special>{</span>
+
+<span class=comment>// random_access index specifier</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>TagList</span><span class=special>=</span><span class=identifier>tag</span><span class=special>&lt;&gt;</span> <span class=special>&gt;</span> <span class=keyword>struct</span> <span class=identifier>random_access</span><span class=special>;</span>
+
+<span class=comment>// indices</span>
+
+<span class=keyword>namespace</span> <span class=identifier>detail</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>implementation defined</b><span class=special>&gt;</span> <span class=keyword>class</span> <b>index class name implementation defined</b><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index::detail</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index</span> 
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+<code>random_access_index_fwd.hpp</code> provides forward declarations for the 
+<a href="#random_access"><code>random_access</code></a> index specifier and
+its associated <a href="#rnd_indices">random access index</a> class.
+</p>
+
+<h2>
+<a name="synopsis">Header
+<a href="../../../../boost/multi_index/random_access_index.hpp">
+<code>"boost/multi_index/random_access_index.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>initializer_list</span><span class=special>&gt;</span>
+
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>multi_index</span><span class=special>{</span>
+
+<span class=comment>// random_access index specifier</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>TagList</span><span class=special>=</span><span class=identifier>tag</span><span class=special>&lt;&gt;</span> <span class=special>&gt;</span> <span class=keyword>struct</span> <span class=identifier>random_access</span><span class=special>;</span>
+
+<span class=comment>// indices</span>
+
+<span class=keyword>namespace</span> <span class=identifier>detail</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>implementation defined</b><span class=special>&gt;</span> <span class=keyword>class</span> <b>index class name implementation defined</b><span class=special>;</span>
+
+<span class=comment>// index comparison:</span>
+
+<span class=comment>// <b>OP</b> is any of ==,&lt;,!=,&gt;,&gt;=,&lt;=</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>arg set 1</b><span class=special>,</span><b>arg set 2</b><span class=special>&gt;</span>
+<span class=keyword>bool</span> <span class=keyword>operator</span> <b><i>OP</i></b><span class=special>(</span>
+  <span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 1</b><span class=special>&gt;&amp;</span> <span class=identifier>x</span><span class=special>,</span><span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 2</b><span class=special>&gt;&amp;</span> <span class=identifier>y</span><span class=special>);</span>
+
+<span class=comment>// index specialized algorithms:</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>implementation defined</b><span class=special>&gt;</span>
+<span class=keyword>void</span> <span class=identifier>swap</span><span class=special>(</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>y</span><span class=special>);</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index::detail</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index</span> 
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<h3><a name="random_access">
+<code>random_access</code> index specifier
+</a></h3>
+
+<p>
+This index specifier allows for insertion of a <a href="#rnd_indices">random
+access index</a>.</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>TagList</span><span class=special>=</span><span class=identifier>tag</span><span class=special>&lt;&gt;</span> <span class=special>&gt;</span> <span class=keyword>struct</span> <span class=identifier>random_access</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>If provided, <code>TagList</code> must be an instantiation of
+<a href="indices.html#tag"><code>tag</code></a>.
+</p>
+
+<h3><a name="rnd_indices">Random access indices</a></h3>
+
+<p>
+Random access indices are free-order sequences with constant time
+positional access and random access iterators. Elements in a 
+random access index are by default sorted according to their order of
+insertion: this means that new elements inserted through a different index
+of the <code>multi_index_container</code> are appended to the end of the
+random access index; additionally, facilities are provided
+for further rearrangement of the elements. The public interface of
+random access indices includes that of 
+<a href="seq_indices.html">sequenced indices</a>, with differences in
+the complexity of the operations, plus extra operations for
+positional access (<code>operator[]</code> and <code>at()</code>) and
+for capacity handling. Validity of iterators and references to elements
+is preserved in all operations, regardless of the capacity status.
+</p>
+
+<p>
+Except where noted or if the corresponding interface does not exist, random access
+indices verify the same container requirements as <code>std::vector</code>
+plus the requirements for <code>std::list</code> specific list operations at
+<b>[list.ops]</b>. Some of the most important differences with respect to
+<code>std::vector</code> are:
+<ul>
+  <li>Random access indices do not provide memory contiguity, and hence do not
+    have <code>data</code> member functions. 
+  </li>
+
+  <li>The complexity of some operations, notably insertion and deletion, differ
+    from those of <code>std::vector</code>.
+  </li>
+  <li>Unlike as in <code>std::vector</code>, insertions into a random access index
+    may fail due to clashings with other indices. This alters the semantics
+    of the operations provided with respect to their analogues in
+    <code>std::vector</code>.
+  </li>
+  <li>Elements in a randon access index are not mutable, and can only be changed
+    by means of <a href="#replace"><code>replace</code></a> and
+	<a href="#modify"><code>modify</code></a> member functions.
+  </li>
+  <li><code>push_front</code> and <code>pop_front</code> are provided for
+    compatibility with sequenced indices, even though they take linear time to execute.
+  </li></ul>
+</p>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>multi_index</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>detail</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>implementation defined: dependent on types Value, Allocator, TagList</b><span class=special>&gt;</span>
+<span class=keyword>class</span> <b>name is implementation defined</b>
+<span class=special>{</span> 
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=comment>// types:</span>
+
+  <span class=keyword>typedef</span> <span class=identifier>Value</span>                                      <span class=identifier>value_type</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier>tuples</span><span class=special>::</span><span class=identifier>null_type</span>                          <span class=identifier>ctor_args</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier>TagList</span>                                    <span class=identifier>tag_list</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier>Allocator</span>                                  <span class=identifier>allocator_type</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=keyword>typename</span> <span class=identifier>allocator_type</span><span class=special>::</span><span class=identifier>reference</span>         <span class=identifier>reference</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=keyword>typename</span> <span class=identifier>allocator_type</span><span class=special>::</span><span class=identifier>const_reference</span>   <span class=identifier>const_reference</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <b>implementation defined</b>                     <span class=identifier>iterator</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <b>implementation defined</b>                     <span class=identifier>const_iterator</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span>                                <span class=identifier>size_type</span><span class=special>;</span>      
+  <span class=keyword>typedef</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>ptrdiff_t</span>                             <span class=identifier>difference_type</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=keyword>typename</span> <span class=identifier>allocator_type</span><span class=special>::</span><span class=identifier>pointer</span>           <span class=identifier>pointer</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=keyword>typename</span> <span class=identifier>allocator_type</span><span class=special>::</span><span class=identifier>const_pointer</span>     <span class=identifier>const_pointer</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <b>equivalent to
+    std::reverse_iterator&lt;iterator&gt;</b>                  <span class=identifier>reverse_iterator</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <b>equivalent to
+    std::reverse_iterator&lt;const_iterator&gt;</b>            <span class=identifier>const_reverse_iterator</span><span class=special>;</span>
+
+  <span class=comment>// construct/copy/destroy:</span>
+
+  <b>index class name</b><span class=special>&amp;</span> <span class=keyword>operator</span><span class=special>=(</span><span class=keyword>const</span> <b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <b>index class name</b><span class=special>&amp;</span> <span class=keyword>operator</span><span class=special>=(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>initializer_list</span><span class=special>&lt;</span><span class=identifier>value_type</span><span class=special>&gt;</span> <span class=identifier>list</span><span class=special>);</span>
+
+  <span class=keyword>template</span> <span class=special>&lt;</span><span class=keyword>class</span> <span class=identifier>InputIterator</span><span class=special>&gt;</span>
+  <span class=keyword>void</span> <span class=identifier>assign</span><span class=special>(</span><span class=identifier>InputIterator</span> <span class=identifier>first</span><span class=special>,</span><span class=identifier>InputIterator</span> <span class=identifier>last</span><span class=special>);</span>
+  <span class=keyword>void</span> <span class=identifier>assign</span><span class=special>(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>initializer_list</span><span class=special>&lt;</span><span class=identifier>value_type</span><span class=special>&gt;</span> <span class=identifier>list</span><span class=special>)</span>
+  <span class=keyword>void</span> <span class=identifier>assign</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>value</span><span class=special>);</span>
+    
+  <span class=identifier>allocator_type</span> <span class=identifier>get_allocator</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=comment>// iterators:</span>
+
+  <span class=identifier>iterator</span>               <span class=identifier>begin</span><span class=special>();</span>
+  <span class=identifier>const_iterator</span>         <span class=identifier>begin</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>iterator</span>               <span class=identifier>end</span><span class=special>();</span>
+  <span class=identifier>const_iterator</span>         <span class=identifier>end</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>reverse_iterator</span>       <span class=identifier>rbegin</span><span class=special>();</span>
+  <span class=identifier>const_reverse_iterator</span> <span class=identifier>rbegin</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>reverse_iterator</span>       <span class=identifier>rend</span><span class=special>();</span>
+  <span class=identifier>const_reverse_iterator</span> <span class=identifier>rend</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>const_iterator</span>         <span class=identifier>cbegin</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>const_iterator</span>         <span class=identifier>cend</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>const_reverse_iterator</span> <span class=identifier>crbegin</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>const_reverse_iterator</span> <span class=identifier>crend</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=identifier>iterator</span>       <span class=identifier>iterator_to</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=identifier>const_iterator</span> <span class=identifier>iterator_to</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=comment>// capacity:</span>
+
+  <span class=keyword>bool</span>      <span class=identifier>empty</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>size_type</span> <span class=identifier>size</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>size_type</span> <span class=identifier>max_size</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>size_type</span> <span class=identifier>capacity</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=keyword>void</span>      <span class=identifier>reserve</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>m</span><span class=special>);</span>
+  <span class=keyword>void</span>      <span class=identifier>shrink_to_fit</span><span class=special>();</span>
+
+  <span class=keyword>void</span> <span class=identifier>resize</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>);</span>
+  <span class=keyword>void</span> <span class=identifier>resize</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+
+  <span class=comment>// access:</span>
+
+  <span class=identifier>const_reference</span> <span class=keyword>operator</span><span class=special>[](</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>const_reference</span> <span class=identifier>at</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>const_reference</span> <span class=identifier>front</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>const_reference</span> <span class=identifier>back</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=comment>// modifiers:</span>
+
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span><span class=special>...</span> <span class=identifier>Args</span><span class=special>&gt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>emplace_front</span><span class=special>(</span><span class=identifier>Args</span><span class=special>&amp;&amp;...</span> <span class=identifier>args</span><span class=special>);</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>push_front</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>push_front</span><span class=special>(</span><span class=identifier>value_type</span><span class=special>&amp;&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>void</span>                     <span class=identifier>pop_front</span><span class=special>();</span>
+
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span><span class=special>...</span> <span class=identifier>Args</span><span class=special>&gt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>emplace_back</span><span class=special>(</span><span class=identifier>Args</span><span class=special>&amp;&amp;...</span> <span class=identifier>args</span><span class=special>);</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>push_back</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>push_back</span><span class=special>(</span><span class=identifier>value_type</span><span class=special>&amp;&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>void</span>                     <span class=identifier>pop_back</span><span class=special>();</span>
+
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span><span class=special>...</span> <span class=identifier>Args</span><span class=special>&gt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>emplace</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>Args</span><span class=special>&amp;&amp;...</span> <span class=identifier>args</span><span class=special>);</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>insert</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>insert</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>value_type</span><span class=special>&amp;&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>void</span> <span class=identifier>insert</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>size_type</span> <span class=identifier>m</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>InputIterator</span><span class=special>&gt;</span>
+  <span class=keyword>void</span> <span class=identifier>insert</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>InputIterator</span> <span class=identifier>first</span><span class=special>,</span><span class=identifier>InputIterator</span> <span class=identifier>last</span><span class=special>);</span>
+  <span class=keyword>void</span> <span class=identifier>insert</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>initializer_list</span><span class=special>&lt;</span><span class=identifier>value_type</span><span class=special>&gt;</span> <span class=identifier>list</span><span class=special>);</span>
+
+  <span class=identifier>iterator</span> <span class=identifier>erase</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>);</span>
+  <span class=identifier>iterator</span> <span class=identifier>erase</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>first</span><span class=special>,</span><span class=identifier>iterator</span> <span class=identifier>last</span><span class=special>);</span>
+
+  <span class=keyword>bool</span> <span class=identifier>replace</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>bool</span> <span class=identifier>replace</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>value_type</span><span class=special>&amp;&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Modifier</span><span class=special>&gt;</span> <span class=keyword>bool</span> <span class=identifier>modify</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>Modifier</span> <span class=identifier>mod</span><span class=special>);</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Modifier</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Rollback</span><span class=special>&gt;</span>
+  <span class=keyword>bool</span> <span class=identifier>modify</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>Modifier</span> <span class=identifier>mod</span><span class=special>,</span><span class=identifier>Rollback</span> <span class=identifier>back</span><span class=special>);</span>
+
+  <span class=keyword>void</span> <span class=identifier>swap</span><span class=special>(</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+
+  <span class=keyword>void</span> <span class=identifier>clear</span><span class=special>();</span>
+
+  <span class=comment>// list operations:</span>
+
+  <span class=keyword>void</span> <span class=identifier>splice</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>void</span> <span class=identifier>splice</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,</span><span class=identifier>iterator</span> <span class=identifier>i</span><span class=special>);</span>
+  <span class=keyword>void</span> <span class=identifier>splice</span><span class=special>(</span>
+    <span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,</span><span class=identifier>iterator</span> <span class=identifier>first</span><span class=special>,</span><span class=identifier>iterator</span> <span class=identifier>last</span><span class=special>);</span>
+
+  <span class=keyword>void</span> <span class=identifier>remove</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>value</span><span class=special>);</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Predicate</span><span class=special>&gt;</span> <span class=keyword>void</span> <span class=identifier>remove_if</span><span class=special>(</span><span class=identifier>Predicate</span> <span class=identifier>pred</span><span class=special>);</span>
+
+  <span class=keyword>void</span> <span class=identifier>unique</span><span class=special>();</span>
+  <span class=keyword>template</span> <span class=special>&lt;</span><span class=keyword>class</span> <span class=identifier>BinaryPredicate</span><span class=special>&gt;</span>
+  <span class=keyword>void</span> <span class=identifier>unique</span><span class=special>(</span><span class=identifier>BinaryPredicate</span> <span class=identifier>binary_pred</span><span class=special>);</span>
+
+  <span class=keyword>void</span> <span class=identifier>merge</span><span class=special>(</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>template</span> <span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Compare</span><span class=special>&gt;</span> <span class=keyword>void</span> <span class=identifier>merge</span><span class=special>(</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,</span><span class=identifier>Compare</span> <span class=identifier>comp</span><span class=special>);</span>
+
+  <span class=keyword>void</span> <span class=identifier>sort</span><span class=special>();</span>
+  <span class=keyword>template</span> <span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Compare</span><span class=special>&gt;</span> <span class=keyword>void</span> <span class=identifier>sort</span><span class=special>(</span><span class=identifier>Compare</span> <span class=identifier>comp</span><span class=special>);</span>
+
+  <span class=keyword>void</span> <span class=identifier>reverse</span><span class=special>();</span>
+
+  <span class=comment>// rearrange operations:</span>
+
+  <span class=keyword>void</span> <span class=identifier>relocate</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>iterator</span> <span class=identifier>i</span><span class=special>);</span> 
+  <span class=keyword>void</span> <span class=identifier>relocate</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>iterator</span> <span class=identifier>first</span><span class=special>,</span><span class=identifier>iterator</span> <span class=identifier>last</span><span class=special>);</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>InputIterator</span><span class=special>&gt;</span> <span class=keyword>void</span> <span class=identifier>rearrange</span><span class=special>(</span><span class=identifier>InputIterator</span> <span class=identifier>first</span><span class=special>);</span>
+<span class=special>}</span>
+
+<span class=comment>// index comparison:</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>arg set 1</b><span class=special>,</span><b>arg set 2</b><span class=special>&gt;</span>
+<span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>==(</span>
+  <span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 1</b><span class=special>&gt;&amp;</span> <span class=identifier>x</span><span class=special>,</span>
+  <span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 2</b><span class=special>&gt;&amp;</span> <span class=identifier>y</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=keyword>return</span> <span class=identifier>x</span><span class=special>.</span><span class=identifier>size</span><span class=special>()==</span><span class=identifier>y</span><span class=special>.</span><span class=identifier>size</span><span class=special>()&amp;&amp;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>equal</span><span class=special>(</span><span class=identifier>x</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>x</span><span class=special>.</span><span class=identifier>end</span><span class=special>(),</span><span class=identifier>y</span><span class=special>.</span><span class=identifier>begin</span><span class=special>());</span>
+<span class=special>}</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>arg set 1</b><span class=special>,</span><b>arg set 2</b><span class=special>&gt;</span>
+<span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>&lt;(</span>
+  <span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 1</b><span class=special>&gt;&amp;</span> <span class=identifier>x</span><span class=special>,</span>
+  <span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 2</b><span class=special>&gt;&amp;</span> <span class=identifier>y</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=keyword>return</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>lexicographical_compare</span><span class=special>(</span><span class=identifier>x</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>x</span><span class=special>.</span><span class=identifier>end</span><span class=special>(),</span><span class=identifier>y</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>y</span><span class=special>.</span><span class=identifier>end</span><span class=special>());</span>
+<span class=special>}</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>arg set 1</b><span class=special>,</span><b>arg set 2</b><span class=special>&gt;</span>
+<span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>!=(</span>
+  <span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 1</b><span class=special>&gt;&amp;</span> <span class=identifier>x</span><span class=special>,</span>
+  <span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 2</b><span class=special>&gt;&amp;</span> <span class=identifier>y</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=keyword>return</span> <span class=special>!(</span><span class=identifier>x</span><span class=special>==</span><span class=identifier>y</span><span class=special>);</span>
+<span class=special>}</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>arg set 1</b><span class=special>,</span><b>arg set 2</b><span class=special>&gt;</span>
+<span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>&gt;(</span>
+  <span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 1</b><span class=special>&gt;&amp;</span> <span class=identifier>x</span>
+  <span class=special>,</span><span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 2</b><span class=special>&gt;&amp;</span> <span class=identifier>y</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=keyword>return</span> <span class=identifier>y</span><span class=special>&lt;</span><span class=identifier>x</span><span class=special>;</span>
+<span class=special>}</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>arg set 1</b><span class=special>,</span><b>arg set 2</b><span class=special>&gt;</span>
+<span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>&gt;=(</span>
+  <span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 1</b><span class=special>&gt;&amp;</span> <span class=identifier>x</span><span class=special>,</span>
+  <span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 2</b><span class=special>&gt;&amp;</span> <span class=identifier>y</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=keyword>return</span> <span class=special>!(</span><span class=identifier>x</span><span class=special>&lt;</span><span class=identifier>y</span><span class=special>);</span>
+<span class=special>}</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>arg set 1</b><span class=special>,</span><b>arg set 2</b><span class=special>&gt;</span>
+<span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>&lt;=(</span>
+  <span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 1</b><span class=special>&gt;&amp;</span> <span class=identifier>x</span><span class=special>,</span>
+  <span class=keyword>const</span> <b>index class name</b><span class=special>&lt;</span><b>arg set 2</b><span class=special>&gt;&amp;</span> <span class=identifier>y</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=keyword>return</span> <span class=special>!(</span><span class=identifier>x</span><span class=special>&gt;</span><span class=identifier>y</span><span class=special>);</span>
+<span class=special>}</span>
+
+<span class=comment>// index specialized algorithms:</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>implementation defined</b><span class=special>&gt;</span>
+<span class=keyword>void</span> <span class=identifier>swap</span><span class=special>(</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>y</span><span class=special>);</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index::detail</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index</span> 
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<h4><a name="complexity_signature">Complexity signature</a></h4>
+
+<p>
+Here and in the descriptions of operations of random access indices, we
+adopt the scheme outlined in the 
+<a href="indices.html#complexity_signature">complexity signature
+section</a>. The complexity signature of random access indices is:
+<ul>
+  <li>copying: <code>c(n)=n*log(n)</code>,</li>
+  <li>insertion: <code>i(n)=1</code> (amortized constant),</li>
+  <li>hinted insertion: <code>h(n)=1</code> (amortized constant),</li>
+  <li>deletion: <code>d(n)=m</code>, where <code>m</code> is the distance
+    from the deleted element to the end of the sequence,</li>
+  <li>replacement: <code>r(n)=1</code> (constant),</li>
+  <li>modifying: <code>m(n)=1</code> (constant).</li>
+</ul>
+The following expressions are also used as a convenience for writing down some
+of the complexity formulas:
+</p>
+
+<blockquote>
+<code>shl(a,b)</code> = <code>a+b</code> if a is nonzero, <code>0</code> otherwise.<br>
+<code>rel(a,b,c)</code> = if <code>a&lt;b</code>, <code>c-a</code>, else <code>a-b</code>,
+</blockquote> 
+
+<p>
+(<code>shl</code> and <code>rel</code> stand for <i>shift left</i> and
+<i>relocate</i>, respectively.)
+</p>
+
+<h4><a name="instantiation_types">Instantiation types</a></h4>
+
+<p>Random access indices are instantiated internally to <code>multi_index_container</code>
+and specified by means of <a href="indices.html#indexed_by">
+<code>indexed_by</code></a> with the <a href="#random_access"><code>random_access</code></a>
+index specifier. Instantiations are dependent on the following types:
+<ul>
+  <li><code>Value</code> from <code>multi_index_container</code>,</li>
+  <li><code>Allocator</code> from <code>multi_index_container</code>,</li>
+  <li><code>TagList</code> from the index specifier (if provided, otherwise <code>tag&lt;&gt;</code> is assumed).</li>
+</ul>
+<code>TagList</code> must be an instantiation of
+<a href="indices.html#tag"><code>tag</code></a>.
+</p>
+
+<h4><a name="constructors">Constructors, copy and assignment</a></h4>
+
+<p>
+As explained in the <a href="indices.html#index_concepts">index
+concepts section</a>, indices do not have public constructors or destructors.
+Assignment, on the other hand, is provided.
+</p>
+
+<code><b>index class name</b>&amp; operator=(const <b>index class name</b>&amp; x);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>a</span><span class=special>=</span><span class=identifier>b</span><span class=special>;</span>
+</pre></blockquote>
+where <code>a</code> and <code>b</code> are the <code>multi_index_container</code>
+objects to which <code>*this</code> and <code>x</code> belong, respectively.<br>
+<b>Returns:</b> <code>*this</code>.<br>
+</blockquote>
+
+<code><b>index class name</b>&amp; operator=(std::initializer_list&lt;value_type&gt; list);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>a</span><span class=special>=</span><span class=identifier>list</span><span class=special>;</span>
+</pre></blockquote>
+where <code>a</code> is the <code>multi_index_container</code>
+object to which <code>*this</code> belongs.<br>
+<b>Returns:</b> <code>*this</code>.<br>
+</blockquote>
+
+<code>template &lt;class InputIterator><br>
+void assign(InputIterator first,InputIterator last);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>clear</span><span class=special>();</span>
+<span class=identifier>insert</span><span class=special>(</span><span class=identifier>end</span><span class=special>(),</span><span class=identifier>first</span><span class=special>,</span><span class=identifier>last</span><span class=special>);</span>
+</pre></blockquote>
+</blockquote>
+
+<code>void assign(std::initializer_list&lt;value_type&gt; list);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>assign</span><span class=special>(</span><span class=identifier>list</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>list</span><span class=special>.</span><span class=identifier>end</span><span class=special>());</span>
+</pre></blockquote>
+</blockquote>
+    
+<code>void assign(size_type n,const value_type&amp; value);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>clear</span><span class=special>();</span>
+<span class=keyword>for</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>i</span><span class=special>=</span><span class=number>0</span><span class=special>;</span><span class=identifier>i</span><span class=special>&lt;</span><span class=identifier>n</span><span class=special>;++</span><span class=identifier>n</span><span class=special>)</span><span class=identifier>push_back</span><span class=special>(</span><span class=identifier>v</span><span class=special>);</span>
+</pre></blockquote>
+</blockquote>
+
+<h4><a name="iterators">Iterators</a></h4>
+
+<code>iterator&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iterator_to(const value_type&amp; x);<br>
+const_iterator iterator_to(const value_type&amp; x)const;</code>
+  
+<blockquote>
+<b>Requires:</b> <code>x</code> is a reference to an element of the container.<br>
+<b>Returns:</b> An iterator to <code>x</code>.<br>
+<b>Complexity:</b> Constant.<br>
+<b>Exception safety:</b> <code>nothrow</code>.<br>
+</blockquote>
+
+<h4><a name="capacity">Capacity operations</a></h4>
+
+<a name="capacity_memfun"><code>size_type capacity()const;</code></a>
+
+<blockquote>
+<b>Returns:</b> The total number of elements <code>c</code> such that, when
+<code>size()&lt;c</code>, back insertions happen in constant time (the
+general case as described by
+<a href="#complexity_signature"><code>i(n)</code></a> is <i>amortized</i>
+constant time.)<br>
+<b>Note:</b> Validity of iterators and references to elements
+is preserved in all insertions, regardless of the capacity status.
+</blockquote>
+
+<a name="reserve"><code>void reserve(size_type m);</code></a>
+
+<blockquote>
+<b>Effects:</b> If the previous value of <code>capacity()</code>
+was greater than or equal to <code>m</code>, nothing is done;
+otherwise, the internal capacity is changed so that
+<code>capacity()>=m</code>.<br> 
+<b>Complexity:</b> If the capacity is not changed, constant;
+otherwise <code>O(n)</code>.<br>
+<b>Exception safety:</b> If the capacity is not changed, <code>nothrow</code>;
+otherwise, strong.<br>
+</blockquote>
+
+<code>void shrink_to_fit();</code>
+
+<blockquote>
+<b>Effects:</b> Reduces <code>capacity()</code> to <code>size()</code>.<br> 
+<b>Complexity:</b> If the capacity is not changed, constant;
+otherwise <code>O(n)</code>.<br>
+<b>Exception safety:</b> If the capacity is not changed, <code>nothrow</code>;
+otherwise, strong.<br>
+</blockquote>
+
+<code>void resize(size_type n);<br>
+void resize(size_type n,const value_type&amp; x);</code>
+
+<blockquote>
+<b>Requires (first version):</b> <code>value_type</code> is <code>DefaultInsertable</code>
+into <code>multi_index_container</code>.<br>
+<b>Requires (second version):</b> <code>value_type</code> is <code>CopyInsertable</code>
+into <code>multi_index_container</code>.<br>
+<b>Effects:</b> If <code>size()&lt;n</code>, tries to append <code>n-size()</code> default-inserted
+elements (first version) or copies of <code>x</code> (second version) at the end of
+the index. If <code>n&lt;size()</code>, erases the last <code>size()-n</code> elements.<br>
+<b>Note:</b> If an expansion is requested, the size of the index is not guaranteed
+to be <code>n</code> after this operation (other indices may ban insertions.)
+</blockquote>
+
+<h4><a name="modifiers">Modifiers</a></h4>
+
+<code>template&lt;typename... Args&gt;<br>
+std::pair&lt;iterator,bool&gt; emplace_front(Args&amp;&amp;... args);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>emplace</span><span class=special>(</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>forward</span><span class=special>&lt;</span><span class=identifier>Args</span><span class=special>&gt;(</span><span class=identifier>args</span><span class=special>)...);</span>
+</pre></blockquote>
+<b>Returns:</b> The return value is a pair <code>p</code>. <code>p.second</code>
+is <code>true</code> if and only if insertion took place. On successful
+insertion, <code>p.first</code> points to the element inserted; otherwise,
+<code>p.first</code> points to an element that caused the insertion to be banned.
+Note that more than one element can be causing insertion not to be allowed.<br>
+</blockquote>
+
+<code>std::pair&lt;iterator,bool> push_front(const value_type&amp; x);</code><br>
+<code>std::pair&lt;iterator,bool> push_front(value_type&amp;&amp; x);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>insert</span><span class=special>(</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>x</span><span class=special>);</span>            <span class=comment>// lvalue ref version</span>
+<span class=identifier>insert</span><span class=special>(</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>move</span><span class=special>(</span><span class=identifier>x</span><span class=special>));</span> <span class=comment>// rvalue ref version</span>
+</pre></blockquote>
+<b>Returns:</b> The return value is a pair <code>p</code>. <code>p.second</code>
+is <code>true</code> if and only if insertion took place. On successful
+insertion, <code>p.first</code> points to the element inserted; otherwise,
+<code>p.first</code> points to an element that caused the insertion to be banned.
+Note that more than one element can be causing insertion not to be allowed.<br>
+</blockquote>
+
+<code>template&lt;typename... Args&gt;<br>
+std::pair&lt;iterator,bool&gt; emplace_back(Args&amp;&amp;... args);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>emplace</span><span class=special>(</span><span class=identifier>end</span><span class=special>(),</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>forward</span><span class=special>&lt;</span><span class=identifier>Args</span><span class=special>&gt;(</span><span class=identifier>args</span><span class=special>)...);</span>
+</pre></blockquote>
+<b>Returns:</b> The return value is a pair <code>p</code>. <code>p.second</code>
+is <code>true</code> if and only if insertion took place. On successful
+insertion, <code>p.first</code> points to the element inserted; otherwise,
+<code>p.first</code> points to an element that caused the insertion to be banned.
+Note that more than one element can be causing insertion not to be allowed.<br>
+</blockquote>
+
+<code>std::pair&lt;iterator,bool> push_back(const value_type&amp; x);</code><br>
+<code>std::pair&lt;iterator,bool> push_back(value_type&amp;&amp; x);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>insert</span><span class=special>(</span><span class=identifier>end</span><span class=special>(),</span><span class=identifier>x</span><span class=special>);</span>            <span class=comment>// lvalue ref version</span>
+<span class=identifier>insert</span><span class=special>(</span><span class=identifier>end</span><span class=special>(),</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>move</span><span class=special>(</span><span class=identifier>x</span><span class=special>));</span> <span class=comment>// rvalue ref version</span>
+</pre></blockquote>
+<b>Returns:</b> The return value is a pair <code>p</code>. <code>p.second</code>
+is <code>true</code> if and only if insertion took place. On successful
+insertion, <code>p.first</code> points to the element inserted; otherwise,
+<code>p.first</code> points to an element that caused the insertion to be banned.
+Note that more than one element can be causing insertion not to be allowed.<br>
+</blockquote>
+
+<code>template&lt;typename... Args&gt;<br>
+ std::pair&lt;iterator,bool&gt; emplace(iterator position,Args&amp;&amp;... args);</code>
+
+<blockquote>
+<b>Requires:</b> <code>value_type</code> is <code>EmplaceConstructible</code>
+into <code>multi_index_container</code> from <code>args</code>.<br>
+<b>Effects:</b> Inserts a <code>value_type</code> object constructed with
+<code>std::forward&lt;Args&gt;(args)...</code> before <code>position</code> if insertion
+is allowed by all other indices of the <code>multi_index_container</code>.<br>
+<b>Returns:</b> The return value is a pair <code>p</code>. <code>p.second</code>
+is <code>true</code> if and only if insertion took place. On successful insertion,
+<code>p.first</code> points to the element inserted; otherwise, <code>p.first</code>
+points to an element that caused the insertion to be banned. Note that more than
+one element can be causing insertion not to be allowed.<br>
+<b>Complexity:</b> <code>O(I(n))</code>.<br>
+<b>Exception safety:</b> Strong.<br>
+</blockquote>
+
+<code>std::pair&lt;iterator,bool> insert(iterator position,const value_type&amp; x);</code><br>
+<code>std::pair&lt;iterator,bool> insert(iterator position,value_type&amp;&amp; x);</code>
+
+<blockquote>
+<b>Requires (first version):</b> <code>value_type</code> is <code>CopyInsertable</code>
+into <code>multi_index_container</code>.
+<code>position</code> is a valid iterator of the index.<br>
+<b>Requires (second version):</b> <code>value_type</code> is <code>MoveInsertable</code>
+into <code>multi_index_container</code>.
+<code>position</code> is a valid iterator of the index.<br>
+<b>Effects:</b> Inserts <code>x</code> before <code>position</code> if insertion
+is allowed by all other indices of the <code>multi_index_container</code>.<br>
+<b>Returns:</b> The return value is a pair <code>p</code>. <code>p.second</code>
+is <code>true</code> if and only if insertion took place. On successful
+insertion, <code>p.first</code> points to the element inserted; otherwise,
+<code>p.first</code> points to an element that caused the insertion to be banned.
+Note that more than one element can be causing insertion not to be allowed.<br>
+<b>Complexity:</b> <code>O(I(n))</code>.<br>
+<b>Exception safety:</b> Strong.
+</blockquote>
+
+<code>void insert(iterator position,size_type m,const value_type&amp; x);</code>
+
+<blockquote>
+<b>Requires:</b> <code>position</code> is a valid iterator of the index.<br>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=keyword>for</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>i</span><span class=special>=</span><span class=number>0</span><span class=special>;</span><span class=identifier>i</span><span class=special>&lt;</span><span class=identifier>m</span><span class=special>;++</span><span class=identifier>i</span><span class=special>)</span><span class=identifier>insert</span><span class=special>(</span><span class=identifier>position</span><span class=special>,</span><span class=identifier>x</span><span class=special>);</span>
+</pre></blockquote>
+<b>Complexity:</b> <code>O(shl(end()-position,m) + m*I(n+m))</code>.
+</blockquote>
+
+<code>template&lt;typename InputIterator><br>
+void insert(iterator position,InputIterator first,InputIterator last);</code>
+
+<blockquote>
+<b>Requires:</b> <code>position</code> is a valid iterator of the index.
+<code>InputIterator</code> is an input iterator.
+<code>value_type</code> is
+<code>EmplaceConstructible</code> into
+<code>multi_index_container</code> from <code>*first</code>.
+<code>first</code> and <code>last</code> are not iterators into any
+index of the <code>multi_index_container</code> to which this index belongs.
+<code>last</code> is reachable from <code>first</code>.<br>
+<b>Effects:</b>
+For each element of [<code>first</code>, <code>last</code>), in this
+order, inserts it before <code>position</code> if insertion is allowed by all
+other indices of the <code>multi_index_container</code>.<br>
+<b>Complexity:</b> <code>O(shl(end()-position,m) + m*I(n+m))</code>,
+where <code>m</code> is the number of elements in
+[<code>first</code>,<code>last</code>).<br>
+<b>Exception safety:</b> Basic.
+</blockquote>
+
+<code>void insert(iterator position,std::initializer_list&lt;value_type&gt; list);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>insert</span><span class=special>(</span><span class=identifier>position</span><span class=special>,</span><span class=identifier>list</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>list</span><span class=special>.</span><span class=identifier>end</span><span class=special>());</span>
+</pre></blockquote>
+</blockquote>
+    
+<code>iterator erase(iterator position);</code>
+
+<blockquote>
+<b>Requires:</b> <code>position</code> is a valid dereferenceable iterator
+of the index.<br>
+<b>Effects:</b> Deletes the element pointed to by <code>position</code>.<br>
+<b>Returns:</b> An iterator pointing to the element immediately following
+the one that was deleted, or <code>end()</code>
+if no such element exists.<br>
+<b>Complexity:</b> <code>O(D(n))</code>.<br>
+<b>Exception safety:</b> <code>nothrow</code>.<br>
+</blockquote>
+
+<code>iterator erase(iterator first,iterator last);</code>
+
+<blockquote>
+<b>Requires:</b> [<code>first</code>,<code>last</code>) is a valid
+range of the index.<br>
+<b>Effects:</b> Deletes the elements in [<code>first</code>,<code>last</code>).<br>
+<b>Returns:</b> <code>last</code>.<br>
+<b>Complexity:</b> <code>O(m*D(n))</code>, where <code>m</code> is
+the number of elements in [<code>first</code>,<code>last</code>).<br>
+<b>Exception safety:</b> <code>nothrow</code>.<br>
+</blockquote>
+
+<a name="replace"><code>bool replace(iterator position,const value_type&amp; x);</code></a><br>
+<code>bool replace(iterator position,value_type&amp;&amp; x);</code>
+
+<blockquote>
+<b>Requires (first version):</b> <code>value_type</code> is <code>CopyAssignable</code>.
+<code>position</code> is a valid dereferenceable iterator of the index.<br>
+<b>Requires (second version):</b> <code>value_type</code> is <code>MoveAssignable</code>.
+<code>position</code> is a valid dereferenceable iterator of the index.<br>
+<b>Effects:</b> Assigns the value <code>x</code> to the element pointed
+to by <code>position</code> into the <code>multi_index_container</code> to which
+the index belongs if replacing is allowed by all other indices of the
+<code>multi_index_container</code>.<br>
+<b>Postconditions:</b> Validity of <code>position</code> is preserved
+in all cases.<br>
+<b>Returns:</b> <code>true</code> if the replacement took place,
+<code>false</code> otherwise.<br>
+<b>Complexity:</b> <code>O(R(n))</code>.<br>
+<b>Exception safety:</b> Strong. If an exception is thrown by some
+user-provided operation the <code>multi_index_container</code> to which the index
+belongs remains in its original state.
+</blockquote>
+  
+<a name="modify">
+<code>template&lt;typename Modifier> bool modify(iterator position,Modifier mod);</code></a>
+
+<blockquote>
+<b>Requires:</b> <code>mod</code> is a unary function object
+accepting arguments of type
+<code>value_type&amp;</code>. <code>position</code> is a valid dereferenceable
+iterator of the index.<br>
+<b>Effects:</b> Calls <code>mod(e)</code> where <code>e</code> is the element
+pointed to by <code>position</code> and rearranges <code>*position</code> into
+all the indices of the <code>multi_index_container</code>. Rearrangement on sequenced
+indices does not change the position of the element with respect to the index;
+rearrangement on other indices may or might not succeed. If the rearrangement
+fails, the element is erased.<br>
+<b>Postconditions:</b> Validity of <code>position</code> is preserved if the
+operation succeeds.<br>
+<b>Returns:</b> <code>true</code> if the operation succeeded, <code>false</code>
+otherwise.<br>
+<b>Complexity:</b> <code>O(M(n))</code>.<br>
+<b>Exception safety:</b> Basic. If an exception is thrown by some
+user-provided operation (except possibly <code>mod</code>), then
+the element pointed to by <code>position</code> is erased.
+</blockquote>
+
+<code>template&lt;typename Modifier,typename Rollback><br>
+bool modify(iterator position,Modifier mod,Rollback back);</code>
+
+<blockquote>
+<b>Requires:</b> <code>mod</code> and <code>back</code> are unary function
+objects accepting arguments of type
+<code>value_type&amp;</code>. <code>position</code> is a valid dereferenceable
+iterator of the index. The sequence of operations <code>mod(e)</code>,
+<code>back(e)</code>, where <code>e</code> is the element
+pointed to by <code>position</code>, restores all keys of the element
+to their original state.<br>
+<b>Effects:</b> Calls <code>mod(e)</code> where <code>e</code> is the element
+pointed to by <code>position</code> and tries to rearrange <code>*position</code> into
+all the indices of the <code>multi_index_container</code>. Rearrangement on sequenced
+indices does not change the position of the element with respect to the index;
+rearrangement on other indices may or might not succeed. If the rearrangement
+fails, <code>back(e)</code> is invoked and the
+element is kept at its original position in all indices.<br>
+<b>Postconditions:</b> Validity of <code>position</code> is preserved except if
+the element is erased under the conditions described below.<br>
+<b>Returns:</b> <code>true</code> if the operation succeeded, <code>false</code>
+otherwise.<br>
+<b>Complexity:</b> <code>O(M(n))</code>.<br>
+<b>Exception safety:</b> Strong, except if <code>back</code> throws an
+exception, in which case the modified element is erased. If <code>back</code>
+throws inside the handling code executing after some other user-provided
+operation has thrown, it is the exception generated by <code>back</code> that
+is rethrown.
+</blockquote>
+
+<h4><a name="list_operations">List operations</a></h4>
+
+<p>
+Random access indices replicate the interface of sequenced indices, which
+in turn includes the list operations provided by <code>std::list</code>.
+The syntax and behavior of these operations exactly matches those
+of sequenced indices, but the associated complexity bounds differ in general.
+</p>
+
+<code>void splice(iterator position,<b>index class name</b>&amp; x);</code>
+
+<blockquote>
+<b>Requires:</b> <code>position</code> is a valid iterator of the index.
+<code>&amp;x!=this</code>.<br>
+<b>Effects:</b> Inserts the contents of <code>x</code> before <code>position</code>,
+in the same order as they were in <code>x</code>. Those elements succesfully
+inserted are erased from <code>x</code>.<br>
+<b>Complexity:</b> <code>O(shl(end()-position,x.size()) + x.size()*I(n+x.size()) + x.size()*D(x.size()))</code>.<br>
+<b>Exception safety:</b> Basic.<br>
+</blockquote>
+
+<code>void splice(iterator position,<b>index class name</b>&amp; x,iterator i);</code>
+
+<blockquote>
+<b>Requires:</b> <code>position</code> is a valid iterator of the index.
+<code>i</code> is a valid dereferenceable iterator <code>x</code>.<br>
+<b>Effects:</b> Inserts the element pointed to by <code>i</code> before
+<code>position</code>: if insertion is succesful, the element is erased from
+<code>x</code>. In the special case <code>&amp;x==this</code>, no copy or
+deletion is performed, and the operation is always succesful. If
+<code>position==i</code>, no operation is performed.<br>
+<b>Postconditions:</b> If <code>&amp;x==this</code>, no iterator or reference
+is invalidated.<br>
+<b>Complexity:</b> If <code>&amp;x==this</code>, <code>O(rel(position,i,i+1))</code>;
+otherwise <code>O(shl(end()-position,1) + I(n) + D(n))</code>.<br>
+<b>Exception safety:</b> If <code>&amp;x==this</code>, <code>nothrow</code>;
+otherwise, strong.<br>
+</blockquote>
+
+<code>void splice(iterator position,<b>index class name&amp;</b> x,iterator first,iterator last);</code>
+
+<blockquote>
+<b>Requires:</b> <code>position</code> is a valid iterator of the index.
+<code>first</code> and <code>last</code> are valid iterators of <code>x</code>.
+<code>last</code> is reachable from <code>first</code>. <code>position</code>
+is not in the range [<code>first</code>,<code>last</code>).<br>
+<b>Effects:</b> For each element in the range [<code>first</code>,<code>last</code>),
+insertion is tried before <code>position</code>; if the operation is succesful,
+the element is erased from <code>x</code>. In the special case
+<code>&amp;x==this</code>, no copy or deletion is performed, and insertions are
+always succesful.<br>
+<b>Postconditions:</b> If <code>&amp;x==this</code>, no iterator or reference
+is invalidated.<br>
+<b>Complexity:</b> If <code>&amp;x==this</code>,
+<code>O(rel(position,first,last))</code>; otherwise
+<code>O(shl(end()-position,m) + m*I(n+m) + m*D(x.size()))</code>
+where <code>m</code> is the number of elements in [<code>first</code>,<code>last</code>).<br>
+<b>Exception safety:</b> If <code>&amp;x==this</code>, <code>nothrow</code>;
+otherwise, basic.<br>
+</blockquote>
+
+<code>void remove(const value_type&amp; value);</code>
+
+<blockquote>
+<b>Effects:</b> Erases all elements of the index which compare equal to
+<code>value</code>.<br>
+<b>Complexity:</b> <code>O(n + m*D(n))</code>, where <code>m</code>
+is the number of elements erased.<br>
+<b>Exception safety:</b> Basic.
+</blockquote>
+  
+<code>template&lt;typename Predicate> void remove_if(Predicate pred);</code>
+
+<blockquote>
+<b>Effects:</b> Erases all elements <code>x</code> of the index for which
+<code>pred(x)</code> holds.<br>
+<b>Complexity:</b> <code>O(n + m*D(n))</code>, where <code>m</code>
+is the number of elements erased.<br>
+<b>Exception safety:</b> Basic.
+</blockquote>
+
+<code>void unique();</code>
+
+<blockquote>
+<b>Effects:</b> Eliminates all but the first element from every consecutive
+group of equal elements referred to by the iterator <code>i</code> in the range
+[<code>first+1</code>,<code>last</code>) for which <code>*i==*(i-1)</code>.<br>
+<b>Complexity:</b> <code>O(n + m*D(n))</code>, where <code>m</code>
+is the number of elements erased.<br>
+<b>Exception safety:</b> Basic.
+</blockquote>
+
+<code>template &lt;class BinaryPredicate> void unique(BinaryPredicate binary_pred);</code>
+
+<blockquote>
+<b>Effects:</b> Eliminates all but the first element from every consecutive
+group of elements referred to by the iterator <code>i</code> in the range
+[<code>first+1</code>,<code>last</code>) for which
+<code>binary_pred(*i,*(i-1))</code> holds.<br>
+<b>Complexity:</b> <code>O(n + m*D(n))</code>, where <code>m</code>
+is the number of elements erased.<br>
+<b>Exception safety:</b> Basic.
+</blockquote>
+
+<code>void merge(index class name&amp; x);</code>
+
+<blockquote>
+<b>Requires:</b> <code>std::less&lt;value_type&gt;</code> induces a
+strict weak ordering over <code>value_type</code>.
+Both the index and <code>x</code> are sorted according to
+<code>std::less&lt;value_type&gt;</code>.<br>
+<b>Effects:</b> Attempts to insert every element of <code>x</code> into the
+corresponding position of the index (according to the order). Elements
+successfully inserted are erased from <code>x</code>. The resulting sequence
+is stable, i.e. equivalent elements of either container preserve their
+relative position. In the special case <code>&amp;x==this</code>, no operation
+is performed.<br>
+<b>Postconditions:</b> Elements in the index and remaining elements in
+<code>x</code> are sorted.
+Validity of iterators to the index and of non-erased elements of <code>x</code>
+references is preserved.<br>
+<b>Complexity:</b> If <code>&amp;x==this</code>, constant; otherwise
+<code>O(n + x.size()*I(n+x.size()) + x.size()*D(x.size()))</code>.<br>
+<b>Exception safety:</b> If <code>&amp;x==this</code>, <code>nothrow</code>;
+otherwise, basic.<br>
+</blockquote>
+  
+<code>template &lt;typename Compare> void merge(index class name&amp; x,Compare comp);</code>
+
+<blockquote>
+<b>Requires:</b> <code>Compare</code> induces a
+strict weak ordering over <code>value_type</code>.
+Both the index and <code>x</code> are sorted according to <code>comp</code>.<br>
+<b>Effects:</b> Attempts to insert every element of <code>x</code> into the
+corresponding position of the index (according to <code>comp</code>).
+Elements successfully inserted are erased from <code>x</code>. The resulting
+sequence is stable, i.e. equivalent elements of either container preserve
+their relative position. In the special case <code>&amp;x==this</code>, no
+operation is performed.<br>
+<b>Postconditions:</b> Elements in the index and remaining elements in
+<code>x</code> are sorted according to <code>comp</code>.
+Validity of iterators to the index and of non-erased elements of <code>x</code>
+references is preserved.<br>
+<b>Complexity:</b> If <code>&amp;x==this</code>, constant; otherwise
+<code>O(n + x.size()*I(n+x.size()) + x.size()*D(x.size()))</code>.<br>
+<b>Exception safety:</b> If <code>&amp;x==this</code>, <code>nothrow</code>;
+otherwise, basic.<br>
+</blockquote>
+
+<code>void sort();</code>
+
+<blockquote>
+<b>Requires:</b> <code>std::less&lt;value_type&gt;</code> induces a
+strict weark ordering over <code>value_type</code>.<br>
+<b>Effects:</b> Sorts the index according to
+<code>std::less&lt;value_type></code>. The sorting is stable, i.e.
+equivalent elements preserve their relative position.<br>
+<b>Postconditions:</b> Validity of iterators and references is preserved.<br>
+<b>Complexity:</b> <code>O(n*log(n))</code>.<br>
+<b>Exception safety:</b> Basic.
+</blockquote>
+
+<code>template &lt;typename Compare> void sort(Compare comp);</code>
+
+<blockquote>
+<b>Requires:</b> <code>Compare</code> induces a
+strict weak ordering over <code>value_type</code>.<br>
+<b>Effects:</b> Sorts the index according to <code>comp</code>. The sorting
+is stable, i.e. equivalent elements preserve their relative position.<br>
+<b>Postconditions:</b> Validity of iterators and references is preserved.<br>
+<b>Complexity:</b> <code>O(n*log(n))</code>.<br>
+<b>Exception safety:</b> Basic.
+</blockquote>
+
+<code>void reverse();</code>
+
+<blockquote>
+<b>Effects:</b> Reverses the order of the elements in the index.<br>
+<b>Postconditions:</b> Validity of iterators and references is preserved.<br>
+<b>Complexity:</b> <code>O(n)</code>.<br>
+<b>Exception safety:</b> <code>nothrow</code>.
+</blockquote>
+
+<h4><a name="rearrange_operations">Rearrange operations</a></h4>
+
+<p>
+These operations, without counterpart in STL sequence containers
+(although <code>std::list::splice</code> provides partially overlapping
+functionality), perform individual and global repositioning of elements
+inside the index.
+</p>
+
+<code>void relocate(iterator position,iterator i);</code>
+
+<blockquote>
+<b>Requires:</b> <code>position</code> is a valid iterator of the index.
+<code>i</code> is a valid dereferenceable iterator of the index.<br>
+<b>Effects:</b> Inserts the element pointed to by <code>i</code> before
+<code>position</code>. If <code>position==i</code>, no operation is
+performed.<br>
+<b>Postconditions:</b> No iterator or reference is invalidated.<br>
+<b>Complexity:</b> <code>O(rel(position,i,i+1))</code>.<br>
+<b>Exception safety:</b> <code>nothrow</code>.<br>
+</blockquote>
+
+<code>void relocate(iterator position,iterator first,iterator last);</code>
+
+<blockquote>
+<b>Requires:</b> <code>position</code> is a valid iterator of the index.
+<code>first</code> and <code>last</code> are valid iterators of the index.
+<code>last</code> is reachable from <code>first</code>. <code>position</code>
+is not in the range [<code>first</code>,<code>last</code>).<br>
+<b>Effects:</b> The range of elements [<code>first</code>,<code>last</code>)
+is repositioned just before <code>position</code>.<br>
+<b>Postconditions:</b> No iterator or reference is invalidated.<br>
+<b>Complexity:</b> <code>O(rel(position,first,last))</code>.<br>
+<b>Exception safety:</b> <code>nothrow</code>.<br>
+</blockquote>
+
+<a name="rearrange"><code>template&lt;typename InputIterator> void rearrange(InputIterator first);</code></a>
+
+<blockquote>
+<b>Requires:</b> The range [<code>first</code>,
+<code>std::advance(first,n)</code>),
+where <code>n</code> is the size of the index, is a
+<a href="indices.html#views">free view</a> of the index.<br>
+<b>Effects:</b> The elements are rearranged so as to match the
+order of the previously described view.<br>
+<b>Postconditions:</b> No iterator or reference is invalidated.<br>
+<b>Complexity:</b> <code>O(n)</code>.<br>
+<b>Exception safety:</b> Basic.<br>
+</blockquote>
+
+<h4><a name="serialization">Serialization</a></h4>
+
+<p>
+Indices cannot be serialized on their own, but only as part of the
+<code>multi_index_container</code> into which they are embedded. In describing
+the additional preconditions and guarantees associated to random access indices
+with respect to serialization of their embedding containers, we
+use the concepts defined in the <code>multi_index_container</code>
+<a href="multi_index_container.html#serialization">serialization section</a>.
+</p>
+
+Operation: saving of a <code>multi_index_container</code> <code>m</code> to an
+output archive (XML archive) <code>ar</code>.
+
+<blockquote>
+<b>Requires:</b> No additional requirements to those imposed by the container.
+</blockquote>
+
+Operation: loading of a <code>multi_index_container</code> <code>m'</code> from an
+input archive (XML archive) <code>ar</code>.
+
+<blockquote>
+<b>Requires:</b> No additional requirements to those imposed by the container.<br>
+<b>Postconditions:</b> On succesful loading, each of the elements of
+[<code>begin()</code>, <code>end()</code>) is a restored copy of the corresponding
+element in [<code>m.get&lt;i&gt;().begin()</code>, <code>m.get&lt;i&gt;().end()</code>),
+where <code>i</code> is the position of the random access index in the container.
+</blockquote>
+
+Operation: saving of an <code>iterator</code> or <code>const_iterator</code>
+<code>it</code> to an output archive (XML archive) <code>ar</code>.
+
+<blockquote>
+<b>Requires:</b> <code>it</code> is a valid iterator of the index. The associated
+<code>multi_index_container</code> has been previously saved.
+</blockquote>
+
+Operation: loading of an <code>iterator</code> or <code>const_iterator</code>
+<code>it'</code> from an input archive (XML archive) <code>ar</code>.
+
+<blockquote>
+<b>Postconditions:</b> On succesful loading, if <code>it</code> was dereferenceable
+then <code>*it'</code> is the restored copy of <code>*it</code>, otherwise
+<code>it'==end()</code>.<br>
+<b>Note:</b> It is allowed that <code>it</code> be a <code>const_iterator</code>
+and the restored <code>it'</code> an <code>iterator</code>, or viceversa.
+</blockquote>
+
+<hr>
+
+<div class="prev_link"><a href="seq_indices.html"><img src="../prev.gif" alt="sequenced indices" border="0"><br>
+Sequenced indices
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex reference" border="0"><br>
+Boost.MultiIndex reference
+</a></div>
+<div class="next_link"><a href="key_extraction.html"><img src="../next.gif" alt="key extraction" border="0"><br>
+Key extraction
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised July 14th 2013</p>
+
+<p>&copy; Copyright 2003-2013 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

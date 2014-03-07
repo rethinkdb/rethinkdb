@@ -1,0 +1,152 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/dict.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/dict.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#dict-spec">Class <code>dict</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#dict-spec-synopsis">Class <code>dict</code>
+              synopsis</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example(s)</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p>Exposes a <a href=
+    "ObjectWrapper.html#TypeWrapper-concept">TypeWrapper</a> for the Python
+    <a href=
+    "http://www.python.org/dev/doc/devel/lib/typesmapping.html">dict</a>
+    type.</p>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="dict-spec"></a>Class <code>dict</code></h3>
+
+    <p>Exposes the <a href=
+    "http://www.python.org/dev/doc/devel/lib/typesmapping.html">mapping
+    protocol</a> of Python's built-in <code>dict</code> type. The semantics
+    of the constructors and member functions defined below can be fully
+    understood by reading the <a href=
+    "ObjectWrapper.html#TypeWrapper-concept">TypeWrapper</a> concept
+    definition. Since <code>dict</code> is publicly derived from <code><a
+    href="object.html#object-spec">object</a></code>, the public object
+    interface applies to <code>dict</code> instances as well.</p>
+
+    <h4><a name="dict-spec-synopsis"></a>Class <code>dict</code>
+    synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+   class dict : public object
+   {
+      dict();
+
+      template&lt; class T &gt;
+      dict(T const &amp; data);
+
+      // modifiers
+      void clear();
+      dict copy();
+
+      template &lt;class T1, class T2&gt;
+      tuple popitem();
+
+      template &lt;class T&gt;
+      object setdefault(T const &amp;k);
+
+      template &lt;class T1, class T2&gt;
+      object setdefault(T1 const &amp; k, T2 const &amp; d);
+
+      void update(object_cref E);
+ 
+      template&lt; class T &gt;
+      void update(T const &amp; E);
+
+      // observers
+      list values() const;
+    
+      object get(object_cref k) const;
+
+      template&lt;class T&gt;
+      object get(T const &amp; k) const;
+
+      object get(object_cref k, object_cref d) const;
+      object get(T1 const &amp; k, T2 const &amp; d) const;
+
+      bool has_key(object_cref k) const;
+
+      template&lt; class T &gt;
+      bool has_key(T const &amp; k) const;
+
+      list items() const;
+      object iteritems() const;
+      object iterkeys() const;
+      object itervalues() const;
+      list keys() const;
+  };
+}}
+</pre>
+
+    <h2><a name="examples"></a>Example</h2>
+<pre>
+using namespace boost::python;
+dict swap_object_dict(object target, dict d)
+{
+    dict result = extract&lt;dict&gt;(target.attr("__dict__"));
+    target.attr("__dict__") = d;
+    return result;
+}
+</pre>
+
+    <p>Revised 30 September, 2002</p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

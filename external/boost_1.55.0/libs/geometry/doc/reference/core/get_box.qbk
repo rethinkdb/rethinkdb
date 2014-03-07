@@ -1,0 +1,23 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__box__][Returns the coordinate of a box (use min_corner, max_corner to specify which of the points to get) ]]
+[[__segment__][Returns the coordinate of a segment (use 0, 1 to specify which of the two points to get) ]]
+]
+
+[heading Complexity]
+Constant
+
+[heading Example]
+[get_box]
+[get_box_output]

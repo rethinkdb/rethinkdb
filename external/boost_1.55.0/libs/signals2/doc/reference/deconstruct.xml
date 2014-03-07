@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Frank Mori Hess 2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<header name="boost/signals2/deconstruct.hpp" last-revision="$Date: 2007-03-06 16:51:55 -0500 (Tue, 06 Mar 2007) $">
+  <using-namespace name="boost::signals2"/>
+  <using-namespace name="boost"/>
+  <namespace name="boost">
+    <namespace name="signals2">
+      <overloaded-function name="deconstruct">
+        <signature>
+          <template>
+            <template-type-parameter name="T"/>
+          </template>
+          <type><classname>postconstructor_invoker</classname>&lt;T&gt;</type>
+        </signature>
+        <signature>
+          <template>
+            <template-type-parameter name="T"/>
+            <template-type-parameter name="A1"/>
+          </template>
+          <type><classname>postconstructor_invoker</classname>&lt;T&gt;</type>
+          <parameter name="arg1"><paramtype>const A1 &amp;</paramtype></parameter>
+        </signature>
+        <signature>
+          <template>
+            <template-type-parameter name="T"/>
+            <template-type-parameter name="A1"/>
+            <template-type-parameter name="A2"/>
+          </template>
+          <type><classname>postconstructor_invoker</classname>&lt;T&gt;</type>
+          <parameter name="arg1"><paramtype>const A1 &amp;</paramtype></parameter>
+          <parameter name="arg2"><paramtype>const A2 &amp;</paramtype></parameter>
+        </signature>
+        <signature>
+          <template>
+            <template-type-parameter name="T"/>
+            <template-type-parameter name="A1"/>
+            <template-type-parameter name="A2, ..."/>
+            <template-type-parameter name="AN"/>
+          </template>
+          <type><classname>postconstructor_invoker</classname>&lt;T&gt;</type>
+          <parameter name="arg1"><paramtype>const A1 &amp;</paramtype></parameter>
+          <parameter name="arg2"><paramtype>const A2 &amp;</paramtype></parameter>
+          <parameter name=""><paramtype>...</paramtype></parameter>
+          <parameter name="argN"><paramtype>const AN &amp;</paramtype></parameter>
+        </signature>
+
+        <purpose>Create a <code>shared_ptr</code> with support for post-constructors and pre-destructors.</purpose>
+
+        <description>
+          <para>Creates an object and its owning <code>shared_ptr&lt;T&gt;</code>
+            (wrapped inside a <classname>postconstructor_invoker</classname>)
+            using only a single allocation,
+            in a manner similar
+            to that of <functionname>boost::make_shared()</functionname>.  In addition, <code>deconstruct</code>
+            supports postconstructors and predestructors.  The returned
+            <classname>shared_ptr</classname> is wrapped inside a <classname>postconstructor_invoker</classname>
+            in order to provide the user with an opportunity to pass arguments to a postconstructor,
+            while insuring the postconstructor is run before the wrapped
+            <classname>shared_ptr</classname> is accessible.
+          </para>
+          <para>
+            In order to use <code>deconstruct</code> you must define a postconstructor for your class.
+            More specifically, you must define
+            an <code>adl_postconstruct</code> function which can be found via argument-dependent
+            lookup.  Typically, this means defining an <code>adl_postconstruct</code> function
+            in the same namespace as its associated class.  See the reference for
+            <classname>postconstructor_invoker</classname>
+            for a specification of what arguments are passed to the <code>adl_postconstruct</code>
+            call.
+          </para>
+          <para>
+            Optionally, you may define a predestructor for your class.  This is done by
+            defining an <code>adl_predestruct</code> function which may be found
+            by argument-dependent lookup.  The deleter of the <classname>shared_ptr</classname>
+            created by <code>deconstruct</code> will make an unqualified call to
+            <code>adl_predestruct</code> with a single
+            argument: a pointer to the object which is about to be deleted.
+            As a convenience, the pointer will always be cast to point to a non-const type
+            before being passed to <code>adl_predestruct</code>.
+            If no user-defined <code>adl_predestruct</code> function is found via
+            argument-dependent lookup, a default function (which does nothing) will
+            be used.  After <code>adl_predestruct</code> is called, the deleter
+            will delete the object with
+            <functionname>checked_delete</functionname>.
+          </para>
+          <para>
+            Any arguments passed to a
+            <code>deconstruct()</code> call are forwarded to the matching constructor of the
+            template type
+            <code>T</code>.  Arguments may also be passed to the class' associated
+            <code>adl_postconstruct</code> function by using the
+            <methodname>postconstructor_invoker::postconstruct()</methodname> methods.
+          </para>
+        </description>
+        <notes>
+          <para>If your compiler supports the C++0x features of rvalue references
+            and variadic templates, then <code>deconstruct</code> will perform perfect
+            forwarding of arguments to the <code>T</code> constructor, using
+            a prototype of:
+          </para>
+          <programlisting>template&lt; typename T, typename... Args > postconstructor_invoker&lt; T &gt; deconstruct( Args &amp;&amp; ... args );</programlisting>
+          <para>Otherwise, argument forwarding is performed via const references, as specified in
+            the synopsis.  In order to pass non-const references to a constructor, you will need
+            to wrap them in reference wrappers using <functionname>boost::ref</functionname>.
+          </para>
+          <para>You may give all the <code>deconstruct</code> overloads access to your class'
+            private and protected constructors by
+            declaring <classname>deconstruct_access</classname> a friend.  Using private
+            constructors in conjunction with <classname>deconstruct_access</classname>
+            can be useful to
+            ensure your objects are only created by <code>deconstruct</code>, and thus
+            their postconstructors or predestructors will always be called.
+          </para>
+        </notes>
+        <returns><para>A <code>postconstructor_invoker&lt;T&gt;</code> owning a newly allocated object of
+            type <code>T</code>.</para>
+        </returns>
+      </overloaded-function>
+      <class name="deconstruct_access">
+        <purpose>Gives <functionname>deconstruct</functionname> access to private/protected constructors.</purpose>
+        <description>
+          <para>
+            Declaring <code>deconstruct_access</code> a friend to your class will give the
+            <functionname>deconstruct</functionname> factory function access to your class' private and
+            protected constructors.  Using private
+            constructors in conjunction with <code>deconstruct_access</code>
+            can be useful to
+            ensure <classname>postconstructible</classname> or <classname>predestructible</classname>
+            objects are always created
+            properly using <code>deconstruct</code>.
+          </para>
+        </description>
+      </class>
+      <class name="postconstructor_invoker">
+        <method-group name="public methods">
+        <method name="conversion-operator">
+          <type>const shared_ptr&lt;T&gt; &amp;</type>
+          <description>
+            <para>
+              The conversion operator has the same effect as explicitly calling
+              the <methodname>postconstruct</methodname> method with no arguments.
+            </para>
+          </description>
+        </method>
+        <overloaded-method name="postconstruct" cv="const">
+          <signature>
+            <type>const shared_ptr&lt;T&gt; &amp;</type>
+          </signature>
+          <signature>
+            <template>
+              <template-type-parameter name="A1"/>
+            </template>
+            <type>const shared_ptr&lt;T&gt; &amp;</type>
+            <parameter name="a1"><paramtype>A1</paramtype></parameter>
+          </signature>
+          <signature>
+            <template>
+              <template-type-parameter name="A1"/>
+              <template-type-parameter name="A2"/>
+            </template>
+            <type>const shared_ptr&lt;T&gt; &amp;</type>
+            <parameter name="a1"><paramtype>A1</paramtype></parameter>
+            <parameter name="a2"><paramtype>A1</paramtype></parameter>
+          </signature>
+          <signature>
+            <template>
+              <template-type-parameter name="A1"/>
+              <template-type-parameter name="A2, ..."/>
+              <template-type-parameter name="AN"/>
+            </template>
+            <type>const shared_ptr&lt;T&gt; &amp;</type>
+            <parameter name="a1"><paramtype>A1</paramtype></parameter>
+            <parameter name="a2"><paramtype>A1</paramtype></parameter>
+            <parameter name=""><paramtype>...</paramtype></parameter>
+            <parameter name="aN"><paramtype>A1</paramtype></parameter>
+          </signature>
+          <description>
+            <para>
+              The <code>postconstruct</code> methods make an unqualified call to
+              <code>adl_postconstruct()</code> and then return the <classname>shared_ptr</classname>
+              which was wrapped inside the <code>postconstructor_invoker</code>
+              object by <functionname>deconstruct()</functionname>.
+              The first two arguments passed to the
+              <code>adl_postconstruct()</code> call are always the <classname>shared_ptr</classname>
+              owning the object created by <functionname>deconstruct()</functionname>,
+              followed by a ordinary pointer to the same object.  As a convenience,
+              the ordinary pointer
+              will always be cast to point to a non-const type before being passed
+              to <code>adl_postconstruct</code>.  The remaining arguments passed to
+              <code>adl_postconstruct</code> are whatever arguments the user may have
+              passed to the <code>postconstruct</code>
+              method.
+            </para>
+          </description>
+        </overloaded-method>
+      </method-group>
+        <purpose>Pass arguments to and run postconstructors for objects created with <functionname>deconstruct()</functionname>.</purpose>
+        <description>
+          <para>
+            Objects of type <code>postconstructor_invoker</code> are returned by calls to the
+            <functionname>deconstruct()</functionname> factory function.  These objects are intended
+            to either be immediately assigned to a <classname>shared_ptr</classname> (in which case the
+            class' conversion operator will perform the conversion by calling the
+            <methodname>postconstruct</methodname> with no arguments), or to be converted
+            to <classname>shared_ptr</classname> explicitly by the user calling one of
+            the <methodname>postconstruct</methodname> methods.
+          </para>
+        </description>
+      </class>
+    </namespace>
+  </namespace>
+</header>

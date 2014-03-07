@@ -1,0 +1,228 @@
+[/
+  (C) Copyright 2007-8 Anthony Williams.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:shared_mutex Class `shared_mutex` -- C++14]
+
+    #include <boost/thread/shared_mutex.hpp>
+
+    class shared_mutex
+    {
+    public:
+        shared_mutex(shared_mutex const&) = delete;
+        shared_mutex& operator=(shared_mutex const&) = delete;
+
+        shared_mutex();
+        ~shared_mutex();
+
+        void lock_shared();
+        bool try_lock_shared();
+        template <class Rep, class Period>
+        bool try_lock_shared_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_lock_shared_until(const chrono::time_point<Clock, Duration>& abs_time);
+        void unlock_shared();
+
+        void lock();
+        bool try_lock();
+        template <class Rep, class Period>
+        bool try_lock_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_lock_until(const chrono::time_point<Clock, Duration>& abs_time);
+        void unlock();
+
+    #if defined BOOST_THREAD_PROVIDES_DEPRECATED_FEATURES_SINCE_V3_0_0
+        // use upgrade_mutex instead.
+        void lock_upgrade(); // EXTENSION
+        void unlock_upgrade(); // EXTENSION
+
+        void unlock_upgrade_and_lock(); // EXTENSION
+        void unlock_and_lock_upgrade(); // EXTENSION
+        void unlock_and_lock_shared(); // EXTENSION
+        void unlock_upgrade_and_lock_shared(); // EXTENSION
+    #endif
+
+    #if defined BOOST_THREAD_USES_DATETIME
+        bool timed_lock_shared(system_time const& timeout); // DEPRECATED
+        bool timed_lock(system_time const& timeout); // DEPRECATED
+    #endif
+
+    };
+
+The class `boost::shared_mutex` provides an implementation of a multiple-reader / single-writer mutex. It implements the
+__shared_lockable_concept__.
+
+Multiple concurrent calls to __lock_ref__, __try_lock_ref__, `__try_lock_for()`,  `__try_lock_until()`, __timed_lock_ref__, __lock_shared_ref__,  
+`__try_lock_shared_for()`,  `__try_lock_shared_until()`, __try_lock_shared_ref__ and __timed_lock_shared_ref__ are permitted.
+
+Note the the lack of reader-writer priority policies in shared_mutex. This is due to an algorithm credited to Alexander Terekhov which lets the OS decide which thread is the next to get the lock without caring whether a unique lock or shared lock is being sought. This results in a complete lack of reader or writer starvation. It is simply fair. 
+
+[endsect]
+
+[section:upgrade_mutex Class `upgrade_mutex` -- EXTENSION]
+
+    #include <boost/thread/shared_mutex.hpp>
+
+    class upgrade_mutex
+    {
+    public:
+        upgrade_mutex(upgrade_mutex const&) = delete;
+        upgrade_mutex& operator=(upgrade_mutex const&) = delete;
+
+        upgrade_mutex();
+        ~upgrade_mutex();
+
+        void lock_shared();
+        bool try_lock_shared();
+        template <class Rep, class Period>
+        bool try_lock_shared_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_lock_shared_until(const chrono::time_point<Clock, Duration>& abs_time);
+        void unlock_shared();
+
+        void lock();
+        bool try_lock();
+        template <class Rep, class Period>
+        bool try_lock_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_lock_until(const chrono::time_point<Clock, Duration>& abs_time);
+        void unlock();
+
+        void lock_upgrade();
+        template <class Rep, class Period>
+        bool try_lock_upgrade_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_lock_upgrade_until(const chrono::time_point<Clock, Duration>& abs_time);
+        void unlock_upgrade();
+
+        // Shared <-> Exclusive
+
+    #ifdef BOOST_THREAD_PROVIDES_SHARED_MUTEX_UPWARDS_CONVERSIONS
+        bool try_unlock_shared_and_lock();
+        template <class Rep, class Period>
+        bool try_unlock_shared_and_lock_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_unlock_shared_and_lock_until(const chrono::time_point<Clock, Duration>& abs_time);
+    #endif
+        void unlock_and_lock_shared();
+
+        // Shared <-> Upgrade
+
+    #ifdef BOOST_THREAD_PROVIDES_SHARED_MUTEX_UPWARDS_CONVERSIONS
+        bool try_unlock_shared_and_lock_upgrade();
+        template <class Rep, class Period>
+        bool try_unlock_shared_and_lock_upgrade_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_unlock_shared_and_lock_upgrade_until(const chrono::time_point<Clock, Duration>& abs_time);
+    #endif
+        void unlock_upgrade_and_lock_shared();
+
+        // Upgrade <-> Exclusive
+
+        void unlock_upgrade_and_lock();
+    #if    defined(BOOST_THREAD_PLATFORM_PTHREAD)
+        || defined(BOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN)
+        bool try_unlock_upgrade_and_lock();
+        template <class Rep, class Period>
+        bool try_unlock_upgrade_and_lock_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_unlock_upgrade_and_lock_until(const chrono::time_point<Clock, Duration>& abs_time);
+    #endif
+        void unlock_and_lock_upgrade();
+    };
+
+The class `boost::upgrade_mutex` provides an implementation of a multiple-reader / single-writer mutex. It implements the
+__upgrade_lockable_concept__.
+
+Multiple concurrent calls to __lock_ref__, __try_lock_ref__, `__try_lock_for()`,  `__try_lock_until()`, __timed_lock_ref__, __lock_shared_ref__,  
+`__try_lock_shared_for()`,  `__try_lock_shared_until()`, __try_lock_shared_ref__ and __timed_lock_shared_ref__ are permitted.
+
+
+[endsect]
+
+[section:null_mutex Class `null_mutex` -- EXTENSION]
+
+    #include <boost/thread/null_mutex.hpp>
+
+    class null_mutex
+    {
+    public:
+        null_mutex(null_mutex const&) = delete;
+        null_mutex& operator=(null_mutex const&) = delete;
+
+        null_mutex();
+        ~null_mutex();
+
+        void lock_shared();
+        bool try_lock_shared();
+     #ifdef BOOST_THREAD_USES_CHRONO
+        template <class Rep, class Period>
+        bool try_lock_shared_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_lock_shared_until(const chrono::time_point<Clock, Duration>& abs_time);
+     #endif
+        void unlock_shared();
+
+        void lock();
+        bool try_lock();
+     #ifdef BOOST_THREAD_USES_CHRONO
+        template <class Rep, class Period>
+        bool try_lock_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_lock_until(const chrono::time_point<Clock, Duration>& abs_time);
+     #endif
+        void unlock();
+
+        void lock_upgrade();
+     #ifdef BOOST_THREAD_USES_CHRONO
+        template <class Rep, class Period>
+        bool try_lock_upgrade_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_lock_upgrade_until(const chrono::time_point<Clock, Duration>& abs_time);
+     #endif
+        void unlock_upgrade();
+
+        // Shared <-> Exclusive
+
+        bool try_unlock_shared_and_lock();
+     #ifdef BOOST_THREAD_USES_CHRONO
+        template <class Rep, class Period>
+        bool try_unlock_shared_and_lock_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_unlock_shared_and_lock_until(const chrono::time_point<Clock, Duration>& abs_time);
+     #endif
+        void unlock_and_lock_shared();
+
+        // Shared <-> Upgrade
+
+        bool try_unlock_shared_and_lock_upgrade();
+     #ifdef BOOST_THREAD_USES_CHRONO
+        template <class Rep, class Period>
+        bool try_unlock_shared_and_lock_upgrade_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_unlock_shared_and_lock_upgrade_until(const chrono::time_point<Clock, Duration>& abs_time);
+     #endif
+        void unlock_upgrade_and_lock_shared();
+
+        // Upgrade <-> Exclusive
+
+        void unlock_upgrade_and_lock();
+        bool try_unlock_upgrade_and_lock();
+     #ifdef BOOST_THREAD_USES_CHRONO
+        template <class Rep, class Period>
+        bool try_unlock_upgrade_and_lock_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class Clock, class Duration>
+        bool try_unlock_upgrade_and_lock_until(const chrono::time_point<Clock, Duration>& abs_time);
+     #endif
+        void unlock_and_lock_upgrade();
+    };
+
+The class `boost::null_mutex` provides a no-op implementation of a multiple-reader / single-writer mutex. It is a model of the
+__UpgradeLockable concept.
+
+
+[endsect]
+

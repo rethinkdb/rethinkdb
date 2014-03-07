@@ -1,0 +1,110 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>is_pod</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="up" href="../reference.html" title="Alphabetical Reference">
+<link rel="prev" href="is_object.html" title="is_object">
+<link rel="next" href="is_pointer.html" title="is_pointer">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_object.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_pointer.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typetraits.reference.is_pod"></a><a class="link" href="is_pod.html" title="is_pod">is_pod</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">is_pod</span> <span class="special">:</span> <span class="keyword">public</span> <em class="replaceable"><code><a class="link" href="integral_constant.html" title="integral_constant">true_type</a>-or-<a class="link" href="integral_constant.html" title="integral_constant">false_type</a></code></em> <span class="special">{};</span>
+</pre>
+<p>
+        <span class="bold"><strong>Inherits:</strong></span> If T is a (possibly cv-qualified)
+        POD type then inherits from <a class="link" href="integral_constant.html" title="integral_constant">true_type</a>,
+        otherwise inherits from <a class="link" href="integral_constant.html" title="integral_constant">false_type</a>.
+      </p>
+<p>
+        POD stands for "Plain old data". Arithmetic types, and enumeration
+        types, a pointers and pointer to members are all PODs. Classes and unions
+        can also be POD's if they have no non-static data members that are of reference
+        or non-POD type, no user defined constructors, no user defined assignment
+        operators, no private or protected non-static data members, no virtual functions
+        and no base classes. Finally, a cv-qualified POD is still a POD, as is an
+        array of PODs.
+      </p>
+<p>
+        <span class="bold"><strong>C++ Standard Reference:</strong></span> 3.9p10 and 9p4 (Note
+        that POD's are also aggregates, see 8.5.1).
+      </p>
+<p>
+        <span class="bold"><strong>Compiler Compatibility:</strong></span> If the compiler
+        does not support partial-specialization of class templates, then this template
+        can not be used with function types.
+      </p>
+<p>
+        Without some (as yet unspecified) help from the compiler, is_pod will never
+        report that a class or struct is a POD; this is always safe, if possibly
+        sub-optimal. Currently (May 2011) compilers more recent than Visual C++ 8,
+        GCC-4.3, Greenhills 6.0, Intel-11.0, and Codegear have the necessary compiler
+        <a class="link" href="../intrinsics.html" title="Support for Compiler Intrinsics">intrinsics</a> to ensure that
+        this trait "just works". You may also test to see if the necessary
+        <a class="link" href="../intrinsics.html" title="Support for Compiler Intrinsics">intrinsics</a> are available
+        by checking to see if the macro <code class="computeroutput"><span class="identifier">BOOST_IS_POD</span></code>
+        is defined.
+      </p>
+<p>
+        <span class="bold"><strong>Header:</strong></span> <code class="computeroutput"> <span class="preprocessor">#include</span>
+        <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">is_pod</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        or <code class="computeroutput"> <span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+      </p>
+<p>
+        <span class="bold"><strong>Examples:</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">is_pod</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>
+          inherits from <code class="computeroutput"><a class="link" href="integral_constant.html" title="integral_constant">true_type</a></code>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">is_pod</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">*&gt;::</span><span class="identifier">type</span></code> is the type <code class="computeroutput"><a class="link" href="integral_constant.html" title="integral_constant">true_type</a></code>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">is_pod</span><span class="special">&lt;</span><span class="keyword">int</span> <span class="special">(*)(</span><span class="keyword">long</span><span class="special">)&gt;::</span><span class="identifier">value</span></code> is an integral constant expression
+          that evaluates to <span class="emphasis"><em>true</em></span>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">is_pod</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;::</span><span class="identifier">value</span></code> is an integral constant expression
+          that evaluates to <span class="emphasis"><em>false</em></span>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">is_pod</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value_type</span></code> is the type <code class="computeroutput"><span class="keyword">bool</span></code>.
+        </p></blockquote></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000, 2011 Adobe Systems Inc, David Abrahams,
+      Frederic Bron, Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant,
+      Jesse Jones, Mat Marcus, Itay Maman, John Maddock, Alexander Nasonov, Thorsten
+      Ottosen, Roman Perepelitsa, Robert Ramey, Jeremy Siek, Robert Stewart and Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_object.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_pointer.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

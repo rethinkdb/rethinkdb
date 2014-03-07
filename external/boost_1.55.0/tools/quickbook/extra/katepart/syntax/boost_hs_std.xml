@@ -1,0 +1,620 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd">
+
+<language
+
+name="std-c++"
+version="0.1.0"
+kateversion="2.4"
+section="boost::hs"
+extensions="*.std"
+mimetype="allFiles"
+author="Copyright 2006 -2007 Matias Capeletto, matias.capeletto@gmail.com"
+priority="9"
+license="Distributed under the Boost Software License, Version 1.0.
+http://www.boost.org/LICENSE_1_0.txt"
+
+>
+
+
+
+<highlighting>
+
+<list name="std.free.function" >
+
+    <!-- std.algorithm -->
+
+    <item> adjacent_find </item>
+    <item> binary_search </item>
+    <item> copy </item>
+    <item> copy_backward </item>
+    <item> count </item>
+    <item> count_if </item>
+    <item> equal </item>
+    <item> equal_range </item>
+    <item> fill </item>
+    <item> fill_n </item>
+    <item> find </item>
+    <item> find_end </item>
+    <item> find_first_of </item>
+    <item> find_if </item>
+    <item> for_each </item>
+    <item> generate </item>
+    <item> generate_n </item>
+    <item> includes </item>
+    <item> inplace_merge </item>
+    <item> iter_swap </item>
+    <item> lexicographical_compare </item>
+    <item> lower_bound </item>
+    <item> make_heap </item>
+    <item> max </item>
+    <item> max_element </item>
+    <item> merge </item>
+    <item> min </item>
+    <item> min_element </item>
+    <item> mismatch </item>
+    <item> next_permutation </item>
+    <item> nth_element </item>
+    <item> partial_sort </item>
+    <item> partial_sort_copy </item>
+    <item> partition </item>
+    <item> pop_heap </item>
+    <item> prev_permutation </item>
+    <item> push_heap </item>
+    <item> random_shuffle </item>
+    <item> remove </item>
+    <item> remove_copy </item>
+    <item> remove_copy_if </item>
+    <item> remove_if </item>
+    <item> replace </item>
+    <item> replace_copy </item>
+    <item> replace_copy_if </item>
+    <item> replace_if </item>
+    <item> reverse </item>
+    <item> reverse_copy </item>
+    <item> rotate </item>
+    <item> rotate_copy </item>
+    <item> search </item>
+    <item> search_n </item>
+    <item> set_difference </item>
+    <item> set_intersection </item>
+    <item> set_symmetric_difference </item>
+    <item> set_union </item>
+    <item> sort </item>
+    <item> sort_heap </item>
+    <item> stable_partition </item>
+    <item> stable_sort </item>
+    <item> swap </item>
+    <item> swap_ranges </item>
+    <item> transform </item>
+    <item> unique </item>
+    <item> unique_copy </item>
+    <item> upper_bound </item>
+
+    <!-- std.assert -->
+
+    <item> assert </item>
+
+    <!-- std.math -->
+
+    <item> abs </item>
+    <item> arg </item>
+    <item> conj </item>
+    <item> cos </item>
+    <item> cosh </item>
+    <item> exp </item>
+    <item> imag </item>
+    <item> log </item>
+    <item> log10 </item>
+    <item> norm </item>
+    <item> polar </item>
+    <item> pow </item>
+    <item> real </item>
+    <item> sin </item>
+    <item> sinh </item>
+    <item> sqrt </item>
+    <item> tan </item>
+    <item> tanh </item>
+    <item> acos </item>
+    <item> asin </item>
+    <item> atan </item>
+    <item> atan2 </item>
+
+    <!-- std.exception -->
+
+    <item> terminate_handler </item>
+    <item> unexpected_handler </item>
+
+    <item> set_terminate </item>
+
+    <item> set_unexpected </item>
+    <item> terminate </item>
+    <item> unexpected </item>
+    <item> uncaught_exception </item>
+
+    <!-- std.iterator -->
+
+    <item> advance </item>
+    <item> distance </item>
+
+    <!-- std.memory -->
+
+    <item> get_temporary_buffer </item>
+    <item> return_temporary_buffer </item>
+    <item> uninitialized_copy </item>
+    <item> uninitialized_fill </item>
+    <item> uninitialized_fill_n </item>
+
+    <!-- std.new -->
+
+    <item> set_new_handler </item>
+
+    <!-- std.numeric -->
+
+    <item> accumulate </item>
+    <item> inner_product </item>
+    <item> partial_sum </item>
+    <item> adjacent_difference </item>
+
+    <!-- std.string -->
+
+    <item> getline </item>
+    <item> swap </item>
+
+    <!-- std.pair -->
+
+    <item> make_pair </item>
+
+    <!-- std.locale -->
+
+    <item> has_facet </item>
+    <item> use_facet </item>
+    <item> isalnum </item>
+    <item> isalpha </item>
+    <item> iscntrl </item>
+    <item> isdigit </item>
+    <item> isgraph </item>
+    <item> islower </item>
+    <item> isprint </item>
+    <item> ispunct </item>
+    <item> isspace </item>
+    <item> isupper </item>
+    <item> isxdigit </item>
+    <item> tolower </item>
+    <item> toupper </item>
+
+</list>
+
+<list name="std.template.classes" >
+
+    <!-- std.complex -->
+
+    <item> complex </item>
+
+    <!-- std_iterator -->
+
+    <item> back_insert_iterator </item>
+    <item> back_inserter </item>
+    <item> front_insert_iterator </item>
+    <item> front_inserter </item>
+    <item> insert_iterator </item>
+    <item> inserter </item>
+    <item> istream_iterator </item>
+    <item> istreambuf_iterator </item>
+    <item> iterator </item>
+    <item> ostream_iterator </item>
+    <item> ostreambuf_iterator </item>
+    <item> reverse_iterator </item>
+
+    <!-- std.memory -->
+
+    <item> allocator </item>
+    <item> raw_storage_iterator </item>
+    <item> auto_ptr </item>
+    <item> auto_ptr_ref </item>
+
+    <!-- std.string -->
+
+    <item> basic_string </item>
+
+    <!-- std.utility -->
+
+    <item> pair </item>
+
+    <!-- std.valarray -->
+
+    <item> gslice_array </item>
+    <item> indirect_array </item>
+    <item> mask_array </item>
+    <item> slice_array </item>
+    <item> valarray </item>
+
+    <!-- std.locale -->
+
+    <item> messages </item>
+    <item> codecvt_byname </item>
+    <item> collate </item>
+    <item> collate_byname </item>
+    <item> ctype </item>
+    <item> ctype_byname </item>
+    <item> messages_byname </item>
+    <item> money_base </item>
+    <item> money_get </item>
+    <item> money_put </item>
+    <item> moneypunct </item>
+    <item> moneypunct_byname </item>
+    <item> num_get </item>
+    <item> num_put </item>
+    <item> numpunct </item>
+    <item> numpunct_byname </item>
+    <item> time_base </item>
+    <item> time_get </item>
+    <item> time_get_byname </item>
+    <item> time_put </item>
+    <item> time_put_byname </item>
+
+    <!-- std.ios -->
+
+    <item> basic_ios </item>
+    <item> fpos </item>
+
+    <!-- std.ios_fwd -->
+
+    <item> istreambuf_iterator </item>
+    <item> ostreambuf_iterator </item>
+    <item> basic_streambuf </item>
+    <item> basic_istream </item>
+    <item> basic_ostream </item>
+    <item> basic_iostream </item>
+    <item> basic_stringbuf </item>
+    <item> basic_istringstream </item>
+    <item> basic_ostringstream </item>
+    <item> basic_stringstream </item>
+    <item> basic_filebuf </item>
+    <item> basic_ifstream </item>
+    <item> basic_ofstream </item>
+    <item> basic_fstream </item>
+
+</list>
+
+
+
+
+<list name="std.classes" >
+
+    <!-- std.iomanip -->
+
+    <item> resetiosflags </item>
+    <item> setiosflags </item>
+    <item> setbase </item>
+
+    <item> setfill </item>
+    <item> setprecision </item>
+    <item> setw </item>
+
+    <!-- std.new -->
+
+    <item> new_handler </item>
+    <item> nothrow_t </item>
+
+    <!-- std.string -->
+
+    <item> string </item>
+    <item> wstring </item>
+
+    <!-- std.valarray -->
+
+    <item> slice </item>
+    <item> gslice </item>
+
+    <!-- std.locale -->
+
+    <item> locale </item>
+    <item> codecvt </item>
+    <item> codecvt_base </item>
+    <item> ctype_base </item>
+    <item> messages_base </item>
+
+    <!-- std.ios -->
+
+    <item> ios_base </item>
+    <item> streamoff </item>
+    <item> streampos </item>
+    <item> streamsize </item>
+    <item> wios </item>
+    <item> wstreampos </item>
+    <item> ios </item>
+
+    <!-- std.ios_fwd -->
+
+    <item> streambuf </item>
+    <item> istream </item>
+    <item> ostream </item>
+    <item> iostream </item>
+    <item> stringbuf </item>
+    <item> istringstream </item>
+    <item> ostringstream </item>
+    <item> stringstream </item>
+    <item> filebuf </item>
+    <item> ifstream </item>
+    <item> ofstream </item>
+    <item> fstream </item>
+    <item> wstreambuf </item>
+    <item> wistream </item>
+    <item> wostream </item>
+    <item> wiostream </item>
+    <item> wstringbuf </item>
+    <item> wistringstream </item>
+    <item> wostringstream </item>
+    <item> wstringstream </item>
+    <item> wfilebuf </item>
+    <item> wifstream </item>
+    <item> wofstream </item>
+    <item> wfstream </item>
+
+</list>
+
+
+<list name="std.exceptions">
+
+    <!-- std.exception -->
+
+    <item> exception </item>
+    <item> bad_exception </item>
+
+    <!-- std.new -->
+
+    <item> bad_alloc </item>
+
+    <!-- std.stdexcept -->
+
+    <item> logic_error </item>
+    <item> domain_error </item>
+    <item> invalid_argument </item>
+    <item> length_error </item>
+    <item> out_of_range </item>
+
+    <item> runtime_error </item>
+    <item> range_error </item>
+    <item> overflow_error </item>
+    <item> underflow_error </item>
+
+    <!-- std.typeinfo -->
+
+    <item> bad_cast </item>
+    <item> bad_typeid </item>
+
+</list>
+
+
+<list name="std.macro" >
+
+    <!-- std.complex -->
+
+    <item> __STD_COMPLEX </item>
+
+</list>
+
+
+
+<list name="std.metaprograming">
+
+    <!-- std.functional -->
+
+    <item> binary_function </item>
+    <item> binary_negate </item>
+    <item> binder1st </item>
+    <item> binder2nd </item>
+    <item> const_mem_fun_t </item>
+    <item> const_mem_fun_ref_t </item>
+    <item> const_mem_fun1_t </item>
+    <item> const_mem_fun1_ref_t </item>
+    <item> divides </item>
+    <item> equal_to </item>
+    <item> greater </item>
+    <item> greater_equal </item>
+    <item> less </item>
+    <item> less_equal </item>
+    <item> logical_and </item>
+    <item> logical_not </item>
+    <item> logical_or </item>
+    <item> mem_fun_t </item>
+    <item> mem_fun_ref_t </item>
+    <item> mem_fun1_t </item>
+    <item> mem_fun1_ref_t </item>
+    <item> minus </item>
+    <item> modulus </item>
+    <item> multiplies </item>
+    <item> negate </item>
+    <item> not_equal_to </item>
+    <item> plus </item>
+    <item> pointer_to_binary_function </item>
+    <item> pointer_to_unary_function </item>
+    <item> unary_function </item>
+    <item> unary_negate </item>
+    <item> bind1st </item>
+    <item> bind2nd </item>
+    <item> mem_fun </item>
+    <item> mem_fun_ref </item>
+    <item> not1 </item>
+    <item> not2 </item>
+    <item> ptr_fun  </item>
+
+    <!-- std.limits -->
+
+    <item> numeric_limits </item>
+
+    <!-- std.iterator -->
+
+    <item> iterator_traits </item>
+
+    <!-- std.string -->
+
+    <item> char_traits </item>
+
+    <!-- std.typeinfo -->
+
+    <item> type_info </item>
+
+</list>
+
+<list name="std.object">
+
+    <!-- std.iostream -->
+
+    <item> cin </item>
+    <item> cout </item>
+    <item> cerr </item>
+    <item> clog </item>
+
+    <item> wcin </item>
+    <item> wcout </item>
+    <item> wcerr </item>
+    <item> wclog </item>
+
+    <!-- std.new -->
+
+    <item> nothrow </item>
+
+</list>
+
+
+<list name="std.tags">
+
+    <item> bidirectional_iterator_tag </item>
+    <item> forward_iterator_tag </item>
+    <item> input_iterator_tag </item>
+    <item> output_iterator_tag </item>
+    <item> random_access_iterator_tag </item>
+
+</list>
+
+<list name="std.containers">
+
+    <item> bit_set </item>
+    <item> deque </item>
+    <item> list </item>
+    <item> queue </item>
+    <item> set </item>
+    <item> multiset </item>
+    <item> slist </item>
+    <item> map </item>
+    <item> multimap </item>
+    <item> unordered_map </item>
+    <item> stack </item>
+    <item> vector </item>
+
+</list>
+
+
+
+<list name="std.ios_manipulators">
+
+    <item> boolalpha </item>
+    <item> dec </item>
+    <item> fixed </item>
+    <item> hex </item>
+    <item> internal </item>
+    <item> left </item>
+    <item> noboolalpha </item>
+    <item> noshowbase </item>
+    <item> noshowpoint </item>
+    <item> noshowpos </item>
+    <item> noskipws </item>
+    <item> nounitbuf </item>
+    <item> nouppercase </item>
+    <item> oct </item>
+    <item> right </item>
+    <item> scientific </item>
+    <item> showbase </item>
+    <item> showpoint </item>
+    <item> showpos </item>
+    <item> skipws </item>
+    <item> unitbuf </item>
+    <item> uppercase </item>
+
+</list>
+
+
+<contexts>
+
+    <context name="main" attribute="std.free.function">
+
+        <keyword attribute="std.free.function" context="#stay" String="std.free.function" />
+        <keyword attribute="std.template.classes" context="#stay" String="std.template.classes" />
+        <keyword attribute="std.classes" context="#stay" String="std.classes" />
+        <keyword attribute="std.exceptions" context="#stay" String="std.exceptions" />
+        <keyword attribute="std.macro" context="#stay" String="std.macro" />
+        <keyword attribute="std.metaprogramming" context="#stay" String="std.metaprogramming" />
+        <keyword attribute="std.object" context="#stay" String="std.object" />
+        <keyword attribute="std.tags" context="#stay" String="std.tags" />
+        <keyword attribute="std.containers" context="#stay" String="std.containers" />
+        <keyword attribute="std.ios_manipulators" context="#stay" String="std.ios_manipulators" />
+
+    </context>
+
+</contexts>
+
+<itemDatas>
+
+    <itemData name="std.free.function"          defStyleNum="dsFunction"/>
+    <itemData name="std.template.classes"       defStyleNum="dsDataType"/>
+    <itemData name="std.classes"                defStyleNum="dsDataType"/>
+    <itemData name="std.exceptions"             defStyleNum="dsDataType"/>
+    <itemData name="std.macro"                  defStyleNum="dsOthers"/>
+    <itemData name="std.metaprogramming"        defStyleNum="dsFunction"/>
+    <itemData name="std.object"                 defStyleNum="dsDataType"/>
+    <itemData name="std.tags"                   defStyleNum="dsOthers"/>
+    <itemData name="std.containers"             defStyleNum="dsDataType"/>
+    <itemData name="std.ios_manipulators"       defStyleNum="dsFunction"/>
+
+    <!--
+        This is an extract from the official Kate page
+        It is leave here as a reference.
+
+        dsNormal        used for normal text.
+        dsKeyword       used for keywords.
+        dsDataType      used for data types.
+        dsDecVal        used for decimal values.
+        dsBaseN         used for values with a base other than 10.
+        dsFloat         used for float values.
+        dsChar          used for a character.
+        dsString        used for strings.
+        dsComment       used for comments.
+        dsOthers        used for 'other' things.
+        dsAlert         used for warning messages.
+        dsFunction      used for function calls.
+        dsRegionMarker  used for region markers.
+        dsError         used for error highlighting and wrong syntax.
+
+    -->
+
+</itemDatas>
+
+</highlighting>
+
+<general>
+
+<keywords casesensitive="1" />
+
+</general>
+
+</language>
+
+
+<!--
+
+Aknowelegments
+=================================================
+
+
+
+Version history
+=================================================
+
+[ 0.1.0 ] Initial beta.
+
+Known bugs
+=================================================
+
+-->

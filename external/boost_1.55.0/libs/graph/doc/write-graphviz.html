@@ -1,0 +1,342 @@
+<HTML>
+
+<!--
+     Copyright (c) Lie-Quan Lee and Jeremy Siek 2000, 2001
+
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: write graphviz</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b"
+        ALINK="#ff0000">
+<IMG SRC="../../../boost.png"
+     ALT="C++ Boost" width="277" height="86">
+
+<BR Clear>
+
+<H1><A NAME="sec:write-graphviz">
+<TT>write_graphviz</TT>
+</H1>
+
+
+<pre>
+// Output graph structure without properties.
+template &lt; typename VertexAndEdgeListGraph &gt;
+void
+write_graphviz(std::ostream&amp; out, const VertexAndEdgeListGraph&amp; g);
+
+// Graph structure with customized property output
+template &lt; typename VertexAndEdgeListGraph, typename VertexPropertyWriter &gt;
+void
+write_graphviz(std::ostream&amp; out, const VertexAndEdgeListGraph&amp; g,
+               VertexPropertyWriter vpw);
+
+template &lt; typename VertexAndEdgeListGraph, typename VertexPropertyWriter,
+           typename EdgePropertyWriter &gt;
+void
+write_graphviz(std::ostream&amp; out, const VertexAndEdgeListGraph&amp; g,
+               VertexPropertyWriter vpw, EdgePropertyWriter epw);
+
+template &lt; typename VertexAndEdgeListGraph, typename VertexPropertyWriter,
+           typename EdgePropertyWriter, typename GraphPropertyWriter &gt;
+void
+write_graphviz(std::ostream&amp; out, const VertexAndEdgeListGraph&amp; g,
+               VertexPropertyWriter vpw, EdgePropertyWriter epw,
+               GraphPropertyWriter gpw);
+
+template &lt; typename VertexAndEdgeListGraph, typename VertexPropertyWriter,
+           typename EdgePropertyWriter, typename GraphPropertyWriter,
+           typename VertexID &gt;
+void
+write_graphviz(std::ostream&amp; out, const VertexAndEdgeListGraph&amp; g,
+               VertexPropertyWriter vpw, EdgePropertyWriter epw,
+               GraphPropertyWriter gpw, VertexID vertex_id);
+
+// Graph structure with dynamic property output
+template&lt;typename Graph&gt;
+void
+write_graphviz_dp(std::ostream&amp; out, const Graph&amp; g,
+                  const dynamic_properties&amp; dp,
+                  const std::string&amp; node_id = "node_id");
+
+template&lt;typename Graph, typename VertexID&gt;
+void
+write_graphviz_dp(std::ostream&amp; out, const Graph&amp; g,
+                  const dynamic_properties&amp; dp, const std::string&amp; node_id,
+                  VertexID vertex_id);
+</pre>
+
+<p>
+This is to write a BGL graph object into an output stream in graphviz dot format
+so that users can make use of <a href="http://www.research.att.com/sw/tools/graphviz/">AT&amp;T graphviz</a>
+to draw a picture with nice layout.
+<p>
+The first version with two parameters will write the graph into a
+<tt>std::ostream</tt> where each vertex is represented by its numerical vertex
+ID. If users have either interior or exterior properties for each vertex
+in the graph, the second version above provides a way to print those
+properties into the graphviz format file. For example, if each vertex
+in the graph has its label through property map object <tt>name</tt>,
+users can use the second version:
+<pre>
+  write_graph(out, g, make_label_writer(name));
+</pre>
+The utility function <tt>make_label_writer</tt> returns a predefined
+<a href="./write-graphviz.html#concept:PropertyWriter">PropertyWriter</a> for
+vertex labels.  Similarly, the third
+version and fourth version require vertex
+<a href="./write-graphviz.html#concept:PropertyWriter">PropertyWriter</a>, edge
+<a href="./write-graphviz.html#concept:PropertyWriter">PropertyWriter</a>, and graph
+<a href="./write-graphviz.html#concept:PropertyWriter">PropertyWriter</a>,
+respectively.
+
+<p> The two overloads of <code>write_graphviz_dp</code> will emit
+all of the properties stored in the <a
+href="../../property_map/doc/dynamic_property_map.html"><code>dynamic_properties</a></code>
+object, thereby retaining the properties that have been read in
+through the dual function <a
+href="read_graphviz.html"><code>read_graphviz</code></a>. With these
+overloads, <code>node_id</code> is the name of the property map that
+stores the IDs of each node for use in the output (if it is stored in
+the <code>dynamic_properties</code> structure); alternatively, one may
+provide an arbitrary property map for <code>vertex_id</code> giving the
+vertex identifiers. In this case, the name
+  of <code>node_id</code> must still be supplied to suppress its
+  output as a label of the vertices.</p>
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/graphviz.hpp"><TT>boost/graph/graphviz.hpp</TT></a>
+
+<h3><A NAME="concept:PropertyWriter">
+<tt>PropertyWriter</tt>
+</h3>
+
+PropertyWriter is used in the <tt>write_graphviz</tt> function to
+print vertex, edge or graph properties. There are two types of
+PropertyWriter. One is for a vertex or edge. The other is for a graph.
+Thus, users could easily extend the <tt>write_graphviz</tt> function
+by creating their own <a href="./write-graphviz.html#concept:PropertyWriter">PropertyWriter</a> only.
+<p>
+A <a href="./write-graphviz.html#concept:PropertyWriter">PropertyWriter</a>
+for vertices or edges is a functor which can be called with two parameters:
+<tt>std::ostream</tt> and either a vertex or an edge descriptor. It should output a
+pair of brackets with a series of assigments &quot;name=value&quot; inside.
+Each assignment should be separated either with space, with comma, or with semicolon.
+The following functor, provided by BGL, is the example of PropertyWriter for
+vertices or edges.  It is used to print the label of each vertex or edge.
+<pre>
+  template &lt;class Name&gt;
+  class label_writer {
+  public:
+    label_writer(Name _name) : name(_name) {}
+    template &lt;class VertexOrEdge&gt;
+    void operator()(std::ostream&amp; out, const VertexOrEdge&amp; v) const {
+      out &lt;&lt; "[label=\"" &lt;&lt; name[v] &lt;&lt; "\"]";
+    }
+  private:
+    Name name;
+  };
+</pre>
+
+<p>
+A function to conveniently create this writer is provided:
+<pre>
+template &lt; class Name &gt;
+label_writer&lt;Name&gt;
+make_label_writer(Name n);
+</pre>
+
+<p>
+A <a href="./write-graphviz.html#concept:PropertyWriter">PropertyWriter</a>
+for graphs is a functor which is called with one parameter of type
+<tt>std::ostream</tt> and should print a series of graph properties. The following
+code excerpt is an example of a PropertyWriter for a graph:
+<pre>
+  struct sample_graph_writer {
+    void operator()(std::ostream&amp; out) const {
+      out &lt;&lt; "graph [bgcolor=lightgrey]" &lt;&lt; std::endl;
+      out &lt;&lt; "node [shape=circle color=white]" &lt;&lt; std::endl;
+      out &lt;&lt; "edge [style=dashed]" &lt;&lt; std::endl;
+    }
+  };
+}
+</pre>
+
+<p>
+There exists a class <tt>default_writer</tt>, which can be used as both
+vertex/edge and graph property writer, and does nothing. It is useful when
+only edge properties must be written, but the function interface also requires a
+vertex property writer.
+
+<h3>Parameters</h3>
+ OUT: <tt>std::ostream&amp; out</tt>
+<blockquote>
+  A standard <tt>std::ostream</tt> object.
+</blockquote>
+
+ IN: <tt>VertexAndEdgeListGraph&amp; g</tt>
+<blockquote>
+  A directed or undirected graph. The graph's type must be a model of
+  <a href="./VertexAndEdgeListGraph.html">VertexAndEdgeListGraph</a>. In most cases, the
+  graph must have an internal <tt>vertex_index</tt> property map.
+</blockquote>
+
+ IN: <tt>VertexPropertyWriter vpw</tt>
+<blockquote>
+  A functor that models <a href="./write-graphviz.html#concept:PropertyWriter">PropertyWriter</a> to print
+  properties of a vertex.<br>
+<b>Default</b>: <tt>default_writer()</tt>
+</blockquote>
+
+ IN: <tt>EdgePropertyWriter epw</tt>
+<blockquote>
+  A functor that models <a href="./write-graphviz.html#concept:PropertyWriter">PropertyWriter</a> to print
+  properties of an edge.<br>
+<b>Default</b>: <tt>default_writer()</tt>
+</blockquote>
+
+ IN: <tt>GraphPropertyWriter epw</tt>
+<blockquote>
+  A functor that models <a href="./write-graphviz.html#concept:PropertyWriter">PropertyWriter</a> to print
+  properties of the graph.<br>
+<b>Default</b>: <tt>default_writer()</tt>
+</blockquote>
+
+IN: <tt>dynamic_properties&amp; dp</tt>
+<blockquote>
+  Contains all of the vertex and edge properties that should be
+  emitted by the GraphViz writer.
+</blockquote>
+
+IN: <tt>const std::string&amp; node_id</tt>
+<blockquote>
+  The name of the property map that provides identifiers for the
+  vertices in the graph.<br>
+<b>Default</b>: <tt>"node_id"</tt>
+</blockquote>
+
+IN: <tt>VertexID vertex_id</tt>
+<blockquote>
+  A property map that models <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>, whose key type is the vertex descriptor of the graph, and whose value type can be written to a stream. The value should be a unique descriptor for each vertex, and will be used to name each node in the Graphviz file (it will be escaped properly for Graphviz output).<br>
+<b>Default</b>: If no <code>dynamic_properties</code> object is provided, <tt>get(vertex_index, g)</tt>. Otherwise, a dynamic property map that accesses the property map in <code>dp</code> whose name is given by the <code>node_id</code> parameter.
+</blockquote>
+<H3>
+Example
+</H3>
+
+This example demonstrates using the BGL-Graphviz interface to write
+a BGL graph into a Graphviz format file.
+
+<pre>
+#include &lt;boost/graph/graphviz.hpp&gt;
+
+enum files_e { dax_h, yow_h, boz_h, zow_h, foo_cpp,
+               foo_o, bar_cpp, bar_o, libfoobar_a,
+               zig_cpp, zig_o, zag_cpp, zag_o,
+                 libzigzag_a, killerapp, N };
+const char* name[] = { "dax.h", "yow.h", "boz.h", "zow.h", "foo.cpp",
+                       "foo.o", "bar.cpp", "bar.o", "libfoobar.a",
+                       "zig.cpp", "zig.o", "zag.cpp", "zag.o",
+                       "libzigzag.a", "killerapp" };
+
+int main(int,char*[])
+{
+
+  typedef pair&lt;int,int&gt; Edge;
+  Edge used_by[] = {
+    Edge(dax_h, foo_cpp), Edge(dax_h, bar_cpp), Edge(dax_h, yow_h),
+    Edge(yow_h, bar_cpp), Edge(yow_h, zag_cpp),
+    Edge(boz_h, bar_cpp), Edge(boz_h, zig_cpp), Edge(boz_h, zag_cpp),
+    Edge(zow_h, foo_cpp),
+    Edge(foo_cpp, foo_o),
+    Edge(foo_o, libfoobar_a),
+    Edge(bar_cpp, bar_o),
+    Edge(bar_o, libfoobar_a),
+    Edge(libfoobar_a, libzigzag_a),
+    Edge(zig_cpp, zig_o),
+    Edge(zig_o, libzigzag_a),
+    Edge(zag_cpp, zag_o),
+    Edge(zag_o, libzigzag_a),
+    Edge(libzigzag_a, killerapp)
+  };
+  const int nedges = sizeof(used_by)/sizeof(Edge);
+  int weights[nedges];
+  std::fill(weights, weights + nedges, 1);
+
+  using namespace boost;
+
+  typedef adjacency_list< vecS, vecS, directedS,
+      property< vertex_color_t, default_color_type >,
+      property< edge_weight_t, int >
+    > Graph;
+  Graph g(used_by, used_by + nedges, weights, N);
+
+  write_graphviz(std::cout, g, make_label_writer(name));
+}
+</pre>
+
+The output will be:
+<pre>
+digraph G {
+0 -> 4;
+0 -> 6;
+0 -> 1;
+0 [label="dax.h"];
+1 -> 6;
+1 -> 11;
+1 [label="yow.h"];
+2 -> 6;
+2 -> 9;
+2 -> 11;
+2 [label="boz.h"];
+3 -> 4;
+3 [label="zow.h"];
+4 -> 5;
+4 [label="foo.cpp"];
+5 -> 8;
+5 [label="foo.o"];
+6 -> 7;
+6 [label="bar.cpp"];
+7 -> 8;
+7 [label="bar.o"];
+8 -> 13;
+8 [label="libfoobar.a"];
+9 -> 10;
+9 [label="zig.cpp"];
+10 -> 13;
+10 [label="zig.o"];
+11 -> 12;
+11 [label="zag.cpp"];
+12 -> 13;
+12 [label="zag.o"];
+13 -> 14;
+13 [label="libzigzag.a"];
+14;
+14 [label="killerapp"];
+6 -> 0;
+}
+</pre>
+
+<p>The examples directory contains an <a
+href="../example/graphviz.cpp">example using
+<code>dynamic_properties</code></a>.</p>
+
+<h3>See Also</h3>
+
+<a href="./read_graphviz.html"><tt>read_graphviz</tt></a>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML>

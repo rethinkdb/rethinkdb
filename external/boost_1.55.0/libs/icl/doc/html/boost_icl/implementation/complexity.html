@@ -1,0 +1,424 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Complexity</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../implementation.html" title="Implementation">
+<link rel="prev" href="../implementation.html" title="Implementation">
+<link rel="next" href="inplace_and_infix_operators.html" title="Inplace and infix operators">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../implementation.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../implementation.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="inplace_and_infix_operators.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_implementation_complexity" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.implementation.complexity"></a><a class="link" href="complexity.html" title="Complexity">Complexity</a>
+</h3></div></div></div>
+<a name="boost_icl.implementation.complexity.complexity_of_element_containers"></a><h5>
+<a name="id1166849"></a>
+        <a class="link" href="complexity.html#boost_icl.implementation.complexity.complexity_of_element_containers">Complexity
+        of element containers</a>
+      </h5>
+<p>
+        Since <span class="emphasis"><em>element containers</em></span> <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code>
+        </a> and <code class="computeroutput"><a class="link" href="../../boost/icl/map.html" title="Class template map">icl::map</a></code> are only
+        extensions of stl::set and stl::map, their complexity characteristics are
+        accordingly. So their major operations insertion (addition), deletion and
+        search are all using logarithmic time.
+      </p>
+<a name="boost_icl.implementation.complexity.complexity_of_interval_containers"></a><h5>
+<a name="id1166895"></a>
+        <a class="link" href="complexity.html#boost_icl.implementation.complexity.complexity_of_interval_containers">Complexity
+        of interval containers</a>
+      </h5>
+<p>
+        The operations on <span class="emphasis"><em>interval containers</em></span> behave differently
+        due to the fact that intervals unlike elements can overlap any number of
+        other intervals in a container. As long as intervals are relatively small
+        or just singleton, interval containers behave like containers of elements.
+        For large intervals however time consumption of operations on interval containers
+        may be worse, because most or all intervals of a container may have to be
+        visited. As an example, time complexity of <a class="link" href="../function_reference/addition.html" title="Addition"><span class="emphasis"><em><span class="bold"><strong>Addition</strong></span></em></span></a> on interval containers
+        is briefly discussed.
+      </p>
+<p>
+        More information on <span class="emphasis"><em><span class="bold"><strong>complexity characteristics</strong></span></em></span>
+        of <span class="bold"><strong>icl's</strong></span> functions is contained in section
+        <a class="link" href="../function_reference.html" title="Function Reference">Function Reference</a>
+      </p>
+<a name="boost_icl.implementation.complexity.time_complexity_of_addition"></a><h6>
+<a name="id1166946"></a>
+        <a class="link" href="complexity.html#boost_icl.implementation.complexity.time_complexity_of_addition">Time
+        Complexity of Addition</a>
+      </h6>
+<p>
+        The next table gives the time complexities for the overloaded <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+=</span></code>
+        on interval containers. The instance types of <code class="computeroutput"><span class="identifier">T</span></code>
+        are given as column headers. Instances of type parameter <code class="computeroutput"><span class="identifier">P</span></code>
+        are denoted in the second column. The third column contains the specific
+        kind of complexity statement. If column three is empty <span class="emphasis"><em><span class="bold"><strong>worst case</strong></span></em></span> complexity is given in the related
+        row.
+      </p>
+<div class="table">
+<a name="id1166994"></a><p class="title"><b>Table&#160;1.15.&#160;Time Complexity of Addition:</b></p>
+<div class="table-contents"><table class="table" summary="Time Complexity of Addition:">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+            <p>
+            </p>
+            </th>
+<th>
+            <p>
+              <code class="computeroutput"><span class="identifier">P</span></code>
+            </p>
+            </th>
+<th>
+            <p>
+            </p>
+            </th>
+<th>
+            <p>
+              interval<br> set
+            </p>
+            </th>
+<th>
+            <p>
+              separate<br> interval<br> set
+            </p>
+            </th>
+<th>
+            <p>
+              split<br> interval<br> set
+            </p>
+            </th>
+<th>
+            <p>
+              interval<br> map
+            </p>
+            </th>
+<th>
+            <p>
+              split<br> interval<br> map
+            </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="keyword">operator</span> <span class="special">+=(</span><span class="identifier">T</span><span class="special">&amp;</span>
+              <span class="identifier">object</span><span class="special">,</span>
+              <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">addend</span><span class="special">)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">::</span><span class="identifier">element_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(log n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(log n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(log n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(log n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(log n)</em></span>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">T</span><span class="special">::</span><span class="identifier">segment_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              best case
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(log n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(log n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(log n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(log n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(log n)</em></span>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              worst case
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(n)</em></span>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              amortized
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(log n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(log n)</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">interval_sets</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(m log(n+m))</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(m log(n+m))</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(m log(n+m))</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">interval_maps</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(m log(n+m))</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>O(m log(n+m))</em></span>
+            </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        Adding an <span class="emphasis"><em>element</em></span> or <span class="emphasis"><em>element value pair</em></span>
+        is always done in <span class="emphasis"><em>logarithmic time</em></span>, where <span class="emphasis"><em>n</em></span>
+        is the number of intervals in the interval container. The same row of complexities
+        applies to the insertion of a <span class="emphasis"><em>segment</em></span> (an interval or
+        an interval value pair) in the <span class="emphasis"><em><span class="bold"><strong>best case</strong></span></em></span>,
+        where the inserted segment does overlap with only a <span class="emphasis"><em><span class="bold"><strong>small</strong></span></em></span>
+        number of intervals in the container.
+      </p>
+<p>
+        In the <span class="emphasis"><em><span class="bold"><strong>worst case</strong></span></em></span>,
+        where the inserted segment overlaps with all intervals in the container,
+        the algorithms iterate over all the overlapped segments. Using inplace manipulations
+        of segments and hinted inserts, it is possible to perform all necessary operations
+        on each iteration step in <span class="emphasis"><em>constant time</em></span>. This results
+        in <span class="emphasis"><em><span class="bold"><strong>linear worst case time</strong></span></em></span>
+        complexity for segment addition for all interval containers.
+      </p>
+<p>
+        After performing a worst case addition for an <code class="computeroutput"><a class="link" href="../../boost/icl/interval_set.html" title="Class template interval_set">interval_set</a></code>
+        or a <code class="computeroutput"><a class="link" href="../../boost/icl/separate_interval_set.html" title="Class template separate_interval_set">separate_interval_sets</a></code>
+        adding an interval that overlaps <span class="emphasis"><em>n</em></span> intervals, we need
+        <span class="emphasis"><em>n</em></span> non overlapping additions of <span class="emphasis"><em>logarithmic
+        time</em></span> before we can launch another <span class="emphasis"><em>O(n)</em></span> worst
+        case addition. So we have only a <span class="emphasis"><em><span class="bold"><strong>logarithmic
+        amortized time</strong></span></em></span> for the addition of an interval or interval
+        value pair.
+      </p>
+<p>
+        For the addition of <span class="emphasis"><em><span class="bold"><strong>interval containers</strong></span></em></span>
+        complexity is <span class="emphasis"><em>O(m log(n+m))</em></span>. So for the <span class="emphasis"><em><span class="bold"><strong>worst case</strong></span></em></span>, where the container sizes
+        <span class="emphasis"><em>n</em></span> and <span class="emphasis"><em>m</em></span> are equal and both containers
+        cover the same ranges, the complexity of container addition is <span class="emphasis"><em><span class="bold"><strong>loglinear</strong></span></em></span>. For other cases, that occur
+        frequently in real world applications performance can be much better. If
+        the added container <code class="computeroutput"><span class="identifier">operand</span></code>
+        is much smaller than <code class="computeroutput"><span class="identifier">object</span></code>
+        and the intervals in <code class="computeroutput"><span class="identifier">operand</span></code>
+        are relatively small, performance can be <span class="emphasis"><em>logarithmic</em></span>.
+        If <span class="emphasis"><em>m</em></span> is small compared with <span class="emphasis"><em>n</em></span> and
+        intervals in <code class="computeroutput"><span class="identifier">operand</span></code> are
+        large, performance tends to be <span class="emphasis"><em>linear</em></span>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../implementation.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../implementation.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="inplace_and_infix_operators.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

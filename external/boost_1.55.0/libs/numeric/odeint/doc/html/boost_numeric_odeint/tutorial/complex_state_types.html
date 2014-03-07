@@ -1,0 +1,137 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Complex state types</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="stiff_systems.html" title="Stiff systems">
+<link rel="next" href="lattice_systems.html" title="Lattice systems">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="stiff_systems.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lattice_systems.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.tutorial.complex_state_types"></a><a class="link" href="complex_state_types.html" title="Complex state types">Complex
+      state types</a>
+</h3></div></div></div>
+<p>
+        Thus far we have seen several examples defined for real values. odeint can
+        handle complex state types, hence ODEs which are defined on complex vector
+        spaces, as well. An example is the Stuart-Landau oscillator
+      </p>
+<p>
+        <span class="emphasis"><em>d &#936; / dt = ( 1 + i &#951; ) &#936; + ( 1 + i &#945; ) | &#936; |<sup>2</sup> &#936; </em></span>
+      </p>
+<p>
+        where <span class="emphasis"><em>&#936;</em></span> and <span class="emphasis"><em>i</em></span> is a complex variable.
+        The definition of this ODE in C++ using complex&lt; double &gt; as a state
+        type may look as follows
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">complex</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span> <span class="identifier">state_type</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">stuart_landau</span>
+<span class="special">{</span>
+    <span class="keyword">double</span> <span class="identifier">m_eta</span><span class="special">;</span>
+    <span class="keyword">double</span> <span class="identifier">m_alpha</span><span class="special">;</span>
+
+    <span class="identifier">stuart_landau</span><span class="special">(</span> <span class="keyword">double</span> <span class="identifier">eta</span> <span class="special">=</span> <span class="number">1.0</span> <span class="special">,</span> <span class="keyword">double</span> <span class="identifier">alpha</span> <span class="special">=</span> <span class="number">1.0</span> <span class="special">)</span>
+    <span class="special">:</span> <span class="identifier">m_eta</span><span class="special">(</span> <span class="identifier">eta</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_alpha</span><span class="special">(</span> <span class="identifier">alpha</span> <span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="keyword">double</span> <span class="identifier">t</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">const</span> <span class="identifier">complex</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span> <span class="identifier">I</span><span class="special">(</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">1.0</span> <span class="special">);</span>
+        <span class="identifier">dxdt</span> <span class="special">=</span> <span class="special">(</span> <span class="number">1.0</span> <span class="special">+</span> <span class="identifier">m_eta</span> <span class="special">*</span> <span class="identifier">I</span> <span class="special">)</span> <span class="special">*</span> <span class="identifier">x</span> <span class="special">-</span> <span class="special">(</span> <span class="number">1.0</span> <span class="special">+</span> <span class="identifier">m_alpha</span> <span class="special">*</span> <span class="identifier">I</span> <span class="special">)</span> <span class="special">*</span> <span class="identifier">norm</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        One can also use a function instead of a functor to implement it
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">eta</span> <span class="special">=</span> <span class="number">1.0</span><span class="special">;</span>
+<span class="keyword">double</span> <span class="identifier">alpha</span> <span class="special">=</span> <span class="number">1.0</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">stuart_landau</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="keyword">double</span> <span class="identifier">t</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">const</span> <span class="identifier">complex</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span> <span class="identifier">I</span><span class="special">(</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">1.0</span> <span class="special">);</span>
+    <span class="identifier">dxdt</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">=</span> <span class="special">(</span> <span class="number">1.0</span> <span class="special">+</span> <span class="identifier">m_eta</span> <span class="special">*</span> <span class="identifier">I</span> <span class="special">)</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">-</span> <span class="special">(</span> <span class="number">1.0</span> <span class="special">+</span> <span class="identifier">m_alpha</span> <span class="special">*</span> <span class="identifier">I</span> <span class="special">)</span> <span class="special">*</span> <span class="identifier">norm</span><span class="special">(</span> <span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">)</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">];</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        We strongly recommend to use the first ansatz. In this case you have explicit
+        control over the parameters of the system and are not restricted to use global
+        variables to parametrize the oscillator.
+      </p>
+<p>
+        When choosing the stepper type one has to account for the "unusual"
+        state type: it is a single <code class="computeroutput"><span class="identifier">complex</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span></code> opposed to the vector types used in the
+        previous examples. This means that no iterations over vector elements have
+        to be performed inside the stepper algorithm. You can enforce this by supplying
+        additional template arguments to the stepper including the <code class="computeroutput"><span class="identifier">vector_space_algebra</span></code>. Details on the usage
+        of algebras can be found in the section <a class="link" href="../odeint_in_detail/state_types__algebras_and_operations.html" title="State types, algebras and operations">Adapt
+        your own state types</a>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">state_type</span> <span class="identifier">x</span> <span class="special">=</span> <span class="identifier">complex</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;(</span> <span class="number">1.0</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">);</span>
+
+<span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">dt</span> <span class="special">=</span> <span class="number">0.1</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">runge_kutta4</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">,</span> <span class="keyword">double</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">,</span> <span class="keyword">double</span> <span class="special">,</span>
+                      <span class="identifier">vector_space_algebra</span> <span class="special">&gt;</span> <span class="identifier">stepper_type</span><span class="special">;</span>
+
+<span class="identifier">integrate_const</span><span class="special">(</span> <span class="identifier">stepper_type</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">stuart_landau</span><span class="special">(</span> <span class="number">2.0</span> <span class="special">,</span> <span class="number">1.0</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="identifier">dt</span> <span class="special">,</span> <span class="identifier">streaming_observer</span><span class="special">(</span> <span class="identifier">cout</span> <span class="special">)</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        The full cpp file for the Stuart-Landau example can be found here <a href="../../../../../../../libs/numeric/odeint/examples/stuart_landau.cpp" target="_top">stuart_landau.cpp</a>
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          The fact that we have to configure a different algebra is solely due to
+          the fact that we use a non-vector state type and not to the usage of complex
+          values. So for, e.g. <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">complex</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>,
+          this would not be required.
+        </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="stiff_systems.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lattice_systems.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

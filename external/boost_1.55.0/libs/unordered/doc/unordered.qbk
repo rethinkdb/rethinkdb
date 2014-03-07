@@ -1,0 +1,38 @@
+[/ Copyright 2006-2008 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[library Boost.Unordered
+    [quickbook 1.5]
+    [authors [James, Daniel]]
+    [copyright 2003 2004 Jeremy B. Maitin-Shepard]
+    [copyright 2005 2006 2007 2008 Daniel James]
+    [purpose std::tr1 compliant hash containers]
+    [id unordered]
+    [dirname unordered]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[template diagram[name]  '''<inlinemediaobject>
+<imageobject role="html">
+<imagedata align = "center" fileref="../../libs/unordered/doc/diagrams/'''[name]'''.png"></imagedata>
+</imageobject>
+<imageobject role="print">
+<imagedata align = "center" fileref="../../libs/unordered/doc/diagrams/'''[name]'''.svg"></imagedata>
+</imageobject>
+</inlinemediaobject>''']
+
+
+[include:unordered intro.qbk]
+[include:unordered buckets.qbk]
+[include:unordered hash_equality.qbk]
+[include:unordered comparison.qbk]
+[include:unordered compliance.qbk]
+[include:unordered rationale.qbk]
+[include:unordered changes.qbk]
+[xinclude ref.xml]
+[xinclude bibliography.xml]

@@ -1,0 +1,128 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template pointer_traits</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../intrusive/reference.html#header.boost.intrusive.pointer_traits_hpp" title="Header &lt;boost/intrusive/pointer_traits.hpp&gt;">
+<link rel="prev" href="pointer_plus_b_idp33918488.html" title="Struct template pointer_plus_bits&lt;T *, NumBits&gt;">
+<link rel="next" href="pointer_traits_idp33941112.html" title="Struct template pointer_traits&lt;T *&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="pointer_plus_b_idp33918488.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../intrusive/reference.html#header.boost.intrusive.pointer_traits_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pointer_traits_idp33941112.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.intrusive.pointer_traits"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template pointer_traits</span></h2>
+<p>boost::intrusive::pointer_traits</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../intrusive/reference.html#header.boost.intrusive.pointer_traits_hpp" title="Header &lt;boost/intrusive/pointer_traits.hpp&gt;">boost/intrusive/pointer_traits.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Ptr<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="pointer_traits.html" title="Struct template pointer_traits">pointer_traits</a> <span class="special">{</span>
+  <span class="comment">// <a class="link" href="pointer_traits.html#boost.intrusive.pointer_traitstypes">types</a></span>
+  <span class="keyword">typedef</span> <span class="identifier">Ptr</span>              <a class="link" href="pointer_traits.html#boost.intrusive.pointer_traits.pointer"><span class="identifier">pointer</span></a><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">unspecified_type</span> <a class="link" href="pointer_traits.html#boost.intrusive.pointer_traits.element_type"><span class="identifier">element_type</span></a><span class="special">;</span>   
+  <span class="keyword">typedef</span> <span class="identifier">unspecified_type</span> <a class="link" href="pointer_traits.html#boost.intrusive.pointer_traits.difference_type"><span class="identifier">difference_type</span></a><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">unspecified</span>      <a class="link" href="pointer_traits.html#boost.intrusive.pointer_traits.rebind"><span class="identifier">rebind</span></a><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">element_type</span> <span class="special">&amp;</span>   <a class="link" href="pointer_traits.html#boost.intrusive.pointer_traits.reference"><span class="identifier">reference</span></a><span class="special">;</span>      
+
+  <span class="comment">// <a class="link" href="pointer_traits.html#idp33931848-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">pointer</span> <a class="link" href="pointer_traits.html#idp33932056-bb"><span class="identifier">pointer_to</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> UPtr<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">pointer</span> <a class="link" href="pointer_traits.html#idp33934008-bb"><span class="identifier">static_cast_from</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">UPtr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> UPtr<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">pointer</span> <a class="link" href="pointer_traits.html#idp33936312-bb"><span class="identifier">const_cast_from</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">UPtr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> UPtr<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">pointer</span> <a class="link" href="pointer_traits.html#idp33938600-bb"><span class="identifier">dynamic_cast_from</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">UPtr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp135389736"></a><h2>Description</h2>
+<p><a class="link" href="pointer_traits.html" title="Struct template pointer_traits">pointer_traits</a> is the implementation of C++11 std::pointer_traits class with some extensions like castings.</p>
+<p><a class="link" href="pointer_traits.html" title="Struct template pointer_traits">pointer_traits</a> supplies a uniform interface to certain attributes of pointer-like types. </p>
+<div class="refsect2">
+<a name="idp135391144"></a><h3>
+<a name="boost.intrusive.pointer_traitstypes"></a><code class="computeroutput">pointer_traits</code> 
+        public
+       types</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">Ptr</span> <a name="boost.intrusive.pointer_traits.pointer"></a><span class="identifier">pointer</span><span class="special">;</span></p>
+<p>The pointer type queried by this <a class="link" href="pointer_traits.html" title="Struct template pointer_traits">pointer_traits</a> instantiation </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">unspecified_type</span> <a name="boost.intrusive.pointer_traits.element_type"></a><span class="identifier">element_type</span><span class="special">;</span></p>
+<p>Ptr::element_type if such a type exists; otherwise, T if Ptr is a class template instantiation of the form SomePointer&lt;T, Args&gt;, where Args is zero or more type arguments ; otherwise , the specialization is ill-formed. </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">unspecified_type</span> <a name="boost.intrusive.pointer_traits.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span></p>
+<p>Ptr::difference_type if such a type exists; otherwise, std::ptrdiff_t. </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">unspecified</span> <a name="boost.intrusive.pointer_traits.rebind"></a><span class="identifier">rebind</span><span class="special">;</span></p>
+<p>Ptr::rebind&lt;U&gt; if such a type exists; otherwise, SomePointer&lt;U, Args&gt; if Ptr is a class template instantiation of the form SomePointer&lt;T, Args&gt;, where Args is zero or more type arguments ; otherwise, the instantiation of rebind is ill-formed.</p>
+<p>For portable code for C++03 and C++11, <span style="color: red">&lt;preformatted&gt;typename rebind_pointer&lt;U&gt;::type&lt;/preformatted&gt;</span> shall be used instead of rebind&lt;U&gt; to obtain a pointer to U. </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">element_type</span> <span class="special">&amp;</span> <a name="boost.intrusive.pointer_traits.reference"></a><span class="identifier">reference</span><span class="special">;</span></p>
+<p>Ptr::rebind&lt;U&gt; if such a type exists; otherwise, SomePointer&lt;U, Args&gt; if Ptr is a class template instantiation of the form SomePointer&lt;T, Args&gt;, where Args is zero or more type arguments ; otherwise, the instantiation of rebind is ill-formed. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp135404312"></a><h3>
+<a name="idp33931848-bb"></a><code class="computeroutput">pointer_traits</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">pointer</span> <a name="idp33932056-bb"></a><span class="identifier">pointer_to</span><span class="special">(</span><span class="identifier">reference</span> r<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Remark</strong></span>: If element_type is (possibly cv-qualified) void, r type is unspecified; otherwise, it is element_type &amp;.</p>
+<p><span class="bold"><strong>Returns</strong></span>: A dereferenceable pointer to r obtained by calling Ptr::pointer_to(r). Non-standard extension: If such function does not exist, returns pointer(addressof(r)); </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> UPtr<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">pointer</span> <a name="idp33934008-bb"></a><span class="identifier">static_cast_from</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">UPtr</span> <span class="special">&amp;</span> uptr<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Remark</strong></span>: Non-standard extension.</p>
+<p><span class="bold"><strong>Returns</strong></span>: A dereferenceable pointer to r obtained by calling Ptr::static_cast_from(r). If such function does not exist, returns pointer_to(static_cast&lt;element_type&amp;&gt;(*uptr)) </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> UPtr<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">pointer</span> <a name="idp33936312-bb"></a><span class="identifier">const_cast_from</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">UPtr</span> <span class="special">&amp;</span> uptr<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Remark</strong></span>: Non-standard extension.</p>
+<p><span class="bold"><strong>Returns</strong></span>: A dereferenceable pointer to r obtained by calling Ptr::const_cast_from(r). If such function does not exist, returns pointer_to(const_cast&lt;element_type&amp;&gt;(*uptr)) </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> UPtr<span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">pointer</span> <a name="idp33938600-bb"></a><span class="identifier">dynamic_cast_from</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">UPtr</span> <span class="special">&amp;</span> uptr<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Remark</strong></span>: Non-standard extension.</p>
+<p><span class="bold"><strong>Returns</strong></span>: A dereferenceable pointer to r obtained by calling Ptr::dynamic_cast_from(r). If such function does not exist, returns pointer_to(<span class="emphasis"><em>dynamic_cast&lt;element_type</em></span>&gt;(&amp;*uptr)) </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="pointer_plus_b_idp33918488.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../intrusive/reference.html#header.boost.intrusive.pointer_traits_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pointer_traits_idp33941112.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

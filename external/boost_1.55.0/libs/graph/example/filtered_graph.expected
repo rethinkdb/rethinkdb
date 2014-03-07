@@ -1,0 +1,7 @@
+filtered edge set: (A,B) (C,D) (D,B) 
+filtered out-edges:
+A --> B 
+B --> 
+C --> D 
+D --> B 
+E --> 

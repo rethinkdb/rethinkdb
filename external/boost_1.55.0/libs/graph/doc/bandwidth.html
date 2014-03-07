@@ -1,0 +1,93 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Bandwidth</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:bandwidth">
+<TT>bandwidth</TT>
+</H1>
+
+<pre>
+  (1)
+  template &lt;typename Graph&gt;
+  typename graph_traits&lt;Graph&gt;::vertices_size_type
+  bandwidth(const Graph& g)
+
+  (2)
+  template &lt;typename Graph, typename VertexIndexMap&gt;
+  typename graph_traits&lt;Graph&gt;::vertices_size_type
+  bandwidth(const Graph& g, VertexIndexMap index_map)
+</pre>
+
+The <b><i>bandwidth</i></b> of a graph is the maximum
+distance between two adjacent vertices, with distance measured on a
+line upon which the vertices have been placed at unit intervals. To
+put it another way, if the vertices of a graph
+<i>G=(V,E)</i> are each assigned an index from zero to <i>|V| - 1</i>
+given by <i>index[v]</i>, then the bandwidth of <i>G</i> is<br>
+<br>
+<i>B(G) = max { |index[u] - index[v]|&nbsp;&nbsp;| (u,v) in E }</i><br>
+
+
+<h3>Defined in</h3>
+
+<a href="../../../boost/graph/bandwidth.hpp"><tt>boost/graph/bandwidth.hpp</tt></a>
+
+
+<hr>
+
+<H1><A NAME="sec:ith-bandwidth">
+<TT>ith_bandwidth</TT>
+</H1>
+
+<pre>
+  (1)
+  template &lt;typename Graph&gt;
+  typename graph_traits&lt;Graph&gt;::vertices_size_type
+  ith_bandwidth(typename graph_traits&lt;Graph&gt;::vertex_descriptor i,
+		const Graph&amp; g)
+
+  (2)
+  template &lt;typename Graph, typename VertexIndexMap&gt;
+  typename graph_traits&lt;Graph&gt;::vertices_size_type
+  ith_bandwidth(typename graph_traits&lt;Graph&gt;::vertex_descriptor i,
+		const Graph&amp; g,
+		VertexIndexMap index)
+</pre>
+
+The <b><i>i-th bandwidth</i></b> a graph is the maximum distance
+between the <i>i-th</i> vertex and any of its neighbors.<br>
+<br>
+<i>B<sub>i</sub>(G) = max { |index[i] - index[j]|&nbsp;&nbsp;| (i,j) in E }</i><br>
+<br>
+So the bandwidth <i>B(G)</i> can be expressed as the maximum
+of the i-th bandwidths <i>B<sub>i</sub>(G)</i>.<br>
+<br>
+<i>B(G) = max { B<sub>i</sub>(G) &nbsp;&nbsp;| i=0...|V|-1 }</i><br>
+
+<h3>Defined in</h3>
+
+<a href="../../../boost/graph/bandwidth.hpp"><tt>boost/graph/bandwidth.hpp</tt></a>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

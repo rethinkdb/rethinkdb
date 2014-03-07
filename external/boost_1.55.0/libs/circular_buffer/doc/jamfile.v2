@@ -1,0 +1,211 @@
+
+#  Boost.circular_buffer library documentation Jamfile.v2
+#
+#  Copyright Paul A. Bristow 2013.
+#  Copyright Jan Gaspar 2003-2008.
+
+#  Use, modification and distribution is subject to
+#  the Boost Software License, Version 1.0.
+#  (See accompanying file LICENSE_1_0.txt 
+#  or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+path-constant nav_images :  html/images/ ; # png and svg images for home, next, note, tip...
+path-constant images_location : html/images ; # location of my SVG and PNG images referenced by Quickbook.
+path-constant pdf_images_location : html ; # location of SVG and PNG images referenced by pdf.
+path-constant here : . ; # location of /doc folder.
+
+# echo "nav_images = " $(nav_images) ; # "nav_images = I:\boost-trunk\libs\circular_buffer\doc\html\images
+# echo "images_location = " $(images_location) ; # images_location = I:\boost-trunk\libs\circular_buffer\doc\html\images
+# echo "pdf_images_location = " $(pdf_images_location) # 
+import modules ;
+using auto-index ;
+using doxygen ;  # Required if you want to use Doxygen.
+using quickbook ;
+
+
+doxygen autodoc
+   :
+   #  List all the files individually (RECURSIVE=NO ).
+      [ glob ../../../boost/circular_buffer.hpp ]
+      [ glob ../../../boost/circular_buffer/base.hpp ]
+      [ glob ../../../boost/circular_buffer/space_optimized.hpp ]
+      [ glob ../../../boost/circular_buffer/details.hpp ] # Needed for capacity_control at least.
+      [ glob ../../../boost/circular_buffer/debug.hpp ] # not needed?
+      
+   :
+   # Pass some setting parameters to Doxygen.
+      <doxygen:param>WARNINGS=YES # Default NO, but useful to see warnings, especially in a logfile.
+      # It is also wise to to set a warnings logfile like this:
+      <doxygen:param>WARN_LOGFILE=AutoDoxywarnings.log # This may not be empty (usually not a good sign!), depending on options chosen.
+      # Much better to send message to a logfile than the default stderr.
+      # and make sure that there are no Doxygen errors or significant warnings in the log file.
+      <doxygen:param>RECURSIVE=NO # Search recursively down .hpp and .cpp subdirectories.
+      <doxygen:param>EXTRACT_ALL=NO 
+      <doxygen:param>EXTRACT_PRIVATE=NO # NO means do not extract info about private member functions and data. 
+      <doxygen:param>HIDE_UNDOC_MEMBERS=YES # Only show members that have some documentation like \param, \return ...
+      <doxygen:param>MACRO_EXPANSION=YES # YES will expand all macro names in the source code (default = NO).
+      <doxygen:param>EXPAND_ONLY_PREDEF=YES # If the EXPAND_ONLY_PREDEF and MACRO_EXPANSION tags are both set to YES
+      # then the macro expansion is limited to the macros specified with the PREDEFINED and EXPAND_AS_DEFINED tags.
+      # If EXPAND_ONLY_PREDEF tag can be used to specify a list of macro names that should be expanded (as defined).
+      # The PREDEFINED tag can be used to specify one or more macro names that are defined 
+      # before the preprocessor is started (similar to the -D option of gcc).
+      # The argument of the tag is a list of macros of the form:
+      #    name or name=definition (no spaces).
+      # If the definition and the "=" are omitted, "=1" is assumed.
+      # To prevent a macro definition from being undefined via #undef or
+      # recursively expanded use the := operator instead of the = operator.
+      # See http://www.stack.nl/~dimitri/doxygen/config.html#cfg_predefined.
+      # static char *malloc BOOST_PREVENT_MACRO_SUBSTITUTION(const size_type bytes);
+      # will not produce a helpful Doxygen output, so
+      # replace some with more helpful text, or none, for example:
+      <doxygen:param>"PREDEFINED= \\
+         \"BOOST_PREVENT_MACRO_SUBSTITUTION\" \\
+         \"BOOST_STATIC_CONSTANT(T,V)=static x const y\" \\
+         \"BOOST_UNITS_AUTO_STATIC_CONSTANT(a,b)=static const auto a = b\" \\
+         \"BOOST_DEDUCED_TYPENAME=typename\" \\
+         \"BOOST_CONSTEXPR=constexpr\" \\
+                 \"BOOST_CONTAINER_NOEXCEPT=noexcept\" \\
+                 \"BOOST_CONTAINER_NOEXCEPT_IF(T)=noexcept(T)\" \\
+         \"BOOST_UNITS_TYPEOF(a)=typeof(a)\" \\
+         \"BOOST_UNITS_HAS_TYPEOF=1\" \\
+         \"BOOST_MPL_ASSERT(expr)=\" \\
+         \"BOOST_ASSERT(expr)=\" \\
+                 \"BOOST_RV_REF(T)=T &&\" \\
+         \"ASSERT(x)=assert(x)\" \\
+         \"__cplusplus \""
+      # BOOST_PREVENT_MACRO_SUBSTITUTION,  will not be replaced by ,
+      # BOOST_STATIC_CONSTANT will be replaced by "static x const y",
+      # BOOST_DEDUCED_TYPENAME will be replaced by "typename",
+      # BOOST_CONSTEXPR will be replaced by "constexpr".
+      <doxygen:param>EXCLUDE_SYMBOLS=*_throws
+      # <doxygen:param>IMAGE_PATH="../images" # for circular_buffer.png
+      #  See autodoxywarnings.log to check this is correct.
+     
+      # The syntax hoops to jump through are 'interesting' for more than one PREDEFINED,
+      # and to permit spaces within definitions (use double quotes).
+      # Don't forget that every double quote " needs a preceeding \trip character!
+      # and that each trailing continuation \ needs a preceeding \trip character too!
+      # And finally that if more than one item is included (as here) the whole is
+      # enclosed in "PREDEFINED=... ", but without a leading \.  Go figure...
+      
+      # A grep for PREDEFINED= in jamfiles will reveal even more complex examples.
+      # Boost Libraries with useful examples are: Accumulators, Interprocess, MPI, Random, Units, Expressive.
+      
+      # Optionally, you can provide a Reference section name specific for your library, for example:
+      <xsl:param>"boost.doxygen.reftitle=Boost.Circular_buffer C++ Reference"
+   ;
+
+xml circular_buffer : circular_buffer.qbk ;
+
+using boostbook ;
+
+boostbook standalone
+   :
+      circular_buffer
+   :
+   
+   # General settings
+   # =================
+   <format>html:<xsl:param>boost.root=../../../..
+   <format>html:<xsl:param>img.src.path=../../../../doc/html/
+   <format>docbook:<xsl:param>boost.root=boost:
+
+    # Options for html and pdf
+    # ========================
+    # No indent on body text:
+    <xsl:param>body.start.indent=0pt
+    # Margin size:
+    <xsl:param>page.margin.inner=0.5in
+    # Margin size:
+    <xsl:param>page.margin.outer=0.5in
+    # Yes, we want graphics for admonishments:
+    <xsl:param>admon.graphics=1
+  
+    # HTML options:
+    # =============
+    # Use graphics icons not text for navigation:
+    <xsl:param>navig.graphics=1
+    # How far down we chunk nested sections, basically all of them:
+    <xsl:param>chunk.section.depth=2
+    # Don't put the first section on the same page as the TOC itself:
+    <xsl:param>chunk.first.sections=1
+    # How far down sections get TOC's
+    <xsl:param>toc.section.depth=4
+    # Max depth in each TOC:
+    <xsl:param>toc.max.depth=2
+    # How far down we go with TOC's
+    <xsl:param>generate.section.toc.level=10
+    # Horizontal ? spacing in table cells.
+    <format>html:<xsl:param>html.cellspacing=3 # pixels
+    # Vertical spacing in table cells.
+    <format>html:<xsl:param>html.cellpadding=5 # pixels
+    #  Not sure if these are right way round?  
+    
+        <auto-index>on # Turns on index (or off).
+        # Turns on (or off) index-verbose for diagnostic info (using /bin auto-index-verbose folders).
+        <auto-index-verbose>on 
+        
+        <format>pdf:<auto-index-internal>off # on (or off) to use internally generated indexes.
+        
+        <format>html:<xsl:param>index.on.type=1 # = 1 For the native stylesheets to generate multiple different indexes.
+        
+        <auto-index-script>circular_buffer.idx # Specifies the name of the script to load for circular_buffer. 
+        <auto-index-prefix>../../.. # Will get you back up to /circular_buffer, so !scan-path "boost/circular_buffer/" is where *.hpp will be,
+        # and /libs/circular_buffer for other files.
+        # Without this would need !scan-path "../../../boost/circular_buffer"
+        
+        # Used by Quickbook to invoke indexing.
+    # Required by boost-trunk/doc/ see jamfile.v2 to use auto-index.
+    # Choose indexing method for html:
+    <format>html:<auto-index-internal>on
+    <format>docbook:<auto-index-internal>on
+    
+    # PDF Options:
+    # ============
+    # TOC Generation: this is needed for FOP-0.9 and later:
+    <format>pdf:<xsl:param>fop1.extensions=0
+    # Or enable this if you're using XEP:
+    <format>pdf:<xsl:param>xep.extensions=1
+    # TOC generation: this is needed for FOP 0.2, but must not be set to zero for FOP-0.9!
+    <format>pdf:<xsl:param>fop.extensions=0
+    # No indent on body text:
+    <xsl:param>body.start.indent=0pt
+    # Margin size:
+    <xsl:param>page.margin.inner=0.5in
+    # Margin size:
+    <xsl:param>page.margin.outer=0.5in
+    
+    # Yes, we want graphics for admonishments:
+    <xsl:param>admon.graphics=1
+    
+    # Set these one for PDF generation *only*:
+    # default png graphics are awful in PDF form,
+    # better use SVG instead:
+    #<format>pdf:<xsl:param>admon.graphics.extension=".svg"
+    <format>pdf:<xsl:param>admon.graphics.extension=".png" # Only png images are available.
+    <format>pdf:<xsl:param>admon.graphics.path=$(nav_images)/ # next, prev, note, tip ... for pdf.
+    <format>pdf:<xsl:param>use.role.for.mediaobject=1 
+    <format>pdf:<xsl:param>preferred.mediaobject.role=print
+        <format>pdf:<xsl:param>img.src.path=$(pdf_images_location)/ # graphics (diagrams) for pdf.
+    <format>pdf:<xsl:param>draft.mode="no"
+        <format>pdf:<xsl:param>boost.url.prefix=../../../..
+    
+    <dependency>autodoc # 
+    <dependency>png_install
+   ;
+
+# Install (copy) the 'master' copies of all icon images (both PNG and SVG)
+# and the Boost logo from your current Boost-root
+# to the local /doc/html/images folder so that html is complete and standalone. 
+install png_install : [ glob $(here)/*.png ] : <location>$(here)/../../../doc/html/images ;
+
+# install pdf-install : standalone : <install-type>PDF <location>. ;
+# Effectively copies the file from \bin folder to the \doc folder,
+# but will not work as expected if doxygen and/or autoindex is used
+# because a modified pdf file is created, so this command
+# will rename the file to the expected filename, here circular_buffer.pdf.
+
+install pdf-install : standalone : <install-type>PDF <location>. <name>circular_buffer.pdf ;
+
+
+

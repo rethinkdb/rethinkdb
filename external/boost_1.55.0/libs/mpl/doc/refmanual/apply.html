@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: apply</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./invocation.html" class="navigation-link">Prev</a>&nbsp;<a href="./apply-wrap.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./apply-wrap.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./invocation.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./invocation.html" class="navigation-link">Invocation</a> / <a href="./apply.html" class="navigation-link">apply</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="apply">
+<h1><a class="toc-backref" href="./invocation.html#id1525">apply</a></h1>
+<div class="section" id="id887">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename F
+    &gt;
+struct apply0
+{
+    typedef <em>unspecified</em> type;
+};
+
+template&lt;
+      typename F, typename A1
+    &gt;
+struct apply1
+{
+    typedef <em>unspecified</em> type;
+};
+
+<em>...</em>
+
+template&lt;
+      typename F, typename A1,<em>...</em> typename An
+    &gt;
+struct <a href="./apply.html" class="identifier">apply</a><em>n</em>
+{
+    typedef <em>unspecified</em> type;
+};
+
+template&lt;
+      typename F
+    , typename A1 = <em>unspecified</em>
+    <em>...</em>
+    , typename An = <em>unspecified</em>
+    &gt;
+struct <a href="./apply.html" class="identifier">apply</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id888">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Invokes a <a class="reference internal" href="./metafunction-class.html">Metafunction Class</a> or a <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a> <tt class="literal"><span class="pre">F</span></tt> with arguments <tt class="literal"><span class="pre">A1</span></tt>,... <tt class="literal"><span class="pre">An</span></tt>.</p>
+</div>
+<div class="section" id="id889">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/apply.hpp" class="header">boost/mpl/apply.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id890">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="15%" />
+<col width="36%" />
+<col width="48%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">F</span></tt></td>
+<td><a class="reference internal" href="./lambda-expression.html">Lambda Expression</a></td>
+<td>An expression to invoke.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">A1</span></tt>,... <tt class="literal"><span class="pre">An</span></tt></td>
+<td>Any type</td>
+<td>Invocation arguments.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id891">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a> <tt class="literal"><span class="pre">f</span></tt> and arbitrary types <tt class="literal"><span class="pre">a1</span></tt>,... <tt class="literal"><span class="pre">an</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./apply.html" class="identifier">apply</a><em>n</em>&lt;f,a1,<em>...</em>a<em>n</em>&gt;::type t;
+typedef <a href="./apply.html" class="identifier">apply</a>&lt;f,a1,<em>...</em>a<em>n</em>&gt;::type t;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body">Any type.</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body">Equivalent to <tt class="literal"><span class="pre">typedef</span> <span class="pre"><a href="./apply-wrap.html" class="identifier">apply_wrap</a></span></tt><em>n</em><tt class="literal"><span class="pre">&lt;</span> <span class="pre"><a href="./lambda.html" class="identifier">lambda</a>&lt;f&gt;::type,a1,...</span> <span class="pre">an&gt;::type</span> <span class="pre">t;</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id892">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+template&lt; typename N1, typename N2 &gt; struct int_plus
+    : <a href="./int.html" class="identifier">int_</a>&lt;( N1::value + N2::value )&gt;
+{
+};
+
+typedef <a href="./apply.html" class="identifier">apply</a>&lt; int_plus&lt;<a href="./placeholders.html" class="identifier">_1</a>,<a href="./placeholders.html" class="identifier">_2</a>&gt;, <a href="./int.html" class="identifier">int_</a>&lt;2&gt;, <a href="./int.html" class="identifier">int_</a>&lt;3&gt; &gt;::type r1;
+typedef <a href="./apply.html" class="identifier">apply</a>&lt; <a href="./quote.html" class="identifier">quote</a><tt class="literal"><span class="pre">2</span></tt>&lt;int_plus&gt;, <a href="./int.html" class="identifier">int_</a>&lt;2&gt;, <a href="./int.html" class="identifier">int_</a>&lt;3&gt; &gt;::type r2;
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( r1::value, ==, 5 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( r2::value, ==, 5 );
+</pre>
+</div>
+<div class="section" id="id893">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./apply-wrap.html">apply_wrap</a>, <a class="reference internal" href="./lambda.html">lambda</a>, <a class="reference internal" href="./quote.html">quote</a>, <a class="reference internal" href="./bind.html">bind</a></p>
+<!-- Metafunctions/Invocation//apply_wrap |20 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./invocation.html" class="navigation-link">Prev</a>&nbsp;<a href="./apply-wrap.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./apply-wrap.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./invocation.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

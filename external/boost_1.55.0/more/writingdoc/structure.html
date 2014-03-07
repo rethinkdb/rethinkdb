@@ -1,0 +1,461 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../../boost.css">
+
+  <title>Writing Documentation for Boost - Documentation Structure</title>
+</head>
+
+<body link="#0000FF" vlink="#800080">
+  <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+  "header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="index.html"><img height="86" width="277" alt="C++ Boost"
+        src="../../boost.png" border="0"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center">Writing Documentation for Boost</h1>
+
+        <h2 align="center">Documentation Structure</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <dl class="page-index">
+    <dt><a href="#introduction">Introduction</a></dt>
+
+    <dt><a href="#standards-conforming">Standards Conforming
+    Documentation</a></dt>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#elements">Document elements</a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#summary">Summary</a></dt>
+
+            <dt><a href="#requirements">Requirements</a></dt>
+
+            <dt><a href="#detailed-specs">Detailed specifications</a></dt>
+
+            <dt><a href="#ref-cpp">References to the Standard C++
+            library</a></dt>
+
+            <dt><a href="#ref-c">References to the Standard C
+            library</a></dt>
+          </dl>
+        </dd>
+
+        <dt><a href="#other">Other conventions</a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#type-descs">Type descriptions</a></dt>
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+
+    <dt><a href="#more">More Information</a></dt>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#function-semantic-explanations">Function semantic
+        element explanations</a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#requires">Requires</a></dt>
+
+            <dt><a href="#effects">Effects</a></dt>
+
+            <dt><a href="#postconditions">Postconditions</a></dt>
+
+            <dt><a href="#returns">Returns</a></dt>
+
+            <dt><a href="#throws">Throws</a></dt>
+
+            <dt><a href="#complexity">Complexity</a></dt>
+
+            <dt><a href="#rationale">Rationale</a></dt>
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+
+    <dt><a href="#web">Web Reference Documentation</a></dt>
+
+    <dt><a href="#footnotes">Footnotes</a></dt>
+  </dl>
+
+  <h2><a name="introduction" id="introduction">Introduction</a></h2>
+
+  <p>Boost does not require any specific documentation structure.
+  However, there are some important considerations that
+  influence content and structure. For example, many Boost
+  libraries wind up being proposed for inclusion in the C++
+  Standard, so writing them initially with text suitable for
+  inclusion in the Standard may be helpful. Also, Boost library
+  documentation is often accessed via the World Wide Web,
+  including via search engines, so context is often important
+  for every page. Finally, Boost libraries should provide
+  additional documentation, such as introductory, tutorial,
+  example, and rationale content. With those things in mind, we
+  suggest the following guidelines for Boost library
+  documentation.</p>
+
+  <h2><a name="standards-conforming" id="standards-conforming">Standards
+  Conforming</a> Documentation</h2>
+
+  <p>The documentation structure required for the C++ Standard is
+  an effective way to describe the technical specifications for
+  a library.  Although terse, that format is familiar to many
+  Boost users and is far more precise than most ad hoc formats.
+  The following description is based upon &sect;17.3 of the
+  Standard.  (Note that while final Standard proposals must
+  include full standardese wording, which the committee will
+  not do for you, that level of detail is not expected of Boost
+  library documentation.)</p>
+
+  <h3><a name="elements" id="elements">Document elements</a></h3>
+
+  <p>Each document contains the following elements, as applicable<a class=
+  "footnote" href="#footnote1" id="footnote1-location">(1)</a>:</p>
+
+  <ul>
+    <li><a href="#summary">Summary</a></li>
+
+    <li><a href="#requirements">Requirements</a></li>
+
+    <li><a href="#detailed-specs">Detailed specifications</a></li>
+
+    <li><a href="#ref-cpp">References to the Standard C++ library</a></li>
+
+    <li><a href="#ref-c">References to the Standard C library</a></li>
+  </ul>
+
+  <h4><a name="summary" id="summary">Summary</a></h4>
+
+  <p>The Summary provides a synopsis of the category, and introduces the
+  first-level subclauses. Each subclause also provides a summary, listing the
+  headers specified in the subclause and the library entities provided in
+  each header.</p>
+
+  <p>Paragraphs labeled "Note(s):" or "Example(s):" are informative, other
+  paragraphs are normative.</p>
+
+  <p>The summary and the detailed specifications are presented in the
+  order:</p>
+
+  <ul>
+    <li>Macros</li>
+
+    <li>Values</li>
+
+    <li>Types</li>
+
+    <li>Classes</li>
+
+    <li>Functions</li>
+
+    <li>Objects</li>
+  </ul>
+
+  <h4><a name="requirements" id="requirements">Requirements</a></h4>
+
+  <p>The library can be extended by a C++ program. Each clause, as
+  applicable, describes the requirements that such extensions must meet. Such
+  extensions are generally one of the following:</p>
+
+  <ul>
+    <li>Template arguments</li>
+
+    <li>Derived classes</li>
+
+    <li>Containers, iterators, and/or algorithms that meet an interface
+    convention</li>
+  </ul>
+
+  <p>Interface convention requirements are stated as generally as possible.
+  Instead of stating "<code>class X</code> has to define a member function
+  <code>operator++()</code>," the interface requires "for any object
+  <code>x</code> of <code>class X</code>, <code>++x</code> is defined." That
+  is, whether the operator is a member is unspecified.</p>
+
+  <p>Requirements are stated in terms of well-defined expressions, which
+  define valid terms of the types that satisfy the requirements. For every
+  set of requirements there is a table that specifies an initial set of the
+  valid expressions and their semantics. Any generic algorithm that uses the
+  requirements is described in terms of the valid expressions for its formal
+  type parameters.</p>
+
+  <p>Template argument requirements are sometimes referenced by name.</p>
+
+  <p>In some cases the semantic requirements are presented as C++ code. Such
+  code is intended as a specification of equivalance of a construct to
+  another construct, not necessarily as the way the construct must be
+  implemented.<a class="footnote" href="#footnote2" id="footnote2-location">(2)</a></p>
+
+  <h4><a name="detailed-specs" id="detailed-specs">Detailed
+  specification</a></h4>
+
+  <p>The detailed specifications each contain the following elements:</p>
+
+  <ul>
+    <li>Name and brief description</li>
+
+    <li>Synopsis (class definition or function prototype, as
+    appropriate)</li>
+
+    <li>Restrictions on template arguments, if any</li>
+
+    <li>Description of class invariants</li>
+
+    <li>Description of function semantics</li>
+  </ul>
+
+  <p>Descriptions of class member functions follow the order (as
+  appropriate)<a class="footnote" href="#footnote3" id="footnote3-location">(3)</a>:</p>
+
+  <ul>
+    <li>Constructor(s) and destructor</li>
+
+    <li>Copying and assignment functions</li>
+
+    <li>Comparison functions</li>
+
+    <li>Modifier functions</li>
+
+    <li>Observer functions</li>
+
+    <li>Operators and other non-member functions</li>
+  </ul>
+
+  <p>Descriptions of function semantics contain the following <a name=
+  "function-elements" id="function-elements">elements</a> (as
+  appropriate)<a class="footnote" href="#footnote4" id="footnote4-location">(4):</a></p>
+
+  <dl class="function-semantics">
+    <dt><b><a href="#requires">Requires:</a></b> the preconditions for
+    calling the function</dt>
+
+    <dt><b><a href="#effects">Effects:</a></b> the actions performed by the
+    function</dt>
+
+    <dt><b><a href="#postconditions">Postconditions:</a></b> the observable
+    results established by the function</dt>
+
+    <dt><b><a href="#returns">Returns:</a></b> a description of the value(s)
+    returned by the function</dt>
+
+    <dt><b><a href="#throws">Throws:</a></b> any exceptions thrown by the
+    function, and the conditions that would cause the exception</dt>
+
+    <dt><b><a href="#complexity">Complexity:</a></b> the time and/or space
+    complexity of the function</dt>
+
+    <dt><b><a href="#rationale">Rationale:</a></b> the rationale for the
+    function's design or existence</dt>
+  </dl>
+
+  <p>Complexity requirements specified in the library clauses are upper
+  bounds, and implementations that provide better complexity guarantees
+  satisfy the requirements.</p>
+
+  <h4><a name="ref-cpp" id="ref-cpp">References to the C++ Standard
+  library</a></h4>
+
+  <h4><a name="ref-c" id="ref-c">References to the C Standard
+  library</a></h4>
+
+  <h3><a name="other" id="other">Other conventions</a></h3>
+
+  <p>These conventions are for describing implementation-defined types, and
+  member functions.</p>
+
+  <h4><a name="type-descs" id="type-descs">Type descriptions</a></h4>
+
+  <p>The Requirements subclauses may describe names that are used to specify
+  constraints on template arguments.</p>
+
+  <h2><a name="more" id="more">More Information</a></h2>
+
+  <h3><a name="function-semantic-explanations" id=
+  "function-semantic-explanations">Function semantic element
+  explanations</a></h3>
+
+  <p>The function semantic element description <a href=
+  "#function-elements">above</a> is taken directly from the C++ standard, and
+  is quite terse. Here is a more detailed explanation of each of the
+  elements.</p>
+
+  <p>Note the use of the <code>&lt;code&gt; ... &lt;/code&gt;</code> font tag
+  to distinguish actual C++ usage from English prose.</p>
+
+  <h4><a name="requires" id="requires">Requires</a></h4>
+
+  <p>Preconditions for calling the function, typically expressed as
+  predicates. The most common preconditions are requirements on the value of
+  arguments, often in the form of C++ expressions. For example,</p>
+  <pre>
+ 
+<code>void limit( int * p, int min, int max );</code>
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Requires:</b> <code>p != 0 &amp;&amp; min &lt;= max</code></dt>
+  </dl>
+
+  <p>Requirements already enforced by the C++ language rules (such as the
+  type of arguments) are not repeated in Requires paragraphs.</p>
+
+  <h4><a name="effects" id="effects">Effects</a></h4>
+
+  <p>The actions performed by the function, described either in prose or in
+  C++. A description in prose is often less limiting on implementors, but is
+  often less precise than C++ code.</p>
+
+  <p>If an effect is specified in one of the other elements, particularly
+  <i>postconditions</i>, <i>returns</i>, or <i>throws</i>, it is not also
+  described in the <i>effects</i> paragraph. Having only a single description
+  ensures that there is one and only one specification, and thus eliminates
+  the risk of divergence.</p>
+
+  <h4><a name="postconditions" id="postconditions">Postconditions</a></h4>
+
+  <p>The observable results of the function, such as the value of variables.
+  Postconditions are often expressed as predicates that are true after the
+  function completes, in the form of C++ expressions. For example:</p>
+  <pre>
+ 
+void make_zero_if_negative( int &amp; x );
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Postcondition:</b> <code>x &gt;= 0</code></dt>
+  </dl>
+
+  <h4><a name="returns" id="returns">Returns</a></h4>
+
+  <p>The value returned by the function, usually in the form of a C++
+  expression. For example:</p>
+  <pre>
+int sum( int x, int y );
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Returns:</b> <code>x + y</code></dt>
+  </dl>
+
+  <p>Only specify the return value; the type is already dictated by C++
+  language rules.</p>
+
+  <h4><a name="throws" id="throws">Throws</a></h4>
+
+  <p>Specify both the type of exception thrown, and the condition that causes
+  the exception to be thrown. For example, the <code>std::basic_string</code>
+  class specifies:</p>
+  <pre>
+ 
+void resize(size_type n, charT c);
+</pre>
+
+  <dl class="function-semantics">
+    <dt><b>Throws:</b> <code>length_error</code> if <code>n &gt;
+    max_size()</code>.</dt>
+  </dl>
+
+  <h4><a name="complexity" id="complexity">Complexity</a></h4>
+
+  <p>Specifying the time and/or space complexity of a function is often not
+  desirable because it over-constrains implementors and is hard to specify
+  correctly. Complexity is thus often best left as a quality of
+  implementation issue.</p>
+
+  <p>A library component, however, can become effectively non-portable if
+  there is wide variation in performance between conforming implementations.
+  Containers are a prime example. In these cases it becomes worthwhile to
+  specify complexity.</p>
+
+  <p>Complexity is often specified in generalized <a href=
+  "http://hissa.nist.gov/dads/HTML/bigOnotation.html">"Big-O"
+  notation</a>.</p>
+
+  <h4><a name="rationale" id="rationale">Rationale</a></h4>
+
+  <p>Specifying the rationale for a function's design or existence can often
+  give users a lot of insight into why a library is designed the way it is.
+  More importantly, it can help prevent "fixing" something that wasn't really
+  broken as the library matures.</p>
+  
+  <h2 id="web">Web Reference Documentation</h2>
+
+  <p>Boost library documentation is often accessed via the World
+  Web. Using search engines, a page deep in the reference
+  content could be viewed without any further context.
+  Therefore, it is helpful to add extra context, such as the
+  following, to each page:</p>
+
+  <ul>
+  <li>Describe the enclosing namespace or use fully scoped
+    identifiers.
+  <li>Document required headers for each type or function.
+  <li>Link to relevant tutorial information.
+  <li>Link to related example code.
+  <li>Include the library name.
+  <li>Include navigation elements to the beginning of the
+    documentation.
+  </ul>
+
+  <p>It is also useful to consider the effectiveness of a
+  description in search engines. Terse or cryptic descriptions
+  are less likely to help the curious find a relevant function
+  or type.</p>
+
+  <h2><a name="footnotes" id="footnotes">Footnotes</a></h2>
+
+  <dl>
+    <dt><a class="footnote" id="footnote1" href="#footnote1-location">(1)</a> To save
+    space, items that do not apply to a clause are omitted. For example, if a
+    clause does not specify any requirements, there will be no "Requirements"
+    subclause.</dt>
+
+    <dt><a class="footnote" id="footnote2" href="#footnote2-location">(2)</a> Although
+    in some cases the code is unambiguously the optimum implementation.</dt>
+
+    <dt><a class="footnote" id="footnote3" href="#footnote3-location">(3)</a> To save
+    space, items that do not apply to a class are omitted. For example, if a
+    class does not specify any comparison functions, there will be no
+    "Comparison functions" subclause.</dt>
+
+    <dt><a class="footnote" id="footnote4" href="#footnote4-location">(4)</a> To save
+    space, items that do not apply to a function are omitted. For example, if
+    a function does not specify any precondition, there will be no "Requires"
+    paragraph.</dt>
+  </dl>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->04
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38514" --></p>
+
+  <p><i>Copyright &copy; 2001 <a href=
+  "mailto:williamkempf@hotmail.com">William E. Kempf</a></i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

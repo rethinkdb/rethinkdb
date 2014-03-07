@@ -1,0 +1,186 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Knuth-Morris-Pratt Search</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost Algorithm Library">
+<link rel="up" href="../../algorithm/Searching.html" title="Searching Algorithms">
+<link rel="prev" href="BoyerMooreHorspool.html" title="Boyer-Moore-Horspool Search">
+<link rel="next" href="../../algorithm/CXX11.html" title="C++11 Algorithms">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BoyerMooreHorspool.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../algorithm/Searching.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../algorithm/CXX11.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt"></a><a class="link" href="KnuthMorrisPratt.html" title="Knuth-Morris-Pratt Search">Knuth-Morris-Pratt
+      Search</a>
+</h3></div></div></div>
+<h5>
+<a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.h0"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.overview"></a></span><a class="link" href="KnuthMorrisPratt.html#the_boost_algorithm_library.Searching.KnuthMorrisPratt.overview">Overview</a>
+      </h5>
+<p>
+        The header file 'knuth_morris_pratt.hpp' contains an implementation of the
+        Knuth-Morris-Pratt algorithm for searching sequences of values.
+      </p>
+<p>
+        The basic premise of the Knuth-Morris-Pratt algorithm is that when a mismatch
+        occurs, there is information in the pattern being searched for that can be
+        used to determine where the next match could begin, enabling the skipping
+        of some elements of the corpus that have already been examined.
+      </p>
+<p>
+        It does this by building a table from the pattern being searched for, with
+        one entry for each element in the pattern.
+      </p>
+<p>
+        The algorithm was conceived in 1974 by Donald Knuth and Vaughan Pratt, and
+        independently by James H. Morris. The three published it jointly in 1977
+        in the SIAM Journal on Computing <a href="http://citeseer.ist.psu.edu/context/23820/0" target="_top">http://citeseer.ist.psu.edu/context/23820/0</a>
+      </p>
+<p>
+        However, the Knuth-Morris-Pratt algorithm cannot be used with comparison
+        predicates like <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">search</span></code>.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.h1"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.interface"></a></span><a class="link" href="KnuthMorrisPratt.html#the_boost_algorithm_library.Searching.KnuthMorrisPratt.interface">Interface</a>
+      </h5>
+<p>
+        Nomenclature: I refer to the sequence being searched for as the "pattern",
+        and the sequence being searched in as the "corpus".
+      </p>
+<p>
+        For flexibility, the Knuth-Morris-Pratt algorithm has two interfaces; an
+        object-based interface and a procedural one. The object-based interface builds
+        the table in the constructor, and uses operator () to perform the search.
+        The procedural interface builds the table and does the search all in one
+        step. If you are going to be searching for the same pattern in multiple corpora,
+        then you should use the object interface, and only build the tables once.
+      </p>
+<p>
+        Here is the object interface:
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">patIter</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">knuth_morris_pratt</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">knuth_morris_pratt</span> <span class="special">(</span> <span class="identifier">patIter</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">patIter</span> <span class="identifier">last</span> <span class="special">);</span>
+    <span class="special">~</span><span class="identifier">knuth_morris_pratt</span> <span class="special">();</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">corpusIter</span><span class="special">&gt;</span>
+    <span class="identifier">corpusIter</span> <span class="keyword">operator</span> <span class="special">()</span> <span class="special">(</span> <span class="identifier">corpusIter</span> <span class="identifier">corpus_first</span><span class="special">,</span> <span class="identifier">corpusIter</span> <span class="identifier">corpus_last</span> <span class="special">);</span>
+    <span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        and here is the corresponding procedural interface:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">patIter</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">corpusIter</span><span class="special">&gt;</span>
+<span class="identifier">corpusIter</span> <span class="identifier">knuth_morris_pratt_search</span> <span class="special">(</span>
+        <span class="identifier">corpusIter</span> <span class="identifier">corpus_first</span><span class="special">,</span> <span class="identifier">corpusIter</span> <span class="identifier">corpus_last</span><span class="special">,</span>
+        <span class="identifier">patIter</span> <span class="identifier">pat_first</span><span class="special">,</span> <span class="identifier">patIter</span> <span class="identifier">pat_last</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        Each of the functions is passed two pairs of iterators. The first two define
+        the corpus and the second two define the pattern. Note that the two pairs
+        need not be of the same type, but they do need to "point" at the
+        same type. In other words, <code class="computeroutput"><span class="identifier">patIter</span><span class="special">::</span><span class="identifier">value_type</span></code>
+        and <code class="computeroutput"><span class="identifier">curpusIter</span><span class="special">::</span><span class="identifier">value_type</span></code> need to be the same type.
+      </p>
+<p>
+        The return value of the function is an iterator pointing to the start of
+        the pattern in the corpus. If the pattern is not found, it returns the end
+        of the corpus (<code class="computeroutput"><span class="identifier">corpus_last</span></code>).
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.h2"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.performance"></a></span><a class="link" href="KnuthMorrisPratt.html#the_boost_algorithm_library.Searching.KnuthMorrisPratt.performance">Performance</a>
+      </h5>
+<p>
+        The execution time of the Knuth-Morris-Pratt algorithm is linear in the size
+        of the string being searched. Generally the algorithm gets faster as the
+        pattern being searched for becomes longer. Its efficiency derives from the
+        fact that with each unsuccessful attempt to find a match between the search
+        string and the text it is searching, it uses the information gained from
+        that attempt to rule out as many positions of the text as possible where
+        the string cannot match.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.h3"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.memory_use"></a></span><a class="link" href="KnuthMorrisPratt.html#the_boost_algorithm_library.Searching.KnuthMorrisPratt.memory_use">Memory
+        Use</a>
+      </h5>
+<p>
+        The algorithm an that contains one entry for each element the pattern, plus
+        one extra. So, when searching for a 1026 byte string, the table will have
+        1027 entries.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.h4"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.complexity"></a></span><a class="link" href="KnuthMorrisPratt.html#the_boost_algorithm_library.Searching.KnuthMorrisPratt.complexity">Complexity</a>
+      </h5>
+<p>
+        The worst-case performance is <span class="emphasis"><em>O(2n)</em></span>, where <span class="emphasis"><em>n</em></span>
+        is the length of the corpus. The average time is <span class="emphasis"><em>O(n)</em></span>.
+        The best case performance is sub-linear.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.h5"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.exception_safety"></a></span><a class="link" href="KnuthMorrisPratt.html#the_boost_algorithm_library.Searching.KnuthMorrisPratt.exception_safety">Exception
+        Safety</a>
+      </h5>
+<p>
+        Both the object-oriented and procedural versions of the Knuth-Morris-Pratt
+        algorithm take their parameters by value and do not use any information other
+        than what is passed in. Therefore, both interfaces provide the strong exception
+        guarantee.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.h6"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.KnuthMorrisPratt.notes"></a></span><a class="link" href="KnuthMorrisPratt.html#the_boost_algorithm_library.Searching.KnuthMorrisPratt.notes">Notes</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            When using the object-based interface, the pattern must remain unchanged
+            for during the searches; i.e, from the time the object is constructed
+            until the final call to operator () returns.
+          </li>
+<li class="listitem">
+            The Knuth-Morris-Pratt algorithm requires random-access iterators for
+            both the pattern and the corpus. It should be possible to write this
+            to use bidirectional iterators (or possibly even forward ones), but this
+            implementation does not do that.
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010-2012 Marshall Clow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BoyerMooreHorspool.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../algorithm/Searching.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../algorithm/CXX11.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,31 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[/File included by min_corner.qbk and max_corner.qbk]
+
+[heading Header]
+Either
+
+`#include <boost/geometry/geometry.hpp>`
+
+Or
+
+`#include <boost/geometry/core/access.hpp>`
+
+[note min_corner and max_corner are only applicable for boxes and not for, 
+    e.g., a segment]
+[note min_corner should be the minimal corner of a box, but that is not 
+    guaranteed. Use correct to make min_corner the minimal corner.
+    The same applies for max_corner.]
+
+[/Share sample with get_box]
+[heading Example]
+[get_box]
+[get_box_output]

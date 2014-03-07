@@ -1,0 +1,55 @@
+<html>
+<head>
+	<title>BOOST_PP_ITERATION</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_ITERATION</b> macro expands to the iteration value of the current <i>file-iteration</i> depth.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_ITERATION</b>()
+		</div>
+	<h4>Remarks</h4>
+		<div>
+			This macro is only valid when a <i>file-iteration</i> is in progress.
+		</div>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/iteration/iterate.html">&lt;boost/preprocessor/iteration/iterate.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+// file.h
+#if !<a href="is_iterating.html">BOOST_PP_IS_ITERATING</a>
+
+   #ifndef FILE_H_
+   #define FILE_H_
+
+   #include &lt;<a href="../headers/iteration/iterate.html">boost/preprocessor/iteration/iterate.hpp</a>&gt;
+
+   #define <a href="iteration_params_x.html">BOOST_PP_ITERATION_PARAMS_1</a> (3, (1, 3, "file.h"))
+   #include <a href="iterate.html">BOOST_PP_ITERATE</a>()
+
+   #endif
+
+#elif <a href="iteration_depth.html">BOOST_PP_ITERATION_DEPTH</a>() == 1
+
+   value == <a href="iteration.html">BOOST_PP_ITERATION</a>()
+
+#endif
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

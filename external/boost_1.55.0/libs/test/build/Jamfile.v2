@@ -1,0 +1,111 @@
+#  (C) Copyright boost 2004.
+#  Distributed under the Boost Software License, Version 1.0. 
+#  (See accompanying file LICENSE_1_0.txt or copy at www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org/libs/test for the library home page.
+
+project boost/test 
+    : source-location ../src
+    : requirements <link>shared:<define>BOOST_TEST_DYN_LINK=1
+                   <toolset>msvc:<asynch-exceptions>on
+                   <toolset>borland:<cxxflags>-w-8080
+                   <toolset>borland:<cxxflags>-w-8001
+                   # Disable Warning about boost::noncopyable not being exported
+                   <link>shared,<toolset>msvc:<cxxflags>-wd4275
+                   <toolset>msvc:<cxxflags>-wd4671
+                   <toolset>msvc:<cxxflags>-wd4673
+                   <warnings>all
+    : usage-requirements
+                   <define>BOOST_TEST_NO_AUTO_LINK=1
+                   # Disable Warning about boost::noncopyable not being exported
+                   <link>shared,<toolset>msvc:<cxxflags>-wd4275
+    ;
+
+PRG_EXEC_MON_SOURCES =
+  execution_monitor
+  debug
+  cpp_main
+  ;
+
+TEST_EXEC_MON_SOURCES =
+  compiler_log_formatter
+  debug
+  execution_monitor
+  framework
+  plain_report_formatter
+  progress_monitor
+  results_collector
+  results_reporter
+  test_main
+  test_tools
+  unit_test_log
+  unit_test_main
+  unit_test_monitor
+  unit_test_parameters
+  unit_test_suite
+  xml_log_formatter
+  xml_report_formatter
+  ;
+
+UTF_SOURCES =
+  compiler_log_formatter
+  debug
+  exception_safety
+  execution_monitor
+  framework
+  interaction_based
+  logged_expectations
+  plain_report_formatter
+  progress_monitor
+  results_collector
+  results_reporter
+  test_tools
+  unit_test_log
+  unit_test_main
+  unit_test_monitor
+  unit_test_parameters
+  unit_test_suite
+  xml_log_formatter
+  xml_report_formatter
+  ;
+
+lib boost_prg_exec_monitor 
+  : # sources
+    $(PRG_EXEC_MON_SOURCES).cpp 
+  : # requirements
+  : # default build
+  : # usage-requirements
+    <link>shared:<define>BOOST_TEST_DYN_LINK=1
+  ;
+
+lib boost_test_exec_monitor
+  : # sources
+    $(TEST_EXEC_MON_SOURCES).cpp
+  : # requirements
+    <link>static
+  : # default build
+  : # usage-requirements
+    <link>shared:<define>BOOST_TEST_DYN_LINK=1
+  ;
+
+lib boost_unit_test_framework
+  : # sources
+    $(UTF_SOURCES).cpp
+  : # requirements
+  : # default build
+  : # usage-requirements
+    <link>shared:<define>BOOST_TEST_DYN_LINK=1
+  ;
+
+alias minimal : : : :
+                   <toolset>msvc:<asynch-exceptions>on
+       ;
+
+alias included : : : :
+                   <toolset>msvc:<asynch-exceptions>on
+       ;
+
+boost-install boost_prg_exec_monitor 
+              boost_test_exec_monitor
+              boost_unit_test_framework ;
+          

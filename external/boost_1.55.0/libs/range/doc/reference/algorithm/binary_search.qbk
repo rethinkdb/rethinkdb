@@ -1,0 +1,60 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:binary_search binary_search]
+
+[heading Prototype]
+
+``
+template<class ForwardRange, class Value>
+bool binary_search(const ForwardRange& rng, const Value& val);
+
+template<class ForwardRange, class Value, class BinaryPredicate>
+bool binary_search(const ForwardRange& rng, const Value& val, BinaryPredicate pred);
+``
+
+[heading Description]
+
+`binary_search` returns `true` if and only if the value `val` exists in the range `rng`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/binary_search.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions of binary_search:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `Value` is a model of the `LessThanComparableConcept`.
+* The ordering of objects of type `Value` is a [*/strict weak ordering/], as defined in the `LessThanComparableConcept` requirements.
+* `ForwardRange`'s value type is the same type as `Value`.
+
+[*For the predicate versions of binary_search:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `BinaryPredicate` is a model of the `StrictWeakOrderingConcept`.
+* `ForwardRange`'s value type is the same type as `Value`.
+* `ForwardRange`'s value type is convertible to `BinaryPredicate`'s argument type.
+
+[heading Precondition:]
+
+[*For the non-predicate version:]
+
+`rng` is ordered in ascending order according to `operator<`.
+
+[*For the predicate version:]
+
+`rng` is ordered in ascending order according to the function object `pred`.
+
+[heading Complexity]
+
+For non-random-access ranges, the complexity is `O(N)` where `N` is `distance(rng)`.
+
+For random-access ranges, the complexity is `O(log N)` where `N` is `distance(rng)`.
+
+[endsect]
+
+

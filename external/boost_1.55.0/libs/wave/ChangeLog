@@ -1,0 +1,1954 @@
+Boost.Wave: A Standard compliant C++ preprocessor library
+http://www.boost.org/
+
+Copyright (c) 2001-2013 Hartmut Kaiser. Distributed under the Boost
+Software License, Version 1.0. (See accompanying file
+LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-------------------------------------------------------------------------------
+
+TODO (known issues):
+- Fix expansion of macros, which replacement-list terminates in a partial
+  macro expansion.
+- Fix the re2c lexer for iterators others then string::iterator (or more
+  generally for iterators, which aren't random access iterators)
+- Try to remove the second parameter from the pp_iterator<>::force_include
+  function.
+- Fix the trigraph backslash problem in the re2c (C/C++ and IDL) scanners, if
+  there is the end of the (internal) buffer just in between a '??/' and a '\n'.
+
+-------------------------------------------------------------------------------
+
+CHANGELOG
+
+Boost V1.55:
+ - Fixed #8848: Wave driver improperly processes 0xFFFFui64 token
+ - Fixed #9098: Wave driver option --c++0x invalid
+
+Boost V1.54:
+ - Fixed #8478: Make Boost.wave compatible with Clang's -Wimplicit-fallthrough 
+   diagnostic.
+
+Boost V1.53:
+ - Fixed a problem with context<>::add_macro_definition which sometimes 
+   appended a superfluous T_EOF to the macro replacement list.
+
+Boost V1.52.0:
+ - Added util::create_directories() wrapper to account for new behavior of
+   boost::filesystem::create_directories().
+ - Fixed an obscure problem when preprocessing directives wouldn't be recognized
+   if the previous line contained nothing but an empty macro invocation
+   (see new test case t_9_023.cpp)
+ - Added a new command line option --license=<file> to the Wave driver tool
+   which allows to pre-pend the content of a (license) file to every newly
+   created file. This option simplifies the implementation of partial
+   preprocessing as done on Phoenix, Fusion, etc.
+ - Changed the effect of the -N command line option to simply not expand
+   the macro by pretending it was not defined. Earlier the whole invocation
+   sequence was skipped, now we skip only the macro itself, which still expands
+   the arguments for the macro invocation.
+  - Fixed a couple of compilation warnings
+
+Boost V1.51.0
+ - Fixed #7050: Invalid memory write bug in lexing_exception
+ - Fixed #7159: Text-lines are processed as if they were preprocessing directives
+ - Changed --c++0x command line option to --c++11.
+
+Boost V1.50.0
+ - V2.3.2
+ - Fixed #6758: not all members are initialized by base_iteration_context
+   constructor.
+ - Fixed #6838: Adding include file with force_include makes Wave fail to emit
+   #line directive
+ - Added support for test of --forceinclude option to testwave executable,
+   added test case verifying #6838 is fixed.
+ - Fixed #6870: build wave driver failed
+
+Boost V1.48.0
+ - V2.3.1
+ - Added the flag support_option_emit_contnewlines allowing to control whether
+   backslash newline sequences are emitted by the Wave library. The default is
+   as before: these tokens will be silently ignored (after the token positions
+   have been properly updated). Note: this option is supported by the SLex lexer
+   module only.
+ - Fixed #5887: flex_string.hpp needs to include <ios>
+
+Boost V1.47.0
+- V2.3.0
+- After preprocessing the body of any #pragma wave option() the wave tool now
+  concatenates all adjacent string literals into a single string literal.
+- Fixed whitespace handling, added a corresponding set of test cases
+  (t_9_020.cpp)
+- Added a new preprocessing hook: locate_include_file allowing to customize the
+  way include files are located.
+- Added new command line option --noexpand/-N to the Wave driver allowing to
+  suppress macro expansion for a given macro name (works for both, object like
+  and function like macros). This option has to be used very carefully as it
+  not only leaves the whole macro invocation untouched in the generated output
+  but also removes this macro from consideration for Wave itself. This can
+  cause unexpected results if the suppressed macro would influence #ifdef's
+  later on.
+- Fixed Wave driver to retain all macros defined on the command line in
+  interactive mode.
+- Fixed #5569: slex CONTLINE token works only for LF line endings
+
+Boost V1.46.0
+- V2.2.0
+- Added recognition of C++0x keywords to Re2C lexers.
+- Added --c++0x command line option to Wave to enabling the recognition of
+  C++0x keywords, converting those to C++0x tokens.
+- Adapted all of the library to play well with Boost.Filesystem V3 (which is
+  the default from now on).
+- Added support for extended character and string literals, added test case
+  (which required to add C++0x support to the test application).
+- Added proper predefined macros fro --c++0x mode. __cplusplus is currently
+  defined to 201101L, but this will change when the Standard is finalized.
+- Fixed a problem with object like macros, which when being adjacent to a
+  parenthesis, caused the parenthesis to disappear when the macro expansion
+  was suppressed by the expanding_object_like_macro() hook function.
+- Fixed a bug in pragma option(preserve), missing to set to preserve=1 if
+  after the previous value was preserve=2.
+- Changed the --preserve option of the wave tool to interprete the integer
+  argument in a slightly different way:
+      0: no whitespace is preserved,
+      1: only begin of line whitespace is preserved,
+      2: only begin of line whitespace and comments are preserved,
+      3: all whitespace is preserved
+  The #pragma wave option(preserve) now supports these arguments:
+  [0|1|2|3|push|pop].
+
+Boost V1.45.0
+- V2.1.0
+- Token pasting is well formed only as long as the formed token(s) are
+  pp_tokens as defined by the C++0x Standard. Until now, Wave allowed for
+  non-pp_tokens to be formed in --variadics mode.
+- Fixed a problem, which prevented reporting /##/ in a macro definition as
+  invalid token pasting.
+- Fixed problem preventing the skipped_token hook to be called for 'inactive'
+  conditional preprocessing directive tokens. Improved overall consistency in
+  reporting skipped tokens to the hooks function when processing conditional
+  preprocessing directives. Added a new test case verifying the skipped_token
+  hook gets called reproducibly (t_2_020.cpp).
+- Fixed a problem with the pp hooks 'expanding_object_like_macro' and
+  'expanding_function_like_macro', which when returning true were stopping all
+  preprocessing instead of just inhibiting the expansion of the macro.
+- Fixed a duplicated call to the pp hook skipped_token for preprocessing
+  directives inside inactive conditional branches.
+- Changing exception handling to fix clang++ regression errors.
+- Replaced assert() with BOOST_ASSERT to pacify the Boost inspect tool.
+
+Boost V1.44.0
+- V2.0.6
+- Added information about the file type to iteration context. This can be
+  either main_file, system_header, or user_header depending whether the handled
+  file is the main file to preprocess, a include file opened from `#include <>`,
+  or a include file opened from `#include ""`.
+- Added support for new Boost visibility macros. Properly exported all
+  exceptions, etc.
+
+Boost V1.43.0
+- V2.0.5
+- Fixed the wave driver application to strip leading and trailing whitespace
+  from macro names specified on the command line using -U.
+- Fixed line number counting for lines containing nothing but whitespace
+  followed by a C++ comment if the next line is a pp directive.
+- Fixed emitting of a #line directive after returned from an include file.
+- A couple of fixes allowing to properly report the current line number in
+  #line directives for different whitespace preserve modes (see --preserve/-p).
+- Added new preprocessing hook: emit_line_directive, allowing to customize the
+  format of the generated #line directive.
+- Changed --line/-l command line option of the wave driver application to
+  accept 0, 1, and 2 as options. The option values 0 and 1 behave as before
+  (disable/enable the generation of #line directives), while the option value 2
+  will generate the #line directive using the relative filename (instead of the
+  absolute filename emitted from option 1). The default option is value 1.
+- Added new example: emit_custom_line_directives, demonstrating the use of the
+  new preprocessing hook.
+- Added new preprocessing hook: found_unknown_directive, which is being invoked
+  whenever an unknown preprocessor directive (i.e. '#' followed by some
+  identifier) is detected. It allows to interpret the directive and to provide
+  some replacement text.
+- Added new example: custom_directives demonstrating the usage of the new
+  preprocessing hook.
+- Fixed #4113: cpp_lexer does not handle qualified backslashes correctly.
+- Fixed #3106: wave on VS2010 beta compiler generates error.
+
+Boost V1.42.0
+- V2.0.4
+- Fixed Wave for latest changes in multi_pass iterator.
+
+Boost V1.41.0
+- V2.0.3
+- Switched to Re2C V0.13.5
+- Fixed --list_includes/-l command line option of the wave driver tool to
+  correctly indent the generated list of included files.
+- Finally fixed all remaining examples. Everything seems to work fine now.
+- Specifying a custom token type now works as expected. The new lexer interface
+  introduced in V2.0 broke this part.
+- Removed old code related to pre Boost V1.31 (related to V1 of iterator
+  library).
+- Added a new commandline option --macrocounts/-c to the Wave driver application
+  which lists all macro invocation counts to an optionally specified file
+  (default is cout).
+- Fixed compilation problems caused by recent changes to the multi_pass iterator
+  from Spirit V2.1.
+- Added the new preprocessing hooks detected_pragma_once() and
+  detected_include_guard() which are getting called whenever either a #pragma
+  once has been detected or if the include guard heuristics detected an
+  include guard for a particular include file.
+- Added a new command line option to the wave driver tool: --listguards/-g
+  allowing to trace all include files which are either contain a #pragma once
+  or contain include guards.
+- Started to elminate g++ struct aliasing warnings (more to fix, mostly in
+  flex_string).
+
+Boost V1.40.0
+- V2.0.2
+- Fixed a long standing race condition inhibiting to use Wave in multi threaded
+  environments.
+- Incorporated the changes from latest version of the flex_string class (#2946).
+- Fixed another race condition triggering problems using Wave in multi-threaded
+  environments.
+
+Boost V1.39.0
+- V2.0.1
+- Fixed Wave to compile with BOOST_FILESYSTEM_NO_DEPRECATED defined (i.e. the
+  library doesn't use the deprecated filesystem interface anymore).
+
+Boost V1.37.0
+- Updated examples to reflect the recent changes in the used multi_pass
+  iterator.
+- Fixed documentation links still pointing to the old Boost CVS (thanks to
+  Jürgen Hunold for providing the patch).
+
+Boost V1.36.0
+- Wave Version 2.0 is a new major release introducing some breaking API changes,
+  preventing it to be used with Boost versions earlier than V1.36.0. The API
+  and hook interface have been streamlined for more consistency. See the
+  documentation for more details.
+
+- Added an additional template parameter to the context object, allowing to
+  specify any possibly derived type. This change propagates to the preprocessing
+  hooks, which now get passed the most derived context type as its first
+  argument allowing to access protected members in the original context type.
+  This fixes ticket #1752.
+- Fixed a problem during parsing of #pragma wave directive, where the value
+  sequence contained a closing parenthesis. This caused a premature end of the
+  pragma value parsing.
+- Fixed handling of support_option_single_line, which was ignored under certain
+  circumstances.
+- Fixed ticket #1766: Wrong evaluation of conditional preprocessor directives
+  with predefined macros __FILE__, __LINE__ and __INCLUDE_LEVEL__. This bug
+  triggered an error in constructs like #ifndef __FILE__. Thanks to Daniel
+  Wadehn for reporting and supplying a patch. Added corresponding regression
+  test: t_2_018.cpp.
+- Fixed a bug which reported a valid macro redefinition as invalid if the macro
+  replacement text referred to a second or higher parameter of this macro.
+- Fixed a problem in the wave tool to allow two errors to occur while
+  preprocessing two consecutive tokens.
+- Adjusted Spirit header includes to point to conform to the new directory
+  structure, removed support for Spirit versions earlier than V1.7.
+- Started to migrate to new multi_pass iterators from Spirit V2.0.
+
+Boost V1.35.0
+- Wave Version 1.3
+- Changed the return value of the 'evaluated_conditional_expression()' pp hook
+  to 'bool' allowing to force Wave to re-evaluate the current conditional
+  expression. This was suggested by Felipe Magno de Almeida.
+- Added a wave::context object as first parameter to all pp hook functions.
+  This is an interface compatibility breaking change. The new pp-hooks can be
+  disabled by defining the BOOST_WAVE_USE_DEPRECIATED_PREPROCESSING_HOOKS
+  compile time constant to something not equal to zero. By default this
+  constant will be defined to zero for Boost V1.35.0 and newer, switching to
+  the new interface by default.
+- Added optional support for the import keyword (needed for the C++ module
+  proposal). The identifier import will be recognized as a keyword, if
+  the compile time constant BOOST_WAVE_SUPPORT_IMPORT_KEYWORD is defined to
+  something not equal zero.
+- Added new preprocessing hook functions: found_error_directive() and
+  found_warning_directive() to be called when #error/#warning directives are
+  encountered. This was suggested by Andreas Sæbjørnsen.
+- Added a new sample to Wave: hannibal, a partial C++ parser implementation
+  initially written by Danny Havenith (http://havenith-verlinden.nl/hannibal/)
+  who agreed to add this here. Thanks!
+- Added new preprocessing hook function: found_line_directive() to be called
+  when a #line directive is encountered. This was suggested by Andreas
+  Sæbjørnsen.
+- Improved command line handling for the wave applet.
+- Incorporated latest bug fixes for the Hannibal sample provided by Danny
+  Havenith.
+- Added loading of a wave.cfg file from anywhere up the filesystem hierarchy
+  starting from the main input file for the wave driver applet up to the
+  root of the file system.
+- Added support_option_emit_pragma_directive to allow to control at runtime,
+  whether unknown #pragma directives should be emitted or not. To maintain
+  compatibility with earlier versions this option is by default on if the
+  compile time constant BOOST_WAVE_EMIT_PRAGMA_DIRECTIVES was defined to
+  be not equal to zero and it is off otherwise.
+- Enabled XML serialization support.
+- Added the throw_exception preprocessing hook, which gets called for every
+  occurring error (whenever an exception would have been thrown). The default
+  of this new hook function is to throw the corresponding exception, which
+  reproduces the old behavior.
+- Implemented a new preprocessing hook: generated_token(), which get's called
+  whenever a token is about to be returned form the library. This function may
+  be used to alter the token before it gets returned to the calling
+  application.
+- Added a new sample 'real_positions' demonstrating the new generated_token()
+  preprocessing hook and showing how to use Wave with a new token type without
+  using a new lexer type.
+- Factored out the pure lex_input_interface to simplify writing different lexer
+  types for Wave.
+- Added the token_statistics sample showing how to use Xpressive to build a
+  lexer for Wave.
+- Changed the list_includes sample to use a lexer which is based on the lexertl
+  library written by Ben Hanson (http://www.benhanson.net/lexertl.html).
+- Added a new support_option: insert_whitespace, allowing to switch off
+  whitespace insertion which is normally (by default) in place to disambiugate
+  C++ tokens, which would otherwise form different tokens in the output.
+- Added a new commandline option to the Wave applet: --disambiguate, allowing
+  to control whitespace insertion. The default value for this option is
+  --disambiguate=1, resembling the previous behaviour. Specifying the option
+  --disambiguate=0 allows to suppress whitespace insertion alltogether.
+- Added pragma option values push and pop to the line, preserve and output
+  options allowing to store and restore the current option. The syntax is:
+    #pragma wave options(<option>: push) and
+    #pragma wave options(<option>: pop)
+  where <option> may be line, preserve or output. Thanks to Eric Niebler for
+  suggesting this feature.
+- Added the possibility to use static pre-compiled DFA tables for the lexertl
+  based lexer.
+- Incorporated the changes from Andrei's latest version of the flex_string
+  class.
+- Added the is_macro_defined(name) function to the context object as described
+  in the documentation. This function is usable with any string type compatible
+  with std::string.
+- Changed behavior of the --force_include functionality, which now looks for
+  the file to be (force-)included in the current directory first.
+- Switched to Re2C V0.11.2
+- Added const specifiers to some of the context member functions.
+- Fixed a problem in the SLex C++ lexer (cpp_tokens example).
+- Fixed a runtime problem in the Re2C generated lexers when feeded with
+  empty input files (thanks to Leo Davis for reporting and providing a patch).
+- Added the is_eoi() function to token classes, returning true if the token
+  has been initialized to be the end of input token (T_EOI) (thanks to Ovanes
+  Markarian for suggesting this).
+- Added missing #includes <cstring>, <cstdlib>, and <new> to flex_string.hpp.
+- Added missing #include <climits> to cpp_chlit_grammar.hpp.
+- Changed found_include_directive hook function to return a bool indicating,
+  whether the file should be included (true) or skipped (false). Thanks to
+  Felipe Magno de Almeida for suggesting this feature.
+- Added code to the wave driver applet ignoring a #import directive (the whole
+  directive is passed through to the output) whenever the pp constant
+  BOOST_WAVE_SUPPORT_MS_EXTENSIONS is defined to something not equal to zero.
+- Fixed the wave driver applet to correctly continue after a error or warning.
+- Added a macro introspection facility allowing to iterate on all defined macro
+  names.
+- Added a new commandline option --macronames/-m to the Wave driver application
+  which lists all defined macros and their definitions to an optionally
+  specified file (default is cout).
+- Fixed configuration to take into account thread related build settings.
+- Added the BOOST_WAVE_SUPPORT_LONGLONG_INTEGER_LITERALS pp constant allowing
+  to recognize large integer literals (larger in size than long/unsigned long)
+  even if these do not have a 'll' suffix. This pp constant is effective only,
+  if the target platform supports long long integers (BOOST_HAS_LONG_LONG is
+  defined).
+- The following preprocessing hooks now return a boolean value, which when
+  returning 'true' cause the Wave library to skip the execution of the related
+  preprocessing action:
+    . found_directive: allows to skip the whole directive it is called for
+    . expanding_object_like_macro: allows to skip expansion of the given object
+        like macro, the macro symbol is copied to the output
+    . expanding_function_like_macro: allows to skip the expansion of the given
+        function like macro, the whole macro invocation (including all
+        macro invocation parameters) are copied to the output without any
+        further processing.
+- Changed the interpretation of the return value of the found_include_directive
+  preprocessing hook: a return value of 'false' now processes the file
+  to be included normally and a return value of 'true' now skips the processing
+  of the include file directive (the file doesn't get included).
+  This change was necessary to make the return values of the preprocessing
+  hooks consistent. Now return 'false' generally means: normal execution and
+  return 'true' generally means: skip execution of the corresponding
+  preprocessor action.
+- Fixed compilation problems on gcc, fixed ambiguity with boost code (detail
+  namespace was ambigious).
+- Fixed predefined macro support to be thread safe.
+- Added missing file to real_positions example. Thanks to Ludovic Aubert for
+  spotting the problem.
+- Unterminated C++/C comment diagnostics are now a warning and not an error
+  anymore.
+- Applied patch provided by Jens Seidel making sure every header compiles on
+  its own.
+- Updates to the documentation.
+- Fixed a problem in flex_string::compare() (#include_next was non-functional).
+- Fixed a bug in the pp hook expanding_function_like_macro(), where the seqend
+  parameter was set to the first token after the closing parenthesis instead of
+  pointing at it.
+- Added the BOOST_WAVE_SUPPORT_THREADING allowing to explicitely control
+  whether the Wave library is built with threading support enabled. If not
+  defined the build settings will be picked up from the Boost build environment
+  (BOOST_HAS_THREADS).
+- Fixed a whitespace insertion glitch, where whitespace got inserted
+  unconditionally between two operators even if one of these was a comma.
+- Fixed #line directive after a macro invocation containing newlines to
+  correctly reference the line number.
+- Positions of macros defined on the command line now get properly reported as
+  "<command line>":1:...
+- Added testing of the preprocessor hooks.
+
+Boost V1.34.0
+- Wave Version 1.2.4
+- Added the possibility to explicitly enable/disable the generation of #line
+  directives. Added a corresponding commandline argument to the Wave driver
+  tool (--line/-L) which takes either 0 or 1 as its parameter.
+- Added support for #pragma wave option(command: value) directives, which
+  supports the following commands:
+   . #pragma wave option(line: [0|1])
+        Enable/disable generation of #line directives
+   . #pragma wave option(preserve: [0|1|2])
+        Control whitespace preservation
+   . #pragma wave option(output: ["filename" | null | default])
+        Redirect output to the given file (or no output, if 'null' is specified,
+        or output to the file as given on the command line, if 'default' is
+        specified).
+        The filename is resolved relative to the directory of the processed
+        file.
+  These new #pragma directives are implemented in the Wave driver tool only.
+  It is possible to combine several options in one #pragma directive, i.e.
+  #pragma wave option(line: 0, preserve: 2).
+- Changed the signature of the may_skip_whitespace() preprocessing hook to
+  additionally take the preprocessing context as its first parameter.
+- Added the possibility to the Wave tool to disable initial output by
+  specifying a '-' as the output file. This is useful for syntax checks only or
+  in conjunction with the #pragma wave option(output: ...) to restrict the
+  generated output.
+- Improved error reporting in the Wave tool on bad output file stream state.
+- Switched to Re2C V0.10.0
+- Fixed some of the VC7.1 /W4 warnings.
+- The Wave tool now creates the directory hierarchy of output files as needed.
+- Applied some optimization, which causes skipping of the parsing for almost
+  all preprocessor directives when the if block status is false. This gains
+  upto 10-20% in speed for average applications.
+- Added error diagnostic for #elif without matching #if, which was missing
+  under certain circumstances.
+- Avoided the evaluation of #elif expressions if one of the previous #if/#elif
+  blocks of the same level was true. This gains upto another 5% of speed for
+  average applications.
+- The MS specific integer suffix 'i64' is now correctly supported by the Re2C
+  and SLex lexer components (only when BOOST_WAVE_SUPPORT_MS_EXTENSIONS is
+  defined during compilation).
+- Changed the Wave tool to print the column number of an error/warning along
+  with the line number. The new format is: 'filename:line:column: error text'.
+- It is now possible to recover from the unbalanced #if/#endif statement
+  warning in a proper way.
+- The Wave library now automaticaly recognizes include guards in headers files
+  and uses this information to avoid opening these header files more than once.
+  This speeds up things by upto 10-20% depending on the concrete include files.
+- Fixed the failing test t_6_023.cpp. Error reporting for illformed #else
+  directives was broken (because of some recent changes).
+- Fixed the failing test t_5_007.cpp. This was caused by the automatic include
+  guard detection, which prevented the second inclusion of the specified
+  include file the test was relying on.
+- Added the possibility to switch off the automatic include guard detection.
+- Added a new command line option to the Wave tool: --noguard/-G, which
+  disables the automatic include guard detection.
+- Now a header with include guards will be included correctly for a second time
+  after its include guard symbol gets undefined.
+- Added the generating platform to Wave's full version string.
+- Made the Wave tool fully interactive when started with input from stdin and
+  and output to stdout. In this mode the Wave tool preprocesses the input
+  line by line and not only after receiving the full input as normally.
+- Added serialization support for the wave::context object, which stores
+  all information about defined macros and all #pragma once header information.
+- Added the command line option --state (-s) to the Wave tool, which tries to
+  load the serialized information from the file given as the argument to
+  --state and save the state information at the end to the same file.
+  This option is available in interactive mode only.
+- Added possibility to verify the compatibility of the configuration used
+  during compilation of the Wave library with the config info used for the
+  application. Added a corresponding test to the Wave tool.
+- Added a new predefined macro __WAVE_CONFIG__ which expands to an integer
+  literal containg the configuration information the library was compiled
+  with.
+- Added proper versioning support to the serialization of state.
+- Fixed the macro tracing information to contain the column numbers of the macro
+  definitions as well (the format used is the same as for error messages).
+- Fixed a memory leak in the flex_string copy on write code (thanks to Tobias
+  Schwinger for reporting this bug).
+- Fixed a memory corruption bug in the Re2C scanner buffer management code
+  (thanks to Andreas Sæbjørnsen for spotting the bug).
+- Fixed a major performance bottleneck in the lex_token class. This speeds up
+  Wave for upto another 20-40% depending on the amount of macro expansions to
+  perform.
+- Added the BOOST_SPIRIT_USE_BOOST_ALLOCATOR_FOR_TREES and the
+  BOOST_SPIRIT_USE_LIST_FOR_TREES Spirit configration constants to the
+  wave_config.hpp to allow to fine tune the generated Spirit tree code. VC7.1
+  gives best results when both are defined.
+- Fixed a memory corruption bug triggered by a possible dangling reference.
+- Fixed Wave tools startup crash when compiled with VC8.
+- Added the name of the generating compiler (BOOST_COMPILER) to the full
+  Wave version info.
+- Fixed all Jamfile.v2 to correctly disable RTTI for VC7.1.
+- Added #pragma message("...") to be optionally supported by the Wave library.
+  This may be enabled by defining the BOOST_WAVE_SUPPORT_PRAGMA_MESSAGE pp
+  constant to some value different from zero.
+- Fixed a couple of typos in the file cpp.cpp preventing it to compile on
+  gcc 4.1.0 (thanks to Richard Guenther for reporting these).
+- Richard Guenther fixed another buffer overrun problem in the Re2C scanner.
+- Fixed Jamfile.v2 files for all sample applications.
+- Fixed a bug which lead to reporting of an illegal preprocessing directive
+  inside not-evaluated conditional blocks under certain circumstances (thanks
+  to Tobias Schwinger for reporting).
+- Fixed '#define true ...', '#define false ...' and other constructs, i.e. the
+  usage of the boolean keywords as identifiers during the preprocessing. Added
+  a corresponding test case (t_9_017.cpp). Thanks to Andreas Sæbjørnsen for
+  reporting.
+- Corrected the Jamfile[.v2] of the waveidl sample to refer to correct file
+  names (thanks to Juergen Hunold for submitting a patch).
+- Fixed a bug which prevented the main iterator from returning a T_EOF token
+  at the overall end of the input.
+- Fixed a problem, where non-evaluated #elif directives never got passed to the
+  skippen_token() pp hook (thanks to Andreas Sæbjørnsen for reporting).
+- Fixed a problem in the get_tokenname() function.
+- Added a missing #define BOOST_WAVE_SOURCE 1 to the wave_config_constant.cpp
+  file.
+- Fixed exception specifications to catch all exceptions by const&.
+- Fixed predefined macros to appear to be defined at a position referring to
+  a file named "<built-in>". Thanks to Andreas Sæbjørnsen for reporting.
+- Fixed the Re2C lexer not to segfault on empty files anymore.
+- Stripped leading and trailing whitespace for all lines in a config file (Wave
+  driver tool).
+- Fixed RTTI build issue for VC7.1/bjam --v2 (thanks to Rene Rivera for
+  submitting a patch for the Wave Jamfile.v2).
+- Fixed certain problems reported by the Boost inspection tool.
+- Fixed a couple of SunPro5.8 warnings.
+- Fixed a bug resulting in a crash if a macro was redefined with a shorter
+  expansion list as it was defined initially. Added a corresponding test case.
+- Fixed a bug causing an infinite loop when there was a missing endif in the
+  main preprocessed file.
+- Improved error recovery for illegal preprocessing directive errors.
+- Improved error handling and error recovery for conditional expressions
+  (#if/#elif expressions).
+- Wave now passes 160 out of 161 tests from the MCPP V2.6.1 validation
+  testsuite!
+- Added new warning for invalid #line number and filename arguments
+- Improved error diagnostics for invalid #line directives containing arbitrary
+  tokens after at the end of the line.
+- Improved error handling wrt the misuse of the __VA_ARG__ token in macro
+  definitions.
+- The warning, that a file is not terminated by a newline is now issued for all
+  files, not only for the main file (as previous).
+- Added a couple of new test cases to verify various diagnostics.
+- Fixed wave applet not to report missing #endif's when in interactive mode.
+- Cleaned up the Re2C lexer code.
+- Fixed a bug, where a empty line followed by an arbitrary token and followed
+  by a preprocessing directive interpreted the preprcessing directive as if it
+  were the first non-whitespace token on the line. This error occured only
+  if the #line directive generation was suppressed. Thanks to Joan Grant for
+  reporting this problem.
+- Fixed a problem in the Wave applet which prevented the correct recognition of
+  Windows file paths in a configuration file, if this path was enclosed in
+  quotes.
+- Extended the copyright notice to include the year 2007.
+- Fixed a problem in preserve=1 mode, when a C style comment triggered the
+  generation of a #line directive.
+- Worked around a linker issue for the True64/CXX compiler, complaining about
+  multiple defined symbols when using the flex_string class.
+- Added missing documentation for the context::get_macro_definition function.
+
+Sat Feb 18 2005
+- Version 1.2.3
+- Added a missing throw() specification to the function
+  cpp_exception::get_related_name().
+- Fix Boost bug ([ boost-Bugs-1395857 ] wave redefines BSIZE).
+- Added missing calls to the skipped_token() preprocessing hook which wasn't
+  called for pp directives inside disabled #if blocks.
+- Made the context<> type noncopyable.
+- Introduced the --extended/-x command line option to the wave driver
+  executable, which enables the #pragma wave system() directive. This directive
+  is now disabled by default because it may cause a potential security threat.
+- Changed the what() function of the macro_handling_exception class, which now
+  correctly returns the name of the exception type itself.
+- Added a diagnostic message to the wave driver executable, which is issued
+  whenever a #pragma wave system() directive is found, but the -x (--extended)
+  command line argument was not given.
+- Fixed long integer suffix to be allowed to be mixed case (1Ll or 2lL).
+- Fixed the BOOST_PP_CAT(1e, -1) pp-token bug. Wave now correctly recognizes
+  pp-number tokens, which are converted to C++ tokens right before they are
+  returned from the library.
+- Moved the implementation of the token_id query functions (get_token_name(),
+  get_token_value()) to a separate source file.
+- Fixed a bug, which prevented to prefer pp-numbers in files preprocessed as
+  a result of #include directives.
+- Fixed a bug, which prevented to open #include'd files specified by an
+  absolute path.
+- Fixed a problem in the expression parser value type.
+- Fixed a dynaload compilation problem with VC7.1 of the re2c lexer tests.
+
+Sat Dec 24 13:33:53 CST 2005
+- Version 1.2.2
+- Added three new preprocessing hooks: 'found_directive', 'skipped_token' and
+  'evaluated_conditional_expression' (thanks to Andreas Sæbjørnsen for the
+  suggestions).
+- Removed hook forwarding functions in the context_type.
+- Added missing include_next case branches for get_directivename() function.
+- Added new sample: advanced_hooks.
+- Fixed a possible buffer overflow in the cpplexer and cpp exception classes.
+- Made the cpp_grammar thread safe.
+- Removed the need for the get_directivename() function. Fixed typos in the
+  predefined token table.
+- Removed assertions from get_token_name() and get_token_value() and replaced
+  these with more meaningful code.
+- Added the BOOST_WAVE_USE_STRICT_LEXER configuration constant which allows to
+  decide, whether the '$' character will be recognized as a part of identifiers
+  or not (the default is BOOST_WAVE_USE_STRICT_LEXER == 0, i.e. '$' will be
+  recognized as part of identifiers).
+- Added the possibility to testwave to extract a tagged comment based on a
+  preprocessor constant (testwave V0.4.0).
+- Made the predefined_macros_grammar thread safe.
+- Added dll support for the generated Wave libraries.
+- Added the const_iterator based exlicit instantiations for the Re2C lexer to
+  the built Wave library and dll.
+- Added the whitespace handling policy to the context object. This actually is
+  no separate policy, it's a new preprocessing hook allowing to decide, whether
+  a concrete token has to be skipped.
+- Changed the --preserve option of the wave tool to take a single integer
+  argument (0: no whitespace is preserved, 1: only comments are preserved,
+  2: all whitespace is preserved)
+- Edited the command line option descriptions of the wave driver.
+- Fixed broken tags in documentation (magically inserted by DreamWeaver).
+- Merged the new whitespace_handling policy with the existing preprocessing
+  hooks. The name of the new preprocessing hook ist may_skip_whitespace().
+- Fixed compatibility issues for CW9.4 in the Wave test aplication.
+- Added get_errorcode() member to the wave exception classes allowing to
+  get back the reason for the exception.
+- Added boost::wave::is_recoverable(cpp_exception const&) alowing to decide,
+  whether it is possible to continue after a cpp_exception has been thrown.
+  This is a temporary hack to overcome the current limitation of the library
+  not allowing to do generic error recovery. It allows to recover from 75% of
+  the generated errors types.
+- The --timer command line option for the Wave driver now prints the elapsed
+  time correctly even if a preprcessing error occured.
+- Fixed an error recovery problem which skipped one token after continuing in
+  case this was a pp directive.
+- Added the --autooutput (-E) option to the Wave driver applet which redirects
+  the generated output to a file named after the input file changing the file
+  extension to '.i'.
+- Changed all throw's to boost::throw_exception.
+- Added the possibility to configure the command keyword for the wave specific
+  #pragma directives. It is now possible to define a string literal via
+  BOOST_WAVE_PRAGMA_COMMAND, which will be recognized and all corresponding
+  #pragma's are dispatched to the interpret_pragma() preprocessing hook.
+  The default value for BOOST_WAVE_PRAGMA_COMMAND is "wave", just to ensure
+  complete backward compatibility.
+- Added missing #pragma warning(pop) directives.
+- Fixed a bug wrt error propagation in the expression parser.
+- Fixed an assertion fired when cpp_token is used to process the quick_start
+  sample.
+- Fixed a (Windows specific) bug which triggered a boost::file_system exception
+  under certain conditions.
+- Switched to Re2C V0.9.11
+- Fixed a problem with the new '-E' (--autooutput) option.
+- Added better error reporting for duplicate macro definitions to the Wave
+  tool. Added the macro_handling_exception type containing the corresponding
+  macro name via the new (virtual) get_related_name() function.
+- Added the get_severity() function to the exceptions thrown by the Wave
+  library.
+- Extended the copyright notice to include the year 2006.
+
+Mon Dec  5 22:05:22 CST 2005
+Boost V1.33.1
+- Version 1.2.1
+- Fixed bug reported as Sourceforge bug 1274584.
+- Switched to Re2C V0.9.9.
+- Fixed a bug where the 'parameters' and 'definition' parameters to the
+  defined_macro callback of the preprocessing hooks were always empty (thanks
+  to Stefan Seefeld for reporting).
+- Fixed missing namespace specifiers in token definition macros (thanks to
+  Jozsef Mihalicza for reporting).
+- Enabled --preserved and --long_long modes by default for the cpp_tokens
+  sample.
+- Newline tokens reported a wrong line number (offset by one) when using the
+  Re2C generated lexer (thanks to Jozsef Mihalicza for pointing this out).
+- Changed file positions to carry 'unsigned int' line and column numbers.
+- Fixed tokens of a generated #line directive to carry the correct column
+  numbers.
+- Tokens now contain the correct filename, line and column numbers even if
+  a #line directive was encountered.
+- Fixed wrong line numbering in reference comments of the tests t_5_002.cpp and
+  t_5_035.cpp.
+- Made sure, that preprocessor expression errors get ignored for 'passive'
+  #elif branches.
+- Fixed an issue reported by the gcc debug stl.
+- Added the <vc-7_1-stlport><*><rtti>off directive to all of the V1 Jamfiles.
+
+Wed Aug 17 20:21:00 CST 2005
+Boost V1.33.0
+Version 1.2
+- Fixed name clash wrt T_DIVIDE on FreeBSD.
+- Fixed documentation of the different language_support flags.
+- The support for long long suffixes is no longer bound to the variadics mode,
+  it has to be enabled by the new long_long mode (default in C99).
+- Fixed compilation if BOOST_WAVE_DUMP_PARSE_TREE is defined.
+- Fixed lexer error message wrt long_long mode.
+- Stefan Seefeld fixed a bug in the lexer, where include_next was assumed for
+  included files containg a "include_" in their name.
+- Fixed some trigraph token id's in the lexers.
+- Added column information to the re2c generated lexer.
+- Added tests for the different lexers.
+- Fixed the found_include_directive preprocessing hook to carry the information
+  about #include_next directives as well.
+- Separated the different lexer tests.
+- Fixed a bug in the whitespace eater.
+- Fixed a bug where Wave emitted the found C++ comments in --preserve mode even
+  if these were found inside of disabled #if/#endif blocks.
+- Removed the function local static grammars to avoid possible raise conditions
+  and to make CW8.3 happy.
+- Unified lexer interface, adjusted namespaces.
+- Added lexer testcases to the regression tests.
+- Fixed test cases to scale to 64 bit platforms.
+- Disabled the MS specific extensions in the lexer tests in a platform related
+  way.
+- Added special handling of the eof tokens inside the lexer iterator classes
+  for Comeau.
+- Applied a workaround proposed by David Abrahams to make the slex lexer work
+  on the CodeWarrior platforms.
+
+Sun May  8 17:22:59 WEDT 2005
+Version 1.1.17
+- Added ill_formed_character_literal and ill_formed_integer_literal errors.
+- Improved error handling and diagnostics for integer overflow in #if/#elif
+  expressions.
+- Fixed a bug in the testwave application which prevented the correct
+  recognition of expected errors under certain circumstances.
+- Fixed a portability problem (for gcc 3.3.x) in the testwave application.
+- Enforced that #if/#endif are balanced file wise.
+- Changed the command line arguments for the Wave testrun to use absolute
+  directories.
+- Changed the test application to return a value != zero if one of the given
+  config files were not found.
+- Fixed a command line parsing problem caused by a change in the parameter
+  handling inside in the program_options library.
+- Switched to the most recent version of re2c (V0.9.7.dev).
+- Fixed a como compilation error and several como --a warnings.
+- The T_EOF token doesn't carry the value of the previous token anymore.
+- Added operator==() to the token classes to fix the ambiguity error reported
+  by the True64 compiler.
+- Improved the error message, when empty arguments are used in pure C++ mode.
+- Added character literal out of range testing and an additional corresponding
+  error message.
+- Fixed parsing of long character literals (such as '\x1234').
+- Fixed almost all problems diagnosed by the Boost inspection report.
+- Several fixes to make the True64 compiler happy.
+- Added the long long suffix handling to the C99 mode (LL/ll).
+- Fixed a bug in the slex regex specifications.
+
+Thu Apr  7 10:07:45 WEDT 2005
+Version 1.1.16
+- Fixed a bug in the white space eating component, which prevented a C++
+  comment to be suppressed if it followed after another whitespace.
+- Fixed the inconsistencies between the documentation and the behaviour wrt the
+  different include search paths. See the Wave driver docs for details of how
+  the '-I', '-I-', and '-S' options work.
+- Allowed to specify more than one config file ('@' syntax) on the command line
+  of the wave driver executable.
+- Changed copyrights in all files to reflect the acceptance of Wave into Boost.
+- Unknown preprocessing directives were not recognised as such anymore.
+- If comments shouldn't be preserved all C++ comments are replaced by newline
+  tokens (instead of beeing igored completely).
+- Fixed a bug in the white space eater component.
+- Fixed a bug which reported wrong line numbers for error encountered during
+  retokenisation (concatination).
+- Fixed a bug in the unescaping code.
+- Fixed a compilation error of the testwave executable (added a missing
+  namespace specifier).
+- Added a missing header to make cpp.re.cpp compile on CW.
+- The predefined macro __BASE_FILE__ now returns a properly escaped file name
+  string.
+- Fixed the function boost::wave::util::impl::unescape_lit().
+- Added the Wave unit test framework. For now it contains about 60 unit tests
+  executed by a special test driver (testwave).
+- Added the '$F' replacement string to the testwave application. This allows
+  to handle file paths sensitive comparison of the expected and real results.
+- Fixed a minor problem in the whitespace eating component.
+- Added optional trigraph conversion.
+- Changed all size_t, time_t etc. to std::size_t, std::time_t etc (for CW).
+- If the comments should not be preserved every C comment containing at minimum
+  one newline is now converted to a newline token.
+- Added the lexed_tokens sample.
+- Fixed warnings and errors reported by the CodeWarrior compiler.
+- Added the '$V' replacement string to the testwave application. It expands to
+  the current BOOST_LIB_VERSION.
+- Diagnosed the attempt to redefine the alternative operators as and, or etc.
+- Improved error handling.
+- Disabled the flex_string class for VC7, enabled to fallback to std::string
+  for this compiler.
+- Renamed files to comply with the Boost rules.
+- Added the first part of the MCPP validation suite to the Wave unit tests.
+- Added even more missing "using namespace std;" statements for functions from
+  the C runtime library. The Wave test suite now contains more than 100 unit
+  tests.
+- Added the $P/$P(basename) replacement string to the testwave application
+  which expands to the full path of the current file ($P) or to the current
+  directory/basename ($P(basename)).
+- Fixed a bunch of portability problmes revealed by the regression tests on
+  different platforms. Thanks to Stefan Slapeda for his support to make it work
+  on the cw-9_4 toolset (win32).
+
+Tue Mar 22 14:52:45 WEST 2005
+Version 1.1.15
+- Fixed a bug where the complete set of C99 predefined macros were pre-defined
+  when in C++ mode and variadics were enabled.
+- When in variadics or C99 mode the __BASE_FILE__ predefined macro expanded to
+  <Unknown>.
+- Added the --listincludes option to the Wave driver executable which allows to
+  log the file names of the include files opened.
+- Fixed a gcc warning in token_cache.hpp (unused variable end).
+- Changed the logic behind #include_next. It now starts searching with the
+  next directory after the directory the current file (the file containing the
+  #include_next directive) is located in.
+- Changed the signature of the undefined_macro preprocessing hook to take the
+  token itself and not the macro name only. This is important to pass the full
+  context information about the position of the #undef directive to the
+  user provided hook (thanks to Stefan Seefeld for pointing that out).
+- Fixed several broken links in the Context Policy topic.
+- Fixed a bug in the handling of the #include_next directive inside of
+  non-evaluated #if blocks.
+- Fixed a bug in the #include_next handling code (thanks to Stefan Seefeld).
+- Changed the signature of the opened_include_file() preprocessing hook which
+  now receives not only the absolute file name of the openend include file but
+  additionally gets passed the (possibly) relative path of the openend include
+  file. This concrete format of the relative path depends on the format of the
+  include search directory given to the library.
+- Added a new preprocessing hook 'found_include_directive()' which gets called
+  for every #include directive (even for those where the file to include
+  doesn't exist) and which gets passed the (expanded) token sequence found
+  after the #include directive token.
+- The file names passed to the preprocessing hooks are now normalised.
+- Changed the opened_include_file() preprocessing hook to receive the correct
+  relative path even if the included file was found in the current directory.
+- Fixed a bug which reported 'defined(or)' as invalid (similarly all the other
+  alternative bit operation token types).
+- Fixed a bug which prevented to define variadic macros from the command line.
+- Added a 'preserve comments' mode to preserve the comments in the input stream
+  not inserted into macro definitions.
+- Added a new --preserve (-p) command line switch to the wave driver
+  application to allow comments to be preserved in the generated output stream.
+
+Mon Feb 21 09:30:04 WEST 2005
+Version 1.1.14 (Fixes in response to the Boost review)
+
+Wave was accepted into Boost!
+
+With special thanks to Tom Brinkman, who volunteered to be the review manager.
+
+With thanks to David Abrahams, Beman Dewes, Reece Dunn, Larry Evans,
+Doug Gregor, Joel de Guzman, Baptiste Lepilleur, Andy Little, Paul Mensonides,
+Dan Nuffer, Andreas Pokorny, Vladimir Prus, Gennadiy Rozental, Michiel Salters,
+Jonathan Turkanis, Chris Uzdavinis, Pavel Vozenilek, Michael Walter for bug
+reports, fixes and hints.
+
+- Added support for the MS extensions #region and #endregion, which simply get
+  ignored by Wave. The support for these is enabled only, when the pp constant
+  BOOST_WAVE_SUPPORT_MS_EXTENSIONS is defined. Otherwise these get flagged as
+  an illegal preprocessor directive (as before).
+- Fixed a problem, where the replacement text for a #pragma directive got lost
+  if this directive was on the last line of a processed (include-)file.
+- Changed the default value for BOOST_WAVE_SUPPORT_MS_EXTENSIONS for non-
+  Windows systems to zero.
+- Updated outdated external links in the documentation.
+- Fixed certain grammatical and stylistic quirks in the documentation.
+- Fixed a problem in libs/wave/build/Jamfile.v2 (as reported by Larry Evans).
+  Fixed the Jamfile.v2 in the samples directories accordingly.
+- Added the '<toolset>vc-7_1:<rtti>off' to all Jamfile.v2 files to adjust for
+  the internal buffer overflow bug in the VC7.1 compiler (reported by Joel de
+  Guzman).
+- Changed the '<toolset>vc-7_1:<rtti>off' to '<toolset>vc-7.1:<rtti>off' as
+  required by the Boost.Build.v2 library (suggested by Vladimir Prus).
+- Finally fixed the Jamfile.v2 file (after a suggestion from Reece Dunn)
+- Fixed the column number reported for tokens for Slex lexer based
+  configurations (reported by Baptiste Lepilleur).
+- Added the __BASE_FILE__ predefined macro, which contains a string literal
+  of the main file name to preprocess (the one the context<> template was
+  created with). (suggested by Pavel Vozenilek)
+- Used the boost::reverse_iterator instead of the std::reverse_iterator
+  for the flex_string class to allow compilation of Wave with VC7.0
+  (as suggested by Reece Dunn).
+- Fixed a problem in the include_path template, which throwed a
+  boost::filesystem exception whenever a character was used in a file name
+  to include, which is marked as illegal by the default name checker of the
+  boost::filesystem::path.
+
+Version 1.1.13 (Boost review candidate 2, bug fixed version)
+- Fixed a problem, where the context<> template referenced temporary iterator
+  objects from the underlying stream (thanks to Michiel Salters for reporting
+  this).
+- Fixed a bug in the re2c lexer, which allowed to dereference the end iterator
+  of the underlying input stream (thanks to Doug Gregor for pointing this out).
+- Fixed several assertions fired by the iterator checking code of the VC8 stl.
+
+Version 1.1.12 (Boost review candidate)
+- A rough performance analysis showed, that 30% of the time is spent parsing
+  the input for pp directives (cpp_grammar), 35% of the time is spent inside
+  the flex_string code, mainly in the copy constructor and assignment
+  operator, 15% of the time is spent inside the list and vector member
+  functions, 10% is spent for memory allocation but only 1% of the time is
+  spent in the re2c lexer.
+- Identified a performance problem, where the token_cache was instantiated
+  for every created lexer object, but needed to be initialised only once.
+- Added #include <wave_version.hpp> to wave_config.hpp
+- Fixed problems reported by the gcc 3.4.1 compiler.
+- Adjusted Jamfiles for the new toolset names introduced in Boost V1.32.
+
+Version 1.1.11
+- Updated copyrights.
+- Fixed some bugs introduced by the latest refactoring.
+- Tried to fix the expansion of macros, which replacement-list terminates in a
+  partial macro expansion. No success so far.
+
+Version 1.1.10
+- Refactored some of the macro map (macro namespace) code (added comments,
+  splitted into separate files),
+- Fixed some typename errors in cpp_macromap.hpp (thanks to Vladimir Prus).
+- Fixed the BoostBuild V2 Jamfiles (thanks to Vladimir Prus).
+
+Version 1.1.9
+- Moved all of the #pragma wave option(value) operators out of the wavelib into
+  the wave driver program. Removed enable_trace() and trace_flags() policy
+  functions. Renamed trace_policy into context_policy.
+- Added the defined_macro() and undefined_macro() preprocessing hooks to allow
+  easily to build macro cross referencers and such.
+
+Version 1.1.8
+- Replaced the usage of the string::erase() and string::insert() functions,
+  which were the only non-const string member functions used.
+- Token pasting is now well defined in variadics mode (was in C++0x mode only).
+- Changed the timing code in the wave driver to include the parsing of
+  files included by the --forceinclude command line switch.
+- Performance measurements (very informal) [sec], the files are some of the
+  preprocessor specific test cases from Paul Mensonides chaos_pp library.
+
+                        std::string   flex_string   const_string   const_string
+                                                      12 Byte        28 Byte
+    arithmetic.cpp        2.543          1.742         0.951           1.001
+    array.cpp             2.453          1.762         0.951           1.011
+    comparison.cpp        0.560          0.340         0.270           0.280
+    control.cpp           0.590          0.340         0.290           0.300
+    debug.cpp             0.370          0.310         0.190           0.190
+    detection.cpp         0.050          0.060         0.030           0.030
+    extended.cpp          0.370          0.260         0.190           0.190
+    facilities.cpp        0.610          0.340         0.290           0.300
+    iteration.cpp         1.081          0.550         0.410           0.450
+    list.cpp              1.742          1.141         0.811           0.851
+    logical.cpp           0.070          0.200         0.040           0.040
+    punctuation.cpp       0.030          0.080         0.020           0.020
+    repetition.cpp        1.392          0.851         0.650           0.690
+    selection.cpp         0.440          0.270         0.210           0.220
+    slot.cpp              0.680          0.350         0.240           0.270
+    tuple.cpp             0.420          0.240         0.190           0.210
+
+
+Wed Aug 25 13:23:27 WEDT 2004
+Version 1.1.7
+- Branched for Boost Release.
+- Removed several features from the code base:
+  . removed C++0x support
+  . removed TST support
+- Fixed the program_option validator syntax, which has changed since the last
+  update.
+- Removed misleading configuration options from the cpp_config.hpp file,
+  because the application will have to use the same config options as were used
+  during the compilation of the library.
+- Changed the naming convention of typedef'd types in the library. Removed the
+  _t suffix, wherever possible.
+- Updated the documentation to reflect the removal of the C++0x features.
+
+- Changed the licensing scheme to:
+// Copyright 2004 Joe Coder. Distributed under the Boost
+// Software License, Version 1.0. (See accompanying file
+// LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+Mon May 24 10:02:47 WEDT 2004
+Version 1.1.6
+- Fixed a incompatibility with the new program_options version.
+
+Version 1.1.5
+Version 1.0.6
+- Fixed a bug, which reported an #include statement as ill formed, if it was
+  followed by an empty C comment only. This was an error in the cpp.re regular
+  expression for C comments. Additionally, since this change simplified the
+  Re2C generated lexer a lot it was possible to remove the compiler workaround
+  for the VC7.1 compiler which prevented the optimization of this lexer.
+
+Mon Mar 29 09:36:59 WEDT 2004
+- Corrected the signature of the main() functions (was main(int, char const*[])).
+
+Sun Mar 28 12:55:59 WEDT 2004
+Version 1.1.4
+- Fixed a problem, where the first returned token was lost, whenever a
+  --forceinclude file was given.
+- Adjusted the Wave driver and the other samples to use the new program_options
+  library syntax (V1.1.x only).
+
+Mon Mar  1 19:14:21 WEST 2004
+Version 1.1.2
+Version 1.0.4
+- Fixed a problem, which does not report an error, if in a #define statement in
+  between a macro name and its replacement list were no whitespace given.
+- Fixed a bug, which generated an unexpected exception of the $ character in the
+  input.
+- Macro definitions, which differ by whitespace only (one definition contains
+  whitespace at a certain position, the other definition does not) are correctly
+  reported as a warning now.
+- Fixed a problem, where different formal argument names during macro
+  redefinition were not flagged as a warning.
+- A wide character string used in a #line directive wasn't flagged as an error.
+
+Sun Feb 29 19:10:14 WEST 2004
+Used the test suite distributed with the mcpp V2.4 preprocessor to fix a bunch
+of mostly minor issues:
+- Fixed trigraph backslash followed by a newline handling (??/ \n) in the
+  re2c (C/C++ and IDL) scanners.
+- Fixed a digraph/trigraph token type handling problem during macro expansion.
+- Fixed a digraph/trigraph token type problem during handling of the null
+  preprocessor directive.
+- Fixed several signed/unsigned conversion bugs in the expression evaluator.
+- Fixed the || and && operators in the expression evaluator to stop evaluation,
+  as only the outcome of the overall expression is determined.
+- Fixed the expression evaluation engine to detect divide by zero errors.
+- Fixed a bug with operator || and && arithmetic (the deduced type was wrong).
+- Fixed a bug with the unary operators ! and - which IN conjunction with an
+  arithmetic operation yielded A wrong result type.
+- Fixed a bug, which reported a macro definition as an invalid redefinition, if
+  it was different from the original definition only by different whitespaces.
+- Fixed a bug, which reported the redefinition of one of the alternative tokens
+  as 'and', 'bit_and' etc. as invalid.
+- Fixed a bug in the character literal parser, which prevented the recognition
+  of multibyte character literals.
+
+- Moved the cpp_token_ids.hpp header into the main wave.hpp header, because the
+  values defined therein aren't changeable by the user anyway.
+- Fixed some spelling errors in the documentation (thanks to Rob Stewart).
+
+Tue Feb  3 20:20:16 WEST 2004
+- Fixed the problem, that macro definitions in a config file were flagged as
+  an error, if there was any whitespace in between the -D and the macro name
+  (same problem existed for -P).
+
+Fri Jan 30 20:28:27 WEST 2004
+- Fixed a missing boostification in the trace support header.
+- Added a missing std:: namespace qualification to the list_includes.cpp sample
+  file.
+- Fixed line ending problems with the cpp.re and idl.re files.
+- Added quick_start sample.
+
+Sun Jan 25 20:26:45 WEST 2004
+This version was submitted to Boost as the review candidate (V1.1.0)
+- Fixed invalid explicit instantiation syntax as reported by the Comeau
+  compiler.
+- Added a missing header to flex_string.hpp.
+
+Sat Jan 24 19:47:44 WEST 2004
+- Completely decoupled the used lexer from the preprocessor.
+- Unfortunately had to change the template interface of the context class. It
+  now instead of the token type takes the type of the lexer to use.
+- Reintroduced the cpp_tokens, list_includes and waveidl samples.
+  . cpp_tokens is based on the SLex lexer
+  . list_includes shows the usage of the include file tracing capability
+  . waveidl uses the Re2C based IDL lexer in conjunction with the default token
+    type
+
+Tue Jan 13 20:43:04 WEST 2004
+- Fixed several compilation issues under linux (gcc 3.2.3, gcc 3.3, gcc 3.3.2,
+  gcc 3.4, Intel V7.1)
+- Fixed a compatibility problem with Spirit versions older than V1.7.
+
+Mon Jan 12 20:39:50 WEST 2004
+- Boostified the code base:
+  . Moved code into namespace boost.
+  . Prefixed all pp constants with "BOOST_".
+  . Refactured the directory structure.
+- Removed IDL mode and SLex lexer from the code base. These will be re-added as
+  samples.
+- Changed the Wave configuration system to be more flexible (all
+     #if defined(BOOST_WAVE_...) changed to #if BOOST_WAVE_... != 0),
+  which allows to configure the library without changing the code base itself
+
+Sat Jan 10 18:17:50 WEST 2004
+- Incorporated Andrei Alexandrescu's latest changes to the flex_string class,
+  which resulted in an overall spedd gain of about 5-10%.
+
+Wed Jan  7 17:46:45 WEST 2004
+- Found a major performance hole! The achieved general speedup is about 50-70%.
+- Added missing old MS specific extensions to the re2c lexer (_based,
+  _declspec, _cdecl, _fastcall, _stdcall, _inline and _asm).
+- Added support for #include_next (as implemented by gcc).
+- Fixed compilation problems with gcc 3.3.1
+- Avoid to look up in symbol table of a potential macro name twice.
+- Added the Spirit SLex lexer sample to the Wave source tree, because it was
+  removed from the Spirit distribution.
+- Removed the configuration option, which allowed to reverse the names stored
+  in the symbol tables.
+- Implemented experimental support for using a TST (ternary search tree) as the
+  container for the symbol tables.
+
+Sun Jan  5 12:30:50     2004
+- Released V1.0.0
+
+Sun Jan  4 00:11:50     2004
+- Removed tabs from the flex_string.hpp file.
+- Modified the input_functor.hpp file to sqeeze out some milliseconds at
+  runtime.
+- The --timer option now prints the overall elapsed time even if an error
+  occured.
+- Added support for #pragma once.
+
+Fri Jan  2 22:58:54     2004
+- Fixed a bug in the code, which predefines the preprocessor constants.
+- Fixed a bug in intlit_grammar<> initialisation code.
+
+Thu Jan  1 21:15:03     2004
+- Fixed a bug while predefining a macro with a value through the commmand line.
+- Fixed a bug, which reported a macro definition as illegal, if the redefined
+  macro was a function like macro with parameters.
+- Fixed a bug, if concatenation of two tokens resulted in a C++ comment start
+  token.
+
+Thu Jan  1 15:01:54     2004
+- Finished license migration.
+
+Wed Dec 31 12:23:55     2003
+- Changed the copyright and licensing policiy to be Boost compatible.
+
+Wed Dec 31 12:01:14     2003
+- Fixed a problem while compiling certain headers from the Microsoft Windows
+  SDK:
+        #define CreateWindowA(lpClassName, lpWindowName, dwStyle, x, y,\
+        nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam)\
+        CreateWindowExA(0L, lpClassName, lpWindowName, dwStyle, x, y,\
+        nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam)
+  where essentially is no whitespace between the parameter list and the macro
+  replacement list.
+- Fixed a problem with the MS extension __declspec, which now is recognized
+  correctly.
+
+Sat Dec 27 14:48:29     2003
+- Fixed remaining problems with assign/assign_a.
+- Fixed some gcc warnings about signed/unsigned comparision mismatch.
+
+Tue Nov 11 20:51:41 WEST 2003
+- Changed the IDL mode to recognize identifiers only. All keywords (except
+  'true' and 'false') are returned as identifiers. This allows for easy
+  extension of the IDL language. The drawback is, that after preprocessing
+  there needs to be just another lexing stage, which recognizes the keywords.
+- Fixed a possible problem, when in between a #if/#elif directive and a
+  subsequent opening parenthesis Wave finds no whitespace:
+    #if(_WIN_VER >= 0x0500)
+  is now recognized correctly.
+  (This problem was pointed out by Porter Schermerhorn).
+
+Sun Nov  9 21:05:23 WEST 2003
+- Started to work on implementation of an IDL lexer for the TAO idl compiler.
+  . Branched off the Re2C C++ lexer and related files as a starting point for
+    the new IDL lexer. Added connfiguration means to allow compile time
+    decision, in which mode to operatoe (C++ or IDL).
+  . Implemented the Re2C based IDL lexing component.
+  . Fixed all occurences of non-IDL tokens (as T_COLON_COLON and T_ELLIPSIS)
+
+Sat Nov  8 20:05:52 WEST 2003
+- Version 1.0.0
+- Munged the email addresses embedded within the source files.
+- Adjusted for the new actor names in Spirit (assign_a and append_a).
+
+Thu Aug 21 16:54:20     2003
+- Removed the internally used macro 'countof()' to avoid possible nameclashes
+  with user code.
+- Fixed a bug, which prevented the execution of the concatination operator '##'
+  while expanding object-like macros.
+
+Tue Aug  5 10:04:00     2003
+- Fixed a false assertion, if a #pragma directive started with some whitespace
+  on the line.
+- Added the #pragma wave timer() directive to allow rough timings during
+  processing. This is done on top of a new callback hook for unrecognized
+  #pragma's, which allows to easily add new pragma commands without changing
+  the Wave library.
+- Fixed a bug in the whitespace insertion engine, which prevented the insertion
+  of a whitespace token in between two consecutive identifier tokens or a
+  integer literal token followed by an identifier token.
+- Fixed a bug during macro concatenation, which allowed to concatenate
+  unrelated tokens from the input stream:
+    #define CAT(a, b) PRIMITIVE_CAT(a, b)
+    #define PRIMITIVE_CAT(a, b) a ## b
+    #define X() B
+    #define ABC 1
+    CAT(A, X() C) // AB C
+    CAT(A, X()C)  // correct: AB C, was 1
+- Fixed a 64 bit portability problem.
+- Added pragma wave timer(suspend) and wave timer(resume)
+- Fixed a ODR problem with static initialization data for predefined macros.
+- Ported the iterators to the new iterator_adaptors.
+- Updated the documentation to reflect the recent changes
+
+Sun Jun 29 12:35:00     2003
+- Fixed 64 bit compatibility warnings.
+- Fixed a bug, which prevented the correct recognition of a #line directive, if
+  only the filename part of this directive was generated by a macro expansion.
+- Fixed a bug during macro expansion of conditional expressions, which
+  prevented the correct expansion of certain scoped macros.
+
+Fri Jun 27 09:50:14     2003
+- Changed the output of the overall elapsed time (option --timer) to cerr.
+- Added a configuration constant WAVE_REVERSE_MACRONAMES_FOR_SYMBOLTABLE, which
+  reverses the macro names while storing them into the symbol table, which
+  allows to speed up name lookup especially, if the macro names are very long
+  and if these share a common prefix.
+- Fixed a very subtle bug, which prevented the recognition of fully qualified
+  macro names during the macro expansion of conditionals expressions (for
+  #if/#elif).
+- Improved the error output for the illformed pp expression error.
+
+Thu Jun 26 08:20:30     2003
+- Done a complete spell check of the source code comments.
+
+Wed Jun 25 20:33:52     2003
+- Changed the conditional expression engine to work with integer numeric
+  literals only. Distinguished signed and unsigned literals.
+- Importing a region twice is allowed now.
+- Fixed a bug, which does not removed all placeholder tokens from a expanded
+  token sequence while evaluating conditional expressions (C++0x mode only).
+
+Wed Jun 25 15:01:51     2003
+- Changed the conditional expression engine to respect the type of numeric
+  literals, now expressions like '#if 1 / 10 == 0' evaluate correctly (to true
+  :-)
+- Fixed a bug, where macro names referring to global macros (as ::A::B) were
+  not correctly recognized under certain circumstances.
+- Empty parameter lists for macros with ellipses only sometimes generated a
+  placemarker token in the output:
+    #define STR(...) #__VA_ARGS__
+    STR()   // resulted in "§" instead of "" .
+
+Wed Jun 25 08:35:06     2003
+- Fixed several gcc compilation errors (missing typename's etc.)
+- Fixed a compilation problem, if Wave is built on top of the SLEX scanner.
+- Reformatted the --timer output from pure seconds to a more reasonable format.
+
+Fri Jun 20 19:33:30     2003
+- Changed the enable_tracing function of the tracing_policies to take a
+  trace_flags variable instead of a bool, to allow to control tracing with more
+  granulation.
+- Added the tracing_enabled function to the tracing_policies, which returns the
+  current tracing status.
+- Updated the documentation of the tracing policies.
+
+Thu Jun 19 21:45:39     2003
+- Reactivated the list_includes sample with the help of the new include file
+  tracing facility.
+
+Thu Jun 19 17:55:35     2003
+- Eliminated the TraceT template parameter from the macromap<> template.
+- Added two hooks to the trace policy to allow to trace the opening and
+  closing of include files.
+
+Thu Jun 19 14:08:10     2003
+- Added the command line option --timer, which enables the output to std::cout
+  of the overall elapsed time during the preprocessing of the given file.
+
+Fri Jun 13 09:11:29     2003
+- Emitted an error message, if an ellipses was found as a formal macro
+  parameter and variadics were disabled.
+- Fixed a false error message, that the last line was not terminated with a
+  newline, which occured, if no output was generated by the last line of the
+  source file.
+
+Thu Jun 12 15:20:22     2003
+- Fixed the recent change in argument expansion for the variadics/C99/C++0x
+  mode.
+- Fixed a problem, where an additional whitespace between _Pragma and the
+  opening parenthesis resulted in a false error message.
+- Used a pool allocator for the token sequence containers (std::list<>'s),
+  which gives a speed gain of more than 60% (while profiling the Order
+  library).
+
+Wed Jun 11 22:18:54     2003
+- Fixed a macro scoping/expansion problem, when a macro returned a full scope
+  which is continued on the call site to form a full qualified name, the name
+  wasn't recognized correctly:
+    # region A
+    #  define MACRO 1
+    #  region B
+    #   define MACRO 2
+    #  endregion
+    # endregion
+    # define ID(x) x
+    ID(A)::MACRO     // 1
+    ID(A::B)::MACRO  // 2, was expanded to A::B::MACRO
+- Changed the expansion of macro arguments such, that these will be expanded
+  only, if the result is to be used for substitution during the expansion
+  of the replacement list.
+
+Wed Jun 11 14:40:29     2003
+- Included a whitespace eating finite state machine (FSM) for minimal
+  whitespace in the generated output. This was suggested by Paul Mensonides.
+- Updated the acknowledgement section
+
+Wed Jun  4 08:03:04     2003
+- Fixed a bug reported by Faisal Vali, which prevented the correct evaluation
+  of conditional expressions, if these referenced macro names, which expanded
+  to a sequence containing non-expandable tokens.
+- Fixed the above bug for #elif directives too (in the first place this was
+  fixed for #if directives only)
+
+Mon May 26 22:15:40     2003
+- Added missing copyrights in several files.
+- Fixed false output, if a unknown _Pragma were encountered.
+- Fixed a macro expansion problem with qualified names, were constructs like
+  the following were not expanded correctly:
+    #define ID(x) x
+    #region SCOPE
+    #  define TEST 1
+    #endregion
+    ID(SCOPE::) TEST    // should expand to 1
+- Changed #import semantics for macros from copy semantics to reference
+  semantics, i.e. macros are now considered to be implicitly imported into the
+  scope, where they are defined. If a macro is imported into another scope and
+  the original macro is undefined, the imported macro still exists. Further,
+  if the imported macro is expanded, then while rescanning the original macro
+  is disabled too:
+    #region A
+    #  define B(x) x
+    #endregion
+    #import A
+    B    (A::B) (*) // A::B(*)
+    A::B (B)    (*) // B(*)
+    B    (B)    (*) // B(*)
+    A::B (A::B) (*) // A::B(*)
+- Fixed a recently introduced problem, where placemarker tokens slipped through
+  to the output under certain conditions (in variadics/C99/C++0x modes only).
+
+Mon May 19 16:30:49     2003
+- Fixed a bug, which prevented the recognition of the __lparen__, __rparen__ or
+  __comma__ alternative tokens, if these were the first token after an emitted
+  #line directive (reported by Vesa Karvonen).
+- Added an optimization, that only those tokens are considered for a macro
+  expansion, which may result in an expansion.
+
+Tue May 13 18:16:26     2003
+- Fixed a newly introduced problem, where a omitted argument consisting out
+  of whitespace only were failed to be replaced by a placemarker token. This
+  lead to problems with constructs like the following:
+    #define paste(a, b, c) a ## b ## c
+    paste(1, , 3)  // should expand to 13, but expanded to 1## 3
+- Fixed a problem with the tracing support, which throwed an unexpected
+  exception if there were too few arguments given while expanding a macro.
+- Allowed to open and to import the global scope ('#region ::' and
+  '#import ::').
+- Fixed a bug, if more than one file was given with a --forceinclude command
+  line option.
+
+Sat May 10 21:30:29     2003
+- Added __STDC_FULL_REGION__ and __STDC_CURRENT_REGION__ to the list of not
+  undefinable macros.
+- In normal C++ mode and C99 mode the #ifdef/#ifndef and the operator defined()
+  should not support qualified names. This is fixed now.
+- Updated the documentation.
+- Fixed minor gcc -Wall compilation warnings.
+- Added better error support for qualified names used as arguments for #ifdef,
+  #ifndef and operator defined().
+
+Sat May 10 09:51:18     2003
+- Removed the feature, that the comma before the ellipsis parameter in a macro
+  definition may be omitted.
+- Resolved an issue with the expansion of qualified macros, when these
+  qualified names were partially generated by a previous macro expansion
+- Allowed to specify fully qualified names as arguments to the #region directive
+
+Wed May  7 22:44:21     2003
+- Changed the names of __SCOPE__ and __FULL_SCOPE__ predefined macros to
+  __STDC_CURRENT_REGION__ and __STDC_FULL_REGION__ resp. The names are subject
+  to change if the #region keyword actually will be renamed to #scope/#module
+  or whatever.
+- In C++0x mode it is now possible to omit the last comma before a variadics
+  ellipsis in a macro definition:
+    #define cat_i(a, b, c, d, e ...) a ## b ## c ## d ## e
+- Fixed a bug in the stringize code, where an ellipsis to stringize resulted in
+  stringizing of the first ellipsis parameter only. Preserved the original
+  whitespace delimiting in between the ellipsis arguments.
+- Introduced the wave::language_support enum for convenient switching of the
+  supported language features throughout the library.
+- Fixed a bug, which prevented the definition of the predefined macro
+  __WAVE_HAS_VARRIADICS__, if --variadics were given on the command line.
+
+Tue May  6 15:49:45     2003
+- Made predefined macros available at every macro scope without qualification.
+- Predefined a new macro in C++0x mode: __STDC_GLOBAL__, which is defined at
+  global macro scope only and equals to '1' (integer literal).
+- In C++0x mode there are two new predefined macros:
+    __SCOPE__:      expands to the last part of the qualified name of the
+                    current macro scope
+    __FULL_SCOPE__: expands to the full qualified name of the current macro
+                    scope
+
+Mon May  5 23:02:48     2003
+- Fixed a problem in the new well defined token pasting code, which occured for
+  constructs like the following:
+    #define is_empty(...) is_empty_ ## __VA_ARGS__ ## _other
+  i.e. where two or more '##' operators were contained in the replacement text.
+- Implemented __comma__, __lparen__ and __rparen__ alternative pp-tokens, which
+  may be used as the ',', '(' and ')' tokens during preprocessing. These are
+  only converted to there respective string representation in a special
+  translation phase after preprocessing. This was proposed by Vesa Karvonen.
+- Changed the macro scoping rules to: "If a qualified name does not find a
+  nested name, it is not a qualified name to the preprocessor." This seems to
+  be the simplest usable solution for the possible ambiguities.
+- Fixed a bug in the macro expansion engine in C++0x mode, where the skipping
+  of whitespace inside of a qualified name wasn't consistent.
+
+Sun May  4 10:48:53     2003
+- Fixed a bug in the expression grammar, which prevented 'not' to be recognized
+  as a valid operator.
+- Qualified names are now supported as parameters to #ifdef and #ifndef too.
+- Remove one specialization of the macro expansion engine. It gets instantiated
+  only twice now (for the main input iterator and for list<>'s  of tokens.
+- Simplified the required explicit specialization of the defined_grammar
+  template. It has to be explicitely instantiated by providing the token type
+  only (just as for the explicit instantiations of the other grammars).
+
+Fri May  2 22:44:27     2003
+- Qualified names are now allowed as parameters to the operator defined() in
+  C++0x mode.
+- Separated the defined() functionality into a separate translation unit to
+  work around a VC7.1 ICE.
+
+Fri May  2 15:38:26     2003
+- The C++0x mode now has a special set of predefined macros.
+- The predefined macro __WAVE_HAS_VARIADICS__ is now defined in C99 and C++0x
+  modes too (--variadics is implied for these modes).
+- Updated the documentation to reflect the recent changes and additions.
+- In C++0x mode Wave now supports macro scopes:
+    - new keywords #region/#endregion/#import
+    - qualified macro names
+- In C++0x mode Wave now supports token pasting of unrelated tokens. These are
+  concatenated, the result is re-tokenized and inserted into the output stream.
+- Fixed a minor bug in the macro expansion engine, if a qualified function-like
+  macro was found in an object-like context.
+- Fixed an issue with well defined token pasting of unrelated tokens.
+
+Tue Apr 29 08:47:37     2003
+- Fixed a bug in the macro expansion engine, which prevented the expansion
+  of a certain macro under specific conditions (if the left of two tokens to
+  concatenate were a disabled one (T_NONREPLACABLE_IDENTIFIER), then the
+  resulting token was disabled too).
+- Added additional diagnostics to the Wave driver to disambiguate the C99 and
+  C++0x modes.
+- Implemented a new API function and a corresponding Wave driver command line
+  option, which allows to specify one or more include files to be preprocessed
+  before the regular file is preprocessed (the files are processed as normal
+  input and all the resulting output is included, before processing the regular
+  input file). The Wave driver command line option is --forceinclude (-F).
+- Wave now compiles the Order library from Vesa Karvonen.
+
+Mon Apr 28 07:57:10     2003
+- Fixed a bug in the macro expansion engine.
+- Removed a lot of (not needed) whitespace in the generated output (but still
+  not optimal).
+
+Sat Apr 26 20:30:53     2003
+- Fixed a bug in the initialization code of the Slex lexer while working in
+  C99 mode (reported by Reece Dunn).
+
+Fri Apr 18 08:37:35     2003
+- Fixed the handling of option_value's inside of pragma directives:
+    _Pragma("wave option(option_value)")
+  inside which all all whitespaces were deleted.
+- Started to implement experimental macro scoping.
+
+Thu Apr 10 10:20:07     2003
+- Fixed a problem with the #pragma wave stop(), where only the first token
+  inside the stop directive was output, when the preprocessor stops in result
+  of this pragma.
+- Implemented a new #pragma wave system(command), which spawns a new operation
+  system command exactly as specified inside the system directive, intercepts
+  the stdout output of this process, retokenizes this output and inserts the
+  generated token sequence in place of the original #pragma or operator _Pragma.
+  Please note that the generated output is _not_ subject to any macro expansion
+  before its insertion as the replacement of the pragma itself. If you need to
+  macro expand the replacement text, you always may force this by writing:
+    #define SCAN(x) x
+    SCAN(_Pragma("wave system(...)"))
+  which re-scans the replacement once.
+- Replaced the Wave position_iterator with the boost::spirit::position_iterator
+  (without any problems!).
+
+Mon Apr  7 10:45:30     2003
+- Fixed macro_trace_policies::expand_object_like_macro not to be called with
+  the formal arguments as one of its parameters.
+- Updated the documentation to reflect the changes needed for the tracing
+  stuff.
+
+Mon Mar 31 19:07:05     2003
+- Fixed variadics support in the trace output.
+- Fixed preprocessing of operator _Pragma() before it's execution.
+- Added _Pragma("wave stop(errmsg)") (#pragma wave stop(errmsg)) to allow
+  diagnostics output from inside macro expansion.
+- Fixed operator _Pragma for unknown pragmas (these are simply put through to
+  the output).
+- Implemented a maximal possible include nesting depth to avoid an out of
+  memory error. The initial value for this is configurable through the compile
+  time constant WAVE_MAX_INCLUDE_LEVEL_DEPTH, which defaults to 1024, if not
+  given.
+  Additionally this may be enlarged through a new command line option:
+  -n/--nesting (Wave driver only).
+
+Sun Mar 30 20:40:17     2003
+- Implemented the predefined macro __INCLUDE_LEVEL__, which expands to a
+  decimal integer constant that represents the depth of nesting in include
+  files. The value of this macro is incremented on every '#include' directive
+  and decremented at every end of file.
+- Implemented the operator _Pragma(). It is recognized in C99 mode and whenever
+  variadics are enabled.
+
+Sun Mar 30 08:30:12     2003
+- Changed the tracing format to be more readable.
+- Changed the tracing #pragma's to
+    enable tracing:     #pragma wave trace(enable)
+    disable tracing:    #pragma wave trace(disable)
+  or
+    enable tracing:     #pragma wave trace(1)
+    disable tracing:    #pragma wave trace(0)
+- Changed the semantics of the -t (--traceto) switch. Without any -t switch
+  there isn't generated any trace output at all, even, if the corresponding
+  #pragma directives are found. To output the trace info to a file, the
+  '-t file' syntax may be used, to output to std::cerr, the '-t-' (or '-t -')
+  syntax may be used.
+
+Fri Mar 28 17:27:25     2003
+- Added a new template parameter to the wave::context<> object, which allows
+  to specify a policy for controlling the macro expansion tracing. The default
+  macro_trace_policy does no tracing at all. This way one can add specific
+  macro expansion tracing facilities to the library.
+- #pragma directives starting with a STDC identifier are no longer not macro
+  expanded in C++ mode, in C++ mode these are now expanded as usual, in C99
+  mode not.
+- The tracing can be enabled/disabled from inside the preprocessed stream by
+  inserting a special #pragma directive:
+    enable tracing:     #pragma wave_option(trace: enable)
+    disable tracing:    #pragma wave_option(trace: disable)
+- The Wave driver now allows to specify a destination for the macro expansion
+  tracing trough a new command line switch: '-t path' or '--traceto path'. If
+  this option isn't given, the trace output goes to stderr.
+- The Wave driver now allows to specify the name of the file, where the
+  preprocessed result stream is to be saved: '-o path' or '--output path'. If
+  this option is not given, the output goes to stdout.
+
+Wed Mar 26 20:39:11     2003
+- Fixed a problem with alternative tokens (as 'and', 'or' etc.) and trigraph
+  tokens, which were not correctly recognized inside #if/#elif expressions.
+- Alternative tokens ('and', 'or' etc.) are no longer subject to a possible
+  macro redefinition.
+- Fixed the special handling of 'true' and 'false' during the macro expansion
+  of #if/#elif expressions.
+
+Tue Mar 25 12:12:35     2003
+- Released Wave V0.9.1
+
+Mon Mar 24 13:34:27     2003
+- Implemented placemarkers, i.e. Wave now supports empty arguments during macro
+  invocations. This must be enabled by means of a new pp constant:
+  WAVE_SUPPORT_VARIADICS_PLACEMARKERS which must be defined to enable the
+  placemarker and variadics code and by defining the command line option
+  '--variadics' (Wave driver only).
+- Implemented variadics, i.e. Wave now supports macros with variable parameter
+  counts. This must be enabled by means of the pp constant:
+  WAVE_SUPPORT_VARIADICS_PLACEMARKERS which must be defined to enable the
+  placemarker and variadics code and by defining the command line option
+  '--variadics' (Wave driver only).
+- Implemented a C99 mode. This mode enables variadics and placemarkers by
+  default and rejects some specific C++ tokens (as the alternate keywords and
+  '::', '->*', '.*'). This mode must be enabled by the means of the pp constant
+  WAVE_SUPPORT_VARIADICS_PLACEMARKERS (see above). The C99 mode is enabled by
+  the command line switch '--c99' (Wave driver only).
+  This involved some changes in the C99/C++ lexers.
+
+Fri Mar 21 16:02:10     2003
+- Fixed a bug in the macro expansion engine, which prevented the expansion of
+  macros, which name was concatenated out of a identifier and a integer
+  followed directly by another identifier:
+    #define X() X_ ## 0R()  // note: _zero_ followed by 'R'
+    #define X_0R() ...
+    X() // expanded to:  X_0R(), but should expand to ...
+  This is a problem resulting from the fact, that the Standard requires the
+  preprocessor to act on so called pp-tokens, but Wave acts on C++ tokens.
+
+Thu Mar 20 21:39:21     2003
+- Fixed a problem with expression parsing (#if/#elif constant expressions),
+  which failed to produce an error message for expressions like
+    #if 1 2 3 4 5
+  i.e. where the token sequence starts with a valid constant expression, but
+  the remainder of the line contained other tokens than whitespace.
+- Integrated the flex_string class from Andrei Alexandrescu (published on the
+  CUJ site) to get COW-string behaviour for the token values and position
+  filename strings. This resulted in a major overall speedup (about 2-3 times
+  faster in dependency of the complexity of pp usage in the input stream).
+- Fixed a bug, which reported ill formed #if/#else expressions as errors, even
+  if the current if block status (conditional compilation status) is false.
+- Added a warning, if the last line of a file does not end with a newline.
+- Improved error recognition and handling for malformed preprocessor directives
+
+Mon Mar 17 19:53:29     2003
+- Fixed a concatenation problem: constructs like a##b##c where expanded
+  incorrectly.
+- Optimized the recognition of pp directives:
+    - the parser is used only, if the next non-whitespace token starts a pp
+      directive
+    - null directives now are recognized without calling the parser
+    - the parser isn't called anymore, if the if_block_status is false and no
+      conditional pp directive (#if etc.) is to be recognized.
+  These optimizations give a speed improvement by upto 40%.
+- Removed adjacent whitespace during macro expansion (needs to be revised,
+  since there is some whitespace left, which may be removed)
+
+Sun Mar 16 23:19:11     2003
+- Fixed a problem with include paths given on the command line, if the file
+  to preprocess was not given as a full path (driver executable).
+- Fixed a problem with path names containing blanks (driver executable).
+- Cleaned command line and argument handling (driver executable).
+- Fixed a severe memory leak.
+- Fixed a bug, if a C++ keyword was used as a macro name or macro parameter
+  name, which prevented the macro recognition and expansion to function
+  properly.
+- Implemented the WAVE_SUPPORT_MS_EXTENSIONS compiler switch for the re2c
+  generated lexer too.
+- Fixed a problem, which caused an internal T_PLACEHOLDER token to show up
+  outside the macro replacement engine.
+- Fixed a problem with macro #include directives, which prevents to find the
+  file to include, if after the macro expansion the token sequence representing
+  the filename began or ended with at least one whitespace token.
+- Fixed a problem, which caused a false error message if the '#' character was
+  to be concatenated with an arbitrary other token.
+- The concatenation of a whitespace token with an arbitrary other token was
+  reported as illegal token pasting (but it is certainly not).
+
+Sat Mar 15 21:43:56     2003
+- Added a default constructor to the wave::util::file_position template.
+- Report the concatenation of unrelated tokens as an error.
+- Finished the documentation.
+
+Fri Mar 14 20:14:18     2003
+- More work on documentation
+- Changed file_position to expose accessor functions (the member variables are
+  marked as private now). This opens up the possibility to provide another
+  file_position implementation, which may be optimized in some way.
+- Fixed a problem with the token name table, the alternate and trigraph token
+  names were printed incorrectly.
+- Fixed a bug, which prevented the correct recognition of 'defined X' (without
+  parenthesises).
+- Fixed a bug, which allowed to redefine and undefine the predefined name
+  'defined'.
+- Fixed a bug, which prevents the correct recognition of a macro based #include
+  directive, if it expands to something like #include <...>.
+- Fixed a bug, which prevented the recognition of duplicate macro parameter
+  names.
+- Removed the insertion of additional whitespace inside of string literals
+  (during stringizing).
+
+Wed Mar 12 19:16:40     2003
+- Fixed a bug, which prevented the instantiation of the wave::context object
+  with auxiliary iterators. The token type isn't coupled anymore with the
+  iterator type.
+  This required some changes in the interface:
+    - The wave::context object now has three template parameters (the iterator
+      type, the token type and the input policy type)
+    - The token type does not have the iterator type as it's template parameter
+      anymore.
+- Implemented a new position_iterator template on top of the iterator_adaptor<>
+  template to make it work even for input_iterator type iterators.
+- Fixed a bug in the regular expressions for the Slex lexer.
+- The function 'set_sys_include_delimiter()' was renamed to
+  'set_sysinclude_delimiter()' to better fit the naming scheme of the other
+  functions.
+- Wrote more documentation
+- Unified the different token definitions of the lexers, so that there is only
+  one token type left. This required some changes in the interface:
+    - There is no need anymore to explicitly specify the namespace of the token
+      type to use.
+- Added the command line option -P to the Wave driver program, which predefines
+  a macro (i.e. defines it such, that is _not_ undefinable through an #undef
+  directive from inside the preprocessed program).
+
+Sat Mar  8 07:46:43     2003
+- Released Wave 0.9.0
+
+Thu Mar  6 20:02:44     2003
+- Compiled Wave with IntelV7.0/DinkumwareSTL (from VC6sp5)
+- Fixed new compilation problems with gcc -Wall
+- Fixed the list_includes and cpp_tokens samples to compile and link correctly.
+- Fixed a bug, where a wrong filename was reported by the generated #line
+  directive.
+- Fixed a bug, where the __FILE__ macro was expanded without '\"' around the
+  filename.
+- The generated #line directives and the expanded __FILE__ macro now report
+  the filename in a native (to the system) format. Additionally the generated
+  string literals are now escaped correctly.
+
+Wed Mar  5 21:11:14     2003
+- Reorganized the directory structure to mirror the namespace structure of the
+  library
+- Fixed a bug, where the complete input after the first found #include
+  directive were eaten up.
+- Fixed a bug, where the __LINE__ macro expanded to a incorrect linenumber, if
+  the __LINE__ macro was encountered on a line after a '\\' '\n' sequence.
+
+Tue Mar  4 11:50:24     2003
+- The new name of the project is 'Wave'.
+- Adjusted namespaces, comments etc. to reflect the new name.
+- Added the command line option -U [--undefine], which allows to remove one of
+  the predefined macros (except __LINE__, __FILE__, __DATE__, __TIME__,
+  __STDC__ and __cplusplus)
+
+Sun Mar  2 20:10:04     2003
+- Fixed a bug while expanding macros without any definition part (empty macros)
+- The pp-iterator will not emit a newline for every recognized preprocessing
+  directive anymore. The generated output is much more condensed this way.
+- The pp-iterator now emits #line directives at appropriate places.
+- Added an additional parser to the library, which may be used to parse macros
+  given in the command line syntax, i.e. something like 'MACRO(x)=definition'.
+- Added the possibility to the cpp driver sample, to add macros from the
+  command line through the -D command line switch.
+- Martin Wille contributed a test script to allow automatic testing of the
+  cpp driver sample by feeding all files contained in the test_files directory
+  through the cpp driver and comparing the generated output with the
+  corresponding expectations.
+- Added config file support to allow for predefined option sets (for instance
+  for the emulation of other compilers)
+- Changed the way, how include paths are defined. It resembles now the
+  behaviour of gcc.
+  Any directories specified with '-I' options before an eventually given '-I-'
+  option are searched only for the case of '#include "file"', they are not
+  searched for '#include <file>' directives. If additional directories are
+  specified with '-I' options after a '-I-' option was given, these directories
+  are searched for all '#include' directives. In addition, the '-I-' option
+  inhibits the use of the current directory as the first search directory for
+  '#include "file"'. Therefore, the current directory is searched only if it is
+  requested explicitly with '-I.'. Specifying both '-I-' and '-I.' allows to
+  control precisely which directories are searched before the current one
+  and which are searched after.
+- Added config file support to the cpp driver.
+- stored not only the current 'name' of a file (given eventually by a #line
+  directive) but in parallel the actual full file system name of this file too.
+
+Tue Feb 25 21:44:19     2003
+- Fixed the warnings emitted by gcc -Wall.
+- Fixed a bug in the cpp grammar, which causes to failing the recognition of
+  certain preprocessor directives if at the end of this directive were placed
+  a C++ comment.
+- Simplified and extended the insertion of whitespace tokens at places, where
+  otherwise two adjacent tokens would form a new different token, if
+  retokenized.
+
+Mon Feb 24 19:13:46     2003
+- defined() functionality was broken
+- added missing typename keywords
+- added missing using namespace statements, where appropriate
+- added a warning, when a predefined macro is to be undefined (by an #undef
+  directive)
+- removed the 'compile in C mode' hack for the re2c generated lexer (VC7.1
+  (final beta) is not able to compile it with optimizations switched on
+  anyway :( )
+- compiled with gcc 3.2 and Intel V7.0 (20030129Z)
+
+Sun Feb 23 23:39:33  2003
+- Fixed a couple of 'missing typename' bugs (thanks to Martin Wille)
+- Added code to insert whitespace at places, where otherwise two adjacent
+  tokens would form a new different token, if retokenized.
+- Fixed a severe macro expansion bug.
+- Added the handling of invalid or not allowed universal character values
+  inside of string literals and character literals.
+
+Sat Feb 22 20:52:06  2003
+- Bumped version to 0.9.0
+- Added test for invalid or not allowed universal character values (see
+  C++ Standard 2.2.2 [lex.charset] and Annex E)
+- Fixed a bug with newlines between a macro name and the opening parenthesis
+  during the macro expansion and a bug with newlines inside the parameter list
+  during the macro expansion.
+- Added the following predefined macros:
+    __SPIRIT_PP__
+        expands to the version number of the pp-iterator lib (i.e. 0x0090 for
+        V0.9.0)
+    __SPIRIT_PP_VERSION__
+        expands to the full version number of the pp-iterator lib (i.e.
+        0x00900436 for V0.9.0.436)
+    __SPIRIT_PP_VERSION_STR__
+        expands to the full version string of the pp-iterator lib (i.e.
+        "0.9.0.436")
+
+Fri Feb 21 22:09:04  2003 (feature complete!)
+- Allowed to optionally compile the Re2c generated lexer in 'C' mode, because
+  at least the VC7.1 (final beta) compiler has problems to compile it in 'C++'
+  mode with optimizations switch on
+- Implemented #error and #warning (optional) directives (C++ standard 16.5).
+  Additionally there are now allowed the following preprocessor configuration
+  constants:
+    CPP_PREPROCESS_ERROR_MESSAGE_BODY
+        if defined, preprocesses the message body of #error and #warning
+        directives to allow for better diagnostics.
+    CPP_SUPPORT_WARNING_DIRECTIVE
+        if defined, then the #warning directive will be recognized such, that
+        a warning with the given message will be issued
+- Adjusted the error handling for the Re2c generated C++ lexer, so that any
+  error inside the lexer is now propagated as an cpplexer_exception.
+- Implemented the #line directive (C++ standard 16.4)
+- Implemented #pragma directive (C++ standard 16.6)
+  Additionally there are now allowed the following preprocessor configuration
+  constants:
+    CPP_RETURN_PRAGMA_DIRECTIVES
+        if defined, then the whole pragma directive is returned as a token
+        sequence to the caller, if not defined the whole pragma directive is
+        skipped
+    CPP_PREPROCESS_PRAGMA_BODY
+        if defined, then the #pragma body will be preprocessed
+- Implemented #include directive with macro arguments (C++ standard 16.2.4)
+- Made the namespace structure finer granulated to leave only the main
+  interface classes in the main namespace cpp. All other classes are moved into
+  sub-namespaces to reflect the logical dependencies
+- Reorganized the public interface of the context<> template class, made all
+  non relevant functions into the protected.
+- Implemented predefined macros (__LINE__ et.al.) (C++ standard 16.8)
+- Further documentation work
+
+Wed Feb 19 23:44:47  2003
+- Corrected a lot of bugs in the macro expansion engine, which now should be
+  conformant to the C++ standard.
+- # (null) directive (C++ standard 16.7)
+
+Sun Feb 16 08:40:38  2003
+- Added a macro expansion engine which expands macros with arguments
+  C++ standard 16.3 [cpp.replace]
+- Added a new sample: cpp_tokens. This sample preprocesses a given file and
+  prints out the string representations of all tokens returned from the pp
+  iterator
+- Added documentation (to be continued!)
+- Added a couple of small test files to test elementary functionality
+  (the tests mainly were contributed by Paul Mensonides)
+- The main cpp sample is now a simple preprocessor driver program, which
+  outputs the string representation of the preprocessed input stream. Use
+  cpp --help to get a hint, how to use it.
+- Fixed a bug in the preprocessor grammar which failed to recognize a pp
+  statement, if there was a C++ comment at the end of the line
+- Added '#' operator (C++ standard 16.3.2) [cpp.stringize]
+- Fixed a bug in the slex based C++ lexer to handle the concatenation
+  characters correctly ('\\' followed by a '\n')
+
+Sun Feb  9 23:01:00  2003
+- Improved error handling for #if et.al.
+- Fixed a pair of lexer errors
+- Implemented the #if/#elif statements, the sample now contains a complete C++
+  expression evaluation engine (for the calculation of the outcome of the
+  #if/#elif statement conditions)
+- Implemented macro replacement (with parameters)
+- Implemented the '##' [cpp.concat] operator
+- Implemented the defined() [cpp.cond] operator
+
+Sun Feb  2 23:28:24  2003
+- Implemented the  #define, #undef, #ifdef, #ifndef, #else and #endif
+  statements
+- Added optional parse tree output as xml stream (controlled through the config
+  pp constant CPP_DUMP_PARSE_TREE)
+
+Fri Jan 31 21:30:55  2003
+- Fixed different minor issues and a border case (#include statement at the
+  last line of a included file)
+
+Wed Jan 29 21:13:32  2003
+- Fixed exception handling to report the correct error position
+- Fixed another bug in the stream position calculation scheme
+- Added a more elaborate sample 'list_includes' which lists the dependency
+  information for a given source file (see test/list_includes/readme.txt).
+
+Sat Jan 18 22:01:03  2003
+- Fixed a bug in the stream position calculation scheme
+- Made cpp::exceptions more standard conformant (added 'throw()' at appropriate
+  places)
+- Overall housekeeping :-)
+
+Wed Jan 15 21:54:20  2003
+Changes since project start (still 0.5.0)
+- Added #include <...> and #include "..." functionality
+- pp directives are now generally recognized
+- Decoupled the C++ lexers and the pp grammar to separate compilation
+  units (optionally) to speed up compilation (a lot!)
+
+Thu Jan  2 12:39:30  2003
+A completely new version 0.5.0 of the C preprocessor was started. It's a
+complete rewrite of the existing code base. The main differences are:
+- The preprocessor is now implemented as an iterator, which returns the
+  current preprocessed token from the input stream.
+- The preprocessing of include files isn't implemented through recursion
+  anymore. This follows directly from the first change. As a result of this
+  change the internal error handling is simplified.
+- The C preprocessor iterator itself is feeded by a new unified C++ lexer
+  iterator. BTW, this C++ lexer iterator could be used standalone and is not
+  tied to the C preprocessor. There are two different C++ lexers implemented
+  now, which are functionally completely identical. These expose a similar
+  interface, so the C preprocessor could be used with both of them.
+- The C++ lexers integrated into the C preprocessor by now are:
+    Slex:   A spirit based table driven regular expression lexer (the slex
+            engine originally was written by Dan Nuffer and is available as a
+            separate Spirit sample).
+    Re2c:   A C++ lexer generated with the help of the re2c tool. This C++
+            lexer was written as a sample by Dan Nuffer too.
+  It isn't hard to plug in additional different C++ lexers. There are plans to
+  integrate a third one written by Juan Carlos Arevalo-Baeza, which is
+  available as a Spirit sample.
+
+-------------------------------------------------------------------------------
+Tue Feb 12 22:29:50  2002
+Changes from 0.2.3 to 0.2.4:
+- Moved XML dumping functions to the main Spirit directory
+- Fixed operator '##', it was not correctly implemented somehow :-(
+
+Sun Feb 10 21:07:19  2002
+Changes from 0.2.2 to 0.2.3:
+- Implemented concatenation operator '##' (cpp.concat)
+- Removed defined() functionality for Intel compiler (it ICE's) until this
+  issue is resolved
+- Separated code for dumping a parse tree to XML for inclusion in the main
+  Spirit headers
+
+Thu Jan 17 23:51:21  2002
+Changes from 0.2.1 to 0.2.2:
+- Fixes to compile with gcc 2.95.2 and gcc 3.0.2 (thanks Dan Nuffer)
+- Reformatted the grammars to conform to a single formatting guideline
+- Assigned explicit rule_id's to the rules of cpp_grammar, so that the
+  access code to the embedded definition class is not needed anymore
+- Fixed a remaining const problem
+
+Tue Jan 15 23:40:40  2002
+Changes from 0.2.0 to 0.2.1:
+- Corrected handling of defined() operator
+- In preprocessing conditionals undefined identifiers now correctly
+  replaced by '0'
+- Fixed several const problems
+- Added parse_node_iterator for traversing one node in a parse_tree
+  without going deeper down the hierarchy than one level (this is useful,
+  if all inspected tokens arranged along a single node in the parse tree.
+  The main difference to the parse_tree_iterator is, that the underlying
+  iterator generally can be adjusted correctly after advancing the attached
+  parse_node_iterator
+- Fixed a problem with gcc 2.95.2, which doesn't have a <sstream> header
+- Prepared usage of slex for lexer states
+
+Sun Jan 13 10:21:16  2002
+Changes from 0.1.0 to 0.2.0:
+- Added operator 'defined()'
+- Added directive '#warning'
+- Corrected error reporting
+- Added command line option -I- for finer control of the searched include
+  directories (-I and -I- should now work as in gcc, see readme.html for
+  more info)
+- Corrected conditional preprocessing (should be fully functional now)
+- Fixed existing code base for changes made in parse tree support
+- Moved parse tree utility functions to a separate header (prepared for
+  inclusion to the Spirit main library)

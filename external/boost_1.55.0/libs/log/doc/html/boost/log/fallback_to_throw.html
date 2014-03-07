@@ -1,0 +1,78 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct fallback_to_throw</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../attributes.html#header.boost.log.attributes.fallback_policy_hpp" title="Header &lt;boost/log/attributes/fallback_policy.hpp&gt;">
+<link rel="prev" href="fallback_to_none.html" title="Struct fallback_to_none">
+<link rel="next" href="fallback_to_default.html" title="Struct template fallback_to_default">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fallback_to_none.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../attributes.html#header.boost.log.attributes.fallback_policy_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="fallback_to_default.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.fallback_to_throw"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct fallback_to_throw</span></h2>
+<p>boost::log::fallback_to_throw</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../attributes.html#header.boost.log.attributes.fallback_policy_hpp" title="Header &lt;boost/log/attributes/fallback_policy.hpp&gt;">boost/log/attributes/fallback_policy.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="fallback_to_throw.html" title="Struct fallback_to_throw">fallback_to_throw</a> <span class="special">{</span>
+
+  <span class="keyword">enum</span> <a name="boost.log.fallback_to_throw.@1"></a>@1 <span class="special">{</span> guaranteed_result = = true <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="fallback_to_throw.html#idp26051496-bb">public static functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="fallback_to_throw.html#idp26051704-bb"><span class="identifier">apply_default</span></a><span class="special">(</span><span class="identifier">FunT</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="fallback_to_throw.html#idp26053192-bb"><span class="identifier">apply_default</span></a><span class="special">(</span><span class="identifier">FunT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="fallback_to_throw.html#idp26054680-bb"><span class="identifier">on_invalid_type</span></a><span class="special">(</span><span class="identifier">type_info_wrapper</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="fallback_to_throw.html#idp26055816-bb"><span class="identifier">on_missing_value</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp55871080"></a><h2>Description</h2>
+<p>The <code class="computeroutput"><a class="link" href="fallback_to_throw.html" title="Struct fallback_to_throw">fallback_to_throw</a></code> policy results in throwing an exception if the attribute value cannot be extracted. </p>
+<div class="refsect2">
+<a name="idp55872168"></a><h3>
+<a name="idp26051496-bb"></a><code class="computeroutput">fallback_to_throw</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp26051704-bb"></a><span class="identifier">apply_default</span><span class="special">(</span><span class="identifier">FunT</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method is called in order to apply a function object to the default value. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp26053192-bb"></a><span class="identifier">apply_default</span><span class="special">(</span><span class="identifier">FunT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method is called in order to apply a function object to the default value. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp26054680-bb"></a><span class="identifier">on_invalid_type</span><span class="special">(</span><span class="identifier">type_info_wrapper</span> <span class="keyword">const</span> <span class="special">&amp;</span> t<span class="special">)</span><span class="special">;</span></pre>
+<p>The method is called when value extraction failed because the attribute value has different type than requested. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp26055816-bb"></a><span class="identifier">on_missing_value</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method is called when value extraction failed because the attribute value was not found. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fallback_to_none.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../attributes.html#header.boost.log.attributes.fallback_policy_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="fallback_to_default.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

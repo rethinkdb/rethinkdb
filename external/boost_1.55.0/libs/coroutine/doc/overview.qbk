@@ -1,0 +1,39 @@
+[/
+          Copyright Oliver Kowalke 2009.
+ Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+          http://www.boost.org/LICENSE_1_0.txt
+]
+
+[section:overview Overview]
+
+__boost_coroutine__ provides templates for generalized subroutines which allow
+multiple entry points for suspending and resuming execution at certain
+locations.
+It preserves the local state of execution and allows re-entering subroutines more
+than once (useful if state must be kept across function calls).
+
+Coroutines can be viewed as a language-level construct providing a special kind
+of control flow.
+
+In contrast to threads, which are pre-emptive, __coro__ switches are
+cooperative (programmer controls when a switch will happen). The kernel is not
+involved in the coroutine switches.
+
+The implementation uses __boost_context__ for context switching.
+
+This library is a follow-up on
+[@http://www.crystalclearsoftware.com/soc/coroutine/ Boost.Coroutine]
+by Giovanni P. Deretta.
+
+In order to use the classes and functions described here, you can either include
+the specific headers specified by the descriptions of each class or function, or
+include the master library header:
+
+    #include <boost/coroutine/all.hpp>
+
+which includes all the other headers in turn.
+
+All functions and classes are contained in the namespace __coro_ns__.
+
+[endsect]

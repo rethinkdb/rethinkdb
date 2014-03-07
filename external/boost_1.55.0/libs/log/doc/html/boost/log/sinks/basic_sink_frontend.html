@@ -1,0 +1,189 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class basic_sink_frontend</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../sinks.html#header.boost.log.sinks.basic_sink_frontend_hpp" title="Header &lt;boost/log/sinks/basic_sink_frontend.hpp&gt;">
+<link rel="prev" href="basic_formatte_idp27106456.html" title="Struct template basic_formatted_sink_backend">
+<link rel="next" href="basic_formatti_idp27135480.html" title="Class template basic_formatting_sink_frontend">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_formatte_idp27106456.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.basic_sink_frontend_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_formatti_idp27135480.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.sinks.basic_sink_frontend"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class basic_sink_frontend</span></h2>
+<p>boost::log::sinks::basic_sink_frontend &#8212; A base class for a logging sink frontend. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../sinks.html#header.boost.log.sinks.basic_sink_frontend_hpp" title="Header &lt;boost/log/sinks/basic_sink_frontend.hpp&gt;">boost/log/sinks/basic_sink_frontend.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="basic_sink_frontend.html" title="Class basic_sink_frontend">basic_sink_frontend</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">sink</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">exception_handler_type</span> <a name="boost.log.sinks.basic_sink_frontend.exception_handler_type"></a><span class="identifier">exception_handler_type</span><span class="special">;</span>  <span class="comment">// An exception handler type. </span>
+
+  <span class="comment">// <a class="link" href="basic_sink_frontend.html#boost.log.sinks.basic_sink_frontendconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="basic_sink_frontend.html#idp27120152-bb"><span class="identifier">basic_sink_frontend</span></a><span class="special">(</span><span class="keyword">bool</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="basic_sink_frontend.html#idp27113880-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="basic_sink_frontend.html#idp27114088-bb"><span class="identifier">set_filter</span></a><span class="special">(</span><span class="identifier">FunT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_sink_frontend.html#idp27115560-bb"><span class="identifier">reset_filter</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="basic_sink_frontend.html#idp27116248-bb"><span class="identifier">set_exception_handler</span></a><span class="special">(</span><span class="identifier">FunT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_sink_frontend.html#idp27117720-bb"><span class="identifier">reset_exception_handler</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_sink_frontend.html#idp27118456-bb"><span class="identifier">will_consume</span></a><span class="special">(</span><span class="identifier">attribute_value_set</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="basic_sink_frontend.html#idp27121336-bb">protected member functions</a></span>
+  <span class="identifier">mutex_type</span> <span class="special">&amp;</span> <a class="link" href="basic_sink_frontend.html#idp27121544-bb"><span class="identifier">frontend_mutex</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">exception_handler_type</span> <span class="special">&amp;</span> <a class="link" href="basic_sink_frontend.html#idp27122184-bb"><span class="identifier">exception_handler</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">exception_handler_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a class="link" href="basic_sink_frontend.html#idp27122856-bb"><span class="identifier">exception_handler</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="basic_sink_frontend.html#idp27123528-bb"><span class="identifier">feed_record</span></a><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BackendMutexT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BackendT</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a class="link" href="basic_sink_frontend.html#idp27125880-bb"><span class="identifier">try_feed_record</span></a><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BackendMutexT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BackendT</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="basic_sink_frontend.html#idp27128472-bb"><span class="identifier">flush_backend</span></a><span class="special">(</span><span class="identifier">BackendMutexT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BackendT</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="basic_sink_frontend.html#idp27130488-bb">private member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="basic_sink_frontend.html#idp27130696-bb"><span class="identifier">flush_backend_impl</span></a><span class="special">(</span><span class="identifier">BackendMutexT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BackendT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="basic_sink_frontend.html#idp27133080-bb"><span class="identifier">flush_backend_impl</span></a><span class="special">(</span><span class="identifier">BackendMutexT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BackendT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp63965864"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp63966072"></a><h3>
+<a name="boost.log.sinks.basic_sink_frontendconstruct-copy-destruct"></a><code class="computeroutput">basic_sink_frontend</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp27120152-bb"></a><span class="identifier">basic_sink_frontend</span><span class="special">(</span><span class="keyword">bool</span> cross_thread<span class="special">)</span><span class="special">;</span></pre>Initializing constructor. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">cross_thread</code></span></p></td>
+<td><p>The flag indicates whether the sink passes log records between different threads </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp63971656"></a><h3>
+<a name="idp27113880-bb"></a><code class="computeroutput">basic_sink_frontend</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp27114088-bb"></a><span class="identifier">set_filter</span><span class="special">(</span><span class="identifier">FunT</span> <span class="keyword">const</span> <span class="special">&amp;</span> filter<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets sink-specific filter functional object </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27115560-bb"></a><span class="identifier">reset_filter</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method resets the filter </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp27116248-bb"></a><span class="identifier">set_exception_handler</span><span class="special">(</span><span class="identifier">FunT</span> <span class="keyword">const</span> <span class="special">&amp;</span> handler<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets an exception handler function </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27117720-bb"></a><span class="identifier">reset_exception_handler</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method resets the exception handler function </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp27118456-bb"></a><span class="identifier">will_consume</span><span class="special">(</span><span class="identifier">attribute_value_set</span> <span class="keyword">const</span> <span class="special">&amp;</span> attrs<span class="special">)</span><span class="special">;</span></pre>
+<p>The method returns <code class="computeroutput">true</code> if no filter is set or the attribute values pass the filter</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">attrs</code></span></p></td>
+<td><p>A set of attribute values of a logging record </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp63991720"></a><h3>
+<a name="idp27121336-bb"></a><code class="computeroutput">basic_sink_frontend</code> protected member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">mutex_type</span> <span class="special">&amp;</span> <a name="idp27121544-bb"></a><span class="identifier">frontend_mutex</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns reference to the frontend mutex. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">exception_handler_type</span> <span class="special">&amp;</span> <a name="idp27122184-bb"></a><span class="identifier">exception_handler</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Returns reference to the exception handler. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">exception_handler_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a name="idp27122856-bb"></a><span class="identifier">exception_handler</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns reference to the exception handler. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27123528-bb"></a><span class="identifier">feed_record</span><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span> rec<span class="special">,</span> <span class="identifier">BackendMutexT</span> <span class="special">&amp;</span> backend_mutex<span class="special">,</span> 
+                   <span class="identifier">BackendT</span> <span class="special">&amp;</span> backend<span class="special">)</span><span class="special">;</span></pre>Feeds log record to the backend. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a name="idp27125880-bb"></a><span class="identifier">try_feed_record</span><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span> rec<span class="special">,</span> <span class="identifier">BackendMutexT</span> <span class="special">&amp;</span> backend_mutex<span class="special">,</span> 
+                       <span class="identifier">BackendT</span> <span class="special">&amp;</span> backend<span class="special">)</span><span class="special">;</span></pre>Attempts to feeds log record to the backend, does not block if <span class="emphasis"><em>backend_mutex</em></span> is locked. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27128472-bb"></a><span class="identifier">flush_backend</span><span class="special">(</span><span class="identifier">BackendMutexT</span> <span class="special">&amp;</span> backend_mutex<span class="special">,</span> <span class="identifier">BackendT</span> <span class="special">&amp;</span> backend<span class="special">)</span><span class="special">;</span></pre>Flushes record buffers in the backend, if one supports it. </li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp64021720"></a><h3>
+<a name="idp27130488-bb"></a><code class="computeroutput">basic_sink_frontend</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27130696-bb"></a><span class="identifier">flush_backend_impl</span><span class="special">(</span><span class="identifier">BackendMutexT</span> <span class="special">&amp;</span> backend_mutex<span class="special">,</span> <span class="identifier">BackendT</span> <span class="special">&amp;</span> backend<span class="special">,</span> 
+                          <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span><span class="special">)</span><span class="special">;</span></pre>Flushes record buffers in the backend (the actual implementation) </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27133080-bb"></a><span class="identifier">flush_backend_impl</span><span class="special">(</span><span class="identifier">BackendMutexT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BackendT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span><span class="special">)</span><span class="special">;</span></pre>Flushes record buffers in the backend (stub for backends that don't support flushing) </li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_formatte_idp27106456.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.basic_sink_frontend_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_formatti_idp27135480.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

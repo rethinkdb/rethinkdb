@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.local_time"
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Local Time</title>
+  <bridgehead renderas="sect2">Local Time System</bridgehead>
+  <para>
+    <link linkend="local_intro">Introduction</link> -- 
+    <link linkend="local_ex">Usage Examples</link>
+  </para>  
+  
+  <anchor id="local_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    The library supports 4 main extensions for the management of local times. This includes 
+    <simplelist>
+      <member>local_date_time -- locally adjusted time point</member>
+      <member>posix_time_zone -- time zone defined by posix string (eg: "EST10EDT,M10.5.0,M3.5.0/03")</member>
+      <member>time_zone_database -- get time zones by region from .csv file (eg: America/New York)</member>
+      <member>time_zone -- abstract time zone interface</member>
+    </simplelist>
+  </para>
+  <para>
+    Together, these extensions define a time system adjusted for recording times related to a specific earth location. This time system utilizes all the features and benefits of the posix_time system (see <link linkend="date_time.posix_time">posix_time</link> for full details). It uses a time_zone object which contains all the necessary data/rules to enable adjustments to and from various time zones. The time_zone objects used in date_time are handled via a boost::shared_ptr&lt;boost::local_time::time_zone&gt;.
+  </para>
+  <para>
+    The phrase "wall-clock" refers to the time that would be shown on a wall clock in a particular time zone at any point in time. Local_time uses a time zone object to account for differences in time zones and daylight savings adjustments. For example: While 5:00 pm, October 10, 2004 in Sydney Australia occurs at exactly the same instant as 3:00 am, October 10, 2004 in New York USA, it is a 14 hour difference in wall-clock times. However, a point in time just one day later will result in a 16 hour difference in wall-clock time due to daylight savings adjustments in both time zones. The local_time system tracks these by means of a time point, stored as UTC, and time_zone objects that contain all the necessary data to correctly calculate wall-clock times.
+  </para>
+
+  <anchor id="local_ex" />
+  <bridgehead renderas="sect3">Usage Examples</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry>Example</entry>
+	    <entry>Description</entry>
+	  </row>
+	</thead>
+	<tbody>
+	  <row>
+            <entry><link linkend="date_time.examples.simple_time_zone">Simple Time Zone</link></entry>
+            <entry>Side by side examples of Time Zone usage. Both <type>custom_time_zone</type> and <type>posix_time_zone</type> are shown.</entry>
+          </row>
+	  <row>
+            <entry><link linkend="date_time.examples.calc_rules">Daylight Savings Calc Rules</link></entry>
+            <entry>Simple example showing the creation of all five <type>dst_calc_rule</type> types.</entry>
+          </row>
+	  <row>
+            <entry><link linkend="date_time.examples.seconds_since_epoch">Seconds Since Epoch</link></entry>
+            <entry>Example that calculates the total seconds elapsed since the epoch (1970-Jan-01) utilizing local_date_time.</entry>
+          </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <!-- this order chosen on 2005-Jan-30 -->
+  <xi:include href="time_zone_base.xml" />
+  <xi:include href="posix_time_zone.xml" />
+  <xi:include href="tz_database.xml" />
+  <xi:include href="custom_time_zone.xml" />
+  <xi:include href="local_date_time.xml" />
+  <xi:include href="local_time_period.xml" />
+  <!--<xi:include href=".xml" /> for serialization -->
+  <!-- includes here -->
+  
+</section>
+

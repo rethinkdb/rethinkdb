@@ -1,0 +1,111 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template signal_type</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../signals2/reference.html#header.boost.signals2.signal_type_hpp" title="Header &lt;boost/signals2/signal_type.hpp&gt;">
+<link rel="prev" href="keywords/mutex_type.html" title="Class template mutex_type">
+<link rel="next" href="slot.html" title="Class template slot">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="keywords/mutex_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../signals2/reference.html#header.boost.signals2.signal_type_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="slot.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.signals2.signal_type"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template signal_type</span></h2>
+<p>boost::signals2::signal_type &#8212; Specify a the template type parameters of a <a class="link" href="signal.html" title="Class template signal">boost::signals2::signal</a> using named parameters.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../signals2/reference.html#header.boost.signals2.signal_type_hpp" title="Header &lt;boost/signals2/signal_type.hpp&gt;">boost/signals2/signal_type.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A0<span class="special">,</span> <span class="keyword">typename</span> A1 <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">parameter</span><span class="special">::</span><span class="identifier">void_</span><span class="special">,</span> 
+         <span class="keyword">typename</span> A2 <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">parameter</span><span class="special">::</span><span class="identifier">void_</span><span class="special">,</span> 
+         <span class="keyword">typename</span> A3 <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">parameter</span><span class="special">::</span><span class="identifier">void_</span><span class="special">,</span> 
+         <span class="keyword">typename</span> A4 <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">parameter</span><span class="special">::</span><span class="identifier">void_</span><span class="special">,</span> 
+         <span class="keyword">typename</span> A5 <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">parameter</span><span class="special">::</span><span class="identifier">void_</span><span class="special">,</span> 
+         <span class="keyword">typename</span> A6 <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">parameter</span><span class="special">::</span><span class="identifier">void_</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="signal_type.html" title="Class template signal_type">signal_type</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">implementation</span><span class="special">-</span><span class="identifier">detail</span></em></span>                                           <a name="boost.signals2.signal_type.signature_type"></a><span class="identifier">signature_type</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">implementation</span><span class="special">-</span><span class="identifier">detail</span></em></span>                                           <a name="boost.signals2.signal_type.combiner_type"></a><span class="identifier">combiner_type</span><span class="special">;</span>              
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">implementation</span><span class="special">-</span><span class="identifier">detail</span></em></span>                                           <a name="boost.signals2.signal_type.group_type"></a><span class="identifier">group_type</span><span class="special">;</span>                 
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">implementation</span><span class="special">-</span><span class="identifier">detail</span></em></span>                                           <a name="boost.signals2.signal_type.group_compare_type"></a><span class="identifier">group_compare_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">implementation</span><span class="special">-</span><span class="identifier">detail</span></em></span>                                           <a name="boost.signals2.signal_type.slot_function_type"></a><span class="identifier">slot_function_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">implementation</span><span class="special">-</span><span class="identifier">detail</span></em></span>                                           <a name="boost.signals2.signal_type.extended_slot__idp93117544"></a><span class="identifier">extended_slot_function_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">implementation</span><span class="special">-</span><span class="identifier">detail</span></em></span>                                           <a name="boost.signals2.signal_type.mutex_type"></a><span class="identifier">mutex_type</span><span class="special">;</span>                 
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">signal</span><span class="special">&lt;</span><span class="identifier">signature_type</span><span class="special">,</span> <span class="identifier">combiner_type</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">mutex_type</span><span class="special">&gt;</span> <a name="boost.signals2.signal_type.type"></a><span class="identifier">type</span><span class="special">;</span>                       
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp206091736"></a><h2>Description</h2>
+<p>The <code class="computeroutput">signal_type</code> metafunction employs the Boost.Parameter library to
+            allow users to specify the template type parameters of a <a class="link" href="signal.html" title="Class template signal">signals2::signal</a>
+            using named parameters.  The resulting signal type is provided through the
+            <code class="computeroutput">signal_type::type</code> typedef.  Named template type parameters
+            can enhance readability of code, and provide convenience for specifying classes
+            which have a large number of template parameters.
+          </p>
+<p>The template type parameters may be passed positionally, similarly to passing them
+            to the <a class="link" href="signal.html" title="Class template signal">signals2::signal</a> class directly.  Or, they may be passed as named template parameters
+            by wrapping them in one of the template keyword classes provided in the
+            <code class="computeroutput">boost::signals2::keywords</code> namespace.  The supported template keywords are:
+            <a class="link" href="keywords/signature_type.html" title="Class template signature_type">keywords::signature_type</a>, <a class="link" href="keywords/combiner_type.html" title="Class template combiner_type">keywords::combiner_type</a>,
+            <a class="link" href="keywords/group_type.html" title="Class template group_type">keywords::group_type</a>, <a class="link" href="keywords/group_compare_type.html" title="Class template group_compare_type">keywords::group_compare_type</a>,
+            <a class="link" href="keywords/slot_function_type.html" title="Class template slot_function_type">keywords::slot_function_type</a>, <a class="link" href="keywords/extended_slot__idp92904616.html" title="Class template extended_slot_function_type">keywords::extended_slot_function_type</a>,
+            and <a class="link" href="keywords/mutex_type.html" title="Class template mutex_type">keywords::mutex_type</a>.
+          </p>
+<p>The default types for unspecified template type parameters are the same as those for the
+            <a class="link" href="../signal.html" title="Class template signal">signal</a> class.
+          </p>
+<p>
+            Named template type parameters are especially convenient when you only wish to change a
+            few of a signal's template type parameters from their defaults, and the parameters
+            you wish to change are near the end of the signal's template parameter list.
+            For example, if you only wish to change the <code class="computeroutput">Mutex</code> template type
+            parameter of a signal, you might write:
+          </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">bs2</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">signals2</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">bs2</span><span class="special">::</span><span class="identifier">keywords</span><span class="special">;</span>
+<span class="identifier">bs2</span><span class="special">::</span><span class="identifier">signal_type</span><span class="special">&lt;</span><span class="keyword">void</span> <span class="special">(</span><span class="special">)</span><span class="special">,</span> <span class="identifier">mutex_type</span><span class="special">&lt;</span><span class="identifier">bs2</span><span class="special">::</span><span class="identifier">dummy_mutex</span><span class="special">&gt;</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="identifier">sig</span><span class="special">;</span>
+</pre>
+<p>For comparison, to specify the same type using the signal class directly looks like:</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">bs2</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">signals2</span><span class="special">;</span>
+<span class="identifier">bs2</span><span class="special">::</span><span class="identifier">signal</span>
+  <span class="special">&lt;</span>
+    <span class="keyword">void</span> <span class="special">(</span><span class="special">)</span><span class="special">,</span>
+    <span class="identifier">bs2</span><span class="special">::</span><span class="identifier">optional_last_value</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span><span class="special">,</span>
+    <span class="keyword">int</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span><span class="special">,</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function</span><span class="special">&lt;</span><span class="keyword">void</span> <span class="special">(</span><span class="special">)</span><span class="special">&gt;</span><span class="special">,</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function</span><span class="special">&lt;</span><span class="keyword">void</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">connection</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">&gt;</span><span class="special">,</span>
+    <span class="identifier">bs2</span><span class="special">::</span><span class="identifier">dummy_mutex</span>
+  <span class="special">&gt;</span> <span class="identifier">sig</span><span class="special">;</span>
+</pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="keywords/mutex_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../signals2/reference.html#header.boost.signals2.signal_type_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="slot.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

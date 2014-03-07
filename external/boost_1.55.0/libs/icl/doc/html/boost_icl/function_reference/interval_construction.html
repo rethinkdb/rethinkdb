@@ -1,0 +1,788 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Interval Construction</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../function_reference.html" title="Function Reference">
+<link rel="prev" href="streaming__conversion.html" title="Streaming, conversion">
+<link rel="next" href="additional_interval_orderings.html" title="Additional Interval Orderings">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="streaming__conversion.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function_reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="additional_interval_orderings.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_function_reference_interval_construction" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.function_reference.interval_construction"></a><a class="link" href="interval_construction.html" title="Interval Construction">Interval
+      Construction</a>
+</h3></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                T
+              </p>
+              </th>
+<th>
+              <p>
+                discrete<br> _interval
+              </p>
+              </th>
+<th>
+              <p>
+                continuous<br> _interval
+              </p>
+              </th>
+<th>
+              <p>
+                right_open<br> _interval
+              </p>
+              </th>
+<th>
+              <p>
+                left_open<br> _interval
+              </p>
+              </th>
+<th>
+              <p>
+                closed<br> _interval
+              </p>
+              </th>
+<th>
+              <p>
+                open<br> _interval
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                Interval bounds
+              </p>
+              </td>
+<td>
+              <p>
+                dynamic
+              </p>
+              </td>
+<td>
+              <p>
+                dynamic
+              </p>
+              </td>
+<td>
+              <p>
+                static
+              </p>
+              </td>
+<td>
+              <p>
+                static
+              </p>
+              </td>
+<td>
+              <p>
+                static
+              </p>
+              </td>
+<td>
+              <p>
+                static
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Form
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                asymmetric
+              </p>
+              </td>
+<td>
+              <p>
+                asymmetric
+              </p>
+              </td>
+<td>
+              <p>
+                symmetric
+              </p>
+              </td>
+<td>
+              <p>
+                symmetric
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="emphasis"><em><span class="bold"><strong>Construct</strong></span></em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">singleton</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">construct</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span>
+                <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">T</span> <span class="identifier">construct</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> 
+            <span class="identifier">interval_bounds</span>   <span class="special">)</span>
+</pre>
+<p>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">hull</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span>
+                <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">span</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span>
+                <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">static</span> <span class="identifier">T</span>
+                <span class="identifier">right_open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                <span class="identifier">P</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">static</span> <span class="identifier">T</span>
+                <span class="identifier">left_open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                <span class="identifier">P</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">static</span> <span class="identifier">T</span>
+                <span class="identifier">closed</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                <span class="identifier">P</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">static</span> <span class="identifier">T</span>
+                <span class="identifier">open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                <span class="identifier">P</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#discrete_types"><span class="bold"><strong>d</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#continuous_types"><span class="bold"><strong>c</strong></span></a>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        The table above shows the availability of functions, that allow the construction
+        of intervals. All interval constructin functins are of <span class="emphasis"><em><span class="bold"><strong>constant time and space complexity</strong></span></em></span>.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                <span class="emphasis"><em><span class="bold"><strong>Construct</strong></span></em></span>
+              </p>
+              </th>
+<th>
+              <p>
+                Description
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">singleton</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span>
+                <span class="identifier">value</span><span class="special">)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                Constructs an interval that contains exactly one element <code class="computeroutput"><span class="identifier">value</span></code>. For all interval types of
+                the icl sigletons can be constructed for <span class="emphasis"><em>discrete</em></span>
+                domain types. For continuous domain types, only <code class="computeroutput"><a class="link" href="../../boost/icl/continuous_interval.html" title="Class template continuous_interval">continuous_interval</a></code>
+                is capable to construct a singleton.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">construct</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span>
+                <span class="identifier">lower</span><span class="special">,</span>
+                <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">upper</span><span class="special">)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                Contructs an interval with lower bound <code class="computeroutput"><span class="identifier">lower</span></code>
+                and upper bound <code class="computeroutput"><span class="identifier">upper</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">T</span> <span class="identifier">construct</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">lower</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">upper</span><span class="special">,</span>
+            <span class="identifier">interval_bounds</span> <span class="identifier">bounds</span> 
+            <span class="special">=</span> <span class="identifier">interval_bounds</span><span class="special">::</span><span class="identifier">right_open</span><span class="special">())</span>
+</pre>
+<p>
+              </p>
+              </td>
+<td>
+              <p>
+                For dynamically bounded intervals this function constructs an interval
+                with interval bounds specified by the third parameter.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">hull</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span>
+                <span class="identifier">x1</span><span class="special">,</span>
+                <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">x2</span><span class="special">)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">hull</span><span class="special">(</span><span class="identifier">x1</span><span class="special">,</span><span class="identifier">x2</span><span class="special">)</span></code>
+                constructs the smallest interval that contains both <code class="computeroutput"><span class="identifier">x1</span></code> and <code class="computeroutput"><span class="identifier">x2</span></code>.
+                <code class="computeroutput"><span class="identifier">x2</span></code> may be smaller
+                than <code class="computeroutput"><span class="identifier">x1</span></code>.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">T</span> <span class="identifier">span</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span>
+                <span class="identifier">x1</span><span class="special">,</span>
+                <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">x2</span><span class="special">)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">span</span><span class="special">(</span><span class="identifier">x1</span><span class="special">,</span><span class="identifier">x2</span><span class="special">)</span></code>
+                constructs the interval <code class="computeroutput"><span class="identifier">construct</span><span class="special">(</span><span class="identifier">min</span><span class="special">(</span><span class="identifier">x1</span><span class="special">,</span><span class="identifier">x2</span><span class="special">),</span> <span class="identifier">max</span><span class="special">(</span><span class="identifier">x1</span><span class="special">,</span><span class="identifier">x2</span><span class="special">))</span></code>. Note the differences between
+                <code class="computeroutput"><span class="identifier">span</span></code>, <code class="computeroutput"><span class="identifier">hull</span></code> and <code class="computeroutput"><span class="identifier">construct</span></code>:
+                
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">span</span><span class="special">&lt;</span><span class="identifier">right_open_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;(</span><span class="number">2</span><span class="special">,</span><span class="number">1</span><span class="special">)</span>      <span class="special">==</span> <span class="special">[</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">)</span> <span class="comment">// does NOT contain 2
+</span><span class="identifier">hull</span><span class="special">&lt;</span><span class="identifier">right_open_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;(</span><span class="number">2</span><span class="special">,</span><span class="number">1</span><span class="special">)</span>      <span class="special">==</span> <span class="special">[</span><span class="number">1</span><span class="special">,</span><span class="number">3</span><span class="special">)</span> <span class="comment">// contains 2
+</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">right_open_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;(</span><span class="number">2</span><span class="special">,</span><span class="number">1</span><span class="special">)</span> <span class="special">==</span> <span class="special">[)</span>    <span class="comment">// is empty
+</span></pre>
+<p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">static</span> <span class="identifier">T</span> <span class="identifier">right_open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>
+<span class="keyword">static</span> <span class="identifier">T</span> <span class="identifier">left_open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>
+<span class="keyword">static</span> <span class="identifier">T</span> <span class="identifier">closed</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>
+<span class="keyword">static</span> <span class="identifier">T</span> <span class="identifier">open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>
+</pre>
+<p>
+              </p>
+              </td>
+<td>
+              <p>
+                For dynamically bounded intervals there are for static functions
+                to construct intervals with the four interval bound types: 
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span>      <span class="identifier">itv1</span> <span class="special">=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span><span class="number">0</span><span class="special">,</span><span class="number">42</span><span class="special">);</span>
+<span class="identifier">continuous_interval</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">itv2</span> <span class="special">=</span> <span class="identifier">continuous_interval</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="number">0.0</span><span class="special">,</span> <span class="number">1.0</span><span class="special">);</span>
+</pre>
+<p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="emphasis"><em><span class="bold"><strong>Using the interval default</strong></span></em></span>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">P</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                There is a library default, for all interval containers of the <span class="bold"><strong>icl</strong></span>. The intension of the library default
+                is to minimize the need for parameter specification, when working
+                with <span class="bold"><strong>icl</strong></span> class templates. We can
+                get the library default interval type as <code class="computeroutput"><span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">P</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+                The library default uses <span class="emphasis"><em><span class="bold"><strong>dynamically
+                bounded intervals</strong></span></em></span>. You can switch to <span class="emphasis"><em><span class="bold"><strong>statically bounded intervals</strong></span></em></span> by
+                <code class="computeroutput"><span class="preprocessor">#define</span> <span class="identifier">BOOST_ICL_USE_STATIC_BOUNDED_INTERVALS</span></code>
+                prior to icl includes.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">static</span> <span class="identifier">T</span> <span class="identifier">right_open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>
+<span class="keyword">static</span> <span class="identifier">T</span> <span class="identifier">left_open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>
+<span class="keyword">static</span> <span class="identifier">T</span> <span class="identifier">closed</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>
+<span class="keyword">static</span> <span class="identifier">T</span> <span class="identifier">open</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>
+</pre>
+<p>
+              </p>
+              </td>
+<td>
+              <p>
+                For template struct <code class="computeroutput"><span class="identifier">interval</span></code>
+                that always uses the library default the static functions for the
+                four interval bound types are also available. 
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">type</span>    <span class="identifier">itv1</span> <span class="special">=</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span><span class="number">0</span><span class="special">,</span><span class="number">42</span><span class="special">);</span>
+<span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">itv2</span> <span class="special">=</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="number">0.0</span><span class="special">,</span> <span class="number">1.0</span><span class="special">);</span>
+</pre>
+<p>
+                This works with the statically bounded intervals as well, with the
+                restriction that for continuous domain types the matching function
+                has to be used: 
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_ICL_USE_STATIC_BOUNDED_INTERVALS</span>
+<span class="special">.</span> <span class="special">.</span> <span class="special">.</span>
+<span class="comment">// library default is the statically bounded right_open_interval
+</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">type</span>    <span class="identifier">itv1</span> <span class="special">=</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span><span class="number">0</span><span class="special">,</span><span class="number">42</span><span class="special">);</span> <span class="comment">//==[0,43) //ok, bounds are shifted
+</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">itv2</span> <span class="special">=</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="number">0.0</span><span class="special">,</span> <span class="number">1.0</span><span class="special">);</span> <span class="comment">//ok. right_open matches
+</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">itv3</span> <span class="special">=</span> <span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span><span class="number">0.0</span><span class="special">,</span> <span class="number">1.0</span><span class="special">);</span>     <span class="comment">//will NOT compile
+</span></pre>
+<p>
+                See also examples <a class="link" href="../examples/dynamic_interval.html" title="Dynamic interval">Dynamic
+                intervals</a> and <a class="link" href="../examples/static_interval.html" title="Static interval">Static
+                intervals</a>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>See also . . .</strong></span></em></span>
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr><td>
+              <p>
+                <a class="link" href="../examples/dynamic_interval.html" title="Dynamic interval"><span class="emphasis"><em><span class="bold"><strong>Example: Dynamically bounded intervals and the library
+                default</strong></span></em></span></a>
+              </p>
+              </td></tr>
+<tr><td>
+              <p>
+                <a class="link" href="../examples/static_interval.html" title="Static interval"><span class="emphasis"><em><span class="bold"><strong>Example: Statically bounded intervals, changing the library
+                default</strong></span></em></span></a>
+              </p>
+              </td></tr>
+</tbody>
+</table></div>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>Back to section . . .</strong></span></em></span>
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr><td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#additional_interval_functions"><span class="emphasis"><em><span class="bold"><strong>Additional interval functions</strong></span></em></span></a>
+              </p>
+              </td></tr>
+<tr><td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#function_synopsis_table"><span class="emphasis"><em><span class="bold"><strong>Function
+                Synopsis</strong></span></em></span></a>
+              </p>
+              </td></tr>
+<tr><td>
+              <p>
+                <a class="link" href="../interface.html" title="Interface"><span class="emphasis"><em><span class="bold"><strong>Interface</strong></span></em></span></a>
+              </p>
+              </td></tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="streaming__conversion.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function_reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="additional_interval_orderings.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

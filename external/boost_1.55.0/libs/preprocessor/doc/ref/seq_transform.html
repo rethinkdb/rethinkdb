@@ -1,0 +1,93 @@
+<html>
+	<head>
+		<title>BOOST_PP_SEQ_TRANSFORM</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<div style="margin-left:  0px;">
+			The <b>BOOST_PP_SEQ_TRANSFORM</b> macro transforms each element in a <i>seq</i> 
+			according to a supplied transformation.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_TRANSFORM</b>(<i>op</i>, <i>data</i>, <i>seq</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>op</dt>
+			<dd>
+				A ternary predicate of the form <i>op</i>(<i>s</i>, <i>data</i>, <i>elem</i>).&nbsp; 
+				This transformation is expanded by <b>BOOST_PP_SEQ_TRANSFORM</b> for each 
+				element in <i>seq</i> with the next available <b>BOOST_PP_SEQ_FOLD_LEFT</b> fold 
+				step, the auxiliary <i>data</i>, and the current element in <i>seq</i>.&nbsp;
+			</dd>
+			<dt>data</dt>
+			<dd>
+				Auxiliary data passed to <i>pred</i>.
+			</dd>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> to be transformed.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			This macro expands <i>op</i> for each element in <i>seq</i>.&nbsp; It builds a 
+			new <i>seq</i> out of the results of each call.&nbsp; If, for example, <i>seq</i>
+			is (<i>a</i>)(<i>b</i>)(<i>c</i>), this macro expands to...
+			<div>
+				(<i>op</i>(<i>d</i>, <i>data</i>, <i>a</i>))(<i>op</i>(<i>d</i>, <i>data</i>, <i>b</i>))(<i>op</i>(<i>d</i>,
+				<i>data</i>, <i>c</i>))
+			</div>
+		</div>
+		<div>
+			For maximum efficiency, use <b>BOOST_PP_SEQ_TRANSFORM_S</b>.
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="seq_transform_s.html">BOOST_PP_SEQ_TRANSFORM_S</a></li>
+		</ul>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/transform.html">&lt;boost/preprocessor/seq/transform.hpp&gt;</a>
+		</div>
+		<h4>
+			Sample Code
+		</h4>
+		<div>
+			<pre>
+#include &lt;<a href="../headers/arithmetic/dec.html">boost/preprocessor/arithmetic/dec.hpp</a>&gt;
+#include &lt;<a href="../headers/seq/transform.html">boost/preprocessor/seq/transform.hpp</a>&gt;
+
+#define SEQ (1)(3)(2)(5)
+
+#define OP(s, data, elem) <a href="dec.html">BOOST_PP_DEC</a>(elem)
+
+<a href="seq_transform.html">BOOST_PP_SEQ_TRANSFORM</a>(OP, 3, SEQ)
+   // expands to (0)(2)(1)(4)
+</pre>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

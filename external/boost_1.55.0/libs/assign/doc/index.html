@@ -1,0 +1,1432 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Assignment Documentation </title>
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+
+<body>
+
+  <table border="0" >
+    <tr>
+      <td ><img src="../../../boost.png" border="0" ></td>
+      <td >
+        <h1 align="center">Assignment Library</h1>
+      </td>
+    </tr>
+  </table>
+
+  <p>
+  Copyright © 2003-2006 Thorsten Ottosen
+  </p>
+  <p>
+  Use, modification and distribution is subject to the Boost Software License, Version 1.0
+  (see <a href="http://www.boost.org/LICENSE_1_0.txt">
+   http://www.boost.org/LICENSE_1_0.txt</a>).
+  </p>
+  <h3>Table of Contents</h3>
+  <ul>
+    <li><a href="#intro">Introduction</a></li>
+    <li>     
+        <a href="#tutorial" >Tutorial</a>
+        <ul>
+            <li>Function <a href="#operator+="><code>operator+=()</code></a>
+            <li>Function <a href="#operator()"><code>operator()()</code></a>
+            <li>Function <a href="#list_of"><code>list_of()</code></a>    
+            <li>Function <a href="#map_list_of"><code>map_list_of()</code></a> 
+            <li>Function <a href="#tuple_list_of"><code>tuple_list_of()</code></a>
+            <li>Functions <a href="#repeat"><code>repeat()</code>, <code>repeat_fun()</code> and <code>range()</code> </a>
+            <li>Functions <a href="#ref_list_of"><code>ref_list_of()</code> and <code>cref_list_of()</code></a>    
+            <li>A <a href="#complicated">"complicated"</a> example    
+            <li>Functions <a href="#ptr_push_back"><code>ptr_push_back(), ptr_push_front()</code>, 
+                                                   <code>ptr_insert()</code> and <code>ptr_map_insert()</code></a>
+            <li>Function <a href="#ptr_list_of"><code>ptr_list_of()</code></a>         
+       </ul> <li>          
+                
+        <a href="#reference">Reference</a>
+      <ul>
+        <li><a href="#headers">Headers</a> </li>
+        <li><a href="#std">Standard containers</a> </li>
+        <li>Functions <a href="#list_of_ref"><code>list_of()</code> and <code>map_list_of()</code></a></li>
+        <li>Functions <a href="#repeat_ref"><code>repeat()</code>, 
+            <code>repeat_fun()</code> and <code>range()</code> </a> </li> 
+        <li>Class <a href="#list_inserter"><code>list_inserter</code></a></li>
+        <li>Function <a href="#make_list_inserter"><code>make_list_inserter()</code></a></li>
+        <li><a href="#limit"> Customizing</a> argument list sizes</li>   
+     </ul>
+    <li> <a href="#exceptions">Exceptions and exception-safety </a></li>
+    <li> <a href="#extensions">Extending the library</a>            
+    <li> <a href="#boost_libs">Supported libraries </a>        
+    <li> <a href="#examples">Examples</a></li> <ul></ul>
+    <li><a href="#portability">Portability</a></li>
+    <li><a href="#history">History and Acknowledgment</a>    
+    <li><a href="#ref">References</a></li>
+  </ul>
+  <hr>
+
+ 
+  
+<h2><a name="intro">Introduction</a></h2> <p> <i>There appear to be few 
+practical uses of <code>operator,()</code></i>.  <!-- p.  247 --> <br><b>Bjarne 
+Stroustrup</b>, The Design and Evolution of C++ </p> <p> The purpose of this 
+library is to make it easy to fill containers with data by overloading 
+<code>operator,()</code> and <code>operator()()</code>.  These two operators 
+make it possible to construct lists of values that are then copied into a 
+container: </p> <ul> <li> A comma-separated list: <p> 
+       <!--  vector< int > v; v += 1,2,3,4,5,6,7,8,9; -->
+ 
+<pre><span 
+class=identifier>vector</span><span class=special><</span><span 
+class=keyword>int</span><span class=special>></span><span 
+class=identifier> v</span><span class=special>; </span>
+<span class=identifier>v </span><span class=special>+= </span><span 
+class=number>1</span><span
+class=special>,</span><span class=number>2</span><span 
+class=special>,</span><span class=number>3</span><span 
+class=special>,</span><span class=number>4</span><span 
+class=special>,</span><span class=number>5</span><span 
+class=special>,</span><span class=number>6</span><span 
+class=special>,</span><span class=number>7</span><span 
+class=special>,</span><span class=number>8</span><span 
+class=special>,</span><span class=number>9</span><span class=special>;</span></pre></p>
+       <li> A parenthesis-separated list: 
+             <p>       
+             <pre>
+<span class=identifier>map</span><span class=special><</span><span 
+class=identifier>string</span><span class=special>,</span><span class=keyword>int</span><span class=special>> </span><span class=identifier>m</span><span class=special>; </span>
+<span class=identifier>insert</span><span class=special>( </span><span class=identifier>m </span><span class=special>)( </span><span class=string>&quot;Bar&quot;</span><span class=special>, </span><span class=number>1 </span><span class=special>)( </span><span class=string>&quot;Foo&quot;</span><span class=special>, </span><span class=number>2 </span><span class=special>);</span></pre> 
+    </ul> 
+<p>
+    These lists are particularly useful in
+    learning, testing, and prototyping situations, but can also be handy otherwise. 
+      The library comes with predefined operators for the containers of the  
+      standard library, but most functionality will work with any standard 
+compliant container. The library also makes it possible to extend user
+  defined types so for example a member function can be called for a list of 
+values instead of its normal arguments. </p>
+   <hr>
+   
+   <a name="tutorial"></a>
+   <h2>Tutorial</h2>
+   <p>
+   Within two minutes you should be able to use this library. The main 
+components are explained in these sections:
+   <ul>
+        <li>Function <a href="#operator+="><code>operator+=()</code></a>
+        <li>Function <a href="#operator()"><code>operator()()</code></a>
+        <li>Function <a href="#list_of"><code>list_of()</code></a>    
+        <li>Function <a href="#map_list_of"><code>map_list_of()</code></a> 
+        <li>Function <a href="#tuple_list_of"><code>tuple_list_of()</code></a>   
+        <li>Functions <a href="#repeat"><code>repeat()</code>, <code>repeat_fun()</code> and <code>range()</code> </a>
+        <li>Functions <a href="#ref_list_of"><code>ref_list_of()</code> and <code>cref_list_of()</code></a>
+        <li>A <a href="#complicated">"complicated"</a> example    
+        <li>Functions <a href="#ptr_push_back"><code>ptr_push_back(), ptr_push_front()</code>, <code>ptr_insert()</code> and <code>ptr_map_insert()</code></a>
+        <li>Function <a href="#ptr_list_of"><code>ptr_list_of()</code></a>         
+            
+   </ul>
+   The two first functions are used for adding elements after a container object
+   has been created whereas the next two is used when we need to initialize an 
+   object. </p>
+   <h3>Function <code>operator+=()</code><a name="operator+="></h3>
+   <p>
+    To fill a vector (or any standard container) with values using 
+    <code>operator+=()</code> you write   
+    <blockquote><pre>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>std</span><span class=special>/</span><span class=identifier>vector</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt; </span><span class=comment>// for 'operator+=()'
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assert</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;; 
+</span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>std</span><span class=special>;
+</span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>; </span><span class=comment>// bring 'operator+=()' into scope
+</span><span class=special>
+</span><span class=special>{
+    </span><span class=identifier>vector</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt; </span><span class=identifier>values</span><span class=special>;  
+    </span><span class=identifier>values </span><span class=special>+= </span><span class=number>1</span><span class=special>,</span><span class=number>2</span><span class=special>,</span><span class=number>3</span><span class=special>,</span><span class=number>4</span><span class=special>,</span><span class=number>5</span><span class=special>,</span><span class=number>6</span><span class=special>,</span><span class=number>7</span><span class=special>,</span><span class=number>8</span><span class=special>,</span><span class=number>9</span><span class=special>; </span><span class=comment>// insert values at the end of the container
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>values</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>9 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>values</span><span class=special>[</span><span class=number>0</span><span class=special>] </span><span class=special>== </span><span class=number>1 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>values</span><span class=special>[</span><span class=number>8</span><span class=special>] </span><span class=special>== </span><span class=number>9 </span><span class=special>);
+</span><span class=special>}</span></pre></blockquote>
+
+    Here we only stuffed constants into the container, but the list can
+    consists of arbitrary expressions as long as the result of each  
+expression is convertible to the <code>value_type</code> of the container.
+   </p> 
+   
+   
+   <h3>Function <code>operator()()</code> <a name="operator()"></h3>
+   <p>
+   We do not call <code>operator()()</code> directly, but instead we call a 
+   function that returns a proxy-object that defines <code>operator()()</code>.
+   The function that returns the proxy object is always named after the member
+   function that is used to copy the values in the list into the container.
+   So to fill a map with pairs of values you write 
+   <blockquote><pre>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span 
+class=identifier>boost</span><span class=special>/</span><span 
+class=identifier>assign</span><span class=special>/</span><span 
+class=identifier>list_inserter</span><span class=special>.</span><span 
+class=identifier>hpp</span><span class=special>&gt; </span><span class=comment>// for 'insert()'
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assert</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt; 
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>string</span><span class=special>&gt;
+</span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>std</span><span class=special>;
+</span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>; </span><span class=comment>// bring 'insert()' into scope
+</span><span class=special> 
+</span><span class=special>{
+    </span><span class=identifier>map</span><span class=special>&lt;</span><span class=identifier>string</span><span class=special>,</span><span class=keyword>int</span><span class=special>&gt; </span><span class=identifier>months</span><span class=special>;  
+    </span><span class=identifier>insert</span><span class=special>( </span><span class=identifier>months </span><span class=special>)
+        </span><span class=special>( </span><span class=string>&quot;january&quot;</span><span class=special>,   </span><span class=number>31 </span><span class=special>)( </span><span class=string>&quot;february&quot;</span><span class=special>, </span><span class=number>28 </span><span class=special>)
+        </span><span class=special>( </span><span class=string>&quot;march&quot;</span><span class=special>,     </span><span class=number>31 </span><span class=special>)( </span><span class=string>&quot;april&quot;</span><span class=special>,    </span><span class=number>30 </span><span class=special>)
+        </span><span class=special>( </span><span class=string>&quot;may&quot;</span><span class=special>,       </span><span class=number>31 </span><span class=special>)( </span><span class=string>&quot;june&quot;</span><span class=special>,     </span><span class=number>30 </span><span class=special>)
+        </span><span class=special>( </span><span class=string>&quot;july&quot;</span><span class=special>,      </span><span class=number>31 </span><span class=special>)( </span><span class=string>&quot;august&quot;</span><span class=special>,   </span><span class=number>31 </span><span class=special>)
+        </span><span class=special>( </span><span class=string>&quot;september&quot;</span><span class=special>, </span><span class=number>30 </span><span class=special>)( </span><span class=string>&quot;october&quot;</span><span class=special>,  </span><span class=number>31 </span><span class=special>)
+        </span><span class=special>( </span><span class=string>&quot;november&quot;</span><span class=special>,  </span><span class=number>30 </span><span class=special>)( </span><span class=string>&quot;december&quot;</span><span class=special>, </span><span class=number>31 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>months</span><span class=special>.</span><span 
+class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>12 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>months</span><span class=special>[</span><span class=string>&quot;january&quot;</span><span class=special>] </span><span class=special>== </span><span class=number>31 </span><span class=special>);
+</span><span class=special>}</span> </pre></blockquote>
+
+   Note that <code>operator()()</code> is much more handy when
+   we need to construct objects using several arguments
+   (up to five arguments are supported by default, but the limit can be <a href="#limit">customized</a>).
+    This is also true for sequences:
+
+      <blockquote><pre>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span 
+class=identifier>boost</span><span class=special>/</span><span 
+class=identifier>assign</span><span class=special>/</span>list_inserter</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt; </span><span class=comment>// for 'push_front()'
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assert</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt; 
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>string</span><span class=special>&gt;
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>utility</span><span class=special>&gt;
+</span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>std</span><span class=special>;
+</span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>; </span><span class=comment>// bring 'push_front()' into scope
+</span><span class=special> 
+</span><span class=special>{
+    </span><span class=keyword>typedef </span><span class=identifier>pair</span><span class=special>&lt; </span><span class=identifier>string</span><span class=special>,</span><span class=identifier>string </span><span class=special>&gt; </span><span class=identifier>str_pair</span><span class=special>;
+    </span><span class=identifier>deque</span><span class=special>&lt;</span><span class=identifier>str_pair</span><span class=special>&gt; </span><span class=identifier>deq</span><span class=special>;
+    </span><span class=identifier>push_front</span><span class=special>( </span><span class=identifier>deq </span><span class=special>)( </span><span class=string>&quot;foo&quot;</span><span class=special>, </span><span class=string>&quot;bar&quot;</span><span class=special>)( </span><span class=string>&quot;boo&quot;</span><span class=special>, </span><span class=string>&quot;far&quot; </span><span class=special>); 
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>deq</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>2 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>deq</span><span class=special>.</span><span class=identifier>front</span><span class=special>().</span><span class=identifier>first </span><span class=special>== </span><span class=string>&quot;boo&quot; </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>deq</span><span class=special>.</span><span class=identifier>back</span><span class=special>().</span><span class=identifier>second </span><span class=special>== </span><span class=string>&quot;bar&quot; </span><span class=special>);
+</span><span class=special>}   </span></pre></blockquote>
+
+   Besides <code>push_front()</code> we could also have used
+   <code>push_back()</code> if the container has a corresponding member
+   function. Empty parentheses can be used to insert default-constructed 
+objects, for example, 
+<code>push_front( deq )()()</code> will insert two default-constructed 
+<code>str_pair</code> objects. </p>   
+   
+   <p>
+   If <code>operator()()</code> is too cumbersome to use with eg. 
+<code>push_front()</code>we can also say </p>
+
+<blockquote>
+    <pre>
+<span class=identifier>deque</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt; </span><span class=identifier>di</span><span class=special>;    </span>
+<span class=identifier>push_front</span><span class=special>( </span><span class=identifier>di </span><span class=special>) </span><span class=special>= </span><span class=number>1</span><span class=special>,</span><span class=number>2</span><span class=special>,</span><span class=number>3</span><span class=special>,</span><span class=number>4</span><span class=special>,</span><span class=number>5</span><span class=special>,</span><span class=number>6</span><span class=special>,</span><span class=number>7</span><span class=special>,</span><span class=number>8</span><span class=special>,</span><span class=number>9</span><span class=special>;</span>
+<span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>di</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>9 </span><span class=special>);    </span>
+<span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span 
+class=identifier>di</span><span class=special>[</span><span class=number>0</span><span class=special>] </span><span class=special>== </span><span class=number>9 </span><span class=special>);    </span>
+</pre>
+</blockquote>
+<p>
+Just to make it perfectly clear, the code above is not restricted to the 
+standard containers, but will work with all <i>standard compliant</i> containers 
+with the right member function. It is only <code>operator+=()</code> that has been restricted to 
+the standard containers. </p>
+  
+  <h3>Function <code>list_of()</code> <a name="list_of"></h3>
+  But what if we need to <i>initialize</i> a container? This is where 
+  <code>list_of()</code> comes into play. With <code>list_of()</code>
+  we can create anonymous lists that automatically converts to
+  any container:
+  <blockquote><pre>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>list_of</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt; </span><span class=comment>// for 'list_of()'
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assert</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt; 
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>list</span><span class=special>&gt;
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>stack</span><span class=special>&gt;
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>string</span><span class=special>&gt;
+</span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>std</span><span class=special>;
+</span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>; </span><span class=comment>// bring 'list_of()' into scope
+</span><span class=special> 
+</span><span class=special>{
+    </span><span class=keyword>const </span><span class=identifier>list</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt; </span><span class=identifier>primes </span><span class=special>= </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>2</span><span class=special>)(</span><span class=number>3</span><span class=special>)(</span><span class=number>5</span><span class=special>)(</span><span class=number>7</span><span class=special>)(</span><span class=number>11</span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>primes</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>5 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>primes</span><span class=special>.</span><span class=identifier>back</span><span class=special>() </span><span class=special>== </span><span class=number>11 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>primes</span><span class=special>.</span><span class=identifier>front</span><span class=special>() </span><span class=special>== </span><span class=number>2 </span><span class=special>);
+   
+    </span><span class=keyword>const </span><span 
+class=identifier>stack</span><span class=special>&lt;</span><span 
+class=identifier>string</span><span class=special>&gt; </span><span 
+class=identifier>names </span><span class=special>= </span><span 
+class=special></span><span class=identifier>list_of</span><span class=special>( </span><span class=string>&quot;Mr. Foo&quot; </span><span class=special>)( </span><span class=string>&quot;Mr. Bar&quot;</span><span class=special>)( </span><span class=string>&quot;Mrs. FooBar&quot; </span><span
+class=special>).</span><span class=identifier>to_adapter();
+    </span><span class=keyword>const </span><span 
+class=identifier>stack</span><span class=special>&lt;</span><span 
+class=identifier>string</span><span class=special>&gt; </span><span 
+class=identifier>names2 </span><span class=special>= </span><span 
+class=special>(</span><span class=identifier>list_of</span><span class=special>( </span><span class=string>&quot;Mr. Foo&quot; </span><span class=special>), </span><span class=string>&quot;Mr. Bar&quot;</span><span class=special>, </span><span class=string>&quot;Mrs. FooBar&quot; </span><span
+class=special>).</span><span class=identifier>to_adapter();
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>names</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>3 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>names</span><span class=special>.</span><span class=identifier>top</span><span class=special>()</span><span class=special> == </span><span class=string>&quot;Mrs. FooBar&quot; </span><span class=special>);
+</span><span class=special>}   </span></pre></blockquote>
+  If we need to initialize a container adapter, we need to help the compiler a 
+little by calling <code>to_adapter()</code>. As the second example also shows, 
+we can use a comma-separated
+list with <code>list_of()</code> if we add parenthesis around the 
+  entire right hand side. It is worth noticing that the first argument
+  of <code>list_of()</code> determines the type of the anonymous list.
+  In case of the stack, the anonymous list consists of
+  <code>const char*</code> objects which are then converted to 
+  a stack of <code>string</code> objects. The conversion is always  
+  possible as long as the conversion between the stored types is possible.
+ </p>
+ <p>
+ Please notice that <code>list_of()</code> can even convert to a 
+ <code>boost::<a 
+href="../../array/index.html">array</a>&lt;T,sz></code> and see also the list 
+of <a href="#boost_libs">supported libraries </a>. </p>
+           <p>
+               Note that the type returned by 
+               <code>list_of()</code> (and its variants) has overloaded comparison operators. This allows you to
+               write test code such as 
+                   <code>
+                       BOOST_CHECK_EQUAL( my_container, list_of(2)(3)(4)(5) );.
+                   </code>
+               </p>
+ 
+ <h3>Function <code>map_list_of()</code> <a name="map_list_of"></h3>
+ This function is defined for pure convenience when working with
+ maps. Its usage is simple:
+ <blockquote><pre>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>list_of</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt; </span><span class=comment>// for 'map_list_of()'
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assert</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt; 
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>map</span><span class=special>&gt;
+</span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>std</span><span class=special>;
+</span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>; </span><span class=comment>// bring 'map_list_of()' into scope
+</span><span class=special> 
+</span><span class=special>{
+    </span><span class=identifier>map</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>,</span><span class=keyword>int</span><span class=special>&gt; </span><span class=identifier>next </span><span class=special>= </span><span class=identifier>map_list_of</span><span class=special>(</span><span class=number>1</span><span class=special>,</span><span class=number>2</span><span class=special>)(</span><span class=number>2</span><span class=special>,</span><span class=number>3</span><span class=special>)(</span><span class=number>3</span><span class=special>,</span><span class=number>4</span><span class=special>)(</span><span class=number>4</span><span class=special>,</span><span class=number>5</span><span class=special>)(</span><span class=number>5</span><span class=special>,</span><span class=number>6</span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>next</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>5 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>next</span><span class=special>[ </span><span class=number>1 </span><span class=special>] </span><span class=special>== </span><span class=number>2 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>next</span><span class=special>[ </span><span class=number>5 </span><span class=special>] </span><span class=special>== </span><span class=number>6 </span><span class=special>);
+    
+    </span><span class=comment>// or we can use 'list_of()' by specifying what type
+    // the list consists of
+    </span><span class=identifier>next </span><span class=special>= </span><span class=identifier>list_of</span><span class=special>&lt; </span><span class=identifier>pair</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>,</span><span class=keyword>int</span><span class=special>&gt; </span><span class=special>&gt;(</span><span class=number>6</span><span class=special>,</span><span class=number>7</span><span class=special>)(</span><span class=number>7</span><span class=special>,</span><span class=number>8</span><span class=special>)(</span><span class=number>8</span><span class=special>,</span><span class=number>9</span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>next</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>3 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>next</span><span class=special>[ </span><span class=number>6 </span><span class=special>] </span><span class=special>== </span><span class=number>7 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>next</span><span class=special>[ </span><span class=number>8 </span><span class=special>] </span><span class=special>== </span><span class=number>9 </span><span class=special>);      
+</span><span class=special>}   </span></pre></blockquote>
+
+The function <code>pair_list_of()</code> may also be used.
+
+<h3>Function <code>tuple_list_of()</code> <a name="tuple_list_of"></h3>
+
+If you are working with tuples, it might be convenient to use 
+<code>tuple_list_of()</code>:
+
+
+<blockquote>
+    <pre>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>list_of</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>vector</span><span class=special>&gt;
+</span>
+<span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>std</span><span class=special>;</span>
+<span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>;
+</span>
+<span class=special>{
+    </span><span class=keyword>typedef </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>tuple</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span><span class=keyword>int</span><span class=special>&gt; </span><span class=identifier>tuple</span><span class=special>;
+
+    </span><span class=identifier>vector</span><span class=special>&lt;</span><span class=identifier>tuple</span><span class=special>&gt; </span><span class=identifier>v </span><span class=special>= </span><span class=identifier>tuple_list_of</span><span class=special>( </span><span class=number>1</span><span class=special>, </span><span class=string>&quot;foo&quot;</span><span class=special>, </span><span class=number>2 </span><span class=special>)( </span><span class=number>3</span><span class=special>, </span><span class=string>&quot;bar&quot;</span><span class=special>, </span><span class=number>4 </span><span class=special>);
+    </span><span class=identifier>BOOST_CHECK</span><span class=special>( </span><span class=identifier>v</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>2 </span><span class=special>);
+    </span><span class=identifier>BOOST_CHECK</span><span class=special>( </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>0</span><span class=special>&gt;( </span><span class=identifier>v</span><span class=special>[</span><span class=number>1</span><span class=special>] </span><span class=special>) </span><span class=special>==  </span><span class=number>3 </span><span class=special>);</span>
+<span class=special>}</span>
+    </pre>
+</blockquote>
+
+<h3>Functions <code>repeat()</code>, <code>repeat_fun()</code> and <code>range()</code> <a name="repeat"></h3> 
+<p>
+Sometimes it is too irritating to repeat the same value many times. This is 
+where <code>repeat()</code> can be handy:
+<blockquote>
+    <pre>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>list_of</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>std</span><span class=special>/</span><span class=identifier>vector</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assert</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;
+</span>
+<span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>std</span><span class=special>;</span>
+<span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>;</span>
+<span class=special> </span>
+<span class=special>{
+    </span><span class=identifier>vector</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt; </span><span class=identifier>v</span><span class=special>;
+    </span><span class=identifier>v </span><span class=special>+= </span><span class=number>1</span><span class=special>,</span><span class=number>2</span><span class=special>,</span><span class=number>3</span><span class=special>,</span><span class=identifier>repeat</span><span class=special>(</span><span class=number>10</span><span class=special>,</span><span class=number>4</span><span class=special>),</span><span class=number>5</span><span class=special>,</span><span class=number>6</span><span class=special>,</span><span class=number>7</span><span class=special>,</span><span class=number>8</span><span class=special>,</span><span class=number>9</span><span class=special>;
+    </span><span class=comment>// v = [1,2,3,4,4,4,4,4,4,4,4,4,4,5,6,7,8,9]
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>v</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>3 </span><span class=special>+ </span><span class=number>10 </span><span class=special>+ </span><span class=number>5 </span><span class=special>);
+    
+    </span><span class=identifier>v </span><span class=special>= </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>1</span><span class=special>).</span><span class=identifier>repeat</span><span class=special>(</span><span class=number>5</span><span class=special>,</span><span class=number>2</span><span class=special>)(</span><span class=number>3</span><span class=special>);
+    </span><span class=comment>// v = [1,2,2,2,2,2,3]
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>v</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>1 </span><span class=special>+ </span><span class=number>5 </span><span class=special>+ </span><span class=number>1 </span><span class=special>);
+    
+    </span><span class=identifier>push_back</span><span class=special>( </span><span class=identifier>v </span><span class=special>)(</span><span class=number>1</span><span class=special>).</span><span class=identifier>repeat</span><span class=special>(</span><span class=number>1</span><span class=special>,</span><span class=number>2</span><span class=special>)(</span><span class=number>3</span><span class=special>);
+    </span><span class=comment>// v = old v + [1,2,3]
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>v</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>10 </span><span class=special>);</span>
+<span class=special>}</span></pre>
+</blockquote>
+As we can see, then the first argument to <code>repeat()</code> is the number
+of times to repeat the second argument.
+</p>
+<p>
+A more general list can be constructed with <code>repeat_fun()</code>:
+
+<blockquote>
+    <pre>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>std</span><span class=special>/</span><span class=identifier>vector</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assert</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>cstdlib</span><span class=special>&gt; </span><span class=comment>// for 'rand()'              
+</span>
+<span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>std</span><span class=special>;</span>
+<span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>;</span>
+<span class=special> </span>
+<span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>T </span><span class=special>&gt;</span>
+<span class=keyword>struct </span><span class=identifier>next    </span>
+<span class=special>{
+    </span><span class=identifier>T </span><span class=identifier>seed</span><span class=special>;
+    </span><span class=identifier>next</span><span class=special>( </span><span class=identifier>T </span><span class=identifier>seed </span><span class=special>) </span><span class=special>: </span><span class=identifier>seed</span><span class=special>(</span><span class=identifier>seed</span><span class=special>) 
+    </span><span class=special>{ </span><span class=special>}
+    
+    </span><span class=identifier>T </span><span class=keyword>operator</span><span class=special>()() </span><span class=keyword>
+    </span><span class=special>{
+        </span><span class=keyword>return </span><span class=identifier>seed</span><span class=special>++;
+    </span><span class=special>}</span>
+<span class=special>};</span>
+<span class=special>     </span>
+<span class=special>{
+    </span><span class=identifier>vector</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt; </span><span class=identifier>v</span><span class=special>;
+    </span><span class=identifier>v </span><span class=special>+= </span><span class=number>1</span><span class=special>,</span><span class=number>2</span><span class=special>,</span><span class=identifier>repeat_fun</span><span class=special>(</span><span class=number>4</span><span class=special>,&amp;</span><span class=identifier>rand</span><span class=special>),</span><span class=number>4</span><span class=special>;
+    </span><span class=comment>// v = [1,2,?,?,?,?,4] 
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>v</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>7 </span><span class=special>);
+    
+    </span><span class=identifier>push_back</span><span class=special>( </span><span class=identifier>v </span><span class=special>).</span><span class=identifier>repeat_fun</span><span class=special>(</span><span class=number>4</span><span class=special>,</span><span class=identifier>next</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;(</span><span class=number>0</span><span class=special>))(</span><span class=number>4</span><span class=special>).</span><span class=identifier>repeat_fun</span><span class=special>(</span><span class=number>4</span><span class=special>,</span><span class=identifier>next</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;(</span><span class=number>5</span><span class=special>));
+    </span><span class=comment>// v = old v + [0,1,2,3,4,5,6,7,8] 
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>v</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>16 </span><span class=special>);</span>
+<span class=special>}</span>        </pre>
+</blockquote>
+The only requirement of the second argument to <code>repeat_fun()</code> is that 
+it is a nullary function. </p>
+
+
+<p>
+If you just need to insert an iterator-range somewhere in the list, the member function <code>range()</code> provides just what you want.
+It is based on <a href="../../range/index.html">Boost.Range</a>, so you can pass all the ranges supported by that library. For example
+<blockquote><pre><span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>list_inserter</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span> <span class=comment>// for 'push_back()'</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>list_of</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>       <span class=comment>// for 'list_of()' and 'ref_list_of()'</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assert</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=keyword>using</span> <span class=keyword>namespace</span> <span class=identifier>std</span><span class=special>;</span>
+<span class=keyword>using</span> <span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>;</span>
+ 
+<span class=special>{</span>
+    <span class=identifier>vector</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=identifier>v</span><span class=special>,</span> <span class=identifier>v2</span><span class=special>;</span>
+    <span class=identifier>v</span>  <span class=special>=</span> <span class=identifier>list_of</span><span class=special>(</span><span class=number>1</span><span class=special>)(</span><span class=number>2</span><span class=special>)(</span><span class=number>3</span><span class=special>);</span>
+    <span class=identifier>v2</span> <span class=special>=</span> <span class=identifier>list_of</span><span class=special>(</span><span class=number>0</span><span class=special>).</span><span class=identifier>range</span><span class=special>(</span><span class=identifier>v</span><span class=special>).</span><span class=identifier>range</span><span class=special>(</span><span class=identifier>v</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>v</span><span class=special>.</span><span class=identifier>end</span><span class=special>())(</span><span class=number>4</span><span class=special>);</span>
+    <span class=comment>// v2 = [0,1,2,3,1,2,3,4]</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>v2</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>8u</span> <span class=special>);</span>
+
+    <span class=identifier>push_back</span><span class=special>(</span> <span class=identifier>v</span> <span class=special>).</span><span class=identifier>range</span><span class=special>(</span><span class=identifier>v2</span><span class=special>)(</span><span class=number>5</span><span class=special>);</span>
+    <span class=comment>// v = [1,2,3,0,1,2,3,1,2,3,4,5]</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>v</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>12u</span> <span class=special>);</span> 
+
+    <span class=comment>//
+    // create a list of references, some coming from a container, others from the stack 
+    //</span>
+    <span class=keyword>int</span> <span class=identifier>x</span> <span class=special>=</span> <span class=number>0</span><span class=special>;</span>
+    <span class=keyword>int</span> <span class=identifier>y</span> <span class=special>=</span> <span class=number>1</span><span class=special>;</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>ref_list_of</span><span class=special>&lt;</span><span class=number>10</span><span class=special>&gt;(</span><span class=identifier>x</span><span class=special>).</span><span class=identifier>range</span><span class=special>(</span><span class=identifier>v2</span><span class=special>)(</span><span class=identifier>y</span><span class=special>).</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>10u</span> <span class=special>);</span>
+<span class=special>}</span></pre>
+</blockquote>
+As you can see, one can also pass two iterators if that is more appropriate.
+The last example also introduces list of references. More about that below.
+</p>
+
+<h3>Functions <code>ref_list_of()</code> and <code>cref_list_of()</code> <a name="ref_list_of"></h3>
+
+When you need to create an anonymous range of values and speed is essential, 
+these two functions provide what you want. <blockquote>
+    <pre>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>list_of</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>algorithm</span><span class=special>&gt;
+</span>
+<span class=comment>//
+// Define Range algorithm
+//</span>
+<span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>Range </span><span class=special>&gt;</span>
+<span class=keyword>typename </span><span class=identifier>Range</span><span class=special>::</span><span class=identifier>const_iterator </span><span class=identifier>max_element</span><span class=special>( </span><span class=keyword>const </span><span class=identifier>Range</span><span class=special>&amp; </span><span class=identifier>r </span><span class=special>)</span>
+<span class=special>{
+    </span><span class=keyword>return </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>max_element</span><span class=special>( </span><span class=identifier>r</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(), </span><span class=identifier>r</span><span class=special>.</span><span class=identifier>end</span><span class=special>() </span><span class=special>);</span>
+<span class=special>}
+</span>
+<span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>;
+</span>
+<span class=special>{
+    </span><span class=keyword>int </span><span class=identifier>a</span><span class=special>=</span><span class=number>1</span><span class=special>,</span><span class=identifier>b</span><span class=special>=</span><span class=number>5</span><span class=special>,</span><span class=identifier>c</span><span class=special>=</span><span class=number>3</span><span class=special>,</span><span class=identifier>d</span><span class=special>=</span><span class=number>4</span><span class=special>,</span><span class=identifier>e</span><span class=special>=</span><span class=number>2</span><span class=special>,</span><span class=identifier>f</span><span class=special>=</span><span class=number>9</span><span class=special>,</span><span class=identifier>g</span><span class=special>=</span><span class=number>0</span><span class=special>,</span><span class=identifier>h</span><span class=special>=</span><span class=number>7</span><span class=special>;
+    </span><span class=keyword>int</span><span class=special>&amp; </span><span class=identifier>max </span><span class=special>= </span><span class=special>*</span><span class=identifier>max_element</span><span class=special>( </span><span class=identifier>ref_list_of</span><span class=special>&lt;</span><span class=number>8</span><span class=special>&gt;(</span><span class=identifier>a</span><span class=special>)(</span><span class=identifier>b</span><span class=special>)(</span><span class=identifier>c</span><span class=special>)(</span><span class=identifier>d</span><span class=special>)(</span><span class=identifier>e</span><span class=special>)(</span><span class=identifier>f</span><span class=special>)(</span><span class=identifier>g</span><span class=special>)(</span><span class=identifier>h</span><span class=special>) </span><span class=special>);
+    </span><span class=identifier>BOOST_CHECK_EQUAL</span><span class=special>( </span><span class=identifier>max</span><span class=special>, </span><span class=identifier>f </span><span class=special>);
+    </span><span class=identifier>max </span><span class=special>= </span><span class=number>8</span><span class=special>;
+    </span><span class=identifier>BOOST_CHECK_EQUAL</span><span class=special>( </span><span class=identifier>f</span><span class=special>, </span><span class=number>8 </span><span class=special>);
+    </span><span class=keyword>const </span><span class=keyword>int</span><span 
+class=special>&amp; </span><span class=identifier>const_max </span><span class=special>= </span><span class=special>*</span><span class=identifier>max_element</span><span class=special>(</span><span class=identifier>cref_list_of</span><span class=special>&lt;</span><span class=number>8</span><span class=special>&gt;(</span><span class=identifier>a</span><span class=special>)(</span><span class=identifier>b</span><span class=special>)(</span><span class=identifier>c</span><span class=special>)(</span><span class=identifier>d</span><span class=special>)(</span><span class=identifier>e</span><span class=special>)(</span><span class=identifier>f</span><span class=special>)(</span><span class=identifier>g</span><span class=special>)(</span><span class=identifier>h</span><span class=special>) </span><span class=special>);
+    </span><span class=identifier>BOOST_CHECK_EQUAL</span><span class=special>( </span><span class=identifier>max</span><span class=special>, </span><span class=identifier>const_max </span><span class=special>);</span>
+<span class=special>}</span>
+    </pre>
+</blockquote>
+
+You can only use lvalues with <code>ref_list_of()</code> while 
+<code>cref_list_of()</code> accepts rvalues too. Do not worry about not 
+specifying exactly the right size; the extra space used is minimal and there 
+is no runtime overhead associated with it.
+
+You may also use these functions instead of <code>list_of()</code> if speed is 
+essential.
+
+<h3>A "complicated" example <a name="complicated"></h3>
+<p> 
+As a last example, let us assume that we need to keep track of the
+result of soccer matches. A team will get one point if it wins 
+and zero otherwise. If there has been played three games in each group, the code might look
+like this:
+
+<blockquote>
+    <pre>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>list_of</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span 
+class=identifier>boost</span><span class=special>/</span><span 
+class=identifier>assign</span><span class=special>/</span><span 
+class=identifier>list_inserter</span><span class=special>.</span><span 
+class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assert</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>string</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>vector</span><span class=special>&gt;
+</span>
+<span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>std</span><span class=special>;</span>
+<span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>;
+ </span>
+<span class=special>{
+    </span><span class=keyword>typedef </span><span class=identifier>vector</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;                   </span><span class=identifier>score_type</span><span class=special>;
+    </span><span class=keyword>typedef </span><span class=identifier>map</span><span class=special>&lt;</span><span class=identifier>string</span><span class=special>,</span><span class=identifier>score_type</span><span class=special>&gt;        </span><span class=identifier>team_score_map</span><span class=special>;
+    </span><span class=keyword>typedef </span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>string</span><span class=special>,</span><span class=identifier>score_type</span><span class=special>&gt;       </span><span class=identifier>score_pair</span><span class=special>;
+
+    </span><span class=identifier>team_score_map </span><span class=identifier>group1</span><span class=special>, </span><span class=identifier>group2</span><span class=special>;
+    
+    </span><span class=comment>//
+    // method 1: using 'insert()'
+    //
+    </span><span class=identifier>insert</span><span class=special>( </span><span class=identifier>group1 </span><span class=special>)( </span><span class=string>&quot;Denmark&quot;</span><span class=special>, </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>1</span><span class=special>)(</span><span class=number>1</span><span class=special>) </span><span class=special>)
+                    </span><span class=special>( </span><span class=string>&quot;Germany&quot;</span><span class=special>, </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>0</span><span class=special>)(</span><span class=number>0</span><span class=special>) </span><span class=special>)
+                    </span><span class=special>( </span><span class=string>&quot;England&quot;</span><span class=special>, </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>0</span><span class=special>)(</span><span class=number>1</span><span class=special>) </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>group1</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>3 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>group1</span><span class=special>[ </span><span class=string>&quot;Denmark&quot; </span><span class=special>][</span><span class=number>1</span><span class=special>] </span><span class=special>== </span><span class=number>1 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>group1</span><span class=special>[ </span><span class=string>&quot;Germany&quot; </span><span class=special>][</span><span class=number>0</span><span class=special>] </span><span class=special>== </span><span class=number>0 </span><span class=special>);
+    
+    </span><span class=comment>//
+    // method 2: using 'list_of()'
+    //
+    </span><span class=identifier>group2 </span><span class=special>= </span><span class=identifier>list_of</span><span class=special>&lt; </span><span class=identifier>score_pair </span><span class=special>&gt;
+                        </span><span class=special>( </span><span class=string>&quot;Norway&quot;</span><span class=special>,  </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>1</span><span class=special>)(</span><span class=number>0</span><span class=special>) </span><span class=special>)
+                        </span><span class=special>( </span><span class=string>&quot;USA&quot;</span><span class=special>,     </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>0</span><span class=special>)(</span><span class=number>0</span><span class=special>) </span><span class=special>)
+                        </span><span class=special>( </span><span class=string>&quot;Andorra&quot;</span><span class=special>, </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>1</span><span class=special>)(</span><span class=number>1</span><span class=special>) </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>group2</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>3 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>group2</span><span class=special>[ </span><span class=string>&quot;Norway&quot; </span><span class=special>][</span><span class=number>0</span><span class=special>] </span><span class=special>== </span><span class=number>1 </span><span class=special>);
+    </span><span class=identifier>BOOST_ASSERT</span><span class=special>( </span><span class=identifier>group2</span><span class=special>[ </span><span class=string>&quot;USA&quot; </span><span class=special>][</span><span class=number>0</span><span class=special>] </span><span class=special>== </span><span class=number>0 </span><span class=special>);</span>
+<span class=special>}</span>
+    </pre>
+</blockquote>
+
+In the first example, notice how the result of <code>list_of()</code>
+can be converted automatically to a <code>vector&lt;int></code> because
+<code>insert()</code> knows it expects a <code>vector&lt;int></code>.
+In the second example we can see that <code>list_of()</code> is somewhat
+less intelligent since here it needs to be told explicitly what arguments to
+expect. (In the future it might be possible to introduce a more intelligent
+conversion layer in <code>list_of()</code>.)
+</p>
+
+<h3>Functions <code>ptr_push_back(), 
+ptr_push_front()</code>, <code>ptr_insert()</code> and <code>ptr_map_insert()</code> <a name="ptr_push_back"></h3>
+
+For use with <a href="../../ptr_container/index.html">Boost.Pointer Container</a>
+a few special exception-safe functions are provided. Using these function you
+do not need to call <code>new</code> manually:
+
+
+<blockquote>
+    <pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>ptr_list_inserter</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span> <span class=comment>// for 'ptr_push_back()', 'ptr_insert()' and 'ptr_push_front()'</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>ptr_map_inserter</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>  <span class=comment>// for 'ptr_map_insert()'</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>ptr_container</span><span class=special>/</span><span class=identifier>ptr_deque</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>ptr_container</span><span class=special>/</span><span class=identifier>ptr_set</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>ptr_container</span><span class=special>/</span><span class=identifier>ptr_map</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=comment>//
+// Example class
+//</span>
+<span class=keyword>struct</span> <span class=identifier>Foo</span>
+<span class=special>{</span>
+    <span class=keyword>int</span> <span class=identifier>i</span><span class=special>;</span>
+    
+    <span class=identifier>Foo</span><span class=special>()</span> <span class=special>:</span> <span class=identifier>i</span><span class=special>(</span><span class=number>0</span><span class=special>)</span>
+    <span class=special>{</span> <span class=special>}</span>
+    <span class=identifier>Foo</span><span class=special>(</span> <span class=keyword>int</span> <span class=identifier>i</span> <span class=special>)</span> <span class=special>:</span> <span class=identifier>i</span><span class=special>(</span><span class=identifier>i</span><span class=special>)</span>
+    <span class=special>{</span> <span class=special>}</span>
+    <span class=identifier>Foo</span><span class=special>(</span> <span class=keyword>int</span> <span class=identifier>i</span><span class=special>,</span> <span class=keyword>int</span> <span class=special>)</span> <span class=special>:</span> <span class=identifier>i</span><span class=special>(</span><span class=identifier>i</span><span class=special>)</span>
+    <span class=special>{</span> <span class=special>}</span>
+    <span class=identifier>Foo</span><span class=special>(</span> <span class=keyword>const</span> <span class=keyword>char</span><span class=special>*,</span> <span class=keyword>int</span> <span class=identifier>i</span><span class=special>,</span> <span class=keyword>int</span> <span class=special>)</span> <span class=special>:</span> <span class=identifier>i</span><span class=special>(</span><span class=identifier>i</span><span class=special>)</span>
+    <span class=special>{</span> <span class=special>}</span>
+
+    <span class=keyword>virtual</span> <span class=special>~</span><span class=identifier>Foo</span><span class=special>()</span>
+    <span class=special>{}</span>
+<span class=special>};</span>
+
+<span class=keyword>struct</span> <span class=identifier>Bar</span> <span class=special>:</span> <span class=identifier>Foo</span>
+<span class=special>{</span>
+    <span class=identifier>Bar</span><span class=special>()</span>
+    <span class=special>{</span> <span class=special>}</span>
+    
+    <span class=identifier>Bar</span><span class=special>(</span> <span class=keyword>int</span> <span class=identifier>i</span> <span class=special>)</span> <span class=special>:</span> <span class=identifier>Foo</span><span class=special>(</span> <span class=number>42</span> <span class=special>)</span>
+    <span class=special>{</span> <span class=special>}</span>
+<span class=special>};</span>
+
+<span class=comment>//
+// Required by ptr_set&lt;Foo&gt;
+//</span>
+<span class=keyword>inline</span> <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>&lt;(</span> <span class=identifier>Foo</span> <span class=identifier>l</span><span class=special>,</span> <span class=identifier>Foo</span> <span class=identifier>r</span> <span class=special>)</span>
+<span class=special>{</span>
+    <span class=keyword>return</span> <span class=identifier>l</span><span class=special>.</span><span class=identifier>i</span> <span class=special>&lt;</span> <span class=identifier>r</span><span class=special>.</span><span class=identifier>i</span><span class=special>;</span>
+<span class=special>}</span>
+
+ 
+<span class=keyword>using</span> <span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>;</span>
+<span class=keyword>using</span> <span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>;</span>
+
+<span class=keyword>int</span> <span class=identifier>main</span><span class=special>()</span>
+<span class=special>{</span>
+    <span class=identifier>ptr_deque</span><span class=special>&lt;</span><span class=identifier>Foo</span><span class=special>&gt;</span> <span class=identifier>deq</span><span class=special>;</span>
+    <span class=identifier>ptr_push_back</span><span class=special>(</span> <span class=identifier>deq</span> <span class=special>)()();</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>deq</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>2u</span> <span class=special>);</span>
+    <span class=identifier>ptr_push_back</span><span class=special>&lt;</span><span class=identifier>Bar</span><span class=special>&gt;(</span> <span class=identifier>deq</span> <span class=special>)()();</span> <span class=comment>// insert 'Bar' objects</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>deq</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>4u</span> <span class=special>);</span>
+    <span class=identifier>ptr_push_front</span><span class=special>(</span> <span class=identifier>deq</span> <span class=special>)(</span> <span class=number>3</span> <span class=special>)(</span> <span class=number>42</span><span class=special>,</span> <span class=number>42</span> <span class=special>)(</span> <span class=string>&quot;foo&quot;</span><span class=special>,</span> <span class=number>42</span><span class=special>,</span> <span class=number>42</span> <span class=special>);</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>deq</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>7u</span> <span class=special>);</span>
+
+    <span class=identifier>ptr_set</span><span class=special>&lt;</span><span class=identifier>Foo</span><span class=special>&gt;</span> <span class=identifier>a_set</span><span class=special>;</span>
+    <span class=identifier>ptr_insert</span><span class=special>(</span> <span class=identifier>a_set</span> <span class=special>)()(</span> <span class=number>1</span> <span class=special>)(</span> <span class=number>2</span><span class=special>,</span> <span class=number>2</span> <span class=special>)(</span> <span class=string>&quot;foo&quot;</span><span class=special>,</span> <span class=number>3</span><span class=special>,</span> <span class=number>3</span> <span class=special>);</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>a_set</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>4u</span> <span class=special>);</span>
+    <span class=identifier>ptr_insert</span><span class=special>(</span> <span class=identifier>a_set</span> <span class=special>)()()()();</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>a_set</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>4u</span> <span class=special>);</span> <span class=comment>// duplicates not inserted</span>
+    <span class=identifier>ptr_insert</span><span class=special>&lt;</span><span class=identifier>Bar</span><span class=special>&gt;(</span> <span class=identifier>a_set</span> <span class=special>)(</span> <span class=number>42</span> <span class=special>);</span> <span class=comment>// insert a 'Bar' object</span> 
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>a_set</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>5u</span> <span class=special>);</span>
+
+    <span class=identifier>ptr_map</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>,</span><span class=identifier>Foo</span><span class=special>&gt;</span> <span class=identifier>a_map</span><span class=special>;</span>
+    <span class=identifier>ptr_map_insert</span><span class=special>(</span> <span class=identifier>a_map</span> <span class=special>)(</span> <span class=number>1</span> <span class=special>)(</span> <span class=number>2</span><span class=special>,</span> <span class=number>2</span> <span class=special>)(</span> <span class=number>3</span><span class=special>,</span> <span class=number>3</span><span class=special>,</span> <span class=number>3</span> <span class=special>)(</span> <span class=number>4</span><span class=special>,</span> <span class=string>&quot;foo&quot;</span><span class=special>,</span> <span class=number>4</span><span class=special>,</span> <span class=number>4</span> <span class=special>);</span>
+    <span class=identifier>ptr_map_insert</span><span class=special>&lt;</span><span class=identifier>Bar</span><span class=special>&gt;(</span> <span class=identifier>a_map</span> <span class=special>)(</span> <span class=number>42</span><span class=special>,</span> <span class=number>42</span> <span class=special>);</span> <span class=comment>// insert a  'Bar' object</span>
+<span class=special>}</span>
+    </pre>
+</blockquote>
+
+Notice how you may provide a template argument to these functions. This argument determines the type to allocate with <code>new</code>.
+You have to specify this argument when the container is based on an abstract type (because one cannot create objects of such a type).
+
+<p>
+For <code>ptr_map_insert()</code> the first argument <code>arg1</code> in an argument tuple <code>(arg1,arg2,...,argN)</code> is used to
+construct a key; this means that the first argument need only be convertible to the <code>key_type</code> of the container.
+The rest of the arguments are used to construct the mapped object.
+</p>
+                        
+<h3>Function <code>ptr_list_of()</code> <a name="ptr_list_of"></h3>         
+
+Just like you can use <code>list_of()</code> to initialize containers, you can 
+use <code>ptr_list_of()</code> to initialize a <a href="../../ptr_container/index.html">pointer container</a>.
+Here is a small example:
+
+<blockquote>
+    <pre>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>/</span><span class=identifier>ptr_list_of</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>ptr_container</span><span class=special>/</span><span class=identifier>ptr_deque</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;
+</span>
+<span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>;</span>
+<span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>;
+</span>
+<span class=special>{
+    </span><span class=identifier>ptr_deque</span><span class=special>&lt;</span><span class=identifier>Foo</span><span class=special>&gt; </span><span class=identifier>deq</span><span class=special>;
+    </span><span class=identifier>deq </span><span class=special>= </span><span class=identifier>ptr_list_of</span><span class=special>&lt;</span><span class=identifier>Foo</span><span class=special>&gt;( </span><span class=number>42 </span><span class=special>)()()( </span><span class=number>3</span><span class=special>, </span><span class=number>3 </span><span class=special>)( </span><span class=string>&quot;foo&quot;</span><span class=special>, </span><span class=number>2</span><span class=special>, </span><span class=number>1 </span><span class=special>);
+    </span><span class=identifier>BOOST_CHECK</span><span class=special>( </span><span class=identifier>deq</span><span class=special>.</span><span class=identifier>size</span><span class=special>() </span><span class=special>== </span><span class=number>5 </span><span class=special>);</span>
+<span class=special>}</span>    
+    </pre>
+</blockquote>
+
+Notice that a trailing <code>.to_container(deq)</code> may be added to help many poor 
+compilers to figure out the conversion (a few get it right). 
+Notice also that pointer maps are 
+not supported.
+
+<p>
+That is all; now you are ready to use this library.
+ </p>
+
+  <hr> 
+  <h2><a name="reference">Reference</a></h2>
+    <p>
+  It is worth noticing the way the library is implemented.
+  A free-standing function (eg. <code>push_back()</code>
+  or <code>operator+=()</code>) returns a proxy
+  object which is responsible for the insertion or the assignment. The proxy 
+object does the insertion or assignment by overloading <code>operator,()</code>
+  and <code>operator()()</code> and by calling the "insert" function from within 
+  those operators. The "insert" function is typically stored in the proxy object 
+  by using <code>boost::<a href="../../function/index.html">function</a></code>. </p>
+  
+  <p>
+  Often overloading
+  of <code>operator,()</code> is discouraged because it can lead to surprising
+  results, but the approach taken in this library is safe since the
+  user never deals with objects that have overloaded <code>operator,()</code>
+  directly. However, you should be aware of this:
+  </p>
+  
+  <p><i>
+  The 
+  expressions in a comma-separated list no longer follow the rules of the 
+  built-in comma-operator. This means that the order of evaluation of 
+  expressions in a comma-separated list is undefined like when one specifies 
+  a list of function arguments.
+  </i></p>
+  
+    <p>
+  Most of the code in this document use <code>int</code> in the examples, 
+  but of course it works for arbitrary types as long as they are 
+  Copy Constructible. The inserted data need not be constant data,
+  but can be variables or data returned from functions; the only requirement 
+  is that the type of the data is convertible to the type stored in the 
+  container. 
+  </p>
+  
+  <p>
+  All forwarding is done by passing objects by <code>const</code> reference. 
+Originally arguments were passed by value (and still is in 
+<code>tuple_list_of()</code>). One thing to remember is that references
+  can be passed by using <code>boost::<a href="http://www.boost.org/doc/html/ref.html">ref</a></code>.
+  </p>
+  
+  <p>
+   Everything is put in namespace 
+  <code>boost::assign</code>. </p>
+
+  <p> More details can be found below: </p>
+      <ul>
+          
+        <li><a href="#headers">Headers</a> </li>
+        <li><a href="#std">Standard containers</a> </li>
+        <li>Functions <a href="#list_of_ref"><code>list_of()</code> and <code>map_list_of()</code></a></li>
+        <li>Functions <a href="#repeat_ref"><code>repeat()</code>,<code>repeat_fun()</code> and 
+                                                                      <code>range()</code>
+                                                                      </a></li>
+        <li>Class <a href="#list_inserter"><code>list_inserter</code></a></li>
+        <li>Function <a href="#make_list_inserter"><code>make_list_inserter()</code></a></li>
+        <li><a href="#limit">Customizing</a> argument list sizes </li>
+     </ul>
+  <h3>Headers <a name="headers"></h3>      
+  
+  <p>
+  An overview of the headers in this library 
+is given below. Please notice <code>&lt;boost/assign/list_inserter.hpp></code> 
+is included for each header that defines <code>operator+=()</code>.</p>
+
+<table cellpadding=5 border=1 > <tr>
+         <th>  Header                      </th>
+         <th>        Includes              </th> 
+     <tr>
+         <td> &lt;boost/assign.hpp>               </td>
+         <td>     everything except support for pointer containers  </td>
+     <tr>
+         <td> &lt;boost/assign/list_of.hpp>       </td>
+         <td> <a href="#list_of"><code>list_of()</a>, <a 
+href="#map_list_of">map_list_of()</code></a>, 
+         <a href="#tuple_list_of">tuple_list_of()</code></a>,
+         <a href="#ref_list_of">ref_list_of()</code> and 
+<code>cref_list_of()</code></a>
+                  
+         </td> <tr>
+         <td> &lt;boost/assign/std.hpp>       </td>
+         <td> <a href="#operator+="><code>operator+=()</code></a> for all 
+standard
+containers (see below)</td> <tr> <td>  &lt;boost/assign/std/deque.hpp> </td>
+        <td>  <code>operator+=()</code> for 
+              <code>std::deque</code>, <code>&lt;deque></code> 
+    <tr> 
+        <td>  &lt;boost/assign/std/list.hpp> </td>
+        <td>  <code>operator+=()</code> for 
+              <code>std::list</code>, <code>&lt;list></code>  
+    <tr> 
+        <td>  &lt;boost/assign/std/map.hpp> </td>
+        <td>  <code>operator+=()</code> for 
+              <code>std::map</code> and <code>std::multimap</code> , 
+<code>&lt;map></code> <tr> 
+        <td>  &lt;boost/assign/std/queue.hpp> </td>
+        <td>  <code>operator+=()</code> for 
+              <code>std::queue</code> and <code>std::priority_queue</code>, 
+<code>&lt;queue></code> <tr> 
+        <td>  &lt;boost/assign/std/set.hpp> </td>
+        <td>  <code>operator+=()</code> for 
+              <code>std::set</code> and <code>std::multiset</code>, 
+<code>&lt;set></code> <tr> 
+        <td>  &lt;boost/assign/std/slist.hpp> </td>
+        <td>  <code>operator+=()</code> for 
+              <code>std::slist</code> if the class is available , 
+<code>&lt;slist></code> <tr> 
+        <td>  &lt;boost/assign/std/stack.hpp> </td>
+        <td>  <code>operator+=()</code> for 
+              <code>std::stack</code>, <code>&lt;stack></code>  
+    <tr> 
+        <td>  &lt;boost/assign/std/vector.hpp> </td>
+        <td>  <code>operator+=()</code> for 
+              <code>std::vector</code>, <code>&lt;vector></code>  
+    <tr> 
+        <td>  &lt;boost/assign/assignment_exception.hpp> </td>
+        <td>  Class <a 
+href="#assignment_exception"><code>assignment_exception</code></a> which might 
+be thrown by the proxy returned by <code>list_of()</code>
+    <tr> 
+        <td>  &lt;boost/assign/list_inserter.hpp> </td>
+            <td>Functions <a
+               href="#make_list_inserter"><code>make_list_inserter()</code></a>, <code>push_back()</code>,
+                <code>push_front()</code>,<code>insert()</code>,
+                <code>
+                push()</code> and class <a href="#list_inserter"><code>list_inserter</code></a> 
+                which is the back-bone of this entire library.
+
+            <tr>    
+            <td>  &lt;boost/assign/ptr_list_inserter.hpp> </td>
+            <td>Functions <a href="#ptr_push_back"><code>ptr_push_back()</code></a>,
+                <code>ptr_push_front()</code> and <code>ptr_insert()</code>
+                 
+            <tr>    
+            <td>  &lt;boost/assign/ptr_map_inserter.hpp> </td>
+            <td>Functions <a href="#ptr_push_back"><code>ptr_map_insert()</code></a>
+    
+                            <tr>    
+            <td>  &lt;boost/assign/ptr_list_of.hpp> </td>             
+            <td>Function <a href="#ptr_list_of"><code>ptr_list_of()</code></a>
+
+    </table>
+  
+  <h3>Standard containers <a name="std"> </h3>
+   <p> In the following three dots (...) will mean
+       implementation defined.  
+       <code>operator+=()</code> returns a proxy that forwards calls to either
+       <code>push_back()</code>,<code>insert()</code>, or <code>push()</code>  
+       depending on which operation the container supports. </p> <b>Synopsis</b>
+  <p>
+<blockquote>
+<pre>
+<span class=keyword>namespace </span><span class=identifier>boost</span>
+<span class=special>{</span>
+<span class=keyword>namespace </span><span class=identifier>assign</span>
+<span class=special>{
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>V</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>A</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>V2 </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt;    </span><span class=keyword>operator</span><span class=special>+=( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>deque</span><span class=special>&lt;</span><span class=identifier>V</span><span class=special>,</span><span class=identifier>A</span><span class=special>&gt;&amp; </span><span class=identifier>c</span><span class=special>, </span><span class=identifier>V2 </span><span class=identifier>v </span><span class=special>);
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>V</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>A</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>V2 </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt;    </span><span class=keyword>operator</span><span class=special>+=( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>list</span><span class=special>&lt;</span><span class=identifier>V</span><span class=special>,</span><span class=identifier>A</span><span class=special>&gt;&amp; </span><span class=identifier>c</span><span class=special>, </span><span class=identifier>V2 </span><span class=identifier>v </span><span class=special>);
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>K</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>V</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>C</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>A</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>P </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt;    </span><span class=keyword>operator</span><span class=special>+=( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>map</span><span class=special>&lt;</span><span class=identifier>K</span><span class=special>,</span><span class=identifier>V</span><span class=special>,</span><span class=identifier>C</span><span class=special>,</span><span class=identifier>A</span><span class=special>&gt;&amp; </span><span class=identifier>m</span><span class=special>, </span><span class=keyword>const </span><span class=identifier>P</span><span class=special>&amp; </span><span class=identifier>p </span><span class=special>);
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>K</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>V</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>C</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>A</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>P </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt;    </span><span class=keyword>operator</span><span class=special>+=( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>multimap</span><span class=special>&lt;</span><span class=identifier>K</span><span class=special>,</span><span class=identifier>V</span><span class=special>,</span><span class=identifier>C</span><span class=special>,</span><span class=identifier>A</span><span class=special>&gt;&amp; </span><span class=identifier>m</span><span class=special>, </span><span class=keyword>const </span><span class=identifier>P</span><span class=special>&amp; </span><span class=identifier>p </span><span class=special>);
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>V</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>C</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>V2 </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt;    </span><span class=keyword>operator</span><span class=special>+=( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>queue</span><span class=special>&lt;</span><span class=identifier>V</span><span class=special>,</span><span class=identifier>C</span><span class=special>&gt;&amp; </span><span class=identifier>c</span><span class=special>, </span><span class=identifier>V2 </span><span class=identifier>v </span><span class=special>);
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>V</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>C</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>V2 </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt;    </span><span class=keyword>operator</span><span class=special>+=( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>priority_queue</span><span class=special>&lt;</span><span class=identifier>V</span><span class=special>,</span><span class=identifier>C</span><span class=special>&gt;&amp; </span><span class=identifier>c</span><span class=special>, </span><span class=identifier>V2 </span><span class=identifier>v </span><span class=special>);
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>K</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>C</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>A</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>K2 </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt; </span><span class=keyword>operator</span><span class=special>+=( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>set</span><span class=special>&lt;</span><span class=identifier>K</span><span class=special>,</span><span class=identifier>C</span><span class=special>,</span><span class=identifier>A</span><span class=special>&gt;&amp; </span><span class=identifier>c</span><span class=special>, </span><span class=identifier>K2 </span><span class=identifier>k </span><span class=special>);
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>K</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>C</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>A</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>K2 </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt; </span><span class=keyword>operator</span><span class=special>+=( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>multiset</span><span class=special>&lt;</span><span class=identifier>K</span><span class=special>,</span><span class=identifier>C</span><span class=special>,</span><span class=identifier>A</span><span class=special>&gt;&amp; </span><span class=identifier>c</span><span class=special>, </span><span class=identifier>K2 </span><span class=identifier>k </span><span class=special>);
+    
+    </span><span class=preprocessor>#ifdef </span><span class=identifier>BOOST_HAS_SLIST
+              
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>V</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>A</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>V2 </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt;    </span><span class=keyword>operator</span><span class=special>+=( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>slist</span><span class=special>&lt;</span><span class=identifier>V</span><span class=special>,</span><span class=identifier>A</span><span class=special>&gt;&amp; </span><span class=identifier>c</span><span class=special>, </span><span class=identifier>V2 </span><span class=identifier>v </span><span class=special>);
+    
+    </span><span class=preprocessor>#endif
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>V</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>C</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>V2 </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt;    </span><span class=keyword>operator</span><span class=special>+=( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>stack</span><span class=special>&lt;</span><span class=identifier>V</span><span class=special>,</span><span class=identifier>C</span><span class=special>&gt;&amp; </span><span class=identifier>c</span><span class=special>, </span><span class=identifier>V2 </span><span class=identifier>v </span><span class=special>);
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>V</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>A</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>V2 </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt;    </span><span class=keyword>operator</span><span class=special>+=( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>vector</span><span class=special>&lt;</span><span class=identifier>V</span><span class=special>,</span><span class=identifier>A</span><span class=special>&gt;&amp; </span><span class=identifier>c</span><span class=special>, </span><span class=identifier>V2 </span><span class=identifier>v </span><span class=special>);    </span>
+
+<span class=special>} </span><span class=comment>// namespace 'assign'</span>
+<span class=special>} </span><span class=comment>// namespace 'boost'</span>  </pre></blockquote>
+    Note that the extra template argument <code>V2</code> etc. is 
+    necessary to allow for types convertible to <code>V</code>.   
+     
+  <h3>Functions <code>list_of()</code> and 
+      <code>map_list_of()</code> <a name="list_of_ref"> </h3>
+    <p>  
+  These two functions are used to construct anonymous    
+  list which can be converted to any standard container
+  and <code>boost::<a href="../../array/index.html">array</a>&lt;T,sz>.</code> 
+The object returned by the two
+  functions is guaranteed to have the interface described below. 
+  </p>
+  <b>Synopsis</b>
+  <blockquote>  
+  <pre><span class=keyword>namespace </span><span class=identifier>boost  </span>
+<span class=special>{</span>
+<span class=keyword>namespace </span><span class=identifier>assign</span>
+<span class=special>{
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>T </span><span class=special>&gt;
+    </span><span class=keyword>class </span><span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span>
+    </span><span class=special>{
+    </span><span class=keyword>public</span><span class=special>:
+        </span><span class=identifier>const_iterator  </span><span class=identifier>begin</span><span class=special>() <span class=keyword>const</span>;
+        </span><span class=identifier>const_iterator  </span><span class=identifier>end</span><span class=special>() <span class=keyword>const</span>;
+        
+        </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>U </span><span class=special>&gt;
+        </span><span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span>&amp; </span><span class=keyword>operator</span><span class=special>,( </span><span class=identifier>U </span><span class=identifier>u </span><span class=special>);
+        
+        </span><span class=comment>// inserts default-constructed object
+        </span><span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span>&amp; </span><span class=keyword>operator</span><span class=special>()();  
+
+        </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>U </span><span class=special>&gt;
+        </span><span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span>&amp; </span><span class=keyword>operator</span><span class=special>()( </span><span class=identifier>U </span><span class=identifier>u </span><span class=special>);
+        
+        </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>U</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U2 </span><span class=special>&gt;
+        </span><span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span>&amp; </span><span class=keyword>operator</span><span class=special>()( </span><span class=identifier>U </span><span class=identifier>u</span><span class=special>, </span><span class=identifier>U2 </span><span class=identifier>u2 </span><span class=special>);
+
+        </span><span class=comment>//
+        // and similarly up to 5 arguments
+        //
+        
+        //
+        // Convert to a 'Container'. 'Container' must have a constructor 
+        // which takes two iterators.  
+        //
+        </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>Container </span><span class=special>&gt;
+        </span><span class=keyword>operator </span><span class=identifier>Container</span><span class=special>() </span><span class=keyword>const</span><span class=special>; 
+
+        </span><span class=comment>//
+        // Convert to a container adapter like 'std::stack&lt;&gt;'.
+        //
+        </span><span class=identifier>Convertible</span><span class=special>-</span><span class=identifier>to</span><span class=special>-</span><span class=identifier>adapter</span> </span><span class=identifier>to_adapter</span><span class=special>() </span><span class=keyword>const</span><span class=special>;
+        
+        </span><span class=comment>//
+        //
+        // Convert to eg. 'boost::array&lt;T,std::size_t&gt;'. If the  
+        // assigned variable is too small, 
+        // a <a href="#assignment_exception">assignment_exception</a> is thrown.
+        // If the assigned variable it is too big, the rest of the 
+        // values are  default-constructed.
+        //
+        </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>class</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span><span class=special>&gt; </span><span class=keyword>class </span><span class=identifier>Array</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U</span><span class=special>, </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t </span><span class=identifier>sz </span><span class=special>&gt; 
+        </span><span class=keyword>operator </span><span class=identifier>Array</span><span class=special>&lt;</span><span class=identifier>U</span><span class=special>,</span><span class=identifier>sz</span><span class=special>&gt;() </span><span class=keyword>const</span><span class=special>;
+    </span><span class=special>};</span>
+    
+    <span class=comment>//
+    // Comparison operators. 'op' can be &lt;,&gt;,&lt;=,&gt;=,==,!=
+    //</span>
+    <span class=keyword>template</span><span class=special>&lt;</span> <span class=keyword>class</span> <span class=identifier>Range</span> <span class=special>&gt;</span>
+    <span class=keyword>bool</span> <span class=identifier>op</span><span class=special>(</span> <span class=keyword>const</span> <span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span><span class=special>&amp;,</span> <span class=keyword>const</span> <span class=identifier>Range</span><span class=special>&amp;</span> <span class=special>);</span>
+    <span class=keyword>template</span><span class=special>&lt;</span> <span class=keyword>class</span> <span class=identifier>Range</span> <span class=special>&gt;</span>
+    <span class=keyword>bool</span> <span class=identifier>op</span><span class=special>(</span> <span class=keyword>const</span> <span class=identifier>Range</span><span class=special>&amp;,</span> <span class=keyword>const</span> <span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span><span class=special>&amp;</span> <span class=special>);</span>
+    
+    <span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>T </span><span class=special>&gt;
+    </span><span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span>   </span><span class=identifier>list_of</span><span class=special>(</span><span class=special>);
+
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>T </span><span class=special>&gt;
+    </span><span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span>   </span><span class=identifier>list_of</span><span class=special>( </span><span class=identifier>T </span><span class=identifier>t </span><span class=special>);
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>T</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U2 </span><span class=special>&gt;
+    </span><span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span>   </span><span class=identifier>list_of</span><span class=special>( </span><span class=identifier>U </span><span class=identifier>u</span><span class=special>, </span><span class=identifier>U2 </span><span class=identifier>u2 </span><span class=special>);
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>T</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U2</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U3 </span><span class=special>&gt;
+    </span><span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span>   </span><span class=identifier>list_of</span><span class=special>( </span><span class=identifier>U </span><span class=identifier>u</span><span class=special>, </span><span class=identifier>U2 </span><span class=identifier>u2</span><span class=special>, </span><span class=identifier>U3 </span><span class=identifier>u3 </span><span class=special>);
+
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>T</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U2</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U3</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U4 </span><span class=special>&gt;
+    </span><span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span>   </span><span class=identifier>list_of</span><span class=special>( </span><span class=identifier>U </span><span class=identifier>u</span><span class=special>, </span><span class=identifier>U2 </span><span class=identifier>u2</span><span class=special>, </span><span class=identifier>U3 </span><span class=identifier>u3</span><span class=special>, </span><span class=identifier>U4 </span><span class=identifier>u4 </span><span class=special>);
+  
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>T</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U2</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U3</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U4</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U5 </span><span class=special>&gt;
+    </span><span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span>   </span><span class=identifier>list_of</span><span class=special>( </span><span class=identifier>U </span><span class=identifier>u</span><span class=special>, </span><span class=identifier>U2 </span><span class=identifier>u2</span><span class=special>, </span><span class=identifier>U3 </span><span class=identifier>u3</span><span class=special>, </span><span class=identifier>U4 </span><span class=identifier>u4</span><span class=special>, </span><span class=identifier>U5 </span><span class=identifier>u5 </span><span class=special>);
+
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>Key</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>T </span><span class=special>&gt;
+    </span><span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span>   </span><span class=identifier>map_list_of</span><span class=special>( </span><span class=identifier>Key </span><span class=identifier>k</span><span class=special>, </span><span class=identifier>T </span><span class=identifier>t </span><span class=special>)
+    </span><span class=special>{
+        </span><span class=keyword>return </span><span class=identifier>list_of</span><span class=special>&lt; </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>,</span><span class=identifier>T</span><span class=special>&gt; </span><span class=special>&gt;()( </span><span class=identifier>k</span><span class=special>, </span><span class=identifier>t </span><span class=special>);
+    </span><span class=special>}</span>
+<span class=special>} </span><span class=comment>// namespace 'assign'</span>
+<span class=special>} </span><span class=comment>// namespace 'boost'</span>  </pre></blockquote>
+
+
+  <h3>Functions <code>repeat()</code>, 
+     <code>repeat_fun()</code> and <code>range()</code> <a name="repeat_ref"> </h3>
+  <p>
+            These first two function exist both as free-standing functions and as member functions of the object returned by 
+      <code>list_of()</code> and of <code>list_inserter</code>. 
+      The free-standing versions are used to create a
+      hook for <code>operator,()</code> so we can call the functions in the middle of a comma-list. The member functions
+      are used when we need to call the functions in the middle of a parenthesis-list. In both cases we have that
+      <ul>
+          <li> the return type is always implementation defined for both functions, 
+          <li> the argument list of <code>repeat()</code> is <code>(std::size_t,T)</code>, and  
+          <li> the argument list of <code>repeat_fun()</code> is <code>(std::size_t,Nullary_function)</code>    
+      </ul>
+      
+        </p>
+  <p>
+  The function <code>range()</code> only exists as a member function. The following two overloads are provided:
+  <blockquote>
+      <pre><span class=keyword>template</span><span class=special>&lt;</span> <span class=keyword>class</span> <span class=identifier>SinglePassIterator</span> <span class=special>&gt;</span>
+<span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span> <span class=identifier>range</span><span class=special>(</span> <span class=identifier>SinglePassIterator</span> <span class=identifier>first</span><span class=special>,</span> <span class=identifier>SinglePassIterator</span> <span class=identifier>last</span> <span class=special>);</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span> <span class=keyword>class</span> <span class=identifier>SinglePassRange</span> <span class=special>&gt;</span>
+<span class=identifier>Implementation</span><span class=special>-</span><span class=identifier>defined</span> <span class=identifier>range</span><span class=special>(</span> <span class=keyword>const</span> <span class=identifier>SinglePassRange</span><span class=special>&amp;</span> <span class=identifier>rng</span> <span class=special>);</span></pre>
+  </blockquote>
+
+  </p>
+      
+  <h3><a name="list_inserter">Class <code>list_inserter</code></a></h3> 
+  
+  This class is responsible for inserting elements into containers and 
+  it is the key to extending the library to support your favourite class.
+
+    <p>
+  <b>Synopsis</b> 
+  </p>
+  <blockquote><pre>
+<span class=keyword>namespace </span><span class=identifier>boost</span>
+<span class=special>{</span>
+<span class=keyword>namespace </span><span class=identifier>assign</span>
+<span class=special>{
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=identifier>Function</span><span class=special>, </span><span class=identifier>Argument </span><span class=special>= </span><span class=keyword>void </span><span class=special>&gt; 
+    </span><span class=keyword>class </span><span class=identifier>list_inserter
+    </span><span class=special>{
+        </span><span class=identifier>Function </span><span class=identifier>fun</span><span class=special>;
+        
+    </span><span class=keyword>public</span><span class=special>:
+        </span><span class=keyword>explicit </span><span class=identifier>list_inserter</span><span class=special>( </span><span class=identifier>Function </span><span class=identifier>fun </span><span class=special>);
+        
+        </span><span class=comment>// conversion constructor
+        </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>Function2</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>Arg </span><span class=special>&gt;
+        </span><span class=identifier>list_inserter</span><span class=special>( </span><span class=keyword>const </span><span class=identifier>list_inserter</span><span class=special>&lt;</span><span class=identifier>Function2</span><span class=special>,</span><span class=identifier>Arg</span><span class=special>&gt;&amp; </span><span class=special>);
+        
+    </span><span class=keyword>public</span><span class=special>:
+        </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>U </span><span class=special>&gt;
+        </span><span class=identifier>list_inserter</span><span class=special>&amp; </span><span class=keyword>operator</span><span class=special>,( </span><span class=identifier>U </span><span class=identifier>u </span><span class=special>);
+        
+        </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>U </span><span class=special>&gt;
+        </span><span class=identifier>list_inserter</span><span class=special>&amp; </span><span class=keyword>operator</span><span class=special>=( </span><span class=identifier>U </span><span class=identifier>u </span><span class=special>);
+        
+        </span><span class=comment>// calls 'fun()' with default-constructed object
+        </span><span class=identifier>list_inserter</span><span class=special>&amp; </span><span class=keyword>operator</span><span class=special>()();
+        
+        </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>U </span><span class=special>&gt;
+        </span><span class=identifier>list_inserter</span><span class=special>&amp; </span><span class=keyword>operator</span><span class=special>()( </span><span class=identifier>U </span><span class=identifier>u </span><span class=special>);
+        
+        </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>U</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>U2 </span><span class=special>&gt;
+        </span><span class=identifier>list_inserter</span><span class=special>&amp; </span><span class=keyword>operator</span><span class=special>()( </span><span class=identifier>U </span><span class=identifier>u</span><span class=special>, </span><span class=identifier>U2 </span><span class=identifier>u2 </span><span class=special>)
+        </span><span class=special>{
+           </span><span class=comment>//
+           // if 'Argument' is 'void'
+           //     fun( u, u2 );
+           // else
+           //     fun( Argument( u, u2 ) );
+           //
+           </span><span class=keyword>return </span><span class=special>*</span><span class=keyword>this</span><span class=special>;
+        </span><span class=special>}
+
+        </span><span class=comment>//
+        // similarly up to 5 arguments
+        //
+    </span><span class=special>};</span>
+    
+    <span class=keyword>template</span><span class=special>&lt; </span><span 
+class=keyword>class </span><span class=identifier>C </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt; </span><span class=identifier>push_back</span><span class=special>( </span><span class=identifier>C</span><span class=special>&amp; </span><span class=special>);
+      
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>C </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt; </span><span class=identifier>push_front</span><span class=special>( </span><span class=identifier>C</span><span class=special>&amp; </span><span class=special>);
+
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>C </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt; </span><span class=identifier>insert</span><span class=special>( </span><span class=identifier>C</span><span class=special>&amp; </span><span class=special>);
+
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>C </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=special>... </span><span class=special>&gt; </span><span class=identifier>push</span><span class=special>( </span><span class=identifier>C</span><span class=special>&amp; </span><span class=special>);</span>
+      
+<span class=special>} </span><span class=comment>// namespace 'assign'</span>
+<span class=special>} </span><span class=comment>// namespace 'boost'</span></pre></blockquote>
+  <p>
+  Notice how the arguments to <code>operator,()</code> and 
+  <code>operator()()</code> are passed differently to 
+  <code>fun</code> depending of the type of <code>Argument</code>. 
+  So if we only pass one template argument to <code>list_inserter,</code>
+  we can forward "arbitrary" argument lists of functions. If we pass
+  two template arguments to <code>list_inserter</code> we can 
+  construct types with "arbitrary" constructors.
+  </p> 
+   
+  <p> 
+   And because
+  a reference to <code>list_inserter</code> is returned, we can
+  chain argument list together in a very space-efficient manner.
+  </p>
+
+  <h3><a name="make_list_inserter">Function <code>make_list_inserter()</code></a></h3>
+  <p>
+  A simple "constructor" function for <code>list_inserter</code>. A typical 
+  use of this function is to call it with the result of 
+<code>boost::bind()</code>
+  which in general returns some unreadable and weird class template.
+  </p>
+  <b>Synopsis</b>
+  <blockquote><pre>
+<span class=keyword>namespace </span><span class=identifier>boost </span>
+<span class=special>{</span>
+<span class=keyword>namespace </span><span class=identifier>assign</span>
+<span class=special>{  
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>Function </span><span class=special>&gt;
+    </span><span class=identifier>list_inserter</span><span class=special>&lt;</span><span class=identifier>Function</span><span class=special>&gt;  </span><span class=identifier>make_list_inserter</span><span class=special>( </span><span class=identifier>Function </span><span class=identifier>fun </span><span class=special>)
+    </span><span class=special>{
+        </span><span class=keyword>return </span><span class=identifier>list_inserter</span><span class=special>&lt;</span><span class=identifier>Function</span><span class=special>&gt;( </span><span class=identifier>fun </span><span class=special>);
+    </span><span class=special>} </span>
+<span class=special>}</span>
+<span class=special>}  </span>  </pre></blockquote>
+
+   <a name="limit"></a>   
+   <h3>Customizing argument list sizes</h3>   
+      <p>
+    This library uses the boost Preprocessor Library to implement overloaded 
+    versions of <code>operator()()</code> and <code>list_of()</code>. By default you 
+    can call these functions with five arguments, but you can also customize this 
+    number by defining a macros before including a header from this library:
+       <blockquote>
+       <pre>
+<span class=preprocessor>#define </span><span class=identifier>BOOST_ASSIGN_MAX_PARAMS </span><span class=number>10
+</span><span class=preprocessor>#include </span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assign</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+</pre>
+       </blockquote>      
+       </p>
+  <hr>    
+  <h2><a name="exceptions">Exceptions and exception-safety</a></h2>
+  <p>
+  The exception guarantees by the library is the same as guarantee as the 
+  guarantee of the function that is forwarded to. For standard 
+  containers this means that the
+  strong guarantee is given for a single insertions and that the basic guarantee 
+  is given for many insertions (provided that the object being copied 
+  gives the basic guarantee). 
+  </p>
+  <p>
+  The functions may throw standard exceptions
+  like <code>std::bad_alloc</code>. Note however that, unfortunately, the standard does not guarantee allocation-failures
+  in standard containers to be reported by <code>std::bad_alloc</code> or exceptions derived from <code>std::exception</code>.
+ </p>
+  
+  <h3><a name="assignment_exception">Class 
+  <code>assignment_exception</code></a></h3>
+  <p>
+   The exception is thrown by the conversion operator in the proxy object
+   returned from <code>list_of()</code>.
+  </p>
+
+  <blockquote><pre>
+<span class=keyword>namespace </span><span class=identifier>boost </span>
+<span class=special>{</span>
+<span class=keyword>namespace </span><span class=identifier>assign</span>
+<span class=special>{
+    </span><span class=keyword>class </span><span class=identifier>assignment_exception </span><span class=special>: </span><span class=keyword>public </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>exception
+    </span><span class=special>{
+    </span><span class=keyword>public</span><span class=special>:
+        </span><span class=keyword>explicit </span><span class=identifier>assignment_exception</span><span class=special>( </span><span class=keyword>const </span><span class=keyword>char</span><span class=special>* </span><span class=identifier>what </span><span class=special>); 
+        </span><span class=keyword>virtual </span><span class=keyword>const </span><span class=keyword>char</span><span class=special>* </span><span class=identifier>what</span><span class=special>() </span><span class=keyword>const </span><span class=keyword>throw</span><span class=special>();
+    </span><span class=special>};</span>
+<span class=special>}   </span>
+<span class=special>}</span>  </pre></blockquote> 
+
+  <hr>
+  <h2><a name="extensions">Extending the library</a></h2> 
+  <p>
+  It is very simple to make the library work with new classes. 
+  This code shows how to use <code>operator+=()</code> with 
+  a container:
+  <blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>V</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>A</span><span class=special>, </span><span class=keyword>class </span><span class=identifier>V2 </span><span class=special>&gt;
+</span><span class=keyword>inline </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=identifier>assign_detail</span><span class=special>::</span><span class=identifier>call_push_back</span><span class=special>&lt; </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>vector</span><span class=special>&lt;</span><span class=identifier>V</span><span class=special>,</span><span class=identifier>A</span><span class=special>&gt; </span><span class=special>&gt;, </span><span class=identifier>V </span><span class=special>&gt; 
+</span><span class=keyword>operator</span><span class=special>+=( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>vector</span><span class=special>&lt;</span><span class=identifier>V</span><span class=special>,</span><span class=identifier>A</span><span class=special>&gt;&amp; </span><span class=identifier>c</span><span class=special>, </span><span class=identifier>V2 </span><span class=identifier>v </span><span class=special>)
+</span><span class=special>{
+    </span><span class=keyword>return </span><span class=identifier>make_list_inserter</span><span class=special>( </span><span class=identifier>assign_detail</span><span class=special>::</span><span class=identifier>call_push_back</span><span class=special>&lt; </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>vector</span><span class=special>&lt;</span><span class=identifier>V</span><span class=special>,</span><span class=identifier>A</span><span class=special>&gt; </span><span class=special>&gt;( </span><span class=identifier>c </span><span class=special>) </span><span class=special>)( </span><span class=identifier>v </span><span class=special>);
+</span><span class=special>}
+</span></pre>
+</blockquote>      
+
+
+where <code>call_push_back</code> is defined as    
+      
+<blockquote>      
+<pre>
+<span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>C </span><span class=special>&gt;
+</span><span class=keyword>class </span><span class=identifier>call_push_back
+</span><span class=special>{
+    </span><span class=identifier>C</span><span class=special>&amp; </span><span class=identifier>c_</span><span class=special>;
+</span><span class=keyword>public</span><span class=special>:
+
+    </span><span class=identifier>call_push_back</span><span class=special>( </span><span class=identifier>C</span><span class=special>&amp; </span><span class=identifier>c </span><span class=special>) </span><span class=special>: </span><span class=identifier>c_</span><span class=special>( </span><span class=identifier>c </span><span class=special>)
+    </span><span class=special>{ </span><span class=special>}
+    
+    </span><span class=keyword>template</span><span class=special>&lt; </span><span class=keyword>class </span><span class=identifier>T </span><span class=special>&gt;
+    </span><span class=keyword>void </span><span class=keyword>operator</span><span class=special>()( </span><span class=identifier>T </span><span class=identifier>r </span><span class=special>) 
+    </span><span class=special>{
+        </span><span class=identifier>c_</span><span class=special>.</span><span class=identifier>push_back</span><span class=special>( </span><span class=identifier>r </span><span class=special>);
+    </span><span class=special>}
+</span><span class=special>};</span></pre>    
+</blockquote>
+      
+      Note that we pass
+  a second template argument to <code>list_inserter</code> so argument 
+  lists will be used to construct a <code>V</code> object. Otherwise we
+  could end up trying to call <code>push_back()</code> with <i>n</i> arguments 
+  instead of one.
+  </p>
+      
+  <p>    
+  An alternative way would be to use <code>boost::function</code> and 
+  <code>boost::bind()</code> in combination. However, in this case one must
+  remember that it is illegal to take the address of a function in
+  the standard library.
+  </p>
+      
+  <p>
+  Calling a function with more that one argument can be
+  very useful too. This small example shows how we take advantage of this 
+  functionality:
+  </p>
+  <blockquote><pre>
+<span class=comment>//  
+// A class representing emails
+//</span>
+<span class=keyword>class </span><span class=identifier>email</span>
+<span class=special>{</span>
+<span class=keyword>public</span><span class=special>:
+    </span><span class=keyword>enum </span><span class=identifier>address_option
+    </span><span class=special>{
+        </span><span class=identifier>check_addr_book</span><span class=special>,
+        </span><span class=identifier>dont_check_addr_book
+    </span><span class=special>};
+    </span>
+<span class=keyword>private</span><span class=special>:
+
+    </span><span class=keyword>typedef </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>map</span><span class=special>&lt; </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span><span class=identifier>address_option </span><span class=special>&gt;  </span><span class=identifier>address_map</span><span class=special>;
+    
+    </span><span class=comment>//
+    // Store list of persons that must be cc'ed
+    //
+    </span><span class=keyword>mutable </span><span class=identifier>address_map </span><span class=identifier>cc_list</span><span class=special>;
+        
+    </span><span class=comment>//
+    // This extra function-object will take care of the 
+    // insertion for us. It stores a reference to a 
+    // map and 'operator()()' does the work. 
+    //
+    </span><span class=keyword>struct </span><span class=identifier>add_to_map
+    </span><span class=special>{
+        </span><span class=identifier>address_map</span><span class=special>&amp; </span><span class=identifier>m</span><span class=special>;
+    
+        </span><span class=identifier>add_to_map</span><span class=special>( </span><span class=identifier>address_map</span><span class=special>&amp; </span><span class=identifier>m </span><span class=special>) </span><span class=special>: </span><span class=identifier>m</span><span class=special>(</span><span class=identifier>m</span><span class=special>)        
+        </span><span class=special>{}
+    
+        </span><span class=keyword>void </span><span class=keyword>operator</span><span class=special>()( </span><span class=keyword>const </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp; </span><span class=identifier>name</span><span class=special>, </span><span class=identifier>address_option </span><span class=identifier>ao </span><span class=special>)
+        </span><span class=special>{
+            </span><span class=identifier>m</span><span class=special>[ </span><span class=identifier>name </span><span class=special>] </span><span class=special>= </span><span class=identifier>ao</span><span class=special>; 
+        </span><span class=special>}
+    </span><span class=special>};
+</span>
+<span class=keyword>public</span><span class=special>:
+    
+    </span><span class=comment>//
+    // This function constructs the appropriate 'list_inserter'.
+    // Again we could have use 'boost::function', but it is
+    // trivial to use a function object.
+    //
+    // Notice that we do not specify an extra template
+    // parameter to 'list_inserter'; this means we forward
+    // all parameters directly to the function without 
+    // calling any constructor.
+    //
+    </span><span class=identifier>list_inserter</span><span class=special>&lt; </span><span class=identifier>add_to_map </span><span class=special>&gt;
+    </span><span class=identifier>add_cc</span><span class=special>( </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string </span><span class=identifier>name</span><span class=special>, </span><span class=identifier>address_option </span><span class=identifier>ao </span><span class=special>)
+    </span><span class=special>{
+        </span><span class=comment>//
+        // Notice how we pass the arguments 'name' and 'ao' to
+        // the 'list_inserter'.
+        //
+        </span><span class=keyword>return </span><span class=identifier>make_list_inserter</span><span class=special>( </span><span class=identifier>add_to_map</span><span class=special>( </span><span class=identifier>cc_list </span><span class=special>) </span><span class=special>)( </span><span class=identifier>name</span><span class=special>, </span><span class=identifier>ao </span><span class=special>);
+    </span><span class=special>}</span>
+<span class=special>};
+</span>
+<span class=comment>//
+// Now we can use the class like this:
+//</span>
+<span class=identifier>email </span><span class=identifier>e</span><span class=special>;</span>
+<span class=identifier>e</span><span class=special>.</span><span class=identifier>add_cc</span><span class=special>( </span><span class=string>&quot;Mr. Foo&quot;</span><span class=special>, </span><span class=identifier>email</span><span class=special>::</span><span class=identifier>dont_check_addr_book </span><span class=special>)
+        </span><span class=special>( </span><span class=string>&quot;Mr. Bar&quot;</span><span class=special>, </span><span class=identifier>email</span><span class=special>::</span><span class=identifier>check_addr_book </span><span class=special>)
+        </span><span class=special>( </span><span class=string>&quot;Mrs. FooBar&quot;</span><span class=special>, </span><span class=identifier>email</span><span class=special>::</span><span class=identifier>check_addr_book </span><span class=special>);  </span>
+</pre></blockquote>
+      
+   
+  The full example can be seen in <a href="email_example.html">email_example.cpp</a> </p>
+  <hr>
+  <h2>Examples <a name="examples"></h2>
+  <p>
+  Additional examples can be found in the test files:
+  <ul>
+      <li> <a href="email_example.html">email_example.cpp</a>          
+      <li> <a href="my_vector_example.html">my_vector_example.cpp</a>               
+      <li> <a href="multi_index_container.html">multi_index_container.cpp</a> 
+      <li> <a href="../test/array.cpp">array.cpp</a>      
+      <li> <a href="../test/list_of.cpp">list_of.cpp</a>      
+      <li> <a href="../test/std.cpp">std.cpp</a>      
+      <li> <a href="../test/list_inserter.cpp">list_inserter.cpp</a>      
+      <li> <a href="../test/list_of_workaround.cpp">list_of_work_around.cpp</a>      
+</ul> </p>
+  
+  
+  <hr>
+  <h2><a name="boost_libs">Supported libraries</a></h2> 
+  Here is a list libraries has been tested with Boost.Assign:
+  
+  <ol>
+      <li> <code>boost::<a href="../../array/index.html">array</a></code>
+      <li> <code>boost::<a href="../../multi_index/index.html">multi_index_container</a></code>
+      <li> <code>Boost.<a href="../../ptr_container/index.html">Pointer Container</code> </ol> <p>
+
+  </p>
+  
+  
+  <hr>
+  <h2><a name="portability">Portability</a></h2>
+  <p>
+    Library has been successfully compiled and tested with
+    MVC++ 7.1, GCC 3.2 (under Cygwin) Comeau 4.3.3
+  </p>
+  <p>
+    There are known limitation on platforms not supporting templated 
+    conversion operators. The solution is to call certain member functions on 
+    the object returned by <code>list_of()</code>: </p>
+ <blockquote>
+     <pre>
+<span class=special>{
+    </span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>std</span><span class=special>;
+    </span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>;
+    </span><span class=keyword>using </span><span class=keyword>namespace </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>assign</span><span class=special>;
+    
+    </span><span class=keyword></span><span 
+class=identifier>vector</span><span
+class=special>&lt;</span><span class=keyword>int</span><span 
+class=special>&gt;</span>         <span class=identifier>v </span><span 
+class=special>= </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>1</span><span class=special>)(</span><span class=number>2</span><span class=special>)(</span><span class=number>3</span><span class=special>)(</span><span class=number>4</span><span class=special>).</span><span class=identifier>to_container</span><span class=special>( </span><span class=identifier>v </span><span class=special>);
+    </span><span class=identifier>set</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;            </span><span class=identifier>s </span><span class=special>= </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>1</span><span class=special>)(</span><span class=number>2</span><span class=special>)(</span><span class=number>3</span><span class=special>)(</span><span class=number>4</span><span class=special>).</span><span class=identifier>to_container</span><span class=special>( </span><span class=identifier>s </span><span class=special>);  
+    </span><span class=identifier>map</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>,</span><span class=keyword>int</span><span class=special>&gt;        </span><span class=identifier>m </span><span class=special>= </span><span class=identifier>map_list_of</span><span class=special>(</span><span class=number>1</span><span class=special>,</span><span class=number>2</span><span class=special>)(</span><span class=number>2</span><span class=special>,</span><span class=number>3</span><span class=special>).</span><span class=identifier>to_container</span><span class=special>( </span><span class=identifier>m </span><span class=special>);
+    </span><span class=identifier>stack</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;         </span><span class=identifier>st </span><span class=special>= </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>1</span><span class=special>)(</span><span class=number>2</span><span class=special>)(</span><span class=number>3</span><span class=special>)(</span><span class=number>4</span><span class=special>).</span><span class=identifier>to_adapter</span><span class=special>( </span><span class=identifier>st </span><span class=special>);
+    </span><span class=identifier>queue</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;          </span><span class=identifier>q </span><span class=special>= </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>1</span><span class=special>)(</span><span class=number>2</span><span class=special>)(</span><span class=number>3</span><span class=special>)(</span><span class=number>4</span><span class=special>).</span><span class=identifier>to_adapter</span><span class=special>( </span><span class=identifier>q </span><span class=special>); 
+    </span><span class=identifier>array</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>,</span><span class=number>4</span><span class=special>&gt;        </span><span class=identifier>a </span><span class=special>= </span><span class=identifier>list_of</span><span class=special>(</span><span class=number>1</span><span class=special>)(</span><span class=number>2</span><span class=special>)(</span><span class=number>3</span><span class=special>)(</span><span class=number>4</span><span class=special>).</span><span class=identifier>to_array</span><span class=special>( </span><span class=identifier>a </span><span class=special>);</span>
+<span class=special>}</span>     </pre>
+ </blockquote>
+ <p>
+ Notice how one must supply the functions with an argument so the right
+ return type can be deduced.
+ </p>
+ <p>Some standard libraries are also broken. One problem is that 
+<code>insert()</code> might not work:
+<blockquote>
+    <pre>
+<span class=identifier>map</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>,</span><span class=keyword>int</span><span class=special>&gt; </span><span class=identifier>next</span><span class=special>; 
+</span><span class=identifier>insert</span><span class=special>( </span><span class=identifier>next </span><span class=special>)(</span><span class=number>1</span><span class=special>,</span><span class=number>2</span><span class=special>)(</span><span class=number>2</span><span class=special>,</span><span class=number>3</span><span class=special>); </span><span class=comment>// compile-time error</span> </pre>
+</blockquote>
+The solution is to use <code>map_list_of()</code> instead:
+<blockquote>
+    <pre>
+<span class=identifier>map</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>,</span><span class=keyword>int</span><span class=special>&gt; </span><span class=identifier>next </span><span class=special>= </span><span class=identifier>map_list_of</span><span class=special>(</span><span class=number>1</span><span class=special>,</span><span class=number>2</span><span class=special>)(</span><span class=number>2</span><span class=special>,</span><span class=number>3</span><span class=special>);</span></pre></blockquote>
+</p>
+ <hr>
+  <h2><a name="history">History and Acknowledgment</a></h2>
+  <p>
+  The idea for an assignment/initialization library is not new. The 
+  functionality of this
+  library resembles Leor Zolman's STL Container Initialization Library a great 
+  deal, but it does not rely on string parsing to achieve its goals. 
+  </p> 
+  <p>
+  The  
+  library is non-intrusive and puts only a minimum of requirements 
+  on its supported classes.
+ Overloading operator comma is sometimes viewed as a bad practice <a 
+href="#meyers">[1]</A>. However, it has been done
+  with success in eg. the Generative Matrix Computation Library  and Blitz to initialize matrices 
+      (see <a href="#gmcl">[2]</A>) and <a href="#blitz">[3]</A>). The 
+Initialization Library overloads
+      the comma operator in a safe manner by letting free standing functions
+ return an object that is responsible for the initialization. Therefore it takes 
+explicit
+      action from the programmer to begin using the overloaded <code>operator,()</CODE>.
+  </p>
+  <p>
+  There has recently been some discussion about enhancing the language to 
+support better initialization (see <a href="#initializer">[4]</a>).
+  </p>
+  <p>
+  Special thanks goes to 
+  <ul>
+  <li> Leor Zolman for our many discussion that eventually led to this library.
+  <li> Tom Brinkman for being review manager.
+  <li> Joaquín Muñoz for vc6/vc7 portability.
+  <li> Pavel Vozenilek for his countless suggestions, improvements and 
+       portability fixes. 
+  <li> Rene Rivera for Code Warrior portability.     
+       
+       </ul>
+  </p>
+  <hr>
+  <h2><a name="ref">References</a></h2>
+  <p>
+  <ol>
+      <li> <a name="meyers">     Scott. Meyers, "More Effective C++", Item 7, Addison Wesley, 1996       
+      <li> <a name="gmcl">       K. Czarnecki and U.W. Eisenecker, "Generative programming", Addison-Wesley, 2000        
+      <li> <a name="blitz">      <a href="http://www.oonumerics.org/blitz/"> http://www.oonumerics.org/blitz/ </A>     
+      <li> <a name="initializer"> 
+          Gabriel Dos Reis and Bjarne Stroustrup, 
+          <a href="http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1509.pdf"> "Generalized Initializer
+            Lists"</a>, 2003  </a>
+ </OL> 
+ </p>
+  <hr>
+  <p>
+    (C) Copyright Thorsten Ottosen 2003-2006
+  </p>
+
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+</body>
+</html>

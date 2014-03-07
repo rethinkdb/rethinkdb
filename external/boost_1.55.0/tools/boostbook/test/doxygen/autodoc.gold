@@ -1,0 +1,33 @@
+<?xml version="1.0" standalone="yes"?>
+<library-reference id="example_reference"><title>Example Reference</title><header name="boost/example.hpp"><namespace name="example"><class name="example"><purpose>Documentation for class example. </purpose><class name="inner_class"><data-member name="x"><type>int</type></data-member></class><enum name="class_enum"><enumvalue name="enumerator"/></enum><typedef name="documented_type1"><description><para>This type has documentation. </para></description><type>int</type></typedef><typedef name="documented_type2"><purpose>This type has documentation. </purpose><type>long</type></typedef><typedef name="documented_type3"><description><para>This type has documentation. </para></description><type>long double</type></typedef><typedef name="undocumented_type1"><type>short</type></typedef><typedef name="undocumented_type2"><type>double</type></typedef><data-member name="integer"><type>int</type></data-member><data-member name="mutable_integer" specifiers="mutable"><type>int</type></data-member><data-member name="const_integer"><type>const int</type></data-member><data-member name="static_integer" specifiers="static"><type>int</type></data-member><data-member name="static_const_integer" specifiers="static"><type>const int</type></data-member><method-group name="public member functions"><method name="conversion-operator" cv="" specifiers="explicit"><type>int</type></method></method-group><constructor cv="= default"><parameter name=""><paramtype><classname>example</classname> const &amp;</paramtype></parameter></constructor><copy-assignment cv="= delete"><parameter name=""><paramtype><classname>example</classname> const &amp;</paramtype></parameter></copy-assignment></class><struct name="example_template"><template>
+      <template-type-parameter name="TypeParameter"><purpose><para>A template parameter </para></purpose></template-type-parameter>
+      <template-nontype-parameter name="NonTypeParameter"><type>int</type><purpose><para>This is a non-type template parameter </para></purpose></template-nontype-parameter>
+      <template-type-parameter name="TypeParameterWithDefault"><default>int</default><purpose><para>This is a template parameter with a default argument </para></purpose></template-type-parameter>
+    </template><description><para>Test some doxygen markup</para><para><warning><para>This is just an example.</para></warning>
+Embedded docbook list:</para><para> 
+ <orderedlist><listitem><simpara>1</simpara></listitem><listitem><simpara>2</simpara></listitem></orderedlist>
+ </para><para><emphasis>Special</emphasis> <emphasis role="bold">Bold</emphasis> <computeroutput>Typewriter</computeroutput> <emphasis>Italics</emphasis> <emphasis>emphasis</emphasis> <computeroutput>parameter</computeroutput> </para><para><itemizedlist>
+<listitem><para>Arg1 first argument. </para></listitem>
+<listitem><para>Arg2 second argument.</para></listitem>
+</itemizedlist>
+<itemizedlist>
+<listitem><para>First list item. </para></listitem>
+<listitem><para>Second list item</para></listitem>
+</itemizedlist>
+Line 1<sbr/>
+ Line 2</para><para><programlisting>     void foo() {}
+</programlisting></para><para>
+</para></description></struct><struct name="specialization_test"><template>
+      <template-type-parameter name="T"/>
+    </template></struct><struct-specialization name="specialization_test"><template>
+      <template-type-parameter name="T"/>
+    </template><specialization><template-arg>T *</template-arg></specialization><method-group name="public member functions"/><constructor><description><para>A constructor. </para></description></constructor><destructor><description><para>A destructor. </para></description></destructor><copy-assignment cv=""><parameter name=""><paramtype>const <classname>specialization_test</classname> &amp;</paramtype></parameter><description><para>An assignment operator. </para></description></copy-assignment></struct-specialization><enum name="namespace_enum"><enumvalue name="enumerator"/></enum><data-member name="namespace_integer"><type>int</type></data-member><data-member name="namespace_static_integer" specifiers="static"><type>int</type></data-member><data-member name="namespace_const_integer"><type>const int</type></data-member><data-member name="namespace_static_const_integer" specifiers="static"><type>const int</type></data-member><function name="namespace_func"><type>int</type><parameter name="i"><paramtype>int</paramtype><description><para>A function parameter </para></description></parameter><parameter name="j"><paramtype>int</paramtype><description><para>Another </para></description></parameter><description><para>
+
+
+This is a test function. <classname alt="example::example">Link to class</classname> <classname alt="example::example_template">Link to class template</classname> <note><para>This is a note.</para></note>
+<para><emphasis role="bold">See Also:</emphasis><para><classname alt="example::example">example::example</classname> and <classname alt="example::example_template">example_template</classname> </para></para>
+</para></description><requires><para>i &gt; j</para></requires><returns><para>The answer </para></returns></function><function name="namespace_func_template"><type>void</type><template>
+          <template-type-parameter name="TypeParameter"><purpose><para>A template parameter </para></purpose></template-type-parameter>
+          <template-nontype-parameter name="NonTypeParameter"><type>int</type><purpose><para>This is a non-type template parameter </para></purpose></template-nontype-parameter>
+        </template><description><para>Testing a function template. 
+</para></description></function></namespace><macro name="EXAMPLE" kind="functionlike"><macro-parameter name="m"/><purpose>Documentation for macro example. </purpose></macro></header></library-reference>

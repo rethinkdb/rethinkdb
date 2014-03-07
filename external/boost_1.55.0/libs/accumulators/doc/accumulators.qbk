@@ -1,0 +1,4067 @@
+
+[library Boost.Accumulators
+    [quickbook 1.3]
+    [authors [Niebler, Eric]]
+    [copyright 2005 2006 Eric Niebler]
+    [category math]
+    [id accumulators]
+    [dirname accumulators]
+    [purpose 
+        Incremental accumulation framework and statistical accumulator library.
+    ]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[/  Images   ]
+
+[def _note_                  [$images/note.png]]
+[def _alert_                 [$images/caution.png]]
+[def _detail_                [$images/note.png]]
+[def _tip_                   [$images/tip.png]]
+
+[/  Links   ]
+
+[def _sample_type_           '''<replaceable>sample-type</replaceable>''']
+[def _weight_type_           '''<replaceable>weight-type</replaceable>''']
+[def _variate_type_          '''<replaceable>variate-type</replaceable>''']
+[def _variate_tag_           '''<replaceable>variate-tag</replaceable>''']
+[def _left_or_right_         '''<replaceable>left-or-right</replaceable>''']
+[def _implementation_defined_ '''<replaceable>implementation-defined</replaceable>''']
+[def _boost_                 [@http://www.boost.org Boost]]
+[def _mpl_                   [@../../libs/mpl/index.html MPL]]
+[def _mpl_lambda_expression_ [@../../libs/mpl/doc/refmanual/lambda-expression.html MPL Lambda Expression]]
+[def _parameter_             [@../../libs/parameter/index.html Boost.Parameter]]
+[def _accumulator_set_       [classref boost::accumulators::accumulator_set `accumulator_set<>`]]
+[def _accumulator_base_      [classref boost::accumulators::accumulator_base `accumulator_base`]]
+[def _depends_on_            [classref boost::accumulators::depends_on `depends_on<>`]]
+[def _feature_of_            [classref boost::accumulators::feature_of `feature_of<>`]]
+[def _as_feature_            [classref boost::accumulators::as_feature `as_feature<>`]]
+[def _features_              [classref boost::accumulators::features `features<>`]]
+[def _external_              [classref boost::accumulators::external `external<>`]]
+[def _droppable_             [classref boost::accumulators::droppable `droppable<>`]]
+[def _droppable_accumulator_ [classref boost::accumulators::droppable_accumulator `droppable_accumulator<>`]]
+[def _extractor_             [classref boost::accumulators::tag::extractor `extractor<>`]]
+[def _tail_                  [classref boost::accumulators::tag::tail `tail`]]
+[def _tail_variate_          [classref boost::accumulators::tag::tail_variate `tail_variate<>`]]
+[def _extract_result_        [funcref boost::accumulators::extract_result `extract_result()`]]
+[def _ZKB_                   [@http://www.zkb.com Z'''&uuml;'''rcher Kantonalbank]]
+
+[section Preface]
+
+[:["It is better to be approximately right than exactly wrong.]\n['-- Old adage]]
+
+[h2 Description]
+
+Boost.Accumulators is both a library for incremental statistical computation as
+well as an extensible framework for incremental calculation in general. The library
+deals primarily with the concept of an ['accumulator], which is a primitive
+computational entity that accepts data one sample at a time and maintains some 
+internal state. These accumulators may offload some of their computations on other
+accumulators, on which they depend. Accumulators are grouped within an ['accumulator
+set]. Boost.Accumulators resolves the inter-dependencies between accumulators in a
+set and ensures that accumulators are processed in the proper order.
+
+[endsect]
+
+[section User's Guide]
+
+This section describes how to use the Boost.Accumulators framework to create new
+accumulators and how to use the existing statistical accumulators to perform incremental
+statistical computation. For detailed information regarding specific components in
+Boost.Accumulators, check the [link accumulators_framework_reference Reference] section.
+
+[h2 Hello, World!]
+
+Below is a complete example of how to use the Accumulators Framework and the 
+Statistical Accumulators to perform an incremental statistical calculation. It
+calculates the mean and 2nd moment of a sequence of doubles.
+
+    #include <iostream>
+    #include <boost/accumulators/accumulators.hpp>
+    #include <boost/accumulators/statistics/stats.hpp>
+    #include <boost/accumulators/statistics/mean.hpp>
+    #include <boost/accumulators/statistics/moment.hpp>
+    using namespace boost::accumulators;
+
+    int main()
+    {
+        // Define an accumulator set for calculating the mean and the
+        // 2nd moment ...
+        accumulator_set<double, stats<tag::mean, tag::moment<2> > > acc;
+
+        // push in some data ...
+        acc(1.2);
+        acc(2.3);
+        acc(3.4);
+        acc(4.5);
+
+        // Display the results ...
+        std::cout << "Mean:   " << mean(acc) << std::endl;
+        std::cout << "Moment: " << accumulators::moment<2>(acc) << std::endl;
+
+        return 0;
+    }
+
+This program displays the following:
+
+[pre
+Mean:   2.85
+Moment: 9.635
+]
+
+[section The Accumulators Framework]
+
+The Accumulators Framework is framework for performing incremental calculations. Usage
+of the framework follows the following pattern:
+
+* Users build a computational object, called an ['_accumulator_set_], by selecting
+  the computations in which they are interested, or authoring their own computational
+  primitives which fit within the framework.
+* Users push data into the _accumulator_set_ object one sample at a time.
+* The _accumulator_set_ computes the requested quantities in the most efficient method
+  possible, resolving dependencies between requested calculations, possibly caching
+  intermediate results.
+
+The Accumulators Framework defines the utilities needed for defining primitive
+computational elements, called ['accumulators]. It also provides the _accumulator_set_
+type, described above.
+
+[h2 Terminology]
+
+The following terms are used in the rest of the documentation.
+
+[variablelist
+    [[Sample]          [[#sample_type] A datum that is pushed into an _accumulator_set_.
+                        The type of the sample is the ['sample type].]]
+    [[Weight]          [[#weight_type] An optional scalar value passed along with the
+                        sample specifying the weight of the sample. Conceptually, each
+                        sample is multiplied with its weight. The type of the weight is
+                        the ['weight type].]]
+    [[Feature]         [An abstract primitive computational entity. When defining an
+                        _accumulator_set_, users specify the features in which they are
+                        interested, and the _accumulator_set_ figures out which
+                        ['accumulators] would best provide those features. Features may
+                        depend on other features. If they do, the accumulator set figures
+                        out which accumulators to add to satisfy the dependencies.]]
+    [[Accumulator]     [A concrete primitive computational entity. An accumulator is a
+                        concrete implementation of a feature. It satisfies exactly one
+                        abstract feature. Several different accumulators may provide the
+                        same feature, but may represent different implementation strategies.]]
+    [[Accumulator Set] [A collection of accumulators. An accumulator set is specified with
+                        a sample type and a list of features. The accumulator set uses this
+                        information to generate an ordered set of accumulators depending on
+                        the feature dependency graph. An accumulator set accepts samples one
+                        datum at a time, propagating them to each accumulator in order. At any
+                        point, results can be extracted from the accumulator set.]]
+    [[Extractor]       [A function or function object that can be used to extract a result
+                        from an _accumulator_set_.]]
+]
+
+[h2 Overview]
+
+Here is a list of the important types and functions in the Accumulator Framework and
+a brief description of each.
+
+[table Accumulators Toolbox
+    [[Tool]              [Description]]
+    [[_accumulator_set_] [This is the most important type in the Accumulators Framework.
+                          It is a collection of accumulators. A datum pushed into an 
+                          _accumulator_set_ is forwarded to each accumulator, in an order
+                          determined by the dependency relationships between the
+                          accumulators. Computational results can be extracted from an
+                          accumulator at any time.]]
+    [[_depends_on_     ] [Used to specify which other features a feature depends on.]]
+    [[_feature_of_     ] [Trait used to tell the Accumulators Framework that, for the purpose
+                          of feature-based dependency resolution, one feature should be
+                          treated the same as another.]]
+    [[_as_feature_     ] [Used to create an alias for a feature. For example, if there are
+                          two features, fast_X and accurate_X, they can be mapped to
+                          X(fast) and X(accurate) with _as_feature_. This is just syntactic
+                          sugar.]]
+    [[_features_       ] [An _mpl_ sequence. We can use _features_ as the second template
+                          parameter when declaring an _accumulator_set_.]]
+    [[_external_       ] [Used when declaring an _accumulator_set_. If the weight type is
+                          specified with _external_, then the weight accumulators are
+                          assumed to reside in a separate accumulator set which will be passed
+                          in with a named parameter.]]
+    [[_extractor_      ] [A class template useful for creating an extractor function object.
+                          It is parameterized on a feature, and it has member functions for
+                          extracting from an _accumulator_set_ the result corresponding to
+                          that feature.]]
+]
+
+[section Using [^accumulator_set<>]]
+
+Our tour of the _accumulator_set_ class template begins with the forward declaration:
+
+    template< typename Sample, typename Features, typename Weight = void >
+    struct accumulator_set;
+
+The template parameters have the following meaning:
+
+[variablelist
+    [[`Sample`]     [The type of the data that will be accumulated.]]
+    [[`Features`]   [An _mpl_ sequence of features to be calculated.]]
+    [[`Weight`]     [The type of the (optional) weight paramter.]]
+]
+
+For example, the following line declares an _accumulator_set_ that will accept
+a sequence of doubles one at a time and calculate the min and mean:
+
+    accumulator_set< double, features< tag::min, tag::mean > > acc;
+
+Notice that we use the _features_ template to specify a list of features to be calculated.
+_features_ is an MPL sequence of features.
+
+[note _features_ is a synonym of `mpl::vector<>`. In fact, we could use `mpl::vector<>`
+ or any MPL sequence if we prefer, and the meaning would be the same.]
+
+Once we have defined an _accumulator_set_, we can then push data into it,
+and it will calculate the quantities you requested, as shown below.
+
+    // push some data into the accumulator_set ...
+    acc(1.2);
+    acc(2.3);
+    acc(3.4);
+
+Since _accumulator_set_ defines its accumulate function to be the function call operator,
+we might be tempted to use an _accumulator_set_ as a UnaryFunction to a standard
+algorithm such as `std::for_each`. That's fine as long as we keep in mind that the standard
+algorithms take UnaryFunction objects by value, which involves making a copy of the
+_accumulator_set_ object. Consider the following:
+
+    // The data for which we wish to calculate statistical properties:
+    std::vector< double > data( /* stuff */ );
+
+    // The accumulator set which will calculate the properties for us:    
+    accumulator_set< double, features< tag::min, tag::mean > > acc;
+
+    // Use std::for_each to accumulate the statistical properties:
+    acc = std::for_each( data.begin(), data.end(), acc );
+
+Notice how we must assign the return value of `std::for_each` back to the _accumulator_set_.
+This works, but some accumulators are not cheap to copy. For
+example, the _tail_ and _tail_variate_ accumulators must store a `std::vector<>`, so copying
+these accumulators involves a dynamic allocation. We might be better off in this
+case passing the accumulator by reference, with the help of `boost::bind()` and
+`boost::ref()`. See below:
+
+    // The data for which we wish to calculate statistical properties:
+    std::vector< double > data( /* stuff */ );
+
+    // The accumulator set which will calculate the properties for us:
+    accumulator_set< double, features< tag::tail<left> > > acc( 
+        tag::tail<left>::cache_size = 4 );
+
+    // Use std::for_each to accumulate the statistical properties:
+    std::for_each( data.begin(), data.end(), bind<void>( ref(acc), _1 ) );
+
+Notice now that we don't care about the return value of `std::for_each()` anymore because
+`std::for_each()` is modifying `acc` directly.
+
+[note To use `boost::bind()` and `boost::ref()`, you must `#include` [^<boost/bind.hpp>]
+and [^<boost/ref.hpp>]]
+
+[endsect]
+
+[section Extracting Results]
+
+Once we have declared an _accumulator_set_ and pushed data into it, we need to be able
+to extract results from it. For each feature we can add to an _accumulator_set_, there
+is a corresponding extractor for fetching its result. Usually, the extractor has the
+same name as the feature, but in a different namespace. For example, if we accumulate
+the `tag::min` and `tag::max` features, we can extract the results with the `min` and `max`
+extractors, as follows:
+
+    // Calculate the minimum and maximum for a sequence of integers.
+    accumulator_set< int, features< tag::min, tag::max > > acc;
+    acc( 2 );
+    acc( -1 );
+    acc( 1 );
+
+    // This displays "(-1, 2)"
+    std::cout << '(' << min( acc ) << ", " << max( acc ) << ")\n";
+
+The extractors are all declared in the `boost::accumulators::extract` namespace, but they
+are brought into the `boost::accumulators` namespace with a `using` declaration.
+
+[tip On the Windows platform, `min` and `max` are preprocessor macros defined in [^WinDef.h].
+ To use the `min` and `max` extractors, you should either compile with `NOMINMAX` defined, or
+ you should invoke the extractors like: `(min)( acc )` and `(max)( acc )`. The parentheses
+ keep the macro from being invoked.]
+
+Another way to extract a result from an _accumulator_set_ is with the
+`extract_result()` function. This can be more convenient if there isn't an extractor
+object handy for a certain feature. The line above which displays results could 
+equally be written as:
+
+    // This displays "(-1, 2)"
+    std::cout << '('  << extract_result< tag::min >( acc )
+              << ", " << extract_result< tag::max >( acc ) << ")\n";
+
+Finally, we can define our own extractor using the _extractor_ class template. For
+instance, another way to avoid the `min` / `max` macro business would be to define 
+extractors with names that don't conflict with the macros, like this:
+
+    extractor< tag::min > min_;
+    extractor< tag::min > max_;
+
+    // This displays "(-1, 2)"
+    std::cout << '(' << min_( acc ) << ", " << max_( acc ) << ")\n";
+
+[endsect]
+
+[section Passing Optional Parameters]
+
+Some accumulators need initialization parameters. In addition, perhaps some auxiliary
+information needs to be passed into the _accumulator_set_ along with each sample.
+Boost.Accumulators handles these cases with named parameters from the _parameter_
+library.
+
+For example, consider the _tail_ and _tail_variate_ features. _tail_ keeps
+an ordered list of the largest [^['N]] samples, where [^['N]] can be specified at
+construction time. Also, the _tail_variate_ feature, which depends on _tail_, keeps
+track of some data that is covariate with the [^['N]] samples tracked by _tail_. The
+code below shows how this all works, and is described in more detail below.
+
+    // Define a feature for tracking covariate data
+    typedef tag::tail_variate< int, tag::covariate1, left > my_tail_variate_tag;
+
+    // This will calculate the left tail and my_tail_variate_tag for N == 2
+    // using the tag::tail<left>::cache_size named parameter
+    accumulator_set< double, features< my_tail_variate_tag > > acc( 
+        tag::tail<left>::cache_size = 2 );
+
+    // push in some samples and some covariates by using 
+    // the covariate1 named parameter
+    acc( 1.2, covariate1 =  12 );
+    acc( 2.3, covariate1 = -23 );
+    acc( 3.4, covariate1 =  34 );
+    acc( 4.5, covariate1 = -45 );
+
+    // Define an extractor for the my_tail_variate_tag feature
+    extractor< my_tail_variate_tag > my_tail_variate;
+    
+    // Write the tail statistic to std::cout. This will print "4.5, 3.4, "
+    std::ostream_iterator< double > dout( std::cout, ", " );
+    std::copy( tail( acc ).begin(), tail( acc ).end(), dout );
+    
+    // Write the tail_variate statistic to std::cout. This will print "-45, 34, "
+    std::ostream_iterator< int > iout( std::cout, ", " );
+    std::copy( my_tail_variate( acc ).begin(), my_tail_variate( acc ).end(), iout );
+
+There are several things to note about the code above. First, notice that we didn't have
+to request that the _tail_ feature be calculated. That is implicit because the _tail_variate_
+feature depends on the _tail_ feature. Next, notice how the `acc` object
+is initialized: `acc( tag::tail<left>::cache_size = 2 )`. Here, `cache_size` is a named parameter.
+It is used to tell the _tail_ and _tail_variate_ accumulators how many samples and
+covariates to store. Conceptually, every construction parameter is made available to
+every accumulator in an accumulator set. 
+
+We also use a named parameter to pass covariate data into the accumulator set along with
+the samples. As with the constructor parameters, all parameters to the accumulate function
+are made available to all the accumulators in the set. In this case, only the accumulator
+for the `my_tail_variate` feature would be interested in the value of the `covariate1` named
+parameter.
+
+We can make one final observation about the example above. Since _tail_ and _tail_variate_
+are multi-valued features, the result we extract for them is represented as an iterator
+range. That is why we can say `tail( acc ).begin()` and `tail( acc ).end()`.
+
+Even the extractors can accept named parameters. In a bit, we'll see a situation where that
+is useful.
+
+[endsect]
+
+[section Weighted Samples]
+
+Some accumulators, statistical accumulators in particular, deal with data that are
+['weighted]. Each sample pushed into the accumulator has an associated weight, by which
+the sample is conceptually multiplied. The Statistical Accumulators Library provides an 
+assortment of these weighted statistical accumulators. And many unweighted statistical
+accumulators have weighted variants. For instance, the weighted variant of the `sum`
+accumulator is called `weighted_sum`, and is calculated by accumulating all the
+samples multiplied by their weights.
+
+To declare an _accumulator_set_ that accepts weighted samples, you must specify the
+type of the weight parameter as the 3rd template parameter, as follows:
+
+    // 3rd template parameter 'int' means this is a weighted
+    // accumulator set where the weights have type 'int'
+    accumulator_set< int, features< tag::sum >, int > acc;
+
+When you specify a weight, all the accumulators in the set are replaced with
+their weighted equivalents. For example, the above _accumulator_set_ declaration
+is equivalent to the following:
+
+    // Since we specified a weight, tag::sum becomes tag::weighted_sum
+    accumulator_set< int, features< tag::weighted_sum >, int > acc;
+
+When passing samples to the accumulator set, you must also specify the 
+weight of each sample. You can do that with the `weight` named parameter,
+as follows:
+
+    acc(1, weight = 2); //   1 * 2
+    acc(2, weight = 4); //   2 * 4
+    acc(3, weight = 6); // + 3 * 6
+                        // -------
+                        // =    28
+
+You can then extract the result with the `sum()` extractor, as follows:
+
+    // This prints "28"
+    std::cout << sum(acc) << std::endl;
+
+[note When working with weighted statistical accumulators from the Statistical
+Accumulators Library, be sure to include the appropriate header. For instance, 
+`weighted_sum` is defined in `<boost/accumulators/statistics/weighted_sum.hpp>`.]
+
+[endsect]
+
+[section Numeric Operators Sub-Library]
+
+This section describes the function objects in the `boost::numeric` namespace, which
+is a sub-library that provides function objects and meta-functions corresponding
+to the infix operators in C++.
+
+In the `boost::numeric::operators` namespace are additional operator overloads for
+some useful operations not provided by the standard library, such as multiplication 
+of a `std::complex<>` with a scalar.
+
+In the `boost::numeric::functional` namespace are function object equivalents of 
+the infix operators. These function object types are heterogeneous, and so are more 
+general than the standard ones found in the [^<functional>] header. They use the
+Boost.Typeof library to deduce the return types of the infix expressions they
+evaluate. In addition, they look within the `boost::numeric::operators` namespace
+to consider any additional overloads that might be defined there.
+
+In the `boost::numeric` namespace are global polymorphic function objects 
+corresponding to the function object types defined in the `boost::numeric::functional`
+namespace. For example, `boost::numeric::plus(a, b)` is equivalent to
+`boost::numeric::functional::plus<A, B>()(a, b)`, and both are equivalent to
+`using namespace boost::numeric::operators; a + b;`.
+
+The Numeric Operators Sub-Library also gives several ways to sub-class and
+a way to sub-class and specialize operations. One way uses tag dispatching on
+the types of the operands. The other way is based on the compile-time
+properties of the operands.
+
+[endsect]
+
+[section Extending the Accumulators Framework]
+
+This section describes how to extend the Accumulators Framework by defining new accumulators,
+features and extractors. Also covered are how to control the dependency resolution of
+features within an accumulator set.
+
+[section Defining a New Accumulator]
+
+All new accumulators must satisfy the [link
+accumulators.user_s_guide.the_accumulators_framework.concepts.accumulator_concept Accumulator
+Concept]. Below is a sample class that satisfies the accumulator concept, which simply sums
+the values of all samples passed into it.
+
+    #include <boost/accumulators/framework/accumulator_base.hpp>
+    #include <boost/accumulators/framework/parameters/sample.hpp>
+    
+    namespace boost {                           // Putting your accumulators in the
+    namespace accumulators {                    // impl namespace has some
+    namespace impl {                            // advantages. See below.
+    
+    template<typename Sample>
+    struct sum_accumulator                      // All accumulators should inherit from
+      : accumulator_base                        // accumulator_base.
+    {
+        typedef Sample result_type;             // The type returned by result() below.
+        
+        template<typename Args>                 // The constructor takes an argument pack.
+        sum_accumulator(Args const & args)
+          : sum(args[sample | Sample()])        // Maybe there is an initial value in the
+        {                                       // argument pack. ('sample' is defined in
+        }                                       // sample.hpp, included above.)
+        
+        template<typename Args>                 // The accumulate function is the function
+        void operator ()(Args const & args)     // call operator, and it also accepts an
+        {                                       // argument pack.
+            this->sum += args[sample];
+        }
+        
+        result_type result(dont_care) const     // The result function will also be passed
+        {                                       // an argument pack, but we don't use it here,
+            return this->sum;                   // so we use "dont_care" as the argument type.
+        }
+    private:
+        Sample sum;
+    };
+    
+    }}}
+
+Much of the above should be pretty self-explanatory, except for the use of argument packs
+which may be confusing if you have never used the _parameter_ library before. An argument
+pack is a cluster of values, each of which can be accessed with a key. So `args[sample]`
+extracts from the pack the value associated with the `sample` key. And the cryptic
+`args[sample | Sample()]` evaluates to the value associated with the `sample` key if it
+exists, or a default-constructed `Sample` if it doesn't.
+
+The example above demonstrates the most common attributes of an accumulator. There are
+other optional member functions that have special meaning. In particular:
+
+[variablelist Optional Accumulator Member Functions
+[[[^on_drop(Args)]]         [Defines an action to be taken when this accumulator is
+                             dropped. See the section on
+                             [link accumulators.user_s_guide.the_accumulators_framework.extending_the_accumulators_framework.defining_a_new_accumulator.droppable_accumulators
+                              Droppable Accumulators].]]
+]
+
+[h3 Accessing Other Accumulators in the Set]
+
+Some accumulators depend on other accumulators within the same accumulator set. In those
+cases, it is necessary to be able to access those other accumulators. To make this possible,
+the _accumulator_set_ passes a reference to itself when invoking the member functions of
+its contained accumulators. It can be accessed by using the special `accumulator` key with
+the argument pack. Consider how we might implement `mean_accumulator`:
+
+    // Mean == (Sum / Count)
+    template<typename Sample>
+    struct mean_accumulator : accumulator_base
+    {
+        typedef Sample result_type;
+        mean_accumulator(dont_care) {}
+
+        template<typename Args>
+        result_type result(Args const &args) const
+        {
+            return sum(args[accumulator]) / count(args[accumulator]);
+        }
+    };
+
+`mean` depends on the `sum` and `count` accumulators. (We'll see in the next section how
+to specify these dependencies.) The result of the mean accumulator is merely the result of 
+the sum accumulator divided by the result of the count accumulator. Consider how we write
+that: `sum(args[accumulator]) / count(args[accumulator])`. The expression `args[accumulator]`
+evaluates to a reference to the _accumulator_set_ that contains this `mean_accumulator`. It
+also contains the `sum` and `count` accumulators, and we can access their results with the
+extractors defined for those features: `sum` and `count`.
+
+[note Accumulators that inherit from _accumulator_base_ get an empty `operator ()`, so
+ accumulators like `mean_accumulator` above need not define one.]
+
+All the member functions that accept an argument pack have access to the enclosing 
+_accumulator_set_ via the `accumulator` key, including the constructor. The
+accumulators within the set are constructed in an order determined by their interdependencies.
+As a result, it is safe for an accumulator to access one on which it depends during construction.
+
+[h3 Infix Notation and the Numeric Operators Sub-Library]
+
+Although not necessary, it can be a good idea to put your accumulator implementations in 
+the `boost::accumulators::impl` namespace. This namespace pulls in any operators defined
+in the `boost::numeric::operators` namespace with a using directive. The Numeric Operators 
+Sub-Library defines some additional overloads that will make your accumulators work with 
+all sorts of data types.
+
+Consider `mean_accumulator` defined above. It divides the sum of the samples by the count.
+The type of the count is `std::size_t`. What if the sample type doesn't define division by
+`std::size_t`? That's the case for `std::complex<>`. You might think that if the sample type
+is `std::complex<>`, the code would not work, but in fact it does. That's because
+Numeric Operators Sub-Library defines an overloaded `operator/` for `std::complex<>` 
+and `std::size_t`. This operator is defined in the `boost::numeric::operators` namespace and
+will be found within the `boost::accumulators::impl` namespace. That's why it's a good idea
+to put your accumulators there.
+
+[h3 Droppable Accumulators]
+
+The term "droppable" refers to an accumulator that can be removed from the _accumulator_set_.
+You can request that an accumulator be made droppable by using the _droppable_ class template.
+
+    // calculate sum and count, make sum droppable:
+    accumulator_set< double, features< tag::count, droppable<tag::sum> > > acc;
+
+    // add some data
+    acc(3.0);
+    acc(2.0);
+
+    // drop the sum (sum is 5 here)
+    acc.drop<tag::sum>();
+    
+    // add more data
+    acc(1.0);
+    
+    // This will display "3" and "5"
+    std::cout << count(acc) << ' ' << sum(acc);    
+
+Any accumulators that get added to an accumulator set in order to satisfy
+dependencies on droppable accumulators are themselves droppable. Consider
+the following accumulator:
+
+    // Sum is not droppable. Mean is droppable. Count, brought in to 
+    // satisfy mean's dependencies, is implicitly droppable, too.
+    accumulator_set< double, features< tag::sum, droppable<tag::mean> > > acc;
+
+`mean` depends on `sum` and `count`. Since `mean` is droppable, so too is `count`.
+However, we have explicitly requested that `sum` be not droppable, so it isn't. Had
+we left `tag::sum` out of the above declaration, the `sum` accumulator would have
+been implicitly droppable.
+
+A droppable accumulator is reference counted, and is only really dropped after all the
+accumulators that depend on it have been dropped. This can lead to some surprising
+behavior in some situations. 
+    
+    // calculate sum and mean, make mean droppable. 
+    accumulator_set< double, features< tag::sum, droppable<tag::mean> > > acc;
+    
+    // add some data
+    acc(1.0);
+    acc(2.0);
+    
+    // drop the mean. mean's reference count
+    // drops to 0, so it's really dropped. So
+    // too, count's reference count drops to 0
+    // and is really dropped.
+    acc.drop<tag::mean>();
+    
+    // add more data. Sum continues to accumulate!
+    acc(3.0);
+    
+    // This will display "6 2 3"
+    std::cout << sum(acc) << ' '
+              << count(acc) << ' '    
+              << mean(acc);
+
+Note that at the point at which `mean` is dropped, `sum` is 3, `count` is 2, and
+therefore `mean` is 1.5. But since `sum` continues to accumulate even after `mean`
+has been dropped, the value of `mean` continues to change. If you want to remember
+the value of `mean` at the point it is dropped, you should save its value into
+a local variable.
+
+The following rules more precisely specify how droppable and non-droppable
+accumulators behave within an accumulator set.
+
+* There are two types of accumulators: droppable and non-droppable.
+  The default is non-droppable.
+* For any feature `X`, both `X` and `droppable<X>` satisfy the `X` dependency.
+* If feature `X` depends on `Y` and `Z`, then `droppable<X>` depends on
+  `droppable<Y>` and `droppable<Z>`.
+* All accumulators have `add_ref()` and `drop()` member functions.
+* For non-droppable accumulators, `drop()` is a no-op, and `add_ref()`
+  invokes `add_ref()` on all accumulators corresponding to the features
+  upon which the current accumulator depends.
+* Droppable accumulators have a reference count and define `add_ref()`
+  and `drop()` to manipulate the reference count.
+* For droppable accumulators, `add_ref()` increments the accumulator's
+  reference count, and also `add_ref()`'s the accumulators corresponding
+  to the features upon which the current accumulator depends.
+* For droppable accumulators, `drop()` decrements the accumulator's
+  reference count, and also `drop()`'s the accumulators corresponding to
+  the features upon which the current accumulator depends.
+* The accumulator_set constructor walks the list of *user-specified*
+  features and `add_ref()`'s the accumulator that corresponds to each of
+  them. (Note: that means that an accumulator that is not user-specified
+  but in the set merely to satisfy a dependency will be dropped as soon
+  as all its dependencies have been dropped. Ones that have been user
+  specified are not dropped until their dependencies have been
+  dropped *and* the user has explicitly dropped the accumulator.)
+* Droppable accumulators check their reference count in their
+  accumulate member function. If the reference count is 0, the function
+  is a no-op.
+* Users are not allowed to drop a feature that is not user-specified and
+  marked as droppable.
+
+And as an optimization:
+
+* If the user specifies the non-droppable feature `X`, which depends on `Y`
+  and `Z`, then the accumulators for `Y` and `Z` can be safely made
+  non-droppable, as well as any accumulators on which they depend.
+
+[endsect]
+
+[section Defining a New Feature]
+
+Once we have implemented an accumulator, we must define a feature for it so
+that users can specify the feature when declaring an _accumulator_set_. We
+typically put the features into a nested namespace, so that later we can
+define an extractor of the same name. All features must satisfy the
+[link accumulators.user_s_guide.the_accumulators_framework.concepts.feature_concept
+Feature Concept]. Using _depends_on_ makes satisfying the concept simple.
+Below is an example of a feature definition.
+
+    namespace boost { namespace accumulators { namespace tag {
+    
+    struct mean                         // Features should inherit from
+      : depends_on< count, sum >        // depends_on<> to specify dependencies
+    {
+        // Define a nested typedef called 'impl' that specifies which
+        // accumulator implements this feature. 
+        typedef accumulators::impl::mean_accumulator< mpl::_1 > impl;
+    };
+    
+    }}}
+
+The only two things we must do to define the `mean` feature is to specify the
+dependencies with _depends_on_ and define the nested `impl` typedef. Even features
+that have no dependencies should inherit from _depends_on_. The nested `impl` type
+must be an _mpl_lambda_expression_. The result of 
+`mpl::apply< impl, _sample_type_, _weight_type_ >::type` must be
+be the type of the accumulator that implements this feature. The use of _mpl_
+placeholders like `mpl::_1` make it especially easy to make a template such
+as `mean_accumulator<>` an _mpl_lambda_expression_. Here, `mpl::_1` will be
+replaced with the sample type. Had we used `mpl::_2`, it would have been replaced
+with the weight type.
+
+What about accumulator types that are not templates? If you have a `foo_accumulator`
+which is a plain struct and not a template, you could turn it into an
+_mpl_lambda_expression_ using `mpl::always<>`, like this:
+
+    // An MPL lambda expression that always evaluates to
+    // foo_accumulator:
+    typedef mpl::always< foo_accumulator > impl;
+
+If you are ever unsure, or if you are not comfortable with MPL lambda expressions,
+you could always define `impl` explicitly:
+
+    // Same as 'typedef mpl::always< foo_accumulator > impl;'
+    struct impl
+    {
+        template< typename Sample, typename Weight >
+        struct apply
+        {
+            typedef foo_accumulator type;
+        };
+    };
+
+Here, `impl` is a binary [@../../libs/mpl/doc/refmanual/metafunction-class.html
+MPL Metafunction Class], which is a kind of _mpl_lambda_expression_. The nested
+`apply<>` template is part of the metafunction class protocol and tells MPL how
+to build the accumulator type given the sample and weight types.
+
+All features must also provide a nested `is_weight_accumulator` typedef. It must
+be either `mpl::true_` or `mpl::false_`. _depends_on_ provides a default of 
+`mpl::false_` for all features that inherit from it, but that can be overridden
+(or hidden, technically speaking) in the derived type. When the feature represents
+an accumulation of information about the weights instead of the samples, we
+can mark this feature as such with `typedef mpl::true_ is_weight_accumulator;`.
+The weight accumulators are made external if the weight type is specified using
+the _external_ template.
+
+[endsect]
+
+[section Defining a New Extractor]
+
+Now that we have an accumulator and a feature, the only thing lacking is a way
+to get results from the accumulator set. The Accumulators Framework provides the
+_extractor_ class template to make it simple to define an extractor for your
+feature. Here's an extractor for the `mean` feature we defined above:
+
+    namespace boost {
+    namespace accumulators {                // By convention, we put extractors
+    namespace extract {                     // in the 'extract' namespace
+    
+    extractor< tag::mean > const mean = {}; // Simply define our extractor with
+                                            // our feature tag, like this.
+    }
+    using extract::mean;                    // Pull the extractor into the
+                                            // enclosing namespace.
+    }}                                            
+
+Once defined, the `mean` extractor can be used to extract the result of the
+`tag::mean` feature from an _accumulator_set_.
+
+Parameterized features complicate this simple picture. Consider the `moment`
+feature, for calculating the [^['N]]-th moment, where [^['N]] is specified as
+a template parameter:
+
+    // An accumulator set for calculating the N-th moment, for N == 2 ...
+    accumulator_set< double, features< tag::moment<2> > > acc;
+    
+    // ... add some data ...
+    
+    // Display the 2nd moment ...
+    std::cout << "2nd moment is " << accumulators::moment<2>(acc) << std::endl;
+
+In the expression `accumulators::moment<2>(acc)`, what is `moment`? It cannot be an object --
+the syntax of C++ will not allow it. Clearly, if we want to provide this syntax,
+we must make `moment` a function template. Here's what the definition of the 
+`moment` extractor looks like:
+
+    namespace boost {
+    namespace accumulators {                // By convention, we put extractors
+    namespace extract {                     // in the 'extract' namespace
+    
+    template<int N, typename AccumulatorSet>
+    typename mpl::apply<AccumulatorSet, tag::moment<N> >::type::result_type
+    moment(AccumulatorSet const &acc)
+    {
+        return extract_result<tag::moment<N> >(acc);
+    }
+    
+    }
+    using extract::moment;                  // Pull the extractor into the
+                                            // enclosing namespace.
+    }}                                            
+
+The return type deserves some explanation. Every _accumulator_set_ type
+is actually a unary [@../../libs/mpl/doc/refmanual/metafunction-class.html
+MPL Metafunction Class]. When you `mpl::apply<>` an _accumulator_set_ and
+a feature, the result is the type of the accumulator within the set that
+implements that feature. And every accumulator provides a nested `result_type`
+typedef that tells what its return type is. The extractor simply delegates
+its work to the _extract_result_ function.
+
+[endsect]
+
+[section Controlling Dependencies]
+
+The feature-based dependency resolution of the Accumulators Framework is
+designed to allow multiple different implementation strategies for each
+feature. For instance, two different accumulators may calculate the same
+quantity with different rounding modes, or using different algorithms with
+different size/speed tradeoffs. Other accumulators that depend on that
+quantity shouldn't care how it's calculated. The Accumulators Framework
+handles this by allowing several different accumulators satisfy the same
+feature.
+
+[*Aliasing feature dependencies with [^feature_of<>]]
+
+Imagine that you would like to implement the hypothetical ['fubar] statistic,
+and that you know two ways to calculate fubar on a bunch of samples: an
+accurate but slow calculation and an approximate but fast calculation. You
+might opt to make the accurate calculation the default, so you implement
+two accumulators and call them `impl::fubar_impl` and `impl::fast_fubar_impl`.
+You would also define the `tag::fubar` and `tag::fast_fubar` features as described
+[link accumulators.user_s_guide.the_accumulators_framework.extending_the_accumulators_framework.defining_a_new_feature above].
+Now, you would like to inform the Accumulators Framework that these two features
+are the same from the point of view of dependency resolution. You can do that
+with _feature_of_, as follows:
+
+    namespace boost { namespace accumulators
+    {
+        // For the purposes of feature-based dependency resolution,
+        // fast_fubar provides the same feature as fubar
+        template<>
+        struct feature_of<tag::fast_fubar>
+          : feature_of<tag::fubar>
+        {
+        };
+    }}
+
+The above code instructs the Accumulators Framework that, if another accumulator
+in the set depends on the `tag::fubar` feature, the `tag::fast_fubar` feature
+is an acceptable substitute.
+
+[*Registering feature variants with [^as_feature<>]]
+
+You may have noticed that some feature variants in the Accumulators Framework can be
+specified with a nicer syntax. For instance, instead of `tag::mean` and `tag::immediate_mean`
+you can specify them with `tag::mean(lazy)` and `tag::mean(immediate)` respectively.
+These are merely aliases, but the syntax makes the relationship between the two clearer.
+You can create these feature aliases with the _as_feature_ trait. Given the fubar example
+above, you might decide to alias `tag::fubar(accurate)` with `tag::fubar` and
+`tag::fubar(fast)` with `tag::fast_fubar`. You would do that as follows:
+
+    namespace boost { namespace accumulators
+    {
+        struct fast {};     // OK to leave these tags empty
+        struct accurate {};
+        
+        template<>
+        struct as_feature<tag::fubar(accurate)>
+        {
+            typedef tag::fubar type;
+        };
+        
+        template<>
+        struct as_feature<tag::fubar(fast)>
+        {
+            typedef tag::fast_fubar type;
+        };
+    }}
+
+Once you have done this, users of your fubar accumulator can request the `tag::fubar(fast)` 
+and `tag::fubar(accurate)` features when defining their `accumulator_set`s and get the correct
+accumulator.
+
+[endsect]
+
+[section:operators_ex Specializing Numeric Operators]
+
+This section describes how to adapt third-party numeric types to work with the Accumulator
+Framework.
+
+Rather than relying on the built-in operators, the Accumulators Framework relies on functions
+and operator overloads defined in the
+[link accumulators.user_s_guide.the_accumulators_framework.numeric_operators_sub_library 
+Numeric Operators Sub-Library] for many of its numeric operations. This is so that it
+is possible to assign non-standard meanings to arithmetic operations. For instance, when
+calculating an average by dividing two integers, the standard integer division behavior
+would be mathematically incorrect for most statistical quantities. So rather than use `x / y`,
+the Accumulators Framework uses `numeric::fdiv(x, y)`, which does floating-point division
+even if both `x` and `y` are integers.
+
+Another example where the Numeric Operators Sub-Library is useful is when a type does not
+define the operator overloads required to use it for some statistical calculations. For instance, 
+`std::vector<>` does not overload any arithmetic operators, yet it may be useful to use
+`std::vector<>` as a sample or variate type. The Numeric Operators Sub-Library
+defines the necessary operator overloads in the `boost::numeric::operators` namespace,
+which is brought into scope by the Accumulators Framework with a using directive. 
+
+[*Numeric Function Objects and Tag Dispatching]
+
+How are the numeric function object defined by the Numeric Operators Sub-Library made
+to work with types such as `std::vector<>`? The free functions in the `boost::numeric` namespace
+are implemented in terms of the function objects in the `boost::numeric::functional` namespace,
+so to make `boost::numeric::fdiv()` do something sensible with a `std::vector<>`, for instance,
+we'll need to partially specialize the `boost::numeric::functional::fdiv<>` function object.
+
+The functional objects make use of a technique known as 
+[@http://www.boost.org/community/generic_programming.html#tag_dispatching ['tag dispatching]] to
+select the proper implementation for the given operands. It works as follows:
+
+    namespace boost { namespace numeric { namespace functional
+    {
+        // Metafunction for looking up the tag associated with
+        // a given numeric type T.
+        template<typename T>
+        struct tag
+        {
+            // by default, all types have void as a tag type
+            typedef void type;
+        };
+    
+        // Forward declaration looks up the tag types of each operand
+        template<
+            typename Left
+          , typename Right
+          , typename LeftTag = typename tag<Left>::type
+          , typename RightTag = typename tag<Right>::type
+        >
+        struct fdiv;
+    }}}
+    
+If you have some user-defined type `MyDouble` for which you would like to customize the behavior
+of `numeric::fdiv()`, you would specialize `numeric::functional::fdiv<>` by
+first defining a tag type, as shown below:
+
+    namespace boost { namespace numeric { namespace functional
+    {
+        // Tag type for MyDouble
+        struct MyDoubleTag {};
+        
+        // Specialize tag<> for MyDouble.
+        // This only needs to be done once.
+        template<>
+        struct tag<MyDouble>
+        {
+            typedef MyDoubleTag type;
+        };
+
+        // Specify how to divide a MyDouble by an integral count
+        template<typename Left, typename Right>
+        struct fdiv<Left, Right, MyDoubleTag, void>
+        {
+            // Define the type of the result
+            typedef ... result_type;
+            
+            result_type operator()(Left & left, Right & right) const
+            {
+                return ...;
+            }
+        };
+    }}}
+    
+Once you have done this, `numeric::fdiv()` will use your specialization 
+of `numeric::functional::fdiv<>` when the first argument is a `MyDouble`
+object. All of the function objects in the Numeric Operators Sub-Library can
+be customized in a similar fashion.
+
+[endsect]
+
+[endsect]
+
+[section Concepts]
+
+[h2 Accumulator Concept]
+
+In the following table, `Acc` is the type of an accumulator, `acc` and `acc2` are objects of type
+`Acc`, and `args` is the name of an argument pack from the _parameter_ library.
+
+[table Accumulator Requirements
+    [[[*Expression]]                 [[*Return type]]       [[*Assertion / Note /
+                                                               Pre- / Post-condition]]]
+    [[`Acc::result_type`]            [['implementation
+                                       defined]]            [The type returned by `Acc::result()`.]]
+    [[`Acc acc(args)`]               [none]                 [Construct from an argument pack.]]
+    [[`Acc acc(acc2)`]               [none]                 [Post: `acc.result(args)` is equivalent
+                                                             to `acc2.result(args)`]]
+    [[`acc(args)`]                   [['unspecified]]       []]
+    [[`acc.on_drop(args)`]           [['unspecified]]       []]
+    [[`acc.result(args)`]            [`Acc::result_type`]   []]
+]
+
+[h2 Feature Concept]
+
+In the following table, `F` is the type of a feature and `S` is some scalar type.
+
+[table Feature Requirements
+    [[[*Expression]]                 [[*Return type]]       [[*Assertion / Note /
+                                                               Pre- / Post-condition]]]
+    [[`F::dependencies`]             [['unspecified]]       [An MPL sequence of other features on
+                                                             which `F` depends.]]
+    [[`F::is_weight_accumulator`]    [`mpl::true_` or
+                                      `mpl::false_`]        [`mpl::true_` if the accumulator for
+                                                             this feature should be made external
+                                                             when the weight type for the accumulator
+                                                             set is `external<S>`, `mpl::false_`
+                                                             otherwise.]]
+    [[`F::impl`]                     [['unspecified]]       [An _mpl_lambda_expression_ that
+                                                             returns the type of the accumulator that
+                                                             implements this feature when passed a
+                                                             sample type and a weight type.]]
+]
+
+[endsect]
+
+[endsect]
+
+[section The Statistical Accumulators Library]
+
+The Statistical Accumulators Library defines accumulators for incremental statistical
+computations. It is built on top of [link accumulators.user_s_guide.the_accumulators_framework
+The Accumulator Framework].
+
+[section:count count]
+
+The `count` feature is a simple counter that tracks the
+number of samples pushed into the accumulator set.
+
+[variablelist
+    [[Result Type] [``
+                    std::size_t
+                    ``]]
+    [[Depends On] [['none]]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _COUNT_HPP_ [headerref boost/accumulators/statistics/count.hpp]]
+
+    #include <_COUNT_HPP_>
+
+[*Example]
+
+    accumulator_set<int, features<tag::count> > acc;
+    acc(0);
+    acc(0);
+    acc(0);
+    assert(3 == count(acc));
+
+[*See also]
+
+* [classref boost::accumulators::impl::count_impl `count_impl`]
+
+[endsect]
+
+[section:covariance covariance]
+
+The `covariance` feature is an iterative Monte Carlo estimator for the covariance.
+It is specified as `tag::covariance<_variate_type_, _variate_tag_>`.
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::outer_product<
+                        numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                      , numeric::functional::fdiv<_variate_type_, std::size_t>::result_type
+                    >::result_type
+                    ``]]
+    [[Depends On] [`count` \n `mean` \n `mean_of_variates<_variate_type_, _variate_tag_>`]]
+    [[Variants] [`abstract_covariance`]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [[~variate-tag]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Headers]
+[def _COVARIANCE_HPP_ [headerref boost/accumulators/statistics/covariance.hpp]]
+[def _COVARIATE_HPP_ [headerref boost/accumulators/statistics/variates/covariate.hpp]]
+
+    #include <_COVARIANCE_HPP_>
+    #include <_COVARIATE_HPP_>
+
+[*Example]
+
+    accumulator_set<double, stats<tag::covariance<double, tag::covariate1> > > acc;
+    acc(1., covariate1 = 2.);
+    acc(1., covariate1 = 4.);
+    acc(2., covariate1 = 3.);
+    acc(6., covariate1 = 1.);
+    assert(covariance(acc) == -1.75);
+
+[*See also]
+
+* [classref boost::accumulators::impl::covariance_impl [^covariance_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.mean [^mean]]
+
+[endsect]
+
+[section:density density]
+
+The `tag::density` feature returns a histogram of the sample distribution. For more
+implementation details, see [classref boost::accumulators::impl::density_impl [^density_impl]].
+
+[variablelist
+    [[Result Type] [``
+                    iterator_range<
+                        std::vector<
+                            std::pair<
+                                numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                              , numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                            >
+                        >::iterator
+                    >
+                    ``]]
+    [[Depends On] [`count` \n `min` \n `max`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [`density::cache_size` \n `density::num_bins`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [O(N), when N is `density::num_bins`]] 
+]
+
+[*Header]
+[def _DENSITY_HPP_ [headerref boost/accumulators/statistics/density.hpp]]
+
+    #include <_DENSITY_HPP_>
+
+[*Note]
+
+Results from the `density` accumulator can only be extracted after the number of
+samples meets or exceeds the cache size.
+
+[/ TODO add example ]
+
+[*See also]
+
+* [classref boost::accumulators::impl::density_impl [^density_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.min [^min]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.max [^max]]
+
+[endsect]
+
+[section:error_of_mean error_of<mean>]
+
+The `error_of<mean>` feature calculates the error of the mean feature. It is equal to
+`sqrt(variance / (count - 1))`.
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                    ``]]
+    [[Depends On] [`count` \n `variance`]]
+    [[Variants] [`error_of<immediate_mean>`]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _ERROR_OF_HPP_      [headerref boost/accumulators/statistics/error_of.hpp]]
+[def _ERROR_OF_MEAN_HPP_ [headerref boost/accumulators/statistics/error_of_mean.hpp]]
+
+    #include <_ERROR_OF_HPP_>
+    #include <_ERROR_OF_MEAN_HPP_>
+
+[*Example]
+
+    accumulator_set<double, stats<tag::error_of<tag::mean> > > acc;
+    acc(1.1);
+    acc(1.2);
+    acc(1.3);
+    assert(0.057735 == error_of<tag::mean>(acc));
+
+[*See also]
+
+* [classref boost::accumulators::impl::error_of_mean_impl [^error_of_mean_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.variance [^variance]]
+
+[endsect]
+
+[section:extended_p_square extended_p_square]
+
+Multiple quantile estimation with the extended [^P^2] algorithm. For further 
+details, see [classref boost::accumulators::impl::extended_p_square_impl [^extended_p_square_impl]].
+
+[variablelist
+    [[Result Type] [``
+                    boost::iterator_range<
+                        _implementation_defined_
+                    >
+                    ``]]
+    [[Depends On] [`count`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [`tag::extended_p_square::probabilities`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _EXTENDED_P_SQUARE_HPP_ [headerref boost/accumulators/statistics/extended_p_square.hpp]]
+
+    #include <_EXTENDED_P_SQUARE_HPP_>
+
+[*Example]
+
+    boost::array<double> probs = {0.001,0.01,0.1,0.25,0.5,0.75,0.9,0.99,0.999};
+    accumulator_set<double, stats<tag::extended_p_square> >
+        acc(tag::extended_p_square::probabilities = probs);
+
+    boost::lagged_fibonacci607 rng; // a random number generator
+    for (int i=0; i<10000; ++i)
+        acc(rng());
+
+    BOOST_CHECK_CLOSE(extended_p_square(acc)[0], probs[0], 25);
+    BOOST_CHECK_CLOSE(extended_p_square(acc)[1], probs[1], 10);
+    BOOST_CHECK_CLOSE(extended_p_square(acc)[2], probs[2], 5);
+    
+    for (std::size_t i=3; i < probs.size(); ++i)
+    {
+        BOOST_CHECK_CLOSE(extended_p_square(acc)[i], probs[i], 2);
+    }
+
+[*See also]
+
+* [classref boost::accumulators::impl::extended_p_square_impl [^extended_p_square_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+
+[endsect]
+
+[section:extended_p_square_quantile extended_p_square_quantile ['and variants]]
+
+Quantile estimation using the extended [^P^2] algorithm for weighted and unweighted samples.
+By default, the calculation is linear and unweighted, but quadratic and weighted variants 
+are also provided. For further implementation details, see 
+[classref boost::accumulators::impl::extended_p_square_quantile_impl [^extended_p_square_quantile_impl]].
+
+All the variants share the `tag::quantile` feature and can be extracted using the `quantile()`
+extractor.
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                    ``]]
+    [[Depends On] [weighted variants depend on `weighted_extended_p_square` \n
+                   unweighted variants depend on `extended_p_square`]]
+    [[Variants] [`extended_p_square_quantile_quadratic` \n 
+                 `weighted_extended_p_square_quantile` \n 
+                 `weighted_extended_p_square_quantile_quadratic`]]
+    [[Initialization Parameters] [`tag::extended_p_square::probabilities`]]
+    [[Accumulator Parameters] [`weight` for the weighted variants]]
+    [[Extractor Parameters] [`quantile_probability`]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [O(N) where N is the count of probabilities.]] 
+]
+
+[*Header]
+[def _EXTENDED_P_SQUARE_QUANTILE_HPP_ [headerref boost/accumulators/statistics/extended_p_square_quantile.hpp]]
+
+    #include <_EXTENDED_P_SQUARE_QUANTILE_HPP_>
+
+[*Example]
+
+    typedef accumulator_set<double, stats<tag::extended_p_square_quantile> >
+        accumulator_t;
+    typedef accumulator_set<double, stats<tag::weighted_extended_p_square_quantile>, double >
+        accumulator_t_weighted;
+    typedef accumulator_set<double, stats<tag::extended_p_square_quantile(quadratic)> >
+        accumulator_t_quadratic;
+    typedef accumulator_set<double, stats<tag::weighted_extended_p_square_quantile(quadratic)>, double >
+        accumulator_t_weighted_quadratic;
+
+    // tolerance
+    double epsilon = 1;
+
+    // a random number generator
+    boost::lagged_fibonacci607 rng;
+
+    boost::array<double> probs = { 0.990, 0.991, 0.992, 0.993, 0.994, 
+                                   0.995, 0.996, 0.997, 0.998, 0.999 };
+    accumulator_t acc(extended_p_square_probabilities = probs);
+    accumulator_t_weighted acc_weighted(extended_p_square_probabilities = probs);
+    accumulator_t_quadratic acc2(extended_p_square_probabilities = probs);
+    accumulator_t_weighted_quadratic acc_weighted2(extended_p_square_probabilities = probs);
+    
+    for (int i=0; i<10000; ++i)
+    {
+        double sample = rng();
+        acc(sample);
+        acc2(sample);
+        acc_weighted(sample, weight = 1.);
+        acc_weighted2(sample, weight = 1.);
+    }
+    
+    for (std::size_t i = 0; i < probs.size() - 1; ++i)
+    {
+        BOOST_CHECK_CLOSE(
+            quantile(acc, quantile_probability = 0.99025 + i*0.001)
+          , 0.99025 + i*0.001
+          , epsilon
+        );
+        BOOST_CHECK_CLOSE(
+            quantile(acc2, quantile_probability = 0.99025 + i*0.001)
+          , 0.99025 + i*0.001
+          , epsilon
+        );
+        BOOST_CHECK_CLOSE(
+            quantile(acc_weighted, quantile_probability = 0.99025 + i*0.001)
+          , 0.99025 + i*0.001
+          , epsilon
+        );
+        BOOST_CHECK_CLOSE(
+            quantile(acc_weighted2, quantile_probability = 0.99025 + i*0.001)
+          , 0.99025 + i*0.001
+          , epsilon
+        );
+    }
+
+[*See also]
+
+* [classref boost::accumulators::impl::extended_p_square_quantile_impl [^extended_p_square_quantile_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.extended_p_square [^extended_p_square]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.weighted_extended_p_square [^weighted_extended_p_square]]
+
+[endsect]
+
+[section:kurtosis kurtosis]
+
+The kurtosis of a sample distribution is defined as the ratio of the 4th central moment and the
+square of the 2nd central moment (the variance) of the samples, minus 3. The term [^-3] is added
+in order to ensure that the normal distribution has zero kurtosis. For more implementation 
+details, see [classref boost::accumulators::impl::kurtosis_impl [^kurtosis_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, _sample_type_>::result_type
+                    ``]]
+    [[Depends On] [`mean` \n `moment<2>` \n `moment<3>` \n `moment<4>`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _KURTOSIS_HPP_ [headerref boost/accumulators/statistics/kurtosis.hpp]]
+
+    #include <_KURTOSIS_HPP_>
+
+[*Example]
+
+    accumulator_set<int, stats<tag::kurtosis > > acc;
+        
+    acc(2);
+    acc(7);
+    acc(4);
+    acc(9);
+    acc(3);
+    
+    BOOST_CHECK_EQUAL( mean(acc), 5 );
+    BOOST_CHECK_EQUAL( accumulators::moment<2>(acc), 159./5. );
+    BOOST_CHECK_EQUAL( accumulators::moment<3>(acc), 1171./5. );
+    BOOST_CHECK_EQUAL( accumulators::moment<4>(acc), 1863 );
+    BOOST_CHECK_CLOSE( kurtosis(acc), -1.39965397924, 1e-6 );
+
+[*See also]
+
+* [classref boost::accumulators::impl::kurtosis_impl [^kurtosis_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.mean [^mean]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.moment [^moment]]
+
+[endsect]
+
+[section:max max]
+
+Calculates the maximum value of all the samples.
+
+[variablelist
+    [[Result Type] [``
+                    _sample_type_
+                    ``]]
+    [[Depends On] [['none]]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _MAX_HPP_ [headerref boost/accumulators/statistics/max.hpp]]
+
+    #include <_MAX_HPP_>
+
+[*Example]
+
+    accumulator_set<int, stats<tag::max> > acc;
+
+    acc(1);
+    BOOST_CHECK_EQUAL(1, (max)(acc));
+
+    acc(0);
+    BOOST_CHECK_EQUAL(1, (max)(acc));
+
+    acc(2);
+    BOOST_CHECK_EQUAL(2, (max)(acc));
+
+[*See also]
+
+* [classref boost::accumulators::impl::max_impl [^max_impl]]
+
+[endsect]
+
+[section:mean mean ['and variants]]
+
+Calculates the mean of samples, weights or variates. The calculation is either
+lazy (in the result extractor), or immediate (in the accumulator). The lazy implementation
+is the default. For more implementation details, see 
+[classref boost::accumulators::impl::mean_impl [^mean_impl]] or.
+[classref boost::accumulators::impl::immediate_mean_impl [^immediate_mean_impl]]
+
+[variablelist
+    [[Result Type] [For samples, `numeric::functional::fdiv<_sample_type_, std::size_t>::result_type` \n
+                    For weights, `numeric::functional::fdiv<_weight_type_, std::size_t>::result_type` \n
+                    For variates, `numeric::functional::fdiv<_variate_type_, std::size_t>::result_type`]]
+    [[Depends On] [`count` \n
+                   The lazy mean of samples depends on `sum` \n
+                   The lazy mean of weights depends on `sum_of_weights` \n
+                   The lazy mean of variates depends on `sum_of_variates<>`]]
+    [[Variants] [`mean_of_weights` \n
+                 `mean_of_variates<_variate_type_, _variate_tag_>` \n
+                 `immediate_mean` \n
+                 `immediate_mean_of_weights` \n
+                 `immediate_mean_of_variates<_variate_type_, _variate_tag_>`]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _MEAN_HPP_ [headerref boost/accumulators/statistics/mean.hpp]]
+
+    #include <_MEAN_HPP_>
+
+[*Example]
+
+    accumulator_set<
+        int
+      , stats<
+            tag::mean
+          , tag::mean_of_weights
+          , tag::mean_of_variates<int, tag::covariate1>
+        >
+      , int 
+    > acc;
+
+    acc(1, weight = 2, covariate1 = 3);
+    BOOST_CHECK_CLOSE(1., mean(acc), 1e-5);
+    BOOST_CHECK_EQUAL(1u, count(acc));
+    BOOST_CHECK_EQUAL(2, sum(acc));
+    BOOST_CHECK_CLOSE(2., mean_of_weights(acc), 1e-5);
+    BOOST_CHECK_CLOSE(3., (accumulators::mean_of_variates<int, tag::covariate1>(acc)), 1e-5);
+
+    acc(0, weight = 4, covariate1 = 4);
+    BOOST_CHECK_CLOSE(0.33333333333333333, mean(acc), 1e-5);
+    BOOST_CHECK_EQUAL(2u, count(acc));
+    BOOST_CHECK_EQUAL(2, sum(acc));
+    BOOST_CHECK_CLOSE(3., mean_of_weights(acc), 1e-5);
+    BOOST_CHECK_CLOSE(3.5, (accumulators::mean_of_variates<int, tag::covariate1>(acc)), 1e-5);
+
+    acc(2, weight = 9, covariate1 = 8);
+    BOOST_CHECK_CLOSE(1.33333333333333333, mean(acc), 1e-5);
+    BOOST_CHECK_EQUAL(3u, count(acc));
+    BOOST_CHECK_EQUAL(20, sum(acc));
+    BOOST_CHECK_CLOSE(5., mean_of_weights(acc), 1e-5);
+    BOOST_CHECK_CLOSE(5., (accumulators::mean_of_variates<int, tag::covariate1>(acc)), 1e-5);
+
+    accumulator_set<
+        int
+      , stats<
+            tag::mean(immediate)
+          , tag::mean_of_weights(immediate)
+          , tag::mean_of_variates<int, tag::covariate1>(immediate)
+        >
+      , int
+    > acc2;
+
+    acc2(1, weight = 2, covariate1 = 3);
+    BOOST_CHECK_CLOSE(1., mean(acc2), 1e-5);
+    BOOST_CHECK_EQUAL(1u, count(acc2));
+    BOOST_CHECK_CLOSE(2., mean_of_weights(acc2), 1e-5);
+    BOOST_CHECK_CLOSE(3., (accumulators::mean_of_variates<int, tag::covariate1>(acc2)), 1e-5);
+        
+    acc2(0, weight = 4, covariate1 = 4);
+    BOOST_CHECK_CLOSE(0.33333333333333333, mean(acc2), 1e-5);
+    BOOST_CHECK_EQUAL(2u, count(acc2));
+    BOOST_CHECK_CLOSE(3., mean_of_weights(acc2), 1e-5);
+    BOOST_CHECK_CLOSE(3.5, (accumulators::mean_of_variates<int, tag::covariate1>(acc2)), 1e-5);
+    
+    acc2(2, weight = 9, covariate1 = 8);
+    BOOST_CHECK_CLOSE(1.33333333333333333, mean(acc2), 1e-5);
+    BOOST_CHECK_EQUAL(3u, count(acc2));
+    BOOST_CHECK_CLOSE(5., mean_of_weights(acc2), 1e-5);
+    BOOST_CHECK_CLOSE(5., (accumulators::mean_of_variates<int, tag::covariate1>(acc2)), 1e-5);
+
+[*See also]
+
+* [classref boost::accumulators::impl::mean_impl [^mean_impl]]
+* [classref boost::accumulators::impl::immediate_mean_impl [^immediate_mean_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.sum [^sum]]
+
+[endsect]
+
+[section:median median ['and variants]]
+
+Median estimation based on the [^P^2] quantile estimator, the density estimator, or
+the [^P^2] cumulative distribution estimator. For more implementation details, see
+[classref boost::accumulators::impl::median_impl [^median_impl]], 
+[classref boost::accumulators::impl::with_density_median_impl [^with_density_median_impl]], 
+and [classref boost::accumulators::impl::with_p_square_cumulative_distribution_median_impl [^with_p_square_cumulative_distribution_median_impl]].
+
+The three median accumulators all satisfy the `tag::median` feature, and can all be
+extracted with the `median()` extractor.
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                    ``]]
+    [[Depends On] [`median` depends on `p_square_quantile_for_median` \n
+                   `with_density_median` depends on `count` and `density` \n
+                   `with_p_square_cumulative_distribution_median` depends on `p_square_cumulative_distribution`]]
+    [[Variants] [`with_density_median` \n
+                 `with_p_square_cumulative_distribution_median`]]
+    [[Initialization Parameters] [`with_density_median` requires `tag::density::cache_size` and `tag::density::num_bins` \n
+                                  `with_p_square_cumulative_distribution_median` requires `tag::p_square_cumulative_distribution::num_cells`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [TODO]] 
+]
+
+[*Header]
+[def _MEDIAN_HPP_ [headerref boost/accumulators/statistics/median.hpp]]
+
+    #include <_MEDIAN_HPP_>
+
+[*Example]
+
+    // two random number generators
+    double mu = 1.;
+    boost::lagged_fibonacci607 rng;
+    boost::normal_distribution<> mean_sigma(mu,1);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> >
+        normal(rng, mean_sigma);
+    
+    accumulator_set<double, stats<tag::median(with_p_square_quantile) > > acc;
+    accumulator_set<double, stats<tag::median(with_density) > > 
+        acc_dens( density_cache_size = 10000, density_num_bins = 1000 );
+    accumulator_set<double, stats<tag::median(with_p_square_cumulative_distribution) > > 
+        acc_cdist( p_square_cumulative_distribution_num_cells = 100 );
+        
+    for (std::size_t i=0; i<100000; ++i)
+    {
+        double sample = normal();
+        acc(sample);
+        acc_dens(sample);
+        acc_cdist(sample);
+    }
+    
+    BOOST_CHECK_CLOSE(1., median(acc), 1.);
+    BOOST_CHECK_CLOSE(1., median(acc_dens), 1.);
+    BOOST_CHECK_CLOSE(1., median(acc_cdist), 3.);
+
+[*See also]
+
+* [classref boost::accumulators::impl::median_impl [^median_impl]]
+* [classref boost::accumulators::impl::with_density_median_impl [^with_density_median_impl]]
+* [classref boost::accumulators::impl::with_p_square_cumulative_distribution_median_impl [^with_p_square_cumulative_distribution_median_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.p_square_quantile [^p_square_quantile]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.p_square_cumulative_distribution [^p_square_cumulative_distribution]]
+
+[endsect]
+
+[section:min min]
+
+Calculates the minimum value of all the samples.
+
+[variablelist
+    [[Result Type] [``
+                    _sample_type_
+                    ``]]
+    [[Depends On] [['none]]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _MIN_HPP_ [headerref boost/accumulators/statistics/min.hpp]]
+
+    #include <_MIN_HPP_>
+
+[*Example]
+
+    accumulator_set<int, stats<tag::min> > acc;
+
+    acc(1);
+    BOOST_CHECK_EQUAL(1, (min)(acc));
+
+    acc(0);
+    BOOST_CHECK_EQUAL(0, (min)(acc));
+
+    acc(2);
+    BOOST_CHECK_EQUAL(0, (min)(acc));
+
+[*See also]
+
+* [classref boost::accumulators::impl::min_impl [^min_impl]]
+
+[endsect]
+
+[section:moment moment]
+
+Calculates the N-th moment of the samples, which is defined as the sum of the N-th power of the
+samples over the count of samples.
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                    ``]]
+    [[Depends On] [`count`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _MOMENT_HPP_ [headerref boost/accumulators/statistics/moment.hpp]]
+
+    #include <_MOMENT_HPP_>
+
+[*Example]
+
+    accumulator_set<int, stats<tag::moment<2> > > acc1;
+
+    acc1(2); //    4
+    acc1(4); //   16
+    acc1(5); // + 25
+             // = 45 / 3 = 15
+
+    BOOST_CHECK_CLOSE(15., accumulators::moment<2>(acc1), 1e-5);
+
+    accumulator_set<int, stats<tag::moment<5> > > acc2;
+
+    acc2(2); //     32
+    acc2(3); //    243
+    acc2(4); //   1024
+    acc2(5); // + 3125
+             // = 4424 / 4 = 1106
+
+    BOOST_CHECK_CLOSE(1106., accumulators::moment<5>(acc2), 1e-5);
+
+[*See also]
+
+* [classref boost::accumulators::impl::moment_impl [^moment_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+
+[endsect]
+
+[section:p_square_cumulative_distribution p_square_cumulative_distribution]
+
+Histogram calculation of the cumulative distribution with the [^P^2] algorithm.
+For more implementation details, see 
+[classref boost::accumulators::impl::p_square_cumulative_distribution_impl [^p_square_cumulative_distribution_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    iterator_range<
+                        std::vector<
+                            std::pair<
+                                numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                              , numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                            >
+                        >::iterator
+                    >
+                    ``]]
+    [[Depends On] [`count`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [`tag::p_square_cumulative_distribution::num_cells`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [O(N) where N is `num_cells`]] 
+]
+
+[*Header]
+[def _P_SQUARE_CUMULATIVE_DISTRIBUTION_HPP_ [headerref boost/accumulators/statistics/p_square_cumul_dist.hpp]]
+
+    #include <_P_SQUARE_CUMULATIVE_DISTRIBUTION_HPP_>
+
+[*Example]
+
+    // tolerance in %
+    double epsilon = 3;
+
+    typedef accumulator_set<double, stats<tag::p_square_cumulative_distribution> > accumulator_t;
+        
+    accumulator_t acc(tag::p_square_cumulative_distribution::num_cells = 100);
+    
+    // two random number generators
+    boost::lagged_fibonacci607 rng;
+    boost::normal_distribution<> mean_sigma(0,1);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal(rng, mean_sigma);
+    
+    for (std::size_t i=0; i<100000; ++i)
+    {
+        acc(normal());
+    }
+    
+    typedef iterator_range<std::vector<std::pair<double, double> >::iterator > histogram_type;
+    histogram_type histogram = p_square_cumulative_distribution(acc);
+    
+    for (std::size_t i = 0; i < histogram.size(); ++i)
+    {   
+        // problem with small results: epsilon is relative (in percent), not absolute!
+        if ( histogram[i].second > 0.001 )    
+            BOOST_CHECK_CLOSE( 0.5 * (1.0 + erf( histogram[i].first / sqrt(2.0) )), histogram[i].second, epsilon );
+    }        
+
+[*See also]
+
+* [classref boost::accumulators::impl::p_square_cumulative_distribution_impl [^p_square_cumulative_distribution_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+
+[endsect]
+
+[section:p_square_quantile p_square_quantile ['and variants]]
+
+Single quantile estimation with the [^P^2] algorithm. For more implementation details, see
+[classref boost::accumulators::impl::p_square_quantile_impl [^p_square_quantile_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                    ``]]
+    [[Depends On] [`count`]]
+    [[Variants] [`p_square_quantile_for_median`]]
+    [[Initialization Parameters] [`quantile_probability`, which defaults to `0.5`.
+                                  (Note: for `p_square_quantile_for_median`, the `quantile_probability`
+                                  parameter is ignored and is always `0.5`.)]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _P_SQUARE_QUANTILE_HPP_ [headerref boost/accumulators/statistics/p_square_quantile.hpp]]
+
+    #include <_P_SQUARE_QUANTILE_HPP_>
+
+[*Example]
+
+    typedef accumulator_set<double, stats<tag::p_square_quantile> > accumulator_t;
+
+    // tolerance in %
+    double epsilon = 1;
+    
+    // a random number generator
+    boost::lagged_fibonacci607 rng;
+    
+    accumulator_t acc0(quantile_probability = 0.001);
+    accumulator_t acc1(quantile_probability = 0.01 );
+    accumulator_t acc2(quantile_probability = 0.1  );
+    accumulator_t acc3(quantile_probability = 0.25 );
+    accumulator_t acc4(quantile_probability = 0.5  );
+    accumulator_t acc5(quantile_probability = 0.75 );
+    accumulator_t acc6(quantile_probability = 0.9  );
+    accumulator_t acc7(quantile_probability = 0.99 );
+    accumulator_t acc8(quantile_probability = 0.999);
+    
+    for (int i=0; i<100000; ++i)
+    {
+        double sample = rng();
+        acc0(sample);
+        acc1(sample);
+        acc2(sample);
+        acc3(sample);
+        acc4(sample);
+        acc5(sample);
+        acc6(sample);
+        acc7(sample);
+        acc8(sample);
+    }
+    
+    BOOST_CHECK_CLOSE( p_square_quantile(acc0), 0.001, 15*epsilon );
+    BOOST_CHECK_CLOSE( p_square_quantile(acc1), 0.01 , 5*epsilon );
+    BOOST_CHECK_CLOSE( p_square_quantile(acc2), 0.1  , epsilon );
+    BOOST_CHECK_CLOSE( p_square_quantile(acc3), 0.25 , epsilon );
+    BOOST_CHECK_CLOSE( p_square_quantile(acc4), 0.5  , epsilon );
+    BOOST_CHECK_CLOSE( p_square_quantile(acc5), 0.75 , epsilon );
+    BOOST_CHECK_CLOSE( p_square_quantile(acc6), 0.9  , epsilon );
+    BOOST_CHECK_CLOSE( p_square_quantile(acc7), 0.99 , epsilon );
+    BOOST_CHECK_CLOSE( p_square_quantile(acc8), 0.999, epsilon );    
+
+[*See also]
+
+* [classref boost::accumulators::impl::p_square_quantile_impl [^p_square_quantile_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+
+[endsect]
+
+[section:peaks_over_threshold peaks_over_threshold ['and variants]]
+
+Peaks Over Threshold method for quantile and tail mean estimation. For implementation
+details, see [classref boost::accumulators::impl::peaks_over_threshold_impl [^peaks_over_threshold_impl]]
+and [classref boost::accumulators::impl::peaks_over_threshold_prob_impl [^peaks_over_threshold_prob_impl]].
+
+Both `tag::peaks_over_threshold` and `tag::peaks_over_threshold_prob<>` satisfy the `tag::abstract_peaks_over_threshold`
+feature, and can be extracted with the `peaks_over_threshold()` extractor. The result is a 3-tuple representing
+the fit parameters `u_bar`, `beta_bar` and `xi_hat`.
+
+[variablelist
+    [[Result Type] [``
+                    boost::tuple<
+                        numeric::functional::fdiv<_sample_type_, std::size_t>::result_type // u_bar
+                      , numeric::functional::fdiv<_sample_type_, std::size_t>::result_type // beta_bar
+                      , numeric::functional::fdiv<_sample_type_, std::size_t>::result_type // xi_hat
+                    >
+                    ``]]
+    [[Depends On] [`count` \n
+                   In addition, `tag::peaks_over_threshold_prob<>` depends on `tail<_left_or_right_>`]]
+    [[Variants] [`peaks_over_threshold_prob<_left_or_right_>`]]
+    [[Initialization Parameters] [ `tag::peaks_over_threshold::threshold_value` \n
+                                   `tag::peaks_over_threshold_prob::threshold_probability` \n
+                                   `tag::tail<_left_or_right_>::cache_size` ]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [TODO]] 
+]
+
+[*Header]
+[def _PEAKS_OVER_THRESHOLD_HPP_ [headerref boost/accumulators/statistics/peaks_over_threshold.hpp]]
+
+    #include <_PEAKS_OVER_THRESHOLD_HPP_>
+
+[*Example]
+
+See example for [link accumulators.user_s_guide.the_statistical_accumulators_library.pot_quantile [^pot_quantile]].
+
+[*See also]
+
+* [classref boost::accumulators::impl::peaks_over_threshold_impl [^peaks_over_threshold_impl]]
+* [classref boost::accumulators::impl::peaks_over_threshold_prob_impl [^peaks_over_threshold_prob_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.tail [^tail]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.pot_quantile [^pot_quantile]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.pot_tail_mean [^pot_tail_mean]]
+
+[endsect]
+
+[section:pot_quantile pot_quantile ['and variants]]
+
+Quantile estimation based on Peaks over Threshold method (for both left and right tails). For 
+implementation details, see [classref boost::accumulators::impl::pot_quantile_impl [^pot_quantile_impl]].
+
+Both `tag::pot_quantile<_left_or_right_>` and `tag::pot_quantile_prob<_left_or_right_>` satisfy the
+`tag::quantile` feature and can be extracted using the `quantile()` extractor.
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                    ``]]
+    [[Depends On] [`pot_quantile<_left_or_right_>` depends on `peaks_over_threshold<_left_or_right_>` \n
+                   `pot_quantile_prob<_left_or_right_>` depends on `peaks_over_threshold_prob<_left_or_right_>` ]]
+    [[Variants] [`pot_quantile_prob<_left_or_right_>`]]
+    [[Initialization Parameters] [ `tag::peaks_over_threshold::threshold_value` \n
+                                   `tag::peaks_over_threshold_prob::threshold_probability` \n
+                                   `tag::tail<_left_or_right_>::cache_size` ]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [`quantile_probability`]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [TODO]] 
+]
+
+[*Header]
+[def _POT_QUANTILE_HPP_ [headerref boost/accumulators/statistics/pot_quantile.hpp]]
+
+    #include <_POT_QUANTILE_HPP_>
+
+[*Example]
+
+    // tolerance in %
+    double epsilon = 1.;
+
+    double alpha = 0.999;
+    double threshold_probability = 0.99;
+    double threshold = 3.;
+    
+    // two random number generators
+    boost::lagged_fibonacci607 rng;
+    boost::normal_distribution<> mean_sigma(0,1);
+    boost::exponential_distribution<> lambda(1);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal(rng, mean_sigma);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::exponential_distribution<> > exponential(rng, lambda);
+    
+    accumulator_set<double, stats<tag::pot_quantile<right>(with_threshold_value)> > acc1(
+        tag::peaks_over_threshold::threshold_value = threshold
+    );
+    accumulator_set<double, stats<tag::pot_quantile<right>(with_threshold_probability)> > acc2(
+        tag::tail<right>::cache_size = 2000
+      , tag::peaks_over_threshold_prob::threshold_probability = threshold_probability
+    );
+    
+    threshold_probability = 0.995;
+    threshold = 5.;
+    
+    accumulator_set<double, stats<tag::pot_quantile<right>(with_threshold_value)> > acc3(
+        tag::peaks_over_threshold::threshold_value = threshold
+    );
+    accumulator_set<double, stats<tag::pot_quantile<right>(with_threshold_probability)> > acc4(
+        tag::tail<right>::cache_size = 2000
+      , tag::peaks_over_threshold_prob::threshold_probability = threshold_probability
+    );
+    
+    for (std::size_t i = 0; i < 100000; ++i)
+    {
+        double sample = normal();
+        acc1(sample);
+        acc2(sample);
+    }
+    
+    for (std::size_t i = 0; i < 100000; ++i)
+    {
+        double sample = exponential();
+        acc3(sample);
+        acc4(sample);
+    }
+    
+    BOOST_CHECK_CLOSE( quantile(acc1, quantile_probability = alpha), 3.090232, epsilon );
+    BOOST_CHECK_CLOSE( quantile(acc2, quantile_probability = alpha), 3.090232, epsilon );  
+    
+    BOOST_CHECK_CLOSE( quantile(acc3, quantile_probability = alpha), 6.908, epsilon );
+    BOOST_CHECK_CLOSE( quantile(acc4, quantile_probability = alpha), 6.908, epsilon );  
+
+[*See also]
+
+* [classref boost::accumulators::impl::pot_quantile_impl [^pot_quantile_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.peaks_over_threshold [^peaks_over_threshold]]
+
+[endsect]
+
+[section:pot_tail_mean pot_tail_mean]
+
+Estimation of the (coherent) tail mean based on the peaks over threshold method (for both left and right tails).
+For implementation details, see [classref boost::accumulators::impl::pot_tail_mean_impl [^pot_tail_mean_impl]].
+
+Both `tag::pot_tail_mean<_left_or_right_>` and `tag::pot_tail_mean_prob<_left_or_right_>` satisfy the
+`tag::tail_mean` feature and can be extracted using the `tail_mean()` extractor.
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                    ``]]
+    [[Depends On] [`pot_tail_mean<_left_or_right_>` depends on `peaks_over_threshold<_left_or_right_>`
+                         and `pot_quantile<_left_or_right_>` \n
+                   `pot_tail_mean_prob<_left_or_right_>` depends on `peaks_over_threshold_prob<_left_or_right_>`
+                         and `pot_quantile_prob<_left_or_right_>` ]]
+    [[Variants] [`pot_tail_mean_prob<_left_or_right_>`]]
+    [[Initialization Parameters] [ `tag::peaks_over_threshold::threshold_value` \n
+                                   `tag::peaks_over_threshold_prob::threshold_probability` \n
+                                   `tag::tail<_left_or_right_>::cache_size` ]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [`quantile_probability`]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [TODO]] 
+]
+
+[*Header]
+[def _POT_TAIL_MEAN_HPP_ [headerref boost/accumulators/statistics/pot_tail_mean.hpp]]
+
+    #include <_POT_TAIL_MEAN_HPP_>
+
+[*Example]
+
+    // TODO
+
+[*See also]
+
+* [classref boost::accumulators::impl::pot_tail_mean_impl [^pot_tail_mean_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.peaks_over_threshold [^peaks_over_threshold]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.pot_quantile [^pot_quantile]]
+
+[endsect]
+
+[section:rolling_count rolling_count]
+
+The rolling count is the current number of elements in the rolling window. 
+
+[variablelist
+    [[Result Type] [``std::size_t``]]
+    [[Depends On] [`rolling_window_plus1`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [`tag::rolling_window::window_size`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _ROLLING_COUNT_HPP_ [headerref boost/accumulators/statistics/rolling_count.hpp]]
+
+    #include <_ROLLING_COUNT_HPP_>
+
+[*Example]
+
+    accumulator_set<int, stats<tag::rolling_count> > acc(tag::rolling_window::window_size = 3);
+
+    BOOST_CHECK_EQUAL(0u, rolling_count(acc));
+
+    acc(1);
+    BOOST_CHECK_EQUAL(1u, rolling_count(acc));
+
+    acc(1);
+    BOOST_CHECK_EQUAL(2u, rolling_count(acc));
+
+    acc(1);
+    BOOST_CHECK_EQUAL(3u, rolling_count(acc));
+
+    acc(1);
+    BOOST_CHECK_EQUAL(3u, rolling_count(acc));
+
+    acc(1);
+    BOOST_CHECK_EQUAL(3u, rolling_count(acc));
+
+[*See also]
+
+* [classref boost::accumulators::impl::rolling_count_impl [^rolling_count_impl]]
+
+[endsect]
+
+[section:rolling_sum rolling_sum]
+
+The rolling sum is the sum of the last /N/ samples. 
+
+[variablelist
+    [[Result Type] [``_sample_type_``]]
+    [[Depends On] [`rolling_window_plus1`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [`tag::rolling_window::window_size`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _ROLLING_SUM_HPP_ [headerref boost/accumulators/statistics/rolling_sum.hpp]]
+
+    #include <_ROLLING_SUM_HPP_>
+
+[*Example]
+
+    accumulator_set<int, stats<tag::rolling_sum> > acc(tag::rolling_window::window_size = 3);
+
+    BOOST_CHECK_EQUAL(0, rolling_sum(acc));
+
+    acc(1);
+    BOOST_CHECK_EQUAL(1, rolling_sum(acc));
+
+    acc(2);
+    BOOST_CHECK_EQUAL(3, rolling_sum(acc));
+
+    acc(3);
+    BOOST_CHECK_EQUAL(6, rolling_sum(acc));
+
+    acc(4);
+    BOOST_CHECK_EQUAL(9, rolling_sum(acc));
+
+    acc(5);
+    BOOST_CHECK_EQUAL(12, rolling_sum(acc));
+
+[*See also]
+
+* [classref boost::accumulators::impl::rolling_sum_impl [^rolling_sum_impl]]
+
+[endsect]
+
+[section:rolling_mean rolling_mean]
+
+The rolling mean is the mean over the last /N/ samples. It is computed by dividing
+the rolling sum by the rolling count.
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                    ``]]
+    [[Depends On] [`rolling_sum` \n `rolling_count`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [`tag::rolling_window::window_size`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _ROLLING_MEAN_HPP_ [headerref boost/accumulators/statistics/rolling_mean.hpp]]
+
+    #include <_ROLLING_MEAN_HPP_>
+
+[*Example]
+
+    accumulator_set<int, stats<tag::rolling_mean> > acc(tag::rolling_window::window_size = 5);
+    
+    acc(1);
+    acc(2);
+    acc(3);
+
+    BOOST_CHECK_CLOSE( rolling_mean(acc), 2.0, 1e-6 );
+
+    acc(4);
+    acc(5);
+    acc(6);
+    acc(7);
+
+    BOOST_CHECK_CLOSE( rolling_mean(acc), 5.0, 1e-6 );
+
+[*See also]
+
+* [classref boost::accumulators::impl::rolling_mean_impl [^rolling_mean_impl]]
+
+[endsect]
+
+[section:skewness skewness]
+
+The skewness of a sample distribution is defined as the ratio of the 3rd central moment and the [^3/2]-th power 
+of the 2nd central moment (the variance) of the samples 3. For implementation details, see
+[classref boost::accumulators::impl::skewness_impl [^skewness_impl]].
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, _sample_type_>::result_type
+                    ``]]
+    [[Depends On] [`mean` \n `moment<2>` \n `moment<3>`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _SKEWNESS_HPP_ [headerref boost/accumulators/statistics/skewness.hpp]]
+
+    #include <_SKEWNESS_HPP_>
+
+[*Example]
+
+    accumulator_set<int, stats<tag::skewness > > acc2;
+    
+    acc2(2);
+    acc2(7);
+    acc2(4);
+    acc2(9);
+    acc2(3);
+    
+    BOOST_CHECK_EQUAL( mean(acc2), 5 );
+    BOOST_CHECK_EQUAL( accumulators::moment<2>(acc2), 159./5. );
+    BOOST_CHECK_EQUAL( accumulators::moment<3>(acc2), 1171./5. );
+    BOOST_CHECK_CLOSE( skewness(acc2), 0.406040288214, 1e-6 );
+
+[*See also]
+
+* [classref boost::accumulators::impl::skewness_impl [^skewness_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.mean [^mean]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.moment [^moment]]
+
+[endsect]
+
+[section:sum sum ['and variants]]
+
+For summing the samples, weights or variates. The default implementation uses the standard sum operation, 
+but variants using the Kahan summation algorithm are also provided.
+
+[variablelist
+    [[Result Type] [`_sample_type_` for summing samples \n
+                    `_weight_type_` for summing weights \n
+                    `_variate_type_` for summing variates]]
+    [[Depends On] [['none]]]
+    [[Variants] [`tag::sum` \n
+                 `tag::sum_of_weights` \n
+                 `tag::sum_of_variates<_variate_type_, _variate_tag_>` \n
+		 `tag::sum_kahan` (a.k.a. `tag::sum(kahan)`) \n
+		 `tag::sum_of_weights_kahan` (a.k.a. `tag::sum_of_weights(kahan)`) \n
+		 `tag::sum_of_variates_kahan<_variate_type_, _variate_tag_>` \n]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [`weight` for summing weights \n
+                               `_variate_tag_` for summing variates]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1). Note that the Kahan sum performs four floating-point sum 
+    		  	       operations per accumulated value, whereas the naive sum 
+			       performs only one.]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _SUM_HPP_ [headerref boost/accumulators/statistics/sum.hpp]]
+[def _SUM_KAHAN_HPP_ [headerref boost/accumulators/statistics/sum_kahan.hpp]]
+
+    #include <_SUM_HPP_>
+    #include <_SUM_KAHAN_HPP_>
+
+[*Example]
+
+    accumulator_set<
+        int
+      , stats<
+            tag::sum
+          , tag::sum_of_weights
+          , tag::sum_of_variates<int, tag::covariate1>
+        >
+      , int
+    > acc;
+
+    acc(1, weight = 2, covariate1 = 3);
+    BOOST_CHECK_EQUAL(2, sum(acc));  // weighted sample = 1 * 2
+    BOOST_CHECK_EQUAL(2, sum_of_weights(acc));
+    BOOST_CHECK_EQUAL(3, sum_of_variates(acc));
+
+    acc(2, weight = 4, covariate1 = 6);
+    BOOST_CHECK_EQUAL(10, sum(acc)); // weighted sample = 2 * 4
+    BOOST_CHECK_EQUAL(6, sum_of_weights(acc));
+    BOOST_CHECK_EQUAL(9, sum_of_variates(acc));
+
+    acc(3, weight = 6, covariate1 = 9);
+    BOOST_CHECK_EQUAL(28, sum(acc)); // weighted sample = 3 * 6
+    BOOST_CHECK_EQUAL(12, sum_of_weights(acc));
+    BOOST_CHECK_EQUAL(18, sum_of_variates(acc));
+
+    // demonstrate Kahan summation
+    accumulator_set<float, stats<tag::sum_kahan> > acc;
+    BOOST_CHECK_EQUAL(0.0f, sum_kahan(acc));
+    for (size_t i = 0; i < 1e6; ++i) {
+      acc(1e-6f);
+    }
+    BOOST_CHECK_EQUAL(1.0f, sum_kahan(acc));
+
+[*See also]
+
+* [classref boost::accumulators::impl::sum_impl [^sum_impl]]
+* [classref boost::accumulators::impl::sum_kahan_impl [^sum_kahan_impl]]
+
+[endsect]
+
+[section:tail tail]
+
+Tracks the largest or smallest [^N] values. `tag::tail<right>` tracks the largest [^N],
+and `tag::tail<left>` tracks the smallest. The parameter [^N] is specified with the
+`tag::tail<_left_or_right_>::cache_size` initialization parameter. For implementation details, see
+[classref boost::accumulators::impl::tail_impl [^tail_impl]].
+
+Both `tag::tail<left>` and `tag::tail<right>` satisfy the `tag::abstract_tail` feature and 
+can be extracted with the `tail()` extractor.
+
+[variablelist
+    [[Result Type] [``
+                    boost::iterator_range<
+                        boost::reverse_iterator<
+                            boost::permutation_iterator<
+                                std::vector<_sample_type_>::const_iterator  // samples
+                              , std::vector<std::size_t>::iterator          // indices
+                            >
+                        >
+                    >
+                    ``]]
+    [[Depends On] [['none]]]
+    [[Variants] [`abstract_tail`]]
+    [[Initialization Parameters] [`tag::tail<_left_or_right_>::cache_size`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(log N), where N is the cache size]] 
+    [[Extractor Complexity] [O(N log N), where N is the cache size]] 
+]
+
+[*Header]
+[def _TAIL_HPP_ [headerref boost/accumulators/statistics/tail.hpp]]
+
+    #include <_TAIL_HPP_>
+
+[*Example]
+
+See the Example for [link accumulators.user_s_guide.the_statistical_accumulators_library.tail_variate [^tail_variate]].
+
+[*See also]
+
+* [classref boost::accumulators::impl::tail_impl [^tail_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.tail_variate [^tail_variate]]
+
+[endsect]
+
+[section:coherent_tail_mean coherent_tail_mean]
+
+Estimation of the coherent tail mean based on order statistics (for both left and right tails).
+The left coherent tail mean feature is `tag::coherent_tail_mean<left>`, and the right coherent
+tail mean feature is `tag::coherent_tail_mean<right>`. They both share the `tag::tail_mean` feature
+and can be extracted with the `tail_mean()` extractor. For more implementation details, see
+[classref boost::accumulators::impl::coherent_tail_mean_impl [^coherent_tail_mean_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                    ``]]
+    [[Depends On] [`count` \n `quantile` \n `non_coherent_tail_mean<_left_or_right_>`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [`tag::tail<_left_or_right_>::cache_size`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [`quantile_probability`]]
+    [[Accumulator Complexity] [O(log N), where N is the cache size]] 
+    [[Extractor Complexity] [O(N log N), where N is the cache size]] 
+]
+
+[*Header]
+[def _TAIL_MEAN_HPP_ [headerref boost/accumulators/statistics/tail_mean.hpp]]
+
+    #include <_TAIL_MEAN_HPP_>
+
+[*Example]
+
+See the example for 
+[link accumulators.user_s_guide.the_statistical_accumulators_library.non_coherent_tail_mean [^non_coherent_tail_mean]].
+
+[*See also]
+
+* [classref boost::accumulators::impl::coherent_tail_mean_impl [^coherent_tail_mean_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.extended_p_square_quantile [^extended_p_square_quantile]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.pot_quantile [^pot_quantile]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.tail_quantile [^tail_quantile]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.non_coherent_tail_mean [^non_coherent_tail_mean]]
+
+[endsect]
+
+[section:non_coherent_tail_mean non_coherent_tail_mean]
+
+Estimation of the (non-coherent) tail mean based on order statistics (for both left and right tails).
+The left non-coherent tail mean feature is `tag::non_coherent_tail_mean<left>`, and the right non-choherent
+tail mean feature is `tag::non_coherent_tail_mean<right>`. They both share the `tag::abstract_non_coherent_tail_mean`
+feature and can be extracted with the `non_coherent_tail_mean()` extractor. For more implementation details, see
+[classref boost::accumulators::impl::non_coherent_tail_mean_impl [^non_coherent_tail_mean_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                    ``]]
+    [[Depends On] [`count` \n `tail<_left_or_right_>`]]
+    [[Variants] [`abstract_non_coherent_tail_mean`]]
+    [[Initialization Parameters] [`tag::tail<_left_or_right_>::cache_size`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [`quantile_probability`]]
+    [[Accumulator Complexity] [O(log N), where N is the cache size]] 
+    [[Extractor Complexity] [O(N log N), where N is the cache size]] 
+]
+
+[*Header]
+[def _TAIL_MEAN_HPP_ [headerref boost/accumulators/statistics/tail_mean.hpp]]
+
+    #include <_TAIL_MEAN_HPP_>
+
+[*Example]
+
+    // tolerance in %
+    double epsilon = 1;
+    
+    std::size_t n = 100000; // number of MC steps
+    std::size_t c =  10000; // cache size
+    
+    typedef accumulator_set<double, stats<tag::non_coherent_tail_mean<right>, tag::tail_quantile<right> > > accumulator_t_right1;
+    typedef accumulator_set<double, stats<tag::non_coherent_tail_mean<left>, tag::tail_quantile<left> > > accumulator_t_left1;
+    typedef accumulator_set<double, stats<tag::coherent_tail_mean<right>, tag::tail_quantile<right> > > accumulator_t_right2;
+    typedef accumulator_set<double, stats<tag::coherent_tail_mean<left>, tag::tail_quantile<left> > > accumulator_t_left2;
+    
+    accumulator_t_right1 acc0( right_tail_cache_size = c );
+    accumulator_t_left1 acc1( left_tail_cache_size = c );
+    accumulator_t_right2 acc2( right_tail_cache_size = c );
+    accumulator_t_left2 acc3( left_tail_cache_size = c );
+    
+    // a random number generator
+    boost::lagged_fibonacci607 rng;
+    
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        double sample = rng();
+        acc0(sample);
+        acc1(sample);
+        acc2(sample);
+        acc3(sample);
+    }
+    
+    // check uniform distribution
+    BOOST_CHECK_CLOSE( non_coherent_tail_mean(acc0, quantile_probability = 0.95), 0.975, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_tail_mean(acc0, quantile_probability = 0.975), 0.9875, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_tail_mean(acc0, quantile_probability = 0.99), 0.995, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_tail_mean(acc0, quantile_probability = 0.999), 0.9995, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_tail_mean(acc1, quantile_probability = 0.05), 0.025, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_tail_mean(acc1, quantile_probability = 0.025), 0.0125, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_tail_mean(acc1, quantile_probability = 0.01), 0.005, 5 );
+    BOOST_CHECK_CLOSE( non_coherent_tail_mean(acc1, quantile_probability = 0.001), 0.0005, 10 );
+    BOOST_CHECK_CLOSE( tail_mean(acc2, quantile_probability = 0.95), 0.975, epsilon );
+    BOOST_CHECK_CLOSE( tail_mean(acc2, quantile_probability = 0.975), 0.9875, epsilon );
+    BOOST_CHECK_CLOSE( tail_mean(acc2, quantile_probability = 0.99), 0.995, epsilon );
+    BOOST_CHECK_CLOSE( tail_mean(acc2, quantile_probability = 0.999), 0.9995, epsilon );
+    BOOST_CHECK_CLOSE( tail_mean(acc3, quantile_probability = 0.05), 0.025, epsilon );
+    BOOST_CHECK_CLOSE( tail_mean(acc3, quantile_probability = 0.025), 0.0125, epsilon );
+    BOOST_CHECK_CLOSE( tail_mean(acc3, quantile_probability = 0.01), 0.005, 5 );
+    BOOST_CHECK_CLOSE( tail_mean(acc3, quantile_probability = 0.001), 0.0005, 10 );
+
+[*See also]
+
+* [classref boost::accumulators::impl::non_coherent_tail_mean_impl [^non_coherent_tail_mean_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.tail [^tail]]
+
+[endsect]
+
+[section:tail_quantile tail_quantile]
+
+Tail quantile estimation based on order statistics (for both left and right tails).
+The left tail quantile feature is `tag::tail_quantile<left>`, and the right
+tail quantile feature is `tag::tail_quantile<right>`. They both share the `tag::quantile`
+feature and can be extracted with the `quantile()` extractor. For more implementation details, see
+[classref boost::accumulators::impl::tail_quantile_impl [^tail_quantile_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    _sample_type_
+                    ``]]
+    [[Depends On] [`count` \n `tail<_left_or_right_>`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [`tag::tail<_left_or_right_>::cache_size`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [`quantile_probability`]]
+    [[Accumulator Complexity] [O(log N), where N is the cache size]] 
+    [[Extractor Complexity] [O(N log N), where N is the cache size]] 
+]
+
+[*Header]
+[def _TAIL_QUANTILE_HPP_ [headerref boost/accumulators/statistics/tail_quantile.hpp]]
+
+    #include <_TAIL_QUANTILE_HPP_>
+
+[*Example]
+
+    // tolerance in %
+    double epsilon = 1;
+    
+    std::size_t n = 100000; // number of MC steps
+    std::size_t c =  10000; // cache size
+        
+    typedef accumulator_set<double, stats<tag::tail_quantile<right> > > accumulator_t_right;
+    typedef accumulator_set<double, stats<tag::tail_quantile<left> > > accumulator_t_left;
+    
+    accumulator_t_right acc0( tag::tail<right>::cache_size = c );
+    accumulator_t_right acc1( tag::tail<right>::cache_size = c );
+    accumulator_t_left  acc2( tag::tail<left>::cache_size = c );
+    accumulator_t_left  acc3( tag::tail<left>::cache_size = c );
+    
+    // two random number generators
+    boost::lagged_fibonacci607 rng;
+    boost::normal_distribution<> mean_sigma(0,1);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal(rng, mean_sigma);
+                    
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        double sample1 = rng();
+        double sample2 = normal();
+        acc0(sample1);
+        acc1(sample2);
+        acc2(sample1);
+        acc3(sample2);
+    }
+    
+    // check uniform distribution
+    BOOST_CHECK_CLOSE( quantile(acc0, quantile_probability = 0.95 ), 0.95,  epsilon );
+    BOOST_CHECK_CLOSE( quantile(acc0, quantile_probability = 0.975), 0.975, epsilon );
+    BOOST_CHECK_CLOSE( quantile(acc0, quantile_probability = 0.99 ), 0.99,  epsilon );
+    BOOST_CHECK_CLOSE( quantile(acc0, quantile_probability = 0.999), 0.999, epsilon );
+    BOOST_CHECK_CLOSE( quantile(acc2, quantile_probability  = 0.05 ), 0.05,  2 );
+    BOOST_CHECK_CLOSE( quantile(acc2, quantile_probability  = 0.025), 0.025, 2 );
+    BOOST_CHECK_CLOSE( quantile(acc2, quantile_probability  = 0.01 ), 0.01,  3 );
+    BOOST_CHECK_CLOSE( quantile(acc2, quantile_probability  = 0.001), 0.001, 20 );
+    
+    // check standard normal distribution
+    BOOST_CHECK_CLOSE( quantile(acc1, quantile_probability = 0.975),  1.959963, epsilon );
+    BOOST_CHECK_CLOSE( quantile(acc1, quantile_probability = 0.999),  3.090232, epsilon );
+    BOOST_CHECK_CLOSE( quantile(acc3, quantile_probability  = 0.025), -1.959963, epsilon );
+    BOOST_CHECK_CLOSE( quantile(acc3, quantile_probability  = 0.001), -3.090232, epsilon );
+
+[*See also]
+
+* [classref boost::accumulators::impl::tail_quantile_impl [^tail_quantile_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.tail [^tail]]
+
+[endsect]
+
+[section:tail_variate tail_variate]
+
+Tracks the covariates of largest or smallest [^N] samples. 
+`tag::tail_variate<_variate_type_, _variate_tag_, right>` tracks the covariate associated with 
+_variate_tag_ for the largest [^N], and `tag::tail_variate<_variate_type_, _variate_tag_, left>`
+for the smallest. The parameter [^N] is specified with the `tag::tail<_left_or_right_>::cache_size` 
+initialization parameter. For implementation details, see
+[classref boost::accumulators::impl::tail_variate_impl [^tail_variate_impl]].
+
+Both `tag::tail_variate<_variate_type_, _variate_tag_, right>` and 
+`tag::tail_variate<_variate_type_, _variate_tag_, left>` satisfy the `tag::abstract_tail_variate` feature
+and can be extracted with the `tail_variate()` extractor.
+
+[variablelist
+    [[Result Type] [``
+                    boost::iterator_range<
+                        boost::reverse_iterator<
+                            boost::permutation_iterator<
+                                std::vector<_variate_type_>::const_iterator // variates
+                              , std::vector<std::size_t>::iterator          // indices
+                            >
+                        >
+                    >
+                    ``]]
+    [[Depends On] [`tail<_left_or_right_>`]]
+    [[Variants] [`abstract_tail_variate`]]
+    [[Initialization Parameters] [`tag::tail<_left_or_right_>::cache_size`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(log N), where N is the cache size]] 
+    [[Extractor Complexity] [O(N log N), where N is the cache size]] 
+]
+
+[*Header]
+[def _TAIL_VARIATE_HPP_ [headerref boost/accumulators/statistics/tail_variate.hpp]]
+
+    #include <_TAIL_VARIATE_HPP_>
+
+[*Example]
+
+    accumulator_set<int, stats<tag::tail_variate<int, tag::covariate1, right> > > acc(
+        tag::tail<right>::cache_size = 4
+    );
+    
+    acc(8, covariate1 = 3);
+    CHECK_RANGE_EQUAL(tail(acc), {8});
+    CHECK_RANGE_EQUAL(tail_variate(acc), {3});
+    
+    acc(16, covariate1 = 1);
+    CHECK_RANGE_EQUAL(tail(acc), {16, 8});
+    CHECK_RANGE_EQUAL(tail_variate(acc), {1, 3});
+
+    acc(12, covariate1 = 4);
+    CHECK_RANGE_EQUAL(tail(acc), {16, 12, 8});
+    CHECK_RANGE_EQUAL(tail_variate(acc), {1, 4, 3});
+
+    acc(24, covariate1 = 5);
+    CHECK_RANGE_EQUAL(tail(acc), {24, 16, 12, 8});
+    CHECK_RANGE_EQUAL(tail_variate(acc), {5, 1, 4, 3});
+
+    acc(1, covariate1 = 9);
+    CHECK_RANGE_EQUAL(tail(acc), {24, 16, 12, 8});
+    CHECK_RANGE_EQUAL(tail_variate(acc), {5, 1, 4, 3});
+
+    acc(9, covariate1 = 7);
+    CHECK_RANGE_EQUAL(tail(acc), {24,  16, 12, 9});
+    CHECK_RANGE_EQUAL(tail_variate(acc), {5, 1, 4, 7});
+
+[*See also]
+
+* [classref boost::accumulators::impl::tail_variate_impl [^tail_variate_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.tail [^tail]]
+
+[endsect]
+
+[section:tail_variate_means tail_variate_means ['and variants]]
+
+Estimation of the absolute and relative tail variate means (for both left and right tails).
+The absolute tail variate means has the feature 
+`tag::absolute_tail_variate_means<_left_or_right_, _variate_type_, _variate_tag_>`
+and the relative tail variate mean has the feature
+`tag::relative_tail_variate_means<_left_or_right_, _variate_type_, _variate_tag_>`. All
+absolute tail variate mean features share the `tag::abstract_absolute_tail_variate_means`
+feature and can be extracted with the `tail_variate_means()` extractor. All the
+relative tail variate mean features share the `tag::abstract_relative_tail_variate_means`
+feature and can be extracted with the `relative_tail_variate_means()` extractor.
+
+For more implementation details, see
+[classref boost::accumulators::impl::tail_variate_means_impl [^tail_variate_means_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    boost::iterator_range<
+                        std::vector<
+                            numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                        >::iterator
+                    >
+                    ``]]
+    [[Depends On] [`non_coherent_tail_mean<_left_or_right_>` \n 
+                   `tail_variate<_variate_type_, _variate_tag_, _left_or_right_>`]]
+    [[Variants] [`tag::absolute_tail_variate_means<_left_or_right_, _variate_type_, _variate_tag_>` \n
+                 `tag::relative_tail_variate_means<_left_or_right_, _variate_type_, _variate_tag_>`]]
+    [[Initialization Parameters] [`tag::tail<_left_or_right_>::cache_size`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [`quantile_probability`]]
+    [[Accumulator Complexity] [O(log N), where N is the cache size]] 
+    [[Extractor Complexity] [O(N log N), where N is the cache size]] 
+]
+
+[*Header]
+[def _TAIL_VARIATE_MEANS_HPP_ [headerref boost/accumulators/statistics/tail_variate_means.hpp]]
+
+    #include <_TAIL_VARIATE_MEANS_HPP_>
+
+[*Example]
+
+    std::size_t c = 5; // cache size
+    
+    typedef double variate_type;
+    typedef std::vector<variate_type> variate_set_type;
+    
+    typedef accumulator_set<double, stats<
+        tag::tail_variate_means<right, variate_set_type, tag::covariate1>(relative)>, tag::tail<right> >
+    accumulator_t1;
+    
+    typedef accumulator_set<double, stats<
+        tag::tail_variate_means<right, variate_set_type, tag::covariate1>(absolute)>, tag::tail<right> >
+    accumulator_t2;
+    
+    typedef accumulator_set<double, stats<
+        tag::tail_variate_means<left, variate_set_type, tag::covariate1>(relative)>, tag::tail<left> >
+    accumulator_t3;
+    
+    typedef accumulator_set<double, stats<
+        tag::tail_variate_means<left, variate_set_type, tag::covariate1>(absolute)>, tag::tail<left> >
+    accumulator_t4;
+    
+    accumulator_t1 acc1( right_tail_cache_size = c );
+    accumulator_t2 acc2( right_tail_cache_size = c );
+    accumulator_t3 acc3( left_tail_cache_size = c );
+    accumulator_t4 acc4( left_tail_cache_size = c );
+    
+    variate_set_type cov1, cov2, cov3, cov4, cov5;
+    double c1[] = { 10., 20., 30., 40. }; // 100
+    double c2[] = { 26.,  4., 17.,  3. }; // 50
+    double c3[] = { 46., 64., 40., 50. }; // 200
+    double c4[] = {  1.,  3., 70.,  6. }; // 80
+    double c5[] = {  2.,  2.,  2., 14. }; // 20
+    cov1.assign(c1, c1 + sizeof(c1)/sizeof(variate_type));
+    cov2.assign(c2, c2 + sizeof(c2)/sizeof(variate_type));
+    cov3.assign(c3, c3 + sizeof(c3)/sizeof(variate_type));
+    cov4.assign(c4, c4 + sizeof(c4)/sizeof(variate_type));
+    cov5.assign(c5, c5 + sizeof(c5)/sizeof(variate_type));            
+    
+    acc1(100., covariate1 = cov1);
+    acc1( 50., covariate1 = cov2);
+    acc1(200., covariate1 = cov3);
+    acc1( 80., covariate1 = cov4);
+    acc1( 20., covariate1 = cov5);
+    
+    acc2(100., covariate1 = cov1);
+    acc2( 50., covariate1 = cov2);
+    acc2(200., covariate1 = cov3);
+    acc2( 80., covariate1 = cov4);
+    acc2( 20., covariate1 = cov5);
+    
+    acc3(100., covariate1 = cov1);
+    acc3( 50., covariate1 = cov2);
+    acc3(200., covariate1 = cov3);
+    acc3( 80., covariate1 = cov4);
+    acc3( 20., covariate1 = cov5);
+    
+    acc4(100., covariate1 = cov1);
+    acc4( 50., covariate1 = cov2);
+    acc4(200., covariate1 = cov3);
+    acc4( 80., covariate1 = cov4);
+    acc4( 20., covariate1 = cov5);
+   
+    // check relative risk contributions
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc1, quantile_probability = 0.7).begin()     ), 14./75. ); // (10 + 46) / 300 = 14/75
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc1, quantile_probability = 0.7).begin() + 1),  7./25. ); // (20 + 64) / 300 =  7/25
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc1, quantile_probability = 0.7).begin() + 2),  7./30. ); // (30 + 40) / 300 =  7/30
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc1, quantile_probability = 0.7).begin() + 3),  3./10. ); // (40 + 50) / 300 =  3/10
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc3, quantile_probability = 0.3).begin()    ), 14./35. ); // (26 +  2) /  70 = 14/35
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc3, quantile_probability = 0.3).begin() + 1),  3./35. ); // ( 4 +  2) /  70 =  3/35
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc3, quantile_probability = 0.3).begin() + 2), 19./70. ); // (17 +  2) /  70 = 19/70
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc3, quantile_probability = 0.3).begin() + 3), 17./70. ); // ( 3 + 14) /  70 = 17/70
+    
+    // check absolute risk contributions
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc2, quantile_probability = 0.7).begin()    ), 28 ); // (10 + 46) / 2 = 28
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc2, quantile_probability = 0.7).begin() + 1), 42 ); // (20 + 64) / 2 = 42
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc2, quantile_probability = 0.7).begin() + 2), 35 ); // (30 + 40) / 2 = 35
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc2, quantile_probability = 0.7).begin() + 3), 45 ); // (40 + 50) / 2 = 45
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc4, quantile_probability = 0.3).begin()    ), 14 ); // (26 +  2) / 2 = 14
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc4, quantile_probability = 0.3).begin() + 1),  3 ); // ( 4 +  2) / 2 =  3
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc4, quantile_probability = 0.3).begin() + 2),9.5 ); // (17 +  2) / 2 =  9.5
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc4, quantile_probability = 0.3).begin() + 3),8.5 ); // ( 3 + 14) / 2 =  8.5
+    
+    // check relative risk contributions
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc1, quantile_probability = 0.9).begin()    ), 23./100. ); // 46/200 = 23/100
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc1, quantile_probability = 0.9).begin() + 1),  8./25.  ); // 64/200 =  8/25
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc1, quantile_probability = 0.9).begin() + 2),  1./5.   ); // 40/200 =  1/5
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc1, quantile_probability = 0.9).begin() + 3),  1./4.   ); // 50/200 =  1/4
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc3, quantile_probability = 0.1).begin()    ),  1./10.  ); //  2/ 20 =  1/10
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc3, quantile_probability = 0.1).begin() + 1),  1./10.  ); //  2/ 20 =  1/10
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc3, quantile_probability = 0.1).begin() + 2),  1./10.  ); //  2/ 20 =  1/10
+    BOOST_CHECK_EQUAL( *(relative_tail_variate_means(acc3, quantile_probability = 0.1).begin() + 3),  7./10.  ); // 14/ 20 =  7/10
+    
+    // check absolute risk contributions
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc2, quantile_probability = 0.9).begin()    ), 46 ); // 46
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc2, quantile_probability = 0.9).begin() + 1), 64 ); // 64
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc2, quantile_probability = 0.9).begin() + 2), 40 ); // 40
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc2, quantile_probability = 0.9).begin() + 3), 50 ); // 50
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc4, quantile_probability = 0.1).begin()    ),  2 ); //  2
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc4, quantile_probability = 0.1).begin() + 1),  2 ); //  2
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc4, quantile_probability = 0.1).begin() + 2),  2 ); //  2
+    BOOST_CHECK_EQUAL( *(tail_variate_means(acc4, quantile_probability = 0.1).begin() + 3), 14 ); // 14
+
+[*See also]
+
+* [classref boost::accumulators::impl::tail_variate_means_impl [^tail_variate_means_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.non_coherent_tail_mean [^non_coherent_tail_mean]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.tail_variate [^tail_variate]]
+
+[endsect]
+
+[section:variance variance ['and variants]]
+
+Lazy or iterative calculation of the variance. The lazy calculation is associated with the `tag::lazy_variance`
+feature, and the iterative calculation with the `tag::variance` feature. Both can be extracted
+using the `tag::variance()` extractor. For more implementation details, see
+[classref boost::accumulators::impl::lazy_variance_impl [^lazy_variance_impl]] and
+[classref boost::accumulators::impl::variance_impl [^variance_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                    ``]]
+    [[Depends On] [`tag::lazy_variance` depends on `tag::moment<2>` and `tag::mean` \n
+                   `tag::variance` depends on `tag::count` and `tag::immediate_mean`]]
+    [[Variants] [`tag::lazy_variance` (a.k.a. `tag::variance(lazy))` \n
+                 `tag::variance` (a.k.a. `tag::variance(immediate)`)]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _VARIANCE_HPP_ [headerref boost/accumulators/statistics/variance.hpp]]
+
+    #include <_VARIANCE_HPP_>
+
+[*Example]
+
+    // lazy variance
+    accumulator_set<int, stats<tag::variance(lazy)> > acc1;
+
+    acc1(1);
+    acc1(2);
+    acc1(3);
+    acc1(4);
+    acc1(5);
+
+    BOOST_CHECK_EQUAL(5u, count(acc1));
+    BOOST_CHECK_CLOSE(3., mean(acc1), 1e-5);
+    BOOST_CHECK_CLOSE(11., accumulators::moment<2>(acc1), 1e-5);
+    BOOST_CHECK_CLOSE(2., variance(acc1), 1e-5);
+
+    // immediate variance
+    accumulator_set<int, stats<tag::variance> > acc2;
+
+    acc2(1);
+    acc2(2);
+    acc2(3);
+    acc2(4);
+    acc2(5);
+
+    BOOST_CHECK_EQUAL(5u, count(acc2));
+    BOOST_CHECK_CLOSE(3., mean(acc2), 1e-5);
+    BOOST_CHECK_CLOSE(2., variance(acc2), 1e-5);
+
+[*See also]
+
+* [classref boost::accumulators::impl::lazy_variance_impl [^lazy_variance_impl]]
+* [classref boost::accumulators::impl::variance_impl [^variance_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.mean [^mean]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.moment [^moment]]
+
+[endsect]
+
+[section:weighted_covariance weighted_covariance]
+
+An iterative Monte Carlo estimator for the weighted covariance. The feature is specified as
+`tag::weighted_covariance<_variate_type_, _variate_tag_>` and is extracted with the `weighted_variate()`
+extractor. For more implementation details, see 
+[classref boost::accumulators::impl::weighted_covariance_impl [^weighted_covariance_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::outer_product<
+                        numeric::functional::multiplies<
+                            _weight_type_
+                          , numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                        >::result_type
+                      , numeric::functional::multiplies<
+                            _weight_type_
+                          , numeric::functional::fdiv<_variate_type_, std::size_t>::result_type
+                        >::result_type
+                    >
+                    ``]]
+    [[Depends On] [`count` \n 
+                   `sum_of_weights` \n 
+                   `weighted_mean` \n 
+                   `weighted_mean_of_variates<_variate_type_, _variate_tag_>`]]
+    [[Variants] [`abstract_weighted_covariance`]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [`weight` \n
+                               `_variate_tag_`]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _WEIGHTED_COVARIANCE_HPP_ [headerref boost/accumulators/statistics/weighted_covariance.hpp]]
+
+    #include <_WEIGHTED_COVARIANCE_HPP_>
+
+[*Example]
+
+    accumulator_set<double, stats<tag::weighted_covariance<double, tag::covariate1> >, double > acc;
+
+    acc(1., weight = 1.1, covariate1 = 2.);
+    acc(1., weight = 2.2, covariate1 = 4.);
+    acc(2., weight = 3.3, covariate1 = 3.);
+    acc(6., weight = 4.4, covariate1 = 1.);        
+
+    double epsilon = 1e-6;
+    BOOST_CHECK_CLOSE(weighted_covariance(acc), -2.39, epsilon);
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_covariance_impl [^weighted_covariance_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.sum [^sum]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.weighted_mean [^weighted_mean]]
+
+[endsect]
+
+[section:weighted_density weighted_density]
+
+The `tag::weighted_density` feature returns a histogram of the weighted sample distribution. For more
+implementation details, see [classref boost::accumulators::impl::weighted_density_impl [^weighted_density_impl]].
+
+[variablelist
+    [[Result Type] [``
+                    iterator_range<
+                        std::vector<
+                            std::pair<
+                                numeric::functional::fdiv<_weight_type_, std::size_t>::result_type
+                              , numeric::functional::fdiv<_weight_type_, std::size_t>::result_type
+                            >
+                        >::iterator
+                    >
+                    ``]]
+    [[Depends On] [`count` \n `sum_of_weights` \n `min` \n `max`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [`tag::weighted_density::cache_size` \n `tag::weighted_density::num_bins`]]
+    [[Accumulator Parameters] [`weight`]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [O(N), when N is `weighted_density::num_bins`]] 
+]
+
+[*Header]
+[def _WEIGHTED_DENSITY_HPP_ [headerref boost/accumulators/statistics/weighted_density.hpp]]
+
+    #include <_WEIGHTED_DENSITY_HPP_>
+
+[/ TODO add example ]
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_density_impl [^weighted_density_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.sum [^sum]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.min [^min]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.max [^max]]
+
+[endsect]
+
+[section:weighted_extended_p_square weighted_extended_p_square]
+
+Multiple quantile estimation with the extended [^P^2] algorithm for weighted samples. For further 
+details, see [classref boost::accumulators::impl::weighted_extended_p_square_impl [^weighted_extended_p_square_impl]].
+
+[variablelist
+    [[Result Type] [``
+                    boost::iterator_range<
+                        _implementation_defined_
+                    >
+                    ``]]
+    [[Depends On] [`count` \n `sum_of_weights`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [`tag::weighted_extended_p_square::probabilities`]]
+    [[Accumulator Parameters] [`weight`]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _WEIGHTED_EXTENDED_P_SQUARE_HPP_ [headerref boost/accumulators/statistics/weighted_extended_p_square.hpp]]
+
+    #include <_WEIGHTED_EXTENDED_P_SQUARE_HPP_>
+
+[*Example]
+
+    typedef accumulator_set<double, stats<tag::weighted_extended_p_square>, double> accumulator_t;
+
+    // tolerance in %
+    double epsilon = 1;
+    
+    // some random number generators
+    double mu1 = -1.0;
+    double mu2 =  1.0;
+    boost::lagged_fibonacci607 rng;
+    boost::normal_distribution<> mean_sigma1(mu1, 1);
+    boost::normal_distribution<> mean_sigma2(mu2, 1);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal1(rng, mean_sigma1);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal2(rng, mean_sigma2);
+    
+    std::vector<double> probs_uniform, probs_normal1, probs_normal2, probs_normal_exact1, probs_normal_exact2;
+    
+    double p1[] = {/*0.001,*/ 0.01, 0.1, 0.5, 0.9, 0.99, 0.999};
+    probs_uniform.assign(p1, p1 + sizeof(p1) / sizeof(double));
+    
+    double p2[] = {0.001, 0.025};
+    double p3[] = {0.975, 0.999};
+    probs_normal1.assign(p2, p2 + sizeof(p2) / sizeof(double));
+    probs_normal2.assign(p3, p3 + sizeof(p3) / sizeof(double));
+    
+    double p4[] = {-3.090232, -1.959963};
+    double p5[] = {1.959963, 3.090232};
+    probs_normal_exact1.assign(p4, p4 + sizeof(p4) / sizeof(double));
+    probs_normal_exact2.assign(p5, p5 + sizeof(p5) / sizeof(double));
+    
+    accumulator_t acc_uniform(tag::weighted_extended_p_square::probabilities = probs_uniform);
+    accumulator_t acc_normal1(tag::weighted_extended_p_square::probabilities = probs_normal1);
+    accumulator_t acc_normal2(tag::weighted_extended_p_square::probabilities = probs_normal2);
+    
+    for (std::size_t i = 0; i < 100000; ++i)
+    {
+        acc_uniform(rng(), weight = 1.);
+        
+        double sample1 = normal1();
+        double sample2 = normal2();
+        acc_normal1(sample1, weight = std::exp(-mu1 * (sample1 - 0.5 * mu1)));
+        acc_normal2(sample2, weight = std::exp(-mu2 * (sample2 - 0.5 * mu2)));
+    }
+    
+    // check for uniform distribution    
+    for (std::size_t i = 0; i < probs_uniform.size(); ++i)
+    {
+        BOOST_CHECK_CLOSE(weighted_extended_p_square(acc_uniform)[i], probs_uniform[i], epsilon);
+    }
+    
+    // check for standard normal distribution
+    for (std::size_t i = 0; i < probs_normal1.size(); ++i)
+    {
+        BOOST_CHECK_CLOSE(weighted_extended_p_square(acc_normal1)[i], probs_normal_exact1[i], epsilon);
+        BOOST_CHECK_CLOSE(weighted_extended_p_square(acc_normal2)[i], probs_normal_exact2[i], epsilon);
+    }
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_extended_p_square_impl [^weighted_extended_p_square_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.sum [^sum]]
+
+[endsect]
+
+[section:weighted_kurtosis weighted_kurtosis]
+
+The kurtosis of a sample distribution is defined as the ratio of the 4th central moment and the
+square of the 2nd central moment (the variance) of the samples, minus 3. The term [^-3] is added
+in order to ensure that the normal distribution has zero kurtosis. For more implementation 
+details, see [classref boost::accumulators::impl::weighted_kurtosis_impl [^weighted_kurtosis_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<
+                        numeric::functional::multiplies<_sample_type_, _weight_type_>::result_type
+                      , numeric::functional::multiplies<_sample_type_, _weight_type_>::result_type
+                    >::result_type
+                    ``]]
+    [[Depends On] [`weighted_mean` \n `weighted_moment<2>` \n `weighted_moment<3>` \n `weighted_moment<4>`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _WEIGHTED_KURTOSIS_HPP_ [headerref boost/accumulators/statistics/weighted_kurtosis.hpp]]
+
+    #include <_WEIGHTED_KURTOSIS_HPP_>
+
+[*Example]
+
+    accumulator_set<int, stats<tag::weighted_kurtosis>, int > acc2;
+    
+    acc2(2, weight = 4);
+    acc2(7, weight = 1);
+    acc2(4, weight = 3);
+    acc2(9, weight = 1);
+    acc2(3, weight = 2);
+    
+    BOOST_CHECK_EQUAL( weighted_mean(acc2), 42./11. );
+    BOOST_CHECK_EQUAL( accumulators::weighted_moment<2>(acc2), 212./11. );
+    BOOST_CHECK_EQUAL( accumulators::weighted_moment<3>(acc2), 1350./11. );
+    BOOST_CHECK_EQUAL( accumulators::weighted_moment<4>(acc2), 9956./11. );
+    BOOST_CHECK_CLOSE( weighted_kurtosis(acc2), 0.58137026432, 1e-6 );
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_kurtosis_impl [^weighted_kurtosis_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.weighted_mean [^weighted_mean]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.weighted_moment [^weighted_moment]]
+
+[endsect]
+
+[section:weighted_mean weighted_mean ['and variants]]
+
+Calculates the weighted mean of samples or variates. The calculation is either
+lazy (in the result extractor), or immediate (in the accumulator). The lazy implementation
+is the default. For more implementation details, see 
+[classref boost::accumulators::impl::weighted_mean_impl [^weighted_mean_impl]] or.
+[classref boost::accumulators::impl::immediate_weighted_mean_impl [^immediate_weighted_mean_impl]]
+
+[variablelist
+    [[Result Type] [For samples, `numeric::functional::fdiv<numeric::functional::multiplies<_sample_type_, _weight_type_>::result_type, _weight_type_>::result_type` \n
+                    For variates, `numeric::functional::fdiv<numeric::functional::multiplies<_variate_type_, _weight_type_>::result_type, _weight_type_>::result_type`]]
+    [[Depends On] [`sum_of_weights` \n
+                   The lazy mean of samples depends on `weighted_sum` \n
+                   The lazy mean of variates depends on `weighted_sum_of_variates<>`]]
+    [[Variants] [`weighted_mean_of_variates<_variate_type_, _variate_tag_>` \n
+                 `immediate_weighted_mean` \n
+                 `immediate_weighted_mean_of_variates<_variate_type_, _variate_tag_>`]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _WEIGHTED_MEAN_HPP_ [headerref boost/accumulators/statistics/weighted_mean.hpp]]
+
+    #include <_WEIGHTED_MEAN_HPP_>
+
+[*Example]
+
+    accumulator_set<
+        int
+      , stats<
+            tag::weighted_mean
+          , tag::weighted_mean_of_variates<int, tag::covariate1>
+        >
+      , int
+    > acc;
+
+    acc(10, weight = 2, covariate1 = 7);          //  20
+    BOOST_CHECK_EQUAL(2, sum_of_weights(acc));    //
+                                                  //
+    acc(6, weight = 3, covariate1 = 8);           //  18
+    BOOST_CHECK_EQUAL(5, sum_of_weights(acc));    //
+                                                  //
+    acc(4, weight = 4, covariate1 = 9);           //  16
+    BOOST_CHECK_EQUAL(9, sum_of_weights(acc));    //
+                                                  //
+    acc(6, weight = 5, covariate1 = 6);           //+ 30
+    BOOST_CHECK_EQUAL(14, sum_of_weights(acc));   //
+                                                  //= 84  / 14 = 6
+
+    BOOST_CHECK_EQUAL(6., weighted_mean(acc));
+    BOOST_CHECK_EQUAL(52./7., (accumulators::weighted_mean_of_variates<int, tag::covariate1>(acc)));
+
+    accumulator_set<
+        int
+      , stats<
+            tag::weighted_mean(immediate)
+          , tag::weighted_mean_of_variates<int, tag::covariate1>(immediate)
+        >
+      , int
+    > acc2;
+
+    acc2(10, weight = 2, covariate1 = 7);         //  20
+    BOOST_CHECK_EQUAL(2, sum_of_weights(acc2));   //
+                                                  //
+    acc2(6, weight = 3, covariate1 = 8);          //  18
+    BOOST_CHECK_EQUAL(5, sum_of_weights(acc2));   //
+                                                  //
+    acc2(4, weight = 4, covariate1 = 9);          //  16
+    BOOST_CHECK_EQUAL(9, sum_of_weights(acc2));   //
+                                                  //
+    acc2(6, weight = 5, covariate1 = 6);          //+ 30
+    BOOST_CHECK_EQUAL(14, sum_of_weights(acc2));  //
+                                                  //= 84  / 14 = 6
+
+    BOOST_CHECK_EQUAL(6., weighted_mean(acc2));
+    BOOST_CHECK_EQUAL(52./7., (accumulators::weighted_mean_of_variates<int, tag::covariate1>(acc2)));
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_mean_impl [^weighted_mean_impl]]
+* [classref boost::accumulators::impl::immediate_weighted_mean_impl [^immediate_weighted_mean_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.weighted_sum [^weighted_sum]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.sum [^sum]]
+
+[endsect]
+
+[section:weighted_median weighted_median ['and variants]]
+
+Median estimation for weighted samples based on the [^P^2] quantile estimator, the density estimator, or
+the [^P^2] cumulative distribution estimator. For more implementation details, see
+[classref boost::accumulators::impl::weighted_median_impl [^weighted_median_impl]], 
+[classref boost::accumulators::impl::with_weighted_density_median_impl [^with_weighted_density_median_impl]], 
+and [classref boost::accumulators::impl::with_weighted_p_square_cumulative_distribution_median_impl [^with_weighted_p_square_cumulative_distribution_median_impl]].
+
+The three median accumulators all satisfy the `tag::weighted_median` feature, and can all be
+extracted with the `weighted_median()` extractor.
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<_sample_type_, std::size_t>::result_type
+                    ``]]
+    [[Depends On] [`weighted_median` depends on `weighted_p_square_quantile_for_median` \n
+                   `with_weighted_density_median` depends on `count` and `weighted_density` \n
+                   `with_weighted_p_square_cumulative_distribution_median` depends on `weighted_p_square_cumulative_distribution`]]
+    [[Variants] [`with_weighted_density_median` (a.k.a. `weighted_median(with_weighted_density)`) \n
+                 `with_weighted_p_square_cumulative_distribution_median` (a.k.a. `weighted_median(with_weighted_p_square_cumulative_distribution)`)]]
+    [[Initialization Parameters] [`with_weighted_density_median` requires `tag::weighted_density::cache_size` and `tag::weighted_density::num_bins` \n
+                                  `with_weighted_p_square_cumulative_distribution_median` requires `tag::weighted_p_square_cumulative_distribution::num_cells`]]
+    [[Accumulator Parameters] [`weight`]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [TODO]] 
+]
+
+[*Header]
+[def _WEIGHTED_MEDIAN_HPP_ [headerref boost/accumulators/statistics/weighted_median.hpp]]
+
+    #include <_WEIGHTED_MEDIAN_HPP_>
+
+[*Example]
+
+    // Median estimation of normal distribution N(1,1) using samples from a narrow normal distribution N(1,0.01)
+    // The weights equal to the likelihood ratio of the corresponding samples
+    
+    // two random number generators
+    double mu = 1.;
+    double sigma_narrow = 0.01;
+    double sigma = 1.;
+    boost::lagged_fibonacci607 rng;
+    boost::normal_distribution<> mean_sigma_narrow(mu,sigma_narrow);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal_narrow(rng, mean_sigma_narrow);
+    
+    accumulator_set<double, stats<tag::weighted_median(with_weighted_p_square_quantile) >, double > acc;
+    accumulator_set<double, stats<tag::weighted_median(with_weighted_density) >, double > 
+        acc_dens( tag::weighted_density::cache_size = 10000, tag::weighted_density::num_bins = 1000 );
+    accumulator_set<double, stats<tag::weighted_median(with_weighted_p_square_cumulative_distribution) >, double > 
+        acc_cdist( tag::weighted_p_square_cumulative_distribution::num_cells = 100 );
+        
+    for (std::size_t i=0; i<100000; ++i)
+    {
+        double sample = normal_narrow();
+        acc(sample, weight = std::exp(0.5 * (sample - mu) * (sample - mu) * ( 1./sigma_narrow/sigma_narrow - 1./sigma/sigma )));
+        acc_dens(sample, weight = std::exp(0.5 * (sample - mu) * (sample - mu) * ( 1./sigma_narrow/sigma_narrow - 1./sigma/sigma )));
+        acc_cdist(sample, weight = std::exp(0.5 * (sample - mu) * (sample - mu) * ( 1./sigma_narrow/sigma_narrow - 1./sigma/sigma )));
+    }
+    
+    BOOST_CHECK_CLOSE(1., weighted_median(acc), 1e-1);
+    BOOST_CHECK_CLOSE(1., weighted_median(acc_dens), 1e-1);
+    BOOST_CHECK_CLOSE(1., weighted_median(acc_cdist), 1e-1);
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_median_impl [^weighted_median_impl]]
+* [classref boost::accumulators::impl::with_weighted_density_median_impl [^with_weighted_density_median_impl]]
+* [classref boost::accumulators::impl::with_weighted_p_square_cumulative_distribution_median_impl [^with_weighted_p_square_cumulative_distribution_median_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.weighted_p_square_quantile [^weighted_p_square_quantile]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.weighted_p_square_cumulative_distribution [^weighted_p_square_cumulative_distribution]]
+
+[endsect]
+
+[section:weighted_moment weighted_moment]
+
+Calculates the N-th moment of the weighted samples, which is defined as the sum of the weighted N-th
+power of the samples over the sum of the weights.
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<
+                        numeric::functional::multiplies<_sample_type_, _weight_type_>::result_type
+                      , weight_type
+                    >::result_type
+                    ``]]
+    [[Depends On] [`count` \n `sum_of_weights`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [`weight`]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _WEIGHTED_MOMENT_HPP_ [headerref boost/accumulators/statistics/weighted_moment.hpp]]
+
+    #include <_WEIGHTED_MOMENT_HPP_>
+
+[*Example]
+
+    accumulator_set<double, stats<tag::weighted_moment<2> >, double> acc2;
+    accumulator_set<double, stats<tag::weighted_moment<7> >, double> acc7;
+    
+    acc2(2.1, weight = 0.7);
+    acc2(2.7, weight = 1.4);
+    acc2(1.8, weight = 0.9);
+    
+    acc7(2.1, weight = 0.7);
+    acc7(2.7, weight = 1.4);
+    acc7(1.8, weight = 0.9);
+    
+    BOOST_CHECK_CLOSE(5.403, accumulators::weighted_moment<2>(acc2), 1e-5);
+    BOOST_CHECK_CLOSE(548.54182, accumulators::weighted_moment<7>(acc7), 1e-5);
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_moment_impl [^weighted_moment_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.sum [^sum]]
+
+[endsect]
+
+[section:weighted_p_square_cumulative_distribution weighted_p_square_cumulative_distribution]
+
+Histogram calculation of the cumulative distribution with the [^P^2] algorithm for weighted samples.
+For more implementation details, see 
+[classref boost::accumulators::impl::weighted_p_square_cumulative_distribution_impl [^weighted_p_square_cumulative_distribution_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    iterator_range<
+                        std::vector<
+                            std::pair<
+                                numeric::functional::fdiv<weighted_sample, std::size_t>::result_type
+                              , numeric::functional::fdiv<weighted_sample, std::size_t>::result_type
+                            >
+                        >::iterator
+                    >
+                    ``
+                    where `weighted_sample` is `numeric::functional::multiplies<_sample_type_, _weight_type_>::result_type`]]
+    [[Depends On] [`count` \n `sum_or_weights`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [`tag::weighted_p_square_cumulative_distribution::num_cells`]]
+    [[Accumulator Parameters] [`weight`]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [O(N) where N is `num_cells`]] 
+]
+
+[*Header]
+[def _WEIGHTED_P_SQUARE_CUMULATIVE_DISTRIBUTION_HPP_ [headerref boost/accumulators/statistics/weighted_p_square_cumul_dist.hpp]]
+
+    #include <_WEIGHTED_P_SQUARE_CUMULATIVE_DISTRIBUTION_HPP_>
+
+[*Example]
+
+    // tolerance in %
+    double epsilon = 4;
+
+    typedef accumulator_set<double, stats<tag::weighted_p_square_cumulative_distribution>, double > accumulator_t;
+        
+    accumulator_t acc_upper(tag::weighted_p_square_cumulative_distribution::num_cells = 100);
+    accumulator_t acc_lower(tag::weighted_p_square_cumulative_distribution::num_cells = 100);
+    
+    // two random number generators
+    double mu_upper = 1.0;
+    double mu_lower = -1.0;
+    boost::lagged_fibonacci607 rng;
+    boost::normal_distribution<> mean_sigma_upper(mu_upper,1);
+    boost::normal_distribution<> mean_sigma_lower(mu_lower,1);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal_upper(rng, mean_sigma_upper);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal_lower(rng, mean_sigma_lower);
+    
+    for (std::size_t i=0; i<100000; ++i)
+    {
+        double sample = normal_upper();
+        acc_upper(sample, weight = std::exp(-mu_upper * (sample - 0.5 * mu_upper)));
+    }
+    
+    for (std::size_t i=0; i<100000; ++i)
+    {
+        double sample = normal_lower();
+        acc_lower(sample, weight = std::exp(-mu_lower * (sample - 0.5 * mu_lower)));
+    }
+    
+    typedef iterator_range<std::vector<std::pair<double, double> >::iterator > histogram_type;
+    histogram_type histogram_upper = weighted_p_square_cumulative_distribution(acc_upper);
+    histogram_type histogram_lower = weighted_p_square_cumulative_distribution(acc_lower);
+    
+    // Note that applying importance sampling results in a region of the distribution 
+    // to be estimated more accurately and another region to be estimated less accurately
+    // than without importance sampling, i.e., with unweighted samples
+    
+    for (std::size_t i = 0; i < histogram_upper.size(); ++i)
+    {
+        // problem with small results: epsilon is relative (in percent), not absolute!
+        
+        // check upper region of distribution
+        if ( histogram_upper[i].second > 0.1 )    
+            BOOST_CHECK_CLOSE( 0.5 * (1.0 + erf( histogram_upper[i].first / sqrt(2.0) )), histogram_upper[i].second, epsilon );
+        // check lower region of distribution
+        if ( histogram_lower[i].second < -0.1 )    
+            BOOST_CHECK_CLOSE( 0.5 * (1.0 + erf( histogram_lower[i].first / sqrt(2.0) )), histogram_lower[i].second, epsilon );
+    }
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_p_square_cumulative_distribution_impl [^weighted_p_square_cumulative_distribution_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.sum [^sum]]
+
+[endsect]
+
+[section:weighted_p_square_quantile weighted_p_square_quantile ['and variants]]
+
+Single quantile estimation with the [^P^2] algorithm. For more implementation details, see
+[classref boost::accumulators::impl::weighted_p_square_quantile_impl [^weighted_p_square_quantile_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<
+                        numeric::functional::multiplies<_sample_type_, _weight_type_>::result_type
+                      , std::size_t
+                    >::result_type
+                    ``]]
+    [[Depends On] [`count` \n `sum_of_weights`]]
+    [[Variants] [`weighted_p_square_quantile_for_median`]]
+    [[Initialization Parameters] [`quantile_probability`, which defaults to `0.5`.
+                                  (Note: for `weighted_p_square_quantile_for_median`, the `quantile_probability`
+                                  parameter is ignored and is always `0.5`.)]]
+    [[Accumulator Parameters] [`weight`]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _WEIGHTED_P_SQUARE_QUANTILE_HPP_ [headerref boost/accumulators/statistics/weighted_p_square_quantile.hpp]]
+
+    #include <_WEIGHTED_P_SQUARE_QUANTILE_HPP_>
+
+[*Example]
+
+    typedef accumulator_set<double, stats<tag::weighted_p_square_quantile>, double> accumulator_t;
+
+    // tolerance in %
+    double epsilon = 1;
+    
+    // some random number generators
+    double mu4 = -1.0;
+    double mu5 = -1.0;
+    double mu6 = 1.0;
+    double mu7 = 1.0;
+    boost::lagged_fibonacci607 rng;
+    boost::normal_distribution<> mean_sigma4(mu4, 1);
+    boost::normal_distribution<> mean_sigma5(mu5, 1);
+    boost::normal_distribution<> mean_sigma6(mu6, 1);
+    boost::normal_distribution<> mean_sigma7(mu7, 1);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal4(rng, mean_sigma4);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal5(rng, mean_sigma5);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal6(rng, mean_sigma6);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal7(rng, mean_sigma7);
+        
+    accumulator_t acc0(quantile_probability = 0.001);
+    accumulator_t acc1(quantile_probability = 0.025);
+    accumulator_t acc2(quantile_probability = 0.975);
+    accumulator_t acc3(quantile_probability = 0.999);
+
+    accumulator_t acc4(quantile_probability = 0.001);
+    accumulator_t acc5(quantile_probability = 0.025);
+    accumulator_t acc6(quantile_probability = 0.975);
+    accumulator_t acc7(quantile_probability = 0.999);
+
+        
+    for (std::size_t i=0; i<100000; ++i)
+    {
+        double sample = rng();
+        acc0(sample, weight = 1.);
+        acc1(sample, weight = 1.);
+        acc2(sample, weight = 1.);
+        acc3(sample, weight = 1.);
+        
+        double sample4 = normal4();
+        double sample5 = normal5();
+        double sample6 = normal6();
+        double sample7 = normal7();
+        acc4(sample4, weight = std::exp(-mu4 * (sample4 - 0.5 * mu4)));
+        acc5(sample5, weight = std::exp(-mu5 * (sample5 - 0.5 * mu5)));
+        acc6(sample6, weight = std::exp(-mu6 * (sample6 - 0.5 * mu6)));
+        acc7(sample7, weight = std::exp(-mu7 * (sample7 - 0.5 * mu7)));
+    }
+    
+    // check for uniform distribution with weight = 1
+    BOOST_CHECK_CLOSE( weighted_p_square_quantile(acc0), 0.001, 15 );
+    BOOST_CHECK_CLOSE( weighted_p_square_quantile(acc1), 0.025, 5 );
+    BOOST_CHECK_CLOSE( weighted_p_square_quantile(acc2), 0.975, epsilon );
+    BOOST_CHECK_CLOSE( weighted_p_square_quantile(acc3), 0.999, epsilon );
+    
+    // check for shifted standard normal distribution ("importance sampling")
+    BOOST_CHECK_CLOSE( weighted_p_square_quantile(acc4), -3.090232, epsilon );
+    BOOST_CHECK_CLOSE( weighted_p_square_quantile(acc5), -1.959963, epsilon );
+    BOOST_CHECK_CLOSE( weighted_p_square_quantile(acc6),  1.959963, epsilon );
+    BOOST_CHECK_CLOSE( weighted_p_square_quantile(acc7),  3.090232, epsilon );
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_p_square_quantile_impl [^weighted_p_square_quantile_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.sum [^sum]]
+
+[endsect]
+
+[section:weighted_peaks_over_threshold weighted_peaks_over_threshold ['and variants]]
+
+Weighted peaks over threshold method for weighted quantile and weighted tail mean estimation.
+For more implementation details,
+see [classref boost::accumulators::impl::weighted_peaks_over_threshold_impl [^weighted_peaks_over_threshold_impl]]
+and [classref boost::accumulators::impl::weighted_peaks_over_threshold_prob_impl [^weighted_peaks_over_threshold_prob_impl]].
+
+Both `tag::weighted_peaks_over_threshold<_left_or_right_>` and
+`tag::weighted_peaks_over_threshold_prob<_left_or_right_>` satisfy the
+`tag::weighted_peaks_over_threshold<_left_or_right_>` feature and can be extracted using the
+`weighted_peaks_over_threshold()` extractor.
+
+[variablelist
+    [[Result Type] [`tuple<float_type, float_type, float_type>` where `float_type` is
+                    ``
+                    numeric::functional::fdiv<
+                        numeric::functional::multiplies<_sample_type_, _weight_type_>::result_type
+                      , std::size_t
+                    >::result_type
+                    ``]]
+    [[Depends On] [`weighted_peaks_over_threshold<_left_or_right_>` depends on `sum_of_weights` \n
+                   `weighted_peaks_over_threshold_prob<_left_or_right_>` depends on `sum_of_weights` and `tail_weights<_left_or_right_>`]]
+    [[Variants] [`weighted_peaks_over_threshold_prob`]]
+    [[Initialization Parameters] [ `tag::peaks_over_threshold::threshold_value` \n
+                                   `tag::peaks_over_threshold_prob::threshold_probability` \n
+                                   `tag::tail<_left_or_right_>::cache_size` ]]
+    [[Accumulator Parameters] [`weight`]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [TODO]] 
+    [[Extractor Complexity] [O(1)]]
+]
+
+[*Header]
+[def _WEIGHTED_PEAKS_OVER_THRESHOLD_HPP_ [headerref boost/accumulators/statistics/weighted_peaks_over_threshold.hpp]]
+
+    #include <_WEIGHTED_PEAKS_OVER_THRESHOLD_HPP_>
+
+[/ TODO Add example]
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_peaks_over_threshold_impl [^weighted_peaks_over_threshold_impl]]
+* [classref boost::accumulators::impl::weighted_peaks_over_threshold_prob_impl [^weighted_peaks_over_threshold_prob_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.sum [^sum]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.tail [^tail]]
+
+[endsect]
+
+[section:weighted_skewness weighted_skewness]
+
+The skewness of a sample distribution is defined as the ratio of the 3rd central moment and the [^3/2]-th power 
+of the 2nd central moment (the variance) of the samples 3. The skewness estimator for weighted samples 
+is formally identical to the estimator for unweighted samples, except that the weighted counterparts of
+all measures it depends on are to be taken.
+
+For implementation details, see
+[classref boost::accumulators::impl::weighted_skewness_impl [^weighted_skewness_impl]].
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<
+                        numeric::functional::multiplies<_sample_type_, _weight_type_>::result_type
+                      , numeric::functional::multiplies<_sample_type_, _weight_type_>::result_type
+                    >::result_type
+                    ``]]
+    [[Depends On] [`weighted_mean` \n `weighted_moment<2>` \n `weighted_moment<3>`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [`weight`]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _WEIGHTED_SKEWNESS_HPP_ [headerref boost/accumulators/statistics/weighted_skewness.hpp]]
+
+    #include <_WEIGHTED_SKEWNESS_HPP_>
+
+[*Example]
+
+    accumulator_set<int, stats<tag::weighted_skewness>, int > acc2;
+    
+    acc2(2, weight = 4);
+    acc2(7, weight = 1);
+    acc2(4, weight = 3);
+    acc2(9, weight = 1);
+    acc2(3, weight = 2);
+    
+    BOOST_CHECK_EQUAL( weighted_mean(acc2), 42./11. );
+    BOOST_CHECK_EQUAL( accumulators::weighted_moment<2>(acc2), 212./11. );
+    BOOST_CHECK_EQUAL( accumulators::weighted_moment<3>(acc2), 1350./11. );
+    BOOST_CHECK_CLOSE( weighted_skewness(acc2), 1.30708406282, 1e-6 );
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_skewness_impl [^weighted_skewness_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.weighted_mean [^weighted_mean]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.weighted_moment [^weighted_moment]]
+
+[endsect]
+
+[section:weighted_sum weighted_sum ['and variants]]
+
+For summing the weighted samples or variates. All of the `tag::weighted_sum_of_variates<>` features 
+can be extracted with the `weighted_sum_of_variates()` extractor. Variants that implement the Kahan 
+summation algorithm are also provided.
+
+[variablelist
+    [[Result Type] [`numeric::functional::multiplies<_sample_type_, _weight_type_>::result_type` for summing weighted samples \n
+                    `numeric::functional::multiplies<_variate_type_, _weight_type_>::result_type` for summing weighted variates]]
+    [[Depends On] [['none]]]
+    [[Variants] [`tag::weighted_sum` \n
+                 `tag::weighted_sum_of_variates<_variate_type_, _variate_tag_>` \n
+		 `tag::weighted_sum_kahan` (a.k.a. tag::weighted_sum(kahan)) \n
+		 `tag::weighted_sum_of_variates_kahan<_variate_type_, _variate_tag_>` \n]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [`weight` \n
+                               `_variate_tag_` for summing variates]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1). Note that the Kahan sum performs four floating-point sum 
+    		  	       operations per accumulated value, whereas the naive sum 
+			       performs only one.]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _WEIGHTED_SUM_HPP_ [headerref boost/accumulators/statistics/weighted_sum.hpp]]
+[def _WEIGHTED_SUM_KAHAN_HPP_ [headerref boost/accumulators/statistics/weighted_sum_kahan.hpp]]
+
+    #include <_WEIGHTED_SUM_HPP_>
+    #include <_WEIGHTED_SUM_KAHAN_HPP_>
+
+
+[*Example]
+
+    accumulator_set<int, stats<tag::weighted_sum, tag::weighted_sum_of_variates<int, tag::covariate1> >, int> acc;
+
+    acc(1, weight = 2, covariate1 = 3);
+    BOOST_CHECK_EQUAL(2, weighted_sum(acc));
+    BOOST_CHECK_EQUAL(6, weighted_sum_of_variates(acc));
+
+    acc(2, weight = 3, covariate1 = 6);
+    BOOST_CHECK_EQUAL(8, weighted_sum(acc));
+    BOOST_CHECK_EQUAL(24, weighted_sum_of_variates(acc));
+
+    acc(4, weight = 6, covariate1 = 9);
+    BOOST_CHECK_EQUAL(32, weighted_sum(acc));
+    BOOST_CHECK_EQUAL(78, weighted_sum_of_variates(acc));
+
+    // demonstrate weighted Kahan summation
+    accumulator_set<float, stats<tag::weighted_sum_kahan>, float > acc;
+    BOOST_CHECK_EQUAL(0.0f, weighted_sum_kahan(acc));
+    for (size_t i = 0; i < 1e6; ++i) {
+      acc(1.0f, weight = 1e-6f);
+    }
+    BOOST_CHECK_EQUAL(1.0f, weighted_sum_kahan(acc));
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_sum_impl [^weighted_sum_impl]]
+* [classref boost::accumulators::impl::weighted_sum_impl [^weighted_sum_kahan_impl]]
+
+[endsect]
+
+[section:non_coherent_weighted_tail_mean non_coherent_weighted_tail_mean]
+
+Estimation of the (non-coherent) weighted tail mean based on order statistics (for both left and right tails).
+The left non-coherent weighted tail mean feature is `tag::non_coherent_weighted_tail_mean<left>`, and the right
+non-choherent weighted tail mean feature is `tag::non_coherent_weighted_tail_mean<right>`. They both share the
+`tag::abstract_non_coherent_tail_mean` feature with the unweighted non-coherent tail mean accumulators and can
+be extracted with either the `non_coherent_tail_mean()` or the `non_coherent_weighted_tail_mean()` extractors.
+For more implementation details, see
+[classref boost::accumulators::impl::non_coherent_weighted_tail_mean_impl [^non_coherent_weighted_tail_mean_impl]].
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<
+                        numeric::functional::multiplies<_sample_type_, _weight_type_>::result_type
+                      , std::size_t
+                    >::result_type
+                    ``]]
+    [[Depends On] [`sum_of_weights` \n `tail_weights<_left_or_right_>`]]
+    [[Variants] [`abstract_non_coherent_tail_mean`]]
+    [[Initialization Parameters] [`tag::tail<_left_or_right_>::cache_size`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [`quantile_probability`]]
+    [[Accumulator Complexity] [O(log N), where N is the cache size]] 
+    [[Extractor Complexity] [O(N log N), where N is the cache size]] 
+]
+
+[*Header]
+[def _WEIGHTED_TAIL_MEAN_HPP_ [headerref boost/accumulators/statistics/weighted_tail_mean.hpp]]
+
+    #include <_WEIGHTED_TAIL_MEAN_HPP_>
+
+[*Example]
+
+    // tolerance in %
+    double epsilon = 1;
+
+    std::size_t n = 100000; // number of MC steps
+    std::size_t c = 25000; // cache size
+
+    accumulator_set<double, stats<tag::non_coherent_weighted_tail_mean<right> >, double >
+        acc0( right_tail_cache_size = c );
+    accumulator_set<double, stats<tag::non_coherent_weighted_tail_mean<left> >, double >
+        acc1( left_tail_cache_size = c );
+
+    // random number generators
+    boost::lagged_fibonacci607 rng;
+
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        double smpl = std::sqrt(rng());
+        acc0(smpl, weight = 1./smpl);
+    }
+
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        double smpl = rng();
+        acc1(smpl*smpl, weight = smpl);
+    }
+
+    // check uniform distribution
+    BOOST_CHECK_CLOSE( non_coherent_weighted_tail_mean(acc0, quantile_probability = 0.95), 0.975, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_weighted_tail_mean(acc0, quantile_probability = 0.975), 0.9875, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_weighted_tail_mean(acc0, quantile_probability = 0.99), 0.995, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_weighted_tail_mean(acc0, quantile_probability = 0.999), 0.9995, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_weighted_tail_mean(acc1, quantile_probability = 0.05), 0.025, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_weighted_tail_mean(acc1, quantile_probability = 0.025), 0.0125, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_weighted_tail_mean(acc1, quantile_probability = 0.01), 0.005, epsilon );
+    BOOST_CHECK_CLOSE( non_coherent_weighted_tail_mean(acc1, quantile_probability = 0.001), 0.0005, 5*epsilon );
+
+[*See also]
+
+* [classref boost::accumulators::impl::non_coherent_weighted_tail_mean_impl [^non_coherent_weighted_tail_mean_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.sum [^sum]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.tail [^tail]]
+
+[endsect]
+
+[section:weighted_tail_quantile weighted_tail_quantile]
+
+Tail quantile estimation based on order statistics of weighted samples (for both left
+and right tails). The left weighted tail quantile feature is `tag::weighted_tail_quantile<left>`,
+and the right weighted tail quantile feature is `tag::weighted_tail_quantile<right>`. They both
+share the `tag::quantile` feature with the unweighted tail quantile accumulators and can be
+extracted with either the `quantile()` or the `weighted_tail_quantile()` extractors. For more
+implementation details, see
+[classref boost::accumulators::impl::weighted_tail_quantile_impl [^weighted_tail_quantile_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    _sample_type_
+                    ``]]
+    [[Depends On] [`sum_of_weights` \n `tail_weights<_left_or_right_>`]]
+    [[Variants] [['none]]]
+    [[Initialization Parameters] [`tag::tail<_left_or_right_>::cache_size`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [`quantile_probability`]]
+    [[Accumulator Complexity] [O(log N), where N is the cache size]] 
+    [[Extractor Complexity] [O(N log N), where N is the cache size]] 
+]
+
+[*Header]
+[def _WEIGHTED_TAIL_QUANTILE_HPP_ [headerref boost/accumulators/statistics/weighted_tail_quantile.hpp]]
+
+    #include <_WEIGHTED_TAIL_QUANTILE_HPP_>
+
+[*Example]
+
+    // tolerance in %
+    double epsilon = 1;
+
+    std::size_t n = 100000; // number of MC steps
+    std::size_t c =  20000; // cache size
+
+    double mu1 = 1.0;
+    double mu2 = -1.0;
+    boost::lagged_fibonacci607 rng;
+    boost::normal_distribution<> mean_sigma1(mu1,1);
+    boost::normal_distribution<> mean_sigma2(mu2,1);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal1(rng, mean_sigma1);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal2(rng, mean_sigma2);
+
+    accumulator_set<double, stats<tag::weighted_tail_quantile<right> >, double>
+        acc1(right_tail_cache_size = c);
+
+    accumulator_set<double, stats<tag::weighted_tail_quantile<left> >, double>
+        acc2(left_tail_cache_size = c);
+
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        double sample1 = normal1();
+        double sample2 = normal2();
+        acc1(sample1, weight = std::exp(-mu1 * (sample1 - 0.5 * mu1)));
+        acc2(sample2, weight = std::exp(-mu2 * (sample2 - 0.5 * mu2)));
+    }
+
+    // check standard normal distribution
+    BOOST_CHECK_CLOSE( quantile(acc1, quantile_probability = 0.975),  1.959963, epsilon );
+    BOOST_CHECK_CLOSE( quantile(acc1, quantile_probability = 0.999),  3.090232, epsilon );
+    BOOST_CHECK_CLOSE( quantile(acc2, quantile_probability  = 0.025), -1.959963, epsilon );
+    BOOST_CHECK_CLOSE( quantile(acc2, quantile_probability  = 0.001), -3.090232, epsilon );
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_tail_quantile_impl [^weighted_tail_quantile_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.sum [^sum]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.tail [^tail]]
+
+[endsect]
+
+[section:weighted_tail_variate_means weighted_tail_variate_means ['and variants]]
+
+Estimation of the absolute and relative weighted tail variate means (for both left and right tails)
+The absolute weighted tail variate means has the feature 
+`tag::absolute_weighted_tail_variate_means<_left_or_right_, _variate_type_, _variate_tag_>`
+and the relative weighted tail variate mean has the feature
+`tag::relative_weighted_tail_variate_means<_left_or_right_, _variate_type_, _variate_tag_>`. All
+absolute weighted tail variate mean features share the `tag::abstract_absolute_tail_variate_means`
+feature with their unweighted variants and can be extracted with the `tail_variate_means()` and
+`weighted_tail_variate_means()` extractors. All the relative weighted tail variate mean features 
+share the `tag::abstract_relative_tail_variate_means` feature with their unweighted variants
+and can be extracted with either the `relative_tail_variate_means()` or 
+`relative_weighted_tail_variate_means()` extractors.
+
+For more implementation details, see
+[classref boost::accumulators::impl::weighted_tail_variate_means_impl [^weighted_tail_variate_means_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    boost::iterator_range<
+                        numeric::functional::fdiv<
+                            numeric::functional::multiplies<_variate_type_, _weight_type_>::result_type
+                          , _weight_type_
+                        >::result_type::iterator
+                    >
+                    ``]]
+    [[Depends On] [`non_coherent_weighted_tail_mean<_left_or_right_>` \n 
+                   `tail_variate<_variate_type_, _variate_tag_, _left_or_right_>` \n
+                   `tail_weights<_left_or_right_>`]]
+    [[Variants] [`tag::absolute_weighted_tail_variate_means<_left_or_right_, _variate_type_, _variate_tag_>` \n
+                 `tag::relative_weighted_tail_variate_means<_left_or_right_, _variate_type_, _variate_tag_>`]]
+    [[Initialization Parameters] [`tag::tail<_left_or_right_>::cache_size`]]
+    [[Accumulator Parameters] [['none]]]
+    [[Extractor Parameters] [`quantile_probability`]]
+    [[Accumulator Complexity] [O(log N), where N is the cache size]] 
+    [[Extractor Complexity] [O(N log N), where N is the cache size]] 
+]
+
+[*Header]
+[def _WEIGHTED_TAIL_VARIATE_MEANS_HPP_ [headerref boost/accumulators/statistics/weighted_tail_variate_means.hpp]]
+
+    #include <_WEIGHTED_TAIL_VARIATE_MEANS_HPP_>
+
+[*Example]
+
+    std::size_t c = 5; // cache size
+
+    typedef double variate_type;
+    typedef std::vector<variate_type> variate_set_type;
+
+    accumulator_set<double, stats<tag::weighted_tail_variate_means<right, variate_set_type, tag::covariate1>(relative)>, double >
+        acc1( right_tail_cache_size = c );
+    accumulator_set<double, stats<tag::weighted_tail_variate_means<right, variate_set_type, tag::covariate1>(absolute)>, double >
+        acc2( right_tail_cache_size = c );
+    accumulator_set<double, stats<tag::weighted_tail_variate_means<left, variate_set_type, tag::covariate1>(relative)>, double >
+        acc3( left_tail_cache_size = c );
+    accumulator_set<double, stats<tag::weighted_tail_variate_means<left, variate_set_type, tag::covariate1>(absolute)>, double >
+        acc4( left_tail_cache_size = c );
+
+    variate_set_type cov1, cov2, cov3, cov4, cov5;
+    double c1[] = { 10., 20., 30., 40. }; // 100
+    double c2[] = { 26.,  4., 17.,  3. }; // 50
+    double c3[] = { 46., 64., 40., 50. }; // 200
+    double c4[] = {  1.,  3., 70.,  6. }; // 80
+    double c5[] = {  2.,  2.,  2., 14. }; // 20
+    cov1.assign(c1, c1 + sizeof(c1)/sizeof(variate_type));
+    cov2.assign(c2, c2 + sizeof(c2)/sizeof(variate_type));
+    cov3.assign(c3, c3 + sizeof(c3)/sizeof(variate_type));
+    cov4.assign(c4, c4 + sizeof(c4)/sizeof(variate_type));
+    cov5.assign(c5, c5 + sizeof(c5)/sizeof(variate_type));
+
+    acc1(100., weight = 0.8, covariate1 = cov1);
+    acc1( 50., weight = 0.9, covariate1 = cov2);
+    acc1(200., weight = 1.0, covariate1 = cov3);
+    acc1( 80., weight = 1.1, covariate1 = cov4);
+    acc1( 20., weight = 1.2, covariate1 = cov5);
+
+    acc2(100., weight = 0.8, covariate1 = cov1);
+    acc2( 50., weight = 0.9, covariate1 = cov2);
+    acc2(200., weight = 1.0, covariate1 = cov3);
+    acc2( 80., weight = 1.1, covariate1 = cov4);
+    acc2( 20., weight = 1.2, covariate1 = cov5);
+
+    acc3(100., weight = 0.8, covariate1 = cov1);
+    acc3( 50., weight = 0.9, covariate1 = cov2);
+    acc3(200., weight = 1.0, covariate1 = cov3);
+    acc3( 80., weight = 1.1, covariate1 = cov4);
+    acc3( 20., weight = 1.2, covariate1 = cov5);
+
+    acc4(100., weight = 0.8, covariate1 = cov1);
+    acc4( 50., weight = 0.9, covariate1 = cov2);
+    acc4(200., weight = 1.0, covariate1 = cov3);
+    acc4( 80., weight = 1.1, covariate1 = cov4);
+    acc4( 20., weight = 1.2, covariate1 = cov5);
+
+    // check relative risk contributions
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc1, quantile_probability = 0.7).begin()    ), (0.8*10 + 1.0*46)/(0.8*100 + 1.0*200) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc1, quantile_probability = 0.7).begin() + 1), (0.8*20 + 1.0*64)/(0.8*100 + 1.0*200) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc1, quantile_probability = 0.7).begin() + 2), (0.8*30 + 1.0*40)/(0.8*100 + 1.0*200) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc1, quantile_probability = 0.7).begin() + 3), (0.8*40 + 1.0*50)/(0.8*100 + 1.0*200) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc3, quantile_probability = 0.3).begin()    ), (0.9*26 + 1.2*2)/(0.9*50 + 1.2*20) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc3, quantile_probability = 0.3).begin() + 1), (0.9*4 + 1.2*2)/(0.9*50 + 1.2*20) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc3, quantile_probability = 0.3).begin() + 2), (0.9*17 + 1.2*2)/(0.9*50 + 1.2*20) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc3, quantile_probability = 0.3).begin() + 3), (0.9*3 + 1.2*14)/(0.9*50 + 1.2*20) );
+
+    // check absolute risk contributions
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc2, quantile_probability = 0.7).begin()    ), (0.8*10 + 1.0*46)/1.8 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc2, quantile_probability = 0.7).begin() + 1), (0.8*20 + 1.0*64)/1.8 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc2, quantile_probability = 0.7).begin() + 2), (0.8*30 + 1.0*40)/1.8 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc2, quantile_probability = 0.7).begin() + 3), (0.8*40 + 1.0*50)/1.8 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc4, quantile_probability = 0.3).begin()    ), (0.9*26 + 1.2*2)/2.1 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc4, quantile_probability = 0.3).begin() + 1), (0.9*4 + 1.2*2)/2.1 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc4, quantile_probability = 0.3).begin() + 2), (0.9*17 + 1.2*2)/2.1 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc4, quantile_probability = 0.3).begin() + 3), (0.9*3 + 1.2*14)/2.1 );
+
+    // check relative risk contributions
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc1, quantile_probability = 0.9).begin()    ), 1.0*46/(1.0*200) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc1, quantile_probability = 0.9).begin() + 1), 1.0*64/(1.0*200) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc1, quantile_probability = 0.9).begin() + 2), 1.0*40/(1.0*200) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc1, quantile_probability = 0.9).begin() + 3), 1.0*50/(1.0*200) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc3, quantile_probability = 0.1).begin()    ), 1.2*2/(1.2*20) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc3, quantile_probability = 0.1).begin() + 1), 1.2*2/(1.2*20) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc3, quantile_probability = 0.1).begin() + 2), 1.2*2/(1.2*20) );
+    BOOST_CHECK_EQUAL( *(relative_weighted_tail_variate_means(acc3, quantile_probability = 0.1).begin() + 3), 1.2*14/(1.2*20) );
+
+    // check absolute risk contributions
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc2, quantile_probability = 0.9).begin()    ), 1.0*46/1.0 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc2, quantile_probability = 0.9).begin() + 1), 1.0*64/1.0 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc2, quantile_probability = 0.9).begin() + 2), 1.0*40/1.0 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc2, quantile_probability = 0.9).begin() + 3), 1.0*50/1.0 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc4, quantile_probability = 0.1).begin()    ), 1.2*2/1.2 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc4, quantile_probability = 0.1).begin() + 1), 1.2*2/1.2 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc4, quantile_probability = 0.1).begin() + 2), 1.2*2/1.2 );
+    BOOST_CHECK_EQUAL( *(weighted_tail_variate_means(acc4, quantile_probability = 0.1).begin() + 3), 1.2*14/1.2 );
+
+[*See also]
+
+* [classref boost::accumulators::impl::weighted_tail_variate_means_impl [^weighted_tail_variate_means_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.non_coherent_weighted_tail_mean [^non_coherent_weighted_tail_mean]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.tail_variate [^tail_variate]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.tail [^tail]]
+
+[endsect]
+
+[section:weighted_variance weighted_variance ['and variants]]
+
+Lazy or iterative calculation of the weighted variance. The lazy calculation is associated with the `tag::lazy_weighted_variance`
+feature, and the iterative calculation with the `tag::weighted_variance` feature. Both can be extracted
+using the `tag::weighted_variance()` extractor. For more implementation details, see
+[classref boost::accumulators::impl::lazy_weighted_variance_impl [^lazy_weighted_variance_impl]] and
+[classref boost::accumulators::impl::weighted_variance_impl [^weighted_variance_impl]]
+
+[variablelist
+    [[Result Type] [``
+                    numeric::functional::fdiv<
+                        numeric::functional::multiplies<_sample_type_, _weight_type_>::result_type
+                      , std::size_t
+                    >::result_type
+                    ``]]
+    [[Depends On] [`tag::lazy_weighted_variance` depends on `tag::weighted_moment<2>` and `tag::weighted_mean` \n
+                   `tag::weighted_variance` depends on `tag::count` and `tag::immediate_weighted_mean`]]
+    [[Variants] [`tag::lazy_weighted_variance` (a.k.a. `tag::weighted_variance(lazy))` \n
+                 `tag::weighted_variance` (a.k.a. `tag::weighted_variance(immediate)`)]]
+    [[Initialization Parameters] [['none]]]
+    [[Accumulator Parameters] [`weight`]]
+    [[Extractor Parameters] [['none]]]
+    [[Accumulator Complexity] [O(1)]] 
+    [[Extractor Complexity] [O(1)]] 
+]
+
+[*Header]
+[def _WEIGHTED_VARIANCE_HPP_ [headerref boost/accumulators/statistics/weighted_variance.hpp]]
+
+    #include <_WEIGHTED_VARIANCE_HPP_>
+
+[*Example]
+
+    // lazy weighted_variance
+    accumulator_set<int, stats<tag::weighted_variance(lazy)>, int> acc1;
+
+    acc1(1, weight = 2);    //  2
+    acc1(2, weight = 3);    //  6
+    acc1(3, weight = 1);    //  3
+    acc1(4, weight = 4);    // 16
+    acc1(5, weight = 1);    //  5
+
+    // weighted_mean = (2+6+3+16+5) / (2+3+1+4+1) = 32 / 11 = 2.9090909090909090909090909090909
+
+    BOOST_CHECK_EQUAL(5u, count(acc1));
+    BOOST_CHECK_CLOSE(2.9090909, weighted_mean(acc1), 1e-5);
+    BOOST_CHECK_CLOSE(10.1818182, accumulators::weighted_moment<2>(acc1), 1e-5);
+    BOOST_CHECK_CLOSE(1.7190083, weighted_variance(acc1), 1e-5);
+
+    // immediate weighted_variance
+    accumulator_set<int, stats<tag::weighted_variance>, int> acc2;
+
+    acc2(1, weight = 2);
+    acc2(2, weight = 3);
+    acc2(3, weight = 1);
+    acc2(4, weight = 4);
+    acc2(5, weight = 1);
+
+    BOOST_CHECK_EQUAL(5u, count(acc2));
+    BOOST_CHECK_CLOSE(2.9090909, weighted_mean(acc2), 1e-5);
+    BOOST_CHECK_CLOSE(1.7190083, weighted_variance(acc2), 1e-5);
+    
+    // check lazy and immediate variance with random numbers
+    
+    // two random number generators
+    boost::lagged_fibonacci607 rng;
+    boost::normal_distribution<> mean_sigma(0,1);
+    boost::variate_generator<boost::lagged_fibonacci607&, boost::normal_distribution<> > normal(rng, mean_sigma);
+    
+    accumulator_set<double, stats<tag::weighted_variance>, double > acc_lazy;    
+    accumulator_set<double, stats<tag::weighted_variance(immediate)>, double > acc_immediate;
+    
+    for (std::size_t i=0; i<10000; ++i)
+    {
+        double value = normal();
+        acc_lazy(value, weight = rng());
+        acc_immediate(value, weight = rng());
+    }
+    
+    BOOST_CHECK_CLOSE(1., weighted_variance(acc_lazy), 1.);
+    BOOST_CHECK_CLOSE(1., weighted_variance(acc_immediate), 1.);
+
+[*See also]
+
+* [classref boost::accumulators::impl::lazy_weighted_variance_impl [^lazy_weighted_variance_impl]]
+* [classref boost::accumulators::impl::weighted_variance_impl [^weighted_variance_impl]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.count [^count]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.weighted_mean [^weighted_mean]]
+* [link accumulators.user_s_guide.the_statistical_accumulators_library.weighted_moment [^weighted_moment]]
+
+[endsect]
+
+[endsect]
+
+[endsect]
+
+[section Acknowledgements]
+
+Boost.Accumulators represents the efforts of many individuals. I would like to thank 
+Daniel Egloff of _ZKB_ for helping to conceive the library and realize its 
+implementation. I would also like to thank David Abrahams and Matthias Troyer for 
+their key contributions to the design of the library. Many thanks are due to Michael 
+Gauckler and Olivier Gygi, who, along with Daniel Egloff, implemented many of the 
+statistical accumulators.
+
+I would also like to thank Simon West for all his assistance maintaining
+Boost.Accumulators.
+
+Finally, I would like to thank _ZKB_ for sponsoring the work on Boost.Accumulators 
+and graciously donating it to the community. 
+
+[endsect]
+
+[section Reference]
+
+[xinclude accdoc.xml]
+
+[xinclude statsdoc.xml]
+
+[xinclude opdoc.xml]
+
+[endsect]

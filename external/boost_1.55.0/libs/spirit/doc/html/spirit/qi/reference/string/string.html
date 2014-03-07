@@ -1,0 +1,330 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>String Parsers (string, lit)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../string.html" title="String Parsers">
+<link rel="prev" href="../string.html" title="String Parsers">
+<link rel="next" href="symbols.html" title="Symbols Parser (symbols)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../string.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../string.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="symbols.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.string.string"></a><a class="link" href="string.html" title="String Parsers (string, lit)">String Parsers
+          (<code class="computeroutput"><span class="identifier">string</span></code>, <code class="computeroutput"><span class="identifier">lit</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.string.string.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.string.string.description"></a></span><a class="link" href="string.html#spirit.qi.reference.string.string.description">Description</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">string</span></code> parser matches
+            a string of characters. The <code class="computeroutput"><span class="identifier">string</span></code>
+            parser is an implicit lexeme: the <code class="computeroutput"><span class="identifier">skip</span></code>
+            parser is not applied in between characters of the string. The <code class="computeroutput"><span class="identifier">string</span></code> parser has an associated <a class="link" href="../basics.html#spirit.qi.reference.basics.character_encoding_namespace">Character
+            Encoding Namespace</a>. This is needed when doing basic operations
+            such as inhibiting case sensitivity. Examples:
+          </p>
+<pre class="programlisting"><span class="identifier">string</span><span class="special">(</span><span class="string">"Hello"</span><span class="special">)</span>
+<span class="identifier">string</span><span class="special">(</span><span class="identifier">L</span><span class="string">"Hello"</span><span class="special">)</span>
+<span class="identifier">string</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span> <span class="comment">// s is a std::string</span>
+</pre>
+<p>
+            <code class="computeroutput"><span class="identifier">lit</span></code>, like <code class="computeroutput"><span class="identifier">string</span></code>, also matches a string of characters.
+            The main difference is that <code class="computeroutput"><span class="identifier">lit</span></code>
+            does not synthesize an attribute. A plain string like <code class="computeroutput"><span class="string">"hello"</span></code>
+            or a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span></code> is equivalent to a <code class="computeroutput"><span class="identifier">lit</span></code>. Examples:
+          </p>
+<pre class="programlisting"><span class="string">"Hello"</span>
+<span class="identifier">lit</span><span class="special">(</span><span class="string">"Hello"</span><span class="special">)</span>
+<span class="identifier">lit</span><span class="special">(</span><span class="identifier">L</span><span class="string">"Hello"</span><span class="special">)</span>
+<span class="identifier">lit</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span> <span class="comment">// s is a std::string</span>
+</pre>
+<h6>
+<a name="spirit.qi.reference.string.string.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.string.string.header"></a></span><a class="link" href="string.html#spirit.qi.reference.string.string.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/string/lit.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_lit</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="spirit.qi.reference.string.string.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.string.string.namespace"></a></span><a class="link" href="string.html#spirit.qi.reference.string.string.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lit</span> <span class="comment">// alias:
+                      boost::spirit::qi::lit</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">string</span></code>
+                    </p>
+                  </td></tr>
+</tbody>
+</table></div>
+<p>
+            In the table above, <code class="computeroutput"><span class="identifier">ns</span></code>
+            represents a <a class="link" href="../basics.html#spirit.qi.reference.basics.character_encoding_namespace">Character
+            Encoding Namespace</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.string.string.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.string.string.model_of"></a></span><a class="link" href="string.html#spirit.qi.reference.string.string.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../parser_concepts/primitiveparser.html" title="PrimitiveParser"><code class="computeroutput"><span class="identifier">PrimitiveParser</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">s</span></code></span></dt>
+<dd><p>
+                  A <a class="link" href="../basics.html#spirit.qi.reference.basics.string">String</a>
+                  or a <a class="link" href="../basics.html#spirit.qi.reference.basics.lazy_argument">Lazy
+                  Argument</a> that evaluates to a <a class="link" href="../basics.html#spirit.qi.reference.basics.string">String</a>.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">ns</span></code></span></dt>
+<dd><p>
+                  A <a class="link" href="../basics.html#spirit.qi.reference.basics.character_encoding_namespace">Character
+                  Encoding Namespace</a>.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.string.string.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.string.string.expression_semantics"></a></span><a class="link" href="string.html#spirit.qi.reference.string.string.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../parser_concepts/primitiveparser.html" title="PrimitiveParser"><code class="computeroutput"><span class="identifier">PrimitiveParser</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">s</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Create string parser from a string, <code class="computeroutput"><span class="identifier">s</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Create a string parser from a string, <code class="computeroutput"><span class="identifier">s</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Create a string parser with <code class="computeroutput"><span class="identifier">ns</span></code>
+                      encoding from a string, <code class="computeroutput"><span class="identifier">s</span></code>.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.string.string.h5"></a>
+            <span class="phrase"><a name="spirit.qi.reference.string.string.attributes"></a></span><a class="link" href="string.html#spirit.qi.reference.string.string.attributes">Attributes</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">s</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">unused</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">unused</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+                      where <code class="computeroutput"><span class="identifier">T</span></code> is
+                      the underlying character type of <code class="computeroutput"><span class="identifier">s</span></code>.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.string.string.h6"></a>
+            <span class="phrase"><a name="spirit.qi.reference.string.string.complexity"></a></span><a class="link" href="string.html#spirit.qi.reference.string.string.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              O(N)
+            </p></blockquote></div>
+<p>
+            where <code class="computeroutput"><span class="identifier">N</span></code> is the number
+            of characters in the string to be parsed.
+          </p>
+<h6>
+<a name="spirit.qi.reference.string.string.h7"></a>
+            <span class="phrase"><a name="spirit.qi.reference.string.string.example"></a></span><a class="link" href="string.html#spirit.qi.reference.string.string.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.qi.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">string</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Basic literals:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">test_parser</span><span class="special">(</span><span class="string">"boost"</span><span class="special">,</span> <span class="string">"boost"</span><span class="special">);</span>          <span class="comment">// plain literal</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"boost"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="string">"boost"</span><span class="special">));</span>     <span class="comment">// explicit literal</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"boost"</span><span class="special">,</span> <span class="identifier">string</span><span class="special">(</span><span class="string">"boost"</span><span class="special">));</span>  <span class="comment">// ascii::string</span>
+</pre>
+<p>
+          </p>
+<p>
+            From a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">s</span><span class="special">(</span><span class="string">"boost"</span><span class="special">);</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"boost"</span><span class="special">,</span> <span class="identifier">s</span><span class="special">);</span>            <span class="comment">// direct</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"boost"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="identifier">s</span><span class="special">));</span>       <span class="comment">// explicit</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"boost"</span><span class="special">,</span> <span class="identifier">string</span><span class="special">(</span><span class="identifier">s</span><span class="special">));</span>    <span class="comment">// ascii::string</span>
+</pre>
+<p>
+          </p>
+<p>
+            Lazy strings using <a href="../../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">phx</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">;</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"boost"</span><span class="special">,</span> <span class="identifier">phx</span><span class="special">::</span><span class="identifier">val</span><span class="special">(</span><span class="string">"boost"</span><span class="special">));</span>            <span class="comment">// direct</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"boost"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="identifier">phx</span><span class="special">::</span><span class="identifier">val</span><span class="special">(</span><span class="string">"boost"</span><span class="special">)));</span>       <span class="comment">// explicit</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"boost"</span><span class="special">,</span> <span class="identifier">string</span><span class="special">(</span><span class="identifier">phx</span><span class="special">::</span><span class="identifier">val</span><span class="special">(</span><span class="string">"boost"</span><span class="special">)));</span>    <span class="comment">// ascii::string</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../string.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../string.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="symbols.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

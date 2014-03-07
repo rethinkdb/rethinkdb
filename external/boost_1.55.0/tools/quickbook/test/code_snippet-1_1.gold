@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="code_snippets" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Code Snippets</title>
+  <section id="code_snippets.a_code_snippet">
+    <title>A code snippet</title>
+    <para>
+      Code snippets inlined in text, as in <code><phrase role="keyword">namespace</phrase>
+      <phrase role="identifier">quickbook</phrase> <phrase role="special">{</phrase>
+      <phrase role="keyword">static</phrase> <phrase role="keyword">const</phrase>
+      <phrase role="keyword">int</phrase> <phrase role="identifier">value</phrase>
+      <phrase role="special">=</phrase> <phrase role="number">0</phrase><phrase role="special">;</phrase>
+      <phrase role="special">}</phrase></code>, should be properly formatted and
+      not glued to the surrounding text.
+    </para>
+    <para>
+      There shoud be no spacees around (<code><phrase role="keyword">this</phrase></code>),
+      and spaces around <code><phrase role="keyword">this</phrase></code> code.
+    </para>
+  </section>
+</article>

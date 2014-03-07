@@ -1,0 +1,54 @@
+[/
+ / Copyright (c) 2008 Marcin Kalicinski (kalita <at> poczta dot onet dot pl)
+ / Copyright (c) 2009 Sebastian Redl (sebastian dot redl <at> getdesigned dot at)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+[section INFO Parser]
+The INFO format was created specifically for the property tree library. It
+provides a simple, efficient format that can be used to serialize property
+trees that are otherwise only stored in memory. It can also be used for any
+other purpose, although the lack of widespread existing use may prove to be an
+impediment.
+
+INFO provides several features that make it familiar to C++ programmers and
+efficient for medium-sized datasets, especially those used for test input. It
+supports C-style character escapes, nesting via curly braces, and file inclusion
+via #include.
+
+INFO is also used for visualization of property trees in this documentation.
+
+A typical INFO file might look like this:
+
+ key1 value1
+ key2
+ {
+    key3 value3
+    {
+       key4 "value4 with spaces"
+    }
+    key5 value5
+ }
+
+Here's a more complicated file demonstrating all of INFO's features:
+
+ ; A comment
+ key1 value1   ; Another comment
+ key2 "value with special characters in it {};#\n\t\"\0"
+ {
+    subkey "value split "\
+           "over three"\
+           "lines"
+    {
+       a_key_without_value ""
+       "a key with special characters in it {};#\n\t\"\0" ""
+       "" value    ; Empty key with a value
+       "" ""       ; Empty key with empty value!
+    }
+ }
+ #include "file.info"    ; included file
+
+INFO round-trips except for the loss of comments and include directives.
+
+[endsect] [/info_parser]

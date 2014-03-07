@@ -1,0 +1,200 @@
+<HTML>
+<HEAD>
+<TITLE>Using the Garbage Collector as Leak Detector</title>
+</head>
+<BODY>
+<H1>Using the Garbage Collector as Leak Detector</h1>
+The garbage collector may be used as a leak detector.
+In this case, the primary function of the collector is to report
+objects that were allocated (typically with <TT>GC_MALLOC</tt>),
+not deallocated (normally with <TT>GC_FREE</tt>), but are
+no longer accessible.  Since the object is no longer accessible,
+there in normally no way to deallocate the object at a later time;
+thus it can safely be assumed that the object has been "leaked".
+<P>
+This is substantially different from counting leak detectors,
+which simply verify that all allocated objects are eventually
+deallocated.  A garbage-collector based leak detector can provide
+somewhat more precise information when an object was leaked.
+More importantly, it does not report objects that are never
+deallocated because they are part of "permanent" data structures.
+Thus it does not require all objects to be deallocated at process
+exit time, a potentially useless activity that often triggers
+large amounts of paging.
+<P>
+All non-ancient versions of the garbage collector provide
+leak detection support.  Version 5.3 adds the following
+features:
+<OL>
+<LI> Leak detection mode can be initiated at run-time by
+setting GC_find_leak instead of building the collector with FIND_LEAK
+defined.  This variable should be set to a nonzero value
+at program startup.
+<LI> Leaked objects should be reported and then correctly garbage collected.
+Prior versions either reported leaks or functioned as a garbage collector.
+</ol>
+For the rest of this description we will give instructions that work
+with any reasonable version of the collector.
+<P>
+To use the collector as a leak detector, follow the following steps:
+<OL>
+<LI> Build the collector with -DFIND_LEAK.  Otherwise use default
+build options.
+<LI> Change the program so that all allocation and deallocation goes
+through the garbage collector.
+<LI> Arrange to call <TT>GC_gcollect</tt> at appropriate points to check
+for leaks.
+(For sufficiently long running programs, this will happen implicitly,
+but probably not with sufficient frequency.)
+</ol>
+The second step can usually be accomplished with the
+<TT>-DREDIRECT_MALLOC=GC_malloc</tt> option when the collector is built,
+or by defining <TT>malloc</tt>, <TT>calloc</tt>,
+<TT>realloc</tt> and <TT>free</tt>
+to call the corresponding garbage collector functions.
+But this, by itself, will not yield very informative diagnostics,
+since the collector does not keep track of information about
+how objects were allocated.  The error reports will include
+only object addresses.
+<P>
+For more precise error reports, as much of the program as possible
+should use the all uppercase variants of these functions, after
+defining <TT>GC_DEBUG</tt>, and then including <TT>gc.h</tt>.
+In this environment <TT>GC_MALLOC</tt> is a macro which causes
+at least the file name and line number at the allocation point to
+be saved as part of the object.  Leak reports will then also include
+this information.
+<P>
+Many collector features (<I>e.g</i> stubborn objects, finalization,
+and disappearing links) are less useful in this context, and are not
+fully supported.  Their use will usually generate additional bogus
+leak reports, since the collector itself drops some associated objects.
+<P>
+The same is generally true of thread support.  However, as of 6.0alpha4,
+correct leak reports should be generated with linuxthreads.
+<P>
+On a few platforms (currently Solaris/SPARC, Irix, and, with -DSAVE_CALL_CHAIN,
+Linux/X86), <TT>GC_MALLOC</tt>
+also causes some more information about its call stack to be saved
+in the object.  Such information is reproduced in the error
+reports in very non-symbolic form, but it can be very useful with the
+aid of a debugger.
+<H2>An Example</h2>
+The following header file <TT>leak_detector.h</tt> is included in the
+"include" subdirectory of the distribution:
+<PRE>
+#define GC_DEBUG
+#include "gc.h"
+#define malloc(n) GC_MALLOC(n)
+#define calloc(m,n) GC_MALLOC((m)*(n))
+#define free(p) GC_FREE(p)
+#define realloc(p,n) GC_REALLOC((p),(n))
+#define CHECK_LEAKS() GC_gcollect()
+</pre>
+<P>
+Assume the collector has been built with -DFIND_LEAK.  (For very
+new versions of the collector, we could instead add the statement
+<TT>GC_find_leak = 1</tt> as the first statement in <TT>main</tt>.
+<P>
+The program to be tested for leaks can then look like:
+<PRE>
+#include "leak_detector.h"
+
+main() {
+    int *p[10];
+    int i;
+    /* GC_find_leak = 1; for new collector versions not 	*/
+    /* compiled with -DFIND_LEAK.				*/
+    for (i = 0; i < 10; ++i) {
+	p[i] = malloc(sizeof(int)+i);
+    }
+    for (i = 1; i < 10; ++i) {
+	free(p[i]);
+    }
+    for (i = 0; i < 9; ++i) {
+	p[i] = malloc(sizeof(int)+i);
+    }
+    CHECK_LEAKS();
+}	
+</pre>
+<P>
+On an Intel X86 Linux system this produces on the stderr stream:
+<PRE>
+Leaked composite object at 0x806dff0 (leak_test.c:8, sz=4)
+</pre>
+(On most unmentioned operating systems, the output is similar to this.
+If the collector had been built on Linux/X86 with -DSAVE_CALL_CHAIN,
+the output would be closer to the Solaris example. For this to work,
+the program should not be compiled with -fomit_frame_pointer.)
+<P>
+On Irix it reports
+<PRE>
+Leaked composite object at 0x10040fe0 (leak_test.c:8, sz=4)
+        Caller at allocation:
+                ##PC##= 0x10004910
+</pre>
+and on Solaris the error report is
+<PRE>
+Leaked composite object at 0xef621fc8 (leak_test.c:8, sz=4)
+        Call chain at allocation:
+                args: 4 (0x4), 200656 (0x30FD0)
+                ##PC##= 0x14ADC
+                args: 1 (0x1), -268436012 (0xEFFFFDD4)
+                ##PC##= 0x14A64
+</pre>
+In the latter two cases some additional information is given about
+how malloc was called when the leaked object was allocated.  For
+Solaris, the first line specifies the arguments to <TT>GC_debug_malloc</tt>
+(the actual allocation routine), The second the program counter inside
+main, the third the arguments to <TT>main</tt>, and finally the program
+counter inside the caller to main (i.e. in the C startup code).
+<P>
+In the Irix case, only the address inside the caller to main is given.
+<P>
+In many cases, a debugger is needed to interpret the additional information.
+On systems supporting the "adb" debugger, the <TT>callprocs</tt> script
+can be used to replace program counter values with symbolic names.
+As of version 6.1, the collector tries to generate symbolic names for
+call stacks if it knows how to do so on the platform.  This is true on
+Linux/X86, but not on most other platforms.
+<H2>Simplified leak detection under Linux</h2>
+Since version 6.1, it should be possible to run the collector in leak
+detection mode on a program a.out under Linux/X86 as follows:
+<OL>
+<LI> <I>Ensure that a.out is a single-threaded executable, or you are using
+a very recent (7.0alpha7+) collector version on Linux.</i>
+On most platforms this does not
+work at all for multithreaded programs.
+<LI> If possible, ensure that the addr2line program is installed in
+/usr/bin.  (It comes with RedHat Linux.)
+<LI> If possible, compile a.out with full debug information.
+This will improve the quality of the leak reports.  With this approach, it is
+no longer necessary to call GC_ routines explicitly, though that can also
+improve the quality of the leak reports.
+<LI> Build the collector and install it in directory <I>foo</i> as follows:
+<UL>
+<LI> <TT>configure --prefix=<I>foo</i> --enable-full-debug --enable-redirect-malloc
+--disable-threads</tt>
+<LI> <TT>make</tt>
+<LI> <TT>make install</tt>
+</ul>
+With a very recent collector on Linux, it may be safe to omit the <TT>--disable-threads</tt>.
+<LI> Set environment variables as follows:
+<UL>
+<LI> LD_PRELOAD=<I>foo</i>/lib/libgc.so
+<LI> GC_FIND_LEAK
+<LI> You may also want to set GC_PRINT_STATS (to confirm that the collector
+is running) and/or GC_LOOP_ON_ABORT (to facilitate debugging from another
+window if something goes wrong).
+</ul
+<LI> Simply run a.out as you normally would.  Note that if you run anything
+else (<I>e.g.</i> your editor) with those environment variables set,
+it will also be leak tested.  This may or may not be useful and/or
+embarrassing.  It can generate
+mountains of leak reports if the application wasn't designed to avoid leaks,
+<I>e.g.</i> because it's always short-lived.
+</ol>
+This has not yet been thoroughly tested on large applications, but it's known
+to do the right thing on at least some small ones.
+</body>
+</html>

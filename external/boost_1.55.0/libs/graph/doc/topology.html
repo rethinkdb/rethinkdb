@@ -1,0 +1,280 @@
+<HTML>
+<!--
+     Copyright (c) 2004, 2010 Trustees of Indiana University
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Topologies for Graph Drawing</Title>
+<script language="JavaScript" type="text/JavaScript">
+<!--
+function address(host, user) {
+        var atchar = '@';
+        var thingy = user+atchar+host;
+        thingy = '<a hre' + 'f=' + "mai" + "lto:" + thingy + '>' + user+atchar+host + '</a>';
+        document.write(thingy);
+}
+//-->
+</script>
+</head>
+
+
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>
+Topologies for Graph Drawing
+</H1>
+
+<P>
+
+<h3>Synopsis</h3>
+
+<pre>
+template&lt;std::size_t Dims&gt; class <a href="#convex_topology">convex_topology</a>;
+template&lt;std::size_t Dims, typename RandomNumberGenerator = minstd_rand&gt; class <a href="#hypercube_topology">hypercube_topology</a>;
+template&lt;typename RandomNumberGenerator = minstd_rand&gt; class <a href="#square_topology">square_topology</a>;
+template&lt;typename RandomNumberGenerator = minstd_rand&gt; class <a href="#cube_topology">cube_topology</a>;
+template&lt;std::size_t Dims, typename RandomNumberGenerator = minstd_rand&gt; class <a href="#ball_topology">ball_topology</a>;
+template&lt;typename RandomNumberGenerator = minstd_rand&gt; class <a href="#circle_topology">circle_topology</a>;
+template&lt;typename RandomNumberGenerator = minstd_rand&gt; class <a href="#sphere_topology">sphere_topology</a>;
+template&lt;typename RandomNumberGenerator = minstd_rand&gt; class <a href="#heart_topology">heart_topology</a>;
+</pre>
+
+<h3>Summary</h3>
+
+<p> <a href="#topologies">Various topologies</a> are provided that
+produce different, interesting results for graph layout algorithms. The <a
+href="#square_topology">square topology</a> can be used for normal
+display of graphs or distributing vertices for parallel computation on
+a process array, for instance. Other topologies, such as the <a
+href="#sphere_topology">sphere topology</a> (or N-dimensional <a
+href="#ball_topology">ball topology</a>) make sense for different
+problems, whereas the <a href="#heart_topology">heart topology</a> is
+just plain fun. One can also <a href="#topology-concept">define a
+topology</a> to suit other particular needs. <br>
+
+<a name="topologies"><h3>Topologies</h3></a>
+A topology is a description of a space on which layout can be
+performed. Some common two, three, and multidimensional topologies
+are provided, or you may create your own so long as it meets the
+requirements of the <a href="#topology-concept">Topology concept</a>.
+
+<a name="topology-concept"><h4>Topology Concept</h4></a> Let
+<tt>Topology</tt> be a model of the Topology concept and let
+<tt>space</tt> be an object of type <tt>Topology</tt>. <tt>p1</tt> and
+<tt>p2</tt> are objects of associated type <tt>point_type</tt> (see
+below). The following expressions must be valid:
+
+<table border="1">
+  <tr>
+    <th>Expression</th>
+    <th>Type</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td><tt>Topology::point_type</tt></td>
+    <td>type</td>
+    <td>The type of points in the space.</td>
+  </tr>
+  <tr>
+    <td><tt>space.random_point()</tt></td>
+    <td>point_type</td>
+    <td>Returns a random point (usually uniformly distributed) within
+    the space.</td>
+  </tr>
+  <tr>
+    <td><tt>space.distance(p1, p2)</tt></td>
+    <td>double</td>
+    <td>Get a quantity representing the distance between <tt>p1</tt>
+    and <tt>p2</tt> using a path going completely inside the space.
+    This only needs to have the same &lt; relation as actual
+    distances, and does not need to satisfy the other properties of a
+    norm in a Banach space.</td>
+  </tr>
+  <tr>
+    <td><tt>space.move_position_toward(p1, fraction, p2)</tt></td>
+    <td>point_type</td>
+    <td>Returns a point that is a fraction of the way from <tt>p1</tt>
+    to <tt>p2</tt>, moving along a "line" in the space according to
+    the distance measure. <tt>fraction</tt> is a <tt>double</tt>
+    between 0 and 1, inclusive.</td>
+  </tr>
+</table>
+
+<a name="convex_topology"><h3>Class template <tt>convex_topology</tt></h3></a>
+
+<p>Class template <tt>convex_topology</tt> implements the basic
+distance and point movement functions for any convex topology in
+<tt>Dims</tt> dimensions. It is not itself a topology, but is intended
+as a base class that any convex topology can derive from. The derived
+topology need only provide a suitable <tt>random_point</tt> function
+that returns a random point within the space.
+
+<pre>
+template&lt;std::size_t Dims&gt;
+class convex_topology 
+{
+  struct point 
+  {
+    point() { }
+    double&amp; operator[](std::size_t i) {return values[i];}
+    const double&amp; operator[](std::size_t i) const {return values[i];}
+
+  private:
+    double values[Dims];
+  };
+
+ public:
+  typedef point point_type;
+
+  double distance(point a, point b) const;
+  point move_position_toward(point a, double fraction, point b) const;
+};
+</pre>
+
+<a name="hypercube_topology"><h3>Class template <tt>hypercube_topology</tt></h3></a>
+
+<p>Class template <tt>hypercube_topology</tt> implements a
+<tt>Dims</tt>-dimensional hypercube. It is a convex topology whose
+points are drawn from a random number generator of type
+<tt>RandomNumberGenerator</tt>. The <tt>hypercube_topology</tt> can
+be constructed with a given random number generator; if omitted, a
+new, default-constructed random number generator will be used. The
+resulting layout will be contained within the hypercube, whose sides
+measure 2*<tt>scaling</tt> long (points will fall in the range
+[-<tt>scaling</tt>, <tt>scaling</tt>] in each dimension). 
+
+<pre>
+template&lt;std::size_t Dims, typename RandomNumberGenerator = minstd_rand&gt;
+class hypercube_topology : public <a href="#convex_topology">convex_topology</a>&lt;Dims&gt;
+{
+public:
+  explicit hypercube_topology(double scaling = 1.0);
+  hypercube_topology(RandomNumberGenerator&amp; gen, double scaling = 1.0);
+  point_type random_point() const;
+};
+</pre>
+
+<a name="square_topology"><h3>Class template <tt>square_topology</tt></h3></a>
+
+<p>Class template <tt>square_topology</tt> is a two-dimensional
+hypercube topology.
+
+<pre>
+template&lt;typename RandomNumberGenerator = minstd_rand&gt;
+class square_topology : public <a href="#hypercube_topology">hypercube_topology</a>&lt;2, RandomNumberGenerator&gt;
+{
+ public:
+  explicit square_topology(double scaling = 1.0);
+  square_topology(RandomNumberGenerator&amp; gen, double scaling = 1.0);
+};
+</pre>
+
+<a name="cube_topology"><h3>Class template <tt>cube_topology</tt></h3></a>
+
+<p>Class template <tt>cube_topology</tt> is a three-dimensional
+hypercube topology.
+
+<pre>
+template&lt;typename RandomNumberGenerator = minstd_rand&gt;
+class cube_topology : public <a href="#hypercube_topology">hypercube_topology</a>&lt;3, RandomNumberGenerator&gt;
+{
+ public:
+  explicit cube_topology(double scaling = 1.0);
+  cube_topology(RandomNumberGenerator&amp; gen, double scaling = 1.0);
+};
+</pre>
+
+<a name="ball_topology"><h3>Class template <tt>ball_topology</tt></h3></a>
+
+<p>Class template <tt>ball_topology</tt> implements a
+<tt>Dims</tt>-dimensional ball. It is a convex topology whose points
+are drawn from a random number generator of type
+<tt>RandomNumberGenerator</tt> but reside inside the ball. The
+<tt>ball_topology</tt> can be constructed with a given random number
+generator; if omitted, a new, default-constructed random number
+generator will be used. The resulting layout will be contained within
+the ball with the given <tt>radius</tt>.
+
+<pre>
+template&lt;std::size_t Dims, typename RandomNumberGenerator = minstd_rand&gt;
+class ball_topology : public <a href="#convex_topology">convex_topology</a>&lt;Dims&gt;
+{
+public:
+  explicit ball_topology(double radius = 1.0);
+  ball_topology(RandomNumberGenerator&amp; gen, double radius = 1.0); 
+  point_type random_point() const;
+};
+</pre>
+
+<a name="circle_topology"><h3>Class template <tt>circle_topology</tt></h3></a>
+
+<p>Class template <tt>circle_topology</tt> is a two-dimensional
+ball topology.
+
+<pre>
+template&lt;typename RandomNumberGenerator = minstd_rand&gt;
+class circle_topology : public <a href="#ball_topology">ball_topology</a>&lt;2, RandomNumberGenerator&gt;
+{
+ public:
+  explicit circle_topology(double radius = 1.0);
+  circle_topology(RandomNumberGenerator&amp; gen, double radius = 1.0);
+};
+</pre>
+
+<a name="sphere_topology"><h3>Class template <tt>sphere_topology</tt></h3></a>
+
+<p>Class template <tt>sphere_topology</tt> is a three-dimensional
+ball topology.
+
+<pre>
+template&lt;typename RandomNumberGenerator = minstd_rand&gt;
+class sphere_topology : public <a href="#ball_topology">ball_topology</a>&lt;3, RandomNumberGenerator&gt;
+{
+ public:
+  explicit sphere_topology(double radius = 1.0);
+  sphere_topology(RandomNumberGenerator&amp; gen, double radius = 1.0);
+};
+</pre>
+
+<a name="heart_topology"><h3>Class template <tt>heart_topology</tt></h3></a>
+
+<p>Class template <tt>heart_topology</tt> is topology in the shape of
+a heart. It serves as an example of a non-convex, nontrivial topology
+for layout. 
+
+<pre>
+template&lt;typename RandomNumberGenerator = minstd_rand&gt;
+class heart_topology 
+{
+ public:
+  typedef <em>unspecified</em> point_type;
+
+  heart_topology();
+  heart_topology(RandomNumberGenerator&amp; gen);
+  point_type random_point() const;
+  double distance(point_type a, point_type b) const;
+  point_type move_position_toward(point_type a, double fraction, point_type b) const;
+};
+</pre>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2004, 2010 Trustees of Indiana University</TD><TD>
+Jeremiah Willcock, Indiana University (<script language="Javascript">address("osl.iu.edu", "jewillco")</script>)<br>
+<A HREF="http://www.boost.org/people/doug_gregor.html">Doug Gregor</A>, Indiana University (<script language="Javascript">address("cs.indiana.edu", "dgregor")</script>)<br>
+  <A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<script language="Javascript">address("osl.iu.edu", "lums")</script>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

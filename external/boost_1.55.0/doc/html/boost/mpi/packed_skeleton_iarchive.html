@@ -1,0 +1,146 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class packed_skeleton_iarchive</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp" title="Header &lt;boost/mpi/skeleton_and_content.hpp&gt;">
+<link rel="prev" href="content.html" title="Class content">
+<link rel="next" href="packed_skeleton_oarchive.html" title="Class packed_skeleton_oarchive">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="content.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="packed_skeleton_oarchive.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.mpi.packed_skeleton_iarchive"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class packed_skeleton_iarchive</span></h2>
+<p>boost::mpi::packed_skeleton_iarchive &#8212; An archiver that reconstructs a data structure based on the binary skeleton stored in a buffer. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp" title="Header &lt;boost/mpi/skeleton_and_content.hpp&gt;">boost/mpi/skeleton_and_content.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="packed_skeleton_iarchive.html" title="Class packed_skeleton_iarchive">packed_skeleton_iarchive</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">ignore_iprimitive</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="packed_skeleton_iarchive.html#boost.mpi.packed_skeleton_iarchiveconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="packed_skeleton_iarchive.html#idp94781928-bb"><span class="identifier">packed_skeleton_iarchive</span></a><span class="special">(</span><span class="identifier">MPI_Comm</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                           <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">archive</span><span class="special">::</span><span class="identifier">no_header</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="packed_skeleton_iarchive.html#idp94584904-bb"><span class="identifier">packed_skeleton_iarchive</span></a><span class="special">(</span><a class="link" href="packed_iarchive.html" title="Class packed_iarchive">packed_iarchive</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="packed_skeleton_iarchive.html#idp94779912-bb">public member functions</a></span>
+  <span class="keyword">const</span> <a class="link" href="packed_iarchive.html" title="Class packed_iarchive">packed_iarchive</a> <span class="special">&amp;</span> <a class="link" href="packed_skeleton_iarchive.html#idp94780120-bb"><span class="identifier">get_skeleton</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="packed_iarchive.html" title="Class packed_iarchive">packed_iarchive</a> <span class="special">&amp;</span> <a class="link" href="packed_skeleton_iarchive.html#idp94781064-bb"><span class="identifier">get_skeleton</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp162883352"></a><h2>Description</h2>
+<p>The <code class="computeroutput"><a class="link" href="packed_skeleton_iarchive.html" title="Class packed_skeleton_iarchive">packed_skeleton_iarchive</a></code> class is an Archiver (as in the Boost.Serialization library) that can construct the the shape of a data structure based on a binary skeleton stored in a buffer. The <code class="computeroutput"><a class="link" href="packed_skeleton_iarchive.html" title="Class packed_skeleton_iarchive">packed_skeleton_iarchive</a></code> is typically used by the receiver of a skeleton, to prepare a data structure that will eventually receive content separately.</p>
+<p>Users will not generally need to use <code class="computeroutput"><a class="link" href="packed_skeleton_iarchive.html" title="Class packed_skeleton_iarchive">packed_skeleton_iarchive</a></code> directly. Instead, use <code class="computeroutput">skeleton</code> or <code class="computeroutput">get_skeleton</code>. </p>
+<div class="refsect2">
+<a name="idp162886920"></a><h3>
+<a name="boost.mpi.packed_skeleton_iarchiveconstruct-copy-destruct"></a><code class="computeroutput">packed_skeleton_iarchive</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp94781928-bb"></a><span class="identifier">packed_skeleton_iarchive</span><span class="special">(</span><span class="identifier">MPI_Comm</span> <span class="keyword">const</span> <span class="special">&amp;</span> comm<span class="special">,</span> 
+                         <span class="keyword">unsigned</span> <span class="keyword">int</span> flags <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">archive</span><span class="special">::</span><span class="identifier">no_header</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Construct a <code class="computeroutput"><code class="computeroutput"><a class="link" href="packed_skeleton_iarchive.html" title="Class packed_skeleton_iarchive">packed_skeleton_iarchive</a></code></code> for the given communicator.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">comm</code></span></p></td>
+<td><p>The communicator over which this archive will be transmitted.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">flags</code></span></p></td>
+<td><p>Control the serialization of the skeleton. Refer to the Boost.Serialization documentation before changing the default flags. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp94584904-bb"></a><span class="identifier">packed_skeleton_iarchive</span><span class="special">(</span><a class="link" href="packed_iarchive.html" title="Class packed_iarchive">packed_iarchive</a> <span class="special">&amp;</span> archive<span class="special">)</span><span class="special">;</span></pre>
+<p>Construct a <code class="computeroutput"><code class="computeroutput"><a class="link" href="packed_skeleton_iarchive.html" title="Class packed_skeleton_iarchive">packed_skeleton_iarchive</a></code></code> that unpacks a skeleton from the given <code class="computeroutput">archive</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">archive</code></span></p></td>
+<td><p>the archive from which the skeleton will be unpacked. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp162903000"></a><h3>
+<a name="idp94779912-bb"></a><code class="computeroutput">packed_skeleton_iarchive</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <a class="link" href="packed_iarchive.html" title="Class packed_iarchive">packed_iarchive</a> <span class="special">&amp;</span> <a name="idp94780120-bb"></a><span class="identifier">get_skeleton</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Retrieve the archive corresponding to this skeleton. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="packed_iarchive.html" title="Class packed_iarchive">packed_iarchive</a> <span class="special">&amp;</span> <a name="idp94781064-bb"></a><span class="identifier">get_skeleton</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Retrieve the archive corresponding to this skeleton. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="content.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="packed_skeleton_oarchive.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

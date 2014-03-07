@@ -1,0 +1,28 @@
+#==============================================================================
+#    Copyright (c) 2003-2011 Joel de Guzman
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+project boost/libs/fusion/doc ;
+import boostbook : boostbook ;
+using quickbook ;
+
+path-constant images_location : html ;
+
+boostbook quickbook
+    :
+        fusion.qbk
+    :
+        <xsl:param>boost.root=../../../..
+        <xsl:param>chunk.section.depth=4
+        <xsl:param>chunk.first.sections=1
+        <xsl:param>toc.section.depth=3
+        <xsl:param>toc.max.depth=3
+        <xsl:param>generate.section.toc.level=4
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/libs/fusion/doc/html
+        <format>pdf:<xsl:param>img.src.path=$(images_location)/
+    ;
+
+

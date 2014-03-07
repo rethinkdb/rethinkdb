@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!-- Copyright (c) Jeremy Siek and Andrew Lumsdaine 2000 -->
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="generator" content=
+  "HTML Tidy for Linux/x86 (vers 1 September 2005), see www.w3.org" />
+
+  <title>Creating Concept Checking Classes</title>
+  <link rel="stylesheet" href="../../rst.css" type="text/css" />
+</head>
+
+<body bgcolor="#FFFFFF" link="#0000EE" text="#000000" vlink="#551A8B" alink=
+"#FF0000">
+  <img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86" /><br clear="none" />
+
+  <h2><a name="creating-concept-checks" id="creating-concept-checks">Creating
+  Concept Checking Classes</a></h2>
+
+  <p>As an example of how to create a concept checking class template, we
+  look at how to create the corresponding checks for the <a href=
+  "http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a> concept.
+  The complete definition is here:</p>
+  <pre>
+template &lt;class X&gt;
+struct InputIterator
+  : Assignable&lt;X&gt;, EqualityComparable&lt;X&gt;
+{
+ private:
+    typedef std::iterator_traits&lt;X&gt; t;
+ public:
+    typedef typename t::value_type value_type;
+    typedef typename t::difference_type difference_type;
+    typedef typename t::reference reference;
+    typedef typename t::pointer pointer;
+    typedef typename t::iterator_category iterator_category;
+
+    BOOST_CONCEPT_ASSERT((SignedInteger&lt;difference_type&gt;));
+    BOOST_CONCEPT_ASSERT((Convertible&lt;iterator_category, std::input_iterator_tag&gt;));
+        
+    BOOST_CONCEPT_USAGE(InputIterator)
+    {
+        X j(i);             <font color=
+"green">// require copy construction</font>
+        same_type(*i++,v);  <font color=
+"green">// require postincrement-dereference returning value_type</font>
+        X&amp; x = ++j;         <font color=
+"green">// require preincrement returning X&amp;</font>
+    }
+    
+ private:
+    X i;
+    value_type v;
+
+    <font color=
+"green">// Type deduction will fail unless the arguments have the same type.</font>
+    template &lt;typename T&gt;
+    void same_type(T const&amp;, T const&amp;);
+};
+</pre>
+
+  <h3>Walkthrough</h3>
+
+  <p>First, as a convention we name the concept checking class after the
+  concept. Next, since InputIterator is a refinement of Assignable and
+  EqualityComparable, we derive its concept checking class from the checking
+  classes for those other concepts. The library will automatically check for
+  conformance to Assignable and EqualityComparable whenever it checks the
+  InputIterator concept.</p>
+
+  <p>Next, we declare the concept's <a href=
+  "http://www.boost.org/more/generic_programming.html#associated_type">associated types</a>
+  as member typedefs. The associated difference type is required to be a
+  signed integer, and the iterator category has to be convertible to
+  std::input_iterator_tag, so we assert those relationships. The syntax for
+  accessing associated types through the concept-checking template mirrors
+  the <a href=
+  "http://www.generic-programming.org/languages/conceptcpp/">proposed</a>
+  syntax for associated type access in C++0x Finally, we use the
+  <code>BOOST_CONCEPT_USAGE</code> macro to declare the function that
+  exercises all the concept's valid expressions. Note that at this point you
+  may sometimes need to be a little creative: for example, to check that
+  <code>*i++</code> returns the iterator's value type, we pass both values to
+  the <code>same_type</code> member function template, which requires both
+  arguments to have the same type, modulo references and cv-qualification.
+  It's an imperfect check, but it's better than nothing.</p>
+
+  <h3>Values for Usage Patterns Should Be Data Members</h3>
+
+  <p>You may be wondering why we declared <code>i</code> and <code>v</code>
+  as data members in the example above. Why didn't we simply write the
+  following?</p>
+  <pre>
+BOOST_CONCEPT_USAGE(InputIterator)
+{
+    X i;                <font color=
+"green">// create the values we need</font>
+    value_type v;
+
+    X j(i);             <font color=
+"green">// require copy construction</font>
+    same_type(*i++,v);  <font color=
+"green">// require postincrement-dereference returning value_type</font>
+    X&amp; x = ++j;         <font color=
+"green">// require preincrement returning X&amp;</font>
+}
+</pre>
+
+  <p>Unfortunately, that code wouldn't have worked out so well, because it
+  unintentionally imposes the requirement that <code>X</code> and its value
+  type are both default-constructible. On the other hand, since instances of
+  the <code>InputIterator</code> template will never be constructed, the
+  compiler never has to check how its data members will be constructed (C++
+  Standard Section 14.7.1 9). For that reason you should <strong>always
+  declare values needed for usage patterns as data members</strong>.</p>
+
+  <p>These sorts of errors in concept definitions can be detected by the use
+  of <a href="concept_covering.htm">Concept Archetypes</a>, but it's always
+  better to avoid them pre-emptively.</p>
+
+  <h3>Similarity to Proposed C++0x Language Support for Concepts</h3>
+
+  <p>This library's syntaxes for concept refinement and for access of
+  associated types mirrors the corresponding <a href=
+  "http://www.generic-programming.org/languages/conceptcpp/">proposed</a>
+  syntaxes in C++0x. However, C++0x will use
+  “signatures” rather than usage patterns to
+  describe the valid operations on types participating in a concept, so when
+  converting your concept checking classes into language-supported concepts,
+  you'll need to translate your usage function into a series of
+  signatures.</p>
+
+  <p><a href="./concept_covering.htm">Next: Concept Covering and
+  Archetypes</a><br />
+  <a href="./using_concept_check.htm">Prev: Using Concept
+  Checks</a><br /></p>
+  <hr />
+
+  <table>
+    <tr valign="top">
+      <td nowrap="nowrap">Copyright &copy; 2000</td>
+
+      <td><a href="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>(<a href=
+      "mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</a>) Andrew
+      Lumsdaine(<a href="mailto:lums@osl.iu.edu">lums@osl.iu.edu</a>),
+        2007 <a href="mailto:dave@boost-consulting.com">David Abrahams</a>.
+    </tr>
+  </table>
+</body>
+</html>

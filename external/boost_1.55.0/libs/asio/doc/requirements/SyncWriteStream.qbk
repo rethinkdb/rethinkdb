@@ -1,0 +1,47 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:SyncWriteStream Buffer-oriented synchronous write stream requirements]
+
+In the table below, `a` denotes a synchronous write stream object, `cb` denotes
+an object satisfying [link boost_asio.reference.ConstBufferSequence constant
+buffer sequence] requirements, and `ec` denotes an object of type `error_code`.
+
+[table Buffer-oriented synchronous write stream requirements
+  [[operation] [type] [semantics, pre/post-conditions]]
+  [
+    [`a.write_some(cb);`]
+    [`size_t`]
+    [Equivalent to:
+     ``
+       error_code ec;
+       size_t s = a.write_some(cb, ec);
+       if (ec) throw system_error(ec);
+       return s;
+     ``]
+  ]
+  [
+    [`a.write_some(cb, ec);`]
+    [`size_t`]
+    [
+      Writes one or more bytes of data to the stream `a`.\n
+      \n
+      The constant buffer sequence `cb` specifies memory where the data to be
+      written is located. The `write_some` operation shall always write a
+      buffer in the sequence completely before proceeding to the next.\n
+      \n
+      If successful, returns the number of bytes written and sets `ec` such
+      that `!ec` is true. If an error occurred, returns `0` and sets `ec` such
+      that `!!ec` is true.\n
+      \n
+      If the total size of all buffers in the sequence `cb` is `0`, the
+      function shall return `0` immediately.
+    ]
+  ]
+]
+
+[endsect]

@@ -1,0 +1,38 @@
+# Boost.Geometry (aka GGL, Generic Geometry Library)
+# Controls building of Boost.Geometry examples
+#
+# Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+# Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
+# Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+
+project boost-geometry-example 
+    : # requirements
+    ;
+
+exe 01_point_example : 01_point_example.cpp ;
+exe 02_linestring_example : 02_linestring_example.cpp ;
+exe 03_polygon_example : 03_polygon_example.cpp ;
+exe 05_a_overlay_polygon_example : 05_a_overlay_polygon_example.cpp ;
+exe 05_b_overlay_linestring_polygon_example : 05_b_overlay_linestring_polygon_example.cpp ;
+exe 06_a_transformation_example : 06_a_transformation_example.cpp ;
+exe 06_b_transformation_example : 06_b_transformation_example.cpp ;
+exe 07_a_graph_route_example : 07_a_graph_route_example.cpp ;
+exe 07_b_graph_route_example : 07_b_graph_route_example.cpp ;
+
+exe c01_custom_point_example : c01_custom_point_example.cpp ;
+exe c02_custom_box_example : c02_custom_box_example.cpp ;
+exe c03_custom_linestring_example : c03_custom_linestring_example.cpp ;
+exe c04_a_custom_triangle_example : c04_a_custom_triangle_example.cpp ;
+exe c04_b_custom_triangle_example : c04_b_custom_triangle_example.cpp ;
+exe c05_custom_point_pointer_example : c05_custom_point_pointer_example.cpp  ;
+exe c06_custom_polygon_example : c06_custom_polygon_example.cpp  ;
+exe c07_custom_ring_pointer_example : c07_custom_ring_pointer_example.cpp ;
+exe c08_custom_non_std_example : c08_custom_non_std_example.cpp ;
+exe c09_custom_fusion_example : c09_custom_fusion_example.cpp ;
+exe c10_custom_cs_example : c10_custom_cs_example.cpp ;
+exe c11_custom_cs_transform_example : c11_custom_cs_transform_example.cpp ;

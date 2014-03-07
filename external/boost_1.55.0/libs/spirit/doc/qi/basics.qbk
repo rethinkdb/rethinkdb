@@ -1,0 +1,124 @@
+[/==============================================================================
+    Copyright (C) 2001-2008 Joel de Guzman
+    Copyright (C) 2001-2008 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section:basics Parser Basics]
+
+[heading Lazy Argument]
+
+Some parsers (e.g. primitives and non-terminals) may take in additional
+attributes. Such parsers take the form:
+
+    p(a1, a2,..., aN)
+
+where `p` is a parser. Each of the arguments (a1 ... aN) can either be an
+immediate value, or a function, `f`, with signature:
+
+    T f(Unused, Context)
+
+where `T`, the function's return value, is compatible with the argument
+type expected and `Context` is the parser's __context__ type (The first
+argument is __unused__ to make the `Context` the second argument. This
+is done for uniformity with __actions__).
+
+[heading Character Encoding Namespace]
+
+Some parsers need to know which character set a `char` or `wchar_t` is
+operating on. For example, the `alnum` parser works differently with
+ISO8859.1 and ASCII encodings. Where necessary, Spirit encodes (tags)
+the parser with the character set. 
+
+We have a namespace for each character set Spirit will be supporting.
+That includes `ascii`, `iso8859_1`, `standard` and `standard_wide` (and
+in the future, `unicode`). In each of the character encoding namespaces,
+we place tagged versions of parsers such as `alnum`, `space` etc. 
+
+Example:
+
+    using boost::spirit::ascii::space; // use the ASCII space parser
+    
+Namespaces:
+
+* boost::spirit::ascii
+* boost::spirit::iso8859_1
+* boost::spirit::standard
+* boost::spirit::standard_wide
+
+For ease of use, the components in this namespaces are also brought into
+the qi sub-namespaces with the same names:
+
+* boost::spirit::qi::ascii
+* boost::spirit::qi::iso8859_1
+* boost::spirit::qi::standard
+* boost::spirit::qi::standard_wide
+
+[heading Examples]
+
+All sections in the reference present some real world examples. The
+examples use a common test harness to keep the example code as minimal
+and direct to the point as possible. The test harness is presented
+below.
+
+Some includes:
+
+[reference_includes]
+
+Our test functions:
+
+These functions test the parsers without attributes.
+
+[reference_test]
+
+These functions test the parsers with user supplied attributes.
+
+[reference_test_attr]
+
+The `print_info` utility function prints information contained in the
+__info__ class.
+
+[reference_print_info]
+
+[heading String]
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/support/string_traits.hpp>
+    #include <boost/spirit/support_string_traits.hpp>
+
+A string can be any object `s`, of type, `S`, that satisfies the
+following expression traits:
+
+[table
+    [[Expression]                               [Semantics]]
+    [[`boost::spirit::traits::is_string<S>`]    [Metafunction that evaluates to `mpl::true_` if 
+                                                a certain type, `S` is a string, `mpl::false_`  
+                                                otherwise (See __mpl_boolean_constant__).]]
+    [[`boost::spirit::traits::char_type_of<S>`] [Metafunction that returns the underlying 
+                                                char type of a string type, `S`.]]
+    [[`boost::spirit::traits::get_c_string(s)`] [Function that returns the underlying 
+                                                raw C-string from `s`.]]
+    [[`boost::spirit::traits::get_begin(s)`]    [Function that returns an __stl__ iterator from `s`
+                                                that points to the beginning the string.]]                                                
+    [[`boost::spirit::traits::get_end(s)`]      [Function that returns an __stl__ iterator from `s`
+                                                that points to the end of the string.]]
+                                                
+]
+
+[heading Models]
+
+Predefined models include:
+
+* any literal string, e.g. "Hello, World", 
+* a pointer/reference to a null-terminated array of characters
+* a `std::basic_string<Char>`
+
+The namespace `boost::spirit::traits` is open for users to provide their
+own specializations. The customization points implemented by __qi__ usable
+to customize the behavior of parsers are described in the section 
+__sec_customization_points__.
+
+[endsect]
+

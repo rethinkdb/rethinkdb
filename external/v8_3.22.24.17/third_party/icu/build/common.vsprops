@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioPropertySheet
+	ProjectType="Visual C++"
+	Version="8.00"
+	Name="chrome"
+	OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+	IntermediateDirectory="$(SolutionDir)$(ConfigurationName)\obj\$(ProjectName)"
+	CharacterSet="1"
+	>
+	<Tool
+		Name="VCCLCompilerTool"
+		AdditionalIncludeDirectories="$(SDKIncludes)"
+		PreprocessorDefinitions="_WIN32_WINNT=0x0501;WINVER=0x0501;WIN32;_WINDOWS"
+		MinimalRebuild="false"
+		EnableFunctionLevelLinking="true"
+		BufferSecurityCheck="true"
+		RuntimeTypeInfo="false"
+		WarningLevel="3"
+		WarnAsError="true"
+		Detect64BitPortabilityProblems="true"
+		DisableSpecificWarnings="4503"
+		DebugInformationFormat="3"
+	/>
+	<Tool
+		Name="VCLibrarianTool"
+		AdditionalLibraryDirectories="$(SDKLibs)"
+	/>
+	<Tool
+		Name="VCLinkerTool"
+		AdditionalOptions="/safeseh /dynamicbase /ignore:4199"
+		AdditionalLibraryDirectories="$(SDKLibs)"
+		TargetMachine="1"
+		FixedBaseAddress="1"
+		GenerateDebugInformation="true"
+	/>
+	<Tool
+		Name="VCResourceCompilerTool"
+		Culture="1033"
+	/>
+	<UserMacro
+		Name="SDK"
+		Value="$(SolutionDir)..\..\platformsdk_win2008_6_1\files"
+	/>
+	<UserMacro
+		Name="SDKIncludes"
+		Value="$(SDK)\Include;$(SDK)\VC\INCLUDE;$(VSInstallDir)\VC\atlmfc\include"
+	/>
+	<UserMacro
+		Name="SDKLibs"
+		Value="$(SDK)\Lib;$(SDK)\VC\LIB"
+	/>
+</VisualStudioPropertySheet>

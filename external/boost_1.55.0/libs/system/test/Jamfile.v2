@@ -1,0 +1,54 @@
+# Boost System Library test Jamfile
+
+# Copyright Beman Dawes 2003, 2006
+
+# Distributed under the Boost Software License, Version 1.0.
+# See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt
+
+# See library home page at http://www.boost.org/libs/system
+
+project
+    : requirements
+      <library>/boost/system//boost_system
+      <toolset>msvc:<asynch-exceptions>on
+    ;
+    
+   lib throw_test
+     : throw_test.cpp
+     : <link>shared:<define>BOOST_SYSTEM_DYN_LINK=1
+       <link>static:<define>BOOST_SYSTEM_STATIC_LINK=1
+     ;
+   
+
+   test-suite "system"
+       : [ run error_code_test.cpp
+           : # command line
+           : # input files
+           : # requirements
+                   <link>static
+         ]
+         [ run error_code_test.cpp
+           :  :  : <link>shared : error_code_test_shared
+         ]
+         [ run error_code_user_test.cpp
+           :  :  : <link>static
+         ]
+         [ run error_code_user_test.cpp
+           :  :  : <link>shared : error_code_user_test_shared
+         ]
+         [ run system_error_test.cpp
+           :  :  : <link>static
+         ]
+         [ run system_error_test.cpp
+            :  :  : <link>shared : system_error_test_shared
+         ]
+         [ run dynamic_link_test.cpp throw_test
+           :  :  : <link>shared : throw_test_shared
+         ]
+         [ run initialization_test.cpp
+            :  :  : <link>shared : initialization_test_shared
+         ]
+         [ run header_only_test.cpp
+           :  :  : <link>static
+         ]
+         ;

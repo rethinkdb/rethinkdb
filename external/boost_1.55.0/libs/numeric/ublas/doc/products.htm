@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Special Products</title>
+  <meta name="GENERATOR" content="Quanta Plus" />
+  <meta name="AUTHOR" content="Gunter Winkler" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+  <link rel="stylesheet" href="ublas.css" type="text/css" />
+  <script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+  <script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+  <link rel="stylesheet" type="text/css" href="doxygen.css" />
+</head>
+<body>
+
+<h1><img src="../../../../boost.png" align="middle" />Special Products </h1>
+<div class="toc" id="toc"></div>
+
+<h2>Functions</h2>
+
+<table summary="" border=0 cellpadding=0 cellspacing=0>
+<tr>
+<td class="memItemLeft" nowrap align=right valign=top>template&lt;class V, class E1, class E2&gt; BOOST_UBLAS_INLINE V &amp;&nbsp;</td>
+<td class="memItemRight" valign=bottom><a class="el" href="#ga8">axpy_prod</a> (const matrix_expression&lt; E1 &gt; &amp;e1, const vector_expression&lt; E2 &gt; &amp;e2, V &amp;v, bool init=true)</td></tr>
+
+<tr>
+<td class="mdescLeft">&nbsp;</td>
+<td class="mdescRight">computes <code>v += A x</code> or <code>v = A x</code> in an optimized fashion.  <a href="#ga8"></a><br /><br /></td></tr>
+<tr>
+<td class="memItemLeft" nowrap align=right valign=top>template&lt;class V, class E1, class E2&gt; BOOST_UBLAS_INLINE V &amp;&nbsp;</td>
+<td class="memItemRight" valign=bottom><a class="el" href="#ga9">axpy_prod</a> (const vector_expression&lt; E1 &gt; &amp;e1, const matrix_expression&lt; E2 &gt; &amp;e2, V &amp;v, bool init=true)</td></tr>
+
+<tr>
+<td class="mdescLeft">&nbsp;</td>
+<td class="mdescRight">computes <code>v += A<sup>T</sup> x</code> or <code>v = A<sup>T</sup> x</code> in an optimized fashion.  <a href="#ga9"></a><br /><br /></td></tr>
+<tr>
+<td class="memItemLeft" nowrap align=right valign=top>template&lt;class M, class E1, class E2&gt; BOOST_UBLAS_INLINE M &amp;&nbsp;</td>
+<td class="memItemRight" valign=bottom><a class="el" href="#ga7">axpy_prod</a> (const matrix_expression&lt; E1 &gt; &amp;e1, const matrix_expression&lt; E2 &gt; &amp;e2, M &amp;m, bool init=true)</td></tr>
+
+<tr>
+<td class="mdescLeft">&nbsp;</td>
+<td class="mdescRight">computes <code>M += A X</code> or <code>M = A X</code> in an optimized fashion.  <a href="#ga7"></a><br /><br /></td></tr>
+<tr>
+<td class="memItemLeft" nowrap align=right valign=top>template&lt;class M, class E1, class E2&gt; BOOST_UBLAS_INLINE M &amp;&nbsp;</td>
+<td class="memItemRight" valign=bottom><a class="el" href="#ga6">opb_prod</a> (const matrix_expression&lt; E1 &gt; &amp;e1, const matrix_expression&lt; E2 &gt; &amp;e2, M &amp;m, bool init=true)</td></tr>
+
+<tr>
+<td class="mdescLeft">&nbsp;</td>
+<td class="mdescRight">computes <code>M += A X</code> or <code>M = A X</code> in an optimized fashion.  <a href="#ga6"></a><br /><br /></td></tr>
+</table>
+
+<hr />
+
+<a class="anchor" name="ga8" doxytag="boost::numeric::ublas::axpy_prod" ></a>
+<table summary="" class="mdTable" width="95%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table summary="" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> BOOST_UBLAS_INLINE V&amp; axpy_prod           </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">const matrix_expression&lt; E1 &gt; &amp;&nbsp;</td>
+          <td class="mdname" nowrap> <em>e1</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>const vector_expression&lt; E2 &gt; &amp;&nbsp;</td>
+          <td class="mdname" nowrap> <em>e2</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>V &amp;&nbsp;</td>
+          <td class="mdname" nowrap> <em>v</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>bool&nbsp;</td>
+          <td class="mdname" nowrap> <em>init</em> = <code>true</code></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td class="md">)&nbsp;</td>
+          <td class="md" colspan="2"></td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table summary="" cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+computes <code>v += A x</code> or <code>v = A x</code> in an optimized fashion. 
+</p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table summary="" border="0" cellspacing="2" cellpadding="0">
+    <tr><td></td><td valign=top><em>e1</em>&nbsp;</td><td>the matrix expression <code>A</code> </td></tr>
+    <tr><td></td><td valign=top><em>e2</em>&nbsp;</td><td>the vector expression <code>x</code> </td></tr>
+    <tr><td></td><td valign=top><em>v</em>&nbsp;</td><td>the result vector <code>v</code> </td></tr>
+    <tr><td></td><td valign=top><em>init</em>&nbsp;</td><td>a boolean parameter</td></tr>
+  </table>
+</dl>
+<code>axpy_prod(A, x, v, init)</code> implements the well known axpy-product. Setting <em>init</em> to <code>true</code> is equivalent to call <code>v.clear()</code> before <code>axpy_prod</code>. Currently <em>init</em> defaults to <code>true</code>, but this may change in the future.<p>
+Up to now there are some specialisation for compressed matrices that give a large speed up compared to prod.    </td>
+  </tr>
+</table>
+
+
+<a class="anchor" name="ga9" doxytag="boost::numeric::ublas::axpy_prod" ></a>
+<table summary="" class="mdTable" width="95%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table summary="" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> BOOST_UBLAS_INLINE V&amp; axpy_prod           </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">const vector_expression&lt; E1 &gt; &amp;&nbsp;</td>
+          <td class="mdname" nowrap> <em>e1</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>const matrix_expression&lt; E2 &gt; &amp;&nbsp;</td>
+          <td class="mdname" nowrap> <em>e2</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>V &amp;&nbsp;</td>
+          <td class="mdname" nowrap> <em>v</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>bool&nbsp;</td>
+          <td class="mdname" nowrap> <em>init</em> = <code>true</code></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td class="md">)&nbsp;</td>
+          <td class="md" colspan="2"></td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table summary="" cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+computes <code>v += A<sup>T</sup> x</code> or <code>v = A<sup>T</sup> x</code> in an optimized fashion. 
+</p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table summary="" border="0" cellspacing="2" cellpadding="0">
+    <tr><td></td><td valign=top><em>e1</em>&nbsp;</td><td>the vector expression <code>x</code> </td></tr>
+    <tr><td></td><td valign=top><em>e2</em>&nbsp;</td><td>the matrix expression <code>A</code> </td></tr>
+    <tr><td></td><td valign=top><em>v</em>&nbsp;</td><td>the result vector <code>v</code> </td></tr>
+    <tr><td></td><td valign=top><em>init</em>&nbsp;</td><td>a boolean parameter</td></tr>
+  </table>
+</dl>
+<code>axpy_prod(x, A, v, init)</code> implements the well known axpy-product. Setting <em>init</em> to <code>true</code> is equivalent to call <code>v.clear()</code> before <code>axpy_prod</code>. Currently <em>init</em> defaults to <code>true</code>, but this may change in the future.<p>
+Up to now there are some specialisation for compressed matrices that give a large speed up compared to prod.    </td>
+  </tr>
+</table>
+
+<a class="anchor" name="ga7" doxytag="boost::numeric::ublas::axpy_prod" ></a>
+<table summary="" class="mdTable" width="95%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table summary="" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> BOOST_UBLAS_INLINE M&amp; axpy_prod           </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">const matrix_expression&lt; E1 &gt; &amp;&nbsp;</td>
+          <td class="mdname" nowrap> <em>e1</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>const matrix_expression&lt; E2 &gt; &amp;&nbsp;</td>
+          <td class="mdname" nowrap> <em>e2</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>M &amp;&nbsp;</td>
+          <td class="mdname" nowrap> <em>m</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>bool&nbsp;</td>
+          <td class="mdname" nowrap> <em>init</em> = <code>true</code></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td class="md">)&nbsp;</td>
+          <td class="md" colspan="2"></td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table summary="" cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+computes <code>M += A X</code> or <code>M = A X</code> in an optimized fashion. 
+</p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table summary="" border="0" cellspacing="2" cellpadding="0">
+    <tr><td></td><td valign=top><em>e1</em>&nbsp;</td><td>the matrix expression <code>A</code> </td></tr>
+    <tr><td></td><td valign=top><em>e2</em>&nbsp;</td><td>the matrix expression <code>X</code> </td></tr>
+    <tr><td></td><td valign=top><em>m</em>&nbsp;</td><td>the result matrix <code>M</code> </td></tr>
+    <tr><td></td><td valign=top><em>init</em>&nbsp;</td><td>a boolean parameter</td></tr>
+  </table>
+</dl>
+<code>axpy_prod(A, X, M, init)</code> implements the well known axpy-product. Setting <em>init</em> to <code>true</code> is equivalent to call <code>M.clear()</code> before <code>axpy_prod</code>. Currently <em>init</em> defaults to <code>true</code>, but this may change in the future.<p>
+Up to now there are no specialisations.    </td>
+  </tr>
+</table>
+
+<a class="anchor" name="ga6" doxytag="boost::numeric::ublas::opb_prod" ></a>
+
+<table summary="" class="mdTable" width="95%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table summary="" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> BOOST_UBLAS_INLINE M&amp; opb_prod           </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">const matrix_expression&lt; E1 &gt; &amp;&nbsp;</td>
+          <td class="mdname" nowrap> <em>e1</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>const matrix_expression&lt; E2 &gt; &amp;&nbsp;</td>
+          <td class="mdname" nowrap> <em>e2</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>M &amp;&nbsp;</td>
+          <td class="mdname" nowrap> <em>m</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>bool&nbsp;</td>
+          <td class="mdname" nowrap> <em>init</em> = <code>true</code></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td class="md">)&nbsp;</td>
+          <td class="md" colspan="2"></td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table summary="" cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+computes <code>M += A X</code> or <code>M = A X</code> in an optimized fashion. 
+</p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table summary="" border="0" cellspacing="2" cellpadding="0">
+    <tr><td></td><td valign=top><em>e1</em>&nbsp;</td><td>the matrix expression <code>A</code> </td></tr>
+    <tr><td></td><td valign=top><em>e2</em>&nbsp;</td><td>the matrix expression <code>X</code> </td></tr>
+    <tr><td></td><td valign=top><em>m</em>&nbsp;</td><td>the result matrix <code>M</code> </td></tr>
+    <tr><td></td><td valign=top><em>init</em>&nbsp;</td><td>a boolean parameter</td></tr>
+  </table>
+</dl>
+<code>opb_prod(A, X, M, init)</code> implements the well known axpy-product. Setting <em>init</em> to <code>true</code> is equivalent to call <code>M.clear()</code> before <code>opb_prod</code>. Currently <em>init</em> defaults to <code>true</code>, but this may change in the future.<p>
+This function may give a speedup if <code>A</code> has less columns than rows, because the product is computed as a sum of outer products.    </td>
+  </tr>
+</table>
+
+
+
+<hr />
+<p>Copyright (&copy;) 2000-2004 Michael Stevens, Mathias Koch, 
+Joerg Walter, Gunter Winkler<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

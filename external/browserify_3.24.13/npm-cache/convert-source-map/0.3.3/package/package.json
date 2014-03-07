@@ -1,0 +1,36 @@
+{
+  "name": "convert-source-map",
+  "version": "0.3.3",
+  "description": "Converts a source-map from/to  different formats and allows adding/changing properties.",
+  "main": "index.js",
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/thlorenz/convert-source-map.git"
+  },
+  "homepage": "https://github.com/thlorenz/convert-source-map",
+  "dependencies": {},
+  "devDependencies": {
+    "inline-source-map": "~0.3.0",
+    "tap": "~0.4.3"
+  },
+  "keywords": [
+    "convert",
+    "sourcemap",
+    "source",
+    "map",
+    "browser",
+    "debug"
+  ],
+  "author": {
+    "name": "Thorsten Lorenz",
+    "email": "thlorenz@gmx.de",
+    "url": "http://thlorenz.com"
+  },
+  "license": "MIT",
+  "engine": {
+    "node": ">=0.6"
+  }
+}

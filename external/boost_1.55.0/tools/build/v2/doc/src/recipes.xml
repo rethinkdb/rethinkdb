@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE appendix PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+  <!-- The file is empty. It's not clear if it will be needed in
+       future or FAQ completely supercedes it. -->
+
+  <appendix id="bbv2.recipies">
+    <title>Boost Build System V2 recipes</title>
+
+  </appendix>

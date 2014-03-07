@@ -1,0 +1,59 @@
+/*
+ *  Copyright 2000-2009 Michael Stevens, Mathias Koch, 
+ *  Joerg Walter, Gunter Winkler.
+ *
+ *  Use, modification and distribution are subject to the
+ *  Boost Software License, Version 1.0.
+ *  (See accompanying file LICENSE_1_0.txt
+ *  or copy at http://www.boost.org/LICENSE_1_0.txt).
+ */
+table {
+	border-width: medium;
+	background-color: #F8F8F8;
+	margin: 1em;
+}
+
+td {
+	padding-left: 0.5em;
+	padding-right: 0.5em;
+}
+
+th {
+	text-align: left;
+}
+
+pre.screen {
+	border: 1px solid #DCDCDC;
+	display: block;
+	font-size: 9pt;
+	margin: 1pc 4% 0;
+	padding: 0.5pc;
+}
+
+p.credit {
+	font-style: italic;
+}
+
+@media print {
+	div.toc { display: none; }
+}
+
+div.toc {
+	margin: 10px;
+	padding: 3px;
+}
+
+div#toc ul {
+	list-style: none;
+	margin: 1px;
+	padding-left: 1em;
+	margin-bottom: 0.25em;
+}
+
+div#toc ul li ul {
+	margin-bottom: 0.25em;
+}
+
+div#toc ul li ul li ul {
+	margin-bottom: 0.25em;
+}

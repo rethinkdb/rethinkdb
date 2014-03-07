@@ -1,0 +1,78 @@
+# (C) Copyright 2005: Eric Niebler
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# bring in rules for testing
+import testing ;
+import feature ;
+
+feature.feature iterator_debugging
+  : on off
+  : composite propagated optional
+  ;
+
+feature.compose <iterator_debugging>off
+  : <define>_HAS_ITERATOR_DEBUGGING=0
+  ;
+
+project
+    : requirements
+      <library>/boost/test//boost_unit_test_framework
+      <link>static
+      <include>../../..
+      <toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+      # MSVC's iterator debugging causes some tests to run forever.
+      <toolset>msvc:<iterator_debugging>off
+      <toolset>intel-win:<iterator_debugging>off
+    ;
+
+test-suite "accumulators"
+    : [ run count.cpp ]
+      [ run covariance.cpp ]
+      [ run droppable.cpp ]
+      [ run error_of.cpp ]
+      [ run extended_p_square.cpp ]
+      [ run extended_p_square_quantile.cpp ]
+      [ run external_accumulator.cpp ]
+      [ run external_weights.cpp ]
+      [ run kurtosis.cpp ]
+      [ run max.cpp ]
+      [ run mean.cpp ]
+      [ run median.cpp ]
+      [ run min.cpp ]
+      [ run moment.cpp ]
+      [ run pot_quantile.cpp ]
+      [ run p_square_cumul_dist.cpp ]
+      [ run p_square_quantile.cpp ]
+      [ run reference.cpp ]
+      [ run rolling_count.cpp ]
+      [ run rolling_sum.cpp ]
+      [ run rolling_mean.cpp ]
+      [ run skewness.cpp ]
+      [ run sum.cpp ]
+      [ run sum_kahan.cpp ]
+      [ run tail.cpp ]
+      [ run tail_mean.cpp ]
+      [ run tail_quantile.cpp ]
+      [ run tail_variate_means.cpp ]
+      [ run valarray.cpp ]
+      [ run variance.cpp ]
+      [ run vector.cpp ]
+      [ run weighted_covariance.cpp ]
+      [ run weighted_extended_p_square.cpp ]
+      [ run weighted_kurtosis.cpp ]
+      [ run weighted_mean.cpp ]
+      [ run weighted_median.cpp ]
+      [ run weighted_moment.cpp ]
+      [ run weighted_p_square_cumul_dist.cpp ]
+      [ run weighted_p_square_quantile.cpp ]
+      [ run weighted_skewness.cpp ]
+      [ run weighted_sum.cpp ]
+      [ run weighted_sum_kahan.cpp ]
+      [ run weighted_variance.cpp ]
+      [ run weighted_pot_quantile.cpp ]
+      [ run weighted_tail_mean.cpp ]
+      [ run weighted_tail_quantile.cpp ]
+      [ run weighted_tail_variate_means.cpp ]
+
+    ;

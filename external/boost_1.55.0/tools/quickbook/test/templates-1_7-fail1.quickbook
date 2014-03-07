@@ -1,0 +1,12 @@
+[article Template 1.7 fail
+[quickbook 1.7]
+]
+
+[/ This should fail because it's a phrase template containing a paragraph
+   separator. ]
+
+[template fail[] Phrase content.
+
+Paragraph content.]
+
+[fail]

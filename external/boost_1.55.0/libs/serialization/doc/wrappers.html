@@ -1,0 +1,213 @@
+﻿<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Serialization Wrappers</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Serialization Wrappers</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="page-index">
+  <dt><a href="#binaryobjects">Binary Objects</a>
+  <dt><a href="#arrays">Arrays</a>
+  <dt><a href="#strong_type"><code style="white-space: normal">BOOST_STRONG_TYPEDEF</code></a>
+  <dt><a href="#collection_size_type">Collection Sizes</a>
+  <dt><a href="#nvp">Name-Value Pairs</a>
+  <dt><a href="#composition">Composition</a>
+</dl>
+Sometimes it convenient to create a temporary object just to support serialization
+of some underlying data. This permits an archive class to define special
+handling of this type.  The library includes several such types for varying 
+purposes.
+<p>
+Wrappers need to be treated in a special way by some archives, and hence
+the <A href="traits.html#wrappers"><code>is_wrapper</code></a> trait for 
+these wrapper classes is set to true.
+
+<h3><a name="binaryobjects">Binary Objects</a></h3>
+A binary object is just an sequence of bytes stored as raw
+binary data.  This would most likely be used for a large amount
+of "light weight" data such as a pixel map or embedded binary file.
+The header file 
+<a href="../../../boost/serialization/binary_object.hpp" target="binary_object_hpp">
+binary_object.hpp
+</a>
+includes the constructors:
+<pre><code>
+boost::serialization::binary_object(void * t, size_t size);
+boost::serialization::make_binary_object(void * t, size_t size);
+</code></pre>
+which will construct a temporary binary object that can be serialized just like any other object.
+Its default serialization is to use archive class primitives 
+<code style="white-space: normal">save_binary</code> and <code>load_binary</code>.  
+Note that it doesn't allocated any storage or create any objects.
+Its sole purpose is to pass the data size and address as pair to the archive class.  
+
+
+<h3><a name="arrays">Arrays</a></h3>
+An array is a contiguous sequence of homogeneous data types, such as a builtin
+C-array, a <code>boost::array&lt;T></code> or a <code>std::vector&lt;T></code>. 
+The purpose of this wrapper is to support archive types (such as binary
+archives) that provide optimized serialization for contiguous sequences of 
+objects of the same type. 
+
+The header file 
+<a href="../../../boost/serialization/array.hpp" target="array_hpp">
+array.hpp
+</a>
+includes the function
+<pre><code>
+template &lt;T>
+boost::serialization::make_array(T* t, std::size_t size);
+</code></pre>
+which will construct a temporary <code>array</code> object
+<pre><code>
+template<class T>
+class array
+{
+public:    
+    typedef T value_type;
+    array(value_type* t, std::size_t s);
+    value_type* address() const;
+    std::size_t count() const;
+};
+</code></pre>
+that can be serialized just like any other object.
+Its default serialization is to use serialize each array element.  
+Note that it doesn't allocated any storage or create any objects.
+Its sole purpose is to pass the data type, size and address to the archive class.
+
+Archive types that can provide optimized implementations for contiguous
+arrays of homogeneous data types should overload the serialization of
+<code>array</code>.
+
+ 
+<h3><a name="strong_type"><code style="white-space: normal">BOOST_STRONG_TYPEDEF</code></h3>
+Another example of a serialization wrapper is the 
+<a href="strong_typedef.html"><code style="white-space: normal">BOOST_STRONG_TYPEDEF</code></a> template.
+The serialization libraries uses these to pass particular kinds of integers such
+as object_id, version, etc. to an archive class. Given that these integers
+are now distinguishable according to their type,  XML archives can apply
+special handling to these types.  For example, a version number is rendered
+as an XML attribute in the form "version=12".  In the absence of any specific override,
+these types are automatically converted to the underlying integer type so the
+special overrides used for XML archives aren't needed for other archives.
+
+
+
+<h3><a name="collection_size_type">Collection Sizes</h3>
+An example of a strong typedef is the <code>collection_size_type</code> in the
+header file
+<a href="../../../boost/serialization/collection_size_type.hpp" target="collection_size_type_hpp">
+collection_size_type.hpp
+</a>. This type should be used for serializaing the size of a C++ collection, so
+that the archive can pick the best integral representation for the serialization
+of collection sizes. This is necessary since, although <code>std::size_t</code>
+is guaranteed to be an integral type large enough to represent the size of
+a collection on a specific platform, the archive might want to serialize
+the size differently than this type. For example, the <code>collection_size_type</code>
+might be serialized as a variable length integer in a portable binary archive.
+
+
+
+
+
+
+<h3><a name="nvp">Name-Value Pairs</h3>
+XML archives present a somewhat special case. XML format has a nested
+structure that maps well to the "recursive class member visitor" pattern used
+by the serialization system.  However, XML differs from other formats
+in that it requires a name for each class data member.  Our goal is to
+add this information to the class serialization specification while
+still permiting the the serialization code to be used with any archive.
+<p>
+Our solution is to wrap class members to be serialized in a
+<strong>name-value-pair</strong>. This structure is defined in
+<a href="../../../boost/serialization/nvp.hpp" target="nvp_hpp">nvp.hpp</a>.
+It is just a reference to the data member coupled with a pointer to
+to a <code style="white-space: normal">const char *</code> which 
+corresponds to the XML name.  It implements the default
+serialization functions for a name-value pair.  This default
+action is to just ignore the item name and serialize the
+data value in the normal manner.  For archive classes that
+don't make any special provision for name-value pairs, this
+is the action which will be invoked when the name-value pair
+is serialized.  Hence, wrapping a data value into a name-value
+pair will have no effect when used with archives which
+make no special provision for this wrapper.
+<p>
+The xml archive classes contain code similar to:
+<pre><code>
+// special treatment for name-value pairs.
+template&lt;class T&gt;
+xml_oarchive & operator&(const boost::serialization::nvp<T> & t)
+{
+    // write an xml start tag
+    start_tag(t.name());
+
+    // serialize the data as usual
+    *this & t.value();
+
+    // write an xml end tag
+    end_tag(t.name());
+}
+</code></pre>
+The most obvious and convient name to assign to as the XML data item name
+is - surpise! - the name of the C++ class data member.  So our serialization
+code will look like:
+<pre><code>
+ar & make_nvp("my_variable", my_variable);
+</code></pre>
+To simplify typing and enhance readability a macro is defined so we can write:
+<pre><code>
+ar & BOOST_SERIALIZATION_NVP(my_variable);
+</code></pre>
+Similarly there exists a macro definition that permits us to write:
+<pre><code>
+BOOST_SERIALIZATION_BASE_OBJECT_NVP(my_base_class)
+</code></pre>
+
+Note that these macros must be used in the namespace of the class, 
+and without qualifying the namespace in the argument. 
+
+<p>
+<a href="../example/demo_gps.hpp" target="demo_gps_hpp">demo_gps.hpp<a>
+includes NVP wrappers or all data members.
+<a href="../example/demo_xml.cpp" target="demo_xml_cpp">demo_xml.cpp<a>
+saves and loads data to an XML archive.
+<a href="../example/demo_save.xml" target="demo_save_xml">Here</a>
+is example of the XML Archive corresponding to our tutorial example.
+
+<h3><a name="composition">Composition</h3>
+Wrappers should be designed so that they can be composed as necessary.
+For example, to pass binary data as a name value pair use:
+<pre><code>
+ar & make_nvp("named_binary_object", make_binary_object(address, size));
+</code></pre>
+</html>
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>
+

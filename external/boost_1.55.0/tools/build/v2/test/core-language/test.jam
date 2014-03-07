@@ -1,0 +1,1400 @@
+# Copyright 2011 Steven Watanabe.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# Tools
+
+passed = 0 ;
+failed = 0 ;
+
+rule show-result ( id : test-result )
+{
+    if ! ( --quiet in $(ARGV) )
+    {
+        ECHO $(test-result): $(id) ;
+    }
+    $(test-result) = [ CALC $($(test-result)) + 1 ] ;
+}
+
+rule check-equal ( id : values * : expected * )
+{
+    local test-result ;
+    if x$(values) = x$(expected)
+    {
+        test-result = passed ;
+    }
+    else
+    {
+        ECHO error: "[" $(values) "] != [" $(expected) "]" ;
+        test-result = failed ;
+    }
+    show-result $(id) : $(test-result) ;
+}
+
+rule mark-order ( id : result * )
+{
+    order += $(id) ;
+    return $(result) ;
+}
+
+rule check-order ( id : expected * )
+{
+    check-equal $(id) : $(order) : $(expected) ;
+    order = ;
+}
+
+# Check variable expansion
+
+{
+
+local v1 = 1 2 3 ;
+local v2 = 4 5 6 ;
+local v3 = 0 1 2 3 4 5 6 7 8 9 10 ;
+local g = g1 g2 ;
+local v4 = String/With/Mixed/Case ;
+local v5 = path\\with\\backslashes ;
+local v6 = <grist>generic/path.txt(member.txt) ;
+local v7 = <Grist1>Dir1/File1.cpp(M1.c) <Grist2>Dir2/File2.hpp(M2.c) ;
+local v8 = <Grist3>Dir3/File3.c(M3.c) <Grist4>Dir4/File4.h(M4.c) ;
+local select1 = GU BL DBST ;
+local case1 = L U ;
+local vars = 7 8 ;
+local sub = 2 1 ;
+local p0 = name ;
+local p1 = dir/name ;
+local p2 = dir/sub/name ;
+local j1 = , - ;
+
+check-equal var-product : $(v1)$(v2) : 14 15 16 24 25 26 34 35 36 ;
+
+check-equal var-set-grist : $(v1:G=grist) : <grist>1 <grist>2 <grist>3 ;
+check-equal var-set-grist-multi : $(v1:G=$(g)) : <g1>1 <g1>2 <g1>3 <g2>1 <g2>2 <g2>3 ;
+
+check-equal var-lower : $(v4:L) : string/with/mixed/case ;
+check-equal var-upper : $(v4:U) : STRING/WITH/MIXED/CASE ;
+check-equal var-LU : $(v4:LU) : STRING/WITH/MIXED/CASE ;
+check-equal var-slashes : $(v5:T) : path/with/backslashes ;
+check-equal var-grist : $(v6:G) : <grist> ;
+check-equal var-grist-none : $(v1:G) : "" "" "" ;
+check-equal var-base : $(v6:B) : path ;
+check-equal var-suffix : $(v6:S) : .txt ;
+check-equal var-dir : $(v6:D) : generic ;
+check-equal var-member : $(v6:M) : (member.txt) ;
+check-equal var-multi : $(v6:$(select1)) : <GRIST> path generic/path.txt ;
+
+check-equal var-join-0 : $(:J=,) : ;
+check-equal var-join-1 : $(p0:J=,) : name ;
+check-equal var-join-3 : $(v1:J=,) : 1,2,3 ;
+check-equal var-set-grist-join : $(v1:G=grist:J=,) : <grist>1,<grist>2,<grist>3 ;
+# behavior change.  In the past, a J= modifier would
+# cause only the last element of the other modifiers
+# to take effect.
+check-equal var-set-grist-multi-join : $(v1:G=$(g):J=,) : <g1>1,<g1>2,<g1>3 <g2>1,<g2>2,<g2>3 ;
+check-equal var-set-grist-multi-join-multi : $(v1:G=$(g):J=$(j1)) : <g1>1,<g1>2,<g1>3 <g1>1-<g1>2-<g1>3 <g2>1,<g2>2,<g2>3 <g2>1-<g2>2-<g2>3 ;
+
+check-equal var-D=-0 : name : $(p0:D=) ;
+check-equal var-D=-1 : name : $(p1:D=) ;
+check-equal var-D=-2 : name : $(p2:D=) ;
+check-equal var-D-0 : "" : $(p0:D) ;
+check-equal var-D-1 : dir : $(p1:D) ;
+check-equal var-D-2 : dir/sub : $(p2:D) ;
+check-equal var-S-1 : "" : $(p0:S) ;
+check-equal var-no-at-file-0 : ($(p0)) : [ MATCH ^@(.*) : "@($(p0))" ] ;
+check-equal var-no-at-file-1 : ($(p0)) : [ MATCH @(.*) : "--@($(p0))" ] ;
+
+if $(OS) = CYGWIN
+{
+    local cyg-root = $(:WE=/) ;
+    local cyg1 = /cygdrive/c/path1.txt ;
+    check-equal cygwin-to-cygdrive : $(cyg1:W) : C:\\path1.txt ;
+    local cyg2 = /bin/bash ;
+    check-equal cygwin-to-windows : $(cyg2:W) : $(cyg-root)\\bin\\bash ;
+    check-equal cygwin-combine-WT : $(cyg2:WT) : $(cyg-root)\\bin\\bash ;
+
+    local cyg3 = /home/boost/devel/trunk/bin.v2/ ; # exactly 31 characters
+    local win3 = $(cyg-root)\\home\\boost\\devel\\trunk\\bin.v2\\ ;
+    # This is is the easiest way to demonstrate a bug
+    # that used to cause undefined behavior.  Longer paths
+    # resulted in a use-after-free error, which happened
+    # to work most of the time.
+    check-equal cygwin-long-WU : $(cyg3:WU) : $(win3:U) ;
+
+    local cyg-grist = <grist>$(cyg1) ;
+    check-equal cygwin-grist : $(cyg-grist:W) : <grist>\\cygdrive\\c\\path1.txt ;
+
+    check-equal cygwin-WU : $(cyg2:WU) : $(cyg-root:U)\\BIN\\BASH ;
+    # behavior change: L now consistently applied after W.
+    # used to affect all except the drive letter.
+    check-equal cygwin-WL : $(cyg2:WL) : $(cyg-root:L)\\bin\\bash ;
+}
+
+# behavior change
+check-equal var-test1 : $(v7[2]:G:L) : <grist2> ;
+
+check-equal var-multi-product-smm : $(v$(vars)[$(sub)]:G=$(g):$(case1)) :
+    <g1>dir2/file2.hpp(m2.c) <G1>DIR2/FILE2.HPP(M2.C)
+    <g2>dir2/file2.hpp(m2.c) <G2>DIR2/FILE2.HPP(M2.C)
+    <g1>dir1/file1.cpp(m1.c) <G1>DIR1/FILE1.CPP(M1.C)
+    <g2>dir1/file1.cpp(m1.c) <G2>DIR1/FILE1.CPP(M1.C)
+    <g1>dir4/file4.h(m4.c) <G1>DIR4/FILE4.H(M4.C)
+    <g2>dir4/file4.h(m4.c) <G2>DIR4/FILE4.H(M4.C)
+    <g1>dir3/file3.c(m3.c) <G1>DIR3/FILE3.C(M3.C)
+    <g2>dir3/file3.c(m3.c) <G2>DIR3/FILE3.C(M3.C)
+;
+check-equal var-nopathmods : $(:E=//) : // ;
+
+# showcases all the idiosyncracies of indexing
+# key: h = high, l = low, p = positive, m = minus, e = end.
+
+check-equal var-subscript-one-p : $(v3[3]) : 2 ;
+check-equal var-subscript-one-m : $(v3[-3]) : 8 ;
+check-equal var-subscript-one-0 : $(v3[0]) : 0 ;
+check-equal var-subscript-one-h : $(v3[20]) : ;
+check-equal var-subscript-one-l : $(v3[-20]) : 0 ;
+check-equal var-subscript-range-pp : $(v3[2-4]) : 1 2 3 ;
+check-equal var-subscript-range-pm : $(v3[2--3]) : 1 2 3 4 5 6 7 8 ;
+check-equal var-subscript-range-pe : $(v3[2-]) : 1 2 3 4 5 6 7 8 9 10 ;
+check-equal var-subscript-range-ph : $(v3[2-20]) : 1 2 3 4 5 6 7 8 9 10 ;
+check-equal var-subscript-range-pl : $(v3[2--20]) : ;
+check-equal var-subscript-range-mp : $(v3[-3-10]) : 8 9 ;
+check-equal var-subscript-range-mm : $(v3[-4--2]) : 7 8 9 ;
+check-equal var-subscript-range-me : $(v3[-4-]) : 7 8 9 10 ;
+check-equal var-subscript-range-mh : $(v3[-4-20]) : 7 8 9 10 ;
+check-equal var-subscript-range-mh : $(v3[-4--20]) : ;
+check-equal var-subscript-range-0p : $(v3[0-2]) : 0 1 2 ;
+check-equal var-subscript-range-0m : $(v3[0--4]) : 0 1 2 3 4 5 6 7 8 ;
+check-equal var-subscript-range-0e : $(v3[0-]) : 0 1 2 3 4 5 6 7 8 9 10 ;
+check-equal var-subscript-range-0h : $(v3[0-20]) : 0 1 2 3 4 5 6 7 8 9 10 ;
+check-equal var-subscript-range-0l : $(v3[0--20]) : ;
+check-equal var-subscript-range-hp : $(v3[20-4]) : ;
+check-equal var-subscript-range-hm : $(v3[20--4]) : ;
+check-equal var-subscript-range-he : $(v3[20-]) : ;
+check-equal var-subscript-range-hh : $(v3[20-20]) : ;
+check-equal var-subscript-range-hl : $(v3[20--20]) : ;
+check-equal var-subscript-range-lp : $(v3[-13-4]) : 0 1 2 3 4 5 ;
+check-equal var-subscript-range-lm : $(v3[-13--4]) : 0 1 2 3 4 5 6 7 8 9 ;
+check-equal var-subscript-range-le : $(v3[-13-]) : 0 1 2 3 4 5 6 7 8 9 10 ;
+check-equal var-subscript-range-lh : $(v3[-13-20]) : 0 1 2 3 4 5 6 7 8 9 10 ;
+check-equal var-subscript-range-ll : $(v3[-13--13]) : 0 ;
+check-equal var-subscript-range-empty : $(v3[4-3]) : ;
+
+}
+
+# Check rules
+
+{
+
+rule test-rule
+{
+    return $(<) - $(>) - $(1) - $(2) - $(3) - $(4) - $(5) - $(6) - $(7) - $(8) - $(9) - $(10) - $(11) - $(12) - $(13) - $(14) - $(15) - $(16) - $(17) - $(18) - $(19) ;
+}
+
+check-equal rule-arguments-numbered :
+    [ test-rule a1 : a2 : a3 : a4 : a5 : a6 : a7 : a8 : a9 : a10 : a11 : a12 : a13 : a14 : a15 : a16 : a17 : a18 : a19 ] :
+    a1 - a2 - a1 - a2 - a3 - a4 - a5 - a6 - a7 - a8 - a9 - a10 - a11 - a12 - a13 - a14 - a15 - a16 - a17 - a18 - a19 ;
+
+rule test-rule
+{
+    return $(<:L) - $(>:L) - $(1:L) - $(2:L) - $(3:L) - $(4:L) - $(5:L) - $(6:L) - $(7:L) - $(8:L) - $(9:L) - $(10:L) - $(11:L) - $(12:L) - $(13:L) - $(14:L) - $(15:L) - $(16:L) - $(17:L) - $(18:L) - $(19:L) ;
+}
+
+# behavior change
+check-equal rule-arguments-numbered-lower :
+    [ test-rule a1 : a2 : a3 : a4 : a5 : a6 : a7 : a8 : a9 : a10 : a11 : a12 : a13 : a14 : a15 : a16 : a17 : a18 : a19 ] :
+    a1 - a2 - a1 - a2 - a3 - a4 - a5 - a6 - a7 - a8 - a9 - a10 - a11 - a12 - a13 - a14 - a15 - a16 - a17 - a18 - a19 ;
+
+
+rule test-rule ( p1 : p2 : p3 : p4 : p5 : p6 : p7 : p8 : p9 :
+                         p10 : p11 : p12 : p13 : p14 : p15 : p16 : p17 : p18 : p19 )
+
+
+{
+    return $(p1) - $(p2) - $(p3) - $(p4) - $(p5) - $(p6) - $(p7) - $(p8) - $(p9) - $(p10) - $(p11) - $(p12) - $(p13) - $(p14) - $(p15) - $(p16) - $(p17) - $(p18) - $(p19) ;
+}
+
+check-equal rule-arguments-named :
+    [ test-rule a1 : a2 : a3 : a4 : a5 : a6 : a7 : a8 : a9 : a10 : a11 : a12 : a13 : a14 : a15 : a16 : a17 : a18 : a19 ] :
+    a1 - a2 - a3 - a4 - a5 - a6 - a7 - a8 - a9 - a10 - a11 - a12 - a13 - a14 - a15 - a16 - a17 - a18 - a19 ;
+
+#
+# test rule indirection
+#
+rule select ( n list * )
+{
+    return $(list[$(n)]) ;
+}
+
+rule indirect1 ( rule + : args * )
+{
+    return [ $(rule) $(args) ] ;
+}
+
+check-equal rule-indirect-1 : [ indirect1 select 1 : a b c d e ] : a ;
+check-equal rule-indirect-2 : [ indirect1 select 2 : a b c d e ] : b ;
+
+x = reset ;
+rule reset-x ( new-value )
+{
+    x = $(new-value) ;
+}
+$(x)-x bar ;                          # invokes reset-x...
+check-equal rule-reset : $(x) : bar ; # which changes x
+
+rule bar-x ( new-value )
+{
+    mark-order r3 ;
+}
+
+# The arguments are evaluated in forward order
+# before the rule name
+$(x)-x [ mark-order r1 : [ reset-x reset ] ] : [ mark-order r2 ] ;
+check-order rule-order : r1 r2 ;
+
+# Cases that look like member calls
+rule looks.like-a-member ( args * )
+{
+    return $(args) ;
+}
+
+rule call-non-member ( rule + )
+{
+    return [ $(rule).like-a-member ] ;
+}
+
+rule call-non-member-with-args ( rule + )
+{
+    return [ $(rule).like-a-member a2 ] ;
+}
+
+check-equal rule-non-member : [ call-non-member looks ] : ;
+#check-equal rule-non-member-a1 : [ call-non-member looks a1 ] : looks.a1 ;
+check-equal rule-non-member-args : [ call-non-member-with-args looks ] : a2 ;
+#check-equal rule-non-member-args-a1 : [ call-non-member-with-args looks a1 ] : looks.a1 a2 ;
+
+}
+
+# Check append
+
+{
+
+local value = [ mark-order r1 : v1 v2 ] [ mark-order r2 : v3 v4 ] ;
+check-equal append : $(value) : v1 v2 v3 v4 ;
+check-order append-order : r1 r2 ;
+
+}
+
+# Check foreach
+
+{
+
+local v1 = 1 2 3 ;
+local x = old ;
+local result ;
+
+for local x in $(v1)
+{
+    result += $(x) + ;
+}
+
+check-equal foreach-local-item : $(result) : 1 + 2 + 3 + ;
+check-equal foreach-local : $(x) : old ;
+
+result = ;
+
+for x in $(v1)
+{
+    result += $(x) + ;
+}
+
+check-equal foreach-nonlocal-item : $(result) : 1 + 2 + 3 + ;
+check-equal foreach-nonlocal : $(x) : 3 ;
+
+rule call-foreach ( values * )
+{
+    for local x in $(values)
+    {
+        return $(x) ;
+    }
+}
+
+check-equal foreach-result : [ call-foreach 1 2 3 ] : ;
+
+result = ;
+local varname = x ;
+x = old ;
+
+for local $(varname) in $(v1)
+{
+    result += $(x) + ;
+}
+
+check-equal foreach-no-expand : $(result) : old + old + old + ;
+
+result = ;
+
+for local v1 in $(v1)
+{
+   result += $(v1) + ;
+}
+
+check-equal foreach-order : $(result) : 1 + 2 + 3 + ;
+
+}
+
+# Check if
+
+{
+
+if true
+{
+    mark-order r1 ;
+}
+
+check-order if-true : r1 ;
+
+if $(false)
+{
+    mark-order r1 ;
+}
+
+check-order if-false : ;
+
+if true
+{
+    mark-order r1 ;
+}
+else
+{
+    mark-order r2 ;
+}
+
+check-order if-else-true : r1 ;
+
+if $(false)
+{
+    mark-order r1 ;
+}
+else
+{
+    mark-order r2 ;
+}
+
+check-order if-else-false : r2 ;
+
+rule test-rule
+{
+    if true
+    {
+        return result ;
+    }
+}
+
+check-equal if-true-result : [ test-rule ] : result ;
+
+rule test-rule
+{
+    local idx  = 1 2 ;
+    local values = true ;
+    while $(idx)
+    {
+        local v = $(values[$(idx[1])]) ;
+        idx = $(idx[2-]) ;
+        if $(v)
+        {
+            return result ;
+        }
+    }
+}
+
+check-equal if-false-result : [ test-rule ] : ;
+
+rule test-rule
+{
+    if true
+    {
+        return r1 ;
+    }
+    else
+    {
+        return r2 ;
+    }
+}
+
+check-equal if-else-true-result : [ test-rule ] : r1 ;
+
+rule test-rule
+{
+    if $(false)
+    {
+        return r1 ;
+    }
+    else
+    {
+        return r2 ;
+    }
+}
+
+check-equal if-else-false-result : [ test-rule ] : r2 ;
+
+}
+
+# Check the evaluation of conditions
+
+{
+
+local test-result ;
+local v1 = "" "" "" ;
+local v2 = ;
+local v3 = a b c ;
+local v4 = a b c d ;
+local v5 = a b d ;
+local v6 = "" "" "" d ;
+
+rule test-comparison ( id : equal less greater )
+{
+    check-equal $(id)-empty-1 : [ eval-$(id) $(v1) : $(v2) ] : $(equal) ;
+    check-equal $(id)-empty-2 : [ eval-$(id) $(v1) : $(v2) ] : $(equal) ;
+    check-equal $(id)-equal : [ eval-$(id) $(v3) : $(v3) ] : $(equal) ;
+    check-equal $(id)-less-1 : [ eval-$(id) $(v3) : $(v4) ] : $(less) ;
+    check-equal $(id)-less-2 : [ eval-$(id) $(v3) : $(v5) ] : $(less) ;
+    check-equal $(id)-less-3 : [ eval-$(id) $(v4) : $(v5) ] : $(less) ;
+    check-equal $(id)-greater-1 : [ eval-$(id) $(v4) : $(v3) ] : $(greater) ;
+    check-equal $(id)-greater-2 : [ eval-$(id) $(v5) : $(v3) ] : $(greater) ;
+    check-equal $(id)-greater-3 : [ eval-$(id) $(v5) : $(v4) ] : $(greater) ;
+}
+
+rule eval-lt ( lhs * : rhs * )
+{
+    if $(lhs) < $(rhs) { return true ; }
+    else { return false ; }
+}
+
+test-comparison lt : false true false ;
+
+rule eval-gt ( lhs * : rhs * )
+{
+    if $(lhs) > $(rhs) { return true ; }
+    else { return false ; }
+}
+
+test-comparison gt : false false true ;
+
+rule eval-le ( lhs * : rhs * )
+{
+    if $(lhs) <= $(rhs) { return true ; }
+    else { return false ; }
+}
+
+test-comparison le : true true false ;
+
+rule eval-ge ( lhs * : rhs * )
+{
+    if $(lhs) >= $(rhs) { return true ; }
+    else { return false ; }
+}
+
+test-comparison ge : true false true ;
+
+rule eval-eq ( lhs * : rhs * )
+{
+    if $(lhs) = $(rhs) { return true ; }
+    else { return false ; }
+}
+
+test-comparison eq : true false false ;
+
+rule eval-ne ( lhs * : rhs * )
+{
+    if $(lhs) != $(rhs) { return true ; }
+    else { return false ; }
+}
+
+test-comparison ne : false true true ;
+
+rule eval-not-lt ( lhs * : rhs * )
+{
+    if ! ( $(lhs) < $(rhs) ) { return true ; }
+    else { return false ; }
+}
+
+test-comparison not-lt : true false true ;
+
+rule eval-not-gt ( lhs * : rhs * )
+{
+    if ! ( $(lhs) > $(rhs) ) { return true ; }
+    else { return false ; }
+}
+
+test-comparison not-gt : true true false ;
+
+rule eval-not-le ( lhs * : rhs * )
+{
+    if ! ( $(lhs) <= $(rhs) ) { return true ; }
+    else { return false ; }
+}
+
+test-comparison not-le : false false true ;
+
+rule eval-not-ge ( lhs * : rhs * )
+{
+    if ! ( $(lhs) >= $(rhs) ) { return true ; }
+    else { return false ; }
+}
+
+test-comparison not-ge : false true false ;
+
+rule eval-not-eq ( lhs * : rhs * )
+{
+    if ! ( $(lhs) = $(rhs) ) { return true ; }
+    else { return false ; }
+}
+
+test-comparison not-eq : false true true ;
+
+rule eval-not-ne ( lhs * : rhs * )
+{
+    if ! ( $(lhs) != $(rhs) )  { return true ; }
+    else { return false ; }
+}
+
+test-comparison not-ne : true false false ;
+
+local v7 = a a a a a a ;
+local v8 = c b ;
+local v9 = c d b ;
+local v10 = c a b c c b a a a ;
+
+rule test-in ( id : subset not-subset )
+{
+    check-equal $(id)-0-0 : [ eval-$(id) $(v2) : $(v2) ] : $(subset) ;
+    check-equal $(id)-0-empty : [ eval-$(id) $(v2) : $(v1) ] : $(subset) ;
+    check-equal $(id)-empty-0 : [ eval-$(id) $(v1) : $(v2) ] : $(not-subset) ;
+    check-equal $(id)-equal : [ eval-$(id) $(v3) : $(v3) ] : $(subset) ;
+    check-equal $(id)-simple : [ eval-$(id) $(v3) : $(v4) ] : $(subset) ;
+    check-equal $(id)-extra : [ eval-$(id) $(v4) : $(v3) ] : $(not-subset) ;
+    check-equal $(id)-multiple : [ eval-$(id) $(v7) : $(v3) ] : $(subset) ;
+    check-equal $(id)-unordered : [ eval-$(id) $(v8) : $(v3) ] : $(subset) ;
+    check-equal $(id)-unordered-extra : [ eval-$(id) $(v9) : $(v3) ] : $(not-subset) ;
+    check-equal $(id)-unordered-multiple : [ eval-$(id) $(v10) : $(v3) ] : $(subset) ;
+}
+
+rule eval-in ( lhs * : rhs * )
+{
+    if $(lhs) in $(rhs) { return true ; }
+    else { return false ; }
+}
+
+test-in "in" : true false ;
+
+rule eval-not-in ( lhs * : rhs * )
+{
+    if ! ( $(lhs) in $(rhs) ) { return true ; }
+    else { return false ; }
+}
+
+test-in not-in : false true ;
+
+rule test-truth-table ( id : tt tf ft ff )
+{
+    check-equal $(id)-tt : [ eval-$(id) 1 : 1 ] : $(tt) ;
+    check-equal $(id)-tf : [ eval-$(id) 1 : ] : $(tf) ;
+    check-equal $(id)-ft : [ eval-$(id) : 1 ] : $(ft) ;
+    check-equal $(id)-ff : [ eval-$(id) : ] : $(ff) ;
+}
+
+rule eval-and ( lhs ? : rhs ? )
+{
+    if $(lhs) && $(rhs) { return true ; }
+    else { return false ; }
+}
+
+test-truth-table and : true false false false ;
+
+rule eval-or ( lhs ? : rhs ? )
+{
+    if $(lhs) || $(rhs) { return true ; }
+    else { return false ; }
+}
+
+test-truth-table or : true true true false ;
+
+rule eval-not-and ( lhs ? : rhs ? )
+{
+    if ! ( $(lhs) && $(rhs) ) { return true ; }
+    else { return false ; }
+}
+
+test-truth-table not-and : false true true true ;
+
+rule eval-not-or ( lhs ? : rhs ? )
+{
+    if ! ( $(lhs) || $(rhs) ) { return true ; }
+    else { return false ; }
+}
+
+test-truth-table not-or : false false false true ;
+
+if [ mark-order r1 : test1 ] < [ mark-order r2 : test2 ] { }
+check-order lt-order : r1 r2 ;
+if [ mark-order r1 : test1 ] > [ mark-order r2 : test2 ] { }
+check-order gt-order : r1 r2 ;
+if [ mark-order r1 : test1 ] <= [ mark-order r2 : test2 ] { }
+check-order le-order : r1 r2 ;
+if [ mark-order r1 : test1 ] >= [ mark-order r2 : test2 ] { }
+check-order ge-order : r1 r2 ;
+if [ mark-order r1 : test1 ] = [ mark-order r2 : test2 ] { }
+check-order eq-order : r1 r2 ;
+if [ mark-order r1 : test1 ] != [ mark-order r2 : test2 ] { }
+check-order ne-order : r1 r2 ;
+if [ mark-order r1 : test1 ] in [ mark-order r2 : test2 ] { }
+check-order in-order : r1 r2 ;
+
+if [ mark-order r1 : test1 ] && [ mark-order r2 : test2 ] { }
+check-order and-order : r1 r2 ;
+if [ mark-order r1 ] && [ mark-order r2 : test2 ] { }
+check-order and-order-short-circuit : r1 ;
+
+if [ mark-order r1 ] || [ mark-order r2 : test2 ] { }
+check-order or-order : r1 r2 ;
+if [ mark-order r1 : test1 ] || [ mark-order r2 : test2 ] { }
+check-order or-order-short-circuit : r1 ;
+
+}
+
+# Check include
+
+{
+#FIXME:
+# plain include
+# include in module
+# include returns an empty list
+# rule arguments are available inside include
+}
+
+# Check local
+
+{
+
+local v1 = a b c ;
+local v2 = f g h ;
+
+{
+    local v1 ;
+    check-equal local-no-init : $(v1) : ;
+}
+
+check-equal local-restore : $(v1) : a b c ;
+
+{
+    local v1 = d e f ;
+    check-equal local-init : $(v1) : d e f ;
+}
+
+check-equal local-restore-init : $(v1) : a b c ;
+
+{
+    local v1 v2 ;
+    check-equal local-multiple-no-init : $(v1) - $(v2) : - ;
+}
+
+check-equal local-multiple-restore : $(v1) - $(v2) : a b c - f g h ;
+
+{
+    local v1 v2 = d e f ;
+    check-equal local-multiple-init : $(v1) - $(v2) : d e f - d e f ;
+}
+
+{
+    local v1 v1 = d e f ;
+    check-equal local-duplicate : $(v1) - $(v1) : d e f - d e f ;
+}
+
+check-equal local-duplicate-restore : $(v1) : a b c ;
+
+{
+    local [ mark-order r1 : v1 ] = [ mark-order r2 : d e f ] ;
+    check-order local-order : r1 r2 ;
+}
+
+}
+
+# Check module
+
+{
+    local var1 = root-module-var ;
+    module my_module
+    {
+        var1 = module-var ;
+        rule get ( )
+        {
+            return $(var1) ;
+        }
+        local rule not_really ( ) { return nothing ; }
+    }
+
+    check-equal module-var-not-root : $(var1) : root-module-var ;
+
+    check-equal module-rulenames : [ RULENAMES my_module ] : get ;
+
+    IMPORT_MODULE my_module ;
+    check-equal module-rule-import-module : [ my_module.get ] : module-var ;
+
+    IMPORT my_module : get : : module-get ;
+    check-equal module-rule-imort : [ module-get ] : module-var ;
+
+    IMPORT my_module : get : : module-get : LOCALIZE ;
+    check-equal module-rule-imort-localize : [ module-get ] : root-module-var ;
+
+}
+
+# Check class
+{
+#FIXME:
+# ...
+}
+
+# Check on
+
+{
+
+local target1 = test-on-target1 ;
+local target2 = test-on-target2 ;
+local targets = $(target1) $(target2) ;
+local v1 v2 v3 ;
+
+VAR on $(target1) = value1 ;
+V2 on $(target2) = value2 ;
+
+check-equal on-return : [ on $(target1) return $(VAR) ] : value1 ;
+
+rule test-rule
+{
+    return $(VAR) ;
+}
+
+check-equal on-rule : [ on $(target1) test-rule ] : value1 ;
+
+check-equal on-multiple : [ on $(targets) return $(V2) ] : ;
+
+rule test-rule
+{
+    on $(target1)
+    {
+        return $(VAR) ;
+    }
+}
+
+check-equal on-block : [ test-rule ] : value1 ;
+
+# FIXME: crazy implementation artifacts:
+
+v1 on test-on-target3 = x1 ;
+on test-on-target3
+{
+    v1 on test-on-target3 += x1 ;
+    v1 = y1 ;
+    v2 on test-on-target3 += x2 ;
+    v2 = y2 ;
+    v3 = y3 ;
+}
+
+check-equal on-swap-old1 : $(v1) : x1 ;
+check-equal on-swap-old2 : [ on test-on-target3 return $(v1) ] : y1 ;
+check-equal on-swap-new1 : $(v2) : x2 ;
+check-equal on-swap-new2 : [ on test-on-target3 return $(v2) ] : y2 ;
+check-equal on-no-swap : $(v3) : y3 ;
+
+}
+
+# Check rule
+
+{
+#FIXME:
+# argument order
+# expand rule name
+}
+
+# Check rules
+
+{
+#FIXME:
+}
+
+# Check set
+
+{
+local v1 ;
+local v2 ;
+local v3 ;
+local vars = v1 v2 v3 ;
+
+v1 = x1 ;
+check-equal set-set-empty : $(v1) : x1 ;
+v2 += x2 ;
+check-equal set-append-empty : $(v2) : x2 ;
+v3 ?= x3 ;
+check-equal set-default-empty : $(v3) : x3 ;
+
+v1 = y1 ;
+check-equal set-set-non-empty : $(v1) : y1 ;
+v2 += y2 ;
+check-equal set-append-non-empty : $(v2) : x2 y2 ;
+v3 ?= y3 ;
+check-equal set-default-non-empty : $(v3) : x3 ;
+
+v1 = ;
+v2 = ;
+v3 = ;
+$(vars) = z ;
+check-equal set-set-empty-group : $(v1) - $(v2) - $(v3) : z - z - z ;
+
+v1 = ;
+v2 = ;
+v3 = ;
+$(vars) += z ;
+check-equal set-append-empty-group : $(v1) - $(v2) - $(v3) : z - z - z ;
+
+v1 = ;
+v2 = ;
+v3 = ;
+$(vars) ?= z ;
+check-equal set-default-empty-group : $(v1) - $(v2) - $(v3) : z - z - z ;
+
+v1 = x1 ;
+v2 = x2 ;
+v3 = x3 ;
+$(vars) = z ;
+check-equal set-set-non-empty-group : $(v1) - $(v2) - $(v3) : z - z - z ;
+
+v1 = x1 ;
+v2 = x2 ;
+v3 = x3 ;
+$(vars) += z ;
+check-equal set-append-non-empty-group : $(v1) - $(v2) - $(v3) : x1 z - x2 z - x3 z ;
+
+v1 = x1 ;
+v2 = x2 ;
+v3 = x3 ;
+$(vars) ?= z ;
+check-equal set-default-non-empty-group : $(v1) - $(v2) - $(v3) : x1 - x2 - x3 ;
+
+v1 = x1 ;
+v2 = ;
+v3 = x3 ;
+$(vars) = z ;
+check-equal set-set-mixed-group : $(v1) - $(v2) - $(v3) : z - z - z ;
+
+v1 = x1 ;
+v2 = ;
+v3 = x3 ;
+$(vars) += z ;
+check-equal set-append-mixed-group : $(v1) - $(v2) - $(v3) : x1 z - z - x3 z ;
+
+v1 = x1 ;
+v2 = ;
+v3 = x3 ;
+$(vars) ?= z ;
+check-equal set-default-mixed-group : $(v1) - $(v2) - $(v3) : x1 - z - x3 ;
+
+vars = v1 v1 ;
+
+v1 = ;
+$(vars) = z ;
+check-equal set-set-duplicate-empty : $(v1) : z ;
+v1 = ;
+$(vars) += z ;
+check-equal set-append-duplicate-empty : $(v1) : z z ;
+v1 = ;
+$(vars) ?= z ;
+check-equal set-default-duplicate-empty : $(v1) : z ;
+
+v1 = x1 ;
+$(vars) = z ;
+check-equal set-set-duplicate-non-empty : $(v1) : z ;
+v1 = x1 ;
+$(vars) += z ;
+check-equal set-append-duplicate-non-empty : $(v1) : x1 z z ;
+v1 = x1 ;
+$(vars) ?= z ;
+check-equal set-default-duplicate-non-empty : $(v1) : x1 ;
+
+rule test-rule { v1 = x1 ; }
+check-equal set-set-result : [ test-rule ] : x1 ;
+rule test-rule { v1 += x1 ; }
+check-equal set-append-result : [ test-rule ] : x1 ;
+rule test-rule { v1 ?= x1 ; }
+check-equal set-default-result : [ test-rule ] : x1 ;
+
+[ mark-order r1 ] = [ mark-order r2 ] ;
+check-order set-set-order : r1 r2 ;
+[ mark-order r1 ] += [ mark-order r2 ] ;
+check-order set-append-order : r1 r2 ;
+[ mark-order r1 ] ?= [ mark-order r2 ] ;
+check-order set-default-order : r1 r2 ;
+
+}
+
+# Check setcomp
+
+{
+#FIXME
+# Expand arguments
+# Don't expand name
+}
+
+# Check setexec
+
+{
+#FIXME:
+# Don't expand name
+# Evaluate bindlist
+}
+
+# Check settings ;
+
+{
+
+local target1 = test-settings-target1 ;
+local target2 = test-settings-target2 ;
+local target3 = test-settings-target3 ;
+local targets = $(target2) $(target3) ;
+
+local vars = v1 v2 v3 ;
+
+v1 on $(target1) = x1 ;
+check-equal settings-set-empty : [ on $(target1) return $(v1) ] : x1 ;
+v2 on $(target1) += x2 ;
+check-equal settings-append-empty : [ on $(target1) return $(v2) ] : x2 ;
+v3 on $(target1) ?= x3 ;
+check-equal settings-default-empty : [ on $(target1) return $(v3) ] : x3 ;
+
+v1 on $(target1) = y1 ;
+check-equal settings-set-non-empty : [ on $(target1) return $(v1) ] : y1 ;
+v2 on $(target1) += y2 ;
+check-equal settings-append-non-empty : [ on $(target1) return $(v2) ] : x2 y2 ;
+v3 on $(target1) ?= y3 ;
+check-equal settings-default-non-empty : [ on $(target1) return $(v3) ] : x3 ;
+
+$(vars) on setting-target2 = z ;
+check-equal settings-set-empty-group : [ on setting-target2 return $(v1) ] - [ on setting-target2 return $(v2) ] - [ on setting-target2 return $(v3) ] : z - z - z ;
+
+$(vars) on setting-target3 += z ;
+check-equal settings-append-empty-group : [ on setting-target3 return $(v1) ] - [ on setting-target3 return $(v2) ] - [ on setting-target3 return $(v3) ] : z - z - z ;
+
+$(vars) on setting-target4 ?= z ;
+check-equal settings-default-empty-group : [ on setting-target4 return $(v1) ] - [ on setting-target4 return $(v2) ] - [ on setting-target4 return $(v3) ] : z - z - z ;
+
+v1 on $(target1) = x1 ;
+v2 on $(target1) = x2 ;
+v3 on $(target1) = x3 ;
+$(vars) on $(target1) = z ;
+check-equal settings-set-non-empty-group : [ on $(target1) return $(v1) ] - [ on $(target1) return $(v2) ] - [ on $(target1) return $(v3) ] : z - z - z ;
+
+v1 on $(target1) = x1 ;
+v2 on $(target1) = x2 ;
+v3 on $(target1) = x3 ;
+$(vars) on $(target1) += z ;
+check-equal settings-append-non-empty-group : [ on $(target1) return $(v1) ] - [ on $(target1) return $(v2) ] - [ on $(target1) return $(v3) ] : x1 z - x2 z - x3 z ;
+
+v1 on $(target1) = x1 ;
+v2 on $(target1) = x2 ;
+v3 on $(target1) = x3 ;
+$(vars) on $(target1) ?= z ;
+check-equal settings-default-non-empty-group : [ on $(target1) return $(v1) ] - [ on $(target1) return $(v2) ] - [ on $(target1) return $(v3) ] : x1 - x2 - x3 ;
+
+v1 on setting-target5 = x1 ;
+v3 on setting-target5 = x3 ;
+$(vars) on setting-target5 = z ;
+check-equal settings-set-mixed-group : [ on setting-target5 return $(v1) ] - [ on setting-target5 return $(v2) ] - [ on setting-target5 return $(v3) ] : z - z - z ;
+
+v1 on setting-target6 = x1 ;
+v3 on setting-target6 = x3 ;
+$(vars) on setting-target6 += z ;
+check-equal settings-append-mixed-group : [ on setting-target6 return $(v1) ] - [ on setting-target6 return $(v2) ] - [ on setting-target6 return $(v3) ] : x1 z - z - x3 z ;
+
+v1 on setting-target7 = x1 ;
+v3 on setting-target7 = x3 ;
+$(vars) on setting-target7 ?= z ;
+check-equal settings-default-mixed-group : [ on setting-target7 return $(v1) ] - [ on setting-target7 return $(v2) ] - [ on setting-target7 return $(v3) ] : x1 - z - x3 ;
+
+vars = v1 v1 ;
+
+$(vars) on setting-target8 = z ;
+check-equal settings-set-duplicate-empty : [ on setting-target8 return $(v1) ] : z ;
+$(vars) on setting-target9 += z ;
+check-equal settings-append-duplicate-empty : [ on setting-target9 return $(v1) ] : z z ;
+$(vars) on setting-target10 ?= z ;
+check-equal settings-default-duplicate-empty : [ on setting-target10 return $(v1) ] : z ;
+
+v1 on $(target1) = x1 ;
+$(vars) on $(target1) = z ;
+check-equal settings-set-duplicate-non-empty : [ on $(target1) return $(v1) ] : z ;
+v1 on $(target1) = x1 ;
+$(vars) on $(target1) += z ;
+check-equal settings-append-duplicate-non-empty : [ on $(target1) return $(v1) ] : x1 z z ;
+v1 on $(target1) = x1 ;
+$(vars) on $(target1) ?= z ;
+check-equal settings-default-duplicate-non-empty : [ on $(target1) return $(v1) ] : x1 ;
+
+v1 on $(target1) = ;
+v1 on $(target1) ?= z ;
+check-equal settings-default-set-but-empty : [ on $(target1) return $(v1) ] : ;
+
+v1 on $(targets) = multi ;
+check-equal settings-set-multi-empty : [ on $(target2) return $(v1) ] - [ on $(target3) return $(v1) ] : multi - multi ;
+v2 on $(targets) += multi ;
+check-equal settings-append-multi-empty : [ on $(target2) return $(v2) ] - [ on $(target3) return $(v2) ] : multi - multi ;
+v3 on $(targets) ?= multi ;
+check-equal settings-default-multi-empty : [ on $(target2) return $(v3) ] - [ on $(target3) return $(v3) ] : multi - multi ;
+
+v1 on $(targets) = multi2 ;
+check-equal settings-set-multi-empty : [ on $(target2) return $(v1) ] - [ on $(target3) return $(v1) ] : multi2 - multi2 ;
+v2 on $(targets) += multi2 ;
+check-equal settings-append-multi-empty : [ on $(target2) return $(v2) ] - [ on $(target3) return $(v2) ] : multi multi2 - multi multi2 ;
+v3 on $(targets) ?= multi2 ;
+check-equal settings-default-multi-empty : [ on $(target2) return $(v3) ] - [ on $(target3) return $(v3) ] : multi - multi ;
+
+rule test-rule { v1 on $(target1) = x1 ; }
+check-equal settings-set-result : [ test-rule ] : x1 ;
+rule test-rule { v1 on $(target1) += x1 ; }
+check-equal settings-append-result : [ test-rule ] : x1 ;
+rule test-rule { v1 on $(target1) ?= x1 ; }
+check-equal settings-default-result : [ test-rule ] : x1 ;
+
+[ mark-order r1 : var ] on [ mark-order r3 : $(target1) ] = [ mark-order r2 : value ] ;
+check-order settings-set-order : r1 r2 r3 ;
+[ mark-order r1 : var ] on [ mark-order r3 : $(target1) ] += [ mark-order r2 : value ] ;
+check-order settings-append-order : r1 r2 r3 ;
+[ mark-order r1 : var ] on [ mark-order r3 : $(target1) ] ?= [ mark-order r2 : value ] ;
+check-order settings-default-order : r1 r2 r3 ;
+
+}
+
+# Check switch
+
+{
+
+local pattern = * ;
+
+switch value
+{
+    case * : mark-order r1 ;
+}
+
+check-order switch-match-any : r1 ;
+
+switch value
+{
+    case v2 : mark-order r1 ;
+}
+
+check-order switch-no-match : ;
+
+switch value
+{
+    case $(pattern) : mark-order r1 ;
+}
+
+check-order switch-no-expand : ;
+
+switch value
+{
+    case value : mark-order r1 ;
+    case * : mark-order r2 ;
+}
+
+check-order switch-match-several : r1 ;
+
+rule test-rule ( value )
+{
+    switch $(value)
+    {
+        case value : return 1 ;
+    }
+}
+
+check-equal switch-result-match : [ test-rule value ] : 1 ;
+check-equal switch-result-match : [ test-rule v1 ] : ;
+
+switch $()
+{
+    case "" : mark-order r1 ;
+    case * : mark-order r2 ;
+}
+
+check-order switch-empty : r1 ;
+
+local values = v1 v2 v3 ;
+switch $(values)
+{
+    case v1 : mark-order r1 ;
+    case v2 : mark-order r2 ;
+    case v3 : mark-order r3 ;
+}
+
+check-order switch-multiple : r1 ;
+
+# Test glob matching
+
+switch value { case * : mark-order r1 ; }
+check-order switch-glob-star : r1 ;
+
+switch value { case va*e : mark-order r1 ; }
+check-order switch-glob-star-1 : r1 ;
+
+switch value { case *a* : mark-order r1 ; }
+check-order switch-glob-star-2 : r1 ;
+
+switch value { case *a*ue* : mark-order r1 ; }
+check-order switch-glob-star-3 : r1 ;
+
+switch value { case *[eaiou]*ue : mark-order r1 ; }
+check-order switch-glob-group : r1 ;
+
+switch value { case *[eaiou]ue : mark-order r1 ; }
+check-order switch-glob-group-fail : ;
+
+switch value { case ?a?ue : mark-order r1 ; }
+check-order switch-glob-any : r1 ;
+
+switch value { case ?lue : mark-order r1 ; }
+check-order switch-glob-any-fail : ;
+
+}
+
+# Test while
+
+{
+
+local value = 1 2 3 ;
+
+while $(value)
+{
+    mark-order r$(value[1]) ;
+    value = $(value[2-]) ;
+}
+
+check-order while-exec : r1 r2 r3 ;
+
+rule test-rule
+{
+    local value = 1 2 3 ;
+    while $(value)
+    {
+        value = $(value[2-]) ;
+        return x ;
+    }
+}
+
+check-equal while-result : [ test-rule ] : x ;
+
+rule test-rule
+{
+    local value = 1 2 ;
+    while $(value)
+    {
+        value = $(value[2-]) ;
+        local inner = $(value) ;
+        while $(inner)
+        {
+            inner = $(inner[2-]) ;
+            return x ;
+        }
+    }
+}
+
+check-equal while-result-2 : [ test-rule ] : ;
+
+}
+
+#
+# test CALLER_MODULE and backtrace
+#
+
+{
+    local base = [ BACKTRACE ] ;
+    base = $(base[2]) ;
+    rule backtrace ( )
+    {
+        local bt = [ BACKTRACE ] ;
+        check-equal backtrace-1-file : $(bt) :
+            test.jam [ CALC $(base) +  4 ] ""       backtrace
+            test.jam [ CALC $(base) + 28 ] module2. module2.f
+            test.jam [ CALC $(base) + 19 ] module1. module1.f
+            test.jam [ CALC $(base) + 32 ] ""       "module scope"
+        ;
+    }
+    module module1
+    {
+        IMPORT_MODULE module2 : module1 ;
+        rule f ( )
+        {
+            local m = [ CALLER_MODULE ] ;
+            check-equal caller-module-root : $(m) ;
+            module2.f ;
+        }
+    }
+    module module2
+    {
+        rule f ( )
+        {
+            local m = [ CALLER_MODULE ] ;
+            check-equal caller-module : module1 : $(m) ;
+            backtrace ;
+        }
+    }
+    IMPORT_MODULE module1 ;
+    module1.f ;
+}
+
+
+# Test NORMALIZE_PATH
+
+{
+check-equal normalize-path : "."     : [ NORMALIZE_PATH ] ;
+check-equal normalize-path : "."     : [ NORMALIZE_PATH "" ] ;
+check-equal normalize-path : "."     : [ NORMALIZE_PATH "." ] ;
+check-equal normalize-path : ".."    : [ NORMALIZE_PATH ".." ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "/" ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "\\" ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "//" ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "\\\\" ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "//\\\\//\\\\" ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "/." ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "/./" ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "\\\\///.///\\\\\\" ] ;
+check-equal normalize-path : "."     : [ NORMALIZE_PATH "./././././." ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "/./././././." ] ;
+check-equal normalize-path : "foo"   : [ NORMALIZE_PATH "foo" ] ;
+check-equal normalize-path : "foo"   : [ NORMALIZE_PATH "foo/" ] ;
+check-equal normalize-path : "foo"   : [ NORMALIZE_PATH "foo\\" ] ;
+check-equal normalize-path : "foo"   : [ NORMALIZE_PATH "foo\\\\/////" ] ;
+check-equal normalize-path : "foo"   : [ NORMALIZE_PATH "foo\\\\/////././." ] ;
+check-equal normalize-path : "foo"   : [ NORMALIZE_PATH "foo\\\\/////./././" ] ;
+check-equal normalize-path : "."     : [ NORMALIZE_PATH "foo/.." ] ;
+check-equal normalize-path : "."     : [ NORMALIZE_PATH "foo////.." ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "///foo/\\\\/.." ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "\\\\\\foo\\//\\.." ] ;
+check-equal normalize-path : "."     : [ NORMALIZE_PATH "foo/./.." ] ;
+check-equal normalize-path : "."     : [ NORMALIZE_PATH "foo/././././.." ] ;
+check-equal normalize-path : "foo"   : [ NORMALIZE_PATH "foo/./././bar/./././.././././baz/./././.." ] ;
+check-equal normalize-path : "/foo"  : [ NORMALIZE_PATH "/foo/./././bar/./././.././././baz/./././.." ] ;
+check-equal normalize-path : "foo"   : [ NORMALIZE_PATH "foo/./././bar/./././////.././././baz/./././.." ] ;
+check-equal normalize-path : "/foo"  : [ NORMALIZE_PATH "/foo/./././bar/./././////.././././baz/./././.." ] ;
+check-equal normalize-path : ".."    : [ NORMALIZE_PATH "./.." ] ;
+check-equal normalize-path : ".."    : [ NORMALIZE_PATH "././././.." ] ;
+check-equal normalize-path : "../.." : [ NORMALIZE_PATH "../.." ] ;
+check-equal normalize-path : "../.." : [ NORMALIZE_PATH "./../.." ] ;
+check-equal normalize-path : "../.." : [ NORMALIZE_PATH "././././../.." ] ;
+check-equal normalize-path : "../.." : [ NORMALIZE_PATH "./.././././.." ] ;
+check-equal normalize-path : "../.." : [ NORMALIZE_PATH "././././.././././.." ] ;
+check-equal normalize-path : "../.." : [ NORMALIZE_PATH "..//\\\\\\//.." ] ;
+check-equal normalize-path : "../.." : [ NORMALIZE_PATH "../..\\\\/\\\\" ] ;
+check-equal normalize-path : "."     : [ NORMALIZE_PATH "foo/../bar/../baz/.." ] ;
+check-equal normalize-path : "."     : [ NORMALIZE_PATH "foo////..////bar////.//////.////../baz/.." ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "/foo/../bar/../baz/.." ] ;
+check-equal normalize-path : "/"     : [ NORMALIZE_PATH "/foo////..////bar////.//////.////../baz/.." ] ;
+
+# Invalid rooted paths with leading dotdots.
+check-equal normalize-path-invalid : : [ NORMALIZE_PATH "/.." ] ;
+check-equal normalize-path-invalid : : [ NORMALIZE_PATH "/../" ] ;
+check-equal normalize-path-invalid : : [ NORMALIZE_PATH "//\\\\//\\\\/.." ] ;
+check-equal normalize-path-invalid : : [ NORMALIZE_PATH "\\\\//\\\\//\\.." ] ;
+check-equal normalize-path-invalid : : [ NORMALIZE_PATH "/../.." ] ;
+check-equal normalize-path-invalid : : [ NORMALIZE_PATH "/../../.." ] ;
+check-equal normalize-path-invalid : : [ NORMALIZE_PATH "/foo/bar/../baz/../../.." ] ;
+check-equal normalize-path-invalid : : [ NORMALIZE_PATH "/../for/././../././bar/././../././.." ] ;
+check-equal normalize-path-invalid : : [ NORMALIZE_PATH "/../foo/bar" ] ;
+
+}
+
+# Test W32_GETREGNAMES
+
+{
+
+if $(NT)
+{
+    local sound = "Beep" "ExtendedSounds" ;
+    local r1 = [ W32_GETREGNAMES "HKEY_CURRENT_USER\\Control Panel\\Sound" :
+        values ] ;
+    check-equal w32_getregnames : $(sound:L) : $(r1:L) ;
+    local r2 = [ W32_GETREGNAMES "HKCU\\Control Panel\\Sound" : values ] ;
+    check-equal w32_getregnames : $(sound:L) : $(r2:L) ;
+
+    #   Some Windows platforms may have additional keys under
+    # 'CurrentControlSet' which we then remove here so they would not be
+    # reported as errors by our test.
+    local rule remove-policies ( param * )
+    {
+        local found ;
+        local r ;
+        for local x in $(param:L)
+        {
+            if ! x in $(found) &&
+                $(x) in "addservices" "policies" "deleted device ids"
+            {
+                found += $(x) ;
+            }
+            else
+            {
+                r += $(x) ;
+            }
+        }
+        return $(r) ;
+    }
+    local CurrentControlSet = "Control" "Enum" "Hardware Profiles" "Services" ;
+    local r3 = [ W32_GETREGNAMES "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet"
+        : subkeys ] ;
+    check-equal w32_getregnames : $(CurrentControlSet:L) : [ remove-policies
+        $(r3:L) ] ;
+    local r4 = [ W32_GETREGNAMES "HKLM\\SYSTEM\\CurrentControlSet" : subkeys ] ;
+    check-equal w32_getregnames : $(CurrentControlSet:L) : [ remove-policies
+        $(r4:L) ] ;
+}
+
+}
+
+# Test SHELL
+
+{
+
+local c = "echo value" ;
+
+check-equal shell : "value\n"   : [ SHELL $(c) ] ;
+check-equal shell : ""          : [ SHELL $(c) : no-output ] ;
+check-equal shell : "value\n" 0 : [ SHELL $(c) : exit-status ] ;
+check-equal shell : ""      0   : [ SHELL $(c) : no-output : exit-status ] ;
+check-equal command : "value\n"   : [ COMMAND $(c) ] ;
+check-equal command : ""          : [ COMMAND $(c) : no-output ] ;
+check-equal command : "value\n" 0 : [ COMMAND $(c) : exit-status ] ;
+check-equal command : ""      0   : [ COMMAND $(c) : no-output : exit-status ] ;
+
+}
+
+# Test SUBST
+
+{
+
+# Check that unmatched subst returns an empty list
+check-equal subst-nomatch : [ SUBST "abc" "d+" x ] : ;
+
+# Check that a matched subst works
+check-equal subst-match : [ SUBST "ddd" "d+" x ] : x ;
+
+# Check that we can get multiple substitutions from a single invocation
+check-equal subst-multiple : [ SUBST "x/y/z" "([^/]*)/([^/]*).*" "\\1" $2 "\\1-\\2" ] : x y x-y ;
+
+}
+
+# Test summary
+
+if $(failed) = 0
+{
+    status = 0 ;
+}
+else
+{
+    status = 1 ;
+}
+
+EXIT $(passed) passed $(failed) failed : $(status) ;

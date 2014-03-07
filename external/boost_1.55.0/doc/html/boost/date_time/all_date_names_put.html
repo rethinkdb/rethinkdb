@@ -1,0 +1,133 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template all_date_names_put</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.date_names_put_hpp" title="Header &lt;boost/date_time/date_names_put.hpp&gt;">
+<link rel="prev" href="date_names_put.html" title="Class template date_names_put">
+<link rel="next" href="convert_to_lower.html" title="Function convert_to_lower">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="date_names_put.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.date_names_put_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="convert_to_lower.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.all_date_names_put"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template all_date_names_put</span></h2>
+<p>boost::date_time::all_date_names_put &#8212; A date name output facet that takes an array of char* to define strings. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.date_names_put_hpp" title="Header &lt;boost/date_time/date_names_put.hpp&gt;">boost/date_time/date_names_put.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Config<span class="special">,</span> <span class="keyword">typename</span> charT <span class="special">=</span> <span class="keyword">char</span><span class="special">,</span> 
+         <span class="keyword">typename</span> <a class="link" href="../../OutputIterator.html" title="Concept OutputIterator">OutputIterator</a> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostreambuf_iterator</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;</span> <span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="all_date_names_put.html" title="Class template all_date_names_put">all_date_names_put</a> <span class="special">:</span>
+  <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">date_time</span><span class="special">::</span><span class="identifier">date_names_put</span><span class="special">&lt;</span> <span class="identifier">Config</span><span class="special">,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">OutputIterator</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">OutputIterator</span>             <a name="boost.date_time.all_date_names_put.iter_type"></a><span class="identifier">iter_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">Config</span><span class="special">::</span><span class="identifier">month_enum</span>         <a name="boost.date_time.all_date_names_put.month_enum"></a><span class="identifier">month_enum</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">Config</span><span class="special">::</span><span class="identifier">weekday_enum</span>       <a name="boost.date_time.all_date_names_put.weekday_enum"></a><span class="identifier">weekday_enum</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">Config</span><span class="special">::</span><span class="identifier">special_value_enum</span> <a name="boost.date_time.all_date_names_put.special_value_enum"></a><span class="identifier">special_value_enum</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="all_date_names_put.html#boost.date_time.all_date_names_putconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="all_date_names_put.html#idp21726520-bb"><span class="identifier">all_date_names_put</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span><span class="special">,</span> 
+                     <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span><span class="special">,</span> 
+                     <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span><span class="special">,</span> <span class="identifier">charT</span> <span class="special">=</span> <span class="char">'-'</span><span class="special">,</span> 
+                     <span class="identifier">ymd_order_spec</span> <span class="special">=</span> <span class="identifier">ymd_order_iso</span><span class="special">,</span> 
+                     <span class="identifier">month_format_spec</span> <span class="special">=</span> <span class="identifier">month_as_short_string</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="all_date_names_put.html#idp20447720-bb">public member functions</a></span>
+  <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> <span class="special">*</span> <a class="link" href="all_date_names_put.html#idp20447928-bb"><span class="identifier">get_short_month_names</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> <span class="special">*</span> <a class="link" href="all_date_names_put.html#idp20448424-bb"><span class="identifier">get_long_month_names</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> <span class="special">*</span> <a class="link" href="all_date_names_put.html#idp51683608-bb"><span class="identifier">get_special_value_names</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> <span class="special">*</span> <a class="link" href="all_date_names_put.html#idp20556840-bb"><span class="identifier">get_short_weekday_names</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> <span class="special">*</span> <a class="link" href="all_date_names_put.html#idp20557304-bb"><span class="identifier">get_long_weekday_names</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="all_date_names_put.html#idp22263432-bb">protected member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="all_date_names_put.html#idp22263640-bb"><span class="identifier">do_put_month_short</span></a><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">month_enum</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="all_date_names_put.html#idp22019096-bb"><span class="identifier">do_put_month_long</span></a><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">month_enum</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="all_date_names_put.html#idp19229240-bb"><span class="identifier">do_put_special_value</span></a><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">special_value_enum</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="all_date_names_put.html#idp21352376-bb"><span class="identifier">do_put_weekday_short</span></a><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">weekday_enum</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="all_date_names_put.html#idp21353528-bb"><span class="identifier">do_put_weekday_long</span></a><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">weekday_enum</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="all_date_names_put.html#idp21115144-bb"><span class="identifier">do_month_sep_char</span></a><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="all_date_names_put.html#idp35149304-bb"><span class="identifier">do_day_sep_char</span></a><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">ymd_order_spec</span> <a class="link" href="all_date_names_put.html#idp51408376-bb"><span class="identifier">do_date_order</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">month_format_spec</span> <a class="link" href="all_date_names_put.html#idp34484392-bb"><span class="identifier">do_month_format</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp86148344"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp86148552"></a><h3>
+<a name="boost.date_time.all_date_names_putconstruct-copy-destruct"></a><code class="computeroutput">all_date_names_put</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><a name="idp21726520-bb"></a><span class="identifier">all_date_names_put</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> month_short_names<span class="special">,</span> 
+                   <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> month_long_names<span class="special">,</span> 
+                   <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> special_value_names<span class="special">,</span> 
+                   <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> weekday_short_names<span class="special">,</span> 
+                   <span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> weekday_long_names<span class="special">,</span> 
+                   <span class="identifier">charT</span> separator_char <span class="special">=</span> <span class="char">'-'</span><span class="special">,</span> 
+                   <span class="identifier">ymd_order_spec</span> order_spec <span class="special">=</span> <span class="identifier">ymd_order_iso</span><span class="special">,</span> 
+                   <span class="identifier">month_format_spec</span> month_format <span class="special">=</span> <span class="identifier">month_as_short_string</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp86163096"></a><h3>
+<a name="idp20447720-bb"></a><code class="computeroutput">all_date_names_put</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> <span class="special">*</span> <a name="idp20447928-bb"></a><span class="identifier">get_short_month_names</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> <span class="special">*</span> <a name="idp20448424-bb"></a><span class="identifier">get_long_month_names</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> <span class="special">*</span> <a name="idp51683608-bb"></a><span class="identifier">get_special_value_names</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> <span class="special">*</span> <a name="idp20556840-bb"></a><span class="identifier">get_short_weekday_names</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">charT</span> <span class="special">*</span><span class="keyword">const</span> <span class="special">*</span> <a name="idp20557304-bb"></a><span class="identifier">get_long_weekday_names</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp86182680"></a><h3>
+<a name="idp22263432-bb"></a><code class="computeroutput">all_date_names_put</code> protected member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp22263640-bb"></a><span class="identifier">do_put_month_short</span><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span> oitr<span class="special">,</span> <span class="identifier">month_enum</span> moy<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Generic facet that takes array of chars. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp22019096-bb"></a><span class="identifier">do_put_month_long</span><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span> oitr<span class="special">,</span> <span class="identifier">month_enum</span> moy<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Long month names. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp19229240-bb"></a><span class="identifier">do_put_special_value</span><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span> oitr<span class="special">,</span> <span class="identifier">special_value_enum</span> sv<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Special values names. </li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp21352376-bb"></a><span class="identifier">do_put_weekday_short</span><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span> oitr<span class="special">,</span> <span class="identifier">weekday_enum</span> wd<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp21353528-bb"></a><span class="identifier">do_put_weekday_long</span><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span> oitr<span class="special">,</span> <span class="identifier">weekday_enum</span> wd<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp21115144-bb"></a><span class="identifier">do_month_sep_char</span><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span> oitr<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>char between year-month </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp35149304-bb"></a><span class="identifier">do_day_sep_char</span><span class="special">(</span><span class="identifier">iter_type</span> <span class="special">&amp;</span> oitr<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Char to separate month-day. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">ymd_order_spec</span> <a name="idp51408376-bb"></a><span class="identifier">do_date_order</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Set the date ordering. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">month_format_spec</span> <a name="idp34484392-bb"></a><span class="identifier">do_month_format</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Set the date ordering. </li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="date_names_put.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.date_names_put_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="convert_to_lower.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

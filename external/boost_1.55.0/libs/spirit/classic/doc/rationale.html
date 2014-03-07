@@ -1,0 +1,162 @@
+<html>
+<head>
+<title>Rationale</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Rationale</b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="faq.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="acknowledgments.html"><img src="theme/r_arr.gif" border="0"></a></td>
+   </tr>
+</table>
+<p><img src="theme/lens.gif" width="15" height="16"> <strong>Virtual functions: 
+  From static to dynamic C++</strong></p>
+<p>Rules straddle the border between static and dynamic C++. In effect, a rule 
+  transforms compile-time polymorphism (using templates) into run-time polymorphism 
+  (using virtual functions). This is necessary due to C++'s inability to automatically 
+  declare a variable of a type deduced from an arbitrarily complex expression 
+  in the right-hand side (rhs) of an assignment. Basically, we want to do something 
+  like:</p>
+<pre><code><font color="#000000">    <span class=identifier>T </span><span class=identifier>rule </span><span class=special>= </span><span class=identifier>an_arbitrarily_complex_expression</span><span class=special>;</span></font></code></pre>
+<p>without having to know or care about the resulting type of the right-hand side 
+  (rhs) of the assignment expression. Apart from this, we also need a facility 
+  to forward declare an unknown type:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>T </span><span class=identifier>rule</span><span class=special>;
+    </span><span class=special>...
+    </span><span class=identifier>rule </span><span class=special>= </span><span class=identifier>a </span><span class=special>| </span><span class=identifier>b</span><span class=special>;</span></font></code></pre>
+<p>These limitations lead us to this implementation of rules. This comes at the 
+  expense of the overhead of a virtual function call, once through each invocation 
+  of a rule.</p>
+<p><img src="theme/lens.gif" width="15" height="16"> <strong>Multiple declaration 
+  </strong> </p>
+<p>Some BNF variants allow multiple declarations of a <tt>rule</tt>. The declarations 
+  are taken as alternatives. Example:</p>
+<pre>
+   <span class=identifier><code>r </code></span><code><span class=special>= </span><span class=identifier>a</span><span class=special>;    </span><span class=identifier>
+   r </span><span class=special>= </span><span class=identifier>b</span><span class=special>;</span></code></pre>
+<p> is equivalent to: </p>
+<pre>
+   <span class=identifier><code>r </code></span><code><span class=special>= </span><span class=identifier>a </span><span class=special>| </span><span class=identifier>b</span><span class=special>;</span></code></pre>
+<p>Spirit v1.3 allowed this behavior. However, the current version of Spirit <b>no 
+  longer</b> allows this because experience shows that this behavior leads to 
+  unwanted gotchas (for instance, it does not allow rules to be held in containers). 
+  In the current release of Spirit, a second assignment to a rule will simply 
+  redefine it. The old definition is destructed. This follows more closely C++ 
+  semantics and is more in line with what the user expects the rule to behave.</p>
+<p><img src="theme/lens.gif" width="15" height="16"> <b>Sequencing Syntax</b> 
+  <br>
+  <br>
+  The comma operator as in a, b seems to be a better candidate, syntax-wise. But 
+  then the problem is with its precedence. It has the lowest precedence in C/C++, 
+  which makes it virtually useless. <br>
+  <br>
+  Bjarne Stroustrup, in his article <a href="references.html#generalized_overloading">&quot;Generalizing 
+  Overloading for C++2000&quot;</a> talks about overloading whitespace. Such a 
+  feature would allow juxtapositioning of parser objects exactly as we do in (E)BNF 
+  (e.g. a b | c instead of a &gt;&gt; b | c). Unfortunately, the article was dated 
+  April 1, 1998. Oh well.</p>
+<p><img src="theme/lens.gif" width="15" height="16"> <b>Forward iterators</b><br>
+  <br>
+  In general, the scanner expects at least a standard conforming forward iterator. 
+  Forward iterators are needed for backtracking where the iterator needs to be 
+  saved and restored later. Generally speaking, Spirit is a backtracking parser. 
+  The implication of this is that at some point, the iterator position will have 
+  to be saved to allow the parser to backtrack to a previous point. Thus, for 
+  backtracking to work, the framework requires at least a forward iterator.<br>
+  <br>
+  Some parsers might require more specialized iterators (bi-directional or even 
+  random access). Perhaps in the future, deterministic parsers when added to the 
+  framework, will perform no backtracking and will need just a single token lookahead, 
+  hence will require input iterators only.</p>
+<p><img src="theme/lens.gif" width="15" height="16"><b> Why are subrules important?</b><br>
+  <br>
+  Subrules open up the oportunity to do aggressive meta programming as well because 
+  they do not rely on virtual functions. The virtual function is the meta-programmer's 
+  hell. Not only does it slow down the program due to the virtual function indirect 
+  call, it is also an opaque wall where no metaprogram can get past. It kills 
+  all meta-information beyond the virtual function call. Worse, the virtual function 
+  cannot be templated. Which means that its arguments have to be tied to a actual 
+  types. Many problems stem from this limitation. <br>
+  <br>
+  While Spirit is a currently classified as a non-deterministic recursive-descent 
+  parser, Doug Gregor first noted that other parsing techniques apart from top-down 
+  recursive descent may be applied. For instance, apart from non-deterministic 
+  recursive descent, deterministic LL(1) and LR(1) can theoretically be implemented 
+  using the same expression template front end. Spirit rules use virtual functions 
+  to encode the RHS parser expression in an opaque abstract parser type. While 
+  it serves its purpose well, the rule's virtual functions are the stumbling blocks 
+  to more advanced metaprogramming. Subrules are free from virtual functions.</p>
+<p><img src="theme/lens.gif" width="15" height="16"><b> <a name="exhaustive_rd"></a>Exhaustive 
+  backtracking and greedy RD</b></p>
+<p>Spirit doesn't do exhaustive backtracking like regular expressions are expected 
+  to. For example:</p>
+<pre>    <span class="special">*</span>chlit_p<span class="special">(</span><span class="quotes">'a'</span><span class="special">) &gt;&gt;</span> chlit_p<span class="special">(</span><span class="quotes">'a'</span><span class="special">);</span></pre>
+<p>will always fail to match because Spirit's Kleene star does not back off when 
+  the rest of the rule fails to match. </p>
+<p>Actually, there's a solution to this greedy RD problem. Such a scheme is discussed 
+  in section 6.6.2 of <a 
+href="http://www.cs.vu.nl/%7Edick/PTAPG.html">Parsing Techniques: A Practical 
+  Guide</a>. The trick involves passing a <em>tail</em> parser (in addition to 
+  the scanner) to each parser. The start parser will then simply be: <tt>start 
+  &gt;&gt; end_p;</tt> (end_p is the start's tail). </p>
+<p>Spirit is greedy --using straight forward, naive RD. It is certainly possible 
+  to implement the fully backtracking scheme presented above, but there will be 
+  also certainly be a performance hit. The scheme will always try to match all 
+  possible parser paths (full parser hierarchy traversal) until it reaches a point 
+  of certainty, that the whole thing matches or fails to match. </p>
+<table border="0" width="80%" align="center">
+  <tr> 
+    <td class="note_box"><p><img src="theme/note.gif" width="16" height="16"><b>Backtracking 
+        and Greedy RD </b><br>
+        <br>
+        Spirit is quite consistent and intuitive about when it backtracks and 
+        to where, although it may not be obvious to those coming from different 
+        backgrounds. In general, any (sub)parser will, given the same input, always 
+        match the same portion of the input (or fail to match the input at all). 
+        This means that Spirit is inherently greedy. Spirit will only backtrack 
+        when a (sub)parser fails to match the input, and it will always backtrack 
+        to the next choice point upward (not backward) in the parser structure. 
+        In other words abb|ab will match &quot;ab&quot;, as will a(bb|b), but 
+        (ab|a)b won't because the (ab|a) subparser will always match the 'b' after 
+        the 'a' if it is available.</p>
+      <p>--Rainer Deyke</p>
+      </td>
+  </tr>
+</table>
+<p>There's a strong preference on &quot;simplicity with all the knobs when you 
+  need them&quot; approach, right now. On the other hand, the flexibility of Spirit 
+  makes it possible to have different optional schemes available. It might be 
+  possible to implement an exhaustive backtracking RD scheme as an optional feature 
+  in the future. </p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="faq.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="acknowledgments.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

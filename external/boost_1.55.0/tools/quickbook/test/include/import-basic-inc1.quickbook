@@ -1,0 +1,4 @@
+This shouldn't show: __FILENAME__
+
+[def macro1 Macro 1: __FILENAME__]
+[template template1 Template 1: __FILENAME__]

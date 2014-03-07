@@ -1,0 +1,169 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Quick Start]
+
+I assume the reader is already familiar with tuples (__tuple__) and its
+ancestor `std::pair`. The tuple is a generalization of `std::pair` for
+multiple heterogeneous elements (triples, quadruples, etc.). The tuple is
+more or less a synonym for fusion's `__vector__`.
+
+For starters, we shall include all of Fusion's __sequence__(s) [footnote There
+are finer grained header files available if you wish to have more control
+over which components to include (see section __organization__ for
+details).]:
+
+    #include <boost/fusion/sequence.hpp>
+    #include <boost/fusion/include/sequence.hpp>
+
+Let's begin with a `__vector__` [footnote Unless otherwise noted, components are
+in namespace `boost::fusion`. For the sake of simplicity, code in this
+quick start implies `using` directives for the fusion components we will be
+using.]:
+
+    __vector__<int, char, std::string> stuff(1, 'x', "howdy");
+    int i = __at_c__<0>(stuff);
+    char ch = __at_c__<1>(stuff);
+    std::string s = __at_c__<2>(stuff);
+
+Just replace `tuple` for `__vector__` and `get` for `__at_c__` and this is exactly
+like __tuple__. Actually, either names can be used interchangeably. Yet,
+the similarity ends there. You can do a lot more with Fusion `__vector__` or
+`tuple`. Let's see some examples.
+
+[heading Print the vector as XML]
+
+First, let's include the algorithms:
+
+    #include <boost/fusion/algorithm.hpp>
+    #include <boost/fusion/include/algorithm.hpp>
+
+Now, let's write a function object that prints XML of the form <type>data</type>
+for each member in the tuple.
+
+    struct print_xml
+    {
+        template <typename T>
+        void operator()(T const& x) const
+        {
+            std::cout
+                << '<' << typeid(x).name() << '>'
+                << x
+                << "</" << typeid(x).name() << '>'
+                ;
+        }
+    };
+
+Now, finally:
+
+    __for_each__(stuff, print_xml());
+
+That's it! `__for_each__` is a fusion algorithm. It is a generic algorithm
+similar to __stl__'s. It iterates over the sequence and calls a user
+supplied function. In our case, it calls `print_xml`'s `operator()` for
+each element in `stuff`.
+
+[caution The result of `typeid(x).name()` is platform specific. The code
+here is just for exposition. Of course you already know that :-)]
+
+`__for_each__` is generic. With `print_xml`, you can use it to print just about
+any Fusion __sequence__.
+
+[heading Print only pointers]
+
+Let's get a little cleverer. Say we wish to write a /generic/ function
+that takes in an arbitrary sequence and XML prints only those elements
+which are pointers. Ah, easy. First, let's include the `is_pointer` boost
+type trait:
+
+    #include <boost/type_traits/is_pointer.hpp>
+
+Then, simply:
+
+    template <typename Sequence>
+    void xml_print_pointers(Sequence const& seq)
+    {
+        __for_each__(__filter_if__<boost::is_pointer<_> >(seq), print_xml());
+    }
+
+`__filter_if__` is another Fusion algorithm. It returns a __filter_view__,
+a conforming Fusion sequence. This view reflects only those elements that
+pass the given predicate. In this case, the predicate is
+`boost::is_pointer<_>`. This "filtered view" is then passed to the
+__for_each__ algorithm, which then prints the "filtered view" as XML.
+
+Easy, right?
+
+[heading Associative tuples]
+
+Ok, moving on...
+
+Apart from `__vector__`, fusion has a couple of other sequence types to choose
+from. Each sequence has its own characteristics. We have `__list__`, `__set__`,
+`__map__`, plus a multitude of `views` that provide various ways to present the
+sequences.
+
+Fusion's `__map__` associate types with elements. It can be used as a cleverer
+replacement of the `struct`. Example:
+
+    namespace fields
+    {
+        struct name;
+        struct age;
+    }
+
+    typedef __map__<
+        __fusion_pair__<fields::name, std::string>
+      , __fusion_pair__<fields::age, int> >
+    person;
+
+`__map__` is an associative sequence. Its elements are Fusion pairs which differ
+somewhat from `std::pair`. Fusion pairs only contain one member, with the type of
+their second template parameter. The first type parameter of the pair is used as an
+index to the associated element in the sequence. For example, given a `a_person`
+of type, `person`, you can do:
+
+    using namespace fields;
+    std::string person_name = __at_key__<name>(a_person);
+    int person_age = __at_key__<age>(a_person);
+
+Why go through all this trouble, you say? Well, for one, unlike the
+`struct`, we are dealing with a generic data structure. There are a
+multitude of facilities available at your disposal provided out of the box
+with fusion or written by others. With these facilities, introspection
+comes for free, for example. We can write one serialization function (well,
+two, if you consider loading and saving) that will work for all your fusion
+`__map__`s. Example:
+
+    struct saver
+    {
+        template <typename Pair>
+        void operator()(Pair const& data) const
+        {
+            some_archive << data.second;
+        }
+    };
+
+    template <typename Stuff>
+    void save(Stuff const& stuff)
+    {
+        __for_each__(stuff, saver());
+    }
+
+The `save` function is generic and will work for all types of `stuff`
+regardless if it is a `person`, a `dog` or a whole `alternate_universe`.
+
+[heading Tip of the Iceberg]
+
+And... we've barely scratched the surface! You can compose and expand the
+data structures, remove elements from the structures, find specific data
+types, query the elements, filter out types for inspection, transform data
+structures, etc. What you've seen is just the tip of the iceberg.
+
+[endsect]
+

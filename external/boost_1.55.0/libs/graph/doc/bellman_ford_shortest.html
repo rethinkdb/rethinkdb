@@ -1,0 +1,349 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Bellman Ford Shortest Paths</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H1><A NAME="sec:bellman-ford"></A><img src="figs/python.gif" alt="(Python)"/>
+<TT>bellman_ford_shortest_paths</TT>
+</H1>
+
+<P>
+<PRE>
+<i>// named paramter version</i>
+template &lt;class <a href="./EdgeListGraph.html">EdgeListGraph</a>, class Size, class P, class T, class R&gt;
+bool bellman_ford_shortest_paths(const EdgeListGraph&amp; g, Size N, 
+  const bgl_named_params&lt;P, T, R&gt;&amp; params = <i>all defaults</i>);
+
+template &lt;class <a href="./VertexAndEdgeListGraph.html">VertexAndEdgeListGraph</a>, class P, class T, class R&gt;
+bool bellman_ford_shortest_paths(const VertexAndEdgeListGraph&amp; g,
+  const bgl_named_params&lt;P, T, R&gt;&amp; params = <i>all defaults</i>);
+
+<i>// non-named parameter version</i>
+template &lt;class <a href="./EdgeListGraph.html">EdgeListGraph</a>, class Size, class WeightMap,
+	  class PredecessorMap, class DistanceMap,
+	  class <a href="http://www.sgi.com/tech/stl/BinaryFunction.html">BinaryFunction</a>, class <a href="http://www.sgi.com/tech/stl/BinaryPredicate.html">BinaryPredicate</a>,
+	  class <a href="./BellmanFordVisitor.html">BellmanFordVisitor</a>&gt;
+bool bellman_ford_shortest_paths(EdgeListGraph&amp; g, Size N, 
+  WeightMap weight, PredecessorMap pred, DistanceMap distance, 
+  BinaryFunction combine, BinaryPredicate compare, BellmanFordVisitor v)
+</PRE>
+
+<P>
+The Bellman-Ford algorithm&nbsp;[<A
+HREF="bibliography.html#bellman58">4</A>,<A
+HREF="bibliography.html#ford62:_flows">11</A>,<A
+HREF="bibliography.html#lawler76:_comb_opt">20</A>,<A
+HREF="bibliography.html#clr90">8</A>] solves the single-source
+shortest paths problem for a graph with both positive and negative
+edge weights. For the definition of the shortest paths problem see
+Section <A
+HREF="./graph_theory_review.html#sec:shortest-paths-algorithms">Shortest-Paths
+Algorithms</A>. 
+If you only need to solve the shortest paths problem for positive edge
+weights, Dijkstra's algorithm provides a more efficient
+alternative. If all the edge weights are all equal to one then breadth-first
+search provides an even more efficient alternative.
+</p>
+
+<p>
+Before calling the <tt>bellman_ford_shortest_paths()</tt> function,
+the user must assign the source vertex a distance of zero and all
+other vertices a distance of infinity <i>unless</i> you are providing
+a starting vertex. The Bellman-Ford algorithm
+proceeds by looping through all of the edges in the graph, applying
+the relaxation operation to each edge. In the following pseudo-code,
+<i>v</i> is a vertex adjacent to <i>u</i>, <i>w</i> maps edges to
+their weight, and <i>d</i> is a distance map that records the length
+of the shortest path to each vertex seen so far. <i>p</i> is a
+predecessor map which records the parent of each vertex, which will
+ultimately be the parent in the shortest paths tree
+</p>
+
+<table>
+<tr>
+<td valign="top">
+<pre>
+RELAX(<i>u</i>, <i>v</i>, <i>w</i>, <i>d</i>, <i>p</i>)
+  <b>if</b> (<i>w(u,v) + d[u] < d[v]</i>) 
+    <i>d[v] := w(u,v) + d[u]</i>
+    <i>p[v] := u</i>
+  <b>else</b>
+    ...
+</pre>
+</td>
+<td valign="top">
+<pre>
+
+
+relax edge <i>(u,v)</i>
+
+
+edge <i>(u,v)</i> is not relaxed 
+</pre>
+</td>
+</tr>
+</table>
+
+<p>
+The algorithm repeats this loop <i>|V|</i> times after which it is
+guaranteed that the distances to each vertex have been reduced to the
+minimum possible unless there is a negative cycle in the graph. If
+there is a negative cycle, then there will be edges in the graph that
+were not properly minimized. That is, there will be edges <i>(u,v)</i> such
+that <i>w(u,v) + d[u] < d[v]</i>.  The algorithm loops over the edges in
+the graph one final time to check if all the edges were minimized,
+returning <tt>true</tt> if they were and returning <tt>false</tt>
+otherwise.
+</p>
+
+<table>
+<tr>
+<td valign="top">
+<pre>
+BELLMAN-FORD(<i>G</i>)
+  <i>// Optional initialization</i>
+  <b>for</b> each vertex <i>u in V</i> 
+    <i>d[u] := infinity</i>
+    <i>p[u] := u</i> 
+  <b>end for</b>
+  <b>for</b> <i>i := 1</i> <b>to</b> <i>|V|-1</i> 
+    <b>for</b> each edge <i>(u,v) in E</i> 
+      RELAX(<i>u</i>, <i>v</i>, <i>w</i>, <i>d</i>, <i>p</i>)
+    <b>end for</b>
+  <b>end for</b>
+  <b>for</b> each edge <i>(u,v) in E</i> 
+    <b>if</b> (<i>w(u,v) + d[u] < d[v]</i>)
+      <b>return</b> (false, , )
+    <b>else</b> 
+      ...
+  <b>end for</b>
+  <b>return</b> (true, <i>p</i>, <i>d</i>)
+</pre>
+</td>
+<td valign="top">
+<pre>
+
+
+
+
+
+
+
+examine edge <i>(u,v)</i>
+
+
+
+
+
+edge <i>(u,v)</i> was not minimized 
+
+edge <i>(u,v)</i> was minimized 
+</pre>
+</td>
+</tr>
+</table>
+
+There are two main options for obtaining output from the
+<tt>bellman_ford_shortest_paths()</tt> function. If the user provides
+a distance property map through the <tt>distance_map()</tt> parameter
+then the shortest distance from the source vertex to every other
+vertex in the graph will be recorded in the distance map (provided the
+function returns <tt>true</tt>). The second option is recording the
+shortest paths tree in the <tt>predecessor_map()</tt>. For each vertex
+<i>u in V</i>, <i>p[u]</i> will be the predecessor of <i>u</i> in the
+shortest paths tree (unless <i>p[u] = u</i>, in which case <i>u</i> is
+either the source vertex or a vertex unreachable from the source).  In
+addition to these two options, the user can provide her own
+custom-made visitor that can take actions at any of the
+algorithm's event points.
+
+<P>
+
+<h3>Parameters</h3>
+
+
+IN: <tt>EdgeListGraph&amp; g</tt> 
+<blockquote>
+  A directed or undirected graph whose type must be a model of
+  <a href="./EdgeListGraph.html">Edge List Graph</a>. If a root vertex is
+  provided, then the graph must also model
+  <a href="./VertexListGraph.html">Vertex List Graph</a>.<br>
+
+  <b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+
+IN: <tt>Size N</tt>
+<blockquote>
+  The number of vertices in the graph. The type <tt>Size</tt> must
+  be an integer type.<br>
+  <b>Default:</b> <tt>num_vertices(g)</tt>.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+
+<h3>Named Parameters</h3>
+
+IN: <tt>weight_map(WeightMap w)</tt>
+<blockquote>
+  The weight (also know as ``length'' or ``cost'') of each edge in the
+  graph.  The <tt>WeightMap</tt> type must be a model of <a
+  href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+  Map</a>.  The key type for this property map must be the edge
+  descriptor of the graph.  The value type for the weight map must be
+  <i>Addable</i> with the distance map's value type. <br>
+  <b>Default:</b> <tt>get(edge_weight, g)</tt><br>
+
+  <b>Python</b>: Must be an <tt>edge_double_map</tt> for the graph.<br>
+  <b>Python default</b>: <tt>graph.get_edge_double_map("weight")</tt>
+</blockquote>
+
+OUT: <tt>predecessor_map(PredecessorMap p_map)</tt> 
+<blockquote>
+  The predecessor map records the edges in the minimum spanning
+  tree. Upon completion of the algorithm, the edges <i>(p[u],u)</i>
+  for all <i>u in V</i> are in the minimum spanning tree. If <i>p[u] =
+  u</i> then <i>u</i> is either the source vertex or a vertex that is
+  not reachable from the source.  The <tt>PredecessorMap</tt> type
+  must be a <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a> which key and vertex types the same as the vertex
+  descriptor type of the graph.<br>
+  <b>Default:</b> <tt>dummy_property_map</tt><br>
+
+  <b>Python</b>: Must be a <tt>vertex_vertex_map</tt> for the graph.<br>
+</blockquote>
+
+IN/OUT: <tt>distance_map(DistanceMap d)</tt> 
+<blockquote>
+  The shortest path weight from the source vertex to each vertex in
+  the graph <tt>g</tt> is recorded in this property map.  The type
+  <tt>DistanceMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>. The key type of the property map must be the
+  vertex descriptor type of the graph, and the value type of the
+  distance map must be <a
+  href="http://www.sgi.com/tech/stl/LessThanComparable.html"> Less
+  Than Comparable</a>.<br> <b>Default:</b> <tt>get(vertex_distance,
+  g)</tt><br>
+  <b>Python</b>: Must be a <tt>vertex_double_map</tt> for the graph.<br>
+</blockquote>
+
+IN: <tt>root_vertex(Vertex s)</tt>
+<blockquote>
+  The starting (or "root") vertex from which shortest paths will be
+  computed. When provided, the distance map need not be initialized
+  (the algorithm will perform the initialization itself). However, the
+  graph must model <a href="./VertexListGraph.html">Vertex List
+  Graph</a> when this parameter is provided.<br>
+  <b>Default:</b> None; if omitted, the user must initialize the
+  distance map.
+</blockquote>
+
+IN: <tt>visitor(BellmanFordVisitor v)</tt>
+<blockquote>
+  The visitor object, whose type must be a model of
+  <a href="./BellmanFordVisitor.html">Bellman-Ford Visitor</a>.
+  The visitor object is passed by value <a
+  href="#1">[1]</a>.
+<br>
+  <b>Default:</b> <tt>bellman_visitor&lt;null_visitor&gt;</tt><br>
+
+  <b>Python</b>: The parameter should be an object that derives from
+  the <a
+  href="BellmanFordVisitor.html#python"><tt>BellmanFordVisitor</tt></a> type
+  of the graph.
+
+</blockquote>
+
+IN: <tt>distance_combine(BinaryFunction combine)</tt>
+<blockquote>
+  This function object replaces the role of addition in the relaxation
+  step. The first argument type must match the distance map's value
+  type and the second argument type must match the weight map's value
+  type.  The result type must be the same as the distance map's value
+  type.<br>
+  <b>Default:</b><tt>std::plus&lt;D&gt;</tt>
+  with <tt>D=typename&nbsp;property_traits&lt;DistanceMap&gt;::value_type</tt>.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+IN: <tt>distance_compare(BinaryPredicate compare)</tt>
+<blockquote>
+  This function object replaces the role of the less-than operator
+  that compares distances in the relaxation step. The argument types
+  must match the distance map's value type.<br>
+  <b>Default:</b> <tt>std::less&lt;D&gt;</tt>
+  with <tt>D=typename&nbsp;property_traits&lt;DistanceMap&gt;::value_type</tt>.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+<P>
+
+<H3>Complexity</H3>
+
+<P>
+The time complexity is <i>O(V E)</i>.
+
+
+<h3>Visitor Event Points</h3>
+
+<ul>
+<li><b><tt>vis.examine_edge(e, g)</tt></b>  is invoked on every edge in
+  the graph <i>|V|</i> times.
+<li><b><tt>vis.edge_relaxed(e, g)</tt></b>  is invoked when the distance
+  label for the target vertex is decreased. The edge <i>(u,v)</i> that 
+  participated in the last relaxation for vertex <i>v</i> is an edge in the
+  shortest paths tree. 
+<li><b><tt>vis.edge_not_relaxed(e, g)</tt></b>  is invoked if the distance label
+  for the target vertex is not decreased. 
+<li><b><tt>vis.edge_minimized(e, g)</tt></b>  is invoked during the
+  second stage of the algorithm, during the test of whether each edge
+  was minimized. If the edge is minimized then this function
+  is invoked.
+<li><b><tt>vis.edge_not_minimized(e, g)</tt></b>  is also invoked during the
+  second stage of the algorithm, during the test of whether each edge
+  was minimized.  If the edge was not minimized, this function is
+  invoked.  This happens when there is a negative cycle in the graph.
+</ul>
+
+<H3>Example</H3>
+
+<P>
+An example of using the Bellman-Ford algorithm is in <a
+href="../example/bellman-example.cpp"><TT>examples/bellman-example.cpp</TT></a>.
+
+<h3>Notes</h3>
+
+<p><a name="1">[1]</a> 
+  Since the visitor parameter is passed by value, if your visitor
+  contains state then any changes to the state during the algorithm
+  will be made to a copy of the visitor object, not the visitor object
+  passed in. Therefore you may want the visitor to hold this state by
+  pointer or reference.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

@@ -1,0 +1,165 @@
+# Copyright (c) 2005 Vladimir Prus.
+# Copyright 2006 Rene Rivera.
+#
+# Use, modification and distribution is subject to the Boost Software
+# License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Provides mechanism for installing whole packages into a specific directory
+# structure. This is opposed to the 'install' rule, that installs a number of
+# targets to a single directory, and does not care about directory structure at
+# all.
+
+# Example usage:
+#
+#   package.install boost : <properties>
+#                         : <binaries>
+#                         : <libraries>
+#                         : <headers>
+#                         ;
+#
+# This will install binaries, libraries and headers to the 'proper' location,
+# given by command line options --prefix, --exec-prefix, --bindir, --libdir and
+# --includedir.
+#
+# The rule is just a convenient wrapper, avoiding the need to define several
+# 'install' targets.
+#
+# The only install-related feature is <install-source-root>. It will apply to
+# headers only and if present, paths of headers relatively to source root will
+# be retained after installing. If it is not specified, then "." is assumed, so
+# relative paths in headers are always preserved.
+
+import "class" : new ;
+import option ;
+import project ;
+import feature ;
+import property ;
+import stage ;
+import targets ;
+import modules ;
+
+feature.feature install-default-prefix : : free incidental ;
+
+rule install ( name package-name ? : requirements * : binaries * : libraries * : headers * )
+{
+    package-name ?= $(name) ;
+    if [ MATCH --prefix=(.*) : [ modules.peek : ARGV ] ]
+    {
+        # If --prefix is explicitly specified on the command line,
+        # then we need wipe away any settings of libdir/includir that
+        # is specified via options in config files.
+        option.set bindir : ;
+        option.set libdir : ;
+        option.set includedir : ;
+    }
+            
+    # If <install-source-root> is not specified, all headers are installed to
+    # prefix/include, no matter what their relative path is. Sometimes that is
+    # what is needed.
+    local install-source-root = [ property.select <install-source-root> :
+        $(requirements) ] ;
+    install-source-root = $(install-source-root:G=) ;
+    requirements = [ property.change $(requirements) : <install-source-root> ] ;
+
+    local install-header-subdir = [ property.select <install-header-subdir> :
+        $(requirements) ] ;
+    install-header-subdir = /$(install-header-subdir:G=) ;
+    install-header-subdir ?= "" ;
+    requirements = [ property.change $(requirements) : <install-header-subdir> ]
+        ;
+
+    # First, figure out all locations. Use the default if no prefix option
+    # given.
+    local prefix = [ get-prefix $(name) : $(requirements) ] ;
+
+    # Architecture dependent files.
+    local exec-locate = [ option.get exec-prefix : $(prefix) ] ;
+
+    # Binaries.
+    local bin-locate = [ option.get bindir : $(prefix)/bin ] ;
+
+    # Object code libraries.
+    local lib-locate = [ option.get libdir : $(prefix)/lib ] ;
+
+    # Source header files.
+    local include-locate = [ option.get includedir : $(prefix)/include ] ;
+
+    stage.install $(name)-bin : $(binaries) : $(requirements)
+        <location>$(bin-locate) ;
+    alias $(name)-lib : $(name)-lib-shared $(name)-lib-static ;
+    
+    # Since the install location of shared libraries differs on universe
+    # and cygwin, use target alternatives to make different targets.
+    # We should have used indirection conditioanl requirements, but it's
+    # awkward to pass bin-locate and lib-locate from there to another rule.
+    alias $(name)-lib-shared : $(name)-lib-shared-universe ;
+    alias $(name)-lib-shared : $(name)-lib-shared-cygwin : <target-os>cygwin ;
+    
+    # For shared libraries, we install both explicitly specified one and the
+    # shared libraries that the installed executables depend on.
+    stage.install $(name)-lib-shared-universe : $(binaries) $(libraries) : $(requirements)
+      <location>$(lib-locate) <install-dependencies>on <install-type>SHARED_LIB ;
+    stage.install $(name)-lib-shared-cygwin : $(binaries) $(libraries) : $(requirements)
+      <location>$(bin-locate) <install-dependencies>on <install-type>SHARED_LIB ;
+
+    # For static libraries, we do not care about executable dependencies, since
+    # static libraries are already incorporated into them.
+    stage.install $(name)-lib-static : $(libraries) : $(requirements)
+        <location>$(lib-locate) <install-dependencies>on <install-type>STATIC_LIB ;
+    stage.install $(name)-headers : $(headers) : $(requirements)
+        <location>$(include-locate)$(install-header-subdir)
+        <install-source-root>$(install-source-root) ;
+    alias $(name) : $(name)-bin $(name)-lib $(name)-headers ;
+
+    local c = [ project.current ] ;
+    local project-module = [ $(c).project-module ] ;
+    module $(project-module)
+    {
+        explicit $(1)-bin $(1)-lib $(1)-headers $(1) $(1)-lib-shared $(1)-lib-static 
+          $(1)-lib-shared-universe $(1)-lib-shared-cygwin ;
+    }
+}
+
+rule install-data ( target-name : package-name : data * : requirements * )
+{
+    package-name ?= target-name ;
+    if [ MATCH --prefix=(.*) : [ modules.peek : ARGV ] ]
+    {
+        # If --prefix is explicitly specified on the command line,
+        # then we need wipe away any settings of datarootdir
+        option.set datarootdir : ;
+    }   
+    
+    local prefix = [ get-prefix $(package-name) : $(requirements) ] ;
+    local datadir = [ option.get datarootdir : $(prefix)/share ] ;
+
+    stage.install $(target-name) 
+        : $(data)
+        : $(requirements) <location>$(datadir)/$(package-name)
+        ;
+    
+    local c = [ project.current ] ;
+    local project-module = [ $(c).project-module ] ;
+    module $(project-module)
+    {
+        explicit $(1) ;
+    }
+}
+
+local rule get-prefix ( package-name : requirements * )
+{
+    local prefix = [ option.get prefix : [ property.select
+        <install-default-prefix> : $(requirements) ] ] ;
+    prefix = $(prefix:G=) ;
+    requirements = [ property.change $(requirements) : <install-default-prefix>
+        ] ;
+    # Or some likely defaults if neither is given.
+    if ! $(prefix)
+    {
+        if [ modules.peek : NT ] { prefix = C:\\$(package-name) ; }
+        else if [ modules.peek : UNIX ] { prefix = /usr/local ; }        
+    }
+    return $(prefix) ;
+}           
+

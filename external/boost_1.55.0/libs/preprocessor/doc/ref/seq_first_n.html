@@ -1,0 +1,67 @@
+<html>
+<head>
+        <title>BOOST_PP_SEQ_FIRST_N</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+		<div style="margin-left: 0px;">
+			The <b>BOOST_PP_SEQ_FIRST_N</b> macro expands to a <i>seq</i> of the first <i>n</i>
+			elements of a <i>seq</i>.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_FIRST_N</b>(<i>n</i>, <i>seq</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>n</dt>
+			<dd>
+				The number of elements to extract.
+			</dd>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> from which the elements are extracted.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			This macro extracts <i>n</i> elements from the beginning of <i>seq</i> and 
+			returns them as a new <i>seq</i>
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="seq_rest_n.html">BOOST_PP_SEQ_REST_N</a></li>
+		</ul>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/first_n.html">&lt;boost/preprocessor/seq/first_n.hpp&gt;</a>
+		</div>
+		<h4>
+			Sample Code
+		</h4>
+		<div>
+			<pre>#include &lt;<a href="../headers/seq/first_n.html">boost/preprocessor/seq/first_n.hpp</a>&gt;<br><br>#define SEQ (a)(b)(c)(d)(e)<br><br><a href="seq_first_n.html">BOOST_PP_SEQ_FIRST_N</a>(2, SEQ) // expands to (a)(b)<br></pre>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		<br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

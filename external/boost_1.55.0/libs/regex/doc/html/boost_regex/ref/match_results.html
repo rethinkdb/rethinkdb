@@ -1,0 +1,832 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>match_results</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Boost.Regex">
+<link rel="up" href="../ref.html" title="Reference">
+<link rel="prev" href="basic_regex.html" title="basic_regex">
+<link rel="next" href="sub_match.html" title="sub_match">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_regex.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sub_match.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_match_results">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_regex.ref.match_results"></a><a class="link" href="match_results.html" title="match_results">match_results</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_regex.ref.match_results.h0"></a>
+        <span class="phrase"><a name="boost_regex.ref.match_results.synopsis"></a></span><a class="link" href="match_results.html#boost_regex.ref.match_results.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Regular expressions are different from many simple pattern-matching algorithms
+        in that as well as finding an overall match they can also produce sub-expression
+        matches: each sub-expression being delimited in the pattern by a pair of
+        parenthesis (...). There has to be some method for reporting sub-expression
+        matches back to the user: this is achieved this by defining a class <code class="computeroutput"><span class="identifier">match_results</span></code> that acts as an indexed collection
+        of sub-expression matches, each sub-expression match being contained in an
+        object of type <a class="link" href="sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a>.
+      </p>
+<p>
+        Template class <code class="computeroutput"><span class="identifier">match_results</span></code>
+        denotes a collection of character sequences representing the result of a
+        regular expression match. Objects of type <code class="computeroutput"><span class="identifier">match_results</span></code>
+        are passed to the algorithms <a class="link" href="regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a> and <a class="link" href="regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a>, and are returned by
+        the iterator <a class="link" href="regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a>. Storage for the
+        collection is allocated and freed as necessary by the member functions of
+        class <code class="computeroutput"><span class="identifier">match_results</span></code>.
+      </p>
+<p>
+        The template class <code class="computeroutput"><span class="identifier">match_results</span></code>
+        conforms to the requirements of a Sequence, as specified in (lib.sequence.reqmts),
+        except that only operations defined for const-qualified Sequences are supported.
+      </p>
+<p>
+        Class template <code class="computeroutput"><span class="identifier">match_results</span></code>
+        is most commonly used as one of the typedefs <code class="computeroutput"><span class="identifier">cmatch</span></code>,
+        <code class="computeroutput"><span class="identifier">wcmatch</span></code>, <code class="computeroutput"><span class="identifier">smatch</span></code>,
+        or <code class="computeroutput"><span class="identifier">wsmatch</span></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span>
+         <span class="keyword">class</span> <span class="identifier">Allocator</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span><span class="identifier">sub_match</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">match_results</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*&gt;</span>              <span class="identifier">cmatch</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">wchar_t</span><span class="special">*&gt;</span>           <span class="identifier">wcmatch</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">const_iterator</span><span class="special">&gt;</span>   <span class="identifier">smatch</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">wstring</span><span class="special">::</span><span class="identifier">const_iterator</span><span class="special">&gt;</span>  <span class="identifier">wsmatch</span><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span>
+         <span class="keyword">class</span> <span class="identifier">Allocator</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span><span class="identifier">sub_match</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">match_results</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+   <span class="keyword">typedef</span>          <span class="identifier">sub_match</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;</span>                        <span class="identifier">value_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span>          <span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">&amp;</span>                                       <span class="identifier">const_reference</span><span class="special">;</span>
+   <span class="keyword">typedef</span>          <span class="identifier">const_reference</span>                                         <span class="identifier">reference</span><span class="special">;</span>
+   <span class="keyword">typedef</span>          <span class="identifier">implementation</span> <span class="identifier">defined</span>                                  <span class="identifier">const_iterator</span><span class="special">;</span>
+   <span class="keyword">typedef</span>          <span class="identifier">const_iterator</span>                                          <span class="identifier">iterator</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;::</span><span class="identifier">difference_type</span> <span class="identifier">difference_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Allocator</span><span class="special">::</span><span class="identifier">size_type</span>                                    <span class="identifier">size_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span>          <span class="identifier">Allocator</span>                                               <span class="identifier">allocator_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">iterator_traits</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;::</span><span class="identifier">value_type</span>      <span class="identifier">char_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span>          <span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">&gt;</span>                                 <span class="identifier">string_type</span><span class="special">;</span>
+
+   <span class="comment">// construct/copy/destroy:</span>
+   <a class="link" href="match_results.html#boost_regex.match_results.construct">explicit match_results</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Allocator</span><span class="special">&amp;</span> <span class="identifier">a</span> <span class="special">=</span> <span class="identifier">Allocator</span><span class="special">());</span>
+   <a class="link" href="match_results.html#boost_regex.match_results.copy_construct">match_results</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&amp;</span> <span class="identifier">m</span><span class="special">);</span>
+   <a class="link" href="match_results.html#boost_regex.match_results.assign">match_results&amp; operator=</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&amp;</span> <span class="identifier">m</span><span class="special">);</span>
+   <span class="special">~</span><span class="identifier">match_results</span><span class="special">();</span>
+
+   <span class="comment">// size:</span>
+   <span class="identifier">size_type</span> <a class="link" href="match_results.html#boost_regex.match_results.size">size</a><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">size_type</span> <a class="link" href="match_results.html#boost_regex.match_results.max_size">max_size</a><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">bool</span> <a class="link" href="match_results.html#boost_regex.match_results.empty">empty</a><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="comment">// element access:</span>
+   <span class="identifier">difference_type</span> <a class="link" href="match_results.html#boost_regex.match_results.length">length</a><span class="special">(</span><span class="keyword">int</span> <span class="identifier">sub</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">difference_type</span> <a class="link" href="match_results.html#boost_regex.match_results.length">length</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span><span class="special">*</span> <span class="identifier">sub</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">&gt;</span>
+   <span class="identifier">difference_type</span> <a class="link" href="match_results.html#boost_regex.match_results.length">length</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">sub</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A</span><span class="special">&gt;</span>
+   <span class="identifier">difference_type</span> <a class="link" href="match_results.html#boost_regex.match_results.length">length</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;&amp;</span> <span class="identifier">sub</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">difference_type</span> <a class="link" href="match_results.html#boost_regex.match_results.position">position</a><span class="special">(</span><span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">sub</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">difference_type</span> <a class="link" href="match_results.html#boost_regex.match_results.position">position</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span><span class="special">*</span> <span class="identifier">sub</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">&gt;</span>
+   <span class="identifier">difference_type</span> <a class="link" href="match_results.html#boost_regex.match_results.position">position</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">sub</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A</span><span class="special">&gt;</span>
+   <span class="identifier">difference_type</span> <a class="link" href="match_results.html#boost_regex.match_results.position">position</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;&amp;</span> <span class="identifier">sub</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">string_type</span> <a class="link" href="match_results.html#boost_regex.match_results.str">str</a><span class="special">(</span><span class="keyword">int</span> <span class="identifier">sub</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">string_type</span> <a class="link" href="match_results.html#boost_regex.match_results.str">str</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span><span class="special">*</span> <span class="identifier">sub</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A</span><span class="special">&gt;</span>
+   <span class="identifier">string_type</span> <a class="link" href="match_results.html#boost_regex.match_results.str">str</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;&amp;</span> <span class="identifier">sub</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">&gt;</span>
+   <span class="identifier">string_type</span> <a class="link" href="match_results.html#boost_regex.match_results.str">str</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">sub</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A</span><span class="special">&gt;</span>
+   <span class="identifier">string_type</span> <a class="link" href="match_results.html#boost_regex.match_results.str">str</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;&amp;</span> <span class="identifier">sub</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">const_reference</span> <a class="link" href="match_results.html#boost_regex.match_results.subscript">operator[]</a><span class="special">(</span><span class="keyword">int</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">const_reference</span> <a class="link" href="match_results.html#boost_regex.match_results.subscript">operator[]</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span><span class="special">*</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A</span><span class="special">&gt;</span>
+   <span class="identifier">const_reference</span> <a class="link" href="match_results.html#boost_regex.match_results.subscript">operator[]</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;&amp;</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">&gt;</span>
+   <span class="identifier">const_reference</span> <a class="link" href="match_results.html#boost_regex.match_results.subscript">operator[]</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A</span><span class="special">&gt;</span>
+   <span class="identifier">const_reference</span> <a class="link" href="match_results.html#boost_regex.match_results.subscript">operator[]</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;&amp;</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+   <span class="identifier">const_reference</span> <a class="link" href="match_results.html#boost_regex.match_results.prefix">prefix</a><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+   <span class="identifier">const_reference</span> <a class="link" href="match_results.html#boost_regex.match_results.suffix">suffix</a><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">const_iterator</span> <a class="link" href="match_results.html#boost_regex.match_results.begin">begin</a><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">const_iterator</span> <a class="link" href="match_results.html#boost_regex.match_results.end">end</a><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="comment">// format:</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">OutputIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Formatter</span><span class="special">&gt;</span>
+   <span class="identifier">OutputIterator</span> <a class="link" href="match_results.html#boost_regex.match_results.format">format</a><span class="special">(</span><span class="identifier">OutputIterator</span> <span class="identifier">out</span><span class="special">,</span>
+                        <span class="identifier">Formatter</span> <span class="identifier">fmt</span><span class="special">,</span>
+                        <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">format_default</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Formatter</span><span class="special">&gt;</span>
+   <span class="identifier">string_type</span> <a class="link" href="match_results.html#boost_regex.match_results.format2">format</a><span class="special">(</span><span class="identifier">Formatter</span> <span class="identifier">fmt</span><span class="special">,</span>
+                     <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">format_default</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+   <span class="identifier">allocator_type</span> <a class="link" href="match_results.html#boost_regex.match_results.get_allocator">get_allocator</a><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">void</span> <a class="link" href="match_results.html#boost_regex.match_results.swap">swap</a><span class="special">(</span><span class="identifier">match_results</span><span class="special">&amp;</span> <span class="identifier">that</span><span class="special">);</span>
+
+<span class="preprocessor">#ifdef</span> <span class="identifier">BOOST_REGEX_MATCH_EXTRA</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">value_type</span><span class="special">::</span><span class="identifier">capture_sequence_type</span> <span class="identifier">capture_sequence_type</span><span class="special">;</span>
+   <span class="keyword">const</span> <span class="identifier">capture_sequence_type</span><span class="special">&amp;</span> <a class="link" href="match_results.html#boost_regex.match_results.captures">captures</a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="preprocessor">#endif</span>
+
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <a class="link" href="match_results.html#boost_regex.match_results.op_eq">operator ==</a> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m1</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m2</span><span class="special">);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <a class="link" href="match_results.html#boost_regex.match_results.op_ne">operator !=</a> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m1</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m2</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="identifier">basic_ostream</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span>
+   <a class="link" href="match_results.html#boost_regex.match_results.op_stream">operator &lt;&lt;</a> <span class="special">(</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">os</span><span class="special">,</span>
+               <span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <a class="link" href="match_results.html#boost_regex.match_results.op_swap">swap</a><span class="special">(</span><span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m1</span><span class="special">,</span>
+         <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m2</span><span class="special">);</span>
+</pre>
+<h5>
+<a name="boost_regex.ref.match_results.h1"></a>
+        <span class="phrase"><a name="boost_regex.ref.match_results.description"></a></span><a class="link" href="match_results.html#boost_regex.ref.match_results.description">Description</a>
+      </h5>
+<p>
+        In all <code class="computeroutput"><span class="identifier">match_results</span></code> constructors,
+        a copy of the Allocator argument is used for any memory allocation performed
+        by the constructor or member functions during the lifetime of the object.
+      </p>
+<a name="boost_regex.match_results.construct"></a><pre class="programlisting"><span class="identifier">match_results</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Allocator</span><span class="special">&amp;</span> <span class="identifier">a</span> <span class="special">=</span> <span class="identifier">Allocator</span><span class="special">());</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Constructs an object of class
+        <code class="computeroutput"><span class="identifier">match_results</span></code>. The postconditions
+        of this function are indicated in the table:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Element
+                </p>
+              </th>
+<th>
+                <p>
+                  Value
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  empty()
+                </p>
+              </td>
+<td>
+                <p>
+                  true
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  size()
+                </p>
+              </td>
+<td>
+                <p>
+                  0
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  str()
+                </p>
+              </td>
+<td>
+                <p>
+                  basic_string&lt;charT&gt;()
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<a name="boost_regex.match_results.copy_construct"></a><pre class="programlisting"><span class="identifier">match_results</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&amp;</span> <span class="identifier">m</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Constructs an object of class match_results,
+        as a copy of m.
+      </p>
+<a name="boost_regex.match_results.assign"></a><pre class="programlisting"><span class="identifier">match_results</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&amp;</span> <span class="identifier">m</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Assigns m to *this. The postconditions
+        of this function are indicated in the table:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Element
+                </p>
+              </th>
+<th>
+                <p>
+                  Value
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  empty()
+                </p>
+              </td>
+<td>
+                <p>
+                  m.empty().
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  size()
+                </p>
+              </td>
+<td>
+                <p>
+                  m.size().
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  str(n)
+                </p>
+              </td>
+<td>
+                <p>
+                  m.str(n) for all integers n &lt; m.size().
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  prefix()
+                </p>
+              </td>
+<td>
+                <p>
+                  m.prefix().
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  suffix()
+                </p>
+              </td>
+<td>
+                <p>
+                  m.suffix().
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  (*this)[n]
+                </p>
+              </td>
+<td>
+                <p>
+                  m[n] for all integers n &lt; m.size().
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  length(n)
+                </p>
+              </td>
+<td>
+                <p>
+                  m.length(n) for all integers n &lt; m.size().
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  position(n)
+                </p>
+              </td>
+<td>
+                <p>
+                  m.position(n) for all integers n &lt; m.size().
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<a name="boost_regex.match_results.size"></a><pre class="programlisting"><span class="identifier">size_type</span> <span class="identifier">size</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns the number of <a class="link" href="sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a> elements stored in *this;
+        that is the number of marked sub-expressions in the regular expression that
+        was matched plus one.
+      </p>
+<a name="boost_regex.match_results.max_size"></a><pre class="programlisting"><span class="identifier">size_type</span> <span class="identifier">max_size</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns the maximum number of
+        <a class="link" href="sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a>
+        elements that can be stored in *this.
+      </p>
+<a name="boost_regex.match_results.empty"></a><pre class="programlisting"><span class="keyword">bool</span> <span class="identifier">empty</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns size() == 0.
+      </p>
+<a name="boost_regex.match_results.length"></a><pre class="programlisting"><span class="identifier">difference_type</span> <span class="identifier">length</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">sub</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="identifier">difference_type</span> <span class="identifier">length</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span><span class="special">*</span> <span class="identifier">sub</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">&gt;</span>
+<span class="identifier">difference_type</span> <span class="identifier">length</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">sub</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A</span><span class="special">&gt;</span>
+<span class="identifier">difference_type</span> <span class="identifier">length</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;&amp;)</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Requires</strong></span>: that the match_results object
+        has been initialized as a result of a successful call to <a class="link" href="regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a> or <a class="link" href="regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a> or was returned from
+        a <a class="link" href="regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a>,
+        and that the underlying iterators have not been subsequently invalidated.
+        Will raise a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">logic_error</span></code> if the match_results object
+        was not initialized.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns the length of sub-expression
+        <span class="emphasis"><em>sub</em></span>, that is to say: <code class="computeroutput"><span class="special">(*</span><span class="keyword">this</span><span class="special">)[</span><span class="identifier">sub</span><span class="special">].</span><span class="identifier">length</span><span class="special">()</span></code>.
+      </p>
+<p>
+        The overloads that accept a string refer to a named sub-expression <span class="emphasis"><em>n</em></span>.
+        In the event that there is no such named sub-expression then returns zero.
+      </p>
+<p>
+        The template overloads of this function, allow the string and/or character
+        type to be different from the character type of the underlying sequence and/or
+        regular expression: in this case the characters will be widened to the underlying
+        character type of the original regular expression. A compiler error will
+        occur if the argument passes a wider character type than the underlying sequence.
+        These overloads allow a normal narrow character C string literal to be used
+        as an argument, even when the underlying character type of the expression
+        being matched may be something more exotic such as a Unicode character type.
+      </p>
+<a name="boost_regex.match_results.position"></a><pre class="programlisting"><span class="identifier">difference_type</span> <span class="identifier">position</span><span class="special">(</span><span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">sub</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="identifier">difference_type</span> <span class="identifier">position</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span><span class="special">*</span> <span class="identifier">sub</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">&gt;</span>
+<span class="identifier">difference_type</span> <span class="identifier">position</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">sub</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A</span><span class="special">&gt;</span>
+<span class="identifier">difference_type</span> <span class="identifier">position</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;&amp;)</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Requires</strong></span>: that the match_results object
+        has been initialized as a result of a successful call to <a class="link" href="regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a> or <a class="link" href="regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a> or was returned from
+        a <a class="link" href="regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a>,
+        and that the underlying iterators have not been subsequently invalidated.
+        Will raise a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">logic_error</span></code> if the match_results object
+        was not initialized.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns the starting location of
+        sub-expression <span class="emphasis"><em>sub</em></span>, or -1 if <span class="emphasis"><em>sub</em></span>
+        was not matched. Note that if this represents a partial match , then <code class="computeroutput"><span class="identifier">position</span><span class="special">()</span></code>
+        will return the location of the partial match even though <code class="computeroutput"><span class="special">(*</span><span class="keyword">this</span><span class="special">)[</span><span class="number">0</span><span class="special">].</span><span class="identifier">matched</span></code>
+        is false.
+      </p>
+<p>
+        The overloads that accept a string refer to a named sub-expression <span class="emphasis"><em>n</em></span>.
+        In the event that there is no such named sub-expression then returns -1.
+      </p>
+<p>
+        The template overloads of this function, allow the string and/or character
+        type to be different from the character type of the underlying sequence and/or
+        regular expression: in this case the characters will be widened to the underlying
+        character type of the original regular expression. A compiler error will
+        occur if the argument passes a wider character type than the underlying sequence.
+        These overloads allow a normal narrow character C string literal to be used
+        as an argument, even when the underlying character type of the expression
+        being matched may be something more exotic such as a Unicode character type.
+      </p>
+<a name="boost_regex.match_results.str"></a><pre class="programlisting"><span class="identifier">string_type</span> <span class="identifier">str</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">sub</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="identifier">string_type</span> <span class="identifier">str</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">char_type</span><span class="special">*</span> <span class="identifier">sub</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A</span><span class="special">&gt;</span>
+<span class="identifier">string_type</span> <span class="identifier">str</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;&amp;</span> <span class="identifier">sub</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">&gt;</span>
+<span class="identifier">string_type</span> <span class="identifier">str</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">sub</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A</span><span class="special">&gt;</span>
+<span class="identifier">string_type</span> <span class="identifier">str</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;&amp;</span> <span class="identifier">sub</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Requires</strong></span>: that the match_results object
+        has been initialized as a result of a successful call to <a class="link" href="regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a> or <a class="link" href="regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a> or was returned from
+        a <a class="link" href="regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a>,
+        and that the underlying iterators have not been subsequently invalidated.
+        Will raise a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">logic_error</span></code> if the match_results object
+        was not initialized.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns sub-expression <span class="emphasis"><em>sub</em></span>
+        as a string: <code class="computeroutput"><span class="identifier">string_type</span><span class="special">((*</span><span class="keyword">this</span><span class="special">)[</span><span class="identifier">sub</span><span class="special">])</span></code>.
+      </p>
+<p>
+        The overloads that accept a string, return the string that matched the named
+        sub-expression <span class="emphasis"><em>n</em></span>. In the event that there is no such
+        named sub-expression then returns an empty string.
+      </p>
+<p>
+        The template overloads of this function, allow the string and/or character
+        type to be different from the character type of the underlying sequence and/or
+        regular expression: in this case the characters will be widened to the underlying
+        character type of the original regular expression. A compiler error will
+        occur if the argument passes a wider character type than the underlying sequence.
+        These overloads allow a normal narrow character C string literal to be used
+        as an argument, even when the underlying character type of the expression
+        being matched may be something more exotic such as a Unicode character type.
+      </p>
+<a name="boost_regex.match_results.subscript"></a><pre class="programlisting"><span class="identifier">const_reference</span> <span class="keyword">operator</span><span class="special">[](</span><span class="keyword">int</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="identifier">const_reference</span> <span class="keyword">operator</span><span class="special">[](</span><span class="keyword">const</span> <span class="identifier">char_type</span><span class="special">*</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A</span><span class="special">&gt;</span>
+<span class="identifier">const_reference</span> <span class="keyword">operator</span><span class="special">[](</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;&amp;</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">&gt;</span>
+<span class="identifier">const_reference</span> <span class="keyword">operator</span><span class="special">[](</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A</span><span class="special">&gt;</span>
+<span class="identifier">const_reference</span> <span class="keyword">operator</span><span class="special">[](</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;&amp;</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Requires</strong></span>: that the match_results object
+        has been initialized as a result of a successful call to <a class="link" href="regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a> or <a class="link" href="regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a> or was returned from
+        a <a class="link" href="regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a>,
+        and that the underlying iterators have not been subsequently invalidated.
+        Will raise a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">logic_error</span></code> if the match_results object
+        was not initialized.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns a reference to the <a class="link" href="sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a>
+        object representing the character sequence that matched marked sub-expression
+        <span class="emphasis"><em>n</em></span>. If <code class="computeroutput"><span class="identifier">n</span> <span class="special">==</span> <span class="number">0</span></code> then returns
+        a reference to a <a class="link" href="sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a> object representing the
+        character sequence that matched the whole regular expression. If <span class="emphasis"><em>n</em></span>
+        is out of range, or if <span class="emphasis"><em>n</em></span> is an unmatched sub-expression,
+        then returns a <a class="link" href="sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a>
+        object whose matched member is false.
+      </p>
+<p>
+        The overloads that accept a string, return a reference to the <a class="link" href="sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a> object representing the
+        character sequence that matched the named sub-expression <span class="emphasis"><em>n</em></span>.
+        In the event that there is no such named sub-expression then returns a <a class="link" href="sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a>
+        object whose matched member is false.
+      </p>
+<p>
+        The template overloads of this function, allow the string and/or character
+        type to be different from the character type of the underlying sequence and/or
+        regular expression: in this case the characters will be widened to the underlying
+        character type of the original regular expression. A compiler error will
+        occur if the argument passes a wider character type than the underlying sequence.
+        These overloads allow a normal narrow character C string literal to be used
+        as an argument, even when the underlying character type of the expression
+        being matched may be something more exotic such as a Unicode character type.
+      </p>
+<a name="boost_regex.match_results.prefix"></a><pre class="programlisting"><span class="identifier">const_reference</span> <span class="identifier">prefix</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Requires</strong></span>: that the match_results object
+        has been initialized as a result of a successful call to <a class="link" href="regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a> or <a class="link" href="regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a> or was returned from
+        a <a class="link" href="regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a>,
+        and that the underlying iterators have not been subsequently invalidated.
+        Will raise a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">logic_error</span></code> if the match_results object
+        was not initialized.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns a reference to the <a class="link" href="sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a>
+        object representing the character sequence from the start of the string being
+        matched or searched, to the start of the match found.
+      </p>
+<a name="boost_regex.match_results.suffix"></a><pre class="programlisting"><span class="identifier">const_reference</span> <span class="identifier">suffix</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Requires</strong></span>: that the match_results object
+        has been initialized as a result of a successful call to <a class="link" href="regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a> or <a class="link" href="regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a> or was returned from
+        a <a class="link" href="regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a>,
+        and that the underlying iterators have not been subsequently invalidated.
+        Will raise a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">logic_error</span></code> if the match_results object
+        was not initialized.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns a reference to the <a class="link" href="sub_match.html" title="sub_match"><code class="computeroutput"><span class="identifier">sub_match</span></code></a>
+        object representing the character sequence from the end of the match found
+        to the end of the string being matched or searched.
+      </p>
+<a name="boost_regex.match_results.begin"></a><pre class="programlisting"><span class="identifier">const_iterator</span> <span class="identifier">begin</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns a starting iterator that
+        enumerates over all the marked sub-expression matches stored in *this.
+      </p>
+<a name="boost_regex.match_results.end"></a><pre class="programlisting"><span class="identifier">const_iterator</span> <span class="identifier">end</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns a terminating iterator
+        that enumerates over all the marked sub-expression matches stored in *this.
+      </p>
+<a name="boost_regex.match_results_format"></a><a name="boost_regex.match_results.format"></a><pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">OutputIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Formatter</span><span class="special">&gt;</span>
+<span class="identifier">OutputIterator</span> <span class="identifier">format</span><span class="special">(</span><span class="identifier">OutputIterator</span> <span class="identifier">out</span><span class="special">,</span>
+                      <span class="identifier">Formatter</span> <span class="identifier">fmt</span><span class="special">,</span>
+                      <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">format_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Requires</strong></span>: The type <code class="computeroutput"><span class="identifier">OutputIterator</span></code>
+        conforms to the Output Iterator requirements (C++ std 24.1.2).
+      </p>
+<p>
+        The type <code class="computeroutput"><span class="identifier">Formatter</span></code> must be
+        either a pointer to a null-terminated string of type <code class="computeroutput"><span class="identifier">char_type</span><span class="special">[]</span></code>, or be a container of <code class="computeroutput"><span class="identifier">char_type</span></code>'s
+        (for example <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">&gt;</span></code>)
+        or be a unary, binary or ternary functor that computes the replacement string
+        from a function call: either <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(*</span><span class="keyword">this</span><span class="special">)</span></code>
+        which must return a container of <code class="computeroutput"><span class="identifier">char_type</span></code>'s
+        to be used as the replacement text, or either <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(*</span><span class="keyword">this</span><span class="special">,</span>
+        <span class="identifier">out</span><span class="special">)</span></code>
+        or <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(*</span><span class="keyword">this</span><span class="special">,</span> <span class="identifier">out</span><span class="special">,</span> <span class="identifier">flags</span><span class="special">)</span></code>, both of which write the replacement text
+        to <code class="computeroutput"><span class="special">*</span><span class="identifier">out</span></code>,
+        and then return the new OutputIterator position. Note that if the formatter
+        is a functor, then it is <span class="emphasis"><em>passed by value</em></span>: users that
+        want to pass function objects with internal state might want to use <a href="../../../../../../doc/html/ref.html" target="_top">Boost.Ref</a> to wrap the object
+        so that it's passed by reference.
+      </p>
+<p>
+        <span class="bold"><strong>Requires</strong></span>: that the match_results object
+        has been initialized as a result of a successful call to <a class="link" href="regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a> or <a class="link" href="regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a> or was returned from
+        a <a class="link" href="regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a>,
+        and that the underlying iterators have not been subsequently invalidated.
+        Will raise a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">logic_error</span></code> if the match_results object
+        was not initialized.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: If <code class="computeroutput"><span class="identifier">fmt</span></code>
+        is either a null-terminated string, or a container of <code class="computeroutput"><span class="identifier">char_type</span></code>'s,
+        then copies the character sequence <code class="computeroutput"><span class="special">[</span><span class="identifier">fmt</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">fmt</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span></code>
+        to <code class="computeroutput"><span class="identifier">OutputIterator</span></code> <span class="emphasis"><em>out</em></span>.
+        For each format specifier or escape sequence in <span class="emphasis"><em>fmt</em></span>,
+        replace that sequence with either the character(s) it represents, or the
+        sequence of characters within <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code> to which it refers. The bitmasks specified
+        in flags determines what format specifiers or escape sequences are recognized,
+        by default this is the format used by ECMA-262, ECMAScript Language Specification,
+        Chapter 15 part 5.4.11 String.prototype.replace.
+      </p>
+<p>
+        If <code class="computeroutput"><span class="identifier">fmt</span></code> is a function object,
+        then depending on the number of arguments the function object accepts, it
+        will either:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Call <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(*</span><span class="keyword">this</span><span class="special">)</span></code>
+            and copy the string returned to <code class="computeroutput"><span class="identifier">OutputIterator</span></code>
+            <span class="emphasis"><em>out</em></span>.
+          </li>
+<li class="listitem">
+            Call <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(*</span><span class="keyword">this</span><span class="special">,</span> <span class="identifier">out</span><span class="special">)</span></code>.
+          </li>
+<li class="listitem">
+            Call <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(*</span><span class="keyword">this</span><span class="special">,</span> <span class="identifier">out</span><span class="special">,</span> <span class="identifier">flags</span><span class="special">)</span></code>.
+          </li>
+</ul></div>
+<p>
+        In all cases the new position of the <code class="computeroutput"><span class="identifier">OutputIterator</span></code>
+        is returned.
+      </p>
+<p>
+        See the <a class="link" href="../format.html" title="Search and Replace Format String Syntax">format syntax guide for more information</a>.
+      </p>
+<p>
+        <span class="bold"><strong>Returns</strong></span>: out.
+      </p>
+<a name="boost_regex.match_results.format2"></a><pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Formatter</span><span class="special">&gt;</span>
+<span class="identifier">string_type</span> <span class="identifier">format</span><span class="special">(</span><span class="identifier">Formatter</span> <span class="identifier">fmt</span><span class="special">,</span>
+                   <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">format_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Requires</strong></span> The type <code class="computeroutput"><span class="identifier">Formatter</span></code>
+        must be either a pointer to a null-terminated string of type <code class="computeroutput"><span class="identifier">char_type</span><span class="special">[]</span></code>,
+        or be a container of <code class="computeroutput"><span class="identifier">char_type</span></code>'s
+        (for example <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">&gt;</span></code>)
+        or be a unary, binary or ternary functor that computes the replacement string
+        from a function call: either <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(*</span><span class="keyword">this</span><span class="special">)</span></code>
+        which must return a container of <code class="computeroutput"><span class="identifier">char_type</span></code>'s
+        to be used as the replacement text, or either <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(*</span><span class="keyword">this</span><span class="special">,</span>
+        <span class="identifier">out</span><span class="special">)</span></code>
+        or <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(*</span><span class="keyword">this</span><span class="special">,</span> <span class="identifier">out</span><span class="special">,</span> <span class="identifier">flags</span><span class="special">)</span></code>, both of which write the replacement text
+        to <code class="computeroutput"><span class="special">*</span><span class="identifier">out</span></code>,
+        and then return the new OutputIterator position.
+      </p>
+<p>
+        <span class="bold"><strong>Requires</strong></span>: that the match_results object
+        has been initialized as a result of a successful call to <a class="link" href="regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a> or <a class="link" href="regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a> or was returned from
+        a <a class="link" href="regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a>,
+        and that the underlying iterators have not been subsequently invalidated.
+        Will raise a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">logic_error</span></code> if the match_results object
+        was not initialized.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: If <code class="computeroutput"><span class="identifier">fmt</span></code>
+        is either a null-terminated string, or a container of <code class="computeroutput"><span class="identifier">char_type</span></code>'s,
+        then copies the string <span class="emphasis"><em>fmt</em></span>: For each format specifier
+        or escape sequence in <span class="emphasis"><em>fmt</em></span>, replace that sequence with
+        either the character(s) it represents, or the sequence of characters within
+        <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+        to which it refers. The bitmasks specified in flags determines what format
+        specifiers or escape sequences are recognized, by default this is the format
+        used by ECMA-262, ECMAScript Language Specification, Chapter 15 part 5.4.11
+        String.prototype.replace.
+      </p>
+<p>
+        If <code class="computeroutput"><span class="identifier">fmt</span></code> is a function object,
+        then depending on the number of arguments the function object accepts, it
+        will either:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Call <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(*</span><span class="keyword">this</span><span class="special">)</span></code>
+            and return the result.
+          </li>
+<li class="listitem">
+            Call <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(*</span><span class="keyword">this</span><span class="special">,</span> <span class="identifier">unspecified</span><span class="special">-</span><span class="identifier">output</span><span class="special">-</span><span class="identifier">iterator</span><span class="special">)</span></code>,
+            where <code class="computeroutput"><span class="identifier">unspecified</span><span class="special">-</span><span class="identifier">output</span><span class="special">-</span><span class="identifier">iterator</span></code> is an unspecified OutputIterator
+            type used to copy the output to the string result.
+          </li>
+<li class="listitem">
+            Call <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(*</span><span class="keyword">this</span><span class="special">,</span> <span class="identifier">unspecified</span><span class="special">-</span><span class="identifier">output</span><span class="special">-</span><span class="identifier">iterator</span><span class="special">,</span>
+            <span class="identifier">flags</span><span class="special">)</span></code>,
+            where <code class="computeroutput"><span class="identifier">unspecified</span><span class="special">-</span><span class="identifier">output</span><span class="special">-</span><span class="identifier">iterator</span></code> is an unspecified OutputIterator
+            type used to copy the output to the string result.
+          </li>
+</ul></div>
+<p>
+        See the <a class="link" href="../format.html" title="Search and Replace Format String Syntax">format syntax guide for more information</a>.
+      </p>
+<a name="boost_regex.match_results.get_allocator"></a><pre class="programlisting"><span class="identifier">allocator_type</span> <span class="identifier">get_allocator</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Returns a copy of the Allocator
+        that was passed to the object's constructor.
+      </p>
+<a name="boost_regex.match_results.swap"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">match_results</span><span class="special">&amp;</span> <span class="identifier">that</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Swaps the contents of the two sequences.
+      </p>
+<p>
+        <span class="bold"><strong>Postcondition</strong></span>: *this contains the sequence
+        of matched sub-expressions that were in that, that contains the sequence
+        of matched sub-expressions that were in *this.
+      </p>
+<p>
+        <span class="bold"><strong>Complexity</strong></span>: constant time.
+      </p>
+<a name="boost_regex.match_results.capture_type"></a><pre class="programlisting"><span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">value_type</span><span class="special">::</span><span class="identifier">capture_sequence_type</span> <span class="identifier">capture_sequence_type</span><span class="special">;</span>
+</pre>
+<p>
+        Defines an implementation-specific type that satisfies the requirements of
+        a standard library Sequence (21.1.1 including the optional Table 68 operations),
+        whose value_type is a <code class="computeroutput"><span class="identifier">sub_match</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;</span></code>. This type happens to be <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">sub_match</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>,
+        but you shouldn't actually rely on that.
+      </p>
+<a name="boost_regex.match_results.captures"></a><pre class="programlisting"><span class="keyword">const</span> <span class="identifier">capture_sequence_type</span><span class="special">&amp;</span> <span class="identifier">captures</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Requires</strong></span>: that the match_results object
+        has been initialized as a result of a successful call to <a class="link" href="regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a> or <a class="link" href="regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a> or was returned from
+        a <a class="link" href="regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a>,
+        and that the underlying iterators have not been subsequently invalidated.
+        Will raise a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">logic_error</span></code> if the match_results object
+        was not initialized.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: returns a sequence containing all
+        the captures obtained for sub-expression i.
+      </p>
+<p>
+        <span class="bold"><strong>Returns</strong></span>: <code class="computeroutput"><span class="special">(*</span><span class="keyword">this</span><span class="special">)[</span><span class="identifier">i</span><span class="special">].</span><span class="identifier">captures</span><span class="special">();</span></code>
+      </p>
+<p>
+        <span class="bold"><strong>Preconditions</strong></span>: the library must be built
+        and used with BOOST_REGEX_MATCH_EXTRA defined, and you must pass the flag
+        match_extra to the regex matching functions ( <a class="link" href="regex_match.html" title="regex_match"><code class="computeroutput"><span class="identifier">regex_match</span></code></a>, <a class="link" href="regex_search.html" title="regex_search"><code class="computeroutput"><span class="identifier">regex_search</span></code></a>, <a class="link" href="regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a> or <a class="link" href="regex_token_iterator.html" title="regex_token_iterator"><code class="computeroutput"><span class="identifier">regex_token_iterator</span></code></a>) in order for
+        this member function to be defined and return useful information.
+      </p>
+<p>
+        <span class="bold"><strong>Rationale</strong></span>: Enabling this feature has several
+        consequences:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            sub_match occupies more memory resulting in complex expressions running
+            out of memory or stack space more quickly during matching.
+          </li>
+<li class="listitem">
+            The matching algorithms are less efficient at handling some features
+            (independent sub-expressions for example), even when match_extra is not
+            used.
+          </li>
+<li class="listitem">
+            The matching algorithms are much less efficient (i.e. slower), when match_extra
+            is used. Mostly this is down to the extra memory allocations that have
+            to take place.
+          </li>
+</ul></div>
+<a name="boost_regex.match_results.op_eq"></a><pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">==</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m1</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m2</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Compares the two sequences for
+        equality.
+      </p>
+<a name="boost_regex.match_results.op_ne"></a><pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">!=</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m1</span><span class="special">,</span>
+                  <span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m2</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Compares the two sequences for
+        inequality.
+      </p>
+<a name="boost_regex.match_results.op_stream"></a><pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">charT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="identifier">basic_ostream</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span>
+   <span class="keyword">operator</span> <span class="special">&lt;&lt;</span> <span class="special">(</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">os</span><span class="special">,</span>
+               <span class="keyword">const</span> <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Writes the contents of <span class="emphasis"><em>m</em></span>
+        to the stream <span class="emphasis"><em>os</em></span> as if by calling <code class="computeroutput"><span class="identifier">os</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">str</span><span class="special">()</span></code>;
+        Returns <span class="emphasis"><em>os</em></span>.
+      </p>
+<a name="boost_regex.match_results.op_swap"></a><pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m1</span><span class="special">,</span>
+         <span class="identifier">match_results</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">m2</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Swaps the contents of the two sequences.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_regex.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sub_match.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

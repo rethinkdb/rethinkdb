@@ -1,0 +1,228 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../../../boost.css">
+
+  <title>The Boost Statechart Library - Definitions</title>
+</head>
+
+<body link="#0000FF" vlink="#800080">
+  <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+  "header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../index.htm"><img alt="C++ Boost" src=
+        "../../../boost.png" border="0" width="277" height="86"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center">The Boost Statechart Library</h1>
+
+        <h2 align="center">Definitions</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <h2>Introduction</h2>
+
+  <p>The Boost.Statechart documentation uses a lot of terminology specific to
+  state machines. Most of it is equal to the one used in the UML
+  specifications. This document contains only definitions for terminology not
+  used by the <a href="http://www.omg.org/cgi-bin/doc?formal/03-03-01">UML
+  standard</a>. A short tour around UML terminology can be found <a href=
+  "http://www.sts.tu-harburg.de/teaching/ws-99.00/OOA+D/StateDiagrams.pdf">here</a>.</p>
+
+  <h2>Definitions</h2>
+
+  <dl class="page-index">
+    <dt><a href="#Context">Context</a></dt>
+
+    <dt><a href="#InnermostCommonContext">Innermost common context</a></dt>
+
+    <dt><a href="#InnermostState">Innermost state</a></dt>
+
+    <dt><a href="#InStateReaction">In-state reaction</a></dt>
+
+    <dt><a href="#OutermostState">Outermost state</a></dt>
+
+    <dt><a href="#PolymorphicEvents">Polymorphic events</a></dt>
+
+    <dt><a href="#Reaction">Reaction</a></dt>
+
+    <dt><a href="#UnstableState">Unstable state</a></dt>
+
+    <dt><a href="#UnstableStateMachine">Unstable state machine</a></dt>
+  </dl>
+
+  <h3><a name="Context" id="Context">Context</a></h3>
+
+  <p>The contexts of a state define its location in the state hierarchy. A
+  state's <b>direct</b> context is defined by what is passed as the
+  <code>Context</code> template parameter of the <code><a href=
+  "reference.html#ClassTemplatesimple_state">simple_state</a></code> and
+  <code><a href="reference.html#ClassTemplatestate">state</a></code> class
+  templates. This can either be the state machine (which makes the state an
+  <a href="#OutermostState">outermost state</a>) or its direct outer state. A
+  state's <b>indirect</b> contexts follow from the direct context of its
+  direct context and the direct context of the direct context of its direct
+  context and so on. Examples:</p>
+
+  <p><img alt="OutermostUnstableState" src="OutermostUnstableState.gif"
+  border="0" width="467" height="572"></p>
+
+  <ul>
+    <li>A's <b>direct</b> context is the state machine (not visible in this
+    picture). A does not have any indirect contexts</li>
+
+    <li>B's <b>direct</b> context is A. B's <b>indirect</b> context is the
+    state machine (not visible in this picture)</li>
+
+    <li>C's <b>direct</b> context is B. C's <b>indirect</b> contexts are B, A
+    and the state machine (not visible in this picture)</li>
+
+    <li>D's <b>direct</b> context is A. D's <b>indirect</b> context is the
+    state machine (not visible in this picture)</li>
+  </ul>
+
+  <h3><a name="InnermostCommonContext" id="InnermostCommonContext">Innermost
+  common context</a></h3>
+
+  <p>The innermost common context of two states is the first direct or
+  indirect context that both states have in common. Also known as Least
+  Common Ancestor (UML).</p>
+
+  <h3><a name="InnermostState" id="InnermostState">Innermost state</a></h3>
+
+  <p>An innermost state is a state that does not itself have inner states.
+  Also known as leaf state or simple state (UML). Note that <code><a href=
+  "reference.html#ClassTemplatesimple_state">boost::statechart::simple_state&lt;&gt;</a></code>
+  is <b>not</b> a model of the UML simple state.</p>
+
+  <h3><a name="InStateReaction" id="InStateReaction">In-state
+  reaction</a></h3>
+
+  <p>An in-state reaction is a <a href="#Reaction">reaction</a> that neither
+  exits nor enters any states. Also known as inner transition or internal
+  transition (UML).</p>
+
+  <h3><a name="OutermostState" id="OutermostState">Outermost state</a></h3>
+
+  <p>An outermost state is a state that does not itself have outer states.
+  Note that an outermost state is different from the UML top state. A state
+  machine can have an arbitrary number of the former but only exactly one of
+  the latter. Boost.Statechart only supports outermost states.</p>
+
+  <h3><a name="PolymorphicEvents" id="PolymorphicEvents">Polymorphic
+  events</a></h3>
+
+  <p>An FSM library supports polymorphic events if events can inherit from
+  each other without restrictions <b>and</b> if it allows the definition of
+  reactions for leafs and nodes of the resulting event inheritance
+  tree.</p>
+
+  <p>Example (using a hypothetical FSM library, as Boost.Statechart does not
+  support polymorphic events):</p>
+  <pre>
+struct EvButtonPressed : Event // node
+{
+  /* common button pressed properties */
+};
+
+struct EvPlayButtonPressed : EvButtonPressed {}; // leaf
+struct EvStopButtonPressed : EvButtonPressed {}; // leaf
+struct EvForwardButtonPressed : EvButtonPressed {}; // leaf
+</pre>
+
+  <p>If a state machine needs to react whenever <b>any</b> button (including
+  the ones that may be added in the future) is pressed, a reaction for
+  <code>EvButtonPressed</code> can be defined.</p>
+
+  <h3><a name="Reaction" id="Reaction">Reaction</a></h3>
+
+  <p>A reaction consists of all the side effects caused by the processing of
+  one event. Reactions can be categorized as follows:</p>
+
+  <ol>
+    <li>In-state reaction</li>
+
+    <li>Event deferral</li>
+
+    <li>Transition</li>
+
+    <li>Termination, also known as transition to the final state (UML)</li>
+  </ol>
+
+  <p>Note that it is possible to mix a reaction of type 1 with one of the
+  other types (the in-state reaction is always executed first) but it is not
+  possible to mix a reaction of type 2-4 with anything else but type 1.</p>
+
+  <p>A reaction is always associated with exactly one state type and exactly
+  one event type.</p>
+
+  <h3><a name="UnstableState" id="UnstableState">Unstable state</a></h3>
+
+  <p>A state is unstable from the moment when it has been entered until after
+  its last <b>direct</b> inner state has been entered. A state is also
+  unstable from the moment just before its first <b>direct</b> inner state is
+  exited until right before the state itself is exited.</p>
+
+  <h3><a name="UnstableStateMachine" id="UnstableStateMachine">Unstable state
+  machine</a></h3>
+
+  <p>A state machine is unstable if at least one of its currently active
+  states is unstable. This is the case during the following three
+  operations:</p>
+
+  <ul>
+    <li>Initiation: From the moment after the first state has been entered
+    until after the last state of the initial state configuration has been
+    entered</li>
+
+    <li>Transition: From the moment just before the first state of the
+    current state configuration is exited until after the last state of the
+    destination state configuration has been entered</li>
+
+    <li>Termination: From the moment just before the first state is exited
+    until right before the last terminated state is exited. A successfully
+    executed termination (no exception was thrown) never leaves any states
+    unstable. For example, consider the active state A with two orthogonal
+    regions in which the inner states B and C are each active. Terminating
+    either B or C does not make A unstable. Neither does terminating both, as
+    that inevitably also terminates A</li>
+  </ul>
+
+  <p>Under normal circumstances a state machine has Run-To-Completion
+  semantics, that is, it is always stable before the machine returns to the
+  client or before the next event is dequeued. So, a state machine is usually
+  only unstable when it is busy processing an event and becomes stable again
+  right before it has finished processing the event. However, this can not be
+  guaranteed when entry, exit or transition actions fail. Such a failure is
+  reported by an event, which must be processed while the state machine is
+  unstable. However, exception event processing rules ensure that a state
+  machine is never unstable when it returns to the client (see <code><a href=
+  "reference.html#process_event">state_machine&lt;&gt;::process_event()</a></code>
+  for details).</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->29 December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38526" --></p>
+
+  <p><i>Copyright &copy; 2003-<!--webbot bot="Timestamp" s-type="EDITED" s-format="%Y" startspan -->2006<!--webbot bot="Timestamp" endspan i-checksum="770" -->
+  <a href="contact.html">Andreas Huber D&ouml;nni</a></i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

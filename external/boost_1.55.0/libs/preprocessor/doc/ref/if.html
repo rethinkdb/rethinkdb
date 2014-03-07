@@ -1,0 +1,63 @@
+<html>
+<head>
+	<title>BOOST_PP_IF</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_IF</b> macro chooses between to values based on a logical condition.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_IF</b>(<i>cond</i>, <i>t</i>, <i>f</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>cond</dt>
+			<dd>
+				The condition that determines if the result is <i>expr</i> or nothing.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+			<dt>t</dt>
+			<dd>
+				The result of the expansion if <i>cond</i> is non-zero.
+			</dd>
+			<dt>f</dt>
+			<dd>
+				The result of the expansion if <i>cond</i> is <i>0</i>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro performs a boolean conversion on its first argument.&nbsp;
+			If that conversion is unnecessary, use <b>BOOST_PP_IIF</b> instead.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="iif.html">BOOST_PP_IIF</a></li>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/control/if.html">&lt;boost/preprocessor/control/if.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/control/if.html">boost/preprocessor/control/if.hpp</a>&gt;
+
+<a href="if.html">BOOST_PP_IF</a>(10, a, b) // expands to a
+<a href="if.html">BOOST_PP_IF</a>(0, a, b) // expands to b
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

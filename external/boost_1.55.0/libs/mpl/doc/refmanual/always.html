@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: always</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./identity.html" class="navigation-link">Prev</a>&nbsp;<a href="./inherit.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./identity.html" class="navigation-link">Back</a>&nbsp;<a href="./inherit.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./miscellaneous.html" class="navigation-link">Miscellaneous</a> / <a href="./always.html" class="navigation-link">always</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="always">
+<h1><a class="toc-backref" href="./miscellaneous.html#id1565">always</a></h1>
+<div class="section" id="id1155">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename X
+    &gt;
+struct <a href="./always.html" class="identifier">always</a>
+{
+    // <em>unspecified</em>
+    // <em>...</em>
+};
+</pre>
+</div>
+<div class="section" id="id1156">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./always.html" class="identifier">always</a>&lt;X&gt;</span></tt> specialization is a variadic <a class="reference internal" href="./metafunction-class.html">Metafunction Class</a> always returning the
+same type, <tt class="literal"><span class="pre">X</span></tt>, regardless of the number and types of passed arguments.</p>
+</div>
+<div class="section" id="id1157">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/always.hpp" class="header">boost/mpl/always.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1158">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./metafunction-class.html">Metafunction Class</a></p>
+</div>
+<div class="section" id="id1159">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="22%" />
+<col width="28%" />
+<col width="51%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">X</span></tt></td>
+<td>Any type</td>
+<td>A type to be returned.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1160">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For an arbitrary type <tt class="literal"><span class="pre">x</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./always.html" class="identifier">always</a>&lt;x&gt; f;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./metafunction-class.html">Metafunction Class</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="last literal-block">
+struct f : <a href="./bind.html" class="identifier">bind</a>&lt; <a href="./identity.html" class="identifier">identity</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>&gt;, x > {};
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1161">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./always.html" class="identifier">always</a>&lt;<a href="./bool.html" class="identifier">true_</a>&gt; always_true;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./apply.html" class="identifier">apply</a>&lt; always_true,<a href="./bool.html" class="identifier">false_</a>&gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./apply.html" class="identifier">apply</a>&lt; always_true,<a href="./bool.html" class="identifier">false_</a>,<a href="./bool.html" class="identifier">false_</a> &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./apply.html" class="identifier">apply</a>&lt; always_true,<a href="./bool.html" class="identifier">false_</a>,<a href="./bool.html" class="identifier">false_</a>,<a href="./bool.html" class="identifier">false_</a> > ));
+</pre>
+</div>
+<div class="section" id="id1162">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./metafunction-class.html">Metafunction Class</a>, <a class="reference internal" href="./identity.html">identity</a>, <a class="reference internal" href="./bind.html">bind</a>, <a class="reference internal" href="./apply.html">apply</a></p>
+<!-- Metafunctions/Miscellaneous//inherit |30 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./identity.html" class="navigation-link">Prev</a>&nbsp;<a href="./inherit.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./identity.html" class="navigation-link">Back</a>&nbsp;<a href="./inherit.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

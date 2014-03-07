@@ -1,0 +1,370 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/my.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/my.xml
+ */
+my{
+    AuxExemplarCharacters{"[\u1022 \u1028 \u1050-\u1059]"}
+    ExemplarCharacters{
+        "[က ခ ဂ ဃ င စ ဆ ဇ ဈ ဉ ည ဋ ဌ ဍ ဎ ဏ တ ထ ဒ ဓ န ပ ဖ ဗ ဘ မ ယ ရ လ ဝ သ ဟ ဠ အ ဣ ဤ ဥ ဦ"
+        " ဧ ဩ ဪ ဿ \u102B-\u1032 \u1036-\u103E]"
+    }
+    ExemplarCharactersCurrency{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+    ExemplarCharactersIndex{"[က ခ ဂ ဃ င စ ဆ ဇ ဈ ဉ ည ဋ ဌ ဍ ဎ ဏ တ ထ ဒ ဓ န ပ ဖ ဗ ဘ မ ယ ရ လ ဝ သ ဟ ဠ အ]"}
+    LocaleScript{
+        "Mymr",
+    }
+    NumberElements{
+        default{"mymr"}
+        latn{
+            patterns{
+                currencyFormat{"¤ #,##0.00"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0%"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{"."}
+                group{","}
+                list{";"}
+            }
+        }
+        mymr{
+            symbols{
+                list{"၊"}
+            }
+        }
+    }
+    Version{"2.0.51.46"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "နံနက်",
+                "ညနေ",
+            }
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE, y MMMM dd",
+                "y MMMM d",
+                "y MMM d",
+                "yy/MM/dd",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"EEE, d"}
+                H{"HH"}
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"EEE, M/d"}
+                MMM{"LLL"}
+                MMMEd{"EEE, MMM d"}
+                MMMMEd{"EEE, MMMM d"}
+                MMMMd{"MMMM d"}
+                MMMd{"MMM d"}
+                Md{"M/d"}
+                d{"d"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"yy/M"}
+                yMEd{"EEE, yy/M/d"}
+                yMMM{"y MMM"}
+                yMMMEd{"EEE, y MMM d"}
+                yMMMM{"y MMMM"}
+                yQQQ{"y QQQ"}
+                yyQ{"Q yy"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "နွေ",
+                        "လာ",
+                        "ဂါ",
+                        "ဟူး",
+                        "တေး",
+                        "ကြာ",
+                        "နေ",
+                    }
+                    wide{
+                        "တနင်္ဂနွေ",
+                        "တနင်္လာ",
+                        "အင်္ဂါ",
+                        "ဗုဒ္ဓဟူး",
+                        "ကြာသပတေး",
+                        "သောကြာ",
+                        "စနေ",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "တ",
+                        "တ",
+                        "အ",
+                        "ဗ",
+                        "က",
+                        "သ",
+                        "စ",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "ဘီစီ",
+                    "အေဒီ",
+                }
+                wide{
+                    "ခရစ်တော် မပေါ်မီကာလ",
+                    "ခရစ်တော် ပေါ်ထွန်းပြီးကာလ",
+                }
+            }
+            fields{
+                day{
+                    dn{"ရက်"}
+                    relative{
+                        "-1"{"မနေ့က"}
+                        "-2"{"တနေ့က"}
+                        "0"{"ယနေ့"}
+                        "1"{"မနက်ဖြန်"}
+                        "2"{"သဘက်ခါ"}
+                    }
+                }
+                era{
+                    dn{"ခေတ်"}
+                }
+                hour{
+                    dn{"နာရီ"}
+                }
+                minute{
+                    dn{"မိနစ်"}
+                }
+                month{
+                    dn{"လ"}
+                }
+                second{
+                    dn{"စက္ကန့်"}
+                }
+                week{
+                    dn{"ပတ်"}
+                }
+                weekday{
+                    dn{"နေ့"}
+                }
+                year{
+                    dn{"နှစ်"}
+                }
+            }
+            intervalFormats{
+                H{
+                    H{"HH-HH"}
+                    a{"HH-HH"}
+                }
+                Hm{
+                    H{"HH:mm-HH:mm"}
+                    a{"HH:mm-HH:mm"}
+                    m{"HH:mm-HH:mm"}
+                }
+                Hmv{
+                    H{"HH:mm-HH:mm v"}
+                    a{"HH:mm-HH:mm v"}
+                    m{"HH:mm-HH:mm v"}
+                }
+                Hv{
+                    H{"HH-HH v"}
+                    a{"HH-HH v"}
+                }
+                M{
+                    M{"M-M"}
+                }
+                MEd{
+                    M{"EEEE၊ M/d – EEEE၊ M/d"}
+                    d{"EEEE၊ M/d – EEEE၊ M/d"}
+                }
+                MMM{
+                    M{"MMM – MMM"}
+                }
+                MMMEd{
+                    M{"MMM d၊ EEEE – MMM d၊ EEEE"}
+                    d{"MMM d၊ EEEE – MMM d၊ EEEE"}
+                }
+                MMMd{
+                    M{"MMM d – MMM d"}
+                    d{"MMM d – MMM d"}
+                }
+                Md{
+                    M{"M/d – M/d"}
+                    d{"M/d – M/d"}
+                }
+                d{
+                    d{"d-d"}
+                }
+                fallback{"{0} – {1}"}
+                h{
+                    a{"h a - h a"}
+                    h{"h-h a"}
+                }
+                hm{
+                    a{"h:mm a - h:mm a"}
+                    h{"h:mm-h:mm a"}
+                    m{"h:mm-h:mm a"}
+                }
+                hmv{
+                    a{"h:mm a - h:mm a v"}
+                    h{"h:mm-h:mm a v"}
+                    m{"h:mm-h:mm a v"}
+                }
+                hv{
+                    a{"h a - h a v"}
+                    h{"h-h a v"}
+                }
+                y{
+                    y{"y-y"}
+                }
+                yM{
+                    M{"yy/M – yy/M"}
+                    y{"yy/M – yy/M"}
+                }
+                yMEd{
+                    M{"EEEE၊ yy/M/d – EEEE၊ yy/M/d"}
+                    d{"EEEE၊ yy/M/d – EEEE၊ yy/M/d"}
+                    y{"EEEE၊ yy/M/d – EEEE၊ yy/M/d"}
+                }
+                yMMM{
+                    M{"y MMM – y MMM"}
+                    y{"y MMM – y MMM"}
+                }
+                yMMMEd{
+                    M{"y၊ MMM d၊ EEEE – MMM d၊ EEEE"}
+                    d{"y၊ MMM d၊ EEEE – MMM d၊ EEEE"}
+                    y{"y၊ MMM d၊ EEEE – y၊ MMM d၊ EEEE"}
+                }
+                yMMMd{
+                    M{"y၊ MMM d – MMM d"}
+                    y{"y MMM d – y MMM d"}
+                }
+                yMd{
+                    M{"yy/M/d – yy/M/d"}
+                    d{"yy/M/d – yy/M/d"}
+                    y{"yy/M/d – yy/M/d"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "ဇန်",
+                        "ဖေ",
+                        "မတ်",
+                        "ဧ",
+                        "မေ",
+                        "ဇွန်",
+                        "ဇူ",
+                        "ဩ",
+                        "စက်",
+                        "အောက်",
+                        "နို",
+                        "ဒီ",
+                    }
+                    wide{
+                        "ဇန်နဝါရီ",
+                        "ဖေဖော်ဝါရီ",
+                        "မတ်",
+                        "ဧပြီ",
+                        "မေ",
+                        "ဇွန်",
+                        "ဇူလိုင်",
+                        "ဩဂုတ်",
+                        "စက်တင်ဘာ",
+                        "အောက်တိုဘာ",
+                        "နိုဝင်ဘာ",
+                        "ဒီဇင်ဘာ",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ဇ",
+                        "ဖ",
+                        "မ",
+                        "ဧ",
+                        "မ",
+                        "ဇ",
+                        "ဇ",
+                        "ဩ",
+                        "စ",
+                        "အ",
+                        "န",
+                        "ဒ",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "ပ-စိတ်",
+                        "ဒု-စိတ်",
+                        "တ-စိတ်",
+                        "စ-စိတ်",
+                    }
+                    wide{
+                        "ပထမ သုံးလပတ်",
+                        "ဒုတိယ သုံးလပတ်",
+                        "တတိယ သုံးလပတ်",
+                        "စတုတ္ထ သုံးလပတ်",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ပ",
+                        "ဒု",
+                        "တ",
+                        "စ",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"’"}
+        alternateQuotationStart{"‘"}
+        quotationEnd{"”"}
+        quotationStart{"“"}
+    }
+    measurementSystemNames{
+        US{"အမေရိကန်စနစ်"}
+        metric{"မက်ထရစ်စနစ်"}
+    }
+    units{
+        day{
+            other{"{0} ရက်"}
+        }
+        hour{
+            other{"{0} နာရီ"}
+        }
+        minute{
+            other{"{0} မိနစ်"}
+        }
+        month{
+            other{"{0} လ"}
+        }
+        second{
+            other{"{0} စက္ကန့်"}
+        }
+        week{
+            other{"{0} ပတ်"}
+        }
+        year{
+            other{"{0} နှစ်"}
+        }
+    }
+}

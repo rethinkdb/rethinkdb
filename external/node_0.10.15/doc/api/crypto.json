@@ -1,0 +1,792 @@
+{
+  "source": "doc/api/crypto.markdown",
+  "modules": [
+    {
+      "textRaw": "Crypto",
+      "name": "crypto",
+      "desc": "<pre><code>Stability: 2 - Unstable; API changes are being discussed for\nfuture versions.  Breaking changes will be minimized.  See below.</code></pre>\n<p>Use <code>require(&#39;crypto&#39;)</code> to access this module.\n\n</p>\n<p>The crypto module offers a way of encapsulating secure credentials to be\nused as part of a secure HTTPS net or http connection.\n\n</p>\n<p>It also offers a set of wrappers for OpenSSL&#39;s hash, hmac, cipher,\ndecipher, sign and verify methods.\n\n\n</p>\n",
+      "methods": [
+        {
+          "textRaw": "crypto.getCiphers()",
+          "type": "method",
+          "name": "getCiphers",
+          "desc": "<p>Returns an array with the names of the supported ciphers.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>var ciphers = crypto.getCiphers();\nconsole.log(ciphers); // [&#39;AES-128-CBC&#39;, &#39;AES-128-CBC-HMAC-SHA1&#39;, ...]</code></pre>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.getHashes()",
+          "type": "method",
+          "name": "getHashes",
+          "desc": "<p>Returns an array with the names of the supported hash algorithms.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>var hashes = crypto.getHashes();\nconsole.log(hashes); // [&#39;sha&#39;, &#39;sha1&#39;, &#39;sha1WithRSAEncryption&#39;, ...]</code></pre>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.createCredentials(details)",
+          "type": "method",
+          "name": "createCredentials",
+          "desc": "<p>Creates a credentials object, with the optional details being a\ndictionary with keys:\n\n</p>\n<ul>\n<li><code>pfx</code> : A string or buffer holding the PFX or PKCS12 encoded private\nkey, certificate and CA certificates</li>\n<li><code>key</code> : A string holding the PEM encoded private key</li>\n<li><code>passphrase</code> : A string of passphrase for the private key or pfx</li>\n<li><code>cert</code> : A string holding the PEM encoded certificate</li>\n<li><code>ca</code> : Either a string or list of strings of PEM encoded CA\ncertificates to trust.</li>\n<li><code>crl</code> : Either a string or list of strings of PEM encoded CRLs\n(Certificate Revocation List)</li>\n<li><code>ciphers</code>: A string describing the ciphers to use or exclude.\nConsult\n<a href=\"http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT\">http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT</a>\nfor details on the format.</li>\n</ul>\n<p>If no &#39;ca&#39; details are given, then node.js will use the default\npublicly trusted list of CAs as given in\n</p>\n<p><a href=\"http://mxr.mozilla.org/mozilla/source/security/nss/lib/ckfw/builtins/certdata.txt\">http://mxr.mozilla.org/mozilla/source/security/nss/lib/ckfw/builtins/certdata.txt</a>.\n\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "details"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.createHash(algorithm)",
+          "type": "method",
+          "name": "createHash",
+          "desc": "<p>Creates and returns a hash object, a cryptographic hash with the given\nalgorithm which can be used to generate hash digests.\n\n</p>\n<p><code>algorithm</code> is dependent on the available algorithms supported by the\nversion of OpenSSL on the platform. Examples are <code>&#39;sha1&#39;</code>, <code>&#39;md5&#39;</code>,\n<code>&#39;sha256&#39;</code>, <code>&#39;sha512&#39;</code>, etc.  On recent releases, <code>openssl\nlist-message-digest-algorithms</code> will display the available digest\nalgorithms.\n\n</p>\n<p>Example: this program that takes the sha1 sum of a file\n\n</p>\n<pre><code>var filename = process.argv[2];\nvar crypto = require(&#39;crypto&#39;);\nvar fs = require(&#39;fs&#39;);\n\nvar shasum = crypto.createHash(&#39;sha1&#39;);\n\nvar s = fs.ReadStream(filename);\ns.on(&#39;data&#39;, function(d) {\n  shasum.update(d);\n});\n\ns.on(&#39;end&#39;, function() {\n  var d = shasum.digest(&#39;hex&#39;);\n  console.log(d + &#39;  &#39; + filename);\n});</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "algorithm"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.createHmac(algorithm, key)",
+          "type": "method",
+          "name": "createHmac",
+          "desc": "<p>Creates and returns a hmac object, a cryptographic hmac with the given\nalgorithm and key.\n\n</p>\n<p>It is a <a href=\"stream.html\">stream</a> that is both readable and writable.  The\nwritten data is used to compute the hmac.  Once the writable side of\nthe stream is ended, use the <code>read()</code> method to get the computed\ndigest.  The legacy <code>update</code> and <code>digest</code> methods are also supported.\n\n</p>\n<p><code>algorithm</code> is dependent on the available algorithms supported by\nOpenSSL - see createHash above.  <code>key</code> is the hmac key to be used.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "algorithm"
+                },
+                {
+                  "name": "key"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.createCipher(algorithm, password)",
+          "type": "method",
+          "name": "createCipher",
+          "desc": "<p>Creates and returns a cipher object, with the given algorithm and\npassword.\n\n</p>\n<p><code>algorithm</code> is dependent on OpenSSL, examples are <code>&#39;aes192&#39;</code>, etc.  On\nrecent releases, <code>openssl list-cipher-algorithms</code> will display the\navailable cipher algorithms.  <code>password</code> is used to derive key and IV,\nwhich must be a <code>&#39;binary&#39;</code> encoded string or a <a href=\"buffer.html\">buffer</a>.\n\n</p>\n<p>It is a <a href=\"stream.html\">stream</a> that is both readable and writable.  The\nwritten data is used to compute the hash.  Once the writable side of\nthe stream is ended, use the <code>read()</code> method to get the computed hash\ndigest.  The legacy <code>update</code> and <code>digest</code> methods are also supported.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "algorithm"
+                },
+                {
+                  "name": "password"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.createCipheriv(algorithm, key, iv)",
+          "type": "method",
+          "name": "createCipheriv",
+          "desc": "<p>Creates and returns a cipher object, with the given algorithm, key and\niv.\n\n</p>\n<p><code>algorithm</code> is the same as the argument to <code>createCipher()</code>.  <code>key</code> is\nthe raw key used by the algorithm.  <code>iv</code> is an <a href=\"http://en.wikipedia.org/wiki/Initialization_vector\">initialization\nvector</a>.\n\n</p>\n<p><code>key</code> and <code>iv</code> must be <code>&#39;binary&#39;</code> encoded strings or\n<a href=\"buffer.html\">buffers</a>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "algorithm"
+                },
+                {
+                  "name": "key"
+                },
+                {
+                  "name": "iv"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.createDecipher(algorithm, password)",
+          "type": "method",
+          "name": "createDecipher",
+          "desc": "<p>Creates and returns a decipher object, with the given algorithm and\nkey.  This is the mirror of the [createCipher()][] above.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "algorithm"
+                },
+                {
+                  "name": "password"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.createDecipheriv(algorithm, key, iv)",
+          "type": "method",
+          "name": "createDecipheriv",
+          "desc": "<p>Creates and returns a decipher object, with the given algorithm, key\nand iv.  This is the mirror of the [createCipheriv()][] above.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "algorithm"
+                },
+                {
+                  "name": "key"
+                },
+                {
+                  "name": "iv"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.createSign(algorithm)",
+          "type": "method",
+          "name": "createSign",
+          "desc": "<p>Creates and returns a signing object, with the given algorithm.  On\nrecent OpenSSL releases, <code>openssl list-public-key-algorithms</code> will\ndisplay the available signing algorithms. Examples are <code>&#39;RSA-SHA256&#39;</code>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "algorithm"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.createVerify(algorithm)",
+          "type": "method",
+          "name": "createVerify",
+          "desc": "<p>Creates and returns a verification object, with the given algorithm.\nThis is the mirror of the signing object above.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "algorithm"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.createDiffieHellman(prime_length)",
+          "type": "method",
+          "name": "createDiffieHellman",
+          "desc": "<p>Creates a Diffie-Hellman key exchange object and generates a prime of\nthe given bit length. The generator used is <code>2</code>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "prime_length"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.createDiffieHellman(prime, [encoding])",
+          "type": "method",
+          "name": "createDiffieHellman",
+          "desc": "<p>Creates a Diffie-Hellman key exchange object using the supplied prime.\nThe generator used is <code>2</code>. Encoding can be <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>, or\n<code>&#39;base64&#39;</code>.  If no encoding is specified, then a buffer is expected.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "prime"
+                },
+                {
+                  "name": "encoding",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.getDiffieHellman(group_name)",
+          "type": "method",
+          "name": "getDiffieHellman",
+          "desc": "<p>Creates a predefined Diffie-Hellman key exchange object.  The\nsupported groups are: <code>&#39;modp1&#39;</code>, <code>&#39;modp2&#39;</code>, <code>&#39;modp5&#39;</code> (defined in [RFC\n2412][]) and <code>&#39;modp14&#39;</code>, <code>&#39;modp15&#39;</code>, <code>&#39;modp16&#39;</code>, <code>&#39;modp17&#39;</code>,\n<code>&#39;modp18&#39;</code> (defined in [RFC 3526][]).  The returned object mimics the\ninterface of objects created by [crypto.createDiffieHellman()][]\nabove, but will not allow to change the keys (with\n[diffieHellman.setPublicKey()][] for example).  The advantage of using\nthis routine is that the parties don&#39;t have to generate nor exchange\ngroup modulus beforehand, saving both processor and communication\ntime.\n\n</p>\n<p>Example (obtaining a shared secret):\n\n</p>\n<pre><code>var crypto = require(&#39;crypto&#39;);\nvar alice = crypto.getDiffieHellman(&#39;modp5&#39;);\nvar bob = crypto.getDiffieHellman(&#39;modp5&#39;);\n\nalice.generateKeys();\nbob.generateKeys();\n\nvar alice_secret = alice.computeSecret(bob.getPublicKey(), null, &#39;hex&#39;);\nvar bob_secret = bob.computeSecret(alice.getPublicKey(), null, &#39;hex&#39;);\n\n/* alice_secret and bob_secret should be the same */\nconsole.log(alice_secret == bob_secret);</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "group_name"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.pbkdf2(password, salt, iterations, keylen, callback)",
+          "type": "method",
+          "name": "pbkdf2",
+          "desc": "<p>Asynchronous PBKDF2 applies pseudorandom function HMAC-SHA1 to derive\na key of given length from the given password, salt and iterations.\nThe callback gets two arguments <code>(err, derivedKey)</code>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "password"
+                },
+                {
+                  "name": "salt"
+                },
+                {
+                  "name": "iterations"
+                },
+                {
+                  "name": "keylen"
+                },
+                {
+                  "name": "callback"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.pbkdf2Sync(password, salt, iterations, keylen)",
+          "type": "method",
+          "name": "pbkdf2Sync",
+          "desc": "<p>Synchronous PBKDF2 function.  Returns derivedKey or throws error.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "password"
+                },
+                {
+                  "name": "salt"
+                },
+                {
+                  "name": "iterations"
+                },
+                {
+                  "name": "keylen"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.randomBytes(size, [callback])",
+          "type": "method",
+          "name": "randomBytes",
+          "desc": "<p>Generates cryptographically strong pseudo-random data. Usage:\n\n</p>\n<pre><code>// async\ncrypto.randomBytes(256, function(ex, buf) {\n  if (ex) throw ex;\n  console.log(&#39;Have %d bytes of random data: %s&#39;, buf.length, buf);\n});\n\n// sync\ntry {\n  var buf = crypto.randomBytes(256);\n  console.log(&#39;Have %d bytes of random data: %s&#39;, buf.length, buf);\n} catch (ex) {\n  // handle error\n}</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "size"
+                },
+                {
+                  "name": "callback",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "crypto.pseudoRandomBytes(size, [callback])",
+          "type": "method",
+          "name": "pseudoRandomBytes",
+          "desc": "<p>Generates <em>non</em>-cryptographically strong pseudo-random data. The data\nreturned will be unique if it is sufficiently long, but is not\nnecessarily unpredictable. For this reason, the output of this\nfunction should never be used where unpredictability is important,\nsuch as in the generation of encryption keys.\n\n</p>\n<p>Usage is otherwise identical to <code>crypto.randomBytes</code>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "size"
+                },
+                {
+                  "name": "callback",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "textRaw": "Class: Hash",
+          "type": "class",
+          "name": "Hash",
+          "desc": "<p>The class for creating hash digests of data.\n\n</p>\n<p>It is a <a href=\"stream.html\">stream</a> that is both readable and writable.  The\nwritten data is used to compute the hash.  Once the writable side of\nthe stream is ended, use the <code>read()</code> method to get the computed hash\ndigest.  The legacy <code>update</code> and <code>digest</code> methods are also supported.\n\n</p>\n<p>Returned by <code>crypto.createHash</code>.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "hash.update(data, [input_encoding])",
+              "type": "method",
+              "name": "update",
+              "desc": "<p>Updates the hash content with the given <code>data</code>, the encoding of which\nis given in <code>input_encoding</code> and can be <code>&#39;utf8&#39;</code>, <code>&#39;ascii&#39;</code> or\n<code>&#39;binary&#39;</code>.  If no encoding is provided, then a buffer is expected.\n\n</p>\n<p>This can be called many times with new data as it is streamed.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "data"
+                    },
+                    {
+                      "name": "input_encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "hash.digest([encoding])",
+              "type": "method",
+              "name": "digest",
+              "desc": "<p>Calculates the digest of all of the passed data to be hashed.  The\n<code>encoding</code> can be <code>&#39;hex&#39;</code>, <code>&#39;binary&#39;</code> or <code>&#39;base64&#39;</code>.  If no encoding\nis provided, then a buffer is returned.\n\n</p>\n<p>Note: <code>hash</code> object can not be used after <code>digest()</code> method has been\ncalled.\n\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "Class: Hmac",
+          "type": "class",
+          "name": "Hmac",
+          "desc": "<p>Class for creating cryptographic hmac content.\n\n</p>\n<p>Returned by <code>crypto.createHmac</code>.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "hmac.update(data)",
+              "type": "method",
+              "name": "update",
+              "desc": "<p>Update the hmac content with the given <code>data</code>.  This can be called\nmany times with new data as it is streamed.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "data"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "hmac.digest([encoding])",
+              "type": "method",
+              "name": "digest",
+              "desc": "<p>Calculates the digest of all of the passed data to the hmac.  The\n<code>encoding</code> can be <code>&#39;hex&#39;</code>, <code>&#39;binary&#39;</code> or <code>&#39;base64&#39;</code>.  If no encoding\nis provided, then a buffer is returned.\n\n</p>\n<p>Note: <code>hmac</code> object can not be used after <code>digest()</code> method has been\ncalled.\n\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "Class: Cipher",
+          "type": "class",
+          "name": "Cipher",
+          "desc": "<p>Class for encrypting data.\n\n</p>\n<p>Returned by <code>crypto.createCipher</code> and <code>crypto.createCipheriv</code>.\n\n</p>\n<p>Cipher objects are <a href=\"stream.html\">streams</a> that are both readable and\nwritable.  The written plain text data is used to produce the\nencrypted data on the readable side.  The legacy <code>update</code> and <code>final</code>\nmethods are also supported.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "cipher.update(data, [input_encoding], [output_encoding])",
+              "type": "method",
+              "name": "update",
+              "desc": "<p>Updates the cipher with <code>data</code>, the encoding of which is given in\n<code>input_encoding</code> and can be <code>&#39;utf8&#39;</code>, <code>&#39;ascii&#39;</code> or <code>&#39;binary&#39;</code>.  If no\nencoding is provided, then a buffer is expected.\n\n</p>\n<p>The <code>output_encoding</code> specifies the output format of the enciphered\ndata, and can be <code>&#39;binary&#39;</code>, <code>&#39;base64&#39;</code> or <code>&#39;hex&#39;</code>.  If no encoding is\nprovided, then a buffer is returned.\n\n</p>\n<p>Returns the enciphered contents, and can be called many times with new\ndata as it is streamed.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "data"
+                    },
+                    {
+                      "name": "input_encoding",
+                      "optional": true
+                    },
+                    {
+                      "name": "output_encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "cipher.final([output_encoding])",
+              "type": "method",
+              "name": "final",
+              "desc": "<p>Returns any remaining enciphered contents, with <code>output_encoding</code>\nbeing one of: <code>&#39;binary&#39;</code>, <code>&#39;base64&#39;</code> or <code>&#39;hex&#39;</code>.  If no encoding is\nprovided, then a buffer is returned.\n\n</p>\n<p>Note: <code>cipher</code> object can not be used after <code>final()</code> method has been\ncalled.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "output_encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "cipher.setAutoPadding(auto_padding=true)",
+              "type": "method",
+              "name": "setAutoPadding",
+              "desc": "<p>You can disable automatic padding of the input data to block size. If\n<code>auto_padding</code> is false, the length of the entire input data must be a\nmultiple of the cipher&#39;s block size or <code>final</code> will fail.  Useful for\nnon-standard padding, e.g. using <code>0x0</code> instead of PKCS padding. You\nmust call this before <code>cipher.final</code>.\n\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "auto_padding",
+                      "default": "true"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "Class: Decipher",
+          "type": "class",
+          "name": "Decipher",
+          "desc": "<p>Class for decrypting data.\n\n</p>\n<p>Returned by <code>crypto.createDecipher</code> and <code>crypto.createDecipheriv</code>.\n\n</p>\n<p>Decipher objects are <a href=\"stream.html\">streams</a> that are both readable and\nwritable.  The written enciphered data is used to produce the\nplain-text data on the the readable side.  The legacy <code>update</code> and\n<code>final</code> methods are also supported.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "decipher.update(data, [input_encoding], [output_encoding])",
+              "type": "method",
+              "name": "update",
+              "desc": "<p>Updates the decipher with <code>data</code>, which is encoded in <code>&#39;binary&#39;</code>,\n<code>&#39;base64&#39;</code> or <code>&#39;hex&#39;</code>.  If no encoding is provided, then a buffer is\nexpected.\n\n</p>\n<p>The <code>output_decoding</code> specifies in what format to return the\ndeciphered plaintext: <code>&#39;binary&#39;</code>, <code>&#39;ascii&#39;</code> or <code>&#39;utf8&#39;</code>.  If no\nencoding is provided, then a buffer is returned.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "data"
+                    },
+                    {
+                      "name": "input_encoding",
+                      "optional": true
+                    },
+                    {
+                      "name": "output_encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "decipher.final([output_encoding])",
+              "type": "method",
+              "name": "final",
+              "desc": "<p>Returns any remaining plaintext which is deciphered, with\n<code>output_encoding</code> being one of: <code>&#39;binary&#39;</code>, <code>&#39;ascii&#39;</code> or <code>&#39;utf8&#39;</code>.  If\nno encoding is provided, then a buffer is returned.\n\n</p>\n<p>Note: <code>decipher</code> object can not be used after <code>final()</code> method has been\ncalled.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "output_encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "decipher.setAutoPadding(auto_padding=true)",
+              "type": "method",
+              "name": "setAutoPadding",
+              "desc": "<p>You can disable auto padding if the data has been encrypted without\nstandard block padding to prevent <code>decipher.final</code> from checking and\nremoving it. Can only work if the input data&#39;s length is a multiple of\nthe ciphers block size. You must call this before streaming data to\n<code>decipher.update</code>.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "auto_padding",
+                      "default": "true"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "Class: Sign",
+          "type": "class",
+          "name": "Sign",
+          "desc": "<p>Class for generating signatures.\n\n</p>\n<p>Returned by <code>crypto.createSign</code>.\n\n</p>\n<p>Sign objects are writable <a href=\"stream.html\">streams</a>.  The written data is\nused to generate the signature.  Once all of the data has been\nwritten, the <code>sign</code> method will return the signature.  The legacy\n<code>update</code> method is also supported.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "sign.update(data)",
+              "type": "method",
+              "name": "update",
+              "desc": "<p>Updates the sign object with data.  This can be called many times\nwith new data as it is streamed.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "data"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "sign.sign(private_key, [output_format])",
+              "type": "method",
+              "name": "sign",
+              "desc": "<p>Calculates the signature on all the updated data passed through the\nsign.  <code>private_key</code> is a string containing the PEM encoded private\nkey for signing.\n\n</p>\n<p>Returns the signature in <code>output_format</code> which can be <code>&#39;binary&#39;</code>,\n<code>&#39;hex&#39;</code> or <code>&#39;base64&#39;</code>. If no encoding is provided, then a buffer is\nreturned.\n\n</p>\n<p>Note: <code>sign</code> object can not be used after <code>sign()</code> method has been\ncalled.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "private_key"
+                    },
+                    {
+                      "name": "output_format",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "Class: Verify",
+          "type": "class",
+          "name": "Verify",
+          "desc": "<p>Class for verifying signatures.\n\n</p>\n<p>Returned by <code>crypto.createVerify</code>.\n\n</p>\n<p>Verify objects are writable <a href=\"stream.html\">streams</a>.  The written data\nis used to validate against the supplied signature.  Once all of the\ndata has been written, the <code>verify</code> method will return true if the\nsupplied signature is valid.  The legacy <code>update</code> method is also\nsupported.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "verifier.update(data)",
+              "type": "method",
+              "name": "update",
+              "desc": "<p>Updates the verifier object with data.  This can be called many times\nwith new data as it is streamed.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "data"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "verifier.verify(object, signature, [signature_format])",
+              "type": "method",
+              "name": "verify",
+              "desc": "<p>Verifies the signed data by using the <code>object</code> and <code>signature</code>.\n<code>object</code> is  a string containing a PEM encoded object, which can be\none of RSA public key, DSA public key, or X.509 certificate.\n<code>signature</code> is the previously calculated signature for the data, in\nthe <code>signature_format</code> which can be <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code> or <code>&#39;base64&#39;</code>.\nIf no encoding is specified, then a buffer is expected.\n\n</p>\n<p>Returns true or false depending on the validity of the signature for\nthe data and public key.\n\n</p>\n<p>Note: <code>verifier</code> object can not be used after <code>verify()</code> method has been\ncalled.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "object"
+                    },
+                    {
+                      "name": "signature"
+                    },
+                    {
+                      "name": "signature_format",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "Class: DiffieHellman",
+          "type": "class",
+          "name": "DiffieHellman",
+          "desc": "<p>The class for creating Diffie-Hellman key exchanges.\n\n</p>\n<p>Returned by <code>crypto.createDiffieHellman</code>.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "diffieHellman.generateKeys([encoding])",
+              "type": "method",
+              "name": "generateKeys",
+              "desc": "<p>Generates private and public Diffie-Hellman key values, and returns\nthe public key in the specified encoding. This key should be\ntransferred to the other party. Encoding can be <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>,\nor <code>&#39;base64&#39;</code>.  If no encoding is provided, then a buffer is returned.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "diffieHellman.computeSecret(other_public_key, [input_encoding], [output_encoding])",
+              "type": "method",
+              "name": "computeSecret",
+              "desc": "<p>Computes the shared secret using <code>other_public_key</code> as the other\nparty&#39;s public key and returns the computed shared secret. Supplied\nkey is interpreted using specified <code>input_encoding</code>, and secret is\nencoded using specified <code>output_encoding</code>. Encodings can be\n<code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>, or <code>&#39;base64&#39;</code>. If the input encoding is not\nprovided, then a buffer is expected.\n\n</p>\n<p>If no output encoding is given, then a buffer is returned.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "other_public_key"
+                    },
+                    {
+                      "name": "input_encoding",
+                      "optional": true
+                    },
+                    {
+                      "name": "output_encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "diffieHellman.getPrime([encoding])",
+              "type": "method",
+              "name": "getPrime",
+              "desc": "<p>Returns the Diffie-Hellman prime in the specified encoding, which can\nbe <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>, or <code>&#39;base64&#39;</code>. If no encoding is provided,\nthen a buffer is returned.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "diffieHellman.getGenerator([encoding])",
+              "type": "method",
+              "name": "getGenerator",
+              "desc": "<p>Returns the Diffie-Hellman prime in the specified encoding, which can\nbe <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>, or <code>&#39;base64&#39;</code>. If no encoding is provided,\nthen a buffer is returned.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "diffieHellman.getPublicKey([encoding])",
+              "type": "method",
+              "name": "getPublicKey",
+              "desc": "<p>Returns the Diffie-Hellman public key in the specified encoding, which\ncan be <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>, or <code>&#39;base64&#39;</code>. If no encoding is provided,\nthen a buffer is returned.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "diffieHellman.getPrivateKey([encoding])",
+              "type": "method",
+              "name": "getPrivateKey",
+              "desc": "<p>Returns the Diffie-Hellman private key in the specified encoding,\nwhich can be <code>&#39;binary&#39;</code>, <code>&#39;hex&#39;</code>, or <code>&#39;base64&#39;</code>. If no encoding is\nprovided, then a buffer is returned.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "diffieHellman.setPublicKey(public_key, [encoding])",
+              "type": "method",
+              "name": "setPublicKey",
+              "desc": "<p>Sets the Diffie-Hellman public key. Key encoding can be <code>&#39;binary&#39;</code>,\n<code>&#39;hex&#39;</code> or <code>&#39;base64&#39;</code>. If no encoding is provided, then a buffer is\nexpected.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "public_key"
+                    },
+                    {
+                      "name": "encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "diffieHellman.setPrivateKey(private_key, [encoding])",
+              "type": "method",
+              "name": "setPrivateKey",
+              "desc": "<p>Sets the Diffie-Hellman private key. Key encoding can be <code>&#39;binary&#39;</code>,\n<code>&#39;hex&#39;</code> or <code>&#39;base64&#39;</code>. If no encoding is provided, then a buffer is\nexpected.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "private_key"
+                    },
+                    {
+                      "name": "encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "textRaw": "crypto.DEFAULT_ENCODING",
+          "name": "DEFAULT_ENCODING",
+          "desc": "<p>The default encoding to use for functions that can take either strings\nor buffers.  The default value is <code>&#39;buffer&#39;</code>, which makes it default\nto using Buffer objects.  This is here to make the crypto module more\neasily compatible with legacy programs that expected <code>&#39;binary&#39;</code> to be\nthe default encoding.\n\n</p>\n<p>Note that new programs will probably expect buffers, so only use this\nas a temporary measure.\n\n</p>\n"
+        }
+      ],
+      "modules": [
+        {
+          "textRaw": "Recent API Changes",
+          "name": "recent_api_changes",
+          "desc": "<p>The Crypto module was added to Node before there was the concept of a\nunified Stream API, and before there were Buffer objects for handling\nbinary data.\n\n</p>\n<p>As such, the streaming classes don&#39;t have the typical methods found on\nother Node classes, and many methods accepted and returned\nBinary-encoded strings by default rather than Buffers.  This was\nchanged to use Buffers by default instead.\n\n</p>\n<p>This is a breaking change for some use cases, but not all.\n\n</p>\n<p>For example, if you currently use the default arguments to the Sign\nclass, and then pass the results to the Verify class, without ever\ninspecting the data, then it will continue to work as before.  Where\nyou once got a binary string and then presented the binary string to\nthe Verify object, you&#39;ll now get a Buffer, and present the Buffer to\nthe Verify object.\n\n</p>\n<p>However, if you were doing things with the string data that will not\nwork properly on Buffers (such as, concatenating them, storing in\ndatabases, etc.), or you are passing binary strings to the crypto\nfunctions without an encoding argument, then you will need to start\nproviding encoding arguments to specify which encoding you&#39;d like to\nuse.  To switch to the previous style of using binary strings by\ndefault, set the <code>crypto.DEFAULT_ENCODING</code> field to &#39;binary&#39;.  Note\nthat new programs will probably expect buffers, so only use this as a\ntemporary measure.\n\n\n</p>\n",
+          "type": "module",
+          "displayName": "Recent API Changes"
+        }
+      ],
+      "type": "module",
+      "displayName": "Crypto"
+    }
+  ]
+}

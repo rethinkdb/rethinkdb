@@ -1,0 +1,161 @@
+[library Boost.NumericConversion
+    [quickbook 1.4]
+    [authors [Cacciola Carballal, Fernando Luis]]
+    [copyright 2004-2007 Fernando Luis Cacciola Carballal]
+    [category numerics]
+    [id numeric_conversion]
+    [dirname numeric_conversion]
+    [purpose
+        Optimized Policy-based Numeric Conversions
+    ]
+    [source-mode c++]
+    [license
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+[@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[/ Macros will be used for links so we have a central place to change them ]
+
+
+[/ Cited Boost resources ]
+
+[def __MPL_INTEGRAL_CONSTANT__ [@../../../../mpl/doc/refmanual/integral-constant.html MPL's Integral Constant] ]
+
+
+
+[/ Other web resources ]
+
+[def __SGI_UNARY_FUNCTION__ [@http://www.sgi.com/tech/stl/UnaryFunction.html Unary Function Object]]
+
+[/ Icons ]
+
+[def __NOTE__ [$images/note.png]]
+[def __ALERT__ [$images/caution.png]]
+[def __DETAIL__ [$images/note.png]]
+[def __TIP__ [$images/tip.png]]
+[def __QUESTION_MARK__ [$images/question.png]]
+[def __SPACE__ [$images/space.png]]
+[def __GO_TO__ [$images/callouts/R.png]]
+
+
+
+
+[section Overview]
+
+The Boost Numeric Conversion library is a collection of tools to describe and
+perform conversions between values of different 
+[link boost_numericconversion.definitions.numeric_types numeric types].
+
+The library includes a special alternative for a subset of `std::numeric_limits<>`,
+the [link boost_numericconversion.bounds___traits_class bounds<>] traits class, which provides 
+a consistent way to obtain the [link boost_numericconversion.definitions.range_and_precision boundary] 
+values for the [link boost_numericconversion.definitions.range_and_precision range] of a numeric type.
+
+It also includes a set of [link boost_numericconversion.conversion_traits___traits_class trait classes] 
+which describes the compile-time
+properties of a conversion from a source to a target numeric type.
+Both [link boost_numericconversion.definitions.c___arithmetic_types arithmetic] and 
+[link boost_numericconversion.definitions.numeric_types user-defined numeric types] can be used.
+
+A policy-based [link boost_numericconversion.converter___function_object converter] object which 
+uses `conversion_traits` to select
+an optimized implementation is supplied. Such implementation uses an optimal
+range checking code suitable for the source/target combination.
+
+* The converter's out-of-range behavior can be customized via an
+[link boost_numericconversion.numeric_converter_policy_classes.policy_overflowhandler OverflowHandler] policy.
+* For floating-point to integral conversions, the rounding mode can be selected via the
+[link boost_numericconversion.numeric_converter_policy_classes.policy_float2introunder Float2IntRounder] policy.
+* A custom low-level conversion routine (for UDTs for instance) can be passed via a
+[link boost_numericconversion.numeric_converter_policy_classes.policy_rawconverter RawConverter] policy.
+* The optimized automatic range-checking logic can be overridden via a
+[link boost_numericconversion.numeric_converter_policy_classes.policy_userrangechecker UserRangeChecker] policy.
+
+[endsect]
+
+
+
+[include definitions.qbk]
+[include converter.qbk]
+[include requirements.qbk]
+[include bounds.qbk]
+[include conversion_traits.qbk]
+[include converter_policies.qbk]
+[include numeric_cast.qbk]
+
+
+
+[section History and Acknowledgments]
+
+
+[heading Pre-formal review]
+
+* Kevlin Henney, with help from David Abrahams and Beman Dawes, originally contributed
+the previous version of `numeric_cast<>` which already presented the idea of a runtime
+range check.
+
+* Later, Eric Ford, Kevin Lynch and the author spotted some genericity problems with
+that `numeric_cast<>` which prevented it from being used in a generic layer of math
+functions.
+
+* An improved `numeric_cast<>` which properly handled all combinations of arithmetic
+types was presented.
+
+* David Abrahams and Beman Dawes acknowledged the need of an improved version of
+`numeric_cast<>` and supported the submission as originally laid out. Daryl Walker and
+Darin Adler made some important comments and proposed fixes to the original submission.
+
+* Special thanks go to Björn Karlsoon who helped the author considerably. Having found the
+problems with `numeric_cast<>` himself, he revised very carefully the original submission
+and spot a subtle bug in the range checking implementation. He also wrote part of
+this documentation and proof-read and corrected other parts. And most importantly:
+the features now presented here in this library evolved from the original submission as
+a result of the useful private communications between Björn and the author.
+
+[heading Post-formal review]
+
+* Guillaume Melquiond spoted some documentation and code issues, particularly about
+rounding conversions.
+
+* The following people contributed an important review of the design, documentation and c
+ode: Kevin Lynch, Thorsten Ottosen, Paul Bristow, Daryle Walker, Jhon Torjo, Eric Ford,
+Gennadiy Rozental.
+
+
+[endsect]
+
+[section Bibliography]
+
+* Standard Documents: 
+    # ISO/IEC 14882:98 (C++98 Standard)
+    # ISO/IEC 9899:1999 (C99 Standard)
+    # ISO/IEC 10967-1 (Language Independent Arithmetic (LIA), Part I, 1994)
+    # ISO/IEC 2382-1:1993 (Information Technology - Vocabulary - Part I: Fundamental Terms)
+    # ANSI/IEEE 754-1985 [and IEC 60559:1989] (Binary floating-point)
+    # ANSI/IEEE 854-1988 (Radix Independent floating-point)
+    # ANSI X3/TR-1-82 (Dictionary for Information Processing Systems)
+    # ISO/IEC JTC1/SC22/WG14/N753 C9X Revision Proposal: LIA-1 Binding: Rationale
+* Papers:
+    # David Goldberg  What Every Computer Scientist Should Know About Floating-Point Arithmetic
+    # Prof. William Kahan papers on floating-point.
+
+[endsect]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

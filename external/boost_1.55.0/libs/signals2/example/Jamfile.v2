@@ -1,0 +1,42 @@
+# Boost.Signals2 example programs
+
+# Copyright Michael Caisse 2010
+# Use, modification and
+# distribution is subject to the Boost Software License, Version
+# 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# For more information, see http://www.boost.org
+
+project : requirements <implicit-dependency>/boost//headers ;
+
+exe hello_world_slot : hello_world_slot.cpp ;
+
+exe hello_world_multi_slot : hello_world_multi_slot.cpp ;
+
+exe ordering_slots : ordering_slots.cpp ;
+
+exe passing_slots : passing_slots.cpp ;
+
+exe extended_slot : extended_slot.cpp ;
+
+exe custom_combiners : custom_combiners.cpp ;
+
+exe disconnect_and_block : disconnect_and_block.cpp ;
+
+exe doc_view : doc_view.cpp ;
+
+exe doc_view_acm : doc_view_acm.cpp ;
+
+exe doc_view_acm_deconstruct : doc_view_acm_deconstruct.cpp ;
+
+exe postconstructor_ex1 : postconstructor_ex1.cpp ;
+
+exe postconstructor_ex2 : postconstructor_ex2.cpp ;
+
+exe predestructor_example : predestructor_example.cpp ;
+
+exe signal_return_value : signal_return_value.cpp ;
+
+exe slot_arguments : slot_arguments.cpp ;
+

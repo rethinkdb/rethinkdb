@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+     "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright 2004 Vladimir Prus -->
+<!-- Distributed under the Boost Software License, Version 1.0. -->
+<!-- (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) -->
+
+<library 
+    name="library"
+    dirname="librarys" id="library" 
+    xmlns:xi="http://www.w3.org/2001/XInclude">
+  <libraryinfo>
+    <author>
+      <firstname>Joe</firstname>
+      <surname>Hacker</surname>
+    </author>
+    
+    <copyright>
+      <year>7002</year>
+      <holder>Joe Hacker</holder>
+    </copyright>
+
+  </libraryinfo>
+  
+  <title>Documentation</title>
+  
+  <section>
+    <title>Introduction</title>
+
+    <para>This is introduction</para>
+    
+  </section>
+   
+  <xi:include href="autodoc.xml"/> 
+</library>

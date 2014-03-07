@@ -1,0 +1,1441 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Operator Type Traits</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="up" href="../value_traits.html" title="Type Traits that Describe the Properties of a Type">
+<link rel="prev" href="relate.html" title="Relationships Between Two Types">
+<link rel="next" href="../transform.html" title="Type Traits that Transform One Type to Another">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="relate.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../value_traits.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../transform.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_typetraits.category.value_traits.operators"></a><a class="link" href="operators.html" title="Operator Type Traits">Operator
+        Type Traits</a>
+</h4></div></div></div>
+<h6>
+<a name="boost_typetraits.category.value_traits.operators.h0"></a>
+          <span><a name="boost_typetraits.category.value_traits.operators.introduction"></a></span><a class="link" href="operators.html#boost_typetraits.category.value_traits.operators.introduction">Introduction</a>
+        </h6>
+<p>
+          These traits are all <span class="emphasis"><em>value traits</em></span> inheriting from
+          <a class="link" href="../../reference/integral_constant.html" title="integral_constant">integral_constant</a>
+          and providing a simple <code class="computeroutput"><span class="keyword">true</span></code>
+          or <code class="computeroutput"><span class="keyword">false</span></code> boolean <code class="computeroutput"><span class="identifier">value</span></code> which reflects the fact that given
+          types can or cannot be used with given operators.
+        </p>
+<p>
+          For example, <code class="computeroutput"><span class="identifier">has_plus</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">value</span></code>
+          is a <code class="computeroutput"><span class="keyword">bool</span></code> which value is
+          <code class="computeroutput"><span class="keyword">true</span></code> because it is possible
+          to add a <code class="computeroutput"><span class="keyword">double</span></code> to an <code class="computeroutput"><span class="keyword">int</span></code> like in the following code:
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span><span class="special">;</span>
+<span class="keyword">double</span> <span class="identifier">d</span><span class="special">;</span>
+<span class="identifier">i</span><span class="special">+</span><span class="identifier">d</span><span class="special">;</span>
+</pre>
+<p>
+          It is also possible to know if the result of the operator can be used as
+          function argument of a given type. For example, <code class="computeroutput"><span class="identifier">has_plus</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="keyword">float</span><span class="special">&gt;::</span><span class="identifier">value</span></code>
+          is <code class="computeroutput"><span class="keyword">true</span></code> because it is possible
+          to add a <code class="computeroutput"><span class="keyword">double</span></code> to an <code class="computeroutput"><span class="keyword">int</span></code> and the result (<code class="computeroutput"><span class="keyword">double</span></code>)
+          can be converted to a <code class="computeroutput"><span class="keyword">float</span></code>
+          argument like in the following code:
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">f</span><span class="special">(</span><span class="keyword">float</span><span class="special">)</span> <span class="special">{</span> <span class="special">};</span>
+<span class="keyword">int</span> <span class="identifier">i</span><span class="special">;</span>
+<span class="keyword">double</span> <span class="identifier">d</span><span class="special">;</span>
+<span class="identifier">f</span><span class="special">(</span><span class="identifier">i</span><span class="special">+</span><span class="identifier">d</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="boost_typetraits.category.value_traits.operators.h1"></a>
+          <span><a name="boost_typetraits.category.value_traits.operators.example_of_application"></a></span><a class="link" href="operators.html#boost_typetraits.category.value_traits.operators.example_of_application">Example
+          of application</a>
+        </h6>
+<p>
+          These traits can be useful to optimize the code for types supporting given
+          operations. For example a function <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">advance</span></code>
+          that increases an iterator of a given number of steps could be implemented
+          as follows:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">has_plus_assign</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">detail</span> <span class="special">{</span>
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Distance</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">has_plus_assign</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">advance_impl</span><span class="special">;</span>
+
+<span class="comment">// this is used if += exists (efficient)</span>
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Distance</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">advance_impl</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Distance</span><span class="special">,</span> <span class="keyword">true</span><span class="special">&gt;</span> <span class="special">{</span>
+   <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Iterator</span> <span class="special">&amp;</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">Distance</span> <span class="identifier">n</span><span class="special">)</span> <span class="special">{</span>
+      <span class="identifier">i</span><span class="special">+=</span><span class="identifier">n</span><span class="special">;</span>
+   <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">// this is use if += does not exists (less efficient but cannot do better)</span>
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Distance</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">advance_impl</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Distance</span><span class="special">,</span> <span class="keyword">false</span><span class="special">&gt;</span> <span class="special">{</span>
+   <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Iterator</span> <span class="special">&amp;</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">Distance</span> <span class="identifier">n</span><span class="special">)</span> <span class="special">{</span>
+      <span class="keyword">if</span> <span class="special">(</span><span class="identifier">n</span><span class="special">&gt;</span><span class="number">0</span><span class="special">)</span> <span class="special">{</span>
+         <span class="keyword">while</span> <span class="special">(</span><span class="identifier">n</span><span class="special">--)</span> <span class="special">++</span><span class="identifier">i</span><span class="special">;</span>
+      <span class="special">}</span> <span class="keyword">else</span> <span class="special">{</span>
+         <span class="keyword">while</span> <span class="special">(</span><span class="identifier">n</span><span class="special">++)</span> <span class="special">--</span><span class="identifier">i</span><span class="special">;</span>
+      <span class="special">}</span>
+   <span class="special">}</span>
+<span class="special">};</span>
+<span class="special">}</span> <span class="comment">// namespace detail</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Distance</span> <span class="special">&gt;</span>
+<span class="keyword">inline</span> <span class="keyword">void</span> <span class="identifier">advance</span><span class="special">(</span><span class="identifier">Iterator</span> <span class="special">&amp;</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">Distance</span> <span class="identifier">n</span><span class="special">)</span> <span class="special">{</span>
+   <span class="identifier">detail</span><span class="special">::</span><span class="identifier">advance_impl</span><span class="special">&lt;</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Distance</span><span class="special">,</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_plus_assign</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;::</span><span class="identifier">value</span> <span class="special">&gt;()(</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">n</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Then the compiler chooses the most efficient implementation according to
+          the type's ability to perform <code class="computeroutput"><span class="special">+=</span></code>
+          operation:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="keyword">class</span> <span class="identifier">with</span> <span class="special">{</span>
+      <span class="keyword">int</span> <span class="identifier">m_i</span><span class="special">;</span>
+   <span class="keyword">public</span><span class="special">:</span>
+      <span class="identifier">with</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">m_i</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+      <span class="identifier">with</span> <span class="special">&amp;</span><span class="keyword">operator</span><span class="special">+=(</span><span class="keyword">int</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span> <span class="identifier">m_i</span><span class="special">+=</span><span class="identifier">rhs</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span> <span class="special">}</span>
+      <span class="keyword">operator</span> <span class="keyword">int</span> <span class="keyword">const</span> <span class="special">()</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">m_i</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">class</span> <span class="identifier">without</span> <span class="special">{</span>
+      <span class="keyword">int</span> <span class="identifier">m_i</span><span class="special">;</span>
+   <span class="keyword">public</span><span class="special">:</span>
+      <span class="identifier">without</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">m_i</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+      <span class="identifier">without</span> <span class="special">&amp;</span><span class="keyword">operator</span><span class="special">++()</span> <span class="special">{</span> <span class="special">++</span><span class="identifier">m_i</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span> <span class="special">}</span>
+      <span class="identifier">without</span> <span class="special">&amp;</span><span class="keyword">operator</span><span class="special">--()</span> <span class="special">{</span> <span class="special">--</span><span class="identifier">m_i</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span> <span class="special">}</span>
+      <span class="keyword">operator</span> <span class="keyword">int</span> <span class="keyword">const</span> <span class="special">()</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">m_i</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span> <span class="special">{</span>
+   <span class="identifier">with</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span><span class="special">;</span>
+   <span class="identifier">advance</span><span class="special">(</span><span class="identifier">i</span><span class="special">,</span> <span class="number">10</span><span class="special">);</span> <span class="comment">// uses +=</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="string">"with: "</span><span class="special">&lt;&lt;</span><span class="identifier">i</span><span class="special">&lt;&lt;</span><span class="char">'\n'</span><span class="special">;</span>
+   <span class="identifier">without</span> <span class="identifier">j</span><span class="special">=</span><span class="number">0</span><span class="special">;</span>
+   <span class="identifier">advance</span><span class="special">(</span><span class="identifier">j</span><span class="special">,</span> <span class="number">10</span><span class="special">);</span> <span class="comment">// uses ++</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="string">"without: "</span><span class="special">&lt;&lt;</span><span class="identifier">j</span><span class="special">&lt;&lt;</span><span class="char">'\n'</span><span class="special">;</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="boost_typetraits.category.value_traits.operators.h2"></a>
+          <span><a name="boost_typetraits.category.value_traits.operators.description"></a></span><a class="link" href="operators.html#boost_typetraits.category.value_traits.operators.description">Description</a>
+        </h6>
+<p>
+          The syntax is the following:
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <code class="computeroutput"><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Ret</span><span class="special">=</span><span class="identifier">dont_care</span> <span class="special">&gt;</span></code> <span class="identifier">has_op</span><span class="special">;</span> <span class="comment">// prefix operator</span>
+<span class="keyword">template</span> <code class="computeroutput"><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Lhs</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Ret</span><span class="special">=</span><span class="identifier">dont_care</span> <span class="special">&gt;</span></code> <span class="identifier">has_op</span><span class="special">;</span> <span class="comment">// postfix operator</span>
+<span class="keyword">template</span> <code class="computeroutput"><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Lhs</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Rhs</span><span class="special">=</span><span class="identifier">Lhs</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Ret</span><span class="special">=</span><span class="identifier">dont_care</span> <span class="special">&gt;</span></code> <span class="identifier">has_op</span><span class="special">;</span> <span class="comment">// binary operator</span>
+</pre>
+<p>
+          where:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+              op represents the operator name
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">Lhs</span></code> is the type used
+              at the left hand side of <code class="computeroutput"><span class="keyword">operator</span>
+              <span class="identifier">op</span></code>,
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">Rhs</span></code> is the type used
+              at the right hand side of <code class="computeroutput"><span class="keyword">operator</span>
+              <span class="identifier">op</span></code>,
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">Ret</span></code> is the type for
+              which we want to know if the result of <code class="computeroutput"><span class="keyword">operator</span>
+              <span class="identifier">op</span></code> can be converted to.
+            </li>
+</ul></div>
+<p>
+          The default behaviour (<code class="computeroutput"><span class="identifier">Ret</span><span class="special">=</span><span class="identifier">dont_care</span></code>)
+          is to not check for the return value of the operator. If <code class="computeroutput"><span class="identifier">Ret</span></code> is different from the default <code class="computeroutput"><span class="identifier">dont_care</span></code>, the return value is checked
+          to be convertible to <code class="computeroutput"><span class="identifier">Ret</span></code>.
+          Convertible to <code class="computeroutput"><span class="identifier">Ret</span></code> means
+          that the return value can be used as argument to a function expecting
+          <code class="computeroutput"><span class="identifier">Ret</span></code>:
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">Ret</span><span class="special">);</span>
+<span class="identifier">Lhs</span> <span class="identifier">lhs</span><span class="special">;</span>
+<span class="identifier">Rhs</span> <span class="identifier">rhs</span><span class="special">;</span>
+<span class="identifier">f</span><span class="special">(</span><span class="identifier">lhs</span><span class="special">+</span><span class="identifier">rhs</span><span class="special">);</span> <span class="comment">// is valid if has_plus&lt;Lhs, Rhs, Ret&gt;::value==true</span>
+</pre>
+<p>
+          If <code class="computeroutput"><span class="identifier">Ret</span><span class="special">=</span><span class="keyword">void</span></code>, the return type is checked to be exactly
+          <code class="computeroutput"><span class="keyword">void</span></code>.
+        </p>
+<p>
+          The following tables give the list of supported binary, prefix and postfix
+          operators.
+        </p>
+<div class="table">
+<a name="boost_typetraits.category.value_traits.operators.supported_prefix_operators"></a><p class="title"><b>Table&#160;1.4.&#160;Supported prefix operators</b></p>
+<div class="table-contents"><table class="table" summary="Supported prefix operators">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    prefix operator
+                  </p>
+                </th>
+<th>
+                  <p>
+                    trait name
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">!</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_logical_not.html" title="has_logical_not"><code class="computeroutput"><span class="identifier">has_logical_not</span></code></a> <code class="computeroutput"><span class="special">&lt;</span> <span class="keyword">class</span>
+                    <span class="identifier">Rhs</span><span class="special">,</span>
+                    <span class="keyword">class</span> <span class="identifier">Ret</span><span class="special">=</span><span class="identifier">dont_care</span>
+                    <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">+</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_unary_plus.html" title="has_unary_plus"><code class="computeroutput"><span class="identifier">has_unary_plus</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">-</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_unary_minus.html" title="has_unary_minus"><code class="computeroutput"><span class="identifier">has_unary_minus</span></code></a> and
+                    <a class="link" href="../../reference/has_negate.html" title="has_negate"><code class="computeroutput"><span class="identifier">has_negate</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">~</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_complement.html" title="has_complement"><code class="computeroutput"><span class="identifier">has_complement</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">*</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_dereference.html" title="has_dereference"><code class="computeroutput"><span class="identifier">has_dereference</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">++</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_pre_increment.html" title="has_pre_increment"><code class="computeroutput"><span class="identifier">has_pre_increment</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">--</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_pre_decrement.html" title="has_pre_decrement"><code class="computeroutput"><span class="identifier">has_pre_decrement</span></code></a>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_typetraits.category.value_traits.operators.supported_postfix_operators"></a><p class="title"><b>Table&#160;1.5.&#160;Supported postfix operators</b></p>
+<div class="table-contents"><table class="table" summary="Supported postfix operators">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    postfix operator
+                  </p>
+                </th>
+<th>
+                  <p>
+                    trait name
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">++</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_post_increment.html" title="has_post_increment"><code class="computeroutput"><span class="identifier">has_post_increment</span></code></a>
+                    <code class="computeroutput"><span class="special">&lt;</span> <span class="keyword">class</span>
+                    <span class="identifier">Lhs</span><span class="special">,</span>
+                    <span class="keyword">class</span> <span class="identifier">Ret</span><span class="special">=</span><span class="identifier">dont_care</span>
+                    <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">--</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_post_decrement.html" title="has_post_decrement"><code class="computeroutput"><span class="identifier">has_post_decrement</span></code></a>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_typetraits.category.value_traits.operators.supported_binary_operators"></a><p class="title"><b>Table&#160;1.6.&#160;Supported binary operators</b></p>
+<div class="table-contents"><table class="table" summary="Supported binary operators">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    binary operator
+                  </p>
+                </th>
+<th>
+                  <p>
+                    trait name
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">+</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_plus.html" title="has_plus"><code class="computeroutput"><span class="identifier">has_plus</span></code></a> <code class="computeroutput"><span class="special">&lt;</span> <span class="keyword">class</span>
+                    <span class="identifier">Lhs</span><span class="special">,</span>
+                    <span class="keyword">class</span> <span class="identifier">Rhs</span><span class="special">=</span><span class="identifier">Lhs</span><span class="special">,</span> <span class="keyword">class</span>
+                    <span class="identifier">Ret</span><span class="special">=</span><span class="identifier">dont_care</span> <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">-</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_minus.html" title="has_minus"><code class="computeroutput"><span class="identifier">has_minus</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">*</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_multiplies.html" title="has_multiplies"><code class="computeroutput"><span class="identifier">has_multiplies</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">/</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_divides.html" title="has_divides"><code class="computeroutput"><span class="identifier">has_divides</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">%</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_modulus.html" title="has_modulus"><code class="computeroutput"><span class="identifier">has_modulus</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">+=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_plus_assign.html" title="has_plus_assign"><code class="computeroutput"><span class="identifier">has_plus_assign</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">-=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_minus_assign.html" title="has_minus_assign"><code class="computeroutput"><span class="identifier">has_minus_assign</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">*=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_multiplies_assign.html" title="has_multiplies_assign"><code class="computeroutput"><span class="identifier">has_multiplies_assign</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">/=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_divides_assign.html" title="has_divides_assign"><code class="computeroutput"><span class="identifier">has_divides_assign</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">%=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_modulus_assign.html" title="has_modulus_assign"><code class="computeroutput"><span class="identifier">has_modulus_assign</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&amp;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_bit_and.html" title="has_bit_and"><code class="computeroutput"><span class="identifier">has_bit_and</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">|</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_bit_or.html" title="has_bit_or"><code class="computeroutput"><span class="identifier">has_bit_or</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">^</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_bit_xor.html" title="has_bit_xor"><code class="computeroutput"><span class="identifier">has_bit_xor</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&amp;=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_bit_and_assign.html" title="has_bit_and_assign"><code class="computeroutput"><span class="identifier">has_bit_and_assign</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">|=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_bit_or_assign.html" title="has_bit_or_assign"><code class="computeroutput"><span class="identifier">has_bit_or_assign</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">^=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_bit_xor_assign.html" title="has_bit_xor_assign"><code class="computeroutput"><span class="identifier">has_bit_xor_assign</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&lt;&lt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_left_shift.html" title="has_left_shift"><code class="computeroutput"><span class="identifier">has_left_shift</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&gt;&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_right_shift.html" title="has_right_shift"><code class="computeroutput"><span class="identifier">has_right_shift</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&lt;&lt;=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_left_shift_assign.html" title="has_left_shift_assign"><code class="computeroutput"><span class="identifier">has_left_shift_assign</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&gt;&gt;=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_right_shift_assign.html" title="has_right_shift_assign"><code class="computeroutput"><span class="identifier">has_right_shift_assign</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">==</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_equal_to.html" title="has_equal_to"><code class="computeroutput"><span class="identifier">has_equal_to</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">!=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_not_equal_to.html" title="has_not_equal_to"><code class="computeroutput"><span class="identifier">has_not_equal_to</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&lt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_less.html" title="has_less"><code class="computeroutput"><span class="identifier">has_less</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&lt;=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_less_equal.html" title="has_less_equal"><code class="computeroutput"><span class="identifier">has_less_equal</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_greater.html" title="has_greater"><code class="computeroutput"><span class="identifier">has_greater</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&gt;=</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_greater_equal.html" title="has_greater_equal"><code class="computeroutput"><span class="identifier">has_greater_equal</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&amp;&amp;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_logical_and.html" title="has_logical_and"><code class="computeroutput"><span class="identifier">has_logical_and</span></code></a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">||</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../reference/has_logical_or.html" title="has_logical_or"><code class="computeroutput"><span class="identifier">has_logical_or</span></code></a>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+          The following operators are not supported because they could not be implemented
+          using the same technique: <code class="computeroutput"><span class="keyword">operator</span><span class="special">=</span></code>, <code class="computeroutput"><span class="keyword">operator</span><span class="special">-&gt;</span></code>, <code class="computeroutput"><span class="keyword">operator</span><span class="special">&amp;</span></code>, <code class="computeroutput"><span class="keyword">operator</span><span class="special">[]</span></code>, <code class="computeroutput"><span class="keyword">operator</span><span class="special">,</span></code>, <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>, <code class="computeroutput"><span class="keyword">operator</span>
+          <span class="keyword">new</span></code>.
+        </p>
+<h6>
+<a name="boost_typetraits.category.value_traits.operators.h3"></a>
+          <span><a name="boost_typetraits.category.value_traits.operators.cv_qualifiers_and_references"></a></span><a class="link" href="operators.html#boost_typetraits.category.value_traits.operators.cv_qualifiers_and_references">cv
+          qualifiers and references</a>
+        </h6>
+<p>
+          A reference sign <code class="computeroutput"><span class="special">&amp;</span></code> in
+          the operator argument is ignored so that <code class="computeroutput"><span class="identifier">has_plus</span><span class="special">&lt;</span> <span class="keyword">int</span><span class="special">&amp;,</span> <span class="keyword">double</span><span class="special">&amp;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">==</span><span class="identifier">has_plus</span><span class="special">&lt;</span>
+          <span class="keyword">int</span><span class="special">,</span> <span class="keyword">double</span> <span class="special">&gt;::</span><span class="identifier">value</span></code>. This has been chosen because if
+          the following code works (does not work):
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span><span class="special">;</span>
+<span class="keyword">double</span> <span class="identifier">d</span><span class="special">;</span>
+<span class="identifier">i</span><span class="special">+</span><span class="identifier">d</span><span class="special">;</span>
+</pre>
+<p>
+          the following code also works (does not work):
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="special">&amp;</span><span class="identifier">ir</span><span class="special">=</span><span class="identifier">i</span><span class="special">;</span>
+<span class="keyword">double</span> <span class="special">&amp;</span><span class="identifier">dr</span><span class="special">=</span><span class="identifier">d</span><span class="special">;</span>
+<span class="identifier">ir</span><span class="special">+</span><span class="identifier">dr</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          It was not possible to handle properly the <code class="computeroutput"><span class="keyword">volatile</span></code>
+          qualifier so that any construct using this qualifier has undefined behavior.
+        </p>
+<p>
+          As a help, the following tables give the necessary conditions over each
+          trait template argument for the trait <code class="computeroutput"><span class="identifier">value</span></code>
+          to be <code class="computeroutput"><span class="keyword">true</span></code>. They are non sufficient
+          conditions because the conditions must be <code class="computeroutput"><span class="keyword">true</span></code>
+          for all arguments and return type for <code class="computeroutput"><span class="identifier">value</span></code>
+          to be <code class="computeroutput"><span class="keyword">true</span></code>.
+        </p>
+<div class="table">
+<a name="boost_typetraits.category.value_traits.operators.necessary_and_non_sufficient_condition_on_operator_argument_for_value_to_be_true"></a><p class="title"><b>Table&#160;1.7.&#160;necessary and non sufficient condition on operator argument for
+          value to be true</b></p>
+<div class="table-contents"><table class="table" summary="necessary and non sufficient condition on operator argument for
+          value to be true">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    operator declaration
+                  </p>
+                </th>
+<th>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">has_op</span><span class="special">&lt;</span>
+                    <span class="keyword">void</span> <span class="special">&gt;</span></code>
+                  </p>
+                </th>
+<th>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">has_op</span><span class="special">&lt;</span>
+                    <span class="identifier">Arg</span> <span class="special">&gt;</span></code>
+                    and <code class="computeroutput"><span class="identifier">has_op</span><span class="special">&lt;</span>
+                    <span class="identifier">Arg</span><span class="special">&amp;</span>
+                    <span class="special">&gt;</span></code>
+                  </p>
+                </th>
+<th>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">has_op</span><span class="special">&lt;</span>
+                    <span class="identifier">Arg</span> <span class="keyword">const</span>
+                    <span class="special">&gt;</span></code> and <code class="computeroutput"><span class="identifier">has_op</span><span class="special">&lt;</span>
+                    <span class="identifier">Arg</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="special">&gt;</span></code>
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">operator</span></code>@<code class="computeroutput"><span class="special">(</span><span class="identifier">Arg</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">operator</span></code>@<code class="computeroutput"><span class="special">(</span><span class="identifier">Arg</span>
+                    <span class="keyword">const</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">operator</span></code>@<code class="computeroutput"><span class="special">(</span><span class="identifier">Arg</span>
+                    <span class="special">&amp;)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">operator</span></code>@<code class="computeroutput"><span class="special">(</span><span class="identifier">Arg</span>
+                    <span class="keyword">const</span> <span class="special">&amp;)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_typetraits.category.value_traits.operators.necessary_and_non_sufficient_condition_on_operator_return_type_for_value_to_be_true"></a><p class="title"><b>Table&#160;1.8.&#160;necessary and non sufficient condition on operator return type for
+          value to be true</b></p>
+<div class="table-contents"><table class="table" summary="necessary and non sufficient condition on operator return type for
+          value to be true">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    operator declaration
+                  </p>
+                </th>
+<th>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">has_op</span><span class="special">&lt;</span>
+                    <span class="special">...,</span> <span class="keyword">void</span>
+                    <span class="special">&gt;</span></code>
+                  </p>
+                </th>
+<th>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">has_op</span><span class="special">&lt;</span>
+                    <span class="special">...,</span> <span class="identifier">Ret</span>
+                    <span class="special">&gt;</span></code>
+                  </p>
+                </th>
+<th>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">has_op</span><span class="special">&lt;</span>
+                    <span class="special">...,</span> <span class="identifier">Ret</span>
+                    <span class="keyword">const</span> <span class="special">&gt;</span></code>
+                  </p>
+                </th>
+<th>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">has_op</span><span class="special">&lt;</span>
+                    <span class="special">...,</span> <span class="identifier">Ret</span>
+                    <span class="special">&amp;</span> <span class="special">&gt;</span></code>
+                  </p>
+                </th>
+<th>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">has_op</span><span class="special">&lt;</span>
+                    <span class="special">...,</span> <span class="identifier">Ret</span>
+                    <span class="keyword">const</span> <span class="special">&amp;</span>
+                    <span class="special">&gt;</span></code>
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">void</span> <span class="keyword">operator</span></code>@<code class="computeroutput"><span class="special">(...)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Ret</span> <span class="keyword">operator</span></code>@<code class="computeroutput"><span class="special">(...)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Ret</span> <span class="keyword">const</span>
+                    <span class="keyword">operator</span></code>@<code class="computeroutput"><span class="special">(...)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Ret</span> <span class="special">&amp;</span>
+                    <span class="keyword">operator</span></code>@<code class="computeroutput"><span class="special">(...)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Ret</span> <span class="keyword">const</span>
+                    <span class="special">&amp;</span> <span class="keyword">operator</span></code>@<code class="computeroutput"><span class="special">(...)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+<td>
+                  <p>
+                    false
+                  </p>
+                </td>
+<td>
+                  <p>
+                    true
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h6>
+<a name="boost_typetraits.category.value_traits.operators.h4"></a>
+          <span><a name="boost_typetraits.category.value_traits.operators.implementation"></a></span><a class="link" href="operators.html#boost_typetraits.category.value_traits.operators.implementation">Implementation</a>
+        </h6>
+<p>
+          The implementation consists in only header files. The following headers
+          should included first:
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">has_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></pre>
+<p>
+          or
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">has_op</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></pre>
+<p>
+          where <code class="literal">op</code> is the textual name chosen for the wanted operator.
+          The first method includes all operator traits.
+        </p>
+<p>
+          All traits are implemented the same way using preprocessor macros to avoid
+          code duplication. The main files are in <code class="literal">boost/type_traits/detail</code>:
+          <code class="literal">has_binary_operator.hpp</code>, <code class="literal">has_prefix_operator.hpp</code>
+          and <code class="literal">has_postfix_operator.hpp</code>. The example of prefix
+          <code class="computeroutput"><span class="keyword">operator</span><span class="special">-</span></code>
+          is presented below:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">detail</span> <span class="special">{</span>
+
+<span class="comment">// This namespace ensures that argument-dependent name lookup does not mess things up.</span>
+<span class="keyword">namespace</span> <span class="identifier">has_unary_minus_impl</span> <span class="special">{</span>
+
+<span class="comment">// 1. a function to have an instance of type T without requiring T to be default</span>
+<span class="comment">// constructible</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">T</span> <span class="special">&amp;</span><span class="identifier">make</span><span class="special">();</span>
+
+
+<span class="comment">// 2. we provide our operator definition for types that do not have one already</span>
+
+<span class="comment">// a type returned from operator- when no such operator is</span>
+<span class="comment">// found in the type's own namespace (our own operator is used) so that we have</span>
+<span class="comment">// a means to know that our operator was used</span>
+<span class="keyword">struct</span> <span class="identifier">no_operator</span> <span class="special">{</span> <span class="special">};</span>
+
+<span class="comment">// this class allows implicit conversions and makes the following operator</span>
+<span class="comment">// definition less-preferred than any other such operators that might be found</span>
+<span class="comment">// via argument-dependent name lookup</span>
+<span class="keyword">struct</span> <span class="identifier">any</span> <span class="special">{</span> <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">any</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;);</span> <span class="special">};</span>
+
+<span class="comment">// when operator- is not available, this one is used</span>
+<span class="identifier">no_operator</span> <span class="keyword">operator</span><span class="special">-(</span><span class="keyword">const</span> <span class="identifier">any</span><span class="special">&amp;);</span>
+
+
+<span class="comment">// 3. checks if the operator returns void or not</span>
+<span class="comment">// conditions: Rhs!=void</span>
+
+<span class="comment">// we first redefine "operator," so that we have no compilation error if</span>
+<span class="comment">// operator- returns void and we can use the return type of</span>
+<span class="comment">// (-rhs, returns_void_t()) to deduce if operator- returns void or not:</span>
+<span class="comment">// - operator- returns void   -&gt; (-rhs, returns_void_t()) returns returns_void_t</span>
+<span class="comment">// - operator- returns !=void -&gt; (-rhs, returns_void_t()) returns int</span>
+<span class="keyword">struct</span> <span class="identifier">returns_void_t</span> <span class="special">{</span> <span class="special">};</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="keyword">int</span> <span class="keyword">operator</span><span class="special">,(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="identifier">returns_void_t</span><span class="special">);</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="keyword">int</span> <span class="keyword">operator</span><span class="special">,(</span><span class="keyword">const</span> <span class="keyword">volatile</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="identifier">returns_void_t</span><span class="special">);</span>
+
+<span class="comment">// this intermediate trait has member value of type bool:</span>
+<span class="comment">// - value==true  -&gt; operator- returns void</span>
+<span class="comment">// - value==false -&gt; operator- does not return void</span>
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">operator_returns_void</span> <span class="special">{</span>
+   <span class="comment">// overloads of function returns_void make the difference</span>
+   <span class="comment">// yes_type and no_type have different size by construction</span>
+   <span class="keyword">static</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_traits</span><span class="special">::</span><span class="identifier">yes_type</span> <span class="identifier">returns_void</span><span class="special">(</span><span class="identifier">returns_void_t</span><span class="special">);</span>
+   <span class="keyword">static</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_traits</span><span class="special">::</span><span class="identifier">no_type</span> <span class="identifier">returns_void</span><span class="special">(</span><span class="keyword">int</span><span class="special">);</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">sizeof</span><span class="special">(::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_traits</span><span class="special">::</span><span class="identifier">yes_type</span><span class="special">)==</span><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">returns_void</span><span class="special">((-</span><span class="identifier">make</span><span class="special">&lt;</span><span class="identifier">Rhs</span><span class="special">&gt;(),</span><span class="identifier">returns_void_t</span><span class="special">())));</span>
+<span class="special">};</span>
+
+
+<span class="comment">// 4. checks if the return type is Ret or Ret==dont_care</span>
+<span class="comment">// conditions: Rhs!=void</span>
+
+<span class="keyword">struct</span> <span class="identifier">dont_care</span> <span class="special">{</span> <span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Ret</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">Returns_void</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">operator_returns_Ret</span><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">operator_returns_Ret</span> <span class="special">&lt;</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="identifier">dont_care</span><span class="special">,</span> <span class="keyword">true</span> <span class="special">&gt;</span> <span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">operator_returns_Ret</span> <span class="special">&lt;</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="identifier">dont_care</span><span class="special">,</span> <span class="keyword">false</span> <span class="special">&gt;</span> <span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">operator_returns_Ret</span> <span class="special">&lt;</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="keyword">void</span><span class="special">,</span> <span class="keyword">true</span> <span class="special">&gt;</span> <span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">operator_returns_Ret</span> <span class="special">&lt;</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="keyword">void</span><span class="special">,</span> <span class="keyword">false</span> <span class="special">&gt;</span> <span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Ret</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">operator_returns_Ret</span> <span class="special">&lt;</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="identifier">Ret</span><span class="special">,</span> <span class="keyword">true</span> <span class="special">&gt;</span> <span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">// otherwise checks if it is convertible to Ret using the sizeof trick</span>
+<span class="comment">// based on overload resolution</span>
+<span class="comment">// condition: Ret!=void and Ret!=dont_care and the operator does not return void</span>
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Ret</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">operator_returns_Ret</span> <span class="special">&lt;</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="identifier">Ret</span><span class="special">,</span> <span class="keyword">false</span> <span class="special">&gt;</span> <span class="special">{</span>
+   <span class="keyword">static</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_traits</span><span class="special">::</span><span class="identifier">yes_type</span> <span class="identifier">is_convertible_to_Ret</span><span class="special">(</span><span class="identifier">Ret</span><span class="special">);</span> <span class="comment">// this version is preferred for types convertible to Ret</span>
+   <span class="keyword">static</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_traits</span><span class="special">::</span><span class="identifier">no_type</span> <span class="identifier">is_convertible_to_Ret</span><span class="special">(...);</span> <span class="comment">// this version is used otherwise</span>
+
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">is_convertible_to_Ret</span><span class="special">(-</span><span class="identifier">make</span><span class="special">&lt;</span><span class="identifier">Rhs</span><span class="special">&gt;()))==</span><span class="keyword">sizeof</span><span class="special">(::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_traits</span><span class="special">::</span><span class="identifier">yes_type</span><span class="special">);</span>
+<span class="special">};</span>
+
+
+<span class="comment">// 5. checks for operator existence</span>
+<span class="comment">// condition: Rhs!=void</span>
+
+<span class="comment">// checks if our definition of operator- is used or an other</span>
+<span class="comment">// existing one;</span>
+<span class="comment">// this is done with redefinition of "operator," that returns no_operator or has_operator</span>
+<span class="keyword">struct</span> <span class="identifier">has_operator</span> <span class="special">{</span> <span class="special">};</span>
+<span class="identifier">no_operator</span> <span class="keyword">operator</span><span class="special">,(</span><span class="identifier">no_operator</span><span class="special">,</span> <span class="identifier">has_operator</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">operator_exists</span> <span class="special">{</span>
+   <span class="keyword">static</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_traits</span><span class="special">::</span><span class="identifier">yes_type</span> <span class="identifier">check</span><span class="special">(</span><span class="identifier">has_operator</span><span class="special">);</span> <span class="comment">// this version is preferred when operator exists</span>
+   <span class="keyword">static</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_traits</span><span class="special">::</span><span class="identifier">no_type</span> <span class="identifier">check</span><span class="special">(</span><span class="identifier">no_operator</span><span class="special">);</span> <span class="comment">// this version is used otherwise</span>
+
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">check</span><span class="special">(((-</span><span class="identifier">make</span><span class="special">&lt;</span><span class="identifier">Rhs</span><span class="special">&gt;()),</span><span class="identifier">make</span><span class="special">&lt;</span><span class="identifier">has_operator</span><span class="special">&gt;())))==</span><span class="keyword">sizeof</span><span class="special">(::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_traits</span><span class="special">::</span><span class="identifier">yes_type</span><span class="special">);</span>
+<span class="special">};</span>
+
+
+<span class="comment">// 6. main trait: to avoid any compilation error, this class behaves</span>
+<span class="comment">// differently when operator-(Rhs) is forbidden by the standard.</span>
+<span class="comment">// Forbidden_if is a bool that is:</span>
+<span class="comment">// - true when the operator-(Rhs) is forbidden by the standard</span>
+<span class="comment">//   (would yield compilation error if used)</span>
+<span class="comment">// - false otherwise</span>
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Ret</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">Forbidden_if</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">trait_impl1</span><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Ret</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">trait_impl1</span> <span class="special">&lt;</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="identifier">Ret</span><span class="special">,</span> <span class="keyword">true</span> <span class="special">&gt;</span> <span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Ret</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">trait_impl1</span> <span class="special">&lt;</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="identifier">Ret</span><span class="special">,</span> <span class="keyword">false</span> <span class="special">&gt;</span> <span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span>
+      <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">type_traits</span><span class="special">::</span><span class="identifier">ice_and</span><span class="special">&lt;</span>
+         <span class="identifier">operator_exists</span> <span class="special">&lt;</span> <span class="identifier">Rhs</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">,</span>
+         <span class="identifier">operator_returns_Ret</span> <span class="special">&lt;</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="identifier">Ret</span><span class="special">,</span> <span class="identifier">operator_returns_void</span> <span class="special">&lt;</span> <span class="identifier">Rhs</span> <span class="special">&gt;::</span><span class="identifier">value</span> <span class="special">&gt;::</span><span class="identifier">value</span>
+      <span class="special">&gt;::</span><span class="identifier">value</span>
+   <span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">// specialization needs to be declared for the special void case</span>
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Ret</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">trait_impl1</span> <span class="special">&lt;</span> <span class="keyword">void</span><span class="special">,</span> <span class="identifier">Ret</span><span class="special">,</span> <span class="keyword">false</span> <span class="special">&gt;</span> <span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">// defines some typedef for convenience</span>
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Ret</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">trait_impl</span> <span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="identifier">Rhs</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">Rhs_noref</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">remove_cv</span><span class="special">&lt;</span><span class="identifier">Rhs_noref</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">Rhs_nocv</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">remove_cv</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">remove_reference</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">remove_pointer</span><span class="special">&lt;</span><span class="identifier">Rhs_noref</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">Rhs_noptr</span><span class="special">;</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="identifier">trait_impl1</span> <span class="special">&lt;</span> <span class="identifier">Rhs_noref</span><span class="special">,</span> <span class="identifier">Ret</span><span class="special">,</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_pointer</span><span class="special">&lt;</span> <span class="identifier">Rhs_noref</span> <span class="special">&gt;::</span><span class="identifier">value</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="special">}</span> <span class="comment">// namespace impl</span>
+<span class="special">}</span> <span class="comment">// namespace detail</span>
+
+<span class="comment">// this is the accessible definition of the trait to end user</span>
+<span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Ret</span><span class="special">=::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">has_unary_minus_impl</span><span class="special">::</span><span class="identifier">dont_care</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">has_unary_minus</span> <span class="special">:</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">integral_constant</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">,(::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">has_unary_minus_impl</span><span class="special">::</span><span class="identifier">trait_impl</span> <span class="special">&lt;</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="identifier">Ret</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">)&gt;</span> <span class="special">{</span> <span class="special">};</span>
+
+<span class="special">}</span> <span class="comment">// namespace boost</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="boost_typetraits.category.value_traits.operators.h5"></a>
+          <span><a name="boost_typetraits.category.value_traits.operators.limitation"></a></span><a class="link" href="operators.html#boost_typetraits.category.value_traits.operators.limitation">Limitation</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">
+              Requires a compiler with working SFINAE.
+            </li></ul></div>
+<h6>
+<a name="boost_typetraits.category.value_traits.operators.h6"></a>
+          <span><a name="boost_typetraits.category.value_traits.operators.known_issues"></a></span><a class="link" href="operators.html#boost_typetraits.category.value_traits.operators.known_issues">Known
+          issues</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+              These traits cannot detect whether the operators are public or not:
+              if an operator is defined as a private member of type <code class="computeroutput"><span class="identifier">T</span></code> then the instantiation of the corresponding
+              trait will produce a compiler error. For this reason these traits cannot
+              be used to determine whether a type has a public operator or not.
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">A</span> <span class="special">{</span> <span class="keyword">private</span><span class="special">:</span> <span class="identifier">A</span> <span class="keyword">operator</span><span class="special">-();</span> <span class="special">};</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_unary_minus</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// error: A::operator-() is private</span>
+</pre>
+            </li>
+<li class="listitem">
+              There is an issue if the operator exists only for type <code class="computeroutput"><span class="identifier">A</span></code> and <code class="computeroutput"><span class="identifier">B</span></code>
+              is convertible to <code class="computeroutput"><span class="identifier">A</span></code>.
+              In this case, the compiler will report an ambiguous overload because
+              both the existing operator and the one we provide (with argument of
+              type <code class="computeroutput"><span class="identifier">any</span></code>) need type
+              conversion, so that none is preferred.
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">A</span> <span class="special">{</span> <span class="special">};</span>
+<span class="keyword">void</span> <span class="keyword">operator</span><span class="special">-(</span><span class="keyword">const</span> <span class="identifier">A</span><span class="special">&amp;);</span>
+<span class="keyword">struct</span> <span class="identifier">B</span> <span class="special">{</span> <span class="keyword">operator</span> <span class="identifier">A</span><span class="special">();</span> <span class="special">};</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_unary_minus</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// this is fine</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_unary_minus</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// error: ambiguous overload between</span>
+                                  <span class="comment">// operator-(const any&amp;) and</span>
+                                  <span class="comment">// operator-(const A&amp;)</span>
+                                  <span class="comment">// both need type conversion</span>
+</pre>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">B</span> <span class="special">{</span> <span class="special">};</span>
+<span class="keyword">struct</span> <span class="identifier">A</span> <span class="special">{</span> <span class="identifier">A</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">B</span><span class="special">&amp;)</span> <span class="special">{</span> <span class="special">}</span> <span class="special">};</span>
+<span class="keyword">void</span> <span class="keyword">operator</span><span class="special">-(</span><span class="keyword">const</span> <span class="identifier">A</span><span class="special">&amp;);</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_unary_minus</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// this is fine</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_unary_minus</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// error: ambiguous overload between</span>
+                                  <span class="comment">// operator-(const any&amp;) and</span>
+                                  <span class="comment">// operator-(const A&amp;)</span>
+                                  <span class="comment">// both need type conversion</span>
+</pre>
+            </li>
+<li class="listitem">
+              There is an issue when applying these traits to template classes. If
+              the operator is defined but does not bind for a given template type,
+              it is still detected by the trait which returns <code class="computeroutput"><span class="keyword">true</span></code>
+              instead of <code class="computeroutput"><span class="keyword">false</span></code>. This
+              applies in particular to the containers of the standard library and
+              <code class="computeroutput"><span class="keyword">operator</span><span class="special">==</span></code>.
+              Example:
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">has_equal_to</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">contains</span> <span class="special">{</span> <span class="identifier">T</span> <span class="identifier">data</span><span class="special">;</span> <span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="keyword">const</span> <span class="identifier">contains</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="identifier">lhs</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">contains</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span>
+	<span class="keyword">return</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">lhs</span><span class="special">.</span><span class="identifier">data</span><span class="special">,</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">data</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="keyword">class</span> <span class="identifier">bad</span> <span class="special">{</span> <span class="special">};</span>
+<span class="keyword">class</span> <span class="identifier">good</span> <span class="special">{</span> <span class="special">};</span>
+<span class="keyword">bool</span> <span class="identifier">f</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">good</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">good</span><span class="special">&amp;)</span> <span class="special">{</span> <span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span> <span class="special">{</span>
+	<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">boolalpha</span><span class="special">;</span>
+	<span class="comment">// works fine for contains&lt;good&gt;</span>
+	<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_equal_to</span><span class="special">&lt;</span> <span class="identifier">contains</span><span class="special">&lt;</span> <span class="identifier">good</span> <span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">&lt;&lt;</span><span class="char">'\n'</span><span class="special">;</span> <span class="comment">// true</span>
+	<span class="identifier">contains</span><span class="special">&lt;</span><span class="identifier">good</span><span class="special">&gt;</span> <span class="identifier">g</span><span class="special">;</span>
+	<span class="identifier">g</span><span class="special">==</span><span class="identifier">g</span><span class="special">;</span> <span class="comment">// ok</span>
+	<span class="comment">// does not work for contains&lt;bad&gt;</span>
+	<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">&lt;&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_equal_to</span><span class="special">&lt;</span> <span class="identifier">contains</span><span class="special">&lt;</span> <span class="identifier">bad</span> <span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">&lt;&lt;</span><span class="char">'\n'</span><span class="special">;</span> <span class="comment">// true, should be false</span>
+	<span class="identifier">contains</span><span class="special">&lt;</span><span class="identifier">bad</span><span class="special">&gt;</span> <span class="identifier">b</span><span class="special">;</span>
+	<span class="identifier">b</span><span class="special">==</span><span class="identifier">b</span><span class="special">;</span> <span class="comment">// compile time error</span>
+	<span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="keyword">volatile</span></code> qualifier is
+              not properly handled and would lead to undefined behavior
+            </li>
+</ul></div>
+<h6>
+<a name="boost_typetraits.category.value_traits.operators.h7"></a>
+          <span><a name="boost_typetraits.category.value_traits.operators.acknowledgments"></a></span><a class="link" href="operators.html#boost_typetraits.category.value_traits.operators.acknowledgments">Acknowledgments</a>
+        </h6>
+<p>
+          Frederic Bron is very thankful to numerous people from the boost mailing
+          list for their kind help and patience. In particular, the following persons
+          have been very helpful for the implementation: Edward Diener, Eric Niebler,
+          Jeffrey Lee Hellrung (Jr.), Robert Stewart, Roman Perepelitsa, Steven Watanabe,
+          Vicente Botet.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000, 2011 Adobe Systems Inc, David Abrahams,
+      Frederic Bron, Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant,
+      Jesse Jones, Mat Marcus, Itay Maman, John Maddock, Alexander Nasonov, Thorsten
+      Ottosen, Roman Perepelitsa, Robert Ramey, Jeremy Siek, Robert Stewart and Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="relate.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../value_traits.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../transform.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

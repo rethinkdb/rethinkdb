@@ -1,0 +1,288 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Sparse Storage</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Sparse Storage</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="map_std"></a>Default Standard Map</h2>
+<h4>Description</h4>
+<p>The templated class <code>map_std&lt;I, T, ALLOC&gt;</code> provides a
+wrapper for the standard library associative container
+<code>std::map</code>. The wrapper has one simple purpose. It
+allows the definition of a default template parameter (for the
+adapted array) when declaring the sparse container types.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/storage_sparse.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    map_std&lt;int, double&gt; a (3);
+    for (unsigned i = 0; i &lt; a.size (); ++ i) {
+        a [i] = i;
+        std::cout &lt;&lt; a [i] &lt;&lt; std::endl;
+    }
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header storage_sparse.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>I</code></td>
+<td>The type of index stored in the array.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the array.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>ALLOC</code></td>
+<td>An STL Allocator</td>
+<td>std::allocator</td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p>Reversible Container.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of Reversible
+Container.</p>
+<h4>Public base classes</h4>
+<p>std::map</p>
+<h2><a name="map_array"></a>Map Array</h2>
+<h4>Description</h4>
+<p>The templated class <code>map_array&lt;I, T, ALLOC&gt;</code> implements a <code>std::map</code> like associative container as a sorted array. It therefore some of the Associative Container interface without having the same semantics as an std::map.
+<p>At any time the <code>map_array</code> has a capacity up to which new element can be inserted.
+If <code>insert</code> would cause the size of the <code>map_array</code> to exceeds its capactity then it is <strong>reallocated</strong>. Iterators and reference are invalidated.
+The capacity can be directly control using the <code>reserve</code> member function.
+</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/storage_sparse.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    map_array&lt;int, double&gt; a (3);
+    for (unsigned i = 0; i &lt; a.size (); ++ i) {
+        a [i] = i;
+        std::cout &lt;&lt; a [i] &lt;&lt; std::endl;
+    }
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header storage_sparse.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>I</code></td>
+<td>The type of index stored in the array.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the array.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>ALLOC</code></td>
+<td>An STL Allocator</td>
+<td>std::allocator</td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p>Reversible Container.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of Reversible
+Container.</p>
+<h4>Public base classes</h4>
+<p>None.</p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>map_array (ALLOC &amp;a = ALLOC())</code></td>
+<td>Allocates a <code>map_array</code> that holds at most zero
+elements.</td>
+</tr>
+<tr>
+<td><code>map_array (const map_array &amp;c)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>~map_array ()</code></td>
+<td>Deallocates the <code>map_array</code> itself.</td>
+</tr>
+<tr>
+<td><code>void reserve (size_type capacity)</code></td>
+<td>
+Changes the<code>map_array</code> capacity. It can hold at most<code>capacity</code> elements without reallocation. The capacity can be reduced such that <code>capacity >= size()</code>. The content of the<code>map_array</code> is preserved.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the <code>map_array</code>.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the capacity of the <code>map_array</code>.</td>
+</tr>
+<tr>
+<td><code>data_reference operator [] (index_type i)</code></td>
+<td>Returns a reference of the element that is associated with a
+particular index. If the <code>map_array</code> does not already
+contain such an element, <code>operator[]</code> inserts the
+default <code>T ()</code>.</td>
+</tr>
+<tr>
+<td><code>map_array &amp;operator = (const map_array
+&amp;a)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>map_array &amp;assign_temporary (map_array
+&amp;a)</code></td>
+<td>Assigns a temporary. May change the array <code>a</code>.</td>
+</tr>
+<tr>
+<td><code>void swap (map_array &amp;a)</code></td>
+<td>Swaps the contents of the arrays.</td>
+</tr>
+<tr>
+<td><code>std::pair<iterator, bool> insert (const value_type
+&amp;p)</code></td>
+<td>Inserts <code>p</code> into the array. The second part of the return value is <code>true</code>
+if <code>p</code> was inserted and <code>false</code> if was not inserted because it was aleady
+present.</td>
+</tr>
+<tr>
+<td><code>iterator insert (iterator it, const value_type
+&amp;p)</code></td>
+<td>Inserts <code>p</code> into the array, using <code>it</code> as
+a hint to where it will be inserted.</td>
+</tr>
+<tr>
+<td><code>void erase (iterator it)</code></td>
+<td>Erases the value at <code>it</code>.</td>
+</tr>
+<tr>
+<td><code>void clear ()</code></td>
+<td>Clears the array.</td>
+</tr>
+<tr>
+<td><code>const_iterator find (index_type i) const</code></td>
+<td>Finds an element whose index is <code>i</code>.</td>
+</tr>
+<tr>
+<td><code>iterator find (index_type i)</code></td>
+<td>Finds an element whose index is <code>i</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator lower_bound (index_type i)
+const</code></td>
+<td>Finds the first element whose index is not less than
+<code>i</code> .</td>
+</tr>
+<tr>
+<td><code>iterator lower_bound (index_type i)</code></td>
+<td>Finds the first element whose index is not less than
+<code>i</code> .</td>
+</tr>
+<tr>
+<td><code>const_iterator upper_bound (index_type i)
+const</code></td>
+<td>Finds the first element whose index is greater than
+<code>i</code> .</td>
+</tr>
+<tr>
+<td><code>iterator upper_bound (index_type i)</code></td>
+<td>Finds the first element whose index is greater than
+<code>i</code> .</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>map_array</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>map_array</code>.</td>
+</tr>
+<tr>
+<td><code>iterator begin ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the beginning of
+the <code>map_array</code>.</td>
+</tr>
+<tr>
+<td><code>iterator end ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the end of the
+<code>map_array</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed <code>map_array</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>map_array</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rbegin ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the
+beginning of the reversed <code>map_array</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rend ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the end of
+the reversed <code>map_array</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p>Copyright (&copy;) 2000-2002 Joerg Walter, Mathias Koch<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

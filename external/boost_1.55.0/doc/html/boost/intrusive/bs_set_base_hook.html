@@ -1,0 +1,123 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template bs_set_base_hook</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../intrusive/reference.html#header.boost.intrusive.bs_set_hook_hpp" title="Header &lt;boost/intrusive/bs_set_hook.hpp&gt;">
+<link rel="prev" href="make_bs_set_base_hook.html" title="Struct template make_bs_set_base_hook">
+<link rel="next" href="make_bs_set_member_hook.html" title="Struct template make_bs_set_member_hook">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_bs_set_base_hook.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../intrusive/reference.html#header.boost.intrusive.bs_set_hook_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_bs_set_member_hook.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.intrusive.bs_set_base_hook"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template bs_set_base_hook</span></h2>
+<p>boost::intrusive::bs_set_base_hook</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../intrusive/reference.html#header.boost.intrusive.bs_set_hook_hpp" title="Header &lt;boost/intrusive/bs_set_hook.hpp&gt;">boost/intrusive/bs_set_hook.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">...</span> Options<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="bs_set_base_hook.html" title="Class template bs_set_base_hook">bs_set_base_hook</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">make_bs_set_base_hook</span><span class="special">::</span><span class="identifier">type</span><span class="special">&lt;</span> <span class="identifier">O1</span><span class="special">,</span> <span class="identifier">O2</span><span class="special">,</span> <span class="identifier">O3</span> <span class="special">&gt;</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="bs_set_base_hook.html#boost.intrusive.bs_set_base_hookconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="bs_set_base_hook.html#idp32614616-bb"><span class="identifier">bs_set_base_hook</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="bs_set_base_hook.html#idp32616424-bb"><span class="identifier">bs_set_base_hook</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="bs_set_base_hook.html" title="Class template bs_set_base_hook">bs_set_base_hook</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  bs_set_base_hook&amp; <a class="link" href="bs_set_base_hook.html#idp32619624-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="bs_set_base_hook.html" title="Class template bs_set_base_hook">bs_set_base_hook</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="bs_set_base_hook.html#idp32622120-bb"><span class="special">~</span><span class="identifier">bs_set_base_hook</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="bs_set_base_hook.html#idp32607176-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="bs_set_base_hook.html#idp32607384-bb"><span class="identifier">swap_nodes</span></a><span class="special">(</span><a class="link" href="bs_set_base_hook.html" title="Class template bs_set_base_hook">bs_set_base_hook</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="bs_set_base_hook.html#idp32609640-bb"><span class="identifier">is_linked</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="bs_set_base_hook.html#idp32612584-bb"><span class="identifier">unlink</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp130715784"></a><h2>Description</h2>
+<p>Derive a class from <a class="link" href="bs_set_base_hook.html" title="Class template bs_set_base_hook">bs_set_base_hook</a> in order to store objects in in a bs_set/bs_multiset. <a class="link" href="bs_set_base_hook.html" title="Class template bs_set_base_hook">bs_set_base_hook</a> holds the data necessary to maintain the bs_set/bs_multiset and provides an appropriate <a class="link" href="value_traits.html" title="Struct template value_traits">value_traits</a> class for bs_set/bs_multiset.</p>
+<p>The hook admits the following options: <code class="computeroutput">tag&lt;&gt;</code>, <code class="computeroutput">void_pointer&lt;&gt;</code>, <code class="computeroutput">link_mode&lt;&gt;</code>.</p>
+<p><code class="computeroutput">tag&lt;&gt;</code> defines a tag to identify the node. The same tag value can be used in different classes, but if a class is derived from more than one <code class="computeroutput"><a class="link" href="list_base_hook.html" title="Class template list_base_hook">list_base_hook</a></code>, then each <code class="computeroutput"><a class="link" href="list_base_hook.html" title="Class template list_base_hook">list_base_hook</a></code> needs its unique tag.</p>
+<p><code class="computeroutput">void_pointer&lt;&gt;</code> is the pointer type that will be used internally in the hook and the the container configured to use this hook.</p>
+<p><code class="computeroutput">link_mode&lt;&gt;</code> will specify the linking mode of the hook (<code class="computeroutput">normal_link</code>, <code class="computeroutput">auto_unlink</code> or <code class="computeroutput">safe_link</code>). </p>
+<div class="refsect2">
+<a name="idp130722824"></a><h3>
+<a name="boost.intrusive.bs_set_base_hookconstruct-copy-destruct"></a><code class="computeroutput">bs_set_base_hook</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp32614616-bb"></a><span class="identifier">bs_set_base_hook</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: If <code class="computeroutput"><a class="link" href="link_mode.html" title="Struct template link_mode">link_mode</a></code> is <code class="computeroutput">auto_unlink</code> or <code class="computeroutput">safe_link</code> initializes the node to an unlinked state.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp32616424-bb"></a><span class="identifier">bs_set_base_hook</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="bs_set_base_hook.html" title="Class template bs_set_base_hook">bs_set_base_hook</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: If <code class="computeroutput"><a class="link" href="link_mode.html" title="Struct template link_mode">link_mode</a></code> is <code class="computeroutput">auto_unlink</code> or <code class="computeroutput">safe_link</code> initializes the node to an unlinked state. The argument is ignored.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Rationale</strong></span>: Providing a copy-constructor makes classes using the hook STL-compliant without forcing the user to do some additional work. <code class="computeroutput">swap</code> can be used to emulate move-semantics. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">bs_set_base_hook&amp; <a name="idp32619624-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="bs_set_base_hook.html" title="Class template bs_set_base_hook">bs_set_base_hook</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Empty function. The argument is ignored.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Rationale</strong></span>: Providing an assignment operator makes classes using the hook STL-compliant without forcing the user to do some additional work. <code class="computeroutput">swap</code> can be used to emulate move-semantics. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp32622120-bb"></a><span class="special">~</span><span class="identifier">bs_set_base_hook</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: If <code class="computeroutput"><a class="link" href="link_mode.html" title="Struct template link_mode">link_mode</a></code> is <code class="computeroutput">normal_link</code>, the destructor does nothing (ie. no code is generated). If <code class="computeroutput"><a class="link" href="link_mode.html" title="Struct template link_mode">link_mode</a></code> is <code class="computeroutput">safe_link</code> and the object is stored in a set an assertion is raised. If <code class="computeroutput"><a class="link" href="link_mode.html" title="Struct template link_mode">link_mode</a></code> is <code class="computeroutput">auto_unlink</code> and <code class="computeroutput">is_linked()</code> is true, the node is unlinked.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp130745320"></a><h3>
+<a name="idp32607176-bb"></a><code class="computeroutput">bs_set_base_hook</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp32607384-bb"></a><span class="identifier">swap_nodes</span><span class="special">(</span><a class="link" href="bs_set_base_hook.html" title="Class template bs_set_base_hook">bs_set_base_hook</a> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Swapping two nodes swaps the position of the elements related to those nodes in one or two containers. That is, if the node this is part of the element e1, the node x is part of the element e2 and both elements are included in the containers s1 and s2, then after the swap-operation e1 is in s2 at the position of e2 and e2 is in s1 at the position of e1. If one element is not in a container, then after the swap-operation the other element is not in a container. Iterators to e1 and e2 related to those nodes are invalidated.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp32609640-bb"></a><span class="identifier">is_linked</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Precondition</strong></span>: <code class="computeroutput"><a class="link" href="link_mode.html" title="Struct template link_mode">link_mode</a></code> must be <code class="computeroutput">safe_link</code> or <code class="computeroutput">auto_unlink</code>.</p>
+<p><span class="bold"><strong>Returns</strong></span>: true, if the node belongs to a container, false otherwise. This function can be used to test whether <code class="computeroutput">set::iterator_to</code> will return a valid iterator.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp32612584-bb"></a><span class="identifier">unlink</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Removes the node if it's inserted in a container. This function is only allowed if <code class="computeroutput"><a class="link" href="link_mode.html" title="Struct template link_mode">link_mode</a></code> is <code class="computeroutput">auto_unlink</code>.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_bs_set_base_hook.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../intrusive/reference.html#header.boost.intrusive.bs_set_hook_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_bs_set_member_hook.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

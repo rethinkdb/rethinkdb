@@ -1,0 +1,894 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Performance Tuning Macros</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Math Toolkit">
+<link rel="up" href="../perf.html" title="Chapter&#160;14.&#160;Performance">
+<link rel="prev" href="comp_compilers.html" title="Comparing Compilers">
+<link rel="next" href="comparisons.html" title="Comparisons to Other Open Source Libraries">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="comp_compilers.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../perf.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="comparisons.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="math_toolkit.tuning"></a><a class="link" href="tuning.html" title="Performance Tuning Macros">Performance Tuning Macros</a>
+</h2></div></div></div>
+<p>
+      There are a small number of performance tuning options that are determined
+      by configuration macros. These should be set in boost/math/tools/user.hpp;
+      or else reported to the Boost-development mailing list so that the appropriate
+      option for a given compiler and OS platform can be set automatically in our
+      configuration setup.
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Macro
+              </p>
+            </th>
+<th>
+              <p>
+                Meaning
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                BOOST_MATH_POLY_METHOD
+              </p>
+            </td>
+<td>
+              <p>
+                Determines how polynomials and most rational functions are evaluated.
+                Define to one of the values 0, 1, 2 or 3: see below for the meaning
+                of these values.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_MATH_RATIONAL_METHOD
+              </p>
+            </td>
+<td>
+              <p>
+                Determines how symmetrical rational functions are evaluated: mostly
+                this only effects how the Lanczos approximation is evaluated, and
+                how the <code class="computeroutput"><span class="identifier">evaluate_rational</span></code>
+                function behaves. Define to one of the values 0, 1, 2 or 3: see below
+                for the meaning of these values.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_MATH_MAX_POLY_ORDER
+              </p>
+            </td>
+<td>
+              <p>
+                The maximum order of polynomial or rational function that will be
+                evaluated by a method other than 0 (a simple "for" loop).
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                BOOST_MATH_INT_TABLE_TYPE(RT, IT)
+              </p>
+            </td>
+<td>
+              <p>
+                Many of the coefficients to the polynomials and rational functions
+                used by this library are integers. Normally these are stored as tables
+                as integers, but if mixed integer / floating point arithmetic is
+                much slower than regular floating point arithmetic then they can
+                be stored as tables of floating point values instead. If mixed arithmetic
+                is slow then add:
+              </p>
+              <p>
+                #define BOOST_MATH_INT_TABLE_TYPE(RT, IT) RT
+              </p>
+              <p>
+                to boost/math/tools/user.hpp, otherwise the default of:
+              </p>
+              <p>
+                #define BOOST_MATH_INT_TABLE_TYPE(RT, IT) IT
+              </p>
+              <p>
+                Set in boost/math/config.hpp is fine, and may well result in smaller
+                code.
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+      The values to which <code class="computeroutput"><span class="identifier">BOOST_MATH_POLY_METHOD</span></code>
+      and <code class="computeroutput"><span class="identifier">BOOST_MATH_RATIONAL_METHOD</span></code>
+      may be set are as follows:
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Value
+              </p>
+            </th>
+<th>
+              <p>
+                Effect
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                0
+              </p>
+            </td>
+<td>
+              <p>
+                The polynomial or rational function is evaluated using Horner's method,
+                and a simple for-loop.
+              </p>
+              <p>
+                Note that if the order of the polynomial or rational function is
+                a runtime parameter, or the order is greater than the value of <code class="computeroutput"><span class="identifier">BOOST_MATH_MAX_POLY_ORDER</span></code>, then
+                this method is always used, irrespective of the value of <code class="computeroutput"><span class="identifier">BOOST_MATH_POLY_METHOD</span></code> or <code class="computeroutput"><span class="identifier">BOOST_MATH_RATIONAL_METHOD</span></code>.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                1
+              </p>
+            </td>
+<td>
+              <p>
+                The polynomial or rational function is evaluated without the use
+                of a loop, and using Horner's method. This only occurs if the order
+                of the polynomial is known at compile time and is less than or equal
+                to <code class="computeroutput"><span class="identifier">BOOST_MATH_MAX_POLY_ORDER</span></code>.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                2
+              </p>
+            </td>
+<td>
+              <p>
+                The polynomial or rational function is evaluated without the use
+                of a loop, and using a second order Horner's method. In theory this
+                permits two operations to occur in parallel for polynomials, and
+                four in parallel for rational functions. This only occurs if the
+                order of the polynomial is known at compile time and is less than
+                or equal to <code class="computeroutput"><span class="identifier">BOOST_MATH_MAX_POLY_ORDER</span></code>.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                3
+              </p>
+            </td>
+<td>
+              <p>
+                The polynomial or rational function is evaluated without the use
+                of a loop, and using a second order Horner's method. In theory this
+                permits two operations to occur in parallel for polynomials, and
+                four in parallel for rational functions. This differs from method
+                "2" in that the code is carefully ordered to make the parallelisation
+                more obvious to the compiler: rather than relying on the compiler's
+                optimiser to spot the parallelisation opportunities. This only occurs
+                if the order of the polynomial is known at compile time and is less
+                than or equal to <code class="computeroutput"><span class="identifier">BOOST_MATH_MAX_POLY_ORDER</span></code>.
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+      To determine which of these options is best for your particular compiler/platform
+      build the performance test application with your usual release settings, and
+      run the program with the --tune command line option.
+    </p>
+<p>
+      In practice the difference between methods is rather small at present, as the
+      following table shows. However, parallelisation /vectorisation is likely to
+      become more important in the future: quite likely the methods currently supported
+      will need to be supplemented or replaced by ones more suited to highly vectorisable
+      processors in the future.
+    </p>
+<div class="table">
+<a name="math_toolkit.tuning.a_comparison_of_polynomial_evalu"></a><p class="title"><b>Table&#160;14.3.&#160;A Comparison of Polynomial Evaluation Methods</b></p>
+<div class="table-contents"><table class="table" summary="A Comparison of Polynomial Evaluation Methods">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Compiler/platform
+              </p>
+            </th>
+<th>
+              <p>
+                Method 0
+              </p>
+            </th>
+<th>
+              <p>
+                Method 1
+              </p>
+            </th>
+<th>
+              <p>
+                Method 2
+              </p>
+            </th>
+<th>
+              <p>
+                Method 3
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                Microsoft C++ 9.0, Polynomial evaluation
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.26</p>
+<p> </p>
+<p>(7.421e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.22</p>
+<p> </p>
+<p>(7.226e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(5.901e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.04</p>
+<p> </p>
+<p>(6.115e-008s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Microsoft C++ 9.0, Rational evaluation
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.008e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.008e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.43</p>
+<p> </p>
+<p>(1.445e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.40</p>
+<p> </p>
+<p>(1.409e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Intel C++ 11.1 (Windows), Polynomial evaluation
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.18</p>
+<p> </p>
+<p>(6.517e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.18</p>
+<p> </p>
+<p>(6.505e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(5.516e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(5.516e-008s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Intel C++ 11.1 (Windows), Rational evaluation
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(8.947e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.02</p>
+<p> </p>
+<p>(9.130e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.49</p>
+<p> </p>
+<p>(1.333e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.04</p>
+<p> </p>
+<p>(9.325e-008s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                GNU G++ 4.2 (Linux), Polynomial evaluation
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.61</p>
+<p> </p>
+<p>(1.220e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.68</p>
+<p> </p>
+<p>(1.269e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.23</p>
+<p> </p>
+<p>(9.275e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(7.566e-008s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                GNU G++ 4.2 (Linux), Rational evaluation
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.26</p>
+<p> </p>
+<p>(1.660e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.33</p>
+<p> </p>
+<p>(1.758e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.318e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.15</p>
+<p> </p>
+<p>(1.513e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Intel C++ 10.0 (Linux), Polynomial evaluation
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.15</p>
+<p> </p>
+<p>(9.154e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.15</p>
+<p> </p>
+<p>(9.154e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(7.934e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(7.934e-008s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Intel C++ 10.0 (Linux), Rational evaluation
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.245e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.245e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.35</p>
+<p> </p>
+<p>(1.684e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.04</p>
+<p> </p>
+<p>(1.294e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      There is one final performance tuning option that is available as a compile
+      time <a class="link" href="../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy</a>. Normally when evaluating functions
+      at <code class="computeroutput"><span class="keyword">double</span></code> precision, these are
+      actually evaluated at <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code>
+      precision internally: this helps to ensure that as close to full <code class="computeroutput"><span class="keyword">double</span></code> precision as possible is achieved, but
+      may slow down execution in some environments. The defaults for this policy
+      can be changed by <a class="link" href="pol_ref/policy_defaults.html" title="Using Macros to Change the Policy Defaults">defining
+      the macro <code class="computeroutput"><span class="identifier">BOOST_MATH_PROMOTE_DOUBLE_POLICY</span></code></a>
+      to <code class="computeroutput"><span class="keyword">false</span></code>, or <a class="link" href="pol_ref/internal_promotion.html" title="Internal Floating-point Promotion Policies">by
+      specifying a specific policy</a> when calling the special functions or distributions.
+      See also the <a class="link" href="pol_tutorial.html" title="Policy Tutorial">policy tutorial</a>.
+    </p>
+<div class="table">
+<a name="math_toolkit.tuning.performance_comparison_with_and_"></a><p class="title"><b>Table&#160;14.4.&#160;Performance Comparison with and Without Internal Promotion to long double</b></p>
+<div class="table-contents"><table class="table" summary="Performance Comparison with and Without Internal Promotion to long double">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Function
+              </p>
+            </th>
+<th>
+              <p>
+                GCC 4.2 , Linux
+              </p>
+              <p>
+                (with internal promotion of double to long double).
+              </p>
+            </th>
+<th>
+              <p>
+                GCC 4.2, Linux
+              </p>
+              <p>
+                (without promotion of double).
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_erf/error_function.html" title="Error Functions">erf</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.48</p>
+<p> </p>
+<p>(1.387e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(9.377e-008s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_erf/error_inv.html" title="Error Function Inverses">erf_inv</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.11</p>
+<p> </p>
+<p>(4.009e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(3.598e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_beta/ibeta_function.html" title="Incomplete Beta Functions">ibeta</a>
+                and <a class="link" href="sf_beta/ibeta_function.html" title="Incomplete Beta Functions">ibetac</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.29</p>
+<p> </p>
+<p>(5.354e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.137e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibeta_inv</a>
+                and <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibetac_inv</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.44</p>
+<p> </p>
+<p>(2.220e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.538e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibeta_inva</a>,
+                <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibetac_inva</a>,
+                <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibeta_invb</a>
+                and <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibetac_invb</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.25</p>
+<p> </p>
+<p>(7.009e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(5.607e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_gamma/igamma.html" title="Incomplete Gamma Functions">gamma_p</a> and
+                <a class="link" href="sf_gamma/igamma.html" title="Incomplete Gamma Functions">gamma_q</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.26</p>
+<p> </p>
+<p>(3.116e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.464e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_p_inv</a>
+                and <a class="link" href="sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_q_inv</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.27</p>
+<p> </p>
+<p>(1.178e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(9.291e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_p_inva</a>
+                and <a class="link" href="sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_q_inva</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.20</p>
+<p> </p>
+<p>(2.765e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.311e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="comp_compilers.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../perf.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="comparisons.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

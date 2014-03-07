@@ -1,0 +1,158 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Boost.Multiprecision</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="next" href="boost_multiprecision/intro.html" title="Introduction">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_multiprecision/intro.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="boost_multiprecision"></a>Chapter&#160;1.&#160;Boost.Multiprecision</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">John</span> <span class="surname">Maddock</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Christopher</span> <span class="surname">Kormanyos</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos</p></div>
+<div><div class="legalnotice">
+<a name="boost_multiprecision.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="boost_multiprecision/intro.html">Introduction</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut.html">Tutorial</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_multiprecision/tut/ints.html">Integer Types</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_multiprecision/tut/ints/cpp_int.html">cpp_int</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/ints/gmp_int.html">gmp_int</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/ints/tom_int.html">tom_int</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/ints/egs.html">Examples</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_multiprecision/tut/ints/egs/factorials.html">Factorials</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/ints/egs/bitops.html">Bit Operations</a></span></dt>
+</dl></dd>
+</dl></dd>
+<dt><span class="section"><a href="boost_multiprecision/tut/floats.html">Floating Point Numbers</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_multiprecision/tut/floats/cpp_dec_float.html">cpp_dec_float</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/floats/gmp_float.html">gmp_float</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/floats/mpfr_float.html">mpfr_float</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/floats/float128.html">float128</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/floats/fp_eg.html">Examples</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_multiprecision/tut/floats/fp_eg/aos.html">Area of
+          Circle</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/floats/fp_eg/jel.html">Defining
+          a Special Function.</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/floats/fp_eg/nd.html">Calculating
+          a Derivative</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/floats/fp_eg/gi.html">Calculating
+          an Integral</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/floats/fp_eg/poly_eg.html">Polynomial
+          Evaluation</a></span></dt>
+</dl></dd>
+</dl></dd>
+<dt><span class="section"><a href="boost_multiprecision/tut/interval.html">Interval Number Types</a></span></dt>
+<dd><dl><dt><span class="section"><a href="boost_multiprecision/tut/interval/mpfi.html">mpfi_float</a></span></dt></dl></dd>
+<dt><span class="section"><a href="boost_multiprecision/tut/rational.html">Rational Number Types</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_multiprecision/tut/rational/cpp_rational.html">cpp_rational</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/rational/gmp_rational.html">gmp_rational</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/rational/tommath_rational.html">tommath_rational</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/rational/br.html">Use With Boost.Rational</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/rational/rational_adaptor.html">rational_adaptor</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_multiprecision/tut/misc.html">Miscellaneous Number Types.</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_multiprecision/tut/misc/logged_adaptor.html">logged_adaptor</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/misc/debug_adaptor.html">debug_adaptor</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/misc/visualizers.html">Visual C++
+        Debugger Visualizers</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_multiprecision/tut/conversions.html">Constructing and
+      Interconverting Between Number Types</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/random.html">Generating Random Numbers</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/primetest.html">Primality Testing</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/lits.html">Literal Types and <code class="computeroutput"><span class="keyword">constexpr</span></code> Support</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/rounding.html">Rounding Rules for
+      Conversions</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/mixed.html">Mixed Precision Arithmetic</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/gen_int.html">Generic Integer Operations</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/tut/serial.html">Boost.Serialization
+      Support</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_multiprecision/ref.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_multiprecision/ref/number.html">number</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/ref/cpp_int_ref.html">cpp_int</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/ref/gmp_int_ref.html">gmp_int</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/ref/tom_int_ref.html">tom_int</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/ref/mpf_ref.html">gmp_float</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/ref/mpfr_ref.html">mpfr_float_backend</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/ref/cpp_dec_ref.html">cpp_dec_float</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/ref/internals.html">Internal Support
+      Code</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/ref/backendconc.html">Backend Requirements</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/ref/headers.html">Header File Structure</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_multiprecision/perf.html">Performance Comparison</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_multiprecision/perf/overhead.html">The Overhead in the
+      Number Class Wrapper</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/perf/realworld.html">Floating Point Real
+      World Tests</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/perf/int_real_world.html">Integer Real
+      World Tests</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/perf/float_performance.html">Float Algorithm
+      Performance</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/perf/integer_performance.html">Integer
+      Algorithm Performance</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/perf/rational_performance.html">Rational
+      Type Performance</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_multiprecision/map.html">Roadmap</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_multiprecision/map/hist.html">History</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/map/todo.html">TODO</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/map/faq.html">FAQ</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/map/ack.html">Acknowledgements</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_multiprecision/indexes.html">Indexes</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_multiprecision/indexes/s01.html">Function Index</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/indexes/s02.html">Class Index</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/indexes/s03.html">Typedef Index</a></span></dt>
+<dt><span class="section"><a href="boost_multiprecision/indexes/s04.html">Index</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: September 30, 2013 at 17:51:19 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_multiprecision/intro.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

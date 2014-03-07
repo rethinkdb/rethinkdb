@@ -1,0 +1,19 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/so.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/so.xml
+ */
+so{
+    Version{"2.0.47.68"}
+    zoneStrings{
+        "Etc:Unknown"{
+            ec{"Far aan la aqoon amase aan saxnayn"}
+        }
+    }
+}

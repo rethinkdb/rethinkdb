@@ -1,0 +1,253 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Running specific test units selected by their name</title>
+<link rel="stylesheet" href="../../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../../index.html" title="Boost Test Library">
+<link rel="up" href="../runtime-config.html" title="Runtime configuration or what are the strings I can pull?">
+<link rel="prev" href="../runtime-config.html" title="Runtime configuration or what are the strings I can pull?">
+<link rel="next" href="reference.html" title="Runtime parameters reference">
+<script language="JavaScript1.2" src="../../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../../utf.html">The Unit Test Framework</a> &gt; <a href="../../user-guide.html">User's guide</a><a href="../../testing-tools.html">
+      &gt;
+      </a><a href="../runtime-config.html">Runtime configuration </a> &gt; <b>Run by name</b>
+</td>
+<td><div class="spirit-nav">
+<a href="../runtime-config.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="reference.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.runtime-config.run-by-name"></a>Running specific test units selected by their name</h5></div></div></div>
+<p class="first-line-indented">
+   In regular circumstances test module execution initiates testing of all test units manually or automatically 
+   registered in master test suite. The <acronym class="acronym">UTF</acronym> provides an ability to run specific set of test unit as well. It can be 
+   single test case, single test suite or some combination of test cases and suites. The tests units to run are 
+   selected by the runtime parameter <a class="link" href="reference.html" title="Runtime parameters reference">run_test</a>. In the 
+   following examples I select tests to run using command line arguments, but the same filter expression can be used as 
+   an appropriate environment variable value.
+  </p>
+<p class="first-line-indented">
+   Filter expressions are specified in a form a/b/c, where a, b and c are filters for corresponding levels of test tree. 
+   Symbol '*' can be used at the beginning, at the end and as the level filter itself as an asterisk. Symbol ',' is used
+   to create list of test units residing on the same level in test tree. 
+  </p>
+<p class="first-line-indented">
+   Let's consider following test module consisting from several test suites and test cases.
+  </p>
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+
+BOOST_AUTO_TEST_CASE( testA )
+{
+}
+
+BOOST_AUTO_TEST_CASE( testB )
+{
+}
+
+BOOST_AUTO_TEST_SUITE( s1 )
+
+BOOST_AUTO_TEST_CASE( test1 )
+{
+}
+
+BOOST_AUTO_TEST_CASE( lest2 )
+{
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE( s2 )
+
+BOOST_AUTO_TEST_CASE( test1 )
+{
+}
+
+BOOST_AUTO_TEST_CASE( test11 )
+{
+}
+
+BOOST_AUTO_TEST_SUITE( in )
+
+BOOST_AUTO_TEST_CASE( test )
+{
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE_END()
+</pre>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>
+<p>Run single test case by specifying it's name.</p>
+<pre class="test-execution-output">&gt;example --log_level=test_suite --run_test=testA
+Running 1 test case...
+Entering test suite "example"
+Entering test case "testA"
+Test case testA doesn't include any assertions
+Leaving test case "testA"
+Leaving test suite "example"
+
+*** No errors detected</pre>
+</li>
+<li>
+<p>
+     Running multiple test cases residing within the same test suite by listing their names in coma separated list.
+    </p>
+<pre class="test-execution-output">&gt;example --log_level=test_suite --run_test=testA,testB
+Running 2 test case...
+Entering test suite "example"
+Entering test case "testA"
+Test case testA doesn't include any assertions
+Leaving test case "testA"
+Entering test case "testB"
+Test case testA doesn't include any assertions
+Leaving test case "testB"
+Leaving test suite "example"
+
+*** No errors detected</pre>
+</li>
+<li>
+<p>Incorrect test case name may lead to no test to be run.</p>
+<pre class="test-execution-output">&gt;example --log_level=test_suite --run_test=testC
+Test setup error: no test cases matching filter</pre>
+</li>
+<li>
+<p>
+     Test unit name can refer to a test suite as well. All test units within the referred test suites are going to be 
+     run.
+    </p>
+<pre class="test-execution-output">&gt;example --log_level=test_suite --run_test=s1
+Running 2 test cases...
+Entering test suite "example"
+Entering test suite "s1"
+Entering test case "test1"
+Test case test1 doesn't include any assertions
+Leaving test case "test1"
+Entering test case "lest2"
+Test case lest2 doesn't include any assertions
+Leaving test case "lest2"
+Leaving test suite "s1"
+Leaving test suite "example"
+
+*** No errors detected</pre>
+</li>
+<li>
+<p>
+     Using '/' as levels separator you can refer to any test unit inside a test tree.
+    </p>
+<pre class="test-execution-output">&gt;example --log_level=test_suite --run_test=s2/in/test
+Running 1 test case...
+Entering test suite "example"
+Entering test suite "s2"
+Entering test suite "in"
+Entering test case "test"
+Test case test doesn't include any assertions
+Leaving test case "test"
+Leaving test suite "in"
+Leaving test suite "s2"
+Leaving test suite "example"
+
+*** No errors detected</pre>
+</li>
+<li>
+<p>
+     The <acronym class="acronym">UTF</acronym> supports simple regular expression-like '*' wildcard. Single '*' match any name of test unit. Accordingly
+     expression 's1/*' is equivalent to the expression 's1' and matches all test units inside test suite s1. Similarly 
+     expression '*/test1' refers to all test units named test1 that reside in master test suite's direct child suites.
+    </p>
+<pre class="test-execution-output">&gt;example --log_level=test_suite --run_test=*/test1
+Running 2 test cases...
+Entering test suite "example"
+Entering test suite "s1"
+Entering test case "test1"
+Test case test1 doesn't include any assertions
+Leaving test case "test1"
+Leaving test suite "s1"
+Entering test suite "s2"
+Entering test case "test1"
+Test case test1 doesn't include any assertions
+Leaving test case "test1"
+Leaving test suite "s2"
+Leaving test suite "example"
+
+*** No errors detected</pre>
+</li>
+<li>
+<p>
+     The <acronym class="acronym">UTF</acronym> allows to match specific prefix in test unit names. For example, expression 's2/test*' filters out only 
+     test units in test suite s2 with name that starts with 'test'. This avoids running test suite s2/in.
+    </p>
+<pre class="test-execution-output">&gt;example --log_level=test_suite --run_test=s2/test*
+Running 2 test cases...
+Entering test suite "example"
+Entering test suite "s2"
+Entering test case "test1"
+Test case test1 doesn't include any assertions
+Leaving test case "test1"
+Entering test case "test11"
+Test case test11 doesn't include any assertions
+Leaving test case "test11"
+Leaving test suite "s2"
+Leaving test suite "example"
+
+*** No errors detected</pre>
+</li>
+<li>
+<p>
+     The <acronym class="acronym">UTF</acronym> allows to match specific suffix in test unit names. For example, expression '*/*1' filters out test units
+     with name that ends with '1' and reside in master test suite's direct child suites.
+    </p>
+<pre class="test-execution-output">&gt;example --log_level=test_suite --run_test=*/*1
+Running 2 test cases...
+Entering test suite "example"
+Entering test suite "s2"
+Entering test case "test1"
+Test case test1 doesn't include any assertions
+Leaving test case "test1"
+Entering test case "test11"
+Test case test11 doesn't include any assertions
+Leaving test case "test11"
+Leaving test suite "s2"
+Leaving test suite "example"
+
+*** No errors detected</pre>
+</li>
+<li>
+<p>
+     Finally, the <acronym class="acronym">UTF</acronym> allows to match specific substring in test unit names.
+    </p>
+<pre class="test-execution-output">&gt;example --log_level=test_suite --run_test=s1/*est*
+Running 2 test cases...
+Entering test suite "example"
+Entering test suite "s1"
+Entering test case "test1"
+Test case test1 doesn't include any assertions
+Leaving test case "test1"
+Entering test case "lest2"
+Test case lest2 doesn't include any assertions
+Leaving test case "lest2"
+Leaving test suite "s1"
+Leaving test suite "example"
+
+*** No errors detected</pre>
+</li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../runtime-config.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../runtime-config.html"><img src="../../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

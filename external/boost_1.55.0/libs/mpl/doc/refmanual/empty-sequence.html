@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: empty_sequence</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./views.html" class="navigation-link">Prev</a>&nbsp;<a href="./filter-view.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./filter-view.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./views.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./views.html" class="navigation-link">Views</a> / <a href="./empty-sequence.html" class="navigation-link">empty_sequence</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="empty-sequence">
+<h1><a class="toc-backref" href="./views.html#id1417">empty_sequence</a></h1>
+<div class="section" id="id120">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+struct <a href="./empty-sequence.html" class="identifier">empty_sequence</a>
+{
+    // <em>unspecified</em>
+    // <em>...</em>
+};
+</pre>
+</div>
+<div class="section" id="id121">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Represents a sequence containing no elements.</p>
+</div>
+<div class="section" id="id122">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/empty_sequence.hpp" class="header">boost/mpl/empty_sequence.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id123">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>The semantics of an expression are defined only
+where they differ from, or are not defined in <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</p>
+<p>In the following table, <tt class="literal"><span class="pre">s</span></tt> is an instance of <tt class="literal"><span class="pre"><a href="./empty-sequence.html" class="identifier">empty_sequence</a></span></tt>.</p>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="34%" />
+<col width="66%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Semantics</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre"><a href="./empty-sequence.html" class="identifier">empty_sequence</a></span></tt></td>
+<td>An empty <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::type</span></tt></td>
+<td><tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::value</span> <span class="pre">==</span> <span class="pre">0</span></tt>; see <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id124">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./begin.html" class="identifier">begin</a>&lt;<a href="./empty-sequence.html" class="identifier">empty_sequence</a>&gt;::type first;
+typedef <a href="./end.html" class="identifier">end</a>&lt;<a href="./empty-sequence.html" class="identifier">empty_sequence</a>&gt;::type last;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt;first,last&gt; ));
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./size.html" class="identifier">size</a>&lt;<a href="./empty-sequence.html" class="identifier">empty_sequence</a>&gt;::value, ==, 0 );
+
+typedef <a href="./transform-view.html" class="identifier">transform_view</a>&lt;
+      <a href="./empty-sequence.html" class="identifier">empty_sequence</a>
+    , add_pointer&lt;_&gt;
+    &gt; empty_view;
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./size.html" class="identifier">size</a>&lt;<a href="./empty-sequence.html" class="identifier">empty_sequence</a>&gt;::value, ==, 0 );
+</pre>
+</div>
+<div class="section" id="id125">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./sequences.html">Sequences</a>, <a class="reference internal" href="./views.html">Views</a>, <a class="reference internal" href="./vector.html">vector</a>, <a class="reference internal" href="./list.html">list</a>, <a class="reference internal" href="./single-view.html">single_view</a></p>
+<!-- Sequences/Views//filter_view -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./views.html" class="navigation-link">Prev</a>&nbsp;<a href="./filter-view.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./filter-view.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./views.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

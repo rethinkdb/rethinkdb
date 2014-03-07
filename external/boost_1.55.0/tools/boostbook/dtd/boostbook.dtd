@@ -1,0 +1,439 @@
+<!--
+   BoostBook DTD - development version
+
+   For further information, see: http://www.crystalclearsoftware.com/cgi-bin/boost_wiki/wiki.pl?Boost_Documentation_Format
+
+   Copyright (c) 2002 by Peter Simons <simons@cryp.to>
+   Copyright (c) 2003-2004 by Douglas Gregor <doug.gregor -at- gmail.com>
+   Copyright (c) 2007 by Frank Mori Hess <fmhess@users.sourceforge.net>
+
+   Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at
+   http://www.boost.org/LICENSE_1_0.txt)
+
+   The latest stable DTD module is identified by the PUBLIC and SYSTEM identifiers:
+
+   PUBLIC "-//Boost//DTD BoostBook XML V1.1//EN"
+   SYSTEM "http://www.boost.org/tools/boostbook/dtd/1.1/boostbook.dtd"
+
+   $Revision: 51774 $
+   $Date: 2009-03-14 04:42:38 -0700 (Sat, 14 Mar 2009) $
+-->
+
+<!--========== Define XInclude features. ==========-->
+<!-- This is not really integrated into the DTD yet. Needs more
+     research. -->
+<!--
+<!ELEMENT xi:include (xi:fallback)?>
+<!ATTLIST xi:include
+    xmlns:xi   CDATA       #FIXED    "http://www.w3.org/2001/XInclude"
+    href       CDATA       #REQUIRED
+    parse      (xml|text)  "xml"
+    encoding   CDATA       #IMPLIED>
+
+<!ELEMENT xi:fallback ANY>
+<!ATTLIST xi:fallback
+    xmlns:xi   CDATA   #FIXED   "http://www.w3.org/2001/XInclude">
+ -->
+
+<!ENTITY % local.common.attrib "last-revision CDATA  #IMPLIED">
+
+<!--========== Define the BoostBook extensions ==========-->
+<!ENTITY % boost.common.attrib "%local.common.attrib;
+                                id            CDATA  #IMPLIED">
+
+<!ENTITY % boost.namespace.mix
+        "class|class-specialization|struct|struct-specialization|
+         union|union-specialization|typedef|enum|
+         free-function-group|function|overloaded-function|
+         namespace">
+
+<!ENTITY % boost.template.mix
+        "template-type-parameter|template-nontype-parameter|template-varargs">
+
+<!ENTITY % boost.class.members
+        "static-constant|typedef|enum|
+         copy-assignment|constructor|destructor|method-group|
+         method|overloaded-method|data-member|class|class-specialization|struct|
+         struct-specialization|union|union-specialization">
+
+<!ENTITY % boost.class.mix
+        "%boost.class.members;|free-function-group|function|overloaded-function">
+
+<!ENTITY % boost.class.content
+             "template?, inherit*, purpose?, description?,
+              (%boost.class.mix;|access)*">
+
+<!ENTITY % boost.class-specialization.content
+             "template?, specialization?, inherit?, purpose?, description?,
+              (%boost.class.mix;|access)*">
+
+<!ENTITY % boost.function.semantics
+        "purpose?, description?, requires?, effects?, postconditions?,
+         returns?, throws?, complexity?, notes?, rationale?">
+
+<!ENTITY % library.content
+        "libraryinfo, (title, ((section|library-reference|testsuite))+)?">
+
+<!ELEMENT library (%library.content;)>
+<!ATTLIST library
+    name      CDATA   #REQUIRED
+    dirname   CDATA   #REQUIRED
+    html-only CDATA   #IMPLIED
+    url       CDATA   #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT boostbook (title, (chapter|library)*)>
+<!ATTLIST boostbook %boost.common.attrib;>
+
+<!ELEMENT libraryinfo (author+, copyright*, legalnotice*, librarypurpose, librarycategory*)>
+<!ATTLIST libraryinfo %boost.common.attrib;>
+
+<!ELEMENT librarypurpose (#PCDATA|code|ulink|functionname|methodname|classname|macroname|headername|enumname|globalname)*>
+<!ATTLIST librarypurpose %boost.common.attrib;>
+
+<!ELEMENT librarycategory (#PCDATA)>
+<!ATTLIST librarycategory
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT libraryname  (#PCDATA)>
+<!ATTLIST libraryname %boost.common.attrib;>
+
+<!ELEMENT library-reference ANY>
+<!ATTLIST library-reference
+    %boost.common.attrib;>
+
+<!ELEMENT librarylist EMPTY>
+<!ATTLIST librarylist %boost.common.attrib;>
+
+<!ELEMENT librarycategorylist (librarycategorydef)*>
+<!ATTLIST librarycategorylist %boost.common.attrib;>
+
+<!ELEMENT librarycategorydef (#PCDATA)>
+<!ATTLIST librarycategorydef
+         name   CDATA   #REQUIRED
+         %boost.common.attrib;>
+
+<!ELEMENT header ANY>
+<!ATTLIST header
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT namespace (%boost.namespace.mix;)*>
+<!ATTLIST namespace
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT class (%boost.class.content;)>
+<!ATTLIST class
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT struct (%boost.class.content;)>
+<!ATTLIST struct
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT union (%boost.class.content;)>
+<!ATTLIST union
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT class-specialization (%boost.class-specialization.content;)>
+<!ATTLIST class-specialization
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT struct-specialization (%boost.class-specialization.content;)>
+<!ATTLIST struct-specialization
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT union-specialization (%boost.class-specialization.content;)>
+<!ATTLIST union-specialization
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT access (%boost.class.members;)+>
+<!ATTLIST access
+    name CDATA #REQUIRED
+    %boost.common.attrib;>
+
+<!--========= C++ Templates =========-->
+<!ELEMENT template (%boost.template.mix;)*>
+<!ATTLIST template %boost.common.attrib;>
+
+<!ELEMENT template-type-parameter (default?, purpose?)>
+<!ATTLIST template-type-parameter
+    name                     CDATA  #REQUIRED
+    pack                     CDATA  #IMPLIED 
+    %boost.common.attrib;>
+
+<!ELEMENT template-nontype-parameter (type, default?, purpose?)>
+<!ATTLIST template-nontype-parameter
+    name                     CDATA  #REQUIRED
+    pack                     CDATA  #IMPLIED 
+    %boost.common.attrib;>
+
+<!ELEMENT template-varargs EMPTY>
+<!ATTLIST template-varargs %boost.common.attrib;>
+
+<!ELEMENT specialization (template-arg)*>
+<!ATTLIST specialization %boost.common.attrib;>
+
+<!ELEMENT template-arg ANY>
+<!ATTLIST template-arg
+    pack    CDATA  #IMPLIED 
+    %boost.common.attrib;>
+
+<!ELEMENT default ANY>
+<!ATTLIST default %boost.common.attrib;>
+
+<!ELEMENT inherit (type, purpose?)>
+<!ATTLIST inherit
+    access  CDATA  #IMPLIED
+    pack    CDATA  #IMPLIED 
+    %boost.common.attrib;>
+
+<!ELEMENT purpose ANY>
+<!ATTLIST purpose %boost.common.attrib;>
+
+<!ELEMENT description ANY>
+<!ATTLIST description %boost.common.attrib;>
+
+<!ELEMENT type ANY>
+<!ATTLIST type %boost.common.attrib;>
+
+<!ELEMENT typedef (type, purpose?, description?)>
+<!ATTLIST typedef
+    name     CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT enum (enumvalue*, purpose?, description?)>
+<!ATTLIST enum
+    name     CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT enumvalue (default?, purpose?, description?)>
+<!ATTLIST enumvalue
+    name     CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT static-constant (type, default, purpose?, description?)>
+<!ATTLIST static-constant
+    name   CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT data-member (type, purpose?, description?)>
+<!ATTLIST data-member
+    name         CDATA  #REQUIRED
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT paramtype ANY>
+<!ATTLIST paramtype %boost.common.attrib;>
+
+<!ELEMENT effects ANY>
+<!ATTLIST effects %boost.common.attrib;>
+
+<!ELEMENT postconditions ANY>
+<!ATTLIST postconditions %boost.common.attrib;>
+
+<!ELEMENT method-group (method|overloaded-method)*>
+<!ATTLIST method-group
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT constructor (template?, parameter*, %boost.function.semantics;)>
+<!ATTLIST constructor
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT destructor (%boost.function.semantics;)>
+<!ATTLIST destructor
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT method (template?, type, parameter*, %boost.function.semantics;)>
+<!ATTLIST method
+    name         CDATA  #REQUIRED
+    cv           CDATA  #IMPLIED
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT function (template?, type, parameter*, %boost.function.semantics;)>
+<!ATTLIST function
+    name         CDATA  #REQUIRED
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT overloaded-method (signature*, %boost.function.semantics;)>
+<!ATTLIST overloaded-method
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT overloaded-function (signature*, %boost.function.semantics;)>
+<!ATTLIST overloaded-function
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT signature (template?, type, parameter*)>
+<!ATTLIST signature
+    cv           CDATA  #IMPLIED
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT requires ANY>
+<!ATTLIST requires %boost.common.attrib;>
+
+<!ELEMENT returns ANY>
+<!ATTLIST returns %boost.common.attrib;>
+
+<!ELEMENT throws ANY>
+<!ATTLIST throws %boost.common.attrib;>
+
+<!ELEMENT complexity ANY>
+<!ATTLIST complexity %boost.common.attrib;>
+
+<!ELEMENT notes ANY>
+<!ATTLIST notes %boost.common.attrib;>
+
+<!ELEMENT rationale ANY>
+<!ATTLIST rationale %boost.common.attrib;>
+
+<!ELEMENT functionname (#PCDATA)>
+<!ATTLIST functionname
+    alt          CDATA  #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT enumname (#PCDATA)>
+<!ATTLIST enumname
+    alt          CDATA  #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT macroname (#PCDATA)>
+<!ATTLIST macroname
+    alt          CDATA  #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT headername (#PCDATA)>
+<!ATTLIST headername
+    alt          CDATA  #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT globalname (#PCDATA)>
+<!ATTLIST globalname
+    alt          CDATA  #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT copy-assignment
+    (template?, type?, parameter*, %boost.function.semantics;)>
+<!ATTLIST copy-assignment
+    cv           CDATA  #IMPLIED
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;>
+
+<!ELEMENT free-function-group (function|overloaded-function)*>
+<!ATTLIST free-function-group
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT precondition ANY>
+<!ATTLIST precondition %boost.common.attrib;>
+
+<!ELEMENT code ANY>
+<!ATTLIST code %boost.common.attrib;>
+
+<!ELEMENT using-namespace EMPTY>
+<!ATTLIST using-namespace
+    name   CDATA  #REQUIRED
+    %boost.common.attrib;>
+
+<!ELEMENT using-class EMPTY>
+<!ATTLIST using-class
+     name        CDATA #REQUIRED
+     %boost.common.attrib;>
+
+<!--========== Boost Testsuite Extensions ==========-->
+<!ENTITY % boost.testsuite.tests
+        "compile-test|link-test|run-test|
+         compile-fail-test|link-fail-test|run-fail-test">
+<!ENTITY % boost.testsuite.test.content
+        "source*, lib*, requirement*, purpose, if-fails?">
+
+<!ELEMENT testsuite ((%boost.testsuite.tests;)+)>
+<!ATTLIST testsuite %boost.common.attrib;>
+
+<!ELEMENT compile-test (%boost.testsuite.test.content;)>
+<!ATTLIST compile-test
+     filename CDATA #REQUIRED
+     name     CDATA #IMPLIED>
+
+<!ELEMENT link-test (%boost.testsuite.test.content;)>
+<!ATTLIST link-test
+     filename CDATA #REQUIRED
+     name     CDATA #IMPLIED>
+
+<!ELEMENT run-test (%boost.testsuite.test.content;)>
+<!ATTLIST run-test
+     filename CDATA #REQUIRED
+     name     CDATA #IMPLIED>
+
+<!ELEMENT compile-fail-test (%boost.testsuite.test.content;)>
+<!ATTLIST compile-fail-test
+     filename CDATA #REQUIRED
+     name     CDATA #IMPLIED>
+
+<!ELEMENT link-fail-test (%boost.testsuite.test.content;)>
+<!ATTLIST link-fail-test
+     filename CDATA #REQUIRED
+     name     CDATA #IMPLIED>
+
+<!ELEMENT run-fail-test (%boost.testsuite.test.content;)>
+<!ATTLIST run-fail-test
+     filename CDATA #REQUIRED
+     name     CDATA #IMPLIED>
+
+<!ELEMENT source (#PCDATA|snippet)*>
+
+<!ELEMENT snippet EMPTY>
+<!ATTLIST snippet
+     name CDATA #REQUIRED>
+
+<!ELEMENT lib (#PCDATA)>
+
+<!ELEMENT requirement (#PCDATA)>
+<!ATTLIST requirement
+     name CDATA #REQUIRED>
+
+<!ELEMENT if-fails ANY>
+
+<!ELEMENT parameter (paramtype, default?, description?)>
+<!ATTLIST parameter
+     name CDATA #IMPLIED
+     pack CDATA #IMPLIED>
+
+<!ELEMENT programlisting ANY>
+<!ATTLIST programlisting
+     name        CDATA #IMPLIED>
+
+<!--========== Customize the DocBook DTD ==========-->
+<!ENTITY % local.tech.char.class "|functionname|libraryname|enumname|headername|macroname|code">
+<!ENTITY % local.para.class
+        "|using-namespace|using-class|librarylist|librarycategorylist">
+<!ENTITY % local.descobj.class "|libraryinfo">
+<!ENTITY % local.classname.attrib "alt CDATA #IMPLIED">
+<!ENTITY % local.methodname.attrib "alt CDATA #IMPLIED">
+<!ENTITY % local.refentry.class "|library-reference|testsuite">
+<!ENTITY % local.title.char.mix "">
+<!ENTITY % programlisting.module "IGNORE">
+<!ENTITY % parameter.module      "IGNORE">
+<!ENTITY % function.module       "IGNORE">
+<!ENTITY % type.module           "IGNORE">
+
+<!--========== Import DocBook DTD ==========-->
+<!ENTITY % DocBook PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
+           "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
+
+%DocBook;

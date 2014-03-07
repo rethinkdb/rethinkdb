@@ -1,0 +1,468 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+<title>I/O Stream-State Saver Library</title>
+</head>
+<body text="black" bgcolor="white" link="blue" vlink="purple" alink="red">
+<h1><img src="../../../boost.png" alt="boost.png (6897 bytes)"
+align="middle" width="277" height="86">Header &lt;<cite><a
+href="../../../boost/io/ios_state.hpp">boost/io/ios_state.hpp</a></cite>
+&gt;</h1>
+
+<p>The header <cite><a
+href="../../../boost/io/ios_state.hpp">boost/io/ios_state.hpp</a></cite>
+covers saving the stream state of objects in the C++ IOStreams
+system.</p>
+
+<h2><a name="contents">Contents</a></h2>
+
+<ol>
+	<li><a href="#contents">Contents</a></li>
+	<li><a href="#rationale">Rationale</a></li>
+	<li><a href="#header">Header Synopsis</a></li>
+	<li><a href="#base_savers">Savers for Basic Standard Attributes</a></li>
+	<li><a href="#adv_savers">Savers for Advanced Standard Attributes</a></li>
+	<li><a href="#user_savers">Savers for User-Defined Attributes</a></li>
+	<li><a href="#combo_savers">Savers for Combined Attributes</a></li>
+	<li><a href="#example">Example</a></li>
+	<li><a href="#refer">References</a></li>
+	<li><a href="#credits">Credits</a>
+		<ul>
+			<li><a href="#contributors">Contributors</a></li>
+			<li><a href="#history">History</a></li>
+		</ul></li>
+</ol>
+
+<h2><a name="rationale">Rationale</a></h2>
+
+<p>Sometimes a certain value has to change only for a limited scope. 
+Saver classes save a copy of the current state of some object (or an
+aspect of an object), and reset the object's state at destruction time,
+undoing any change the object may have gone through.</p>
+
+<p>The saver class strategy is helpful when using I/O stream objects. 
+Manipulator objects can change some aspect of a stream during input or
+output.  The state changed by the manipulator usually sticks to its new
+value after the I/O transaction.  This can be a problem if manipulators
+are used in a function that is not supposed to externally change a
+stream's state.</p>
+
+<blockquote><pre>#include &lt;ostream&gt;
+#include &lt;ios&gt;
+
+void  hex_my_byte( std::ostream &amp;os, char byte )
+{
+    os &lt;&lt; std::hex &lt;&lt; static_cast&lt;unsigned&gt;(byte);
+}
+</pre></blockquote>
+
+<p>The <var>os</var> stream will retain its new hexadecimal printing
+mode after the call to <code>hex_my_byte</code>.  The stream's printing
+mode can be saved and restored with manual calls to the stream's state
+inspecting and mutating member functions.  The manual method becomes
+unwieldy if the main functionality is complex and/or needs to be
+exception safe.  A saver class can implement the better &quot;resource
+acquisition is initialization&quot; strategy.</p>
+
+<p>See the <a href="#example">example</a> below for better code, using
+saver classes.</p>
+
+<h2><a name="header">Header Synopsis</a></h2>
+
+<blockquote><pre>#include &lt;iosfwd&gt;  <i>// for std::char_traits (declaration)</i>
+
+namespace boost
+{
+namespace io
+{
+
+class ios_flags_saver;
+class ios_precision_saver;
+class ios_width_saver;
+class ios_base_all_saver;
+
+template &lt; typename Ch, class Tr = ::std::char_traits&lt;Ch&gt; &gt;
+    class basic_ios_iostate_saver;
+template &lt; typename Ch, class Tr = ::std::char_traits&lt;Ch&gt; &gt;
+    class basic_ios_exception_saver;
+template &lt; typename Ch, class Tr = ::std::char_traits&lt;Ch&gt; &gt;
+    class basic_ios_tie_saver;
+template &lt; typename Ch, class Tr = ::std::char_traits&lt;Ch&gt; &gt;
+    class basic_ios_rdbuf_saver;
+template &lt; typename Ch, class Tr = ::std::char_traits&lt;Ch&gt; &gt;
+    class basic_ios_fill_saver;
+template &lt; typename Ch, class Tr = ::std::char_traits&lt;Ch&gt; &gt;
+    class basic_ios_locale_saver;
+template &lt; typename Ch, class Tr = ::std::char_traits&lt;Ch&gt; &gt;
+    class basic_ios_all_saver;
+
+typedef basic_ios_iostate_saver&lt;char&gt;        ios_iostate_saver;
+typedef basic_ios_iostate_saver&lt;wchar_t&gt;    wios_iostate_saver;
+typedef basic_ios_exception_saver&lt;char&gt;      ios_exception_saver;
+typedef basic_ios_exception_saver&lt;wchar_t&gt;  wios_exception_saver;
+typedef basic_ios_tie_saver&lt;char&gt;            ios_tie_saver;
+typedef basic_ios_tie_saver&lt;wchar_t&gt;        wios_tie_saver;
+typedef basic_ios_rdbuf_saver&lt;char&gt;          ios_rdbuf_saver;
+typedef basic_ios_rdbuf_saver&lt;wchar_t&gt;      wios_rdbuf_saver;
+typedef basic_ios_fill_saver&lt;char&gt;           ios_fill_saver;
+typedef basic_ios_fill_saver&lt;wchar_t&gt;       wios_fill_saver;
+typedef basic_ios_locale_saver&lt;char&gt;         ios_locale_saver;
+typedef basic_ios_locale_saver&lt;wchar_t&gt;     wios_locale_saver;
+typedef basic_ios_all_saver&lt;char&gt;            ios_all_saver;
+typedef basic_ios_all_saver&lt;wchar_t&gt;        wios_all_saver;
+
+class ios_iword_saver;
+class ios_pword_saver;
+class ios_all_word_saver;
+
+}
+}
+</pre></blockquote>
+
+<h2><a name="base_savers">Savers for Basic Standard Attributes</a></h2>
+
+<p>The basic saver classes have this format:</p>
+
+<blockquote><pre>class <var>saver_class</var>
+{
+    typedef std::ios_base           state_type;
+    typedef <i>implementation_defined</i>  aspect_type;
+
+    explicit  saver_class( state_type &amp;s );
+              saver_class( state_type &amp;s, <var>aspect_type</var> const &amp;new_value );
+             ~saver_class();
+
+    void  restore();
+};
+</pre></blockquote>
+
+<p>The <var>state_type</var> is the IOStreams base class
+<code>std::ios_base</code>.  The user would usually place an actual
+input, output, or combined stream object for the state-type parameter,
+and not a base class object.  The first constructor takes a stream
+object and saves a reference to the stream and the current value of a
+particular stream attribute.  The second constructor works like the
+first, and uses its second argument to change the stream's attribute to
+the new <var>aspect_type</var> value given.  The destructor restores the
+stream's attribute to the saved value.  The restoration can be activated
+early (and often) with the <code>restore</code> member function.</p>
+
+<table border="1" align="center">
+	<caption>Basic IOStreams State Saver Classes</caption>
+	<tr>
+		<th>Class</th>
+		<th>Saved Attribute</th>
+		<th>Attribute Type</th>
+		<th>Reading Method</th>
+		<th>Writing Method</th>
+	</tr>
+	<tr>
+		<td><code>boost::io::ios_flags_saver</code></td>
+		<td>Format control flags</td>
+		<td><code>std::ios_base::fmtflags</code></td>
+		<td><code>flags</code></td>
+		<td><code>flags</code></td>
+	</tr>
+	<tr>
+		<td><code>boost::io::ios_precision_saver</code></td>
+		<td>Number of digits to print after decimal point</td>
+		<td><code>std::streamsize</code></td>
+		<td><code>precision</code></td>
+		<td><code>precision</code></td>
+	</tr>
+	<tr>
+		<td><code>boost::io::ios_width_saver</code></td>
+		<td>Minimum field width for printing objects</td>
+		<td><code>std::streamsize</code></td>
+		<td><code>width</code></td>
+		<td><code>width</code></td>
+	</tr>
+</table>
+
+<h2><a name="adv_savers">Savers for Advanced Standard Attributes</a></h2>
+
+<p>The saver class templates have this format:</p>
+
+<blockquote><pre>template &lt; typename Ch, class Tr &gt;
+class <var>saver_class</var>
+{
+    typedef std::basic_ios&lt;Ch, Tr&gt;  state_type;
+    typedef <i>implementation_defined</i>  aspect_type;
+
+    explicit  saver_class( state_type &amp;s );
+              saver_class( state_type &amp;s, <var>aspect_type</var> const &amp;new_value );
+             ~saver_class();
+
+    void  restore();
+};
+</pre></blockquote>
+
+<p>The <var>state_type</var> is a version of the IOStreams base class
+template <code>std::basic_ios&lt;Ch, Tr&gt;</code>, where
+<code>Ch</code> is a character type and <code>Tr</code> is a character
+traits class.  The user would usually place an actual input, output, or
+combined stream object for the state-type parameter, and not a base
+class object.  The first constructor takes a stream object and saves a
+reference to the stream and the current value of a particular stream
+attribute.  The second constructor works like the first, and uses its
+second argument to change the stream's attribute to the new
+<var>aspect_type</var> value given.  The destructor restores the stream's
+attribute to the saved value.  The restoration can be activated
+early (and often) with the <code>restore</code> member function.</p>
+
+<table border="1" align="center">
+	<caption>Advanced IOStreams State Saver Class Templates</caption>
+	<tr>
+		<th>Class Template</th>
+		<th>Saved Attribute</th>
+		<th>Attribute Type</th>
+		<th>Reading Method</th>
+		<th>Writing Method</th>
+	</tr>
+	<tr>
+		<td><code>boost::io::basic_ios_iostate_saver&lt;Ch, Tr&gt;</code></td>
+		<td>Failure state of the stream <a href="#Note1">[1]</a>, <a href="#Note2">[2]</a></td>
+		<td><code>std::ios_base::iostate</code></td>
+		<td><code>rdstate</code></td>
+		<td><code>clear</code></td>
+	</tr>
+	<tr>
+		<td><code>boost::io::basic_ios_exception_saver&lt;Ch, Tr&gt;</code></td>
+		<td>Which failure states trigger an exception <a href="#Note1">[1]</a></td>
+		<td><code>std::ios_base::iostate</code></td>
+		<td><code>exceptions</code></td>
+		<td><code>exceptions</code></td>
+	</tr>
+	<tr>
+		<td><code>boost::io::basic_ios_tie_saver&lt;Ch, Tr&gt;</code></td>
+		<td>Output stream synchronized with the stream</td>
+		<td><code>std::basic_ostream&lt;Ch, Tr&gt; *</code></td>
+		<td><code>tie</code></td>
+		<td><code>tie</code></td>
+	</tr>
+	<tr>
+		<td><code>boost::io::basic_ios_rdbuf_saver&lt;Ch, Tr&gt;</code></td>
+		<td>Stream buffer associated with the stream <a href="#Note2">[2]</a></td>
+		<td><code>std::basic_streambuf&lt;Ch, Tr&gt; *</code></td>
+		<td><code>rdbuf</code></td>
+		<td><code>rdbuf</code></td>
+	</tr>
+	<tr>
+		<td><code>boost::io::basic_ios_fill_saver&lt;Ch, Tr&gt;</code></td>
+		<td>Character used to pad oversized field widths</td>
+		<td><code>Ch</code></td>
+		<td><code>fill</code></td>
+		<td><code>fill</code></td>
+	</tr>
+	<tr>
+		<td><code>boost::io::basic_ios_locale_saver&lt;Ch, Tr&gt;</code></td>
+		<td>Locale information associated with the stream <a href="#Note3">[3]</a></td>
+		<td><code>std::locale</code></td>
+		<td><code>getloc</code> (from <code>std::ios_base</code>)</td>
+		<td><code>imbue</code> (from <code>std::basic_ios&lt;Ch, Tr&gt;</code>)</td>
+	</tr>
+</table>
+
+<h3>Notes</h3>
+
+<ol>
+	<li>When the failure state flags and/or the failure state exception
+		watching flags are changed, an exception is thrown if a match
+		occurs among the two sets of flags.  This could mean that
+		the <a name="Note1">constructor or destructor of these class
+		templates may throw</a>.</li>
+	<li>When the associated stream buffer is changed, the stream's
+		failure state set is reset to &quot;good&quot; if the given stream
+		buffer's address is non-NULL, but the &quot;bad&quot; failure
+		state is set if that address is NULL.  This means that a saved
+                failure state of &quot;good&quot; may be restored as &quot;bad&quot;
+                if the stream is stripped of an associated stream buffer.  Worse,
+                given a NULL stream buffer address, an exception is thrown if the
+                &quot;bad&quot; failure state is being watched.  This could mean
+                that the <a name="Note2">constructor or destructor of these class
+                templates may throw</a>.</li>
+	<li>The <a name="Note3">saver for the locale uses the
+		<code>std::basic_ios&lt;Ch, Tr&gt;</code> class to extract their
+		information</a>, although it could have used the functionality
+		in <code>std::ios_base</code>.  The problem is that the versions
+		of the needed member functions in <code>ios_base</code> are not
+		polymorphically related to the ones in <code>basic_ios</code>. 
+		The stream classes that will be used with the saver classes
+		should use the versions of the member functions closest to them
+		by inheritance, which means the ones in
+		<code>basic_ios</code>.</li>
+</ol>
+
+<h2><a name="user_savers">Savers for User-Defined Attributes</a></h2>
+
+<p>The saver classes for user-defined formatting information have this
+format:</p>
+
+<blockquote><pre>#include &lt;iosfwd&gt;  <i>// for std::ios_base (declaration)</i>
+
+class <var>saver_class</var>
+{
+    typedef std::ios_base           state_type;
+    typedef int                     index_type;
+    typedef <i>implementation_defined</i>  aspect_type;
+
+    explicit  saver_class( state_type &amp;s, index_type i );
+              saver_class( state_type &amp;s, index_type i, <var>aspect_type</var> const &amp;new_value );
+             ~saver_class();
+
+    void  restore();
+};
+</pre></blockquote>
+
+<p>The index <var>i</var> differentiates between specific user-defined
+formatting attributes.  The index can only be determined at run-time
+(most likely with the class-static <code>std::ios_base::xalloc</code>
+member function).</p>
+
+<p>The <var>state_type</var> is the base class of the IOStreams system,
+<code>std::ios_base</code>.  The user would usually place an actual
+input, output, or combined stream object for the state-type parameter,
+and not a base class object.  The first constructor takes a stream
+object and index and saves a reference to the stream and the current
+value of a particular stream attribute.  The second constructor works
+like the first, and uses its third argument to change the stream's
+attribute to the new <var>aspect_type</var> value given.  The destructor
+restores the stream's attribute to the saved value.  The restoration can
+be activated early (and often) with the <code>restore</code> member
+function.</p>
+
+<table border="1" align="center">
+	<caption>IOStream User-Defined State Saver Classes</caption>
+	<tr>
+		<th>Class</th>
+		<th>Saved Attribute</th>
+		<th>Attribute Type</th>
+		<th>Reference Method</th>
+	</tr>
+	<tr>
+		<td><code>boost::io::ios_iword_saver</code></td>
+		<td>Numeric user-defined format flag</td>
+		<td><code>long</code></td>
+		<td><code>iword</code></td>
+	</tr>
+	<tr>
+		<td><code>boost::io::ios_pword_saver</code></td>
+		<td>Pointer user-defined format flag</td>
+		<td><code>void *</code></td>
+		<td><code>pword</code></td>
+	</tr>
+</table>
+
+<h2><a name="combo_savers">Savers for Combined Attributes</a></h2>
+
+<p>There are three class (templates) for combined attribute savers.  The
+<code>boost:io::ios_base_all_saver</code> saver class combines the
+functionality of all the basic attribute saver classes.  It has a
+constructor that takes the stream to have its state preserved.  The
+<code>boost::io::basic_ios_all_saver</code> combines the functionality
+of all the advanced attribute saver class templates and the combined
+basic attribute saver class.  It has a constructor that takes the stream
+to have its state preserved.  The
+<code>boost::io::ios_all_word_saver</code> saver class combines the
+saver classes that preserve user-defined formatting information.  Its
+constructor takes the stream to have its attributes saved and the index
+of the user-defined attributes.  The destructor for each class restores
+the saved state.  Restoration can be activated early (and often) for a
+class with the <code>restore</code> member function.</p>
+
+<h2><a name="example">Example</a></h2>
+
+<p>The code used in the <a href="#rationale">rationale</a> can be
+improved at two places.  The printing function could use a saver around
+the code that changes the formatting state.  Or the calling function can
+surround the call with a saver.  Or both can be done, especially if the
+user does not know if the printing function uses a state saver.  If the
+user wants a series of changes back &amp; forth, without surrounding each
+change within a separate block, the <code>restore</code> member function
+can be called between each trial.</p>
+
+<blockquote><pre>#include &lt;boost/io/ios_state.hpp&gt;
+#include &lt;ios&gt;
+#include &lt;iostream&gt;
+#include &lt;ostream&gt;
+
+void  new_hex_my_byte( std::ostream &amp;os, char byte )
+{
+    boost::io::ios_flags_saver  ifs( os );
+
+    os &lt;&lt; std::hex &lt;&lt; static_cast&lt;unsigned&gt;(byte);
+}
+
+int  main()
+{
+    using std::cout;
+    using std::cerr;
+
+    //...
+
+    {
+        boost::io::ios_all_saver  ias( cout );
+
+        new_hex_my_byte( cout, 'A' );
+    }
+
+    //...
+
+    {
+        boost::io::ios_all_saver  ias( cerr );
+
+        new_hex_my_byte( cerr, 'b' );
+        ias.restore();
+        new_hex_my_byte( cerr, 'C' );
+    }
+
+    //...
+}
+</pre></blockquote>
+
+<h2><a name="refer">References</a></h2>
+
+<ul>
+	<li>The I/O state saver library header itself: <cite><a
+		href="../../../boost/io/ios_state.hpp">boost/io/ios_state.hpp</a></cite></li>
+	<li>Some test/example code: <cite><a
+		href="../test/ios_state_test.cpp">ios_state_test.cpp</a></cite></li>
+</ul>
+
+<h2><a name="credits">Credits</a></h2>
+
+<h3><a name="contributors">Contributors</a></h3>
+
+<dl>
+	<dt><a href="http://www.boost.org/people/daryle_walker.html">Daryle Walker</a>
+	<dd>Started the library.  Contributed the initial versions of the
+		format flags, precision, width, and user-defined format flags
+		saver classes.  Contributed the initial versions of the success
+		state, success state exception flags, output stream tie, stream
+		buffer, character fill, and locale saver class templates. 
+		Contributed the combined attribute classes and class template. 
+		Contributed the test file <cite><a
+		href="../test/ios_state_test.cpp">ios_state_test.cpp</a></cite>.
+</dl>
+
+<h3><a name="history">History</a></h3>
+
+<dl>
+	<dt>28 Feb 2005, Daryle Walker
+	<dd>Added the <code>restore</code> member functions, based on suggestions
+	    by Gennadiy Rozental and Rob Stewart
+
+	<dt>13 Mar 2002, Daryle Walker
+	<dd>Initial version
+</dl>
+
+<hr>
+
+<p>Revised: 28 February 2005</p>
+
+<p>Copyright 2002, 2005 Daryle Walker.  Use, modification, and distribution
+are subject to the Boost Software License, Version 1.0.  (See accompanying
+file <a href="../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or a copy at
+&lt;<a href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>&gt;.)</p>
+</body>
+</html>

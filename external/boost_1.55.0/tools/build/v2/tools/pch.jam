@@ -1,0 +1,95 @@
+# Copyright (c) 2005 Reece H. Dunn.
+# Copyright 2006 Ilya Sokolov
+#
+# Use, modification and distribution is subject to the Boost Software
+# License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+# http://www.boost.org/LICENSE_1_0.txt)
+
+##### Using Precompiled Headers (Quick Guide) #####
+#
+# Make precompiled mypch.hpp:
+#
+#    import pch ;
+#
+#    cpp-pch mypch
+#      : # sources
+#        mypch.hpp
+#      : # requiremnts
+#        <toolset>msvc:<source>mypch.cpp
+#      ;
+#
+# Add cpp-pch to sources:
+#
+#    exe hello
+#      : main.cpp hello.cpp mypch
+#      ;
+
+import "class" : new ;
+import type ;
+import feature ;
+import generators ;
+
+type.register     PCH : pch ;
+
+type.register   C_PCH : : PCH ;
+type.register CPP_PCH : : PCH ;
+
+# Control precompiled header (PCH) generation.
+feature.feature pch :
+      on
+      off
+    : propagated ;
+
+
+feature.feature pch-header : : free dependency ;
+feature.feature pch-file   : : free dependency ;
+
+# Base PCH generator. The 'run' method has the logic to prevent this generator
+# from being run unless it's being used for a top-level PCH target.
+class pch-generator : generator
+{
+    import property-set ;
+
+    rule action-class ( )
+    {
+        return compile-action ;
+    }
+
+    rule run ( project name ? : property-set : sources + )
+    {
+        if ! $(name)
+        {
+            # Unless this generator is invoked as the top-most generator for a
+            # main target, fail. This allows using 'H' type as input type for
+            # this generator, while preventing Boost.Build to try this generator
+            # when not explicitly asked for.
+            #
+            # One bad example is msvc, where pch generator produces both PCH
+            # target and OBJ target, so if there's any header generated (like by
+            # bison, or by msidl), we'd try to use pch generator to get OBJ from
+            # that H, which is completely wrong. By restricting this generator
+            # only to pch main target, such problem is solved.
+        }
+        else
+        {
+            local r = [ run-pch $(project) $(name)
+              : [ $(property-set).add-raw <define>BOOST_BUILD_PCH_ENABLED ]
+              : $(sources) ] ;
+            return [ generators.add-usage-requirements $(r)
+              : <define>BOOST_BUILD_PCH_ENABLED ] ;
+        }
+    }
+
+    # This rule must be overridden by the derived classes.
+    rule run-pch ( project name ? : property-set : sources + )
+    {
+    }
+}
+
+
+# NOTE: requirements are empty, default pch generator can be applied when
+# pch=off.
+generators.register
+    [ new dummy-generator pch.default-c-pch-generator   : :   C_PCH ] ;
+generators.register
+    [ new dummy-generator pch.default-cpp-pch-generator : : CPP_PCH ] ;

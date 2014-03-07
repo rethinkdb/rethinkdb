@@ -1,0 +1,311 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Riemann Zeta Function</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Math Toolkit">
+<link rel="up" href="../zetas.html" title="Zeta Functions">
+<link rel="prev" href="../zetas.html" title="Zeta Functions">
+<link rel="next" href="../expint.html" title="Exponential Integrals">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../zetas.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../zetas.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../expint.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="math_toolkit.zetas.zeta"></a><a class="link" href="zeta.html" title="Riemann Zeta Function">Riemann Zeta Function</a>
+</h3></div></div></div>
+<h5>
+<a name="math_toolkit.zetas.zeta.h0"></a>
+        <span class="phrase"><a name="math_toolkit.zetas.zeta.synopsis"></a></span><a class="link" href="zeta.html#math_toolkit.zetas.zeta.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">special_functions</span><span class="special">/</span><span class="identifier">zeta</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">math</span><span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">zeta</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">zeta</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<p>
+        The return type of these functions is computed using the <a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>result
+        type calculation rules</em></span></a>: the return type is <code class="computeroutput"><span class="keyword">double</span></code> if T is an integer type, and T otherwise.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<h5>
+<a name="math_toolkit.zetas.zeta.h1"></a>
+        <span class="phrase"><a name="math_toolkit.zetas.zeta.description"></a></span><a class="link" href="zeta.html#math_toolkit.zetas.zeta.description">Description</a>
+      </h5>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">zeta</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">zeta</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        Returns the <a href="http://mathworld.wolfram.com/RiemannZetaFunction.html" target="_top">zeta
+        function</a> of z:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/zeta1.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../graphs/zeta1.png" align="middle"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../graphs/zeta2.png" align="middle"></span>
+      </p>
+<h5>
+<a name="math_toolkit.zetas.zeta.h2"></a>
+        <span class="phrase"><a name="math_toolkit.zetas.zeta.accuracy"></a></span><a class="link" href="zeta.html#math_toolkit.zetas.zeta.accuracy">Accuracy</a>
+      </h5>
+<p>
+        The following table shows the peak errors (in units of epsilon) found on
+        various platforms with various floating point types, along with comparisons
+        to the <a href="http://www.gnu.org/software/gsl/" target="_top">GSL-1.9</a> and
+        <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> libraries. Unless
+        otherwise specified any floating point type that is narrower than the one
+        shown will have <a class="link" href="../relative_error.html#math_toolkit.relative_error.zero_error">effectively
+        zero error</a>.
+      </p>
+<div class="table">
+<a name="math_toolkit.zetas.zeta.errors_in_the_function_zeta_z"></a><p class="title"><b>Table&#160;3.30.&#160;Errors In the Function zeta(z)</b></p>
+<div class="table-contents"><table class="table" summary="Errors In the Function zeta(z)">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Significand Size
+                </p>
+              </th>
+<th>
+                <p>
+                  Platform and Compiler
+                </p>
+              </th>
+<th>
+                <p>
+                  z &gt; 0
+                </p>
+              </th>
+<th>
+                <p>
+                  z &lt; 0
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  53
+                </p>
+              </td>
+<td>
+                <p>
+                  Win32, Visual C++ 8
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0.99 Mean=0.1
+                </p>
+                <p>
+                  GSL Peak=8.7 Mean=1.0
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=2.1
+                  Mean=1.1
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=7.1 Mean=3.0
+                </p>
+                <p>
+                  GSL Peak=137 Mean=14
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=5084
+                  Mean=470
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  RedHat Linux IA_EM64, gcc-4.1
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0.99 Mean=0.5
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=570 Mean=60
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  Redhat Linux IA64, gcc-4.1
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0.99 Mean=0.5
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=559 Mean=56
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  113
+                </p>
+              </td>
+<td>
+                <p>
+                  HPUX IA64, aCC A.06.06
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1.0 Mean=0.4
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1018 Mean=79
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h5>
+<a name="math_toolkit.zetas.zeta.h3"></a>
+        <span class="phrase"><a name="math_toolkit.zetas.zeta.testing"></a></span><a class="link" href="zeta.html#math_toolkit.zetas.zeta.testing">Testing</a>
+      </h5>
+<p>
+        The tests for these functions come in two parts: basic sanity checks use
+        spot values calculated using <a href="http://functions.wolfram.com/webMathematica/FunctionEvaluation.jsp?name=Zeta" target="_top">Mathworld's
+        online evaluator</a>, while accuracy checks use high-precision test values
+        calculated at 1000-bit precision with <a href="http://shoup.net/ntl/doc/RR.txt" target="_top">NTL::RR</a>
+        and this implementation. Note that the generic and type-specific versions
+        of these functions use differing implementations internally, so this gives
+        us reasonably independent test data. Using our test data to test other "known
+        good" implementations also provides an additional sanity check.
+      </p>
+<h5>
+<a name="math_toolkit.zetas.zeta.h4"></a>
+        <span class="phrase"><a name="math_toolkit.zetas.zeta.implementation"></a></span><a class="link" href="zeta.html#math_toolkit.zetas.zeta.implementation">Implementation</a>
+      </h5>
+<p>
+        All versions of these functions first use the usual reflection formulas to
+        make their arguments positive:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/zeta3.png"></span>
+      </p>
+<p>
+        The generic versions of these functions are implemented using the series:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/zeta6.png"></span>
+      </p>
+<p>
+        When the significand (mantissa) size is recognised (currently for 53, 64
+        and 113-bit reals, plus single-precision 24-bit handled via promotion to
+        double) then a series of rational approximations <a class="link" href="../sf_implementation.html#math_toolkit.sf_implementation.rational_approximations_used">devised
+        by JM</a> are used.
+      </p>
+<p>
+        For 0 &lt; z &lt; 1 the approximating form is:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/zeta4.png"></span>
+      </p>
+<p>
+        For a rational approximation R(1-z) and a constant C.
+      </p>
+<p>
+        For 1 &lt; z &lt; 4 the approximating form is:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/zeta5.png"></span>
+      </p>
+<p>
+        For a rational approximation R(n-z) and a constant C and integer n.
+      </p>
+<p>
+        For z &gt; 4 the approximating form is:
+      </p>
+<p>
+        &#950;(z) = 1 + e<sup>R(z - n)</sup>
+      </p>
+<p>
+        For a rational approximation R(z-n) and integer n, note that the accuracy
+        required for R(z-n) is not full machine precision, but an absolute error
+        of: &#949;/R(0). This saves us quite a few digits when dealing with large z, especially
+        when &#949; is small.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../zetas.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../zetas.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../expint.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

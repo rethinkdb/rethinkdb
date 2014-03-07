@@ -1,0 +1,69 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Sum - adding numbers]
+
+Here's a parser that sums a comma-separated list of numbers.
+
+[import ../../example/qi/sum.cpp]
+
+Ok we've glossed over some details in our previous examples. First, our
+includes:
+
+[tutorial_adder_includes]
+
+Then some using directives:
+
+[tutorial_adder_using]
+
+[table
+  [[Namespace]                   [Description]]
+  [[boost::phoenix]              [All of phoenix]]
+  [[boost::spirit]               [All of spirit]]
+  [[boost::spirit::qi]           [All of spirit.qi]]
+  [[boost::spirit::ascii]        [ASCII version of `char_` and all char related parsers. Other
+                                 encodings are also provided (e.g. also an ISO8859.1)]]
+  [[boost::spirit::arg_names]    [Special phoenix placeholders for spirit]]
+]
+
+[note If you feel uneasy with using whole namespaces, feel free to qualify your
+code, use namespace aliases, etc. For the purpose of this tutorial, we will be
+presenting unqualified names for both Spirit and __phoenix__. No worries, we
+will always present the full working code, so you won't get lost. In fact, all
+examples in this tutorial have a corresponding cpp file that QuickBook (the
+documentation tool we are using) imports in here as code snippets.]
+
+Now the actual parser:
+
+[tutorial_adder]
+
+The full cpp file for this example can be found here: [@../../example/qi/sum.cpp]
+
+This is almost like our original numbers list example. We're incrementally
+building on top of our examples. This time though, like in the complex number
+example, we'll be adding the smarts. There's an accumulator (`double& n`) that
+adds the numbers parsed. On a successful parse, this number is the sum of all
+the parsed numbers.
+
+The first `double_` parser attaches this action:
+
+    ref(n) = _1
+
+This assigns the parsed result (actually, the attribute of `double_`) to `n`.
+`ref(n)` tells __phoenix__ that `n` is a mutable reference. `_1` is a
+__phoenix__ placeholder for the parsed result attribute.
+
+The second `double_` parser attaches this action:
+
+    ref(n) += _1
+
+So, subsequent numbers add into `n`.
+
+That wasn't too bad, was it :-) ?
+
+[endsect]

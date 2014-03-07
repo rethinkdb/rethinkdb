@@ -1,0 +1,56 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:function_traits function_traits]
+[def __argN '''arg<replaceable>N</replaceable>_type''']
+
+   template <class F>
+   struct function_traits
+   {
+      static const std::size_t    arity = __below;
+      typedef __below           result_type;
+      typedef __below           __argN; 
+   };
+
+The class template function_traits will only compile if:
+
+* The compiler supports partial specialization of class templates.
+* The template argument `F` is a /function type/, note that this ['[*is not]] 
+the same thing as a /pointer to a function/.
+
+[tip
+function_traits is intended to introspect only C++ functions of the 
+form R (), R( A1 ), R ( A1, ... etc. ) and not function pointers or 
+class member functions. To convert a function pointer type to a suitable 
+type use __remove_pointer.]
+
+[table Function Traits Members 
+[[Member] [Description]] 
+[[`function_traits<F>::arity`] 
+   [An integral constant expression that gives the number of arguments accepted by the function type `F`.]]
+[[`function_traits<F>::result_type`] 
+   [The type returned by function type `F`.]]
+[[`function_traits<F>::__argN`] 
+   [The '''<replaceable>N</replaceable>th''' argument type of function type `F`, where `1 <= N <= arity` of `F`.]]
+]
+
+[table Examples
+[[Expression] [Result]] 
+[[`function_traits<void (void)>::arity`] [An integral constant expression that has the value 0.]]
+[[`function_traits<long (int)>::arity`] [An integral constant expression that has the value 1.]]
+[[`function_traits<long (int, long, double, void*)>::arity`] [An integral constant expression that has the value 4.]]
+[[`function_traits<void (void)>::result_type`] [The type `void`.]]
+[[`function_traits<long (int)>::result_type`] [The type `long`.]]
+[[`function_traits<long (int)>::arg1_type`] [The type `int`.]]
+[[`function_traits<long (int, long, double, void*)>::arg4_type`] [The type `void*`.]]
+[[`function_traits<long (int, long, double, void*)>::arg5_type`] [A compiler error: there is no `arg5_type` since there are only four arguments.]]
+[[`function_traits<long (*)(void)>::arity`] [A compiler error: argument type is a /function pointer/, and not a /function type/.]]
+
+]
+   
+[endsect]
+

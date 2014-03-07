@@ -1,0 +1,159 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Test module initialization or ready, set</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../user-guide.html" title="Unit Test Framework: User's guide">
+<link rel="prev" href="usage-variants/extern-test-runner.html" title="External test runner variant of the UTF">
+<link rel="next" href="test-organization.html" title="Test organization or the house that Jack built">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../user-guide.html">User's guide</a><a href="../testing-tools.html">
+      &gt;
+      </a><b>Test module initialization</b>
+</td>
+<td><div class="spirit-nav">
+<a href="usage-variants/extern-test-runner.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="test-organization.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.user-guide.initialization"></a>Test module initialization  or ready, set </h4></div></div></div>
+<p class="first-line-indented">
+   There are two tasks that you may need to perform before actual testing can start:
+  </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>
+     The test tree needs to be built (unless you are using automated test units registration).
+    </li>
+<li>
+     Custom test module initialization needs to be performed. This includes
+     initialization of the code under test and custom tune-up of the <acronym class="acronym">UTF</acronym> parameters (for example the test log or the
+     test results report output streams redirection).
+    </li>
+</ul></div>
+<p class="first-line-indented">
+   The function dedicated for this purpose is called the test module initialization function. Alternatively you can
+   employ global fixtures, covered in details, including differences in two approaches, in 
+   <a class="xref" href="fixture.html" title="Fixtures or let me repeat myself">the section called &#8220;Fixtures&#8221;</a>.
+  </p>
+<p class="first-line-indented">
+   The <acronym class="acronym">UTF</acronym> requires you to implement the test module initialization function. The test runner supplied with the static
+   library or single-header variants of the <acronym class="acronym">UTF</acronym> requires the specific function specification. The test runner supplied
+   with the dynamic library variant of the <acronym class="acronym">UTF</acronym> requires the specific initialization function signature only. 
+  </p>
+<p class="first-line-indented">
+   For many <a class="link" href="../user-guide.html#test-module.def">test modules</a> you don't need to do any custom initialization
+   and test tree construction is automated. In this case you don't really need the initialization function and
+   the <acronym class="acronym">UTF</acronym> provides a way to automatically generate an empty one for you.
+  </p>
+<p class="first-line-indented">
+   Original design of the <acronym class="acronym">UTF</acronym> supported the manual test tree construction only. Later versions introduced the
+   automated registration of test units. In later versions of the <acronym class="acronym">UTF</acronym> the original initialization function
+   specification became inconvenient and unnecessary unsafe. So the alternative initialization function specification
+   was introduced. This change is not backward compatible. The test runners supplied with the static library and
+   single-header variants of the <acronym class="acronym">UTF</acronym> by default still require original initialization function specification, but
+   support <a class="link" href="../compilation.html#utf.compilation.flags" title="Table 3. The UTF compilation flags">compilation flags</a> that switch to the alternative one. The test
+   runner supplied with dynamic library variant of the <acronym class="acronym">UTF</acronym> requires new specification and doesn't support
+   original one. The plan is to deprecate the original initialization function specification in one of the future
+   releases and ultimately to stop supporting it.
+  </p>
+<p class="first-line-indented">
+   The initialization function invocation is monitored by the <acronym class="acronym">UTF</acronym> the same way as all the test cases. An unexpected 
+   exception or system error detected during initialization function invocation is treated as initialization error and 
+   is reported as such. 
+  </p>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.initialization.orig-signature"></a>Original initialization function signature and name</h5></div></div></div>
+<p class="first-line-indented">
+    The original design of the <acronym class="acronym">UTF</acronym> initialization requires you to implement the function with the following
+    specification:
+   </p>
+<pre class="programlisting"><code class="computeroutput">boost::unit_test::test_suite</code>* init_unit_test_suite( int argc, char* argv[] );</pre>
+<p class="first-line-indented">
+    In original design of the <acronym class="acronym">UTF</acronym> this function was intended to initialize and return a master test suite. The null
+    value was considered an initialization error. The current design of the <acronym class="acronym">UTF</acronym> maintains master test suite instance
+    internally and does not treat the null result value as an initialization error. In fact it's recommended to
+    return null value always and register test units in the master test suite using the regular test suite add
+    interface. The only way to indicate an initialization error is to throw the
+    <code class="computeroutput">boost::unit_test::framework::setup_error</code> exception.
+   </p>
+<p class="first-line-indented">
+    The initialization function parameters argc, argv provide the command line arguments specified during test
+    module invocation. It's guarantied that any framework-specific command line arguments are excluded. To be
+    consisted with the alternative initialization function specification it's recommended though to access the
+    command line arguments using the master test suite interface.
+   </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.initialization.alt-signature"></a>Alternative initialization function signature and name</h5></div></div></div>
+<p class="first-line-indented">
+    The alternative design of the <acronym class="acronym">UTF</acronym> initialization requires you to implement a function with the following
+    specification:
+   </p>
+<pre class="programlisting">bool init_unit_test();</pre>
+<p class="first-line-indented">
+    The result value of this function indicates whether or not initialization was successful. To register test
+    units in a master test suite use the test suite add interface. To access command line arguments use the master
+    test suite interface. It's guarantied that any framework-specific command line arguments are excluded.
+   </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.initialization.signature-typedef"></a>Initialization function signature access</h5></div></div></div>
+<p class="first-line-indented">
+    The test runner interface needs to refer to the initialization function signature. The <acronym class="acronym">UTF</acronym> provides the typedef 
+    that resolves to proper signature in all configurations:
+   </p>
+<pre class="programlisting">namespace boost {
+namespace unit_test {
+#ifdef BOOST_TEST_ALTERNATIVE_INIT_API
+typedef bool        (*init_unit_test_func)();
+#else
+typedef test_suite* (*init_unit_test_func)( int, char* [] );
+#endif
+}
+}</pre>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.initialization.auto-generation"></a>Automated generation of the test module initialization function</h5></div></div></div>
+<p class="first-line-indented">
+    To automatically generate an empty test module initialization function you need to define 
+    <a class="xref" href="../compilation.html#utf.flag.main">BOOST_TEST_MAIN</a> before including the
+    <code class="filename">boost/test/unit_test.hpp</code> header. The value of this define is ignored.
+    Alternatively you can define the macro <a class="xref" href="../compilation.html#utf.flag.module">BOOST_TEST_MODULE</a> to be equal to 
+    any string (not necessarily in quotes). This macro causes the same result as 
+    <a class="xref" href="../compilation.html#utf.flag.main">BOOST_TEST_MAIN</a>, and in addition the macro value becomes the name of the 
+    master test suite.
+   </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../doc/html/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+     For a test module consisting of multiple source files you have to define these flags in a single test file only.
+     Otherwise you end up with multiple instances of the initialization function.
+    </p></td></tr>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="usage-variants/extern-test-runner.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../user-guide.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="test-organization.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

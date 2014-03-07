@@ -1,0 +1,387 @@
+[/
+    Copyright (c) 2008-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Examples]
+
+[section Overview]
+
+[table Overview over Icl Examples
+    [[level]   [example] [classes] [features]]
+    [[intro][[link boost_icl.examples.party Party]]
+        [__itv_map__][Generates an attendance history of a party
+                      by inserting into an __itv_map__. 
+                      Demonstrating 
+                      ['*aggregate on overlap*].]]
+    [[basic]   [[link boost_icl.examples.interval Interval]]
+        [__dc_itv__, __ct_itv__  ] [Intervals for discrete and continuous instance types. 
+                   Closed and open interval borders.]]
+    [[basic]   [[link boost_icl.examples.dynamic_interval Dynamic intervals]]
+        [__dc_itv__, __ct_itv__, __itv__ ] [Intervals with dynamic interval bounds as library default.]]
+    [[basic]   [[link boost_icl.examples.static_interval Static intervals]]
+        [__ro_itv__, __itv__ ] [Intervals with static interval bounds and changing the library default.]]
+    [[basic]   [[link boost_icl.examples.interval_container Interval container]]
+        [__itv_set__,\n__sep_itv_set__,\n__spl_itv_set__,\n__spl_itv_map__,\n__itv_map__]
+                                   [Basic characteristics of interval containers.]]
+    [[basic]   [[link boost_icl.examples.overlap_counter Overlap counter]]
+        [__itv_map__][The most simple application of an interval map: 
+                      Counting the overlaps of added intervals.]]
+    [[advanced][[link boost_icl.examples.partys_height_average Party's height average]]
+        [__itv_map__][Using /aggregate on overlap/ a history of height averages of party guests is computed.  
+                      Associated values are user defined class objects, that implement
+                      an appropriate `operator +=` for the aggregation.]]
+    [[advanced][[link boost_icl.examples.partys_tallest_guests Party's tallest guests]]
+        [__itv_map__,\n__spl_itv_map__]
+                     [Using /aggregate on overlap/ the heights of the party's tallest guests are computed.  
+                      Associated values are aggregated via a maximum functor, that can 
+                      be chosen as template parameter of an interval_map class template.]]
+    [[advanced][[link boost_icl.examples.time_grids Time grids for months and weeks]]
+                                [__spl_itv_set__]
+                                             [Shows how the ['*border preserving*]
+                                              __spl_itv_set__ can be used to create time partitions where different
+                                              periodic time intervals overlay each other.]]
+    [[advanced][[link boost_icl.examples.man_power Man power]]      
+        [__itv_set__,\n__itv_map__]
+        [Set style operations on __itv_sets__ and __itv_maps__ like union, difference
+         and intersection can be used to obtain calculations in a flexible way. Example
+         [*man_power] demonstrates such operations in the process of calculating the
+         available man-power of a company in a given time interval.]]
+    [[advanced][[link boost_icl.examples.user_groups User groups]][__itv_map__]
+        [Example [*user_groups] shows how interval_maps can be unified or 
+         intersected to calculate desired information.]]
+         
+    [[and std]   [[link boost_icl.examples.std_copy Std copy]]
+        [__itv_map__][Fill interval containers using `std::copy`.]]
+    [[and std]   [[link boost_icl.examples.std_transform Std transform]]
+        [__itv_map__,\n__sep_itv_set__][Fill interval containers from user defined objects using `std::transform`.]]
+        
+    [[customize] [[link boost_icl.examples.custom_interval Custom interval]]
+        [__itv_tr__][Use interval containers with your own interval class types.]]
+
+]
+
+[endsect]
+
+[section Party]
+[import ../example/boost_party_/boost_party.cpp]
+
+Example *party* demonstrates the possibilities of an interval map 
+(__itv_map__ or __spl_itv_map__). 
+An __itv_map__ maps intervals to a given content. In this case the 
+content is a set of party guests represented by their name strings.
+
+As time goes by, groups of people join the party and leave later in the evening.
+So we add a time interval and a name set to the __itv_map__ for the attendance
+of each group of people, that come together and leave together.
+On every overlap of intervals, the corresponding name sets are accumulated. At
+the points of overlap the intervals are split. The accumulation of content
+is done via an operator += that has to be implemented
+for the content parameter of the __itv_map__.
+Finally the interval_map contains the history of attendance and all points in
+time, where the group of party guests changed.
+
+Party demonstrates a principle that we call 
+['*aggregate on overlap*]:
+On insertion a value associated to the interval is aggregated with those
+values in the interval_map that overlap with the inserted value.
+There are two behavioral aspects to ['*aggregate on overlap*]: a ['*decompositional
+behavior*] and an ['*accumulative behavior*].
+
+* The ['*decompositional behavior*] splits up intervals on the /time/ /dimension/ of the 
+  interval_map so that the intervals are split whenever associated values
+  change.
+
+* The ['*accumulative behavior*] accumulates associated values on every overlap of
+  an insertion for the associated values.
+    
+The aggregation function is += by default. Different aggregations can
+be used, if desired.
+
+    
+[example_boost_party]
+
+[caution
+
+We are introducing __itv_maps__ using an 
+['interval map ['*of sets of strings*]],
+because of it's didactic advantages. The party example is
+used to give an immediate access to the basic ideas of
+interval maps and /aggregate on overlap/.
+For real world applications, an interval_map of sets is
+not necessarily recommended.
+It has the same efficiency problems as
+a `std::map` of `std::sets`.
+There is a big realm though of using
+interval_maps with numerical and other
+efficient data types for the associated values.
+]
+
+[endsect] [/ Party]
+
+
+[section Interval]
+
+Example *interval* shows some basic functionality of __itvs__. 
+
+* Different instances of __itvs__ for integral ([^int, Time]) and
+  continuous types ([^double, std::string]) are used.
+
+* The examples uses open and closed intervals bounds.
+
+* Some borderline functions calls on open interval borders are tested e.g.:
+  `interval<double>::rightopen(1/sqrt(2.0), sqrt(2.0)).contains(sqrt(2.0));`
+
+[import ../example/interval_/interval.cpp]
+[example_interval]
+[endsect]
+
+[section Dynamic interval]
+[import ../example/dynamic_interval_/dynamic_interval.cpp]
+[example_dynamic_interval]
+[endsect]
+
+[section Static interval]
+[import ../example/static_interval_/static_interval.cpp]
+[example_static_interval]
+[endsect]
+
+
+[section Interval container]
+
+Example [*interval container] demonstrates the characteristic behaviors
+of different interval containers that are also summarized
+in the introductory [link boost_icl.introduction.interval_combining_styles Interval Combining Styles].
+
+[import ../example/interval_container_/interval_container.cpp]
+[example_interval_container]
+[endsect]
+
+
+[section Overlap counter]
+
+Example [*overlap counter] provides the simplest application
+of an interval_map that maps intervals to integers. 
+An interval_map<int,int> serves as an overlap counter
+if we only add interval value pairs that carry 1 as
+associated value.
+
+Doing so, the associated values that are accumulated in
+the interval_map are just the number of overlaps of all added
+intervals.
+
+[import ../example/overlap_counter_/overlap_counter.cpp]
+[example_overlap_counter]
+[endsect]
+
+
+
+[section:partys_height_average Party's height average]
+
+In the example `partys_height_average.cpp` we compute yet another aggregation:
+The average height of guests. This is done by defining a `class counted_sum` 
+that sums up heights and counts the number of guests
+via an `operator +=`.
+
+Based on the `operator +=` we can aggregate counted sums on addition
+of interval value pairs into an interval_map.
+
+[import ../example/partys_height_average_/partys_height_average.cpp]
+[example_partys_height_average]
+
+Required for `class counted_sum` is a default constructor 
+`counted_sum()`and
+an `operator ==` to test equality.
+To enable additive aggregation on overlap also
+an `operator +=` is needed.
+
+Note that no `operator -=` for a subtraction of `counted_sum` values
+is defined. So you can only add to the 
+`interval_map<ptime, counted_sum>`
+but not subtract from it.
+
+In many real world applications only addition is needed and user 
+defined classes will work fine, if they only implement 
+`operator +=`. Only if any of the `operator`s `-=` or `-`
+is called on the interval_map, the user defined class has to
+implement it's own `operator -=` to provide the subtractive
+aggregation on overlap.
+
+[endsect]
+
+
+[section:partys_tallest_guests Party's tallest guests]
+
+Defining `operator +=` (and `-=`) is probably the most important
+method to implement arbitrary kinds of user defined aggregations.
+An alternative way to choose a desired aggregation is to
+instantiate an interval_map class template with an 
+appropriate ['*aggregation functor*]. For the most common 
+kinds of aggregation the [*icl]
+provides such functors as shown in the example.
+
+Example `partys_tallest_guests.cpp` also demonstrates 
+the difference between an __itv_map__
+that joins intervals for equal associated values and a
+__spl_itv_map__ that preserves all borders of inserted
+intervals.
+
+[import ../example/partys_tallest_guests_/partys_tallest_guests.cpp]
+[example_partys_tallest_guests]
+
+[endsect]
+
+[section:time_grids Time grids for months and weeks]
+
+A __spl_itv_set__ preserves all interval borders on insertion
+and intersection operations. So given a __spl_itv_set__ and an addition of an interval
+``
+x =  {[1,     3)}
+x.add(     [2,     4)) 
+``
+then the intervals are split at their borders
+``
+x == {[1,2)[2,3)[3,4)}
+``
+Using this property we can intersect __spl_itv_maps__ in
+order to iterate over intervals accounting for all occurring
+changes of interval borders.
+
+In this example we provide an intersection of two __spl_itv_sets__
+representing a month and week time grid. 
+
+[import ../example/month_and_week_grid_/month_and_week_grid.cpp]
+[example_month_and_week_grid]
+[endsect]
+
+[section Man power]
+
+__Itv_sets__ and __itv_maps__ can be filled and manipulated using
+set style operations such as union `+=`, difference `-=` and 
+intersection `&=`.
+
+In this example [*man power] a number of those operations are
+demonstrated in the process of calculation the available working 
+times (man-power) of a company's employees accounting for weekends,
+holidays, sickness times and vacations.
+
+[import ../example/man_power_/man_power.cpp]
+[example_man_power]
+[endsect]
+
+[section User groups]
+
+Example [*user groups] shows the availability of set operations
+on __itv_maps__. 
+
+In the example there is a user group `med_users` of a hospital staff
+that has the authorisation to handle medical data of patients.
+User group `admin_users` has access to administrative data like
+health insurance and financial data.
+
+The membership for each user in one of the user groups has a time
+interval of validity. The group membership begins and ends.
+
+* Using a union operation `+` we can have an overview over the unified
+  user groups and the membership dates of employees.
+
+* Computing an intersection `&` shows who is member of both med_users 
+  and admin_users at what times.
+
+[import ../example/user_groups_/user_groups.cpp]
+[example_user_groups]
+[endsect]
+
+
+[section Std copy]
+
+The standard algorithm 
+[@http://www.cplusplus.com/reference/algorithm/copy/ `std::copy`]
+can be used to fill interval containers
+from standard containers of intervals or
+interval value pairs (segments). Because intervals
+do not represent ['*elements*] but ['*sets*], that
+can be empty or contain more than one element,
+the usage of `std::copy` differs from what we
+are familiar with using ['containers of elements].
+
+* Use `icl::inserter` from `#include <boost/icl/iterator.hpp>`
+  instead of `std::inserter` to call insertions on the target
+  interval container.
+  
+* As shown in the examples above and below this point, most of
+  the time we will not be interested to `insert` segments
+  into __itv_maps__ but to __biLadd__
+  them, in order to generate the desired aggregation results.
+  You can use `std::copy` with an `icl::adder` instead of an
+  `icl::inserter` to achieve this.
+
+[import ../example/std_copy_/std_copy.cpp]
+[example_std_copy]
+
+[endsect][/ Std copy]
+
+
+[section Std transform]
+
+Instead of writing loops, the standard algorithm 
+[@http://www.cplusplus.com/reference/algorithm/transform/ `std::transform`]
+can be used to fill interval containers
+from std containers of user defined objects.
+We need a function, that
+maps the ['user defined object] into the
+['segement type] of an interval map or the
+['interval type] of an interval set.
+Based on that we can use `std::transform`
+with an `icl::inserter` or `icl::adder`
+to transform the user objects into interval
+containers. 
+
+[import ../example/std_transform_/std_transform.cpp]
+[example_std_transform]
+
+To get clear about the different behaviors of interval containers 
+in the example, you may want to refer to the section about 
+[link boost_icl.introduction.interval_combining_styles interval combining styles]
+that uses the same data.
+
+[/
+Instead of `icl::inserter` we could also use an `std::inserter`
+with algorithms `std::copy` and `std::transform`.
+This is ['*depreciated*], because `std::inserter` is designed for
+containers of elements, where ['*exacty one*] element is inserted 
+via `std::inserter` if it is not already in the container. 
+In contrast to that, an interval or segemnt can represent zero, one, 
+or many elements of an interval container.
+
+You can use `std::inserter` *only*, if you actively take care of
+two preconditions:
+
+# None of the intervals or segements of the source containers
+  must be empty.
+  
+# A segment never carries a neutral element when your target 
+  interval map absorbs identities.
+
+Violating those preconditions leads to ['*undefined behavior*].
+]
+
+[endsect][/ std::transform]
+
+
+[section Custom interval]
+
+Example *custom interval* demonstrates how to use interval 
+containers with an own interval class type. 
+
+[import ../example/custom_interval_/custom_interval.cpp]
+[example_custom_interval]
+[endsect][/ Custom interval]
+
+
+
+[endsect][/ examples]
+

@@ -1,0 +1,64 @@
+#==============================================================================
+#   Copyright (c) 2002 2004 2006 Joel de Guzman
+#   Copyright (c) 2004 Eric Niebler
+#   http://spirit.sourceforge.net/
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+
+project quickbook
+    : requirements
+        <toolset>gcc:<c++-template-depth>300
+        <toolset>darwin:<c++-template-depth>300
+        <toolset>gcc:<cflags>-g0
+        <toolset>darwin:<cflags>-g0
+        <toolset>msvc:<cflags>/wd4709
+        <toolset>gcc:<define>BOOST_DETAIL_CONTAINER_FWD
+        <toolset>darwin:<define>BOOST_DETAIL_CONTAINER_FWD
+    ;
+
+lib shell32 ;
+
+exe quickbook
+    :
+    quickbook.cpp
+    actions.cpp
+    doc_info_actions.cpp
+    state.cpp
+    dependency_tracker.cpp
+    utils.cpp
+    files.cpp
+    input_path.cpp
+    values.cpp
+    id_manager.cpp
+    id_generation.cpp
+    id_xml.cpp
+    post_process.cpp
+    collector.cpp
+    template_stack.cpp
+    code_snippet.cpp
+    markups.cpp
+    syntax_highlight.cpp
+    grammar.cpp
+    main_grammar.cpp
+    block_element_grammar.cpp
+    phrase_element_grammar.cpp
+    doc_info_grammar.cpp
+    /boost//program_options
+    /boost//filesystem
+    : #<define>QUICKBOOK_NO_DATES
+      <define>BOOST_FILESYSTEM_NO_DEPRECATED
+      <toolset>msvc:<cxxflags>/wd4355
+      <toolset>msvc:<cxxflags>/wd4511
+      <toolset>msvc:<cxxflags>/wd4512
+      <toolset>msvc:<cxxflags>/wd4701
+      <toolset>msvc:<cxxflags>/wd4702
+      <toolset>msvc:<cxxflags>/wd4244
+      <toolset>msvc:<cxxflags>/wd4267
+      <toolset>msvc:<cxxflags>/wd4800
+      <toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+      <toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+      <target-os>windows:<library>shell32
+    ;

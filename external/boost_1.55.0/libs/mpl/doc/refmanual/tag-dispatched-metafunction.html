@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: Tag Dispatched Metafunction</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./placeholder-expression.html" class="navigation-link">Prev</a>&nbsp;<a href="./numeric-metafunction.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./placeholder-expression.html" class="navigation-link">Back</a>&nbsp;<a href="./numeric-metafunction.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./metafunctions-concepts.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./metafunctions-concepts.html" class="navigation-link">Concepts</a> / <a href="./tag-dispatched-metafunction.html" class="navigation-link">Tag Dispatched Metafunction</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="tag-dispatched-metafunction">
+<h1><a class="toc-backref" href="./metafunctions-concepts.html#id1516">Tag Dispatched Metafunction</a></h1>
+<div class="section" id="id840">
+<h3><a class="subsection-title" href="#summary" name="summary">Summary</a></h3>
+<p>A <a class="reference internal" href="./tag-dispatched-metafunction.html">Tag Dispatched Metafunction</a> is a <a class="reference internal" href="./metafunction.html">Metafunction</a> that employs a
+<em>tag dispatching</em> technique in its implementation to build an
+infrastructure for easy overriding/extenstion of the metafunction's
+behavior.</p>
+</div>
+<div class="section" id="notation">
+<h3>Notation</h3>
+<table border="1" class="docutils table" id="tag-metafunction">
+<colgroup>
+<col width="31%" />
+<col width="69%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Symbol</th>
+<th class="head">Legend</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><em>name</em></td>
+<td>A placeholder token for the specific metafunction's name.</td>
+</tr>
+<tr><td><em>tag-metafunction</em></td>
+<td>A placeholder token for the tag metafunction's name.</td>
+</tr>
+<tr><td><em>tag</em></td>
+<td>A placeholder token for one of possible tag types
+returned by the tag metafunction.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id841">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt; typename Tag &gt; struct <em>name</em>_impl;
+
+template&lt;
+      typename X
+    <em>[, ...]</em>
+    &gt;
+struct <em>name</em>
+    : <em>name</em>_impl&lt; typename <em>tag-<a href="./metafunction.html" class="identifier">metafunction</a></em>&lt;X&gt;::type &gt;
+        ::template <a href="./apply.html" class="identifier">apply</a>&lt;X <em>[, ...]</em>&gt;
+{
+};
+
+template&lt; typename Tag &gt; struct <em>name</em>_impl
+{
+    template&lt; typename X <em>[, ...]</em> &gt; struct <a href="./apply.html" class="identifier">apply</a>
+    {
+        // <em>default implementation</em>
+    };
+};
+
+template&lt;&gt; struct <em>name</em>_impl&lt;<em>tag</em>&gt;
+{
+    template&lt; typename X <em>[, ...]</em> &gt; struct <a href="./apply.html" class="identifier">apply</a>
+    {
+        // <em>tag-specific implementation</em>
+    };
+};
+</pre>
+</div>
+<div class="section" id="id842">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>The usual mechanism for overriding a metafunction's behavior is class
+template specialization — given a library-defined metafunction <tt class="literal"><span class="pre">f</span></tt>,
+it's possible to write a specialization of <tt class="literal"><span class="pre">f</span></tt> for a specific type
+<tt class="literal"><span class="pre">user_type</span></tt> that would have the required semantics <a class="footnote-reference" href="#spec" id="id843">[4]</a>.</p>
+<p>While this mechanism is always available, it's not always the most
+convenient one, especially if it is desirable to specialize a
+metafunction's behavior for a <em>family</em> of related types. A typical
+example of it is numbered forms of sequence classes in MPL itself
+(<tt class="literal"><span class="pre">list0</span></tt>, ..., <tt class="literal"><span class="pre">list50</span></tt>, et al.), and sequence classes in general.</p>
+<p>A <a class="reference internal" href="./tag-dispatched-metafunction.html">Tag Dispatched Metafunction</a> is a concept name for an instance of
+the metafunction implementation infrastructure being employed by the
+library to make it easier for users and implementors to override the
+behavior of library's metafunctions operating on families of specific
+types.</p>
+<p>The infrastructure is built on a variation of the technique commonly
+known as <em>tag dispatching</em> (hence the concept name),
+and involves three entities: a metafunction itself, an associated
+tag-producing <a class="reference internal" href="./tag-dispatched-metafunction.html#tag-metafunction">tag metafunctions</a>, and the metafunction's
+implementation, in the form of a <a class="reference internal" href="./metafunction-class.html">Metafunction Class</a> template
+parametrized by a <tt class="literal"><span class="pre">Tag</span></tt> type parameter. The metafunction redirects
+to its implementation class template by invoking its specialization
+on a tag type produced by the tag metafunction with the original
+metafunction's parameters.</p>
+<table class="docutils footnote" frame="void" id="spec" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id843">[4]</a></td><td>Usually such user-defined specialization is still required
+to preserve the <tt class="literal"><span class="pre">f</span></tt>'s original invariants and complexity requirements.</td></tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id844">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/size.hpp" class="header">boost/mpl/size.hpp</a>&gt;
+
+namespace user {
+
+struct bitset_tag;
+
+struct bitset0
+{
+    typedef bitset_tag tag;
+    // ...
+};
+
+template< typename B0 > struct bitset1
+{
+    typedef bitset_tag tag;
+    // ...
+};
+
+template< typename B0, <em>...,</em> typename B<em>n</em> &gt; struct bitset<em>n</em>
+{
+    typedef bitset_tag tag;
+    // ...
+};
+
+} // namespace user
+
+namespace boost { namespace mpl {
+template&lt;&gt; struct size_impl&lt;user::bitset_tag&gt;
+{
+    template&lt; typename Bitset &gt; struct <a href="./apply.html" class="identifier">apply</a>
+    {
+        typedef typename Bitset::<a href="./size.html" class="identifier">size</a> type;
+    };
+};
+}}
+</pre>
+</div>
+<div class="section" id="id845">
+<h3><a class="subsection-title" href="#models" name="models">Models</a></h3>
+<ul class="simple">
+<li><a class="reference internal" href="./sequence-tag.html">sequence_tag</a></li>
+</ul>
+</div>
+<div class="section" id="id846">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunction.html">Metafunction</a>, <a class="reference internal" href="./metafunction-class.html">Metafunction Class</a>, <a class="reference internal" href="./numeric-metafunction.html">Numeric Metafunction</a></p>
+<!-- Metafunctions/Concepts//Numeric Metafunction |60 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./placeholder-expression.html" class="navigation-link">Prev</a>&nbsp;<a href="./numeric-metafunction.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./placeholder-expression.html" class="navigation-link">Back</a>&nbsp;<a href="./numeric-metafunction.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./metafunctions-concepts.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

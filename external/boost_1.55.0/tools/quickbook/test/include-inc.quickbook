@@ -1,0 +1,9 @@
+[/ I'm trying not to break existing behaviour even when buggy.
+   In this case, this section will get an id using the title from
+   the previous 'include'.]
+
+[section:test Test]
+
+Just testing.
+
+[endsect]

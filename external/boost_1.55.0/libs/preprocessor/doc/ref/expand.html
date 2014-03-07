@@ -1,0 +1,67 @@
+<html>
+<head>
+	<title>BOOST_PP_EXPAND</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_EXPAND</b> macro performs a double macro-expansion on its argument.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_EXPAND</b>(<i>x</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>x</dt>
+			<dd>
+				The argument to be expanded twice.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro is useful when a delay is necessary to produce the correct semantics of a macro invocation.&nbsp;
+			For example, when a macro expands to an argument list to another macro.&nbsp;
+			This macro will expand the the argument list on the first pass, and then rescan to expand any more macros.
+		</div>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/facilities/expand.html">&lt;boost/preprocessor/facilities/expand.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/control/if.html">boost/preprocessor/control/if.hpp</a>&gt;
+#include &lt;<a href="../headers/facilities/expand.html">boost/preprocessor/facilities/expand.hpp</a>&gt;
+
+#define MACRO(a, b, c) (a)(b)(c)
+#define ARGS() (1, 2, 3)
+
+<a href="expand.html">BOOST_PP_EXPAND</a>(MACRO ARGS()) // expands to (1)(2)(3)
+
+#define SAMPLE(n) \
+   <a href="expand.html">BOOST_PP_EXPAND</a>( \
+      MACRO \
+      <a href="if.html">BOOST_PP_IF</a>( \
+         n, \
+         (x, y, z), \
+         (a, b, c) \
+      ) \
+   ) \
+   /**/
+
+SAMPLE(0) // expands to (a)(b)(c)
+SAMPLE(1) // expands to (x)(y)(z)
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

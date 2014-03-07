@@ -1,0 +1,92 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Acknowledgments</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="http://www.boost.org"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Acknowledgments</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<ul>
+  <li>Takatoshi Kondo found and corrected a very obscure and difficult bug in the 
+  serialization of virtual base classes.
+  <li><a href="http://www.autoform.com">AutoForm Engineering GmbH</a> supported
+  development efforts to extend correct serialization to objects stored in DLLS.
+  <li><a href"http://www.cadence.com/il">Cadence Israel</a> supported enhancement
+  and testing of the portable binary archive.
+  <li>David Abrahams improved implementation of "export" functionality.  This not
+  only eliminated an annoying header sequencing requirement, but also the need to maintain
+  a list of "known archives".
+  <li>Mattias Troyer enhanced the implementation of native binary archives.  This includes
+  enhancement and generalization of the library itself including generalization of
+  the wrapper concept.
+  <li>Markus Sch&ouml;pflin tracked down issues with TRU64 compiler resulting in 100% passing.
+  <li><a href="mailto::troy@resophonic.com"> Troy D. Straszheim</a> made the initial version of variant serialization.
+  <li>Tonko Juricic helped refine and complete project files for VC 7.1 ide
+  <li><a href="http://www.boost.org/people/rene_rivera.htm">Rene Rivera</a> tracked down several issues related to 
+  Code Warrior, toolset configuration and bjam and much else.
+  <li>Martin Ecker detected (and fixed!) a number of sublte errors regarding cyclic
+  pointers, shared pointers.  He also built the library as a DLL and raised some issues
+  <li>Pavel Vozenilek invested much effort in review of code and documentation
+  resulting in many improvements.  In addition he help a lot with porting to other
+  platforms including VC 6.0, Intel, and especially Borland.
+  <li><a href="http://www.boost.org/people/jens_maurer.htm">Jens Maurer</a> and
+  <a href="http://www.boost.org/people/beman_dawes.html">Beman Dawes</a> who got the boost
+  serialization ball rolling.  It was one or both of these two that invented
+  the much beloved <code>&amp;</code> syntax used to implement both save and
+  load in one fuction specification.
+  <li><a href="http://www.boost.org/people/vladimir_prus.htm">Vladimir Prus</a> for evaluating an
+  early draft and contributing the diamond inheritance example.
+  <li><a href="http://www.boost.org/people/william_kempf.htm">William E. Kempf</a>
+  who made the templates for this and other boost manuals.  This relieved
+  me of much aggravation.
+  <li><a href="mailto:vahan@unicad.am">Vahan Margaryan</a> and
+  <a href="mailto:fredrik_blomqvist-at-home.se">Fredrik Blomqvist</a> for their contributions
+  to my understanding of the subtle issues of exception safety in this context.
+  <li>all other boost members who responded with feedback during the
+  development of this library.  Almost all comments resulted in
+  tangible changes in the library which made it much better.
+  <li>boosters who helped out in porting to other platforms:, Fernando Cacciola (Borland), 
+  Jeff Flinn (VC 7.1), Vladimir Prus (gcc 3.3), Christoph Ludwig(gcc 3.4),
+  Rob Lievaart(mingw), Marshal Clow(gcc-darwin) among others.
+  <li>all boost members who participated in the first formal review
+  in November 2002.  Many of these members invested quite an effort
+  to evaluate the library and suggest changes. They are
+  Matthias Troyer, Pavel Vozenilek, Vladimir Prus, Fredrik Blomqvist,
+  Jeff Garland, Gennadiy Rozental, Alberto Barbati, Dave Harris.
+  Mr. Rozenthal in particular wrote an incredibly insightful analysis
+  that has driven all subsequent development that has resulted in the
+  current package.
+  <li>Dave Harris proposal and spirited defense of it lead to a re-thinking
+  of the overrides for serialization of pointers.  This resulted in a simpler
+  and more effective method of accounting for non-default constructors
+  required by serialization of pointers and STL collections.
+  <li><a href="mailto:admin@thefireflyproject.us">Bryce Lelbach</a> rewrote the XML Serialization grammar using Boost.Spirit 2.x.
+</ul>
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>
+

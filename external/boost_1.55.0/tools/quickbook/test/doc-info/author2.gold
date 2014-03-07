@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<chapter id="document_information_4" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Document Information 4</title>
+  <chapterinfo>
+    <authorgroup>
+    <author>
+      <firstname>Joe</firstname> <surname>Blow</surname>
+    </author>
+    <author>
+      <firstname>Jane</firstname> <surname>Doe</surname>
+    </author>
+    <author>
+      <firstname>John</firstname> <surname>Coe</surname>
+    </author>
+    </authorgroup>
+  </chapterinfo>
+</chapter>

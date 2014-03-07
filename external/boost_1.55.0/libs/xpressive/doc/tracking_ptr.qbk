@@ -1,0 +1,172 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Cycle collection with [^tracking_ptr<>]]
+
+In xpressive, regex objects can refer to each other and themselves by value or by reference.
+In addition, they ref-count their referenced regexes to keep them alive. This creates the possibility
+for cyclic reference counts, and raises the possibility of memory leaks. xpressive avoids leaks
+by using a type called `tracking_ptr<>`. This doc describes at a high level how `tracking_ptr<>`
+works.
+
+[h2 Constraints]
+
+Our solution must meet the following design constraints:
+
+* No dangling references: All objects referred to directly or indirectly must be kept alive
+  as long as the references are needed.
+* No leaks: all objects must be freed eventually.
+* No user intervention: The solution must not require users to explicitly invoke some cycle
+  collection routine.
+* Clean-up is no-throw: The collection phase will likely be called from a destructor, so it
+  must never throw an exception under any circumstance.
+  
+[h2 Handle-Body Idiom]
+
+To use `tracking_ptr<>`, you must separate your type into a handle and a body. In the case of
+xpressive, the handle type is called `basic_regex<>` and the body is called `regex_impl<>`. The
+handle will store a `tracking_ptr<>` to the body.
+
+The body type must inherit from `enable_reference_tracking<>`. This gives the body the bookkeeping
+data structures that `tracking_ptr<>` will use. In particular, it gives the body:
+
+# `std::set<shared_ptr<body> > refs_` : collection of bodies to which this body refers, and
+# `std::set<weak_ptr<body> > deps_` : collection of bodies which refer to this body.
+
+[h2 References and Dependencies]
+
+We refer to (1) above as the "references" and (2) as the "dependencies". It is crucial to the
+understanding of `tracking_ptr<>` to recognize that the set of references includes both those
+objects that are referred to directly as well as those that are referred to indirectly (that
+is, through another reference). The same is true for the set of dependencies. In other words,
+each body holds a ref-count directly to every other body that it needs. 
+
+Why is this important?  Because it means that when a body no longer has a handle referring
+to it, all its references can be released immediately without fear of creating dangling references. 
+
+References and dependencies cross-pollinate. Here's how it works:
+
+# When one object acquires another as a reference, the second object acquires the first as
+  a dependency.
+# In addition, the first object acquires all of the second object's references, and the second
+  object acquires all of the first object's dependencies.
+# When an object picks up a new reference, the reference is also added to all dependent objects.
+# When an object picks up a new dependency, the dependency is also added to all referenced
+  objects.
+# An object is never allowed to have itself as a dependency. Objects may have themselves as
+  references, and often do.
+
+Consider the following code:
+
+    sregex expr;
+    {
+        sregex group  = '(' >> by_ref(expr) >> ')';                 // (1)
+        sregex fact   = +_d | group;                                // (2)
+        sregex term   = fact >> *(('*' >> fact) | ('/' >> fact));   // (3)
+        expr          = term >> *(('+' >> term) | ('-' >> term));   // (4)
+    }                                                               // (5)
+
+Here is how the references and dependencies propagate, line by line:
+
+[table
+[[Expression][Effects]]
+[[1) `sregex group  = '(' >> by_ref(expr) >> ')';`]
+[[^group: cnt=1 refs={expr} deps={}\n
+expr:  cnt=2 refs={} deps={group}]]]
+
+[[2) `sregex fact   = +_d | group;`]
+[[^group: cnt=2 refs={expr} deps={fact}\n
+expr:  cnt=3 refs={} deps={group,fact}\n
+fact:  cnt=1 refs={expr,group} deps={}]]]
+
+[[3) `sregex term   = fact >> *(('*' >> fact) | ('/' >> fact));`]
+[[^group: cnt=3 refs={expr} deps={fact,term}\n
+expr:  cnt=4 refs={} deps={group,fact,term}\n
+fact:  cnt=2 refs={expr,group} deps={term}\n
+term:  cnt=1 refs={expr,group,fact} deps={}]]]
+
+[[4) `expr          = term >> *(('+' >> term) | ('-' >> term));`]
+[[^group: cnt=5 refs={expr,group,fact,term} deps={expr,fact,term}\n
+expr:  cnt=5 refs={expr,group,fact,term} deps={group,fact,term}\n
+fact:  cnt=5 refs={expr,group,fact,term} deps={expr,group,term}\n
+term:  cnt=5 refs={expr,group,fact,term} deps={expr,group,fact}]]]
+
+[[5) `}`]
+[[^expr:  cnt=2 refs={expr,group,fact,term} deps={group,fact,term}]]]
+]
+
+This shows how references and dependencies propagate when creating cycles of objects. After
+line (4), which closes the cycle, every object has a ref-count on every other object, even
+to itself. So how does this not leak? Read on.
+
+[h2 Cycle Breaking]
+
+Now that the bodies have their sets of references and dependencies, the hard part is done.
+All that remains is to decide when and where to break the cycle. That is the job of `tracking_ptr<>`,
+which is part of the handle. The `tracking_ptr<>` holds 2 `shared_ptr`s. The first, obviously,
+is the `shared_ptr<body>` -- the reference to the body to which this handle refers. The other
+`shared_ptr` is used to break the cycle. It ensures that when all the handles to a body go out
+of scope, the body's set of references is cleared.
+
+This suggests that more than one handle can refer to a body. In fact, `tracking_ptr<>` gives
+you copy-on-write semantics -- when you copy a handle, the body is shared. That makes copies
+very efficient. Eventually, all the handles to a particular body go out of scope. When that
+happens, the ref count to the body might still be greater than 0 because some other body (or
+this body itself!) might be holding a reference to it. However, we are certain that the cycle-breaker's
+ref-count goes to 0 because the cycle-breaker only lives in handles. No more handles, no more
+cycle-breakers.
+
+What does the cycle-breaker do? Recall that the body has a set of references of type 
+`std::set<shared_ptr<body> >`. Let's call this type "references_type". The cycle-breaker is a
+`shared_ptr<references_type>`. It uses a custom deleter, which is defined as follows:
+
+  template<typename DerivedT>
+  struct reference_deleter
+  {
+      void operator ()(std::set<shared_ptr<DerivedT> > *refs) const
+      {
+          refs->clear();
+      }
+  };
+
+The job of to the cycle breaker is to ensure that when the last handle to a body goes away,
+the body's set of references is cleared. That's it.
+
+We can clearly see how this guarantees that all bodies are cleaned up eventually. Once every
+handle has gone out of scope, all the bodies' sets of references will be cleared, leaving none
+with a non-zero ref-count. No leaks, guaranteed.
+
+It's a bit harder to see how this guarantees no dangling references. Imagine that there are 3 
+bodies: A, B and C. A refers to B which refers to C. Now all the handles to B go out of scope,
+so B's set of references is cleared. Doesn't this mean that C gets deleted, even though it
+is being used (indirectly) by A? It doesn't. This situation can never occur because we propagated
+the references and dependencies above such that A will be holding a reference directly to C
+in addition to B. When B's set of references is cleared, no bodies get deleted, because they
+are all still in use by A.
+
+[h2 Future Work]
+
+All these `std::set`s and `shared_ptr`s and `weak_ptr`s! Very inefficient. I used them because
+they were handy. I could probably do better.
+
+Also, some objects stick around longer than they need to. Consider:
+
+    sregex b;
+    {
+        sregex a = _;
+        b = by_ref(a);
+        b = _;
+    }
+    // a is still alive here!
+
+Due to the way references and dependencies are propagated, the `std::set` of references can only
+grow. It never shrinks, even when some references are no longer needed. For xpressive this
+isn't an issue. The graphs of referential objects generally stay small and isolated. If someone
+were to try to use `tracking_ptr<>` as a general ref-count-cycle-collection mechanism, this problem
+would have to be addressed.
+
+[endsect]

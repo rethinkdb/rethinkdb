@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<header name="boost/signals2/slot.hpp" last-revision="$Date: 2007-03-06 16:51:55 -0500 (Tue, 06 Mar 2007) $">
+  <using-namespace name="boost::signals2"/>
+  <using-namespace name="boost"/>
+  <using-class name="boost::signals2::signal"/>
+  <using-class name="boost::signals2::slot_base"/>
+  <namespace name="boost">
+    <namespace name="signals2">
+      <class name="slot">
+        <template>
+          <template-type-parameter name="Signature">
+            <purpose>Function type R (T1, T2, ..., TN)</purpose>
+          </template-type-parameter>
+          <template-type-parameter name="SlotFunction">
+            <default><classname>boost::function</classname>&lt;R (T1, T2, ..., TN)&gt;</default>
+          </template-type-parameter>
+        </template>
+        <inherit access="public">
+          <type><classname>boost::signals2::slot_base</classname></type>
+        </inherit>
+        <purpose>Pass slots as function arguments, and associate tracked objects with a slot.</purpose>
+
+        <description>
+          <para>A slot consists of a polymorphic function wrapper (<classname>boost::function</classname> by default)
+            plus a container of <code>weak_ptr</code>s which identify the slot's "tracked objects".  If any of the
+            tracked objects expire, the slot will automatically disable itself.  That is, the slot's function
+            call operator will throw an exception instead of forwarding the function call to the slot's
+            polymorphic function wrapper.  Additionally, a slot will automatically lock all the tracked objects
+            as <code>shared_ptr</code> during invocation, to prevent any of them from expiring while
+            the polymorphic function wrapper is being run.
+          </para>
+          <para>
+            The slot constructor will search for <classname>signals2::signal</classname> and
+            <classname>signals2::trackable</classname> inside incoming function objects and
+            automatically track them.  It does so by applying a visitor
+            to the incoming functors with <functionname>boost::visit_each</functionname>.
+          </para>
+        </description>
+
+        <typedef name="result_type">
+          <type>R</type>
+        </typedef>
+        <typedef name="argument_type">
+          <type>T1</type>
+          <purpose>Exists iff arity == 1</purpose>
+        </typedef>
+        <typedef name="first_argument_type">
+          <type>T1</type>
+          <purpose>Exists iff arity == 2</purpose>
+        </typedef>
+        <typedef name="second_argument_type">
+          <type>T2</type>
+          <purpose>Exists iff arity == 2</purpose>
+        </typedef>
+        <typedef name="signature_type">
+          <type>Signature</type>
+        </typedef>
+        <typedef name="slot_function_type">
+          <type>SlotFunction</type>
+        </typedef>
+
+        <class name="arg">
+          <template>
+            <template-nontype-parameter name="n">
+              <type>unsigned</type>
+            </template-nontype-parameter>
+          </template>
+          <typedef name="type">
+            <type>Tn</type>
+            <purpose>The type of the <classname alt="signals2::slot">slot</classname>'s (n+1)th argument</purpose>
+          </typedef>
+        </class>
+
+        <static-constant name="arity">
+          <type>int</type>
+          <default>N</default>
+          <purpose>The number of arguments taken by the slot.</purpose>
+        </static-constant>
+
+        <constructor>
+          <template>
+            <template-type-parameter name="Slot"/>
+          </template>
+
+          <parameter name="target">
+            <paramtype>const Slot &amp;</paramtype>
+          </parameter>
+
+          <effects>
+            <para>Initializes the <code>SlotFunction</code> object in <code>this</code>
+            with <code>target</code>, which may be any
+            function object with which a
+            <code>SlotFunction</code> can be
+            constructed.
+            </para>
+            <para>In this special case where the template type parameter <code>Slot</code> is
+              a compatible <classname>signals2::signal</classname> type,
+              the signal will automatically be added to the slot's tracked object list.
+              Otherwise, the slot's tracked object list is initially empty.
+            </para>
+          </effects>
+        </constructor>
+      <constructor>
+          <template>
+            <template-type-parameter name="OtherSignature"/>
+            <template-type-parameter name="OtherSlotFunction"/>
+          </template>
+
+          <parameter name="other_slot">
+            <paramtype>const slot&lt;OtherSignature, OtherSlotFunction&gt; &amp;</paramtype>
+          </parameter>
+
+          <effects>
+            <para>Initializes <code>this</code> with a copy of
+            <code>other_slot</code>'s <code>OtherSlotFunction</code> object and tracked object list.
+            </para></effects>
+        </constructor>
+        <constructor>
+          <template>
+            <template-type-parameter name="Func"/>
+            <template-type-parameter name="Arg1"/>
+            <template-type-parameter name="Arg2"/>
+            <template-varargs/>
+            <template-type-parameter name="ArgN"/>
+          </template>
+
+          <parameter name="f">
+            <paramtype>const Func &amp;</paramtype>
+          </parameter>
+          <parameter name="a1">
+            <paramtype>const Arg1 &amp;</paramtype>
+          </parameter>
+          <parameter name="a2">
+            <paramtype>const Arg2 &amp;</paramtype>
+          </parameter>
+          <parameter>
+            <paramtype>...</paramtype>
+          </parameter>
+          <parameter name="aN">
+            <paramtype>const ArgN &amp;</paramtype>
+          </parameter>
+
+          <effects>
+            <para>Syntactic sugar for <code>bind()</code> when the constructor is passed more than
+              one argument.  As if:
+            <code>slot(boost::bind(f, a1, a2, ..., aN))</code>
+            </para></effects>
+        </constructor>
+
+        <method-group name="invocation">
+          <overloaded-method name="operator()">
+            <signature>
+              <type>result_type</type>
+              <parameter name="a1"><paramtype>arg&lt;0&gt;::type</paramtype></parameter>
+              <parameter name="a2"><paramtype>arg&lt;1&gt;::_type</paramtype></parameter>
+              <parameter><paramtype>...</paramtype></parameter>
+              <parameter name="aN"><paramtype>arg&lt;N-1&gt;::type</paramtype></parameter>
+            </signature>
+
+            <signature cv="const">
+              <type>result_type</type>
+              <parameter name="a1"><paramtype>arg&lt;0&gt;::type</paramtype></parameter>
+              <parameter name="a2"><paramtype>arg&lt;1&gt;::_type</paramtype></parameter>
+              <parameter><paramtype>...</paramtype></parameter>
+              <parameter name="aN"><paramtype>arg&lt;N-1&gt;::type</paramtype></parameter>
+            </signature>
+
+            <effects><para>Calls the slot's <code>SlotFunction</code> object.
+            </para></effects>
+
+            <returns><para>The result returned by the slot's <code>SlotFunction</code> object.</para></returns>
+
+            <throws><para>Any exceptions thrown by the slot's <code>SlotFunction</code> object.
+            <classname>boost::signals2::expired_slot</classname> if any object in the tracked object list
+            has expired.</para></throws>
+
+            <notes><para>If you have already used <methodname>lock</methodname> to insure the
+            tracked objects are valid, it is slightly more efficient to use the
+            <methodname>slot_function</methodname>() method
+            and call the slot's <code>SlotFunction</code> directly.</para>
+            </notes>
+          </overloaded-method>
+        </method-group>
+
+        <method-group name="tracking">
+          <overloaded-method name="track">
+            <signature>
+              <type>slot &amp;</type>
+              <parameter name="tracked_object">
+                <paramtype>const weak_ptr&lt;void&gt; &amp;</paramtype>
+              </parameter>
+            </signature>
+            <signature>
+              <type>slot &amp;</type>
+              <parameter name="tracked_signal">
+                <paramtype>const <classname>signals2::signal_base</classname> &amp;</paramtype>
+              </parameter>
+            </signature>
+            <signature>
+              <type>slot &amp;</type>
+              <parameter name="tracked_slot">
+                <paramtype>const <classname>signals2::slot_base</classname> &amp;</paramtype>
+              </parameter>
+            </signature>
+            <effects>
+              <para>
+                Adds object(s) to the slot's tracked object list.  Should any of the
+                tracked objects expire, then subsequent attempts to call the slot's <code>operator()</code>
+                or <code>lock()</code> methods will throw an <classname>signals2::expired_slot</classname> exception.
+              </para>
+              <para>When tracking a signal, a <classname>shared_ptr</classname>
+                internal to the signal class is used for tracking.  The signal does not
+                need to be owned by an external <code>shared_ptr</code>.
+              </para>
+              <para>
+                In the case of passing another slot as the argument to <code>track()</code>,
+                only the objects currently in the other slot's tracked object list are added
+                to the tracked object list of <code>this</code>.  The other slot object itself
+                is not tracked.
+              </para>
+            </effects>
+            <returns><para><code>*this</code></para></returns>
+          </overloaded-method>
+          <overloaded-method name="track_foreign">
+            <signature>
+              <template>
+                <template-type-parameter name="ForeignWeakPtr"/>
+              </template>
+              <type>slot &amp;</type>
+              <parameter name="tracked_object">
+                <paramtype>const ForeignWeakPtr &amp;</paramtype>
+              </parameter>
+              <parameter name="SFINAE">
+                <paramtype>typename weak_ptr_traits&lt;ForeignWeakPtr&gt;::shared_type *</paramtype>
+                <default>0</default>
+              </parameter>
+            </signature>
+            <signature>
+              <template>
+                <template-type-parameter name="ForeignSharedPtr"/>
+              </template>
+              <type>slot &amp;</type>
+              <parameter name="tracked_object">
+                <paramtype>const ForeignSharedPtr &amp;</paramtype>
+              </parameter>
+              <parameter name="SFINAE">
+                <paramtype>typename shared_ptr_traits&lt;ForeignSharedPtr&gt;::weak_type *</paramtype>
+                <default>0</default>
+              </parameter>
+            </signature>
+            <effects>
+              <para>
+                The <code>track_foreign</code>() method behaves similarly to calling the <methodname>track</methodname>() method
+                with a <classname>boost::shared_ptr</classname> or <classname>boost::weak_ptr</classname> argument.
+                However, <code>track_foreign</code> is more flexible in that it will accept <code>shared_ptr</code>
+                or <code>weak_ptr</code> classes from outside of boost (most significantly <code>std::shared_ptr</code>
+                or <code>std::weak_ptr</code>).
+              </para>
+              <para>
+                In order to use a particular <code>shared_ptr</code> class with this function, a specialization of
+                <classname>boost::signals2::shared_ptr_traits</classname> must exist for it.
+                Also, a specialization of <classname>boost::signals2::weak_ptr_traits</classname> must
+                be provided for its corresponding <code>weak_ptr</code> class.
+                The <code>shared_ptr_traits</code> specialization must include a <code>weak_type</code>
+                member typedef which specifies the
+                corresponding <code>weak_ptr</code> type of the <code>shared_ptr</code> class.
+                Similarly, the <code>weak_ptr_traits</code> specialization must include a <code>shared_type</code>
+                member typedef which specifies the corresponding <code>shared_ptr</code> type of the
+                <code>weak_ptr</code> class.  Specializations
+                for <code>std::shared_ptr</code> and <code>std::weak_ptr</code> are already provided by the signals2 library.
+                For other <code>shared_ptr</code> classes, you must provide the specializations.
+              </para>
+              <para>The second argument "SFINAE" may be ignored, it is used to resolve the overload between
+                either <code>shared_ptr</code> or <code>weak_ptr</code> objects passed in as the first argument.
+              </para>
+            </effects>
+            <returns><para><code>*this</code></para></returns>
+          </overloaded-method>
+        </method-group>
+
+        <method-group name="slot function access">
+          <overloaded-method name="slot_function">
+            <signature>
+              <type>slot_function_type &amp;</type>
+            </signature>
+            <signature cv="const">
+              <type>const slot_function_type &amp;</type>
+            </signature>
+            <returns><para>A reference to the slot's underlying SlotFunction object.</para></returns>
+          </overloaded-method>
+        </method-group>
+      </class>
+    </namespace>
+  </namespace>
+</header>

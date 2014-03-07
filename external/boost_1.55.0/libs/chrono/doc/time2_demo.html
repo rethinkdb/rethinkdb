@@ -1,0 +1,4040 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+
+	<title>time2_demo</title>
+</head><body>
+
+<pre><font color="#c80000">/*
+Copyright (c) 2008 Howard Hinnant
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+
+A prototype of a proposal for a time/duration/clock library for the C++ standard.
+It is intended that this be a solid foundation upon which higher level libraries
+can be based.  Examples of such libraries include a date/time library and a
+physical quantities library.
+
+Two general purpose facilities are proposed:
+
+    common_type
+    ratio
+
+And 5 time/duration/clock facilities are proposed
+
+    duration
+    time_point
+    system_clock
+    monotonic_clock        <font color="#c80000">// optional</font>
+    high_resolution_clock  <font color="#c80000">// optional</font>
+
+Much thanks to Andrei Alexandrescu,
+               Walter Brown,
+               Peter Dimov,
+               Jeff Garland,
+               Terry Golubiewski,
+               Daniel Krügler,
+               Anthony Williams.
+
+Synopsis
+
+namespace std
+{
+
+<font color="#c80000">// &lt;type_traits&gt;</font>
+
+<font color="#c80000">// common_type</font>
+
+<font color="#c80000">// common_type is ageneral purpose trait that can be specialized for user-defined types.</font>
+<font color="#c80000">// The semantics are intended to be identical to finding the resulting type of a</font>
+<font color="#c80000">// the conditional operator.</font>
+<font color="#c80000">// The client may need to specialize common_type if he wishes to convert to or from</font>
+<font color="#c80000">// another type only explicitly.  It is used to determine the result type</font>
+<font color="#c80000">// in "mixed-mode" duration and time_point arithmetic.  It will also find use in</font>
+<font color="#c80000">// similar "mixed-mode" arithmetic applications.</font>
+
+template &lt;class T, class U&gt;
+struct common_type
+{
+private:
+    static T t();
+    static U u();
+public:
+    typedef decltype(true ? t() : u()) type;
+};
+
+<font color="#c80000">// or...</font>
+
+template &lt;class ...T&gt; struct common_type;
+
+template &lt;class T&gt;
+struct common_type&lt;T&gt;
+{
+    typedef T type;
+};
+
+template &lt;class T, class U&gt;
+struct common_type&lt;T, U&gt;
+{
+private:
+    static T t();
+    static U u();
+public:
+    typedef decltype(true ? t() : u()) type;
+};
+
+template &lt;class T, class U, class ...V&gt;
+struct common_type&lt;T, U, V...&gt;
+{
+    typedef typename common_type&lt;typename common_type&lt;T, U&gt;::type, V...&gt;::type type;
+};
+
+<font color="#c80000">// This alternative variadic formulation of common_type has some advantages:</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//   1.  The obvious advantage is that it can handle 3 or more arguments seamlessly.</font>
+<font color="#c80000">//       This can come in handy when writing template functions that take more than</font>
+<font color="#c80000">//       two arguments, such as fma(x, y, z).</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//   2.  We could just get rid of identity (avoiding the legacy conflict) and use</font>
+<font color="#c80000">//       common_type&lt;T&gt;::type in the one place we use identity&lt;T&gt;::type today.</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//   3.  For clients that need to specialize common_type (such as duration and time_point),</font>
+<font color="#c80000">//       the client still needs to specialize only the two-argument version.  The default</font>
+<font color="#c80000">//       definition of the higher-order common_type will automatically use the client's</font>
+<font color="#c80000">//       specialized two-argument version.</font>
+<font color="#c80000">//       For example:</font>
+<font color="#c80000">//           common_type&lt;duration&lt;double&gt;, hours, microseconds&gt;::type is duration&lt;double, micro&gt;</font>
+
+<font color="#c80000">// ... end or</font>
+
+<font color="#c80000">//  The cost of not including either version of common_type is that it is very likely that</font>
+<font color="#c80000">//  the implementation would include it anyway, but spell it __common_type instead.  This</font>
+<font color="#c80000">//  would prevent authors of arithmetic emulators from using their classes as representations</font>
+<font color="#c80000">//  with durations unless the emulator had exactly one implicit conversion to or from an</font>
+<font color="#c80000">//  arithmetic type.  This would be a large loss of functionality from the client's point</font>
+<font color="#c80000">//  of view, possibly mandating a less safe interface for the client's arithmetic emulator.</font>
+
+<font color="#c80000">// ratio</font>
+
+<font color="#c80000">// ratio is a general purpose type allowing one to easily and safely compute integral</font>
+<font color="#c80000">// ratio values at compile time.  The ratio class catches all errors (such as divide by</font>
+<font color="#c80000">// zero and overflow) at compile time.  It is used in the duration and time_point libraries</font>
+<font color="#c80000">// to efficiently create units of time.  It can also be used in other "quantity"</font>
+<font color="#c80000">// libraries (both std-defined and user-defined), or anywhere there is an integral</font>
+<font color="#c80000">// ratio which is known at compile time.  The use of this utility can greatly reduce</font>
+<font color="#c80000">// the chances of run time overflow because the ratio (and any ratios resulting from</font>
+<font color="#c80000">// ratio arithmetic) are always reduced to lowest terms.</font>
+
+<font color="#c80000">// The cost of not including ratio would mean that the implementor would likely have this</font>
+<font color="#c80000">// functionality anyway, but spell it __ratio instead.  This would prevent the client from</font>
+<font color="#c80000">// using ratio in his own code as demonstrated in the "User1" example.  Furthermore duration</font>
+<font color="#c80000">// would have to be templated on two long long's instead of on ratio like so:</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//       template &lt;class Rep, long long N, long long D&gt; duration.</font>
+<font color="#c80000">//</font>
+<font color="#c80000">// This would mean that clients wanting to build a custom duration type (say a nanosecond</font>
+<font color="#c80000">// represented by a double) would have to write:</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//       duration&lt;double, 1, 1000000000LL&gt;</font>
+<font color="#c80000">//</font>
+<font color="#c80000">// instead of:</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//       duration&lt;double, nano&gt;</font>
+<font color="#c80000">//</font>
+<font color="#c80000">// This lack of syntatic niceness, along with the loss of functionality in the reuse of</font>
+<font color="#c80000">// ratio in user-written code seems to indicate that the loss of ratio would be a sizeable</font>
+<font color="#c80000">// loss to client code.</font>
+
+template &lt;intmax_t N, intmax_t D = 1&gt;
+class ratio
+{
+    <font color="#c80000">// For every possible value of N and D, abs(N) &gt;= 0 and abs(D) &gt; 0</font>
+    static_assert(__static_abs&lt;N&gt;::value &gt;= 0, "ratio numerator is out of range");
+    static_assert(__static_abs&lt;D&gt;::value &gt;  0, "ratio denominator is out of range");
+public:
+    static const intmax_t num;   <font color="#c80000">// Reduced by greatest common divisor of N and D, has sign of sign(N) * sign(D)</font>
+    static const intmax_t den;   <font color="#c80000">// Reduced by greatest common divisor of N and D, always positive</font>
+                                 <font color="#c80000">// When num == 0, den == 1</font>
+};
+
+<font color="#c80000">// The static_asserts in ratio are there to catch any values which have a negative absolute value.</font>
+<font color="#c80000">// In a typical 2's complement representation this is only LLONG_MIN.  The reason for prohibiting</font>
+<font color="#c80000">// this value is because ratio must take the absolute values of its arguments and generally depends</font>
+<font color="#c80000">// on that number being non-negative in order to maintain invariants such as den &gt; 0.</font>
+
+<font color="#c80000">// convenience typedefs</font>
+
+typedef ratio&lt;1, 1000000000000000000000000&gt; yocto;  <font color="#c80000">// conditionally supported</font>
+typedef ratio&lt;1,    1000000000000000000000&gt; zepto;  <font color="#c80000">// conditionally supported</font>
+typedef ratio&lt;1,       1000000000000000000&gt; atto;
+typedef ratio&lt;1,          1000000000000000&gt; femto;
+typedef ratio&lt;1,             1000000000000&gt; pico;
+typedef ratio&lt;1,                1000000000&gt; nano;
+typedef ratio&lt;1,                   1000000&gt; micro;
+typedef ratio&lt;1,                      1000&gt; milli;
+typedef ratio&lt;1,                       100&gt; centi;
+typedef ratio&lt;1,                        10&gt; deci;
+typedef ratio&lt;                       10, 1&gt; deca;
+typedef ratio&lt;                      100, 1&gt; hecto;
+typedef ratio&lt;                     1000, 1&gt; kilo;
+typedef ratio&lt;                  1000000, 1&gt; mega;
+typedef ratio&lt;               1000000000, 1&gt; giga;
+typedef ratio&lt;            1000000000000, 1&gt; tera;
+typedef ratio&lt;         1000000000000000, 1&gt; peta;
+typedef ratio&lt;      1000000000000000000, 1&gt; exa;
+typedef ratio&lt;   1000000000000000000000, 1&gt; zetta;  <font color="#c80000">// conditionally supported</font>
+typedef ratio&lt;1000000000000000000000000, 1&gt; yotta;  <font color="#c80000">// conditionally supported</font>
+
+<font color="#c80000">// Compile time arithmetic and comparisons should either avoid overflow or not compile</font>
+
+template &lt;class R1, class R2&gt;
+requires R1 and R2 are instantiations of ratio
+struct ratio_add
+{
+    typedef ratio&lt;pseudo code: R1 + R2&gt; type;
+};
+
+template &lt;class R1, class R2&gt;
+requires R1 and R2 are instantiations of ratio
+struct ratio_subtract
+{
+    typedef ratio&lt;pseudo code: R1 - R2&gt; type;
+};
+
+template &lt;class R1, class R2&gt;
+requires R1 and R2 are instantiations of ratio
+struct ratio_multiply
+{
+    typedef ratio&lt;pseudo code: R1 * R2&gt; type;
+};
+
+template &lt;class R1, class R2&gt;
+requires R1 and R2 are instantiations of ratio
+struct ratio_divide
+{
+    typedef ratio&lt;pseudo code: R1 / R2&gt; type;
+};
+
+template &lt;class R1, class R2&gt;
+requires R1 and R2 are instantiations of ratio
+struct ratio_equal
+    : public integral_constant&lt;bool, pseudo code: R1 == R2&gt; {};
+
+template &lt;class R1, class R2&gt;
+requires R1 and R2 are instantiations of ratio
+struct ratio_not_equal
+    : public integral_constant&lt;bool, !ratio_equal&lt;R1, R2&gt;::value&gt; {};
+
+template &lt;class R1, class R2&gt;
+requires R1 and R2 are instantiations of ratio
+struct ratio_less
+    : public integral_constant&lt;bool, pseudo code: R1 &lt; R2&gt; {};
+
+template &lt;class R1, class R2&gt;
+requires R1 and R2 are instantiations of ratio
+struct ratio_less_equal
+    : public integral_constant&lt;bool, !ratio_less&lt;R2, R1&gt;::value&gt; {};
+
+template &lt;class R1, class R2&gt;
+requires R1 and R2 are instantiations of ratio
+struct ratio_greater
+    : public integral_constant&lt;bool, ratio_less&lt;R2, R1&gt;::value&gt; {};
+
+template &lt;class R1, class R2&gt;
+requires R1 and R2 are instantiations of ratio
+struct ratio_greater_equal
+    : public integral_constant&lt;bool, !ratio_less&lt;R1, R2&gt;::value&gt; {};
+
+namespace datetime
+{
+
+<font color="#c80000">// duration customization traits</font>
+
+<font color="#c80000">//   Authors of arithmetic emulation types should specialize treat_as_floating_point</font>
+<font color="#c80000">//   if their class emulates floating point and they want to use it as a duration's</font>
+<font color="#c80000">//   representation.</font>
+
+template &lt;class Rep&gt; struct treat_as_floating_point
+  : is_floating_point&lt;Rep&gt; {};
+
+<font color="#c80000">//   Authors of arithmetic emulation types should specialize duration_values</font>
+<font color="#c80000">//   if they want to use it as a duration's  representation, and the default</font>
+<font color="#c80000">//   definition of duration_values does not have the correct behavior.</font>
+
+template &lt;class Rep&gt;
+struct duration_values
+{
+public:
+    static constexpr Rep zero() {return Rep(0);}
+    static constexpr Rep max()  {return numeric_limits&lt;Rep&gt;::max();}
+    static constexpr Rep min()  {return -max();}
+};
+
+<font color="#c80000">// Note:  Rep(0) instead of Rep() is used for zero() because the author of Rep may</font>
+<font color="#c80000">//   chose to have Rep() refer to an inderminant or unitialized value.</font>
+
+<font color="#c80000">// duration</font>
+
+<font color="#c80000">// A duration has a representation and a period.</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    The representation is an arithmetic type, or a class emulating an arithmetic type.</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//    The period is the rational number of seconds between "ticks" of the duration.  The</font>
+<font color="#c80000">//       duration simply holds a count of the elapsed number of ticks (using the</font>
+<font color="#c80000">//       representation), and that is related to seconds by multiplying by the period.</font>
+<font color="#c80000">//       Note, this multiplication is only required when one needs to convert between</font>
+<font color="#c80000">//       durations with different tick periods (e.g. milliseconds to microseconds).</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A duration has defalt construction and default copy semantics.  One can also explicitly</font>
+<font color="#c80000">//       construct a duration from its representation or something implicitly convertible to</font>
+<font color="#c80000">//       its representation.  If the representation is integral (or emulated integral) the</font>
+<font color="#c80000">//       duration may not be constructed from a floating point (or emulated floating point)</font>
+<font color="#c80000">//       type, even if that type is impilcitly convertible to the representation (the client</font>
+<font color="#c80000">//       must explicitly convert such an argument as they pass it to the constructor if such</font>
+<font color="#c80000">//       a conversion is desired).</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A duration may be implicitly constructible from another duration if the representations</font>
+<font color="#c80000">//       of the two durations meet certain requirements.  Let the representation of this duration</font>
+<font color="#c80000">//       be Rep1 and the representation of the other duration be Rep2.  Example representations</font>
+<font color="#c80000">//       include int, long long, double, or a user-defined class which emulates one of these</font>
+<font color="#c80000">//       arithmetic types.  To qualify for implicit constructability Rep1 must be explicitly</font>
+<font color="#c80000">//       constructible from Rep2.  Note that implicit constructibility of Rep1 from Rep2 is not</font>
+<font color="#c80000">//       required for this implicit construction between durations.  Additionally the trait</font>
+<font color="#c80000">//       common_type&lt;Rep1, Rep2&gt;::type must be well defined.  If a conditional expression involving</font>
+<font color="#c80000">//       these two types isn't valid, there must exist a common_type specialization which makes</font>
+<font color="#c80000">//       the trait valid.</font>
+<font color="#c80000">//       </font>
+<font color="#c80000">//       The requirements put on the relationship between Rep1 and Rep2 are intended to be minimal,</font>
+<font color="#c80000">//       and not require implicit conversions (which could be considered error prone by the author</font>
+<font color="#c80000">//       of either of these representations).</font>
+<font color="#c80000">//       </font>
+<font color="#c80000">//       In addition to the above relationship between the representations, implicit constructability</font>
+<font color="#c80000">//       also depends on whether the representation is considered floating point (or emulated floating</font>
+<font color="#c80000">//       point) or integral (or emulated integral).</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//       If a duration has a floating point (or emulated floating point) representation it</font>
+<font color="#c80000">//       is implicitly constructible from all other durations of any period (as long as</font>
+<font color="#c80000">//       the representations are compatible as described above).</font>
+<font color="#c80000">//       </font>
+<font color="#c80000">//       If a duration has an integral (or emulated integral) representation it is implicitly</font>
+<font color="#c80000">//       constructible from other integral-based durations which have a period which will exactly convert</font>
+<font color="#c80000">//       to the period of this duration with no truncation error.  More specifically, if the</font>
+<font color="#c80000">//       period of this duration is P1, and the period of the other duration is P2, this</font>
+<font color="#c80000">//       duration is implicitly constructible from the other duration if P2/P1 is a whole number</font>
+<font color="#c80000">//       (as long as the representations are compatible as described above).  Example:</font>
+<font color="#c80000">//       microseconds has a period p1 = 1/1000000 seconds.  milliseconds has a period</font>
+<font color="#c80000">//       P2 = 1/1000 seconds.  P2/P1 is (1/1000)/(1/1000000) = 1000000/1000 = 1000.</font>
+<font color="#c80000">//       Therefore microseconds will implicitly construct from milliseconds (but not vice-versa).</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//       These rules involving integral representations are meant to prevent accidental truncatation</font>
+<font color="#c80000">//       error.  If truncation error is desired, a duration_cast facility is available to force it.</font>
+<font color="#c80000">//       Example:</font>
+<font color="#c80000">//          milliseconds ms(3);                    // ok, ms.count() == 3,    which is 0.003    seconds</font>
+<font color="#c80000">//          microseconds us = ms;                  // ok, us.count() == 3000  which is 0.003000 seconds</font>
+<font color="#c80000">//          ++us;                                  // ok, us.count() == 3001  which is 0.003001 seconds</font>
+<font color="#c80000">//          ms = us;                               // won't compile, might truncate</font>
+<font color="#c80000">//          ms = duration_cast&lt;milliseconds&gt;(us);  // ok, ms.count() = 3, truncated a microsecond</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A duration has a single observer:  rep count() const; which returns the stored</font>
+<font color="#c80000">//       representation which holds the number of elapsed "ticks".</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A duration supports the following member arithmetic:</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//       duration  operator+() const;</font>
+<font color="#c80000">//       duration  operator-() const;</font>
+<font color="#c80000">//       duration&amp; operator++();</font>
+<font color="#c80000">//       duration  operator++(int);</font>
+<font color="#c80000">//       duration&amp; operator--();</font>
+<font color="#c80000">//       duration  operator--(int);</font>
+<font color="#c80000">//       </font>
+<font color="#c80000">//       duration&amp; operator+=(duration d);</font>
+<font color="#c80000">//       duration&amp; operator-=(duration d);</font>
+<font color="#c80000">//       </font>
+<font color="#c80000">//       duration&amp; operator*=(rep rhs);</font>
+<font color="#c80000">//       duration&amp; operator/=(rep rhs);</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//       The arithmetic simply manipulates the "tick" count in the obvious way (e.g. operator++</font>
+<font color="#c80000">//       increments the tick count by 1).</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A duration supports the following non-member arithmetic.</font>
+<font color="#c80000">//       Let D1 represent duration&lt;Rep1, Period1&gt; and D2 represent duration&lt;Rep2, Period2&gt;.</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//       common_type&lt;D1, D2&gt;::type                             operator+(  D1,   D2); // returns a duration</font>
+<font color="#c80000">//       common_type&lt;D1, D2&gt;::type                             operator-(  D1,   D2); // returns a duration</font>
+<font color="#c80000">//       duration&lt;common_type&lt;D1::rep,Rep2&gt;::type, D1::period&gt; operator*(  D1, Rep2); // returns a duration</font>
+<font color="#c80000">//       duration&lt;common_type&lt;D1::rep,Rep2&gt;::type, D1::period&gt; operator*(Rep2,   D1); // returns a duration</font>
+<font color="#c80000">//       duration&lt;common_type&lt;D1::rep,Rep2&gt;::type, D1::period&gt; operator/(  D1, Rep2); // returns a duration</font>
+<font color="#c80000">//       common_type&lt;D1::rep, D2::rep&gt;::type                   operator/(  D1,   D2); // returns a scalar</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A duration D1 is fully equality and less-than comparable with any other duration D2, as</font>
+<font color="#c80000">//       long as common_type&lt;D1::rep, D2::rep&gt; is well defined.</font>
+<font color="#c80000">//       Example:</font>
+<font color="#c80000">//          milliseconds ms(3);    // ms.count() == 3,    which is 0.003    seconds</font>
+<font color="#c80000">//          microseconds us = ms;  // us.count() == 3000  which is 0.003000 seconds</font>
+<font color="#c80000">//          --us;                  // us.count() == 2999  which is 0.002999 seconds</font>
+<font color="#c80000">//          assert(ms != us);      // 3 milliseconds is not equal to 2999 microseconds</font>
+<font color="#c80000">//          assert(ms &gt;  us);      // 3 milliseconds is greater than 2999 microseconds</font>
+<font color="#c80000">//          ++us;                  // us.count() == 3000  which is 0.003000 seconds</font>
+<font color="#c80000">//          assert(ms == us);      // 3 milliseconds is equal to 3000 microseconds</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//    Durations based on floating point representations are subject to round off error precisely the</font>
+<font color="#c80000">//       same way their representations are.</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    Arithmetic and comparisons among integral-based durations is not subject to truncation error or</font>
+<font color="#c80000">//       round off error.  If truncation error would result from the arithmetic (say</font>
+<font color="#c80000">//       by converting a smaller period duration to a larger one) the expression will</font>
+<font color="#c80000">//       not compile (unless duration_cast is used).  If one performs arithmetic</font>
+<font color="#c80000">//       involving the duration's representation (such as division), then truncation</font>
+<font color="#c80000">//       will happen implicitly.</font>
+<font color="#c80000">//    </font>
+<font color="#c80000">//    Overflow error may silently happen with a duration.  The std-defined durations</font>
+<font color="#c80000">//       have a minimum range of +/- 292 years.</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A duration is a thin wrapper around its representation.  sizeof(duration&lt;Rep, Period&gt;) == sizeof(Rep).</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A duration can represent units as small as 10^-18 seconds (attoseconds) and as large as 10^18 seconds</font>
+<font color="#c80000">//       (about 30 billion years).  The range of a duration is based on the range of its representation</font>
+<font color="#c80000">//       combined with its period.</font>
+
+<font color="#c80000">// The cost of not including the flexibility to represent different "tick periods" in the duration</font>
+<font color="#c80000">// type would be a great loss of both flexibility, convenience and safety for the client.  For example</font>
+<font color="#c80000">// if had just one duration type which counted nanoseconds (no matter how that count was represented),</font>
+<font color="#c80000">// then clients could never have the ability to traffic in picoseconds.  And the only hope of reaching</font>
+<font color="#c80000">// beyond a +/- 292 year range with nanoseconds is to increase the number of bits in the representation</font>
+<font color="#c80000">// (such as a long long).  Furthermore, if the client wanted to traffic in units larger than a nanosecond</font>
+<font color="#c80000">// (e.g. seconds) for convience, they would likely need to set up their own conversion constants and</font>
+<font color="#c80000">// convert manually.</font>
+<font color="#c80000">//</font>
+<font color="#c80000">// If the conversion constants are specified at run time, rather than as compile time integral constants,</font>
+<font color="#c80000">// then the client suffers a significant performance penalty as for every conversion one will have to</font>
+<font color="#c80000">// perform both a multiplication and a division.  In contrast, when converting among any two units of</font>
+<font color="#c80000">// the set (hours, minutes, seconds, milliseconds, microseconds, nanoseconds), there need be only a</font>
+<font color="#c80000">// single multiplication *or* division (never both).  This proposal makes every unit conversion as</font>
+<font color="#c80000">// efficient as if it had been coded by hand (see duration_cast).  Furthermore duration_cast encapsulates</font>
+<font color="#c80000">// all unit conversions within a single uniform-syntax function which is easily used in generic code.  There</font>
+<font color="#c80000">// is no need (or motivation) to set up a "hub-and-spoke" conversion regimen, so that the number of conversion</font>
+<font color="#c80000">// functions is O(N) rather than O(N^2).</font>
+
+template &lt;class Rep, class Period = ratio&lt;1&gt;&gt;
+requires Rep is an arithmetic type, or a class emulating an arithmetic type,
+         and not an instantiation of duration
+requires Period is an instantiation of ratio and represents a positive fraction
+class duration
+{
+public:
+    typedef Rep    rep;
+    typedef Period period;
+private:
+    rep rep_;  <font color="#c80000">// exposition only</font>
+public:
+    <font color="#c80000">// construction / destruction</font>
+    duration() = default;
+    template &lt;class Rep2&gt;
+        requires is_convertible&lt;Rep2, rep&gt;::value &amp;&amp;
+                 (treat_as_floating_point&lt;rep&gt;::value ||
+                 !treat_as_floating_point&lt;rep&gt;::value &amp;&amp; !treat_as_floating_point&lt;Rep2&gt;::value)
+        explicit duration(const Rep2&amp; r);
+    ~duration() = default;
+
+    <font color="#c80000">// copy semantics</font>
+    duration(const duration&amp;) = default;
+    duration&amp; operator=(const duration&amp;) = default;
+
+    <font color="#c80000">// conversions</font>
+    template &lt;class Rep2, class Period2&gt;
+       requires Rep2 is explicitly convertible to rep &amp;&amp;
+                (treat_as_floating_point&lt;rep&gt;::value ||
+                !treat_as_floating_point&lt;Rep2&gt;::value &amp;&amp; ratio_divide&lt;Period2, period&gt;::type::den == 1)
+       duration(const duration&lt;Rep2, Period2&gt;&amp; d);
+
+    <font color="#c80000">// observer</font>
+
+    rep count() const;
+
+    <font color="#c80000">// arithmetic</font>
+
+    duration  operator+() const;
+    duration  operator-() const;
+    duration&amp; operator++();
+    duration  operator++(int);
+    duration&amp; operator--();
+    duration  operator--(int);
+
+    duration&amp; operator+=(const duration&amp; d);
+    duration&amp; operator-=(const duration&amp; d);
+
+    duration&amp; operator*=(const rep&amp; rhs);
+    duration&amp; operator/=(const rep&amp; rhs);
+
+    <font color="#c80000">// special values</font>
+
+    static constexpr duration zero();
+    static constexpr duration min();
+    static constexpr duration max();
+};
+
+<font color="#c80000">// convenience typedefs</font>
+
+typedef duration&lt;int_least64_t,        nano&gt; nanoseconds;    <font color="#c80000">// 10^-9 seconds</font>
+typedef duration&lt;int_least55_t,       micro&gt; microseconds;   <font color="#c80000">// 10^-6 seconds</font>
+typedef duration&lt;int_least45_t,       milli&gt; milliseconds;   <font color="#c80000">// 10^-3 seconds</font>
+typedef duration&lt;int_least35_t             &gt; seconds;        <font color="#c80000">//     1 second</font>
+typedef duration&lt;int_least29_t, ratio&lt;  60&gt;&gt; minutes;        <font color="#c80000">//    60 seconds</font>
+typedef duration&lt;int_least23_t, ratio&lt;3600&gt;&gt; hours;          <font color="#c80000">//  3600 seconds</font>
+
+<font color="#c80000">//   duration_cast can be used to force a conversion between two durations (assuming</font>
+<font color="#c80000">//     the source representation can be explicitly converted to the target representation).</font>
+<font color="#c80000">//     Not all integral-based durations are implicitly convertible to another (to</font>
+<font color="#c80000">//     avoid accidental truncation error).  When truncation error is desired, the client</font>
+<font color="#c80000">//     uses duration_cast to explicitly request the non-exact conversion.  When</font>
+<font color="#c80000">//     duration_cast is used to convert between durations which have an implicit conversion,</font>
+<font color="#c80000">//     the behavior and performance of the conversion using duration_cast is identical to</font>
+<font color="#c80000">//     that of the implicit conversion.</font>
+
+template &lt;class ToDuration, class Rep, class Period&gt;
+  requires ToDuration is an instantiation of duration
+  ToDuration duration_cast(const duration&lt;Rep, Period&gt;&amp; fd);
+
+<font color="#c80000">//    Examples:</font>
+<font color="#c80000">//      microseconds us(3500);                              // 3500 microseconds</font>
+<font color="#c80000">//      milliseconds ms = us;                               // Does not compile (implicit truncation)</font>
+<font color="#c80000">//      milliseconds ms = duration_cast&lt;milliseconds&gt;(us);  // 3 milliseconds   (explicit truncation)</font>
+<font color="#c80000">//      us = ms;                                            // 3000 microseconds</font>
+<font color="#c80000">//      us = duration_cast&lt;microseconds&gt;(ms);               // 3000 microseconds</font>
+
+}  <font color="#c80000">// datetime</font>
+
+<font color="#c80000">//   Given two durations:  duration&lt;Rep1, Period1&gt; and duration&lt;Rep2, Period2&gt;, the common_type</font>
+<font color="#c80000">//     of those two durations is a duration with a representation of common_type&lt;Rep1, Rep2&gt;,</font>
+<font color="#c80000">//     and a period which is the "greatest common period" of Period1 and Period2.  The GCP</font>
+<font color="#c80000">//     (Greatest Common Period) of Period1 and Period2 is the largest period which will divide</font>
+<font color="#c80000">//     both Period1 and Period2 evenly (and is often equivalent to the minimum of Period1 and</font>
+<font color="#c80000">//     Period2).  This can be computed (by the implementation at compile time) by</font>
+<font color="#c80000">//     GCD(Period1::num, Period2::num) / LCM(Period1::den, Period2::den) where GCD is</font>
+<font color="#c80000">//     "Greatest Common Divisor" and LCM is "Least Common Multiple".</font>
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+struct common_type&lt;datetime::duration&lt;Rep1, Period1&gt;, datetime::duration&lt;Rep2, Period2&gt; &gt;
+{
+    typedef datetime::duration&lt;typename common_type&lt;Rep1, Rep2&gt;::type,
+                       ratio&lt;GCD(Period1::num, Period2::num), LCM(Period1::den, Period2::den)&gt;&gt; type;
+};
+
+<font color="#c80000">// Note:  For any two durations D1 and D2, they will both exactly convert to common_type&lt;D1, D2&gt;::type.</font>
+<font color="#c80000">//   common_type&lt;D1, D2&gt;::type will have the largest possible period to make this possible, and</font>
+<font color="#c80000">//   may be the same type as D1 or D2.  Examples:</font>
+<font color="#c80000">//        common_type&lt;minutes,      microseconds&gt;::type is microseconds.</font>
+<font color="#c80000">//        common_type&lt;milliseconds, microseconds&gt;::type is microseconds.</font>
+<font color="#c80000">//        common_type&lt;nanoseconds,  microseconds&gt;::type is nanoseconds.</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//    A more complex example:</font>
+<font color="#c80000">//        common_type&lt; duration&lt;long, milli&gt;, duration&lt;int, ratio&lt;1,30&gt;&gt; &gt;::type is</font>
+<font color="#c80000">//        duration&lt;long, ratio&lt;1,3000&gt;&gt;.  And both duration&lt;long, milli&gt; and </font>
+<font color="#c80000">//        duration&lt;int, ratio&lt;1,30&gt;&gt; will exactly convert to duration&lt;long, ratio&lt;1,3000&gt;&gt;.</font>
+<font color="#c80000">//        The former multitplies its representation by 3L and the latter converts its</font>
+<font color="#c80000">//        representation to long and multiplies that result by 1000L.  There exists no</font>
+<font color="#c80000">//        duration with a larger period such that both duration&lt;long, milli&gt; and</font>
+<font color="#c80000">//        duration&lt;int, ratio&lt;1,30&gt;&gt; will exactly convert to it.</font>
+
+namespace datetime {
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+   bool operator==(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs);
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+   bool operator!=(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs);
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+   bool operator&lt; (const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs);
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+   bool operator&lt;=(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs);
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+   bool operator&gt; (const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs);
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+   bool operator&gt;=(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs);
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+  typename common_type&lt;duration&lt;Rep1, Period1&gt;, duration&lt;Rep2, Period2&gt; &gt;::type
+  operator+(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs);
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+  typename common_type&lt;duration&lt;Rep1, Period1&gt;, duration&lt;Rep2, Period2&gt; &gt;::type
+  operator-(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs);
+
+template &lt;class Rep1, class Period, class Rep2&gt;
+  requires Constructible&lt;Rep1, typename common_type&lt;Rep1, Rep2&gt;::type&gt;::value&gt; &amp;&amp;
+           Constructible&lt;Rep2, typename common_type&lt;Rep1, Rep2&gt;::type&gt;::value&gt;
+  duration&lt;typename common_type&lt;Rep1, Rep2&gt;::type, Period&gt;
+  operator*(const duration&lt;Rep, Period&gt;&amp; d, const Rep2&amp; s);
+
+template &lt;class Rep1, class Period, class Rep2&gt;
+  requires Constructible&lt;Rep1, typename common_type&lt;Rep1, Rep2&gt;::type&gt;::value&gt; &amp;&amp;
+           Constructible&lt;Rep2, typename common_type&lt;Rep1, Rep2&gt;::type&gt;::value&gt;
+  duration&lt;typename common_type&lt;Rep1, Rep2&gt;::type, Period&gt;
+  operator*(const Rep2&amp; s, const duration&lt;Rep, Period&gt;&amp; d);
+
+template &lt;class Rep1, class Period, class Rep2&gt;
+  requires Rep2 is not a duration &amp;&amp;
+           Constructible&lt;Rep1, typename common_type&lt;Rep1, Rep2&gt;::type&gt;::value&gt; &amp;&amp;
+           Constructible&lt;Rep2, typename common_type&lt;Rep1, Rep2&gt;::type&gt;::value&gt;
+  duration&lt;typename common_type&lt;Rep1, Rep2&gt;::type, Period&gt;
+  operator/(const duration&lt;Rep, Period&gt;&amp; d, const Rep2&amp; s);
+
+<font color="#c80000">// Note: the above 3 signatures can be approximated with is_convertible if concepts do not</font>
+<font color="#c80000">//   make it into the language.  Requiring only *explicit* convertibility between the Rep</font>
+<font color="#c80000">//   types is strongly desired.  One way or another, Rep2 must be constrained.  Otherwise</font>
+<font color="#c80000">//   the operators are overly generic.</font>
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+  typename common_type&lt;Rep1, Rep2&gt;::type
+  operator/(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs);
+
+<font color="#c80000">// time_point</font>
+
+<font color="#c80000">// A time_point represents an epoch plus or minus a duration.  The relationship between a time_point</font>
+<font color="#c80000">//    which represents "now" and the time_point's epoch is obtained via a clock.  Each time_point is</font>
+<font color="#c80000">//    tied to a specific clock.  Thus, for any time_point, one can find the duration between that</font>
+<font color="#c80000">//    point in time and now, and between that point in time, and its epoch.</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A time_point may be default constructed.  This time_point represents the epoch.  time_point has</font>
+<font color="#c80000">//       default copy semantics.</font>
+<font color="#c80000">//    </font>
+<font color="#c80000">//       time_point may be explicitly constructed by a duration having the same representation and period as</font>
+<font color="#c80000">//       the time_point.  Any other duration which is implicitly convertible to the time_point's "native" duration can</font>
+<font color="#c80000">//       also be used to explicitly construct the time_point.  The meaning of this construction is identical to</font>
+<font color="#c80000">//       time_point() + d.</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//       A time_point is implicitly constructible from another time_point if they share the same clock,</font>
+<font color="#c80000">//       and the duration of this time_point is implicitly constructible from the duration of the other</font>
+<font color="#c80000">//       time_point.  A time_point constructed in this fashion will compare equal to the source time_point</font>
+<font color="#c80000">//       after the construction.</font>
+<font color="#c80000">//    </font>
+<font color="#c80000">//    A time_point supports the following member arithmetic:</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//       time_point&amp; operator+=(duration d);</font>
+<font color="#c80000">//       time_point&amp; operator-=(duration d);</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A time_point supports the following non-member arithmetic.</font>
+<font color="#c80000">//       Let T1 represent time_point&lt;Clock, Duration1&gt;,</font>
+<font color="#c80000">//       T2 represent time_point&lt;Clock, Duration2&gt;,</font>
+<font color="#c80000">//       and D represent duration&lt;Rep3, Period3&gt;.  Note that T1 and T2 must have the same Clock.</font>
+<font color="#c80000">//       Attempts to interoperate times having different clocks results in a compile time failure.</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//       T2 operator+(T1,  D);  // return type is a time_point</font>
+<font color="#c80000">//       T2 operator+( D, T1);  // return type is a time_point</font>
+<font color="#c80000">//       T2 operator-(T1,  D);  // return type is a time_point</font>
+<font color="#c80000">//       D  operator-(T1, T2);  // return type is a duration</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A time_point T1 is fully equality and less-than comparable with any other time_point T2 which</font>
+<font color="#c80000">//       has the same clock, and for which their durations are comparable.</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    Times based on floating point representations are subject to round off error precisely the</font>
+<font color="#c80000">//       same way their representations are.</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    Times based on integral representations are not subject to truncation error or round off</font>
+<font color="#c80000">//       error.  A compile time error will result if truncation error is possible.  Truncation error</font>
+<font color="#c80000">//       is only possible with construction or the member arithmetic (and won't compile).  Non-member</font>
+<font color="#c80000">//       arithmetic and comparison is always exact.  Overflow error with integral based times remains a</font>
+<font color="#c80000">//       possibility.</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A time_point is a thin wrapper around its representation.</font>
+<font color="#c80000">//        sizeof(time_point&lt;Clock, Duration&gt;) == sizeof(Duration) == sizeof(Duration::rep).</font>
+<font color="#c80000">// </font>
+<font color="#c80000">//    A time_point can represent units as small as 10^-18 seconds and as large as 10^18 seconds.  The range</font>
+<font color="#c80000">//       of a time_point is based on the range of its representation combined with its period.</font>
+<font color="#c80000">//</font>
+<font color="#c80000">//    Because no two clocks report the exact same time, even clocks which nominally have the same</font>
+<font color="#c80000">//       epoch, are considered by this framework to have different epochs, if only by a few nanoseconds.</font>
+<font color="#c80000">//       Converting time_points from one clock to another will involve synchronization of the clocks,</font>
+<font color="#c80000">//       which can be viewed as a synchronization of their epochs.  Such synchronization is clock specific</font>
+<font color="#c80000">//       and beyond the scope of this API.  A future API, or a platform specific API, can easily</font>
+<font color="#c80000">//       write such a synchronization API, basing it on this API.</font>
+
+<font color="#c80000">// The cost of not including a time_point class is the lack of the ability to safely interact with</font>
+<font color="#c80000">// the concept of "epoch + duration".  Without a separate type, the client is in danger of accidently</font>
+<font color="#c80000">// writing code that boils down to "epoch1 + duration1" + "epoch2 + duration2".  Algebraically this</font>
+<font color="#c80000">// results in epoch1+epoch2 as a subexpression which is likely to be completely without meaning.  What</font>
+<font color="#c80000">// would it mean to add New Years 1970 to the point in time at which your computer booted up?  Or for</font>
+<font color="#c80000">// that matter, what is the meaning of "New Years 1970" + "New Years 1970"?</font>
+<font color="#c80000">//</font>
+<font color="#c80000">// Additionally this would force the duration type to play double duty as a time_point leading to</font>
+<font color="#c80000">// client confusion.  For example POSIX has timespec represent a duration in nanosleep, and yet the</font>
+<font color="#c80000">// same type is used as a time_point in pthread_cond_timedwait and pthread_mutex_timedlock.  The</font>
+<font color="#c80000">// confusion seems even more likely with a function such as clock_nanosleep where timespec can mean</font>
+<font color="#c80000">// either a duration or a time_point depending upon another argument to the function.</font>
+<font color="#c80000">//</font>
+<font color="#c80000">// In C++ we can easily mitigate such errors by detecting them at compile time.  This is done through</font>
+<font color="#c80000">// the use of distinct types for these distinct concepts (even though both types have identical layout!).</font>
+
+template &lt;class Clock, class Duration = typename Clock::duration&gt;
+requires Duration is an instantiation of duration
+class time_point
+{
+public:
+    typedef Clock                     clock;
+    typedef Duration                  duration;
+    typedef typename duration::rep    rep;
+    typedef typename duration::period period;
+private:
+    duration d_;  <font color="#c80000">// exposition only</font>
+
+public:
+    time_point();  <font color="#c80000">// has value "epoch"</font>
+    explicit time_point(const duration&amp; d);  <font color="#c80000">// same as time_point() + d</font>
+
+    <font color="#c80000">// conversions</font>
+    template &lt;class Duration2&gt;
+       requires Convertible&lt;Duration2, duration&gt;
+       time_point(const time_point&lt;clock, Duration2&gt;&amp; t);
+
+    <font color="#c80000">// observer</font>
+
+    duration time_since_epoch() const;
+
+    <font color="#c80000">// arithmetic</font>
+
+    time_point&amp; operator+=(const duration&amp; d);
+    time_point&amp; operator-=(const duration&amp; d);
+
+    <font color="#c80000">// special values</font>
+
+    static time_point min();
+    static time_point max();
+};
+
+}  <font color="#c80000">// datetime</font>
+
+template &lt;class Clock, class Duration1, class Duration2&gt;
+struct common_type&lt;datetime::time_point&lt;Clock, Duration1&gt;, datetime::time_point&lt;Clock, Duration2&gt; &gt;
+{
+    typedef datetime::time_point&lt;Clock, typename common_type&lt;Duration1, Duration2&gt;::type&gt; type;
+};
+
+namespace datetime {
+
+template &lt;class ToDuration, class Clock, class Duration&gt;
+  time_point&lt;Clock, ToDuration&gt; time_point_cast(const time_point&lt;Clock, Duration&gt;&amp; t);
+
+template &lt;class Clock, class Duration1, class Duration2&gt;
+   bool operator==(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs);
+template &lt;class Clock, class Duration1, class Duration2&gt;
+   bool operator!=(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs);
+template &lt;class Clock, class Duration1, class Duration2&gt;
+   bool operator&lt; (const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs);
+template &lt;class Clock, class Duration1, class Duration2&gt;
+   bool operator&lt;=(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs);
+template &lt;class Clock, class Duration1, class Duration2&gt;
+   bool operator&gt; (const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs);
+template &lt;class Clock, class Duration1, class Duration2&gt;
+   bool operator&gt;=(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs);
+
+template &lt;class Clock, class Duration1, class Rep2, class Period2&gt;
+  time_point&lt;Clock, typename common_type&lt;Duration1, duration&lt;Rep2, Period2&gt; &gt;::type&gt;
+  operator+(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs);
+
+template &lt;class Rep1, class Period1, class Clock, class Duration2&gt;
+  time_point&lt;Clock, typename common_type&lt;duration&lt;Rep1, Period1&gt;, Duration2&gt;::type&gt;
+  operator+(const duration&lt;Rep1, Period1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs);
+
+template &lt;class Clock, class Duration1, class Rep2, class Period2&gt;
+  time_point&lt;Clock, typename common_type&lt;Duration1, duration&lt;Rep2, Period2&gt; &gt;::type&gt;
+  operator-(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs);
+
+template &lt;class Clock, class Duration1, class Duration2&gt;
+  typename common_type&lt;Duration1, Duration2&gt;::type
+  operator-(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs);
+
+<font color="#c80000">// clocks</font>
+
+<font color="#c80000">// A clock specifies a representation, and a period.  These specifications are used to</font>
+<font color="#c80000">//    to define a clock's native duration and time_point types.  A clock also has a function to get the current</font>
+<font color="#c80000">//    time_point.  A clock need not have any state.</font>
+
+<font color="#c80000">// The cost of not including separate types for clocks is that there is no better place to</font>
+<font color="#c80000">// bundle the "native" duration and time_point types for a clock with the functionality to</font>
+<font color="#c80000">// get the current time_point (what time is it now?).  By bundling this information into a</font>
+<font color="#c80000">// type, the extension to support multiple clocks is both easy and obvious.  The ability to</font>
+<font color="#c80000">// easily support multiple clocks in such a flexible yet simple and efficient manner is</font>
+<font color="#c80000">// very important.  A client might (for example) write code with the clock as a generic</font>
+<font color="#c80000">// template parameter, and then easily experiment with different timers.</font>
+
+class system_clock
+{
+public:
+    typedef &lt;unspecified&gt;                      rep;
+    typedef ratio&lt;unspecified, unspecified&gt;    period;
+    typedef datetime::duration&lt;rep, period&gt;    duration;
+    typedef datetime::time_point&lt;system_clock&gt; time_point;
+    static const bool is_mononontic = &lt;unspecified&gt;;
+
+    static time_point now();
+
+    <font color="#c80000">// Map to C API</font>
+    static time_t      to_time_t  (const time_point&amp; t);
+    static time_point  from_time_t(time_t t);
+};
+
+class monotonic_clock  <font color="#c80000">// optional</font>
+{
+public:
+    typedef &lt;unspecified&gt;                         rep;
+    typedef ratio&lt;unspecified, unspecified&gt;       period;
+    typedef datetime::duration&lt;rep, period&gt;       duration;
+    typedef datetime::time_point&lt;monotonic_clock&gt; time_point;
+    static const bool is_mononontic = true;
+
+    static time_point now();
+};
+
+class high_resolution_clock  <font color="#c80000">// optional</font>
+{
+public:
+    typedef &lt;unspecified&gt;                               rep;
+    typedef ratio&lt;unspecified, unspecified&gt;             period;
+    typedef datetime::duration&lt;rep, period&gt;             duration;
+    typedef datetime::time_point&lt;high_resolution_clock&gt; time_point;
+    static const bool is_mononontic = &lt;unspecified&gt;;
+
+    static time_point now();
+};
+
+<font color="#c80000">// Note: These clocks may be three separate types, or typedefs to one or two common types.</font>
+
+}  <font color="#c80000">// datetime</font>
+
+<font color="#c80000">//////////////////////////</font>
+<font color="#c80000">//  Threading interface //</font>
+<font color="#c80000">//////////////////////////</font>
+
+<font color="#c80000">// timed_mutex</font>
+
+struct timed_mutex
+{
+public:
+    timed_mutex();
+    ~timed_mutex();
+
+    timed_mutex(const timed_mutex&amp;) = delete;
+    timed_mutex&amp; operator=(const timed_mutex&amp;) = delete;
+
+    void lock();
+    bool try_lock();
+    template &lt;class Rep, class Period&gt;
+        bool try_lock_for(const datetime::duration&lt;Rep, Period&gt;&amp; rel_time);
+    template &lt;class Clock, class Duration&gt;
+        bool try_lock_until(const datetime::time_point&lt;Clock, Duration&gt;&amp; abs_time);
+    void unlock();
+
+    typedef unspecified native_handle_type;  <font color="#c80000">// optional.  example: pthread_mutex_t*</font>
+    native_handle_type native_handle();      <font color="#c80000">// optional</font>
+};
+
+<font color="#c80000">// recursive_timed_mutex</font>
+
+struct recursive_timed_mutex
+{
+public:
+    recursive_timed_mutex();
+    ~recursive_timed_mutex();
+
+    recursive_timed_mutex(const recursive_timed_mutex&amp;) = delete;
+    recursive_timed_mutex&amp; operator=(const recursive_timed_mutex&amp;) = delete;
+
+    void lock();
+    bool try_lock();
+    template &lt;class Rep, class Period&gt;
+        bool try_lock_for(const datetime::duration&lt;Rep, Period&gt;&amp; rel_time);
+    template &lt;class Clock, class Duration&gt;
+        bool try_lock_until(const datetime::time_point&lt;Clock, Duration&gt;&amp; abs_time);
+    void unlock();
+
+    typedef unspecified native_handle_type;  <font color="#c80000">// optional.  example: pthread_mutex_t*</font>
+    native_handle_type native_handle();      <font color="#c80000">// optional</font>
+};
+
+<font color="#c80000">// unique_lock</font>
+
+template &lt;class Mutex&gt;
+class unique_lock
+{
+public:
+    typedef Mutex mutex_type;
+
+    unique_lock();
+    explicit unique_lock(mutex_type&amp; m);
+    unique_lock(mutex_type&amp; m, defer_lock_t);
+    unique_lock(mutex_type&amp; m, try_to_lock_t);
+    unique_lock(mutex_type&amp; m, adopt_lock_t);
+    template &lt;class Rep, class Period&gt;
+        unique_lock(mutex_type&amp; m, const datetime::duration&lt;Rep, Period&gt;&amp; rel_t);
+    template &lt;class Clock, class Duration&gt;
+        unique_lock(mutex_type&amp; m, const datetime::time_point&lt;Clock, Duration&gt;&amp; abs_time);
+    ~unique_lock();
+
+    unique_lock(unique_lock const&amp;) = delete;
+    unique_lock&amp; operator=(unique_lock const&amp;) = delete;
+
+    unique_lock(unique_lock&amp;&amp; u);
+    unique_lock&amp; operator=(unique_lock&amp;&amp; u);
+
+    void lock();
+    bool try_lock();
+    template &lt;class Rep, class Period&gt;
+        bool try_lock_for(const datetime::duration&lt;Rep, Period&gt;&amp; rel_t);
+    template &lt;class Clock, class Duration&gt;
+        bool try_lock_until(const datetime::time_point&lt;Clock, Duration&gt;&amp; abs_time);
+    void unlock();
+
+    bool owns_lock() const;
+    operator unspecified-bool-type () const;
+    mutex_type* mutex() const;
+
+    void swap(unique_lock&amp;&amp; u);
+    mutex_type* release();
+};
+
+<font color="#c80000">// condition_variable</font>
+
+class condition_variable
+{
+public:
+   
+    condition_variable();
+    ~condition_variable();
+
+    condition_variable(const condition_variable&amp;) = delete;
+    condition_variable&amp; operator=(const condition_variable&amp;) = delete;
+
+    void notify_one();
+    void notify_all();
+
+    void wait(unique_lock&lt;mutex&gt;&amp; lock);
+    template &lt;class Predicate&gt;
+        void wait(unique_lock&lt;mutex&gt;&amp; lock, Predicate pred);
+
+    template &lt;class Clock, class Duration&gt;
+        bool wait_until(unique_lock&lt;mutex&gt;&amp; lock,
+                        const datetime::time_point&lt;Clock, Duration&gt;&amp; abs_time);
+    template &lt;class Clock, class Duration, class Predicate&gt;
+        bool wait_until(unique_lock&lt;mutex&gt;&amp; lock,
+                        const datetime::time_point&lt;Clock, Duration&gt;&amp; abs_time,
+                        Predicate pred);
+
+    template &lt;class Rep, class Period&gt;
+        bool wait_for(unique_lock&lt;mutex&gt;&amp; lock, const datetime::duration&lt;Rep, Period&gt;&amp; rel_time);
+    template &lt;class Rep, class Period, class Predicate&gt;
+        bool wait_for(unique_lock&lt;mutex&gt;&amp; lock,  const datetime::duration&lt;Rep, Period&gt;&amp; rel_time,
+                      Predicate pred);
+
+    typedef pthread_cond_t* native_handle_type;
+    native_handle_type native_handle();
+};
+
+<font color="#c80000">// condition_variable_any</font>
+
+class condition_variable_any
+{
+public:
+   
+    condition_variable_any();
+    ~condition_variable_any();
+
+    condition_variable_any(const condition_variable_any&amp;) = delete;
+    condition_variable_any&amp; operator=(const condition_variable_any&amp;) = delete;
+
+    void notify_one();
+    void notify_all();
+
+    template &lt;class Lock&gt;
+        void wait(Lock&amp; lock);
+    template &lt;class Lock, class Predicate&gt;
+        void wait(Lock&amp; lock, Predicate pred);
+
+    template &lt;class Lock, class Clock, class Duration&gt;
+        bool wait_until(Lock&amp; lock, const datetime::time_point&lt;Clock, Duration&gt;&amp; abs_time);
+    template &lt;class Lock, class Clock, class Duration, class Predicate&gt;
+        bool wait_until(Lock&amp; lock, const datetime::time_point&lt;Clock, Duration&gt;&amp; abs_time,
+                        Predicate pred);
+
+    template &lt;class Lock, class Rep, class Period&gt;
+        bool wait_for(Lock&amp; lock, const datetime::duration&lt;Rep, Period&gt;&amp; rel_time);
+    template &lt;class Lock, class Rep, class Period, class Predicate&gt;
+        bool wait_for(Lock&amp; lock, const datetime::duration&lt;Rep, Period&gt;&amp; rel_time, Predicate pred);
+};
+
+<font color="#c80000">// sleep</font>
+
+namespace this_thread
+{
+
+    template &lt;class Rep, class Period&gt;
+        void sleep_for(const datetime::duration&lt;Rep, Period&gt;&amp; rel_time);
+
+    template &lt;class Clock, class Duration&gt;
+        void sleep_until(const datetime::time_point&lt;Clock, Duration&gt;&amp; abs_time);
+
+}  <font color="#c80000">// this_thread</font>
+
+}  <font color="#c80000">// std</font>
+
+*/</font>
+
+#include &lt;ctime&gt;
+#include &lt;climits&gt;
+#include &lt;inttypes.h&gt;
+#include &lt;limits&gt;
+#include "type_traits"
+
+#define decltype __typeof__
+
+namespace std
+{
+
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+<font color="#c80000">////////////////////// common_type ///////////////////////</font>
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+
+#define VARIADIC_COMMON_TYPE 0
+
+#if VARIADIC_COMMON_TYPE == 0
+
+template &lt;class T, class U&gt;
+struct common_type
+{
+private:
+    static T t();
+    static U u();
+public:
+    typedef decltype(true ? t() : u()) type;
+};
+
+#else
+
+template &lt;class ...T&gt; struct common_type;
+
+template &lt;class T&gt;
+struct common_type&lt;T&gt;
+{
+    typedef T type;
+};
+
+template &lt;class T, class U&gt;
+struct common_type&lt;T, U&gt;
+{
+private:
+    static T t();
+    static U u();
+public:
+    typedef decltype(true ? t() : u()) type;
+};
+
+template &lt;class T, class U, class ...V&gt;
+struct common_type&lt;T, U, V...&gt;
+{
+    typedef typename common_type&lt;typename common_type&lt;T, U&gt;::type, V...&gt;::type type;
+};
+
+#endif
+
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+<font color="#c80000">/////////////////////// ratio ////////////////////////////</font>
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+
+<font color="#c80000">// __static_gcd</font>
+
+template &lt;intmax_t X, intmax_t Y&gt;
+struct __static_gcd
+{
+    static const intmax_t value = __static_gcd&lt;Y, X % Y&gt;::value;
+};
+
+template &lt;intmax_t X&gt;
+struct __static_gcd&lt;X, 0&gt;
+{
+    static const intmax_t value = X;
+};
+
+<font color="#c80000">// __static_lcm</font>
+
+template &lt;intmax_t X, intmax_t Y&gt;
+struct __static_lcm
+{
+    static const intmax_t value = X / __static_gcd&lt;X, Y&gt;::value * Y;
+};
+
+template &lt;intmax_t X&gt;
+struct __static_abs
+{
+    static const intmax_t value = X &lt; 0 ? -X : X;
+};
+
+template &lt;intmax_t X&gt;
+struct __static_sign
+{
+    static const intmax_t value = X == 0 ? 0 : (X &lt; 0 ? -1 : 1);
+};
+
+template &lt;intmax_t X, intmax_t Y, intmax_t = __static_sign&lt;Y&gt;::value&gt;
+class __ll_add;
+
+template &lt;intmax_t X, intmax_t Y&gt;
+class __ll_add&lt;X, Y, 1&gt;
+{
+    static const intmax_t min = (1LL &lt;&lt; (sizeof(intmax_t) * CHAR_BIT - 1)) + 1;
+    static const intmax_t max = -min;
+
+    static char test[X &lt;= max - Y];
+<font color="#c80000">//    static_assert(X &lt;= max - Y, "overflow in __ll_add");</font>
+public:
+    static const intmax_t value = X + Y;
+};
+
+template &lt;intmax_t X, intmax_t Y&gt;
+class __ll_add&lt;X, Y, 0&gt;
+{
+public:
+    static const intmax_t value = X;
+};
+
+template &lt;intmax_t X, intmax_t Y&gt;
+class __ll_add&lt;X, Y, -1&gt;
+{
+    static const intmax_t min = (1LL &lt;&lt; (sizeof(intmax_t) * CHAR_BIT - 1)) + 1;
+    static const intmax_t max = -min;
+
+    static char test[min - Y &lt;= X];
+<font color="#c80000">//    static_assert(min - Y &lt;= X, "overflow in __ll_add");</font>
+public:
+    static const intmax_t value = X + Y;
+};
+
+template &lt;intmax_t X, intmax_t Y, intmax_t = __static_sign&lt;Y&gt;::value&gt;
+class __ll_sub;
+
+template &lt;intmax_t X, intmax_t Y&gt;
+class __ll_sub&lt;X, Y, 1&gt;
+{
+    static const intmax_t min = (1LL &lt;&lt; (sizeof(intmax_t) * CHAR_BIT - 1)) + 1;
+    static const intmax_t max = -min;
+
+    static char test[min + Y &lt;= X];
+<font color="#c80000">//    static_assert(min + Y &lt;= X, "overflow in __ll_sub");</font>
+public:
+    static const intmax_t value = X - Y;
+};
+
+template &lt;intmax_t X, intmax_t Y&gt;
+class __ll_sub&lt;X, Y, 0&gt;
+{
+public:
+    static const intmax_t value = X;
+};
+
+template &lt;intmax_t X, intmax_t Y&gt;
+class __ll_sub&lt;X, Y, -1&gt;
+{
+    static const intmax_t min = (1LL &lt;&lt; (sizeof(intmax_t) * CHAR_BIT - 1)) + 1;
+    static const intmax_t max = -min;
+
+    static char test[X &lt;= max + Y];
+<font color="#c80000">//    static_assert(X &lt;= max + Y, "overflow in __ll_sub");</font>
+public:
+    static const intmax_t value = X - Y;
+};
+
+template &lt;intmax_t X, intmax_t Y&gt;
+class __ll_mul
+{
+    static const intmax_t nan = (1LL &lt;&lt; (sizeof(intmax_t) * CHAR_BIT - 1));
+    static const intmax_t min = nan + 1;
+    static const intmax_t max = -min;
+    static const intmax_t __a_x = __static_abs&lt;X&gt;::value;
+    static const intmax_t __a_y = __static_abs&lt;Y&gt;::value;
+
+    static char test1[X != nan];
+    static char test2[Y != nan];
+    static char test[__a_x &lt;= max / __a_y];
+<font color="#c80000">//    static_assert(X != nan &amp;&amp; Y != nan &amp;&amp; __a_x &lt;= max / __a_y, "overflow in __ll_mul");</font>
+public:
+    static const intmax_t value = X * Y;
+};
+
+template &lt;intmax_t Y&gt;
+class __ll_mul&lt;0, Y&gt;
+{
+public:
+    static const intmax_t value = 0;
+};
+
+template &lt;intmax_t X&gt;
+class __ll_mul&lt;X, 0&gt;
+{
+public:
+    static const intmax_t value = 0;
+};
+
+template &lt;&gt;
+class __ll_mul&lt;0, 0&gt;
+{
+public:
+    static const intmax_t value = 0;
+};
+
+<font color="#c80000">// Not actually used but left here in case needed in future maintenance</font>
+template &lt;intmax_t X, intmax_t Y&gt;
+class __ll_div
+{
+    static const intmax_t nan = (1LL &lt;&lt; (sizeof(intmax_t) * CHAR_BIT - 1));
+    static const intmax_t min = nan + 1;
+    static const intmax_t max = -min;
+
+    static char test1[X != nan];
+    static char test2[Y != nan];
+    static char test3[Y != 0];
+<font color="#c80000">//    static_assert(X != nan &amp;&amp; Y != nan &amp;&amp; Y != 0, "overflow in __ll_div");</font>
+public:
+    static const intmax_t value = X / Y;
+};
+
+template &lt;intmax_t N, intmax_t D = 1&gt;
+class ratio
+{
+    static char test1[__static_abs&lt;N&gt;::value &gt;= 0];
+    static char test2[__static_abs&lt;D&gt;::value &gt;  0];
+<font color="#c80000">//    static_assert(__static_abs&lt;N&gt;::value &gt;= 0, "ratio numerator is out of range");</font>
+<font color="#c80000">//    static_assert(D != 0, "ratio divide by 0");</font>
+<font color="#c80000">//    static_assert(__static_abs&lt;D&gt;::value &gt;  0, "ratio denominator is out of range");</font>
+    static const intmax_t __na = __static_abs&lt;N&gt;::value;
+    static const intmax_t __da = __static_abs&lt;D&gt;::value;
+    static const intmax_t __s = __static_sign&lt;N&gt;::value * __static_sign&lt;D&gt;::value;
+    static const intmax_t __gcd = __static_gcd&lt;__na, __da&gt;::value;
+public:
+    static const intmax_t num = __s * __na / __gcd;
+    static const intmax_t den = __da / __gcd;
+};
+
+template &lt;class T&gt;                  struct ___is_ratio               : tmp::false_type {};
+template &lt;intmax_t N, intmax_t D&gt; struct ___is_ratio&lt;ratio&lt;N, D&gt; &gt; : tmp::true_type  {};
+template &lt;class T&gt; struct __is_ratio : ___is_ratio&lt;typename tmp::remove_cv&lt;T&gt;::type&gt; {};
+
+typedef ratio&lt;1LL, 1000000000000000000LL&gt; atto;
+typedef ratio&lt;1LL,    1000000000000000LL&gt; femto;
+typedef ratio&lt;1LL,       1000000000000LL&gt; pico;
+typedef ratio&lt;1LL,          1000000000LL&gt; nano;
+typedef ratio&lt;1LL,             1000000LL&gt; micro;
+typedef ratio&lt;1LL,                1000LL&gt; milli;
+typedef ratio&lt;1LL,                 100LL&gt; centi;
+typedef ratio&lt;1LL,                  10LL&gt; deci;
+typedef ratio&lt;                 10LL, 1LL&gt; deca;
+typedef ratio&lt;                100LL, 1LL&gt; hecto;
+typedef ratio&lt;               1000LL, 1LL&gt; kilo;
+typedef ratio&lt;            1000000LL, 1LL&gt; mega;
+typedef ratio&lt;         1000000000LL, 1LL&gt; giga;
+typedef ratio&lt;      1000000000000LL, 1LL&gt; tera;
+typedef ratio&lt;   1000000000000000LL, 1LL&gt; peta;
+typedef ratio&lt;1000000000000000000LL, 1LL&gt; exa;
+
+template &lt;class R1, class R2&gt;
+struct ratio_add
+{
+    typedef ratio&lt;__ll_add&lt;__ll_mul&lt;R1::num, R2::den&gt;::value,
+                           __ll_mul&lt;R1::den, R2::num&gt;::value&gt;::value,
+                  __ll_mul&lt;R1::den, R2::den&gt;::value&gt; type;
+};
+
+template &lt;class R1, class R2&gt;
+struct ratio_subtract
+{
+    typedef ratio&lt;__ll_sub&lt;__ll_mul&lt;R1::num, R2::den&gt;::value,
+                           __ll_mul&lt;R1::den, R2::num&gt;::value&gt;::value,
+                  __ll_mul&lt;R1::den, R2::den&gt;::value&gt; type;
+};
+
+template &lt;class R1, class R2&gt;
+struct ratio_multiply
+{
+    typedef ratio&lt;__ll_mul&lt;R1::num, R2::num&gt;::value, __ll_mul&lt;R1::den, R2::den&gt;::value&gt; type;
+};
+
+template &lt;class R1, class R2&gt;
+struct ratio_divide
+{
+    typedef ratio&lt;__ll_mul&lt;R1::num, R2::den&gt;::value, __ll_mul&lt;R1::den, R2::num&gt;::value&gt; type;
+};
+
+<font color="#c80000">// ratio_equal</font>
+
+template &lt;class R1, class R2&gt;
+struct ratio_equal
+    : public tmp::integral_constant&lt;bool, R1::num == R2::num &amp;&amp; R1::den == R2::den&gt; {}; 
+
+template &lt;class R1, class R2&gt;
+struct ratio_not_equal
+    : public tmp::integral_constant&lt;bool, !ratio_equal&lt;R1, R2&gt;::value&gt; {}; 
+
+<font color="#c80000">// ratio_less</font>
+
+<font color="#c80000">// Protect against overflow, and still get the right answer as much as possible.</font>
+<font color="#c80000">//   This just demonstrates for fun how far you can push things without hitting</font>
+<font color="#c80000">//   overflow.  The obvious and simple implementation is conforming.</font>
+
+template &lt;class R1, class R2, bool ok1, bool ok2&gt;
+struct __ratio_less3 <font color="#c80000">// true, true and false, false</font>
+{
+    static const bool value = __ll_mul&lt;R1::num, R2::den&gt;::value &lt; __ll_mul&lt;R2::num, R1::den&gt;::value;
+};
+
+template &lt;class R1, class R2&gt;
+struct __ratio_less3&lt;R1, R2, true, false&gt;
+{
+    static const bool value = true;
+};
+
+template &lt;class R1, class R2&gt;
+struct __ratio_less3&lt;R1, R2, false, true&gt;
+{
+    static const bool value = false;
+};
+
+template &lt;class R1, class R2, bool = R1::num &lt; R1::den == R2::num &lt; R2::den&gt;
+struct __ratio_less2  <font color="#c80000">// N1 &lt; D1 == N2 &lt; D2</font>
+{
+    static const intmax_t max = -((1LL &lt;&lt; (sizeof(intmax_t) * CHAR_BIT - 1)) + 1);
+    static const bool ok1 = R1::num &lt;= max / R2::den;
+    static const bool ok2 = R2::num &lt;= max / R1::den;
+    static const bool value = __ratio_less3&lt;R1, R2, ok1, ok2&gt;::value;
+};
+
+template &lt;class R1, class R2&gt;
+struct __ratio_less2&lt;R1, R2, false&gt;  <font color="#c80000">// N1 &lt; D1 != N2 &lt; D2</font>
+{
+    static const bool value = R1::num &lt; R1::den;
+};
+
+template &lt;class R1, class R2, bool = R1::num &lt; R1::den == R2::num &lt; R2::den&gt;
+struct __ratio_less1  <font color="#c80000">// N1 &lt; D1 == N2 &lt; D2</font>
+{
+    static const bool value = __ratio_less2&lt;ratio&lt;R1::num, R2::num&gt;, ratio&lt;R1::den, R2::den&gt; &gt;::value;
+};
+
+template &lt;class R1, class R2&gt;
+struct __ratio_less1&lt;R1, R2, false&gt;  <font color="#c80000">// N1 &lt; D1 != N2 &lt; D2</font>
+{
+    static const bool value = R1::num &lt; R1::den;
+};
+
+template &lt;class R1, class R2, intmax_t S1 = __static_sign&lt;R1::num&gt;::value,
+                              intmax_t S2 = __static_sign&lt;R2::num&gt;::value&gt;
+struct __ratio_less
+{
+    static const bool value = S1 &lt; S2;
+};
+
+template &lt;class R1, class R2&gt;
+struct __ratio_less&lt;R1, R2, 1LL, 1LL&gt;
+{
+    static const bool value = __ratio_less1&lt;R1, R2&gt;::value;
+};
+
+template &lt;class R1, class R2&gt;
+struct __ratio_less&lt;R1, R2, -1LL, -1LL&gt;
+{
+    static const bool value = __ratio_less1&lt;ratio&lt;-R2::num, R2::den&gt;, ratio&lt;-R1::num, R1::den&gt; &gt;::value;
+};
+
+template &lt;class R1, class R2&gt;
+struct ratio_less
+    : public tmp::integral_constant&lt;bool, __ratio_less&lt;R1, R2&gt;::value&gt; {};
+
+template &lt;class R1, class R2&gt;
+struct ratio_less_equal
+    : public tmp::integral_constant&lt;bool, !ratio_less&lt;R2, R1&gt;::value&gt; {};
+
+template &lt;class R1, class R2&gt;
+struct ratio_greater
+    : public tmp::integral_constant&lt;bool, ratio_less&lt;R2, R1&gt;::value&gt; {};
+
+template &lt;class R1, class R2&gt;
+struct ratio_greater_equal
+    : public tmp::integral_constant&lt;bool, !ratio_less&lt;R1, R2&gt;::value&gt; {};
+
+template &lt;class R1, class R2&gt;
+struct __ratio_gcd
+{
+    typedef ratio&lt;__static_gcd&lt;R1::num, R2::num&gt;::value,
+                  __static_lcm&lt;R1::den, R2::den&gt;::value&gt; type;
+};
+
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+<font color="#c80000">////////////////////// duration //////////////////////////</font>
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+
+namespace datetime
+{
+
+template &lt;class RepType, class Period = ratio&lt;1&gt; &gt; class duration;
+
+template &lt;class T&gt;                 struct ___is_duration                         : tmp::false_type {};
+template &lt;class Rep, class Period&gt; struct ___is_duration&lt;duration&lt;Rep, Period&gt; &gt; : tmp::true_type  {};
+template &lt;class T&gt; struct __is_duration :  ___is_duration&lt;typename tmp::remove_cv&lt;T&gt;::type&gt; {};
+
+<font color="#c80000">// duration_cast</font>
+
+<font color="#c80000">// duration_cast is the heart of this whole prototype.  It can convert any</font>
+<font color="#c80000">//   duration to any other.  It is also (implicitly) used in converting</font>
+<font color="#c80000">//   time_points.  The conversion is always exact if possible.  And it is</font>
+<font color="#c80000">//   always as efficient as hand written code.  If different representations</font>
+<font color="#c80000">//   are involved, care is taken to never require implicit conversions.</font>
+<font color="#c80000">//   Instead static_cast is used explicitly for every required conversion.</font>
+<font color="#c80000">//   If there are a mixture of integral and floating point representations,</font>
+<font color="#c80000">//   the use of common_type ensures that the most logical "intermediate"</font>
+<font color="#c80000">//   representation is used.</font>
+template &lt;class FromDuration, class ToDuration,
+          class Period = typename ratio_divide&lt;typename FromDuration::period, typename ToDuration::period&gt;::type,
+          bool = Period::num == 1,
+          bool = Period::den == 1&gt;
+struct __duration_cast;
+
+<font color="#c80000">// When the two periods are the same, all that is left to do is static_cast from</font>
+<font color="#c80000">//   the source representation to the target representation (which may be a no-op).</font>
+<font color="#c80000">//   This conversion is always exact as long as the static_cast from the source</font>
+<font color="#c80000">//   representation to the destination representation is exact.</font>
+template &lt;class FromDuration, class ToDuration, class Period&gt;
+struct __duration_cast&lt;FromDuration, ToDuration, Period, true, true&gt;
+{
+    ToDuration operator()(const FromDuration&amp; fd) const
+    {
+        return ToDuration(static_cast&lt;typename ToDuration::rep&gt;(fd.count()));
+    }
+};
+
+<font color="#c80000">// When the numerator of FromPeriod / ToPeriod is 1, then all we need to do is</font>
+<font color="#c80000">//   divide by the denominator of FromPeriod / ToPeriod.  The common_type of</font>
+<font color="#c80000">//   the two representations is used for the intermediate computation before</font>
+<font color="#c80000">//   static_cast'ing to the destination.</font>
+<font color="#c80000">//   This conversion is generally not exact because of the division (but could be</font>
+<font color="#c80000">//   if you get lucky on the run time value of fd.count()).</font>
+template &lt;class FromDuration, class ToDuration, class Period&gt;
+struct __duration_cast&lt;FromDuration, ToDuration, Period, true, false&gt;
+{
+    ToDuration operator()(const FromDuration&amp; fd) const
+    {
+#if VARIADIC_COMMON_TYPE == 0
+        typedef typename common_type&lt;
+            typename common_type&lt;typename ToDuration::rep, typename FromDuration::rep&gt;::type,
+            intmax_t&gt;::type C;
+#else
+        typedef typename common_type&lt;typename ToDuration::rep, typename FromDuration::rep, intmax_t&gt;::type C;
+#endif
+        return ToDuration(static_cast&lt;typename ToDuration::rep&gt;(
+                          static_cast&lt;C&gt;(fd.count()) / static_cast&lt;C&gt;(Period::den)));
+    }
+};
+
+<font color="#c80000">// When the denomenator of FromPeriod / ToPeriod is 1, then all we need to do is</font>
+<font color="#c80000">//   multiply by the numerator of FromPeriod / ToPeriod.  The common_type of</font>
+<font color="#c80000">//   the two representations is used for the intermediate computation before</font>
+<font color="#c80000">//   static_cast'ing to the destination.</font>
+<font color="#c80000">//   This conversion is always exact as long as the static_cast's involved are exact.</font>
+template &lt;class FromDuration, class ToDuration, class Period&gt;
+struct __duration_cast&lt;FromDuration, ToDuration, Period, false, true&gt;
+{
+    ToDuration operator()(const FromDuration&amp; fd) const
+    {
+#if VARIADIC_COMMON_TYPE == 0
+        typedef typename common_type&lt;
+            typename common_type&lt;typename ToDuration::rep, typename FromDuration::rep&gt;::type,
+            intmax_t&gt;::type C;
+#else
+        typedef typename common_type&lt;typename ToDuration::rep, typename FromDuration::rep, intmax_t&gt;::type C;
+#endif
+        return ToDuration(static_cast&lt;typename ToDuration::rep&gt;(
+                          static_cast&lt;C&gt;(fd.count()) * static_cast&lt;C&gt;(Period::num)));
+    }
+};
+
+<font color="#c80000">// When neither the numerator or denominator of FromPeriod / ToPeriod is 1, then we need to</font>
+<font color="#c80000">//   multiply by the numerator and divide by the denominator of FromPeriod / ToPeriod.  The</font>
+<font color="#c80000">//   common_type of the two representations is used for the intermediate computation before</font>
+<font color="#c80000">//   static_cast'ing to the destination.</font>
+<font color="#c80000">//   This conversion is generally not exact because of the division (but could be</font>
+<font color="#c80000">//   if you get lucky on the run time value of fd.count()).</font>
+template &lt;class FromDuration, class ToDuration, class Period&gt;
+struct __duration_cast&lt;FromDuration, ToDuration, Period, false, false&gt;
+{
+    ToDuration operator()(const FromDuration&amp; fd) const
+    {
+#if VARIADIC_COMMON_TYPE == 0
+        typedef typename common_type&lt;
+            typename common_type&lt;typename ToDuration::rep, typename FromDuration::rep&gt;::type,
+            intmax_t&gt;::type C;
+#else
+        typedef typename common_type&lt;typename ToDuration::rep, typename FromDuration::rep, intmax_t&gt;::type C;
+#endif
+        return ToDuration(static_cast&lt;typename ToDuration::rep&gt;(
+                          static_cast&lt;C&gt;(fd.count()) * static_cast&lt;C&gt;(Period::num) / static_cast&lt;C&gt;(Period::den)));
+    }
+};
+
+<font color="#c80000">// Compile-time select the most efficient algorithm for the conversion...</font>
+template &lt;class ToDuration, class Rep, class Period&gt;
+inline
+typename tmp::enable_if
+&lt;
+    __is_duration&lt;ToDuration&gt;::value,
+    ToDuration
+&gt;::type
+duration_cast(const duration&lt;Rep, Period&gt;&amp; fd)
+{
+    return __duration_cast&lt;duration&lt;Rep, Period&gt;, ToDuration&gt;()(fd);
+}
+
+<font color="#c80000">// Support bidirectional (non-exact) conversions for floating point rep types</font>
+<font color="#c80000">//   (or user defined rep types which specialize treat_as_floating_point).</font>
+template &lt;class Rep&gt; struct treat_as_floating_point : tmp::is_floating_point&lt;Rep&gt; {};
+
+template &lt;class Rep&gt;
+struct duration_values
+{
+    static Rep __min_imp(tmp::false_type) {return -max();}
+    static Rep __min_imp(tmp::true_type)  {return zero();}
+public:
+    static Rep zero() {return Rep(0);}
+    static Rep max()  {return numeric_limits&lt;Rep&gt;::max();}
+    static Rep min()  {return __min_imp(tmp::is_unsigned&lt;Rep&gt;());}
+};
+
+<font color="#c80000">// duration</font>
+
+template &lt;class Rep, class Period&gt;
+class duration
+{
+    static char test0[!__is_duration&lt;Rep&gt;::value];
+<font color="#c80000">//  static_assert(!__is_duration&lt;Rep&gt;::value, "A duration representation can not be a duration");</font>
+    static char test1[__is_ratio&lt;Period&gt;::value];
+<font color="#c80000">//  static_assert(__is_ratio&lt;Period&gt;::value, "Second template parameter of duration must be a std::ratio");</font>
+    static char test2[Period::num &gt; 0];
+<font color="#c80000">//  static_assert(Period::num &gt; 0, "duration period must be positive");</font>
+public:
+    typedef Rep rep;
+    typedef Period period;
+private:
+    rep rep_;
+public:
+
+    duration() {} <font color="#c80000">// = default;</font>
+    template &lt;class Rep2&gt;
+        explicit duration(const Rep2&amp; r,
+            typename tmp::enable_if
+            &lt;
+               tmp::is_convertible&lt;Rep2, rep&gt;::value &amp;&amp;
+               (treat_as_floating_point&lt;rep&gt;::value ||
+               !treat_as_floating_point&lt;rep&gt;::value &amp;&amp; !treat_as_floating_point&lt;Rep2&gt;::value)
+            &gt;::type* = 0)
+                : rep_(r) {}
+
+    <font color="#c80000">// conversions</font>
+    template &lt;class Rep2, class Period2&gt;
+        duration(const duration&lt;Rep2, Period2&gt;&amp; d,
+            typename tmp::enable_if
+            &lt;
+                treat_as_floating_point&lt;rep&gt;::value ||
+                (ratio_divide&lt;Period2, period&gt;::type::den == 1 &amp;&amp; !treat_as_floating_point&lt;Rep2&gt;::value)
+            &gt;::type* = 0)
+                : rep_(duration_cast&lt;duration&gt;(d).count()) {}
+
+    <font color="#c80000">// observer</font>
+
+    rep count() const {return rep_;}
+
+    <font color="#c80000">// arithmetic</font>
+
+    duration  operator+() const {return *this;}
+    duration  operator-() const {return duration(-rep_);}
+    duration&amp; operator++()      {++rep_; return *this;}
+    duration  operator++(int)   {return duration(rep_++);}
+    duration&amp; operator--()      {--rep_; return *this;}
+    duration  operator--(int)   {return duration(rep_--);}
+
+    duration&amp; operator+=(const duration&amp; d) {rep_ += d.count(); return *this;}
+    duration&amp; operator-=(const duration&amp; d) {rep_ -= d.count(); return *this;}
+
+    duration&amp; operator*=(const rep&amp; rhs) {rep_ *= rhs; return *this;}
+    duration&amp; operator/=(const rep&amp; rhs) {rep_ /= rhs; return *this;}
+
+    <font color="#c80000">// special values</font>
+
+    static duration zero() {return duration(duration_values&lt;rep&gt;::zero());}
+    static duration min()  {return duration(duration_values&lt;rep&gt;::min());}
+    static duration max()  {return duration(duration_values&lt;rep&gt;::max());}
+};
+
+typedef duration&lt;long long,         nano&gt; nanoseconds;
+typedef duration&lt;long long,        micro&gt; microseconds;
+typedef duration&lt;long long,        milli&gt; milliseconds;
+typedef duration&lt;long long              &gt; seconds;
+typedef duration&lt;     long, ratio&lt;  60&gt; &gt; minutes;
+typedef duration&lt;     long, ratio&lt;3600&gt; &gt; hours;
+
+} <font color="#c80000">// datetime</font>
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+struct common_type&lt;datetime::duration&lt;Rep1, Period1&gt;, datetime::duration&lt;Rep2, Period2&gt; &gt;
+{
+    typedef datetime::duration&lt;typename common_type&lt;Rep1, Rep2&gt;::type,
+                               typename __ratio_gcd&lt;Period1, Period2&gt;::type&gt; type;
+};
+
+namespace datetime {
+
+<font color="#c80000">// Duration ==</font>
+
+template &lt;class LhsDuration, class RhsDuration&gt;
+struct __duration_eq
+{
+    bool operator()(const LhsDuration&amp; lhs, const RhsDuration&amp; rhs)
+        {
+            typedef typename common_type&lt;LhsDuration, RhsDuration&gt;::type CD;
+            return CD(lhs).count() == CD(rhs).count();
+        }
+};
+
+template &lt;class LhsDuration&gt;
+struct __duration_eq&lt;LhsDuration, LhsDuration&gt;
+{
+    bool operator()(const LhsDuration&amp; lhs, const LhsDuration&amp; rhs)
+        {return lhs.count() == rhs.count();}
+};
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+inline
+bool
+operator==(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs)
+{
+    return __duration_eq&lt;duration&lt;Rep1, Period1&gt;, duration&lt;Rep2, Period2&gt; &gt;()(lhs, rhs);
+}
+
+<font color="#c80000">// Duration !=</font>
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+inline
+bool
+operator!=(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs)
+{
+    return !(lhs == rhs);
+}
+
+<font color="#c80000">// Duration &lt;</font>
+
+template &lt;class LhsDuration, class RhsDuration&gt;
+struct __duration_lt
+{
+    bool operator()(const LhsDuration&amp; lhs, const RhsDuration&amp; rhs)
+        {
+            typedef typename common_type&lt;LhsDuration, RhsDuration&gt;::type CD;
+            return CD(lhs).count() &lt; CD(rhs).count();
+        }
+};
+
+template &lt;class LhsDuration&gt;
+struct __duration_lt&lt;LhsDuration, LhsDuration&gt;
+{
+    bool operator()(const LhsDuration&amp; lhs, const LhsDuration&amp; rhs)
+        {return lhs.count() &lt; rhs.count();}
+};
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+inline
+bool
+operator&lt; (const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs)
+{
+    return __duration_lt&lt;duration&lt;Rep1, Period1&gt;, duration&lt;Rep2, Period2&gt; &gt;()(lhs, rhs);
+}
+
+<font color="#c80000">// Duration &gt;</font>
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+inline
+bool
+operator&gt; (const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs)
+{
+    return rhs &lt; lhs;
+}
+
+<font color="#c80000">// Duration &lt;=</font>
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+inline
+bool
+operator&lt;=(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs)
+{
+    return !(rhs &lt; lhs);
+}
+
+<font color="#c80000">// Duration &gt;=</font>
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+inline
+bool
+operator&gt;=(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs)
+{
+    return !(lhs &lt; rhs);
+}
+
+<font color="#c80000">// Duration +</font>
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+inline
+typename common_type&lt;duration&lt;Rep1, Period1&gt;, duration&lt;Rep2, Period2&gt; &gt;::type
+operator+(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs)
+{
+    typename common_type&lt;duration&lt;Rep1, Period1&gt;, duration&lt;Rep2, Period2&gt; &gt;::type result = lhs;
+    result += rhs;
+    return result;
+}
+
+<font color="#c80000">// Duration -</font>
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+inline
+typename common_type&lt;duration&lt;Rep1, Period1&gt;, duration&lt;Rep2, Period2&gt; &gt;::type
+operator-(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs)
+{
+    typename common_type&lt;duration&lt;Rep1, Period1&gt;, duration&lt;Rep2, Period2&gt; &gt;::type result = lhs;
+    result -= rhs;
+    return result;
+}
+
+<font color="#c80000">// Duration *</font>
+
+template &lt;class Rep1, class Period, class Rep2&gt;
+inline
+typename tmp::enable_if
+&lt;
+    tmp::is_convertible&lt;Rep1, typename common_type&lt;Rep1, Rep2&gt;::type&gt;::value &amp;&amp;
+    tmp::is_convertible&lt;Rep2, typename common_type&lt;Rep1, Rep2&gt;::type&gt;::value,
+    duration&lt;typename common_type&lt;Rep1, Rep2&gt;::type, Period&gt;
+&gt;::type
+operator*(const duration&lt;Rep1, Period&gt;&amp; d, const Rep2&amp; s)
+{
+    typedef typename common_type&lt;Rep1, Rep2&gt;::type CR;
+    duration&lt;CR, Period&gt; r = d;
+    r *= static_cast&lt;CR&gt;(s);
+    return r;
+}
+
+template &lt;class Rep1, class Period, class Rep2&gt;
+inline
+typename tmp::enable_if
+&lt;
+    tmp::is_convertible&lt;Rep1, typename common_type&lt;Rep1, Rep2&gt;::type&gt;::value &amp;&amp;
+    tmp::is_convertible&lt;Rep2, typename common_type&lt;Rep1, Rep2&gt;::type&gt;::value,
+    duration&lt;typename common_type&lt;Rep1, Rep2&gt;::type, Period&gt;
+&gt;::type
+operator*(const Rep1&amp; s, const duration&lt;Rep2, Period&gt;&amp; d)
+{
+    return d * s;
+}
+
+<font color="#c80000">// Duration /</font>
+
+template &lt;class Duration, class Rep, bool = __is_duration&lt;Rep&gt;::value&gt;
+struct __duration_divide_result
+{
+};
+
+template &lt;class Duration, class Rep2,
+    bool = tmp::is_convertible&lt;typename Duration::rep,
+                               typename common_type&lt;typename Duration::rep, Rep2&gt;::type&gt;::value &amp;&amp;
+           tmp::is_convertible&lt;Rep2,
+                               typename common_type&lt;typename Duration::rep, Rep2&gt;::type&gt;::value&gt;
+struct __duration_divide_imp
+{
+};
+
+template &lt;class Rep1, class Period, class Rep2&gt;
+struct __duration_divide_imp&lt;duration&lt;Rep1, Period&gt;, Rep2, true&gt;
+{
+    typedef duration&lt;typename common_type&lt;Rep1, Rep2&gt;::type, Period&gt; type;
+};
+
+template &lt;class Rep1, class Period, class Rep2&gt;
+struct __duration_divide_result&lt;duration&lt;Rep1, Period&gt;, Rep2, false&gt;
+    : __duration_divide_imp&lt;duration&lt;Rep1, Period&gt;, Rep2&gt;
+{
+};
+
+template &lt;class Rep1, class Period, class Rep2&gt;
+inline
+typename __duration_divide_result&lt;duration&lt;Rep1, Period&gt;, Rep2&gt;::type
+operator/(const duration&lt;Rep1, Period&gt;&amp; d, const Rep2&amp; s)
+{
+    typedef typename common_type&lt;Rep1, Rep2&gt;::type CR;
+    duration&lt;CR, Period&gt; r = d;
+    r /= static_cast&lt;CR&gt;(s);
+    return r;
+}
+
+template &lt;class Rep1, class Period1, class Rep2, class Period2&gt;
+inline
+typename common_type&lt;Rep1, Rep2&gt;::type
+operator/(const duration&lt;Rep1, Period1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs)
+{
+    typedef typename common_type&lt;duration&lt;Rep1, Period1&gt;, duration&lt;Rep2, Period2&gt; &gt;::type CD;
+    return CD(lhs).count() / CD(rhs).count();
+}
+
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+<font color="#c80000">///////////////////// time_point /////////////////////////</font>
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+
+template &lt;class Clock, class Duration = typename Clock::duration&gt;
+class time_point
+{
+    static char test1[__is_duration&lt;Duration&gt;::value];
+<font color="#c80000">//  static_assert(__is_duration&lt;Duration&gt;::value,</font>
+<font color="#c80000">//                "Second template parameter of time_point must be a std::datetime::duration");</font>
+public:
+    typedef Clock                     clock;
+    typedef Duration                  duration;
+    typedef typename duration::rep    rep;
+    typedef typename duration::period period;
+private:
+    duration d_;
+
+public:
+    time_point() : d_(duration::zero()) {}
+    explicit time_point(const duration&amp; d) : d_(d) {}
+
+    <font color="#c80000">// conversions</font>
+    template &lt;class Duration2&gt;
+    time_point(const time_point&lt;clock, Duration2&gt;&amp; t,
+        typename tmp::enable_if
+        &lt;
+            tmp::is_convertible&lt;Duration2, duration&gt;::value
+        &gt;::type* = 0)
+            : d_(t.time_since_epoch()) {}
+
+    <font color="#c80000">// observer</font>
+
+    duration time_since_epoch() const {return d_;}
+
+    <font color="#c80000">// arithmetic</font>
+
+    time_point&amp; operator+=(const duration&amp; d) {d_ += d; return *this;}
+    time_point&amp; operator-=(const duration&amp; d) {d_ -= d; return *this;}
+
+    <font color="#c80000">// special values</font>
+
+    static time_point min() {return time_point(duration::min());}
+    static time_point max() {return time_point(duration::max());}
+};
+
+} <font color="#c80000">// datetime</font>
+
+template &lt;class Clock, class Duration1, class Duration2&gt;
+struct common_type&lt;datetime::time_point&lt;Clock, Duration1&gt;, datetime::time_point&lt;Clock, Duration2&gt; &gt;
+{
+    typedef datetime::time_point&lt;Clock, typename common_type&lt;Duration1, Duration2&gt;::type&gt; type;
+};
+
+namespace datetime {
+
+template &lt;class ToDuration, class Clock, class Duration&gt;
+inline
+time_point&lt;Clock, ToDuration&gt;
+time_point_cast(const time_point&lt;Clock, Duration&gt;&amp; t)
+{
+    return time_point&lt;Clock, ToDuration&gt;(duration_cast&lt;ToDuration&gt;(t.time_since_epoch()));
+}
+
+<font color="#c80000">// time_point ==</font>
+
+template &lt;class Clock, class Duration1, class Duration2&gt;
+inline
+bool
+operator==(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs)
+{
+    return lhs.time_since_epoch() == rhs.time_since_epoch();
+}
+
+<font color="#c80000">// time_point !=</font>
+
+template &lt;class Clock, class Duration1, class Duration2&gt;
+inline
+bool
+operator!=(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs)
+{
+    return !(lhs == rhs);
+}
+
+<font color="#c80000">// time_point &lt;</font>
+
+template &lt;class Clock, class Duration1, class Duration2&gt;
+inline
+bool
+operator&lt;(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs)
+{
+    return lhs.time_since_epoch() &lt; rhs.time_since_epoch();
+}
+
+<font color="#c80000">// time_point &gt;</font>
+
+template &lt;class Clock, class Duration1, class Duration2&gt;
+inline
+bool
+operator&gt;(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs)
+{
+    return rhs &lt; lhs;
+}
+
+<font color="#c80000">// time_point &lt;=</font>
+
+template &lt;class Clock, class Duration1, class Duration2&gt;
+inline
+bool
+operator&lt;=(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs)
+{
+    return !(rhs &lt; lhs);
+}
+
+<font color="#c80000">// time_point &gt;=</font>
+
+template &lt;class Clock, class Duration1, class Duration2&gt;
+inline
+bool
+operator&gt;=(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs)
+{
+    return !(lhs &lt; rhs);
+}
+
+<font color="#c80000">// time_point operator+(time_point x, duration y);</font>
+
+template &lt;class Clock, class Duration1, class Rep2, class Period2&gt;
+inline
+time_point&lt;Clock, typename common_type&lt;Duration1, duration&lt;Rep2, Period2&gt; &gt;::type&gt;
+operator+(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs)
+{
+    typedef time_point&lt;Clock, typename common_type&lt;Duration1, duration&lt;Rep2, Period2&gt; &gt;::type&gt; TimeResult;
+    TimeResult r(lhs);
+    r += rhs;
+    return r;
+}
+
+<font color="#c80000">// time_point operator+(duration x, time_point y);</font>
+
+template &lt;class Rep1, class Period1, class Clock, class Duration2&gt;
+inline
+time_point&lt;Clock, typename common_type&lt;duration&lt;Rep1, Period1&gt;, Duration2&gt;::type&gt;
+operator+(const duration&lt;Rep1, Period1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs)
+{
+    return rhs + lhs;
+}
+
+<font color="#c80000">// time_point operator-(time_point x, duration y);</font>
+
+template &lt;class Clock, class Duration1, class Rep2, class Period2&gt;
+inline
+time_point&lt;Clock, typename common_type&lt;Duration1, duration&lt;Rep2, Period2&gt; &gt;::type&gt;
+operator-(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const duration&lt;Rep2, Period2&gt;&amp; rhs)
+{
+    return lhs + (-rhs);
+}
+
+<font color="#c80000">// duration operator-(time_point x, time_point y);</font>
+
+template &lt;class Clock, class Duration1, class Duration2&gt;
+inline
+typename common_type&lt;Duration1, Duration2&gt;::type
+operator-(const time_point&lt;Clock, Duration1&gt;&amp; lhs, const time_point&lt;Clock, Duration2&gt;&amp; rhs)
+{
+    return lhs.time_since_epoch() - rhs.time_since_epoch();
+}
+
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+<font color="#c80000">/////////////////////// clocks ///////////////////////////</font>
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+
+<font color="#c80000">// If you're porting, clocks are the system-specific (non-portable) part.</font>
+<font color="#c80000">// You'll need to know how to get the current time and implement that under now().</font>
+<font color="#c80000">// You'll need to know what units (tick period) and representation makes the most</font>
+<font color="#c80000">// sense for your clock and set those accordingly.</font>
+<font color="#c80000">// If you know how to map this clock to time_t (perhaps your clock is std::time, which</font>
+<font color="#c80000">// makes that trivial), then you can fill out system_clock's to_time_t() and from_time_t().</font>
+
+class system_clock
+{
+public:
+    typedef microseconds                       duration;
+    typedef duration::rep                      rep;
+    typedef duration::period                   period;
+    typedef datetime::time_point&lt;system_clock&gt; time_point;
+    static const bool is_monotonic =           false;
+
+    static time_point now();
+    static time_t     to_time_t  (const time_point&amp; t);
+    static time_point from_time_t(time_t t);
+};
+
+class monotonic_clock
+{
+public:
+    typedef nanoseconds                           duration;
+    typedef duration::rep                         rep;
+    typedef duration::period                      period;
+    typedef datetime::time_point&lt;monotonic_clock&gt; time_point;
+    static const bool is_monotonic =              true;
+
+    static time_point now();
+};
+
+typedef monotonic_clock high_resolution_clock;
+
+} <font color="#c80000">// datetime</font>
+} <font color="#c80000">// std</font>
+
+<font color="#c80000">// clocks.cpp</font>
+
+#include &lt;sys/time.h&gt; <font color="#c80000">//for gettimeofday and timeval</font>
+#include &lt;mach/mach_time.h&gt;  <font color="#c80000">// mach_absolute_time, mach_timebase_info_data_t</font>
+
+namespace std {
+namespace datetime {
+
+<font color="#c80000">// system_clock</font>
+
+<font color="#c80000">// gettimeofday is the most precise "system time" available on this platform.</font>
+<font color="#c80000">// It returns the number of microseconds since New Years 1970 in a struct called timeval</font>
+<font color="#c80000">// which has a field for seconds and a field for microseconds.</font>
+<font color="#c80000">//    Fill in the timeval and then convert that to the time_point</font>
+system_clock::time_point
+system_clock::now()
+{
+    timeval tv;
+    gettimeofday(&amp;tv, 0);
+    return time_point(seconds(tv.tv_sec) + microseconds(tv.tv_usec));
+}
+
+<font color="#c80000">// Take advantage of the fact that on this platform time_t is nothing but</font>
+<font color="#c80000">//    an integral count of seconds since New Years 1970 (same epoch as timeval).</font>
+<font color="#c80000">//    Just get the duration out of the time_point and truncate it to seconds.</font>
+time_t
+system_clock::to_time_t(const time_point&amp; t)
+{
+    return time_t(duration_cast&lt;seconds&gt;(t.time_since_epoch()).count());
+}
+
+<font color="#c80000">// Just turn the time_t into a count of seconds and construct a time_point with it.</font>
+system_clock::time_point
+system_clock::from_time_t(time_t t)
+{
+    return system_clock::time_point(seconds(t));
+}
+
+<font color="#c80000">// monotonic_clock</font>
+
+<font color="#c80000">// Note, in this implementation monotonic_clock and high_resolution_clock</font>
+<font color="#c80000">//   are the same clock.  They are both based on mach_absolute_time().</font>
+<font color="#c80000">//   mach_absolute_time() * MachInfo.numer / MachInfo.denom is the number of</font>
+<font color="#c80000">//   nanoseconds since the computer booted up.  MachInfo.numer and MachInfo.denom</font>
+<font color="#c80000">//   are run time constants supplied by the OS.  This clock has no relationship</font>
+<font color="#c80000">//   to the Gregorian calendar.  It's main use is as a high resolution timer.</font>
+
+<font color="#c80000">// MachInfo.numer / MachInfo.denom is often 1 on the latest equipment.  Specialize</font>
+<font color="#c80000">//   for that case as an optimization.</font>
+static
+monotonic_clock::rep
+monotonic_simplified()
+{
+    return mach_absolute_time();
+}
+
+static
+double
+compute_monotonic_factor()
+{
+    mach_timebase_info_data_t MachInfo;
+    mach_timebase_info(&amp;MachInfo);
+    return static_cast&lt;double&gt;(MachInfo.numer) / MachInfo.denom;
+}
+
+static
+monotonic_clock::rep
+monotonic_full()
+{
+    static const double factor = compute_monotonic_factor();
+    return static_cast&lt;monotonic_clock::rep&gt;(mach_absolute_time() * factor);
+}
+
+typedef monotonic_clock::rep (*FP)();
+
+static
+FP
+init_monotonic_clock()
+{
+    mach_timebase_info_data_t MachInfo;
+    mach_timebase_info(&amp;MachInfo);
+    if (MachInfo.numer == MachInfo.denom)
+        return &amp;monotonic_simplified;
+    return &amp;monotonic_full;
+}
+
+monotonic_clock::time_point
+monotonic_clock::now()
+{
+    static FP fp = init_monotonic_clock();
+    return time_point(duration(fp()));
+}
+
+<font color="#c80000">// clocks.cpp end</font>
+
+} } <font color="#c80000">// std::datetime</font>
+
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+<font color="#c80000">///////////// simulated thread interface /////////////////</font>
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+
+#include &lt;iostream&gt;
+
+namespace std {
+
+void __print_time(datetime::system_clock::time_point t)
+{
+    using namespace datetime;
+    time_t c_time = system_clock::to_time_t(t);
+    std::tm* tmptr = std::localtime(&amp;c_time);
+    system_clock::duration d = t.time_since_epoch();
+    std::cout &lt;&lt; tmptr-&gt;tm_hour &lt;&lt; ':' &lt;&lt; tmptr-&gt;tm_min &lt;&lt; ':' &lt;&lt; tmptr-&gt;tm_sec
+              &lt;&lt; '.' &lt;&lt; (d - duration_cast&lt;seconds&gt;(d)).count();
+}
+
+namespace this_thread {
+
+template &lt;class Rep, class Period&gt;
+void sleep_for(const datetime::duration&lt;Rep, Period&gt;&amp; d)
+{
+    datetime::microseconds t = datetime::duration_cast&lt;datetime::microseconds&gt;(d);
+    if (t &lt; d)
+        ++t;
+    if (t &gt; datetime::microseconds(0))
+        std::cout &lt;&lt; "sleep_for " &lt;&lt; t.count() &lt;&lt; " microseconds\n";
+}
+
+template &lt;class Clock, class Duration&gt;
+void sleep_until(const datetime::time_point&lt;Clock, Duration&gt;&amp; t)
+{
+    using namespace datetime;
+    typedef time_point&lt;Clock, Duration&gt; Time;
+    typedef system_clock::time_point SysTime;
+    if (t &gt; Clock::now())
+    {
+        typedef typename common_type&lt;typename Time::duration, typename SysTime::duration&gt;::type D;
+        <font color="#c80000">/* auto */</font> D d = t - Clock::now();
+        microseconds us = duration_cast&lt;microseconds&gt;(d);
+        if (us &lt; d)
+            ++us;
+        SysTime st = system_clock::now() + us;
+        std::cout &lt;&lt; "sleep_until    ";
+        __print_time(st);
+        std::cout &lt;&lt; " which is " &lt;&lt; (st - system_clock::now()).count() &lt;&lt; " microseconds away\n";
+    }
+}
+
+}  <font color="#c80000">// this_thread</font>
+
+struct mutex {};
+
+struct timed_mutex
+{
+    bool try_lock() {std::cout &lt;&lt; "timed_mutex::try_lock()\n";}
+
+    template &lt;class Rep, class Period&gt;
+        bool try_lock_for(const datetime::duration&lt;Rep, Period&gt;&amp; d)
+        {
+            datetime::microseconds t = datetime::duration_cast&lt;datetime::microseconds&gt;(d);
+            if (t &lt;= datetime::microseconds(0))
+                return try_lock();
+            std::cout &lt;&lt; "try_lock_for " &lt;&lt; t.count() &lt;&lt; " microseconds\n";
+            return true;
+        }
+
+    template &lt;class Clock, class Duration&gt;
+    bool try_lock_until(const datetime::time_point&lt;Clock, Duration&gt;&amp; t)
+    {
+        using namespace datetime;
+        typedef time_point&lt;Clock, Duration&gt; Time;
+        typedef system_clock::time_point SysTime;
+        if (t &lt;= Clock::now())
+            return try_lock();
+        typedef typename common_type&lt;typename Time::duration, typename Clock::duration&gt;::type D;
+        <font color="#c80000">/* auto */</font> D d = t - Clock::now();
+        microseconds us = duration_cast&lt;microseconds&gt;(d);
+        SysTime st = system_clock::now() + us;
+        std::cout &lt;&lt; "try_lock_until ";
+        __print_time(st);
+        std::cout &lt;&lt; " which is " &lt;&lt; (st - system_clock::now()).count() &lt;&lt; " microseconds away\n";
+    }
+};
+
+struct condition_variable
+{
+    template &lt;class Rep, class Period&gt;
+        bool wait_for(mutex&amp;, const datetime::duration&lt;Rep, Period&gt;&amp; d)
+        {
+            datetime::microseconds t = datetime::duration_cast&lt;datetime::microseconds&gt;(d);
+            std::cout &lt;&lt; "wait_for " &lt;&lt; t.count() &lt;&lt; " microseconds\n";
+            return true;
+        }
+
+    template &lt;class Clock, class Duration&gt;
+    bool wait_until(mutex&amp;, const datetime::time_point&lt;Clock, Duration&gt;&amp; t)
+    {
+        using namespace datetime;
+        typedef time_point&lt;Clock, Duration&gt; Time;
+        typedef system_clock::time_point SysTime;
+        if (t &lt;= Clock::now())
+            return false;
+        typedef typename common_type&lt;typename Time::duration, typename Clock::duration&gt;::type D;
+        <font color="#c80000">/* auto */</font> D d = t - Clock::now();
+        microseconds us = duration_cast&lt;microseconds&gt;(d);
+        SysTime st = system_clock::now() + us;
+         std::cout &lt;&lt; "wait_until     ";
+        __print_time(st);
+        std::cout &lt;&lt; " which is " &lt;&lt; (st - system_clock::now()).count() &lt;&lt; " microseconds away\n";
+    }
+};
+
+} <font color="#c80000">// std</font>
+
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+<font color="#c80000">///////////////////  End of implemetation ////////////////</font>
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+<font color="#c80000">//////////// Simple sleep and wait examples //////////////</font>
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+
+std::mutex m;
+std::timed_mutex mut;
+std::condition_variable cv;
+
+void basic_examples()
+{
+    std::cout &lt;&lt; "Running basic examples\n";
+    using namespace std;
+    using namespace std::datetime;
+    system_clock::time_point time_limit = system_clock::now() + seconds(4) + milliseconds(500);
+    this_thread::sleep_for(seconds(3));
+    this_thread::sleep_for(nanoseconds(300));
+    this_thread::sleep_until(time_limit);
+<font color="#c80000">//    this_thread::sleep_for(time_limit);  // desired compile-time error</font>
+<font color="#c80000">//    this_thread::sleep_until(seconds(3)); // desired compile-time error</font>
+    mut.try_lock_for(milliseconds(30));
+    mut.try_lock_until(time_limit);
+<font color="#c80000">//    mut.try_lock_for(time_limit);        // desired compile-time error</font>
+<font color="#c80000">//    mut.try_lock_until(milliseconds(30)); // desired compile-time error</font>
+    cv.wait_for(m, minutes(1));    <font color="#c80000">// real code would put this in a loop</font>
+    cv.wait_until(m, time_limit);  <font color="#c80000">// real code would put this in a loop</font>
+    <font color="#c80000">// For those who prefer floating point</font>
+    this_thread::sleep_for(duration&lt;double&gt;(0.25));
+    this_thread::sleep_until(system_clock::now() + duration&lt;double&gt;(1.5));
+}
+
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+<font color="#c80000">//////////////////// User1 Example ///////////////////////</font>
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+
+namespace User1
+{
+<font color="#c80000">// Example type-safe "physics" code interoperating with std::datetime::duration types</font>
+<font color="#c80000">//  and taking advantage of the std::ratio infrastructure and design philosophy.</font>
+
+<font color="#c80000">// length - mimics std::datetime::duration except restricts representation to double.</font>
+<font color="#c80000">//    Uses std::ratio facilities for length units conversions.</font>
+
+template &lt;class Ratio&gt;
+class length
+{
+public:
+    typedef Ratio ratio;
+private:
+    double len_;
+public:
+
+    length() : len_(1) {}
+    length(const double&amp; len) : len_(len) {}
+
+    <font color="#c80000">// conversions</font>
+    template &lt;class R&gt;
+    length(const length&lt;R&gt;&amp; d)
+            : len_(d.count() * std::ratio_divide&lt;Ratio, R&gt;::type::den /
+                               std::ratio_divide&lt;Ratio, R&gt;::type::num) {}
+
+    <font color="#c80000">// observer</font>
+
+    double count() const {return len_;}
+
+    <font color="#c80000">// arithmetic</font>
+
+    length&amp; operator+=(const length&amp; d) {len_ += d.count(); return *this;}
+    length&amp; operator-=(const length&amp; d) {len_ -= d.count(); return *this;}
+
+    length operator+() const {return *this;}
+    length operator-() const {return length(-len_);}
+
+    length&amp; operator*=(double rhs) {len_ *= rhs; return *this;}
+    length&amp; operator/=(double rhs) {len_ /= rhs; return *this;}
+};
+
+<font color="#c80000">// Sparse sampling of length units</font>
+typedef length&lt;std::ratio&lt;1&gt; &gt;          meter;        <font color="#c80000">// set meter as "unity"</font>
+typedef length&lt;std::centi&gt;              centimeter;   <font color="#c80000">// 1/100 meter</font>
+typedef length&lt;std::kilo&gt;               kilometer;    <font color="#c80000">// 1000  meters</font>
+typedef length&lt;std::ratio&lt;254, 10000&gt; &gt; inch;         <font color="#c80000">// 254/10000 meters</font>
+<font color="#c80000">// length takes ratio instead of two integral types so that definitions can be made like so:</font>
+typedef length&lt;std::ratio_multiply&lt;std::ratio&lt;12&gt;, inch::ratio&gt;::type&gt;   foot;  <font color="#c80000">// 12 inchs</font>
+typedef length&lt;std::ratio_multiply&lt;std::ratio&lt;5280&gt;, foot::ratio&gt;::type&gt; mile;  <font color="#c80000">// 5280 feet</font>
+
+<font color="#c80000">// Need a floating point definition of seconds</font>
+typedef std::datetime::duration&lt;double&gt; seconds;                         <font color="#c80000">// unity</font>
+<font color="#c80000">// Demo of (scientific) support for sub-nanosecond resolutions</font>
+typedef std::datetime::duration&lt;double,  std::pico&gt; picosecond;  <font color="#c80000">// 10^-12 seconds</font>
+typedef std::datetime::duration&lt;double, std::femto&gt; femtosecond; <font color="#c80000">// 10^-15 seconds</font>
+typedef std::datetime::duration&lt;double,  std::atto&gt; attosecond;  <font color="#c80000">// 10^-18 seconds</font>
+
+<font color="#c80000">// A very brief proof-of-concept for SIUnits-like library</font>
+<font color="#c80000">//  Hard-wired to floating point seconds and meters, but accepts other units (shown in testUser1())</font>
+template &lt;class R1, class R2&gt;
+class quantity
+{
+    double q_;
+public:
+    quantity() : q_(1) {}
+
+    double get() const {return q_;}
+    void set(double q) {q_ = q;}
+};
+
+template &lt;&gt;
+class quantity&lt;std::ratio&lt;1&gt;, std::ratio&lt;0&gt; &gt;
+{
+    double q_;
+public:
+    quantity() : q_(1) {}
+    quantity(seconds d) : q_(d.count()) {}  <font color="#c80000">// note:  only User1::seconds needed here</font>
+
+    double get() const {return q_;}
+    void set(double q) {q_ = q;}
+};
+
+template &lt;&gt;
+class quantity&lt;std::ratio&lt;0&gt;, std::ratio&lt;1&gt; &gt;
+{
+    double q_;
+public:
+    quantity() : q_(1) {}
+    quantity(meter d) : q_(d.count()) {}  <font color="#c80000">// note:  only User1::meter needed here</font>
+
+    double get() const {return q_;}
+    void set(double q) {q_ = q;}
+};
+
+template &lt;&gt;
+class quantity&lt;std::ratio&lt;0&gt;, std::ratio&lt;0&gt; &gt;
+{
+    double q_;
+public:
+    quantity() : q_(1) {}
+    quantity(double d) : q_(d) {}
+
+    double get() const {return q_;}
+    void set(double q) {q_ = q;}
+};
+
+<font color="#c80000">// Example SI-Units</font>
+typedef quantity&lt;std::ratio&lt;0&gt;, std::ratio&lt;0&gt; &gt;  Scalar;
+typedef quantity&lt;std::ratio&lt;1&gt;, std::ratio&lt;0&gt; &gt;  Time;         <font color="#c80000">// second</font>
+typedef quantity&lt;std::ratio&lt;0&gt;, std::ratio&lt;1&gt; &gt;  Distance;     <font color="#c80000">// meter</font>
+typedef quantity&lt;std::ratio&lt;-1&gt;, std::ratio&lt;1&gt; &gt; Speed;        <font color="#c80000">// meter/second</font>
+typedef quantity&lt;std::ratio&lt;-2&gt;, std::ratio&lt;1&gt; &gt; Acceleration; <font color="#c80000">// meter/second^2</font>
+
+template &lt;class R1, class R2, class R3, class R4&gt;
+quantity&lt;typename std::ratio_subtract&lt;R1, R3&gt;::type, typename std::ratio_subtract&lt;R2, R4&gt;::type&gt;
+operator/(const quantity&lt;R1, R2&gt;&amp; x, const quantity&lt;R3, R4&gt;&amp; y)
+{
+    typedef quantity&lt;typename std::ratio_subtract&lt;R1, R3&gt;::type, typename std::ratio_subtract&lt;R2, R4&gt;::type&gt; R;
+    R r;
+    r.set(x.get() / y.get());
+    return r;
+}
+
+template &lt;class R1, class R2, class R3, class R4&gt;
+quantity&lt;typename std::ratio_add&lt;R1, R3&gt;::type, typename std::ratio_add&lt;R2, R4&gt;::type&gt;
+operator*(const quantity&lt;R1, R2&gt;&amp; x, const quantity&lt;R3, R4&gt;&amp; y)
+{
+    typedef quantity&lt;typename std::ratio_add&lt;R1, R3&gt;::type, typename std::ratio_add&lt;R2, R4&gt;::type&gt; R;
+    R r;
+    r.set(x.get() * y.get());
+    return r;
+}
+
+template &lt;class R1, class R2&gt;
+quantity&lt;R1, R2&gt;
+operator+(const quantity&lt;R1, R2&gt;&amp; x, const quantity&lt;R1, R2&gt;&amp; y)
+{
+    typedef quantity&lt;R1, R2&gt; R;
+    R r;
+    r.set(x.get() + y.get());
+    return r;
+}
+
+template &lt;class R1, class R2&gt;
+quantity&lt;R1, R2&gt;
+operator-(const quantity&lt;R1, R2&gt;&amp; x, const quantity&lt;R1, R2&gt;&amp; y)
+{
+    typedef quantity&lt;R1, R2&gt; R;
+    R r;
+    r.set(x.get() - y.get());
+    return r;
+}
+
+<font color="#c80000">// Example type-safe physics function</font>
+Distance
+compute_distance(Speed v0, Time t, Acceleration a)
+{
+    return v0 * t + Scalar(.5) * a * t * t;  <font color="#c80000">// if a units mistake is made here it won't compile</font>
+}
+
+} <font color="#c80000">// User1</font>
+
+#include &lt;iostream&gt;
+
+<font color="#c80000">// Exercise example type-safe physics function and show interoperation</font>
+<font color="#c80000">// of custom time durations (User1::seconds) and standard time durations (std::hours).</font>
+<font color="#c80000">// Though input can be arbitrary (but type-safe) units, output is always in SI-units</font>
+<font color="#c80000">//   (a limitation of the simplified Units lib demoed here).</font>
+void testUser1()
+{
+    std::cout &lt;&lt; "*************\n";
+    std::cout &lt;&lt; "* testUser1 *\n";
+    std::cout &lt;&lt; "*************\n";
+    User1::Distance d( User1::mile(110) );
+    User1::Time t( std::datetime::hours(2) );
+    User1::Speed s = d / t;
+    std::cout &lt;&lt; "Speed = " &lt;&lt; s.get() &lt;&lt; " meters/sec\n";
+    User1::Acceleration a = User1::Distance( User1::foot(32.2) ) / User1::Time() / User1::Time();
+    std::cout &lt;&lt; "Acceleration = " &lt;&lt; a.get() &lt;&lt; " meters/sec^2\n";
+    User1::Distance df = compute_distance(s, User1::Time( User1::seconds(0.5) ), a);
+    std::cout &lt;&lt; "Distance = " &lt;&lt; df.get() &lt;&lt; " meters\n";
+    std::cout &lt;&lt; "There are " &lt;&lt; User1::mile::ratio::den &lt;&lt; '/' &lt;&lt; User1::mile::ratio::num &lt;&lt; " miles/meter";
+    User1::meter mt = 1;
+    User1::mile mi = mt;
+    std::cout &lt;&lt; " which is approximately " &lt;&lt; mi.count() &lt;&lt; '\n';
+    std::cout &lt;&lt; "There are " &lt;&lt; User1::mile::ratio::num &lt;&lt; '/' &lt;&lt; User1::mile::ratio::den &lt;&lt; " meters/mile";
+    mi = 1;
+    mt = mi;
+    std::cout &lt;&lt; " which is approximately " &lt;&lt; mt.count() &lt;&lt; '\n';
+    User1::attosecond as(1);
+    User1::seconds sec = as;
+    std::cout &lt;&lt; "1 attosecond is " &lt;&lt; sec.count() &lt;&lt; " seconds\n";
+    std::cout &lt;&lt; "sec = as;  <font color="#c80000">// compiles\n";</font>
+    sec = User1::seconds(1);
+    as = sec;
+    std::cout &lt;&lt; "1 second is " &lt;&lt; as.count() &lt;&lt; " attoseconds\n";
+    std::cout &lt;&lt; "as = sec;  <font color="#c80000">// compiles\n";</font>
+    std::cout &lt;&lt; "\n";
+}
+
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+<font color="#c80000">//////////////////// User2 Example ///////////////////////</font>
+<font color="#c80000">//////////////////////////////////////////////////////////</font>
+
+<font color="#c80000">// Demonstrate User2:</font>
+<font color="#c80000">// A "saturating" signed integral type  is developed.  This type has +/- infinity and a nan</font>
+<font color="#c80000">// (like IEEE floating point) but otherwise obeys signed integral arithmetic.</font>
+<font color="#c80000">// This class is subsequently used as the rep in std::datetime::duration to demonstrate a</font>
+<font color="#c80000">// duration class that does not silently ignore overflow.</font>
+#include &lt;ostream&gt;
+#include &lt;stdexcept&gt;
+#include &lt;climits&gt;
+
+namespace User2
+{
+
+template &lt;class I&gt;
+class saturate
+{
+public:
+    typedef I int_type;
+
+    static const int_type nan = int_type(int_type(1) &lt;&lt; (sizeof(int_type) * CHAR_BIT - 1));
+    static const int_type neg_inf = nan + 1;
+    static const int_type pos_inf = -neg_inf;
+private:
+    int_type i_;
+
+<font color="#c80000">//     static_assert(std::is_integral&lt;int_type&gt;::value &amp;&amp; std::is_signed&lt;int_type&gt;::value,</font>
+<font color="#c80000">//                   "saturate only accepts signed integral types");</font>
+<font color="#c80000">//     static_assert(nan == -nan &amp;&amp; neg_inf &lt; pos_inf,</font>
+<font color="#c80000">//                   "saturate assumes two's complement hardware for signed integrals");</font>
+
+public:
+    saturate() : i_(nan) {}
+    explicit saturate(int_type i) : i_(i) {}
+    <font color="#c80000">// explicit</font>
+       operator int_type() const;
+
+    saturate&amp; operator+=(saturate x);
+    saturate&amp; operator-=(saturate x) {return *this += -x;}
+    saturate&amp; operator*=(saturate x);
+    saturate&amp; operator/=(saturate x);
+    saturate&amp; operator%=(saturate x);
+
+    saturate  operator- () const {return saturate(-i_);}
+    saturate&amp; operator++()       {*this += saturate(int_type(1)); return *this;}
+    saturate  operator++(int)    {saturate tmp(*this); ++(*this); return tmp;}
+    saturate&amp; operator--()       {*this -= saturate(int_type(1)); return *this;}
+    saturate  operator--(int)    {saturate tmp(*this); --(*this); return tmp;}
+
+    friend saturate operator+(saturate x, saturate y) {return x += y;}
+    friend saturate operator-(saturate x, saturate y) {return x -= y;}
+    friend saturate operator*(saturate x, saturate y) {return x *= y;}
+    friend saturate operator/(saturate x, saturate y) {return x /= y;}
+    friend saturate operator%(saturate x, saturate y) {return x %= y;}
+
+    friend bool operator==(saturate x, saturate y)
+    {
+        if (x.i_ == nan || y.i_ == nan)
+            return false;
+        return x.i_ == y.i_;
+    }
+
+    friend bool operator!=(saturate x, saturate y) {return !(x == y);}
+
+    friend bool operator&lt;(saturate x, saturate y)
+    {
+        if (x.i_ == nan || y.i_ == nan)
+            return false;
+        return x.i_ &lt; y.i_;
+    }
+
+    friend bool operator&lt;=(saturate x, saturate y)
+    {
+        if (x.i_ == nan || y.i_ == nan)
+            return false;
+        return x.i_ &lt;= y.i_;
+    }
+
+    friend bool operator&gt;(saturate x, saturate y)
+    {
+        if (x.i_ == nan || y.i_ == nan)
+            return false;
+        return x.i_ &gt; y.i_;
+    }
+
+    friend bool operator&gt;=(saturate x, saturate y)
+    {
+        if (x.i_ == nan || y.i_ == nan)
+            return false;
+        return x.i_ &gt;= y.i_;
+    }
+
+    friend std::ostream&amp; operator&lt;&lt;(std::ostream&amp; os, saturate s)
+    {
+        switch (s.i_)
+        {
+        case pos_inf:
+            return os &lt;&lt; "inf";
+        case nan:
+            return os &lt;&lt; "nan";
+        case neg_inf:
+            return os &lt;&lt; "-inf";
+        };
+        return os &lt;&lt; s.i_;
+    }
+};
+
+template &lt;class I&gt;
+saturate&lt;I&gt;::operator int_type() const
+{
+    switch (i_)
+    {
+    case nan:
+    case neg_inf:
+    case pos_inf:
+        throw std::out_of_range("saturate special value can not convert to int_type");
+    }
+    return i_;
+}
+
+template &lt;class I&gt;
+saturate&lt;I&gt;&amp;
+saturate&lt;I&gt;::operator+=(saturate x)
+{
+    switch (i_)
+    {
+    case pos_inf:
+        switch (x.i_)
+        {
+        case neg_inf:
+        case nan:
+            i_ = nan;
+        }
+        return *this;
+    case nan:
+        return *this;
+    case neg_inf:
+        switch (x.i_)
+        {
+        case pos_inf:
+        case nan:
+            i_ = nan;
+        }
+        return *this;
+    }
+    switch (x.i_)
+    {
+    case pos_inf:
+    case neg_inf:
+    case nan:
+        i_ = x.i_;
+        return *this;
+    }
+    if (x.i_ &gt;= 0)
+    {
+        if (i_ &lt; pos_inf - x.i_)
+            i_ += x.i_;
+        else
+            i_ = pos_inf;
+        return *this;
+    }
+    if (i_ &gt; neg_inf - x.i_)
+        i_ += x.i_;
+    else
+        i_ = neg_inf;
+    return *this;
+}
+
+template &lt;class I&gt;
+saturate&lt;I&gt;&amp;
+saturate&lt;I&gt;::operator*=(saturate x)
+{
+    switch (i_)
+    {
+    case 0:
+        switch (x.i_)
+        {
+        case pos_inf:
+        case neg_inf:
+        case nan:
+            i_ = nan;
+        }
+        return *this;
+    case pos_inf:
+        switch (x.i_)
+        {
+        case nan:
+        case 0:
+            i_ = nan;
+            return *this;
+        }
+        if (x.i_ &lt; 0)
+            i_ = neg_inf;
+        return *this;
+    case nan:
+        return *this;
+    case neg_inf:
+        switch (x.i_)
+        {
+        case nan:
+        case 0:
+            i_ = nan;
+            return *this;
+        }
+        if (x.i_ &lt; 0)
+            i_ = pos_inf;
+        return *this;
+    }
+    switch (x.i_)
+    {
+    case 0:
+        i_ = 0;
+        return *this;
+    case nan:
+        i_ = nan;
+        return *this;
+    case pos_inf:
+        if (i_ &lt; 0)
+            i_ = neg_inf;
+        else
+            i_ = pos_inf;
+        return *this;
+    case neg_inf:
+        if (i_ &lt; 0)
+            i_ = pos_inf;
+        else
+            i_ = neg_inf;
+        return *this;
+    }
+    int s = (i_ &lt; 0 ? -1 : 1) * (x.i_ &lt; 0 ? -1 : 1);
+    i_ = i_ &lt; 0 ? -i_ : i_;
+    int_type x_i_ = x.i_ &lt; 0 ? -x.i_ : x.i_;
+    if (i_ &lt;= pos_inf / x_i_)
+        i_ *= x_i_;
+    else
+        i_ = pos_inf;
+    i_ *= s;
+    return *this;
+}
+
+template &lt;class I&gt;
+saturate&lt;I&gt;&amp;
+saturate&lt;I&gt;::operator/=(saturate x)
+{
+    switch (x.i_)
+    {
+    case pos_inf:
+    case neg_inf:
+        switch (i_)
+        {
+        case pos_inf:
+        case neg_inf:
+        case nan:
+            i_ = nan;
+            break;
+        default:
+            i_ = 0;
+            break;
+        }
+        return *this;
+    case nan:
+        i_ = nan;
+        return *this;
+    case 0:
+        switch (i_)
+        {
+        case pos_inf:
+        case neg_inf:
+        case nan:
+            return *this;
+        case 0:
+            i_ = nan;
+            return *this;
+        }
+        if (i_ &gt; 0)
+            i_ = pos_inf;
+        else
+            i_ = neg_inf;
+        return *this;
+    }
+    switch (i_)
+    {
+    case 0:
+    case nan:
+        return *this;
+    case pos_inf:
+    case neg_inf:
+        if (x.i_ &lt; 0)
+            i_ = -i_;
+        return *this;
+    }
+    i_ /= x.i_;
+    return *this;
+}
+
+template &lt;class I&gt;
+saturate&lt;I&gt;&amp;
+saturate&lt;I&gt;::operator%=(saturate x)
+{
+<font color="#c80000">//    *this -= *this / x * x;  // definition</font>
+    switch (x.i_)
+    {
+    case nan:
+    case neg_inf:
+    case 0:
+    case pos_inf:
+        i_ = nan;
+        return *this;
+    }
+    switch (i_)
+    {
+    case neg_inf:
+    case pos_inf:
+        i_ = nan;
+    case nan:
+        return *this;
+    }
+    i_ %= x.i_;
+    return *this;
+}
+
+<font color="#c80000">// Demo overflow-safe integral durations ranging from picoseconds resolution to millennium resolution</font>
+typedef std::datetime::duration&lt;saturate&lt;long long&gt;, std::pico                 &gt; picoseconds;
+typedef std::datetime::duration&lt;saturate&lt;long long&gt;, std::nano                 &gt; nanoseconds;
+typedef std::datetime::duration&lt;saturate&lt;long long&gt;, std::micro                &gt; microseconds;
+typedef std::datetime::duration&lt;saturate&lt;long long&gt;, std::milli                &gt; milliseconds;
+typedef std::datetime::duration&lt;saturate&lt;long long&gt;                            &gt; seconds;
+typedef std::datetime::duration&lt;saturate&lt;long long&gt;, std::ratio&lt;         60LL&gt; &gt; minutes;
+typedef std::datetime::duration&lt;saturate&lt;long long&gt;, std::ratio&lt;       3600LL&gt; &gt; hours;
+typedef std::datetime::duration&lt;saturate&lt;long long&gt;, std::ratio&lt;      86400LL&gt; &gt; days;
+typedef std::datetime::duration&lt;saturate&lt;long long&gt;, std::ratio&lt;   31556952LL&gt; &gt; years;
+typedef std::datetime::duration&lt;saturate&lt;long long&gt;, std::ratio&lt;31556952000LL&gt; &gt; millennium;
+
+}  <font color="#c80000">// User2</font>
+
+<font color="#c80000">// Demonstrate custom promotion rules (needed only if there are no implicit conversions)</font>
+namespace User2 { namespace detail {
+
+template &lt;class T1, class T2, bool = tmp::is_integral&lt;T1&gt;::value&gt;
+struct promote_helper;
+
+template &lt;class T1, class T2&gt;
+struct promote_helper&lt;T1, saturate&lt;T2&gt;, true&gt;  <font color="#c80000">// integral</font>
+{
+    typedef typename std::common_type&lt;T1, T2&gt;::type rep;
+    typedef User2::saturate&lt;rep&gt; type;
+};
+
+template &lt;class T1, class T2&gt;
+struct promote_helper&lt;T1, saturate&lt;T2&gt;, false&gt;  <font color="#c80000">// floating</font>
+{
+    typedef T1 type;
+};
+
+} }
+
+namespace std
+{
+
+template &lt;class T1, class T2&gt;
+struct common_type&lt;User2::saturate&lt;T1&gt;, User2::saturate&lt;T2&gt; &gt;
+{
+    typedef typename common_type&lt;T1, T2&gt;::type rep;
+    typedef User2::saturate&lt;rep&gt; type;
+};
+
+template &lt;class T1, class T2&gt;
+struct common_type&lt;T1, User2::saturate&lt;T2&gt; &gt;
+    : User2::detail::promote_helper&lt;T1, User2::saturate&lt;T2&gt; &gt; {};
+
+template &lt;class T1, class T2&gt;
+struct common_type&lt;User2::saturate&lt;T1&gt;, T2&gt;
+    : User2::detail::promote_helper&lt;T2, User2::saturate&lt;T1&gt; &gt; {};
+
+
+<font color="#c80000">// Demonstrate specialization of duration_values:</font>
+
+namespace datetime {
+
+template &lt;class I&gt;
+struct duration_values&lt;User2::saturate&lt;I&gt; &gt;
+{
+    typedef User2::saturate&lt;I&gt; Rep;
+public:
+    static Rep zero() {return Rep(0);}
+    static Rep max()  {return Rep(Rep::pos_inf-1);}
+    static Rep min()  {return -max();}
+};
+
+}
+
+}
+
+#include &lt;iostream&gt;
+
+void testUser2()
+{
+    std::cout &lt;&lt; "*************\n";
+    std::cout &lt;&lt; "* testUser2 *\n";
+    std::cout &lt;&lt; "*************\n";
+    using namespace User2;
+    typedef seconds::rep sat;
+    years yr(sat(100));
+    std::cout &lt;&lt; "100 years expressed as years = " &lt;&lt; yr.count() &lt;&lt; '\n';
+    nanoseconds ns = yr;
+    std::cout &lt;&lt; "100 years expressed as nanoseconds = " &lt;&lt; ns.count() &lt;&lt; '\n';
+    ns += yr;
+    std::cout &lt;&lt; "200 years expressed as nanoseconds = " &lt;&lt; ns.count() &lt;&lt; '\n';
+    ns += yr;
+    std::cout &lt;&lt; "300 years expressed as nanoseconds = " &lt;&lt; ns.count() &lt;&lt; '\n';
+<font color="#c80000">//    yr = ns;  // does not compile</font>
+    std::cout &lt;&lt; "yr = ns;  <font color="#c80000">// does not compile\n";</font>
+<font color="#c80000">//    picoseconds ps1 = yr;  // does not compile, compile-time overflow in ratio arithmetic</font>
+    std::cout &lt;&lt; "ps = yr;  <font color="#c80000">// does not compile\n";</font>
+    ns = yr;
+    picoseconds ps = ns;
+    std::cout &lt;&lt; "100 years expressed as picoseconds = " &lt;&lt; ps.count() &lt;&lt; '\n';
+    ps = ns / sat(1000);
+    std::cout &lt;&lt; "0.1 years expressed as picoseconds = " &lt;&lt; ps.count() &lt;&lt; '\n';
+    yr = years(sat(-200000000));
+    std::cout &lt;&lt; "200 million years ago encoded in years: " &lt;&lt; yr.count() &lt;&lt; '\n';
+    days d = std::datetime::duration_cast&lt;days&gt;(yr);
+    std::cout &lt;&lt; "200 million years ago encoded in days: " &lt;&lt; d.count() &lt;&lt; '\n';
+    millennium c = std::datetime::duration_cast&lt;millennium&gt;(yr);
+    std::cout &lt;&lt; "200 million years ago encoded in millennium: " &lt;&lt; c.count() &lt;&lt; '\n';
+    std::cout &lt;&lt; "Demonstrate \"uninitialized protection\" behavior:\n";
+    seconds sec;
+    for (++sec; sec &lt; seconds(sat(10)); ++sec)
+        ;
+    std::cout &lt;&lt; sec.count() &lt;&lt; '\n';
+    std::cout &lt;&lt; "\n";
+}
+
+void testStdUser()
+{
+    std::cout &lt;&lt; "***************\n";
+    std::cout &lt;&lt; "* testStdUser *\n";
+    std::cout &lt;&lt; "***************\n";
+    using namespace std::datetime;
+    hours hr = hours(100);
+    std::cout &lt;&lt; "100 hours expressed as hours = " &lt;&lt; hr.count() &lt;&lt; '\n';
+    nanoseconds ns = hr;
+    std::cout &lt;&lt; "100 hours expressed as nanoseconds = " &lt;&lt; ns.count() &lt;&lt; '\n';
+    ns += hr;
+    std::cout &lt;&lt; "200 hours expressed as nanoseconds = " &lt;&lt; ns.count() &lt;&lt; '\n';
+    ns += hr;
+    std::cout &lt;&lt; "300 hours expressed as nanoseconds = " &lt;&lt; ns.count() &lt;&lt; '\n';
+<font color="#c80000">//    hr = ns;  // does not compile</font>
+    std::cout &lt;&lt; "hr = ns;  <font color="#c80000">// does not compile\n";</font>
+<font color="#c80000">//    hr * ns;  // does not compile</font>
+    std::cout &lt;&lt; "hr * ns;  <font color="#c80000">// does not compile\n";</font>
+    duration&lt;double&gt; fs(2.5);
+    std::cout &lt;&lt; "duration&lt;double&gt; has count() = " &lt;&lt; fs.count() &lt;&lt; '\n';
+<font color="#c80000">//    seconds sec = fs;  // does not compile</font>
+    std::cout &lt;&lt; "seconds sec = duration&lt;double&gt; won't compile\n";
+    seconds sec = duration_cast&lt;seconds&gt;(fs);
+    std::cout &lt;&lt; "seconds has count() = " &lt;&lt; sec.count() &lt;&lt; '\n';
+    std::cout &lt;&lt; "\n";
+}
+
+<font color="#c80000">//  timeval clock demo</font>
+<font color="#c80000">//     Demonstrate the use of a timeval-like struct to be used as the representation</font>
+<font color="#c80000">//     type for both duraiton and time_point.</font>
+
+namespace timeval_demo
+{
+
+class xtime {
+private:
+    long tv_sec;
+    long tv_usec;
+
+    void fixup() {
+        if (tv_usec &lt; 0) {
+            tv_usec += 1000000;
+            --tv_sec;
+        }
+    }
+
+public:
+
+    explicit xtime(long sec, long usec) {
+        tv_sec = sec;
+        tv_usec = usec;
+        if (tv_usec &lt; 0 || tv_usec &gt;= 1000000) {
+            tv_sec += tv_usec / 1000000;
+            tv_usec %= 1000000;
+            fixup();
+        }
+    }
+
+    explicit xtime(long long usec)
+    {
+        tv_usec = static_cast&lt;long&gt;(usec % 1000000);
+        tv_sec  = static_cast&lt;long&gt;(usec / 1000000);
+        fixup();
+    }
+    
+    <font color="#c80000">// explicit</font>
+    operator long long() const {return static_cast&lt;long long&gt;(tv_sec) * 1000000 + tv_usec;}
+
+    xtime&amp; operator += (xtime rhs) {
+        tv_sec += rhs.tv_sec;
+        tv_usec += rhs.tv_usec;
+        if (tv_usec &gt;= 1000000) {
+            tv_usec -= 1000000;
+            ++tv_sec;
+        }
+        return *this;
+    }
+
+    xtime&amp; operator -= (xtime rhs) {
+        tv_sec -= rhs.tv_sec;
+        tv_usec -= rhs.tv_usec;
+        fixup();
+        return *this;
+    }
+
+    xtime&amp; operator %= (xtime rhs) {
+        long long t = tv_sec * 1000000 + tv_usec;
+        long long r = rhs.tv_sec * 1000000 + rhs.tv_usec;
+        t %= r;
+        tv_sec = t / 1000000;
+        tv_usec = t % 1000000;
+        fixup();
+        return *this;
+    }
+
+    friend xtime operator+(xtime x, xtime y) {return x += y;}
+    friend xtime operator-(xtime x, xtime y) {return x -= y;}
+    friend xtime operator%(xtime x, xtime y) {return x %= y;}
+
+    friend bool operator==(xtime x, xtime y)
+        { return (x.tv_sec == y.tv_sec &amp;&amp; x.tv_usec == y.tv_usec); }
+
+    friend bool operator&lt;(xtime x, xtime y) {
+        if (x.tv_sec == y.tv_sec)
+            return (x.tv_usec &lt; y.tv_usec);
+        return (x.tv_sec &lt; y.tv_sec);
+    }
+
+    friend bool operator!=(xtime x, xtime y) { return !(x == y); }
+    friend bool operator&gt; (xtime x, xtime y) { return y &lt; x; }
+    friend bool operator&lt;=(xtime x, xtime y) { return !(y &lt; x); }
+    friend bool operator&gt;=(xtime x, xtime y) { return !(x &lt; y); }
+
+    friend std::ostream&amp; operator&lt;&lt;(std::ostream&amp; os, xtime x)
+        {return os &lt;&lt; '{' &lt;&lt; x.tv_sec &lt;&lt; ',' &lt;&lt; x.tv_usec &lt;&lt; '}';}
+};
+
+class xtime_clock
+{
+public:
+    typedef xtime                                  rep;
+    typedef std::micro                             period;
+    typedef std::datetime::duration&lt;rep, period&gt;   duration;
+    typedef std::datetime::time_point&lt;xtime_clock&gt; time_point;
+
+    static time_point now();
+};
+
+xtime_clock::time_point
+xtime_clock::now()
+{
+    time_point t(duration(xtime(0)));
+    gettimeofday((timeval*)&amp;t, 0);
+    return t;
+}
+
+void test_xtime_clock()
+{
+    using namespace std::datetime;
+    std::cout &lt;&lt; "timeval_demo system clock test\n";
+    std::cout &lt;&lt; "sizeof xtime_clock::time_point = " &lt;&lt; sizeof(xtime_clock::time_point) &lt;&lt; '\n';
+    std::cout &lt;&lt; "sizeof xtime_clock::duration = " &lt;&lt; sizeof(xtime_clock::duration) &lt;&lt; '\n';
+    std::cout &lt;&lt; "sizeof xtime_clock::rep = " &lt;&lt; sizeof(xtime_clock::rep) &lt;&lt; '\n';
+    xtime_clock::duration delay(milliseconds(5));
+    xtime_clock::time_point start = xtime_clock::now();
+    while (xtime_clock::now() - start &lt;= delay)
+        ;
+    xtime_clock::time_point stop = xtime_clock::now();
+    xtime_clock::duration elapsed = stop - start;
+    std::cout &lt;&lt; "paused " &lt;&lt; nanoseconds(elapsed).count() &lt;&lt; " nanoseconds\n";
+}
+
+}  <font color="#c80000">// timeval_demo</font>
+
+<font color="#c80000">// Handle duration with resolution not known until run time</font>
+
+namespace runtime_resolution
+{
+
+class duration
+{
+public:
+    typedef long long rep;
+private:
+    rep rep_;
+
+    static const double ticks_per_nanosecond;
+
+public:
+    typedef std::datetime::duration&lt;double, std::nano&gt; tonanosec;
+
+    duration() {} <font color="#c80000">// = default;</font>
+    explicit duration(const rep&amp; r) : rep_(r) {}
+
+    <font color="#c80000">// conversions</font>
+    explicit duration(const tonanosec&amp; d)
+            : rep_(static_cast&lt;rep&gt;(d.count() * ticks_per_nanosecond)) {}
+
+    <font color="#c80000">// explicit</font>
+       operator tonanosec() const {return tonanosec(rep_/ticks_per_nanosecond);}
+
+    <font color="#c80000">// observer</font>
+
+    rep count() const {return rep_;}
+
+    <font color="#c80000">// arithmetic</font>
+
+    duration&amp; operator+=(const duration&amp; d) {rep_ += d.rep_; return *this;}
+    duration&amp; operator-=(const duration&amp; d) {rep_ += d.rep_; return *this;}
+    duration&amp; operator*=(rep rhs)           {rep_ *= rhs; return *this;}
+    duration&amp; operator/=(rep rhs)           {rep_ /= rhs; return *this;}
+
+    duration  operator+() const {return *this;}
+    duration  operator-() const {return duration(-rep_);}
+    duration&amp; operator++()      {++rep_; return *this;}
+    duration  operator++(int)   {return duration(rep_++);}
+    duration&amp; operator--()      {--rep_; return *this;}
+    duration  operator--(int)   {return duration(rep_--);}
+
+    friend duration operator+(duration x, duration y) {return x += y;}
+    friend duration operator-(duration x, duration y) {return x -= y;}
+    friend duration operator*(duration x, rep y)      {return x *= y;}
+    friend duration operator*(rep x, duration y)      {return y *= x;}
+    friend duration operator/(duration x, rep y)      {return x /= y;}
+
+    friend bool operator==(duration x, duration y) {return x.rep_ == y.rep_;}
+    friend bool operator!=(duration x, duration y) {return !(x == y);}
+    friend bool operator&lt; (duration x, duration y) {return x.rep_ &lt; y.rep_;}
+    friend bool operator&lt;=(duration x, duration y) {return !(y &lt; x);}
+    friend bool operator&gt; (duration x, duration y) {return y &lt; x;}
+    friend bool operator&gt;=(duration x, duration y) {return !(x &lt; y);}
+};
+
+static
+double
+init_duration()
+{
+    mach_timebase_info_data_t MachInfo;
+    mach_timebase_info(&amp;MachInfo);
+    return static_cast&lt;double&gt;(MachInfo.denom) / MachInfo.numer;
+}
+
+const double duration::ticks_per_nanosecond = init_duration();
+
+class clock;
+
+class time_point
+{
+public:
+    typedef runtime_resolution::clock clock;
+    typedef long long rep;
+private:
+    rep rep_;
+
+
+    rep count() const {return rep_;}
+public:
+
+    time_point() : rep_(0) {}
+    explicit time_point(const duration&amp; d)
+        : rep_(d.count()) {}
+
+    <font color="#c80000">// arithmetic</font>
+
+    time_point&amp; operator+=(const duration&amp; d) {rep_ += d.count(); return *this;}
+    time_point&amp; operator-=(const duration&amp; d) {rep_ -= d.count(); return *this;}
+
+    friend time_point operator+(time_point x, duration y) {return x += y;}
+    friend time_point operator+(duration x, time_point y) {return y += x;}
+    friend time_point operator-(time_point x, duration y) {return x -= y;}
+    friend duration operator-(time_point x, time_point y) {return duration(x.rep_ - y.rep_);}
+};
+
+class clock
+{
+public:
+    typedef duration::rep rep;
+    typedef runtime_resolution::duration duration;
+    typedef runtime_resolution::time_point time_point;
+
+    static time_point now() {return time_point(duration(mach_absolute_time()));}
+};
+
+void test()
+{
+    using namespace std::datetime;
+    std::cout &lt;&lt; "runtime_resolution test\n";
+    clock::duration delay(std::datetime::milliseconds(5));
+    clock::time_point start = clock::now();
+    while (clock::now() - start &lt;= delay)
+      ;
+    clock::time_point stop = clock::now();
+    clock::duration elapsed = stop - start;
+    std::cout &lt;&lt; "paused " &lt;&lt; nanoseconds(duration_cast&lt;nanoseconds&gt;(duration::tonanosec(elapsed))).count()
+                           &lt;&lt; " nanoseconds\n";
+}
+
+}  <font color="#c80000">// runtime_resolution</font>
+
+<font color="#c80000">// miscellaneous tests and demos:</font>
+
+#include &lt;cassert&gt;
+#include &lt;iostream&gt;
+
+using namespace std::datetime;
+
+void physics_function(duration&lt;double&gt; d)
+{
+    std::cout &lt;&lt; "d = " &lt;&lt; d.count() &lt;&lt; '\n';
+}
+
+void drive_physics_function()
+{
+    physics_function(nanoseconds(3));
+    physics_function(hours(3));
+    physics_function(duration&lt;double&gt;(2./3));
+    std::cout.precision(16);
+    physics_function( hours(3) + nanoseconds(-3) );
+}
+
+void test_range()
+{
+    using namespace std::datetime;
+    hours h1 = hours(24 * ( 365 * 292 + 292/4));
+    nanoseconds n1 = h1 + nanoseconds(1);
+    nanoseconds delta = n1 - h1;
+    std::cout &lt;&lt; "292 years of hours = " &lt;&lt; h1.count() &lt;&lt; "hr\n";
+    std::cout &lt;&lt; "Add a nanosecond = " &lt;&lt; n1.count() &lt;&lt; "ns\n";
+    std::cout &lt;&lt; "Find the difference = " &lt;&lt; delta.count() &lt;&lt; "ns\n";
+}
+
+void test_extended_range()
+{
+    using namespace std::datetime;
+    hours h1 = hours(24 * ( 365 * 244000 + 244000/4));
+    <font color="#c80000">/*auto*/</font> microseconds u1 = h1 + microseconds(1);
+    <font color="#c80000">/*auto*/</font> microseconds delta = u1 - h1;
+    std::cout &lt;&lt; "244,000 years of hours = " &lt;&lt; h1.count() &lt;&lt; "hr\n";
+    std::cout &lt;&lt; "Add a microsecond = " &lt;&lt; u1.count() &lt;&lt; "us\n";
+    std::cout &lt;&lt; "Find the difference = " &lt;&lt; delta.count() &lt;&lt; "us\n";
+}
+
+template &lt;class Rep, class Period&gt;
+void inspect_duration(std::datetime::duration&lt;Rep, Period&gt; d, const std::string&amp; name)
+{
+    typedef std::datetime::duration&lt;Rep, Period&gt; Duration;
+    std::cout &lt;&lt; "********* " &lt;&lt; name &lt;&lt; " *********\n";
+    std::cout &lt;&lt; "The period of " &lt;&lt; name &lt;&lt; " is " &lt;&lt; (double)Period::num/Period::den &lt;&lt; " seconds.\n";
+    std::cout &lt;&lt; "The frequency of " &lt;&lt; name &lt;&lt; " is " &lt;&lt; (double)Period::den/Period::num &lt;&lt; " Hz.\n";
+    std::cout &lt;&lt; "The representation is ";
+    if (tmp::is_floating_point&lt;Rep&gt;::value)
+    {
+        std::cout &lt;&lt; "floating point\n";
+        std::cout &lt;&lt; "The precision is the most significant ";
+        std::cout &lt;&lt; std::numeric_limits&lt;Rep&gt;::digits10 &lt;&lt; " decimal digits.\n";
+    }
+    else if (tmp::is_integral&lt;Rep&gt;::value)
+    {
+        std::cout &lt;&lt; "integral\n";
+        d = Duration(Rep(1));
+        std::datetime::duration&lt;double&gt; dsec = d;
+        std::cout &lt;&lt; "The precision is " &lt;&lt; dsec.count() &lt;&lt; " seconds.\n";
+    }
+    else
+    {
+        std::cout &lt;&lt; "a class type\n";
+        d = Duration(Rep(1));
+        std::datetime::duration&lt;double&gt; dsec = d;
+        std::cout &lt;&lt; "The precision is " &lt;&lt; dsec.count() &lt;&lt; " seconds.\n";
+    }
+    d = Duration(std::numeric_limits&lt;Rep&gt;::max());
+    using namespace std::datetime;
+    using namespace std;
+    typedef duration&lt;double, ratio_multiply&lt;ratio&lt;24*3652425,10000&gt;, hours::period&gt;::type&gt; Years;
+    Years years = d;
+    std::cout &lt;&lt; "The range is +/- " &lt;&lt; years.count() &lt;&lt; " years.\n";
+    std::cout &lt;&lt; "sizeof(" &lt;&lt; name &lt;&lt; ") = " &lt;&lt; sizeof(d) &lt;&lt; '\n';
+}
+
+void inspect_all()
+{
+    using namespace std::datetime;
+    std::cout.precision(6);
+    inspect_duration(nanoseconds(), "nanoseconds");
+    inspect_duration(microseconds(), "microseconds");
+    inspect_duration(milliseconds(), "milliseconds");
+    inspect_duration(seconds(), "seconds");
+    inspect_duration(minutes(), "minutes");
+    inspect_duration(hours(), "hours");
+    inspect_duration(duration&lt;double&gt;(), "duration&lt;double&gt;");
+}
+
+void test_milliseconds()
+{
+    using namespace std::datetime;
+    milliseconds ms(250);
+    ms += milliseconds(1);
+    milliseconds ms2(150);
+    milliseconds msdiff = ms - ms2;
+    if (msdiff == milliseconds(101))
+        std::cout &lt;&lt; "success\n";
+    else
+        std::cout &lt;&lt; "failure: " &lt;&lt; msdiff.count() &lt;&lt; '\n';
+}
+
+    using namespace std;
+    using namespace std::datetime;
+
+<font color="#c80000">// Example round_up utility:  converts d to To, rounding up for inexact conversions</font>
+<font color="#c80000">//   Being able to *easily* write this function is a major feature!</font>
+template &lt;class To, class Rep, class Period&gt;
+To
+round_up(duration&lt;Rep, Period&gt; d)
+{
+    To result = duration_cast&lt;To&gt;(d);
+    if (result &lt; d)
+        ++result;
+    return result;
+}
+
+<font color="#c80000">// demonstrate interaction with xtime-like facility:</font>
+
+using namespace std::datetime;
+
+struct xtime
+{
+    long sec;
+    unsigned long usec;
+};
+
+template &lt;class Rep, class Period&gt;
+xtime
+to_xtime_truncate(duration&lt;Rep, Period&gt; d)
+{
+    xtime xt;
+    xt.sec = duration_cast&lt;seconds&gt;(d).count();
+    xt.usec = duration_cast&lt;microseconds&gt;(d - seconds(xt.sec)).count();
+    return xt;
+}
+
+template &lt;class Rep, class Period&gt;
+xtime
+to_xtime_round_up(duration&lt;Rep, Period&gt; d)
+{
+    xtime xt;
+    xt.sec = duration_cast&lt;seconds&gt;(d).count();
+    xt.usec = round_up&lt;microseconds&gt;(d - seconds(xt.sec)).count();
+    return xt;
+}
+
+microseconds
+from_xtime(xtime xt)
+{
+    return seconds(xt.sec) + microseconds(xt.usec);
+}
+
+void print(xtime xt)
+{
+    cout &lt;&lt; '{' &lt;&lt; xt.sec &lt;&lt; ',' &lt;&lt; xt.usec &lt;&lt; "}\n";
+}
+
+void test_with_xtime()
+{
+    cout &lt;&lt; "test_with_xtime\n";
+    xtime xt = to_xtime_truncate(seconds(3) + milliseconds(251));
+    print(xt);
+    milliseconds ms = duration_cast&lt;milliseconds&gt;(from_xtime(xt));
+    cout &lt;&lt; ms.count() &lt;&lt; " milliseconds\n";
+    xt = to_xtime_round_up(ms);
+    print(xt);
+    xt = to_xtime_truncate(seconds(3) + nanoseconds(999));
+    print(xt);
+    xt = to_xtime_round_up(seconds(3) + nanoseconds(999));
+    print(xt);
+}
+
+void test_system_clock()
+{
+    cout &lt;&lt; "system_clock test" &lt;&lt; endl;
+    system_clock::duration delay = milliseconds(5);
+    system_clock::time_point start = system_clock::now();
+    while (system_clock::now() - start &lt;= delay)
+        ;
+    system_clock::time_point stop = system_clock::now();
+    system_clock::duration elapsed = stop - start;
+    cout &lt;&lt; "paused " &lt;&lt; nanoseconds(elapsed).count() &lt;&lt; " nanoseconds\n";
+    start = system_clock::now();
+    stop = system_clock::now();
+    cout &lt;&lt; "system_clock resolution estimate: " &lt;&lt; nanoseconds(stop-start).count() &lt;&lt; " nanoseconds\n";
+}
+
+void test_monotonic_clock()
+{
+    cout &lt;&lt; "monotonic_clock test" &lt;&lt; endl;
+    monotonic_clock::duration delay = milliseconds(5);
+    monotonic_clock::time_point start = monotonic_clock::now();
+    while (monotonic_clock::now() - start &lt;= delay)
+        ;
+    monotonic_clock::time_point stop = monotonic_clock::now();
+    monotonic_clock::duration elapsed = stop - start;
+    cout &lt;&lt; "paused " &lt;&lt; nanoseconds(elapsed).count() &lt;&lt; " nanoseconds\n";
+    start = monotonic_clock::now();
+    stop = monotonic_clock::now();
+    cout &lt;&lt; "monotonic_clock resolution estimate: " &lt;&lt; nanoseconds(stop-start).count() &lt;&lt; " nanoseconds\n";
+}
+
+void test_hi_resolution_clock()
+{
+    cout &lt;&lt; "high_resolution_clock test" &lt;&lt; endl;
+    high_resolution_clock::duration delay = milliseconds(5);
+    high_resolution_clock::time_point start = high_resolution_clock::now();
+    while (high_resolution_clock::now() - start &lt;= delay)
+      ;
+    high_resolution_clock::time_point stop = high_resolution_clock::now();
+    high_resolution_clock::duration elapsed = stop - start;
+    cout &lt;&lt; "paused " &lt;&lt; nanoseconds(elapsed).count() &lt;&lt; " nanoseconds\n";
+    start = high_resolution_clock::now();
+    stop = high_resolution_clock::now();
+    cout &lt;&lt; "high_resolution_clock resolution estimate: " &lt;&lt; nanoseconds(stop-start).count() &lt;&lt; " nanoseconds\n";
+}
+
+void test_mixed_clock()
+{
+    cout &lt;&lt; "mixed clock test" &lt;&lt; endl;
+    high_resolution_clock::time_point hstart = high_resolution_clock::now();
+    cout &lt;&lt; "Add 5 milliseconds to a high_resolution_clock::time_point\n";
+    monotonic_clock::time_point mend = hstart + milliseconds(5);
+    bool b = hstart == mend;
+    system_clock::time_point sstart = system_clock::now();
+    std::cout &lt;&lt; "Subtracting system_clock::time_point from monotonic_clock::time_point doesn't compile\n";
+<font color="#c80000">//  mend - sstart; // doesn't compile</font>
+    cout &lt;&lt; "subtract high_resolution_clock::time_point from monotonic_clock::time_point"
+            " and add that to a system_clock::time_point\n";
+    system_clock::time_point send = sstart + duration_cast&lt;system_clock::duration&gt;(mend - hstart);
+    cout &lt;&lt; "subtract two system_clock::time_point's and output that in microseconds:\n";
+    microseconds ms = send - sstart;
+    cout &lt;&lt; ms.count() &lt;&lt; " microseconds\n";
+}
+
+void test_c_mapping()
+{
+    cout &lt;&lt; "C map test\n";
+    using namespace std::datetime;
+    system_clock::time_point t1 = system_clock::now();
+    std::time_t c_time = system_clock::to_time_t(t1);
+    std::tm* tmptr = std::localtime(&amp;c_time);
+    std::cout &lt;&lt; "It is now " &lt;&lt; tmptr-&gt;tm_hour &lt;&lt; ':' &lt;&lt; tmptr-&gt;tm_min &lt;&lt; ':' &lt;&lt; tmptr-&gt;tm_sec &lt;&lt; ' '
+              &lt;&lt; tmptr-&gt;tm_year + 1900 &lt;&lt; '-' &lt;&lt; tmptr-&gt;tm_mon + 1 &lt;&lt; '-' &lt;&lt; tmptr-&gt;tm_mday &lt;&lt; '\n';
+    c_time = std::mktime(tmptr);
+    system_clock::time_point t2 = system_clock::from_time_t(c_time);
+    microseconds ms = t1 - t2;
+    std::cout &lt;&lt; "Round-tripping through the C interface truncated the precision by " &lt;&lt; ms.count() &lt;&lt; " microseconds\n";
+}
+
+void test_duration_division()
+{
+    cout &lt;&lt; hours(3) / milliseconds(5) &lt;&lt; '\n';
+    cout &lt;&lt; milliseconds(5) / hours(3) &lt;&lt; '\n';
+    cout &lt;&lt; hours(1) / milliseconds(1) &lt;&lt; '\n';
+}
+
+namespace I_dont_like_the_default_duration_behavior
+{
+
+<font color="#c80000">// Here's how you override the duration's default constructor to do anything you want (in this case zero)</font>
+
+template &lt;class R&gt;
+class zero_default
+{
+public:
+    typedef R rep;
+
+private:
+    rep rep_;
+public:
+    zero_default(rep i = 0) : rep_(i) {}
+    operator rep() const {return rep_;}
+
+    zero_default&amp; operator+=(zero_default x) {rep_ += x.rep_; return *this;}
+    zero_default&amp; operator-=(zero_default x) {rep_ -= x.rep_; return *this;}
+    zero_default&amp; operator*=(zero_default x) {rep_ *= x.rep_; return *this;}
+    zero_default&amp; operator/=(zero_default x) {rep_ /= x.rep_; return *this;}
+
+    zero_default  operator+ () const {return *this;}
+    zero_default  operator- () const {return zero_default(-rep_);}
+    zero_default&amp; operator++()       {++rep_; return *this;}
+    zero_default  operator++(int)    {return zero_default(rep_++);}
+    zero_default&amp; operator--()       {--rep_; return *this;}
+    zero_default  operator--(int)    {return zero_default(rep_--);}
+
+    friend zero_default operator+(zero_default x, zero_default y) {return x += y;}
+    friend zero_default operator-(zero_default x, zero_default y) {return x -= y;}
+    friend zero_default operator*(zero_default x, zero_default y) {return x *= y;}
+    friend zero_default operator/(zero_default x, zero_default y) {return x /= y;}
+
+    friend bool operator==(zero_default x, zero_default y) {return x.rep_ == y.rep_;}
+    friend bool operator!=(zero_default x, zero_default y) {return !(x == y);}
+    friend bool operator&lt; (zero_default x, zero_default y) {return x.rep_ &lt; y.rep_;}
+    friend bool operator&lt;=(zero_default x, zero_default y) {return !(y &lt; x);}
+    friend bool operator&gt; (zero_default x, zero_default y) {return y &lt; x;}
+    friend bool operator&gt;=(zero_default x, zero_default y) {return !(x &lt; y);}
+};
+
+typedef std::datetime::duration&lt;zero_default&lt;long long&gt;, std::nano        &gt; nanoseconds;
+typedef std::datetime::duration&lt;zero_default&lt;long long&gt;, std::micro       &gt; microseconds;
+typedef std::datetime::duration&lt;zero_default&lt;long long&gt;, std::milli       &gt; milliseconds;
+typedef std::datetime::duration&lt;zero_default&lt;long long&gt;                   &gt; seconds;
+typedef std::datetime::duration&lt;zero_default&lt;long long&gt;, std::ratio&lt;60&gt;   &gt; minutes;
+typedef std::datetime::duration&lt;zero_default&lt;long long&gt;, std::ratio&lt;3600&gt; &gt; hours;
+
+void test()
+{
+    milliseconds ms;
+    cout &lt;&lt; ms.count() &lt;&lt; '\n';
+}
+
+}  <font color="#c80000">// I_dont_like_the_default_duration_behavior</font>
+
+<font color="#c80000">// Build a min for two time_points</font>
+
+template &lt;class Rep, class Period&gt;
+void
+print_duration(ostream&amp; os, duration&lt;Rep, Period&gt; d)
+{
+    os &lt;&lt; d.count() &lt;&lt; " * " &lt;&lt; Period::num &lt;&lt; '/' &lt;&lt; Period::den &lt;&lt; " seconds\n";
+}
+
+<font color="#c80000">// Example min utility:  returns the earliest time_point</font>
+<font color="#c80000">//   Being able to *easily* write this function is a major feature!</font>
+template &lt;class Clock, class Duration1, class Duration2&gt;
+inline
+typename common_type&lt;time_point&lt;Clock, Duration1&gt;, time_point&lt;Clock, Duration2&gt; &gt;::type
+min(time_point&lt;Clock, Duration1&gt; t1, time_point&lt;Clock, Duration2&gt; t2)
+{
+    return t2 &lt; t1 ? t2 : t1;
+}
+
+void test_min()
+{
+    typedef time_point&lt;system_clock, common_type&lt;system_clock::duration, seconds&gt;::type&gt; T1;
+    typedef time_point&lt;system_clock, common_type&lt;system_clock::duration, nanoseconds&gt;::type&gt; T2;
+    typedef common_type&lt;T1, T2&gt;::type T3;
+    <font color="#c80000">/*auto*/</font> T1 t1 = system_clock::now() + seconds(3);
+    <font color="#c80000">/*auto*/</font> T2 t2 = system_clock::now() + nanoseconds(3);
+    <font color="#c80000">/*auto*/</font> T3 t3 = min(t1, t2);
+    print_duration(cout, t1 - t3);
+    print_duration(cout, t2 - t3);
+}
+
+void explore_limits()
+{
+    typedef duration&lt;long long, ratio_multiply&lt;ratio&lt;24*3652425,10000&gt;, hours::period&gt;::type&gt; Years;
+    monotonic_clock::time_point t1( Years(250));
+    monotonic_clock::time_point t2(-Years(250));
+    <font color="#c80000">// nanosecond resolution is likely to overflow.  "up cast" to microseconds.</font>
+    <font color="#c80000">//   The "up cast" trades precision for range.</font>
+    microseconds d = time_point_cast&lt;microseconds&gt;(t1) - time_point_cast&lt;microseconds&gt;(t2);
+    cout &lt;&lt; d.count() &lt;&lt; " microseconds\n";
+}
+
+void manipulate_clock_object(system_clock clock)
+{
+    system_clock::duration delay = milliseconds(5);
+    system_clock::time_point start = clock.now();
+    while (clock.now() - start &lt;= delay)
+      ;
+    system_clock::time_point stop = clock.now();
+    system_clock::duration elapsed = stop - start;
+    cout &lt;&lt; "paused " &lt;&lt; nanoseconds(elapsed).count() &lt;&lt; " nanoseconds\n";
+};
+
+template &lt;long long speed&gt;
+struct cycle_count
+{
+    typedef typename ratio_multiply&lt;ratio&lt;speed&gt;, mega&gt;::type frequency;  <font color="#c80000">// Mhz</font>
+    typedef typename ratio_divide&lt;ratio&lt;1&gt;, frequency&gt;::type period;
+    typedef long long rep;
+    typedef std::datetime::duration&lt;rep, period&gt; duration;
+    typedef std::datetime::time_point&lt;cycle_count&gt; time_point;
+
+    static time_point now()
+    {
+        static long long tick = 0;
+        <font color="#c80000">// return exact cycle count</font>
+        return time_point(duration(++tick));  <font color="#c80000">// fake access to clock cycle count</font>
+    }
+};
+
+template &lt;long long speed&gt;
+struct approx_cycle_count
+{
+    static const long long frequency = speed * 1000000;  <font color="#c80000">// MHz</font>
+    typedef nanoseconds duration;
+    typedef duration::rep rep;
+    typedef duration::period period;
+    static const long long nanosec_per_sec = period::den;
+    typedef std::datetime::time_point&lt;approx_cycle_count&gt; time_point;
+
+    static time_point now()
+    {
+        static long long tick = 0;
+        <font color="#c80000">// return cycle count as an approximate number of nanoseconds</font>
+        <font color="#c80000">// compute as if nanoseconds is only duration in the std::lib</font>
+        return time_point(duration(++tick * nanosec_per_sec / frequency));
+    }
+};
+
+void cycle_count_delay()
+{
+    {
+    typedef cycle_count&lt;400&gt; clock;
+    cout &lt;&lt; "\nSimulated " &lt;&lt; clock::frequency::num / mega::num &lt;&lt; "MHz clock which has a tick period of "
+         &lt;&lt; duration&lt;double, nano&gt;(clock::duration(1)).count() &lt;&lt; " nanoseconds\n";
+    nanoseconds delayns(500);
+    clock::duration delay = duration_cast&lt;clock::duration&gt;(delayns);
+    cout &lt;&lt; "delay = " &lt;&lt; delayns.count() &lt;&lt; " nanoseconds which is " &lt;&lt; delay.count() &lt;&lt; " cycles\n";
+    clock::time_point start = clock::now();
+    clock::time_point stop = start + delay;
+    while (clock::now() &lt; stop)  <font color="#c80000">// no multiplies or divides in this loop</font>
+        ;
+    clock::time_point end = clock::now();
+    clock::duration elapsed = end - start;
+    cout &lt;&lt; "paused " &lt;&lt; elapsed.count() &lt;&lt; " cycles ";
+    cout &lt;&lt; "which is " &lt;&lt; duration_cast&lt;nanoseconds&gt;(elapsed).count() &lt;&lt; " nanoseconds\n";
+    }
+    {
+    typedef approx_cycle_count&lt;400&gt; clock;
+    cout &lt;&lt; "\nSimulated " &lt;&lt; clock::frequency / 1000000 &lt;&lt; "MHz clock modeled with nanoseconds\n";
+    clock::duration delay = nanoseconds(500);
+    cout &lt;&lt; "delay = " &lt;&lt; delay.count() &lt;&lt; " nanoseconds\n";
+    clock::time_point start = clock::now();
+    clock::time_point stop = start + delay;
+    while (clock::now() &lt; stop) <font color="#c80000">// 1 multiplication and 1 division in this loop</font>
+        ;
+    clock::time_point end = clock::now();
+    clock::duration elapsed = end - start;
+    cout &lt;&lt; "paused " &lt;&lt; elapsed.count() &lt;&lt; " nanoseconds\n";
+    }
+    {
+    typedef cycle_count&lt;1500&gt; clock;
+    cout &lt;&lt; "\nSimulated " &lt;&lt; clock::frequency::num / mega::num &lt;&lt; "MHz clock which has a tick period of "
+         &lt;&lt; duration&lt;double, nano&gt;(clock::duration(1)).count() &lt;&lt; " nanoseconds\n";
+    nanoseconds delayns(500);
+    clock::duration delay = duration_cast&lt;clock::duration&gt;(delayns);
+    cout &lt;&lt; "delay = " &lt;&lt; delayns.count() &lt;&lt; " nanoseconds which is " &lt;&lt; delay.count() &lt;&lt; " cycles\n";
+    clock::time_point start = clock::now();
+    clock::time_point stop = start + delay;
+    while (clock::now() &lt; stop)  <font color="#c80000">// no multiplies or divides in this loop</font>
+        ;
+    clock::time_point end = clock::now();
+    clock::duration elapsed = end - start;
+    cout &lt;&lt; "paused " &lt;&lt; elapsed.count() &lt;&lt; " cycles ";
+    cout &lt;&lt; "which is " &lt;&lt; duration_cast&lt;nanoseconds&gt;(elapsed).count() &lt;&lt; " nanoseconds\n";
+    }
+    {
+    typedef approx_cycle_count&lt;1500&gt; clock;
+    cout &lt;&lt; "\nSimulated " &lt;&lt; clock::frequency / 1000000 &lt;&lt; "MHz clock modeled with nanoseconds\n";
+    clock::duration delay = nanoseconds(500);
+    cout &lt;&lt; "delay = " &lt;&lt; delay.count() &lt;&lt; " nanoseconds\n";
+    clock::time_point start = clock::now();
+    clock::time_point stop = start + delay;
+    while (clock::now() &lt; stop) <font color="#c80000">// 1 multiplication and 1 division in this loop</font>
+        ;
+    clock::time_point end = clock::now();
+    clock::duration elapsed = end - start;
+    cout &lt;&lt; "paused " &lt;&lt; elapsed.count() &lt;&lt; " nanoseconds\n";
+    }
+}
+
+void test_special_values()
+{
+    std::cout &lt;&lt; "duration&lt;unsigned&gt;::min().count()  = " &lt;&lt; duration&lt;unsigned&gt;::min().count() &lt;&lt; '\n';
+    std::cout &lt;&lt; "duration&lt;unsigned&gt;::zero().count() = " &lt;&lt; duration&lt;unsigned&gt;::zero().count() &lt;&lt; '\n';
+    std::cout &lt;&lt; "duration&lt;unsigned&gt;::max().count()  = " &lt;&lt; duration&lt;unsigned&gt;::max().count() &lt;&lt; '\n';
+    std::cout &lt;&lt; "duration&lt;int&gt;::min().count()       = " &lt;&lt; duration&lt;int&gt;::min().count() &lt;&lt; '\n';
+    std::cout &lt;&lt; "duration&lt;int&gt;::zero().count()      = " &lt;&lt; duration&lt;int&gt;::zero().count() &lt;&lt; '\n';
+    std::cout &lt;&lt; "duration&lt;int&gt;::max().count()       = " &lt;&lt; duration&lt;int&gt;::max().count() &lt;&lt; '\n';
+}
+
+int main()
+{
+    basic_examples();
+    testStdUser();
+    testUser1();
+    testUser2();
+    drive_physics_function();
+    test_range();
+    test_extended_range();
+    inspect_all();
+    test_milliseconds();
+    test_with_xtime();
+    test_system_clock();
+    test_monotonic_clock();
+    test_hi_resolution_clock();
+    test_mixed_clock();
+    timeval_demo::test_xtime_clock();
+    runtime_resolution::test();
+    test_c_mapping();
+    test_duration_division();
+    I_dont_like_the_default_duration_behavior::test();
+    test_min();
+#if VARIADIC_COMMON_TYPE
+    inspect_duration(common_type&lt;duration&lt;double&gt;, hours, microseconds&gt;::type(),
+                    "common_type&lt;duration&lt;double&gt;, hours, microseconds&gt;::type");
+#endif
+    explore_limits();
+    manipulate_clock_object(system_clock());
+    duration&lt;double, milli&gt; d = milliseconds(3) * 2.5;
+    inspect_duration(milliseconds(3) * 2.5, "milliseconds(3) * 2.5");
+    cout &lt;&lt; d.count() &lt;&lt; '\n';
+<font color="#c80000">//    milliseconds ms(3.5);  // doesn't compile</font>
+    cout &lt;&lt; "milliseconds ms(3.5) doesn't compile\n";
+    cycle_count_delay();
+    test_special_values();
+}
+
+<font color="#c80000">/*
+Output
+
+Running basic examples
+sleep_for 3000000 microseconds
+sleep_for 1 microseconds
+sleep_until    10:47:17.728293 which is 4499340 microseconds away
+try_lock_for 30000 microseconds
+try_lock_until 10:47:17.728285 which is 4499303 microseconds away
+wait_for 60000000 microseconds
+wait_until     10:47:17.728285 which is 4499264 microseconds away
+sleep_for 250000 microseconds
+sleep_until    10:47:14.729077 which is 1499979 microseconds away
+***************
+* testStdUser *
+***************
+100 hours expressed as hours = 100
+100 hours expressed as nanoseconds = 360000000000000
+200 hours expressed as nanoseconds = 720000000000000
+300 hours expressed as nanoseconds = 1080000000000000
+hr = ns;  <font color="#c80000">// does not compile</font>
+hr * ns;  <font color="#c80000">// does not compile</font>
+duration&lt;double&gt; has count() = 2.5
+seconds sec = duration&lt;double&gt; won't compile
+seconds has count() = 2
+
+*************
+* testUser1 *
+*************
+Speed = 24.5872 meters/sec
+Acceleration = 9.81456 meters/sec^2
+Distance = 13.5204 meters
+There are 125/201168 miles/meter which is approximately 0.000621371
+There are 201168/125 meters/mile which is approximately 1609.34
+1 attosecond is 1e-18 seconds
+sec = as;  <font color="#c80000">// compiles</font>
+1 second is 1e+18 attoseconds
+as = sec;  <font color="#c80000">// compiles</font>
+
+*************
+* testUser2 *
+*************
+100 years expressed as years = 100
+100 years expressed as nanoseconds = 3155695200000000000
+200 years expressed as nanoseconds = 6311390400000000000
+300 years expressed as nanoseconds = inf
+yr = ns;  <font color="#c80000">// does not compile</font>
+ps = yr;  <font color="#c80000">// does not compile</font>
+100 years expressed as picoseconds = inf
+0.1 years expressed as picoseconds = 3155695200000000000
+200 million years ago encoded in years: -200000000
+200 million years ago encoded in days: -73048500000
+200 million years ago encoded in millennium: -200000
+Demonstrate "uninitialized protection" behavior:
+nan
+
+d = 3e-09
+d = 10800
+d = 0.666667
+d = 10799.999999997
+292 years of hours = 2559672hr
+Add a nanosecond = 9214819200000000001ns
+Find the difference = 1ns
+244,000 years of hours = 2138904000hr
+Add a microsecond = 7700054400000000001us
+Find the difference = 1us
+********* nanoseconds *********
+The period of nanoseconds is 1e-09 seconds.
+The frequency of nanoseconds is 1e+09 Hz.
+The representation is integral
+The precision is 1e-09 seconds.
+The range is +/- 292.277 years.
+sizeof(nanoseconds) = 8
+********* microseconds *********
+The period of microseconds is 1e-06 seconds.
+The frequency of microseconds is 1e+06 Hz.
+The representation is integral
+The precision is 1e-06 seconds.
+The range is +/- 292277 years.
+sizeof(microseconds) = 8
+********* milliseconds *********
+The period of milliseconds is 0.001 seconds.
+The frequency of milliseconds is 1000 Hz.
+The representation is integral
+The precision is 0.001 seconds.
+The range is +/- 2.92277e+08 years.
+sizeof(milliseconds) = 8
+********* seconds *********
+The period of seconds is 1 seconds.
+The frequency of seconds is 1 Hz.
+The representation is integral
+The precision is 1 seconds.
+The range is +/- 2.92277e+11 years.
+sizeof(seconds) = 8
+********* minutes *********
+The period of minutes is 60 seconds.
+The frequency of minutes is 0.0166667 Hz.
+The representation is integral
+The precision is 60 seconds.
+The range is +/- 4083.06 years.
+sizeof(minutes) = 4
+********* hours *********
+The period of hours is 3600 seconds.
+The frequency of hours is 0.000277778 Hz.
+The representation is integral
+The precision is 3600 seconds.
+The range is +/- 244984 years.
+sizeof(hours) = 4
+********* duration&lt;double&gt; *********
+The period of duration&lt;double&gt; is 1 seconds.
+The frequency of duration&lt;double&gt; is 1 Hz.
+The representation is floating point
+The precision is the most significant 15 decimal digits.
+The range is +/- 5.69666e+300 years.
+sizeof(duration&lt;double&gt;) = 8
+success
+test_with_xtime
+{3,251000}
+3251 milliseconds
+{3,251000}
+{3,0}
+{3,1}
+system_clock test
+paused 5001000 nanoseconds
+system_clock resolution estimate: 0 nanoseconds
+monotonic_clock test
+paused 5000181 nanoseconds
+monotonic_clock resolution estimate: 97 nanoseconds
+high_resolution_clock test
+paused 5000277 nanoseconds
+high_resolution_clock resolution estimate: 96 nanoseconds
+mixed clock test
+Add 5 milliseconds to a high_resolution_clock::time_point
+Subtracting system_clock::time_point from monotonic_clock::time_point doesn't compile
+subtract high_resolution_clock::time_point from monotonic_clock::time_point and add that to a system_clock::time_point
+subtract two system_clock::time_point's and output that in microseconds:
+5000 microseconds
+timeval_demo system clock test
+sizeof xtime_clock::time_point = 8
+sizeof xtime_clock::duration = 8
+sizeof xtime_clock::rep = 8
+paused 5001000 nanoseconds
+runtime_resolution test
+paused 5000205 nanoseconds
+C map test
+It is now 10:47:13 2008-4-22
+Round-tripping through the C interface truncated the precision by 255445 microseconds
+2160000
+0
+3600000
+0
+2999998997 * 1/1000000000 seconds
+0 * 1/1000000000 seconds
+15778476000000000 microseconds
+paused 5001000 nanoseconds
+********* milliseconds(3) * 2.5 *********
+The period of milliseconds(3) * 2.5 is 0.001 seconds.
+The frequency of milliseconds(3) * 2.5 is 1000 Hz.
+The representation is floating point
+The precision is the most significant 15 decimal digits.
+The range is +/- 5.69666e+297 years.
+sizeof(milliseconds(3) * 2.5) = 8
+7.5
+milliseconds ms(3.5) doesn't compile
+
+Simulated 400MHz clock which has a tick period of 2.5 nanoseconds
+delay = 500 nanoseconds which is 200 cycles
+paused 201 cycles which is 502 nanoseconds
+
+Simulated 400MHz clock modeled with nanoseconds
+delay = 500 nanoseconds
+paused 503 nanoseconds
+
+Simulated 1500MHz clock which has a tick period of 0.666667 nanoseconds
+delay = 500 nanoseconds which is 750 cycles
+paused 751 cycles which is 500 nanoseconds
+
+Simulated 1500MHz clock modeled with nanoseconds
+delay = 500 nanoseconds
+paused 500 nanoseconds
+duration&lt;unsigned&gt;::min().count()  = 0
+duration&lt;unsigned&gt;::zero().count() = 0
+duration&lt;unsigned&gt;::max().count()  = 4294967295
+duration&lt;int&gt;::min().count()       = -2147483647
+duration&lt;int&gt;::zero().count()      = 0
+duration&lt;int&gt;::max().count()       = 2147483647
+*/</font>
+
+<font color="#c80000">/*
+Example disassemblies (to show efficiency).
+Disclaimer:  I don't pretend to understand the optimizations made.
+
+Compiled with
+g++ -O3 -arch x86_64 -S test2.cpp
+
+x86 64-bit architecture
+
+********************
+
+system_clock::duration
+time_subtraction(system_clock::time_point x, system_clock::time_point y)
+{
+    return x - y;
+}
+
+    pushq    %rbp
+LCFI25:
+    subq    %rsi, %rdi
+    movq    %rdi, %rax
+    movq    %rsp, %rbp
+LCFI26:
+    leave
+    ret
+
+********************
+
+seconds
+time_subtract_to_seconds(system_clock::time_point x, system_clock::time_point y)
+{
+    return duration_cast&lt;seconds&gt;(x - y);
+}
+
+    subq    %rsi, %rdi
+    movabsq    $4835703278458516699, %rdx
+    pushq    %rbp
+LCFI25:
+    movq    %rdi, %rax
+    sarq    $63, %rdi
+    imulq    %rdx
+    movq    %rsp, %rbp
+LCFI26:
+    leave
+    sarq    $18, %rdx
+    subq    %rdi, %rdx
+    movq    %rdx, %rax
+    ret
+
+********************
+
+nanoseconds
+time_subtract_to_nanoseconds(system_clock::time_point x, system_clock::time_point y)
+{
+    return x - y;
+}
+
+    pushq    %rbp
+LCFI25:
+    subq    %rsi, %rdi
+    imulq    $1000, %rdi, %rax
+    movq    %rsp, %rbp
+LCFI26:
+    leave
+    ret
+
+********************
+
+system_clock::time_point
+time_plus_duration(system_clock::time_point x, system_clock::duration y)
+{
+    return x + y;
+}
+
+    pushq    %rbp
+LCFI37:
+    movq    %rsp, %rbp
+LCFI38:
+    leaq    (%rsi,%rdi), %rax
+    leave
+    ret
+
+********************
+
+milliseconds
+duration_plus_duration(milliseconds x, milliseconds y)
+{
+    return x + y;
+}
+
+    pushq    %rbp
+LCFI11:
+    leaq    (%rdi,%rsi), %rax
+    movq    %rsp, %rbp
+LCFI12:
+    leave
+    ret
+
+********************
+
+nanoseconds
+milliseconds_plus_nanoseconds(milliseconds x, nanoseconds y)
+{
+    return x + y;
+}
+
+    imulq    $1000000, %rdi, %rdi
+    pushq    %rbp
+LCFI20:
+    movq    %rsp, %rbp
+LCFI21:
+    leave
+    leaq    (%rdi,%rsi), %rax
+    ret
+
+********************
+
+milliseconds
+nanoseconds_to_milliseconds(nanoseconds x)
+{
+    return duration_cast&lt;milliseconds&gt;(x);
+}
+
+    movq    %rdi, %rax
+    movabsq    $4835703278458516699, %rdx
+    pushq    %rbp
+LCFI13:
+    imulq    %rdx
+    sarq    $63, %rdi
+    movq    %rsp, %rbp
+LCFI14:
+    leave
+    sarq    $18, %rdx
+    subq    %rdi, %rdx
+    movq    %rdx, %rax
+    ret
+
+********************
+
+nanoseconds
+milliseconds_to_nanoseconds(milliseconds x)
+{
+    return x;
+}
+
+    pushq    %rbp
+LCFI13:
+    imulq    $1000000, %rdi, %rax
+    movq    %rsp, %rbp
+LCFI14:
+    leave
+    ret
+
+********************
+
+hours
+increment_hours(hours x)
+{
+    return ++x;
+}
+
+    pushq    %rbp
+LCFI11:
+    leaq    1(%rdi), %rax
+    movq    %rsp, %rbp
+LCFI12:
+    leave
+    ret
+
+*/</font>
+</pre>
+
+</body></html>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="9.00"
+	Name="icudt_build"
+	ProjectGUID="{A0D94973-D355-47A5-A1E2-3456F321F010}"
+	RootNamespace="icudt"
+	Keyword="Win32Proj"
+	TargetFrameworkVersion="131072"
+	>
+	<Platforms>
+		<Platform
+			Name="Win32"
+		/>
+	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
+	<Configurations>
+		<Configuration
+			Name="Debug|Win32"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="0"
+			CharacterSet="1"
+			>
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="nmake /nologo /f icudt_build.mak ProjectDir=&quot;$(ProjectDir).&quot; ConfigurationName=$(ConfigurationName) build"
+				ReBuildCommandLine="nmake /nologo /f icudt_build.mak ProjectDir=&quot;$(ProjectDir).&quot; ConfigurationName=$(ConfigurationName) rebuild"
+				CleanCommandLine="nmake /nologo /f icudt_build.mak ProjectDir=&quot;$(ProjectDir).&quot; ConfigurationName=$(ConfigurationName) clean"
+				Output=""
+				PreprocessorDefinitions=""
+				IncludeSearchPath=""
+				ForcedIncludes=""
+				AssemblySearchPath=""
+				ForcedUsingAssemblies=""
+				CompileAsManaged=""
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="0"
+			CharacterSet="1"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="nmake /nologo /f icudt_build.mak ProjectDir=&quot;$(ProjectDir).&quot; ConfigurationName=$(ConfigurationName) build"
+				ReBuildCommandLine="nmake /nologo /f icudt_build.mak ProjectDir=&quot;$(ProjectDir).&quot; ConfigurationName=$(ConfigurationName) rebuild"
+				CleanCommandLine="nmake /nologo /f icudt_build.mak ProjectDir=&quot;$(ProjectDir).&quot; ConfigurationName=$(ConfigurationName) clean"
+				Output=""
+				PreprocessorDefinitions=""
+				IncludeSearchPath=""
+				ForcedIncludes=""
+				AssemblySearchPath=""
+				ForcedUsingAssemblies=""
+				CompileAsManaged=""
+			/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+	</Files>
+</VisualStudioProject>

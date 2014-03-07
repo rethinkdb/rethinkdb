@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python -
+    &lt;boost/python/reference_existing_object.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header
+          &lt;boost/python/reference_existing_object.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#reference_existing_object-spec">Class
+          <code>reference_existing_object</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#reference_existing_object-spec-synopsis">Class
+              <code>reference_existing_object</code> synopsis</a></dt>
+
+              <dt><a href=
+              "#reference_existing_object-spec-metafunctions">Class
+              <code>reference_existing_object</code> metafunctions</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="reference_existing_object-spec"></a>Class
+    <code>reference_existing_object</code></h3>
+
+    <p><code>reference_existing_object</code> is a model of <a href=
+    "ResultConverter.html#ResultConverterGenerator-concept">ResultConverterGenerator</a>
+    which can be used to wrap C++ functions which return a reference or
+    pointer to a C++ object. When the wrapped function is called, the value
+    referenced by its return value is not copied. A new Python object is
+    created which contains a pointer to the referent, and no attempt is made
+    to ensure that the lifetime of the referent is at least as long as that
+    of the corresponding Python object. Thus, it can be <font color=
+    "#ff0000"><b>highly dangerous</b></font> to use
+    <code>reference_existing_object</code> without additional lifetime
+    management from such models of <a href=
+    "CallPolicies.html">CallPolicies</a> as <a href=
+    "with_custodian_and_ward.html#with_custodian_and_ward-spec">with_custodian_and_ward</a>.
+    This class is used in the implementation of <a href=
+    "return_internal_reference.html#return_internal_reference-spec">return_internal_reference</a>.</p>
+
+    <h4><a name="reference_existing_object-spec-synopsis"></a>Class
+    <code>reference_existing_object</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+    struct reference_existing_object
+    {
+        template &lt;class T&gt; struct apply;
+    };
+}}
+</pre>
+
+    <h4><a name="reference_existing_object-spec-metafunctions"></a>Class
+    <code>reference_existing_object</code> metafunctions</h4>
+<pre>
+template &lt;class T&gt; struct apply
+</pre>
+
+    <dl class="metafunction-semantics">
+      <dt><b>Requires:</b> <code>T</code> is <code>U&amp;</code> or
+      <code>U*</code>for some <code>U</code>.</dt>
+
+      <dt><b>Returns:</b> <code>typedef <a href=
+      "to_python_indirect.html#to_python_indirect-spec">to_python_indirect</a>&lt;T,V&gt;
+      type</code>, where <code>V</code> is a class whose
+      static <code>execute</code> function constructs an instance
+      holder containing an <i>unowned</i>
+      <code>U*</code> pointing to the referent of the wrapped function's
+      return value.</dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+
+    <p>In C++:</p>
+<pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/class.hpp&gt;
+#include &lt;boost/python/reference_existing_object.hpp&gt;
+#include &lt;boost/python/return_value_policy.hpp&gt;
+#include &lt;utility&gt;
+
+// classes to wrap
+struct Singleton
+{
+   Singleton() : x(0) {}
+
+   int exchange(int n)  // set x and return the old value
+   {
+        std::swap(n, x);
+        return n;
+   }
+
+   int x;
+};
+
+Singleton&amp; get_it()
+{
+   static Singleton just_one;
+   return just_one;
+}
+
+// Wrapper code
+using namespace boost::python;
+BOOST_PYTHON_MODULE(singleton)
+{
+    def("get_it", get_it,
+        return_value_policy&lt;reference_existing_object&gt;());
+
+    class_&lt;Singleton&gt;("Singleton")
+       .def("exchange", &amp;Singleton::exchange)
+       ;
+}
+</pre>
+    In Python: 
+<pre>
+&gt;&gt;&gt; import singleton
+&gt;&gt;&gt; s1 = singleton.get_it()  
+&gt;&gt;&gt; s2 = singleton.get_it()
+&gt;&gt;&gt; id(s1) == id(s2)  # s1 and s2 are not the same object
+0
+&gt;&gt;&gt; s1.exchange(42)   # but they reference the same C++ Singleton
+0
+&gt;&gt;&gt; s2.exchange(99)
+42
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

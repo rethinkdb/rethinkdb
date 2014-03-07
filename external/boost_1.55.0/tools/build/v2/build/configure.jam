@@ -1,0 +1,281 @@
+# Copyright (c) 2010 Vladimir Prus.
+#
+# Use, modification and distribution is subject to the Boost Software
+# License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# This module defines function to help with two main tasks:
+#
+# - Discovering build-time configuration for the purposes of adjusting the build
+#   process.
+# - Reporting what is built, and how it is configured.
+
+import "class" : new ;
+import common ;
+import path ;
+import property ;
+import property-set ;
+import targets ;
+import config-cache ;
+
+
+rule log-summary ( )
+{
+}
+
+
+.width = 30 ;
+
+rule set-width ( width )
+{
+    .width = $(width) ;
+}
+
+
+# Declare that the components specified by the parameter exist.
+#
+rule register-components ( components * )
+{
+    .components += $(components) ;
+}
+
+
+# Declare that the components specified by the parameters will be built.
+#
+rule components-building ( components * )
+{
+    .built-components += $(components) ;
+}
+
+
+# Report something about component configuration that the user should better
+# know.
+#
+rule log-component-configuration ( component : message )
+{
+    # FIXME: Implement per-property-set logs.
+    .component-logs.$(component) += $(message) ;
+}
+
+
+rule log-check-result ( result )
+{
+    if ! $(.announced-checks)
+    {
+        ECHO "Performing configuration checks\n" ;
+        .announced-checks = 1 ;
+    }
+
+    ECHO $(result) ;
+    # FIXME: Unfinished code. Nothing seems to set .check-results at the moment.
+    #.check-results += $(result) ;
+}
+
+
+rule log-library-search-result ( library : result )
+{
+    local x = [ PAD "    - $(library)" : $(.width) ] ;
+    log-check-result "$(x) : $(result)" ;
+}
+
+
+rule print-component-configuration ( )
+{
+    # FIXME: See what was intended with this initial assignment.
+    # local c = [ sequence.unique $(.components) ] ;
+
+    ECHO "\nComponent configuration:\n" ;
+    local c ;
+    for c in $(.components)
+    {
+        local s ;
+        if $(c) in $(.built-components)
+        {
+            s = "building" ;
+        }
+        else
+        {
+            s = "not building" ;
+        }
+        ECHO [ PAD "    - $(c)" : $(.width) ] ": $(s)" ;
+        for local m in $(.component-logs.$(c))
+        {
+            ECHO "        -" $(m) ;
+        }
+    }
+    ECHO ;
+}
+
+
+rule print-configure-checks-summary ( )
+{
+    # FIXME: The problem with this approach is that the user sees the checks
+    # summary when all checks are done, and has no progress reporting while the
+    # checks are being executed.
+    if $(.check-results)
+    {
+        ECHO "Configuration checks summary\n" ;
+        for local r in $(.check-results)
+        {
+            ECHO $(r) ;
+        }
+        ECHO ;
+    }
+}
+
+
+# Attempt to build a metatarget named by 'metatarget-reference' in context of
+# 'project' with properties 'ps'. Returns non-empty value if build is OK.
+#
+rule builds-raw ( metatarget-reference : project : ps : what : retry ? )
+{
+    local result ;
+
+    if ! $(retry) && ! $(.$(what)-tested.$(ps))
+    {
+        .$(what)-tested.$(ps) = true ;
+
+        local cache-name = $(what) [ $(ps).raw ] ;
+        cache-name = $(cache-name:J=-) ;
+        local value = [ config-cache.get $(cache-name) ] ;
+        
+        local targets = [ targets.generate-from-reference 
+            $(metatarget-reference) : $(project) : $(ps) ] ;
+
+        local jam-targets ;
+        for local t in $(targets[2-])
+        {
+            jam-targets += [ $(t).actualize ] ;
+        }
+             
+        if $(value)
+        {
+            local x = [ PAD "    - $(what)" : $(.width) ] ; 
+            if $(value) = true
+            {
+                .$(what)-supported.$(ps) = yes ;
+                result = true ;
+                log-check-result "$(x) : yes (cached)" ;
+            }
+            else
+            {
+                log-check-result "$(x) : no  (cached)" ;
+            }
+        }       
+        else if ! UPDATE_NOW in [ RULENAMES ]
+        {
+            # Cannot determine. Assume existance.
+        }
+        else
+        {
+            local x = [ PAD "    - $(what)" : $(.width) ] ;
+            if [ UPDATE_NOW $(jam-targets) :
+                 $(.log-fd) : ignore-minus-n : ignore-minus-q ]
+            {
+                .$(what)-supported.$(ps) = yes ;
+                result = true ;
+                log-check-result "$(x) : yes" ;
+            }
+            else
+            {
+                log-check-result "$(x) : no" ;
+            }
+        }
+        if ! $(value)
+        {
+            if $(result)
+            {
+                config-cache.set $(cache-name) : true ;
+            }
+            else
+            {
+                config-cache.set $(cache-name) : false ;
+            }
+        }        
+        return $(result) ;
+    }
+    else
+    {
+        return $(.$(what)-supported.$(ps)) ;
+    }
+}
+
+rule builds ( metatarget-reference : properties * : what ? : retry ? )
+{
+    # FIXME: This should not be hardcoded. Other checks might want to consider a
+    # different set of features as relevant.
+    local toolset = [ property.select <toolset> : $(properties) ] ;
+    local toolset-version-property = "<toolset-$(toolset:G=):version>" ;
+    local relevant = [ property.select <target-os> <toolset>
+        $(toolset-version-property) <address-model> <architecture> :
+        $(properties) ] ;
+    local ps = [ property-set.create $(relevant) ] ;
+    local t = [ targets.current ] ;
+    local p = [ $(t).project ] ;
+
+    if ! $(what)
+    {
+        local resolved = [ targets.resolve-reference $(metatarget-reference) : $(p) ] ;
+        local name = [ $(resolved[1]).name ] ;
+        what = "$(name) builds" ;
+    }
+
+    return [ builds-raw $(metatarget-reference) : $(p) : $(ps) : $(what) :
+        $(retry) ] ;
+}
+
+
+# Called by Boost.Build startup code to specify the file to receive the
+# configuration check results. Should never be called by user code.
+#
+rule set-log-file ( log-file )
+{
+    path.makedirs [ path.parent $(log-file) ] ;
+    .log-fd = [ FILE_OPEN $(log-file) : "w" ] ;
+}
+
+
+# Frontend rules
+
+class check-target-builds-worker
+{
+    import configure ;
+    import property-set ;
+    import targets ;
+    import property ;
+
+    rule __init__ ( target message ? : true-properties * : false-properties * )
+    {
+        self.target = $(target) ;
+        self.message = $(message) ;
+        self.true-properties = $(true-properties) ;
+        self.false-properties = $(false-properties) ;
+    }
+
+    rule check ( properties * )
+    {
+        local choosen ;
+        if [ configure.builds $(self.target) : $(properties) : $(self.message) ]
+        {
+            choosen = $(self.true-properties) ;
+        }
+        else
+        {
+            choosen = $(self.false-properties) ;
+        }
+        return [ property.evaluate-conditionals-in-context $(choosen) :
+            $(properties) ] ;
+    }
+}
+
+
+rule check-target-builds ( target message ? : true-properties * :
+    false-properties * )
+{
+    local instance = [ new check-target-builds-worker $(target) $(message) :
+        $(true-properties) : $(false-properties) ] ;
+    return <conditional>@$(instance).check ;
+}
+
+
+IMPORT $(__name__) : check-target-builds :  : check-target-builds ;

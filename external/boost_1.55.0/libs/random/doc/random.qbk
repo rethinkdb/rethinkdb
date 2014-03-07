@@ -1,0 +1,168 @@
+[library Boost.Random
+  [quickbook 1.5]
+  [authors [Maurer, Jens]]
+  [copyright 2000-2005 Jens Maurer, 2009-2010 Steven Watanabe]
+  [license
+      Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file LICENSE_1_0.txt or copy at
+      [@http://www.boost.org/LICENSE_1_0.txt])
+  ]
+  [purpose A complete system for random number generation]
+]
+
+[template sup[text]'''<superscript>'''[text]'''</superscript>''']
+
+[template prng[text] [link boost_random.reference.concepts.pseudo_random_number_generator [text]]]
+[template concepts[text] [link boost_random.reference.concepts [text]]]
+[template generators[text] [link boost_random.reference.generators [text]]]
+[template distributions[text] [link boost_random.reference.distributions [text]]]
+
+[def __NumberGenerator [link boost_random.reference.concepts.number_generator NumberGenerator]]
+[def __UniformRandomNumberGenerator [link boost_random.reference.concepts.uniform_random_number_generator UniformRandomNumberGenerator]]
+
+[def __CopyConstructible [@boost:/doc/html/CopyConstructible.html CopyConstructible]]
+[def __Assignable [@boost:/doc/html/Assignable.html Assignable]]
+[def __LessThanComparable [@boost:/doc/html/LessThanComparable.html LessThanComparable]]
+[def __EqualityComparable [@boost:/doc/html/EqualityComparable.html EqualityComparable]]
+[def __Streamable Streamable]
+
+[def __random_device [classref boost::random::random_device random_device]]
+[def __random_number_generator [classref boost::random::random_number_generator random_number_generator]]
+[def __variate_generator [classref boost::random::variate_generator variate_generator]]
+
+[def __minstd_rand0 [classref boost::random::minstd_rand0 minstd_rand0]]
+[def __minstd_rand [classref boost::random::minstd_rand minstd_rand]]
+[def __rand48 [classref boost::random::rand48 rand48]]
+[def __ecuyer1988 [classref boost::random::ecuyer1988 ecuyer1988]]
+[def __kreutzer1986 [classref boost::random::kreutzer1986 kreutzer1986]]
+[def __knuth_b [classref boost::random::knuth_b knuth_b]]
+[def __taus88 [classref boost::random::taus88 taus88]]
+[def __hellekalek1995 [classref boost::random::hellekalek1995 hellekalek1995]]
+[def __mt11213b [classref boost::random::mt11213b mt11213b]]
+[def __mt19937 [classref boost::random::mt19937 mt19937]]
+[def __mt19937_64 [classref boost::random::mt19937_64 mt19937_64]]
+[def __lagged_fibonacci607 [classref boost::random::lagged_fibonacci607 lagged_fibonacci607]]
+[def __lagged_fibonacci1279 [classref boost::random::lagged_fibonacci1279 lagged_fibonacci1279]]
+[def __lagged_fibonacci2281 [classref boost::random::lagged_fibonacci2281 lagged_fibonacci2281]]
+[def __lagged_fibonacci3217 [classref boost::random::lagged_fibonacci3217 lagged_fibonacci3217]]
+[def __lagged_fibonacci4423 [classref boost::random::lagged_fibonacci4423 lagged_fibonacci4423]]
+[def __lagged_fibonacci9689 [classref boost::random::lagged_fibonacci9689 lagged_fibonacci9689]]
+[def __lagged_fibonacci19937 [classref boost::random::lagged_fibonacci19937 lagged_fibonacci19937]]
+[def __lagged_fibonacci23209 [classref boost::random::lagged_fibonacci23209 lagged_fibonacci23209]]
+[def __lagged_fibonacci44497 [classref boost::random::lagged_fibonacci44497 lagged_fibonacci44497]]
+[def __ranlux3 [classref boost::random::ranlux3 ranlux3]]
+[def __ranlux4 [classref boost::random::ranlux4 ranlux4]]
+[def __ranlux64_3 [classref boost::random::ranlux64_3 ranlux64_3]]
+[def __ranlux64_4 [classref boost::random::ranlux64_4 ranlux64_4]]
+[def __ranlux3_01 [classref boost::random::ranlux3_01 ranlux3_01]]
+[def __ranlux4_01 [classref boost::random::ranlux4_01 ranlux4_01]]
+[def __ranlux64_3_01 [classref boost::random::ranlux64_3_01 ranlux64_3_01]]
+[def __ranlux64_4_01 [classref boost::random::ranlux64_4_01 ranlux64_4_01]]
+[def __ranlux24 [classref boost::random::ranlux24 ranlux24]]
+[def __ranlux48 [classref boost::random::ranlux48 ranlux48]]
+
+[def __uniform_smallint [classref boost::random::uniform_smallint uniform_smallint]]
+[def __uniform_int_distribution [classref boost::random::uniform_int_distribution uniform_int_distribution]]
+[def __uniform_01 [classref boost::random::uniform_01 uniform_01]]
+[def __uniform_real_distribution [classref boost::random::uniform_real_distribution uniform_real_distribution]]
+[def __bernoulli_distribution [classref boost::random::bernoulli_distribution bernoulli_distribution]]
+[def __binomial_distribution [classref boost::random::binomial_distribution binomial_distribution]]
+[def __cauchy_distribution [classref boost::random::cauchy_distribution cauchy_distribution]]
+[def __discrete_distribution [classref boost::random::discrete_distribution discrete_distribution]]
+[def __gamma_distribution [classref boost::random::gamma_distribution gamma_distribution]]
+[def __poisson_distribution [classref boost::random::poisson_distribution poisson_distribution]]
+[def __geometric_distribution [classref boost::random::geometric_distribution geometric_distribution]]
+[def __triangle_distribution [classref boost::random::triangle_distribution triangle_distribution]]
+[def __exponential_distribution [classref boost::random::exponential_distribution exponential_distribution]]
+[def __normal_distribution [classref boost::random::normal_distribution normal_distribution]]
+[def __lognormal_distribution [classref boost::random::lognormal_distribution lognormal_distribution]]
+[def __uniform_on_sphere [classref boost::random::uniform_on_sphere uniform_on_sphere]]
+[def __weibull_distribution [classref boost::random::weibull_distribution weibull_distribution]]
+[def __extreme_value_distribution [classref boost::random::extreme_value_distribution extreme_value_distribution]]
+[def __negative_binomial_distribution [classref boost::random::negative_binomial_distribution negative_binomial_distribution]]
+[def __student_t_distribution [classref boost::random::student_t_distribution student_t_distribution]]
+[def __fisher_f_distribution [classref boost::random::fisher_f_distribution fisher_f_distribution]]
+[def __chi_squared_distribution [classref boost::random::chi_squared_distribution chi_squared_distribution]]
+[def __piecewise_constant_distribution [classref boost::random::piecewise_constant_distribution piecewise_constant_distribution]]
+[def __piecewise_linear_distribution [classref boost::random::piecewise_linear_distribution piecewise_linear_distribution]]
+
+[include performance_data.qbk]
+
+[section Introduction]
+
+Random numbers are useful in a variety of applications. The Boost Random
+Number Library (Boost.Random for short) provides a variety of
+[generators generators] and [distributions distributions] to produce
+random numbers having useful properties, such as uniform distribution.
+
+You should read the [concepts concepts documentation] for an introduction and the
+definition of the basic concepts. For a quick start, it may be sufficient
+to have a look at [@boost:/libs/random/example/random_demo.cpp random_demo.cpp].
+
+For a very quick start, here's an example:
+
+  ``[classref boost::random::mt19937]`` rng;         // produces randomness out of thin air
+                                      // see pseudo-random number generators
+  ``[classref boost::random::uniform_int_distribution]<>`` six(1,6);
+                                      // distribution that maps to 1..6
+                                      // see random number distributions
+  int x = six(rng);                   // simulate rolling a die
+
+[endsect]
+
+[section Tutorial]
+[include tutorial.qbk]
+[endsect]
+
+[section Reference]
+
+[section Concepts]
+[include concepts.qbk]
+[endsect]
+
+[section Generators]
+[include generators.qbk]
+[endsect]
+
+[section Distributions]
+[include distributions.qbk]
+[endsect]
+
+[xinclude reference.xml]
+
+[endsect]
+
+[section Performance]
+[include performance.qbk]
+[endsect]
+
+[section History and Acknowledgements]
+
+In November 1999, Jeet Sukumaran proposed a framework based on virtual
+functions, and later sketched a template-based approach. Ed Brey pointed
+out that Microsoft Visual C++ does not support in-class member
+initializations and suggested the enum workaround. Dave Abrahams highlighted
+quantization issues.
+
+The first public release of this random number library materialized in
+March 2000 after extensive discussions on the boost mailing list. Many
+thanks to Beman Dawes for his original min_rand class, portability fixes,
+documentation suggestions, and general guidance. Harry Erwin sent a header
+file which provided additional insight into the requirements. Ed Brey and
+Beman Dawes wanted an iterator-like interface.
+
+Beman Dawes managed the formal review, during which Matthias Troyer,
+Csaba Szepesvari, and Thomas Holenstein gave detailed comments. The
+reviewed version became an official part of boost on 17 June 2000.
+
+Gary Powell contributed suggestions for code cleanliness. Dave Abrahams
+and Howard Hinnant suggested to move the basic generator templates from
+`namespace boost::detail` to `boost::random`.
+
+Ed Brey asked to remove superfluous warnings and helped with `uint64_t`
+handling. Andreas Scherer tested with MSVC. Matthias Troyer contributed
+a [headerref boost/random/lagged_fibonacci.hpp lagged Fibonacci generator].
+Michael Stevens found a bug in the copy semantics of __normal_distribution
+and suggested documentation improvements.
+
+[endsect]

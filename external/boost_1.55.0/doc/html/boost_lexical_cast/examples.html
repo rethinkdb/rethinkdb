@@ -1,0 +1,271 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Examples</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_lexical_cast.html" title="Chapter&#160;17.&#160;Boost.Lexical_Cast 1.0">
+<link rel="prev" href="../boost_lexical_cast.html" title="Chapter&#160;17.&#160;Boost.Lexical_Cast 1.0">
+<link rel="next" href="synopsis.html" title="Synopsis">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost_lexical_cast.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_lexical_cast.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="synopsis.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_lexical_cast.examples"></a><a class="link" href="examples.html" title="Examples">Examples</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="examples.html#boost_lexical_cast.examples.strings_to_numbers_conversion">Strings
+      to numbers conversion</a></span></dt>
+<dt><span class="section"><a href="examples.html#boost_lexical_cast.examples.numbers_to_strings_conversion">Numbers
+      to strings conversion</a></span></dt>
+<dt><span class="section"><a href="examples.html#boost_lexical_cast.examples.converting_to_string_without_dynamic_memory_allocation">Converting
+      to string without dynamic memory allocation</a></span></dt>
+<dt><span class="section"><a href="examples.html#boost_lexical_cast.examples.converting_part_of_the_string">Converting
+      part of the string</a></span></dt>
+<dt><span class="section"><a href="examples.html#boost_lexical_cast.examples.generic_programming__boost_fusion_">Generic
+      programming (Boost.Fusion)</a></span></dt>
+<dt><span class="section"><a href="examples.html#boost_lexical_cast.examples.generic_programming__boost_variant_">Generic
+      programming (Boost.Variant)</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_lexical_cast.examples.strings_to_numbers_conversion"></a><a class="link" href="examples.html#boost_lexical_cast.examples.strings_to_numbers_conversion" title="Strings to numbers conversion">Strings
+      to numbers conversion</a>
+</h3></div></div></div>
+<p>
+        The following example treats command line arguments as a sequence of numeric
+        data
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">lexical_cast</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="comment">/*argc*/</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bad_lexical_cast</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">short</span><span class="special">&gt;</span> <span class="identifier">args</span><span class="special">;</span>
+
+    <span class="keyword">while</span> <span class="special">(*++</span><span class="identifier">argv</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">try</span>
+        <span class="special">{</span>
+            <span class="identifier">args</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">short</span><span class="special">&gt;(*</span><span class="identifier">argv</span><span class="special">));</span>
+        <span class="special">}</span>
+        <span class="keyword">catch</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bad_lexical_cast</span> <span class="special">&amp;)</span>
+        <span class="special">{</span>
+            <span class="identifier">args</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+
+    <span class="comment">// ...</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_lexical_cast.examples.numbers_to_strings_conversion"></a><a class="link" href="examples.html#boost_lexical_cast.examples.numbers_to_strings_conversion" title="Numbers to strings conversion">Numbers
+      to strings conversion</a>
+</h3></div></div></div>
+<p>
+        The following example uses numeric data in a string expression:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">log_message</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;);</span>
+
+<span class="keyword">void</span> <span class="identifier">log_errno</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">yoko</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">log_message</span><span class="special">(</span><span class="string">"Error "</span> <span class="special">+</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="identifier">yoko</span><span class="special">)</span> <span class="special">+</span> <span class="string">": "</span> <span class="special">+</span> <span class="identifier">strerror</span><span class="special">(</span><span class="identifier">yoko</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_lexical_cast.examples.converting_to_string_without_dynamic_memory_allocation"></a><a class="link" href="examples.html#boost_lexical_cast.examples.converting_to_string_without_dynamic_memory_allocation" title="Converting to string without dynamic memory allocation">Converting
+      to string without dynamic memory allocation</a>
+</h3></div></div></div>
+<p>
+        The following example converts some number and puts it to file:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">number_to_file</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">number</span><span class="special">,</span> <span class="identifier">FILE</span><span class="special">*</span> <span class="identifier">file</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="number">50</span><span class="special">&gt;</span> <span class="identifier">buf_t</span><span class="special">;</span> <span class="comment">// You can use std::array if your compiler supports it</span>
+    <span class="identifier">buf_t</span> <span class="identifier">buffer</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="identifier">buf_t</span><span class="special">&gt;(</span><span class="identifier">number</span><span class="special">);</span> <span class="comment">// No dynamic memory allocation</span>
+    <span class="identifier">fputs</span><span class="special">(</span><span class="identifier">buffer</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">file</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_lexical_cast.examples.converting_part_of_the_string"></a><a class="link" href="examples.html#boost_lexical_cast.examples.converting_part_of_the_string" title="Converting part of the string">Converting
+      part of the string</a>
+</h3></div></div></div>
+<p>
+        The following example takes part of the string and converts it to <code class="computeroutput"><span class="keyword">int</span></code>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">convert_strings_part</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">pos</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">n</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">data</span><span class="special">()</span> <span class="special">+</span> <span class="identifier">pos</span><span class="special">,</span> <span class="identifier">n</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_lexical_cast.examples.generic_programming__boost_fusion_"></a><a class="link" href="examples.html#boost_lexical_cast.examples.generic_programming__boost_fusion_" title="Generic programming (Boost.Fusion)">Generic
+      programming (Boost.Fusion)</a>
+</h3></div></div></div>
+<p>
+        In this example we'll make a <code class="computeroutput"><span class="identifier">stringize</span></code>
+        method that accepts a sequence, converts each element of the sequence into
+        string and appends that string to the result.
+      </p>
+<p>
+        Example is based on the example from the <a href="http://www.packtpub.com/boost-cplusplus-application-development-cookbook/book" target="_top">Boost
+        C++ Application Development Cookbook</a> by Antony Polukhin, ISBN 9781849514880.
+      </p>
+<p>
+        Step 1: Making a functor that converts any type to a string and remembers
+        result:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">lexical_cast</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">struct</span> <span class="identifier">stringize_functor</span> <span class="special">{</span>
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">result</span><span class="special">;</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">explicit</span> <span class="identifier">stringize_functor</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">res</span><span class="special">)</span>
+        <span class="special">:</span> <span class="identifier">result</span><span class="special">(</span><span class="identifier">res</span><span class="special">)</span>
+    <span class="special">{}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">v</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">{</span>
+        <span class="identifier">result</span> <span class="special">+=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="identifier">v</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        Step 2: Applying <code class="computeroutput"><span class="identifier">stringize_functor</span></code>
+        to each element in sequence:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">for_each</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Sequence</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">stringize</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Sequence</span><span class="special">&amp;</span> <span class="identifier">seq</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">result</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">seq</span><span class="special">,</span> <span class="identifier">stringize_functor</span><span class="special">(</span><span class="identifier">result</span><span class="special">));</span>
+    <span class="keyword">return</span> <span class="identifier">result</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        Step 3: Using the <code class="computeroutput"><span class="identifier">stringize</span></code>
+        with different types:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">boost_tuple</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">std_pair</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span> <span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">char</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">decim</span><span class="special">(</span><span class="char">'-'</span><span class="special">,</span> <span class="number">10</span><span class="special">,</span> <span class="char">'e'</span><span class="special">,</span> <span class="number">5</span><span class="special">);</span>
+    <span class="identifier">assert</span><span class="special">(</span><span class="identifier">stringize</span><span class="special">(</span><span class="identifier">decim</span><span class="special">)</span> <span class="special">==</span> <span class="string">"-10e5"</span><span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">short</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">value_and_type</span><span class="special">(</span><span class="number">270</span><span class="special">,</span> <span class="string">"Kelvin"</span><span class="special">);</span>
+    <span class="identifier">assert</span><span class="special">(</span><span class="identifier">stringize</span><span class="special">(</span><span class="identifier">value_and_type</span><span class="special">)</span> <span class="special">==</span> <span class="string">"270Kelvin"</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_lexical_cast.examples.generic_programming__boost_variant_"></a><a class="link" href="examples.html#boost_lexical_cast.examples.generic_programming__boost_variant_" title="Generic programming (Boost.Variant)">Generic
+      programming (Boost.Variant)</a>
+</h3></div></div></div>
+<p>
+        In this example we'll make a <code class="computeroutput"><span class="identifier">to_long_double</span></code>
+        method that converts value of the Boost.Variant to <code class="computeroutput"><span class="keyword">long</span>
+        <span class="keyword">double</span></code>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">lexical_cast</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">variant</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+
+<span class="keyword">struct</span> <span class="identifier">to_long_double_functor</span><span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">static_visitor</span><span class="special">&lt;</span><span class="keyword">long</span> <span class="keyword">double</span><span class="special">&gt;</span> <span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">long</span> <span class="keyword">double</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">v</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">{</span>
+        <span class="comment">// Lexical cast has many optimizations including optimizations for situations that usually </span>
+        <span class="comment">// occur in generic programming, like std::string to std::string or arithmetic type to arithmetic type conversion. </span>
+        <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">long</span> <span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">v</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">// Throws `boost::bad_lexical_cast` if value of the variant is not convertible to `long double`</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Variant</span><span class="special">&gt;</span>
+<span class="keyword">long</span> <span class="keyword">double</span> <span class="identifier">to_long_double</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Variant</span><span class="special">&amp;</span> <span class="identifier">v</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">apply_visitor</span><span class="special">(</span><span class="identifier">to_long_double_functor</span><span class="special">(),</span> <span class="identifier">v</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span> <span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">variant</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">v1</span><span class="special">(</span><span class="char">'0'</span><span class="special">),</span> <span class="identifier">v2</span><span class="special">(</span><span class="string">"10.0001"</span><span class="special">),</span> <span class="identifier">v3</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+
+    <span class="keyword">long</span> <span class="keyword">double</span> <span class="identifier">sum</span> <span class="special">=</span> <span class="identifier">to_long_double</span><span class="special">(</span><span class="identifier">v1</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">to_long_double</span><span class="special">(</span><span class="identifier">v2</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">to_long_double</span><span class="special">(</span><span class="identifier">v3</span><span class="special">);</span>
+    <span class="identifier">assert</span><span class="special">(</span><span class="identifier">sum</span> <span class="special">&gt;</span> <span class="number">11</span> <span class="special">&amp;&amp;</span> <span class="identifier">sum</span> <span class="special">&lt;</span> <span class="number">11.1</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2005 Kevlin Henney<br>Copyright &#169; 2006-2010 Alexander Nasonov<br>Copyright &#169; 2011-2013 Antony Polukhin<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost_lexical_cast.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_lexical_cast.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="synopsis.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

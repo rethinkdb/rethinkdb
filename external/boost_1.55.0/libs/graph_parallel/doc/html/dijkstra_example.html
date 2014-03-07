@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel Shortest Paths</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="parallel-shortest-paths">
+<h1 class="title">Parallel Shortest Paths</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<p>To illustrate the use of the Parallel Boost Graph Library, we
+illustrate the use of both the sequential and parallel BGL to find
+the shortest paths from vertex A to every other vertex in the
+following simple graph:</p>
+<img alt="../dijkstra_seq_graph.png" src="../dijkstra_seq_graph.png" />
+<p>With the sequential <a class="reference external" href="http://www.boost.org/libs/graph/doc">BGL</a>, the program to calculate shortest paths has
+three stages. Readers familiar with the BGL may wish to skip ahead to
+the section <a class="reference internal" href="#distributing-the-graph">Distributing the graph</a>.</p>
+<blockquote>
+<ul class="simple">
+<li><a class="reference internal" href="#define-the-graph-type">Define the graph type</a></li>
+<li><a class="reference internal" href="#construct-the-graph">Construct the graph</a></li>
+<li><a class="reference internal" href="#invoke-dijkstra-s-algorithm">Invoke Dijkstra's algorithm</a></li>
+</ul>
+</blockquote>
+<div class="section" id="define-the-graph-type">
+<h1>Define the graph type</h1>
+<p>For this problem we use an adjacency list representation of the graph,
+using the BGL <tt class="docutils literal"><span class="pre">adjacency_list``_</span> <span class="pre">class</span> <span class="pre">template.</span> <span class="pre">It</span> <span class="pre">will</span> <span class="pre">be</span> <span class="pre">a</span> <span class="pre">directed</span>
+<span class="pre">graph</span> <span class="pre">(``directedS</span></tt> parameter ) whose vertices are stored in an
+<tt class="docutils literal"><span class="pre">std::vector</span></tt> (<tt class="docutils literal"><span class="pre">vecS</span></tt> parameter) where the outgoing edges of each
+vertex are stored in an <tt class="docutils literal"><span class="pre">std::list</span></tt> (<tt class="docutils literal"><span class="pre">listS</span></tt> parameter). To each
+of the edges we attach an integral weight.</p>
+<pre class="literal-block">
+typedef adjacency_list&lt;listS, vecS, directedS,
+                       no_property,                 // Vertex properties
+                       property&lt;edge_weight_t, int&gt; // Edge properties
+                       &gt; graph_t;
+typedef graph_traits &lt; graph_t &gt;::vertex_descriptor vertex_descriptor;
+typedef graph_traits &lt; graph_t &gt;::edge_descriptor edge_descriptor;
+</pre>
+</div>
+<div class="section" id="construct-the-graph">
+<h1>Construct the graph</h1>
+<p>To build the graph, we declare an enumeration containing the node
+names (for our own use) and create two arrays: the first,
+<tt class="docutils literal"><span class="pre">edge_array</span></tt>, contains the source and target of each edge, whereas
+the second, <tt class="docutils literal"><span class="pre">weights</span></tt>, contains the integral weight of each
+edge. We pass the contents of the arrays via pointers (used here as
+iterators) to the graph constructor to build our graph:</p>
+<pre class="literal-block">
+typedef std::pair&lt;int, int&gt; Edge;
+const int num_nodes = 5;
+enum nodes { A, B, C, D, E };
+char name[] = &quot;ABCDE&quot;;
+Edge edge_array[] = { Edge(A, C), Edge(B, B), Edge(B, D), Edge(B, E),
+  Edge(C, B), Edge(C, D), Edge(D, E), Edge(E, A), Edge(E, B)
+};
+int weights[] = { 1, 2, 1, 2, 7, 3, 1, 1, 1 };
+int num_arcs = sizeof(edge_array) / sizeof(Edge);
+
+graph_t g(edge_array, edge_array + num_arcs, weights, num_nodes);
+</pre>
+</div>
+<div class="section" id="invoke-dijkstra-s-algorithm">
+<h1>Invoke Dijkstra's algorithm</h1>
+<p>To invoke Dijkstra's algorithm, we need to first decide how we want
+to receive the results of the algorithm, namely the distance to each
+vertex and the predecessor of each vertex (allowing reconstruction of
+the shortest paths themselves). In our case, we will create two
+vectors, <tt class="docutils literal"><span class="pre">p</span></tt> for predecessors and <tt class="docutils literal"><span class="pre">d</span></tt> for distances.</p>
+<p>Next, we determine our starting vertex <tt class="docutils literal"><span class="pre">s</span></tt> using the <tt class="docutils literal"><span class="pre">vertex</span></tt>
+operation on the <tt class="docutils literal"><span class="pre">adjacency_list``_</span> <span class="pre">and</span> <span class="pre">call</span>
+<span class="pre">``dijkstra_shortest_paths``_</span> <span class="pre">with</span> <span class="pre">the</span> <span class="pre">graph</span> <span class="pre">``g</span></tt>, starting vertex
+<tt class="docutils literal"><span class="pre">s</span></tt>, and two <tt class="docutils literal"><span class="pre">property</span> <span class="pre">maps``_</span> <span class="pre">that</span> <span class="pre">instruct</span> <span class="pre">the</span> <span class="pre">algorithm</span> <span class="pre">to</span>
+<span class="pre">store</span> <span class="pre">predecessors</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">``p</span></tt> vector and distances in the <tt class="docutils literal"><span class="pre">d</span></tt>
+vector. The algorithm automatically uses the edge weights stored
+within the graph, although this capability can be overridden.</p>
+<pre class="literal-block">
+// Keeps track of the predecessor of each vertex
+std::vector&lt;vertex_descriptor&gt; p(num_vertices(g));
+// Keeps track of the distance to each vertex
+std::vector&lt;int&gt; d(num_vertices(g));
+
+vertex_descriptor s = vertex(A, g);
+dijkstra_shortest_paths
+  (g, s,
+   predecessor_map(
+     make_iterator_property_map(p.begin(), get(vertex_index, g))).
+   distance_map(
+     make_iterator_property_map(d.begin(), get(vertex_index, g)))
+   );
+</pre>
+</div>
+<div class="section" id="distributing-the-graph">
+<h1>Distributing the graph</h1>
+<p>The prior computation is entirely sequential, with the graph stored
+within a single address space. To distribute the graph across several
+processors without a shared address space, we need to represent the
+processors and communication among them and alter the graph type.</p>
+<p>Processors and their interactions are abstracted via a <em>process
+group</em>. In our case, we will use <a class="reference external" href="http://www-unix.mcs.anl.gov/mpi/">MPI</a> for communication with
+inter-processor messages sent immediately:</p>
+<pre class="literal-block">
+typedef mpi::process_group&lt;mpi::immediateS&gt; process_group_type;
+</pre>
+<p>Next, we instruct the <tt class="docutils literal"><span class="pre">adjacency_list</span></tt> template
+to distribute the vertices of the graph across our process group,
+storing the local vertices in an <tt class="docutils literal"><span class="pre">std::vector</span></tt>:</p>
+<pre class="literal-block">
+typedef adjacency_list&lt;listS,
+                       distributedS&lt;process_group_type, vecS&gt;,
+                       directedS,
+                       no_property,                 // Vertex properties
+                       property&lt;edge_weight_t, int&gt; // Edge properties
+                       &gt; graph_t;
+typedef graph_traits &lt; graph_t &gt;::vertex_descriptor vertex_descriptor;
+typedef graph_traits &lt; graph_t &gt;::edge_descriptor edge_descriptor;
+</pre>
+<p>Note that the only difference from the sequential BGL is the use of
+the <tt class="docutils literal"><span class="pre">distributedS</span></tt> selector, which identifies a distributed
+graph. The vertices of the graph will be distributed among the
+various processors, and the processor that owns a vertex also stores
+the edges outgoing from that vertex and any properties associated
+with that vertex or its edges. With three processors and the default
+block distribution, the graph would be distributed in this manner:</p>
+<img alt="../dijkstra_dist3_graph.png" src="../dijkstra_dist3_graph.png" />
+<p>Processor 0 (red) owns vertices A and B, including all edges outoing
+from those vertices, processor 1 (green) owns vertices C and D (and
+their edges), and processor 2 (blue) owns vertex E. Constructing this
+graph uses the same syntax is the sequential graph, as in the section
+<a class="reference internal" href="#construct-the-graph">Construct the graph</a>.</p>
+<p>The call to <tt class="docutils literal"><span class="pre">dijkstra_shortest_paths</span></tt> is syntactically equivalent to
+the sequential call, but the mechanisms used are very different. The
+property maps passed to <tt class="docutils literal"><span class="pre">dijkstra_shortest_paths</span></tt> are actually
+<em>distributed</em> property maps, which store properties for local edges
+or vertices and perform implicit communication to access properties
+of remote edges or vertices when needed. The formulation of Dijkstra's
+algorithm is also slightly different, because each processor can
+only attempt to relax edges outgoing from local vertices: as shorter
+paths to a vertex are discovered, messages to the processor owning
+that vertex indicate that the vertex may require reprocessing.</p>
+<hr class="docutils" />
+<p>Return to the <a class="reference external" href="index.html">Parallel BGL home page</a></p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:22 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

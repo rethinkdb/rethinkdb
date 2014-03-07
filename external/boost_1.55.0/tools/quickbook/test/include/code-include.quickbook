@@ -1,0 +1,16 @@
+[article Include
+[quickbook 1.6]
+]
+
+[include ../stub.c]
+[include ../stub.py]
+[include ../stub.cpp]
+
+[/ These shouldn't expand ]
+
+[foo]
+
+[foo_py]
+
+[foo_c]
+

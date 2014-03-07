@@ -1,0 +1,224 @@
+[/
+Copyright (c) 2012 John Maddock
+Use, modification and distribution are subject to the
+Boost Software License, Version 1.0. (See accompanying file
+LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section:airy Airy Functions]
+
+[section:ai Airy Ai Function]
+
+[heading Synopsis]
+
+``
+  #include <boost/math/special_functions/airy.hpp>
+``
+
+  namespace boost { namespace math {
+
+   template <class T>
+   ``__sf_result`` airy_ai(T x);
+
+   template <class T, class Policy>
+   ``__sf_result`` airy_ai(T x, const Policy&);
+
+  }} // namespaces
+  
+[heading Description]
+
+The function __airy_ai calculates the Airy function Ai which is the first solution
+to the differential equation:
+
+[equation airy]
+
+See Weisstein, Eric W. "Airy Functions." From MathWorld--A Wolfram Web Resource.
+[@http://mathworld.wolfram.com/AiryFunctions.html];
+
+
+[optional_policy]
+
+The following graph illustrates how this function changes as /x/ changes: for negative /x/
+the function is cyclic, while for positive /x/ the value tends to zero:
+
+[graph airy_ai]
+
+[heading Accuracy]
+
+This function is implemented entirely in terms of the Bessel functions 
+__cyl_bessel_j and __cyl_bessel_k - refer to those functions for detailed accuracy information.
+
+In general though, the relative error is low (less than 100 [epsilon]) for /x > 0/ while
+only the absolute error is low for /x < 0/.
+
+[heading Testing]
+
+Since this function is implemented in terms of other special functions, there are only a few 
+basic sanity checks, using test values from [@http://functions.wolfram.com/ Wolfram Airy Functions].
+
+[heading Implementation]
+
+This function is implemented in terms of the Bessel functions using the relations:
+
+[equation airy_ai]
+
+[endsect]
+
+[section:bi Airy Bi Function]
+
+[heading Synopsis]
+
+``
+  #include <boost/math/special_functions/airy.hpp>
+``
+
+  namespace boost { namespace math {
+
+   template <class T>
+   ``__sf_result`` airy_bi(T x);
+
+   template <class T, class Policy>
+   ``__sf_result`` airy_bi(T x, const Policy&);
+
+  }} // namespaces
+  
+[heading Description]
+
+The function __airy_bi calculates the Airy function Bi which is the second solution to the differential equation:
+
+[equation airy]
+
+[optional_policy]
+
+The following graph illustrates how this function changes as /x/ changes: for negative /x/
+the function is cyclic, while for positive /x/ the value tends to infinity:
+
+[graph airy_bi]
+
+[heading Accuracy]
+
+This function is implemented entirely in terms of the Bessel functions 
+__cyl_bessel_i and __cyl_bessel_j - refer to those functions for detailed accuracy information.
+
+In general though, the relative error is low (less than 100 [epsilon]) for /x > 0/ while
+only the absolute error is low for /x < 0/.
+
+[heading Testing]
+
+Since this function is implemented in terms of other special functions, there are only a few 
+basic sanity checks, using test values from [@http://functions.wolfram.com functions.wolfram.com].
+
+[heading Implementation]
+
+This function is implemented in terms of the Bessel functions using the relations:
+
+[equation airy_bi]
+
+[endsect]
+
+[section:aip Airy Ai' Function]
+
+[heading Synopsis]
+
+``
+  #include <boost/math/special_functions/airy.hpp>
+``
+
+  namespace boost { namespace math {
+
+   template <class T>
+   ``__sf_result`` airy_ai_prime(T x);
+
+   template <class T, class Policy>
+   ``__sf_result`` airy_ai_prime(T x, const Policy&);
+
+  }} // namespaces
+  
+[heading Description]
+
+The function __airy_ai_prime calculates the Airy function Ai' which is the derivative of the first solution to the differential equation:
+
+[equation airy]
+
+[optional_policy]
+
+The following graph illustrates how this function changes as /x/ changes: for negative /x/
+the function is cyclic, while for positive /x/ the value tends to zero:
+
+[graph airy_aip]
+
+[heading Accuracy]
+
+This function is implemented entirely in terms of the Bessel functions 
+__cyl_bessel_j and __cyl_bessel_k - refer to those functions for detailed accuracy information.
+
+In general though, the relative error is low (less than 100 [epsilon]) for /x > 0/ while
+only the absolute error is low for /x < 0/.
+
+[heading Testing]
+
+Since this function is implemented in terms of other special functions, there are only a few 
+basic sanity checks, using test values from [@http://functions.wolfram.com functions.wolfram.com].
+
+[heading Implementation]
+
+This function is implemented in terms of the Bessel functions using the relations:
+
+[equation airy_aip]
+
+[endsect]
+
+[section:bip Airy Bi' Function]
+
+[heading Synopsis]
+
+``
+  #include <boost/math/special_functions/airy.hpp>
+``
+
+  namespace boost { namespace math {
+
+   template <class T>
+   ``__sf_result`` airy_bi_prime(T x);
+
+   template <class T, class Policy>
+   ``__sf_result`` airy_bi_prime(T x, const Policy&);
+
+  }} // namespaces
+  
+[heading Description]
+
+The function __airy_bi_prime calculates the Airy function Bi' which is the derivative of the second solution to the differential equation:
+
+[equation airy]
+
+[optional_policy]
+
+The following graph illustrates how this function changes as /x/ changes: for negative /x/
+the function is cyclic, while for positive /x/ the value tends to infinity:
+
+[graph airy_bi]
+
+[heading Accuracy]
+
+This function is implemented entirely in terms of the Bessel functions 
+__cyl_bessel_i and __cyl_bessel_j - refer to those functions for detailed accuracy information.
+
+In general though, the relative error is low (less than 100 [epsilon]) for /x > 0/ while
+only the absolute error is low for /x < 0/.
+
+[heading Testing]
+
+Since this function is implemented in terms of other special functions, there are only a few 
+basic sanity checks, using test values from [@http://functions.wolfram.com functions.wolfram.com].
+
+[heading Implementation]
+
+This function is implemented in terms of the Bessel functions using the relations:
+
+[equation airy_bip]
+
+[endsect]
+
+[endsect]
+

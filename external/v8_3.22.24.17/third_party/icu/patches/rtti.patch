@@ -1,0 +1,407 @@
+Index: source/i18n/dtrule.cpp
+===================================================================
+--- source/i18n/dtrule.cpp	(revision 75185)
++++ source/i18n/dtrule.cpp	(working copy)
+@@ -5,7 +5,7 @@
+ *******************************************************************************
+ */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/currunit.cpp
+===================================================================
+--- source/i18n/currunit.cpp	(revision 75185)
++++ source/i18n/currunit.cpp	(working copy)
+@@ -8,7 +8,7 @@
+ * Since: ICU 3.0
+ **********************************************************************
+ */
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/tmunit.cpp
+===================================================================
+--- source/i18n/tmunit.cpp	(revision 75185)
++++ source/i18n/tmunit.cpp	(working copy)
+@@ -5,7 +5,7 @@
+  *******************************************************************************
+  */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/tmunit.h"
+ 
+Index: source/i18n/vtzone.cpp
+===================================================================
+--- source/i18n/vtzone.cpp	(revision 75185)
++++ source/i18n/vtzone.cpp	(working copy)
+@@ -5,7 +5,7 @@
+ *******************************************************************************
+ */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/tzrule.cpp
+===================================================================
+--- source/i18n/tzrule.cpp	(revision 75185)
++++ source/i18n/tzrule.cpp	(working copy)
+@@ -5,7 +5,7 @@
+ *******************************************************************************
+ */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/rbnf.cpp
+===================================================================
+--- source/i18n/rbnf.cpp	(revision 75185)
++++ source/i18n/rbnf.cpp	(working copy)
+@@ -5,7 +5,7 @@
+ *******************************************************************************
+ */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/rbnf.h"
+ 
+Index: source/i18n/currfmt.cpp
+===================================================================
+--- source/i18n/currfmt.cpp	(revision 75185)
++++ source/i18n/currfmt.cpp	(working copy)
+@@ -8,7 +8,7 @@
+ * Since: ICU 3.0
+ **********************************************************************
+ */
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/translit.cpp
+===================================================================
+--- source/i18n/translit.cpp	(revision 75185)
++++ source/i18n/translit.cpp	(working copy)
+@@ -8,7 +8,7 @@
+  **********************************************************************
+  */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/tmutfmt.cpp
+===================================================================
+--- source/i18n/tmutfmt.cpp	(revision 75185)
++++ source/i18n/tmutfmt.cpp	(working copy)
+@@ -5,7 +5,7 @@
+  *******************************************************************************
+  */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/tmutfmt.h"
+ 
+Index: source/i18n/ucal.cpp
+===================================================================
+--- source/i18n/ucal.cpp	(revision 75185)
++++ source/i18n/ucal.cpp	(working copy)
+@@ -5,7 +5,7 @@
+ *******************************************************************************
+ */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/dtitvfmt.cpp
+===================================================================
+--- source/i18n/dtitvfmt.cpp	(revision 75185)
++++ source/i18n/dtitvfmt.cpp	(working copy)
+@@ -8,7 +8,7 @@
+ *******************************************************************************
+ */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/dtitvfmt.h"
+ 
+Index: source/i18n/measure.cpp
+===================================================================
+--- source/i18n/measure.cpp	(revision 75185)
++++ source/i18n/measure.cpp	(working copy)
+@@ -8,7 +8,7 @@
+ * Since: ICU 3.0
+ **********************************************************************
+ */
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/calendar.cpp
+===================================================================
+--- source/i18n/calendar.cpp	(revision 75185)
++++ source/i18n/calendar.cpp	(working copy)
+@@ -24,7 +24,7 @@
+ *******************************************************************************
+ */
+ 
+-#include <typeinfo>  // for 'typeid' to work 
++#include "unicode/utypeinfo.h"  // for 'typeid' to work 
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/selfmt.cpp
+===================================================================
+--- source/i18n/selfmt.cpp	(revision 75185)
++++ source/i18n/selfmt.cpp	(working copy)
+@@ -14,7 +14,7 @@
+  *   11/16/09    kirtig      Improved version
+  ********************************************************************/
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ #include "unicode/ustring.h"
+Index: source/i18n/timezone.cpp
+===================================================================
+--- source/i18n/timezone.cpp	(revision 75185)
++++ source/i18n/timezone.cpp	(working copy)
+@@ -35,7 +35,7 @@
+ *                           available IDs code.  Misc. cleanup.
+ *********************************************************************************/
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ #include "unicode/ustring.h"
+Index: source/i18n/tztrans.cpp
+===================================================================
+--- source/i18n/tztrans.cpp	(revision 75185)
++++ source/i18n/tztrans.cpp	(working copy)
+@@ -5,7 +5,7 @@
+ *******************************************************************************
+ */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/simpletz.cpp
+===================================================================
+--- source/i18n/simpletz.cpp	(revision 75185)
++++ source/i18n/simpletz.cpp	(working copy)
+@@ -21,7 +21,7 @@
+  ********************************************************************************
+  */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/format.cpp
+===================================================================
+--- source/i18n/format.cpp	(revision 75185)
++++ source/i18n/format.cpp	(working copy)
+@@ -19,7 +19,7 @@
+ // This file was generated from the java source file Format.java
+ // *****************************************************************************
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/nfsubs.cpp
+===================================================================
+--- source/i18n/nfsubs.cpp	(revision 75185)
++++ source/i18n/nfsubs.cpp	(working copy)
+@@ -14,7 +14,7 @@
+ */
+ 
+ #include <stdio.h>
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "nfsubs.h"
+ #include "digitlst.h"
+Index: source/i18n/olsontz.cpp
+===================================================================
+--- source/i18n/olsontz.cpp	(revision 75185)
++++ source/i18n/olsontz.cpp	(working copy)
+@@ -9,7 +9,7 @@
+ **********************************************************************
+ */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "olsontz.h"
+ 
+Index: source/i18n/rbtz.cpp
+===================================================================
+--- source/i18n/rbtz.cpp	(revision 75185)
++++ source/i18n/rbtz.cpp	(working copy)
+@@ -5,7 +5,7 @@
+ *******************************************************************************
+ */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/i18n/tblcoll.cpp
+===================================================================
+--- source/i18n/tblcoll.cpp	(revision 75185)
++++ source/i18n/tblcoll.cpp	(working copy)
+@@ -54,7 +54,7 @@
+  * 01/29/01     synwee      Modified into a C++ wrapper calling C APIs (ucol.h)
+  */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/test/intltest/icusvtst.cpp
+===================================================================
+--- source/test/intltest/icusvtst.cpp	(revision 75185)
++++ source/test/intltest/icusvtst.cpp	(working copy)
+@@ -5,7 +5,7 @@
+  *******************************************************************************
+  */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/test/intltest/uobjtest.cpp
+===================================================================
+--- source/test/intltest/uobjtest.cpp	(revision 75185)
++++ source/test/intltest/uobjtest.cpp	(working copy)
+@@ -7,7 +7,7 @@
+ 
+ #include <stdio.h>
+ #include <string.h>
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "uobjtest.h"
+ #include "cmemory.h" // UAlignedMemory
+Index: source/test/intltest/citrtest.cpp
+===================================================================
+--- source/test/intltest/citrtest.cpp	(revision 75185)
++++ source/test/intltest/citrtest.cpp	(working copy)
+@@ -9,7 +9,7 @@
+  ****************************************************************************************/
+ 
+ #include <string.h>
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/chariter.h"
+ #include "unicode/ustring.h"
+Index: source/test/intltest/rbbitst.cpp
+===================================================================
+--- source/test/intltest/rbbitst.cpp	(revision 75185)
++++ source/test/intltest/rbbitst.cpp	(working copy)
+@@ -9,7 +9,7 @@
+ *   01/12/2000  Madhu        Updated for changed API and added new tests
+ ************************************************************************/
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/common/rbbi.cpp
+===================================================================
+--- source/common/rbbi.cpp	(revision 75185)
++++ source/common/rbbi.cpp	(working copy)
+@@ -10,7 +10,7 @@
+ //                   class RuleBasedBreakIterator
+ //
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/utypes.h"
+ 
+Index: source/common/uchriter.cpp
+===================================================================
+--- source/common/uchriter.cpp	(revision 75185)
++++ source/common/uchriter.cpp	(working copy)
+@@ -5,7 +5,7 @@
+ ******************************************************************************
+ */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/uchriter.h"
+ #include "unicode/ustring.h"
+Index: source/common/ustrenum.cpp
+===================================================================
+--- source/common/ustrenum.cpp	(revision 75185)
++++ source/common/ustrenum.cpp	(working copy)
+@@ -8,7 +8,7 @@
+ * Since: ICU 2.4
+ **********************************************************************
+ */
+-#include <typeinfo>  // for 'typeid' to work 
++#include "unicode/utypeinfo.h"  // for 'typeid' to work 
+ 
+ #include "unicode/ustring.h"
+ #include "unicode/strenum.h"
+Index: source/common/schriter.cpp
+===================================================================
+--- source/common/schriter.cpp	(revision 75185)
++++ source/common/schriter.cpp	(working copy)
+@@ -13,7 +13,7 @@
+ ******************************************************************************
+ */
+ 
+-#include <typeinfo>  // for 'typeid' to work
++#include "unicode/utypeinfo.h"  // for 'typeid' to work
+ 
+ #include "unicode/chariter.h"
+ #include "unicode/schriter.h"
+Index: source/common/unicode/utypeinfo.h
+===================================================================
+--- source/common/unicode/utypeinfo.h	(revision 0)
++++ source/common/unicode/utypeinfo.h	(revision 75186)
+@@ -0,0 +1,12 @@
++#ifndef UTYPEINFO_H
++#define UTYPEINFO_H
++
++#if defined(_MSC_VER) && _HAS_EXCEPTIONS == 0
++// Visual C++ needs the following two lines when RTTI is on with
++// exception handling disabled.
++#include <exception>
++using std::exception;
++#endif
++#include <typeinfo> // for typeid to work.
++
++#endif

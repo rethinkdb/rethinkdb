@@ -1,0 +1,182 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: distance_recorder</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>
+<pre>
+distance_recorder&lt;DistanceMap, EventTag&gt;
+</pre>
+</H1>
+
+This is an <a href="./EventVisitor.html">EventVisitor</a> that records
+the distance of a vertex (using a <a
+href="property_map.html">property map</a>) from some
+source vertex during a graph search. When applied to edge <i>e =
+(u,v)</i>, the distance of <i>v</i> is recorded to be one more than
+the distance of <i>u</i>. The distance recorder is typically used with
+the <tt>on_tree_edge</tt> or <tt>on_relax_edge</tt> events and
+cannot be used with vertex events.
+
+<p>
+<tt>distance_recorder</tt> can be used with graph algorithms by
+wrapping it with the algorithm specific adaptor, such as <a
+href="./bfs_visitor.html"><tt>bfs_visitor</tt></a> and <a
+href="./dfs_visitor.html"><tt>dfs_visitor</tt></a>. Also, this event
+visitor can be combined with other event visitors using
+<tt>std::pair</tt> to form an EventVisitorList.
+
+<h3>Example</h3>
+
+See the example for <a href="./bfs_visitor.html"><tt>bfs_visitor</tt></a>.
+
+<h3>Model of</h3>
+
+<a href="./EventVisitor.html">EventVisitor</a>
+
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/visitors.hpp">
+<TT>boost/graph/visitors.hpp</TT></a>
+
+<H3>Template Parameters</H3>
+
+<P>
+<TABLE border>
+<TR>
+<th>Parameter</th><th>Description</th><th>Default</th>
+</tr>
+
+<TR><TD><TT>DistanceMap</TT></TD>
+<TD>
+A <a
+href="../../property_map/doc/WritablePropertyMap.html">WritablePropertyMap</a>
+where the key type and the value type are the vertex descriptor type
+of the graph.
+</TD>
+<TD>&nbsp;</TD>
+</TR>
+
+<TR><TD><TT>EventTag</TT></TD>
+<TD>
+The tag to specify when the <tt>distance_recorder</tt> should be
+applied during the graph algorithm. <tt>EventTag</tt> must be an
+edge event.
+</TD>
+<TD>&nbsp;</TD>
+</TR>
+
+</table>
+
+<H2>Associated Types</H2>
+
+<table border>
+
+<tr>
+<th>Type</th><th>Description</th>
+</tr>
+
+<tr>
+<td><tt>distance_recorder::event_filter</tt></td>
+<td>
+This will be the same type as the template parameter <tt>EventTag</tt>.
+</td>
+</tr>
+
+</table>
+
+<h3>Member Functions</h3>
+
+<p>
+
+<table border>
+<tr>
+<th>Member</th><th>Description</th>
+</tr>
+
+<tr>
+<td><tt>
+distance_recorder(DistanceMap pa);
+</tt></td>
+<td>
+Construct a distance recorder object with distance property map
+<tt>pa</tt>.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+template &lt;class Edge, class Graph&gt;<br>
+void operator()(Edge e, const Graph& g);
+</tt></td>
+<td>
+Given edge <i>e = (u,v)</i>, this records the distance of <i>v</i> as 
+one plus the distance of <i>u</i>.
+</td>
+</tr>
+
+</table>
+
+<h3>Non-Member Functions</h3>
+
+<table border>
+<tr>
+<th>Function</th><th>Description</th>
+</tr>
+
+<tr><td><tt>
+template &lt;class DistanceMap, class Tag&gt;<br>
+distance_recorder&lt;DistanceMap, Tag&gt; <br>
+record_distances(DistanceMap pa, Tag);
+</tt></td><td>
+A convenient way to create a <tt>distance_recorder</tt>.
+</td></tr>
+
+</table>
+
+<h3>See Also</h3>
+
+<a href="./visitor_concepts.html">Visitor concepts</a>
+<p>
+The following are other event visitors: <a
+ href="./predecessor_recorder.html"><tt>predecessor_recorder</tt></a>,
+<a href="./time_stamper.html"><tt>time_stamper</tt></a>,
+and <a href="./property_writer.html"><tt>property_writer</tt></a>.
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 
+<!--  LocalWords:  DistanceMap EventTag EventVisitor map bfs dfs const Siek
+ -->
+<!--  LocalWords:  EventVisitorList WritablePropertyMap Univ Quan
+ -->
+<!--  LocalWords:  Lumsdaine
+ -->

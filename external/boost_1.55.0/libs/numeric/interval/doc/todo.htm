@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../../../../boost.css">
+
+  <title>Interval-TODO.htm</title>
+</head>
+
+<body lang="en">
+  <h1>TODO list for the Interval Arithmetic library</h1>
+
+  <h2>Comments from the review process</h2>
+
+  <ul>
+    <li>It would be nice to have a 100% portable Rounding policy class based
+    on LIA-1 only, with no additional requirement such as IEEE 754 or even
+    more.</li>
+
+    <li>For pi and other constants, we should fetch them from the Math
+    constants library when it is ready.</li>
+  </ul>
+
+  <h2>Various items</h2>
+
+  <ul>
+    <li>Support the <code>-mfpmath=sse</code> option of g++ for Pentium IV
+    optimized code. This requires a different rounding policy class.</li>
+
+    <li>Have an optimized specialization of
+    <code>interval&lt;double&gt;</code> using SSE2 instructions? Tricky.</li>
+
+    <li>Write a traits specialization for <code>interval&lt;MPFR&gt;</code>,
+    and other non-built-in number types.</li>
+
+    <li>Have a robust implementation of transcendental functions over the
+    built-in floating point types (e.g. using MPFR)?</li>
+
+    <li>Safe conversions from <code>interval&lt;double&gt;</code> to
+    <code>interval&lt;float&gt;</code>? Requires partial specialization.</li>
+
+    <li>It would be nice to use the expression template mechanism to
+    automatically use the more efficient unprotected rounding mode version
+    for small subexpressions (although you can do bigger expressions by
+    hand).</li>
+  </ul>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%Y-%m-%d" startspan -->2006-12-24<!--webbot bot="Timestamp" endspan i-checksum="12172" --></p>
+
+  <p><i>Copyright &copy; 2002 Guillaume Melquiond, Sylvain Pion, Herv&eacute;
+  Br&ouml;nnimann, Polytechnic University</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+  or copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

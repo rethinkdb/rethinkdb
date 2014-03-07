@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Fruchterman Reingold</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-fruchterman-reingold">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Fruchterman Reingold</h1>
+
+<!-- Copyright (C) 2004-2009 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+namespace graph { namespace distributed {
+
+  template&lt;typename Graph, typename PositionMap,
+           typename AttractiveForce, typename RepulsiveForce,
+           typename ForcePairs, typename Cooling, typename DisplacementMap&gt;
+  void
+  fruchterman_reingold_force_directed_layout
+  (const Graph&amp;    g,
+   PositionMap     position,
+   typename property_traits&lt;PositionMap&gt;::value_type const&amp; origin,
+   typename property_traits&lt;PositionMap&gt;::value_type const&amp; extent,
+   AttractiveForce attractive_force,
+   RepulsiveForce  repulsive_force,
+   ForcePairs      force_pairs,
+   Cooling         cool,
+   DisplacementMap displacement)
+
+  template&lt;typename Graph, typename PositionMap,
+           typename AttractiveForce, typename RepulsiveForce,
+           typename ForcePairs, typename Cooling, typename DisplacementMap&gt;
+  void
+  fruchterman_reingold_force_directed_layout
+  (const Graph&amp;    g,
+   PositionMap     position,
+   typename property_traits&lt;PositionMap&gt;::value_type const&amp; origin,
+   typename property_traits&lt;PositionMap&gt;::value_type const&amp; extent,
+   AttractiveForce attractive_force,
+   RepulsiveForce  repulsive_force,
+   ForcePairs      force_pairs,
+   Cooling         cool,
+   DisplacementMap displacement,
+   simple_tiling   tiling)
+} }
+</pre>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id1">Where Defined</a></li>
+<li><a class="reference internal" href="#parameters" id="id2">Parameters</a></li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id1">Where Defined</a></h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/distributed/fruchterman_reingold.hpp</span></tt>&gt;</p>
+<p>also accessible from</p>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/fruchterman_reingold.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="parameters">
+<h1><a class="toc-backref" href="#id2">Parameters</a></h1>
+<dl class="docutils">
+<dt>IN:  <tt class="docutils literal"><span class="pre">const</span> <span class="pre">Graph&amp;</span> <span class="pre">g</span></tt></dt>
+<dd>The graph type must be a model of <a class="reference external" href="DistributedGraph.html">Distributed Graph</a>.  The graph
+type must also model the <a class="reference external" href="http://www.boost.org/libs/graph/doc/IncidenceGraph.html">Incidence Graph</a>.</dd>
+</dl>
+<p>OUT:  <tt class="docutils literal"><span class="pre">PositionMap</span> <span class="pre">position</span></tt></p>
+<p>IN:  <tt class="docutils literal"><span class="pre">property_traits&lt;PositionMap&gt;::value_type</span> <span class="pre">origin</span></tt></p>
+<p>IN:  <tt class="docutils literal"><span class="pre">property_traits&lt;PositionMap&gt;::value_type</span> <span class="pre">extent</span></tt></p>
+<p>IN:  <tt class="docutils literal"><span class="pre">AttractiveForce</span> <span class="pre">attractive_force</span></tt></p>
+<p>IN:  <tt class="docutils literal"><span class="pre">RepulsiveForce</span> <span class="pre">repulsive_force</span></tt></p>
+<p>IN:  <tt class="docutils literal"><span class="pre">ForcePairs</span> <span class="pre">force_pairs</span></tt></p>
+<p>IN:  <tt class="docutils literal"><span class="pre">Cooling</span> <span class="pre">cool</span></tt></p>
+<p>IN:  <tt class="docutils literal"><span class="pre">DisplacementMap</span> <span class="pre">displacement</span></tt></p>
+<!-- Complexity
+- - - - - - - - - - -->
+<!-- Algorithm Description
+- - - - - - - - - - - - - - - - - - - - - -->
+<hr class="docutils" />
+<p>Copyright (C) 2009 The Trustees of Indiana University.</p>
+<p>Authors: Nick Edmonds and Andrew Lumsdaine</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

@@ -1,0 +1,174 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:implementation Appendix D: Implementation Notes]
+
+[section:sfinae Quick-n-Dirty Type Categorization]
+
+Much has already been written about dispatching on type traits using
+SFINAE (Substitution Failure Is Not An Error) techniques in C++. There
+is a Boost library, Boost.Enable_if, to make the technique idiomatic.
+Proto dispatches on type traits extensively, but it doesn't use
+`enable_if<>` very often. Rather, it dispatches based on the presence
+or absence of nested types, often typedefs for void.
+
+Consider the implementation of `is_expr<>`. It could have been written
+as something like this:
+
+    template<typename T>
+    struct is_expr
+      : is_base_and_derived<proto::some_expr_base, T>
+    {};
+
+Rather, it is implemented as this:
+
+    template<typename T, typename Void = void>
+    struct is_expr
+      : mpl::false_
+    {};
+
+    template<typename T>
+    struct is_expr<T, typename T::proto_is_expr_>
+      : mpl::true_
+    {};
+
+This relies on the fact that the specialization will be preferred
+if `T` has a nested `proto_is_expr_` that is a typedef for `void`.
+All Proto expression types have such a nested typedef.
+
+Why does Proto do it this way? The reason is because, after running
+extensive benchmarks while trying to improve compile times, I have
+found that this approach compiles faster. It requires exactly one
+template instantiation. The other approach requires at least 2:
+`is_expr<>` and `is_base_and_derived<>`, plus whatever templates
+`is_base_and_derived<>` may instantiate.
+
+[endsect]
+
+[section:function_arity Detecting the Arity of Function Objects]
+
+In several places, Proto needs to know whether or not a function
+object `Fun` can be called with certain parameters and take a
+fallback action if not. This happens in _callable_context_ and
+in the _call_ transform. How does Proto know? It involves some
+tricky metaprogramming. Here's how.
+
+Another way of framing the question is by trying to implement
+the following `can_be_called<>` Boolean metafunction, which
+checks to see if a function object `Fun` can be called with
+parameters of type `A` and `B`:
+
+    template<typename Fun, typename A, typename B>
+    struct can_be_called;
+
+First, we define the following `dont_care` struct, which has an
+implicit conversion from anything. And not just any implicit
+conversion; it has a ellipsis conversion, which is the worst possible
+conversion for the purposes of overload resolution:
+
+    struct dont_care
+    {
+        dont_care(...);
+    };
+
+We also need some private type known only to us with an overloaded
+comma operator (!), and some functions that detect the presence of
+this type and return types with different sizes, as follows:
+
+    struct private_type
+    {
+        private_type const &operator,(int) const;
+    };
+
+    typedef char yes_type;      // sizeof(yes_type) == 1
+    typedef char (&no_type)[2]; // sizeof(no_type)  == 2
+
+    template<typename T>
+    no_type is_private_type(T const &);
+
+    yes_type is_private_type(private_type const &);
+
+Next, we implement a binary function object wrapper with a very
+strange conversion operator, whose meaning will become clear later.
+
+    template<typename Fun>
+    struct funwrap2 : Fun
+    {
+        funwrap2();
+        typedef private_type const &(*pointer_to_function)(dont_care, dont_care);
+        operator pointer_to_function() const;
+    };
+
+With all of these bits and pieces, we can implement `can_be_called<>` as
+follows:
+
+    template<typename Fun, typename A, typename B>
+    struct can_be_called
+    {
+        static funwrap2<Fun> &fun;
+        static A &a;
+        static B &b;
+
+        static bool const value = (
+            sizeof(no_type) == sizeof(is_private_type( (fun(a,b), 0) ))
+        );
+
+        typedef mpl::bool_<value> type;
+    };
+
+The idea is to make it so that `fun(a,b)` will always compile by adding
+our own binary function overload, but doing it in such a way that we can
+detect whether our overload was selected or not. And we rig it so that
+our overload is selected if there is really no better option. What follows
+is a description of how `can_be_called<>` works.
+
+We wrap `Fun` in a type that has an implicit conversion to a pointer to
+a binary function. An object `fun` of class type can be invoked as
+`fun(a, b)` if it has such a conversion operator, but since it involves
+a user-defined conversion operator, it is less preferred than an
+overloaded `operator()`, which requires no such conversion.
+
+The function pointer can accept any two arguments by virtue
+of the `dont_care` type. The conversion sequence for each argument is
+guaranteed to be the worst possible conversion sequence: an implicit
+conversion through an ellipsis, and a user-defined conversion to
+`dont_care`. In total, it means that `funwrap2<Fun>()(a, b)` will
+always compile, but it will select our overload only if there really is
+no better option.
+
+If there is a better option --- for example if `Fun` has an overloaded
+function call operator such as `void operator()(A a, B b)` --- then
+`fun(a, b)` will resolve to that one instead. The question now is how
+to detect which function got picked by overload resolution.
+
+Notice how `fun(a, b)` appears in `can_be_called<>`: `(fun(a, b), 0)`.
+Why do we use the comma operator there? The reason is because we are
+using this expression as the argument to a function. If the return type
+of `fun(a, b)` is `void`, it cannot legally be used as an argument to
+a function. The comma operator sidesteps the issue.
+
+This should also make plain the purpose of the overloaded comma operator
+in `private_type`. The return type of the pointer to function is
+`private_type`. If overload resolution selects our overload, then the
+type of `(fun(a, b), 0)` is `private_type`. Otherwise, it is `int`.
+That fact is used to dispatch to either overload of `is_private_type()`,
+which encodes its answer in the size of its return type.
+
+That's how it works with binary functions. Now repeat the above process
+for functions up to some predefined function arity, and you're done.
+
+[endsect]
+
+[/
+    [section:ppmp_vs_tmp Avoiding Template Instiations With The Preprocessor]
+
+    TODO
+
+    [endsect]
+]
+
+[endsect]

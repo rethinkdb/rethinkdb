@@ -1,0 +1,55 @@
+# 
+# 
+# THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY EXPRESSED
+# OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
+# 
+# Permission is hereby granted to use or copy this program
+# for any purpose,  provided the above notices are retained on all copies.
+# Permission to modify the code and to distribute modified code is granted,
+# provided the above notices are retained, and a notice that the code was
+# modified is included with the above copyright notice.
+#
+# Modified by: Grzegorz Jakacki <jakacki at acm dot org>
+# Modified by: Petter Urkedal <petter.urkedal@nordita.dk>
+
+## Process this file with automake to produce Makefile.in.
+
+# installed documentation
+#
+dist_pkgdata_DATA = \
+	doc/barrett_diagram \
+	doc/debugging.html \
+	doc/gc.man \
+	doc/gcdescr.html \
+	doc/README \
+	doc/README.amiga \
+	doc/README.arm.cross \
+	doc/README.autoconf \
+	doc/README.changes \
+	doc/README.contributors \
+	doc/README.cords \
+	doc/README.DGUX386 \
+	doc/README.dj \
+	doc/README.environment \
+	doc/README.ews4800 \
+	doc/README.hp \
+	doc/README.linux \
+	doc/README.Mac \
+	doc/README.MacOSX \
+	doc/README.macros \
+	doc/README.OS2 \
+	doc/README.rs6000 \
+	doc/README.sgi \
+	doc/README.solaris2 \
+	doc/README.uts \
+	doc/README.win32 \
+	doc/README.win64 \
+	doc/overview.html \
+	doc/tree.html \
+	doc/leak.html \
+	doc/gcinterface.html \
+	doc/scale.html \
+	doc/README.darwin \
+	doc/simple_example.html \
+	doc/porting.html
+

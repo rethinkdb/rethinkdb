@@ -1,0 +1,69 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:history Appendix B: History]
+
+[variablelist
+[
+    [August 13, 2010]
+    [Boost 1.44: Proto gets sub-domains and per-domain control of _as_expr_
+    and _as_child_ to meet the needs of Phoenix3.]
+]
+[
+    [August 11, 2008]
+    [Proto v4 is merged to Boost trunk with more powerful transform protocol.]
+]
+[
+    [April 7, 2008]
+    [Proto is accepted into Boost.]
+]
+[
+    [March 1, 2008]
+    [Proto's Boost review begins.]
+]
+[
+    [January 11, 2008]
+    [Boost.Proto v3 brings separation of grammars and transforms and a
+     "round" lambda syntax for defining transforms in-place.]
+]
+[
+    [April 15, 2007]
+    [Boost.Xpressive is ported from Proto compilers to Proto transforms.
+     Support for old Proto compilers is dropped.]
+]
+[
+    [April 4, 2007]
+    [Preliminary submission of Proto to Boost.]
+]
+[
+    [December 11, 2006]
+    [The idea for transforms that decorate grammar rules is born in a private
+     email discussion with Joel de Guzman and Hartmut Kaiser. The first
+     transforms are committed to CVS 5 days later on December 16.]
+]
+[
+    [November 1, 2006]
+    [The idea for `proto::matches<>` and the whole grammar facility is
+     hatched during a discussion with Hartmut Kaiser on the spirit-devel list.
+     The first version of `proto::matches<>` is checked into CVS 3 days later.
+     Message is [@http://osdir.com/ml/parsers.spirit.devel/2006-11/msg00003.html here].]
+]
+[
+    [October 28, 2006]
+    [Proto is reborn, this time with a uniform expression types that are POD.
+     Announcement is [@http://lists.boost.org/Archives/boost/2006/10/112453.php here].]
+]
+[
+    [April 20, 2005]
+    [Proto is born as a major refactorization of Boost.Xpressive's
+     meta-programming. Proto offers expression types, operator overloads and
+     "compilers", an early formulation of what later became transforms.
+     Announcement is [@http://lists.boost.org/Archives/boost/2005/04/85256.php here].]
+]
+]
+
+[endsect]

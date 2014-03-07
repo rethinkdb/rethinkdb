@@ -1,0 +1,462 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>windows::random_access_handle</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="windows__overlapped_ptr/_overlapped_ptr.html" title="windows::overlapped_ptr::~overlapped_ptr">
+<link rel="next" href="windows__random_access_handle_service.html" title="windows::random_access_handle_service">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="windows__overlapped_ptr/_overlapped_ptr.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="windows__random_access_handle_service.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.windows__random_access_handle"></a><a class="link" href="windows__random_access_handle.html" title="windows::random_access_handle">windows::random_access_handle</a>
+</h3></div></div></div>
+<p>
+        <a class="indexterm" name="idp103426792"></a> 
+Typedef for the typical usage of a random-access
+        handle.
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">basic_random_access_handle</span> <span class="identifier">random_access_handle</span><span class="special">;</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.windows__random_access_handle.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.windows__random_access_handle.types"></a></span><a class="link" href="windows__random_access_handle.html#boost_asio.reference.windows__random_access_handle.types">Types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/implementation_type.html" title="windows::basic_random_access_handle::implementation_type"><span class="bold"><strong>implementation_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The underlying implementation type of I/O object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/lowest_layer_type.html" title="windows::basic_random_access_handle::lowest_layer_type"><span class="bold"><strong>lowest_layer_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  A basic_handle is always the lowest layer.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/native_handle_type.html" title="windows::basic_random_access_handle::native_handle_type"><span class="bold"><strong>native_handle_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The native representation of a handle.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/native_type.html" title="windows::basic_random_access_handle::native_type"><span class="bold"><strong>native_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use native_handle_type.) The native representation
+                  of a handle.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/service_type.html" title="windows::basic_random_access_handle::service_type"><span class="bold"><strong>service_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of the service that will be used to provide I/O operations.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.windows__random_access_handle.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.windows__random_access_handle.member_functions"></a></span><a class="link" href="windows__random_access_handle.html#boost_asio.reference.windows__random_access_handle.member_functions">Member
+        Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/assign.html" title="windows::basic_random_access_handle::assign"><span class="bold"><strong>assign</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Assign an existing native handle to the handle.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/async_read_some_at.html" title="windows::basic_random_access_handle::async_read_some_at"><span class="bold"><strong>async_read_some_at</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Start an asynchronous read at the specified offset.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/async_write_some_at.html" title="windows::basic_random_access_handle::async_write_some_at"><span class="bold"><strong>async_write_some_at</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Start an asynchronous write at the specified offset.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/basic_random_access_handle.html" title="windows::basic_random_access_handle::basic_random_access_handle"><span class="bold"><strong>basic_random_access_handle</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Construct a basic_random_access_handle without opening it.
+                </p>
+                <p>
+                  Construct a basic_random_access_handle on an existing native handle.
+                </p>
+                <p>
+                  Move-construct a basic_random_access_handle from another.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/cancel.html" title="windows::basic_random_access_handle::cancel"><span class="bold"><strong>cancel</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Cancel all asynchronous operations associated with the handle.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/close.html" title="windows::basic_random_access_handle::close"><span class="bold"><strong>close</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Close the handle.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/get_io_service.html" title="windows::basic_random_access_handle::get_io_service"><span class="bold"><strong>get_io_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the io_service associated with the object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/is_open.html" title="windows::basic_random_access_handle::is_open"><span class="bold"><strong>is_open</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Determine whether the handle is open.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/lowest_layer.html" title="windows::basic_random_access_handle::lowest_layer"><span class="bold"><strong>lowest_layer</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get a reference to the lowest layer.
+                </p>
+                <p>
+                  Get a const reference to the lowest layer.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/native.html" title="windows::basic_random_access_handle::native"><span class="bold"><strong>native</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use native_handle().) Get the native handle representation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/native_handle.html" title="windows::basic_random_access_handle::native_handle"><span class="bold"><strong>native_handle</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the native handle representation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/operator_eq_.html" title="windows::basic_random_access_handle::operator="><span class="bold"><strong>operator=</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Move-assign a basic_random_access_handle from another.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/read_some_at.html" title="windows::basic_random_access_handle::read_some_at"><span class="bold"><strong>read_some_at</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Read some data from the handle at the specified offset.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/write_some_at.html" title="windows::basic_random_access_handle::write_some_at"><span class="bold"><strong>write_some_at</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Write some data to the handle at the specified offset.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.windows__random_access_handle.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.windows__random_access_handle.protected_member_functions"></a></span><a class="link" href="windows__random_access_handle.html#boost_asio.reference.windows__random_access_handle.protected_member_functions">Protected
+        Member Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/get_implementation.html" title="windows::basic_random_access_handle::get_implementation"><span class="bold"><strong>get_implementation</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the underlying implementation of the I/O object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/get_service.html" title="windows::basic_random_access_handle::get_service"><span class="bold"><strong>get_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the service associated with the I/O object.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.windows__random_access_handle.h3"></a>
+        <span class="phrase"><a name="boost_asio.reference.windows__random_access_handle.protected_data_members"></a></span><a class="link" href="windows__random_access_handle.html#boost_asio.reference.windows__random_access_handle.protected_data_members">Protected
+        Data Members</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/implementation.html" title="windows::basic_random_access_handle::implementation"><span class="bold"><strong>implementation</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use get_implementation().) The underlying implementation
+                  of the I/O object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="windows__basic_random_access_handle/service.html" title="windows::basic_random_access_handle::service"><span class="bold"><strong>service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use get_service().) The service associated with the
+                  I/O object.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        The <a class="link" href="windows__basic_random_access_handle.html" title="windows::basic_random_access_handle"><code class="computeroutput"><span class="identifier">windows</span><span class="special">::</span><span class="identifier">basic_random_access_handle</span></code></a> class
+        template provides asynchronous and blocking random-access handle functionality.
+      </p>
+<h5>
+<a name="boost_asio.reference.windows__random_access_handle.h4"></a>
+        <span class="phrase"><a name="boost_asio.reference.windows__random_access_handle.thread_safety"></a></span><a class="link" href="windows__random_access_handle.html#boost_asio.reference.windows__random_access_handle.thread_safety">Thread
+        Safety</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Distinct</em></span> <span class="emphasis"><em>objects:</em></span> Safe.
+      </p>
+<p>
+        <span class="emphasis"><em>Shared</em></span> <span class="emphasis"><em>objects:</em></span> Unsafe.
+      </p>
+<h5>
+<a name="boost_asio.reference.windows__random_access_handle.h5"></a>
+        <span class="phrase"><a name="boost_asio.reference.windows__random_access_handle.requirements"></a></span><a class="link" href="windows__random_access_handle.html#boost_asio.reference.windows__random_access_handle.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/windows/random_access_handle.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="windows__overlapped_ptr/_overlapped_ptr.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="windows__random_access_handle_service.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,407 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>The collection of relations type</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../the_tutorial.html" title="The tutorial">
+<link rel="prev" href="controlling_collection_types.html" title="Controlling collection types">
+<link rel="next" href="differences_with_standard_maps.html" title="Differences with standard maps">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="controlling_collection_types.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../the_tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="differences_with_standard_maps.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_the_tutorial_the_collection_of_relations_type">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.the_tutorial.the_collection_of_relations_type"></a><a class="link" href="the_collection_of_relations_type.html" title="The collection of relations type">The
+      collection of relations type</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="the_collection_of_relations_type.html#boost_bimap.the_tutorial.the_collection_of_relations_type.a_new_point_of_view">A
+        new point of view</a></span></dt>
+<dt><span class="section"><a href="the_collection_of_relations_type.html#boost_bimap.the_tutorial.the_collection_of_relations_type.configuration_parameters">Configuration
+        parameters</a></span></dt>
+<dt><span class="section"><a href="the_collection_of_relations_type.html#boost_bimap.the_tutorial.the_collection_of_relations_type.examples">Examples</a></span></dt>
+</dl></div>
+<div class="section boost_bimap_the_tutorial_the_collection_of_relations_type_a_new_point_of_view">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.the_tutorial.the_collection_of_relations_type.a_new_point_of_view"></a><a class="link" href="the_collection_of_relations_type.html#boost_bimap.the_tutorial.the_collection_of_relations_type.a_new_point_of_view" title="A new point of view">A
+        new point of view</a>
+</h4></div></div></div>
+<p>
+          Being able to change the collection type of the bimap relation view is
+          another very important feature. Remember that this view allows the user
+          to see the container as a group of the stored relations. This view has
+          set semantics instead of map semantics.
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../images/bimap/collection.type.of.relation.png" alt="collection.type.of.relation"></span>
+        </p>
+<p>
+          By default, Boost.Bimap will base the collection type of the relation on
+          the type of the left collection. If the left collection type is a set,
+          then the collection type of the relation will be a set with the same order
+          as the left view.
+        </p>
+<p>
+          In general, Boost.Bimap users will base the collection type of a relation
+          on the type of the collection on one of the two sides. However there are
+          times where it is useful to give this collection other constraints or simply
+          to order it differently. The user is allowed to choose between:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              left_based
+            </li>
+<li class="listitem">
+              right_based
+            </li>
+<li class="listitem">
+              set_of_relation&lt;&gt;
+            </li>
+<li class="listitem">
+              multiset_of_relation&lt;&gt;
+            </li>
+<li class="listitem">
+              unordered_set_of_relation&lt;&gt;
+            </li>
+<li class="listitem">
+              unordered_multiset_of_relation&lt;&gt;
+            </li>
+<li class="listitem">
+              list_of_relation
+            </li>
+<li class="listitem">
+              vector_of_relation
+            </li>
+<li class="listitem">
+              unconstrained_set_of_relation
+            </li>
+</ul></div>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The first two options and the last produce faster bimaps, so prefer these
+            where possible.
+          </p></td></tr>
+</table></div>
+<p>
+          <span class="inlinemediaobject"><img src="../../images/bimap/more.bimap.structures.png" alt="more.bimap.structures"></span>
+        </p>
+<p>
+          The collection type of relation can be used to create powerful containers.
+          For example, if you need to maximize search speed, then the best bidirectional
+          map possible is one that relates elements from an <code class="computeroutput"><span class="identifier">unordered_set</span></code>
+          to another <code class="computeroutput"><span class="identifier">unordered_set</span></code>.
+          The problem is that this container cannot be iterated. If you need to know
+          the list of relations inside the container, you need another collection
+          type of relation. In this case, a <code class="computeroutput"><span class="identifier">list_of_relation</span></code>
+          is a good choice. The resulting container trades insertion and deletion
+          time against fast search capabilities and the possibility of bidirectional
+          iteration.
+        </p>
+<p>
+          <a href="../../../../example/mighty_bimap.cpp" target="_top">Go to source code</a>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">list_of</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">unordered_set_of</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">struct</span> <span class="identifier">english</span> <span class="special">{};</span>
+<span class="keyword">struct</span> <span class="identifier">spanish</span> <span class="special">{};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bimaps</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">bimap</span>
+    <span class="special">&lt;</span>
+        <span class="identifier">unordered_set_of</span><span class="special">&lt;</span> <span class="identifier">tagged</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">spanish</span> <span class="special">&gt;</span> <span class="special">&gt;,</span>
+        <span class="identifier">unordered_set_of</span><span class="special">&lt;</span> <span class="identifier">tagged</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">english</span> <span class="special">&gt;</span> <span class="special">&gt;,</span>
+        <span class="identifier">list_of_relation</span>
+
+    <span class="special">&gt;</span> <span class="identifier">translator</span><span class="special">;</span>
+
+    <span class="identifier">translator</span> <span class="identifier">trans</span><span class="special">;</span>
+
+    <span class="comment">// We have to use `push_back` because the collection of relations is</span>
+    <span class="comment">// a `list_of_relation`</span>
+
+    <span class="identifier">trans</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span> <span class="identifier">translator</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="string">"hola"</span>  <span class="special">,</span><span class="string">"hello"</span>   <span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">trans</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span> <span class="identifier">translator</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="string">"adios"</span> <span class="special">,</span><span class="string">"goodbye"</span> <span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">trans</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span> <span class="identifier">translator</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="string">"rosa"</span>  <span class="special">,</span><span class="string">"rose"</span>    <span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">trans</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span> <span class="identifier">translator</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">(</span><span class="string">"mesa"</span>  <span class="special">,</span><span class="string">"table"</span>   <span class="special">)</span> <span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"enter a word"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">word</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">getline</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cin</span><span class="special">,</span><span class="identifier">word</span><span class="special">);</span>
+
+    <span class="comment">// Search the queried word on the from index (Spanish)</span>
+
+    <span class="identifier">translator</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">spanish</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span> <span class="identifier">is</span>
+        <span class="special">=</span> <span class="identifier">trans</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">spanish</span><span class="special">&gt;().</span><span class="identifier">find</span><span class="special">(</span><span class="identifier">word</span><span class="special">);</span>
+
+    <span class="keyword">if</span><span class="special">(</span> <span class="identifier">is</span> <span class="special">!=</span> <span class="identifier">trans</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">spanish</span><span class="special">&gt;().</span><span class="identifier">end</span><span class="special">()</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">word</span> <span class="special">&lt;&lt;</span> <span class="string">" is said "</span>
+                  <span class="special">&lt;&lt;</span> <span class="identifier">is</span><span class="special">-&gt;</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">english</span><span class="special">&gt;()</span>
+                  <span class="special">&lt;&lt;</span> <span class="string">" in English"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">else</span>
+    <span class="special">{</span>
+        <span class="comment">// Word not found in Spanish, try our luck in English</span>
+
+        <span class="identifier">translator</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">english</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span> <span class="identifier">ie</span>
+            <span class="special">=</span> <span class="identifier">trans</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">english</span><span class="special">&gt;().</span><span class="identifier">find</span><span class="special">(</span><span class="identifier">word</span><span class="special">);</span>
+
+        <span class="keyword">if</span><span class="special">(</span> <span class="identifier">ie</span> <span class="special">!=</span> <span class="identifier">trans</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">english</span><span class="special">&gt;().</span><span class="identifier">end</span><span class="special">()</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">word</span> <span class="special">&lt;&lt;</span> <span class="string">" is said "</span>
+                      <span class="special">&lt;&lt;</span> <span class="identifier">ie</span><span class="special">-&gt;</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">spanish</span><span class="special">&gt;()</span>
+                      <span class="special">&lt;&lt;</span> <span class="string">" in Spanish"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="special">}</span>
+        <span class="keyword">else</span>
+        <span class="special">{</span>
+            <span class="comment">// Word not found, show the possible translations</span>
+
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"No such word in the dictionary"</span>      <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"These are the possible translations"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+            <span class="keyword">for</span><span class="special">(</span> <span class="identifier">translator</span><span class="special">::</span><span class="identifier">const_iterator</span>
+                    <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">trans</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span>
+                    <span class="identifier">i_end</span> <span class="special">=</span> <span class="identifier">trans</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+
+                    <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">i_end</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+            <span class="special">{</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">spanish</span><span class="special">&gt;()</span>
+                          <span class="special">&lt;&lt;</span> <span class="string">" &lt;---&gt; "</span>
+                          <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">english</span><span class="special">&gt;()</span>
+                          <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+            <span class="special">}</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+<div class="section boost_bimap_the_tutorial_the_collection_of_relations_type_configuration_parameters">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.the_tutorial.the_collection_of_relations_type.configuration_parameters"></a><a class="link" href="the_collection_of_relations_type.html#boost_bimap.the_tutorial.the_collection_of_relations_type.configuration_parameters" title="Configuration parameters">Configuration
+        parameters</a>
+</h4></div></div></div>
+<p>
+          Each collection type of relation has different parameters to control its
+          behaviour. For example, in the <code class="computeroutput"><span class="identifier">set_of_relation</span></code>
+          specification, you can pass a Functor type that compares two types. All
+          of the parameters are exactly as in the standard library containers, except
+          for the type, which is set to the bimap relation and the allocator type.
+          To help users in the creation of each functor, the collection type of relation
+          templates takes an mpl lambda expression where the relation type will be
+          evaluated later. A placeholder named <code class="computeroutput"><span class="identifier">_relation</span></code>
+          is available to bimap users.
+        </p>
+<p>
+          The following table lists the meaning of the parameters for each collection
+          type of relations.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Additional Parameters
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">left_based</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Not a template.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">right_based</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Not a template.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">set_of_relation</span><span class="special">&lt;</span><span class="identifier">KeyComp</span><span class="special">&gt;</span></code>
+                  </p>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">multiset_of_relation</span><span class="special">&lt;</span><span class="identifier">KeyComp</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>KeyComp </strong></span> is a Functor that compares
+                    two types using less than. By default, the less-than operator
+                    is <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">_relation</span><span class="special">&gt;</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unordered_set_of_relation</span><span class="special">&lt;</span><span class="identifier">HashFunctor</span><span class="special">,</span><span class="identifier">EqualKey</span><span class="special">&gt;</span></code>
+                  </p>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unordered_multiset_of_relation</span><span class="special">&lt;</span><span class="identifier">HashFunctor</span><span class="special">,</span><span class="identifier">EqualKey</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="bold"><strong>HashFunctor </strong></span> converts the <code class="computeroutput"><span class="identifier">relation</span></code> into an <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code> value. By default it
+                    is <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">hash</span><span class="special">&lt;</span><span class="identifier">_relation</span><span class="special">&gt;</span></code>.
+                  </p>
+                  <p>
+                    <span class="bold"><strong>EqualKey </strong></span> is a Functor that
+                    tests two relations for equality. By default, the equality operator
+                    is <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">equal_to</span><span class="special">&lt;</span><span class="identifier">_relation</span><span class="special">&gt;</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">list_of_relation</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Not a template.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">vector_of_relation</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Not a template.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unconstrained_set_of_relation</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Not a template.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="section boost_bimap_the_tutorial_the_collection_of_relations_type_examples">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.the_tutorial.the_collection_of_relations_type.examples"></a><a class="link" href="the_collection_of_relations_type.html#boost_bimap.the_tutorial.the_collection_of_relations_type.examples" title="Examples">Examples</a>
+</h4></div></div></div>
+<p>
+          Consider this example:
+        </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Rel</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">RelOrder</span>
+<span class="special">{</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Rel</span> <span class="identifier">ra</span><span class="special">,</span> <span class="identifier">Rel</span> <span class="identifier">rb</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="special">(</span><span class="identifier">ra</span><span class="special">.</span><span class="identifier">left</span><span class="special">+</span><span class="identifier">ra</span><span class="special">.</span><span class="identifier">right</span><span class="special">)</span> <span class="special">&lt;</span> <span class="special">(</span><span class="identifier">rb</span><span class="special">.</span><span class="identifier">left</span><span class="special">+</span><span class="identifier">rb</span><span class="special">.</span><span class="identifier">right</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">typedef</span> <span class="identifier">bimap</span>
+<span class="special">&lt;</span>
+        <span class="identifier">multiset_of</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;,</span>
+        <span class="identifier">multiset_of</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;,</span>
+        <span class="identifier">set_of_relation</span><span class="special">&lt;</span> <span class="identifier">RelOrder</span><span class="special">&lt;</span><span class="identifier">_relation</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+
+<span class="special">&gt;</span> <span class="identifier">bimap_type</span><span class="special">;</span>
+</pre>
+<p>
+          Here the bimap relation view is ordered using the information of both sides.
+          This container will only allow unique relations because <code class="computeroutput"><span class="identifier">set_of_relation</span></code>
+          has been used but the elements in each side of the bimap can be repeated.
+        </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">name</span>         <span class="special">{};</span>
+<span class="keyword">struct</span> <span class="identifier">phone_number</span> <span class="special">{};</span>
+
+<span class="keyword">typedef</span> <span class="identifier">bimap</span>
+<span class="special">&lt;</span>
+    <span class="identifier">tagged</span><span class="special">&lt;</span> <span class="identifier">unordered_multiset_of</span><span class="special">&lt;</span> <span class="identifier">string</span> <span class="special">&gt;,</span> <span class="identifier">name</span>         <span class="special">&gt;,</span>
+    <span class="identifier">tagged</span><span class="special">&lt;</span> <span class="identifier">unordered_set_of</span>     <span class="special">&lt;</span> <span class="keyword">int</span>    <span class="special">&gt;,</span> <span class="identifier">phone_number</span> <span class="special">&gt;,</span>
+    <span class="identifier">set_of_relation</span><span class="special">&lt;&gt;</span>
+
+<span class="special">&gt;</span> <span class="identifier">bimap_type</span><span class="special">;</span>
+</pre>
+<p>
+          In this other case the bimap will relate names to phone numbers. Names
+          can be repeated and phone numbers are unique. You can perform quick searches
+          by name or phone number and the container can be viewed ordered using the
+          relation view.
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="controlling_collection_types.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../the_tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="differences_with_standard_maps.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

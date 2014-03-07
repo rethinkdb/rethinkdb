@@ -1,0 +1,119 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:mismatch mismatch]
+
+[heading Prototype]
+
+``
+template<class SinglePassRange1, class SinglePassRange2>
+std::pair<
+    typename range_iterator<SinglePassRange1>::type,
+    typename range_iterator<const SinglePassRange2>::type >
+mismatch(SinglePassRange1& rng1, const SinglePassRange2& rng2);
+
+template<class SinglePassRange1, class SinglePassRange2>
+std::pair<
+    typename range_iterator<const SinglePassRange1>::type,
+    typename range_iterator<const SinglePassRange2>::type >
+mismatch(const SinglePassRange1& rng1, const SinglePassRange2& rng2);
+
+template<class SinglePassRange1, class SinglePassRange2>
+std::pair<
+    typename range_iterator<SinglePassRange1>::type,
+    typename range_iterator<SinglePassRange2>::type >
+mismatch(SinglePassRange1& rng1, SinglePassRange2& rng2);
+
+template<class SinglePassRange1, class SinglePassRange2>
+std::pair<
+    typename range_iterator<const SinglePassRange1>::type,
+    typename range_iterator<SinglePassRange2>::type >
+mismatch(const SinglePassRange1& rng1, SinglePassRange2& rng2);
+
+
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class BinaryPredicate
+    >
+std::pair<
+    typename range_iterator<SinglePassRange1>::type,
+    typename range_iterator<const SinglePassRange2>::type >
+mismatch(SinglePassRange1& rng1, const SinglePassRange2& rng2,
+         BinaryPredicate pred);
+
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class BinaryPredicate
+    >
+std::pair<
+    typename range_iterator<const SinglePassRange1>::type,
+    typename range_iterator<const SinglePassRange2>::type >
+mismatch(const SinglePassRange1& rng1, const SinglePassRange2& rng2,
+         BinaryPredicate pred);
+
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class BinaryPredicate
+    >
+std::pair<
+    typename range_iterator<SinglePassRange1>::type,
+    typename range_iterator<SinglePassRange2>::type >
+mismatch(SinglePassRange1& rng1, SinglePassRange2& rng2,
+         BinaryPredicate pred);
+
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class BinaryPredicate
+    >
+std::pair<
+    typename range_iterator<const SinglePassRange1>::type,
+    typename range_iterator<SinglePassRange2>::type >
+mismatch(const SinglePassRange1& rng1, SinglePassRange2& rng2,
+         BinaryPredicate pred);
+``
+
+[heading Description]
+
+`mismatch` finds the first position where the corresponding elements from the two ranges `rng1` and `rng2` are not equal.
+
+Equality is determined by `operator==` for non-predicate versions of `mismatch`, and by satisfying `pred` in the predicate versions.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/mismatch.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions:]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange1`'s value type is a model of the `EqualityComparableConcept`.
+* `SinglePassRange2`'s value type is a model of the `EqualityComparableConcept`.
+* `SinglePassRange1`s value type can be compared for equality with `SinglePassRange2`'s value type.
+
+[*For the predicate versions:]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+* `BinaryPredicate` is a model of the `BinaryPredicateConcept`.
+* `SinglePassRange1`'s value type is convertible to `BinaryPredicate`'s first argument type.
+* `SinglePassRange2`'s value type is convertible to `BinaryPredicate`'s second argument type.
+
+[heading Precondition:]
+
+`distance(rng2) >= distance(rng1)`
+
+[heading Complexity]
+
+Linear. At most `distance(rng1)` comparisons.
+
+[endsect]
+
+

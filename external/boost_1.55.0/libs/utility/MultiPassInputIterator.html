@@ -1,0 +1,95 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+
+  <title>MultiPassInputIterator</title>
+</head>
+
+<body bgcolor="#FFFFFF" link="#0000EE" text="#000000" vlink="#551A8B" alink=
+"#FF0000">
+  <img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86"><br clear="none">
+
+  <h2><a name="concept:MultiPassInputIterator" id=
+  "concept:MultiPassInputIterator"></a> Multi-Pass Input Iterator</h2>
+
+  <p>This concept is a refinement of <a href=
+  "http://www.sgi.com/tech/stl/InputIterator.html">Input Iterator</a>, adding
+  the requirements that the iterator can be used to make multiple passes
+  through a range, and that if <tt>it1 == it2</tt> and <tt>it1</tt> is
+  dereferenceable then <tt>++it1 == ++it2</tt>. The Multi-Pass Input Iterator
+  is very similar to the <a href=
+  "http://www.sgi.com/tech/stl/ForwardIterator.html">Forward Iterator</a>.
+  The only difference is that a <a href=
+  "http://www.sgi.com/tech/stl/ForwardIterator.html">Forward Iterator</a>
+  requires the <tt>reference</tt> type to be <tt>value_type&amp;</tt>,
+  whereas MultiPassInputIterator is like <a href=
+  "http://www.sgi.com/tech/stl/InputIterator.html">Input Iterator</a> in that
+  the <tt>reference</tt> type merely has to be convertible to
+  <tt>value_type</tt>.</p>
+
+  <h3>Design Notes</h3>
+
+  <p>comments by Valentin Bonnard:</p>
+
+  <p>I think that introducing Multi-Pass Input Iterator isn't the right
+  solution. Do you also want to define Multi-Pass Bidirectionnal Iterator and
+  Multi-Pass Random Access Iterator ? I don't, definitly. It only confuses
+  the issue. The problem lies into the existing hierarchy of iterators, which
+  mixes movabillity, modifiabillity and lvalue-ness, and these are clearly
+  independant.</p>
+
+  <p>The terms Forward, Bidirectionnal and Random Access are about
+  movabillity and shouldn't be used to mean anything else. In a completly
+  orthogonal way, iterators can be immutable, mutable, or neither. Lvalueness
+  of iterators is also orthogonal with immutabillity. With these clean
+  concepts, your Multi-Pass Input Iterator is just called a Forward
+  Iterator.</p>
+
+  <p>Other translations are:<br>
+  std::Forward Iterator -&gt; ForwardIterator &amp; Lvalue Iterator<br>
+  std::Bidirectionnal Iterator -&gt; Bidirectionnal Iterator &amp; Lvalue
+  Iterator<br>
+  std::Random Access Iterator -&gt; Random Access Iterator &amp; Lvalue
+  Iterator<br></p>
+
+  <p>Note that in practice the only operation not allowed on my Forward
+  Iterator which is allowed on std::Forward Iterator is <tt>&amp;*it</tt>. I
+  think that <tt>&amp;*</tt> is rarely needed in generic code.</p>
+
+  <p>reply by Jeremy Siek:</p>
+
+  <p>The above analysis by Valentin is right on. Of course, there is the
+  problem with backward compatibility. The current STL implementations are
+  based on the old definition of Forward Iterator. The right course of action
+  is to get Forward Iterator, etc. changed in the C++ standard. Once that is
+  done we can drop Multi-Pass Input Iterator.<br></p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->05
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38516" --></p>
+
+  <table summary="">
+    <tr valign="top">
+      <td nowrap><i>Copyright &copy; 2000</i></td>
+
+      <td><i><a href="http://www.lsc.nd.edu/~jsiek">Jeremy Siek</a>, Univ.of
+      Notre Dame (<a href=
+      "mailto:jsiek@lsc.nd.edu">jsiek@lsc.nd.edu</a>)</i></td>
+    </tr>
+  </table>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

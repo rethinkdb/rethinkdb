@@ -1,0 +1,90 @@
+# Copyright 2004 David Abrahams
+# Copyright 2002, 2003, 2004, 2005, 2006 Vladimir Prus
+# Copyright 2010 Rene Rivera
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import scanner ;
+import type ;
+
+
+class c-scanner : scanner
+{
+    import path ;
+    import regex ;
+    import scanner ;
+    import sequence ;
+    import virtual-target ;
+
+    rule __init__ ( includes * )
+    {
+        scanner.__init__ ;
+
+        for local i in $(includes)
+        {
+            self.includes += [ sequence.transform path.native : [ regex.split
+                $(i:G=) "&&" ] ] ;
+        }
+    }
+
+    rule pattern ( )
+    {
+        return "#[ \t]*include[ ]*(<(.*)>|\"(.*)\")" ;
+    }
+
+    rule process ( target : matches * : binding )
+    {
+        local angle = [ regex.transform $(matches) : "<(.*)>" ] ;
+        angle = [ sequence.transform path.native : $(angle) ] ;
+        local quoted = [ regex.transform $(matches) : "\"(.*)\"" ] ;
+        quoted = [ sequence.transform path.native : $(quoted) ] ;
+
+        # CONSIDER: the new scoping rules seem to defeat "on target" variables.
+        local g = [ on $(target) return $(HDRGRIST) ] ;
+        local b = [ NORMALIZE_PATH $(binding:D) ] ;
+
+        # Attach binding of including file to included targets. When a target is
+        # directly created from a virtual target this extra information is
+        # unnecessary. But in other cases, it allows us to distinguish between
+        # two headers of the same name included from different places. We do not
+        # need this extra information for angle includes, since they should not
+        # depend on the including file (we can not get literal "." in the
+        # include path).
+        local g2 = $(g)"#"$(b) ;
+
+        angle = $(angle:G=$(g)) ;
+        quoted = $(quoted:G=$(g2)) ;
+
+        local all = $(angle) $(quoted) ;
+
+        INCLUDES $(target) : $(all) ;
+        NOCARE $(all) ;
+        SEARCH on $(angle) = $(self.includes:G=) ;
+        SEARCH on $(quoted) = $(b) $(self.includes:G=) ;
+
+        # Just propagate the current scanner to includes, in hope that includes
+        # do not change scanners.
+        scanner.propagate $(__name__) : $(all) : $(target) ;
+
+        ISFILE $(all) ;
+    }
+}
+
+scanner.register c-scanner : include ;
+
+type.register CPP : cpp cxx cc ;
+type.register H   : h ;
+type.register HPP : hpp : H ;
+type.register C   : c ;
+
+# It most cases where a CPP file or a H file is a source of some action, we
+# should rebuild the result if any of files included by CPP/H are changed. One
+# case when this is not needed is installation, which is handled specifically.
+type.set-scanner CPP : c-scanner ;
+type.set-scanner C   : c-scanner ;
+# One case where scanning of H/HPP files is necessary is PCH generation -- if
+# any header included by HPP being precompiled changes, we need to recompile the
+# header.
+type.set-scanner H   : c-scanner ;
+type.set-scanner HPP : c-scanner ;

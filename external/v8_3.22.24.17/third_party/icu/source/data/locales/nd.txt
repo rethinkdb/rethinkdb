@@ -1,0 +1,222 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/nd.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/nd.xml
+ */
+nd{
+    AuxExemplarCharacters{"[r]"}
+    ExemplarCharacters{"[a b c d e f g h i j k l m n o p q s t u v w x y z]"}
+    ExemplarCharactersIndex{"[A B C D E F G H I J K L M N O P Q S T U V W X Y Z]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00;(¤#,##0.00)"}
+            }
+        }
+    }
+    Version{"2.0.47.63"}
+    calendar{
+        gregorian{
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "dd/MM/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"E, M/d"}
+                MMM{"LLL"}
+                MMMEd{"E, MMM d"}
+                MMMMEd{"E, MMMM d"}
+                MMMMd{"MMMM d"}
+                MMMd{"MMM d"}
+                Md{"M/d"}
+                d{"d"}
+                hm{"h:mm a"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M/y"}
+                yMEd{"EEE, M/d/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE, MMM d, y"}
+                yMMMM{"MMMM y"}
+                yQ{"Q y"}
+                yQQQ{"QQQ y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "Son",
+                        "Mvu",
+                        "Sib",
+                        "Sit",
+                        "Sin",
+                        "Sih",
+                        "Mgq",
+                    }
+                    wide{
+                        "Sonto",
+                        "Mvulo",
+                        "Sibili",
+                        "Sithathu",
+                        "Sine",
+                        "Sihlanu",
+                        "Mgqibelo",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "S",
+                        "M",
+                        "S",
+                        "S",
+                        "S",
+                        "S",
+                        "M",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "BC",
+                    "AD",
+                }
+                wide{
+                    "UKristo angakabuyi",
+                    "Ukristo ebuyile",
+                }
+            }
+            fields{
+                day{
+                    dn{"Ilanga"}
+                    relative{
+                        "-1"{"Izolo"}
+                        "0"{"Lamuhla"}
+                        "1"{"Kusasa"}
+                    }
+                }
+                dayperiod{
+                    dn{"Ilanga"}
+                }
+                era{
+                    dn{"Umnyaka"}
+                }
+                hour{
+                    dn{"Ihola"}
+                }
+                minute{
+                    dn{"Umuzuzu"}
+                }
+                month{
+                    dn{"Inyangacale"}
+                }
+                second{
+                    dn{"Isekendi"}
+                }
+                week{
+                    dn{"Iviki"}
+                }
+                weekday{
+                    dn{"Ilanga leviki"}
+                }
+                year{
+                    dn{"Umnyaka"}
+                }
+                zone{
+                    dn{"Isikhathi"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Zib",
+                        "Nhl",
+                        "Mbi",
+                        "Mab",
+                        "Nkw",
+                        "Nhl",
+                        "Ntu",
+                        "Ncw",
+                        "Mpa",
+                        "Mfu",
+                        "Lwe",
+                        "Mpa",
+                    }
+                    wide{
+                        "Zibandlela",
+                        "Nhlolanja",
+                        "Mbimbitho",
+                        "Mabasa",
+                        "Nkwenkwezi",
+                        "Nhlangula",
+                        "Ntulikazi",
+                        "Ncwabakazi",
+                        "Mpandula",
+                        "Mfumfu",
+                        "Lwezi",
+                        "Mpalakazi",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "Z",
+                        "N",
+                        "M",
+                        "M",
+                        "N",
+                        "N",
+                        "N",
+                        "N",
+                        "M",
+                        "M",
+                        "L",
+                        "M",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "K1",
+                        "K2",
+                        "K3",
+                        "K4",
+                    }
+                    wide{
+                        "Kota 1",
+                        "Kota 2",
+                        "Kota 3",
+                        "Kota 4",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"'"}
+        quotationStart{"'"}
+    }
+}

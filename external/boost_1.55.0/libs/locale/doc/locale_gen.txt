@@ -1,0 +1,110 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page locale_gen Locale Generation
+
+Each locale is defined by a specific locale identifier, which contains a mandatory part (Language) and several optional parts
+(Country, Variant, keywords and character encoding of \c std::string). Boost.Locale uses the POSIX naming convention for locales,
+i.e. a locale is defined as <tt>language[_COUNTRY][.encoding][\@variant]</tt>, where lang is ISO-639 language name like "en" or "ru",
+COUNTRY is the ISO-3166 country identifier like "US" or "DE", encoding is the eight-bit character encoding like \c UTF-8 or \c ISO-8859-1,
+and variant is additional options for specializing the locale, like \c euro or \c calendar=hebrew, see \ref locale_gen_variant.
+
+Note that each locale should include the encoding in order to handle \c char based strings correctly.
+
+\section locale_gen_basics Basics 
+
+The class \ref boost::locale::generator "generator" provides tools to generate the locales we need. The simplest way to use
+\c generator is to create a locale and set it as the global one:
+
+\code
+    #include <boost/locale.hpp>
+    
+    using namespace boost::locale;
+    int main()
+    {
+        generator gen;
+        // Create locale generator 
+        std::locale::global(gen("")); 
+        // "" - the system default locale, set
+        // it globally
+    }
+\endcode
+
+Of course we can also specify the locale manually
+
+\code
+    std::locale loc = gen("en_US.UTF-8"); 
+    // Use English, United States locale
+\endcode
+
+\note
+
+-   Even if your application uses wide strings everywhere, you should specify the
+    8-bit encoding to use for 8-bit stream IO operations like \c cout or \c fstream.
+    \n
+-   The default locale is defined by the environment variables \c LC_CTYPE , \c LC_ALL , and \c LANG
+    in that order (i.e. \c LC_CTYPE first and \c LANG last). On Windows, the library
+    also queries the \c LOCALE_USER_DEFAULT option in the Win32 API when these variables
+    are not set.
+
+\b Tip: Prefer using UTF-8 Unicode encoding over 8-bit encodings like the ISO-8859-X ones.
+
+By default the generated locales include all supported categories and character types. However, if your
+application uses only 8-bit encodings, only wide-character encodings, or only specific facets, you can
+limit the facet generation to specific categories and character types by calling the
+\ref boost::locale::generator::categories() "categories" and \ref boost::locale::generator::characters() "characters"
+member functions of the \ref boost::locale::generator "generator" class.
+
+For example:
+
+\code    
+    generator gen;
+    gen.characters(wchar_t_facet);
+    gen.categories(collation_facet | formatting_facet);
+    std::locale::global(gen("de_DE.UTF-8"));
+\endcode
+
+\section locale_gen_variant Variant
+
+The variant part of the locale (the part that comes after \@ symbol) is localization \ref using_localization_backends "back-end" dependent.
+
+\subsection locale_gen_variant_non_icu Non ICU Backends 
+
+\ref posix_backend "POSIX" and \ref std_backend "std" back-ends use their own OS specific naming conventions and 
+depend on the current OS configuration. For example typical Linux distribution provides \c euro for currency selection, 
+\c cyrillic and \c latin for specification of language script.
+
+\ref winapi_backend "winapi" back-end does not support any variants.
+
+\subsection locale_gen_variant_icu ICU Backend
+
+ICU provides wide range of locale variant options. For detailed instructions read <a href="http://userguide.icu-project.org/locale">this</a>
+ICU manual pages.
+
+However in general it is represented as set of key=value pairs separated with a semicolon ";" For example:
+"@collation=phonebook;calendar=islamic-civil".
+
+Currently ICU supports following keys:
+
+-   \c calendar - the calendar used for the current locale. For example: \c gregorian, \c japanese, 
+    \c buddhist, \c islamic, \c hebrew,  \c chinese, \c islamic-civil.
+-   \c collation - the collation order used for this locales, for example \c phonebook, \c pinyin, \c traditional,
+    \c stroke, \c direct, \c posix.
+-   \c currency - the currency used in this locale, the standard 3 letter code like USD or JPY.
+-   \c numbers - the numbering system used, for example: \c latn, \c arab, \c thai.
+
+Please refer to CLDR and ICU documentation for exact list of keys and values:
+
+- <a href="http://userguide.icu-project.org/locale#TOC-Keywords">ICU User Guide/Locale/Keywords</a>
+- <a href="http://www.unicode.org/reports/tr35/">Unicode Locale Data Markup Language</a>
+
+
+*/
+

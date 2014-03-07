@@ -1,0 +1,165 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+[section Using CUDA (or OpenMP, TBB, ...) via Thrust]
+
+Modern graphic cards (graphic processing units - GPUs) can be used to speed up
+the performance of time consuming algorithms by means of massive
+parallelization. They are designed to execute many operations in
+parallel. odeint can utilize the power of GPUs by means of CUDA and __thrust,
+which is a STL-like interface for the native CUDA API.
+
+[important Thrust also supports parallelization using OpenMP and Intel Threading Building Blocks (TBB). You can switch
+between CUDA, OpenMP and TBB parallelizations by a simple compiler
+switch. Hence, this also provides an easy way to get basic OpenMP
+parallelization into odeint. The examples discussed below are focused on GPU parallelization, though. ]
+
+To use odeint with CUDA a few points have to be taken into account. First of all, the problem has to be well chosen. It makes absolutely no sense to try to parallelize the code for a three dimensional system, it is simply too small and not worth the effort. One single function call (kernel execution) on the GPU is slow but you can do the operation on a huge set of data with only one call. We have experienced that the vector size over which is parallelized should be of the order of ['10[super 6]] to make full use of the GPU. Secondly, you have to use __thrust's algorithms and functors when implementing the rhs the ODE. This might be tricky since it involves some kind of functional programming knowledge.
+
+Typical applications for CUDA and odeint are large systems, like lattices or discretizations of PDE, and parameter studies. We introduce now three examples which show how the power of GPUs can be used in combination with odeint.
+
+[important The full power of CUDA is only available for really large systems where the number of coupled ordinary differential equations is of order ['N=10[super 6]] or larger. For smaller systems the CPU is usually much faster. You can also integrate an ensemble of different uncoupled ODEs in parallel as shown in the last example.]
+
+[section Phase oscillator ensemble]
+
+[import ../examples/thrust/phase_oscillator_ensemble.cu]
+
+The first example is the phase oscillator ensemble from the previous
+section:
+
+[' d__phi[subl k] / dt = __omega[subl k] + __epsilon / N __Sigma[subl j] sin( __phi[subl j] - __phi[subl k] ).]
+
+It has a phase transition at ['__epsilon = 2] in the limit of
+infinite numbers of oscillators ['N]. In the case of finite ['N] this
+transition is smeared out but still clearly visible.
+
+__thrust and CUDA are perfectly suited for such kinds of problems where one needs a large number of particles (oscillators). We start by defining the state type which is a `thrust::device_vector`. The content of this vector lives on the GPU. If you are not familiar with this we recommend reading the ['Getting started] section on the __thrust website.
+
+[thrust_phase_ensemble_state_type]
+
+Thrust follows a functional programming approach. If you want to perform a calculation on the GPU you usually have to call a global function like `thrust::for_each`, `thrust::reduce`, ... with an appropriate local functor which performs the basic operation. An example is
+``
+struct add_two
+{
+    template< class T >
+    __host__ __device__
+    void operator()( T &t ) const
+    {
+        t += T( 2 );
+    }
+};
+
+// ...
+
+thrust::for_each( x.begin() , x.end() , add_two() );
+``
+This code generically adds two to every element in the container `x`.
+
+For the purpose of integrating the phase oscillator ensemble we need
+
+* to calculate the system function, hence the r.h.s. of the ODE.
+* this involves computing the mean field of the oscillator example, i.e. the values of ['R] and ['__theta]
+
+The mean field is calculated in a class `mean_field_calculator`
+
+[thrust_phase_ensemble_mean_field_calculator] 
+
+Inside this class two member structures `sin_functor` and `cos_functor` are defined. They compute the sine and the cosine of a value and they are used within a transform iterator to calculate the sum of ['sin(__phi[subl k])] and ['cos(__phi[subl k])]. The classifiers `__host__` and `__device__` are CUDA specific and define a function or operator which can be executed on the GPU as well as on the CPU. The line 
+
+[thrust_phase_ensemble_sin_sum]
+
+performs the calculation of this sine-sum on the GPU (or on the CPU, depending on your thrust configuration).
+
+The system function is defined via
+
+[thrust_phase_ensemble_sys_function]
+
+This class is used within the `do_step` and `integrate` method. It defines a member structure `sys_functor` for the r.h.s. of each individual oscillator and the `operator()` for the use in the steppers and integrators of odeint. The functor computes first the mean field of ['__phi[subl k]] and secondly calculates the whole r.h.s. of the ODE using this mean field. Note, how nicely `thrust::tuple` and `thrust::zip_iterator` play together.
+
+Now, we are ready to put everything together. All we have to do for making odeint ready for using the GPU is to parametrize the stepper with the appropriate thrust algebra/operations:
+
+[thrust_phase_ensemble_define_rk4]
+
+You can also use a controlled or dense output stepper, e.g.
+
+[thrust_phase_ensemble_define_dopri5]
+
+Then, it is straightforward to integrate the phase ensemble by creating an instance of the rhs class and using an integration function:
+
+[thrust_phase_ensemble_system_instance]
+[thrust_phase_ensemble_integration]
+
+We have to use `boost::ref` here in order to pass the rhs class as reference and not by value. This ensures that the natural frequencies of each oscillator are not copied when calling `integrate_const`. In the full example the performance and results of the Runge-Kutta-4 and the Dopri5 solver are compared.
+
+The full example can be found at [github_link libs/numeric/odeint/examples/thrust/phase_oscillator_ensemble.cu phase_oscillator_example.cu].
+
+[endsect]
+
+[section Large oscillator chains]
+
+[import ../examples/thrust/phase_oscillator_chain.cu]
+
+The next example is a large, one-dimensional chain of nearest-neighbor coupled phase oscillators with the following equations of motion:
+
+['d __phi[subl k] / dt = __omega[subl k] + sin( __phi[subl k+1] - __phi[subl k] ) + sin( __phi[subl k] - __phi[subl k-1])]
+
+In principle we can use all the techniques from the previous phase oscillator ensemble example, but we have to take special care about the coupling of the oscillators. To efficiently implement the coupling you can use a very elegant way employing Thrust's permutation iterator. A permutation iterator behaves like a normal iterator on a vector but it does not iterate along the usual order of the elements.
+It rather iterates along some permutation of the elements defined by some index map. To realize the nearest neighbor coupling we create one permutation iterator which travels one step behind a usual iterator and another permutation iterator which travels one step in front. The full system class is:
+
+[thrust_phase_chain_system]
+
+Note, how easy you can obtain the value for the left and right neighboring oscillator in the system functor using the permutation iterators. But, the call of the `thrust::for_each` function looks relatively complicated. Every term of the r.h.s. of the ODE is resembled by one iterator packed in exactly the same way as it is unpacked in the functor above.
+
+Now we put everything together. We create random initial conditions and decreasing frequencies such that we should get synchronization. We copy the frequencies and the initial conditions onto the device and finally initialize and perform the integration. As result we simply write out the current state, hence the phase of each oscillator.
+
+[thrust_phase_chain_integration]
+
+The full example can be found at [github_link libs/numeric/odeint/examples/thrust/phase_oscillator_chain.cu phase_oscillator_chain.cu].
+
+[endsect]
+
+[section Parameter studies]
+
+[import ../examples/thrust/lorenz_parameters.cu]
+
+Another important use case for __thrust and CUDA are parameter studies of relatively small systems. Consider for example the three-dimensional Lorenz system from the chaotic systems example in the previous section which has three parameters. If you want to study the behavior of this system for different parameters you usually have to integrate the system for many parameter values. Using thrust and odeint you can do this integration in parallel, hence you integrate a whole ensemble of Lorenz systems where each individual realization has a different parameter value. 
+[/ The Lorenz system is dissipative, such that you can assume that different initial conditions will lead to the same attractor so . For Hamiltonian systems this is not the case. Here it might be interesting to study a range of initial conditions to quantify different regions in the phase space.]
+
+In the following we will show how you can use __thrust to integrate the above mentioned ensemble of Lorenz systems. We will vary only the parameter ['__beta] but it is straightforward to vary other parameters or even two or all three parameters. Furthermore, we will use the largest Lyapunov exponent to quantify the behavior of the system (chaoticity).
+
+We start by defining the range of the parameters we want to study. The state_type is again a `thrust::device_vector< value_type >`. 
+
+[thrust_lorenz_parameters_define_beta]
+
+The next thing we have to implement is the Lorenz system without perturbations. Later, a system with perturbations is also implemented in order to calculate the Lyapunov exponent. We will use an ansatz where each device function calculates one particular realization of the Lorenz ensemble
+
+[thrust_lorenz_parameters_define_simple_system]
+
+As `state_type` a `thrust::device_vector` or a __boost_range of a `device_vector` is used. The length of the state is ['3N] where ['N] is the number of systems. The system is encoded into this vector such that all ['x] components come first, then every ['y] components and finally every ['z] components. Implementing the device function is then a simple task, you only have to decompose the tuple originating from the zip iterators.
+
+Besides the system without perturbations we furthermore need to calculate the system including linearized equations governing the time evolution of small perturbations. Using the method from above this is straightforward, with a small difficulty that Thrust's tuples have a maximal arity of 10. But this is only a small problem since we can create a zip iterator packed with zip iterators. So the top level zip iterator contains one zip iterator for the state, one normal iterator for the parameter, and one zip iterator for the derivative. Accessing the elements of this tuple in the system function is then straightforward, you unpack the tuple with `thrust::get<>()`. We will not show the code here, it is to large. It can be found [github_link libs/numeric/odeint/examples/thrust/lorenz_parameters.cu here] and is easy to understand.
+
+Furthermore, we need an observer which determines the norm of the perturbations, normalizes them and averages the logarithm of the norm. The device functor which is used within this observer is defined
+
+[thrust_lorenz_parameters_observer_functor]
+
+Note, that this functor manipulates the state, i.e. the perturbations.
+
+Now we complete the whole code to calculate the Lyapunov exponents. First, we have to define a state vector. This vector contains ['6N] entries, the state ['x,y,z] and its perturbations ['dx,dy,dz]. We initialize them such that ['x=y=z=10], ['dx=1], and ['dy=dz=0]. We define a stepper type, a controlled Runge-Kutta Dormand-Prince 5 stepper. We start with some integration to overcome the transient behavior. For this, we do not involve the perturbation and run the algorithm only on the state ['x,y,z] without any observer. Note, how __boost_range is used for partial integration of the state vector without perturbations (the first half of the whole state).  After the transient, the full system with perturbations is integrated and the Lyapunov exponents are calculated and written to `stdout`.
+
+[thrust_lorenz_parameters_integration]
+
+The full example can be found at [github_link libs/numeric/odeint/examples/thrust/lorenz_parameters.cu lorenz_parameters.cu].
+
+[endsect]
+
+[endsect]

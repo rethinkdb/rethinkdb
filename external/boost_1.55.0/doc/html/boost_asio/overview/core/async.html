@@ -1,0 +1,288 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>The Proactor Design Pattern: Concurrency Without Threads</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../core.html" title="Core Concepts and Functionality">
+<link rel="prev" href="basics.html" title="Basic Boost.Asio Anatomy">
+<link rel="next" href="threads.html" title="Threads and Boost.Asio">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basics.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="threads.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.core.async"></a><a class="link" href="async.html" title="The Proactor Design Pattern: Concurrency Without Threads">The Proactor Design
+        Pattern: Concurrency Without Threads</a>
+</h4></div></div></div>
+<p>
+          The Boost.Asio library offers side-by-side support for synchronous and
+          asynchronous operations. The asynchronous support is based on the Proactor
+          design pattern <a class="link" href="async.html#boost_asio.overview.core.async.references">[POSA2]</a>.
+          The advantages and disadvantages of this approach, when compared to a synchronous-only
+          or Reactor approach, are outlined below.
+        </p>
+<h6>
+<a name="boost_asio.overview.core.async.h0"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.async.proactor_and_boost_asio"></a></span><a class="link" href="async.html#boost_asio.overview.core.async.proactor_and_boost_asio">Proactor
+          and Boost.Asio</a>
+        </h6>
+<p>
+          Let us examine how the Proactor design pattern is implemented in Boost.Asio,
+          without reference to platform-specific details.
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../proactor.png" alt="proactor"></span>
+        </p>
+<p>
+          <span class="bold"><strong>Proactor design pattern (adapted from [POSA2])</strong></span>
+        </p>
+<p>
+          &#8212; Asynchronous Operation
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Defines an operation that is executed asynchronously, such as an asynchronous
+            read or write on a socket.
+          </p></blockquote></div>
+<p>
+          &#8212; Asynchronous Operation Processor
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Executes asynchronous operations and queues events on a completion event
+            queue when operations complete. From a high-level point of view, services
+            like <code class="computeroutput"><span class="identifier">stream_socket_service</span></code>
+            are asynchronous operation processors.
+          </p></blockquote></div>
+<p>
+          &#8212; Completion Event Queue
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Buffers completion events until they are dequeued by an asynchronous
+            event demultiplexer.
+          </p></blockquote></div>
+<p>
+          &#8212; Completion Handler
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Processes the result of an asynchronous operation. These are function
+            objects, often created using <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span></code>.
+          </p></blockquote></div>
+<p>
+          &#8212; Asynchronous Event Demultiplexer
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Blocks waiting for events to occur on the completion event queue, and
+            returns a completed event to its caller.
+          </p></blockquote></div>
+<p>
+          &#8212; Proactor
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Calls the asynchronous event demultiplexer to dequeue events, and dispatches
+            the completion handler (i.e. invokes the function object) associated
+            with the event. This abstraction is represented by the <code class="computeroutput"><span class="identifier">io_service</span></code> class.
+          </p></blockquote></div>
+<p>
+          &#8212; Initiator
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Application-specific code that starts asynchronous operations. The initiator
+            interacts with an asynchronous operation processor via a high-level interface
+            such as <code class="computeroutput"><span class="identifier">basic_stream_socket</span></code>,
+            which in turn delegates to a service like <code class="computeroutput"><span class="identifier">stream_socket_service</span></code>.
+          </p></blockquote></div>
+<h6>
+<a name="boost_asio.overview.core.async.h1"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.async.implementation_using_reactor"></a></span><a class="link" href="async.html#boost_asio.overview.core.async.implementation_using_reactor">Implementation
+          Using Reactor</a>
+        </h6>
+<p>
+          On many platforms, Boost.Asio implements the Proactor design pattern in
+          terms of a Reactor, such as <code class="computeroutput"><span class="identifier">select</span></code>,
+          <code class="computeroutput"><span class="identifier">epoll</span></code> or <code class="computeroutput"><span class="identifier">kqueue</span></code>. This implementation approach
+          corresponds to the Proactor design pattern as follows:
+        </p>
+<p>
+          &#8212; Asynchronous Operation Processor
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            A reactor implemented using <code class="computeroutput"><span class="identifier">select</span></code>,
+            <code class="computeroutput"><span class="identifier">epoll</span></code> or <code class="computeroutput"><span class="identifier">kqueue</span></code>. When the reactor indicates
+            that the resource is ready to perform the operation, the processor executes
+            the asynchronous operation and enqueues the associated completion handler
+            on the completion event queue.
+          </p></blockquote></div>
+<p>
+          &#8212; Completion Event Queue
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            A linked list of completion handlers (i.e. function objects).
+          </p></blockquote></div>
+<p>
+          &#8212; Asynchronous Event Demultiplexer
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            This is implemented by waiting on an event or condition variable until
+            a completion handler is available in the completion event queue.
+          </p></blockquote></div>
+<h6>
+<a name="boost_asio.overview.core.async.h2"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.async.implementation_using_windows_overlapped_i_o"></a></span><a class="link" href="async.html#boost_asio.overview.core.async.implementation_using_windows_overlapped_i_o">Implementation
+          Using Windows Overlapped I/O</a>
+        </h6>
+<p>
+          On Windows NT, 2000 and XP, Boost.Asio takes advantage of overlapped I/O
+          to provide an efficient implementation of the Proactor design pattern.
+          This implementation approach corresponds to the Proactor design pattern
+          as follows:
+        </p>
+<p>
+          &#8212; Asynchronous Operation Processor
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            This is implemented by the operating system. Operations are initiated
+            by calling an overlapped function such as <code class="computeroutput"><span class="identifier">AcceptEx</span></code>.
+          </p></blockquote></div>
+<p>
+          &#8212; Completion Event Queue
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            This is implemented by the operating system, and is associated with an
+            I/O completion port. There is one I/O completion port for each <code class="computeroutput"><span class="identifier">io_service</span></code> instance.
+          </p></blockquote></div>
+<p>
+          &#8212; Asynchronous Event Demultiplexer
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Called by Boost.Asio to dequeue events and their associated completion
+            handlers.
+          </p></blockquote></div>
+<h6>
+<a name="boost_asio.overview.core.async.h3"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.async.advantages"></a></span><a class="link" href="async.html#boost_asio.overview.core.async.advantages">Advantages</a>
+        </h6>
+<p>
+          &#8212; Portability.
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Many operating systems offer a native asynchronous I/O API (such as overlapped
+            I/O on <span class="emphasis"><em>Windows</em></span>) as the preferred option for developing
+            high performance network applications. The library may be implemented
+            in terms of native asynchronous I/O. However, if native support is not
+            available, the library may also be implemented using synchronous event
+            demultiplexors that typify the Reactor pattern, such as <span class="emphasis"><em>POSIX</em></span>
+            <code class="computeroutput"><span class="identifier">select</span><span class="special">()</span></code>.
+          </p></blockquote></div>
+<p>
+          &#8212; Decoupling threading from concurrency.
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Long-duration operations are performed asynchronously by the implementation
+            on behalf of the application. Consequently applications do not need to
+            spawn many threads in order to increase concurrency.
+          </p></blockquote></div>
+<p>
+          &#8212; Performance and scalability.
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Implementation strategies such as thread-per-connection (which a synchronous-only
+            approach would require) can degrade system performance, due to increased
+            context switching, synchronisation and data movement among CPUs. With
+            asynchronous operations it is possible to avoid the cost of context switching
+            by minimising the number of operating system threads &#8212; typically a limited
+            resource &#8212; and only activating the logical threads of control that have
+            events to process.
+          </p></blockquote></div>
+<p>
+          &#8212; Simplified application synchronisation.
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Asynchronous operation completion handlers can be written as though they
+            exist in a single-threaded environment, and so application logic can
+            be developed with little or no concern for synchronisation issues.
+          </p></blockquote></div>
+<p>
+          &#8212; Function composition.
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Function composition refers to the implementation of functions to provide
+            a higher-level operation, such as sending a message in a particular format.
+            Each function is implemented in terms of multiple calls to lower-level
+            read or write operations.
+          </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            For example, consider a protocol where each message consists of a fixed-length
+            header followed by a variable length body, where the length of the body
+            is specified in the header. A hypothetical read_message operation could
+            be implemented using two lower-level reads, the first to receive the
+            header and, once the length is known, the second to receive the body.
+          </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            To compose functions in an asynchronous model, asynchronous operations
+            can be chained together. That is, a completion handler for one operation
+            can initiate the next. Starting the first call in the chain can be encapsulated
+            so that the caller need not be aware that the higher-level operation
+            is implemented as a chain of asynchronous operations.
+          </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            The ability to compose new operations in this way simplifies the development
+            of higher levels of abstraction above a networking library, such as functions
+            to support a specific protocol.
+          </p></blockquote></div>
+<h6>
+<a name="boost_asio.overview.core.async.h4"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.async.disadvantages"></a></span><a class="link" href="async.html#boost_asio.overview.core.async.disadvantages">Disadvantages</a>
+        </h6>
+<p>
+          &#8212; Program complexity.
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            It is more difficult to develop applications using asynchronous mechanisms
+            due to the separation in time and space between operation initiation
+            and completion. Applications may also be harder to debug due to the inverted
+            flow of control.
+          </p></blockquote></div>
+<p>
+          &#8212; Memory usage.
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+            Buffer space must be committed for the duration of a read or write operation,
+            which may continue indefinitely, and a separate buffer is required for
+            each concurrent operation. The Reactor pattern, on the other hand, does
+            not require buffer space until a socket is ready for reading or writing.
+          </p></blockquote></div>
+<h6>
+<a name="boost_asio.overview.core.async.h5"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.async.references"></a></span><a class="link" href="async.html#boost_asio.overview.core.async.references">References</a>
+        </h6>
+<p>
+          [POSA2] D. Schmidt et al, <span class="emphasis"><em>Pattern Oriented Software Architecture,
+          Volume 2</em></span>. Wiley, 2000.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basics.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="threads.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

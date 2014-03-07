@@ -1,0 +1,14 @@
+[library Test that &amp;, &lt; are being escaped.
+    [quickbook 1.5]
+    [purpose & should be &amp;, < should &lt;]
+    [license & should be &amp;, < should &lt;]
+]
+
+[section Escapes & explicitly written markup]
+
+* & -> &amp;
+* < -> &lt;
+* > -> &gt;
+* " -> &quot;
+
+[endsect]

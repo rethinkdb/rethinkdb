@@ -1,0 +1,66 @@
+<html>
+<head>
+	<title>BOOST_PP_ASSERT_MSG</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_ASSERT_MSG</b> macro conditionally inserts debugging text.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_ASSERT_MSG</b>(<i>cond</i>, <i>msg</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>cond</dt>
+			<dd>
+				A condition that determines whether an assertion occurs.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+			<dt>msg</dt>
+			<dd>
+				A message to display if <i>cond</i> evaluates to <i>0</i>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			If <i>cond</i> expands to <i>0</i>, this macro expands to <i>msg</i>.&nbsp;
+			Otherwise, it expands to nothing.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="assert_msg.html">BOOST_PP_ASSERT_MSG</a></li>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/debug/assert.html">&lt;boost/preprocessor/debug/assert.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/comparison/equal.html">boost/preprocessor/comparison/equal.hpp</a>&gt;
+#include &lt;<a href="../headers/debug/assert.html">boost/preprocessor/debug/assert.hpp</a>&gt;
+
+// lines are supposed to be counted
+// in translation phase 1
+
+#line 9
+<a href="assert_msg.html">BOOST_PP_ASSERT_MSG</a>( \
+   BOOST_PP_EQUAL(__LINE__, 9), \
+   "incorrect line numbering detected" \
+)
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

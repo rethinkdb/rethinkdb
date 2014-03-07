@@ -1,0 +1,144 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[def __mfc_collections__ [@http://msdn.microsoft.com/en-us/library/942860sh.aspx MFC Collection Classes]]
+[def __atl_collections__ [@http://msdn.microsoft.com/en-us/library/15e672bd.aspx ATL Collection Classes]]
+
+[section:mfc_atl MFC/ATL (courtesy of Shunsuke Sogame)]
+
+[h4 Introduction]
+This implementation was kindly donated by Shunsuke Sogame. This header adapts MFC and ATL containers to the appropriate Range concepts.
+
+[table
+    []
+    [[[*Author:]]    [Shunsuke Sogame]]
+    [[[*Contact:]]   [mb2act@yahoo.co.jp]]
+    [[[*Date:]]      [26th of May 2006]]
+    [[[*Copyright:]] [Shunsuke Sogame 2005-2006. Use, modification and distribution is subject to the Boost Software License, Version 1.0]]
+]
+
+[h4 Overview]
+
+Boost.Range MFC/ATL Extension provides Boost.Range support for MFC/ATL collection and string types.
+
+``
+CTypedPtrArray<CPtrArray, CList<CString> *> myArray;
+...
+BOOST_FOREACH (CList<CString> *theList, myArray)
+{
+    BOOST_FOREACH (CString& str, *theList)
+    {
+        boost::to_upper(str);
+        std::sort(boost::begin(str), boost::end(str));
+        ...
+    }
+}
+``
+
+[section:requirements Requirements]
+
+* Boost C++ Libraries Version 1.34.0 or later (no compilation required)
+* Visual C++ 7.1 or later (for MFC and ATL)
+
+[endsect]
+
+[section:mfc_ranges MFC Ranges]
+If the `<boost/range/mfc.hpp>` is included before or after Boost.Range headers, the MFC collections and strings become models of Range. The table below lists the Traversal Category and `range_reference` of MFC ranges.
+
+[table
+    [[Range] [Traversal Category] [`range_reference<Range>::type`]]
+    [[`CArray<T,A>`]           [__random_access_range__]   [`T&`]]
+    [[`CList<T,A>`]            [__bidirectional_range__]   [`T&`]]
+    [[`CMap<K,AK,M,AM>`]       [__forward_range__]         [`Range::CPair&`]]
+    [[`CTypedPtrArray<B,T*>`]  [__random_access_range__]   [`T* const`]]
+    [[`CTypedPtrList<B,T*>`]   [__bidirectional_range__]   [`T* const`]]
+    [[`CTypedPtrMap<B,T*,V*>`] [__forward_range__]         [`std::pair<T*,V*> const`]]
+    [[`CByteArray`]            [__random_access_range__]   [`BYTE&`]]
+    [[`CDWordArray`]           [__random_access_range__]   [`DWORD&`]]
+    [[`CObArray`]              [__random_access_range__]   [`CObject*&`]]
+    [[`CPtrArray`]             [__random_access_range__]   [`void*&`]]
+    [[`CStringArray`]          [__random_access_range__]   [`CString&`]]
+    [[`CUIntArray`]            [__random_access_range__]   [`UINT&`]]
+    [[`CWordArray`]            [__random_access_range__]   [`WORD&`]]
+    [[`CObList`]               [__bidirectional_range__]   [`CObject*&`]]
+    [[`CPtrList`]              [__bidirectional_range__]   [`void*&`]]
+    [[`CStringList`]           [__bidirectional_range__]   [`CString&`]]
+    [[`CMapPtrToWord`]         [__forward_range__]         [`std::pair<void*,WORD> const`]]
+    [[`CMapPtrToPtr`]          [__forward_range__]         [`std::pair<void*,void*> const`]]
+    [[`CMapStringToOb`]        [__forward_range__]         [`std::pair<String,CObject*> const`]]
+    [[`CMapStringToString`]    [__forward_range__]         [`Range::CPair&`]]
+    [[`CMapWordToOb`]          [__forward_range__]         [`std::pair<WORD,CObject*> const`]]
+    [[`CMapWordToPtr`]         [__forward_range__]         [`std::pair<WORD,void*> const`]]
+]
+
+Other Boost.Range metafunctions are defined by the following. Let `Range` be any type listed above and `Ref` be the same as `range_reference<Range>::type`. `range_value<Range>::type` is the same as `remove_reference<remove_const<Ref>::type>::type`, `range_difference<Range>::type` is the same as `std::ptrdiff_t`, and `range_pointer<Range>::type` is the same as `add_pointer<remove_reference<Ref>::type>::type`. As for `const Range`, see below.
+[endsect]
+
+[section:atl_ranges ATL Ranges]
+
+If the `<boost/range/atl.hpp>` is included before or after Boost.Range headers, the ATL collections and strings become models of Range. The table below lists the Traversal Category and `range_reference` of ATL ranges.
+
+[table
+    [[Range]                    [Traversal Category]      [`range_reference<Range>::type`]]
+    [[`CAtlArray<E,ET>`]        [__random_access_range__] [`E&`]]
+    [[`CAutoPtrArray<E>`]       [__random_access_range__] [`E&`]]
+    [[`CInterfaceArray<I,pi>`]  [__random_access_range__] [`CComQIPtr<I,pi>&`]]
+    [[`CAtlList<E,ET>`]         [__bidirectional_range__] [`E&`]]
+    [[`CAutoPtrList<E>`]        [__bidirectional_range__] [`E&`]]
+    [[`CHeapPtrList<E,A>`]      [__bidirectional_range__] [`E&`]]
+    [[`CInterfaceList<I,pi>`]   [__bidirectional_range__] [`CComQIPtr<I,pi>&`]]
+    [[`CAtlMap<K,V,KT,VT>`]     [__forward_range__]       [`Range::CPair&`]]
+    [[`CRBTree<K,V,KT,VT>`]     [__bidirectional_range__] [`Range::CPair&`]]
+    [[`CRBMap<K,V,KT,VT>`]      [__bidirectional_range__] [`Range::CPair&`]]
+    [[`CRBMultiMap<K,V,KT,VT>`] [__bidirectional_range__] [`Range::CPair&`]]
+    [[`CSimpleStringT<B,b>`]    [__random_access_range__] [`B&`]]
+    [[`CStringT<B,ST>`]         [__random_access_range__] [`B&`]]
+    [[`CFixedStringT<S,n>`]     [__random_access_range__] [`range_reference<S>::type`]]
+    [[`CComBSTR`]               [__random_access_range__] [`OLECHAR&`]]
+    [[`CSimpleArray<T,TE>`]     [__random_access_range__] [`T&`]]
+]
+
+Other __boost_range_home__ metafunctions are defined by the following. Let `Range` be any type listed above and `Ref` be the same as `range_reference<Range>::type`. `range_value<Range>::type` is the same as `remove_reference<Ref>::type`, `range_difference<Range>::type` is the same as `std::ptrdiff_t`, and `range_pointer<Range>::type` is the same as `add_pointer<remove_reference<Ref>::type>::type`. As for `const Range`, see below.
+
+[endsect]
+
+[section:const_ranges const Ranges]
+
+`range_reference<const Range>::type` is defined by the following algorithm. Let `Range` be any type listed above and `Ref` be the same as `range_reference<Range>::type`.
+
+``
+if (Range is CObArray || Range is CObList)
+    return CObject const * &
+else if (Range is CPtrArray || Range is CPtrList)
+    return void const * &
+else if (there is a type X such that X& is the same as Ref)
+    return X const &
+else if (there is a type X such that X* const is the same as Ref)
+    return X const * const
+else
+    return Ref
+``
+
+
+Other Boost.Range metafunctions are defined by the following.
+
+[table
+    [[Range metafunction]                    [Result]]
+    [[`range_value<const Range>::type`]      [`range_value<Range>::type`]]
+    [[`range_difference<const Range>::type`] [`std::ptrdiff_t`]]
+    [[`range_pointer<const Range>::type`]    [`add_pointer<remove_reference<range_reference<const Range>::type>::type>::type`]]
+]
+
+[endsect]
+
+[section:references References]
+
+# __boost_range_home__
+# __mfc_collections__
+# __atl_collections__
+
+[endsect]
+
+[endsect]

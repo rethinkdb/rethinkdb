@@ -1,0 +1,38 @@
+locate-root "..\..\..\bin.v2"
+C:\Users\Misha\Stuff\boost\HEAD\boost\tools\regression\test>C:\Users\Misha\Stuff\boost\HEAD\bin\..\boost\tools\jam\src\bin.ntx86\bjam.exe --dump-tests --v2 msvc-7.1 "-sBOOST_BUILD_PATH=C:\Users\Misha\Stuff\boost\HEAD\bin\.." "-sBOOST_ROOT="C:\Users\Misha\Stuff\boost\HEAD\bin\..\boost"  
+
+boost-test(RUN) "testlib/run~pass" : "tools/regression/test/run~pass.cpp"
+
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi\run~pass.obj
+run~pass.cpp
+
+    call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  >nul
+cl /Zm800 -nologo @"..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi\run~pass.obj.rsp"
+
+...failed compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi\run~pass.obj...
+
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass2.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.obj
+run~pass2.cpp
+
+msvc.link ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.exe
+
+        call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  >nul
+link /NOLOGO /INCREMENTAL:NO /DEBUG /subsystem:console /out:"..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.exe"   @"..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.exe.rsp"
+        if errorlevel 1 exit %errorlevel%
+        if exist "..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.exe.manifest" (
+            mt -nologo -manifest "..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.exe.manifest" "-outputresource:..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.exe;1"
+        )
+    
+...failed msvc.link ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.exe...
+...removing ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.exe
+
+
+...failed updating 9 targets...
+...skipped 17 targets...
+...updated 131 targets...

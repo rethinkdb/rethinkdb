@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2002-2006 Pavol Droba.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="string_algo.concept" last-revision="$Date: 2012-12-28 10:19:25 -0800 (Fri, 28 Dec 2012) $">
+    <title>Concepts</title>
+
+    <using-namespace name="boost"/>
+    <using-namespace name="boost::algorithm"/>
+
+    <section>   
+        <title>Definitions</title>
+        
+        <table>
+            <title>Notation</title>
+            <tgroup cols="2" align="left">
+                <tbody>
+                    <row>
+                        <entry><code>F</code></entry>
+                        <entry>A type that is a model of Finder</entry>
+                    </row>
+                    <row>
+                        <entry><code>Fmt</code></entry>
+                        <entry>A type that is a model of Formatter</entry>
+                    </row>
+                    <row>
+                        <entry><code>Iter</code></entry>
+                        <entry>
+                            Iterator Type
+                        </entry>
+                    </row>
+                    <row>
+                        <entry><code>f</code></entry>
+                        <entry>Object of type <code>F</code></entry>
+                    </row>
+                    <row>
+                        <entry><code>fmt</code></entry>
+                        <entry>Object of type <code>Fmt</code></entry>
+                    </row>
+                    <row>
+                        <entry><code>i,j</code></entry>
+                        <entry>Objects of type <code>Iter</code></entry>
+                    </row>
+                    </tbody>
+            </tgroup>
+        </table>
+    </section>
+
+    <section id="string_algo.finder_concept">
+        <title>Finder Concept</title>
+
+        <para>
+            Finder is a functor which searches for an arbitrary part of a container. 
+            The result of the search is given as an <classname>iterator_range</classname> 
+            delimiting the selected part.
+        </para>
+
+        <table>             
+            <title>Valid Expressions</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>   
+                        <entry>Expression</entry>
+                        <entry>Return Type</entry>
+                        <entry>Effects</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry><code>f(i,j)</code></entry>
+                        <entry>Convertible to <code>iterator_range&lt;Iter&gt;</code></entry>
+                        <entry>Perform the search on the interval [i,j) and returns the result of the search</entry>
+                    </row>
+                </tbody>
+            </tgroup>
+        </table>
+
+        <para>
+            Various algorithms need to perform a search in a container and a Finder is a generalization of such
+            search operations that allows algorithms to abstract from searching. For instance, generic replace
+            algorithms can replace any part of the input, and the Finder is used to select the desired one.
+        </para>
+        <para>
+            Note, that it is only required that the finder works with a particular iterator type. However,
+            a Finder operation can be defined as a template, allowing the Finder to work with any iterator.
+        </para>
+        <para>
+            <emphasis role="bold">Examples</emphasis>
+        </para>
+        <para> 
+            <itemizedlist>
+                <listitem>
+                    Finder implemented as a class. This Finder always returns the whole input as a match. <code>operator()</code>
+                    is templated, so that the finder can be used on any iterator type.
+                    
+                    <programlisting>
+struct simple_finder
+{
+    template&lt;typename ForwardIteratorT&gt;
+    boost::iterator_range&lt;ForwardIteratorT&gt; operator()(
+        ForwardIteratorT Begin,
+        ForwardIteratorT End )
+    {
+        return boost::make_range( Begin, End );
+    }
+};
+        </programlisting>
+                </listitem>
+                <listitem>
+                    Function Finder. Finder can be any function object. That is, any ordinary function with the
+                    required signature can be used as well. However, such a function can be used only for
+                    a specific iterator type. 
+                    
+                    <programlisting>
+boost::iterator_range&lt;std::string&gt; simple_finder(
+    std::string::const_iterator Begin,
+    std::string::const_iterator End )
+{
+    return boost::make_range( Begin, End );
+}
+        </programlisting>
+                </listitem>
+            </itemizedlist>
+        </para> 
+    </section>
+    <section id="string_algo.formatter_concept">
+        <title>Formatter concept</title>
+
+        <para>
+            Formatters are used by <link linkend="string_algo.replace">replace algorithms</link>.
+            They are used in close combination with finders.
+            A formatter is a functor, which takes a result from a Finder operation and transforms it in a specific way. 
+            The operation of the formatter can use additional information provided by a specific finder,
+            for example <functionname>regex_formatter()</functionname> uses the match information from
+            <functionname>regex_finder()</functionname> to format the result of formatter operation.
+        </para>
+    
+        <table>
+            <title>Valid Expressions</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>   
+                        <entry>Expression</entry>
+                        <entry>Return Type</entry>
+                        <entry>Effects</entry>
+                    </row>
+                </thead>
+                <tbody>
+                   <row>
+                        <entry><code>fmt(f(i,j))</code></entry>
+                        <entry>A container type, accessible using container traits</entry>
+                        <entry>Formats the result of the finder operation</entry>
+                    </row>
+                </tbody>
+            </tgroup>
+        </table>
+
+        <para>
+            Similarly to finders, formatters generalize format operations. When a finder is used to 
+            select a part of the input, formatter takes this selection and performs some formatting
+            on it. Algorithms can abstract from formatting using a formatter.
+        </para>
+        <para>
+            <emphasis role="bold">Examples</emphasis>
+        </para>
+        <para> 
+            <itemizedlist>
+                <listitem>
+                    Formatter implemented as a class. This Formatter does not perform any formatting and 
+                    returns the match, repackaged. <code>operator()</code>
+                    is templated, so that the Formatter can be used on any Finder type.
+                    
+                    <programlisting>
+struct simple_formatter
+{
+    template&lt;typename FindResultT&gt;
+    std::string operator()( const FindResultT&amp; Match )
+    {
+        std::string Temp( Match.begin(), Match.end() );
+        return Temp;
+    }
+};
+                </programlisting>
+                </listitem>
+                <listitem>
+                    Function Formatter. Similarly to Finder, Formatter can be any function object. 
+                    However, as a function, it can be used only with a specific Finder type. 
+                  
+                    <programlisting>
+std::string simple_formatter( boost::iterator_range&lt;std::string::const_iterator&gt;&amp; Match )
+{
+    std::string Temp( Match.begin(), Match.end() );
+    return Temp;
+}
+                    </programlisting>
+                </listitem>
+            </itemizedlist>
+        </para> 
+     </section>
+</section>

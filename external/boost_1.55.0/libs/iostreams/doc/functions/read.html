@@ -1,0 +1,202 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Function Template read</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Function Template <CODE>read</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#example">Example</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The two overloads of the function template <CODE>read</CODE> provide a uniform interface for reading a sequence of characters from a <A HREF="../concepts/source.html">Source</A> or <A HREF="../concepts/input_filter.html">InputFilter</A>. 
+    <UL>
+        <LI>The first overload can be used directly in the definitions of new Filter types (<I>see</I> <A HREF="#example">Example</A>), and figures in the specification of the <A HREF="../guide/concepts.html#device_concepts">Device</A> concepts.
+        <LI>The second overload is primarily for internal use by the library.
+    </UL>
+</P>
+
+<A NAME="example"></A>
+<H2>Example</H2>
+
+<P>
+    The following code illustrates the use of the function <CODE>read</CODE> in the definition of a <A HREF="../concepts/multi_character.html">Multi-Character</A> <A HREF="../concepts/input_filter.html">InputFilter</A>.
+</P>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="preprocessor">#include</SPAN> <SPAN CLASS="literal">&lt;ctype.h&gt;</SPAN>                        <SPAN CLASS="comment">// tolower</SPAN>
+    <SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>   <SPAN CLASS="comment">// multichar_input_filter</SPAN> 
+    <SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// read</SPAN>
+
+    <SPAN CLASS="keyword">using</SPAN> <SPAN CLASS="keyword">namespace</SPAN> std;
+    <SPAN CLASS="keyword">namespace</SPAN> io = boost::iostreams;
+
+    <SPAN CLASS="keyword">struct</SPAN> tolower_filter : <SPAN CLASS="keyword">public</SPAN> io::multichar_input_filter {
+        <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+        streamsize read(Source&amp; src, <SPAN CLASS="keyword">char</SPAN>* s, streamsize n)
+        {
+            streamsize result;
+            <SPAN CLASS="keyword">if</SPAN> ((result = io::read(src, s, n)) == <SPAN CLASS='numeric_literal'>-1</SPAN>)
+                <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS='numeric_literal'>-1</SPAN>; <SPAN CLASS='comment'>// EOF</SPAN>
+            <SPAN CLASS="keyword">for</SPAN> (streamsize z = <SPAN CLASS="numeric_literal">0</SPAN>; z < result; ++z)
+                s[z] = tolower((<SPAN CLASS="keyword">unsigned</SPAN> <SPAN CLASS="keyword">char</SPAN>) s[z]);
+            <SPAN CLASS="keyword">return</SPAN> result;
+        }
+    };</PRE>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><CODE>&lt;boost/iostreams/operations.hpp&gt;</CODE></A></DT>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/read.hpp"><CODE>&lt;boost/iostreams/read.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="description"></A>
+<H4>Description</H4>
+
+<P>
+    Reads a sequence of characters from a given instance of the template parameter <CODE>T</CODE>, returning the number of characters read, or <CODE>-1</CODE> to indicate end-of-sequence.
+</P>
+
+<A NAME="synopsis"></A>
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+              
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">T</A>&gt;     
+std::streamsize <A CLASS="documented" HREF="#read_device">read</A>( T&amp; <A CLASS="documented" HREF="#function_params">t</A>,
+                      <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="../guide/traits.html#char_type_of_ref">char_type_of</A>&lt;T&gt;::type* <A CLASS="documented" HREF="#function_params">s</A>, 
+                      std::streamsize <A CLASS="documented" HREF="#function_params">n</A> );
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">T</A>, <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Source</A>&gt;
+std::streamsize <A CLASS="documented" HREF="#read_filter">read</A>( T&amp; <A CLASS="documented" HREF="#function_params">t</A>,
+                      Source&amp; <A CLASS="documented" HREF="#function_params">src</A>,
+                      <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="../guide/traits.html#char_type_of_ref">char_type_of</A>&lt;T&gt;::type* <A CLASS="documented" HREF="#function_params">s</A>, 
+                      std::streamsize <A CLASS="documented" HREF="#function_params">n</A> );
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="template_params"></A>
+<H4>Template Parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>T</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>For the first overload, a model of <A HREF="../concepts/source.html">Source</A> or a standard input stream or stream buffer type. For the second overload, a model of <A HREF="../concepts/input_filter.html">InputFilter</A>.
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Source</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>An <A HREF="../concepts/direct.html">indirect</A> model of <A HREF="../concepts/source.html">Source</A> with the same <A HREF="../guide/traits.html#char_type">character type</A> as <CODE>T</CODE> whose <A HREF="../guide/modes.html">mode</A> refines that of <CODE>T</CODE>. <CODE>Source</CODE> must also model <A HREF="../concepts/peekable.html">Peekable</A>.
+    </TR>
+</TABLE>
+
+<A NAME="function_params"></A>
+<H4>Function Parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>t</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>An instance of the Filter or Device type <CODE>T</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>s</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The buffer into which characters should be read</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>n</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The maximum number of characters to read</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>src</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>An instance of <CODE>Source</CODE>
+    </TR>
+</TABLE>
+
+<A NAME="read_device"></A>
+<H4>Semantics &#8212; Device Types</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T&gt;     
+std::streamsize read( T&amp; t,
+                      <SPAN CLASS="keyword">typename</SPAN> char_type_of&lt;T&gt;::type* s, 
+                      std::streamsize n );</PRE>
+
+<P>The semantics of <CODE>read</CODE> depends on the <A HREF="../guide/traits.html#category">category</A> of <CODE>T</CODE> as follows:</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=1 CELLPADDING=4>
+    <TR><TH><CODE>category_of&lt;T&gt;::type</CODE></TH><TH>semantics</TH></TR>
+    <TR>
+        <TD VALIGN="top">convertible to <A HREF="../guide/traits.html#category_tags"><CODE>istream_tag</CODE></A></TD>
+        <TD>invokes <CODE>t.read(s, n)</CODE> and returns <CODE>t.gcount()</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">convertible to <A HREF="../guide/traits.html#category_tags"><CODE>streambuf_tag</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>istream_tag</CODE></A></TD>
+        <TD>returns <CODE>t.sgetn(s, n)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>not</I> convertible to <A HREF="../guide/traits.html#category_tags"><CODE>direct_tag</CODE></A></TD>
+        <TD>returns <CODE>t.read(s, n)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">otherwise</TD>
+        <TD>compile-time error</CODE></TD>
+    </TR>
+</TABLE>
+
+<A NAME="read_filter"></A>
+<H4>Semantics &#8212; Filter Types</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T&gt;
+std::streamsize read( T&amp; t,
+                      Source&amp; src,
+                      <SPAN CLASS="keyword">typename</SPAN> char_type_of&lt;T&gt;::type* s,
+                      std::streamsize n );</PRE>
+
+<P>The semantics of <CODE>read</CODE> depends on the <A HREF="../guide/traits.html#category">category</A> of <CODE>T</CODE> as follows:</P>
+
+<TABLE STYLE="margin-bottom:2em;margin-left:2em" BORDER=1 CELLPADDING=4>
+    <TR><TH><CODE>category_of&lt;T&gt;::type</CODE></TH><TH>semantics</TH></TR>
+    <TR>
+        <TD VALIGN="top">convertible to <A HREF="../guide/traits.html#category_tags"><CODE>multichar_tag</CODE></A></TD>
+        <TD>returns <CODE>t.read(src, s, n)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">otherwise</TD>
+        <TD>
+            reads up to <CODE>n</CODE> characters into <CODE>s</CODE> by invoking <CODE>t.get(src)</CODE> repeatedly, halting if <CODE>traits_typre::eof</CODE> or <A HREF="../classes/char_traits.html#would_block"><CODE>traits_type::would_block</CODE></A> is returned, where <CODE>traits_type</CODE> is <A HREF="../classes/char_traits.html"><CODE>boost::iostreams::char_traits&lt;Source&gt;</CODE></A></A>. Returns the number of characters read, or <CODE>-1</CODE> to indicate end-of-sequence.
+        </TD>
+    </TR>
+</TABLE>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

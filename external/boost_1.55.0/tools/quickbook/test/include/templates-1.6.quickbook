@@ -1,0 +1,11 @@
+[article Templates 1.6
+[quickbook 1.6]
+]
+
+[include templates-inc1.quickbook]
+
+[foo]
+
+[import templates-inc1.quickbook]
+
+[foo]

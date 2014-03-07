@@ -1,0 +1,453 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ml.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ml.xml
+ */
+ml{
+    AuxExemplarCharacters{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+    ExemplarCharacters{
+        "[\u200C \u200D ഃ അ ആ ഇ ഈ ഉ ഊ ഋ ൠ ഌ ൡ എ ഏ ഐ ഒ ഓ ഔ ക ഖ ഗ ഘ ങ ച ഛ ജ ഝ ഞ ട ഠ ഡ ഢ"
+        " ണ ത ഥ ദ ധ ന പ ഫ ബ ഭ മ ം യ ര ല വ ശ ഷ സ ഹ ള ഴ റ ാ ി ീ \u0D41 \u0D42 \u0D43 െ "
+        "േ ൈ ൊ ോ ൗ ൌ \u0D4D]"
+    }
+    ExemplarCharactersCurrency{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+    LocaleScript{
+        "Mlym",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##,##0.00¤"}
+                decimalFormat{"#,##,##0.###"}
+                percentFormat{"#,##,##0%"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{"."}
+                exponential{"E"}
+                group{","}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.50.94"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "രാവിലെ",
+                "വൈകുന്നേരം",
+            }
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "y, MMMM d, EEEE",
+                "y, MMMM d",
+                "y, MMM d",
+                "dd/MM/yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                EEEd{"d EEE"}
+                M{"L"}
+                MEd{"M/d, E"}
+                MMM{"LLL"}
+                MMMEd{"MMM d, E"}
+                MMMMEd{"MMMM d, E"}
+                MMMMd{"MMMM d"}
+                MMMd{"MMM d"}
+                MMdd{"dd-MM"}
+                Md{"d/M"}
+                d{"d"}
+                hm{"h:mm a"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M-y"}
+                yMEd{"d-M-yyyy, EEE"}
+                yMMM{"y MMM"}
+                yMMMd{"y MMM d"}
+                yMMMEd{"y MMM d, EEE"}
+                yMMMM{"y MMMM"}
+                yQ{"yyyy Q"}
+                yQQQ{"y QQQ"}
+                yyQ{"Q yy"}
+                yyyyMM{"MM-yyyy"}
+                yyyyMMMM{"MMMM y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "ഞായര്‍",
+                        "തിങ്കള്‍",
+                        "ചൊവ്വ",
+                        "ബുധന്‍",
+                        "വ്യാഴം",
+                        "വെള്ളി",
+                        "ശനി",
+                    }
+                    wide{
+                        "ഞായറാഴ്ച",
+                        "തിങ്കളാഴ്ച",
+                        "ചൊവ്വാഴ്ച",
+                        "ബുധനാഴ്ച",
+                        "വ്യാഴാഴ്ച",
+                        "വെള്ളിയാഴ്ച",
+                        "ശനിയാഴ്ച",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ഞാ",
+                        "തി",
+                        "ചൊ",
+                        "ബു",
+                        "വ്യാ",
+                        "വെ",
+                        "ശ",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "ക്രി.മൂ",
+                    "ക്രി.പി.",
+                }
+                wide{
+                    "ക്രിസ്തുവിനു് മുമ്പ്‌",
+                    "ക്രിസ്തുവിന് പിന്‍പ്",
+                }
+            }
+            fields{
+                day{
+                    dn{"ദിവസം"}
+                    relative{
+                        "-1"{"ഇന്നലെ"}
+                        "-2"{"മിനിഞ്ഞാന്ന്"}
+                        "-3"{"മൂന്നുദിവസം മുന്പ്"}
+                        "0"{"ഇന്ന്"}
+                        "1"{"നാളെ"}
+                        "2"{"മറ്റന്നാള്‍"}
+                        "3"{"ഇന്നേയ്ക്ക് മൂന്നാം പക്കം"}
+                    }
+                }
+                dayperiod{
+                    dn{"am/pm"}
+                }
+                era{
+                    dn{"കാലഘട്ടം"}
+                }
+                hour{
+                    dn{"മണിക്കൂര്‍"}
+                }
+                minute{
+                    dn{"മിനിട്ട്"}
+                }
+                month{
+                    dn{"മാസം"}
+                }
+                second{
+                    dn{"സെക്കന്‍റ്"}
+                }
+                week{
+                    dn{"ആഴ്ച"}
+                }
+                weekday{
+                    dn{"ആഴ്ചയിലെ ദിവസം"}
+                }
+                year{
+                    dn{"വര്‍ഷം"}
+                }
+                zone{
+                    dn{"മേഖല"}
+                }
+            }
+            intervalFormats{
+                M{
+                    M{"M-M"}
+                }
+                MEd{
+                    M{"d/M, E - d/M, E"}
+                    d{"d/M, E - d/M, E"}
+                }
+                MMM{
+                    M{"MMM-MMM"}
+                }
+                MMMEd{
+                    M{"MMM d, E - MMM d, E"}
+                    d{"MMM d, E - MMM d, E"}
+                }
+                MMMM{
+                    M{"LLLL-LLLL"}
+                }
+                MMMd{
+                    M{"MMM d - MMM d"}
+                    d{"MMM d-d"}
+                }
+                Md{
+                    M{"d/M - d/M"}
+                    d{"d/M - d/M"}
+                }
+                d{
+                    d{"d-d"}
+                }
+                fallback{"{0} - {1}"}
+                h{
+                    a{"h a – h a"}
+                    h{"h–h a"}
+                }
+                hm{
+                    a{"h:mm a – h:mm a"}
+                    h{"h:mm–h:mm a"}
+                    m{"h:mm–h:mm a"}
+                }
+                hmv{
+                    a{"h:mm a – h:mm a v"}
+                    h{"h:mm–h:mm a v"}
+                    m{"h:mm–h:mm a v"}
+                }
+                hv{
+                    a{"h a – h a v"}
+                    h{"h–h a v"}
+                }
+                y{
+                    y{"y-y"}
+                }
+                yM{
+                    M{"M/yy – M/yy"}
+                    y{"M/yy – M/yy"}
+                }
+                yMEd{
+                    M{"d/M/yy, E - d/M/yy, E"}
+                    d{"d/M/yy, E - d/M/yy, E"}
+                    y{"d/M/yy, E - d/M/yy, E"}
+                }
+                yMMM{
+                    M{"y MMM-MMM"}
+                    y{"y MMM - y MMM"}
+                }
+                yMMMEd{
+                    M{"y MMM d, E - MMM d, E"}
+                    d{"y, MMM d, E - d, E"}
+                    y{"y MMM d, E - y MMM d, E"}
+                }
+                yMMMM{
+                    M{"yyyy-MM – MM"}
+                    y{"yyyy-MM – yyyy-MM"}
+                }
+                yMMMd{
+                    M{"y MMM d - MMM d"}
+                    d{"y MMM d-d"}
+                    y{"y MMM d - y MMM d"}
+                }
+                yMd{
+                    M{"d/M/yy – d/M/yy"}
+                    d{"d/M/yy – d/M/yy"}
+                    y{"d/M/yy – d/M/yy"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "ജനു",
+                        "ഫെബ്രു",
+                        "മാര്‍",
+                        "ഏപ്രി",
+                        "മേയ്",
+                        "ജൂണ്‍",
+                        "ജൂലൈ",
+                        "ഓഗ",
+                        "സെപ്റ്റം",
+                        "ഒക്ടോ",
+                        "നവം",
+                        "ഡിസം",
+                    }
+                    wide{
+                        "ജനുവരി",
+                        "ഫെബ്രുവരി",
+                        "മാര്‍ച്ച്",
+                        "ഏപ്രില്‍",
+                        "മേയ്",
+                        "ജൂണ്‍",
+                        "ജൂലൈ",
+                        "ആഗസ്റ്റ്",
+                        "സെപ്റ്റംബര്‍",
+                        "ഒക്ടോബര്‍",
+                        "നവംബര്‍",
+                        "ഡിസംബര്‍",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ജ",
+                        "ഫെ",
+                        "മാ",
+                        "ഏ",
+                        "മേ",
+                        "ജൂ",
+                        "ജൂ",
+                        "ഓ",
+                        "സെ",
+                        "ഒ",
+                        "ന",
+                        "ഡി",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "Q1",
+                        "Q2",
+                        "Q3",
+                        "Q4",
+                    }
+                    wide{
+                        "ഒന്നാം പാദം",
+                        "രണ്ടാം പാദം",
+                        "മൂന്നാം പാദം",
+                        "നാലാം പാദം",
+                    }
+                }
+            }
+        }
+        indian{
+            eras{
+                abbreviated{
+                    "ശക",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "ചൈത്രം",
+                        "വൈശാഖം",
+                        "ജ്യേഷ്ഠം",
+                        "ആഷാഢം",
+                        "ശ്രാവണം",
+                        "ഭാദ്രപാദം",
+                        "ആശ്വിനം",
+                        "കാര്‍ത്തികം",
+                        "മാര്‍ഗശീര്‍ഷം",
+                        "പൗഷം",
+                        "മാഘം",
+                        "ഫല്‍ഗുനം",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ചൈ",
+                        "വൈ",
+                        "ജ്യേ",
+                        "ആ",
+                        "ശ്രാ",
+                        "ഭാ",
+                        "ആ",
+                        "കാ",
+                        "മാ",
+                        "പൗ",
+                        "മാ",
+                        "ഫ",
+                    }
+                }
+            }
+        }
+        islamic{
+            eras{
+                abbreviated{
+                    "ഹിജറ",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "മുഹറം",
+                        "സഫര്‍",
+                        "റബീഹുല്‍ അവ്വല്‍",
+                        "റബീഹുല്‍ ആഖിര്‍",
+                        "ജമാദുല്‍ അവ്വല്‍",
+                        "ജമാദുല്‍ ആഖിര്‍",
+                        "റജബ്",
+                        "ശഹബാന്‍",
+                        "റമളാന്‍",
+                        "ശവ്വാല്‍",
+                        "ദുല്‍ ഖഹദ്",
+                        "ദുല്‍ ഹിജ്ജ",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "മു",
+                        "സ",
+                        "റ-അ",
+                        "റ-ആ",
+                        "ജ-അ",
+                        "ജ-ആ",
+                        "റ",
+                        "ശ",
+                        "റ",
+                        "ശ",
+                        "ദു",
+                        "ദു-ഹി",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"’"}
+        alternateQuotationStart{"‘"}
+        quotationEnd{"”"}
+        quotationStart{"“"}
+    }
+    measurementSystemNames{
+        US{"യുഎസ്സ്"}
+        metric{"മെട്രിക്ക്"}
+    }
+    units{
+        day{
+            one{"{0} ദിവസം"}
+            other{"{0} ദിവസം"}
+        }
+        hour{
+            one{"{0} മണിക്കൂര്‍"}
+            other{"{0} മണിക്കൂര്‍"}
+        }
+        minute{
+            one{"{0} മിനിട്ട്"}
+            other{"{0} മിനിട്ട്"}
+        }
+        month{
+            one{"{0} മാസം"}
+            other{"{0} മാസം"}
+        }
+        second{
+            one{"{0} സെക്കന്റ്"}
+            other{"{0} സെക്കന്റ്"}
+        }
+        week{
+            one{"{0} ആഴ്ച"}
+            other{"{0} ആഴ്ച"}
+        }
+        year{
+            one{"{0} വര്‍ഷം"}
+            other{"{0} വര്‍ഷം"}
+        }
+    }
+}

@@ -1,0 +1,1428 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Matrix Expressions</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Matrix Expressions</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="matrix_expression"></a>Matrix Expression</h2>
+<h4>Description</h4>
+<p>The templated class <code>matrix_expression&lt;E&gt;</code>
+is required to be a public base of all classes which model the Matrix Expression concept.</p>
+<h4>Definition</h4>
+<p>Defined in the header expression_types.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>E</code></td>
+<td>The type of the matrix expression.</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p>None. <u>Not a Matrix Expression</u>!
+</p>
+<h4>Type requirements</h4>
+<p>None.</p>
+<h4>Public base classes</h4>
+<p>None.</p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>const expression_type &amp;operator () ()
+const</code></td>
+<td>Returns a <code>const</code> reference of the expression.</td>
+</tr>
+<tr>
+<td><code>expression_type &amp;operator () ()</code></td>
+<td>Returns a reference of the expression.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notes</h4>
+<p>The <code>operator[]</code>, <code>row</code>, <code>column</code>, <code>range</code>, <code>slice</code> and <code>project</code> functions have been removed. Use the free functions defined in <a href="matrix_proxy.htm">matrix proxy</a> instead.</p>
+<h2><a name="matrix_container"></a>Matrix Container</h2>
+<h4>Description</h4>
+<p>The templated class <code>matrix_container&lt;C&gt;</code>
+is required to be a public base of all classes which model the Matrix concept.
+This includes the class <code>matrix</code> itself.</p>
+<h4>Definition</h4>
+<p>Defined in the header expression_types.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>E</code></td>
+<td>The type of the matrix expression.</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p>None. <u>Not a Matrix Expression OR Matrix</u>!
+</p>
+<h4>Type requirements</h4>
+<p>None.</p>
+<h4>Public base classes</h4>
+<p><code>matrix_expression&lt;C&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>const container_type &amp;operator () ()
+const</code></td>
+<td>Returns a <code>const</code> reference of the container.</td>
+</tr>
+<tr>
+<td><code>container_type &amp;operator () ()</code></td>
+<td>Returns a reference of the container.</td>
+</tr>
+</tbody>
+</table>
+<h2><a name="matrix_references"></a>Matrix References</h2>
+<h3>Reference</h3>
+<h4>Description</h4>
+<p>The templated class <code>matrix_reference&lt;E&gt;</code>
+contains a reference to a matrix expression.</p>
+<h4>Definition</h4>
+<p>Defined in the header matrix_expression.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>E</code></td>
+<td>The type of the matrix expression.</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_expression&lt;matrix_reference&lt;E&gt;
+&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>matrix_reference (expression_type &amp;e)</code></td>
+<td>Constructs a constant reference of the expression.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size1, size2)</code></td>
+<td>Resizes the expression to hold at most <code>size1</code> rows
+of <code>size2</code> elements.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns the value of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i, size_type
+j)</code></td>
+<td>Returns a reference of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the expression.</td>
+</tr>
+<tr>
+<td><code>iterator1 begin1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the beginning of
+the expression.</td>
+</tr>
+<tr>
+<td><code>iterator1 end1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the end of the
+expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the expression.</td>
+</tr>
+<tr>
+<td><code>iterator2 begin2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the beginning of
+the expression.</td>
+</tr>
+<tr>
+<td><code>iterator2 end2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the end of the
+expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rbegin1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rend1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the end of
+the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rbegin2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rend2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the end of
+the reversed expression.</td>
+</tr>
+</tbody>
+</table>
+<h2><a name="matrix_operations"></a>Matrix Operations</h2>
+<h3>Unary Operation Description</h3>
+<h4>Description</h4>
+<p>The templated classes <code>matrix_unary1&lt;E, F&gt;</code> and
+<code>matrix_unary2&lt;E, F&gt;</code> describe unary matrix
+operations.</p>
+<h4>Definition</h4>
+<p>Defined in the header matrix_expression.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>E</code></td>
+<td>The type of the matrix expression.</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>The type of the operation.</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_expression&lt;matrix_unary1&lt;E, F&gt; &gt;</code>
+and <code>matrix_expression&lt;matrix_unary2&lt;E, F&gt;
+&gt;</code> resp.</p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>matrix_unary1 (const expression_type &amp;e)</code></td>
+<td>Constructs a description of the expression.</td>
+</tr>
+<tr>
+<td><code>matrix_unary2 (const expression_type &amp;e)</code></td>
+<td>Constructs a description of the expression.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns the value of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed expression.</td>
+</tr>
+</tbody>
+</table>
+<h3>Unary Operations</h3>
+<h4>Prototypes</h4>
+<pre>
+<code>template&lt;class E, class F&gt;
+    struct matrix_unary1_traits {
+        typedef matrix_unary1&lt;typename E::const_closure_type, F&gt; expression_type;
+        typedef expression_type result_type;
+     };
+
+    // (- m) [i] [j] = - m [i] [j]
+    template&lt;class E&gt;
+     typename matrix_unary1_traits&lt;E, scalar_negate&lt;typename E::value_type&gt; &gt;::result_type
+    operator - (const matrix_expression&lt;E&gt; &amp;e);
+
+    // (conj m) [i] [j] = conj (m [i] [j])
+    template&lt;class E&gt;
+     typename matrix_unary1_traits&lt;E, scalar_conj&lt;typename E::value_type&gt; &gt;::result_type
+    conj (const matrix_expression&lt;E&gt; &amp;e);
+
+    // (real m) [i] [j] = real (m [i] [j])
+    template&lt;class E&gt;
+     typename matrix_unary1_traits&lt;E, scalar_real&lt;typename E::value_type&gt; &gt;::result_type
+    real (const matrix_expression&lt;E&gt; &amp;e);
+
+    // (imag m) [i] [j] = imag (m [i] [j])
+    template&lt;class E&gt;
+     typename matrix_unary1_traits&lt;E, scalar_imag&lt;typename E::value_type&gt; &gt;::result_type
+    imag (const matrix_expression&lt;E&gt; &amp;e);
+
+    template&lt;class E, class F&gt;
+    struct matrix_unary2_traits {
+        typedef matrix_unary2&lt;typename E::const_closure_type, F&gt; expression_type;
+        typedef expression_type result_type;
+     };
+
+    // (trans m) [i] [j] = m [j] [i]
+    template&lt;class E&gt;
+     typename matrix_unary2_traits&lt;E, scalar_identity&lt;typename E::value_type&gt; &gt;::result_type
+    trans (const matrix_expression&lt;E&gt; &amp;e);
+
+    // (herm m) [i] [j] = conj (m [j] [i])
+    template&lt;class E&gt;
+     typename matrix_unary2_traits&lt;E, scalar_conj&lt;typename E::value_type&gt; &gt;::result_type
+    herm (const matrix_expression&lt;E&gt; &amp;e);</code>
+</pre>
+<h4>Description</h4>
+<p><code>operator -</code> computes the additive inverse of a
+matrix expression. <code>conj</code> computes the complex conjugate
+of a matrix expression. <code>real</code> and <code>imag</code>
+compute the real and imaginary parts of a matrix expression.
+<code>trans</code> computes the transpose of a matrix expression.
+<code>herm</code> computes the hermitian, i.e. the complex
+conjugate of the transpose of a matrix expression.</p>
+<h4>Definition</h4>
+<p>Defined in the header matrix_expression.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>E</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</li>
+</ul>
+<h4>Preconditions</h4>
+<p>None.</p>
+<h4>Complexity</h4>
+<p>Quadratic depending from the size of the matrix expression.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;std::complex&lt;double&gt; &gt; m (3, 3);
+    for (unsigned i = 0; i &lt; m.size1 (); ++ i)
+        for (unsigned j = 0; j &lt; m.size2 (); ++ j)
+            m (i, j) = std::complex&lt;double&gt; (3 * i + j, 3 * i + j);
+
+    std::cout &lt;&lt; - m &lt;&lt; std::endl;
+    std::cout &lt;&lt; conj (m) &lt;&lt; std::endl;
+    std::cout &lt;&lt; real (m) &lt;&lt; std::endl;
+    std::cout &lt;&lt; imag (m) &lt;&lt; std::endl;
+    std::cout &lt;&lt; trans (m) &lt;&lt; std::endl;
+    std::cout &lt;&lt; herm (m) &lt;&lt; std::endl;
+}
+</pre>
+<h3>Binary Operation Description</h3>
+<h4>Description</h4>
+<p>The templated class <code>matrix_binary&lt;E1, E2, F&gt;</code>
+describes a binary matrix operation.</p>
+<h4>Definition</h4>
+<p>Defined in the header matrix_expression.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>E1</code></td>
+<td>The type of the first matrix expression.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>E2</code></td>
+<td>The type of the second matrix expression.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>The type of the operation.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_expression&lt;matrix_binary&lt;E1, E2, F&gt;
+&gt;</code>.</p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>matrix_binary (const expression1_type &amp;e1, const
+expression2_type &amp;e2)</code></td>
+<td>Constructs a description of the expression.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns the value of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed expression.</td>
+</tr>
+</tbody>
+</table>
+<h3>Binary Operations</h3>
+<h4>Prototypes</h4>
+<pre>
+<code>template&lt;class E1, class E2, class F&gt;
+    struct matrix_binary_traits {
+        typedef matrix_binary&lt;typename E1::const_closure_type,
+                               typename E2::const_closure_type, F&gt; expression_type;
+        typedef expression_type result_type;
+     };
+
+    // (m1 + m2) [i] [j] = m1 [i] [j] + m2 [i] [j]
+    template&lt;class E1, class E2&gt;
+    typename matrix_binary_traits&lt;E1, E2, scalar_plus&lt;typename E1::value_type,
+                                                       typename E2::value_type&gt; &gt;::result_type
+    operator + (const matrix_expression&lt;E1&gt; &amp;e1,
+                 const matrix_expression&lt;E2&gt; &amp;e2);
+
+    // (m1 - m2) [i] [j] = m1 [i] [j] - m2 [i] [j]
+    template&lt;class E1, class E2&gt;
+    typename matrix_binary_traits&lt;E1, E2, scalar_minus&lt;typename E1::value_type,
+                                                        typename E2::value_type&gt; &gt;::result_type
+    operator - (const matrix_expression&lt;E1&gt; &amp;e1,
+                 const matrix_expression&lt;E2&gt; &amp;e2);</code>
+</pre>
+<h4>Description</h4>
+<p><code>operator +</code> computes the sum of two matrix
+expressions. <code>operator -</code> computes the difference of two
+matrix expressions.</p>
+<h4>Definition</h4>
+<p>Defined in the header matrix_expression.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>E1</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</li>
+<li><code>E2</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</li>
+</ul>
+<h4>Preconditions</h4>
+<ul>
+<li><code>e1 ().size1 () == e2 ().size1 ()</code></li>
+<li><code>e1 ().size2 () == e2 ().size2 ()</code></li>
+</ul>
+<h4>Complexity</h4>
+<p>Quadratic depending from the size of the matrix expressions.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m1 (3, 3), m2 (3, 3);
+    for (unsigned i = 0; i &lt; std::min (m1.size1 (), m2.size1 ()); ++ i)
+        for (unsigned j = 0; j &lt; std::min (m1.size2 (), m2.size2 ()); ++ j)
+            m1 (i, j) = m2 (i, j) = 3 * i + j;
+
+    std::cout &lt;&lt; m1 + m2 &lt;&lt; std::endl;
+    std::cout &lt;&lt; m1 - m2 &lt;&lt; std::endl;
+}
+</pre>
+<h3>Scalar Matrix Operation Description</h3>
+<h4>Description</h4>
+<p>The templated classes <code>matrix_binary_scalar1&lt;E1, E2,
+F&gt;</code> and <code>matrix_binary_scalar2&lt;E1, E2,
+F&gt;</code> describe binary operations between a scalar and a
+matrix.</p>
+<h4>Definition</h4>
+<p>Defined in the header matrix_expression.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>E1/E2</code></td>
+<td>The type of the scalar expression.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>E2/E1</code></td>
+<td>The type of the matrix expression.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>The type of the operation.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_expression&lt;matrix_binary_scalar1&lt;E1, E2,
+F&gt; &gt;</code> and
+<code>matrix_expression&lt;matrix_binary_scalar2&lt;E1, E2, F&gt;
+&gt;</code> resp.</p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>matrix_binary_scalar1 (const expression1_type &amp;e1,
+const expression2_type &amp;e2)</code></td>
+<td>Constructs a description of the expression.</td>
+</tr>
+<tr>
+<td><code>matrix_binary_scalar1 (const expression1_type &amp;e1,
+const expression2_type &amp;e2)</code></td>
+<td>Constructs a description of the expression.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns the value of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed expression.</td>
+</tr>
+</tbody>
+</table>
+<h3>Scalar Matrix Operations</h3>
+<h4>Prototypes</h4>
+<pre>
+<code>template&lt;class T1, class E2, class F&gt;
+    struct matrix_binary_scalar1_traits {
+        typedef matrix_binary_scalar1&lt;scalar_const_reference&lt;T1&gt;,
+                                      typename E2::const_closure_type, F&gt; expression_type;
+        typedef expression_type result_type;
+     };
+
+    // (t * m) [i] [j] = t * m [i] [j]
+    template&lt;class T1, class E2&gt;
+    typename matrix_binary_scalar1_traits&lt;T1, E2, scalar_multiplies&lt;T1, typename E2::value_type&gt; &gt;::result_type
+    operator * (const T1 &amp;e1,
+                 const matrix_expression&lt;E2&gt; &amp;e2);
+
+    template&lt;class E1, class T2, class F&gt;
+    struct matrix_binary_scalar2_traits {
+        typedef matrix_binary_scalar2&lt;typename E1::const_closure_type,
+                                      scalar_const_reference&lt;T2&gt;, F&gt; expression_type;
+        typedef expression_type result_type;
+     };
+
+    // (m * t) [i] [j] = m [i] [j] * t
+    template&lt;class E1, class T2&gt;
+    typename matrix_binary_scalar2_traits&lt;E1, T2, scalar_multiplies&lt;typename E1::value_type, T2&gt; &gt;::result_type
+    operator * (const matrix_expression&lt;E1&gt; &amp;e1,
+                 const T2 &amp;e2);
+
+    // (m / t) [i] [j] = m [i] [j] / t
+    template&lt;class E1, class T2&gt;
+    typename matrix_binary_scalar2_traits&lt;E1, T2, scalar_divides&lt;typename E1::value_type, T2&gt; &gt;::result_type
+    operator / (const matrix_expression&lt;E1&gt; &amp;e1,
+                 const T2 &amp;e2);</code>
+</pre>
+<h4>Description</h4>
+<p><code>operator *</code> computes the product of a scalar and a
+matrix expression. <code>operator /</code> multiplies the matrix
+with the reciprocal of the scalar.</p>
+<h4>Definition</h4>
+<p>Defined in the header matrix_expression.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>T1/T2</code> is a model of <a href=
+"expression_concept.htm#scalar_expression">Scalar Expression</a> .</li>
+<li><code>E2/E1</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</li>
+</ul>
+<h4>Preconditions</h4>
+<p>None.</p>
+<h4>Complexity</h4>
+<p>Quadratic depending from the size of the matrix expression.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    for (unsigned i = 0; i &lt; m.size1 (); ++ i)
+        for (unsigned j = 0; j &lt; m.size2 (); ++ j)
+            m (i, j) = 3 * i + j;
+
+    std::cout &lt;&lt; 2.0 * m &lt;&lt; std::endl;
+    std::cout &lt;&lt; m * 2.0 &lt;&lt; std::endl;
+}
+</pre>
+<h2><a name="matrix_vector_operations"></a>Matrix Vector Operations</h2>
+<h3>Binary Operation Description</h3>
+<h4>Description</h4>
+<p>The templated classes <code>matrix_vector_binary1&lt;E1, E2,
+F&gt;</code> and <code>matrix_vector_binary2&lt;E1, E2,
+F&gt;</code> describe binary matrix vector operations.</p>
+<h4>Definition</h4>
+<p>Defined in the header matrix_expression.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>E1</code></td>
+<td>The type of the matrix or vector expression.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>E2</code></td>
+<td>The type of the vector or matrix expression.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>The type of the operation.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#vector_expression">Vector Expression</a>
+.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#vector_expression">Vector Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>vector_expression&lt;matrix_vector_binary1&lt;E1, E2,
+F&gt; &gt;</code> and
+<code>vector_expression&lt;matrix_vector_binary2&lt;E1, E2, F&gt;
+&gt;</code> resp.</p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>matrix_vector_binary1 (const expression1_type &amp;e1,
+const expression2_type &amp;e2)</code></td>
+<td>Constructs a description of the expression.</td>
+</tr>
+<tr>
+<td><code>matrix_vector_binary2 (const expression1_type &amp;e1,
+const expression2_type &amp;e2)</code></td>
+<td>Constructs a description of the expression.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the expression.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed expression.</td>
+</tr>
+</tbody>
+</table>
+<h3>Binary Operations</h3>
+<h4>Prototypes</h4>
+<pre>
+<code>template&lt;class T1, class E1, class T2, class E2&gt;
+    struct matrix_vector_binary1_traits {
+        typedef row_major_tag dispatch_category;
+        typedef typename promote_traits&lt;T1, T2&gt;::promote_type promote_type;
+        typedef matrix_vector_binary1&lt;typename E1::const_closure_type,
+                                       typename E2::const_closure_type,
+                                       matrix_vector_prod1&lt;T1, T2, promote_type&gt; &gt; expression_type;
+        typedef expression_type result_type;
+     };
+
+    template&lt;class E1, class E2&gt;
+    typename matrix_vector_binary1_traits&lt;typename E1::value_type, E1,
+                                           typename E2::value_type, E2&gt;::result_type
+    prod (const matrix_expression&lt;E1&gt; &amp;e1,
+           const vector_expression&lt;E2&gt; &amp;e2,
+          row_major_tag);
+
+    // Dispatcher
+    template&lt;class E1, class E2&gt;
+    typename matrix_vector_binary1_traits&lt;typename E1::value_type, E1,
+                                           typename E2::value_type, E2&gt;::result_type
+    prod (const matrix_expression&lt;E1&gt; &amp;e1,
+           const vector_expression&lt;E2&gt; &amp;e2);
+
+    template&lt;class E1, class E2&gt;
+    typename matrix_vector_binary1_traits&lt;typename type_traits&lt;typename E1::value_type&gt;::precision_type, E1,
+                                           typename type_traits&lt;typename E2::value_type&gt;::precision_type, E2&gt;::result_type
+    prec_prod (const matrix_expression&lt;E1&gt; &amp;e1,
+                const vector_expression&lt;E2&gt; &amp;e2,
+               row_major_tag);
+
+    // Dispatcher
+    template&lt;class E1, class E2&gt;
+    typename matrix_vector_binary1_traits&lt;typename type_traits&lt;typename E1::value_type&gt;::precision_type, E1,
+                                           typename type_traits&lt;typename E2::value_type&gt;::precision_type, E2&gt;::result_type
+    prec_prod (const matrix_expression&lt;E1&gt; &amp;e1,
+                const vector_expression&lt;E2&gt; &amp;e2);
+
+    template&lt;class V, class E1, class E2&gt;
+    V
+    prod (const matrix_expression&lt;E1&gt; &amp;e1,
+          const vector_expression&lt;E2&gt; &amp;e2);
+
+    template&lt;class V, class E1, class E2&gt;
+    V
+    prec_prod (const matrix_expression&lt;E1&gt; &amp;e1,
+               const vector_expression&lt;E2&gt; &amp;e2);
+
+    template&lt;class T1, class E1, class T2, class E2&gt;
+    struct matrix_vector_binary2_traits {
+        typedef column_major_tag dispatch_category;
+        typedef typename promote_traits&lt;T1, T2&gt;::promote_type promote_type;
+        typedef matrix_vector_binary2&lt;typename E1::const_closure_type,
+                                       typename E2::const_closure_type,
+                                       matrix_vector_prod2&lt;T1, T2, promote_type&gt; &gt; expression_type;
+        typedef expression_type result_type;
+     };
+
+    template&lt;class E1, class E2&gt;
+    typename matrix_vector_binary2_traits&lt;typename E1::value_type, E1,
+                                           typename E2::value_type, E2&gt;::result_type
+    prod (const vector_expression&lt;E1&gt; &amp;e1,
+           const matrix_expression&lt;E2&gt; &amp;e2,
+          column_major_tag);
+
+    // Dispatcher
+    template&lt;class E1, class E2&gt;
+    typename matrix_vector_binary2_traits&lt;typename E1::value_type, E1,
+                                           typename E2::value_type, E2&gt;::result_type
+    prod (const vector_expression&lt;E1&gt; &amp;e1,
+           const matrix_expression&lt;E2&gt; &amp;e2);
+
+    template&lt;class E1, class E2&gt;
+    typename matrix_vector_binary2_traits&lt;typename type_traits&lt;typename E1::value_type&gt;::precision_type, E1,
+                                           typename type_traits&lt;typename E2::value_type&gt;::precision_type, E2&gt;::result_type
+    prec_prod (const vector_expression&lt;E1&gt; &amp;e1,
+                const matrix_expression&lt;E2&gt; &amp;e2,
+               column_major_tag);
+
+    // Dispatcher
+    template&lt;class E1, class E2&gt;
+    typename matrix_vector_binary2_traits&lt;typename type_traits&lt;typename E1::value_type&gt;::precision_type, E1,
+                                           typename type_traits&lt;typename E2::value_type&gt;::precision_type, E2&gt;::result_type
+    prec_prod (const vector_expression&lt;E1&gt; &amp;e1,
+                const matrix_expression&lt;E2&gt; &amp;e2);
+
+    template&lt;class V, class E1, class E2&gt;
+    V
+    prod (const vector_expression&lt;E1&gt; &amp;e1,
+          const matrix_expression&lt;E2&gt; &amp;e2);
+
+    template&lt;class V, class E1, class E2&gt;
+    V
+    prec_prod (const vector_expression&lt;E1&gt; &amp;e1,
+               const matrix_expression&lt;E2&gt; &amp;e2);</code>
+</pre>
+<h4>Description</h4>
+<p><code>prod</code> computes the product of the matrix and the
+vector expression. <code>prec_prod</code> computes the double
+precision product of the matrix and the vector expression.</p>
+<h4>Definition</h4>
+<p>Defined in the header matrix_expression.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>E1</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> or
+<a href="expression_concept.htm#vector_expression">Vector Expression</a>
+.</li>
+<li><code>E2</code> is a model of <a href=
+"expression_concept.htm#vector_expression">Vector Expression</a> or
+<a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+.</li>
+</ul>
+<h4>Preconditions</h4>
+<ul>
+<li><code>e1 ().size2 () == e2 ().size ()</code></li>
+<li><code>e1 ().size () == e2 ().size1 ()</code></li>
+</ul>
+<h4>Complexity</h4>
+<p>Quadratic depending from the size of the matrix expression.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    vector&lt;double&gt; v (3);
+    for (unsigned i = 0; i &lt; std::min (m.size1 (), v.size ()); ++ i) {
+        for (unsigned j = 0; j &lt; m.size2 (); ++ j)
+            m (i, j) = 3 * i + j;
+        v (i) = i;
+    }
+
+    std::cout &lt;&lt; prod (m, v) &lt;&lt; std::endl;
+    std::cout &lt;&lt; prod (v, m) &lt;&lt; std::endl;
+}
+</pre>
+<h3>Triangular Solver</h3>
+<h4>Prototypes</h4>
+<pre>
+<code>template&lt;class E1, class E2&gt;
+    struct matrix_vector_solve_traits {
+        typedef typename promote_traits&lt;typename E1::value_type, typename E2::value_type&gt;::promote_type promote_type;
+        typedef vector&lt;promote_type&gt; result_type;
+    };
+
+    template&lt;class E1, class E2&gt;
+    void inplace_solve (const matrix_expression&lt;E1&gt; &amp;e1,
+                         E2 &amp;e2,
+                        lower_tag,
+                        vector_tag);
+    template&lt;class E1, class E2&gt;
+    void inplace_solve (const matrix_expression&lt;E1&gt; &amp;e1,
+                         E2 &amp;e2,
+                        upper_tag,
+                        vector_tag);
+    template&lt;class E1, class E2&gt;
+    void inplace_solve (const matrix_expression&lt;E1&gt; &amp;e1,
+                         E2 &amp;e2,
+                        unit_lower_tag,
+                        vector_tag);
+    template&lt;class E1, class E2&gt;
+    void inplace_solve (const matrix_expression&lt;E1&gt; &amp;e1,
+                         E2 &amp;e2,
+                        unit_upper_tag,
+                        vector_tag);
+
+    template&lt;class E1, class E2, class C&gt;
+    typename matrix_vector_solve_traits&lt;E1, E2&gt;::result_type
+    solve (const matrix_expression&lt;E1&gt; &amp;e1,
+            const vector_expression&lt;E2&gt; &amp;e2,
+           C);
+
+    template&lt;class E1, class E2&gt;
+    void inplace_solve (E1 &amp;e1,
+                        const matrix_expression&lt;E2&gt; &amp;e2,
+                         vector_tag,
+                         lower_tag);
+    template&lt;class E1, class E2&gt;
+    void inplace_solve (E1 &amp;e1,
+                        const matrix_expression&lt;E2&gt; &amp;e2,
+                         vector_tag,
+                         upper_tag);
+    template&lt;class E1, class E2&gt;
+    void inplace_solve (E1 &amp;e1,
+                        const matrix_expression&lt;E2&gt; &amp;e2,
+                         vector_tag,
+                         unit_lower_tag);
+    template&lt;class E1, class E2&gt;
+    void inplace_solve (E1 &amp;e1,
+                        const matrix_expression&lt;E2&gt; &amp;e2,
+                         vector_tag,
+                         unit_upper_tag);
+
+    template&lt;class E1, class E2, class C&gt;
+    typename matrix_vector_solve_traits&lt;E1, E2&gt;::result_type
+    solve (const vector_expression&lt;E1&gt; &amp;e1,
+            const matrix_expression&lt;E2&gt; &amp;e2,
+           C);</code>
+</pre>
+<h4>Description</h4>
+<p><code>solve</code> solves a linear equation for lower or upper
+(unit) triangular matrices.</p>
+<h4>Definition</h4>
+<p>Defined in the header triangular.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>E1</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> or
+<a href="expression_concept.htm#vector_expression">Vector Expression</a>
+.</li>
+<li><code>E2</code> is a model of <a href=
+"expression_concept.htm#vector_expression">Vector Expression</a> or
+<a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+.</li>
+</ul>
+<h4>Preconditions</h4>
+<ul>
+<li><code>e1 ().size1 () == e1 ().size2 ()</code></li>
+<li><code>e1 ().size2 () == e2 ().size ()</code></li>
+<li><code>e1 ().size () == e2 ().size1 ()</code></li>
+<li><code>e2 ().size1 () == e2 ().size2 ()</code></li>
+</ul>
+<h4>Complexity</h4>
+<p>Quadratic depending from the size of the matrix expression.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/triangular.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    vector&lt;double&gt; v (3);
+    for (unsigned i = 0; i &lt; std::min (m.size1 (), v.size ()); ++ i) {
+        for (unsigned j = 0; j &lt;= i; ++ j)
+            m (i, j) = 3 * i + j + 1;
+        v (i) = i;
+    }
+
+    std::cout &lt;&lt; solve (m, v, lower_tag ()) &lt;&lt; std::endl;
+    std::cout &lt;&lt; solve (v, m, lower_tag ()) &lt;&lt; std::endl;
+}
+</pre>
+<h2><a name="matrix_matrix_operations"></a>Matrix Matrix Operations</h2>
+<h3>Binary Operation Description</h3>
+<h4>Description</h4>
+<p>The templated class <code>matrix_matrix_binary&lt;E1, E2,
+F&gt;</code> describes a binary matrix operation.</p>
+<h4>Definition</h4>
+<p>Defined in the header matrix_expression.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>E1</code></td>
+<td>The type of the first matrix expression.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>E2</code></td>
+<td>The type of the second matrix expression.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>The type of the operation.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_expression&lt;matrix_matrix_binary&lt;E1, E2, F&gt;
+&gt;</code> .</p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>matrix_matrix_binary (const expression1_type &amp;e1,
+const expression2_type &amp;e2)</code></td>
+<td>Constructs a description of the expression.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns the value of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the expression.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed expression.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed expression.</td>
+</tr>
+</tbody>
+</table>
+<h3>Binary Operations</h3>
+<h4>Prototypes</h4>
+<pre>
+<code>template&lt;class T1, class E1, class T2, class E2&gt;
+    struct matrix_matrix_binary_traits {
+        typedef unknown_orientation_tag dispatch_category;
+        typedef typename promote_traits&lt;T1, T2&gt;::promote_type promote_type;
+        typedef matrix_matrix_binary&lt;typename E1::const_closure_type,
+                                     typename E2::const_closure_type,
+                                     matrix_matrix_prod&lt;T1, T2, promote_type&gt; &gt; expression_type;
+        typedef expression_type result_type;
+    };
+
+    template&lt;class E1, class E2&gt;
+    typename matrix_matrix_binary_traits&lt;typename E1::value_type, E1,
+                                         typename E2::value_type, E2&gt;::result_type
+    prod (const matrix_expression&lt;E1&gt; &amp;e1,
+          const matrix_expression&lt;E2&gt; &amp;e2,
+          unknown_orientation_tag);
+
+    // Dispatcher
+    template&lt;class E1, class E2&gt;
+    typename matrix_matrix_binary_traits&lt;typename E1::value_type, E1,
+                                         typename E2::value_type, E2&gt;::result_type
+    prod (const matrix_expression&lt;E1&gt; &amp;e1,
+          const matrix_expression&lt;E2&gt; &amp;e2);
+
+    template&lt;class E1, class E2&gt;
+    typename matrix_matrix_binary_traits&lt;typename type_traits&lt;typename E1::value_type&gt;::precision_type, E1,
+                                         typename type_traits&lt;typename E2::value_type&gt;::precision_type, E2&gt;::result_type
+    prec_prod (const matrix_expression&lt;E1&gt; &amp;e1,
+               const matrix_expression&lt;E2&gt; &amp;e2,
+               unknown_orientation_tag);
+
+    // Dispatcher
+    template&lt;class E1, class E2&gt;
+    typename matrix_matrix_binary_traits&lt;typename type_traits&lt;typename E1::value_type&gt;::precision_type, E1,
+                                         typename type_traits&lt;typename E2::value_type&gt;::precision_type, E2&gt;::result_type
+    prec_prod (const matrix_expression&lt;E1&gt; &amp;e1,
+               const matrix_expression&lt;E2&gt; &amp;e2);
+
+    template&lt;class M, class E1, class E2&gt;
+    M
+    prod (const matrix_expression&lt;E1&gt; &amp;e1,
+          const matrix_expression&lt;E2&gt; &amp;e2);
+
+    template&lt;class M, class E1, class E2&gt;
+    M
+    prec_prod (const matrix_expression&lt;E1&gt; &amp;e1,
+               const matrix_expression&lt;E2&gt; &amp;e2);</code>
+</pre>
+<h4>Description</h4>
+<p><code>prod</code> computes the product of the matrix
+expressions. <code>prec_prod</code> computes the double precision
+product of the matrix expressions.</p>
+<h4>Definition</h4>
+<p>Defined in the header matrix_expression.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>E1</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</li>
+<li><code>E2</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</li>
+</ul>
+<h4>Preconditions</h4>
+<ul>
+<li><code>e1 ().size2 () == e2 ().size1 ()</code></li>
+</ul>
+<h4>Complexity</h4>
+<p>Cubic depending from the size of the matrix expression.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m1 (3, 3), m2 (3, 3);
+    for (unsigned i = 0; i &lt; std::min (m1.size1 (), m2.size1 ()); ++ i)
+        for (unsigned j = 0; j &lt; std::min (m1.size2 (), m2.size2 ()); ++ j)
+            m1 (i, j) = m2 (i, j) = 3 * i + j;
+
+    std::cout &lt;&lt; prod (m1, m2) &lt;&lt; std::endl;
+}
+</pre>
+<h3>Triangular Solvers</h3>
+<h4>Prototypes</h4>
+<pre>
+<code>template&lt;class E1, class E2&gt;
+    struct matrix_matrix_solve_traits {
+        typedef typename promote_traits&lt;typename E1::value_type, typename E2::value_type&gt;::promote_type promote_type;
+        typedef matrix&lt;promote_type&gt; result_type;
+    };
+
+    template&lt;class E1, class E2&gt;
+    void inplace_solve (const matrix_expression&lt;E1&gt; &amp;e1,
+                        E2 &amp;e2,
+                        lower_tag,
+                        matrix_tag);
+    template&lt;class E1, class E2&gt;
+    void inplace_solve (const matrix_expression&lt;E1&gt; &amp;e1,
+                        E2 &amp;e2,
+                        upper_tag,
+                        matrix_tag);
+    template&lt;class E1, class E2&gt;
+    void inplace_solve (const matrix_expression&lt;E1&gt; &amp;e1,
+                        E2 &amp;e2,
+                        unit_lower_tag,
+                        matrix_tag);
+    template&lt;class E1, class E2&gt;
+    void inplace_solve (const matrix_expression&lt;E1&gt; &amp;e1,
+                        E2 &amp;e2,
+                        unit_upper_tag,
+                        matrix_tag);
+
+    template&lt;class E1, class E2, class C&gt;
+    typename matrix_matrix_solve_traits&lt;E1, E2&gt;::result_type
+    solve (const matrix_expression&lt;E1&gt; &amp;e1,
+           const matrix_expression&lt;E2&gt; &amp;e2,
+           C);</code>
+</pre>
+<h4>Description</h4>
+<p><code>solve</code> solves a linear equation for lower or upper
+(unit) triangular matrices.</p>
+<h4>Definition</h4>
+<p>Defined in the header triangular.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>E1</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</li>
+<li><code>E2</code> is a model of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</li>
+</ul>
+<h4>Preconditions</h4>
+<ul>
+<li><code>e1 ().size1 () == e1 ().size2 ()</code></li>
+<li><code>e1 ().size2 () == e2 ().size1 ()</code></li>
+</ul>
+<h4>Complexity</h4>
+<p>Cubic depending from the size of the matrix expressions.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/triangular.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m1 (3, 3), m2 (3, 3);
+    for (unsigned i = 0; i &lt; std::min (m1.size1 (), m2.size1 ()); ++ i)
+        for (unsigned j = 0; j &lt;= i; ++ j)
+            m1 (i, j) = m2 (i, j) = 3 * i + j + 1;
+
+    std::cout &lt;&lt; solve (m1, m2, lower_tag ()) &lt;&lt; std::endl;
+}
+</pre>
+<hr />
+<p>Copyright (&copy;) 2000-2002 Joerg Walter, Mathias Koch<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

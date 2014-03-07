@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Boman et al graph coloring</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-boman-et-al-graph-coloring">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Boman et al graph coloring</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+namespace graph {
+  template&lt;typename DistributedGraph, typename ColorMap&gt;
+  typename property_traits&lt;ColorMap&gt;::value_type
+  boman_et_al_graph_coloring
+    (const DistributedGraph&amp; g,
+     ColorMap color,
+     typename graph_traits&lt;DistributedGraph&gt;::vertices_size_type s = 100);
+
+  template&lt;typename DistributedGraph, typename ColorMap, typename ChooseColor&gt;
+  typename property_traits&lt;ColorMap&gt;::value_type
+  boman_et_al_graph_coloring
+    (const DistributedGraph&amp; g,
+     ColorMap color,
+     typename graph_traits&lt;DistributedGraph&gt;::vertices_size_type s,
+     ChooseColor choose_color);
+
+  template&lt;typename DistributedGraph, typename ColorMap, typename ChooseColor,
+           typename VertexOrdering&gt;
+  typename property_traits&lt;ColorMap&gt;::value_type
+  boman_et_al_graph_coloring
+    (const DistributedGraph&amp; g, ColorMap color,
+     typename graph_traits&lt;DistributedGraph&gt;::vertices_size_type s,
+     ChooseColor choose_color, VertexOrdering ordering);
+
+  template&lt;typename DistributedGraph, typename ColorMap, typename ChooseColor,
+           typename VertexOrdering, typename VertexIndexMap&gt;
+  typename property_traits&lt;ColorMap&gt;::value_type
+  boman_et_al_graph_coloring
+    (const DistributedGraph&amp; g,
+     ColorMap color,
+     typename graph_traits&lt;DistributedGraph&gt;::vertices_size_type s,
+     ChooseColor choose_color,
+     VertexOrdering ordering, VertexIndexMap vertex_index);
+}
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">boman_et_al_graph_coloring</span></tt> function colors the vertices of an
+undirected, distributed graph such that no two adjacent vertices have
+the same color. All of the vertices of a given color form an
+independent set in the graph. Graph coloring has been used to solve
+various problems, including register allocation in compilers,
+optimization problems, and scheduling problems.</p>
+<img align="right" alt="Vertex coloring example" class="align-right" src="../vertex_coloring.png" style="width: 462px; height: 269px;" />
+<p>The problem of coloring a graph with the fewest possible number of
+colors is NP-complete, so many algorithms (including the one
+implemented here) are heuristic algorithms that try to minimize the
+number of colors but are not guaranteed to provide an optimal
+solution. This algorithm <a class="citation-reference" href="#bbc05" id="id1">[BBC05]</a> is similar to the
+<tt class="docutils literal"><span class="pre">sequential_vertex_coloring</span></tt> algorithm, that iterates through the
+vertices once and selects the lowest-numbered color that the current
+vertex can have. The coloring and the number of colors is therefore
+related to the ordering of the vertices in the sequential case.</p>
+<p>The distributed <tt class="docutils literal"><span class="pre">boman_et_al_graph_coloring</span></tt> algorithm will produce
+different colorings depending on the ordering and distribution of the
+vertices and the number of parallel processes cooperating to perform
+the coloring.</p>
+<p>The algorithm returns the number of colors <tt class="docutils literal"><span class="pre">num_colors</span></tt> used to
+color the graph.</p>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id2">Where Defined</a></li>
+<li><a class="reference internal" href="#parameters" id="id3">Parameters</a></li>
+<li><a class="reference internal" href="#complexity" id="id4">Complexity</a></li>
+<li><a class="reference internal" href="#performance" id="id5">Performance</a></li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id2">Where Defined</a></h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/distributed/boman_et_al_graph_coloring.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="parameters">
+<h1><a class="toc-backref" href="#id3">Parameters</a></h1>
+<dl class="docutils">
+<dt>IN: <tt class="docutils literal"><span class="pre">Graph&amp;</span> <span class="pre">g</span></tt></dt>
+<dd>The graph type must be a model of <a class="reference external" href="DistributedVertexListGraph.html">Distributed Vertex List Graph</a> and
+<a class="reference external" href="DistributedEdgeListGraph.html">Distributed Edge List Graph</a>.</dd>
+<dt>UTIL/OUT: <tt class="docutils literal"><span class="pre">ColorMap</span> <span class="pre">color</span></tt></dt>
+<dd>Stores the color of each vertex, which will be a value in the range
+[0, <tt class="docutils literal"><span class="pre">num_colors</span></tt>). The type <tt class="docutils literal"><span class="pre">ColorMap</span></tt> must model the
+<a class="reference external" href="http://www.boost.org/libs/property_map/ReadWritePropertyMap.html">Read/Write Property Map</a> concept and must be a <a class="reference external" href="distributed_property_map.html">distributed
+property map</a>.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">vertices_size_type</span> <span class="pre">s</span></tt></dt>
+<dd><p class="first">The number of vertices to color within each superstep. After
+<tt class="docutils literal"><span class="pre">s</span></tt> vertices have been colored, the colors of boundary vertices
+will be sent to their out-of-process neighbors. Smaller values
+communicate more often but may reduce the risk of conflicts,
+whereas larger values do more work in between communication steps
+but may create many conflicts.</p>
+<p class="last"><strong>Default</strong>: 100</p>
+</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">ChooseColor</span> <span class="pre">choose_color</span></tt></dt>
+<dd><p class="first">A function object that chooses the color for a vertex given the
+colors of its neighbors. The function object will be passed a vector
+of values (<tt class="docutils literal"><span class="pre">marked</span></tt>) and a <tt class="docutils literal"><span class="pre">marked_true</span></tt> value, and should
+return a <tt class="docutils literal"><span class="pre">color</span></tt> value such that <tt class="docutils literal"><span class="pre">color</span> <span class="pre">&gt;=</span> <span class="pre">marked.size()</span></tt> or
+<tt class="docutils literal"><span class="pre">marked[color]</span> <span class="pre">!=</span> <span class="pre">marked_true</span></tt>.</p>
+<p class="last"><strong>Default</strong>:
+<tt class="docutils literal"><span class="pre">boost::graph::distributed::first_fit_color&lt;color_type&gt;()</span></tt>, where
+<tt class="docutils literal"><span class="pre">color_type</span></tt> is the value type of the <tt class="docutils literal"><span class="pre">ColorMap</span></tt> property map.</p>
+</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">VertexOrdering</span> <span class="pre">ordering</span></tt></dt>
+<dd><p class="first">A binary predicate function object that provides total ordering on
+the vertices in the graph. Whenever a conflict arises, only one of
+the processes involved will recolor the vertex in the next round,
+and this ordering determines which vertex should be considered
+conflicting (its owning process will then handle the
+conflict). Ideally, this predicate should order vertices so that
+conflicting vertices will be spread uniformly across
+processes. However, this predicate <em>must</em> resolve the same way on
+both processors.</p>
+<p class="last"><strong>Default</strong>: <em>unspecified</em></p>
+</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">VertexIndexMap</span> <span class="pre">index</span></tt></dt>
+<dd><p class="first">A mapping from vertex descriptors to indices in the range <em>[0,
+num_vertices(g))</em>. This must be a <a class="reference external" href="http://www.boost.org/libs/property_map/ReadablePropertyMap.html">Readable Property Map</a> whose
+key type is a vertex descriptor and whose value type is an integral
+type, typically the <tt class="docutils literal"><span class="pre">vertices_size_type</span></tt> of the graph.</p>
+<p class="last"><strong>Default:</strong> <tt class="docutils literal"><span class="pre">get(vertex_index,</span> <span class="pre">g)</span></tt></p>
+</dd>
+</dl>
+</div>
+<div class="section" id="complexity">
+<h1><a class="toc-backref" href="#id4">Complexity</a></h1>
+<p>The complexity of this algorithm is hard to characterize,
+because it depends greatly on the number of <em>conflicts</em> that occur
+during the algorithm. A conflict occurs when a <em>boundary vertex</em>
+(i.e., a vertex that is adjacent to a vertex stored on a different
+processor) is given the same color is a boundary vertex adjacency to
+it (but on another processor). Conflicting vertices must be assigned
+new colors, requiring additional work and communication. The work
+involved in reassigning a color for a conflicting vertex is <em>O(d)</em>,
+where <em>d</em> is the degree of the vertex and <em>O(1)</em> messages of <em>O(1)</em>
+size are needed to resolve the conflict. Note that the number of
+conflicts grows with (1) the number of processes and (2) the number
+of inter-process edges.</p>
+</div>
+<div class="section" id="performance">
+<h1><a class="toc-backref" href="#id5">Performance</a></h1>
+<p>The performance of this implementation of Bomen et al's graph coloring
+algorithm is illustrated by the following charts. Scaling and
+performance is reasonable for all of the graphs we have tried.</p>
+<img align="left" alt="chart_php_generator_ER_SF_SW_dataset_TimeSparse_cluster_Odin_columns_11.png" class="align-left" src="chart_php_generator_ER_SF_SW_dataset_TimeSparse_cluster_Odin_columns_11.png" />
+<img alt="chart_php_generator_ER_SF_SW_dataset_TimeSparse_cluster_Odin_columns_11_speedup_1.png" src="chart_php_generator_ER_SF_SW_dataset_TimeSparse_cluster_Odin_columns_11_speedup_1.png" />
+<img align="left" alt="chart_php_generator_ER_SF_SW_dataset_TimeDense_cluster_Odin_columns_11.png" class="align-left" src="chart_php_generator_ER_SF_SW_dataset_TimeDense_cluster_Odin_columns_11.png" />
+<img alt="chart_php_generator_ER_SF_SW_dataset_TimeDense_cluster_Odin_columns_11_speedup_1.png" src="chart_php_generator_ER_SF_SW_dataset_TimeDense_cluster_Odin_columns_11_speedup_1.png" />
+<hr class="docutils" />
+<p>Copyright (C) 2005 The Trustees of Indiana University.</p>
+<p>Authors: Douglas Gregor and Andrew Lumsdaine</p>
+<table class="docutils citation" frame="void" id="bbc05" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[BBC05]</a></td><td>Erik G. Boman, Doruk Bozdag, Umit Catalyurek, Assefaw
+H. Gebremedhin, and Fredrik Manne. A Scalable Parallel Graph Coloring
+Algorithm for Distributed Memory Computers. [preprint]</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

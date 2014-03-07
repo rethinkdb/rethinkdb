@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="nested_compatibility_test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Nested Compatibility Test</title>
+  <section id="nested_compatibility_test.duplicate_name">
+    <title><link linkend="nested_compatibility_test.duplicate_name">Duplicate Name</link></title>
+    <section id="nested_compatibility_test.duplicate_name.nested">
+      <title><link linkend="nested_compatibility_test.duplicate_name.nested">Nested
+      Section 1.5</link></title>
+      <bridgehead renderas="sect4" id="nested_compatibility_test.duplicate_name.nested.h0">
+        <phrase id="nested_compatibility_test.duplicate_name.nested.nested_heading_1_5"/><link
+        linkend="nested_compatibility_test.duplicate_name.nested.nested_heading_1_5">Nested
+        Heading 1.5</link>
+      </bridgehead>
+    </section>
+    <section id="nested_compatibility_test.duplicate_name.nested0">
+      <title><link linkend="nested_compatibility_test.duplicate_name.nested0">Nested
+      Section 1.6</link></title>
+      <bridgehead renderas="sect4" id="nested_compatibility_test.duplicate_name.nested0.h0">
+        <phrase id="nested_compatibility_test.duplicate_name.nested0.nested_heading_1_6"/><link
+        linkend="nested_compatibility_test.duplicate_name.nested0.nested_heading_1_6">Nested
+        Heading 1.6</link>
+      </bridgehead>
+    </section>
+  </section>
+  <section id="nested_compatibility_test.duplicate_name0">
+    <title><link linkend="nested_compatibility_test.duplicate_name0">Duplicate Name</link></title>
+    <section id="nested_compatibility_test.duplicate_name.nested1">
+      <title><link linkend="nested_compatibility_test.duplicate_name.nested1">Nested
+      Section 1.5</link></title>
+      <bridgehead renderas="sect4" id="nested_compatibility_test.duplicate_name.nested.h1">
+        <phrase id="nested_compatibility_test.duplicate_name.nested.nested_heading_1_5_0"/><link
+        linkend="nested_compatibility_test.duplicate_name.nested.nested_heading_1_5_0">Nested
+        Heading 1.5</link>
+      </bridgehead>
+    </section>
+    <section id="nested_compatibility_test.duplicate_name.nested2">
+      <title><link linkend="nested_compatibility_test.duplicate_name.nested2">Nested
+      Section 1.6</link></title>
+      <bridgehead renderas="sect4" id="nested_compatibility_test.duplicate_name.nested2.h0">
+        <phrase id="nested_compatibility_test.duplicate_name.nested2.nested_heading_1_6"/><link
+        linkend="nested_compatibility_test.duplicate_name.nested2.nested_heading_1_6">Nested
+        Heading 1.6</link>
+      </bridgehead>
+    </section>
+  </section>
+</article>

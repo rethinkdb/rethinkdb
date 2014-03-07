@@ -1,0 +1,552 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>General</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../headers.html" title="Library Headers">
+<link rel="prev" href="../headers.html" title="Library Headers">
+<link rel="next" href="adaptors.html" title="Adaptors">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../headers.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../headers.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="adaptors.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_headers_general">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="range.headers.general"></a><a class="link" href="general.html" title="General">General</a>
+</h3></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Header
+                </p>
+              </th>
+<th>
+                <p>
+                  Includes
+                </p>
+              </th>
+<th>
+                <p>
+                  Related Concept
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  everything from Boost.Range version 1 (Boost versions 1.42 and
+                  below). Includes the core range functions and metafunctions, but
+                  excludes Range Adaptors and Range Algorithms.
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">metafunctions</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  every metafunction
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">functions</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  every function
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">value_type</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/metafunctions.html" title="Metafunctions"><code class="computeroutput"><span class="identifier">range_value</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/single_pass_range.html" title="Single Pass Range">Single Pass Range</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">iterator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/metafunctions.html" title="Metafunctions"><code class="computeroutput"><span class="identifier">range_iterator</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/single_pass_range.html" title="Single Pass Range">Single Pass Range</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">difference_type</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/metafunctions.html" title="Metafunctions"><code class="computeroutput"><span class="identifier">range_difference</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/forward_range.html" title="Forward Range">Forward Range</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">pointer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/metafunctions.html" title="Metafunctions"><code class="computeroutput"><span class="identifier">range_pointer</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">category</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/metafunctions.html" title="Metafunctions"><code class="computeroutput"><span class="identifier">range_category</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">reverse_iterator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/metafunctions.html" title="Metafunctions"><code class="computeroutput"><span class="identifier">range_reverse_iterator</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                  Range</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">begin</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">begin</span></code></a> and <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">const_begin</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/single_pass_range.html" title="Single Pass Range">Single Pass Range</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">end</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">end</span></code></a> and <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">const_end</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/single_pass_range.html" title="Single Pass Range">Single Pass Range</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">empty</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">empty</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/single_pass_range.html" title="Single Pass Range">Single Pass Range</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">distance</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">distance</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/forward_range.html" title="Forward Range">Forward Range</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">size</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">size</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/random_access_range.html" title="Random Access Range">Random Access
+                  Range</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">rbegin</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">rbegin</span></code></a> and <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">const_rbegin</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                  Range</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">rend</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">rend</span></code></a> and <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">const_rend</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                  Range</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">as_array</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">as_array</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">as_literal</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">as_literal</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">iterator_range</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/utilities/iterator_range.html" title="Class iterator_range"><code class="computeroutput"><span class="identifier">iterator_range</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">sub_range</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/utilities/sub_range.html" title="Class sub_range"><code class="computeroutput"><span class="identifier">sub_range</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">concepts</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts.html" title="Range Concepts">Range concepts</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">adaptors</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  every range adaptor
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  every range equivalent of an STL algorithm
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">algorithm_ext</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  every range algorithm that is an extension of the STL algorithms
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">counting_range</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/ranges/counting_range.html" title="counting_range"><code class="computeroutput"><span class="identifier">counting_range</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">istream_range</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/ranges/istream_range.html" title="istream_range"><code class="computeroutput"><span class="identifier">istream_range</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">irange</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/ranges/irange.html" title="irange"><code class="computeroutput"><span class="identifier">irange</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">join</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../reference/utilities/join.html" title="Function join"><code class="computeroutput"><span class="identifier">join</span></code></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../headers.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../headers.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="adaptors.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>SeekableDevice</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">SeekableDevice</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Definition</H2>
+
+<P>
+    A SeekableDevice is a <A HREF="device.html">Device</A> whose <A HREF="../guide/modes.html">mode</A> refines <A HREF="../guide/modes.html#seekable">seekable</A>.
+</P>
+
+<H2>Description</H2>
+
+<P>
+    A SeekableDevice provides read- write- and random-access to a sequence of characters of a given type, with a single repositionable read/write head. A SeekableDevice may expose this sequence in two ways:
+    <OL>
+        <LI STYLE="list-style-type:lower-roman">
+            by defining member functions <CODE>read</CODE>, <CODE>write</CODE> and <CODE>seek</CODE>; or
+        </LI>
+        <LI STYLE="list-style-type:lower-roman">
+            by defining member functions <CODE>input_sequence</CODE> and <CODE>output_sequence</CODE>, returning pairs of pointers delimiting the sequences in its entirety. The return values of these two functions must be the same.<A CLASS="footnote_ref" NAME="note_1_ref" HREF="#note_1"><SUP>[1]</SUP></A>
+        </LI>
+    </OL>
+</P>
+<P>A SeekableDevice has mode <A HREF="../guide/modes.html#seekable"><CODE>seekable</CODE></A>.</P>
+
+<H2>Note</H2>
+
+<P>To be usable with streams and stream buffers, SeekableDevices must model <A HREF="blocking.html">Blocking</A>.
+
+<H2>Example</H2>
+
+<P>A model of SeekableDevice can be defined as follows:</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">struct</SPAN> SeekableDevice {
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="keyword">char</SPAN>                 char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> seekable_device_tag  category;
+    std::streamsize read(<SPAN CLASS="keyword">char</SPAN>* s, std::streamsize n) 
+        {
+            <SPAN CLASS="comment">// Read up to n characters from the input 
+            // sequence into the buffer s, returning   
+            // the number of characters read, or -1 
+            // to indicate end-of-sequence.</SPAN>
+        }
+    <SPAN CLASS="keyword">void</SPAN> write(<SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">char</SPAN>* s, std::streamsize n) 
+        {
+            <SPAN CLASS="comment">// Write up to n characters from the buffer
+            // s to the output sequence, returning the 
+            // number of characters written</SPAN>
+        }
+    std::streampos seek(stream_offset off, std::ios_base::seekdir way) 
+        {
+            <SPAN CLASS="comment">// Advances the read/write head by off characters, 
+            // returning the new position, where the offset is 
+            // calculated from:
+            //  - the start of the sequence if way == ios_base::beg
+            //  - the current position if way == ios_base::cur
+            //  - the end of the sequence if way == ios_base::end</SPAN>
+        }
+};</PRE>
+
+<P>
+    Here <CODE>seekable_device_tag</CODE> is a <A HREF="../guide/traits.html#category_tags">category tag</A> identifying the containing type as a model of SeekableDevice. When defining a new SeekableDevice, it suffices to use the tag <CODE>seekable_device_tag</CODE>. One can also derive from the helper classes <A HREF="../classes/device.html"><CODE>device&lt;seekable&gt;</CODE></A> or <A HREF="../classes/device.html#synopsis"><CODE>wdevice&lt;seekable&gt;</CODE></A>.
+</P>
+
+<H2>Refinement of</H2>
+
+<P><A HREF="source.html">Source</A>, <A HREF="sink.html">Sink</A>.</P>
+
+<H2>Associated Types</H2>
+
+<P>Same as <A HREF="device.html#types">Device</A>, with the following additional requirements:</P>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TD>Category</TD><TD>A type convertible to <A HREF="../guide/traits.html#category_tags"><CODE>device_tag</CODE></A> and to <A HREF="../guide/modes.html#mode_tags"><CODE>seekable</CODE></A></TD></TR>
+</TABLE>
+
+<H2>Notation</H2>
+
+<TABLE CELLPADDING="2">
+    <TR><TD><CODE>D</CODE></TD><TD>- A type which is a model of SeekableDevice</TD></TR>
+    <TR><TD><CODE>Ch</CODE></TD><TD>- The character type of <CODE>D</CODE></TD></TR>
+    <TR><TD><CODE>dev</CODE></TD><TD>- Object of type <CODE>D</CODE></TD></TR>
+    <TR><TD><CODE>s1</CODE></TD><TD>- Object of type <CODE>Ch*</CODE></SPAN></TD></TR>
+    <TR><TD><CODE>s2</CODE></TD><TD>- Object of type <CODE>const Ch*</CODE></SPAN></TD></TR>
+    <TR><TD><CODE>n</CODE></TD><TD>- Object of type <CODE>std::streamsize</CODE></TD></TR>
+    <TR><TD><CODE>off</CODE></TD><TD>- Object of type <A HREF="../functions/positioning.html#synopsis"><CODE>stream_offset</CODE></A></TD></TR>
+    <TR><TD><CODE>way</CODE></TD><TD>- Object of type <CODE>std::ios_base::seekdir</CODE></TD></TR>
+    <TR><TD><CODE>io</CODE></TD><TD>- Alias for namespace <CODE>boost::iostreams</CODE></TD></TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics</H2>
+
+<P>Same as <A HREF="device.html#types">Device</A>, with the following additional requirements:</P>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Category Precondition</TH><TH>Semantics</TH></TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE><A HREF="../functions/read.html">io::read</A>(dev, s1, n)</CODE></PRE></TD>
+        <TD><CODE>std::streamsize</CODE></TD>
+        <TD ROWSPAN="3">Not convertible to <A HREF="direct.html"><CODE>direct_tag</CODE></A></TD>
+        <TD>
+            Reads up to <CODE>n</CODE> characters from the sequence controlled by <CODE>dev</CODE> into <CODE>s1</CODE>, returning the number of characters read, or <CODE>-1</CODE> to indicate end-of-sequence
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE><A HREF="../functions/write.html">io::write</A>(dev, s2, n)</CODE></PRE></TD>
+        <TD><CODE>std::streamsize</CODE></TD>
+        <TD>
+            Writes up to <CODE>n</CODE> characters from the sequence beginning at <CODE>s2</CODE> to the sequence controlled by <CODE>dev</CODE>, returning the number of characters written
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE><A HREF="../functions/seek.html">io::seek</A>(dev, off, way)</CODE></PRE></TD>
+        <TD><CODE>std::streampos</CODE></TD>
+        <TD>Advances the read/write head by <CODE>off</CODE> characters, returning the new position, where the offset is calculated from:
+            <UL STYLE="margin:0,0,0,auto">
+                <LI STYLE="list-style-type:disc;list-style-image:none">the start of the sequence if <CODE>way</CODE> is <CODE>ios_base::beg</CODE>
+                <LI STYLE="list-style-type:disc;list-style-image:none">the current position if <CODE>way</CODE> is <CODE>ios_base::cur</CODE>
+                <LI STYLE="list-style-type:disc;list-style-image:none">the end of the sequence if <CODE>way</CODE> is <CODE>ios_base::end</CODE>
+            </UL>
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>dev.input_sequence()</CODE></PRE></TD>
+        <TD><PRE CLASS="plain_code"><CODE>std::pair&lt;Ch*,Ch*&gt;</CODE></PRE></TD>
+        <TD ROWSPAN="2">Convertible to <A HREF="direct.html"><CODE>direct_tag</CODE></A></TD>
+        <TD>Returns a pair of pointers delimiting the sequence controlled by <CODE>dev</CODE></TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>dev.output_sequence()</CODE></PRE></TD>
+        <TD><PRE CLASS="plain_code"><CODE>std::pair&lt;Ch*,Ch*&gt;</CODE></PRE></TD>
+        <TD>Returns a pair of pointers delimiting the sequence controlled by <CODE>dev</CODE></TD>
+    </TR>
+</TABLE>
+
+<H2>Exceptions</H2>
+
+<P>
+    Errors which occur during the execution of member functions <CODE>read</CODE>, <CODE>write</CODE>, <CODE>seek</CODE>, <CODE>input_sequence</CODE> or <CODE>output_sequence</CODE> are indicated by throwing exceptions. Reaching the end of the sequence is not an error, but attempting to write past the end of the sequence is.
+</P>
+
+<P>
+    After an exception is thrown, a SeekableDevice must be in a consistent state; further i/o operations may throw exceptions but must have well-defined behaviour.
+</P>
+
+<H2>Models</H2>
+
+<UL>
+    <LI><A HREF="../classes/array.html#array"><CODE>array</CODE></A>, <A HREF="../classes/file.html#file"><CODE>file</CODE></A>, <A HREF="../classes/file_descriptor.html#file_descriptor"><CODE>file_descriptor</CODE></A>, <A HREF="../classes/mapped_file.html#mapped_file"><CODE>mapped_file</CODE></A>.
+</UL>
+
+<!-- Begin Footnotes -->
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_1" HREF="#note_1_ref"><SUP>[1]</SUP></A>A more elegant specification would require a single member function <CODE>sequence</CODE>; the present version was selected to simplify the implementation of <A HREF="../guide/generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A>.
+</P>
+
+<!-- End Footnotes -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

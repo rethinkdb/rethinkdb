@@ -1,0 +1,113 @@
+# Boost Chrono Library Build Jamfile
+
+# Copyright Beman Dawes 2002, 2006, 2008
+# Copyright 2009-2012 Vicente J.Botet Escriba.
+
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or www.boost.org/LICENSE_1_0.txt)
+
+# See library home page at http://www.boost.org/libs/chrono
+
+project boost/chrono
+    : source-location ../src
+    : requirements
+        <target-os>freebsd:<linkflags>"-lrt" 
+        <target-os>linux:<linkflags>"-lrt -lpthread" 
+        <toolset>pgi:<linkflags>"-lrt" 
+        #<threading>single:<define>BOOST_CHRONO_THREAD_DISABLED
+        <library>/boost/system//boost_system
+        #<define>BOOST_ERROR_CODE_HEADER_ONLY
+        #<define>BOOST_SYSTEM_INLINED
+        #<define>BOOST_COMMON_TYPE_USES_STATIC_ASSERT
+        #<define>BOOST_RATIO_USES_STATIC_ASSERT
+        #<define>BOOST_CHRONO_USES_STATIC_ASSERT
+        #<define>BOOST_COMMON_TYPE_USES_MPL_ASSERT
+        #<define>BOOST_RATIO_USES_MPL_ASSERT
+        #<define>BOOST_CHRONO_USES_MPL_ASSERT
+        #<define>BOOST_COMMON_TYPE_USES_ARRAY_ASSERT
+        #<define>BOOST_RATIO_USES_ARRAY_ASSERT
+        #<define>BOOST_CHRONO_USES_ARRAY_ASSERT
+        <toolset>sun:<define>__typeof__=__typeof__ 
+        <define>BOOST_SYSTEM_NO_DEPRECATED
+        #<toolset>gcc-3.4.4:<linkflags>--enable-auto-import
+        #<toolset>gcc-4.3.4:<linkflags>--enable-auto-import
+        #<toolset>gcc-mingw-4.4.0:<linkflags>--enable-auto-import
+        #<toolset>gcc-mingw-4.5.0:<linkflags>--enable-auto-import
+        <warnings>all
+        <toolset>gcc:<cxxflags>-Wextra
+        <toolset>gcc:<cxxflags>-pedantic
+        <toolset>gcc:<cxxflags>-Wno-long-long
+        <toolset>gcc:<cxxflags>-Wno-variadic-macros
+        <toolset>darwin:<cxxflags>-Wextra
+        <toolset>darwin:<cxxflags>-pedantic
+        <toolset>darwin:<cxxflags>-Wno-long-long
+        <toolset>darwin:<cxxflags>-Wno-variadic-macros
+        #<toolset>pathscale:<cxxflags>-Wextra
+        <toolset>pathscale:<cxxflags>-Wno-long-long
+        <toolset>pathscale:<cxxflags>-pedantic
+        <toolset>clang:<cxxflags>-Wextra
+        <toolset>clang:<cxxflags>-pedantic
+        <toolset>clang:<cxxflags>-Wno-long-long
+        <toolset>clang:<cxxflags>-Wno-variadic-macros
+        <toolset>gcc-mingw-4.4.0:<cxxflags>-fdiagnostics-show-option
+        <toolset>gcc-mingw-4.5.0:<cxxflags>-fdiagnostics-show-option
+        <toolset>gcc-mingw-4.6.0:<cxxflags>-fdiagnostics-show-option
+        <toolset>gcc-mingw-4.6.3:<cxxflags>-fdiagnostics-show-option
+        <toolset>gcc-mingw-4.7.0:<cxxflags>-fdiagnostics-show-option
+        <toolset>gcc-mingw-4.8.0:<cxxflags>-fdiagnostics-show-option
+        <toolset>msvc:<cxxflags>/wd4512
+
+# Note: Some of the remarks from the Intel compiler are disabled
+# remark #193: zero used for undefined preprocessing identifier "XXX"
+# remark #304: access control not specified ("public" by default)
+# remark #383: value copied to temporary, reference to temporary used
+# remark #444: destructor for base class "XXX" (declared at line YYY") is not virtual
+# remark #593: variable "XXX" was set but never used
+# remark #981: operands are evaluated in unspecified order
+# remark #1418: external function definition with no prior declaration
+# remark #2415: variable "XXX" of static storage duration was declared but never referenced
+
+        <toolset>intel:<cxxflags>-wd193,304,383,444
+        <toolset>intel:<cxxflags>-wd593,981
+        <toolset>intel:<cxxflags>-wd1418
+	  <toolset>intel:<cxxflags>-wd2415 
+
+
+
+    : usage-requirements  # pass these requirement to dependents (i.e. users)
+        <threading>single:<define>BOOST_CHRONO_THREAD_DISABLED
+        <library>/boost/system//boost_system
+        #<define>BOOST_ERROR_CODE_HEADER_ONLY
+        #<define>BOOST_SYSTEM_INLINED
+        #<define>BOOST_COMMON_TYPE_USES_STATIC_ASSERT
+        #<define>BOOST_RATIO_USES_STATIC_ASSERT
+        #<define>BOOST_CHRONO_USES_STATIC_ASSERT
+        #<define>BOOST_COMMON_TYPE_USES_MPL_ASSERT
+        #<define>BOOST_RATIO_USES_MPL_ASSERT
+        #<define>BOOST_CHRONO_USES_MPL_ASSERT
+        #<define>BOOST_COMMON_TYPE_USES_ARRAY_ASSERT
+        #<define>BOOST_RATIO_USES_ARRAY_ASSERT
+        #<define>BOOST_CHRONO_USES_ARRAY_ASSERT
+        #<toolset>vacpp:<define>BOOST_COMMON_TYPE_DONT_USE_TYPEOF
+        <toolset>vacpp:<define>BOOST_TYPEOF_EMULATION
+        <toolset>sun:<define>__typeof__=__typeof__ 
+
+        <define>BOOST_SYSTEM_NO_DEPRECATED
+        <link>shared:<define>BOOST_CHRONO_DYN_LINK=1
+        <link>static:<define>BOOST_CHRONO_STATIC_LINK=1
+        <toolset>gcc-3.4.4:<linkflags>--enable-auto-import
+        <toolset>gcc-4.3.4:<linkflags>--enable-auto-import
+        <toolset>gcc-mingw-4.4.0:<linkflags>--enable-auto-import
+        <toolset>gcc-mingw-4.5.0:<linkflags>--enable-auto-import
+    ;
+
+SOURCES = chrono thread_clock process_cpu_clocks ;
+
+ 
+lib boost_chrono
+    : $(SOURCES).cpp
+    :
+    <link>shared:<define>BOOST_ALL_DYN_LINK=1 # tell source we're building dll's
+    <link>static:<define>BOOST_All_STATIC_LINK=1 # tell source we're building static lib's
+    ;
+

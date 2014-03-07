@@ -1,0 +1,75 @@
+##############################################################################
+# Copyright 2005-2006 Andreas Huber Doenni
+# Distributed under the Boost Software License, Version 1.0. (See accompany-
+# ing file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+##############################################################################
+
+project libs/statechart/example ;
+
+local custom = <define>CUSTOMIZE_MEMORY_MANAGEMENT ;
+local native = <define>BOOST_STATECHART_USE_NATIVE_RTTI ;
+
+rule independent-obj-build (
+  name : directory : cpp-sources + : requirements * )
+{
+  local objs ;
+
+  for local cpp-source in $(cpp-sources)
+  {
+    obj $(name)$(cpp-source)
+      : $(directory)/$(cpp-source).cpp : $(requirements) ;
+    objs += $(name)$(cpp-source) ;
+  }
+
+  return $(objs) ;
+}
+
+rule statechart-st-example-build (
+  name : directory : cpp-sources + : requirements * )
+{
+  exe $(name) : [ independent-obj-build $(name)
+                    : $(directory) : $(cpp-sources)
+                    # Some platforms have either problems with the automatic
+                    # detection of the threading mode (e.g. vc-7_1 &
+                    # gcc >= 3.4.0) or don't support single-threaded mode
+                    # (e.g. vc-8_0). We therefore manually turn MT
+                    # off here
+                    : <threading>single <define>BOOST_DISABLE_THREADS $(requirements) ] ;
+
+  return $(name) ;
+}
+
+rule statechart-mt-example-build (
+  name : directory : cpp-sources + : requirements * )
+{
+  exe $(name) : [ independent-obj-build $(name)
+                    : $(directory) : $(cpp-sources)
+                    : <threading>multi $(requirements) ]
+                ../../thread/build//boost_thread ;
+
+  return $(name) ;
+}
+
+stage run
+  : [ statechart-st-example-build BitMachine : BitMachine : BitMachine ]
+    [ statechart-st-example-build Camera
+        : Camera : Camera Configuring Main Shooting ]
+    [ statechart-st-example-build Handcrafted : Handcrafted : Handcrafted ]
+    [ statechart-st-example-build KeyboardNormal : Keyboard : Keyboard ]
+    [ statechart-st-example-build KeyboardNative
+        : Keyboard : Keyboard : $(native) ]
+    [ statechart-st-example-build PingPongSingle
+        : PingPong : PingPong Player : $(custom) ]
+    [ statechart-mt-example-build PingPongMulti1
+        : PingPong : PingPong Player : $(custom) ]
+    [ statechart-mt-example-build PingPongMulti2
+        : PingPong : PingPong Player : $(custom) <define>USE_TWO_THREADS ]
+    [ statechart-st-example-build StopWatch : StopWatch : StopWatch ]
+    [ statechart-st-example-build StopWatch2 : StopWatch : StopWatch2 ]
+    [ statechart-st-example-build PerformanceNormal
+        : Performance : Performance ]
+    [ statechart-st-example-build PerformanceCustom
+        : Performance : Performance : $(custom) ]
+    [ statechart-st-example-build PerformanceNative
+        : Performance : Performance : $(native) ]
+  : <install-dependencies>on <install-type>EXE <install-type>SHARED_LIB ;

@@ -1,0 +1,269 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template regex_compiler</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../xpressive/reference.html#header.boost.xpressive.regex_compiler_hpp" title="Header &lt;boost/xpressive/regex_compiler.hpp&gt;">
+<link rel="prev" href="regex_replace.html" title="Function regex_replace">
+<link rel="next" href="regex_constants/syntax_option_type.html" title="Type syntax_option_type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_replace.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_compiler_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="regex_constants/syntax_option_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.xpressive.regex_compiler"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template regex_compiler</span></h2>
+<p>boost::xpressive::regex_compiler &#8212; Class template <a class="link" href="regex_compiler.html" title="Struct template regex_compiler">regex_compiler</a> is a factory for building <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a> objects from a string. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../xpressive/reference.html#header.boost.xpressive.regex_compiler_hpp" title="Header &lt;boost/xpressive/regex_compiler.hpp&gt;">boost/xpressive/regex_compiler.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BidiIter<span class="special">,</span> <span class="keyword">typename</span> RegexTraits<span class="special">,</span> <span class="keyword">typename</span> CompilerTraits<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="regex_compiler.html" title="Struct template regex_compiler">regex_compiler</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">BidiIter</span>                            <a name="boost.xpressive.regex_compiler.iterator_type"></a><span class="identifier">iterator_type</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">iterator_value</span><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>    <a name="boost.xpressive.regex_compiler.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">syntax_option_type</span> <a name="boost.xpressive.regex_compiler.flag_type"></a><span class="identifier">flag_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">RegexTraits</span>                         <a name="boost.xpressive.regex_compiler.traits_type"></a><span class="identifier">traits_type</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="identifier">traits_type</span><span class="special">::</span><span class="identifier">string_type</span>            <a name="boost.xpressive.regex_compiler.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="identifier">traits_type</span><span class="special">::</span><span class="identifier">locale_type</span>            <a name="boost.xpressive.regex_compiler.locale_type"></a><span class="identifier">locale_type</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="identifier">traits_type</span><span class="special">::</span><span class="identifier">char_class_type</span>        <a name="boost.xpressive.regex_compiler.char_class_type"></a><span class="identifier">char_class_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="regex_compiler.html#boost.xpressive.regex_compilerconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="regex_compiler.html#idp163757656-bb"><span class="identifier">regex_compiler</span></a><span class="special">(</span><span class="identifier">RegexTraits</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">RegexTraits</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="regex_compiler.html#idp163737960-bb">public member functions</a></span>
+  <span class="identifier">locale_type</span> <a class="link" href="regex_compiler.html#idp163738168-bb"><span class="identifier">imbue</span></a><span class="special">(</span><span class="identifier">locale_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">locale_type</span> <a class="link" href="regex_compiler.html#idp163740568-bb"><span class="identifier">getloc</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> InputIter<span class="special">&gt;</span> 
+    <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> 
+    <a class="link" href="regex_compiler.html#idp163742392-bb"><span class="identifier">compile</span></a><span class="special">(</span><span class="identifier">InputIter</span><span class="special">,</span> <span class="identifier">InputIter</span><span class="special">,</span> <span class="identifier">flag_type</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">ECMAScript</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> InputRange<span class="special">&gt;</span> 
+    <span class="identifier">disable_if</span><span class="special">&lt;</span> <span class="identifier">is_pointer</span><span class="special">&lt;</span> <span class="identifier">InputRange</span> <span class="special">&gt;</span><span class="special">,</span> <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+    <a class="link" href="regex_compiler.html#idp163747944-bb"><span class="identifier">compile</span></a><span class="special">(</span><span class="identifier">InputRange</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">flag_type</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">ECMAScript</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> 
+  <a class="link" href="regex_compiler.html#idp163750280-bb"><span class="identifier">compile</span></a><span class="special">(</span><span class="identifier">char_type</span> <span class="keyword">const</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">flag_type</span> <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">ECMAScript</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <a class="link" href="regex_compiler.html#idp163752072-bb"><span class="identifier">compile</span></a><span class="special">(</span><span class="identifier">char_type</span> <span class="keyword">const</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">,</span> <span class="identifier">flag_type</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <a class="link" href="regex_compiler.html#idp163754040-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a class="link" href="regex_compiler.html#idp163756344-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="regex_compiler.html#idp163758344-bb">private member functions</a></span>
+  <span class="keyword">bool</span> <a class="link" href="regex_compiler.html#idp163758552-bb"><span class="identifier">is_upper_</span></a><span class="special">(</span><span class="identifier">char_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp256631320"></a><h2>Description</h2>
+<p>Class template <a class="link" href="regex_compiler.html" title="Struct template regex_compiler">regex_compiler</a> is used to construct a <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a> object from a string. The string should contain a valid regular expression. You can imbue a <a class="link" href="regex_compiler.html" title="Struct template regex_compiler">regex_compiler</a> object with a locale, after which all <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a> objects created with that <a class="link" href="regex_compiler.html" title="Struct template regex_compiler">regex_compiler</a> object will use that locale. After creating a <a class="link" href="regex_compiler.html" title="Struct template regex_compiler">regex_compiler</a> object, and optionally imbueing it with a locale, you can call the compile() method to construct a <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a> object, passing it the string representing the regular expression. You can call compile() multiple times on the same <a class="link" href="regex_compiler.html" title="Struct template regex_compiler">regex_compiler</a> object. Two <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a> objects compiled from the same string will have different regex_id's. </p>
+<div class="refsect2">
+<a name="idp256636184"></a><h3>
+<a name="boost.xpressive.regex_compilerconstruct-copy-destruct"></a><code class="computeroutput">regex_compiler</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">explicit</span> <a name="idp163757656-bb"></a><span class="identifier">regex_compiler</span><span class="special">(</span><span class="identifier">RegexTraits</span> <span class="keyword">const</span> <span class="special">&amp;</span> traits <span class="special">=</span> <span class="identifier">RegexTraits</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp256641576"></a><h3>
+<a name="idp163737960-bb"></a><code class="computeroutput">regex_compiler</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">locale_type</span> <a name="idp163738168-bb"></a><span class="identifier">imbue</span><span class="special">(</span><span class="identifier">locale_type</span> loc<span class="special">)</span><span class="special">;</span></pre>
+<p>Specify the locale to be used by a <code class="computeroutput"><a class="link" href="regex_compiler.html" title="Struct template regex_compiler">regex_compiler</a></code>.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">loc</code></span></p></td>
+<td><p>The locale that this <code class="computeroutput"><a class="link" href="regex_compiler.html" title="Struct template regex_compiler">regex_compiler</a></code> should use. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The previous locale. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">locale_type</span> <a name="idp163740568-bb"></a><span class="identifier">getloc</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Get the locale used by a <code class="computeroutput"><a class="link" href="regex_compiler.html" title="Struct template regex_compiler">regex_compiler</a></code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The locale used by this <a class="link" href="regex_compiler.html" title="Struct template regex_compiler">regex_compiler</a>. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> InputIter<span class="special">&gt;</span> 
+  <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> 
+  <a name="idp163742392-bb"></a><span class="identifier">compile</span><span class="special">(</span><span class="identifier">InputIter</span> begin<span class="special">,</span> <span class="identifier">InputIter</span> end<span class="special">,</span> 
+          <span class="identifier">flag_type</span> flags <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">ECMAScript</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Builds a <code class="computeroutput"><a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a></code> object from a range of characters.</p>
+<p>
+
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">begin</code></span></p></td>
+<td><p>The beginning of a range of characters representing the regular expression to compile. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">end</code></span></p></td>
+<td><p>The end of a range of characters representing the regular expression to compile. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">flags</code></span></p></td>
+<td><p>Optional bitmask that determines how the pat string is interpreted. (See syntax_option_type.) </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>
+<p>InputIter is a model of the InputIterator concept. </p>
+<p>[begin,end) is a valid range. </p>
+<p>The range of characters specified by [begin,end) contains a valid string-based representation of a regular expression. </p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a> object corresponding to the regular expression represented by the character range. </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>
+<a class="link" href="regex_error.html" title="Struct regex_error">regex_error</a> when the range of characters has invalid regular expression syntax. </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> InputRange<span class="special">&gt;</span> 
+  <span class="identifier">disable_if</span><span class="special">&lt;</span> <span class="identifier">is_pointer</span><span class="special">&lt;</span> <span class="identifier">InputRange</span> <span class="special">&gt;</span><span class="special">,</span> <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <a name="idp163747944-bb"></a><span class="identifier">compile</span><span class="special">(</span><span class="identifier">InputRange</span> <span class="keyword">const</span> <span class="special">&amp;</span> pat<span class="special">,</span> 
+          <span class="identifier">flag_type</span> flags <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">ECMAScript</span><span class="special">)</span><span class="special">;</span></pre>
+<p>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> 
+<a name="idp163750280-bb"></a><span class="identifier">compile</span><span class="special">(</span><span class="identifier">char_type</span> <span class="keyword">const</span> <span class="special">*</span> begin<span class="special">,</span> 
+        <span class="identifier">flag_type</span> flags <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">ECMAScript</span><span class="special">)</span><span class="special">;</span></pre>
+<p>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> 
+<a name="idp163752072-bb"></a><span class="identifier">compile</span><span class="special">(</span><span class="identifier">char_type</span> <span class="keyword">const</span> <span class="special">*</span> begin<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> size<span class="special">,</span> <span class="identifier">flag_type</span> flags<span class="special">)</span><span class="special">;</span></pre>
+<p>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <a name="idp163754040-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Return a reference to the named regular expression. If no such named regular expression exists, create a new regular expression and return a reference to it.</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">name</code></span></p></td>
+<td><p>A std::string containing the name of the regular expression. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The string is not empty. </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>bad_alloc on allocation failure. </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a name="idp163756344-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> name<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp256703528"></a><h3>
+<a name="idp163758344-bb"></a><code class="computeroutput">regex_compiler</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">bool</span> <a name="idp163758552-bb"></a><span class="identifier">is_upper_</span><span class="special">(</span><span class="identifier">char_type</span> ch<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_replace.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_compiler_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="regex_constants/syntax_option_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

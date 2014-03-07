@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Depth-First Visit</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-depth-first-visit">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Depth-First Visit</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template&lt;typename DistributedGraph, typename DFSVisitor&gt;
+void
+depth_first_visit(const DistributedGraph&amp; g,
+                  typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+                  DFSVisitor vis);
+
+namespace graph {
+  template&lt;typename DistributedGraph, typename DFSVisitor,
+         typename VertexIndexMap&gt;
+  void
+  tsin_depth_first_visit(const DistributedGraph&amp; g,
+                         typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+                         DFSVisitor vis);
+
+  template&lt;typename DistributedGraph, typename DFSVisitor,
+           typename VertexIndexMap&gt;
+  void
+  tsin_depth_first_visit(const DistributedGraph&amp; g,
+                         typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+                         DFSVisitor vis, VertexIndexMap index_map);
+
+  template&lt;typename DistributedGraph, typename ColorMap, typename ParentMap,
+           typename ExploreMap, typename NextOutEdgeMap, typename DFSVisitor&gt;
+  void
+  tsin_depth_first_visit(const DistributedGraph&amp; g,
+                         typename graph_traits&lt;DistributedGraph&gt;::vertex_descriptor s,
+                         DFSVisitor vis, ColorMap color, ParentMap parent, ExploreMap explore,
+                         NextOutEdgeMap next_out_edge);
+}
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">depth_first_visit()</span></tt> function performs a distributed
+depth-first traversal of an undirected graph using Tsin's corrections
+<a class="citation-reference" href="#tsin02" id="id1">[Tsin02]</a> to Cidon's algorithm <a class="citation-reference" href="#cidon88" id="id2">[Cidon88]</a>. The distributed DFS is
+syntactically similar to its <a class="reference external" href="http://www.boost.org/libs/graph/doc/depth_first_visit.html">sequential counterpart</a>, which provides
+additional background and discussion. Differences in semantics are
+highlighted here, and we refer the reader to the documentation of the
+<a class="reference external" href="http://www.boost.org/libs/graph/doc/depth_first_visit.html">sequential depth-first search</a> for the remainder of the
+details. Visitors passed to depth-first search need to account for the
+distribution of vertices across processes, because events will be
+triggered on certain processes but not others. See the section
+<a class="reference internal" href="#visitor-event-points">Visitor Event Points</a> for details.</p>
+<div class="section" id="where-defined">
+<h1>Where Defined</h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/distributed/depth_first_search.hpp</span></tt>&gt;</p>
+<p>also available in</p>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/depth_first_search.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="parameters">
+<h1>Parameters</h1>
+<dl class="docutils">
+<dt>IN: <tt class="docutils literal"><span class="pre">const</span> <span class="pre">Graph&amp;</span> <span class="pre">g</span></tt></dt>
+<dd>The graph type must be a model of <a class="reference external" href="DistributedGraph.html">Distributed Graph</a>. The graph
+must be undirected.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">vertex_descriptor</span> <span class="pre">s</span></tt></dt>
+<dd>The start vertex must be the same in every process.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">DFSVisitor</span> <span class="pre">vis</span></tt></dt>
+<dd>The visitor must be a distributed DFS visitor. The suble differences
+between sequential and distributed DFS visitors are discussed in the
+section <a class="reference internal" href="#visitor-event-points">Visitor Event Points</a>.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">VertexIndexMap</span> <span class="pre">map</span></tt></dt>
+<dd><p class="first">A model of <a class="reference external" href="http://www.boost.org/libs/property_map/ReadablePropertyMap.html">Readable Property Map</a> whose key type is the vertex
+descriptor type of the graph <tt class="docutils literal"><span class="pre">g</span></tt> and whose value type is an
+integral type. The property map should map from vertices to their
+(local) indices in the range <em>[0, num_vertices(g))</em>.</p>
+<p class="last"><strong>Default</strong>: <tt class="docutils literal"><span class="pre">get(vertex_index,</span> <span class="pre">g)</span></tt></p>
+</dd>
+<dt>UTIL/OUT: <tt class="docutils literal"><span class="pre">ColorMap</span> <span class="pre">color</span></tt></dt>
+<dd><p class="first">The color map must be a <a class="reference external" href="distributed_property_map.html">Distributed Property Map</a> with the same
+process group as the graph <tt class="docutils literal"><span class="pre">g</span></tt> whose colors must monotonically
+darken (white -&gt; gray -&gt; black).</p>
+<p class="last"><strong>Default</strong>: A distributed <tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> created from a
+<tt class="docutils literal"><span class="pre">std::vector</span></tt> of <tt class="docutils literal"><span class="pre">default_color_type</span></tt>.</p>
+</dd>
+<dt>UTIL/OUT: <tt class="docutils literal"><span class="pre">ParentMap</span> <span class="pre">parent</span></tt></dt>
+<dd><p class="first">The parent map must be a <a class="reference external" href="distributed_property_map.html">Distributed Property Map</a> with the same
+process group as the graph <tt class="docutils literal"><span class="pre">g</span></tt> whose key and values types are the
+same as the vertex descriptor type of the graph <tt class="docutils literal"><span class="pre">g</span></tt>. This
+property map holds the parent of each vertex in the depth-first
+search tree.</p>
+<p class="last"><strong>Default</strong>: A distributed <tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> created from a
+<tt class="docutils literal"><span class="pre">std::vector</span></tt> of the vertex descriptor type of the graph.</p>
+</dd>
+<dt>UTIL: <tt class="docutils literal"><span class="pre">ExploreMap</span> <span class="pre">explore</span></tt></dt>
+<dd><p class="first">The explore map must be a <a class="reference external" href="distributed_property_map.html">Distributed Property Map</a> with the same
+process group as the graph <tt class="docutils literal"><span class="pre">g</span></tt> whose key and values types are the
+same as the vertex descriptor type of the graph <tt class="docutils literal"><span class="pre">g</span></tt>.</p>
+<p class="last"><strong>Default</strong>: A distributed <tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> created from a
+<tt class="docutils literal"><span class="pre">std::vector</span></tt> of the vertex descriptor type of the graph.</p>
+</dd>
+<dt>UTIL: <tt class="docutils literal"><span class="pre">NextOutEdgeMap</span> <span class="pre">next_out_edge</span></tt></dt>
+<dd><p class="first">The next out-edge map must be a <a class="reference external" href="distributed_property_map.html">Distributed Property Map</a> with the
+same process group as the graph <tt class="docutils literal"><span class="pre">g</span></tt> whose key type is the vertex
+descriptor of the graph <tt class="docutils literal"><span class="pre">g</span></tt> and whose value type is the
+<tt class="docutils literal"><span class="pre">out_edge_iterator</span></tt> type of the graph. It is used internally to
+keep track of the next edge that should be traversed from each
+vertex.</p>
+<p class="last"><strong>Default</strong>: A distributed <tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> created from a
+<tt class="docutils literal"><span class="pre">std::vector</span></tt> of the <tt class="docutils literal"><span class="pre">out_edge_iterator</span></tt> type of the graph.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="complexity">
+<h1>Complexity</h1>
+<p>Depth-first search is inherently sequential, so parallel speedup is
+very poor. Regardless of the number of processors, the algorithm will
+not be faster than <em>O(V)</em>; see <a class="citation-reference" href="#tsin02" id="id3">[Tsin02]</a> for more details.</p>
+</div>
+<div class="section" id="visitor-event-points">
+<h1>Visitor Event Points</h1>
+<p>The <a class="reference external" href="http://www.boost.org/libs/graph/doc/DFSVisitor.html">DFS Visitor</a> concept defines 8 event points that will be
+triggered by the <a class="reference external" href="http://www.boost.org/libs/graph/doc/depth_first_visit.html">sequential depth-first search</a>. The distributed
+DFS retains these event points, but the sequence of events
+triggered and the process in which each event occurs will change
+depending on the distribution of the graph.</p>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">initialize_vertex(s,</span> <span class="pre">g)</span></tt></dt>
+<dd>This will be invoked by every process for each local vertex.</dd>
+<dt><tt class="docutils literal"><span class="pre">discover_vertex(u,</span> <span class="pre">g)</span></tt></dt>
+<dd>This will be invoked each time a process discovers a new vertex
+<tt class="docutils literal"><span class="pre">u</span></tt>.</dd>
+<dt><tt class="docutils literal"><span class="pre">examine_vertex(u,</span> <span class="pre">g)</span></tt></dt>
+<dd>This will be invoked by the process owning the vertex <tt class="docutils literal"><span class="pre">u</span></tt>.</dd>
+<dt><tt class="docutils literal"><span class="pre">examine_edge(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>This will be invoked by the process owning the source vertex of
+<tt class="docutils literal"><span class="pre">e</span></tt>.</dd>
+<dt><tt class="docutils literal"><span class="pre">tree_edge(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>Similar to <tt class="docutils literal"><span class="pre">examine_edge</span></tt>, this will be invoked by the process
+owning the source vertex and may be invoked only once.</dd>
+<dt><tt class="docutils literal"><span class="pre">back_edge(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>Some edges that would be forward or cross edges in the sequential
+DFS may be detected as back edges by the distributed DFS, so extra
+<tt class="docutils literal"><span class="pre">back_edge</span></tt> events may be received.</dd>
+<dt><tt class="docutils literal"><span class="pre">forward_or_cross_edge(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>Some edges that would be forward or cross edges in the sequential
+DFS may be detected as back edges by the distributed DFS, so fewer
+<tt class="docutils literal"><span class="pre">forward_or_cross_edge</span></tt> events may be received in the distributed
+algorithm than in the sequential case.</dd>
+<dt><tt class="docutils literal"><span class="pre">finish_vertex(e,</span> <span class="pre">g)</span></tt></dt>
+<dd>See documentation for <tt class="docutils literal"><span class="pre">examine_vertex</span></tt>.</dd>
+</dl>
+<div class="section" id="making-visitors-safe-for-distributed-dfs">
+<h2>Making Visitors Safe for Distributed DFS</h2>
+<p>The three most important things to remember when updating an existing
+DFS visitor for distributed DFS or writing a new distributed DFS
+visitor are:</p>
+<ol class="arabic simple">
+<li>Be sure that all state is either entirely local or in a
+distributed data structure (most likely a property map!) using
+the same process group as the graph.</li>
+<li>Be sure that the visitor doesn't require precise event sequences
+that cannot be guaranteed by distributed DFS, e.g., requiring
+<tt class="docutils literal"><span class="pre">back_edge</span></tt> and <tt class="docutils literal"><span class="pre">forward_or_cross_edge</span></tt> events to be completely
+distinct.</li>
+<li>Be sure that the visitor can operate on incomplete
+information. This often includes using an appropriate reduction
+operation in a <a class="reference external" href="distributed_property_map.html">distributed property map</a> and verifying that
+results written are &quot;better&quot; that what was previously written.</li>
+</ol>
+</div>
+</div>
+<div class="section" id="bibliography">
+<h1>Bibliography</h1>
+<table class="docutils citation" frame="void" id="cidon88" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[Cidon88]</a></td><td>Isreal Cidon. Yet another distributed depth-first-search
+algorithm. Information Processing Letters, 26(6):301--305, 1988.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="tsin02" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[Tsin02]</td><td><em>(<a class="fn-backref" href="#id1">1</a>, <a class="fn-backref" href="#id3">2</a>)</em> Y. H. Tsin. Some remarks on distributed depth-first
+search. Information Processing Letters, 82(4):173--178, 2002.</td></tr>
+</tbody>
+</table>
+<hr class="docutils" />
+<p>Copyright (C) 2005 The Trustees of Indiana University.</p>
+<p>Authors: Douglas Gregor and Andrew Lumsdaine</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

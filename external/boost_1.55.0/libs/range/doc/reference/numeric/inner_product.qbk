@@ -1,0 +1,73 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:inner_product inner_product]
+
+[heading Prototype]
+
+``
+template<class SinglePassRange1,
+         class SinglePassRange2,
+         class Value>
+    Value inner_product( const SinglePassRange1& rng1,
+                         const SinglePassRange2& rng2,
+                         Value                   init );
+
+template<class SinglePassRange1,
+         class SinglePassRange2,
+         class Value,
+         class BinaryOperation1,
+         class BinaryOperation2>
+    Value inner_product( const SinglePassRange1& rng1,
+                         const SinglePassRange2& rng2,
+                         Value                   init,
+                         BinaryOperation1        op1,
+                         BinaryOperation2        op2 );
+``
+
+[heading Description]
+
+`inner_product` calculates a generalised inner product of the range `rng1` and `rng2`.
+
+For further information on the `inner_product` algorithm please see __sgi_inner_product__.
+
+[heading Definition]
+
+Defined in the header file `boost/range/numeric.hpp`
+
+[heading Requirements]
+
+[heading For the first version]
+
+# `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+# `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+# `Value` is a model of the `AssignableConcept`.
+# If `x` is an object of type `Value`, `y` is an object of `SinglePassRange1`'s value
+type, and `z` is an object of `SinglePassRange2`'s value type, then `x + y * z`
+is defined.
+# The result type of the expression `x + y * z` is convertible to `Value`.
+
+[heading For the second version]
+
+# `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+# `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+# `Value` is a model of the `AssignableConcept`.
+# `BinaryOperation1` is a model of the `BinaryFunctionConcept`.
+# `BinaryOperation2` is a model of the `BinaryFunctionConcept`.
+# The value type of `SinglePassRange1` is convertible to the first argument type of `BinaryOperation2`.
+# The value type of `SinglePassRange2` is convertible to the second argument type of `BinaryOperation2`.
+# `Value` is convertible to the value type of `BinaryOperation1`.
+# The return type of `BinaryOperation2` is convertible to the second argument type of `BinaryOperation1`.
+# The return type of `BinaryOperation1` is convertible to `Value`.
+
+[heading Precondition:]
+
+`distance(rng2) >= distance(rng1)` is a valid range.
+
+[heading Complexity]
+
+Linear. Exactly `distance(rng)`.
+
+[endsect]

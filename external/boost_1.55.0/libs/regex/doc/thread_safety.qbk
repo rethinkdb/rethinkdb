@@ -1,0 +1,41 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:thread_safety Thread Safety]
+
+The Boost.Regex library is thread safe when Boost is: you can verify that 
+Boost is in thread safe mode by checking to see if `BOOST_HAS_THREADS` is 
+defined: this macro is set automatically by the config system when 
+threading support is turned on in your compiler.
+
+Class [basic_regex] and its typedefs regex and wregex are thread safe, 
+in that compiled regular expressions can safely be shared between threads. 
+The matching algorithms [regex_match], [regex_search], and [regex_replace]
+are all re-entrant and thread safe. Class [match_results] is now thread safe, 
+in that the results of a match can be safely copied from one thread to 
+another (for example one thread may find matches and push [match_results] 
+instances onto a queue, while another thread pops them off the other end), 
+otherwise use a separate instance of [match_results] per thread.
+
+The [link boost_regex.ref.posix POSIX API functions] are all re-entrant and thread safe, regular 
+expressions compiled with regcomp can also be shared between threads.
+
+The [link boost_regex.ref.deprecated_interfaces.old_regex class RegEx] is 
+only thread safe if each thread gets its own 
+RegEx instance (apartment threading) - this is a consequence of 
+RegEx handling both compiling and matching regular expressions.
+
+Finally note that changing the global locale invalidates all compiled 
+regular expressions, therefore calling `set_locale` from one thread 
+while another uses regular expressions will produce unpredictable results.
+
+There is also a requirement that there is only one thread executing prior 
+to the start of main().
+     
+[endsect]
+

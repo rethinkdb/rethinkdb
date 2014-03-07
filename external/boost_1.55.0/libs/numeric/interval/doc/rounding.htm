@@ -1,0 +1,632 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../../../../boost.css">
+
+  <title>Rounding Policies</title>
+</head>
+
+<body lang="en">
+  <h1>Rounding Policies</h1>
+
+  <p>In order to be as general as possible, the library uses a class to
+  compute all the necessary functions rounded upward or downward. This class
+  is the first parameter of <code>policies</code>, it is also the type named
+  <code>rounding</code> in the policy definition of
+  <code>interval</code>.</p>
+
+  <p>By default, it is <code>interval_lib::rounded_math&lt;T&gt;</code>. The
+  class <code>interval_lib::rounded_math</code> is already specialized for
+  the standard floating types (<code>float</code> , <code>double</code> and
+  <code>long double</code>). So if the base type of your intervals is not one
+  of these, a good solution would probably be to provide a specialization of
+  this class. But if the default specialization of
+  <code>rounded_math&lt;T&gt;</code> for <code>float</code>,
+  <code>double</code>, or <code>long double</code> is not what you seek, or
+  you do not want to specialize
+  <code>interval_lib::rounded_math&lt;T&gt;</code> (say because you prefer to
+  work in your own namespace) you can also define your own rounding policy
+  and pass it directly to <code>interval_lib::policies</code>.</p>
+
+  <h2>Requirements</h2>
+
+  <p>Here comes what the class is supposed to provide. The domains are
+  written next to their respective functions (as you can see, the functions
+  do not have to worry about invalid values, but they have to handle infinite
+  arguments).</p>
+  <pre>
+/* Rounding requirements */
+struct rounding {
+  // default constructor, destructor
+  rounding();
+  ~rounding();
+  // mathematical operations
+  T add_down(T, T); // [-&infin;;+&infin;][-&infin;;+&infin;]
+  T add_up  (T, T); // [-&infin;;+&infin;][-&infin;;+&infin;]
+  T sub_down(T, T); // [-&infin;;+&infin;][-&infin;;+&infin;]
+  T sub_up  (T, T); // [-&infin;;+&infin;][-&infin;;+&infin;]
+  T mul_down(T, T); // [-&infin;;+&infin;][-&infin;;+&infin;]
+  T mul_up  (T, T); // [-&infin;;+&infin;][-&infin;;+&infin;]
+  T div_down(T, T); // [-&infin;;+&infin;]([-&infin;;+&infin;]-{0})
+  T div_up  (T, T); // [-&infin;;+&infin;]([-&infin;;+&infin;]-{0})
+  T sqrt_down(T);   // ]0;+&infin;]
+  T sqrt_up  (T);   // ]0;+&infin;]
+  T exp_down(T);    // [-&infin;;+&infin;]
+  T exp_up  (T);    // [-&infin;;+&infin;]
+  T log_down(T);    // ]0;+&infin;]
+  T log_up  (T);    // ]0;+&infin;]
+  T cos_down(T);    // [0;2&pi;]
+  T cos_up  (T);    // [0;2&pi;]
+  T tan_down(T);    // ]-&pi;/2;&pi;/2[
+  T tan_up  (T);    // ]-&pi;/2;&pi;/2[
+  T asin_down(T);   // [-1;1]
+  T asin_up  (T);   // [-1;1]
+  T acos_down(T);   // [-1;1]
+  T acos_up  (T);   // [-1;1]
+  T atan_down(T);   // [-&infin;;+&infin;]
+  T atan_up  (T);   // [-&infin;;+&infin;]
+  T sinh_down(T);   // [-&infin;;+&infin;]
+  T sinh_up  (T);   // [-&infin;;+&infin;]
+  T cosh_down(T);   // [-&infin;;+&infin;]
+  T cosh_up  (T);   // [-&infin;;+&infin;]
+  T tanh_down(T);   // [-&infin;;+&infin;]
+  T tanh_up  (T);   // [-&infin;;+&infin;]
+  T asinh_down(T);  // [-&infin;;+&infin;]
+  T asinh_up  (T);  // [-&infin;;+&infin;]
+  T acosh_down(T);  // [1;+&infin;]
+  T acosh_up  (T);  // [1;+&infin;]
+  T atanh_down(T);  // [-1;1]
+  T atanh_up  (T);  // [-1;1] 
+  T median(T, T);   // [-&infin;;+&infin;][-&infin;;+&infin;]
+  T int_down(T);    // [-&infin;;+&infin;]
+  T int_up  (T);    // [-&infin;;+&infin;]
+  // conversion functions
+  T conv_down(U);
+  T conv_up  (U);
+  // unprotected rounding class
+  typedef ... unprotected_rounding;
+};
+</pre>
+
+  <p>The constructor and destructor of the rounding class have a very
+  important semantic requirement: they are responsible for setting and
+  resetting the rounding modes of the computation on T. For instance, if T is
+  a standard floating point type and floating point computation is performed
+  according to the Standard IEEE 754, the constructor can save the current
+  rounding state, each <code>_up</code> (resp. <code>_down</code>) function
+  will round up (resp. down), and the destructor will restore the saved
+  rounding state. Indeed this is the behavior of the default rounding
+  policy.</p>
+
+  <p>The meaning of all the mathematical functions up until
+  <code>atanh_up</code> is clear: each function returns number representable
+  in the type <code>T</code> which is a lower bound (for <code>_down</code>)
+  or upper bound (for <code>_up</code>) on the true mathematical result of
+  the corresponding function. The function <code>median</code> computes the
+  average of its two arguments rounded to its nearest representable number.
+  The functions <code>int_down</code> and <code>int_up</code> compute the
+  nearest integer smaller or bigger than their argument. Finally,
+  <code>conv_down</code> and <code>conv_up</code> are responsible of the
+  conversions of values of other types to the base number type: the first one
+  must round down the value and the second one must round it up.</p>
+
+  <p>The type <code>unprotected_rounding</code> allows to remove all
+  controls. For reasons why one might to do this, see the <a href=
+  "#Protection">protection</a> paragraph below.</p>
+
+  <h2>Overview of the provided classes</h2>
+
+  <p>A lot of classes are provided. The classes are organized by level. At
+  the bottom is the class <code>rounding_control</code>. At the next level
+  come <code>rounded_arith_exact</code>, <code>rounded_arith_std</code> and
+  <code>rounded_arith_opp</code>. Then there are
+  <code>rounded_transc_dummy</code>, <code>rounded_transc_exact</code>,
+  <code>rounded_transc_std</code> and <code>rounded_transc_opp</code>. And
+  finally are <code>save_state</code> and <code>save_state_nothing</code>.
+  Each of these classes provide a set of members that are required by the
+  classes of the next level. For example, a <code>rounded_transc_...</code>
+  class needs the members of a <code>rounded_arith_...</code> class.</p>
+
+  <p>When they exist in two versions <code>_std</code> and <code>_opp</code>,
+  the first one does switch the rounding mode each time, and the second one
+  tries to keep it oriented toward plus infinity. The main purpose of the
+  <code>_opp</code> version is to speed up the computations through the use
+  of the "opposite trick" (see the <a href="#perf">performance notes</a>).
+  This version requires the rounding mode to be upward before entering any
+  computation functions of the class. It guarantees that the rounding mode
+  will still be upward at the exit of the functions.</p>
+
+  <p>Please note that it is really a very bad idea to mix the
+  <code>_opp</code> version with the <code>_std</code> since they do not have
+  compatible properties.</p>
+
+  <p>There is a third version named <code>_exact</code> which computes the
+  functions without changing the rounding mode. It is an "exact" version
+  because it is intended for a base type that produces exact results.</p>
+
+  <p>The last version is the <code>_dummy</code> version. It does not do any
+  computations but still produces compatible results.</p>
+
+  <p>Please note that it is possible to use the "exact" version for an
+  inexact base type, e.g. <code>float</code> or <code>double</code>. In that
+  case, the inclusion property is no longer guaranteed, but this can be
+  useful to speed up the computation when the inclusion property is not
+  desired strictly. For instance, in computer graphics, a small error due to
+  floating-point roundoff is acceptable as long as an approximate version of
+  the inclusion property holds.</p>
+
+  <p>Here comes what each class defines. Later, when they will be described
+  more thoroughly, these members will not be repeated. Please come back here
+  in order to see them. Inheritance is also used to avoid repetitions.</p>
+  <pre>
+template &lt;class T&gt;
+struct rounding_control
+{
+  typedef ... rounding_mode;
+  void set_rounding_mode(rounding_mode);
+  void get_rounding_mode(rounding_mode&amp;);
+  void downward ();
+  void upward   ();
+  void to_nearest();
+  T to_int(T);
+  T force_rounding(T);
+};
+
+template &lt;class T, class Rounding&gt;
+struct rounded_arith_... : Rounding
+{
+  void init();
+  T add_down(T, T);
+  T add_up  (T, T);
+  T sub_down(T, T);
+  T sub_up  (T, T);
+  T mul_down(T, T);
+  T mul_up  (T, T);
+  T div_down(T, T);
+  T div_up  (T, T);
+  T sqrt_down(T);
+  T sqrt_up  (T);
+  T median(T, T);
+  T int_down(T);
+  T int_up  (T);
+};
+
+template &lt;class T, class Rounding&gt;
+struct rounded_transc_... : Rounding
+{
+  T exp_down(T);
+  T exp_up  (T);
+  T log_down(T);
+  T log_up  (T);
+  T cos_down(T);
+  T cos_up  (T);
+  T tan_down(T);
+  T tan_up  (T);
+  T asin_down(T);
+  T asin_up  (T);
+  T acos_down(T);
+  T acos_up  (T);
+  T atan_down(T);
+  T atan_up  (T);
+  T sinh_down(T);
+  T sinh_up  (T);
+  T cosh_down(T);
+  T cosh_up  (T);
+  T tanh_down(T);
+  T tanh_up  (T);
+  T asinh_down(T);
+  T asinh_up  (T);
+  T acosh_down(T);
+  T acosh_up  (T);
+  T atanh_down(T);
+  T atanh_up  (T);
+};
+
+template &lt;class Rounding&gt;
+struct save_state_... : Rounding
+{
+  save_state_...();
+  ~save_state_...();
+  typedef ... unprotected_rounding;
+};
+</pre>
+
+  <h2>Synopsis</h2>
+  <pre>
+namespace boost {
+namespace numeric {
+namespace interval_lib {
+
+<span style="color: #FF0000">/* basic rounding control */</span>
+template &lt;class T&gt;  struct rounding_control;
+
+<span style="color: #FF0000">/* arithmetic functions rounding */</span>
+template &lt;class T, class Rounding = rounding_control&lt;T&gt; &gt; struct rounded_arith_exact;
+template &lt;class T, class Rounding = rounding_control&lt;T&gt; &gt; struct rounded_arith_std;
+template &lt;class T, class Rounding = rounding_control&lt;T&gt; &gt; struct rounded_arith_opp;
+
+<span style="color: #FF0000">/* transcendental functions rounding */</span>
+template &lt;class T, class Rounding&gt; struct rounded_transc_dummy;
+template &lt;class T, class Rounding = rounded_arith_exact&lt;T&gt; &gt; struct rounded_transc_exact;
+template &lt;class T, class Rounding = rounded_arith_std&lt;T&gt; &gt; struct rounded_transc_std;
+template &lt;class T, class Rounding = rounded_arith_opp&lt;T&gt; &gt; struct rounded_transc_opp;
+
+<span style="color: #FF0000">/* rounding-state-saving classes */</span>
+template &lt;class Rounding&gt; struct save_state;
+template &lt;class Rounding&gt; struct save_state_nothing;
+
+<span style="color: #FF0000">/* default policy for type T */</span>
+template &lt;class T&gt;  struct rounded_math;
+template &lt;&gt;  struct rounded_math&lt;float&gt;;
+template &lt;&gt;  struct rounded_math&lt;double&gt;;
+
+<span style=
+"color: #FF0000">/* some metaprogramming to convert a protected to unprotected rounding */</span>
+template &lt;class I&gt; struct unprotect;
+
+} // namespace interval_lib
+} // namespace numeric
+} // namespace boost
+</pre>
+
+  <h2>Description of the provided classes</h2>
+
+  <p>We now describe each class in the order they appear in the definition of
+  a rounding policy (this outermost-to-innermost order is the reverse order
+  from the synopsis).</p>
+
+  <h3 id="Protection">Protection control</h3>
+
+  <p>Protection refers to the fact that the interval operations will be
+  surrounded by rounding mode controls. Unprotecting a class means to remove
+  all the rounding controls. Each rounding policy provides a type
+  <code>unprotected_rounding</code>. The required type
+  <code>unprotected_rounding</code> gives another rounding class that enables
+  to work when nested inside rounding. For example, the first three lines
+  below should all produce the same result (because the first operation is
+  the rounding constructor, and the last is its destructor, which take care
+  of setting the rounding modes); and the last line is allowed to have an
+  undefined behavior (since no rounding constructor or destructor is ever
+  called).</p>
+  <pre>
+T c; { rounding rnd; c = rnd.add_down(a, b); }
+T c; { rounding rnd1; { rounding rnd2; c = rnd2.add_down(a, b); } }
+T c; { rounding rnd1; { rounding::unprotected_rounding rnd2; c = rnd2.add_down(a, b); } }
+T d; { rounding::unprotected_rounding rnd; d = rnd.add_down(a, b); }
+</pre>
+
+  <p>Naturally <code>rounding::unprotected_rounding</code> may simply be
+  <code>rounding</code> itself. But it can improve performance if it is a
+  simplified version with empty constructor and destructor. In order to avoid
+  undefined behaviors, in the library, an object of type
+  <code>rounding::unprotected_rounding</code> is guaranteed to be created
+  only when an object of type <code>rounding</code> is already alive. See the
+  <a href="#perf">performance notes</a> for some additional details.</p>
+
+  <p>The support library defines a metaprogramming class template
+  <code>unprotect</code> which takes an interval type <code>I</code> and
+  returns an interval type <code>unprotect&lt;I&gt;::type</code> where the
+  rounding policy has been unprotected. Some information about the types:
+  <code>interval&lt;T, interval_lib::policies&lt;Rounding, _&gt;
+  &gt;::traits_type::rounding</code> <b>is</b> the same type as
+  <code>Rounding</code>, and <code>unprotect&lt;interval&lt;T,
+  interval_lib::policies&lt;Rounding, _&gt; &gt; &gt;::type</code> <b>is</b>
+  the same type as <code>interval&lt;T,
+  interval_lib::policies&lt;Rounding::unprotected, _&gt; &gt;</code>.</p>
+
+  <h3>State saving</h3>
+
+  <p>First comes <code>save_state</code>. This class is responsible for
+  saving the current rounding mode and calling init in its constructor, and
+  for restoring the saved rounding mode in its destructor. This class also
+  defines the <code>unprotected_rounding</code> type.</p>
+
+  <p>If the rounding mode does not require any state-saving or
+  initialization, <code>save_state_nothing</code> can be used instead of
+  <code>save_state</code>.</p>
+
+  <h3>Transcendental functions</h3>
+
+  <p>The classes <code>rounded_transc_exact</code>,
+  <code>rounded_transc_std</code> and <code>rounded_transc_opp</code> expect
+  the std namespace to provide the functions exp log cos tan acos asin atan
+  cosh sinh tanh acosh asinh atanh. For the <code>_std</code> and
+  <code>_opp</code> versions, all these functions should respect the current
+  rounding mode fixed by a call to downward or upward.</p>
+
+  <p><strong>Please note:</strong> Unfortunately, the latter is rarely the
+  case. It is the reason why a class <code>rounded_transc_dummy</code> is
+  provided which does not depend on the functions from the std namespace.
+  There is no magic, however. The functions of
+  <code>rounded_transc_dummy</code> do not compute anything. They only return
+  valid values. For example, <code>cos_down</code> always returns -1. In this
+  way, we do verify the inclusion property for the default implementation,
+  even if this has strictly no value for the user. In order to have useful
+  values, another policy should be used explicitely, which will most likely
+  lead to a violation of the inclusion property. In this way, we ensure that
+  the violation is clearly pointed out to the user who then knows what he
+  stands against. This class could have been used as the default
+  transcendental rounding class, but it was decided it would be better for
+  the compilation to fail due to missing declarations rather than succeed
+  thanks to valid but unusable functions.</p>
+
+  <h3>Basic arithmetic functions</h3>
+
+  <p>The classes <code>rounded_arith_std</code> and
+  <code>rounded_arith_opp</code> expect the operators + - * / and the
+  function <code>std::sqrt</code> to respect the current rounding mode.</p>
+
+  <p>The class <code>rounded_arith_exact</code> requires
+  <code>std::floor</code> and <code>std::ceil</code> to be defined since it
+  can not rely on <code>to_int</code>.</p>
+
+  <h3>Rounding control</h3>
+
+  <p>The functions defined by each of the previous classes did not need any
+  explanation. For example, the behavior of <code>add_down</code> is to
+  compute the sum of two numbers rounded downward. For
+  <code>rounding_control</code>, the situation is a bit more complex.</p>
+
+  <p>The basic function is <code>force_rounding</code> which returns its
+  argument correctly rounded accordingly to the current rounding mode if it
+  was not already the case. This function is necessary to handle delayed
+  rounding. Indeed, depending on the way the computations are done, the
+  intermediate results may be internally stored in a more precise format and
+  it can lead to a wrong rounding. So the function enforces the rounding.
+  <a href="#extreg">Here</a> is an example of what happens when the rounding
+  is not enforced.</p>
+
+  <p>The function <code>get_rounding_mode</code> returns the current rounding
+  mode, <code>set_rounding_mode</code> sets the rounding mode back to a
+  previous value returned by <code>get_rounding_mode</code>.
+  <code>downward</code>, <code>upward</code> and <code>to_nearest</code> sets
+  the rounding mode in one of the three directions. This rounding mode should
+  be global to all the functions that use the type <code>T</code>. For
+  example, after a call to <code>downward</code>,
+  <code>force_rounding(x+y)</code> is expected to return the sum rounded
+  toward -&infin;.</p>
+
+  <p>The function <code>to_int</code> computes the nearest integer
+  accordingly to the current rounding mode.</p>
+
+  <p>The non-specialized version of <code>rounding_control</code> does not do
+  anything. The functions for the rounding mode are empty, and
+  <code>to_int</code> and <code>force_rounding</code> are identity functions.
+  The <code>pi_</code> constant functions return suitable integers (for
+  example, <code>pi_up</code> returns <code>T(4)</code>).</p>
+
+  <p>The class template <code>rounding_control</code> is specialized for
+  <code>float</code>, <code>double</code> and <code>long double</code> in
+  order to best use the floating point unit of the computer.</p>
+
+  <h2>Template class <tt>rounded_math</tt></h2>
+
+  <p>The default policy (aka <code>rounded_math&lt;T&gt;</code>) is simply
+  defined as:</p>
+  <pre>
+template &lt;class T&gt; struct rounded_math&lt;T&gt; : save_state_nothing&lt;rounded_arith_exact&lt;T&gt; &gt; {};
+</pre>
+
+  <p>and the specializations for <code>float</code>, <code>double</code> and
+  <code>long double</code> use <code>rounded_arith_opp</code>, as in:</p>
+  <pre>
+template &lt;&gt; struct rounded_math&lt;float&gt;       : save_state&lt;rounded_arith_opp&lt;float&gt; &gt;       {};
+template &lt;&gt; struct rounded_math&lt;double&gt;      : save_state&lt;rounded_arith_opp&lt;double&gt; &gt;      {};
+template &lt;&gt; struct rounded_math&lt;long double&gt; : save_state&lt;rounded_arith_opp&lt;long double&gt; &gt; {};
+</pre>
+
+  <h2 id="perf">Performance Issues</h2>
+
+  <p>This paragraph deals mostly with the performance of the library with
+  intervals using the floating-point unit (FPU) of the computer. Let's
+  consider the sum of [<i>a</i>,<i>b</i>] and [<i>c</i>,<i>d</i>] as an
+  example. The result is [<code>down</code>(<i>a</i>+<i>c</i>),
+  <code>up</code>(<i>b</i>+<i>d</i>)], where <code>down</code> and
+  <code>up</code> indicate the rounding mode needed.</p>
+
+  <h3>Rounding Mode Switch</h3>
+
+  <p>If the FPU is able to use a different rounding mode for each operation,
+  there is no problem. For example, it's the case for the Alpha processor:
+  each floating-point instruction can specify a different rounding mode.
+  However, the IEEE-754 Standard does not require such a behavior. So most of
+  the FPUs only provide some instructions to set the rounding mode for all
+  subsequent operations. And generally, these instructions need to flush the
+  pipeline of the FPU.</p>
+
+  <p>In this situation, the time needed to sum [<i>a</i>,<i>b</i>] and
+  [<i>c</i>,<i>d</i>] is far worse than the time needed to calculate
+  <i>a</i>+<i>b</i> and <i>c</i>+<i>d</i> since the two additions cannot be
+  parallelized. Consequently, the objective is to diminish the number of
+  rounding mode switches.</p>
+
+  <p>If this library is not used to provide exact computations, but only for
+  pair arithmetic, the solution is quite simple: do not use rounding. In that
+  case, doing the sum [<i>a</i>,<i>b</i>] and [<i>c</i>,<i>d</i>] will be as
+  fast as computing <i>a</i>+<i>b</i> and <i>c</i>+<i>d</i>. Everything is
+  perfect.</p>
+
+  <p>However, if exact computations are required, such a solution is totally
+  unthinkable. So, are we penniless? No, there is still a trick available.
+  Indeed, down(<i>a</i>+<i>c</i>) = -up(-<i>a</i>-<i>c</i>) if the unary
+  minus is an exact operation. It is now possible to calculate the whole sum
+  with the same rounding mode. Generally, the cost of the mode switching is
+  worse than the cost of the sign changes.</p>
+
+  <h4>Speeding up consecutive operations</h4>
+
+  <p>The interval addition is not the only operation; most of the interval
+  operations can be computed by setting the rounding direction of the FPU
+  only once. So the operations of the floating point rounding policy assume
+  that the direction is correctly set. This assumption is usually not true in
+  a program (the user and the standard library expect the rounding direction
+  to be to nearest), so these operations have to be enclosed in a shell that
+  sets the floating point environment. This protection is done by the
+  constructor and destructor of the rounding policy.</p>
+
+  <p>Les us now consider the case of two consecutive interval additions:
+  [<i>a</i>,<i>b</i>] + [<i>c</i>,<i>d</i>] + [<i>e</i>,<i>f</i>]. The
+  generated code should look like:</p>
+  <pre>
+init_rounding_mode();    // rounding object construction during the first addition
+t1 = -(-a - c);
+t2 = b + d;
+restore_rounding_mode(); // rounding object destruction
+init_rounding_mode();    // rounding object construction during the second addition
+x = -(-t1 - e);
+y = t2 + f;
+restore_rounding_mode(); // rounding object destruction
+// the result is the interval [x,y]
+</pre>
+
+  <p>Between the two operations, the rounding direction is restored, and then
+  initialized again. Ideally, compilers should be able to optimize this
+  useless code away. But unfortunately they are not, and this slows the code
+  down by an order of magnitude. In order to avoid this bottleneck, the user
+  can tell to the interval operations that they do not need to be protected
+  anymore. It will then be up to the user to protect the interval
+  computations. The compiler will then be able to generate such a code:</p>
+  <pre>
+init_rounding_mode();    // done by the user
+x = -(-a - c - e);
+y = b + d + f;
+restore_rounding_mode(); // done by the user
+</pre>
+
+  <p>The user will have to create a rounding object. And as long as this
+  object is alive, unprotected versions of the interval operations can be
+  used. They are selected by using an interval type with a specific rounding
+  policy. If the initial interval type is <code>I</code>, then
+  <code>I::traits_type::rounding</code> is the type of the rounding object,
+  and <code>interval_lib::unprotect&lt;I&gt;::type</code> is the type of the
+  unprotected interval type.</p>
+
+  <p>Because the rounding mode of the FPU is changed during the life of the
+  rounding object, any arithmetic floating point operation that does not
+  involve the interval library can lead to unexpected results. And
+  reciprocally, using unprotected interval operation when no rounding object
+  is alive will produce intervals that are not guaranteed anymore to contain
+  the real result.</p>
+
+  <h4 id="perfexp">Example</h4>
+
+  <p>Here is an example of Horner's scheme to compute the value of a polynom.
+  The rounding mode switches are disabled for the whole computation.</p>
+  <pre>
+// I is an interval class, the polynom is a simple array
+template&lt;class I&gt;
+I horner(const I&amp; x, const I p[], int n) {
+
+  // save and initialize the rounding mode
+  typename I::traits_type::rounding rnd;
+
+  // define the unprotected version of the interval type
+  typedef typename boost::numeric::interval_lib::unprotect&lt;I&gt;::type R;
+
+  const R&amp; a = x;
+  R y = p[n - 1];
+  for(int i = n - 2; i &gt;= 0; i--) {
+    y = y * a + (const R&amp;)(p[i]);
+  }
+  return y;
+
+  // restore the rounding mode with the destruction of rnd
+}
+</pre>
+
+  <p>Please note that a rounding object is specially created in order to
+  protect all the interval computations. Each interval of type I is converted
+  in an interval of type R before any operations. If this conversion is not
+  done, the result is still correct, but the interest of this whole
+  optimization has disappeared. Whenever possible, it is good to convert to
+  <code>const R&amp;</code> instead of <code>R</code>: indeed, the function
+  could already be called inside an unprotection block so the types
+  <code>R</code> and <code>I</code> would be the same interval, no need for a
+  conversion.</p>
+
+  <h4>Uninteresting remark</h4>
+
+  <p>It was said at the beginning that the Alpha processors can use a
+  specific rounding mode for each operation. However, due to the instruction
+  format, the rounding toward plus infinity is not available. Only the
+  rounding toward minus infinity can be used. So the trick using the change
+  of sign becomes essential, but there is no need to save and restore the
+  rounding mode on both sides of an operation.</p>
+
+  <h3 id="extreg">Extended Registers</h3>
+
+  <p>There is another problem besides the cost of the rounding mode switch.
+  Some FPUs use extended registers (for example, float computations will be
+  done with double registers, or double computations with long double
+  registers). Consequently, many problems can arise.</p>
+
+  <p>The first one is due to to the extended precision of the mantissa. The
+  rounding is also done on this extended precision. And consequently, we
+  still have down(<i>a</i>+<i>b</i>) = -up(-<i>a</i>-<i>b</i>) in the
+  extended registers. But back to the standard precision, we now have
+  down(<i>a</i>+<i>b</i>) &lt; -up(-<i>a</i>-<i>b</i>) instead of an
+  equality. A solution could be not to use this method. But there still are
+  other problems, with the comparisons between numbers for example.</p>
+
+  <p>Naturally, there is also a problem with the extended precision of the
+  exponent. To illustrate this problem, let <i>m</i> be the biggest number
+  before +<i>inf</i>. If we calculate 2*[<i>m</i>,<i>m</i>], the answer
+  should be [<i>m</i>,<i>inf</i>]. But due to the extended registers, the FPU
+  will first store [<i>2m</i>,<i>2m</i>] and then convert it to
+  [<i>inf</i>,<i>inf</i>] at the end of the calculus (when the rounding mode
+  is toward +<i>inf</i>). So the answer is no more accurate.</p>
+
+  <p>There is only one solution: to force the FPU to convert the extended
+  values back to standard precision after each operation. Some FPUs provide
+  an instruction able to do this conversion (for example the PowerPC
+  processors). But for the FPUs that do not provide it (the x86 processors),
+  the only solution is to write the values to memory and read them back. Such
+  an operation is obviously very expensive.</p>
+
+  <h2>Some Examples</h2>
+
+  <p>Here come several cases:</p>
+
+  <ul>
+    <li>if you need precise computations with the <code>float</code> or
+    <code>double</code> types, use the default
+    <code>rounded_math&lt;T&gt;</code>;</li>
+
+    <li>for fast wide intervals without any rounding nor precision, use
+    <code>save_state_nothing&lt;rounded_transc_exact&lt;T&gt;
+    &gt;</code>;</li>
+
+    <li>for an exact type (like int or rational with a little help for
+    infinite and NaN values) without support for transcendental functions,
+    the solution could be
+    <code>save_state_nothing&lt;rounded_transc_dummy&lt;T,
+    rounded_arith_exact&lt;T&gt; &gt; &gt;</code> or directly
+    <code>save_state_nothing&lt;rounded_arith_exact&lt;T&gt;
+    &gt;</code>;</li>
+
+    <li>if it is a more complex case than the previous ones, the best thing
+    is probably to directly define your own policy.</li>
+  </ul>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%Y-%m-%d" startspan -->2006-12-24<!--webbot bot="Timestamp" endspan i-checksum="12172" --></p>
+
+  <p><i>Copyright &copy; 2002 Guillaume Melquiond, Sylvain Pion, Herv&eacute;
+  Br&ouml;nnimann, Polytechnic University<br>
+  Copyright &copy; 2004-2005 Guillaume Melquiond, ENS Lyon</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+  or copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

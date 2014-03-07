@@ -1,0 +1,25 @@
+# (C) Copyright John Maddock 2006.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+path-constant boost-path : ../../.. ;
+
+run 
+    # sources
+    ../add_dependent_lib.cpp ../add_path.cpp ../bcp_imp.cpp ../copy_path.cpp ../file_types.cpp
+    ../fileview.cpp ../main.cpp ../path_operations.cpp ../scan_cvs_path.cpp 
+    ../licence_info.cpp ../scan_licence.cpp ../output_licence_info.cpp
+    /boost/filesystem//boost_filesystem
+    /boost/regex//boost_regex
+    /boost/test//boost_prg_exec_monitor
+  : # args
+    --boost=$(boost-path) --list boost
+  : # input-files
+  : # requirements
+    release
+  : # target-name
+    bcp-test
+  : # default-build
+    release
+    ;
+

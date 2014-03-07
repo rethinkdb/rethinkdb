@@ -1,0 +1,216 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright Nikolay Mladenov	 2007. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+  <meta http-equiv="Content-Type" content=
+  "text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../boost.css">
+
+  <title>Boost.Python -
+  &lt;boost/python/doobject/function_doc_signature.hpp&gt;</title>
+</head>
+
+<body>
+  <table border="0" cellpadding="7" cellspacing="0" width="100%"
+  summary="header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../../index.htm"><img height="86" width=
+        "277" alt="C++ Boost" src="../../../../boost.png" border=
+        "0"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center"><a href=
+        "../index.html">Boost.Python</a></h1>
+
+        <h2 align="center">Header
+        &lt;boost/python/object/function_doc_signature.hpp&gt;</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <h2>Contents</h2>
+
+  <dl class="page-index">
+    <dt><a href="#introduction">Introduction</a></dt>
+
+    <dt><a href="#classes">Classes</a></dt>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#function_doc_signature_generator-spec">Class
+        <code>function_doc_signature_generator</code></a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#function_doc_signature_generator-spec-synopsis">Class
+            <code>function_doc_signature_generator</code> synopsis</a></dt>
+
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+
+    <dt><a href="#examples">Examples</a></dt>
+  </dl>
+  <hr>
+
+  <h2><a name="introduction" id=
+  "introduction"></a>Introduction</h2>
+
+  <p>Boost.Python supports docstrings with automatic
+  appending of Pythonic and C++ signatures. This feature is implemented 
+  by <code>class function_doc_signature_generator</code>
+  The class uses all of the overloads, supplied arg names and default values, as well as 
+  the user-defined docstrings, to generate documentation for a given function.</p>
+
+  <h2><a name="classes" id="classes"></a>Classes</h2>
+
+  <h3><a name="function_doc_signature_generator-spec" id=
+  "function_doc_signature_generator-spec"></a>Class
+  <code>function_doc_signature_generator</code></h3>
+
+  <p>
+   The class has only one public function which returns a list of strings documenting the
+   overloads of a function.
+  </p>
+
+  <h4><a name="function_doc_signature_generator-spec-synopsis" id=
+  "function_doc_signature_generator-spec-synopsis"></a>Class
+  <code>function_doc_signature_generator</code> synopsis</h4>
+  <pre>
+namespace boost { namespace python { namespace objects {
+
+    class function_doc_signature_generator 
+    {
+      public:
+          static list function_doc_signatures(function const *f);
+    };
+
+}}}
+</pre>
+
+
+  <h2><a name="examples" id="examples"></a>Examples</h2>
+
+  <h4>Docstrings generated with <code>function_doc_signature_generator</code></h4>
+  <pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/def.hpp&gt;
+#include &lt;boost/python/args.hpp&gt;
+#include &lt;boost/python/tuple.hpp&gt;
+#include &lt;boost/python/class.hpp&gt;
+#include &lt;boost/python/overloads.hpp&gt;
+#include &lt;boost/python/raw_function.hpp&gt;
+
+using namespace boost::python;
+
+tuple f(int x = 1, double y = 4.25, char const* z = "wow")
+{
+    return make_tuple(x, y, z);
+}
+
+BOOST_PYTHON_FUNCTION_OVERLOADS(f_overloads, f, 0, 3)
+
+
+struct X
+{
+    tuple f(int x = 1, double y = 4.25, char const* z = "wow")
+    {
+        return make_tuple(x, y, z);
+    }
+};
+
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(X_f_overloads, X::f, 0, 3)
+
+tuple raw_func(tuple args, dict kw)
+{
+    return make_tuple(args, kw);
+}
+
+BOOST_PYTHON_MODULE(args_ext)
+{
+    def("f", f, (arg("x")=1, arg("y")=4.25, arg("z")="wow")
+        , "This is f's docstring"
+        );
+
+    def("raw", raw_function(raw_func));
+
+    def("f1", f, f_overloads("f1's docstring", args("x", "y", "z")));
+
+
+    class_&lt;X&gt;("X", "This is X's docstring", init&lt;&gt;(args("self")))
+        .def("f", &amp;X::f
+             , "This is X.f's docstring"
+             , args("self","x", "y", "z"))
+
+        ;
+
+}
+
+</pre>
+Python code:
+  <pre>
+&gt;&gt;&gt; import args_ext
+&gt;&gt;&gt; help(args_ext)
+Help on module args_ext:
+
+NAME
+    args_ext
+
+FILE
+    args_ext.pyd
+
+CLASSES
+    Boost.Python.instance(__builtin__.object)
+        X
+
+    class X(Boost.Python.instance)
+     |  This is X's docstring
+     |
+     |  Method resolution order:
+     |      X
+     |      Boost.Python.instance
+     |      __builtin__.object
+     |
+     |  Methods defined here:
+     |
+     |  __init__(...)
+     |      __init__( (object)self) -> None :
+     |       C++ signature:
+     |           void __init__(struct _object *)
+     |
+     |  f(...)
+     |      f( (X)self, (int)x, (float)y, (str)z) -> tuple : This is X.f's docstring
+     |      C++ signature:
+     |          class boost::python::tuple f(struct X {lvalue},int,double,char const *)
+     |
+     |    .................
+     |
+FUNCTIONS
+    f(...)
+        f([ (int)x=1 [, (float)y=4.25 [, (str)z='wow']]]) -> tuple : This is f's docstring
+        C++ signature:
+            class boost::python::tuple f([ int=1 [,double=4.25 [,char const *='wow']]])
+
+    f1(...)
+        f1([ (int)x [, (float)y [, (str)z]]]) -> tuple : f1's docstring
+        C++ signature:
+            class boost::python::tuple f1([ int [,double [,char const *]]])
+
+    raw(...)
+        object raw(tuple args, dict kwds) :
+        C++ signature:
+            object raw(tuple args, dict kwds)
+
+
+</pre>
+
+  <p><i>&copy; Copyright <a href="mailto:nickm at sitius dot com">Nikolay Mladenov</a> 2007.</i></p>
+</body>
+</html>

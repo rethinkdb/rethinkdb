@@ -1,0 +1,293 @@
+[/
+    Boost.Optional
+
+    Copyright (c) 2003-2007 Fernando Luis Cacciola Carballal
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section converter<> function object]
+
+[section Synopsis]
+
+    namespace boost { namespace numeric {
+
+
+        template<class T,
+                 class S,
+                 class Traits,          = conversion_traits<T,S>
+                 class OverflowHandler  = def_overflow_handler,
+                 class Float2IntRounder = Trunc< typename Traits::source_type >,
+                 class RawConverter     = raw_converter<Traits>,
+                 class UserRangeChecker = UseInternalRangeChecker
+                >
+        struct converter
+        {
+            typedef Traits traits ;
+
+            typedef typename Traits::source_type   source_type   ;
+            typedef typename Traits::argument_type argument_type ;
+            typedef typename Traits::result_type   result_type   ;
+
+            static result_type convert ( argument_type s ) ;
+
+            result_type operator() ( argument_type s ) const ;
+
+            // Internal member functions:
+
+            static range_check_result out_of_range      ( argument_type s ) ;
+            static void               validate_range    ( argument_type s ) ;
+            static result_type        low_level_convert ( argument_type s ) ;
+            static source_type        nearbyint         ( argument_type s ) ;
+
+        } ;
+
+    } } // namespace numeric, boost
+
+
+`boost::numeric::converter<>` is a __SGI_UNARY_FUNCTION__ encapsulating
+the code to perform a numeric conversion with the direction and
+properties specified by the Traits template parameter. It can optionally
+take some [link boost_numericconversion.numeric_converter_policy_classes policies] which can be used to customize its behavior. The
+`Traits` parameter is not a policy but the parameter that defines
+the conversion.
+
+[endsect]
+
+[section Template parameters]
+
+[table
+[[            ][           ]]
+[[`T`][
+The [link boost_numericconversion.definitions.numeric_types Numeric Type] 
+which is the ['Target] of the conversion.
+]]
+[[`S`][
+The [link boost_numericconversion.definitions.numeric_types Numeric Type] 
+which is the ['Source] of the conversion.
+]]
+[[`Traits`][
+This must be a conversion traits class with the interface of
+[link boost_numericconversion.conversion_traits___traits_class `boost::numeric::conversion_traits`]
+]]
+[[`OverflowHandler`][
+[*Stateless Policy] called to administrate the result of the range checking.
+
+It is a [*Function Object] which receives the result of `out_of_range()`
+and is called inside the `validate_range()` static member function exposed
+by the converter.
+]]
+[[`Float2IntRounder`][
+[*Stateless Policy] which specifies the rounding mode used for float to
+integral conversions.
+
+It supplies the `nearbyint()` static member function exposed by the converter.
+]]
+[[`RawConverter`][
+[*Stateless Policy] which is used to perform the actual conversion.
+
+It supplies the `low_level_convert()` static member function exposed
+by the converter.
+]]
+[[`UserRangeChecker`][
+['Special and Optional] [*Stateless Policy] which can be used to override
+the internal range checking logic.
+
+If given, supplies alternative code for the `out_of_range()` and
+`validate_range()` static member functions exposed by the converter.
+]]
+]
+
+[endsect]
+
+[section Member functions]
+
+[: `static result_type converter<>::convert ( argument_type s ) ; // throw
+`]
+
+This static member function converts an rvalue of type `source_type` to
+an rvalue of type `target_type`.
+
+If the conversion requires it, it performs a range checking before the conversion
+and passes the result of the check to the overflow handler policy (the default
+policy throws an exception if out-of-range is detected)
+
+The implementation of this function is actually built from the policies and is
+basically as follows:
+
+    result_type converter<>::convert ( argument_type s )
+    {
+        validate_range(s); // Implemented by the internal range checking logic
+                           // (which also calls the OverflowHandler policy)
+                           // or externally supplied by the UserRangeChecker policy.
+
+        s = nearbyint(s); // Externally supplied by the Float2IntRounder policy.
+                          // NOTE: This is actually called only for float to int conversions.
+
+        return low_level_convert(s); // Externally supplied by the RawConverter policy.
+    }
+
+`converter<>::operator() const` just calls `convert()`
+
+__SPACE__
+
+[: `static range_check_result numeric_converter<>::out_of_range ( argument_type s ) ;`]
+
+This [link numeric_conversion_converter_internal internal] static member function 
+determines if the value `s` can be
+represented by the target type without overflow.
+
+It does not determine if the conversion is ['exact]; that is, it does not detect
+['inexact] conversions, only ['out-of-range] conversions (see the
+[link boost_numericconversion.definitions.exact__correctly_rounded_and_out_of_range_representations Definitions] for further details).
+
+The return value is of enum type 
+[link boost_numericconversion.numeric_converter_policy_classes.enum_range_check_result `boost::numeric::range_check_result`]
+
+The actual code for the range checking logic is optimized for the combined
+properties of the source and target types. For example, a non-subranged
+conversion (i.e: `int`->`float`), requires no range checking, so `out_of_range()`
+returns `cInRange` directly. See the following 
+[link boost_numericconversion.converter___function_object.range_checking_logic table] for more details.
+
+If the user supplied a
+[link boost_numericconversion.numeric_converter_policy_classes.policy_userrangechecker UserRangeChecker] policy, 
+is this policy which implements this function, so the implementation is user 
+defined, although it is expected to perform the same conceptual check and 
+return the appropriate result.
+
+__SPACE__
+
+[: `static void numeric_converter<>::validate_range ( argument_type s ) ; // no throw
+`]
+
+This [link numeric_conversion_converter_internal internal] static member function 
+calls out_of_range(s), and passes the
+result to the [link boost_numericconversion.numeric_converter_policy_classes.policy_overflowhandler OverflowHandler] 
+policy class.
+
+For those Target/Source combinations which don't require range checking, this
+is an empty inline function.
+
+If the user supplied a 
+[link boost_numericconversion.numeric_converter_policy_classes.policy_userrangechecker UserRangeChecker] policy, 
+is this policy which implements this function, so the implementation is user 
+defined, although it is expected to perform the same action as the default. 
+In particular, it is expected to pass the result of the check to the overflow handler.
+
+__SPACE__
+
+[: `static result_type numeric_converter<>::low_level_convert ( argument_type s ) ;` ]
+
+This [link numeric_conversion_converter_internal internal] static member function 
+performs the actual conversion.
+
+This function is externally supplied by the 
+[link boost_numericconversion.numeric_converter_policy_classes.policy_rawconverter RawConverter] policy class.
+
+__SPACE__
+
+[: `static source_type converter<>::nearbyint ( argument_type s ) ;`]
+
+This [link numeric_conversion_converter_internal internal] static member function, 
+which is [_only used] for
+`float` to `int` conversions, returns an ['integer] value of ['[_floating-point
+type]] according to some rounding direction.
+
+This function is externally supplied by the 
+[link boost_numericconversion.numeric_converter_policy_classes.policy_float2introunder Float2IntRounder] policy class
+which encapsulates the specific rounding mode.
+
+__SPACE__
+
+[#numeric_conversion_converter_internal]
+
+[heading Internal Member Functions]
+
+These static member functions build the actual conversion code used by `convert()`.
+The user does not have to call these if calling `convert()`, since `convert()` calls
+them infernally, but they can be called separately for specific needs.
+
+[endsect]
+
+[section Range Checking Logic]
+
+The following table summarizes the internal range checking logic performed for
+each combination of the properties of Source and Target.
+
+LowestT/HighestT denotes the highest and lowest values of the Target type, respectively.
+
+`S(n)` is short for `static_cast<S>(n)` (`S` denotes the Source type).
+
+`NONE` indicates that for this case there is no range checking.
+
+[pre
+[^
+int_to_int    |--> sig_to_sig     |--> subranged     |--> ( s >= S(LowestT) ) && ( s <= S(HighestT) )
+              |                   |--> not subranged |--> NONE
+              |
+              |--> unsig_to_unsig |--> subranged     |--> ( s >= S(LowestT) ) && ( s <= S(HighestT) )
+              |                   |--> not subranged |--> NONE
+              |
+              |--> sig_to_unsig   |--> pos subranged     |--> ( s >= S(0) ) && ( s <= S(HighestT) )
+              |                   |--> not pos subranged |--> ( s >= S(0) )
+              |
+              |--> unsig_to_sig   |--> subranged     |--> ( s <= S(HighestT) )
+              |                   |--> not subranged |--> NONE
+]
+[^
+int_to_float   |--> NONE
+]
+[^
+float_to_int   |--> round_to_zero         |--> ( s >  S(LowestT)-S(1)   ) && ( s <  S(HighestT)+S(1)   )
+               |--> round_to_even_nearest |--> ( s >= S(LowestT)-S(0.5) ) && ( s <  S(HighestT)+S(0.5) )
+               |--> round_to_infinity     |--> ( s >  S(LowestT)-S(1)   ) && ( s <= S(HighestT)        )
+               |--> round_to_neg_infinity |--> ( s >= S(LowestT)        ) && ( s <  S(HighestT)+S(1)   )
+]
+[^
+float_to_float |--> subranged     |--> ( s >= S(LowestT) ) && ( s <= S(HighestT) )
+               |--> not subranged |--> NONE
+]
+]
+
+
+
+[endsect]
+
+[section Examples]
+
+    #include <cassert>
+    #include <boost/numeric/conversion/converter.hpp>
+
+    int main() {
+
+        typedef boost::numeric::converter<int,double> Double2Int ;
+
+        int x = Double2Int::convert(2.0);
+        assert ( x == 2 );
+
+        int y = Double2Int()(3.14); // As a function object.
+        assert ( y == 3 ) ; // The default rounding is trunc.
+
+        try
+        {
+            double m = boost::numeric::bounds<double>::highest();
+            int z = Double2Int::convert(m); // By default throws positive_overflow()
+        }
+        catch ( boost::numeric::positive_overflow const& )
+        {
+        }
+
+        return 0;
+    }
+
+[endsect]
+
+[endsect]
+
+
+
+
+

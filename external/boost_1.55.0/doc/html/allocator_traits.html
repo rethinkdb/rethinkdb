@@ -1,0 +1,198 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template allocator_traits</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="boost_container_header_reference.html#header.boost.container.allocator_traits_hpp" title="Header &lt;boost/container/allocator_traits.hpp&gt;">
+<link rel="prev" href="boost_container_header_reference.html" title="Boost.Container Header Reference">
+<link rel="next" href="allocator_traits/portable_rebind_alloc.html" title="Struct template portable_rebind_alloc">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_container_header_reference.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="boost_container_header_reference.html#header.boost.container.allocator_traits_hpp"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="allocator_traits/portable_rebind_alloc.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="allocator_traits"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template allocator_traits</span></h2>
+<p>allocator_traits</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="boost_container_header_reference.html#header.boost.container.allocator_traits_hpp" title="Header &lt;boost/container/allocator_traits.hpp&gt;">boost/container/allocator_traits.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="allocator_traits.html" title="Struct template allocator_traits">allocator_traits</a> <span class="special">{</span>
+  <span class="comment">// <a class="link" href="allocator_traits.html#allocator_traitstypes">types</a></span>
+  <span class="keyword">typedef</span> <span class="identifier">Alloc</span>                                 <a name="allocator_traits.allocator_type"></a><span class="identifier">allocator_type</span><span class="special">;</span>                        
+  <span class="keyword">typedef</span> <span class="identifier">Alloc</span><span class="special">::</span><span class="identifier">value_type</span>                     <a name="allocator_traits.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>                            
+  <span class="keyword">typedef</span> <span class="identifier">unspecified</span>                           <a class="link" href="allocator_traits.html#allocator_traits.pointer"><span class="identifier">pointer</span></a><span class="special">;</span>                               
+  <span class="keyword">typedef</span> <span class="identifier">see_documentation</span>                     <a class="link" href="allocator_traits.html#allocator_traits.const_pointer"><span class="identifier">const_pointer</span></a><span class="special">;</span>                         
+  <span class="keyword">typedef</span> <span class="identifier">see_documentation</span>                     <a class="link" href="allocator_traits.html#allocator_traits.reference"><span class="identifier">reference</span></a><span class="special">;</span>                             
+  <span class="keyword">typedef</span> <span class="identifier">see_documentation</span>                     <a class="link" href="allocator_traits.html#allocator_traits.const_reference"><span class="identifier">const_reference</span></a><span class="special">;</span>                       
+  <span class="keyword">typedef</span> <span class="identifier">see_documentation</span>                     <a class="link" href="allocator_traits.html#allocator_traits.void_pointer"><span class="identifier">void_pointer</span></a><span class="special">;</span>                          
+  <span class="keyword">typedef</span> <span class="identifier">see_documentation</span>                     <a class="link" href="allocator_traits.html#allocator_traits.const_void_pointer"><span class="identifier">const_void_pointer</span></a><span class="special">;</span>                    
+  <span class="keyword">typedef</span> <span class="identifier">see_documentation</span>                     <a class="link" href="allocator_traits.html#allocator_traits.difference_type"><span class="identifier">difference_type</span></a><span class="special">;</span>                       
+  <span class="keyword">typedef</span> <span class="identifier">see_documentation</span>                     <a class="link" href="allocator_traits.html#allocator_traits.size_type"><span class="identifier">size_type</span></a><span class="special">;</span>                             
+  <span class="keyword">typedef</span> <span class="identifier">see_documentation</span>                     <a class="link" href="allocator_traits.html#allocator_traits.propagate_on_c_idp20052792"><span class="identifier">propagate_on_container_copy_assignment</span></a><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">see_documentation</span>                     <a class="link" href="allocator_traits.html#allocator_traits.propagate_on_c_idp20053736"><span class="identifier">propagate_on_container_move_assignment</span></a><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">see_documentation</span>                     <a class="link" href="allocator_traits.html#allocator_traits.propagate_on_c_idp20054680"><span class="identifier">propagate_on_container_swap</span></a><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">see_documentation</span>                     <a class="link" href="allocator_traits.html#allocator_traits.rebind_alloc"><span class="identifier">rebind_alloc</span></a><span class="special">;</span>                          
+  <span class="keyword">typedef</span> <a class="link" href="allocator_traits.html" title="Struct template allocator_traits">allocator_traits</a><span class="special">&lt;</span> <span class="identifier">rebind_alloc</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <a class="link" href="allocator_traits.html#allocator_traits.rebind_traits"><span class="identifier">rebind_traits</span></a><span class="special">;</span>                         
+
+  <span class="comment">// member classes/structs/unions</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="allocator_traits/portable_rebind_alloc.html" title="Struct template portable_rebind_alloc">portable_rebind_alloc</a> <span class="special">{</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <span class="identifier">see_documentation</span> <a class="link" href="allocator_traits/portable_rebind_alloc.html#allocator_traits.portable_rebind_alloc.type"><span class="identifier">type</span></a><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="allocator_traits.html#idp20058872-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">pointer</span> <a class="link" href="allocator_traits.html#idp20059080-bb"><span class="identifier">allocate</span></a><span class="special">(</span><span class="identifier">Alloc</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="allocator_traits.html#idp20060920-bb"><span class="identifier">deallocate</span></a><span class="special">(</span><span class="identifier">Alloc</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">pointer</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">pointer</span> <a class="link" href="allocator_traits.html#idp20063448-bb"><span class="identifier">allocate</span></a><span class="special">(</span><span class="identifier">Alloc</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">const_void_pointer</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="allocator_traits.html#idp20065928-bb"><span class="identifier">destroy</span></a><span class="special">(</span><span class="identifier">Alloc</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">size_type</span> <a class="link" href="allocator_traits.html#idp20068456-bb"><span class="identifier">max_size</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Alloc</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">Alloc</span> <a class="link" href="allocator_traits.html#idp20070264-bb"><span class="identifier">select_on_container_copy_construction</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Alloc</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">class</span><span class="special">...</span> Args<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="allocator_traits.html#idp20071880-bb"><span class="identifier">construct</span></a><span class="special">(</span><span class="identifier">Alloc</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">T</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">Args</span> <span class="special">&amp;&amp;</span><span class="special">...</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp76694136"></a><h2>Description</h2>
+<p>The class template <a class="link" href="allocator_traits.html" title="Struct template allocator_traits">allocator_traits</a> supplies a uniform interface to all allocator types. This class is a C++03-compatible implementation of std::allocator_traits </p>
+<div class="refsect2">
+<a name="idp76695080"></a><h3>
+<a name="allocator_traitstypes"></a><code class="computeroutput">allocator_traits</code> 
+        public
+       types</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">unspecified</span> <a name="allocator_traits.pointer"></a><span class="identifier">pointer</span><span class="special">;</span></p>
+<p>Alloc::pointer if such a type exists; otherwise, value_type* </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">see_documentation</span> <a name="allocator_traits.const_pointer"></a><span class="identifier">const_pointer</span><span class="special">;</span></p>
+<p>Alloc::const_pointer if such a type exists ; otherwise, pointer_traits&lt;pointer&gt;::rebind&lt;const </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">see_documentation</span> <a name="allocator_traits.reference"></a><span class="identifier">reference</span><span class="special">;</span></p>
+<p>Non-standard extension Alloc::reference if such a type exists; otherwise, value_type&amp; </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">see_documentation</span> <a name="allocator_traits.const_reference"></a><span class="identifier">const_reference</span><span class="special">;</span></p>
+<p>Non-standard extension Alloc::const_reference if such a type exists ; otherwise, const value_type&amp; </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">see_documentation</span> <a name="allocator_traits.void_pointer"></a><span class="identifier">void_pointer</span><span class="special">;</span></p>
+<p>Alloc::void_pointer if such a type exists ; otherwise, pointer_traits&lt;pointer&gt;::rebind&lt;void&gt;. </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">see_documentation</span> <a name="allocator_traits.const_void_pointer"></a><span class="identifier">const_void_pointer</span><span class="special">;</span></p>
+<p>Alloc::const_void_pointer if such a type exists ; otherwis e, pointer_traits&lt;pointer&gt;::rebind&lt;const </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">see_documentation</span> <a name="allocator_traits.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span></p>
+<p>Alloc::difference_type if such a type exists ; otherwise, pointer_traits&lt;pointer&gt;::difference_type. </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">see_documentation</span> <a name="allocator_traits.size_type"></a><span class="identifier">size_type</span><span class="special">;</span></p>
+<p>Alloc::size_type if such a type exists ; otherwise, make_unsigned&lt;difference_type&gt;::type </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">see_documentation</span> <a name="allocator_traits.propagate_on_c_idp20052792"></a><span class="identifier">propagate_on_container_copy_assignment</span><span class="special">;</span></p>
+<p>Alloc::propagate_on_container_copy_assignment if such a type exists, otherwise an integral_constant type with internal constant static member <code class="computeroutput">value</code> == false. </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">see_documentation</span> <a name="allocator_traits.propagate_on_c_idp20053736"></a><span class="identifier">propagate_on_container_move_assignment</span><span class="special">;</span></p>
+<p>Alloc::propagate_on_container_move_assignment if such a type exists, otherwise an integral_constant type with internal constant static member <code class="computeroutput">value</code> == false. </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">see_documentation</span> <a name="allocator_traits.propagate_on_c_idp20054680"></a><span class="identifier">propagate_on_container_swap</span><span class="special">;</span></p>
+<p>Alloc::propagate_on_container_swap if such a type exists, otherwise an integral_constant type with internal constant static member <code class="computeroutput">value</code> == false. </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">see_documentation</span> <a name="allocator_traits.rebind_alloc"></a><span class="identifier">rebind_alloc</span><span class="special">;</span></p>
+<p>Defines an allocator: Alloc::rebind&lt;T&gt;::other if such a type exists; otherwise, Alloc&lt;T, Args&gt; if Alloc is a class template instantiation of the form Alloc&lt;U, Args&gt;, where Args is zero or more type arguments ; otherwise, the instantiation of rebind_alloc is ill-formed.</p>
+<p>In C++03 compilers <code class="computeroutput">rebind_alloc</code> is a struct derived from an allocator deduced by previously detailed rules. </p>
+</li>
+<li class="listitem">
+<p>
+<span class="keyword">typedef</span> <a class="link" href="allocator_traits.html" title="Struct template allocator_traits">allocator_traits</a><span class="special">&lt;</span> <span class="identifier">rebind_alloc</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <a name="allocator_traits.rebind_traits"></a><span class="identifier">rebind_traits</span><span class="special">;</span></p>
+<p>In C++03 compilers <code class="computeroutput">rebind_traits</code> is a struct derived from <code class="computeroutput"><a class="link" href="allocator_traits.html" title="Struct template allocator_traits">allocator_traits</a>&lt;OtherAlloc&gt;</code>, where <code class="computeroutput">OtherAlloc</code> is the allocator deduced by rules explained in <code class="computeroutput">rebind_alloc</code>. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp76727304"></a><h3>
+<a name="idp20058872-bb"></a><code class="computeroutput">allocator_traits</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">pointer</span> <a name="idp20059080-bb"></a><span class="identifier">allocate</span><span class="special">(</span><span class="identifier">Alloc</span> <span class="special">&amp;</span> a<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Returns</strong></span>: <code class="computeroutput">a.allocate(n)</code> </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp20060920-bb"></a><span class="identifier">deallocate</span><span class="special">(</span><span class="identifier">Alloc</span> <span class="special">&amp;</span> a<span class="special">,</span> <span class="identifier">pointer</span> p<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Returns</strong></span>: <code class="computeroutput">a.deallocate(p, n)</code></p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">pointer</span> <a name="idp20063448-bb"></a><span class="identifier">allocate</span><span class="special">(</span><span class="identifier">Alloc</span> <span class="special">&amp;</span> a<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">,</span> <span class="identifier">const_void_pointer</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: calls <code class="computeroutput">a.allocate(n, p)</code> if that call is well-formed; otherwise, invokes <code class="computeroutput">a.allocate(n)</code> </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">static</span> <span class="keyword">void</span> <a name="idp20065928-bb"></a><span class="identifier">destroy</span><span class="special">(</span><span class="identifier">Alloc</span> <span class="special">&amp;</span> a<span class="special">,</span> <span class="identifier">T</span> <span class="special">*</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: calls <code class="computeroutput">a.destroy(p)</code> if that call is well-formed; otherwise, invokes <code class="computeroutput">p-&gt;~T()</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">size_type</span> <a name="idp20068456-bb"></a><span class="identifier">max_size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Alloc</span> <span class="special">&amp;</span> a<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Returns</strong></span>: <code class="computeroutput">a.max_size()</code> if that expression is well-formed; otherwise, <code class="computeroutput">numeric_limits&lt;size_type&gt;::max()</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">Alloc</span> <a name="idp20070264-bb"></a><span class="identifier">select_on_container_copy_construction</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Alloc</span> <span class="special">&amp;</span> a<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Returns</strong></span>: <code class="computeroutput">a.select_on_container_copy_construction()</code> if that expression is well-formed; otherwise, a. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">class</span><span class="special">...</span> Args<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="keyword">void</span> <a name="idp20071880-bb"></a><span class="identifier">construct</span><span class="special">(</span><span class="identifier">Alloc</span> <span class="special">&amp;</span> a<span class="special">,</span> <span class="identifier">T</span> <span class="special">*</span> p<span class="special">,</span> <span class="identifier">Args</span> <span class="special">&amp;&amp;</span><span class="special">...</span> args<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: calls <code class="computeroutput">a.construct(p, std::forward&lt;Args&gt;(args)...)</code> if that call is well-formed; otherwise, invokes <code class="computeroutput">::new (static_cast&lt;void*&gt;(p)) T(std::forward&lt;Args&gt;(args)...)</code> </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_container_header_reference.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="boost_container_header_reference.html#header.boost.container.allocator_traits_hpp"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="allocator_traits/portable_rebind_alloc.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

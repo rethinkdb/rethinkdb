@@ -1,0 +1,39 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_same is_same]
+   template <class T, class U>
+   struct is_same : public __tof {};
+  
+__inherit If T and U are the same types then inherits from 
+__true_type, otherwise inherits from __false_type.
+
+__header ` #include <boost/type_traits/is_same.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__compat If the compiler does not support partial-specialization of class templates, 
+then this template can not be used with abstract, incomplete or function types.
+
+__examples
+
+[:`is_same<int, int>` inherits from `__true_type`.]
+
+[:`is_same<int, int>::type` is the type `__true_type`.]
+
+[:`is_same<int, int>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_same<int const, int>::value` is an integral constant 
+expression that evaluates to /false/.]
+
+[:`is_same<int&, int>::value` is an integral constant 
+expression that evaluates to /false/.]
+
+[:`is_same<T, T>::value_type` is the type `bool`.]
+
+[endsect]
+
+

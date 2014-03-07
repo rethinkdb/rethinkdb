@@ -1,0 +1,42 @@
+(C) Copyright Edward Diener 2011-2013
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt).
+
+The library comes with full documentation with an index, 
+in both HTML and PDF format. The HTML documentation is at 
+tti\libs\tti\doc\html\index.html and the PDF documentation 
+is at tti\libs\tti\doc\TypeTraitsIntrospection.pdf.
+
+You can use the jamfile in the doc directory to regenerate 
+the documentation for this library. 
+
+Add '--enable-index' to the command line to have an index 
+with the documentation. Add 'pdf' on the command line to
+regenerate the PDF documentation.
+
+You can use the jamfile in the test directory to 
+run the tests for this library.
+
+When running the tests you can use either of 
+three main targets if you like. Executing the jamfile without a 
+target, or specifying the target 'tti', will run tests for both 
+basic TTI and for the variadic macro portion of TTI. You can run 
+tests for only the basic TTI, which is the vast majority of TTI 
+functionality, by specifying only the 'ttinovm' target when 
+executing the jamfile. If you just want to run the tests for the 
+variadic macro portion of TTI, specify the target as 'ttivm'.
+
+You need only execute 'bjam' in the jamfile directories 
+to regenerate the docs or run the test.
+
+If you want to contact me directly, my name is 
+Edward Diener and you can reach me at 
+eld@tropicsoft.com. I am an independent computer
+consultant with my own company, I live in Atlanta, Georgia,
+and I am always looking for exciting projects on which to 
+work for a living.
+
+You can also of course use the Boost newsgroups 
+to ask questions and make comments or suggestions 
+about the library.

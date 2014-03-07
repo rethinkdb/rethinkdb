@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://inkscape.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.0"
+   x="0.00000000"
+   y="0.00000000"
+   id="svg6221"
+   width="745.60706"
+   height="513.25690"
+   sodipodi:version="0.32"
+   inkscape:version="0.42"
+   sodipodi:docname="Open_Clipart_Library_logo.svg">
+  <sodipodi:namedview
+     inkscape:cy="893.36713"
+     inkscape:cx="305.25953"
+     inkscape:zoom="0.86831670"
+     inkscape:window-height="913"
+     inkscape:window-width="1272"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base"
+     inkscape:window-x="0"
+     inkscape:window-y="30"
+     inkscape:current-layer="svg6221" />
+  <metadata
+     id="metadata4">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>Open Clip Art Logo</dc:title>
+        <dc:date>10-01-2004</dc:date>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Andreas Nilsson</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <cc:license
+           rdf:resource="http://web.resource.org/cc/PublicDomain" />
+        <dc:contributor>
+          <cc:Agent>
+            <dc:title>Jon Phillips, Tobias Jakobs</dc:title>
+          </cc:Agent>
+        </dc:contributor>
+        <dc:description>This is one version of the official Open Clip Art Library logo.</dc:description>
+        <dc:subject>logo, open clip art library logo, logotype</dc:subject>
+      </cc:Work>
+      <cc:License
+         rdf:about="http://web.resource.org/cc/PublicDomain">
+        <cc:permits
+           rdf:resource="http://web.resource.org/cc/Reproduction" />
+        <cc:permits
+           rdf:resource="http://web.resource.org/cc/Distribution" />
+        <cc:permits
+           rdf:resource="http://web.resource.org/cc/DerivativeWorks" />
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs3" />
+  <path
+     d="M 405.82430,48.494855 C 396.10958,45.870336 386.13966,51.583653 383.51514,61.298370 L 298.15838,376.92441 C 295.53385,386.63914 301.24717,396.41506 310.96188,399.03957 L 626.58791,484.39635 C 636.30255,487.02086 646.27253,481.30755 648.89705,471.59283 L 734.25375,155.96679 C 735.49097,151.38725 734.71475,146.85751 732.70181,142.96928 L 732.70181,142.77528 L 732.50782,142.38730 L 732.50782,142.19331 C 732.46276,142.11490 732.36008,142.07704 732.31383,141.99931 L 717.76438,111.93045 L 651.80695,114.84034 L 405.82430,48.494855 z "
+     style="fill:#000000;fill-opacity:0.20000000;fill-rule:evenodd;stroke:none;stroke-width:1.6789947;stroke-miterlimit:4.0000000;stroke-opacity:0.20000000"
+     id="rect6080" />
+  <rect
+     width="363.28452"
+     height="363.28452"
+     rx="2.9260478"
+     ry="2.9260478"
+     x="363.42282"
+     y="-78.837021"
+     transform="matrix(0.965391,0.260807,-0.260807,0.965391,0.000000,0.000000)"
+     style="fill:#ffffff;fill-rule:evenodd;stroke:#ffffff;stroke-width:7.7597070;stroke-miterlimit:4.0000000;stroke-opacity:1.0000000"
+     id="rect911" />
+  <rect
+     width="288.49521"
+     height="288.49521"
+     rx="2.3236644"
+     ry="2.3236644"
+     x="398.72931"
+     y="-39.355053"
+     transform="matrix(0.965391,0.260807,-0.260807,0.965391,0.000000,0.000000)"
+     style="fill:#f3e533;fill-opacity:1.0000000;fill-rule:evenodd;stroke-width:0.79413080pt"
+     id="rect912" />
+  <path
+     d="M 552.48969,32.227283 L 486.13725,53.566475 L 486.71922,53.760468 L 235.30476,53.760468 C 225.24184,53.760468 217.26344,61.738811 217.26344,71.801785 L 217.26344,398.87339 C 217.26344,408.93643 225.24178,416.91471 235.30476,416.91471 L 562.37636,416.91471 C 572.43940,416.91471 580.41768,408.93637 580.41768,398.87339 L 580.41768,71.801785 C 580.41768,66.612962 578.25806,62.108236 574.79189,58.804276 L 552.48969,32.227283 z "
+     style="fill:#000000;fill-opacity:0.20000000;fill-rule:evenodd;stroke:none;stroke-width:1.6789950;stroke-miterlimit:4.0000000;stroke-opacity:1.0000000"
+     id="rect6079" />
+  <rect
+     width="363.28418"
+     height="363.28418"
+     rx="2.9260466"
+     ry="2.9260466"
+     x="192.47523"
+     y="30.531385"
+     style="fill:#ffffff;fill-rule:evenodd;stroke:#ffffff;stroke-width:7.7597060;stroke-miterlimit:4.0000000;stroke-opacity:1.0000000"
+     id="rect913" />
+  <rect
+     width="288.49512"
+     height="288.49512"
+     rx="2.3236635"
+     ry="2.3236635"
+     x="227.78207"
+     y="70.013809"
+     style="fill:#ff7f00;fill-rule:evenodd;stroke-width:0.79413080pt"
+     id="rect914" />
+  <path
+     d="M 348.20848,28.541423 L 291.17463,66.563983 L 305.14211,68.115925 L 55.667554,157.15854 C 46.188236,160.53570 41.232826,170.76437 44.609974,180.24367 L 138.89040,445.04365 L 132.29465,444.84966 L 128.02682,485.39411 L 163.52746,498.58561 L 163.91546,498.58561 C 168.05181,500.44490 172.88654,501.00342 177.49494,499.36159 L 485.55528,389.56176 C 495.03452,386.18460 499.79600,375.76200 496.41886,366.28264 L 386.81301,58.416291 C 385.25785,54.051177 382.02384,50.975478 378.27734,48.910652 L 348.20848,28.541423 z "
+     style="fill:#000000;fill-opacity:0.20000000;fill-rule:evenodd;stroke:none;stroke-width:1.2500002;stroke-miterlimit:4.0000000;stroke-opacity:1.0000000"
+     id="rect6078" />
+  <rect
+     width="363.28326"
+     height="363.28326"
+     rx="2.9260383"
+     ry="2.9260383"
+     x="-41.716114"
+     y="142.20343"
+     transform="matrix(0.942003,-0.335604,0.335604,0.942003,0.000000,0.000000)"
+     style="fill:#ffffff;fill-rule:evenodd;stroke:#ffffff;stroke-width:7.7596951;stroke-miterlimit:4.0000000;stroke-opacity:1.0000000"
+     id="rect915" />
+  <rect
+     width="288.49469"
+     height="288.49469"
+     rx="2.3236592"
+     ry="2.3236592"
+     x="-6.4090877"
+     y="181.68738"
+     transform="matrix(0.942003,-0.335604,0.335604,0.942003,0.000000,0.000000)"
+     style="fill:#bf0000;fill-rule:evenodd;stroke-width:0.79413080pt"
+     id="rect916" />
+</svg>

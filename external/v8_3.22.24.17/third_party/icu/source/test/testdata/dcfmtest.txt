@@ -1,0 +1,129 @@
+﻿
+# Note: Please make sure that this utf-8 file contains a BOM.
+#   Copyright (c) 2010, International Business Machines Corporation and
+#   others. All Rights Reserved.
+#
+
+#   File:  dcfmtest.txt
+#
+#       Decimal formatter test cases.
+#       File Encoding:  UTF-8
+#
+#   The syntax for this file is this:
+#   One test case per line.  No continuations.  No multiple cases per line.
+#
+#   Parsing Test case line:
+#     parse "input text"  type "expected_decimal_text" 
+#
+#   Format Test Case Line:
+#     format  pattern round-mode "decimal number" "expected formatted result"
+#
+#   Fields are separated by spaces or tabs.  Input text to be parsed, decimal numbers
+#   and formatted output are "quoted".  Other fields are not.
+#
+#   "type" is a single letter,  representing the type that the ICU formattable produces
+#   for the input.
+#            d     double
+#            i     int32
+#            l     int64
+#
+#   RoundingMode is one of
+#          default
+#          ceiling
+#          floor
+#          down
+#          up
+#          halfeven
+#          halfdown
+#          halfup
+#
+
+parse  "123.45"   d "123.45"  
+
+format 0.0000E0 default "1234.01" "1.2340E3"
+
+format 00  default "1234" "1234"
+format 00  default ".01"  "00"
+format 00  default "1"    "01"
+format 00  default "1.9"  "02"
+
+format #.# default "12.34" "12.3"
+
+format @@@   default  "12.3456"  "12.3"
+format @@@   default  "123456"  "123000"
+format @@@   default  ".00123456"  "0.00123"
+
+format @@###  default "12345678"  "12346000"
+format @@###  default "12300001"  "12300000"
+format @@###  default ".0012345678"  "0.0012346"
+format @@###  default ".0012300000"  "0.00123"
+
+format @@@@E0  default "1234567"  "1.235E6"
+format 0.0##E0 default "1234567"  "1.235E6"
+format 00.##E0 default "1234567"  "12.35E5"
+format 00.##E0 default "1234567E111"  "12.35E116"
+format 00.##E0 default "-1234567E111"  "-12.35E116"
+
+
+#
+#  Rounding Modes
+#  
+format 0.00  default    "32.045" "32.04"
+format 0.00  floor      "32.045" "32.04"
+format 0.00  ceiling    "32.045" "32.05"
+format 0.00  down       "32.045" "32.04"
+format 0.00  up         "32.045" "32.05"
+format 0.00  halfeven   "32.045" "32.04"
+format 0.00  halfdown   "32.045" "32.04"
+format 0.00  halfup     "32.045" "32.05"
+
+format 0.00  default    "-32.045" "-32.04"
+format 0.00  floor      "-32.045" "-32.05"
+format 0.00  ceiling    "-32.045" "-32.04"
+format 0.00  down       "-32.045" "-32.04"
+format 0.00  up         "-32.045" "-32.05"
+format 0.00  halfeven   "-32.045" "-32.04"
+format 0.00  halfdown   "-32.045" "-32.04"
+format 0.00  halfup     "-32.045" "-32.05"
+
+format @@@   default    "1235.00"   "1240"
+format @@@   floor      "1235.00"   "1230"
+format @@@   ceiling    "1235.00"   "1240"
+format @@@   down       "1235.00"   "1230"
+format @@@   up         "1235.00"   "1240"
+format @@@   halfeven   "1235.00"   "1240"
+format @@@   halfdown   "1235.00"   "1230"
+format @@@   halfup     "1235.00"   "1240"
+
+format @@@   default    "-1235.00"   "-1240"
+format @@@   floor      "-1235.00"   "-1240"
+format @@@   ceiling    "-1235.00"   "-1230"
+format @@@   down       "-1235.00"   "-1230"
+format @@@   up         "-1235.00"   "-1240"
+format @@@   halfeven   "-1235.00"   "-1240"
+format @@@   halfdown   "-1235.00"   "-1230"
+format @@@   halfup     "-1235.00"   "-1240"
+
+format 0.000E0  default   "12345"    "1.234E4"
+format 0.000E0  floor     "12345"    "1.234E4"
+format 0.000E0  ceiling   "12345"    "1.235E4"
+format 0.000E0  down      "12345"    "1.234E4"
+format 0.000E0  up        "12345"    "1.235E4"
+format 0.000E0  halfeven  "12345"    "1.234E4"
+format 0.000E0  halfdown  "12345"    "1.234E4"
+format 0.000E0  halfup    "12345"    "1.235E4"
+
+
+format 0.0##    default   "1.00001"  "1.0"
+format 0.0##    up        "1.00001"  "1.001"
+format 0.0##    up        "1.0000000000000000000000000000000000000000000000000001"  "1.001"
+format 0.0##    up        "1.0000000000000000000000000000000000000000000000000000"  "1.0"
+
+format #        default   "10000000000000000000000000000000000000000000000000001" "10000000000000000000000000000000000000000000000000001" 
+
+format 0.#E0    default   "1234"    "1.2E3"
+format 0.##E0   default   "1234"    "1.23E3"
+format .0E0     default   "1234"    ".1E4"
+format .0#E0     default  "1234"    ".12E4"
+format 0.##E0   default   "1234"    "1.23E3"
+

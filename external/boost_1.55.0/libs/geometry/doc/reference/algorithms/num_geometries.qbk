@@ -1,0 +1,31 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __this_function__ num_geometries]
+
+[heading_conformance_ogc __this_function__..NumGeometries]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__single__][[qbk_ret 1]]]
+[[__multi__][Returns boost::size(geometry); the input is considered as a range]]
+]
+
+
+[heading Complexity]
+Constant
+
+[heading Examples]
+[num_geometries]
+[num_geometries_output]
+

@@ -1,0 +1,158 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Nested Types and Function Signatures</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="prev" href="tti_nested_type.html" title="Nested Types">
+<link rel="next" href="tti_usingMM.html" title="An example using the Macro Metafunctions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_nested_type.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_usingMM.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="the_type_traits_introspection_library.tti_func_sig"></a><a class="link" href="tti_func_sig.html" title="Nested Types and Function Signatures">Nested
+    Types and Function Signatures</a>
+</h2></div></div></div>
+<p>
+      The strength of <code class="computeroutput"><span class="identifier">BOOST_TTI_MEMBER_TYPE</span></code>
+      to represent a type which may or may not exist, and which then can be subsequently
+      used in other macro metafunctions whenever a type is needed as a template parameter
+      without producing a compiler error, should not be underestimated. It is one
+      of the reasons why we have two different ways of using our generated metafunction
+      when introspecting for member data, a member function, or a static member function
+      of an enclosing type.
+    </p>
+<p>
+      In the cases where we specify a composite syntax when using <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_MEMBER_DATA</span></code>,
+      <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_MEMBER_FUNCTION</span></code>,
+      or <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span></code>,
+      the signature for the member data, member function, or static member function
+      is a single type. For <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_MEMBER_DATA</span></code>
+      the signature is a pointer to member data, for <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_MEMBER_FUNCTION</span></code>
+      the signature is a pointer to a member function, and for <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span></code>
+      the signature is divided between an enclosing type and a function in composite
+      format. This makes for a syntactical notation which is natural to specify,
+      but because of the notation we can not use the nested type functionality in
+      <code class="computeroutput"><span class="identifier">BOOST_TTI_MEMBER_TYPE</span></code> for potential
+      parts of these composite types. If any part of this signature, which specifies
+      a composite of various types, is invalid, a compiler time error will occur.
+    </p>
+<p>
+      But in the more specific cases, when we use <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_MEMBER_DATA</span></code>,
+      <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_MEMBER_FUNCTION</span></code>,
+      and <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span></code>,
+      our composite type in our signatures is broken down into their individual types
+      so that using <code class="computeroutput"><span class="identifier">BOOST_TTI_MEMBER_TYPE</span></code>
+      for any one of the individual types will not lead to a compile time error if
+      the type specified does not actually exist.
+    </p>
+<p>
+      A few examples will suffice.
+    </p>
+<p>
+      Given known types T and U, and the supposed type Ntype as a nested type of
+      U, we want to find out if type T has a member function whose signature is
+      <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">aMemberFunction</span><span class="special">(</span><span class="identifier">U</span><span class="special">::</span><span class="identifier">Ntype</span><span class="special">)</span></code>.
+    </p>
+<p>
+      First using <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_MEMBER_FUNCTION</span></code>
+      using our composite form we would code:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">has_member_function</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_TTI_HAS_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">aMemberFunction</span><span class="special">)</span>
+
+<span class="identifier">has_member_function_aMemberFunction</span><span class="special">&lt;</span><span class="keyword">void</span> <span class="special">(</span><span class="identifier">T</span><span class="special">::*)(</span><span class="identifier">U</span><span class="special">::</span><span class="identifier">Ntype</span><span class="special">)&gt;::</span><span class="identifier">value</span><span class="special">;</span>
+</pre>
+<p>
+      If the nested type U::Ntype does not exist, this leads to a compiler error.
+      We really want to avoid this situation, so let's try our alternative.
+    </p>
+<p>
+      Second using <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_MEMBER_FUNCTION</span></code>
+      using our specific form we would code:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">member_type</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">has_member_function</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_TTI_HAS_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">Ntype</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_HAS_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">aMemberFunction</span><span class="special">)</span>
+
+<span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">has_member_type_Ntype</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">OurType</span><span class="special">;</span>
+<span class="identifier">has_member_function_aMemberFunction</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="keyword">void</span><span class="special">,</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">OurType</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span>
+</pre>
+<p>
+      If the nested type U::Ntype does exist and T does have a member function whose
+      signature is <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">aMemberFunction</span><span class="special">(</span><span class="identifier">U</span><span class="special">::</span><span class="identifier">Ntype</span><span class="special">)</span></code> our
+      'value' is true, otherwise it is false. We will never get a compiler error
+      in this case.
+    </p>
+<p>
+      As a second example we will once again use the suppositions of our first example;
+      given known types T and U, and the supposed type Ntype as a nested type of
+      U. But this time let us look for a static member function whose signature is
+      <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">aStaticMemberFunction</span><span class="special">(</span><span class="identifier">U</span><span class="special">::</span><span class="identifier">Ntype</span><span class="special">)</span></code>.
+    </p>
+<p>
+      First using <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span></code>
+      using our composite form we would code:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">has_static_member_function</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">aStaticMemberFunction</span><span class="special">)</span>
+
+<span class="identifier">has_static_member_function_aStaticMemberFunction</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="keyword">void</span> <span class="special">(</span><span class="identifier">U</span><span class="special">::</span><span class="identifier">Ntype</span><span class="special">)&gt;::</span><span class="identifier">value</span><span class="special">;</span>
+</pre>
+<p>
+      Once again if the nested type U::Ntype does not exist, this leads to a compiler
+      error, so let's try our alternative.
+    </p>
+<p>
+      Second using <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span></code>
+      using our specific form we would code:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">member_type</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">has_static_member_function</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_TTI_HAS_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">Ntype</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">aStaticMemberFunction</span><span class="special">)</span>
+
+<span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">has_member_type_Ntype</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">OurType</span><span class="special">;</span>
+<span class="identifier">has_static_member_function_aStaticMemberFunction</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="keyword">void</span><span class="special">,</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">OurType</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span>
+</pre>
+<p>
+      If the nested type U::Ntype does exist and T does have a member function whose
+      signature is <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">aMemberFunction</span><span class="special">(</span><span class="identifier">U</span><span class="special">::</span><span class="identifier">Ntype</span><span class="special">)</span></code> our
+      'value' is true, otherwise it is false. We will never get a compiler error
+      in this case.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Tropic Software
+      East Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_nested_type.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_usingMM.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

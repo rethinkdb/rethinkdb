@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<header name="boost/signals2/optional_last_value.hpp" last-revision="$Date: 2007-03-06 16:51:55 -0500 (Tue, 06 Mar 2007) $">
+  <namespace name="boost">
+    <namespace name="signals2">
+      <class name="optional_last_value">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+
+        <purpose>Evaluate an <conceptname>InputIterator</conceptname> sequence and return
+          a boost::optional which contains the last value in the sequence, or an
+          empty <classname>boost::optional</classname> if the sequence was empty.</purpose>
+        <description>
+          <para>
+            <code>optional_last_value</code> is the default Combiner template type for signals in the
+            Boost.Signals2 library.  The advantage of <code>optional_last_value</code> over
+            <classname>signals2::last_value</classname> is that <code>optional_last_value</code>
+            can return an empty <classname>boost::optional</classname>. rather
+            than throwing an exception, when
+            its <code>InputIterator</code> sequence is empty.
+          </para>
+        </description>
+
+        <typedef name="result_type"><type><classname>boost::optional</classname>&lt;T&gt;</type></typedef>
+
+        <method-group name="invocation">
+          <method name="operator()" cv="const">
+            <template>
+              <template-type-parameter name="InputIterator"/>
+            </template>
+            <type>result_type</type>
+            <parameter name="first">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+            <parameter name="last">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+
+            <effects><para>Attempts to dereference every iterator in the sequence <computeroutput>[first, last)</computeroutput>.
+              </para></effects>
+            <returns>
+              <para>
+                The result of the last successful iterator dereference, wrapped in a <classname>boost::optional</classname>.
+                The returned <code>optional</code> will be empty if no iterators were dereferenced.
+              </para>
+            </returns>
+            <throws><para>Does not throw.</para></throws>
+          </method>
+        </method-group>
+      </class>
+
+      <class-specialization name="optional_last_value">
+        <template/>
+        <specialization>
+          <template-arg>void</template-arg>
+        </specialization>
+
+        <purpose>Evaluate an InputIterator sequence.</purpose>
+        <description>
+          <para>This specialization of <classname>signals2::optional_last_value</classname> is provided
+            to cope with the fact that there is no such thing as an
+            <code><classname>optional</classname>&lt;void&gt;</code>, which
+            <classname>optional_last_value</classname> would otherwise try to
+            use as its <code>result_type</code>.  This specialization
+            instead sets the <code>result_type</code> to be <code>void</code>.
+          </para>
+        </description>
+
+        <typedef name="result_type">
+          <type>void</type>
+        </typedef>
+
+        <method-group name="invocation">
+          <method name="operator()" cv="const">
+            <template>
+              <template-type-parameter name="InputIterator"/>
+            </template>
+            <type>result_type</type>
+            <parameter name="first">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+            <parameter name="last">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+
+            <effects><para>Attempts to dereference every iterator in the sequence <computeroutput>[first, last)</computeroutput>.
+              </para></effects>
+          </method>
+        </method-group>
+      </class-specialization>
+    </namespace>
+  </namespace>
+</header>

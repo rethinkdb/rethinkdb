@@ -1,0 +1,635 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/extends.hpp">
+  <para>Macros and a base class for defining end-user expression types </para>
+  <namespace name="boost">
+    <namespace name="proto">
+
+      <!-- proto::is_proto_expr -->
+      <struct name="is_proto_expr">
+        <purpose>Empty type to be used as a dummy template parameter of POD expression wrappers. It allows
+          argument-dependent lookup to find Proto's operator overloads.</purpose>
+        <description>
+          <para>
+            <computeroutput>proto::is_proto_expr</computeroutput> allows argument-dependent lookup to find Proto's operator overloads. For example:
+          </para>
+          <para>
+            <programlisting> template&lt;typename T, typename Dummy = <classname>proto::is_proto_expr</classname>&gt;
+ struct my_terminal
+ {
+     <macroname>BOOST_PROTO_BASIC_EXTENDS</macroname>(
+         typename <classname>proto::terminal</classname>&lt;T&gt;::type
+       , my_terminal&lt;T&gt;
+       , <classname>proto::default_domain</classname>
+     )
+ };
+
+ // ...
+ my_terminal&lt;int&gt; _1, _2;
+ _1 + _2; // OK, uses proto::operator+</programlisting>
+          </para>
+          <para>
+            Without the second <computeroutput>Dummy</computeroutput> template parameter, Proto's operator overloads
+            would not be considered by name lookup.
+          </para>
+        </description>
+      </struct>
+
+      <!-- proto::extends -->
+      <struct name="extends">
+        <template>
+          <template-type-parameter name="Expr"/>
+          <template-type-parameter name="Derived"/>
+          <template-type-parameter name="Domain">
+            <default><classname>proto::default_domain</classname></default>
+          </template-type-parameter>
+        </template>
+        <purpose>For adding behaviors to a Proto expression template.</purpose>
+        <description>
+          <para>
+            Use <computeroutput>proto::extends&lt;&gt;</computeroutput> to give expressions in your
+            domain custom data members and member functions.
+          </para>
+          <para>
+            Conceptually, using <computeroutput>proto::extends&lt;&gt;</computeroutput> is akin
+            to inheriting from <computeroutput><classname>proto::expr</classname>&lt;&gt;</computeroutput>
+            and adding your own members. Using <computeroutput>proto::extends&lt;&gt;</computeroutput> is
+            generally preferrable to straight inheritance because the members that would be inherited from
+            <computeroutput><classname>proto::expr</classname>&lt;&gt;</computeroutput> would
+            be wrong; they would incorrectly slice off your additional members when building
+            larger expressions from smaller ones. <computeroutput>proto::extends&lt;&gt;</computeroutput>
+            automatically gives your expression types the appropriate operator overloads that
+            preserve your domain-specific members when composing expression trees.
+          </para>
+          <para>
+            Expression extensions are typically defined as follows:
+          </para>
+          <para>
+            <programlisting>template&lt; typename Expr &gt;
+struct my_expr
+  : proto::extends&lt;
+        Expr            // The expression type we're extending
+      , my_expr&lt; Expr &gt; // The type we're defining
+      , my_domain       // The domain associated with this expression extension
+    &gt;
+{
+    // An expression extension is constructed from the expression
+    // it is extending.
+    my_expr( Expr const &amp; e = Expr() )
+      : my_expr::proto_extends( e )
+    {}
+    
+    // Unhide proto::extends::operator=
+    // (This is only necessary if a lazy assignment operator
+    // makes sense for your domain-specific language.)
+    BOOST_PROTO_EXTENDS_USING_ASSIGN(my_expr)
+    
+    /*
+    ... domain-specific members go here ...
+    */
+};</programlisting>
+          </para>
+          <para>
+            See also:
+            <itemizedlist>
+              <listitem>
+                <computeroutput><macroname>BOOST_PROTO_EXTENDS</macroname>()</computeroutput>
+              </listitem>
+              <listitem>
+                <computeroutput><macroname>BOOST_PROTO_EXTENDS_USING_ASSIGN</macroname>()</computeroutput>
+              </listitem>
+              <listitem>
+                <computeroutput><macroname>BOOST_PROTO_EXTENDS_USING_ASSIGN_NON_DEPENDENT</macroname>()</computeroutput>
+              </listitem>
+            </itemizedlist>
+          </para>
+        </description>
+        <struct name="result">
+          <template>
+            <template-type-parameter name="Signature"/>
+          </template>
+          <typedef name="type">
+            <type><replaceable>unspecified</replaceable></type>
+          </typedef>
+          <description>
+            <para>So that <computeroutput>boost::result_of&lt;&gt;</computeroutput>
+            can compute the return type of <computeroutput>proto::extends::operator()</computeroutput>.
+          </para>
+          </description>
+        </struct>
+        <typedef name="proto_base_expr">
+          <type>typename Expr::proto_base_expr</type>
+        </typedef>
+        <typedef name="proto_domain">
+          <type>Domain</type>
+        </typedef>
+        <typedef name="proto_derived_expr">
+          <type>Derived</type>
+        </typedef>
+        <typedef name="proto_extends">
+          <type>extends</type>
+        </typedef>
+        <typedef name="proto_tag">
+          <type>typename proto_base_expr::proto_tag</type>
+        </typedef>
+        <typedef name="proto_args">
+          <type>typename proto_base_expr::proto_args</type>
+        </typedef>
+        <typedef name="proto_arity">
+          <type>typename proto_base_expr::proto_arity</type>
+        </typedef>
+        <typedef name="proto_grammar">
+          <type>typename proto_base_expr::proto_grammar</type>
+        </typedef>
+        <typedef name="proto_childN">
+          <purpose>For each <replaceable>N</replaceable> in <replaceable>[0,max(1,proto_arity_c))</replaceable></purpose>
+          <type>typename proto_base_expr::proto_child<replaceable>N</replaceable></type>
+        </typedef>
+
+        <!-- constructors -->
+        <constructor/>
+        <constructor>
+          <parameter name="that">
+            <paramtype><classname>extends</classname> const &amp;</paramtype>
+          </parameter>
+        </constructor>
+        <constructor>
+          <parameter name="expr_">
+            <paramtype>Expr const &amp;</paramtype>
+          </parameter>
+        </constructor>
+
+        <method-group name="public static functions">
+          <method name="make" specifiers="static">
+            <type>Derived const</type>
+            <parameter name="expr">
+              <paramtype>Expr const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>Construct an expression extension from the base expression.</para>
+            </description>
+            <return>Derived(expr)</return>
+          </method>
+        </method-group>
+
+        <method-group name="public member functions">
+
+          <!-- proto_base() -->
+          <method name="proto_base">
+            <type>proto_base_expr &amp;</type>
+            <returns><computeroutput>proto_expr_.proto_base()</computeroutput></returns>
+            <throws><simpara>Will not throw.</simpara></throws>
+          </method>
+          <method name="proto_base" cv="const">
+            <type>proto_base_expr const &amp;</type>
+            <returns><computeroutput>proto_expr_.proto_base()</computeroutput></returns>
+            <throws><simpara>Will not throw.</simpara></throws>
+          </method>
+
+          <!-- operator= -->
+          <method name="operator=">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>Lazy assignment expression</para>
+            </description>
+            <returns>
+              <para>A new expression node representing the assignment operation.</para>
+            </returns>
+          </method>
+
+          <method name="operator=">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+          <method name="operator=" cv="const">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+          <method name="operator=" cv="const">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+          <!-- operator[] -->
+          <method name="operator[]">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>Lazy subscript expression</para>
+            </description>
+            <returns>
+              <para>A new expression node representing the subscript operation.</para>
+            </returns>
+          </method>
+
+          <method name="operator[]">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+          <method name="operator[]" cv="const">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+          <method name="operator[]" cv="const">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+          <!-- operator() -->
+          <method name="operator()">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A" pack="1"/>
+            </template>
+            <parameter name="a" pack="1">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>Lazy function call</para>
+            </description>
+            <returns>
+              <para>A new expression node representing the function call operation.</para>
+            </returns>
+          </method>
+
+          <method name="operator()" cv="const">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A" pack="1"/>
+            </template>
+            <parameter name="a" pack="1">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+        </method-group>
+
+        <data-member name="proto_expr_">
+          <type>Expr</type>
+          <purpose>For exposition only.</purpose>
+        </data-member>
+
+        <data-member name="proto_arity_c" specifiers="static">
+          <type>const long</type>
+          <purpose><computeroutput>= proto_base_expr::proto_arity_c;</computeroutput></purpose>
+        </data-member>
+
+      </struct>
+
+    </namespace>
+  </namespace>
+
+  <macro name="BOOST_PROTO_EXTENDS" kind="functionlike">
+    <macro-parameter name="Expr"/>
+    <macro-parameter name="Derived"/>
+    <macro-parameter name="Domain"/>
+    <purpose>For creating expression wrappers that add behaviors to a Proto expression template, like
+      <computeroutput><classname alt="boost::proto::extends">proto::extends&lt;&gt;</classname></computeroutput>,
+      but while retaining POD-ness of the expression wrapper.</purpose>
+    <description>
+      <para>
+        Equivalent to:
+        <programlisting><macroname>BOOST_PROTO_BASIC_EXTENDS</macroname>(Expr, Derived, Domain)
+<macroname>BOOST_PROTO_EXTENDS_ASSIGN</macroname>()
+<macroname>BOOST_PROTO_EXTENDS_SUBSCRIPT</macroname>()
+<macroname>BOOST_PROTO_EXTENDS_FUNCTION</macroname>()</programlisting>
+      </para>
+      <para>If the <computeroutput>Domain</computeroutput> parameter is dependent, you can specify it as
+        <computeroutput>typename Domain</computeroutput>, as in
+        <computeroutput>BOOST_PROTO_EXTENDS(Expr, Derived, typename Domain)</computeroutput>
+      </para>
+      <para>
+        <emphasis role="bold">Example:</emphasis><programlisting>template&lt; class Expr &gt;
+struct my_expr;
+
+struct my_domain
+  : <classname alt="boost::proto::domain">proto::domain</classname>&lt; <classname alt="boost::proto::pod_generator">proto::pod_generator</classname>&lt; my_expr &gt; &gt;
+{};
+
+template&lt; class Expr &gt;
+struct my_expr
+{
+    // OK, this makes my_expr&lt;&gt; a valid Proto expression extension.
+    // my_expr&lt;&gt; has overloaded assignment, subscript,
+    // and function call operators that build expression templates.
+    <macroname>BOOST_PROTO_EXTENDS</macroname>(Expr, my_expr, my_domain)
+};
+
+// OK, my_expr&lt;&gt; is POD, so this is statically initialized:
+my_expr&lt; <classname alt="boost::proto::terminal">proto::terminal</classname>&lt;int&gt;::type &gt; const _1 = {{1}};</programlisting>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_BASIC_EXTENDS" kind="functionlike">
+    <macro-parameter name="Expr"/>
+    <macro-parameter name="Derived"/>
+    <macro-parameter name="Domain"/>
+    <purpose>For creating expression wrappers that add members to a Proto expression template, like
+      <computeroutput><classname alt="boost::proto::extends">proto::extends&lt;&gt;</classname></computeroutput>,
+      but while retaining POD-ness of the expression wrapper.</purpose>
+    <description>
+      <para>
+        <computeroutput>BOOST_PROTO_BASIC_EXTENDS()</computeroutput> adds the basic typedefs, member functions, and
+        data members necessary to make a struct a valid Proto expression extension. It does <emphasis>not</emphasis>
+        add any constructors, virtual functions or access control blocks that would render the containing
+        struct non-POD.
+      </para>
+      <para>
+        <computeroutput>Expr</computeroutput> is the Proto expression that the enclosing struct extends.
+        <computeroutput>Derived</computeroutput> is the type of the enclosing struct.
+        <computeroutput>Domain</computeroutput> is the Proto domain to which this expression extension belongs.
+        (See <computeroutput><classname alt="boost::proto::domain">proto::domain&lt;&gt;</classname></computeroutput>.)
+        Can be preceeded with "<computeroutput>typename</computeroutput>" if the specified domain is a dependent type.
+      </para>
+      <para><computeroutput>BOOST_PROTO_BASIC_EXTENDS()</computeroutput> adds to its enclosing struct
+        exactly one data member of type <computeroutput>Expr</computeroutput>. 
+      </para>
+      <para>If the <computeroutput>Domain</computeroutput> parameter is dependent, you can specify it as
+        <computeroutput>typename Domain</computeroutput>, as in
+        <computeroutput>BOOST_PROTO_BASIC_EXTENDS(Expr, Derived, typename Domain)</computeroutput>
+      </para>
+      <para>
+        <emphasis role="bold">Example:</emphasis><programlisting>template&lt; class Expr &gt;
+struct my_expr;
+
+struct my_domain
+  : <classname alt="boost::proto::domain">proto::domain</classname>&lt; <classname alt="boost::proto::pod_generator">proto::pod_generator</classname>&lt; my_expr &gt; &gt;
+{};
+
+template&lt; class Expr &gt;
+struct my_expr
+{
+    // OK, this makes my_expr&lt;&gt; a valid Proto expression extension.
+    // my_expr&lt;&gt; does /not/ have overloaded assignment, subscript,
+    // and function call operators that build expression templates, however.
+    <macroname>BOOST_PROTO_BASIC_EXTENDS</macroname>(Expr, my_expr, my_domain)
+};
+
+// OK, my_expr&lt;&gt; is POD, so this is statically initialized:
+my_expr&lt; <classname alt="boost::proto::terminal">proto::terminal</classname>&lt;int&gt;::type &gt; const _1 = {{1}};</programlisting>
+      </para>
+      <para>
+        See also:
+        <itemizedlist>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS_ASSIGN</macroname>()</computeroutput>
+          </listitem>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS_SUBSCRIPT</macroname>()</computeroutput>
+          </listitem>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS_FUNCTION</macroname>()</computeroutput>
+          </listitem>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS</macroname>()</computeroutput>
+          </listitem>
+        </itemizedlist>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_EXTENDS_ASSIGN" kind="functionlike">
+    <purpose>For adding to an expression extension class an overloaded assignment operator that
+      builds an expression template.</purpose>
+    <description>
+      <para>
+        Use <computeroutput>BOOST_PROTO_EXTENDS_ASSIGN()</computeroutput> after <computeroutput>
+        <macroname>BOOST_PROTO_BASIC_EXTENDS</macroname>()</computeroutput> to give an expression
+        extension class an overloaded assignment operator that builds an expression template.
+      </para>
+      <para>
+        See also:
+        <itemizedlist>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_BASIC_EXTENDS</macroname>()</computeroutput>
+          </listitem>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS_SUBSCRIPT</macroname>()</computeroutput>
+          </listitem>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS_FUNCTION</macroname>()</computeroutput>
+          </listitem>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS</macroname>()</computeroutput>
+          </listitem>
+        </itemizedlist>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_EXTENDS_FUNCTION" kind="functionlike">
+    <purpose>For adding to an expression extension class a set of overloaded function call operators
+      that build expression templates.</purpose>
+    <description>
+      <para>
+        Use <computeroutput>BOOST_PROTO_EXTENDS_FUNCTION()</computeroutput> after <computeroutput>
+        <macroname>BOOST_PROTO_BASIC_EXTENDS</macroname>()</computeroutput> to give an expression
+        extension class a set of overloaded function call operators that build expression templates.
+        In addition, <computeroutput>BOOST_PROTO_EXTENDS_FUNCTION()</computeroutput> adds a nested
+        <computeroutput>result&lt;&gt;</computeroutput> class template that is a metafunction for
+        calculating the return type of the overloaded function call operators.
+      </para>
+      <para>
+        See also:
+        <itemizedlist>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_BASIC_EXTENDS</macroname>()</computeroutput>
+          </listitem>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS_ASSIGN</macroname>()</computeroutput>
+          </listitem>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS_SUBSCRIPT</macroname>()</computeroutput>
+          </listitem>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS</macroname>()</computeroutput>
+          </listitem>
+        </itemizedlist>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_EXTENDS_SUBSCRIPT" kind="functionlike">
+    <purpose>For adding to an expression extension class an overloaded subscript operator that
+      builds an expression template.</purpose>
+    <description>
+      <para>
+        Use <computeroutput>BOOST_PROTO_EXTENDS_SUBSCRIPT()</computeroutput> after <computeroutput>
+        <macroname>BOOST_PROTO_BASIC_EXTENDS</macroname>()</computeroutput> to give an expression
+        extension class an overloaded subscript operator that builds an expression template.
+      </para>
+      <para>
+        See also:
+        <itemizedlist>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_BASIC_EXTENDS</macroname>()</computeroutput>
+          </listitem>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS_ASSIGN</macroname>()</computeroutput>
+          </listitem>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS_FUNCTION</macroname>()</computeroutput>
+          </listitem>
+          <listitem>
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS</macroname>()</computeroutput>
+          </listitem>
+        </itemizedlist>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_EXTENDS_USING_ASSIGN" kind="functionlike">
+    <macro-parameter name="Derived"/>
+    <purpose>For exposing in classes that inherit from
+      <computeroutput><classname alt="boost::proto::extends">proto::extends&lt;&gt;</classname></computeroutput>
+      the overloaded assignment operators defined therein.</purpose>
+    <description>
+      <para>
+        The standard usage of
+        <computeroutput><classname alt="boost::proto::extends">proto::extends&lt;&gt;</classname></computeroutput>
+        is to inherit from it. However, the derived class automatically gets a compiler-generated assignment
+        operator that will hide the ones defined in
+        <computeroutput><classname alt="boost::proto::extends">proto::extends&lt;&gt;</classname></computeroutput>.
+        Use <code>BOOST_PROTO_EXTENDS_USING_ASSIGN()</code> in the derived class to unhide the assignment
+        operators defined in
+        <computeroutput><classname alt="boost::proto::extends">proto::extends&lt;&gt;</classname></computeroutput>.
+      </para>
+      <para>
+        See <computeroutput><classname alt="boost::proto::extends">proto::extends&lt;&gt;</classname></computeroutput>
+        for an example that demonstrates usage of <code>BOOST_PROTO_EXTENDS_USING_ASSIGN()</code>.
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_EXTENDS_USING_ASSIGN_NON_DEPENDENT" kind="functionlike">
+    <macro-parameter name="Derived"/>
+    <purpose>For exposing in classes that inherit from
+      <computeroutput><classname alt="boost::proto::extends">proto::extends&lt;&gt;</classname></computeroutput>
+      the overloaded assignment operators defined therein. Unlike the
+      <computeroutput><macroname>BOOST_PROTO_EXTENDS_USING_ASSIGN</macroname>()</computeroutput> macro,
+      <code>BOOST_PROTO_EXTENDS_USING_ASSIGN_NON_DEPENDENT()</code> is for use in non-dependent
+      contexts.
+      </purpose>
+    <description>
+      <para>
+        The standard usage of
+        <computeroutput><classname alt="boost::proto::extends">proto::extends&lt;&gt;</classname></computeroutput>
+        is to define a class template that inherits from it. The derived class template automatically gets a
+        compiler-generated assignment operator that hides the ones defined in
+        <computeroutput><classname alt="boost::proto::extends">proto::extends&lt;&gt;</classname></computeroutput>.
+        Using <code>BOOST_PROTO_EXTENDS_USING_ASSIGN()</code> in the derived class solves this problem.
+      </para>
+      <para>
+        However, if the expression extension is an ordinary class and not a class template, the usage of
+        <code>BOOST_PROTO_EXTENDS_USING_ASSIGN()</code> is in a so-called non-dependent context. In plain English,
+        it means it is illegal to use <code>typename</code> in some places where it is required in a class template. 
+        In those cases, you should use <code>BOOST_PROTO_EXTENDS_USING_ASSIGN_NON_DEPENDENT()</code> instead.
+      </para>
+      <para>
+		See also:
+		<itemizedlist>
+		  <listitem>
+			<computeroutput><classname alt="boost::proto::extends">proto::extends&lt;&gt;</classname></computeroutput>
+		  </listitem>
+		  <listitem>
+			<computeroutput><macroname>BOOST_PROTO_EXTENDS_USING_ASSIGN</macroname>()</computeroutput>
+		  </listitem>
+		</itemizedlist>
+      </para>
+    </description>
+  </macro>
+
+</header>

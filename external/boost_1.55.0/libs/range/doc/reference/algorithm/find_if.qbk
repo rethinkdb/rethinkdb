@@ -1,0 +1,50 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:find_if find_if]
+
+[heading Prototype]
+
+``
+template<class SinglePassRange, class UnaryPredicate>
+typename range_iterator<SinglePassRange>::type
+find_if(SinglePassRange& rng, UnaryPredicate pred);
+
+template<
+    range_return_value re,
+    class SinglePassRange,
+    class UnaryPredicate
+    >
+typename range_return<SinglePassRange, re>::type
+find_if(SinglePassRange& rng, UnaryPredicate pred);
+``
+
+[heading Description]
+
+The versions of `find_if` that return an iterator, returns the first iterator in the range `rng` such that `pred(*i)` is `true`. `end(rng)` is returned if no such iterator exists.
+
+The versions of `find_if` that return a `range_return`, defines found in the same manner as the returned iterator described above.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/find_if.hpp`
+
+[heading Requirements]
+
+* `SinglePassRange` is a model of the __single_pass_range__ Concept.
+* `UnaryPredicate` is a model of the `PredicateConcept`.
+* The value type of `SinglePassRange` is convertible to the argument type of `UnaryPredicate`.
+
+[heading Precondition:]
+
+For each iterator `i` in `rng`, `*i` is in the domain of `UnaryPredicate`.
+
+[heading Complexity]
+
+Linear. At most `distance(rng)` invocations of `pred`.
+
+[endsect]
+
+

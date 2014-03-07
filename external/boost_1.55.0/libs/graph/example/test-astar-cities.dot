@@ -1,0 +1,36 @@
+graph G {
+0[label="Troy", pos="460,193", fontsize="11"];
+1[label="Lake Placid", pos="432,338", fontsize="11"];
+2[label="Plattsburgh", pos="480,378", fontsize="11"];
+3[label="Massena", pos="352,400", fontsize="11"];
+4[label="Watertown", pos="262,309", fontsize="11"];
+5[label="Utica", pos="322,228", fontsize="11"];
+6[label="Syracuse", pos="241,222", fontsize="11"];
+7[label="Rochester", pos="111,234", fontsize="11"];
+8[label="Buffalo", pos="0,208", fontsize="11"];
+9[label="Ithaca", pos="209,166", fontsize="11"];
+10[label="Binghamton", pos="262,134", fontsize="11"];
+11[label="Woodstock", pos="422,128", fontsize="11"];
+12[label="New York", pos="437,0", fontsize="11"];
+0--5 [label="96", fontsize="11"];
+0--1 [label="134", fontsize="11"];
+0--2 [label="143", fontsize="11"];
+1--2 [label="65", fontsize="11"];
+2--3 [label="115", fontsize="11"];
+1--3 [label="133", fontsize="11"];
+3--4 [label="117", fontsize="11"];
+4--5 [label="116", fontsize="11"];
+4--6 [label="74", fontsize="11"];
+5--6 [label="56", fontsize="11"];
+6--7 [label="84", fontsize="11"];
+7--8 [label="73", fontsize="11"];
+6--9 [label="69", fontsize="11"];
+9--10 [label="70", fontsize="11"];
+9--7 [label="116", fontsize="11"];
+10--0 [label="147", fontsize="11"];
+10--11 [label="173", fontsize="11"];
+10--12 [label="183", fontsize="11"];
+6--10 [label="74", fontsize="11"];
+11--0 [label="71", fontsize="11"];
+11--12 [label="124", fontsize="11"];
+}

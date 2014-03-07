@@ -1,0 +1,216 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;38.&#160;Boost.Variant</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="unordered/bibliography.html" title="Bibliography">
+<link rel="next" href="variant/tutorial.html" title="Tutorial">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="unordered/bibliography.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="variant/tutorial.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="variant"></a>Chapter&#160;38.&#160;Boost.Variant</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Eric</span> <span class="surname">Friedman</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Itay</span> <span class="surname">Maman</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2002, 2003 Eric Friedman, Itay Maman</p></div>
+<div><div class="legalnotice">
+<a name="idp249424664"></a><p>Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+    <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+    </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="variant.html#variant.intro">Introduction</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="variant.html#variant.abstract">Abstract</a></span></dt>
+<dt><span class="section"><a href="variant.html#variant.motivation">Motivation</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="variant/tutorial.html">Tutorial</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="variant/tutorial.html#variant.tutorial.basic">Basic Usage</a></span></dt>
+<dt><span class="section"><a href="variant/tutorial.html#variant.tutorial.advanced">Advanced Topics</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="variant/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="variant/reference.html#variant.concepts">Concepts</a></span></dt>
+<dt><span class="section"><a href="variant/reference.html#header.boost.variant_hpp">Header &lt;boost/variant.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="variant/reference.html#header.boost.variant.variant_fwd_hpp">Header &lt;boost/variant/variant_fwd.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="variant/reference.html#header.boost.variant.variant_hpp">Header &lt;boost/variant/variant.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="variant/reference.html#header.boost.variant.recursive_variant_hpp">Header &lt;boost/variant/recursive_variant.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="variant/reference.html#header.boost.variant.recursive_wrapper_hpp">Header &lt;boost/variant/recursive_wrapper.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="variant/reference.html#header.boost.variant.apply_visitor_hpp">Header &lt;boost/variant/apply_visitor.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="variant/reference.html#header.boost.variant.multivisitors_hpp">Header &lt;boost/variant/multivisitors.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="variant/reference.html#header.boost.variant.get_hpp">Header &lt;boost/variant/get.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="variant/reference.html#header.boost.variant.bad_visit_hpp">Header &lt;boost/variant/bad_visit.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="variant/reference.html#header.boost.variant.static_visitor_hpp">Header &lt;boost/variant/static_visitor.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="variant/reference.html#header.boost.variant.visitor_ptr_hpp">Header &lt;boost/variant/visitor_ptr.hpp&gt;</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="variant/design.html">Design Overview</a></span></dt>
+<dd><dl><dt><span class="section"><a href="variant/design.html#variant.design.never-empty">"Never-Empty" Guarantee</a></span></dt></dl></dd>
+<dt><span class="section"><a href="variant/misc.html">Miscellaneous Notes</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="variant/misc.html#variant.versus-any">Boost.Variant vs. Boost.Any</a></span></dt>
+<dt><span class="section"><a href="variant/misc.html#idp250742664">Portability</a></span></dt>
+<dt><span class="section"><a href="variant/misc.html#variant.troubleshooting">Troubleshooting</a></span></dt>
+<dt><span class="section"><a href="variant/misc.html#variant.ack">Acknowledgments</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="variant/refs.html">References</a></span></dt>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="variant.intro"></a>Introduction</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="variant.html#variant.abstract">Abstract</a></span></dt>
+<dt><span class="section"><a href="variant.html#variant.motivation">Motivation</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="variant.abstract"></a>Abstract</h3></div></div></div>
+<p>The <code class="computeroutput">variant</code> class template is a safe, generic, stack-based
+discriminated union container, offering a simple solution for manipulating an
+object from a heterogeneous set of types in a uniform manner. Whereas
+standard containers such as <code class="computeroutput">std::vector</code> may be thought of as
+"<span class="bold"><strong>multi-value, single type</strong></span>,"
+<code class="computeroutput">variant</code> is "<span class="bold"><strong>multi-type,
+single value</strong></span>."</p>
+<p>Notable features of <code class="computeroutput"><a class="link" href="boost/variant.html" title="Class template variant">boost::variant</a></code>
+include:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">Full value semantics, including adherence to standard
+    overload resolution rules for conversion operations.</li>
+<li class="listitem">Compile-time type-safe value visitation via
+    <code class="computeroutput"><a class="link" href="boost/apply_visitor.html" title="Function apply_visitor">boost::apply_visitor</a></code>.</li>
+<li class="listitem">Run-time checked explicit value retrieval via
+    <code class="computeroutput"><a class="link" href="boost/get_idp140956568.html" title="Function get">boost::get</a></code>.</li>
+<li class="listitem">Support for recursive variant types via both
+    <code class="computeroutput"><a class="link" href="boost/make_recursive_variant.html" title="Class template make_recursive_variant">boost::make_recursive_variant</a></code> and
+    <code class="computeroutput"><a class="link" href="boost/recursive_wrapper.html" title="Class template recursive_wrapper">boost::recursive_wrapper</a></code>.</li>
+<li class="listitem">Efficient implementation -- stack-based when possible (see
+    <a class="xref" href="variant/design.html#variant.design.never-empty" title='"Never-Empty" Guarantee'>the section called &#8220;"Never-Empty" Guarantee&#8221;</a> for more details).</li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="variant.motivation"></a>Motivation</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="variant.html#variant.motivation.problem">Problem</a></span></dt>
+<dt><span class="section"><a href="variant.html#variant.motivation.solution">Solution: A Motivating Example</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.motivation.problem"></a>Problem</h4></div></div></div>
+<p>Many times, during the development of a C++ program, the
+programmer finds himself in need of manipulating several distinct
+types in a uniform manner. Indeed, C++ features direct language
+support for such types through its <code class="computeroutput">union</code> 
+keyword:</p>
+<pre class="programlisting">union { int i; double d; } u;
+u.d = 3.14;
+u.i = 3; // overwrites u.d (OK: u.d is a POD type)</pre>
+<p>C++'s <code class="computeroutput">union</code> construct, however, is nearly
+useless in an object-oriented environment. The construct entered
+the language primarily as a means for preserving compatibility with
+C, which supports only POD (Plain Old Data) types, and so does not
+accept types exhibiting non-trivial construction or
+destruction:</p>
+<pre class="programlisting">union {
+  int i;
+  std::string s; // illegal: std::string is not a POD type!
+} u;</pre>
+<p>Clearly another approach is required. Typical solutions
+feature the dynamic-allocation of objects, which are subsequently
+manipulated through a common base type (often a virtual base class
+    [<a class="link" href="variant/refs.html#variant.refs.hen01">Hen01</a>]
+or, more dangerously, a <code class="computeroutput">void*</code>). Objects of
+concrete type may be then retrieved by way of a polymorphic downcast
+construct (e.g., <code class="computeroutput">dynamic_cast</code>,
+<code class="computeroutput"><a class="link" href="boost/any_cast_idp25247624.html" title="Function any_cast">boost::any_cast</a></code>, etc.).</p>
+<p>However, solutions of this sort are highly error-prone, due
+to the following:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<span class="emphasis"><em>Downcast errors cannot be detected at
+    compile-time.</em></span> Thus, incorrect usage of downcast
+    constructs will lead to bugs detectable only at run-time.</li>
+<li class="listitem">
+<span class="emphasis"><em>Addition of new concrete types may be 
+    ignored.</em></span> If a new concrete type is added to the
+    hierarchy, existing downcast code will continue to work as-is,
+    wholly ignoring the new type. Consequently, the programmer must
+    manually locate and modify code at numerous locations, which often
+    results in run-time errors that are difficult to find.</li>
+</ul></div>
+<p>Furthermore, even when properly implemented, these solutions tend
+to incur a relatively significant abstraction penalty due to the use of
+the heap, virtual function calls, and polymorphic downcasts.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.motivation.solution"></a>Solution: A Motivating Example</h4></div></div></div>
+<p>The <code class="computeroutput"><a class="link" href="boost/variant.html" title="Class template variant">boost::variant</a></code> class template
+addresses these issues in a safe, straightforward, and efficient manner. The
+following example demonstrates how the class can be used:</p>
+<pre class="programlisting">#include "boost/variant.hpp"
+#include &lt;iostream&gt;
+
+class my_visitor : public <code class="computeroutput"><a class="link" href="boost/static_visitor.html" title="Class template static_visitor">boost::static_visitor</a></code>&lt;int&gt;
+{
+public:
+    int operator()(int i) const
+    {
+        return i;
+    }
+    
+    int operator()(const <code class="computeroutput">std::string</code> &amp; str) const
+    {
+        return str.length();
+    }
+};
+
+int main()
+{
+    <code class="computeroutput"><a class="link" href="boost/variant.html" title="Class template variant">boost::variant</a></code>&lt; int, std::string &gt; u("hello world");
+    std::cout &lt;&lt; u; // output: hello world
+
+    int result = <code class="computeroutput"><a class="link" href="boost/apply_visitor.html" title="Function apply_visitor">boost::apply_visitor</a></code>( my_visitor(), u );
+    std::cout &lt;&lt; result; // output: 11 (i.e., length of "hello world")
+}
+</pre>
+</div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="unordered/bibliography.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="variant/tutorial.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

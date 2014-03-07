@@ -1,0 +1,242 @@
+<html>
+  <head>
+    <title>variadic_macros.html</title>
+    <link rel="stylesheet" type="text/css" href="../styles.css">
+    <style>
+    u { font-weight: normal; text-decoration: none; }
+    </style>
+  </head>
+  <body>
+<h4>Variadic Macros</h4>
+<div> Variadic macros are supported by a number of compilers.
+They are
+macros of the form:
+</div>
+<div class="code">
+<pre>#define SOME_MACRO(ZeroOrMoreParameters,...) macro expansion possible specifying __VA_ARGS__<br></pre>
+</div>
+<div> The '...' in the parameter list represents the variadic
+data when the macro is invoked and the __VA_ARGS__ in the expansion
+represents the variadic data in the expansion of the macro. Variadic
+data is of the form of 1 or more preprocessor tokens separated by
+commas.<br>
+<br>
+The '...' must be the last parameter in the macro definition and there
+may be 0 or more non-variadic parameters preceding it.<br>
+<br>
+In the expansion of the macro __VA_ARGS__ may be specified 0 or more
+times to represent the variadic data. The variadic data in the
+expansion is a comma separated list of preprocessor tokens representing
+the variadic data which the invoker of the macro enters as the last
+arguments to the macro.<br>
+</div>
+<h4>Example<u> - Creating and invoking a variadic macro.</u></h4>
+<div class="code">
+<pre>#define INITIALIZE_INT_ARRAY(array_name,...) \ <br> static int array_name[] = { __VA_ARGS__ }; \ <br> /**/<br><br> INITIALIZE_INT_ARRAY(myname,45,789,33510,9346,2)<br></pre>
+</div>
+<u> <span style="font-weight: bold;">Preprocessor
+Library Support<br>
+</span></u>
+<div>The library offers support for variadic macros for those
+compilers
+which support the feature. The library can automatically detect whether
+a compiler supports variadic macros and sets the macro
+BOOST_PP_VARIADICS accordingly to 1 if the compiler supports variadic
+macros or 0 if the compiler does not support variadic macros.<br>
+<br>
+The end-user can #define BOOST_PP_VARIADICS to 1 or 0 himself in a
+translation unit, before including any preprocessor header files, to
+prevent the library from attempting to detect whether the compiler
+supports variadic macros. This has the effect of manually turning on or
+off variadic macro support in the library. Of course if one manually
+turns on variadic macro support in the library, and one's compiler does
+not support variadic macros, functionality in the library which uses
+variadic macros will fail with error messages from the compiler.<br>
+<br>
+When BOOST_PP_VARIADICS is 1, the library offers some extended
+functionality
+by using variadic macros, and also offers extended support for working
+with variadic data.<br>
+<br>
+Support for working with variadic
+data is largely centered on being able to convert variadic data to
+other library data types, since the
+functionality for working with those Boost preprocessor library data
+types is much greater than that for working with variadic data directly.<br>
+</div>
+<h4>Notation For Variadic Macros<br>
+</h4>
+<div>In the documentation, headers which have variadic macros,
+and
+variadic macros themselves, have a notation of '(v)' appended to them.
+For the variadic macros themselves this signifies that
+BOOST_PP_VARIADICS must be 1 for those variadic macros to be usable.
+For variadic macros which have a non-variadic equivalent, the
+non-variadic equivalent will be used if BOOST_PP_VARIADICS is set to 0
+and the non-variadic version of the
+macro does not have a '(v)' appended to its name in the documentation.
+</div>
+<h4>Extended Functionality Using Variadic Macros<br>
+</h4>
+<div>Some macros in the library offer extended
+functionality through the use of variadic macros.<br>
+<br>
+The variadic macro version offers the same functionality
+as the non-variadic version, but because of the ability of the variadic
+parameters to encompass a variable number of arguments, it also offers
+an enhanced syntax using the same macro name.<br>
+<br>
+The macros in the library which offer this enhanced functionality are
+all
+centered on <i>tuple</i> manipulation. With variadic
+macros it is
+possible to
+manipulate tuples without having to know the size of the tuple. So
+while the invoker can still specify the size when using tuple macro
+functionality, there are variadic versions of each of the tuple macros,
+with the exact same name as the non-variadic macro, where the size need
+not be specified.<br>
+</div>
+<h4>Extended Support For Variadic Data</h4>
+<div>The library offers extended support for working with
+variadic data
+which goes beyond the functionality offered by the C++ specification
+for variadic macros. It does this through preprocessor programming and
+by using some of the other functionality in the library itself. Header
+and macro names
+in the library which offer extended support for working with variadic
+data, and need the compiler to support variadic macros, are marked with
+a (v)<sup> </sup>to indicate a variadic macro.<br>
+<br>
+The form of the functionality which the library offers is centered on
+two macros which work with variadic data itself, and a set of macros
+which convert between variadic data and other library data
+types.<br>
+<br>
+The two macros are BOOST_PP_VARIADIC_ELEM and BOOST_PP_VARIADIC_SIZE,
+which respectively return a particular token of variadic data and the
+number of tokens of variadic data.<br>
+<br>
+The macros for converting variadic data to the library's data types are
+BOOST_PP_VARIADIC_TO_ARRAY, BOOST_PP_VARIADIC_TO_LIST,
+BOOST_PP_VARIADIC_TO_SEQ, and BOOST_PP_VARIADIC_TO_TUPLE.<br>
+<br>
+All of these macros need compiler support for variadic data and only
+exist if BOOST_PP_VARIADICS is 1. <br>
+<br>
+The remaining four macros, which convert from a library data type
+to comma-separated preprocessor tokens, which is the form of
+variadic data, do not need compiler support for variadic
+macros. These functions are BOOST_PP_ARRAY_ENUM, BOOST_PP_LIST_ENUM,
+BOOST_PP_SEQ_ENUM, and BOOST_PP_TUPLE_ENUM. However if one wishes to
+use this variadic data reliably as arguments to other macros, one needs
+variadic macro support.<br>
+</div>
+<u style="font-weight: bold;"> Using Variadic Data</u>
+<div>Variadic data exists in the
+form of comma-separated preprocessor tokens. This is the case whether
+the variadic data comes from the __VA_ARGS__ of a variadic macro, from
+the conversion of a library's data type to variadic data, or the
+manual construction of comma-separated preprocessing tokens by the
+programmer writing a macro.<br>
+<br>
+The easiest way to work with
+variadic data internally is to convert it to a library data type.
+Library data types, whether an <i>array</i>, <i>list</i>,
+<i>sequence</i>,
+or <i>tuple</i>, have a rich set of functionality for
+manipulating
+data whereas
+variadic data functionality in the library only allows one to access
+the variadic data as a whole or to access a single token of the
+variadic data at a time.<br>
+<br>
+The user of the library still may
+choose to pass variadic data back into internal macros rather than
+convert it to other library data types. There is no problem passing
+variadic data as a whole to variadic macros as the last parameter of
+the macro. However: <br>
+<br>
+<span style="font-weight: bold;">Attempting to pass
+variadic data as a
+whole directly into a non-variadic macro is not guaranteed to work and
+may fail.<br>
+</span><br>
+This occurs because of a preprocessor weakness in a number
+of compilers, currently most notably Visual C++. Even passing variadic
+data as arguments to a non-variadic macro, when it is not represented
+in
+the form of&nbsp; __VA_ARGS__, may fail with certain compilers.<br>
+<br>
+What follows are very simple examples, showing how variadic data can be
+passed to a non-variadic macro.<br>
+<br>
+First an example of what NOT to do.<br>
+</div>
+<h4>Example<u> - Passing variadic data as a whole to a
+non-variadic
+macro. DO NOT DO.</u></h4>
+<div class="code">
+<pre>#define MACRO_ARG_2(x,y) BOOST_PP_ADD(x,y)<br>#define VAR_MACRO(...) __VA_ARGS__<br><br>/* The following should not be done and is not guaranteed to work with compilers. */<br><br><span style="font-weight: bold;"><span style="font-family: monospace;"></span></span>int xx = MACRO_ARG_2(VAR_MACRO(2,3));<br></pre>
+</div>
+<div> There are two ways to pass variadic data to a non-variadic
+macro.
+The
+first of these is to pass the individual tokens of the variadic data
+separately to the non-variadic macro using the BOOST_PP_VARIADIC_ELEM
+macro in the library.<br>
+</div>
+<h4>Example<u> - Passing individual variadic data tokens to
+a
+non-variadic macro.<br>
+</u></h4>
+<div class="code">
+<pre>#define MACRO_ARG_2(x,y) BOOST_PP_ADD(x,y)<br>#define VAR_MACRO(...) __VA_ARGS__<br><br>/* The following will work correctly */<br><br>int xx = MACRO_ARG_2<br> (<br> BOOST_PP_VARIADIC_ELEM(0,VAR_MACRO(2,3)),<br> BOOST_PP_VARIADIC_ELEM(1,VAR_MACRO(2,3))<br> );</pre>
+</div>
+<div>The second way is to use a macro in the library called
+BOOST_PP_OVERLOAD.
+This macro allows one to "overload" a variadic macro to non-variadic
+macros of different numbers of parameters, using a common prefix.
+</div>
+<h4>Example<u> - Passing variadic data as a whole to
+BOOST_PP_OVERLOAD
+and on to a non-variadic macro.<br>
+</u></h4>
+<div class="code">
+<pre>#define MACRO_ARG_2(x,y) BOOST_PP_ADD(x,y)<br>#define VAR_MACRO(...) __VA_ARGS__<br><br>/* The following will work correctly */<br><br>int xx = BOOST_PP_OVERLOAD(MACRO_ARG_,VAR_MACRO(2,3))(VAR_MACRO(2,3));<br><br>/* For Visual C++ it is necessary to do this */<br><br>int xx = <br>BOOST_PP_CAT(BOOST_PP_OVERLOAD(MACRO_ARG_,VAR_MACRO(2,3))(VAR_MACRO(2,3)),BOOST_PP_EMPTY());</pre>
+</div><br>
+<div>Although these techniques will work when passing variadic
+data to
+non-variadic macros, it is much better and less problematical to
+work internally with the existing library data types and to only use
+variadic
+macros as an interface for end-users when there is a need to have a
+macro which takes a
+variable number of parameters.<br>
+</div>
+<b>See</b> <b>Also</b><br>
+<ul>
+<li><a href="../ref/variadics.html">BOOST_PP_VARIADICS</a></li>
+<li><a href="../headers/tuple.html">Tuple Macros</a><br>
+</li>
+<li><a href="../headers/variadic.html">Variadic
+Macros<br>
+</a></li>
+<li><a href="../ref/array_enum.html">BOOST_PP_ARRAY_ENUM</a></li>
+<li><a href="../ref/list_enum_r.html">BOOST_PP_LIST_ENUM</a></li>
+<li><a href="../ref/seq_enum.html">BOOST_PP_SEQ_ENUM</a></li>
+<li><a href="../ref/tuple_enum.html">BOOST_PP_TUPLE_ENUM</a></li>
+<li><a href="../ref/overload.html">BOOST_PP_OVERLOAD</a></li>
+</ul>
+<hr size="1">
+<div style="margin-left: 0px;"> <i>© Copyright
+Edward Diener
+2011</i> </div>
+<div style="margin-left: 0px;">
+<p><small>Distributed under the Boost Software License,
+Version 1.0.
+(See accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+</div>
+  </body>
+</html>

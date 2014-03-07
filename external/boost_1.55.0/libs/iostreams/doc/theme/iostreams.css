@@ -1,0 +1,220 @@
+/*
+ * (C) Copyright 2008 CodeRage, LLC (turkanis at coderage dot com)
+ * (C) Copyright 2004-2007 Jonathan Turkanis
+ * Distributed under the Boost Software License, Version 1.0. (See accompanying
+ * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.)
+ * 
+ * Adapted Boost.Spirit stylesheet (www.boost.org/libs/spirit)
+ */
+
+BODY
+{
+    background-color: #FFFFFF;
+    margin: 1em 2em 1em 2em;
+}
+
+H1, H2, H3, H4, H5, H6 
+{ 
+    font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    text-align: left;
+    color: black
+}
+
+H1 { text-align: left }
+H2 { font-size: 140% }
+H3 { font-size: 120% }
+H5 { font-style: italic  }
+H6 { font-variant: small-caps }
+
+A: { text-decoration:none }
+A:link { text-decoration:none }
+A:visited { text-decoration:none }
+A:active { text-decoration:none }
+A:hover { text-decoration:underline }
+
+DL 
+{ 
+    margin-top:0;margin-bottom:0;
+    padding-top:0;padding-bottom:0
+}
+DT DL { margin-left:2em; }
+
+PRE
+{
+    border-top: gray 1pt solid;
+    border-right: gray 1pt solid;
+    border-left: gray 1pt solid;
+    border-bottom: gray 1pt solid;
+
+    padding-top: 2pt;
+    padding-right: 2pt;
+    padding-left: 2pt;
+    padding-bottom: 2pt;
+
+    display: block;
+    font-family: "courier new", courier, mono;
+    background-color: #eeeeee; font-size: small
+}
+
+PRE.plain_code
+{
+    font-size: 100%;
+    background-color:#FFFFFF;
+    border:none;
+    margin:0;
+    padding:0
+}
+
+PRE.plain
+{
+    font-family: "Times New Roman", Times, serif
+    font-size: 100%;
+    background-color:#FFFFFF;
+    border:none;
+    margin:0;
+    padding:0
+}
+
+PRE.broken_ie 
+{
+    font-size: 10pt
+}
+
+/* H3 CODE { font-size: 120% } */
+
+CODE
+{
+    font-family: "Courier New", Courier, mono
+}
+
+P CODE { font-size: 80% }
+T CODE { font-size: 80% }
+TD CODE { font-size: 80% }
+TH CODE { font-size: 80% }
+DL CODE { font-size: 80% }
+DT CODE { font-size: 80% }
+UL CODE { font-size: 80% }
+OL CODE { font-size: 80% }
+H3 CODE { font-size: 105% }
+H4 CODE { font-size: 105% }
+
+TT
+{
+    display: inline;
+    font-family: "Courier New", Courier, mono;
+    color: #000099;
+    font-size: small
+}
+
+P
+{
+    font-family: "Times New Roman", Times, serif
+}
+
+UL
+{
+    font-family: "Times New Roman", Times, serif
+}
+
+OL
+{
+    font-family: "Times New Roman", Times, serif
+}
+
+UL LI 
+{ 
+    list-style-type: square; 
+    list-style-image: url("wedge.gif"); 
+}
+
+TABLE { margin-left:2em }
+TABLE.concept { margin-left:0 }
+
+/* LI.square { list-style-type: square } */
+
+/* A.footnote_ref { text-decoration: none } */
+/* A.bib_ref { text-decoration: none } */
+
+A.caption_ref::visited { color: black }
+
+A::visited { color: #3344cc }
+
+H4.banner { margin:.3em }
+
+TD.banner { text-align:center }
+
+A.banner 
+{ 
+    color: black;
+    font-size: 120%
+    font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif; 
+    font-weight: bold; 
+    text-decoration:none
+}
+
+.menu 
+{ 
+    color: black;
+    font-size: 70%;
+    font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif; 
+    font-weight: bold; 
+    text-decoration:none;
+}
+A.menu:visited { color: black; }
+
+.menu_disabled
+{ 
+    color: #999999;
+    font-size: 70%;
+    font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif; 
+    font-weight: bold; 
+    text-decoration:none;
+}
+
+DIV.nav { text-align: right; padding-top: 0.3em }
+.nav A { padding-left: 0.3em }
+
+.title                  { text-align: center; margin:1.5em }
+.literal                { color: #790000; /*#444444; font-style: italic*/}
+.numeric_literal        { color: #990000}
+.keyword                { color: #0000CC; /*#000080 font-weight: bold;*/ }
+.library                { font-weight: bold; color: #000000}
+.documented             { font-weight: bold; color: #000000}
+A.documented::visited   { font-weight: bold; color: #000000; text-decoration:none}
+.defined                { font-weight: bold; color: #525252}
+.comment                { font-style: italic; color: #008000}
+.special                { color: #800040}
+.preprocessor           { color: #008000}
+.string                 { font-style: italic; color: #666666}
+.copyright              { font-size: small}
+.white_bkd              { background-color: #FFFFFF}
+.dk_grey_bkd            { background-color: #999999}
+.quotes                 { color: #666666; font-style: italic; font-weight: bold}
+.omitted                { color: #007236; font-style: italic }
+.banner                 { text-align: center }
+/* .header                 { text-decoration: none } */
+.semantics              { font-weight:bold }
+.caption    
+{
+    font-size: 65%; 
+    font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif
+}
+.caption_ref    
+{
+    font-size: 80%; 
+    font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    color: black;
+    text-decoration: none
+}
+.term   
+{
+    font-weight: bold;
+    font-style: italic
+}
+.copyright 
+{
+    font: 80%/120%;
+    margin:0
+}

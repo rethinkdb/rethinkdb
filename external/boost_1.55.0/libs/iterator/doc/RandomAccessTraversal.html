@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>Random Access Traversal Concept</title>
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="random-access-traversal-concept">
+<h1 class="title">Random Access Traversal Concept</h1>
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<p>A class or built-in type <tt class="docutils literal"><span class="pre">X</span></tt> models the <em>Random Access Traversal</em>
+concept if the following expressions are valid and respect the stated
+semantics.  In the table below, <tt class="docutils literal"><span class="pre">Distance</span></tt> is
+<tt class="docutils literal"><span class="pre">iterator_traits&lt;X&gt;::difference_type</span></tt> and <tt class="docutils literal"><span class="pre">n</span></tt> represents a
+constant object of type <tt class="docutils literal"><span class="pre">Distance</span></tt>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="28%" />
+<col width="30%" />
+<col width="23%" />
+<col width="20%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="4">Random Access Traversal Iterator Requirements (in addition to Bidirectional Traversal)</th>
+</tr>
+<tr><th class="head">Expression</th>
+<th class="head">Return Type</th>
+<th class="head">Operational Semantics</th>
+<th class="head">Assertion/
+Precondition</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal"><span class="pre">r</span> <span class="pre">+=</span> <span class="pre">n</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X&amp;</span></tt></td>
+<td><pre class="first last literal-block">
+{
+  Distance m = n;
+  if (m &gt;= 0)
+    while (m--)
+      ++r;
+  else
+    while (m++)
+      --r;
+  return r;
+}
+</pre>
+</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">+</span> <span class="pre">n</span></tt>, <tt class="docutils literal"><span class="pre">n</span> <span class="pre">+</span> <span class="pre">a</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">{</span> <span class="pre">X</span> <span class="pre">tmp</span> <span class="pre">=</span> <span class="pre">a;</span> <span class="pre">return</span> <span class="pre">tmp</span>
+<span class="pre">+=</span> <span class="pre">n;</span> <span class="pre">}</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">r</span> <span class="pre">-=</span> <span class="pre">n</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X&amp;</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">return</span> <span class="pre">r</span> <span class="pre">+=</span> <span class="pre">-n</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">-</span> <span class="pre">n</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">X</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">{</span> <span class="pre">X</span> <span class="pre">tmp</span> <span class="pre">=</span> <span class="pre">a;</span> <span class="pre">return</span> <span class="pre">tmp</span>
+<span class="pre">-=</span> <span class="pre">n;</span> <span class="pre">}</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">b</span> <span class="pre">-</span> <span class="pre">a</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">Distance</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">&lt;</span> <span class="pre">b</span> <span class="pre">?</span>&nbsp; <span class="pre">distance(a,b)</span>
+<span class="pre">:</span> <span class="pre">-distance(b,a)</span></tt></td>
+<td>pre: there exists a
+value <tt class="docutils literal"><span class="pre">n</span></tt> of
+<tt class="docutils literal"><span class="pre">Distance</span></tt> such that
+<tt class="docutils literal"><span class="pre">a</span> <span class="pre">+</span> <span class="pre">n</span> <span class="pre">==</span> <span class="pre">b</span></tt>.  <tt class="docutils literal"><span class="pre">b</span>
+<span class="pre">==</span> <span class="pre">a</span> <span class="pre">+</span> <span class="pre">(b</span> <span class="pre">-</span> <span class="pre">a)</span></tt>.</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a[n]</span></tt></td>
+<td>convertible to T</td>
+<td><tt class="docutils literal"><span class="pre">*(a</span> <span class="pre">+</span> <span class="pre">n)</span></tt></td>
+<td>pre: a is a <em>Readable
+Iterator</em></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a[n]</span> <span class="pre">=</span> <span class="pre">v</span></tt></td>
+<td>convertible to T</td>
+<td><tt class="docutils literal"><span class="pre">*(a</span> <span class="pre">+</span> <span class="pre">n)</span> <span class="pre">=</span> <span class="pre">v</span></tt></td>
+<td>pre: a is a <em>Writable
+iterator</em></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">&lt;</span> <span class="pre">b</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">b</span> <span class="pre">-</span> <span class="pre">a</span> <span class="pre">&gt;</span> <span class="pre">0</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">&lt;</span></tt> is a total
+ordering relation</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">&gt;</span> <span class="pre">b</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">b</span> <span class="pre">&lt;</span> <span class="pre">a</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">&gt;</span></tt> is a total
+ordering relation</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">&gt;=</span> <span class="pre">b</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">!(a</span> <span class="pre">&lt;</span> <span class="pre">b)</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">a</span> <span class="pre">&lt;=</span> <span class="pre">b</span></tt></td>
+<td>convertible to <tt class="docutils literal"><span class="pre">bool</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">!(a</span> <span class="pre">&gt;</span> <span class="pre">b)</span></tt></td>
+<td>&nbsp;</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">iterator_traversal&lt;X&gt;::type</span></tt></td>
+<td>Convertible to
+<tt class="docutils literal"><span class="pre">random_access_traversal_tag</span></tt></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="RandomAccessTraversal.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

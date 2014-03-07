@@ -1,0 +1,44 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:generate generate]
+
+[heading Prototype]
+
+``
+template<class ForwardRange, class Generator>
+ForwardRange& generate( ForwardRange& rng, Generator gen );
+
+template<class ForwardRange, class Generator>
+const ForwardRange& generate( const ForwardRange& rng, Generator gen );
+``
+
+[heading Description]
+
+`generate` assigns the result of `gen()` to each element in range `rng`. Returns the resultant range.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/generate.hpp`
+
+[heading Requirements]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+* `Generator` is a model of the `GeneratorConcept`.
+* The `value_type` of `SinglePassRange` is convertible to a type in `OutputIterator`'s set of value types.
+
+[heading Precondition:]
+
+* `out_it` is not an iterator within `rng`.
+* `[out_it, out_it + distance(rng))` is a valid range.
+
+[heading Complexity]
+
+Linear. Exactly `distance(rng)` assignments are performed.
+
+[endsect]
+
+

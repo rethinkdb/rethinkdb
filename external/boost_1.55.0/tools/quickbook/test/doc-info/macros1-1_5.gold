@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="macro_shouldn_t_expand____date__" last-revision="__DATE__" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Macro shouldn't expand: __DATE__</title>
+  <articleinfo>
+    <articlepurpose>
+      Unfortunately this does expand: 2000-Dec-20, but I'm not fixing it, as I don't
+      think it'll cause any real problems.
+    </articlepurpose>
+  </articleinfo>
+</article>

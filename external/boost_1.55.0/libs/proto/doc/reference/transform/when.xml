@@ -1,0 +1,545 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/transform/when.hpp">
+  <para>
+    Definition of the
+    <computeroutput>
+      <classname alt="boost::proto::when">proto::when&lt;&gt;</classname>
+    </computeroutput> and
+    <computeroutput>
+      <classname alt="boost::proto::otherwise">proto::otherwise&lt;&gt;</classname>
+    </computeroutput> transforms.
+  </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      
+      <!-- struct transforms_type -->
+      <struct name="transforms_type">
+        <purpose>
+          The type used to define the global <code><globalname>proto::transforms</globalname></code>,
+          a key for use when creating and accessing a slot in a transform environment for
+          a set of external transforms.
+        </purpose>
+        <description>
+          <para>
+            The <code>proto::transforms_type</code> type, along with the <code><globalname>proto::transforms</globalname></code>
+            global, are declared using the <code><macroname>BOOST_PROTO_DEFINE_ENV_VAR</macroname>()</code> macro.
+          </para>
+        </description>
+        <method-group name="public member functions">
+          <overloaded-method name="operator=">
+            <signature cv="const">
+              <template>
+                <template-type-parameter name="Value"/>
+              </template>
+              <type><classname>env</classname>&lt;transforms_type, <replaceable>see-below</replaceable>&gt;</type>
+              <parameter name="value">
+                <paramtype>Value &amp;</paramtype>
+              </parameter>
+            </signature>
+            <signature cv="const">
+              <template>
+                <template-type-parameter name="Value"/>
+              </template>
+              <type><classname>env</classname>&lt;transforms_type, <replaceable>see-below</replaceable>&gt;</type>
+              <parameter name="value">
+                <paramtype>Value const &amp;</paramtype>
+              </parameter>
+            </signature>
+            <description>
+              <para>
+                If <code>Value</code> is a specialization <code>boost::reference_wrapper&lt;T&gt;</code>,
+                this function returns <code><classname>env</classname>&lt;transforms_type, T &amp;&gt;(value.get())</code>.
+              </para>
+              <para>
+                Else, if the type <code>Value</code> is non-copyable (i.e., a function, an array, abstract, or an ostream),
+                this function returns <code><classname>env</classname>&lt;transforms_type, Value <replaceable>cv</replaceable> &amp;&gt;(value)</code>,
+                where <code><replaceable>cv</replaceable></code> is <code>const</code> for the second overload, and empty
+                for the first.
+              </para>
+              <para>
+                Otherwise, this function returns <code><classname>env</classname>&lt;transforms_type, Value&gt;(value)</code>.
+              </para>
+            </description>
+          </overloaded-method>
+        </method-group>
+      </struct>
+      
+      <data-member name="transforms">
+        <description>
+          <para>
+            A key key for use when creating and accessing a slot in a transform environment for
+            a set of external transforms.
+          </para>
+        </description>
+        <type><classname>proto::transforms_type</classname> const</type>
+      </data-member>
+      
+      <struct name="when">
+        <template>
+          <template-type-parameter name="Grammar"/>
+          <template-type-parameter name="PrimitiveTransform">
+            <default>Grammar</default>
+          </template-type-parameter>
+        </template>
+        <purpose>A grammar element and a <conceptname>PrimitiveTransform</conceptname> that associates
+          a transform with the grammar.</purpose>
+        <description>
+          <para>
+            Use <computeroutput>proto::when&lt;&gt;</computeroutput> to override a grammar's default
+            transform with a custom transform. It is for used when composing larger transforms by
+            associating smaller transforms with individual rules in your grammar, as in the following
+            transform which counts the number of terminals in an expression.
+            <programlisting>// Count the terminals in an expression tree.
+// Must be invoked with initial state == mpl::int_&lt;0&gt;().
+struct CountLeaves :
+  <classname>proto::or_</classname>&lt;
+    proto::when&lt;<classname>proto::terminal</classname>&lt;<classname>proto::_</classname>&gt;, mpl::next&lt;<classname>proto::_state</classname>&gt;()&gt;,
+    proto::otherwise&lt;<classname>proto::fold</classname>&lt;<classname>proto::_</classname>, <classname>proto::_state</classname>, CountLeaves&gt; &gt;
+  &gt;
+{};</programlisting>
+          </para>
+          <para>
+            In <computeroutput>proto::when&lt;G, T&gt;</computeroutput>, when <computeroutput>T</computeroutput>
+            is a class type it is a <conceptname>PrimitiveTransform</conceptname> and the following equivalencies hold:
+          </para>
+          <itemizedlist>
+            <listitem>
+              <para>
+                <computeroutput>boost::result_of&lt;proto::when&lt;G,T&gt;(E,S,V)&gt;::type</computeroutput> is the same as
+                <computeroutput>boost::result_of&lt;T(E,S,V)&gt;::type</computeroutput>.
+              </para>
+            </listitem>
+            <listitem>
+              <para>
+                <computeroutput>proto::when&lt;G,T&gt;()(e,s,d)</computeroutput> is the same as
+                <computeroutput>T()(e,s,d)</computeroutput>.
+              </para>
+            </listitem>
+          </itemizedlist>
+        </description>
+        <inherit><type>PrimitiveTransform</type></inherit>
+        <typedef name="proto_grammar">
+          <type>typename Grammar::proto_grammar</type>
+        </typedef>
+      </struct>
+
+      <struct-specialization name="when">
+        <template>
+          <template-type-parameter name="Grammar"/>
+          <template-type-parameter name="Fun"/>
+        </template>
+        <specialization>
+          <template-arg>Grammar</template-arg>
+          <template-arg>Fun *</template-arg>
+        </specialization>
+        <inherit><type><classname>proto::when</classname>&lt; Grammar, Fun &gt;</type></inherit>
+        <purpose>A specialization that treats function pointer <conceptname>Transform</conceptname>s as if they
+          were function type <conceptname>Transform</conceptname>s.</purpose>
+        <description>
+          <para>
+            This specialization requires that <computeroutput>Fun</computeroutput> is actually a function type.
+          </para>
+          <para>
+            This specialization is required for nested transforms such as
+            <computeroutput>proto::when&lt;G, T0(T1(_))&gt;</computeroutput>. In C++, functions that are used
+            as parameters to other functions automatically decay to funtion pointer types. In other words, the
+            type <computeroutput>T0(T1(_))</computeroutput> is indistinguishable from
+            <computeroutput>T0(T1(*)(_))</computeroutput>. This specialization is required to handle these
+            nested function pointer type transforms properly.
+          </para>
+        </description>
+      </struct-specialization>
+
+      <struct-specialization name="when">
+        <template>
+          <template-type-parameter name="Grammar"/>
+          <template-type-parameter name="R"/>
+          <template-type-parameter name="A" pack="1"/>
+        </template>
+        <specialization>
+          <template-arg>Grammar</template-arg>
+          <template-arg>R(A...)</template-arg>
+        </specialization>
+        <inherit><type><classname>proto::transform</classname>&lt; when&lt;Grammar, R(A...)&gt; &gt;</type></inherit>
+        <purpose>A grammar element and a <conceptname>Transform</conceptname> that associates a
+          transform with the grammar. </purpose>
+        <description>
+          <para>
+            Use <computeroutput>proto::when&lt;&gt;</computeroutput> to override a grammar's default
+            transform with a custom transform. It is for use when composing larger transforms by associating
+            smaller transforms with individual rules in your grammar.
+          </para>
+          <para>
+            The <computeroutput>when&lt;G, R(A...)&gt;</computeroutput> form accepts either a
+            <conceptname>CallableTransform</conceptname> or an <conceptname>ObjectTransform</conceptname> as its
+            second parameter. <computeroutput>proto::when&lt;&gt;</computeroutput> uses
+            <computeroutput><classname>proto::is_callable</classname>&lt;R&gt;::value</computeroutput> to
+            distinguish between the two, and uses
+            <computeroutput><classname>proto::call&lt;&gt;</classname></computeroutput> to evaluate
+            <conceptname>CallableTransform</conceptname>s and
+            <computeroutput><classname>proto::make&lt;&gt;</classname></computeroutput> to evaluate
+            <conceptname>ObjectTransform</conceptname>s.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><type><classname>proto::transform_impl</classname>&lt; Expr, State, Data &gt;</type></inherit>
+          <typedef name="call_">
+            <purpose>For exposition only</purpose>
+            <type><classname>proto::call</classname>&lt;R(A...)&gt;</type>
+          </typedef>
+          <typedef name="make_">
+            <purpose>For exposition only</purpose>
+            <type><classname>proto::make</classname>&lt;R(A...)&gt;</type>
+          </typedef>
+          <typedef name="which">
+            <purpose>For exposition only</purpose>
+            <type>typename mpl::if_&lt;<classname>proto::is_callable</classname>&lt;R&gt;,call_,make_&gt;::type</type>
+          </typedef>
+          <typedef name="result_type">
+            <type>typename boost::result_of&lt;which(Expr, State, Data)&gt;::type</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>result_type</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+                <description>
+                  <para>The current expression </para>
+                </description>
+              </parameter>
+              <parameter name="state">
+                <paramtype>typename impl::state_param</paramtype>
+                <description>
+                  <para>The current state </para>
+                </description>
+              </parameter>
+              <parameter name="data">
+                <paramtype>typename impl::data_param</paramtype>
+                <description>
+                  <para>An arbitrary data </para>
+                </description>
+              </parameter>
+              <description>
+                <para>
+                  Evaluate <computeroutput>R(A...)</computeroutput> as a transform either with
+                  <computeroutput><classname>proto::call&lt;&gt;</classname></computeroutput> or with
+                  <computeroutput><classname>proto::make&lt;&gt;</classname></computeroutput> depending
+                  on whether <computeroutput><classname>proto::is_callable</classname>&lt;R&gt;::value</computeroutput>
+                  is <computeroutput>true</computeroutput> or <computeroutput>false</computeroutput>.
+                </para>
+              </description>
+              <requires>
+                <para>
+                  <computeroutput><classname>proto::matches</classname>&lt;Expr, Grammar&gt;::value</computeroutput>
+                  is <computeroutput>true</computeroutput>.
+                </para>
+              </requires>
+              <returns>
+                <para>
+                  <computeroutput>which()(expr, state, data)</computeroutput>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+        <typedef name="proto_grammar">
+          <type>typename Grammar::proto_grammar</type>
+        </typedef>
+      </struct-specialization>
+
+      <struct-specialization name="when">
+        <template>
+          <template-type-parameter name="Grammar"/>
+          <template-type-parameter name="R"/>
+          <template-type-parameter name="A" pack="1"/>
+        </template>
+        <specialization>
+          <template-arg>Grammar</template-arg>
+          <template-arg>R(A..., ...)</template-arg>
+        </specialization>
+        <inherit><type><classname>proto::transform</classname>&lt; when&lt;Grammar, R(A..., ...)&gt; &gt;</type></inherit>
+        <purpose>A grammar element and a <conceptname>Transform</conceptname> that associates a
+          transform with the grammar. </purpose>
+        <description>
+          <para>
+            Use <computeroutput>proto::when&lt;&gt;</computeroutput> to override a grammar's default
+            transform with a custom transform. It is for use when composing larger transforms by associating
+            smaller transforms with individual rules in your grammar.
+          </para>
+          <para>
+            The <computeroutput>when&lt;G, R(A..., ...)&gt;</computeroutput> form accepts either a
+            <conceptname>CallableTransform</conceptname> or an <conceptname>ObjectTransform</conceptname> as its
+            second parameter. <computeroutput>proto::when&lt;&gt;</computeroutput> uses
+            <computeroutput><classname>proto::is_callable</classname>&lt;R&gt;::value</computeroutput> to
+            distinguish between the two, and uses
+            <computeroutput><classname>proto::call&lt;&gt;</classname></computeroutput> to evaluate
+            <conceptname>CallableTransform</conceptname>s and
+            <computeroutput><classname>proto::make&lt;&gt;</classname></computeroutput> to evaluate
+            <conceptname>ObjectTransform</conceptname>s.
+          </para>
+          <para>
+            <emphasis role="bold">Note:</emphasis> In the specialization
+            <computeroutput>when&lt;G, R(A..., ...)&gt;</computeroutput>, the first ellipsis denotes a
+            C++11-style variadic template (which is emulated for C++98 compilers). The second ellipsis
+            is a C-style vararg.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><type><classname>proto::transform_impl</classname>&lt; Expr, State, Data &gt;</type></inherit>
+          <typedef name="call_">
+            <purpose>For exposition only</purpose>
+            <type><classname>proto::call</classname>&lt;R(A..., ...)&gt;</type>
+          </typedef>
+          <typedef name="make_">
+            <purpose>For exposition only</purpose>
+            <type><classname>proto::make</classname>&lt;R(A..., ...)&gt;</type>
+          </typedef>
+          <typedef name="which">
+            <purpose>For exposition only</purpose>
+            <type>typename mpl::if_&lt;<classname>proto::is_callable</classname>&lt;R&gt;,call_,make_&gt;::type</type>
+          </typedef>
+          <typedef name="result_type">
+            <type>typename boost::result_of&lt;which(Expr, State, Data)&gt;::type</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>result_type</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+                <description>
+                  <para>The current expression </para>
+                </description>
+              </parameter>
+              <parameter name="state">
+                <paramtype>typename impl::state_param</paramtype>
+                <description>
+                  <para>The current state </para>
+                </description>
+              </parameter>
+              <parameter name="data">
+                <paramtype>typename impl::data_param</paramtype>
+                <description>
+                  <para>An arbitrary data </para>
+                </description>
+              </parameter>
+              <description>
+                <para>
+                  Evaluate <computeroutput>R(A..., ...)</computeroutput> as a transform either with
+                  <computeroutput><classname>proto::call&lt;&gt;</classname></computeroutput> or with
+                  <computeroutput><classname>proto::make&lt;&gt;</classname></computeroutput> depending
+                  on whether <computeroutput><classname>proto::is_callable</classname>&lt;R&gt;::value</computeroutput>
+                  is <computeroutput>true</computeroutput> or <computeroutput>false</computeroutput>.
+                </para>
+              </description>
+              <requires>
+                <para>
+                  <computeroutput><classname>proto::matches</classname>&lt;Expr, Grammar&gt;::value</computeroutput>
+                  is <computeroutput>true</computeroutput>.
+                </para>
+              </requires>
+              <returns>
+                <para>
+                  <computeroutput>which()(expr, state, data)</computeroutput>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+        <typedef name="proto_grammar">
+          <type>typename Grammar::proto_grammar</type>
+        </typedef>
+      </struct-specialization>
+
+      <struct-specialization name="when">
+        <template>
+          <template-type-parameter name="Grammar"/>
+        </template>
+        <specialization>
+          <template-arg>Grammar</template-arg>
+          <template-arg><classname>proto::external_transform</classname></template-arg>
+        </specialization>
+        <inherit><type>
+  <classname>proto::transform</classname>&lt; when&lt;Grammar, <classname>proto::external_transform</classname>&gt; &gt;</type></inherit>
+        <purpose>A grammar element that associates an externally-specified transform with the grammar.
+          The transform is looked up in the Data parameter using the Grammar as a key.</purpose>
+        <description>
+          <para>
+            Use <computeroutput>proto::when&lt;&gt;</computeroutput> to override a grammar's default
+            transform with a custom transform. It is for use when composing larger transforms by associating
+            smaller transforms with individual rules in your grammar.
+          </para>
+          <para>
+            The <computeroutput>when&lt;G, <classname>proto::external_transform</classname>&gt;</computeroutput>
+            indicates that the associated transform is not yet known. It should be looked up when the transform
+            is about to be applied. It is found by looking it up in the passed-in Data parameter, which
+            behaves like a compile-time map from grammar types to transform types. The map is indexed using
+            <computeroutput>Grammar</computeroutput> as a key. The associated value type is used as the transform
+            to apply. In this way, the same grammar can be used to define multiple evaluating strategies that
+            can be added post-hoc.
+          </para>
+          <para>
+            See <computeroutput><classname>proto::external_transforms</classname></computeroutput> for an example.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><type>
+    boost::remove_reference&lt; 
+      typename mpl::eval_if_c&lt;
+        <classname>proto::result_of::has_env_var</classname>&lt;Data, <classname>proto::transforms_type</classname>&gt;::value,
+        <classname>proto::result_of::env_var</classname>&lt;Data, <classname>proto::transforms_type</classname>&gt;,
+        <classname>proto::result_of::env_var</classname>&lt;Data, <classname>proto::data_type</classname>&gt;
+      &gt;::type
+    &gt;::type
+      ::template when&lt; Grammar &gt;
+        ::template impl&lt; Expr, State, Data &gt;</type></inherit>
+          <description>
+            <para>
+              The implementation of the <code>impl</code> struct depends on whether the <code>Data</code>
+              parameter is a transform environment that contains a value corresponding to the
+              <classname>proto::transforms_type</classname> key. If so, that value is treated as a
+              map from rules to transforms. Otherwise, the <code>Data</code> type itself is treated
+              as such a map.
+            </para>
+          </description>
+        </struct>
+        <typedef name="proto_grammar">
+          <type>typename Grammar::proto_grammar</type>
+        </typedef>
+      </struct-specialization>
+      
+      <struct name="otherwise">
+        <template>
+          <template-type-parameter name="Fun"/>
+        </template>
+        <inherit><type><classname>proto::when</classname>&lt; <classname>proto::_</classname>, Fun &gt;</type></inherit>
+        <purpose>
+          Syntactic sugar for <computeroutput><classname>proto::when</classname>&lt; <classname>proto::_</classname>, Fun &gt;</computeroutput>,
+          for use in grammars to handle all the cases not yet handled.
+        </purpose>
+        <description>
+          <para>
+            Use <computeroutput>proto::otherwise&lt;T&gt;</computeroutput> in your grammars as a synonym for
+            <computeroutput><classname>proto::when</classname>&lt; <classname>proto::_</classname>, Fun &gt;</computeroutput>
+            as in the following transform which counts the number of terminals in an expression.
+          </para>
+          <para>
+            <programlisting>// Count the terminals in an expression tree.
+// Must be invoked with initial state == mpl::int_&lt;0&gt;().
+struct CountLeaves :
+  <classname>proto::or_</classname>&lt;
+    proto::when&lt;<classname>proto::terminal</classname>&lt;<classname>proto::_</classname>&gt;, mpl::next&lt;<classname>proto::_state</classname>&gt;()&gt;,
+    proto::otherwise&lt;<classname>proto::fold</classname>&lt;<classname>proto::_</classname>, <classname>proto::_state</classname>, CountLeaves&gt; &gt;
+  &gt;
+{};</programlisting>
+          </para>
+        </description>
+      </struct>
+
+      <struct name="external_transform">
+        <purpose>A placeholder for use as the second parameter for <computeroutput><classname>proto::when</classname></computeroutput>
+          to indicate that the rule's transform is specified externally.</purpose>
+        <description>
+          <para>
+            See <computeroutput><classname>proto::external_transforms</classname></computeroutput> for an example.
+          </para>
+        </description>
+      </struct>
+      
+      <struct name="external_transforms">
+        <template>
+          <template-type-parameter name="When" pack="1"/>
+        </template>
+        <purpose>A map from grammars to transforms, used as a way to externally associate transforms.</purpose>
+        <typedef name="map_type">
+          <purpose>For exposition only.</purpose>
+          <type>mpl::map&lt; typename to_mpl_pair&lt; When &gt;::type... &gt;</type>
+        </typedef>
+        <struct name="when">
+          <template>
+            <template-type-parameter name="Grammar"/>
+          </template>
+          <inherit><type><classname>proto::otherwise</classname>&lt; typename mpl::at&lt; map_type, Grammar &gt;::type &gt;</type></inherit>
+        </struct>
+        <description>
+          <para>
+            It is sometimes desirable to define a grammar that can be customized with different sets of transforms.
+            To do that, where you would normally specify a transform within a grammar, you can instead put
+            <computeroutput><classname>proto::external_transform</classname></computeroutput>; for example:
+            <computeroutput>proto::when&lt; some_grammar, proto::external_transform &gt;</computeroutput>. Then, when
+            invoking the grammar, you can pass an approriately-defined instance of <computeroutput>proto::external_transforms</computeroutput>
+            as the Data parameter. When an expression matches <computeroutput>some_grammar</computeroutput>, Proto
+            will look up the approprite transform in the Data parameter using <computeroutput>some_grammar</computeroutput>
+            as a key.
+          </para>
+          <para>
+            <programlisting>struct int_terminal
+  : <classname>proto::terminal</classname>&lt;int&gt;
+{};
+
+struct char_terminal
+  : <classname>proto::terminal</classname>&lt;char&gt;
+{};
+
+struct my_grammar
+  : <classname>proto::or_</classname>&lt;
+        // The next two grammar rules are customization points.
+        // The associated transforms are specified externally
+        // using external_transforms below.
+        <classname>proto::when</classname>&lt; int_terminal, <classname>proto::external_transform</classname> &gt;
+      , <classname>proto::when</classname>&lt; char_terminal, <classname>proto::external_transform</classname> &gt;
+      , <classname>proto::when</classname>&lt;
+            <classname>proto::plus</classname>&lt; my_grammar, my_grammar &gt;
+          , <classname>proto::fold</classname>&lt; <classname>proto::_</classname>, int(), my_grammar &gt;
+        &gt;
+    &gt;
+{};
+
+// Here is where the transforms are associated with the
+// grammar rules above.
+struct my_transforms
+  : proto::external_transforms&lt;
+        <classname>proto::when</classname>&lt;int_terminal, print(<classname>proto::_value</classname>)&gt;
+      , <classname>proto::when</classname>&lt;char_terminal, print(<classname>proto::_value</classname>)&gt;
+    &gt;
+{};
+
+// ...
+
+<classname>proto::literal</classname>&lt;int&gt; i(1);
+<classname>proto::literal</classname>&lt;char&gt; c('a');
+my_transforms trx;
+
+// Evaluate "i+c" using my_grammar with the specified transforms:
+my_grammar()(i + c, 0, trx);
+
+// If you would also like to pass arbitrary data along with the
+// transforms, you can use a transform environment, as so:
+my_grammar()(i + c, 0, (proto::data = 42, proto::transforms = trx));</programlisting>
+          </para>
+        </description>
+      </struct>    
+    </namespace>
+  </namespace>
+</header>

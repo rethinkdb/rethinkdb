@@ -1,0 +1,59 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Complex - Our first complex parser]
+
+Well, not really a complex parser, but a parser that parses complex numbers.
+This time, we're using __phoenix__ to do the semantic actions.
+
+Here's a simple parser expression for complex numbers:
+
+        '(' >> double_ >> -(',' >> double_) >> ')'
+    |   double_
+
+What's new? Well, we have:
+
+# Alternates: e.g. `a | b`. Try `a` first. If it succeeds, good. If not, try the
+  next alternative, `b`.
+# Optionals: e.g. -p. Match the parser p zero or one time.
+
+The complex parser presented above reads as:
+
+* One or two real numbers in parentheses, separated by comma (the second number is optional)
+* *OR* a single real number.
+
+This parser can parse complex numbers of the form:
+
+    (123.45, 987.65)
+    (123.45)
+    123.45
+
+[import ../../example/qi/complex_number.cpp]
+
+Here goes, this time with actions:
+
+[tutorial_complex_number]
+
+The full cpp file for this example can be found here: [@../../example/qi/complex_number.cpp]
+
+[note Those with experience using __phoenix__ might be confused with the
+placeholders that we are using (i.e. `_1`, `_2`, etc.). Please be aware
+that we are not using the same placeholders supplied by Phoenix. Take
+note that we are pulling in the placeholders from namespace
+`boost::spirit::qi`. These placeholders are specifically tailored for
+Spirit.]
+
+The `double_` parser attaches this action:
+
+    ref(n) = _1
+
+This assigns the parsed result (actually, the attribute of `double_`) to n.
+`ref(n)` tells Phoenix that `n` is a mutable reference. `_1` is a Phoenix
+placeholder for the parsed result attribute.
+
+[endsect]

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/functional/range/empty.hpp">
+  <para>Includes Proto callable <code><classname>boost::proto::functional::empty</classname></code>.</para>
+
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="functional">
+
+        <!-- proto::functional::empty -->
+        <struct name="empty">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+            <code>boost::empty()</code> function on its arguments.</purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+              <code>boost::empty()</code> function on its arguments.</para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <typedef name="result_type">
+            <type>bool</type>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>bool</type>
+              <template>
+                <template-type-parameter name="Range"/>
+              </template>
+              <parameter name="rng">
+                <paramtype>Range const &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para><code>boost::empty(rng)</code></para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+
+      </namespace>
+    </namespace>
+  </namespace>
+</header>

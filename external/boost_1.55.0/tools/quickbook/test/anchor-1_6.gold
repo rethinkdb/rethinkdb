@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="anchor_test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Anchor Test</title>
+  <section id="anchor_test.anchors">
+    <title><link linkend="anchor_test.anchors">Anchors</link></title>
+    <para>
+      <anchor id="a1"/>A paragraph containing several anchors. <anchor id="a2"/>We
+      want to make sure they appear in the correct place. <anchor id="a3"/>
+    </para>
+    <bridgehead renderas="sect3" id="anchor_test.anchors.h0">
+      <phrase id="anchor_test.anchors.this_heading_shouldn_t_pick_up_t"/><link linkend="anchor_test.anchors.this_heading_shouldn_t_pick_up_t">This
+      heading shouldn't pick up the previous anchor</link>
+    </bridgehead>
+    <anchor id="a4"/>
+    <bridgehead renderas="sect3" id="anchor_test.anchors.h1">
+      <phrase id="anchor_test.anchors.this_heading_should_pick_up_the_"/><link linkend="anchor_test.anchors.this_heading_should_pick_up_the_">This
+      heading should pick up the previous anchor</link>
+    </bridgehead>
+    <anchor id="a5"/>
+    <bridgehead renderas="sect3" id="anchor_test.anchors.h2">
+      <phrase id="anchor_test.anchors.and_this_one"/><link linkend="anchor_test.anchors.and_this_one">And
+      this one</link>
+    </bridgehead>
+    <anchor id="a6"/>
+    <bridgehead renderas="sect3" id="anchor_test.anchors.h3">
+      <phrase id="anchor_test.anchors.also_this_one"/><link linkend="anchor_test.anchors.also_this_one">Also
+      this one</link>
+    </bridgehead>
+    <anchor id="a7"/>
+    <bridgehead renderas="sect3" id="anchor_test.anchors.h4">
+      <phrase id="anchor_test.anchors.finally_this"/><link linkend="anchor_test.anchors.finally_this">Finally
+      this</link>
+    </bridgehead>
+    <anchor id="a8"/>
+  </section>
+  <section id="anchor_test.section_anchor">
+    <title><anchor id="a9"/><link linkend="anchor_test.section_anchor">Section Anchor</link></title>
+    <section id="anchor_test.section_anchor.nested_section">
+      <title><anchor id="a10"/><link linkend="anchor_test.section_anchor.nested_section">Nested
+      Section</link></title>
+    </section>
+    <anchor id="a11"/>
+  </section>
+  <section id="anchor_test.conditional_section_anchor">
+    <title><anchor id="a12"/><link linkend="anchor_test.conditional_section_anchor">Conditional
+    Section Anchor</link></title>
+  </section>
+  <section id="anchor_test.lists">
+    <title><link linkend="anchor_test.lists">Lists</link></title> <anchor id="a14"/>
+    <itemizedlist>
+      <listitem>
+        <simpara>
+          Item 1
+        </simpara>
+      </listitem>
+      <listitem>
+        <simpara>
+          Item 2
+        </simpara>
+      </listitem>
+      <listitem>
+        <simpara>
+          Nested List <anchor id="a15"/>
+          <itemizedlist>
+            <listitem>
+              <simpara>
+                Nested Item 1
+              </simpara>
+            </listitem>
+            <listitem>
+              <simpara>
+                Nested Item 2
+              </simpara>
+            </listitem>
+            <listitem>
+              <simpara>
+                <anchor id="a16"/>Nested Item 3
+              </simpara>
+            </listitem>
+          </itemizedlist>
+        </simpara>
+      </listitem>
+      <listitem>
+        <simpara>
+          Item 3
+        </simpara>
+      </listitem>
+    </itemizedlist>
+  </section>
+  <section id="anchor_test.anchors_in_templates">
+    <title><link linkend="anchor_test.anchors_in_templates">Anchors in templates</link></title>
+    <para>
+      <anchor id="t1"/>Some text.
+    </para>
+    <para>
+      <anchor id="t2"/>Text content
+    </para>
+  </section>
+  <section id="anchor_test.anchors_in_syntax_highlighted_co">
+    <title><link linkend="anchor_test.anchors_in_syntax_highlighted_co">Anchors in
+    syntax highlighted code</link></title>
+<programlisting><phrase role="keyword">int</phrase> <anchor id="s1"/><phrase role="identifier">main</phrase><phrase role="special">()</phrase> <phrase role="special">{}</phrase>
+</programlisting>
+  </section>
+  <section id="anchor_test.nested_anchors">
+    <title><link linkend="anchor_test.nested_anchors">Nested anchors</link></title>
+    <table frame="all" id="anchor_test.nested_anchors.table_with_anchors">
+      <title>Table with anchors</title>
+      <tgroup cols="1">
+        <thead>
+          <row>
+            <entry>
+              <para>
+                Heading
+              </para>
+            </entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>
+              <para>
+                <anchor id="table1"/>Cell 1
+              </para>
+            </entry>
+          </row>
+          <row>
+            <entry>
+              <para>
+                <anchor id="table2"/>Cell 2
+              </para>
+            </entry>
+          </row>
+          <row>
+            <entry>
+              <para>
+                Cell 3<anchor id="table3"/>
+              </para>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+  </section>
+  <section id="anchor_test.anchors_with_escapes">
+    <title><link linkend="anchor_test.anchors_with_escapes">Anchors with escapes</link></title>
+    <anchor id="[oddid]"/>
+  </section>
+</article>

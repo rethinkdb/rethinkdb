@@ -1,0 +1,30 @@
+{
+    "name": "estraverse",
+    "description": "ECMAScript JS AST traversal functions",
+    "homepage": "http://github.com/Constellation/estraverse.html",
+    "main": "estraverse.js",
+    "version": "0.0.4",
+    "engines": {
+        "node": ">=0.4.0"
+    },
+    "maintainers": [{
+        "name": "Yusuke Suzuki",
+        "email": "utatane.tea@gmail.com",
+        "web": "http://github.com/Constellation"
+    }],
+    "repository": {
+        "type": "git",
+        "url": "http://github.com/Constellation/estraverse.git"
+    },
+    "devDependencies": {
+        "mocha": "*",
+        "chai": "*"
+    },
+    "licenses": [{
+        "type": "BSD",
+        "url": "http://github.com/Constellation/estraverse/raw/master/LICENSE.BSD"
+    }],
+    "scripts": {
+        "test": "./node_modules/.bin/mocha"
+    }
+}

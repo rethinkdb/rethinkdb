@@ -1,0 +1,71 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'
+'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+	<title>integrating boost exception in existing exception class hierarchies</title>
+	<link href='reno.css' type='text/css' rel='stylesheet'/>
+</head>
+<body>
+<div class="body-0">
+<div class="body-1">
+<div class="body-2">
+<div>
+<div id="boost_logo">
+<a href="http://www.boost.org"><img style="border:0" src="../../../boost.png" alt="Boost" width="277" height="86"/></a>
+</div>
+<h1>Boost Exception</h1>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="RenoIncludeDIV"><div class="RenoAutoDIV"><h2>Integrating Boost Exception in Existing Exception Class Hierarchies</h2>
+</div>
+<p>Some exception hierarchies can not be modified to make boost::<span class="RenoLink"><a href="exception.html">exception</a></span> a base type. In this case, the <span class="RenoLink"><a href="enable_error_info.html">enable_error_info</a></span> function template can be used to make exception objects derive from boost::<span class="RenoLink"><a href="exception.html">exception</a></span> anyway. Here is an example:</p>
+<pre>#include &lt;<span class="RenoLink"><a href="boost_exception_all_hpp.html">boost/exception/all.hpp</a></span>&gt;
+#include &lt;stdexcept&gt;
+
+typedef boost::<span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct tag_std_range_min,size_t&gt; std_range_min;
+typedef boost::<span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct tag_std_range_max,size_t&gt; std_range_max;
+typedef boost::<span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct tag_std_range_index,size_t&gt; std_range_index;
+
+template &lt;class T&gt;
+class
+my_container
+    {
+    public:
+
+    size_t size() const;
+
+    T const &amp;
+    operator[]( size_t i ) const
+        {
+        if( i &gt; size() )
+            throw boost::<span class="RenoLink"><a href="enable_error_info.html">enable_error_info</a></span>(std::range_error("Index out of range")) &lt;&lt;
+                std_range_min(0) &lt;&lt;
+                std_range_max(size()) &lt;&lt;
+                std_range_index(i);
+        //....
+        }
+    };
+</pre>
+<p>The call to <span class="RenoLink"><a href="enable_error_info.html">enable_error_info</a></span>&lt;T&gt; gets us an object of <i>unspecified type</i> which is guaranteed to derive from both boost::<span class="RenoLink"><a href="exception.html">exception</a></span> and T. This makes it possible to use <span class="RenoLink"><a href="exception_operator_shl.html">operator&lt;&lt;</a></span> to store additional information in the exception object. The exception can be intercepted as T &amp;, so existing exception handling will not break. It can also be intercepted as boost::<span class="RenoLink"><a href="exception.html">exception</a></span> &amp;, so that <span class="RenoLink"><a href="tutorial_transporting_data.html">more information can be added to the exception at a later time</a></span>.</p>
+</div><div class="RenoAutoDIV"><div class="RenoHR"><hr/></div>
+See also: <span class="RenoPageList"><a href="boost-exception.html">Boost Exception</a>&nbsp;| <a href="motivation.html">Motivation</a></span>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div id="footer">
+<p>
+<a class="logo" href="http://jigsaw.w3.org/css-validator/check/referer"><img class="logo_pic" src="valid-css.png" alt="Valid CSS" height="31" width="88"/></a>
+<a class="logo" href="http://validator.w3.org/check?uri=referer"><img class="logo_pic" src="valid-xhtml.png" alt="Valid XHTML 1.0" height="31" width="88"/></a>
+<small>Copyright (c) 2006-2009 by Emil Dotchevski and Reverge Studios, Inc.<br/>
+Distributed under the <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License, Version 1.0</a>.</small>
+</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

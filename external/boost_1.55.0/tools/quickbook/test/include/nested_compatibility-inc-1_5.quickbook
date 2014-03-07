@@ -1,0 +1,5 @@
+[compatibility-mode 1.5]
+
+[section:nested Nested Section 1.5]
+[heading Nested Heading 1.5]
+[endsect]

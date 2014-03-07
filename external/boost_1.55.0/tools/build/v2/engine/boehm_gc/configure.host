@@ -1,0 +1,61 @@
+# configure.host
+
+# This shell script handles all host based configuration for the garbage
+# collector.
+# It sets various shell variables based on the the host and the
+# configuration options.  You can modify this shell script without
+# needing to rerun autoconf.
+
+# This shell script should be invoked as
+#   . configure.host
+# If it encounters an error, it will exit with a message.
+
+# It uses the following shell variables:
+#   host		The configuration host
+#   host_cpu		The configuration host CPU
+#   target_optspace	--enable-target-optspace ("yes", "no", "")
+#   GCC                 should be "yes" if using gcc
+
+# It sets the following shell variables:
+#   gc_cflags	Special CFLAGS to use when building
+
+gc_cflags=""
+
+# We should set -fexceptions if we are using gcc and might be used
+# inside something like gcj.  This is the zeroth approximation:
+if test :"$GCC": = :yes: ; then
+    gc_cflags="${gc_cflags} -fexceptions"
+else
+    case "$host" in 
+        hppa*-*-hpux* )
+	if test :$GCC: != :"yes": ; then
+            gc_cflags="${gc_flags} +ESdbgasm"
+	fi
+        # :TODO: actaully we should check using Autoconf if
+        #     the compiler supports this option.
+        ;;
+    esac
+fi
+
+case "${target_optspace}:${host}" in
+  yes:*)
+    gc_cflags="${gc_cflags} -Os"
+    ;;
+  :m32r-* | :d10v-* | :d30v-*)
+    gc_cflags="${gc_cflags} -Os"
+    ;;
+  no:* | :*)
+    # Nothing.
+    ;;
+esac
+
+# Set any host dependent compiler flags.
+# THIS TABLE IS SORTED.  KEEP IT THAT WAY.
+
+case "${host}" in
+  mips-tx39-*|mipstx39-unknown-*)
+	gc_cflags="${gc_cflags} -G 0"
+	;;
+  *)
+	;;
+esac

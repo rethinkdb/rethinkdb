@@ -1,0 +1,12 @@
+[quickbook 1.5]
+[article Nested Compatibility Test]
+
+[section Duplicate Name]
+[include nested_compatibility-inc-1_5.quickbook]
+[include nested_compatibility-inc-1_6.quickbook]
+[endsect]
+
+[section Duplicate Name]
+[include nested_compatibility-inc-1_5.quickbook]
+[include nested_compatibility-inc-1_6.quickbook]
+[endsect]

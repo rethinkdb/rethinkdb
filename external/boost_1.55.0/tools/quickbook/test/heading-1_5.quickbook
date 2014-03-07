@@ -1,0 +1,57 @@
+[article Heading Test 1.5
+[quickbook 1.5]
+]
+
+[/ Basic headers ]
+
+[heading Generic header]
+[h1 Level 1]
+[h2 Level 2]
+[h3 Level 3]
+[h4 Level 4]
+[h5 Level 5]
+[h6 Level 6]
+
+[/ Test how heading ids are generated when different types of markup are present]
+
+[h1 *Bold*]
+[h1 [/]Comment[/]]
+
+[/ Headings that look like ids]
+
+[h1:notanid]
+[h1:also not an id]
+
+[/ Test how ids are generated for headings containing things like anchors
+   and links ]
+
+[h1 [#anchor]Anchor heading]
+[h1 [link anchor Link heading]]
+
+[/ Test how heading ids are generated inside sections]
+
+[heading H1]
+
+[section:s1 S1]
+
+[h2 H2]
+
+[section:s2 S2]
+
+[h3 H3]
+
+[endsect]
+
+[h2 H4]
+
+[section:s3 S3]
+
+[heading H5]
+
+[endsect]
+
+[h2 H6]
+
+[endsect]
+
+[h1 H7]

@@ -1,0 +1,1044 @@
+<html>
+	<head>
+		<title>file_iteration.html</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<h4>
+			File Iteration
+		</h4>
+		<div>
+			File iteration is a complex, but powerful, vertical repetition construct.&nbsp; 
+			It repeatedly includes a <i>file</i> for each number in a user-specified range.
+		</div>
+		<h4>
+			Tutorial
+		</h4>
+		<div>
+			This mechanism requires two pieces of information to operate:&nbsp; a range to 
+			iterate over and a file to include on each iteration.&nbsp; It can optionally 
+			take a third piece of information that represents flags used to discriminate 
+			between different iterations of the same file.&nbsp; This information is 
+			obtained by the mechanism through one or two <i>named external arguments</i>.&nbsp; 
+			These arguments are specified as user-defined macros named <b>BOOST_PP_ITERATION_PARAMS_<i>x</i></b>
+			or the combination of <b>BOOST_PP_FILENAME_<i>x</i></b> and <b>BOOST_PP_ITERATION_LIMITS</b>.
+		</div>
+		<div>
+			<b>BOOST_PP_ITERATION_LIMITS</b> specifies the range of values to iterate 
+			over.&nbsp; It <i>must</i> expand to a <i>tuple</i> containing two elements--a 
+			lower and upper bound.&nbsp; Both the upper and lower bounds must be numeric 
+			values in the range of <i>0</i> to <b>BOOST_PP_LIMIT_ITERATION</b>.&nbsp; For 
+			example, if the user wishes a file to be included for numbers ranging from <i>0</i>
+			to <i>10</i>, <b>BOOST_PP_ITERATION_LIMITS</b> would be defined like this:
+		</div>
+		<div class="code">
+			<pre>
+#define BOOST_PP_ITERATION_LIMITS (0, 10)
+</pre>
+		</div>
+		<div>
+			Note that there is whitespace after the name of the macro.&nbsp; The macro <i>does 
+				not</i> take <i>two</i> arguments.&nbsp; In the case above, if there was 
+			no whitespace, a preprocessing error would occur because <i>0</i> and <i>10</i> 
+			are invalid identifiers.
+		</div>
+		<div>
+			Both the upper and lower bounds specified in the <b>BOOST_PP_ITERATION_LIMITS</b>
+			macro are <i>evaluated parameters</i>.&nbsp; This implies that they can include 
+			simple arithmetic or logical expressions.&nbsp; For instance, the above 
+			definition could easily have been written like this:
+		</div>
+		<div class="code">
+			<pre>
+#define N() 5
+#define BOOST_PP_ITERATION_LIMITS (0, N() + 5)
+</pre>
+		</div>
+		<div>
+			Because of this, if the whitespace after the macro name is elided, it is 
+			possible for the definition to be syntactically valid:
+		</div>
+		<div class="code">
+			<pre>
+#define A 0
+#define B 10
+#define BOOST_PP_ITERATION_LIMITS(A, B)
+   // note:  no whitespace       ^
+</pre>
+		</div>
+		<div>
+			If this happens, an error will occur inside the mechanism when it attempts to 
+			use this macro.&nbsp; The error messages that result may be obscure, so always 
+			remember to include the whitespace.&nbsp; A <i>correct</i> version of the above 
+			looks like this:
+		</div>
+		<div class="code">
+			<pre>
+#define A 0
+#define B 10
+#define BOOST_PP_ITERATION_LIMITS (A, B)
+   // note:  has whitespace      ^
+</pre>
+		</div>
+		<div>
+			<b>BOOST_PP_FILENAME_<i>x</i></b> specifies the file to iterate over.&nbsp; The <i>x</i>
+			is a placeholder for the dimension of iteration.&nbsp; (For now, we'll assume 
+			this is <i>1</i>--i.e. the first dimension, so we are actually dealing with <b>BOOST_PP_FILENAME_1</b>.)&nbsp; 
+			This macro must expand to a valid filename--in quotes or in angle brackets 
+			depending on how the file is accessed:
+		</div>
+		<div class="code">
+			<pre>
+#define BOOST_PP_FILENAME_1 "file.h"
+// -or-
+#define BOOST_PP_FILENAME_1 &lt;file.h&gt;
+</pre>
+		</div>
+		<div>
+			All that we need now to perform a simple file iteration is to invoke the 
+			mechanism:
+		</div>
+		<div class="code">
+			<pre>
+??=include BOOST_PP_ITERATE()
+</pre>
+		</div>
+		<div>
+			(The <code>??=</code> token is a trigraph for <code>#</code>.&nbsp; I use the 
+			trigraph to make it clear that I am <i>including</i> a file rather than 
+			defining or expanding a macro, but it is not necessary.&nbsp; Even the digraph 
+			version, <code>%:</code>, could be used.&nbsp; Some compilers do not readily 
+			accept trigraphs and digraphs, so keep that in mind.&nbsp; Other than that, use 
+			whichever one you prefer.)
+		</div>
+		<div>
+			So, if we wish to iterate "file.h" from <i>1</i> to <i>10</i>, we just need to 
+			put the pieces together:
+		</div>
+		<div class="code">
+			<pre>
+#define BOOST_PP_ITERATION_LIMITS (1, 10)
+#define BOOST_PP_FILENAME_1 "file.h"
+??=include BOOST_PP_ITERATE()
+</pre>
+		</div>
+		<div>
+			The above code has the effect of including "file.h" ten times in 
+			succession.&nbsp;
+		</div>
+		<div>
+			Alternately, both the range and the file to iterate over can be expressed in 
+			one macro, <b>BOOST_PP_ITERATION_PARAMS_<i>x</i></b>.&nbsp; Once again, the <i>x</i>
+			is a placeholder for the dimension of iteration--which we'll assume is <i>1</i>.&nbsp; 
+			This macro must expand to an <i>array</i> that includes the lower bound, upper 
+			bound, filename, and optional flags (in that order).
+		</div>
+		<div class="code">
+			<pre>
+#define BOOST_PP_ITERATION_PARAMS_1 (3, (1, 10, "file.h"))
+??=include BOOST_PP_ITERATE()
+</pre>
+		</div>
+		<div>
+			This has the same effect as the previous version.&nbsp; Only one of these two 
+			ways to specify the parameters can be used at a time.&nbsp; (The reason that 
+			there are two different methods has to do with dimensional abstraction which 
+			I'll get to later.)
+		</div>
+		<div>
+			There is nothing particularly useful about including a file ten times.&nbsp; 
+			The difference is that the current macro state changes each time.&nbsp; For 
+			example, the current "iteration value" is available with <b>BOOST_PP_ITERATION</b>().&nbsp; 
+			If "file.h" is defined like this...
+		</div>
+		<div class="code">
+			<pre>
+// file.h
+template&lt;&gt; struct sample&lt;BOOST_PP_ITERATION()&gt; { };
+</pre>
+		</div>
+		<div>
+			...and it is iterated as follows...
+		</div>
+		<div class="code">
+			<pre>
+template&lt;int&gt; struct sample;
+
+#define BOOST_PP_ITERATION_PARAMS_1 (3, (1, 5, "file.h"))
+??=include BOOST_PP_ITERATE()
+</pre>
+		</div>
+		<div>
+			...the result is different each time:
+		</div>
+		<div>
+			<pre>
+template&lt;&gt; struct sample&lt;1&gt; { };
+template&lt;&gt; struct sample&lt;2&gt; { };
+template&lt;&gt; struct sample&lt;3&gt; { };
+template&lt;&gt; struct sample&lt;4&gt; { };
+template&lt;&gt; struct sample&lt;5&gt; { };
+</pre>
+		</div>
+		<div>
+			There is no reason that a file can't iterate over itself.&nbsp; This has the 
+			advantage of keeping the code together.&nbsp; The problem is that you have to 
+			discriminate the "regular" section of the file from the iterated section of the 
+			file.&nbsp; The library provides the <b>BOOST_PP_IS_ITERATING</b> macro to help 
+			in this regard.&nbsp; This macro is defined as <i>1</i> if an iteration is in 
+			progress.&nbsp; For example, to merge the contents of "file.h" into the file 
+			that iterates it:
+		</div>
+		<div class="code">
+			<pre>
+// sample.h
+#if !BOOST_PP_IS_ITERATING
+
+   #ifndef SAMPLE_H
+   #define SAMPLE_H
+
+   #include &lt;boost/preprocessor/iteration/iterate.hpp&gt;
+
+   template&lt;int&gt; struct sample;
+
+   #define BOOST_PP_ITERATION_PARAMS_1 (3, (1, 5, "sample.h"))
+   ??=include BOOST_PP_ITERATE()
+
+   #endif // SAMPLE_H
+
+#else
+
+   template&lt;&gt; struct sample&lt;BOOST_PP_ITERATION()&gt; { };
+
+#endif
+</pre>
+		</div>
+		<div>
+			Using the same file like this raises another issue.&nbsp; What happens when a 
+			file performs two separate file iterations over itself?&nbsp; This is the 
+			purpose of the optional flags parameter.&nbsp; It is used to discriminate 
+			between separate iterations.
+		</div>
+		<div class="code">
+			<pre>
+// sample.h
+#if !BOOST_PP_IS_ITERATING
+
+   #ifndef SAMPLE_H
+   #define SAMPLE_H
+
+   #include &lt;boost/preprocessor/iteration/iterate.hpp&gt;
+   #include &lt;boost/preprocessor/repetition/enum_params.hpp&gt;
+   #include &lt;boost/preprocessor/repetition/enum_shifted_params.hpp&gt;
+
+   template&lt;int&gt; struct sample;
+
+   #define BOOST_PP_ITERATION_PARAMS_1 (4, (1, 5, "sample.h", 1))
+   ??=include BOOST_PP_ITERATE()
+
+   template&lt;class T, class U&gt; struct typelist_t {
+      typedef T head;
+      typedef U tail;
+   };
+
+   template&lt;int&gt; struct typelist;
+   struct null_t;
+
+   template&lt;&gt; struct typelist&lt;1&gt; {
+      template&lt;class T0&gt; struct args {
+         typedef typelist_t&lt;T0, null_t&gt; type;
+      };
+   };
+
+   #ifndef TYPELIST_MAX
+   #define TYPELIST_MAX 50
+   #endif
+
+   #define BOOST_PP_ITERATION_PARAMS_1 (4, (2, TYPELIST_MAX, "sample.h", 2))
+   ??=include BOOST_PP_ITERATE()
+
+   #endif // SAMPLE_H
+
+#elif BOOST_PP_ITERATION_FLAGS() == 1
+
+   template&lt;&gt; struct sample&lt;BOOST_PP_ITERATION()&gt; { };
+
+#elif BOOST_PP_ITERATION_FLAGS() == 2
+
+   #define N BOOST_PP_ITERATION()
+
+   template&lt;&gt; struct typelist&lt;N&gt; {
+      template&lt;BOOST_PP_ENUM_PARAMS(N, class T)&gt; struct args {
+         typedef typelist_t&lt;
+            T0,
+            typename typelist&lt;N - 1&gt;::args&lt;BOOST_PP_ENUM_SHIFTED_PARAMS(N, T)&gt;::type
+         &gt; type;
+      };
+   };
+
+   #undef N
+
+#endif
+</pre>
+		</div>
+		<div>
+			Notice the use of the "flags" parameter (which is accessed through <b>BOOST_PP_ITERATION_FLAGS</b>()).&nbsp; 
+			It discriminates between our recurring <code>sample</code> iteration and a 
+			typelist linearization iteration.&nbsp;
+		</div>
+		<div>
+			The second iteration illustrates the power of the file iteration 
+			mechanism.&nbsp; It generates typelist linearizations of the form <code>typelist&lt;3&gt;::args&lt;int, 
+				double, char&gt;::type</code>.
+		</div>
+		<div>
+			Actually, to continue the typelist example, with the help of another iteration 
+			we can <i>fully</i> linearize typelist creation....
+		</div>
+		<div class="code">
+			<pre>
+// extract.h
+#if !BOOST_PP_IS_ITERATING
+
+   #ifndef EXTRACT_H
+   #define EXTRACT_H
+
+   #include &lt;boost/preprocessor/iteration/iterate.hpp&gt;
+   #include &lt;boost/preprocessor/repetition/enum.hpp&gt;
+   #include &lt;boost/preprocessor/repetition/enum_params.hpp&gt;
+   #include &lt;boost/preprocessor/repetition/enum_trailing_params.hpp&gt;
+
+   // certain types such as "void" can't be function argument types
+
+   template&lt;class T&gt; struct incomplete {
+      typedef T type;
+   };
+
+   template&lt;class T&gt; struct strip_incomplete {
+      typedef T type;
+   };
+
+   template&lt;class T&gt; struct strip_incomplete&lt;incomplete&lt;T&gt; &gt; {
+      typedef T type;
+   };
+
+   template&lt;template&lt;int&gt; class output, class func_t&gt; struct extract;
+
+   #ifndef EXTRACT_MAX
+   #define EXTRACT_MAX 50
+   #endif
+
+   #define BOOST_PP_ITERATION_PARAMS_1 (3, (1, EXTRACT_MAX, "extract.h"))
+   ??=include BOOST_PP_ITERATE()
+
+   #endif // EXTRACT_H
+
+#else
+
+   #define N BOOST_PP_ITERATION()
+   #define STRIP(z, n, _) \
+      typename strip_incomplete&lt;T ## n&gt;::type \
+      /**/
+
+   template&lt;template&lt;int&gt; class output, class R BOOST_PP_ENUM_TRAILING_PARAMS(N, class T)&gt;
+   struct extract&lt;R (BOOST_PP_ENUM_PARAMS(N, T))&gt; {
+      typedef typename output&lt;N&gt;::template args&lt;BOOST_PP_ENUM(N, STRIP, nil)&gt;::type type;
+   };
+
+   #undef STRIP
+   #undef N
+
+#endif
+</pre>
+		</div>
+		<div>
+			Now we can define a helper macro to finish the job:
+		</div>
+		<div class="code">
+			<pre>
+#define TYPELIST(args) extract&lt;typelist, void args&gt;::type
+
+typedef TYPELIST((int, double, incomplete&lt;void&gt;)) xyz;
+</pre>
+		</div>
+		<div>
+			There are two minor caveats with this result.&nbsp; First, certain types like <code>void</code>
+			can't be the type of an argument, so they have to be wrapped with <code>incomplete&lt;T&gt;</code>.&nbsp; 
+			Second, the necessary double parenthesis is annoying.&nbsp; If and when C++ 
+			gets C99's variadic macros, <code>TYPELIST</code> can be redefined:
+		</div>
+		<div class="code">
+			<pre>
+#define TYPELIST(...) extract&lt;typelist, void (__VA_ARGS__)&gt;::type
+
+typedef TYPELIST(int, double, short) xyz;
+</pre>
+		</div>
+		<div>
+			Note also that both the lower and upper bounds of an iteration are also 
+			accessible inside an iteration with <b>BOOST_PP_ITERATION_START</b>() and <b>BOOST_PP_ITERATION_FINISH</b>().
+		</div>
+		<div>
+			It is my hope that the explanation and examples presented here demonstrate the 
+			power of file iteration.&nbsp; Even so, this is just the beginning.&nbsp; The 
+			file iteration mechanism also defines a full suite of facilities to support 
+			multidimensional iteration.
+		</div>
+		<h4>
+			Multiple Dimensions
+		</h4>
+		<div>
+			The file iteration mechanism supports up to <b>BOOST_PP_LIMIT_ITERATION_DIM</b> 
+			dimensions.&nbsp; The first dimension (i.e. the outermost) we have already used 
+			above.&nbsp; In order to use the second dimension (inside the first), we simply 
+			have to replace the placeholder <i>x</i> with <i>2</i> instead of <i>1</i>.
+		</div>
+		<div class="code">
+			<pre>
+#define BOOST_PP_ITERATION_PARAMS_2 /* ... */
+                                  ^
+</pre>
+		</div>
+		<div>
+			...or...
+		</div>
+		<div class="code">
+			<pre>
+#define BOOST_PP_FILENAME_2 /* ... */
+                          ^
+</pre>
+		</div>
+		<div>
+			Each dimension must be used <i>in order</i> starting with <i>1</i>.&nbsp; 
+			Therefore, the above can <i>only</i> be valid immediately inside the first 
+			dimension.&nbsp;
+		</div>
+		<div>
+			At this point, further explanation is necessary regarding <b>BOOST_PP_ITERATION</b>,
+			<b>BOOST_PP_ITERATION_START</b>, and <b>BOOST_PP_ITERATION_FINISH</b>.&nbsp; <b>BOOST_PP_ITERATION</b>() 
+			expands to the iteration value of the <i>current</i> dimension--regardless of 
+			what dimension that is.&nbsp; Likewise, <b>BOOST_PP_ITERATION_START</b>() and <b>BOOST_PP_ITERATION_FINISH</b>() 
+			expand to the lower and upper bounds of the <i>current</i> dimension.&nbsp; 
+			Using the following pseudo-code as reference:
+		</div>
+		<div class="code">
+			<pre>
+for (int i = start(1); i <= finish(1); ++i) {
+   // A
+   for (int j = start(2); j <= finish(2); ++j) {
+      // B
+   }
+   // C
+}
+</pre>
+		</div>
+		<div>
+			At point <i>A</i>, <b>BOOST_PP_ITERATION</b>() refers to <code>i</code>.&nbsp; <b>BOOST_PP_ITERATION_START</b>() 
+			and <b>BOOST_PP_ITERATION_FINISH</b>() refer to <code>start(1)</code> and <code>finish(1)</code>
+			respectively.&nbsp; At point <i>B</i>, however, <b>BOOST_PP_ITERATION</b>() 
+			refers to <code>j</code>--the <i>current</i> iteration value at point <i>B</i>.&nbsp; 
+			The same is true for <b>BOOST_PP_ITERATION_START</b>() which refers to <code>start(2)</code>, 
+			etc..
+		</div>
+		<div>
+			If separate files are used for each dimension, then there are no major 
+			problems, and using multiple dimensions is straightforward.&nbsp; However, if 
+			more than one dimension is located in the same file, they need to be 
+			distinguished from one another.&nbsp; The file iteration mechanism provides the 
+			macro <b>BOOST_PP_ITERATION_DEPTH</b> for this purpose:
+		</div>
+		<div class="code">
+			<pre>
+// file.h
+#if !BOOST_PP_IS_ITERATING
+
+   #ifndef FILE_H
+   #define FILE_H
+
+   #include &lt;boost/preprocessor/iteration/iterate.hpp&gt;
+
+   #define BOOST_PP_ITERATION_PARAMS_1 (3, (1, 2, "file.h"))
+   ??=include BOOST_PP_ITERATE()
+
+   #endif // FILE_H
+
+#elif BOOST_PP_ITERATION_DEPTH() == 1
+
+   // A
+   + BOOST_PP_ITERATION()
+
+   #define BOOST_PP_ITERATION_PARAMS_2 (3, (1, 2, "file.h"))
+   ??=include BOOST_PP_ITERATE()
+
+   // C
+
+#elif BOOST_PP_ITERATION_DEPTH() == 2
+
+   // B
+   - BOOST_PP_ITERATION()
+
+#endif
+</pre>
+		</div>
+		<div>
+			This will result to the following:
+		</div>
+		<div>
+			<pre>
++ 1
+- 1
+- 2
++ 2
+- 1
+- 2
+</pre>
+		</div>
+		<div>
+			Multiple dimensions raise another question.&nbsp; How does one access the state 
+			of dimensions <i>other</i> than the current dimension?&nbsp; In other words, 
+			how does one access <code>i</code> at point <i>A</i>?&nbsp; Because of the 
+			preprocessor's lazy evaluation, this <i>doesn't</i> work....
+		</div>
+		<div class="code">
+			<pre>
+// ...
+
+#elif BOOST_PP_ITERATION_DEPTH() == 1
+
+   #define I BOOST_PP_ITERATION()
+
+   #define BOOST_PP_ITERATION_PARAMS_2 (3, (1, 2, "file.h"))
+   ??=include BOOST_PP_ITERATE()
+
+   #undef I
+
+#elif BOOST_PP_ITERATION_DEPTH() == 2
+
+   #define J BOOST_PP_ITERATION()
+
+   // use I and J
+
+   #undef I
+
+#endif
+</pre>
+		</div>
+		<div>
+			The problem here is that <code>I</code> refers to <b>BOOST_PP_ITERATION</b>(), 
+			not to the <i>value</i> of <b>BOOST_PP_ITERATION</b>() at the point of <code>I</code>'s 
+			definition.
+		</div>
+		<div>
+			The library provides macros to access these values in two ways--absolutely or 
+			relatively.&nbsp; The first variety accesses a value of a specific iteration 
+			frame (i.e. dimension).&nbsp; To access the iteration value of the first 
+			dimension--from <i>any</i> dimension--<b>BOOST_PP_FRAME_ITERATION</b>(<i>1</i>) 
+			is used.&nbsp; To access the iteration value of the second dimension, <b>BOOST_PP_FRAME_ITERATION</b>(<i>2</i>) 
+			is used, and so on.&nbsp;
+		</div>
+		<div>
+			There are also frame versions to access the lower bound, the upper bound, and 
+			the flags of a dimension:&nbsp; <b>BOOST_PP_FRAME_START</b>, <b>BOOST_PP_FRAME_FINISH</b>, 
+			and <b>BOOST_PP_FRAME_FLAGS</b>.
+		</div>
+		<div>
+			So, to fix the last example, we modify the definition of <code>I</code>....
+		</div>
+		<div class="code">
+			<pre>
+// ...
+
+#elif BOOST_PP_ITERATION_DEPTH() == 1
+
+   #define I BOOST_PP_FRAME_ITERATION(1)
+
+// ...
+</pre>
+		</div>
+		<div>
+			The library also provides macros to access values in dimensions <i>relative</i> 
+			to the current dimension (e.g. the <i>previous</i> dimension).&nbsp; These 
+			macros take an argument that is interpreted as an offset from the current 
+			frame.&nbsp; For example, <b>BOOST_PP_RELATIVE_ITERATION</b>(<i>1</i>) always 
+			refers to the outer dimension immediately previous to the current 
+			dimension.&nbsp; An argument of <i>0</i> is interpreted as an offset of <i>0</i>
+			which causes <b>BOOST_PP_RELATIVE_ITERATION</b>(<i>0</i>) to be equivalent to <b>BOOST_PP_ITERATION</b>().&nbsp;
+			<b>BOOST_PP_RELATIVE_ITERATION</b>(<i>2</i>) refers to the iteration value of 
+			the dimension immediately preceding the dimension that precedes the current 
+			dimension.&nbsp;
+		</div>
+		<div>
+			The lower and upper bounds of a dimension can be accessed in this fashion as 
+			well with <b>BOOST_PP_RELATIVE_START</b> and <b>BOOST_PP_RELATIVE_FINISH</b>.&nbsp; 
+			The flags of a relative dimension can be accessed with <b>BOOST_PP_RELATIVE_FLAGS</b>.
+		</div>
+		<h4>
+			Relativity
+		</h4>
+		<div>
+			I mentioned earlier that there is a reason that there are two ways to 
+			parametize the mechanism.&nbsp; The reason is dimensional abstraction.&nbsp; In 
+			certain situations the dimension is unknown by the code that is being 
+			iterated--possibly because the code is reused at multiple, different 
+			dimensions.&nbsp; If that code needs to iterate again, it has to define the 
+			right parameters (based on the dimension) for the mechanism to consume.&nbsp;
+		</div>
+		<div>
+			All of the macro state maintained by the mechanism can be referred to in an 
+			indirect way relative to a dimension.&nbsp; This is the purpose of the <b>BOOST_PP_RELATIVE_</b>
+			accessors.&nbsp;
+		</div>
+		<div>
+			Likewise, the user-defined <i>named external arguments</i> can be defined this 
+			way as well--<i>except</i> the name of the file to iterate.&nbsp; Because the 
+			lower and upper boundaries are <i>evaluated</i> by the mechanism, the 
+			implementation no longer needs the macro <b>BOOST_PP_ITERATION_LIMITS</b>, and 
+			the identifier can be reused for each dimension of iteration.&nbsp;
+		</div>
+		<div>
+			Unfortunately, the filename is a different story.&nbsp; The library has no way 
+			to evaluate the quoted (or angle-bracketed) text.&nbsp; Therefore, it has to 
+			use a different macro for each dimension.&nbsp; That is the purpose of the <b>BOOST_PP_FILENAME_<i>x</i></b>
+			macros.&nbsp; They exist to isolate the only non-abstractable piece of data 
+			required by the mechanism.&nbsp;
+		</div>
+		<div>
+			In order to define the filename in an abstract fashion, you need to do 
+			something like this:
+		</div>
+		<div class="code">
+			<pre>
+#define UNIQUE_TO_FILE "some_file.h"
+
+#if BOOST_PP_ITERATION_DEPTH() == 0
+   #define BOOST_PP_FILENAME_1 UNIQUE_TO_FILE
+#elif BOOST_PP_ITERATION_DEPTH() == 1
+   #define BOOST_PP_FILENAME_2 UNIQUE_TO_FILE
+#elif BOOST_PP_ITERATION_DEPTH() == 2
+   #define BOOST_PP_FILENAME_3 UNIQUE_TO_FILE
+
+// ... up to BOOST_PP_LIMIT_ITERATION_DIM
+
+#endif
+</pre>
+		</div>
+		<div>
+			The intent is to avoid having to do this for anything but the filename.&nbsp; 
+			If this needs to be done more than once in a file (<b>BOOST_PP_FILENAME_<i>x</i></b>
+			is undefined by the mechanism after it is used.), consider using a separate 
+			file to make the proper definition:
+		</div>
+		<div class="code">
+			<pre>
+# // detail/define_file_h.h
+# ifndef FILE_H
+#   error FILE_H is not defined
+# endif
+#
+# if BOOST_PP_ITERATION_DEPTH() == 0
+#   define BOOST_PP_FILENAME_1 FILE_H
+# elif BOOST_PP_ITERATION_DEPTH() == 1
+#   define BOOST_PP_FILENAME_2 FILE_H
+# elif BOOST_PP_ITERATION_DEPTH() == 2
+#   define BOOST_PP_FILENAME_3 FILE_H
+# elif BOOST_PP_ITERATION_DEPTH() == 3
+#   define BOOST_PP_FILENAME_4 FILE_H
+# elif BOOST_PP_ITERATION_DEPTH() == 4
+#   define BOOST_PP_FILENAME_5 FILE_H
+# else
+#   error unsupported iteration dimension
+# endif
+</pre>
+		</div>
+		<div>
+			And then use it like this....
+		</div>
+		<div class="code">
+			<pre>
+// file.h
+#if !BOOST_PP_IS_ITERATING
+
+   #ifndef FILE_H
+   #define FILE_H "file.h"
+
+   #define BOOST_PP_ITERATION_LIMITS (1, 10)
+   #include "detail/define_file_h.h"
+
+   ??=include BOOST_PP_ITERATE()
+
+#endif // FILE_H
+
+#else
+   // iterated portion
+#endif
+</pre>
+		</div>
+		<div>
+			With a little effort like this, it is possible to maintain the abstraction 
+			without the code bloat that would otherwise be required.&nbsp; Unfortunately, 
+			this is not a completely general solution as it would need to be done for each 
+			unique filename, but it is better than nothing.
+		</div>
+		<h4>
+			Conclusion
+		</h4>
+		<div>
+			That about covers the facilities that are available from the mechanism.&nbsp; 
+			Using these facilities, let's implement a <code>function_traits</code> template 
+			to demonstrate a full-fledge use of the mechanism.
+		</div>
+		<h4>
+			Function Traits - An Involved Example
+		</h4>
+		<div>
+			Implementing a comprehensive <code>function_traits</code> template metafunction 
+			requires the use of every major part of the file iteration mechanism.&nbsp;
+		</div>
+		<div>
+			(This example makes no attempt of work around compiler deficiencies and exists 
+			only to illustrate the mechanism.)
+		</div>
+		<div>
+			The result should have the following features:
+		</div>
+		<ul>
+			<li>
+				return type</li>
+			<li>
+				number and types of parameters</li>
+			<li>
+				whether or not the type is a pointer-to-function, reference-to-function, 
+				pointer-to-member-function, or a plain function type</li>
+			<li>
+				whether the type has an ellipsis</li>
+			<li>
+				if not a pointer-to-member-function, the equivalent pointer-to-function, 
+				reference-to-function, and function type</li>
+			<li>
+				otherwise, the pointer-to-member type, the class type to which it refers, and 
+				whether it is const and/or volatile qualified</li>
+		</ul>
+		<div>
+			There are a myriad of ways that this can be implemented.&nbsp; I'll give a 
+			brief summary here of what is happening in the implementation below.&nbsp;
+		</div>
+		<div>
+			The implementation inherently has to deal with function arity.&nbsp; Therefore, 
+			at minimum, we need to iterate over function arities and define partial 
+			specializations of the primary template <code>function_traits</code>.&nbsp; The 
+			situation is further complicated by variadic functions (i.e. functions with an 
+			ellipsis).&nbsp; Therefore, for every arity, we need a variadic version as 
+			well.
+		</div>
+		<div>
+			We also need to handle pointers-to-member-functions.&nbsp; This implies that we 
+			have to handle not just arity and variadics, but also cv-qualifications.&nbsp;
+		</div>
+		<div>
+			For the sake of clarity, the implementation below handles function types and 
+			pointers-to-member-functions separately.&nbsp; They could be merged, but the 
+			result would be significantly messier.
+		</div>
+		<div>
+			To handle function types, the implementation below iterates over function 
+			arities.&nbsp; For each arity, it iterates over each parameter to provide 
+			access to each individually.&nbsp; It then re-includes itself to define a 
+			variadic specialization of the same arity.&nbsp; It performs the rough 
+			equivalent of the following pseudo-code:
+		</div>
+		<div class="code">
+			<pre>
+void make_spec(int i, bool variadic) {
+   :open function_traits&lt;i, variadic&gt;
+      for (int j = 0; j < i; ++j) {
+         :parameter&lt;j&gt;
+      }
+   :close
+   if (!variadic) {
+      make_spec(i, true);
+   }
+   return;
+}
+
+void function_types(int max_arity) {
+   for (int i = 0; i <= max_arity; ++i) {
+      make_spec(i, false);
+   }
+   return;
+}
+</pre>
+		</div>
+		<div>
+			The implementation of pointers-to-member-functions is a bit different.&nbsp; 
+			First, it iterates over cv-qualifiers.&nbsp; For each cv-qualifier, it iterates 
+			over function arities.&nbsp; For each function arity, it iterates again over 
+			each parameter.&nbsp; It then re-includes itself to define a variadic 
+			specialization of the same arity....
+		</div>
+		<div class="code">
+			<pre>
+void make_spec(int j, const char* cv, bool variadic) {
+   :open function_traits&lt;j, cv, variadic&gt;
+      for (int k = 0; k < j; ++k) {
+         parameter&lt;k&gt;
+      }
+   :close
+   if (!variadic) {
+      make_spec(j, cv, true);
+   }
+   return;
+}
+
+void gen_arities(const char* cv, int max_arity) {
+   for (int j = 0; j <= max_arity; ++j) {
+      make_spec(j, cv, false);
+   }
+   return;
+}
+
+void pointers_to_members(int max_arity) {
+   static const char* cv_qualifiers[] = { "", "const", "volatile", "const volatile" };
+   for (int i = 0; i < 4; ++i) {
+      gen_arities(cv_qualifiers[i], max_arity);
+   }
+   return;
+}
+</pre>
+		</div>
+		<div>
+			Here is the complete implementation.&nbsp; This example represents the power of 
+			the file iteration mechanism as well as the library in general, so follow it 
+			carefully if you wish to fully understand what the mechanism does....
+		</div>
+		<div class="code">
+			<pre>
+// function_traits.hpp
+
+#if !BOOST_PP_IS_ITERATING
+
+#ifndef FUNCTION_TRAITS_HPP
+#define FUNCTION_TRAITS_HPP
+
+#include &lt;boost/preprocessor/cat.hpp&gt;
+#include &lt;boost/preprocessor/facilities/apply.hpp&gt;
+#include &lt;boost/preprocessor/iteration/iterate.hpp&gt;
+#include &lt;boost/preprocessor/iteration/self.hpp&gt;
+#include &lt;boost/preprocessor/repetition/enum_params.hpp&gt;
+#include &lt;boost/preprocessor/repetition/enum_trailing_params.hpp&gt;
+#include &lt;boost/preprocessor/tuple/elem.hpp&gt;
+
+// enable user-expansion
+#ifndef FUNCTION_TRAITS_MAX_ARITY
+   #define FUNCTION_TRAITS_MAX_ARITY 15
+#endif
+
+namespace detail {
+
+// avoid replication of "default" values
+struct function_traits_base {
+   static const bool is_plain = false;
+   static const bool is_pointer = false;
+   static const bool is_reference = false;
+   static const bool is_member = false;
+};
+
+} // detail
+
+// no definition
+template&lt;class&gt; struct function_traits;
+
+// extract ellipsis state
+#define ELLIPSIS(n) \
+   BOOST_PP_APPLY( \
+      BOOST_PP_TUPLE_ELEM(2, n, ELLIPSIS_I) \
+   ) \
+   /**/
+
+// iterate over function arities for function types
+#define BOOST_PP_ITERATION_PARAMS_1 \
+   (4, (0, FUNCTION_TRAITS_MAX_ARITY, "function_traits.hpp", 0)) \
+   /**/
+??=include BOOST_PP_ITERATE()
+
+// obtain a cv-qualifier by index
+#define QUALIFIER(n) \
+   BOOST_PP_APPLY( \
+      BOOST_PP_TUPLE_ELEM( \
+         4, n, \
+         (BOOST_PP_NIL, (const), (volatile), (const volatile)) \
+      ) \
+   ) \
+   /**/
+
+// iterate over cv-qualifiers for pointers-to-members
+#define BOOST_PP_ITERATION_PARAMS_1 \
+   (4, (0, 3, "function_traits.hpp", 1)) \
+   /**/
+??=include BOOST_PP_ITERATE()
+
+// remove temporary macros
+#undef QUALIFIER
+#undef ELLIPSIS
+
+// overriding jumper for pointers-to-functions
+template&lt;class T&gt; struct function_traits&lt;T*&gt; : function_traits&lt;T&gt; {
+   static const bool is_plain = false;
+   static const bool is_pointer = true;
+};
+
+// overriding jumper for references-to-functions
+template&lt;class T&gt; struct function_traits&lt;T&amp;&gt; : function_traits&lt;T&gt; {
+   static const bool is_plain = false;
+   static const bool is_reference = true;
+};
+
+// eof
+#endif // FUNCTION_TRAITS_HPP
+
+// specializations for function types
+#elif BOOST_PP_ITERATION_DEPTH() == 1 \
+   &amp;&amp; BOOST_PP_ITERATION_FLAGS() == 0 \
+   /**/
+
+   // define ellipsis state
+   #if BOOST_PP_IS_SELFISH
+      #define ELLIPSIS_I ((true), (...))
+   #else
+      #define ELLIPSIS_I ((false), BOOST_PP_NIL)
+   #endif
+
+   #define N BOOST_PP_ITERATION()
+
+   template&lt;class R BOOST_PP_ENUM_TRAILING_PARAMS(N, class T)&gt;
+   struct function_traits&lt;R (BOOST_PP_ENUM_PARAMS(N, T) ELLIPSIS(1))&gt;
+      : detail::function_traits_base {
+      static const bool is_plain = true;
+      typedef R function_type(BOOST_PP_ENUM_PARAMS(N, T) ELLIPSIS(1));
+      typedef function_type* pointer_type;
+      typedef function_type&amp; reference_type;
+      static const bool has_ellipsis = ELLIPSIS(0);
+      typedef R return_type;
+      static const int parameter_count = N;
+      template&lt;int, class D = int&gt; struct parameter;
+      #if N
+         // iterate over parameters
+         #define BOOST_PP_ITERATION_PARAMS_2 \
+            (3, (0, N - 1, "function_traits.hpp")) \
+            /**/
+         ??=include BOOST_PP_ITERATE()
+      #endif
+   };
+
+   #undef N
+   #undef ELLIPSIS_I
+
+   // re-include this section for an ellipsis variant
+   #if !BOOST_PP_IS_SELFISH
+      #define BOOST_PP_INDIRECT_SELF "function_traits.hpp"
+      ??=include BOOST_PP_INCLUDE_SELF()
+   #endif
+
+// iteration over cv-qualifiers
+#elif BOOST_PP_ITERATION_DEPTH() == 1 \
+   &amp;&amp; BOOST_PP_ITERATION_FLAGS() == 1 \
+   /**/
+
+   #define BOOST_PP_ITERATION_PARAMS_2 \
+      (3, (0, FUNCTION_TRAITS_MAX_ARITY, "function_traits.hpp")) \
+      /**/
+   ??=include BOOST_PP_ITERATE()
+
+// generate specializations for pointers-to-members
+#elif BOOST_PP_ITERATION_DEPTH() == 2 \
+   &amp;&amp; BOOST_PP_FRAME_FLAGS(1) == 1 \
+
+   // define ellipsis state
+   #if BOOST_PP_IS_SELFISH
+      #define ELLIPSIS_I ((true), (...))
+   #else
+      #define ELLIPSIS_I ((false), BOOST_PP_NIL)
+   #endif
+
+   #define N BOOST_PP_ITERATION()
+   #define Q QUALIFIER(BOOST_PP_FRAME_ITERATION(1))
+
+   template&lt;class R, class O BOOST_PP_ENUM_TRAILING_PARAMS(N, class T)&gt;
+   struct function_traits&lt;R (O::*)(BOOST_PP_ENUM_PARAMS(N, T) ELLIPSIS(1)) Q&gt;
+      : detail::function_traits_base {
+      static const bool is_member = true;
+      typedef R (O::* pointer_to_member_type)(BOOST_PP_ENUM_PARAMS(N, T) ELLIPSIS(1)) Q;
+      typedef O class_type;
+      typedef Q O qualified_class_type;
+      static const bool has_ellipsis = ELLIPSIS(0);
+      static const bool is_const =
+         BOOST_PP_FRAME_ITERATION(1) == 1 || BOOST_PP_FRAME_ITERATION(1) == 3;
+      static const bool is_volatile =
+         BOOST_PP_FRAME_ITERATION(1) == 2 || BOOST_PP_FRAME_ITERATION(1) == 3;
+      typedef R return_type;
+      static const int parameter_count = N;
+      template&lt;int, class D = int&gt; struct parameter;
+      #if N
+         // iterate over parameters
+         #define BOOST_PP_ITERATION_PARAMS_3 \
+            (3, (0, N - 1, "function_traits.hpp")) \
+            /**/
+         ??=include BOOST_PP_ITERATE()
+      #endif
+   };
+
+   #undef Q
+   #undef N
+   #undef ELLIPSIS_I
+
+   // re-include this section for an ellipsis variant
+   #if !BOOST_PP_IS_SELFISH
+      #define BOOST_PP_INDIRECT_SELF "function_traits.hpp"
+      ??=include BOOST_PP_INCLUDE_SELF()
+   #endif
+
+// parameter specializations
+#else
+
+   #define X BOOST_PP_ITERATION()
+
+      template&lt;class D&gt; struct parameter&lt;X, D&gt; {
+         typedef BOOST_PP_CAT(T, X) type;
+      };
+
+   #undef X
+
+#endif
+</pre>
+		</div>
+		<div>
+			One problem that still exists is the lack of support for <code>throw</code> specifications.&nbsp; 
+			There is no way that we can completely handle it anyway because we cannot 
+			partially specialize on <code>throw</code> specifications.&nbsp; However, we 
+			could accurately report the "actual" function type, etc., including the <code>throw</code>
+			specification (which the above implementation doesn't do, as it reconstructs 
+			those types).&nbsp; If you like, you can figure out how to do that on your own 
+			as an exercise.&nbsp;
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="../ref/iterate.html">BOOST_PP_ITERATE</a></li>
+		</ul>
+		<div class="sig">
+			- Paul Mensonides
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

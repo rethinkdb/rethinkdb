@@ -1,0 +1,232 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Iterator Property Map Adaptor</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+	ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H2><A NAME="sec:iterator-property-map"></A>
+</h2>
+<PRE>
+iterator_property_map&lt;<a href="http://www.sgi.com/tech/stl/RandomAccessIterator.html">RandomAccessIterator</a>, OffsetMap, T, R&gt;
+</PRE>
+
+<P>
+This property map is an adaptor that converts any random access
+iterator into a <a
+href="./LvaluePropertyMap.html">Lvalue Property Map</a>.
+The <tt>OffsetMap</tt> type is responsible for converting
+key objects to integers that can be used as offsets with the
+random access iterator.
+
+<P>
+
+<h3>Example</h3>
+
+<pre>
+// print out the capacity and flow for all the edges in the graph
+template &lt;class Graph, class CapacityPMap, class FlowPMap&gt;
+void print_network(Graph&amp; G, CapacityPMap capacity, FlowPMap flow)
+{
+  typedef typename boost::graph_traits&lt;Graph&gt;::vertex_iterator    Viter;
+  typedef typename boost::graph_traits&lt;Graph&gt;::out_edge_iterator OutEdgeIter;
+  typedef typename boost::graph_traits&lt;Graph&gt;::in_edge_iterator InEdgeIter;
+
+  Viter ui, uiend;
+  for (boost::tie(ui, uiend) = vertices(G); ui != uiend; ++ui) {
+    OutEdgeIter out, out_end;
+    std::cout &lt;&lt; *ui &lt;&lt; &quot;\t&quot;;
+
+    for(boost::tie(out, out_end) = out_edges(*ui, G); out != out_end; ++out)
+      std::cout &lt;&lt; &quot;--(&quot; &lt;&lt; get(capacity, *out) &lt;&lt; &quot;, &quot; 
+	   &lt;&lt; get(flow, *out) &lt;&lt; &quot;)--&gt; &quot; &lt;&lt; target(*out,G) &lt;&lt; &quot;\t&quot;;
+    std::cout &lt;&lt; std::endl &lt;&lt; &quot;\t&quot;;
+
+    InEdgeIter in, in_end;    
+    for(boost::tie(in, in_end) = in_edges(*ui, G); in != in_end; ++in)
+      std::cout &lt;&lt; &quot;&lt;--(&quot; &lt;&lt; get(capacity, *in) &lt;&lt; &quot;,&quot; &lt;&lt; get(flow, *in) &lt;&lt; &quot;)-- &quot;
+           &lt;&lt; source(*in,G) &lt;&lt; &quot;\t&quot;;
+    std::cout &lt;&lt; std::endl;
+  }
+}
+
+int main(int, char*[])
+{
+  typedef boost::adjacency_list&lt;boost::vecS, boost::vecS, 
+    boost::bidirectionalS, boost::no_plugin, 
+    boost::plugin&lt;boost::id_tag, std::size_t&gt; &gt; Graph;
+
+  const int num_vertices = 9;
+  Graph G(num_vertices);
+
+  int capacity[] = { 10, 20, 20, 20, 40, 40, 20, 20, 20, 10 };
+  int flow[] = { 8, 12, 12, 12, 12, 12, 16, 16, 16, 8 };
+
+  // add edges to the graph, and assign each edge an ID number
+  // to index into the property arrays
+  add_edge(G, 0, 1, 0);
+  // ...
+
+  typedef boost::graph_traits&lt;Graph&gt;::edge_descriptor Edge;
+  typedef boost::property_map&lt;Graph, boost::id_tag&gt;::type EdgeID_PMap;
+  EdgeID_PMap edge_id = get(boost::edge_index(), G);
+
+  boost::iterator_property_map&lt;int*, EdgeID_PMap, int, int&amp;&gt;
+     capacity_pa(capacity, edge_id),
+     flow_pa(flow, edge_id);
+
+  print_network(G, capacity_pa, flow_pa);
+          
+  return 0;
+}
+</pre>
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/property_map/property_map.hpp"><TT>boost/property_map/property_map.hpp</TT></a>
+
+<p>
+<H3>Model Of</H3>
+
+<a href="./LvaluePropertyMap.html">Lvalue Property Map</a>
+
+<P>
+
+<H3>Template Parameters</H3>
+
+<P>
+
+<TABLE border>
+<TR>
+<th>Parameter</th><th>Description</th><th>Default</th>
+</tr>
+
+
+<TR>
+<TD><TT>Iterator</TT></TD> 
+<TD>Must be a model of <a href="http://www.sgi.com/tech/stl/RandomAccessIterator.html">Random Access Iterator</a>.</TD>
+<TD>&nbsp;</td>
+</tr>
+
+<TR>
+<TD><TT>OffsetMap</TT></TD> <TD>Must be a model of <a
+href="./ReadablePropertyMap.html">Readable Property Map</a>
+and the value type must be convertible to the difference type of the
+iterator.</TD> <TD>&nbsp;</TD>
+</TR>
+
+<TR>
+<TD><TT>T</TT></TD>
+<TD>The value type of the iterator.</TD>
+<TD><TT>std::iterator_traits&lt;RandomAccessIterator&gt;::value_type</TT></TD>
+</TR>
+
+
+<TR>
+<TD><TT>R</TT></TD>
+<TD>The reference type of the iterator.</TD>
+<TD><TT>std::iterator_traits&lt;RandomAccessIterator&gt;::reference</TT></TD>
+</TR>
+
+</TABLE>
+<P>
+
+<H3>Members</H3>
+
+<P>
+In addition to the methods and functions required by <a
+href="./LvaluePropertyMap.html">Lvalue Property Map</a>, this
+class has the following members.
+
+<hr>
+
+<pre>
+property_traits&lt;iterator_property_map&gt;::value_type
+</pre>
+This is the same type as
+<TT>std::iterator_traits&lt;Iterator&gt;::value_type</TT>.
+
+<hr>
+
+<pre>
+iterator_property_map(Iterator i)
+</pre>
+Constructor. The OffsetMap is default constructed.
+
+<hr>
+
+<pre>
+iterator_property_map(Iterator i, OffsetMap m)
+</pre>
+Constructor.
+
+<hr>
+
+<pre>
+reference operator[](const key_type&amp; v) const
+</pre>
+The operator bracket for property access. The <TT>reference</TT> is from  
+<TT>std::iterator_traits&lt;Iterator&gt;</TT> and the <tt>key_type</tt> is from <tt>boost::property_traits&lt;OffsetMap&gt;</tt>.
+<hr>
+
+<h3>Non-Member functions</h3>
+
+<hr>
+
+<pre>
+  template &lt;class RAIter, class OffsetMap&gt;
+  iterator_property_map&lt;RAIter, OffsetMap,
+    typename std::iterator_traits&lt;RAIter&gt;::value_type,
+    typename std::iterator_traits&lt;RAIter&gt;::reference
+    &gt;
+  make_iterator_property_map(RAIter iter, OffsetMap omap)
+</pre>
+A function for conveniently creating an iterator map.
+
+
+<hr>
+
+<pre>
+  template &lt;class RAIter, class OffsetMap, class ValueType&gt;
+  iterator_property_map&lt;RAIter, OffsetMap,
+    typename std::iterator_traits&lt;RAIter&gt;::value_type,
+    typename std::iterator_traits&lt;RAIter&gt;::reference
+    &gt;
+  make_iterator_property_map(RAIter iter, OffsetMap omap, ValueType dummy_arg)
+</pre>
+Use this function instead of the 2-argument version if
+your compiler does not support partial specialization
+(like Visual C++).
+
+
+<hr>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy 2000-2002</TD><TD>
+<a HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>,
+Univ.of Notre Dame (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Univ.of Notre Dame (<A HREF="mailto:llee1@osl.iu.edu">llee1@osl.iu.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Univ.of Notre Dame (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

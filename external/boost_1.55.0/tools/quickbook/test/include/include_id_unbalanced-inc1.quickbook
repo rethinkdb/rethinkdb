@@ -1,0 +1,4 @@
+[section:inc1 Include 1]
+[heading:inc1_1 Heading 1]
+[include:include1a include_id_unbalanced-inc1a.quickbook]
+[heading:inc1_2 Heading 2]

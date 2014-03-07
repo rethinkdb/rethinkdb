@@ -1,0 +1,44 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_scalar is_scalar]
+   template <class T>
+   struct is_scalar : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) scalar type then inherits from 
+__true_type, otherwise inherits from __false_type.  Scalar types include
+integral, floating point, enumeration, pointer, and pointer-to-member types.
+
+__std_ref 3.9p10.
+
+__header ` #include <boost/type_traits/is_scalar.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__compat If the compiler does not support partial-specialization of class templates, 
+then this template can not be used with function types.
+
+__examples
+
+[:`is_scalar<int*>` inherits from `__true_type`.]
+
+[:`is_scalar<int>::type` is the type `__true_type`.]
+
+[:`is_scalar<double>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_scalar<int (*)(long)>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_scalar<int (MyClass::*)(long)>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_scalar<int (MyClass::*)>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_scalar<T>::value_type` is the type `bool`.]
+
+[endsect]
+

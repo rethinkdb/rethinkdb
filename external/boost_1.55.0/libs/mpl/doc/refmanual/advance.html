@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: advance</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./iterator-metafunctions.html" class="navigation-link">Prev</a>&nbsp;<a href="./distance.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./distance.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterator-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./iterators.html" class="navigation-link">Iterators</a> / <a href="./iterator-metafunctions.html" class="navigation-link">Iterator Metafunctions</a> / <a href="./advance.html" class="navigation-link">advance</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="advance">
+<h1><a class="toc-backref" href="./iterator-metafunctions.html#id1454">advance</a></h1>
+<div class="section" id="id403">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Iterator
+    , typename N
+    &gt;
+struct <a href="./advance.html" class="identifier">advance</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id404">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Moves <tt class="literal"><span class="pre">Iterator</span></tt> by the distance <tt class="literal"><span class="pre">N</span></tt>. For <a class="reference internal" href="./bidirectional-iterator.html">bidirectional</a> and
+<a class="reference internal" href="./random-access-iterator.html">random access</a> iterators, the distance may be negative.</p>
+</div>
+<div class="section" id="id405">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/advance.hpp" class="header">boost/mpl/advance.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id406">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="35%" />
+<col width="45%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Iterator</span></tt></td>
+<td><a class="reference internal" href="./forward-iterator.html">Forward Iterator</a></td>
+<td>An iterator to advance.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">N</span></tt></td>
+<td><a class="reference internal" href="./integral-constant.html">Integral Constant</a></td>
+<td>A distance.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id407">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model Of</a></h3>
+<p><a class="reference internal" href="./tag-dispatched-metafunction.html">Tag Dispatched Metafunction</a></p>
+</div>
+<div class="section" id="id408">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For a <a class="reference internal" href="./forward-iterator.html">Forward Iterator</a> <tt class="literal"><span class="pre">iter</span></tt> and arbitrary <a class="reference internal" href="./integral-constant.html">Integral Constant</a> <tt class="literal"><span class="pre">n</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./advance.html" class="identifier">advance</a>&lt;iter,n&gt;::type j;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./forward-iterator.html">Forward Iterator</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><p class="first">If <tt class="literal"><span class="pre">Iterator</span></tt> is a <a class="reference internal" href="./forward-iterator.html">Forward Iterator</a>, <tt class="literal"><span class="pre">n::value</span></tt> must be nonnegative.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to:</p>
+<pre class="literal-block">
+typedef iter i0;
+typedef <a href="./next.html" class="identifier">next</a>&lt;i0&gt;::type i1;
+<em>...</em>
+typedef <a href="./next.html" class="identifier">next</a>&lt;i<em>n-1</em>&gt;::type j;
+</pre>
+<p>if <tt class="literal"><span class="pre">n::value</span> <span class="pre">&gt;</span> <span class="pre">0</span></tt>, and</p>
+<pre class="literal-block">
+typedef iter i0;
+typedef <a href="./prior.html" class="identifier">prior</a>&lt;i0&gt;::type i1;
+<em>...</em>
+typedef <a href="./prior.html" class="identifier">prior</a>&lt;i<em>n-1</em>&gt;::type j;
+</pre>
+<p>otherwise.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Postcondition:</th><td class="field-body"><p class="first last"><tt class="literal"><span class="pre">j</span></tt> is dereferenceable or past-the-end;
+<tt class="literal"><span class="pre"><a href="./distance.html" class="identifier">distance</a>&lt;iter,j&gt;::value</span> <span class="pre">==</span> <span class="pre">n::value</span></tt> if <tt class="literal"><span class="pre">n::value</span> <span class="pre">&gt;</span> <span class="pre">0</span></tt>, and
+<tt class="literal"><span class="pre"><a href="./distance.html" class="identifier">distance</a>&lt;j,iter&gt;::value</span> <span class="pre">==</span> <span class="pre">n::value</span></tt> otherwise.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id409">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Amortized constant time if <tt class="literal"><span class="pre">iter</span></tt> is a model of
+<a class="reference internal" href="./random-access-iterator.html">Random Access Iterator</a>, otherwise linear time.</p>
+</div>
+<div class="section" id="id410">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./range-c.html" class="identifier">range_c</a>&lt;int,0,10&gt; numbers;
+typedef <a href="./begin.html" class="identifier">begin</a>&lt;numbers&gt;::type first;
+typedef <a href="./end.html" class="identifier">end</a>&lt;numbers&gt;::type last;
+
+typedef <a href="./advance.html" class="identifier">advance</a>&lt;first,<a href="./int.html" class="identifier">int_</a>&lt;10&gt; &gt;::type i1;
+typedef <a href="./advance.html" class="identifier">advance</a>&lt;last,<a href="./int.html" class="identifier">int_</a>&lt;-10&gt; &gt;::type i2;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( boost::is_same&lt;i1,last&gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( boost::is_same&lt;i2,first&gt; ));
+</pre>
+</div>
+<div class="section" id="id411">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./iterators.html">Iterators</a>, <a class="reference internal" href="./tag-dispatched-metafunction.html">Tag Dispatched Metafunction</a>, <a class="reference internal" href="./distance.html">distance</a>, <a class="reference internal" href="./next.html">next</a></p>
+<!-- Iterators/Iterator Metafunctions//distance |20 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./iterator-metafunctions.html" class="navigation-link">Prev</a>&nbsp;<a href="./distance.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./distance.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterator-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

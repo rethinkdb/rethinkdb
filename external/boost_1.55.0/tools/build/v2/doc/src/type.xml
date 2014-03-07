@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<section id="bbv2.reference.modules.type">
+
+  <title>type</title>
+  <indexterm>
+    <primary>type</primary>
+    <secondary>module</secondary>
+  </indexterm>
+
+  <para>
+    Deals with target type declaration and defines target class which supports
+    typed targets.
+  </para>
+
+  <orderedlist>
+    
+    <listitem id="bbv2.reference.modules.type.register">
+      <indexterm zone="bbv2.reference.modules.type.register">
+        <primary>register</primary>
+        <secondary>type</secondary>
+      </indexterm>
+      <code language="jam">rule register ( type : suffixes * : base-type ? )</code>
+      <para>
+        Registers a target type, possible derived from a
+        <code language="jam">base-type</code>.  Providing a list
+        of suffixes here is a shortcut for separately calling the
+        <link linkend="bbv2.reference.modules.type.register-suffixes">register-suffixes</link>
+        rule with the given suffixes and the
+        <link linkend="bbv2.reference.modules.type.set-generated-target-suffix">set-generated-target-suffix</link>
+        rule with the first given suffix.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.register-suffixes">
+      <indexterm zone="bbv2.reference.modules.type.register-suffixes">
+        <primary>register-suffixes</primary>
+      </indexterm>
+      <code language="jam">rule register-suffixes ( suffixes + : type )</code>
+      <para>
+        Specifies that files with suffix from <code language="jam">suffixes</code>
+        be recognized as targets of  type <code language="jam">type</code>.
+        Issues an error if a different type is already specified for any
+        of the suffixes.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.registered">
+      <indexterm zone="bbv2.reference.modules.type.registered">
+        <primary>registered</primary>
+      </indexterm>
+      <code language="jam">rule registered ( type )</code>
+      <para>Returns true iff type has been registered.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.validate">
+      <indexterm zone="bbv2.reference.modules.type.validate">
+        <primary>validate</primary>
+      </indexterm>
+      <code language="jam">rule validate ( type )</code>
+      <para>Issues an error if <code lang="jam">type</code> is unknown.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.set-scanner">
+      <indexterm zone="bbv2.reference.modules.type.set-scanner">
+        <primary>set-scanner</primary>
+      </indexterm>
+      <code language="jam">rule set-scanner ( type : scanner )</code>
+      <para>Sets a scanner class that will be used for this type.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.get-scanner">
+      <indexterm zone="bbv2.reference.modules.type.get-scanner">
+        <primary>get-scanner</primary>
+      </indexterm>
+      <code language="jam">rule get-scanner ( type : property-set )</code>
+      <para>
+        Returns a scanner instance appropriate to <code language="jam">type</code>
+        and <code language="jam">property-set</code>.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.base">
+      <indexterm zone="bbv2.reference.modules.type.base">
+        <primary>base</primary>
+      </indexterm>
+      <code language="jam">rule base ( type )</code>
+      <para>
+        Returns a base type for the given type or nothing in case the given
+        type is not derived.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.all-bases">
+      <indexterm zone="bbv2.reference.modules.type.all-bases">
+        <primary>all-bases</primary>
+      </indexterm>
+      <code language="jam">rule all-bases ( type )</code>
+      <para>
+        Returns the given type and all of its base types in order of
+        their distance from type.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.all-derived">
+      <indexterm zone="bbv2.reference.modules.type.all-derived">
+        <primary>all-derived</primary>
+      </indexterm>
+      <code language="jam">rule all-derived ( type )</code>
+      <para>
+        Returns the given type and all of its derived types in order
+        of their distance from type.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.is-derived">
+      <indexterm zone="bbv2.reference.modules.type.is-derived">
+        <primary>is-derived</primary>
+      </indexterm>
+      <code language="jam">rule is-derived ( type base )</code>
+      <para>
+        Returns true if <code language="jam">type</code> is equal to
+        <code language="jam">base</code> or has <code language="jam">base</code>
+        as its direct or indirect base.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.set-generated-target-suffix">
+      <indexterm zone="bbv2.reference.modules.type.set-generated-target-suffix">
+        <primary>set-generated-target-suffix</primary>
+      </indexterm>
+      <code language="jam">rule set-generated-target-suffix ( type : properties * : suffix )</code>
+      <para>
+        Sets a file suffix to be used when generating a target of <code language="jam">type</code> with the
+        specified properties. Can be called with no properties if no suffix has
+        already been specified for the <code language="jam">type</code>. The <code language="jam">suffix</code> parameter can be an empty
+        string (<code language="jam">""</code>) to indicate that no suffix should be used.
+      </para>
+
+      <para>
+        Note that this does not cause files with <code language="jam">suffix</code>
+        to be automatically recognized as being of <code language="jam">type</code>.
+        Two different types can use the same suffix for their generated files
+        but only one type can be auto-detected for a file with that suffix.
+        User should explicitly specify which one using the
+        <link linkend="bbv2.reference.modules.type.register-suffixes">register-suffixes</link>
+        rule.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.change-generated-target-suffix">
+      <indexterm zone="bbv2.reference.modules.type.change-generated-target-suffix">
+        <primary>change-generated-target-suffix</primary>
+      </indexterm>
+      <code language="jam">rule change-generated-target-suffix ( type : properties * : suffix )</code>
+      <para>
+        Change the suffix previously registered for this type/properties
+        combination. If suffix is not yet specified, sets it.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.generated-target-suffix">
+      <indexterm zone="bbv2.reference.modules.type.generated-target-suffix">
+        <primary>generated-target-suffix</primary>
+      </indexterm>
+      <code language="jam">rule generated-target-suffix ( type : property-set )</code>
+      <para>
+        Returns the suffix used when generating a file of
+        <code language="jam">type</code> with the given properties.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.set-generated-target-prefix">
+      <indexterm zone="bbv2.reference.modules.type.set-generated-target-prefix">
+        <primary>set-generated-target-prefix</primary>
+      </indexterm>
+      <code language="jam">rule set-generated-target-prefix ( type : properties * : prefix )</code>
+      <para>
+        Sets a target prefix that should be used when generating targets of
+        <code language="jam">type</code> with the specified properties. Can
+        be called with empty properties if no prefix for
+        <code language="jam">type</code> has been specified yet.
+      </para>
+
+      <para>
+        The <code language="jam">prefix</code> parameter can be empty string
+        (<code language="jam">""</code>) to indicate that no prefix
+        should be used.
+      </para>
+
+      <para>
+        Usage example: library names use the <code language="jam">"lib"</code>
+        prefix on unix.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.change-generated-target-prefix">
+      <indexterm zone="bbv2.reference.modules.type.change-generated-target-prefix">
+        <primary>change-generated-target-prefix</primary>
+      </indexterm>
+      <code language="jam">rule change-generated-target-prefix ( type : properties * : prefix )</code>
+      <para>
+        Change the prefix previously registered for this type/properties
+        combination. If prefix is not yet specified, sets it.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.generated-target-prefix">
+      <indexterm zone="bbv2.reference.modules.type.generated-target-prefix">
+        <primary>generated-target-prefix</primary>
+      </indexterm>
+      <code language="jam">rule generated-target-prefix ( type : property-set )</code>
+      <para>
+        Returns the prefix used when generating a file of
+        <code language="jam">type</code> with the given properties.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.type.type">
+      <indexterm zone="bbv2.reference.modules.type.type">
+        <primary>type</primary>
+        <secondary>rule</secondary>
+      </indexterm>
+      <code language="jam">rule type ( filename )</code>
+      <para>
+        Returns file type given its name. If there are several
+        dots in filename, tries each suffix. E.g. for name of
+        "file.so.1.2" suffixes "2", "1", and "so" will be tried.
+      </para>
+    </listitem>
+    
+  </orderedlist>
+  
+</section>

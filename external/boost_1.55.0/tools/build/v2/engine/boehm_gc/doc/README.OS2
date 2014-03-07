@@ -1,0 +1,6 @@
+The code assumes static linking, and a single thread.  The editor de has
+not been ported.  The cord test program has.  The supplied OS2_MAKEFILE
+assumes the IBM C Set/2 environment, but the code shouldn't.
+
+Since we haven't figured out hoe to do perform partial links or to build static
+libraries, clients currently need to link against a long list of executables.

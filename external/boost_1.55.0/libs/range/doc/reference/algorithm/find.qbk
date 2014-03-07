@@ -1,0 +1,45 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:find find]
+
+[heading Prototype]
+
+``
+template<class SinglePassRange, class Value>
+typename range_iterator<SinglePassRange>::type
+find(SinglePassRange& rng, Value val);
+
+template<
+    range_return_value re,
+    class SinglePassRange,
+    class Value
+    >
+typename range_return<SinglePassRange, re>::type
+find(SinglePassRange& rng, Value val);
+``
+
+[heading Description]
+
+The versions of `find` that return an iterator, returns the first iterator in the range `rng` such that `*i == value`. `end(rng)` is returned if no such iterator exists.
+The versions of find that return a `range_return`, defines `found` in the same manner as the returned iterator described above.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/find.hpp`
+
+[heading Requirements]
+
+* `SinglePassRange` is a model of the __single_pass_range__ Concept.
+* `Value` is a model of the `EqualityComparableConcept`.
+* The `operator==` is defined for type `Value` to be compared with the `SinglePassRange`'s value type.
+
+[heading Complexity]
+
+Linear. At most `distance(rng)` comparisons for equality.
+
+[endsect]
+
+

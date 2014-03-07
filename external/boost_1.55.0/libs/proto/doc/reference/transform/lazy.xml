@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/transform/lazy.hpp">
+  <para>
+    Contains definition of the
+    <computeroutput>
+      <classname alt="boost::proto::lazy">proto::lazy&lt;&gt;</classname>
+    </computeroutput> transform.
+  </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <struct name="lazy">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <inherit><classname>proto::transform</classname>&lt; lazy&lt;T&gt; &gt;</inherit>
+        <purpose>A <conceptname>PrimitiveTransform</conceptname> that uses
+          <computeroutput><classname>proto::make&lt;&gt;</classname></computeroutput> to build a
+          <conceptname>CallableTransform</conceptname>, and then uses
+          <computeroutput><classname>proto::call&lt;&gt;</classname></computeroutput> to apply it.
+        </purpose>
+        <description>
+          <para>
+            <computeroutput>proto::lazy&lt;&gt;</computeroutput> is useful as a higher-order transform,
+            when the transform to be applied depends on the current state of the transformation. The
+            invocation of the <computeroutput>
+              <classname>proto::make&lt;&gt;</classname>
+            </computeroutput> transform evaluates any nested transforms, and the resulting type is treated
+            as a <conceptname>CallableTransform</conceptname>, which is evaluated with
+            <computeroutput><classname>proto::call&lt;&gt;</classname></computeroutput>.
+          </para>
+          <para>
+            For the full description of the behavior of the
+            <computeroutput>
+              <classname>proto::lazy&lt;&gt;</classname>
+            </computeroutput>
+            transform, see the documentation for the nested
+            <computeroutput>
+              <classname>proto::lazy::impl&lt;&gt;</classname>
+            </computeroutput>
+            class template.
+          </para>
+        </description>
+        <struct name="impl">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <inherit><type><classname>proto::transform_impl</classname>&lt;Expr, State, Data&gt;</type></inherit>
+          <typedef name="result_type">
+            <type><replaceable>see-below</replaceable></type>
+            <description>
+              <para>
+                <computeroutput><classname>proto::lazy</classname>&lt;T&gt;::impl&lt;Expr,State,Data&gt;::result_type</computeroutput> 
+                is calculated as follows:
+                <itemizedlist>
+                  <listitem>
+                    <para>
+                      If <computeroutput>T</computeroutput> if of the form
+                      <computeroutput>O(A<subscript>0</subscript>,…A<subscript>n</subscript>)</computeroutput>, then let <computeroutput>O'</computeroutput>
+                      be <computeroutput>boost::result_of&lt;<classname>proto::make</classname>&lt;O&gt;(Expr, State, Data)&gt;::type</computeroutput>
+                      and let <computeroutput>T'</computeroutput> be <computeroutput>O'(A<subscript>0</subscript>,…A<subscript>n</subscript>)</computeroutput>.
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      If <computeroutput>T</computeroutput> if of the form
+                      <computeroutput>O(A<subscript>0</subscript>,…A<subscript>n</subscript> ...)</computeroutput>, then let <computeroutput>O'</computeroutput>
+                      be <computeroutput>boost::result_of&lt;<classname>proto::make</classname>&lt;O&gt;(Expr, State, Data)&gt;::type</computeroutput>
+                      and let <computeroutput>T'</computeroutput> be <computeroutput>O'(A<subscript>0</subscript>,…A<subscript>n</subscript> ...)</computeroutput>.
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      Otherwise, let <computeroutput>T'</computeroutput>
+                      be <computeroutput>boost::result_of&lt;<classname>proto::make</classname>&lt;T&gt;(Expr, State, Data)&gt;::type</computeroutput>.
+                    </para>
+                  </listitem>
+                </itemizedlist>
+                <para>
+                  The result type is
+                  <computeroutput>
+                    boost::result_of&lt;<classname>proto::call</classname>&lt;T'&gt;(Expr, State, Data)&gt;::type
+                  </computeroutput>.
+                </para>
+              </para>
+            </description>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>result_type</type>
+              <parameter name="expr">
+                <paramtype>typename impl::expr_param</paramtype>
+              </parameter>
+              <parameter name="state">
+                <paramtype>typename impl::state_param</paramtype>
+              </parameter>
+              <parameter name="data">
+                <paramtype>typename impl::data_param</paramtype>
+              </parameter>
+              <description>
+                <para>
+                  <computeroutput><classname>proto::lazy</classname>&lt;T&gt;::impl&lt;Expr,State,Data&gt;::operator()</computeroutput> behaves as follows:
+                  <itemizedlist>
+                    <listitem>
+                      <para>
+                        If <computeroutput>T</computeroutput> if of the form
+                        <computeroutput>O(A<subscript>0</subscript>,…A<subscript>n</subscript>)</computeroutput>, then let <computeroutput>O'</computeroutput>
+                        be <computeroutput>boost::result_of&lt;<classname>proto::make</classname>&lt;O&gt;(Expr, State, Data)&gt;::type</computeroutput>
+                        and let <computeroutput>T'</computeroutput> be <computeroutput>O'(A<subscript>0</subscript>,…A<subscript>n</subscript>)</computeroutput>.
+                      </para>
+                    </listitem>
+                    <listitem>
+                      <para>
+                        If <computeroutput>T</computeroutput> if of the form
+                        <computeroutput>O(A<subscript>0</subscript>,…A<subscript>n</subscript> ...)</computeroutput>, then let <computeroutput>O'</computeroutput>
+                        be <computeroutput>boost::result_of&lt;<classname>proto::make</classname>&lt;O&gt;(Expr, State, Data)&gt;::type</computeroutput>
+                        and let <computeroutput>T'</computeroutput> be <computeroutput>O'(A<subscript>0</subscript>,…A<subscript>n</subscript> ...)</computeroutput>.
+                      </para>
+                    </listitem>
+                    <listitem>
+                      <para>
+                        Otherwise, let <computeroutput>T'</computeroutput>
+                        be <computeroutput>boost::result_of&lt;<classname>proto::make</classname>&lt;T&gt;(Expr, State, Data)&gt;::type</computeroutput>.
+                      </para>
+                    </listitem>
+                  </itemizedlist>
+                </para>
+              </description>
+              <returns>
+                <para>
+                  <computeroutput>
+                    <classname>proto::call</classname>&lt;T'&gt;()(expr, state, data)
+                  </computeroutput>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+      </struct>
+    </namespace>
+  </namespace>
+</header>

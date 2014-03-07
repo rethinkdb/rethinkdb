@@ -1,0 +1,134 @@
+# Copyright (C) 2005, 2006 The Trustees of Indiana University.
+# Copyright (C) 2005 Douglas Gregor <doug.gregor -at- gmail.com>
+
+# Use, modification and distribution is subject to the Boost Software
+# License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+#  Authors: Douglas Gregor
+#           Andrew Lumsdaine
+
+import mpi ;
+import indirect ;
+import python ;
+
+libraries = ;
+
+if [ mpi.configured ]
+{
+
+project boost/mpi
+  : source-location ../src
+  : requirements
+    -<tag>@$(BOOST_JAMROOT_MODULE)%$(BOOST_JAMROOT_MODULE).tag
+    <tag>@$(__name__).tag
+  ;
+
+rule tag ( name : type ? : property-set )
+{
+    local result = $(name) ;
+    if $(type) in STATIC_LIB SHARED_LIB IMPORT_LIB
+    {
+        if $(name) = boost_mpi_python && $(PYTHON_ID)
+        {
+            result = $(result)-$(PYTHON_ID) ;
+        }
+    }
+    
+    # forward to the boost tagging rule
+    return  [ indirect.call $(BOOST_JAMROOT_MODULE)%$(BOOST_JAMROOT_MODULE).tag 
+                $(result) : $(type) : $(property-set) ] ;
+}
+
+lib boost_mpi 
+  : 
+    broadcast.cpp
+    communicator.cpp
+    computation_tree.cpp
+    content_oarchive.cpp
+    environment.cpp
+    exception.cpp
+    graph_communicator.cpp
+    group.cpp
+    intercommunicator.cpp
+    mpi_datatype_cache.cpp
+    mpi_datatype_oarchive.cpp
+    packed_iarchive.cpp
+    packed_oarchive.cpp
+    packed_skeleton_iarchive.cpp
+    packed_skeleton_oarchive.cpp
+    point_to_point.cpp
+    request.cpp
+    text_skeleton_oarchive.cpp
+    timer.cpp
+  : # Requirements
+    <library>../../serialization/build//boost_serialization
+    <library>/mpi//mpi [ mpi.extra-requirements ]
+    <define>BOOST_MPI_SOURCE=1
+    <link>shared:<define>BOOST_MPI_DYN_LINK=1
+  : # Default build
+    <link>shared
+  : # Usage requirements
+    <library>../../serialization/build//boost_serialization
+    <library>/mpi//mpi [ mpi.extra-requirements ]
+  ;
+  
+libraries += boost_mpi ;  
+
+  if [ python.configured ]
+  {
+    lib boost_mpi_python
+      : # Sources
+        python/serialize.cpp
+      : # Requirements
+        <library>boost_mpi
+        <library>/mpi//mpi [ mpi.extra-requirements ]
+      	<library>/boost/python//boost_python
+        <link>shared:<define>BOOST_MPI_DYN_LINK=1
+        <link>shared:<define>BOOST_MPI_PYTHON_DYN_LINK=1
+        <link>shared:<define>BOOST_PYTHON_DYN_LINK=1        
+        <define>BOOST_MPI_PYTHON_SOURCE=1
+      : # Default build
+        <link>shared
+      : # Usage requirements
+        <library>/mpi//mpi [ mpi.extra-requirements ]
+      ;
+    libraries += boost_mpi_python ;   
+
+    python-extension mpi 
+      : # Sources
+        python/collectives.cpp
+        python/py_communicator.cpp
+        python/datatypes.cpp
+        python/documentation.cpp
+        python/py_environment.cpp
+        python/py_nonblocking.cpp
+        python/py_exception.cpp
+        python/module.cpp
+        python/py_request.cpp
+        python/skeleton_and_content.cpp
+        python/status.cpp
+        python/py_timer.cpp
+      : # Requirements
+      	<library>/boost/python//boost_python      
+        <library>boost_mpi_python
+        <library>boost_mpi
+        <library>/mpi//mpi [ mpi.extra-requirements ]
+        <link>shared:<define>BOOST_MPI_DYN_LINK=1    
+        <link>shared:<define>BOOST_MPI_PYTHON_DYN_LINK=1        
+        <link>shared:<define>BOOST_PYTHON_DYN_LINK=1    
+        <link>shared <runtime-link>shared
+      ;
+  }
+}
+else if ! ( --without-mpi in  [ modules.peek : ARGV ] )
+{
+  message boost_mpi   
+      : "warning: skipping optional Message Passing Interface (MPI) library."
+      : "note: to enable MPI support, add \"using mpi ;\" to user-config.jam."
+      : "note: to suppress this message, pass \"--without-mpi\" to bjam."
+      : "note: otherwise, you can safely ignore this message." 
+      ;
+}
+
+boost-install $(libraries) ;

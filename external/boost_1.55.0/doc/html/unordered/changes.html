@@ -1,0 +1,504 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Change Log</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../unordered.html" title="Chapter&#160;37.&#160;Boost.Unordered">
+<link rel="prev" href="rationale.html" title="Implementation Rationale">
+<link rel="next" href="reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rationale.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../unordered.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="unordered.changes"></a><a class="link" href="changes.html" title="Change Log">Change Log</a>
+</h2></div></div></div>
+<h3>
+<a name="unordered.changes.h0"></a>
+      <span class="phrase"><a name="unordered.changes.review_version"></a></span><a class="link" href="changes.html#unordered.changes.review_version">Review
+      Version</a>
+    </h3>
+<p>
+      Initial review version, for the review conducted from 7th December 2007 to
+      16th December 2007.
+    </p>
+<h3>
+<a name="unordered.changes.h1"></a>
+      <span class="phrase"><a name="unordered.changes.1_35_0_add_on___31st_march_2008"></a></span><a class="link" href="changes.html#unordered.changes.1_35_0_add_on___31st_march_2008">1.35.0
+      Add-on - 31st March 2008</a>
+    </h3>
+<p>
+      Unofficial release uploaded to vault, to be used with Boost 1.35.0. Incorporated
+      many of the suggestions from the review.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Improved portability thanks to Boost regression testing.
+        </li>
+<li class="listitem">
+          Fix lots of typos, and clearer text in the documentation.
+        </li>
+<li class="listitem">
+          Fix floating point to <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code>
+          conversion when calculating sizes from the max load factor, and use <code class="computeroutput"><span class="keyword">double</span></code> in the calculation for greater accuracy.
+        </li>
+<li class="listitem">
+          Fix some errors in the examples.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h2"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_36_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_36_0">Boost
+      1.36.0</a>
+    </h3>
+<p>
+      First official release.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Rearrange the internals.
+        </li>
+<li class="listitem">
+          Move semantics - full support when rvalue references are available, emulated
+          using a cut down version of the Adobe move library when they are not.
+        </li>
+<li class="listitem">
+          Emplace support when rvalue references and variadic template are available.
+        </li>
+<li class="listitem">
+          More efficient node allocation when rvalue references and variadic template
+          are available.
+        </li>
+<li class="listitem">
+          Added equality operators.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h3"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_37_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_37_0">Boost
+      1.37.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Rename overload of <code class="computeroutput"><span class="identifier">emplace</span></code>
+          with hint, to <code class="computeroutput"><span class="identifier">emplace_hint</span></code>
+          as specified in <a href="http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2008/n2691.pdf" target="_top">n2691</a>.
+        </li>
+<li class="listitem">
+          Provide forwarding headers at <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">unordered</span><span class="special">/</span><span class="identifier">unordered_map_fwd</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          and <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">unordered</span><span class="special">/</span><span class="identifier">unordered_set_fwd</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>.
+        </li>
+<li class="listitem">
+          Move all the implementation inside <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">unordered</span></code>,
+          to assist modularization and hopefully make it easier to track changes
+          in subversion.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h4"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_38_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_38_0">Boost
+      1.38.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Use <a href="../../../libs/utility/swap.html" target="_top"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">swap</span></code></a>.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/2237" target="_top">Ticket 2237</a>:
+          Document that the equality and inequality operators are undefined for two
+          objects if their equality predicates aren't equivalent. Thanks to Daniel
+          Kr&#252;gler.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/1710" target="_top">Ticket 1710</a>:
+          Use a larger prime number list. Thanks to Thorsten Ottosen and Herv&#233; Br&#246;nnimann.
+        </li>
+<li class="listitem">
+          Use <a href="../../../libs/type_traits/doc/html/boost_typetraits/category/alignment.html" target="_top">aligned
+          storage</a> to store the types. This changes the way the allocator
+          is used to construct nodes. It used to construct the node with two calls
+          to the allocator's <code class="computeroutput"><span class="identifier">construct</span></code>
+          method - once for the pointers and once for the value. It now constructs
+          the node with a single call to construct and then constructs the value
+          using in place construction.
+        </li>
+<li class="listitem">
+          Add support for C++0x initializer lists where they're available (currently
+          only g++ 4.4 in C++0x mode).
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h5"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_39_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_39_0">Boost
+      1.39.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/2756" target="_top">Ticket 2756</a>:
+          Avoid a warning on Visual C++ 2009.
+        </li>
+<li class="listitem">
+          Some other minor internal changes to the implementation, tests and documentation.
+        </li>
+<li class="listitem">
+          Avoid an unnecessary copy in <code class="computeroutput"><span class="keyword">operator</span><span class="special">[]</span></code>.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/2975" target="_top">Ticket 2975</a>:
+          Fix length of prime number list.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h6"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_40_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_40_0">Boost
+      1.40.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/2975" target="_top">Ticket 2975</a>:
+          Store the prime list as a preprocessor sequence - so that it will always
+          get the length right if it changes again in the future.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/1978" target="_top">Ticket 1978</a>:
+          Implement <code class="computeroutput"><span class="identifier">emplace</span></code> for all
+          compilers.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/2908" target="_top">Ticket 2908</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/3096" target="_top">Ticket 3096</a>:
+          Some workarounds for old versions of borland, including adding explicit
+          destructors to all containers.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/3082" target="_top">Ticket 3082</a>:
+          Disable incorrect Visual C++ warnings.
+        </li>
+<li class="listitem">
+          Better configuration for C++0x features when the headers aren't available.
+        </li>
+<li class="listitem">
+          Create less buckets by default.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h7"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_41_0___major_update"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_41_0___major_update">Boost
+      1.41.0 - Major update</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          The original version made heavy use of macros to sidestep some of the older
+          compilers' poor template support. But since I no longer support those compilers
+          and the macro use was starting to become a maintenance burden it has been
+          rewritten to use templates instead of macros for the implementation classes.
+        </li>
+<li class="listitem">
+          The container objcet is now smaller thanks to using <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">compressed_pair</span></code>
+          for EBO and a slightly different function buffer - now using a bool instead
+          of a member pointer.
+        </li>
+<li class="listitem">
+          Buckets are allocated lazily which means that constructing an empty container
+          will not allocate any memory.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h8"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_42_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_42_0">Boost
+      1.42.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Support instantiating the containers with incomplete value types.
+        </li>
+<li class="listitem">
+          Reduced the number of warnings (mostly in tests).
+        </li>
+<li class="listitem">
+          Improved codegear compatibility.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/3693" target="_top">Ticket 3693</a>:
+          Add <code class="computeroutput"><span class="identifier">erase_return_void</span></code> as
+          a temporary workaround for the current <code class="computeroutput"><span class="identifier">erase</span></code>
+          which can be inefficient because it has to find the next element to return
+          an iterator.
+        </li>
+<li class="listitem">
+          Add templated find overload for compatible keys.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/3773" target="_top">Ticket 3773</a>:
+          Add missing <code class="computeroutput"><span class="identifier">std</span></code> qualifier
+          to <code class="computeroutput"><span class="identifier">ptrdiff_t</span></code>.
+        </li>
+<li class="listitem">
+          Some code formatting changes to fit almost all lines into 80 characters.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h9"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_43_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_43_0">Boost
+      1.43.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/3966" target="_top">Ticket 3966</a>:
+          <code class="computeroutput"><span class="identifier">erase_return_void</span></code> is now
+          <code class="computeroutput"><span class="identifier">quick_erase</span></code>, which is the
+          <a href="http://home.roadrunner.com/~hinnant/issue_review/lwg-active.html#579" target="_top">current
+          forerunner for resolving the slow erase by iterator</a>, although there's
+          a strong possibility that this may change in the future. The old method
+          name remains for backwards compatibility but is considered deprecated and
+          will be removed in a future release.
+        </li>
+<li class="listitem">
+          Use Boost.Exception.
+        </li>
+<li class="listitem">
+          Stop using deprecated <code class="computeroutput"><span class="identifier">BOOST_HAS_</span><span class="special">*</span></code> macros.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h10"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_45_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_45_0">Boost
+      1.45.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          Fix a bug when inserting into an <code class="computeroutput"><span class="identifier">unordered_map</span></code>
+          or <code class="computeroutput"><span class="identifier">unordered_set</span></code> using
+          iterators which returns <code class="computeroutput"><span class="identifier">value_type</span></code>
+          by copy.
+        </li></ul></div>
+<h3>
+<a name="unordered.changes.h11"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_48_0___major_update"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_48_0___major_update">Boost
+      1.48.0 - Major update</a>
+    </h3>
+<p>
+      This is major change which has been converted to use Boost.Move's move emulation,
+      and be more compliant with the C++11 standard. See the <a class="link" href="compliance.html" title="C++11 Compliance">compliance
+      section</a> for details.
+    </p>
+<p>
+      The container now meets C++11's complexity requirements, but to do so uses
+      a little more memory. This means that <code class="computeroutput"><span class="identifier">quick_erase</span></code>
+      and <code class="computeroutput"><span class="identifier">erase_return_void</span></code> are no
+      longer required, they'll be removed in a future version.
+    </p>
+<p>
+      C++11 support has resulted in some breaking changes:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Equality comparison has been changed to the C++11 specification. In a container
+          with equivalent keys, elements in a group with equal keys used to have
+          to be in the same order to be considered equal, now they can be a permutation
+          of each other. To use the old behavior define the macro <code class="computeroutput"><span class="identifier">BOOST_UNORDERED_DEPRECATED_EQUALITY</span></code>.
+        </li>
+<li class="listitem">
+          The behaviour of swap is different when the two containers to be swapped
+          has unequal allocators. It used to allocate new nodes using the appropriate
+          allocators, it now swaps the allocators if the allocator has a member structure
+          <code class="computeroutput"><span class="identifier">propagate_on_container_swap</span></code>,
+          such that <code class="computeroutput"><span class="identifier">propagate_on_container_swap</span><span class="special">::</span><span class="identifier">value</span></code>
+          is true.
+        </li>
+<li class="listitem">
+          Allocator's <code class="computeroutput"><span class="identifier">construct</span></code> and
+          <code class="computeroutput"><span class="identifier">destroy</span></code> functions are called
+          with raw pointers, rather than the allocator's <code class="computeroutput"><span class="identifier">pointer</span></code>
+          type.
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">emplace</span></code> used to emulate
+          the variadic pair constructors that appeared in early C++0x drafts. Since
+          they were removed it no longer does so. It does emulate the new <code class="computeroutput"><span class="identifier">piecewise_construct</span></code> pair constructors
+          - only you need to use <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">piecewise_construct</span></code>.
+          To use the old emulation of the variadic consturctors define <code class="computeroutput"><span class="identifier">BOOST_UNORDERED_DEPRECATED_PAIR_CONSTRUCT</span></code>.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h12"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_49_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_49_0">Boost
+      1.49.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fix warning due to accidental odd assignment.
+        </li>
+<li class="listitem">
+          Slightly better error messages.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h13"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_50_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_50_0">Boost
+      1.50.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fix equality for <code class="computeroutput"><span class="identifier">unordered_multiset</span></code>
+          and <code class="computeroutput"><span class="identifier">unordered_multimap</span></code>.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/6857" target="_top">Ticket 6857</a>:
+          Implement <code class="computeroutput"><span class="identifier">reserve</span></code>.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/6771" target="_top">Ticket 6771</a>:
+          Avoid gcc's <code class="computeroutput"><span class="special">-</span><span class="identifier">Wfloat</span><span class="special">-</span><span class="identifier">equal</span></code>
+          warning.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/6784" target="_top">Ticket 6784</a>:
+          Fix some Sun specific code.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/6190" target="_top">Ticket 6190</a>:
+          Avoid gcc's <code class="computeroutput"><span class="special">-</span><span class="identifier">Wshadow</span></code>
+          warning.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/6905" target="_top">Ticket 6905</a>:
+          Make namespaces in macros compatible with <code class="computeroutput"><span class="identifier">bcp</span></code>
+          custom namespaces. Fixed by Luke Elliott.
+        </li>
+<li class="listitem">
+          Remove some of the smaller prime number of buckets, as they may make collisions
+          quite probable (e.g. multiples of 5 are very common because we used base
+          10).
+        </li>
+<li class="listitem">
+          On old versions of Visual C++, use the container library's implementation
+          of <code class="computeroutput"><span class="identifier">allocator_traits</span></code>, as
+          it's more likely to work.
+        </li>
+<li class="listitem">
+          On machines with 64 bit std::size_t, use power of 2 buckets, with Thomas
+          Wang's hash function to pick which one to use. As modulus is very slow
+          for 64 bit values.
+        </li>
+<li class="listitem">
+          Some internal changes.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h14"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_51_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_51_0">Boost
+      1.51.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fix construction/destruction issue when using a C++11 compiler with a C++03
+          allocator (<a href="https://svn.boost.org/trac/boost/ticket/7100" target="_top">#7100</a>).
+        </li>
+<li class="listitem">
+          Remove a <code class="computeroutput"><span class="keyword">try</span><span class="special">..</span><span class="keyword">catch</span></code> to support compiling without exceptions.
+        </li>
+<li class="listitem">
+          Adjust SFINAE use to try to supprt g++ 3.4 (<a href="https://svn.boost.org/trac/boost/ticket/7175" target="_top">#7175</a>).
+        </li>
+<li class="listitem">
+          Updated to use the new config macros.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h15"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_52_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_52_0">Boost
+      1.52.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Faster assign, which assigns to existing nodes where possible, rather than
+          creating entirely new nodes and copy constructing.
+        </li>
+<li class="listitem">
+          Fixed bug in <code class="computeroutput"><span class="identifier">erase_range</span></code>
+          (<a href="https://svn.boost.org/trac/boost/ticket/7471" target="_top">#7471</a>).
+        </li>
+<li class="listitem">
+          Reverted some of the internal changes to how nodes are created, especially
+          for C++11 compilers. 'construct' and 'destroy' should work a little better
+          for C++11 allocators.
+        </li>
+<li class="listitem">
+          Simplified the implementation a bit. Hopefully more robust.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h16"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_53_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_53_0">Boost
+      1.53.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Remove support for the old pre-standard variadic pair constructors, and
+          equality implementation. Both have been deprecated since Boost 1.48.
+        </li>
+<li class="listitem">
+          Remove use of deprecated config macros.
+        </li>
+<li class="listitem">
+          More internal implementation changes, including a much simpler implementation
+          of <code class="computeroutput"><span class="identifier">erase</span></code>.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h17"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_54_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_54_0">Boost
+      1.54.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Mark methods specified in standard as <code class="computeroutput"><span class="identifier">noexpect</span></code>.
+          More to come in the next release.
+        </li>
+<li class="listitem">
+          If the hash function and equality predicate are known to both have nothrow
+          move assignment or construction then use them.
+        </li>
+</ul></div>
+<h3>
+<a name="unordered.changes.h18"></a>
+      <span class="phrase"><a name="unordered.changes.boost_1_55_0"></a></span><a class="link" href="changes.html#unordered.changes.boost_1_55_0">Boost
+      1.55.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Avoid some warnings (<a href="https://svn.boost.org/trac/boost/ticket/8851" target="_top">#8851</a>, <a href="https://svn.boost.org/trac/boost/ticket/8874" target="_top">#8874</a>).
+        </li>
+<li class="listitem">
+          Avoid exposing some detail functions via. ADL on the iterators.
+        </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003, 2004 Jeremy B. Maitin-Shepard<br>Copyright &#169; 2005-2008 Daniel
+      James<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rationale.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../unordered.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

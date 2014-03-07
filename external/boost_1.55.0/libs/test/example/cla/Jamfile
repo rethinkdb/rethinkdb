@@ -1,0 +1,53 @@
+#  (C) Copyright Gennadiy Rozental 2001-2006.
+#  Use, modification, and distribution are subject to the 
+#  Boost Software License, Version 1.0. (See accompanying file 
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org/libs/test for the library home page.
+
+subproject libs/test/example/cla ;
+
+# bring in the rules for testing
+import testing ;
+
+# Make tests run by default.
+DEPENDS all : test ;
+
+rule boost-runtime-param-example ( example-name  )
+{
+   return [ compile $(example-name).cpp
+            : <stlport-iostream>on <borland><*><cxxflags>-w-8080 
+            : $(example-name)
+          ] ;
+}
+
+test-suite "cla_examples"
+    [ boost-runtime-param-example assign_to ]
+    [ boost-runtime-param-example basic_float ]
+    [ boost-runtime-param-example basic_int ]
+    [ boost-runtime-param-example basic_list ]
+    [ boost-runtime-param-example basic_string ]
+    [ boost-runtime-param-example basic_udt ]
+    [ boost-runtime-param-example char_parameter ]
+    [ boost-runtime-param-example custom_handler ]
+    [ boost-runtime-param-example custom_interpreter ]
+    [ boost-runtime-param-example custom_parameter ]
+    [ boost-runtime-param-example default_value ]
+    [ boost-runtime-param-example dual_name ]
+    [ boost-runtime-param-example global ]
+    [ boost-runtime-param-example guess_name ]
+    [ boost-runtime-param-example help ]
+    [ boost-runtime-param-example ignore_mismatch ]
+    [ boost-runtime-param-example input_separator ]
+    [ boost-runtime-param-example multiplicable ]
+    [ boost-runtime-param-example name ]
+    [ boost-runtime-param-example optional ]
+    [ boost-runtime-param-example optional_value ]
+    [ boost-runtime-param-example positional ]
+    [ boost-runtime-param-example prefix ]
+    [ boost-runtime-param-example reference ]
+    [ boost-runtime-param-example remainder ]
+    [ boost-runtime-param-example separator ]
+    [ boost-runtime-param-example usage ]
+    [ boost-runtime-param-example wide_string ]
+;

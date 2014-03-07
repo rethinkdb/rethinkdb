@@ -1,0 +1,448 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>buffer</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="basic_yield_context/operator_lb__rb_.html" title="basic_yield_context::operator[]">
+<link rel="next" href="buffer/overload1.html" title="buffer (1 of 28 overloads)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_yield_context/operator_lb__rb_.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="buffer/overload1.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.buffer"></a><a class="link" href="buffer.html" title="buffer">buffer</a>
+</h3></div></div></div>
+<p>
+        <a class="indexterm" name="idp76813624"></a> 
+The <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span></code> function is used to create a buffer
+        object to represent raw memory, an array of POD elements, a vector of POD
+        elements, or a std::string.
+      </p>
+<pre class="programlisting"><span class="identifier">mutable_buffers_1</span> <a class="link" href="buffer/overload1.html" title="buffer (1 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">b</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload1.html" title="buffer (1 of 28 overloads)">more...</a></em></span>
+
+<span class="identifier">mutable_buffers_1</span> <a class="link" href="buffer/overload2.html" title="buffer (2 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">b</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload2.html" title="buffer (2 of 28 overloads)">more...</a></em></span>
+
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload3.html" title="buffer (3 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffer</span> <span class="special">&amp;</span> <span class="identifier">b</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload3.html" title="buffer (3 of 28 overloads)">more...</a></em></span>
+
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload4.html" title="buffer (4 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffer</span> <span class="special">&amp;</span> <span class="identifier">b</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload4.html" title="buffer (4 of 28 overloads)">more...</a></em></span>
+
+<span class="identifier">mutable_buffers_1</span> <a class="link" href="buffer/overload5.html" title="buffer (5 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">data</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload5.html" title="buffer (5 of 28 overloads)">more...</a></em></span>
+
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload6.html" title="buffer (6 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">data</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload6.html" title="buffer (6 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">mutable_buffers_1</span> <a class="link" href="buffer/overload7.html" title="buffer (7 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="identifier">PodType</span> <span class="special">(&amp;</span><span class="identifier">data</span><span class="special">)[</span><span class="identifier">N</span><span class="special">]);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload7.html" title="buffer (7 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">mutable_buffers_1</span> <a class="link" href="buffer/overload8.html" title="buffer (8 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="identifier">PodType</span> <span class="special">(&amp;</span><span class="identifier">data</span><span class="special">)[</span><span class="identifier">N</span><span class="special">],</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload8.html" title="buffer (8 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload9.html" title="buffer (9 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">PodType</span> <span class="special">(&amp;</span><span class="identifier">data</span><span class="special">)[</span><span class="identifier">N</span><span class="special">]);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload9.html" title="buffer (9 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload10.html" title="buffer (10 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">PodType</span> <span class="special">(&amp;</span><span class="identifier">data</span><span class="special">)[</span><span class="identifier">N</span><span class="special">],</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload10.html" title="buffer (10 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">mutable_buffers_1</span> <a class="link" href="buffer/overload11.html" title="buffer (11 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload11.html" title="buffer (11 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">mutable_buffers_1</span> <a class="link" href="buffer/overload12.html" title="buffer (12 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload12.html" title="buffer (12 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload13.html" title="buffer (13 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload13.html" title="buffer (13 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload14.html" title="buffer (14 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload14.html" title="buffer (14 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload15.html" title="buffer (15 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload15.html" title="buffer (15 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload16.html" title="buffer (16 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload16.html" title="buffer (16 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">mutable_buffers_1</span> <a class="link" href="buffer/overload17.html" title="buffer (17 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload17.html" title="buffer (17 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">mutable_buffers_1</span> <a class="link" href="buffer/overload18.html" title="buffer (18 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload18.html" title="buffer (18 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload19.html" title="buffer (19 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload19.html" title="buffer (19 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload20.html" title="buffer (20 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload20.html" title="buffer (20 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload21.html" title="buffer (21 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload21.html" title="buffer (21 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload22.html" title="buffer (22 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload22.html" title="buffer (22 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="identifier">mutable_buffers_1</span> <a class="link" href="buffer/overload23.html" title="buffer (23 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">Allocator</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload23.html" title="buffer (23 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="identifier">mutable_buffers_1</span> <a class="link" href="buffer/overload24.html" title="buffer (24 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">Allocator</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload24.html" title="buffer (24 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload25.html" title="buffer (25 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">Allocator</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload25.html" title="buffer (25 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PodType</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload26.html" title="buffer (26 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">PodType</span><span class="special">,</span> <span class="identifier">Allocator</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload26.html" title="buffer (26 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">Elem</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload27.html" title="buffer (27 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">Elem</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">Allocator</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload27.html" title="buffer (27 of 28 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">Elem</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="identifier">const_buffers_1</span> <a class="link" href="buffer/overload28.html" title="buffer (28 of 28 overloads)">buffer</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">Elem</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="identifier">Allocator</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">data</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">max_size_in_bytes</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer/overload28.html" title="buffer (28 of 28 overloads)">more...</a></em></span>
+</pre>
+<p>
+        A buffer object represents a contiguous region of memory as a 2-tuple consisting
+        of a pointer and size in bytes. A tuple of the form <code class="computeroutput"><span class="special">{</span><span class="keyword">void</span><span class="special">*,</span> <span class="identifier">size_t</span><span class="special">}</span></code> specifies a mutable (modifiable) region
+        of memory. Similarly, a tuple of the form <code class="computeroutput"><span class="special">{</span><span class="keyword">const</span> <span class="keyword">void</span><span class="special">*,</span> <span class="identifier">size_t</span><span class="special">}</span></code> specifies a const (non-modifiable) region
+        of memory. These two forms correspond to the classes <a class="link" href="mutable_buffer.html" title="mutable_buffer"><code class="computeroutput"><span class="identifier">mutable_buffer</span></code></a> and <a class="link" href="const_buffer.html" title="const_buffer"><code class="computeroutput"><span class="identifier">const_buffer</span></code></a>, respectively. To mirror
+        C++'s conversion rules, a <a class="link" href="mutable_buffer.html" title="mutable_buffer"><code class="computeroutput"><span class="identifier">mutable_buffer</span></code></a> is implicitly convertible
+        to a <a class="link" href="const_buffer.html" title="const_buffer"><code class="computeroutput"><span class="identifier">const_buffer</span></code></a>,
+        and the opposite conversion is not permitted.
+      </p>
+<p>
+        The simplest use case involves reading or writing a single buffer of a specified
+        size:
+      </p>
+<pre class="programlisting"><span class="identifier">sock</span><span class="special">.</span><span class="identifier">send</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">data</span><span class="special">,</span> <span class="identifier">size</span><span class="special">));</span>
+</pre>
+<p>
+        In the above example, the return value of <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span></code>
+        meets the requirements of the ConstBufferSequence concept so that it may
+        be directly passed to the socket's write function. A buffer created for modifiable
+        memory also meets the requirements of the MutableBufferSequence concept.
+      </p>
+<p>
+        An individual buffer may be created from a builtin array, std::vector, std::array
+        or boost::array of POD elements. This helps prevent buffer overruns by automatically
+        determining the size of the buffer:
+      </p>
+<pre class="programlisting"><span class="keyword">char</span> <span class="identifier">d1</span><span class="special">[</span><span class="number">128</span><span class="special">];</span>
+<span class="identifier">size_t</span> <span class="identifier">bytes_transferred</span> <span class="special">=</span> <span class="identifier">sock</span><span class="special">.</span><span class="identifier">receive</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">d1</span><span class="special">));</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">d2</span><span class="special">(</span><span class="number">128</span><span class="special">);</span>
+<span class="identifier">bytes_transferred</span> <span class="special">=</span> <span class="identifier">sock</span><span class="special">.</span><span class="identifier">receive</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">d2</span><span class="special">));</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="number">128</span><span class="special">&gt;</span> <span class="identifier">d3</span><span class="special">;</span>
+<span class="identifier">bytes_transferred</span> <span class="special">=</span> <span class="identifier">sock</span><span class="special">.</span><span class="identifier">receive</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">d3</span><span class="special">));</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="number">128</span><span class="special">&gt;</span> <span class="identifier">d4</span><span class="special">;</span>
+<span class="identifier">bytes_transferred</span> <span class="special">=</span> <span class="identifier">sock</span><span class="special">.</span><span class="identifier">receive</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">d4</span><span class="special">));</span>
+</pre>
+<p>
+        In all three cases above, the buffers created are exactly 128 bytes long.
+        Note that a vector is <span class="emphasis"><em>never</em></span> automatically resized when
+        creating or using a buffer. The buffer size is determined using the vector's
+        <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code>
+        member function, and not its capacity.
+      </p>
+<h5>
+<a name="boost_asio.reference.buffer.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffer.accessing_buffer_contents"></a></span><a class="link" href="buffer.html#boost_asio.reference.buffer.accessing_buffer_contents">Accessing
+        Buffer Contents</a>
+      </h5>
+<p>
+        The contents of a buffer may be accessed using the <a class="link" href="buffer_size.html" title="buffer_size"><code class="computeroutput"><span class="identifier">buffer_size</span></code></a> and <a class="link" href="buffer_cast.html" title="buffer_cast"><code class="computeroutput"><span class="identifier">buffer_cast</span></code></a> functions:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">mutable_buffer</span> <span class="identifier">b1</span> <span class="special">=</span> <span class="special">...;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">s1</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_size</span><span class="special">(</span><span class="identifier">b1</span><span class="special">);</span>
+<span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p1</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_cast</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">*&gt;(</span><span class="identifier">b1</span><span class="special">);</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">const_buffer</span> <span class="identifier">b2</span> <span class="special">=</span> <span class="special">...;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">s2</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_size</span><span class="special">(</span><span class="identifier">b2</span><span class="special">);</span>
+<span class="keyword">const</span> <span class="keyword">void</span><span class="special">*</span> <span class="identifier">p2</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_cast</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">void</span><span class="special">*&gt;(</span><span class="identifier">b2</span><span class="special">);</span>
+</pre>
+<p>
+        The <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_cast</span></code> function permits violations
+        of type safety, so uses of it in application code should be carefully considered.
+      </p>
+<p>
+        For convenience, the <a class="link" href="buffer_size.html" title="buffer_size"><code class="computeroutput"><span class="identifier">buffer_size</span></code></a> function also works
+        on buffer sequences (that is, types meeting the ConstBufferSequence or MutableBufferSequence
+        type requirements). In this case, the function returns the total size of
+        all buffers in the sequence.
+      </p>
+<h5>
+<a name="boost_asio.reference.buffer.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffer.buffer_copying"></a></span><a class="link" href="buffer.html#boost_asio.reference.buffer.buffer_copying">Buffer
+        Copying</a>
+      </h5>
+<p>
+        The <a class="link" href="buffer_copy.html" title="buffer_copy"><code class="computeroutput"><span class="identifier">buffer_copy</span></code></a>
+        function may be used to copy raw bytes between individual buffers and buffer
+        sequences.
+      </p>
+<p>
+        In particular, when used with the <a class="link" href="buffer_size.html" title="buffer_size"><code class="computeroutput"><span class="identifier">buffer_size</span></code></a> , the <a class="link" href="buffer_copy.html" title="buffer_copy"><code class="computeroutput"><span class="identifier">buffer_copy</span></code></a> function can be used
+        to linearise a sequence of buffers. For example:
+      </p>
+<pre class="programlisting"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">const_buffer</span><span class="special">&gt;</span> <span class="identifier">buffers</span> <span class="special">=</span> <span class="special">...;</span>
+
+<span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">data</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_size</span><span class="special">(</span><span class="identifier">buffers</span><span class="special">));</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_copy</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">data</span><span class="special">),</span> <span class="identifier">buffers</span><span class="special">);</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.buffer.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffer.buffer_invalidation"></a></span><a class="link" href="buffer.html#boost_asio.reference.buffer.buffer_invalidation">Buffer
+        Invalidation</a>
+      </h5>
+<p>
+        A buffer object does not have any ownership of the memory it refers to. It
+        is the responsibility of the application to ensure the memory region remains
+        valid until it is no longer required for an I/O operation. When the memory
+        is no longer available, the buffer is said to have been invalidated.
+      </p>
+<p>
+        For the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span></code> overloads that accept an argument
+        of type std::vector, the buffer objects returned are invalidated by any vector
+        operation that also invalidates all references, pointers and iterators referring
+        to the elements in the sequence (C++ Std, 23.2.4)
+      </p>
+<p>
+        For the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span></code> overloads that accept an argument
+        of type std::basic_string, the buffer objects returned are invalidated according
+        to the rules defined for invalidation of references, pointers and iterators
+        referring to elements of the sequence (C++ Std, 21.3).
+      </p>
+<h5>
+<a name="boost_asio.reference.buffer.h3"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffer.buffer_arithmetic"></a></span><a class="link" href="buffer.html#boost_asio.reference.buffer.buffer_arithmetic">Buffer
+        Arithmetic</a>
+      </h5>
+<p>
+        Buffer objects may be manipulated using simple arithmetic in a safe way which
+        helps prevent buffer overruns. Consider an array initialised as follows:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="number">6</span><span class="special">&gt;</span> <span class="identifier">a</span> <span class="special">=</span> <span class="special">{</span> <span class="char">'a'</span><span class="special">,</span> <span class="char">'b'</span><span class="special">,</span> <span class="char">'c'</span><span class="special">,</span> <span class="char">'d'</span><span class="special">,</span> <span class="char">'e'</span> <span class="special">};</span>
+</pre>
+<p>
+        A buffer object <code class="computeroutput"><span class="identifier">b1</span></code> created
+        using:
+      </p>
+<pre class="programlisting"><span class="identifier">b1</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">a</span><span class="special">);</span>
+</pre>
+<p>
+        represents the entire array, <code class="computeroutput"><span class="special">{</span> <span class="char">'a'</span><span class="special">,</span> <span class="char">'b'</span><span class="special">,</span> <span class="char">'c'</span><span class="special">,</span>
+        <span class="char">'d'</span><span class="special">,</span> <span class="char">'e'</span> <span class="special">}</span></code>. An optional
+        second argument to the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span></code>
+        function may be used to limit the size, in bytes, of the buffer:
+      </p>
+<pre class="programlisting"><span class="identifier">b2</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="number">3</span><span class="special">);</span>
+</pre>
+<p>
+        such that <code class="computeroutput"><span class="identifier">b2</span></code> represents the
+        data <code class="computeroutput"><span class="special">{</span> <span class="char">'a'</span><span class="special">,</span> <span class="char">'b'</span><span class="special">,</span>
+        <span class="char">'c'</span> <span class="special">}</span></code>.
+        Even if the size argument exceeds the actual size of the array, the size
+        of the buffer object created will be limited to the array size.
+      </p>
+<p>
+        An offset may be applied to an existing buffer to create a new one:
+      </p>
+<pre class="programlisting"><span class="identifier">b3</span> <span class="special">=</span> <span class="identifier">b1</span> <span class="special">+</span> <span class="number">2</span><span class="special">;</span>
+</pre>
+<p>
+        where <code class="computeroutput"><span class="identifier">b3</span></code> will set to represent
+        <code class="computeroutput"><span class="special">{</span> <span class="char">'c'</span><span class="special">,</span> <span class="char">'d'</span><span class="special">,</span>
+        <span class="char">'e'</span> <span class="special">}</span></code>.
+        If the offset exceeds the size of the existing buffer, the newly created
+        buffer will be empty.
+      </p>
+<p>
+        Both an offset and size may be specified to create a buffer that corresponds
+        to a specific range of bytes within an existing buffer:
+      </p>
+<pre class="programlisting"><span class="identifier">b4</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">b1</span> <span class="special">+</span> <span class="number">1</span><span class="special">,</span> <span class="number">3</span><span class="special">);</span>
+</pre>
+<p>
+        so that <code class="computeroutput"><span class="identifier">b4</span></code> will refer to
+        the bytes <code class="computeroutput"><span class="special">{</span> <span class="char">'b'</span><span class="special">,</span> <span class="char">'c'</span><span class="special">,</span>
+        <span class="char">'d'</span> <span class="special">}</span></code>.
+      </p>
+<h5>
+<a name="boost_asio.reference.buffer.h4"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffer.buffers_and_scatter_gather_i_o"></a></span><a class="link" href="buffer.html#boost_asio.reference.buffer.buffers_and_scatter_gather_i_o">Buffers
+        and Scatter-Gather I/O</a>
+      </h5>
+<p>
+        To read or write using multiple buffers (i.e. scatter-gather I/O), multiple
+        buffer objects may be assigned into a container that supports the MutableBufferSequence
+        (for read) or ConstBufferSequence (for write) concepts:
+      </p>
+<pre class="programlisting"><span class="keyword">char</span> <span class="identifier">d1</span><span class="special">[</span><span class="number">128</span><span class="special">];</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">d2</span><span class="special">(</span><span class="number">128</span><span class="special">);</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="number">128</span><span class="special">&gt;</span> <span class="identifier">d3</span><span class="special">;</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="identifier">mutable_buffer</span><span class="special">,</span> <span class="number">3</span><span class="special">&gt;</span> <span class="identifier">bufs1</span> <span class="special">=</span> <span class="special">{</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">d1</span><span class="special">),</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">d2</span><span class="special">),</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">d3</span><span class="special">)</span> <span class="special">};</span>
+<span class="identifier">bytes_transferred</span> <span class="special">=</span> <span class="identifier">sock</span><span class="special">.</span><span class="identifier">receive</span><span class="special">(</span><span class="identifier">bufs1</span><span class="special">);</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">const_buffer</span><span class="special">&gt;</span> <span class="identifier">bufs2</span><span class="special">;</span>
+<span class="identifier">bufs2</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">d1</span><span class="special">));</span>
+<span class="identifier">bufs2</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">d2</span><span class="special">));</span>
+<span class="identifier">bufs2</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">d3</span><span class="special">));</span>
+<span class="identifier">bytes_transferred</span> <span class="special">=</span> <span class="identifier">sock</span><span class="special">.</span><span class="identifier">send</span><span class="special">(</span><span class="identifier">bufs2</span><span class="special">);</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.buffer.h5"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffer.requirements"></a></span><a class="link" href="buffer.html#boost_asio.reference.buffer.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/buffer.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_yield_context/operator_lb__rb_.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="buffer/overload1.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

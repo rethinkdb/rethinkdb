@@ -1,0 +1,179 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;20.&#160;Boost.MPI</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="boost/forward.html" title="Function template forward">
+<link rel="next" href="mpi/getting_started.html" title="Getting started">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/forward.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mpi/getting_started.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="mpi"></a>Chapter&#160;20.&#160;Boost.MPI</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Douglas</span> <span class="surname">Gregor</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Matthias</span> <span class="surname">Troyer</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University</p></div>
+<div><div class="legalnotice">
+<a name="mpi.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="mpi.html#mpi.intro">Introduction</a></span></dt>
+<dt><span class="section"><a href="mpi/getting_started.html">Getting started</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="mpi/getting_started.html#mpi.mpi_impl">MPI Implementation</a></span></dt>
+<dt><span class="section"><a href="mpi/getting_started.html#mpi.config">Configure and Build</a></span></dt>
+<dt><span class="section"><a href="mpi/getting_started.html#mpi.installation">Installing and Using Boost.MPI</a></span></dt>
+<dt><span class="section"><a href="mpi/getting_started.html#mpi.testing">Testing Boost.MPI</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="mpi/tutorial.html">Tutorial</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="mpi/tutorial.html#mpi.point_to_point">Point-to-Point communication</a></span></dt>
+<dt><span class="section"><a href="mpi/tutorial.html#mpi.collectives">Collective operations</a></span></dt>
+<dt><span class="section"><a href="mpi/tutorial.html#mpi.communicators">Managing communicators</a></span></dt>
+<dt><span class="section"><a href="mpi/tutorial.html#mpi.skeleton_and_content">Separating structure from content</a></span></dt>
+<dt><span class="section"><a href="mpi/tutorial.html#mpi.performance_optimizations">Performance optimizations</a></span></dt>
+<dt><span class="section"><a href="mpi/tutorial.html#mpi.c_mapping">Mapping from C MPI to Boost.MPI</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="mpi/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi_hpp">Header &lt;boost/mpi.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.allocator_hpp">Header &lt;boost/mpi/allocator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.collectives_hpp">Header &lt;boost/mpi/collectives.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.collectives_fwd_hpp">Header &lt;boost/mpi/collectives_fwd.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.communicator_hpp">Header &lt;boost/mpi/communicator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.config_hpp">Header &lt;boost/mpi/config.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.datatype_hpp">Header &lt;boost/mpi/datatype.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.datatype_fwd_hpp">Header &lt;boost/mpi/datatype_fwd.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.environment_hpp">Header &lt;boost/mpi/environment.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.exception_hpp">Header &lt;boost/mpi/exception.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.graph_communicator_hpp">Header &lt;boost/mpi/graph_communicator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.group_hpp">Header &lt;boost/mpi/group.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.inplace_hpp">Header &lt;boost/mpi/inplace.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.intercommunicator_hpp">Header &lt;boost/mpi/intercommunicator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.nonblocking_hpp">Header &lt;boost/mpi/nonblocking.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.operations_hpp">Header &lt;boost/mpi/operations.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.packed_iarchive_hpp">Header &lt;boost/mpi/packed_iarchive.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.packed_oarchive_hpp">Header &lt;boost/mpi/packed_oarchive.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.python_hpp">Header &lt;boost/mpi/python.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.request_hpp">Header &lt;boost/mpi/request.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp">Header &lt;boost/mpi/skeleton_and_content.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.skeleton_and_content_fwd_hpp">Header &lt;boost/mpi/skeleton_and_content_fwd.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.status_hpp">Header &lt;boost/mpi/status.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="mpi/reference.html#header.boost.mpi.timer_hpp">Header &lt;boost/mpi/timer.hpp&gt;</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="mpi/python.html">Python Bindings</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="mpi/python.html#mpi.python_quickstart">Quickstart</a></span></dt>
+<dt><span class="section"><a href="mpi/python.html#mpi.python_user_data">Transmitting User-Defined Data</a></span></dt>
+<dt><span class="section"><a href="mpi/python.html#mpi.python_collectives">Collectives</a></span></dt>
+<dt><span class="section"><a href="mpi/python.html#mpi.python_skeleton_content">Skeleton/Content Mechanism</a></span></dt>
+<dt><span class="section"><a href="mpi/python.html#mpi.design">Design Philosophy</a></span></dt>
+<dt><span class="section"><a href="mpi/python.html#mpi.threading">Threads</a></span></dt>
+<dt><span class="section"><a href="mpi/python.html#mpi.performance">Performance Evaluation</a></span></dt>
+<dt><span class="section"><a href="mpi/python.html#mpi.history">Revision History</a></span></dt>
+<dt><span class="section"><a href="mpi/python.html#mpi.acknowledge">Acknowledgments</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="mpi.intro"></a>Introduction</h2></div></div></div>
+<p>
+      Boost.MPI is a library for message passing in high-performance parallel applications.
+      A Boost.MPI program is one or more processes that can communicate either via
+      sending and receiving individual messages (point-to-point communication) or
+      by coordinating as a group (collective communication). Unlike communication
+      in threaded environments or using a shared-memory library, Boost.MPI processes
+      can be spread across many different machines, possibly with different operating
+      systems and underlying architectures.
+    </p>
+<p>
+      Boost.MPI is not a completely new parallel programming library. Rather, it
+      is a C++-friendly interface to the standard Message Passing Interface (<a href="http://www-unix.mcs.anl.gov/mpi/" target="_top">MPI</a>), the most popular library
+      interface for high-performance, distributed computing. MPI defines a library
+      interface, available from C, Fortran, and C++, for which there are many <a href="http://www-unix.mcs.anl.gov/mpi/implementations.html" target="_top">MPI implementations</a>.
+      Although there exist C++ bindings for MPI, they offer little functionality
+      over the C bindings. The Boost.MPI library provides an alternative C++ interface
+      to MPI that better supports modern C++ development styles, including complete
+      support for user-defined data types and C++ Standard Library types, arbitrary
+      function objects for collective algorithms, and the use of modern C++ library
+      techniques to maintain maximal efficiency.
+    </p>
+<p>
+      At present, Boost.MPI supports the majority of functionality in MPI 1.1. The
+      thin abstractions in Boost.MPI allow one to easily combine it with calls to
+      the underlying C MPI library. Boost.MPI currently supports:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Communicators: Boost.MPI supports the creation, destruction, cloning, and
+          splitting of MPI communicators, along with manipulation of process groups.
+        </li>
+<li class="listitem">
+          Point-to-point communication: Boost.MPI supports point-to-point communication
+          of primitive and user-defined data types with send and receive operations,
+          with blocking and non-blocking interfaces.
+        </li>
+<li class="listitem">
+          Collective communication: Boost.MPI supports collective operations such
+          as <code class="computeroutput"><a class="link" href="boost/mpi/reduce.html" title="Function reduce">reduce</a></code>
+          and <code class="computeroutput"><a class="link" href="boost/mpi/gather.html" title="Function gather">gather</a></code>
+          with both built-in and user-defined data types and function objects.
+        </li>
+<li class="listitem">
+          MPI Datatypes: Boost.MPI can build MPI data types for user-defined types
+          using the <a href="http://www.boost.org/libs/serialization/doc" target="_top">Boost.Serialization</a>
+          library.
+        </li>
+<li class="listitem">
+          Separating structure from content: Boost.MPI can transfer the shape (or
+          "skeleton") of complexc data structures (lists, maps, etc.) and
+          then separately transfer their content. This facility optimizes for cases
+          where the data within a large, static data structure needs to be transmitted
+          many times.
+        </li>
+</ul></div>
+<p>
+      Boost.MPI can be accessed either through its native C++ bindings, or through
+      its alternative, <a class="link" href="mpi/python.html" title="Python Bindings">Python interface</a>.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:53:38 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/forward.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mpi/getting_started.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

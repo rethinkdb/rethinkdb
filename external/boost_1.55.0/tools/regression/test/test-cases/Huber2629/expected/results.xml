@@ -1,0 +1,27 @@
+<test-log library="statechart" test-name="DllTestNormal" test-type="run" test-program="libs/statechart/test/TuTestMain.cpp" target-directory="bin.v2/libs/statechart/test/DllTestNormal.test/msvc-7.1/debug/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<lib result="fail" timestamp="">../../bin.v2/libs/statechart/test/msvc-7.1/debug/threading-multi</lib>
+</test-log>
+
+<test-log library="statechart" test-name="" test-type="" test-program="" target-directory="bin.v2/libs/statechart/test/msvc-7.1/debug/threading-multi" toolset="" show-run-output="true">
+<compile result="succeed" timestamp="">
+TuTest.cpp
+c:\Users\Misha\Stuff\boost\HEAD\boost\libs\statechart\test\TuTest.hpp(36) : warning C4275: non dll-interface class 'boost::statechart::event_base' used as base for dll-interface class 'boost::statechart::detail::rtti_policy::rtti_derived_type&lt;MostDerived,Base&gt;'
+        with
+        [
+            MostDerived=EvX,
+            Base=boost::statechart::event_base
+        ]
+        ..\..\..\boost\statechart\event_base.hpp(49) : see declaration of 'boost::statechart::event_base'
+</compile>
+<link result="fail" timestamp="">
+   Creating library ..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.lib and object ..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.exp
+
+        call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  &gt;nul
+link /NOLOGO /INCREMENTAL:NO /DLL /DEBUG /subsystem:console /out:"..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll" /IMPLIB:"..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.lib"    @"..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll.rsp"
+        if %errorlevel% 1 exit %errorlevel%
+        if exist "..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll.manifest" (
+            mt -nologo -manifest "..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll.manifest" "-outputresource:..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll;2"
+        )
+    
+</link>
+</test-log>

@@ -1,0 +1,234 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>State Wrapper</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="state_algebra_operations.html" title="State Algebra Operations">
+<link rel="next" href="../literature.html" title="Literature">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="state_algebra_operations.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../literature.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.concepts.state_wrapper"></a><a class="link" href="state_wrapper.html" title="State Wrapper">State Wrapper</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_numeric_odeint.concepts.state_wrapper.h0"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.state_wrapper.description"></a></span><a class="link" href="state_wrapper.html#boost_numeric_odeint.concepts.state_wrapper.description">Description</a>
+      </h5>
+<p>
+        The <code class="computeroutput"><span class="identifier">State</span> <span class="identifier">Wrapper</span></code>
+        concept describes the way odeint creates temporary state objects to store
+        intermediate results within the stepper's <code class="computeroutput"><span class="identifier">do_step</span></code>
+        methods.
+      </p>
+<h5>
+<a name="boost_numeric_odeint.concepts.state_wrapper.h1"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.state_wrapper.notation"></a></span><a class="link" href="state_wrapper.html#boost_numeric_odeint.concepts.state_wrapper.notation">Notation</a>
+      </h5>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">State</span></code></span></dt>
+<dd><p>
+              A type that is the <code class="computeroutput"><span class="identifier">state_type</span></code>
+              of the ODE
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">WrappedState</span></code></span></dt>
+<dd><p>
+              A type that is a model of State Wrapper for the state type <code class="computeroutput"><span class="identifier">State</span></code>.
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">x</span></code></span></dt>
+<dd><p>
+              Object of type <code class="computeroutput"><span class="identifier">State</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">w</span></code></span></dt>
+<dd><p>
+              Object of type <code class="computeroutput"><span class="identifier">WrappedState</span></code>
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="boost_numeric_odeint.concepts.state_wrapper.h2"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.state_wrapper.valid_expressions"></a></span><a class="link" href="state_wrapper.html#boost_numeric_odeint.concepts.state_wrapper.valid_expressions">Valid
+        Expressions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Type
+                </p>
+              </th>
+<th>
+                <p>
+                  Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  Get resizeability
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">is_resizeable</span><span class="special">&lt;</span>
+                  <span class="identifier">State</span> <span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">false_type</span></code> or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">true_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">true_type</span></code> if the <code class="computeroutput"><span class="identifier">State</span></code> is resizeable, <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">false_type</span></code> otherwise.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Create <code class="computeroutput"><span class="identifier">WrappedState</span></code>
+                  type
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">state_wrapper</span><span class="special">&lt;</span>
+                  <span class="identifier">State</span> <span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">WrappedState</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Creates the type for a <code class="computeroutput"><span class="identifier">WrappedState</span></code>
+                  for the state type <code class="computeroutput"><span class="identifier">State</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Constructor
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">WrappedState</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">WrappedState</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Constructs a state wrapper with an empty state
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Copy Constructor
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">WrappedState</span><span class="special">(</span>
+                  <span class="identifier">w</span> <span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">WrappedState</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Constructs a state wrapper with a state of the same size as the
+                  state in <code class="computeroutput"><span class="identifier">w</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Get state
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">w</span><span class="special">.</span><span class="identifier">m_v</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">State</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns the <code class="computeroutput"><span class="identifier">State</span></code>
+                  object of this state wrapper.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="state_algebra_operations.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../literature.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

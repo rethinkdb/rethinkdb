@@ -1,0 +1,582 @@
+# Copyright 2003 Dave Abrahams
+# Copyright 2005 Rene Rivera
+# Copyright 2002, 2003, 2004, 2005, 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+#  Support for toolset definition.
+
+import errors ;
+import feature ;
+import generators ;
+import numbers ;
+import path ;
+import property ;
+import regex ;
+import sequence ;
+import set ;
+import property-set ;
+
+
+.flag-no = 1 ;
+
+.ignore-requirements = ;
+
+# This is used only for testing, to make sure we do not get random extra
+# elements in paths.
+if --ignore-toolset-requirements in [ modules.peek : ARGV ]
+{
+    .ignore-requirements = 1 ;
+}
+
+
+# Initializes an additional toolset-like module. First load the 'toolset-module'
+# and then calls its 'init' rule with trailing arguments.
+#
+rule using ( toolset-module : * )
+{
+    import $(toolset-module) ;
+    $(toolset-module).init $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9)
+        ;
+}
+
+
+# Expands subfeatures in each property sets, e.g. '<toolset>gcc-3.2' will be
+# converted to '<toolset>gcc/<toolset-version>3.2'.
+#
+local rule normalize-condition ( property-sets * )
+{
+    local result ;
+    for local p in $(property-sets)
+    {
+        local split = [ feature.split $(p) ] ;
+        local expanded = [ feature.expand-subfeatures [ feature.split $(p) ] ] ;
+        result += $(expanded:J=/) ;
+    }
+    return $(result) ;
+}
+
+
+# Specifies if the 'flags' rule should check that the invoking module is the
+# same as the module we are setting the flag for. 'v' can be either 'checked' or
+# 'unchecked'. Subsequent call to 'pop-checking-for-flags-module' will restore
+# the setting that was in effect before calling this rule.
+#
+rule push-checking-for-flags-module ( v )
+{
+    .flags-module-checking = $(v) $(.flags-module-checking) ;
+}
+
+rule pop-checking-for-flags-module ( )
+{
+    .flags-module-checking = $(.flags-module-checking[2-]) ;
+}
+
+
+# Specifies the flags (variables) that must be set on targets under certain
+# conditions, described by arguments.
+#
+rule flags (
+    rule-or-module   # If contains a dot, should be a rule name. The flags will
+                     # be applied when that rule is used to set up build
+                     # actions.
+                     #
+                     # If does not contain dot, should be a module name. The
+                     # flag will be applied for all rules in that module. If
+                     # module for rule is different from the calling module, an
+                     # error is issued.
+
+    variable-name    # Variable that should be set on target.
+    condition * :    # A condition when this flag should be applied. Should be a
+                     # set of property sets. If one of those property sets is
+                     # contained in the build properties, the flag will be used.
+                     # Implied values are not allowed: "<toolset>gcc" should be
+                     # used, not just "gcc". Subfeatures, like in
+                     # "<toolset>gcc-3.2" are allowed. If left empty, the flag
+                     # will be used unconditionally.
+                     #
+                     # Propery sets may use value-less properties ('<a>'  vs.
+                     # '<a>value') to match absent properties. This allows to
+                     # separately match:
+                     #
+                     #   <architecture>/<address-model>64
+                     #   <architecture>ia64/<address-model>
+                     #
+                     # Where both features are optional. Without this syntax
+                     # we would be forced to define "default" values.
+
+    values * :       # The value to add to variable. If <feature> is specified,
+                     # then the value of 'feature' will be added.
+    unchecked ?      # If value 'unchecked' is passed, will not test that flags
+                     # are set for the calling module.
+    : hack-hack ?    # For
+                     #   flags rule OPTIONS <cxx-abi> : -model ansi
+                     # Treat <cxx-abi> as condition
+                     # FIXME: ugly hack.
+)
+{
+    local caller = [ CALLER_MODULE ] ;
+    if ! [ MATCH ".*([.]).*" : $(rule-or-module) ]
+       && [ MATCH "(Jamfile<.*)" : $(caller) ]
+    {
+        # Unqualified rule name, used inside Jamfile. Most likely used with
+        # 'make' or 'notfile' rules. This prevents setting flags on the entire
+        # Jamfile module (this will be considered as rule), but who cares?
+        # Probably, 'flags' rule should be split into 'flags' and
+        # 'flags-on-module'.
+        rule-or-module = $(caller).$(rule-or-module) ;
+    }
+    else
+    {
+        local module_ = [ MATCH "([^.]*).*" : $(rule-or-module) ] ;
+        if $(unchecked) != unchecked
+            && $(.flags-module-checking[1]) != unchecked
+            && $(module_) != $(caller)
+        {
+            errors.error "Module $(caller) attempted to set flags for module $(module_)" ;
+        }
+    }
+
+    if $(condition) && ! $(condition:G=) && ! $(hack-hack)
+    {
+        # We have condition in the form '<feature>', that is, without value.
+        # That is an older syntax:
+        #   flags gcc.link RPATH <dll-path> ;
+        # for compatibility, convert it to
+        #   flags gcc.link RPATH : <dll-path> ;
+        values = $(condition) ;
+        condition = ;
+    }
+
+    if $(condition)
+    {
+        property.validate-property-sets $(condition) ;
+        condition = [ normalize-condition $(condition) ] ;
+    }
+
+    add-flag $(rule-or-module) : $(variable-name) : $(condition) : $(values) ;
+}
+
+
+# Adds a new flag setting with the specified values. Does no checking.
+#
+local rule add-flag ( rule-or-module : variable-name : condition * : values * )
+{
+    .$(rule-or-module).flags += $(.flag-no) ;
+
+    # Store all flags for a module.
+    local module_ = [ MATCH "([^.]*).*" : $(rule-or-module) ] ;
+    .module-flags.$(module_) += $(.flag-no) ;
+    # Store flag-no -> rule-or-module mapping.
+    .rule-or-module.$(.flag-no) = $(rule-or-module) ;
+
+    .$(rule-or-module).variable.$(.flag-no) += $(variable-name) ;
+    .$(rule-or-module).values.$(.flag-no) += $(values) ;
+    .$(rule-or-module).condition.$(.flag-no) += $(condition) ;
+
+    .flag-no = [ numbers.increment $(.flag-no) ] ;
+}
+
+
+# Returns the first element of 'property-sets' which is a subset of
+# 'properties' or an empty list if no such element exists.
+#
+rule find-property-subset ( property-sets * : properties * )
+{
+    # Cut property values off.
+    local prop-keys = $(properties:G) ;
+
+    local result ;
+    for local s in $(property-sets)
+    {
+        if ! $(result)
+        {
+            # Handle value-less properties like '<architecture>' (compare with
+            # '<architecture>x86').
+
+            local set = [ feature.split $(s) ] ;
+
+            # Find the set of features that
+            # - have no property specified in required property set
+            # - are omitted in the build property set.
+            local default-props ;
+            for local i in $(set)
+            {
+                # If $(i) is a value-less property it should match default value
+                # of an optional property. See the first line in the example
+                # below:
+                #
+                #  property set     properties     result
+                # <a> <b>foo      <b>foo           match
+                # <a> <b>foo      <a>foo <b>foo    no match
+                # <a>foo <b>foo   <b>foo           no match
+                # <a>foo <b>foo   <a>foo <b>foo    match
+                if ! ( $(i:G=) || ( $(i:G) in $(prop-keys) ) )
+                {
+                    default-props += $(i) ;
+                }
+            }
+
+            if $(set) in $(properties) $(default-props)
+            {
+                result = $(s) ;
+            }
+        }
+    }
+    return $(result) ;
+}
+
+
+# Returns a value to be added to some flag for some target based on the flag's
+# value definition and the given target's property set.
+#
+rule handle-flag-value ( value * : properties * )
+{
+    local result ;
+    if $(value:G)
+    {
+        local matches = [ property.select $(value) : $(properties) ] ;
+        for local p in $(matches)
+        {
+            local att = [ feature.attributes $(p:G) ] ;
+            if dependency in $(att)
+            {
+                # The value of a dependency feature is a target and needs to be
+                # actualized.
+                result += [ $(p:G=).actualize ] ;
+            }
+            else if path in $(att) || free in $(att)
+            {
+                local values ;
+                # Treat features with && in the value specially -- each
+                # &&-separated element is considered a separate value. This is
+                # needed to handle searched libraries or include paths, which
+                # may need to be in a specific order.
+                if ! [ MATCH (&&) : $(p:G=) ]
+                {
+                    values = $(p:G=) ;
+                }
+                else
+                {
+                    values = [ regex.split $(p:G=) "&&" ] ;
+                }
+                if path in $(att)
+                {
+                    result += [ sequence.transform path.native : $(values) ] ;
+                }
+                else
+                {
+                    result += $(values) ;
+                }
+            }
+            else
+            {
+                result += $(p:G=) ;
+            }
+        }
+    }
+    else
+    {
+        result += $(value) ;
+    }
+    return $(result) ;
+}
+
+
+# Given a rule name and a property set, returns a list of interleaved variables
+# names and values which must be set on targets for that rule/property-set
+# combination.
+#
+rule set-target-variables-aux ( rule-or-module : property-set )
+{
+    local result ;
+    properties = [ $(property-set).raw ] ;
+    for local f in $(.$(rule-or-module).flags)
+    {
+        local variable = $(.$(rule-or-module).variable.$(f)) ;
+        local condition = $(.$(rule-or-module).condition.$(f)) ;
+        local values = $(.$(rule-or-module).values.$(f)) ;
+
+        if ! $(condition) ||
+            [ find-property-subset $(condition) : $(properties) ]
+        {
+            local processed ;
+            for local v in $(values)
+            {
+                # The value might be <feature-name> so needs special treatment.
+                processed += [ handle-flag-value $(v) : $(properties) ] ;
+            }
+            for local r in $(processed)
+            {
+                result += $(variable) $(r) ;
+            }
+        }
+    }
+
+    # Strip away last dot separated part and recurse.
+    local next = [ MATCH ^(.+)\\.([^\\.])* : $(rule-or-module) ] ;
+    if $(next)
+    {
+        result += [ set-target-variables-aux $(next[1]) : $(property-set) ] ;
+    }
+    return $(result) ;
+}
+
+rule relevant-features ( rule-or-module )
+{
+    local result ;
+    if ! $(.relevant-features.$(rule-or-module))
+    {
+        for local f in $(.$(rule-or-module).flags)
+        {
+            local condition = $(.$(rule-or-module).condition.$(f)) ;
+            local values = $(.$(rule-or-module).values.$(f)) ;
+
+            for local c in $(condition)
+            {
+                for local p in [ feature.split $(c) ]
+                {
+                    if $(p:G)
+                    {
+                        result += $(p:G) ;
+                    }
+                    else
+                    {
+                        local temp = [ feature.expand-subfeatures $(p) ] ;
+                        result += $(temp:G) ;
+                    }
+                }
+            }
+
+            for local v in $(values)
+            {
+                if $(v:G)
+                {
+                    result += $(v:G) ;
+                }
+            }
+        }
+
+        # Strip away last dot separated part and recurse.
+        local next = [ MATCH ^(.+)\\.([^\\.])* : $(rule-or-module) ] ;
+        if $(next)
+        {
+            result += [ relevant-features $(next[1]) ] ;
+        }
+        result = [ sequence.unique $(result) ] ;
+        if $(result[1]) = ""
+        {
+            result = $(result) ;
+        }
+        .relevant-features.$(rule-or-module) = $(result) ;
+        return $(result) ;
+    }
+    else
+    {
+        return $(.relevant-features.$(rule-or-module)) ;
+    }
+}
+
+rule filter-property-set ( rule-or-module : property-set )
+{
+    local key = .filtered.property-set.$(rule-or-module).$(property-set) ;
+    if ! $($(key))
+    {
+        local relevant = [ relevant-features $(rule-or-module) ] ;
+        local result ;
+        for local p in [ $(property-set).raw ]
+        {
+            if $(p:G) in $(relevant)
+            {
+                result += $(p) ;
+            }
+        }
+        $(key) = [ property-set.create $(result) ] ;
+    }
+    return $($(key)) ;
+}
+
+rule set-target-variables ( rule-or-module targets + : property-set )
+{
+    property-set = [ filter-property-set $(rule-or-module) : $(property-set) ] ;
+    local key = .stv.$(rule-or-module).$(property-set) ;
+    local settings = $($(key)) ;
+    if ! $(settings)
+    {
+        settings = [ set-target-variables-aux $(rule-or-module) :
+            $(property-set) ] ;
+
+        if ! $(settings)
+        {
+            settings = none ;
+        }
+        $(key) = $(settings) ;
+    }
+
+    if $(settings) != none
+    {
+        local var-name = ;
+        for local name-or-value in $(settings)
+        {
+            if $(var-name)
+            {
+                $(var-name) on $(targets) += $(name-or-value) ;
+                var-name = ;
+            }
+            else
+            {
+                var-name = $(name-or-value) ;
+            }
+        }
+    }
+}
+
+
+# Make toolset 'toolset', defined in a module of the same name, inherit from
+# 'base'.
+# 1. The 'init' rule from 'base' is imported into 'toolset' with full name.
+#    Another 'init' is called, which forwards to the base one.
+# 2. All generators from 'base' are cloned. The ids are adjusted and <toolset>
+#    property in requires is adjusted too.
+# 3. All flags are inherited.
+# 4. All rules are imported.
+#
+rule inherit ( toolset : base )
+{
+    import $(base) ;
+    inherit-generators $(toolset) : $(base) ;
+    inherit-flags      $(toolset) : $(base) ;
+    inherit-rules      $(toolset) : $(base) ;
+}
+
+
+rule inherit-generators ( toolset properties * : base : generators-to-ignore * )
+{
+    properties ?= <toolset>$(toolset) ;
+    local base-generators = [ generators.generators-for-toolset $(base) ] ;
+    for local g in $(base-generators)
+    {
+        local id = [ $(g).id ] ;
+
+        if ! $(id) in $(generators-to-ignore)
+        {
+            # Some generator names have multiple periods in their name, so
+            # $(id:B=$(toolset)) does not generate the right new-id name. E.g.
+            # if id = gcc.compile.c++ then $(id:B=darwin) = darwin.c++, which is
+            # not what we want. Manually parse the base and suffix. If there is
+            # a better way to do this, I would love to see it. See also the
+            # register() rule in the generators module.
+            local base = $(id) ;
+            local suffix = "" ;
+            while $(base:S)
+            {
+                suffix = $(base:S)$(suffix) ;
+                base = $(base:B) ;
+            }
+            local new-id = $(toolset)$(suffix) ;
+
+            generators.register [ $(g).clone $(new-id) : $(properties) ] ;
+        }
+    }
+}
+
+
+# Brings all flag definitions from the 'base' toolset into the 'toolset'
+# toolset. Flag definitions whose conditions make use of properties in
+# 'prohibited-properties' are ignored. Do not confuse property and feature, for
+# example <debug-symbols>on and <debug-symbols>off, so blocking one of them does
+# not block the other one.
+#
+# The flag conditions are not altered at all, so if a condition includes a name,
+# or version of a base toolset, it will not ever match the inheriting toolset.
+# When such flag settings must be inherited, define a rule in base toolset
+# module and call it as needed.
+#
+rule inherit-flags ( toolset : base : prohibited-properties * : prohibited-vars * )
+{
+    for local f in $(.module-flags.$(base))
+    {
+        local rule-or-module = $(.rule-or-module.$(f)) ;
+        if ( [ set.difference
+            $(.$(rule-or-module).condition.$(f)) :
+                  $(prohibited-properties) ]
+                  || ! $(.$(rule-or-module).condition.$(f))
+        ) && ( ! $(.$(rule-or-module).variable.$(f)) in $(prohibited-vars) )
+        {
+            local rule_ = [ MATCH "[^.]*\.(.*)" : $(rule-or-module) ] ;
+            local new-rule-or-module ;
+            if $(rule_)
+            {
+                new-rule-or-module = $(toolset).$(rule_) ;
+            }
+            else
+            {
+                new-rule-or-module = $(toolset) ;
+            }
+
+            add-flag
+                $(new-rule-or-module)
+                : $(.$(rule-or-module).variable.$(f))
+                : $(.$(rule-or-module).condition.$(f))
+                : $(.$(rule-or-module).values.$(f)) ;
+        }
+    }
+}
+
+
+rule inherit-rules ( toolset : base : localize ? )
+{
+    # It appears that "action" creates a local rule.
+    local base-generators = [ generators.generators-for-toolset $(base) ] ;
+    local rules ;
+    for local g in $(base-generators)
+    {
+        rules += [ MATCH "[^.]*\.(.*)" : [ $(g).rule-name ] ] ;
+    }
+    rules = [ sequence.unique $(rules) ] ;
+    IMPORT $(base) : $(rules) : $(toolset) : $(rules) : $(localize) ;
+    IMPORT $(toolset) : $(rules) : : $(toolset).$(rules) ;
+}
+
+.requirements = [ property-set.empty ] ;
+
+# Return the list of global 'toolset requirements'. Those requirements will be
+# automatically added to the requirements of any main target.
+#
+rule requirements ( )
+{
+    return $(.requirements) ;
+}
+
+
+# Adds elements to the list of global 'toolset requirements'. The requirements
+# will be automatically added to the requirements for all main targets, as if
+# they were specified literally. For best results, all requirements added should
+# be conditional or indirect conditional.
+#
+rule add-requirements ( requirements * )
+{
+    if ! $(.ignore-requirements)
+    {
+        requirements = [ property.translate-indirect $(specification) : [ CALLER_MODULE ] ] ;
+        requirements = [ property.expand-subfeatures-in-conditions $(requirements) ] ;
+        requirements = [ property.make $(requirements) ] ;
+        .requirements = [ $(.requirements).add-raw $(requirements) ] ;
+    }
+}
+
+
+rule __test__ ( )
+{
+    import assert ;
+    local p = <b>0 <c>1 <d>2 <e>3 <f>4 ;
+    assert.result <c>1/<d>2/<e>3 : find-property-subset <c>1/<d>2/<e>3 <a>0/<b>0/<c>1 <d>2/<e>5 <a>9 : $(p) ;
+    assert.result : find-property-subset <a>0/<b>0/<c>9/<d>9/<e>5 <a>9 : $(p) ;
+
+    local p-set = <a>/<b> <a>0/<b> <a>/<b>1 <a>0/<b>1 ;
+    assert.result <a>/<b>   : find-property-subset $(p-set) :                ;
+    assert.result <a>0/<b>  : find-property-subset $(p-set) : <a>0      <c>2 ;
+    assert.result <a>/<b>1  : find-property-subset $(p-set) : <b>1      <c>2 ;
+    assert.result <a>0/<b>1 : find-property-subset $(p-set) : <a>0 <b>1      ;
+}

@@ -1,0 +1,86 @@
+<html>
+<head>
+	<title>BOOST_PP_LIST_FOR_EACH_PRODUCT</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_LIST_FOR_EACH_PRODUCT</b> macro repeats a macro for each cartesian product of several <i>lists</i>.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_LIST_FOR_EACH_PRODUCT</b>(<i>macro</i>, <i>size</i>, <i>tuple</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>macro</dt>
+			<dd>
+				The binary macro of the form <i>macro</i>(<i>r</i>, <i>product</i>).&nbsp;
+				This macro is expanded by <b>BOOST_PP_FOR_EACH_PRODUCT</b> with each cartesian product in <i>tuple</i>.&nbsp;
+				It is expanded with the next available <b>BOOST_PP_FOR</b> repetition and a <i>tuple</i> containing a cartesian product.&nbsp;
+				This <i>tuple</i> will have <i>size</i> elements.
+			</dd>
+			<dt>size</dt>
+			<dd>
+				The size of <i>tuple</i>.
+			</dd>
+			<dt>tuple</dt>
+			<dd>
+				A <i>tuple</i> of <i>lists</i> from which cartesian products are obtained.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro is a repetition construct.&nbsp;
+			If two <i>lists</i> are (<i>a</i>, (<i>b</i>, (<i>c</i>, <b>BOOST_PP_NIL</b>))) and (<i>x</i>, (<i>y</i>, (<i>z</i>, <b>BOOST_PP_NIL</b>))),
+			this macro will produce the following sequence:
+			<div>
+				<i>macro</i>(<i>r</i>, (<i>a</i>, <i>x</i>))
+				<i>macro</i>(<i>r</i>, (<i>a</i>, <i>y</i>))
+				<i>macro</i>(<i>r</i>, (<i>a</i>, <i>z</i>))<br>
+				<i>macro</i>(<i>r</i>, (<i>b</i>, <i>x</i>))
+				<i>macro</i>(<i>r</i>, (<i>b</i>, <i>y</i>))
+				<i>macro</i>(<i>r</i>, (<i>b</i>, <i>z</i>))<br>
+				<i>macro</i>(<i>r</i>, (<i>c</i>, <i>x</i>))
+				<i>macro</i>(<i>r</i>, (<i>c</i>, <i>y</i>))
+				<i>macro</i>(<i>r</i>, (<i>c</i>, <i>z</i>))
+			</div>
+		</div>
+		<div>
+			Previously, this macro could not be used inside <b>BOOST_PP_FOR</b>.&nbsp;
+			There is no longer any such restriction.&nbsp;
+			It is more efficient, however, to use <b>BOOST_PP_LIST_FOR_EACH_PRODUCT_R</b> in such a situation.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="list_for_each_product_r.html">BOOST_PP_LIST_FOR_EACH_PRODUCT_R</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/list/for_each_product.html">&lt;boost/preprocessor/list/for_each_product.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/list/for_each_product.html">boost/preprocessor/list/for_each_product.hpp</a>&gt;
+
+#define L1 (a, (b, (c, <a href="nil.html">BOOST_PP_NIL</a>)))
+#define L2 (x, (y, (z, <a href="nil.html">BOOST_PP_NIL</a>)))
+
+#define MACRO(r, product) product
+
+<a href="list_for_each_product.html">BOOST_PP_LIST_FOR_EACH_PRODUCT</a>(MACRO, 2, (L1, L2))
+   // expands to (a, x) (a, y) (a, z) (b, x) (b, y) (b, z) (c, x) (c, y) (c, z)
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

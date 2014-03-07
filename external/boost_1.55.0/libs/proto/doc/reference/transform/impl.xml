@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/transform/impl.hpp">
+  <para>Contains definition of transform&lt;&gt; and transform_impl&lt;&gt; helpers. </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      
+      <!-- proto::transform -->
+      <struct name="transform">
+        <template>
+          <template-type-parameter name="PrimitiveTransform"/>
+        </template>
+        <purpose>Inherit from this to make your type a <conceptname>PrimitiveTransform</conceptname>.</purpose>
+        <struct-specialization name="result">
+          <template>
+            <template-type-parameter name="This"/>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <specialization>
+            <template-arg>This(Expr)</template-arg>
+          </specialization>
+          <typedef name="type">
+            <type>typename PrimitiveTransform::template impl&lt; Expr, <replaceable>unspecified</replaceable>, <replaceable>unspecified</replaceable> &gt;::result_type</type>
+          </typedef>
+        </struct-specialization>
+        <struct-specialization name="result">
+          <template>
+            <template-type-parameter name="This"/>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+          </template>
+          <specialization>
+            <template-arg>This(Expr, State)</template-arg>
+          </specialization>
+          <typedef name="type">
+            <type>typename PrimitiveTransform::template impl&lt; Expr, State, <replaceable>unspecified</replaceable> &gt;::result_type</type>
+          </typedef>
+        </struct-specialization>
+        <struct-specialization name="result">
+          <template>
+            <template-type-parameter name="This"/>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="State"/>
+            <template-type-parameter name="Data"/>
+          </template>
+          <specialization>
+            <template-arg>This(Expr, State, Data)</template-arg>
+          </specialization>
+          <typedef name="type">
+            <type>typename PrimitiveTransform::template impl&lt; Expr, State, Data &gt;::result_type</type>
+          </typedef>
+        </struct-specialization>
+        <typedef name="transform_type">
+          <type>PrimitiveTransform</type>
+        </typedef>
+        <method-group name="public member functions">
+          <method name="operator()" cv="const">
+            <type>typename PrimitiveTransform::template impl&lt;Expr &amp;, <replaceable>unspecified</replaceable>, <replaceable>unspecified</replaceable>&gt;::result_type</type>
+            <template>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <parameter name="expr">
+              <paramtype>Expr &amp;</paramtype>
+            </parameter>
+            <returns>
+              <computeroutput>
+                typename PrimitiveTransform::template impl&lt;Expr &amp;, <replaceable>unspecified</replaceable>, <replaceable>unspecified</replaceable>&gt;()(expr, <replaceable>unspecified</replaceable>, <replaceable>unspecified</replaceable>)
+              </computeroutput>
+            </returns>
+          </method>
+          <method name="operator()" cv="const">
+            <type>typename PrimitiveTransform::template impl&lt;Expr &amp;, State &amp;, <replaceable>unspecified</replaceable>&gt;::result_type</type>
+            <template>
+              <template-type-parameter name="Expr"/>
+              <template-type-parameter name="State"/>
+            </template>
+            <parameter name="expr">
+              <paramtype>Expr &amp;</paramtype>
+            </parameter>
+            <parameter name="state">
+              <paramtype>State &amp;</paramtype>
+            </parameter>
+            <returns>
+              <computeroutput>
+                typename PrimitiveTransform::template impl&lt;Expr &amp;, State &amp;, <replaceable>unspecified</replaceable>&gt;()(expr, state, <replaceable>unspecified</replaceable>)
+              </computeroutput>
+            </returns>
+          </method>
+          <method name="operator()" cv="const">
+            <type>typename PrimitiveTransform::template impl&lt;Expr &amp;, State const &amp;, <replaceable>unspecified</replaceable>&gt;::result_type</type>
+            <template>
+              <template-type-parameter name="Expr"/>
+              <template-type-parameter name="State"/>
+            </template>
+            <parameter name="expr">
+              <paramtype>Expr &amp;</paramtype>
+            </parameter>
+            <parameter name="state">
+              <paramtype>State const &amp;</paramtype>
+            </parameter>
+            <returns>
+              <computeroutput>
+                typename PrimitiveTransform::template impl&lt;Expr &amp;, State const &amp;, <replaceable>unspecified</replaceable>&gt;()(expr, state, <replaceable>unspecified</replaceable>)
+              </computeroutput>
+            </returns>
+          </method>
+          <method name="operator()" cv="const">
+            <type>typename PrimitiveTransform::template impl&lt;Expr &amp;, State &amp;, Data &amp;&gt;::result_type</type>
+            <template>
+              <template-type-parameter name="Expr"/>
+              <template-type-parameter name="State"/>
+              <template-type-parameter name="Data"/>
+            </template>
+            <parameter name="expr">
+              <paramtype>Expr &amp;</paramtype>
+            </parameter>
+            <parameter name="state">
+              <paramtype>State &amp;</paramtype>
+            </parameter>
+            <parameter name="data">
+              <paramtype>Data &amp;</paramtype>
+            </parameter>
+            <returns>
+              <computeroutput>
+                typename PrimitiveTransform::template impl&lt;Expr &amp;, State &amp;, Data &amp;&gt;()(expr, state, data)
+              </computeroutput>
+            </returns>
+          </method>
+          <method name="operator()" cv="const">
+            <type>typename PrimitiveTransform::template impl&lt;Expr &amp;, State const &amp;, Data &amp;&gt;::result_type</type>
+            <template>
+              <template-type-parameter name="Expr"/>
+              <template-type-parameter name="State"/>
+              <template-type-parameter name="Data"/>
+            </template>
+            <parameter name="expr">
+              <paramtype>Expr &amp;</paramtype>
+            </parameter>
+            <parameter name="state">
+              <paramtype>State const &amp;</paramtype>
+            </parameter>
+            <parameter name="data">
+              <paramtype>Data &amp;</paramtype>
+            </parameter>
+            <returns>
+              <computeroutput>
+                typename PrimitiveTransform::template impl&lt;Expr &amp;, State const &amp;, Data &amp;&gt;()(expr, state, data)
+              </computeroutput>
+            </returns>
+          </method>
+        </method-group>
+      </struct>
+
+      <!-- proto::transform_impl -->
+      <struct name="transform_impl">
+        <template>
+          <template-type-parameter name="Expr"/>
+          <template-type-parameter name="State"/>
+          <template-type-parameter name="Data"/>
+        </template>
+        <typedef name="expr">
+          <type>typename boost::remove_reference&lt;Expr const&gt;::type</type>
+        </typedef>
+        <typedef name="expr_param">
+          <type>typename boost::add_reference&lt;Expr const&gt;::type</type>
+        </typedef>
+        <typedef name="state">
+          <type>typename boost::remove_reference&lt;State const&gt;::type</type>
+        </typedef>
+        <typedef name="state_param">
+          <type>typename boost::add_reference&lt;State const&gt;::type</type>
+        </typedef>
+        <typedef name="data">
+          <type>typename boost::remove_reference&lt;Data const&gt;::type</type>
+        </typedef>
+        <typedef name="data_param">
+          <type>typename boost::add_reference&lt;Data const&gt;::type</type>
+        </typedef>
+      </struct>
+
+      <!-- proto::pack -->
+      <struct name="pack">
+        <purpose>To turn an expression into a pseudo-parameter pack containing the
+        expression's children, for the purpose of expanding the pack expression within
+        a <conceptname>CallableTransform</conceptname> or
+        <conceptname>ObjectTransform</conceptname>.</purpose>
+        <description>
+          <para>
+            <computeroutput>proto::pack</computeroutput> is useful within
+            <conceptname>CallableTransform</conceptname>s and
+            <conceptname>ObjectTransform</conceptname>s when one wishes to unpack an expression
+            into a function call or an object constructor. <computeroutput>proto::pack</computeroutput>
+            turns a Proto expression into a pseudo-parameter pack, which may appear in an unpacking
+            pattern to be expanded with the "<computeroutput>...</computeroutput>" syntax.
+          </para>
+
+          <para>
+            <emphasis role="bold">Example:</emphasis>
+          </para>
+
+          <para>
+            <programlisting>// The following demonstrates how to use a pseudo-pack expansion
+// to unpack an expression into a function call.
+
+struct do_sum : <classname alt="boost::proto::callable">proto::callable</classname>
+{
+    typedef int result_type;
+    
+    int operator()(int i) const { return i; }
+    int operator()(int i, int j) const { return i + j; }
+    int operator()(int i, int j, int k) const { return i + j + k; }
+};
+
+// Take any n-ary expression where the children are all int terminals and sum all the ints
+struct sum
+  : <classname alt="boost::proto::when">proto::when</classname>&lt;
+  
+        // Match any nary expression where the children are all int terminals
+        <classname alt="boost::proto::nary_expr">proto::nary_expr</classname>&lt;<classname alt="boost::proto::_">_</classname>, <classname alt="boost::proto::vararg">proto::vararg</classname>&lt;<classname alt="boost::proto::terminal">proto::terminal</classname>&lt;int&gt; &gt; &gt;
+
+        // Turn the current expression into a pseudo-parameter pack, then expand it,
+        // extracting the value from each child in turn.
+      , do_sum(<classname alt="boost::proto::_value">proto::_value</classname>(proto::pack(<classname alt="boost::proto::_">_</classname>))...)
+    &gt;
+{};
+
+int main()
+{
+    <classname alt="boost::proto::terminal">proto::terminal</classname>&lt;int&gt;::type i = {42};
+    int result = sum()( i(3,5) ); // Creates a ternary functional-call expression
+    std::cout &lt;&lt; "Sum of 42, 3, and 5 : " &lt;&lt; result &lt;&lt; std::endl;
+}</programlisting>
+          </para>
+
+          <para>
+            The above program displays:
+          </para>
+
+          <para>
+            <computeroutput>Sum of 42, 3, and 5 : 50</computeroutput>
+          </para>
+
+          <para>
+            In the above example, the type
+            <computeroutput>
+              <classname alt="boost::proto::_value">proto::_value</classname>(proto::pack(<classname alt="boost::proto::_">_</classname>))
+            </computeroutput>
+            is a so-called <emphasis>unpacking pattern</emphasis>, described below.
+          </para>
+
+          <para>
+            <emphasis role="bold">Unpacking Patterns:</emphasis>
+          </para>
+
+          <para>
+            Composite transforms (either <conceptname>CallableTransform</conceptname>s or
+            <conceptname>ObjectTransform</conceptname>s) usually have the form
+            <computeroutput>X(A<subscript>0</subscript>,…A<subscript>n</subscript>)</computeroutput>.
+            However, when the argument list in a composite transform is terminated with a C-style
+            vararg ellipsis as in <computeroutput>X(A<subscript>0</subscript>,…A<subscript>n</subscript> ...)</computeroutput>,
+            the final argument <computeroutput>A<subscript>n</subscript></computeroutput> is treated
+            as an <emphasis>unpacking pattern</emphasis>.
+          </para>
+          
+          <para>
+            An unpacking pattern must itself be a composite transform; that is, it must be a
+            function type representing either a <conceptname>CallableTransform</conceptname> or
+            an <conceptname>ObjectTransform</conceptname>. The type <computeroutput>proto::pack(_)</computeroutput>
+            must appear exactly once in the unpacking pattern. This type will receive a substitution
+            when the unpacking pattern is expanded.
+          </para>
+
+          <para>
+            A composite transform like <computeroutput>X(A<subscript>0</subscript>,…A<subscript>n</subscript> ...)</computeroutput>,
+            when evaluated against a given expression <replaceable>E</replaceable>, state and data, is evaluated as if it were
+            <computeroutput>X(A<subscript>0</subscript>,…A<subscript>n-1</subscript>,<replaceable>S</replaceable>)</computeroutput>
+            where <replaceable>S</replaceable> is a type sequence computed as follows:
+          </para>
+          <para>
+            Let <computeroutput><replaceable>SUB</replaceable>(A,B)</computeroutput> be a type function that replaces every occurence of
+            <computeroutput>proto::pack(_)</computeroutput> within <computeroutput>A</computeroutput> with <computeroutput>B</computeroutput>.
+            <itemizedlist>
+              <listitem>
+                If the expression <replaceable>E</replaceable> is a terminal (i.e. it has arity 0), <replaceable>S</replaceable>
+                is the one-element sequence containing <computeroutput><replaceable>SUB</replaceable>(A<subscript>n</subscript>, <classname alt="boost::proto::_value">proto::_value</classname>)</computeroutput>.
+              </listitem>
+              <listitem>
+                If the expression <replaceable>E</replaceable> is a non-terminal, <replaceable>S</replaceable> is the sequence
+                <computeroutput><replaceable>SUB</replaceable>(A<subscript>n</subscript>, <classname alt="boost::proto::_child_c">proto::_child_c</classname>&lt;0&gt;),…
+                <replaceable>SUB</replaceable>(A<subscript>n</subscript>, <classname alt="boost::proto::_child_c">proto::_child_c</classname>&lt;<replaceable>M</replaceable>-1&gt;)</computeroutput>, where
+                <replaceable>M</replaceable> is the arity of the expression <replaceable>E</replaceable>.
+              </listitem>
+            </itemizedlist>
+          </para>
+        </description>
+      </struct>
+      
+    </namespace>
+  </namespace>
+</header>

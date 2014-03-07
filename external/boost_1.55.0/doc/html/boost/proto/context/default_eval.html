@@ -1,0 +1,273 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template default_eval</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../../proto/reference.html#header.boost.proto.context.default_hpp" title="Header &lt;boost/proto/context/default.hpp&gt;">
+<link rel="prev" href="callable_context/eval.html" title="Struct template eval">
+<link rel="next" href="default_context.html" title="Struct default_context">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="callable_context/eval.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../proto/reference.html#header.boost.proto.context.default_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="default_context.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.context.default_eval"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template default_eval</span></h2>
+<p>boost::proto::context::default_eval &#8212; 
+            A BinaryFunction that accepts a Proto expression and a context, evaluates
+            each child expression with the context, and combines the result using the
+            standard C++ meaning for the operator represented by the current expression
+            node.
+          </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../proto/reference.html#header.boost.proto.context.default_hpp" title="Header &lt;boost/proto/context/default.hpp&gt;">boost/proto/context/default.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../../Expr.html" title="Concept Expr">Expr</a><span class="special">,</span> <span class="keyword">typename</span> Context<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="default_eval.html" title="Struct template default_eval">default_eval</a> <span class="special">{</span>
+  <span class="comment">// <a class="link" href="default_eval.html#boost.proto.context.default_evaltypes">types</a></span>
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">::</span><span class="identifier">tag_type</span> <a name="boost.proto.context.default_eval.Tag"></a><span class="identifier">Tag</span><span class="special">;</span>          <span class="comment">// For exposition only</span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">see</span><span class="special">-</span><span class="identifier">below</span></em></span>               <a class="link" href="default_eval.html#boost.proto.context.default_eval.result_type"><span class="identifier">result_type</span></a><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="default_eval.html#idp69104776-bb">public member functions</a></span>
+  <span class="identifier">result_type</span> <a class="link" href="default_eval.html#idp69105064-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">Expr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Context</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">static</span> <span class="identifier">Expr</span> <span class="special">&amp;</span> <span class="identifier">s_expr</span><span class="special">;</span>  <span class="comment">// For exposition only</span>
+  <span class="keyword">static</span> <span class="identifier">Context</span> <span class="special">&amp;</span> <span class="identifier">s_context</span><span class="special">;</span>  <span class="comment">// For exposition only</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp188592248"></a><h2>Description</h2>
+<p>
+              Let <code class="computeroutput"><code class="computeroutput">OP</code></code> be the C++ operator
+              corresponding to <code class="computeroutput">Expr::proto_tag</code>. (For example, if
+              <code class="computeroutput">Tag</code> is <code class="computeroutput">
+              <a class="link" href="../tag/plus.html" title="Struct plus">proto::tag::plus</a></code>, let <code class="computeroutput">
+              <code class="computeroutput">OP</code></code> be <code class="computeroutput">+</code>.)
+            </p>
+<p>
+              The behavior of this class is specified in terms of the C++0x <code class="computeroutput">decltype</code>
+              keyword. In systems where this keyword is not available, Proto uses the Boost.Typeof library to
+              approximate the behavior.
+            </p>
+<div class="refsect2">
+<a name="idp188596472"></a><h3>
+<a name="boost.proto.context.default_evaltypes"></a><code class="computeroutput">default_eval</code> 
+        public
+       types</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">see</span><span class="special">-</span><span class="identifier">below</span></em></span> <a name="boost.proto.context.default_eval.result_type"></a><span class="identifier">result_type</span><span class="special">;</span></p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p>
+                    If <code class="computeroutput">Tag</code> corresponds to a unary prefix operator,
+                    then the result type is
+                    </p>
+<pre class="programlisting"><span class="keyword">decltype</span><span class="special">(</span>
+  <span class="identifier">OP</span> <a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a><span class="special">(</span><a class="link" href="../child_idp68188920.html" title="Function child">proto::child</a><span class="special">(</span><span class="identifier">s_expr</span><span class="special">)</span><span class="special">,</span> <span class="identifier">s_context</span><span class="special">)</span>
+<span class="special">)</span></pre>
+<p>
+                  </p>
+</li>
+<li class="listitem">
+<p>
+                    If <code class="computeroutput">Tag</code> corresponds to a unary postfix operator,
+                    then the result type is
+                    </p>
+<pre class="programlisting"><span class="keyword">decltype</span><span class="special">(</span>
+  <a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a><span class="special">(</span><a class="link" href="../child_idp68188920.html" title="Function child">proto::child</a><span class="special">(</span><span class="identifier">s_expr</span><span class="special">)</span><span class="special">,</span> <span class="identifier">s_context</span><span class="special">)</span> <span class="identifier">OP</span>
+<span class="special">)</span></pre>
+<p>
+                  </p>
+</li>
+<li class="listitem">
+<p>
+                    If <code class="computeroutput">Tag</code> corresponds to a binary infix operator,
+                    then the result type is
+                    </p>
+<pre class="programlisting"><span class="keyword">decltype</span><span class="special">(</span>
+  <a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a><span class="special">(</span><a class="link" href="../left_idp68289688.html" title="Function left">proto::left</a><span class="special">(</span><span class="identifier">s_expr</span><span class="special">)</span><span class="special">,</span> <span class="identifier">s_context</span><span class="special">)</span> <span class="identifier">OP</span>
+  <a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a><span class="special">(</span><a class="link" href="../right_idp68332648.html" title="Function right">proto::right</a><span class="special">(</span><span class="identifier">s_expr</span><span class="special">)</span><span class="special">,</span> <span class="identifier">s_context</span><span class="special">)</span>
+<span class="special">)</span></pre>
+<p>
+                  </p>
+</li>
+<li class="listitem">
+<p>
+                  If <code class="computeroutput">Tag</code> is <code class="computeroutput">
+                    <a class="link" href="../tag/subscript.html" title="Struct subscript">proto::tag::subscript</a>
+                  </code>,
+                  then the result type is
+                  </p>
+<pre class="programlisting"><span class="keyword">decltype</span><span class="special">(</span>
+  <a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a><span class="special">(</span><a class="link" href="../left_idp68289688.html" title="Function left">proto::left</a><span class="special">(</span><span class="identifier">s_expr</span><span class="special">)</span><span class="special">,</span> <span class="identifier">s_context</span><span class="special">)</span> <span class="special">[</span>
+  <a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a><span class="special">(</span><a class="link" href="../right_idp68332648.html" title="Function right">proto::right</a><span class="special">(</span><span class="identifier">s_expr</span><span class="special">)</span><span class="special">,</span> <span class="identifier">s_context</span><span class="special">)</span> <span class="special">]</span>
+<span class="special">)</span></pre>
+<p>
+                </p>
+</li>
+<li class="listitem">
+<p>
+                    If <code class="computeroutput">Tag</code> is <code class="computeroutput">
+                      <a class="link" href="../tag/if_else_.html" title="Struct if_else_">proto::tag::if_else_</a>
+                    </code>,
+                    then the result type is
+                    </p>
+<pre class="programlisting"><span class="keyword">decltype</span><span class="special">(</span>
+  <a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a><span class="special">(</span><a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span><span class="special">(</span><span class="identifier">s_expr</span><span class="special">)</span><span class="special">,</span> <span class="identifier">s_context</span><span class="special">)</span> <span class="special">?</span>
+  <a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a><span class="special">(</span><a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span><span class="special">(</span><span class="identifier">s_expr</span><span class="special">)</span><span class="special">,</span> <span class="identifier">s_context</span><span class="special">)</span> <span class="special">:</span>
+  <a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a><span class="special">(</span><a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;</span><span class="special">(</span><span class="identifier">s_expr</span><span class="special">)</span><span class="special">,</span> <span class="identifier">s_context</span><span class="special">)</span>
+<span class="special">)</span></pre>
+<p>
+                  </p>
+</li>
+<li class="listitem">
+<p>
+                    If <code class="computeroutput">Tag</code> is <code class="computeroutput">
+                      <a class="link" href="../tag/function.html" title="Struct function">proto::tag::function</a>
+                    </code>,
+                    then the result type is
+                    </p>
+<pre class="programlisting"><span class="keyword">decltype</span><span class="special">(</span>
+  <a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a><span class="special">(</span><a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span><span class="special">(</span><span class="identifier">s_expr</span><span class="special">)</span><span class="special">,</span> <span class="identifier">s_context</span><span class="special">)</span> <span class="special">(</span>
+  <a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a><span class="special">(</span><a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span><span class="special">(</span><span class="identifier">s_expr</span><span class="special">)</span><span class="special">,</span> <span class="identifier">s_context</span><span class="special">)</span><span class="special">,</span>
+  <span class="special">...</span>
+  <a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a><span class="special">(</span><a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span><span class="special">(</span><span class="identifier">s_expr</span><span class="special">)</span><span class="special">,</span> <span class="identifier">s_context</span><span class="special">)</span> <span class="special">)</span>
+<span class="special">)</span></pre>
+<p>
+                  </p>
+</li>
+</ul></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp188654648"></a><h3>
+<a name="idp69104776-bb"></a><code class="computeroutput">default_eval</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp69105064-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">Expr</span> <span class="special">&amp;</span> expr<span class="special">,</span> <span class="identifier">Context</span> <span class="special">&amp;</span> context<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p>
+                    If <code class="computeroutput">Tag</code> corresponds to a unary prefix operator,
+                    then return
+                    </p>
+<pre class="programlisting">OP <code class="computeroutput"><a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a></code>(<code class="computeroutput"><a class="link" href="../child_idp68188920.html" title="Function child">proto::child</a></code>(expr), context)</pre>
+<p>
+                  </p>
+</li>
+<li class="listitem">
+<p>
+                    If <code class="computeroutput">Tag</code> corresponds to a unary postfix operator,
+                    then return
+                    </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a></code>(<code class="computeroutput"><a class="link" href="../child_idp68188920.html" title="Function child">proto::child</a></code>(expr), context) OP</pre>
+<p>
+                  </p>
+</li>
+<li class="listitem">
+<p>
+                    If <code class="computeroutput">Tag</code> corresponds to a binary infix operator,
+                    then return
+                    </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a></code>(<code class="computeroutput"><a class="link" href="../left_idp68289688.html" title="Function left">proto::left</a></code>(expr), context) OP
+<code class="computeroutput"><a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a></code>(<code class="computeroutput"><a class="link" href="../right_idp68332648.html" title="Function right">proto::right</a></code>(expr), context)</pre>
+<p>
+                  </p>
+</li>
+<li class="listitem">
+<p>
+                  If <code class="computeroutput">Tag</code> is <code class="computeroutput">
+                    <code class="computeroutput"><a class="link" href="../tag/subscript.html" title="Struct subscript">proto::tag::subscript</a></code>
+                  </code>,
+                  then return
+                  </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a></code>(<code class="computeroutput"><a class="link" href="../left_idp68289688.html" title="Function left">proto::left</a></code>(expr), context) [
+<code class="computeroutput"><a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a></code>(<code class="computeroutput"><a class="link" href="../right_idp68332648.html" title="Function right">proto::right</a></code>(expr), context) ]</pre>
+<p>
+                </p>
+</li>
+<li class="listitem">
+<p>
+                    If <code class="computeroutput">Tag</code> is <code class="computeroutput">
+                      <code class="computeroutput"><a class="link" href="../tag/if_else_.html" title="Struct if_else_">proto::tag::if_else_</a></code>
+                    </code>,
+                    then return
+                    </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a></code>(<code class="computeroutput"><a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a></code>&lt;0&gt;(expr), context) ?
+<code class="computeroutput"><a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a></code>(<code class="computeroutput"><a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a></code>&lt;1&gt;(expr), context) :
+<code class="computeroutput"><a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a></code>(<code class="computeroutput"><a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a></code>&lt;2&gt;(expr), context)</pre>
+<p>
+                  </p>
+</li>
+<li class="listitem">
+<p>
+                    If <code class="computeroutput">Tag</code> is <code class="computeroutput">
+                      <code class="computeroutput"><a class="link" href="../tag/function.html" title="Struct function">proto::tag::function</a></code>
+                    </code>,
+                    then return
+                    </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a></code>(<code class="computeroutput"><a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a></code>&lt;0&gt;(expr), context) (
+<code class="computeroutput"><a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a></code>(<code class="computeroutput"><a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a></code>&lt;1&gt;(expr), context),
+...
+<code class="computeroutput"><a class="link" href="../eval_idp66311848.html" title="Function eval">proto::eval</a></code>(<code class="computeroutput"><a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a></code>&lt;N&gt;(expr), context) )</pre>
+<p>
+                  </p>
+</li>
+</ul></div>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">context</code></span></p></td>
+<td><p>The evaluation context </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">expr</code></span></p></td>
+<td><p>The current expression </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="callable_context/eval.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../proto/reference.html#header.boost.proto.context.default_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="default_context.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

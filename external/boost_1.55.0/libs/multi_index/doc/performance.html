@@ -1,0 +1,762 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Performance</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+<link rel="start" href="index.html">
+<link rel="prev" href="compiler_specifics.html">
+<link rel="up" href="index.html">
+<link rel="next" href="examples.html">
+</head>
+
+<body>
+<h1><img src="../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Performance</h1>
+
+<div class="prev_link"><a href="compiler_specifics.html"><img src="prev.gif" alt="compiler specifics" border="0"><br>
+Compiler specifics
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="examples.html"><img src="next.gif" alt="examples" border="0"><br>
+Examples
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#intro">Introduction</a></li>
+  <li><a href="#simulation">Manual simulation of a <code>multi_index_container</code></a></li>
+  <li><a href="#spatial_efficiency">Spatial efficiency</a></li>
+  <li><a href="#time_efficiency">Time efficiency</a></li>
+  <li><a href="#tests">Performance tests</a>
+    <ul>
+      <li><a href="#test_1r">Results for 1 ordered index</a>
+	    <ul>
+          <li><a href="#memory_1r">Memory consumption</a></li>
+          <li><a href="#time_1r">Execution time</a></li>
+        </ul>
+	  </li>
+      <li><a href="#test_1s">Results for 1 sequenced index</a>
+	    <ul>
+          <li><a href="#memory_1s">Memory consumption</a></li>
+          <li><a href="#time_1s">Execution time</a></li>
+        </ul>
+	  </li>
+      <li><a href="#test_2r">Results for 2 ordered indices</a>
+	    <ul>
+          <li><a href="#memory_2r">Memory consumption</a></li>
+          <li><a href="#time_2r">Execution time</a></li>
+        </ul>
+	  </li>
+      <li><a href="#test_1r1s">Results for 1 ordered index + 1 sequenced index</a>
+	    <ul>
+          <li><a href="#memory_1r1s">Memory consumption</a></li>
+          <li><a href="#time_1r1s">Execution time</a></li>
+        </ul>
+	  </li>
+      <li><a href="#test_3r">Results for 3 ordered indices</a>
+	    <ul>
+          <li><a href="#memory_3r">Memory consumption</a></li>
+          <li><a href="#time_3r">Execution time</a></li>
+        </ul>
+	  </li>
+      <li><a href="#test_2r1s">Results for 2 ordered indices + 1 sequenced index</a>
+	    <ul>
+          <li><a href="#memory_2r1s">Memory consumption</a></li>
+          <li><a href="#time_2r1s">Execution time</a></li>
+        </ul>
+	  </li>
+    </ul>
+  </li>
+  <li><a href="#conclusions">Conclusions</a></li>
+</ul>
+
+<h2><a name="intro">Introduction</a></h2>
+
+<p>
+Boost.MultiIndex helps the programmer to avoid the manual construction of cumbersome
+compositions of containers when multi-indexing capabilities are needed. Furthermore,
+it does so in an efficient manner, both in terms of space and time consumption. The
+space savings stem from the compact representation of the underlying data structures,
+requiring a single node per element. As for time efficiency, Boost.MultiIndex
+intensively uses metaprogramming techniques producing very tight implementations
+of member functions which take care of the elementary operations for each index:
+for <code>multi_index_container</code>s with two or more indices, the running time
+can be reduced to half as long as with manual simulations involving several
+STL containers.
+</p>
+
+<h2><a name="simulation">Manual simulation of a <code>multi_index_container</code></a></h2>
+
+<p>
+The section on <a href="tutorial/techniques.html#emulate_std_containers">emulation
+of standard containers with <code>multi_index_container</code></a> shows the equivalence
+between single-index <code>multi_index_container</code>s and some STL containers. Let us now
+concentrate on the problem of simulating a <code>multi_index_container</code> with two
+or more indices with a suitable combination of standard containers.
+</p>
+
+<p>
+Consider the following instantiation of <code>multi_index_container</code>:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;,</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>greater</span> <span class=special>&gt;,</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>indexed_t</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+<code>indexed_t</code> maintains two internal indices on elements of type
+<code>int</code>. In order to simulate this data structure resorting only to
+standard STL containers, one can use on a first approach the following types:
+</p>
+
+<blockquote><pre>
+<span class=comment>// dereferencing compare predicate</span>
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Iterator</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Compare</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>it_compare</span>
+<span class=special>{</span>
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>const</span> <span class=identifier>Iterator</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>Iterator</span><span class=special>&amp;</span> <span class=identifier>y</span><span class=special>)</span><span class=keyword>const</span>
+  <span class=special>{</span>
+    <span class=keyword>return</span> <span class=identifier>comp</span><span class=special>(*</span><span class=identifier>x</span><span class=special>,*</span><span class=identifier>y</span><span class=special>);</span>
+  <span class=special>}</span>
+
+<span class=keyword>private</span><span class=special>:</span>
+  <span class=identifier>Compare</span> <span class=identifier>comp</span><span class=special>;</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>set</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span>  <span class=identifier>manual_t1</span><span class=special>;</span> <span class=comment>// equivalent to indexed_t's index #0</span>
+<span class=keyword>typedef</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>multiset</span><span class=special>&lt;</span>
+  <span class=keyword>const</span> <span class=keyword>int</span><span class=special>*,</span>
+  <span class=identifier>it_compare</span><span class=special>&lt;</span>
+    <span class=keyword>const</span> <span class=keyword>int</span><span class=special>*,</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>greater</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>                      <span class=identifier>manual_t2</span><span class=special>;</span> <span class=comment>// equivalent to indexed_t's index #1</span>
+</pre></blockquote>    
+
+<p>
+where <code>manual_t1</code> is the "base" container that holds
+the actual elements, and <code>manual_t2</code> stores pointers to
+elements of <code>manual_t1</code>. This scheme turns out to be quite
+inefficient, though: while insertion into the data structure is simple enough:
+</p>
+
+<blockquote><pre>
+<span class=identifier>manual_t1</span> <span class=identifier>c1</span><span class=special>;</span>
+<span class=identifier>manual_t2</span> <span class=identifier>c2</span><span class=special>;</span>
+
+<span class=comment>// insert the element 5</span>
+<span class=identifier>manual_t1</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it1</span><span class=special>=</span><span class=identifier>c1</span><span class=special>.</span><span class=identifier>insert</span><span class=special>(</span><span class=number>5</span><span class=special>).</span><span class=identifier>first</span><span class=special>;</span>
+<span class=identifier>c2</span><span class=special>.</span><span class=identifier>insert</span><span class=special>(&amp;*</span><span class=identifier>it1</span><span class=special>);</span>
+</pre></blockquote>
+
+deletion, on the other hand, necessitates a logarithmic search, whereas
+<code>indexed_t</code> deletes in constant time:
+
+<blockquote><pre>
+<span class=comment>// remove the element pointed to by it2</span>
+<span class=identifier>manual_t2</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it2</span><span class=special>=...;</span>
+<span class=identifier>c1</span><span class=special>.</span><span class=identifier>erase</span><span class=special>(**</span><span class=identifier>it2</span><span class=special>);</span> <span class=comment>// watch out! performs in logarithmic time</span>
+<span class=identifier>c2</span><span class=special>.</span><span class=identifier>erase</span><span class=special>(</span><span class=identifier>it2</span><span class=special>);</span> 
+</pre></blockquote>
+
+<p>
+The right approach consists of feeding the second container not with
+raw pointers, but with elements of type <code>manual_t1::iterator</code>:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>set</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span>    <span class=identifier>manual_t1</span><span class=special>;</span> <span class=comment>// equivalent to indexed_t's index #0</span>
+<span class=keyword>typedef</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>multiset</span><span class=special>&lt;</span>
+  <span class=identifier>manual_t1</span><span class=special>::</span><span class=identifier>iterator</span><span class=special>,</span>
+  <span class=identifier>it_compare</span><span class=special>&lt;</span>
+    <span class=identifier>manual_t1</span><span class=special>::</span><span class=identifier>iterator</span><span class=special>,</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>greater</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>                        <span class=identifier>manual_t2</span><span class=special>;</span> <span class=comment>// equivalent to indexed_t's index #1</span>
+</pre></blockquote>    
+
+<p>
+Now, insertion and deletion can be performed with complexity bounds
+equivalent to those of <code>indexed_t</code>:
+</p>
+
+<blockquote><pre>
+<span class=identifier>manual_t1</span> <span class=identifier>c1</span><span class=special>;</span>
+<span class=identifier>manual_t2</span> <span class=identifier>c2</span><span class=special>;</span>
+
+<span class=comment>// insert the element 5</span>
+<span class=identifier>manual_t1</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it1</span><span class=special>=</span><span class=identifier>c1</span><span class=special>.</span><span class=identifier>insert</span><span class=special>(</span><span class=number>5</span><span class=special>).</span><span class=identifier>first</span><span class=special>;</span>
+<span class=identifier>c2</span><span class=special>.</span><span class=identifier>insert</span><span class=special>(</span><span class=identifier>it1</span><span class=special>);</span>
+
+<span class=comment>// remove the element pointed to by it2</span>
+<span class=identifier>manual_t2</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it2</span><span class=special>=...;</span>
+<span class=identifier>c1</span><span class=special>.</span><span class=identifier>erase</span><span class=special>(*</span><span class=identifier>it2</span><span class=special>);</span> <span class=comment>// OK: constant time</span>
+<span class=identifier>c2</span><span class=special>.</span><span class=identifier>erase</span><span class=special>(</span><span class=identifier>it2</span><span class=special>);</span> 
+</pre></blockquote>
+
+<p>
+The construction can be extended in a straightworward manner to
+handle more than two indices. In what follows, we will compare
+instantiations of <code>multi_index_container</code> against this sort of
+manual simulations.
+</p>
+
+<h2><a name="spatial_efficiency">Spatial efficiency</a></h2>
+
+<p>
+The gain in space consumption of <code>multi_index_container</code> with
+respect to its manual simulations is amenable to a very simple
+theoretical analysis. For simplicity, we will ignore alignment
+issues (which in general play in favor of <code>multi_index_container</code>.)
+</p>
+
+<p>
+Nodes of a <code>multi_index_container</code> with <i>N</i> indices hold the value
+of the element plus <i>N</i> headers containing linking information for
+each index. Thus the node size is
+</p>
+
+<blockquote>
+<i>S<sub>I</sub></i> = <i>e</i> + <i>h</i><sub>0</sub> + ··· + 
+<i>h</i><sub><i>N</i>-1</sub>, where<br>
+<i>e</i> = size of the element,<br>
+<i>h</i><sub><i>i</i></sub> = size of the <i>i</i>-th header.
+</blockquote>
+
+<p>
+On the other hand, the manual simulation allocates <i>N</i> nodes per
+element, the first holding the elements themselves and the rest
+storing iterators to the "base" container. In practice, an iterator
+merely holds a raw pointer to the node it is associated to, so its size
+is independent of the type of the elements. Summing all contributions,
+the space allocated per element in a manual simulation is
+</p>
+
+<blockquote>
+<i>S<sub>M</sub></i> = (<i>e</i> + <i>h</i><sub>0</sub>) +
+(<i>p</i> + <i>h</i><sub>1</sub>) + ··· +
+(<i>p</i> + <i>h</i><sub><i>N</i>-1</sub>) = 
+<i>S<sub>I</sub></i> + (<i>N</i>-1)<i>p</i>, where<br>
+<i>p</i> = size of a pointer.<br>
+</blockquote>
+
+<p>
+The relative amount of memory taken up by <code>multi_index_container</code>
+with respect to its manual simulation is just
+<i>S<sub>I</sub></i>&nbsp;/&nbsp;<i>S<sub>M</sub></i>, which can be expressed
+then as:
+</p>
+
+<blockquote>
+<i>S<sub>I</sub></i>&nbsp;/&nbsp;<i>S<sub>M</sub></i> =
+<i>S<sub>I</sub></i>&nbsp;/&nbsp;(<i>S<sub>I</sub></i> + (<i>N</i>-1)<i>p</i>).
+</blockquote>
+
+<p>
+The formula shows that <code>multi_index_container</code> is more efficient
+with regard to memory consumption as the number of indices grow. An implicit
+assumption has been made that headers of <code>multi_index_container</code>
+index nodes are the same size that their analogues in STL containers; but there
+is a particular case in which this is often not the case: ordered indices use a
+<a href="tutorial/indices.html#ordered_node_compression">spatial optimization
+technique</a> which is not present in many implementations of
+<code>std::set</code>, giving an additional advantage to
+<code>multi_index_container</code>s of one system word per ordered index. 
+Taking this fact into account, the former formula can be adjusted to:
+</p>
+
+<blockquote>
+<i>S<sub>I</sub></i>&nbsp;/&nbsp;<i>S<sub>M</sub></i> =
+<i>S<sub>I</sub></i>&nbsp;/&nbsp;(<i>S<sub>I</sub></i> + (<i>N</i>-1)<i>p</i> + <i>Ow</i>),
+</blockquote>
+
+<p>
+where <i>O</i> is the number of ordered indices of the container, and <i>w</i>
+is the system word size (typically 4 bytes on 32-bit architectures.)
+</p>
+
+<p>
+These considerations have overlooked an aspect of the greatest practical
+importance: the fact that <code>multi_index_container</code> allocates a single
+node per element, compared to the many nodes of different sizes
+built by manual simulations, diminishes memory fragmentation, which
+can show up in more usable memory available and better performance.
+</p>
+
+<h2><a name="time_efficiency">Time efficiency</a></h2>
+
+<p>
+From the point of view of computational complexity (i.e. big-O
+characterization), <code>multi_index_container</code> and its corresponding manual
+simulations are equivalent: inserting an element into
+a <code>multi_index_container</code> reduces to a simple combination of
+elementary insertion operations on each of the indices, and
+similarly for deletion. Hence, the most we can expect is a reduction
+(or increase) of execution time by a roughly constant factor. As we
+will see later, the reduction can be very significative for
+<code>multi_index_container</code>s with two or more indices.
+</p>
+
+<p>In the special case of <code>multi_index_container</code>s with only one index,
+resulting performance will roughly match that of the STL equivalent containers:
+tests show that there is at most a negligible degradation with respect to STL,
+and even in some cases a small improvement.
+</p>
+
+<h2><a name="tests">Performance tests</a></h2>
+
+<p>
+See <a href="../perf/test_perf.cpp">source code</a> used for measurements.
+<p>
+In order to assess the efficiency of <code>multi_index_container</code>, the following
+basic algorithm
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;...&gt;</span> <span class=identifier>c</span><span class=special>;</span>
+<span class=keyword>for</span><span class=special>(</span><span class=keyword>int</span> <span class=identifier>i</span><span class=special>=</span><span class=number>0</span><span class=special>;</span><span class=identifier>i</span><span class=special>&lt;</span><span class=identifier>n</span><span class=special>;++</span><span class=identifier>i</span><span class=special>)</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>insert</span><span class=special>(</span><span class=identifier>i</span><span class=special>);</span>
+<span class=keyword>for</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>it</span><span class=special>=</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>begin</span><span class=special>();</span><span class=identifier>it</span><span class=special>!=</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>end</span><span class=special>();)</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>erase</span><span class=special>(</span><span class=identifier>it</span><span class=special>++);</span>
+</pre></blockquote>
+
+<p>
+has been measured for different instantiations of <code>multi_index_container</code>
+at values of <i>n</i> 1,000, 10,000 and 100,000,
+and its execution time compared with that of the equivalent algorithm
+for the corresponding manual simulation of the data structure based on
+STL containers. The table below describes the test environments used.
+</p>
+
+<p align="center">
+<table cellspacing="0" cellpadding="5">
+  <caption><b>Tests environments.</b></caption>
+<tr>
+  <th>Compiler</th>
+  <th>Settings</th>
+  <th>OS and CPU</th>
+</tr>
+<tr>
+  <td>GCC 3.4.5 (mingw special)</td>
+  <td><code>-O3</code></td>
+  <td>Windows 2000 Pro on P4 1.5 GHz, 256 MB RAM</td>
+</tr>
+<tr class="odd_tr">
+  <td>Intel C++ 7.1</td>
+  <td>default release settings</td>
+  <td>Windows 2000 Pro on P4 1.5 GHz, 256 MB RAM</td>
+</tr>
+<tr>
+  <td>Microsoft Visual C++ 8.0</td>
+  <td>default release settings, <code>_SECURE_SCL=0</code></td>
+  <td>Windows XP on P4 Xeon 3.2 GHz, 1 GB RAM</td>
+</tr>
+</table>
+</p>
+
+<p>
+The relative memory consumption (i.e. the amount of memory allocated
+by a <code>multi_index_container</code> with respect to its manual simulation)
+is determined by dividing the size of a <code>multi_index_container</code> node
+by the sum of node sizes of all the containers integrating the
+simulating data structure.
+</p>
+
+<h3><a name="test_1r">Results for 1 ordered index</a></h3>
+
+<p>
+The following instantiation of <code>multi_index_container</code> was tested:
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+which is functionally equivalent to <code>std::set&lt;int></code>.
+</p>
+
+<h4><a name="memory_1r">Memory consumption</a></h4>
+
+<p align="center">
+<table cellspacing="0">
+<tr>
+  <th width="33%">GCC 3.4.5</th>
+  <th width="33%">ICC 7.1</th>
+  <th width="33%">MSVC 8.0</th>
+</tr>
+<tr>
+  <td align="center">80%</td>
+  <td align="center">80%</td>
+  <td align="center">80%</td>
+</tr>
+</table>
+<b>Table 1: Relative memory consumption of <code>multi_index_container</code> with 1
+ordered index.</b>
+</p>
+
+<p>
+The reduction in memory usage is accounted for by the optimization technique implemented
+in Boost.MultiIndex ordered indices, as <a href="#spatial_efficiency">explained above</a>.
+</p>
+
+<h4><a name="time_1r">Execution time</a></h4>
+
+<p align="center">
+<img src="perf_1o.png" alt="performance of multi_index_container with 1 ordered index"
+width="556" height="372"><br>
+<b>Fig. 1: Performance of <code>multi_index_container</code> with 1 ordered index.</b>
+</p>
+
+<p>
+Somewhat surprisingly, <code>multi_index_container</code> performs slightly
+better than <code>std::set</code>. A very likely explanation for this behavior
+is that the lower memory consumption of <code>multi_index_container</code>
+results in a higher processor cache hit rate.
+The improvement is smallest for GCC, presumably because the worse quality of
+this compiler's optimizer masks the cache-related benefits.
+</p>
+
+<h3><a name="test_1s">Results for 1 sequenced index</a></h3>
+
+<p>
+The following instantiation of <code>multi_index_container</code> was tested:
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>sequenced</span><span class=special>&lt;&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+which is functionally equivalent to <code>std::list&lt;int></code>.
+</p>
+
+<h4><a name="memory_1s">Memory consumption</a></h4>
+
+<p align="center">
+<table cellspacing="0">
+<tr>
+  <th width="33%">GCC 3.4.5</th>
+  <th width="33%">ICC 7.1</th>
+  <th width="33%">MSVC 8.0</th>
+</tr>
+<tr>
+  <td align="center">100%</td>
+  <td align="center">100%</td>
+  <td align="center">100%</td>
+</tr>
+</table>
+<b>Table 2: Relative memory consumption of <code>multi_index_container</code> with 1
+sequenced index.</b>
+</p>
+
+<p>
+The figures confirm that in this case <code>multi_index_container</code> nodes are the
+same size than those of its <code>std::list</code> counterpart.
+</p>
+
+<h4><a name="time_1s">Execution time</a></h4>
+
+<p align="center">
+<img src="perf_1s.png" alt="performance of multi_index_container with 1 sequenced index"
+width="556" height="372"><br>
+<b>Fig. 2: Performance of <code>multi_index_container</code> with 1 sequenced index.</b>
+</p>
+
+<p>
+<code>multi_index_container</code> does not attain the performance
+of its STL counterpart, although the figures are close. Again, the worst results
+are those of GCC, with a degradation of up to 7%, while ICC and MSVC do not
+exceed a mere 5%.
+</p>
+
+<h3><a name="test_2r">Results for 2 ordered indices</a></h3>
+
+<p>
+The following instantiation of <code>multi_index_container</code> was tested:
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<h4><a name="memory_2r">Memory consumption</a></h4>
+
+<p align="center">
+<table cellspacing="0">
+<tr>
+  <th width="33%">GCC 3.4.5</th>
+  <th width="33%">ICC 7.1</th>
+  <th width="33%">MSVC 8.0</th>
+</tr>
+<tr>
+  <td align="center">70%</td>
+  <td align="center">70%</td>
+  <td align="center">70%</td>
+</tr>
+</table>
+<b>Table 3: Relative memory consumption of <code>multi_index_container</code> with 2
+ordered indices.</b>
+</p>
+
+<p>
+These results concinde with the theoretical formula for
+<i>S<sub>I</sub></i> = 28, <i>N</i> = <i>O</i> = 2 and <i>p</i> = <i>w</i> = 4.
+</p>
+
+<h4><a name="time_2r">Execution time</a></h4>
+
+<p align="center">
+<img src="perf_2o.png" alt="performance of multi_index_container with 2 ordered indices"
+width="556" height="372"><br>
+<b>Fig. 3: Performance of <code>multi_index_container</code> with 2 ordered indices.</b>
+</p>
+
+<p>
+The experimental results confirm our hypothesis that <code>multi_index_container</code>
+provides an improvement on execution time by an approximately constant factor,
+which in this case lies around 60%. There is no obvious explanation for the
+increased advantage of <code>multi_index_container</code> in MSVC for
+<i>n</i>=10<sup>5</sup>.
+</p>
+
+<h3><a name="test_1r1s">Results for 1 ordered index + 1 sequenced index</a></h3>
+
+<p>
+The following instantiation of <code>multi_index_container</code> was tested:
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>sequenced</span><span class=special>&lt;&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<h4><a name="memory_1r1s">Memory consumption</a></h4>
+
+<p align="center">
+<table cellspacing="0">
+<tr>
+  <th width="33%">GCC 3.4.5</th>
+  <th width="33%">ICC 7.1</th>
+  <th width="33%">MSVC 8.0</th>
+</tr>
+<tr>
+  <td align="center">75%</td>
+  <td align="center">75%</td>
+  <td align="center">75%</td>
+</tr>
+</table>
+<b>Table 4: Relative memory consumption of <code>multi_index_container</code> with 1
+ordered index + 1 sequenced index.</b>
+</p>
+
+<p>
+These results concinde with the theoretical formula for
+<i>S<sub>I</sub></i> = 24, <i>N</i> = 2, <i>O</i> = 1 and <i>p</i> = <i>w</i> = 4.
+</p>
+
+<h4><a name="time_1r1s">Execution time</a></h4>
+
+<p align="center">
+<img src="perf_1o1s.png"
+alt="performance of multi_index_container with 1 ordered index + 1 sequenced index"
+width="556" height="372"><br>
+<b>Fig. 4: Performance of <code>multi_index_container</code> with 1 ordered index
++ 1 sequenced index.</b>
+</p>
+
+<p>
+For <i>n</i>=10<sup>3</sup> and <i>n</i>=10<sup>4</sup>, the results
+are in agreement with our theoretical analysis, showing a constant factor
+improvement of 50-65% with respect to the STL-based manual simulation.
+Curiously enough, this speedup gets even higher when
+<i>n</i>=10<sup>5</sup> for two of the compilers, namely GCC and ICC.
+In order to rule out spurious results, the tests
+have been run many times, yielding similar outcoumes. Both test environments
+are deployed on the same machine, which points to some OS-related reason for
+this phenomenon.
+</p>
+
+<h3><a name="test_3r">Results for 3 ordered indices</a></h3>
+
+<p>
+The following instantiation of <code>multi_index_container</code> was tested:
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<h4><a name="memory_3r">Memory consumption</a></h4>
+
+<p align="center">
+<table cellspacing="0">
+<tr>
+  <th width="33%">GCC 3.4.5</th>
+  <th width="33%">ICC 7.1</th>
+  <th width="33%">MSVC 8.0</th>
+</tr>
+<tr>
+  <td align="center">66.7%</td>
+  <td align="center">66.7%</td>
+  <td align="center">66.7%</td>
+</tr>
+</table>
+<b>Table 5: Relative memory consumption of <code>multi_index_container</code> with 3
+ordered indices.</b>
+</p>
+
+<p>
+These results concinde with the theoretical formula for
+<i>S<sub>I</sub></i> = 40, <i>N</i> = <i>O</i> = 3 and <i>p</i> = <i>w</i> = 4.
+</p>
+
+<h4><a name="time_3r">Execution time</a></h4>
+
+<p align="center">
+<img src="perf_3o.png" alt="performance of multi_index_container with 3 ordered indices"
+width="556" height="372"><br>
+<b>Fig. 5: Performance of <code>multi_index_container</code> with 3 ordered indices.</b>
+</p>
+
+<p>
+Execution time for this case is between 45% and 55% lower than achieved with
+an STL-based manual simulation of the same data structure.
+</p>
+
+<h3><a name="test_2r1s">Results for 2 ordered indices + 1 sequenced index</a></h3>
+
+<p>
+The following instantiation of <code>multi_index_container</code> was tested:
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>sequenced</span><span class=special>&lt;&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<h4><a name="memory_2r1s">Memory consumption</a></h4>
+
+<p align="center">
+<table cellspacing="0">
+<tr>
+  <th width="33%">GCC 3.4.5</th>
+  <th width="33%">ICC 7.1</th>
+  <th width="33%">MSVC 8.0</th>
+</tr>
+<tr>
+  <td align="center">69.2%</td>
+  <td align="center">69.2%</td>
+  <td align="center">69.2%</td>
+</tr>
+</table>
+<b>Table 6: Relative memory consumption of <code>multi_index_container</code> with 2
+ordered indices + 1 sequenced index.</b>
+</p>
+
+<p>
+These results concinde with the theoretical formula for
+<i>S<sub>I</sub></i> = 36, <i>N</i> = 3, <i>O</i> = 2 and <i>p</i> = <i>w</i> = 4.
+</p>
+
+<h4><a name="time_2r1s">Execution time</a></h4>
+
+<p align="center">
+<img src="perf_2o1s.png"
+alt="performance of multi_index_container with 2 ordered indices + 1 sequenced index"
+width="556" height="372"><br>
+<b>Fig. 6: Performance of <code>multi_index_container</code> with 2 ordered indices
++ 1 sequenced index.</b>
+</p>
+
+<p>
+In accordance to the expectations, execution time is improved by a fairly constant
+factor, which ranges from 45% to 55%.
+</p>
+
+<h2><a name="conclusions">Conclusions</a></h2>
+
+<p>
+We have shown that <code>multi_index_container</code> outperforms, both in space and
+time efficiency, equivalent data structures obtained from the manual
+combination of STL containers. This improvement gets larger when the number
+of indices increase.
+</p>
+
+<p>
+In the special case of replacing standard containers with single-indexed
+<code>multi_index_container</code>s, the performance of Boost.MultiIndex
+is comparable with that of the tested STL implementations, and can even yield
+some improvements both in space consumption and execution time.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="compiler_specifics.html"><img src="prev.gif" alt="compiler specifics" border="0"><br>
+Compiler specifics
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="examples.html"><img src="next.gif" alt="examples" border="0"><br>
+Examples
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised May 9th 2006</p>
+
+<p>&copy; Copyright 2003-2006 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

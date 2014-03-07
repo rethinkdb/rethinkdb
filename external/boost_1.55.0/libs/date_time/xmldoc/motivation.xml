@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Copyright (c) 2001-2006 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="Motivation">
+  <title>Motivation</title>
+
+  <para>
+    The motivation for this library comes from working with and helping build several date-time libraries on several projects. Date-time libraries provide fundamental infrastructure for most development projects. However, most of them have limitations in their ability to calculate, format, convert, or perform some other functionality. For example, most libraries do not correctly handle leap seconds, provide concepts such as infinity, or provide the ability to use high resolution or network time sources.  These libraries also tend to be rigid in their representation of dates and times. Thus customized policies for a project or subproject are not possible.
+  </para>
+  <para>
+    Programming with dates and times should be almost as simple and natural as programming with strings and integers.  Applications with lots of temporal logic can be radically simplified by having a robust set of operators and calculation capabilities. Classes should provide the ability to compare dates and times, add lengths or time durations, retrieve dates and times from  clocks, and work naturally with date and time intervals.
+  </para>
+  <para>
+    Another motivation for development of the library was to apply modern C++ library design techniques to the date-time domain.  Really to build a framework for the construction of building temporal types. For example, by providing iterators and traits classes to control fundamental properties of the library. To the authors knowledge this library is the only substantial attempt to apply modern C++ to a date-time library.
+  </para>
+</section>

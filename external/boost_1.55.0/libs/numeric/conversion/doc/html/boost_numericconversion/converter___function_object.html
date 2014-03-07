@@ -1,0 +1,464 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>converter&lt;&gt; function object</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_numericconversion.converter___function_object"></a><a class="link" href="converter___function_object.html" title="converter&lt;&gt; function object">converter&lt;&gt;
+    function object</a>
+</h2></div></div></div>
+    
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.converter___function_object.synopsis"></a><a class="link" href="converter___function_object.html#boost_numericconversion.converter___function_object.synopsis" title="Synopsis">Synopsis</a>
+</h3></div></div></div>
+      
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span>
+             <span class="keyword">class</span> <span class="identifier">S</span><span class="special">,</span>
+             <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span>          <span class="special">=</span> <span class="identifier">conversion_traits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">S</span><span class="special">&gt;</span>
+             <span class="keyword">class</span> <span class="identifier">OverflowHandler</span>  <span class="special">=</span> <span class="identifier">def_overflow_handler</span><span class="special">,</span>
+             <span class="keyword">class</span> <span class="identifier">Float2IntRounder</span> <span class="special">=</span> <span class="identifier">Trunc</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">::</span><span class="identifier">source_type</span> <span class="special">&gt;,</span>
+             <span class="keyword">class</span> <span class="identifier">RawConverter</span>     <span class="special">=</span> <span class="identifier">raw_converter</span><span class="special">&lt;</span><span class="identifier">Traits</span><span class="special">&gt;,</span>
+             <span class="keyword">class</span> <span class="identifier">UserRangeChecker</span> <span class="special">=</span> <span class="identifier">UseInternalRangeChecker</span>
+            <span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">converter</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">Traits</span> <span class="identifier">traits</span> <span class="special">;</span>
+
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">::</span><span class="identifier">source_type</span>   <span class="identifier">source_type</span>   <span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">::</span><span class="identifier">argument_type</span> <span class="identifier">argument_type</span> <span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">::</span><span class="identifier">result_type</span>   <span class="identifier">result_type</span>   <span class="special">;</span>
+
+        <span class="keyword">static</span> <span class="identifier">result_type</span> <span class="identifier">convert</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span> <span class="special">;</span>
+
+        <span class="identifier">result_type</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+
+        <span class="comment">// Internal member functions:</span>
+
+        <span class="keyword">static</span> <span class="identifier">range_check_result</span> <span class="identifier">out_of_range</span>      <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span> <span class="special">;</span>
+        <span class="keyword">static</span> <span class="keyword">void</span>               <span class="identifier">validate_range</span>    <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span> <span class="special">;</span>
+        <span class="keyword">static</span> <span class="identifier">result_type</span>        <span class="identifier">low_level_convert</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span> <span class="special">;</span>
+        <span class="keyword">static</span> <span class="identifier">source_type</span>        <span class="identifier">nearbyint</span>         <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span> <span class="special">;</span>
+
+    <span class="special">}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span> <span class="comment">// namespace numeric, boost</span>
+</pre>
+      <p>
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">converter</span><span class="special">&lt;&gt;</span></code>
+        is a <a class="ulink" href="http://www.sgi.com/tech/stl/UnaryFunction.html" target="_top">Unary Function
+        Object</a> encapsulating the code to perform a numeric conversion with
+        the direction and properties specified by the Traits template parameter.
+        It can optionally take some <a class="link" href="numeric_converter_policy_classes.html" title="Numeric Converter Policy Classes">policies</a>
+        which can be used to customize its behavior. The <code class="computeroutput"><span class="identifier">Traits</span></code>
+        parameter is not a policy but the parameter that defines the conversion.
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.converter___function_object.template_parameters"></a><a class="link" href="converter___function_object.html#boost_numericconversion.converter___function_object.template_parameters" title="Template parameters">Template
+      parameters</a>
+</h3></div></div></div>
+      
+      <div class="informaltable">
+        <table border="1">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              </th>
+<th>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The <a class="link" href="definitions.html#boost_numericconversion.definitions.numeric_types" title="Numeric Types">Numeric
+                  Type</a> which is the <span class="emphasis"><em>Target</em></span> of the conversion.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">S</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The <a class="link" href="definitions.html#boost_numericconversion.definitions.numeric_types" title="Numeric Types">Numeric
+                  Type</a> which is the <span class="emphasis"><em>Source</em></span> of the conversion.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">Traits</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This must be a conversion traits class with the interface of <a class="link" href="conversion_traits___traits_class.html" title="conversion_traits&lt;&gt; traits class"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">conversion_traits</span></code></a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">OverflowHandler</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="bold"><strong>Stateless Policy</strong></span> called to administrate
+                  the result of the range checking.
+                </p>
+                <p>
+                  It is a <span class="bold"><strong>Function Object</strong></span> which
+                  receives the result of <code class="computeroutput"><span class="identifier">out_of_range</span><span class="special">()</span></code> and is called inside the <code class="computeroutput"><span class="identifier">validate_range</span><span class="special">()</span></code>
+                  static member function exposed by the converter.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">Float2IntRounder</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="bold"><strong>Stateless Policy</strong></span> which specifies
+                  the rounding mode used for float to integral conversions.
+                </p>
+                <p>
+                  It supplies the <code class="computeroutput"><span class="identifier">nearbyint</span><span class="special">()</span></code> static member function exposed
+                  by the converter.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">RawConverter</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="bold"><strong>Stateless Policy</strong></span> which is used
+                  to perform the actual conversion.
+                </p>
+                <p>
+                  It supplies the <code class="computeroutput"><span class="identifier">low_level_convert</span><span class="special">()</span></code> static member function exposed
+                  by the converter.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">UserRangeChecker</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="emphasis"><em>Special and Optional</em></span> <span class="bold"><strong>Stateless
+                  Policy</strong></span> which can be used to override the internal range
+                  checking logic.
+                </p>
+                <p>
+                  If given, supplies alternative code for the <code class="computeroutput"><span class="identifier">out_of_range</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">validate_range</span><span class="special">()</span></code> static member functions exposed
+                  by the converter.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table>
+      </div>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.converter___function_object.member_functions"></a><a class="link" href="converter___function_object.html#boost_numericconversion.converter___function_object.member_functions" title="Member functions">Member
+      functions</a>
+</h3></div></div></div>
+      
+      <div class="blockquote"><blockquote class="blockquote">
+        <p>
+          <code class="computeroutput"><span class="keyword">static</span> <span class="identifier">result_type</span>
+          <span class="identifier">converter</span><span class="special">&lt;&gt;::</span><span class="identifier">convert</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span>
+          <span class="special">)</span> <span class="special">;</span> <span class="comment">// throw</span> </code>
+        </p>
+      </blockquote></div>
+      <p>
+        This static member function converts an rvalue of type <code class="computeroutput"><span class="identifier">source_type</span></code>
+        to an rvalue of type <code class="computeroutput"><span class="identifier">target_type</span></code>.
+      </p>
+      <p>
+        If the conversion requires it, it performs a range checking before the conversion
+        and passes the result of the check to the overflow handler policy (the default
+        policy throws an exception if out-of-range is detected)
+      </p>
+      <p>
+        The implementation of this function is actually built from the policies and
+        is basically as follows:
+      </p>
+<pre class="programlisting"><span class="identifier">result_type</span> <span class="identifier">converter</span><span class="special">&lt;&gt;::</span><span class="identifier">convert</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">validate_range</span><span class="special">(</span><span class="identifier">s</span><span class="special">);</span> <span class="comment">// Implemented by the internal range checking logic</span>
+                       <span class="comment">// (which also calls the OverflowHandler policy)</span>
+                       <span class="comment">// or externally supplied by the UserRangeChecker policy.</span>
+
+    <span class="identifier">s</span> <span class="special">=</span> <span class="identifier">nearbyint</span><span class="special">(</span><span class="identifier">s</span><span class="special">);</span> <span class="comment">// Externally supplied by the Float2IntRounder policy.</span>
+                      <span class="comment">// NOTE: This is actually called only for float to int conversions.</span>
+
+    <span class="keyword">return</span> <span class="identifier">low_level_convert</span><span class="special">(</span><span class="identifier">s</span><span class="special">);</span> <span class="comment">// Externally supplied by the RawConverter policy.</span>
+<span class="special">}</span>
+</pre>
+      <p>
+        <code class="computeroutput"><span class="identifier">converter</span><span class="special">&lt;&gt;::</span><span class="keyword">operator</span><span class="special">()</span> <span class="keyword">const</span></code> just calls <code class="computeroutput"><span class="identifier">convert</span><span class="special">()</span></code>
+      </p>
+      <p>
+        <span class="inlinemediaobject"><img src="../images/space.png" alt="space"></span>
+      </p>
+      <div class="blockquote"><blockquote class="blockquote">
+        <p>
+          <code class="computeroutput"><span class="keyword">static</span> <span class="identifier">range_check_result</span>
+          <span class="identifier">numeric_converter</span><span class="special">&lt;&gt;::</span><span class="identifier">out_of_range</span> <span class="special">(</span>
+          <span class="identifier">argument_type</span> <span class="identifier">s</span>
+          <span class="special">)</span> <span class="special">;</span></code>
+        </p>
+      </blockquote></div>
+      <p>
+        This <a class="link" href="converter___function_object.html#numeric_conversion_converter_internal">internal</a>
+        static member function determines if the value <code class="computeroutput"><span class="identifier">s</span></code>
+        can be represented by the target type without overflow.
+      </p>
+      <p>
+        It does not determine if the conversion is <span class="emphasis"><em>exact</em></span>; that
+        is, it does not detect <span class="emphasis"><em>inexact</em></span> conversions, only <span class="emphasis"><em>out-of-range</em></span>
+        conversions (see the <a class="link" href="definitions.html#boost_numericconversion.definitions.exact__correctly_rounded_and_out_of_range_representations" title="Exact, Correctly Rounded and Out-Of-Range Representations">Definitions</a>
+        for further details).
+      </p>
+      <p>
+        The return value is of enum type <a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.enum_range_check_result" title="enum range_check_result"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">range_check_result</span></code></a>
+      </p>
+      <p>
+        The actual code for the range checking logic is optimized for the combined
+        properties of the source and target types. For example, a non-subranged conversion
+        (i.e: <code class="computeroutput"><span class="keyword">int</span></code>-&gt;<code class="computeroutput"><span class="keyword">float</span></code>), requires no range checking, so <code class="computeroutput"><span class="identifier">out_of_range</span><span class="special">()</span></code>
+        returns <code class="computeroutput"><span class="identifier">cInRange</span></code> directly.
+        See the following <a class="link" href="converter___function_object.html#boost_numericconversion.converter___function_object.range_checking_logic" title="Range Checking Logic">table</a>
+        for more details.
+      </p>
+      <p>
+        If the user supplied a <a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_userrangechecker" title="Policy UserRangeChecker">UserRangeChecker</a>
+        policy, is this policy which implements this function, so the implementation
+        is user defined, although it is expected to perform the same conceptual check
+        and return the appropriate result.
+      </p>
+      <p>
+        <span class="inlinemediaobject"><img src="../images/space.png" alt="space"></span>
+      </p>
+      <div class="blockquote"><blockquote class="blockquote">
+        <p>
+          <code class="computeroutput"><span class="keyword">static</span> <span class="keyword">void</span>
+          <span class="identifier">numeric_converter</span><span class="special">&lt;&gt;::</span><span class="identifier">validate_range</span> <span class="special">(</span>
+          <span class="identifier">argument_type</span> <span class="identifier">s</span>
+          <span class="special">)</span> <span class="special">;</span> <span class="comment">// no throw</span> </code>
+        </p>
+      </blockquote></div>
+      <p>
+        This <a class="link" href="converter___function_object.html#numeric_conversion_converter_internal">internal</a>
+        static member function calls out_of_range(s), and passes the result to the
+        <a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_overflowhandler" title="Policy OverflowHandler">OverflowHandler</a>
+        policy class.
+      </p>
+      <p>
+        For those Target/Source combinations which don't require range checking,
+        this is an empty inline function.
+      </p>
+      <p>
+        If the user supplied a <a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_userrangechecker" title="Policy UserRangeChecker">UserRangeChecker</a>
+        policy, is this policy which implements this function, so the implementation
+        is user defined, although it is expected to perform the same action as the
+        default. In particular, it is expected to pass the result of the check to
+        the overflow handler.
+      </p>
+      <p>
+        <span class="inlinemediaobject"><img src="../images/space.png" alt="space"></span>
+      </p>
+      <div class="blockquote"><blockquote class="blockquote">
+        <p>
+          <code class="computeroutput"><span class="keyword">static</span> <span class="identifier">result_type</span>
+          <span class="identifier">numeric_converter</span><span class="special">&lt;&gt;::</span><span class="identifier">low_level_convert</span> <span class="special">(</span>
+          <span class="identifier">argument_type</span> <span class="identifier">s</span>
+          <span class="special">)</span> <span class="special">;</span></code>
+        </p>
+      </blockquote></div>
+      <p>
+        This <a class="link" href="converter___function_object.html#numeric_conversion_converter_internal">internal</a>
+        static member function performs the actual conversion.
+      </p>
+      <p>
+        This function is externally supplied by the <a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_rawconverter" title="Policy RawConverter">RawConverter</a>
+        policy class.
+      </p>
+      <p>
+        <span class="inlinemediaobject"><img src="../images/space.png" alt="space"></span>
+      </p>
+      <div class="blockquote"><blockquote class="blockquote">
+        <p>
+          <code class="computeroutput"><span class="keyword">static</span> <span class="identifier">source_type</span>
+          <span class="identifier">converter</span><span class="special">&lt;&gt;::</span><span class="identifier">nearbyint</span> <span class="special">(</span>
+          <span class="identifier">argument_type</span> <span class="identifier">s</span>
+          <span class="special">)</span> <span class="special">;</span></code>
+        </p>
+      </blockquote></div>
+      <p>
+        This <a class="link" href="converter___function_object.html#numeric_conversion_converter_internal">internal</a>
+        static member function, which is <span class="underline">only used</span>
+        for <code class="computeroutput"><span class="keyword">float</span></code> to <code class="computeroutput"><span class="keyword">int</span></code>
+        conversions, returns an <span class="emphasis"><em>integer</em></span> value of <span class="emphasis"><em><span class="underline">floating-point type</span></em></span> according to some
+        rounding direction.
+      </p>
+      <p>
+        This function is externally supplied by the <a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_float2introunder" title="Policy Float2IntRounder">Float2IntRounder</a>
+        policy class which encapsulates the specific rounding mode.
+      </p>
+      <p>
+        <span class="inlinemediaobject"><img src="../images/space.png" alt="space"></span>
+      </p>
+      <a name="numeric_conversion_converter_internal"></a>
+      <h5>
+<a name="boost_numericconversion.converter___function_object.member_functions.h0"></a>
+        <span><a name="boost_numericconversion.converter___function_object.member_functions.internal_member_functions"></a></span><a class="link" href="converter___function_object.html#boost_numericconversion.converter___function_object.member_functions.internal_member_functions">Internal
+        Member Functions</a>
+      </h5>
+      <p>
+        These static member functions build the actual conversion code used by <code class="computeroutput"><span class="identifier">convert</span><span class="special">()</span></code>.
+        The user does not have to call these if calling <code class="computeroutput"><span class="identifier">convert</span><span class="special">()</span></code>, since <code class="computeroutput"><span class="identifier">convert</span><span class="special">()</span></code> calls them infernally, but they can be
+        called separately for specific needs.
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.converter___function_object.range_checking_logic"></a><a class="link" href="converter___function_object.html#boost_numericconversion.converter___function_object.range_checking_logic" title="Range Checking Logic">Range
+      Checking Logic</a>
+</h3></div></div></div>
+      
+      <p>
+        The following table summarizes the internal range checking logic performed
+        for each combination of the properties of Source and Target.
+      </p>
+      <p>
+        LowestT/HighestT denotes the highest and lowest values of the Target type,
+        respectively.
+      </p>
+      <p>
+        <code class="computeroutput"><span class="identifier">S</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code> is short
+        for <code class="computeroutput"><span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">&gt;(</span><span class="identifier">n</span><span class="special">)</span></code> (<code class="computeroutput"><span class="identifier">S</span></code> denotes the Source type).
+      </p>
+      <p>
+        <code class="computeroutput"><span class="identifier">NONE</span></code> indicates that for this
+        case there is no range checking.
+      </p>
+<pre class="programlisting"><code class="literal">
+int_to_int    |--&gt; sig_to_sig     |--&gt; subranged     |--&gt; ( s &gt;= S(LowestT) ) &amp;&amp; ( s &lt;= S(HighestT) )
+              |                   |--&gt; not subranged |--&gt; NONE
+              |
+              |--&gt; unsig_to_unsig |--&gt; subranged     |--&gt; ( s &gt;= S(LowestT) ) &amp;&amp; ( s &lt;= S(HighestT) )
+              |                   |--&gt; not subranged |--&gt; NONE
+              |
+              |--&gt; sig_to_unsig   |--&gt; pos subranged     |--&gt; ( s &gt;= S(0) ) &amp;&amp; ( s &lt;= S(HighestT) )
+              |                   |--&gt; not pos subranged |--&gt; ( s &gt;= S(0) )
+              |
+              |--&gt; unsig_to_sig   |--&gt; subranged     |--&gt; ( s &lt;= S(HighestT) )
+              |                   |--&gt; not subranged |--&gt; NONE
+</code>
+<code class="literal">
+int_to_float   |--&gt; NONE
+</code>
+<code class="literal">
+float_to_int   |--&gt; round_to_zero         |--&gt; ( s &gt;  S(LowestT)-S(1)   ) &amp;&amp; ( s &lt;  S(HighestT)+S(1)   )
+               |--&gt; round_to_even_nearest |--&gt; ( s &gt;= S(LowestT)-S(0.5) ) &amp;&amp; ( s &lt;  S(HighestT)+S(0.5) )
+               |--&gt; round_to_infinity     |--&gt; ( s &gt;  S(LowestT)-S(1)   ) &amp;&amp; ( s &lt;= S(HighestT)        )
+               |--&gt; round_to_neg_infinity |--&gt; ( s &gt;= S(LowestT)        ) &amp;&amp; ( s &lt;  S(HighestT)+S(1)   )
+</code>
+<code class="literal">
+float_to_float |--&gt; subranged     |--&gt; ( s &gt;= S(LowestT) ) &amp;&amp; ( s &lt;= S(HighestT) )
+               |--&gt; not subranged |--&gt; NONE
+</code>
+</pre>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.converter___function_object.examples"></a><a class="link" href="converter___function_object.html#boost_numericconversion.converter___function_object.examples" title="Examples">Examples</a>
+</h3></div></div></div>
+      
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">numeric</span><span class="special">/</span><span class="identifier">conversion</span><span class="special">/</span><span class="identifier">converter</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span> <span class="special">{</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">converter</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">Double2Int</span> <span class="special">;</span>
+
+    <span class="keyword">int</span> <span class="identifier">x</span> <span class="special">=</span> <span class="identifier">Double2Int</span><span class="special">::</span><span class="identifier">convert</span><span class="special">(</span><span class="number">2.0</span><span class="special">);</span>
+    <span class="identifier">assert</span> <span class="special">(</span> <span class="identifier">x</span> <span class="special">==</span> <span class="number">2</span> <span class="special">);</span>
+
+    <span class="keyword">int</span> <span class="identifier">y</span> <span class="special">=</span> <span class="identifier">Double2Int</span><span class="special">()(</span><span class="number">3.14</span><span class="special">);</span> <span class="comment">// As a function object.</span>
+    <span class="identifier">assert</span> <span class="special">(</span> <span class="identifier">y</span> <span class="special">==</span> <span class="number">3</span> <span class="special">)</span> <span class="special">;</span> <span class="comment">// The default rounding is trunc.</span>
+
+    <span class="keyword">try</span>
+    <span class="special">{</span>
+        <span class="keyword">double</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">bounds</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">highest</span><span class="special">();</span>
+        <span class="keyword">int</span> <span class="identifier">z</span> <span class="special">=</span> <span class="identifier">Double2Int</span><span class="special">::</span><span class="identifier">convert</span><span class="special">(</span><span class="identifier">m</span><span class="special">);</span> <span class="comment">// By default throws positive_overflow()</span>
+    <span class="special">}</span>
+    <span class="keyword">catch</span> <span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">positive_overflow</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="special">)</span>
+    <span class="special">{</span>
+    <span class="special">}</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+    </div>
+  </div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+</body>
+</html>

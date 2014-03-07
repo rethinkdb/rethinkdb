@@ -1,0 +1,103 @@
+{
+  "source": "doc/api/punycode.markdown",
+  "modules": [
+    {
+      "textRaw": "punycode",
+      "name": "punycode",
+      "stability": 2,
+      "stabilityText": "Unstable",
+      "desc": "<p><a href=\"http://mths.be/punycode\">Punycode.js</a> is bundled with Node.js v0.6.2+. Use\n<code>require(&#39;punycode&#39;)</code> to access it. (To use it with other Node.js versions,\nuse npm to install the <code>punycode</code> module first.)\n\n</p>\n",
+      "methods": [
+        {
+          "textRaw": "punycode.decode(string)",
+          "type": "method",
+          "name": "decode",
+          "desc": "<p>Converts a Punycode string of ASCII code points to a string of Unicode code\npoints.\n\n</p>\n<pre><code>// decode domain name parts\npunycode.decode(&#39;maana-pta&#39;); // &#39;mañana&#39;\npunycode.decode(&#39;--dqo34k&#39;); // &#39;☃-⌘&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "string"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "punycode.encode(string)",
+          "type": "method",
+          "name": "encode",
+          "desc": "<p>Converts a string of Unicode code points to a Punycode string of ASCII code\npoints.\n\n</p>\n<pre><code>// encode domain name parts\npunycode.encode(&#39;mañana&#39;); // &#39;maana-pta&#39;\npunycode.encode(&#39;☃-⌘&#39;); // &#39;--dqo34k&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "string"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "punycode.toUnicode(domain)",
+          "type": "method",
+          "name": "toUnicode",
+          "desc": "<p>Converts a Punycode string representing a domain name to Unicode. Only the\nPunycoded parts of the domain name will be converted, i.e. it doesn&#39;t matter if\nyou call it on a string that has already been converted to Unicode.\n\n</p>\n<pre><code>// decode domain names\npunycode.toUnicode(&#39;xn--maana-pta.com&#39;); // &#39;mañana.com&#39;\npunycode.toUnicode(&#39;xn----dqo34k.com&#39;); // &#39;☃-⌘.com&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "domain"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "punycode.toASCII(domain)",
+          "type": "method",
+          "name": "toASCII",
+          "desc": "<p>Converts a Unicode string representing a domain name to Punycode. Only the\nnon-ASCII parts of the domain name will be converted, i.e. it doesn&#39;t matter if\nyou call it with a domain that&#39;s already in ASCII.\n\n</p>\n<pre><code>// encode domain names\npunycode.toASCII(&#39;mañana.com&#39;); // &#39;xn--maana-pta.com&#39;\npunycode.toASCII(&#39;☃-⌘.com&#39;); // &#39;xn----dqo34k.com&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "domain"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "textRaw": "punycode.ucs2",
+          "name": "ucs2",
+          "modules": [
+            {
+              "textRaw": "punycode.ucs2.decode(string)",
+              "name": "punycode.ucs2.decode(string)",
+              "desc": "<p>Creates an array containing the decimal code points of each Unicode character\nin the string. While <a href=\"http://mathiasbynens.be/notes/javascript-encoding\">JavaScript uses UCS-2\ninternally</a>, this function\nwill convert a pair of surrogate halves (each of which UCS-2 exposes as\nseparate characters) into a single code point, matching UTF-16.\n\n</p>\n<pre><code>punycode.ucs2.decode(&#39;abc&#39;); // [97, 98, 99]\n// surrogate pair for U+1D306 tetragram for centre:\npunycode.ucs2.decode(&#39;\\uD834\\uDF06&#39;); // [0x1D306]</code></pre>\n",
+              "type": "module",
+              "displayName": "punycode.ucs2.decode(string)"
+            },
+            {
+              "textRaw": "punycode.ucs2.encode(codePoints)",
+              "name": "punycode.ucs2.encode(codepoints)",
+              "desc": "<p>Creates a string based on an array of decimal code points.\n\n</p>\n<pre><code>punycode.ucs2.encode([97, 98, 99]); // &#39;abc&#39;\npunycode.ucs2.encode([0x1D306]); // &#39;\\uD834\\uDF06&#39;</code></pre>\n",
+              "type": "module",
+              "displayName": "punycode.ucs2.encode(codePoints)"
+            }
+          ]
+        },
+        {
+          "textRaw": "punycode.version",
+          "name": "version",
+          "desc": "<p>A string representing the current Punycode.js version number.\n</p>\n"
+        }
+      ],
+      "type": "module",
+      "displayName": "punycode"
+    }
+  ]
+}

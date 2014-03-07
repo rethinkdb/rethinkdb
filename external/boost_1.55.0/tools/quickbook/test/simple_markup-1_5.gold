@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="simple_markup_test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Simple Markup Test</title>
+  <section id="simple_markup_test.simple_markup">
+    <title><link linkend="simple_markup_test.simple_markup">Simple Markup</link></title>
+    <para>
+      <emphasis>italic</emphasis> <emphasis role="bold">bold</emphasis> <emphasis
+      role="underline">underline</emphasis> <literal>teletype</literal>
+    </para>
+    <para>
+      //not italic// **not bold** __not underline__ ==not teletype==
+    </para>
+    <para>
+      <emphasis role="underline">odd__ edge case</emphasis>
+    </para>
+    <para>
+      not__underlined__hopefully
+    </para>
+    <para>
+      (<emphasis role="bold">bold</emphasis>) <emphasis role="underline">und/er/lined</emphasis>
+    </para>
+    <para>
+      <emphasis>all/italic</emphasis> * not bold*
+    </para>
+    <para>
+      /not italic <ulink url="http://www.boost.org/"><emphasis role="bold">bold</emphasis></ulink>
+    </para>
+    <para>
+      not_underlined_
+    </para>
+    <para>
+      _Should not underline escaped markup_. _or this escaped_ markup form.
+    </para>
+    <para>
+      <literal>Matti Meik\u00E4l\u00E4inen</literal>
+    </para>
+    <para>
+      <literal>replaced</literal>
+    </para>
+    <para>
+      <emphasis role="underline">replaced</emphasis>
+    </para>
+    <para>
+      <literal>_mac\ ro_</literal>
+    </para>
+    <para>
+      <emphasis>italic\</emphasis>
+    </para>
+    <para>
+      These shouldn't be interepted as markup: == // **
+    </para>
+    <para>
+      <literal>&lt;</literal> <literal>\&lt;</literal> <literal>\\&lt;</literal>
+    </para>
+  </section>
+</article>

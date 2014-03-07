@@ -1,0 +1,22 @@
+
+[section:specialized Specialized Adaptors]
+
+[include ./counting_iterator.qbk]
+
+[include ./filter_iterator.qbk]
+
+[include ./function_output_iterator.qbk]
+
+[include ./indirect_iterator.qbk]
+
+[include ./permutation_iterator.qbk]
+
+[include ./reverse_iterator.qbk]
+
+[include ./shared_container_iterator.qbk]
+
+[include ./transform_iterator.qbk]
+
+[include ./zip_iterator.qbk]
+
+[endsect]

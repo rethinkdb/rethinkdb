@@ -1,0 +1,417 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Dependencies</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../bimap_and_boost.html" title="Bimap and Boost">
+<link rel="prev" href="boost_libraries_that_work_well_with_boost_bimap.html" title="Boost Libraries that work well with Boost.Bimap">
+<link rel="next" href="../reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_libraries_that_work_well_with_boost_bimap.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bimap_and_boost.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_bimap_and_boost_dependencies">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.bimap_and_boost.dependencies"></a><a class="link" href="dependencies.html" title="Dependencies">Dependencies</a>
+</h3></div></div></div>
+<p>
+        Boost.Bimap is built on top of several Boost libraries. The rationale behind
+        this decision is keeping the Boost code base small by reusing existent code.
+        The libraries used are well-established and have been tested extensively,
+        making this library easy to port since all the hard work has already been
+        done. The glue that holds everything together is Boost.MPL. Clearly Boost.MultiIndex
+        is the heart of this library.
+      </p>
+<div class="table">
+<a name="boost_bimap.bimap_and_boost.dependencies.t0"></a><p class="title"><b>Table&#160;1.4.&#160;Boost Libraries needed by Boost.Bimap</b></p>
+<div class="table-contents"><table class="table" summary="Boost Libraries needed by Boost.Bimap">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+<th>
+                <p>
+                  author
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/libs/multi_index/doc/index.html" target="_top"><span class="bold"><strong>Boost.MultiIndex</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Containers with multiple STL-compatible access interfaces
+                </p>
+              </td>
+<td>
+                <p>
+                  Joaqu&#237;n M L&#243;pez Mu&#241;oz
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/libs/mpl/doc/index.html" target="_top"><span class="bold"><strong>Boost.MPL</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Template metaprogramming framework of compile-time algorithms,
+                  sequences and metafunction classes
+                </p>
+              </td>
+<td>
+                <p>
+                  Aleksey Gurtovoy
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/doc/html/boost_typetraits.html" target="_top"><span class="bold"><strong>Boost.TypeTraits</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Templates for fundamental properties of types.
+                </p>
+              </td>
+<td>
+                <p>
+                  John Maddock, Steve Cleary
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/libs/utility/enable_if.html" target="_top"><span class="bold"><strong>Boost.enable_if</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Selective inclusion of function template overloads
+                </p>
+              </td>
+<td>
+                <p>
+                  Jaakko J&#228;rvi, Jeremiah Willcock, Andrew Lumsdaine
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/libs/iterator/doc/index.html" target="_top"><span class="bold"><strong>Boost.Iterators</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Iterator construction framework, adaptors, concepts, and more.
+                </p>
+              </td>
+<td>
+                <p>
+                  Dave Abrahams, Jeremy Siek, Thomas Witt
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/libs/utility/call_traits.htm" target="_top"><span class="bold"><strong>Boost.call_traits</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Defines types for passing parameters.
+                </p>
+              </td>
+<td>
+                <p>
+                  John Maddock, Howard Hinnant
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/doc/html/boost_staticassert.html" target="_top"><span class="bold"><strong>Boost.StaticAssert</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Static assertions (compile time assertions).
+                </p>
+              </td>
+<td>
+                <p>
+                  John Maddock
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_bimap.bimap_and_boost.dependencies.t1"></a><p class="title"><b>Table&#160;1.5.&#160;Optional Boost Libraries</b></p>
+<div class="table-contents"><table class="table" summary="Optional Boost Libraries">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+<th>
+                <p>
+                  author
+                </p>
+              </th>
+<th>
+                <p>
+                  Purpose
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/libs/serialization/doc/index.html" target="_top"><span class="bold"><strong>Boost.Serialization</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Serialization for persistence and marshalling
+                </p>
+              </td>
+<td>
+                <p>
+                  Robert Ramey
+                </p>
+              </td>
+<td>
+                <p>
+                  Serialization support for bimap containers and iterators
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/libs/assign/doc/index.html" target="_top"><span class="bold"><strong>Boost.Assign</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Filling containers with constant or generated data has never been
+                  easier
+                </p>
+              </td>
+<td>
+                <p>
+                  Thorsten Ottosen
+                </p>
+              </td>
+<td>
+                <p>
+                  Help to fill a bimap or views of it
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/doc/html/hash.html" target="_top"><span class="bold"><strong>Boost.Hash</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  A TR1 hash function object that can be extended to hash user defined
+                  types
+                </p>
+              </td>
+<td>
+                <p>
+                  Daniel James
+                </p>
+              </td>
+<td>
+                <p>
+                  Default hashing function
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/doc/html/lambda.html" target="_top"><span class="bold"><strong>Boost.Lambda</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Define small unnamed function objects at the actual call site,
+                  and more
+                </p>
+              </td>
+<td>
+                <p>
+                  from Jaakko J&#228;rvi, Gary Powell
+                </p>
+              </td>
+<td>
+                <p>
+                  Functors for modify, range, lower_bound and upper_bound
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/doc/html/range.html" target="_top"><span class="bold"><strong>Boost.Range</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  A new infrastructure for generic algorithms that builds on top
+                  of the new iterator concepts
+                </p>
+              </td>
+<td>
+                <p>
+                  Thorsten Ottosen
+                </p>
+              </td>
+<td>
+                <p>
+                  Range based algorithms
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/doc/html/property_map.html" target="_top"><span class="bold"><strong>Boost.PropertyMap</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Concepts defining interfaces which map key objects to value objects
+                </p>
+              </td>
+<td>
+                <p>
+                  Jeremy Siek
+                </p>
+              </td>
+<td>
+                <p>
+                  Integration with BGL
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_bimap.bimap_and_boost.dependencies.t2"></a><p class="title"><b>Table&#160;1.6.&#160;Additional Boost Libraries needed to run the test-suite</b></p>
+<div class="table-contents"><table class="table" summary="Additional Boost Libraries needed to run the test-suite">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+<th>
+                <p>
+                  author
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <a href="http://www.boost.org/libs/test/doc/index.html" target="_top"><span class="bold"><strong>Boost.Test</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Support for simple program testing, full unit testing, and for
+                  program execution monitoring.
+                </p>
+              </td>
+<td>
+                <p>
+                  Gennadiy Rozental
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_libraries_that_work_well_with_boost_bimap.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bimap_and_boost.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

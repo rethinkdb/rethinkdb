@@ -1,0 +1,7 @@
+class_template
+
+class %class_name% {
+public:
+    %class_name%() {}
+    ~%class_name%() {}
+};

@@ -1,0 +1,232 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Static Regexes]
+
+[h2 Overview]
+
+The feature that really sets xpressive apart from other C/C++ regular
+expression libraries is the ability to author a regular expression using C++
+expressions. xpressive achieves this through operator overloading, using a
+technique called ['expression templates] to embed a mini-language dedicated
+to pattern matching within C++. These "static regexes" have many advantages
+over their string-based brethren. In particular, static regexes:
+
+* are syntax-checked at compile-time; they will never fail at run-time due to
+  a syntax error.
+* can naturally refer to other C++ data and code, including other regexes,
+  making it simple to build grammars out of regular expressions and bind
+  user-defined actions that execute when parts of your regex match.
+* are statically bound for better inlining and optimization. Static regexes
+  require no state tables, virtual functions, byte-code or calls through
+  function pointers that cannot be resolved at compile time.
+* are not limited to searching for patterns in strings. You can declare a
+  static regex that finds patterns in an array of integers, for instance.
+
+Since we compose static regexes using C++ expressions, we are constrained by
+the rules for legal C++ expressions. Unfortunately, that means that
+"classic" regular expression syntax cannot always be mapped cleanly into
+C++. Rather, we map the regex ['constructs], picking new syntax that is
+legal C++.
+
+[h2 Construction and Assignment]
+
+You create a static regex by assigning one to an object of type _basic_regex_.
+For instance, the following defines a regex that can be used to find patterns
+in objects of type `std::string`:
+
+    sregex re = '$' >> +_d >> '.' >> _d >> _d;
+
+Assignment works similarly.
+
+[h2 Character and String Literals]
+
+In static regexes, character and string literals match themselves. For
+instance, in the regex above, `'$'` and `'.'` match the characters `'$'` and
+`'.'` respectively. Don't be confused by the fact that [^$] and [^.] are
+meta-characters in Perl. In xpressive, literals always represent themselves.
+
+When using literals in static regexes, you must take care that at least one
+operand is not a literal. For instance, the following are ['not] valid
+regexes:
+
+    sregex re1 = 'a' >> 'b';         // ERROR!
+    sregex re2 = +'a';               // ERROR!
+
+The two operands to the binary `>>` operator are both literals, and the
+operand of the unary `+` operator is also a literal, so these statements
+will call the native C++ binary right-shift and unary plus operators,
+respectively. That's not what we want. To get operator overloading to kick
+in, at least one operand must be a user-defined type. We can use xpressive's
+`as_xpr()` helper function to "taint" an expression with regex-ness, forcing
+operator overloading to find the correct operators. The two regexes above
+should be written as:
+
+    sregex re1 = as_xpr('a') >> 'b'; // OK
+    sregex re2 = +as_xpr('a');       // OK
+
+[h2 Sequencing and Alternation]
+
+As you've probably already noticed, sub-expressions in static regexes must
+be separated by the sequencing operator, `>>`. You can read this operator as
+"followed by".
+
+    // Match an 'a' followed by a digit
+    sregex re = 'a' >> _d;
+
+Alternation works just as it does in Perl with the `|` operator. You can
+read this operator as "or". For example:
+
+    // match a digit character or a word character one or more times
+    sregex re = +( _d | _w );
+
+[h2 Grouping and Captures]
+
+In Perl, parentheses `()` have special meaning. They group, but as a
+side-effect they also create back\-references like [^$1] and [^$2]. In C++,
+parentheses only group \-\- there is no way to give them side\-effects. To
+get the same effect, we use the special `s1`, `s2`, etc. tokens. Assigning
+to one creates a back-reference. You can then use the back-reference later
+in your expression, like using [^\1] and [^\2] in Perl. For example,
+consider the following regex, which finds matching HTML tags:
+
+    "<(\\w+)>.*?</\\1>"
+
+In static xpressive, this would be:
+
+    '<' >> (s1= +_w) >> '>' >> -*_ >> "</" >> s1 >> '>'
+
+Notice how you capture a back-reference by assigning to `s1`, and then you
+use `s1` later in the pattern to find the matching end tag.
+
+[tip [*Grouping without capturing a back-reference] \n\n In
+xpressive, if you just want grouping without capturing a back-reference, you
+can just use `()` without `s1`. That is the equivalent of Perl's [^(?:)]
+non-capturing grouping construct.]
+
+[h2 Case-Insensitivity and Internationalization]
+
+Perl lets you make part of your regular expression case-insensitive by using
+the [^(?i:)] pattern modifier. xpressive also has a case-insensitivity
+pattern modifier, called `icase`. You can use it as follows:
+
+    sregex re = "this" >> icase( "that" );
+
+In this regular expression, `"this"` will be matched exactly, but `"that"`
+will be matched irrespective of case.
+
+Case-insensitive regular expressions raise the issue of
+internationalization: how should case-insensitive character comparisons be
+evaluated? Also, many character classes are locale-specific. Which
+characters are matched by `digit` and which are matched by `alpha`? The
+answer depends on the `std::locale` object the regular expression object is
+using. By default, all regular expression objects use the global locale. You
+can override the default by using the `imbue()` pattern modifier, as
+follows:
+
+    std::locale my_locale = /* initialize a std::locale object */;
+    sregex re = imbue( my_locale )( +alpha >> +digit );
+
+This regular expression will evaluate `alpha` and `digit` according to
+`my_locale`. See the section on [link boost_xpressive.user_s_guide.localization_and_regex_traits
+Localization and Regex Traits] for more information about how to customize
+the behavior of your regexes.
+
+[h2 Static xpressive Syntax Cheat Sheet]
+
+The table below lists the familiar regex constructs and their equivalents in
+static xpressive.
+
+[def _s1_       [globalref boost::xpressive::s1 s1]]
+[def _bos_      [globalref boost::xpressive::bos bos]]
+[def _eos_      [globalref boost::xpressive::eos eos]]
+[def _b_        [globalref boost::xpressive::_b _b]]
+[def _n_        [globalref boost::xpressive::_n _n]]
+[def _ln_       [globalref boost::xpressive::_ln _ln]]
+[def _d_        [globalref boost::xpressive::_d _d]]
+[def _w_        [globalref boost::xpressive::_w _w]]
+[def _s_        [globalref boost::xpressive::_s _s]]
+[def _alnum_    [globalref boost::xpressive::alnum alnum]]
+[def _alpha_    [globalref boost::xpressive::alpha alpha]]
+[def _blank_    [globalref boost::xpressive::blank blank]]
+[def _cntrl_    [globalref boost::xpressive::cntrl cntrl]]
+[def _digit_    [globalref boost::xpressive::digit digit]]
+[def _graph_    [globalref boost::xpressive::graph graph]]
+[def _lower_    [globalref boost::xpressive::lower lower]]
+[def _print_    [globalref boost::xpressive::print print]]
+[def _punct_    [globalref boost::xpressive::punct punct]]
+[def _space_    [globalref boost::xpressive::space space]]
+[def _upper_    [globalref boost::xpressive::upper upper]]
+[def _xdigit_   [globalref boost::xpressive::xdigit xdigit]]
+[def _set_      [globalref boost::xpressive::set set]]
+[def _repeat_   [funcref boost::xpressive::repeat repeat]]
+[def _range_    [funcref boost::xpressive::range range]]
+[def _icase_    [funcref boost::xpressive::icase icase]]
+[def _before_   [funcref boost::xpressive::before before]]
+[def _after_    [funcref boost::xpressive::after after]]
+[def _keep_     [funcref boost::xpressive::keep keep]]
+
+[table Perl syntax vs. Static xpressive syntax
+    [[Perl]               [Static xpressive]                              [Meaning]]
+    [[[^.]]               [[globalref boost::xpressive::_ `_`]]           [any character (assuming Perl's /s modifier).]]
+    [[[^ab]]              [`a >> b`]                                      [sequencing of [^a] and [^b] sub-expressions.]]
+    [[[^a|b]]             [`a | b`]                                       [alternation of [^a] and [^b] sub-expressions.]]
+    [[[^(a)]]             [`(_s1_= a)`]                                   [group and capture a back-reference.]]
+    [[[^(?:a)]]           [`(a)`]                                         [group and do not capture a back-reference.]]
+    [[[^\1]]              [`_s1_`]                                        [a previously captured back-reference.]]
+    [[[^a*]]              [`*a`]                                          [zero or more times, greedy.]]
+    [[[^a+]]              [`+a`]                                          [one or more times, greedy.]]
+    [[[^a?]]              [`!a`]                                          [zero or one time, greedy.]]
+    [[[^a{n,m}]]          [`_repeat_<n,m>(a)`]                            [between [^n] and [^m] times, greedy.]]
+    [[[^a*?]]             [`-*a`]                                         [zero or more times, non-greedy.]]
+    [[[^a+?]]             [`-+a`]                                         [one or more times, non-greedy.]]
+    [[[^a??]]             [`-!a`]                                         [zero or one time, non-greedy.]]
+    [[[^a{n,m}?]]         [`-_repeat_<n,m>(a)`]                           [between [^n] and [^m] times, non-greedy.]]
+    [[[^^]]               [`_bos_`]                                       [beginning of sequence assertion.]]
+    [[[^$]]               [`_eos_`]                                       [end of sequence assertion.]]
+    [[[^\b]]              [`_b_`]                                         [word boundary assertion.]]
+    [[[^\B]]              [`~_b_`]                                        [not word boundary assertion.]]
+    [[[^\\n]]             [`_n_`]                                         [literal newline.]]
+    [[[^.]]               [`~_n_`]                                        [any character except a literal newline (without Perl's /s modifier).]]
+    [[[^\\r?\\n|\\r]]     [`_ln_`]                                        [logical newline.]]
+    [[[^\[^\\r\\n\]]]     [`~_ln_`]                                       [any single character not a logical newline.]]
+    [[[^\w]]              [`_w_`]                                         [a word character, equivalent to set\[alnum | '_'\].]]
+    [[[^\W]]              [`~_w_`]                                        [not a word character, equivalent to ~set\[alnum | '_'\].]]
+    [[[^\d]]              [`_d_`]                                         [a digit character.]]
+    [[[^\D]]              [`~_d_`]                                        [not a digit character.]]
+    [[[^\s]]              [`_s_`]                                         [a space character.]]
+    [[[^\S]]              [`~_s_`]                                        [not a space character.]]
+    [[[^\[:alnum:\]]]     [`_alnum_`]                                     [an alpha-numeric character.]]
+    [[[^\[:alpha:\]]]     [`_alpha_`]                                     [an alphabetic character.]]
+    [[[^\[:blank:\]]]     [`_blank_`]                                     [a horizontal white-space character.]]
+    [[[^\[:cntrl:\]]]     [`_cntrl_`]                                     [a control character.]]
+    [[[^\[:digit:\]]]     [`_digit_`]                                     [a digit character.]]
+    [[[^\[:graph:\]]]     [`_graph_`]                                     [a graphable character.]]
+    [[[^\[:lower:\]]]     [`_lower_`]                                     [a lower-case character.]]
+    [[[^\[:print:\]]]     [`_print_`]                                     [a printing character.]]
+    [[[^\[:punct:\]]]     [`_punct_`]                                     [a punctuation character.]]
+    [[[^\[:space:\]]]     [`_space_`]                                     [a white-space character.]]
+    [[[^\[:upper:\]]]     [`_upper_`]                                     [an upper-case character.]]
+    [[[^\[:xdigit:\]]]    [`_xdigit_`]                                    [a hexadecimal digit character.]]
+    [[[^\[0-9\]]]         [`_range_('0','9')`]                            [characters in range `'0'` through `'9'`.]]
+    [[[^\[abc\]]]         [`as_xpr('a') | 'b' |'c'`]                      [characters `'a'`, `'b'`, or `'c'`.]]
+    [[[^\[abc\]]]         [`(_set_= 'a','b','c')`]                        [['same as above]]]
+    [[[^\[0-9abc\]]]      [`_set_[ _range_('0','9') | 'a' | 'b' | 'c' ]`] [characters `'a'`, `'b'`, `'c'` or  in range `'0'` through `'9'`.]]
+    [[[^\[0-9abc\]]]      [`_set_[ _range_('0','9') | (_set_= 'a','b','c') ]`]  [['same as above]]]
+    [[[^\[^abc\]]]        [`~(_set_= 'a','b','c')`]                       [not characters `'a'`, `'b'`, or `'c'`.]]
+    [[[^(?i:['stuff])]]   [`_icase_(`[^['stuff]]`)`]                      [match ['stuff] disregarding case.]]
+    [[[^(?>['stuff])]]    [`_keep_(`[^['stuff]]`)`]                       [independent sub-expression, match ['stuff] and turn off backtracking.]]
+    [[[^(?=['stuff])]]    [`_before_(`[^['stuff]]`)`]                     [positive look-ahead assertion, match if before ['stuff] but don't include ['stuff] in the match.]]
+    [[[^(?!['stuff])]]    [`~_before_(`[^['stuff]]`)`]                    [negative look-ahead assertion, match if not before ['stuff].]]
+    [[[^(?<=['stuff])]]   [`_after_(`[^['stuff]]`)`]                      [positive look-behind assertion, match if after ['stuff] but don't include ['stuff] in the match. (['stuff] must be constant-width.)]]
+    [[[^(?<!['stuff])]]   [`~_after_(`[^['stuff]]`)`]                     [negative look-behind assertion, match if not after ['stuff]. (['stuff] must be constant-width.)]]
+    [[[^(?P<['name]>['stuff])]]     [`_mark_tag_ `[^['name]]`(`['n]`);`\n ...\n `(`[^['name]]`= `[^['stuff]]`)`]      [Create a named capture.]]
+    [[[^(?P=['name])]]              [`_mark_tag_ `[^['name]]`(`['n]`);`\n ...\n [^['name]]]                           [Refer back to a previously created named capture.]]
+]
+\n
+
+[endsect]

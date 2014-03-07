@@ -1,0 +1,107 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Header &lt;boost/pool/pool_alloc.hpp&gt;</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../../index.html" title="Boost.Pool">
+<link rel="up" href="../../../boost_pool_c___reference.html" title="Boost.Pool C++ Reference">
+<link rel="prev" href="../../../boost/pool.html" title="Class template pool">
+<link rel="next" href="../../../boost/pool_allocator_tag.html" title="Struct pool_allocator_tag">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../boost/pool.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../boost_pool_c___reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../boost/pool_allocator_tag.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.pool.pool_alloc_hpp"></a>Header &lt;<a href="../../../../../../../boost/pool/pool_alloc.hpp" target="_top">boost/pool/pool_alloc.hpp</a>&gt;</h3></div></div></div>
+<p>C++ Standard Library compatible pool-based allocators. </p>
+<p>This header provides two template types - pool_allocator and fast_pool_allocator - that can be used for fast and efficient memory allocation in conjunction with the C++ Standard Library containers.</p>
+<p>These types both satisfy the Standard Allocator requirements [20.1.5] and the additional requirements in [20.1.5/4], so they can be used with either Standard or user-supplied containers.</p>
+<p>In addition, the fast_pool_allocator also provides an additional allocation and an additional deallocation function:</p>
+<div class="informaltable"><table class="table" cellspacing="3" cellpadding="5">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><span class="bold"><strong>Expression</strong></span></td>
+<td><span class="bold"><strong>Return Type</strong></span></td>
+<td><span class="bold"><strong>Semantic Equivalence</strong></span></td>
+<td><span class="bold"><strong></strong></span></td>
+</tr>
+<tr>
+<td><code class="computeroutput">PoolAlloc::allocate()</code></td>
+<td><code class="computeroutput">T *</code></td>
+<td>
+<code class="computeroutput">PoolAlloc::allocate(1)</code> </td>
+<td class="auto-generated">&#160;</td>
+</tr>
+<tr>
+<td><code class="computeroutput">PoolAlloc::deallocate(p)</code></td>
+<td>void</td>
+<td>
+<code class="computeroutput">PoolAlloc::deallocate(p, 1)</code> </td>
+<td class="auto-generated">&#160;</td>
+</tr>
+</tbody>
+</table></div>
+<p>
+</p>
+<p>The typedef user_allocator publishes the value of the UserAllocator template parameter.</p>
+<p><span class="bold"><strong>Notes</strong></span></p>
+<p>If the allocation functions run out of memory, they will throw <code class="computeroutput">std::bad_alloc</code>.</p>
+<p>The underlying Pool type used by the allocators is accessible through the Singleton Pool Interface. The identifying tag used for pool_allocator is pool_allocator_tag, and the tag used for fast_pool_allocator is fast_pool_allocator_tag. All template parameters of the allocators (including implementation-specific ones) determine the type of the underlying Pool, with the exception of the first parameter T, whose size is used instead.</p>
+<p>Since the size of T is used to determine the type of the underlying Pool, each allocator for different types of the same size will share the same underlying pool. The tag class prevents pools from being shared between pool_allocator and fast_pool_allocator. For example, on a system where <code class="computeroutput">sizeof(int) == sizeof(void *)</code>, <code class="computeroutput">pool_allocator&lt;int&gt;</code> and <code class="computeroutput">pool_allocator&lt;void *&gt;</code> will both allocate/deallocate from/to the same pool.</p>
+<p>If there is only one thread running before main() starts and after main() ends, then both allocators are completely thread-safe.</p>
+<p><span class="bold"><strong>Compiler and STL Notes</strong></span></p>
+<p>A number of common STL libraries contain bugs in their using of allocators. Specifically, they pass null pointers to the deallocate function, which is explicitly forbidden by the Standard [20.1.5 Table 32]. PoolAlloc will work around these libraries if it detects them; currently, workarounds are in place for: Borland C++ (Builder and command-line compiler) with default (RogueWave) library, ver. 5 and earlier, STLport (with any compiler), ver. 4.0 and earlier. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">struct</span> <a class="link" href="../../../boost/pool_allocator_tag.html" title="Struct pool_allocator_tag">pool_allocator_tag</a><span class="special">;</span>
+
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> UserAllocator<span class="special">,</span> <span class="keyword">typename</span> Mutex<span class="special">,</span> 
+           <span class="keyword">unsigned</span> NextSize<span class="special">,</span> <span class="keyword">unsigned</span> MaxSize<span class="special">&gt;</span> 
+    <span class="keyword">class</span> <a class="link" href="../../../boost/pool_allocator.html" title="Class template pool_allocator">pool_allocator</a><span class="special">;</span>
+
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> UserAllocator<span class="special">,</span> <span class="keyword">typename</span> Mutex<span class="special">,</span> <span class="keyword">unsigned</span> NextSize<span class="special">,</span> 
+           <span class="keyword">unsigned</span> MaxSize<span class="special">&gt;</span> 
+    <span class="keyword">class</span> <a class="link" href="../../../boost/pool_allocator_void__UserAllocator__M_id491365.html" title="Class template pool_allocator&lt;void, UserAllocator, Mutex, NextSize, MaxSize&gt;">pool_allocator</a><span class="special">&lt;</span><span class="keyword">void</span><span class="special">,</span> <span class="identifier">UserAllocator</span><span class="special">,</span> <span class="identifier">Mutex</span><span class="special">,</span> <span class="identifier">NextSize</span><span class="special">,</span> <span class="identifier">MaxSize</span><span class="special">&gt;</span><span class="special">;</span>
+
+  <span class="keyword">struct</span> <a class="link" href="../../../boost/fast_pool_allocator_tag.html" title="Struct fast_pool_allocator_tag">fast_pool_allocator_tag</a><span class="special">;</span>
+
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> UserAllocator<span class="special">,</span> <span class="keyword">typename</span> Mutex<span class="special">,</span> 
+           <span class="keyword">unsigned</span> NextSize<span class="special">,</span> <span class="keyword">unsigned</span> MaxSize<span class="special">&gt;</span> 
+    <span class="keyword">class</span> <a class="link" href="../../../boost/fast_pool_allocator.html" title="Class template fast_pool_allocator">fast_pool_allocator</a><span class="special">;</span>
+
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> UserAllocator<span class="special">,</span> <span class="keyword">typename</span> Mutex<span class="special">,</span> <span class="keyword">unsigned</span> NextSize<span class="special">,</span> 
+           <span class="keyword">unsigned</span> MaxSize<span class="special">&gt;</span> 
+    <span class="keyword">class</span> <a class="link" href="../../../boost/fast_pool_allocator_void__UserAllocat_id491880.html" title="Class template fast_pool_allocator&lt;void, UserAllocator, Mutex, NextSize, MaxSize&gt;">fast_pool_allocator</a><span class="special">&lt;</span><span class="keyword">void</span><span class="special">,</span> <span class="identifier">UserAllocator</span><span class="special">,</span> <span class="identifier">Mutex</span><span class="special">,</span> <span class="identifier">NextSize</span><span class="special">,</span> <span class="identifier">MaxSize</span><span class="special">&gt;</span><span class="special">;</span>
+<span class="special">}</span></pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2006 Stephen Cleary<br>Copyright &#169; 2011 Paul A. Bristow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../boost/pool.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../boost_pool_c___reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../boost/pool_allocator_tag.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

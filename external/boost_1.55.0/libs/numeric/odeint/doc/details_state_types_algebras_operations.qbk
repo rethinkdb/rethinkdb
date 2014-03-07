@@ -1,0 +1,473 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section State types, algebras and operations]
+
+In odeint the stepper algorithms are implemented independently of the
+underlying fundamental mathematical operations.
+This is realized by giving the user full control over the state type and the
+mathematical operations for this state type.
+Technically, this is done by introducing three concepts: StateType, Algebra,
+Operations.
+Most of the steppers in odeint expect three class types fulfilling these
+concepts as template parameters.
+Note that these concepts are not fully independent of each other but rather a
+valid combination must be provided in order to make the steppers work.
+In the following we will give some examples on reasonable
+state_type-algebra-operations combinations.
+For the most common state types, like `vector<double>` or `array<double,N>`
+the default values range_algebra and default_operations are perfectly fine and
+odeint can be used as is without worrying about algebra/operations at all.
+
+[important state_type, algebra and operations are not independent, a valid
+combination must be provided to make odeint work properly]
+
+Moreover, as odeint handles the memory required for intermediate temporary
+objects itself, it also needs knowledge about how to create state_type objects
+and maybe how to allocate memory (resizing).
+All in all, the following things have to be taken care of when odeint is used
+with non-standard state types:
+
+* construction/destruction
+* resizing (if possible/required)
+* algebraic operations
+
+Again, odeint already provides basic interfaces for most of the usual state
+types.
+So if you use a `std::vector`, or a `boost::array` as state type no additional
+work is required, they just work out of the box.
+
+[section Construction/Resizing]
+
+We distinguish between two basic state types: fixed sized and dynamically
+sized.
+For fixed size state types the default constructor `state_type()` already
+allocates the required memory, prominent example is `boost::array<T,N>`.
+Dynamically sized types have to be resized to make sure enough memory is
+allocated, the standard constructor does not take care of the resizing.
+Examples for this are the STL containers like `vector<double>`.
+
+The most easy way of getting your own state type to work with odeint is to use
+a fixed size state, base calculations on the range_algebra and provide the
+following functionality:
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Construct State] [`State x()`] [`void`] [Creates an instance of `State`
+  and allocates memory.] ]
+  [[Begin of the sequence] [boost::begin(x)] [Iterator] [Returns an iterator
+  pointing to the begin of the sequence]]
+  [[End of the sequence] [boost::end(x)] [Iterator] [Returns an iterator
+  pointing to the end of the sequence]]
+]
+
+[warning If your state type does not allocate memory by default construction,
+you [*must define it as resizeable] and provide resize functionality (see
+below). Otherwise segmentation faults will occur.]
+
+So fixed sized arrays supported by __boost_range immediately work with odeint.
+For dynamically sized arrays one has to additionally supply the resize
+functionality.
+First, the state has to be tagged as resizeable by specializing the struct
+`is_resizeable` which consists of one typedef and one bool value:
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Resizability] [`is_resizeable<State>::type`]
+    [`boost::true_type` or `boost::false_type`] 
+    [Determines resizeability of the state type, returns `boost::true_type` if
+    the state is resizeable.]]
+  [[Resizability] [`is_resizeable<State>::value`]
+    [`bool`] 
+    [Same as above, but with `bool` value.]]
+]
+
+Defining `type` to be `true_type` and `value` as `true` tells odeint that your
+state is resizeable.
+By default, odeint now expects the support of `boost::size(x)` and a
+`x.resize( boost::size(y) )` member function for resizing:
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Get size] [`boost::size( x )`]
+    [`size_type`] [Returns the current size of x.]]
+  [[Resize] [`x.resize( boost::size( y ) )`]
+    [`void`] [Resizes x to have the same size as y.]]
+]
+
+[section Using the container interface]
+[import ../examples/my_vector.cpp]
+
+As a first example we take the most simple case and implement our own vector
+`my_vector` which will provide a container interface.
+This makes __boost_range working out-of-box.
+We add a little functionality to our vector which makes it allocate some 
+default capacity by construction.
+This is helpful when using resizing as then a resize can be assured to not 
+require a new allocation.
+
+[my_vector]
+
+
+The only thing that has to be done other than defining is thus declaring 
+my_vector as resizeable:
+
+[my_vector_resizeable]
+
+If we wouldn't specialize the `is_resizeable` template, the code would still
+compile but odeint would not adjust the size of temporary internal instances
+of my_vector and hence try to fill zero-sized vectors resulting in
+segmentation faults!
+The full example can be found in [github_link libs/numeric/odeint/examples/my_vector.cpp my_vector.cpp]
+
+[endsect]
+
+[section std::list]
+
+If your state type does work with __boost_range, but handles resizing
+differently you are required to specialize two implementations used by odeint
+to check a state's size and to resize:
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Check size] [`same_size_impl<State,State>::same_size(x , y)`]
+    [`bool`] [Returns true if the size of x equals the size of y.]]
+  [[Resize] [`resize_impl<State,State>::resize(x , y)`]
+    [`void`] [Resizes x to have the same size as y.]]
+]
+
+As an example we will use a `std::list` as state type in odeint.
+Because `std::list` is not supported by `boost::size` we have to replace the
+same_size and resize implementation to get list to work with odeint.
+The following code shows the required template specializations:
+
+[import ../examples/list_lattice.cpp]
+
+[list_bindings]
+
+With these definitions odeint knows how to resize `std::list`s and so they can
+be used as state types.
+A complete example can be found in [github_link libs/numeric/odeint/examples/list_lattice.cpp list_lattice.cpp].
+
+[endsect]
+
+[endsect]
+
+[section Algebras and Operations]
+
+To provide maximum flexibility odeint is implemented in a highly modularized
+way. This means it is possible to change the underlying mathematical
+operations without touching the integration algorithms.
+The fundamental mathematical operations are those of a vector space, that is
+addition of `state_types` and multiplication of `state_type`s with a scalar
+(`time_type`). In odeint this is realized in two concepts: _Algebra_ and
+_Operations_. 
+The standard way how this works is by the range algebra which provides
+functions that apply a specific operation to each of the individual elements
+of a container based on the __boost_range library.
+If your state type is not supported by __boost_range there are several
+possibilities to tell odeint how to do algebraic operations:
+
+* Implement `boost::begin` and `boost::end` for your state type so it works
+with __boost_range.
+* Implement vector-vector addition operator `+` and scalar-vector
+multiplication operator `*` and use the non-standard `vector_space_algebra`.
+* Implement your own algebra that implements the required functions.
+
+[section GSL Vector]
+
+In the following example we will try to use the `gsl_vector` type from __gsl (GNU
+Scientific Library) as state type in odeint.
+We will realize this by implementing a wrapper around the gsl_vector that
+takes care of construction/destruction.
+Also, __boost_range is extended such that it works with `gsl_vector`s as well
+which required also the implementation of a new `gsl_iterator`.
+
+[note odeint already includes all the code presented here, see [github_link
+boost/numeric/odeint/external/gsl/gsl_wrapper.hpp gsl_wrapper.hpp], so `gsl_vector`s
+can be used straight out-of-box.
+The following description is just for educational purpose.] 
+
+The GSL is a C library, so `gsl_vector` has neither constructor, nor
+destructor or any `begin` or `end` function, no iterators at all.
+So to make it work with odeint plenty of things have to be implemented.
+Note that all of the work shown here is already included in odeint, so using
+`gsl_vector`s in odeint doesn't require any further adjustments.
+We present it here just as an educational example.
+We start with defining appropriate constructors and destructors.
+This is done by specializing the `state_wrapper` for `gsl_vector`.
+State wrappers are used by the steppers internally to create and manage
+temporary instances of state types:
+
+``
+template<>
+struct state_wrapper< gsl_vector* >
+{
+    typedef double value_type;
+    typedef gsl_vector* state_type;
+    typedef state_wrapper< gsl_vector* > state_wrapper_type;
+
+    state_type m_v;
+
+    state_wrapper( )
+    {
+        m_v = gsl_vector_alloc( 1 );
+    }
+
+    state_wrapper( const state_wrapper_type &x )
+    {
+        resize( m_v , x.m_v );
+        gsl_vector_memcpy( m_v , x.m_v );
+    }
+
+
+    ~state_wrapper()
+    {
+        gsl_vector_free( m_v );
+    }
+
+};
+``
+
+This `state_wrapper` specialization tells odeint how gsl_vectors are created,
+copied and destroyed.
+Next we need resizing, this is required because gsl_vectors are dynamically
+sized objects:
+``
+template<>
+struct is_resizeable< gsl_vector* >
+{
+    typedef boost::true_type type;
+    const static bool value = type::value;
+};
+
+template <>
+struct same_size_impl< gsl_vector* , gsl_vector* >
+{
+    static bool same_size( const gsl_vector* x , const gsl_vector* y )
+    {
+        return x->size == y->size;
+    }
+};
+
+template <>
+struct resize_impl< gsl_vector* , gsl_vector* >
+{
+    static void resize( gsl_vector* x , const gsl_vector* y )
+    {
+        gsl_vector_free( x );
+        x = gsl_vector_alloc( y->size );
+    }
+};
+``
+
+Up to now, we defined creation/destruction and resizing, but gsl_vectors also
+don't support iterators, so we first implement a gsl iterator:
+
+``
+/*
+ * defines an iterator for gsl_vector
+ */
+class gsl_vector_iterator 
+      : public boost::iterator_facade< gsl_vector_iterator , double , 
+                                       boost::random_access_traversal_tag >
+{
+public :
+
+    gsl_vector_iterator( void ): m_p(0) , m_stride( 0 ) { }
+    explicit gsl_vector_iterator( gsl_vector *p ) : m_p( p->data ) , m_stride( p->stride ) { }
+    friend gsl_vector_iterator end_iterator( gsl_vector * );
+
+private :
+
+    friend class boost::iterator_core_access;
+    friend class const_gsl_vector_iterator;
+
+    void increment( void ) { m_p += m_stride; }
+    void decrement( void ) { m_p -= m_stride; }
+    void advance( ptrdiff_t n ) { m_p += n*m_stride; }
+    bool equal( const gsl_vector_iterator &other ) const { return this->m_p == other.m_p; }
+    bool equal( const const_gsl_vector_iterator &other ) const;
+    double& dereference( void ) const { return *m_p; }
+
+    double *m_p;
+    size_t m_stride;
+};
+``
+A similar class exists for the `const` version of the iterator.
+Then we have a function returning the end iterator (similarly for `const` again):
+``
+gsl_vector_iterator end_iterator( gsl_vector *x )
+{
+    gsl_vector_iterator iter( x );
+    iter.m_p += iter.m_stride * x->size;
+    return iter;
+}
+``
+
+Finally, the bindings for __boost_range are added:
+``
+// template<>
+inline gsl_vector_iterator range_begin( gsl_vector *x )
+{
+    return gsl_vector_iterator( x );
+}
+
+// template<>
+inline gsl_vector_iterator range_end( gsl_vector *x )
+{
+    return end_iterator( x );
+}
+``
+Again with similar definitions for the `const` versions.
+This eventually makes odeint work with gsl vectors as state types.
+The full code for these bindings is found in [github_link
+boost/numeric/odeint/external/gsl/gsl_wrapper.hpp gsl_wrapper.hpp].
+It might look rather complicated but keep in mind that gsl is a pre-compiled C
+library.
+[endsect]
+
+
+[section Vector Space Algebra]
+
+As seen above, the standard way of performing algebraic operations on 
+container-like state types in odeint is to iterate through the elements of the 
+container and perform the operations element-wise on the underlying value type.
+This is realized by means of the `range_algebra` that uses __boost_range for 
+obtaining iterators of the state types.
+However, there are other ways to implement the algebraic operations on 
+containers, one of which is defining the addition/multiplication operators for 
+the containers directly and then using the `vector_space_algebra`.
+If you use this algebra, the following operators have to be defined for the 
+state_type:
+
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Addition] [`x + y`] [`state_type`] [Calculates the vector sum 'x+y'.]]
+  [[Assign addition] [`x += y`] [`state_type`] [Performs x+y in place.]]
+  [[Scalar multiplication] [`a * x `] [`state_type`] [Performs multiplication of vector x with scalar a.]]
+  [[Assign scalar multiplication] [`x *= a`] [`state_type`] [Performs in-place multiplication of vector x with scalar a.]]
+]
+
+Defining these operators makes your state type work with any basic Runge-Kutta 
+stepper.
+However, if you want to use step-size control, some more functionality is 
+required.
+Specifically, operations like 
+[' max[sub i]( |err[sub i]| / (alpha * |s[sub i]|) )]
+have to be performed.
+['err] and ['s] are state_types, alpha is a scalar.
+As you can see, we need element wise absolute value and division as well as an 
+reduce operation to get the maximum value.
+So for controlled steppers the following things have to be implemented:
+
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Division] [`x / y`] [`state_type`] [Calculates the element-wise division 'x/y']]
+  [[Absolute value] [`abs( x )`] [`state_type`] [Element wise absolute value]]
+  [[Reduce] [`vector_space_reduce_impl< state_type >::reduce( state , operation , init )`] [`value_type`] 
+    [Performs the `operation` for subsequently each element of `state` and returns the aggregate value.
+    E.g.
+    
+`init = operator( init , state[0] );`
+
+`init = operator( init , state[1] )`
+
+`...`
+    ]]
+]
+
+[endsect]
+
+[section Boost.Ublas]
+As an example for the employment of the `vector_space_algebra` we will adopt
+`ublas::vector` from __ublas to work as a state type in odeint.
+This is particularly easy because `ublas::vector` supports vector-vector
+addition and scalar-vector multiplication described above as well as `boost::size`.
+It also has a resize member function so all that has to be done in this case
+is to declare resizability:
+
+[import ../examples/ublas/lorenz_ublas.cpp]
+
+[ublas_resizeable]
+
+Now ublas::vector can be used as state type for simple Runge-Kutta steppers 
+in odeint by specifying the `vector_space_algebra` as algebra in the template 
+parameter list of the stepper. 
+The following code shows the corresponding definitions:
+
+[ublas_main]
+
+Note again, that we haven't supported the requirements for controlled steppers,
+but only for simple Runge-Kutta methods.
+You can find the full example in [github_link
+libs/numeric/odeint/examples/ublas/lorenz_ublas.cpp lorenz_ublas.cpp].
+
+[endsect]
+
+[section Point type]
+
+[import ../examples/lorenz_point.cpp]
+
+Here we show how to implement the required operators on a state type.
+As example we define a new class `point3D` representing a three-dimensional
+vector with components x,y,z and define addition and scalar multiplication
+operators for it.
+We use __boost_operators to reduce the amount of code to be written.
+The class for the point type looks as follows:
+
+[point3D]
+
+By deriving from __boost_operators classes we don't have to define outer class
+operators like `operator+( point3D , point3D )` because that is taken care of
+by the operators library.
+Note that for simple Runge-Kutta schemes (like `runge_kutta4`) only the `+`
+and `*` operators are required.
+If, however, a controlled stepper is used one also needs to specify the
+division operator `/` because calculation of the error term involves an
+element wise division of the state types.
+Additionally, controlled steppers require an `abs` function calculating the
+element-wise absolute value for the state type:
+
+[point3D_abs_div]
+
+Finally, we have to add a specialization for `reduce` implementing a reduction
+over the state type:
+
+[point3D_reduce]
+
+Again, note that the two last steps were only required if you want to use
+controlled steppers.
+For simple steppers definition of the simple `+=` and `*=` operators are
+sufficient.
+Having defined such a point type, we can easily perform the integration on a Lorenz
+system by using the `vector_space_algebra` again:
+
+[point3D_main]
+
+The whole example can be found in [github_link
+libs/numeric/odeint/examples/lorenz_point.cpp lorenz_point.cpp]
+
+[endsect]
+
+[endsect]
+
+gsl_vector, gsl_matrix, ublas::matrix, blitz::matrix, thrust
+
+[section Adapt your own operations]
+
+to be continued
+
+*thrust
+*gsl_complex
+*min, max, pow
+
+[endsect]
+
+
+
+[endsect]

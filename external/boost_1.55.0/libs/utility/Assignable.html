@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+
+  <title>Assignable</title>
+</head>
+
+<body bgcolor="#FFFFFF" link="#0000EE" text="#000000" vlink="#551A8B" alink=
+"#FF0000">
+  <img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86"><br clear="none">
+
+  <h1>Assignable</h1>
+
+  <h3>Description</h3>
+
+  <p>A type is Assignable if it is possible to assign one object of the type
+  to another object of that type.</p>
+
+  <h3>Notation</h3>
+
+  <table summary="">
+    <tr>
+      <td valign="top"><tt>T</tt></td>
+
+      <td valign="top">is type that is a model of Assignable</td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>t</tt></td>
+
+      <td valign="top">is an object of type <tt>T</tt></td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>u</tt></td>
+
+      <td valign="top">is an object of type <tt>T</tt> or possibly <tt>const
+      T</tt></td>
+    </tr>
+  </table>
+
+  <h3>Definitions</h3>
+
+  <h3>Valid expressions</h3>
+
+  <table border summary="">
+    <tr>
+      <th>Name</th>
+
+      <th>Expression</th>
+
+      <th>Return type</th>
+
+      <th>Semantics</th>
+    </tr>
+
+    <tr>
+      <td valign="top">Assignment</td>
+
+      <td valign="top"><tt>t = u</tt></td>
+
+      <td valign="top"><tt>T&amp;</tt></td>
+
+      <td valign="top"><tt>t</tt> is equivalent to <tt>u</tt></td>
+    </tr>
+  </table>
+
+  <h3>Models</h3>
+
+  <ul>
+    <li><tt>int</tt></li>
+
+    <li><tt>std::pair</tt></li>
+  </ul>
+
+  <h3>See also</h3>
+
+  <p><a href=
+  "http://www.sgi.com/tech/stl/DefaultConstructible.html">DefaultConstructible</a>
+  and <a href="./CopyConstructible.html">CopyConstructible</a><br></p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->05 December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38516" --></p>
+
+  <table summary="">
+    <tr valign="top">
+      <td nowrap><i>Copyright &copy; 2000</i></td>
+
+      <td><i><a href="http://www.lsc.nd.edu/~jsiek">Jeremy Siek</a>, Univ.of
+      Notre Dame (<a href=
+      "mailto:jsiek@lsc.nd.edu">jsiek@lsc.nd.edu</a>)</i></td>
+    </tr>
+  </table>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

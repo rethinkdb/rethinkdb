@@ -1,0 +1,165 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright 2004 Aleksey Gurtovoy -->
+<!-- Copyright 2004, 2005, 2006 Vladimir Prus -->
+<!-- Distributed under the Boost Software License, Version 1.0. -->
+<!-- (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) -->
+
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Linux/x86 (vers 1st April 2002), see www.w3.org">
+    <meta name="generator" content="Microsoft FrontPage 5.0">
+    <meta http-equiv="Content-Type" content=
+    "text/html; charset=windows-1252">
+    <!-- tidy options: &dash;&dash;tidy-mark false -i -wrap 78 !-->
+<style type="text/css">
+div.sidebar {
+  margin-left: 1em ;
+  border: medium outset ;
+  padding: 0em 1em ;
+  background-color: #adbed2;
+  border-color: #000000;
+  border-width: 1;
+  width: 40% ;
+  float: right ;
+  clear: right }
+}
+  
+div.sidebar p.rubric {
+  font-family: sans-serif ;
+  font-size: medium }
+</style>
+
+    <title>Boost.Build V2</title>
+  </head>
+
+  <body bgcolor="#FFFFFF" text="#000000">
+  
+  <p align="center"><img src="boost_build.png" width="396" height="60" alt="Boost.Build V2"></img>
+
+    <div class="contents sidebar topic" id="index">
+      <p>
+        <b>Quick access</b>
+        <ul>
+        <li>Download: <a href=
+    "http://prdownloads.sourceforge.net/boost/boost-build-2.0-m12.zip">[zip]
+          </a>, <a href=
+    "http://prdownloads.sourceforge.net/boost/boost-build-2.0-m12.tar.bz2">[tar.bz2]
+          </a>
+        <li>Nightly build: <a href="http://boost.org/boost-build2/boost-build.zip">[zip]</a>, 
+          <a href="http://boost.org/boost-build2/boost-build.tar.bz2">[tar.bz2]</a>
+        <li><a href="../../../doc/html/bbv2.html">Documentation</a> 
+          (<a href="doc/userman.pdf">PDF</a>)
+        <li><a
+          href="http://www.crystalclearsoftware.com/cgi-bin/boost_wiki/wiki.pl?Boost.Build_V2">Wiki
+          (User-contibuted documentation)</a>
+        <li>Feedback: <a
+    href="http://lists.boost.org/mailman/listinfo.cgi/boost-build">[mailing list]</a>,
+          <a
+            href="news://news.gmane.org/gmane.comp.lib.boost.build">[newsgroup]</a>
+          <ul>
+            <li>Before posting, <a href="http://lists.boost.org/mailman/listinfo.cgi/boost-build">subscribe</a>
+	    <!--
+	    <li><form method="get" action="http://search.gmane.org/">
+	        <input type="text" name="query">
+		<input type="hidden" name="group" value="gmane.comp.lib.boost.build">
+		<input type="submit" value="Search">
+		</form> -->
+          </ul>
+	<li><a href="https://trac.lvk.cs.msu.su/boost.build">Bug tracker</a>  
+<!--        <li>Rate Boost.Build: <a href="http://freshmeat.net/rate/38012/">Freshmeat</a>    -->
+      </ul>
+    </p>
+   </div>
+     
+<!--    <h1>Boost.Build V2</h1> -->
+
+
+    <h2>Overview</h2>
+
+    <p>Boost.Build is an easy way to build C++ projects, everywhere. You 
+    name you executables and libraries and list their sources. Boost.Build
+    takes care about compiling your sources with right options, creating
+    static and shared libraries, making executables, and other chores --
+    whether you're using gcc, msvc, or a dozen more supported C++
+    compilers -- on Windows, OSX, Linux and commercial UNIX systems.
+
+    <p>Some of the most important features:
+    <ul>
+      <li><b>Simple and high level build description</b>. In most
+      cases a name of target and list of sources is all you need.</li>
+
+      <li><b>Portability</b>. Most important build properties have symbolic
+      names that work everywhere. Why memorize compiler flags necessary 
+      for multi-threaded 64-bit shared library, if Boost.Build can do it for you?
+      
+      <li><b>Variant builds</b>. When you build the same project
+      twice with different properties, all produced files are placed
+      in different directories, so you can build with 2 versions of
+      gcc, or both debug and release variants in one invocation.</li>
+
+      <li><b>Global dependencies</b>. No matter what directory you build
+      in, Boost.Build will always check all dependencies in your entire
+      project, preventing inconsistent binaries.  And it's easy to
+      use one Boost.Build project in other, again with full dependency
+      tracking.
+
+      <li><b>Usage requirements</b>. A target can specify properties,
+      like include paths and preprocessor defines, that are necessary to use
+      it.  Those properties will be automatically applied whenever the target
+      is used.</li>
+
+      <li><b>Standalone</b>. Boost.Build's only dependency is a C compiler,
+      so it's easy to setup. You can even include all of Boost.Build in your 
+      project. Boost.Build does not depend on C++ Boost in any way.</li>
+    </ul>
+
+    <h2>Status and future</h2>
+
+    <p>Boost.Build is ready to use today, and new features are being actively
+    developed.
+
+    <p>The current version of 2.0 Milestone 12, which added support for
+    precompiled headers on gcc, and added 3 new C++ compilers 
+    (<a href="http://svn.boost.org/svn/boost/trunk/tools/build/v2/changes.txt">full changelog</a>).
+
+    <p>Milestone 13 is planned as bugfix release. Milestone 14 will
+    focus on improving user documentation. Milestone 15 will see most 
+    of Boost.Build reimplemented in Python, to make extending 
+    Boost.Build even easier for end users (see <a href="https://trac.lvk.cs.msu.su/boost.build/wiki/PythonPort">PythonPort</a>).
+    The specific issues planned for each release can be found on the 
+    <a href="https://trac.lvk.cs.msu.su/boost.build/roadmap">roadmap</a>.
+
+    
+       
+    <h2>Feedback and contributing</h2>
+
+    <p>Should you have any questions or comments, we'd be glad to hear them.
+    Post everything to the <a href="http://lists.boost.org/mailman/listinfo.cgi/boost-build">mailing list</a>.</p>
+
+    <p>Bugs and feature requests can be entered at our 
+    <a href="https://trac.lvk.cs.msu.su/boost.build">bug tracker</a>.
+
+    <p>If you'd like to help with development, just pick a bug
+    in the tracker that you'd like to fix, or feel free to implement
+    any feature you like. There's a separate 
+    <a href="hacking.txt">guidelines document</a> for working on code.</p>
+    <hr>
+
+    <p>&copy; Copyright David Abrahams and Vladimir Prus 2002-2007.
+    Permission to copy, use, modify, sell and distribute this document is
+    granted provided this copyright notice appears in all copies. This
+    document is provided "as is" without express or implied warranty, and
+    with no claim as to its suitability for any purpose.</p>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan
+                                            -->Oct 4, 2007 
+    <!--webbot bot="Timestamp" endspan i-checksum="13972"
+                                            -->
+    </p>
+    
+  </body>
+</html>
+

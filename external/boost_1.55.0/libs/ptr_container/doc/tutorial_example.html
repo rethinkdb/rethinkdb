@@ -1,0 +1,365 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title> </title>
+<link rel="stylesheet" href="default.css" type="text/css">
+</head>
+
+<body>
+    <pre><span class=comment>//
+// Boost.Pointer Container
+//
+//  Copyright Thorsten Ottosen 2003-2005. Use, modification and
+//  distribution is subject to the Boost Software License, Version
+//  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+// For more information, see http://www.boost.org/libs/ptr_container/
+//
+
+//
+// This example is intended to get you started.
+// Notice how the smart container
+//
+// 1. takes ownership of objects
+// 2. transfers ownership
+// 3. applies indirection to iterators 
+// 4. clones objects from other smart containers
+// 
+
+//
+// First we select which container to use.
+//</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>ptr_container</span><span class=special>/</span><span class=identifier>ptr_deque</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=comment>//
+// we need these later in the example
+//</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>assert</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>string</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>exception</span><span class=special>&gt;</span>
+
+
+<span class=comment>//
+// Then we define a small polymorphic class
+// hierarchy.
+//</span> 
+
+<span class=keyword>class</span> <span class=identifier>animal</span> <span class=special>:</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>noncopyable</span>
+<span class=special>{</span>
+    <span class=keyword>virtual</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>do_speak</span><span class=special>()</span> <span class=keyword>const</span> <span class=special>=</span> <span class=number>0</span><span class=special>;</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>name_</span><span class=special>;</span>
+
+<span class=keyword>protected</span><span class=special>:</span>
+    <span class=comment>//
+    // Animals cannot be copied...
+    //</span>
+    <span class=identifier>animal</span><span class=special>(</span> <span class=keyword>const</span> <span class=identifier>animal</span><span class=special>&amp;</span> <span class=identifier>r</span> <span class=special>)</span> <span class=special>:</span> <span class=identifier>name_</span><span class=special>(</span> <span class=identifier>r</span><span class=special>.</span><span class=identifier>name_</span> <span class=special>)</span>           <span class=special>{</span> <span class=special>}</span>
+    <span class=keyword>void</span> <span class=keyword>operator</span><span class=special>=(</span> <span class=keyword>const</span> <span class=identifier>animal</span><span class=special>&amp;</span> <span class=special>);</span>
+
+<span class=keyword>private</span><span class=special>:</span>
+    <span class=comment>//
+    // ...but due to advances in genetics, we can clone them!
+    //</span>
+
+    <span class=keyword>virtual</span> <span class=identifier>animal</span><span class=special>*</span> <span class=identifier>do_clone</span><span class=special>()</span> <span class=keyword>const</span> <span class=special>=</span> <span class=number>0</span><span class=special>;</span>
+        
+<span class=keyword>public</span><span class=special>:</span>
+    <span class=identifier>animal</span><span class=special>(</span> <span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>name</span> <span class=special>)</span> <span class=special>:</span> <span class=identifier>name_</span><span class=special>(</span><span class=identifier>name</span><span class=special>)</span>        <span class=special>{</span> <span class=special>}</span>
+    <span class=keyword>virtual</span> <span class=special>~</span><span class=identifier>animal</span><span class=special>()</span> <span class=keyword>throw</span><span class=special>()</span>                              <span class=special>{</span> <span class=special>}</span>
+    
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>speak</span><span class=special>()</span> <span class=keyword>const</span>
+    <span class=special>{</span>
+        <span class=keyword>return</span> <span class=identifier>do_speak</span><span class=special>();</span>
+    <span class=special>}</span>
+
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>name</span><span class=special>()</span> <span class=keyword>const</span>
+    <span class=special>{</span>
+        <span class=keyword>return</span> <span class=identifier>name_</span><span class=special>;</span>
+    <span class=special>}</span>
+
+    <span class=identifier>animal</span><span class=special>*</span> <span class=identifier>clone</span><span class=special>()</span> <span class=keyword>const</span>
+    <span class=special>{</span>
+        <span class=keyword>return</span> <span class=identifier>do_clone</span><span class=special>();</span>
+    <span class=special>}</span>
+<span class=special>};</span>
+
+<span class=comment>//
+// An animal is still not Clonable. We need this last hook.
+//
+// Notice that we pass the animal by const reference
+// and return by pointer.
+//</span>
+
+<span class=identifier>animal</span><span class=special>*</span> <span class=identifier>new_clone</span><span class=special>(</span> <span class=keyword>const</span> <span class=identifier>animal</span><span class=special>&amp;</span> <span class=identifier>a</span> <span class=special>)</span>
+<span class=special>{</span>
+    <span class=keyword>return</span> <span class=identifier>a</span><span class=special>.</span><span class=identifier>clone</span><span class=special>();</span>
+<span class=special>}</span>
+
+<span class=comment>//
+// We do not need to define 'delete_clone()' since
+// since the default is to call the default 'operator delete()'.
+//</span>
+
+<span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>muuuh</span> <span class=special>=</span> <span class=string>&quot;Muuuh!&quot;</span><span class=special>;</span>
+<span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>oiink</span> <span class=special>=</span> <span class=string>&quot;Oiiink&quot;</span><span class=special>;</span>
+
+<span class=keyword>class</span> <span class=identifier>cow</span> <span class=special>:</span> <span class=keyword>public</span> <span class=identifier>animal</span>
+<span class=special>{</span>
+    <span class=keyword>virtual</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>do_speak</span><span class=special>()</span> <span class=keyword>const</span>
+    <span class=special>{</span>
+        <span class=keyword>return</span> <span class=identifier>muuuh</span><span class=special>;</span>
+    <span class=special>}</span>
+
+    <span class=keyword>virtual</span> <span class=identifier>animal</span><span class=special>*</span> <span class=identifier>do_clone</span><span class=special>()</span> <span class=keyword>const</span>
+    <span class=special>{</span>
+        <span class=keyword>return</span> <span class=keyword>new</span> <span class=identifier>cow</span><span class=special>(</span> <span class=special>*</span><span class=keyword>this</span> <span class=special>);</span>
+    <span class=special>}</span>
+
+<span class=keyword>public</span><span class=special>:</span>
+    <span class=identifier>cow</span><span class=special>(</span> <span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>name</span> <span class=special>)</span> <span class=special>:</span> <span class=identifier>animal</span><span class=special>(</span><span class=identifier>name</span><span class=special>)</span>          <span class=special>{</span> <span class=special>}</span>
+<span class=special>};</span>
+
+<span class=keyword>class</span> <span class=identifier>pig</span> <span class=special>:</span> <span class=keyword>public</span> <span class=identifier>animal</span>
+<span class=special>{</span>
+    <span class=keyword>virtual</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>do_speak</span><span class=special>()</span> <span class=keyword>const</span>
+    <span class=special>{</span>
+        <span class=keyword>return</span> <span class=identifier>oiink</span><span class=special>;</span>
+    <span class=special>}</span>
+
+    <span class=keyword>virtual</span> <span class=identifier>animal</span><span class=special>*</span> <span class=identifier>do_clone</span><span class=special>()</span> <span class=keyword>const</span>
+    <span class=special>{</span>
+        <span class=keyword>return</span> <span class=keyword>new</span> <span class=identifier>pig</span><span class=special>(</span> <span class=special>*</span><span class=keyword>this</span> <span class=special>);</span>
+    <span class=special>}</span>
+    
+<span class=keyword>public</span><span class=special>:</span>
+    <span class=identifier>pig</span><span class=special>(</span> <span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>name</span> <span class=special>)</span> <span class=special>:</span> <span class=identifier>animal</span><span class=special>(</span><span class=identifier>name</span><span class=special>)</span>          <span class=special>{</span> <span class=special>}</span>
+<span class=special>};</span>
+
+<span class=comment>//
+// Then we, of course, need a place to put all
+// those animals.
+//</span>
+
+<span class=keyword>class</span> <span class=identifier>farm</span>
+<span class=special>{</span>
+    <span class=comment>//
+    // This is where the smart containers are handy
+    //</span>
+    <span class=keyword>typedef</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>ptr_deque</span><span class=special>&lt;</span><span class=identifier>animal</span><span class=special>&gt;</span> <span class=identifier>barn_type</span><span class=special>;</span>
+    <span class=identifier>barn_type</span>                        <span class=identifier>barn</span><span class=special>;</span>
+
+    <span class=comment>//
+    // An error type
+    //</span>
+    <span class=keyword>struct</span> <span class=identifier>farm_trouble</span> <span class=special>:</span> <span class=keyword>public</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>exception</span>           <span class=special>{</span> <span class=special>};</span>
+
+<span class=keyword>public</span><span class=special>:</span>
+    <span class=comment>// 
+    // We would like to make it possible to
+    // iterate over the animals in the farm
+    //</span>
+    <span class=keyword>typedef</span> <span class=identifier>barn_type</span><span class=special>::</span><span class=identifier>iterator</span>  <span class=identifier>animal_iterator</span><span class=special>;</span>
+
+    <span class=comment>//
+    // We also need to count the farm's size...
+    //</span>
+    <span class=keyword>typedef</span> <span class=identifier>barn_type</span><span class=special>::</span><span class=identifier>size_type</span> <span class=identifier>size_type</span><span class=special>;</span>
+    
+    <span class=comment>//
+    // And we also want to transfer an animal
+    // safely around. The easiest way to think
+    // about '::auto_type' is to imagine a simplified
+    // 'std::auto_ptr&lt;T&gt;' ... this means you can expect
+    // 
+    //   T* operator-&gt;()
+    //   T* release()
+    //   deleting destructor
+    //
+    // but not more.
+    //</span>
+    <span class=keyword>typedef</span> <span class=identifier>barn_type</span><span class=special>::</span><span class=identifier>auto_type</span>  <span class=identifier>animal_transport</span><span class=special>;</span>
+
+    <span class=comment>// 
+    // Create an empty farm.
+    //</span>
+    <span class=identifier>farm</span><span class=special>()</span>                                                 <span class=special>{</span> <span class=special>}</span>
+    
+    <span class=comment>//
+    // We need a constructor that can make a new
+    // farm by cloning a range of animals.
+    //</span>
+    <span class=identifier>farm</span><span class=special>(</span> <span class=identifier>animal_iterator</span> <span class=identifier>begin</span><span class=special>,</span> <span class=identifier>animal_iterator</span> <span class=identifier>end</span> <span class=special>)</span>
+     <span class=special>:</span> 
+        <span class=comment>//
+        // Objects are always cloned before insertion
+        // unless we explicitly add a pointer or 
+        // use 'release()'. Therefore we actually
+        // clone all animals in the range
+        //</span>
+        <span class=identifier>barn</span><span class=special>(</span> <span class=identifier>begin</span><span class=special>,</span> <span class=identifier>end</span> <span class=special>)</span>                               <span class=special>{</span> <span class=special>}</span>
+    
+    <span class=comment>//
+    // ... so we need some other function too
+    //</span>
+
+    <span class=identifier>animal_iterator</span> <span class=identifier>begin</span><span class=special>()</span>
+    <span class=special>{</span>
+        <span class=keyword>return</span> <span class=identifier>barn</span><span class=special>.</span><span class=identifier>begin</span><span class=special>();</span>
+    <span class=special>}</span>
+
+    <span class=identifier>animal_iterator</span> <span class=identifier>end</span><span class=special>()</span>
+    <span class=special>{</span>
+        <span class=keyword>return</span> <span class=identifier>barn</span><span class=special>.</span><span class=identifier>end</span><span class=special>();</span>
+    <span class=special>}</span>
+    
+    <span class=comment>//
+    // Here it is quite ok to have an 'animal*' argument.
+    // The smart container will handle all ownership
+    // issues.
+    //</span>
+    <span class=keyword>void</span> <span class=identifier>buy_animal</span><span class=special>(</span> <span class=identifier>animal</span><span class=special>*</span> <span class=identifier>a</span> <span class=special>)</span>
+    <span class=special>{</span>
+        <span class=identifier>barn</span><span class=special>.</span><span class=identifier>push_back</span><span class=special>(</span> <span class=identifier>a</span> <span class=special>);</span>
+    <span class=special>}</span>
+
+    <span class=comment>//
+    // The farm can also be in economical trouble and
+    // therefore be in the need to sell animals.
+    //</span>
+    <span class=identifier>animal_transport</span> <span class=identifier>sell_animal</span><span class=special>(</span> <span class=identifier>animal_iterator</span> <span class=identifier>to_sell</span> <span class=special>)</span>
+    <span class=special>{</span>
+        <span class=keyword>if</span><span class=special>(</span> <span class=identifier>to_sell</span> <span class=special>==</span> <span class=identifier>end</span><span class=special>()</span> <span class=special>)</span>
+            <span class=keyword>throw</span> <span class=identifier>farm_trouble</span><span class=special>();</span>
+
+        <span class=comment>//
+        // Here we remove the animal from the barn,
+        // but the animal is not deleted yet...it's
+        // up to the buyer to decide what
+        // to do with it.
+        //</span>
+        <span class=keyword>return</span> <span class=identifier>barn</span><span class=special>.</span><span class=identifier>release</span><span class=special>(</span> <span class=identifier>to_sell</span> <span class=special>);</span>
+    <span class=special>}</span>
+
+    <span class=comment>//
+    // How big a farm do we have?
+    //</span>
+    <span class=identifier>size_type</span> <span class=identifier>size</span><span class=special>()</span> <span class=keyword>const</span>
+    <span class=special>{</span>
+        <span class=keyword>return</span> <span class=identifier>barn</span><span class=special>.</span><span class=identifier>size</span><span class=special>();</span>
+    <span class=special>}</span>
+
+    <span class=comment>//
+    // If things are bad, we might choose to sell all animals :-(
+    //</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>auto_ptr</span><span class=special>&lt;</span><span class=identifier>barn_type</span><span class=special>&gt;</span> <span class=identifier>sell_farm</span><span class=special>()</span>
+    <span class=special>{</span>
+        <span class=keyword>return</span> <span class=identifier>barn</span><span class=special>.</span><span class=identifier>release</span><span class=special>();</span>
+    <span class=special>}</span>
+
+    <span class=comment>//
+    // However, if things are good, we might buy somebody
+    // else's farm :-)
+    //</span>
+
+    <span class=keyword>void</span> <span class=identifier>buy_farm</span><span class=special>(</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>auto_ptr</span><span class=special>&lt;</span><span class=identifier>barn_type</span><span class=special>&gt;</span> <span class=identifier>other</span> <span class=special>)</span>
+    <span class=special>{</span>
+        <span class=comment>//
+        // This line inserts all the animals from 'other'
+        // and is guaranteed either to succeed or to have no
+        // effect
+        //</span>
+        <span class=identifier>barn</span><span class=special>.</span><span class=identifier>transfer</span><span class=special>(</span> <span class=identifier>barn</span><span class=special>.</span><span class=identifier>end</span><span class=special>(),</span> <span class=comment>// insert new animals at the end</span>
+                         <span class=special>*</span><span class=identifier>other</span> <span class=special>);</span>     <span class=comment>// we want to transfer all animals,
+                                       // so we use the whole container as argument
+        //
+        // You might think you would have to do
+        //
+        // other.release();
+        //
+        // but '*other' is empty and can go out of scope as it wants
+        //</span>
+        <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>other</span><span class=special>-&gt;</span><span class=identifier>empty</span><span class=special>()</span> <span class=special>);</span>
+    <span class=special>}</span>
+    
+<span class=special>};</span> <span class=comment>// class 'farm'.</span>
+
+<span class=keyword>int</span> <span class=identifier>main</span><span class=special>()</span>
+<span class=special>{</span>
+    <span class=comment>//
+    // First we make a farm
+    //</span>
+    <span class=identifier>farm</span> <span class=identifier>animal_farm</span><span class=special>;</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>0u</span> <span class=special>);</span>
+    
+    <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>buy_animal</span><span class=special>(</span> <span class=keyword>new</span> <span class=identifier>pig</span><span class=special>(</span><span class=string>&quot;Betty&quot;</span><span class=special>)</span> <span class=special>);</span>
+    <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>buy_animal</span><span class=special>(</span> <span class=keyword>new</span> <span class=identifier>pig</span><span class=special>(</span><span class=string>&quot;Benny&quot;</span><span class=special>)</span> <span class=special>);</span>
+    <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>buy_animal</span><span class=special>(</span> <span class=keyword>new</span> <span class=identifier>pig</span><span class=special>(</span><span class=string>&quot;Jeltzin&quot;</span><span class=special>)</span> <span class=special>);</span>
+    <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>buy_animal</span><span class=special>(</span> <span class=keyword>new</span> <span class=identifier>cow</span><span class=special>(</span><span class=string>&quot;Hanz&quot;</span><span class=special>)</span> <span class=special>);</span>
+    <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>buy_animal</span><span class=special>(</span> <span class=keyword>new</span> <span class=identifier>cow</span><span class=special>(</span><span class=string>&quot;Mary&quot;</span><span class=special>)</span> <span class=special>);</span>
+    <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>buy_animal</span><span class=special>(</span> <span class=keyword>new</span> <span class=identifier>cow</span><span class=special>(</span><span class=string>&quot;Frederik&quot;</span><span class=special>)</span> <span class=special>);</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>6u</span> <span class=special>);</span>
+
+    <span class=comment>//
+    // Then we make another farm...it will actually contain
+    // a clone of the other farm.
+    //</span>
+    <span class=identifier>farm</span> <span class=identifier>new_farm</span><span class=special>(</span> <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span> <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>end</span><span class=special>()</span> <span class=special>);</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>new_farm</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>6u</span> <span class=special>);</span>
+
+    <span class=comment>//
+    // Is it really clones in the new farm?
+    //</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>new_farm</span><span class=special>.</span><span class=identifier>begin</span><span class=special>()-&gt;</span><span class=identifier>name</span><span class=special>()</span> <span class=special>==</span> <span class=string>&quot;Betty&quot;</span> <span class=special>);</span>
+    
+    <span class=comment>//
+    // Then we search for an animal, Mary (the Crown Princess of Denmark),
+    // because we would like to buy her ...
+    //</span>
+    <span class=keyword>typedef</span> <span class=identifier>farm</span><span class=special>::</span><span class=identifier>animal_iterator</span> <span class=identifier>iterator</span><span class=special>;</span>
+    <span class=identifier>iterator</span> <span class=identifier>to_sell</span><span class=special>;</span>
+    <span class=keyword>for</span><span class=special>(</span> <span class=identifier>iterator</span> <span class=identifier>i</span>   <span class=special>=</span> <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span>
+                  <span class=identifier>end</span> <span class=special>=</span> <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>end</span><span class=special>();</span>
+         <span class=identifier>i</span> <span class=special>!=</span> <span class=identifier>end</span><span class=special>;</span> <span class=special>++</span><span class=identifier>i</span> <span class=special>)</span>
+    <span class=special>{</span>
+        <span class=keyword>if</span><span class=special>(</span> <span class=identifier>i</span><span class=special>-&gt;</span><span class=identifier>name</span><span class=special>()</span> <span class=special>==</span> <span class=string>&quot;Mary&quot;</span> <span class=special>)</span>
+        <span class=special>{</span>
+            <span class=identifier>to_sell</span> <span class=special>=</span> <span class=identifier>i</span><span class=special>;</span>
+            <span class=keyword>break</span><span class=special>;</span>
+        <span class=special>}</span>
+    <span class=special>}</span>
+
+    <span class=identifier>farm</span><span class=special>::</span><span class=identifier>animal_transport</span> <span class=identifier>mary</span> <span class=special>=</span> <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>sell_animal</span><span class=special>(</span> <span class=identifier>to_sell</span> <span class=special>);</span>
+
+
+    <span class=keyword>if</span><span class=special>(</span> <span class=identifier>mary</span><span class=special>-&gt;</span><span class=identifier>speak</span><span class=special>()</span> <span class=special>==</span> <span class=identifier>muuuh</span> <span class=special>)</span>
+        <span class=comment>//
+        // Great, Mary is a cow, and she may live longer
+        //</span>
+        <span class=identifier>new_farm</span><span class=special>.</span><span class=identifier>buy_animal</span><span class=special>(</span> <span class=identifier>mary</span><span class=special>.</span><span class=identifier>release</span><span class=special>()</span> <span class=special>);</span>
+    <span class=keyword>else</span>
+        <span class=comment>//
+        // Then the animal would be destroyed (!)
+        // when we go out of scope.
+        //</span>
+        <span class=special>;</span>
+
+    <span class=comment>//
+    // Now we can observe some changes to the two farms...
+    //</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>5u</span> <span class=special>);</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>new_farm</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span>    <span class=special>==</span> <span class=number>7u</span> <span class=special>);</span>
+
+    <span class=comment>//
+    // The new farm has however underestimated how much
+    // it cost to feed Mary and its owner is forced to sell the farm...
+    //</span>
+    <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>buy_farm</span><span class=special>(</span> <span class=identifier>new_farm</span><span class=special>.</span><span class=identifier>sell_farm</span><span class=special>()</span> <span class=special>);</span>
+
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>new_farm</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span>    <span class=special>==</span> <span class=number>0u</span> <span class=special>);</span>
+    <span class=identifier>BOOST_ASSERT</span><span class=special>(</span> <span class=identifier>animal_farm</span><span class=special>.</span><span class=identifier>size</span><span class=special>()</span> <span class=special>==</span> <span class=number>12u</span> <span class=special>);</span>     
+<span class=special>}</span>
+</pre>
+</body>
+
+</html>

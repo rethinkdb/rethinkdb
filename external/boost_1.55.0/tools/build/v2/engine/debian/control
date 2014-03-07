@@ -1,0 +1,16 @@
+Source: bjam
+Section: devel
+Priority: optional
+Maintainer: Vladimir Prus <ghost@cs.msu.su>
+Build-Depends: debhelper (>> 3.0.0), docbook-to-man, bison
+Standards-Version: 3.5.2
+
+Package: bjam
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Build tool 
+ Boost.Jam is a portable build tool with its own interpreted language, which 
+ allows to implement rather complex logic in a readable way and without 
+ resorting to external programs. It is a descendant of Jam/MR tool modified to 
+ suit the needs of Boost.Build. In particular, modules and rule parameters
+ were added, as well as several new builtins.

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="missing_id_test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Missing Id test</title>
+  <section id="missing_id_test.missing_id_test_1">
+    <title><link linkend="missing_id_test.missing_id_test_1">Missing Id test 1</link></title>
+  </section>
+  <section id="missing_id_test.no_docinfo_test_1">
+    <title><link linkend="missing_id_test.no_docinfo_test_1">No docinfo test 1</link></title>
+  </section>
+  <section id="missing_id_test.missing_id_test_2">
+    <title><link linkend="missing_id_test.missing_id_test_2">Missing Id test 2</link></title>
+  </section>
+  <section id="docinfo_no_id.docinfo_no_id_1">
+    <title><link linkend="docinfo_no_id.docinfo_no_id_1">Docinfo no id 1</link></title>
+  </section>
+  <section id="missing_id_test.missing_id_test_3">
+    <title><link linkend="missing_id_test.missing_id_test_3">Missing Id test 3</link></title>
+  </section>
+  <section id="docinfo_no_id.no_docinfo_test_1">
+    <title><link linkend="docinfo_no_id.no_docinfo_test_1">No docinfo test 1</link></title>
+  </section>
+  <section id="missing_id_test.missing_id_test_4">
+    <title><link linkend="missing_id_test.missing_id_test_4">Missing Id test 4</link></title>
+  </section>
+</article>

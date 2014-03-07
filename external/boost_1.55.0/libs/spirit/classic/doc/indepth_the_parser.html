@@ -1,0 +1,287 @@
+<html>
+<head>
+<title>In-depth: The Parser</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> 
+      <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>In-depth: The Parser</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="semantic_actions.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="indepth_the_scanner.html"><img src="theme/r_arr.gif" border="0"></a></td>
+   </tr>
+</table>
+<p>What makes Spirit tick? Now on to some details... The parser class is the most 
+  fundamental entity in the framework. A parser accepts a scanner comprised of 
+  a first-last iterator pair and returns a match object as its result. The iterators 
+  delimit the data currently being parsed. The match object evaluates to true 
+  if the parse succeeds, in which case the input is advanced accordingly. Each 
+  parser can represent a specific pattern or algorithm, or it can be a more complex 
+  parser formed as a composition of other parsers.</p>
+<p>All parsers inherit from the base template class, parser:</p>
+<pre>
+<span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>DerivedT</span><span class=special>&gt;
+</span><span class=keyword>struct </span><span class=identifier>parser
+</span><span class=special>{
+    </span><span class=comment>/*...*/
+
+    </span><span class=identifier>DerivedT</span><span class=special>&amp; </span><span class=identifier>derived</span><span class=special>();
+    </span><span class=identifier>DerivedT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>derived</span><span class=special>() </span><span class=keyword>const</span><span class=special>;
+</span><span class=special>};</span></pre>
+<p>This class is a protocol base class for all parsers. The parser class does 
+  not really know how to parse anything but instead relies on the template parameter 
+  <tt>DerivedT</tt> to do the actual parsing. This technique is known as the <a href="references.html#curious_recurring">&quot;Curiously 
+  Recurring Template Pattern&quot;</a> in template meta-programming circles. This 
+  inheritance strategy gives us the power of polymorphism without the virtual 
+  function overhead. In essence this is a way to implement <a href="references.html#generic_patterns">compile 
+  time polymorphism</a>.</p>
+<h2> parser_category_t</h2>
+<p> Each derived parser has a typedef <tt>parser_category_t</tt> that defines 
+  its category. By default, if one is not specified, it will inherit from the 
+  base parser class which typedefs its parser_category_t as <tt>plain_parser_category</tt>. 
+  Some template classes are provided to distinguish different types of parsers. 
+  The following categories are the most generic. More specific types may inherit 
+  from these.</p>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td colspan="2" class="table_title">Parser categories</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="33%"><tt>plain_parser_category</tt></td>
+    <td class="table_cells" width="67%">Your plain vanilla parser</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="33%"><tt>binary_parser_category</tt></td>
+    <td class="table_cells" width="67%">A parser that has subject a and b (e.g. 
+      alternative)</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="33%"><tt>unary_parser_category</tt></td>
+    <td class="table_cells" width="67%">A parser that has single subject (e.g. 
+      kleene star)</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="33%"><tt>action_parser_category</tt></td>
+    <td class="table_cells" width="67%">A parser with an attached semantic action</td>
+  </tr>
+</table>
+<pre><span class=identifier>    </span><span class=keyword>struct </span><span class=identifier>plain_parser_category </span><span class=special>{};
+    </span><span class=keyword>struct </span><span class=identifier>binary_parser_category       </span><span class=special>: </span><span class=identifier>plain_parser_category </span><span class=special>{};
+    </span><span class=keyword>struct </span><span class=identifier>unary_parser_category        </span><span class=special>: </span><span class=identifier>plain_parser_category </span><span class=special>{};
+    </span><span class=keyword>struct </span><span class=identifier>action_parser_category       </span><span class=special>: </span><span class=identifier>unary_parser_category </span><span class=special>{};</span></pre>
+<h2>embed_t</h2>
+<p>Each parser has a typedef <tt>embed_t</tt>. This typedef specifies how a parser 
+  is embedded in a composite. By default, if one is not specified, the parser 
+  will be embedded by value. That is, a copy of the parser is placed as a member 
+  variable of the composite. Most parsers are embedded by value. In certain situations 
+  however, this is not desirable or possible. One particular example is the <a href="rule.html">rule</a>. 
+  The rule, unlike other parsers is embedded by reference.</p>
+<h2><a name="match"></a>The match</h2>
+<p>The match holds the result of a parser. A match object evaluates to true when 
+  a succesful match is found, otherwise false. The length of the match is the 
+  number of characters (or tokens) that is successfully matched. This can be queried 
+  through its <tt>length()</tt> member function. A negative value means that the 
+  match is unsucessful. </p>
+<p> Each parser may have an associated attribute. This attribute is also returned 
+  back to the client on a successful parse through the match object. We can get 
+  this attribute via the match's <tt>value()</tt> member function. Be warned though 
+  that the match's attribute may be invalid, in which case, getting the attribute 
+  will result in an exception. The member function <tt>has_valid_attribute()</tt> 
+  can be queried to know if it is safe to get the match's attribute. The attribute 
+  may be set anytime through the member function <tt>value(v)</tt>where <tt>v</tt> 
+  is the new attribute value.<br>
+  <br>
+  A match attribute is valid:</p>
+<ul>
+  <li> on a successful match</li>
+  <li>when its value is set through the <tt>value(val)</tt> member function</li>
+  <li> if it is assigned or copied from a compatible match object (e.g. <tt>match&lt;double&gt;</tt> 
+    from <tt>match&lt;int&gt;</tt>) with a valid attribute. A match object <tt>A</tt> 
+    is compatible with another match object <tt>B</tt> if the attribute type of 
+    <tt>A</tt> can be assigned from the attribute type of <tt></tt> <tt>B</tt> 
+    (i.e. <tt>a = b;</tt> must compile).</li>
+</ul>
+<p>The match attribute is undefined:</p>
+<ul>
+  <li>on an unsuccessful match </li>
+  <li>when an attempt to copy or assign from another match object with an incompatible 
+    attribute type (e.g. <tt>match&lt;std::string&gt;</tt> from <tt>match&lt;int&gt;</tt>).</li>
+</ul>
+<h3>The match class:</h3>
+<pre><span class=keyword>    template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>T</span><span class=special>&gt;
+</span><span class=keyword>    class </span><span class=identifier>match
+</span><span class=keyword>    </span><span class=special>{
+</span><span class=keyword>    public</span><span class=special>:
+
+    </span><span class=keyword>    </span><span class=comment>/*...*/
+
+</span><span class=special>    </span><span class=keyword>    typedef</span><span class="identifier"> T attr_t</span><span class="special">;<br>
+             </span><span class=keyword>    </span><span class="special">   </span><span class=keyword>operator safe_bool</span><span class=special>() </span><span class=keyword>const</span>; <span class="comment">// convertible to a bool</span>
+    <span class=keyword>    int         </span><span class=identifier>length</span><span class=special>() </span><span class=keyword>const</span>;
+        <span class="keyword">bool</span>        has_valid_attribute<span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class=keyword>    </span> <span class=identifier>void</span><span class=special>        </span><span class=identifier>value</span><span class=special>(</span><span class="identifier">T </span><span class="keyword">const</span><span class=special>&amp;) </span><span class=keyword>const;
+        </span><span class=identifier>T </span><span class=keyword>const</span><span class=special>&amp;    </span><span class=identifier>value</span><span class=special>();
+</span><span class=keyword>    </span><span class=special>};</span></pre>
+<h2>match_result</h2>
+<p>It has been mentioned repeatedly that the parser returns a match object as 
+  its result. This is a simplification. Actually, for the sake of genericity, 
+  parsers are really not hard-coded to return a match object. More accurately, 
+  a parser returns an object that adheres to a conceptual interface, of which 
+  the match is an example. Nevertheless, we shall call the result type of a parser 
+  a match object regardless if it is actually a match class, a derivative or a 
+  totally unrelated type.</p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/lens.gif" width="15" height="16"> <b>Meta-functions</b><br>
+      <br>
+      What are meta-functions? We all know how functions look like. In simplest 
+      terms, a function accepts some arguments and returns a result. Here is the 
+      function we all love so much:<br>
+      <br>
+      <code><span class="keyword">int</span> identity_func<span class="special">(</span><span class="keyword">int</span> 
+      arg<span class="special">)</span><br>
+      <span class="special">{</span> <span class="keyword">return</span> arg<span class="special">; 
+      }</span> <span class="comment">// return the argument arg</span><br>
+      </code><br>
+      Meta-functions are essentially the same. These beasts also accept arguments 
+      and return a result. However, while functions work at runtime on values, 
+      meta-functions work at compile time on types (or constants, but we shall 
+      deal only with types). The meta-function is a template class (or struct). 
+      The template parameters are the arguments to the meta-function and a typedef 
+      within the class is the meta-function's return type. Here is the corresponding 
+      meta-function:<code><br>
+      <br>
+      <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> 
+      ArgT<span class="special">&gt;</span><br>
+      <span class="keyword">struct</span> identity_meta_func<br>
+      <span class="special">{</span> <span class="keyword">typedef</span> ArgT 
+      type<span class="special">; } </span><span class="comment">// return the 
+      argument ArgT</span><br>
+      <br>
+      </code>The meta-function above is invoked as:<br>
+      <br>
+      <code><span class="keyword">typename</span> identity_meta_func<span class="special">&lt;</span>ArgT<span class="special">&gt;::</span>type</code><br>
+      <br>
+      By convention, meta-functions return the result through the typedef <tt>type</tt>. 
+      Take note that <tt>typename</tt> is only required within templates.</td>
+  </tr>
+</table>
+<p>The actual match type used by the parser depends on two types: the parser's 
+  attribute type and the scanner type. <tt>match_result</tt> is the meta-function 
+  that returns the desired match type given an attribute type and a scanner type. 
+</p>
+<p>Usage:</p>
+<pre>    <span class=keyword>typename </span><span class=identifier>match_result</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>, </span><span class=identifier>T</span><span class=special>&gt;::</span><span class=identifier>type</span></pre>
+<p>The meta-function basically answers the question &quot;given a scanner type 
+  <tt>ScannerT</tt> and an attribute type <tt>T</tt>, what is the desired match 
+  type?&quot; [<img src="theme/note.gif" width="16" height="16"> <tt>typename</tt> 
+  is only required within templates ].</p>
+<h2>The parse member function</h2>
+<p>Concrete sub-classes inheriting from parser must have a corresponding member 
+  function <tt>parse(...)</tt> compatible with the conceptual Interface:<br>
+</p>
+<pre><span class=identifier>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+    </span><span class=identifier>RT
+    </span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special></span> const<span class=special>&amp; </span>scan<span class=identifier></span><span class=special>) </span><span class=keyword>const</span><span class=special>;</span></pre>
+<p>where <tt>RT</tt> is the desired return type of the parser. </p>
+<h2>The parser result</h2>
+<p>Concrete sub-classes inheriting from parser in most cases need to have a nested 
+  meta-function <tt>result</tt> that returns the result <tt>type</tt> of the parser's 
+  parse member function, given a scanner type. The meta-function has the form:</p>
+<pre><span class=keyword>    template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>result
+    </span><span class=special>{
+        </span><span class=keyword>typedef </span>RT <span class=identifier></span><span class=identifier>type</span><span class=special>;
+    </span><span class=special>};</span></pre>
+<p>where <tt>RT</tt> is the desired return type of the parser. This is usually, 
+  but not always, dependent on the template parameter <tt>ScannerT</tt>. For example, 
+  given an attribute type <tt>int</tt>, we can use the match_result metafunction:</p>
+<pre><span class=keyword>    template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>result
+    </span><span class=special>{
+        </span><span class=keyword>typedef typename </span><span class=identifier>match_result</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>, </span><span class="keyword">int</span><span class=special>&gt;::</span><span class=identifier>type type</span><span class=special>;
+    };</span></pre>
+<p>If a parser does not supply a result metafunction, a default is provided by 
+  the base parser class.<span class=special> </span>The default is declared as:</p>
+<pre><span class=keyword>    template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>result
+    </span><span class=special>{
+        </span><span class=keyword>typedef typename </span><span class=identifier>match_result</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>, </span><span class="identifier">nil_t</span><span class=special>&gt;::</span><span class=identifier>type type</span><span class=special>;
+    };</span></pre>
+<p>Without a result metafunction, notice that the parser's default attribute is 
+  <tt>nil_t</tt> (i.e. the parser has no attribute).</p>
+<h2><span class=special></span>parser_result</h2>
+<p>Given a a scanner type <tt>ScannerT</tt> and a parser type <tt>ParserT</tt>, 
+  what will be the actual result of the parser? The answer to this question is 
+  provided to by the <tt>parser_result</tt> meta-function.</p>
+<p>Usage:</p>
+<pre>    <span class=keyword>typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>ParserT, ScannerT</span><span class=special>&gt;::</span><span class=identifier>type</span></pre>
+<p>In general, the meta-function just forwards the invocation to the parser's 
+  result meta-function:</p>
+<pre><span class=identifier>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ParserT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>parser_result
+    </span><span class=special>{
+        </span><span class=keyword>typedef </span><span class=keyword>typename </span><span class=identifier>ParserT</span><span class=special>::</span><span class=keyword>template </span><span class=identifier>result</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type </span><span class=identifier>type</span><span class=special>;
+    </span><span class=special>};</span></pre>
+<p>This is similar to a global function calling a member function. Most of the 
+  time, the usage above is equivalent to:</p>
+<pre><span class=keyword>    typename </span><span class=identifier>ParserT</span><span class=special>::</span><span class=keyword>template </span><span class=identifier>result</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type</span></pre>
+<p>Yet, this should not be relied upon to be true all the time because the parser_result 
+  metafunction might be specialized for specific parser and/or scanner types.</p>
+<p>The parser_result metafunction makes the signature of the required parse member 
+  function almost canonical:</p>
+<pre><span class=identifier>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+    </span><span class=keyword>typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>self_t, ScannerT</span><span class=special>&gt;::</span><span class=identifier>type</span><br>    <span class=identifier>parse</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special></span> const<span class=special>&amp; </span>scan<span class=identifier></span><span class=special>) </span><span class=keyword>const</span><span class=special>;</span></pre>
+<p>where<span class=special></span> <tt>self_t</tt> is a typedef to the parser.</p>
+<h2>parser class declaration</h2>
+<pre><span class=identifier>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>DerivedT</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>parser
+    </span><span class=special>{
+        </span><span class=keyword>typedef </span><span class=identifier>DerivedT                embed_t</span><span class=special>;
+        </span><span class=keyword>typedef </span><span class=identifier>DerivedT                derived_t</span><span class=special>;
+        </span><span class=keyword>typedef </span><span class=identifier>plain_parser_category   parser_category_t</span><span class=special>;
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class="keyword">typename</span> ScannerT<span class=special>&gt;
+        </span><span class=keyword>struct </span><span class=identifier>result
+        </span><span class=special>{
+            </span><span class=keyword>typedef typename </span><span class=identifier>match_result</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>, </span><span class=identifier>nil_t</span><span class=special>&gt;::</span><span class=identifier>type type</span><span class=special>;
+        };
+
+        </span><span class=identifier>DerivedT</span><span class=special>&amp; </span><span class=identifier>derived</span><span class=special>();
+        </span><span class=identifier>DerivedT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>derived</span><span class=special>() </span><span class=keyword>const</span><span class=special>;
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ActionT</span><span class=special>&gt;
+        </span><span class=identifier>action</span><span class=special>&lt;</span><span class=identifier>DerivedT</span><span class=special>, </span><span class=identifier>ActionT</span><span class=special>&gt;
+        </span><span class=keyword>operator</span><span class=special>[](</span><span class=identifier>ActionT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>actor</span><span class=special>) </span><span class=keyword>const</span><span class=special>;
+    };</span></pre>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="semantic_actions.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="indepth_the_scanner.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+<font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+</body>
+</html>

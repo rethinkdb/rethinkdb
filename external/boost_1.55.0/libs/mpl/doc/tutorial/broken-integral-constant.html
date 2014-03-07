@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Broken Integral Constant Expressions</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./portability.html" class="navigation-link">Prev</a>&nbsp;<a href="./incomplete-support-for.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./incomplete-support-for.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./portability.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./technical-details.html" class="navigation-link">Technical Details</a> / <a href="./portability.html" class="navigation-link">Portability</a> / <a href="./broken-integral-constant.html" class="navigation-link">Broken Integral Constant Expressions</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="broken-integral-constant">
+<h1><a class="toc-backref" href="./portability.html#id74" name="broken-integral-constant">Broken Integral Constant Expressions</a></h1>
+<p>This is probably the most surprising of the portability issues
+we're going to discuss, not least because for many C++ programmers, their everyday 
+experience seems to indicate no problems in this area whatsoever. After all,
+integer compile-time computations along the lines of:</p>
+<pre class="literal-block">
+enum flags {
+      flag1     = (1 &lt;&lt; 0)
+    , flag2     = (1 &lt;&lt; 1)
+    , flag3     = (1 &lt;&lt; 2)
+    ...
+    };
+</pre>
+<p>are <em>very</em> commonplace in C++, and there is hardly a compiler out
+there that cannot handle this correctly.  While arithmetic by
+itself is indeed rarely problematic, when you are trying to mix it
+with templates on certain deficient compilers, all kinds of new
+issues arise. Fortunately, as with the rest of the portability
+issues we're discussing here, the problem fades into past as new
+compiler versions are released. The majority of most recent
+compilers of many vendors are already free from these issues.</p>
+<div class="section" id="the-problem">
+<h2><a name="the-problem">The Problem</a></h2>
+<p>The problem is in fact multi-faceted; there are a number of
+different subissues.  Some are present in one set of compilers,
+some are in another, and it's not uncommon for a code that works
+for one compiler to break another one and vice-versa. If this
+sounds like a maintenance nightmare to you, it is!  If you are
+interested in the specific list of issues, please refer to John
+Maddock's excellent &quot;<a class="reference" href="http://www.boost.org/more/int_const_guidelines.htm" target="_top">Coding Guidelines for Integral Constant
+Expressions</a>&quot; summary.  For the purpose of our discission here, it
+is sufficient to say that if your code has to work on one of the
+compilers listed as problematic in this area, you can safely assume 
+that if you decide to fight them on a case-by-case basis, chances 
+are that you won't be able to maintain your sanity for very long.</p>
+</div>
+<div class="section" id="the-symptoms">
+<h2><a name="the-symptoms">The Symptoms</a></h2>
+<p>On the positive side, when you have an issue with integral
+arithmetic, the diagnostics are almost always straightforward:
+usually the error message refers you to the exact place in the code
+that is causing problems, and the essence of issue is obvious from
+the error's text, or it becomes obvious once you've encountered the
+same error a couple of times.  For instance, if we throw this
+well-formed fragment at MSVC 7.1 (otherwise an excellent compiler!)</p>
+<pre class="literal-block">
+void value();
+
+// compares two Integral Constants
+template&lt; typename N1, typename N2 &gt; struct less
+    : bool_&lt; (N1::value &lt; N2::value) &gt; // line #8
+{
+};
+</pre>
+<p>we get:</p>
+<pre class="literal-block">
+portability.cpp(8) : warning C4346: 'N2::value' : dependent name is not a type
+        prefix with 'typename' to indicate a type
+        portability.cpp(10) : see reference to class template instantiation 'less&lt;N1,N2&gt;' being compiled
+portability.cpp(8) : error C2143: syntax error : missing ',' before ')'
+portability.cpp(9) : error C2143: syntax error : missing ';' before '{'
+portability.cpp(10) : error C2143: syntax error : missing ';' before '}'
+portability.cpp(10) : fatal error C1004: unexpected end of file found
+</pre>
+<p>The errors themselves are far from being ideal, but at least we are
+pointed at the correct line and even the correct part of the
+line. The above basically reads as &quot;something's wrong between the
+parentheses&quot;, and that plus the &quot;syntax error&quot; part is usually
+enough of the clue.</p>
+</div>
+<div class="section" id="the-solution">
+<h2><a name="the-solution">The Solution</a></h2>
+<p>Despite the fact the problems are so numerous and multi-faceted and
+the workarounds are conflicting, the problems can be hidden
+reliably beneath a library abstraction layer.  The underlaying idea
+is very simple: we can always wrap the constants in types and pass
+those around. Then all that is left is to implement algebraic
+metafunctions that operate on such wrappers, once, and we are home
+safe.</p>
+<p>If this sounds familiar to you, probably it's because you have
+already took a look at the MPL and know that the approach we just
+described is in fact <em>the</em> standard way of doing arithmetic in the
+library.  Although it's motivated by more general observations,
+this fact comes very handy for the library users that care about
+portability of their numerically-heavy metaprograms.  The MPL
+primitives are already there, and more importantly, they already
+implement the necessary workarounds, so your numeric code just
+works.  In fact, if you stay within the library's type-wrapper
+idioms, these particular problems never &quot;leak&quot; out of its
+abstraction layer.</p>
+<p>On a final note, there is a price of avoiding built-in arithmetics
+altogether, namely decreased readability and, on some compilers,
+increased compile-time overhead. Still, in majority of cases, the
+benefits of type-based arithmetics overweight its small
+shortcomings.</p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./portability.html" class="navigation-link">Prev</a>&nbsp;<a href="./incomplete-support-for.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./incomplete-support-for.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./portability.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

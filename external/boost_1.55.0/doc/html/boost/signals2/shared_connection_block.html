@@ -1,0 +1,287 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class shared_connection_block</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../signals2/reference.html#header.boost.signals2.shared_connection_block_hpp" title="Header &lt;boost/signals2/shared_connection_block.hpp&gt;">
+<link rel="prev" href="optional_last__idp58716696.html" title="Class optional_last_value&lt;void&gt;">
+<link rel="next" href="signal.html" title="Class template signal">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="optional_last__idp58716696.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../signals2/reference.html#header.boost.signals2.shared_connection_block_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="signal.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.signals2.shared_connection_block"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class shared_connection_block</span></h2>
+<p>boost::signals2::shared_connection_block &#8212; Blocks a connection between a signal and a slot.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../signals2/reference.html#header.boost.signals2.shared_connection_block_hpp" title="Header &lt;boost/signals2/shared_connection_block.hpp&gt;">boost/signals2/shared_connection_block.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="shared_connection_block.html" title="Class shared_connection_block">shared_connection_block</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="shared_connection_block.html#boost.signals2.shared_connection_blockconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="shared_connection_block.html#idp89714616-bb"><span class="identifier">shared_connection_block</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="connection.html" title="Class connection">boost::signals2::connection</a> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">connection</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                          <span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="shared_connection_block.html#idp93892040-bb"><span class="identifier">shared_connection_block</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">signals2</span><span class="special">::</span><span class="identifier">shared_connection_block</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  shared_connection_block&amp; 
+  <a class="link" href="shared_connection_block.html#idp98091848-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">signals2</span><span class="special">::</span><span class="identifier">shared_connection_block</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="shared_connection_block.html#idp93767576-bb"><span class="special">~</span><span class="identifier">shared_connection_block</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="shared_connection_block.html#idp94534120-bb">connection blocking</a></span>
+  <span class="keyword">void</span> <a class="link" href="shared_connection_block.html#idp51786728-bb"><span class="identifier">unblock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="shared_connection_block.html#idp60810584-bb"><span class="identifier">block</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="shared_connection_block.html#idp96100872-bb"><span class="identifier">blocking</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="shared_connection_block.html#idp60260200-bb">miscellaneous methods</a></span>
+  <a class="link" href="connection.html" title="Class connection">boost::signals2::connection</a> <a class="link" href="shared_connection_block.html#idp60260392-bb"><span class="identifier">connection</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp205516088"></a><h2>Description</h2>
+<p>A <code class="computeroutput">shared_connection_block</code> object blocks a
+          connection, preventing the associated slot from executing when the
+          associated signal is invoked. The connection will remain
+          blocked until every <code class="computeroutput">shared_connection_block</code> that references
+          the connection
+          releases its block.  A <code class="computeroutput">shared_connection_block</code> releases
+          its block when it is destroyed or its
+          <a class="link" href="shared_connection_block.html#idp51786728-bb">unblock</a> method is called.</p>
+<p>A <code class="computeroutput">shared_connection_block</code> is safe to use even
+          after the <a class="link" href="connection.html" title="Class connection">signals2::connection</a> object it was constructed
+          from has been destroyed, or the connection it references has been
+          disconnected.</p>
+<p>
+            Note, blocking a connection does not guarantee the associated slot
+            has finished execution if it is already in the process of being run
+            when the connection block goes into effect.  This is similar
+            to the behaviour of disconnect, in that blocking a connection
+            will not wait for the connection's associated slot to complete execution.
+            This situation may arise in a multi-threaded environment if the
+            connection block goes into effect concurrently with signal invocation,
+            or in a single-threaded environment if a slot blocks its own
+            connection.
+          </p>
+<div class="refsect2">
+<a name="idp205519752"></a><h3>
+<a name="boost.signals2.shared_connection_blockconstruct-copy-destruct"></a><code class="computeroutput">shared_connection_block</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp89714616-bb"></a><span class="identifier">shared_connection_block</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="connection.html" title="Class connection">boost::signals2::connection</a> <span class="special">&amp;</span> conn <span class="special">=</span> <span class="identifier">connection</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                        <span class="keyword">bool</span> initially_blocking <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>
+<p>Creates a <code class="computeroutput">shared_connection_block</code> which can block
+            the connection referenced by <code class="computeroutput">conn</code>.  The <code class="computeroutput">shared_connection_block</code>
+            will initially block the connection if and only if the
+            <code class="computeroutput">initially_blocking</code>
+            parameter is <code class="computeroutput">true</code>.  The block on the connection may be released
+            by calling the <a class="link" href="shared_connection_block.html#idp51786728-bb">unblock</a> method,
+            or destroying the <code class="computeroutput">shared_connection_block</code> object.</p>
+<p>Default construction of a <code class="computeroutput">shared_connection_block</code> results in a
+              <code class="computeroutput">shared_connection_block</code> which references the NULL connection.
+              Such a <code class="computeroutput">shared_connection_block</code> is safe to use, though not
+              particularly useful until it is assigned another
+              <code class="computeroutput">shared_connection_block</code> which references a real connection.
+            </p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">this-&gt;blocking() == initially_blocking</code></p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp93892040-bb"></a><span class="identifier">shared_connection_block</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">signals2</span><span class="special">::</span><span class="identifier">shared_connection_block</span> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td><p>
+              Copy constructs a <code class="computeroutput">shared_connection_block</code> which references
+              the same connection as <code class="computeroutput">other</code>.
+            </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td>
+<p><code class="computeroutput">this-&gt;connection() == other.connection()</code></p>
+<p><code class="computeroutput">this-&gt;blocking() == other.blocking()</code></p>
+</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout">shared_connection_block&amp; 
+<a name="idp98091848-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">signals2</span><span class="special">::</span><span class="identifier">shared_connection_block</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td><p>
+              Makes <code class="computeroutput">this</code> reference the same connection as <code class="computeroutput">rhs</code>.
+            </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td>
+<p><code class="computeroutput">this-&gt;connection() == rhs.connection()</code></p>
+<p><code class="computeroutput">this-&gt;blocking() == rhs.blocking()</code></p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td><p>Will not throw.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp93767576-bb"></a><span class="special">~</span><span class="identifier">shared_connection_block</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td><p>If <a class="link" href="shared_connection_block.html#idp96100872-bb">blocking</a>() is true, releases the connection block.</p></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp205549240"></a><h3>
+<a name="idp94534120-bb"></a><code class="computeroutput">shared_connection_block</code> connection blocking</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp51786728-bb"></a><span class="identifier">unblock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td><p>If <a class="link" href="shared_connection_block.html#idp96100872-bb">blocking</a>() is true, releases the connection block.
+              Note, the connection may remain blocked due to
+              other <code class="computeroutput">shared_connection_block</code> objects.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">this-&gt;blocking() == false</code>.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp60810584-bb"></a><span class="identifier">block</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td><p>If <a class="link" href="shared_connection_block.html#idp96100872-bb">blocking</a>() is false, reasserts a block on
+              the connection.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">this-&gt;blocking() == true</code>.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp96100872-bb"></a><span class="identifier">blocking</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if <code class="computeroutput">this</code> is asserting a block on the connection.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Notes:</span></p></td>
+<td><p><code class="computeroutput">this-&gt;blocking() == true</code> implies <code class="computeroutput"><a class="link" href="connection.html#idp93811064-bb">connection::blocked</a>() == true</code>
+            for the connection.  However, <code class="computeroutput">this-&gt;blocking() == false</code> does not necessarily imply
+            <code class="computeroutput">connection::blocked() == false</code>, since the connection may be
+            blocked by another <code class="computeroutput">shared_connection_block</code> object.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp205565240"></a><h3>
+<a name="idp60260200-bb"></a><code class="computeroutput">shared_connection_block</code> miscellaneous methods</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a class="link" href="connection.html" title="Class connection">boost::signals2::connection</a> <a name="idp60260392-bb"></a><span class="identifier">connection</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A connection object for the connection referenced by <code class="computeroutput">this</code>.</p></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="optional_last__idp58716696.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../signals2/reference.html#header.boost.signals2.shared_connection_block_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="signal.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

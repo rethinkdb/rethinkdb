@@ -1,0 +1,2640 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+    Copyright (C) 2010 Christopher Schmidt
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Algorithm]
+
+[heading Lazy Evaluation]
+
+Unlike __mpl__, Fusion algorithms are lazy[footnote Except for some
+special cases such as __for_each__ and __copy__ which are inherently
+imperative algorithms.] and non sequence-type preserving [footnote What
+does that mean? It means that when you operate on a sequence through a
+Fusion algorithm that returns a sequence, the sequence returned may not
+be of the same class as the original]. This is by design. Runtime
+efficiency is given a high priority. Like __mpl__, and unlike __stl__,
+fusion algorithms are mostly functional in nature such that algorithms
+are non mutating (no side effects). However, due to the high cost of
+returning full sequences such as vectors and lists, /Views/ are returned
+from Fusion algorithms instead. For example, the __transform__ algorithm
+does not actually return a transformed version of the original sequence.
+__transform__ returns a __transform_view__. This view holds a reference
+to the original sequence plus the transform function. Iteration over the
+__transform_view__ will apply the transform function over the sequence
+elements on demand. This /lazy/ evaluation scheme allows us to chain as
+many algorithms as we want without incurring a high runtime penalty.
+
+[heading Sequence Extension]
+
+The /lazy/ evaluation scheme where __algorithms__ return __views__ also
+allows operations such as __push_back__ to be totally generic. In Fusion,
+__push_back__ is actually a generic algorithm that works on all sequences.
+Given an input sequence `s` and a value `x`, Fusion's __push_back__
+algorithm simply returns a __joint_view__: a view that holds a reference to
+the original sequence `s` and the value `x`. Functions that were once
+sequence specific and need to be implemented N times over N different
+sequences are now implemented only once. That is to say that Fusion
+sequences are cheaply extensible.
+
+To regain the original sequence, __conversion__ functions are provided. You
+may use one of the __conversion__ functions to convert back to the original
+sequence type.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm.hpp>
+    #include <boost/fusion/include/algorithm.hpp>
+
+[section Auxiliary]
+
+The auxiliary algorithms provide the utility algorithms for sequences.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/auxiliary.hpp>
+    #include <boost/fusion/include/auxiliary.hpp>
+
+[section Functions]
+
+[section copy]
+
+[heading Description]
+Copy a sequence `src` to a sequence `dest`.
+It is also used to convert sequence into other.
+
+[heading Synopsis]
+    template <typename Seq1, typename Seq2>
+    void copy(Seq1 const& src, Seq2& dest);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`src`][A model of __forward_sequence__, all elements contained in the `src` sequence should be convertible into the element contained in the `dest` sequence.][Operation's argument]]
+    [[`dest`][A model of __forward_sequence__, `e2 = e1` is valid expression for each pair of elements `e1` of `src` and `e2` of `dest`.][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __copy__(src, dest);
+
+[*Return type]: `void`
+
+[*Semantics]: `e2 = e1` for each element `e1` in `src` and `e2` in `dest`.
+
+[heading Complexity]
+Linear, exactly `__result_of_size__<Sequence>::value`.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/auxiliary/copy.hpp>
+    #include <boost/fusion/include/copy.hpp>
+
+[heading Example]
+    __vector__<int,int> vec(1,2);
+    __list__<int,int> ls;
+    __copy__(vec, ls);
+    assert(ls == __make_list__(1,2));
+
+[endsect]
+
+[endsect]
+
+[endsect]
+
+
+[section Iteration]
+
+The iteration algorithms provide the fundamental algorithms for traversing
+a sequence repeatedly applying an operation to its elements.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/iteration.hpp>
+    #include <boost/fusion/include/iteration.hpp>
+
+[section Functions]
+
+[template fold_desc[name result_of_name arg_desc seq_concept arg_id arg_type_id invoke_desc semantics_elements_desc example_arg_transform example_result I0 I1 IN]
+[heading Description]
+For a sequence `seq`, initial state `initial_state`, and binary function object
+or function pointer `f`, [^[name]] returns the result of the repeated application of
+binary `f` to the result of the previous `f` invocation (`inital_state` if it is
+the first call) and [arg_desc] of `seq`.
+
+[def name_macro [name]]
+[def result_of_name_macro [result_of_name]]
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename State,
+        typename F
+        >
+    typename result_of_name_macro<Sequence, State const, F>::type name_macro(
+        Sequence& seq, State const& initial_state, F f);
+        
+    template<
+        typename Sequence,
+        typename State,
+        typename F
+        >
+    typename result_of_name_macro<Sequence const, State const, F>::type name_macro(
+        Sequence const& seq, State const& initial_state, F f);
+
+[def seq_concept_macro [seq_concept]]
+[def arg_type_id_macro [arg_type_id]]
+[def arg_id_macro [arg_id]]
+[def invoke_desc_macro [invoke_desc]]
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of seq_concept_macro][Operation's argument]]
+    [[`initial_state`][Any type][Initial state]]
+    [[`f`][`f(s,arg_id_macro)` with return type `__boost_result_of_call__<F(S,arg_type_id_macro)>::type` for current state `s` of type `S`, and for each invoke_desc_macro][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    name_macro(seq, initial_state, f);
+
+[*Return type]: Any type
+
+[*Semantics]: Equivalent to [^f(... f(f(initial_state,[arg_id][I0]),[arg_id][I1]) ...[arg_id][IN])] where [^[arg_id]1 ...[arg_id]N] are [semantics_elements_desc].
+
+[heading Complexity]
+Linear, exactly `__result_of_size__<Sequence>::value` applications of `f`.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/iteration/name_macro.hpp>
+    #include <boost/fusion/include/name_macro.hpp>
+
+[def example_result_macro [example_result]]
+[def example_arg_transform_macro [example_arg_transform]]
+[heading Example]
+    struct make_string
+    {
+        typedef std::string result_type;
+
+        template<typename T>
+        std::string operator()(const std::string& str, const T& t) const
+        {
+            return str + boost::lexical_cast<std::string>(example_arg_transform_macro);
+        }
+    };
+    ...
+    const __vector__<int,int> vec(1,2);
+    assert(name_macro(vec,std::string(""), make_string()) == example_result_macro);
+]
+
+[section fold]
+[fold_desc fold..__result_of_fold__..each element..__forward_sequence__..e..E..element `e` of type `E` in `seq`..the consecutive elements of `seq`..t.."12"..1..2..N]
+[endsect]
+
+[section reverse_fold]
+[fold_desc reverse_fold..__result_of_reverse_fold__..each element..__bidirectional_sequence__..e..E..element `e` of type `E` in `seq`..the consecutive elements of `seq`..t.."21"..N..N-1..1]
+[endsect]
+
+[section iter_fold]
+[fold_desc iter_fold..__result_of_iter_fold__..iterators on each element..__forward_sequence__..it..It..iterator `it` of type `It` on an element of `seq`..consecutive iterators on the elements of `seq`..__deref__(t).."12"..1..2..N]
+[endsect]
+
+[section reverse_iter_fold]
+[fold_desc reverse_iter_fold..__result_of_reverse_iter_fold__..iterators on each element..__bidirectional_sequence__..it..It..iterator `it` of type `It` on an element of `seq`..consecutive iterators on the elements of `seq`..__deref__(t).."21"..N..N-1..1]
+[endsect]
+
+[section accumulate]
+[fold_desc accumulate..__result_of_accumulate__..each element..__forward_sequence__..e..E..element `e` of type `E` in `seq`..the consecutive elements of `seq`..t.."12"..1..2..N]
+[endsect]
+
+[section for_each]
+
+[heading Description]
+Applies a unary function object to each element of a sequence.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename F
+        >
+    typename __result_of_for_each__<Sequence, F>::type for_each(
+        Sequence& seq, F f);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__, `f(e)` must be a valid expression for each element `e` in `seq`][Operation's argument]]
+    [[`f`][A unary __reg_callable_obj__][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __for_each__(seq, f);
+
+[*Return type]: `void`
+
+[*Semantics]: Calls `f(e)` for each element `e` in `seq`.
+
+[heading Complexity]
+Linear, exactly `__result_of_size__<Sequence>::value` applications of `f`.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/iteration/for_each.hpp>
+    #include <boost/fusion/include/for_each.hpp>
+
+[heading Example]
+    struct increment
+    {
+        template<typename T>
+        void operator()(T& t) const
+        {
+            ++t;
+        }
+    };
+    ...
+    __vector__<int,int> vec(1,2);
+    __for_each__(vec, increment());
+    assert(vec == __make_vector__(2,3));
+
+[endsect]
+
+[endsect]
+
+[section Metafunctions]
+
+[template meta_fold_desc[name name_func seq_concept arg_id arg_type_id invoke_meta_desc]
+[heading Description]
+Returns the result type of [name_func].
+
+[def name_macro [name]]
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename State,
+        typename F>
+    struct name_macro
+    {
+        typedef __unspecified__ type;
+    };
+
+[def seq_concept_macro [seq_concept]]
+[def arg_type_id_macro [arg_type_id]]
+[def arg_id_macro [arg_id]]
+[def invoke_meta_desc_macro [invoke_meta_desc]]
+[table Parameters
+    [[Parameter]  [Requirement] [Description]]
+    [[`Sequence`] [A model of seq_concept_macro]    [The sequence to iterate]]
+    [[`State`]    [Any type]                        [The initial state for the first application of `F`]]
+    [[`F`]        [`__boost_result_of_call__<F(S,arg_type_id_macro)>::type` is the return type of `f(s,arg_id_macro)` with current state `s` of type `S`, and an invoke_meta_desc_macro][The operation to be applied on traversal]]
+]
+
+[heading Expression Semantics]
+    name_macro<Sequence, State, F>::type
+
+[*Return type]: Any type
+
+[*Semantics]: Returns the result of applying [name_func] to a sequence of type
+`Sequence`, with an initial state of type `State` and binary function object or
+function pointer of type `F`.
+
+[heading Complexity]
+Linear, exactly `__result_of_size__<Sequence>::value` applications of `F`.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/iteration/name_macro.hpp>
+    #include <boost/fusion/include/name_macro.hpp>
+]
+
+[section fold]
+[meta_fold_desc fold..__fold__..__forward_sequence__..e..E..element `e` of type `E` in `seq`]
+[endsect]
+
+[section reverse_fold]
+[meta_fold_desc reverse_fold..__reverse_fold__..__bidirectional_sequence__..e..E..element `e` of type `E` in `seq`]
+[endsect]
+
+[section iter_fold]
+[meta_fold_desc iter_fold..__iter_fold__..__forward_sequence__..it..It..iterator `it` of type `It` on an element of `seq`]
+[endsect]
+
+[section reverse_iter_fold]
+[meta_fold_desc reverse_iter_fold..__reverse_iter_fold__..__bidirectional_sequence__..it..It..iterator `it` of type `It` on an element of `seq`]
+[endsect]
+
+[section accumulate]
+[meta_fold_desc accumulate..__accumulate__..__forward_sequence__..e..E..element `e` of type `E` in `seq`]
+[endsect]
+
+[section for_each]
+A metafunction returning the result type of applying __for_each__ to a sequence. The
+return type of __for_each__ is always `void`.
+
+[heading Description]
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename F
+    >
+    struct for_each
+    {
+        typedef void type;
+    };
+
+[table Parameters
+    [[Parameter] [Requirement] [Description]]
+    [[`Sequence`] [A model of __forward_sequence__] [Operation's argument]]
+    [[`F`]    [Any type] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_for_each__<Sequence, F>::type
+
+[*Return type]: `void`.
+
+[*Semantics]: Returns the return type of __for_each__ for a sequence of type `Sequence` and a unary function object `F`.
+The return type is always `void`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/iteration/for_each.hpp>
+    #include <boost/fusion/include/for_each.hpp>
+
+[endsect]
+
+[endsect]
+
+[endsect]
+
+[section Query]
+The query algorithms provide support for searching and analyzing sequences.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query.hpp>
+    #include <boost/fusion/include/query.hpp>
+
+[section Functions]
+
+[section any]
+
+[heading Description]
+For a sequence `seq` and unary function object `f`, `any` returns true if `f` returns true for at least one element of `seq`.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename F
+        >
+    typename __result_of_any__<Sequence,F>::type any(
+        Sequence const& seq, F f);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__, `f(e)` must be a valid expression, convertible to `bool`, for each element `e` in `seq`][The sequence to search]]
+    [[`f`][A unary function object][The search predicate]]
+]
+
+[heading Expression semantics]
+    __any__(seq, f);
+
+[*Return type]: `bool`
+
+[*Semantics]: Returns true if and only if `f(e)` evaluates to `true` for some element `e` in `seq`.
+
+[heading Complexity]
+Linear. At most `__result_of_size__<Sequence>::value` comparisons.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/any.hpp>
+    #include <boost/fusion/include/any.hpp>
+
+[heading Example]
+    struct odd
+    {
+        template<typename T>
+        bool operator()(T t) const
+        {
+            return t % 2;
+        }
+    };
+    ...
+    assert(__any__(__make_vector__(1,2), odd()));
+    assert(!__any__(__make_vector__(2,4), odd()));
+
+[endsect]
+
+[section all]
+
+[heading Description]
+For a sequence `seq` and unary function object `f`, `all` returns true if `f` returns true for every element of `seq`.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename F
+        >
+    typename __result_of_all__<Sequence,F>::type all(
+        Sequence const& seq, F f);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__, `f(e)` is a valid expression, convertible to `bool`, for every element `e` in `seq`][The sequence to search]]
+    [[`f`][A unary function object][The search predicate]]
+]
+
+[heading Expression Semantics]
+    __all__(seq, f);
+
+[*Return type]: `bool`
+
+[*Semantics]: Returns true if and only if `f(e)` evaluates to `true` for every element `e` in `seq`.
+
+[heading Complexity]
+Linear. At most `__result_of_size__<Sequence>::value` comparisons.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/all.hpp>
+    #include <boost/fusion/include/all.hpp>
+
+[heading Example]
+    struct odd
+    {
+        template<typename T>
+        bool operator()(T t) const
+        {
+            return t % 2;
+        }
+    };
+    ...
+    assert(__all__(__make_vector__(1,3), odd()));
+    assert(!__all__(__make_vector__(1,2), odd()));
+
+[endsect]
+
+[section none]
+
+[heading Description]
+For a sequence `seq` and unary function object `f`, `none` returns true if `f` returns false for every element of `seq`.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename F
+        >
+    typename __result_of_none__<Sequence,F>::type none(
+        Sequence const& seq, F f);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__, `f(e)` is a valid expression, convertible to `bool`, for every element `e` in `seq`][The sequence to search]]
+    [[`f`][A unary function object][The search predicate]]
+]
+
+[heading Expression Semantics]
+    __none__(seq, f);
+
+[*Return type]: `bool`
+
+[*Semantics]: Returns true if and only if `f(e)` evaluates to `false` for every element `e` in `seq`. Result equivalent to `!any(seq, f)`.
+
+[heading Complexity]
+Linear. At most `__result_of_size__<Sequence>::value` comparisons.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/none.hpp>
+    #include <boost/fusion/include/none.hpp>
+
+[heading Example]
+    struct odd
+    {
+        template<typename T>
+        bool operator()(T t) const
+        {
+            return t % 2;
+        }
+    };
+    ...
+    assert(__none__(__make_vector__(2,4), odd()));
+    assert(!__none__(__make_vector__(1,2), odd()));
+
+[endsect]
+
+[section find]
+
+[heading Description]
+Finds the first element of a given type within a sequence.
+
+[heading Synopsis]
+    template<
+        typename T,
+        typename Sequence
+        >
+    __unspecified__ find(Sequence const& seq);
+
+    template<
+        typename T,
+        typename Sequence
+        >
+    __unspecified__ find(Sequence& seq);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][The sequence to search]]
+    [[`T`][Any type][The type to search for]]
+]
+
+[heading Expression Semantics]
+    __find__<T>(seq)
+
+[*Return type]: A model of the same iterator category as the iterators of `seq`.
+
+[*Semantics]: Returns an iterator to the first element of `seq` of type `T`, or `__end__(seq)` if there is no such element.
+Equivalent to `__find_if__<boost::is_same<_, T> >(seq)`
+
+[heading Complexity]
+Linear. At most `__result_of_size__<Sequence>::value` comparisons.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/find.hpp>
+    #include <boost/fusion/include/find.hpp>
+
+[heading Example]
+    const __vector__<char,int> vec('a','0');
+    assert(*__find__<int>(vec) == '0');
+    assert(__find__<double>(vec) == __end__(vec));
+
+[endsect]
+
+[section find_if]
+Finds the first element within a sequence with a type for which a given __mpl_lambda_expression__ evaluates to
+`boost::mpl::true_`.
+
+[heading Description]
+
+[heading Synopsis]
+    template<
+        typename F,
+        typename Sequence
+        >
+    __unspecified__ find_if(Sequence const& seq);
+
+    template<
+        typename F,
+        typename Sequence
+        >
+    __unspecified__ find_if(Sequence& seq);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][The sequence to search]]
+    [[`F`][A unary __mpl_lambda_expression__][The search predicate]]
+]
+
+[heading Expression Semantics]
+    __find_if__<F>(seq)
+
+[*Return type]: An iterator of the same iterator category as the iterators of `seq`.
+
+[*Semantics]: Returns the first element of `seq` for which __mpl_lambda_expression__ `F` evaluates to `boost::mpl::true_`,
+or `__end__(seq)` if there is no such element.
+
+[heading Complexity]
+Linear. At most `__result_of_size__<Sequence>::value` comparisons.
+
+#include <boost/fusion/algorithm/query/find_if.hpp>
+#include <boost/fusion/include/find_if.hpp>
+
+[heading Example]
+    const __vector__<double,int> vec(1.0,2);
+    assert(*__find_if__<is_integral<mpl::_> >(vec) == 2);
+    assert(__find_if__<is_class<mpl::_> >(vec) == __end__(vec));
+
+[endsect]
+
+[section count]
+
+[heading Description]
+Returns the number of elements of a given type within a sequence.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename T
+        >
+    typename __result_of_count__<Sequence, T>::type count(
+        Sequence const& seq, T const& t);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__, `e == t` must be a valid expression, convertible to `bool`, for each element `e` in `seq`][The sequence to search]]
+    [[`T`][Any type][The type to count]]
+]
+
+[heading Expression Semantics]
+    __count__(seq, t);
+
+[*Return type]: `int`
+
+[*Semantics]: Returns the number of elements of type `T` and equal to `t` in `seq`.
+
+[heading Complexity]
+Linear. At most `__result_of_size__<Sequence>::value` comparisons.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/count.hpp>
+    #include <boost/fusion/include/count.hpp>
+
+[heading Example]
+    const __vector__<double,int,int> vec(1.0,2,3);
+    assert(__count__(vec,2) == 1);
+
+[endsect]
+
+[section count_if]
+
+[heading Description]
+Returns the number of elements within a sequence with a type for which a given unary function object evaluates to
+`true`.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename F
+        >
+    typename __result_of_count_if__<Sequence, F>::type count_if(
+        Sequence const& seq, F f);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__, `f(e)` is a valid expression, convertible to `bool`, for each element `e` in `seq`][The sequence to search]]
+    [[`f`][A unary function object][The search predicate]]
+]
+
+[heading Expression Semantics]
+    __count_if__(seq, f)
+
+[*Return type]: `int`
+
+[*Semantics]: Returns the number of elements in `seq` where `f` evaluates to `true`.
+
+[heading Complexity]
+Linear. At most `__result_of_size__<Sequence>::value` comparisons.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/count_if.hpp>
+    #include <boost/fusion/include/count_if.hpp>
+
+[heading Example]
+    const __vector__<int,int,int> vec(1,2,3);
+    assert(__count_if__(vec,odd()) == 2);
+
+[endsect]
+
+[endsect]
+
+[section Metafunctions]
+
+[section any]
+
+[heading Description]
+A metafunction returning the result type of __any__.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename F
+        >
+    struct any
+    {
+        typedef bool type;
+    };
+
+[table Parameters
+    [[Parameter] [Requirement] [Description]]
+    [[`Sequence`] [A model of __forward_sequence__] [Operation's argument]]
+    [[`F`]       [A model of unary __poly_func_obj__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_any__<Sequence, F>::type
+
+[*Return type]: `bool`.
+
+[*Semantics]: Returns the return type of __any__ given a sequence of type `Sequence` and a unary __poly_func_obj__ of type `F`. The return type is always `bool`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/any.hpp>
+    #include <boost/fusion/include/any.hpp>
+
+[endsect]
+
+[section all]
+
+[heading Description]
+A metafunction returning the result type of __all__.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename F
+        >
+    struct all
+    {
+        typedef bool type;
+    };
+
+[table Parameters
+    [[Parameter] [Requirement] [Description]]
+    [[`Sequence`] [A model of __forward_sequence__] [Operation's argument]]
+    [[`F`]        [A model of unary __poly_func_obj__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_all__<Sequence, F>::type
+
+[*Return type]: `bool`.
+
+[*Semantics]: Returns the return type of __all__ given a sequence of type `Sequence` and a unary __poly_func_obj__ of type `F`. The return type is always `bool`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/all.hpp>
+    #include <boost/fusion/include/all.hpp>
+
+[endsect]
+
+[section none]
+
+[heading Description]
+A metafunction returning the result type of __none__.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename F
+        >
+    struct none
+    {
+        typedef bool type;
+    };
+
+[table Parameters
+    [[Parameter] [Requirement] [Description]]
+    [[`Sequence`] [A model of __forward_sequence__] [Operation's argument]]
+    [[`F`]        [A model of unary __poly_func_obj__] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_none__<Sequence, F>::type
+
+[*Return type]: `bool`.
+
+[*Semantics]: Returns the return type of __none__ given a sequence of type `Sequence` and a unary __poly_func_obj__ of type `F`. The return type is always `bool`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/none.hpp>
+    #include <boost/fusion/include/none.hpp>
+
+[endsect]
+
+[section find]
+
+[heading Description]
+Returns the result type of __find__, given the sequence and search types.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename T
+        >
+    struct find
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter] [Requirement] [Description]]
+    [[`Sequence`] [Model of __forward_sequence__] [Operation's argument]]
+    [[`T`]        [Any type] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_find__<Sequence, T>::type
+
+[*Return type]: A model of the same iterator category as the iterators of `Sequence`.
+
+[*Semantics]: Returns an iterator to the first element of type `T` in `Sequence`, or `__result_of_end__<Sequence>::type` if there is no such element.
+
+[heading Complexity]
+Linear, at most `__result_of_size__<Sequence>::value` comparisons.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/find.hpp>
+    #include <boost/fusion/include/find.hpp>
+
+[endsect]
+
+[section find_if]
+
+[heading Description]
+Returns the result type of __find_if__ given the sequence and predicate types.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename Pred
+        >
+    struct find_if
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter] [Requirement] [Description]]
+    [[`Sequence`] [A model of __forward_sequence__] [Operation's argument]]
+    [[`Pred`]     [A model of __mpl_lambda_expression__] [Operation's arguments]]
+]
+
+[heading Expression Semantics]
+    __result_of_find_if__<Sequence, Pred>::type
+
+[*Return type]: A model of the same iterator category as the iterators of `Sequence`.
+
+[*Semantics]: Returns an iterator to the first element in `Sequence` for which `Pred` evaluates to true. Returns `__result_of_end__<Sequence>::type` if there is no such element.
+
+[heading Complexity]
+Linear. At most `__result_of_size__<Sequence>::value` comparisons.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/find_if.hpp>
+    #include <boost/fusion/include/find_if.hpp>
+
+[endsect]
+
+[section count]
+
+[heading Description]
+A metafunction that returns the result type of `count` given the sequence and search types.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename T
+        >
+    struct count
+    {
+        typedef int type;
+    };
+
+[table Parameters
+    [[Parameter] [Requirement] [heading Description]]
+    [[`Sequence`] [A model of __forward_sequence__] [Operation's argument]]
+    [[`T`] [Any type] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_count__<T>::type
+
+[*Return type]: `int`.
+
+[*Semantics]: Returns the return type of __count__. The return type is always `int`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/count.hpp>
+    #include <boost/fusion/include/count.hpp>
+
+[endsect]
+
+[section count_if]
+
+[heading Description]
+A metafunction that returns the result type of `count_if` given the sequence and predicate types.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename Pred
+        >
+    struct count_if
+    {
+        typedef int type;
+    };
+
+[table Parameters
+    [[Parameter] [Requirement] [Description]]
+    [[`Sequence`] [A model of __forward_sequence__] [Operation's argument]]
+    [[`Pred`]     [A unary function object] [Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_count_if__<Sequence, Pred>::type
+
+[*Return type]: `int`.
+
+[*Semantics]: Returns the return type of __count_if__. The return type is always `int`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/query/count_if.hpp>
+    #include <boost/fusion/include/count_if.hpp>
+
+[endsect]
+
+[endsect]
+
+[endsect]
+
+[section Transformation]
+The transformation algorithms create new sequences out of existing sequences by performing some sort of transformation. In reality the new sequences are views onto the data in the original sequences.
+
+[note As the transformation algorithms return views onto their input arguments,
+it is important that the lifetime of the input arguments is greater than the
+period during which you wish to use the results.]
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation.hpp>
+    #include <boost/fusion/include/transformation.hpp>
+
+[section Functions]
+
+[section filter]
+
+[heading Description]
+For a given sequence, filter returns a new sequences containing only the elements of a specified type.
+
+[heading Synopsis]
+    template<
+        typename T,
+        typename Sequence
+        >
+    typename __result_of_filter__<Sequence const, T>::type filter(Sequence const& seq);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+    [[`T`][Any type][The type to retain]]
+]
+
+[heading Expression Semantics]
+    __filter__<T>(seq);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `seq` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a sequence containing all the elements of `seq` of type `T`.
+Equivalent to `__filter_if__<boost::same_type<_, T> >(seq)`.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/filter.hpp>
+    #include <boost/fusion/include/filter.hpp>
+
+[heading Example]
+    const __vector__<int,int,long,long> vec(1,2,3,4);
+    assert(__filter__<int>(vec) == __make_vector__(1,2));
+
+[endsect]
+
+[section filter_if]
+
+[heading Description]
+For a given sequence, __filter_if__ returns a new sequences containing
+only the elements with types for which a given __mpl_lambda_expression__ evaluates to `boost::mpl::true_`.
+
+[heading Synopsis]
+    template<
+        typename Pred,
+        typename Sequence
+        >
+    typename __result_of_filter_if__<Sequence const, Pred>::type filter_if(Sequence const& seq);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+    [[`Pred`][A unary __mpl_lambda_expression__][The predicate to filter by]]
+]
+
+[heading Expression Semantics]
+    __filter_if__<Pred>(seq);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `seq` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a sequence containing all the elements of `seq` with types for which `Pred` evaluates
+to `boost::mpl::true_`. The order of the retained elements is the same as in the original sequence.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/filter_if.hpp>
+    #include <boost/fusion/include/filter_if.hpp>
+
+[heading Example]
+    const __vector__<int,int,double,double> vec(1,2,3.0,4.0);
+    assert(__filter_if__<is_integral<mpl::_> >(vec) == __make_vector__(1,2));
+
+[endsect]
+
+[section transform]
+
+[heading Description]
+For a sequence `seq` and function object or function pointer `f`, `transform` returns a new sequence
+with elements created by applying `f(e)` to each element of `e` of `seq`.
+
+[heading Unary version synopsis]
+    template<
+        typename Sequence,
+        typename F
+        >
+    typename __result_of_transform__<Sequence const, F>::type transform(
+        Sequence const& seq, F f);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+    [[`f`][`f(e)` is a valid expression for each element `e` of `seq`. `__boost_result_of_call__<F(E)>::type` is the return type of `f` when called with a value of each element type `E`.][Transformation function]]
+]
+
+[heading Expression Semantics]
+    __transform__(seq, f);
+
+[*Return type]: A model of __forward_sequence__
+
+[*Semantics]: Returns a new sequence, containing the return values of `f(e)` for each element `e` within `seq`.
+
+[heading Binary version synopsis]
+    template<
+        typename Sequence1,
+        typename Sequence2,
+        typename F
+        >
+    typename __result_of_transform__<Sequence1 const, Sequence2 const, F>::type transform(
+        Sequence1 const& seq1, Sequence2 const& seq2, F f);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq1`][A model of __forward_sequence__][Operation's argument]]
+    [[`seq2`][A model of __forward_sequence__][Operation's argument]]
+    [[`f`][`f(e1,e2)` is a valid expression for each pair of elements `e1` of `seq1` and `e2` of `seq2`. `__boost_result_of_call__<F(E1,E2)>::type` is the return type of `f` when called with elements of type `E1` and `E2`][Transformation function]]
+]
+
+[*Return type]: A model of __forward_sequence__.
+
+[*Semantics]: Returns a new sequence, containing the return values of `f(e1, e2)` for each pair of elements `e1` and `e2` within `seq1` and `seq2` respectively.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/transform.hpp>
+    #include <boost/fusion/include/transform.hpp>
+
+[heading Example]
+    struct triple
+    {
+        typedef int result_type;
+
+        int operator()(int t) const
+        {
+            return t * 3;
+        };
+    };
+    ...
+    assert(__transform__(__make_vector__(1,2,3), triple()) == __make_vector__(3,6,9));
+
+[endsect]
+
+[section replace]
+
+[heading Description]
+Replaces each value within a sequence of a given type and value with a new value.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename T
+        >
+    typename __result_of_replace__<Sequence const, T>::type replace(
+        Sequence const& seq, T const& old_value, T const& new_value);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__, `e == old_value` is a valid expression, convertible to `bool`, for each element `e` in `seq` with type convertible to `T`][Operation's argument]]
+    [[`old_value`][Any type][Value to replace]]
+    [[`new_value`][Any type][Replacement value]]
+]
+
+[heading Expression Semantics]
+    __replace__(seq, old_value, new_value);
+
+[*Return type]: A model of __forward_sequence__.
+
+[*Semantics]: Returns a new sequence with all the values of `seq` with `new_value` assigned to elements with the same type and equal to `old_value`.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/replace.hpp>
+    #include <boost/fusion/include/replace.hpp>
+
+[heading Example]
+    assert(__replace__(__make_vector__(1,2), 2, 3) == __make_vector__(1,3));
+
+[endsect]
+
+[section replace_if]
+
+[heading Description]
+Replaces each element of a given sequence for which an unary function object evaluates to `true` replaced with
+a new value.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename F,
+        typename T>
+    typename __result_of_replace_if__<Sequence const, F, T>::type replace_if(
+        Sequence const& seq, F f, T const& new_value);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+    [[`f`][A function object for which `f(e)` is a valid expression, convertible to `bool`, for each element `e` in `seq`][Operation's argument]]
+    [[`new_value`][Any type][Replacement value]]
+]
+
+[heading Expression Semantics]
+    __replace_if__(seq, f, new_value);
+
+[*Return type]: A model of __forward_sequence__.
+
+[*Semantics]: Returns a new sequence with all the elements of `seq`,
+with `new_value` assigned to each element for which `f` evaluates to `true`.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/replace_if.hpp>
+    #include <boost/fusion/include/replace_if.hpp>
+
+[heading Example]
+    struct odd
+    {
+        template<typename T>
+        bool operator()(T t) const
+        {
+            return t % 2;
+        }
+    };
+    ...
+    assert(__replace_if__(__make_vector__(1,2), odd(), 3) == __make_vector__(3,2));
+
+[endsect]
+
+[section remove]
+
+[heading Description]
+Returns a new sequence, with all the elements of the original sequence, except those of a given type.
+
+[heading Synopsis]
+    template<
+        typename T,
+        typename Sequence
+        >
+    typename __result_of_remove__<Sequence const, T>::type replace(Sequence const& seq);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+    [[`T`][Any type][Type to remove]]
+]
+
+[heading Expression Semantics]
+    __remove__<T>(seq);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a new sequence, containing all the elements of `seq`, in their original order, except
+those of type `T`. Equivalent to `__remove_if__<boost::is_same<_,T> >(seq)`.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/remove.hpp>
+    #include <boost/fusion/include/remove.hpp>
+
+[heading Example]
+    const __vector__<int,double> vec(1,2.0);
+    assert(__remove__<double>(vec) == __make_vector__(1));
+
+[endsect]
+
+[section remove_if]
+
+[heading Description]
+Returns a new sequence, containing all the elements of the original except those where a given unary
+function object evaluates to `true`.
+
+[heading Synopsis]
+    template<
+        typename Pred,
+        typename Sequence
+        >
+    typename __result_of_remove_if__<Sequence const, Pred>::type remove_if(Sequence const& seq);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+    [[`Pred`][A model of unary __mpl_lambda_expression__][Removal predicate]]
+]
+
+[heading Expression Semantics]
+    __remove_if__<Pred>(seq);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `seq` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a new sequence, containing all the elements of `seq`, in their original order, except
+those elements with types for which `Pred` evaluates to `boost::mpl::true_`.
+Equivalent to `__filter__<boost::mpl::not_<Pred> >(seq)`.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/remove_if.hpp>
+    #include <boost/fusion/include/remove_if.hpp>
+
+[heading Example]
+    const __vector__<int,double> vec(1,2.0);
+    assert(__remove_if__<is_floating_point<mpl::_> >(vec) == __make_vector__(1));
+
+[endsect]
+
+[section reverse]
+
+[heading Description]
+Returns a new sequence with the elements of the original in reverse order.
+
+[heading Synposis]
+    template<
+        typename Sequence
+        >
+    typename __result_of_reverse__<Sequence const>::type reverse(Sequence const& seq);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __bidirectional_sequence__][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __reverse__(seq);
+
+[*Return type]:
+
+* A model of __bidirectional_sequence__ if `seq` is a __bidirectional_sequence__
+else, __random_access_sequence__ if `seq` is a __random_access_sequence__.
+* A model of __associative_sequence__ if `seq` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a new sequence containing all the elements of `seq` in reverse order.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/reverse.hpp>
+    #include <boost/fusion/include/reverse.hpp>
+
+[heading Example]
+    assert(__reverse__(__make_vector__(1,2,3)) == __make_vector__(3,2,1));
+
+[endsect]
+
+[section clear]
+
+[heading Description]
+__clear__ returns an empty sequence.
+
+[heading Synposis]
+    template<
+        typename Sequence
+        >
+    typename __result_of_clear__<Sequence const>::type clear(Sequence const& seq);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __clear__(seq);
+
+[*Return type]: A model of __forward_sequence__.
+
+[*Expression Semantics]: Returns a sequence with no elements.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/clear.hpp>
+    #include <boost/fusion/include/clear.hpp>
+
+[heading Example]
+    assert(__clear__(__make_vector__(1,2,3)) == __make_vector__());
+
+[endsect]
+
+[section erase]
+
+[heading Description]
+Returns a new sequence, containing all the elements of the original except those at a specified iterator, or
+between two iterators.
+
+[heading Synposis]
+    template<
+        typename Sequence,
+        typename First
+        >
+    typename __result_of_erase__<Sequence const, First>::type erase(
+        Sequence const& seq, First const& it1);
+
+    template<
+        typename Sequence,
+        typename First,
+        typename Last
+        >
+    typename __result_of_erase__<Sequence const, First, Last>::type erase(
+        Sequence const& seq, First const& it1, Last const& it2);
+
+[table Parameters
+    [[Parameters][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+    [[`it1`][A model of __forward_iterator__][Iterator into `seq`]]
+    [[`it2`][A model of __forward_iterator__][Iterator into `seq` after `it1`]]
+]
+
+[heading Expression Semantics]
+    __erase__(seq, pos);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `seq` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a new sequence, containing all the elements of `seq` except the element at `pos`.
+
+    __erase__(seq, first, last);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `seq` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a new sequence, with all the elements of `seq`, in their original order, except those
+in the range [`first`,`last`).
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/erase.hpp>
+    #include <boost/fusion/include/erase.hpp>
+
+[heading Example]
+    const __vector__<int, double, char> vec(1, 2.0, 'c');
+    assert(__erase__(vec, __next__(__begin__(vec))) == __make_vector__(1, 'c'));
+    assert(__erase__(vec, __next__(__begin__(vec)), __end__(vec)) == __make_vector__(1));
+
+[endsect]
+
+[section erase_key]
+
+[heading Description]
+For an [link fusion.sequence.concepts.associative_sequence associative]] __forward_sequence__ `seq`,
+returns a [link fusion.sequence.concepts.associative_sequence associative]] __forward_sequence__ containing
+all the elements of the original except those with a given key.
+
+[heading Synposis]
+    template<
+        typename Key,
+        typename Sequence
+        >
+    typename __result_of_erase_key__<Sequence const, Key>::type erase_key(Sequence const& seq);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__ and __associative_sequence__][Operation's argument]]
+    [[`Key`][Any type][Key to erase]]
+]
+
+[heading Expression Semantics]
+    __erase_key__<Key>(seq);
+
+[*Return type]: A model of __forward_sequence__ and __associative_sequence__.
+
+[*Semantics]: Returns a new sequence, containing all the elements of `seq`, except those with key `Key`.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/erase_key.hpp>
+    #include <boost/fusion/include/erase_key.hpp>
+
+[heading Example]
+    assert(__erase_key__<int>(__make_map__<int, long>('a', 'b')) == __make_map__<long>('b'));
+
+[endsect]
+
+[section insert]
+
+[heading Description]
+Returns a new sequence with all the elements of the original, an a new element inserted the
+position described by a given iterator.
+
+[heading Synposis]
+    template<
+        typename Sequence,
+        typename Pos,
+        typename T
+        >
+    typename __result_of_insert__<Sequence const, Pos, T>::type insert(
+        Sequence const& seq, Pos const& pos, T const& t);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+    [[`pos`][A model of __forward_iterator__][The position to insert at]]
+    [[`t`][Any type][The value to insert]]
+]
+
+[heading Expression Semantics]
+    __insert__(seq, p, t);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+
+[*Semantics]: Returns a new sequence, containing all the elements of `seq`, in their original order, and a new element with the
+type and value of `t` inserted at iterator `pos`.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/insert.hpp>
+    #include <boost/fusion/include/insert.hpp>
+
+[heading Example]
+    const __vector__<int,int> vec(1,2);
+    assert(__insert__(vec, __next__(__begin__(vec)), 3) == __make_vector__(1,3,2));
+
+[endsect]
+
+[section insert_range]
+
+[heading Description]
+Returns a new sequence with another sequence inserted at a specified iterator.
+
+[heading Synposis]
+    template<
+        typename Sequence,
+        typename Pos,
+        typename Range
+        >
+    typename __result_of_insert_range__<Sequence const, Pos, Range>::type insert_range(
+        Sequence const& seq, Pos const& pos, Range const& range);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+    [[`pos`][A model of __forward_iterator__][The position to insert at]]
+    [[`range`][A model of __forward_sequence__][Range to insert]]
+]
+
+[heading Expression Semantics]
+    __insert_range__(seq, pos, range);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `seq` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a new sequence, containing all the elements of `seq`, and the elements of
+`range` inserted at iterator `pos`. All elements retaining their ordering from the orignal sequences.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/insert_range.hpp>
+    #include <boost/fusion/include/insert_range.hpp>
+
+[heading Example]
+    const __vector__<int,int> vec(1,2);
+    assert(__insert_range__(vec, __next__(__begin__(vec)), __make_vector__(3,4)) == __make_vector__(1,3,4,2));
+
+[endsect]
+
+[section join]
+
+[heading Description]
+Takes 2 sequences and returns a sequence containing the elements of the first followed by the elements of the second.
+
+[heading Synopsis]
+    template<
+        typename LhSequence,
+        typename RhSequence>
+    typename __result_of_join__<LhSequence, RhSequence>::type join(LhSequence const& lhs, RhSequence const& rhs);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`lhs`][A model of __forward_sequence__][Operation's argument]]
+    [[`rhs`][A model of __forward_sequence__][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __join__(lhs, rhs);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `lhs` and `rhs` implement the __associative_sequence__ model.
+
+[*Semantics]: Returns a sequence containing all the elements of `lhs` followed by all the elements of `rhs`. The order of the elements is preserved.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/join.hpp>
+    #include <boost/fusion/include/join.hpp>
+
+[heading Example]
+    __vector__<int,char> v1(1, 'a');
+    __vector__<int,char> v2(2, 'b');
+    assert(__join__(v1, v2) == __make_vector__(1,'a',2,'b'));
+
+[endsect]
+
+[section zip]
+
+[heading Description]
+Zips sequences together to form a single sequence, whos members are tuples of the members of the component sequences.
+
+[heading Synopsis]
+    template<
+        typename Sequence1,
+        typename Sequence2,
+        ...
+        typename SequenceN
+        >
+    typename __result_of_zip__<Sequence1, Sequence2, ... SequenceN>::type
+    zip(Sequence1 const& seq1, Sequence2 const& seq2, ... SequenceN const& seqN);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq1` to `seqN`][Each sequence is a model of __forward_sequence__.][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __zip__(seq1, seq2, ... seqN);
+
+[*Return type]: A model of __forward_sequence__.
+
+[*Semantics]: Returns a sequence containing tuples of elements from sequences `seq1` to `seqN`. For example, applying zip to tuples `(1, 2, 3)` and `('a', 'b', 'c')` would return `((1, 'a'),(2, 'b'),(3, 'c'))`
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/zip.hpp>
+    #include <boost/fusion/include/zip.hpp>
+
+[heading Example]
+    __vector__<int,char> v1(1, 'a');
+    __vector__<int,char> v2(2, 'b');
+    assert(__zip__(v1, v2) == __make_vector__(__make_vector__(1, 2),__make_vector__('a', 'b'));
+
+[endsect]
+
+[section pop_back]
+
+[heading Description]
+Returns a new sequence, with the last element of the original removed.
+
+[heading Synopsis]
+    template<
+        typename Sequence
+        >
+    typename __result_of_pop_back__<Sequence const>::type pop_back(Sequence const& seq);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __pop_back__(seq);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `seq` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a new sequence containing all the elements of `seq`, except the last element. The elements in the new sequence are in the same order as they were in `seq`.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/pop_back.hpp>
+    #include <boost/fusion/include/pop_back.hpp>
+
+[heading Example]
+    assert(___pop_back__(__make_vector__(1,2,3)) == __make_vector__(1,2));
+
+[endsect]
+
+[section pop_front]
+
+[heading Description]
+Returns a new sequence, with the first element of the original removed.
+
+[heading Synopsis]
+    template<
+        typename Sequence
+        >
+    typename __result_of_pop_front__<Sequence const>::type pop_front(Sequence const& seq);
+
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __pop_front__(seq);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `seq` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a new sequence containing all the elements of `seq`, except the first element. The elements in the new sequence are in the same order as they were in `seq`.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/pop_front.hpp>
+    #include <boost/fusion/include/pop_front.hpp>
+
+[heading Example]
+    assert(__pop_front__(__make_vector__(1,2,3)) == __make_vector__(2,3));
+
+[endsect]
+
+[section push_back]
+
+[heading Description]
+Returns a new sequence with an element added at the end.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename T
+        >
+    typename __result_of_push_back__<Sequence, T>::type push_back(
+        Sequence const& seq, T const& t);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+    [[`t`][Any type][The value to add to the end]]
+]
+
+[heading Expression Semantics]
+    __push_back__(seq, t);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+
+[*Semantics]: Returns a new sequence, containing all the elements of `seq`, and new element `t` appended to the end. The elements are in the same order as they were in `seq`.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/push_back.hpp>
+    #include <boost/fusion/include/push_back.hpp>
+
+[heading Example]
+    assert(__push_back__(__make_vector__(1,2,3),4) == __make_vector__(1,2,3,4));
+
+[endsect]
+
+[section push_front]
+
+[heading Description]
+Returns a new sequence with an element added at the beginning.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename T
+        >
+    typename __result_of_push_front__<Sequence, T>::type push_front(
+        Sequence const& seq, T const& t);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+    [[`t`][Any type][The value to add to the beginning]]
+]
+
+[heading Expression Semantics]
+    __push_back__(seq, t);
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+
+[*Semantics]: Returns a new sequence, containing all the elements of `seq`, and new element `t` appended to the beginning. The elements are in the same order as they were in `seq`.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/push_front.hpp>
+    #include <boost/fusion/include/push_front.hpp>
+
+[heading Example]
+    assert(__push_front__(__make_vector__(1,2,3),0) == __make_vector__(0,1,2,3));
+
+[endsect]
+
+[endsect]
+
+[section Metafunctions]
+
+[section filter]
+
+[heading Description]
+Returns the result type of __filter__ given the sequence type and type to retain.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename T
+        >
+    struct filter
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameter
+    [[Parameter] [Requirement] [Description]]
+    [[`Sequence`][A model of __forward_sequence__] [Operation's argument]]
+    [[`T`][Any type][Type to retain]]
+]
+
+[heading Expression Semantics]
+    __result_of_filter__<Sequence, T>::type
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a sequence containing the elements of `Sequence` that are of type `T`. Equivalent to `__result_of_filter_if__<Sequence, boost::is_same<mpl::_, T> >::type`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/filter.hpp>
+    #include <boost/fusion/include/filter.hpp>
+
+[endsect]
+
+[section filter_if]
+
+[heading Description]
+Returns the result type of __filter_if__ given the sequence and unary __mpl_lambda_expression__ predicate type.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename Pred
+        >
+    struct filter_if
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameter
+    [[Parameter] [Requirement] [Description]]
+    [[`Sequence`][A model of __forward_sequence__] [Operation's argument]]
+    [[`Pred`][A unary __mpl_lambda_expression__][Type to retain]]
+]
+
+[heading Expression Semantics]
+    __result_of_filter_if__<Sequence, Pred>::type
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a sequence containing the elements of `Sequence` for which `Pred` evaluates to `boost::mpl::true_`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/filter_if.hpp>
+    #include <boost/fusion/include/filter_if.hpp>
+
+[endsect]
+
+[section transform]
+
+[heading Description]
+For a sequence `seq` and function object or function pointer `f`, `transform` returns a new sequence
+with elements created by applying `f(e)` to each element of `e` of `seq`.
+
+[heading Unary version synopsis]
+    template<
+        typename Sequence,
+        typename F
+        >
+    typename __result_of_transform__<Sequence const, F>::type transform(
+        Sequence const& seq, F f);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq`][A model of __forward_sequence__][Operation's argument]]
+    [[`f`][`f(e)` is a valid expression for each element `e` of `seq`. `__boost_result_of_call__<F(E)>::type` is the return type of `f` when called with a value of each element type `E`.][Transformation function]]
+]
+
+[heading Expression Semantics]
+    __transform__(seq, f);
+
+[*Return type]:
+
+* A model of __forward_sequence__
+* A model of __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a new sequence, containing the return values of `f(e)` for each element `e` within `seq`.
+
+[heading Binary version synopsis]
+    template<
+        typename Sequence1,
+        typename Sequence2,
+        typename F
+        >
+    typename __result_of_transform__<Sequence1 const, Sequence2 const, F>::type transform(
+        Sequence1 const& seq1, Sequence2 const& seq2, F f);
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`seq1`][A model of __forward_sequence__][Operation's argument]]
+    [[`seq2`][A model of __forward_sequence__][Operation's argument]]
+    [[`f`][`f(e1,e2)` is a valid expression for each pair of elements `e1` of `seq1` and `e2` of `seq2`. `__boost_result_of_call__<F(E1,E2)>::type` is the return type of `f` when called with elements of type `E1` and `E2`][Transformation function]]
+]
+
+[*Return type]: A model of __forward_sequence__.
+
+[*Semantics]: Returns a new sequence, containing the return values of `f(e1, e2)` for each pair of elements `e1` and `e2` within `seq1` and `seq2` respectively.
+
+[heading Complexity]
+Constant. Returns a view which is lazily evaluated.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/transform.hpp>
+    #include <boost/fusion/include/transform.hpp>
+
+[heading Example]
+    struct triple
+    {
+        typedef int result_type;
+
+        int operator()(int t) const
+        {
+            return t * 3;
+        };
+    };
+    ...
+    assert(__transform__(__make_vector__(1,2,3), triple()) == __make_vector__(3,6,9));
+
+[endsect]
+
+[section replace]
+
+[heading Description]
+Returns the result type of __replace__, given the types of the input sequence and element to replace.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename T
+        >
+    struct replace
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __forward_sequence__][Operation's argument]]
+    [[`T`][Any type][The type of the search and replacement objects]]
+]
+
+[heading Expression Semantics]
+    __result_of_replace__<Sequence,T>::type
+
+[*Return type]: A model of __forward_sequence__.
+
+[*Semantics]: Returns the return type of __replace__.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/replace.hpp>
+    #include <boost/fusion/include/replace.hpp>
+
+[endsect]
+
+[section replace_if]
+
+[heading Description]
+Returns the result type of __replace_if__, given the types of the sequence, __poly_func_obj__ predicate and replacement object.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename F,
+        typename T>
+    struct replace_if
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __forward_sequence__][Operation's argument]]
+    [[`F`][A model of unary __poly_func_obj__][Replacement predicate]]
+    [[`T`][Any type][The type of the replacement object]]
+]
+
+[heading Expression Semantics]
+    __result_of_replace_if__<Sequence,F,T>::type
+
+[*Return type]: A model of __forward_sequence__.
+
+[*Semantics]: Returns the return type of __replace_if__.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/replace_if.hpp>
+    #include <boost/fusion/include/replace_if.hpp>
+
+[endsect]
+
+[section remove]
+
+[heading Description]
+Returns the result type of __remove__, given the sequence and removal types.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename T
+        >
+    struct remove
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __forward_sequence__][Operation's argument]]
+    [[`T`][Any type][Remove elements of this type]]
+]
+
+[heading Expression Semantics]
+    __result_of_remove__<Sequence, T>::type
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a sequence containing the elements of `Sequence` not of type `T`. Equivalent to `__result_of_replace_if__<Sequence, boost::is_same<mpl::_, T> >::type`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/remove.hpp>
+    #include <boost/fusion/include/remove.hpp>
+
+[endsect]
+
+[section remove_if]
+
+[heading Description]
+Returns the result type of __remove_if__, given the input sequence and unary __mpl_lambda_expression__ predicate types.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename Pred
+        >
+    struct remove_if
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __forward_sequence__][Operation's argument]]
+    [[`Pred`][A model of unary __mpl_lambda_expression__][Remove elements which evaluate to `boost::mpl::true_`]]
+]
+
+[heading Expression Semantics]
+    __result_of_remove_if__<Sequence, Pred>::type
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a sequence containing the elements of `Sequence` for which `Pred` evaluates to `boost::mpl::false_`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/remove_if.hpp>
+    #include <boost/fusion/include/remove_if.hpp>
+
+[endsect]
+
+[section reverse]
+
+[heading Description]
+Returns the result type of __reverse__, given the input sequence type.
+
+[heading Synopsis]
+    template<
+        typename Sequence
+        >
+    struct reverse
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __bidirectional_sequence__][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_reverse__<Sequence>::type
+
+[*Return type]:
+
+* A model of __bidirectional_sequence__ if `Sequence` is a __bidirectional_sequence__
+else, __random_access_sequence__ if `Sequence` is a __random_access_sequence__.
+* A model of __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a sequence with the elements in the reverse order to `Sequence`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/reverse.hpp>
+    #include <boost/fusion/include/reverse.hpp>
+
+[endsect]
+
+[section clear]
+
+[heading Description]
+Returns the result type of __clear__, given the input sequence type.
+
+[heading Synopsis]
+    template<
+        typename Sequence
+        >
+    struct clear
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][Any type][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_clear__<Sequence>::type
+
+[*Return type]: A model of __forward_sequence__.
+
+[*Semantics]: Returns an empty sequence.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/clear.hpp>
+    #include <boost/fusion/include/clear.hpp>
+
+[endsect]
+
+[section erase]
+Returns the result type of __erase__, given the input sequence and range delimiting iterator types.
+
+[heading Description]
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename It1,
+        typename It2 = __unspecified__>
+    struct erase
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __forward_sequence__][Operation's argument]]
+    [[`It1`][A model of __forward_iterator__][Operation's argument]]
+    [[`It2`][A model of __forward_iterator__][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_erase__<Sequence, It1>::type
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a new sequence with the element at `It1` removed.
+
+    __result_of_erase__<Sequence, It1, It2>::type
+
+[*Return type]: A model of __forward_sequence__.
+
+[*Semantics]: Returns a new sequence with the elements between `It1` and `It2` removed.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/erase.hpp>
+    #include <boost/fusion/include/erase.hpp>
+
+[endsect]
+
+[section erase_key]
+
+[heading Description]
+Returns the result type of __erase_key__, given the sequence and key types.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename Key
+        >
+    struct erase_key
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __forward_sequence__ and __associative_sequence__][Operation's argument]]
+    [[`Key`][Any type][Key type]]
+]
+
+[heading Expression Semantics]
+    __result_of_erase_key__<Sequence, Key>::type
+
+[*Return type]: A model of __forward_sequence__ and __associative_sequence__.
+
+[*Semantics]: Returns a sequence with the elements of `Sequence`, except those with key `Key`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/erase_key.hpp>
+    #include <boost/fusion/include/erase_key.hpp>
+
+[endsect]
+
+[section insert]
+
+[heading Description]
+Returns the result type of __insert__, given the sequence, position iterator and insertion types.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename Position,
+        typename T
+        >
+    struct insert
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __forward_sequence__][Operation's argument]]
+    [[`Position`][A model of __forward_iterator__][Operation's argument]]
+    [[`T`][Any type][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_insert__<Sequence, Position, T>::type
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+
+[*Semantics]: Returns a sequence with an element of type `T` inserted at position `Position` in `Sequence`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/insert.hpp>
+    #include <boost/fusion/include/insert.hpp>
+
+[endsect]
+
+[section insert_range]
+
+[heading Description]
+Returns the result type of __insert_range__, given the input sequence, position iterator and insertion range types.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename Position,
+        typename Range
+        >
+    struct insert_range
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __forward_sequence__][Operation's argument]]
+    [[`Position`][A model of __forward_iterator__][Operation's argument]]
+    [[`Range`][A model of __forward_sequence__][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_insert_range__<Sequence, Position, Range>::type
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a sequence with the elements of `Range` inserted at position `Position` into `Sequence`.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/insert_range.hpp>
+    #include <boost/fusion/include/insert_range.hpp>
+
+[endsect]
+
+[section join]
+
+[heading Description]
+Returns the result of joining 2 sequences, given the sequence types.
+
+[heading Synopsis]
+    template<
+        typename LhSequence,
+        typename RhSequence
+        >
+    struct join
+    {
+        typedef __unspecified__ type;
+    };
+
+[heading Expression Semantics]
+    __result_of_join__<LhSequence, RhSequence>::type
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `LhSequence` amd `RhSequence` implement the __associative_sequence__ model.
+
+[*Semantics]: Returns a sequence containing the elements of `LhSequence` followed by the elements of `RhSequence`. The order of the elements in the 2 sequences is preserved.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/join.hpp>
+    #include <boost/fusion/include/join.hpp>
+
+[endsect]
+
+[section zip]
+
+[heading Description]
+Zips sequences together to form a single sequence, whos members are tuples of the members of the component sequences.
+
+[heading Synopsis]
+    template<
+        typename Sequence1,
+        typename Sequence2,
+        ...
+        typename SequenceN
+        >
+    struct zip
+    {
+        typedef __unspecified__ type;
+    };
+
+[heading Expression Semantics]
+    __result_of_zip__<Sequence1, Sequence2, ... SequenceN>::type
+
+[*Return type]: A model of the most restrictive traversal category of sequences `Sequence1` to `SequenceN`.
+
+[*Semantics]: Return a sequence containing tuples of elements from each sequence. For example, applying zip to tuples `(1, 2, 3)` and `('a', 'b', 'c')` would return `((1, 'a'),(2, 'b'),(3, 'c'))`
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/zip.hpp>
+    #include <boost/fusion/include/zip.hpp>
+
+[endsect]
+
+[section pop_back]
+
+[heading Description]
+Returns the result type of __pop_back__, given the input sequence type.
+
+[heading Synopsis]
+    template<
+        typename Sequence
+        >
+    struct pop_back
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __forward_sequence__][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_pop_back__<Sequence>::type
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a sequence with all the elements of `Sequence` except the last element.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/pop_back.hpp>
+    #include <boost/fusion/include/pop_back.hpp>
+
+[endsect]
+
+[section pop_front]
+
+[heading Description]
+Returns the result type of __pop_front__, given the input sequence type.
+
+[heading Synopsis]
+    template<
+        typename Sequence
+        >
+    struct pop_front
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __forward_sequence__][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_pop_front__<Sequence>::type
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+* A model of __associative_sequence__ if `Sequence` implements the __associative_sequence__ model.
+
+[*Semantics]: Returns a sequence with all the elements of `Sequence` except the first element.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/pop_front.hpp>
+    #include <boost/fusion/include/pop_front.hpp>
+
+[endsect]
+
+[section push_back]
+
+[heading Description]
+Returns the result type of __push_back__, given the types of the input sequence and element to push.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename T
+        >
+    struct push_back
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __forward_sequence__][Operation's argument]]
+    [[`T`][Any type][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_push_back__<Sequence, T>::type
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+
+[*Semantics]: Returns a sequence with the elements of `Sequence` and an element of type `T` added to the end.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/push_back.hpp>
+    #include <boost/fusion/include/push_back.hpp>
+
+[endsect]
+
+[section push_front]
+
+[heading Description]
+Returns the result type of __push_front__, given the types of the input sequence and element to push.
+
+[heading Synopsis]
+    template<
+        typename Sequence,
+        typename T
+        >
+    struct push_front
+    {
+        typedef __unspecified__ type;
+    };
+
+[table Parameters
+    [[Parameter][Requirement][Description]]
+    [[`Sequence`][A model of __forward_sequence__][Operation's argument]]
+    [[`T`][Any type][Operation's argument]]
+]
+
+[heading Expression Semantics]
+    __result_of_push_front__<Sequence, T>::type
+
+[*Return type]:
+
+* A model of __forward_sequence__.
+
+[*Semantics]: Returns a sequence with the elements of `Sequence` and an element of type `T` added to the beginning.
+
+[heading Complexity]
+Constant.
+
+[heading Header]
+
+    #include <boost/fusion/algorithm/transformation/push_front.hpp>
+    #include <boost/fusion/include/push_front.hpp>
+
+[endsect]
+
+[endsect]
+
+[endsect]
+
+[endsect]

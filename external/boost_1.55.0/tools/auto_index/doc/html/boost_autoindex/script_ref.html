@@ -1,0 +1,525 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Script File (.idx) Reference</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Boost.AutoIndex">
+<link rel="up" href="../index.html" title="Boost.AutoIndex">
+<link rel="prev" href="tut/refine.html" title="Step 8: Iterate - to refine your index">
+<link rel="next" href="workflow.html" title="Understanding The AutoIndex Workflow">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tut/refine.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="workflow.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_autoindex.script_ref"></a><a class="link" href="script_ref.html" title="Script File (.idx) Reference">Script File (.idx) Reference</a>
+</h2></div></div></div>
+<p>
+      The following elements can occur in a script:
+    </p>
+<a name="boost_autoindex.script_ref.comments_and_blank_lines"></a><h5>
+<a name="boost_autoindex.script_ref.comments_and_blank_lines-heading"></a>
+      <a class="link" href="script_ref.html#boost_autoindex.script_ref.comments_and_blank_lines">Comments
+      and blank lines</a>
+    </h5>
+<p>
+      Blank lines consisting of only whitespace are ignored, so are lines that <span class="bold"><strong>start with a #</strong></span>.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        You can't append # comments onto the end of a line!
+      </p></td></tr>
+</table></div>
+<a name="boost_autoindex.script_ref.inclusion_of_index_terms"></a><h5>
+<a name="boost_autoindex.script_ref.inclusion_of_index_terms-heading"></a>
+      <a class="link" href="script_ref.html#boost_autoindex.script_ref.inclusion_of_index_terms">Inclusion
+      of Index terms</a>
+    </h5>
+<pre class="programlisting"><span class="identifier">term</span> <span class="special">[</span><span class="identifier">regular</span><span class="special">-</span><span class="identifier">expression1</span> <span class="special">[</span><span class="identifier">regular</span><span class="special">-</span><span class="identifier">expression2</span> <span class="special">[</span><span class="identifier">category</span><span class="special">]]]</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term">term</span></dt>
+<dd>
+<p>
+            <span class="emphasis"><em>Term to index.</em></span>
+          </p>
+<p>
+            The index term will form a primary entry in the Index with the section
+            title(s) containing the term as secondary entries, and also will be used
+            as a secondary entry beneath each of the section titles that the index
+            term occurs in.
+          </p>
+</dd>
+<dt><span class="term">regular-expression1</span></dt>
+<dd>
+<p>
+            <span class="emphasis"><em>Index term Searcher.</em></span>
+          </p>
+<p>
+            An optional regular expression: each occurrence of the regular expression
+            in the text of the document will result in one index term being emitted.
+          </p>
+<p>
+            If the regular expression is omitted (default) or is "", then
+            the <span class="emphasis"><em>index term</em></span> itself will be used as the search
+            text - and only occurrence of whole words matching <span class="emphasis"><em>index term</em></span>
+            will be indexed.
+          </p>
+<p>
+            For example:
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="identifier">foobar</span></pre>
+<p>
+          </p>
+<p>
+            will index occurrences of "foobar" in any section, but
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="identifier">foobar</span> <span class="special">\&lt;\</span><span class="identifier">w</span><span class="special">*(</span><span class="identifier">foo</span><span class="special">|</span><span class="identifier">bar</span><span class="special">)\</span><span class="identifier">w</span><span class="special">*\&gt;</span></pre>
+<p>
+          </p>
+<p>
+            will index any whole word containing either "foo" or "bar"
+            within it. This is useful when you want to index a lot of similar or
+            related words under one entry.
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="identifier">reflex</span></pre>
+<p>
+          </p>
+<p>
+            will only index occurrences of "reflex" as a whole word, but:
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="identifier">reflex</span> <span class="special">\&lt;</span><span class="identifier">reflex</span><span class="special">\</span><span class="identifier">w</span><span class="special">*\&gt;</span></pre>
+<p>
+          </p>
+<p>
+            will index occurrences of "reflex", "reflexes", "reflexing"
+            and "reflexed" ... all under the same entry reflex.
+          </p>
+<p>
+            You will very often need to use this to deal with plurals and other variants.
+          </p>
+</dd>
+<dt><span class="term">regular-expression2</span></dt>
+<dd>
+<p>
+            <span class="emphasis"><em>Section(s) Selector.</em></span>
+          </p>
+<p>
+            A constraint that specifies which sections are indexed for <span class="emphasis"><em>term</em></span>:
+            only if the ID of the section matches <span class="emphasis"><em>regular-expression2</em></span>
+            exactly will that section be indexed for occurrences of <span class="emphasis"><em>term</em></span>.
+          </p>
+<p>
+            For example, to limit indexing to just <span class="bold"><strong>one specific
+            section</strong></span> (but not sub-sections below):
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="identifier">myclass</span> <span class="string">""</span> <span class="string">"mylib\.examples"</span></pre>
+<p>
+          </p>
+<p>
+            For example, to limit indexing to specific sections, <span class="bold"><strong>and
+            sub-sections below</strong></span>:
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="identifier">myclass</span> <span class="string">""</span> <span class="string">"mylib\.examples.*"</span></pre>
+<p>
+          </p>
+<p>
+            will index occurrences of "myclass" as a whole word, but only
+            in sections whose section ID <span class="bold"><strong>begins</strong></span>
+            "mylib.examples", while
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="identifier">myclass</span> <span class="string">"\&lt;myclass\w*\&gt;"</span> <span class="string">"mylib\.examples.*"</span></pre>
+<p>
+          </p>
+<p>
+            will also index plurals myclass, myclasses, myclasss ...
+          </p>
+<p>
+            and:
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="identifier">myclass</span> <span class="string">""</span> <span class="string">"(?!mylib\.introduction).*"</span></pre>
+<p>
+          </p>
+<p>
+            will index occurrences of "myclass" in any section, except
+            those whose section IDs begin "mylib.introduction".
+          </p>
+<p>
+            Finally, two (or more) sections can be excluded by OR'ing them together:
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="identifier">myclass</span> <span class="string">""</span> <span class="string">"(?!mylib\.introduction|mylib\.reference).*"</span></pre>
+<p>
+          </p>
+<p>
+            which excludes searching for this term in sections whose ID's start with
+            either "mylib.introduction" or "mylib.reference".
+          </p>
+<p>
+            If this third section selection field is omitted (the default) or is
+            "", then <span class="bold"><strong>all sections</strong></span> are
+            indexed for this term.
+          </p>
+</dd>
+<dt><span class="term">category</span></dt>
+<dd>
+<p>
+            <span class="emphasis"><em>Index Category Constraint.</em></span>
+          </p>
+<p>
+            Optionally a category to place occurrences of <span class="emphasis"><em>index term</em></span>
+            in. If you have multiple indexes then this is the name assigned to the
+            indexes "type" attribute.
+          </p>
+<p>
+            For example:
+          </p>
+<p>
+            myclass "" "" class_name
+          </p>
+<p>
+            Will index occurances of <span class="emphasis"><em>myclass</em></span> and place them
+            in the class-index if there is one.
+          </p>
+</dd>
+</dl>
+</div>
+<p>
+      You can have an index term appear more than once in the script file:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          If they have different <span class="emphasis"><em>category</em></span> names then they are
+          treated quite separately.
+        </li>
+<li class="listitem">
+          Otherwise they are combined, so that the logical or of the regular expressions
+          provided are taken.
+        </li>
+</ul></div>
+<p>
+      Thus:
+    </p>
+<pre class="programlisting"><span class="identifier">myterm</span> <span class="identifier">search_expression1</span> <span class="identifier">constrait_expression2</span> <span class="identifier">foo</span>
+<span class="identifier">myterm</span> <span class="identifier">search_expression1</span> <span class="identifier">constrait_expression2</span> <span class="identifier">bar</span>
+</pre>
+<p>
+      Will be treated as different terms each with their own entries, while:
+    </p>
+<pre class="programlisting"><span class="identifier">myterm</span> <span class="identifier">search_expression1</span> <span class="identifier">constrait_expression2</span> <span class="identifier">mycategory</span>
+<span class="identifier">myterm</span> <span class="identifier">search_expression1</span> <span class="identifier">constrait_expression2</span> <span class="identifier">mycategory</span>
+</pre>
+<p>
+      Will be combined into a single term equivalent to:
+    </p>
+<pre class="programlisting"><span class="identifier">myterm</span> <span class="special">(?:</span><span class="identifier">search_expression1</span><span class="special">|</span><span class="identifier">search_expression1</span><span class="special">)</span> <span class="special">(?:</span><span class="identifier">constrait_expression2</span><span class="special">|</span><span class="identifier">constrait_expression2</span><span class="special">)</span> <span class="identifier">mycategory</span>
+</pre>
+<a name="boost_autoindex.script_ref.source_file_scanning"></a><h5>
+<a name="boost_autoindex.script_ref.source_file_scanning-heading"></a>
+      <a class="link" href="script_ref.html#boost_autoindex.script_ref.source_file_scanning">Source File
+      Scanning</a>
+    </h5>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">scan</span> <span class="identifier">source</span><span class="special">-</span><span class="identifier">file</span><span class="special">-</span><span class="identifier">name</span>
+</pre>
+<p>
+      Scans the C/C++ source file <span class="emphasis"><em>source-file-name</em></span> for definitions
+      of <span class="emphasis"><em>function</em></span>s, <span class="emphasis"><em>class</em></span>s, <span class="emphasis"><em>macro</em></span>s
+      or <span class="emphasis"><em>typedef</em></span>s and makes each of these a term to be indexed.
+      Terms found are assigned to the index category "function_name", "class_name",
+      "macro_name" or "typedef_name" depending on how they were
+      seen in the source file. These may then be included in a specialised index
+      whose "type" attribute has the same category name.
+    </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        When actually indexing a document, the scanner will not index just any old
+        occurrence of the terms found in the source files. Instead it searches for
+        class definitions or function or typedef declarations. This reduces the number
+        of spurious matches placed in the index, but may also miss some legitimate
+        terms: refer to the <span class="emphasis"><em>define-scanner</em></span> command for information
+        on how to change this.
+      </p></td></tr>
+</table></div>
+<a name="boost_autoindex.script_ref.directory_and_source_file_scanning"></a><h5>
+<a name="boost_autoindex.script_ref.directory_and_source_file_scanning-heading"></a>
+      <a class="link" href="script_ref.html#boost_autoindex.script_ref.directory_and_source_file_scanning">Directory
+      and Source File Scanning</a>
+    </h5>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">scan</span><span class="special">-</span><span class="identifier">path</span> <span class="identifier">directory</span><span class="special">-</span><span class="identifier">name</span> <span class="identifier">file</span><span class="special">-</span><span class="identifier">name</span><span class="special">-</span><span class="identifier">regex</span> <span class="special">[</span><span class="identifier">recurse</span><span class="special">]</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term">directory-name</span></dt>
+<dd><p>
+            The directory to scan: this should be a path relative to the script file
+            (or to the path specified with the prefix=path option on the command
+            line) and should use all forward slashes in its file name.
+          </p></dd>
+<dt><span class="term">file-name-regex</span></dt>
+<dd><p>
+            A regular expression: any file in the directory whose name matches the
+            regular expression will be scanned for terms to index.
+          </p></dd>
+<dt><span class="term">recurse</span></dt>
+<dd><p>
+            An optional boolean value - either "true" or "false"
+            - that indicates whether to recurse into subdirectories. This defaults
+            to "false".
+          </p></dd>
+</dl>
+</div>
+<a name="boost_autoindex.script_ref.excluding_terms"></a><h5>
+<a name="boost_autoindex.script_ref.excluding_terms-heading"></a>
+      <a class="link" href="script_ref.html#boost_autoindex.script_ref.excluding_terms">Excluding Terms</a>
+    </h5>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">exclude</span> <span class="identifier">term</span><span class="special">-</span><span class="identifier">list</span>
+</pre>
+<p>
+      Excludes all the terms in whitespace separated <span class="emphasis"><em>term-list</em></span>
+      from being indexed. This should be placed <span class="emphasis"><em>after</em></span> any <span class="emphasis"><em>!scan</em></span>
+      or <span class="emphasis"><em>!scan-path</em></span> rules which may result in the terms becoming
+      included. In other words this removes terms from the scanners internal list
+      of things to index.
+    </p>
+<a name="boost_autoindex.script_ref.rewriting_section_names"></a><h5>
+<a name="boost_autoindex.script_ref.rewriting_section_names-heading"></a>
+      <a class="link" href="script_ref.html#boost_autoindex.script_ref.rewriting_section_names">Rewriting
+      Section Names</a>
+    </h5>
+<pre class="programlisting">!rewrite-id regular-expression new-name</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term">regular-expression</span></dt>
+<dd><p>
+            A regular expression: all section ID's that match the expression exactly
+            will have index entries <span class="emphasis"><em>new-name</em></span> instead of their
+            title(s).
+          </p></dd>
+<dt><span class="term">new-name</span></dt>
+<dd><p>
+            The name that the section will appear under in the index.
+          </p></dd>
+</dl>
+</div>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">rewrite</span><span class="special">-</span><span class="identifier">name</span> <span class="identifier">regular</span><span class="special">-</span><span class="identifier">expression</span> <span class="identifier">format</span><span class="special">-</span><span class="identifier">text</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term">regular-expression</span></dt>
+<dd><p>
+            A regular expression: all sections whose titles match the regular expression
+            exactly, will have index entries composed of the regular expression match
+            combined with the regex format string <span class="emphasis"><em>format-text</em></span>.
+          </p></dd>
+<dt><span class="term">format-text</span></dt>
+<dd><p>
+            The Perl-style format string used to reformat the title.
+          </p></dd>
+</dl>
+</div>
+<p>
+      For example:
+    </p>
+<pre class="programlisting">!rewrite-name "(?:A|An|The)\s+(.*)" "\1"
+</pre>
+<p>
+      Will remove any leading "A", "An" or "The" from
+      all index entries - thus preventing lots of entries under "The" etc!
+    </p>
+<a name="boost_autoindex.script_ref.defining_or_changing_the_file_scanners"></a><h5>
+<a name="boost_autoindex.script_ref.defining_or_changing_the_file_scanners-heading"></a>
+      <a class="link" href="script_ref.html#boost_autoindex.script_ref.defining_or_changing_the_file_scanners">Defining
+      or Changing the File Scanners</a>
+    </h5>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">define</span><span class="special">-</span><span class="identifier">scanner</span> <span class="identifier">type</span> <span class="identifier">file</span><span class="special">-</span><span class="identifier">search</span><span class="special">-</span><span class="identifier">expression</span> <span class="identifier">xml</span><span class="special">-</span><span class="identifier">regex</span><span class="special">-</span><span class="identifier">formatter</span> <span class="identifier">term</span><span class="special">-</span><span class="identifier">formatter</span> <span class="identifier">id</span><span class="special">-</span><span class="identifier">filter</span> <span class="identifier">filename</span><span class="special">-</span><span class="identifier">filter</span>
+</pre>
+<p>
+      When a source file is scanned using the <code class="literal">!scan</code> or <code class="literal">!scan-path</code>
+      rules, then the file is searched using a series of regular expressions to look
+      for classes, functions, macros or typedefs that should be indexed. A set of
+      default regular expressions are provided for this (see below), but sometimes
+      you may want to replace the defaults, or add new scanners. The arguments to
+      this rule are:
+    </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term">type</span></dt>
+<dd><p>
+            The <span class="emphasis"><em>type</em></span> to which items found using this rule will
+            assigned, index terms created from the source file and then found in
+            the XML, will have the type attribute set to this value, and may then
+            appear in a specialized index with the same type attribute
+          </p></dd>
+<dt><span class="term">file-search-expression</span></dt>
+<dd><p>
+            A regular expression that is used to scan the source file for index terms,
+            the result of a match against this expression will be transformed by
+            the next two arguments.
+          </p></dd>
+<dt><span class="term">xml-regex-formatter</span></dt>
+<dd><p>
+            A regular expression format string that extracts the salient information
+            from whatever matched the <span class="emphasis"><em>file-search-expression</em></span>
+            in the source file, and creates <span class="emphasis"><em>a new regular expression</em></span>
+            that will be used to search the document being indexed for occurrences
+            of this index term.
+          </p></dd>
+<dt><span class="term">term-formatter</span></dt>
+<dd><p>
+            A regular expression format string that extracts the salient information
+            from whatever matched the <span class="emphasis"><em>file-search-expression</em></span>
+            in the source file, and creates the index term that will appear in the
+            index.
+          </p></dd>
+<dt><span class="term">id-filter</span></dt>
+<dd><p>
+            Optional. A regular expression that restricts the section-id's that are
+            searched in the document being indexed: only sections whose ID attribute
+            matches this expression exactly will be considered for indexing terms
+            found by this scanner.
+          </p></dd>
+<dt><span class="term">filename-filter</span></dt>
+<dd><p>
+            Optional. A regular expression that restricts which files are scanned
+            by this scanner: only files whose file name matches this expression exactly
+            will be scanned for index terms to use. Note that the filename matched
+            against this may well be an absolute path, and contain either forward
+            or backward slash path separators.
+          </p></dd>
+</dl>
+</div>
+<p>
+      If, when the first file is scanned, there are no scanners whose <span class="emphasis"><em>type</em></span>
+      is "class_name", "typedef_name", "macro_name"
+      or "function_name", then the defaults are installed. These are equivalent
+      to:
+    </p>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">define</span><span class="special">-</span><span class="identifier">scanner</span> <span class="identifier">class_name</span> <span class="string">"^[[:space:]]*(template[[:space:]]*&lt;[^;:{]+&gt;[[:space:]]*)?(class|struct)[[:space:]]*(\&lt;\w+\&gt;([[:blank:]]*\([^)]*\))?[[:space:]]*)*(\&lt;\w*\&gt;)[[:space:]]*(&lt;[^;:{]+&gt;)?[[:space:]]*(\{|:[^;\{()]*\{)"</span> <span class="string">"(?:class|struct)[^;{]+\\&lt;\5\\&gt;[^;{]+\\{"</span> <span class="special">\</span><span class="number">5</span>
+<span class="special">!</span><span class="identifier">define</span><span class="special">-</span><span class="identifier">scanner</span> <span class="identifier">typedef_name</span> <span class="string">"typedef[^;{}#]+?(\w+)\s*;"</span>  <span class="string">"typedef[^;]+\\&lt;\1\\&gt;\\s*;"</span> <span class="string">"\1"</span>
+<span class="special">!</span><span class="identifier">define</span><span class="special">-</span><span class="identifier">scanner</span> <span class="string">"macro_name"</span> <span class="string">"^\s*#\s*define\s+(\w+)"</span> <span class="string">"\\&lt;\1\\&gt;"</span> <span class="string">"\1"</span>
+<span class="special">!</span><span class="identifier">define</span><span class="special">-</span><span class="identifier">scanner</span> <span class="string">"function_name"</span> <span class="string">"\w+(?:\s*&lt;[^&gt;]&gt;)?[\s&amp;*]+?(\w+)\s*(?:BOOST_[[:upper:]_]+\s*)?\([^\)]*\)\s*[;{]"</span> <span class="string">"\\&lt;\\w+\\&gt;(?:\\s+&lt;[^&gt;]*&gt;)?[\\s&amp;*]+\\&lt;\1\\&gt;\\s*\\([^;{]*\\)"</span> <span class="string">"\1"</span>
+</pre>
+<p>
+      Note that these defaults are not installed if you have provided your own versions
+      with these <span class="emphasis"><em>type</em></span> names. In this case if you want the default
+      scanners to be in effect as well as your own, you should include the above
+      in your script file. It is also perfectly allowable to have multiple scanners
+      with the same <span class="emphasis"><em>type</em></span>, but with the other fields differing.
+    </p>
+<p>
+      Finally you should note that the default scanners are quite strict in what
+      they will find, for example the class scanner will only create index entries
+      for classes that have class definitions of the form:
+    </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">my_class</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">base_classes</span>
+<span class="special">{</span>
+   <span class="comment">// etc</span>
+</pre>
+<p>
+      In the documentation, so that simple mentions of the class name will <span class="emphasis"><em>not</em></span>
+      get indexed, only the class synopsis if there is one. If this isn't how you
+      want things, then include the <span class="emphasis"><em>class_name</em></span> scanner definition
+      above in your script file, and change the <span class="emphasis"><em>xml-regex-formatter</em></span>
+      field to something more permissive, for example:
+    </p>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">define</span><span class="special">-</span><span class="identifier">scanner</span> <span class="identifier">class_name</span> <span class="string">"^[[:space:]]*(template[[:space:]]*&lt;[^;:{]+&gt;[[:space:]]*)?(class|struct)[[:space:]]*(\&lt;\w+\&gt;([[:blank:]]*\([^)]*\))?[[:space:]]*)*(\&lt;\w*\&gt;)[[:space:]]*(&lt;[^;:{]+&gt;)?[[:space:]]*(\{|:[^;\{()]*\{)"</span> <span class="string">"\\&lt;\5\\&gt;"</span> <span class="special">\</span><span class="number">5</span>
+</pre>
+<p>
+      Will look for <span class="emphasis"><em>any</em></span> occurrence of whatever class names the
+      scanner may find in the documentation.
+    </p>
+<a name="boost_autoindex.script_ref.debugging_scanning"></a><h5>
+<a name="boost_autoindex.script_ref.debugging_scanning-heading"></a>
+      <a class="link" href="script_ref.html#boost_autoindex.script_ref.debugging_scanning">Debugging scanning</a>
+    </h5>
+<p>
+      If you see a term in the index, and you don't understand why it's there, add
+      a <span class="emphasis"><em>debug</em></span> directive:
+    </p>
+<pre class="programlisting">!debug regular-expression
+</pre>
+<p>
+      Now, whenever <span class="emphasis"><em>regular-expression</em></span> matches either the found
+      index term, or the section title it appears in, or the <span class="emphasis"><em>type</em></span>
+      field of a scanner, then some diagnostic information will be printed that will
+      look something like:
+    </p>
+<pre class="programlisting">Debug term found, in block with ID: spirit.qi.reference.parser_concepts.parser
+Current section title is: Notation
+The main index entry will be : Notation
+The indexed term is: parser
+The search regex is: [P|p]arser
+The section constraint is: .<span class="bold"><strong>qi.reference.parser_concepts.</strong></span>
+The index type for this entry is: qi_index
+</pre>
+<p>
+      This can produce a lot of output in your log file, but until you are satisfied
+      with your file selection and scanning process, it is worth switching it on.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008, 2011 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tut/refine.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="workflow.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,691 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>History and What's New</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Math Toolkit">
+<link rel="up" href="../overview.html" title="Chapter&#160;1.&#160;Overview">
+<link rel="prev" href="building.html" title="If and How to Build a Boost.Math Library, and its Examples and Tests">
+<link rel="next" href="overview_tr1.html" title="C99 and C++ TR1 C-style Functions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="building.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../overview.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="overview_tr1.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="math_toolkit.history1"></a><a class="link" href="history1.html" title="History and What's New">History and What's New</a>
+</h2></div></div></div>
+<p>
+      Currently open bug reports can be viewed <a href="https://svn.boost.org/trac/boost/query?status=assigned&amp;status=new&amp;status=reopened&amp;component=math&amp;col=id&amp;col=summary&amp;col=status&amp;col=type&amp;col=milestone&amp;col=component&amp;order=priority" target="_top">here</a>.
+    </p>
+<p>
+      All bug reports including closed ones can be viewed <a href="https://svn.boost.org/trac/boost/query?status=assigned&amp;status=closed&amp;status=new&amp;status=reopened&amp;component=math&amp;col=id&amp;col=summary&amp;col=status&amp;col=type&amp;col=milestone&amp;col=component&amp;order=priority" target="_top">here</a>.
+    </p>
+<h5>
+<a name="math_toolkit.history1.h0"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_55"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_55">Boost-1.55</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Suppress numerous warnings (mostly from GCC-4.8 and MSVC) <a href="https://svn.boost.org/trac/boost/ticket/8384" target="_top">#8384</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/8855" target="_top">#8855</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/9107" target="_top">#9107</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/9109" target="_top">#9109</a>..
+        </li>
+<li class="listitem">
+          Fixed PGI compilation issue <a href="https://svn.boost.org/trac/boost/ticket/8333" target="_top">#8333</a>.
+        </li>
+<li class="listitem">
+          Fixed PGI constant value initialization issue that caused erf to generate
+          incorrect results <a href="https://svn.boost.org/trac/boost/ticket/8621" target="_top">#8621</a>.
+        </li>
+<li class="listitem">
+          Prevent macro expansion of some C99 macros that are also C++ functions
+          <a href="https://svn.boost.org/trac/boost/ticket/8732" target="_top">#8732</a>
+          and <a href="https://svn.boost.org/trac/boost/ticket/8733" target="_top">#8733</a>..
+        </li>
+<li class="listitem">
+          Fixed Student's T distribution to behave correctly with huge degrees of
+          freedom (larger than the largest representable integer) <a href="https://svn.boost.org/trac/boost/ticket/8837" target="_top">#8837</a>.
+        </li>
+<li class="listitem">
+          Make some core functions usable with <code class="computeroutput"><span class="keyword">long</span>
+          <span class="keyword">double</span></code> even when the platform has
+          no standard library <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code> support <a href="https://svn.boost.org/trac/boost/ticket/8940" target="_top">#8940</a>.
+        </li>
+<li class="listitem">
+          Fix error handling of distributions to catch invalid scale and location
+          parameters when the random variable is infinite <a href="https://svn.boost.org/trac/boost/ticket/9042" target="_top">#9042</a>
+          and <a href="https://svn.boost.org/trac/boost/ticket/9126" target="_top">#9126</a>.
+        </li>
+<li class="listitem">
+          Add workaround for broken &lt;tuple&gt; in Intel C++ 14 <a href="https://svn.boost.org/trac/boost/ticket/9087" target="_top">#9087</a>.
+        </li>
+<li class="listitem">
+          Improve consistency of argument reduction in the elliptic integrals <a href="https://svn.boost.org/trac/boost/ticket/9104" target="_top">#9104</a>.
+        </li>
+<li class="listitem">
+          Fix bug in inverse incomplete beta that results in cancellation errors
+          when the beta function is really an arcsine or Student's T distribution.
+        </li>
+<li class="listitem">
+          Fix issue in Bessel I and K function continued fractions that causes spurious
+          over/underflow.
+        </li>
+<li class="listitem">
+          Add improvement to non-central chi squared distribution quantile due to
+          Thomas Luu.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h1"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_54"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_54">Boost-1.54</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Major reorganization to incorporate other Boost.Math like Integer Utilities
+          Integer Utilities (Greatest Common Divisor and Least Common Multiple),
+          quaternions and octonions. Making new chapter headings.
+        </li>
+<li class="listitem">
+          Added many references to Boost.Multiprecision and <code class="computeroutput"><span class="identifier">cpp_dec_float_50</span></code>
+          as an example of a User-defined Type (UDT).
+        </li>
+<li class="listitem">
+          Added Clang to list of supported compilers.
+        </li>
+<li class="listitem">
+          Fixed constants to use a thread-safe cache of computed values when used
+          at arbitrary precision.
+        </li>
+<li class="listitem">
+          Added finding zeros of Bessel functions <code class="computeroutput"><span class="identifier">cyl_bessel_j_zero</span></code>,
+          <code class="computeroutput"><span class="identifier">cyl_neumann_zero</span></code>, <code class="computeroutput"><span class="identifier">airy_ai_zero</span></code> and <code class="computeroutput"><span class="identifier">airy_bi_zero</span></code>(by
+          Christopher Kormanyos).
+        </li>
+<li class="listitem">
+          More accuracy improvements to the Bessel J and Y functions from Rocco Romeo.
+        </li>
+<li class="listitem">
+          Fixed nasty cyclic dependency bug that caused some headers to not compile
+          <a href="https://svn.boost.org/trac/boost/ticket/7999" target="_top">#7999</a>.
+        </li>
+<li class="listitem">
+          Fixed bug in <a class="link" href="sf_gamma/tgamma.html" title="Gamma">tgamma</a>
+          that caused spurious overflow for arguments between 142.5 and 143.
+        </li>
+<li class="listitem">
+          Fixed bug in raise_rounding_error that caused it to return an incorrect
+          result when throwing an exception is turned off <a href="https://svn.boost.org/trac/boost/ticket/7905" target="_top">#7905</a>.
+        </li>
+<li class="listitem">
+          Added minimal __float128 support.
+        </li>
+<li class="listitem">
+          Fixed bug in edge-cases of poisson quantile <a href="https://svn.boost.org/trac/boost/ticket/8308" target="_top">#8308</a>.
+        </li>
+<li class="listitem">
+          Adjusted heuristics used in Halley iteration to cope with inverting the
+          incomplete beta in tricky regions where the derivative is flatlining. Example
+          is computing the quantile of the Fisher F distribution for probabilities
+          smaller than machine epsilon. See ticket <a href="https://svn.boost.org/trac/boost/ticket/8314" target="_top">#8314</a>.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h2"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_53"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_53">Boost-1.53</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fixed issues <a href="https://svn.boost.org/trac/boost/ticket/7325" target="_top">#7325</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/7415" target="_top">#7415</a>
+          and <a href="https://svn.boost.org/trac/boost/ticket/7416" target="_top">#7416</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/7183" target="_top">#7183</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/7649" target="_top">#7649</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/7694" target="_top">#7694</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/4445" target="_top">#4445</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/7492" target="_top">#7492</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/7891" target="_top">#7891</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/7429" target="_top">#7429</a>.
+        </li>
+<li class="listitem">
+          Fixed mistake in calculating pooled standard deviation in two-sample students
+          t example <a href="https://svn.boost.org/trac/boost/ticket/7402" target="_top">#7402</a>.
+        </li>
+<li class="listitem">
+          Improve complex acos/asin/atan, see <a href="https://svn.boost.org/trac/boost/ticket/7290" target="_top">#7290</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/7291" target="_top">#7291</a>.
+        </li>
+<li class="listitem">
+          Improve accuracy in some corner cases of <a class="link" href="bessel/bessel_first.html" title="Bessel Functions of the First and Second Kinds">cyl_bessel_j</a>
+          and <a class="link" href="sf_gamma/igamma.html" title="Incomplete Gamma Functions">gamma_p</a>/<a class="link" href="sf_gamma/igamma.html" title="Incomplete Gamma Functions">gamma_q</a>
+          thanks to suggestions from Rocco Romeo.
+        </li>
+<li class="listitem">
+          Improve accuracy of Bessel J and Y for integer orders thanks to suggestions
+          from Rocco Romeo.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h3"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_52"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_52">Boost-1.52</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Corrected moments for small degrees of freedom <a href="https://svn.boost.org/trac/boost/ticket/7177" target="_top">#7177</a>
+          (reported by Thomas Mang).
+        </li>
+<li class="listitem">
+          Added <a class="link" href="airy.html" title="Airy Functions">Airy functions</a> and <a class="link" href="jacobi.html" title="Jacobi Elliptic Functions">Jacobi Elliptic functions</a>.
+        </li>
+<li class="listitem">
+          Corrected failure to detect bad parameters in many distributions <a href="https://svn.boost.org/trac/boost/ticket/6934" target="_top">#6934</a> (reported
+          by Florian Schoppmann) by adding a function check_out_of_range to test
+          many possible bad parameters. This test revealed several distributions
+          where the checks for bad parameters were ineffective, and these have been
+          rectified.
+        </li>
+<li class="listitem">
+          Fixed issue in Hankel functions that causes incorrect values to be returned
+          for <span class="emphasis"><em>x &lt; 0</em></span> and &#957; odd, see <a href="https://svn.boost.org/trac/boost/ticket/7135" target="_top">#7135</a>.
+        </li>
+<li class="listitem">
+          Fixed issues <a href="https://svn.boost.org/trac/boost/ticket/6517" target="_top">#6517</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/6362" target="_top">#6362</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/7053" target="_top">#7053</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/2693" target="_top">#2693</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/6937" target="_top">#6937</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/7099" target="_top">#7099</a>.
+        </li>
+<li class="listitem">
+          Permitted infinite degrees of freedom <a href="https://svn.boost.org/trac/boost/ticket/7259" target="_top">#7259</a>
+          implemented using the normal distribution (requested by Thomas Mang).
+        </li>
+<li class="listitem">
+          Much enhanced accuracy for large degrees of freedom &#957; and/or large non-centrality
+          &#948;
+by switching to use the Students t distribution (or Normal distribution
+          for infinite degrees of freedom) centered at delta, when &#948; / (4 * &#957;) &lt;
+          epsilon for the floating-point type in use. <a href="https://svn.boost.org/trac/boost/ticket/7259" target="_top">#7259</a>.
+          It was found that the incomplete beta was suffering from serious cancellation
+          errors when degrees of freedom was very large. (That has now been fixed
+          in our code, but any code based on Didonato and Morris's original papers
+          (probably every implementation out there actually) will have the same issue).
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h4"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_51"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_51">Boost-1.51</a>
+    </h5>
+<p>
+      See Boost-1.52 - some items were added but not listed in time for the release.
+    </p>
+<h5>
+<a name="math_toolkit.history1.h5"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_50"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_50">Boost-1.50</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Promoted math constants to be 1st class citizens, including convenient
+          access to the most widely used built-in float, double, long double via
+          three namespaces.
+        </li>
+<li class="listitem">
+          Added the Owen's T function and Skew Normal distribution written by Benjamin
+          Sobotta: see <a class="link" href="owens_t.html" title="Owen's T function">Owens T</a> and skew_normal_distrib.
+        </li>
+<li class="listitem">
+          Added Hankel functions <a class="link" href="hankel/cyl_hankel.html" title="Cyclic Hankel Functions">cyl_hankel_1</a>,
+          <a class="link" href="hankel/cyl_hankel.html" title="Cyclic Hankel Functions">cyl_hankel_2</a>, <a class="link" href="hankel/sph_hankel.html" title="Spherical Hankel Functions">sph_hankel_1</a> and <a class="link" href="hankel/sph_hankel.html" title="Spherical Hankel Functions">sph_hankel_2</a>.
+        </li>
+<li class="listitem">
+          Corrected issue <a href="https://svn.boost.org/trac/boost/ticket/6627" target="_top">#6627
+          nonfinite_num_put formatting of 0.0 is incorrect</a> based on a patch
+          submitted by K R Walker.
+        </li>
+<li class="listitem">
+          Changed constant initialization mechanism so that it is thread safe even
+          for user-defined types, also so that user defined types get the full precision
+          of the constant, even when <code class="computeroutput"><span class="keyword">long</span>
+          <span class="keyword">double</span></code> does not. So for example
+          128-bit rational approximations will work with UDT's and do the right thing,
+          even though <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code>
+          may be only 64 or 80 bits.
+        </li>
+<li class="listitem">
+          Fixed issue in <code class="computeroutput"><span class="identifier">bessel_jy</span></code>
+          which causes Y<sub>8.5</sub>(4&#960;) to yield a NaN.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h6"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_49"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_49">Boost-1.49</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Deprecated wrongly named <code class="computeroutput"><span class="identifier">twothirds</span></code>
+          math constant in favour of <code class="computeroutput"><span class="identifier">two_thirds</span></code>
+          (with underscore separator). (issue <a href="https://svn.boost.org/trac/boost/ticket/6199" target="_top">#6199</a>).
+        </li>
+<li class="listitem">
+          Refactored test data and some special function code to improve support
+          for arbitary precision and/or expression-template-enabled types.
+        </li>
+<li class="listitem">
+          Added new faster zeta function evaluation method.
+        </li>
+</ul></div>
+<p>
+      Fixed issues:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Corrected CDF complement for Laplace distribution (issue <a href="https://svn.boost.org/trac/boost/ticket/6151" target="_top">#6151</a>).
+        </li>
+<li class="listitem">
+          Corrected branch cuts on the complex inverse trig functions, to handle
+          signed zeros (issue <a href="https://svn.boost.org/trac/boost/ticket/6171" target="_top">#6171</a>).
+        </li>
+<li class="listitem">
+          Fixed bug in <code class="computeroutput"><span class="identifier">bessel_yn</span></code>
+          which caused incorrect overflow errors to be raised for negative <span class="emphasis"><em>n</em></span>
+          (issue <a href="https://svn.boost.org/trac/boost/ticket/6367" target="_top">#6367</a>).
+        </li>
+<li class="listitem">
+          Also fixed minor/cosmetic/configuration issues <a href="https://svn.boost.org/trac/boost/ticket/6120" target="_top">#6120</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/6191" target="_top">#6191</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/5982" target="_top">#5982</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/6130" target="_top">#6130</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/6234" target="_top">#6234</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/6307" target="_top">#6307</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/6192" target="_top">#6192</a>.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h7"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_48"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_48">Boost-1.48</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added new series evaluation methods to the cyclic Bessel I, J, K and Y
+          functions. Also taken great care to avoid spurious over and underflow of
+          these functions. Fixes issue <a href="https://svn.boost.org/trac/boost/ticket/5560" target="_top">#5560</a>
+        </li>
+<li class="listitem">
+          Added an example of using Inverse Chi-Squared distribution for Bayesian
+          statistics, provided by Thomas Mang.
+        </li>
+<li class="listitem">
+          Added tests to use improved version of lexical_cast which handles C99 nonfinites
+          without using globale facets.
+        </li>
+<li class="listitem">
+          Corrected wrong out-of-bound uniform distribution CDF complement values
+          <a href="https://svn.boost.org/trac/boost/ticket/5733" target="_top">#5733</a>.
+        </li>
+<li class="listitem">
+          Enabled long double support on OpenBSD (issue <a href="https://svn.boost.org/trac/boost/ticket/6014" target="_top">#6014</a>).
+        </li>
+<li class="listitem">
+          Changed nextafter and related functions to behave in the same way as other
+          implementations - so that nextafter(+INF, 0) is a finite value (issue
+          <a href="https://svn.boost.org/trac/boost/ticket/5823" target="_top">#5832</a>).
+        </li>
+<li class="listitem">
+          Changed tuple include configuration to fix issue when using in conjunction
+          with Boost.Tr1 (issue <a href="https://svn.boost.org/trac/boost/ticket/5934" target="_top">#5934</a>).
+        </li>
+<li class="listitem">
+          Changed class eps_tolerance to behave correctly when both ends of the range
+          are zero (issue <a href="https://svn.boost.org/trac/boost/ticket/6001" target="_top">#6001</a>).
+        </li>
+<li class="listitem">
+          Fixed missing include guards on prime.hpp (issue <a href="https://svn.boost.org/trac/boost/ticket/5927" target="_top">#5927</a>).
+        </li>
+<li class="listitem">
+          Removed unused/undocumented constants from constants.hpp (issue <a href="https://svn.boost.org/trac/boost/ticket/5982" target="_top">#5982</a>).
+        </li>
+<li class="listitem">
+          Fixed missing std:: prefix in nonfinite_num_facets.hpp (issue <a href="https://svn.boost.org/trac/boost/ticket/5914" target="_top">#5914</a>).
+        </li>
+<li class="listitem">
+          Minor patches for Cray compiler compatibility.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h8"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_47"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_47">Boost-1.47</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added changesign function to sign.hpp to facilitate addition of nonfinite
+          facets.
+        </li>
+<li class="listitem">
+          Addition of nonfinite facets from Johan Rade, with tests, examples of use
+          for C99 format infinity and NaN, and documentation.
+        </li>
+<li class="listitem">
+          Added tests and documentation of changesign from Johan Rade.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h9"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_46_1"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_46_1">Boost-1.46.1</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          Fixed issues <a href="https://svn.boost.org/trac/boost/ticket/5095" target="_top">#5095</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/5095" target="_top">#5113</a>.
+        </li></ul></div>
+<h5>
+<a name="math_toolkit.history1.h10"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_46_0"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_46_0">Boost-1.46.0</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added Wald, Inverse Gaussian and geometric distributions.
+        </li>
+<li class="listitem">
+          Added information about configuration macros.
+        </li>
+<li class="listitem">
+          Added support for mpreal as a real-numbered type.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h11"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_45_0"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_45_0">Boost-1.45.0</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added warnings about potential ambiguity with std random library in distribution
+          and function names.
+        </li>
+<li class="listitem">
+          Added inverse gamma distribution and inverse chi_square and scaled inverse
+          chi_square.
+        </li>
+<li class="listitem">
+          Editorial revision of documentation, and added FAQ.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h12"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_44_0"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_44_0">Boost-1.44.0</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fixed incorrect range and support for Rayleigh distribution.
+        </li>
+<li class="listitem">
+          Fixed numerical error in the quantile of the Student's T distribution:
+          the function was returning garbage values for non-integer degrees of freedom
+          between 2 and 3.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h13"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_41_0"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_41_0">Boost-1.41.0</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          Significantly improved performance for the incomplete gamma function and
+          its inverse.
+        </li></ul></div>
+<h5>
+<a name="math_toolkit.history1.h14"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_40_0"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_40_0">Boost-1.40.0</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added support for MPFR as a bignum type.
+        </li>
+<li class="listitem">
+          Added some full specializations of the policy classes to reduce compile
+          times.
+        </li>
+<li class="listitem">
+          Added logistic and hypergeometric distributions, from Gautam Sewani's Google
+          Summer of Code project.
+        </li>
+<li class="listitem">
+          Added Laplace distribution submitted by Thijs van den Berg.
+        </li>
+<li class="listitem">
+          Updated performance test code to include new distributions, and improved
+          the performance of the non-central distributions.
+        </li>
+<li class="listitem">
+          Added SSE2 optimised <a class="link" href="lanczos.html" title="The Lanczos Approximation">Lanczos approximation</a>
+          code, from Gautam Sewani's Google Summer of Code project.
+        </li>
+<li class="listitem">
+          Fixed bug in cyl_bessel_i that used an incorrect approximation for &#957; = 0.5,
+          also effects the non-central Chi Square Distribution when &#957; = 3, see bug
+          report <a href="https://svn.boost.org/trac/boost/ticket/2877" target="_top">#2877</a>.
+        </li>
+<li class="listitem">
+          Fixed minor bugs <a href="https://svn.boost.org/trac/boost/ticket/2873" target="_top">#2873</a>.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h15"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_38_0"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_38_0">Boost-1.38.0</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added Johan R&#229;de's optimised floating point classification routines.
+        </li>
+<li class="listitem">
+          Fixed code so that it compiles in GCC's -pedantic mode (bug report <a href="https://svn.boost.org/trac/boost/ticket/1451" target="_top">#1451</a>).
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h16"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_37_0"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_37_0">Boost-1.37.0</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          Improved accuracy and testing of the inverse hypergeometric functions.
+        </li></ul></div>
+<h5>
+<a name="math_toolkit.history1.h17"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_36_0"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_36_0">Boost-1.36.0</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added Noncentral Chi Squared Distribution.
+        </li>
+<li class="listitem">
+          Added Noncentral Beta Distribution.
+        </li>
+<li class="listitem">
+          Added Noncentral F Distribution.
+        </li>
+<li class="listitem">
+          Added Noncentral T Distribution.
+        </li>
+<li class="listitem">
+          Added Exponential Integral Functions.
+        </li>
+<li class="listitem">
+          Added Zeta Function.
+        </li>
+<li class="listitem">
+          Added Rounding and Truncation functions.
+        </li>
+<li class="listitem">
+          Added Compile time powers of runtime bases.
+        </li>
+<li class="listitem">
+          Added SSE2 optimizations for Lanczos evaluation.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h18"></a>
+      <span class="phrase"><a name="math_toolkit.history1.boost_1_35_0_post_review_first_o"></a></span><a class="link" href="history1.html#math_toolkit.history1.boost_1_35_0_post_review_first_o">Boost-1.35.0:
+      Post Review First Official Release</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Added Policy based framework that allows fine grained control over function
+          behaviour.
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>Breaking change:</strong></span> Changed default behaviour
+          for domain, pole and overflow errors to throw an exception (based on review
+          feedback), this behaviour can be customised using <a class="link" href="../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a>'s.
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>Breaking change:</strong></span> Changed exception thrown
+          when an internal evaluation error occurs to boost::math::evaluation_error.
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>Breaking change:</strong></span> Changed discrete quantiles
+          to return an integer result: this is anything up to 20 times faster than
+          finding the true root, this behaviour can be customised using <a class="link" href="../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a>'s.
+        </li>
+<li class="listitem">
+          Polynomial/rational function evaluation is now customisable and hopefully
+          faster than before.
+        </li>
+<li class="listitem">
+          Added performance test program.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h19"></a>
+      <span class="phrase"><a name="math_toolkit.history1.milestone_4_second_review_candid"></a></span><a class="link" href="history1.html#math_toolkit.history1.milestone_4_second_review_candid">Milestone
+      4: Second Review Candidate (1st March 2007)</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Moved Xiaogang Zhang's Bessel Functions code into the library, and brought
+          them into line with the rest of the code.
+        </li>
+<li class="listitem">
+          Added C# "Distribution Explorer" demo application.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h20"></a>
+      <span class="phrase"><a name="math_toolkit.history1.milestone_3_first_review_candida"></a></span><a class="link" href="history1.html#math_toolkit.history1.milestone_3_first_review_candida">Milestone
+      3: First Review Candidate (31st Dec 2006)</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Implemented the main probability distribution and density functions.
+        </li>
+<li class="listitem">
+          Implemented digamma.
+        </li>
+<li class="listitem">
+          Added more factorial functions.
+        </li>
+<li class="listitem">
+          Implemented the Hermite, Legendre and Laguerre polynomials plus the spherical
+          harmonic functions from TR1.
+        </li>
+<li class="listitem">
+          Moved Xiaogang Zhang's elliptic integral code into the library, and brought
+          them into line with the rest of the code.
+        </li>
+<li class="listitem">
+          Moved Hubert Holin's existing Boost.Math special functions into this library
+          and brought them into line with the rest of the code.
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h21"></a>
+      <span class="phrase"><a name="math_toolkit.history1.milestone_2_released_september_1"></a></span><a class="link" href="history1.html#math_toolkit.history1.milestone_2_released_september_1">Milestone
+      2: Released September 10th 2006</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Implement preview release of the statistical distributions.
+        </li>
+<li class="listitem">
+          Added statistical distributions tutorial.
+        </li>
+<li class="listitem">
+          Implemented root finding algorithms.
+        </li>
+<li class="listitem">
+          Implemented the inverses of the incomplete gamma and beta functions.
+        </li>
+<li class="listitem">
+          Rewrite erf/erfc as rational approximations (valid to 128-bit precision).
+        </li>
+<li class="listitem">
+          Integrated the statistical results generated from the test data with Boost.Test:
+          uses a database of expected results, indexed by test, floating point type,
+          platform, and compiler.
+        </li>
+<li class="listitem">
+          Improved lgamma near 1 and 2 (rational approximations).
+        </li>
+<li class="listitem">
+          Improved erf/erfc inverses (rational approximations).
+        </li>
+<li class="listitem">
+          Implemented Rational function generation (the Remez method).
+        </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.history1.h22"></a>
+      <span class="phrase"><a name="math_toolkit.history1.milestone_1_released_march_31st_"></a></span><a class="link" href="history1.html#math_toolkit.history1.milestone_1_released_march_31st_">Milestone
+      1: Released March 31st 2006</a>
+    </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Implement gamma/beta/erf functions along with their incomplete counterparts.
+        </li>
+<li class="listitem">
+          Generate high quality test data, against which future improvements can
+          be judged.
+        </li>
+<li class="listitem">
+          Provide tools for the evaluation of infinite series, continued fractions,
+          and rational functions.
+        </li>
+<li class="listitem">
+          Provide tools for testing against tabulated test data, and collecting statistics
+          on error rates.
+        </li>
+<li class="listitem">
+          Provide sufficient docs for people to be able to find their way around
+          the library.
+        </li>
+</ul></div>
+<p>
+      SVN Revisions:
+    </p>
+<p>
+      Sandbox and trunk last synchonised at revision: .
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="building.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../overview.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="overview_tr1.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

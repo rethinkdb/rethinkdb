@@ -1,0 +1,134 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>About the Math Toolkit</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Math Toolkit">
+<link rel="up" href="../overview.html" title="Chapter&#160;1.&#160;Overview">
+<link rel="prev" href="../overview.html" title="Chapter&#160;1.&#160;Overview">
+<link rel="next" href="navigation.html" title="Navigation">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../overview.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../overview.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="navigation.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="math_toolkit.main_intro"></a><a class="link" href="main_intro.html" title="About the Math Toolkit">About the Math Toolkit</a>
+</h2></div></div></div>
+<p>
+      This library is divided into three interconnected parts:
+    </p>
+<h5>
+<a name="math_toolkit.main_intro.h0"></a>
+      <span class="phrase"><a name="math_toolkit.main_intro.statistical_distributions"></a></span><a class="link" href="main_intro.html#math_toolkit.main_intro.statistical_distributions">Statistical
+      Distributions</a>
+    </h5>
+<p>
+      Provides a reasonably comprehensive set of <a class="link" href="../dist.html" title="Chapter&#160;2.&#160;Statistical Distributions and Functions">statistical
+      distributions</a>, upon which higher level statistical tests can be built.
+    </p>
+<p>
+      The initial focus is on the central <a href="http://en.wikipedia.org/wiki/Univariate" target="_top">univariate
+      </a> <a href="http://mathworld.wolfram.com/StatisticalDistribution.html" target="_top">distributions</a>.
+      Both <a href="http://mathworld.wolfram.com/ContinuousDistribution.html" target="_top">continuous</a>
+      (like <a class="link" href="dist_ref/dists/normal_dist.html" title="Normal (Gaussian) Distribution">normal</a>
+      &amp; <a class="link" href="dist_ref/dists/f_dist.html" title="F Distribution">Fisher</a>) and
+      <a href="http://mathworld.wolfram.com/DiscreteDistribution.html" target="_top">discrete</a>
+      (like <a class="link" href="dist_ref/dists/binomial_dist.html" title="Binomial Distribution">binomial</a>
+      &amp; <a class="link" href="dist_ref/dists/poisson_dist.html" title="Poisson Distribution">Poisson</a>)
+      distributions are provided.
+    </p>
+<p>
+      A <a class="link" href="stat_tut.html" title="Statistical Distributions Tutorial">comprehensive tutorial is provided</a>,
+      along with a series of <a class="link" href="stat_tut/weg.html" title="Worked Examples">worked examples</a>
+      illustrating how the library is used to conduct statistical tests.
+    </p>
+<h5>
+<a name="math_toolkit.main_intro.h1"></a>
+      <span class="phrase"><a name="math_toolkit.main_intro.mathematical_special_functions"></a></span><a class="link" href="main_intro.html#math_toolkit.main_intro.mathematical_special_functions">Mathematical
+      Special Functions</a>
+    </h5>
+<p>
+      Provides a small number of high quality <a class="link" href="../special.html" title="Chapter&#160;3.&#160;Special Functions">special functions</a>,
+      initially these were concentrated on functions used in statistical applications
+      along with those in the <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1836.pdf" target="_top">Technical
+      Report on C++ Library Extensions</a>.
+    </p>
+<p>
+      The function families currently implemented are the gamma, beta &amp; erf functions
+      along with the incomplete gamma and beta functions (four variants of each)
+      and all the possible inverses of these, plus digamma, various factorial functions,
+      Bessel functions, elliptic integrals, sinus cardinals (along with their hyperbolic
+      variants), inverse hyperbolic functions, Legrendre/Laguerre/Hermite polynomials
+      and various special power and logarithmic functions.
+    </p>
+<p>
+      All the implementations are fully generic and support the use of arbitrary
+      "real-number" types, including <a href="http://www.boost.org/doc/libs/1_53_0_beta1/libs/multiprecision/doc/html/index.html" target="_top">Boost.Multiprecision</a>,
+      although they are optimised for use with types with known-about <a href="http://en.wikipedia.org/wiki/Significand" target="_top">significand
+      (or mantissa)</a> sizes: typically <code class="computeroutput"><span class="keyword">float</span></code>,
+      <code class="computeroutput"><span class="keyword">double</span></code> or <code class="computeroutput"><span class="keyword">long</span>
+      <span class="keyword">double</span></code>.
+    </p>
+<h5>
+<a name="math_toolkit.main_intro.h2"></a>
+      <span class="phrase"><a name="math_toolkit.main_intro.implementation_toolkit"></a></span><a class="link" href="main_intro.html#math_toolkit.main_intro.implementation_toolkit">Implementation
+      Toolkit</a>
+    </h5>
+<p>
+      Provides <a class="link" href="../toolkit.html" title="Chapter&#160;11.&#160;Internals (Series, Rationals and Continued Fractions, Root Finding, Function Minimization, Testing and Development Tools)">many of the tools</a> required to implement
+      mathematical special functions: hopefully the presence of these will encourage
+      other authors to contribute more special function implementations in the future.
+      These tools are currently considered experimental: they are "exposed implementation
+      details" whose interfaces and/or implementations may change.
+    </p>
+<p>
+      There are helpers for the <a class="link" href="internals1/series_evaluation.html" title="Series Evaluation">evaluation
+      of infinite series</a>, <a class="link" href="internals1/cf.html" title="Continued Fraction Evaluation">continued
+      fractions</a> and <a class="link" href="internals1/rational.html" title="Polynomial and Rational Function Evaluation">rational
+      approximations</a>.
+    </p>
+<p>
+      There is a fairly comprehensive set of root finding and <a class="link" href="internals1/minima.html" title="Locating Function Minima: Brent's algorithm">function
+      minimisation algorithms</a>: the root finding algorithms are both <a class="link" href="internals1/roots.html" title="Root Finding With Derivatives: Newton-Raphson, Halley &amp; Schroeder">with</a> and <a class="link" href="internals1/roots2.html" title="Root Finding Without Derivatives: Bisection, Bracket and TOMS748">without</a>
+      derivative support.
+    </p>
+<p>
+      A <a class="link" href="internals2/minimax.html" title="Minimax Approximations and the Remez Algorithm">Remez algorithm implementation</a>
+      allows for the locating of minimax rational approximations.
+    </p>
+<p>
+      There are also (experimental) classes for the <a class="link" href="internals2/polynomials.html" title="Polynomials">manipulation
+      of polynomials</a>, for <a class="link" href="internals2/error_test.html" title="Relative Error and Testing">testing
+      a special function against tabulated test data</a>, and for the <a class="link" href="internals2/test_data.html" title="Graphing, Profiling, and Generating Test Data for Special Functions">rapid
+      generation of test data</a> and/or data for output to an external graphing
+      application.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../overview.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../overview.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="navigation.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

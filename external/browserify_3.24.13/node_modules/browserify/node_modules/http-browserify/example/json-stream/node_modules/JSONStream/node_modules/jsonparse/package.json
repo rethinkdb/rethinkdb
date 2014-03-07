@@ -1,0 +1,36 @@
+{
+  "name": "jsonparse",
+  "description": "This is a pure-js JSON streaming parser for node.js",
+  "tags": [
+    "json",
+    "stream"
+  ],
+  "version": "0.0.4",
+  "author": {
+    "name": "Tim Caswell",
+    "email": "tim@creationix.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/creationix/jsonparse.git"
+  },
+  "devDependencies": {
+    "tape": "~0.1.1",
+    "tap": "~0.3.3"
+  },
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "bugs": "http://github.com/creationix/jsonparse/issues",
+  "engines": [
+    "node >= 0.2.0"
+  ],
+  "license": "MIT",
+  "main": "jsonparse.js",
+  "readme": "This is a streaming JSON parser.  For a simpler, sax-based version see this gist: https://gist.github.com/1821394\n\nThe MIT License (MIT)\nCopyright (c) 2011-2012 Tim Caswell\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n\n",
+  "_id": "jsonparse@0.0.4",
+  "dist": {
+    "shasum": "59dc625b80cde4562734333122ba6e759d72524e"
+  },
+  "_from": "jsonparse@~0.0.4"
+}

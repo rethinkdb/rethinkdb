@@ -1,0 +1,129 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Trouble Shooting</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+    <h1>Trouble Shooting</h1>
+
+<hr>
+
+With GNU C++, if you see the following error message:
+<pre>
+boost/type_traits/arithmetic_traits.hpp:243: template instantiation depth exceeds maximum of 17
+boost/type_traits/arithmetic_traits.hpp:243:  (use -ftemplate-depth-NN to increase the maximum)
+</pre>
+then you need to do as the error message advises and increase the
+template instantiation depth. Passing the flag
+<tt>-ftemplate-depth-30</tt> to g++ usually does the trick.
+
+
+<hr>
+<pre>
+error C2784: 'T __cdecl source(struct std::pair<T,T>,const G &)' : 
+could not deduce template argument for 'struct std::pair<_T1,_T1>' from
+ 'class boost::detail::bidir_edge<struct boost::bidirectional_tag,unsigned int>'
+</pre>
+
+<p>
+VC++ does not support Koenig Lookup, therefore you need to refer to functions defined in the boost namespace
+using the <tt>boost::</tt> prefix, i.e., <tt>boost::source(e, g)</tt> instead of <tt>source(e, g)</tt>.
+
+<hr>
+<pre>
+../../..\boost/property_map.hpp(283) : error C2678: binary '[' : no operator defined
+ which takes a left-hand operand of type 'const struct boost::adj_list_edge_property_map<struct
+ boost::bidirectional_tag,struct boost::property<enum boost::edge_weight_t,int,struct 
+ boost::no_property>,unsigned int,enum boost::edge_weight_t>' (or there is no acceptable conversion)
+</pre>
+
+<p>There is a VC++ bug that appears when using <tt>get(property,
+graph, edge)</tt>. A workaround is to use <tt>get(get(property,
+graph), edge)</tt> instead. <i>Note that <tt>boost/property_map.hpp</tt> has
+now been moved to <tt>boost/property_map/property_map.hpp</tt>.
+
+<hr>
+
+<pre>
+C:\Program Files\Microsoft Visual Studio\VC98\INCLUDE\xmemory(59) : fatal
+error C1001: INTERNAL COMPILER ERROR
+        (compiler file 'msc1.cpp', line 1786)
+</pre>
+
+<p>There can be many reasons for this error, but sometimes it is
+caused by using the flag <tt>/Gm</tt> (minimal rebuild). As this flag
+is not really necessary, it is a good idea to turn it off.
+
+<p>
+Another reason for the error can be the use of the named-parameter
+interface for many of the BGL algorithms. Try using the non
+named-parameter version of the algorithm instead (see the HTML docs
+for the algorithm in question).
+
+<p>
+Yet another reason can be the use of the <tt>get()</tt> function of
+the <a href"PropertyGraph.html">PropertyGraph</a> interface. Instead
+of using the <tt>get()</tt> function in a complex expression, always
+declare a property map variable first:
+<pre>
+property_map&lt;graph_t, edge_weight_t&gt;::type w_map = get(edge_weight, g);
+// use w_map ...
+</pre>
+
+<hr>
+
+<pre>
+V:\3rdPARTY\SXL\INCLUDE\xlocnum(309) : error C2587: '_U' : illegal
+ use of local variable as default parameter
+</pre>
+<p>
+Workaround from Andreas Scherer:<br>
+That's the usual problem with MSVC-- 6.0 sp[34] when compiling some
+(or all?) of the BGL examples.  You can't use the DLL version of the
+run-time system.  I succeeded in compiling file_dependencies.cpp after
+switching to ``[Debug] Multithreaded'' (section ``Code Generation'' on
+page ``C/C++'' in the ``Project Settings'').
+
+<p>
+Another reason for this error is when the iterator constructor of an
+<tt>adjacency_list</tt> is used. The workaround is to use
+<tt>add_edge()</tt> instead. Replace something like this:
+<pre>
+Graph g(edge_array, edge_array + n_edges, N);
+</pre>
+with something like this:
+<pre>
+Graph g(N);
+for (std::size_t j = 0; j < n_edges; ++j)
+  add_edge(edge_array[j].first, edge_array[j].second, g);
+</pre>
+
+<hr>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

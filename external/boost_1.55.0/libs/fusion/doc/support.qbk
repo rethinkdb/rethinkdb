@@ -1,0 +1,424 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Support]
+
+A couple of classes and metafunctions provide basic support for Fusion.
+
+[section is_sequence]
+
+[heading Description]
+
+Metafunction that evaluates to `mpl::true_` if a certain type `T` is a
+conforming Fusion __sequence__, `mpl::false_` otherwise. This may be
+specialized to accomodate clients which provide Fusion conforming sequences.
+
+[heading Synopsis]
+
+    namespace traits
+    {
+        template <typename T>
+        struct is_sequence
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                       [Description]]
+    [[`T`]          [Any type]                          [The type to query.]]
+]
+
+[heading Expression Semantics]
+
+    typedef traits::is_sequence<T>::type c;
+
+[*Return type]: An __mpl_boolean_constant__.
+
+[*Semantics]: Metafunction that evaluates to `mpl::true_` if a certain type
+`T` is a conforming Fusion sequence, `mpl::false_` otherwise.
+
+[heading Header]
+
+    #include <boost/fusion/support/is_sequence.hpp>
+    #include <boost/fusion/include/is_sequence.hpp>
+
+[heading Example]
+
+    BOOST_MPL_ASSERT_NOT(( traits::is_sequence< std::vector<int> > ));
+    BOOST_MPL_ASSERT_NOT(( is_sequence< int > ));
+    BOOST_MPL_ASSERT(( traits::is_sequence<__list__<> > ));
+    BOOST_MPL_ASSERT(( traits::is_sequence<__list__<int> > ));
+    BOOST_MPL_ASSERT(( traits::is_sequence<__vector__<> > ));
+    BOOST_MPL_ASSERT(( traits::is_sequence<__vector__<int> > ));
+
+[endsect]
+
+[section is_view]
+
+[heading Description]
+
+Metafunction that evaluates to `mpl::true_` if a certain type `T` is a
+conforming Fusion __view__, `mpl::false_` otherwise. A view is a
+specialized sequence that does not actually contain data. Views hold
+sequences which may be other views. In general, views are held by other
+views by value, while non-views are held by other views by reference. `is_view`
+may be specialized to accomodate clients providing Fusion conforming views.
+
+[heading Synopsis]
+
+    namespace traits
+    {
+        template <typename T>
+        struct is_view
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                       [Description]]
+    [[`T`]          [Any type]                          [The type to query.]]
+]
+
+[heading Expression Semantics]
+
+    typedef traits::is_view<T>::type c;
+
+[*Return type]: An __mpl_boolean_constant__.
+
+[*Semantics]: Metafunction that evaluates to `mpl::true_` if a certain type
+`T` is a conforming Fusion view, `mpl::false_` otherwise.
+
+[heading Header]
+
+    #include <boost/fusion/support/is_view.hpp>
+    #include <boost/fusion/include/is_view.hpp>
+
+[heading Example]
+
+    BOOST_MPL_ASSERT_NOT(( traits::is_view<std::vector<int> > ));
+    BOOST_MPL_ASSERT_NOT(( traits::is_view<int> ));
+
+    using boost::mpl::_
+    using boost::is_pointer;
+    typedef __vector__<int*, char, long*, bool, double> vector_type;
+    typedef __filter_view__<vector_type, is_pointer<_> > filter_view_type;
+    BOOST_MPL_ASSERT(( traits::is_view<filter_view_type> ));
+
+[endsect]
+
+[section tag_of]
+
+[heading Description]
+
+All conforming Fusion sequences and iterators have an associated tag type. The
+purpose of the tag is to enable __tag_dispatching__ from  __intrinsic__
+functions to implementations appropriate for the type.
+
+This metafunction may be specialized to accomodate clients providing Fusion
+conforming sequences.
+
+[heading Synopsis]
+
+    namespace traits
+    {
+        template<typename Sequence>
+        struct tag_of
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                       [Description]]
+    [[`T`]          [Any type]                          [The type to query.]]
+]
+
+[heading Expression Semantics]
+
+    typedef traits::tag_of<T>::type tag;
+
+[*Return type]: Any type.
+
+[*Semantics]: Returns the tag type associated with `T`.
+
+[heading Header]
+
+    #include <boost/fusion/support/tag_of.hpp>
+    #include <boost/fusion/include/tag_of.hpp>
+
+[heading Example]
+
+    typedef traits::tag_of<__list__<> >::type tag1;
+    typedef traits::tag_of<__list__<int> >::type tag2;
+    typedef traits::tag_of<__vector__<> >::type tag3;
+    typedef traits::tag_of<__vector__<int> >::type tag4;
+
+    BOOST_MPL_ASSERT((boost::is_same<tag1, tag2>));
+    BOOST_MPL_ASSERT((boost::is_same<tag3, tag4>));
+
+[endsect]
+
+[section category_of]
+
+[heading Description]
+
+A metafunction that establishes the conceptual classification of a particular
+__sequence__ or __iterator__ (see __iterator_concepts__ and
+__sequence_concepts__).
+
+[heading Synopsis]
+
+    namespace traits
+    {
+        template <typename T>
+        struct category_of
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading Parameters]
+
+[table
+    [[Parameter]    [Requirement]                       [Description]]
+    [[`T`]          [Any type]                          [The type to query.]]
+]
+
+[heading Expression Semantics]
+
+    typedef traits::category_of<T>::type category;
+
+[*Return type]:
+
+The return type is derived from one of:
+
+        namespace boost { namespace fusion
+        {
+            struct incrementable_traversal_tag {};
+
+            struct single_pass_traversal_tag
+                : incrementable_traversal_tag {};
+
+            struct forward_traversal_tag
+                : single_pass_traversal_tag {};
+
+            struct bidirectional_traversal_tag
+                : forward_traversal_tag {};
+
+            struct random_access_traversal_tag
+                : bidirectional_traversal_tag {};
+        }}
+
+And optionally from:
+
+        namespace boost { namespace fusion
+        {
+            struct associative_tag {};
+        }}
+
+[*Semantics]: Establishes the conceptual classification of a particular
+__sequence__ or __iterator__.
+
+[heading Header]
+
+    #include <boost/fusion/support/category_of.hpp>
+    #include <boost/fusion/include/category_of.hpp>
+
+[heading Example]
+
+    using boost::is_base_of;
+    typedef traits::category_of<__list__<> >::type list_category;
+    typedef traits::category_of<__vector__<> >::type vector_category;
+    BOOST_MPL_ASSERT(( is_base_of<forward_traversal_tag, list_category> ));
+    BOOST_MPL_ASSERT(( is_base_of<random_access_traversal_tag, vector_category> ));
+
+[endsect]
+
+[section deduce]
+
+[heading Description]
+Metafunction to apply __element_conversion__ to the full argument type.
+
+It removes references to `const`, references to array types are kept, even
+if the array is `const`. Reference wrappers are removed (see
+__note_boost_ref__).
+
+[heading Header]
+
+    #include <boost/fusion/support/deduce.hpp>
+    #include <boost/fusion/include/deduce.hpp>
+
+[heading Synopsis]
+    namespace traits
+    {
+        template <typename T>
+        struct deduce
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading Example]
+    template <typename T>
+    struct holder
+    {
+        typename traits::deduce<T const &>::type element;
+
+        holder(T const & a)
+          : element(a)
+        { }
+    };
+
+    template <typename T>
+    holder<T> make_holder(T const & a)
+    {
+        return holder<T>(a);
+    }
+
+[heading See also]
+* __deduce_sequence__
+
+[endsect]
+
+[section deduce_sequence]
+
+[heading Description]
+Applies __element_conversion__ to each element in a __forward_sequence__.
+The resulting type is a __random_access_sequence__ that provides a converting
+constructor accepting the original type as its argument.
+
+[heading Header]
+
+    #include <boost/fusion/support/deduce_sequence.hpp>
+    #include <boost/fusion/include/deduce_sequence.hpp>
+
+[heading Synopsis]
+    namespace traits
+    {
+        template <class Sequence>
+        struct deduce_sequence
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading Example]
+    template <class Seq>
+    struct holder
+    {
+        typename traits::deduce_sequence<Seq>::type element;
+
+        holder(Seq const & a)
+          : element(a)
+        { }
+    };
+
+    template <typename T0, typename T1>
+    holder< __vector__<T0 const &, T1 const &> >
+    make_holder(T0 const & a0, T1 const & a1)
+    {
+        typedef __vector__<T0 const &, T1 const &> arg_vec_t;
+        return holder<arg_vec_t>( arg_vec_t(a0,a1) );
+    }
+
+[heading See also]
+* __deduce__
+
+[endsect]
+
+[section pair]
+
+[heading Description]
+
+Fusion `pair` type is a half runtime pair. A half runtime pair is similar
+to a __std_pair__, but, unlike __std_pair__, the first type does not have data.
+It is used as elements in __map__\ s, for example.
+
+[heading Synopsis]
+
+    template <typename First, typename Second>
+    struct pair;
+
+    namespace result_of
+    {
+        template <typename Pair>
+        struct first;
+
+        template <typename Pair>
+        struct second;
+
+        template <typename First, typename Second>
+        struct make_pair;
+    }
+
+    template <typename First, typename Second>
+    typename result_of::make_pair<First,Second>::type
+    make_pair(Second const &);
+
+[heading Template parameters]
+
+[table
+    [[Parameter]    [Description]]
+    [[First]        [The first type. This is purely a type. No data is held.]]
+    [[Second]       [The second type. This contains data.]]
+]
+
+[variablelist Notation
+    [[`P`]          [Fusion pair type]]
+    [[`p`, `p2`]    [Fusion pairs]]
+    [[`F`, `S`]     [Arbitrary types]]
+    [[`s`]          [Value of type `S`]]
+    [[`o`]          [Output stream]]
+    [[`i`]          [Input stream]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[`P::first_type`]  [The type of the first template parameter, `F`, equivalent to
+                        `result_of::first<P>::type`. ]]
+    [[`P::second_type`] [The type of the second template parameter, `S`, equivalent to
+                        `result_of::second<P>::type`. ]]
+    [[`P()`]            [Default construction.]]
+    [[`P(s)`]           [Construct a pair given value for the second type, `s`.]]
+    [[`P(p2)`]          [Copy constructs a pair from another pair, `p2`.]]
+    [[`p.second`]       [Get the data from `p1`.]]
+    [[`p = p2`]         [Assigns a pair, `p1`, from another pair, `p2`.]]
+    [[make_pair<F>(s)]  [Make a pair given the first type, `F`, and a value for
+                        the second type, `s`. The second type assumes the type of `s`]]
+    [[`o << p`]         [Output `p` to output stream, `o`.]]
+    [[`i >> p`]         [Input `p` from input stream, `i`.]]
+    [[`p == p2`]        [Tests two pairs for equality.]]
+    [[`p != p2`]        [Tests two pairs for inequality.]]
+]
+
+[heading Header]
+
+    #include <boost/fusion/support/pair.hpp>
+    #include <boost/fusion/include/pair.hpp>
+
+[heading Example]
+
+    pair<int, char> p('X');
+    std::cout << p << std::endl;
+    std::cout << make_pair<int>('X') << std::endl;
+    assert((p == make_pair<int>('X')));
+
+[endsect]
+
+[endsect]
+

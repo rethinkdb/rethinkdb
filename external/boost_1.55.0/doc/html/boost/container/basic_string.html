@@ -1,0 +1,909 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template basic_string</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_container_header_reference.html#header.boost.container.container_fwd_hpp" title="Header &lt;boost/container/container_fwd.hpp&gt;">
+<link rel="prev" href="stable_vector.html" title="Class template stable_vector">
+<link rel="next" href="ordered_range_t.html" title="Struct ordered_range_t">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="stable_vector.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_container_header_reference.html#header.boost.container.container_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ordered_range_t.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.container.basic_string"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template basic_string</span></h2>
+<p>boost::container::basic_string</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_container_header_reference.html#header.boost.container.container_fwd_hpp" title="Header &lt;boost/container/container_fwd.hpp&gt;">boost/container/container_fwd.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">char_traits</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">&gt;</span><span class="special">,</span> 
+         <span class="keyword">typename</span> Allocator <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">&gt;</span> <span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="basic_string.html#boost.container.basic_stringconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="basic_string.html#idp20513784-bb"><span class="identifier">basic_string</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="basic_string.html#idp20515176-bb"><span class="identifier">basic_string</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">allocator_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html#idp20517016-bb"><span class="identifier">basic_string</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html#idp20519384-bb"><span class="identifier">basic_string</span></a><span class="special">(</span><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html#idp20521288-bb"><span class="identifier">basic_string</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">allocator_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html#idp20523992-bb"><span class="identifier">basic_string</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="identifier">npos</span><span class="special">,</span> 
+               <span class="keyword">const</span> <span class="identifier">allocator_type</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">allocator_type</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  basic_string&amp; <a class="link" href="basic_string.html#idp20528664-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  basic_string&amp; <a class="link" href="basic_string.html#idp20530776-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  basic_string&amp; <a class="link" href="basic_string.html#idp20549096-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  basic_string&amp; <a class="link" href="basic_string.html#idp20550072-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">CharT</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html#idp20526888-bb"><span class="special">~</span><span class="identifier">basic_string</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="basic_string.html#idp20233144-bb">public member functions</a></span>
+   <a class="link" href="basic_string.html#idp20233352-bb"><span class="keyword">if</span></a><span class="special">(</span><span class="identifier">a</span> <span class="special">=</span> <span class="special">=</span><span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">alloc</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">this</span> <a class="link" href="basic_string.html#idp20234216-bb"><span class="identifier">assign</span></a><span class="special">(</span><span class="identifier">s</span><span class="special">,</span> <span class="identifier">s</span><span class="special">+</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">this</span> <a class="link" href="basic_string.html#idp20235352-bb"><span class="identifier">assign</span></a><span class="special">(</span><span class="identifier">s</span><span class="special">,</span> <span class="identifier">s</span><span class="special">+</span><span class="identifier">Traits</span><span class="special">::</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">this</span> <a class="link" href="basic_string.html#idp20236488-bb"><span class="identifier">assign</span></a><span class="special">(</span><span class="identifier">n</span><span class="special">,</span> <span class="identifier">c</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">this</span> <a class="link" href="basic_string.html#idp20237624-bb"><span class="identifier">assign</span></a><span class="special">(</span><span class="identifier">f</span><span class="special">,</span> <span class="identifier">l</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">allocator_type</span> <a class="link" href="basic_string.html#idp20238760-bb"><span class="identifier">get_allocator</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">stored_allocator_type</span> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20240600-bb"><span class="identifier">get_stored_allocator</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">stored_allocator_type</span> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20242888-bb"><span class="identifier">get_stored_allocator</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="basic_string.html#idp20245176-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="basic_string.html#idp20247016-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="basic_string.html#idp20248856-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="basic_string.html#idp20250664-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">reverse_iterator</span> <a class="link" href="basic_string.html#idp20252488-bb"><span class="identifier">rbegin</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_reverse_iterator</span> <a class="link" href="basic_string.html#idp20254344-bb"><span class="identifier">rbegin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">reverse_iterator</span> <a class="link" href="basic_string.html#idp20256216-bb"><span class="identifier">rend</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_reverse_iterator</span> <a class="link" href="basic_string.html#idp20258072-bb"><span class="identifier">rend</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="basic_string.html#idp20259928-bb"><span class="identifier">cbegin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="basic_string.html#idp20261768-bb"><span class="identifier">cend</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_reverse_iterator</span> <a class="link" href="basic_string.html#idp20263592-bb"><span class="identifier">crbegin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_reverse_iterator</span> <a class="link" href="basic_string.html#idp20265464-bb"><span class="identifier">crend</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_string.html#idp20267320-bb"><span class="identifier">empty</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20269144-bb"><span class="identifier">size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20270968-bb"><span class="identifier">length</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20272792-bb"><span class="identifier">max_size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_string.html#idp20274616-bb"><span class="identifier">resize</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_string.html#idp20277224-bb"><span class="identifier">resize</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20279496-bb"><span class="identifier">capacity</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_string.html#idp20281368-bb"><span class="identifier">reserve</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_string.html#idp20283368-bb"><span class="identifier">shrink_to_fit</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">reference</span> <a class="link" href="basic_string.html#idp20285272-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_reference</span> <a class="link" href="basic_string.html#idp20287864-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">reference</span> <a class="link" href="basic_string.html#idp20290472-bb"><span class="identifier">at</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_reference</span> <a class="link" href="basic_string.html#idp20293096-bb"><span class="identifier">at</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20295736-bb"><span class="keyword">operator</span><span class="special">+=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20297832-bb"><span class="keyword">operator</span><span class="special">+=</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20299688-bb"><span class="keyword">operator</span><span class="special">+=</span></a><span class="special">(</span><span class="identifier">CharT</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20301544-bb"><span class="identifier">append</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20303640-bb"><span class="identifier">append</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20307432-bb"><span class="identifier">append</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20310792-bb"><span class="identifier">append</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20313144-bb"><span class="identifier">append</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> InputIter<span class="special">&gt;</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20315352-bb"><span class="identifier">append</span></a><span class="special">(</span><span class="identifier">InputIter</span><span class="special">,</span> <span class="identifier">InputIter</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_string.html#idp20318440-bb"><span class="identifier">push_back</span></a><span class="special">(</span><span class="identifier">CharT</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20319704-bb"><span class="identifier">assign</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20321800-bb"><span class="identifier">assign</span></a><span class="special">(</span><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20324392-bb"><span class="identifier">assign</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20328184-bb"><span class="identifier">assign</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20331416-bb"><span class="identifier">assign</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20333768-bb"><span class="identifier">assign</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> InputIter<span class="special">&gt;</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20335976-bb"><span class="identifier">assign</span></a><span class="special">(</span><span class="identifier">InputIter</span><span class="special">,</span> <span class="identifier">InputIter</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20338616-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20341944-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20346104-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20349944-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20353176-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="basic_string.html#idp20356248-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="basic_string.html#idp20358840-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> InputIter<span class="special">&gt;</span> 
+    <span class="identifier">iterator</span> <a class="link" href="basic_string.html#idp20361752-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">InputIter</span><span class="special">,</span> <span class="identifier">InputIter</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20365128-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="basic_string.html#idp20368872-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="basic_string.html#idp20371160-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_string.html#idp20374280-bb"><span class="identifier">pop_back</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_string.html#idp20376088-bb"><span class="identifier">clear</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20377944-bb"><span class="identifier">replace</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> 
+  <a class="link" href="basic_string.html#idp20381624-bb"><span class="identifier">replace</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20386136-bb"><span class="identifier">replace</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20389992-bb"><span class="identifier">replace</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20393512-bb"><span class="identifier">replace</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20397384-bb"><span class="identifier">replace</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> 
+  <a class="link" href="basic_string.html#idp20401032-bb"><span class="identifier">replace</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20404840-bb"><span class="identifier">replace</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a class="link" href="basic_string.html#idp20408360-bb"><span class="identifier">replace</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> InputIter<span class="special">&gt;</span> 
+    <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> 
+    <a class="link" href="basic_string.html#idp20412136-bb"><span class="identifier">replace</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">InputIter</span><span class="special">,</span> <span class="identifier">InputIter</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20416344-bb"><span class="identifier">copy</span></a><span class="special">(</span><span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_string.html#idp20420120-bb"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> <a class="link" href="basic_string.html#idp20422072-bb"><span class="identifier">c_str</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> <a class="link" href="basic_string.html#idp20424008-bb"><span class="identifier">data</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20425944-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20429064-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20431944-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20434616-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20436840-bb"><span class="identifier">rfind</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20439976-bb"><span class="identifier">rfind</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20442840-bb"><span class="identifier">rfind</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20445528-bb"><span class="identifier">rfind</span></a><span class="special">(</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20447752-bb"><span class="identifier">find_first_of</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20450856-bb"><span class="identifier">find_first_of</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20453720-bb"><span class="identifier">find_first_of</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20456408-bb"><span class="identifier">find_first_of</span></a><span class="special">(</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20459128-bb"><span class="identifier">find_last_of</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20462248-bb"><span class="identifier">find_last_of</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20465112-bb"><span class="identifier">find_last_of</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20467816-bb"><span class="identifier">find_last_of</span></a><span class="special">(</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20470024-bb"><span class="identifier">find_first_not_of</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20473144-bb"><span class="identifier">find_first_not_of</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20476040-bb"><span class="identifier">find_first_not_of</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20478744-bb"><span class="identifier">find_first_not_of</span></a><span class="special">(</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20480968-bb"><span class="identifier">find_last_not_of</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20484088-bb"><span class="identifier">find_last_not_of</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20486968-bb"><span class="identifier">find_last_not_of</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string.html#idp20489672-bb"><span class="identifier">find_last_not_of</span></a><span class="special">(</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <a class="link" href="basic_string.html#idp20491896-bb"><span class="identifier">substr</span></a><span class="special">(</span><span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="basic_string.html#idp20495320-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="basic_string.html#idp20498040-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="basic_string.html#idp20501592-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> 
+              <span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="basic_string.html#idp20505896-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="basic_string.html#idp20507608-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="basic_string.html#idp20510856-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp77672648"></a><h2>Description</h2>
+<p>The <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> class represents a Sequence of characters. It contains all the usual operations of a Sequence, and, additionally, it contains standard string operations such as search and concatenation.</p>
+<p>The <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> class is parameterized by character type, and by that type's Character Traits.</p>
+<p>This class has performance characteristics very much like vector&lt;&gt;, meaning, for example, that it does not perform reference-count or copy-on-write, and that concatenation of two strings is an O(N) operation.</p>
+<p>Some of <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a>'s member functions use an unusual method of specifying positions and ranges. In addition to the conventional method using iterators, many of <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a>'s member functions use a single value pos of type size_type to represent a position (in which case the position is begin() + pos, and many of <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a>'s member functions use two values, pos and n, to represent a range. In that case pos is the beginning of the range and n is its size. That is, the range is [begin() + pos, begin() + pos + n).</p>
+<p>Note that the C++ standard does not specify the complexity of <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> operations. In this implementation, <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> has performance characteristics very similar to those of vector: access to a single character is O(1), while copy and concatenation are O(N).</p>
+<p>In this implementation, begin(), end(), rbegin(), rend(), operator[], c_str(), and data() do not invalidate iterators. In this implementation, iterators are only invalidated by member functions that explicitly change the string's contents. </p>
+<div class="refsect2">
+<a name="idp77678008"></a><h3>
+<a name="boost.container.basic_stringconstruct-copy-destruct"></a><code class="computeroutput">basic_string</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp20513784-bb"></a><span class="identifier">basic_string</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Default constructs a <code class="computeroutput"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a></code>.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If allocator_type's default constructor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp20515176-bb"></a><span class="identifier">basic_string</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">allocator_type</span> <span class="special">&amp;</span> a<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Constructs a <code class="computeroutput"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a></code> taking the allocator as parameter.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp20517016-bb"></a><span class="identifier">basic_string</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Copy constructs a <code class="computeroutput"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a></code>.</p>
+<p><span class="bold"><strong>Postcondition</strong></span>: x == *this.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If allocator_type's default constructor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp20519384-bb"></a><span class="identifier">basic_string</span><span class="special">(</span><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;&amp;</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Move constructor. Moves s's resources to *this.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp20521288-bb"></a><span class="identifier">basic_string</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> s<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">allocator_type</span> <span class="special">&amp;</span> a<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Copy constructs a <code class="computeroutput"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a></code> using the specified allocator.</p>
+<p><span class="bold"><strong>Postcondition</strong></span>: x == *this.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If allocation throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp20523992-bb"></a><span class="identifier">basic_string</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n <span class="special">=</span> <span class="identifier">npos</span><span class="special">,</span> 
+             <span class="keyword">const</span> <span class="identifier">allocator_type</span> <span class="special">&amp;</span> a <span class="special">=</span> <span class="identifier">allocator_type</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Constructs a <code class="computeroutput"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a></code> taking the allocator as parameter, and is initialized by a specific number of characters of the s string. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">basic_string&amp; <a name="idp20528664-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Copy constructs a string.</p>
+<p><span class="bold"><strong>Postcondition</strong></span>: x == *this.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the elements x contains. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">basic_string&amp; <a name="idp20530776-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Move constructor. Moves mx's resources to *this.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If allocator_type's copy constructor throws.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">basic_string&amp; <a name="idp20549096-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">)</span><span class="special">;</span></pre>
+<span class="bold"><strong>Effects</strong></span>: Assignment from a null-terminated c-string. </li>
+<li class="listitem">
+<pre class="literallayout">basic_string&amp; <a name="idp20550072-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">CharT</span> c<span class="special">)</span><span class="special">;</span></pre>
+<span class="bold"><strong>Effects</strong></span>: Assignment from character. </li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp20526888-bb"></a><span class="special">~</span><span class="identifier">basic_string</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Destroys the <code class="computeroutput"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a></code>. All used memory is deallocated.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp77729144"></a><h3>
+<a name="idp20233144-bb"></a><code class="computeroutput">basic_string</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"> <a name="idp20233352-bb"></a><span class="keyword">if</span><span class="special">(</span><span class="identifier">a</span> <span class="special">=</span> <span class="special">=</span><span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">alloc</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">this</span> <a name="idp20234216-bb"></a><span class="identifier">assign</span><span class="special">(</span><span class="identifier">s</span><span class="special">,</span> <span class="identifier">s</span><span class="special">+</span> n<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">this</span> <a name="idp20235352-bb"></a><span class="identifier">assign</span><span class="special">(</span><span class="identifier">s</span><span class="special">,</span> <span class="identifier">s</span><span class="special">+</span><span class="identifier">Traits</span><span class="special">::</span> length<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">this</span> <a name="idp20236488-bb"></a><span class="identifier">assign</span><span class="special">(</span><span class="identifier">n</span><span class="special">,</span> <span class="identifier">c</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">this</span> <a name="idp20237624-bb"></a><span class="identifier">assign</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span> <span class="identifier">l</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">allocator_type</span> <a name="idp20238760-bb"></a><span class="identifier">get_allocator</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a copy of the internal allocator.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If allocator's copy constructor throws.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">stored_allocator_type</span> <span class="special">&amp;</span> <a name="idp20240600-bb"></a><span class="identifier">get_stored_allocator</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a reference to the internal allocator.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Note</strong></span>: Non-standard extension. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">stored_allocator_type</span> <span class="special">&amp;</span> <a name="idp20242888-bb"></a><span class="identifier">get_stored_allocator</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a reference to the internal allocator.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Note</strong></span>: Non-standard extension. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp20245176-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns an iterator to the first element contained in the vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp20247016-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_iterator to the first element contained in the vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp20248856-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns an iterator to the end of the vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp20250664-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_iterator to the end of the vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">reverse_iterator</span> <a name="idp20252488-bb"></a><span class="identifier">rbegin</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a reverse_iterator pointing to the beginning of the reversed vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reverse_iterator</span> <a name="idp20254344-bb"></a><span class="identifier">rbegin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_reverse_iterator pointing to the beginning of the reversed vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">reverse_iterator</span> <a name="idp20256216-bb"></a><span class="identifier">rend</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a reverse_iterator pointing to the end of the reversed vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reverse_iterator</span> <a name="idp20258072-bb"></a><span class="identifier">rend</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_reverse_iterator pointing to the end of the reversed vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp20259928-bb"></a><span class="identifier">cbegin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_iterator to the first element contained in the vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp20261768-bb"></a><span class="identifier">cend</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_iterator to the end of the vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reverse_iterator</span> <a name="idp20263592-bb"></a><span class="identifier">crbegin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_reverse_iterator pointing to the beginning of the reversed vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reverse_iterator</span> <a name="idp20265464-bb"></a><span class="identifier">crend</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_reverse_iterator pointing to the end of the reversed vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp20267320-bb"></a><span class="identifier">empty</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns true if the vector contains no elements.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20269144-bb"></a><span class="identifier">size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of the elements contained in the vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20270968-bb"></a><span class="identifier">length</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of the elements contained in the vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20272792-bb"></a><span class="identifier">max_size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the largest possible size of the vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp20274616-bb"></a><span class="identifier">resize</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">,</span> <span class="identifier">CharT</span> c<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts or erases elements at the end such that the size becomes n. New elements are copy constructed from x.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation throws</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the difference between size() and new_size. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp20277224-bb"></a><span class="identifier">resize</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts or erases elements at the end such that the size becomes n. New elements are value initialized.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation throws</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the difference between size() and new_size. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20279496-bb"></a><span class="identifier">capacity</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Number of elements for which memory has been allocated. capacity() is always greater than or equal to size().</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp20281368-bb"></a><span class="identifier">reserve</span><span class="special">(</span><span class="identifier">size_type</span> res_arg<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: If n is less than or equal to capacity(), this call has no effect. Otherwise, it is a request for allocation of additional memory. If the request is successful, then capacity() is greater than or equal to n; otherwise, capacity() is unchanged. In either case, size() is unchanged.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation allocation throws </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp20283368-bb"></a><span class="identifier">shrink_to_fit</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Tries to deallocate the excess of memory created with previous allocations. The size of the string is unchanged</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to size(). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">reference</span> <a name="idp20285272-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: size() &gt; n.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a reference to the nth element from the beginning of the container.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reference</span> <a name="idp20287864-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: size() &gt; n.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const reference to the nth element from the beginning of the container.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">reference</span> <a name="idp20290472-bb"></a><span class="identifier">at</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: size() &gt; n.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a reference to the nth element from the beginning of the container.</p>
+<p><span class="bold"><strong>Throws</strong></span>: std::range_error if n &gt;= size()</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reference</span> <a name="idp20293096-bb"></a><span class="identifier">at</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: size() &gt; n.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const reference to the nth element from the beginning of the container.</p>
+<p><span class="bold"><strong>Throws</strong></span>: std::range_error if n &gt;= size()</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20295736-bb"></a><span class="keyword">operator</span><span class="special">+=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Calls append(str.data, str.size()).</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20297832-bb"></a><span class="keyword">operator</span><span class="special">+=</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Calls append(s).</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20299688-bb"></a><span class="keyword">operator</span><span class="special">+=</span><span class="special">(</span><span class="identifier">CharT</span> c<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Calls append(1, c).</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20301544-bb"></a><span class="identifier">append</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Calls append(str.data(), str.size()).</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20303640-bb"></a><span class="identifier">append</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos &lt;= str.size()</p>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the effective length rlen of the string to append as the smaller of n and str.size() - pos and calls append(str.data() + pos, rlen).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation throws and out_of_range if pos &gt; str.size()</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20307432-bb"></a><span class="identifier">append</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least n elements of CharT.</p>
+<p><span class="bold"><strong>Effects</strong></span>: The function replaces the string controlled by *this with a string of length size() + n whose irst size() elements are a copy of the original string controlled by *this and whose remaining elements are a copy of the initial n elements of s.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation throws length_error if size() + n &gt; max_size().</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20310792-bb"></a><span class="identifier">append</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least traits::length(s) + 1 elements of CharT.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Calls append(s, traits::length(s)).</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20313144-bb"></a><span class="identifier">append</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">,</span> <span class="identifier">CharT</span> c<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Equivalent to append(basic_string(n, c)).</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> InputIter<span class="special">&gt;</span> 
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20315352-bb"></a><span class="identifier">append</span><span class="special">(</span><span class="identifier">InputIter</span> first<span class="special">,</span> <span class="identifier">InputIter</span> last<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: [first,last) is a valid range.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Equivalent to append(basic_string(first, last)).</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp20318440-bb"></a><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">CharT</span> c<span class="special">)</span><span class="special">;</span></pre>
+<span class="bold"><strong>Effects</strong></span>: Equivalent to append(static_cast&lt;size_type&gt;(1), c). </li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20319704-bb"></a><span class="identifier">assign</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Equivalent to assign(str, 0, npos).</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20321800-bb"></a><span class="identifier">assign</span><span class="special">(</span><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;&amp;</span> ms<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: The function replaces the string controlled by *this with a string of length str.size() whose elements are a copy of the string controlled by str. Leaves str in a valid but unspecified state.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20324392-bb"></a><span class="identifier">assign</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos &lt;= str.size()</p>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the effective length rlen of the string to assign as the smaller of n and str.size() - pos and calls assign(str.data() + pos rlen).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation throws or out_of_range if pos &gt; str.size().</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20328184-bb"></a><span class="identifier">assign</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least n elements of CharT.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Replaces the string controlled by *this with a string of length n whose elements are a copy of those pointed to by s.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation throws or length_error if n &gt; max_size().</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20331416-bb"></a><span class="identifier">assign</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least traits::length(s) + 1 elements of CharT.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Calls assign(s, traits::length(s)).</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20333768-bb"></a><span class="identifier">assign</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">,</span> <span class="identifier">CharT</span> c<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Equivalent to assign(basic_string(n, c)).</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> InputIter<span class="special">&gt;</span> 
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20335976-bb"></a><span class="identifier">assign</span><span class="special">(</span><span class="identifier">InputIter</span> first<span class="special">,</span> <span class="identifier">InputIter</span> last<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Equivalent to assign(basic_string(first, last)).</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20338616-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">size_type</span> pos<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos &lt;= size().</p>
+<p><span class="bold"><strong>Effects</strong></span>: Calls insert(pos, str.data(), str.size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation throws or out_of_range if pos &gt; size().</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> 
+<a name="idp20341944-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">size_type</span> pos1<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos2<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos1 &lt;= size() and pos2 &lt;= str.size()</p>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the effective length rlen of the string to insert as the smaller of n and str.size() - pos2 and calls insert(pos1, str.data() + pos2, rlen).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation throws or out_of_range if pos1 &gt; size() or pos2 &gt; str.size().</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20346104-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">size_type</span> pos<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least n elements of CharT and pos &lt;= size().</p>
+<p><span class="bold"><strong>Effects</strong></span>: Replaces the string controlled by *this with a string of length size() + n whose first pos elements are a copy of the initial elements of the original string controlled by *this and whose next n elements are a copy of the elements in s and whose remaining elements are a copy of the remaining elements of the original string controlled by *this.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation throws, out_of_range if pos &gt; size() or length_error if size() + n &gt; max_size().</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20349944-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">size_type</span> pos<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos &lt;= size() and s points to an array of at least traits::length(s) + 1 elements of CharT</p>
+<p><span class="bold"><strong>Effects</strong></span>: Calls insert(pos, s, traits::length(s)).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation throws, out_of_range if pos &gt; size() length_error if size() &gt; max_size() - Traits::length(s)</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20353176-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">,</span> <span class="identifier">CharT</span> c<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Equivalent to insert(pos, basic_string(n, c)).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation throws, out_of_range if pos &gt; size() length_error if size() &gt; max_size() - n</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp20356248-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">const_iterator</span> p<span class="special">,</span> <span class="identifier">CharT</span> c<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: p is a valid iterator on *this.</p>
+<p><span class="bold"><strong>Effects</strong></span>: inserts a copy of c before the character referred to by p.</p>
+<p><span class="bold"><strong>Returns</strong></span>: An iterator which refers to the copy of the inserted character. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp20358840-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">const_iterator</span> p<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">,</span> <span class="identifier">CharT</span> c<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: p is a valid iterator on *this.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts n copies of c before the character referred to by p.</p>
+<p><span class="bold"><strong>Returns</strong></span>: an iterator to the first inserted element or p if n is 0. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> InputIter<span class="special">&gt;</span> 
+  <span class="identifier">iterator</span> <a name="idp20361752-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">const_iterator</span> p<span class="special">,</span> <span class="identifier">InputIter</span> first<span class="special">,</span> <span class="identifier">InputIter</span> last<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: p is a valid iterator on *this. [first,last) is a valid range.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Equivalent to insert(p - begin(), basic_string(first, last)).</p>
+<p><span class="bold"><strong>Returns</strong></span>: an iterator to the first inserted element or p if first == last. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20365128-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">size_type</span> n <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos &lt;= size()</p>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the effective length xlen of the string to be removed as the smaller of n and size() - pos. The function then replaces the string controlled by *this with a string of length size() - xlen whose first pos elements are a copy of the initial elements of the original string controlled by *this, and whose remaining elements are a copy of the elements of the original string controlled by *this beginning at position pos + xlen.</p>
+<p><span class="bold"><strong>Throws</strong></span>: out_of_range if pos &gt; size().</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp20368872-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="identifier">const_iterator</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Removes the character referred to by p.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: An iterator which points to the element immediately following p prior to the element being erased. If no such element exists, end() is returned. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp20371160-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="identifier">const_iterator</span> first<span class="special">,</span> <span class="identifier">const_iterator</span> last<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: first and last are valid iterators on *this, defining a range [first,last).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Removes the characters in the range [first,last).</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: An iterator which points to the element pointed to by last prior to the other elements being erased. If no such element exists, end() is returned. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp20374280-bb"></a><span class="identifier">pop_back</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: !empty()</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Effects</strong></span>: Equivalent to erase(size() - 1, 1). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp20376088-bb"></a><span class="identifier">clear</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements of the vector.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the number of elements in the vector. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20377944-bb"></a><span class="identifier">replace</span><span class="special">(</span><span class="identifier">size_type</span> pos1<span class="special">,</span> <span class="identifier">size_type</span> n1<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> str<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos1 &lt;= size().</p>
+<p><span class="bold"><strong>Effects</strong></span>: Calls replace(pos1, n1, str.data(), str.size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: if memory allocation throws or out_of_range if pos1 &gt; size().</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> 
+<a name="idp20381624-bb"></a><span class="identifier">replace</span><span class="special">(</span><span class="identifier">size_type</span> pos1<span class="special">,</span> <span class="identifier">size_type</span> n1<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> str<span class="special">,</span> 
+        <span class="identifier">size_type</span> pos2<span class="special">,</span> <span class="identifier">size_type</span> n2<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos1 &lt;= size() and pos2 &lt;= str.size().</p>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the effective length rlen of the string to be inserted as the smaller of n2 and str.size() - pos2 and calls replace(pos1, n1, str.data() + pos2, rlen).</p>
+<p><span class="bold"><strong>Throws</strong></span>: if memory allocation throws, out_of_range if pos1 &gt; size() or pos2 &gt; str.size().</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> 
+<a name="idp20386136-bb"></a><span class="identifier">replace</span><span class="special">(</span><span class="identifier">size_type</span> pos1<span class="special">,</span> <span class="identifier">size_type</span> n1<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> n2<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos1 &lt;= size() and s points to an array of at least n2 elements of CharT.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the effective length xlen of the string to be removed as the smaller of n1 and size() - pos1. If size() - xlen &gt;= max_size() - n2 throws length_error. Otherwise, the function replaces the string controlled by *this with a string of length size() - xlen + n2 whose first pos1 elements are a copy of the initial elements of the original string controlled by *this, whose next n2 elements are a copy of the initial n2 elements of s, and whose remaining elements are a copy of the elements of the original string controlled by *this beginning at position pos + xlen.</p>
+<p><span class="bold"><strong>Throws</strong></span>: if memory allocation throws, out_of_range if pos1 &gt; size() or length_error if the length of the resulting string would exceed max_size()</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20389992-bb"></a><span class="identifier">replace</span><span class="special">(</span><span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n1<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos1 &lt;= size() and s points to an array of at least n2 elements of CharT.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the effective length xlen of the string to be removed as the smaller of n1 and size() - pos1. If size() - xlen &gt;= max_size() - n2 throws length_error. Otherwise, the function replaces the string controlled by *this with a string of length size() - xlen + n2 whose first pos1 elements are a copy of the initial elements of the original string controlled by *this, whose next n2 elements are a copy of the initial n2 elements of s, and whose remaining elements are a copy of the elements of the original string controlled by *this beginning at position pos + xlen.</p>
+<p><span class="bold"><strong>Throws</strong></span>: if memory allocation throws, out_of_range if pos1 &gt; size() or length_error if the length of the resulting string would exceed max_size()</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20393512-bb"></a><span class="identifier">replace</span><span class="special">(</span><span class="identifier">size_type</span> pos1<span class="special">,</span> <span class="identifier">size_type</span> n1<span class="special">,</span> <span class="identifier">size_type</span> n2<span class="special">,</span> <span class="identifier">CharT</span> c<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos1 &lt;= size().</p>
+<p><span class="bold"><strong>Effects</strong></span>: Equivalent to replace(pos1, n1, basic_string(n2, c)).</p>
+<p><span class="bold"><strong>Throws</strong></span>: if memory allocation throws, out_of_range if pos1 &gt; size() or length_error if the length of the resulting string would exceed max_size()</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> 
+<a name="idp20397384-bb"></a><span class="identifier">replace</span><span class="special">(</span><span class="identifier">const_iterator</span> i1<span class="special">,</span> <span class="identifier">const_iterator</span> i2<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> str<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: [begin(),i1) and [i1,i2) are valid ranges.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Calls replace(i1 - begin(), i2 - i1, str).</p>
+<p><span class="bold"><strong>Throws</strong></span>: if memory allocation throws</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> 
+<a name="idp20401032-bb"></a><span class="identifier">replace</span><span class="special">(</span><span class="identifier">const_iterator</span> i1<span class="special">,</span> <span class="identifier">const_iterator</span> i2<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: [begin(),i1) and [i1,i2) are valid ranges and s points to an array of at least n elements</p>
+<p><span class="bold"><strong>Effects</strong></span>: Calls replace(i1 - begin(), i2 - i1, s, n).</p>
+<p><span class="bold"><strong>Throws</strong></span>: if memory allocation throws</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> <a name="idp20404840-bb"></a><span class="identifier">replace</span><span class="special">(</span><span class="identifier">const_iterator</span> i1<span class="special">,</span> <span class="identifier">const_iterator</span> i2<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: [begin(),i1) and [i1,i2) are valid ranges and s points to an array of at least traits::length(s) + 1 elements of CharT.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Calls replace(i1 - begin(), i2 - i1, s, traits::length(s)).</p>
+<p><span class="bold"><strong>Throws</strong></span>: if memory allocation throws</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> 
+<a name="idp20408360-bb"></a><span class="identifier">replace</span><span class="special">(</span><span class="identifier">const_iterator</span> i1<span class="special">,</span> <span class="identifier">const_iterator</span> i2<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">,</span> <span class="identifier">CharT</span> c<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: [begin(),i1) and [i1,i2) are valid ranges.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Calls replace(i1 - begin(), i2 - i1, basic_string(n, c)).</p>
+<p><span class="bold"><strong>Throws</strong></span>: if memory allocation throws</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> InputIter<span class="special">&gt;</span> 
+  <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> 
+  <a name="idp20412136-bb"></a><span class="identifier">replace</span><span class="special">(</span><span class="identifier">const_iterator</span> i1<span class="special">,</span> <span class="identifier">const_iterator</span> i2<span class="special">,</span> <span class="identifier">InputIter</span> j1<span class="special">,</span> <span class="identifier">InputIter</span> j2<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: [begin(),i1), [i1,i2) and [j1,j2) are valid ranges.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Calls replace(i1 - begin(), i2 - i1, basic_string(j1, j2)).</p>
+<p><span class="bold"><strong>Throws</strong></span>: if memory allocation throws</p>
+<p><span class="bold"><strong>Returns</strong></span>: *this </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20416344-bb"></a><span class="identifier">copy</span><span class="special">(</span><span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos &lt;= size()</p>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the effective length rlen of the string to copy as the smaller of n and size() - pos. s shall designate an array of at least rlen elements. The function then replaces the string designated by s with a string of length rlen whose elements are a copy of the string controlled by *this beginning at position pos. The function does not append a null object to the string designated by s.</p>
+<p><span class="bold"><strong>Throws</strong></span>: if memory allocation throws, out_of_range if pos &gt; size().</p>
+<p><span class="bold"><strong>Returns</strong></span>: rlen </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp20420120-bb"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: *this contains the same sequence of characters that was in s, s contains the same sequence of characters that was in *this.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> <a name="idp20422072-bb"></a><span class="identifier">c_str</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: The program shall not alter any of the values stored in the character array.</p>
+<p><span class="bold"><strong>Returns</strong></span>: Allocator pointer p such that p + i == &amp;operator[](i) for each i in [0,size()].</p>
+<p><span class="bold"><strong>Complexity</strong></span>: constant time. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> <a name="idp20424008-bb"></a><span class="identifier">data</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: The program shall not alter any of the values stored in the character array.</p>
+<p><span class="bold"><strong>Returns</strong></span>: Allocator pointer p such that p + i == &amp;operator[](i) for each i in [0,size()].</p>
+<p><span class="bold"><strong>Complexity</strong></span>: constant time. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20425944-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the lowest position xpos, if possible, such that both of the following conditions obtain: 19 pos &lt;= xpos and xpos + str.size() &lt;= size(); 2) traits::eq(at(xpos+I), str.at(I)) for all elements I of the string controlled by str.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: xpos if the function can determine such a value for xpos. Otherwise, returns npos. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20429064-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least n elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find(basic_string&lt;CharT,traits,Allocator&gt;(s,n),pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20431944-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least traits::length(s) + 1 elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find(basic_string(s), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20434616-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="identifier">CharT</span> c<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find(basic_string&lt;CharT,traits,Allocator&gt;(1,c), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20436840-bb"></a><span class="identifier">rfind</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> str<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the highest position xpos, if possible, such that both of the following conditions obtain: a) xpos &lt;= pos and xpos + str.size() &lt;= size(); b) traits::eq(at(xpos+I), str.at(I)) for all elements I of the string controlled by str.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: xpos if the function can determine such a value for xpos. Otherwise, returns npos. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20439976-bb"></a><span class="identifier">rfind</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least n elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: rfind(basic_string(s, n), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20442840-bb"></a><span class="identifier">rfind</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos &lt;= size() and s points to an array of at least traits::length(s) + 1 elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: rfind(basic_string(s), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20445528-bb"></a><span class="identifier">rfind</span><span class="special">(</span><span class="identifier">CharT</span> c<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: rfind(basic_string&lt;CharT,traits,Allocator&gt;(1,c),pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20447752-bb"></a><span class="identifier">find_first_of</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the lowest position xpos, if possible, such that both of the following conditions obtain: a) pos &lt;= xpos and xpos &lt; size(); b) traits::eq(at(xpos), str.at(I)) for some element I of the string controlled by str.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: xpos if the function can determine such a value for xpos. Otherwise, returns npos. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20450856-bb"></a><span class="identifier">find_first_of</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least n elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find_first_of(basic_string(s, n), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20453720-bb"></a><span class="identifier">find_first_of</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least traits::length(s) + 1 elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find_first_of(basic_string(s), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20456408-bb"></a><span class="identifier">find_first_of</span><span class="special">(</span><span class="identifier">CharT</span> c<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least traits::length(s) + 1 elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find_first_of(basic_string&lt;CharT,traits,Allocator&gt;(1,c), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20459128-bb"></a><span class="identifier">find_last_of</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> str<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the highest position xpos, if possible, such that both of the following conditions obtain: a) xpos &lt;= pos and xpos &lt; size(); b) traits::eq(at(xpos), str.at(I)) for some element I of the string controlled by str.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: xpos if the function can determine such a value for xpos. Otherwise, returns npos. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20462248-bb"></a><span class="identifier">find_last_of</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least n elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find_last_of(basic_string(s, n), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20465112-bb"></a><span class="identifier">find_last_of</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least traits::length(s) + 1 elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find_last_of(basic_string&lt;CharT,traits,Allocator&gt;(1,c),pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20467816-bb"></a><span class="identifier">find_last_of</span><span class="special">(</span><span class="identifier">CharT</span> c<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find_last_of(basic_string(s), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20470024-bb"></a><span class="identifier">find_first_not_of</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> str<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the lowest position xpos, if possible, such that both of the following conditions obtain: a) pos &lt;= xpos and xpos &lt; size(); b) traits::eq(at(xpos), str.at(I)) for no element I of the string controlled by str.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: xpos if the function can determine such a value for xpos. Otherwise, returns npos. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20473144-bb"></a><span class="identifier">find_first_not_of</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least traits::length(s) + 1 elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find_first_not_of(basic_string(s, n), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20476040-bb"></a><span class="identifier">find_first_not_of</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least traits::length(s) + 1 elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find_first_not_of(basic_string(s), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20478744-bb"></a><span class="identifier">find_first_not_of</span><span class="special">(</span><span class="identifier">CharT</span> c<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find_first_not_of(basic_string(1, c), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20480968-bb"></a><span class="identifier">find_last_not_of</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> str<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the highest position xpos, if possible, such that both of the following conditions obtain: a) xpos &lt;= pos and xpos &lt; size(); b) traits::eq(at(xpos), str.at(I)) for no element I of the string controlled by str.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: xpos if the function can determine such a value for xpos. Otherwise, returns npos. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20484088-bb"></a><span class="identifier">find_last_not_of</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least n elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find_last_not_of(basic_string(s, n), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20486968-bb"></a><span class="identifier">find_last_not_of</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: s points to an array of at least traits::length(s) + 1 elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find_last_not_of(basic_string(s), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp20489672-bb"></a><span class="identifier">find_last_not_of</span><span class="special">(</span><span class="identifier">CharT</span> c<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: find_last_not_of(basic_string(1, c), pos). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <a name="idp20491896-bb"></a><span class="identifier">substr</span><span class="special">(</span><span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">size_type</span> n <span class="special">=</span> <span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Requires: pos &lt;= size()</p>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the effective length rlen of the string to copy as the smaller of n and size() - pos.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If memory allocation throws or out_of_range if pos &gt; size().</p>
+<p><span class="bold"><strong>Returns</strong></span>: basic_string&lt;CharT,traits,Allocator&gt;(data()+pos,rlen). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp20495320-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> str<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the effective length rlen of the string to copy as the smaller of size() and str.size(). The function then compares the two strings by calling traits::compare(data(), str.data(), rlen).</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: The nonzero result if the result of the comparison is nonzero. Otherwise, returns a value &lt; 0 if size() &lt; str.size(), a 0 value if size() == str.size(), and value &gt; 0 if size() &gt; str.size() </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp20498040-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="identifier">size_type</span> pos1<span class="special">,</span> <span class="identifier">size_type</span> n1<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> str<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos1 &lt;= size()</p>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the effective length rlen of the string to copy as the smaller of</p>
+<p><span class="bold"><strong>Throws</strong></span>: out_of_range if pos1 &gt; size()</p>
+<p><span class="bold"><strong>Returns</strong></span>:basic_string(*this,pos1,n1).compare(str). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp20501592-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="identifier">size_type</span> pos1<span class="special">,</span> <span class="identifier">size_type</span> n1<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="basic_string.html" title="Class template basic_string">basic_string</a> <span class="special">&amp;</span> str<span class="special">,</span> 
+            <span class="identifier">size_type</span> pos2<span class="special">,</span> <span class="identifier">size_type</span> n2<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos1 &lt;= size() and pos2 &lt;= str.size()</p>
+<p><span class="bold"><strong>Effects</strong></span>: Determines the effective length rlen of the string to copy as the smaller of</p>
+<p><span class="bold"><strong>Throws</strong></span>: out_of_range if pos1 &gt; size() or pos2 &gt; str.size()</p>
+<p><span class="bold"><strong>Returns</strong></span>: basic_string(*this, pos1, n1).compare(basic_string(str, pos2, n2)). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp20505896-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Returns</strong></span>: compare(basic_string(s)). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp20507608-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="identifier">size_type</span> pos1<span class="special">,</span> <span class="identifier">size_type</span> n1<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">,</span> <span class="identifier">size_type</span> n2<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos1 &gt; size() and s points to an array of at least n2 elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: out_of_range if pos1 &gt; size()</p>
+<p><span class="bold"><strong>Returns</strong></span>: basic_string(*this, pos, n1).compare(basic_string(s, n2)). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp20510856-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="identifier">size_type</span> pos1<span class="special">,</span> <span class="identifier">size_type</span> n1<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span> s<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: pos1 &gt; size() and s points to an array of at least traits::length(s) + 1 elements of CharT.</p>
+<p><span class="bold"><strong>Throws</strong></span>: out_of_range if pos1 &gt; size()</p>
+<p><span class="bold"><strong>Returns</strong></span>: basic_string(*this, pos, n1).compare(basic_string(s, n2)). </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="stable_vector.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_container_header_reference.html#header.boost.container.container_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ordered_range_t.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

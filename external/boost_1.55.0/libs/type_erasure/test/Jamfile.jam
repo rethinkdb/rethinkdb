@@ -1,0 +1,67 @@
+# Boost.TypeErasure library
+#
+# Copyright 2011 Steven Watanabe
+#
+# Distributed under the Boost Software License version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+run test_binding.cpp /boost//unit_test_framework ;
+run test_increment.cpp /boost//unit_test_framework ;
+run test_add.cpp /boost//unit_test_framework ;
+run test_add_assign.cpp /boost//unit_test_framework ;
+run test_callable.cpp /boost//unit_test_framework ;
+run test_reference.cpp /boost//unit_test_framework ;
+run test_construct.cpp /boost//unit_test_framework ;
+run test_relaxed.cpp /boost//unit_test_framework ;
+run test_assign.cpp /boost//unit_test_framework ;
+run test_construct_ref.cpp /boost//unit_test_framework ;
+run test_construct_cref.cpp /boost//unit_test_framework ;
+run test_any_cast.cpp /boost//unit_test_framework ;
+run test_binding_of.cpp /boost//unit_test_framework ;
+run test_typeid_of.cpp /boost//unit_test_framework ;
+run test_nested.cpp /boost//unit_test_framework ;
+run test_less.cpp /boost//unit_test_framework ;
+run test_equal.cpp /boost//unit_test_framework ;
+run test_negate.cpp /boost//unit_test_framework ;
+run test_dereference.cpp /boost//unit_test_framework ;
+run test_subscript.cpp /boost//unit_test_framework ;
+run test_forward_iterator.cpp /boost//unit_test_framework ;
+run test_tuple.cpp /boost//unit_test_framework ;
+run test_stream.cpp /boost//unit_test_framework ;
+run test_deduced.cpp /boost//unit_test_framework ;
+run test_same_type.cpp /boost//unit_test_framework ;
+run test_member.cpp /boost//unit_test_framework ;
+run test_null.cpp /boost//unit_test_framework ;
+run test_free.cpp /boost//unit_test_framework ;
+run test_is_empty.cpp /boost//unit_test_framework ;
+
+compile test_param.cpp ;
+compile test_is_subconcept.cpp ;
+
+compile-fail fail_default_construct.cpp ;
+compile-fail fail_construct_mismatch.cpp ;
+compile-fail fail_construct_mismatch_ref.cpp ;
+compile-fail fail_construct_mismatch_cref.cpp ;
+compile-fail fail_binding_convert_no_mapping.cpp ;
+compile-fail fail_increment_discard_const.cpp ;
+
+compile-fail fail_ref_assign.cpp ;
+compile-fail fail_cref_assign.cpp ;
+
+compile-fail fail_ref_discard_const.cpp ;
+compile-fail fail_ref_discard_const_convert.cpp ;
+compile-fail fail_ref_discard_const_convert_ref.cpp ;
+compile-fail fail_ref_discard_const_convert_cref.cpp ;
+compile-fail fail_ref_discard_const_init.cpp ;
+
+compile-fail fail_any_cast_discard_const1.cpp ;
+compile-fail fail_any_cast_discard_const2.cpp ;
+compile-fail fail_any_cast_discard_const3.cpp ;
+compile-fail fail_any_cast_discard_const4.cpp ;
+compile-fail fail_any_cast_discard_const5.cpp ;
+compile-fail fail_any_cast_discard_const6.cpp ;
+compile-fail fail_any_cast_pointer_to_ref.cpp ;
+compile-fail fail_any_cast_pointer_to_val.cpp ;

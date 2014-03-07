@@ -1,0 +1,123 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+
+[section State Algebra Operations]
+
+[note The following does not apply to implicit steppers like implicit_euler or Rosenbrock 4 as there the `state_type` can not be changed from `ublas::vector` and no algebra/operations are used.]
+
+[heading Description]
+
+The `State`, `Algebra` and `Operations` together define a concept describing how the mathematical vector operations required for the stepper algorithms are performed.
+The typical vector operation done within steppers is 
+
+['*y* = __Sigma __alpha[sub i] [*x[sub i]]].
+
+The `State` represents the state variable of an ODE, usually denoted with /x/.
+Algorithmically, the state is often realized as a `vector< double >` or `array< double , N >`, however, the genericity of odeint enables you to basically use anything as a state type.
+The algorithmic counterpart of such mathematical expressions is divided into two parts.
+First, the `Algebra` is used to account for the vector character of the equation.
+In the case of a `vector` as state type this means the `Algebra` is responsible for iteration over all vector elements.
+Second, the `Operations` are used to represent the actual operation applied to each of the vector elements.
+So the `Algebra` iterates over all elements of the `State`s and calls an operation taken from the `Operations` for each element.
+This is where `State`, `Algebra` and `Operations` have to work together to make odeint running.
+Please have a look at the `range_algebra` and `default_operations` to see an example how this is implemented.
+
+In the following we describe how `State`, `Algebra` and `Operations` are used together within the stepper implementations.
+
+[section Operations]
+
+[heading Notation]
+
+[variablelist
+  [[`Operations`] [The operations type]]
+  [/[`Time`] [A type representing the time type of steppers]]
+  [[`Value1`, ... , `ValueN`] [Types representing the value or time type of stepper]]
+  [[`Scale`] [Type of the scale operation]]
+  [[`scale`] [Object of type `Scale`]]
+  [[[^ScaleSum['N]]] [Type that represents a general scale_sum operation, [^/N/] should be replaced by a number from 1 to 14.]]
+  [[[^scale_sum['N]]] [Object of type [^ScaleSum['N]], [^/N/] should be replaced by a number from 1 to 14.]]
+  [[`ScaleSumSwap2`] [Type of the scale sum swap operation]]
+  [[`scale_sum_swap2`] [Object of type `ScaleSumSwap2`]]
+  [[`a1, a2, ...`] [Objects of type `Value1`, `Value2`, ...]]
+  [[`y, x1, x2, ...`] [Objects of `State`'s value type]]
+]
+
+[heading Valid Expressions]
+
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Get scale operation] [`Operations::scale< Value >`] [`Scale`] [Get `Scale` from `Operations`]]
+  [[`Scale` constructor] [`Scale< Value >( a )`] [`Scale`] [Constructs a `Scale` object]]
+  [[`Scale` operation] [`scale( x )`] [`void`] [Calculates `x *= a`]]
+  [[Get general `scale_sum` operation] [[^Operations::scale_sum['N]< Value1 , ... , ValueN >]] [[^ScaleSum['N]]] [Get the [^ScaleSum['N]] type from `Operations`, [^/N/] should be replaced by a number from 1 to 14.]]
+  [[`scale_sum` constructor] [[^ScaleSum['N]< Value1 , ... , ValueN >( a1 , ... , aN )]] [[^ScaleSum['N]]] [Constructs a `scale_sum` object given [^/N/] parameter values with [^/N/] between 1 and 14.]]
+  [[`scale_sum` operation] [[^scale_sum['N]( y , x1 , ... , xN )]] [`void`] [Calculates `y = a1*x1 + a2*x2 + ... + aN*xN`. Note that this is an [^/N/+1]-ary function call.]]
+  [[Get scale sum swap operation] [`Operations::scale_sum_swap2< Value1 , Value2 >`] [`ScaleSumSwap2`] [Get scale sum swap from operations]]
+  [[`ScaleSumSwap2` constructor] [`ScaleSumSwap2< Value1 , Value2 >( a1 , a2 )`] [`ScaleSumSwap2`] [Constructor]]
+  [[`ScaleSumSwap2` operation] [`scale_sum_swap2( x1 , x2 , x3 )`] [`void`] [Calculates `tmp = x1`, `x1 = a1*x2 + a2*x3` and `x2 = tmp`.]]
+]
+
+[endsect]
+
+[section Algebra]
+
+[heading Notation]
+
+[variablelist
+  [[`State`] [The state type]]
+  [[`Algebra`] [The algebra type]]
+  [[[^Operation['N]]] [An [^/N/]-ary operation type, [^/N/] should be a number from 1 to 14.]]
+  [[`algebra`] [Object of type `Algebra`]]
+  [[[^operation['N]]] [Object of type [^Operation['N]]]]
+  [[`y, x1, x2, ...`] [Objects of type `State`]]
+]
+
+
+[heading Valid Expressions]
+
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Vector Operation with arity 2] [`algebra.for_each2( y , x , operation2 )`] [void] [Calls `operation2( y_i , x_i )` for each element `y_i` of `y` and `x_i` of `x`.]]
+  [[Vector Operation with arity 3] [`algebra.for_each3( y , x1 , x2 , operation3 )`] [void] [Calls `operation3( y_i , x1_i , x2_i )` for each element `y_i` of `y` and `x1_i` of `x1` and `x2_i` of `x2`.]]
+  [[Vector Operation with arity [^/N/]] [[^algebra.for_each['N]( y , x1 , ... , xN , operation['N] )]] [void] [Calls [^operation['N]( y_i , x1_i , ... , xN_i )] for each element `y_i` of `y` and `x1_i` of `x1` and so on. [^/N/] should be replaced by a number between 1 and 14.]]
+]
+
+[endsect]
+
+[section Pre-Defined implementations]
+
+As standard configuration odeint uses the `range_algebra` and `default_operations` which suffices most situations.
+However, a few more possibilities exist either to gain better performance or to ensure interoperability with other libraries.
+In the following we list the existing `Algebra`/`Operations` configurations that can be used in the steppers.
+
+[table
+  [[`State`] [`Algebra`] [`Operations`] [Remarks]]
+  [[Anything supporting __boost_range, like `std::vector`, `std::list`, `boost::array`,... based on a `value_type` that supports operators +,* (typically `double`)] [`range_algebra`] [`default_operations`] [Standard implementation, applicable for most typical situations.]]
+  [[`boost::array` based on a `value_type` that supports operators +,*] [`array_algebra`] [`default_operations`] [Special implementation for boost::array with better performance than `range_algebra`]]
+  [[Anything that defines operators + within itself and * with scalar (Mathematically spoken, anything that is a vector space).] [`vector_space_algebra`] [`default_operations`] [For the use of __controlled_stepper, the template `vector_space_reduce` has to be instantiated.]]
+  [[`thrust::device_vector`, `thrust::host_vector`] [`thrust_algebra`] [`thrust_operations`] [For running odeint on CUDA devices by using __thrust]]
+  [[`boost::array` or anything which allocates the elements in a C-like manner] [`vector_space_algebra`] [`mkl_operations`] [Using the __intel_mkl in odeint for maximum performance. Currently, only the RK4 stepper is supported.]]
+]
+
+[endsect]
+
+[section Example expressions]
+
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Vector operation] [`algebra.for_each3( y , x1 , x2 , Operations::scale_sum2< Value1 , Value2 >( a1 , a2 ) )`] [void] [Calculates ['*y* = a1 *x1* + a2 *x2*]]]
+]
+
+[endsect]
+
+[endsect]

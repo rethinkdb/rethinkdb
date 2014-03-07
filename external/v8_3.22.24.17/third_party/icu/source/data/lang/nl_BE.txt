@@ -1,0 +1,21 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/nl_BE.xml
+// *
+// ***************************************************************************
+nl_BE{
+    Languages{
+        lv{"Lets"}
+        oc{"Occitaans (na 1500); Provençaals"}
+        sh{"Servo-Kroatisch"}
+    }
+    Types{
+        collation{
+            traditional{"Traditioneel"}
+        }
+    }
+    Version{"2.0.45.82"}
+}

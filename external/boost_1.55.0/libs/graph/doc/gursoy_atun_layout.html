@@ -1,0 +1,239 @@
+<HTML>
+<!--
+     Copyright (c) 2004 Trustees of Indiana University
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: G&uuml;rsoy-Atun Layout</Title>
+<script language="JavaScript" type="text/JavaScript">
+<!--
+function address(host, user) {
+        var atchar = '@';
+        var thingy = user+atchar+host;
+        thingy = '<a hre' + 'f=' + "mai" + "lto:" + thingy + '>' + user+atchar+host + '</a>';
+        document.write(thingy);
+}
+//-->
+</script>
+</head>
+
+
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>
+<TT>gursoy_atun_layout</TT>
+</H1>
+
+<P>
+
+<h3>Synopsis</h3>
+<PRE>
+<em>// Non-named parameter version</em>
+template&lt;typename VertexListAndIncidenceGraph,  typename Topology,
+	 typename PositionMap, typename VertexIndexMap, 
+         typename EdgeWeightMap&gt;
+void
+gursoy_atun_layout(const VertexListAndIncidenceGraph&amp; g,
+                   const Topology&amp; space,
+		   PositionMap position,
+		   int nsteps = num_vertices(g),
+		   double diameter_initial = sqrt((double)num_vertices(g)),
+		   double diameter_final = 1,
+		   double learning_constant_initial = 0.8,
+		   double learning_constant_final = 0.2,
+		   VertexIndexMap vertex_index_map = get(vertex_index, g),
+                   EdgeWeightMap weight = dummy_property_map());
+
+<em>// Named parameter version</em>
+template&lt;typename VertexListAndIncidenceGraph, typename Topology,
+         typename PositionMap, typename P, typename T, typename R&gt;
+void 
+gursoy_atun_layout(const VertexListAndIncidenceGraph&amp; g,  
+                   const Topology&amp; space,
+                   PositionMap position,
+                   const bgl_named_params&lt;P,T,R&gt;&amp; params = <em>all defaults</em>);
+</PRE>
+
+<h3>Description</h3>
+
+<P> This algorithm&nbsp;[<A HREF="bibliography.html#gursoy00">60</A>]
+performs layout of directed graphs, either weighted or unweighted. This
+algorithm is very different from the <a
+href="kamada_kawai_spring_layout.html">Kamada-Kawai</a> and <a
+href="fruchterman_reingold.html">Fruchterman-Reingold</a> algorithms,
+because it does not explicitly strive to layout graphs in a visually
+pleasing manner. Instead, it attempts to distribute the vertices
+uniformly within a <em>topology</em> (e.g., rectangle, sphere, heart shape),
+keeping vertices close to their neighbors; <a href="topology.html">various
+topologies</a> are provided by BGL, and users can also create their own. The
+algorithm itself is
+based on <a
+href="http://davis.wpi.edu/~matt/courses/soms/">Self-Organizing
+Maps</a>.
+
+<p>
+<a href="topology.html#square_topology"><img src="figs/ga-square.png"></a>
+<a href="topology.html#heart_topology"><img src="figs/ga-heart.png"></a>
+<a href="topology.html#circle_topology"><img src="figs/ga-circle.png"></a>
+</p>
+
+<h3>Where Defined</h3>
+
+<a href="../../../boost/graph/gursoy_atun_layout.hpp"><tt>boost/graph/gursoy_atun_layout.hpp</tt></a>
+
+<h3>Parameters</h3>
+
+IN: <tt>const Graph&amp; g</tt> 
+<blockquote>
+  The graph object on which the algorithm will be applied.  The type
+  <tt>Graph</tt> must be a model of <a
+  href="./VertexAndEdgeListGraph.html">Vertex List Graph</a> and <a
+  href="IncidenceGraph.html">Incidence Graph</a>.
+</blockquote>
+
+IN: <tt>const Topology&amp; space</tt>
+<blockquote>
+  The topology on which the graph will be laid out. The type must
+  model the <a href="topology.html#topology-concept">Topology</a> concept.
+</blockquote>
+
+OUT: <tt>PositionMap position</tt>
+<blockquote>
+  The property map that stores the position of each vertex. The type
+  <tt>PositionMap</tt> must be a model of <a
+  href="../../property_map/doc/LvaluePropertyMap.html">Lvalue Property
+  Map</a> such that the vertex descriptor type of <tt>Graph</tt> is
+  convertible to its key type. Its value type must be
+  <tt>Topology::point_type</tt>.
+</blockquote>
+
+IN: <tt>int nsteps</tt>
+<blockquote>
+  The number of iterations to perform.<br>
+  <b>Default</b>: <tt>num_vertices(g)</tt>
+</blockquote>
+
+IN: <tt>double diameter_initial</tt>
+<blockquote>
+  When a vertex is selected to be updated, all vertices that are
+  reachable from that vertex within a certain diameter (in graph
+  terms) will also be updated. This diameter begins at
+  <tt>diameter_initial</tt> in the first iteration and ends at
+  <tt>diameter_final</tt> in the last iteration, progressing
+  exponentially. Generally the diameter decreases, in a manner similar to
+  the cooling schedule in <a
+href="fruchterman_reingold.html">Fruchterman-Reingold</a>. The
+diameter should typically decrease in later iterations, so this value
+should not be less than <tt>diameter_final</tt>.<br>
+  <b>Default</b>: <tt>sqrt((double)num_vertices(g))</tt>
+</blockquote>
+
+IN: <tt>double diameter_final</tt>
+<blockquote>
+  The final value of the diameter.<br>
+  <b>Default</b>: 1.0
+</blockquote>
+
+IN: <tt>double learning_constant_initial</tt>
+<blockquote>
+  The learning rate affects how far vertices can moved to rearrange
+  themselves in a given iteration. The learning rate progresses
+  linearly from the initial value to the final value, both of which
+  should be between 0 and 1. The learning rate should typically
+  decrease, so the initial value should not exceed the final
+  value.<br> <b>Default</b>: 0.8
+</blockquote>
+
+IN: <tt>double learning_constant_final</tt>
+<blockquote>
+  The final learning rate constant.<br>
+  <b>Default</b>: 0.2
+</blockquote>
+
+IN: <tt>VertexIndexMap vertex_index_map</tt> 
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+    num_vertices(g))</tt>. This is only necessary when no
+    displacement map is provided. 
+  The type <tt>VertexIndexMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+  Map</a>. The value type of the map must be an integer type. The
+  vertex descriptor type of the graph needs to be usable as the key
+  type of the map.<br>
+<b>Default:</b> <tt>get(vertex_index, g)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+</blockquote>
+
+IN: <tt>EdgeWeightMap weight</tt> 
+<blockquote>
+  This maps each edge to a weight.
+  The type <tt>EdgeWeightMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+  Map</a>. The value type of the map must be an floating-point type
+  compatible with <tt>double</tt>. The edge descriptor type of the
+  graph needs to be usable as the key type of the map. When this map
+  is a <tt>dummy_property_map</tt>, the algorithm assumes the graph is
+  unweighted.<br>
+<b>Default:</b> <tt>dummy_property_map()</tt>
+</blockquote>
+
+<h3>Named Parameters</h3>
+
+IN: <tt>iterations(int n)</tt>
+<blockquote>
+Executes the algorithm for <em>n</em> iterations.<br>
+<b>Default:</b> <tt>num_vertices(g)</tt>
+</blockquote>
+
+IN: <tt>diameter_range(std::pair<T, T> range)</tt>
+<blockquote>
+Range specifying the parameters (<tt>diameter_initial</tt>, <tt>diameter_final</tt>). <br>
+<b>Default:</b> <tt>std::make_pair(sqrt((double)num_vertices(g)), 1.0)</tt>
+</blockquote>
+
+IN: <tt>learning_constant_range(std::pair<T, T> range)</tt>
+<blockquote>
+Range specifying the parameters (<tt>learning_constant_initial</tt>, <tt>learning_constant_final</tt>). <br>
+<b>Default:</b> <tt>std::make_pair(0.8, 0.2)</tt>
+</blockquote>
+
+IN: <tt>edge_weight(EdgeWeightMap weight)</tt>
+<blockquote>
+Equivalent to the non-named <tt>weight</tt> parameter.<br>
+<b>Default:</b> <tt>dummy_property_map()</tt>
+</blockquote>
+
+IN: <tt>vertex_index_map(VertexIndexMap i_map)</tt> 
+<blockquote>
+Equivalent to the non-named <tt>vertex_index_map</tt> parameter.<br>
+<b>Default:</b> <tt>get(vertex_index, g)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacency_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+</blockquote>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2004 Trustees of Indiana University</TD><TD>
+Jeremiah Willcock, Indiana University (<script language="Javascript">address("osl.iu.edu", "jewillco")</script>)<br>
+<A HREF="http://www.boost.org/people/doug_gregor.html">Doug Gregor</A>, Indiana University (<script language="Javascript">address("cs.indiana.edu", "dgregor")</script>)<br>
+  <A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<script language="Javascript">address("osl.iu.edu", "lums")</script>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

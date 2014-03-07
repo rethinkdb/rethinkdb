@@ -1,0 +1,16 @@
+
+# Copyright (C) 2009-2012 Lorenzo Caminiti
+# Distributed under the Boost Software License, Version 1.0
+# (see accompanying file LICENSE_1_0.txt or a copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+# Home at http://www.boost.org/libs/utility/identity_type
+
+import testing ;
+
+compile-fail var_error.cpp ;
+run var.cpp ;
+run template.cpp ;
+run abstract.cpp ;
+run noncopyable.cpp ;
+run paren.cpp ;
+

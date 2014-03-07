@@ -1,0 +1,39 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __applies_unique__ Removes all consecutive duplicate points]
+[def __this_function__ unique]
+
+[heading_conformance_no_ogc __this_function__]
+[conformance_std __this_function__..std::__this_function__ function]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__point__][__does_nothing__]]
+[[__segment__][__does_nothing__]]
+[[__box__][__does_nothing__]]
+[[__linestring__][__applies_unique__]]
+[[__ring__][__applies_unique__]]
+[[__polygon__][__applies_unique__ in all rings]]
+[[__multi_point__][__does_nothing__. Even if two equal points happen to be stored consecutively, they are kept]]
+[[__multi_linestring__][__applies_unique__ in all contained linestrings]]
+[[__multi_polygon__][__applies_unique__ in all contained polygons (all rings)]]
+]
+
+[heading Complexity]
+Linear
+
+[heading Example]
+[unique]
+[unique_output]
+

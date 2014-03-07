@@ -1,0 +1,120 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Socket Iostreams</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../networking.html" title="Networking">
+<link rel="prev" href="other_protocols.html" title="Support for Other Protocols">
+<link rel="next" href="bsd_sockets.html" title="The BSD Socket API and Boost.Asio">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="other_protocols.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../networking.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bsd_sockets.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.networking.iostreams"></a><a class="link" href="iostreams.html" title="Socket Iostreams">Socket Iostreams</a>
+</h4></div></div></div>
+<p>
+          Boost.Asio includes classes that implement iostreams on top of sockets.
+          These hide away the complexities associated with endpoint resolution, protocol
+          independence, etc. To create a connection one might simply write:
+        </p>
+<pre class="programlisting"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">iostream</span> <span class="identifier">stream</span><span class="special">(</span><span class="string">"www.boost.org"</span><span class="special">,</span> <span class="string">"http"</span><span class="special">);</span>
+<span class="keyword">if</span> <span class="special">(!</span><span class="identifier">stream</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="comment">// Can't connect.</span>
+<span class="special">}</span>
+</pre>
+<p>
+          The iostream class can also be used in conjunction with an acceptor to
+          create simple servers. For example:
+        </p>
+<pre class="programlisting"><span class="identifier">io_service</span> <span class="identifier">ios</span><span class="special">;</span>
+
+<span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">endpoint</span> <span class="identifier">endpoint</span><span class="special">(</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">v4</span><span class="special">(),</span> <span class="number">80</span><span class="special">);</span>
+<span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">acceptor</span> <span class="identifier">acceptor</span><span class="special">(</span><span class="identifier">ios</span><span class="special">,</span> <span class="identifier">endpoint</span><span class="special">);</span>
+
+<span class="keyword">for</span> <span class="special">(;;)</span>
+<span class="special">{</span>
+  <span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">iostream</span> <span class="identifier">stream</span><span class="special">;</span>
+  <span class="identifier">acceptor</span><span class="special">.</span><span class="identifier">accept</span><span class="special">(*</span><span class="identifier">stream</span><span class="special">.</span><span class="identifier">rdbuf</span><span class="special">());</span>
+  <span class="special">...</span>
+<span class="special">}</span>
+</pre>
+<p>
+          Timeouts may be set by calling <code class="computeroutput"><span class="identifier">expires_at</span><span class="special">()</span></code> or <code class="computeroutput"><span class="identifier">expires_from_now</span><span class="special">()</span></code> to establish a deadline. Any socket operations
+          that occur past the deadline will put the iostream into a "bad"
+          state.
+        </p>
+<p>
+          For example, a simple client program like this:
+        </p>
+<pre class="programlisting"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">iostream</span> <span class="identifier">stream</span><span class="special">;</span>
+<span class="identifier">stream</span><span class="special">.</span><span class="identifier">expires_from_now</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">seconds</span><span class="special">(</span><span class="number">60</span><span class="special">));</span>
+<span class="identifier">stream</span><span class="special">.</span><span class="identifier">connect</span><span class="special">(</span><span class="string">"www.boost.org"</span><span class="special">,</span> <span class="string">"http"</span><span class="special">);</span>
+<span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="string">"GET /LICENSE_1_0.txt HTTP/1.0\r\n"</span><span class="special">;</span>
+<span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="string">"Host: www.boost.org\r\n"</span><span class="special">;</span>
+<span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="string">"Accept: */*\r\n"</span><span class="special">;</span>
+<span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="string">"Connection: close\r\n\r\n"</span><span class="special">;</span>
+<span class="identifier">stream</span><span class="special">.</span><span class="identifier">flush</span><span class="special">();</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">stream</span><span class="special">.</span><span class="identifier">rdbuf</span><span class="special">();</span>
+</pre>
+<p>
+          will fail if all the socket operations combined take longer than 60 seconds.
+        </p>
+<p>
+          If an error does occur, the iostream's <code class="computeroutput"><span class="identifier">error</span><span class="special">()</span></code> member function may be used to retrieve
+          the error code from the most recent system call:
+        </p>
+<pre class="programlisting"><span class="keyword">if</span> <span class="special">(!</span><span class="identifier">stream</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Error: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">stream</span><span class="special">.</span><span class="identifier">error</span><span class="special">().</span><span class="identifier">message</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<h6>
+<a name="boost_asio.overview.networking.iostreams.h0"></a>
+          <span class="phrase"><a name="boost_asio.overview.networking.iostreams.see_also"></a></span><a class="link" href="iostreams.html#boost_asio.overview.networking.iostreams.see_also">See
+          Also</a>
+        </h6>
+<p>
+          <a class="link" href="../../reference/ip__tcp/iostream.html" title="ip::tcp::iostream">ip::tcp::iostream</a>,
+          <a class="link" href="../../reference/basic_socket_iostream.html" title="basic_socket_iostream">basic_socket_iostream</a>,
+          <a class="link" href="../../examples/cpp03_examples.html#boost_asio.examples.cpp03_examples.iostreams">iostreams
+          examples</a>.
+        </p>
+<h6>
+<a name="boost_asio.overview.networking.iostreams.h1"></a>
+          <span class="phrase"><a name="boost_asio.overview.networking.iostreams.notes"></a></span><a class="link" href="iostreams.html#boost_asio.overview.networking.iostreams.notes">Notes</a>
+        </h6>
+<p>
+          These iostream templates only support <code class="computeroutput"><span class="keyword">char</span></code>,
+          not <code class="computeroutput"><span class="keyword">wchar_t</span></code>, and do not perform
+          any code conversion.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="other_protocols.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../networking.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bsd_sockets.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

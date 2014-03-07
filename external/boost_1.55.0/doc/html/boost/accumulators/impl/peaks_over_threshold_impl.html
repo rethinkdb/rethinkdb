@@ -1,0 +1,117 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template peaks_over_threshold_impl</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../../accumulators/reference.html#header.boost.accumulators.statistics.peaks_over_threshold_hpp" title="Header &lt;boost/accumulators/statistics/peaks_over_threshold.hpp&gt;">
+<link rel="prev" href="../extract/peaks_over_threshold.html" title="Global peaks_over_threshold">
+<link rel="next" href="../tag/abstract_peaks_idp33391512.html" title="Struct abstract_peaks_over_threshold">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../extract/peaks_over_threshold.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../accumulators/reference.html#header.boost.accumulators.statistics.peaks_over_threshold_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../tag/abstract_peaks_idp33391512.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.accumulators.impl.peaks_over_threshold_impl"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template peaks_over_threshold_impl</span></h2>
+<p>boost::accumulators::impl::peaks_over_threshold_impl &#8212; Peaks over Threshold Method for Quantile and Tail Mean Estimation. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../accumulators/reference.html#header.boost.accumulators.statistics.peaks_over_threshold_hpp" title="Header &lt;boost/accumulators/statistics/peaks_over_threshold.hpp&gt;">boost/accumulators/statistics/peaks_over_threshold.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Sample<span class="special">,</span> <span class="keyword">typename</span> LeftRight<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="peaks_over_threshold_impl.html" title="Struct template peaks_over_threshold_impl">peaks_over_threshold_impl</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">accumulator_base</span> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">numeric</span><span class="special">::</span><span class="identifier">functional</span><span class="special">::</span><span class="identifier">fdiv</span><span class="special">&lt;</span> <span class="identifier">Sample</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">result_type</span> <a name="boost.accumulators.impl.peaks_over_threshold_impl.float_type"></a><span class="identifier">float_type</span><span class="special">;</span> 
+  <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span> <span class="identifier">float_type</span><span class="special">,</span> <span class="identifier">float_type</span><span class="special">,</span> <span class="identifier">float_type</span> <span class="special">&gt;</span>            <a name="boost.accumulators.impl.peaks_over_threshold_impl.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">int_</span><span class="special">&lt;</span> <span class="identifier">is_same</span><span class="special">&lt;</span> <span class="identifier">LeftRight</span><span class="special">,</span> <a class="link" href="../left.html" title="Struct left">left</a> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">value</span><span class="special">?</span><span class="special">-</span><span class="number">1</span><span class="special">:</span><span class="number">1</span> <span class="special">&gt;</span>           <a name="boost.accumulators.impl.peaks_over_threshold_impl.sign"></a><span class="identifier">sign</span><span class="special">;</span>       
+
+  <span class="comment">// <a class="link" href="peaks_over_threshold_impl.html#boost.accumulators.impl.peaks_over_threshold_implconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Args<span class="special">&gt;</span> <a class="link" href="peaks_over_threshold_impl.html#idp33390504-bb"><span class="identifier">peaks_over_threshold_impl</span></a><span class="special">(</span><span class="identifier">Args</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="peaks_over_threshold_impl.html#idp33387864-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Args<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="peaks_over_threshold_impl.html#idp33388072-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">Args</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Args<span class="special">&gt;</span> <span class="identifier">result_type</span> <a class="link" href="peaks_over_threshold_impl.html#idp33389288-bb"><span class="identifier">result</span></a><span class="special">(</span><span class="identifier">Args</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp54267032"></a><h2>Description</h2>
+<p>According to the theorem of Pickands-Balkema-de Haan, the distribution function <span class="inlinemediaobject"><img src="../../../images/accumulators//form_23.png"></span> of the excesses <span class="inlinemediaobject"><img src="../../../images/accumulators//form_24.png"></span> over some sufficiently high threshold <span class="inlinemediaobject"><img src="../../../images/accumulators//form_25.png"></span> of a distribution function <span class="inlinemediaobject"><img src="../../../images/accumulators//form_26.png"></span> may be approximated by a generalized Pareto distribution </p>
+<div class="equation">
+<a name="idp54272408"></a><p class="title"><b>Equation&#160;1.1.&#160;</b></p>
+<div class="equation-contents"><div class="mediaobject" align="center"><img src="../../../images/accumulators//form_27.png" align="middle"></div></div>
+</div>
+<p><br class="equation-break"> with suitable parameters <span class="inlinemediaobject"><img src="../../../images/accumulators//form_28.png"></span> and <span class="inlinemediaobject"><img src="../../../images/accumulators//form_29.png"></span> that can be estimated, e.g., with the method of moments, cf. Hosking and Wallis (1987), </p>
+<div class="equation">
+<a name="idp54276488"></a><p class="title"><b>Equation&#160;1.2.&#160;</b></p>
+<div class="equation-contents"><div class="mediaobject" align="center"><img src="../../../images/accumulators//form_30.png" align="middle"></div></div>
+</div>
+<p><br class="equation-break"> <span class="inlinemediaobject"><img src="../../../images/accumulators//form_31.png"></span> and <span class="inlinemediaobject"><img src="../../../images/accumulators//form_32.png"></span> being the empirical mean and variance of the samples over the threshold <span class="inlinemediaobject"><img src="../../../images/accumulators//form_25.png"></span>. Equivalently, the distribution function <span class="inlinemediaobject"><img src="../../../images/accumulators//form_33.png"></span> of the exceedances <span class="inlinemediaobject"><img src="../../../images/accumulators//form_34.png"></span> can be approximated by <span class="inlinemediaobject"><img src="../../../images/accumulators//form_35.png"></span>. Since for <span class="inlinemediaobject"><img src="../../../images/accumulators//form_36.png"></span> the distribution function <span class="inlinemediaobject"><img src="../../../images/accumulators//form_26.png"></span> can be written as </p>
+<div class="equation">
+<a name="idp54288040"></a><p class="title"><b>Equation&#160;1.3.&#160;</b></p>
+<div class="equation-contents"><div class="mediaobject" align="center"><img src="../../../images/accumulators//form_37.png" align="middle"></div></div>
+</div>
+<p><br class="equation-break"> and the probability <span class="inlinemediaobject"><img src="../../../images/accumulators//form_38.png"></span> can be approximated by the empirical distribution function <span class="inlinemediaobject"><img src="../../../images/accumulators//form_39.png"></span> evaluated at <span class="inlinemediaobject"><img src="../../../images/accumulators//form_25.png"></span>, an estimator of <span class="inlinemediaobject"><img src="../../../images/accumulators//form_26.png"></span> is given by </p>
+<div class="equation">
+<a name="idp54294376"></a><p class="title"><b>Equation&#160;1.4.&#160;</b></p>
+<div class="equation-contents"><div class="mediaobject" align="center"><img src="../../../images/accumulators//form_40.png" align="middle"></div></div>
+</div>
+<p><br class="equation-break"> It can be shown that <span class="inlinemediaobject"><img src="../../../images/accumulators//form_41.png"></span> is a generalized Pareto distribution <span class="inlinemediaobject"><img src="../../../images/accumulators//form_42.png"></span> with <span class="inlinemediaobject"><img src="../../../images/accumulators//form_43.png"></span> and <span class="inlinemediaobject"><img src="../../../images/accumulators//form_44.png"></span>. By inverting <span class="inlinemediaobject"><img src="../../../images/accumulators//form_41.png"></span>, one obtains an estimator for the <span class="inlinemediaobject"><img src="../../../images/accumulators//form_45.png"></span>-quantile, </p>
+<div class="equation">
+<a name="idp54303432"></a><p class="title"><b>Equation&#160;1.5.&#160;</b></p>
+<div class="equation-contents"><div class="mediaobject" align="center"><img src="../../../images/accumulators//form_46.png" align="middle"></div></div>
+</div>
+<p><br class="equation-break"> and similarly an estimator for the (coherent) tail mean, </p>
+<div class="equation">
+<a name="idp54305032"></a><p class="title"><b>Equation&#160;1.6.&#160;</b></p>
+<div class="equation-contents"><div class="mediaobject" align="center"><img src="../../../images/accumulators//form_47.png" align="middle"></div></div>
+</div>
+<p><br class="equation-break"> cf. McNeil and Frey (2000).</p>
+<p>Note that in case extreme values of the left tail are fitted, the distribution is mirrored with respect to the <span class="inlinemediaobject"><img src="../../../images/accumulators//form_48.png"></span> axis such that the left tail can be treated as a right tail. The computed fit parameters thus define the Pareto distribution that fits the mirrored left tail. When quantities like a quantile or a tail mean are computed using the fit parameters obtained from the mirrored data, the result is mirrored back, yielding the correct result.</p>
+<p>For further details, see</p>
+<p>J. R. M. Hosking and J. R. Wallis, Parameter and quantile estimation for the generalized Pareto distribution, Technometrics, Volume 29, 1987, p. 339-349</p>
+<p>A. J. McNeil and R. Frey, Estimation of Tail-Related Risk Measures for Heteroscedastic Financial Time Series: an Extreme Value Approach, Journal of Empirical Finance, Volume 7, 2000, p. 271-300</p>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp54309272"></a><h3>
+<a name="boost.accumulators.impl.peaks_over_threshold_implconstruct-copy-destruct"></a><code class="computeroutput">peaks_over_threshold_impl</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Args<span class="special">&gt;</span> <a name="idp33390504-bb"></a><span class="identifier">peaks_over_threshold_impl</span><span class="special">(</span><span class="identifier">Args</span> <span class="keyword">const</span> <span class="special">&amp;</span> args<span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp54314520"></a><h3>
+<a name="idp33387864-bb"></a><code class="computeroutput">peaks_over_threshold_impl</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Args<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp33388072-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">Args</span> <span class="keyword">const</span> <span class="special">&amp;</span> args<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Args<span class="special">&gt;</span> <span class="identifier">result_type</span> <a name="idp33389288-bb"></a><span class="identifier">result</span><span class="special">(</span><span class="identifier">Args</span> <span class="keyword">const</span> <span class="special">&amp;</span> args<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005, 2006 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../extract/peaks_over_threshold.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../accumulators/reference.html#header.boost.accumulators.statistics.peaks_over_threshold_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../tag/abstract_peaks_idp33391512.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

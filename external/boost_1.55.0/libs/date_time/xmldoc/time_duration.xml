@@ -1,0 +1,592 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.posix_time.time_duration">
+  <title>Time Duration</title>
+
+  <link linkend="time_duration_intro">Introduction</link> --
+  <link linkend="time_duration_header">Header</link> --
+  <link linkend="time_duration_constr">Construction</link> --
+  <link linkend="time_duration_count_constr">Count Based Construction</link> --
+  <link linkend="time_duration_from_string">Construct from String</link> --
+  <link linkend="time_duration_accessors">Accessors</link> --
+  <link linkend="time_duration_to_string">Conversion To String</link> --
+  <link linkend="time_duration_operators">Operators</link> --
+  <link linkend="time_duration_struct_tm">Struct tm Functions</link>
+
+  <anchor id="time_duration_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    The class boost::posix_time::time_duration the base type responsible for representing a length of time. A duration can be either positive or negative. The general time_duration class provides a constructor that takes a count of the number of hours, minutes, seconds, and fractional seconds count as shown in the code fragment below. The resolution of the time_duration is configure able at compile time. See <link linkend="date_time.buildinfo">Build-Compiler Information</link> for more information. 
+  </para>
+  <para>
+    <programlisting>using namespace boost::posix_time;
+time_duration td(1,2,3,4); //01:02:03.000000004 when resolution is nano seconds
+time_duration td(1,2,3,4); //01:02:03.000004 when resolution is micro seconds</programlisting>
+  </para>
+  <para>
+    Several small helper classes that derive from a base time_duration, as shown below, to adjust for different resolutions. These classes can shorten code and make the intent clearer.
+  </para>
+  <imagedata fileref="../../libs/date_time/doc/time_duration_inherit.png" /> 
+  <para>
+    As an example: 
+    <programlisting>using namespace boost::posix_time;
+      
+time_duration td = hours(1) + seconds(10); //01:00:01
+td = hours(1) + nanoseconds(5); //01:00:00.000000005</programlisting>
+    Note that the existence of the higher resolution classes (eg: nanoseconds) depends on the installation of the library. See <link linkend="date_time.buildinfo">Build-Compiler Information</link> for more information. 
+  </para>
+
+  <para>
+     Another way to handle this is to utilize the ticks_per_second() method of time_duration to
+     write code that is portable no matter how the library is compiled.   The general equation
+     for calculating a resolution independent count is as follows:
+
+    <programlisting>
+count*(time_duration_ticks_per_second / count_ticks_per_second)
+    </programlisting>
+
+     For example, let's suppose we want to construct using a count that represents tenths 
+     of a second.  That is, each tick is 0.1 second. 
+    <programlisting>
+int number_of_tenths = 5;
+//create a resolution independent count -- divide by 10 since there are 
+//10 tenths in a second.  
+int count = number_of_tenths*(time_duration::ticks_per_second()/10);
+time_duration td(1,2,3,count); //01:02:03.5 //no matter the resolution settings
+    </programlisting>
+  </para>
+
+  <anchor id="time_duration_header" />
+  <bridgehead renderas="sect3">Header</bridgehead>
+  <para>
+    <programlisting>#include "boost/date_time/posix_time/posix_time.hpp" //include all types plus i/o
+or
+#include "boost/date_time/posix_time/posix_time_types.hpp" //no i/o just types</programlisting>
+  </para>
+
+  <anchor id="time_duration_constr" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>time_duration(hours,
+              minutes,
+              seconds,
+              fractional_seconds)</screen></entry>
+          <entry>Construct a duration from the counts. The fractional_second parameter is a number of units and is therefore affected by the resolution the application is compiled with (see <link linkend="compile_options">Build-Compiler Information</link>). If the fractional_seconds argument exceeds the limit of the compiled precision, the excess value will be "carried over" into the seconds field.  See above for techniques to creating a resolution independent count.</entry>
+          </row>
+          <row>
+            <entry><screen>time_duration td(1,2,3,9);
+//1 hr 2 min 3 sec 9 nanoseconds
+time_duration td2(1,2,3,123456789);
+time_duration td3(1,2,3,1000);
+// with microsecond resolution (6 digits)
+// td2 => "01:04:06.456789"
+// td3 => "01:02:03.001000"
+// with nanosecond resolution (9 digits)
+// td2 => "01:02:03.123456789"
+// td3 => "01:02:03.000001000"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top"><screen>time_duration(special_value sv)</screen></entry>
+            <entry>Special values constructor. <emphasis role="strong">Important note</emphasis>: When a time_duration is a special value, either by construction or other means, the following accessor functions will give unpredictable results: <screen>hours(), minutes(), seconds(), ticks(), 
+fractional_seconds(), total_nanoseconds(),
+total_microseconds(), total_milliseconds(),
+total_seconds()</screen>The remaining accessor functions will work as expected.</entry>
+          </row>
+
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="time_duration_count_constr" />
+  <bridgehead renderas="sect3">Count Based Construction</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>hours(long)</screen></entry>
+	    <entry>Number of hours</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration td = hours(3);</screen></entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>minutes(long)</screen></entry>
+	    <entry>Number of minutes</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration td = minutes(3);</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>seconds(long)</screen></entry>
+	    <entry> Number of seconds</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration td = seconds(3);</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>milliseconds(long)</screen></entry>
+	    <entry>Number of milliseconds.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration td = milliseconds(3);</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>microseconds(long)</screen></entry>
+	    <entry>Number of microseconds.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration td = microseconds(3);</screen></entry>
+          </row>
+          
+          <row>
+	    <entry valign="top" morerows="1"><screen>nanoseconds(long)</screen></entry>
+	    <entry>Number of nanoseconds.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration td = nanoseconds(3);</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="time_duration_from_string" />
+  <bridgehead renderas="sect3">Construct from String</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>time_duration duration_from_string(std::string)</screen></entry>
+            <entry>From delimited string. NOTE: Excess digits in fractional seconds will be dropped. Ex: "1:02:03.123456999" =&gt; 1:02:03.123456. This behavior is affected by the precision the library is compiled with (see <link linkend="date_time.buildinfo">Build-Compiler Information</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>std::string ts("23:59:59.000");
+time_duration td(duration_from_string(ts));</screen>
+	    </entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="time_duration_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>long hours()</screen></entry>
+            <entry>Get the number of normalized hours (will give unpredictable results if calling <code>time_duration</code> is a <code>special_value</code>).</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_duration td(1,2,3); 
+time_duration neg_td(-1,2,3);
+td.hours(); // --> 1
+neg_td.hours(); // --> -1</screen></entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>long minutes()</screen></entry>
+            <entry>Get the number of minutes normalized +/-(0..59) (will give unpredictable results if calling <code>time_duration</code> is a <code>special_value</code>).</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_duration td(1,2,3);
+time_duration neg_td(-1,2,3);
+td.minutes(); // --> 2
+neg_td.minutes(); // --> -2</screen></entry>
+        </row>
+        
+	  <row>
+	    <entry valign="top" morerows="1"><screen>long seconds()</screen></entry>
+            <entry>Get the normalized number of second +/-(0..59) (will give unpredictable results if calling <code>time_duration</code> is a <code>special_value</code>).</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_duration td(1,2,3); 
+time_duration neg_td(-1,2,3);
+td.seconds(); // --> 3
+neg_td.seconds(); // --> -3</screen></entry>
+        </row>
+        
+	  <row>
+	    <entry valign="top" morerows="1"><screen>long total_seconds()</screen></entry>
+	    <entry>Get the total number of seconds truncating any fractional seconds (will give unpredictable results if calling <code>time_duration</code> is a <code>special_value</code>).</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration td(1,2,3,10);
+td.total_seconds(); 
+// --> (1*3600) + (2*60) + 3 == 3723</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>long total_milliseconds()</screen></entry>
+	    <entry>Get the total number of milliseconds truncating any remaining digits (will give unpredictable results if calling <code>time_duration</code> is a <code>special_value</code>).</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration td(1,2,3,123456789);
+td.total_milliseconds(); 
+// HMS --> (1*3600) + (2*60) + 3 == 3723 seconds
+// milliseconds is 3 decimal places
+// (3723 * 1000) + 123 == 3723123</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>long total_microseconds()</screen></entry>
+	    <entry>Get the total number of microseconds truncating any remaining digits (will give unpredictable results if calling <code>time_duration</code> is a <code>special_value</code>).</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration td(1,2,3,123456789);
+td.total_microseconds(); 
+// HMS --> (1*3600) + (2*60) + 3 == 3723 seconds
+// microseconds is 6 decimal places
+// (3723 * 1000000) + 123456 == 3723123456</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>long total_nanoseconds()</screen></entry>
+	    <entry>Get the total number of nanoseconds truncating any remaining digits (will give unpredictable results if calling <code>time_duration</code> is a <code>special_value</code>).</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration td(1,2,3,123456789);
+td.total_nanoseconds(); 
+// HMS --> (1*3600) + (2*60) + 3 == 3723 seconds
+// nanoseconds is 9 decimal places
+// (3723 * 1000000000) + 123456789
+//                              == 3723123456789</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>long fractional_seconds()</screen></entry>
+	    <entry>Get the number of fractional seconds (will give unpredictable results if calling <code>time_duration</code> is a <code>special_value</code>).</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_duration td(1,2,3, 1000);
+td.fractional_seconds(); // --> 1000</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>bool is_negative()</screen></entry>
+	    <entry>True if duration is negative.</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_duration td(-1,0,0); 
+td.is_negative(); // --> true</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>time_duration invert_sign()</screen></entry>
+	    <entry>Generate a new duration with the sign inverted/</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_duration td(-1,0,0); 
+td.invert_sign(); // --> 01:00:00</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>date_time::time_resolutions resolution()</screen></entry>
+            <entry>Describes the resolution capability of the time_duration class. time_resolutions is an enum of resolution possibilities ranging from seconds to nanoseconds.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration::resolution() --> nano</screen></entry>
+          </row>
+          
+	  <row>
+            <entry valign="top" morerows="1"><screen>time_duration::num_fractional_digits()</screen></entry>
+            <entry>Returns an unsigned short holding the number of fractional digits the time resolution has.</entry>
+	  </row>
+	  <row>
+            <entry><screen>unsigned short secs;
+secs = time_duration::num_fractional_digits();
+// 9 for nano, 6 for micro, etc.</screen></entry>
+          </row>
+          
+	  <row>
+            <entry valign="top" morerows="1"><screen>time_duration::ticks_per_second()</screen></entry>
+            <entry>Return the number of ticks in a second.  For example, if the duration supports nanoseconds then the returned result will be 1,000,000,000 (1e+9).</entry>
+	  </row>
+	  <row>
+            <entry><screen>std::cout &lt;&lt; time_duration::ticks_per_second();</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>boost::int64_t ticks()</screen></entry>
+	    <entry>Return the raw count of the duration type (will give unpredictable results if calling <code>time_duration</code> is a <code>special_value</code>).</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_duration td(0,0,0, 1000);
+td.ticks() // --> 1000</screen></entry>
+          </row>
+          
+          <row>
+	    <entry valign="top" morerows="1"><screen>time_duration unit()</screen></entry>
+	    <entry>Return smallest possible unit of duration type (1 nanosecond).</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration::unit() --> time_duration(0,0,0,1)</screen></entry>
+          </row>
+  
+          <row>
+            <entry valign="top" morerows="1"><screen>bool is_neg_infinity() const</screen></entry>
+            <entry>Returns true if time_duration is negative infinity</entry>
+          </row>
+          <row>
+            <entry><screen>time_duration td(neg_infin);
+td.is_neg_infinity(); // --> true</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>bool is_pos_infinity() const</screen></entry>
+            <entry>Returns true if time_duration is positive infinity</entry>
+          </row>
+          <row>
+            <entry><screen>time_duration td(pos_infin); 
+td.is_pos_infinity(); // --> true</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>bool is_not_a_date_time() const</screen></entry>
+            <entry>Returns true if value is not a time</entry>
+          </row>
+          <row>
+            <entry><screen>time_duration td(not_a_date_time);
+td.is_not_a_date_time(); // --> true</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>bool is_special() const</screen></entry>
+            <entry>Returns true if time_duration is any <code>special_value</code></entry>
+          </row>
+          <row>
+            <entry><screen>time_duration td(pos_infin); 
+time_duration td2(not_a_date_time); 
+time_duration td3(2,5,10);
+td.is_special(); // --> true
+td2.is_special(); // --> true
+td3.is_special(); // --> false</screen></entry>
+          </row>
+        
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="time_duration_to_string" />
+  <bridgehead renderas="sect3">Conversion To String</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>std::string to_simple_string(time_duration)</screen></entry>
+            <entry>To <code>HH:MM:SS.fffffffff</code> were <code>fff</code> is fractional seconds that are only included if non-zero.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>10:00:01.123456789</screen></entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>std::string to_iso_string(time_duration)</screen></entry>
+            <entry>Convert to form <code>HHMMSS,fffffffff</code>.</entry>
+	  </row>
+          <row>
+	    <entry><screen>100001,123456789</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="time_duration_operators" />
+  <bridgehead renderas="sect3">Operators</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>operator&lt;&lt;, operator&gt;&gt;</screen></entry>
+            <entry>Streaming operators. <emphasis role="strong">Note:</emphasis> As of version 1.33, streaming operations have been greatly improved. See <link linkend="date_time.date_time_io">Date Time IO System</link> for more details (including exceptions and error conditions).</entry>
+          </row>
+          <row>
+            <entry><screen>time_duration td(0,0,0);
+stringstream ss("14:23:11.345678");
+ss &gt;&gt; td; 
+std::cout &lt;&lt; td; // "14:23:11.345678"
+  </screen>
+            </entry>
+          </row>
+
+          <row>
+	    <entry valign="top" morerows="1"><screen>operator==, operator!=,
+operator>, operator&lt;,
+operator>=, operator&lt;=</screen>
+	    </entry>
+	    <entry>A full complement of comparison operators</entry>
+	  </row>
+	  <row>
+	    <entry><screen>dd1 == dd2, etc</screen></entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>time_duration operator+(time_duration)</screen></entry>
+	    <entry>Add durations.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration td1(hours(1)+minutes(2));
+time_duration td2(seconds(10));
+time_duration td3 = td1 + td2;</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>time_duration operator-(time_duration)</screen></entry>
+	    <entry>Subtract durations.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_duration td1(hours(1)+nanoseconds(2));
+time_duration td2 = td1 - minutes(1);</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>time_duration operator/(int)</screen></entry>
+	    <entry>Divide the length of a duration by an integer value. Discards any remainder.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>hours(3)/2 == time_duration(1,30,0);
+nanosecond(3)/2 == nanosecond(1);</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>time_duration operator*(int)</screen></entry>
+	    <entry>Multiply the length of a duration by an integer value.</entry>
+	  </row>
+          <row>
+	    <entry><screen>hours(3)*2 == hours(6);</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="time_duration_struct_tm" />
+  <bridgehead renderas="sect3">Struct tm, time_t, and FILETIME Functions</bridgehead>
+  <para>Function for converting a time_duration to a <code>tm</code> struct is provided.</para>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry valign="top" morerows="1">Syntax</entry>
+	  <entry>Description</entry>
+	</row>
+	<row>
+	  <entry>Example</entry>
+	</row>
+      </thead>
+      <tbody>
+        <row>
+	  <entry valign="top" morerows="1"><screen>tm to_tm(time_duration)</screen></entry>
+          <entry>A function for converting a <code>time_duration</code> object to a <code>tm</code> struct. The fields: <code>tm_year</code>, <code>tm_mon</code>, <code>tm_mday</code>, <code>tm_wday</code>, <code>tm_yday</code> are set to zero. The <code>tm_isdst</code> field is set to -1.</entry>
+	</row>
+	<row>
+          <entry><screen>time_duration td(1,2,3);
+tm td_tm = to_tm(td);
+/* tm_year => 0
+   tm_mon  => 0
+   tm_mday => 0
+   tm_wday => 0
+   tm_yday => 0
+   tm_hour => 1
+   tm_min  => 2
+   tm_sec  => 3
+   tm_isddst => -1 */</screen>
+	  </entry>
+        </row>
+
+      </tbody>
+    </tgroup>
+  </informaltable>
+  
+</section>

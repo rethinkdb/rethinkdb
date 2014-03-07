@@ -1,0 +1,237 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+
+[library Boost.Numeric.Odeint
+     [quickbook 1.5]
+     [id odeint]
+     [dirname odeint]
+     [authors [Ahnert, Karsten], [Mulansky, Mario]]
+     [copyright 2009-2012 Karsten Ahnert and Mario Mulansky]
+     [category math]
+     [purpose 
+        Numerical integration of ordinary differential equations.
+     ]
+     [license
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy
+     at [@http://www.boost.org/LICENSE_1_0.txt]) 
+     ]
+]
+
+[include auto_index_helpers.qbk]
+
+
+
+[def __boost_lambda
+    [@http://www.boost.org/doc/libs/release/doc/html/lambda.html Boost.Lambda]]
+[def __boost_phoenix
+    [@http://www.boost.org/doc/libs/1_46_1/libs/spirit/phoenix/doc/html/index.html Boost.Phoenix]]
+[def __boost_operators
+    [@http://www.boost.org/doc/libs/release/doc/html/operators.html Boost.Operators]]
+[def __boost_ref
+    [@http://www.boost.org/doc/libs/release/doc/html/ref.html Boost.Ref]]
+[def __boost_range
+    [@http://www.boost.org/doc/libs/release/libs/range/index.html Boost.Range]]
+[def __boost_units
+    [@http://www.boost.org/doc/libs/release/libs/units/index.html Boost.Units]]
+[def __boost_fusion
+    [@http://www.boost.org/doc/libs/release/libs/fusion/index.html Boost.Fusion]]
+[def __boost_graph
+    [@http://www.boost.org/doc/libs/1_47_0/libs/graph/doc/table_of_contents.html Boost.Graph]]
+
+[def __thrust
+    [@http://code.google.com/p/thrust/ Thrust]]
+[def __ublas
+    [@http://www.boost.org/doc/libs/release/libs/numeric/ublas/index.html Boost.uBLAS]]
+[def __intel_mkl
+     [@http://software.intel.com/en-us/articles/intel-mkl/ Intel Math Kernel Library]]
+[def __gsl
+     [@http://www.gsl.org GSL]] 
+[def __vexcl
+     [@https://github.com/ddemidov/vexcl VexCL]]
+
+[def __concepts
+    [link boost_numeric_odeint.concepts Concepts]]
+[def __system
+    [link boost_numeric_odeint.concepts.system System]]
+[def __symplectic_system
+    [link boost_numeric_odeint.concepts.symplectic_system Symplectic System]]
+[def __simple_symplectic_system
+    [link boost_numeric_odeint.concepts.simple_symplectic_system Simple Symplectic System]]
+[def __implicit_system
+    [link boost_numeric_odeint.concepts.implicit_system Implicit System]]
+[def __stepper
+    [link boost_numeric_odeint.concepts.stepper Stepper]]
+[def __error_stepper
+    [link boost_numeric_odeint.concepts.error_stepper Error Stepper]]
+[def __controlled_stepper
+    [link boost_numeric_odeint.concepts.controlled_stepper Controlled Stepper]]
+[def __dense_output_stepper
+    [link boost_numeric_odeint.concepts.dense_output_stepper Dense Output Stepper]]
+[def __integrate_functions
+    [link boost_numeric_odeint.odeint_in_detail.integrate_functions integrate functions]]
+[def __tutorial
+    [link boost_numeric_odeint.tutorial Tutorial]]
+[def __tut_solar_system
+    [link boost_numeric_odeint.tutorial.solar_system Solar System]]
+[def __tut_chaotic_system
+    [link boost_numeric_odeint.tutorial.chaotic_systems_and_lyapunov_exponents Chaotic System]]
+[def __tut_harmonic_oscillator
+    [link boost_numeric_odeint.tutorial.harmonic_oscillator Harmonic Oscillator]]
+[def __using_steppers
+    [link boost_numeric_odeint.odeint_in_detail.steppers.using_steppers Using steppers]]	
+[def __generation_functions
+    [link boost_numeric_odeint.odeint_in_detail.generation_functions Generation functions]]
+[def __adapt_state_types
+    [link boost_numeric_odeint.odeint_in_detail.state_types__algebras_and_operations Adapt your own state types]]
+[def __resizing_lattice_example
+    [link boost_numeric_odeint.tutorial.self_expanding_lattices Self expanding lattices]]
+[def __odeint_stepper_table
+    [link boost_numeric_odeint.odeint_in_detail.steppers.stepper_overview Stepper overview]]
+
+
+
+[def __nr_ref [link numerical_recipies \[1\] ]]
+[def __hairer_1_ref [link hairer_solving_odes_1 \[2\] ]]
+[def __hairer_2_ref [link hairer_solving_odes_2 \[3\] ]]
+[def __hairer_geom_ref [link hairer_geometrical_numeric_integration \[4\] ]]
+[def __leimkuhler_reich_ref [link leimkuhler_reich_simulating_hamiltonian_dynamics \[5\] ]]
+[def __symplectic_integrator_1_ref [link symplectic_yoshida_symplectic_integrators \[6\] ]]
+[def __symplectic_integrator_2_ref [link symplectic_mylachlan_symmetric_composition_mehtods \[7\] ]]
+[def __fpu_scholarpedia_ref [link fpu_scholarpedia \[8\] ]]
+[def __synchronization_pikovsky_ref [link synchronization_pikovsky_rosenblum \[9\] ]]
+
+
+
+
+
+[def __alpha '''&#945;''']
+[def __beta '''&#946;''']
+[def __delta '''&#948;''']
+[def __Delta '''&#916;''']
+[def __lambda '''&#955;'''][/lower case]
+[def __Lambda '''&#923;'''][/upper case]
+[def __gamma '''&#947;''']
+[def __Gamma '''&#915;''']
+[def __sigma '''&#963;''']
+[def __Sigma '''&#931;''']
+[def __Omega '''&#937;''']
+[def __omega '''&#969;''']
+[def __phi '''&#966;''']
+[def __psi '''&ä968;''']
+[def __Phi '''&#934;''']
+[def __Psi '''&#936;''']
+[def __epsilon '''&#949;''']
+[def __eta '''&#951;''']
+[def __theta '''&#952;''']
+[def __Theta '''&#920;''']
+[def __xi '''&#958;''']
+
+[def __space '''&#8203;''']
+
+
+
+[template super[x]'''<superscript>'''[x]'''</superscript>''']
+[template sub[x]'''<subscript>'''[x]'''</subscript>''']
+[template subl[x]'''<subscript>'''__space[x]'''</subscript>''']
+
+[/ [template github_link[url text]'''<ulink url="https://github.com/headmyshoulder/odeint-v2/tree/master/'''[url]'''" target="_blank">'''[text]'''</ulink>''']]
+[template github_link[url text]'''<ulink url="../../../../../'''[url]'''" target="_blank">'''[text]'''</ulink>''']
+
+
+
+
+[include getting_started.qbk]
+
+[include tutorial.qbk]
+
+[include details.qbk]
+
+[include concepts.qbk]
+
+[include literature.qbk]
+
+[include acknowledgements.qbk]
+
+[xinclude reference.xml]
+
+[section:indexes Indexes]
+
+[named_index class_name Class Index]
+[named_index function_name Function Index]
+[/
+[named_index typedef_name Typedef Index]
+[named_index macro_name Macro Index]
+]
+[index]
+
+[endsect]
+
+
+
+
+[/
+# &Alpha; 	 Α 	&#913; 	U+0391 	Greek capital letter alpha 	 
+# &Beta; 	 Β 	&#914; 	U+0392 	Greek capital letter beta 	 
+# &Gamma; 	 Γ 	&#915; 	U+0393 	Greek capital letter gamma 	ISOgrk3
+# &Delta; 	 Δ 	&#916; 	U+0394 	Greek capital letter delta 	ISOgrk3
+# &Epsilon; 	 Ε 	&#917; 	U+0395 	Greek capital letter epsilon 	 
+# &Zeta; 	 Ζ 	&#918; 	U+0396 	Greek capital letter zeta 	 
+# &Eta; 	 Η 	&#919; 	U+0397 	Greek capital letter eta 	 
+# &Theta; 	 Θ 	&#920; 	U+0398 	Greek capital letter theta 	ISOgrk3
+# &Iota; 	 Ι 	&#921; 	U+0399 	Greek capital letter iota 	 
+# &Kappa; 	 Κ 	&#922; 	U+039A 	Greek capital letter kappa 	 
+# &Lambda; 	 Λ 	&#923; 	U+039B 	Greek capital letter lambda 	ISOgrk3
+# &Mu; 	 Μ 	&#924; 	U+039C 	Greek capital letter mu 	 
+# &Nu; 	 Ν 	&#925; 	U+039D 	Greek capital letter nu 	 
+# &Xi; 	 Ξ 	&#926; 	U+039E 	Greek capital letter xi 	ISOgrk3
+# &Omicron; 	 Ο 	&#927; 	U+039F 	Greek capital letter omicron 	 
+# &Pi; 	 Π 	&#928; 	U+03A0 	Greek capital letter pi 	ISOgrk3
+# &Rho; 	 Ρ 	&#929; 	U+03A1 	Greek capital letter rho 	 
+# &Sigma; 	 Σ 	&#931; 	U+03A3 	Greek capital letter sigma 	ISOgrk3
+# &Tau; 	 Τ 	&#932; 	U+03A4 	Greek capital letter tau 	 
+# &Upsilon; 	 Υ 	&#933; 	U+03A5 	Greek capital letter upsilon 	ISOgrk3
+# &Phi; 	 Φ 	&#934; 	U+03A6 	Greek capital letter phi 	ISOgrk3
+# &Chi; 	 Χ 	&#935; 	U+03A7 	Greek capital letter chi 	 
+# &Psi; 	 Ψ 	&#936; 	U+03A8 	Greek capital letter psi 	ISOgrk3
+# &Omega; 	 Ω 	&#937; 	U+03A9 	Greek capital letter omega 	ISOgrk3
+# &alpha; 	 α 	&#945; 	U+03B1 	Greek small letter alpha 	ISOgrk3
+# &beta; 	 β 	&#946; 	U+03B2 	Greek small letter beta 	ISOgrk3
+# &gamma; 	 γ 	&#947; 	U+03B3 	Greek small letter gamma 	ISOgrk3
+# &delta; 	 δ 	&#948; 	U+03B4 	Greek small letter delta 	ISOgrk3
+# &epsilon; 	 ε 	&#949; 	U+03B5 	Greek small letter epsilon 	ISOgrk3
+# &zeta; 	 ζ 	&#950; 	U+03B6 	Greek small letter zeta 	ISOgrk3
+# &eta; 	 η 	&#951; 	U+03B7 	Greek small letter eta 	ISOgrk3
+# &theta; 	 θ 	&#952; 	U+03B8 	Greek small letter theta 	ISOgrk3
+# &iota; 	 ι 	&#953; 	U+03B9 	Greek small letter iota 	ISOgrk3
+# &kappa; 	 κ 	&#954; 	U+03BA 	Greek small letter kappa 	ISOgrk3
+# &lambda; 	 λ 	&#955; 	U+03BB 	Greek small letter lambda 	ISOgrk3
+# &mu; 	 μ 	&#956; 	U+03BC 	Greek small letter mu 	ISOgrk3
+# &nu; 	 ν 	&#957; 	U+03BD 	Greek small letter nu 	ISOgrk3
+# &xi; 	 ξ 	&#958; 	U+03BE 	Greek small letter xi 	ISOgrk3
+# &omicron; 	 ο 	&#959; 	U+03BF 	Greek small letter omicron 	New
+# &pi; 	 π 	&#960; 	U+03C0 	Greek small letter pi 	ISOgrk3
+# &rho; 	 ρ 	&#961; 	U+03C1 	Greek small letter rho 	ISOgrk3
+# &sigmaf; 	 ς 	&#962; 	U+03C2 	Greek small letter final sigma 	ISOgrk3
+# &sigma; 	 σ 	&#963; 	U+03C3 	Greek small letter sigma 	ISOgrk3
+# &tau; 	 τ 	&#964; 	U+03C4 	Greek small letter tau 	ISOgrk3
+# &upsilon; 	 υ 	&#965; 	U+03C5 	Greek small letter upsilon 	ISOgrk3
+# &phi; 	 φ 	&#966; 	U+03C6 	Greek small letter phi 	ISOgrk3
+# &chi; 	 χ 	&#967; 	U+03C7 	Greek small letter chi 	ISOgrk3
+# &psi; 	 ψ 	&#968; 	U+03C8 	Greek small letter psi 	ISOgrk3
+# &omega; 	 ω 	&#969; 	U+03C9 	Greek small letter omega 	ISOgrk3
+# &thetasym; 	 ϑ 	&#977; 	U+03D1 	Greek small letter theta symbol 	New
+# &upsih; 	 ϒ 	&#978; 	U+03D2 	Greek upsilon with hook symbol 	New
+# &piv; 	 ϖ 	&#982; 	U+03D6 	Greek pi symbol 	ISOgrk3
+
+/]

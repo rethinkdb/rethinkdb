@@ -1,0 +1,151 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>WritablePropertyMap</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+	ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H2><A NAME="concept:WritablePropertyMap"></A>
+Writable Property Map
+</H2>    
+
+A Writable Property Map has the capability of setting the value
+object associated with the given key object via the <tt>put()</tt>
+function.
+
+<h3>Refinement of</h3>
+
+<a href="../../utility/CopyConstructible.html">Copy Constructible</a>
+
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>PMap</tt></TD>
+<TD>A type that is a model of Writable Property Map.</TD>
+</TR>
+<TR>
+<TD><tt>pmap</tt></TD>
+<TD>An object of type <tt>PMap</tt>.</td>
+</TR>
+<TR>
+<TD><tt>key</tt></TD>
+<TD>An object of type <tt>boost::property_traits&lt;PMap&gt;::key_type</tt>.</td>
+</TR>
+<TR>
+<TD><tt>val</tt></TD>
+<TD>An object of type <tt>boost::property_traits&lt;PMap&gt;::value_type</tt>.</td>
+</TR>
+</table>
+
+<h3>Associated Types</h3>
+
+<table border>
+
+<tr>
+<td>Value Type</td>
+<td><TT>boost::property_traits&lt;PMap&gt;::value_type</TT></td> 
+<td>
+The type of the property.
+</td>
+</tr>
+
+<tr>
+<td>Key Type</td>
+<td><TT>boost::property_traits&lt;PMap&gt;::key_type</TT></td> 
+<td>
+The type of the key object used to look up the property. The property
+map may be templated on the key type, in which case this typedef
+can be <TT>void</TT>.
+</td>
+</tr>
+
+<tr>
+<td>Property Map Category </td>
+<td><TT>boost::property_traits&lt;PMap&gt;::category</TT></td>
+<td>
+The category of the property: a type convertible to
+<TT>writable_property_map_tag</TT>.
+</td>
+</tr>
+
+</table>
+
+
+<h3>Valid Expressions</h3>
+
+<table border>
+<tr>
+<th>Name</th><th>Expression</th><th>Return Type</th><th>Description</th>
+</tr>
+
+<tr>
+<td>Put Property Value<a href="#1">[1]</a></td>
+<TD><TT>put(pmap, key, val)</TT></TD>
+<TD><TT>void</TT></TD>
+<TD>
+Assign <TT>val</TT> to the property associated with <TT>k</TT>.
+</TD>
+</TR>
+
+</TABLE>
+
+
+<h3>Notes</h3>
+
+<a name="1">[1]</a> The function <tt>put()</tt> was originally named
+<tt>set()</tt>, but was changed to avoid name conflicts with the
+<tt>std::set</tt> class when using a compiler (Microsoft Visual C++)
+with non-standard name lookup rules. The following example demonstrates
+the problem. 
+<pre>#include &lt;set&gt;
+using namespace std;
+namespace boost {
+  void set() { }
+}</pre>
+
+
+<h3>Concept Checking Class</h3>
+
+<pre>  template &lt;class PMap, class Key&gt;
+  struct WritablePropertyMapConcept
+  {
+    typedef typename property_traits&lt;PMap&gt;::key_type key_type;
+    typedef typename property_traits&lt;PMap&gt;::category Category;
+    typedef boost::writable_property_map_tag WritableTag;
+    void constraints() {
+      function_requires&lt; ConvertibleConcept&lt;Category, WritableTag&gt; &gt;();
+      put(pmap, k, val);
+    }
+    PMap pmap;
+    Key k;
+    typename property_traits&lt;PMap&gt;::value_type val;
+  };</pre>
+
+<h3>See Also</h3>
+
+<a href="./property_map.html">Property map concepts</a>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy 2000</TD><TD>
+<a HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>, Univ.of Notre Dame (<A HREF="mailto:jsiek@lsc.nd.edu">jsiek@lsc.nd.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

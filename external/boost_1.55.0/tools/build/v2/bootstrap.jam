@@ -1,0 +1,18 @@
+#  Copyright (c) 2003 Vladimir Prus.
+#
+#  Use, modification and distribution is subject to the Boost Software
+#  License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+# This file handles initial phase of Boost.Build loading.
+# Boost.Jam has already figured out where Boost.Build is
+# and loads this file, which is responsible for initialization
+# of basic facilities such a module system and loading the
+# main Boost.Build module, build-system.jam.
+#
+# Exact operation of this module is not interesting, it makes
+# sense to look at build-system.jam right away.
+
+# Load the kernel/bootstrap.jam, which does all the work.
+.bootstrap-file = $(.bootstrap-file:D)/kernel/bootstrap.jam ;
+include $(.bootstrap-file) ;

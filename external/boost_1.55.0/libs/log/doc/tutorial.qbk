@@ -1,0 +1,377 @@
+[/
+              Copyright Andrey Semashev 2007 - 2013.
+     Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+              http://www.boost.org/LICENSE_1_0.txt)
+
+    This document is a part of Boost.Log library documentation.
+/]
+
+[section:tutorial Tutorial]
+
+In this section we shall walk through the essential steps to get started with the library. After reading it you should be able to initialize the library and add logging to your application. The code of this tutorial is also available in examples residing in the `libs/log/examples` directory. Feel free to play with them, compile and see the result.
+
+[section:trivial Trivial logging]
+
+For those who don't want to read tons of clever manuals and just need a simple tool for logging, here you go:
+
+[example_tutorial_trivial]
+
+[@boost:/libs/log/example/doc/tutorial_trivial.cpp See the complete code].
+
+The `BOOST_LOG_TRIVIAL` macro accepts a severity level and results in a stream-like object that supports insertion operator. As a result of this code, the log messages will be printed on the console. As you can see, this library usage pattern is quite similar to what you would do with `std::cout`. However, the library offers a few advantages:
+
+# Besides the record message, each log record in the output contains a timestamp, the current thread identifier and severity level.
+# It is safe to write logs from different threads concurrently, log messages will not be corrupted.
+# As will be shown later, filtering can be applied.
+
+It must be said that the macro, along with other similar macros provided by the library, is not the only interface the library offers. It is possible to issue log records without using any macros at all.
+
+[endsect]
+
+[section:trivial_filtering Trivial logging with filters]
+
+While severity levels can be used for informative purposes, you will normally want to apply filters to output only significant records and ignore the rest. It is easy to do so by setting a global filter in the library core, like this:
+
+[example_tutorial_trivial_with_filtering]
+
+[@boost:/libs/log/example/doc/tutorial_trivial_flt.cpp See the complete code].
+
+Now, if we run this code sample, the first two log records will be ignored, while the remaining four will pass on to the console.
+
+[important Remember that the streaming expression is only executed if the record passed filtering. Don't specify business-critical calls in the streaming expression, as these calls may not get invoked if the record is filtered away.]
+
+A few words must be said about the filter setup expression. Since we're setting up a global filter, we have to acquire the [link log.detailed.core.core logging core] instance. This is what `logging::core::get()` does - it returns a pointer to the core singleton. The `set_filter` method of the logging core sets the global filtering function.
+
+The filter in this example is built as a __boost_phoenix__ lambda expression. In our case, this expression consists of a single logical predicate, whose left argument is a placeholder that describes the attribute to be checked, and the right argument is the value to be checked against. The `severity` keyword is a placeholder provided by the library. This placeholder identifies the severity attribute value in the template expressions; this value is expected to have name "Severity" and type [enumref boost::log::trivial::severity_level `severity_level`]. This attribute is automatically provided by the library in case of trivial logging; the user only has to supply its value in logging statements. The placeholder along with the ordering operator creates a function object that will be called by the logging core to filter log records. As a result, only log records with severity level not less than `info` will pass the filter and end up on the console.
+
+It is possible to build more complex filters, combining logical predicates like this with each other, or even define your own function (including a C++11 lambda function) that would act as a filter. We will return to filtering in the following sections.
+
+[endsect]
+
+[section:sinks Setting up sinks]
+
+Sometimes trivial logging doesn't provide enough flexibility. For example, one may want a more sophisticated logic of log processing, rather than simply printing it on the console. In order to customize this, you have to construct logging sinks and register them with the logging core. This should normally be done only once somewhere in the startup code of your application.
+
+[note It must be mentioned that in the previous sections we did not initialize any sinks, and trivial logging worked somehow anyway. This is because the library contains a ['default] sink that is used as a fallback when the user did not set up any sinks. This sink always prints log records to the console in a fixed format which we saw in our previous examples. The default sink is mostly provided to allow trivial logging to be used right away, without any library initialization whatsoever. Once you add any sinks to the logging core, the default sink will no longer be used. You will still be able to use trivial logging macros though.]
+
+[heading File logging unleashed]
+
+As a starting point, here is how you would initialize logging to a file:
+
+[example_tutorial_file_simple]
+
+The added piece is the call to the [link log.detailed.utilities.setup.convenience `add_file_log`] function. As the name implies, the function initializes a logging sink that stores log records into a text file. The function also accepts a number of customization options, such as the file rotation interval and size limits. For instance:
+
+[example_tutorial_file_advanced]
+
+[@boost:/libs/log/example/doc/tutorial_file.cpp See the complete code].
+
+You can see that the options are passed to the function in the named form. This approach is also taken in many other places of the library. You'll get used to it. The meaning of the parameters is mostly self-explaining and is documented in this manual (see [link log.detailed.sink_backends.text_file here] for what regards the text file sink). This and other convenience initialization functions are described in [link log.detailed.utilities.setup.convenience this] section.
+
+[note You can register more than one sink. Each sink will receive and process log records as you emit them independently from others.]
+
+[heading Sinks in depth: More sinks]
+
+If you don't want to go into details, you can skip this section and continue reading from the next one. Otherwise, if you need more comprehensive control over sink configuration or want to use more sinks than those available through helper functions, you can register sinks manually.
+
+In the simplest form, the call to the `add_file_log` function in the section above is nearly equivalent to this:
+
+[example_tutorial_file_manual]
+
+[@boost:/libs/log/example/doc/tutorial_file_manual.cpp See the complete code].
+
+Ok, the first thing you may have noticed about sinks is that they are composed of two classes: the frontend and the backend. The frontend (which is the [link log.detailed.sink_frontends.sync `synchronous_sink`] class template in the snippet above) is responsible for various common tasks for all sinks, such as thread synchronization model, filtering and, for text-based sinks, formatting. The backend (the [link log.detailed.sink_backends.text_ostream `text_ostream_backend`] class above) implements everything specific to the sink, such as writing to a file in this case. The library provides a number of frontends and backends that can be used with each other out of the box.
+
+The [link log.detailed.sink_frontends.sync `synchronous_sink`] class template above indicates that the sink is synchronous, that is, it allows for several threads to log simultaneously and will block in case of contention. This means that the backend [link log.detailed.sink_backends.text_ostream `text_ostream_backend`] doesn't have to worry about multithreading at all. There are other sink frontends available, you can read more about them [link log.detailed.sink_frontends here].
+
+The [link log.detailed.sink_backends.text_ostream `text_ostream_backend`] class writes formatted log records into STL-compatible streams. We have used a file stream above but we could have used any type of stream. For example, adding output to console could look as follows:
+
+    #include <``[boost_log_utility_empty_deleter_hpp]``>
+
+    // We have to provide an empty deleter to avoid destroying the global stream object
+    boost::shared_ptr< std::ostream > stream(&std::clog, logging::empty_deleter());
+    sink->locked_backend()->add_stream(stream);
+
+The [link log.detailed.sink_backends.text_ostream `text_ostream_backend`] supports adding several streams. In that case its output will be duplicated to all added streams. It can be useful to duplicate the output to console and file since all the filtering, formatting and other overhead of the library happen only once per record for the sink.
+
+[note Please note the difference between registering several distinct sinks and registering one sink with several target streams. While the former allows for independently customizing output to each sink, the latter would work considerably faster if such customization is not needed. This feature is specific to this particular backend.]
+
+The library provides a number of [link log.detailed.sink_backends backends] that provide different log processing logic. For instance, by specifying the [link log.detailed.sink_backends.syslog syslog] backend you can send log records over the network to the syslog server, or by setting up the [link log.detailed.sink_backends.event_log Windows NT event log] backend you can monitor your application run time with the standard Windows tools.
+
+The last thing worth noting here is the `locked_backend` member function call to access the sink backend. It is used to get thread-safe access to the backend and is provided by all sink frontends. This function returns a smart-pointer to the backend and as long as it exists the backend is locked (which means even if another thread tries to log and the log record is passed to the sink, it will not be logged until you release the backend). The only exception is the [link log.detailed.sink_frontends.unlocked `unlocked_sink`] frontend which does not synchronize at all and simply returns an unlocked pointer to the backend.
+
+[endsect]
+
+[section:sources Creating loggers and writing logs]
+
+[heading Dedicated logger objects]
+
+Now that we have defined where and how the log is to be stored, it's time to go on and try logging. In order to do this one has to create a logging source. This would be a logger object in our case and it is as simple as that:
+
+    src::logger lg;
+
+[note A curious reader could have noticed that we did not create any loggers for trivial logging. In fact the logger is provided by the library and is used behind the scenes.]
+
+Unlike sinks, sources need not be registered anywhere since they interact directly with the logging core. Also note that there are two versions of loggers provided by the library: the thread-safe ones and the non-thread-safe ones. For the non-thread-safe loggers it is safe for different threads to write logs through different instances of loggers and thus there should be a separate logger for each thread that writes logs. The thread-safe counterparts can be accessed from different threads concurrently, but this will involve locking and may slow things down in case of intense logging. The thread-safe logger types have the `_mt` suffix in their name.
+
+Regardless of the thread safety, all loggers provided by the library are default and copy-constructible and support swapping, so there should be no problem in making a logger a member of your class. As you will see later, such approach can give you additional benefits.
+
+The library provides a number of loggers with different features, such as severity and channel support. These features can be combined with each other in order to construct more complex loggers. See [link log.detailed.sources here] for more details.
+
+[heading Global logger objects]
+
+In case you cannot put a logger into your class (suppose you don't have one), the library provides a way of declaring global loggers like this:
+
+    BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(my_logger, src::logger_mt)
+
+Here `my_logger` is a user-defined tag name that will be used later to retrieve the logger instance and `logger_mt` is the logger type. Any logger type provided by the library or defined by the user can participate in such declaration. However, since the logger will have a single instance, you will normally want to use thread-safe loggers in a multithreaded application as global ones.
+
+[tip There are other macros for more sophisticated cases available. The detailed description is in [link log.detailed.sources.global_storage this] section.]
+
+Later on you can acquire the logger like this:
+
+    src::logger_mt& lg = my_logger::get();
+
+The `lg` will refer to the one and only instance of the logger throughout the application, even if the application consists of multiple modules. The `get` function itself is thread-safe, so there is no need in additional synchronization around it.
+
+[heading Writing logs]
+
+No matter what kind of logger you use (class member or global, thread-safe or not), to write a log record into a logger you can write something like this:
+
+[example_tutorial_logging_manual_logging]
+
+Here the `open_record` function call determines if the record to be constructed is going to be consumed by at least one sink. Filtering is applied at this stage. If the record is to be consumed, the function returns a valid record object, and one can fill in the record message string. After that the record processing can be completed with the call to `push_record`.
+
+Of course, the above syntax can easily be wrapped in a macro and, in fact, users are encouraged to write their own macros instead of using the C++ logger interface directly. The log record above can be written like this:
+
+    BOOST_LOG(lg) << "Hello, World!";
+
+Looks a bit shorter, doesn't it? The `BOOST_LOG` macro, along with other similar ones, is defined by the library. It automatically provides an STL-like stream in order to format the message with ordinary insertion expressions. Having all that code written, compiled and executed you should be able to see the "Hello, World!" record in the "sample.log" file. You will find the full code of this section [@boost:/libs/log/example/doc/tutorial_logging.cpp here].
+
+[endsect]
+
+[section:attributes Adding more information to log: Attributes]
+
+In previous sections we mentioned attributes and attribute values several times. Here we will discover how attributes can be used to add more data to log records.
+
+Each log record can have a number of named attribute values attached. Attributes can represent any essential information about the conditions in which the log record occurred, such as position in the code, executable module name, current date and time, or any piece of data relevant to your particular application and execution environment. An attribute may behave as a value generator, in which case it would return a different value for each log record it's involved in. As soon as the attribute generates the value, the latter becomes independent from the creator and can be used by filters, formatters and sinks. But in order to use the attribute value one has to know its name and type, or at least a set of types it may have. There are a number of commonly used attributes implemented in the library, you can find the types of their values in the documentation.
+
+Aside from that, as described in the [link log.design Design overview] section, there are three possible scopes of attributes: source-specific, thread-specific and global. When a log record is made, attribute values from these three sets are joined into a single set and passed to sinks. This implies that the origin of the attribute makes no difference for sinks. Any attribute can be registered in any scope. When registered, an attribute is given a unique name in order to make it possible to search for it. If it happens that the same named attribute is found in several scopes, the attribute from the most specific scope is taken into consideration in any further processing, including filtering and formatting. Such behavior makes it possible to override global or thread-scoped attributes with the ones registered in your local logger, thus reducing thread interference.
+
+Below is the description of the attribute registration process.
+
+[heading Commonly used attributes]
+
+There are attributes that are likely to be used in nearly any application. Log record counter and a time stamp are good candidates. They can be added with a single function call:
+
+    logging::add_common_attributes();
+
+With this call attributes "LineID", "TimeStamp", "ProcessID" and "ThreadID" are registered globally. The "LineID" attribute is a counter that increments for each record being made, the first record gets identifier 1. The "TimeStamp" attribute always yields the current time (i.e. the time when the log record is created, not the time it was written to a sink). The last two attributes identify the process and the thread in which every log record is emitted.
+
+[note In single-threaded builds the "ThreadID" attribute is not registered.]
+
+[tip By default, when application starts, no attributes are registered in the library. The application has to register all the necessary attributes in the library before it starts writing logs. This can be done as a part of the library initialization. A curious reader could have wondered how trivial logging works then. The answer is that the default sink doesn't really use any attribute values, except for the severity level, to compose its output. This is done to avoid the need for any initialization for trivial logging. Once you use filters or formatters and non-default sinks you will have to register the attributes you need.]
+
+The [funcref boost::log::add_common_attributes `add_common_attributes`] function is one of the several convenience helpers described [link log.detailed.utilities.setup.convenience here].
+
+Some attributes are registered automatically on loggers construction. For example, [link log.detailed.sources.severity_level_logger `severity_logger`] registers a source-specific attribute "Severity" which can be used to add a level of emphasis for different log records. For example:
+
+[example_sources_severity]
+
+[tip You can define your own formatting rules for the severity level by defining `operator <<` for this type. It will be automatically used by the library formatters. See [link log.detailed.expressions.attr this] section for more details.]
+
+The `BOOST_LOG_SEV` macro acts pretty much like `BOOST_LOG` except that it takes an additional argument for the `open_record` method of the logger. The `BOOST_LOG_SEV` macro can be replaced with this equivalent:
+
+[example_sources_severity_manual]
+
+You can see here that the `open_record` can take named arguments. Some logger types provided by the library have support for such additional parameters and this approach can certainly be used by users when writing their own loggers.
+
+[heading More attributes]
+
+Let's see what's under the hood of that [link log.detailed.utilities.setup.convenience `add_common_attributes`] function we used in the simple form section. It might look something like this:
+
+    void add_common_attributes()
+    {
+        boost::shared_ptr< logging::core > core = logging::core::get();
+        core->add_global_attribute("LineID", attrs::counter< unsigned int >(1));
+        core->add_global_attribute("TimeStamp", attrs::local_clock());
+
+        // other attributes skipped for brevity
+    }
+
+Here the [link log.detailed.attributes.counter `counter`] and [link log.detailed.attributes.clock `local_clock`] components are attribute classes, they derive from the common attribute interface [class_log_attribute]. The library provides a number of other [link log.detailed.attributes attribute classes], including the [link log.detailed.attributes.function `function`] attribute that calls some function object on value acquisition. For example, we can in a similar way register a [link log.detailed.attributes.named_scope `named_scope`] attribute:
+
+    core->add_global_attribute("Scope", attrs::named_scope());
+
+This will give us the ability to store scope names in log for every log record the application makes. Here is how it's used:
+
+[example_tutorial_attributes_named_scope]
+
+Logger-specific attributes are no less useful than global ones. Severity levels and channel names are the most obvious candidates to be implemented on the source level. Nothing prevents you from adding more attributes to your loggers, like this:
+
+[example_tutorial_attributes_tagged_logging]
+
+Now all log records made through this logger will be tagged with the specific attribute. This attribute value may be used later in filtering and formatting.
+
+Another good use of attributes is the ability to mark log records made by different parts of application in order to highlight activity related to a single process. One can even implement a rough profiling tool to detect performance bottlenecks. For example:
+
+[example_tutorial_attributes_timed_logging]
+
+Now every log record made from the `logging_function` function, or any other function it calls, will contain the "Timeline" attribute with a high precision time duration passed since the attribute was registered. Based on these readings, one will be able to detect which parts of the code require more or less time to execute. The "Timeline" attribute will be unregistered upon leaving the scope of function `timed_logging`.
+
+See the [link log.detailed.attributes Attributes] section for detailed description of attributes provided by the library. The complete code for this section is available [@boost:/libs/log/example/doc/tutorial_attributes.cpp here].
+
+[heading Defining attribute placeholders]
+
+As we will see in the coming sections, it is useful to define a keyword describing a particular attribute the application uses. This keyword will be able to participate in filtering and formatting expressions, like the `severity` placeholder we have used in previous sections. For example, to define placeholders for some of the attributes we used in the previous examples we can write this:
+
+    BOOST_LOG_ATTRIBUTE_KEYWORD(line_id, "LineID", unsigned int)
+    BOOST_LOG_ATTRIBUTE_KEYWORD(severity, "Severity", severity_level)
+    BOOST_LOG_ATTRIBUTE_KEYWORD(tag_attr, "Tag", std::string)
+    BOOST_LOG_ATTRIBUTE_KEYWORD(scope, "Scope", attrs::named_scope::value_type)
+    BOOST_LOG_ATTRIBUTE_KEYWORD(timeline, "Timeline", attrs::timer::value_type)
+
+Each macro defines a keyword. The first argument is the placeholder name, the second is the attribute name and the last parameter is the attribute value type. Once defined, the placeholder can be used in template expressions and some other contexts of the library. More details on defining attribute keywords are available [link log.detailed.expressions.attr_keywords here].
+
+[endsect]
+
+[section:formatters Log record formatting]
+
+If you tried running examples from the previous sections, you may have noticed that only log record messages are written to the files. This is the default behavior of the library when no formatter is set. Even if you added attributes to the logging core or a logger, the attribute values will not reach the output unless you specify a formatter that will use these values.
+
+Returning to one of the examples in previous tutorial sections:
+
+[example_tutorial_file_advanced_no_callouts]
+
+In the case of the `add_file_log` function, the `format` parameter allows to specify format of the log records. If you prefer to set up sinks manually, sink frontends provide the `set_formatter` member function for this purpose.
+
+The format can be specified in a number of ways, as described further.
+
+[heading Lambda-style formatters]
+
+You can create a formatter with a lambda-style expression like this:
+
+[example_tutorial_formatters_stream]
+
+[@boost:/libs/log/example/doc/tutorial_fmt_stream.cpp See the complete code].
+
+Here the `stream` is a placeholder for the stream to format the record in. Other insertion arguments, such as [link log.detailed.expressions.attr `attr`] and [link log.detailed.expressions.message `message`], are manipulators that define what should be stored in the stream. We have already seen the `severity` placeholder in filtering expressions, and here it is used in a formatter. This is a nice unification: you can use the same placeholders in both filters and formatters. The [link log.detailed.expressions.attr `attr`] placeholder is similar to the `severity` placeholder as it represents the attribute value, too. The difference is that the `severity` placeholder represents the particular attribute with the name "Severity" and type `trivial::severity_level` and [link log.detailed.expressions.attr `attr`] can be used to represent any attribute. Otherwise the two placeholders are equivalent. For instance, it is possible to replace `severity` with the following:
+
+    expr::attr< logging::trivial::severity_level >("Severity")
+
+[tip As shown in the previous section, it is possible to define placeholders like `severity` for user's attributes. As an additional benefit to the simpler syntax in the template expressions such placeholders allow to concentrate all the information about the attribute (the name and the value type) in the placeholder definition. This makes coding less error-prone (you won't misspell the attribute name or specify incorrect value type) and therefore is the recommended way of defining new attributes and using them in template expressions.]
+
+There are other [link log.detailed.expressions.formatters formatter manipulators] that provide advanced support for date, time and other types. Some manipulators accept additional arguments that customize their behavior. Most of these arguments are named and can be passed in __boost_parameter__ style.
+
+For a change, let's see how it's done when manually initializing sinks:
+
+[example_tutorial_formatters_stream_manual]
+
+[@boost:/libs/log/example/doc/tutorial_fmt_stream_manual.cpp See the complete code].
+
+You can see that it is possible to bind format changing manipulators in the expression; these manipulators will affect the subsequent attribute value format when log record is formatted, just like with streams. More manipulators are described in the [link log.detailed.expressions Detailed features description] section.
+
+[heading Boost.Format-style formatters]
+
+As an alternative, you can define formatters with a syntax similar to __boost_format__. The same formatter as described above can be written as follows:
+
+[example_tutorial_formatters_format]
+
+[@boost:/libs/log/example/doc/tutorial_fmt_format.cpp See the complete code].
+
+The `format` placeholder accepts the format string with positional specification of all arguments being formatted. Note that only positional format is currently supported. The same format specification can be used with the `add_file_log` and similar functions.
+
+[heading Specialized formatters]
+
+The library provides specialized formatters for a number of types, such as date, time and named scope. These formatters provide extended control over the formatted values. For example, it is possible to describe date and time format with a format string compatible with __boost_date_time__:
+
+[example_tutorial_formatters_stream_date_time]
+
+[@boost:/libs/log/example/doc/tutorial_fmt_stream.cpp See the complete code].
+
+The same formatter can also be used in the context of a __boost_format__-style formatter.
+
+[heading String templates as formatters]
+
+In some contexts textual templates are accepted as formatters. In this case library initialization support code is invoked in order to parse the template and reconstruct the appropriate formatter. There are a number of caveats to keep in mind when using this approach, but here it will suffice to just briefly describe the template format.
+
+[example_tutorial_formatters_string]
+
+[@boost:/libs/log/example/doc/tutorial_fmt_string.cpp See the complete code].
+
+Here, the `format` parameter accepts such a format template. The template may contain a number of placeholders enclosed with percent signs (`%`). Each placeholder must contain an attribute value name to insert instead of the placeholder. The `%Message%` placeholder will be replaced with the logging record message.
+
+[note Textual format templates are not accepted by sink backends in the `set_formatter` method. In order to parse textual template into a formatter function one has to call `parse_formatter` function. See [link log.detailed.utilities.setup.filter_formatter here] for more details.]
+
+[heading Custom formatting functions]
+
+You can add a custom formatter to a sink backend that supports formatting. The formatter is actually a function object that supports the following signature:
+
+    void (logging::record_view const& rec, logging::basic_formatting_ostream< CharT >& strm);
+
+Here `CharT` is the target character type. The formatter will be invoked whenever a log record view `rec` passes filtering and is to be stored in log.
+
+[tip Record views are very similar to records. The notable distinction is that the view is immutable and implements shallow copy. Formatters and sinks only operate on record views, which prevents them from modifying the record while it can be still in use by other sinks in other threads.]
+
+The formatted record should be composed by insertion into STL-compatible output stream `strm`. Here's an example of a custom formatter function usage:
+
+[example_tutorial_formatters_custom]
+
+[@boost:/libs/log/example/doc/tutorial_fmt_custom.cpp See the complete code].
+
+[endsect]
+
+[section:advanced_filtering Filtering revisited]
+
+We've already touched filtering in the previous sections but we barely scratched the surface. Now that we are able to add attributes to log records and set up sinks, we can build however complex filtering we need. Let's consider this example:
+
+[example_tutorial_filtering]
+
+[@boost:/libs/log/example/doc/tutorial_filtering.cpp See the complete code].
+
+In this sample we initialize two sinks - one for the complete log file and the other for important messages only. Both sinks will be writing to text files with the same log record format, which we initialize first and save to the `fmt` variable. The [classref boost::log::basic_formatter formatter] type is a type-erased function object with the formatter calling signature; in many respects it can be viewed similar to `boost::function` or `std::function` except that it is never empty. There is also [classref boost::log::filter a similar function object] for filters.
+
+Notably, the formatter itself contains a filter here. As you can see, the format contains a conditional part that is only present when log records contain the "Tag" attribute. The [link log.detailed.expressions.predicates.has_attr `has_attr`] predicate checks whether the record contains the "Tag" attribute value and controls whether it is put into the file or not. We used the attribute keyword to specify the name and type of the attribute for the predicate, but it is also possible to specify them in the [link log.detailed.expressions.predicates.has_attr `has_attr`] call site. Conditional formatters are explained in more details [link log.detailed.expressions.formatters.conditional here].
+
+Further goes the initialization of the two sinks. The first sink does not have any filter, which means it will save every log record to the file. We call `set_filter` on the second sink to only save log records with severity no less than `warning` or having a "Tag" attribute with value "IMPORTANT_MESSAGE". As you can see, the filter syntax resembles usual C++ very much, especially when attribute keywords are used.
+
+Like with formatters, it is also possible to use custom functions as filters. __boost_phoenix__ can be very helpful in this case as its `bind` implementation is compatible with attribute placeholders. The previous example can be modified in the following way:
+
+[example_tutorial_filtering_bind]
+
+As you can see, the custom formatter receives attribute values wrapped into the [link log.detailed.utilities.value_ref `value_ref`] template. This wrapper contains an optional reference to the attribute value of the specified type; the reference is valid if the log record contains the attribute value of the required type. The relational operators used in `my_filter` can be applied unconditionally because they will automatically return `false` if the reference is not valid. The rest is done with the `bind` expression which will recognize the `severity` and `tag_attr` keywords and extract the corresponding values before passing them to `my_filter`.
+
+[note Because of limitations related to the integration with __boost_phoenix__ (see [ticket 7996]), it is required to explicitly specify the fallback policy in case if the attribute value is missing, when attribute keywords are used with `phoenix::bind` or `phoenix::function`. In the example above, this is done by calling `or_none`, which results in an empty [link log.detailed.utilities.value_ref `value_ref`] if the value is not found. In other contexts this policy is the default. There are [link log.detailed.expressions.attr.fallback_policies other policies] that can be used instead.]
+
+You can try how this works by compiling and running the [@boost:/libs/log/example/doc/tutorial_filtering.cpp test].
+
+[endsect]
+
+[section:wide_char Wide character logging]
+
+The library supports logging strings containing national characters. There are basically two ways of doing this. On UNIX-like systems typically some multibyte character encoding (e.g. UTF-8) is used to represent national characters. In this case the library can be used just the way it is used for plain ASCII logging, no additional setup is required.
+
+On Windows the common practice is to use wide strings to represent national characters. Also, most of the system API is wide character oriented, which requires Windows-specific sinks to also support wide strings. On the other hand, generic sinks, like the [link log.detailed.sink_backends.text_file text file sink], are byte-oriented (because, well, you store bytes in files, not characters). This forces the library to perform character code conversion when needed by the sink. To set up the library for this one has to imbue the sink with a locale with the appropriate `codecvt` facet. __boost_locale__ can be used to generate such a locale. Let's see an example:
+
+[example_wide_char_logging_initialization]
+
+First let's take a look at the formatter we pass in the `format` parameter. We initialize the sink with a narrow-character formatter because the text file sink processes bytes. It is possible to use wide strings in the formatter, but not in format strings, like the one we used with the [funcref boost::log::expressions::format_date_time `format_date_time`] function. Also note that we used `message` keyword to denote the log record messages. This [link log.detailed.expressions.message placeholder] supports both narrow and wide character messages, so the formatter will work with both. As part of the formatting process, the library will convert wide character messages to multibyte encoding using the imbued locale, which we set to UTF-8.
+
+[tip Attribute values can also contain wide strings. Like log record messages, these strings will be converted with the imbued locale to the target character encoding.]
+
+One thing missing here is our `severity_level` type definition. The type is just an enumeration, but if we want to support its formatting for both narrow and wide character sinks, its streaming operator has to be a template. This may be useful if we create multiple sinks with different character types.
+
+[example_wide_char_severity_level_definition]
+
+Now we can emit log records. We can use loggers with `w` prefix in their names to compose wide character messages.
+
+[example_wide_char_logging]
+
+As you can see, wide character message composition is similar to narrow logging. Note that you can use both narrow and wide character logging at the same time; all records will be processed by our file sink. The complete code of this example can be found [@boost:/libs/log/example/wide_char/main.cpp here].
+
+It must be noted that some sinks (mostly, Windows-specific ones) allow to specify the target character type. When national characters are expected in log records, one should always use `wchar_t` as the target character type in these cases because the sink will use wide character OS API to process log records. In this case all narrow character strings will be widened using the locale imbued into the sink when formatting is performed.
+
+[endsect]
+
+[endsect]

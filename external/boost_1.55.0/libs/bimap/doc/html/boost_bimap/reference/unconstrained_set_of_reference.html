@@ -1,0 +1,196 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>unconstrained_set_of Reference</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="vector_of_reference.html" title="vector_of Reference">
+<link rel="next" href="../compiler_specifics.html" title="Compiler specifics">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="vector_of_reference.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../compiler_specifics.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_reference_unconstrained_set_of_reference">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.reference.unconstrained_set_of_reference"></a><a class="link" href="unconstrained_set_of_reference.html" title="unconstrained_set_of Reference">unconstrained_set_of
+      Reference</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="unconstrained_set_of_reference.html#boost_bimap.reference.unconstrained_set_of_reference.header__boost_bimap_unconstrained_set_of_hpp__synopsis">Header
+        "boost/bimap/unconstrained_set_of.hpp" synopsis</a></span></dt>
+<dt><span class="section"><a href="unconstrained_set_of_reference.html#boost_bimap.reference.unconstrained_set_of_reference.unconstrained_set_of_views">unconstrained_set_of
+        Views</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="unconstrained_set_of_reference.html#boost_bimap.reference.unconstrained_set_of_reference.unconstrained_set_of_views.complexity_signature">Complexity
+          signature</a></span></dt>
+<dt><span class="section"><a href="unconstrained_set_of_reference.html#boost_bimap.reference.unconstrained_set_of_reference.unconstrained_set_of_views.serialization">Serialization</a></span></dt>
+</dl></dd>
+</dl></div>
+<div class="section boost_bimap_reference_unconstrained_set_of_reference_header__boost_bimap_unconstrained_set_of_hpp__synopsis">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.unconstrained_set_of_reference.header__boost_bimap_unconstrained_set_of_hpp__synopsis"></a><a class="link" href="unconstrained_set_of_reference.html#boost_bimap.reference.unconstrained_set_of_reference.header__boost_bimap_unconstrained_set_of_hpp__synopsis" title='Header "boost/bimap/unconstrained_set_of.hpp" synopsis'>Header
+        "boost/bimap/unconstrained_set_of.hpp" synopsis</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">bimaps</span> <span class="special">{</span>
+
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">KeyType</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">unconstrained_set_of</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">unconstrained_set_of_relation</span><span class="special">;</span>
+
+
+<span class="special">}</span> <span class="comment">// namespace bimap</span>
+<span class="special">}</span> <span class="comment">// namespace boost</span>
+</pre>
+</div>
+<div class="section boost_bimap_reference_unconstrained_set_of_reference_unconstrained_set_of_views">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.unconstrained_set_of_reference.unconstrained_set_of_views"></a><a class="link" href="unconstrained_set_of_reference.html#boost_bimap.reference.unconstrained_set_of_reference.unconstrained_set_of_views" title="unconstrained_set_of Views">unconstrained_set_of
+        Views</a>
+</h4></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="unconstrained_set_of_reference.html#boost_bimap.reference.unconstrained_set_of_reference.unconstrained_set_of_views.complexity_signature">Complexity
+          signature</a></span></dt>
+<dt><span class="section"><a href="unconstrained_set_of_reference.html#boost_bimap.reference.unconstrained_set_of_reference.unconstrained_set_of_views.serialization">Serialization</a></span></dt>
+</dl></div>
+<p>
+          An unconstrained_set_of set view is a view with no constraints. The use
+          of these kind of view boost the bimap performance but the view can not
+          be accessed. An unconstrained view is an empty class.
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">bimaps</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">views</span> <span class="special">{</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="emphasis"><em>-implementation defined parameter list-</em></span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="emphasis"><em>-implementation defined view name-</em></span>
+<span class="special">{</span>
+    <span class="comment">// Empty view</span>
+<span class="special">};</span>
+
+<span class="special">}</span> <span class="comment">// namespace views</span>
+<span class="special">}</span> <span class="comment">// namespace bimap</span>
+<span class="special">}</span> <span class="comment">// namespace boost</span>
+</pre>
+<p>
+          In the case of a <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span> <span class="identifier">unconstrained_set_of</span><span class="special">&lt;</span><span class="identifier">Left</span><span class="special">&gt;,</span> <span class="special">...</span> <span class="special">&gt;</span></code>
+        </p>
+<p>
+          In the set view:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">signature</span><span class="special">-</span><span class="identifier">compatible</span> <span class="identifier">with</span> <span class="identifier">relation</span><span class="special">&lt;</span> <span class="identifier">Left</span><span class="special">,</span> <span class="special">...</span> <span class="special">&gt;</span> <span class="identifier">key_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">signature</span><span class="special">-</span><span class="identifier">compatible</span> <span class="identifier">with</span> <span class="identifier">relation</span><span class="special">&lt;</span> <span class="identifier">Left</span><span class="special">,</span> <span class="special">...</span> <span class="special">&gt;</span> <span class="identifier">value_type</span><span class="special">;</span>
+</pre>
+<p>
+          In the left map view:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span>  <span class="identifier">Left</span>  <span class="identifier">key_type</span><span class="special">;</span>
+<span class="keyword">typedef</span>  <span class="special">...</span>   <span class="identifier">mapped_type</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">signature</span><span class="special">-</span><span class="identifier">compatible</span> <span class="identifier">with</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">Left</span><span class="special">,</span> <span class="special">...</span> <span class="special">&gt;</span> <span class="identifier">value_type</span><span class="special">;</span>
+</pre>
+<p>
+          In the right map view:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span>  <span class="special">...</span>  <span class="identifier">key_type</span><span class="special">;</span>
+<span class="keyword">typedef</span>  <span class="identifier">Left</span> <span class="identifier">mapped_type</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">signature</span><span class="special">-</span><span class="identifier">compatible</span> <span class="identifier">with</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="special">...</span> <span class="special">,</span> <span class="identifier">Left</span> <span class="special">&gt;</span> <span class="identifier">value_type</span><span class="special">;</span>
+</pre>
+<div class="section boost_bimap_reference_unconstrained_set_of_reference_unconstrained_set_of_views_complexity_signature">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.unconstrained_set_of_reference.unconstrained_set_of_views.complexity_signature"></a><a name="unconstrained_set_of_complexity_signature"></a><a class="link" href="unconstrained_set_of_reference.html#boost_bimap.reference.unconstrained_set_of_reference.unconstrained_set_of_views.complexity_signature" title="Complexity signature">Complexity
+          signature</a>
+</h5></div></div></div>
+<p>
+            We adopt the scheme outlined in the <a class="link" href="bimap_reference.html#complexity_signature_explanation">complexity
+            signature section</a>. An unconstrained view can not be accessed by
+            the user, but the formulas to find the order of an operation for a bimap
+            hold with the following definitions. The complexity signature of a <code class="computeroutput"><span class="identifier">unconstrained_set_of</span></code> view is:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                copying: <code class="computeroutput"><span class="identifier">c</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">0</span></code>
+              </li>
+<li class="listitem">
+                insertion: <code class="computeroutput"><span class="identifier">i</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">0</span></code>
+              </li>
+<li class="listitem">
+                hinted insertion: <code class="computeroutput"><span class="identifier">h</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">0</span></code>
+              </li>
+<li class="listitem">
+                deletion: <code class="computeroutput"><span class="identifier">d</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">0</span></code>
+              </li>
+<li class="listitem">
+                replacement: <code class="computeroutput"><span class="identifier">r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">0</span></code>
+              </li>
+<li class="listitem">
+                modifying: <code class="computeroutput"><span class="identifier">m</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">0</span></code>
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_unconstrained_set_of_reference_unconstrained_set_of_views_serialization">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.unconstrained_set_of_reference.unconstrained_set_of_views.serialization"></a><a class="link" href="unconstrained_set_of_reference.html#boost_bimap.reference.unconstrained_set_of_reference.unconstrained_set_of_views.serialization" title="Serialization">Serialization</a>
+</h5></div></div></div>
+<p>
+            Views cannot be serialized on their own, but only as part of the <code class="computeroutput"><span class="identifier">bimap</span></code> into which they are embedded.
+            In describing the additional preconditions and guarantees associated
+            to <code class="computeroutput"><span class="identifier">list_of</span></code> views with
+            respect to serialization of their embedding containers, we use the concepts
+            defined in the <code class="computeroutput"><span class="identifier">bimap</span></code>
+            serialization section.
+          </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> saving of a <code class="computeroutput"><span class="identifier">bimap</span></code> b to an output archive (XML archive)
+            ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> No additional requirements
+                to those imposed by the container.
+              </li></ul></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> loading of a <code class="computeroutput"><span class="identifier">bimap</span></code> b' from an input archive (XML
+            archive) ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> No additional requirements
+                to those imposed by the container.
+              </li></ul></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="vector_of_reference.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../compiler_specifics.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

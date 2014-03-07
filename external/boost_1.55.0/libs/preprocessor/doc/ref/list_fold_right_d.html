@@ -1,0 +1,81 @@
+<html>
+<head>
+	<title>BOOST_PP_LIST_FOLD_RIGHT_d</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_LIST_FOLD_RIGHT_<i>d</i></b> macro folds (or accumulates) the elements of a <i>list</i> right-to-left.&nbsp;
+		It reenters <b>BOOST_PP_WHILE</b> with maximum efficiency.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_LIST_FOLD_RIGHT_</b> ## <i>d</i>(<i>op</i>, <i>state</i>, <i>list</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>d</dt>
+			<dd>
+				The next available <b>BOOST_PP_WHILE</b> iteration.
+			</dd>
+			<dt>op</dt>
+			<dd>
+				A ternary operation of the form <i>op</i>(<i>d</i>, <i>state</i>, <i>elem</i>).&nbsp;
+				This macro is called for each element in <i>list</i>--each time returning a new <i>state</i>.&nbsp;
+				This operation is expanded by <b>BOOST_PP_LIST_FOLD_RIGHT</b> with the next available <b>BOOST_PP_WHILE</b> iteration,
+				the current <i>state</i>, and the current element.
+			</dd>
+			<dt>state</dt>
+			<dd>
+				The initial state of the fold.
+			</dd>
+			<dt>list</dt>
+			<dd>
+				The <i>list</i> to be folded.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			For the <i>list</i>, (<i>0</i>, (<i>1</i>, (<i>2</i>, <b>BOOST_PP_NIL</b>))), this macro expands to:
+			<div>
+				<i>op</i>(<i>d</i>, <i>op</i>(<i>d</i>, <i>op</i>(<i>d</i>, <i>state</i>, <i>2</i>), <i>1</i>), <i>0</i>)
+			</div>
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="list_fold_right.html">BOOST_PP_LIST_FOLD_RIGHT</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/list/fold_right.html">&lt;boost/preprocessor/list/fold_right.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/cat.html">boost/preprocessor/cat.hpp</a>&gt;
+#include &lt;<a href="../headers/list/fold_right.html">boost/preprocessor/list/fold_right.hpp</a>&gt;
+
+#define L1 (a, (b, (c, <a href="nil.html">BOOST_PP_NIL</a>)))
+#define L2 (L1, (L1, (L1, <a href="nil.html">BOOST_PP_NIL</a>)))
+
+#define OP(d, state, x) (<a href="list_fold_right_d.html">BOOST_PP_LIST_FOLD_RIGHT_</a> ## d(OP_2, _, x), state)
+#define OP_2(d, state, x) <a href="cat.html">BOOST_PP_CAT</a>(state, x)
+
+<a href="list_fold_right.html">BOOST_PP_LIST_FOLD_RIGHT</a>(OP, <a href="nil.html">BOOST_PP_NIL</a>, L2)
+/*
+   expands to:
+   (_cba, (_cba, (_cba, <a href="nil.html">BOOST_PP_NIL</a>)))
+*/
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

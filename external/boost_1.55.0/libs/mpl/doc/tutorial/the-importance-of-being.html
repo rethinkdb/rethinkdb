@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: The Importance of Being Lazy</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./lambda-and-non.html" class="navigation-link">Prev</a>&nbsp;<a href="./details.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./lambda-and-non.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./lambda-details.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./tutorial-metafunctions.html" class="navigation-link">Tutorial: Metafunctions and Higher-Order Metaprogramming</a> / <a href="./lambda-details.html" class="navigation-link">Lambda Details</a> / <a href="./the-importance-of-being.html" class="navigation-link">The Importance of Being Lazy</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="the-importance-of-being">
+<h1><a class="toc-backref" href="./lambda-details.html#id58" name="the-importance-of-being">The Importance of Being Lazy</a></h1>
+<p>Recall the definition of <tt class="literal"><span class="pre">always_int</span></tt> from the previous chapter:</p>
+<pre class="literal-block">
+struct always_int
+{
+    typedef int type;
+};
+</pre>
+<p>Nullary metafunctions might not seem very important at first, since
+something like <tt class="literal"><span class="pre">add_pointer&lt;int&gt;</span></tt> could be replaced by <tt class="literal"><span class="pre">int*</span></tt> in
+any lambda expression where it appears.  Not all nullary
+metafunctions are that simple, though:</p>
+<pre class="literal-block">
+typedef mpl::vector&lt;int, char*, double&amp;&gt; seq;
+typedef <strong>mpl::transform&lt;seq, boost::add_pointer&lt;_&gt; &gt;</strong> calc_ptr_seq;
+</pre>
+<!-- @ example.prepend('''
+   #include <boost/mpl/vector.hpp>
+   #include <boost/mpl/transform.hpp>
+''')
+compile('all') -->
+<p>Note that <tt class="literal"><span class="pre">calc_ptr_seq</span></tt> is a nullary metafunction, since it has
+<tt class="literal"><span class="pre">transform</span></tt>'s nested <tt class="literal"><span class="pre">::type</span></tt>.  A C++ template is not
+instantiated until we actually &quot;look inside it,&quot; though.  Just
+naming <tt class="literal"><span class="pre">calc_ptr_seq</span></tt> does not cause it to be evaluated, since we
+haven't accessed its <tt class="literal"><span class="pre">::type</span></tt> yet.</p>
+<p>Metafunctions can be invoked <em>lazily</em>, rather than immediately upon
+supplying all of their arguments.  We can use <strong>lazy evaluation</strong> to
+improve compilation time when a metafunction result is only going
+to be used conditionally.  We can sometimes also avoid contorting
+program structure by <em>naming</em> an invalid computation without
+actually performing it.  That's what we've done with
+<tt class="literal"><span class="pre">calc_ptr_seq</span></tt> above, since you can't legally form <tt class="literal"><span class="pre">double&amp;*</span></tt>.
+Laziness and all of its virtues will be a recurring theme
+throughout this book.</p>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./lambda-and-non.html" class="navigation-link">Prev</a>&nbsp;<a href="./details.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./lambda-and-non.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./lambda-details.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

@@ -1,0 +1,46 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page working_with_multiple_locales Working with multiple locales
+
+Boost.Locale allows you to work safely with multiple locales in the same process. As we mentioned before, the locale
+generation process is not a cheap one. Thus, when we work with multiple locales and need to switch between them,
+we recommend that you create all the locales you need when the program starts.
+
+To simplify this process, the boost::locale::generator class has an option to cache all
+generated locales. With this option, when you create a locale that was previously generated, it would be fetched
+from the existing locale set instead. This operation is thread safe.
+
+This option must be explicitly enabled by calling the \ref boost::locale::generator::locale_cache_enabled() "locale_cache_enabled"  member function of boost::locale::generator with \c true as the parameter.
+
+
+For example:
+
+\code
+    generator gen;
+    gen.locale_cache_enabled(true);
+    gen("en_US.UTF-8");
+    gen("de_DE.UTF-8");
+    gen("ja_JP.UTF-8");
+    // Create all locales
+
+    std::locale en=gen("en_US.UTF-8"); 
+    // Fetch an existing locale from the cache
+    std::locale ar=gen("ar_EG.UTF-8");
+    // Because ar_EG not in the cache, a new locale is generated (and cached)
+\endcode
+
+Then these locales can be imbued to \c iostreams or used directly as parameters to various functions.
+
+
+
+*/
+
+

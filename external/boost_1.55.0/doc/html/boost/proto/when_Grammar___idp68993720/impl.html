@@ -1,0 +1,125 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template impl</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../when_Grammar___idp68993720.html#idp188179976" title="Description">
+<link rel="prev" href="../when_Grammar___idp68993720.html" title="Struct template when&lt;Grammar, R(A..., ...)&gt;">
+<link rel="next" href="../when_Grammar__idp69016184.html" title="Struct template when&lt;Grammar, proto::external_transform&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../when_Grammar___idp68993720.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../when_Grammar___idp68993720.html#idp188179976"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../when_Grammar__idp69016184.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.when_Grammar,__idp68993720.impl"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template impl</span></h2>
+<p>boost::proto::when&lt;Grammar, R(A..., ...)&gt;::impl</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../proto/reference.html#header.boost.proto.transform.when_hpp" title="Header &lt;boost/proto/transform/when.hpp&gt;">boost/proto/transform/when.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../../Expr.html" title="Concept Expr">Expr</a><span class="special">,</span> <span class="keyword">typename</span> State<span class="special">,</span> <span class="keyword">typename</span> Data<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="impl.html" title="Struct template impl">impl</a> <span class="special">:</span> <span class="keyword"></span> <a class="link" href="../transform_impl.html" title="Struct template transform_impl">proto::transform_impl</a>&lt; Expr, State, Data &gt; <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <a class="link" href="../call.html" title="Struct template call">proto::call</a><span class="special">&lt;</span><span class="identifier">R</span><span class="special">(</span><span class="identifier">A</span><span class="special">...</span><span class="special">,</span> <span class="special">...</span><span class="special">)</span><span class="special">&gt;</span>                                  <a name="boost.proto.when_Grammar,__idp68993720.impl.call_"></a><span class="identifier">call_</span><span class="special">;</span>        <span class="comment">// For exposition only</span>
+  <span class="keyword">typedef</span> <a class="link" href="../make.html" title="Struct template make">proto::make</a><span class="special">&lt;</span><span class="identifier">R</span><span class="special">(</span><span class="identifier">A</span><span class="special">...</span><span class="special">,</span> <span class="special">...</span><span class="special">)</span><span class="special">&gt;</span>                                  <a name="boost.proto.when_Grammar,__idp68993720.impl.make_"></a><span class="identifier">make_</span><span class="special">;</span>        <span class="comment">// For exposition only</span>
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_</span><span class="special">&lt;</span><a class="link" href="../is_callable.html" title="Struct template is_callable">proto::is_callable</a><span class="special">&lt;</span><span class="identifier">R</span><span class="special">&gt;</span><span class="special">,</span><span class="identifier">call_</span><span class="special">,</span><span class="identifier">make_</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="boost.proto.when_Grammar,__idp68993720.impl.which"></a><span class="identifier">which</span><span class="special">;</span>        <span class="comment">// For exposition only</span>
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">&lt;</span><span class="identifier">which</span><span class="special">(</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">State</span><span class="special">,</span> <span class="identifier">Data</span><span class="special">)</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>  <a name="boost.proto.when_Grammar,__idp68993720.impl.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="impl.html#idp69006920-bb">public member functions</a></span>
+  <span class="identifier">result_type</span> <a class="link" href="impl.html#idp69007208-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">expr_param</span><span class="special">,</span> 
+                         <span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">state_param</span><span class="special">,</span> 
+                         <span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">data_param</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp188223448"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp188223656"></a><h3>
+<a name="idp69006920-bb"></a><code class="computeroutput">impl</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp69007208-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">expr_param</span> expr<span class="special">,</span> 
+                       <span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">state_param</span> state<span class="special">,</span> 
+                       <span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">data_param</span> data<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+                  Evaluate <code class="computeroutput">R(A..., ...)</code> as a transform either with
+                  <code class="computeroutput"><code class="computeroutput"><a class="link" href="../call.html" title="Struct template call">proto::call&lt;&gt;</a></code></code> or with
+                  <code class="computeroutput"><code class="computeroutput"><a class="link" href="../make.html" title="Struct template make">proto::make&lt;&gt;</a></code></code> depending
+                  on whether <code class="computeroutput"><code class="computeroutput"><a class="link" href="../is_callable.html" title="Struct template is_callable">proto::is_callable</a></code>&lt;R&gt;::value</code>
+                  is <code class="computeroutput">true</code> or <code class="computeroutput">false</code>.
+                </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">data</code></span></p></td>
+<td><p>An arbitrary data </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">expr</code></span></p></td>
+<td><p>The current expression </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">state</code></span></p></td>
+<td><p>The current state </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>
+                  <code class="computeroutput"><a class="link" href="../matches.html" title="Struct template matches">proto::matches</a>&lt;Expr, Grammar&gt;::value</code>
+                  is <code class="computeroutput">true</code>.
+                </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>
+                  <code class="computeroutput">which()(expr, state, data)</code>
+                </p></td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../when_Grammar___idp68993720.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../when_Grammar___idp68993720.html#idp188179976"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../when_Grammar__idp69016184.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+#  Boost.Bind Library test Jamfile
+#
+#  Copyright (c) 2003-2006 Peter Dimov
+#
+#  Distributed under the Boost Software License, Version 1.0. (See
+#  accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+# bring in rules for testing
+import testing ;
+
+test-suite "bind"
+    : [ run bind_test.cpp ]
+      [ run bind_dm_test.cpp ]
+      [ run bind_eq_test.cpp ]
+      [ run bind_const_test.cpp ]
+      [ run bind_cv_test.cpp ]
+      [ run bind_stateful_test.cpp ]
+      [ run bind_dm2_test.cpp ]
+      [ run bind_not_test.cpp ]
+      [ run bind_rel_test.cpp ]
+      [ run bind_function_test.cpp ]
+      [ run bind_lookup_problem_test.cpp ]
+      [ run bind_rv_sp_test.cpp ]
+      [ compile bind_unary_addr.cpp ]
+      [ run bind_dm3_test.cpp ]
+      [ run bind_visit_test.cpp ]
+      [ run bind_placeholder_test.cpp ]
+      [ run bind_rvalue_test.cpp ]
+      [ run bind_and_or_test.cpp ]
+      [ run mem_fn_test.cpp ]
+      [ run mem_fn_void_test.cpp ]
+      [ run mem_fn_derived_test.cpp ]
+      [ run mem_fn_eq_test.cpp ]
+      [ run mem_fn_dm_test.cpp ]
+      [ run mem_fn_rv_test.cpp ]
+      [ run ref_fn_test.cpp ]
+      [ run bind_fnobj2_test.cpp ]
+      [ run bind_fn2_test.cpp ]
+      [ run bind_mf2_test.cpp ]
+      [ run bind_eq2_test.cpp ]
+      [ run mem_fn_ref_test.cpp ]
+      [ run bind_ref_test.cpp ]
+      [ run bind_eq3_test.cpp ]
+      [ run protect_test.cpp ]
+      [ run mem_fn_unary_addr_test.cpp ]
+    ;

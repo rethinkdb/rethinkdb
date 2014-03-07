@@ -1,0 +1,737 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Tutorial</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../bbv2.html" title="Chapter&#160;43.&#160;Boost.Build V2 User Manual">
+<link rel="prev" href="installation.html" title="Installation">
+<link rel="next" href="overview.html" title="Overview">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="installation.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bbv2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="overview.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="bbv2.tutorial"></a>Tutorial</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="tutorial.html#bbv2.tutorial.hello">Hello, world</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#bbv2.tutorial.properties">Properties</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#bbv2.tutorial.hierarchy">Project Hierarchies</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#bbv2.tutorial.libs">Dependent Targets</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#bbv2.tutorial.linkage">Static and shared libaries</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#bbv2.tutorial.conditions">Conditions and alternatives</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#bbv2.tutorial.prebuilt">Prebuilt targets</a></span></dt>
+</dl></div>
+<p>
+    This section will guide you though the most basic features of Boost.Build
+    V2. We will start with the &#8220;Hello, world&#8221; example, learn how
+    to use libraries, and finish with testing and installing features.
+  </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.tutorial.hello"></a>Hello, world</h3></div></div></div>
+<p>
+      The simplest project that Boost.Build can construct is stored in
+      <code class="filename">example/hello/</code> directory. The project is described by
+      a file called <code class="filename">Jamroot</code> that contains:
+
+</p>
+<pre class="programlisting">
+exe hello <span class="special">:</span> hello.cpp <span class="special">;</span>
+</pre>
+<p>
+
+      Even with this simple setup, you can do some interesting things. First of
+      all, just invoking <span class="command"><strong>b2</strong></span> will build the <code class="filename">hello
+      </code> executable by compiling and linking <code class="filename">hello.cpp
+      </code>. By default, the debug variant is built. Now, to build the release
+      variant of <code class="filename">hello</code>, invoke
+
+</p>
+<pre class="screen">
+b2 release
+</pre>
+<p>
+
+      Note that the debug and release variants are created in different directories,
+      so you can switch between variants or even build multiple variants at
+      once, without any unnecessary recompilation. Let us extend the example by
+      adding another line to our project's <code class="filename">Jamroot</code>:
+
+</p>
+<pre class="programlisting">
+exe hello2 <span class="special">:</span> hello.cpp <span class="special">;</span>
+</pre>
+<p>
+
+      Now let us build both the debug and release variants of our project again:
+
+</p>
+<pre class="screen">
+b2 debug release
+</pre>
+<p>
+
+      Note that two variants of <code class="filename">hello2</code> are linked. Since we
+      have already built both variants of <code class="filename">hello</code>, hello.cpp
+      will not be recompiled; instead the existing object files will just be
+      linked into the corresponding variants of <code class="filename">hello2</code>. Now
+      let us remove all the built products:
+
+</p>
+<pre class="screen">
+b2 --clean debug release
+</pre>
+<p>
+
+      It is also possible to build or clean specific targets. The following two
+      commands, respectively, build or clean only the debug version of
+      <code class="filename">hello2</code>.
+
+</p>
+<pre class="screen">
+b2 hello2
+b2 --clean hello2
+</pre>
+<p>
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.tutorial.properties"></a>Properties</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="tutorial.html#bbv2.tutorial.properties.requirements">Build Requests and Target Requirements</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#bbv2.tutorial.properties.project_attributes">Project Attributes</a></span></dt>
+</dl></div>
+<p>
+      To represent aspects of target configuration such as
+      debug and release variants, or single- and multi-threaded
+      builds portably, Boost.Build uses <em class="firstterm">features</em> with
+      associated <em class="firstterm">values</em>.  For
+      example, the <code class="computeroutput">debug-symbols</code> feature can have a value of <code class="computeroutput">on</code> or
+      <code class="computeroutput">off</code>.  A <em class="firstterm">property</em> is just a (feature,
+      value) pair.  When a user initiates a build, Boost.Build
+      automatically translates the requested properties into appropriate
+      command-line flags for invoking toolset components like compilers
+      and linkers.
+    </p>
+<p>
+      There are many built-in features that can be combined to
+      produce arbitrary build configurations.  The following command
+      builds the project's <code class="computeroutput">release</code> variant with inlining
+      disabled and debug symbols enabled:
+</p>
+<pre class="screen">
+b2 release inlining=off debug-symbols=on
+</pre>
+<p>
+    </p>
+<p>
+      Properties on the command-line are specified with the syntax:
+
+</p>
+<pre class="screen">
+<em class="replaceable"><code>feature-name</code></em>=<em class="replaceable"><code>feature-value</code></em>
+</pre>
+<p>
+    </p>
+<p>
+      The <code class="option">release</code> and <code class="option">debug</code> that we have seen
+      in <span class="command"><strong>b2</strong></span> invocations are just a shorthand way to specify
+      values of the <code class="varname">variant</code> feature.  For example, the
+      command above could also have been written this way:
+
+      </p>
+<pre class="screen">
+b2 variant=release inlining=off debug-symbols=on
+      </pre>
+<p>
+    </p>
+<p>
+      <code class="varname">variant</code> is so commonly-used that it has been given
+      special status as an <em class="firstterm">implicit</em> feature&#8212;
+      Boost.Build will deduce its identity just from the name of one of its
+      values.
+    </p>
+<p>
+      A complete description of features can be found in <a class="xref" href="reference.html#bbv2.reference.features" title="Features and properties">the section called &#8220;Features and properties&#8221;</a>.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.tutorial.properties.requirements"></a>Build Requests and Target Requirements</h4></div></div></div>
+<p>
+        The set of properties specified on the command line constitutes
+        a <em class="firstterm">build request</em>&#8212;a description of
+        the desired properties for building the requested targets (or,
+        if no targets were explicitly requested, the project in the
+        current directory). The <span class="emphasis"><em>actual</em></span>
+        properties used for building targets are typically a
+        combination of the build request and properties derived from
+        the project's <code class="filename">Jamroot</code> (and its other
+        Jamfiles, as described in <a class="xref" href="tutorial.html#bbv2.tutorial.hierarchy" title="Project Hierarchies">the section called &#8220;Project Hierarchies&#8221;</a>). For example, the
+        locations of <code class="computeroutput">#include</code>d header files are normally
+        not specified on the command-line, but described in
+        Jamfiles as <em class="firstterm">target
+        requirements</em> and automatically combined with the
+        build request for those targets. Multithread-enabled
+        compilation is another example of a typical target
+        requirement. The Jamfile fragment below
+        illustrates how these requirements might be specified.
+      </p>
+<pre class="programlisting">
+exe hello
+    <span class="special">:</span> hello.cpp
+    <span class="special">:</span> &lt;include&gt;boost &lt;threading&gt;multi
+    <span class="special">;</span>
+</pre>
+<p>
+        When <code class="filename">hello</code> is built, the two requirements specified
+        above will always be present. If the build request given on the
+        <span class="command"><strong>b2</strong></span> command-line explictly contradicts a target's
+        requirements, the target requirements usually override (or, in the case
+        of &#8220;free&#8221;&#8221; features like
+        <code class="varname">&lt;include&gt;</code>,
+        <a href="#ftn.idp261744392" class="footnote" name="idp261744392"><sup class="footnote">[13]</sup></a>
+        augments) the build request.
+      </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          The value of the <code class="varname">&lt;include&gt;</code> feature is
+          relative to the location of <code class="filename">Jamroot</code> where it is
+          used.
+        </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.tutorial.properties.project_attributes"></a>Project Attributes</h4></div></div></div>
+<p>
+        If we want the same requirements for our other target,
+        <code class="filename">hello2</code>, we could simply duplicate them. However,
+        as projects grow, that approach leads to a great deal of repeated
+        boilerplate in Jamfiles.
+
+        Fortunately, there's a better way. Each project can specify a set of
+        <em class="firstterm">attributes</em>, including requirements:
+
+</p>
+<pre class="programlisting">
+project
+    <span class="special">:</span> requirements &lt;include&gt;/home/ghost/Work/boost &lt;threading&gt;multi
+    <span class="special">;</span>
+
+exe hello <span class="special">:</span> hello.cpp <span class="special">;</span>
+exe hello2 <span class="special">:</span> hello.cpp <span class="special">;</span></pre>
+<p>
+
+        The effect would be as if we specified the same requirement for both
+        <code class="filename">hello</code> and <code class="filename">hello2</code>.
+      </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.tutorial.hierarchy"></a>Project Hierarchies</h3></div></div></div>
+<p>
+      So far we have only considered examples with one project, with
+      one user-written Boost.Jam file, <code class="filename">Jamroot</code>. A typical
+      large codebase would be composed of many projects organized into a tree.
+      The top of the tree is called the <em class="firstterm">project root</em>.
+      Every subproject is defined by a file called <code class="filename">Jamfile</code>
+      in a descendant directory of the project root. The parent project of a
+      subproject is defined by the nearest <code class="filename">Jamfile</code> or
+      <code class="filename">Jamroot</code> file in an ancestor directory. For example,
+      in the following directory layout:
+
+</p>
+<pre class="screen">
+top/
+  |
+  +-- Jamroot
+  |
+  +-- app/
+  |    |
+  |    +-- Jamfile
+  |    `-- app.cpp
+  |
+  `-- util/
+       |
+       +-- foo/
+       .    |
+       .    +-- Jamfile
+       .    `-- bar.cpp
+</pre>
+<p>
+
+      the project root is <code class="filename">top/</code>. The projects in
+      <code class="filename">top/app/</code> and <code class="filename">top/util/foo/</code> are
+      immediate children of the root project.
+
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          When we refer to a &#8220;Jamfile,&#8221; set in normal
+          type, we mean a file called either
+          <code class="filename">Jamfile</code> or
+          <code class="filename">Jamroot</code>.  When we need to be more
+          specific, the filename will be set as
+          &#8220;<code class="filename">Jamfile</code>&#8221; or
+          &#8220;<code class="filename">Jamroot</code>.&#8221;
+        </p></td></tr>
+</table></div>
+<p>
+    </p>
+<p>
+      Projects inherit all attributes (such as requirements)
+      from their parents.  Inherited requirements are combined with
+      any requirements specified by the subproject.
+      For example, if <code class="filename">top/Jamroot</code> has
+
+</p>
+<pre class="programlisting">
+&lt;include&gt;/home/ghost/local
+</pre>
+<p>
+
+      in its requirements, then all of its subprojects will have it
+      in their requirements, too.  Of course, any project can add
+      include paths to those specified by its parents. <a href="#ftn.idp261760200" class="footnote" name="idp261760200"><sup class="footnote">[14]</sup></a>
+    More details can be found in
+      <a class="xref" href="overview.html#bbv2.overview.projects" title="Projects">the section called &#8220;Projects&#8221;</a>.
+    </p>
+<p>
+      Invoking <span class="command"><strong>b2</strong></span> without explicitly specifying
+      any targets on the command line builds the project rooted in the
+      current directory.  Building a project does not automatically
+      cause its subprojects to be built unless the parent project's
+      Jamfile explicitly requests it. In our example,
+      <code class="filename">top/Jamroot</code> might contain:
+
+</p>
+<pre class="programlisting">
+build-project app <span class="special">;</span>
+</pre>
+<p>
+
+      which would cause the project in <code class="filename">top/app/</code>
+      to be built whenever the project in <code class="filename">top/</code> is
+      built. However, targets in <code class="filename">top/util/foo/</code>
+      will be built only if they are needed by targets in
+      <code class="filename">top/</code> or <code class="filename">top/app/</code>.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.tutorial.libs"></a>Dependent Targets</h3></div></div></div>
+<p>
+      When building a target <code class="filename">X</code> that depends on first
+      building another target <code class="filename">Y</code> (such as a
+      library that must be linked with <em class="firstterm">X</em>),
+      <code class="filename">Y</code> is called a
+      <em class="firstterm">dependency</em> of <code class="filename">X</code> and
+      <code class="filename">X</code> is termed a
+      <em class="firstterm">dependent</em> of <code class="filename">Y</code>.
+    </p>
+<p>To get a feeling of target dependencies, let's continue the
+      above example and see how <code class="filename">top/app/Jamfile</code> can
+      use libraries from <code class="filename">top/util/foo</code>.  If
+      <code class="filename">top/util/foo/Jamfile</code> contains
+
+</p>
+<pre class="programlisting">
+lib bar <span class="special">:</span> bar.cpp <span class="special">;</span>
+</pre>
+<p>
+
+      then to use this library in <code class="filename">top/app/Jamfile</code>, we can
+      write:
+
+</p>
+<pre class="programlisting">
+exe app <span class="special">:</span> app.cpp ../util/foo//bar <span class="special">;</span>
+</pre>
+<p>
+
+      While <code class="computeroutput">app.cpp</code> refers to a regular source file,
+      <code class="computeroutput">../util/foo//bar</code> is a reference to another target:
+      a library <code class="filename">bar</code> declared in the Jamfile at
+      <code class="filename">../util/foo</code>.
+    </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>Some other build system have special syntax for listing dependent
+      libraries, for example <code class="varname">LIBS</code> variable. In Boost.Build,
+      you just add the library to the list of sources.
+      </p></td></tr>
+</table></div>
+<p>Suppose we build <code class="filename">app</code> with:
+    </p>
+<pre class="screen">
+b2 app optimization=full define=USE_ASM
+    </pre>
+<p>
+    Which properties will be used to build <code class="computeroutput">foo</code>? The answer is
+    that some features are
+    <em class="firstterm">propagated</em>&#8212;Boost.Build attempts to use
+    dependencies with the same value of propagated features. The
+    <code class="varname">&lt;optimization&gt;</code> feature is propagated, so both
+    <code class="filename">app</code> and <code class="filename">foo</code> will be compiled
+    with full optimization. But <code class="varname">&lt;define&gt;</code> is not
+    propagated: its value will be added as-is to the compiler flags for
+    <code class="filename">a.cpp</code>, but won't affect <code class="filename">foo</code>.
+    </p>
+<p>
+      Let's improve this project further. The library probably has some headers
+      that must be used when compiling <code class="filename">app.cpp</code>. We could
+      manually add the necessary <code class="computeroutput">#include</code> paths to
+      <code class="filename">app</code>'s requirements as values of the
+      <code class="varname">&lt;include&gt;  </code> feature, but then this work will be
+      repeated for all programs that use <code class="filename">foo</code>. A better
+      solution is to modify <code class="filename">util/foo/Jamfile</code> in this way:
+
+      </p>
+<pre class="programlisting">
+project
+    <span class="special">:</span> usage-requirements &lt;include&gt;.
+    <span class="special">;</span>
+
+lib foo <span class="special">:</span> foo.cpp <span class="special">;</span></pre>
+<p>
+
+      Usage requirements are applied not to the target being declared but to its
+      dependants. In this case, <code class="literal">&lt;include&gt;.</code> will be
+      applied to all targets that directly depend on <code class="filename">foo</code>.
+    </p>
+<p>
+      Another improvement is using symbolic identifiers to refer to the library,
+      as opposed to <code class="filename">Jamfile</code> location. In a large project, a
+      library can be used by many targets, and if they all use <code class="filename">Jamfile
+      </code> location, a change in directory organization entails much
+      work. The solution is to use project ids&#8212;symbolic names not tied to
+      directory layout. First, we need to assign a project id by adding this
+      code to <code class="filename">Jamroot</code>:
+    </p>
+<pre class="programlisting">
+use-project /library-example/foo <span class="special">:</span> util/foo <span class="special">;</span></pre>
+<p>
+      Second, we modify <code class="filename">app/Jamfile</code> to use the project id:
+      </p>
+<pre class="programlisting">
+exe app : app.cpp /library-example/foo//bar ;</pre>
+<p>
+
+      The <code class="filename">/library-example/foo//bar</code> syntax is used to refer
+      to the target <code class="filename">bar</code> in the project with id <code class="filename">
+      /library-example/foo</code>. We've achieved our goal&#8212;if the
+      library is moved to a different directory, only <code class="filename">Jamroot
+      </code> must be modified. Note that project ids are global&#8212;two
+      Jamfiles are not allowed to assign the same project id to different
+      directories.
+    </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>If you want all applications in some project to link to a certain
+        library, you can avoid having to specify it directly the sources of
+        every target by using the <code class="varname">&lt;library&gt;</code> property.
+        For example, if <code class="filename">/boost/filesystem//fs</code> should be
+        linked to all applications in your project, you can add
+        <code class="computeroutput">&lt;library&gt;/boost/filesystem//fs</code> to the project's
+        requirements, like this:
+      </p>
+<pre class="programlisting">
+project
+   <span class="special">:</span> requirements &lt;library&gt;/boost/filesystem//fs
+   <span class="special">;</span></pre>
+</td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.tutorial.linkage"></a>Static and shared libaries</h3></div></div></div>
+<p>
+      Libraries can be either <span class="emphasis"><em>static</em></span>, which means they are
+      included in executable files that use them, or <span class="emphasis"><em>shared</em></span>
+      (a.k.a. <span class="emphasis"><em>dynamic</em></span>), which are only referred to from
+      executables, and must be available at run time. Boost.Build can create and
+      use both kinds.
+    </p>
+<p>
+      The kind of library produced from a <code class="computeroutput">lib</code> target is determined
+      by the value of the <code class="varname">link</code> feature. Default value is
+      <code class="literal">shared</code>, and to build a static library, the value should
+      be <code class="literal">static</code>. You can request a static build either on the
+      command line:
+      </p>
+<pre class="programlisting">b2 link=static</pre>
+<p>
+      or in the library's requirements:
+      </p>
+<pre class="programlisting">lib l <span class="special">:</span> l.cpp <span class="special">:</span> &lt;link&gt;static <span class="special">;</span></pre>
+<p>
+    </p>
+<p>
+      We can also use the <code class="varname">&lt;link&gt;</code> property to express
+      linking requirements on a per-target basis. For example, if a particular
+      executable can be correctly built only with the static version of a
+      library, we can qualify the executable's <a class="link" href="reference.html#bbv2.reference.targets.references">target reference</a> to the
+      library as follows:
+
+
+
+      </p>
+<pre class="programlisting">
+exe important <span class="special">:</span> main.cpp helpers/&lt;link&gt;static <span class="special">;</span></pre>
+<p>
+
+      No matter what arguments are specified on the <span class="command"><strong>b2</strong></span>
+      command line, <code class="filename">important</code> will only be linked with the
+      static version of <code class="filename">helpers</code>.
+    </p>
+<p>
+      Specifying properties in target references is especially useful if you use
+      a library defined in some other project (one you can't change) but you
+      still want static (or dynamic) linking to that library in all cases. If
+      that library is used by many targets, you <span class="emphasis"><em>could</em></span> use
+      target references everywhere:
+
+      </p>
+<pre class="programlisting">
+exe e1 <span class="special">:</span> e1.cpp /other_project//bar/&lt;link&gt;static <span class="special">;</span>
+exe e10 <span class="special">:</span> e10.cpp /other_project//bar/&lt;link&gt;static <span class="special">;</span></pre>
+<p>
+
+      but that's far from being convenient. A better approach is to introduce a
+      level of indirection. Create a local <span class="type">alias</span> target that refers
+      to the static (or dynamic) version of <code class="filename">foo</code>:
+
+      </p>
+<pre class="programlisting">
+alias foo : /other_project//bar/&lt;link&gt;static ;
+exe e1 : e1.cpp foo ;
+exe e10 : e10.cpp foo ;</pre>
+<p>
+
+      The <a class="link" href="tasks.html#bbv2.tasks.alias" title="Alias">alias</a> rule is specifically
+      used to rename a reference to a target and possibly change the
+      properties.
+
+      
+    </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+        When one library uses another, you put the second library in the source
+        list of the first. For example:
+        </p>
+<pre class="programlisting">
+lib utils <span class="special">:</span> utils.cpp /boost/filesystem//fs <span class="special">;</span>
+lib core <span class="special">:</span> core.cpp utils <span class="special">;</span>
+exe app <span class="special">:</span> app.cpp core <span class="special">;</span></pre>
+<p>
+        This works no matter what kind of linking is used. When <code class="filename">core
+        </code> is built as a shared library, it is linked directly into
+        <code class="filename">utils</code>. Static libraries can't link to other
+        libraries, so when <code class="filename">core</code> is built as a static
+        library, its dependency on <code class="filename">utils</code> is passed along to
+        <code class="filename">core</code>'s dependents, causing <code class="filename">app</code>
+        to be linked with both <code class="filename">core</code> and <code class="filename">utils
+        </code>.
+      </p>
+</td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        (Note for non-UNIX system). Typically, shared libraries must be
+        installed to a directory in the dynamic linker's search path. Otherwise,
+        applications that use shared libraries can't be started. On Windows, the
+        dynamic linker's search path is given by the <code class="envar">PATH</code>
+        environment variable. This restriction is lifted when you use
+        Boost.Build testing facilities&#8212;the <code class="envar">PATH</code> variable
+        will be automatically adjusted before running the executable.
+        
+      </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.tutorial.conditions"></a>Conditions and alternatives</h3></div></div></div>
+<p>
+      Sometimes, particular relationships need to be maintained among a target's
+      build properties. For example, you might want to set specific <code class="computeroutput">
+      #define</code> when a library is built as shared, or when a target's
+      <code class="computeroutput">release</code> variant is built. This can be achieved using
+      <em class="firstterm">conditional requirements</em>.
+
+      </p>
+<pre class="programlisting">
+lib network <span class="special">:</span> network.cpp
+    <span class="special">:</span> <span class="bold"><strong>&lt;link&gt;shared:&lt;define&gt;NEWORK_LIB_SHARED</strong></span>
+     &lt;variant&gt;release:&lt;define&gt;EXTRA_FAST
+    <span class="special">;</span></pre>
+<p>
+
+      In the example above, whenever <code class="filename">network</code> is built with
+      <code class="computeroutput">&lt;link&gt;shared</code>, <code class="computeroutput">&lt;define&gt;NEWORK_LIB_SHARED
+      </code> will be in its properties, too. Also, whenever its release variant
+      is built, <code class="computeroutput">&lt;define&gt;EXTRA_FAST</code> will appear in its
+      properties.
+    </p>
+<p>
+      Sometimes the ways a target is built are so different that describing them
+      using conditional requirements would be hard. For example, imagine that a
+      library actually uses different source files depending on the toolset used
+      to build it. We can express this situation using <em class="firstterm">target
+      alternatives</em>:
+      </p>
+<pre class="programlisting">
+lib demangler <span class="special">:</span> dummy_demangler.cpp <span class="special">;</span>                      <span class="comment"># alternative 1</span>
+lib demangler <span class="special">:</span> demangler_gcc.cpp <span class="special">:</span> &lt;toolset&gt;gcc <span class="special">;</span>   <span class="comment"># alternative 2</span>
+lib demangler <span class="special">:</span> demangler_msvc.cpp <span class="special">:</span> &lt;toolset&gt;msvc <span class="special">;</span> <span class="comment"># alternative 3</span></pre>
+<p>
+      When building <code class="filename">demangler</code>, Boost.Build will compare
+      requirements for each alternative with build properties to find the best
+      match. For example, when building with <code class="computeroutput">&lt;toolset&gt;gcc</code>
+      alternative 2, will be selected, and when building with
+      <code class="computeroutput">&lt;toolset&gt;msvc</code> alternative 3 will be selected. In all
+      other cases, the most generic alternative 1 will be built.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.tutorial.prebuilt"></a>Prebuilt targets</h3></div></div></div>
+<p>
+      To link to libraries whose build instructions aren't given in a Jamfile,
+      you need to create <code class="computeroutput">lib</code> targets with an appropriate
+      <code class="varname">file</code> property.  Target alternatives can be used to
+      associate multiple library files with a single conceptual target. For
+      example:
+      </p>
+<pre class="programlisting">
+<span class="comment"># util/lib2/Jamfile</span>
+lib lib2
+    <span class="special">:</span>
+    <span class="special">:</span> &lt;file&gt;lib2_release.a &lt;variant&gt;release
+    <span class="special">;</span>
+
+lib lib2
+    <span class="special">:</span>
+    <span class="special">:</span> &lt;file&gt;lib2_debug.a &lt;variant&gt;debug
+    <span class="special">;</span></pre>
+<p>
+
+      This example defines two alternatives for <code class="filename">lib2</code>, and
+      for each one names a prebuilt file.  Naturally, there are no sources.
+      Instead, the <code class="varname">&lt;file&gt;</code> feature is used to specify
+      the file name.
+    </p>
+<p>
+      Once a prebuilt target has been declared, it can be used just like any
+      other target:
+
+      </p>
+<pre class="programlisting">
+exe app <span class="special">:</span> app.cpp ../util/lib2//lib2 <span class="special">;</span></pre>
+<p>
+
+      As with any target, the alternative selected depends on the properties
+      propagated from <code class="filename">lib2</code>'s dependants. If we build the
+      release and debug versions of <code class="filename">app</code> will be linked
+      with <code class="filename">lib2_release.a</code> and <code class="filename">lib2_debug.a
+      </code>, respectively.
+    </p>
+<p>
+      System libraries&#8212;those that are automatically found by the toolset
+      by searching through some set of predetermined paths&#8212;should be
+      declared almost like regular ones:
+
+      </p>
+<pre class="programlisting">
+lib pythonlib <span class="special">:</span> <span class="special">:</span> &lt;name&gt;python22 <span class="special">;</span></pre>
+<p>
+
+      We again don't specify any sources, but give a <code class="varname">name</code>
+      that should be passed to the compiler. If the gcc toolset were used to
+      link an executable target to <code class="filename">pythonlib</code>,
+      <code class="option">-lpython22</code> would appear in the command line (other
+      compilers may use different options).
+    </p>
+<p>
+      We can also specify where the toolset should look for the library:
+
+      </p>
+<pre class="programlisting">
+lib pythonlib <span class="special">:</span> <span class="special">:</span> &lt;name&gt;python22 &lt;search&gt;/opt/lib <span class="special">;</span></pre>
+<p>
+
+      And, of course, target alternatives can be used in the usual way:
+
+      </p>
+<pre class="programlisting">
+lib pythonlib <span class="special">:</span> <span class="special">:</span> &lt;name&gt;python22 &lt;variant&gt;release <span class="special">;</span>
+lib pythonlib <span class="special">:</span> <span class="special">:</span> &lt;name&gt;python22_d &lt;variant&gt;debug <span class="special">;</span></pre>
+<p>
+    </p>
+<p>
+      A more advanced use of prebuilt targets is described in <a class="xref" href="faq.html#bbv2.recipies.site-config" title="Targets in site-config.jam">the section called &#8220;Targets in site-config.jam&#8221;</a>.
+    </p>
+</div>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.idp261744392" class="footnote"><p><a href="#idp261744392" class="para"><sup class="para">[13] </sup></a>
+             See <a class="xref" href="reference.html#bbv2.reference.features.attributes" title="Feature Attributes">the section called &#8220;Feature Attributes&#8221;</a>
+          </p></div>
+<div id="ftn.idp261760200" class="footnote"><p><a href="#idp261760200" class="para"><sup class="para">[14] </sup></a>Many
+      features will be overridden,
+      rather than added-to, in subprojects.  See <a class="xref" href="reference.html#bbv2.reference.features.attributes" title="Feature Attributes">the section called &#8220;Feature Attributes&#8221;</a> for more
+      information</p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2009 Vladimir Prus<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="installation.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bbv2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="overview.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

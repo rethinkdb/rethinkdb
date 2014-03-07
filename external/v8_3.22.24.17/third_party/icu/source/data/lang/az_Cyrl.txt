@@ -1,0 +1,27 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/az_Cyrl.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/az_Cyrl.xml
+ */
+az_Cyrl{
+    %%ParentIsRoot:int{1}
+    Languages{
+        az{"Азәрбајҹан"}
+        de{"алманҹа"}
+        en{"инҝилисҹә"}
+        es{"испанҹа"}
+        fr{"франсызҹа"}
+        it{"италјанҹа"}
+        ja{"јапонҹа"}
+        pt{"португалҹа"}
+        ru{"русҹа"}
+        zh{"чинҹә"}
+    }
+    Version{"2.0.47.53"}
+}

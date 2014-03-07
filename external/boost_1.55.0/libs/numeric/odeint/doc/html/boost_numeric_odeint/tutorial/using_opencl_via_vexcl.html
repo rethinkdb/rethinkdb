@@ -1,0 +1,180 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Using OpenCL via VexCL</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="using_cuda__or_openmp__tbb_______via_thrust.html" title="Using CUDA (or OpenMP, TBB, ...) via Thrust">
+<link rel="next" href="all_examples.html" title="All examples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_cuda__or_openmp__tbb_______via_thrust.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="all_examples.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.tutorial.using_opencl_via_vexcl"></a><a class="link" href="using_opencl_via_vexcl.html" title="Using OpenCL via VexCL">Using
+      OpenCL via VexCL</a>
+</h3></div></div></div>
+<p>
+        In the previous section the usage of odeint in combination with <a href="http://code.google.com/p/thrust/" target="_top">Thrust</a>
+        was shown. In this section we show how one can use OpenCL with odeint. The
+        point of odeint is not to implement its own low-level data structures and
+        algorithms, but to use high level libraries doing this task. Here, we will
+        use the <a href="https://github.com/ddemidov/vexcl" target="_top">VexCL</a> framework
+        to use OpenCL. <a href="https://github.com/ddemidov/vexcl" target="_top">VexCL</a>
+        is a nice library for general computations and it uses heavily expression
+        templates. With the help of <a href="https://github.com/ddemidov/vexcl" target="_top">VexCL</a>
+        it is possible to write very compact and expressive application.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          vexcl needs C++11 features! So you have to compile with C++11 support enabled.
+        </p></td></tr>
+</table></div>
+<p>
+        To use <a href="https://github.com/ddemidov/vexcl" target="_top">VexCL</a> one needs
+        to include one additional header which includes the data-types and algorithms
+        from vexcl and the adaption to odeint. Adaption to odeint means here only
+        to adapt the resizing functionality of <a href="https://github.com/ddemidov/vexcl" target="_top">VexCL</a>
+        to odeint.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">numeric</span><span class="special">/</span><span class="identifier">odeint</span><span class="special">/</span><span class="identifier">external</span><span class="special">/</span><span class="identifier">vexcl</span><span class="special">/</span><span class="identifier">vexcl_resize</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      </p>
+<p>
+        To demonstrate the use of <a href="https://github.com/ddemidov/vexcl" target="_top">VexCL</a>
+        we integrate an ensemble of Lorenz system. The example is very similar to
+        the parameter study of the Lorenz system in the previous section except that
+        we do not compute the Lyapunov exponents. Again, we vary the parameter R
+        of the Lorenz system an solve a whole ensemble of Lorenz systems in parallel
+        (each with a different parameter R). First, we define the state type and
+        a vector type
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">vex</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span>    <span class="identifier">vector_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">vex</span><span class="special">::</span><span class="identifier">multivector</span><span class="special">&lt;</span> <span class="keyword">double</span><span class="special">,</span> <span class="number">3</span> <span class="special">&gt;</span> <span class="identifier">state_type</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        The <code class="computeroutput"><span class="identifier">vector_type</span></code> is used to
+        represent the parameter R. The <code class="computeroutput"><span class="identifier">state_type</span></code>
+        is a multi-vector of three sub vectors and is used to represent. The first
+        component of this multi-vector represent all <code class="computeroutput"><span class="identifier">x</span></code>
+        components of the Lorenz system, while the second all <code class="computeroutput"><span class="identifier">y</span></code>
+        components and the third all <code class="computeroutput"><span class="identifier">z</span></code>
+        components. The components of this vector can be obtained via
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">auto</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">=</span> <span class="identifier">X</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+<span class="keyword">auto</span> <span class="special">&amp;</span><span class="identifier">y</span> <span class="special">=</span> <span class="identifier">X</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+<span class="keyword">auto</span> <span class="special">&amp;</span><span class="identifier">z</span> <span class="special">=</span> <span class="identifier">X</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        As already mentioned <a href="https://github.com/ddemidov/vexcl" target="_top">VexCL</a>
+        supports expression templates and we will use them to implement the system
+        function for the Lorenz ensemble:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">sigma</span> <span class="special">=</span> <span class="number">10.0</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">b</span> <span class="special">=</span> <span class="number">8.0</span> <span class="special">/</span> <span class="number">3.0</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">sys_func</span>
+<span class="special">{</span>
+    <span class="keyword">const</span> <span class="identifier">vector_type</span> <span class="special">&amp;</span><span class="identifier">R</span><span class="special">;</span>
+
+    <span class="identifier">sys_func</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">vector_type</span> <span class="special">&amp;</span><span class="identifier">_R</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">R</span><span class="special">(</span> <span class="identifier">_R</span> <span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="keyword">double</span> <span class="identifier">t</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">dxdt</span><span class="special">(</span><span class="number">0</span><span class="special">)</span> <span class="special">=</span> <span class="special">-</span><span class="identifier">sigma</span> <span class="special">*</span> <span class="special">(</span> <span class="identifier">x</span><span class="special">(</span><span class="number">0</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">);</span>
+        <span class="identifier">dxdt</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">R</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">(</span><span class="number">0</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">(</span><span class="number">0</span><span class="special">)</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+        <span class="identifier">dxdt</span><span class="special">(</span><span class="number">2</span><span class="special">)</span> <span class="special">=</span> <span class="special">-</span> <span class="identifier">b</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">(</span><span class="number">2</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">x</span><span class="special">(</span><span class="number">0</span><span class="special">)</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        It's very easy, isn't it? These three little lines do all the computations
+        for you. There is no need to write your own OpenCL kernels. <a href="https://github.com/ddemidov/vexcl" target="_top">VexCL</a>
+        does everything for you. Next we have to write the main application. We initialize
+        the vector of parameters (R) and the initial state. Since <a href="https://github.com/ddemidov/vexcl" target="_top">VexCL</a>
+        supports odeint we can already use the <code class="computeroutput"><span class="identifier">vector_space_algebra</span></code>
+        in combination with the <code class="computeroutput"><span class="identifier">default_operations</span></code>
+        for the stepper and we are done:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// setup the opencl context</span>
+<span class="identifier">vex</span><span class="special">::</span><span class="identifier">Context</span> <span class="identifier">ctx</span><span class="special">(</span> <span class="identifier">vex</span><span class="special">::</span><span class="identifier">Filter</span><span class="special">::</span><span class="identifier">Type</span><span class="special">(</span><span class="identifier">CL_DEVICE_TYPE_GPU</span><span class="special">)</span> <span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">ctx</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+<span class="comment">// set up number of system, time step and integration time</span>
+<span class="keyword">const</span> <span class="identifier">size_t</span> <span class="identifier">n</span> <span class="special">=</span> <span class="number">1024</span> <span class="special">*</span> <span class="number">1024</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">dt</span> <span class="special">=</span> <span class="number">0.01</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">t_max</span> <span class="special">=</span> <span class="number">100.0</span><span class="special">;</span>
+
+<span class="comment">// initialize R</span>
+<span class="keyword">double</span> <span class="identifier">Rmin</span> <span class="special">=</span> <span class="number">0.1</span> <span class="special">,</span> <span class="identifier">Rmax</span> <span class="special">=</span> <span class="number">50.0</span> <span class="special">,</span> <span class="identifier">dR</span> <span class="special">=</span> <span class="special">(</span> <span class="identifier">Rmax</span> <span class="special">-</span> <span class="identifier">Rmin</span> <span class="special">)</span> <span class="special">/</span> <span class="keyword">double</span><span class="special">(</span> <span class="identifier">n</span> <span class="special">-</span> <span class="number">1</span> <span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">x</span><span class="special">(</span> <span class="identifier">n</span> <span class="special">*</span> <span class="number">3</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">r</span><span class="special">(</span> <span class="identifier">n</span> <span class="special">);</span>
+<span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">n</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span> <span class="identifier">r</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">Rmin</span> <span class="special">+</span> <span class="identifier">dR</span> <span class="special">*</span> <span class="keyword">double</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">);</span>
+<span class="identifier">vector_type</span> <span class="identifier">R</span><span class="special">(</span> <span class="identifier">ctx</span><span class="special">.</span><span class="identifier">queue</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">r</span> <span class="special">);</span>
+
+<span class="comment">// initialize the state of the lorenz ensemble</span>
+<span class="identifier">state_type</span> <span class="identifier">X</span><span class="special">(</span><span class="identifier">ctx</span><span class="special">.</span><span class="identifier">queue</span><span class="special">(),</span> <span class="identifier">n</span><span class="special">);</span>
+<span class="identifier">X</span><span class="special">(</span><span class="number">0</span><span class="special">)</span> <span class="special">=</span> <span class="number">10.0</span><span class="special">;</span>
+<span class="identifier">X</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">=</span> <span class="number">10.0</span><span class="special">;</span>
+<span class="identifier">X</span><span class="special">(</span><span class="number">2</span><span class="special">)</span> <span class="special">=</span> <span class="number">10.0</span><span class="special">;</span>
+
+<span class="comment">// create a stepper</span>
+<span class="identifier">runge_kutta4</span><span class="special">&lt;</span>
+    <span class="identifier">state_type</span> <span class="special">,</span> <span class="keyword">double</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">,</span> <span class="keyword">double</span> <span class="special">,</span>
+    <span class="identifier">odeint</span><span class="special">::</span><span class="identifier">vector_space_algebra</span> <span class="special">,</span> <span class="identifier">odeint</span><span class="special">::</span><span class="identifier">default_operations</span>
+    <span class="special">&gt;</span> <span class="identifier">stepper</span><span class="special">;</span>
+
+<span class="comment">// solve the system</span>
+<span class="identifier">integrate_const</span><span class="special">(</span> <span class="identifier">stepper</span> <span class="special">,</span> <span class="identifier">sys_func</span><span class="special">(</span> <span class="identifier">R</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">X</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="identifier">t_max</span> <span class="special">,</span> <span class="identifier">dt</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_cuda__or_openmp__tbb_______via_thrust.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="all_examples.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

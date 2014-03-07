@@ -1,0 +1,155 @@
+<html>
+<head>
+	<title>BOOST_PP_FOR_r</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_FOR_<i>r</i></b> macro represents a reentry into the <b>BOOST_PP_FOR</b> repetition construct.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_FOR_</b> ## <i>r</i>(<i>state</i>, <i>pred</i>, <i>op</i>, <i>macro</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>r</dt>
+			<dd>
+				The next available <b>BOOST_PP_FOR</b> repetition.
+			</dd>
+			<dt>state</dt>
+			<dd>
+				The initial state.
+			</dd>
+			<dt>pred</dt>
+			<dd>
+				A binary predicate of the form <i>pred</i>(<i>r</i>, <i>state</i>).&nbsp;
+				This macro must expand to an integer in the range of <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.&nbsp;
+				<b>BOOST_PP_FOR</b> repeatedly expands <i>macro</i> while this predicate returns non-zero.&nbsp;
+				This macro is called with the next available <b>BOOST_PP_FOR</b> repetition and the current <i>state</i>.
+			</dd>
+			<dt>op</dt>
+			<dd>
+				A binary operation of the form <i>op</i>(<i>r</i>, <i>state</i>).&nbsp;
+				This operation is expanded by <b>BOOST_PP_FOR</b> with the next available <b>BOOST_PP_FOR</b> repetition and the current <i>state</i>.&nbsp;
+				This macro is repeatedly applied to the <i>state</i>, each time producing a new <i>state</i>, until <i>pred</i> returns <i>0</i>.
+			</dd>
+			<dt>macro</dt>
+			<dd>
+				A binary macro of the form <i>macro</i>(<i>r</i>, <i>state</i>).&nbsp;
+				This macro is expanded by <b>BOOST_PP_FOR</b> with the next available <b>BOOST_PP_FOR</b> repetition and the current <i>state</i>.&nbsp;
+				This macro is is repeated by <b>BOOST_PP_FOR</b> until <i>pred</i> returns <i>0</i>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro expands to the sequence:
+			<div>
+				<i>macro</i>(<i>r</i>, <i>state</i>) <i>macro</i>(<i>r</i>, <i>op</i>(<i>r</i>, <i>state</i>)) ... <i>macro</i>(<i>r</i>, <i>op</i>(<i>r</i>, ... <i>op</i>(<i>r</i>, <i>state</i>) ... ))
+			</div>
+		</div>
+		<div>
+			At certain times, it may be necessary to perform the concatenation with <b>BOOST_PP_CAT</b> rather than the preprocessor token-pasting operator.&nbsp;
+			This happens when the <i>r</i> value is a macro invocation itself.&nbsp;
+			It needs a delay to allow it to expand.&nbsp;
+			The syntax in such a scenario becomes:
+			<div>
+				<b>BOOST_PP_CAT</b>(<b>BOOST_PP_FOR_</b>, <i>r</i>)(<i>state</i>, <i>pred</i>, <i>op</i>, <i>macro</i>)
+			</div>
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="cat.html">BOOST_PP_CAT</a></li>
+			<li><a href="for.html">BOOST_PP_FOR</a></li>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/repetition/for.html">&lt;boost/preprocessor/repetition/for.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/arithmetic/dec.html">boost/preprocessor/arithmetic/dec.hpp</a>&gt;
+#include &lt;<a href="../headers/arithmetic/inc.html">boost/preprocessor/arithmetic/inc.hpp</a>&gt;
+#include &lt;<a href="../headers/comparison/not_equal.html">boost/preprocessor/comparison/not_equal.hpp</a>&gt;
+#include &lt;<a href="../headers/punctuation/comma_if.html">boost/preprocessor/punctuation/comma_if.hpp</a>&gt;
+#include &lt;<a href="../headers/repetition/for.html">boost/preprocessor/repetition/for.hpp</a>&gt;
+#include &lt;<a href="../headers/tuple/elem.html">boost/preprocessor/tuple/elem.hpp</a>&gt;
+
+#define PRED(r, state) \
+   <a href="not_equal.html">BOOST_PP_NOT_EQUAL</a>( \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 0, state), \
+      <a href="inc.html">BOOST_PP_INC</a>( \
+         <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 1, state) \
+      ) \
+   ) \
+   /**/
+
+#define OP(r, state) \
+   ( \
+      <a href="inc.html">BOOST_PP_INC</a>( \
+         <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 0, state) \
+      ), \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 1, state), \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 2, state), \
+      <a href="inc.html">BOOST_PP_INC</a>( \
+         <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 3, state) \
+      ) \
+   ) \
+   /**/
+
+#define MACRO(r, state) \
+   <a href="comma_if.html">BOOST_PP_COMMA_IF</a>( \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 3, state) \
+   ) template&lt; \
+      <a href="for_r.html">BOOST_PP_FOR_</a> ## r( \
+         (0, <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 0, state), _, 0), \
+         PRED_2, OP, MACRO_2 \
+      ) \
+   &gt; class <a href="cat.html">BOOST_PP_CAT</a>( \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 2, state), \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 0, state) \
+   ) \
+   /**/
+
+#define PRED_2(r, state) \
+   <a href="not_equal.html">BOOST_PP_NOT_EQUAL</a>( \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 0, state), \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 1, state) \
+   ) \
+   /**/
+
+#define MACRO_2(r, state) \
+   <a href="comma_if.html">BOOST_PP_COMMA_IF</a>( \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(4, 0, state) \
+   ) class \
+   /**/
+
+#define TEMPLATE_TEMPLATE(low, high, name) \
+   <a href="for.html">BOOST_PP_FOR</a>( \
+      (low, high, name, 0), \
+      PRED, OP, MACRO \
+   ) \
+   /**/
+
+TEMPLATE_TEMPLATE(2, 4, T)
+/*
+   expands to...
+   template&lt;class, class&gt; class T2,
+   template&lt;class, class, class&gt; class T3,
+   template&lt;class, class, class, class&gt; class T4
+*/
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<HTML>
+<!-- Copyright 2007 Aaron Windsor
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  -->
+<Head>
+<Title>Boost Graph Library: make_connected</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><tt>make_connected</tt></H1>
+
+<p>
+
+<pre>
+template &lt;typename Graph, typename VertexIndexMap, typename AddEdgeVisitor&gt;
+make_connected(Graph& g, VertexIndexMap vm, AddEdgeVisitor& vis);
+</pre>
+
+<p>
+
+A undirected graph <i>G</i> is connected if, for every pair of vertices 
+<i>u,v</i> in <i>G</i>, there is a path from <i>u</i> to <i>v</i>. 
+<tt>make_connected</tt> adds the minimum number of edges needed to make the 
+input graph connected. The algorithm first identifies all of the 
+<a href="./connected_components.html">connected components</a> in the graph,
+then adds edges to connect those components together in a path. For example, if
+a graph contains three connected components <i>A</i>, <i>B</i>, and <i>C</i>, 
+<tt>make_connected</tt> will add two edges. The two edges added might consist 
+of one connecting a vertex in <i>A</i> with a vertex in <i>B</i> and one 
+connecting a vertex in <i>B</i> with a vertex in <i>C</i>.
+<p>
+The default behavior of <tt>make_connected</tt> is to modify the graph 
+<tt>g</tt> by calling <tt>add_edge(u,v,g)</tt> for every pair of vertices 
+<i>(u,v)</i> where an edge needs to be added to connect <tt>g</tt>. This 
+behavior can be overriden by providing a vistor as the <tt>AddEdgeVisitor</tt> 
+parameter. The only requirement for an <tt>AddEdgeVisitor</tt> is that it 
+define a member function with the following signature:
+<pre>
+template &lt;typename Graph, typename Vertex&gt;
+void visit_vertex_pair(Vertex u, Vertex v, Graph& g);
+</pre>
+This event point can also be used as a hook to update the underlying edge
+index map automatically as edges are added. See the 
+documentation for the <a href="./AddEdgeVisitor.html">AddEdgeVisitor</a> 
+concept for more information.
+
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/make_connected.hpp">
+<TT>boost/graph/make_connected.hpp</TT>
+</a>
+
+<h3>Parameters</h3>
+
+IN/OUT: <tt>Graph&amp; g</tt>
+
+<blockquote>
+An undirected graph. The graph type must be a model of <a
+href="VertexListGraph.html">Vertex List Graph</a>, <a
+href="IncidenceGraph.html">Incidence Graph</a>, and
+a <a href="MutableGraph.html">Mutable Graph</a><br>
+</blockquote>
+
+IN: <tt>VertexIndexMap vm</tt>
+
+<blockquote>
+A <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map
+</a> that maps vertices from <tt>g</tt> to distinct integers in the range 
+<tt>[0, num_vertices(g) )</tt><br>
+<b>Default</b>: <tt>get(vertex_index,g)</tt><br>
+</blockquote>
+
+IN: <tt>AddEdgeVisitor</tt>
+
+<blockquote>
+A model of <a href="AddEdgeVisitor.html">AddEdgeVisitor
+</a>.<br>
+<b>Default</b>: <tt>default_add_edge_visitor</tt>, a class defines 
+<tt>visit_vertex_pair</tt> to dispatch
+its calls to <tt>add_edge</tt>.
+</blockquote>
+
+
+
+<h3>Complexity</h3>
+
+On a graph with <i>n</i> vertices and <i>m</i> edges, <tt>make_connected</tt> 
+runs in time <i>O(n + m)</i>
+
+<H3>Example</H3>
+
+<P>
+<a href="../example/make_connected.cpp">
+<TT>../example/make_connected.cpp</TT>
+</a>
+
+<h3>See Also</h3>
+
+<a href="planar_graphs.html">Planar Graphs in the Boost Graph Library</a>
+
+<br>
+<HR>
+Copyright &copy; 2007 Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">
+aaron.windsor@gmail.com</a>)
+</BODY>
+</HTML> 

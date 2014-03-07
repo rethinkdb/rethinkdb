@@ -1,0 +1,98 @@
+<HTML>
+<!--
+  ~~ Copyright (c) Maciej Piechotka 2013
+  ~~
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+-->
+  
+  
+<Head> 
+<Title>Boost Graph Library: Edge Coloring</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>
+<!-- <img src="figs/python.gif" alt="(Python)"/> -->
+<TT>edge_coloring</TT>
+</H1>
+
+
+<P>
+<DIV ALIGN="LEFT">
+<TABLE CELLPADDING=3 border>
+<TR><TH ALIGN="LEFT"><B>Graphs:</B></TH>
+<TD ALIGN="LEFT">undirected, loop-free</TD>
+</TR>
+<TR><TH ALIGN="LEFT"><B>Properties:</B></TH>
+<TD ALIGN="LEFT">color</TD>
+</TR>
+<TR><TH ALIGN="LEFT"><B>Complexity:</B></TH>
+<TD ALIGN="LEFT">time: <i>O(|E| |V|)</i> </TD>
+</TR>
+</TABLE>
+</DIV>
+
+
+<pre>
+  template &lt;class Graph, class ColorMap&gt;
+  typename boost::property_traits<ColorMap>::value_type
+  edge_coloring(const Graph &amp;g, ColorMap color);
+</pre>
+
+<p>Computes an edge coloring for the vertices in the graph, using
+an algorithm proposed by Mista et al. []. Given edges ordered
+e<sub>1</sub>, e<sub>2</sub>, ..., e<sub>n</sub> it assignes a
+colors c<sub>1</sub>, c<sub>2</sub>, ..., c<sub>n</sub> in a way
+that no vertex connects with 2 edges of the same color. Furthermore
+at most m + 1 colors are used.
+
+<!-- King, I.P. An automatic reordering scheme for simultaneous equations derived from network analysis. Int. J. Numer. Methods Engrg. 2 (1970), 523-533 -->
+
+<h3>Where defined</h3>
+<a href="../../../boost/graph/edge_coloring.hpp"><tt>boost/graph/edge_coloring.hpp</tt></a>
+
+<h3>Parameters</h3>
+
+IN: <tt>const Graph&amp; g</tt>
+<blockquote>
+  The graph object on which the algorithm will be applied. The type
+  <tt>Graph</tt> must be a model of <a href="EdgeListGraph.html">
+  Edge List Graph</a> and <a href="IncidenceGraph.html">Incidence
+  Graph</a>.
+</blockquote>
+
+OUT: <tt>ColorMap color</tt>
+<blockquote>
+  This property map records the colors of each edges. It must be a
+  model of <A HREF="../../property_map/doc/ReadWritePropertyMap.html">
+  Read/Write Property Map</A> whose key type is the same as the edge
+  descriptor type of the graph and whose value type is an integral type
+  that can store all values smaller or equal to m.
+</blockquote>
+
+
+<h3>Example</h3>
+
+See <A
+href="../example/edge_coloring.cpp"><tt>example/king_ordering.cpp</tt></A>.
+
+<h3>See Also</h3>
+
+<A href="./sequential_vertex_coloring.html">sequential vertex ordering</tt></A>.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2013</TD><TD>
+Maciej Piechotka (<A HREF="mailto:uzytkownik2@gmail.com">uzytkownik2@gmail.com</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

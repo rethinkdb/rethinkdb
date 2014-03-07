@@ -1,0 +1,91 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Proposed Case Studies</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Proposed Case Studies</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="index">
+  <dt><a href="#functionobject">Serializing a Function Object</a></dt>
+  <dt><a href="#archiveadaptor">Archive Adaptors</a></dt>
+  <dt><a href="#archivehelper">Archive Helpers</a></dt>
+</dl>
+
+These are not part of the library itself, but rather
+techiques on how to use the library to address specific situations.
+
+<h2><a name="functionobject"></a>Serializing a Function Object</h2>
+An example on how to serialize a function object.  I believe this
+could be done by serializing pointer to the object in question.  Since
+the Serialization library resurrects pointer of the correct type
+this should be easily implementable.
+<p>
+If a group of function objects were all derived from the
+same polymorphic base class - perhaps via multiple inheritance,
+the the function object effectively becomes a "variable" which
+encapsulates code.
+<p>
+This case study would show how to do this.
+
+<h2><a name="archiveadaptor"></a>Archive Adaptors</h2>
+
+Often users want to add their own special functionality to an
+existing archive.  Examples of this are performance enhancements
+for specific types, Adjustment of output syntax for xml archives,
+and logging/debug output as archives are written and/or read.
+If this functionalty is implemented as an "adaptor" template
+which takes the base class as a template argument, such functionality
+appended to any archive for which that funtionality makes sense.
+For example, an adaptor for generating an xml schema could be
+appended to both wide narrow character versions of xml archives.
+<p>
+This case study would show how to make a useful archive adaptor.
+
+<h2><a name="archivehelper"></a>Archive Helpers</h2>
+Some types are not serializable as they stand.  That is - they
+do not fullfill the requirements of the "Serializable Concept".
+The iconic example of this is boost::shared_ptr.  Sometimes
+these types could be made serializable by adding code inside
+the library.  Of course, doing that would create a lifetime
+of unpaid employment for the library author. Rather than
+adding a bunch of special code to the library itself, this
+code can packaged as a "helper" or "mix-in" class.  Then
+a new archive is derived from both the "base" archive class
+AND the "helper" class.  This is how boost::shared_ptr
+has been implemented.
+<p>
+It would also be possible to make a "generic runtime helper"
+which would effectively extend the API of the library.  Previously
+the library included such a helper class.  It was removed
+in favor of the current implementation.  But this functionality
+should be added back in with another adaptor which would
+become part of the library.
+
+<hr>
+<p>Revised 1 November, 2008 
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2008. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

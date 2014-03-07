@@ -1,0 +1,67 @@
+<html>
+<head>
+	<title>BOOST_PP_LIST_SIZE_D</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_LIST_SIZE_D</b> macro expands to the size of a <i>list</i>.&nbsp;
+		It reenters <b>BOOST_PP_WHILE</b> with maximum efficiency.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_LIST_SIZE_D</b>(<i>d</i>, <i>list</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>d</dt>
+			<dd>
+				The next available <b>BOOST_PP_WHILE</b> iteration.
+			</dd>
+			<dt>list</dt>
+			<dd>
+				A <i>list</i> whose size is to be calculated.
+			</dd>
+		</dl>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="list_size.html">BOOST_PP_LIST_SIZE</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/list/size.html">&lt;boost/preprocessor/list/size.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/arithmetic/add.html">boost/preprocessor/arithmetic/add.hpp</a>&gt;
+#include &lt;<a href="../headers/list/fold_left.html">boost/preprocessor/list/fold_left.hpp</a>&gt;
+#include &lt;<a href="../headers/list/size.html">boost/preprocessor/list/size.hpp</a>&gt;
+
+#define L1 (a, (b, (c, <a href="nil.html">BOOST_PP_NIL</a>)))
+#define L2 (x, (y, <a href="nil.html">BOOST_PP_NIL</a>))
+#define L3 (p, (q, <a href="nil.html">BOOST_PP_NIL</a>))
+
+#define LIST (L1, (L2, (L3, <a href="nil.html">BOOST_PP_NIL</a>)))
+
+#define OP(d, state, x) \
+   <a href="add_d.html">BOOST_PP_ADD_D</a>( \
+      d, state, \
+      <a href="list_size_d.html">BOOST_PP_LIST_SIZE_D</a>(d, x) \
+   ) \
+   /**/
+
+<a href="list_fold_left.html">BOOST_PP_LIST_FOLD_LEFT</a>(OP, 0, LIST) // expands to 7
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

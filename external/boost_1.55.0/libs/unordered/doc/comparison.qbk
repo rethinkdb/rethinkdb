@@ -1,0 +1,161 @@
+[/ Copyright 2006-2011 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[section:comparison Comparison with Associative Containers]
+
+[table:interface_differences Interface differences.
+    [[Associative Containers] [Unordered Associative Containers]]
+
+    [
+        [Parameterized by an ordering relation `Compare`]
+        [Parameterized by a function object `Hash` and an equivalence relation
+            `Pred`]
+    ]
+    [
+        [Keys can be compared using `key_compare` which is accessed by member function `key_comp()`,
+         values can be compared using `value_compare` which is accessed by member function `value_comp()`.]
+        [Keys can be hashed using `hasher` which is accessed by member function `hash_function()`,
+         and checked for equality using `key_equal` which is accessed by member function `key_eq()`.
+         There is no function object for compared or hashing values.]
+    ]
+    [
+        [Constructors have optional extra parameters for the comparison object.]
+        [Constructors have optional extra parameters for the initial minimum
+            number of buckets, a hash function and an equality object.]
+    ]
+
+    [
+        [Keys `k1`, `k2` are considered equivalent if
+            `!Compare(k1, k2) && !Compare(k2, k1)`]
+        [Keys `k1`, `k2` are considered equivalent if `Pred(k1, k2)`]
+    ]
+    [
+        [Member function `lower_bound(k)` and `upper_bound(k)`]
+        [No equivalent. Since the elements aren't ordered `lower_bound` and
+        `upper_bound` would be meaningless.]
+    ]
+    [
+        [`equal_range(k)` returns an empty range at the position that k
+            would be inserted if k isn't present in the container.]
+        [`equal_range(k)` returns a range at the end of the container if
+            k isn't present in the container. It can't return a positioned
+            range as k could be inserted into multiple place. To find out the
+            bucket that k would be inserted into use `bucket(k)`. But remember
+            that an insert can cause the container to rehash - meaning that the
+            element can be inserted into a different bucket.]
+    ]
+    [
+        [`iterator`, `const_iterator` are of the bidirectional category.]
+        [`iterator`, `const_iterator` are of at least the forward category.]
+    ]
+    [
+        [Iterators, pointers and references to the container's elements are
+            never invalidated.]
+        [[link unordered.buckets.iterator_invalidation Iterators can
+            be invalidated by calls to insert or rehash]. Pointers and
+            references to the container's elements are never invalidated.]
+    ]
+    [
+        [Iterators iterate through the container in the order defined by
+            the comparison object.]
+        [Iterators iterate through the container in an arbitrary order, that
+            can change as elements are inserted. Although, equivalent elements
+            are always adjacent.]
+    ]
+    [
+        [No equivalent]
+        [Local iterators can be used to iterate through individual buckets.
+            (The order of local iterators and iterators aren't
+            required to have any correspondence.)]
+    ]
+    [
+        [Can be compared using the `==`, `!=`, `<`, `<=`, `>`, `>=` operators.]
+        [Can be compared using the `==` and `!=` operators.]
+    ]
+    [
+        []
+        [When inserting with a hint, implementations are permitted to ignore
+            the hint.]
+    ]
+    [
+        [`erase` never throws an exception]
+        [The containers' hash or predicate function can throw exceptions
+            from `erase`]
+    ]
+]
+
+[table:complexity_guarantees Complexity Guarantees
+    [[Operation] [Associative Containers] [Unordered Associative Containers]]
+    [
+        [Construction of empty container]
+        [constant]
+        [O(/n/) where /n/ is the minimum number of buckets.]
+    ]
+    [
+        [Construction of container from a range of /N/ elements]
+        [O(/N/ log /N/), O(/N/) if the range is sorted with `value_comp()`]
+        [Average case O(/N/), worst case
+            O(/N/'''<superscript>2</superscript>''')]
+    ]
+    [
+        [Insert a single element]
+        [logarithmic]
+        [Average case constant, worst case linear]
+    ]
+    [
+        [Insert a single element with a hint]
+        [Amortized constant if t elements inserted right after hint,
+            logarithmic otherwise]
+        [Average case constant, worst case linear (ie. the same as
+            a normal insert).]
+    ]
+    [
+        [Inserting a range of /N/ elements]
+        [ /N/ log(`size()`+/N/) ]
+        [Average case O(/N/), worst case O(/N/ * `size()`)]
+    ]
+    [
+        [Erase by key, `k`]
+        [O(log(`size()`) + `count(k)`)]
+        [Average case: O(`count(k)`), Worst case: O(`size()`)]
+    ]
+    [
+        [Erase a single element by iterator]
+        [Amortized constant]
+        [Average case: O(1), Worst case: O(`size()`)]
+    ]
+    [
+        [Erase a range of /N/ elements]
+        [O(log(`size()`) + /N/)]
+        [Average case: O(/N/), Worst case: O(`size()`)]
+    ]
+    [
+        [Clearing the container]
+        [O(`size()`)]
+        [O(`size()`)]
+    ]
+    [
+        [Find]
+        [logarithmic]
+        [Average case: O(1), Worst case: O(`size()`)]
+    ]
+    [/ TODO: Average case is probably wrong. ]
+    [
+        [Count]
+        [O(log(`size()`) + `count(k)`)]
+        [Average case: O(1), Worst case: O(`size()`)]
+    ]
+    [
+        [`equal_range(k)`]
+        [logarithmic]
+        [Average case: O(`count(k)`), Worst case: O(`size()`)]
+    ]
+    [
+        [`lower_bound`,`upper_bound`]
+        [logarithmic]
+        [n/a]
+    ]
+]
+
+[endsect]

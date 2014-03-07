@@ -1,0 +1,32 @@
+{
+  "name": "json-stringify-safe",
+  "version": "4.0.0",
+  "description": "Like JSON.stringify, but doesn't blow up on circular refs",
+  "main": "stringify.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/isaacs/json-stringify-safe"
+  },
+  "keywords": [
+    "json",
+    "stringify",
+    "circular",
+    "safe"
+  ],
+  "author": {
+    "name": "Isaac Z. Schlueter",
+    "email": "i@izs.me",
+    "url": "http://blog.izs.me"
+  },
+  "license": "BSD",
+  "readmeFilename": "README.md",
+  "readme": "# json-stringify-safe\n\nLike JSON.stringify, but doesn't throw on circular references.\n\n## Usage\n\nTakes the same arguments as `JSON.stringify`.\n\n```javascript\nvar stringify = require('json-stringify-safe');\nvar circularObj = {};\ncircularObj.circularRef = circularObj;\ncircularObj.list = [ circularObj, circularObj ];\nconsole.log(stringify(circularObj, null, 2));\n```\n\nOutput:\n\n```json\n{\n  \"circularRef\": \"[Circular]\",\n  \"list\": [\n    \"[Circular]\",\n    \"[Circular]\"\n  ]\n}\n```\n",
+  "bugs": {
+    "url": "https://github.com/isaacs/json-stringify-safe/issues"
+  },
+  "_id": "json-stringify-safe@4.0.0",
+  "_from": "json-stringify-safe@~4.0.0"
+}

@@ -1,0 +1,182 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+
+  <title>TokenizerFunction Concept</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000" link="#0000EE" vlink="#551A8B" alink=
+"#FF0000">
+  <p><img src="../../boost.png" alt="C++ Boost" width="277" height="86"></p>
+
+  <h1 align="center">TokenizerFunction Concept</h1>
+
+  <p>A TokenizerFunction is a functor whose purpose is to parse a given
+  sequence until exactly 1 token has been found or the end is reached. It
+  then updates the token, and informs the caller of the location in the
+  sequence of the next element immediately after the last element of the
+  sequence that was parsed for the current token.</p>
+
+  <h2>Refinement of</h2>
+
+  <p>Assignable, CopyConstructable</p>
+
+  <h2>Notation</h2>
+
+  <table border="1" summary="">
+    <tr>
+      <td valign="top"><tt>X</tt></td>
+
+      <td valign="top">A type that is a model of TokenizerFunction</td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>func</tt></td>
+
+      <td valign="top">Object of type <tt>X</tt></td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>tok</tt></td>
+
+      <td valign="top">Object of Token</td>
+    </tr>
+
+    <tr>
+      <td>next</td>
+
+      <td>iterator that points to the first unparsed element of the sequence
+      being parsed</td>
+    </tr>
+
+    <tr>
+      <td>end</td>
+
+      <td>iterator that points to the past the end of the sequence being
+      parsed</td>
+    </tr>
+  </table>
+
+  <h2>Definitions</h2>
+
+  <p>A token is the result of parsing a sequence.</p>
+
+  <h2>Valid expressions</h2>
+
+  <p>In addition to the expression in Assignable and CopyConstructable the
+  following expressions are valid</p>
+
+  <table border="1" summary="">
+    <tr>
+      <th>Name</th>
+
+      <th>Expression</th>
+
+      <th>Return type</th>
+    </tr>
+
+    <tr>
+      <td valign="top">Functor</td>
+
+      <td valign="top"><tt>func(next, end, tok)</tt></td>
+
+      <td valign="top"><tt>bool</tt></td>
+    </tr>
+
+    <tr>
+      <td valign="top">reset</td>
+
+      <td valign="top"><tt>reset()</tt></td>
+
+      <td valign="top"><tt>void</tt></td>
+    </tr>
+  </table>
+
+  <h2>Expression semantics</h2>
+
+  <p>In addition to the expression semantics in Assignable and
+  CopyConstructable, TokenizerFunction has the following expression
+  semantcs</p>
+
+  <table border="1" summary="">
+    <tr>
+      <th>Name</th>
+
+      <th>Expression</th>
+
+      <th>Precondition</th>
+
+      <th>Semantics</th>
+
+      <th>Postcondition</th>
+    </tr>
+
+    <tr>
+      <td>operator()</td>
+
+      <td><tt>func(next, end, tok)</tt></td>
+
+      <td><tt>next</tt> and <tt>end</tt> are valid iterators to the same
+      sequence. next is a reference the function is free to modify. tok is
+      constructed.</td>
+
+      <td>The return value indicates whether a new token was found in the
+      sequence [next,end)</td>
+
+      <td>If the return value is true, the new token is assigned to tok. next
+      is always updated to the position where parsing should start on the
+      subsequent call.</td>
+    </tr>
+
+    <tr>
+      <td>reset</td>
+
+      <td><tt>reset()</tt></td>
+
+      <td><tt>None</tt></td>
+
+      <td>Clears out all state variables that are used by the object in
+      parsing the current sequence.</td>
+
+      <td>A new sequence to parse can be given.</td>
+    </tr>
+  </table>
+
+  <h2>Complexity guarantees</h2>
+
+  <p>No guarantees. Models of TokenizerFunction are free to define their own
+  complexity</p>
+
+  <h2>Models</h2>
+
+  <p><a href="escaped_list_separator.htm">escaped_list_separator</a></p>
+
+  <p><a href="offset_separator.htm">offset_separator</a></p>
+
+  <p><a href=
+  "char_delimiters_separator.htm">char_delimiters_separator</a></p>
+
+  <p>&nbsp;</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->25
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38518" --></p>
+
+  <p><i>Copyright &copy; 2001 John R. Bandela</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

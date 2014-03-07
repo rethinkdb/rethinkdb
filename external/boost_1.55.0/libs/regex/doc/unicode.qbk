@@ -1,0 +1,42 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:unicode Unicode and Boost.Regex]
+
+There are two ways to use Boost.Regex with Unicode strings:
+
+[h4 Rely on wchar_t]
+
+If your platform's `wchar_t` type can hold Unicode strings, and your 
+platform's C/C++ runtime correctly handles wide character constants 
+(when passed to `std::iswspace` `std::iswlower` etc), then you can use 
+`boost::wregex` to process Unicode.  However, there are several 
+disadvantages to this approach:
+
+* It's not portable: there's no guarantee on the width of `wchar_t`, or 
+even whether the runtime treats wide characters as Unicode at all, 
+most Windows compilers do so, but many Unix systems do not.
+* There's no support for Unicode-specific character classes: `[[:Nd:]]`, `[[:Po:]]` etc.
+* You can only search strings that are encoded as sequences of wide 
+characters, it is not possible to search UTF-8, or even UTF-16 on many platforms.
+
+[h4 Use a Unicode Aware Regular Expression Type.]
+
+If you have the 
+[@http://www.ibm.com/software/globalization/icu/ ICU library], then 
+Boost.Regex can be 
+[link boost_regex.install.building_with_unicode_and_icu_support 
+configured to make use 
+of it], and provide a distinct regular expression type (boost::u32regex), 
+that supports both Unicode specific character properties, and the searching 
+of text that is encoded in either UTF-8, UTF-16, or UTF-32.  See: 
+[link boost_regex.ref.non_std_strings.icu 
+ICU string class support].
+
+[endsect]
+

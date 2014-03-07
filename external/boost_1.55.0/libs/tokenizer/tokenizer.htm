@@ -1,0 +1,244 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 5.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+
+  <title>Boost Tokenizer Class</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000" link="#0000EE" vlink="#551A8B" alink=
+"#FF0000">
+  <p><img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86"><br></p>
+
+  <h1 align="center">Tokenizer Class</h1>
+  <pre>  template &lt;
+        class TokenizerFunc = char_delimiters_separator&lt;char&gt;, 
+        class Iterator = std::string::const_iterator,
+        class Type = std::string
+  &gt;
+  class tokenizer
+</pre>
+
+  <p>The tokenizer class provides a container view of a series of tokens
+  contained in a sequence. You set the sequence to parse and the
+  TokenizerFunction to use to parse the sequence either upon construction or
+  using the assign member function. Note: No parsing is actually done upon
+  construction. Parsing is done on demand as the tokens are accessed via the
+  iterator provided by begin.</p>
+
+  <h2>Example</h2>
+  <pre>// simple_example_1.cpp
+#include&lt;iostream&gt;
+#include&lt;boost/tokenizer.hpp&gt;
+#include&lt;string&gt;
+
+int main(){
+   using namespace std;
+   using namespace boost;
+   string s = "This is,  a test";
+   tokenizer&lt;&gt; tok(s);
+   for(tokenizer&lt;&gt;::iterator beg=tok.begin(); beg!=tok.end();++beg){
+       cout &lt;&lt; *beg &lt;&lt; "\n";
+   }
+}
+</pre>
+
+  <p>The output from simple_example_1 is:</p>
+
+  <blockquote>
+
+  <p><code>This<br>
+  is<br>
+  a<br>
+  test</code></p>
+
+  </blockquote>
+
+  <h3>Template Parameters</h3>
+
+  <table border="1" summary="">
+    <tr>
+      <th>Parameter</th>
+
+      <th>Description</th>
+    </tr>
+
+    <tr>
+      <td><tt>TokenizerFunc</tt></td>
+
+      <td>The TokenizerFunction used to parse the sequence.</td>
+    </tr>
+
+    <tr>
+      <td><tt>Iterator</tt></td>
+
+      <td>The type of the iterator the specifies the sequence.</td>
+    </tr>
+
+    <tr>
+      <td><tt>Type</tt></td>
+
+      <td>The type of the token, typically string.</td>
+    </tr>
+  </table>
+
+  <p>&nbsp;</p>
+
+  <h2>Related Types</h2>
+
+  <table border="1" summary="">
+    <tr>
+      <td>
+        <p align="center"><strong>Type</strong></p>
+      </td>
+
+      <td>
+        <p align="center"><strong>Remarks</strong></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>iterator</td>
+
+      <td>The type returned by begin and end. Note: the category of iterator
+      will be at most ForwardIterator. It will be InputIterator if the
+      Iterator template parameter is an InputIterator. For any other
+      category, it will be ForwardIterator.</td>
+    </tr>
+
+    <tr>
+      <td>const_iterator</td>
+
+      <td>Same type as iterator.</td>
+    </tr>
+
+    <tr>
+      <td>value_type</td>
+
+      <td>Same type as the template parameter Type</td>
+    </tr>
+
+    <tr>
+      <td>reference</td>
+
+      <td>Same type as value_type&amp;</td>
+    </tr>
+
+    <tr>
+      <td>const_reference</td>
+
+      <td>Same type as const reference</td>
+    </tr>
+
+    <tr>
+      <td>pointer</td>
+
+      <td>Same type as value_type*</td>
+    </tr>
+
+    <tr>
+      <td>const_pointer</td>
+
+      <td>Same type as const pointer</td>
+    </tr>
+
+    <tr>
+      <td>size_type</td>
+
+      <td>void</td>
+    </tr>
+
+    <tr>
+      <td>difference_type</td>
+
+      <td>void</td>
+    </tr>
+  </table>
+
+  <p>&nbsp;</p>
+
+  <h2>Construction and Member Functions</h2>
+  <pre>tokenizer(Iterator first, Iterator last,const TokenizerFunc&amp; f = TokenizerFunc()) 
+
+template&lt;class Container&gt;
+tokenizer(const Container&amp; c,const TokenizerFunc&amp; f = TokenizerFunc())
+
+void assign(Iterator first, Iterator last)
+
+void assign(Iterator first, Iterator last, const TokenizerFunc&amp; f)
+
+template&lt;class Container&gt;
+void assign(const Container&amp; c)
+
+template&lt;class Container&gt;
+void assign(const Container&amp; c, const TokenizerFunc&amp; f)
+
+iterator begin() const 
+
+iterator end() const
+</pre>
+
+  <table border="1" summary="">
+    <tr>
+      <td>
+        <p align="center"><strong>Parameter</strong></p>
+      </td>
+
+      <td>
+        <p align="center"><strong>Description</strong></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>c</td>
+
+      <td>A container that contains the sequence to parse. Note: c.begin()
+      and c.end() must be convertible to the template parameter
+      Iterator.</td>
+    </tr>
+
+    <tr>
+      <td>f</td>
+
+      <td>A functor that is a model of TokenizerFunction that will be used to
+      parse the sequence.</td>
+    </tr>
+
+    <tr>
+      <td>first</td>
+
+      <td>The iterator that represents the beginning position in the sequence
+      to be parsed.</td>
+    </tr>
+
+    <tr>
+      <td>last</td>
+
+      <td>The iterator that represents the past the end position in the
+      sequence to be parsed.</td>
+    </tr>
+  </table>
+
+  <p>&nbsp;</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->16 February, 2008<!--webbot bot="Timestamp" endspan i-checksum="40414" --></p>
+
+  <p><i>Copyright &copy; 2001 John R. Bandela</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

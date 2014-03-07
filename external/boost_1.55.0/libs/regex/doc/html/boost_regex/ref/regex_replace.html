@@ -1,0 +1,332 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>regex_replace</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Boost.Regex">
+<link rel="up" href="../ref.html" title="Reference">
+<link rel="prev" href="regex_search.html" title="regex_search">
+<link rel="next" href="regex_iterator.html" title="regex_iterator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_search.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="regex_iterator.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_regex_replace">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_regex.ref.regex_replace"></a><a class="link" href="regex_replace.html" title="regex_replace">regex_replace</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        The algorithm <a class="link" href="regex_replace.html" title="regex_replace"><code class="computeroutput"><span class="identifier">regex_replace</span></code></a> searches through a
+        string finding all the matches to the regular expression: for each match
+        it then calls <a class="link" href="match_results.html#boost_regex.match_results_format"><code class="computeroutput"><span class="identifier">match_results</span><span class="special">&lt;&gt;::</span><span class="identifier">format</span></code></a> to format the string and
+        sends the result to the output iterator. Sections of text that do not match
+        are copied to the output unchanged only if the <span class="emphasis"><em>flags</em></span>
+        parameter does not have the flag <code class="computeroutput"><span class="identifier">format_no_copy</span></code>
+        set. If the flag <code class="computeroutput"><span class="identifier">format_first_only</span></code>
+        is set then only the first occurrence is replaced rather than all occurrences.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">OutputIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Formatter</span><span class="special">&gt;</span>
+<span class="identifier">OutputIterator</span> <span class="identifier">regex_replace</span><span class="special">(</span><span class="identifier">OutputIterator</span> <span class="identifier">out</span><span class="special">,</span>
+                             <span class="identifier">BidirectionalIterator</span> <span class="identifier">first</span><span class="special">,</span>
+                             <span class="identifier">BidirectionalIterator</span> <span class="identifier">last</span><span class="special">,</span>
+                             <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                             <span class="identifier">Formatter</span> <span class="identifier">fmt</span><span class="special">,</span>
+                             <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Formatter</span><span class="special">&gt;</span>
+<span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;</span> <span class="identifier">regex_replace</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+                                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                                  <span class="identifier">Formatter</span> <span class="identifier">fmt</span><span class="special">,</span>
+                                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<h5>
+<a name="boost_regex.ref.regex_replace.h0"></a>
+        <span class="phrase"><a name="boost_regex.ref.regex_replace.description"></a></span><a class="link" href="regex_replace.html#boost_regex.ref.regex_replace.description">Description</a>
+      </h5>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">OutputIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Formatter</span><span class="special">&gt;</span>
+<span class="identifier">OutputIterator</span> <span class="identifier">regex_replace</span><span class="special">(</span><span class="identifier">OutputIterator</span> <span class="identifier">out</span><span class="special">,</span>
+                             <span class="identifier">BidirectionalIterator</span> <span class="identifier">first</span><span class="special">,</span>
+                             <span class="identifier">BidirectionalIterator</span> <span class="identifier">last</span><span class="special">,</span>
+                             <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                             <span class="identifier">Formatter</span> <span class="identifier">fmt</span><span class="special">,</span>
+                             <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<p>
+        Enumerates all the occurences of expression <span class="emphasis"><em>e</em></span> in the
+        sequence [first, last), replacing each occurence with the string that results
+        by merging the match found with the format string <span class="emphasis"><em>fmt</em></span>,
+        and copies the resulting string to <span class="emphasis"><em>out</em></span>. In the case
+        that <span class="emphasis"><em>fmt</em></span> is a unary, binary or ternary function object,
+        then the character sequence generated by that object is copied unchanged
+        to the output when performing a substitution.
+      </p>
+<p>
+        If the flag <code class="computeroutput"><span class="identifier">format_no_copy</span></code>
+        is set in <span class="emphasis"><em>flags</em></span> then unmatched sections of text are
+        not copied to output.
+      </p>
+<p>
+        If the flag <code class="computeroutput"><span class="identifier">format_first_only</span></code>
+        is set in flags then only the first occurence of <span class="emphasis"><em>e</em></span> is
+        replaced.
+      </p>
+<p>
+        The manner in which the format string <span class="emphasis"><em>fmt</em></span> is interpretted,
+        along with the rules used for finding matches, are determined by the flags
+        set in <span class="emphasis"><em>flags</em></span>: see <a class="link" href="match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a>.
+      </p>
+<p>
+        <span class="bold"><strong>Requires</strong></span> The type <code class="computeroutput"><span class="identifier">Formatter</span></code>
+        must be either a pointer to a null-terminated string of type <code class="computeroutput"><span class="identifier">char_type</span><span class="special">[]</span></code>,
+        or be a container of <code class="computeroutput"><span class="identifier">char_type</span></code>'s
+        (for example <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">&gt;</span></code>)
+        or be a unary, binary or ternary functor that computes the replacement string
+        from a function call: either <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(</span><span class="identifier">what</span><span class="special">)</span></code>
+        which must return a container of <code class="computeroutput"><span class="identifier">char_type</span></code>'s
+        to be used as the replacement text, or either <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(</span><span class="identifier">what</span><span class="special">,</span>
+        <span class="identifier">out</span><span class="special">)</span></code>
+        or <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(</span><span class="identifier">what</span><span class="special">,</span> <span class="identifier">out</span><span class="special">,</span> <span class="identifier">flags</span><span class="special">)</span></code>, both of which write the replacement text
+        to <code class="computeroutput"><span class="special">*</span><span class="identifier">out</span></code>,
+        and then return the new OutputIterator position. In each case <code class="computeroutput"><span class="identifier">what</span></code> is the <a class="link" href="match_results.html" title="match_results"><code class="computeroutput"><span class="identifier">match_results</span></code></a> object that represents
+        the match found. Note that if the formatter is a functor, then it is <span class="emphasis"><em>passed
+        by value</em></span>: users that want to pass function objects with internal
+        state might want to use <a href="../../../../../../doc/html/ref.html" target="_top">Boost.Ref</a>
+        to wrap the object so that it's passed by reference.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Constructs an <a class="link" href="regex_iterator.html" title="regex_iterator"><code class="computeroutput"><span class="identifier">regex_iterator</span></code></a> object:
+      </p>
+<pre class="programlisting"><span class="identifier">regex_iterator</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+                                          <span class="identifier">i</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">e</span><span class="special">,</span> <span class="identifier">flags</span><span class="special">),</span>
+</pre>
+<p>
+        and uses <span class="emphasis"><em>i</em></span> to enumerate through all of the matches
+        <span class="emphasis"><em>m</em></span> of type <a class="link" href="match_results.html" title="match_results"><code class="computeroutput"><span class="identifier">match_results</span></code></a> <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;</span></code>
+        that occur within the sequence [first, last).
+      </p>
+<p>
+        If no such matches are found and
+      </p>
+<pre class="programlisting"><span class="special">!(</span><span class="identifier">flags</span> <span class="special">&amp;</span> <span class="identifier">format_no_copy</span><span class="special">)</span>
+</pre>
+<p>
+        then calls
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">out</span><span class="special">).</span>
+</pre>
+<p>
+        Otherwise, for each match found, if
+      </p>
+<pre class="programlisting"><span class="special">!(</span><span class="identifier">flags</span> <span class="special">&amp;</span> <span class="identifier">format_no_copy</span><span class="special">)</span>
+</pre>
+<p>
+        calls
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span><span class="identifier">m</span><span class="special">.</span><span class="identifier">prefix</span><span class="special">().</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">prefix</span><span class="special">().</span><span class="identifier">last</span><span class="special">,</span> <span class="identifier">out</span><span class="special">),</span>
+</pre>
+<p>
+        and then calls
+      </p>
+<pre class="programlisting"><span class="identifier">m</span><span class="special">.</span><span class="identifier">format</span><span class="special">(</span><span class="identifier">out</span><span class="special">,</span> <span class="identifier">fmt</span><span class="special">,</span> <span class="identifier">flags</span><span class="special">).</span>
+</pre>
+<p>
+        Finally if
+      </p>
+<pre class="programlisting"><span class="special">!(</span><span class="identifier">flags</span> <span class="special">&amp;</span> <span class="identifier">format_no_copy</span><span class="special">)</span>
+</pre>
+<p>
+        calls
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span><span class="identifier">last_m</span><span class="special">.</span><span class="identifier">suffix</span><span class="special">().</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last_m</span><span class="special">,</span><span class="identifier">suffix</span><span class="special">().</span><span class="identifier">last</span><span class="special">,</span> <span class="identifier">out</span><span class="special">)</span>
+</pre>
+<p>
+        where <span class="emphasis"><em>last_m</em></span> is a copy of the last match found.
+      </p>
+<p>
+        If <code class="computeroutput"><span class="identifier">flags</span> <span class="special">&amp;</span>
+        <span class="identifier">format_first_only</span></code> is non-zero then
+        only the first match found is replaced.
+      </p>
+<p>
+        <span class="bold"><strong>Throws</strong></span>: <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+        if the complexity of matching the expression against an N character string
+        begins to exceed O(N<sup>2</sup>), or if the program runs out of stack space while matching
+        the expression (if Boost.Regex is configured in recursive mode), or if the
+        matcher exhausts its permitted memory allocation (if Boost.Regex is configured
+        in non-recursive mode).
+      </p>
+<p>
+        <span class="bold"><strong>Returns</strong></span>: out.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">traits</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Formatter</span><span class="special">&gt;</span>
+<span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;</span> <span class="identifier">regex_replace</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+                                  <span class="keyword">const</span> <span class="identifier">basic_regex</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">&gt;&amp;</span> <span class="identifier">e</span><span class="special">,</span>
+                                  <span class="identifier">Formatter</span> <span class="identifier">fmt</span><span class="special">,</span>
+                                  <span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Requires</strong></span> The type <code class="computeroutput"><span class="identifier">Formatter</span></code>
+        must be either a pointer to a null-terminated string of type <code class="computeroutput"><span class="identifier">char_type</span><span class="special">[]</span></code>,
+        or be a container of <code class="computeroutput"><span class="identifier">char_type</span></code>'s
+        (for example <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">&gt;</span></code>)
+        or be a unary, binary or ternary functor that computes the replacement string
+        from a function call: either <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(</span><span class="identifier">what</span><span class="special">)</span></code>
+        which must return a container of <code class="computeroutput"><span class="identifier">char_type</span></code>'s
+        to be used as the replacement text, or either <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(</span><span class="identifier">what</span><span class="special">,</span>
+        <span class="identifier">out</span><span class="special">)</span></code>
+        or <code class="computeroutput"><span class="identifier">fmt</span><span class="special">(</span><span class="identifier">what</span><span class="special">,</span> <span class="identifier">out</span><span class="special">,</span> <span class="identifier">flags</span><span class="special">)</span></code>, both of which write the replacement text
+        to <code class="computeroutput"><span class="special">*</span><span class="identifier">out</span></code>,
+        and then return the new OutputIterator position. In each case <code class="computeroutput"><span class="identifier">what</span></code> is the <a class="link" href="match_results.html" title="match_results"><code class="computeroutput"><span class="identifier">match_results</span></code></a> object that represents
+        the match found.
+      </p>
+<p>
+        <span class="bold"><strong>Effects</strong></span>: Constructs an object <code class="computeroutput"><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">&gt;</span> <span class="identifier">result</span></code>, calls <code class="computeroutput"><span class="identifier">regex_replace</span><span class="special">(</span><span class="identifier">back_inserter</span><span class="special">(</span><span class="identifier">result</span><span class="special">),</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">e</span><span class="special">,</span>
+        <span class="identifier">fmt</span><span class="special">,</span>
+        <span class="identifier">flags</span><span class="special">)</span></code>,
+        and then returns <code class="computeroutput"><span class="identifier">result</span></code>.
+      </p>
+<h5>
+<a name="boost_regex.ref.regex_replace.h1"></a>
+        <span class="phrase"><a name="boost_regex.ref.regex_replace.examples"></a></span><a class="link" href="regex_replace.html#boost_regex.ref.regex_replace.examples">Examples</a>
+      </h5>
+<p>
+        The following example takes C/C++ source code as input, and outputs syntax
+        highlighted HTML code.
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">fstream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">sstream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">fstream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="comment">// purpose:</span>
+<span class="comment">// takes the contents of a file and transform to</span>
+<span class="comment">// syntax highlighted code in html format</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span> <span class="identifier">e1</span><span class="special">,</span> <span class="identifier">e2</span><span class="special">;</span>
+<span class="keyword">extern</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">expression_text</span><span class="special">;</span>
+<span class="keyword">extern</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">format_string</span><span class="special">;</span>
+<span class="keyword">extern</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">pre_expression</span><span class="special">;</span>
+<span class="keyword">extern</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">pre_format</span><span class="special">;</span>
+<span class="keyword">extern</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">header_text</span><span class="special">;</span>
+<span class="keyword">extern</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">footer_text</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">load_file</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">istream</span><span class="special">&amp;</span> <span class="identifier">is</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="identifier">s</span><span class="special">.</span><span class="identifier">erase</span><span class="special">();</span>
+   <span class="identifier">s</span><span class="special">.</span><span class="identifier">reserve</span><span class="special">(</span><span class="identifier">is</span><span class="special">.</span><span class="identifier">rdbuf</span><span class="special">()-&gt;</span><span class="identifier">in_avail</span><span class="special">());</span>
+   <span class="keyword">char</span> <span class="identifier">c</span><span class="special">;</span>
+   <span class="keyword">while</span><span class="special">(</span><span class="identifier">is</span><span class="special">.</span><span class="identifier">get</span><span class="special">(</span><span class="identifier">c</span><span class="special">))</span>
+   <span class="special">{</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">capacity</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">size</span><span class="special">())</span>
+         <span class="identifier">s</span><span class="special">.</span><span class="identifier">reserve</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">capacity</span><span class="special">()</span> <span class="special">*</span> <span class="number">3</span><span class="special">);</span>
+      <span class="identifier">s</span><span class="special">.</span><span class="identifier">append</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="identifier">c</span><span class="special">);</span>
+   <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">**</span> <span class="identifier">argv</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="keyword">try</span><span class="special">{</span>
+   <span class="identifier">e1</span><span class="special">.</span><span class="identifier">assign</span><span class="special">(</span><span class="identifier">expression_text</span><span class="special">);</span>
+   <span class="identifier">e2</span><span class="special">.</span><span class="identifier">assign</span><span class="special">(</span><span class="identifier">pre_expression</span><span class="special">);</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">argc</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+   <span class="special">{</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Processing file "</span> <span class="special">&lt;&lt;</span> <span class="identifier">argv</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">ifstream</span> <span class="identifier">fs</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="identifier">i</span><span class="special">]);</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">in</span><span class="special">;</span>
+      <span class="identifier">load_file</span><span class="special">(</span><span class="identifier">in</span><span class="special">,</span> <span class="identifier">fs</span><span class="special">);</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">out_name</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="identifier">i</span><span class="special">])</span> <span class="special">+</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">".htm"</span><span class="special">));</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">ofstream</span> <span class="identifier">os</span><span class="special">(</span><span class="identifier">out_name</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">());</span>
+      <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">header_text</span><span class="special">;</span>
+      <span class="comment">// strip '&lt;' and '&gt;' first by outputting to a</span>
+      <span class="comment">// temporary string stream</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostringstream</span> <span class="identifier">t</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ios</span><span class="special">::</span><span class="identifier">out</span> <span class="special">|</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios</span><span class="special">::</span><span class="identifier">binary</span><span class="special">);</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream_iterator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">oi</span><span class="special">(</span><span class="identifier">t</span><span class="special">);</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex_replace</span><span class="special">(</span><span class="identifier">oi</span><span class="special">,</span> <span class="identifier">in</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">in</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+      <span class="identifier">e2</span><span class="special">,</span> <span class="identifier">pre_format</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_default</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">format_all</span><span class="special">);</span>
+      <span class="comment">// then output to final output stream</span>
+      <span class="comment">// adding syntax highlighting:</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">s</span><span class="special">(</span><span class="identifier">t</span><span class="special">.</span><span class="identifier">str</span><span class="special">());</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream_iterator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">out</span><span class="special">(</span><span class="identifier">os</span><span class="special">);</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex_replace</span><span class="special">(</span><span class="identifier">out</span><span class="special">,</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">s</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+      <span class="identifier">e1</span><span class="special">,</span> <span class="identifier">format_string</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_default</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">format_all</span><span class="special">);</span>
+      <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">footer_text</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="special">}</span>
+   <span class="keyword">catch</span><span class="special">(...)</span>
+   <span class="special">{</span> <span class="keyword">return</span> <span class="special">-</span><span class="number">1</span><span class="special">;</span> <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">extern</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">pre_expression</span> <span class="special">=</span> <span class="string">"(&lt;)|(&gt;)|(&amp;)|\\r"</span><span class="special">;</span>
+<span class="keyword">extern</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">pre_format</span> <span class="special">=</span> <span class="string">"(?1&amp;lt;)(?2&amp;gt;)(?3&amp;amp;)"</span><span class="special">;</span>
+
+
+<span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">expression_text</span> <span class="special">=</span>
+   <span class="comment">// preprocessor directives: index 1</span>
+   <span class="string">"(^[[:blank:]]*#(?:[^\\\\\\n]|\\\\[^\\n[:punct:][:word:]]*[\\n[:punct:][:word:]])*)|"</span>
+   <span class="comment">// comment: index 2</span>
+   <span class="string">"(//[^\\n]*|/\\*.*?\\*/)|"</span>
+   <span class="comment">// literals: index 3</span>
+   <span class="string">"\\&lt;([+-]?(?:(?:0x[[:xdigit:]]+)|(?:(?:[[:digit:]]*\\.)?[[:digit:]]+"</span>
+   <span class="string">"(?:[eE][+-]?[[:digit:]]+)?))u?(?:(?:int(?:8|16|32|64))|L)?)\\&gt;|"</span>
+   <span class="comment">// string literals: index 4</span>
+   <span class="string">"('(?:[^\\\\']|\\\\.)*'|\"(?:[^\\\\\"]|\\\\.)*\")|"</span>
+   <span class="comment">// keywords: index 5</span>
+   <span class="string">"\\&lt;(__asm|__cdecl|__declspec|__export|__far16|__fastcall|__fortran|__import"</span>
+   <span class="string">"|__pascal|__rtti|__stdcall|_asm|_cdecl|__except|_export|_far16|_fastcall"</span>
+   <span class="string">"|__finally|_fortran|_import|_pascal|_stdcall|__thread|__try|asm|auto|bool"</span>
+   <span class="string">"|break|case|catch|cdecl|char|class|const|const_cast|continue|default|delete"</span>
+   <span class="string">"|do|double|dynamic_cast|else|enum|explicit|extern|false|float|for|friend|goto"</span>
+   <span class="string">"|if|inline|int|long|mutable|namespace|new|operator|pascal|private|protected"</span>
+   <span class="string">"|public|register|reinterpret_cast|return|short|signed|sizeof|static|static_cast"</span>
+   <span class="string">"|struct|switch|template|this|throw|true|try|typedef|typeid|typename|union|unsigned"</span>
+   <span class="string">"|using|virtual|void|volatile|wchar_t|while)\\&gt;"</span>
+   <span class="special">;</span>
+
+<span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">format_string</span> <span class="special">=</span> <span class="string">"(?1&lt;font color=\"#008040\"&gt;$&amp;&lt;/font&gt;)"</span>
+                           <span class="string">"(?2&lt;I&gt;&lt;font color=\"#000080\"&gt;$&amp;&lt;/font&gt;&lt;/I&gt;)"</span>
+                           <span class="string">"(?3&lt;font color=\"#0000A0\"&gt;$&amp;&lt;/font&gt;)"</span>
+                           <span class="string">"(?4&lt;font color=\"#0000FF\"&gt;$&amp;&lt;/font&gt;)"</span>
+                           <span class="string">"(?5&lt;B&gt;$&amp;&lt;/B&gt;)"</span><span class="special">;</span>
+
+<span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">header_text</span> <span class="special">=</span>
+   <span class="string">"&lt;HTML&gt;\n&lt;HEAD&gt;\n"</span>
+   <span class="string">"&lt;TITLE&gt;Auto-generated html formated source&lt;/TITLE&gt;\n"</span>
+   <span class="string">"&lt;META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=windows-1252\"&gt;\n"</span>
+   <span class="string">"&lt;/HEAD&gt;\n"</span>
+   <span class="string">"&lt;BODY LINK=\"#0000ff\" VLINK=\"#800080\" BGCOLOR=\"#ffffff\"&gt;\n"</span>
+   <span class="string">"&lt;P&gt; &lt;/P&gt;\n&lt;PRE&gt;"</span><span class="special">;</span>
+
+<span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">footer_text</span> <span class="special">=</span> <span class="string">"&lt;/PRE&gt;\n&lt;/BODY&gt;\n\n"</span><span class="special">;</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_search.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="regex_iterator.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

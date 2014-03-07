@@ -1,0 +1,219 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;36.&#160;Boost.Units 1.1.0</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="typeof/ackn.html" title="Acknowledgements">
+<link rel="next" href="boost_units/Quick_Start.html" title="Quick Start">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="typeof/ackn.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost_units/Quick_Start.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="boost_units"></a>Chapter&#160;36.&#160;Boost.Units 1.1.0</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Matthias C.</span> <span class="surname">Schabel</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Steven</span> <span class="surname">Watanabe</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2003-2008 Matthias Christian Schabel</p></div>
+<div><p class="copyright">Copyright &#169; 2007-2010 Steven
+      Watanabe</p></div>
+<div><div class="legalnotice">
+<a name="boost_units.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="boost_units.html#boost_units.Introduction">Introduction</a></span></dt>
+<dt><span class="section"><a href="boost_units/Quick_Start.html">Quick Start</a></span></dt>
+<dt><span class="section"><a href="boost_units/Dimensional_Analysis.html">Dimensional Analysis</a></span></dt>
+<dt><span class="section"><a href="boost_units/Units.html">Units</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_units/Units.html#boost_units.Units.base_units">Base Units</a></span></dt>
+<dt><span class="section"><a href="boost_units/Units.html#boost_units.Units.scaled_base_units">Scaled Base Units</a></span></dt>
+<dt><span class="section"><a href="boost_units/Units.html#boost_units.Units.scaled_units">Scaled Units</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_units/Quantities.html">Quantities</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_units/Quantities.html#boost_units.Quantities.Heterogeneous_Operators">Heterogeneous
+      Operators</a></span></dt>
+<dt><span class="section"><a href="boost_units/Quantities.html#boost_units.Quantities.Conversions">Conversions</a></span></dt>
+<dt><span class="section"><a href="boost_units/Quantities.html#boost_units.Quantities.Quantity_Construction_and_Conversion">Construction
+      and Conversion of Quantities</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_units/Examples.html">Examples</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.DimensionExample">Dimension Example</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.UnitExample">Unit Example</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.QuantityExample">Quantity Example</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.KitchenSinkExample">Kitchen Sink
+      Example using SI units</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.ConversionExample">Conversion Example</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.UDTExample">User Defined Types</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.ComplexExample">Complex Example</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.PerformanceExample">Performance
+      Example</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.RadarBeamHeightExample">Radar Beam
+      Height</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.HeterogeneousUnitExample">Heterogeneous
+      Unit Example</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.AbsoluteRelativeTemperatureExample">Absolute
+      and Relative Temperature Example</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.RuntimeConversionFactorExample">Runtime
+      Conversion Factor Example</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.UnitsWithNonbaseDimensions">Units
+      with Non-base Dimensions</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.OutputForCompositeUnits">Output
+      for Composite Units</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.autoscale">Automatically Scaled
+      Units</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.ConversionFactor">Conversion Factor</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.RuntimeUnits">Runtime Units</a></span></dt>
+<dt><span class="section"><a href="boost_units/Examples.html#boost_units.Examples.lambda">Interoperability with Boost.Lambda</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_units/Utilities.html">Utilities</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_units/Utilities.html#boost_units.Utilities.Metaprogramming_Classes">Metaprogramming
+      Classes</a></span></dt>
+<dt><span class="section"><a href="boost_units/Utilities.html#boost_units.Utilities.Metaprogramming_Predicates">Metaprogramming
+      Predicates</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_units/Reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_units/Reference.html#units_reference">Units Reference</a></span></dt>
+<dt><span class="section"><a href="boost_units/Reference.html#dimensions_reference">Dimensions Reference</a></span></dt>
+<dt><span class="section"><a href="boost_units/Reference.html#si_system_reference">SI System Reference</a></span></dt>
+<dt><span class="section"><a href="boost_units/Reference.html#cgs_system_reference">CGS System Reference</a></span></dt>
+<dt><span class="section"><a href="boost_units/Reference.html#trigonometry_and_angle_system_reference">Trigonometry and Angle System Reference</a></span></dt>
+<dt><span class="section"><a href="boost_units/Reference.html#temperature_system_reference">Temperature System Reference</a></span></dt>
+<dt><span class="section"><a href="boost_units/Reference.html#abstract_system_reference">Abstract System Reference</a></span></dt>
+<dt><span class="section"><a href="boost_units/Reference.html#boost_units.Reference.base_units_by_category">Base Units
+      by Category</a></span></dt>
+<dt><span class="section"><a href="boost_units/Reference.html#boost_units.Reference.alphabetical_listing_of_base_units">Alphabetical
+      Listing of Base Units</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_units/Installation.html">Installation</a></span></dt>
+<dt><span class="section"><a href="boost_units/FAQ.html">FAQ</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_units/FAQ.html#boost_units.FAQ.Distinguishing_Quantities_With_Same_Units">How
+      does one distinguish between quantities that are physically different but have
+      the same units (such as energy and torque)?</a></span></dt>
+<dt><span class="section"><a href="boost_units/FAQ.html#boost_units.FAQ.Angle_Are_Units">Angles are treated as
+      units</a></span></dt>
+<dt><span class="section"><a href="boost_units/FAQ.html#boost_units.FAQ.Why_Homogeneous_Systems">Why are there
+      homogeneous systems? Aren't heterogeneous systems sufficient?</a></span></dt>
+<dt><span class="section"><a href="boost_units/FAQ.html#boost_units.FAQ.NoConstructorFromValueType">Why can't
+      I construct a quantity directly from the value type?</a></span></dt>
+<dt><span class="section"><a href="boost_units/FAQ.html#boost_units.FAQ.ExplicitConversions">Why are conversions
+      explicit by default?</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_units/Acknowledgements.html">Acknowledgements</a></span></dt>
+<dt><span class="section"><a href="boost_units/HelpWanted.html">Help Wanted</a></span></dt>
+<dt><span class="section"><a href="boost_units/version_id.html">Version Info</a></span></dt>
+<dt><span class="section"><a href="boost_units/ReleaseNotes.html">Release Notes</a></span></dt>
+<dt><span class="section"><a href="boost_units/TODO.html">TODO</a></span></dt>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_units.Introduction"></a><a class="link" href="boost_units.html#boost_units.Introduction" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<p>
+      The Boost.Units library is a C++ implementation of dimensional analysis in
+      a general and extensible manner, treating it as a generic compile-time metaprogramming
+      problem. With appropriate compiler optimization, no runtime execution cost
+      is introduced, facilitating the use of this library to provide dimension checking
+      in performance-critical code. Support for units and quantities (defined as
+      a unit and associated value) for arbitrary unit system models and arbitrary
+      value types is provided, as is a fine-grained general facility for unit conversions.
+      Complete SI and CGS unit systems are provided, along with systems for angles
+      measured in degrees, radians, gradians, and revolutions and systems for temperatures
+      measured in Kelvin, degrees Celsius and degrees Fahrenheit. The library architecture
+      has been designed with flexibility and extensibility in mind; demonstrations
+      of the ease of adding new units and unit conversions are provided in the examples.
+    </p>
+<p>
+      In order to enable complex compile-time dimensional analysis calculations with
+      no runtime overhead, Boost.Units relies heavily on the <span class="underline"><a href="http://www.boost.org/libs/mpl/doc/index.html" target="_top">Boost Metaprogramming Library</a></span>
+      (MPL) and on template metaprogramming techniques, and is, as a consequence,
+      fairly demanding of compiler compliance to ISO standards. At present, it has
+      been successfully compiled and tested on the following compilers/platforms
+      :
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          g++ 4.0.1 on Mac OSX 10.4
+        </li>
+<li class="listitem">
+          Intel CC 9.1, 10.0, and 10.1 on Mac OSX 10.4
+        </li>
+<li class="listitem">
+          g++ 3.4.4, 4.2.3, and 4.3.0 on Windows XP
+        </li>
+<li class="listitem">
+          Microsoft Visual C++ 7.1, 8.0, and 9.0 on Windows XP
+        </li>
+<li class="listitem">
+          Comeau 4.3.10.1 beta2 on Windows XP
+        </li>
+<li class="listitem">
+          Metrowerks CodeWarrior 9.2 on Windows XP.
+        </li>
+<li class="listitem">
+          Sun CC 5.9 on Solaris and Linux
+        </li>
+</ol></div>
+<p>
+      The following compilers/platforms are known <span class="bold"><strong>not</strong></span>
+      to work :
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          g++ 3.3.x
+        </li>
+<li class="listitem">
+          Microsoft Visual C++ 6.0 on Windows XP
+        </li>
+<li class="listitem">
+          Microsoft Visual C++ 7.0 on Windows XP
+        </li>
+<li class="listitem">
+          Metrowerks CodeWarrior 8.0 on Windows XP.
+        </li>
+<li class="listitem">
+          All versions of Borland.
+        </li>
+</ol></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:55:10 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="typeof/ackn.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost_units/Quick_Start.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

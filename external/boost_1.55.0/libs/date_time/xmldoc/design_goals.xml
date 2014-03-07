@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.design_goals">
+  <title>Design Goals</title>
+
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+        <row>
+          <entry valign="top" morerows="1">Category</entry>
+          <entry>Description</entry>
+        </row>
+        <row>
+            <entry>Functions</entry>
+        </row>
+      </thead>
+      <tbody>
+	<row>
+	  <entry valign="top" morerows="1">Interfaces</entry> 
+	  <entry>Provide concrete classes for manipulation of dates and times</entry> 
+        </row>
+        <row>
+	  <entry> 
+	    <itemizedlist mark="bullet">
+	      <listitem>date, time, date_duration, time_duration, date_period, time_period, etc</listitem>
+	      <listitem>support for infinity - positive infinity, negative infinity</listitem>
+	      <listitem>iterators over time and date ranges</listitem>
+	      <listitem>allow date and time implementations to be separate as much as possible</listitem>
+	    </itemizedlist>
+	  </entry> 
+	</row> 
+	<row> 
+	  <entry valign="top" morerows="1">Calculation</entry> 
+	  <entry>Provide a basis for performing efficient time calculations </entry> 
+        </row>
+        <row>
+	  <entry> 
+	    <itemizedlist mark="bullet">
+	      <listitem>days between dates </listitem>
+	      <listitem>durations of times </listitem>
+	      <listitem>durations of dates and times together </listitem>
+	    </itemizedlist>
+	  </entry>
+	</row> 
+
+	<row>
+	  <entry valign="top" morerows="1">Representation Flexibility</entry> 
+	  <entry>Provide the maximum possible reusability and flexibility</entry> 
+        </row>
+        <row>
+	  <entry>
+	    <itemizedlist mark="bullet">
+	      <listitem>traits based customization of internal representations for size versus resolution control</listitem>
+	      <listitem>Allowing the use of different epochs and resolution (eg: seconds versus microseconds, dates starting at the year 2000 versus dates starting in 1700)</listitem>
+	      <listitem>Options for configuring unique calendar representations (Gregorian + others)</listitem>
+	      <listitem>the use of Julian Day number and the conversion between this and the Gregorian/Julian calendar date</listitem>
+	      <listitem>Allow for flexible adjustments including leap seconds</listitem>
+	    </itemizedlist>
+	  </entry>
+	</row>
+
+
+        <row>
+          <entry valign="top" morerows="1">Date Calculations</entry> 
+	  <entry>Provide tools for date calculations</entry> 
+        </row>
+        <row>
+	  <entry> 
+	    <itemizedlist mark="bullet"> 
+	      <listitem>provide basis for calculation of complex event specs like holidays</listitem>
+	      <listitem>calendar to calendar conversions</listitem>
+	      <listitem>provide for ability to extend to new calendar systems</listitem>
+	    </itemizedlist> 
+	  </entry> 
+	</row>
+
+	<row>
+	  <entry valign="top" morerows="1">Time Calculations</entry> 
+	  <entry>Provide concrete classes for manipulation of time</entry> 
+        </row>
+        <row>
+	  <entry> 
+	    <itemizedlist mark="bullet"> 
+	      <listitem>provide the ability to handle cross time-zone issues</listitem>
+	      <listitem>provide adjustments for daylight savings time (summer time)</listitem>
+	    </itemizedlist> 
+	  </entry> 
+	</row> 
+
+	<row>
+	  <entry valign="top" morerows="1">Clock Interfaces</entry> 
+	  <entry>Provide classes for retrieving time current time</entry> 
+        </row>
+        <row>
+	  <entry> 
+	    <itemizedlist mark="bullet"> 
+	      <listitem>access to a network / high resolution time sources </listitem>
+	      <listitem>retrieving the current date time information to populate classes </listitem>
+	    </itemizedlist> 
+	  </entry> 
+	</row> 
+	
+	<row>
+	  <entry valign="top" morerows="1">I/O Interfaces</entry> 
+	  <entry>Provide input and output for time including</entry> 
+        </row>
+        <row>
+	  <entry> 
+	    <itemizedlist mark="bullet"> 
+	      <listitem>multi-lingual support </listitem>
+	      <listitem>provide ISO8601 compliant time facet </listitem>
+	      <listitem>use I/O facets for different local behavior </listitem>
+	    </itemizedlist> 
+	  </entry> 
+	</row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+</section>

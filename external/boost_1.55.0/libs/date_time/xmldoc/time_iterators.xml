@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.posix_time.time_iterators">
+  <title>Time Iterators</title>
+
+  <link linkend="time_iter_intro">Introduction</link> --
+  <link linkend="time_iter_header">Header</link> --
+  <link linkend="time_iter_overview">Overview</link> --
+  <link linkend="time_iter_operators">Operators</link>
+
+  <anchor id="time_iter_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    Time iterators provide a mechanism for iteration through times. Time iterators are similar to <ulink url="http://www.sgi.com/tech/stl/BidirectionalIterator.html">Bidirectional Iterators</ulink>. However, time_iterators are different than standard iterators in that there is no underlying sequence, just a calculation function. In addition, time_iterators are directly comparable against instances of <link linkend="date_time.posix_time.ptime_class">class ptime</link>. Thus a second iterator for the end point of the iteration is not required, but rather a point in time can be used directly. For example, the following code iterates using a 15 minute iteration interval. The <link linkend="date_time.examples.print_hours">print hours</link> example also illustrates the use of the time_iterator. 
+  </para>
+  <para>
+    <programlisting>
+      <![CDATA[
+	#include "boost/date_time/posix_time/posix_time.hpp"
+	#include <iostream>
+
+
+	int
+	main()
+	{
+	  using namespace boost::gregorian;
+	  using namespace boost::posix_time;
+	  date d(2000,Jan,20);
+	  ptime start(d);
+	  ptime end = start + hours(1);
+	  time_iterator titr(start,minutes(15)); //increment by 15 minutes
+	  //produces 00:00:00, 00:15:00, 00:30:00, 00:45:00
+	  while (titr < end) {
+	    std::cout << to_simple_string(*titr) << std::endl;
+	    ++titr;
+	  }
+	  std::cout << "Now backward" << std::endl;
+	  //produces 01:00:00, 00:45:00, 00:30:00, 00:15:00
+	  while (titr > start) {
+	    std::cout << to_simple_string(*titr) << std::endl;
+	    --titr;
+	  }
+	}
+      ]]>
+    </programlisting>
+  </para>
+
+  <anchor id="time_iter_header" />
+  <bridgehead renderas="sect3">Header</bridgehead>
+  <para>
+    <programlisting>#include "boost/date_time/posix_time/posix_time.hpp" //include all types plus i/o
+or
+#include "boost/date_time/posix_time/posix_time_types.hpp" //no i/o just types</programlisting>
+  </para>
+
+  <anchor id="time_iter_overview" />
+  <bridgehead renderas="sect3">Overview</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Class</entry>
+	    <entry>Description</entry>
+          </row>
+          <row>
+            <entry>Construction Parameters</entry>
+	  </row>
+	</thead>
+	<tbody>
+	  <row>
+            <entry valign="top" morerows="1"><screen>time_iterator</screen></entry>
+	    <entry>Iterate incrementing by the specified duration.</entry>
+          </row>
+          <row>
+            <entry><screen>ptime start_time, time_duration increment</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="time_iter_operators" />
+  <bridgehead renderas="sect3">Operators</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>operator==(const ptime&amp; rhs),
+operator!=(const ptime&amp; rhs),
+operator>, operator&lt;,
+operator>=, operator&lt;=</screen>
+	    </entry>
+	    <entry>A full complement of comparison operators</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,1);
+ptime start_time(d, hours(1));
+//increment by 10 minutes
+time_iterator titr(start_time, minutes(10));
+ptime end_time = start_time + hours(2);
+if (titr == end_time) // false
+if (titr != end_time) // true
+if (titr >= end_time) // false
+if (titr &lt;= end_time) // true</screen>
+	    </entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>prefix increment</screen></entry>
+	    <entry>Increment the iterator by the specified duration.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>//increment by 10 milli seconds
+time_iterator titr(start_time, milliseconds(10));
+++titr; // == start_time + 10 milliseconds</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>prefix decrement</screen></entry>
+	    <entry>Decrement the iterator by the specified time duration.</entry>
+	  </row>
+          <row>
+            <entry><screen>time_duration td(1,2,3);
+time_iterator titr(start_time, td);
+--titr; // == start_time - 01:02:03</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+</section>

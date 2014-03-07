@@ -1,0 +1,117 @@
+<html>
+<!--
+     Copyright (c) 2003 Vladimir Prus
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<head>
+<title>Boost Graph Library: random</title>
+
+<body BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<br>
+
+The header <tt>&lt;boost/graph/random&gt;</tt> provides routines to create
+random graph, select random vertices and edges, and randomize properties.
+
+<h1>Synopsis</h1>
+
+<pre>
+
+  template &lt;class Graph, class RandomNumGen&gt;
+  typename graph_traits&lt;Graph&gt;::vertex_descriptor
+  random_vertex(Graph&amp; g, RandomNumGen&amp; gen);
+
+  template &lt;class Graph, class RandomNumGen&gt;
+  typename graph_traits&lt;Graph&gt;::edge_descriptor
+  random_edge(Graph&amp; g, RandomNumGen&amp; gen);
+
+  template &lt;typename MutableGraph, class RandNumGen&gt;
+  void generate_random_graph
+    (MutableGraph&amp; g, 
+     typename graph_traits&lt;MutableGraph&gt;::vertices_size_type V,
+     typename graph_traits&lt;MutableGraph&gt;::vertices_size_type E,
+     RandNumGen&amp; gen,
+     bool self_edges = false);
+
+  template&lt;class Property, class G, class RandomGenerator&gt;
+    void randomize_property(G&amp; g, RandomGenerator rg);
+
+</pre>
+
+<h1>Description</h1>
+
+<h2 id="random_vertex">random_vertex</h2>
+
+<pre>
+  template &lt;class Graph, class RandomNumGen&gt;
+  typename graph_traits&lt;Graph&gt;::vertex_descriptor
+  random_vertex(Graph&amp; g, RandomNumGen&amp; gen);
+</pre>
+
+<p><b>Effects:</b> Selects a random vertex in a graph and returns it.
+<p><b>Preconditions:</b> <tt>num_vertices(g) != 0</tt>
+<p><b>Complexity:</b> <tt>O(num_vertices(g))</tt>
+
+<h2 id="random_edge">random_edge</h2>
+
+<pre>
+  template &lt;class Graph, class RandomNumGen&gt;
+  typename graph_traits&lt;Graph&gt;::edge_descriptor
+  random_edge(Graph&amp; g, RandomNumGen&amp; gen);
+</pre>
+
+<p><b>Effects:</b> Selects a random edge in a graph and returns it.
+<p><b>Preconditions:</b> <tt>num_edges(g) != 0</tt>
+<p><b>Complexity:</b> <tt>O(num_edges(g))</tt>
+
+<h2 id="generate_random_graph">generate_random_graph</h2>
+
+<pre>
+  template &lt;typename MutableGraph, class RandNumGen&gt;
+  void generate_random_graph
+    (MutableGraph&amp; g, 
+     typename graph_traits&lt;MutableGraph&gt;::vertices_size_type V,
+     typename graph_traits&lt;MutableGraph&gt;::vertices_size_type E,
+     RandNumGen&amp; gen,
+     bool allow_parallel = true,
+     bool self_edges = false);
+</pre>
+
+<p><b>Effects:</b> Adds <tt>V</tt> vertices and <tt>E</tt> edges, to
+<tt>g</tt>. Source and target vertices of each edge are randomly choosen. If
+<tt>self_edges</tt> is false, then no edge will have the same source and
+targets.
+<p><b>Precondition:</b> <tt>num_vertices(g) == 0</tt>
+<p><b>Compleixity:</b> <tt>O(V*E)</tt>
+
+<h2 id="randomize_property">randomize_property</h2>
+
+<pre>
+  template&lt;class Property, class G, class RandomGenerator&gt;
+    void randomize_property(G&amp; g, RandomGenerator&amp; rg);
+</pre>
+
+<p><b>Effects:</b> Sets the random value of property on either all vertices, or
+all edges, depending on property kind.
+<p><b>Complexity:</b> <tt>O(V)</tt> or <tt>O(E)</tt>, depending on property
+kind.
+
+<hr>
+
+<p class="revision">Last modified: Feb 05, 2003</p>
+
+<p>&copy; Copyright Vladimir Prus 2003. Permission to copy, use, modify,
+sell and distribute this document is granted provided this copyright
+notice appears in all copies. This document is provided ``as is'' without
+express or implied warranty, and with no claim as to its suitability for
+any purpose.</p>
+
+</body>
+
+</html>

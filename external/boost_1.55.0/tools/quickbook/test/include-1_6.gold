@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="include-test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Include Test</title>
+  <section id="include-test.test">
+    <title><link linkend="include-test.test">Test</link></title>
+    <para>
+      Just testing.
+    </para>
+  </section>
+  <section id="foo.test">
+    <title><link linkend="foo.test">Test</link></title>
+    <para>
+      Just testing.
+    </para>
+  </section>
+  <para>
+    Just trying including in a conditional macro.
+  </para>
+  <section id="foo2.test">
+    <title><link linkend="foo2.test">Test</link></title>
+    <para>
+      Just testing.
+    </para>
+  </section>
+  <para>
+    With some text around it.
+  </para>
+</article>

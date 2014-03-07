@@ -1,0 +1,1258 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>list_of Reference</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="unordered_set_of_reference.html" title="unordered_set_of Reference">
+<link rel="next" href="vector_of_reference.html" title="vector_of Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="unordered_set_of_reference.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="vector_of_reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_reference_list_of_reference">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.reference.list_of_reference"></a><a class="link" href="list_of_reference.html" title="list_of Reference">list_of Reference</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.header__boost_bimap_list_of_hpp__synopsis">Header
+        "boost/bimap/list_of.hpp" synopsis</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views">list_of
+        Views</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.complexity_signature">Complexity
+          signature</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.instantiation_types">Instantiation
+          types</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.constructors__copy_and_assignment">Constructors,
+          copy and assignment</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.capacity_operations">Capacity
+          operations</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.modifiers">Modifiers</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.list_operations">List
+          operations</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.rearrange_operations">Rearrange
+          operations</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.serialization">Serialization</a></span></dt>
+</dl></dd>
+</dl></div>
+<div class="section boost_bimap_reference_list_of_reference_header__boost_bimap_list_of_hpp__synopsis">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.list_of_reference.header__boost_bimap_list_of_hpp__synopsis"></a><a class="link" href="list_of_reference.html#boost_bimap.reference.list_of_reference.header__boost_bimap_list_of_hpp__synopsis" title='Header "boost/bimap/list_of.hpp" synopsis'>Header
+        "boost/bimap/list_of.hpp" synopsis</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">bimaps</span> <span class="special">{</span>
+
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">KeyType</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">list_of</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">list_of_relation</span><span class="special">;</span>
+
+
+<span class="special">}</span> <span class="comment">// namespace bimap</span>
+<span class="special">}</span> <span class="comment">// namespace boost</span>
+</pre>
+</div>
+<div class="section boost_bimap_reference_list_of_reference_list_of_views">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.list_of_reference.list_of_views"></a><a class="link" href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views" title="list_of Views">list_of
+        Views</a>
+</h4></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.complexity_signature">Complexity
+          signature</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.instantiation_types">Instantiation
+          types</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.constructors__copy_and_assignment">Constructors,
+          copy and assignment</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.capacity_operations">Capacity
+          operations</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.modifiers">Modifiers</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.list_operations">List
+          operations</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.rearrange_operations">Rearrange
+          operations</a></span></dt>
+<dt><span class="section"><a href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.serialization">Serialization</a></span></dt>
+</dl></div>
+<p>
+          A list_of set view is a std::list signature compatible interface to the
+          underlying heap of elements contained in a <code class="computeroutput"><span class="identifier">bimap</span></code>.
+        </p>
+<p>
+          If you look the bimap by a side, you will use a map view and if you looked
+          it as a whole you will be using a set view.
+        </p>
+<p>
+          Elements in a list_of view are by default sorted according to their order
+          of insertion: this means that new elements inserted through a different
+          view of the <code class="computeroutput"><span class="identifier">bimap</span></code> are appended
+          to the end of the list_of view. Additionally, the view allows for free
+          reordering of elements in the same vein as <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span></code>
+          does. Validity of iterators and references to elements is preserved in
+          all operations.
+        </p>
+<p>
+          There are a number of differences with respect to <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">lists</span></code>:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              list_of views are not <a href="http://www.sgi.com/tech/stl/Assignable.html" target="_top">Assignable</a>
+              (like any other view.)
+            </li>
+<li class="listitem">
+              Unlike as in <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span></code>, insertions into a list_of view
+              may fail due to clashings with other views. This alters the semantics
+              of the operations provided with respect to their analogues in <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span></code>.
+            </li>
+<li class="listitem">
+              Elements in a list_of view are not mutable, and can only be changed
+              by means of <code class="computeroutput"><span class="identifier">replace</span></code>
+              and <code class="computeroutput"><span class="identifier">modify</span></code> member functions.
+            </li>
+</ul></div>
+<p>
+          Having these restrictions into account, list_of views are models of <a href="http://www.sgi.com/tech/stl/ReversibleContainer.html" target="_top">Reversible Container</a>,
+          <a href="http://www.sgi.com/tech/stl/FrontInsertionSequence.html" target="_top">Front
+          Insertion Sequence</a> and <a href="http://www.sgi.com/tech/stl/BackInsertionSequence.html" target="_top">Back
+          Insertion Sequence</a>. We only provide descriptions of those types
+          and operations that are either not present in the concepts modeled or do
+          not exactly conform to the requirements for these types of containers.
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">bimaps</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">views</span> <span class="special">{</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="emphasis"><em>-implementation defined parameter list-</em></span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="emphasis"><em>-implementation defined view name-</em></span>
+<span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+
+    <span class="comment">// types</span>
+
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">value_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">allocator_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">reference</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">const_reference</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">iterator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">const_iterator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">size_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">difference_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">pointer</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">const_pointer</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">reverse_iterator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">const_reverse_iterator</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">info_type</span><span class="special">;</span>
+
+    <span class="comment">// construct/copy/destroy</span>
+
+    <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">InputIterator</span> <span class="special">&gt;</span>
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_assign_iterator_iterator">assign</a><span class="special">(</span><span class="identifier">InputIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">InputIterator</span> <span class="identifier">last</span><span class="special">);</span>
+
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_assign_size_value">assign</a><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">value</span><span class="special">);</span>
+
+    <span class="identifier">allocator_type</span> <span class="identifier">get_allocator</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// iterators</span>
+
+    <span class="identifier">iterator</span>               <span class="identifier">begin</span><span class="special">();</span>
+    <span class="identifier">const_iterator</span>         <span class="identifier">begin</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="identifier">iterator</span>               <span class="identifier">end</span><span class="special">();</span>
+    <span class="identifier">const_iterator</span>         <span class="identifier">end</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="identifier">reverse_iterator</span>       <span class="identifier">rbegin</span><span class="special">();</span>
+    <span class="identifier">const_reverse_iterator</span> <span class="identifier">rbegin</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="identifier">reverse_iterator</span>       <span class="identifier">rend</span><span class="special">();</span>
+    <span class="identifier">const_reverse_iterator</span> <span class="identifier">rend</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// capacity</span>
+
+    <span class="keyword">bool</span>      <span class="identifier">empty</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="identifier">size_type</span> <span class="identifier">size</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="identifier">size_type</span> <span class="identifier">max_size</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_resize_size_value">resize</a><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span> <span class="special">=</span> <span class="identifier">value_type</span><span class="special">());</span>
+
+    <span class="comment">// access</span>
+
+    <span class="identifier">const_reference</span> <span class="identifier">front</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">const_reference</span> <span class="identifier">back</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// modifiers</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span><span class="keyword">bool</span><span class="special">&gt;</span> <a class="link" href="list_of_reference.html#reference_list_of_push_front_value">push_front</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+    <span class="keyword">void</span>                     <span class="identifier">pop_front</span><span class="special">();</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span><span class="keyword">bool</span><span class="special">&gt;</span> <a class="link" href="list_of_reference.html#reference_list_of_push_back_value">push_back</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+    <span class="keyword">void</span>                     <span class="identifier">pop_back</span><span class="special">();</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span><span class="keyword">bool</span><span class="special">&gt;</span> <a class="link" href="list_of_reference.html#reference_list_of_insert_iterator_value">insert</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_insert_iterator_size_value">insert</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">InputIterator</span> <span class="special">&gt;</span>
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_insert_iterator_iterator_iterator">insert</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">InputIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">InputIterator</span> <span class="identifier">last</span><span class="special">);</span>
+
+    <span class="identifier">iterator</span> <a class="link" href="list_of_reference.html#reference_list_of_erase_iterator">erase</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">);</span>
+    <span class="identifier">iterator</span> <a class="link" href="list_of_reference.html#reference_list_of_erase_iterator_iterator">erase</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">last</span><span class="special">);</span>
+
+    <span class="keyword">bool</span> <a class="link" href="list_of_reference.html#reference_list_of_replace_iterator_value">replace</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+    <span class="comment">// Only in map views</span>
+    <span class="comment">// {</span>
+
+      <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">key_type</span><span class="special">;</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">mapped_type</span><span class="special">;</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">mapped_type</span><span class="special">;</span> <span class="comment">// Equal to mapped_type</span>
+
+      <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+      <span class="keyword">bool</span> <a class="link" href="list_of_reference.html#reference_list_of_replace_key_iterator_key">replace_key</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+      <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleData</span> <span class="special">&gt;</span>
+      <span class="keyword">bool</span> <a class="link" href="list_of_reference.html#reference_list_of_replace_data_iterator_data">replace_data</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CompatibleData</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+      <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">KeyModifier</span> <span class="special">&gt;</span>
+      <span class="keyword">bool</span> <a class="link" href="list_of_reference.html#reference_list_of_modify_key_iterator_modifier">modify_key</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">KeyModifier</span> <span class="identifier">mod</span><span class="special">);</span>
+
+      <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">DataModifier</span> <span class="special">&gt;</span>
+      <span class="keyword">bool</span> <a class="link" href="list_of_reference.html#reference_list_of_modify_data_iterator_modifier">modify_data</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">DataModifier</span> <span class="identifier">mod</span><span class="special">);</span>
+
+    <span class="comment">// }</span>
+
+
+    <span class="keyword">void</span> <span class="identifier">clear</span><span class="special">();</span>
+
+    <span class="comment">// list operations</span>
+
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_splice_iterator_this">splice</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_splice_iterator_this_iterator">splice</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">i</span><span class="special">);</span>
+    <span class="keyword">void</span> <span class="identifier">splice</span><span class="special">(</span>
+        <span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">last</span><span class="special">);</span>
+
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_remove_value">remove</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">value</span><span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Predicate</span> <span class="special">&gt;</span>
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_remove_if_predicate">remove_if</a><span class="special">(</span><span class="identifier">Predicate</span> <span class="identifier">pred</span><span class="special">);</span>
+
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_unique">unique</a><span class="special">();</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span> <span class="special">&gt;</span>
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_unique_predicate">unique</a><span class="special">(</span><span class="identifier">BinaryPredicate</span> <span class="identifier">binary_pred</span><span class="special">);</span>
+
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_merge_this">merge</a><span class="special">(</span><span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Compare</span> <span class="special">&gt;</span>
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_merge_this_compare">merge</a><span class="special">(</span><span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span><span class="identifier">Compare</span> <span class="identifier">comp</span><span class="special">);</span>
+
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_sort">sort</a><span class="special">();</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Compare</span> <span class="special">&gt;</span>
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_sort_compare">sort</a><span class="special">(</span><span class="identifier">Compare</span> <span class="identifier">comp</span><span class="special">);</span>
+
+    <span class="keyword">void</span> <a class="link" href="list_of_reference.html#reference_list_of_reverse">reverse</a><span class="special">();</span>
+
+    <span class="comment">// rearrange operations</span>
+
+    <span class="keyword">void</span> <span class="identifier">relocate</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">i</span><span class="special">);</span>
+    <span class="keyword">void</span> <span class="identifier">relocate</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">last</span><span class="special">);</span>
+
+<span class="special">}</span>
+
+<span class="comment">// view comparison</span>
+
+<span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">v1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">v2</span> <span class="special">);</span>
+<span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&lt;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">v1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">v2</span> <span class="special">);</span>
+<span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!=(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">v1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">v2</span> <span class="special">);</span>
+<span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&gt;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">v1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">v2</span> <span class="special">);</span>
+<span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&gt;=(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">v1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">v2</span> <span class="special">);</span>
+<span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&lt;=(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">v1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">v2</span> <span class="special">);</span>
+
+<span class="special">}</span> <span class="comment">// namespace views</span>
+<span class="special">}</span> <span class="comment">// namespace bimap</span>
+<span class="special">}</span> <span class="comment">// namespace boost</span>
+</pre>
+<p>
+          In the case of a <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span> <span class="identifier">list_of</span><span class="special">&lt;</span><span class="identifier">Left</span><span class="special">&gt;,</span> <span class="special">...</span> <span class="special">&gt;</span></code>
+        </p>
+<p>
+          In the set view:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">signature</span><span class="special">-</span><span class="identifier">compatible</span> <span class="identifier">with</span> <span class="identifier">relation</span><span class="special">&lt;</span> <span class="identifier">Left</span><span class="special">,</span> <span class="special">...</span> <span class="special">&gt;</span> <span class="identifier">key_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">signature</span><span class="special">-</span><span class="identifier">compatible</span> <span class="identifier">with</span> <span class="identifier">relation</span><span class="special">&lt;</span> <span class="identifier">Left</span><span class="special">,</span> <span class="special">...</span> <span class="special">&gt;</span> <span class="identifier">value_type</span><span class="special">;</span>
+</pre>
+<p>
+          In the left map view:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span>  <span class="identifier">Left</span>  <span class="identifier">key_type</span><span class="special">;</span>
+<span class="keyword">typedef</span>  <span class="special">...</span>   <span class="identifier">mapped_type</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">signature</span><span class="special">-</span><span class="identifier">compatible</span> <span class="identifier">with</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">Left</span><span class="special">,</span> <span class="special">...</span> <span class="special">&gt;</span> <span class="identifier">value_type</span><span class="special">;</span>
+</pre>
+<p>
+          In the right map view:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span>  <span class="special">...</span>  <span class="identifier">key_type</span><span class="special">;</span>
+<span class="keyword">typedef</span>  <span class="identifier">Left</span> <span class="identifier">mapped_type</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">signature</span><span class="special">-</span><span class="identifier">compatible</span> <span class="identifier">with</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="special">...</span> <span class="special">,</span> <span class="identifier">Left</span> <span class="special">&gt;</span> <span class="identifier">value_type</span><span class="special">;</span>
+</pre>
+<div class="section boost_bimap_reference_list_of_reference_list_of_views_complexity_signature">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.list_of_reference.list_of_views.complexity_signature"></a><a name="list_of_complexity_signature"></a><a class="link" href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.complexity_signature" title="Complexity signature">Complexity
+          signature</a>
+</h5></div></div></div>
+<p>
+            Here and in the descriptions of operations of <code class="computeroutput"><span class="identifier">list_of</span></code>
+            views, we adopt the scheme outlined in the <a class="link" href="bimap_reference.html#complexity_signature_explanation">complexity
+            signature section</a>. The complexity signature of a <code class="computeroutput"><span class="identifier">list_of</span></code> view is:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                copying: <code class="computeroutput"><span class="identifier">c</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">n</span> <span class="special">*</span> <span class="identifier">log</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>,
+              </li>
+<li class="listitem">
+                insertion: <code class="computeroutput"><span class="identifier">i</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">1</span></code>
+                (constant),
+              </li>
+<li class="listitem">
+                hinted insertion: <code class="computeroutput"><span class="identifier">h</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">1</span></code> (constant),
+              </li>
+<li class="listitem">
+                deletion: <code class="computeroutput"><span class="identifier">d</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">1</span></code>
+                (constant),
+              </li>
+<li class="listitem">
+                replacement: <code class="computeroutput"><span class="identifier">r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">1</span></code>
+                (constant),
+              </li>
+<li class="listitem">
+                modifying: <code class="computeroutput"><span class="identifier">m</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">1</span></code>
+                (constant).
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_list_of_reference_list_of_views_instantiation_types">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.list_of_reference.list_of_views.instantiation_types"></a><a class="link" href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.instantiation_types" title="Instantiation types">Instantiation
+          types</a>
+</h5></div></div></div>
+<p>
+            <code class="computeroutput"><span class="identifier">list_of</span></code> views are instantiated
+            internally to <code class="computeroutput"><span class="identifier">bimap</span></code> and
+            specified by means of the collection type specifiers and the bimap itself.
+            Instantiations are dependent on the following types:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">Value</span></code> from <code class="computeroutput"><span class="identifier">list_of</span></code>,
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">Allocator</span></code> from <code class="computeroutput"><span class="identifier">bimap</span></code>,
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_list_of_reference_list_of_views_constructors__copy_and_assignment">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.list_of_reference.list_of_views.constructors__copy_and_assignment"></a><a class="link" href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.constructors__copy_and_assignment" title="Constructors, copy and assignment">Constructors,
+          copy and assignment</a>
+</h5></div></div></div>
+<p>
+            As explained in the view concepts section, views do not have public constructors
+            or destructors. Assignment, on the other hand, is provided.
+          </p>
+<pre class="programlisting"><span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects: </strong></span> <code class="computeroutput"><span class="identifier">a</span>
+                <span class="special">=</span> <span class="identifier">b</span><span class="special">;</span></code> where a and b are the <code class="computeroutput"><span class="identifier">bimap</span></code> objects to which <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+                and <code class="computeroutput"><span class="identifier">x</span></code> belong, respectively.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>.
+              </li>
+</ul></div>
+<a name="reference_list_of_assign_iterator_iterator"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">InputIterator</span> <span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">assign</span><span class="special">(</span><span class="identifier">InputIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">InputIterator</span> <span class="identifier">last</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">InputIterator</span></code>
+                is a model of <a href="http://www.sgi.com/tech/stl/InputIterator.html" target="_top">Input
+                Iterator</a> over elements of type <code class="computeroutput"><span class="identifier">value_type</span></code>
+                or a type convertible to <code class="computeroutput"><span class="identifier">value_type</span></code>.
+                first and last are not iterators into any views of the <code class="computeroutput"><span class="identifier">bimap</span></code> to which this view belongs.
+                <code class="computeroutput"><span class="identifier">last</span></code> is reachable
+                from <code class="computeroutput"><span class="identifier">first</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects: </strong></span> <code class="computeroutput"><span class="identifier">clear</span><span class="special">();</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">end</span><span class="special">(),</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">);</span></code>
+              </li>
+</ul></div>
+<a name="reference_list_of_assign_size_value"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">assign</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">value</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <span class="bold"><strong>Effects: </strong></span> <code class="computeroutput"><span class="identifier">clear</span><span class="special">();</span> <span class="keyword">for</span><span class="special">(</span><span class="identifier">size_type</span>
+                <span class="identifier">i</span> <span class="special">=</span>
+                <span class="number">0</span><span class="special">;</span>
+                <span class="identifier">i</span> <span class="special">&lt;</span>
+                <span class="identifier">n</span> <span class="special">;</span>
+                <span class="special">++</span><span class="identifier">n</span><span class="special">)</span> <span class="identifier">push_back</span><span class="special">(</span><span class="identifier">v</span><span class="special">);</span></code>
+              </li></ul></div>
+</div>
+<div class="section boost_bimap_reference_list_of_reference_list_of_views_capacity_operations">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.list_of_reference.list_of_views.capacity_operations"></a><a class="link" href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.capacity_operations" title="Capacity operations">Capacity
+          operations</a>
+</h5></div></div></div>
+<a name="reference_list_of_resize_size_value"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">resize</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">,</span><span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">=</span><span class="identifier">value_type</span><span class="special">());</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects: </strong></span> <code class="computeroutput"><span class="keyword">if</span><span class="special">(</span> <span class="identifier">n</span> <span class="special">&gt;</span> <span class="identifier">size</span><span class="special">()</span> <span class="special">)</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">end</span><span class="special">(),</span>
+                <span class="identifier">n</span> <span class="special">-</span>
+                <span class="identifier">size</span><span class="special">(),</span>
+                <span class="identifier">x</span><span class="special">);</span></code>
+                <code class="computeroutput"><span class="keyword">else</span> <span class="keyword">if</span><span class="special">(</span> <span class="identifier">n</span> <span class="special">&lt;</span> <span class="identifier">size</span><span class="special">()</span> <span class="special">)</span> <span class="special">{</span></code> <code class="computeroutput"> <span class="identifier">iterator</span>
+                <span class="identifier">it</span> <span class="special">=</span>
+                <span class="identifier">begin</span><span class="special">();</span></code>
+                <code class="computeroutput"> <span class="identifier">std</span><span class="special">::</span><span class="identifier">advance</span><span class="special">(</span><span class="identifier">it</span><span class="special">,</span> <span class="identifier">n</span><span class="special">);</span></code>
+                <code class="computeroutput"> <span class="identifier">erase</span><span class="special">(</span><span class="identifier">it</span><span class="special">,</span> <span class="identifier">end</span><span class="special">());</span></code>
+                <code class="computeroutput"><span class="special">}</span></code>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Note:</strong></span> If an expansion is requested,
+                the size of the view is not guaranteed to be n after this operation
+                (other views may ban insertions.)
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_list_of_reference_list_of_views_modifiers">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.list_of_reference.list_of_views.modifiers"></a><a class="link" href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.modifiers" title="Modifiers">Modifiers</a>
+</h5></div></div></div>
+<a name="reference_list_of_push_front_value"></a><pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span><span class="keyword">bool</span><span class="special">&gt;</span> <span class="identifier">push_front</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Inserts <code class="computeroutput"><span class="identifier">x</span></code>
+                at the beginning of the sequence if no other views of the <code class="computeroutput"><span class="identifier">bimap</span></code> bans the insertion.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns:</strong></span> The return value is a pair
+                <code class="computeroutput"><span class="identifier">p</span></code>. <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">second</span></code> is <code class="computeroutput"><span class="keyword">true</span></code>
+                if and only if insertion took place. On successful insertion, <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">first</span></code> points to the element inserted;
+                otherwise, <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">first</span></code> points to an element that
+                caused the insertion to be banned. Note that more than one element
+                can be causing insertion not to be allowed.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(I(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong.
+              </li>
+</ul></div>
+<a name="reference_list_of_push_back_value"></a><pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span><span class="keyword">bool</span><span class="special">&gt;</span> <span class="identifier">push_back</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Inserts <code class="computeroutput"><span class="identifier">x</span></code>
+                at the end of the sequence if no other views of the <code class="computeroutput"><span class="identifier">bimap</span></code> bans the insertion.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns:</strong></span> The return value is a pair
+                <code class="computeroutput"><span class="identifier">p</span></code>. <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">second</span></code> is <code class="computeroutput"><span class="keyword">true</span></code>
+                if and only if insertion took place. On successful insertion, <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">first</span></code> points to the element inserted;
+                otherwise, <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">first</span></code> points to an element that
+                caused the insertion to be banned. Note that more than one element
+                can be causing insertion not to be allowed.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(I(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong.
+              </li>
+</ul></div>
+<a name="reference_list_of_insert_iterator_value"></a><pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span><span class="keyword">bool</span><span class="special">&gt;</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid <code class="computeroutput"><span class="identifier">iterator</span></code>
+                of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Inserts <code class="computeroutput"><span class="identifier">x</span></code>
+                before position if insertion is allowed by all other views of the
+                <code class="computeroutput"><span class="identifier">bimap</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns:</strong></span> The return value is a pair
+                <code class="computeroutput"><span class="identifier">p</span></code>. <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">second</span></code> is <code class="computeroutput"><span class="keyword">true</span></code>
+                if and only if insertion took place. On successful insertion, <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">first</span></code> points to the element inserted;
+                otherwise, <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">first</span></code> points to an element that
+                caused the insertion to be banned. Note that more than one element
+                can be causing insertion not to be allowed.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(I(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong.
+              </li>
+</ul></div>
+<a name="reference_list_of_insert_iterator_size_value"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid <code class="computeroutput"><span class="identifier">iterator</span></code>
+                of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects: </strong></span> <code class="computeroutput"><span class="keyword">for</span><span class="special">(</span><span class="identifier">size_type</span>
+                <span class="identifier">i</span> <span class="special">=</span>
+                <span class="number">0</span><span class="special">;</span>
+                <span class="identifier">i</span> <span class="special">&lt;</span>
+                <span class="identifier">n</span><span class="special">;</span>
+                <span class="special">++</span><span class="identifier">i</span><span class="special">)</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">position</span><span class="special">,</span> <span class="identifier">x</span><span class="special">);</span></code>
+              </li>
+</ul></div>
+<a name="reference_list_of_insert_iterator_iterator_iterator"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">InputIterator</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span><span class="identifier">InputIterator</span> <span class="identifier">first</span><span class="special">,</span><span class="identifier">InputIterator</span> <span class="identifier">last</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid <code class="computeroutput"><span class="identifier">iterator</span></code>
+                of the view. <code class="computeroutput"><span class="identifier">InputIterator</span></code>
+                is a model of <a href="http://www.sgi.com/tech/stl/InputIterator.html" target="_top">Input
+                Iterator</a> over elements of type <code class="computeroutput"><span class="identifier">value_type</span></code>.
+                <code class="computeroutput"><span class="identifier">first</span></code> and <code class="computeroutput"><span class="identifier">last</span></code> are not iterators into any
+                view of the <code class="computeroutput"><span class="identifier">bimap</span></code>
+                to which this view belongs. <code class="computeroutput"><span class="identifier">last</span></code>
+                is reachable from <code class="computeroutput"><span class="identifier">first</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects: </strong></span> <code class="computeroutput"><span class="keyword">while</span><span class="special">(</span><span class="identifier">first</span>
+                <span class="special">!=</span> <span class="identifier">last</span><span class="special">)</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">position</span><span class="special">,</span> <span class="special">*</span><span class="identifier">first</span><span class="special">++);</span></code>
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(m*I(n+m)), where m is the number of elements in <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic.
+              </li>
+</ul></div>
+<a name="reference_list_of_erase_iterator"></a><pre class="programlisting"><span class="identifier">iterator</span> <span class="identifier">erase</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid dereferenceable <code class="computeroutput"><span class="identifier">iterator</span></code>
+                of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Deletes the element pointed
+                to by <code class="computeroutput"><span class="identifier">position</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns:</strong></span> An iterator pointing to
+                the element immediately following the one that was deleted, or <code class="computeroutput"><span class="identifier">end</span><span class="special">()</span></code>
+                if no such element exists.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(D(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow.
+              </li>
+</ul></div>
+<a name="reference_list_of_erase_iterator_iterator"></a><pre class="programlisting"><span class="identifier">iterator</span> <span class="identifier">erase</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">last</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>
+                is a valid range of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Deletes the elements in
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="identifier">last</span></code>.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(m*D(n)), where m is the number of elements in <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow.
+              </li>
+</ul></div>
+<a name="reference_list_of_replace_iterator_value"></a><pre class="programlisting"><span class="keyword">bool</span> <span class="identifier">replace</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span><span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid dereferenceable iterator of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Assigns the value <code class="computeroutput"><span class="identifier">x</span></code> to the element pointed to by
+                <code class="computeroutput"><span class="identifier">position</span></code> into the
+                <code class="computeroutput"><span class="identifier">bimap</span></code> to which the
+                view belongs if replacing is allowed by all other views of the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of <code class="computeroutput"><span class="identifier">position</span></code> is preserved in all cases.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="keyword">true</span></code>
+                if the replacement took place, <code class="computeroutput"><span class="keyword">false</span></code>
+                otherwise.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(R(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong. If an
+                exception is thrown by some user-provided operation the <code class="computeroutput"><span class="identifier">bimap</span></code> to which the view belongs
+                remains in its original state.
+              </li>
+</ul></div>
+<a name="reference_list_of_replace_key_iterator_key"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">replace_key</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid dereferenceable iterator of the set view. <code class="computeroutput"><span class="identifier">CompatibleKey</span></code> can be assigned to
+                <code class="computeroutput"><span class="identifier">key_type</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Assigns the value <code class="computeroutput"><span class="identifier">x</span></code> to <code class="computeroutput"><span class="identifier">e</span><span class="special">.</span><span class="identifier">first</span></code>,
+                where <code class="computeroutput"><span class="identifier">e</span></code> is the element
+                pointed to by <code class="computeroutput"><span class="identifier">position</span></code>
+                into the <code class="computeroutput"><span class="identifier">bimap</span></code> to
+                which the set view belongs if replacing is allowed by all other views
+                of the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of position
+                is preserved in all cases.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="keyword">true</span></code>
+                if the replacement took place, <code class="computeroutput"><span class="keyword">false</span></code>
+                otherwise.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(R(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong. If an
+                exception is thrown by some user-provided operation, the <code class="computeroutput"><span class="identifier">bimap</span></code> to which the set view belongs
+                remains in its original state.
+              </li>
+</ul></div>
+<a name="reference_list_of_replace_data_iterator_data"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleData</span> <span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">replace_data</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CompatibleData</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid dereferenceable iterator of the set view. <code class="computeroutput"><span class="identifier">CompatibleKey</span></code> can be assigned to
+                <code class="computeroutput"><span class="identifier">mapped_type</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Assigns the value <code class="computeroutput"><span class="identifier">x</span></code> to <code class="computeroutput"><span class="identifier">e</span><span class="special">.</span><span class="identifier">second</span></code>,
+                where <code class="computeroutput"><span class="identifier">e</span></code> is the element
+                pointed to by <code class="computeroutput"><span class="identifier">position</span></code>
+                into the <code class="computeroutput"><span class="identifier">bimap</span></code> to
+                which the set view belongs if replacing is allowed by all other views
+                of the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of position
+                is preserved in all cases.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="keyword">true</span></code>
+                if the replacement took place, <code class="computeroutput"><span class="keyword">false</span></code>
+                otherwise.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(R(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong. If an
+                exception is thrown by some user-provided operation, the <code class="computeroutput"><span class="identifier">bimap</span></code> to which the set view belongs
+                remains in its original state.
+              </li>
+</ul></div>
+<a name="reference_list_of_modify_key_iterator_modifier"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">KeyModifier</span> <span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">modify_key</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">KeyModifier</span> <span class="identifier">mod</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">KeyModifier</span></code>
+                is a model of <a href="http://www.sgi.com/tech/stl/UnaryFunction.html" target="_top">Unary
+                Function</a> accepting arguments of type: <code class="computeroutput"><span class="identifier">key_type</span><span class="special">&amp;</span></code>; <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid dereferenceable iterator of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Calls <code class="computeroutput"><span class="identifier">mod</span><span class="special">(</span><span class="identifier">e</span><span class="special">.</span><span class="identifier">first</span><span class="special">)</span></code> where e is the element pointed to
+                by position and rearranges <code class="computeroutput"><span class="special">*</span><span class="identifier">position</span></code> into all the views of
+                the <code class="computeroutput"><span class="identifier">bimap</span></code>. If the
+                rearrangement fails, the element is erased. It is successful if the
+                rearrangement is allowed by all other views of the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of <code class="computeroutput"><span class="identifier">position</span></code> is preserved if the operation
+                succeeds.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="keyword">true</span></code>
+                if the operation succeeded, <code class="computeroutput"><span class="keyword">false</span></code>
+                otherwise.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(M(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic. If an exception
+                is thrown by some user-provided operation (except possibly mod),
+                then the element pointed to by position is erased.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Note:</strong></span> Only provided for map views.
+              </li>
+</ul></div>
+<a name="reference_list_of_modify_data_iterator_modifier"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">DataModifier</span> <span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">modify_data</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">DataModifier</span> <span class="identifier">mod</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">DataModifier</span></code>
+                is a model of <a href="http://www.sgi.com/tech/stl/UnaryFunction.html" target="_top">Unary
+                Function</a> accepting arguments of type: <code class="computeroutput"><span class="identifier">mapped_type</span><span class="special">&amp;</span></code>; <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid dereferenceable iterator of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Calls <code class="computeroutput"><span class="identifier">mod</span><span class="special">(</span><span class="identifier">e</span><span class="special">.</span><span class="identifier">second</span><span class="special">)</span></code> where e is the element pointed to
+                by position and rearranges <code class="computeroutput"><span class="special">*</span><span class="identifier">position</span></code> into all the views of
+                the <code class="computeroutput"><span class="identifier">bimap</span></code>. If the
+                rearrangement fails, the element is erased. It is successful if the
+                rearrangement is allowed by all other views of the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of <code class="computeroutput"><span class="identifier">position</span></code> is preserved if the operation
+                succeeds.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="keyword">true</span></code>
+                if the operation succeeded, <code class="computeroutput"><span class="keyword">false</span></code>
+                otherwise.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(M(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic. If an exception
+                is thrown by some user-provided operation (except possibly mod),
+                then the element pointed to by position is erased.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Note:</strong></span> Only provided for map views.
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_list_of_reference_list_of_views_list_operations">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.list_of_reference.list_of_views.list_operations"></a><a class="link" href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.list_operations" title="List operations">List
+          operations</a>
+</h5></div></div></div>
+<p>
+            <code class="computeroutput"><span class="identifier">list_of</span></code> views provide
+            the full set of list operations found in <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span></code>;
+            the semantics of these member functions, however, differ from that of
+            <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span></code> in some cases as insertions might
+            not succeed due to banning by other views. Similarly, the complexity
+            of the operations may depend on the other views belonging to the same
+            <code class="computeroutput"><span class="identifier">bimap</span></code>.
+          </p>
+<a name="reference_list_of_splice_iterator_this"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">splice</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid iterator of the view. <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">!=</span><span class="keyword">this</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Inserts the contents of
+                <code class="computeroutput"><span class="identifier">x</span></code> before position,
+                in the same order as they were in <code class="computeroutput"><span class="identifier">x</span></code>.
+                Those elements successfully inserted are erased from <code class="computeroutput"><span class="identifier">x</span></code>.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(<code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>*I(n+<code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>)
+                + <code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>*D(<code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic.
+              </li>
+</ul></div>
+<a name="reference_list_of_splice_iterator_this_iterator"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">splice</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span><span class="identifier">iterator</span> <span class="identifier">i</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid iterator of the view. <code class="computeroutput"><span class="identifier">i</span></code>
+                is a valid dereferenceable iterator <code class="computeroutput"><span class="identifier">x</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Inserts the element pointed
+                to by <code class="computeroutput"><span class="identifier">i</span></code> before position:
+                if insertion is successful, the element is erased from <code class="computeroutput"><span class="identifier">x</span></code>. In the special case <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                no copy or deletion is performed, and the operation is always successful.
+                If <code class="computeroutput"><span class="identifier">position</span><span class="special">==</span><span class="identifier">i</span></code>, no operation is performed.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> If <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                no iterator or reference is invalidated.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                If <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                constant; otherwise O(I(n) + D(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> If <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                nothrow; otherwise, strong.
+              </li>
+</ul></div>
+<a name="reference_list_of_splice_iterator_this_iterator_iterator"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">splice</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">last</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid iterator of the view. <code class="computeroutput"><span class="identifier">first</span></code>
+                and <code class="computeroutput"><span class="identifier">last</span></code> are valid
+                iterators of <code class="computeroutput"><span class="identifier">x</span></code>. last
+                is reachable from <code class="computeroutput"><span class="identifier">first</span></code>.
+                position is not in the range <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> For each element in the
+                range <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>, insertion is tried before position;
+                if the operation is successful, the element is erased from x. In
+                the special case <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>, no copy or deletion is performed,
+                and insertions are always successful.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> If <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                no iterator or reference is invalidated.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                If <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                constant; otherwise O(m*I(n+m) + m*D(x.size())) where m is the number
+                of elements in <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> If <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                nothrow; otherwise, basic.
+              </li>
+</ul></div>
+<a name="reference_list_of_remove_value"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">remove</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">value</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Erases all elements of
+                the view which compare equal to <code class="computeroutput"><span class="identifier">value</span></code>.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(n + m*D(n)), where m is the number of elements erased.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic.
+              </li>
+</ul></div>
+<a name="reference_list_of_remove_if_predicate"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Predicate</span> <span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">remove_if</span><span class="special">(</span><span class="identifier">Predicate</span> <span class="identifier">pred</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Erases all elements <code class="computeroutput"><span class="identifier">x</span></code> of the view for which <code class="computeroutput"><span class="identifier">pred</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                holds.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(n + m*D(n)), where m is the number of elements erased.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic.
+              </li>
+</ul></div>
+<a name="reference_list_of_unique"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">unique</span><span class="special">();</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Eliminates all but the
+                first element from every consecutive group of equal elements referred
+                to by the iterator <code class="computeroutput"><span class="identifier">i</span></code>
+                in the range <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">+</span><span class="number">1</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code> for which <code class="computeroutput"><span class="special">*</span><span class="identifier">i</span><span class="special">==*(</span><span class="identifier">i</span><span class="special">-</span><span class="number">1</span><span class="special">)</span></code>.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(n + m*D(n)), where m is the number of elements erased.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic.
+              </li>
+</ul></div>
+<a name="reference_list_of_unique_predicate"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span> <span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">unique</span><span class="special">(</span><span class="identifier">BinaryPredicate</span> <span class="identifier">binary_pred</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Eliminates all but the
+                first element from every consecutive group of elements referred to
+                by the iterator i in the range [first+1,last) for which <code class="computeroutput"><span class="identifier">binary_pred</span><span class="special">(*</span><span class="identifier">i</span><span class="special">,*(</span><span class="identifier">i</span><span class="special">-</span><span class="number">1</span><span class="special">))</span></code>
+                holds.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(n + m*D(n)), where m is the number of elements erased.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic.
+              </li>
+</ul></div>
+<a name="reference_list_of_merge_this"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">merge</span><span class="special">(</span><span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;</span></code> is a <a href="http://www.sgi.com/tech/stl/StrictWeakOrdering.html" target="_top">Strict
+                Weak Ordering</a> over <code class="computeroutput"><span class="identifier">value_type</span></code>.
+                Both the view and <code class="computeroutput"><span class="identifier">x</span></code>
+                are sorted according to <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Attempts to insert every
+                element of <code class="computeroutput"><span class="identifier">x</span></code> into
+                the corresponding position of the view (according to the order).
+                Elements successfully inserted are erased from <code class="computeroutput"><span class="identifier">x</span></code>.
+                The resulting sequence is stable, i.e. equivalent elements of either
+                container preserve their relative position. In the special case
+                <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                no operation is performed.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Elements in the
+                view and remaining elements in <code class="computeroutput"><span class="identifier">x</span></code>
+                are sorted. Validity of iterators to the view and of non-erased elements
+                of <code class="computeroutput"><span class="identifier">x</span></code> references is
+                preserved.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                If <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                constant; otherwise O(n + <code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>*I(n+<code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>) + <code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>*D(<code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> If <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                nothrow; otherwise, basic.
+              </li>
+</ul></div>
+<a name="reference_list_of_merge_this_compare"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Compare</span> <span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">merge</span><span class="special">(</span><span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">Compare</span> <span class="identifier">comp</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> Compare is a <a href="http://www.sgi.com/tech/stl/StrictWeakOrdering.html" target="_top">Strict
+                Weak Ordering</a> over <code class="computeroutput"><span class="identifier">value_type</span></code>.
+                Both the view and <code class="computeroutput"><span class="identifier">x</span></code>
+                are sorted according to <code class="computeroutput"><span class="identifier">comp</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Attempts to insert every
+                element of <code class="computeroutput"><span class="identifier">x</span></code> into
+                the corresponding position of the view (according to <code class="computeroutput"><span class="identifier">comp</span></code>). Elements successfully inserted
+                are erased from <code class="computeroutput"><span class="identifier">x</span></code>.
+                The resulting sequence is stable, i.e. equivalent elements of either
+                container preserve their relative position. In the special case
+                <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                no operation is performed.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Elements in the
+                view and remaining elements in <code class="computeroutput"><span class="identifier">x</span></code>
+                are sorted according to <code class="computeroutput"><span class="identifier">comp</span></code>.
+                Validity of iterators to the view and of non-erased elements of
+                <code class="computeroutput"><span class="identifier">x</span></code> references is preserved.
+              </li>
+<li class="listitem">
+                <a class="link" href="list_of_reference.html#list_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                If <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                constant; otherwise O(n + <code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>*I(n+<code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>) + <code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>*D(<code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code>)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> If <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span><span class="special">==</span><span class="keyword">this</span></code>,
+                nothrow; otherwise, basic.
+              </li>
+</ul></div>
+<a name="reference_list_of_sort"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">sort</span><span class="special">();</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;</span></code> is a <a href="http://www.sgi.com/tech/stl/StrictWeakOrdering.html" target="_top">Strict
+                Weak Ordering</a> over value_type.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Sorts the view according
+                to <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;</span></code>.
+                The sorting is stable, i.e. equivalent elements preserve their relative
+                position.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of iterators
+                and references is preserved.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> O(n*log(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow if <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;</span></code>
+                does not throw; otherwise, basic.
+              </li>
+</ul></div>
+<a name="reference_list_of_sort_compare"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Compare</span> <span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">sort</span><span class="special">(</span><span class="identifier">Compare</span> <span class="identifier">comp</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> Compare is a <a href="http://www.sgi.com/tech/stl/StrictWeakOrdering.html" target="_top">Strict
+                Weak Ordering</a> over value_type.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Sorts the view according
+                to comp. The sorting is stable, i.e. equivalent elements preserve
+                their relative position.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of iterators
+                and references is preserved.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> O(n*log(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow if comp
+                does not throw; otherwise, basic.
+              </li>
+</ul></div>
+<a name="reference_list_of_reverse"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">reverse</span><span class="special">();</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Reverses the order of the
+                elements in the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of iterators
+                and references is preserved.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> O(n).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow.
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_list_of_reference_list_of_views_rearrange_operations">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.list_of_reference.list_of_views.rearrange_operations"></a><a class="link" href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.rearrange_operations" title="Rearrange operations">Rearrange
+          operations</a>
+</h5></div></div></div>
+<p>
+            These operations, without counterpart in <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span></code>
+            (although splice provides partially overlapping functionality), perform
+            individual and global repositioning of elements inside the index.
+          </p>
+<a name="reference_list_of_relocate_iterator_iterator"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">relocate</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">i</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid iterator of the view. <code class="computeroutput"><span class="identifier">i</span></code>
+                is a valid dereferenceable iterator of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Inserts the element pointed
+                to by <code class="computeroutput"><span class="identifier">i</span></code> before <code class="computeroutput"><span class="identifier">position</span></code>. If <code class="computeroutput"><span class="identifier">position</span><span class="special">==</span><span class="identifier">i</span></code>,
+                no operation is performed.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> No iterator or reference
+                is invalidated.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Constant.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow.
+              </li>
+</ul></div>
+<a name="reference_list_of_relocate_iterator_iterator_iterator"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">relocate</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">last</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid iterator of the view. <code class="computeroutput"><span class="identifier">first</span></code>
+                and <code class="computeroutput"><span class="identifier">last</span></code> are valid
+                iterators of the view. <code class="computeroutput"><span class="identifier">last</span></code>
+                is reachable from <code class="computeroutput"><span class="identifier">first</span></code>.
+                <code class="computeroutput"><span class="identifier">position</span></code> is not in
+                the range <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> The range of elements
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code> is repositioned just before <code class="computeroutput"><span class="identifier">position</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> No iterator or reference
+                is invalidated.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Constant.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow.
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_list_of_reference_list_of_views_serialization">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.list_of_reference.list_of_views.serialization"></a><a class="link" href="list_of_reference.html#boost_bimap.reference.list_of_reference.list_of_views.serialization" title="Serialization">Serialization</a>
+</h5></div></div></div>
+<p>
+            Views cannot be serialized on their own, but only as part of the <code class="computeroutput"><span class="identifier">bimap</span></code> into which they are embedded.
+            In describing the additional preconditions and guarantees associated
+            to <code class="computeroutput"><span class="identifier">list_of</span></code> views with
+            respect to serialization of their embedding containers, we use the concepts
+            defined in the <code class="computeroutput"><span class="identifier">bimap</span></code>
+            serialization section.
+          </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> saving of a <code class="computeroutput"><span class="identifier">bimap</span></code> b to an output archive (XML archive)
+            ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> No additional requirements
+                to those imposed by the container.
+              </li></ul></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> loading of a <code class="computeroutput"><span class="identifier">bimap</span></code> b' from an input archive (XML
+            archive) ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> No additional requirements
+                to those imposed by the container. <span class="bold"><strong>Postconditions:</strong></span>
+                On successful loading, each of the elements of <code class="computeroutput"><span class="special">[</span><span class="identifier">begin</span><span class="special">(),</span>
+                <span class="identifier">end</span><span class="special">())</span></code>
+                is a restored copy of the corresponding element in <code class="computeroutput"><span class="special">[</span><span class="identifier">m</span><span class="special">.</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">i</span><span class="special">&gt;().</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">i</span><span class="special">&gt;().</span><span class="identifier">end</span><span class="special">())</span></code>, where <code class="computeroutput"><span class="identifier">i</span></code>
+                is the position of the <code class="computeroutput"><span class="identifier">list_of</span></code>
+                view in the container.
+              </li></ul></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> saving of an <code class="computeroutput"><span class="identifier">iterator</span></code> or <code class="computeroutput"><span class="identifier">const_iterator</span></code>
+            it to an output archive (XML archive) ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">it</span></code>
+                is a valid iterator of the view. The associated <code class="computeroutput"><span class="identifier">bimap</span></code>
+                has been previously saved.
+              </li></ul></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> loading of an <code class="computeroutput"><span class="identifier">iterator</span></code> or <code class="computeroutput"><span class="identifier">const_iterator</span>
+            <span class="identifier">it</span></code>' from an input archive (XML
+            archive) ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> On successful loading,
+                if it was dereferenceable then <code class="computeroutput"><span class="special">*</span><span class="identifier">it</span></code>' is the restored copy of <code class="computeroutput"><span class="special">*</span><span class="identifier">it</span></code>,
+                otherwise <code class="computeroutput"><span class="identifier">it</span></code>'<code class="computeroutput">
+                <span class="special">==</span> <span class="identifier">end</span><span class="special">()</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Note:</strong></span> It is allowed that <code class="computeroutput"><span class="identifier">it</span></code> be a <code class="computeroutput"><span class="identifier">const_iterator</span></code>
+                and the restored <code class="computeroutput"><span class="identifier">it</span></code>'
+                an iterator, or viceversa.
+              </li>
+</ul></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="unordered_set_of_reference.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="vector_of_reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

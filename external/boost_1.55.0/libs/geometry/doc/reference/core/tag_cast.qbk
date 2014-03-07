@@ -1,0 +1,26 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[note The specified tag list is handled in the specified order: as soon as a tag
+   inheriting the specified tag is found, it is defined as the metafunction 
+   typedef [*type].
+]  
+
+[note If none of the specified possible base tags is a base class of the 
+    specified tag, the tag itself is defined as the [*type] result of the 
+    metafunction.
+]  
+[heading Complexity]
+Compile time
+
+[heading Example]
+[tag_cast]
+[tag_cast_output]
+

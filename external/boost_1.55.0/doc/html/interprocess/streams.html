@@ -1,0 +1,442 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Direct iostream formatting: vectorstream and bufferstream</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../interprocess.html" title="Chapter&#160;14.&#160;Boost.Interprocess">
+<link rel="prev" href="memory_algorithms.html" title="Memory allocation algorithms">
+<link rel="next" href="interprocess_smart_ptr.html" title="Ownership smart pointers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="memory_algorithms.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interprocess_smart_ptr.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="interprocess.streams"></a><a class="link" href="streams.html" title="Direct iostream formatting: vectorstream and bufferstream">Direct iostream formatting: vectorstream
+    and bufferstream</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="streams.html#interprocess.streams.vectorstream">Formatting directly
+      in your character vector: vectorstream</a></span></dt>
+<dt><span class="section"><a href="streams.html#interprocess.streams.bufferstream">Formatting directly
+      in your character buffer: bufferstream</a></span></dt>
+</dl></div>
+<p>
+      Shared memory, memory-mapped files and all <span class="bold"><strong>Boost.Interprocess</strong></span>
+      mechanisms are focused on efficiency. The reason why shared memory is used
+      is that it's the fastest IPC mechanism available. When passing text-oriented
+      messages through shared memory, there is need to format the message. Obviously
+      C++ offers the iostream framework for that work.
+    </p>
+<p>
+      Some programmers appreciate the iostream safety and design for memory formatting
+      but feel that the stringstream family is far from efficient not when formatting,
+      but when obtaining formatted data to a string, or when setting the string from
+      which the stream will extract data. An example:
+    </p>
+<pre class="programlisting"><span class="comment">//Some formatting elements</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">my_text</span> <span class="special">=</span> <span class="string">"..."</span><span class="special">;</span>
+<span class="keyword">int</span> <span class="identifier">number</span><span class="special">;</span>
+
+<span class="comment">//Data reader</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">istringstream</span> <span class="identifier">input_processor</span><span class="special">;</span>
+
+<span class="comment">//This makes a copy of the string. If not using a</span>
+<span class="comment">//reference counted string, this is a serious overhead.</span>
+<span class="identifier">input_processor</span><span class="special">.</span><span class="identifier">str</span><span class="special">(</span><span class="identifier">my_text</span><span class="special">);</span>
+
+<span class="comment">//Extract data</span>
+<span class="keyword">while</span><span class="special">(/*...*/){</span>
+   <span class="identifier">input_processor</span> <span class="special">&gt;&gt;</span> <span class="identifier">number</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">//Data writer</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">ostringstream</span> <span class="identifier">output_processor</span><span class="special">;</span>
+
+<span class="comment">//Write data</span>
+<span class="keyword">while</span><span class="special">(/*...*/){</span>
+   <span class="identifier">output_processor</span> <span class="special">&lt;&lt;</span> <span class="identifier">number</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">//This returns a temporary string. Even with return-value</span>
+<span class="comment">//optimization this is expensive.</span>
+<span class="identifier">my_text</span> <span class="special">=</span> <span class="identifier">input_processor</span><span class="special">.</span><span class="identifier">str</span><span class="special">();</span>
+</pre>
+<p>
+      The problem is even worse if the string is a shared-memory string, because
+      to extract data, we must copy the data first from shared-memory to a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>
+      and then to a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">stringstream</span></code>. To encode data in a shared
+      memory string we should copy data from a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">stringstream</span></code>
+      to a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> and then to the shared-memory string.
+    </p>
+<p>
+      Because of this overhead, <span class="bold"><strong>Boost.Interprocess</strong></span>
+      offers a way to format memory-strings (in shared memory, memory mapped files
+      or any other memory segment) that can avoid all unneeded string copy and memory
+      allocation/deallocations, while using all iostream facilities. <span class="bold"><strong>Boost.Interprocess</strong></span>
+      <span class="bold"><strong>vectorstream</strong></span> and <span class="bold"><strong>bufferstream</strong></span>
+      implement vector-based and fixed-size buffer based storage support for iostreams
+      and all the formatting/locale hard work is done by standard <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_streambuf</span><span class="special">&lt;&gt;</span></code> and <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_iostream</span><span class="special">&lt;&gt;</span></code> classes.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.streams.vectorstream"></a><a class="link" href="streams.html#interprocess.streams.vectorstream" title="Formatting directly in your character vector: vectorstream">Formatting directly
+      in your character vector: vectorstream</a>
+</h3></div></div></div>
+<p>
+        The <span class="bold"><strong>vectorstream</strong></span> class family (<span class="bold"><strong>basic_vectorbuf</strong></span>, <span class="bold"><strong>basic_ivectorstream</strong></span>
+        ,<span class="bold"><strong>basic_ovectorstream</strong></span> and <span class="bold"><strong>basic_vectorstream</strong></span>)
+        is an efficient way to obtain formatted reading/writing directly in a character
+        vector. This way, if a shared-memory vector is used, data is extracted/written
+        from/to the shared-memory vector, without additional copy/allocation. We
+        can see the declaration of basic_vectorstream here:
+      </p>
+<pre class="programlisting"><span class="comment">//!A basic_iostream class that holds a character vector specified by CharVector</span>
+<span class="comment">//!template parameter as its formatting buffer. The vector must have</span>
+<span class="comment">//!contiguous storage, like std::vector, boost::interprocess::vector or</span>
+<span class="comment">//!boost::interprocess::basic_string</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">CharVector</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">CharTraits</span> <span class="special">=</span>
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">char_traits</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">CharVector</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">basic_vectorstream</span>
+<span class="special">:</span> <span class="keyword">public</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_iostream</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">CharVector</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;</span>
+
+<span class="special">{</span>
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="keyword">typedef</span> <span class="identifier">CharVector</span>                                                   <span class="identifier">vector_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ios</span>
+      <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">CharVector</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;::</span><span class="identifier">char_type</span>          <span class="identifier">char_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ios</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;::</span><span class="identifier">int_type</span>     <span class="identifier">int_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ios</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;::</span><span class="identifier">pos_type</span>     <span class="identifier">pos_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ios</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;::</span><span class="identifier">off_type</span>     <span class="identifier">off_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ios</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;::</span><span class="identifier">traits_type</span>  <span class="identifier">traits_type</span><span class="special">;</span>
+
+   <span class="comment">//!Constructor. Throws if vector_type default constructor throws.</span>
+   <span class="identifier">basic_vectorstream</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">openmode</span> <span class="identifier">mode</span>
+                     <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">in</span> <span class="special">|</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">out</span><span class="special">);</span>
+
+   <span class="comment">//!Constructor. Throws if vector_type(const Parameter &amp;param) throws.</span>
+   <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Parameter</span><span class="special">&gt;</span>
+   <span class="identifier">basic_vectorstream</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Parameter</span> <span class="special">&amp;</span><span class="identifier">param</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">openmode</span> <span class="identifier">mode</span>
+                     <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">in</span> <span class="special">|</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">out</span><span class="special">);</span>
+
+   <span class="special">~</span><span class="identifier">basic_vectorstream</span><span class="special">(){}</span>
+
+   <span class="comment">//!Returns the address of the stored stream buffer.</span>
+   <span class="identifier">basic_vectorbuf</span><span class="special">&lt;</span><span class="identifier">CharVector</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;*</span> <span class="identifier">rdbuf</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+   <span class="comment">//!Swaps the underlying vector with the passed vector.</span>
+   <span class="comment">//!This function resets the position in the stream.</span>
+   <span class="comment">//!Does not throw.</span>
+   <span class="keyword">void</span> <span class="identifier">swap_vector</span><span class="special">(</span><span class="identifier">vector_type</span> <span class="special">&amp;</span><span class="identifier">vect</span><span class="special">);</span>
+
+   <span class="comment">//!Returns a const reference to the internal vector.</span>
+   <span class="comment">//!Does not throw.</span>
+   <span class="keyword">const</span> <span class="identifier">vector_type</span> <span class="special">&amp;</span><span class="identifier">vector</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+   <span class="comment">//!Preallocates memory from the internal vector.</span>
+   <span class="comment">//!Resets the stream to the first position.</span>
+   <span class="comment">//!Throws if the internals vector's memory allocation throws.</span>
+   <span class="keyword">void</span> <span class="identifier">reserve</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">vector_type</span><span class="special">::</span><span class="identifier">size_type</span> <span class="identifier">size</span><span class="special">);</span>
+<span class="special">};</span>
+</pre>
+<p>
+        The vector type is templatized, so that we can use any type of vector: <span class="bold"><strong>std::vector</strong></span>, <code class="computeroutput">boost::interprocess::vector</code>...
+        But the storage must be <span class="bold"><strong>contiguous</strong></span>, we can't
+        use a deque. We can even use <span class="bold"><strong>boost::interprocess::basic_string</strong></span>,
+        since it has a vector interface and it has contiguous storage. <span class="bold"><strong>We can't use std::string</strong></span>, because although some std::string
+        implementation are vector-based, others can have optimizations and reference-counted
+        implementations.
+      </p>
+<p>
+        The user can obtain a const reference to the internal vector using <code class="computeroutput"><span class="identifier">vector_type</span> <span class="identifier">vector</span><span class="special">()</span> <span class="keyword">const</span></code> function
+        and he also can swap the internal vector with an external one calling <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">swap_vector</span><span class="special">(</span><span class="identifier">vector_type</span>
+        <span class="special">&amp;</span><span class="identifier">vect</span><span class="special">)</span></code>. The swap function resets the stream position.
+        This functions allow efficient methods to obtain the formatted data avoiding
+        all allocations and data copies.
+      </p>
+<p>
+        Let's see an example to see how to use vectorstream:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">containers</span><span class="special">/</span><span class="identifier">vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">containers</span><span class="special">/</span><span class="identifier">string</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">allocators</span><span class="special">/</span><span class="identifier">allocator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">streams</span><span class="special">/</span><span class="identifier">vectorstream</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">allocator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">segment_manager</span><span class="special">&gt;</span>
+   <span class="identifier">IntAllocator</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">allocator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">segment_manager</span><span class="special">&gt;</span>
+   <span class="identifier">CharAllocator</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">IntAllocator</span><span class="special">&gt;</span>   <span class="identifier">MyVector</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">basic_string</span>
+   <span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">char_traits</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;,</span> <span class="identifier">CharAllocator</span><span class="special">&gt;</span>   <span class="identifier">MyString</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">basic_vectorstream</span><span class="special">&lt;</span><span class="identifier">MyString</span><span class="special">&gt;</span>               <span class="identifier">MyVectorStream</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span> <span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">//Remove shared memory on construction and destruction</span>
+   <span class="keyword">struct</span> <span class="identifier">shm_remove</span>
+   <span class="special">{</span>
+      <span class="identifier">shm_remove</span><span class="special">()</span> <span class="special">{</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">~</span><span class="identifier">shm_remove</span><span class="special">(){</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+   <span class="special">}</span> <span class="identifier">remover</span><span class="special">;</span>
+
+   <span class="identifier">managed_shared_memory</span> <span class="identifier">segment</span><span class="special">(</span>
+      <span class="identifier">create_only</span><span class="special">,</span>
+      <span class="string">"MySharedMemory"</span><span class="special">,</span> <span class="comment">//segment name</span>
+      <span class="number">65536</span><span class="special">);</span>           <span class="comment">//segment size in bytes</span>
+
+   <span class="comment">//Construct shared memory vector</span>
+   <span class="identifier">MyVector</span> <span class="special">*</span><span class="identifier">myvector</span> <span class="special">=</span>
+      <span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">MyVector</span><span class="special">&gt;(</span><span class="string">"MyVector"</span><span class="special">)</span>
+      <span class="special">(</span><span class="identifier">IntAllocator</span><span class="special">(</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">()));</span>
+
+   <span class="comment">//Fill vector</span>
+   <span class="identifier">myvector</span><span class="special">-&gt;</span><span class="identifier">reserve</span><span class="special">(</span><span class="number">100</span><span class="special">);</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">100</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+      <span class="identifier">myvector</span><span class="special">-&gt;</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+   <span class="special">}</span>
+
+   <span class="comment">//Create the vectorstream. To create the internal shared memory</span>
+   <span class="comment">//basic_string we need to pass the shared memory allocator as</span>
+   <span class="comment">//a constructor argument</span>
+   <span class="identifier">MyVectorStream</span> <span class="identifier">myvectorstream</span><span class="special">(</span><span class="identifier">CharAllocator</span><span class="special">(</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">()));</span>
+
+   <span class="comment">//Reserve the internal string</span>
+   <span class="identifier">myvectorstream</span><span class="special">.</span><span class="identifier">reserve</span><span class="special">(</span><span class="number">100</span><span class="special">*</span><span class="number">5</span><span class="special">);</span>
+
+   <span class="comment">//Write all vector elements as text in the internal string</span>
+   <span class="comment">//Data will be directly written in shared memory, because</span>
+   <span class="comment">//internal string's allocator is a shared memory allocator</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">max</span> <span class="special">=</span> <span class="identifier">myvector</span><span class="special">-&gt;</span><span class="identifier">size</span><span class="special">();</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">max</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+      <span class="identifier">myvectorstream</span> <span class="special">&lt;&lt;</span> <span class="special">(*</span><span class="identifier">myvector</span><span class="special">)[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+   <span class="special">}</span>
+
+   <span class="comment">//Auxiliary vector to compare original data</span>
+   <span class="identifier">MyVector</span> <span class="special">*</span><span class="identifier">myvector2</span> <span class="special">=</span>
+      <span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">MyVector</span><span class="special">&gt;(</span><span class="string">"MyVector2"</span><span class="special">)</span>
+      <span class="special">(</span><span class="identifier">IntAllocator</span><span class="special">(</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">()));</span>
+
+   <span class="comment">//Avoid reallocations</span>
+   <span class="identifier">myvector2</span><span class="special">-&gt;</span><span class="identifier">reserve</span><span class="special">(</span><span class="number">100</span><span class="special">);</span>
+
+   <span class="comment">//Extract all values from the internal</span>
+   <span class="comment">//string directly to a shared memory vector.</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">istream_iterator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">it</span><span class="special">(</span><span class="identifier">myvectorstream</span><span class="special">),</span> <span class="identifier">itend</span><span class="special">;</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span><span class="identifier">it</span><span class="special">,</span> <span class="identifier">itend</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">back_inserter</span><span class="special">(*</span><span class="identifier">myvector2</span><span class="special">));</span>
+
+   <span class="comment">//Compare vectors</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">equal</span><span class="special">(</span><span class="identifier">myvector</span><span class="special">-&gt;</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">myvector</span><span class="special">-&gt;</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">myvector2</span><span class="special">-&gt;</span><span class="identifier">begin</span><span class="special">()));</span>
+
+   <span class="comment">//Create a copy of the internal string</span>
+   <span class="identifier">MyString</span> <span class="identifier">stringcopy</span> <span class="special">(</span><span class="identifier">myvectorstream</span><span class="special">.</span><span class="identifier">vector</span><span class="special">());</span>
+
+   <span class="comment">//Now we create a new empty shared memory string...</span>
+   <span class="identifier">MyString</span> <span class="special">*</span><span class="identifier">mystring</span> <span class="special">=</span>
+      <span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">MyString</span><span class="special">&gt;(</span><span class="string">"MyString"</span><span class="special">)</span>
+      <span class="special">(</span><span class="identifier">CharAllocator</span><span class="special">(</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">()));</span>
+
+   <span class="comment">//...and we swap vectorstream's internal string</span>
+   <span class="comment">//with the new one: after this statement mystring</span>
+   <span class="comment">//will be the owner of the formatted data.</span>
+   <span class="comment">//No reallocations, no data copies</span>
+   <span class="identifier">myvectorstream</span><span class="special">.</span><span class="identifier">swap_vector</span><span class="special">(*</span><span class="identifier">mystring</span><span class="special">);</span>
+
+   <span class="comment">//Let's compare both strings</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">stringcopy</span> <span class="special">==</span> <span class="special">*</span><span class="identifier">mystring</span><span class="special">);</span>
+
+   <span class="comment">//Done, destroy and delete vectors and string from the segment</span>
+   <span class="identifier">segment</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">myvector2</span><span class="special">);</span>
+   <span class="identifier">segment</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">myvector</span><span class="special">);</span>
+   <span class="identifier">segment</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">mystring</span><span class="special">);</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.streams.bufferstream"></a><a class="link" href="streams.html#interprocess.streams.bufferstream" title="Formatting directly in your character buffer: bufferstream">Formatting directly
+      in your character buffer: bufferstream</a>
+</h3></div></div></div>
+<p>
+        As seen, vectorstream offers an easy and secure way for efficient iostream
+        formatting, but many times, we have to read or write formatted data from/to
+        a fixed size character buffer (a static buffer, a c-string, or any other).
+        Because of the overhead of stringstream, many developers (specially in embedded
+        systems) choose sprintf family. The <span class="bold"><strong>bufferstream</strong></span>
+        classes offer iostream interface with direct formatting in a fixed size memory
+        buffer with protection against buffer overflows. This is the interface:
+      </p>
+<pre class="programlisting"><span class="comment">//!A basic_iostream class that uses a fixed size character buffer</span>
+<span class="comment">//!as its formatting buffer.</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">CharTraits</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">char_traits</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">basic_bufferstream</span>
+   <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_iostream</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;</span>
+
+<span class="special">{</span>
+   <span class="keyword">public</span><span class="special">:</span>                         <span class="comment">// Typedefs</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ios</span>
+      <span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;::</span><span class="identifier">char_type</span>          <span class="identifier">char_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ios</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;::</span><span class="identifier">int_type</span>     <span class="identifier">int_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ios</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;::</span><span class="identifier">pos_type</span>     <span class="identifier">pos_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ios</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;::</span><span class="identifier">off_type</span>     <span class="identifier">off_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ios</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;::</span><span class="identifier">traits_type</span>  <span class="identifier">traits_type</span><span class="special">;</span>
+
+   <span class="comment">//!Constructor. Does not throw.</span>
+   <span class="identifier">basic_bufferstream</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">openmode</span> <span class="identifier">mode</span>
+                     <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">in</span> <span class="special">|</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">out</span><span class="special">);</span>
+
+   <span class="comment">//!Constructor. Assigns formatting buffer. Does not throw.</span>
+   <span class="identifier">basic_bufferstream</span><span class="special">(</span><span class="identifier">CharT</span> <span class="special">*</span><span class="identifier">buffer</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">length</span><span class="special">,</span>
+                     <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">openmode</span> <span class="identifier">mode</span>
+                        <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">in</span> <span class="special">|</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">out</span><span class="special">);</span>
+
+   <span class="comment">//!Returns the address of the stored stream buffer.</span>
+   <span class="identifier">basic_bufferbuf</span><span class="special">&lt;</span><span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">CharTraits</span><span class="special">&gt;*</span> <span class="identifier">rdbuf</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+   <span class="comment">//!Returns the pointer and size of the internal buffer.</span>
+   <span class="comment">//!Does not throw.</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">CharT</span> <span class="special">*,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&gt;</span> <span class="identifier">buffer</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+   <span class="comment">//!Sets the underlying buffer to a new value. Resets</span>
+   <span class="comment">//!stream position. Does not throw.</span>
+   <span class="keyword">void</span> <span class="identifier">buffer</span><span class="special">(</span><span class="identifier">CharT</span> <span class="special">*</span><span class="identifier">buffer</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">length</span><span class="special">);</span>
+<span class="special">};</span>
+
+<span class="comment">//Some typedefs to simplify usage</span>
+<span class="keyword">typedef</span> <span class="identifier">basic_bufferstream</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span>     <span class="identifier">bufferstream</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">basic_bufferstream</span><span class="special">&lt;</span><span class="keyword">wchar_t</span><span class="special">&gt;</span>  <span class="identifier">wbufferstream</span><span class="special">;</span>
+<span class="comment">// ...</span>
+</pre>
+<p>
+        While reading from a fixed size buffer, <span class="bold"><strong>bufferstream</strong></span>
+        activates endbit flag if we try to read an address beyond the end of the
+        buffer. While writing to a fixed size buffer, <span class="bold"><strong>bufferstream</strong></span>
+        will active the badbit flag if a buffer overflow is going to happen and disallows
+        writing. This way, the fixed size buffer formatting through <span class="bold"><strong>bufferstream</strong></span>
+        is secure and efficient, and offers a good alternative to sprintf/sscanf
+        functions. Let's see an example:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">streams</span><span class="special">/</span><span class="identifier">bufferstream</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstddef</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span> <span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">//Remove shared memory on construction and destruction</span>
+   <span class="keyword">struct</span> <span class="identifier">shm_remove</span>
+   <span class="special">{</span>
+      <span class="identifier">shm_remove</span><span class="special">()</span> <span class="special">{</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">~</span><span class="identifier">shm_remove</span><span class="special">(){</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+   <span class="special">}</span> <span class="identifier">remover</span><span class="special">;</span>
+
+   <span class="comment">//Create shared memory</span>
+   <span class="identifier">managed_shared_memory</span> <span class="identifier">segment</span><span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span>
+                                 <span class="string">"MySharedMemory"</span><span class="special">,</span>  <span class="comment">//segment name</span>
+                                 <span class="number">65536</span><span class="special">);</span>
+
+   <span class="comment">//Fill data</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">data</span><span class="special">;</span>
+   <span class="identifier">data</span><span class="special">.</span><span class="identifier">reserve</span><span class="special">(</span><span class="number">100</span><span class="special">);</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">100</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+      <span class="identifier">data</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+   <span class="special">}</span>
+   <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">BufferSize</span> <span class="special">=</span> <span class="number">100</span><span class="special">*</span><span class="number">5</span><span class="special">;</span>
+
+   <span class="comment">//Allocate a buffer in shared memory to write data</span>
+   <span class="keyword">char</span> <span class="special">*</span><span class="identifier">my_cstring</span> <span class="special">=</span>
+      <span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;(</span><span class="string">"MyCString"</span><span class="special">)[</span><span class="identifier">BufferSize</span><span class="special">](</span><span class="number">0</span><span class="special">);</span>
+   <span class="identifier">bufferstream</span> <span class="identifier">mybufstream</span><span class="special">(</span><span class="identifier">my_cstring</span><span class="special">,</span> <span class="identifier">BufferSize</span><span class="special">);</span>
+
+   <span class="comment">//Now write data to the buffer</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">100</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+      <span class="identifier">mybufstream</span> <span class="special">&lt;&lt;</span> <span class="identifier">data</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+   <span class="special">}</span>
+
+   <span class="comment">//Check there was no overflow attempt</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">mybufstream</span><span class="special">.</span><span class="identifier">good</span><span class="special">());</span>
+
+   <span class="comment">//Extract all values from the shared memory string</span>
+   <span class="comment">//directly to a vector.</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">data2</span><span class="special">;</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">istream_iterator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">it</span><span class="special">(</span><span class="identifier">mybufstream</span><span class="special">),</span> <span class="identifier">itend</span><span class="special">;</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span><span class="identifier">it</span><span class="special">,</span> <span class="identifier">itend</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">back_inserter</span><span class="special">(</span><span class="identifier">data2</span><span class="special">));</span>
+
+   <span class="comment">//This extraction should have ended will fail error since</span>
+   <span class="comment">//the numbers formatted in the buffer end before the end</span>
+   <span class="comment">//of the buffer. (Otherwise it would trigger eofbit)</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">mybufstream</span><span class="special">.</span><span class="identifier">fail</span><span class="special">());</span>
+
+   <span class="comment">//Compare data</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">equal</span><span class="special">(</span><span class="identifier">data</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">data</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">data2</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()));</span>
+
+   <span class="comment">//Clear errors and rewind</span>
+   <span class="identifier">mybufstream</span><span class="special">.</span><span class="identifier">clear</span><span class="special">();</span>
+   <span class="identifier">mybufstream</span><span class="special">.</span><span class="identifier">seekp</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ios</span><span class="special">::</span><span class="identifier">beg</span><span class="special">);</span>
+
+   <span class="comment">//Now write again the data trying to do a buffer overflow</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">m</span> <span class="special">=</span> <span class="identifier">data</span><span class="special">.</span><span class="identifier">size</span><span class="special">()*</span><span class="number">5</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">m</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+      <span class="identifier">mybufstream</span> <span class="special">&lt;&lt;</span> <span class="identifier">data</span><span class="special">[</span><span class="identifier">i</span><span class="special">%</span><span class="number">5</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+   <span class="special">}</span>
+
+   <span class="comment">//Now make sure badbit is active</span>
+   <span class="comment">//which means overflow attempt.</span>
+   <span class="identifier">assert</span><span class="special">(!</span><span class="identifier">mybufstream</span><span class="special">.</span><span class="identifier">good</span><span class="special">());</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">mybufstream</span><span class="special">.</span><span class="identifier">bad</span><span class="special">());</span>
+   <span class="identifier">segment</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">my_cstring</span><span class="special">);</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        As seen, <span class="bold"><strong>bufferstream</strong></span> offers an efficient
+        way to format data without any allocation and extra copies. This is very
+        helpful in embedded systems, or formatting inside time-critical loops, where
+        stringstream extra copies would be too expensive. Unlike sprintf/sscanf,
+        it has protection against buffer overflows. As we know, according to the
+        <span class="bold"><strong>Technical Report on C++ Performance</strong></span>, it's
+        possible to design efficient iostreams for embedded platforms, so this bufferstream
+        class comes handy to format data to stack, static or shared memory buffers.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="memory_algorithms.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interprocess_smart_ptr.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

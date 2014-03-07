@@ -1,0 +1,38 @@
+[/ 
+  (C) Copyright Edward Diener 2011
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:tti_reason Why the TTI Library ?]
+
+In the Boost Type Traits library there is compile time functionality for 
+querying information about a C++ type. This information is very useful 
+during template metaprogramming and forms the basis, along with the 
+constructs of the Boost MPL library, and some other compile time 
+libraries, for much of the template metaprogramming in Boost.
+
+One area which is mostly missing in the Type Traits library is the ability 
+to determine what C++ inner elements are part of a type, where the inner 
+element may be a nested type, function or data member, static function or 
+static data member, or class template.
+
+There has been some of this functionality in Boost, both in already existing
+libraries and in libraries on which others have worked but which were 
+never submitted for acceptance into Boost. An example with an existing Boost
+library is Boost MPL, where there is functionality, in the form of macros and metafunctions, 
+to determine whether an enclosing type has a particular nested type or nested 
+class template. An example with a library which was never submitted to Boost 
+is the Concept Traits Library from which much of the functionality of this 
+library, related to type traits, was taken and expanded.
+
+It may also be possible that some other Boost libraries, highly dependent 
+on advanced template metaprogramming techniques, also have internal 
+functionality to introspect a type's elements at compile time. But to the best 
+of my knowledge this sort of functionality has never been incorporated in 
+a single Boost library. This library is an attempt to do so, and to bring  
+a recognizable set of interfaces to compile-time type introspection to Boost 
+so that other metaprogramming libraries can use them for their own needs.
+
+[endsect]

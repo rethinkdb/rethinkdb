@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/functional/std/utility.hpp">
+  <para>Defines Proto callables <computeroutput><classname>boost::proto::functional::make_pair</classname></computeroutput>,
+  <computeroutput><classname>boost::proto::functional::first</classname></computeroutput> and
+  <computeroutput><classname>boost::proto::functional::second</classname></computeroutput>.</para>
+
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="functional">
+
+        <!-- proto::functional::make_pair -->
+        <struct name="make_pair">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes
+            <computeroutput>std::make_pair()</computeroutput> on its arguments.</purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes
+              <computeroutput>std::make_pair()</computeroutput> on its arguments.</para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="First"/>
+              <template-type-parameter name="Second"/>
+            </template>
+            <specialization>
+              <template-arg>This(First, Second)</template-arg>
+            </specialization>
+            <typedef name="type">
+              <type>std::pair&lt;
+        typename boost::remove_const&lt;typename boost::remove_reference&lt;First&gt;::type&gt;::type
+      , typename boost::remove_const&lt;typename boost::remove_reference&lt;Second&gt;::type&gt;::type
+    &gt;</type>
+            </typedef>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename std::pair&lt; First, Second &gt;</type>
+              <template>
+                <template-type-parameter name="First"/>
+                <template-type-parameter name="Second"/>
+              </template>
+              <parameter name="first">
+                <paramtype>First const &amp;</paramtype>
+              </parameter>
+              <parameter name="second">
+                <paramtype>Second const &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para><computeroutput>std::make_pair(first, second)</computeroutput></para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+
+        <!-- proto::functional::first -->
+        <struct name="first">
+          <purpose>
+            A <conceptname>PolymorphicFunctionObject</conceptname> type that returns
+            the first element of a <computeroutput>std::pair&lt;&gt;</computeroutput>.
+          </purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that returns
+              the first element of a <computeroutput>std::pair&lt;&gt;</computeroutput>.</para>
+          </description>
+          <inherit><type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Pair"/>
+            </template>
+            <specialization>
+              <template-arg>This(Pair)</template-arg>
+            </specialization>
+            <typedef name="type">
+              <type>typename Pair::first_type</type>
+            </typedef>
+          </struct-specialization>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Pair"/>
+            </template>
+            <specialization>
+              <template-arg>This(Pair &amp;)</template-arg>
+            </specialization>
+            <typedef name="type">
+              <type>typename Pair::first_type &amp;</type>
+            </typedef>
+          </struct-specialization>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Pair"/>
+            </template>
+            <specialization>
+              <template-arg>This(Pair const &amp;)</template-arg>
+            </specialization>
+            <typedef name="type">
+              <type>typename Pair::first_type const &amp;</type>
+            </typedef>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename Pair::first_type &amp;</type>
+              <template>
+                <template-type-parameter name="Pair"/>
+              </template>
+              <parameter name="pair">
+                <paramtype>Pair &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para>
+                  <computeroutput>pair.first</computeroutput>
+                </para>
+              </returns>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename Pair::first_type const &amp;</type>
+              <template>
+                <template-type-parameter name="Pair"/>
+              </template>
+              <parameter name="pair">
+                <paramtype>Pair const &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para>
+                  <computeroutput>pair.first</computeroutput>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+
+        <!-- proto::functional::second -->
+        <struct name="second">
+          <purpose>
+            A <conceptname>PolymorphicFunctionObject</conceptname> type that returns
+            the second element of a <computeroutput>std::pair&lt;&gt;</computeroutput>.
+          </purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that returns
+              the second element of a <computeroutput>std::pair&lt;&gt;</computeroutput>.
+            </para>
+          </description>
+          <inherit><type><classname>proto::callable</classname></type></inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Pair"/>
+            </template>
+            <specialization>
+              <template-arg>This(Pair)</template-arg>
+            </specialization>
+            <typedef name="type">
+              <type>typename Pair::second_type</type>
+            </typedef>
+          </struct-specialization>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Pair"/>
+            </template>
+            <specialization>
+              <template-arg>This(Pair &amp;)</template-arg>
+            </specialization>
+            <typedef name="type">
+              <type>typename Pair::second_type &amp;</type>
+            </typedef>
+          </struct-specialization>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Pair"/>
+            </template>
+            <specialization>
+              <template-arg>This(Pair const &amp;)</template-arg>
+            </specialization>
+            <typedef name="type">
+              <type>typename Pair::second_type const &amp;</type>
+            </typedef>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename Pair::second_type &amp;</type>
+              <template>
+                <template-type-parameter name="Pair"/>
+              </template>
+              <parameter name="pair">
+                <paramtype>Pair &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para>
+                  <computeroutput>pair.second</computeroutput>
+                </para>
+              </returns>
+            </method>
+            <method name="operator()" cv="const">
+              <type>typename Pair::second_type const &amp;</type>
+              <template>
+                <template-type-parameter name="Pair"/>
+              </template>
+              <parameter name="pair">
+                <paramtype>Pair const &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para>
+                  <computeroutput>pair.second</computeroutput>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+
+      </namespace>
+    </namespace>
+  </namespace>
+
+</header>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library-reference PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library-reference xmlns:xi="http://www.w3.org/2001/XInclude">
+
+  <xi:include href="concepts.xml"/>
+
+  <header name="boost/variant.hpp">
+    <section id="variant.header.include-all">
+      <para>This header exists simply as a convenience to the user, including
+      all of the headers in the <code>boost/variant</code> directory except &lt;boost/multivisiors.hpp&gt;.</para>
+    </section>
+  </header>
+
+  <xi:include href="variant_fwd.xml"/>
+  <xi:include href="variant.xml"/>
+  <xi:include href="recursive_variant.xml"/>
+  <xi:include href="recursive_wrapper.xml"/>
+  <xi:include href="apply_visitor.xml"/>
+  <xi:include href="multivisitor.xml"/>
+  <xi:include href="get.xml"/>
+  <xi:include href="bad_visit.xml"/>
+  <xi:include href="static_visitor.xml"/>
+  <xi:include href="visitor_ptr.xml"/>
+</library-reference>

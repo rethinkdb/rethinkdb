@@ -1,0 +1,224 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0063)http://www.boost.org/libs/graph/doc/cuthill_mckee_ordering.html -->
+<HTML><HEAD><TITLE>Boost Graph Library: Sloan Ordering</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=windows-1252"><!--
+  -- Copyright (c) Jeremy Siek 2000
+  --
+  -- Distributed under the Boost Software License, Version 1.0.
+  -- (See accompanying file LICENSE_1_0.txt or copy at
+  -- http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<META content="MSHTML 6.00.2715.400" name=GENERATOR></HEAD>
+<BODY text=#000000 vLink=#551a8b aLink=#ff0000 link=#0000ee bgColor=#ffffff>
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> <BR>
+<H1><A name=sec:bfs></a><tt>sloan_ordering</tt></H1>
+<P>
+<DIV align=left>
+<TABLE cellPadding=3 border=1>
+  <TBODY>
+  <TR>
+    <TH align=left><B>Graphs:</B></TH>
+    <TD align=left>undirected</TD></TR>
+  <TR>
+    <TH align=left><B>Properties:</B></TH>
+      <TD align=left>color, degree, current_degree, priority</TD>
+    </TR>
+  <TR>
+    <TH align=left><B>Complexity:</B></TH>
+    <TD align=left>time: <I>O(log(m)|E|)</I> where <I>m = max { degree(v) | v 
+      in V }</I> </TD></TR></TBODY></TABLE></DIV>
+<PRE>  (1)
+  template &lt;class Graph, class OutputIterator,
+                  class ColorMap, class DegreeMap, 
+                  class PriorityMap, class Weight&gt;
+  OutputIterator
+  sloan_ordering(Graph&amp; g,
+                 typename graph_traits&lt;Graph&gt;::vertex_descriptor s,
+                 typename graph_traits&lt;Graph&gt;::vertex_descriptor e,
+                 OutputIterator permutation, 
+                 ColorMap color, 
+                 DegreeMap degree, 
+                 PriorityMap priority, 
+                 Weight W1, 
+                 Weight W2 )
+
+  (2)
+   template &lt;class Graph, class OutputIterator,
+                  class ColorMap, class DegreeMap, 
+                  class PriorityMap, class Weight&gt;
+  OutputIterator
+  sloan_ordering(Graph&amp; g,
+                 OutputIterator permutation, 
+                 ColorMap color, 
+                 DegreeMap degree, 
+                 PriorityMap priority, 
+                 Weight W1, 
+                 Weight W2 )
+
+
+(3)
+ template &lt;class Graph, class OutputIterator,
+                  class ColorMap, class DegreeMap, 
+                  class PriorityMap&gt;
+  OutputIterator
+  sloan_ordering(Graph&amp; g,
+                 typename graph_traits&lt;Graph&gt;::vertex_descriptor s,
+                 typename graph_traits&lt;Graph&gt;::vertex_descriptor e,
+                 OutputIterator permutation, 
+                 ColorMap color, 
+                 DegreeMap degree, 
+                 PriorityMap priority )
+
+
+(4)
+ template &lt;class Graph, class OutputIterator,
+                  class ColorMap, class DegreeMap, 
+                  class PriorityMap&gt;
+  OutputIterator
+  sloan_ordering(Graph&amp; g,
+                 OutputIterator permutation, 
+                 ColorMap color, 
+                 DegreeMap degree, 
+                 PriorityMap priority )</PRE>
+<p>The goal of the Sloan ordering algorithm[1, 2] is to reduce the profile and 
+  the wavefront of a graph by reordering the indices assigned to each vertex. 
+  The Sloan algorithm needs a start and an end vertex. These vertices can be asigned 
+  manually. But there is also an algorithm sloan_starting_nodes that provides 
+  usually quite good start and end vertices. Each vertex is asigned with a priority. 
+  This priority is a weighted sum of the distance of the vector to the end vertex 
+  (a global criterion) and is called the current degree of vertex. This current 
+  degree basically reflects the status of the renumbering in the neighborhood 
+  of a vertex (a local criterion). Therefore the Sloan algorithm (in contrast 
+  to-McKee) takes into account local as well as global criteria for the renumbering 
+  sequence. One can play around with the relative weights, but the default values 
+  proposed by Sloan (weight1/weight2=1/2) turn out to be pretty good in most cases. 
+</p>
+<P>Version 1 of the algorithm lets the user choose the start- and end-vertex whereas 
+  version 2 finds a good starting vertex using the already mentioned sloan_starting_node 
+  algorithm. The choice of these vertices can have a significant effect on the 
+  quality of the ordering. Version 3 and 4 are identical to version 1 and 2 respectively, 
+  except that for the weights the standard weights W1=1 and W2=2 are used. 
+<P>The output of the algorithm are the vertices in the new ordering. Depending 
+  on what kind of output iterator you use, you can get either the Sloan ordering 
+  or the reverse Sloan ordering. For example, if you store the output into a vector 
+  using the vector's reverse iterator, then you get the reverse Sloan ordering. 
+<PRE>  std::vector&lt;vertex_descriptor&gt; inv_perm(num_vertices(G));
+  sloan_ordering(G, inv_perm.rbegin());
+</PRE>
+<P>Either way, storing the output into a vector gives you the permutation from 
+the new ordering to the old ordering. <PRE>  inv_perm[new_index[u]] == u
+</PRE>
+<P>Sometimes, it is the opposite permutation that you want, the permutation from 
+  the old index to the new index. This can easily be computed in the following 
+  way. 
+<PRE>  for (size_type i = 0; i != inv_perm.size(); ++i)
+    perm[old_index[inv_perm[i]]] = i;
+</PRE>
+<p>Usually you need the reversed ordering with the Cuthill-McKee algorithm and 
+  the direct ordering with the Sloan algorithm.</p>
+<H3>Parameters</H3>
+For version 1: 
+<UL>
+  <LI><TT>Graph&amp; g</TT> &nbsp;(IN) <BR>
+    An undirected graph. The graph's type must be a model of <A 
+  href="./IncidenceGraph.html">IncidenceGraph</a>. 
+  <LI><TT>vertex_descriptor s</TT> &nbsp;(IN) <BR>
+    The starting vertex. 
+  <LI><tt>vertex_descriptor e</tt>&nbsp;(IN)<br>
+    The ending vertex<br>
+  <LI><TT>OutputIterator permutation</TT> &nbsp;(OUT) <BR>
+    The new vertex ordering. The vertices are written to the <a
+  href="http://www.sgi.com/tech/stl/OutputIterator.html">output iterator</a> in 
+    their new order. 
+  <LI><TT>ColorMap color_map</TT> &nbsp;(WORK) <BR>
+    Used internally to keep track of the progress of the algorithm (to avoid visiting 
+    the same vertex twice). 
+  <LI><tt>PriorityMap priority_map</tt> &nbsp;(IN)<br>
+    Used internally to store the priority for renumbering of each vertex. </LI>
+  <LI><TT>DegreeMap degree_map</TT> &nbsp;(IN) <BR>
+    This must map vertices to their degree. </LI>
+  <LI><tt>Weight W1 &amp; W2</tt> &nbsp;(IN) <br>
+    Heuristical weights for the Sloan algorithm. </LI>
+</UL>
+<p>For version 2: </p>
+<ul>
+  <li><tt>Graph&amp; g</tt> &nbsp;(IN) <br>
+    An undirected graph. The graph's type must be a model of <a 
+  href="./IncidenceGraph.html">IncidenceGraph</a>.<br>
+  <li><tt>OutputIterator permutation</tt> &nbsp;(OUT) <br>
+    The new vertex ordering. The vertices are written to the <a 
+  href="http://www.sgi.com/tech/stl/OutputIterator.html">output iterator</a> in 
+    their new order. 
+  <li><tt>ColorMap color_map</tt> &nbsp;(WORK) <br>
+    Used internally to keep track of the progress of the algorithm (to avoid visiting 
+    the same vertex twice). 
+  <li><tt>PriorityMap priority_map</tt> &nbsp;(IN)<br>
+    Used internally to store the priority for renumbering of each vertex. </li>
+  <li><tt>DegreeMap degree_map</tt> &nbsp;(IN) <br>
+    This must map vertices to their degree. </li>
+  <li><tt>Weight W1 &amp; W2</tt> &nbsp;(IN) <br>
+    Heuristical weights for the Sloan algorithm. </li>
+</ul>
+<p>For version 3: </p>
+<ul>
+  <li><tt>Graph&amp; g</tt> &nbsp;(IN) <br>
+    An undirected graph. The graph's type must be a model of <a 
+  href="./IncidenceGraph.html">IncidenceGraph</a>. 
+  <li><tt>vertex_descriptor s</tt> &nbsp;(IN) <br>
+    The starting vertex. 
+  <li><tt>vertex_descriptor e</tt>&nbsp;(IN)<br>
+    The ending vertex<br>
+  <li><tt>OutputIterator permutation</tt> &nbsp;(OUT) <br>
+    The new vertex ordering. The vertices are written to the <a 
+  href="http://www.sgi.com/tech/stl/OutputIterator.html">output iterator</a> in 
+    their new order. 
+  <li><tt>ColorMap color_map</tt> &nbsp;(WORK) <br>
+    Used internally to keep track of the progress of the algorithm (to avoid visiting 
+    the same vertex twice). 
+  <li><tt>PriorityMap priority_map</tt> &nbsp;(IN)<br>
+    Used internally to store the priority for renumbering of each vertex. </li>
+  <li><tt>DegreeMap degree_map</tt> &nbsp;(IN) <br>
+    This must map vertices to their degree. </li>
+</ul>
+<p>For version 4: </p>
+<ul>
+  <li><tt>Graph&amp; g</tt> &nbsp;(IN) <br>
+    An undirected graph. The graph's type must be a model of <a 
+  href="./IncidenceGraph.html">IncidenceGraph</a>.<br>
+  <li><tt>OutputIterator permutation</tt> &nbsp;(OUT) <br>
+    The new vertex ordering. The vertices are written to the <a 
+  href="http://www.sgi.com/tech/stl/OutputIterator.html">output iterator</a> in 
+    their new order. 
+  <li><tt>ColorMap color_map</tt> &nbsp;(WORK) <br>
+    Used internally to keep track of the progress of the algorithm (to avoid visiting 
+    the same vertex twice). 
+  <li><tt>PriorityMap priority_map</tt> &nbsp;(IN)<br>
+    Used internally to store the priority for renumbering of each vertex. </li>
+  <li><tt>DegreeMap degree_map</tt> &nbsp;(IN) <br>
+    This must map vertices to their degree. </li>
+</ul>
+<p>&nbsp;</p>
+<H3>Example</H3>
+See <A 
+href="../example/sloan_ordering.cpp"><TT>example/sloan_ordering.cpp</TT></A>. 
+<H3>See Also</H3>
+<p><a href="./sloan_start_end_vertices.htm">sloan_start_end_vertices</a>, 
+  <A 
+href="./bandwidth.html">bandwidth</a>, <a href="./profile.htm">profile</a>, <a href="./wavefront.htm">wavefront</a> 
+  and <TT>degree_property_map</TT> in <TT>boost/graph/properties.hpp</TT>. </p>
+<p>[1] S. W. Sloan, <i>An algorithm for profile and wavefront reduction of sparse 
+  matrices</i>, Int. j. numer. methods eng., <b>23</b>, 239 - 251 (1986)</p>
+<p>[2] S. W. Sloan, <i>A fortran program for profile and wavefront reduction</i>, 
+  Int. j. numer. methods eng., <b>28</b>, 2651 - 2679 (1989)<BR>
+</p>
+<HR>
+
+<TABLE width="718">
+  <TBODY> 
+  <TR vAlign=top>
+    <TD noWrap>Copyright © 2001-2002</TD>
+    <TD>Marc Wintermantel, ETH Zurich (<A 
+      href="mailto:wintermantel@imes.mavt.ethz.ch">wintermantel@imes.mavt.ethz.ch</a>) 
+    </TD>
+  </TR></TBODY></TABLE></BODY></HTML>

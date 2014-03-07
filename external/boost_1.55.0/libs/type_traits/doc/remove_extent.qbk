@@ -1,0 +1,44 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:remove_extent remove_extent]
+
+   template <class T>
+   struct remove_extent
+   {
+      typedef __below type;
+   };
+  
+__type If `T` is an array type, then removes the topmost array bound, 
+otherwise leaves `T` unchanged.
+
+__std_ref 8.3.4.
+
+__compat If the compiler does not support partial specialization of class-templates
+then this template will compile, but the member `type` will always be the same as 
+type `T` except where __transform_workaround have been applied.
+
+__header ` #include <boost/type_traits/remove_extent.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[table Examples
+
+[ [Expression] [Result Type]]
+
+[[`remove_extent<int>::type`][`int`]]
+
+[[`remove_extent<int const[2]>::type`] [`int const`]]
+
+[[`remove_extent<int[2][4]>::type`] [`int[4]`]]
+
+[[`remove_extent<int[][2]>::type`] [`int[2]`]]
+
+[[`remove_extent<int const*>::type`] [`int const*`]]
+
+]
+
+[endsect]
+

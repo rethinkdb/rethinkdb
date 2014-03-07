@@ -1,0 +1,319 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;14.&#160;Boost.Interprocess</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="heap/acknowledgements.html" title="Acknowledgements">
+<link rel="next" href="interprocess/quick_guide.html" title="Quick Guide for the Impatient">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="heap/acknowledgements.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interprocess/quick_guide.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="interprocess"></a>Chapter&#160;14.&#160;Boost.Interprocess</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Ion</span> <span class="surname">Gaztanaga</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2005-2012 Ion Gaztanaga</p></div>
+<div><div class="legalnotice">
+<a name="interprocess.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="interprocess.html#interprocess.intro">Introduction</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess.html#interprocess.intro.introduction_building_interprocess">Building
+      Boost.Interprocess</a></span></dt>
+<dt><span class="section"><a href="interprocess.html#interprocess.intro.tested_compilers">Tested compilers</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/quick_guide.html">Quick Guide for the Impatient</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/quick_guide.html#interprocess.quick_guide.qg_memory_pool">Using shared
+      memory as a pool of unnamed memory blocks</a></span></dt>
+<dt><span class="section"><a href="interprocess/quick_guide.html#interprocess.quick_guide.qg_named_interprocess">Creating
+      named shared memory objects</a></span></dt>
+<dt><span class="section"><a href="interprocess/quick_guide.html#interprocess.quick_guide.qg_offset_ptr">Using an offset
+      smart pointer for shared memory</a></span></dt>
+<dt><span class="section"><a href="interprocess/quick_guide.html#interprocess.quick_guide.qg_interprocess_container">Creating
+      vectors in shared memory</a></span></dt>
+<dt><span class="section"><a href="interprocess/quick_guide.html#interprocess.quick_guide.qg_interprocess_map">Creating
+      maps in shared memory</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/some_basic_explanations.html">Some basic explanations</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/some_basic_explanations.html#interprocess.some_basic_explanations.processes_and_threads">Processes
+      And Threads</a></span></dt>
+<dt><span class="section"><a href="interprocess/some_basic_explanations.html#interprocess.some_basic_explanations.sharing_information">Sharing
+      information between processes</a></span></dt>
+<dt><span class="section"><a href="interprocess/some_basic_explanations.html#interprocess.some_basic_explanations.persistence">Persistence
+      Of Interprocess Mechanisms</a></span></dt>
+<dt><span class="section"><a href="interprocess/some_basic_explanations.html#interprocess.some_basic_explanations.names">Names Of
+      Interprocess Mechanisms</a></span></dt>
+<dt><span class="section"><a href="interprocess/some_basic_explanations.html#interprocess.some_basic_explanations.constructors_destructors_and_resource_lifetime">Constructors,
+      destructors and lifetime of Interprocess named resources</a></span></dt>
+<dt><span class="section"><a href="interprocess/some_basic_explanations.html#interprocess.some_basic_explanations.permissions">Permissions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/sharedmemorybetweenprocesses.html">Sharing memory
+    between processes</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.sharedmemory">Shared
+      memory</a></span></dt>
+<dt><span class="section"><a href="interprocess/sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_file">Memory
+      Mapped Files</a></span></dt>
+<dt><span class="section"><a href="interprocess/sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region">More
+      About Mapped Regions</a></span></dt>
+<dt><span class="section"><a href="interprocess/sharedmemorybetweenprocesses.html#interprocess.sharedmemorybetweenprocesses.mapped_region_object_limitations">Limitations
+      When Constructing Objects In Mapped Regions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/offset_ptr.html">Mapping Address Independent Pointer:
+    offset_ptr</a></span></dt>
+<dt><span class="section"><a href="interprocess/synchronization_mechanisms.html">Synchronization
+    mechanisms</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/synchronization_mechanisms.html#interprocess.synchronization_mechanisms.synchronization_mechanisms_overview">Synchronization
+      mechanisms overview</a></span></dt>
+<dt><span class="section"><a href="interprocess/synchronization_mechanisms.html#interprocess.synchronization_mechanisms.mutexes">Mutexes</a></span></dt>
+<dt><span class="section"><a href="interprocess/synchronization_mechanisms.html#interprocess.synchronization_mechanisms.conditions">Conditions</a></span></dt>
+<dt><span class="section"><a href="interprocess/synchronization_mechanisms.html#interprocess.synchronization_mechanisms.semaphores">Semaphores</a></span></dt>
+<dt><span class="section"><a href="interprocess/synchronization_mechanisms.html#interprocess.synchronization_mechanisms.sharable_upgradable_mutexes">Sharable
+      and Upgradable Mutexes</a></span></dt>
+<dt><span class="section"><a href="interprocess/synchronization_mechanisms.html#interprocess.synchronization_mechanisms.lock_conversions">Lock
+      Transfers Through Move Semantics</a></span></dt>
+<dt><span class="section"><a href="interprocess/synchronization_mechanisms.html#interprocess.synchronization_mechanisms.file_lock">File
+      Locks</a></span></dt>
+<dt><span class="section"><a href="interprocess/synchronization_mechanisms.html#interprocess.synchronization_mechanisms.message_queue">Message
+      Queue</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/managed_memory_segments.html">Managed Memory Segments</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/managed_memory_segments.html#interprocess.managed_memory_segments.making_ipc_easy">Making
+      Interprocess Data Communication Easy</a></span></dt>
+<dt><span class="section"><a href="interprocess/managed_memory_segments.html#interprocess.managed_memory_segments.managed_shared_memory">Managed
+      Shared Memory</a></span></dt>
+<dt><span class="section"><a href="interprocess/managed_memory_segments.html#interprocess.managed_memory_segments.managed_mapped_files">Managed
+      Mapped File</a></span></dt>
+<dt><span class="section"><a href="interprocess/managed_memory_segments.html#interprocess.managed_memory_segments.managed_memory_segment_features">Managed
+      Memory Segment Features</a></span></dt>
+<dt><span class="section"><a href="interprocess/managed_memory_segments.html#interprocess.managed_memory_segments.managed_memory_segment_advanced_features">Managed
+      Memory Segment Advanced Features</a></span></dt>
+<dt><span class="section"><a href="interprocess/managed_memory_segments.html#interprocess.managed_memory_segments.managed_heap_memory_external_buffer">Managed
+      Heap Memory And Managed External Buffer</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/allocators_containers.html">Allocators, containers
+    and memory allocation algorithms</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/allocators_containers.html#interprocess.allocators_containers.allocator_introduction">Introduction
+      to Interprocess allocators</a></span></dt>
+<dt><span class="section"><a href="interprocess/allocators_containers.html#interprocess.allocators_containers.stl_allocators_segregated_storage">Segregated
+      storage node allocators</a></span></dt>
+<dt><span class="section"><a href="interprocess/allocators_containers.html#interprocess.allocators_containers.stl_allocators_adaptive">Adaptive
+      pool node allocators</a></span></dt>
+<dt><span class="section"><a href="interprocess/allocators_containers.html#interprocess.allocators_containers.containers_explained">Interprocess
+      and containers in managed memory segments</a></span></dt>
+<dt><span class="section"><a href="interprocess/allocators_containers.html#interprocess.allocators_containers.additional_containers">Boost
+      containers compatible with Boost.Interprocess</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/memory_algorithms.html">Memory allocation algorithms</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/memory_algorithms.html#interprocess.memory_algorithms.simple_seq_fit">simple_seq_fit:
+      A simple shared memory management algorithm</a></span></dt>
+<dt><span class="section"><a href="interprocess/memory_algorithms.html#interprocess.memory_algorithms.rbtree_best_fit">rbtree_best_fit:
+      Best-fit logarithmic-time complexity allocation</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/streams.html">Direct iostream formatting: vectorstream
+    and bufferstream</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/streams.html#interprocess.streams.vectorstream">Formatting directly
+      in your character vector: vectorstream</a></span></dt>
+<dt><span class="section"><a href="interprocess/streams.html#interprocess.streams.bufferstream">Formatting directly
+      in your character buffer: bufferstream</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/interprocess_smart_ptr.html">Ownership smart pointers</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/interprocess_smart_ptr.html#interprocess.interprocess_smart_ptr.intrusive_ptr">Intrusive
+      pointer</a></span></dt>
+<dt><span class="section"><a href="interprocess/interprocess_smart_ptr.html#interprocess.interprocess_smart_ptr.scoped_ptr">Scoped
+      pointer</a></span></dt>
+<dt><span class="section"><a href="interprocess/interprocess_smart_ptr.html#interprocess.interprocess_smart_ptr.shared_ptr">Shared
+      pointer and weak pointer</a></span></dt>
+<dt><span class="section"><a href="interprocess/interprocess_smart_ptr.html#interprocess.interprocess_smart_ptr.unique_ptr">Unique
+      pointer</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/architecture.html">Architecture and internals</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/architecture.html#interprocess.architecture.basic_guidelines">Basic guidelines</a></span></dt>
+<dt><span class="section"><a href="interprocess/architecture.html#interprocess.architecture.architecture_algorithm_to_managed">From
+      the memory algorithm to the managed segment</a></span></dt>
+<dt><span class="section"><a href="interprocess/architecture.html#interprocess.architecture.allocators_containers">Allocators
+      and containers</a></span></dt>
+<dt><span class="section"><a href="interprocess/architecture.html#interprocess.architecture.performance">Performance of
+      Boost.Interprocess</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/customizing_interprocess.html">Customizing Boost.Interprocess</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/customizing_interprocess.html#interprocess.customizing_interprocess.custom_interprocess_alloc">Writing
+      a new shared memory allocation algorithm</a></span></dt>
+<dt><span class="section"><a href="interprocess/customizing_interprocess.html#interprocess.customizing_interprocess.custom_allocators">Building
+      custom STL compatible allocators for Boost.Interprocess</a></span></dt>
+<dt><span class="section"><a href="interprocess/customizing_interprocess.html#interprocess.customizing_interprocess.custom_indexes">Building
+      custom indexes</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/acknowledgements_notes.html">Acknowledgements,
+    notes and links</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/acknowledgements_notes.html#interprocess.acknowledgements_notes.notes">Notes</a></span></dt>
+<dt><span class="section"><a href="interprocess/acknowledgements_notes.html#interprocess.acknowledgements_notes.thanks_to">Thanks
+      to...</a></span></dt>
+<dt><span class="section"><a href="interprocess/acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes">Release
+      Notes</a></span></dt>
+<dt><span class="section"><a href="interprocess/acknowledgements_notes.html#interprocess.acknowledgements_notes.books_and_links">Books
+      and interesting links</a></span></dt>
+<dt><span class="section"><a href="interprocess/acknowledgements_notes.html#interprocess.acknowledgements_notes.future_improvements">Future
+      improvements...</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="interprocess/indexes_reference.html">Indexes and Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interprocess/indexes_reference.html#interprocess.indexes_reference.index">Indexes</a></span></dt>
+<dt><span class="section"><a href="interprocess/indexes_reference.html#boost_interprocess_reference">Boost.Interprocess Reference</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="interprocess.intro"></a><a class="link" href="interprocess.html#interprocess.intro" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="interprocess.html#interprocess.intro.introduction_building_interprocess">Building
+      Boost.Interprocess</a></span></dt>
+<dt><span class="section"><a href="interprocess.html#interprocess.intro.tested_compilers">Tested compilers</a></span></dt>
+</dl></div>
+<p>
+      <span class="bold"><strong>Boost.Interprocess</strong></span> simplifies the use of common
+      interprocess communication and synchronization mechanisms and offers a wide
+      range of them:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Shared memory.
+        </li>
+<li class="listitem">
+          Memory-mapped files.
+        </li>
+<li class="listitem">
+          Semaphores, mutexes, condition variables and upgradable mutex types to
+          place them in shared memory and memory mapped files.
+        </li>
+<li class="listitem">
+          Named versions of those synchronization objects, similar to UNIX/Windows
+          sem_open/CreateSemaphore API.
+        </li>
+<li class="listitem">
+          File locking.
+        </li>
+<li class="listitem">
+          Relative pointers.
+        </li>
+<li class="listitem">
+          Message queues.
+        </li>
+</ul></div>
+<p>
+      <span class="bold"><strong>Boost.Interprocess</strong></span> also offers higher-level
+      interprocess mechanisms to allocate dynamically portions of a shared memory
+      or a memory mapped file (in general, to allocate portions of a fixed size memory
+      segment). Using these mechanisms, <span class="bold"><strong>Boost.Interprocess</strong></span>
+      offers useful tools to construct C++ objects, including STL-like containers,
+      in shared memory and memory mapped files:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Dynamic creation of anonymous and named objects in a shared memory or memory
+          mapped file.
+        </li>
+<li class="listitem">
+          STL-like containers compatible with shared memory/memory-mapped files.
+        </li>
+<li class="listitem">
+          STL-like allocators ready for shared memory/memory-mapped files implementing
+          several memory allocation patterns (like pooling).
+        </li>
+</ul></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.intro.introduction_building_interprocess"></a><a class="link" href="interprocess.html#interprocess.intro.introduction_building_interprocess" title="Building Boost.Interprocess">Building
+      Boost.Interprocess</a>
+</h3></div></div></div>
+<p>
+        There is no need to compile <span class="bold"><strong>Boost.Interprocess</strong></span>,
+        since it's a header only library. Just include your Boost header directory
+        in your compiler include path.
+      </p>
+<p>
+        <span class="bold"><strong>Boost.Interprocess</strong></span> depends on <a href="http://www.boost.org/libs/date_time/" target="_top"><span class="bold"><strong>Boost.DateTime</strong></span></a>, which needs separate compilation.
+        However, the subset used by <span class="bold"><strong>Boost.Interprocess</strong></span>
+        does not need any separate compilation so the user can define <code class="computeroutput"><span class="identifier">BOOST_DATE_TIME_NO_LIB</span></code> to avoid Boost from
+        trying to automatically link the <span class="bold"><strong>Boost.DateTime</strong></span>.
+      </p>
+<p>
+        In POSIX systems, <span class="bold"><strong>Boost.Interprocess</strong></span> uses
+        pthread system calls to implement classes like mutexes, condition variables,
+        etc... In some operating systems, these POSIX calls are implemented in separate
+        libraries that are not automatically linked by the compiler. For example,
+        in some Linux systems POSIX pthread functions are implemented in <code class="computeroutput"><span class="identifier">librt</span><span class="special">.</span><span class="identifier">a</span></code> library, so you might need to add that
+        library when linking an executable or shared library that uses <span class="bold"><strong>Boost.Interprocess</strong></span>. If you obtain linking errors related
+        to those pthread functions, please revise your system's documentation to
+        know which library implements them.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.intro.tested_compilers"></a><a class="link" href="interprocess.html#interprocess.intro.tested_compilers" title="Tested compilers">Tested compilers</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Interprocess</strong></span> has been tested in the
+        following compilers/platforms:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Visual &gt;= 7.1
+          </li>
+<li class="listitem">
+            GCC &gt;= 4.1
+          </li>
+<li class="listitem">
+            Intel 11
+          </li>
+</ul></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:50:26 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="heap/acknowledgements.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interprocess/quick_guide.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2002-2006 Pavol Droba.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="string_algo.release_notes" last-revision="$Date: 2012-12-28 10:19:25 -0800 (Fri, 28 Dec 2012) $">
+
+    <using-namespace name="boost"/>
+    <using-namespace name="boost::algorithm"/>
+
+    <title>Release Notes</title>
+
+    <itemizedlist>
+        <listitem>
+            <para><emphasis role="bold">1.32</emphasis></para>
+            <para>Initial release in Boost</para>
+        </listitem>
+        <listitem>
+            <para><emphasis role="bold">1.33</emphasis></para>
+            <para>Internal version of collection traits removed, library adapted to Boost.Range</para>
+        </listitem>
+        <listitem>
+            <para><emphasis role="bold">1.34</emphasis></para>
+            <itemizedlist>
+                <listitem>
+                    <functionname>lexicographical_compare()</functionname>
+                </listitem>
+                <listitem>
+                    <functionname>join()</functionname> and <functionname>join_if()</functionname> 
+                </listitem>
+                <listitem>
+                    New comparison predicates <code>is_less</code>, <code>is_not_greater</code>
+                </listitem>
+                <listitem>
+                     Negative indexes support (like Perl) in various algorithms
+                     (<code>*_head/tail</code>, <code>*_nth</code>).
+                </listitem>                                      
+            </itemizedlist>
+        </listitem>
+    </itemizedlist>
+</section>

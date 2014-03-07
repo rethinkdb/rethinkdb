@@ -1,0 +1,117 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function operator,</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.transform.env_hpp" title="Header &lt;boost/proto/transform/env.hpp&gt;">
+<link rel="prev" href="env_var_idp68605896.html" title="Function env_var">
+<link rel="next" href="_env_var.html" title="Struct template _env_var">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="env_var_idp68605896.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.transform.env_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="_env_var.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.operator,_idp68612776"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function operator,</span></h2>
+<p>boost::proto::operator, &#8212; 
+          For composing a larger transform environment from two smaller ones.
+        </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.transform.env_hpp" title="Header &lt;boost/proto/transform/env.hpp&gt;">boost/proto/transform/env.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Env<span class="special">,</span> <span class="keyword">typename</span> Key<span class="special">,</span> <span class="keyword">typename</span> Value<span class="special">&gt;</span> 
+  <a class="link" href="env.html" title="Struct template env">proto::env</a><span class="special">&lt;</span><span class="identifier">Key</span><span class="special">,</span> <span class="identifier">Value</span><span class="special">,</span> <em class="replaceable"><code><span class="identifier">UNCVREF</span></code></em><span class="special">(</span><span class="keyword">typename</span> <a class="link" href="result_of/as_env.html" title="Struct template as_env">proto::result_of::as_env</a><span class="special">&lt;</span><span class="identifier">Env</span> <span class="special">&amp;</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">)</span><span class="special">&gt;</span> 
+  <span class="keyword">operator</span><span class="special">,</span><span class="special">(</span><span class="identifier">Env</span> <span class="special">&amp;</span> other<span class="special">,</span> <a class="link" href="env.html" title="Struct template env">proto::env</a><span class="special">&lt;</span><span class="identifier">Key</span><span class="special">,</span> <span class="identifier">Value</span><span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> head<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Env<span class="special">,</span> <span class="keyword">typename</span> Key<span class="special">,</span> <span class="keyword">typename</span> Value<span class="special">&gt;</span> 
+  <a class="link" href="env.html" title="Struct template env">proto::env</a><span class="special">&lt;</span><span class="identifier">Key</span><span class="special">,</span> <span class="identifier">Value</span><span class="special">,</span> <em class="replaceable"><code><span class="identifier">UNCVREF</span></code></em><span class="special">(</span><span class="keyword">typename</span> <a class="link" href="result_of/as_env.html" title="Struct template as_env">proto::result_of::as_env</a><span class="special">&lt;</span><span class="identifier">Env</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">)</span><span class="special">&gt;</span> 
+  <span class="keyword">operator</span><span class="special">,</span><span class="special">(</span><span class="identifier">Env</span> <span class="keyword">const</span> <span class="special">&amp;</span> other<span class="special">,</span> <a class="link" href="env.html" title="Struct template env">proto::env</a><span class="special">&lt;</span><span class="identifier">Key</span><span class="special">,</span> <span class="identifier">Value</span><span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> head<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp186482200"></a><h2>Description</h2>
+<p>
+            The effect of this function is to take two transform environments and compose them into
+            a larger environment that contains the key/values pairs of the two. The first argument
+            is allowed to not be a transform environment, in which case it is turned into one with
+            the <code class="computeroutput"><a class="link" href="as_env_idp68591864.html" title="Function as_env">proto::as_env()</a></code> function before composition with the
+            second argument. The second argument is required to be a transform environment with exactly
+            one key/value pair.
+          </p>
+<p>
+            <span class="bold"><strong>Example:</strong></span>
+          </p>
+<p>
+            Given user-defined keys <code class="computeroutput">key0</code> and <code class="computeroutput">key1</code> of types <code class="computeroutput">key0_type</code>
+            and <code class="computeroutput">key1_type</code>, the following code demonstrates how the chained use of <code class="computeroutput">operator,</code>
+            can build a composite transform environment containing a number of key/value pairs:
+            </p>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="env.html" title="Struct template env">proto::env</a></code>&lt;
+    key1_type
+  , int
+  , <code class="computeroutput"><a class="link" href="env.html" title="Struct template env">proto::env</a></code>&lt;
+        key0_type
+      , char const (&amp;)[6]
+      , <code class="computeroutput"><a class="link" href="env.html" title="Struct template env">proto::env</a></code>&lt;<code class="computeroutput"><a class="link" href="data_type.html" title="Struct data_type">proto::data_type</a></code>, int&gt;
+    &gt;
+&gt; myenv = (<code class="computeroutput"><a class="link" href="data.html" title="Global data">proto::data</a></code> = 1, key0 = "hello", key1 = 42);
+// NOTE: operator, here --^    and here --^
+
+// Check the results:
+assert(1 == myenv[proto::data]);
+assert(0 == std::strcmp(myenv[key0], "hello"));
+assert(42 == myenv[key1]);</pre>
+<p>
+          </p>
+<p>
+            <span class="bold"><strong>Note:</strong></span> In the return type and the "Returns" clause, <code class="computeroutput"><em class="replaceable"><code>UNCVREF</code></em>(X)</code> is
+            the type <code class="computeroutput">X</code> stripped of top-level reference and cv-qualifiers.
+          </p>
+<p>
+            <span class="bold"><strong>Note:</strong></span> In the "Returns" clause, <code class="computeroutput"><em class="replaceable"><code>cv</code></em></code> is replaced with <code class="computeroutput">const</code>
+            for the second overload, and nothing for the first.
+          </p>
+<p>
+            <span class="bold"><strong>See also:</strong></span>
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><code class="computeroutput"><a class="link" href="env.html#idp68501352-bb">proto::env::operator[]</a></code></li></ul></div>
+<p>
+          </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><code class="computeroutput"><a class="link" href="env.html" title="Struct template env">proto::env</a>&lt;Key, Value, <em class="replaceable"><code>UNCVREF</code></em>(typename <a class="link" href="result_of/as_env.html" title="Struct template as_env">proto::result_of::as_env</a>&lt;Env <em class="replaceable"><code>cv</code></em> &amp;&gt;::type)&gt;(head[Key()], <a class="link" href="as_env_idp68591864.html" title="Function as_env">proto::as_env</a>(other))</code></td>
+</tr></tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="env_var_idp68605896.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.transform.env_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="_env_var.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

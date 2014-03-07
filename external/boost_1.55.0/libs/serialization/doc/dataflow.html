@@ -1,0 +1,212 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Dataflow Iterators</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Dataflow Iterators</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<h3>Motivation</h3>
+Consider the problem of translating an arbitrary length sequence of 8 bit bytes 
+to base64 text. Such a process can be summarized as:
+<p>
+source =&gt; 8 bit bytes =&gt; 6 bit integers =&gt; encode to base64 characters =&gt; insert line breaks =&gt; destination
+<p>
+We would prefer the solution that is:
+<ul>
+  <li>Decomposable. so we can code, test, verify and use each (simple) stage of the conversion 
+  independently.
+  <li>Composable. so we can used this composite as a new component somewhere else.
+  <li>Efficient, so we're not required to re-implement it again.
+  <li>Scalable, so that it works well for short and arbitrarily long sequences.
+</ul>
+The approach that comes closest to meeting these requirements is that described
+and implemented with <a href="../../iterator/doc/index.html">Iterator Adaptors</a>.
+The fundamental feature of an Iterator Adaptor template that makes in interesting to
+us is that it takes as a parameter a base iterator from which it derives its
+input. This suggests that something like the following might be possible.
+<pre><code>
+typedef 
+    insert_linebreaks&lt;         // insert line breaks every 72 characters
+        base64_from_binary&lt;    // convert binary values ot base64 characters
+            transform_width&lt;   // retrieve 6 bit integers from a sequence of 8 bit bytes
+                const char *,
+                6,
+                8
+            &gt;
+        &gt; 
+        ,76
+    &gt; 
+    base64_text; // compose all the above operations in to a new iterator
+
+std::copy(
+    base64_text(address),
+    base64_text(address + count),
+    ostream_iterator&lt;CharType&gt;(os)
+);
+</code></pre>
+Indeed, this seems to be exactly the kind of problem that iterator adaptors are 
+intended to address.  The Iterator Adaptor library already includes
+modules which can be configured to implement some of the operations above.  For example,
+included is <a target="transform_iterator" href="../../iterator/doc/transform_iterator.html">
+transform_iterator</a>, which can be used to implement 6 bit integer =&gt; base64 code.
+
+<h3>Dataflow Iterators</h3>
+Unfortunately, not all iterators which inherit from Iterator Adaptors are guarenteed
+to meet the composability goals stated above.  To accomplish this purpose, they have
+to be written with some additional considerations in mind.
+
+We define a Dataflow Iterator as an class inherited from <code style="white-space: normal">iterator_adaptor</code> which
+fulfills as a small set of additional requirements.
+
+<h4>Templated Constructors</h4>
+<p>
+Templated constructor have the form:
+<pre><code>
+template&lt;class T&gt;
+dataflow_iterator(T start) :
+    iterator_adaptor(Base(start))
+{}
+</code></pre>
+When these constructors are applied to our example of above, the following code is generated:
+<pre><code>
+std::copy(
+    insert_linebreaks(
+        base64_from_binary(
+            transform_width(
+                address
+            ),
+        )
+    ),
+    insert_linebreaks(
+        base64_from_binary(
+            transform_width(
+                address + count
+            )
+        )
+    )
+    ostream_iterator&lt;char&gt;(os)
+);
+</code></pre>
+The recursive application of this template is what automatically generates the
+constructor <code style="white-space: normal">base64_text(const char *)</code>  in our example above.  The original
+Iterator Adaptors include a <code style="white-space: normal">make_xxx_iterator</code> to fulfill this function.
+However, I believe these are unwieldy to use compared to the above solution usiing
+Templated constructors.
+<p>
+Unfortunately, some systems which fail to properly support partial function template
+ordering cannot support the concept of a templated constructor as implemented above.  
+A special"wrapper"  macro has been created to work around this problem. With this "wrapper" 
+the above example is modified to:
+<pre><code>
+std::copy(
+    base64_text(BOOST_MAKE_PFTO_WRAPPER(address)),
+    base64_text(BOOST_MAKE_PFTO_WRAPPER(address + count)),
+    ostream_iterator&lt;char&gt;(os)
+);
+</code></pre>
+This macro is defined in <a target="pfto" href="../../../boost/serialization/pfto.hpp">&lt;boost/serialization/pfto.hpp&gt;</a>.
+For more information about this topic, check the source.
+
+<h4>Dereferencing</h4>
+Dereferencing some iterators can cause problems.  For example, a natural
+way to write a <code style="white-space: normal">remove_whitespace</code> iterator is to increment past the initial 
+whitespaces when the iterator is constructed.  This will fail if the iterator passed to the
+constructor "points" to  the end of a string.  The 
+<a target="filter_iterator" href="../../iterator/doc/filter_iterator.html">
+<code style="white-space: normal">filter_iterator</code></a> is implemented
+in this way so it can't be used in our context. So, for implementation of this iterator, 
+space removal is deferred until the iterator actually is dereferenced.
+
+<h4>Comparison</h4>
+The default implementation of iterator equality of <code style="white-space: normal">iterator_adaptor</code> just
+invokes the equality operator on the base iterators.  Generally this is satisfactory.
+However, this implies that other operations (E. G. dereference) do not prematurely 
+increment the base iterator.  Avoiding this can be surprisingly tricky in some cases.
+(E.G. transform_width)
+
+<p>
+Iterators which fulfill the above requirements should be composable and the above sample
+code should implement our binary to base64 conversion.
+
+<h3>Iterators Included in the Library</h3>
+Dataflow iterators for the serialization library are all defined in the hamespace
+<code style="white-space: normal">boost::archive::iterators</code> included here are:
+<dl class="index">
+  <dt><a target="base64_from_binary" href="../../../boost/archive/iterators/base64_from_binary.hpp">
+  base64_from_binary</a></dt>
+  <dd>transforms a sequence of integers to base64 text</dd>
+
+  <dt><a target="base64_from_binary" href="../../../boost/archive/iterators/binary_from_base64.hpp">
+  binary_from_base64</a></dt>
+  <dd>transforms a sequence of base64 characters to a sequence of integers</dd>
+
+  <dt><a target="insert_linebreaks" href="../../../boost/archive/iterators/insert_linebreaks.hpp">
+  insert_linebreaks</a></dt>
+  <dd>given a sequence, creates a sequence with newline characters inserted</dd>
+
+  <dt><a target="mb_from_wchar" href="../../../boost/archive/iterators/mb_from_wchar.hpp">
+  mb_from_wchar</a></dt>
+  <dd>transforms a sequence of wide characters to a sequence of multi-byte characters</dd>
+
+  <dt><a target="remove_whitespace" href="../../../boost/archive/iterators/remove_whitespace.hpp">
+  remove_whitespace</a></dt>
+  <dd>given a sequence of characters, returns  a sequence with the white characters
+  removed.  This is  a derivation from the <code style="white-space: normal">boost::filter_iterator</code></dd>
+
+  <dt><a target="transform_width" href="../../../boost/archive/iterators/transform_width.hpp">
+  transform_width</a></dt>
+  <dd>transforms a sequence of x bit elements into a sequence of y bit elements.  This
+  is a key component in iterators which translate to and from base64 text.</dd>
+
+  <dt><a target="wchar_from_mb" href="../../../boost/archive/iterators/wchar_from_mb.hpp">
+  wchar_from_mb</a></dt>
+  <dd>transform a sequence of multi-byte characters in the current locale to wide characters.</dd>
+
+  <dt><a target="xml_escape" href="../../../boost/archive/iterators/xml_escape.hpp">
+  xml_escape</a></dt>
+  <dd>escapes xml meta-characters from xml text</dd>
+
+  <dt><a target="xml_unescape" href="../../../boost/archive/iterators/xml_unescape.hpp">
+  xml_unescape</a></dt>
+  <dd>unescapes xml escape sequences to create a sequence of normal text<dd>
+</dl>
+<p>
+The standard stream iterators don't quite work for us.  On systems which implement <code style="white-space: normal">wchar_t</code>
+as unsigned short integers (E.G. VC 6) they didn't function as I expected. I also made some
+adjustments to be consistent with our concept of Dataflow Iterators.  Like the rest of our
+iterators, they are found in the namespace <code style="white-space: normal">boost::archive::interators</code> to avoid
+conflict the standard library version.
+<dl class = "index">
+  <dt><a target="istream_iterator" href="../../../boost/archive/iterators/istream_iterator.hpp">
+  istream_iterator</a></dt>
+  <dt><a target="ostream_iterator" href="../../../boost/archive/iterators/ostream_iterator.hpp">
+  ostream_iterator</a></dt>
+</dl>
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

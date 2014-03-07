@@ -1,0 +1,48 @@
+<?xml version="1.0" standalone="yes"?>
+<glossary>
+    <title>Glossary</title>
+
+    <glossentry>
+        <glossterm>Token</glossterm>
+        <glossdef>
+            <para>A single whitespace-separated part of
+                command line. In other words, an element of <code>argv</code> array.
+            </para>
+        </glossdef>
+    </glossentry>
+    
+    <glossentry>
+        <glossterm>Option</glossterm>
+        <glossdef>
+            <para>No definition yet. Options typically correspond to
+                (name, value) pair. Then can spawn several tokens.
+            </para>
+        </glossdef>
+    </glossentry>
+
+    <glossentry>
+        <glossterm>Argument</glossterm>
+        <glossdef>
+            <para>No definition yet.
+            </para>
+        </glossdef>
+    </glossentry>
+
+    <glossentry>
+        <glossterm>Command line element</glossterm>
+        <glossdef>
+            <para>A complete part of command line. May
+                be either option or argument.
+            </para>
+        </glossdef>
+    </glossentry>
+
+    <glossentry>
+        <glossterm>Parameter</glossterm>
+        <glossdef>
+            <para>The syntactic element which specify value of an
+                option.
+            </para>
+        </glossdef>
+    </glossentry>
+</glossary>

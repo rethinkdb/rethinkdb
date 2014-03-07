@@ -1,0 +1,720 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Generator Directives</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../primitive_generators.html" title="Karma Generators">
+<link rel="prev" href="operators.html" title="Generator Operators">
+<link rel="next" href="action.html" title="Generator Semantic Actions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="operators.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../primitive_generators.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="action.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.quick_reference.primitive_generators.directives"></a><a class="link" href="directives.html" title="Generator Directives">Generator
+          Directives</a>
+</h5></div></div></div>
+<p>
+            See here for more information about <a class="link" href="../../reference/directive.html" title="Generator Directives">Generator
+            Directives</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/upperlower.html" title="Generator Directives Controlling Case Sensitivity (upper[], lower[])"><code class="computeroutput"><span class="identifier">lower</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      as lower case
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/upperlower.html" title="Generator Directives Controlling Case Sensitivity (upper[], lower[])"><code class="computeroutput"><span class="identifier">upper</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      as upper case
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])"><code class="computeroutput"><span class="identifier">left_align</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      left aligned in column of width <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_LENGTH</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])"><code class="computeroutput"><span class="identifier">left_align</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">num</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      left aligned in column of width <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])"><code class="computeroutput"><span class="identifier">left_align</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      left aligned in column of width <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_LENGTH</span></code>
+                      while using <code class="computeroutput"><span class="identifier">g</span></code>
+                      to generate the necessary padding
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])"><code class="computeroutput"><span class="identifier">left_align</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">num</span><span class="special">,</span> <span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      left aligned in column of width <code class="computeroutput"><span class="identifier">num</span></code>
+                      while using <code class="computeroutput"><span class="identifier">g</span></code>
+                      to generate the necessary padding
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])"><code class="computeroutput"><span class="identifier">center</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      centered in column of width <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_LENGTH</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])"><code class="computeroutput"><span class="identifier">center</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">num</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      centered in column of width <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])"><code class="computeroutput"><span class="identifier">center</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      centered in column of width <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_LENGTH</span></code>
+                      while using <code class="computeroutput"><span class="identifier">g</span></code>
+                      to generate the necessary padding
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])"><code class="computeroutput"><span class="identifier">center</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">num</span><span class="special">,</span> <span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      centered in column of width <code class="computeroutput"><span class="identifier">num</span></code>
+                      while using <code class="computeroutput"><span class="identifier">g</span></code>
+                      to generate the necessary padding
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])"><code class="computeroutput"><span class="identifier">right_align</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      right aligned in column of width <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_LENGTH</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])"><code class="computeroutput"><span class="identifier">right_align</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">num</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      right aligned in column of width <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])"><code class="computeroutput"><span class="identifier">right_align</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      right aligned in column of width <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_LENGTH</span></code>
+                      while using <code class="computeroutput"><span class="identifier">g</span></code>
+                      to generate the necessary padding
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])"><code class="computeroutput"><span class="identifier">right_align</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">num</span><span class="special">,</span> <span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      right aligned in column of width <code class="computeroutput"><span class="identifier">num</span></code>
+                      while using <code class="computeroutput"><span class="identifier">g</span></code>
+                      to generate the necessary padding
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/maxwidth.html" title="Generator Directives Controlling the Maximum Field Width (maxwidth[])"><code class="computeroutput"><span class="identifier">maxwidth</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      truncated to column of width <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_MAXWIDTH</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/maxwidth.html" title="Generator Directives Controlling the Maximum Field Width (maxwidth[])"><code class="computeroutput"><span class="identifier">maxwidth</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">num</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      truncated to column of width <code class="computeroutput"><span class="identifier">num</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/repeat.html" title="Repetition Generator Directive (repeat[])"><code class="computeroutput"><span class="identifier">repeat</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Repeat <code class="computeroutput"><span class="identifier">a</span></code> zero
+                      or more times
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/repeat.html" title="Repetition Generator Directive (repeat[])"><code class="computeroutput"><span class="identifier">repeat</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">num</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Repeat <code class="computeroutput"><span class="identifier">a</span></code> <code class="computeroutput"><span class="identifier">num</span></code> times
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/repeat.html" title="Repetition Generator Directive (repeat[])"><code class="computeroutput"><span class="identifier">repeat</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">num1</span><span class="special">,</span> <span class="identifier">num2</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Repeat <code class="computeroutput"><span class="identifier">a</span></code> <code class="computeroutput"><span class="identifier">num1</span></code> to <code class="computeroutput"><span class="identifier">num2</span></code>
+                      times
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/repeat.html" title="Repetition Generator Directive (repeat[])"><code class="computeroutput"><span class="identifier">repeat</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">num</span><span class="special">,</span> <span class="identifier">inf</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Repeat <code class="computeroutput"><span class="identifier">a</span></code> <code class="computeroutput"><span class="identifier">num</span></code> or more times
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/delimit.html" title="Generator Directives Controlling Automatic Delimiting (verbatim[], no_delimit[], delimit[])"><code class="computeroutput"><span class="identifier">verbatim</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Disable delimited generation for <code class="computeroutput"><span class="identifier">a</span></code>.
+                      Performs post delimiting.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/delimit.html" title="Generator Directives Controlling Automatic Delimiting (verbatim[], no_delimit[], delimit[])"><code class="computeroutput"><span class="identifier">delimit</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Reestablish the delimiter that got inhibited by verbatim
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/delimit.html" title="Generator Directives Controlling Automatic Delimiting (verbatim[], no_delimit[], delimit[])"><code class="computeroutput"><span class="identifier">delimit</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">d</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Use <code class="computeroutput"><span class="identifier">d</span></code> as a
+                      delimiter for generating <code class="computeroutput"><span class="identifier">a</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/delimit.html" title="Generator Directives Controlling Automatic Delimiting (verbatim[], no_delimit[], delimit[])"><code class="computeroutput"><span class="identifier">no_delimit</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Disable delimited generation for <code class="computeroutput"><span class="identifier">a</span></code>.
+                      No post-delimiting step performed.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/as.html" title="Generator Directives Forcing Atomic Extraction (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;[]</span></code></a><code class="computeroutput"><span class="special">()[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Force atomic output from arbitrary attribute types
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/as.html" title="Generator Directives Forcing Atomic Extraction (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as_string</span><span class="special">[]</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Force atomic output from string attributes
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/as.html" title="Generator Directives Forcing Atomic Extraction (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as_wstring</span><span class="special">[]</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Force atomic output from wide character string attributes
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/omit.html" title="Generator Directives Consuming Attributes (omit[] and skip[])"><code class="computeroutput"><span class="identifier">omit</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Consume the attribute type of <code class="computeroutput"><span class="identifier">a</span></code>
+                      without generating anything. The embedded generator will be
+                      always executed.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/omit.html" title="Generator Directives Consuming Attributes (omit[] and skip[])"><code class="computeroutput"><span class="identifier">skip</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Consume the attribute type of <code class="computeroutput"><span class="identifier">a</span></code>
+                      without generating anything. The embedded generator will never
+                      be executed.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/duplicate.html" title="Generator Directive Duplicating Attributes (duplicate[])"><code class="computeroutput"><span class="identifier">duplicate</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The supplied attribute will be duplicated and passed unchanged
+                      to all embedded elements of a sequence.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/buffer.html" title="Generator Directive for Temporary Output Buffering (buffer[])"><code class="computeroutput"><span class="identifier">buffer</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Temporarily intercept the output generated by <code class="computeroutput"><span class="identifier">a</span></code>, flushing it only after
+                      <code class="computeroutput"><span class="identifier">a</span></code> succeeded
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/columns.html" title="Generator Directive Separating Output Into Columns (columns[])"><code class="computeroutput"><span class="identifier">columns</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      split into <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_COLUMNS</span></code>
+                      number of columns using <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">eol</span></code>
+                      as column delimiter
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/columns.html" title="Generator Directive Separating Output Into Columns (columns[])"><code class="computeroutput"><span class="identifier">columns</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">num</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      split into <code class="computeroutput"><span class="identifier">num</span></code>
+                      number of columns using <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">eol</span></code>
+                      as column delimiter
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/columns.html" title="Generator Directive Separating Output Into Columns (columns[])"><code class="computeroutput"><span class="identifier">columns</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      split into <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_COLUMNS</span></code>
+                      number of columns using <code class="computeroutput"><span class="identifier">g</span></code>
+                      as column delimiter
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/columns.html" title="Generator Directive Separating Output Into Columns (columns[])"><code class="computeroutput"><span class="identifier">columns</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">num</span><span class="special">,</span> <span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      split into <code class="computeroutput"><span class="identifier">num</span></code>
+                      number of columns using <code class="computeroutput"><span class="identifier">g</span></code>
+                      as column delimiter
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="operators.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../primitive_generators.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="action.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

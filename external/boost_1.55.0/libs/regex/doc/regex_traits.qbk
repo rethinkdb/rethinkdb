@@ -1,0 +1,50 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:regex_traits regex_traits]
+
+   namespace boost{
+
+   template <class charT, class implementationT = sensible_default_choice>
+   struct regex_traits : public implementationT
+   {
+      regex_traits() : implementationT() {}
+   };
+
+   template <class charT>
+   struct c_regex_traits;
+
+   template <class charT>
+   class cpp_regex_traits;
+
+   template <class charT>
+   class w32_regex_traits;
+
+   } // namespace boost
+
+[h4 Description]
+
+The class `regex_traits` is just a thin wrapper around an actual implemention 
+class, which may be one of:
+
+* `c_regex_traits`: this class is deprecated, it wraps the C locale, and is used as the default implementation when the platform is not Win32, and the C++ locale is not available.
+* `cpp_regex_traits`: the default traits class for non-Win32 platforms, allows the regex class to be imbued with a std::locale instance.
+* `w32_regex_traits`: the default traits class implementation on Win32 platforms, allows the regex class to be imbued with an LCID.
+
+The default behavior can be altered by defining one of the following 
+configuration macros in 
+[@../../../../boost/regex/user.hpp boost/regex/user.hpp]
+
+* BOOST_REGEX_USE_C_LOCALE: makes `c_regex_traits` the default.
+* BOOST_REGEX_USE_CPP_LOCALE: makes `cpp_regex_traits` the default.
+
+All these traits classes fulfil the 
+[link boost_regex.ref.concepts.traits_concept traits class requirements].
+     
+[endsect]
+

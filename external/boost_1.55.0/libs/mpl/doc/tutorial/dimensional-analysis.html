@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Dimensional Analysis</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./tutorial-metafunctions.html" class="navigation-link">Prev</a>&nbsp;<a href="./representing-dimensions.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./higher-order.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./tutorial-metafunctions.html" class="navigation-link">Tutorial: Metafunctions and Higher-Order Metaprogramming</a> / <a href="./dimensional-analysis.html" class="navigation-link">Dimensional Analysis</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="dimensional-analysis">
+<h1><a class="toc-backref" href="./tutorial-metafunctions.html#id41" name="dimensional-analysis">Dimensional Analysis</a></h1>
+<p>The first rule of doing physical calculations
+on paper is that the numbers being manipulated don't stand alone:
+most quantities have attached <em>dimensions</em>, to be ignored at our
+peril.  As computations become more complex, keeping track of
+dimensions is what keeps us from inadvertently assigning a mass to
+what should be a length or adding acceleration to velocity — it
+establishes a type system for numbers.</p>
+<p>Manual checking of types is tedious, and as a result, it's also
+error-prone.  When human beings become bored, their attention
+wanders and they tend to make mistakes.  Doesn't type checking seem
+like the sort of job a computer might be good at, though?  If we
+could establish a framework of C++ types for dimensions and
+quantities, we might be able to catch errors in formulae before
+they cause serious problems in the real world.</p>
+<p>Preventing quantities with different dimensions from interoperating
+isn't hard; we could simply represent dimensions as classes that
+only work with dimensions of the same type.  What makes this
+problem interesting is that different dimensions <em>can</em> be combined,
+via multiplication or division, to produce arbitrarily complex new
+dimensions.  For example, take Newton's law, which relates force to
+mass and acceleration:</p>
+<blockquote>
+<em>F</em> = <em>ma</em></blockquote>
+<p>Since mass and acceleration have different dimensions, the
+dimensions of force must somehow capture their combination.  In
+fact, the dimensions of acceleration are already just such a
+composite, a change in velocity over time:</p>
+<blockquote>
+<em>dv</em>/<em>dt</em></blockquote>
+<p>Since velocity is just change in distance (<em>l</em>) over time (<em>t</em>),
+the fundamental dimensions of acceleration are:</p>
+<blockquote>
+(<em>l</em>/<em>t</em>)/<em>t</em>  =  <em>l</em>/<em>t</em><sup>2</sup></blockquote>
+<p>And indeed, acceleration is commonly measured in &quot;meters per second
+squared.&quot;  It follows that the dimensions of force must be:</p>
+<blockquote>
+<em>ml</em>/<em>t</em><sup>2</sup></blockquote>
+<!-- @litre_translator.line_offset -= 7 -->
+<p>and force is commonly measured in kg(m/s<sup>2</sup>), or
+&quot;kilogram-meters per second squared.&quot;  When multiplying quantities
+of mass and acceleration, we multiply their dimensions as well and
+carry the result along, which helps us to ensure that the result is
+meaningful.  The formal name for this bookkeeping is <strong>dimensional
+analysis</strong>, and our next task will be to implement its rules in the C++
+type system.  John Barton and Lee Nackman were the first to show
+how to do this in their seminal book, <em>Scientific and Engineering
+C++</em> <a class="citation-reference" href="#bn94" id="id5" name="id5">[BN94]</a>.  We will recast their approach here in
+metaprogramming terms.</p>
+<table class="citation" frame="void" id="bn94" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id5" name="bn94">[BN94]</a></td><td>John J. Barton and Lee R. Nackman. <em>Scientific and
+Engineering C++: an Introduction with Advanced Techniques and
+Examples.</em> Reading, MA: Addison Wesley. ISBN
+0-201-53393-6. 1994.</td></tr>
+</tbody>
+</table>
+<ul class="toc simple" id="outline">
+<li><a class="reference" href="./representing-dimensions.html" id="id42" name="id42">Representing Dimensions</a></li>
+<li><a class="reference" href="./representing-quantities.html" id="id43" name="id43">Representing Quantities</a></li>
+<li><a class="reference" href="./implementing-addition-and.html" id="id44" name="id44">Implementing Addition and Subtraction</a></li>
+<li><a class="reference" href="./implementing.html" id="id45" name="id45">Implementing Multiplication</a></li>
+<li><a class="reference" href="./implementing-division.html" id="id46" name="id46">Implementing Division</a></li>
+</ul>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./tutorial-metafunctions.html" class="navigation-link">Prev</a>&nbsp;<a href="./representing-dimensions.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./higher-order.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

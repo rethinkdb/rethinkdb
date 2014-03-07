@@ -1,0 +1,196 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>In-Place Factories</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Chapter 1. Boost.Optional">
+<link rel="up" href="../index.html" title="Chapter 1. Boost.Optional">
+<link rel="prev" href="rebinding_semantics_for_assignment_of_optional_references.html" title="Rebinding semantics for assignment of optional references">
+<link rel="next" href="a_note_about_optional_bool_.html" title="A note about optional&lt;bool&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rebinding_semantics_for_assignment_of_optional_references.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="a_note_about_optional_bool_.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+<div class="section" title="In-Place Factories">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_optional.in_place_factories"></a><a class="link" href="in_place_factories.html" title="In-Place Factories">In-Place Factories</a>
+</h2></div></div></div>
+<p>
+      One of the typical problems with wrappers and containers is that their interfaces
+      usually provide an operation to initialize or assign the contained object as
+      a copy of some other object. This not only requires the underlying type to
+      be <a href="../../../../utility/CopyConstructible.html" target="_top">Copy Constructible</a>,
+      but also requires the existence of a fully constructed object, often temporary,
+      just to follow the copy from:
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">X</span>
+<span class="special">{</span>
+    <span class="identifier">X</span> <span class="special">(</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">:::</span><span class="identifier">string</span> <span class="special">)</span> <span class="special">;</span>
+<span class="special">}</span> <span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">W</span>
+<span class="special">{</span>
+    <span class="identifier">X</span> <span class="identifier">wrapped_</span> <span class="special">;</span>
+
+    <span class="keyword">public</span><span class="special">:</span>
+
+    <span class="identifier">W</span> <span class="special">(</span> <span class="identifier">X</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">wrapped_</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">{}</span>
+<span class="special">}</span> <span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">foo</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Temporary object created.
+</span>    <span class="identifier">W</span> <span class="special">(</span> <span class="identifier">X</span><span class="special">(</span><span class="number">123</span><span class="special">,</span><span class="string">"hello"</span><span class="special">)</span> <span class="special">)</span> <span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      A solution to this problem is to support direct construction of the contained
+      object right in the container's storage. In this scheme, the user only needs
+      to supply the arguments to the constructor to use in the wrapped object construction.
+    </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">W</span>
+<span class="special">{</span>
+    <span class="identifier">X</span> <span class="identifier">wrapped_</span> <span class="special">;</span>
+
+    <span class="keyword">public</span><span class="special">:</span>
+
+    <span class="identifier">W</span> <span class="special">(</span> <span class="identifier">X</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">wrapped_</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">{}</span>
+    <span class="identifier">W</span> <span class="special">(</span> <span class="keyword">int</span> <span class="identifier">a0</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">a1</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">wrapped_</span><span class="special">(</span><span class="identifier">a0</span><span class="special">,</span><span class="identifier">a1</span><span class="special">)</span> <span class="special">{}</span>
+<span class="special">}</span> <span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">foo</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Wrapped object constructed in-place
+</span>    <span class="comment">// No temporary created.
+</span>    <span class="identifier">W</span> <span class="special">(</span><span class="number">123</span><span class="special">,</span><span class="string">"hello"</span><span class="special">)</span> <span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      A limitation of this method is that it doesn't scale well to wrapped objects
+      with multiple constructors nor to generic code were the constructor overloads
+      are unknown.
+    </p>
+<p>
+      The solution presented in this library is the family of <span class="bold"><strong>InPlaceFactories</strong></span>
+      and <span class="bold"><strong>TypedInPlaceFactories</strong></span>. These factories
+      are a family of classes which encapsulate an increasing number of arbitrary
+      constructor parameters and supply a method to construct an object of a given
+      type using those parameters at an address specified by the user via placement
+      new.
+    </p>
+<p>
+      For example, one member of this family looks like:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span><span class="keyword">class</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">A1</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">TypedInPlaceFactory2</span>
+<span class="special">{</span>
+    <span class="identifier">A0</span> <span class="identifier">m_a0</span> <span class="special">;</span> <span class="identifier">A1</span> <span class="identifier">m_a1</span> <span class="special">;</span>
+
+    <span class="keyword">public</span><span class="special">:</span>
+
+    <span class="identifier">TypedInPlaceFactory2</span><span class="special">(</span> <span class="identifier">A0</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a0</span><span class="special">,</span> <span class="identifier">A1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a1</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">m_a0</span><span class="special">(</span><span class="identifier">a0</span><span class="special">),</span> <span class="identifier">m_a1</span><span class="special">(</span><span class="identifier">a1</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">void</span> <span class="identifier">construct</span> <span class="special">(</span> <span class="keyword">void</span><span class="special">*</span> <span class="identifier">p</span> <span class="special">)</span> <span class="special">{</span> <span class="keyword">new</span> <span class="special">(</span><span class="identifier">p</span><span class="special">)</span> <span class="identifier">T</span><span class="special">(</span><span class="identifier">m_a0</span><span class="special">,</span><span class="identifier">m_a1</span><span class="special">)</span> <span class="special">;</span> <span class="special">}</span>
+ <span class="special">}</span> <span class="special">;</span>
+</pre>
+<p>
+      A wrapper class aware of this can use it as:
+    </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">W</span>
+<span class="special">{</span>
+    <span class="identifier">X</span> <span class="identifier">wrapped_</span> <span class="special">;</span>
+
+    <span class="keyword">public</span><span class="special">:</span>
+
+    <span class="identifier">W</span> <span class="special">(</span> <span class="identifier">X</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">wrapped_</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">{}</span>
+    <span class="identifier">W</span> <span class="special">(</span> <span class="identifier">TypedInPlaceFactory2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">fac</span> <span class="special">)</span> <span class="special">{</span> <span class="identifier">fac</span><span class="special">.</span><span class="identifier">construct</span><span class="special">(&amp;</span><span class="identifier">wrapped_</span><span class="special">)</span> <span class="special">;</span> <span class="special">}</span>
+<span class="special">}</span> <span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">foo</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Wrapped object constructed in-place via a TypedInPlaceFactory.
+</span>    <span class="comment">// No temporary created.
+</span>    <span class="identifier">W</span> <span class="special">(</span> <span class="identifier">TypedInPlaceFactory2</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">,</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="number">123</span><span class="special">,</span><span class="string">"hello"</span><span class="special">))</span> <span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      The factories are divided in two groups:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+<span class="underline">TypedInPlaceFactories</span>: those which
+        take the target type as a primary template parameter.
+      </li>
+<li class="listitem">
+<span class="underline">InPlaceFactories</span>: those with a template
+        <code class="computeroutput"><span class="identifier">construct</span><span class="special">(</span><span class="keyword">void</span><span class="special">*)</span></code> member
+        function taking the target type.
+      </li>
+</ul></div>
+<p>
+      Within each group, all the family members differ only in the number of parameters
+      allowed.
+    </p>
+<p>
+      This library provides an overloaded set of helper template functions to construct
+      these factories without requiring unnecessary template parameters:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">A0</span><span class="special">,...,</span><span class="keyword">class</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+<span class="identifier">InPlaceFactoryN</span> <span class="special">&lt;</span><span class="identifier">A0</span><span class="special">,...,</span><span class="identifier">AN</span><span class="special">&gt;</span> <span class="identifier">in_place</span> <span class="special">(</span> <span class="identifier">A0</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a0</span><span class="special">,</span> <span class="special">...,</span> <span class="identifier">AN</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">aN</span><span class="special">)</span> <span class="special">;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span><span class="keyword">class</span> <span class="identifier">A0</span><span class="special">,...,</span><span class="keyword">class</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+<span class="identifier">TypedInPlaceFactoryN</span> <span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">A0</span><span class="special">,...,</span><span class="identifier">AN</span><span class="special">&gt;</span> <span class="identifier">in_place</span> <span class="special">(</span> <span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a0</span><span class="special">,</span> <span class="identifier">A0</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a0</span><span class="special">,</span> <span class="special">...,</span> <span class="identifier">AN</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">aN</span><span class="special">)</span> <span class="special">;</span>
+</pre>
+<p>
+      In-place factories can be used generically by the wrapper and user as follows:
+    </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">W</span>
+<span class="special">{</span>
+    <span class="identifier">X</span> <span class="identifier">wrapped_</span> <span class="special">;</span>
+
+    <span class="keyword">public</span><span class="special">:</span>
+
+    <span class="identifier">W</span> <span class="special">(</span> <span class="identifier">X</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">wrapped_</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">InPlaceFactory</span> <span class="special">&gt;</span>
+    <span class="identifier">W</span> <span class="special">(</span> <span class="identifier">InPlaceFactory</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">fac</span> <span class="special">)</span> <span class="special">{</span> <span class="identifier">fac</span><span class="special">.</span><span class="keyword">template</span> <span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;</span><span class="identifier">construct</span><span class="special">(&amp;</span><span class="identifier">wrapped_</span><span class="special">)</span> <span class="special">;</span> <span class="special">}</span>
+
+<span class="special">}</span> <span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">foo</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Wrapped object constructed in-place via a InPlaceFactory.
+</span>    <span class="comment">// No temporary created.
+</span>    <span class="identifier">W</span> <span class="special">(</span> <span class="identifier">in_place</span><span class="special">(</span><span class="number">123</span><span class="special">,</span><span class="string">"hello"</span><span class="special">)</span> <span class="special">)</span> <span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      The factories are implemented in the headers: <a href="../../../../../boost/utility/in_place_factory.hpp" target="_top">in_place_factory.hpp</a>
+      and <a href="../../../../../boost/utility/typed_in_place_factory.hpp" target="_top">typed_in_place_factory.hpp</a>
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2003 -2007 Fernando Luis Cacciola Carballal<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rebinding_semantics_for_assignment_of_optional_references.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="a_note_about_optional_bool_.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

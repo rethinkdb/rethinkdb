@@ -1,0 +1,102 @@
+[/
+    Boost.Optional
+
+    Copyright (c) 2003-2007 Fernando Luis Cacciola Carballal
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[section Examples]
+
+[section Optional return values]
+
+    optional<char> get_async_input()
+    {
+        if ( !queue.empty() )
+            return optional<char>(queue.top());
+        else return optional<char>(); // uninitialized
+    }
+
+    void receive_async_message()
+    {
+        optional<char> rcv ;
+        // The safe boolean conversion from 'rcv' is used here.
+        while ( (rcv = get_async_input()) && !timeout() )
+            output(*rcv);
+    }
+
+[endsect]
+
+[section Optional local variables]
+
+    optional<string> name ;
+    if ( database.open() )
+    {
+        name.reset ( database.lookup(employer_name) ) ;
+    }
+    else
+    {
+        if ( can_ask_user )
+            name.reset ( user.ask(employer_name) ) ;
+    }
+
+    if ( name )
+        print(*name);
+    else print("employer's name not found!");
+
+[endsect]
+
+[section Optional data members]
+
+    class figure
+    {
+        public:
+
+        figure()
+        {
+            // data member 'm_clipping_rect' is uninitialized at this point.
+        }
+
+        void clip_in_rect ( rect const& rect )
+        {
+            ....
+            m_clipping_rect.reset ( rect ) ; // initialized here.
+        }
+
+        void draw ( canvas& cvs )
+        {
+            if ( m_clipping_rect )
+                do_clipping(*m_clipping_rect);
+
+            cvs.drawXXX(..);
+        }
+
+        // this can return NULL.
+        rect const* get_clipping_rect() { return get_pointer(m_clipping_rect); }
+
+        private :
+
+        optional<rect> m_clipping_rect ;
+
+    };
+
+[endsect]
+
+[section Bypassing expensive unnecessary default construction]
+
+    class ExpensiveCtor { ... } ;
+    class Fred
+    {
+        Fred() : mLargeVector(10000) {}
+
+        std::vector< optional<ExpensiveCtor> > mLargeVector ;
+    } ;
+
+[endsect]
+
+[endsect]
+
+ 

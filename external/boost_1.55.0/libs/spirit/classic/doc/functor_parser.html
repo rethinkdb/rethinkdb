@@ -1,0 +1,108 @@
+<html>
+<head>
+<title>Functor Parser</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Functor 
+      Parser</b></font> </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="list_parsers.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="refactoring.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>The simplest way to write your hand coded parser that works well with the rest 
+  of the Spirit library is to simply write a functor parser.</p>
+<p> A functor parser is expected to have the interface:</p>
+<pre>
+    <code><span class=keyword>struct </span><span class=identifier>functor
+    </span><span class=special>{
+        </span><span class=keyword>typedef </span><span class=identifier>T </span><span class=identifier>result_t</span><span class=special>;
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>std::ptrdiff_t
+        </span><span class=keyword>operator</span><span class=special>()(</span><span class=identifier>ScannerT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>, </span><span class=identifier>result_t</span><span class=special>&amp; </span><span class=identifier>result</span><span class=special>) </span><span class=keyword>const</span><span class=special>;
+    </span><span class=special>};
+</span></code></pre>
+<p> where typedef T result_t; is the attribute type of the parser that will be 
+  passed back to the match result (see <a href="indepth_the_parser.html">In-depth: 
+  The Parser</a>). If the parser does not need to return an attribute, this can 
+  simply be nil_t. The <span class=keyword><tt>std::ptrdiff_t</tt></span> result 
+  is the number of matching characters matched by your parser. A negative value 
+  flags an unsucessful match.</p>
+<p> A conforming functor parser can transformed into a well formed Spirit parser 
+  by wrapping it in the functor_parser template:</p>
+<pre>
+    <code><span class=identifier>functor_parser</span><span class=special>&lt;</span><span class=identifier>functor</span><span class=special>&gt; </span><span class=identifier>functor_p</span><span class=special>;
+</span></code></pre>
+
+<h2>Example</h2>
+<p> The following example puts the functor_parser into action:</p>
+<pre>
+    <code><span class=keyword>struct </span><span class=identifier>number_parser
+    </span><span class=special>{
+        </span><span class=keyword>typedef </span><span class=keyword>int </span><span class=identifier>result_t</span><span class=special>;
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>std::ptrdiff_t</span>
+        <span class=keyword>operator</span><span class=special>()(</span><span class=identifier>ScannerT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>, </span><span class=identifier>result_t</span><span class=special>&amp; </span><span class=identifier>result</span><span class=special>) </span><span class=keyword>const
+        </span><span class=special>{
+            </span><span class=keyword>if </span><span class=special>(</span><span class=identifier>scan</span><span class=special>.</span><span class=identifier>at_end</span><span class=special>())
+                </span><span class=keyword>return </span><span class=special>-</span><span class=number>1</span><span class=special>;
+
+            </span><span class=keyword>char </span><span class=identifier>ch </span><span class=special>= </span><span class=special>*</span><span class=identifier>scan</span><span class=special>;
+            </span><span class=keyword>if </span><span class=special>(</span><span class=identifier>ch </span><span class=special>&lt; </span><span class=literal>'0' </span><span class=special>|| </span><span class=identifier>ch </span><span class=special>&gt; </span><span class=literal>'9'</span><span class=special>)
+                </span><span class=keyword>return </span><span class=special>-</span><span class=number>1</span><span class=special>;
+
+            </span><span class=identifier>result </span><span class=special>= </span><span class=number>0</span><span class=special>;
+            </span><span class=keyword>std::ptrdiff_t</span> <span class=identifier>len </span><span class=special>= </span><span class=number>0</span><span class=special>;
+
+            </span><span class=keyword>do
+            </span><span class=special>{
+                </span><span class=identifier>result </span><span class=special>= </span><span class=identifier>result</span><span class=special>*</span><span class=number>10 </span><span class=special>+ </span><span class=keyword>int</span><span class=special>(</span><span class=identifier>ch </span><span class=special>- </span><span class=literal>'0'</span><span class=special>);
+                </span><span class=special>++</span><span class=identifier>len</span><span class=special>;
+                </span><span class=special>++</span><span class=identifier>scan</span><span class=special>;
+            </span><span class=special>} </span><span class=keyword>while </span><span class=special>(!</span><span class=identifier>scan</span><span class=special>.</span><span class=identifier>at_end</span><span class=special>() </span><span class=special>&amp;&amp; </span><span class=special>(</span><span class=identifier>ch </span><span class=special>= </span><span class=special>*</span><span class=identifier>scan</span><span class=special>, </span><span class=identifier>ch </span><span class=special>&gt;= </span><span class=literal>'0' </span><span class=special>&amp;&amp; </span><span class=identifier>ch </span><span class=special>&lt;= </span><span class=literal>'9'</span><span class=special>));
+
+            </span><span class=keyword>return </span><span class=identifier>len</span><span class=special>;
+        </span><span class=special>}
+    </span><span class=special>};
+
+    </span><span class=identifier>functor_parser</span><span class=special>&lt;</span><span class=identifier>number_parser</span><span class=special>&gt; </span><span class=identifier>number_parser_p</span><span class=special>;
+</span></code></pre>
+<p>  <img src="theme/lens.gif" width="15" height="16"> The full source code can be <a href="../example/fundamental/functor_parser.cpp">viewed here</a>. This is part of the Spirit distribution. </p>
+<p>To further understand the implementation, see <a href="indepth_the_scanner.html">In-depth: 
+    The Scanner</a> for the scanner API details. We now have a parser <tt>number_parser_p</tt> that we can use just like any other Spirit parser. Example:</p>
+<pre>
+    <code><span class=identifier>r </span><span class=special>= </span><span class=identifier>number_parser_p </span><span class=special>&gt;&gt; </span><span class=special>*(</span><span class=literal>',' </span><span class=special>&gt;&gt; </span><span class=identifier>number_parser_p</span><span class=special>);
+</span></code></pre>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="list_parsers.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="refactoring.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+<font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

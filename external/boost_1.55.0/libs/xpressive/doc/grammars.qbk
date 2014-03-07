@@ -1,0 +1,313 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Grammars and Nested Matches]
+
+[h2 Overview]
+
+One of the key benefits of representing regexes as C++ expressions is the ability to easily refer to other C++
+code and data from within the regex. This enables programming idioms that are not possible with other regular
+expression libraries. Of particular note is the ability for one regex to refer to another regex, allowing you
+to build grammars out of regular expressions. This section describes how to embed one regex in another by value
+and by reference, how regex objects behave when they refer to other regexes, and how to access the tree of results
+after a successful parse.
+
+[h2 Embedding a Regex by Value]
+
+The _basic_regex_ object has value semantics. When a regex object appears on the right-hand side in the definition
+of another regex, it is as if the regex were embedded by value; that is, a copy of the nested regex is stored by
+the enclosing regex. The inner regex is invoked by the outer regex during pattern matching. The inner regex
+participates fully in the match, back-tracking as needed to make the match succeed.
+
+Consider a text editor that has a regex-find feature with a whole-word option. You can implement this with
+xpressive as follows:
+
+    find_dialog dlg;
+    if( dialog_ok == dlg.do_modal() )
+    {
+        std::string pattern = dlg.get_text();          // the pattern the user entered
+        bool whole_word = dlg.whole_word.is_checked(); // did the user select the whole-word option?
+
+        sregex re = sregex::compile( pattern );        // try to compile the pattern
+
+        if( whole_word )
+        {
+            // wrap the regex in begin-word / end-word assertions
+            re = bow >> re >> eow;
+        }
+
+        // ... use re ...
+    }
+
+Look closely at this line:
+
+    // wrap the regex in begin-word / end-word assertions
+    re = bow >> re >> eow;
+
+This line creates a new regex that embeds the old regex by value. Then, the new regex is assigned back to
+the original regex. Since a copy of the old regex was made on the right-hand side, this works as you might
+expect: the new regex has the behavior of the old regex wrapped in begin- and end-word assertions.
+
+[note Note that `re = bow >> re >> eow` does ['not] define a recursive regular expression, since regex
+objects embed by value by default. The next section shows how to define a recursive regular expression by
+embedding a regex by reference.]
+
+[h2 Embedding a Regex by Reference]
+
+If you want to be able to build recursive regular expressions and context-free grammars, embedding a regex
+by value is not enough. You need to be able to make your regular expressions self-referential. Most regular
+expression engines don't give you that power, but xpressive does.
+
+[tip The theoretical computer scientists out there will correctly point out that a self-referential
+regular expression is not "regular", so in the strict sense, xpressive isn't really a ['regular] expression engine
+at all. But as Larry Wall once said, "the term '''[regular expression]''' has grown with the capabilities of our
+pattern matching engines, so I'm not going to try to fight linguistic necessity here."]
+
+Consider the following code, which uses the `by_ref()` helper to define a recursive regular expression that
+matches balanced, nested parentheses:
+
+    sregex parentheses;
+    parentheses                          // A balanced set of parentheses ...
+        = '('                            // is an opening parenthesis ...
+            >>                           // followed by ...
+             *(                          // zero or more ...
+                keep( +~(set='(',')') )  // of a bunch of things that are not parentheses ...
+              |                          // or ...
+                by_ref(parentheses)      // a balanced set of parentheses
+              )                          //   (ooh, recursion!) ...
+            >>                           // followed by ...
+          ')'                            // a closing parenthesis
+        ;
+
+Matching balanced, nested tags is an important text processing task, and it is one that "classic" regular
+expressions cannot do. The `by_ref()` helper makes it possible. It allows one regex object to be embedded
+in another ['by reference]. Since the right-hand side holds `parentheses` by reference, assigning the right-hand
+side back to `parentheses` creates a cycle, which will execute recursively.
+
+[h2 Building a Grammar]
+
+Once we allow self-reference in our regular expressions, the genie is out of the bottle and all manner of
+fun things are possible. In particular, we can now build grammars out of regular expressions. Let's have
+a look at the text-book grammar example: the humble calculator.
+
+    sregex group, factor, term, expression;
+
+    group       = '(' >> by_ref(expression) >> ')';
+    factor      = +_d | group;
+    term        = factor >> *(('*' >> factor) | ('/' >> factor));
+    expression  = term >> *(('+' >> term) | ('-' >> term));
+
+The regex `expression` defined above does something rather remarkable for a regular expression: it matches
+mathematical expressions. For example, if the input string were `"foo 9*(10+3) bar"`, this pattern would
+match `"9*(10+3)"`. It only matches well-formed mathematical expressions, where the parentheses are
+balanced and the infix operators have two arguments each. Don't try this with just any regular expression
+engine!
+
+Let's take a closer look at this regular expression grammar. Notice that it is cyclic: `expression` is
+implemented in terms of `term`, which is implemented in terms of `factor`, which is implemented in terms
+of `group`, which is implemented in terms of `expression`, closing the loop. In general, the way to define
+a cyclic grammar is to forward-declare the regex objects and embed by reference those regular expressions
+that have not yet been initialized. In the above grammar, there is only one place where we need to reference
+a regex object that has not yet been initialized: the definition of `group`. In that place, we use
+`by_ref()` to embed `expression` by reference. In all other places, it is sufficient to embed the other
+regex objects by value, since they have already been initialized and their values will not change.
+
+[tip [*Embed by value if possible]
+\n\n
+In general, prefer embedding regular expressions by value rather than by reference. It
+involves one less indirection, making your patterns match a little faster. Besides, value semantics
+are simpler and will make your grammars easier to reason about. Don't worry about the expense of "copying"
+a regex. Each regex object shares its implementation with all of its copies.]
+
+[h2 Dynamic Regex Grammars]
+
+Using _regex_compiler_, you can also build grammars out of dynamic regular expressions.
+You do that by creating named regexes, and referring to other regexes by name. Each
+_regex_compiler_ instance keeps a mapping from names to regexes that have been created
+with it.
+
+You can create a named dynamic regex by prefacing your regex with `"(?$name=)"`, where
+/name/ is the name of the regex. You can refer to a named regex from another regex with
+`"(?$name)"`. The named regex does not need to exist yet at the time it is referenced
+in another regex, but it must exist by the time you use the regex.
+
+Below is a code fragment that uses dynamic regex grammars to implement the calculator
+example from above.
+
+    using namespace boost::xpressive;
+    using namespace regex_constants;
+
+    sregex expr;
+
+    {
+         sregex_compiler compiler;
+         syntax_option_type x = ignore_white_space;
+
+                compiler.compile("(? $group  = ) \\( (? $expr ) \\) ", x);
+                compiler.compile("(? $factor = ) \\d+ | (? $group ) ", x);
+                compiler.compile("(? $term   = ) (? $factor )"
+                                 " ( \\* (? $factor ) | / (? $factor ) )* ", x);
+         expr = compiler.compile("(? $expr   = ) (? $term )"
+                                 "   ( \\+ (? $term ) | - (? $term )   )* ", x);
+    }
+
+    std::string str("foo 9*(10+3) bar");
+    smatch what;
+
+    if(regex_search(str, what, expr))
+    {
+         // This prints "9*(10+3)":
+         std::cout << what[0] << std::endl;
+    }
+
+As with static regex grammars, nested regex invocations create nested
+match results (see /Nested Results/ below). The result is a complete parse tree
+for string that matched. Unlike static regexes, dynamic regexes are always
+embedded by reference, not by value.
+
+[h2 Cyclic Patterns, Copying and Memory Management, Oh My!]
+
+The calculator examples above raises a number of very complicated memory-management issues. Each of the
+four regex objects refer to each other, some directly and some indirectly, some by value and some by
+reference. What if we were to return one of them from a function and let the others go out of scope?
+What becomes of the references? The answer is that the regex objects are internally reference counted,
+such that they keep their referenced regex objects alive as long as they need them. So passing a regex
+object by value is never a problem, even if it refers to other regex objects that have gone out of scope.
+
+Those of you who have dealt with reference counting are probably familiar with its Achilles Heel: cyclic
+references. If regex objects are reference counted, what happens to cycles like the one created in the
+calculator examples? Are they leaked? The answer is no, they are not leaked. The _basic_regex_ object has some tricky
+reference tracking code that ensures that even cyclic regex grammars are cleaned up when the last external
+reference goes away. So don't worry about it. Create cyclic grammars, pass your regex objects around and
+copy them all you want. It is fast and efficient and guaranteed not to leak or result in dangling references.
+
+[h2 Nested Regexes and Sub-Match Scoping]
+
+Nested regular expressions raise the issue of sub-match scoping. If both the inner and outer regex write
+to and read from the same sub-match vector, chaos would ensue. The inner regex would stomp on the
+sub-matches written by the outer regex. For example, what does this do?
+
+    sregex inner = sregex::compile( "(.)\\1" );
+    sregex outer = (s1= _) >> inner >> s1;
+
+The author probably didn't intend for the inner regex to overwrite the sub-match written by the outer
+regex. The problem is particularly acute when the inner regex is accepted from the user as input. The
+author has no way of knowing whether the inner regex will stomp the sub-match vector or not. This is
+clearly not acceptable.
+
+Instead, what actually happens is that each invocation of a nested regex gets its own scope. Sub-matches
+belong to that scope. That is, each nested regex invocation gets its own copy of the sub-match vector to
+play with, so there is no way for an inner regex to stomp on the sub-matches of an outer regex. So, for
+example, the regex `outer` defined above would match `"ABBA"`, as it should.
+
+[h2 Nested Results]
+
+If nested regexes have their own sub-matches, there should be a way to access them after a successful
+match. In fact, there is. After a _regex_match_ or _regex_search_, the _match_results_ struct behaves
+like the head of a tree of nested results. The _match_results_ class provides a `nested_results()`
+member function that returns an ordered sequence of _match_results_ structures, representing the
+results of the nested regexes. The order of the nested results is the same as the order in which
+the nested regex objects matched.
+
+Take as an example the regex for balanced, nested parentheses we saw earlier:
+
+    sregex parentheses;
+    parentheses = '(' >> *( keep( +~(set='(',')') ) | by_ref(parentheses) ) >> ')';
+
+    smatch what;
+    std::string str( "blah blah( a(b)c (c(e)f (g)h )i (j)6 )blah" );
+
+    if( regex_search( str, what, parentheses ) )
+    {
+        // display the whole match
+        std::cout << what[0] << '\n';
+
+        // display the nested results
+        std::for_each(
+            what.nested_results().begin(),
+            what.nested_results().end(),
+            output_nested_results() );
+    }
+
+This program displays the following:
+
+[pre
+( a(b)c (c(e)f (g)h )i (j)6 )
+    (b)
+    (c(e)f (g)h )
+        (e)
+        (g)
+    (j)
+]
+
+Here you can see how the results are nested and that they are stored in the order in which they
+are found.
+
+[tip See the definition of [link boost_xpressive.user_s_guide.examples.display_a_tree_of_nested_results output_nested_results] in the
+[link boost_xpressive.user_s_guide.examples Examples] section.]
+
+[h2 Filtering Nested Results]
+
+Sometimes a regex will have several nested regex objects, and you want to know which result corresponds
+to which regex object. That's where `basic_regex<>::regex_id()` and `match_results<>::regex_id()`
+come in handy. When iterating over the nested results, you can compare the regex id from the results to
+the id of the regex object you're interested in.
+
+To make this a bit easier, xpressive provides a predicate to make it simple to iterate over just the
+results that correspond to a certain nested regex. It is called `regex_id_filter_predicate`, and it is
+intended to be used with _iterator_. You can use it as follows:
+
+    sregex name = +alpha;
+    sregex integer = +_d;
+    sregex re = *( *_s >> ( name | integer ) );
+
+    smatch what;
+    std::string str( "marsha 123 jan 456 cindy 789" );
+
+    if( regex_match( str, what, re ) )
+    {
+        smatch::nested_results_type::const_iterator begin = what.nested_results().begin();
+        smatch::nested_results_type::const_iterator end   = what.nested_results().end();
+
+        // declare filter predicates to select just the names or the integers
+        sregex_id_filter_predicate name_id( name.regex_id() );
+        sregex_id_filter_predicate integer_id( integer.regex_id() );
+
+        // iterate over only the results from the name regex
+        std::for_each(
+            boost::make_filter_iterator( name_id, begin, end ),
+            boost::make_filter_iterator( name_id, end, end ),
+            output_result
+            );
+
+        std::cout << '\n';
+
+        // iterate over only the results from the integer regex
+        std::for_each(
+            boost::make_filter_iterator( integer_id, begin, end ),
+            boost::make_filter_iterator( integer_id, end, end ),
+            output_result
+            );
+    }
+
+where `output_results` is a simple function that takes a `smatch` and displays the full match.
+Notice how we use the `regex_id_filter_predicate` together with `basic_regex<>::regex_id()` and
+`boost::make_filter_iterator()` from the _iterator_ to select only those results
+corresponding to a particular nested regex. This program displays the following:
+
+[pre
+marsha
+jan
+cindy
+123
+456
+789
+]
+
+
+
+[endsect]

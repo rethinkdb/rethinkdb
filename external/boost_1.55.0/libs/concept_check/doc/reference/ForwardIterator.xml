@@ -1,0 +1,174 @@
+<?xml version="1.0"?>
+<concept name="ForwardIterator" category="Iterator"><!--
+Based on concepts from the SGI Standard Template Library documentation:
+Copyright (c) 1996-1999
+Silicon Graphics Computer Systems, Inc.
+
+Copyright (c) 1994
+Hewlett-Packard Company
+--><!--
+Copyright 2000-2001 University of Notre Dame du Lac.
+Copyright 2001-2002 Indiana University.
+Some concepts based on versions from the MTL draft manual and Boost Graph
+and Property Map documentation:
+Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+-->
+  <param name="Iter" role="iterator-type"/>
+
+  <use-header name="iterator"/>
+
+  <models-sentence>The iterator type <arg num="1"/> must be a model of <self/>.</models-sentence>
+
+  <description>
+  <para>A forward iterator is an iterator that can read through a sequence of
+  values.  It is multi-pass (old values of the iterator can be
+  re-used), and can be either mutable (data pointed to by it can be
+  changed) or not mutable.</para>
+
+  <para>An iterator represents a position in a sequence.  Therefore, the
+  iterator can point into the sequence (returning a value when dereferenced
+  and being incrementable), or be off-the-end (and not dereferenceable or
+  incrementable).</para>
+  </description>
+
+  <associated-type name="value_type">
+    <get-member-type name="value_type">
+      <apply-template name="std::iterator_traits">
+	<type name="Iter"/>
+      </apply-template>
+    </get-member-type>
+    <description><simpara>The value type of the iterator</simpara></description>
+  </associated-type>
+
+  <refines const="no" concept="InputIterator"/>
+  <refines const="no" concept="OutputIterator"/>
+
+<!-- DPG doesn't understand this
+  <models const="no" testable="yes" concept="Input Iterator">
+    <type name="Iter"/>
+  </models>
+-->
+<!--
+  <models-when-mutable concept="Output Iterator">
+    <type name="Iter"/>
+    <type name="value_type"/>
+  </models-when-mutable>
+-->
+
+  <notation variables="i j">
+    <sample-value>
+      <type name="Iter"/>
+    </sample-value>
+  </notation>
+
+  <associated-type name="category">
+    <get-member-type name="iterator_category">
+      <apply-template name="std::iterator_traits">
+	<type name="Iter"/>
+      </apply-template>
+    </get-member-type>
+    <description><simpara>The category of the iterator</simpara></description>
+  </associated-type>
+
+  <notation variables="x">
+    <sample-value>
+      <type name="value_type"/>
+    </sample-value>
+  </notation>
+
+  <valid-type-expression name="Category tag">
+    <description/>
+    <type name="category"/>
+    <return-type>
+      <derived-from testable="yes">
+	<type name="std::forward_iterator_tag"/>
+      </derived-from>
+    </return-type>
+  </valid-type-expression>
+
+  <valid-expression name="Dereference">
+    <dereference>
+      <sample-value><type name="Iter"/></sample-value>
+    </dereference>
+    <return-type>
+      <require-same-type testable="yes">
+	<const-if-not-mutable>
+	  <reference-to><type name="value_type"/></reference-to>
+	</const-if-not-mutable>
+      </require-same-type>
+    </return-type>
+    <precondition><code>i</code> is incrementable (not
+    off-the-end)</precondition>
+  </valid-expression>
+
+  <valid-expression name="Member access">
+    <pointer-member>
+      <sample-value><type name="Iter"/></sample-value>
+    </pointer-member>
+    <return-type>
+      <require-same-type testable="yes">
+	<const-if-not-mutable>
+	  <pointer-to><type name="value_type"/></pointer-to>
+	</const-if-not-mutable>
+      </require-same-type>
+    </return-type>
+    <precondition><code>i</code> is incrementable (not
+    off-the-end)</precondition>
+  </valid-expression>
+
+  <valid-expression name="Preincrement">
+    <preincrement>
+      <sample-value><reference-to><type name="Iter"/></reference-to></sample-value>
+    </preincrement>
+    <return-type>
+      <require-same-type testable="yes">
+	<reference-to><type name="Iter"/></reference-to>
+      </require-same-type>
+    </return-type>
+    <precondition><code>i</code> is incrementable (not
+    off-the-end)</precondition>
+  </valid-expression>
+
+  <valid-expression name="Postincrement">
+    <postincrement>
+      <sample-value><reference-to><type name="Iter"/></reference-to></sample-value>
+    </postincrement>
+    <return-type>
+      <require-same-type testable="yes"><type name="Iter"/></require-same-type>
+    </return-type>
+    <precondition><code>i</code> is incrementable (not
+    off-the-end)</precondition>
+    <semantics>Equivalent to <code>{Iter j = i; ++i; return j;}</code></semantics>
+    <postcondition><code>i</code> is dereferenceable or
+    off-the-end</postcondition>
+  </valid-expression>
+
+  <complexity>
+  All iterator operations must take amortized constant time.
+  </complexity>
+
+  <invariant name="Predecrement must return object">
+  <code>&amp;i = &amp;(++i)</code>
+  </invariant>
+
+  <invariant name="Unique path through sequence">
+  <code>i == j</code> implies <code>++i == ++j</code>
+  </invariant>
+
+  <example-model>
+    <pointer-to>
+      <type name="T"/>
+    </pointer-to>
+  </example-model>
+
+  <example-model>
+    <get-member-type name="iterator">
+      <apply-template name="std::hash_set">
+	<type name="T"/>
+      </apply-template>
+    </get-member-type>
+  </example-model>
+
+  <see-also concept="BidirectionalIterator"/>
+
+</concept>

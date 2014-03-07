@@ -1,0 +1,76 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template add_value_manip</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../utilities.html#header.boost.log.utility.manipulators.add_value_hpp" title="Header &lt;boost/log/utility/manipulators/add_value.hpp&gt;">
+<link rel="prev" href="save_result.html" title="Function template save_result">
+<link rel="next" href="operator_idp28212264.html" title="Function template operator&lt;&lt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="save_result.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../utilities.html#header.boost.log.utility.manipulators.add_value_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="operator_idp28212264.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.add_value_manip"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template add_value_manip</span></h2>
+<p>boost::log::add_value_manip &#8212; Attribute value manipulator. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../utilities.html#header.boost.log.utility.manipulators.add_value_hpp" title="Header &lt;boost/log/utility/manipulators/add_value.hpp&gt;">boost/log/utility/manipulators/add_value.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> RefT<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="add_value_manip.html" title="Class template add_value_manip">add_value_manip</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">RefT</span>                                                                 <a name="boost.log.add_value_manip.reference_type"></a><span class="identifier">reference_type</span><span class="special">;</span>  <span class="comment">// Stored reference type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">remove_cv</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">remove_reference</span><span class="special">&lt;</span> <span class="identifier">reference_type</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="boost.log.add_value_manip.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>      <span class="comment">// Attribute value type. </span>
+
+  <span class="comment">// <a class="link" href="add_value_manip.html#boost.log.add_value_manipconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="add_value_manip.html#idp28211352-bb"><span class="identifier">add_value_manip</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">reference_type</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="add_value_manip.html#idp28209896-bb">public member functions</a></span>
+  <span class="identifier">attribute_name</span> <a class="link" href="add_value_manip.html#idp28210104-bb"><span class="identifier">get_name</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">reference_type</span> <a class="link" href="add_value_manip.html#idp28210728-bb"><span class="identifier">get_value</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp68581016"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp68581224"></a><h3>
+<a name="boost.log.add_value_manipconstruct-copy-destruct"></a><code class="computeroutput">add_value_manip</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp28211352-bb"></a><span class="identifier">add_value_manip</span><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span> name<span class="special">,</span> <span class="identifier">reference_type</span> value<span class="special">)</span><span class="special">;</span></pre>Initializing constructor. </li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp68585976"></a><h3>
+<a name="idp28209896-bb"></a><code class="computeroutput">add_value_manip</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">attribute_name</span> <a name="idp28210104-bb"></a><span class="identifier">get_name</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns attribute name. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">reference_type</span> <a name="idp28210728-bb"></a><span class="identifier">get_value</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns attribute value. </li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="save_result.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../utilities.html#header.boost.log.utility.manipulators.add_value_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="operator_idp28212264.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

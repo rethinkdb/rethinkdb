@@ -1,0 +1,55 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[table Adaptive step size algorithms
+  [ [Stepper] [Tolerance formula] [Norm] [Step size adaption] ]
+  [ [`controlled_runge_kutta`]
+    [
+      ['val = || | err[subl i] | / ( __epsilon[subl abs] + __epsilon[subl rel] * ( a[subl x] | x[subl i] | + a[subl dxdt] | | dxdt[subl i] | )|| ]
+    ]
+    [['||x|| = max( x[subl i] )]]
+    [
+      ['val > 1   : dt[subl new] = dt[subl current] max( 0.9 pow( val , -1 / ( O[subl E] - 1 ) ) , 0.2 )]
+
+      ['val < 0.5 : dt[subl new] = dt[subl current] min( 0.9 pow( val , -1 / O[subl S] ) , 5 )]
+
+      ['else : dt[subl new] = dt[subl current]]
+    ] ]
+  [ [`rosenbrock4_controller`]
+    [
+      ['val = || err[subl i] / ( __epsilon[subl abs] + __epsilon[subl rel] max( | x[subl i] | , | xold[subl i] | ) ) || ]
+    ]
+    [['||x||=(__Sigma[subl i] x[subl i][super 2])[super 1/2]]]
+    [
+      ['fac = max( 1 / 6 , min( 5 , pow( val , 1 / 4 ) / 0.9 ) ]
+
+      ['fac2 = max( 1 / 6 , min( 5 , dt[subl old] / dt[subl current] pow( val[super 2] / val[subl old] , 1 / 4 ) / 0.9 ) ]
+
+      ['val > 1 : dt[subl new] = dt[subl current] / fac ]
+
+      ['val < 1 : dt[subl new] = dt[subl current] / max( fac , fac2 ) ]
+    ]
+  ]
+  [ [bulirsch_stoer] [['tol=1/2]] [-] [['dt[subl new] = dt[subl old][super 1/a]]] ]
+]
+
+[/
+
+safe = 0.9 , fac1 = 5.0 , fac2 = 1.0 / 6.0
+
+value_type fac_pred = ( m_dt_old / dt ) * pow( err * err / m_err_old , 0.25 ) / safe;
+        fac_pred = std::max( fac2 , std::min( fac1 , fac_pred ) );
+        fac = std::max( fac , fac_pred );
+        dt_new = dt / fac;
+
+
+fac = max( fac2 , min( fac1 , pow( err , 0.25 ) / safe ) )
+]

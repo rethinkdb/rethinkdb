@@ -1,0 +1,59 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Preface]
+
+[:['Wife:]      New Shimmer is a floor wax!\n
+  ['Husband:]   No, new Shimmer is a dessert topping!\n
+  ['Wife:]      It's a floor wax!\n
+  ['Husband:]   It's a dessert topping!\n
+  ['Wife:]      It's a floor wax, I'm telling you!\n
+  ['Husband:]   It's a dessert topping, you cow!\n
+  ['Announcer:] Hey, hey, hey, calm down, you two. New Shimmer is both a floor wax ['and] a dessert topping!]
+[:[*['-- Saturday Night Live]]]
+
+[h2 Description]
+
+xpressive is an advanced, object-oriented regular expression template library for C++.
+Regular expressions can be written as strings that are parsed at run-time, or as expression
+templates that are parsed at compile-time. Regular expressions can refer to each other and
+to themselves recursively, allowing you to build arbitrarily complicated grammars out of
+them.
+
+[h2 Motivation]
+
+If you need to manipulate text in C++, you have typically had two disjoint options: a regular
+expression engine or a parser generator. Regular expression engines (like _regexpp_) are powerful
+and flexible; patterns are represented as strings which can be specified at runtime. However,
+that means that syntax errors are likewise not detected until runtime. Also, regular expressions
+are ill-suited to advanced text processing tasks such as matching balanced, nested tags. Those
+tasks have traditionally been handled by parser generators (like the _spirit_fx_). These
+beasts are more powerful but less flexible. They generally don't allow you to arbitrarily modify
+your grammar rules on the fly. In addition, they don't have the exhaustive backtracking semantics
+of regular expressions, which can make it more challenging to author some types of patterns.
+
+xpressive brings these two approaches seamlessly together and occupies a unique niche in the
+world of C++ text processing. With xpressive, you can choose to use it much as you would use
+_regexpp_, representing regular expressions as strings. Or you can use it as you would use _spirit_,
+writing your regexes as C++ expressions, enjoying all the benefits of an embedded language
+dedicated to text manipulation. What's more, you can mix the two to get the benefits of
+both, writing regular expression ['grammars] in which some of the regular expressions are
+statically bound -- hard-coded and syntax\-checked by the compiler \-- and others are dynamically
+bound and specified at runtime. These regular expressions can refer to each other recursively,
+matching patterns in strings that ordinary regular expressions cannot.
+
+[h2 Influences and Related Work]
+
+The design of xpressive's interface has been strongly influenced by John Maddock's
+_regexpp_ library and his _proposal_
+to add regular expressions to the Standard Library. I also drew a great deal of
+inspiration from Joel de Guzman's _spirit_fx_, which served as the model
+for static xpressive. Other sources of inspiration are the _perl6_ redesign and _greta_.
+(You can read a summary of the changes Perl 6 will bring to regex culture
+[@http://dev.perl.org/perl6/doc/design/syn/S05.html here].)
+
+[endsect]

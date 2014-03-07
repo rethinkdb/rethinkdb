@@ -1,0 +1,21 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/mg.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/mg.xml
+ *  Chrome Note: This locale data is abridged to contain categories
+ *  actually used by Chrome.
+ */
+mg{
+    AuxExemplarCharacters{"[c q u w x]"}
+    ExemplarCharacters{"[a à â b d e é è ê ë f g h i ì î ï j k l m n ñ o ô p r s t v y z]"}
+    LocaleScript{
+        "Latn",
+    }
+    Version{"2.0.47.63"}
+}

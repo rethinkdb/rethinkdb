@@ -1,0 +1,23 @@
+
+[/ Copyright (C) 2009-2012 Lorenzo Caminiti ]
+[/ Distributed under the Boost Software License, Version 1.0 ]
+[/ (see accompanying file LICENSE_1_0.txt or a copy at ]
+[/ http://www.boost.org/LICENSE_1_0.txt) ]
+[/ Home at http://www.boost.org/libs/local_function ]
+
+[section Bibliography]
+
+This section lists all the bibliographic references cited by this documentation.
+
+__N1613__ Thorsten Ottosen. /Proposal to add Design by Contract to C++./ The C++ Standards Committee, document no. N1613=04-0053, 2004.
+
+__N2511__ Alisdair Meredith. /Named Lambdas and Local Functions./ The C++ Standards Committee, document no. N2511=08-0021, 2008.
+
+__N2529__ Jaakko Jarvi, John Freeman, Lawrence Crowl. /Lambda Expressions and Closures: Wording for Monomorphic Lambdas (Revision 3)./ The C++ Standards Committee, document no. N2529=08-0039, 2008.
+
+__N2550__ Jaakko Jarvi, John Freeman, Lawrence Crowl. /Lambda Expressions and Closures: Wording for Monomorphic Lambdas (Revision 4)./ The C++ Standards Committee, document no. N2550=08-0060, 2008.
+
+__N2657__ John Spicer. /Local and Unamed Types as Template Arguments./ The C++ Standard Committee, document no. N2657=08-0167, 2008.
+
+[endsect]
+

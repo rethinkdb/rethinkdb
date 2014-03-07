@@ -1,0 +1,242 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section STL]
+
+    #include <boost/phoenix/stl.hpp>
+
+This section summarizes the lazy equivalents of C++ Standard Library functionality
+
+[section Container]
+
+    #include <boost/phoenix/stl/container.hpp>
+
+The container module predefines a set of lazy functions that work on STL
+containers. These functions provide a mechanism for the lazy evaluation of the
+public member functions of the STL containers. The lazy functions are thin
+wrappers that simply forward to their respective counterparts in the STL
+library.
+
+Lazy functions are provided for all of the member functions of the following
+containers:
+
+* deque
+* list
+* map
+* multimap
+* vector
+
+Indeed, should your class have member functions with the same names and
+signatures as those listed below, then it will automatically be supported. To
+summarize, lazy functions are provided for member functions:
+
+* assign
+* at
+* back
+* begin
+* capacity
+* clear
+* empty
+* end
+* erase
+* front
+* get_allocator
+* insert
+* key_comp
+* max_size
+* pop_back
+* pop_front
+* push_back
+* push_front
+* rbegin
+* rend
+* reserve
+* resize
+* size
+* splice
+* value_comp
+
+The lazy functions' names are the same as the corresponding member function. The
+difference is that the lazy functions are free functions and therefore does not
+use the member "dot" syntax.
+
+[table Sample usage
+    [["Normal" version]                 ["Lazy" version]]
+    [[`my_vector.at(5)`]                [`at(arg1, 5)`]]
+    [[`my_list.size()`]                 [`size(arg1)`]]
+    [[`my_vector1.swap(my_vector2)`]    [`swap(arg1, arg2)`]]
+]
+
+Notice that member functions with names that clash with stl algorithms are
+absent. This will be provided in Phoenix's algorithm module.
+
+No support is provided here for lazy versions of `operator+=`, `operator[]` etc.
+Such operators are not specific to STL containers and lazy versions can
+therefore be found in [link phoenix.modules.operator operators].
+
+The following table describes the container functions and their semantics.
+
+[blurb __tip__ Arguments in brackets denote optional parameters.]
+
+[table Lazy STL Container Functions
+    [[Function]                         [Semantics]]
+    [[`assign(c, a[, b, c])`]           [`c.assign(a[, b, c])`]]
+    [[`at(c, i)`]                       [`c.at(i)`]]
+    [[`back(c)`]                        [`c.back()`]]
+    [[`begin(c)`]                       [`c.begin()`]]
+    [[`capacity(c)`]                    [`c.capacity()`]]
+    [[`clear(c)`]                       [`c.clear()`]]
+    [[`empty(c)`]                       [`c.empty()`]]
+    [[`end(c)`]                         [`c.end()`]]
+    [[`erase(c, a[, b])`]               [`c.erase(a[, b])`]]
+    [[`front(c)`]                       [`c.front()`]]
+    [[`get_allocator(c)`]               [`c.get_allocator()`]]
+    [[`insert(c, a[, b, c])`]           [`c.insert(a[, b, c])`]]
+    [[`key_comp(c)`]                    [`c.key_comp()`]]
+    [[`max_size(c)`]                    [`c.max_size()`]]
+    [[`pop_back(c)`]                    [`c.pop_back()`]]
+    [[`pop_front(c)`]                   [`c.pop_front()`]]
+    [[`push_back(c, d)`]                [`c.push_back(d)`]]
+    [[`push_front(c, d)`]               [`c.push_front(d)`]]
+    [[`pop_front(c)`]                   [`c.pop_front()`]]
+    [[`rbegin(c)`]                      [`c.rbegin()`]]
+    [[`rend(c)`]                        [`c.rend()`]]
+    [[`reserve(c, n)`]                  [`c.reserve(n)`]]
+    [[`resize(c, a[, b])`]              [`c.resize(a[, b])`]]
+    [[`size(c)`]                        [`c.size()`]]
+    [[`splice(c, a[, b, c, d])`]        [`c.splice(a[, b, c, d])`]]
+    [[`value_comp(c)`]                  [`c.value_comp()`]]
+]
+
+[endsect]
+
+[section Algorithm]
+
+    #include <boost/phoenix/stl/algorithm.hpp>
+
+The algorithm module provides wrappers for the standard algorithms in the
+`<algorithm>` and `<numeric>` headers.
+
+The algorithms are divided into the categories iteration, transformation and querying,
+modeling the __boost_mpl__ library. The different algorithm classes can be
+included using the headers:
+
+    #include <boost/phoenix/stl/algorithm/iteration.hpp>
+    #include <boost/phoenix/stl/algorithm/transformation.hpp>
+    #include <boost/phoenix/stl/algorithm/querying.hpp>
+
+The functions of the algorithm module take ranges as arguments where
+appropriate. This is different to the standard
+library, but easy enough to pick up. Ranges are described in detail in the
+__boost_range__ library.
+
+For example, using the standard copy algorithm to copy between 2 arrays:
+
+    int array[] = {1, 2, 3};
+    int output[3];
+    std::copy(array, array + 3, output); // We have to provide iterators
+                                         // to both the start and end of array
+
+The analogous code using the phoenix algorithm module is:
+
+    int array[] = {1, 2, 3};
+    int output[3];
+    copy(arg1, arg2)(array, output); // Notice only 2 arguments, the end of
+                                     // array is established automatically
+
+The __boost_range__ library provides support for standard containers, strings and
+arrays, and can be extended to support additional types.
+
+The following tables describe the different categories of algorithms, and their
+semantics.
+
+[blurb __tip__ Arguments in brackets denote optional parameters.]
+
+[table Iteration Algorithms
+    [[Function]                         [stl Semantics]]
+    [[`for_each(r, f)`]                 [`for_each(begin(r), end(r), f)`]]
+    [[`accumulate(r, o[, f])`]          [`accumulate(begin(r), end(r), o[, f])`]]
+]
+
+[table Querying Algorithms
+    [[Function]                         [stl Semantics]]
+    [[`find(r, a)`]                     [`find(begin(r), end(r), a)`]]
+    [[`find_if(r, f)`]                  [`find_if(begin(r), end(r), f)`]]
+    [[`find_end(r1, r2[, f])`]          [`find_end(begin(r1), end(r1), begin(r2), end(r2)[, f])`]]
+    [[`find_first_of(r1, r2[, f])`]     [`find_first_of(begin(r1), end(r1), begin(r2), end(r2)[, f])`]]
+    [[`adjacent_find(r[, f])`]          [`adjacent_find(begin(r), end(r)[, f])`]]
+    [[`count(r, a)`]                    [`count(begin(r), end(r), a)`]]
+    [[`count_if(r, f)`]                 [`count_if(begin(r), end(r), f)`]]
+    [[`distance(r)`]                    [`distance(begin(r), end(r))`]]
+    [[`mismatch(r, i[, f])`]            [`mismatch(begin(r), end(r), i[, f])`]]
+    [[`equal(r, i[, f])`]               [`equal(begin(r), end(r), i[, f])`]]
+    [[`search(r1, r2[, f])`]            [`search(begin(r1), end(r1), begin(r2), end(r2)[, f])`]]
+    [[`lower_bound(r, a[, f])`]         [`lower_bound(begin(r), end(r), a[, f])`]]
+    [[`upper_bound(r, a[, f])`]         [`upper_bound(begin(r), end(r), a[, f])`]]
+    [[`equal_range(r, a[, f])`]         [`equal_range(begin(r), end(r), a[, f])`]]
+    [[`binary_search(r, a[, f])`]       [`binary_search(begin(r), end(r), a[, f])`]]
+    [[`includes(r1, r2[, f])`]          [`includes(begin(r1), end(r1), begin(r2), end(r2)[, f])`]]
+    [[`min_element(r[, f])`]            [`min_element(begin(r), end(r)[, f])`]]
+    [[`max_element(r[, f])`]            [`max_element(begin(r), end(r)[, f])`]]
+    [[`lexicographical_compare(r1, r2[, f])`]   [`lexicographical_compare(begin(r1), end(r1), begin(r2), end(r2)[, f])`]]
+]
+
+[table Transformation Algorithms
+    [[Function]                         [stl Semantics]]
+    [[`copy(r, o)`]                     [`copy(begin(r), end(r), o)`]]
+    [[`copy_backward(r, o)`]            [`copy_backward(begin(r), end(r), o)`]]
+    [[`transform(r, o, f)`]             [`transform(begin(r), end(r), o, f)`]]
+    [[`transform(r, i, o, f)`]          [`transform(begin(r), end(r), i, o, f)`]]
+    [[`replace(r, a, b)`]               [`replace(begin(r), end(r), a, b)`]]
+    [[`replace_if(r, f, a)`]            [`replace(begin(r), end(r), f, a)`]]
+    [[`replace_copy(r, o, a, b)`]       [`replace_copy(begin(r), end(r), o, a, b)`]]
+    [[`replace_copy_if(r, o, f, a)`]    [`replace_copy_if(begin(r), end(r), o, f, a)`]]
+    [[`fill(r, a)`]                     [`fill(begin(r), end(r), a)`]]
+    [[`fill_n(r, n, a)`]                [`fill_n(begin(r), n, a)`]]
+    [[`generate(r, f)`]                 [`generate(begin(r), end(r), f)`]]
+    [[`generate_n(r, n, f)`]            [`generate_n(begin(r), n, f)`]]
+    [[`remove(r, a)`]                   [`remove(begin(r), end(r), a)`]]
+    [[`remove_if(r, f)`]                [`remove_if(begin(r), end(r), f)`]]
+    [[`remove_copy(r, o, a)`]           [`remove_copy(begin(r), end(r), o, a)`]]
+    [[`remove_copy_if(r, o, f)`]        [`remove_copy_if(begin(r), end(r), o, f)`]]
+    [[`unique(r[, f])`]                 [`unique(begin(r), end(r)[, f])`]]
+    [[`unique_copy(r, o[, f])`]         [`unique_copy(begin(r), end(r), o[, f])`]]
+    [[`reverse(r)`]                     [`reverse(begin(r), end(r))`]]
+    [[`reverse_copy(r, o)`]             [`reverse_copy(begin(r), end(r), o)`]]
+    [[`rotate(r, m)`]                   [`rotate(begin(r), m, end(r))`]]
+    [[`rotate_copy(r, m, o)`]           [`rotate_copy(begin(r), m, end(r), o)`]]
+    [[`random_shuffle(r[, f])`]         [`random_shuffle(begin(r), end(r), f)`]]
+    [[`partition(r, f)`]                [`partition(begin(r), end(r), f)`]]
+    [[`stable_partition(r, f)`]         [`stable_partition(begin(r), end(r), f)`]]
+    [[`sort(r[, f])`]                   [`sort(begin(r), end(r)[, f])`]]
+    [[`stable_sort(r[, f])`]            [`stable_sort(begin(r), end(r)[, f])`]]
+    [[`partial_sort(r, m[, f])`]        [`partial_sort(begin(r), m, end(r)[, f])`]]
+    [[`partial_sort_copy(r1, r2[, f])`] [`partial_sort_copy(begin(r1), end(r1), begin(r2), end(r2)[, f])`]]
+    [[`nth_element(r, n[, f])`]         [`nth_element(begin(r), n, end(r)[, f])`]]
+    [[`merge(r1, r2, o[, f])`]          [`merge(begin(r1), end(r1), begin(r2), end(r2), o[, f])`]]
+    [[`inplace_merge(r, m[, f])`]       [`inplace_merge(begin(r), m, end(r)[, f])`]]
+    [[`set_union(r1, r2, o[, f])`]          [`set_union(begin(r1), end(r1), begin(r2), end(r2)[, f])`]]
+    [[`set_intersection(r1, r2, o[, f])`]   [`set_intersection(begin(r1), end(r1), begin(r2), end(r2)[, f])`]]
+    [[`set_difference(r1, r2, o[, f])`]     [`set_difference(begin(r1), end(r1), begin(r2), end(r2)[, f])`]]
+    [[`set_symmetric_difference(r1, r2, o[, f])`]   [`set_symmetric_difference(begin(r1), end(r1), begin(r2), end(r2)[, f])`]]
+    [[`push_heap(r[, f])`]              [`push_heap(begin(r), end(r)[, f])`]]
+    [[`pop_heap(r[, f])`]               [`pop_heap(begin(r), end(r)[, f])`]]
+    [[`make_heap(r[, f])`]              [`make_heap(begin(r), end(r)[, f])`]]
+    [[`sort_heap(r[, f])`]              [`sort_heap(begin(r), end(r)[, f])`]]
+    [[`next_permutation(r[, f])`]       [`next_permutation(begin(r), end(r)[, f])`]]
+    [[`prev_permutation(r[, f])`]       [`prev_permutation(begin(r), end(r)[, f])`]]
+
+    [[`inner_product(r, o, a[, f1, f2])`]   [`inner_product(begin(r), end(r), o[, f1, f2])`]]
+    [[`partial_sum(r, o[, f])`]             [`partial_sum(begin(r), end(r), o[, f])`]]
+    [[`adjacent_difference(r, o[, f])`]     [`adjacent_difference(begin(r), end(r), o[, f])`]]
+]
+
+[endsect]
+
+[endsect]

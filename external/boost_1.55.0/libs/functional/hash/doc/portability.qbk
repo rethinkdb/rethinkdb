@@ -1,0 +1,93 @@
+
+[/ Copyright 2005-2008 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[section:portability Portability]
+
+[def __boost_hash__ [classref boost::hash]]
+
+__boost_hash__ is written to be as portable as possible, but unfortunately, several
+older compilers don't support argument dependent lookup (ADL) - the mechanism
+used for customisation.  On those compilers custom overloads for `hash_value`
+needs to be declared in the boost namespace.
+
+On a strictly standards compliant compiler, an overload defined in the
+boost namespace won't be found when __boost_hash__ is instantiated,
+so for these compilers the overload should only be declared in the same
+namespace as the class.
+
+Let's say we have a simple custom type:
+
+    namespace foo
+    {
+        template <class T>
+        class custom_type
+        {
+            T value;
+        public:
+            custom_type(T x) : value(x) {}
+
+            friend std::size_t hash_value(custom_type x)
+            {
+                __boost_hash__<int> hasher;
+                return hasher(x.value);
+            }
+        };
+    }
+
+On a compliant compiler, when `hash_value` is called for this type,
+it will look at the namespace inside the type and find `hash_value`
+but on a compiler which doesn't support ADL `hash_value` won't be found.
+To make things worse, some compilers which do support ADL won't find
+a friend class defined inside the class.
+
+So first move the member function out of the class:
+
+    namespace foo
+    {
+        template <class T>
+        class custom_type
+        {
+            T value;
+        public:
+            custom_type(T x) : value(x) {}
+
+            std::size_t hash(custom_type x)
+            {
+                __boost_hash__<T> hasher;
+                return hasher(value);
+            }
+        };
+
+        template <class T>
+        inline std::size_t hash_value(custom_type<T> x)
+        {
+            return x.hash();
+        }
+    }
+
+Unfortunately, I couldn't declare hash_value as a friend, as some compilers
+don't support template friends, so instead I declared a member function to
+calculate the hash, and called it from hash_value.
+
+For compilers which don't support ADL, hash_value needs to be defined in the
+boost namespace:
+
+    #ifdef BOOST_NO_ARGUMENT_DEPENDENT_LOOKUP
+    namespace boost
+    #else
+    namespace foo
+    #endif
+    {
+        template <class T>
+        std::size_t hash_value(foo::custom_type<T> x)
+        {
+            return x.hash();
+        }
+    }
+
+Full code for this example is at
+[@boost:/libs/functional/hash/examples/portable.cpp /libs/functional/hash/examples/portable.cpp].
+
+[endsect]

@@ -1,0 +1,872 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Expressions</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="log/reference.html" title="Reference">
+<link rel="prev" href="boost/log/visit_idp26351688.html" title="Function template visit">
+<link rel="next" href="boost/log/expressions/attribute_terminal.html" title="Class template attribute_terminal">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/log/visit_idp26351688.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="log/reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost/log/expressions/attribute_terminal.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="expressions"></a>Expressions</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.attr_hpp">Header &lt;boost/log/expressions/attr.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.attr_fwd_hpp">Header &lt;boost/log/expressions/attr_fwd.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.filter_hpp">Header &lt;boost/log/expressions/filter.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.formatter_hpp">Header &lt;boost/log/expressions/formatter.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.formatters_hpp">Header &lt;boost/log/expressions/formatters.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.formatters.c_decorator_hpp">Header &lt;boost/log/expressions/formatters/c_decorator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.formatters.char_decorator_hpp">Header &lt;boost/log/expressions/formatters/char_decorator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.formatters.csv_decorator_hpp">Header &lt;boost/log/expressions/formatters/csv_decorator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.formatters.date_time_hpp">Header &lt;boost/log/expressions/formatters/date_time.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.formatters.format_hpp">Header &lt;boost/log/expressions/formatters/format.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.formatters.if_hpp">Header &lt;boost/log/expressions/formatters/if.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.formatters.named_scope_hpp">Header &lt;boost/log/expressions/formatters/named_scope.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.formatters.stream_hpp">Header &lt;boost/log/expressions/formatters/stream.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.formatters.wrap_formatter_hpp">Header &lt;boost/log/expressions/formatters/wrap_formatter.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.formatters.xml_decorator_hpp">Header &lt;boost/log/expressions/formatters/xml_decorator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.is_keyword_descriptor_hpp">Header &lt;boost/log/expressions/is_keyword_descriptor.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.keyword_hpp">Header &lt;boost/log/expressions/keyword.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.keyword_fwd_hpp">Header &lt;boost/log/expressions/keyword_fwd.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.message_hpp">Header &lt;boost/log/expressions/message.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.predicates_hpp">Header &lt;boost/log/expressions/predicates.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.predicates.begins_with_hpp">Header &lt;boost/log/expressions/predicates/begins_with.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.predicates.channel_severity_filter_hpp">Header &lt;boost/log/expressions/predicates/channel_severity_filter.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.predicates.contains_hpp">Header &lt;boost/log/expressions/predicates/contains.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.predicates.ends_with_hpp">Header &lt;boost/log/expressions/predicates/ends_with.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.predicates.has_attr_hpp">Header &lt;boost/log/expressions/predicates/has_attr.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.predicates.is_debugger_present_hpp">Header &lt;boost/log/expressions/predicates/is_debugger_present.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.predicates.is_in_range_hpp">Header &lt;boost/log/expressions/predicates/is_in_range.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.predicates.matches_hpp">Header &lt;boost/log/expressions/predicates/matches.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="expressions.html#header.boost.log.expressions.record_hpp">Header &lt;boost/log/expressions/record.hpp&gt;</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.attr_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/attr.hpp" target="_top">boost/log/expressions/attr.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>21.07.2012</p>
+<p>
+The header contains implementation of a generic attribute placeholder in template expressions. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">&gt;</span> 
+        <span class="keyword">class</span> <a class="link" href="boost/log/expressions/attribute_terminal.html" title="Class template attribute_terminal">attribute_terminal</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+        <span class="keyword">class</span> <a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> AttributeValueT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">AttributeValueT</span> <span class="special">&gt;</span> <a class="link" href="boost/log/expressions/attr_idp25033160.html" title="Function template attr"><span class="identifier">attr</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> AttributeValueT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">AttributeValueT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">TagT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/attr_idp25051832.html" title="Function template attr"><span class="identifier">attr</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.attr_fwd_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/attr_fwd.hpp" target="_top">boost/log/expressions/attr_fwd.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>21.07.2012</p>
+<p>
+The header contains forward declaration of a generic attribute placeholder in template expressions. </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.filter_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/filter.hpp" target="_top">boost/log/expressions/filter.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>13.07.2012</p>
+<p>
+The header contains a filter function object definition. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">void</span> <a class="link" href="boost/log/swap_idp25056344.html" title="Function swap"><span class="identifier">swap</span></a><span class="special">(</span>filter <span class="special">&amp;</span><span class="special">,</span> filter <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.formatter_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/formatter.hpp" target="_top">boost/log/expressions/formatter.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>13.07.2012</p>
+<p>
+The header contains a formatter function object definition. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">typedef</span> basic_formatter<span class="special">&lt;</span> <span class="keyword">char</span> <span class="special">&gt;</span> <a name="boost.log.formatter"></a><span class="identifier">formatter</span><span class="special">;</span>
+    <span class="keyword">typedef</span> basic_formatter<span class="special">&lt;</span> <span class="keyword">wchar_t</span> <span class="special">&gt;</span> <a name="boost.log.wformatter"></a><span class="identifier">wformatter</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+      <span class="keyword">void</span> <a class="link" href="boost/log/swap_idp25059784.html" title="Function template swap"><span class="identifier">swap</span></a><span class="special">(</span>basic_formatter<span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> basic_formatter<span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.formatters_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/formatters.hpp" target="_top">boost/log/expressions/formatters.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>10.11.2012</p>
+<p>
+The header includes all template expression formatters. </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.formatters.c_decorator_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/formatters/c_decorator.hpp" target="_top">boost/log/expressions/formatters/c_decorator.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>18.11.2012</p>
+<p>
+The header contains implementation of C-style character decorators. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="boost/log/expressions/c_ascii_pattern_replacer.html" title="Class template c_ascii_pattern_replacer">c_ascii_pattern_replacer</a><span class="special">;</span>
+
+      <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/c_decor.html" title="Global c_decor">c_decor</a><span class="special">;</span>
+      <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/wc_decor.html" title="Global wc_decor">wc_decor</a><span class="special">;</span>
+      <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/c_ascii_decor.html" title="Global c_ascii_decor">c_ascii_decor</a><span class="special">;</span>
+      <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/wc_ascii_decor.html" title="Global wc_ascii_decor">wc_ascii_decor</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/make_c_decor.html" title="Function template make_c_decor"><span class="identifier">make_c_decor</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/make_c_ascii_decor.html" title="Function template make_c_ascii_decor"><span class="identifier">make_c_ascii_decor</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.formatters.char_decorator_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/formatters/char_decorator.hpp" target="_top">boost/log/expressions/formatters/char_decorator.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>17.11.2012</p>
+<p>
+The header contains implementation of a character decorator. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="boost/log/expressions/pattern_replacer.html" title="Class template pattern_replacer">pattern_replacer</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SubactorT<span class="special">,</span> <span class="keyword">typename</span> ImplT<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="boost/log/expressions/char_decorator_terminal.html" title="Class template char_decorator_terminal">char_decorator_terminal</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SubactorT<span class="special">,</span> <span class="keyword">typename</span> ImplT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT <span class="special">=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">actor</span><span class="special">&gt;</span> 
+        <span class="keyword">class</span> <a class="link" href="boost/log/expressions/char_decorator_actor.html" title="Class template char_decorator_actor">char_decorator_actor</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> RangeT<span class="special">&gt;</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/char_decor_idp25163672.html" title="Function template char_decor"><span class="identifier">char_decor</span></a><span class="special">(</span><span class="identifier">RangeT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FromRangeT<span class="special">,</span> <span class="keyword">typename</span> ToRangeT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/char_decor_idp25166312.html" title="Function template char_decor"><span class="identifier">char_decor</span></a><span class="special">(</span><span class="identifier">FromRangeT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">ToRangeT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.formatters.csv_decorator_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/formatters/csv_decorator.hpp" target="_top">boost/log/expressions/formatters/csv_decorator.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>18.11.2012</p>
+<p>
+The header contains implementation of a CSV-style character decorator. See: <a href="http://en.wikipedia.org/wiki/Comma-separated_values" target="_top">http://en.wikipedia.org/wiki/Comma-separated_values</a> </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/csv_decor.html" title="Global csv_decor">csv_decor</a><span class="special">;</span>
+      <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/wcsv_decor.html" title="Global wcsv_decor">wcsv_decor</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/make_csv_decor.html" title="Function template make_csv_decor"><span class="identifier">make_csv_decor</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.formatters.date_time_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/formatters/date_time.hpp" target="_top">boost/log/expressions/formatters/date_time.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>16.09.2012</p>
+<p>
+The header contains a formatter function for date and time attribute values. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <span class="keyword">class</span> <a class="link" href="boost/log/expressions/format_date_time_terminal.html" title="Class template format_date_time_terminal">format_date_time_terminal</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT <span class="special">=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">actor</span><span class="special">&gt;</span> 
+        <span class="keyword">class</span> <a class="link" href="boost/log/expressions/format_date_time_actor.html" title="Class template format_date_time_actor">format_date_time_actor</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> AttributeValueT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_date_time_actor.html" title="Class template format_date_time_actor">format_date_time_actor</a><span class="special">&lt;</span> <span class="identifier">AttributeValueT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_date_ti_idp26375288.html" title="Function template format_date_time"><span class="identifier">format_date_time</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> AttributeValueT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_date_time_actor.html" title="Class template format_date_time_actor">format_date_time_actor</a><span class="special">&lt;</span> <span class="identifier">AttributeValueT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_date_ti_idp26378360.html" title="Function template format_date_time"><span class="identifier">format_date_time</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> 
+               <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_date_time_actor.html" title="Class template format_date_time_actor">format_date_time_actor</a><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">DescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_date_ti_idp26381464.html" title="Function template format_date_time"><span class="identifier">format_date_time</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> 
+               <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_date_time_actor.html" title="Class template format_date_time_actor">format_date_time_actor</a><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">DescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_date_ti_idp26385176.html" title="Function template format_date_time"><span class="identifier">format_date_time</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_date_time_actor.html" title="Class template format_date_time_actor">format_date_time_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_date_ti_idp26388920.html" title="Function template format_date_time"><span class="identifier">format_date_time</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">TagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_date_time_actor.html" title="Class template format_date_time_actor">format_date_time_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_date_ti_idp26393144.html" title="Function template format_date_time"><span class="identifier">format_date_time</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">TagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.formatters.format_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/formatters/format.hpp" target="_top">boost/log/expressions/formatters/format.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>15.11.2012</p>
+<p>
+The header contains a generic log record formatter function. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="boost/log/expressions/format_terminal.html" title="Class template format_terminal">format_terminal</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">actor</span><span class="special">&lt;</span> <a class="link" href="boost/log/expressions/format_terminal.html" title="Class template format_terminal">format_terminal</a><span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <a class="link" href="boost/log/expressions/format_idp26404680.html" title="Function template format"><span class="identifier">format</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> TraitsT<span class="special">,</span> <span class="keyword">typename</span> AllocatorT<span class="special">&gt;</span> 
+        <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">actor</span><span class="special">&lt;</span> <a class="link" href="boost/log/expressions/format_terminal.html" title="Class template format_terminal">format_terminal</a><span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_idp26406360.html" title="Function template format"><span class="identifier">format</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">TraitsT</span><span class="special">,</span> <span class="identifier">AllocatorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.formatters.if_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/formatters/if.hpp" target="_top">boost/log/expressions/formatters/if.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>17.11.2012</p>
+<p>
+The header contains implementation of a conditional formatter. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CondT<span class="special">&gt;</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/if_.html" title="Function template if_"><span class="identifier">if_</span></a><span class="special">(</span><span class="identifier">CondT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.formatters.named_scope_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/formatters/named_scope.hpp" target="_top">boost/log/expressions/formatters/named_scope.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>11.11.2012</p>
+<p>
+The header contains a formatter function for named scope attribute values. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <span class="keyword">class</span> <a class="link" href="boost/log/expressions/format_named_s_idp26413592.html" title="Class template format_named_scope_terminal">format_named_scope_terminal</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT <span class="special">=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">actor</span><span class="special">&gt;</span> 
+        <span class="keyword">class</span> <a class="link" href="boost/log/expressions/format_named_scope_actor.html" title="Class template format_named_scope_actor">format_named_scope_actor</a><span class="special">;</span>
+
+      <span class="comment">// Scope iteration directions. </span>
+      <span class="keyword">enum</span> <a name="boost.log.expressions.scope_iteration_direction"></a>scope_iteration_direction <span class="special">{</span> forward, reverse <span class="special">}</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_named_scope_actor.html" title="Class template format_named_scope_actor">format_named_scope_actor</a><span class="special">&lt;</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_named_s_idp26437496.html" title="Function template format_named_scope"><span class="identifier">format_named_scope</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_named_scope_actor.html" title="Class template format_named_scope_actor">format_named_scope_actor</a><span class="special">&lt;</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_named_s_idp26440312.html" title="Function template format_named_scope"><span class="identifier">format_named_scope</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                           <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> 
+               <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_named_scope_actor.html" title="Class template format_named_scope_actor">format_named_scope_actor</a><span class="special">&lt;</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_named_s_idp26443160.html" title="Function template format_named_scope"><span class="identifier">format_named_scope</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                           <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> 
+               <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_named_scope_actor.html" title="Class template format_named_scope_actor">format_named_scope_actor</a><span class="special">&lt;</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_named_s_idp26446872.html" title="Function template format_named_scope"><span class="identifier">format_named_scope</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                           <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_named_scope_actor.html" title="Class template format_named_scope_actor">format_named_scope_actor</a><span class="special">&lt;</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_named_s_idp26450616.html" title="Function template format_named_scope"><span class="identifier">format_named_scope</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">TagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                           <span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_named_scope_actor.html" title="Class template format_named_scope_actor">format_named_scope_actor</a><span class="special">&lt;</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/format_named_s_idp26454872.html" title="Function template format_named_scope"><span class="identifier">format_named_scope</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">TagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                           <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> ArgsT<span class="special">&gt;</span> 
+        <span class="identifier">unspecified</span> <a class="link" href="boost/log/expressions/format_named_s_idp26459160.html" title="Function format_named_scope"><span class="identifier">format_named_scope</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                       <span class="identifier">ArgsT</span><span class="special">...</span><span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> 
+               <span class="keyword">typename</span><span class="special">...</span> ArgsT<span class="special">&gt;</span> 
+        <span class="identifier">unspecified</span> <a class="link" href="boost/log/expressions/format_named_s_idp26459160.html" title="Function format_named_scope"><span class="identifier">format_named_scope</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                       <span class="identifier">ArgsT</span><span class="special">...</span><span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span><span class="special">...</span> ArgsT<span class="special">&gt;</span> 
+        <span class="identifier">unspecified</span> <a class="link" href="boost/log/expressions/format_named_s_idp26459160.html" title="Function format_named_scope"><span class="identifier">format_named_scope</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">TagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                       <span class="identifier">ArgsT</span><span class="special">...</span><span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.formatters.stream_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/formatters/stream.hpp" target="_top">boost/log/expressions/formatters/stream.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>24.07.2012</p>
+<p>
+The header contains implementation of a stream placeholder in template expressions. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span> <span class="number">2</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="boost/log/expressions/stream_type.html" title="Type definition stream_type"><span class="identifier">stream_type</span></a><span class="special">;</span>
+
+      <span class="keyword">const</span> <span class="identifier">stream_type</span> <a class="link" href="boost/log/expressions/stream.html" title="Global stream">stream</a><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.formatters.wrap_formatter_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/formatters/wrap_formatter.hpp" target="_top">boost/log/expressions/formatters/wrap_formatter.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>24.11.2012</p>
+<p>
+The header contains a formatter function wrapper that enables third-party functions to participate in formatting expressions. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="boost/log/expressions/wrapped_formatter_terminal.html" title="Class template wrapped_formatter_terminal">wrapped_formatter_terminal</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT <span class="special">=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">actor</span><span class="special">&gt;</span> 
+        <span class="keyword">class</span> <a class="link" href="boost/log/expressions/wrapped_formatter_actor.html" title="Class template wrapped_formatter_actor">wrapped_formatter_actor</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/wrap_formatter_idp26488840.html" title="Function template wrap_formatter"><span class="identifier">wrap_formatter</span></a><span class="special">(</span><span class="identifier">FunT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> FunT<span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/wrapped_formatter_actor.html" title="Class template wrapped_formatter_actor">wrapped_formatter_actor</a><span class="special">&lt;</span> <span class="identifier">FunT</span><span class="special">,</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> <a class="link" href="boost/log/expressions/wrap_formatter_idp26491048.html" title="Function template wrap_formatter"><span class="identifier">wrap_formatter</span></a><span class="special">(</span><span class="identifier">FunT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.formatters.xml_decorator_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/formatters/xml_decorator.hpp" target="_top">boost/log/expressions/formatters/xml_decorator.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>18.11.2012</p>
+<p>
+The header contains implementation of a XML-style character decorator. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/xml_decor.html" title="Global xml_decor">xml_decor</a><span class="special">;</span>
+      <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/wxml_decor.html" title="Global wxml_decor">wxml_decor</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/make_xml_decor.html" title="Function template make_xml_decor"><span class="identifier">make_xml_decor</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.is_keyword_descriptor_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/is_keyword_descriptor.hpp" target="_top">boost/log/expressions/is_keyword_descriptor.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>14.07.2012</p>
+<p>
+The header contains attribute keyword descriptor detection trait. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">struct</span> <a class="link" href="boost/log/expressions/keyword_descriptor.html" title="Struct keyword_descriptor">keyword_descriptor</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> VoidT <span class="special">=</span> <span class="keyword">void</span><span class="special">&gt;</span> <span class="keyword">struct</span> <a class="link" href="boost/log/expressions/is_keyword_descriptor.html" title="Struct template is_keyword_descriptor">is_keyword_descriptor</a><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.keyword_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/keyword.hpp" target="_top">boost/log/expressions/keyword.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>29.01.2012</p>
+<p>
+The header contains attribute keyword declaration. </p>
+<pre class="synopsis">
+
+<a class="link" href="BOOST_LOG_ATTRIBUTE_KEYWORD_TYPE.html" title="Macro BOOST_LOG_ATTRIBUTE_KEYWORD_TYPE">BOOST_LOG_ATTRIBUTE_KEYWORD_TYPE</a>(keyword_, name_, value_type_)
+<a class="link" href="BOOST_LOG_ATTRIBUTE_KEYWORD.html" title="Macro BOOST_LOG_ATTRIBUTE_KEYWORD">BOOST_LOG_ATTRIBUTE_KEYWORD</a>(keyword_, name_, value_type_)</pre>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+        <span class="keyword">struct</span> <a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.keyword_fwd_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/keyword_fwd.hpp" target="_top">boost/log/expressions/keyword_fwd.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>29.01.2012</p>
+<p>
+The header contains attribute keyword forward declaration. </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.message_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/message.hpp" target="_top">boost/log/expressions/message.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>13.07.2012</p>
+<p>
+The header contains log message keyword declaration. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">typedef</span> <a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <a class="link" href="boost/log/expressions/tag/message.html" title="Struct message">tag::message</a> <span class="special">&gt;</span> <a class="link" href="boost/log/expressions/message_type.html" title="Type definition message_type"><span class="identifier">message_type</span></a><span class="special">;</span>
+      <span class="keyword">typedef</span> <a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <a class="link" href="boost/log/expressions/tag/smessage.html" title="Struct smessage">tag::smessage</a> <span class="special">&gt;</span> <a class="link" href="boost/log/expressions/smessage_type.html" title="Type definition smessage_type"><span class="identifier">smessage_type</span></a><span class="special">;</span>
+      <span class="keyword">typedef</span> <a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <a class="link" href="boost/log/expressions/tag/wmessage.html" title="Struct wmessage">tag::wmessage</a> <span class="special">&gt;</span> <a class="link" href="boost/log/expressions/wmessage_type.html" title="Type definition wmessage_type"><span class="identifier">wmessage_type</span></a><span class="special">;</span>
+
+      <span class="keyword">const</span> <a class="link" href="boost/log/expressions/message_type.html" title="Type definition message_type">message_type</a> <a class="link" href="boost/log/expressions/message.html" title="Global message">message</a><span class="special">;</span>
+      <span class="keyword">const</span> <a class="link" href="boost/log/expressions/smessage_type.html" title="Type definition smessage_type">smessage_type</a> <a class="link" href="boost/log/expressions/smessage.html" title="Global smessage">smessage</a><span class="special">;</span>
+      <span class="keyword">const</span> <a class="link" href="boost/log/expressions/wmessage_type.html" title="Type definition wmessage_type">wmessage_type</a> <a class="link" href="boost/log/expressions/wmessage.html" title="Global wmessage">wmessage</a><span class="special">;</span>
+      <span class="keyword">namespace</span> <span class="identifier">tag</span> <span class="special">{</span>
+        <span class="keyword">struct</span> <a class="link" href="boost/log/expressions/tag/message.html" title="Struct message">message</a><span class="special">;</span>
+        <span class="keyword">struct</span> <a class="link" href="boost/log/expressions/tag/smessage.html" title="Struct smessage">smessage</a><span class="special">;</span>
+        <span class="keyword">struct</span> <a class="link" href="boost/log/expressions/tag/wmessage.html" title="Struct wmessage">wmessage</a><span class="special">;</span>
+      <span class="special">}</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.predicates_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/predicates.hpp" target="_top">boost/log/expressions/predicates.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>29.01.2012</p>
+<p>
+The header includes all template expression predicates. </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.predicates.begins_with_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/predicates/begins_with.hpp" target="_top">boost/log/expressions/predicates/begins_with.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>02.09.2012</p>
+<p>
+The header contains implementation of a <code class="computeroutput">begins_with</code> predicate in template expressions. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/attribute_begins_with.html" title="Type definition attribute_begins_with"><span class="identifier">attribute_begins_with</span></a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SubstringT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/begins_with_idp26536808.html" title="Function template begins_with"><span class="identifier">begins_with</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">TagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SubstringT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> 
+               <span class="keyword">typename</span> SubstringT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/begins_with_idp26540120.html" title="Function template begins_with"><span class="identifier">begins_with</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SubstringT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> SubstringT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/begins_with_idp26542888.html" title="Function template begins_with"><span class="identifier">begins_with</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">SubstringT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.predicates.channel_severity_filter_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/predicates/channel_severity_filter.hpp" target="_top">boost/log/expressions/predicates/channel_severity_filter.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>25.11.2012</p>
+<p>
+The header contains implementation of a minimal severity per channel filter. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> SeverityT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelFallbackT <span class="special">=</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> 
+               <span class="keyword">typename</span> SeverityFallbackT <span class="special">=</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelOrderT <span class="special">=</span> <span class="identifier">less</span><span class="special">,</span> 
+               <span class="keyword">typename</span> SeverityCompareT <span class="special">=</span> <span class="identifier">greater_equal</span><span class="special">,</span> 
+               <span class="keyword">typename</span> AllocatorT <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span> <span class="special">&gt;</span> 
+        <span class="keyword">class</span> <a class="link" href="boost/log/expressions/channel_severi_idp26546472.html" title="Class template channel_severity_filter_terminal">channel_severity_filter_terminal</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> SeverityT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelFallbackT <span class="special">=</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> 
+               <span class="keyword">typename</span> SeverityFallbackT <span class="special">=</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelOrderT <span class="special">=</span> <span class="identifier">less</span><span class="special">,</span> 
+               <span class="keyword">typename</span> SeverityCompareT <span class="special">=</span> <span class="identifier">greater_equal</span><span class="special">,</span> 
+               <span class="keyword">typename</span> AllocatorT <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT <span class="special">=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">actor</span><span class="special">&gt;</span> 
+        <span class="keyword">class</span> <a class="link" href="boost/log/expressions/channel_severi_idp26569656.html" title="Class template channel_severity_filter_actor">channel_severity_filter_actor</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> SeverityT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">SeverityT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeverityT<span class="special">,</span> <span class="keyword">typename</span> ChannelDescriptorT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">ChannelDescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">greater_equal</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">ChannelDescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> SeverityDescriptorT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">SeverityDescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">greater_equal</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">SeverityDescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelDescriptorT<span class="special">,</span> <span class="keyword">typename</span> SeverityDescriptorT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">ChannelDescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">SeverityDescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">greater_equal</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">ChannelDescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">SeverityDescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeverityT<span class="special">,</span> <span class="keyword">typename</span> ChannelT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelFallbackT<span class="special">,</span> <span class="keyword">typename</span> ChannelTagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">ChannelFallbackT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">greater_equal</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">ChannelFallbackT</span><span class="special">,</span> <span class="identifier">ChannelTagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> SeverityT<span class="special">,</span> 
+               <span class="keyword">typename</span> SeverityFallbackT<span class="special">,</span> <span class="keyword">typename</span> SeverityTagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">SeverityFallbackT</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">greater_equal</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">SeverityFallbackT</span><span class="special">,</span> <span class="identifier">SeverityTagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> ChannelFallbackT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelTagT<span class="special">,</span> <span class="keyword">typename</span> SeverityT<span class="special">,</span> 
+               <span class="keyword">typename</span> SeverityFallbackT<span class="special">,</span> <span class="keyword">typename</span> SeverityTagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">ChannelFallbackT</span><span class="special">,</span> <span class="identifier">SeverityFallbackT</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">greater_equal</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">ChannelFallbackT</span><span class="special">,</span> <span class="identifier">ChannelTagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">SeverityFallbackT</span><span class="special">,</span> <span class="identifier">SeverityTagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> SeverityT<span class="special">,</span> 
+               <span class="keyword">typename</span> SeverityCompareT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeverityT<span class="special">,</span> <span class="keyword">typename</span> ChannelDescriptorT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SeverityCompareT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">ChannelDescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">ChannelDescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> SeverityDescriptorT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SeverityCompareT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">SeverityDescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">SeverityDescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelDescriptorT<span class="special">,</span> <span class="keyword">typename</span> SeverityDescriptorT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SeverityCompareT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">ChannelDescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">SeverityDescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">ChannelDescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">SeverityDescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeverityT<span class="special">,</span> <span class="keyword">typename</span> ChannelT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelFallbackT<span class="special">,</span> <span class="keyword">typename</span> ChannelTagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SeverityCompareT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">ChannelFallbackT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">ChannelFallbackT</span><span class="special">,</span> <span class="identifier">ChannelTagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> SeverityT<span class="special">,</span> 
+               <span class="keyword">typename</span> SeverityFallbackT<span class="special">,</span> <span class="keyword">typename</span> SeverityTagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SeverityCompareT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">SeverityFallbackT</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">SeverityFallbackT</span><span class="special">,</span> <span class="identifier">SeverityTagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> ChannelFallbackT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelTagT<span class="special">,</span> <span class="keyword">typename</span> SeverityT<span class="special">,</span> 
+               <span class="keyword">typename</span> SeverityFallbackT<span class="special">,</span> <span class="keyword">typename</span> SeverityTagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SeverityCompareT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">ChannelFallbackT</span><span class="special">,</span> <span class="identifier">SeverityFallbackT</span><span class="special">,</span> <span class="identifier">less</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">ChannelFallbackT</span><span class="special">,</span> <span class="identifier">ChannelTagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">SeverityFallbackT</span><span class="special">,</span> <span class="identifier">SeverityTagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> SeverityT<span class="special">,</span> 
+               <span class="keyword">typename</span> SeverityCompareT<span class="special">,</span> <span class="keyword">typename</span> ChannelOrderT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">ChannelOrderT</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">ChannelOrderT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeverityT<span class="special">,</span> <span class="keyword">typename</span> ChannelDescriptorT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SeverityCompareT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelOrderT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">ChannelDescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">ChannelOrderT</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">ChannelDescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">ChannelOrderT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> SeverityDescriptorT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SeverityCompareT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelOrderT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">SeverityDescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">ChannelOrderT</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">SeverityDescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">ChannelOrderT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelDescriptorT<span class="special">,</span> <span class="keyword">typename</span> SeverityDescriptorT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SeverityCompareT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelOrderT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">ChannelDescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">SeverityDescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">ChannelOrderT</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">ChannelDescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">SeverityDescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">ChannelOrderT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeverityT<span class="special">,</span> <span class="keyword">typename</span> ChannelT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelFallbackT<span class="special">,</span> <span class="keyword">typename</span> ChannelTagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SeverityCompareT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelOrderT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">ChannelFallbackT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">ChannelOrderT</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">ChannelFallbackT</span><span class="special">,</span> <span class="identifier">ChannelTagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">ChannelOrderT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> SeverityT<span class="special">,</span> 
+               <span class="keyword">typename</span> SeverityFallbackT<span class="special">,</span> <span class="keyword">typename</span> SeverityTagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SeverityCompareT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelOrderT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">fallback_to_none</span><span class="special">,</span> <span class="identifier">SeverityFallbackT</span><span class="special">,</span> <span class="identifier">ChannelOrderT</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">SeverityFallbackT</span><span class="special">,</span> <span class="identifier">SeverityTagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">ChannelOrderT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ChannelT<span class="special">,</span> <span class="keyword">typename</span> ChannelFallbackT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelTagT<span class="special">,</span> <span class="keyword">typename</span> SeverityT<span class="special">,</span> 
+               <span class="keyword">typename</span> SeverityFallbackT<span class="special">,</span> <span class="keyword">typename</span> SeverityTagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SeverityCompareT<span class="special">,</span> 
+               <span class="keyword">typename</span> ChannelOrderT<span class="special">&gt;</span> 
+        <span class="identifier">channel_severity_filter_actor</span><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">ChannelFallbackT</span><span class="special">,</span> <span class="identifier">SeverityFallbackT</span><span class="special">,</span> <span class="identifier">ChannelOrderT</span><span class="special">,</span> <span class="identifier">SeverityCompareT</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> 
+        <a class="link" href="boost/log/expressions/channel_severity_filter.html" title="Function channel_severity_filter"><span class="identifier">channel_severity_filter</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">ChannelT</span><span class="special">,</span> <span class="identifier">ChannelFallbackT</span><span class="special">,</span> <span class="identifier">ChannelTagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">SeverityT</span><span class="special">,</span> <span class="identifier">SeverityFallbackT</span><span class="special">,</span> <span class="identifier">SeverityTagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">SeverityCompareT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">ChannelOrderT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.predicates.contains_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/predicates/contains.hpp" target="_top">boost/log/expressions/predicates/contains.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>02.09.2012</p>
+<p>
+The header contains implementation of a <code class="computeroutput">contains</code> predicate in template expressions. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/attribute_contains.html" title="Type definition attribute_contains"><span class="identifier">attribute_contains</span></a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SubstringT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/contains_idp26656520.html" title="Function template contains"><span class="identifier">contains</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">TagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                             <span class="identifier">SubstringT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> 
+               <span class="keyword">typename</span> SubstringT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/contains_idp26659832.html" title="Function template contains"><span class="identifier">contains</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                             <span class="identifier">SubstringT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> SubstringT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/contains_idp26662600.html" title="Function template contains"><span class="identifier">contains</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">SubstringT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.predicates.ends_with_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/predicates/ends_with.hpp" target="_top">boost/log/expressions/predicates/ends_with.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>02.09.2012</p>
+<p>
+The header contains implementation of a <code class="computeroutput">ends_with</code> predicate in template expressions. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/attribute_ends_with.html" title="Type definition attribute_ends_with"><span class="identifier">attribute_ends_with</span></a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> SubstringT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/ends_with_idp26667128.html" title="Function template ends_with"><span class="identifier">ends_with</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">TagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                              <span class="identifier">SubstringT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> 
+               <span class="keyword">typename</span> SubstringT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/ends_with_idp26670440.html" title="Function template ends_with"><span class="identifier">ends_with</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                              <span class="identifier">SubstringT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> SubstringT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/ends_with_idp26673208.html" title="Function template ends_with"><span class="identifier">ends_with</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">SubstringT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.predicates.has_attr_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/predicates/has_attr.hpp" target="_top">boost/log/expressions/predicates/has_attr.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>23.07.2012</p>
+<p>
+The header contains implementation of a generic attribute presence checker in template expressions. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="boost/log/expressions/has_attribute.html" title="Class template has_attribute">has_attribute</a><span class="special">;</span>
+
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="boost/log/expressions/has_attribute__idp26682424.html" title="Class has_attribute&lt;void&gt;">has_attribute</a><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> AttributeValueT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/has_attr_idp26689640.html" title="Function template has_attr"><span class="identifier">has_attr</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/has_attr_idp26691496.html" title="Function template has_attr"><span class="identifier">has_attr</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.predicates.is_debugger_present_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/predicates/is_debugger_present.hpp" target="_top">boost/log/expressions/predicates/is_debugger_present.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>05.12.2012</p>
+<p>
+The header contains implementation of the <code class="computeroutput">is_debugger_present</code> predicate in template expressions. </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.predicates.is_in_range_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/predicates/is_in_range.hpp" target="_top">boost/log/expressions/predicates/is_in_range.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>02.09.2012</p>
+<p>
+The header contains implementation of an <code class="computeroutput">is_in_range</code> predicate in template expressions. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/attribute_is_in_range.html" title="Type definition attribute_is_in_range"><span class="identifier">attribute_is_in_range</span></a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> BoundaryT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/is_in_range_idp26697112.html" title="Function template is_in_range"><span class="identifier">is_in_range</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">TagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">BoundaryT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BoundaryT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> 
+               <span class="keyword">typename</span> BoundaryT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/is_in_range_idp26701048.html" title="Function template is_in_range"><span class="identifier">is_in_range</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">BoundaryT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BoundaryT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> BoundaryT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/is_in_range_idp26704440.html" title="Function template is_in_range"><span class="identifier">is_in_range</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BoundaryT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">BoundaryT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.predicates.matches_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/predicates/matches.hpp" target="_top">boost/log/expressions/predicates/matches.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>02.09.2012</p>
+<p>
+The header contains implementation of a <code class="computeroutput">matches</code> predicate in template expressions. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/attribute_matches.html" title="Type definition attribute_matches"><span class="identifier">attribute_matches</span></a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> TagT<span class="special">,</span> 
+               <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> <span class="keyword">typename</span> RegexT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/matches_idp26709608.html" title="Function template matches"><span class="identifier">matches</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_actor.html" title="Class template attribute_actor">attribute_actor</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">FallbackPolicyT</span><span class="special">,</span> <span class="identifier">TagT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                            <span class="identifier">RegexT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">,</span> 
+               <span class="keyword">typename</span> RegexT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/matches_idp26712904.html" title="Function template matches"><span class="identifier">matches</span></a><span class="special">(</span><a class="link" href="boost/log/expressions/attribute_keyword.html" title="Struct template attribute_keyword">attribute_keyword</a><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                            <span class="identifier">RegexT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> RegexT<span class="special">&gt;</span> 
+        <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="boost/log/expressions/matches_idp26715656.html" title="Function template matches"><span class="identifier">matches</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">RegexT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="header.boost.log.expressions.record_hpp"></a>Header &lt;<a href="../../../../boost/log/expressions/record.hpp" target="_top">boost/log/expressions/record.hpp</a>&gt;</h4></div></div></div>
+<p>Andrey Semashev </p>
+<p>
+</p>
+<p>25.07.2012</p>
+<p>
+The header contains implementation of a log record placeholder in template expressions. </p>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">log</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">expressions</span> <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span> <span class="number">1</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="boost/log/expressions/record_type.html" title="Type definition record_type"><span class="identifier">record_type</span></a><span class="special">;</span>
+
+      <span class="keyword">const</span> <span class="identifier">record_type</span> <a class="link" href="boost/log/expressions/record.html" title="Global record">record</a><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/log/visit_idp26351688.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="log/reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost/log/expressions/attribute_terminal.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

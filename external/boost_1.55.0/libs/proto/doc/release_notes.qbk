@@ -1,0 +1,172 @@
+[/
+ / Copyright (c) 2008-2012 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:release_notes Appendix A: Release Notes]
+
+[/=================]
+[heading Boost 1.51]
+[/=================]
+
+[*Unpacking Expressions]
+
+In Boost 1.51, Proto got simple unpacking patterns. When working with Proto transforms, unpacking expressions are useful for unpacking the children of an expression into a function call or an object constructor, while optionally applying some transformations to each child in turn.
+
+See the [link boost_proto.users_guide.back_end.expression_transformation.unpacking_expressions Unpacking Expressions] section for more information.
+
+[/=================]
+[heading Boost 1.44]
+[/=================]
+
+[*Behavior Change: proto::and_<>]
+
+In Boost 1.44, the behavior of _and_ as a transform changed. Previously, it only applied the transform associated with the last grammar in the set. Now, it applies all the transforms but only returns the result of the last. That makes it behave like C++'s comma operator. For example, a grammar such as:
+
+  proto::and_< G0, G1, G2 >
+
+when evaluated with an expression `e` now behaves like this:
+
+  ((void)G0()(e), (void)G1()(e), G2()(e))
+
+[note Why the void casts? It's to avoid argument-dependent lookup, which might find an overloaded comma operator.]
+
+[*Behavior Change: proto::as_expr() and proto::as_child()]
+
+The functions _as_expr_ and _as_child_ are used to guarantee that an object is a Proto expression by turning it into one if it is not already, using an optionally specified domain. In previous releases, when these functions were passed a Proto expression in a domain different to the one specified, they would apply the specified domain's generator, resulting in a twice-wrapped expression. This behavior was surprising to some users.
+
+The new behavior of these two functions is to always leave Proto expressions alone, regardless of the expressions' domains.
+
+[*Behavior Change: proto::(pod_)generator<> and proto::basic_expr<>]
+
+Users familiar with Proto's extension mechanism have probably used either _generator_ or _pod_generator_ with a wrapper template when defining their domain. In the past, Proto would instantiate your wrapper template with instances of _expr_. In Boost 1.44, Proto now instantiates your wrapper template with instances of a new type: _basic_expr_.
+
+For instance:
+
+  // An expression wrapper
+  template<class Expr>
+  struct my_expr_wrapper;
+  
+  // A domain
+  struct my_domain
+    : proto::domain< proto::generator< my_expr_wrapper > >
+  {};
+  
+  template<class Expr>
+  struct my_expr_wrapper
+    : proto::extends<Expr, my_expr_wrapper<Expr>, my_domain>
+  {
+    // Before 1.44, Expr was an instance of proto::expr<>
+    // In 1.44, Expr is an instance of proto::basic_expr<>
+  };
+
+The motivation for this change was to improve compile times. _expr_ is an expensive type to instantiate because it defines a host of member functions. When defining your own expression wrapper, the instance of _expr_ sits as a hidden data member function in your wrapper and the members of _expr_ go unused. Therefore, the cost of those member functions is wasted. In contrast, _basic_expr_ is a very lightweight type with no member functions at all.
+
+The vast majority of programs should recompile without any source changes. However, if somewhere you are assuming that you will be given instances specifically of _expr_, your code will break.
+
+[*New Feature: Sub-domains]
+
+In Boost 1.44, Proto introduces an important new feature called "sub-domains". This gives you a way to spcify that one domain is compatible with another such that expressions in one domain can be freely mixed with expressions in another. You can define one domain to be the sub-domain of another by using the third template parameter of _domain_.
+
+For instance:
+
+  // Not shown: define some expression
+  // generators genA and genB
+
+  struct A
+    : proto::domain< genA, proto::_ >
+  {};
+
+  // Define a domain B that is the sub-domain
+  // of domain A.
+  struct B
+    : proto::domain< genB, proto::_, A >
+  {};
+
+Expressions in domains `A` and `B` can have different wrappers (hence, different interfaces), but they can be combined into larger expressions. Without a sub-domain relationship, this would have been an error. The domain of the resulting expression in this case would be `A`.
+
+The complete description of sub-domains can be found in the reference
+sections for _domain_ and _deduce_domain_.
+
+[*New Feature: Domain-specific as_expr() and as_child()]
+
+Proto has always allowed users to customize expressions post-hoc by specifying a Generator when defining their domain. But it has never allowed users to control how Proto assembles sub-expressions in the first place. As of Boost 1.44, users now have this power.
+
+Users defining their own domain can now specify how _as_expr_ and _as_child_ work in their domain. They can do this easily by defining nested class templates named `as_expr` and/or `as_child` within their domain class.
+
+For example:
+
+  struct my_domain
+    : proto::domain< my_generator >
+  {
+    typedef
+        proto::domain< my_generator >
+    base_domain;
+
+    // For my_domain, as_child does the same as
+    // what as_expr does by default.
+    template<class T>
+    struct as_child
+      : base_domain::as_expr<T>
+    {};
+  };
+
+In the above example, `my_domain::as_child<>` simply defers to `proto::domain::as_expr<>`. This has the nice effect of causing all terminals to be captured by value instead of by reference, and to likewise store child expressions by value. The result is that expressions in `my_domain` are safe to store in `auto` variables because they will not have dangling references to intermediate temporary expressions. (Naturally, it also means that expression construction has extra runtime overhead of copying that the compiler may or may not be able to optimize away.)
+
+[/=================]
+[heading Boost 1.43]
+[/=================]
+
+In Boost 1.43, the recommended usage of _extends_ changed slightly. The new
+usage looks like this:
+
+  // my_expr is an expression extension of the Expr parameter
+  template<typename Expr>
+  struct my_expr
+    : proto::extends<Expr, my_expr<Expr>, my_domain>
+  {
+      my_expr(Expr const &expr = Expr())
+        : proto::extends<Expr, my_expr, my_domain>(expr)
+      {}
+
+      // NEW: use the following macro to bring
+      // proto::extends::operator= into scope.
+      BOOST_PROTO_EXTENDS_USING_ASSIGN(my_expr)
+  };
+
+The new thing is the use of the [^[macroref BOOST_PROTO_EXTENDS_USING_ASSIGN]()] macro. To allow assignment operators to build expression trees, _extends_ overloads the assignment operator. However, for the `my_expr` template, the compiler generates a default copy assignment operator that hides the ones in _extends_. This is often not desired (although it depends on the syntax you want to allow).
+
+Previously, the recommended usage was to do this:
+
+  // my_expr is an expression extension of the Expr parameter
+  template<typename Expr>
+  struct my_expr
+    : proto::extends<Expr, my_expr<Expr>, my_domain>
+  {
+      my_expr(Expr const &expr = Expr())
+        : proto::extends<Expr, my_expr, my_domain>(expr)
+      {}
+
+      // OLD: don't do it like this anymore.
+      using proto::extends<Expr, my_expr, my_domain>::operator=;
+  };
+
+While this works in the majority of cases, it still doesn't suppress the implicit generation of the default assignment operator. As a result, expressions of the form `a = b` could either build an expression template or do a copy assignment depending on whether the types of `a` and `b` happen to be the same. That can lead to subtle bugs, so the behavior was changed.
+
+The [^[macroref BOOST_PROTO_EXTENDS_USING_ASSIGN]()] brings into scope the assignment operators defined in _extends_ as well as suppresses the generation of the copy assignment operator.
+
+Also note that the _literal_ class template, which uses _extends_, has been chaged to use [^[macroref BOOST_PROTO_EXTENDS_USING_ASSIGN]()]. The implications are highlighted in the sample code below:
+
+  proto::literal<int> a(1), b(2); // two non-const proto literals
+  proto::literal<int> const c(3); // a const proto literal
+
+  a = b; // No-op. Builds an expression tree and discards it.
+         // Same behavior in 1.42 and 1.43.
+  
+  a = c; // CHANGE! In 1.42, this performed copy assignment, causing
+         // a's value to change to 3. In 1.43, the behavior is now
+         // the same as above: build and discard an expression tree.
+
+[endsect]

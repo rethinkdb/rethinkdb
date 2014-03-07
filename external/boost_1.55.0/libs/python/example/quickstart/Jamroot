@@ -1,0 +1,45 @@
+# Copyright David Abrahams 2006. Distributed under the Boost
+# Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Specify the path to the Boost project.  If you move this project,
+# adjust the path to refer to the Boost root directory.
+use-project boost 
+  : ../../../.. ;
+
+# Set up the project-wide requirements that everything uses the
+# boost_python library defined in the project whose global ID is
+# /boost/python.
+project boost-python-quickstart
+  : requirements <library>/boost/python//boost_python 
+    		 <implicit-dependency>/boost//headers 
+  : usage-requirements <implicit-dependency>/boost//headers 	 
+    ;
+
+# Make the definition of the python-extension rule available
+import python ;
+
+# Declare a Python extension called hello.
+python-extension extending : extending.cpp ;
+
+# Declare an executable called embedding that embeds Python
+exe embedding : embedding.cpp /python//python ;
+
+import testing ;
+
+# Declare a test of the extension module
+testing.make-test run-pyd : extending test_extending.py : : test_ext ;
+
+# Declare a test of the embedding application
+testing.run embedding 
+  :              # any ordinary arguments
+  : script.py    # any arguments that should be treated as relative paths
+  :              # requirements
+  : test_embed ; # name of test
+
+# Create a "test" target that runs all the tests
+alias test : test_ext test_embed ;
+
+# make sure the tests don't run by default
+explicit test_ext test_embed test ;
+

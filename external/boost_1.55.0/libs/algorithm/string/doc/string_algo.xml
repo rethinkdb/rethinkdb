@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2002-2006 Pavol Droba.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<library name="String Algorithms" dirname="algorithm/string" xmlns:xi="http://www.w3.org/2001/XInclude" 
+    id="string_algo" last-revision="$Date: 2010-07-10 13:29:03 -0700 (Sat, 10 Jul 2010) $">
+    <libraryinfo>
+        <author>
+            <firstname>Pavol</firstname>
+            <surname>Droba</surname>
+        </author>
+
+        <copyright>
+            <year>2002</year>
+            <year>2003</year>
+            <year>2004</year>
+            <holder>Pavol Droba</holder>
+        </copyright>
+
+        <legalnotice>
+            <para>Use, modification and distribution is subject to the Boost
+                Software License, Version 1.0. (See accompanying file
+                <filename>LICENSE_1_0.txt</filename> or copy at <ulink
+                    url="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</ulink>)
+            </para>
+        </legalnotice>
+
+        <librarypurpose>
+            A set of generic string-related algorithms and utilities
+        </librarypurpose> 
+        <librarycategory name="category:algorithms"/>
+        <librarycategory name="category:string-text"/>
+    </libraryinfo>
+
+    <title>Boost String Algorithms Library</title>  
+    <xi:include href="intro.xml"/>
+    <xi:include href="release_notes.xml"/>
+    <xi:include href="usage.xml"/>
+    <xi:include href="quickref.xml"/>
+    <xi:include href="design.xml"/>
+    <xi:include href="concept.xml"/>
+    <xi:include href="autodoc.xml"/>
+    <xi:include href="rationale.xml"/>
+    <xi:include href="environment.xml"/>
+    <xi:include href="credits.xml"/>
+</library>
+

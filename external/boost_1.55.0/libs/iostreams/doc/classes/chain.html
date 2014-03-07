@@ -1,0 +1,389 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Class Template chain</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Class Template <CODE>chain</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    Chains are used by <A HREF='../guide/filtering_streams.html'>filtering streams and stream buffers</A> to manage their underlying sequence of Filters and Devices. A chain represents a sequence of zero or more Filters with an optional Device at the end. If a chain contains a Device, it is considered <I>complete</I> and can be used to perform i/o. When a chain is used for output, data passes through the first filter in the chain, then through the second filter, and so on, and eventually reaches the Device at the end of the chain. When a chain is used for input, data travels in the opposite direction, beginning at the Device at the end of the chain, then passing through the filters in reverse order. By default, if the Device at the end of a chain is popped or if a chain is complete when it is destroyed, all the filters and devices in the chain are closed using the function <A HREF='../functions/close.html'><CODE>close</CODE></A>. This behavior can be modified using the member function <A HREF="#set_auto_close"><CODE>set_auto_close</CODE></A>.
+</P>
+<P>
+    The class template <CODE>chain</CODE> is parameterized by a <A HREF='../guide/modes.html'>mode</A>. All the Filters and Devices which constitute a chain must have modes which refine the mode of the chain. For example, the class <CODE>chain&lt;input&gt;</CODE> has mode <A HREF="../guide/modes.html#input">input</A>. All <A HREF="../concepts/filter.html">Filters</A> pushed onto such a chain must at least be <A HREF="../concepts/input_filter.html">InputFilters</A>. Any <A HREF="../concepts/device.html">Device</A> pushed onto such a chain must at least be a <A HREF="../concepts/source.html">Source</A>.
+</P>
+<P>
+    Chains are <A HREF='../../../../doc/html/CopyConstructible.html' TARGET='_top'>CopyConstructible</A> and <A HREF='../../../../doc/html/Assignable.html' TARGET='_top'>Assignable</A>. A copy of a chain represents the same sequence of Filters and Devices as the original chain; the components are not copied.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/chain.hpp"><CODE>&lt;boost/iostreams/chain.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="synopsis"></A>
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt; <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Mode</A>,
+          <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Ch</A>    = <SPAN CLASS="keyword">char</SPAN>,
+          <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Tr</A>    = std::char_traits&lt;Ch&gt;, 
+          <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Alloc</A> = std::allocator&lt;<CODE>Ch</CODE>&gt; &gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#chain">chain</A>;
+
+<SPAN CLASS="keyword">template</SPAN>&lt; <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Mode</A>,
+          <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Ch</A>    = <SPAN CLASS="keyword">wchar_t</SPAN>,
+          <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Tr</A>    = std::char_traits&lt;Ch&gt;, 
+          <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Alloc</A> = std::allocator&lt;<CODE>Ch</CODE>&gt; &gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#wchain">wchain</A>;
+
+<SPAN CLASS="keyword">template</SPAN>&lt; <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Mode</A>,
+          <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Ch</A>    = <SPAN CLASS="keyword">char</SPAN>,
+          <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Tr</A>    = std::char_traits&lt;Ch&gt;, 
+          <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Alloc</A> = std::allocator&lt;<CODE>Ch</CODE>&gt; &gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="chain.html">chain</A> : <SPAN CLASS="keyword">public</SPAN> <SPAN CLASS="omitted">implementation-defined stream type</SPAN> {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">typedef</SPAN> Ch                      char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> Tr                      traits_type;
+    <SPAN CLASS="keyword">typedef</SPAN> Mode                    mode;
+    <SPAN CLASS="keyword">typedef</SPAN> Alloc                   allocator_type;
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">implementation-defined</SPAN>  size_type;
+
+    <A CLASS="documented" HREF="#default_constructor">chain</A>();
+    <A CLASS="documented" HREF="#copy_constructor">chain</A>(<SPAN CLASS='keyword'>const</SPAN> chain&amp;);
+
+    std::streamsize <A CLASS='documented' HREF='#read'>read</A>(char_type* s, std::streamsize n);
+    std::streamsize <A CLASS='documented' HREF='#write'>write</A>(<SPAN CLASS='keyword'>const</SPAN> char_type* s, std::streamsize n);
+    <A CLASS='documented' HREF='../functions/positioning.html#synopsis'>stream_offset</A> <A CLASS='documented' HREF='#seek'>seek</A>(<A CLASS='documented' HREF='../functions/positioning.html#synopsis'>stream_offset</A> off, std::ios_base::seekdir way);
+
+    <SPAN CLASS='keyword'>const</SPAN> std::type_info&amp; <A CLASS='documented' HREF='#component_type'>component_type</A>(<SPAN CLASS="keyword">int</SPAN> n) <SPAN CLASS='keyword'>const</SPAN>;
+
+    <SPAN CLASS='keyword'>template</SPAN>&lt;<SPAN CLASS='keyword'>typename</SPAN> T&gt;
+    T* <A CLASS='documented' HREF='#component'>component</A>(<SPAN CLASS="keyword">int</SPAN> n) <SPAN CLASS='keyword'>const</SPAN>;
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T&gt;
+    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#policy_push">push</A>( <SPAN CLASS="keyword">const</SPAN> T&amp; t,
+               std::streamsize buffer_size = <SPAN CLASS="omitted">default value</SPAN>,
+               std::streamsize pback_size = <SPAN CLASS="omitted">default value</SPAN> );
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> StreamOrStreambuf&gt;
+    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#stream_push">push</A>( StreamOrStreambuf&amp; t,
+               std::streamsize buffer_size = <SPAN CLASS="omitted">default value</SPAN>,
+               std::streamsize pback_size = <SPAN CLASS="omitted">default value</SPAN> );
+
+    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#pop">pop</A>();
+    <SPAN CLASS="keyword">bool</SPAN> <A CLASS="documented" HREF="#empty">empty</A>() <SPAN CLASS="keyword">const</SPAN>;
+    size_type <A CLASS="documented" HREF="#size">size</A>() <SPAN CLASS="keyword">const</SPAN>;
+    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#reset">reset</A>();
+    <SPAN CLASS="keyword">bool</SPAN> <A CLASS="documented" HREF="#is_complete">is_complete</A>() <SPAN CLASS="keyword">const</SPAN>;
+    <SPAN CLASS="keyword">bool</SPAN> <A CLASS="documented" HREF="#auto_close">auto_close</A>() <SPAN CLASS="keyword">const</SPAN>;
+    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#set_auto_close">set_auto_close</A>(<SPAN CLASS='keyword'>bool</SPAN> close);
+    <SPAN CLASS="keyword">bool</SPAN> <A CLASS="documented" HREF="#sync">sync</A>();
+    <SPAN CLASS="keyword">bool</SPAN> <A CLASS="documented" HREF="#strict_sync">strict_sync</A>();
+
+        <SPAN CLASS='comment'>// Deprecated members</SPAN>
+
+    <SPAN CLASS='keyword'>template</SPAN>&lt;<SPAN CLASS='keyword'>int</SPAN> N&gt;
+    <SPAN CLASS='keyword'>const</SPAN> std::type_info&amp; <A CLASS='documented' HREF='#component_type'>component_type</A>() <SPAN CLASS='keyword'>const</SPAN>;
+
+    <SPAN CLASS='keyword'>template</SPAN>&lt;<SPAN CLASS='keyword'>int</SPAN> N, <SPAN CLASS='keyword'>typename</SPAN> T&gt;
+    T* <A CLASS='documented' HREF='#component'>component</A>() <SPAN CLASS='keyword'>const</SPAN>;
+};
+
+} } // End namespace boost::io</PRE>
+
+<A NAME="chain"></A>
+<H2>Class Template <CODE>chain</CODE></H2>
+
+<A NAME="template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>Mode</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A <A HREF="../guide/modes.html#mode_tags">mode tag</A>.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Ch</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The character type</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Tr</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The traits type</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Alloc</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A standard library allocator type (<A CLASS="bib_ref" HREF="../bibliography.html#iso">[ISO]</A>, 20.1.5), used to allocate character buffers</TD>
+    </TR>
+</TABLE>
+
+<A NAME="default_constructor"></A>
+<H4><CODE>chain::chain</CODE></H4>
+
+<PRE CLASS="broken_ie">    chain();</PRE>
+
+<P>
+    Constructs a <CODE>chain</CODE> with an empty chain of Filters and Devices.
+</P>
+
+<A NAME="copy_constructor"></A>
+<H4><CODE>chain::chain</CODE></H4>
+
+<PRE CLASS="broken_ie">    chain(<SPAN CLASS='keyword'>const</SPAN> chain&amp; rhs);</PRE>
+
+<P>
+    Constructs a <CODE>chain</CODE> representing the same sequence of Filters and Devices as the given chain.
+</P>
+
+<A NAME="read"></A>
+<H4><CODE>chain::read</CODE></H4>
+
+<PRE CLASS="broken_ie">    std::streamsize read(char_type* s, std::streamsize n);</PRE>
+
+<P>
+      Invokes <A HREF='../functions/read.html'><CODE>read</CODE></A> on the first filter or device in this chain, which must be non-empty.
+</P>
+
+<A NAME="write"></A>
+<H4><CODE>chain::write</CODE></H4>
+
+<PRE CLASS="broken_ie">    std::streamsize write(<SPAN CLASS='keyword'>const</SPAN> char_type* s, std::streamsize n);</PRE>
+
+<P>
+      Invokes <A HREF='../functions/write.html'><CODE>write</CODE></A> on the first filter or device in this chain, which must be non-empty.
+</P>
+
+<A NAME="seek"></A>
+<H4><CODE>chain::seek</CODE></H4>
+
+<PRE CLASS="broken_ie">    <A CLASS='documented' HREF='../functions/positioning.html#synopsis'>stream_offset</A> seek(<A CLASS='documented' HREF='../functions/positioning.html#synopsis'>stream_offset</A> off, std::ios_base::seekdir way);
+</PRE>
+
+<P>
+      Invokes <A HREF='../functions/seek.html'><CODE>seek</CODE></A> on the first filter or device in this chain, which must be non-empty.
+</P>
+
+<A NAME="component_type"></A>
+<H4><CODE>chain::component_type</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>const</SPAN> std::type_info&amp; component_type(<SPAN CLASS="keyword">int</SPAN> n) <SPAN CLASS='keyword'>const</SPAN>;
+</PRE>
+
+<P>
+      Returns a reference to an instance <CODE>std::type_info</CODE> corresponding to the type of the <CODE>n</CODE><I>th</I> Filter or Device in this chain, which must have size at least <CODE>n + 1</CODE>. Components are numbered beginning at zero.
+</P>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='comment'>// Deprecated</SPAN>
+    <SPAN CLASS='keyword'>template</SPAN>&lt;<SPAN CLASS='keyword'>int</SPAN> N&gt;
+    <SPAN CLASS='keyword'>const</SPAN> std::type_info&amp; component_type() <SPAN CLASS='keyword'>const</SPAN>;
+</PRE>
+
+<P>
+      Returns a reference to an instance <CODE>std::type_info</CODE> corresponding to the type of the <CODE>N</CODE><I>th</I> Filter or Device in this chain, which must have size at least <CODE>N + 1</CODE>. Components are numbered beginning at zero. The template argument <CODE>N</CODE> cannot be deduced, and must therefore be explicitly specified.
+</P>
+
+<P>
+      <I>This member is deprecated; use the overload of <CODE>component_type</CODE> that takes an <CODE>int</CODE> argument instead.</I>
+</P>
+
+<A NAME="component"></A>
+<H4><CODE>chain::component</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>template</SPAN>&lt;<SPAN CLASS='keyword'>typename</SPAN> T&gt;
+    T* component(<SPAN CLASS="keyword">int</SPAN> n) <SPAN CLASS='keyword'>const</SPAN>;
+</PRE>
+
+<P>
+      Returns a pointer to the <CODE>n</CODE><I>th</I> Filter or Device in this chain, if this chain has size at least <CODE>n + 1</CODE> and the type of the <CODE>n</CODE><I>th</I> Filter or Device is equal to <CODE>T</CODE>. Otherwise, returns a null pointer. The template argument <CODE>T</CODE> cannot be deduced, and must therefore be explicitly specified.
+</P>
+<P>
+      Users of Microsoft Visual Studio versions 6.0-7.0 must use the macro <A HREF='../macros/workarounds.html#boost_iostreams_component'><CODE>BOOST_IOSTREAMS_COMPONENT</CODE></A> instead of this function.
+</P>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='comment'>// Deprecated</SPAN>
+    <SPAN CLASS='keyword'>template</SPAN>&lt;<SPAN CLASS='keyword'>int</SPAN> N, <SPAN CLASS='keyword'>typename</SPAN> T&gt;
+    T* component() <SPAN CLASS='keyword'>const</SPAN>;
+</PRE>
+
+<P>
+      Returns a pointer to the <CODE>N</CODE><I>th</I> Filter or Device in this chain, if this chain has size at least <CODE>N + 1</CODE> and the type of the <CODE>N</CODE><I>th</I> Filter or Device is equal to <CODE>T</CODE>. Otherwise, returns a null pointer. The template arguments <CODE>N</CODE> and <CODE>T</CODE> cannot be deduced, and must therefore be explicitly specified.
+</P>
+<P>
+      <I>This member is deprecated; use the overload of <CODE>component</CODE> that takes an <CODE>int</CODE> argument instead.</I>
+</P>
+
+<A NAME="policy_push"></A>
+<H4><CODE>chain::push</CODE></H4>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T&gt;
+    void push( <SPAN CLASS="keyword">const</SPAN> T&amp; t,
+               std::streamsize buffer_size,
+               std::streamsize pback_size );</PRE>
+<P>
+    Appends a copy of <CODE>t</CODE> to this chain, which must not be <A HREF="#is_complete">complete</A>. The parameters have the following interpretations:
+</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2 ID="Table3">
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>T</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A <A HREF="../../../../doc/html/CopyConstructible.html" TARGET="_top">CopyConstructible</A> model of one of the <A HREF="../guide/concepts.html#filter_concepts">Filter</A> or <A HREF="../guide/concepts.html#device_concepts">Device</A> concepts whose <A HREF="../guide/traits.html#char_type">character type</A> is <A HREF="#template_params"><CODE>Ch</CODE></A> and whose <A HREF="../guide/modes.html">mode</A> refines <A HREF="#template_params"><CODE>Mode</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>t</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>An instance of <I>T</I></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>buffer_size</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The size of any buffers that need to be allocated</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>pback_size</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The size of the putback buffer, relevant only if <CODE>Mode</CODE> is a refinement of <A HREF="../guide/modes.html#input"><CODE>input</CODE></TD>
+    </TR>
+</TABLE>
+
+<P>
+    An instance of a Filter or Device type <CODE>T</CODE> which is not <A HREF="../../../../doc/html/CopyConstructible.html"  TARGET="_top">CopyConstructible</A> may be appended to the chain in one of two ways:
+</P>
+<UL>
+    <LI>by using a <A HREF="../../../../doc/html/ref.html" TARGET="_top">reference wrapper</A>, or 
+    <LI>if <CODE>T</CODE> is a standard stream or stream buffer type, by using the templated overload of <A HREF="#stream_push"><CODE>push</CODE></A> taking a non-<CODE>const</CODE> reference.
+</UL>
+<P>
+    If T is a Device, this chain will become <I>complete</I> upon the return of this function, and can then be used to perform i/o.
+</P>
+
+<A NAME="stream_push"></A>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> StreamOrStreambuffer&gt;
+    void push( StreamOrStreambuffer&amp; t,
+               std::streamsize buffer_size,
+               std::streamsize pback_size );</PRE>
+
+<P>
+    Appends the given stream or stream buffer to this chain, which must not be <A HREF="#is_complete">complete</A>. The parameters have the following interpretations:
+</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2 ID="Table4">
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>StreamOrStreambuffer</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A standard stream or stream buffer type whose <A HREF="../guide/traits.html#char_type">character type</A> is <A HREF="#template_params"><CODE>Ch</CODE></A> and whose <A HREF="../guide/modes.html">mode</A> refines <A HREF="#template_params"><CODE>Mode</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>buffer_size</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The size of any buffers that need to be allocated</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>pback_size</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The size of the putback buffer, relevant only if <CODE>Mode</CODE> is a refinement of <A HREF="../guide/modes.html#input"><CODE>input</CODE></TD>
+    </TR>
+</TABLE>
+
+<P>
+    This chain will become <I>complete</I> upon the return of this function, and can then be used to perform i/o.
+</P>
+
+<A NAME="pop"></A>
+<H4><CODE>chain::pop</CODE></H4>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">void</SPAN> pop();</PRE>
+
+<P>Removes the final Filter or Device from this chain, which must be non-empty. If this chain is  <A HREF="#is_complete">complete</A>, <CODE>pop</CODE> causes each Filter and Device in the chain to be closed using the function <A HREF="../functions/close.html"><CODE>close</CODE></A>, unless the auto-close feature has been disabled using <A HREF='#set_auto_close'><CODE>set_auto_clos</CODE></A>.</P>
+
+<A NAME="empty"></A>
+<H4><CODE>chain::empty</CODE></H4>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">bool</SPAN> empty() <SPAN CLASS="keyword">const</SPAN>;</PRE>
+
+<P>Returns <CODE>true</CODE> if this chain contains no Filters or Devices.</P>
+
+<A NAME="size"></A>
+<H4><CODE>chain::size</CODE></H4>
+<PRE CLASS="broken_ie">    size_type size() <SPAN CLASS="keyword">const</SPAN>;</PRE>
+
+<P>Returns the number of Filters and Devices in this chain.</P>
+
+<A NAME="reset"></A>
+<H4><CODE>chain::reset</CODE></H4>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">void</SPAN> reset();</PRE>
+
+<P>Clears this chain. If this chain is <A HREF="#is_complete">complete</A>, <CODE>reset</CODE> causes each Filter and Device in the chain to be closed using the function <A HREF="../functions/close.html"><CODE>close</CODE></A>, regardless of whether the auto-close feature has been disabled using <A HREF='#set_auto_close'><CODE>set_auto_close</CODE></A>.</P></P>
+
+<A NAME="is_complete"></A>
+<H4><CODE>chain::is_complete</CODE></H4>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">bool</SPAN> is_complete() <SPAN CLASS="keyword">const</SPAN>;</PRE>
+
+<P>Returns <CODE>true</CODE> if this chain contains a <A HREF="../concepts/device.html">Device</A>. A chain is complete if and only if it is capable of performing i/o.</P>
+
+<A NAME="auto_close"></A>
+<H4><CODE>chain::auto_close</CODE></H4>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">bool</SPAN> auto_close() <SPAN CLASS="keyword">const</SPAN>;</PRE>
+
+<P>Indicates whether the Filters and Devices in this chain will be closed automatically if <A HREF='#pop'><CODE>pop</CODE></A> is invoked while the chain is complete. Returns <CODE>true</CODE> unless the auto-close feature has been disabled using <A HREF='#set_auto_close'><CODE>set_auto_close</CODE></A>.</P>
+
+<A NAME="set_auto_close"></A>
+<H4><CODE>chain::set_auto_close</CODE></H4>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">void</SPAN> set_auto_close(<SPAN CLASS='keyword'>bool</SPAN> close);</PRE>
+
+<P>Specifies whether the Filters and Devices in this chain will be closed automatically if <A HREF='#pop'><CODE>pop</CODE></A> is invoked while the chain is complete. Does not prevent the Filters and Devices in this chain from being closed automatically if the chain is complete at destruction.</P>
+
+<A NAME="sync"></A>
+<H4><CODE>chain::sync</CODE></H4>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">bool</SPAN> sync();</PRE>
+
+<P>Invokes the function <A HREF='../functions/flush.html'><CODE>flush</CODE></A> on each Filter and Device in this chain, which must be complete. Returns <CODE>true</CODE> unless at least one of these components is <A HREF='../concepts/flushable.html'>Flushable</A> and <A HREF='../functions/flush.html'><CODE>flush</CODE></A> returns <CODE>false</CODE> when invoked on that component. A return value of <CODE>true</CODE> indicates that no error occurred, but does <I>not</I> guarantee that all buffered data has been successfully forwarded.</P>
+
+<A NAME="strict_sync"></A>
+<H4><CODE>chain::strict_sync</CODE></H4>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">bool</SPAN> strict_sync();</PRE>
+
+<P>Identical to <CODE>sync</CODE> except for the return value, which is <CODE>false</CODE> unless <I>each</I> Filter in this chain is <A HREF='../concepts/flushable.html'>Flushable</A> and <A HREF='../functions/flush.html'><CODE>flush</CODE></A> returns <CODE>true</CODE> when invoked on <I>each</I> component.  A return value of <CODE>true</CODE> guarantees that all buffered data has been successfully forwarded.</P>
+
+<A NAME="wchain"></A>
+<H2>Class Template <CODE>wchain</CODE></H2>
+
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt; <SPAN CLASS="keyword">typename</SPAN> Mode,
+          <SPAN CLASS="keyword">typename</SPAN> Ch    = <SPAN CLASS="keyword">wchar_t</SPAN>,
+          <SPAN CLASS="keyword">typename</SPAN> Tr    = std::char_traits&lt;Ch&gt;, 
+          <SPAN CLASS="keyword">typename</SPAN> Alloc = std::allocator&lt;<CODE>Ch</CODE>&gt; &gt;
+<SPAN CLASS="keyword">class</SPAN> wchain;</PRE>
+
+<P>Identical to <CODE>chain</CODE>, except for the default character type.
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

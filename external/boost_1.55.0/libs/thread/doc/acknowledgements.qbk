@@ -1,0 +1,23 @@
+[/
+  (C) Copyright 2007-8 Anthony Williams.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:acknowledgements Acknowledgments]
+
+The original implementation of __boost_thread__ was written by William Kempf, with contributions from numerous others. This new
+version initially grew out of an attempt to rewrite __boost_thread__ to William Kempf's design with fresh code that could be
+released under the Boost Software License. However, as the C++ Standards committee have been actively discussing standardizing a
+thread library for C++, this library has evolved to reflect the proposals, whilst retaining as much backwards-compatibility as
+possible.
+
+Particular thanks must be given to Roland Schwarz, who contributed a lot of time and code to the original __boost_thread__ library,
+and who has been actively involved with the rewrite. The scheme for dividing the platform-specific implementations into separate
+directories was devised by Roland, and his input has contributed greatly to improving the quality of the current implementation.
+
+Thanks also must go to Peter Dimov, Howard Hinnant, Alexander Terekhov, Chris Thomasson and others for their comments on the
+implementation details of the code.
+
+[endsect]

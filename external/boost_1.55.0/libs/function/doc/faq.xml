@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Copyright (c) 2002 Douglas Gregor <doug.gregor -at- gmail.com>
+  
+   Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at
+   http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<section id="function.faq" last-revision="$Date: 2006-11-03 11:41:10 -0800 (Fri, 03 Nov 2006) $">
+  <title>Frequently Asked Questions</title>
+
+<qandaset>
+  <qandaentry>
+    <question><para>Why can't I compare
+    <classname>boost::function</classname> objects with
+    <code>operator==</code> or
+    <code>operator!=</code>?</para></question>
+
+    <answer>
+      <para>Comparison between <classname>boost::function</classname>
+      objects cannot be implemented "well", and therefore will not be
+      implemented. The typical semantics requested for <code>f ==
+      g</code> given <classname>boost::function</classname> objects
+      <code>f</code> and <code>g</code> are:</para>
+        <itemizedlist>
+          <listitem><simpara>If <code>f</code> and <code>g</code>
+          store function objects of the same type, use that type's
+          <code>operator==</code> to compare
+          them.</simpara></listitem> 
+
+          <listitem><simpara>If <code>f</code> and <code>g</code>
+          store function objects of different types, return
+          <code>false</code>.</simpara></listitem>
+        </itemizedlist>
+      <para>The problem occurs when the type of the function objects
+      stored by both <code>f</code> and <code>g</code> doesn't have an
+      <code>operator==</code>: we would like the expression <code>f ==
+      g</code> to fail to compile, as occurs with, e.g., the standard
+      containers. However, this is not implementable for
+      <classname>boost::function</classname> because it necessarily
+      "erases" some type information after it has been assigned a
+      function object, so it cannot try to call
+      <code>operator==</code> later: it must either find a way to call
+      <code>operator==</code> now, or it will never be able to call it
+      later. Note, for instance, what happens if you try to put a
+      <code>float</code> value into a
+      <classname>boost::function</classname> object: you will get an
+      error at the assignment operator or constructor, not in
+      <code>operator()</code>, because the function-call expression
+      must be bound in the constructor or assignment operator.</para>
+
+      <para>The most promising approach is to find a method of
+      determining if <code>operator==</code> can be called for a
+      particular type, and then supporting it only when it is
+      available; in other situations, an exception would be
+      thrown. However, to date there is no known way to detect if an
+      arbitrary operator expression <code>f == g</code> is suitably
+      defined. The best solution known has the following undesirable
+      qualities:</para>
+
+      <orderedlist>
+        <listitem><simpara>Fails at compile-time for objects where
+        <code>operator==</code> is not accessible (e.g., because it is
+        <code>private</code>).</simpara></listitem>
+
+        <listitem><simpara>Fails at compile-time if calling
+        <code>operator==</code> is ambiguous.</simpara></listitem>
+
+        <listitem><simpara>Appears to be correct if the
+        <code>operator==</code> declaration is correct, even though
+        <code>operator==</code> may not compile.</simpara></listitem>
+      </orderedlist>
+
+      <para>All of these problems translate into failures in the
+      <classname>boost::function</classname> constructors or
+      assignment operator, <emphasis>even if the user never invokes
+      operator==</emphasis>. We can't do that to users.</para>
+
+      <para>The other option is to place the burden on users that want
+      to use <code>operator==</code>, e.g., by providing an
+      <code>is_equality_comparable</code> trait they may
+      specialize. This is a workable solution, but is dangerous in
+      practice, because forgetting to specialize the trait will result
+      in unexpected exceptions being thrown from
+      <classname>boost::function</classname>'s
+      <code>operator==</code>. This essentially negates the usefulness
+      of <code>operator==</code> in the context in which it is most
+      desired: multitarget callbacks. The
+      <libraryname>Signals</libraryname> library has a way around
+      this.</para>
+    </answer>
+  </qandaentry>
+
+  <qandaentry>
+    <question><para>I see void pointers; is this [mess] type safe?</para></question>
+    <answer>
+<para>Yes, <computeroutput>boost::function</computeroutput> is type
+safe even though it uses void pointers and pointers to functions
+returning void and taking no arguments. Essentially, all type
+information is encoded in the functions that manage and invoke
+function pointers and function objects. Only these functions are
+instantiated with the exact type that is pointed to by the void
+pointer or pointer to void function. The reason that both are required
+is that one may cast between void pointers and object pointers safely
+or between different types of function pointers (provided you don't
+invoke a function pointer with the wrong type).  </para>
+    </answer>
+  </qandaentry>
+
+  <qandaentry>
+    <question><para>Why are there workarounds for void returns? C++ allows them!</para></question>
+    <answer><para>Void returns are permitted by the C++ standard, as in this code snippet:
+<programlisting>void f();
+void g() { return f(); }</programlisting>
+    </para>
+
+    <para> This is a valid usage of <computeroutput>boost::function</computeroutput> because void returns are not used. With void returns, we would attempting to compile ill-formed code similar to:
+<programlisting>int f();
+void g() { return f(); }</programlisting>
+</para>
+
+<para> In essence, not using void returns allows
+<computeroutput>boost::function</computeroutput> to swallow a return value. This is
+consistent with allowing the user to assign and invoke functions and
+function objects with parameters that don't exactly match.</para>
+
+    </answer>
+  </qandaentry>
+
+  <qandaentry>
+    <question><para>Why (function) cloning?</para></question>
+    <answer>
+      <para>In November and December of 2000, the issue of cloning
+      vs. reference counting was debated at length and it was decided
+      that cloning gave more predictable semantics. I won't rehash the
+      discussion here, but if it cloning is incorrect for a particular
+      application a reference-counting allocator could be used.</para>
+    </answer>
+  </qandaentry>
+
+  <qandaentry>
+    <question><para>How much overhead does a call through <code><classname>boost::function</classname></code> incur?</para></question>
+    <answer>
+      <para>The cost of <code>boost::function</code> can be reasonably
+      consistently measured at around 20ns +/- 10 ns on a modern >2GHz
+      platform versus directly inlining the code.</para>
+
+      <para>However, the performance of your application may benefit
+      from or be disadvantaged by <code>boost::function</code>
+      depending on how your C++ optimiser optimises.  Similar to a
+      standard function pointer, differences of order of 10% have been
+      noted to the benefit or disadvantage of using
+      <code>boost::function</code> to call a function that contains a
+      tight loop depending on your compilation circumstances.</para>
+     
+      <para>[Answer provided by Matt Hurd. See <ulink url="http://article.gmane.org/gmane.comp.lib.boost.devel/33278"/>]</para>
+    </answer>
+  </qandaentry>
+</qandaset> 
+
+</section>

@@ -1,0 +1,93 @@
+# autoindex.idx index script file
+# for Boost.autoindex Quickbook Doxygen documentation Auto-indexing.
+
+# Copyright (c) 2011 Paul A. Bristow
+
+# Use, modification and distribution is subject to the Boost Software
+# License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Diagnostic output - useful during refinement of the index.
+# !debug your-choice-of-regular-expression-to-debug
+
+# Terms that you want to appear in the Index.
+# Term to display in index, and word(s) that are to be matched (as a regular expression).
+
+# Diagnostic while testing.
+#!debug regular-expression
+# For example
+#!debug \w*\<index\w*\>
+
+appendix
+chapter
+section
+
+AutoIndex
+Quickbook
+Boostbook
+Docbook
+Doxygen
+Document Object Model "DOM"
+XML
+html
+PDF
+XSL
+
+MSVC
+side-by-side 
+stylesheet \<stylesheet\w*\> 
+
+"XSL stylesheet" \<(XSL|stylesheet)\w*\> 
+
+bjam
+jamfile
+Boost.Build
+
+"log file" \<log\w*\>
+
+C++
+
+macro
+function
+class
+typedef
+
+# Plural, and plurals.
+plural \<plural\w*\> 
+
+# To allow plurals:
+index \<index\w*\>
+
+# Allow hyperlink and hyperlinking:
+hyperlink \<hyperlink\w*\>
+
+# Two word index term, allowing plurals.
+"side effect" \<side effect\w*\>
+
+text \<text\w*\>
+
+page \<page\w*\> 
+appendix \<appendi\w*\> 
+section \<section\w*\> 
+chapter \<chapter\w*\> 
+
+script
+
+verbose   \<\w*verbose\w*\> 
+debug  \<debug\w*\> 
+
+index term  "index term"
+
+!exclude junk
+# Exclude the index term junk from the index,
+# so that "junk" anywhere does not have an index entry.
+
+# Remove leading "A" or "The" prefixes from section titles.
+!rewrite-name "(?i)(?:A|The)\s+(.*)" "\1"
+
+!rewrite-name "Additional Implementation Notes" "Implementation Notes"
+
+
+
+
+

@@ -1,0 +1,372 @@
+<sect2 id="multi_array">
+<title><literal>multi_array</literal></title>
+
+<para>
+<literal>multi_array</literal> is a multi-dimensional container that
+supports random access iteration. Its number of dimensions is
+fixed at compile time, but its shape and the number of elements it
+contains are specified during its construction. The number of elements
+will remain fixed for the duration of a
+<literal>multi_array</literal>'s lifetime, but the shape of the container can
+be changed. A <literal>multi_array</literal> manages its data elements
+using a replaceable allocator.
+</para>
+
+
+<formalpara>
+      <title>Model Of.</title>
+<para>
+<link linkend="MultiArray">MultiArray</link>,
+<ulink url="../../../libs/utility/CopyConstructible.html">CopyConstructible</ulink>. Depending on the element type, 
+it may also model <ulink url="http://www.sgi.com/tech/stl/EqualityComparable.html">EqualityComparable</ulink> and <ulink url="http://www.sgi.com/tech/stl/LessThanComparable.html">LessThanComparable</ulink>. 
+</para>
+</formalpara>
+
+<formalpara>
+<title>Synopsis</title>
+
+<programlisting>
+<![CDATA[
+namespace boost {
+
+template <typename ValueType, 
+          std::size_t NumDims, 
+          typename Allocator = std::allocator<ValueType> >
+class multi_array {
+public:
+// types:
+  typedef ValueType                             element;
+  typedef *unspecified*                         value_type;
+  typedef *unspecified*                         reference;
+  typedef *unspecified*                         const_reference;
+  typedef *unspecified*                         difference_type;
+  typedef *unspecified*                         iterator;
+  typedef *unspecified*                         const_iterator;
+  typedef *unspecified*                         reverse_iterator;
+  typedef *unspecified*                         const_reverse_iterator;
+  typedef multi_array_types::size_type          size_type;
+  typedef multi_array_types::index              index;
+  typedef multi_array_types::index_gen          index_gen;
+  typedef multi_array_types::index_range        index_range;
+  typedef multi_array_types::extent_gen         extent_gen;
+  typedef multi_array_types::extent_range       extent_range;
+  typedef *unspecified*                         storage_order_type;
+  
+
+  // template typedefs
+  template <std::size_t Dims> struct            subarray;
+  template <std::size_t Dims> struct            const_subarray;
+  template <std::size_t Dims> struct            array_view;
+  template <std::size_t Dims> struct            const_array_view;
+  
+
+  // constructors and destructors
+
+  multi_array();
+
+  template <typename ExtentList>
+  explicit multi_array(const ExtentList& sizes,
+                       const storage_order_type& store = c_storage_order(),
+                       const Allocator& alloc = Allocator());
+  explicit multi_array(const extents_tuple& ranges,
+                       const storage_order_type& store = c_storage_order(),
+	               const Allocator& alloc = Allocator());
+  multi_array(const multi_array& x);
+  multi_array(const const_multi_array_ref<ValueType,NumDims>& x);
+  multi_array(const const_subarray<NumDims>::type& x);
+  multi_array(const const_array_view<NumDims>::type& x);
+
+  multi_array(const multi_array_ref<ValueType,NumDims>& x);
+  multi_array(const subarray<NumDims>::type& x);
+  multi_array(const array_view<NumDims>::type& x);
+
+  ~multi_array();
+
+  // modifiers
+
+  multi_array& operator=(const multi_array& x);
+  template <class Array> multi_array& operator=(const Array& x);
+
+  // iterators:
+  iterator				begin();
+  iterator				end();
+  const_iterator			begin() const;
+  const_iterator			end() const;
+  reverse_iterator			rbegin();
+  reverse_iterator			rend();
+  const_reverse_iterator		rbegin() const;
+  const_reverse_iterator		rend() const;
+
+  // capacity:
+  size_type				size() const;
+  size_type				num_elements() const;
+  size_type				num_dimensions() const;
+ 
+  // element access:
+  template <typename IndexList> 
+    element&			operator()(const IndexList& indices);
+  template <typename IndexList>
+    const element&		operator()(const IndexList& indices) const;
+  reference			operator[](index i);
+  const_reference		operator[](index i) const;
+  array_view<Dims>::type	operator[](const indices_tuple& r);
+  const_array_view<Dims>::type	operator[](const indices_tuple& r) const;
+
+  // queries
+  element*			data();
+  const element*		data() const;
+  element*			origin();
+  const element*		origin() const;
+  const size_type*		shape() const;
+  const index*			strides() const;
+  const index*			index_bases() const;
+  const storage_order_type&     storage_order() const;
+
+  // comparators
+  bool operator==(const multi_array& rhs);
+  bool operator!=(const multi_array& rhs);
+  bool operator<(const multi_array& rhs);
+  bool operator>(const multi_array& rhs);
+  bool operator>=(const multi_array& rhs);
+  bool operator<=(const multi_array& rhs);
+
+  // modifiers:
+  template <typename InputIterator>
+    void			assign(InputIterator begin, InputIterator end);
+  template <typename SizeList>
+    void			reshape(const SizeList& sizes)
+  template <typename BaseList>	void reindex(const BaseList& values);
+    void			reindex(index value);
+  template <typename ExtentList>
+    multi_array&		resize(const ExtentList& extents);
+  multi_array&                  resize(extents_tuple& extents);
+};
+]]>
+</programlisting>
+</formalpara>
+
+<formalpara>
+<title>Constructors</title>
+
+<variablelist>
+<varlistentry>
+<term><programlisting>template &lt;typename ExtentList&gt;
+explicit multi_array(const ExtentList&amp; sizes,
+                     const storage_order_type&amp; store = c_storage_order(),
+                     const Allocator&amp; alloc = Allocator());
+</programlisting></term>
+<listitem>
+
+<para>
+This constructs a <literal>multi_array</literal> using the specified
+parameters.  <literal>sizes</literal> specifies the shape of the
+constructed <literal>multi_array</literal>.  <literal>store</literal>
+specifies the storage order or layout in memory of the array
+dimensions.  <literal>alloc</literal> is used to
+allocate the contained elements.
+</para>
+
+<formalpara><title><literal>ExtentList</literal> Requirements</title>
+<para>
+<literal>ExtentList</literal> must model <ulink url="../../utility/Collection.html">Collection</ulink>.
+</para>
+</formalpara>
+
+<formalpara><title>Preconditions</title>
+<para><literal>sizes.size() == NumDims;</literal></para>
+</formalpara>
+
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>
+<programlisting><![CDATA[explicit multi_array(extent_gen::gen_type<NumDims>::type ranges,
+                     const storage_order_type& store = c_storage_order(),
+                     const Allocator& alloc = Allocator());]]>
+</programlisting></term> 
+<listitem>
+<para>
+This constructs a <literal>multi_array</literal> using the specified
+    parameters.  <literal>ranges</literal> specifies the shape and
+index bases of the constructed multi_array. It is the result of 
+<literal>NumDims</literal> chained calls to 
+    <literal>extent_gen::operator[]</literal>. <literal>store</literal>
+specifies the storage order or layout in memory of the array
+dimensions.  <literal>alloc</literal> is the allocator used to
+allocate the memory used to store <literal>multi_array</literal>
+elements.
+</para>
+</listitem>
+</varlistentry> 
+
+
+<varlistentry>
+<term><programlisting>
+<![CDATA[multi_array(const multi_array& x);
+multi_array(const const_multi_array_ref<ValueType,NumDims>& x);
+multi_array(const const_subarray<NumDims>::type& x);
+multi_array(const const_array_view<NumDims>::type& x);
+multi_array(const multi_array_ref<ValueType,NumDims>& x);
+multi_array(const subarray<NumDims>::type& x);
+multi_array(const array_view<NumDims>::type& x);]]>
+</programlisting></term>
+<listitem>
+<para>These constructors all constructs a <literal>multi_array</literal> and 
+perform a deep copy of <literal>x</literal>. 
+</para>
+
+<formalpara>
+<title>Complexity</title>
+<para> This performs O(<literal>x.num_elements()</literal>) calls to
+<literal>element</literal>'s copy 
+constructor.
+</para></formalpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><programlisting>
+<![CDATA[multi_array();]]>
+</programlisting></term>
+<listitem>
+<para>This constructs a <literal>multi_array</literal> whose shape is (0,...,0) and contains no elements.
+</para>
+</listitem>
+</varlistentry>
+
+</variablelist>
+
+<formalpara><title>Note on Constructors</title>
+<para>
+The  <literal>multi_array</literal> construction expressions,
+<programlisting>
+     multi_array&lt;int,3&gt; A(boost::extents[5][4][3]);
+</programlisting>
+and
+<programlisting>
+     boost::array&lt;multi_array_base::index,3&gt; my_extents = {{5, 4, 3}};
+     multi_array&lt;int,3&gt; A(my_extents);
+</programlisting>
+are equivalent.
+</para>
+</formalpara>
+</formalpara>
+
+<formalpara>
+<title>Modifiers</title>
+
+<variablelist>
+
+<varlistentry>
+<term><programlisting>
+<![CDATA[multi_array& operator=(const multi_array& x);
+template <class Array> multi_array& operator=(const Array& x);]]>
+</programlisting>
+</term>
+
+<listitem>
+<para>This performs an element-wise copy of <literal>x</literal>
+into the current <literal>multi_array</literal>.</para>
+
+<formalpara>
+<title><literal>Array</literal> Requirements</title>
+<para><literal>Array</literal> must model MultiArray. 
+</para></formalpara>
+
+<formalpara>
+<title>Preconditions</title>
+<para>
+<programlisting>std::equal(this->shape(),this->shape()+this->num_dimensions(),
+x.shape());</programlisting></para>
+</formalpara>
+
+<formalpara>
+<title>Postconditions</title>
+<para>
+<programlisting>(*.this) == x;</programlisting>
+</para>
+</formalpara>
+
+<formalpara>
+<title>Complexity</title>
+<para>The assignment operators perform 
+O(<literal>x.num_elements()</literal>) calls to <literal>element</literal>'s 
+copy constructor.</para></formalpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>
+<programlisting>
+<![CDATA[
+template <typename InputIterator>
+void assign(InputIterator begin, InputIterator end);]]>
+</programlisting>
+</term>
+
+<listitem>
+ <para>This copies the elements in the range 
+<literal>[begin,end)</literal> into the array.  It is equivalent to 
+<literal>std::copy(begin,end,this->data())</literal>.
+</para>
+
+<formalpara><title>Preconditions</title>
+<para><literal>std::distance(begin,end) == this->num_elements();</literal>
+</para>
+</formalpara>
+
+<formalpara>
+<title>Complexity</title>
+<para>
+The <literal>assign</literal> member function performs
+O(<literal>this->num_elements()</literal>) calls to
+<literal>ValueType</literal>'s copy constructor.
+</para>
+</formalpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>
+<programlisting><![CDATA[multi_array& resize(extent_gen::gen_type<NumDims>::type extents);
+template <typename ExtentList>
+  multi_array& resize(const ExtentList& extents);
+]]>
+</programlisting></term> 
+<listitem>
+<para>
+This function resizes an array to the shape specified by
+<literal>extents</literal>, which is either a generated list of
+extents or a model of the <literal>Collection</literal> concept. The
+contents of the array are preserved whenever possible; if the new
+array size is smaller, then some data will be lost. Any new elements
+created by resizing the array are initialized with the
+<literal>element</literal> default constructor.
+</para>
+</listitem>
+</varlistentry> 
+
+</variablelist>
+</formalpara>
+
+
+<formalpara>
+<title>Queries</title>
+
+<variablelist>
+
+<varlistentry>
+<term><programlisting>
+<![CDATA[storage_order_type& storage_order() const;]]>
+</programlisting>
+</term>
+
+<listitem>
+<para>This query returns the storage order object associated with the 
+<literal>multi_array</literal> in question.  It can be used to construct a new array with the same storage order.</para>
+</listitem>
+</varlistentry>
+</variablelist>
+</formalpara>
+</sect2>

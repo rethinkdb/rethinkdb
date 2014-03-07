@@ -1,0 +1,94 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:other_protocols Support for Other Protocols]
+
+Support for other socket protocols (such as Bluetooth or IRCOMM sockets) can be
+added by implementing the [link boost_asio.reference.Protocol protocol type
+requirements]. However, in many cases these protocols may also be used with
+Boost.Asio's generic protocol support. For this, Boost.Asio provides the following four
+classes:
+    
+* [link boost_asio.reference.generic__datagram_protocol `generic::datagram_protocol`]
+* [link boost_asio.reference.generic__raw_protocol `generic::raw_protocol`]
+* [link boost_asio.reference.generic__seq_packet_protocol `generic::seq_packet_protocol`]
+* [link boost_asio.reference.generic__stream_protocol `generic::stream_protocol`]
+    
+These classes implement the [link boost_asio.reference.Protocol protocol type
+requirements], but allow the user to specify the address family (e.g. `AF_INET`)
+and protocol type (e.g. `IPPROTO_TCP`) at runtime. For example:
+
+  boost::asio::generic::stream_protocol::socket my_socket(my_io_service);
+  my_socket.open(boost::asio::generic::stream_protocol(AF_INET, IPPROTO_TCP));
+  ...
+
+An endpoint class template, [link boost_asio.reference.generic__basic_endpoint
+`boost::asio::generic::basic_endpoint`], is included to support these protocol
+classes. This endpoint can hold any other endpoint type, provided its native
+representation fits into a `sockaddr_storage` object. This class will also
+convert from other types that implement the [link boost_asio.reference.Endpoint
+endpoint] type requirements:
+
+  boost::asio::ip::tcp::endpoint my_endpoint1 = ...;
+  boost::asio::generic::stream_protocol::endpoint my_endpoint2(my_endpoint1);
+
+The conversion is implicit, so as to support the following use cases:
+
+  boost::asio::generic::stream_protocol::socket my_socket(my_io_service);
+  boost::asio::ip::tcp::endpoint my_endpoint = ...;
+  my_socket.connect(my_endpoint);
+
+[heading C++11 Move Construction]
+    
+When using C++11, it is possible to perform move construction from a socket (or
+acceptor) object to convert to the more generic protocol's socket (or acceptor)
+type. If the protocol conversion is valid:
+
+  Protocol1 p1 = ...;
+  Protocol2 p2(p1);
+
+then the corresponding socket conversion is allowed:
+
+  Protocol1::socket my_socket1(my_io_service);
+  ...
+  Protocol2::socket my_socket2(std::move(my_socket1));
+
+For example, one possible conversion is from a TCP socket to a generic
+stream-oriented socket:
+
+  boost::asio::ip::tcp::socket my_socket1(my_io_service);
+  ...
+  boost::asio::generic::stream_protocol::socket my_socket2(std::move(my_socket1));
+
+These conversions are also available for move-assignment.
+
+These conversions are not limited to the above generic protocol classes.
+User-defined protocols may take advantage of this feature by similarly ensuring
+the conversion from `Protocol1` to `Protocol2` is valid, as above.
+
+[heading Accepting Generic Sockets]
+
+As a convenience, a socket acceptor's `accept()` and `async_accept()` functions
+can directly accept into a different protocol's socket type, provided the
+corresponding protocol conversion is valid. For example, the following is
+supported because the protocol `boost::asio::ip::tcp` is convertible to
+`boost::asio::generic::stream_protocol`:
+
+  boost::asio::ip::tcp::acceptor my_acceptor(my_io_service);
+  ...
+  boost::asio::generic::stream_protocol::socket my_socket(my_io_service);
+  my_acceptor.accept(my_socket);
+
+[heading See Also]
+
+[link boost_asio.reference.generic__datagram_protocol `generic::datagram_protocol`],
+[link boost_asio.reference.generic__raw_protocol `generic::raw_protocol`],
+[link boost_asio.reference.generic__seq_packet_protocol `generic::seq_packet_protocol`],
+[link boost_asio.reference.generic__stream_protocol `generic::stream_protocol`],
+[link boost_asio.reference.Protocol protocol type requirements].
+
+[endsect]

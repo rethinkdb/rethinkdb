@@ -1,0 +1,33 @@
+#==============================================================================
+#   Copyright (c) 2001-2009 Joel de Guzman
+#   Copyright (c) 2001-2009 Hartmut Kaiser
+#
+#   Distributed under the Boost Software License, Version 1.0. (See accompanying
+#   file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+project spirit-lexer-example
+    : requirements 
+        <toolset>gcc:<c++-template-depth>300
+        <toolset>darwin:<cxxflags>-ftemplate-depth-300
+    :
+    :
+    ;
+
+
+exe example1                : example1.cpp ;
+exe example2                : example2.cpp ;
+exe example3                : example3.cpp ;
+exe example4                : example4.cpp ;
+exe example5                : example5.cpp ;
+exe example6                : example6.cpp ;
+exe print_numbers           : print_numbers.cpp ;
+exe print_number_tokenids   : print_number_tokenids.cpp ;
+exe word_count              : word_count.cpp ;
+exe word_count_functor      : word_count_functor.cpp ;
+exe word_count_lexer        : word_count_lexer.cpp ;
+exe word_count_functor_flex : word_count_functor_flex.cpp ;
+exe strip_comments          : strip_comments.cpp ;
+exe strip_comments_lexer    : strip_comments_lexer.cpp ;
+exe custom_token_attribute  : custom_token_attribute.cpp ;
+
+exe lexer_debug_support     : lexer_debug_support.cpp ;

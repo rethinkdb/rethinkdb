@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Function Template optimal_buffer_size</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Function Template <CODE>optimal_buffer_size</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The function template <CODE>optimal_buffer_size</CODE> returns the size of the character buffer which is allocated for a Filter or Device by library streams, stream buffers and chains if no buffer size is explicitly specified.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/optimal_buffer_size.hpp"><CODE>&lt;boost/iostreams/optimal_buffer_size.hpp&gt;</CODE></A></DT>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><CODE>&lt;boost/iostreams/operations.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="synopsis"></A>
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+              
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">T</A>&gt;
+std::streamsize <A CLASS="documented" HREF="#optimal_buffer_size">optimal_buffer_size</A>(T&amp; t);
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="template_params"></A>
+<H4>Template Parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>T</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of <A HREF="../concepts/filter.html">Filter</A> or <A HREF="../concepts/device.html">Device</A>.
+    </TR>
+</TABLE>
+
+<A NAME="optimal_buffer_size"></A>
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T&gt;
+std::streamsize optimal_buffer_size(T&amp; t);</PRE>
+
+<P>The semantics of <CODE>optimal_buffer_size</CODE> depends on the <A HREF="../guide/traits.html#category">category</A> of <CODE>T</CODE> as follows:</P>
+
+<TABLE STYLE="margin-left:2em;margin-bottom:2em" BORDER=1 CELLPADDING=4>
+    <TR><TH><CODE>category_of&lt;T&gt;::type</CODE></TH><TH>semantics</TH></TR>
+    <TR>
+        <TD VALIGN="top">convertible to <A HREF="../guide/traits.html#category_tags"><CODE>optimally_buffered_tag</CODE></A></TD>
+        <TD>Returns <CODE>t.optimal_buffer_size()</CODE>.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">convertible to <A HREF="../guide/traits.html#category_tags"><CODE>filter_tag</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>optimally_buffered_tag</CODE></A></TD>
+        <TD>Returns <A HREF='../macros/buffer_sizes.html'><CODE>default_filter_buffer_size</CODE></A>.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">otherwise</TD>
+        <TD>Returns <A HREF='../macros/buffer_sizes.html'><CODE>default_device_buffer_size</CODE></A>.</TD>
+    </TR>
+</TABLE>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

@@ -1,0 +1,15 @@
+[def __foo__ Foo:__FILENAME__]
+
+__foo__
+
+[?__defined__
+Defined conditional phrase.
+[template defined_template Defined template:__FILENAME__]
+[def __defined_macro__ Defined macro:__FILENAME__]
+]
+
+[?__not_defined__
+Not defined conditional phrase.
+[template not_defined_template Not defined template:__FILENAME__]
+[def __not_defined_macro__ Not defined macro:__FILENAME__]
+]

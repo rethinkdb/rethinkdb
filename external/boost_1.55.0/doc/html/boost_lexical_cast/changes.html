@@ -1,0 +1,228 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Changes</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_lexical_cast.html" title="Chapter&#160;17.&#160;Boost.Lexical_Cast 1.0">
+<link rel="prev" href="frequently_asked_questions.html" title="Frequently Asked Questions">
+<link rel="next" href="performance.html" title="Performance">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="frequently_asked_questions.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_lexical_cast.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="performance.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_lexical_cast.changes"></a><a class="link" href="changes.html" title="Changes">Changes</a>
+</h2></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <span class="bold"><strong>boost 1.54.0 :</strong></span>
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                Fix some issues with <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">int128_type</span></code>
+                and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uint128_type</span></code> conversions. Notify
+                user at compile time if the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span></code>
+                are not specialized for 128bit types and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lexical_cast</span></code>
+                can not make conversions.
+              </li></ul></div>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>boost 1.54.0 :</strong></span>
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Added code to convert <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">int128_type</span></code>
+                and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uint128_type</span></code> types (requires GCC
+                4.7 or higher).
+              </li>
+<li class="listitem">
+                Conversions to pointers will now fail to compile, instead of throwing
+                at runtime.
+              </li>
+<li class="listitem">
+                Restored ability to get pointers to <code class="computeroutput"><span class="identifier">lexical_cast</span></code>
+                function (was broken in 1.53.0).
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>boost 1.53.0 :</strong></span>
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                Much better input and output streams detection for user defined types.
+              </li></ul></div>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>boost 1.52.0 :</strong></span>
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Restored compilation on MSVC-2003 (was broken in 1.51.0).
+              </li>
+<li class="listitem">
+                Added <code class="computeroutput"><span class="identifier">lexical_cast</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharType</span><span class="special">*</span>
+                <span class="identifier">chars</span><span class="special">,</span>
+                <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">count</span><span class="special">)</span></code> function overload.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>boost 1.51.0 :</strong></span>
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                Better performance, less memory usage for <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="identifier">character_type</span><span class="special">,</span> <span class="identifier">N</span><span class="special">&gt;</span></code> and <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="identifier">character_type</span><span class="special">,</span> <span class="identifier">N</span><span class="special">&gt;</span></code> conversions.
+              </li></ul></div>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>boost 1.50.0 :</strong></span>
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">bad_lexical_cast</span></code> exception is now
+                globaly visible and can be catched even if code is compiled with
+                -fvisibility=hidden.
+              </li>
+<li class="listitem">
+                Now it is possible to compile library with disabled exceptions.
+              </li>
+<li class="listitem">
+                Better performance, less memory usage and bugfixes for <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_range</span><span class="special">&lt;</span><span class="identifier">character_type</span><span class="special">*&gt;</span></code>
+                conversions.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>boost 1.49.0 :</strong></span>
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Restored work with typedefed wchar_t (compilation flag /Zc:wchar_t-
+                for Visual Studio).
+              </li>
+<li class="listitem">
+                Better performance and less memory usage for <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">container</span><span class="special">::</span><span class="identifier">basic_string</span></code>
+                conversions.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>boost 1.48.0 :</strong></span>
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Added code to work with Inf and NaN on any platform.
+              </li>
+<li class="listitem">
+                Better performance and less memory usage for conversions to float
+                type (and to double type, if <code class="computeroutput"><span class="keyword">sizeof</span><span class="special">(</span><span class="keyword">double</span><span class="special">)</span> <span class="special">&lt;</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="keyword">long</span> <span class="keyword">double</span><span class="special">)</span></code>).
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>boost 1.47.0 :</strong></span>
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Optimizations for "C" and other locales without number
+                grouping.
+              </li>
+<li class="listitem">
+                Better performance and less memory usage for unsigned char and signed
+                char conversions.
+              </li>
+<li class="listitem">
+                Better performance and less memory usage for conversions to arithmetic
+                types.
+              </li>
+<li class="listitem">
+                Better performance and less memory usage for conversions from arithmetic
+                type to arithmetic type.
+              </li>
+<li class="listitem">
+                Directly construct Target from Source on some conversions (like conversions
+                from string to string, from char array to string, from char to char
+                and others).
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>boost 1.34.0 :</strong></span>
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                Better performance for many combinations of Source and Target types.
+                For more details refer to Alexander Nasonovs article <a href="http://accu.org/index.php/journals/1375" target="_top">Fine
+                Tuning for lexical_cast, Overload #74, August 2006</a> <a href="http://www.accu.org/var/uploads/journals/overload74.pdf" target="_top">(PDF)</a>.
+              </li></ul></div>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>boost 1.33.0 :</strong></span>
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Call-by-const reference for the parameters. This requires partial
+                specialization of class templates, so it doesn't work for MSVC 6,
+                and it uses the original pass by value there.
+              </li>
+<li class="listitem">
+                The MSVC 6 support is deprecated, and will be removed in a future
+                Boost version.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>Earlier :</strong></span>
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                The previous version of lexical_cast used the default stream precision
+                for reading and writing floating-point numbers. For numerics that
+                have a corresponding specialization of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span></code>,
+                the current version now chooses a precision to match.
+              </li>
+<li class="listitem">
+                The previous version of lexical_cast did not support conversion to
+                or from any wide-character-based types. For compilers with full language
+                and library support for wide characters, <code class="computeroutput"><span class="identifier">lexical_cast</span></code>
+                now supports conversions from <code class="computeroutput"><span class="keyword">wchar_t</span></code>,
+                <code class="computeroutput"><span class="keyword">wchar_t</span> <span class="special">*</span></code>,
+                and <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">wstring</span></code> and to <code class="computeroutput"><span class="keyword">wchar_t</span></code>
+                and <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">wstring</span></code>.
+              </li>
+<li class="listitem">
+                The previous version of <code class="computeroutput"><span class="identifier">lexical_cast</span></code>
+                assumed that the conventional stream extractor operators were sufficient
+                for reading values. However, string I/O is asymmetric, with the result
+                that spaces play the role of I/O separators rather than string content.
+                The current version fixes this error for <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>
+                and, where supported, <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">wstring</span></code>:
+                <code class="computeroutput"><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="string">"Hello, World"</span><span class="special">)</span></code>
+                succeeds instead of failing with a <code class="computeroutput"><span class="identifier">bad_lexical_cast</span></code>
+                exception.
+              </li>
+<li class="listitem">
+                The previous version of <code class="computeroutput"><span class="identifier">lexical_cast</span></code>
+                allowed unsafe and meaningless conversions to pointers. The current
+                version now throws a <code class="computeroutput"><span class="identifier">bad_lexical_cast</span></code>
+                for conversions to pointers: <code class="computeroutput"><span class="identifier">lexical_cast</span><span class="special">&lt;</span><span class="keyword">char</span>
+                <span class="special">*&gt;(</span><span class="string">"Goodbye,
+                World"</span><span class="special">)</span></code> now
+                throws an exception instead of causing undefined behavior.
+              </li>
+</ul></div>
+        </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2005 Kevlin Henney<br>Copyright &#169; 2006-2010 Alexander Nasonov<br>Copyright &#169; 2011-2013 Antony Polukhin<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="frequently_asked_questions.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_lexical_cast.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="performance.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

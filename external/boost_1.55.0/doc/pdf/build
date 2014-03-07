@@ -1,0 +1,23 @@
+#!/bin/bash
+boost_version=$(grep 'define.*BOOST_LIB_VERSION' ../../boost/version.hpp | sed 's/.*"\([^"]*\)".*/\1/')
+echo Boost version tag = $boost_version
+(cd ../../libs/accumulators/doc && bjam -a) 2>&1 | tee build.log
+(cd ../../libs/container/doc && rm -rf *.pdf && bjam -a pdfinstall xsl:param=fop1.extensions=1 &&  cp *.pdf ../../../doc/pdf) 2>&1 | tee -a build.log
+(cd ../../libs/interprocess/doc && rm -rf *.pdf && bjam -a pdfinstall xsl:param=fop1.extensions=1 &&  cp *.pdf ../../../doc/pdf) 2>&1 | tee -a build.log
+(cd ../../libs/intrusive/doc && rm -rf *.pdf && bjam -a pdfinstall xsl:param=fop1.extensions=1 && cp *.pdf ../../../doc/pdf) 2>&1 | tee -a build.log
+(cd ../../libs/geometry/doc/src/docutils/tools/doxygen_xml2qbk && bjam release) 2>&1 | tee -a build.log
+(cd ../../libs/functional/overloaded_function/doc && rm -rf *.pdf && bjam -a pdfinstall && cp *.pdf ../../../../doc/pdf) 2>&1 | tee -a build.log
+(cd ../../libs/local_function/doc && rm -rf *.pdf && bjam -a pdfinstall && cp *.pdf ../../../doc/pdf) 2>&1 | tee -a build.log
+(cd ../../libs/utility/identity_type/doc && rm -rf *.pdf && bjam -a pdf_doc_install && cp *.pdf ../../../../doc/pdf) 2>&1 | tee -a build.log
+(cd ../../libs/numeric/odeint/doc && rm -rf *.pdf && bjam -a --hash --enable-index pdfinstall && cp *.pdf ../../../../doc/pdf) 2>&1 | tee -a build.log
+cp ../../dist/bin/doxygen_xml2qbk* /usr/local/bin
+(cd ../../libs/geometry/doc && rm -rf *.pdf && ./make_qbk.py && bjam pdfinstall -a xsl:param=fop1.extensions=1 xsl:param=xep.extensions=0 && cp *.pdf ../../../doc/pdf) 2>&1 | tee -a build.log
+bjam -a --enable-index pdf -d2 xsl:param=fop1.extensions=0 xsl:param=xep.extensions=1 2>&1 | tee -a build.log
+rm -rf boost_${boost_version}_pdf
+mkdir boost_${boost_version}_pdf
+mv *.pdf boost_${boost_version}_pdf
+
+
+
+
+

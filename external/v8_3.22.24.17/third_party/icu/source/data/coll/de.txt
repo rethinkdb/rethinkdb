@@ -1,0 +1,81 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/collation/de.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/collation/de.xml
+ */
+de{
+    Version{"2.0.51.25"}
+    collations{
+        phonebook{
+            Sequence{"&a<<ä/e&A<<Ä/E&o<<ö/e&O<<Ö/E&u<<ü/e&U<<Ü/E"}
+            Version{"1.9"}
+        }
+        search{
+            Sequence{
+                " [normalization on ][suppressContractions [เ-ไ ເ-ໄ] ]"
+                "&ا<<آ<<أ<<إ"
+                "&و<<ؤ"
+                "&ي<<ئ<<ى"
+                "&ه<<ة"
+                "&[last primary ignorable ]<<׳<<״<<ـ<<ٌ<<ٍ<<َ<<ُ<<ِ<<ّ<<ْ<<ฺ"
+                "&ᄀ=ᆨ"
+                "&ᄀᄀ=ᄁ=ᆩ"
+                "&ᄀᄉ=ᆪ"
+                "&ᄂ=ᆫ"
+                "&ᄂᄌ=ᆬ"
+                "&ᄂᄒ=ᆭ"
+                "&ᄃ=ᆮ"
+                "&ᄃᄃ=ᄄ"
+                "&ᄅ=ᆯ"
+                "&ᄅᄀ=ᆰ"
+                "&ᄅᄆ=ᆱ"
+                "&ᄅᄇ=ᆲ"
+                "&ᄅᄉ=ᆳ"
+                "&ᄅᄐ=ᆴ"
+                "&ᄅᄑ=ᆵ"
+                "&ᄅᄒ=ᆶ"
+                "&ᄆ=ᆷ"
+                "&ᄇ=ᆸ"
+                "&ᄇᄇ=ᄈ"
+                "&ᄇᄉ=ᆹ"
+                "&ᄉ=ᆺ"
+                "&ᄉᄉ=ᄊ=ᆻ"
+                "&ᄋ=ᆼ"
+                "&ᄌ=ᆽ"
+                "&ᄌᄌ=ᄍ"
+                "&ᄎ=ᆾ"
+                "&ᄏ=ᆿ"
+                "&ᄐ=ᇀ"
+                "&ᄑ=ᇁ"
+                "&ᄒ=ᇂ"
+                "&ᅡᅵ=ᅢ"
+                "&ᅣᅵ=ᅤ"
+                "&ᅥᅵ=ᅦ"
+                "&ᅧᅵ=ᅨ"
+                "&ᅩᅡ=ᅪ"
+                "&ᅩᅡᅵ=ᅫ"
+                "&ᅩᅵ=ᅬ"
+                "&ᅮᅴ=ᅯ"
+                "&ᅮᅴᅵ=ᅰ"
+                "&ᅮᅵ=ᅱ"
+                "&a<<ä/e"
+                "&A<<Ä/E"
+                "&o<<ö/e"
+                "&O<<Ö/E"
+                "&u<<ü/e"
+                "&U<<Ü/E"
+            }
+            Version{"1.9"}
+        }
+        standard{
+            Sequence{""}
+            Version{"1.9"}
+        }
+    }
+}

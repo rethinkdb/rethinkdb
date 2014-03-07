@@ -1,0 +1,298 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template matches</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.matches_hpp" title="Header &lt;boost/proto/matches.hpp&gt;">
+<link rel="prev" href="vararg.html" title="Struct template vararg">
+<link rel="next" href="is_extension.html" title="Struct template is_extension">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="vararg.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.matches_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_extension.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.matches"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template matches</span></h2>
+<p>boost::proto::matches &#8212; A Boolean metafunction that evaluates whether a given expression type matches a grammar.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.matches_hpp" title="Header &lt;boost/proto/matches.hpp&gt;">boost/proto/matches.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../Expr.html" title="Concept Expr">Expr</a><span class="special">,</span> <span class="keyword">typename</span> Grammar<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="matches.html" title="Struct template matches">matches</a> <span class="special">:</span> <span class="keyword"></span> mpl::bool_&lt;<em class="replaceable"><code>true-or-false</code></em>&gt; <span class="special">{</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp180199368"></a><h2>Description</h2>
+<p>
+            <code class="computeroutput">proto::matches&lt;Expr, Grammar&gt;</code> inherits from
+            <code class="computeroutput">mpl::true_</code> if
+            <code class="computeroutput">Expr::proto_grammar</code> matches
+            <code class="computeroutput">Grammar::proto_grammar</code>, and from
+            <code class="computeroutput">mpl::false_</code> otherwise.
+          </p>
+<p>
+            Non-terminal expressions are matched against a grammar according to the following rules:
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>
+                  The wildcard pattern, <code class="computeroutput">
+                    <a class="link" href="_.html" title="Struct _">proto::_</a>
+                  </code>, matches any expression.
+                </p></li>
+<li class="listitem"><p>
+                  An expression
+                  <code class="computeroutput">
+                    <a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr</a>&lt;AT,
+                    <a class="link" href="listN.html" title="Struct template listN">
+                      proto::listN
+                    </a>&lt;A<sub>0</sub>,...A<sub>n</sub>&gt;
+                    &gt;
+                  </code>
+                  matches a grammar
+                  <code class="computeroutput">
+                    <a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr</a>&lt;BT,
+                    <a class="link" href="listN.html" title="Struct template listN">
+                      proto::listN
+                    </a>&lt;B<sub>0</sub>,...B<sub>n</sub>&gt;
+                    &gt;
+                  </code> if
+                  <code class="computeroutput">BT</code> is <code class="computeroutput">
+                    <a class="link" href="_.html" title="Struct _">proto::_</a>
+                  </code> or
+                  <code class="computeroutput">AT</code>, and if <code class="computeroutput">
+                    A<sub>x</sub>
+                  </code> matches
+                  <code class="computeroutput">
+                    B<sub>x</sub>
+                  </code> for each <code class="computeroutput">x</code> in <code class="computeroutput">[0,n]</code>.
+                </p></li>
+<li class="listitem"><p>
+                  An expression
+                  <code class="computeroutput">
+                    <a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr</a>&lt;AT,
+                    <a class="link" href="listN.html" title="Struct template listN">
+                      proto::listN
+                    </a>&lt;A<sub>0</sub>,...A<sub>n</sub>,U<sub>0</sub>,...U<sub>m</sub>&gt;
+                    &gt;
+                  </code> matches a grammar
+                  <code class="computeroutput">
+                    <a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr</a>&lt;BT,
+                    <a class="link" href="listN.html" title="Struct template listN">
+                      proto::listM
+                    </a>&lt;B<sub>0</sub>,...B<sub>n</sub>,<a class="link" href="vararg.html" title="Struct template vararg">proto::vararg</a>&lt;V&gt;
+                    &gt; &gt;
+                  </code> if
+                  <code class="computeroutput">BT</code> is <code class="computeroutput">
+                    <a class="link" href="_.html" title="Struct _">proto::_</a>
+                  </code> or
+                  <code class="computeroutput">AT</code>, and if
+                  <code class="computeroutput">
+                    A<sub>x</sub>
+                  </code> matches
+                  <code class="computeroutput">
+                    B<sub>x</sub>
+                  </code> for each
+                  <code class="computeroutput">x</code> in <code class="computeroutput">[0,n]</code> and if
+                  <code class="computeroutput">
+                    U<sub>x</sub>
+                  </code> matches
+                  <code class="computeroutput">V</code> for each <code class="computeroutput">x</code> in
+                  <code class="computeroutput">[0,m]</code>.
+                </p></li>
+<li class="listitem"><p>
+                  An expression <code class="computeroutput">E</code> matches
+                  <code class="computeroutput">
+                    <a class="link" href="or_.html" title="Struct template or_">proto::or_</a>&lt;B<sub>0</sub>,...B<sub>n</sub>&gt;
+                  </code> if
+                  <code class="computeroutput">E</code> matches some
+                  <code class="computeroutput">
+                    B<sub>x</sub>
+                  </code> for
+                  <code class="computeroutput">x</code> in <code class="computeroutput">[0,n]</code>.
+                </p></li>
+<li class="listitem"><p>
+                  An expression <code class="computeroutput">E</code> matches
+                  <code class="computeroutput">
+                    <a class="link" href="and_.html" title="Struct template and_">proto::and_</a>&lt;B<sub>0</sub>,...B<sub>n</sub>&gt;
+                  </code> if
+                  <code class="computeroutput">E</code> matches all
+                  <code class="computeroutput">
+                    B<sub>x</sub>
+                  </code> for
+                  <code class="computeroutput">x</code> in <code class="computeroutput">[0,n]</code>.
+                </p></li>
+<li class="listitem">
+<p>
+                  An expression <code class="computeroutput">E</code> matches
+                  <code class="computeroutput">
+                    <a class="link" href="if_.html" title="Struct template if_">proto::if_</a>&lt;T,U,V&gt;
+                  </code> if:
+                  </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+<code class="computeroutput">
+                        boost::result_of&lt;<a class="link" href="when.html" title="Struct template when">proto::when</a>&lt;<a class="link" href="_.html" title="Struct _">proto::_</a>,T&gt;(E)&gt;::type::value
+                      </code>
+                      is <code class="computeroutput">true</code> and
+                      <code class="computeroutput">E</code> matches
+                      <code class="computeroutput">U</code>, <span class="emphasis"><em>or</em></span>
+</li>
+<li class="listitem">
+<code class="computeroutput">
+                        boost::result_of&lt;<a class="link" href="when.html" title="Struct template when">proto::when</a>&lt;<a class="link" href="_.html" title="Struct _">proto::_</a>,T&gt;(E)&gt;::type::value
+                      </code>
+                      is <code class="computeroutput">false</code> and <code class="computeroutput">E</code> matches
+                      <code class="computeroutput">V</code>.
+                    </li>
+</ul></div>
+<p>
+                  Note: <code class="computeroutput">U</code> defaults to <code class="computeroutput">
+                    <a class="link" href="_.html" title="Struct _">proto::_</a>
+                  </code>
+                  and <code class="computeroutput">V</code> defaults to
+                  <code class="computeroutput">
+                    <a class="link" href="not_.html" title="Struct template not_">proto::not_</a>&lt;<a class="link" href="_.html" title="Struct _">proto::_</a>&gt;
+                  </code>.
+                </p>
+</li>
+<li class="listitem"><p>
+                  An expression <code class="computeroutput">E</code> matches
+                  <code class="computeroutput">
+                    <a class="link" href="not_.html" title="Struct template not_">proto::not_</a>&lt;T&gt;
+                  </code> if
+                  <code class="computeroutput">E</code> does <span class="emphasis"><em>not</em></span> match <code class="computeroutput">T</code>.
+                </p></li>
+<li class="listitem"><p>
+                  An expression <code class="computeroutput">E</code> matches
+                  <code class="computeroutput">
+                    <a class="link" href="switch_.html" title="Struct template switch_">proto::switch_</a>&lt;C, T&gt;
+                  </code> if
+                  <code class="computeroutput">E</code> matches <code class="computeroutput">C::case_&lt;boost::result_of&lt;<a class="link" href="when.html" title="Struct template when">proto::when</a>&lt;<a class="link" href="_.html" title="Struct _">proto::_</a>,T&gt;(E)&gt;::type&gt;</code>.
+                  Note: <code class="computeroutput">T</code> defaults to <code class="computeroutput"><a class="link" href="tag_of.html" title="Struct template tag_of">proto::tag_of</a>&lt;<a class="link" href="_.html" title="Struct _">proto::_</a>&gt;()</code>
+                </p></li>
+</ul></div>
+<p>
+          </p>
+<p>
+            A terminal expression can trivially match the grammar <a class="link" href="_.html" title="Struct _">proto::_</a>. In addition,
+            a terminal expression
+            <code class="computeroutput">
+              <a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr</a>&lt;AT,
+              <a class="link" href="term.html" title="Struct template term">proto::term</a>&lt;A&gt; &gt;
+            </code> matches a grammar
+            <code class="computeroutput">
+              <a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr</a>&lt;BT, <a class="link" href="term.html" title="Struct template term">proto::term</a>&lt;B&gt; &gt;
+            </code>
+            if <code class="computeroutput">BT</code> is <code class="computeroutput"><a class="link" href="_.html" title="Struct _">proto::_</a></code>
+            or <code class="computeroutput">AT</code> and one of the following is true:
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>
+                  <code class="computeroutput">B</code> is the wildcard pattern,
+                  <code class="computeroutput">
+                    <a class="link" href="_.html" title="Struct _">proto::_</a>
+                  </code>
+                </p></li>
+<li class="listitem"><p>
+                  <code class="computeroutput">A</code> is <code class="computeroutput">B</code>
+                </p></li>
+<li class="listitem"><p>
+                  <code class="computeroutput">A</code> is <code class="computeroutput">B &amp;</code>
+                </p></li>
+<li class="listitem"><p>
+                  <code class="computeroutput">A</code> is <code class="computeroutput">B const &amp;</code>
+                </p></li>
+<li class="listitem"><p>
+                  <code class="computeroutput">B</code> is <code class="computeroutput">
+                    <a class="link" href="exact.html" title="Struct template exact">proto::exact</a>&lt;A&gt;
+                  </code>
+                </p></li>
+<li class="listitem"><p>
+                  <code class="computeroutput">B</code> is
+                  <code class="computeroutput">
+                    <a class="link" href="convertible_to.html" title="Struct template convertible_to">proto::convertible_to</a>&lt;X&gt;
+                  </code>
+                  and <code class="computeroutput">boost::is_convertible&lt;A,X&gt;::value</code> is
+                  <code class="computeroutput">true</code>.
+                </p></li>
+<li class="listitem"><p>
+                  <code class="computeroutput">A</code> is <code class="computeroutput">X[M]</code> or
+                  <code class="computeroutput">X(&amp;)[M]</code> and
+                  <code class="computeroutput">B</code> is <code class="computeroutput">
+                    X[<a class="link" href="N.html" title="Global N">proto::N</a>]
+                  </code>.
+                </p></li>
+<li class="listitem"><p>
+                  <code class="computeroutput">A</code> is <code class="computeroutput">X(&amp;)[M]</code>
+                  and <code class="computeroutput">B</code> is <code class="computeroutput">
+                    X(&amp;)[<a class="link" href="N.html" title="Global N">proto::N</a>]
+                  </code>.
+                </p></li>
+<li class="listitem"><p>
+                  <code class="computeroutput">A</code> is <code class="computeroutput">X[M]</code> or
+                  <code class="computeroutput">X(&amp;)[M]</code> and <code class="computeroutput">B</code> is
+                  <code class="computeroutput">X*</code>.
+                </p></li>
+<li class="listitem"><p>
+                  <code class="computeroutput">B</code> <em class="replaceable"><code>lambda-matches</code></em>
+                  <code class="computeroutput">A</code> (see below).
+                </p></li>
+</ul></div>
+<p>
+          </p>
+<p>
+            A type <code class="computeroutput">B</code> <em class="replaceable"><code>lambda-matches</code></em>
+            <code class="computeroutput">A</code> if one of the following is true:
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>
+                  <code class="computeroutput">B</code> is <code class="computeroutput">A</code>
+                </p></li>
+<li class="listitem"><p>
+                  <code class="computeroutput">B</code> is the wildcard pattern, <code class="computeroutput">
+                    <a class="link" href="_.html" title="Struct _">proto::_</a>
+                  </code>
+                </p></li>
+<li class="listitem"><p>
+                  <code class="computeroutput">B</code> is <code class="computeroutput">
+                    T&lt;B<sub>0</sub>,...B<sub>n</sub>&gt;
+                  </code> and <code class="computeroutput">A</code> is <code class="computeroutput">
+                    T&lt;A<sub>0</sub>,...A<sub>n</sub>&gt;
+                  </code> and for each <code class="computeroutput">x</code> in <code class="computeroutput">[0,n]</code>,
+                  <code class="computeroutput">A<sub>x</sub></code> and
+                  <code class="computeroutput">B<sub>x</sub></code> are types such that
+                  <code class="computeroutput">A<sub>x</sub></code> <em class="replaceable"><code>lambda-matches</code></em>
+                  <code class="computeroutput">B<sub>x</sub></code>
+                </p></li>
+</ul></div>
+<p>
+          </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="vararg.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.matches_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_extension.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

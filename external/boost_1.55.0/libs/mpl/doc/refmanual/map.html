@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: map</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./set.html" class="navigation-link">Prev</a>&nbsp;<a href="./range-c.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./set.html" class="navigation-link">Back</a>&nbsp;<a href="./range-c.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./classes.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./classes.html" class="navigation-link">Classes</a> / <a href="./map.html" class="navigation-link">map</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="map">
+<h1><a class="toc-backref" href="./classes.html#id1410">map</a></h1>
+<div class="section" id="id80">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./map.html" class="identifier">map</a></span></tt> is a <a class="reference internal" href="./variadic-sequence.html">variadic</a>, <a class="reference internal" href="./associative-sequence.html">associative</a>, <a class="reference internal" href="./extensible-associative-sequence.html">extensible</a> sequence of type pairs that
+supports constant-time insertion and removal of elements, and testing for membership.
+A <tt class="literal"><span class="pre"><a href="./map.html" class="identifier">map</a></span></tt> may contain at most one element for each key.</p>
+</div>
+<div class="section" id="id83">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="26%" />
+<col width="74%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Sequence form</th>
+<th class="head">Header</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Variadic</td>
+<td><tt class="literal"><span class="pre">#include &lt;<a href="../../../../boost/mpl/map.hpp" class="header">boost/mpl/map.hpp</a>&gt;</span></tt></td>
+</tr>
+<tr><td>Numbered</td>
+<td><tt class="literal"><span class="pre">#include &lt;boost/mpl/map/map</span></tt><em>n</em><tt class="literal"><span class="pre">.hpp&gt;</span></tt></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id84">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<ul class="simple">
+<li><a class="reference internal" href="./variadic-sequence.html">Variadic Sequence</a></li>
+<li><a class="reference internal" href="./associative-sequence.html">Associative Sequence</a></li>
+<li><a class="reference internal" href="./extensible-associative-sequence.html">Extensible Associative Sequence</a></li>
+</ul>
+</div>
+<div class="section" id="id85">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>In the following table and subsequent specifications, <tt class="literal"><span class="pre">m</span></tt> is an instance of <tt class="literal"><span class="pre"><a href="./map.html" class="identifier">map</a></span></tt>,
+<tt class="literal"><span class="pre">pos</span></tt> is an iterator into <tt class="literal"><span class="pre">m</span></tt>, <tt class="literal"><span class="pre">x</span></tt> and <em>p</em><sub>1</sub>,<em>p</em><sub>2</sub>,... <em>p</em><sub>n</sub> are <tt class="literal"><span class="pre"><a href="./pair.html" class="identifier">pair</a></span></tt>s, and <tt class="literal"><span class="pre">k</span></tt> is an arbitrary type.</p>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="40%" />
+<col width="60%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Semantics</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><pre class="first last literal-block">
+<a href="./map.html" class="identifier">map</a>&lt;<em>p</em><sub>1</sub>,<em>p</em><sub>2</sub>,... <em>p</em><sub>n</sub>&gt;
+<a href="./map.html" class="identifier">map</a><em>n</em>&lt;<em>p</em><sub>1</sub>,<em>p</em><sub>2</sub>,... <em>p</em><sub>n</sub>&gt;
+</pre>
+</td>
+<td><tt class="literal"><span class="pre"><a href="./map.html" class="identifier">map</a></span></tt> of elements <em>p</em><sub>1</sub>,<em>p</em><sub>2</sub>,... <em>p</em><sub>n</sub>; see
+<a class="reference internal" href="./variadic-sequence.html">Variadic Sequence</a>.</td>
+</tr>
+<tr><td><pre class="first last literal-block">
+<a href="./map.html" class="identifier">map</a>&lt;<em>p</em><sub>1</sub>,<em>p</em><sub>2</sub>,... <em>p</em><sub>n</sub>&gt;::type
+<a href="./map.html" class="identifier">map</a><em>n</em>&lt;<em>p</em><sub>1</sub>,<em>p</em><sub>2</sub>,... <em>p</em><sub>n</sub>&gt;::type
+</pre>
+</td>
+<td>Identical to <tt class="literal"><span class="pre"><a href="./map.html" class="identifier">map</a></span></tt><em>n</em><tt class="literal"><span class="pre">&lt;</span></tt><em>p</em><sub>1</sub>,<em>p</em><sub>2</sub>,... <em>p</em><sub>n</sub><tt class="literal"><span class="pre">&gt;</span></tt>;
+see <a class="reference internal" href="./variadic-sequence.html">Variadic Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;m&gt;::type</span></tt></td>
+<td>An iterator pointing to the beginning of <tt class="literal"><span class="pre">m</span></tt>;
+see <a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;m&gt;::type</span></tt></td>
+<td>An iterator pointing to the end of <tt class="literal"><span class="pre">m</span></tt>;
+see <a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;m&gt;::type</span></tt></td>
+<td>The size of <tt class="literal"><span class="pre">m</span></tt>; see <a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./empty.html" class="identifier">empty</a>&lt;m&gt;::type</span></tt></td>
+<td>A boolean <a class="reference internal" href="./integral-constant.html">Integral Constant</a> <tt class="literal"><span class="pre">c</span></tt> such that
+<tt class="literal"><span class="pre">c::value</span> <span class="pre">==</span> <span class="pre">true</span></tt> if and only if <tt class="literal"><span class="pre">m</span></tt> is empty; see
+<a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./front.html" class="identifier">front</a>&lt;m&gt;::type</span></tt></td>
+<td>The first element in <tt class="literal"><span class="pre">m</span></tt>; see
+<a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./has-key.html" class="identifier">has_key</a>&lt;m,k&gt;::type</span></tt></td>
+<td>Queries the presence of elements with the key <tt class="literal"><span class="pre">k</span></tt> in
+<tt class="literal"><span class="pre">m</span></tt>; see <a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./count.html" class="identifier">count</a>&lt;m,k&gt;::type</span></tt></td>
+<td>The number of elements with the key <tt class="literal"><span class="pre">k</span></tt> in <tt class="literal"><span class="pre">m</span></tt>;
+see <a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./order.html" class="identifier">order</a>&lt;m,k&gt;::type</span></tt></td>
+<td>A unique unsigned <a class="reference internal" href="./integral-constant.html">Integral Constant</a> associated with
+the key <tt class="literal"><span class="pre">k</span></tt> in <tt class="literal"><span class="pre">m</span></tt>; see <a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>.</td>
+</tr>
+<tr><td><pre class="first last literal-block">
+<a href="./at.html" class="identifier">at</a>&lt;m,k&gt;::type
+<a href="./at.html" class="identifier">at</a>&lt;m,k,default&gt;::type
+</pre>
+</td>
+<td>The element associated with the key <tt class="literal"><span class="pre">k</span></tt> in
+<tt class="literal"><span class="pre">m</span></tt>; see <a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./key-type.html" class="identifier">key_type</a>&lt;m,x&gt;::type</span></tt></td>
+<td>Identical to <tt class="literal"><span class="pre">x::first</span></tt>; see <a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./value-type.html" class="identifier">value_type</a>&lt;m,x&gt;::type</span></tt></td>
+<td>Identical to <tt class="literal"><span class="pre">x::second</span></tt>; see <a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./insert.html" class="identifier">insert</a>&lt;m,x&gt;::type</span></tt></td>
+<td><p class="first">A new <tt class="literal"><span class="pre"><a href="./map.html" class="identifier">map</a></span></tt>, <tt class="literal"><span class="pre">t</span></tt>, equivalent to <tt class="literal"><span class="pre">m</span></tt> except that</p>
+<pre class="literal-block">
+<a href="./at.html" class="identifier">at</a>&lt; t, <a href="./key-type.html" class="identifier">key_type</a>&lt;m,x&gt;::type &gt;::type
+</pre>
+<p class="last">is identical to <tt class="literal"><span class="pre"><a href="./value-type.html" class="identifier">value_type</a>&lt;m,x&gt;::type</span></tt>.</p>
+</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./insert.html" class="identifier">insert</a>&lt;m,pos,x&gt;::type</span></tt></td>
+<td>Equivalent to <tt class="literal"><span class="pre"><a href="./insert.html" class="identifier">insert</a>&lt;m,x&gt;::type</span></tt>; <tt class="literal"><span class="pre">pos</span></tt> is ignored.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./erase-key.html" class="identifier">erase_key</a>&lt;m,k&gt;::type</span></tt></td>
+<td>A new <tt class="literal"><span class="pre"><a href="./map.html" class="identifier">map</a></span></tt>, <tt class="literal"><span class="pre">t</span></tt>, equivalent to <tt class="literal"><span class="pre">m</span></tt> except that
+<tt class="literal"><span class="pre"><a href="./has-key.html" class="identifier">has_key</a>&lt;t,</span> <span class="pre">k&gt;::value</span> <span class="pre">==</span> <span class="pre">false</span></tt>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./erase.html" class="identifier">erase</a>&lt;m,pos&gt;::type</span></tt></td>
+<td>Equivalent to <tt class="literal"><span class="pre"><a href="./erase.html" class="identifier">erase</a>&lt;m,</span> <span class="pre"><a href="./deref.html" class="identifier">deref</a>&lt;pos&gt;::type</span> <span class="pre">&gt;::type</span></tt>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./clear.html" class="identifier">clear</a>&lt;m&gt;::type</span></tt></td>
+<td>An empty <tt class="literal"><span class="pre"><a href="./map.html" class="identifier">map</a></span></tt>; see <a class="reference internal" href="./clear.html">clear</a>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id86">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./map.html" class="identifier">map</a>&lt;
+      <a href="./pair.html" class="identifier">pair</a>&lt;int,unsigned&gt;
+    , <a href="./pair.html" class="identifier">pair</a>&lt;char,unsigned char&gt;
+    , <a href="./pair.html" class="identifier">pair</a>&lt;<a href="./long.html" class="identifier">long_</a>&lt;5&gt;,char[17]&gt;
+    , <a href="./pair.html" class="identifier">pair</a>&lt;int[42],bool&gt;
+    &gt; m;
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./size.html" class="identifier">size</a>&lt;m&gt;::value, ==, 4 );
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( <a href="./empty.html" class="identifier">empty</a>&lt;m&gt; ));
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./at.html" class="identifier">at</a>&lt;m,int&gt;::type, unsigned &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./at.html" class="identifier">at</a>&lt;m,<a href="./long.html" class="identifier">long_</a>&lt;5&gt; &gt;::type, char[17] &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./at.html" class="identifier">at</a>&lt;m,int[42]&gt;::type, bool &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./at.html" class="identifier">at</a>&lt;m,long&gt;::type, <a href="./void.html" class="identifier">void_</a> > ));
+</pre>
+</div>
+<div class="section" id="id87">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./sequences.html">Sequences</a>, <a class="reference internal" href="./variadic-sequence.html">Variadic Sequence</a>, <a class="reference internal" href="./associative-sequence.html">Associative Sequence</a>, <a class="reference internal" href="./extensible-associative-sequence.html">Extensible Associative Sequence</a>, <a class="reference internal" href="./set.html">set</a>, <a class="reference internal" href="./vector.html">vector</a></p>
+<!-- Sequences/Classes//range_c |60 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./set.html" class="navigation-link">Prev</a>&nbsp;<a href="./range-c.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./set.html" class="navigation-link">Back</a>&nbsp;<a href="./range-c.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./classes.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

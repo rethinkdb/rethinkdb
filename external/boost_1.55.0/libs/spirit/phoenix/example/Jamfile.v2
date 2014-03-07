@@ -1,0 +1,24 @@
+#==============================================================================
+#    Copyright (c) 2003, 2005 Joel de Guzman
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+
+# bring in rules for testing
+import testing ;
+
+test-suite users_manual :
+    [ run users_manual/all_odds.cpp ] 
+    [ run users_manual/arguments.cpp ] 
+    [ run users_manual/callback.cpp ] 
+    [ run users_manual/factorial.cpp ] 
+    [ run users_manual/find_if.cpp ] 
+    [ run users_manual/function.cpp ] 
+    [ run users_manual/if.cpp ] 
+    [ run users_manual/lambda.cpp ] 
+    [ run users_manual/values.cpp ] 
+    [ run users_manual/references.cpp ] 
+    ;
+

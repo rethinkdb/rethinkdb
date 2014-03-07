@@ -1,0 +1,87 @@
+var browserify = require('../');
+var vm = require('vm');
+var test = require('tap').test;
+
+test('global', function (t) {
+    t.plan(2);
+    
+    var b = browserify();
+    b.add(__dirname + '/global/main.js');
+    b.bundle(function (err, src) {
+        var c = {
+            t : t,
+            a : 555,
+        };
+        c.self = c;
+        vm.runInNewContext(src, c);
+    });
+});
+
+test('__filename and __dirname with insertGlobals: true', function (t) {
+    t.plan(2);
+
+    var b = browserify();
+    b.require(__dirname + '/global/filename.js', {expose: 'x'});
+    b.bundle({insertGlobals: true}, function (err, src) {
+        var c = {};
+        c.self = c;
+        vm.runInNewContext(src, c);
+        var x = c.require('x');
+        t.equal(x.filename, '/filename.js');
+        t.equal(x.dirname, '/');
+    });
+});
+
+test('__filename and __dirname', function (t) {
+    t.plan(2);
+    
+    var b = browserify();
+    b.expose('x', __dirname + '/global/filename.js');
+    b.bundle(function (err, src) {
+        var c = {};
+        vm.runInNewContext(src, c);
+        var x = c.require('x');
+        t.equal(x.filename, '/filename.js');
+        t.equal(x.dirname, '/');
+    });
+});
+
+test('__filename and __dirname with basedir', function (t) {
+    t.plan(2);
+    
+    var b = browserify();
+    b.expose('x', __dirname + '/global/filename.js');
+    b.bundle({ basedir: __dirname }, function (err, src) {
+        var c = {};
+        vm.runInNewContext(src, c);
+        var x = c.require('x');
+        t.equal(x.filename, '/global/filename.js');
+        t.equal(x.dirname, '/global');
+    });
+});
+
+test('process.nextTick', function (t) {
+    t.plan(1);
+    
+    var b = browserify();
+    b.add(__dirname + '/global/tick.js');
+    b.bundle(function (err, src) {
+        var c = { t: t, setTimeout: setTimeout };
+        vm.runInNewContext(src, c);
+    });
+});
+
+test('Buffer', function (t) {
+    t.plan(2);
+    
+    var b = browserify();
+    b.add(__dirname + '/global/buffer.js');
+    b.bundle(function (err, src) {
+        var c = {
+            t: t,
+            Uint8Array: Uint8Array,
+            DataView: DataView
+        };
+        vm.runInNewContext(src, c);
+    });
+});

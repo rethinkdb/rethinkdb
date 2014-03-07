@@ -1,0 +1,227 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>History</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../map.html" title="Roadmap">
+<link rel="prev" href="../map.html" title="Roadmap">
+<link rel="next" href="todo.html" title="TODO">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../map.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../map.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="todo.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.map.hist"></a><a class="link" href="hist.html" title="History">History</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_multiprecision.map.hist.h0"></a>
+        <span class="phrase"><a name="boost_multiprecision.map.hist.1_55"></a></span><a class="link" href="hist.html#boost_multiprecision.map.hist.1_55">1.55</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Added support for Boost.Serialization.
+          </li>
+<li class="listitem">
+            Suppressed some GCC warnings. See <a href="https://svn.boost.org/trac/boost/ticket/8872" target="_top">8872</a>.
+          </li>
+<li class="listitem">
+            Fixed bug in pow for large integer arguments. See <a href="https://svn.boost.org/trac/boost/ticket/8809" target="_top">8809</a>.
+          </li>
+<li class="listitem">
+            Fixed bug in pow for calculation of 0<sup>N</sup>. See <a href="https://svn.boost.org/trac/boost/ticket/8798" target="_top">8798</a>.
+          </li>
+<li class="listitem">
+            Fixed bug in fixed precision cpp_int IO code that causes conversion to
+            string to fail when the bit count is very small (less than CHAR_BIT).
+            See <a href="https://svn.boost.org/trac/boost/ticket/8745" target="_top">8745</a>.
+          </li>
+<li class="listitem">
+            Fixed bug in cpp_int that causes left shift to fail when a fixed precision
+            type would overflow. See <a href="https://svn.boost.org/trac/boost/ticket/8741" target="_top">8741</a>.
+          </li>
+<li class="listitem">
+            Fixed some cosmetic warnings from cpp_int. See <a href="https://svn.boost.org/trac/boost/ticket/8748" target="_top">8748</a>.
+          </li>
+<li class="listitem">
+            Fixed calls to functions which are required to be macros in C99. See
+            <a href="https://svn.boost.org/trac/boost/ticket/8732" target="_top">8732</a>.
+          </li>
+<li class="listitem">
+            Fixed bug that causes construction from INT_MIN, LONG_MIN etc to fail
+            in cpp_int. See <a href="https://svn.boost.org/trac/boost/ticket/8711" target="_top">8711</a>.
+          </li>
+</ul></div>
+<h5>
+<a name="boost_multiprecision.map.hist.h1"></a>
+        <span class="phrase"><a name="boost_multiprecision.map.hist.1_54"></a></span><a class="link" href="hist.html#boost_multiprecision.map.hist.1_54">1.54</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong>Breaking change</strong></span> renamed <code class="computeroutput"><span class="identifier">rational_adapter</span></code> to <code class="computeroutput"><span class="identifier">rational_adaptor</span></code>.
+          </li>
+<li class="listitem">
+            Add support for <a href="http://perso.ens-lyon.fr/nathalie.revol/software.html" target="_top">MPFI</a>.
+          </li>
+<li class="listitem">
+            Add logged_adaptor.
+          </li>
+<li class="listitem">
+            Add support for 128-bit floats via GCC's <code class="computeroutput"><a class="link" href="../tut/floats/float128.html" title="float128">float128</a></code>
+            or Intel's <code class="computeroutput"><span class="identifier">_Quad</span></code> data
+            types.
+          </li>
+<li class="listitem">
+            Add support for user-defined literals in cpp_int, improve <code class="computeroutput"><span class="keyword">constexpr</span></code> support.
+          </li>
+<li class="listitem">
+            Fixed bug in integer division of <code class="computeroutput"><span class="identifier">cpp_int</span></code>
+            that results in incorrect sign of <code class="computeroutput"><span class="identifier">cpp_int</span></code>
+            when both arguments are small enough to fit in a <code class="computeroutput"><span class="identifier">double_limb_type</span></code>.
+            See <a href="https://svn.boost.org/trac/boost/ticket/8126" target="_top">8126</a>.
+          </li>
+<li class="listitem">
+            Fixed bug in subtraction of a single limb in <code class="computeroutput"><span class="identifier">cpp_int</span></code>
+            that results in incorrect value when the result should have a 0 in the
+            last limb: <a href="https://svn.boost.org/trac/boost/ticket/8133" target="_top">8133</a>.
+          </li>
+<li class="listitem">
+            Fixed bug in <code class="computeroutput"><span class="identifier">cpp_int</span></code>
+            where division of 0 by something doesn't get zero in the result: <a href="https://svn.boost.org/trac/boost/ticket/8160" target="_top">8160</a>.
+          </li>
+<li class="listitem">
+            Fixed bug in some transcendental functions that caused incorrect return
+            values when variables are reused, for example with <code class="computeroutput"><span class="identifier">a</span>
+            <span class="special">=</span> <span class="identifier">pow</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span></code>. See <a href="https://svn.boost.org/trac/boost/ticket/8326" target="_top">8326</a>.
+          </li>
+<li class="listitem">
+            Fixed some assignment operations in the mpfr and gmp backends to be safe
+            if the target has been moved from: <a href="https://svn.boost.org/trac/boost/ticket/8326" target="_top">8667</a>.
+          </li>
+<li class="listitem">
+            Fixed bug in <code class="computeroutput"><span class="identifier">cpp_int</span></code>
+            that gives incorrect answer for 0%N for large N: <a href="https://svn.boost.org/trac/boost/ticket/8670" target="_top">8670</a>.
+          </li>
+<li class="listitem">
+            Fixed set_precision in mpfr backend so it doesn't trample over an existing
+            value: <a href="https://svn.boost.org/trac/boost/ticket/8692" target="_top">8692</a>.
+          </li>
+</ul></div>
+<h5>
+<a name="boost_multiprecision.map.hist.h2"></a>
+        <span class="phrase"><a name="boost_multiprecision.map.hist.1_53"></a></span><a class="link" href="hist.html#boost_multiprecision.map.hist.1_53">1.53</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            First Release.
+          </li>
+<li class="listitem">
+            Fix bug in <a href="https://svn.boost.org/trac/boost/ticket/7878" target="_top">cpp_int
+            division</a>.
+          </li>
+<li class="listitem">
+            Fix issue <a href="https://svn.boost.org/trac/boost/ticket/7806" target="_top">#7806</a>.
+          </li>
+</ul></div>
+<h5>
+<a name="boost_multiprecision.map.hist.h3"></a>
+        <span class="phrase"><a name="boost_multiprecision.map.hist.post_review_changes"></a></span><a class="link" href="hist.html#boost_multiprecision.map.hist.post_review_changes">Post
+        review changes</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Non-expression template operators further optimised with rvalue reference
+            support.
+          </li>
+<li class="listitem">
+            Many functions made <code class="computeroutput"><span class="identifier">constexp</span></code>.
+          </li>
+<li class="listitem">
+            Differentiate between explicit and implicit conversions in the number
+            constructor.
+          </li>
+<li class="listitem">
+            Removed "mp_" prefix from types.
+          </li>
+<li class="listitem">
+            Allowed mixed precision arithmetic.
+          </li>
+<li class="listitem">
+            Changed ExpressionTemplates parameter to class <code class="computeroutput"><span class="identifier">number</span></code>
+            to use enumerated values rather than true/false.
+          </li>
+<li class="listitem">
+            Changed ExpressionTemplate parameter default value to use a traits class
+            so that the default value depends on the backend used.
+          </li>
+<li class="listitem">
+            Added support for fused-multiply-add/subtract with GMP support.
+          </li>
+<li class="listitem">
+            Tweaked expression template unpacking to use fewer temporaries when the
+            LHS also appears in the RHS.
+          </li>
+<li class="listitem">
+            Refactored <code class="computeroutput"><span class="identifier">cpp_int_backend</span></code>
+            based on review comments with new template parameter structure.
+          </li>
+<li class="listitem">
+            Added additional template parameter to <code class="computeroutput"><span class="identifier">mpfr_float_backend</span></code>
+            to allow stack-based allocation.
+          </li>
+<li class="listitem">
+            Added section on mixed precision arithmetic, and added support for operations
+            yielding a higher precision result than either of the arguments.
+          </li>
+<li class="listitem">
+            Added overloads of integer-specific functions for built in integer types.
+          </li>
+</ul></div>
+<h5>
+<a name="boost_multiprecision.map.hist.h4"></a>
+        <span class="phrase"><a name="boost_multiprecision.map.hist.pre_review_history"></a></span><a class="link" href="hist.html#boost_multiprecision.map.hist.pre_review_history">Pre-review
+        history</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            2011-2012, John Maddock adds an expression template enabled front end
+            to Christopher's code, and adds support for other backends.
+          </li>
+<li class="listitem">
+            2011, Christopher Kormanyos publishes the decimal floating point code
+            under the Boost Software Licence. The code is published as: <a href="http://doi.acm.org/10.1145/1916461.1916469" target="_top">"Algorithm
+            910: A Portable C++ Multiple-Precision System for Special-Function Calculations"</a>,
+            in ACM TOMS, {VOL 37, ISSUE 4, (February 2011)} (C) ACM, 2011.
+          </li>
+<li class="listitem">
+            2002-2011, Christopher Kormanyos develops the all C++ decimal arithmetic
+            floating point code.
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../map.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../map.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="todo.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

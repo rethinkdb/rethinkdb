@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: size_t</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./long.html" class="navigation-link">Prev</a>&nbsp;<a href="./integral-c.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./long.html" class="navigation-link">Back</a>&nbsp;<a href="./integral-c.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./numeric.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./data-types.html" class="navigation-link">Data Types</a> / <a href="./numeric.html" class="navigation-link">Numeric</a> / <a href="./size-t.html" class="navigation-link">size_t</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="size-t">
+<h1><a class="toc-backref" href="./numeric.html#id1579">size_t</a></h1>
+<div class="section" id="id1246">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      std::<a href="./size-t.html" class="identifier">size_t</a> N
+    &gt;
+struct <a href="./size-t.html" class="identifier">size_t</a>
+{
+    // <em>unspecified</em>
+    // ...
+};
+</pre>
+</div>
+<div class="section" id="id1247">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>An <a class="reference internal" href="./integral-constant.html">Integral Constant</a> wrapper for <tt class="literal"><span class="pre">std::<a href="./size-t.html" class="identifier">size_t</a></span></tt>.</p>
+</div>
+<div class="section" id="id1248">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/size_t.hpp" class="header">boost/mpl/size_t.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1249">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./integral-constant.html">Integral Constant</a></p>
+</div>
+<div class="section" id="id1250">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="21%" />
+<col width="42%" />
+<col width="37%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">N</span></tt></td>
+<td>An integral constant</td>
+<td>A value to wrap.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1251">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>The semantics of an expression are defined only
+where they differ from, or are not defined in <a class="reference internal" href="./integral-constant.html">Integral Constant</a>.</p>
+<p>For arbitrary integral constant <tt class="literal"><span class="pre">n</span></tt>:</p>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="24%" />
+<col width="76%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Semantics</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre"><a href="./size-t.html" class="identifier">size_t</a>&lt;c&gt;</span></tt></td>
+<td>An <a class="reference internal" href="./integral-constant.html">Integral Constant</a> <tt class="literal"><span class="pre">x</span></tt> such that <tt class="literal"><span class="pre">x::value</span> <span class="pre">==</span> <span class="pre">c</span></tt>
+and <tt class="literal"><span class="pre">x::<a href="./value-type.html" class="identifier">value_type</a></span></tt> is identical to <tt class="literal"><span class="pre">std::<a href="./size-t.html" class="identifier">size_t</a></span></tt>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1252">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./size-t.html" class="identifier">size_t</a>&lt;8&gt; eight;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; eight::<a href="./value-type.html" class="identifier">value_type</a>, std::<a href="./size-t.html" class="identifier">size_t</a> &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; eight::type, eight &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./next.html" class="identifier">next</a>&lt; eight &gt;::type, <a href="./size-t.html" class="identifier">size_t</a>&lt;9&gt; &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./prior.html" class="identifier">prior</a>&lt; eight &gt;::type, <a href="./size-t.html" class="identifier">size_t</a>&lt;7&gt; &gt; ));
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( (eight::value), ==, 8 );
+assert( eight() == 8 );
+</pre>
+</div>
+<div class="section" id="id1253">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./data-types.html">Data Types</a>, <a class="reference internal" href="./integral-constant.html">Integral Constant</a>, <a class="reference internal" href="./int.html">int_</a>, <a class="reference internal" href="./long.html">long_</a>, <a class="reference internal" href="./integral-c.html">integral_c</a></p>
+<!-- Data Types/Numeric//integral_c |50 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./long.html" class="navigation-link">Prev</a>&nbsp;<a href="./integral-c.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./long.html" class="navigation-link">Back</a>&nbsp;<a href="./integral-c.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./numeric.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

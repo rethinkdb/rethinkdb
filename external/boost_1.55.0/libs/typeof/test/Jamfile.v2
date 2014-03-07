@@ -1,0 +1,56 @@
+# Copyright (C) 2006 Vladimir Prus
+# Copyright (C) 2006 Arkadiy Vertleyb
+# Use, modification and distribution is subject to the Boost Software
+# License, Version 1.0. (http://www.boost.org/LICENSE_1_0.txt)
+
+# Boost Typeof Library test Jamfile
+
+import set ;
+
+# The special requirement is not ported yet.
+#
+#local rule special-requirements ( toolset variant : properties * )
+#{
+#    # Tru64/CXX6.5 hangs on most tests, so just turn it off completely.
+#
+#    if $(UNIX) && $(OS) = OSF
+#    {
+#        switch $(toolset)
+#        {
+#            case tru64cxx65* : properties =
+#                [ replace-properties $(properties) : <build>no ] ;
+#        }
+#    }
+#    
+#    return $(properties) ;
+#}
+
+rule typeof-test ( source )
+{
+   return [ compile $(source) : <define>BOOST_TYPEOF_NATIVE :
+                $(source:B)_native ]
+          [ compile $(source) : <define>BOOST_TYPEOF_EMULATION :
+                $(source:B)_emulation ] 
+          ;        
+}
+
+rule all-tests ( )
+{
+    local all ;
+#    for local t in [ set.difference [ glob *.cpp ] : odr1.cpp odr2.cpp ]
+    for local t in [ set.difference [ glob *.cpp ] : [ glob odr*.cpp ] ]
+    {
+        all += [ typeof-test $(t) ] ;
+    }
+    all += [ run odr1.cpp odr2.cpp : : : <define>BOOST_TYPEOF_NATIVE :
+                odr_native ] ;
+    all += [ run odr1.cpp odr2.cpp : : : <define>BOOST_TYPEOF_EMULATION :
+                odr_emulation ] ;		
+    all += [ run odr_no_uns1.cpp odr_no_uns2.cpp : : : <define>BOOST_TYPEOF_EMULATION : 
+                odr_no_uns ] ;		
+    return $(all) ;    
+}
+
+test-suite "typeof" 
+	:  [ all-tests ]
+    ;

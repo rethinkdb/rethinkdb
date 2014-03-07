@@ -1,0 +1,27 @@
+#
+#   Copyright (c) 2005 João Abecasis
+#
+#   Distributed under the Boost Software License, Version 1.0. (See
+#   accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#
+
+project quickbook/test/xinclude
+    : requirements
+        <toolset>msvc:<debug-symbols>off
+    ;
+
+import quickbook-testing : quickbook-test quickbook-error-test ;
+
+path-constant xinclude_base1 : ../.. ;
+path-constant xinclude_base2 : sub ;
+
+test-suite quickbook.test :
+    [ quickbook-test xinclude-1_1 : : : <quickbook-xinclude-base>$(xinclude_base1) ]
+    [ quickbook-test xmlbase1-1_6 : : : <quickbook-xinclude-base>$(xinclude_base1) ]
+    [ quickbook-test xmlbase2-1_6 : : : <quickbook-xinclude-base>$(xinclude_base1) ]
+    [ quickbook-test xinclude-1_1-alt : xinclude-1_1.quickbook : xinclude-1_1-alt.gold : <quickbook-xinclude-base>$(xinclude_base2) ]
+    [ quickbook-test xmlbase1-1_6-alt : xmlbase1-1_6.quickbook : xmlbase1-1_6-alt.gold : <quickbook-xinclude-base>$(xinclude_base2) ]
+    [ quickbook-test xmlbase2-1_6-alt : xmlbase2-1_6.quickbook : xmlbase2-1_6-alt.gold : <quickbook-xinclude-base>$(xinclude_base2) ]
+    [ quickbook-error-test xmlbase-1_6-fail ]
+    ;

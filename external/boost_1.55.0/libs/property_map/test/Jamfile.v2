@@ -1,0 +1,19 @@
+# Function library
+
+# Copyright (C) 2005 Trustees of Indiana University
+#
+# Author: Douglas Gregor
+#
+# Use, modification and distribution is subject to the Boost Software License, 
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt) 
+
+# For more information, see http://www.boost.org/
+
+test-suite property_map
+  : [ compile property_map_cc.cpp ]
+    [ run     compose_property_map_test.cpp ]
+    [ run     dynamic_properties_test.cpp ]
+    [ run     function_property_map_test.cpp ]
+    [ run     transform_value_property_map_test.cpp ]
+  ;

@@ -1,0 +1,77 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:inplace_merge inplace_merge]
+
+[heading Prototype]
+
+``
+template<class BidirectionalRange>
+BidirectionalRange&
+inplace_merge( BidirectionalRange& rng,
+               typename range_iterator<BidirectionalRange>::type middle );
+
+template<class BidirectionalRange>
+const BidirectionalRange&
+inplace_merge( const BidirectionalRange& rng,
+               typename range_iterator<const BidirectionalRange>::type middle );
+
+template<class BidirectionalRange, class BinaryPredicate>
+BidirectionalRange&
+inplace_merge( BidirectionalRange& rng,
+               typename range_iterator<BidirectionalRange>::type middle,
+               BinaryPredicate pred );
+
+template<class BidirectionalRange, class BinaryPredicate>
+const BidirectionalRange&
+inplace_merge( const BidirectionalRange& rng,
+               typename range_iterator<const BidirectionalRange>::type middle,
+               BinaryPredicate pred );
+``
+
+[heading Description]
+
+`inplace_merge` combines two consecutive sorted ranges `[begin(rng), middle)` and `[middle, end(rng))` into a single sorted range `[begin(rng), end(rng))`. That is, it starts with a range `[begin(rng), end(rng))` that consists of two pieces each of which is in ascending order, and rearranges it so that the entire range is in ascending order. `inplace_merge` is stable, meaning both that the relative order of elements within each input range is preserved.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/inplace_merge.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate version:]
+
+* `BidirectionalRange` is a model of the __bidirectional_range__ Concept.
+* `BidirectionalRange` is mutable.
+* `range_value<BidirectionalRange>::type` is a model of `LessThanComparableConcept`
+* The ordering on objects of `range_type<BidirectionalRange>::type` is a [*/strict weak ordering/], as defined in the `LessThanComparableConcept` requirements.
+
+[*For the predicate version:]
+* `BidirectionalRange` is a model of the __bidirectional_range__ Concept.
+* `BidirectionalRange` is mutable.
+* `BinaryPredicate` is a model of the `StrictWeakOrderingConcept`.
+* `BidirectionalRange`'s value type is convertible to both `BinaryPredicate`'s argument types.
+
+[heading Precondition:]
+
+[heading For the non-predicate version:]
+
+* `middle` is in the range `rng`.
+* `[begin(rng), middle)` is in ascending order. That is for each pair of adjacent elements `[x,y]`, `y < x` is `false`.
+* `[middle, end(rng))` is in ascending order. That is for each pair of adjacent elements `[x,y]`, `y < x` is `false`.
+
+[heading For the predicate version:]
+
+* `middle` is in the range `rng`.
+* `[begin(rng), middle)` is in ascending order. That is for each pair of adjacent elements `[x,y]`, `pred(y,x) == false`.
+* `[middle, end(rng))` is in ascending order. That is for each pair of adjacent elements `[x,y]`, `pred(y,x) == false`.
+
+[heading Complexity]
+
+Worst case: `O(N log(N))`
+
+[endsect]
+
+

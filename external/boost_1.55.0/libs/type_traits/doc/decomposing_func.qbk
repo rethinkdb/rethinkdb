@@ -1,0 +1,20 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:function Decomposing Function Types]
+
+The class template __function_traits extracts information from function types
+(see also __is_function).  This traits class allows you to tell how many arguments
+a function takes, what those argument types are, and what the return type is.
+
+[*Synopsis]
+
+   template <std::size_t Align>
+   struct __function_traits;
+
+[endsect]
+

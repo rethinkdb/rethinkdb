@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Frank Mori Hess 2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<section last-revision="$Date: 2007-06-12 14:01:23 -0400 (Tue, 12 Jun 2007) $" id="signals2.thread-safety">
+  <title>Thread-Safety</title>
+
+  <using-namespace name="boost::signals2"/>
+  <using-namespace name="boost"/>
+
+  <section>
+    <title>Introduction</title>
+    <para>
+      The primary motivation for Boost.Signals2 is to provide a version of
+      the original Boost.Signals library which can be used safely in a
+      multi-threaded environment.
+      This is achieved primarily through two changes from the original Boost.Signals
+      API.  One is the introduction of a new automatic connection management scheme
+      relying on <classname>shared_ptr</classname> and <classname>weak_ptr</classname>,
+      as described in the <link linkend="signals2.tutorial.connection-management">tutorial</link>.
+      The second change was the introduction of a <code>Mutex</code> template type
+      parameter to the <classname alt="signals2::signal">signal</classname> class.  This section details how
+      the library employs these changes to provide thread-safety, and
+      the limits of the provided thread-safety.
+    </para>
+  </section>
+  <section>
+    <title>Signals and combiners</title>
+    <para>
+      Each signal object default-constructs a <code>Mutex</code> object to protect
+      its internal state.  Furthermore, a <code>Mutex</code> is created
+      each time a new slot is connected to the signal, to protect the
+      associated signal-slot connection.
+    </para>
+    <para>
+      A signal's mutex is automatically locked whenever any of the
+      signal's methods are called.  The mutex is usually held until the
+      method completes, however there is one major exception to this rule.  When
+      a signal is invoked by calling
+      <methodname alt="signal::operator()">signal::operator()</methodname>,
+      the invocation first acquires a lock on the signal's mutex.  Then
+      it obtains a handle to the signal's slot list and combiner.  Next
+      it releases the signal's mutex, before invoking the combiner to
+      iterate through the slot list.  Thus no mutexes are held by the
+      signal while a slot is executing.  This design choice
+      makes it impossible for user code running in a slot
+      to deadlock against any of the
+      mutexes used internally by the Boost.Signals2 library.
+      It also prevents slots from accidentally causing
+      recursive locking attempts on any of the library's internal mutexes.
+      Therefore, if you invoke a signal concurrently from multiple threads,
+      it is possible for the signal's combiner to be invoked concurrently
+      and thus the slots to execute concurrently.
+    </para>
+    <para>
+      During a combiner invocation, the following steps are performed in order to
+      find the next callable slot while iterating through the signal's
+      slot list.
+    </para>
+    <itemizedlist>
+      <listitem>
+        <para>The <code>Mutex</code> associated with the connection to the
+          slot is locked.</para>
+      </listitem>
+      <listitem>
+        <para>All the tracked <classname>weak_ptr</classname> associated with the
+          slot are copied into temporary <classname>shared_ptr</classname> which
+          will be kept alive until the invocation is done with the slot.  If this fails due
+          to any of the
+          <classname>weak_ptr</classname> being expired, the connection is
+          automatically disconnected.  Therefore a slot will never be run
+          if any of its tracked <classname>weak_ptr</classname> have expired,
+          and none of its tracked <classname>weak_ptr</classname> will
+          expire while the slot is running.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          The slot's connection is checked to see if it is blocked
+          or disconnected, and then the connection's mutex is unlocked.  If the connection
+          was either blocked or disconnected, we
+          start again from the beginning with the next slot in the slot list.
+          Otherwise, we commit to executing the slot when the combiner next
+          dereferences the slot call iterator (unless the combiner should increment
+          the iterator without ever dereferencing it).
+        </para>
+      </listitem>
+    </itemizedlist>
+    <para>
+      Note that since we unlock the connection's mutex before executing
+      its associated slot, it is possible a slot will still be executing
+      after it has been disconnected by a
+      <code><methodname>connection::disconnect</methodname>()</code>, if
+      the disconnect was called concurrently with signal invocation.
+    </para>
+    <para>
+      You may have noticed above that during signal invocation, the invocation only
+      obtains handles to the signal's slot list and combiner while holding the
+      signal's mutex.  Thus concurrent signal invocations may still wind up
+      accessing the
+      same slot list and combiner concurrently.  So what happens if the slot list is modified,
+      for example by connecting a new slot, while a signal
+      invocation is in progress concurrently?  If the slot list is already in use,
+      the signal performs a deep copy of the slot list before modifying it.
+      Thus the a concurrent signal invocation will continue to use the old unmodified slot list,
+      undisturbed by modifications made to the newly created deep copy of the slot list.
+      Future signal invocations will receive a handle to the newly created deep
+      copy of the slot list, and the old slot list will be destroyed once it
+      is no longer in use.  Similarly, if you change a signal's combiner with
+      <methodname alt="signal::set_combiner">signal::set_combiner</methodname>
+      while a signal invocation is running concurrently, the concurrent
+      signal invocation will continue to use the old combiner undisturbed,
+      while future signal invocations will receive a handle to the new combiner.
+    </para>
+    <para>
+      The fact that concurrent signal invocations use the same combiner object
+      means you need to insure any custom combiner you write is thread-safe.
+      So if your combiner maintains state which is modified when the combiner
+      is invoked, you
+      may need to protect that state with a mutex.  Be aware, if you hold
+      a mutex in your combiner while dereferencing slot call iterators,
+      you run the risk of deadlocks and recursive locking if any of
+      the slots cause additional mutex locking to occur.  One way to avoid
+      these perils is for your combiner to release any locks before
+      dereferencing a slot call iterator.  The combiner classes provided by
+      the Boost.Signals2 library are all thread-safe, since they do not maintain
+      any state across invocations.
+    </para>
+    <para>
+      Suppose a user writes a slot which connects another slot to the invoking signal.
+      Will the newly connected slot be run during the same signal invocation in
+      which the new connection was made?  The answer is no.  Connecting a new slot
+      modifies the signal's slot list, and as explained above, a signal invocation
+      already in progress will not see any modifications made to the slot list.
+    </para>
+    <para>
+      Suppose a user writes a slot which disconnects another slot from the invoking signal.
+      Will the disconnected slot be prevented from running during the same signal invocation,
+      if it appears later in the slot list than the slot which disconnected it?
+      This time the answer is yes.  Even if the disconnected slot is still
+      present in the signal's slot list, each slot is checked to see if it is
+      disconnected or blocked immediately before it is executed (or not executed as
+      the case may be), as was described in more detail above.
+    </para>
+  </section>
+  <section>
+    <title>Connections and other classes</title>
+    <para>
+      The methods of the <classname>signals2::connection</classname> class are thread-safe,
+      with the exception of assignment and swap.  This is achived via locking the mutex
+      associated with the object's underlying signal-slot connection.  Assignment and
+      swap are not thread-safe because the mutex protects the underlying connection
+      which a <classname>signals2::connection</classname> object references, not
+      the <classname>signals2::connection</classname> object itself.  That is,
+      there may be many copies of a <classname>signals2::connection</classname> object,
+      all of which reference the same underlying connection.  There is not a mutex
+      for each <classname>signals2::connection</classname> object, there is only
+      a single mutex protecting the underlying connection they reference.
+    </para>
+    <para>The <classname>shared_connection_block</classname> class obtains some thread-safety
+      from the <code>Mutex</code> protecting the underlying connection which is blocked
+      and unblocked.  The internal reference counting which is used to keep track of
+      how many <classname>shared_connection_block</classname> objects are asserting
+      blocks on their underlying connection is also thread-safe (the implementation
+      relies on <classname>shared_ptr</classname> for the reference counting).
+      However, individual <classname>shared_connection_block</classname> objects
+      should not be accessed concurrently by multiple threads.  As long as two
+      threads each have their own <classname>shared_connection_block</classname> object,
+      then they may use them in safety, even if both <classname>shared_connection_block</classname>
+      objects are copies and refer to the same underlying connection.
+    </para>
+    <para>
+      The <classname>signals2::slot</classname> class has no internal mutex locking
+      built into it.  It is expected that slot objects will be created then
+      connected to a signal in a single thread.  Once they have been copied into
+      a signal's slot list, they are protected by the mutex associated with
+      each signal-slot connection.
+    </para>
+    <para>The <classname>signals2::trackable</classname> class does NOT provide
+      thread-safe automatic connection management.  In particular, it leaves open the
+      possibility of a signal invocation calling into a partially destructed object
+      if the trackable-derived object is destroyed in a different thread from the
+      one invoking the signal.
+      <classname>signals2::trackable</classname> is only provided as a convenience
+      for porting single-threaded code from Boost.Signals to Boost.Signals2.
+    </para>
+  </section>
+</section>

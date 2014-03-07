@@ -1,0 +1,29 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __this_function__ length]
+
+[heading_conformance_ogc __this_function__..Length]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__0dim__][[qbk_ret 0]]]
+[[__1dim__][[qbk_ret the length]]]
+[[__2dim__][[qbk_ret 0]]]
+]
+
+
+[heading Complexity]
+Linear
+
+[heading Examples] [/ filled by doxml2qbk]

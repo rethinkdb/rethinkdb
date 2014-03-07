@@ -1,0 +1,81 @@
+<html>
+	<head>
+		<title>BOOST_PP_SEQ_FOR_EACH_PRODUCT_R</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<div style="margin-left:  0px;">
+			The <b>BOOST_PP_SEQ_FOR_EACH_PRODUCT_R</b> macro repeats a macro for each 
+			cartesian product of several <i>seqs</i>.&nbsp; It reenters <b>BOOST_PP_FOR</b> 
+			with maximum efficiency.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_FOR_EACH_PRODUCT_R</b>(<i>r</i>, <i>macro</i>, <i>seqs</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>r</dt>
+			<dd>
+				The next available <b>BOOST_PP_FOR</b> repetition.
+			</dd>
+			<dt>macro</dt>
+			<dd>
+				The binary macro of the form <i>macro</i>(<i>r</i>, <i>product</i>).&nbsp; This 
+				macro is expanded by <b>BOOST_PP_FOR_EACH_PRODUCT</b> with each cartesian 
+				product in <i>seqs</i>.&nbsp; It is expanded with the next available <b>BOOST_PP_FOR</b>
+				repetition and a <i>seq</i> containing a cartesian product.&nbsp;
+			</dd>
+			<dt>seqs</dt>
+			<dd>
+				A <i>seq</i> of <i>seqs</i> from which cartesian products are obtained.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			This macro is a repetition construct.&nbsp; If two <i>seqs</i> are (<i>a</i>)(<i>b</i>)(<i>c</i>) 
+			and (<i>x</i>)(<i>y</i>)(<i>z</i>), this macro will produce the following 
+			sequence:
+			<div>
+				<i>macro</i>(<i>r</i>, (<i>a</i>)(<i>x</i>)) <i>macro</i>(<i>r</i>, (<i>a</i>)(<i>y</i>))
+				<i>macro</i>(<i>r</i>, (<i>a</i>)(<i>z</i>)) \
+				<br>
+				<i>macro</i>(<i>r</i>, (<i>b</i>)(<i>x</i>)) <i>macro</i>(<i>r</i>, (<i>b</i>)(<i>y</i>))
+				<i>macro</i>(<i>r</i>, (<i>b</i>)(<i>z</i>)) \
+				<br>
+				<i>macro</i>(<i>r</i>, (<i>c</i>)(<i>x</i>)) <i>macro</i>(<i>r</i>, (<i>c</i>)(<i>y</i>))
+				<i>macro</i>(<i>r</i>, (<i>c</i>)(<i>z</i>))
+			</div>
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="seq_for_each_product.html">BOOST_PP_SEQ_FOR_EACH_PRODUCT</a></li>
+		</ul>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/for_each_product.html">&lt;boost/preprocessor/seq/for_each_product.hpp&gt;</a>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

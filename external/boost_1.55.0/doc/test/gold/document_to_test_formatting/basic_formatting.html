@@ -1,0 +1,208 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Basic Formatting</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Document To Test Formatting">
+<link rel="up" href="../index.html" title="Document To Test Formatting">
+<link rel="prev" href="code_blocks.html" title="Code Blocks">
+<link rel="next" href="blurbs.html" title="Blurbs">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="code_blocks.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="blurbs.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="document_to_test_formatting.basic_formatting"></a><a class="link" href="basic_formatting.html" title="Basic Formatting">Basic Formatting</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="basic_formatting.html#document_to_test_formatting.basic_formatting.font_styles">Font
+      Styles</a></span></dt>
+<dt><span class="section"><a href="basic_formatting.html#document_to_test_formatting.basic_formatting.replaceable_text">Replaceable
+      Text</a></span></dt>
+<dt><span class="section"><a href="basic_formatting.html#document_to_test_formatting.basic_formatting.quotations">Quotations</a></span></dt>
+<dt><span class="section"><a href="basic_formatting.html#document_to_test_formatting.basic_formatting.inline_code">Inline
+      Code</a></span></dt>
+<dt><span class="section"><a href="basic_formatting.html#document_to_test_formatting.basic_formatting.links">Links</a></span></dt>
+<dt><span class="section"><a href="basic_formatting.html#document_to_test_formatting.basic_formatting.footnotes">Footnotes</a></span></dt>
+<dt><span class="section"><a href="basic_formatting.html#document_to_test_formatting.basic_formatting.blockquote">Blockquote</a></span></dt>
+<dt><span class="section"><a href="basic_formatting.html#document_to_test_formatting.basic_formatting.headings">Headings</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="document_to_test_formatting.basic_formatting.font_styles"></a><a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.font_styles" title="Font Styles">Font
+      Styles</a>
+</h3></div></div></div>
+<p>
+        Here we go with some inline formatting: <span class="emphasis"><em>italic</em></span>, <span class="bold"><strong>bold</strong></span>, <span class="underline">underline</span>,
+        <code class="literal">teletype</code>, <span class="strikethrough">strikethrough</span>,
+        we can combine styles as well: <span class="emphasis"><em><span class="bold"><strong>bold italic</strong></span></em></span>,
+        <span class="underline"><code class="literal">teletype with underline</code></span>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="document_to_test_formatting.basic_formatting.replaceable_text"></a><a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.replaceable_text" title="Replaceable Text">Replaceable
+      Text</a>
+</h3></div></div></div>
+<p>
+        Text that is intended to be user-replaceable is <em class="replaceable"><code>rendered like
+        this</code></em>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="document_to_test_formatting.basic_formatting.quotations"></a><a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.quotations" title="Quotations">Quotations</a>
+</h3></div></div></div>
+<p>
+        Here we go: <span class="quote">&#8220;<span class="quote">A question that sometimes drives me hazy: am I or are
+        the others crazy?</span>&#8221;</span>--Einstein
+      </p>
+<p>
+        Note the proper left and right quote marks. Also, while you can simply use
+        ordinary quote marks like "quoted", our quotation, above, will
+        generate correct DocBook quotations (e.g. &lt;quote&gt;quoted&lt;/quote&gt;).
+      </p>
+<p>
+        Like all phrase elements, quotations may be nested. Example:
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote">Here's the rule for bargains: <span class="quote">&#8216;<span class="quote">Do other men, for they would
+        do you.</span>&#8217;</span> That's the true business precept.</span>&#8221;</span>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="document_to_test_formatting.basic_formatting.inline_code"></a><a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.inline_code" title="Inline Code">Inline
+      Code</a>
+</h3></div></div></div>
+<p>
+        This text has inlined code <code class="computeroutput"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span> <span class="special">{</span> <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span> <span class="special">}</span></code>
+        in it. The code should be syntax highlighted.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="document_to_test_formatting.basic_formatting.links"></a><a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.links" title="Links">Links</a>
+</h3></div></div></div>
+<p>
+        Try this: <a href="http://www.boost.org" target="_top">this is <span class="bold"><strong>boost's</strong></span>
+        website....</a> it should be visible as a link.
+      </p>
+<p>
+        This is <a href="../../../../boost/math/distributions.hpp" target="_top">a link to a header
+        file (boost/math/distributions.hpp)</a>, it should be rewritable and
+        point to the website when built as a PDF.
+      </p>
+<p>
+        This is <a href="../../../../libs/regex/index.html" target="_top">a link to another library's
+        documentation (Boost.Regex)</a>, using the boost: protocol, it should
+        be rewritten to point to the website when building a PDF.
+      </p>
+<p>
+        This is <a href="../../../../libs/regex/index.html" target="_top">a link to another library's
+        documentation (Boost.Regex)</a>, using the boost:/ protocol, it should
+        be rewritten to point to the website when building a PDF.
+      </p>
+<p>
+        This is <a href="../../weighted_tail_quantile.hpp" target="_top">a relative link to a header
+        file within the test source</a>, it should be rewritten to point to the
+        website when building a PDF. Although it might be on the website yet.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="document_to_test_formatting.basic_formatting.footnotes"></a><a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.footnotes" title="Footnotes">Footnotes</a>
+</h3></div></div></div>
+<p>
+        Here's one <sup>[<a name="id769038" href="#ftn.id769038" class="footnote">1</a>]</sup>.
+      </p>
+<p>
+        And here's another <sup>[<a name="id769049" href="#ftn.id769049" class="footnote">2</a>]</sup>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="document_to_test_formatting.basic_formatting.blockquote"></a><a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.blockquote" title="Blockquote">Blockquote</a>
+</h3></div></div></div>
+<p>
+        Lets indent the next paragraph:
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          Here we go!!!
+        </p></blockquote></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="document_to_test_formatting.basic_formatting.headings"></a><a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.headings" title="Headings">Headings</a>
+</h3></div></div></div>
+<p>
+        Now try rendering some heading styles:
+      </p>
+<a name="document_to_test_formatting.basic_formatting.headings.heading_1"></a><h2>
+<a name="id769109"></a>
+        <a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.headings.heading_1">Heading
+        1</a>
+      </h2>
+<a name="document_to_test_formatting.basic_formatting.headings.heading_2"></a><h3>
+<a name="id769128"></a>
+        <a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.headings.heading_2">Heading
+        2</a>
+      </h3>
+<a name="document_to_test_formatting.basic_formatting.headings.heading_3"></a><h4>
+<a name="id769146"></a>
+        <a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.headings.heading_3">Heading
+        3</a>
+      </h4>
+<a name="document_to_test_formatting.basic_formatting.headings.heading_4"></a><h5>
+<a name="id769165"></a>
+        <a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.headings.heading_4">Heading
+        4</a>
+      </h5>
+<a name="document_to_test_formatting.basic_formatting.headings.heading_5"></a><h6>
+<a name="id769183"></a>
+        <a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.headings.heading_5">Heading
+        5</a>
+      </h6>
+<a name="document_to_test_formatting.basic_formatting.headings.heading_6"></a><h4>
+<a name="id769201"></a>
+        <a class="link" href="basic_formatting.html#document_to_test_formatting.basic_formatting.headings.heading_6">Heading
+        6</a>
+      </h4>
+</div>
+<div class="footnotes">
+<br><hr width="100" align="left">
+<div class="footnote"><p><sup>[<a name="ftn.id769038" href="#id769038" class="para">1</a>] </sup>
+          A sample footnote
+        </p></div>
+<div class="footnote"><p><sup>[<a name="ftn.id769049" href="#id769049" class="para">2</a>] </sup>
+          Another sample footnote
+        </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 John Maddock, Joel de Guzman, Eric Niebler and Matias
+      Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="code_blocks.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="blurbs.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

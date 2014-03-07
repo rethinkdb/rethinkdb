@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>The File Position</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="theme/style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" cellspacing="2" background="theme/bkd2.gif">
+  <tr> 
+    <td width="21"> <h1></h1></td>
+    <td width="885"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">The 
+      File Position</font></b></font></td>
+    <td width="96"><a href="http://www.boost.org"><img src="theme/wave.gif" width="93" height="68" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="token_ids.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="predefined_macros.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<blockquote> 
+  <p><a href="class_reference_filepos.html#introduction">Introduction</a><br>
+    <a href="class_reference_filepos.html#header_synopsis">Header 'wave/util/file_position.hpp' 
+    synopsis</a><br>
+    <a href="class_reference_filepos.html#template_parameters">Template parameters</a><br>
+    <a href="class_reference_filepos.html#member_functions">Member functions</a></p>
+</blockquote>
+<h2><b><a name="introduction"></a>Introduction</b></h2>
+<p>The file position template is used to represent a concrete token position inside 
+  the underlying input stream. This token position contains the corresponding 
+  filename, the line number and the column number, where the token was recognized.</p>
+<h2><b><a name="header_synopsis"></a>Header <a href="http://svn.boost.org/trac/boost/browser/trunk/boost/wave/util/file_position.hpp">wave/util/file_position.hpp</a> 
+  synopsis</b></h2>
+<pre><span class="keyword">namespace</span> <span class="identifier">boost</span> {
+<span class="keyword">namespace</span> <span class="identifier">wave</span> {
+<span class="keyword">namespace</span> <span class="identifier">util</span> {
+
+    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> String = <span class="keyword">std::string</span>&gt;
+    <span class="keyword">class</span> file_position {
+ 
+    <span class="keyword">public</span>:
+        <a href="class_reference_filepos.html#constructors">file_position</a>();
+        <span class="keyword">explicit</span> <a href="class_reference_filepos.html#constructors">file_position</a>(String const &amp;file, 
+            <span class="keyword">unsigned int</span> line_ = 1, <span class="keyword">unsigned int </span>column_ = 1);
+
+    // accessors
+        String <span class="keyword">const</span> &amp;<a href="class_reference_filepos.html#get_accessors">get_file</a>() <span class="keyword">const</span>;
+        <span class="keyword">unsigned int</span> <a href="class_reference_filepos.html#get_accessors">get_line</a>() <span class="keyword">const</span>;
+        <span class="keyword">unsigned int</span> <a href="class_reference_filepos.html#get_accessors">get_column</a>() <span class="keyword">const</span>;
+    
+        <span class="keyword">void</span> <a href="class_reference_filepos.html#set_accessors">set_file</a>(String <span class="keyword">const</span> &amp;file);
+        <span class="keyword">void</span> <a href="class_reference_filepos.html#set_accessors">set_line</a>(<span class="keyword">int</span> line);
+        <span class="keyword">void</span> <a href="class_reference_filepos.html#set_accessors">set_column</a>(<span class="keyword">int</span> column);
+    };
+
+}   <span class="comment">// namespace util</span>
+}   <span class="comment">// namespace wave</span>
+}   <span class="comment">// namespace boost</span></pre>
+<h2><a name="template_parameters"></a>Template parameters</h2>
+<p>The <tt>file_position</tt> template used by the default token type has to be instantiated with one template parameter, 
+  which gives the string type to use for storing the file name member of the file 
+  position. If this parameter isn't given, it defaults to a <tt>std::string</tt>. 
+  Please note, that the type given as the template parameter must be compatible 
+  with a <tt>std::string. </tt>Please note, that the type given as the template parameter must be compatible   with a <tt>std::string</tt>.</p>
+<p>You may use your own position types if appropriate, but in any case these should implement the same interface as the <tt>file_position</tt> template described here. </p>
+<h2><a name="member_functions"></a>Member functions</h2>
+<h3><a name="constructors"></a>Constructors</h3>
+<pre>        <a href="class_reference_filepos.html#constructors">file_position</a>();
+        <span class="keyword">explicit</span> <a href="class_reference_filepos.html#constructors">file_position</a>(String const &amp;file, 
+            <span class="keyword">unsigned int </span>line_ = 1, <span class="keyword">unsigned int </span>column_ = 1);
+</pre>
+<blockquote>
+  <p>The constructors initialize a new instance of a <tt>file_position</tt> in 
+    correspondence to the supplied parameters. The parameters default to an empty 
+    filename and the line number and column number set to one.</p>
+</blockquote>
+<p><a name="get_accessors"></a><b>get_file</b>, <b>get_line</b>, <b>get_column</b></p>
+<pre>        String <span class="keyword">const</span> &amp;<a href="class_reference_filepos.html#get_accessors">get_file</a>() <span class="keyword">const</span>;
+        <span class="keyword">unsigned int</span> <a href="class_reference_filepos.html#get_accessors">get_line</a>() <span class="keyword">const</span>;
+        <span class="keyword">unsigned int</span> <a href="class_reference_filepos.html#get_accessors">get_column</a>() <span class="keyword">const</span>;
+</pre>
+<blockquote>
+  <p>The <tt>get_...</tt> functions are used to access the current values of the 
+    file position members: the filename (<tt>get_file</tt>), the line number (<tt>get_line</tt>) 
+    and the column number (<tt>get_column</tt>).</p>
+</blockquote>
+<p><a name="set_accessors"></a><b>set_file</b>, <b>set_line</b>, <b>set_column</b></p>
+<pre>        <span class="keyword">void</span> <a href="class_reference_filepos.html#set_accessors">set_file</a>(String <span class="keyword">const</span> &amp;file);
+        <span class="keyword">void</span> <a href="class_reference_filepos.html#set_accessors">set_line</a>(<span class="keyword">unsigned int</span> line);
+        <span class="keyword">void</span> <a href="class_reference_filepos.html#set_accessors">set_column</a>(<span class="keyword">unsigned int</span> column);
+</pre>
+<blockquote>
+  <p>The <tt>set_...</tt> functions are used to set new values to the file position 
+    members: the filename (<tt>set_file</tt>), the line number (<tt>set_line</tt>) 
+    and the column number (<tt>set_column</tt>).</p>
+</blockquote>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="token_ids.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="predefined_macros.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2011 Hartmut Kaiser<br>
+  <br>
+<font size="2">Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<p class="copyright"><span class="updated">Last updated: 
+  <!-- #BeginDate format:fcAm1m -->Saturday, September 18, 2010 15:14<!-- #EndDate -->
+</span></p>
+</body>
+</html>

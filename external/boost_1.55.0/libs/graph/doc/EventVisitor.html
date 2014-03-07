@@ -1,0 +1,161 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: EventVisitor</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>EventVisitor Concept</H1>
+
+This concept defines the interface for single-event visitors. An
+EventVisitor has an apply member function (<tt>operator()</tt>) which
+is invoked within the graph algorithm at the event-point specified by
+the <tt>event_filter</tt> typedef within the
+EventVisitor. EventVisitor's can be combined into an <a
+href="./EventVisitorList.html">EventVistorList</a>.
+
+<p>
+The following is the list of event tags that can be invoked in BGL
+algorithms. Each tag corresponds to a member function of the visitor
+for an algorithm. For example, the <a
+href="./BFSVisitor.html">BFSVisitor</a> of <a
+href="./breadth_first_search.html"><tt>breadth_first_search()</tt></a>
+has a <tt>cycle_edge()</tt> member function. The corresponding tag is
+<tt>on_cycle_edge</tt>. The first argument is the event visitor's
+<tt>operator()</tt> must be either an edge or vertex descriptor
+depending on the event tag.
+
+<pre>
+namespace boost {
+  struct on_initialize_vertex { };
+  struct on_start_vertex { };
+  struct on_discover_vertex { };
+  struct on_examine_edge { };
+  struct on_tree_edge { };
+  struct on_cycle_edge { };
+  struct on_finish_vertex { };
+  struct on_forward_or_cross_edge { };
+  struct on_back_edge { };
+  struct on_edge_relaxed { };
+  struct on_edge_not_relaxed { };
+  struct on_edge_minimized { };
+  struct on_edge_not_minimized { };
+} // namespace boost
+</pre>
+
+
+<h3>Refinement of</h3>
+
+<a href="../../utility/CopyConstructible.html">Copy Constructible</a>
+(copying a visitor should be a lightweight operation).
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>G</tt></TD>
+<TD>A type that is a model of <a href="./Graph.html">Graph</a>.</TD>
+</TR>
+
+<TR>
+<TD><tt>g</tt></TD>
+<TD>An object of type <tt>G</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>V</tt></TD>
+<TD>A type that is a model of EventVisitor.</TD>
+</TR>
+
+<TR>
+<TD><tt>vis</tt></TD>
+<TD>An object of type <tt>V</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>x</tt></TD>
+<TD>An object of type
+<tt>boost::graph_traits&lt;G&gt;::vertex_descriptor</tt>
+or <tt>boost::graph_traits&lt;G&gt;::edge_descriptor</tt>.</TD>
+</TR>
+
+</table>
+
+<h3>Associated Types</h3>
+
+<Table border>
+
+<TR>
+<TD>Event Filter </TD>
+<TD><TT>V::event_filter</TT></TD>
+<TD>
+A tag struct to specify on which event the visitor should be invoked.
+</TD>
+</TR>
+
+</table>
+
+<h3>Valid Expressions</h3>
+
+<Table border>
+
+<tr>
+<th>Name</th><th>Expression</th><th>Return Type</th><th>Description</th>
+</tr>
+
+<tr>
+<td>Apply Visitor</td>
+<td><TT>vis(x, g)</TT></TD>
+<TD><TT>void</TT></TD>
+<TD>
+Invokes the visitor operation on object <tt>x</tt>, which is
+either a vertex or edge descriptor of the graph.
+</TD>
+</TR>
+
+
+</table>
+
+
+<h3>Models</h3>
+
+<ul>
+ <li><a
+ href="./predecessor_recorder.html"><tt>predecessor_recorder</tt></a>
+ <li><a href="./distance_recorder.html"><tt>distance_recorder</tt></a>
+ <li><a href="./time_stamper.html"><tt>time_stamper</tt></a>
+ <li><a href="./property_writer.html"><tt>property_writer</tt></a>
+ <li><a href="./null_visitor.html"><tt>null_visitor</tt></a>
+</ul>
+
+<h3>See Also</h3>
+
+<a href="./EventVisitorList.html">EventVisitorList</a>,
+<a href="./visitor_concepts.html">Visitor concepts</a>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

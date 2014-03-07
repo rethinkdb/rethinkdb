@@ -1,0 +1,10 @@
+> example --report_level=short
+Running 2 test cases...
+test.cpp(10): error in "my_test1": check 2 == 1 failed
+test.cpp(21): error in "my_test1": check sizeof(int) == sizeof(char) failed [4 != 1]
+test.cpp(22): error in "my_test1": check sizeof(int*) == sizeof(char) failed [4 != 1]
+
+Test suite "example" passed with:
+  3 assertions out of 3 failed
+  3 failures expected
+  2 test cases out of 2 passed

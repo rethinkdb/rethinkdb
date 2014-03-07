@@ -1,0 +1,37 @@
+<!--
+ Copyright 2004 Eric Niebler.
+
+ Distributed under the Boost Software License, Version 1.0.
+ (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<informaltable frame="all">
+<bridgehead renderas="sect4"><phrase role="table-title">Long Searches</phrase></bridgehead>
+<tgroup cols="4">
+<thead>
+<row>
+<entry>static xpressive</entry><entry>dynamic xpressive</entry><entry>Boost</entry><entry>Expression</entry>
+</row>
+</thead>
+<tbody>
+<row>
+<entry><phrase role="highlight">1<para/>(0.0263s)</phrase></entry><entry><phrase role="highlight">1<para/>(0.0263s)</phrase></entry><entry>1.78<para/>(0.0469s)</entry><entry><literal>Twain</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(0.0234s)</phrase></entry><entry><phrase role="highlight">1<para/>(0.0234s)</phrase></entry><entry>1.79<para/>(0.042s)</entry><entry><literal>Huck[[:alpha:]]+</literal></entry>
+</row>
+<row>
+<entry>1.84<para/>(1.26s)</entry><entry>2.21<para/>(1.51s)</entry><entry><phrase role="highlight">1<para/>(0.687s)</phrase></entry><entry><literal>[[:alpha:]]+ing</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1.09<para/>(0.192s)</phrase></entry><entry>2<para/>(0.351s)</entry><entry><phrase role="highlight">1<para/>(0.176s)</phrase></entry><entry><literal>^[^
+]*?Twain</literal></entry>
+</row>
+<row>
+<entry>1.41<para/>(0.08s)</entry><entry>1.21<para/>(0.0684s)</entry><entry><phrase role="highlight">1<para/>(0.0566s)</phrase></entry><entry><literal>Tom|Sawyer|Huckleberry|Finn</literal></entry>
+</row>
+<row>
+<entry>1.56<para/>(0.195s)</entry><entry>1.12<para/>(0.141s)</entry><entry><phrase role="highlight">1<para/>(0.125s)</phrase></entry><entry><literal>(Tom|Sawyer|Huckleberry|Finn).{0,30}river|river.{0,30}(Tom|Sawyer|Huckleberry|Finn)</literal></entry>
+</row>
+</tbody>
+</tgroup>
+</informaltable>

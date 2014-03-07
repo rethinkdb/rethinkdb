@@ -1,0 +1,508 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>steady_timer</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="ssl__verify_peer.html" title="ssl::verify_peer">
+<link rel="next" href="strand.html" title="strand">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ssl__verify_peer.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="strand.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.steady_timer"></a><a class="link" href="steady_timer.html" title="steady_timer">steady_timer</a>
+</h3></div></div></div>
+<p>
+        <a class="indexterm" name="idp99667208"></a> 
+Typedef for a timer based on the steady clock.
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">basic_waitable_timer</span><span class="special">&lt;</span> <span class="identifier">chrono</span><span class="special">::</span><span class="identifier">steady_clock</span> <span class="special">&gt;</span> <span class="identifier">steady_timer</span><span class="special">;</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.steady_timer.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.steady_timer.types"></a></span><a class="link" href="steady_timer.html#boost_asio.reference.steady_timer.types">Types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/clock_type.html" title="basic_waitable_timer::clock_type"><span class="bold"><strong>clock_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The clock type.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/duration.html" title="basic_waitable_timer::duration"><span class="bold"><strong>duration</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The duration type of the clock.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/implementation_type.html" title="basic_waitable_timer::implementation_type"><span class="bold"><strong>implementation_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The underlying implementation type of I/O object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/service_type.html" title="basic_waitable_timer::service_type"><span class="bold"><strong>service_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of the service that will be used to provide I/O operations.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/time_point.html" title="basic_waitable_timer::time_point"><span class="bold"><strong>time_point</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The time point type of the clock.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/traits_type.html" title="basic_waitable_timer::traits_type"><span class="bold"><strong>traits_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The wait traits type.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.steady_timer.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.steady_timer.member_functions"></a></span><a class="link" href="steady_timer.html#boost_asio.reference.steady_timer.member_functions">Member
+        Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/async_wait.html" title="basic_waitable_timer::async_wait"><span class="bold"><strong>async_wait</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Start an asynchronous wait on the timer.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/basic_waitable_timer.html" title="basic_waitable_timer::basic_waitable_timer"><span class="bold"><strong>basic_waitable_timer</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Constructor.
+                </p>
+                <p>
+                  Constructor to set a particular expiry time as an absolute time.
+                </p>
+                <p>
+                  Constructor to set a particular expiry time relative to now.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/cancel.html" title="basic_waitable_timer::cancel"><span class="bold"><strong>cancel</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Cancel any asynchronous operations that are waiting on the timer.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/cancel_one.html" title="basic_waitable_timer::cancel_one"><span class="bold"><strong>cancel_one</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Cancels one asynchronous operation that is waiting on the timer.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/expires_at.html" title="basic_waitable_timer::expires_at"><span class="bold"><strong>expires_at</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the timer's expiry time as an absolute time.
+                </p>
+                <p>
+                  Set the timer's expiry time as an absolute time.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/expires_from_now.html" title="basic_waitable_timer::expires_from_now"><span class="bold"><strong>expires_from_now</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the timer's expiry time relative to now.
+                </p>
+                <p>
+                  Set the timer's expiry time relative to now.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/get_io_service.html" title="basic_waitable_timer::get_io_service"><span class="bold"><strong>get_io_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the io_service associated with the object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/wait.html" title="basic_waitable_timer::wait"><span class="bold"><strong>wait</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Perform a blocking wait on the timer.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.steady_timer.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.steady_timer.protected_member_functions"></a></span><a class="link" href="steady_timer.html#boost_asio.reference.steady_timer.protected_member_functions">Protected
+        Member Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/get_implementation.html" title="basic_waitable_timer::get_implementation"><span class="bold"><strong>get_implementation</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the underlying implementation of the I/O object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/get_service.html" title="basic_waitable_timer::get_service"><span class="bold"><strong>get_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the service associated with the I/O object.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.steady_timer.h3"></a>
+        <span class="phrase"><a name="boost_asio.reference.steady_timer.protected_data_members"></a></span><a class="link" href="steady_timer.html#boost_asio.reference.steady_timer.protected_data_members">Protected
+        Data Members</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/implementation.html" title="basic_waitable_timer::implementation"><span class="bold"><strong>implementation</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use get_implementation().) The underlying implementation
+                  of the I/O object.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="basic_waitable_timer/service.html" title="basic_waitable_timer::service"><span class="bold"><strong>service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use get_service().) The service associated with the
+                  I/O object.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        The <a class="link" href="basic_waitable_timer.html" title="basic_waitable_timer"><code class="computeroutput"><span class="identifier">basic_waitable_timer</span></code></a> class template
+        provides the ability to perform a blocking or asynchronous wait for a timer
+        to expire.
+      </p>
+<p>
+        A waitable timer is always in one of two states: "expired" or "not
+        expired". If the <code class="computeroutput"><span class="identifier">wait</span><span class="special">()</span></code> or <code class="computeroutput"><span class="identifier">async_wait</span><span class="special">()</span></code> function is called on an expired timer,
+        the wait operation will complete immediately.
+      </p>
+<p>
+        Most applications will use one of the <a class="link" href="steady_timer.html" title="steady_timer"><code class="computeroutput"><span class="identifier">steady_timer</span></code></a>, <a class="link" href="system_timer.html" title="system_timer"><code class="computeroutput"><span class="identifier">system_timer</span></code></a> or <a class="link" href="high_resolution_timer.html" title="high_resolution_timer"><code class="computeroutput"><span class="identifier">high_resolution_timer</span></code></a> typedefs.
+      </p>
+<h5>
+<a name="boost_asio.reference.steady_timer.h4"></a>
+        <span class="phrase"><a name="boost_asio.reference.steady_timer.remarks"></a></span><a class="link" href="steady_timer.html#boost_asio.reference.steady_timer.remarks">Remarks</a>
+      </h5>
+<p>
+        This waitable timer functionality is for use with the C++11 standard library's
+        <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">chrono</span><span class="special">&gt;</span></code> facility, or with the Boost.Chrono library.
+      </p>
+<h5>
+<a name="boost_asio.reference.steady_timer.h5"></a>
+        <span class="phrase"><a name="boost_asio.reference.steady_timer.thread_safety"></a></span><a class="link" href="steady_timer.html#boost_asio.reference.steady_timer.thread_safety">Thread
+        Safety</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Distinct</em></span> <span class="emphasis"><em>objects:</em></span> Safe.
+      </p>
+<p>
+        <span class="emphasis"><em>Shared</em></span> <span class="emphasis"><em>objects:</em></span> Unsafe.
+      </p>
+<h5>
+<a name="boost_asio.reference.steady_timer.h6"></a>
+        <span class="phrase"><a name="boost_asio.reference.steady_timer.examples"></a></span><a class="link" href="steady_timer.html#boost_asio.reference.steady_timer.examples">Examples</a>
+      </h5>
+<p>
+        Performing a blocking wait (C++11):
+      </p>
+<pre class="programlisting"><span class="comment">// Construct a timer without setting an expiry time.</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">steady_timer</span> <span class="identifier">timer</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">);</span>
+
+<span class="comment">// Set an expiry time relative to now.</span>
+<span class="identifier">timer</span><span class="special">.</span><span class="identifier">expires_from_now</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">chrono</span><span class="special">::</span><span class="identifier">seconds</span><span class="special">(</span><span class="number">5</span><span class="special">));</span>
+
+<span class="comment">// Wait for the timer to expire.</span>
+<span class="identifier">timer</span><span class="special">.</span><span class="identifier">wait</span><span class="special">();</span>
+</pre>
+<p>
+        Performing an asynchronous wait (C++11):
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">handler</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">error</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">error</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="comment">// Timer expired.</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="special">...</span>
+
+<span class="comment">// Construct a timer with an absolute expiry time.</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">steady_timer</span> <span class="identifier">timer</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">,</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">chrono</span><span class="special">::</span><span class="identifier">steady_clock</span><span class="special">::</span><span class="identifier">now</span><span class="special">()</span> <span class="special">+</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">chrono</span><span class="special">::</span><span class="identifier">seconds</span><span class="special">(</span><span class="number">60</span><span class="special">));</span>
+
+<span class="comment">// Start an asynchronous wait.</span>
+<span class="identifier">timer</span><span class="special">.</span><span class="identifier">async_wait</span><span class="special">(</span><span class="identifier">handler</span><span class="special">);</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.steady_timer.h7"></a>
+        <span class="phrase"><a name="boost_asio.reference.steady_timer.changing_an_active_waitable_timer_s_expiry_time"></a></span><a class="link" href="steady_timer.html#boost_asio.reference.steady_timer.changing_an_active_waitable_timer_s_expiry_time">Changing
+        an active waitable timer's expiry time</a>
+      </h5>
+<p>
+        Changing the expiry time of a timer while there are pending asynchronous
+        waits causes those wait operations to be cancelled. To ensure that the action
+        associated with the timer is performed only once, use something like this:
+        used:
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">on_some_event</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">if</span> <span class="special">(</span><span class="identifier">my_timer</span><span class="special">.</span><span class="identifier">expires_from_now</span><span class="special">(</span><span class="identifier">seconds</span><span class="special">(</span><span class="number">5</span><span class="special">))</span> <span class="special">&gt;</span> <span class="number">0</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="comment">// We managed to cancel the timer. Start new asynchronous wait.</span>
+    <span class="identifier">my_timer</span><span class="special">.</span><span class="identifier">async_wait</span><span class="special">(</span><span class="identifier">on_timeout</span><span class="special">);</span>
+  <span class="special">}</span>
+  <span class="keyword">else</span>
+  <span class="special">{</span>
+    <span class="comment">// Too late, timer has already expired!</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">on_timeout</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="keyword">if</span> <span class="special">(</span><span class="identifier">e</span> <span class="special">!=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">error</span><span class="special">::</span><span class="identifier">operation_aborted</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="comment">// Timer was not cancelled, take necessary action.</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">basic_waitable_timer</span><span class="special">::</span><span class="identifier">expires_from_now</span><span class="special">()</span></code>
+            function cancels any pending asynchronous waits, and returns the number
+            of asynchronous waits that were cancelled. If it returns 0 then you were
+            too late and the wait handler has already been executed, or will soon
+            be executed. If it returns 1 then the wait handler was successfully cancelled.
+          </li>
+<li class="listitem">
+            If a wait handler is cancelled, the boost::system::error_code passed
+            to it contains the value <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">error</span><span class="special">::</span><span class="identifier">operation_aborted</span></code>.
+          </li>
+</ul></div>
+<p>
+        This typedef uses the C++11 <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">chrono</span><span class="special">&gt;</span></code>
+        standard library facility, if available. Otherwise, it may use the Boost.Chrono
+        library. To explicitly utilise Boost.Chrono, use the <a class="link" href="basic_waitable_timer.html" title="basic_waitable_timer"><code class="computeroutput"><span class="identifier">basic_waitable_timer</span></code></a> template directly:
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">basic_waitable_timer</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">chrono</span><span class="special">::</span><span class="identifier">steady_clock</span><span class="special">&gt;</span> <span class="identifier">timer</span><span class="special">;</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.steady_timer.h8"></a>
+        <span class="phrase"><a name="boost_asio.reference.steady_timer.requirements"></a></span><a class="link" href="steady_timer.html#boost_asio.reference.steady_timer.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/steady_timer.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span>None
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ssl__verify_peer.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="strand.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

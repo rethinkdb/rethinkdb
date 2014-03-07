@@ -1,0 +1,6 @@
+C = Class('virtual_::C', 'virtual.h')
+final(C.dummy)
+D = Class('virtual_::D', 'virtual.h')
+final(D.dummy)
+Function('virtual_::call_f', 'virtual.h')
+Function('virtual_::call_dummy', 'virtual.h')

@@ -1,0 +1,84 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:flush_multi_pass Qi flush_multi_pass parser]
+
+[heading Description]
+
+The __qi__ `flush_multi_pass` parser is a primitive (pseudo) parser component 
+allowing to clear the internal buffer of a `multi_pass` iterator. Clearing the 
+buffer of a `multi_pass` might be beneficial for grammars where it is clear
+that no backtracking can occur.
+The general syntax for using the `flush_multi_pass` is:
+
+    flush_multi_pass
+
+which will call the `clear_queue()` member function if the current iterators
+are of the type `multi_pass`. This will cause any buffered data to be erased. 
+This also will invalidate all other copies of multi_pass and they should not 
+be used. If they are, an `boost::illegal_backtracking` exception will be 
+thrown. For all other iterator types this is a no-op. The `flush_multi_pass` 
+generates a parser component which always succeeds and which does not consume 
+any input (very much like `eps`).
+
+[heading Header]
+
+    // forwards to <boost/spirit/repository/home/qi/primitive/flush_multi_pass.hpp>
+    #include <boost/spirit/repository/include/qi_flush_multi_pass.hpp>
+
+[heading Synopsis]
+
+    flush_multi_pass
+
+[heading Parameters]
+
+The `flush_multi_pass` does not require any parameters.
+
+[heading Attribute]
+
+The `flush_multi_pass` component exposes no attribute (the exposed attribute 
+type is `unused_type`):
+
+    flush_multi_pass --> unused
+
+[heading Example]
+
+The following example shows a simple use case of the `flush_multi_pass` parser. 
+
+We will illustrate its usage by generating different comment styles and a 
+function prototype (for the full example code see here: 
+[@../../example/qi/flush_multi_pass.cpp flush_multi_pass.cpp])
+
+[import ../example/qi/flush_multi_pass.cpp]
+
+[heading Prerequisites]
+
+In addition to the main header file needed to include the core components 
+implemented in __qi__ we add the header file needed for the new 
+`flush_multi_pass` parser.
+
+[qi_flush_multi_pass_includes]
+
+To make all the code below more readable we introduce the following namespaces.
+
+[qi_flush_multi_pass_namespace]
+
+[heading Clearing the internal buffer]
+
+The example grammar recognizes the (simplified) preprocessor commands `#define` 
+and `#undef` both of which are constraint to a single line. This makes it 
+possible to delete all internal iterator buffers on each detected line break.
+This is safe as no backtracking will occur after any line end. The following 
+code snippet shows the usage of `flush_multi_pass` for this purpose.
+
+[qi_flush_multi_pass_clear_buffer]
+
+[note Using the `flush_multi_pass` parser component with iterators other than 
+      `multi_pass` is safe as it has no effect on the parsing.]
+
+[endsect]

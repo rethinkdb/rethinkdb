@@ -1,0 +1,402 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Implementation</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../circular_buffer.html" title="Chapter&#160;6.&#160;Boost.Circular Buffer">
+<link rel="prev" href="rationale.html" title="Rationale">
+<link rel="next" href="examples.html" title="More Examples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rationale.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../circular_buffer.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="examples.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="circular_buffer.implementation"></a><a class="link" href="implementation.html" title="Implementation">Implementation </a>
+</h2></div></div></div>
+<p>
+      The following paragraphs describe issues that had to be considered during the
+      implementation of the circular_buffer:
+    </p>
+<h4>
+<a name="circular_buffer.implementation.h0"></a>
+      <span class="phrase"><a name="circular_buffer.implementation.thread_safety"></a></span><a class="link" href="implementation.html#circular_buffer.implementation.thread_safety">Thread-Safety</a>
+    </h4>
+<p>
+      The thread-safety of the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      is the same as the thread-safety of containers in most STL implementations.
+      This means the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      is not fully thread-safe. The thread-safety is guaranteed only in the sense
+      that simultaneous accesses to distinct instances of the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      are safe, and simultaneous read accesses to a shared <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      are safe.
+    </p>
+<p>
+      If multiple threads access a single <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>,
+      and at least one of the threads may potentially write, then the user is responsible
+      for ensuring mutual exclusion between the threads during the container accesses.
+      The mutual exclusion between the threads can be achieved by wrapping operations
+      of the underlying <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      with a lock acquisition and release. (See the Bounded Buffer example code at
+      <a href="../../../libs/circular_buffer/example/circular_buffer_bound_example.cpp" target="_top">circular_buffer_bound_example.cpp</a>)
+    </p>
+<h4>
+<a name="circular_buffer.implementation.h1"></a>
+      <span class="phrase"><a name="circular_buffer.implementation.overwrite_operation"></a></span><a class="link" href="implementation.html#circular_buffer.implementation.overwrite_operation">Overwrite
+      Operation</a>
+    </h4>
+<p>
+      Overwrite operation occurs when an element is inserted into a full <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> - the old element
+      is being overwritten by the new one. There was a discussion what exactly "overwriting
+      of an element" means during the formal review. It may be either a destruction
+      of the original element and a consequent inplace construction of a new element
+      or it may be an assignment of a new element into an old one. The <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> implements assignment
+      because it is more effective.
+    </p>
+<p>
+      From the point of business logic of a stored element, the destruction/construction
+      operation and assignment usually mean the same. However, in very rare cases
+      (if in any) they may differ. If there is a requirement for elements to be destructed/constructed
+      instead of being assigned, consider implementing a wrapper of the element which
+      would implement the assign operator, and store the wrappers instead. It is
+      necessary to note that storing such wrappers has a drawback. The destruction/construction
+      will be invoked on every assignment of the wrapper - not only when a wrapper
+      is being overwritten (when the buffer is full) but also when the stored wrappers
+      are being shifted (e.g. as a result of insertion into the middle of container).
+    </p>
+<h4>
+<a name="circular_buffer.implementation.h2"></a>
+      <span class="phrase"><a name="circular_buffer.implementation.writing_to_a_full_buffer"></a></span><a class="link" href="implementation.html#circular_buffer.implementation.writing_to_a_full_buffer">Writing to
+      a Full Buffer</a>
+    </h4>
+<p>
+      There are several options how to cope if a data source produces more data than
+      can fit in the fixed-sized buffer:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Inform the data source to wait until there is room in the buffer (e.g.
+          by throwing an overflow exception).
+        </li>
+<li class="listitem">
+          If the oldest data is the most important, ignore new data from the source
+          until there is room in the buffer again.
+        </li>
+<li class="listitem">
+          If the latest data is the most important, write over the oldest data.
+        </li>
+<li class="listitem">
+          Let the producer to be responsible for checking the size of the buffer
+          prior writing into it.
+        </li>
+</ul></div>
+<p>
+      It is apparent that the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      implements the third option. But it may be less apparent it does not implement
+      any other option - especially the first two. One can get an impression that
+      the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> should
+      implement first three options and offer a mechanism of choosing among them.
+      This impression is wrong.
+    </p>
+<p>
+      The <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> was
+      designed and optimized to be circular (which means overwriting the oldest data
+      when full). If such a controlling mechanism had been enabled, it would just
+      complicate the matters and the usage of the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      would be probably less straightforward.
+    </p>
+<p>
+      Moreover, the first two options (and the fourth option as well) do not require
+      the buffer to be circular at all. If there is a need for the first or second
+      option, consider implementing an adaptor of e.g. std::vector. In this case
+      the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> is
+      not suitable for adapting, because, contrary to std::vector, it bears an overhead
+      for its circular behaviour.
+    </p>
+<h4>
+<a name="circular_buffer.implementation.h3"></a>
+      <span class="phrase"><a name="circular_buffer.implementation.reading_removing_from_an_empty_b"></a></span><a class="link" href="implementation.html#circular_buffer.implementation.reading_removing_from_an_empty_b">Reading/Removing
+      from an Empty Buffer</a>
+    </h4>
+<p>
+      When reading or removing an element from an empty buffer, the buffer should
+      be able to notify the data consumer (e.g. by throwing underflow exception)
+      that there are no elements stored in it. The <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      does not implement such a behaviour for two reasons:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          It would introduce a performance overhead.
+        </li>
+<li class="listitem">
+          No other std container implements it this way.
+        </li>
+</ul></div>
+<p>
+      It is considered to be a bug to read or remove an element (e.g. by calling
+      <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html#idp20324232-bb">front()</a></code> or
+      <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html#idp20589016-bb">pop_back()</a></code>)
+      from an empty std container and from an empty <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      as well. The data consumer has to test if the container is not empty before
+      reading/removing from it by testing <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html#idp20413752-bb">empty()</a></code>.
+      However, when reading from the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>,
+      there is an option to rely on the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html#idp20313368-bb">at()</a></code>
+      method which throws an exception when the index is out of range.
+    </p>
+<h4>
+<a name="circular_buffer.implementation.h4"></a>
+      <span class="phrase"><a name="circular_buffer.implementation.iterator_invalidation"></a></span><a class="link" href="implementation.html#circular_buffer.implementation.iterator_invalidation">Iterator
+      Invalidation</a>
+    </h4>
+<p>
+      An iterator is usually considered to be invalidated if an element, the iterator
+      pointed to, had been removed or overwritten by an another element. This definition
+      is enforced by the Debug Support and is documented for every method. However,
+      some applications utilizing <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      may require less strict definition: an iterator is invalid only if it points
+      to an uninitialized memory.
+    </p>
+<p>
+      Consider following example:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_CB_DISABLE_DEBUG</span> <span class="comment">// The Debug Support has to be disabled, otherwise the code produces a runtime error.</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">circular_buffer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">assert</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">assert</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="comment">/*argc*/</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="comment">/*argv*/</span><span class="special">[])</span>
+<span class="special">{</span>
+
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">circular_buffer</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">cb</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+
+  <span class="identifier">cb</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+  <span class="identifier">cb</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+  <span class="identifier">cb</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">circular_buffer</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">cb</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+
+  <span class="identifier">assert</span><span class="special">(*</span><span class="identifier">it</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+
+  <span class="identifier">cb</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">4</span><span class="special">);</span>
+
+  <span class="identifier">assert</span><span class="special">(*</span><span class="identifier">it</span> <span class="special">==</span> <span class="number">4</span><span class="special">);</span> <span class="comment">// The iterator still points to the initialized memory.</span>
+
+  <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      The iterator does not point to the original element any more (and is considered
+      to be invalid from the "strict" point of view) but it still points
+      to the same valid place in the memory. This "soft" definition of
+      iterator invalidation is supported by the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      but should be considered as an implementation detail rather than a full-fledged
+      feature. The rules when the iterator is still valid can be inferred from the
+      code in <a href="../../../libs/circular_buffer/test/soft_iterator_invalidation.cpp" target="_top">soft_iterator_invalidation.cpp</a>.
+    </p>
+<h4>
+<a name="circular_buffer.implementation.h5"></a>
+      <span class="phrase"><a name="circular_buffer.implementation.move_emulation_and_rvalues"></a></span><a class="link" href="implementation.html#circular_buffer.implementation.move_emulation_and_rvalues">Move emulation
+      and rvalues</a>
+    </h4>
+<p>
+      Since Boost 1.54.0 support for move semantics was implemented using the <a href="../../../libs/move/index.html" target="_top">Boost.Move</a> library. If rvalue references
+      are available <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      will use them, but if not it uses a close, but imperfect emulation. On such
+      compilers:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Non-copyable objects can be stored in the containers. They can be constructed
+          in place using <code class="computeroutput"><span class="identifier">emplace</span></code>,
+          or if they support Boost.Move, moved into place.
+        </li>
+<li class="listitem">
+          The containers themselves are not movable.
+        </li>
+<li class="listitem">
+          Argument forwarding is not perfect.
+        </li>
+</ul></div>
+<p>
+      <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> will use
+      rvalues and move emulations for value types only if move constructor and move
+      assignment operator of the value type do not throw; or if the value type has
+      no copy constructor.
+    </p>
+<p>
+      Some methods won't use move constructor for the value type at all, if the constructor
+      throws. This is required for data consistency and avoidance of situations,
+      when aftrer an exception <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      contains moved away objects along with the good ones.
+    </p>
+<p>
+      See documentation for <a href="../../../libs/type_traits/doc/html/boost_typetraits/reference/is_copy_constructible.html" target="_top"><code class="computeroutput"><span class="identifier">is_copy_constructible</span></code></a>, <a href="../../../libs/type_traits/doc/html/boost_typetraits/reference/is_nothrow_move_assignable.html" target="_top"><code class="computeroutput"><span class="identifier">is_nothrow_move_assignable</span></code></a> and <a href="../../../libs/type_traits/doc/html/boost_typetraits/reference/is_nothrow_move_constructible.html" target="_top"><code class="computeroutput"><span class="identifier">is_nothrow_move_constructible</span></code></a> type
+      triats. There you'll find information about how to make constructor of class
+      noexcept and how to make a non-copyable class in C++03 and C++98.
+    </p>
+<p>
+      Performance of <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      will <span class="bold"><strong>greatly improve</strong></span> if value type has noexcept
+      move constructor and noexcept move assignment.
+    </p>
+<h4>
+<a name="circular_buffer.implementation.h6"></a>
+      <span class="phrase"><a name="circular_buffer.implementation.exceptions_of_move_if_noexcept_t"></a></span><a class="link" href="implementation.html#circular_buffer.implementation.exceptions_of_move_if_noexcept_t">Exceptions
+      of move_if_noexcept(T&amp;)</a>
+    </h4>
+<p>
+      Reference documentation of the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      contains notes like "Throws: See Exceptions of <code class="computeroutput"><span class="identifier">move_if_noexcept</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;)</span></code>".
+      That note means the following: <code class="computeroutput"><span class="identifier">move_if_noexcept</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span>
+      <span class="identifier">value</span><span class="special">)</span></code>
+      does not throws exceptions at all, but it returns <code class="computeroutput"><span class="identifier">value</span></code>
+      as rvalue reference only if class <code class="computeroutput"><span class="identifier">T</span></code>
+      have noexcept move constructor and noexcept move assignment operator; or if
+      it has no copy constructor. Otherwise <code class="computeroutput"><span class="identifier">move_if_noexcept</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span>
+      <span class="identifier">value</span><span class="special">)</span></code>
+      returns <code class="computeroutput"><span class="identifier">value</span></code> as const reference.
+    </p>
+<p>
+      This leads us to the following situation:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          If <code class="computeroutput"><span class="identifier">value</span></code> has a noexcept
+          move constructor and noexcept move assignment operator, then no exceptions
+          will be thrown at all.
+        </li>
+<li class="listitem">
+          If <code class="computeroutput"><span class="identifier">value</span></code> has a throwing
+          move constructor and some copy constructor, then method may throw exceptions
+          of copy constructor.
+        </li>
+<li class="listitem">
+          If <code class="computeroutput"><span class="identifier">value</span></code> has no copy constructor,
+          then method may throw exceptions of move constructor.
+        </li>
+</ul></div>
+<p>
+      <code class="computeroutput"><span class="identifier">move_if_noexcept</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;)</span></code> uses
+      <a href="../../../libs/move/index.html" target="_top">Boost.Move</a>, <a href="../../../libs/type_traits/doc/html/boost_typetraits/reference/is_copy_constructible.html" target="_top"><code class="computeroutput"><span class="identifier">is_copy_constructible</span></code></a>, <a href="../../../libs/type_traits/doc/html/boost_typetraits/reference/is_nothrow_move_assignable.html" target="_top"><code class="computeroutput"><span class="identifier">is_nothrow_move_assignable</span></code></a> and <a href="../../../libs/type_traits/doc/html/boost_typetraits/reference/is_nothrow_move_constructible.html" target="_top"><code class="computeroutput"><span class="identifier">is_nothrow_move_constructible</span></code></a> type
+      triats.
+    </p>
+<h4>
+<a name="circular_buffer.implementation.h7"></a>
+      <span class="phrase"><a name="circular_buffer.implementation.caveats"></a></span><a class="link" href="implementation.html#circular_buffer.implementation.caveats">Caveats</a>
+    </h4>
+<p>
+      The <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> should
+      not be used for storing pointers to dynamically allocated objects. When a circular
+      buffer becomes full, further insertion will overwrite the stored pointers -
+      resulting in a <span class="bold"><strong>memory leak</strong></span>. One recommend
+      alternative is the use of smart pointers, for example <a href="http://www.boost.org/doc/libs/1_53_0/libs/smart_ptr/smart_ptr.htm" target="_top">Boost
+      Smart pointers</a>.
+    </p>
+<p>
+      <a href="http://en.wikipedia.org/wiki/Std::auto_ptr" target="_top">std::auto_ptr</a>
+    </p>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../doc/src/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Any container of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">auto_ptr</span></code> is considered particularly hazardous.
+      </p></td></tr>
+</table></div>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Never create a circular buffer of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">auto_ptr</span></code>.
+        Refer to Scott Meyers' excellent book Effective STL for a detailed discussion.
+        (Meyers S., Effective STL: 50 Specific Ways to Improve Your Use of the Standard
+        Template Library. Addison-Wesley, 2001.)
+      </p></td></tr>
+</table></div>
+<p>
+      While internals of a <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      are circular, <span class="bold"><strong>iterators are not</strong></span>. Iterators
+      of a <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> are
+      only valid for the range <code class="computeroutput"><span class="special">\[</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">end</span><span class="special">()\]</span></code>,
+      so for example: iterators <code class="computeroutput"><span class="special">(</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">-</span> <span class="number">1</span><span class="special">)</span></code> and <code class="computeroutput"><span class="special">(</span><span class="identifier">end</span><span class="special">()</span> <span class="special">+</span>
+      <span class="number">1</span><span class="special">)</span></code> are
+      both invalid.
+    </p>
+<h4>
+<a name="circular_buffer.implementation.h8"></a>
+      <span class="phrase"><a name="circular_buffer.implementation.debug_support"></a></span><a class="link" href="implementation.html#circular_buffer.implementation.debug_support">Debug
+      Support</a>
+    </h4>
+<p>
+      In order to help a programmer to avoid and find common bugs, the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> contains a kind of
+      debug support.
+    </p>
+<p>
+      The <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> maintains
+      a list of valid iterators. As soon as any element gets destroyed all iterators
+      pointing to this element are removed from this list and explicitly invalidated
+      (an invalidation flag is set). The debug support also consists of many assertions
+      (<code class="computeroutput"><span class="identifier">BOOST_ASSERT</span></code> macros) which
+      ensure the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      and its iterators are used in the correct manner at runtime. In case an invalid
+      iterator is used, the assertion will report an error. The connection of explicit
+      iterator invalidation and assertions makes a very robust debug technique which
+      catches most of the errors.
+    </p>
+<p>
+      Moreover, the uninitialized memory allocated by <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      is filled with the value <code class="computeroutput"><span class="number">0xcc</span></code> in
+      the debug mode. When debugging the code, this can help the programmer to recognize
+      the initialized memory from the uninitialized. For details refer the source
+      code <a href="../../../boost/circular_buffer/debug.hpp" target="_top">circular_buffer/debug.hpp</a>.
+    </p>
+<p>
+      The debug support is enabled only in the debug mode (when the <code class="computeroutput"><span class="identifier">NDEBUG</span></code> is not defined). It can also be explicitly
+      disabled (only for <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>)
+      by defining macro BOOST_CB_DISABLE_DEBUG.
+    </p>
+<h4>
+<a name="circular_buffer.implementation.h9"></a>
+      <span class="phrase"><a name="circular_buffer.implementation.compatibility_with_interprocess_"></a></span><a class="link" href="implementation.html#circular_buffer.implementation.compatibility_with_interprocess_">Compatibility
+      with Interprocess library</a>
+    </h4>
+<p>
+      The <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> is
+      compatible with the <a href="../../../libs/interprocess/index.html" target="_top">Boost.Interprocess</a>
+      library used for interprocess communication. Considering that the circular_buffer's
+      debug support relies on 'raw' pointers (which is not permited by the Interprocess
+      library) the code has to compiled with <code class="computeroutput"><span class="special">-</span><span class="identifier">DBOOST_CB_DISABLE_DEBUG</span></code> or <code class="computeroutput"><span class="special">-</span><span class="identifier">DNDEBUG</span></code>
+      (which disables the Debug Support). Not doing that will cause the compilation
+      to fail.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Jan Gaspar<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rationale.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../circular_buffer.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="examples.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

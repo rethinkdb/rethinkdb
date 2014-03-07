@@ -1,0 +1,41 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:replace_if replace_if]
+
+[heading Prototype]
+
+``
+template<class ForwardRange, class UnaryPredicate, class Value>
+ForwardRange& replace_if(ForwardRange& rng, UnaryPredicate pred, const Value& with_what);
+
+template<class ForwardRange, class UnaryPredicate, class Value>
+const ForwardRange& replace_if(const ForwardRange& rng, UnaryPredicate pred, const Value& with_what);
+``
+
+[heading Description]
+
+`replace_if` replaces every element `x` in `rng` for which `pred(x) == true` with `with_what`. Returns a reference to `rng`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/replace_if.hpp`
+
+[heading Requirements]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+* `UnaryPredicate` is a model of the `PredicateConcept`
+* `ForwardRange`'s value type is convertible to `UnaryPredicate`'s argument type.
+* `Value` is convertible to `ForwardRange`'s value type.
+* `Value` is a model of the `AssignableConcept`.
+
+[heading Complexity]
+
+Linear. `replace_if` performs exactly `distance(rng)` applications of `pred`, and at most `distance(rng)` assignments.
+
+[endsect]
+
+

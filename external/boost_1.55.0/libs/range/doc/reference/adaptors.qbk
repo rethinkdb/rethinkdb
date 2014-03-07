@@ -1,0 +1,187 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:adaptors Range Adaptors]
+
+[section:introduction Introduction and motivation]
+
+A [*Range Adaptor] is a class that wraps an existing Range to provide a new Range with different behaviour. Since the behaviour of Ranges is determined by their associated iterators, a Range Adaptor simply wraps the underlying iterators with new special iterators. In this example
+
+``
+#include <boost/range/adaptors.hpp>
+#include <boost/range/algorithm.hpp>
+#include <iostream>
+#include <vector>
+
+std::vector<int> vec;
+boost::copy( vec | boost::adaptors::reversed,
+             std::ostream_iterator<int>(std::cout) );
+``
+
+the iterators from `vec` are wrapped `reverse_iterator`s. The type of the underlying Range Adapter is not documented because you do not need to know it. All that is relevant is that the expression
+
+``
+vec | boost::adaptors::reversed
+``
+
+returns a Range Adaptor where the iterator type is now the iterator type of the range `vec` wrapped in `reverse_iterator`. The expression `boost::adaptors::reversed` is called an *Adaptor Generator*.
+
+There are two ways of constructing a range adaptor. The first is by using `operator|()`. This is my preferred technique, however while discussing range adaptors with others it became clear that some users of the library strongly prefer a more familiar function syntax, so equivalent functions of the present tense form have been added as an alternative syntax. The equivalent to `rng | reversed` is `adaptors::reverse(rng)` for example.
+
+Why do I prefer the `operator|` syntax? The answer is readability:
+
+``
+std::vector<int> vec;
+boost::copy( boost::adaptors::reverse(vec),
+             std::ostream_iterator<int>(std::cout) );
+``
+
+This might not look so bad, but when we apply several adaptors, it becomes much worse. Just compare
+
+``
+std::vector<int> vec;
+boost::copy( boost::adaptors::unique( boost::adaptors::reverse( vec ) ),
+             std::ostream_iterator<int>(std::cout) );
+``
+
+to
+
+``
+std::vector<int> vec;
+boost::copy( vec | boost::adaptors::reversed
+                 | boost::adaptors::uniqued,
+             std::ostream_iterator<int>(std::cout) );
+``
+
+Furthermore, some of the adaptor generators take arguments themselves and these arguments are expressed with function call notation too. In those situations, you will really appreciate the succinctness of `operator|()`.
+
+[heading Composition of Adaptors]
+
+Range Adaptors are a powerful complement to Range algorithms. The reason is that adaptors are ['*orthogonal*] to algorithms. For example, consider these Range algorithms:
+
+* `boost::copy( rng, out )`
+* `boost::count( rng, pred )`
+
+What should we do if we only want to copy an element `a` if it satisfies some predicate, say `pred(a)`? And what if we only want to count the elements that satisfy the same predicate? The naive answer would be to use these algorithms:
+
+* `boost::copy_if( rng, pred, out )`
+* `boost::count_if( rng, pred )`
+
+These algorithms are only defined to maintain a one to one relationship with the standard library algorithms. This approach of adding algorithm suffers a combinatorial explosion. Inevitably many algorithms are missing `_if` variants and there is redundant development overhead for each new algorithm. The Adaptor Generator is the design solution to this problem.
+
+[heading Range Adaptor alternative to copy_if algorithm]
+``
+boost::copy_if( rng, pred, out );
+``
+can be expressed as
+``
+boost::copy( rng | boost::adaptors::filtered(pred), out );
+``
+
+[heading Range Adaptor alternative to count_if algorithm]
+``
+boost::count_if( rng, pred );
+``
+can be expressed as
+``
+boost::count( rng | boost::adaptors::filtered(pred), out );
+``
+
+What this means is that ['*no*] algorithm with the `_if` suffix is needed. Furthermore, it turns out that algorithms with the `_copy` suffix are not needed either. Consider the somewhat misdesigned `replace_copy_if()` which may be used as
+
+``
+std::vector<int> vec;
+boost::replace_copy_if( rng, std::back_inserter(vec), pred, new_value );
+``
+
+With adaptors and algorithms we can express this as
+
+``
+std::vector<int> vec;
+boost::push_back(vec, rng | boost::adaptors::replaced_if(pred, new_value));
+``
+
+The latter code has several benefits:
+
+1. it is more ['*efficient*] because we avoid extra allocations as might happen with `std::back_inserter`
+
+2. it is ['*flexible*] as we can subsequently apply even more adaptors, for example: ``
+boost::push_back(vec, rng | boost::adaptors::replaced_if(pred, new_value)
+                          | boost::adaptors::reversed);
+``
+
+3. it is ['*safer*] because there is no use of an unbounded output iterator.
+
+In this manner, the ['*composition*] of Range Adaptors has the following consequences:
+
+1. we no longer need `_if`, `_copy`, `_copy_if` and `_n` variants of algorithms.
+
+2. we can generate a multitude of new algorithms on the fly, for example, above we generated `reverse_replace_copy_if()`
+
+In other words:
+
+[*Range Adaptors are to algorithms what algorithms are to containers]
+
+[endsect]
+
+[section:general_requirements General Requirements]
+
+In the description of generator expressions, the following notation is used:
+
+* `fwdRng` is an expression of a type `R` that models `ForwardRange`
+* `biRng` is an expression of a type `R` that models `BidirectionalRange`
+* `rndRng` is an expression of a type `R` that models `RandomAccessRange`
+* `pred` is an expression of a type that models `UnaryPredicate`
+* `bi_pred` is an expression of a type that models `BinaryPredicate`
+* `fun` is an expression of a type that models `UnaryFunction`
+* `value`, `new_value` and `old_value` are objects convertible to `boost::range_value<R>::type`
+* `n,m` are integer expressions convertible to `range_difference<R>::type`
+
+Also note that `boost::range_value<R>::type` must be implicitly convertible to the type arguments to `pred`, `bi_pred` and `fun`.
+
+Range Category in the following adaptor descriptions refers to the minimum range concept required by the range passed to the adaptor. The resultant range is a model of the same range concept as the input range unless specified otherwise.
+
+Returned Range Category is the concept of the returned range. In some cases the returned range is of a lesser category than the range passed to the adaptor. For example, the `filtered` adaptor returns only a `ForwardRange` regardless of the input.
+
+Furthermore, the following rules apply to any expression of the form
+``
+rng | boost::adaptors::adaptor_generator
+``
+
+1. Applying `operator|()` to a range `R` (always left argument) and a range adapter `RA` (always right argument) yields a new range type which may not conform to the same range concept as `R`.
+
+2. The return-type of `operator|()` is otherwise unspecified.
+
+3. `operator|()` is found by Argument Dependent Lookup (ADL) because a range adaptor is implemented in namespace `boost::adaptors`.
+
+4. `operator|()` is used to add new behaviour ['*lazily*] and never modifies its left argument.
+
+5. All iterators extracted from the left argument are extracted using qualified calls to `boost::begin()` and `boost::end()`.
+
+6. In addition to the `throw`-clauses below, `operator|()` may throw exceptions as a result of copying iterators. If such copying cannot throw an exception, then neither can the whole expression.
+
+[endsect]
+
+[section:reference Reference]
+[include adaptors/adjacent_filtered.qbk]
+[include adaptors/copied.qbk]
+[include adaptors/filtered.qbk]
+[include adaptors/indexed.qbk]
+[include adaptors/indirected.qbk]
+[include adaptors/map_keys.qbk]
+[include adaptors/map_values.qbk]
+[include adaptors/replaced.qbk]
+[include adaptors/replaced_if.qbk]
+[include adaptors/reversed.qbk]
+[include adaptors/sliced.qbk]
+[include adaptors/strided.qbk]
+[include adaptors/type_erased.qbk]
+[include adaptors/tokenized.qbk]
+[include adaptors/transformed.qbk]
+[include adaptors/uniqued.qbk]
+[endsect]
+
+[endsect]
+

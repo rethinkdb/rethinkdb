@@ -1,0 +1,987 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>boost::geometry::index::rtree</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../spatial_indexes.html" title="Spatial Indexes">
+<link rel="prev" href="../spatial_indexes.html" title="Spatial Indexes">
+<link rel="next" href="boost__geometry__index__rtree/rtree__.html" title="rtree()">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../spatial_indexes.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../spatial_indexes.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost__geometry__index__rtree/rtree__.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree"></a><a name="classboost_1_1geometry_1_1index_1_1rtree"></a><a class="link" href="boost__geometry__index__rtree.html" title="boost::geometry::index::rtree">boost::geometry::index::rtree</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="boost__geometry__index__rtree/rtree__.html">rtree()</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/rtree_parameters_type_const____indexable_getter_const____value_equal_const____allocator_type_const___.html">rtree(parameters_type
+          const &amp;, indexable_getter const &amp;, value_equal const &amp;, allocator_type
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/rtree_iterator__iterator_.html">rtree(Iterator,
+          Iterator)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/rtree_range_const___.html">rtree(Range
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/_rtree__.html">~rtree()</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/rtree_rtree_const___.html">rtree(rtree
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/rtree_rtree_const____allocator_type_const___.html">rtree(rtree
+          const &amp;, allocator_type const &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/rtree_rtree____.html">rtree(rtree
+          &amp;&amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/rtree_rtree_____allocator_type_const___.html">rtree(rtree
+          &amp;&amp;, allocator_type const &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/operator__rtree_const___.html">operator=(rtree
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/operator__rtree____.html">operator=(rtree
+          &amp;&amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/swap_rtree___.html">swap(rtree
+          &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/insert_value_type_const___.html">insert(value_type
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/insert_iterator__iterator_.html">insert(Iterator,
+          Iterator)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/insert_range_const___.html">insert(Range
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/remove_value_type_const___.html">remove(value_type
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/remove_iterator__iterator_.html">remove(Iterator,
+          Iterator)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/remove_range_const___.html">remove(Range
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/query_predicates_const____outiter_.html">query(Predicates
+          const &amp;, OutIter)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/qbegin_predicates_const___.html">qbegin(Predicates
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/qend__.html">qend()</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/size__.html">size()</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/empty__.html">empty()</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/clear__.html">clear()</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/bounds__.html">bounds()</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/count_valueorindexable_const___.html">count(ValueOrIndexable
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/parameters__.html">parameters()</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/indexable_get__.html">indexable_get()</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/value_eq__.html">value_eq()</a></span></dt>
+<dt><span class="section"><a href="boost__geometry__index__rtree/get_allocator__.html">get_allocator()</a></span></dt>
+</dl></div>
+<p>
+          <a class="indexterm" name="idp60258584"></a><a class="indexterm" name="idp60258920"></a><a class="indexterm" name="idp60259256"></a><a class="indexterm" name="idp60259592"></a>
+The R-tree spatial index.
+        </p>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.h0"></a>
+          <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.description"></a></span><a class="link" href="boost__geometry__index__rtree.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.description">Description</a>
+        </h6>
+<p>
+          This is self-balancing spatial index capable to store various types of
+          Values and balancing algorithms.
+        </p>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.h1"></a>
+          <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.parameters"></a></span><a class="link" href="boost__geometry__index__rtree.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.parameters">Parameters</a>
+        </h6>
+<p>
+          The user must pass a type defining the Parameters which will be used in
+          rtree creation process. This type is used e.g. to specify balancing algorithm
+          with specific parameters like min and max number of elements in node.
+        </p>
+<p>
+          Predefined algorithms with compile-time parameters are:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="literal"><a class="link" href="parameters/boost__geometry__index__linear.html#structboost_1_1geometry_1_1index_1_1linear">boost::geometry::index::linear</a></code>,
+            </li>
+<li class="listitem">
+              <code class="literal"><a class="link" href="parameters/boost__geometry__index__quadratic.html#structboost_1_1geometry_1_1index_1_1quadratic">boost::geometry::index::quadratic</a></code>,
+            </li>
+<li class="listitem">
+              <code class="literal"><a class="link" href="parameters/boost__geometry__index__rstar.html#structboost_1_1geometry_1_1index_1_1rstar">boost::geometry::index::rstar</a></code>.
+            </li>
+</ul></div>
+<p>
+          Predefined algorithms with run-time parameters are:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="literal"><a class="link" href="parameters/boost__geometry__index__dynamic_linear.html#classboost_1_1geometry_1_1index_1_1dynamic__linear">boost::geometry::index::dynamic_linear</a></code>,
+            </li>
+<li class="listitem">
+              <code class="literal"><a class="link" href="parameters/boost__geometry__index__dynamic_quadratic.html#classboost_1_1geometry_1_1index_1_1dynamic__quadratic">boost::geometry::index::dynamic_quadratic</a></code>,
+            </li>
+<li class="listitem">
+              <code class="literal"><a class="link" href="parameters/boost__geometry__index__dynamic_rstar.html#classboost_1_1geometry_1_1index_1_1dynamic__rstar">boost::geometry::index::dynamic_rstar</a></code>.
+            </li>
+</ul></div>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.h2"></a>
+          <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.indexablegetter"></a></span><a class="link" href="boost__geometry__index__rtree.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.indexablegetter">IndexableGetter</a>
+        </h6>
+<p>
+          The object of IndexableGetter type translates from Value to Indexable each
+          time r-tree requires it. Which means that this operation is done for each
+          Value access. Therefore the IndexableGetter should return the Indexable
+          by const reference instead of a value. Default one can translate all types
+          adapted to Point or Box concepts (called Indexables). It also handles
+          <code class="literal"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">Indexable</span><span class="special">,</span>
+          <span class="identifier">T</span><span class="special">&gt;</span></code></code>
+          and <code class="literal"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="identifier">Indexable</span><span class="special">,</span>
+          <span class="special">...&gt;</span></code></code>. For example,
+          if <code class="literal"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">Box</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span></code></code>
+          is stored in the container, the default IndexableGetter translates from
+          <code class="literal"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">Box</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span></code></code>
+          to <code class="literal"><code class="computeroutput"><span class="identifier">Box</span> <span class="keyword">const</span><span class="special">&amp;</span></code></code>.
+        </p>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.h3"></a>
+          <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.equalto"></a></span><a class="link" href="boost__geometry__index__rtree.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.equalto">EqualTo</a>
+        </h6>
+<p>
+          The object of EqualTo type compares Values and returns <code class="literal"><code class="computeroutput"><span class="keyword">true</span></code></code> if they're equal. It's similar
+          to <code class="literal"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">equal_to</span><span class="special">&lt;&gt;</span></code></code>.
+          The default EqualTo returns the result of <code class="literal"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">equals</span><span class="special">()</span></code></code> for types adapted to some Geometry
+          concept defined in Boost.Geometry and the result of operator= for other
+          types. Components of Pairs and Tuples are compared left-to-right.
+        </p>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.h4"></a>
+          <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.header"></a></span><a class="link" href="boost__geometry__index__rtree.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.header">Header</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">index</span><span class="special">/</span><span class="identifier">rtree</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.h5"></a>
+          <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.synopsis"></a></span><a class="link" href="boost__geometry__index__rtree.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><code class="computeroutput"><span class="keyword">template</span><span class="special">&lt;</span></code><code class="computeroutput"><span class="keyword">typename</span> <span class="identifier">Value</span></code><code class="computeroutput"><span class="special">,</span></code>
+         <code class="computeroutput"><span class="keyword">typename</span> <span class="identifier">Parameters</span></code><code class="computeroutput"><span class="special">,</span></code>
+         <code class="computeroutput"><span class="keyword">typename</span> <span class="identifier">IndexableGetter</span></code> = <code class="literal"><a class="link" href="observers/boost__geometry__index__indexable.html#structboost_1_1geometry_1_1index_1_1indexable">index::indexable</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">Value</span><span class="special">&gt;</span></code><code class="computeroutput"><span class="special">,</span></code>
+         <code class="computeroutput"><span class="keyword">typename</span> <span class="identifier">EqualTo</span></code> = <code class="literal"><a class="link" href="observers/boost__geometry__index__equal_to.html#structboost_1_1geometry_1_1index_1_1equal__to">index::equal_to</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">Value</span><span class="special">&gt;</span></code><code class="computeroutput"><span class="special">,</span></code>
+         <code class="computeroutput"><span class="keyword">typename</span> <span class="identifier">Allocator</span></code> = <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span><span class="identifier">Value</span><span class="special">&gt;</span></code><code class="computeroutput"><span class="special">&gt;</span></code>
+<code class="computeroutput"><span class="keyword">class</span> <span class="identifier">rtree</span></code>
+<code class="computeroutput"><span class="special">{</span></code>
+<code class="computeroutput">  <span class="comment">// ...</span></code>
+<code class="computeroutput"><span class="special">};</span></code>
+</pre>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.h6"></a>
+          <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.template_parameter_s_"></a></span><a class="link" href="boost__geometry__index__rtree.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.template_parameter_s_">Template
+          parameter(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Value</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The type of objects stored in the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Parameters</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Compile-time parameters.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">IndexableGetter</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The function object extracting Indexable from Value.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">EqualTo</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The function object comparing objects of type Value.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Allocator</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The allocator used to allocate/deallocate memory, construct/destroy
+                    nodes and Values.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.h7"></a>
+          <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.typedef_s_"></a></span><a class="link" href="boost__geometry__index__rtree.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.typedef_s_">Typedef(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1a5761a41d87b93d4fd548ecb6600ae757"></a><code class="computeroutput"><span class="identifier">value_type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The type of Value stored in the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1a80db5532eb59f7a809bd44ded265eb17"></a><code class="computeroutput"><span class="identifier">parameters_type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    R-tree parameters type.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1a43a7adb311cafc08e23010ccb4e97fb5"></a><code class="computeroutput"><span class="identifier">indexable_getter</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The function object extracting Indexable from Value.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1ad8fe544de514014a1bd87ea1b881ff9b"></a><code class="computeroutput"><span class="identifier">value_equal</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The function object comparing objects of type Value.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1ab6618b5c7e88ed70533233fbac0f5b2e"></a><code class="computeroutput"><span class="identifier">allocator_type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The type of allocator used by the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1a28e88e55d260a454688fe1bd5e5af96b"></a><code class="computeroutput"><span class="identifier">indexable_type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The Indexable type to which Value is translated.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1a12e80f9da4c68e0e687f1c2012321147"></a><code class="computeroutput"><span class="identifier">bounds_type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The Box type used by the R-tree.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1a5301c3d7ee3589751579e0573a9e8165"></a><code class="computeroutput"><span class="identifier">reference</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Type of reference to Value.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1a615e622930be97ab1f3b8ceee641feaf"></a><code class="computeroutput"><span class="identifier">const_reference</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Type of reference to const Value.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1a762ced6b98d2cc6503e2b00549c6a89a"></a><code class="computeroutput"><span class="identifier">pointer</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Type of pointer to Value.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1abad30462044d5d8fb607c24a05e8c9c2"></a><code class="computeroutput"><span class="identifier">const_pointer</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Type of pointer to const Value.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1ac256168e9371a070515fc61f29c691ed"></a><code class="computeroutput"><span class="identifier">difference_type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Type of difference type.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1acc1f90d7b70afebc58107c523ece5cd5"></a><code class="computeroutput"><span class="identifier">size_type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Unsigned integral type used by the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a name="classboost_1_1geometry_1_1index_1_1rtree_1a83fce1047d890f327ea195ed252af176"></a><code class="computeroutput"><span class="identifier">const_query_iterator</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Type of const query iterator.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.h8"></a>
+          <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.constructor_s__and_destructor"></a></span><a class="link" href="boost__geometry__index__rtree.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.constructor_s__and_destructor">Constructor(s)
+          and destructor</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/rtree__.html#classboost_1_1geometry_1_1index_1_1rtree_1a55d5fd5d205df08db5267253689ccf0c"><code class="computeroutput"><span class="identifier">rtree</span><span class="special">()</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The constructor.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/rtree_parameters_type_const____indexable_getter_const____value_equal_const____allocator_type_const___.html#classboost_1_1geometry_1_1index_1_1rtree_1a1a6b696d4855cbf1866196fe058c3a87"><code class="computeroutput"><span class="identifier">rtree</span><span class="special">(</span><span class="identifier">parameters_type</span> <span class="keyword">const</span>
+                    <span class="special">&amp;,</span> <span class="identifier">indexable_getter</span>
+                    <span class="keyword">const</span> <span class="special">&amp;,</span>
+                    <span class="identifier">value_equal</span> <span class="keyword">const</span>
+                    <span class="special">&amp;,</span> <span class="identifier">allocator_type</span>
+                    <span class="keyword">const</span> <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The constructor.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/rtree_iterator__iterator_.html#classboost_1_1geometry_1_1index_1_1rtree_1a037f17d8a1dfa4a818ff471dec61c912"><code class="computeroutput"><span class="identifier">rtree</span><span class="special">(</span><span class="identifier">Iterator</span><span class="special">,</span>
+                    <span class="identifier">Iterator</span><span class="special">)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The constructor.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/rtree_range_const___.html#classboost_1_1geometry_1_1index_1_1rtree_1a7b96b715c52ddc13d7a81db344825848"><code class="computeroutput"><span class="identifier">rtree</span><span class="special">(</span><span class="identifier">Range</span> <span class="keyword">const</span>
+                    <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The constructor.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/_rtree__.html#classboost_1_1geometry_1_1index_1_1rtree_1af8db72811d2be53c409240204e63fb5a"><code class="computeroutput"><span class="special">~</span><span class="identifier">rtree</span><span class="special">()</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The destructor.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/rtree_rtree_const___.html#classboost_1_1geometry_1_1index_1_1rtree_1a826fc3236e181ad718d5283e95d7866f"><code class="computeroutput"><span class="identifier">rtree</span><span class="special">(</span><span class="identifier">rtree</span> <span class="keyword">const</span>
+                    <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The copy constructor.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/rtree_rtree_const____allocator_type_const___.html#classboost_1_1geometry_1_1index_1_1rtree_1a72b6b75e083eea2ed26f54d4a2265375"><code class="computeroutput"><span class="identifier">rtree</span><span class="special">(</span><span class="identifier">rtree</span> <span class="keyword">const</span>
+                    <span class="special">&amp;,</span> <span class="identifier">allocator_type</span>
+                    <span class="keyword">const</span> <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The copy constructor.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/rtree_rtree____.html#classboost_1_1geometry_1_1index_1_1rtree_1aa8b27db8cb783282ab5274e6769da26a"><code class="computeroutput"><span class="identifier">rtree</span><span class="special">(</span><span class="identifier">rtree</span> <span class="special">&amp;&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The moving constructor.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/rtree_rtree_____allocator_type_const___.html#classboost_1_1geometry_1_1index_1_1rtree_1a8508c4236d17ff39a1caef058aac8486"><code class="computeroutput"><span class="identifier">rtree</span><span class="special">(</span><span class="identifier">rtree</span> <span class="special">&amp;&amp;,</span>
+                    <span class="identifier">allocator_type</span> <span class="keyword">const</span>
+                    <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The moving constructor.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.h9"></a>
+          <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.member_s_"></a></span><a class="link" href="boost__geometry__index__rtree.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.member_s_">Member(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Modifier
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/operator__rtree_const___.html#classboost_1_1geometry_1_1index_1_1rtree_1ad0db5e9e41e1553f944b7e740dbbb883"><code class="computeroutput"><span class="keyword">operator</span><span class="special">=(</span><span class="identifier">rtree</span> <span class="keyword">const</span>
+                    <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The assignment operator.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/operator__rtree____.html#classboost_1_1geometry_1_1index_1_1rtree_1af0bf9622ed3e901580b73ed39b746fb7"><code class="computeroutput"><span class="keyword">operator</span><span class="special">=(</span><span class="identifier">rtree</span> <span class="special">&amp;&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The moving assignment.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/swap_rtree___.html#classboost_1_1geometry_1_1index_1_1rtree_1aedb719dfece91d298e9ee56878524c9b"><code class="computeroutput"><span class="identifier">swap</span><span class="special">(</span><span class="identifier">rtree</span> <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Swaps contents of two rtrees.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/insert_value_type_const___.html#classboost_1_1geometry_1_1index_1_1rtree_1ad47980467e66b8644df18a480dbf9d86"><code class="computeroutput"><span class="identifier">insert</span><span class="special">(</span><span class="identifier">value_type</span> <span class="keyword">const</span>
+                    <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Insert a value to the index.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/insert_iterator__iterator_.html#classboost_1_1geometry_1_1index_1_1rtree_1a60d4c8790fd8810ff8b57f049e6bed8d"><code class="computeroutput"><span class="identifier">insert</span><span class="special">(</span><span class="identifier">Iterator</span><span class="special">,</span>
+                    <span class="identifier">Iterator</span><span class="special">)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Insert a range of values to the index.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/insert_range_const___.html#classboost_1_1geometry_1_1index_1_1rtree_1a39be117f85cc9ebc508d8ecf77578329"><code class="computeroutput"><span class="identifier">insert</span><span class="special">(</span><span class="identifier">Range</span> <span class="keyword">const</span>
+                    <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Insert a range of values to the index.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/remove_value_type_const___.html#classboost_1_1geometry_1_1index_1_1rtree_1a1ce933b0b833faec5349bfc27bde15d4"><code class="computeroutput"><span class="identifier">remove</span><span class="special">(</span><span class="identifier">value_type</span> <span class="keyword">const</span>
+                    <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Remove a value from the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/remove_iterator__iterator_.html#classboost_1_1geometry_1_1index_1_1rtree_1aa97084231d17564a94f0142d095cecaa"><code class="computeroutput"><span class="identifier">remove</span><span class="special">(</span><span class="identifier">Iterator</span><span class="special">,</span>
+                    <span class="identifier">Iterator</span><span class="special">)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Remove a range of values from the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/remove_range_const___.html#classboost_1_1geometry_1_1index_1_1rtree_1a8a6460c186f595e91be69b1062ecae8b"><code class="computeroutput"><span class="identifier">remove</span><span class="special">(</span><span class="identifier">Range</span> <span class="keyword">const</span>
+                    <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Remove a range of values from the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/query_predicates_const____outiter_.html#classboost_1_1geometry_1_1index_1_1rtree_1a7baa88eb4e7a5c640ab847513de45b3e"><code class="computeroutput"><span class="identifier">query</span><span class="special">(</span><span class="identifier">Predicates</span> <span class="keyword">const</span>
+                    <span class="special">&amp;,</span> <span class="identifier">OutIter</span><span class="special">)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Finds values meeting passed predicates e.g. nearest to some Point
+                    and/or intersecting some Box.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/qbegin_predicates_const___.html#classboost_1_1geometry_1_1index_1_1rtree_1a63d15f3b5b157a47045fcac3fec3b7a0"><code class="computeroutput"><span class="identifier">qbegin</span><span class="special">(</span><span class="identifier">Predicates</span> <span class="keyword">const</span>
+                    <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the query iterator pointing at the begin of the query
+                    range.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/qend__.html#classboost_1_1geometry_1_1index_1_1rtree_1af3b16f4732fa8113c0b2187005182513"><code class="computeroutput"><span class="identifier">qend</span><span class="special">()</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the query iterator pointing at the end of the query range.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/size__.html#classboost_1_1geometry_1_1index_1_1rtree_1ac9f152c8c96525e3735b81635d8171b1"><code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the number of stored values.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/empty__.html#classboost_1_1geometry_1_1index_1_1rtree_1aa5302ce1c26105d722aac20793e83f0e"><code class="computeroutput"><span class="identifier">empty</span><span class="special">()</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Query if the container is empty.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/clear__.html#classboost_1_1geometry_1_1index_1_1rtree_1a1bec40977c175983f585c4488cf8fe3c"><code class="computeroutput"><span class="identifier">clear</span><span class="special">()</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Removes all values stored in the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/bounds__.html#classboost_1_1geometry_1_1index_1_1rtree_1a0dad06d0f117f45ed54b5c123cb41d6e"><code class="computeroutput"><span class="identifier">bounds</span><span class="special">()</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the box able to contain all values stored in the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/count_valueorindexable_const___.html#classboost_1_1geometry_1_1index_1_1rtree_1aaa834c241c191ac9de67f134564f36fa"><code class="computeroutput"><span class="identifier">count</span><span class="special">(</span><span class="identifier">ValueOrIndexable</span> <span class="keyword">const</span>
+                    <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Count Values or Indexables stored in the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/parameters__.html#classboost_1_1geometry_1_1index_1_1rtree_1a9076baef90a3a9c6018871fa25115a73"><code class="computeroutput"><span class="identifier">parameters</span><span class="special">()</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns parameters.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/indexable_get__.html#classboost_1_1geometry_1_1index_1_1rtree_1af391fd642a218c5fb10fc68d643a62b5"><code class="computeroutput"><span class="identifier">indexable_get</span><span class="special">()</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns function retrieving Indexable from Value.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/value_eq__.html#classboost_1_1geometry_1_1index_1_1rtree_1a16424563d0973960ac01f7a1969eeebe"><code class="computeroutput"><span class="identifier">value_eq</span><span class="special">()</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns function comparing Values.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="boost__geometry__index__rtree/get_allocator__.html#classboost_1_1geometry_1_1index_1_1rtree_1a17d9cef211feb7f674a5b4602f4cc81e"><code class="computeroutput"><span class="identifier">get_allocator</span><span class="special">()</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns allocator used by the rtree.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../spatial_indexes.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../spatial_indexes.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost__geometry__index__rtree/rtree__.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

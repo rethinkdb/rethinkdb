@@ -1,0 +1,171 @@
+# Copyright 2001, 2002, 2003, 2005 Dave Abrahams
+# Copyright 2006 Rene Rivera
+# Copyright 2003, 2005 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+import modules ;
+import string ;
+
+
+# Return the value(s) of the given environment variable(s) at the time bjam was
+# invoked.
+rule environ ( variable-names + )
+{
+    return [ modules.peek .ENVIRON : $(variable-names) ] ;
+}
+
+.name = [ modules.peek : OS ] ;
+.platform = [ modules.peek : OSPLAT ] ;
+.version = [ modules.peek : OSVER ] ;
+
+
+local rule constant ( c : os ? )
+{
+    os ?= $(.name) ;
+    # First look for a platform-specific name, then the general value.
+    local variables = .$(c)-$(os) .$(c) ;
+    local result = $($(variables)) ;
+    return $(result[1]) ;
+}
+
+rule get-constant ( os ? )
+{
+    # Find the name of the constant being accessed, which is equal to the name
+    # used to invoke us.
+    local bt = [ BACKTRACE 1 ] ;
+    local rulename = [ MATCH ([^.]*)$ : $(bt[4]) ] ;
+    return [ constant $(rulename) : $(os) ] ;
+}
+
+
+# export all the common constants
+.constants = name platform version shared-library-path-variable path-separator executable-path-variable executable-suffix ;
+for local constant in $(.constants)
+{
+    IMPORT $(__name__) : get-constant : $(__name__) : $(constant) ;
+}
+EXPORT $(__name__) : $(.constants) ;
+
+.executable-path-variable-NT = PATH ;
+# On Windows the case and capitalization of PATH is not always predictable, so
+# let's find out what variable name was really set.
+if $(.name) = NT
+{
+    for local n in [ VARNAMES .ENVIRON ]
+    {
+        if $(n:L) = path
+        {
+            .executable-path-variable-NT = $(n) ;
+        }
+    }
+}
+
+# Specific constants for various platforms.  There's no need to define any
+# constant whose value would be the same as the default, below.
+.shared-library-path-variable-NT = $(.executable-path-variable-NT) ;
+.path-separator-NT = ";" ;
+.expand-variable-prefix-NT = % ;
+.expand-variable-suffix-NT = % ;
+.executable-suffix-NT = .exe ;
+
+.shared-library-path-variable-CYGWIN = PATH ;
+
+.shared-library-path-variable-MACOSX = DYLD_LIBRARY_PATH ;
+
+.shared-library-path-variable-AIX = LIBPATH ;
+
+# Default constants
+.shared-library-path-variable = LD_LIBRARY_PATH ;
+.path-separator = ":" ;
+.expand-variable-prefix = $ ;
+.expand-variable-suffix = "" ;
+.executable-path-variable = PATH ;
+.executable-suffix = "" ;
+
+
+# Return a list of the directories in the PATH. Yes, that information is (sort
+# of) available in the global module, but jam code can change those values, and
+# it isn't always clear what case/capitalization to use when looking. This rule
+# is a more reliable way to get there.
+rule executable-path ( )
+{
+    return [ string.words [ environ [ constant executable-path-variable ] ]
+        : [ constant path-separator ] ] ;
+}
+
+
+# Initialize the list of home directories for the current user depending on the
+# OS.
+if $(.name) = NT
+{
+    local home = [ environ HOMEDRIVE HOMEPATH ] ;
+    .home-directories = $(home[1])$(home[2]) [ environ HOME ] [ environ USERPROFILE ] ;
+}
+else
+{
+    .home-directories = [ environ HOME ] ;
+}
+
+
+# Can't use 'constant' mechanism because it only returns 1-element values.
+rule home-directories ( )
+{
+    return $(.home-directories) ;
+}
+
+
+# Return the string needed to represent the expansion of the named shell
+# variable.
+rule expand-variable ( variable )
+{
+    local prefix = [ constant expand-variable-prefix ] ;
+    local suffix = [ constant expand-variable-suffix ] ;
+    return $(prefix)$(variable)$(suffix) ;
+}
+
+
+# Returns true if running on windows, whether in cygwin or not.
+rule on-windows ( )
+{
+    local result ;
+    if [ modules.peek : NT ]
+    {
+        result = true ;
+    }
+    else if [ modules.peek : UNIX ]
+    {
+        switch [ modules.peek : JAMUNAME ]
+        {
+            case CYGWIN* :
+            {
+                result = true ;
+            }
+        }
+    }
+    return $(result) ;
+}
+
+
+if ! [ on-windows ]
+{
+    .on-unix = 1 ;
+}
+
+
+rule on-unix
+{
+    return $(.on-unix) ;
+}
+
+
+rule __test__
+{
+    import assert ;
+    if ! ( --quiet in [ modules.peek : ARGV ] )
+    {
+        ECHO os: name= [ name ] ;
+        ECHO os: version= [ version ] ;
+    }
+    assert.true name ;
+}

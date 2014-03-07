@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<section id="bbv2.reference.class.project-target">
+
+  <title>Class project-target</title>
+  <indexterm>
+    <primary>project-target</primary>
+  </indexterm>
+  
+<programlisting language="jam">
+class project-target : <link linkend="bbv2.reference.class.abstract-target">abstract-target</link> {
+    rule <link linkend="bbv2.reference.class.project-target.generate">generate</link> ( property-set )
+    rule <link linkend="bbv2.reference.class.project-target.build-dir">build-dir</link> ( )
+    rule <link linkend="bbv2.reference.class.project-target.main-target">main-target</link> ( name )
+    rule <link linkend="bbv2.reference.class.project-target.has-main-target">has-main-target</link> ( name )
+    rule <link linkend="bbv2.reference.class.project-target.find">find</link> ( id : no-error ? )
+
+    # Methods inherited from <link linkend="bbv2.reference.class.abstract-target">abstract-target</link>
+    rule <link linkend="bbv2.reference.class.abstract-target.name">name</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.project">project</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.location">location</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.full-name">full-name</link> ( )
+}
+</programlisting>
+
+  <para>
+    This class has the following responsibilities:
+    <itemizedlist>
+      <listitem>
+        <para>
+          Maintaining a list of main targets in this project and building them.
+        </para>
+      </listitem>
+    </itemizedlist>
+  </para>
+
+  <orderedlist>
+
+    <listitem id="bbv2.reference.class.project-target.generate">
+      <indexterm zone="bbv2.reference.class.project-target.generate">
+        <primary>generate</primary>
+        <secondary>Project Target</secondary>
+      </indexterm>
+      <code language="jam">rule generate ( property-set )</code>
+      <para>
+        Overrides
+        <link linkend="bbv2.reference.class.abstract-target.generate">abstract-target.generate</link>.
+
+        Generates virtual targets for all the targets contained in this project.
+      </para>
+      
+      <para>
+        On success, returns:
+        <itemizedlist>
+          <listitem>a property-set with the usage requirements to be applied to dependents</listitem>
+          <listitem>a list of produced virtual targets, which may be empty.</listitem>
+        </itemizedlist>
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.project-target.build-dir">
+      <indexterm zone="bbv2.reference.class.project-target.build-dir">
+        <primary>build-dir</primary>
+        <secondary>Project Target Method</secondary>
+      </indexterm>
+      <code language="jam">rule build-dir ( )</code>
+      <para>
+        Returns the root build directory of the project.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.project-target.main-target">
+      <indexterm zone="bbv2.reference.class.project-target.main-target">
+        <primary>main-target</primary>
+        <secondary>Project Target Method</secondary>
+      </indexterm>
+      <code language="jam">rule main-target ( name )</code>
+      <para>
+        Returns a <link linkend="bbv2.reference.class.main-target">main-target</link>
+        class instance corresponding to <literal>name</literal>.
+        Can only be called after the project has been fully loaded.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.project-target.has-main-target">
+      <indexterm zone="bbv2.reference.class.project-target.has-main-target">
+        <primary>has-main-target</primary>
+        <secondary>Project Target Method</secondary>
+      </indexterm>
+      <code language="jam">rule has-main-target ( name )</code>
+      <para>
+        Returns whether a <link linkend="bbv2.reference.class.main-target">main-target</link>
+        with the specified name exists.
+        Can only be called after the project has been fully loaded.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.class.project-target.find">
+      <indexterm zone="bbv2.reference.class.project-target.find">
+        <primary>find</primary>
+        <secondary>Project Target Method</secondary>
+      </indexterm>
+      <code language="jam">rule find ( id : no-error ? )</code>
+      <para>
+        Find and return the target with the specified id, treated relative to
+        self. Id may specify either a target or a file name with the target taking
+        priority. May report an error or return nothing if the target is not found
+        depending on the <literal>no-error</literal> parameter.
+      </para>
+    </listitem>
+
+    <!--
+    
+    I'm not sure whether these should be considered public interfaces.
+    Leave them out for now (SW):
+    
+    rule project-module ( )
+    rule get ( attribute )
+    
+    -->
+    
+    <!--
+    
+    The following are not documented because I consider them implementation details (SW):
+    
+    rule __init__ ( name : project-module parent-project ?
+        : requirements * : default-build * ) - invoked by the build system.
+    
+    rule targets-to-build ( ) - internal to project-target
+    rule mark-target-as-explicit ( target-name * ) - Implementation of explicit
+    rule mark-target-as-always ( target-name * ) - Implementation of always
+    rule add-alternative ( target-instance ) - Implementation of targets.main-target-alternative
+    rule find-really ( id ) - internal to project-target 
+    rule build-main-targets ( ) - internal to project-target
+    rule inherit ( parent ) - internal to project-target
+    rule add-constant ( name : value + : type ? ) - Implementation of constant/path-constant
+    
+    -->
+    
+  </orderedlist>
+  
+</section>

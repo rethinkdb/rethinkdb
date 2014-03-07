@@ -1,0 +1,117 @@
+# (C) Copyright David Abrahams 2001.
+# (C) Copyright MetaCommunications, Inc. 2004.
+
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# The following #// line will be used by the regression test table generation
+# program as the column heading for HTML tables. Must not include a version
+# number.
+#//<a href="http://www.comeaucomputing.com/">Comeau<br>C++</a>
+
+import common ;
+import como ;
+import feature ;
+import generators ;
+import toolset : flags ;
+
+feature.extend-subfeature toolset como : platform : win ;
+
+
+# Initializes the Comeau toolset for windows. The command is the command which
+# invokes the compiler. You should either set environment variable
+# COMO_XXX_INCLUDE where XXX is the used backend (as described in the
+# documentation), or pass that as part of command, e.g:
+#
+#   using como-win : 4.3 : "set COMO_BCC_INCLUDE=C:/include &&" como.exe ;
+#
+rule init ( version ? : command * : options * )
+{
+    local condition = [  common.check-init-parameters como-win
+        : version $(version) ] ;
+
+    command = [ common.get-invocation-command como-win : como.exe :
+        $(command) ] ;
+
+    common.handle-options como-win : $(condition) : $(command) : $(options) ;
+}
+
+generators.register-c-compiler como-win.compile.c++ : CPP : OBJ
+    : <toolset>como <toolset-como:platform>win ;
+generators.register-c-compiler como-win.compile.c : C : OBJ
+    : <toolset>como <toolset-como:platform>win ;
+
+
+generators.register-linker como-win.link
+    : OBJ SEARCHED_LIB STATIC_LIB IMPORT_LIB
+    : EXE
+    : <toolset>como <toolset-como:platform>win ;
+
+# Note that status of shared libraries support is not clear, so we do not define
+# the link.dll generator.
+generators.register-archiver como-win.archive
+    : OBJ : STATIC_LIB
+    : <toolset>como <toolset-como:platform>win ;
+
+
+flags como-win C++FLAGS <exception-handling>off : --no_exceptions ;
+flags como-win C++FLAGS <exception-handling>on : --exceptions ;
+
+flags como-win CFLAGS <inlining>off : --no_inlining ;
+flags como-win CFLAGS <inlining>on <inlining>full : --inlining ;
+
+
+# The following seems to be VC-specific options. At least, when I uncomment
+# then, Comeau with bcc as backend reports that bcc32 invocation failed.
+#
+#flags como-win CFLAGS <debug-symbols>on : /Zi ;
+#flags como-win CFLAGS <optimization>off : /Od ;
+
+
+flags como-win CFLAGS <cflags> ;
+flags como-win CFLAGS : -D_WIN32 ;  # Make sure that we get the Boost Win32 platform config header.
+flags como-win CFLAGS <threading>multi : -D_MT ;  # Make sure that our config knows that threading is on.
+flags como-win C++FLAGS <cxxflags> ;
+flags como-win DEFINES <define> ;
+flags como-win UNDEFS <undef> ;
+flags como-win HDRS <include> ;
+flags como-win SYSHDRS <sysinclude> ;
+flags como-win LINKFLAGS <linkflags> ;
+flags como-win ARFLAGS <arflags> ;
+flags como-win NO_WARN <no-warn> ;
+
+#flags como-win STDHDRS : $(COMO_INCLUDE_PATH) ;
+#flags como-win STDLIB_PATH : $(COMO_STDLIB_PATH)$(SLASH) ;
+
+flags como-win LIBPATH <library-path> ;
+flags como-win LIBRARIES <library-file> ;
+flags como-win FINDLIBS <find-shared-library> ;
+flags como-win FINDLIBS <find-static-library> ;
+
+nl = "
+" ;
+
+
+# For como, we repeat all libraries so that dependencies are always resolved.
+#
+actions link bind LIBRARIES
+{
+    $(CONFIG_COMMAND) --no_version --no_prelink_verbose $(LINKFLAGS) -o "$(<[1]:S=)" @"@($(<[1]:W).rsp:E=$(nl)"$(>)")" "$(LIBRARIES)" "$(FINDLIBS:S=.lib)"
+}
+
+actions compile.c
+{
+    $(CONFIG_COMMAND) -c --c99 -e5 --no_version --display_error_number --diag_suppress=9,21,161,748,940,962 -U$(UNDEFS) -D$(DEFINES) $(WARN) $(CFLAGS) -I"$(HDRS)" -I"$(STDHDRS)" -I"$(SYSHDRS)" -o "$(<:D=)" "$(>)"
+}
+
+actions compile.c++
+{
+    $(CONFIG_COMMAND) -c -e5 --no_version --no_prelink_verbose --display_error_number --long_long --diag_suppress=9,21,161,748,940,962 --diag_error=461 -D__STL_LONG_LONG -U$(UNDEFS) -D$(DEFINES) $(WARN) $(CFLAGS) $(C++FLAGS) -I"$(HDRS)" -I"$(STDHDRS)" -I"$(SYSHDRS)" -o "$(<)" "$(>)"
+}
+
+actions archive
+{
+    $(CONFIG_COMMAND) --no_version --no_prelink_verbose --prelink_object @"@($(<[1]:W).rsp:E=$(nl)"$(>)")"
+    lib $(ARFLAGS) /nologo /out:"$(<:S=.lib)" @"@($(<[1]:W).rsp:E=$(nl)"$(>)")"
+}

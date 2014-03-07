@@ -1,0 +1,124 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template literal</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.literal_hpp" title="Header &lt;boost/proto/literal.hpp&gt;">
+<link rel="prev" href="wants_basic_expr.html" title="Struct template wants_basic_expr">
+<link rel="next" href="lit.html" title="Function lit">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="wants_basic_expr.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.literal_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lit.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.literal"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template literal</span></h2>
+<p>boost::proto::literal &#8212; A simple wrapper for a terminal, provided for ease of use.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.literal_hpp" title="Header &lt;boost/proto/literal.hpp&gt;">boost/proto/literal.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> <a class="link" href="../../Domain.html" title="Concept Domain">Domain</a> <span class="special">=</span> <a class="link" href="default_domain.html" title="Struct default_domain">proto::default_domain</a><span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="literal.html" title="Struct template literal">literal</a> <span class="special">:</span> <span class="keyword"></span> 
+  <a class="link" href="extends.html" title="Struct template extends">proto::extends</a><span class="special">&lt;</span><a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr</a><span class="special">&lt;</span><a class="link" href="tag/terminal.html" title="Struct terminal">proto::tag::terminal</a><span class="special">,</span> <a class="link" href="term.html" title="Struct template term">proto::term</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">literal</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">Domain</span><span class="special">&gt;</span><span class="special">,</span> <span class="identifier">Domain</span><span class="special">&gt;</span>
+<span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr</a><span class="special">&lt;</span><a class="link" href="tag/terminal.html" title="Struct terminal">proto::tag::terminal</a><span class="special">,</span> <a class="link" href="term.html" title="Struct template term">proto::term</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <a name="boost.proto.literal.X"></a><span class="identifier">X</span><span class="special">;</span>                <span class="comment">// For exposition only</span>
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <a class="link" href="result_of/value.html" title="Struct template value">proto::result_of::value</a><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>                  <a name="boost.proto.literal.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <a class="link" href="result_of/value.html" title="Struct template value">proto::result_of::value</a><span class="special">&lt;</span><span class="identifier">X</span> <span class="special">&amp;</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>                <a name="boost.proto.literal.reference"></a><span class="identifier">reference</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <a class="link" href="result_of/value.html" title="Struct template value">proto::result_of::value</a><span class="special">&lt;</span><span class="identifier">X</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>          <a name="boost.proto.literal.const_reference"></a><span class="identifier">const_reference</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="literal.html#boost.proto.literalconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="literal.html#idp66885656-bb"><span class="identifier">literal</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> <a class="link" href="literal.html#idp66885800-bb"><span class="identifier">literal</span></a><span class="special">(</span><span class="identifier">U</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> <a class="link" href="literal.html#idp66887096-bb"><span class="identifier">literal</span></a><span class="special">(</span><span class="identifier">U</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> <a class="link" href="literal.html#idp66888392-bb"><span class="identifier">literal</span></a><span class="special">(</span><a class="link" href="literal.html" title="Struct template literal">proto::literal</a><span class="special">&lt;</span> <span class="identifier">U</span><span class="special">,</span> <span class="identifier">Domain</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="literal.html#idp66882840-bb">public member functions</a></span>
+  <span class="identifier">reference</span> <a class="link" href="literal.html#idp66883112-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_reference</span> <a class="link" href="literal.html#idp66884280-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp179235752"></a><h2>Description</h2>
+<p>
+            A simple wrapper for a terminal, provided for ease of use. In all cases,
+            <code class="computeroutput">proto::literal&lt;X&gt; l(x);</code> is equivalent to
+            <code class="computeroutput"><a class="link" href="terminal.html" title="Struct template terminal">proto::terminal</a>&lt;X&gt;::type l = {x};</code>.
+          </p>
+<p>
+            The <code class="computeroutput">Domain</code> template parameter defaults to
+            <code class="computeroutput"><a class="link" href="default_domain.html" title="Struct default_domain">proto::default_domain</a></code>.
+          </p>
+<div class="refsect2">
+<a name="idp179238728"></a><h3>
+<a name="boost.proto.literalconstruct-copy-destruct"></a><code class="computeroutput">literal</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><a name="idp66885656-bb"></a><span class="identifier">literal</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> <a name="idp66885800-bb"></a><span class="identifier">literal</span><span class="special">(</span><span class="identifier">U</span> <span class="special">&amp;</span> u<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> <a name="idp66887096-bb"></a><span class="identifier">literal</span><span class="special">(</span><span class="identifier">U</span> <span class="keyword">const</span> <span class="special">&amp;</span> u<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> <a name="idp66888392-bb"></a><span class="identifier">literal</span><span class="special">(</span><a class="link" href="literal.html" title="Struct template literal">proto::literal</a><span class="special">&lt;</span> <span class="identifier">U</span><span class="special">,</span> <span class="identifier">Domain</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> u<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp179254888"></a><h3>
+<a name="idp66882840-bb"></a><code class="computeroutput">literal</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">reference</span> <a name="idp66883112-bb"></a><span class="identifier">get</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><code class="computeroutput"><a class="link" href="value_idp68315448.html" title="Function value">proto::value</a>(*this)</code></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reference</span> <a name="idp66884280-bb"></a><span class="identifier">get</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><code class="computeroutput"><a class="link" href="value_idp68315448.html" title="Function value">proto::value</a>(*this)</code></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="wants_basic_expr.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.literal_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lit.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

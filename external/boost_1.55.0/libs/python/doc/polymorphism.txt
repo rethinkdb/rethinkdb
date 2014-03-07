@@ -1,0 +1,222 @@
+.. Copyright David Abrahams 2006. Distributed under the Boost
+.. Software License, Version 1.0. (See accompanying
+.. file LICENSE_1_0.txt or copy at
+.. http://www.boost.org/LICENSE_1_0.txt)
+
+How Runtime Polymorphism is expressed in Boost.Python:
+-----------------------------------------------------
+
+   struct A { virtual std::string f(); virtual ~A(); };
+
+   std::string call_f(A& x) { return x.f(); }
+
+   struct B { virtual std::string f() { return "B"; } };
+
+   struct Bcb : B
+   { 
+      Bcb(PyObject* self) : m_self(self) {}
+
+      virtual std::string f() { return call_method<std::string>(m_sef, "f"); }
+      static std::string f_default(B& b) { return b.B::f(); }
+
+      PyObject* m_self;
+   };
+
+   struct C : B
+   {
+      virtual std::string f() { return "C"; }
+   };
+
+   >>> class D(B):
+   ...     def f():
+   ...         return 'D'
+   ...
+   >>> class E(B): pass
+   ...
+
+
+When we write, "invokes B::f non-virtually", we mean:
+
+  void g(B& x) { x.B::f(); }
+
+This will call B::f() regardless of the dynamic type of x. Any other
+way of invoking B::f, including through a function pointer, is a
+"virtual invocation", and will call the most-derived override of f().
+
+Case studies
+
+   C++\Python class
+       \___A_____B_____C_____D____E___
+       |
+   A   |   1
+       |
+   B   |   2     3
+       |
+   Bcb |         4           5    6
+       |
+   C   |         7     8
+       |
+
+
+1. Simple case
+
+2. Python A holds a B*. Probably won't happen once we have forced
+   downcasting. 
+
+   Requires:
+         x.f() -> 'B'
+         call_f(x) -> 'B'
+
+   Implies: A.f invokes A::f() (virtually or otherwise)
+
+3. Python B holds a B*. 
+
+   Requires:
+        x.f() -> 'B'
+        call_f(x) -> 'B'
+   
+   Implies: B.f invokes B::f (virtually or otherwise)
+
+
+4. B constructed from Python
+
+   Requires:
+
+        x.f() -> 'B'
+        call_f(x) -> 'B'
+
+   Implies: B.f invokes B::f non-virtually. Bcb::f invokes B::f
+            non-virtually.
+
+   Question: Does it help if we arrange for Python B construction to
+   build a true B object? Then this case doesn't arise.
+
+
+5. D is a Python class derived from B
+
+   Requires:
+
+        x.f() -> 'D'
+        call_f(x) -> 'D'
+
+   Implies: Bcb::f must invoke call_method to look up the Python
+            method override, otherwise call_f wouldn't work.
+
+6. E is like D, but doesn't override f
+
+   Requires:
+
+        x.f() -> 'B'
+        call_f(x) -> 'B'
+
+   Implies: B.f invokes B::f non-virtually. If it were virtual, x.f()
+            would cause infinite recursion, because we've already
+            determined that Bcb::f must invoke call_method to look up
+            the Python method override.
+
+7. Python B object holds a C*
+
+   Requires:
+        
+        x.f() -> 'C'
+        call_f(x) -> 'C'
+
+   Implies: B.f invokes B::f virtually. 
+
+8. C object constructed from Python
+
+   Requires:
+
+        x.f() -> 'C'
+        call_f(x) -> 'C'
+
+   Implies: nothing new.
+
+------
+
+Total implications:
+
+2: A.f invokes A::f() (virtually or otherwise)
+3: B.f invokes B::f (virtually or otherwise)
+4: B.f invokes B::f non-virtually. Bcb::f invokes B::f non-virtually
+6: B.f invokes B::f non-virtually. 
+7: B.f invokes B::f virtually. 
+
+5: Bcb::f invokes call_method to look up the Python method
+
+Though (4) is avoidable, clearly 6 and 7 are not, and they
+conflict. The implication is that B.f must choose its behavior
+according to the type of the contained C++ object. If it is Bcb, a
+non-virtual call to B::f must occur. Otherwise, a virtual call to B::f
+must occur. This is essentially the same scheme we had with
+Boost.Python v1.
+
+Note: in early versions of Boost.Python v1, we solved this problem by
+introducing a new Python class in the hierarchy, so that D and E
+actually derive from a B', and B'.f invokes B::f non-virtually, while
+B.f invokes B::f virtually. However, people complained about the
+artificial class in the hierarchy, which was revealed when they tried
+to do normal kinds of Python introspection.
+
+-------
+
+Assumption: we will have a function which builds a virtual function
+dispatch callable Python object.
+
+     make_virtual_function(pvmf, default_impl, call_policies, dispatch_type)
+
+Pseudocode:
+
+     Get first argument from Python arg tuple
+     if it contains dispatch_type
+        call default_impl
+     else
+        call through pvmf
+
+
+Open questions:
+
+   1. What about Python multiple inheritance? Do we have the right
+      check in the if clause above?
+      
+      A: Not quite. The correct test looks like:
+
+      Deduce target type of pvmf, i.e. T in R(T::*)(A1...AN).
+      Find holder in first argument which holds T
+      if it holds dispatch_type...
+
+   2. Can we make this more efficient?
+     
+     The current "returning" mechanism will look up a holder for T
+     again. I don't know if we know how to avoid that.
+
+
+  OK, the solution involves reworking the call mechanism. This is
+  neccesary anyway in order to enable wrapping of function objects.
+
+  It can result in a reduction in the overall amount of source code,
+  because returning<> won't need to be specialized for every
+  combination of function and member function... though it will still
+  need a void specialization. We will still need a way to dispatch to
+  member functions through a regular function interface. mem_fn is
+  almost the right tool, but it only goes up to 8
+  arguments. Forwarding is tricky if you don't want to incur copies.
+  I think the trick is to use arg_from_python<T>::result_type for each
+  argument to the forwarder.
+
+  Another option would be to use separate function, function object,
+  and member function dispatchers. Once you know you have a member
+  function, you don't need cv-qualified overloads to call it.
+
+  Hmm, while we're at this, maybe we should solve the write-back
+  converter problem. Can we do it? Maybe not. Ralf doesn't want to
+  write special write-back functions here, does he? He wants the
+  converter to do the work automatically. We could add
+  cleanup/destructor registration. That would relieve the client from
+  having accessible destructors for types which are being converted by
+  rvalue. I'm not sure that this will really save any code,
+  however. It rather depends on the linker, doesn't it? I wonder if
+  this can be done in a backwards-compatible fashion by generating the
+  delete function when it's not supplied?
+
+  

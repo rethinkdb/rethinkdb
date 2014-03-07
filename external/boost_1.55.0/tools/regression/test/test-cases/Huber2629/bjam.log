@@ -1,0 +1,36 @@
+boost-test(RUN) "statechart/DllTestNative" : "libs/statechart/test/TuTestMain.cpp"
+boost-test(RUN) "statechart/DllTestNormal" : "libs/statechart/test/TuTestMain.cpp"
+
+compile-c-c++ ..\..\..\bin.v2\libs\statechart\test\DllTestNormal.test\msvc-7.1\debug\threading-multi\TuTestMain.obj
+TuTestMain.cpp
+c:\Users\Misha\Stuff\boost\HEAD\boost\libs\statechart\test\TuTest.hpp(36) : warning C4275: non dll-interface class 'boost::statechart::event_base' used as base for dll-interface class 'boost::statechart::detail::rtti_policy::rtti_derived_type<MostDerived,Base>'
+        with
+        [
+            MostDerived=EvX,
+            Base=boost::statechart::event_base
+        ]
+        ..\..\..\boost\statechart\event_base.hpp(49) : see declaration of 'boost::statechart::event_base'
+compile-c-c++ ..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLibTuTest.obj
+TuTest.cpp
+c:\Users\Misha\Stuff\boost\HEAD\boost\libs\statechart\test\TuTest.hpp(36) : warning C4275: non dll-interface class 'boost::statechart::event_base' used as base for dll-interface class 'boost::statechart::detail::rtti_policy::rtti_derived_type<MostDerived,Base>'
+        with
+        [
+            MostDerived=EvX,
+            Base=boost::statechart::event_base
+        ]
+        ..\..\..\boost\statechart\event_base.hpp(49) : see declaration of 'boost::statechart::event_base'
+msvc.link.dll ..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll ..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.lib
+   Creating library ..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.lib and object ..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.exp
+
+        call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  >nul
+link /NOLOGO /INCREMENTAL:NO /DLL /DEBUG /subsystem:console /out:"..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll" /IMPLIB:"..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.lib"    @"..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll.rsp"
+        if %errorlevel% 1 exit %errorlevel%
+        if exist "..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll.manifest" (
+            mt -nologo -manifest "..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll.manifest" "-outputresource:..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll;2"
+        )
+    
+...failed msvc.link.dll ..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll ..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.lib...
+...removing ..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.dll
+...removing ..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi\DllTestNormalLib-vc71-mt-gd-1_35.lib
+...skipped <p..\..\..\bin.v2\libs\statechart\test\DllTestNormal.test\msvc-7.1\debug\threading-multi>DllTestNormal.exe for lack of <p..\..\..\bin.v2\libs\statechart\test\msvc-7.1\debug\threading-multi>DllTestNormalLib-vc71-mt-gd-1_35.lib...
+...skipped <p..\..\..\bin.v2\libs\statechart\test\DllTestNormal.test\msvc-7.1\debug\threading-multi>DllTestNormal.run for lack of <p..\..\..\bin.v2\libs\statechart\test\DllTestNormal.test\msvc-7.1\debug\threading-multi>DllTestNormal.exe...

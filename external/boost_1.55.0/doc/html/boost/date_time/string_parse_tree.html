@@ -1,0 +1,117 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template string_parse_tree</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.string_parse_tree_hpp" title="Header &lt;boost/date_time/string_parse_tree.hpp&gt;">
+<link rel="prev" href="parse_match_result.html" title="Struct template parse_match_result">
+<link rel="next" href="gather_month_strings.html" title="Function template gather_month_strings">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="parse_match_result.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.string_parse_tree_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="gather_month_strings.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.string_parse_tree"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template string_parse_tree</span></h2>
+<p>boost::date_time::string_parse_tree &#8212; Recursive data structure to allow efficient parsing of various strings. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.string_parse_tree_hpp" title="Header &lt;boost/date_time/string_parse_tree.hpp&gt;">boost/date_time/string_parse_tree.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> charT<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="string_parse_tree.html" title="Struct template string_parse_tree">string_parse_tree</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">multimap</span><span class="special">&lt;</span> <span class="identifier">charT</span><span class="special">,</span> <a class="link" href="string_parse_tree.html" title="Struct template string_parse_tree">string_parse_tree</a><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <a name="boost.date_time.string_parse_tree.ptree_coll"></a><span class="identifier">ptree_coll</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">multimap</span><span class="special">&lt;</span> <span class="identifier">charT</span><span class="special">,</span> <a class="link" href="string_parse_tree.html" title="Struct template string_parse_tree">string_parse_tree</a> <span class="special">&gt;</span>          <a name="boost.date_time.string_parse_tree.ptree_coll"></a><span class="identifier">ptree_coll</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">ptree_coll</span><span class="special">::</span><span class="identifier">value_type</span>                             <a name="boost.date_time.string_parse_tree.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">ptree_coll</span><span class="special">::</span><span class="identifier">iterator</span>                               <a name="boost.date_time.string_parse_tree.iterator"></a><span class="identifier">iterator</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">ptree_coll</span><span class="special">::</span><span class="identifier">const_iterator</span>                         <a name="boost.date_time.string_parse_tree.const_iterator"></a><span class="identifier">const_iterator</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span>                         <a name="boost.date_time.string_parse_tree.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>            
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&gt;</span>          <a name="boost.date_time.string_parse_tree.collection_type"></a><span class="identifier">collection_type</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <a class="link" href="parse_match_result.html" title="Struct template parse_match_result">parse_match_result</a><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span>                        <a name="boost.date_time.string_parse_tree.parse_match_result_type"></a><span class="identifier">parse_match_result_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="string_parse_tree.html#boost.date_time.string_parse_treeconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="string_parse_tree.html#idp35032616-bb"><span class="identifier">string_parse_tree</span></a><span class="special">(</span><span class="identifier">collection_type</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="string_parse_tree.html#idp35033944-bb"><span class="identifier">string_parse_tree</span></a><span class="special">(</span><span class="keyword">short</span> <span class="special">=</span> <span class="special">-</span><span class="number">1</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="string_parse_tree.html#idp34617048-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="string_parse_tree.html#idp34617256-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">short</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">short</span> <a class="link" href="string_parse_tree.html#idp51783016-bb"><span class="identifier">match</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+              <span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <a class="link" href="string_parse_tree.html#boost.date_time.string_parse_tree.parse_match_result_type">parse_match_result_type</a> <span class="special">&amp;</span><span class="special">,</span> 
+              <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="string_parse_tree.html#boost.date_time.string_parse_tree.parse_match_result_type">parse_match_result_type</a> 
+  <a class="link" href="string_parse_tree.html#idp21621992-bb"><span class="identifier">match</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="string_parse_tree.html#idp35602312-bb"><span class="identifier">printme</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="string_parse_tree.html#idp54503640-bb"><span class="identifier">print</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="string_parse_tree.html#idp20106840-bb"><span class="identifier">printmatch</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">charT</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="identifier">ptree_coll</span> <span class="identifier">m_next_chars</span><span class="special">;</span>
+  <span class="keyword">short</span> <span class="identifier">m_value</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp89130872"></a><h2>Description</h2>
+<p>This class provides a quick lookup by building what amounts to a tree data structure. It also features a match function which can can handle nasty input interators by caching values as it recurses the tree so that it can backtrack as needed. </p>
+<div class="refsect2">
+<a name="idp89131464"></a><h3>
+<a name="boost.date_time.string_parse_treeconstruct-copy-destruct"></a><code class="computeroutput">string_parse_tree</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp35032616-bb"></a><span class="identifier">string_parse_tree</span><span class="special">(</span><span class="identifier">collection_type</span> names<span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> starting_point <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Parameter "starting_point" designates where the numbering begins. A starting_point of zero will start the numbering at zero (Sun=0, Mon=1, ...) were a starting_point of one starts the numbering at one (Jan=1, Feb=2, ...). The default is zero, negative vaules are not allowed </p>
+</li>
+<li class="listitem"><pre class="literallayout"><a name="idp35033944-bb"></a><span class="identifier">string_parse_tree</span><span class="special">(</span><span class="keyword">short</span> value <span class="special">=</span> <span class="special">-</span><span class="number">1</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp89139768"></a><h3>
+<a name="idp34617048-bb"></a><code class="computeroutput">string_parse_tree</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp34617256-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> s<span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">short</span> value<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">short</span> <a name="idp51783016-bb"></a><span class="identifier">match</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&amp;</span> sitr<span class="special">,</span> 
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&amp;</span> stream_end<span class="special">,</span> 
+            <a class="link" href="string_parse_tree.html#boost.date_time.string_parse_tree.parse_match_result_type">parse_match_result_type</a> <span class="special">&amp;</span> result<span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&amp;</span> level<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Recursive function that finds a matching string in the tree. <p>Must check match_results::has_remaining() after match() is called. This is required so the user can determine if stream iterator is already pointing to the expected character or not (match() might advance sitr to next char in stream).</p>
+<p>A <code class="computeroutput"><a class="link" href="parse_match_result.html" title="Struct template parse_match_result">parse_match_result</a></code> that has been returned from a failed match attempt can be sent in to the match function of a different <code class="computeroutput"><a class="link" href="string_parse_tree.html" title="Struct template string_parse_tree">string_parse_tree</a></code> to attempt a match there. Use the iterators for the partially consumed stream, the <code class="computeroutput"><a class="link" href="parse_match_result.html" title="Struct template parse_match_result">parse_match_result</a></code> object, and '0' for the level parameter. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="string_parse_tree.html#boost.date_time.string_parse_tree.parse_match_result_type">parse_match_result_type</a> 
+<a name="idp21621992-bb"></a><span class="identifier">match</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&amp;</span> sitr<span class="special">,</span> 
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&amp;</span> stream_end<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Must check match_results::has_remaining() after match() is called. This is required so the user can determine if stream iterator is already pointing to the expected character or not (match() might advance sitr to next char in stream). </p>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp35602312-bb"></a><span class="identifier">printme</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span> os<span class="special">,</span> <span class="keyword">int</span> <span class="special">&amp;</span> level<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp54503640-bb"></a><span class="identifier">print</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span> os<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp20106840-bb"></a><span class="identifier">printmatch</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span> os<span class="special">,</span> <span class="identifier">charT</span> c<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="parse_match_result.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.string_parse_tree_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="gather_month_strings.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

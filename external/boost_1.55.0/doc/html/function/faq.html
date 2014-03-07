@@ -1,0 +1,226 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Frequently Asked Questions</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../function.html" title="Chapter&#160;11.&#160;Boost.Function">
+<link rel="prev" href="../boost/function_equal.html" title="Function template function_equal">
+<link rel="next" href="misc.html" title="Miscellaneous Notes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/function_equal.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="misc.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="function.faq"></a>Frequently Asked Questions</h2></div></div></div>
+<div class="qandaset">
+<a name="idp97012408"></a><dl>
+<dt>1. <a href="faq.html#idp97012536">Why can't I compare
+    boost::function objects with
+    operator== or
+    operator!=?</a>
+</dt>
+<dt>2. <a href="faq.html#idp97033752">I see void pointers; is this [mess] type safe?</a>
+</dt>
+<dt>3. <a href="faq.html#idp97034984">Why are there workarounds for void returns? C++ allows them!</a>
+</dt>
+<dt>4. <a href="faq.html#idp97038072">Why (function) cloning?</a>
+</dt>
+<dt>5. <a href="faq.html#idp97039272">How much overhead does a call through boost::function incur?</a>
+</dt>
+</dl>
+<table border="0" style="width: 100%;">
+<colgroup>
+<col align="left" width="1%">
+<col>
+</colgroup>
+<tbody>
+<tr class="question">
+<td align="left" valign="top">
+<a name="idp97012536"></a><a name="idp97012664"></a><p><b>1.</b></p>
+</td>
+<td align="left" valign="top"><p>Why can't I compare
+    <code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">boost::function</a></code> objects with
+    <code class="computeroutput">operator==</code> or
+    <code class="computeroutput">operator!=</code>?</p></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top">
+<p>Comparison between <code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">boost::function</a></code>
+      objects cannot be implemented "well", and therefore will not be
+      implemented. The typical semantics requested for <code class="computeroutput">f ==
+      g</code> given <code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">boost::function</a></code> objects
+      <code class="computeroutput">f</code> and <code class="computeroutput">g</code> are:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">If <code class="computeroutput">f</code> and <code class="computeroutput">g</code>
+          store function objects of the same type, use that type's
+          <code class="computeroutput">operator==</code> to compare
+          them.</li>
+<li class="listitem">If <code class="computeroutput">f</code> and <code class="computeroutput">g</code>
+          store function objects of different types, return
+          <code class="computeroutput">false</code>.</li>
+</ul></div>
+<p>The problem occurs when the type of the function objects
+      stored by both <code class="computeroutput">f</code> and <code class="computeroutput">g</code> doesn't have an
+      <code class="computeroutput">operator==</code>: we would like the expression <code class="computeroutput">f ==
+      g</code> to fail to compile, as occurs with, e.g., the standard
+      containers. However, this is not implementable for
+      <code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">boost::function</a></code> because it necessarily
+      "erases" some type information after it has been assigned a
+      function object, so it cannot try to call
+      <code class="computeroutput">operator==</code> later: it must either find a way to call
+      <code class="computeroutput">operator==</code> now, or it will never be able to call it
+      later. Note, for instance, what happens if you try to put a
+      <code class="computeroutput">float</code> value into a
+      <code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">boost::function</a></code> object: you will get an
+      error at the assignment operator or constructor, not in
+      <code class="computeroutput">operator()</code>, because the function-call expression
+      must be bound in the constructor or assignment operator.</p>
+<p>The most promising approach is to find a method of
+      determining if <code class="computeroutput">operator==</code> can be called for a
+      particular type, and then supporting it only when it is
+      available; in other situations, an exception would be
+      thrown. However, to date there is no known way to detect if an
+      arbitrary operator expression <code class="computeroutput">f == g</code> is suitably
+      defined. The best solution known has the following undesirable
+      qualities:</p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">Fails at compile-time for objects where
+        <code class="computeroutput">operator==</code> is not accessible (e.g., because it is
+        <code class="computeroutput">private</code>).</li>
+<li class="listitem">Fails at compile-time if calling
+        <code class="computeroutput">operator==</code> is ambiguous.</li>
+<li class="listitem">Appears to be correct if the
+        <code class="computeroutput">operator==</code> declaration is correct, even though
+        <code class="computeroutput">operator==</code> may not compile.</li>
+</ol></div>
+<p>All of these problems translate into failures in the
+      <code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">boost::function</a></code> constructors or
+      assignment operator, <span class="emphasis"><em>even if the user never invokes
+      operator==</em></span>. We can't do that to users.</p>
+<p>The other option is to place the burden on users that want
+      to use <code class="computeroutput">operator==</code>, e.g., by providing an
+      <code class="computeroutput">is_equality_comparable</code> trait they may
+      specialize. This is a workable solution, but is dangerous in
+      practice, because forgetting to specialize the trait will result
+      in unexpected exceptions being thrown from
+      <code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">boost::function</a></code>'s
+      <code class="computeroutput">operator==</code>. This essentially negates the usefulness
+      of <code class="computeroutput">operator==</code> in the context in which it is most
+      desired: multitarget callbacks. The
+      <a class="link" href="../signals.html" title="Chapter&#160;27.&#160;Boost.Signals">Signals</a> library has a way around
+      this.</p>
+</td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="idp97033752"></a><a name="idp97033880"></a><p><b>2.</b></p>
+</td>
+<td align="left" valign="top"><p>I see void pointers; is this [mess] type safe?</p></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p>Yes, <code class="computeroutput">boost::function</code> is type
+safe even though it uses void pointers and pointers to functions
+returning void and taking no arguments. Essentially, all type
+information is encoded in the functions that manage and invoke
+function pointers and function objects. Only these functions are
+instantiated with the exact type that is pointed to by the void
+pointer or pointer to void function. The reason that both are required
+is that one may cast between void pointers and object pointers safely
+or between different types of function pointers (provided you don't
+invoke a function pointer with the wrong type).  </p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="idp97034984"></a><a name="idp97035112"></a><p><b>3.</b></p>
+</td>
+<td align="left" valign="top"><p>Why are there workarounds for void returns? C++ allows them!</p></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top">
+<p>Void returns are permitted by the C++ standard, as in this code snippet:
+</p>
+<pre class="programlisting">void f();
+void g() { return f(); }</pre>
+<p>
+    </p>
+<p> This is a valid usage of <code class="computeroutput">boost::function</code> because void returns are not used. With void returns, we would attempting to compile ill-formed code similar to:
+</p>
+<pre class="programlisting">int f();
+void g() { return f(); }</pre>
+<p>
+</p>
+<p> In essence, not using void returns allows
+<code class="computeroutput">boost::function</code> to swallow a return value. This is
+consistent with allowing the user to assign and invoke functions and
+function objects with parameters that don't exactly match.</p>
+</td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="idp97038072"></a><a name="idp97038200"></a><p><b>4.</b></p>
+</td>
+<td align="left" valign="top"><p>Why (function) cloning?</p></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p>In November and December of 2000, the issue of cloning
+      vs. reference counting was debated at length and it was decided
+      that cloning gave more predictable semantics. I won't rehash the
+      discussion here, but if it cloning is incorrect for a particular
+      application a reference-counting allocator could be used.</p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="idp97039272"></a><a name="idp97039400"></a><p><b>5.</b></p>
+</td>
+<td align="left" valign="top"><p>How much overhead does a call through <code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">boost::function</a></code> incur?</p></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top">
+<p>The cost of <code class="computeroutput">boost::function</code> can be reasonably
+      consistently measured at around 20ns +/- 10 ns on a modern &gt;2GHz
+      platform versus directly inlining the code.</p>
+<p>However, the performance of your application may benefit
+      from or be disadvantaged by <code class="computeroutput">boost::function</code>
+      depending on how your C++ optimiser optimises.  Similar to a
+      standard function pointer, differences of order of 10% have been
+      noted to the benefit or disadvantage of using
+      <code class="computeroutput">boost::function</code> to call a function that contains a
+      tight loop depending on your compilation circumstances.</p>
+<p>[Answer provided by Matt Hurd. See <a href="http://article.gmane.org/gmane.comp.lib.boost.devel/33278" target="_top">http://article.gmane.org/gmane.comp.lib.boost.devel/33278</a>]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: November 03, 2006 at 19:41:10 +0000</small></p></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/function_equal.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="misc.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

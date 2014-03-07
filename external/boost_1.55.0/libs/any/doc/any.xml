@@ -1,0 +1,567 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library name="Any" dirname="any" xmlns:xi="http://www.w3.org/2001/XInclude" 
+         id="any" last-revision="$Date: 2013-06-01 11:56:30 -0700 (Sat, 01 Jun 2013) $">
+  <libraryinfo>
+    <author>
+      <firstname>Kevlin</firstname>
+      <surname>Henney</surname>
+    </author>
+
+    <copyright>
+      <year>2001</year>
+      <holder>Kevlin Henney</holder>
+    </copyright>
+
+    <librarypurpose>
+      Safe, generic container for single values of different value types
+    </librarypurpose> 
+    <librarycategory name="category:data-structures"/>
+
+    <legalnotice>
+      <para>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <filename>LICENSE_1_0.txt</filename> or copy at 
+      <ulink
+      url="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</ulink>)
+      </para>
+    </legalnotice>
+  </libraryinfo>
+
+  <title>Boost.Any</title>
+
+  <section>
+    <title>Introduction</title>
+
+    <para>There are times when a generic (in the sense of
+    <emphasis>general</emphasis> as opposed to
+    <emphasis>template-based programming</emphasis>) type is needed:
+    variables that are truly variable, accommodating values of many
+    other more specific types rather than C++'s normal strict and
+    static types. We can distinguish three basic kinds of generic
+    type:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>Converting types that can hold one of a number of
+        possible value types, e.g. <code>int</code> and
+        <code>string</code>, and freely convert between them, for
+        instance interpreting <code>5</code> as <code>"5"</code> or
+        vice-versa.  Such types are common in scripting and other
+        interpreted
+        languages. 
+        <code><functionname>boost::lexical_cast</functionname></code>
+        supports such conversion functionality.</para>
+      </listitem>
+      <listitem>
+        <para>
+        Discriminated types that contain values of different types but
+        do not attempt conversion between them, i.e. <code>5</code> is
+        held strictly as an <code>int</code> and is not implicitly
+        convertible either to <code>"5"</code> or to
+        <code>5.0</code>. Their indifference to interpretation but
+        awareness of type effectively makes them safe, generic
+        containers of single values, with no scope for surprises from
+        ambiguous conversions.</para>
+      </listitem>
+      <listitem>
+        <para>
+        Indiscriminate types that can refer to anything but are
+        oblivious to the actual underlying type, entrusting all forms
+        of access and interpretation to the programmer. This niche is
+        dominated by <code>void *</code>, which offers plenty of scope
+        for surprising, undefined behavior.</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>The <code><classname>boost::any</classname></code> class
+    (based on the class of the same name described in <ulink
+    url="http://www.two-sdg.demon.co.uk/curbralan/papers/ValuedConversions.pdf">"Valued
+    Conversions"</ulink> by Kevlin Henney, <emphasis>C++
+    Report</emphasis> 12(7), July/August 2000) is a variant value type
+    based on the second category. It supports copying of any value
+    type and safe checked extraction of that value strictly against
+    its type. A similar design, offering more appropriate operators,
+    can be used for a generalized function adaptor,
+    <code>any_function</code>, a generalized iterator adaptor,
+    <code>any_iterator</code>, and other object types that need
+    uniform runtime treatment but support only compile-time template
+    parameter conformance.</para>
+  </section>
+
+  <section>
+    <title>Examples</title>
+
+    <using-namespace name="boost"/>
+    <using-class name="boost::any"/>
+
+    <para>The following code demonstrates the syntax for using
+    implicit conversions to and copying of any objects:</para>
+
+<programlisting name="any.example.first">
+#include &lt;list&gt;
+#include &lt;boost/any.hpp&gt;
+
+using <functionname>boost::any_cast</functionname>;
+typedef std::list&lt;<classname>boost::any</classname>&gt; many;
+
+void append_int(many &amp; values, int value)
+{
+    <classname>boost::any</classname> to_append = value;
+    values.push_back(to_append);
+}
+
+void append_string(many &amp; values, const std::string &amp; value)
+{
+    values.push_back(value);
+}
+
+void append_char_ptr(many &amp; values, const char * value)
+{
+    values.push_back(value);
+}
+
+void append_any(many &amp; values, const <classname>boost::any</classname> &amp; value)
+{
+    values.push_back(value);
+}
+
+void append_nothing(many &amp; values)
+{
+    values.push_back(<classname>boost::any</classname>());
+}
+</programlisting>
+
+    <para>The following predicates follow on from the previous
+    definitions and demonstrate the use of queries on any
+    objects:</para>
+
+<programlisting name="any.example.second">
+bool is_empty(const <classname>boost::any</classname> &amp; operand)
+{
+    return operand.<methodname>empty</methodname>();
+}
+
+bool is_int(const <classname>boost::any</classname> &amp; operand)
+{
+    return operand.<methodname>type</methodname>() == typeid(int);
+}
+
+bool is_char_ptr(const <classname>boost::any</classname> &amp; operand)
+{
+    try
+    {
+        <functionname>any_cast</functionname>&lt;const char *&gt;(operand);
+        return true;
+    }
+    catch(const <classname>boost::bad_any_cast</classname> &amp;)
+    {
+        return false;
+    }
+}
+
+bool is_string(const <classname>boost::any</classname> &amp; operand)
+{
+    return <functionname>any_cast</functionname>&lt;std::string&gt;(&amp;operand);
+}
+
+void count_all(many &amp; values, std::ostream &amp; out)
+{
+    out &lt;&lt; "#empty == "
+        &lt;&lt; std::count_if(values.begin(), values.end(), is_empty) &lt;&lt; std::endl;
+    out &lt;&lt; "#int == "
+        &lt;&lt; std::count_if(values.begin(), values.end(), is_int) &lt;&lt; std::endl;
+    out &lt;&lt; "#const char * == "
+        &lt;&lt; std::count_if(values.begin(), values.end(), is_char_ptr) &lt;&lt; std::endl;
+    out &lt;&lt; "#string == "
+        &lt;&lt; std::count_if(values.begin(), values.end(), is_string) &lt;&lt; std::endl;
+}
+</programlisting>
+
+    <para>The following type, patterned after the OMG's Property Service, defines name-value pairs for arbitrary value types:</para>
+
+<programlisting>
+struct property
+{
+    property();
+    property(const std::string &amp;, const <classname>boost::any</classname> &amp;);
+
+    std::string name;
+    <classname>boost::any</classname> value;
+};
+
+typedef std::list&lt;property&gt; properties;
+</programlisting>
+
+    <para>The following base class demonstrates one approach to
+    runtime polymorphism based callbacks that also require arbitrary
+    argument types. The absence of virtual member templates requires
+    that different solutions have different trade-offs in terms of
+    efficiency, safety, and generality. Using a checked variant type
+    offers one approach:</para>
+
+<programlisting>
+class consumer
+{
+public:
+    virtual void notify(const <classname>any</classname> &amp;) = 0;
+    ...
+};
+</programlisting>
+  </section>
+
+  <library-reference>
+    <section id="any.ValueType">
+      <title><emphasis>ValueType</emphasis> requirements</title>
+
+      <para>Values are strongly informational objects for which
+      identity is not significant, i.e. the focus is principally on
+      their state content and any behavior organized around
+      that. Another distinguishing feature of values is their
+      granularity: normally fine-grained objects representing simple
+      concepts in the system such as quantities.</para>
+
+      <para>As the emphasis of a value lies in its state not its
+      identity, values can be copied and typically assigned one to
+      another, requiring the explicit or implicit definition of a
+      public copy constructor and public assignment operator. Values
+      typically live within other scopes, i.e. within objects or
+      blocks, rather than on the heap. Values are therefore normally
+      passed around and manipulated directly as variables or through
+      references, but not as pointers that emphasize identity and
+      indirection.</para>
+
+      <para>The specific requirements on value types to be used in an
+      <code><classname alt="boost::any">any</classname></code>
+      are:</para>
+
+      <itemizedlist spacing="compact">
+        <listitem><simpara>A <emphasis>ValueType</emphasis> is
+          <emphasis>CopyConstructible</emphasis> [20.1.3].</simpara>
+        </listitem>
+        
+        <listitem><simpara>The destructor for a
+        <emphasis>ValueType</emphasis> upholds the no-throw
+        exception-safety guarantee.</simpara>
+        </listitem>
+      </itemizedlist>
+    </section>
+
+    <header name="boost/any.hpp">
+      <namespace name="boost">
+        <class name="bad_any_cast">
+          <inherit access="public">
+            <classname>std::bad_cast</classname>
+          </inherit>
+          <purpose>The exception thrown in the event of a failed
+          <code><functionname>any_cast</functionname></code> of an
+          <code><classname>any</classname></code> value.</purpose>
+
+          <method name="what" specifiers="virtual" cv="const">
+            <type>const char *</type>
+          </method>
+        </class>
+
+        <class name="any">
+          <purpose>A class whose instances can hold instances of any
+          type that satisfies <link
+          linkend="any.ValueType">ValueType</link>
+          requirements.</purpose>
+
+          <constructor>
+            <postconditions><simpara><code>this-&gt;<methodname>empty</methodname>()</code></simpara></postconditions>
+          </constructor>
+
+          <constructor>
+            <parameter name="other">
+              <paramtype>const <classname>any</classname> &amp;</paramtype>
+            </parameter>
+
+            <effects><simpara> Copy constructor that copies content of
+            <code>other</code> into new instance, so that any content
+            is equivalent in both type and value to the content of
+            <code>other</code>, or empty if <code>other</code> is
+            empty. </simpara></effects>
+
+            <throws><simpara>May fail with a
+            <code><classname>std::bad_alloc</classname></code>
+            exception or any exceptions arising from the copy
+            constructor of the contained type.</simpara></throws>
+          </constructor>
+
+          <constructor>
+            <parameter name="other">
+              <paramtype><classname>any</classname> &amp;&amp;</paramtype>
+            </parameter>
+
+            <effects><simpara> Move constructor that moves content of
+            <code>other</code> into new instance and leaves <code>other</code>
+            empty. </simpara></effects>
+            <precondition>C++11 compatible compiler.</precondition>
+            <postconditions><simpara><code>other-&gt;<methodname>empty</methodname>()</code></simpara></postconditions>
+            <throws><simpara>Nothing.</simpara></throws>
+          </constructor>
+          
+          <constructor>
+            <template>
+              <template-type-parameter name="ValueType"/>
+            </template>
+
+            <parameter name="value">
+              <paramtype>const ValueType &amp;</paramtype>
+            </parameter>
+
+            <effects><simpara>Makes a copy of <code>value</code>, so
+            that the initial content of the new instance is equivalent
+            in both type and value to
+            <code>value</code>.</simpara></effects>
+
+            <throws><simpara><code><classname>std::bad_alloc</classname></code>
+            or any exceptions arising from the copy constructor of the
+            contained type.</simpara></throws>
+          </constructor>
+          
+          <constructor>
+            <template>
+              <template-type-parameter name="ValueType"/>
+            </template>
+
+            <parameter name="value">
+              <paramtype>ValueType &amp;&amp;</paramtype>
+            </parameter>
+
+            <effects><simpara>Forwards <code>value</code>, so
+            that the initial content of the new instance is equivalent
+            in both type and value to
+            <code>value</code> before the forward.</simpara></effects>
+
+            <precondition>C++11 compatible compiler.</precondition>
+            <throws><simpara><code><classname>std::bad_alloc</classname></code>
+            or any exceptions arising from the copy constructor of the
+            contained type.</simpara></throws>
+          </constructor>
+
+          <destructor>
+            <effects><simpara>Releases any and all resources used in
+            management of instance.</simpara></effects>
+            <throws><simpara>Nothing.</simpara></throws>
+          </destructor>
+
+          <copy-assignment>
+            <type><classname>any</classname> &amp;</type>
+
+            <parameter name="rhs">
+              <paramtype>const <classname>any</classname> &amp;</paramtype>
+            </parameter>
+
+            <effects><simpara>Copies content of <code>rhs</code> into
+            current instance, discarding previous content, so that the
+            new content is equivalent in both type and value to the
+            content of <code>rhs</code>, or empty if
+            <code>rhs.<methodname>empty</methodname>()</code>.</simpara></effects>
+
+            <throws><simpara><code><classname>std::bad_alloc</classname></code>
+            or any exceptions arising from the copy constructor of the
+            contained type. Assignment satisfies the strong guarantee
+            of exception safety.</simpara></throws>
+          </copy-assignment>
+          
+          <copy-assignment>
+            <type><classname>any</classname> &amp;</type>
+
+            <parameter name="rhs">
+              <paramtype><classname>any</classname> &amp;&amp;</paramtype>
+            </parameter>
+
+            <effects><simpara>Moves content of <code>rhs</code> into
+            current instance, discarding previous content, so that the
+            new content is equivalent in both type and value to the
+            content of <code>rhs</code> before move, or empty if
+            <code>rhs.<methodname>empty</methodname>()</code>.</simpara></effects>
+
+            <precondition>C++11 compatible compiler.</precondition>
+            <postconditions><simpara><code>rhs-&gt;<methodname>empty</methodname>()</code></simpara></postconditions>
+            <throws><simpara>Nothing.</simpara></throws>
+          </copy-assignment>
+
+          <copy-assignment>
+             <template>
+              <template-type-parameter name="ValueType"/>
+            </template>
+
+            <type><classname>any</classname> &amp;</type>
+
+            <parameter name="rhs">
+              <paramtype>const ValueType &amp;</paramtype>
+            </parameter>
+
+            <effects><simpara>Makes a copy of <code>rhs</code>,
+            discarding previous content, so that the new content of is
+            equivalent in both type and value to
+            <code>rhs</code>.</simpara></effects>
+
+            <throws><simpara><code><classname>std::bad_alloc</classname></code>
+            or any exceptions arising from the copy constructor of the
+            contained type. Assignment satisfies the strong guarantee
+            of exception safety.</simpara></throws>
+          </copy-assignment>
+
+          <copy-assignment>
+             <template>
+              <template-type-parameter name="ValueType"/>
+            </template>
+
+            <type><classname>any</classname> &amp;</type>
+
+            <parameter name="rhs">
+              <paramtype>ValueType &amp;&amp;</paramtype>
+            </parameter>
+
+            <effects><simpara>Forwards <code>rhs</code>,
+            discarding previous content, so that the new content of is
+            equivalent in both type and value to
+            <code>rhs</code> before forward.</simpara></effects>
+
+            <precondition>C++11 compatible compiler.</precondition>
+            <throws><simpara><code><classname>std::bad_alloc</classname></code>
+            or any exceptions arising from the move or copy constructor of the
+            contained type. Assignment satisfies the strong guarantee
+            of exception safety.</simpara></throws>
+          </copy-assignment>
+          
+          <method-group name="modifiers">
+            <method name="swap">
+              <type><classname>any</classname> &amp;</type>
+
+              <parameter name="rhs">
+                <paramtype><classname>any</classname> &amp;</paramtype>
+              </parameter>
+
+              <effects><simpara>Exchange of the contents of
+              <code>*this</code> and
+              <code>rhs</code>.</simpara></effects>
+
+              <returns><simpara><code>*this</code></simpara></returns>
+
+              <throws><simpara>Nothing.</simpara></throws>
+            </method>
+          </method-group>
+
+          <method-group name="queries">
+            <method name="empty" cv="const">
+              <type>bool</type>
+
+              <returns><simpara><code>true</code> if instance is
+              empty, otherwise <code>false</code>.</simpara></returns>
+              
+              <throws><simpara>Nothing.</simpara></throws>
+            </method>
+
+            <method name="type" cv="const">
+              <type>const <classname>std::type_info</classname> &amp;</type>
+              
+              <returns><simpara>the <code>typeid</code> of the
+              contained value if instance is non-empty, otherwise
+              <code>typeid(void)</code>.</simpara></returns>
+
+              <notes><simpara>Useful for querying against types known
+              either at compile time or only at
+              runtime.</simpara></notes>
+            </method>
+          </method-group>
+        </class>
+        
+        <function name="swap">
+          <type>void</type>
+          <parameter name="lhs">
+            <paramtype><classname>any</classname> &amp;</paramtype>
+          </parameter>
+          <parameter name="rhs">
+              <paramtype><classname>any</classname> &amp;</paramtype>
+          </parameter>
+
+            <effects><simpara>Exchange of the contents of
+            <code>lhs</code> and
+            <code>rhs</code>.</simpara></effects>
+
+            <throws><simpara>Nothing.</simpara></throws>
+        </function>
+
+        <overloaded-function name="any_cast">
+          <signature>
+            <template>
+              <template-type-parameter name="T"/>
+            </template>
+            
+            <type>T</type>
+            
+            <parameter name="operand">
+              <paramtype><classname>any</classname> &amp;</paramtype>
+            </parameter>
+          </signature>
+          
+          <signature>
+            <template>
+              <template-type-parameter name="T"/>
+            </template>
+            
+            <type>T</type>
+            
+            <parameter name="operand">
+              <paramtype>const <classname>any</classname> &amp;</paramtype>
+            </parameter>
+          </signature>
+          
+          <signature>
+            <template>
+              <template-type-parameter name="ValueType"/>
+            </template>
+            
+            <type>const ValueType *</type>
+            
+            <parameter name="operand">
+              <paramtype>const <classname>any</classname> *</paramtype>
+            </parameter>
+          </signature>
+          
+          <signature>
+            <template>
+              <template-type-parameter name="ValueType"/>
+            </template>
+            
+            <type>ValueType *</type>
+            
+            <parameter name="operand">
+              <paramtype><classname>any</classname> *</paramtype>
+            </parameter>
+          </signature>
+          
+          <purpose><simpara>Custom keyword cast for extracting a value
+          of a given type from an
+          <code><classname>any</classname></code>.</simpara></purpose>
+
+          <returns><simpara> If passed a pointer, it returns a
+          similarly qualified pointer to the value content if
+	  successful, otherwise null is returned.
+	  If T is ValueType, it returns a copy of the held value, otherwise, if T is a reference 
+	  to (possibly const qualified) ValueType, it returns a reference to the held 
+	  value.</simpara></returns>
+
+          <throws><simpara>Overloads taking an
+          <code><classname>any</classname></code> pointer do not
+          throw; overloads taking an
+          <code><classname>any</classname></code> value or reference
+          throws <code><classname>bad_any_cast</classname></code> if
+          unsuccessful.</simpara></throws>
+
+        </overloaded-function>
+      </namespace>
+    </header>
+  </library-reference>
+
+  <section>
+    <title>Acknowledgements</title>
+
+    <para>Doug Gregor ported the documentation to the BoostBook format.</para>
+  </section>
+</library>

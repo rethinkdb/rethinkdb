@@ -1,0 +1,145 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:auto Auto Generator]
+
+[heading Description]
+
+This module includes the description of the `auto_` generator. This generator 
+can be used to automatically create a generator based on the supplied attribute 
+type.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/auto.hpp>
+    #include <boost/spirit/include/karma_auto.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::auto_  // alias: boost::spirit::karma::auto_`]]
+]
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[variablelist Notation
+    [[`s`]      [A variable instance of any type for which a mapping to a 
+                 generator type is defined (the meta function 
+                 `traits::create_generator_exists` returns `mpl::true_`) or a 
+                 __karma_lazy_argument__ that evaluates to any type for which 
+                 a mapping to a generator type is defined (the meta function 
+                 `traits::create_generator_exists` returns `mpl::true_`).]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]           [Description]]
+    [[`auto_`]              [Create a generator instance compatible with the 
+                             supplied attribute type and use it for output 
+                             generation. This generator never fails 
+                             (unless the underlying output stream reports an 
+                             error).]]
+    [[`auto_(s)`]           [Create a generator instance compatible with the
+                             supplied literal value. This generator never fails 
+                             (unless the underlying output stream reports an 
+                             error).]]
+]
+
+[heading Additional Requirements]
+
+The `auto_` generators can be used to emit output for any data type for which 
+a mapping to a generator type is defined (the meta function 
+`traits::create_generator_exists` returns `mpl::true_`). 
+The following table outlines the predefined mapping rules from the attribute type 
+to the generator type. These rules are applied recursively to create the generator 
+type which can be used to generate output from the given attribute type.
+
+[table 
+    [[Attribute type]   [Generator type]]
+    [[`char`, `wchar_t`]      [`standard::char_`, `standard_wide::char_`]]
+    [[`short`, `int`, `long`] [`short_`, `int_`, `long_`]]
+    [[`unsigned short`, `unsigned int`, `unsigned long`] 
+                              [`ushort_`, `uint_`, `ulong_`]]
+    [[`float`, `double`, `long double`] [`float_`, `double_`, `long_double`]]
+    [[`short`, `int`, `long`] [`short_`, `int_`, `long_`]]
+    [[`long long`, `unsigned long long`]
+                              [`long_long`, `ulong_long`]]
+    [[`bool`]                 [`bool_`]]
+    [[Any string (`char const*`, `std::string`, etc.)]
+                              [`string`]]
+    [[Any (STL) container]    [Kleene Star (unary `'*'`)]]
+    [[Any Fusion sequence]    [Sequence operator (`'<<'`)]]
+    [[`boost::optional<>`]    [Optional operator (unary `'-'`)]]
+    [[`boost::variant<>`]     [Alternative operator (`'|'`)]]
+]
+
+It is possible to add support for any custom data type by implementing a 
+specialization of the customization point __customize_create_generator__. This
+customization can be used also to redefined any of the predefined mappings.
+
+[heading Attributes]
+
+[table
+    [[Expression]           [Attribute]]
+    [[`auto_`]              [`hold_any`, attribute is mandatory (otherwise 
+                             compilation will fail)]]
+    [[`auto_(s)`]           [__unused__]]
+]
+
+[important The attribute type `hold_any` exposed by some of the `auto_`
+           generators is semantically and syntactically equivalent to 
+           the type implemented by __boost_any__. It has been added to /Spirit/ 
+           as it has better a performance and a smaller footprint if compared to 
+           __boost_any__.
+]
+
+[note  In addition to their usual attribute of type `Attrib` all listed generators 
+       accept an instance of a `boost::optional<Attrib>` as well. If the 
+       `boost::optional<>` is initialized (holds a value) the generators behave 
+       as if their attribute was an instance of `Attrib` and emit the value stored
+       in the `boost::optional<>`. Otherwise the generators will fail.]
+
+[heading Complexity]
+
+[:The complexity of the `auto_` generator depends on the attribute type. Each 
+ attribute type results in a different generator type to be instantiated which 
+ defines the overall complexity.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_auto]
+
+And a class definition used in the examples:
+
+[reference_karma_complex]
+[reference_karma_auto_complex]
+
+Some usage examples of `auto_` generators:
+
+[reference_karma_auto]
+
+[endsect]
+

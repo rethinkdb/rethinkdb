@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Reference</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="../tutorial/lambda_expressions.html">
+<link rel="up" href="../index.html">
+<link rel="next" href="flyweight.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight Reference</h1>
+
+<div class="prev_link"><a href="../tutorial/lambda_expressions.html"><img src="../prev.gif" alt="annex: MPL lambda expressions" border="0"><br>
+Annex: MPL lambda expressions 
+</a></div>
+<div class="up_link"><a href="../index.html"><img src="../up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="flyweight.html"><img src="../next.gif" alt="flyweight reference" border="0"><br>
+<code>flyweight</code> reference
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#headers">Header summary</a></li>
+  <li><a href="#flyweight_synopsis">Header
+    <code>"boost/flyweight.hpp"</code> synopsis</a></li>
+  <li><a href="flyweight.html">Class template <code>flyweight</code></a></li>
+  <li><a href="key_value.html">Key-value flyweights</a></li>
+  <li><a href="tags.html">Tags</a></li>
+  <li><a href="factories.html">Factories</a></li>
+  <li><a href="holders.html">Holders</a></li>
+  <li><a href="locking.html">Locking policies</a></li>
+  <li><a href="tracking.html">Tracking policies</a></li>
+</ul>
+
+<h2><a name="headers">Header summary</a></h2>
+
+<p>
+Boost.Flyweight comprises the following public headers:
+<ul>
+  <li><a href="#flyweight_synopsis"><code>"boost/flyweight.hpp"</code></a></li>
+  <li>Class template <code>flyweight</code>
+    <ul>
+      <li><a href="flyweight.html#flyweight_fwd_synopsis"><code>"boost/flyweight/flyweight_fwd.hpp"</code></a></li>
+      <li><a href="flyweight.html#synopsis"><code>"boost/flyweight/flyweight.hpp"</code></a></li>
+    </ul>
+  </li>
+  <li>Key-value flyweights
+    <ul>
+      <li><a href="key_value.html#key_value_fwd_synopsis"><code>"boost/flyweight/key_value_fwd.hpp"</code></a></li>
+      <li><a href="key_value.html#synopsis"><code>"boost/flyweight/key_value.hpp"</code></a></li>
+    </ul>
+  </li>
+  <li>Tags
+    <ul>
+      <li><a href="tags.html#tag_synopsis"><code>"boost/flyweight/tag.hpp"</code></a></li>
+    </ul>
+  </li>
+  <li>Factories
+    <ul>
+      <li><a href="factories.html#factory_tag_synopsis"><code>"boost/flyweight/factory_tag.hpp"</code></a></li>
+      <li><a href="factories.html#hashed_factory_fwd_synopsis"><code>"boost/flyweight/hashed_factory_fwd.hpp"</code></a></li>
+      <li><a href="factories.html#hashed_factory_synopsis"><code>"boost/flyweight/hashed_factory.hpp"</code></a></li>
+      <li><a href="factories.html#set_factory_fwd_synopsis"><code>"boost/flyweight/set_factory_fwd.hpp"</code></a></li>
+      <li><a href="factories.html#set_factory_synopsis"><code>"boost/flyweight/set_factory.hpp"</code></a></li>
+      <li><a href="factories.html#assoc_container_factory_fwd_synopsis"><code>"boost/flyweight/assoc_container_factory_fwd.hpp"</code></a></li>
+      <li><a href="factories.html#assoc_container_factory_synopsis"><code>"boost/flyweight/assoc_container_factory.hpp"</code></a></li>
+    </ul>
+  </li>
+  <li>Holders
+    <ul>
+      <li><a href="holders.html#holder_tag_synopsis"><code>"boost/flyweight/holder_tag.hpp"</code></a></li>
+      <li><a href="holders.html#static_holder_fwd_synopsis"><code>"boost/flyweight/static_holder_fwd.hpp"</code></a></li>
+      <li><a href="holders.html#static_holder_synopsis"><code>"boost/flyweight/static_holder.hpp"</code></a></li>
+      <li><a href="holders.html#intermodule_holder_fwd_synopsis"><code>"boost/flyweight/intermodule_holder_fwd.hpp"</code></a></li>
+      <li><a href="holders.html#intermodule_holder_synopsis"><code>"boost/flyweight/intermodule_holder.hpp"</code></a></li>
+    </ul>
+  </li>
+  <li>Locking policies
+    <ul>
+      <li><a href="locking.html#locking_tag_synopsis"><code>"boost/flyweight/locking_tag.hpp"</code></a></li>
+      <li><a href="locking.html#simple_locking_fwd_synopsis"><code>"boost/flyweight/simple_locking_fwd.hpp"</code></a></li>
+      <li><a href="locking.html#simple_locking_synopsis"><code>"boost/flyweight/simple_locking.hpp"</code></a></li>
+      <li><a href="locking.html#no_locking_fwd_synopsis"><code>"boost/flyweight/no_locking_fwd.hpp"</code></a></li>
+      <li><a href="locking.html#no_locking_synopsis"><code>"boost/flyweight/no_locking.hpp"</code></a></li>
+    </ul>
+  </li>
+  <li>Tracking policies
+    <ul>
+      <li><a href="tracking.html#tracking_tag_synopsis"><code>"boost/flyweight/tracking_tag.hpp"</code></a></li>
+      <li><a href="tracking.html#refcounted_fwd_synopsis"><code>"boost/flyweight/refcounted_fwd.hpp"</code></a></li>
+      <li><a href="tracking.html#refcounted_synopsis"><code>"boost/flyweight/refcounted.hpp"</code></a></li>
+      <li><a href="tracking.html#no_tracking_fwd_synopsis"><code>"boost/flyweight/no_tracking_fwd.hpp"</code></a></li>
+      <li><a href="tracking.html#no_tracking_synopsis"><code>"boost/flyweight/no_tracking.hpp"</code></a></li>
+    </ul>
+  </li>
+</ul>
+</p>
+
+<p>
+Boost.Flyweight is a header-only library, requiring no additional
+object modules.
+</p>
+
+<h2>
+<a name="flyweight_synopsis">Header
+<a href="../../../../boost/flyweight.hpp"><code>"boost/flyweight.hpp"</code></a>
+synopsis</a>
+</h2>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>hashed_factory</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>refcounted</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>simple_locking</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>static_holder</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+This convenience header includes the main class template
+<a href="flyweight.html#flyweight"><code>flyweight</code></a> along with
+the default components used by <code>flyweight</code>.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="../tutorial/lambda_expressions.html"><img src="../prev.gif" alt="annex: MPL lambda expressions" border="0"><br>
+Annex: MPL lambda expressions 
+</a></div>
+<div class="up_link"><a href="../index.html"><img src="../up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="flyweight.html"><img src="../next.gif" alt="flyweight reference" border="0"><br>
+<code>flyweight</code> reference
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised January 27th 2009</p>
+
+<p>&copy; Copyright 2006-2009 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

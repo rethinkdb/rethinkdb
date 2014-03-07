@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: char_</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./integral-c.html" class="navigation-link">Prev</a>&nbsp;<a href="./data-types-miscellaneous.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./integral-c.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./numeric.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./data-types.html" class="navigation-link">Data Types</a> / <a href="./numeric.html" class="navigation-link">Numeric</a> / <a href="./char.html" class="navigation-link">char_</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="char">
+<h1><a class="toc-backref" href="./numeric.html#id1581">char_</a></h1>
+<div class="section" id="id1262">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      char N
+    &gt;
+struct <a href="./char.html" class="identifier">char_</a>
+{
+    // <em>unspecified</em>
+    // ...
+};
+</pre>
+</div>
+<div class="section" id="id1263">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>An <a class="reference internal" href="./integral-constant.html">Integral Constant</a> wrapper for <tt class="literal"><span class="pre">char</span></tt>.</p>
+</div>
+<div class="section" id="id1264">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/char.hpp" class="header">boost/mpl/char.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1265">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./integral-constant.html">Integral Constant</a></p>
+</div>
+<div class="section" id="id1266">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="21%" />
+<col width="42%" />
+<col width="37%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">N</span></tt></td>
+<td>A character constant</td>
+<td>A value to wrap.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1267">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>The semantics of an expression are defined only
+where they differ from, or are not defined in <a class="reference internal" href="./integral-constant.html">Integral Constant</a>.</p>
+<p>For arbitrary character constant <tt class="literal"><span class="pre">c</span></tt>:</p>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="24%" />
+<col width="76%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Semantics</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre"><a href="./char.html" class="identifier">char_</a>&lt;c&gt;</span></tt></td>
+<td>An <a class="reference internal" href="./integral-constant.html">Integral Constant</a> <tt class="literal"><span class="pre">x</span></tt> such that <tt class="literal"><span class="pre">x::value</span> <span class="pre">==</span> <span class="pre">c</span></tt>
+and <tt class="literal"><span class="pre">x::<a href="./value-type.html" class="identifier">value_type</a></span></tt> is identical to <tt class="literal"><span class="pre">char</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1268">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./char.html" class="identifier">char_</a>&lt;'c'&gt; c;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; c::<a href="./value-type.html" class="identifier">value_type</a>, char &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; c::type, c &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./next.html" class="identifier">next</a>&lt; c &gt;::type, <a href="./char.html" class="identifier">char_</a>&lt;'d'&gt; &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./prior.html" class="identifier">prior</a>&lt; c &gt;::type, <a href="./char.html" class="identifier">char_</a>&lt;'b'&gt; &gt; ));
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( (c::value), ==, 'c' );
+assert( c() == 'c' );
+</pre>
+</div>
+<div class="section" id="id1269">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./data-types.html">Data Types</a>, <a class="reference internal" href="./integral-constant.html">Integral Constant</a>, <a class="reference internal" href="./int.html">int_</a>, <a class="reference internal" href="./size-t.html">size_t</a>, <a class="reference internal" href="./integral-c.html">integral_c</a></p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./integral-c.html" class="navigation-link">Prev</a>&nbsp;<a href="./data-types-miscellaneous.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./integral-c.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./numeric.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2009 Eric Niebler</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

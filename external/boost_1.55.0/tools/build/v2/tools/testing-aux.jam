@@ -1,0 +1,220 @@
+# This module is imported by testing.py. The definitions here are
+# too tricky to do in Python
+
+# Causes the 'target' to exist after bjam invocation if and only if all the
+# dependencies were successfully built.
+#
+rule expect-success ( target : dependency + : requirements * )
+{
+    **passed** $(target) : $(sources) ;
+}
+IMPORT testing : expect-success : : testing.expect-success ;
+
+# Causes the 'target' to exist after bjam invocation if and only if all some of
+# the dependencies were not successfully built.
+#
+rule expect-failure ( target : dependency + : properties * )
+{
+    local grist = [ MATCH ^<(.*)> : $(dependency:G) ] ;
+    local marker = $(dependency:G=$(grist)*fail) ;
+    (failed-as-expected) $(marker) ;
+    FAIL_EXPECTED $(dependency) ;
+    LOCATE on $(marker) = [ on $(dependency) return $(LOCATE) ] ;
+    RMOLD $(marker) ;
+    DEPENDS $(marker) : $(dependency) ;
+    DEPENDS $(target) : $(marker) ;
+    **passed** $(target) : $(marker) ;
+}
+IMPORT testing : expect-failure : : testing.expect-failure ;
+
+# The rule/action combination used to report successful passing of a test.
+#
+rule **passed**
+{
+    # Force deletion of the target, in case any dependencies failed to build.
+    RMOLD $(<) ;
+}
+
+
+# Used to create test files signifying passed tests.
+#
+actions **passed**
+{
+    echo passed > "$(<)"
+}
+
+
+# Used to create replacement object files that do not get created during tests
+# that are expected to fail.
+#
+actions (failed-as-expected)
+{
+    echo failed as expected > "$(<)"
+}
+
+# Runs executable 'sources' and stores stdout in file 'target'. Unless
+# --preserve-test-targets command line option has been specified, removes the
+# executable. The 'target-to-remove' parameter controls what should be removed:
+#   - if 'none', does not remove anything, ever
+#   - if empty, removes 'source'
+#   - if non-empty and not 'none', contains a list of sources to remove.
+#
+rule capture-output ( target : source : properties * : targets-to-remove * )
+{
+    output-file on $(target) = $(target:S=.output) ;
+    LOCATE on $(target:S=.output) = [ on $(target) return $(LOCATE) ] ;
+
+    # The INCLUDES kill a warning about independent target...
+    INCLUDES $(target) : $(target:S=.output) ;
+    # but it also puts .output into dependency graph, so we must tell jam it is
+    # OK if it cannot find the target or updating rule.
+    NOCARE $(target:S=.output) ;
+
+    # This has two-fold effect. First it adds input files to the dependendency
+    # graph, preventing a warning. Second, it causes input files to be bound
+    # before target is created. Therefore, they are bound using SEARCH setting
+    # on them and not LOCATE setting of $(target), as in other case (due to jam
+    # bug).
+    DEPENDS $(target) : [ on $(target) return $(INPUT_FILES) ] ;
+
+    if $(targets-to-remove) = none
+    {
+        targets-to-remove = ;
+    }
+    else if ! $(targets-to-remove)
+    {
+        targets-to-remove = $(source) ;
+    }
+
+    if [ on $(target) return $(REMOVE_TEST_TARGETS) ]
+    {
+        TEMPORARY $(targets-to-remove) ;
+        # Set a second action on target that will be executed after capture
+        # output action. The 'RmTemps' rule has the 'ignore' modifier so it is
+        # always considered succeeded. This is needed for 'run-fail' test. For
+        # that test the target will be marked with FAIL_EXPECTED, and without
+        # 'ignore' successful execution will be negated and be reported as
+        # failure. With 'ignore' we do not detect a case where removing files
+        # fails, but it is not likely to happen.
+        RmTemps $(target) : $(targets-to-remove) ;
+    }
+}
+
+
+if [ os.name ] = NT
+{
+    .STATUS        = %status% ;
+    .SET_STATUS    = "set status=%ERRORLEVEL%" ;
+    .RUN_OUTPUT_NL = "echo." ;
+    .STATUS_0      = "%status% EQU 0 (" ;
+    .STATUS_NOT_0  = "%status% NEQ 0 (" ;
+    .VERBOSE       = "%verbose% EQU 1 (" ;
+    .ENDIF         = ")" ;
+    .SHELL_SET     = "set " ;
+    .CATENATE      = type ;
+    .CP            = copy ;
+}
+else
+{
+    .STATUS        = "$status" ;
+    .SET_STATUS    = "status=$?" ;
+    .RUN_OUTPUT_NL = "echo" ;
+    .STATUS_0      = "test $status -eq 0 ; then" ;
+    .STATUS_NOT_0  = "test $status -ne 0 ; then" ;
+    .VERBOSE       = "test $verbose -eq 1 ; then" ;
+    .ENDIF         = "fi" ;
+    .SHELL_SET     = "" ;
+    .CATENATE      = cat ;
+    .CP            = cp ;
+}
+
+
+.VERBOSE_TEST = 0 ;
+if --verbose-test in [ modules.peek : ARGV ]
+{
+    .VERBOSE_TEST = 1 ;
+}
+
+
+.RM = [ common.rm-command ] ;
+
+
+actions capture-output bind INPUT_FILES output-file
+{
+    $(PATH_SETUP)
+    $(LAUNCHER) "$(>)" $(ARGS) "$(INPUT_FILES)" > "$(output-file)" 2>&1
+    $(.SET_STATUS)
+    $(.RUN_OUTPUT_NL) >> "$(output-file)"
+    echo EXIT STATUS: $(.STATUS) >> "$(output-file)"
+    if $(.STATUS_0)
+        $(.CP) "$(output-file)" "$(<)"
+    $(.ENDIF)
+    $(.SHELL_SET)verbose=$(.VERBOSE_TEST)
+    if $(.STATUS_NOT_0)
+        $(.SHELL_SET)verbose=1
+    $(.ENDIF)
+    if $(.VERBOSE)
+        echo ====== BEGIN OUTPUT ======
+        $(.CATENATE) "$(output-file)"
+        echo ====== END OUTPUT ======
+    $(.ENDIF)
+    exit $(.STATUS)
+}
+
+IMPORT testing : capture-output : : testing.capture-output ;
+
+
+actions quietly updated ignore piecemeal together RmTemps
+{
+    $(.RM) "$(>)"
+}
+
+
+.MAKE_FILE = [ common.file-creation-command ] ;
+
+actions unit-test
+{
+    $(PATH_SETUP)
+    $(LAUNCHER) "$(>)" $(ARGS) && $(.MAKE_FILE) "$(<)"
+}
+
+# Note that this rule may be called multiple times for a single target in case
+# there are multiple actions operating on the same target in sequence. One such
+# example are msvc exe targets first created by a linker action and then updated
+# with an embedded manifest file by a separate action.
+rule record-time ( target : source : start end user system )
+{
+    local src-string = [$(source:G=:J=",")"] " ;
+    USER_TIME on $(target) += $(src-string)$(user) ;
+    SYSTEM_TIME on $(target) += $(src-string)$(system) ;
+
+    # We need the following variables because attempting to perform such
+    # variable expansion in actions would not work due to quotes getting treated
+    # as regular characters.
+    USER_TIME_SECONDS on $(target) += $(src-string)$(user)" seconds" ;
+    SYSTEM_TIME_SECONDS on $(target) += $(src-string)$(system)" seconds" ;
+}
+
+# Calling this rule requests that Boost Build time how long it takes to build
+# the 'source' target and display the results both on the standard output and in
+# the 'target' file.
+#
+rule time ( target : sources + : properties *  )
+{
+    # Set up rule for recording timing information.
+    __TIMING_RULE__ on $(sources) = testing.record-time $(target) ;
+
+    # Make sure the sources get rebuilt any time we need to retrieve that
+    # information.
+    REBUILDS $(target) : $(sources) ;
+}
+
+
+actions time
+{
+    echo user: $(USER_TIME)
+    echo system: $(SYSTEM_TIME)
+
+    echo user: $(USER_TIME_SECONDS) > "$(<)"
+    echo system: $(SYSTEM_TIME_SECONDS) >> "$(<)"
+}

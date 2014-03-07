@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/context/callable.hpp">
+  <para>Definintion of <computeroutput><classname alt="boost::proto::context::callable_context">proto::context::callable_context&lt;&gt;</classname></computeroutput>,
+    an evaluation context for <computeroutput><functionname alt="boost::proto::eval">proto::eval()</functionname></computeroutput>
+    that fans out each node and calls the derived context type with the expressions constituents. If the derived context
+    doesn't have an overload that handles this node, fall back to some other context. </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="context">
+        <struct name="callable_eval">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="Context"/>
+          </template>
+          <purpose>A BinaryFunction that accepts a Proto expression and a callable context and calls
+            the context with the expression tag and children as arguments, effectively fanning the
+            expression out. </purpose>
+          <description>
+            <para>
+              <computeroutput>proto::context::callable_eval&lt;&gt;</computeroutput> requires that
+              <computeroutput>Context</computeroutput> is a <conceptname>PolymorphicFunctionObject</conceptname>
+              that can be invoked with <computeroutput>Expr</computeroutput>'s tag and children as
+              expressions, as follows:
+              <programlisting>context(typename Expr::proto_tag(), <functionname>proto::child_c</functionname>&lt;0&gt;(expr), ... <functionname>proto::child_c</functionname>&lt;N&gt;(expr))</programlisting>
+            </para>
+          </description>
+          <typedef name="result_type">
+            <type>typename boost::result_of&lt;
+    Context(
+      typename Expr::proto_tag,
+      typename proto::result_of::child_c&lt;0&gt;::type,
+      ...
+      typename proto::result_of::child_c&lt;N&gt;::type,
+    )&gt;::type
+  </type>
+          </typedef>
+
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>result_type</type>
+              <parameter name="expr">
+                <paramtype>Expr &amp;</paramtype>
+                <description>
+                  <para>The current expression </para>
+                </description>
+              </parameter>
+              <parameter name="context">
+                <paramtype>Context &amp;</paramtype>
+                <description>
+                  <para>The callable evaluation context </para>
+                </description>
+              </parameter>
+              <returns>
+                <para>
+                  <computeroutput>
+                    context(typename Expr::proto_tag(),
+                    <functionname>proto::child_c</functionname>&lt;0&gt;(expr),...
+                    <functionname>proto::child_c</functionname>&lt;N&gt;(expr))
+                  </computeroutput>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+        
+        <struct name="callable_context">
+          <template>
+            <template-type-parameter name="Context"/>
+            <template-type-parameter name="DefaultCtx">
+              <default><classname>proto::context::default_context</classname></default>
+            </template-type-parameter>
+          </template>
+          <purpose>An evaluation context adaptor that makes authoring a context a simple matter of
+            writing function overloads, rather then writing template specializations.</purpose>
+          <description>
+            <para>
+              <computeroutput>proto::callable_context&lt;&gt;</computeroutput> is a base class that
+              implements the context protocol by passing fanned-out expression nodes to the derived
+              context, making it easy to customize the handling of expression types by writing function
+              overloads. Only those expression types needing special handling require explicit handling.
+              All others are dispatched to a user-specified default context,
+              <computeroutput>DefaultCtx</computeroutput>.
+            </para>
+            <para>
+              <computeroutput>proto::callable_context&lt;&gt;</computeroutput> is defined simply as:
+            </para>
+            <para>
+              <programlisting>template&lt;typename Context, typename DefaultCtx = default_context&gt;
+struct callable_context {
+  template&lt;typename Expr, typename ThisContext = Context&gt;
+  struct eval :
+    mpl::if_&lt;
+      is_expr_handled_&lt;Expr, Context&gt;, // For exposition
+      <classname>proto::context::callable_eval</classname>&lt;Expr, ThisContext&gt;,
+      typename DefaultCtx::template eval&lt;Expr, Context&gt;
+    &gt;::type
+  {};
+};</programlisting>
+            </para>
+            <para>
+              The Boolean metafunction <computeroutput>is_expr_handled_&lt;&gt;</computeroutput> uses
+              metaprogramming tricks to determine whether <computeroutput>Context</computeroutput> has
+              an overloaded function call operator that accepts the fanned-out constituents of an
+              expression of type <computeroutput>Expr</computeroutput>. If so, the handling of the
+              expression is dispatched to
+              <computeroutput><classname>proto::context::callable_eval&lt;&gt;</classname></computeroutput>.
+              If not, it is dispatched to the user-specified <computeroutput>DefaultCtx</computeroutput>.
+            </para>
+            <para>
+              <emphasis role="bold">Example:</emphasis>
+            </para>
+            <para>
+              <programlisting>// An evaluation context that increments all
+// integer terminals in-place.
+struct increment_ints :
+  <classname>proto::context::callable_context</classname>&lt;
+    increment_ints const                // derived context
+    <classname>proto::context::null_context</classname> const  // fall-back context
+  &gt;
+{
+    typedef void result_type;
+
+    // Handle int terminals here:
+    void operator()(proto::tag::terminal, int &amp;i) const
+    {
+       ++i;
+    }
+};</programlisting>
+            </para>
+            <para>
+              With <computeroutput>increment_ints</computeroutput>, we can do the following:
+            </para>
+            <para>
+              <programlisting><classname>proto::literal</classname>&lt;int&gt; i = 0, j = 10;
+proto::eval( i - j * 3.14, increment_ints() );
+
+assert( i.get() == 1 &amp;&amp; j.get() == 11 );</programlisting>
+            </para>
+          </description>
+          <struct name="eval">
+            <template>
+              <template-type-parameter name="Expr"/>
+              <template-type-parameter name="ThisContext">
+                <default>Context</default>
+              </template-type-parameter>
+            </template>
+            <description>
+              <para>
+                A BinaryFunction that accepts an <computeroutput>Expr</computeroutput> and a
+                <computeroutput>Context</computeroutput>, and either fans out the expression and passes
+                it to the context, or else hands off the expression to <computeroutput>DefaultCtx</computeroutput>.
+              </para>
+              <para>
+                If <computeroutput>Context</computeroutput> is a <conceptname>PolymorphicFunctionObject</conceptname>
+                such that it can be invoked with the tag and children of <computeroutput>Expr</computeroutput>, as
+                <computeroutput>ctx(typename Expr::proto_tag(), child_c&lt;0&gt;(expr),... child_c&lt;N&gt;(expr))</computeroutput>,
+                then <computeroutput>eval&lt;Expr, ThisContext&gt;</computeroutput> inherits from
+                <computeroutput><classname>proto::context::callable_eval</classname>&lt;Expr, ThisContext&gt;</computeroutput>.
+                Otherwise, <computeroutput>eval&lt;Expr, ThisContext&gt;</computeroutput> inherits from
+                <computeroutput>DefaultCtx::eval&lt;Expr, Context&gt;</computeroutput>.
+              </para>
+            </description>
+            <inherit><type><replaceable>see-below</replaceable></type></inherit>
+          </struct>
+        </struct>
+      </namespace>
+    </namespace>
+  </namespace>
+</header>

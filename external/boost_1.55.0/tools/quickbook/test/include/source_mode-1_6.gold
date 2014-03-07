@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="souce_mode_include" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Souce Mode Include</title>
+  <article id="source_include_with_no_source_mode" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>Source include with no source-mode</title>
+<programlisting><phrase role="keyword">void</phrase> <phrase role="identifier">main</phrase><phrase role="special">()</phrase> <phrase role="special">{}</phrase></programlisting>
+  </article>
+<programlisting>void main() {}
+</programlisting>
+</article>

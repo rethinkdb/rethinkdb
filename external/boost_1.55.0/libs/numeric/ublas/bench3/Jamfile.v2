@@ -1,0 +1,10 @@
+# Copyright (c) 2004 Michael Stevens
+# Use, modification and distribution are subject to the
+# Boost Software License, Version 1.0. (See accompanying file
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# bench3 - measure the performance of vector and matrix proxy's operations.
+
+exe bench3
+    : bench3.cpp bench31.cpp bench32.cpp bench33.cpp
+    ;

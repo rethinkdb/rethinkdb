@@ -1,0 +1,308 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Parser Operators</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../qi_parsers.html" title="Qi Parsers">
+<link rel="prev" href="directive.html" title="Parser Directives">
+<link rel="next" href="action.html" title="Parser Semantic Actions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="directive.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../qi_parsers.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="action.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.quick_reference.qi_parsers.operator"></a><a class="link" href="operator.html" title="Parser Operators">Parser
+          Operators</a>
+</h5></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/operator/not_predicate.html" title="Not-Predicate Parser (!a)"><code class="computeroutput"><span class="special">!</span><span class="identifier">a</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Unused</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Not predicate. If the predicate <code class="computeroutput"><span class="identifier">a</span></code>
+                      matches, fail. Otherwise, return a zero length match.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/operator/not_predicate.html" title="Not-Predicate Parser (!a)"><code class="computeroutput"><span class="special">&amp;</span><span class="identifier">a</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Unused</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      And predicate. If the predicate <code class="computeroutput"><span class="identifier">a</span></code>
+                      matches, return a zero length match. Otherwise, fail.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/operator/optional.html" title="Optional Parser (-a)"><code class="computeroutput"><span class="special">-</span><span class="identifier">a</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Optional. Parse <code class="computeroutput"><span class="identifier">a</span></code>
+                      zero or one time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/operator/kleene.html" title="Kleene Parser (*a)"><code class="computeroutput"><span class="special">*</span><span class="identifier">a</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Kleene. Parse <code class="computeroutput"><span class="identifier">a</span></code>
+                      zero or more times
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/operator/plus.html" title="Plus Parser (+a)"><code class="computeroutput"><span class="special">+</span><span class="identifier">a</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Plus. Parse <code class="computeroutput"><span class="identifier">a</span></code>
+                      one or more times
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/operator/alternative.html" title="Alternative Parser (a | b)"><code class="computeroutput"><span class="identifier">a</span> <span class="special">|</span>
+                      <span class="identifier">b</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">variant</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span>
+                      <span class="identifier">B</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Alternative. Parse <code class="computeroutput"><span class="identifier">a</span></code>
+                      or <code class="computeroutput"><span class="identifier">b</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/operator/sequence.html" title="Sequence Parser (a &gt;&gt; b)"><code class="computeroutput"><span class="identifier">a</span> <span class="special">&gt;&gt;</span>
+                      <span class="identifier">b</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">tuple</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span>
+                      <span class="identifier">B</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Sequence. Parse <code class="computeroutput"><span class="identifier">a</span></code>
+                      followed by <code class="computeroutput"><span class="identifier">b</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/operator/expect.html" title="Expectation Parser (a &gt; b)"><code class="computeroutput"><span class="identifier">a</span> <span class="special">&gt;</span>
+                      <span class="identifier">b</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">tuple</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span>
+                      <span class="identifier">B</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Expect. Parse <code class="computeroutput"><span class="identifier">a</span></code>
+                      followed by <code class="computeroutput"><span class="identifier">b</span></code>.
+                      <code class="computeroutput"><span class="identifier">b</span></code> is expected
+                      to match when <code class="computeroutput"><span class="identifier">a</span></code>
+                      matches, otherwise, an <code class="computeroutput"><span class="identifier">expectation_failure</span></code>
+                      is thrown.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/operator/difference.html" title="Difference Parser (a - b)"><code class="computeroutput"><span class="identifier">a</span> <span class="special">-</span>
+                      <span class="identifier">b</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Difference. Parse <code class="computeroutput"><span class="identifier">a</span></code>
+                      but not <code class="computeroutput"><span class="identifier">b</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/operator/sequential_or.html" title="Sequential Or Parser (a || b)"><code class="computeroutput"><span class="identifier">a</span> <span class="special">||</span>
+                      <span class="identifier">b</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">tuple</span><span class="special">&lt;</span></code>
+                      <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;,</span></code>
+                      <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">&gt;</span>
+                      <span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Sequential Or. Parse <code class="computeroutput"><span class="identifier">a</span></code>
+                      or <code class="computeroutput"><span class="identifier">b</span></code> or <code class="computeroutput"><span class="identifier">a</span></code> followed by <code class="computeroutput"><span class="identifier">b</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/operator/list.html" title="List Parser (a % b)"><code class="computeroutput"><span class="identifier">a</span> <span class="special">%</span>
+                      <span class="identifier">b</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      List. Parse <code class="computeroutput"><span class="identifier">a</span></code>
+                      delimited <code class="computeroutput"><span class="identifier">b</span></code>
+                      one or more times
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/operator/permutation.html" title="Permutation Parser (a ^ b)"><code class="computeroutput"><span class="identifier">a</span> <span class="special">^</span>
+                      <span class="identifier">b</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">tuple</span><span class="special">&lt;</span></code>
+                      <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;,</span></code>
+                      <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">&gt;</span>
+                      <span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Permutation. Parse <code class="computeroutput"><span class="identifier">a</span></code>
+                      or <code class="computeroutput"><span class="identifier">b</span></code> or <code class="computeroutput"><span class="identifier">a</span></code> followed by <code class="computeroutput"><span class="identifier">b</span></code> or <code class="computeroutput"><span class="identifier">b</span></code>
+                      followed by <code class="computeroutput"><span class="identifier">a</span></code>.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="directive.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../qi_parsers.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="action.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

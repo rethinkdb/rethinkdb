@@ -1,0 +1,326 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/generate.hpp">
+  <para>Contains definition of
+    <computeroutput><classname alt="boost::proto::default_generator">proto::default_generator</classname></computeroutput>,
+    <computeroutput><classname alt="boost::proto::generator">proto::generator</classname>&lt;&gt;</computeroutput>,
+    <computeroutput><classname alt="boost::proto::pod_generator">proto::pod_generator</classname>&lt;&gt;</computeroutput>
+    and other utilities that users can use to post-process new expression objects that
+    Proto creates.</para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <!-- proto::default_generator -->
+      <struct name="default_generator">
+        <purpose>A simple generator that passes an expression through unchanged.</purpose>
+        <description>
+          <para>
+            Generators are intended for use as the first template parameter to the
+            <computeroutput><classname alt="proto::domain">proto::domain&lt;&gt;</classname></computeroutput>
+            class template and control if and how expressions within that domain are to be customized.
+            The <computeroutput>proto::default_generator</computeroutput> makes no modifications to the
+            expressions passed to it.
+          </para>
+        </description>
+        <inherit>
+          <type><classname>proto::callable</classname></type>
+        </inherit>
+        <struct-specialization name="result">
+          <template>
+            <template-type-parameter name="This"/>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <specialization>
+            <template-arg>This(Expr)</template-arg>
+          </specialization>
+          <typedef name="type">
+            <type>Expr</type>
+          </typedef>
+        </struct-specialization>
+        <method-group name="public member functions">
+          <method name="operator()" cv="const">
+            <type>Expr</type>
+            <template>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <parameter name="expr">
+              <paramtype>Expr const &amp;</paramtype>
+              <description>
+                <para>A Proto expression</para>
+              </description>
+            </parameter>
+            <returns>
+              <para><computeroutput>expr</computeroutput></para>
+            </returns>
+          </method>
+        </method-group>
+      </struct>
+
+      <!-- proto::basic_default_generator -->
+      <struct name="basic_default_generator">
+        <purpose>
+          A simple generator that passes an expression through unchanged while stating
+          a preference for <classname>proto::basic_expr</classname>&lt;&gt; over
+          <classname>proto::expr</classname>&lt;&gt;.</purpose>
+        <inherit>
+          <type><classname>proto::use_basic_expr</classname>&lt; <classname>proto::default_generator</classname> &gt;</type>
+        </inherit>
+      </struct>
+
+      <!-- proto::generator -->
+      <struct name="generator">
+        <template>
+          <template-nontype-parameter name="Extends">
+            <type>template&lt; typename &gt; class</type>
+          </template-nontype-parameter>
+        </template>
+        <purpose>A generator that wraps expressions passed to it in the specified extension wrapper.</purpose>
+        <description>
+          <para>
+            Generators are intended for use as the first template parameter to the
+            <computeroutput><classname alt="proto::domain">proto::domain&lt;&gt;</classname></computeroutput>
+            class template and control if and how expressions within that domain are to be customized.
+            <computeroutput>proto::generator&lt;&gt;</computeroutput> wraps each expression passed to it in
+            the <computeroutput>Extends&lt;&gt;</computeroutput> wrapper.
+          </para>
+        </description>
+        <struct-specialization name="result">
+          <template>
+            <template-type-parameter name="This"/>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <specialization>
+            <template-arg>This(Expr)</template-arg>
+          </specialization>
+          <typedef name="type">
+            <type>Extends&lt; Expr &gt;</type>
+          </typedef>
+        </struct-specialization>
+        <method-group name="public member functions">
+          <method name="operator()" cv="const">
+            <type>Extends&lt; Expr &gt;</type>
+            <template>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <parameter name="expr">
+              <paramtype>Expr const &amp;</paramtype>
+              <description>
+                <para>A Proto expression</para>
+              </description>
+            </parameter>
+            <returns>
+              <para><computeroutput>Extends&lt;Expr&gt;(expr)</computeroutput></para>
+            </returns>
+          </method>
+        </method-group>
+      </struct>
+
+      <!-- proto::pod_generator -->
+      <struct name="pod_generator">
+        <template>
+          <template-nontype-parameter name="Extends">
+            <type>template&lt; typename &gt; class</type>
+          </template-nontype-parameter>
+        </template>
+        <purpose>A generator that wraps expressions passed to it in the specified extension wrapper and uses aggregate initialization for the wrapper. </purpose>
+        <description>
+          <para>
+            Generators are intended for use as the first template parameter to the
+            <computeroutput><classname alt="proto::domain">proto::domain&lt;&gt;</classname></computeroutput>
+            class template and control if and how expressions within that domain are to be customized.
+            <computeroutput>proto::pod_generator&lt;&gt;</computeroutput> wraps each expression passed
+            to it in the <computeroutput>Extends&lt;&gt;</computeroutput> wrapper, and uses aggregate
+            initialzation for the wrapped object.
+          </para>
+        </description>
+        <inherit>
+          <type><classname>proto::callable</classname></type>
+        </inherit>
+        <struct-specialization name="result">
+          <template>
+            <template-type-parameter name="This"/>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <specialization>
+            <template-arg>This(Expr)</template-arg>
+          </specialization>
+          <typedef name="type">
+            <type>Extends&lt; Expr &gt;</type>
+          </typedef>
+        </struct-specialization>
+        <method-group name="public member functions">
+          <method name="operator()" cv="const">
+            <type>Extends&lt; Expr &gt;</type>
+            <template>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <parameter name="expr">
+              <paramtype>Expr const &amp;</paramtype>
+              <description>
+                <para>A Proto expression</para>
+              </description>
+            </parameter>
+            <returns>
+              <para>
+                <computeroutput>Extends&lt;Expr&gt; that = {expr}; return that;</computeroutput>
+              </para>
+            </returns>
+          </method>
+        </method-group>
+      </struct>
+
+      <!-- by_value_generator -->
+      <struct name="by_value_generator">
+        <purpose>A generator that replaces child nodes held by reference with ones held by value.
+          Use with <computeroutput><classname alt="proto::compose_generators">proto::compose_generators&lt;&gt;</classname>
+          </computeroutput> to forward that result to another generator.
+        </purpose>
+        <description>
+          <para>
+            Generators are intended for use as the first template parameter to the
+            <computeroutput><classname alt="proto::domain">proto::domain&lt;&gt;</classname></computeroutput>
+            class template and control if and how expressions within that domain are to be customized.
+            <computeroutput>proto::by_value_generator</computeroutput> ensures all child nodes are held
+            by value. This generator is typically composed with a second generator for further processing,
+            as <computeroutput><classname>proto::compose_generators</classname>&lt;proto::by_value_generator,
+            MyGenerator&gt;</computeroutput>.
+          </para>
+        </description>
+        <inherit>
+          <type><classname>proto::callable</classname></type>
+        </inherit>
+        <struct-specialization name="result">
+          <template>
+            <template-type-parameter name="This"/>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <specialization>
+            <template-arg>This(Expr)</template-arg>
+          </specialization>
+          <typedef name="type">
+            <type><emphasis>unspecified</emphasis></type>
+          </typedef>
+        </struct-specialization>
+        <method-group name="public member functions">
+          <method name="operator()" cv="const">
+            <type><emphasis>unspecified</emphasis></type>
+            <template>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <parameter name="expr">
+              <paramtype>Expr const &amp;</paramtype>
+              <description>
+                <para>A Proto expression.</para>
+              </description>
+            </parameter>
+            <returns>
+              <para>Equivalent to <computeroutput><functionname>proto::deep_copy</functionname>(expr)</computeroutput></para>
+            </returns>
+          </method>
+        </method-group>
+      </struct>
+
+      <!-- proto::compose_generator -->
+      <struct name="compose_generators">
+        <template>
+          <template-type-parameter name="First"/>
+          <template-type-parameter name="Second"/>
+        </template>
+        <purpose>A composite generator that first applies one transform to an expression and then forwards
+          the result on to another generator for further transformation.</purpose>
+        <description>
+          <para>
+            Generators are intended for use as the first template parameter to the
+            <computeroutput><classname alt="proto::domain">proto::domain&lt;&gt;</classname></computeroutput>
+            class template and control if and how expressions within that domain are to be customized.
+            <computeroutput>proto::compose_generators&lt;&gt;</computeroutput> is a composite generator
+            that first applies one transform to an expression and then forwards the result on to another
+            generator for further transformation.
+          </para>
+        </description>
+        <inherit>
+          <type><classname>proto::callable</classname></type>
+        </inherit>
+        <struct-specialization name="result">
+          <template>
+            <template-type-parameter name="This"/>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <specialization>
+            <template-arg>This(Expr)</template-arg>
+          </specialization>
+          <inherit>
+            <type>
+    boost::result_of&lt;
+      Second(typename boost::result_of&lt;First(Expr)&gt;::type)
+    &gt;</type>
+          </inherit>
+        </struct-specialization>
+        <method-group name="public member functions">
+          <method name="operator()" cv="const">
+            <type>typename boost::result_of&lt;
+      Second(typename boost::result_of&lt;First(Expr)&gt;::type)
+    &gt;::type</type>
+            <template>
+              <template-type-parameter name="Expr"/>
+            </template>
+            <parameter name="expr">
+              <paramtype>Expr const &amp;</paramtype>
+              <description>
+                <para>A Proto expression.</para>
+              </description>
+            </parameter>
+            <returns>
+              <para><computeroutput>Second()(First()(expr))</computeroutput></para>
+            </returns>
+          </method>
+        </method-group>
+      </struct>
+
+      <!-- proto::use_basic_expr -->
+      <struct name="use_basic_expr">
+        <template>
+          <template-type-parameter name="Generator"/>
+        </template>
+        <inherit>
+          <type>Generator</type>
+        </inherit>
+        <description>
+          <para>
+            Annotate a generator to indicate that it would
+            prefer to be passed instances of
+            <computeroutput><classname>proto::basic_expr</classname>&lt;&gt;</computeroutput> rather than
+            <computeroutput><classname>proto::expr</classname>&lt;&gt;</computeroutput>.
+          </para>
+          <para>
+            <computeroutput>use_basic_expr&lt; Generator &gt;</computeroutput> is itself a generator.
+          </para>
+        </description>
+      </struct>
+
+      <!-- proto::wants_basic_expr -->
+      <struct name="wants_basic_expr">
+        <template>
+          <template-type-parameter name="Generator"/>
+        </template>
+        <inherit>
+          <type>mpl::bool_&lt; <replaceable>true-or-false</replaceable> &gt;</type>
+        </inherit>
+        <description>
+          <para>
+            A Boolean metafunction that tests a generator to see whether
+            it would prefer to be passed instances of
+            <computeroutput><classname>proto::basic_expr</classname>&lt;&gt;</computeroutput> rather than
+            <computeroutput><classname>proto::expr</classname>&lt;&gt;</computeroutput>.
+          </para>
+        </description>
+      </struct>
+
+    </namespace>
+  </namespace>
+</header>

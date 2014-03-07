@@ -1,0 +1,653 @@
+# Copyright (c) 2002-2010  International Business Machines Corporation and
+# others. All Rights Reserved.
+#
+#  file:  line_he.txt
+#
+#         Line Breaking Rules
+#         Implement default line breaking as defined by 
+#         Unicode Standard Annex #14 Revision 24 for Unicode 6.0
+#         http://www.unicode.org/reports/tr14/
+#
+#         TODO:  Rule LB 8 remains as it was in Unicode 5.2
+#         This is only because of a limitation of ICU break engine implementation,
+#         not because the older behavior is desirable.
+
+#
+#  Character Classes defined by TR 14.
+#
+
+!!chain;
+!!LBCMNoChain;
+
+
+!!lookAheadHardBreak;
+#
+#  !!lookAheadHardBreak    Described here because it is (as yet) undocumented elsewhere
+#                          and only used for the line break rules.
+#
+#           It is used in the implementation of rule LB 10
+#           which says to treat any combining mark that is not attached to a base
+#           character as if it were of class AL  (alphabetic).
+#
+#           The problem occurs in the reverse rules.
+#
+#           Consider a sequence like, with correct breaks as shown
+#               LF  ID  CM  AL  AL
+#                  ^       ^       ^
+#           Then consider the sequence without the initial ID (ideographic)
+#                 LF  CM  AL  AL
+#                    ^           ^
+#           Our CM, which in the first example was attached to the ideograph,
+#           is now unattached, becomes an alpha, and joins in with the other
+#           alphas.
+#
+#           When iterating forwards, these sequences do not present any problems
+#           When iterating backwards, we need to look ahead when encountering
+#           a CM to see whether it attaches to something further on or not.
+#           (Look-ahead in a reverse rule is looking towards the start)
+#
+#           If the CM is unattached, we need to force a break.
+#
+#           !!lookAheadHardBreak forces the run time state machine to
+#           stop immediately when a look ahead rule ( '/' operator) matches,
+#           and set the match position to that of the look-ahead operator,
+#           no matter what other rules may be in play at the time.
+#
+#           See rule LB 19 for an example.
+#
+
+$AI = [:LineBreak =  Ambiguous:];
+$AL = [[:LineBreak =  Alphabetic:] - [[:Hebrew:] & [:Letter:]]];
+$HL = [[:Hebrew:] & [:Letter:]];
+$BA = [[:LineBreak =  Break_After:] - [\u2010]];
+$HH = [\u2010];
+$BB = [:LineBreak =  Break_Before:];
+$BK = [:LineBreak =  Mandatory_Break:];
+$B2 = [:LineBreak =  Break_Both:];
+$CB = [:LineBreak =  Contingent_Break:];
+$CL = [:LineBreak =  Close_Punctuation:];
+$CM = [:LineBreak =  Combining_Mark:];
+$CP = [:LineBreak =  Close_Parenthesis:];
+$CR = [:LineBreak =  Carriage_Return:];
+$EX = [:LineBreak =  Exclamation:];
+$GL = [:LineBreak =  Glue:];
+$HY = [:LineBreak =  Hyphen:];
+$H2 = [:LineBreak =  H2:];
+$H3 = [:LineBreak =  H3:];
+$ID = [:LineBreak =  Ideographic:];
+$IN = [:LineBreak =  Inseperable:];
+$IS = [:LineBreak =  Infix_Numeric:];
+$JL = [:LineBreak =  JL:];
+$JV = [:LineBreak =  JV:];
+$JT = [:LineBreak =  JT:];
+$LF = [:LineBreak =  Line_Feed:];
+$NL = [:LineBreak =  Next_Line:];
+$NS = [:LineBreak =  Nonstarter:];
+$NU = [:LineBreak =  Numeric:];
+$OP = [:LineBreak =  Open_Punctuation:];
+$PO = [:LineBreak =  Postfix_Numeric:];
+$PR = [:LineBreak =  Prefix_Numeric:];
+$QU = [:LineBreak =  Quotation:];
+$SA = [:LineBreak =  Complex_Context:];
+$SG = [:LineBreak =  Surrogate:];
+$SP = [:LineBreak =  Space:];
+$SY = [:LineBreak =  Break_Symbols:];
+$WJ = [:LineBreak =  Word_Joiner:];
+$XX = [:LineBreak =  Unknown:];
+$ZW = [:LineBreak =  ZWSpace:];
+
+#   Dictionary character set, for triggering language-based break engines. Currently
+#   limited to LineBreak=Complex_Context. Note that this set only works in Unicode
+#   5.0 or later as the definition of Complex_Context was corrected to include all
+#   characters requiring dictionary break.
+
+$dictionary = [:LineBreak = Complex_Context:];
+
+#
+#  Rule LB1.  By default, treat AI  (characters with ambiguous east Asian width),
+#                               SA  (South East Asian: Thai, Lao, Khmer)
+#                               SG  (Unpaired Surrogates)
+#                               XX  (Unknown, unassigned)
+#                         as $AL  (Alphabetic)
+#
+$ALPlus = [$AL $HL $AI $SA $SG $XX];
+
+#
+#  Combining Marks.   X $CM*  behaves as if it were X.  Rule LB6.
+#
+$ALcm = $ALPlus $CM*;
+$HLcm = $HL $CM*;
+$BAcm = $BA $CM*;
+$HHcm = $HH $CM*;
+$BBcm = $BB $CM*;
+$B2cm = $B2 $CM*;
+$CLcm = $CL $CM*;
+$CPcm = $CP $CM*;
+$EXcm = $EX $CM*;
+$GLcm = $GL $CM*;
+$HYcm = $HY $CM*;
+$H2cm = $H2 $CM*;
+$H3cm = $H3 $CM*;
+$IDcm = $ID $CM*;
+$INcm = $IN $CM*;
+$IScm = $IS $CM*;
+$JLcm = $JL $CM*;
+$JVcm = $JV $CM*;
+$JTcm = $JT $CM*;
+$NScm = $NS $CM*;
+$NUcm = $NU $CM*;
+$OPcm = $OP $CM*;
+$POcm = $PO $CM*;
+$PRcm = $PR $CM*;
+$QUcm = $QU $CM*;
+$SYcm = $SY $CM*;
+$WJcm = $WJ $CM*;
+
+## -------------------------------------------------
+
+!!forward;
+
+#
+#  Each class of character can stand by itself as an unbroken token, with trailing combining stuff
+#
+$ALPlus $CM+;
+$BA $CM+;
+$HH $CM+;
+$BB $CM+;
+$B2 $CM+;
+$CL $CM+;
+$CP $CM+;
+$EX $CM+;
+$GL $CM+;
+$HY $CM+;
+$H2 $CM+;
+$H3 $CM+;
+$ID $CM+;
+$IN $CM+;
+$IS $CM+;
+$JL $CM+;
+$JV $CM+;
+$JT $CM+;
+$NS $CM+;
+$NU $CM+;
+$OP $CM+;
+$PO $CM+;
+$PR $CM+;
+$QU $CM+;
+$SY $CM+;
+$WJ $CM+;
+
+#
+# CAN_CM  is the set of characters that may combine with CM combining chars.
+#         Note that Linebreak UAX 14's concept of a combining char and the rules
+#         for what they can combine with are _very_ different from the rest of Unicode.
+#
+#         Note that $CM itself is left out of this set.  If CM is needed as a base
+#         it must be listed separately in the rule.
+#
+$CAN_CM  = [^$SP $BK $CR $LF $NL $ZW $CM];       # Bases that can   take CMs
+$CANT_CM = [ $SP $BK $CR $LF $NL $ZW $CM];       # Bases that can't take CMs
+
+#
+# AL_FOLLOW  set of chars that can unconditionally follow an AL
+#            Needed in rules where stand-alone $CM s are treated as AL.
+#            Chaining is disabled with CM because it causes other failures,
+#            so for this one case we need to manually list out longer sequences.
+#
+$AL_FOLLOW_NOCM = [$BK $CR $LF $NL $ZW $SP];
+$AL_FOLLOW_CM   = [$CL $CP $EX $IS $SY $WJ $GL $OP $QU $BA $HH $HY $NS $IN $NU $ALPlus];
+$AL_FOLLOW      = [$AL_FOLLOW_NOCM $AL_FOLLOW_CM];
+
+
+#
+#  Rule LB 4, 5    Mandatory (Hard) breaks.
+#
+$LB4Breaks    = [$BK $CR $LF $NL];
+$LB4NonBreaks = [^$BK $CR $LF $NL];
+$CR $LF {100};
+
+#
+#  LB 6    Do not break before hard line breaks.
+#
+$LB4NonBreaks?  $LB4Breaks {100};    # LB 5  do not break before hard breaks.
+$CAN_CM $CM*    $LB4Breaks {100};
+$CM+            $LB4Breaks {100};
+
+# LB 7         x SP
+#              x ZW
+$LB4NonBreaks [$SP $ZW];
+$CAN_CM $CM*  [$SP $ZW];
+$CM+          [$SP $ZW];
+
+#
+# LB 8         Break after zero width space
+#              TODO:  ZW SP* <break>
+#              An engine change is required to write the reverse rule for this.
+#              For now, leave the Unicode 5.2 rule, ZW <break>
+#
+$LB8Breaks    = [$LB4Breaks $ZW];
+$LB8NonBreaks = [[$LB4NonBreaks] - [$ZW]];
+
+
+# LB 9     Combining marks.      X   $CM needs to behave like X, where X is not $SP, $BK $CR $LF $NL 
+#                                $CM not covered by the above needs to behave like $AL   
+#                                See definition of $CAN_CM.
+
+$CAN_CM $CM+;                   #  Stick together any combining sequences that don't match other rules.
+$CM+;
+
+#
+# LB 11  Do not break before or after WORD JOINER & related characters.
+#
+$CAN_CM $CM*  $WJcm;
+$LB8NonBreaks $WJcm;
+$CM+          $WJcm;
+
+$WJcm $CANT_CM;
+$WJcm $CAN_CM $CM*;
+
+#
+# LB 12  Do not break after NBSP and related characters.
+#         GL  x
+#
+$GLcm $CAN_CM $CM*;
+$GLcm $CANT_CM;
+ 
+#
+# LB 12a  Do not break before NBSP and related characters ...
+#            [^SP BA HY] x GL
+#
+[[$LB8NonBreaks] - [$SP $BA $HH $HY]] $CM* $GLcm;
+$CM+ GLcm;
+
+
+
+#
+# LB 13   Don't break before ']' or '!' or ';' or '/', even after spaces.
+#
+$LB8NonBreaks $CL;
+$CAN_CM $CM*  $CL;
+$CM+          $CL;              # by rule 10, stand-alone CM behaves as AL
+
+$LB8NonBreaks $CP;
+$CAN_CM $CM*  $CP;
+$CM+          $CP;              # by rule 10, stand-alone CM behaves as AL
+
+$LB8NonBreaks $EX;
+$CAN_CM $CM*  $EX;
+$CM+          $EX;              # by rule 10, stand-alone CM behaves as AL
+
+$LB8NonBreaks $IS;
+$CAN_CM $CM*  $IS;
+$CM+          $IS;              # by rule 10, stand-alone CM behaves as AL
+
+$LB8NonBreaks $SY;
+$CAN_CM $CM*  $SY;
+$CM+          $SY;              # by rule 10, stand-alone CM behaves as AL
+
+
+#
+# LB 14  Do not break after OP, even after spaces
+#
+$OPcm $SP* $CAN_CM $CM*;
+$OPcm $SP* $CANT_CM;
+
+$OPcm $SP+ $CM+ $AL_FOLLOW?;    # by rule 10, stand-alone CM behaves as AL
+
+# LB 15
+$QUcm $SP* $OPcm;
+
+# LB 16
+($CLcm | $CPcm) $SP* $NScm;
+
+# LB 17
+$B2cm $SP* $B2cm;
+
+#
+# LB 18  Break after spaces.
+#
+$LB18NonBreaks = [$LB8NonBreaks - [$SP]];
+$LB18Breaks    = [$LB8Breaks $SP];
+
+
+# LB 19
+#         x QU
+$LB18NonBreaks $CM* $QUcm;
+$CM+                $QUcm;
+
+#         QU  x
+$QUcm .?;
+$QUcm $LB18NonBreaks $CM*;    # Don't let a combining mark go onto $CR, $BK, etc.
+                              #  TODO:  I don't think this rule is needed.
+
+
+# LB 20
+#        <break>  $CB
+#        $CB   <break>
+
+$LB20NonBreaks = [$LB18NonBreaks - $CB];
+
+# LB 21        x   (BA | HY | NS)
+#           BB x
+#
+$LB20NonBreaks $CM* ($BAcm | $HHcm | $HYcm | $NScm); 
+
+$BBcm [^$CB];                                  #  $BB  x
+$BBcm $LB20NonBreaks $CM*;
+
+# LB 22
+$ALcm    $INcm;
+$CM+     $INcm;     #  by rule 10, any otherwise unattached CM behaves as AL
+$IDcm    $INcm;
+$INcm    $INcm;
+$NUcm    $INcm;
+
+
+# $LB 23
+$IDcm  $POcm;
+$ALcm  $NUcm;       # includes $LB19
+$CM+   $NUcm;       # Rule 10, any otherwise unattached CM behaves as AL
+$NUcm  $ALcm;
+
+#
+# LB 24
+#
+$PRcm $IDcm;
+$PRcm $ALcm;
+$POcm $ALcm;
+
+#
+# LB 25   Numbers.
+#
+($PRcm | $POcm)? ($OPcm | $HYcm)? $NUcm ($NUcm | $SYcm | $IScm)* ($CLcm | $CPcm)? ($PRcm | $POcm)?;
+
+# LB 26  Do not break a Korean syllable
+#
+$JLcm ($JLcm | $JVcm | $H2cm | $H3cm);
+($JVcm | $H2cm) ($JVcm | $JTcm);
+($JTcm | $H3cm) $JTcm;
+
+# LB 27  Treat korean Syllable Block the same as ID  (don't break it)
+($JLcm | $JVcm | $JTcm | $H2cm | $H3cm) $INcm;
+($JLcm | $JVcm | $JTcm | $H2cm | $H3cm) $POcm;
+$PRcm ($JLcm | $JVcm | $JTcm | $H2cm | $H3cm);
+
+
+# LB 28   Do not break between alphabetics
+#
+$ALcm $ALcm;
+$CM+ $ALcm;      # The $CM+ is from rule 10, an unattached CM is treated as AL
+
+# LB 29
+$IScm $ALcm;
+
+# LB 30
+($ALcm | $NUcm) $OPcm;
+$CM+ $OPcm;         # The $CM+ is from rule 10, an unattached CM is treated as AL.          
+$CPcm ($ALcm | $NUcm);
+
+# (LB 31) Add new rule to prevent the break we do not want, this is the behavior change
+$HLcm ($HY | $HH) $ALcm;
+
+#
+#  Reverse Rules.
+#
+## -------------------------------------------------
+
+!!reverse;
+
+$CM+ $ALPlus;
+$CM+ $BA;
+$CM+ $HH;
+$CM+ $BB;
+$CM+ $B2;
+$CM+ $CL;
+$CM+ $CP;
+$CM+ $EX;
+$CM+ $GL;
+$CM+ $HY;
+$CM+ $H2;
+$CM+ $H3;
+$CM+ $ID;
+$CM+ $IN;
+$CM+ $IS;
+$CM+ $JL;
+$CM+ $JV;
+$CM+ $JT;
+$CM+ $NS;
+$CM+ $NU;
+$CM+ $OP;
+$CM+ $PO;
+$CM+ $PR;
+$CM+ $QU;
+$CM+ $SY;
+$CM+ $WJ;
+$CM+;
+
+
+#
+#  Sequences of the form  (shown forwards)
+#      [CANT_CM]  <break>  [CM]  [whatever]
+#  The CM needs to behave as an AL
+#
+$AL_FOLLOW $CM+ / (
+          [$BK $CR $LF $NL $ZW {eof}] |
+          $SP+ $CM+ $SP |
+          $SP+ $CM* ([^$OP $CM $SP] | [$AL {eof}]));   # if LB 14 will match, need to surpress this break.
+                                               #  LB14 says    OP SP* x .        
+                                               #    becomes    OP SP* x AL
+                                               #    becomes    OP SP* x CM+ AL_FOLLOW
+                                               #
+                                               # Further note:  the $AL in [$AL {eof}] is only to work around
+                                               #                a rule compiler bug which complains about
+                                               #                empty sets otherwise.
+          
+#
+#  Sequences of the form  (shown forwards)
+#      [CANT_CM]  <break> [CM]  <break>  [PR]
+#  The CM needs to behave as an AL
+#  This rule is concerned about getting the second of the two <breaks> in place.
+#
+
+[$PR   ] / $CM+ [$BK $CR $LF $NL $ZW $SP {eof}];
+
+
+
+# LB 4, 5, 5
+
+$LB4Breaks [$LB4NonBreaks-$CM];
+$LB4Breaks $CM+ $CAN_CM;
+$LF $CR;
+
+
+# LB 7         x SP
+#              x ZW
+[$SP $ZW] [$LB4NonBreaks-$CM];
+[$SP $ZW] $CM+ $CAN_CM;
+
+# LB 8 ZW SP* <break>
+#     TODO: to implement this, we need more than one look-ahead hard break in play at a time.
+#           Requires an engine enhancement.
+#   / $SP* $ZW
+
+# LB 9,10  Combining marks.
+#    X   $CM needs to behave like X, where X is not $SP or controls.
+#    $CM not covered by the above needs to behave like $AL
+# Stick together any combining sequences that don't match other rules.
+$CM+ $CAN_CM;
+
+
+# LB 11
+$CM* $WJ $CM* $CAN_CM;
+$CM* $WJ      [$LB8NonBreaks-$CM];
+
+     $CANT_CM $CM* $WJ;
+$CM* $CAN_CM  $CM* $WJ;
+
+# LB 12a
+#      [^SP BA HY] x GL
+#
+$CM* $GL $CM* [$LB8NonBreaks-[$CM $SP $BA $HH $HY]];
+
+# LB 12
+#     GL  x
+#
+$CANT_CM $CM* $GL;
+$CM* $CAN_CM $CM* $GL;
+
+
+# LB 13
+$CL $CM+ $CAN_CM;
+$CP $CM+ $CAN_CM;
+$EX $CM+ $CAN_CM;
+$IS $CM+ $CAN_CM;
+$SY $CM+ $CAN_CM;
+
+$CL [$LB8NonBreaks-$CM];
+$CP [$LB8NonBreaks-$CM];
+$EX [$LB8NonBreaks-$CM];
+$IS [$LB8NonBreaks-$CM];
+$SY [$LB8NonBreaks-$CM];
+
+# Rule 13 & 14 taken together for an edge case.
+#   Match this, shown forward
+#     OP SP+  ($CM+ behaving as $AL) (CL | CP | EX | IS | IY)
+#   This really wants to chain at the $CM+ (which is acting as an $AL)
+#   except for $CM chaining being disabled.
+[$CL $CP $EX $IS $SY] $CM+ $SP+ $CM* $OP;  
+
+# LB 14    OP SP* x
+#
+$CM* $CAN_CM    $SP* $CM* $OP;
+     $CANT_CM   $SP* $CM* $OP;
+$AL_FOLLOW? $CM+  $SP $SP* $CM* $OP;     #  by LB 10, behaves like $AL_FOLLOW? $AL $SP* $CM* $OP
+     
+     $AL_FOLLOW_NOCM $CM+ $SP+ $CM* $OP;
+$CM* $AL_FOLLOW_CM   $CM+ $SP+ $CM* $OP;
+$SY $CM $SP+ $OP;   # TODO:  Experiment.  Remove.
+
+
+
+# LB 15
+$CM* $OP $SP* $CM* $QU;
+
+# LB 16
+$CM* $NS $SP* $CM* ($CL | $CP);
+
+# LB 17
+$CM* $B2 $SP* $CM* $B2;
+
+# LB 18  break after spaces
+#        Nothing explicit needed here.
+
+
+#
+# LB 19
+#
+$CM* $QU $CM* $CAN_CM;                                #   . x QU
+$CM* $QU      $LB18NonBreaks;
+
+
+$CM* $CAN_CM  $CM* $QU;                               #   QU x .
+     $CANT_CM $CM* $QU;
+     
+#
+#  LB 20  Break before and after CB.
+#         nothing needed here.
+#
+
+# LB 21
+$CM* ($BA | $HH | $HY | $NS) $CM* [$LB20NonBreaks-$CM];     #  . x (BA | HY | NS)
+
+$CM* [$LB20NonBreaks-$CM] $CM* $BB;                   #  BB x .
+[^$CB] $CM* $BB;                                      # 
+
+
+
+# LB 22
+$CM* $IN $CM* $ALPlus;
+$CM* $IN $CM* $ID;
+$CM* $IN $CM* $IN;
+$CM* $IN $CM* $NU;
+
+# LB 23
+$CM* $PO $CM* $ID;
+$CM* $NU $CM* $ALPlus;
+$CM* $ALPlus $CM* $NU;
+
+# LB 24
+$CM* $ID $CM* $PR;
+$CM* $ALPlus $CM* $PR;
+$CM* $ALPlus $CM* $PO;
+
+
+# LB 25
+($CM* ($PR | $PO))? ($CM* ($CL | $CP))? ($CM* ($NU | $IS | $SY))* $CM* $NU ($CM* ($OP | $HY))? ($CM* ($PR | $PO))?;
+
+# LB 26
+$CM* ($H3 | $H2 | $JV | $JL) $CM* $JL;
+$CM* ($JT | $JV) $CM* ($H2 | $JV);
+$CM* $JT $CM* ($H3 | $JT);
+
+# LB 27
+$CM* $IN $CM* ($H3 | $H2 | $JT | $JV | $JL);
+$CM* $PO $CM* ($H3 | $H2 | $JT | $JV | $JL);
+$CM* ($H3 | $H2 | $JT | $JV | $JL) $CM* $PR;
+
+# LB 28
+$CM* $ALPlus $CM* $ALPlus;
+
+
+# LB 29
+$CM* $ALPlus $CM* $IS;
+
+# LB 30
+$CM* $OP $CM* ($ALPlus | $NU);
+$CM* ($ALPlus | $NU) $CM* $CP;
+
+# (LB 31) Add new rule to prevent the break we do not want, this is the behavior change
+$CM* $ALPlus ($HY | $HH) $CM* $HL;
+
+## -------------------------------------------------
+
+!!safe_reverse;
+
+# LB 9
+$CM+ [^$CM $BK $CR $LF $NL $ZW $SP];
+$CM+ $SP / .;
+
+# LB 14
+$SP+ $CM* $OP;
+
+# LB 15
+$SP+ $CM* $QU;
+
+# LB 16
+$SP+ $CM* ($CL | $CP);
+
+# LB 17
+$SP+ $CM* $B2;
+
+# LB 25
+($CM* ($IS | $SY))+ $CM* $NU;
+($CL | $CP) $CM* ($NU | $IS | $SY);
+
+# For dictionary-based break
+$dictionary $dictionary;
+
+## -------------------------------------------------
+
+!!safe_forward;
+
+# Skip forward over all character classes that are involved in
+#   rules containing patterns with possibly more than one char
+#   of context.
+#
+#  It might be slightly more efficient to have specific rules
+#  instead of one generic one, but only if we could
+#  turn off rule chaining.  We don't want to move more
+#  than necessary.
+#
+[$CM $OP $QU $CL $CP $B2 $PR $HY $SP $dictionary]+ [^$CM $OP $QU $CL $CP $B2 $PR $HY $dictionary];
+$dictionary $dictionary;
+

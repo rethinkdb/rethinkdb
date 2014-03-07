@@ -1,0 +1,45 @@
+[/
+ / Copyright (c) 2008 Marcin Kalicinski (kalita <at> poczta dot onet dot pl)
+ / Copyright (c) 2009 Sebastian Redl (sebastian dot redl <at> getdesigned dot at)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+[section:registry_parser Windows Registry Parser]
+[def __registry_parser.hpp__ [headerref boost/property_tree/registry_parser.hpp registry_parser.hpp]]
+[def __read_registry__ [funcref boost::property_tree::registry_parser::read_registry read_registry]]
+[def __translate__ [funcref boost::property_tree::registry_parser::translate translate]]
+[def __write_registry__ [funcref boost::property_tree::registry_parser::write_registry write_registry]]
+This parser supports reading and writing data from Windows registry. There is only a subset of registry functionality implemented, because property tree is not intended to replace registry API. For example, access rights are not supported, as well as some exotic value formats. Registry is a rich data source, providing hierarchy of keys, each of whose can have any number of named and typed values attached to it. Because of that - like in XML - some translation is necessary.
+
+[important This parser will only work on a Windows system because it uses Windows API to access the registry. You will need to link with [^advapi32.lib].  A minimalist version of the [^windows.h] Windows header file is included by __registry_parser.hpp__. If you want to include [^windows.h] header on your own, do it before including __registry_parser.hpp__.]
+
+[heading How Registry Keys are Translated to Property Trees (__read_registry__):]
+
+* Values of each registry key are stored in a subkey with name [^\values]. The preceding backslash is there to prevent name clashes with regular keys. Each subkey of [^\values] is one registry value. If [^\values] subkey does not exist or is empty, there are no values attached to that key.
+* Types of values of each registry key are stored in a subkey with name [^\types]. These subkeys contain an integer equal to type of data stored in its corresponding entry in [^\values] (correspondence is by name, not position).
+* So called "default value" (value attached to key itself), is translated directly to key data and is always assumed to be of type [^REG_SZ].
+* [^REG_BINARY] values are translated to textual format before placing in property tree. The format is the same as the one displayed by regedit application: a series of two-digit hexadecimal numbers representing bytes separated with spaces. To translate from this format to binary data, or vice versa, use the __translate__ function.
+* Supported value types are: [^REG_NONE], [^REG_SZ], [^REG_EXPAND_SZ], [^REG_DWORD], [^REG_QWORD], [^REG_BINARY].
+
+Translation of property tree back into registry (__write_registry__) assumes the same structure as outlined above. That means if you want to have named values, you need to create [^\values] and [^\types] subkeys, and put them there. Also, you have to convert all [^REG_BINARY] values to textual format. Passing "normal" property tree (i.e. not containing [^\types] and [^\values] keys) to the __write_registry__ function will put all data in "default value" section of each key. This is fine, especially if you intend to read this data using property tree, but is probably not a standard way of storing things in the registry.
+
+For example, when you read registry key [^HKEY_CURRENT_USER\Software\Microsoft\Notepad], under Windows XP, you will get property tree containing Notepad font settings (among other things):
+
+ Notepad
+ {
+    \values
+    {
+       lfFaceName  Courier
+       lfItalic    0
+       lfWeight    190
+    }
+    \types
+    {
+       lfFaceName  1  ; REG_SZ
+       lfItalic    4  ; REG_DWORD
+       lfWeight    4  ; REG_DWORD
+    }
+ }
+
+[endsect] [/win_reg_parser]

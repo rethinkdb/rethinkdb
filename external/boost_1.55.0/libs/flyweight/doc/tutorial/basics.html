@@ -1,0 +1,227 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Tutorial - Basics</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="index.html">
+<link rel="up" href="index.html">
+<link rel="next" href="key_value.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight Tutorial: Basics</h1>
+
+<div class="prev_link"><a href="index.html"><img src="../prev.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="next_link"><a href="key_value.html"><img src="../next.gif" alt="key-value flyweights" border="0"><br>
+Key-value flyweights
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#intro">Introduction</a></li>
+  <li><a href="#requirements">Flyweight requirements</a></li>
+</ul>
+
+<h2><a name="intro">Introduction</a></h2>
+
+<p>
+Suppose we are writing a massive multiplayer online game
+which has to maintain hundreds of thousands or millions of instances
+of the following class in memory:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>user_entry</span>
+<span class=special>{</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>first_name</span><span class=special>;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>last_name</span><span class=special>;</span>
+  <span class=keyword>int</span>         <span class=identifier>age</span><span class=special>;</span>
+  <span class=special>...</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+In this kind of environments memory resources are precious, so we are seeking
+ways to make <code>user_entry</code> as compact as possible. Typically, there
+exists a very high level of repetition of first and last names among
+the community users, so an obvious optimization consists in moving
+<code>user_entry::first_name</code> and <code>user_entry::last_name</code>
+objects to a common repository where duplicates are avoided, and leaving
+references to these inside <code>user_entry</code>. This is precisely what
+Boost.Flyweight does in the simplest possible way for the programmer:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=keyword>struct</span> <span class=identifier>user_entry</span>
+<span class=special>{</span>
+  <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=identifier>first_name</span><span class=special>;</span>
+  <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=identifier>last_name</span><span class=special>;</span>
+  <span class=keyword>int</span>                    <span class=identifier>age</span><span class=special>;</span>
+  <span class=special>...</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+Boost.Flyweight automatically performs the optimization just described behind
+the scenes, so that the net effect of this change is that the memory
+usage of the program decreases by a factor proportional to the level of
+redundancy among user names.
+</p>
+
+<p>
+<code>flyweight&lt;std::string&gt;</code> behaves in many ways like
+<code>std::string</code>; for instance, the following code works
+unchanged after the redefinition of <code>user_entry</code>:
+</p>
+
+<blockquote><pre>
+<span class=comment>// flyweight&lt;T&gt; can be constructed in the same way as T objects can,
+// even with multiple argument constructors</span>
+
+<span class=identifier>user_entry</span><span class=special>::</span><span class=identifier>user_entry</span><span class=special>(</span><span class=keyword>const</span> <span class=keyword>char</span><span class=special>*</span> <span class=identifier>f</span><span class=special>,</span><span class=keyword>const</span> <span class=keyword>char</span><span class=special>*</span> <span class=identifier>l</span><span class=special>,</span><span class=keyword>int</span> <span class=identifier>a</span><span class=special>,...):</span>
+  <span class=identifier>first_name</span><span class=special>(</span><span class=identifier>f</span><span class=special>),</span>
+  <span class=identifier>last_name</span><span class=special>(</span><span class=identifier>l</span><span class=special>),</span>
+  <span class=identifier>age</span><span class=special>(</span><span class=identifier>a</span><span class=special>),</span>
+  <span class=special>...</span>
+<span class=special>{}</span>
+
+<span class=comment>// flyweight classes have relational operators replicating the
+// semantics of the underyling type</span>
+
+<span class=keyword>bool</span> <span class=identifier>same_name</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>user_entry</span><span class=special>&amp;</span> <span class=identifier>user1</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>user_entry</span><span class=special>&amp;</span> <span class=identifier>user2</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=keyword>return</span> <span class=identifier>user1</span><span class=special>.</span><span class=identifier>first_name</span><span class=special>==</span><span class=identifier>user2</span><span class=special>.</span><span class=identifier>first_name</span> <span class=special>&amp;&amp;</span>
+         <span class=identifier>user1</span><span class=special>.</span><span class=identifier>last_name</span><span class=special>==</span><span class=identifier>user2</span><span class=special>.</span><span class=identifier>last_name</span><span class=special>;</span>
+<span class=special>}</span>
+
+<span class=comment>// flyweight&lt;T&gt; provides operator&lt;&lt; and operator&gt;&gt; internally
+// forwarding to T::operator&lt;&lt; and T::operator&gt;&gt;</span>
+
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>ostream</span><span class=special>&amp;</span> <span class=keyword>operator</span><span class=special>&lt;&lt;(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>ostream</span><span class=special>&amp;</span> <span class=identifier>os</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>user_entry</span><span class=special>&amp;</span> <span class=identifier>user</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=keyword>return</span> <span class=identifier>os</span><span class=special>&lt;&lt;</span><span class=identifier>user</span><span class=special>.</span><span class=identifier>first_name</span><span class=special>&lt;&lt;</span><span class=string>&quot; &quot;</span><span class=special>&lt;&lt;</span><span class=identifier>user</span><span class=special>.</span><span class=identifier>last_name</span><span class=special>&lt;&lt;</span><span class=string>&quot; &quot;</span><span class=special>&lt;&lt;</span><span class=identifier>user</span><span class=special>.</span><span class=identifier>age</span><span class=special>;</span>
+<span class=special>}</span>
+
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>istream</span><span class=special>&amp;</span> <span class=keyword>operator</span><span class=special>&gt;&gt;(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>istream</span><span class=special>&amp;</span> <span class=identifier>is</span><span class=special>,</span><span class=identifier>user_entry</span><span class=special>&amp;</span> <span class=identifier>user</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=keyword>return</span> <span class=identifier>is</span><span class=special>&gt;&gt;</span><span class=identifier>user</span><span class=special>.</span><span class=identifier>first_name</span><span class=special>&gt;&gt;</span><span class=identifier>user</span><span class=special>.</span><span class=identifier>last_name</span><span class=special>&gt;&gt;</span><span class=identifier>user</span><span class=special>.</span><span class=identifier>age</span><span class=special>;</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<p>
+Besides, <code>flyweight&lt;T&gt;</code> is convertible to
+<code>const T&amp;</code>, either implicitly or through the <code>get</code>
+member function:
+</p>
+
+<blockquote><pre>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>full_name</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>user_entry</span><span class=special>&amp;</span> <span class=identifier>user</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>full</span><span class=special>;</span>
+
+  <span class=identifier>full</span><span class=special>.</span><span class=identifier>reserve</span><span class=special>(</span>
+    <span class=identifier>user</span><span class=special>.</span><span class=identifier>first_name</span><span class=special>.</span><span class=identifier>get</span><span class=special>().</span><span class=identifier>size</span><span class=special>()+</span>   <span class=comment>// get() returns the underlying</span>
+    <span class=identifier>user</span><span class=special>.</span><span class=identifier>last_name</span><span class=special>.</span><span class=identifier>get</span><span class=special>().</span><span class=identifier>size</span><span class=special>()+</span><span class=number>1</span><span class=special>);</span> <span class=comment>// const std::string&amp;</span>
+
+  <span class=identifier>full</span><span class=special>+=</span><span class=identifier>user</span><span class=special>.</span><span class=identifier>first_name</span><span class=special>;</span>            <span class=comment>// implicit conversion is used here</span>
+  <span class=identifier>full</span><span class=special>+=</span><span class=string>&quot; &quot;</span><span class=special>;</span>
+  <span class=identifier>full</span><span class=special>+=</span><span class=identifier>user</span><span class=special>.</span><span class=identifier>last_name</span><span class=special>;</span>
+
+  <span class=keyword>return</span> <span class=identifier>full</span><span class=special>;</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<p>
+The most important restriction to take into account when replacing a class
+with an equivalent flyweight is the fact that flyweights are not
+mutable: since several flyweight objects can share the same representation
+value, modifying this value is not admissible. On the other hand, flyweight
+objects can be assigned new values:
+</p>
+
+<blockquote><pre>
+<span class=keyword>void</span> <span class=identifier>change_name</span><span class=special>(</span>
+  <span class=identifier>user_entry</span><span class=special>&amp;</span> <span class=identifier>user</span><span class=special>,</span>
+  <span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>f</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>l</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=identifier>user</span><span class=special>.</span><span class=identifier>first_name</span><span class=special>=</span><span class=identifier>f</span><span class=special>;</span>
+  <span class=identifier>user</span><span class=special>.</span><span class=identifier>last_name</span><span class=special>=</span><span class=identifier>l</span><span class=special>;</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<p>
+In general, <code>flyweight&lt;T&gt;</code> interface is designed to make
+the transition from plain <code>T</code> as straightforward as possible.
+Check the <a href="../reference/flyweight.html#flyweight">reference</a> for
+further details on the interface of the class template <code>flyweight</code>.
+The <a href="../examples.html">examples section</a> explores
+some common usage scenarios of Boost.Flyweight.
+</p>
+
+<h3><a name="requirements">Flyweight requirements</a></h3>
+
+<p>
+For <code>flyweight&lt;T&gt;</code> to be instantiable, <code>T</code> must
+be <a href="http://www.sgi.com/tech/stl/Assignable.html"><code>Assignable</code></a>,
+<a href="http://www.sgi.com/tech/stl/EqualityComparable.html"><code>Equality
+Comparable</code></a> and must interoperate with
+<a href="../../../functional/hash/index.html">Boost.Hash</a>.
+The first requirement is probably met without any extra effort by the user,
+not so the other two, except for the most common basic types of C++
+and the standard library. Equality and hashing of <code>T</code> are used
+internally by <code>flyweight&lt;T&gt;</code> internal factory to maintain the
+common repository of unique <code>T</code> values referred to by the flyweight
+objects. Consult the Boost.Hash documentation
+<a href="../../../../doc/html/hash/custom.html">section</a> on extending
+that library for custom data types.
+</p>
+
+<p>
+As we have seen, equality and hash requirements on <code>T</code> are
+imposed by the particular type of <i>flyweight factory</i> internally used by 
+<code>flyweight&lt;T&gt;</code>. We will see later how the user can customize
+this factory to use equality and hash predicates other than the default,
+or even switch to an entirely different kind of factory which may impose
+another requirements on <code>T</code>, as described in the section on
+<a href="configuration.html">configuring Boost.Flyweight</a>. 
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="index.html"><img src="../prev.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="next_link"><a href="key_value.html"><img src="../next.gif" alt="key-value flyweights" border="0"><br>
+Key-value flyweights
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised December 2nd 2008</p>
+
+<p>&copy; Copyright 2006-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

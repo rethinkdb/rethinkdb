@@ -1,0 +1,289 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <meta content=
+    "HTML Tidy for Windows (vers 1st February 2003), see www.w3.org"
+          name="generator">
+    <title>
+      Preface
+    </title>
+    <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+    <link rel="stylesheet" href="theme/style.css" type="text/css">
+  </head>
+  <body>
+    <table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+      <tr>
+        <td width="10"></td>
+        <td width="85%">
+          <font size="6" face=
+          "Verdana, Arial, Helvetica, sans-serif"><b>Preface</b></font>
+        </td>
+        <td width="112">
+          <a href="http://spirit.sf.net"><img src="theme/spirit.gif"
+               width="112" height="48" align="right" border="0"></a>
+        </td>
+      </tr>
+    </table><br>
+     
+    <table border="0">
+      <tr>
+        <td width="10"></td>
+        <td width="30">
+          <a href="../index.html"><img src="theme/u_arr.gif" border="0"></a>
+        </td>
+        <td width="30">
+          <img src="theme/l_arr_disabled.gif" width="20" height="19">
+        </td>
+        <td width="30">
+          <a href="introduction.html"><img src="theme/r_arr.gif" border="0">
+          </a>
+        </td>
+      </tr>
+    </table><br>
+     
+    <table width="80%" border="0" align="center">
+      <tr>
+        <td>
+          <p>
+            <i>"Examples of designs that meet most of the criteria for
+            "goodness" (easy to understand, flexible, efficient) are a
+            recursive-descent parser, which is traditional procedural code.
+            Another example is the STL, which is a generic library of
+            containers and algorithms depending crucially on both traditional
+            procedural code and on parametric polymorphism."</i>
+          </p>
+          <p>
+            <b><font color="#003366">Bjarne Stroustrup</font></b>
+          </p>
+        </td>
+      </tr>
+    </table>
+    <p>
+      <b>History</b>
+    </p>
+    <p>
+      A decade and a half ago, I wrote my first calculator in Pascal. It is one
+      of my most unforgettable coding experiences. I was amazed how a mutually
+      recursive set of functions can model a grammar specification. In time,
+      the skills I acquired from that academic experience became very
+      practical. Periodically I was tasked to do some parsing. For instance,
+      whenever I need to perform any form of I/O, even in binary, I try to
+      approach the task somewhat formally by writing a grammar using
+      Pascal-like syntax diagrams and then write a corresponding
+      recursive-descent parser. This worked very well.
+    </p>
+    <p>
+      The arrival of the Internet and the World Wide Web magnified this
+      thousand-fold. At one point I had to write an HTML parser for a Web
+      browser project. I got a recursive-descent HTML parser working based on
+      the W3C formal specifications easily. I was certainly glad that HTML had
+      a formal grammar specification. Because of the influence of the Internet,
+      I then had to do more parsing. RFC specifications were everywhere. SGML,
+      HTML, XML, even email addresses and those seemingly trivial URLs were all
+      formally specified using small EBNF-style grammar specifications. This
+      made me wish for a tool similar to big-time parser generators such as
+      YACC and <a href="http://www.antlr.org/">ANTLR</a>, where a parser is
+      built automatically from a grammar specification. Yet, I want it to be
+      extremely small; small enough to fit in my pocket, yet scalable.
+    </p>
+    <p>
+      It must be able to practically parse simple grammars such as email
+      addresses to moderately complex grammars such as XML and perhaps some
+      small to medium-sized scripting languages. Scalability is a prime goal.
+      You should be able to use it for small tasks such as parsing command
+      lines without incurring a heavy payload, as you do when you are using
+      YACC or PCCTS. Even now that it has evolved and matured to become a
+      multi-module library, true to its original intent, Spirit can still be
+      used for extreme micro-parsing tasks. You only pay for features that you
+      need. The power of Spirit comes from its modularity and extensibility.
+      Instead of giving you a sledgehammer, it gives you the right ingredients
+      to create a sledgehammer easily. For instance, it does not really have a
+      lexer, but you have all the raw ingredients to write one, if you need
+      one.
+    </p>
+    <p>
+      The result was Spirit. Spirit was a personal project that was conceived
+      when I was doing R&amp;D in Japan. Inspired by the GoF's composite and
+      interpreter patterns, I realized that I can model a recursive-descent
+      parser with hierarchical-object composition of primitives (terminals) and
+      composites (productions). The original version was implemented with
+      run-time polymorphic classes. A parser is generated at run time by
+      feeding in production rule strings such as <tt>"prod ::= {&lsquo;A&rsquo;
+      | &lsquo;B&rsquo;} &lsquo;C&rsquo;;"</tt>A compile function compiled the
+      parser, dynamically creating a hierarchy of objects and linking semantic
+      actions on the fly. A very early text can be found <a href=
+      "http://spirit.sourceforge.net/dl_docs/pre-spirit.htm">here</a>.
+    </p>
+    <p>
+      The version that we have now is a complete rewrite of the original Spirit
+      parser using expression templates and static polymorphism, inspired by
+      the works of Todd Veldhuizen (" <a href=
+      "http://www.extreme.indiana.edu/%7Etveldhui/papers/Expression-Templates/exprtmpl.html">
+      Expression Templates</a>", C++ Report, June 1995). Initially, the
+      <i><b>static-Spirit</b></i> version was meant only to replace the core of
+      the original <i><b>dynamic-Spirit</b></i>. Dynamic-spirit needed a parser
+      to implement itself anyway. The original employed a hand-coded
+      recursive-descent parser to parse the input grammar specification
+      strings.
+    </p>
+    <p>
+      After its initial "open-source" debut in May 2001, static-Spirit became a
+      success. At around November 2001, the Spirit website had an activity
+      percentile of 98%, making it the number one parser tool at Source Forge
+      at the time. Not bad for such a niche project such as a parser library.
+      The "static" portion of Spirit was forgotten and static-Spirit simply
+      became Spirit. The framework soon evolved to acquire more dynamic
+      features.
+    </p>
+    <p>
+      <b>How to use this manual</b>
+    </p>
+    <p>
+      The Spirit framework is organized in logical modules starting from the
+      core. This documentation provides a user's guide and reference for each
+      module in the framework. A simple and clear code example is worth a
+      hundred lines of documentation; therefore, the user's guide is presented
+      with abundant examples annotated and explained in step-wise manner. The
+      user's guide is based on examples -lots of them.
+    </p>
+    <p>
+      As much as possible, forward information (i.e. citing a specific piece of
+      information that has not yet been discussed) is avoided in the user's
+      manual portion of each module. In many cases, though, it is unavoidable
+      that advanced but related topics are interspersed with the normal flow of
+      discussion. To alleviate this problem, topics categorized as "advanced"
+      may be skipped at first reading.
+    </p>
+    <p>
+      Some icons are used to mark certain topics indicative of their relevance.
+      These icons precede some text to indicate:
+    </p>
+    <table width="90%" border="0" align="center">
+      <tr>
+        <td>
+          <table width="100%" border="0">
+            <tr>
+              <td colspan="3" class="table_title">
+                Icons
+              </td>
+            </tr>
+            <tr>
+              <td width="19" class="table_cells">
+                <img src="theme/note.gif" width="16" height="16">
+              </td>
+              <td width="58" class="table_cells">
+                <b>Note</b>
+              </td>
+              <td width="627" class="table_cells">
+                Information provided is moderately important and should be
+                noted by the reader.
+              </td>
+            </tr>
+            <tr>
+              <td width="19" class="table_cells">
+                <img src="theme/alert.gif">
+              </td>
+              <td width="58" class="table_cells">
+                <b>Alert</b>
+              </td>
+              <td width="627" class="table_cells">
+                Information provided is of utmost importance.
+              </td>
+            </tr>
+            <tr>
+              <td width="19" class="table_cells">
+                <img src="theme/lens.gif" width="15" height="16">
+              </td>
+              <td width="58" class="table_cells">
+                <b>Detail</b>
+              </td>
+              <td width="627" class="table_cells">
+                Information provided is auxiliary but will give the reader a
+                deeper insight into a specific topic. May be skipped.
+              </td>
+            </tr>
+            <tr>
+              <td width="19" class="table_cells">
+                <img src="theme/bulb.gif" width="13" height="18">
+              </td>
+              <td width="58" class="table_cells">
+                <b>Tip</b>
+              </td>
+              <td width="627" class="table_cells">
+                A potentially useful and helpful piece of information.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    <p>
+      <b>Support</b>
+    </p>
+    <p>
+      Please direct all questions to Spirit's mailing list. You can subscribe
+      to the mailing list <a href=
+      "https://lists.sourceforge.net/lists/listinfo/spirit-general">here</a>.
+      The mailing list has a searchable archive. A search link to this archive
+      is provided in <a href="http://spirit.sf.net">Spirit's home page</a>. You
+      may also read and post messages to the mailing list through an
+         <a href="http://news.gmane.org/thread.php?group=gmane.comp.parsers.spirit.general">
+      NNTP news portal</a> (thanks to <a href=
+      "http://www.gmane.org">www.gmane.org</a>). The news group mirrors the
+      mailing list. Here are two links to the archives: via <a href=
+      "http://dir.gmane.org/gmane.comp.parsers.spirit.general">
+      gmane</a>, via <a href=
+      "http://sourceforge.net/mailarchive/forum.php?forum_id=1595gmane.org">geocrawler</a>.
+    </p>
+    <table width="100%" border="0" align="center">
+      <tr>
+        <td>
+          <div align="center">
+            <i><b><font size="5">To my dear daughter Phoenix</font></b></i>
+          </div>
+        </td>
+      </tr>
+    </table>
+    <table width="100%" border="0">
+      <tr>
+        <td width="72%">
+          &nbsp;
+        </td>
+        <td width="28%">
+          <div align="right">
+            <p>
+              <b>Joel de Guzman<br></b> September 2002
+            </p>
+          </div>
+        </td>
+      </tr>
+    </table>
+    <table border="0">
+      <tr>
+        <td width="10"></td>
+        <td width="30">
+          <a href="../index.html"><img src="theme/u_arr.gif" border="0"></a>
+        </td>
+        <td width="30">
+          <img src="theme/l_arr_disabled.gif" width="20" height="19">
+        </td>
+        <td width="30">
+          <a href="introduction.html"><img src="theme/r_arr.gif" border="0">
+          </a>
+        </td>
+      </tr>
+    </table><br>
+     
+    <hr size="1">
+    <p class="copyright">
+      Copyright &copy; 1998-2003 Joel de Guzman<br>
+      <br>
+       <font size="2">Use, modification and distribution is subject to the
+      Boost Software License, Version 1.0. (See accompanying file
+      LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)</font>
+    </p>
+    <p>
+      &nbsp;
+    </p>
+  </body>
+</html>

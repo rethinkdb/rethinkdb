@@ -1,0 +1,1168 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Iterator Concepts</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Iterator Concepts</h1>
+<div class="toc" id="toc"></div>
+<p>An Iterator is a restricted pointer-like object pointing into a
+vector or matrix container.</p>
+<h2><a name="indexed_bidirectional_iterator" 
+></a>Indexed Bidirectional Iterator</h2>
+<h4>Description</h4>
+<p>An Indexed Bidirectional Iterator is an iterator of a container
+that can be dereferenced, incremented, decremented and carries
+index information.</p>
+<h4>Refinement of</h4>
+<p>Assignable, Equality Comparable, Default Constructible.</p>
+<h4>Associated types</h4>
+<table border="1" summary="associated types">
+<tbody>
+<tr>
+<td>Value type</td>
+<td>The type of the value obtained by dereferencing a Indexed
+Bidirectional Iterator</td>
+</tr>
+<tr>
+<td>Container type</td>
+<td>The type of the container a Indexed Bidirectional Iterator
+points into.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notation</h4>
+<table border="0" summary="notation">
+<tbody>
+<tr>
+<td><code>I</code></td>
+<td>A type that is a model of Indexed Bidirectional Iterator</td>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The value type of <code>I</code></td>
+</tr>
+<tr>
+<td><code>C</code></td>
+<td>The container type of <code>I</code></td>
+</tr>
+<tr>
+<td><code>it</code>, <code>itt, it1</code>, <code>it2</code></td>
+<td>Objects of type <code>I</code></td>
+</tr>
+<tr>
+<td><code>t</code></td>
+<td>Object of type <code>T</code></td>
+</tr>
+<tr>
+<td><code>c</code></td>
+<td>Object of type <code>C</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Definitions</h4>
+<p>A Indexed Bidirectional Iterator may be <i>mutable</i>, meaning
+that the values referred to by objects of that type may be
+modified, or <i>constant</i> , meaning that they may not. If an
+iterator type is mutable, this implies that its value type is a
+model of Assignable; the converse, though, is not necessarily
+true.</p>
+<p>A Indexed Bidirectional Iterator may have a <i>singular</i>
+value, meaning that the results of most operations, including
+comparison for equality, are undefined. The only operation that is
+guaranteed to be supported is assigning a nonsingular iterator to a
+singular iterator.</p>
+<p>A Indexed Bidirectional Iterator may have a
+<i>dereferenceable</i> value, meaning that dereferencing it yields
+a well-defined value. Dereferenceable iterators are always
+nonsingular, but the converse is not true.</p>
+<p>An Indexed Bidirectional Iterator is <i>past-the-end</i> if it
+points beyond the last element of a container. Past-the-end values
+are nonsingular and nondereferenceable.</p>
+<h4>Valid expressions</h4>
+<p>In addition to the expressions defined for Assignable, Equality
+Comparable and Default Constructible, the following expressions
+must be valid.</p>
+<table border="1" summary="expressions">
+<tbody>
+<tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type requirements</th>
+<th>Return type</th>
+</tr>
+<tr>
+<td>Default constructor</td>
+<td><code>I it</code></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Dereference</td>
+<td><code>*it</code></td>
+<td>&nbsp;</td>
+<td>Convertible to <code>T</code>.</td>
+</tr>
+<tr>
+<td>Dereference assignment</td>
+<td><code>*it = t</code></td>
+<td><code>I</code> is mutable.</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Member access</td>
+<td><code>it-&gt;m</code></td>
+<td><code>T</code> is a type for which <code>t.m</code> is
+defined.</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Preincrement</td>
+<td><code>++ it</code></td>
+<td>&nbsp;</td>
+<td><code>I &amp;</code></td>
+</tr>
+<tr>
+<td>Postincrement</td>
+<td><code>it ++</code></td>
+<td>&nbsp;</td>
+<td><code>I</code></td>
+</tr>
+<tr>
+<td>Predecrement</td>
+<td><code>-- it</code></td>
+<td>&nbsp;</td>
+<td><code>I &amp;</code></td>
+</tr>
+<tr>
+<td>Postdecrement</td>
+<td><code>it --</code></td>
+<td>&nbsp;</td>
+<td><code>I</code></td>
+</tr>
+<tr>
+<td>Index</td>
+<td><code>it.index ()</code></td>
+<td>&nbsp;</td>
+<td><code>C::size_type</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Expression Semantics</h4>
+<p>Semantics of an expression is defined only where it differs
+from, or is not defined in, Assignable, Equality Comparable and
+Default Constructible.</p>
+<table border="1" summary="semantics">
+<tbody>
+<tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Precondition</th>
+<th>Semantics</th>
+<th>Postcondition</th>
+</tr>
+<tr>
+<td>Default constructor</td>
+<td><code>I it</code></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td><code>it</code> is singular.</td>
+</tr>
+<tr>
+<td>Dereference</td>
+<td><code>*it</code></td>
+<td><code>it</code> is dereferenceable.</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Dereference assignment</td>
+<td><code>*it = t</code></td>
+<td>Same as for <code>*it</code>.</td>
+<td>&nbsp;</td>
+<td><code>*it</code> is a copy of t.</td>
+</tr>
+<tr>
+<td>Member access</td>
+<td><code>it-&gt;m</code></td>
+<td><code>it</code> is dereferenceable.</td>
+<td>Equivalent to <code>(*it).m</code></td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Preincrement</td>
+<td><code>++ it</code></td>
+<td><code>it</code> is dereferenceable.</td>
+<td><code>it</code> is modified to point to the next element.</td>
+<td><code>it</code> is dereferenceable or past-the-end.
+<code><br />
+&amp;it == &amp;++ it</code>.<br />
+If <code>it1 == it2</code>,<br />
+then <code>++ it1 == ++ it2</code>.</td>
+</tr>
+<tr>
+<td>Postincrement</td>
+<td><code>it ++</code></td>
+<td>Same as for <code>++ it</code>.</td>
+<td>Equivalent to<br />
+<code>{<br />
+&nbsp;I itt = it;<br />
+&nbsp;++ it;<br />
+&nbsp;return itt;<br />
+}</code></td>
+<td><code>it</code> is dereferenceable or past-the-end.</td>
+</tr>
+<tr>
+<td>Predecrement</td>
+<td><code>-- it</code></td>
+<td><code>it</code> is dereferenceable or past-the-end.<br />
+There exists a dereferenceable iterator <code>itt</code> such that
+<code>it == ++ itt</code>.</td>
+<td><code>it</code> is modified to point to the previous
+element.</td>
+<td><code>it</code> is dereferenceable.<br />
+<code>&amp;it = &amp;-- it</code>.<br />
+If <code>it1 == it2</code>,<br />
+then <code>-- it1 == -- it2</code>.<br />
+If <code>it2</code> is dereferenceable and <code>it1 ==
+++it2</code>,<br />
+then <code>--it1 == it2</code>.</td>
+</tr>
+<tr>
+<td>Postdecrement</td>
+<td><code>it --</code></td>
+<td>Same as for -- <code>it</code>.</td>
+<td>Equivalent to<br />
+<code>{<br />
+&nbsp;I itt = it;<br />
+&nbsp;-- it;<br />
+&nbsp;return itt;<br />
+}</code></td>
+<td><code>it</code> is dereferenceable.&nbsp;</td>
+</tr>
+<tr>
+<td>Index</td>
+<td><code>it.index ()</code></td>
+<td><code>it</code> is dereferenceable.</td>
+<td><code>it.index () &gt;= 0</code><br />
+and<br />
+<code>it.index () &lt; it ().size ()</code></td>
+<td>If <code>it1 == it2</code>,<br />
+then <code>it1.index () == it2.index ()</code>.<br />
+If <code>it1 == it2</code>,<br />
+then <code>it1.index () &lt; (++ it2).index
+()</code>.<br />
+If <code>it1 == it2</code>,<br />
+then <code>it1.index () &gt; (-- it2).index
+()</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Complexity guarantees</h4>
+<p>The complexity of operations on indexed bidirectional iterators
+is guaranteed to be amortized constant time.</p>
+<h4>Invariants</h4>
+<table border="1" summary="invariants">
+<tbody>
+<tr>
+<td>Identity</td>
+<td><code>it1 == it2</code> if and only if <code>&amp;*it1 ==
+&amp;*it2</code>.</td>
+</tr>
+<tr>
+<td>Symmetry of increment and decrement</td>
+<td>If <code>it</code> is dereferenceable, then <code>++ it;
+--it;</code> is a null operation. Similarly, <code>-- it; ++
+it;</code> is a null operation.</td>
+</tr>
+<tr>
+<td>Relation between iterator index and container element
+operator</td>
+<td>If <code>it</code> is dereferenceable, <code>*it == it ()
+(it.index ())</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Models</h4>
+<ul>
+<li><code>sparse_vector::iterator</code></li>
+</ul>
+<h2><a name="indexed_random_access_iterator"
+></a>Indexed Random Access Iterator</h2>
+<h4>Description</h4>
+<p>An Indexed Random Access Iterator is an iterator of a container
+that can be dereferenced, moved forward, moved backward and carries
+index information.</p>
+<h4>Refinement of</h4>
+<p>LessThanComparable, <a href=
+"#indexed_bidirectional_iterator">Indexed Bidirectional
+Iterator</a> .</p>
+<h4>Associated types</h4>
+<table border="1" summary="associated types">
+<tbody>
+<tr>
+<td>Value type</td>
+<td>The type of the value obtained by dereferencing a Indexed
+Random Access Iterator</td>
+</tr>
+<tr>
+<td>Container type</td>
+<td>The type of the container a Indexed Random Access Iterator
+points into.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notation</h4>
+<table border="0" summary="notation">
+<tbody>
+<tr>
+<td><code>I</code></td>
+<td>A type that is a model of Indexed Random Access Iterator</td>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The value type of <code>I</code></td>
+</tr>
+<tr>
+<td><code>C</code></td>
+<td>The container type of <code>I</code></td>
+</tr>
+<tr>
+<td><code>it</code>, <code>itt, it1</code>, <code>it2</code></td>
+<td>Objects of type <code>I</code></td>
+</tr>
+<tr>
+<td><code>t</code></td>
+<td>Object of type <code>T</code></td>
+</tr>
+<tr>
+<td><code>n</code></td>
+<td>Object of type <code>C::difference_type</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Definitions</h4>
+<p>An Indexed Random Access Iterator <code>it1</code> is
+<i>reachable</i> from an Indexed Random Access Iterator
+<code>it2</code> if, after applying <code>operator ++</code> to
+<code>it2</code> a finite number of times, <code>it1 ==
+it2</code>.</p>
+<h4>Valid expressions</h4>
+<p>In addition to the expressions defined for <a href=
+"#indexed_bidirectional_iterator">Indexed Bidirectional
+Iterator</a> , the following expressions must be valid.</p>
+<table border="1" summary="expressions">
+<tbody>
+<tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type requirements</th>
+<th>Return type</th>
+</tr>
+<tr>
+<td>Forward motion</td>
+<td><code>it += n</code></td>
+<td>&nbsp;</td>
+<td><code>I &amp;</code></td>
+</tr>
+<tr>
+<td>Iterator addition</td>
+<td><code>it + n</code></td>
+<td>&nbsp;</td>
+<td><code>I</code></td>
+</tr>
+<tr>
+<td>Backward motion</td>
+<td><code>i -= n</code></td>
+<td>&nbsp;</td>
+<td><code>I &amp;</code></td>
+</tr>
+<tr>
+<td>Iterator subtraction</td>
+<td><code>it - n</code></td>
+<td>&nbsp;</td>
+<td><code>I</code>&nbsp;</td>
+</tr>
+<tr>
+<td>Difference</td>
+<td><code>it1 - it2</code></td>
+<td>&nbsp;</td>
+<td><code>C::difference_type</code></td>
+</tr>
+<tr>
+<td>Element operator</td>
+<td><code>it [n]</code></td>
+<td>&nbsp;</td>
+<td>Convertible to <code>T</code>.</td>
+</tr>
+<tr>
+<td>Element assignment</td>
+<td><code>it [n] = t</code></td>
+<td><code>I</code> is mutable</td>
+<td>Convertible to <code>T</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Expression Semantics</h4>
+<p>Semantics of an expression is defined only where it differs
+from, or is not defined in, <a href=
+"#indexed_bidirectional_iterator">Indexed Bidirectional
+Iterator</a> .</p>
+<table border="1" summary="semantics">
+<tbody>
+<tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Precondition</th>
+<th>Semantics</th>
+<th>Postcondition</th>
+</tr>
+<tr>
+<td>Forward motion</td>
+<td><code>it += n</code></td>
+<td>Including <code>it</code> itself, there must be <code>n</code>
+dereferenceable or past-the-end iterators following or preceding
+<code>it</code>, depending on whether <code>n</code> is positive or
+negative.</td>
+<td>If <code>n &gt; 0</code>, equivalent to executing <code>++
+it</code> <code>n</code> times. If <code>n &lt; 0</code>,
+equivalent to executing <code>-- it</code> <code>n</code> times. If
+<code>n == 0</code>, this is a null operation.</td>
+<td><code>it</code> is dereferenceable or past-the-end.</td>
+</tr>
+<tr>
+<td>Iterator addition</td>
+<td><code>it + n</code></td>
+<td>Same as for <code>i += n</code>.</td>
+<td>Equivalent to<br />
+<code>{<br />
+&nbsp;I itt = it;<br />
+&nbsp;return itt += n;<br />
+}</code></td>
+<td>Result is dereferenceable or past-the-end.</td>
+</tr>
+<tr>
+<td>Backward motion</td>
+<td><code>it -= n</code></td>
+<td>Including <code>it</code> itself, there must be <code>n</code>
+dereferenceable or past-the-end iterators preceding or following
+<code>it</code>, depending on whether <code>n</code> is positive or
+negative.</td>
+<td>Equivalent to <code>it += (-n)</code>.</td>
+<td><code>it</code> is dereferenceable or past-the-end.</td>
+</tr>
+<tr>
+<td>Iterator subtraction</td>
+<td><code>it - n</code></td>
+<td>Same as for <code>i -= n</code>.</td>
+<td>Equivalent to<br />
+<code>{<br />
+&nbsp;I itt = it;<br />
+&nbsp;return itt -= n;<br />
+}</code></td>
+<td>Result is dereferenceable or past-the-end.</td>
+</tr>
+<tr>
+<td>Difference</td>
+<td><code>it1 - it2</code></td>
+<td>Either <code>it1</code> is reachable from <code>it2</code> or
+<code>it2</code> is reachable from <code>it1</code>, or both.</td>
+<td>Returns a number <code>n</code> such that <code>it1 == it2 +
+n</code></td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Element operator</td>
+<td><code>it [n]</code></td>
+<td><code>it + n</code> exists and is dereferenceable.</td>
+<td>Equivalent to <code>*(it + n)</code></td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Element assignment</td>
+<td><code>i[n] = t</code></td>
+<td>Same as for <code>it [n]</code>.</td>
+<td>Equivalent to <code>*(it + n) = t</code></td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<h4>Complexity guarantees</h4>
+<p>The complexity of operations on indexed random access iterators
+is guaranteed to be amortized constant time.</p>
+<h4>Invariants</h4>
+<table border="1" summary="invariants">
+<tbody>
+<tr>
+<td>Symmetry of addition and subtraction</td>
+<td>If <code>it + n</code> is well-defined, then <code>it += n; it
+-= n;</code> and <code>(it + n) - n</code> are null operations.
+Similarly, if <code>it - n</code> is well-defined, then <code>it -=
+n; it += n;</code> and <code>(it - n) + n</code> are null
+operations.</td>
+</tr>
+<tr>
+<td>Relation between distance and addition</td>
+<td>If <code>it1 - it2</code> is well-defined, then <code>it1 ==
+it2 + (it1 - it2)</code>.</td>
+</tr>
+<tr>
+<td>Reachability and distance</td>
+<td>If <code>it1</code> is reachable from <code>it2</code>, then
+<code>it1 - it2 &gt;= 0</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Models</h4>
+<ul>
+<li><code>vector::iterator</code></li>
+</ul>
+<h2><a name="indexed_bidirectional_cr_iterator"
+></a>Indexed Bidirectional Column/Row Iterator</h2>
+<h4>Description</h4>
+<p>An Indexed Bidirectional Column/Row Iterator is an iterator of a
+container that can be dereferenced, incremented, decremented and
+carries index information.</p>
+<h4>Refinement of</h4>
+<p>Assignable, Equality Comparable, Default Constructible.</p>
+<h4>Associated types</h4>
+<table border="1" summary="associated types">
+<tbody>
+<tr>
+<td>Value type</td>
+<td>The type of the value obtained by dereferencing a Indexed
+Bidirectional Column/Row Iterator</td>
+</tr>
+<tr>
+<td>Container type</td>
+<td>The type of the container a Indexed Bidirectional Column/Row
+Iterator points into.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notation</h4>
+<table border="0" summary="notation">
+<tbody>
+<tr>
+<td><code>I1</code></td>
+<td>A type that is a model of Indexed Bidirectional Column/Row
+Iterator</td>
+</tr>
+<tr>
+<td><code>I2</code></td>
+<td>A type that is a model of Indexed Bidirectional Row/Column
+Iterator</td>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The value type of <code>I1</code> and <code>I2</code></td>
+</tr>
+<tr>
+<td><code>C</code></td>
+<td>The container type of <code>I1</code> and <code>I2</code></td>
+</tr>
+<tr>
+<td><code>it1</code>, <code>it1t, it11</code>,
+<code>it12</code></td>
+<td>Objects of type <code>I1</code></td>
+</tr>
+<tr>
+<td><code>it2</code>, <code>it2t</code></td>
+<td>Objects of type <code>I2</code></td>
+</tr>
+<tr>
+<td><code>t</code></td>
+<td>Object of type <code>T</code></td>
+</tr>
+<tr>
+<td><code>c</code></td>
+<td>Object of type <code>C</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Definitions</h4>
+<h4>Valid expressions</h4>
+<p>In addition to the expressions defined for Assignable, Equality
+Comparable and Default Constructible, the following expressions
+must be valid.</p>
+<table border="1" summary="expressions">
+<tbody>
+<tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type requirements</th>
+<th>Return type</th>
+</tr>
+<tr>
+<td>Default constructor</td>
+<td><code>I1 it</code></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Dereference</td>
+<td><code>*it</code></td>
+<td>&nbsp;</td>
+<td>Convertible to <code>T</code>.</td>
+</tr>
+<tr>
+<td>Dereference assignment</td>
+<td><code>*it = t</code></td>
+<td><code>I1</code> is mutable.</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Member access</td>
+<td><code>it-&gt;m</code></td>
+<td><code>T</code> is a type for which <code>t.m</code> is
+defined.</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Preincrement</td>
+<td><code>++ it</code></td>
+<td>&nbsp;</td>
+<td><code>I1 &amp;</code></td>
+</tr>
+<tr>
+<td>Postincrement</td>
+<td><code>it ++</code></td>
+<td>&nbsp;</td>
+<td><code>I1</code></td>
+</tr>
+<tr>
+<td>Predecrement</td>
+<td><code>-- it</code></td>
+<td>&nbsp;</td>
+<td><code>I1 &amp;</code></td>
+</tr>
+<tr>
+<td>Postdecrement</td>
+<td><code>it --</code></td>
+<td>&nbsp;</td>
+<td><code>I1</code></td>
+</tr>
+<tr>
+<td>Row Index</td>
+<td><code>it.index1 ()</code></td>
+<td>&nbsp;</td>
+<td><code>C::size_type</code></td>
+</tr>
+<tr>
+<td>Column Index</td>
+<td><code>it.index2 ()</code></td>
+<td>&nbsp;</td>
+<td><code>C::size_type</code></td>
+</tr>
+<tr>
+<td>Row/Column Begin</td>
+<td><code>it.begin ()</code></td>
+<td>&nbsp;</td>
+<td><code>I2</code></td>
+</tr>
+<tr>
+<td>Row/Column End</td>
+<td><code>it.end ()</code></td>
+<td>&nbsp;</td>
+<td><code>I2</code></td>
+</tr>
+<tr>
+<td>Reverse Row/Column Begin</td>
+<td><code>it.rbegin ()</code></td>
+<td>&nbsp;</td>
+<td><code>reverse_iterator&lt;I2&gt;</code></td>
+</tr>
+<tr>
+<td>Reverse Row/Column End</td>
+<td><code>it.rend ()</code></td>
+<td>&nbsp;</td>
+<td><code>reverse_iterator&lt;I2&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Expression Semantics</h4>
+<p>Semantics of an expression is defined only where it differs
+from, or is not defined in, Assignable, Equality Comparable and
+Default Constructible.</p>
+<table border="1" summary="semantics">
+<tbody>
+<tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Precondition</th>
+<th>Semantics</th>
+<th>Postcondition</th>
+</tr>
+<tr>
+<td>Default constructor</td>
+<td><code>I1 it</code></td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td><code>it</code> is singular.</td>
+</tr>
+<tr>
+<td>Dereference</td>
+<td><code>*it</code></td>
+<td><code>it</code> is dereferenceable.</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Dereference assignment</td>
+<td><code>*it = t</code></td>
+<td>Same as for <code>*it</code>.</td>
+<td>&nbsp;</td>
+<td><code>*it</code> is a copy of t.</td>
+</tr>
+<tr>
+<td>Member access</td>
+<td><code>it-&gt;m</code></td>
+<td><code>it</code> is dereferenceable.</td>
+<td>Equivalent to <code>(*it).m</code></td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Preincrement</td>
+<td><code>++ it</code></td>
+<td><code>it</code> is dereferenceable.</td>
+<td><code>it</code> is modified to point to the next element of
+the column/row, i.e. for column iterators holds<br />
+<code>it.index1 () &lt; (++ it).index1 ()</code> and<br />
+<code>it.index2 () == (++ it).index2 ()</code>,<br />
+for row iterators holds<br />
+<code>it.index1 () == (++ it).index1 ()</code> and<br />
+<code>it.index2 () &lt; (++ it).index2 ()</code>.<br /></td>
+<td><code>it</code> is dereferenceable or past-the-end.
+<code><br />
+&amp;it == &amp;++ it</code>.<br />
+If <code>it1 == it2</code>,<br />
+then <code>++ it1 == ++ it2</code>.</td>
+</tr>
+<tr>
+<td>Postincrement</td>
+<td><code>it ++</code></td>
+<td>Same as for <code>++ it</code>.</td>
+<td>Equivalent to<br />
+<code>{<br />
+&nbsp;I1 itt = it;<br />
+&nbsp;++ it;<br />
+&nbsp;return itt;<br />
+}</code></td>
+<td><code>it</code> is dereferenceable or past-the-end.</td>
+</tr>
+<tr>
+<td>Predecrement</td>
+<td><code>-- it</code></td>
+<td><code>it</code> is dereferenceable or past-the-end.<br />
+There exists a dereferenceable iterator <code>itt</code> such that
+<code>it == ++ itt</code>.</td>
+<td><code>it</code> is modified to point to the previous&nbsp;
+element of the column/row, i.e. for column iterators holds<br />
+<code>it.index1 () &gt; (-- it).index1 ()</code> and<br />
+<code>it.index2 () == (-- it).index2 ()</code>,<br />
+for row iterators holds<br />
+<code>it.index1 () == (-- it).index1 ()</code> and<br />
+<code>it.index2 () &gt; (-- it).index2 ()</code>.</td>
+<td><code>it</code> is dereferenceable.<br />
+<code>&amp;it = &amp;-- it</code>.<br />
+If <code>it1 == it2</code>,<br />
+then <code>-- it1 == -- it2</code>.</td>
+</tr>
+<tr>
+<td>Postdecrement</td>
+<td><code>it --</code></td>
+<td>Same as for -- <code>it</code>.</td>
+<td>Equivalent to<br />
+<code>{<br />
+&nbsp;I1 itt = it;<br />
+&nbsp;-- it;<br />
+&nbsp;return itt;<br />
+}</code></td>
+<td><code>it</code> is dereferenceable.&nbsp;</td>
+</tr>
+<tr>
+<td>Row Index</td>
+<td><code>it.index1 ()</code></td>
+<td>If <code>it</code> is a Row iterator then <code>it</code> must be dereferenceable.</td>
+<td><code>it.index1 () &gt;= 0</code> and<br />
+<code>it.index1 () &lt; it () .size1 ()</code></td>
+<td>If <code>it1 == it2</code>,<br />
+then <code>it1.index1 () == 12.index1 ()</code>.<br />
+If <code>it1</code>, <code>it2</code> are Row Iterators with <code>it1 == it2</code>,<br />
+then <code>it1.index1 () &lt; (++ it2</code>).<code>index1 ()</code>.<br />
+and <code>it1.index1 () &gt; (-- it2</code>).<code>index1 ()</code>.</td>
+</tr>
+<tr>
+<td>Column Index</td>
+<td><code>it.index2 ()</code></td>
+<td>If <code>it</code> is a Column iterator then <code>it</code> must be dereferenceable.</td>
+<td><code>it.index2 () &gt;= 0</code> and<br />
+<code>it.index2 () &lt; it () .size2 ()</code></td>
+<td>If <code>it1 == it2</code>,<br />
+then <code>it1.index2 () == it2</code>.<code>index2 ()</code>
+.<br />
+If <code>it1</code>, <code>it2</code> are Column Iterators with <code>it1 == i12</code>,<br />
+then <code>it1.index2 () &lt; (++ it2</code>).<code>index2 ()</code>.<br />
+end <code>it1.index2 () &gt; (-- it2</code>).<code>index2 ()</code>.</td>
+</tr>
+<tr>
+<td>Row/Column Begin</td>
+<td><code>it.begin ()</code></td>
+<td><code>it</code> is dereferenceable.</td>
+<td>If <code>it</code> is a Column Iterator,<br />
+then <code>it2 = it.begin ()</code> is a Row Iterator<br />
+with <code>it2.index1 () == it.index1 ()</code>.
+<p>If <code>it</code> is a Row Iterator,<br />
+then <code>it2 = it.begin ()</code> is a Column Iterator<br />
+with <code>it2.index2 () == it.index2 ()</code>.</p>
+</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Row/Column End</td>
+<td><code>it.end ()</code></td>
+<td><code>it</code> is dereferenceable.</td>
+<td>If <code>it</code> is a Column Iterator,<br />
+then <code>it2 = it.end ()</code> is a Row Iterator<br />
+with <code>it2.index1 () == it.index1 ()</code>.
+<p>If <code>it</code> is a Row Iterator,<br />
+then <code>it2 = it.end ()</code> is a Column Iterator<br />
+with <code>it2.index2 () == it.index2 ()</code>.</p>
+</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Reverse Row/Column Begin</td>
+<td><code>it.rbegin ()</code></td>
+<td><code>it</code> is dereferenceable.</td>
+<td>Equivalent to <code>reverse_iterator&lt;I2&gt; (it.end
+())</code>.</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Reverse Row/Column End</td>
+<td><code>it.rend ()</code></td>
+<td><code>it</code> is dereferenceable.</td>
+<td>Equivalent to <code>reverse_iterator&lt;I2&gt; (it.begin
+())</code>.</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<h4>Complexity guarantees</h4>
+<p>The complexity of operations on indexed bidirectional column/row
+iterators is guaranteed to be logarithmic depending on the size of
+the container. The complexity of one iterator (depending on the
+storage layout) can be lifted to be amortized constant time. The
+complexity of the other iterator (depending on the storage layout
+and the container) can be lifted to be amortized constant time for
+the first row/first column respectively.</p>
+<h4>Invariants</h4>
+<table border="1" summary="invariants">
+<tbody>
+<tr>
+<td>Identity</td>
+<td><code>it1 == it2</code> if and only if <code>&amp;*it1 ==
+&amp;*it2</code>.</td>
+</tr>
+<tr>
+<td>Symmetry of increment and decrement</td>
+<td>If <code>it</code> is dereferenceable, then <code>++ it;
+--it;</code> is a null operation. Similarly, <code>-- it; ++
+it;</code> is a null operation.</td>
+</tr>
+<tr>
+<td>Relation between iterator index and container element
+operator</td>
+<td>If <code>it</code> is dereferenceable, <code>*it == it ()
+(it.index1 (), it.index2 ())</code></td>
+</tr>
+<tr>
+<td>Relation between iterator column/row begin and iterator
+index</td>
+<td>If <code>it</code> is a Column Iterator
+and <code>it2 = it.begin ()</code> then <code>it2.index2 () &lt;
+it2t.index2 ()</code> for all <code>it2t</code> with <code>it2t ()
+== it2 ()</code> and <code>it2t ().index1 () == it2 ().index1
+()</code>.
+<p>If <code>it</code> is a Row Iterator and
+<code>it2 = it.begin ()</code> then <code>it2.index1 () &lt;
+it2t.index1 ()</code> for all <code>it2t</code> with <code>it2t ()
+== it2 ()</code> and <code>it2t ().index2 () == it2 ().index2
+()</code>.</p>
+</td>
+</tr>
+<tr>
+<td>Relation between iterator column/row end and iterator
+index</td>
+<td>If <code>it</code> is a Column Iterator
+and <code>it2 = it.end ()</code> then <code>it2.index2 () &gt;
+it2t.index2 ()</code> for all <code>it2t</code> with <code>it2t ()
+== it2 ()</code> and <code>it2t ().index1 () == it2 ().index1
+()</code>.
+<p>If <code>it</code> is a Row Iterator and
+<code>it2 = it.end ()</code> then <code>it2.index1 () &gt;
+it2t.index1 ()</code> for all <code>it2t</code> with <code>it2t ()
+== it2 ()</code> and <code>it2t ().index2 () == it2 ().index2
+()</code>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h4>Models</h4>
+<ul>
+<li><code>sparse_matrix::iterator1</code></li>
+<li><code>sparse_matrix::iterator2</code></li>
+</ul>
+<h2><a name="indexed_random_access_cr_iterator"
+></a>Indexed Random Access Column/Row Iterator</h2>
+<h4>Description</h4>
+<p>An Indexed Random Access Column/Row Iterator is an iterator of a
+container that can be dereferenced, incremented, decremented and
+carries index information.</p>
+<h4>Refinement of</h4>
+<p><a href="#indexed_bidirectional_cr_iterator">Indexed
+Bidirectional Column/Row Iterator</a> .</p>
+<h4>Associated types</h4>
+<table border="1" summary="associated types">
+<tbody>
+<tr>
+<td>Value type</td>
+<td>The type of the value obtained by dereferencing a Indexed
+Random Access Column/Row Iterator</td>
+</tr>
+<tr>
+<td>Container type</td>
+<td>The type of the container a Indexed Random Access Column/Row
+Iterator points into.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notation</h4>
+<table border="0" summary="notation">
+<tbody>
+<tr>
+<td><code>I</code></td>
+<td>A type that is a model of Indexed Random Access Column/Row
+Iterator</td>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The value type of <code>I</code></td>
+</tr>
+<tr>
+<td><code>C</code></td>
+<td>The container type of <code>I</code></td>
+</tr>
+<tr>
+<td><code>it</code>, <code>itt, it1</code>, <code>it2</code></td>
+<td>Objects of type <code>I</code></td>
+</tr>
+<tr>
+<td><code>t</code></td>
+<td>Object of type <code>T</code></td>
+</tr>
+<tr>
+<td><code>c</code></td>
+<td>Object of type <code>C</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Definitions</h4>
+<h4>Valid expressions</h4>
+<p>In addition to the expressions defined for <a href=
+"#indexed_bidirectional_cr_iterator">Indexed Bidirectional
+Column/Row Iterator</a> , the following expressions must be
+valid.</p>
+<table border="1" summary="expressions">
+<tbody>
+<tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type requirements</th>
+<th>Return type</th>
+</tr>
+<tr>
+<td>Forward motion</td>
+<td><code>it += n</code></td>
+<td>&nbsp;</td>
+<td><code>I &amp;</code></td>
+</tr>
+<tr>
+<td>Iterator addition</td>
+<td><code>it + n</code></td>
+<td>&nbsp;</td>
+<td><code>I</code></td>
+</tr>
+<tr>
+<td>Backward motion</td>
+<td><code>i -= n</code></td>
+<td>&nbsp;</td>
+<td><code>I &amp;</code></td>
+</tr>
+<tr>
+<td>Iterator subtraction</td>
+<td><code>it - n</code></td>
+<td>&nbsp;</td>
+<td><code>I</code>&nbsp;</td>
+</tr>
+<tr>
+<td>Difference</td>
+<td><code>it1 - it2</code></td>
+<td>&nbsp;</td>
+<td><code>C::difference_type</code></td>
+</tr>
+<tr>
+<td>Element operator</td>
+<td><code>it [n]</code></td>
+<td>&nbsp;</td>
+<td>Convertible to <code>T</code>.</td>
+</tr>
+<tr>
+<td>Element assignment</td>
+<td><code>it [n] = t</code></td>
+<td><code>I</code> is mutable</td>
+<td>Convertible to <code>T</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Expression Semantics</h4>
+<p>Semantics of an expression is defined only where it differs
+from, or is not defined in, <a href=
+"#indexed_bidirectional_cr_iterator">Indexed Bidirectional
+Column/Row Iterator</a> .</p>
+<table border="1" summary="semantics">
+<tbody>
+<tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Precondition</th>
+<th>Semantics</th>
+<th>Postcondition</th>
+</tr>
+<tr>
+<td>Forward motion</td>
+<td><code>it += n</code></td>
+<td>Including <code>it</code> itself, there must be <code>n</code>
+dereferenceable or past-the-end iterators following or preceding
+<code>it</code>, depending on whether <code>n</code> is positive or
+negative.</td>
+<td>If <code>n &gt; 0</code>, equivalent to executing <code>++
+it</code> <code>n</code> times. If <code>n &lt; 0</code>,
+equivalent to executing <code>-- it</code> <code>n</code> times. If
+<code>n == 0</code>, this is a null operation.</td>
+<td><code>it</code> is dereferenceable or past-the-end.</td>
+</tr>
+<tr>
+<td>Iterator addition</td>
+<td><code>it + n</code></td>
+<td>Same as for <code>i += n</code>.</td>
+<td>Equivalent to<br />
+<code>{<br />
+&nbsp;I itt = it;<br />
+&nbsp;return itt += n;<br />
+}</code></td>
+<td>Result is dereferenceable or past-the-end.</td>
+</tr>
+<tr>
+<td>Backward motion</td>
+<td><code>it -= n</code></td>
+<td>Including <code>it</code> itself, there must be <code>n</code>
+dereferenceable or past-the-end iterators preceding or following
+<code>it</code>, depending on whether <code>n</code> is positive or
+negative.</td>
+<td>Equivalent to <code>it += (-n)</code>.</td>
+<td><code>it</code> is dereferenceable or past-the-end.</td>
+</tr>
+<tr>
+<td>Iterator subtraction</td>
+<td><code>it - n</code></td>
+<td>Same as for <code>i -= n</code>.</td>
+<td>Equivalent to<br />
+<code>{<br />
+&nbsp;I itt = it;<br />
+&nbsp;return itt -= n;<br />
+}</code></td>
+<td>Result is dereferenceable or past-the-end.</td>
+</tr>
+<tr>
+<td>Difference</td>
+<td><code>it1 - it2</code></td>
+<td>Either <code>it1</code> is reachable from <code>it2</code> or
+<code>it2</code> is reachable from <code>it1</code>, or both.</td>
+<td>Returns a number <code>n</code> such that <code>it1 == it2 +
+n</code></td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Element operator</td>
+<td><code>it [n]</code></td>
+<td><code>it + n</code> exists and is dereferenceable.</td>
+<td>Equivalent to <code>*(it + n)</code></td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>Element assignment</td>
+<td><code>i[n] = t</code></td>
+<td>Same as for <code>it [n]</code>.</td>
+<td>Equivalent to <code>*(it + n) = t</code></td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<h4>Complexity guarantees</h4>
+<p>The complexity of operations on indexed random access Column/Row
+iterators is guaranteed to be amortized constant time.</p>
+<h4>Invariants</h4>
+<table border="1" summary="invariants">
+<tbody>
+<tr>
+<td>Symmetry of addition and subtraction</td>
+<td>If <code>it + n</code> is well-defined, then <code>it += n; it
+-= n;</code> and <code>(it + n) - n</code> are null operations.
+Similarly, if <code>it - n</code> is well-defined, then <code>it -=
+n; it += n;</code> and <code>(it - n) + n</code> are null
+operations.</td>
+</tr>
+<tr>
+<td>Relation between distance and addition</td>
+<td>If <code>it1 - it2</code> is well-defined, then <code>it1 ==
+it2 + (it1 - it2)</code>.</td>
+</tr>
+<tr>
+<td>Reachability and distance</td>
+<td>If <code>it1</code> is reachable from <code>it2</code>, then
+<code>it1 - it2 &gt;= 0</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Models</h4>
+<ul>
+<li><code>matrix::iterator1</code></li>
+<li><code>matrix::iterator2</code></li>
+</ul>
+<hr />
+<p>Copyright (&copy;) 2000-2002 Joerg Walter, Mathias Koch<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

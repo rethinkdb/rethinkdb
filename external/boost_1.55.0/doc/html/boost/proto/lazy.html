@@ -1,0 +1,89 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template lazy</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.transform.lazy_hpp" title="Header &lt;boost/proto/transform/lazy.hpp&gt;">
+<link rel="prev" href="size_t.html" title="Struct template size_t">
+<link rel="next" href="lazy/impl.html" title="Struct template impl">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="size_t.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.transform.lazy_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lazy/impl.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.lazy"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template lazy</span></h2>
+<p>boost::proto::lazy &#8212; A <a class="link" href="../../PrimitiveTransform.html" title="Concept PrimitiveTransform">PrimitiveTransform</a> that uses
+          <code class="computeroutput"><a class="link" href="make.html" title="Struct template make">proto::make&lt;&gt;</a></code> to build a
+          <a class="link" href="../../CallableTransform.html" title="Concept CallableTransform">CallableTransform</a>, and then uses
+          <code class="computeroutput"><a class="link" href="call.html" title="Struct template call">proto::call&lt;&gt;</a></code> to apply it.
+        </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.transform.lazy_hpp" title="Header &lt;boost/proto/transform/lazy.hpp&gt;">boost/proto/transform/lazy.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="lazy.html" title="Struct template lazy">lazy</a> <span class="special">:</span> <span class="keyword"></span> <a class="link" href="transform.html" title="Struct template transform">proto::transform</a><span class="special">&lt;</span> <span class="identifier">lazy</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">{</span>
+  <span class="comment">// member classes/structs/unions</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../Expr.html" title="Concept Expr">Expr</a><span class="special">,</span> <span class="keyword">typename</span> State<span class="special">,</span> <span class="keyword">typename</span> Data<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="lazy/impl.html" title="Struct template impl">impl</a> <span class="special">:</span> <span class="keyword"></span> <a class="link" href="transform_impl.html" title="Struct template transform_impl">proto::transform_impl</a>&lt;Expr, State, Data&gt; <span class="special">{</span>
+    <span class="comment">// <a class="link" href="lazy/impl.html#boost.proto.lazy.impltypes">types</a></span>
+    <span class="keyword">typedef</span> <em class="replaceable"><code><span class="identifier">see</span><span class="special">-</span><span class="identifier">below</span></code></em> <a class="link" href="lazy/impl.html#boost.proto.lazy.impl.result_type"><span class="identifier">result_type</span></a><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="lazy/impl.html#idp68798184-bb">public member functions</a></span>
+    <span class="identifier">result_type</span> <a class="link" href="lazy/impl.html#idp68798472-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">expr_param</span><span class="special">,</span> 
+                           <span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">state_param</span><span class="special">,</span> 
+                           <span class="keyword">typename</span> <span class="identifier">impl</span><span class="special">::</span><span class="identifier">data_param</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp187399400"></a><h2>Description</h2>
+<p>
+            <code class="computeroutput">proto::lazy&lt;&gt;</code> is useful as a higher-order transform,
+            when the transform to be applied depends on the current state of the transformation. The
+            invocation of the <code class="computeroutput">
+              <a class="link" href="make.html" title="Struct template make">proto::make&lt;&gt;</a>
+            </code> transform evaluates any nested transforms, and the resulting type is treated
+            as a <a class="link" href="../../CallableTransform.html" title="Concept CallableTransform">CallableTransform</a>, which is evaluated with
+            <code class="computeroutput"><a class="link" href="call.html" title="Struct template call">proto::call&lt;&gt;</a></code>.
+          </p>
+<p>
+            For the full description of the behavior of the
+            <code class="computeroutput">
+              <a class="link" href="lazy.html" title="Struct template lazy">proto::lazy&lt;&gt;</a>
+            </code>
+            transform, see the documentation for the nested
+            <code class="computeroutput">
+              <a class="link" href="lazy/impl.html" title="Struct template impl">proto::lazy::impl&lt;&gt;</a>
+            </code>
+            class template.
+          </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="size_t.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.transform.lazy_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lazy/impl.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,180 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:requirements Type Requirements]
+
+Throughout this documentation, the names of the template parameters are used to
+express type requirements, as listed in the table below.
+
+[table Template parameters and type requirements
+  [[Template Parameter Name][Type Requirements]]
+  [
+    [`AcceptHandler`]
+    [[link boost_asio.requirements.AcceptHandler accept handler]]
+  ]
+  [
+    [`AsyncReadStream`]
+    [[link boost_asio.requirements.AsyncReadStream buffer-oriented asynchronous
+    read stream]]
+  ]
+  [
+    [`AsyncWriteStream`]
+    [[link boost_asio.requirements.AsyncWriteStream buffer-oriented asynchronous
+    write stream]]
+  ]
+  [
+    [`CompletionHandler`]
+    [[link boost_asio.requirements.CompletionHandler completion handler]]
+  ]
+  [
+    [`ConnectHandler`]
+    [[link boost_asio.requirements.ConnectHandler connect handler]]
+  ]
+  [
+    [`ConstBufferSequence`]
+    [[link boost_asio.requirements.ConstBufferSequence constant buffer
+    sequence]]
+  ]
+  [
+    [`ConvertibleToConstBuffer`]
+    [[link boost_asio.requirements.ConvertibleToConstBuffer convertible to a
+    constant buffer]]
+  ]
+  [
+    [`ConvertibleToMutableBuffer`]
+    [[link boost_asio.requirements.ConvertibleToMutableBuffer convertible to a
+    mutable buffer]]
+  ]
+  [
+    [`DatagramSocketService`]
+    [[link boost_asio.requirements.DatagramSocketService datagram socket
+    service]]
+  ]
+  [
+    [`GettableSocketOption`]
+    [[link boost_asio.requirements.GettableSocketOption gettable socket option]]
+  ]
+  [
+    [`Handler`]
+    [[link boost_asio.requirements.Handler handler]]
+  ]
+  [
+    [`InternetProtocol`]
+    [[link boost_asio.requirements.InternetProtocol Internet protocol]]
+  ]
+  [
+    [`IoControlCommand`]
+    [[link boost_asio.requirements.IoControlCommand I/O control command]]
+  ]
+  [
+    [`IoObjectService`]
+    [[link boost_asio.requirements.IoObjectService I/O object service]]
+  ]
+  [
+    [`MutableBufferSequence`]
+    [[link boost_asio.requirements.MutableBufferSequence mutable buffer
+    sequence]]
+  ]
+  [
+    [`Protocol`]
+    [[link boost_asio.requirements.Protocol protocol]]
+  ]
+  [
+    [`ReadHandler`]
+    [[link boost_asio.requirements.ReadHandler read handler]]
+  ]
+  [
+    [`ResolveHandler`]
+    [[link boost_asio.requirements.ResolveHandler resolve handler]]
+  ]
+  [
+    [`ResolverService`]
+    [[link boost_asio.requirements.ResolverService resolver service]]
+  ]
+  [
+    [`Service`]
+    [[link boost_asio.requirements.Service service]]
+  ]
+  [
+    [`SettableSocketOption`]
+    [[link boost_asio.requirements.SettableSocketOption settable socket option]]
+  ]
+  [
+    [`SocketAcceptorService`]
+    [[link boost_asio.requirements.SocketAcceptorService socket acceptor
+    service]]
+  ]
+  [
+    [`SocketService`]
+    [[link boost_asio.requirements.SocketService socket service]]
+  ]
+  [
+    [`StreamSocketService`]
+    [[link boost_asio.requirements.StreamSocketService stream socket service]]
+  ]
+  [
+    [`SyncReadStream`]
+    [[link boost_asio.requirements.SyncReadStream buffer-oriented synchronous
+    read stream]]
+  ]
+  [
+    [`SyncWriteStream`]
+    [[link boost_asio.requirements.SyncWriteStream buffer-oriented synchronous
+    write stream]]
+  ]
+  [
+    [`TimerService`]
+    [[link boost_asio.requirements.TimerService timer service]]
+  ]
+  [
+    [`TimeTraits`]
+    [[link boost_asio.requirements.TimeTraits time traits]]
+  ]
+  [
+    [`WaitHandler`]
+    [[link boost_asio.requirements.WaitHandler wait handler]]
+  ]
+  [
+    [`WriteHandler`]
+    [[link boost_asio.requirements.WriteHandler write handler]]
+  ]
+]
+
+[include requirements/asynchronous_operations.qbk]
+[include requirements/AcceptHandler.qbk]
+[include requirements/AsyncReadStream.qbk]
+[include requirements/AsyncWriteStream.qbk]
+[include requirements/CompletionHandler.qbk]
+[include requirements/ConnectHandler.qbk]
+[include requirements/ConstBufferSequence.qbk]
+[include requirements/ConvertibleToConstBuffer.qbk]
+[include requirements/ConvertibleToMutableBuffer.qbk]
+[include requirements/DatagramSocketService.qbk]
+[include requirements/Endpoint.qbk]
+[include requirements/GettableSocketOption.qbk]
+[include requirements/Handler.qbk]
+[include requirements/InternetProtocol.qbk]
+[include requirements/IoControlCommand.qbk]
+[include requirements/IoObjectService.qbk]
+[include requirements/MutableBufferSequence.qbk]
+[include requirements/Protocol.qbk]
+[include requirements/ReadHandler.qbk]
+[include requirements/ResolveHandler.qbk]
+[include requirements/ResolverService.qbk]
+[include requirements/Service.qbk]
+[include requirements/SettableSocketOption.qbk]
+[include requirements/SocketAcceptorService.qbk]
+[include requirements/SocketService.qbk]
+[include requirements/StreamSocketService.qbk]
+[include requirements/SyncReadStream.qbk]
+[include requirements/SyncWriteStream.qbk]
+[include requirements/TimeTraits.qbk]
+[include requirements/TimerService.qbk]
+[include requirements/WaitHandler.qbk]
+[include requirements/WriteHandler.qbk]
+
+[endsect]

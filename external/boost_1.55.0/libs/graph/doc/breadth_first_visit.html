@@ -1,0 +1,186 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000, 2001
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Breadth-First Visit</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:bfv"><img src="figs/python.gif" alt="(Python)"/>
+<TT>breadth_first_visit</TT>
+</H1>
+
+<P>
+<PRE>
+  template &lt;class <a href="./IncidenceGraph.html">IncidenceGraph</a>, class P, class T, class R&gt;
+  void breadth_first_visit(IncidenceGraph& G, 
+    typename graph_traits&lt;IncidenceGraph&gt;::vertex_descriptor s, 
+    const bgl_named_params&lt;P, T, R&gt;&amp; params);
+
+  template &lt;class <a href="./IncidenceGraph.html">IncidenceGraph</a>, class <a href="./Buffer.html">Buffer</a>, class <a href="./BFSVisitor.html">BFSVisitor</a>, class ColorMap&gt;
+  void breadth_first_visit
+    (const IncidenceGraph&amp; g, 
+     typename graph_traits&lt;IncidenceGraph&gt;::vertex_descriptor s, 
+     Buffer&amp; Q, BFSVisitor vis, ColorMap color)
+</PRE>
+
+This function is basically the same as <tt>breadth_first_search()</tt>
+except that the color markers are not initialized in the
+algorithm. The user is responsible for making sure the color for every
+vertex is white before calling the algorithm.  With this difference,
+the graph type is only required to be an <a
+href="./IncidenceGraph.html">Incidence Graph</a> instead of a <a
+href="./VertexListGraph.html">Vertex List Graph</a>.  Also, this
+difference allows for more flexibility in the color property map. For
+example, one could use a map that only implements a partial function
+on the vertices, which could be more space efficient when the search
+only reaches a small portion of the graph.
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/breadth_first_search.hpp"><TT>boost/graph/breadth_first_search.hpp</TT></a>
+
+
+<h3>Parameters</h3>
+
+IN: <tt>IncidenceGraph&amp; g</tt>
+<blockquote>
+  A directed or undirected graph. The graph type must
+  be a model of <a href="./IncidenceGraph.html">Incidence Graph</a>.<br>
+
+  <b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+
+IN: <tt>vertex_descriptor s</tt>
+<blockquote>
+  The source vertex where the search is started.<br>
+
+  <b>Python</b>: The parameter is named <tt>root_vertex</tt>.
+</blockquote>
+
+
+<h3>Named Parameters</h3>
+
+IN: <tt>visitor(BFSVisitor vis)</tt>
+<blockquote>
+  A visitor object that is invoked inside the algorithm at the
+  event-points specified by the <a href="BFSVisitor.html">BFS
+  Visitor</a> concept. The visitor object is passed by value <a
+  href="#1">[1]</a>.<br> <b>Default:</b>
+  <tt>bfs_visitor&lt;null_visitor&gt;</tt><br>
+
+  <b>Python</b>: The parameter should be an object that derives from
+  the <a href="BFSVisitor.html#python"><tt>BFSVisitor</tt></a> type of the graph.
+</blockquote>
+
+UTIL/OUT: <tt>color_map(ColorMap color)</tt>
+<blockquote>
+  This is used by the algorithm to keep track of its progress through
+  the graph. The type <tt>ColorMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a> and its key type must be the graph's vertex
+  descriptor type and the value type of the color map must model
+  <a href="./ColorValue.html">ColorValue</a>.<br>
+  <b>Default:</b> <tt>get(vertex_color, g)</tt><br>
+
+  <b>Python</b>: The color map must be a <tt>vertex_color_map</tt> for
+  the graph.
+</blockquote>
+
+UTIL: <tt>buffer(Buffer&amp; Q)</tt>
+<blockquote>
+  The queue used to determine the order in which vertices will be
+  discovered.  If a FIFO queue is used, then the traversal will
+  be according to the usual BFS ordering. Other types of queues
+  can be used, but the traversal order will be different.
+  For example Dijkstra's algorithm can be implemented
+  using a priority queue. The type <tt>Buffer</tt> must be a model of
+  <a href="./Buffer.html">Buffer</a>.<br>
+  <b>Default:</b> <tt>boost::queue</tt><br>
+
+  <b>Python</b>: The buffer must derive from the <a
+  href="./Buffer.html">Buffer</a> type for the graph.
+</blockquote>  
+
+
+<H3><A NAME="SECTION001330300000000000000">
+Complexity</A>
+</H3>
+
+<P>
+The time complexity is <i>O(E)</i>. 
+
+<P>
+
+<h3>Visitor Event Points</h3>
+
+<ul>
+<li><b><tt>vis.examine_vertex(u, g)</tt></b>r is invoked in each
+  vertex as it is removed from the queue.
+
+<li><b><tt>vis.examine_edge(e, g)</tt></b> is invoked on every out-edge
+  of each vertex immediately after the vertex is removed from the queue. 
+
+<li><b><tt>vis.tree_edge(e, g)</tt></b> is invoked (in addition to
+  <tt>examine_edge()</tt>) if the edge is a tree edge. The
+  target vertex of edge <tt>e</tt> is discovered at this time.
+
+<li><b><tt>vis.discover_vertex(u, g)</tt></b> is invoked the first time the
+  algorithm encounters vertex <i>u</i>. All vertices closer to the
+  source vertex have been discovered, and vertices further from the
+  source have not yet been discovered. 
+
+<li><b><tt>vis.non_tree_edge(e, g)</tt></b> is invoked (in addition to
+  <tt>examine_edge()</tt>) if the edge is not a tree edge. 
+
+<li><b><tt>vis.gray_target(e, g)</tt></b> is invoked (in addition to
+  <tt>non_tree_edge()</tt>) if the target vertex is colored gray at the
+  time of examination. The color gray indicates that
+  the vertex is currently in the queue. 
+
+<li><b><tt>vis.black_target(e, g)</tt></b> is invoked (in addition to
+  <tt>non_tree_edge()</tt>) if the target vertex is colored black at the
+  time of examination. The color black indicates that the
+  vertex is no longer in the queue. 
+
+<li><b><tt>vis.finish_vertex(u, g)</tt></b> is invoked after all of the out
+  edges of <i>u</i> have been examined and all of the adjacent vertices
+  have been discovered.
+
+</ul>
+
+<h3>See Also</h3>
+
+<a href="./breadth_first_search.html"><tt>breadth_first_search()</tt></a>,
+<a href="./bfs_visitor.html"><tt>bfs_visitor</tt></a>, and
+<a href="./depth_first_search.html"><tt>depth_first_search()</tt></a>
+
+<h3>Notes</h3>
+
+<p><a name="1">[1]</a> 
+  Since the visitor parameter is passed by value, if your visitor
+  contains state then any changes to the state during the algorithm
+  will be made to a copy of the visitor object, not the visitor object
+  passed in. Therefore you may want the visitor to hold this state by
+  pointer or reference.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

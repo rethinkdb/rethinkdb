@@ -1,0 +1,71 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class greg_year</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.gregorian.greg_year_hpp" title="Header &lt;boost/date_time/gregorian/greg_year.hpp&gt;">
+<link rel="prev" href="bad_year.html" title="Struct bad_year">
+<link rel="next" href="year_based_generator.html" title="Type definition year_based_generator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bad_year.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.gregorian.greg_year_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="year_based_generator.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.gregorian.greg_year"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class greg_year</span></h2>
+<p>boost::gregorian::greg_year &#8212; Represent a day of the month (range 1900 - 10000) </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.gregorian.greg_year_hpp" title="Header &lt;boost/date_time/gregorian/greg_year.hpp&gt;">boost/date_time/gregorian/greg_year.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="greg_year.html" title="Class greg_year">greg_year</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">greg_year_rep</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="greg_year.html#boost.gregorian.greg_yearconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="greg_year.html#idp21799064-bb"><span class="identifier">greg_year</span></a><span class="special">(</span><span class="keyword">unsigned</span> <span class="keyword">short</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="greg_year.html#idp21798376-bb">public member functions</a></span>
+  <a class="link" href="greg_year.html#idp21798584-bb"><span class="keyword">operator</span> <span class="keyword">unsigned</span> <span class="keyword">short</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp93026472"></a><h2>Description</h2>
+<p>This small class allows for simple conversion an integer value into a year for the gregorian calendar. This currently only allows a range of 1900 to 10000. Both ends of the range are a bit arbitrary at the moment, but they are the limits of current testing of the library. As such they may be increased in the future. </p>
+<div class="refsect2">
+<a name="idp93027128"></a><h3>
+<a name="boost.gregorian.greg_yearconstruct-copy-destruct"></a><code class="computeroutput">greg_year</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><a name="idp21799064-bb"></a><span class="identifier">greg_year</span><span class="special">(</span><span class="keyword">unsigned</span> <span class="keyword">short</span> year<span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp93030776"></a><h3>
+<a name="idp21798376-bb"></a><code class="computeroutput">greg_year</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><a name="idp21798584-bb"></a><span class="keyword">operator</span> <span class="keyword">unsigned</span> <span class="keyword">short</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bad_year.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.gregorian.greg_year_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="year_based_generator.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

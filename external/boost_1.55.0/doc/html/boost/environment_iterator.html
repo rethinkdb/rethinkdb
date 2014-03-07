@@ -1,0 +1,77 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class environment_iterator</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../program_options/reference.html#header.boost.program_options.environment_iterator_hpp" title="Header &lt;boost/program_options/environment_iterator.hpp&gt;">
+<link rel="prev" href="../BOOST_PROGRAM_OPTIONS_DECL.html" title="Macro BOOST_PROGRAM_OPTIONS_DECL">
+<link rel="next" href="eof_iterator.html" title="Class template eof_iterator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../BOOST_PROGRAM_OPTIONS_DECL.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../program_options/reference.html#header.boost.program_options.environment_iterator_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="eof_iterator.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.environment_iterator"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class environment_iterator</span></h2>
+<p>boost::environment_iterator</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../program_options/reference.html#header.boost.program_options.environment_iterator_hpp" title="Header &lt;boost/program_options/environment_iterator.hpp&gt;">boost/program_options/environment_iterator.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="environment_iterator.html" title="Class environment_iterator">environment_iterator</a> <span class="special">:</span> <span class="keyword">public</span> boost::eof_iterator&lt; environment_iterator, std::pair&lt; std::string, std::string &gt; &gt;
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="environment_iterator.html#boost.environment_iteratorconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="environment_iterator.html#idp102288024-bb"><span class="identifier">environment_iterator</span></a><span class="special">(</span><span class="keyword">char</span> <span class="special">*</span><span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="environment_iterator.html#idp102288392-bb"><span class="identifier">environment_iterator</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="environment_iterator.html#idp102014600-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="environment_iterator.html#idp102287608-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp163547784"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp163547992"></a><h3>
+<a name="boost.environment_iteratorconstruct-copy-destruct"></a><code class="computeroutput">environment_iterator</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><a name="idp102288024-bb"></a><span class="identifier">environment_iterator</span><span class="special">(</span><span class="keyword">char</span> <span class="special">*</span><span class="special">*</span> environment<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp102288392-bb"></a><span class="identifier">environment_iterator</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp163553656"></a><h3>
+<a name="idp102014600-bb"></a><code class="computeroutput">environment_iterator</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp102287608-bb"></a><span class="identifier">get</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2004 Vladimir Prus<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../BOOST_PROGRAM_OPTIONS_DECL.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../program_options/reference.html#header.boost.program_options.environment_iterator_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="eof_iterator.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

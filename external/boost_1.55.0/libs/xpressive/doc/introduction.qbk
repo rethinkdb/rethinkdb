@@ -1,0 +1,126 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Introduction]
+
+[h2 What is xpressive?]
+
+xpressive is a regular expression template library. Regular expressions
+(regexes) can be written as strings that are parsed dynamically at runtime
+(dynamic regexes), or as ['expression templates][footnote See
+[@http://www.osl.iu.edu/~tveldhui/papers/Expression-Templates/exprtmpl.html
+Expression Templates]] that are parsed at compile-time (static regexes).
+Dynamic regexes have the advantage that they can be accepted from the user
+as input at runtime or read from an initialization file. Static regexes
+have several advantages. Since they are C++ expressions instead of
+strings, they can be syntax-checked at compile-time. Also, they can naturally
+refer to code and data elsewhere in your program, giving you the ability to call
+back into your code from within a regex match. Finally, since they are statically
+bound, the compiler can generate faster code for static regexes.
+
+xpressive's dual nature is unique and powerful. Static xpressive is a bit
+like the _spirit_fx_. Like _spirit_, you can build grammars with
+static regexes using expression templates. (Unlike _spirit_, xpressive does
+exhaustive backtracking, trying every possibility to find a match for your
+pattern.) Dynamic xpressive is a bit like _regexpp_. In fact,
+xpressive's interface should be familiar to anyone who has used _regexpp_.
+xpressive's innovation comes from allowing you to mix and match static and
+dynamic regexes in the same program, and even in the same expression! You
+can embed a dynamic regex in a static regex, or /vice versa/, and the embedded
+regex will participate fully in the search, back-tracking as needed to make
+the match succeed.
+
+[h2 Hello, world!]
+
+Enough theory. Let's have a look at ['Hello World], xpressive style:
+
+    #include <iostream>
+    #include <boost/xpressive/xpressive.hpp>
+
+    using namespace boost::xpressive;
+
+    int main()
+    {
+        std::string hello( "hello world!" );
+
+        sregex rex = sregex::compile( "(\\w+) (\\w+)!" );
+        smatch what;
+
+        if( regex_match( hello, what, rex ) )
+        {
+            std::cout << what[0] << '\n'; // whole match
+            std::cout << what[1] << '\n'; // first capture
+            std::cout << what[2] << '\n'; // second capture
+        }
+
+        return 0;
+    }
+
+This program outputs the following:
+
+[pre
+hello world!
+hello
+world
+]
+
+The first thing you'll notice about the code is that all the types in xpressive live in
+the `boost::xpressive` namespace.
+
+[note Most of the rest of the examples in this document will leave off the
+`using namespace boost::xpressive;` directive. Just pretend it's there.]
+
+Next, you'll notice the type of the regular expression object is `sregex`. If you are familiar
+with _regexpp_, this is different than what you are used to. The "`s`" in "`sregex`" stands for
+"`string`", indicating that this regex can be used to find patterns in `std::string` objects.
+I'll discuss this difference and its implications in detail later.
+
+Notice how the regex object is initialized:
+
+    sregex rex = sregex::compile( "(\\w+) (\\w+)!" );
+
+To create a regular expression object from a string, you must call a factory method such as
+_regex_compile_. This is another area in which xpressive differs from
+other object-oriented regular expression libraries. Other libraries encourage you to think of
+a regular expression as a kind of string on steroids. In xpressive, regular expressions are not
+strings; they are little programs in a domain-specific language. Strings are only one ['representation]
+of that language. Another representation is an expression template. For example, the above line of code
+is equivalent to the following:
+
+    sregex rex = (s1= +_w) >> ' ' >> (s2= +_w) >> '!';
+
+This describes the same regular expression, except it uses the domain-specific embedded language
+defined by static xpressive.
+
+As you can see, static regexes have a syntax that is noticeably different than standard Perl
+syntax. That is because we are constrained by C++'s syntax. The biggest difference is the use
+of `>>` to mean "followed by". For instance, in Perl you can just put sub-expressions next
+to each other:
+
+    abc
+
+But in C++, there must be an operator separating sub-expressions:
+
+    a >> b >> c
+
+In Perl, parentheses `()` have special meaning. They group, but as a side-effect they also create
+back-references like [^$1] and [^$2]. In C++, there is no way to overload parentheses to give them
+side-effects. To get the same effect, we use the special `s1`, `s2`, etc. tokens. Assign to
+one to create a back-reference (known as a sub-match in xpressive).
+
+You'll also notice that the one-or-more repetition operator `+` has moved from postfix
+to prefix position. That's because C++ doesn't have a postfix `+` operator. So:
+
+    "\\w+"
+
+is the same as:
+
+    +_w
+
+We'll cover all the other differences [link boost_xpressive.user_s_guide.creating_a_regex_object.static_regexes later].
+
+[endsect]

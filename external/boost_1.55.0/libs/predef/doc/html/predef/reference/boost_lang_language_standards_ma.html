@@ -1,0 +1,334 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>BOOST_LANG language standards macros</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Predef 1.0">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="boost_comp_compiler_macros.html" title="BOOST_COMP compiler macros">
+<link rel="next" href="boost_lib_library_macros.html" title="BOOST_LIB library macros">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<div class="spirit-nav">
+<a accesskey="p" href="boost_comp_compiler_macros.html"><img src="../../images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../images/home.png" alt="Home"></a><a accesskey="n" href="boost_lib_library_macros.html"><img src="../../images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="predef.reference.boost_lang_language_standards_ma"></a><a class="link" href="boost_lang_language_standards_ma.html" title="BOOST_LANG language standards macros"><code class="computeroutput"><span class="identifier">BOOST_LANG</span></code> language standards macros</a>
+</h3></div></div></div>
+<h5>
+<a name="predef.reference.boost_lang_language_standards_ma.h0"></a>
+        <span class="phrase"><a name="predef.reference.boost_lang_language_standards_ma.boost_lang_objc"></a></span><a class="link" href="boost_lang_language_standards_ma.html#predef.reference.boost_lang_language_standards_ma.boost_lang_objc"><code class="computeroutput"><span class="identifier">BOOST_LANG_OBJC</span></code></a>
+      </h5>
+<p>
+        <a href="http://en.wikipedia.org/wiki/Objective-C" target="_top">Objective-C</a>
+        language.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Symbol
+                </p>
+              </th>
+<th>
+                <p>
+                  Version
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">__OBJC__</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="bold"><strong>detection</strong></span>
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+<h5>
+<a name="predef.reference.boost_lang_language_standards_ma.h1"></a>
+        <span class="phrase"><a name="predef.reference.boost_lang_language_standards_ma.boost_lang_stdc"></a></span><a class="link" href="boost_lang_language_standards_ma.html#predef.reference.boost_lang_language_standards_ma.boost_lang_stdc"><code class="computeroutput"><span class="identifier">BOOST_LANG_STDC</span></code></a>
+      </h5>
+<p>
+        <a href="http://en.wikipedia.org/wiki/C_(programming_language)" target="_top">Standard
+        C</a> language. If available, the year of the standard is detected as
+        YYYY.MM.1 from the Epoc date.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Symbol
+                </p>
+              </th>
+<th>
+                <p>
+                  Version
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">__STDC__</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="bold"><strong>detection</strong></span>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">__STDC_VERSION__</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  V.R.P
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="predef.reference.boost_lang_language_standards_ma.h2"></a>
+        <span class="phrase"><a name="predef.reference.boost_lang_language_standards_ma.boost_lang_stdcpp"></a></span><a class="link" href="boost_lang_language_standards_ma.html#predef.reference.boost_lang_language_standards_ma.boost_lang_stdcpp"><code class="computeroutput"><span class="identifier">BOOST_LANG_STDCPP</span></code></a>
+      </h5>
+<p>
+        <a href="http://en.wikipedia.org/wiki/C%2B%2B" target="_top">Standard C++</a> language.
+        If available, the year of the standard is detected as YYYY.MM.1 from the
+        Epoc date. Because of the way the C++ standardization process works the defined
+        version year will not be the commonly known year of the standard. Specifically
+        the defined versions are:
+      </p>
+<div class="table">
+<a name="predef.reference.boost_lang_language_standards_ma.detected_version_number_vs_c_sta"></a><p class="title"><b>Table&#160;1.&#160;Detected Version Number vs. C++ Standard Year</b></p>
+<div class="table-contents"><table class="table" summary="Detected Version Number vs. C++ Standard Year">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Detected Version Number
+                </p>
+              </th>
+<th>
+                <p>
+                  Standard Year
+                </p>
+              </th>
+<th>
+                <p>
+                  C++ Standard
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  27.11.1
+                </p>
+              </td>
+<td>
+                <p>
+                  1998
+                </p>
+              </td>
+<td>
+                <p>
+                  ISO/IEC 14882:1998
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  41.12.1
+                </p>
+              </td>
+<td>
+                <p>
+                  2011
+                </p>
+              </td>
+<td>
+                <p>
+                  ISO/IEC 14882:2011
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Symbol
+                </p>
+              </th>
+<th>
+                <p>
+                  Version
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">__cplusplus</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="bold"><strong>detection</strong></span>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">__cplusplus</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  YYYY.MM.1
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="predef.reference.boost_lang_language_standards_ma.h3"></a>
+        <span class="phrase"><a name="predef.reference.boost_lang_language_standards_ma.boost_lang_stdcppcli"></a></span><a class="link" href="boost_lang_language_standards_ma.html#predef.reference.boost_lang_language_standards_ma.boost_lang_stdcppcli"><code class="computeroutput"><span class="identifier">BOOST_LANG_STDCPPCLI</span></code></a>
+      </h5>
+<p>
+        <a href="http://en.wikipedia.org/wiki/C%2B%2B/CLI" target="_top">Standard C++/CLI</a>
+        language. If available, the year of the standard is detected as YYYY.MM.1
+        from the Epoc date.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Symbol
+                </p>
+              </th>
+<th>
+                <p>
+                  Version
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">__cplusplus_cli</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="bold"><strong>detection</strong></span>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">__cplusplus_cli</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  YYYY.MM.1
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="predef.reference.boost_lang_language_standards_ma.h4"></a>
+        <span class="phrase"><a name="predef.reference.boost_lang_language_standards_ma.boost_lang_stdecpp"></a></span><a class="link" href="boost_lang_language_standards_ma.html#predef.reference.boost_lang_language_standards_ma.boost_lang_stdecpp"><code class="computeroutput"><span class="identifier">BOOST_LANG_STDECPP</span></code></a>
+      </h5>
+<p>
+        <a href="http://en.wikipedia.org/wiki/Embedded_C%2B%2B" target="_top">Standard Embedded
+        C++</a> language.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Symbol
+                </p>
+              </th>
+<th>
+                <p>
+                  Version
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">__embedded_cplusplus</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="bold"><strong>detection</strong></span>
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Rene Rivera<br>Copyright &#169; 2008-2013 Redshift Software Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_comp_compiler_macros.html"><img src="../../images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../images/home.png" alt="Home"></a><a accesskey="n" href="boost_lib_library_macros.html"><img src="../../images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

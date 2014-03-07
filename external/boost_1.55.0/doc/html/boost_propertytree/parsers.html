@@ -1,0 +1,292 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>How to Populate a Property Tree</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../property_tree.html" title="Chapter&#160;22.&#160;Boost.PropertyTree">
+<link rel="prev" href="synopsis.html" title="Property Tree Synopsis">
+<link rel="next" href="accessing.html" title="How to Access Data in a Property Tree">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="synopsis.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../property_tree.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="accessing.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_propertytree.parsers"></a><a class="link" href="parsers.html" title="How to Populate a Property Tree">How to Populate a Property
+    Tree</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="parsers.html#boost_propertytree.parsers.xml_parser">XML Parser</a></span></dt>
+<dt><span class="section"><a href="parsers.html#boost_propertytree.parsers.json_parser">JSON Parser</a></span></dt>
+<dt><span class="section"><a href="parsers.html#boost_propertytree.parsers.ini_parser">INI Parser</a></span></dt>
+<dt><span class="section"><a href="parsers.html#boost_propertytree.parsers.info_parser">INFO Parser</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_propertytree.parsers.xml_parser"></a><a class="link" href="parsers.html#boost_propertytree.parsers.xml_parser" title="XML Parser">XML Parser</a>
+</h3></div></div></div>
+<p>
+        The <a href="http://en.wikipedia.org/wiki/XML" target="_top">XML format</a> is an
+        industry standard for storing information in textual form. Unfortunately,
+        there is no XML parser in <a href="http://www.boost.org" target="_top">Boost</a>
+        as of the time of this writing. The library therefore contains the fast and
+        tiny <a href="http://rapidxml.sourceforge.net/" target="_top">RapidXML</a> parser
+        (currently in version 1.13) to provide XML parsing support. RapidXML does
+        not fully support the XML standard; it is not capable of parsing DTDs and
+        therefore cannot do full entity substitution.
+      </p>
+<p>
+        By default, the parser will preserve most whitespace, but remove element
+        content that consists only of whitespace. Encoded whitespaces (e.g. &amp;#32;)
+        does not count as whitespace in this regard. You can pass the trim_whitespace
+        flag if you want all leading and trailing whitespace trimmed and all continuous
+        whitespace collapsed into a single space.
+      </p>
+<p>
+        Please note that RapidXML does not understand the encoding specification.
+        If you pass it a character buffer, it assumes the data is already correctly
+        encoded; if you pass it a filename, it will read the file using the character
+        conversion of the locale you give it (or the global locale if you give it
+        none). This means that, in order to parse a UTF-8-encoded XML file into a
+        wptree, you have to supply an alternate locale, either directly or by replacing
+        the global one.
+      </p>
+<p>
+        XML / property tree conversion schema (<code class="computeroutput"><a class="link" href="../boost/property_tree/xml_parser/read_xml_idp96436280.html" title="Function template read_xml">read_xml</a></code>
+        and <code class="computeroutput"><a class="link" href="../boost/property_tree/xml_parser/write_xml_idp97806664.html" title="Function template write_xml">write_xml</a></code>):
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Each XML element corresponds to a property tree node. The child elements
+            correspond to the children of the node.
+          </li>
+<li class="listitem">
+            The attributes of an XML element are stored in the subkey <code class="literal">&lt;xmlattr&gt;</code>.
+            There is one child node per attribute in the attribute node. Existence
+            of the <code class="literal">&lt;xmlattr&gt;</code> node is not guaranteed or necessary
+            when there are no attributes.
+          </li>
+<li class="listitem">
+            XML comments are stored in nodes named <code class="literal">&lt;xmlcomment&gt;</code>,
+            unless comment ignoring is enabled via the flags.
+          </li>
+<li class="listitem">
+            Text content is stored in one of two ways, depending on the flags. The
+            default way concatenates all text nodes and stores them as the data of
+            the element node. This way, the entire content can be conveniently read,
+            but the relative ordering of text and child elements is lost. The other
+            way stores each text content as a separate node, all called <code class="literal">&lt;xmltext&gt;</code>.
+          </li>
+</ul></div>
+<p>
+        The XML storage encoding does not round-trip perfectly. A read-write cycle
+        loses trimmed whitespace, low-level formatting information, and the distinction
+        between normal data and CDATA nodes. Comments are only preserved when enabled.
+        A write-read cycle loses trimmed whitespace; that is, if the origin tree
+        has string data that starts or ends with whitespace, that whitespace is lost.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_propertytree.parsers.json_parser"></a><a class="link" href="parsers.html#boost_propertytree.parsers.json_parser" title="JSON Parser">JSON Parser</a>
+</h3></div></div></div>
+<p>
+        The <a href="http://en.wikipedia.org/wiki/JSON" target="_top">JSON format</a> is
+        a data interchange format derived from the object literal notation of JavaScript.
+        (JSON stands for JavaScript Object Notation.) JSON is a simple, compact format
+        for loosely structured node trees of any depth, very similar to the property
+        tree dataset. It is less structured than XML and has no schema support, but
+        has the advantage of being simpler, smaller and typed without the need for
+        a complex schema.
+      </p>
+<p>
+        The property tree dataset is not typed, and does not support arrays as such.
+        Thus, the following JSON / property tree mapping is used:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            JSON objects are mapped to nodes. Each property is a child node.
+          </li>
+<li class="listitem">
+            JSON arrays are mapped to nodes. Each element is a child node with an
+            empty name. If a node has both named and unnamed child nodes, it cannot
+            be mapped to a JSON representation.
+          </li>
+<li class="listitem">
+            JSON values are mapped to nodes containing the value. However, all type
+            information is lost; numbers, as well as the literals "null",
+            "true" and "false" are simply mapped to their string
+            form.
+          </li>
+<li class="listitem">
+            Property tree nodes containing both child nodes and data cannot be mapped.
+          </li>
+</ul></div>
+<p>
+        JSON round-trips, except for the type information loss.
+      </p>
+<p>
+        For example this JSON:
+      </p>
+<pre class="programlisting"><span class="special">{</span>
+   <span class="string">"menu"</span><span class="special">:</span>
+   <span class="special">{</span>
+      <span class="string">"foo"</span><span class="special">:</span> <span class="keyword">true</span><span class="special">,</span>
+      <span class="string">"bar"</span><span class="special">:</span> <span class="string">"true"</span><span class="special">,</span>
+      <span class="string">"value"</span><span class="special">:</span> <span class="number">102.3E+06</span><span class="special">,</span>
+      <span class="string">"popup"</span><span class="special">:</span>
+      <span class="special">[</span>
+         <span class="special">{</span><span class="string">"value"</span><span class="special">:</span> <span class="string">"New"</span><span class="special">,</span> <span class="string">"onclick"</span><span class="special">:</span> <span class="string">"CreateNewDoc()"</span><span class="special">},</span>
+         <span class="special">{</span><span class="string">"value"</span><span class="special">:</span> <span class="string">"Open"</span><span class="special">,</span> <span class="string">"onclick"</span><span class="special">:</span> <span class="string">"OpenDoc()"</span><span class="special">},</span>
+      <span class="special">]</span>
+   <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+        will be translated into the following property tree:
+      </p>
+<pre class="programlisting"><span class="identifier">menu</span>
+<span class="special">{</span>
+   <span class="identifier">foo</span> <span class="keyword">true</span>
+   <span class="identifier">bar</span> <span class="keyword">true</span>
+   <span class="identifier">value</span> <span class="number">102.3E+06</span>
+   <span class="identifier">popup</span>
+   <span class="special">{</span>
+      <span class="string">""</span>
+      <span class="special">{</span>
+         <span class="identifier">value</span> <span class="identifier">New</span>
+         <span class="identifier">onclick</span> <span class="identifier">CreateNewDoc</span><span class="special">()</span>
+      <span class="special">}</span>
+      <span class="string">""</span>
+      <span class="special">{</span>
+         <span class="identifier">value</span> <span class="identifier">Open</span>
+         <span class="identifier">onclick</span> <span class="identifier">OpenDoc</span><span class="special">()</span>
+      <span class="special">}</span>
+   <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_propertytree.parsers.ini_parser"></a><a class="link" href="parsers.html#boost_propertytree.parsers.ini_parser" title="INI Parser">INI Parser</a>
+</h3></div></div></div>
+<p>
+        The <a href="http://en.wikipedia.org/wiki/INI" target="_top">INI format</a> was
+        once widely used in the world of Windows. It is now deprecated, but is still
+        used by a surprisingly large number of applications. The reason is probably
+        its simplicity, plus that Microsoft recommends using the registry as a replacement,
+        which not all developers want to do.
+      </p>
+<p>
+        INI is a simple key-value format with a single level of sectioning. It is
+        thus less rich than the property tree dataset, which means that not all property
+        trees can be serialized as INI files.
+      </p>
+<p>
+        The INI parser creates a tree node for every section, and a child node for
+        every property in that section. All properties not in a section are directly
+        added to the root node. Empty sections are ignored. (They don't round-trip,
+        as described below.)
+      </p>
+<p>
+        The INI serializer reverses this process. It first writes out every child
+        of the root that contains data, but no child nodes, as properties. Then it
+        creates a section for every child that contains child nodes, but no data.
+        The children of the sections must only contain data. It is an error if the
+        root node contains data, or any child of the root contains both data and
+        content, or there's more than three levels of hierarchy. There must also
+        not be any duplicate keys.
+      </p>
+<p>
+        An empty tree node is assumed to be an empty property. There is no way to
+        create empty sections.
+      </p>
+<p>
+        Since the Windows INI parser discards trailing spaces and does not support
+        quoting, the property tree parser follows this example. This means that property
+        values containing trailing spaces do not round-trip.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_propertytree.parsers.info_parser"></a><a class="link" href="parsers.html#boost_propertytree.parsers.info_parser" title="INFO Parser">INFO Parser</a>
+</h3></div></div></div>
+<p>
+        The INFO format was created specifically for the property tree library. It
+        provides a simple, efficient format that can be used to serialize property
+        trees that are otherwise only stored in memory. It can also be used for any
+        other purpose, although the lack of widespread existing use may prove to
+        be an impediment.
+      </p>
+<p>
+        INFO provides several features that make it familiar to C++ programmers and
+        efficient for medium-sized datasets, especially those used for test input.
+        It supports C-style character escapes, nesting via curly braces, and file
+        inclusion via #include.
+      </p>
+<p>
+        INFO is also used for visualization of property trees in this documentation.
+      </p>
+<p>
+        A typical INFO file might look like this:
+      </p>
+<pre class="programlisting"><span class="identifier">key1</span> <span class="identifier">value1</span>
+<span class="identifier">key2</span>
+<span class="special">{</span>
+   <span class="identifier">key3</span> <span class="identifier">value3</span>
+   <span class="special">{</span>
+      <span class="identifier">key4</span> <span class="string">"value4 with spaces"</span>
+   <span class="special">}</span>
+   <span class="identifier">key5</span> <span class="identifier">value5</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Here's a more complicated file demonstrating all of INFO's features:
+      </p>
+<pre class="programlisting"><span class="special">;</span> <span class="identifier">A</span> <span class="identifier">comment</span>
+<span class="identifier">key1</span> <span class="identifier">value1</span>   <span class="special">;</span> <span class="identifier">Another</span> <span class="identifier">comment</span>
+<span class="identifier">key2</span> <span class="string">"value with special characters in it {};#\n\t\"\0"</span>
+<span class="special">{</span>
+   <span class="identifier">subkey</span> <span class="string">"value split "</span><span class="special">\</span>
+          <span class="string">"over three"</span><span class="special">\</span>
+          <span class="string">"lines"</span>
+   <span class="special">{</span>
+      <span class="identifier">a_key_without_value</span> <span class="string">""</span>
+      <span class="string">"a key with special characters in it {};#\n\t\"\0"</span> <span class="string">""</span>
+      <span class="string">""</span> <span class="identifier">value</span>    <span class="special">;</span> <span class="identifier">Empty</span> <span class="identifier">key</span> <span class="identifier">with</span> <span class="identifier">a</span> <span class="identifier">value</span>
+      <span class="string">""</span> <span class="string">""</span>       <span class="special">;</span> <span class="identifier">Empty</span> <span class="identifier">key</span> <span class="identifier">with</span> <span class="identifier">empty</span> <span class="identifier">value</span><span class="special">!</span>
+   <span class="special">}</span>
+<span class="special">}</span>
+<span class="preprocessor">#include</span> <span class="string">"file.info"</span>    <span class="special">;</span> <span class="identifier">included</span> <span class="identifier">file</span>
+</pre>
+<p>
+        INFO round-trips except for the loss of comments and include directives.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Marcin Kalicinski<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="synopsis.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../property_tree.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="accessing.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

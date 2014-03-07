@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>Iterator Traits</title>
+<meta name="author" content="David Abrahams" />
+<meta name="organization" content="Boost Consulting" />
+<meta name="date" content="2006-09-11" />
+<meta name="copyright" content="Copyright David Abrahams 2004." />
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="iterator-traits">
+<h1 class="title">Iterator Traits</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>David Abrahams</td></tr>
+<tr><th class="docinfo-name">Contact:</th>
+<td><a class="first last reference external" href="mailto:dave&#64;boost-consulting.com">dave&#64;boost-consulting.com</a></td></tr>
+<tr><th class="docinfo-name">Organization:</th>
+<td><a class="first last reference external" href="http://www.boost-consulting.com">Boost Consulting</a></td></tr>
+<tr><th class="docinfo-name">Date:</th>
+<td>2006-09-11</td></tr>
+<tr><th class="docinfo-name">Copyright:</th>
+<td>Copyright David Abrahams 2004.</td></tr>
+</tbody>
+</table>
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">abstract:</th><td class="field-body">Header <tt class="docutils literal"><span class="pre">&lt;boost/iterator/iterator_traits.hpp&gt;</span></tt> provides
+the ability to access an iterator's associated types using
+MPL-compatible <a class="reference external" href="../../mpl/doc/index.html#metafunctions">metafunctions</a>.</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="overview">
+<h1>Overview</h1>
+<p><tt class="docutils literal"><span class="pre">std::iterator_traits</span></tt> provides access to five associated types
+of any iterator: its <tt class="docutils literal"><span class="pre">value_type</span></tt>, <tt class="docutils literal"><span class="pre">reference</span></tt>, <tt class="docutils literal"><span class="pre">pointer</span></tt>,
+<tt class="docutils literal"><span class="pre">iterator_category</span></tt>, and <tt class="docutils literal"><span class="pre">difference_type</span></tt>.  Unfortunately,
+such a &quot;multi-valued&quot; traits template can be difficult to use in a
+metaprogramming context.  <tt class="docutils literal"><span class="pre">&lt;boost/iterator/iterator_traits.hpp&gt;</span></tt>
+provides access to these types using a standard <a class="reference external" href="../../mpl/doc/index.html#metafunctions">metafunctions</a>.</p>
+</div>
+<div class="section" id="summary">
+<h1>Summary</h1>
+<p>Header <tt class="docutils literal"><span class="pre">&lt;boost/iterator/iterator_traits.hpp&gt;</span></tt>:</p>
+<pre class="literal-block">
+template &lt;class Iterator&gt;
+struct iterator_value
+{
+    typedef typename
+      std::iterator_traits&lt;Iterator&gt;::value_type
+    type;
+};
+
+template &lt;class Iterator&gt;
+struct iterator_reference
+{
+    typedef typename
+      std::iterator_traits&lt;Iterator&gt;::reference
+    type;
+};
+
+
+template &lt;class Iterator&gt;
+struct iterator_pointer
+{
+    typedef typename
+      std::iterator_traits&lt;Iterator&gt;::pointer
+    type;
+};
+
+template &lt;class Iterator&gt;
+struct iterator_difference
+{
+    typedef typename
+      detail::iterator_traits&lt;Iterator&gt;::difference_type
+    type;
+};
+
+template &lt;class Iterator&gt;
+struct iterator_category
+{
+    typedef typename
+      detail::iterator_traits&lt;Iterator&gt;::iterator_category
+    type;
+};
+</pre>
+</div>
+<div class="section" id="broken-compiler-notes">
+<h1>Broken Compiler Notes</h1>
+<p>Because of workarounds in Boost, you may find that these
+<a class="reference external" href="../../mpl/doc/index.html#metafunctions">metafunctions</a> actually work better than the facilities provided by
+your compiler's standard library.</p>
+<p>On compilers that don't support partial specialization, such as
+Microsoft Visual C++ 6.0 or 7.0, you may need to manually invoke
+<a class="reference external" href="../../type_traits/index.html#transformations">BOOST_BROKEN_COMPILER_TYPE_TRAITS_SPECIALIZATION</a> on the
+<tt class="docutils literal"><span class="pre">value_type</span></tt> of pointers that are passed to these metafunctions.</p>
+<p>Because of bugs in the implementation of GCC-2.9x, the name of
+<tt class="docutils literal"><span class="pre">iterator_category</span></tt> is changed to <tt class="docutils literal"><span class="pre">iterator_category_</span></tt> on that
+compiler.  A macro, <tt class="docutils literal"><span class="pre">BOOST_ITERATOR_CATEGORY</span></tt>, that expands to
+either <tt class="docutils literal"><span class="pre">iterator_category</span></tt> or <tt class="docutils literal"><span class="pre">iterator_category_</span></tt>, as
+appropriate to the platform, is provided for portability.</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="iterator_traits.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

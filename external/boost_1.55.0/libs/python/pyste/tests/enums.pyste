@@ -1,0 +1,8 @@
+h = AllFromHeader('enums.h')
+rename(h.color.red, 'Red')
+rename(h.color.blue, 'Blue')
+export_values(h.color)
+rename(h.X.choices.bad, 'Bad')
+rename(h.X.choices.good, 'Good')
+rename(h.X.choices, 'Choices')
+

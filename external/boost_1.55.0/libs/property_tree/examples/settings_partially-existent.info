@@ -1,0 +1,6 @@
+settings
+{
+	setting1 15
+	;setting2 9.876						// non-existent
+	;setting3 Alice in Wonderland		// non-existent
+}
